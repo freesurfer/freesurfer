@@ -1,6 +1,6 @@
 #! /usr/bin/tixwish
 
-# $Id: tksurfer.tcl,v 1.48 2003/08/05 19:19:23 kteich Exp $
+# $Id: tksurfer.tcl,v 1.49 2003/08/06 15:40:35 kteich Exp $
 
 package require BLT;
 
@@ -2026,607 +2026,550 @@ proc CreateMenuBar { ifwMenuBar } {
     frame $ifwMenuBar -border 2 -relief raised
   
     # file menu button
-    tkm_MakeMenu $mbwFile "File" { \
-      {command \
-      "Load Surface..." \
-      {DoFileDlog LoadSurface} } \
-      \
-      { cascade "Load Surface Configuration..." { \
-      { command \
-      "Main Vertices" \
-      {DoFileDlog LoadMainSurface} } \
-
-      \
-      { command \
-      "Inflated Vertices" \
-      {DoFileDlog LoadInflatedSurface} } \
-      \
-      { command \
-      "White Vertices" \
-      {DoFileDlog LoadWhiteSurface} } \
-      \
-      { command \
-      "Pial Vertices" \
-      {DoFileDlog LoadPialSurface} } \
-      \
-      { command \
-      "Original Vertices" \
-      {DoFileDlog LoadOriginalSurface} } } } \
-      \
-      {command \
-      "Save Surface" \
-      {} } \
-      \
-      {command \
-      "Save Surface As..." \
-      {DoFileDlog SaveSurfaceAs} } \
-      \
-      { separator } \
-      \
-      \
-      {command "Load Overlay..." \
-      {DoLoadOverlayDlog}} \
-      \
-      {command "Save Overlay As..." \
-      {DoSaveValuesAsDlog} \
-      mg_OverlayLoaded } \
-      \
-      {command \
-      "Load Time Course..." \
-      {DoLoadTimeCourseDlog} } \
-      \
-      { separator } \
-      \
-      {command \
-      "Load Group Descriptor File..." \
-	   {GDF_LoadDlog} } \
-      \
-      { separator } \
-      \
-      {cascade "Curvature" { \
-      {command "Load Curvature..." \
-      {DoFileDlog LoadCurvature}} \
-      \
-      {command "Save Curvature" \
-      {CheckFileAndDoCmd $curv write_binary_curv} \
-      mg_CurvatureLoaded } \
-      \
-      {command "Save Curvature As..." \
-      {DoFileDlog SaveCurvatureAs} \
-      mg_CurvatureLoaded } \
-    }   } \
-      \
-      {cascade "Patch" { \
-      {command "Load Patch..." \
-      {DoFileDlog LoadPatch}} \
-      \
-      {command "Save Patch" \
-      {CheckFileAndDoCmd $patch write_binary_patch} \
-      mg_PatchLoaded } \
-      \
-      {command "Save Patch As..." \
-      {DoFileDlog SavePatchAs} \
-      mg_PatchLoaded } \
-    }   } \
-      \
-      {cascade "Label" { \
-      { command "Load Color Table..." \
-      { DoFileDlog LoadColorTable } } \
-      \
-      {command "Load Label..." \
-      {DoFileDlog LoadLabel}} \
-      \
-      {command "Save Selected Label..." \
-      {DoFileDlog SaveLabelAs} \
-      mg_LabelLoaded } \
-      \
-      {command "Import Annotation..." \
-      {DoFileDlog ImportAnnotation} } \
-      \
-      {command "Export Annotation..." \
-      {DoFileDlog ExportAnnotation} \
-     mg_LabelLoaded } \
-      \
-      {command "Delete All Labels" \
-      {labl_remove_all; UpdateAndRedraw} \
-     mg_LabelLoaded } \
-       } }  \
-      \
-      {cascade "Field Sign" { \
-      {command "Load Field Sign..." \
-      {DoFileDlog LoadFieldSign}} \
-      \
-      {command "Save Field Sign" \
-      {CheckFileAndDoCmd $fs write_fieldsign} \
-      mg_FieldSignLoaded } \
-      \
-      {command "Save Field Sign As..." \
-      {DoFileDlog SaveFieldSignAs} \
-      mg_FieldSignLoaded } \
-    }   } \
-      {cascade "Field Mask" { \
-      {command "Load Field Mask..." \
-      {DoFileDlog LoadFieldMask}} \
-      \
-      {command "Save Field Mask" \
-      {CheckFileAndDoCmd $fm write_fsmask} \
-      mg_FieldMaskLoaded } \
-      \
-      {command "Save Field Mask As..." \
-      {DoFileDlog SaveFieldMaskAs} \
-      mg_FieldMaskLoaded } \
-    }   } 
-      { separator } \
-      \
-          {command \
-      "Quit" \
-      {exit} } }
+    tkm_MakeMenu $mbwFile "File" {
+	{command
+	    "Load Surface..."
+	    {DoFileDlog LoadSurface} }
+	{ cascade "Load Surface Configuration..." {
+	    { command
+		"Main Vertices"
+		{DoFileDlog LoadMainSurface} }
+	    { command
+		"Inflated Vertices"
+		{DoFileDlog LoadInflatedSurface} }
+	    { command
+		"White Vertices"
+		{DoFileDlog LoadWhiteSurface} }
+	    { command
+		"Pial Vertices"
+		{DoFileDlog LoadPialSurface} }
+	    { command
+		"Original Vertices"
+		{DoFileDlog LoadOriginalSurface} } } }
+	{command
+	    "Save Surface"
+	    {} }
+	{command
+	    "Save Surface As..."
+	    {DoFileDlog SaveSurfaceAs} }
+	{ separator }
+	{command "Load Overlay..."
+	    {DoLoadOverlayDlog}}
+	{command "Save Overlay As..."
+	    {DoSaveValuesAsDlog}
+	    mg_OverlayLoaded }
+	{command
+	    "Load Time Course..."
+	    {DoLoadTimeCourseDlog} }
+	{ separator }
+	{command
+	    "Load Group Descriptor File..."
+	    {GDF_LoadDlog} }
+	{ separator }
+	{cascade "Curvature" {
+	    {command "Load Curvature..."
+		{DoFileDlog LoadCurvature}}
+	    {command "Save Curvature"
+		{CheckFileAndDoCmd $curv write_binary_curv}
+		mg_CurvatureLoaded }
+	    {command "Save Curvature As..."
+		{DoFileDlog SaveCurvatureAs}
+		mg_CurvatureLoaded }
+	}}
+	{cascade "Patch" {
+	    {command "Load Patch..."
+		{DoFileDlog LoadPatch}}
+	    {command "Save Patch"
+		{CheckFileAndDoCmd $patch write_binary_patch}
+		mg_PatchLoaded }
+	    {command "Save Patch As..."
+		{DoFileDlog SavePatchAs}
+		mg_PatchLoaded }
+	}}
+	{cascade "Label" {
+	    { command "Load Color Table..."
+		{ DoFileDlog LoadColorTable } }
+	    {command "Load Label..."
+		{DoFileDlog LoadLabel}}
+	    {command "Save Selected Label..."
+		{DoFileDlog SaveLabelAs}
+		mg_LabelLoaded }
+	    {command "Import Annotation..."
+		{DoFileDlog ImportAnnotation} }
+	    {command "Export Annotation..."
+		{DoFileDlog ExportAnnotation}
+		mg_LabelLoaded }
+	    {command "Delete All Labels"
+		{labl_remove_all; UpdateAndRedraw}
+		mg_LabelLoaded }
+	}}
+	{cascade "Field Sign" {
+	    {command "Load Field Sign..."
+		{DoFileDlog LoadFieldSign}}
+	    {command "Save Field Sign"
+		{CheckFileAndDoCmd $fs write_fieldsign}
+		mg_FieldSignLoaded }
+	    {command "Save Field Sign As..."
+		{DoFileDlog SaveFieldSignAs}
+		mg_FieldSignLoaded }
+	}}
+	{cascade "Field Mask" {
+	    {command "Load Field Mask..."
+		{DoFileDlog LoadFieldMask}}
+	    {command "Save Field Mask"
+		{CheckFileAndDoCmd $fm write_fsmask}
+		mg_FieldMaskLoaded }
+	    {command "Save Field Mask As..."
+		{DoFileDlog SaveFieldMaskAs}
+		mg_FieldMaskLoaded }
+	}}   
+	{ separator }
+	{command
+	    "Quit"
+	    {exit} 
+	} 
+    }
 
     # edit menu 
-    tkm_MakeMenu $mbwEdit "Edit" { \
-      { command \
-      "Nothing to Undo" \
-      undo_last_action } \
-      \
-      { separator } \
-      \
-      { command \
-      "Unmark All Vertices" \
-      { clear_all_vertex_marks; UpdateAndRedraw } } \
-      \
-      { command \
-      "Deselect Label" \
-      { labl_select -1; UpdateAndRedraw } \
-	    mg_LabelLoaded } }
+    tkm_MakeMenu $mbwEdit "Edit" {
+	{ command
+	    "Nothing to Undo"
+	    undo_last_action }
+	{ separator }
+	{ command
+	    "Unmark All Vertices"
+	    { clear_all_vertex_marks; UpdateAndRedraw } }
+	{ command
+	    "Deselect Label"
+	    { labl_select -1; UpdateAndRedraw }
+	    mg_LabelLoaded } 
+    }
     
     # view menu
-    tkm_MakeMenu $mbwView "View" { \
-      { cascade \
-      "Tool Bars" { \
-      { check \
-      "Main" \
-      "ShowToolBar main $gbShowToolBar(main)" \
-	    gbShowToolBar(main) } }} \
-      { cascade \
-      "Information" { \
-      { check \
-      "Vertex Index" \
-      "ShowLabel kLabel_VertexIndex $gbShowLabel(kLabel_VertexIndex)"\
-      gbShowLabel(kLabel_VertexIndex) } \
-      { check \
-      "Distance" \
-      "ShowLabel kLabel_Distance $gbShowLabel(kLabel_Distance)"\
-      gbShowLabel(kLabel_Distance) } \
-      { check \
-      "Vertex RAS" \
-      "ShowLabel kLabel_Coords_RAS $gbShowLabel(kLabel_Coords_RAS)"\
-      gbShowLabel(kLabel_Coords_RAS) } \
-      { check \
-      "Vertex MNI Talairach" \
-           "ShowLabel kLabel_Coords_MniTal $gbShowLabel(kLabel_Coords_MniTal)"\
-      gbShowLabel(kLabel_Coords_MniTal) } \
-      { check \
-      "Vertex Talairach" \
-      "ShowLabel kLabel_Coords_Tal $gbShowLabel(kLabel_Coords_Tal)"\
-      gbShowLabel(kLabel_Coords_Tal) } \
-      { check \
-      "MRI Index" \
-      "ShowLabel kLabel_Coords_Index $gbShowLabel(kLabel_Coords_Index)"\
-      gbShowLabel(kLabel_Coords_Index) } \
-      { check \
-      "Vertex Normal" \
-    "ShowLabel kLabel_Coords_Normal $gbShowLabel(kLabel_Coords_Normal)"\
-      gbShowLabel(kLabel_Coords_Normal) } \
-      { check \
-      "Spherical X, Y, Z" \
-           "ShowLabel kLabel_Coords_Sphere_XYZ $gbShowLabel(kLabel_Coords_Sphere_XYZ)"\
-      gbShowLabel(kLabel_Coords_Sphere_XYZ) } \
-      { check \
-      "Spherical Rho, Theta" \
-           "ShowLabel kLabel_Coords_Sphere_RT $gbShowLabel(kLabel_Coords_Sphere_RT)"\
-      gbShowLabel(kLabel_Coords_Sphere_RT) } \
-      { check \
-      "Curvature" \
-      "ShowLabel kLabel_Curvature $gbShowLabel(kLabel_Curvature)"\
-      gbShowLabel(kLabel_Curvature) \
-      mg_CurvatureLoaded } \
-      { check \
-      "Field Sign" \
-      "ShowLabel kLabel_Fieldsign $gbShowLabel(kLabel_Fieldsign)"\
-      gbShowLabel(kLabel_Fieldsign) \
-	mg_FieldSignLoaded} \
-      { check \
-      "Overlay Layer 1" \
-      "ShowLabel kLabel_Val $gbShowLabel(kLabel_Val)"\
-      gbShowLabel(kLabel_Val) \
-      mg_OverlayLoaded } \
-      { check \
-      "Overlay Layer 2" \
-      "ShowLabel kLabel_Val2 $gbShowLabel(kLabel_Val2)"\
-      gbShowLabel(kLabel_Val2) \
-      mg_OverlayLoaded } \
-      { check \
-      "Overlay Layer 3" \
-      "ShowLabel kLabel_ValBak $gbShowLabel(kLabel_ValBak)"\
-      gbShowLabel(kLabel_ValBak) \
-      mg_OverlayLoaded } \
-      { check \
-      "Overlay Layer 4" \
-      "ShowLabel kLabel_Val2Bak $gbShowLabel(kLabel_Val2Bak)"\
-      gbShowLabel(kLabel_Val2Bak) \
-      mg_OverlayLoaded } \
-      { check \
-      "Overlay Layer 5" \
-      "ShowLabel kLabel_ValStat $gbShowLabel(kLabel_ValStat)"\
-      gbShowLabel(kLabel_ValStat) \
-      mg_OverlayLoaded } \
-      { check \
-      "Overlay Layer 6" \
-      "ShowLabel kLabel_ImagVal $gbShowLabel(kLabel_ImagVal)"\
-      gbShowLabel(kLabel_ImagVal) \
-      mg_OverlayLoaded } \
-      { check \
-      "Overlay Layer 7" \
-      "ShowLabel kLabel_Mean $gbShowLabel(kLabel_Mean)"\
-      gbShowLabel(kLabel_Mean) \
-      mg_OverlayLoaded } \
-      { check \
-      "Overlay Layer 8" \
-      "ShowLabel kLabel_MeanImag $gbShowLabel(kLabel_MeanImag)"\
-      gbShowLabel(kLabel_MeanImag) \
-      mg_OverlayLoaded } \
-      { check \
-      "Overlay Layer 9" \
-      "ShowLabel kLabel_StdError $gbShowLabel(kLabel_StdError)"\
-      gbShowLabel(kLabel_StdError) \
-      mg_OverlayLoaded } \
-      { check \
-      "Amplitude" \
-      "ShowLabel kLabel_Amplitude $gbShowLabel(kLabel_Amplitude)"\
-      gbShowLabel(kLabel_Amplitude) } \
-      { check \
-      "Angle" \
-      "ShowLabel kLabel_Angle $gbShowLabel(kLabel_Angle)"\
-      gbShowLabel(kLabel_Angle) } \
-      { check \
-      "Degree" \
-      "ShowLabel kLabel_Degree $gbShowLabel(kLabel_Degree)"\
-      gbShowLabel(kLabel_Degree) } \
-      { check \
-      "Label" \
-      "ShowLabel kLabel_Label $gbShowLabel(kLabel_Label)"\
-      gbShowLabel(kLabel_Label) \
-      mg_LabelLoaded } \
-      { check \
-      "Annotation" \
-      "ShowLabel kLabel_Annotation $gbShowLabel(kLabel_Annotation)"\
-      gbShowLabel(kLabel_Annotation) } \
-      { check \
-      "MRI Value" \
-      "ShowLabel kLabel_MRIValue $gbShowLabel(kLabel_MRIValue)"\
-	    gbShowLabel(kLabel_MRIValue) }}}
-      { cascade "Windows" { \
-      { command \
-      "Labels" \
-      { LblLst_ShowWindow } \
-      mg_LabelLoaded } \
-      { command \
-      "Time Course Graph" \
-      { Graph_ShowWindow } \
-      mg_TimeCourseLoaded }\
-      { command \
-      "Group Plot" \
-      { GDF_ShowCurrentWindow; GDF_SendCurrentPoints} \
-      mg_GDFLoaded } } }\
-      \
-      { separator } \
-      \
-      { cascade "Configure..." { \
-      { command "Lighting..." \
-      {DoConfigLightingDlog} } \
-      \
-      { command "Overlay..." \
-      {DoConfigOverlayDisplayDlog} \
-       mg_OverlayLoaded  } \
-      \
-      { command "Time Course..." \
-      {Graph_DoConfig} \
-      mg_TimeCourseLoaded } \
-      \
-      { command "Curvature Display..." \
-      {DoConfigCurvatureDisplayDlog} \
-      mg_CurvatureLoaded } \
-      \
-      { command "Phase Encoded Data Display..." \
-      {DoConfigPhaseEncodedDataDisplayDlog} } }}\
-      \
-      { separator } \
-      \
-      {cascade "Surface Configuration" { \
-      { radio "Main" \
-      { set_current_vertex_set $gaLinkedVars(vertexset); \
-      UpdateLinkedVarGroup view; UpdateAndRedraw } \
-      gaLinkedVars(vertexset) \
-      0 } \
-      \
-      { radio "Inflated" \
-      { set_current_vertex_set $gaLinkedVars(vertexset); \
-      UpdateLinkedVarGroup view; UpdateAndRedraw } \
-      gaLinkedVars(vertexset) \
-      1 \
-      mg_InflatedVSetLoaded } \
-      \
-      { radio "White" \
-      { set_current_vertex_set $gaLinkedVars(vertexset); \
-      UpdateLinkedVarGroup view; UpdateAndRedraw } \
-      gaLinkedVars(vertexset) \
-      2 \
-      mg_WhiteVSetLoaded } \
-      \
-      { radio "Pial" \
-      { set_current_vertex_set $gaLinkedVars(vertexset); \
-      UpdateLinkedVarGroup view; UpdateAndRedraw } \
-      gaLinkedVars(vertexset) \
-      3 \
-      mg_PialVSetLoaded } \
-      \
-      { radio "Original" \
-      { set_current_vertex_set $gaLinkedVars(vertexset); \
-      UpdateLinkedVarGroup view; UpdateAndRedraw } \
-      gaLinkedVars(vertexset) \
-      4 \
-      mg_OriginalVSetLoaded } } } \
-      \
-      {cascade "Overlay Layer" { \
-      { radio "Overlay Layer 1" \
-      { SetOverlayField } \
-      gaLinkedVars(currentvaluefield) \
-      0 \
-      mg_OverlayLoaded } \
-      \
-      { radio "Overlay Layer 2" \
-      { SetOverlayField } \
-      gaLinkedVars(currentvaluefield) \
-      1 \
-      mg_OverlayLoaded } \
-      \
-      { radio "Overlay Layer 3" \
-      { SetOverlayField } \
-      gaLinkedVars(currentvaluefield) \
-      2 \
-      mg_OverlayLoaded } \
-      \
-      { radio "Overlay Layer 4" \
-      { SetOverlayField } \
-      gaLinkedVars(currentvaluefield) \
-      3 \
-      mg_OverlayLoaded } \
-      \
-      { radio "Overlay Layer 5" \
-      { SetOverlayField } \
-      gaLinkedVars(currentvaluefield) \
-      4 \
-      mg_OverlayLoaded } \
-      \
-      { radio "Overlay Layer 6" \
-      { SetOverlayField } \
-      gaLinkedVars(currentvaluefield) \
-      5 \
-      mg_OverlayLoaded } \
-      \
-      { radio "Overlay Layer 7" \
-      { SetOverlayField } \
-      gaLinkedVars(currentvaluefield) \
-      6 \
-      mg_OverlayLoaded } \
-      \
-      { radio "Overlay Layer 8" \
-      { SetOverlayField } \
-      gaLinkedVars(currentvaluefield) \
-      7 \
-      mg_OverlayLoaded } \
-      \
-      { radio "Overlay Layer 9" \
-      { SetOverlayield } \
-      gaLinkedVars(currentvaluefield) \
-      8 \
-      mg_OverlayLoaded } } } \
-      \
-      {cascade "Label Style" { \
-      { radio "Filled" \
-      { SendLinkedVarGroup label; UpdateAndRedraw } \
-      gaLinkedVars(labelstyle) \
-      0 \
-      mg_LabelLoaded } \
-      \
-      { radio "Outline" \
-      { SendLinkedVarGroup label; UpdateAndRedraw } \
-      gaLinkedVars(labelstyle) \
-      1 \
-      mg_LabelLoaded } } }
-      \
-      { separator } \
-      \
-      { check  \
-      "Auto-redraw" \
-      { SendLinkedVarGroup redrawlock; UpdateAndRedraw } \
-      gaLinkedVars(redrawlockflag) } \
-      \
-      { check  \
-      "Curvature" \
-      { SendLinkedVarGroup view; UpdateAndRedraw } \
-      gaLinkedVars(curvflag) } \
-      \
-      { check  \
-      "Overlay" \
-      { SendLinkedVarGroup view; UpdateAndRedraw } \
-      gaLinkedVars(overlayflag) } \
-      \
-      { check  \
-      "Labels" \
-      { SendLinkedVarGroup label; UpdateAndRedraw } \
-      gaLinkedVars(drawlabelflag) } \
-      \
-      { check  \
-      "Scale Bar" \
-      { SendLinkedVarGroup view; UpdateAndRedraw } \
-      gaLinkedVars(scalebarflag) } \
-      \
-      { check  \
-      "Color Scale Bar" \
-      { SendLinkedVarGroup view; UpdateAndRedraw } \
-      gaLinkedVars(colscalebarflag) } \
-      \
-      { check  \
-      "Wireframe Overlay" \
-      { SendLinkedVarGroup view; UpdateAndRedraw } \
-      gaLinkedVars(verticesflag) } }
+    tkm_MakeMenu $mbwView "View" {
+	{ cascade
+	    "Tool Bars" {
+		{ check
+		    "Main"
+		    "ShowToolBar main $gbShowToolBar(main)"
+		    gbShowToolBar(main) } }}
+	{ cascade
+	    "Information" {
+		{ check
+		    "Vertex Index"
+		    "ShowLabel kLabel_VertexIndex $gbShowLabel(kLabel_VertexIndex)"
+		    gbShowLabel(kLabel_VertexIndex) }
+		{ check
+		    "Distance"
+		    "ShowLabel kLabel_Distance $gbShowLabel(kLabel_Distance)"
+		    gbShowLabel(kLabel_Distance) }
+		{ check
+		    "Vertex RAS"
+		    "ShowLabel kLabel_Coords_RAS $gbShowLabel(kLabel_Coords_RAS)"
+		    gbShowLabel(kLabel_Coords_RAS) }
+		{ check
+		    "Vertex MNI Talairach"
+		    "ShowLabel kLabel_Coords_MniTal $gbShowLabel(kLabel_Coords_MniTal)"
+		    gbShowLabel(kLabel_Coords_MniTal) }
+		{ check
+		    "Vertex Talairach"
+		    "ShowLabel kLabel_Coords_Tal $gbShowLabel(kLabel_Coords_Tal)"
+		    gbShowLabel(kLabel_Coords_Tal) }
+		{ check
+		    "MRI Index"
+		    "ShowLabel kLabel_Coords_Index $gbShowLabel(kLabel_Coords_Index)"
+		    gbShowLabel(kLabel_Coords_Index) }
+		{ check
+		    "Vertex Normal"
+		    "ShowLabel kLabel_Coords_Normal $gbShowLabel(kLabel_Coords_Normal)"
+		    gbShowLabel(kLabel_Coords_Normal) }
+		{ check
+		    "Spherical X, Y, Z"
+		    "ShowLabel kLabel_Coords_Sphere_XYZ $gbShowLabel(kLabel_Coords_Sphere_XYZ)"
+		    gbShowLabel(kLabel_Coords_Sphere_XYZ) }
+		{ check
+		    "Spherical Rho, Theta"
+		    "ShowLabel kLabel_Coords_Sphere_RT $gbShowLabel(kLabel_Coords_Sphere_RT)"
+		    gbShowLabel(kLabel_Coords_Sphere_RT) }
+		{ check
+		    "Curvature"
+		    "ShowLabel kLabel_Curvature $gbShowLabel(kLabel_Curvature)"
+		    gbShowLabel(kLabel_Curvature)
+		    mg_CurvatureLoaded }
+		{ check
+		    "Field Sign"
+		    "ShowLabel kLabel_Fieldsign $gbShowLabel(kLabel_Fieldsign)"
+		    gbShowLabel(kLabel_Fieldsign)
+		    mg_FieldSignLoaded}
+		{ check
+		    "Overlay Layer 1"
+		    "ShowLabel kLabel_Val $gbShowLabel(kLabel_Val)"
+		    gbShowLabel(kLabel_Val)
+		    mg_OverlayLoaded }
+		{ check
+		    "Overlay Layer 2"
+		    "ShowLabel kLabel_Val2 $gbShowLabel(kLabel_Val2)"
+		    gbShowLabel(kLabel_Val2)
+		    mg_OverlayLoaded }
+		{ check
+		    "Overlay Layer 3"
+		    "ShowLabel kLabel_ValBak $gbShowLabel(kLabel_ValBak)"
+		    gbShowLabel(kLabel_ValBak)
+		    mg_OverlayLoaded }
+		{ check
+		    "Overlay Layer 4"
+		    "ShowLabel kLabel_Val2Bak $gbShowLabel(kLabel_Val2Bak)"
+		    gbShowLabel(kLabel_Val2Bak)
+		    mg_OverlayLoaded }
+		{ check
+		    "Overlay Layer 5"
+		    "ShowLabel kLabel_ValStat $gbShowLabel(kLabel_ValStat)"
+		    gbShowLabel(kLabel_ValStat)
+		    mg_OverlayLoaded }
+		{ check
+		    "Overlay Layer 6"
+		    "ShowLabel kLabel_ImagVal $gbShowLabel(kLabel_ImagVal)"
+		    gbShowLabel(kLabel_ImagVal)
+		    mg_OverlayLoaded }
+		{ check
+		    "Overlay Layer 7"
+		    "ShowLabel kLabel_Mean $gbShowLabel(kLabel_Mean)"
+		    gbShowLabel(kLabel_Mean)
+		    mg_OverlayLoaded }
+		{ check
+		    "Overlay Layer 8"
+		    "ShowLabel kLabel_MeanImag $gbShowLabel(kLabel_MeanImag)"
+		    gbShowLabel(kLabel_MeanImag)
+		    mg_OverlayLoaded }
+		{ check
+		    "Overlay Layer 9"
+		    "ShowLabel kLabel_StdError $gbShowLabel(kLabel_StdError)"
+		    gbShowLabel(kLabel_StdError)
+		    mg_OverlayLoaded }
+		{ check
+		    "Amplitude"
+		    "ShowLabel kLabel_Amplitude $gbShowLabel(kLabel_Amplitude)"
+		    gbShowLabel(kLabel_Amplitude) }
+		{ check
+		    "Angle"
+		    "ShowLabel kLabel_Angle $gbShowLabel(kLabel_Angle)"
+		    gbShowLabel(kLabel_Angle) }
+		{ check
+		    "Degree"
+		    "ShowLabel kLabel_Degree $gbShowLabel(kLabel_Degree)"
+		    gbShowLabel(kLabel_Degree) }
+		{ check
+		    "Label"
+		    "ShowLabel kLabel_Label $gbShowLabel(kLabel_Label)"
+		    gbShowLabel(kLabel_Label)
+		    mg_LabelLoaded }
+		{ check
+		    "Annotation"
+		    "ShowLabel kLabel_Annotation $gbShowLabel(kLabel_Annotation)"
+		    gbShowLabel(kLabel_Annotation) }
+		{ check
+		    "MRI Value"
+		    "ShowLabel kLabel_MRIValue $gbShowLabel(kLabel_MRIValue)"
+		    gbShowLabel(kLabel_MRIValue) }
+	    }}
+	{ cascade "Windows" {
+	    { command
+		"Labels"
+		{ LblLst_ShowWindow }
+			mg_LabelLoaded }
+	    { command
+		"Time Course Graph"
+		{ Graph_ShowWindow }
+		mg_TimeCourseLoaded 
+		{ command
+		    "Group Plot"
+		    {GDF_ShowCurrentWindow; GDF_SendCurrentPoints}
+		    mg_GDFLoaded } } 
+	}}
+	{ separator }
+	{ cascade "Configure..." {
+	    { command "Lighting..."
+		{DoConfigLightingDlog} }
+	    { command "Overlay..."
+			    {DoConfigOverlayDisplayDlog}
+		mg_OverlayLoaded  }
+	    { command "Time Course..."
+		{Graph_DoConfig}
+		mg_TimeCourseLoaded }
+	    { command "Curvature Display..."
+		{DoConfigCurvatureDisplayDlog}
+		mg_CurvatureLoaded }
+	    { command "Phase Encoded Data Display..."
+		{DoConfigPhaseEncodedDataDisplayDlog} } }
+	    { separator }
+	    {cascade "Surface Configuration" {
+		{ radio "Main"
+		    { set_current_vertex_set $gaLinkedVars(vertexset)
+			UpdateLinkedVarGroup view
+			UpdateAndRedraw }
+		    gaLinkedVars(vertexset)
+		    0 }
+		{ radio "Inflated"
+		    { set_current_vertex_set $gaLinkedVars(vertexset)
+			UpdateLinkedVarGroup view
+			UpdateAndRedraw }
+		    gaLinkedVars(vertexset)
+		    1
+		    mg_InflatedVSetLoaded }
+		{ radio "White"
+		   { set_current_vertex_set $gaLinkedVars(vertexset)
+		       UpdateLinkedVarGroup view
+		       UpdateAndRedraw }
+		    gaLinkedVars(vertexset)
+		    2
+		    mg_WhiteVSetLoaded }
+		{ radio "Pial"
+		    { set_current_vertex_set $gaLinkedVars(vertexset)
+			UpdateLinkedVarGroup view
+			UpdateAndRedraw }
+		    gaLinkedVars(vertexset)
+		    3
+		    mg_PialVSetLoaded }
+		{ radio "Original"
+		    { set_current_vertex_set $gaLinkedVars(vertexset)
+			UpdateLinkedVarGroup view
+			UpdateAndRedraw }
+		    gaLinkedVars(vertexset)
+		    4
+		    mg_OriginalVSetLoaded }
+	    }}
+	    {cascade "Overlay Layer" {
+		{ radio "Overlay Layer 1"
+		    { SetOverlayField }
+		    gaLinkedVars(currentvaluefield)
+		    0
+		    mg_OverlayLoaded }
+		{ radio "Overlay Layer 2"
+		    { SetOverlayField }
+		    gaLinkedVars(currentvaluefield)
+		    1
+		    mg_OverlayLoaded }
+		{ radio "Overlay Layer 3"
+		    { SetOverlayField }
+		    gaLinkedVars(currentvaluefield)
+		    2
+		    mg_OverlayLoaded }
+		{ radio "Overlay Layer 4"
+		    { SetOverlayField }
+		    gaLinkedVars(currentvaluefield)
+		    3
+		    mg_OverlayLoaded }
+		{ radio "Overlay Layer 5"
+		    { SetOverlayField }
+		    gaLinkedVars(currentvaluefield)
+		    4
+		    mg_OverlayLoaded }
+		{ radio "Overlay Layer 6"
+		    { SetOverlayField }
+		    gaLinkedVars(currentvaluefield)
+		    5
+		    mg_OverlayLoaded }
+		{ radio "Overlay Layer 7"
+		    { SetOverlayField }
+		    gaLinkedVars(currentvaluefield)
+		    6
+		    mg_OverlayLoaded }
+		{ radio "Overlay Layer 8"
+		    { SetOverlayField }
+		    gaLinkedVars(currentvaluefield)
+		    7
+		    mg_OverlayLoaded }
+		{ radio "Overlay Layer 9"
+		    { SetOverlayield }
+		    gaLinkedVars(currentvaluefield)
+		    8
+		    mg_OverlayLoaded }
+	    }}
+	    {cascade "Label Style" {
+		{ radio "Filled"
+		    { SendLinkedVarGroup label
+			UpdateAndRedraw }
+		    gaLinkedVars(labelstyle)
+		    0
+		    mg_LabelLoaded }
+		{ radio "Outline"
+		    { SendLinkedVarGroup label
+			UpdateAndRedraw }
+		    gaLinkedVars(labelstyle)
+		    1
+		    mg_LabelLoaded } }
+	    }}
+	{ separator }
+	{ check 
+	    "Auto-redraw"
+	    { SendLinkedVarGroup redrawlock
+		UpdateAndRedraw }
+	    gaLinkedVars(redrawlockflag) }
+	{ check 
+	    "Curvature"
+	    { SendLinkedVarGroup view
+		UpdateAndRedraw }
+	    gaLinkedVars(curvflag) 
+	    mg_CurvatureLoaded }
+	{ check 
+	    "Overlay"
+	    { SendLinkedVarGroup view
+		UpdateAndRedraw }
+	    gaLinkedVars(overlayflag) 
+	    mg_OverlayLoaded }
+	{ check 
+	    "Labels"
+	    { SendLinkedVarGroup label
+		UpdateAndRedraw }
+	    gaLinkedVars(drawlabelflag) 
+	    mg_LabelLoaded }
+	{ check 
+	    "Scale Bar"
+	    { SendLinkedVarGroup view
+		UpdateAndRedraw }
+	    gaLinkedVars(scalebarflag) }
+	{ check 
+	    "Color Scale Bar"
+	    { SendLinkedVarGroup view
+		UpdateAndRedraw }
+	    gaLinkedVars(colscalebarflag) }
+	{ check 
+	    "Wireframe Overlay"
+	    { SendLinkedVarGroup view
+		UpdateAndRedraw }
+	    gaLinkedVars(verticesflag) }
+    }
 
-    # tools menu
-    tkm_MakeMenu $mbwTools "Tools" { \
-      { command "Save Point" \
-      DoSavePoint } \
-      \
-      { command "Goto Saved Point" \
-      DoGotoPoint } \
-      \
-      { command "Send to Subject..." \
-      { DoSendToSubjectDlog } } \
-      \
-      { command "Select Vertex..." \
-      { DoSelectVertexDlog } } \
-      \
-      { separator } \
-      \
-      { command "Run Script..." \
-      { DoFileDlog RunScript } } \
-      \
-      { separator } \
-      \
-      { cascade "Labels" { \
-      { command "New Label from Marked Vertices" \
-      { labl_new_from_marked_vertices; UpdateAndRedraw } } \
-      \
-      { command "Mark Seleted Label" \
-      { labl_mark_vertices $gnSelectedLabel; UpdateAndRedraw } \
-      mg_LabelLoaded } \
-      \
-      { command "Delete Selected Label" \
-      { labl_remove $gnSelectedLabel; UpdateAndRedraw } \
-      mg_LabelLoaded } \
-      \
-      { command "Delete All Labels" \
-      { labl_remove_all; UpdateAndRedraw } \
-      mg_LabelLoaded } \
-      \
-      { command "Copy Label Statistics to Overlay..." \
-      { DoLabelToOverlayDlog } \
-      mg_LabelLoaded } } } \
-      \
-      { cascade "Cut" { \
-      { command "Cut Line" \
-      { cut_line 0; UpdateAndRedraw } } \
-      \
-      { command "Cut Closed Line" \
-      { cut_line 1; UpdateAndRedraw } } \
-      \
-      { command "Cut Plane" \
-      { cut_plane; UpdateAndRedraw } } \
-      \
-      { command "Clear Cuts" \
-      { restore_ripflags 2; UpdateAndRedraw } } } } \
-      \
-      { cascade "Time Course" { \
-      { command "Graph Marked Vertices Avg" \
-      { func_select_marked_vertices; func_graph_timecourse_selection} \
-      mg_TimeCourseLoaded } \
-      \
-      { command "Graph Label Avg" \
-      { func_select_label; func_graph_timecourse_selection } \
-      mg_TimeCourseLoaded } \
-      \
-      { command "Write Summary of Marked Vertices..." \
-      { DoFileDlog WriteMarkedVerticesTCSummary } \
-      mg_TimeCourseLoaded } \
-      \
-      { command "Write Summary of Label..." \
-      { DoFileDlog WriteLabelTCSummary } \
-      mg_TimeCourseLoaded } \
-      \
-      { command "Save Graph to Postscript File" \
-      { DoFileDlog SaveGraphToPS } \
-      mg_TimeCourseLoaded } } } \
-      \
-      { cascade "Fill" { \
-      { command "Make Fill Boundary" \
-      { fbnd_new_line_from_marked_vertices; \
-      clear_all_vertex_marks; UpdateAndRedraw } } \
-      \
-      { command "Delete Selected Boundary" \
-      { fbnd_remove_selected_boundary } } \
-      \
-      { command "Custom Fill..." \
-      { DoCustomFillDlog; } } \
-      \
-      { command "Fill Stats" \
-      { floodfill_marked_patch 1; UpdateAndRedraw } \
-      mg_OverlayLoaded } \
-      \
-      { command "Fill Curvature" \
-      { floodfill_marked_patch 2; UpdateAndRedraw } \
-      mg_CurvatureLoaded } } } \
-      \
-      { cascade "Surface" { \
-      { command "Smooth Curvature..." \
-      { DoSmoothvCurvatureDlog } \
-      mg_CurvatureLoaded } \
-      \
-      { command "Clear Curvature" \
-      { clear_curvature } \
-      mg_CurvatureLoaded } \
-      \
-      { command "Smooth Overlay..." \
-      { DoSmoothOverlayDlog } \
-      mg_OverlayLoaded } \
-      \
-      { command "Inflate..." \
-      { DoInflateDlog } } \
-      \
-      { command "Swap Surface Fields..." \
-      { DoSwapSurfaceFieldsDlog } } \
-      \
-      { command "Write Decimation..." \
-      { DoDecimationDlog } } \
-      \
-      {command "Write Dipoles..." \
-      {DoFileDlog SaveDipolesAs}} \
-      \
-      { command "Average Background Midpoint" \
-      { UpdateLinkedVarGroup cvavg; \
-      set gaLinkedVars(cmid) $gaLinkedVars(dipavg); \
-      SendLinkedVarGroup cvavg; UpdateAndRedraw } } } } \
-      \
-      { cascade "Group" { \
-      { command "Graph Marked Vertices Avg" \
-      { GDF_PlotAvgMarkedVerts } \
-      mg_GDFLoaded } \
-      \
-      { command "Save Plotted Data to Table" \
-      { DoFileDlog SaveGDFPlotToTable } \
-      mg_GDFLoaded } \
-      \
-      { command "Save Plot to Postscript File" \
-      { DoFileDlog SaveGDFPlotToPS } \
-      mg_GDFLoaded } } } \
-      \
-      { separator } \
-      \
-      { command "Save RGB As..." \
-      { DoFileDlog SaveRGBAs } } \
-      \
-      { command "Make Frame" \
-      { save_rgb_cmp_frame } } }
-      
+    
+    # tools me
+    tkm_MakeMenu $mbwTools "Tools" {
+	{ command 
+	    "Save Point"
+	    DoSavePoint }
+	{ command 
+	    "Goto Saved Point"
+	    DoGotoPoint }
+	{ command 
+	    "Send to Subject..."
+	    { DoSendToSubjectDlog } }
+	{ command 
+	    "Select Vertex..."
+	    { DoSelectVertexDlog } }
+	{ separator }
+	{ command 
+	    "Run Script..."
+	    { DoFileDlog RunScript } }
+	{ separator }
+	{ cascade "Labels" {
+	    { command "New Label from Marked Vertices"
+		{ labl_new_from_marked_vertices; UpdateAndRedraw } }
+	    { command "Mark Seleted Label"
+		{ labl_mark_vertices $gnSelectedLabel
+		    UpdateAndRedraw }
+		mg_LabelLoaded }
+	    { command "Delete Selected Label"
+		{ labl_remove $gnSelectedLabel
+		    UpdateAndRedraw }
+		mg_LabelLoaded }
+	    { command "Delete All Labels"
+		{ labl_remove_all
+		    UpdateAndRedraw }
+		mg_LabelLoaded }
+	    { command "Copy Label Statistics to Overlay..."
+		{ DoLabelToOverlayDlog }
+		mg_LabelLoaded } 
+	}}
+	{ cascade "Cut" {
+	    { command "Cut Line"
+		{ cut_line 0
+		    UpdateAndRedraw } }
+	    { command "Cut Closed Line"
+		{ cut_line 1
+		    UpdateAndRedraw } }
+	    { command "Cut Plane"
+		{ cut_plane
+		    UpdateAndRedraw } }
+	    { command "Clear Cuts"
+		{ restore_ripflags 2
+		    UpdateAndRedraw } }
+	}}
+	{ cascade "Time Course" {
+	    { command "Graph Marked Vertices Avg"
+		{ func_select_marked_vertices
+		    func_graph_timecourse_selection}
+		mg_TimeCourseLoaded }
+	    { command "Graph Label Avg"
+		{ func_select_label
+		    func_graph_timecourse_selection }
+		mg_TimeCourseLoaded }
+	    { command "Write Summary of Marked Vertices..."
+		{ DoFileDlog WriteMarkedVerticesTCSummary }
+		mg_TimeCourseLoaded }
+	    { command "Write Summary of Label..."
+		{ DoFileDlog WriteLabelTCSummary }
+		mg_TimeCourseLoaded }
+	    { command "Save Graph to Postscript File"
+		{ DoFileDlog SaveGraphToPS }
+		mg_TimeCourseLoaded } 
+	}}
+	{ cascade "Fill" {
+	    { command "Make Fill Boundary"
+		{ fbnd_new_line_from_marked_vertices
+		    clear_all_vertex_marks
+		    UpdateAndRedraw } }
+	    { command "Delete Selected Boundary"
+		{ fbnd_remove_selected_boundary } }
+	    { command "Custom Fill..."
+		{ DoCustomFillDlog } }
+	    { command "Fill Stats"
+		{ floodfill_marked_patch 1
+		    UpdateAndRedraw }
+		mg_OverlayLoaded }
+	    { command "Fill Curvature"
+		{ floodfill_marked_patch 2
+		    UpdateAndRedraw }
+		mg_CurvatureLoaded } 
+	}}
+	{ cascade "Surface" {
+	    { command "Smooth Curvature..."
+		{ DoSmoothvCurvatureDlog }
+		mg_CurvatureLoaded }
+	    { command "Clear Curvature"
+		{ clear_curvature }
+		mg_CurvatureLoaded }
+	    { command "Smooth Overlay..."
+		{ DoSmoothOverlayDlog }
+		mg_OverlayLoaded }
+	    { command "Inflate..."
+		{ DoInflateDlog } }
+	    { command "Swap Surface Fields..."
+		{ DoSwapSurfaceFieldsDlog } }
+	    { command "Write Decimation..."
+		{ DoDecimationDlog } }
+	    {command "Write Dipoles..."
+		{DoFileDlog SaveDipolesAs}}
+	    { command "Average Background Midpoint"
+		{ UpdateLinkedVarGroup cvavg
+		    set gaLinkedVars(cmid) $gaLinkedVars(dipavg)
+		    SendLinkedVarGroup cvavg
+		    UpdateAndRedraw } } 
+	}}
+	{ cascade "Group" {
+	    { command "Graph Marked Vertices Avg"
+		{ GDF_PlotAvgMarkedVerts }
+		mg_GDFLoaded }
+	    { command "Save Plotted Data to Table"
+		{ DoFileDlog SaveGDFPlotToTable }
+		mg_GDFLoaded }
+	    { command "Save Plot to Postscript File"
+		{ DoFileDlog SaveGDFPlotToPS }
+		mg_GDFLoaded } } }
+	{ separator }
+	{ command "Save RGB As..."
+	    { DoFileDlog SaveRGBAs } }
+	{ command "Make Frame"
+	    { save_rgb_cmp_frame } }
+    }
 
     pack $mbwFile $mbwEdit $mbwView $mbwTools \
       -side left
