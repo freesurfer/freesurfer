@@ -5779,6 +5779,107 @@ MRI *MRIreadOtl(char *fname, int width, int height, int slices, char *color_file
 
 } /* end MRIreadOtl() */
 
+MRI *MRIreadGeRoi(char *fname, int n_slices)
+{
+
+  MRI *mri;
+  int i;
+  char prefix[STRLEN], postfix[STRLEN];
+  int n_digits;
+  FILE *fp;
+  int width, height;
+  char fname_use[STRLEN];
+  int read_one_flag;
+  int pixel_data_offset;
+  int y;
+
+  if((fp = fopen(fname, "r")) == NULL)
+  {
+    ErrorReturn(NULL, (ERROR_BADFILE, "MRIreadGeRoi(): error opening file %s", fname));
+  }
+
+  fseek(fp, 8, SEEK_SET);
+  fread(&width, 4, 1, fp);  width = orderIntBytes(width);
+  fread(&height, 4, 1, fp);  height = orderIntBytes(height);
+
+  fclose(fp);
+
+  for(i = strlen(fname);i >= 0 && fname[i] != '/';i--);
+  i++;
+
+  n_digits = 0;
+  for(;fname[i] != '\0' && n_digits < 3;i++)
+  {
+    if(isdigit(fname[i]))
+      n_digits++;
+    else
+      n_digits = 0;
+  }  
+
+  if(n_digits < 3)
+  {
+    ErrorReturn(NULL, (ERROR_BADPARM, "MRIreadGeRoi(): bad GE file name (couldn't find three consecutive digits in the base file name)"));
+    return(NULL);
+  }
+
+  strcpy(prefix, fname);
+  prefix[i-3] = '\0';
+
+  strcpy(postfix, &(fname[i]));
+
+  printf("%s---%s\n", prefix, postfix);
+
+  mri = MRIalloc(width, height, n_slices, MRI_SHORT);
+
+  if(mri == NULL)
+  {
+    ErrorReturn(NULL, (ERROR_NOMEMORY, "MRIreadGeRoi(): couldn't allocate MRI structure"));
+  }
+
+  MRIclear(mri);
+
+  read_one_flag = FALSE;
+
+  for(i = 0;i < n_slices;i++)
+  {
+
+    sprintf(fname_use, "%s%03d%s", prefix, i, postfix);
+    if((fp = fopen(fname_use, "r")) != NULL)
+    {
+printf("%s\n", fname_use);
+      fseek(fp, 4, SEEK_SET);
+      fread(&pixel_data_offset, 4, 1, fp);  pixel_data_offset = orderIntBytes(pixel_data_offset);
+      fseek(fp, pixel_data_offset, SEEK_SET);
+
+      for(y = 0;y < mri->height;y++)
+      {
+        if(fread(mri->slices[i][y], 2, mri->width, fp) != mri->width)
+        {
+          fclose(fp);
+          MRIfree(&mri);
+          ErrorReturn(NULL, (ERROR_BADFILE, "MRIreadGeRoi(): error reading from file file %s", fname_use));
+        }
+#ifdef Linux
+        swab(mri->slices[i][y], mri->slices[i][y], 2 * mri->width);
+#endif
+      }
+
+      fclose(fp);
+      read_one_flag = TRUE;
+
+    }
+  }
+
+  if(!read_one_flag)
+  {
+    MRIfree(&mri);
+    ErrorReturn(NULL, (ERROR_BADFILE, "MRIreadGeRoi(): didn't read any ROI files"));
+  }
+
+  return(mri);
+
+} /* end MRIreadGeRoi() */
+
 /*******************************************************************/
 /*******************************************************************/
 /*******************************************************************/
