@@ -22,13 +22,15 @@ int MRIcomputeMeansAndStds(MRI *mri_mean, MRI *mri_std, int ndof) ;
 MRI *MRIfloatToChar(MRI *mri_src, MRI *mri_dst) ;
 
 static int use_wm = 0 ;
+static int use_filled = 0 ;
 static int make_edit_volume = 0 ;
 static char *transform_fname = NULL ;
 
 #define T1_VOLUME     0
 #define WM_VOLUME     1
-#define EDIT_VOLUME   2
-#define MAX_VOLUMES   3
+#define FILLED_VOLUME 2
+#define EDIT_VOLUME   3
+#define MAX_VOLUMES   4
 
 static int first_transform = 0 ;
 
@@ -65,9 +67,11 @@ main(int argc, char *argv[])
 
   for (which = 0 ; which < MAX_VOLUMES ; which++) /* 1st T1, then wm volumes */
   {
-    if ((which > 0 && !use_wm) || (which > 1 && !make_edit_volume))
+    if ((which > 0 && !use_wm) || (which >= FILLED_VOLUME && !use_filled) ||
+        (which >= EDIT_VOLUME  && !make_edit_volume))
       break ;
-    volume_name = which == T1_VOLUME ? "T1" : "wm" ;
+    volume_name = which == T1_VOLUME ? "T1" : 
+      which == FILLED_VOLUME ? "filled" : "wm" ;
 
     /* for each subject specified on cmd line */
     no_transform = first_transform ;
@@ -78,12 +82,18 @@ main(int argc, char *argv[])
       dof++ ;
       subject_name = argv[i] ;
       sprintf(fname, "%s/%s/mri/%s", subjects_dir, subject_name, volume_name) ;
-      fprintf(stderr, "reading %s...", fname) ;
+      fprintf(stderr, "%d of %d: reading %s...", fname, i, argc-1) ;
       mri = MRIread(fname) ;
       if (!mri)
         ErrorExit(ERROR_NOFILE, "%s: could not open volume %s",Progname,fname);
-      if (which == WM_VOLUME)   /* labeled white matter volume - binarize it */
+      if (which == WM_VOLUME)  /* labeled white matter volume - binarize it */
         MRIbinarize(mri, mri, 5, 0, 10) ;
+      else if (which == FILLED_VOLUME)
+      {
+        MRIreplaceValues(mri, mri, 127, 1) ;
+        MRIreplaceValues(mri, mri, 255, 1) ;
+        MRIreplaceValues(mri, mri, 128, 1) ;
+      }
       else if (which == EDIT_VOLUME)
         MRIbinarize(mri, mri, 255, 0, 1) ; /* only edits will survive */
       fprintf(stderr, "done.\n") ;
@@ -176,6 +186,11 @@ get_option(int argc, char *argv[])
     use_wm = make_edit_volume = 1 ;
     fprintf(stderr, 
             "appending wm volume to template and building auto-edit volue.\n");
+    break ;
+  case 'F':
+    use_filled = 1 ;
+    use_wm = 1 ;
+    fprintf(stderr, "appending wm and filled volumes to template.\n") ;
     break ;
   case 'W':
     use_wm = 1 ;
