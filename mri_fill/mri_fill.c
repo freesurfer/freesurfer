@@ -10,7 +10,7 @@
 #include "macros.h"
 #include "proto.h"
 
-static char vcid[] = "$Id: mri_fill.c,v 1.15 1998/05/10 21:45:26 fischl Exp $";
+static char vcid[] = "$Id: mri_fill.c,v 1.16 1998/06/16 20:47:31 fischl Exp $";
 
 /*-------------------------------------------------------------------
                                 CONSTANTS
@@ -787,6 +787,8 @@ find_cutting_plane(MRI *mri, Real x_tal, Real y_tal,Real z_tal,int orientation,
   {
     done = 1 ;
     MRIboundingBox(mri_filled[0], 1, &region) ;
+    if (orientation == MRI_SAGITTAL)/* extend to top and bottom of slice */
+      region.dy = SLICE_SIZE - region.y ;
     MRItalairachToVoxel(mri, x_tal, y_tal,  z_tal, &x, &y, &z) ;
     *pxv = nint(x) ; *pyv = nint(y) ; *pzv = nint(z) ;
     mri_cut = MRIcopy(mri_filled[0], NULL) ;
@@ -921,7 +923,7 @@ find_cutting_plane(MRI *mri, Real x_tal, Real y_tal,Real z_tal,int orientation,
         fprintf(stderr, "slice[%d] @ (%d, %d, %d): area = %d\n", 
                 slice, xv, yv, zv, area[slice]) ;
       
-      if (orientation == MRI_SAGITTAL)  /* extend to top and bottom of slice */
+      if (orientation == MRI_SAGITTAL)/* extend to top and bottom of slice */
         region.dy = SLICE_SIZE - region.y ;
       
       /*    for (yv = region.y ; yv < region.y+region.dy ; yv++)*/
