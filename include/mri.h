@@ -160,7 +160,7 @@ MRI   *MRIscalarMul(MRI *mri_src, MRI *mri_dst, float scalar) ;
 
 /* filtering */
 int   MRIcpolvAllQuadrantsFilled(MRI *mri, int x, int y, int z,int vertex,
-                                 int wsize) ;
+																 int wsize) ;
 MRI   *MRIremoveIslands(MRI *mri_src, MRI*mri_dst, int wsize, int thresh) ;
 MRI   *MRIresegmentThinWMStrands(MRI *mri_src, MRI *mri_dst, int thickness);
 MRI   *MRIthickenThinWMStrands(MRI *mri_src, MRI *mri_dst, int thickness,
@@ -595,9 +595,9 @@ int MRIsetValues(MRI *mri, int val) ;
 
 
 #define BASAL_GANGLIA_FILL   50
-#define THICKEN_FILLED_VAL   200
-#define NBHD_FILLED_VAL      210
-#define VENTRICLE_FILL_VAL   220
-#define DIAGONAL_FILL_VALL   230
+#define THICKEN_FILL         200
+#define NBHD_FILL            210
+#define VENTRICLE_FILL       220
+#define DIAGONAL_FILL        230
 
 #endif
