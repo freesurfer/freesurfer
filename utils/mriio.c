@@ -67,6 +67,7 @@ static void long_buffer_to_image(long *buf, MRI *mri, int slice, int frame) ;
 static void float_buffer_to_image(float *buf, MRI *mri, int slice, int frame) ;
 static void buffer_to_image(BUFTYPE *buf, MRI *mri, int slice, int frame) ;
 static void image_to_buffer(BUFTYPE *buf, MRI *mri, int slice) ;
+static MRI *sdtRead(char *fname, int read_volume, int fream) ;
 static MRI *mncRead(char *fname, int read_volume, int frame) ;
 static MRI *mghRead(char *fname, int read_volume, int frame) ;
 static MRI *genesisRead(char *fname, int read_volume, int frame) ;
@@ -143,6 +144,8 @@ MRIunpackFileName(char *inFname, int *pframe, int *ptype, char *outFname)
       *ptype = MRI_CORONAL_SLICE_DIRECTORY ;
     else if (!strcmp(at, "BSHORT"))
       *ptype = BSHORT_FILE;
+    else if (!strcmp(at, "SDT"))
+      *ptype = SDT_FILE;
     else
       ErrorExit(ERROR_UNSUPPORTED, "unknown file type %s", at);
   }
@@ -162,6 +165,8 @@ MRIunpackFileName(char *inFname, int *pframe, int *ptype, char *outFname)
       *ptype = SIEMENS_FILE;
     else if(is_analyze(outFname))
       *ptype = MRI_ANALYZE_FILE;
+    else if(is_sdt(outFname))
+      *ptype = SDT_FILE;
     else if(is_mgh(outFname))
       *ptype = MRI_MGH_FILE;
     else if(is_mnc(outFname))
@@ -296,12 +301,17 @@ MRIread(char *fpref)
     mri = mncRead(fname, 1, frame) ;
     if (!mri)
       return(NULL) ;
-    break ;
+   break ;
   case MRI_ANALYZE_FILE:
     mri = analyzeRead(fname, 1, frame) ;
     if (!mri)
       return(NULL) ;
     break ;
+  case SDT_FILE:
+    mri = sdtRead(fname, 1, frame) ;
+    if (!mri)
+      return(NULL) ;
+    break;
   default:   /* coronal slice data */
     mri = MRIreadInfo(fname) ;
     if (!mri)
@@ -430,6 +440,11 @@ MRIreadInfo(char *fpref)
     break ;
   case MRI_ANALYZE_FILE:
     mri = analyzeRead(fname, 0, frame) ;
+    if (!mri)
+      return(NULL) ;
+    break ;
+  case SDT_FILE:
+    mri = sdtRead(fname, 0, frame) ;
     if (!mri)
       return(NULL) ;
     break ;
@@ -2326,10 +2341,10 @@ MRIreorder(MRI *mri_src, MRI *mri_dst, int xdim, int ydim, int zdim)
           x = xs ;
         switch (abs(xdim))
         {
-        case XDIM: xd = x ; break ;
-        case YDIM: yd = x ; break ;
-        default:
-        case ZDIM: zd = x ; break ;
+          case XDIM: xd = x ; break ;
+          case YDIM: yd = x ; break ;
+          default:
+          case ZDIM: zd = x ; break ;
         }
         MRIvox(mri_dst, xd, yd, zd) = MRIvox(mri_src, xs, ys, zs) ;
       }
@@ -3670,6 +3685,203 @@ bshortWrite(MRI *mri, char *fname, int frame)
     fclose(fp);
 
   }
+
+  free(buf);
+
+  return(1);
+
+} /* end bshortWrite() */
+
+static MRI *sdtRead(char *fname, int read_volume, int frame)
+{
+
+  char header_fname[STR_LEN];
+  char line[STR_LEN];
+  char *colon, *dot;
+  FILE *fp;
+  MRI *mri;
+  int ndim = -1, data_type = -1;
+  int dim[4];
+  float xsize = 1.0, ysize = 1.0, zsize = 1.0, dummy_size;
+  int orientation = MRI_CORONAL;
+
+  dim[0] = -1;
+  dim[1] = -1;
+  dim[2] = -1;
+  dim[3] = -1;
+
+  /* form the header file name */
+  strcpy(header_fname, fname);
+  if((dot = strrchr(header_fname, '.')))
+    sprintf(dot+1, "spr");
+  else
+    strcat(header_fname, ".spr");
+
+  /* open the header */
+  if((fp = fopen(header_fname, "r")) == NULL)
+    ErrorReturn(NULL, (ERROR_BADFILE, "sdtRead(%s): could not open header file %s\n", fname, header_fname));
+
+  while(!feof(fp))
+  {
+    fgets(line, STR_LEN, fp);
+    if((colon = strchr(line, ':')))
+    {
+      *colon = '\0';
+      colon++;
+      if(strcmp(line, "numDim") == 0)
+      {
+        sscanf(colon, "%d", &ndim);
+        if(ndim < 3 || ndim > 4)
+          {
+          fclose(fp);
+          ErrorReturn(NULL, (ERROR_UNSUPPORTED, "sdtRead(%s): only 3 or 4 dimensions supported (numDim = %d)\n", fname, ndim));
+          }
+      }
+      else if(strcmp(line, "dim") == 0)
+      {
+        if(ndim == -1)
+        {
+          fclose(fp);
+          ErrorReturn(NULL, (ERROR_BADFILE, "sdtRead(%s): 'dim' before 'numDim' in header file %s\n", fname, header_fname));
+        }
+        if(ndim == 3)
+        {
+          sscanf(colon, "%d %d %d", &dim[0], &dim[1], &dim[2]);
+          dim[3] = 1;
+        }
+        else
+        {
+          sscanf(colon, "%d %d %d %d", &dim[0], &dim[1], &dim[2], &dim[3]);
+          if(dim[3] != 1)
+          {
+            fclose(fp);
+            ErrorReturn(NULL, (ERROR_UNSUPPORTED, "sdtRead(%s): nframes != 1 unsupported for sdt (dim(4) = %d)\n", fname, dim[3]));
+        while(isspace(*colon))
+        }
+      }
+      else if(strcmp(line, "dataType") == 0)
+      {
+        while(isspace((int)*colon))
+          colon++;
+        if(strncmp(colon, "BYTE", 4) == 0)
+          data_type = MRI_UCHAR;
+        else if(strncmp(colon, "WORD", 4) == 0)
+          data_type = MRI_SHORT;
+        else if(strncmp(colon, "LWORD", 5) == 0)
+          data_type = MRI_INT;
+        else if(strncmp(colon, "REAL", 4) == 0)
+          data_type = MRI_FLOAT;
+        else if(strncmp(colon, "COMPLEX", 7) == 0)
+        {
+          fclose(fp);
+          ErrorReturn(NULL, (ERROR_UNSUPPORTED, "sdtRead(%s): unsupported data type '%s'\n", fname, colon));
+        }
+        else
+        {
+          fclose(fp);
+          ErrorReturn(NULL, (ERROR_BADFILE, "sdtRead(%s): unknown data type '%s'\n", fname, colon));
+        }
+      }
+      else if(strcmp(line, "interval") == 0)
+      {
+        if(ndim == 3)
+          sscanf(colon, "%f %f %f", &xsize, &ysize, &zsize);
+        else
+          sscanf(colon, "%f %f %f %f", &xsize, &ysize, &zsize, &dummy_size);
+        xsize *= 10.0;
+        while(isspace(*colon))
+        zsize *= 10.0;
+      }
+      else if(strcmp(line, "sdtOrient") == 0)
+      {
+        while(isspace((int)*colon))
+          colon++;
+        if(strncmp(colon, "sag", 3) == 0)
+          orientation = MRI_SAGITTAL;
+        else if(strncmp(colon, "ax", 2) == 0)
+          orientation = MRI_HORIZONTAL;
+        else if(strncmp(colon, "cor", 3) == 0)
+          orientation = MRI_CORONAL;
+        else
+        {
+          fclose(fp);
+          ErrorReturn(NULL, (ERROR_BADFILE, "sdtRead(%s): unknown orientation %s\n", fname, colon));
+        }
+      }
+      else
+      {
+      }
+    }
+  }
+
+  fclose(fp);
+
+  if(data_type == -1)
+    ErrorReturn(NULL, (ERROR_BADFILE, "sdtRead(%s): data type undefined\n", fname));
+  if(dim[0] == -1 || dim[1] == -1 || dim[2] == -1)
+    ErrorReturn(NULL, (ERROR_BADFILE, "sdtRead(%s): one or more dimensions undefined\n", fname));
+
+  if(read_volume)
+  {
+    if((fp = fopen(fname, "r")) == NULL)
+      ErrorReturn(NULL, (ERROR_BADFILE, "sdtRead(%s): error opening data file %s\n", fname, fname));
+
+    mri = MRIreadRaw(fp, dim[0], dim[1], dim[2], data_type);
+
+    if(mri == NULL)
+      return(NULL);
+
+    fclose(fp);
+
+  }
+  else
+  {
+    mri = MRIallocHeader(dim[0], dim[1], dim[2], data_type);
+    if(mri == NULL)
+      return(NULL);
+  }
+
+  mri->xsize = xsize;
+  mri->ysize = ysize;
+  mri->zsize = zsize;
+
+  mri->slice_direction = orientation;
+
+  if(orientation == MRI_CORONAL)
+  {
+    mri->xdir = XDIM;
+    mri->ydir = YDIM;
+    mri->zdir = ZDIM;
+  }
+  if(orientation == MRI_SAGITTAL)
+  {
+    mri->xdir = ZDIM;
+    mri->ydir = YDIM;
+    mri->zdir = XDIM;
+  }
+  if(orientation == MRI_HORIZONTAL)
+  {
+    mri->xdir = XDIM;
+    mri->ydir = -ZDIM;
+    mri->zdir = YDIM;
+
+  }
+
+  mri->thick = mri->zsize;
+  mri->xend = mri->xsize * mri->width / 2.;
+  mri->yend = mri->ysize * mri->height / 2.;
+  mri->zend = mri->zsize * mri->depth / 2.;
+  mri->xstart = -mri->xend;
+  mri->ystart = -mri->yend;
+  mri->zstart = -mri->zend;
+
+  mri->imnr0 = 1;
+  mri->imnr1 = dim[2];
+
+  mri->ps = 1.0 /*0.001*/;
+  mri->tr = 0 ;
+  mri->te = 0 ;
+  mri->ti = 0 ;
 
   c = header->hist.originator[4]; header->hist.originator[4] = header->hist.originator[5]; header->hist.originator[5] = c;
   c = header->hist.originator[6]; header->hist.originator[6] = header->hist.originator[7]; header->hist.originator[7] = c;
