@@ -12,7 +12,7 @@
 #include "fio.h"
 
 #ifndef lint
-static char vcid[] = "$Id: mri_convert_mdh.c,v 1.1 2003/05/26 05:54:36 greve Exp $";
+static char vcid[] = "$Id: mri_convert_mdh.c,v 1.2 2003/05/26 06:36:43 greve Exp $";
 #endif /* lint */
 
 #define MDH_SIZE_V15    128        //Number of bytes in the V1.5 miniheader
@@ -34,7 +34,7 @@ float MDHtimeStamp0(char *measoutpath);
 int MDHnSamplesPerLine(char *measoutpath);
 int MDHbytesPerLine(char *measoutpath);
 int MDHbytesPerChunk(char *measoutpath);
-int MDHnPCN(char *measoutpath);
+int MDHnPCNs(char *measoutpath);
 int MDHnPhaseEncodeLines(char *measoutpath);
 int MDHnEchos(char *measoutpath);
 int MDHnSlices(char *measoutpath);
@@ -46,6 +46,8 @@ float MDHreadTR(char *measoutpath);
 float MDHreadTE(char *measoutpath, int nthEcho);
 int MDHfastestDim(char *measoutpath);
 char *MDHparseMrProt(char *file, char *TagString);
+int MDHversion(char *measoutdir);
+char *MDHascPath(char *measoutdir);
 int AssignFakeDCs(MRI *mri, float dcSag, float dcCor, float dcTra);
 
 /*--------------------------------------------------------------------*/
@@ -72,7 +74,7 @@ int main(int argc, char **argv)
   float adc[10000];
   MDH *mdh = NULL;
   int n,d, err;
-  int nSamplesPerLine, nPCN, nEchos, nPELs, nSlices, nFrames, FastestDim;
+  int nSamplesPerLine, nPCNs, nEchos, nPELs, nSlices, nFrames, FastestDim;
   float Thickness, dcSag, dcCor, dcTra, TR, TE[500];
   float PhaseEncodeFOV, ReadoutFOV, FlipAngle;
   char *tmpstr;
@@ -82,6 +84,8 @@ int main(int argc, char **argv)
   int s,f,e,p,l;
   char fname[1000];
   char measoutpath[2000];
+  int mdhversion;
+  char *mdhascfile;
 
   Progname = argv[0] ;
   argc --;
@@ -100,26 +104,43 @@ int main(int argc, char **argv)
     exit(1);
   }
 
+  mdhversion = MDHversion(srcdir);
+  if(mdhversion == -1){
+    printf("ERROR: cannot find MDH ascii file\n");
+    exit(1);
+  }
+  if(mdhversion != 15 && mdhversion != 21){
+    printf("ERROR: MDH version %d unrecognized\n",mdhversion);
+    exit(1);
+  }
+  if(mdhversion == 21){
+    printf("ERROR: no support for version 21 yet\n");
+    exit(1);
+  }
+
+  printf("MDH Version %d\n",mdhversion);
+  mdhascfile = MDHascPath(srcdir);
+
   nSamplesPerLine = MDHnSamplesPerLine(measoutpath);
-  nPCN = MDHnPCN(measoutpath);
-  nEchos = MDHnEchos(measoutpath);
-  nPELs = MDHnPhaseEncodeLines(measoutpath);
+  nPCNs   = MDHnPCNs(measoutpath);
+  nEchos  = MDHnEchos(measoutpath);
+  nPELs   = MDHnPhaseEncodeLines(measoutpath);
   nSlices = MDHnSlices(measoutpath);
   nFrames = MDHnFrames(measoutpath);
-  TR = MDHreadTR(measoutpath);
-  Thickness = MDHsliceDirCos(measoutpath,&dcSag,&dcCor,&dcTra);
+  TR      = MDHreadTR(measoutpath);
+  Thickness  = MDHsliceDirCos(measoutpath,&dcSag,&dcCor,&dcTra);
   FastestDim = MDHfastestDim(measoutpath);
-  tmpstr = MDHparseMrProt("MrProt.asc", "sSliceArray.asSlice[0].dPhaseFOV");
+  tmpstr = MDHparseMrProt(mdhascfile, "sSliceArray.asSlice[0].dPhaseFOV");
   sscanf(tmpstr,"%f",&PhaseEncodeFOV);
   free(tmpstr);
-  tmpstr = MDHparseMrProt("MrProt.asc", "sSliceArray.asSlice[0].dReadoutFOV");
+  tmpstr = MDHparseMrProt(mdhascfile, "sSliceArray.asSlice[0].dReadoutFOV");
   sscanf(tmpstr,"%f",&ReadoutFOV);
   free(tmpstr);
-  tmpstr = MDHparseMrProt("MrProt.asc", "dFlipAngleDegree");
+  tmpstr = MDHparseMrProt(mdhascfile, "dFlipAngleDegree");
   sscanf(tmpstr,"%f",&FlipAngle);
   free(tmpstr);
 
-  printf("TR = %g, nSPL = %d, nPCN = %d\n",TR,nSamplesPerLine,nPCN);
+  printf("TR = %g, nSPL = %d, nPCNs = %d\n",TR,nSamplesPerLine,nPCNs);
   printf("nFrames = %d, nSlices = %d, nEchos = %d, nPELs = %d\n",
 	 nFrames,nSlices,nEchos,nPELs);
   printf("Thick = %g, DC: %g, %g, %g\n",Thickness,dcSag,dcCor,dcTra);
@@ -140,6 +161,8 @@ int main(int argc, char **argv)
     perror(NULL);    
     exit(1);
   }
+
+  if(rev) printf("INFO: applying reversals\n");
 
   echor = (MRI**) calloc(sizeof(MRI*),nEchos);
   echoi = (MRI**) calloc(sizeof(MRI*),nEchos);
@@ -168,8 +191,8 @@ int main(int argc, char **argv)
     AssignFakeDCs(echoi[n], dcSag, dcCor, dcTra); /* bogus */
 
   }
-  pcnr = MRIallocSequence(nSamplesPerLine,nPCN,nSlices,MRI_FLOAT,nFrames);
-  pcni = MRIallocSequence(nSamplesPerLine,nPCN,nSlices,MRI_FLOAT,nFrames);
+  pcnr = MRIallocSequence(nSamplesPerLine,nPCNs,nSlices,MRI_FLOAT,nFrames);
+  pcni = MRIallocSequence(nSamplesPerLine,nPCNs,nSlices,MRI_FLOAT,nFrames);
 
   fp = fopen(measoutpath,"r");
   fread(&offset,sizeof(long),1, fp);
@@ -183,12 +206,12 @@ int main(int argc, char **argv)
     for(s=0; s < nSlices; s++){
 
       /* Phase Encodes Navigators */
-      for(p=0; p < nPCN; p++){
+      for(p=0; p < nPCNs; p++){
 	fseek(fp,MDH_SIZE_V15,SEEK_CUR); /* skip header */
 	fread(adc,sizeof(float), 2*nSamplesPerLine, fp);
 	rptr = (float*) pcnr->slices[d][p];
 	iptr = (float*) pcni->slices[d][p];
-	if(p%2 != 0){
+	if((p+1)%2 != 0 || !rev){
 	  /* odd p */
 	  for(n=0; n < 2*nSamplesPerLine; n += 2){
 	    (*rptr++) = adc[n];
@@ -212,7 +235,7 @@ int main(int argc, char **argv)
 	  fread(adc,sizeof(float), 2*nSamplesPerLine, fp);
 	  rptr = (float*) echor[e]->slices[d][l];
 	  iptr = (float*) echoi[e]->slices[d][l];
-	  if(l%2 != 0){
+	  if((l+1)%2 != 0 || !rev){
 	    /* odd line */
 	    for(n=0; n < 2*nSamplesPerLine; n += 2){
 	      (*rptr++) = adc[n];
@@ -355,7 +378,51 @@ static void print_help(void)
   print_usage() ;
   printf("\n");
   printf("%s\n", vcid) ;
-  printf("help");
+  printf("\n");
+  printf("
+
+Probes or converts a Siemens proprietary format (MDH) file to MGH format. 
+
+If an output directory is not specified, then the MDH file is probed,
+and the various parameters are printed to stdout.
+
+When an output is specified, the output will have two parts: phase
+correction navigators and echos.  The phase correction navigators will
+be stored in pcnr.mgh (real) and pcni.mgh (imaginary).  The echos will
+be stored in echoNr.mgh (real) and echoNi.mgh (imaginary), where N is
+the echo number (starting with 0).
+
+--srcdir dir
+
+Directory with the meas.out file and the ascii file. The meas.out file
+contains the measured k-space data in Siemens MDH format (which includes
+miniheaders). The meas.out file must be accompanied by an ascii file
+called either MrProt.asc or mrprot.asc (NUMARIS 4 VA15) or meas.asc
+(NUMARIS 4 VA21). The version is determined by the name of this file.
+
+--outdir dir
+
+Directory where the ouput will be stored. If this directory does not
+exist, it will be created (only for one level). 
+
+--rev
+
+Reverse the readouts for even lines. Bug: should reverse lines for
+even number echos, but does not do this yet.
+
+BUGS:
+
+Lines of even-numbered echos are not reversed with --rev.
+
+Does not handle version V21 yet.
+
+Does not handle 3D sequences yet.
+
+Does not handle FLASH  sequences yet.
+
+Does not handle multiple channels yet.
+
+  ");
   exit(1) ;
 }
 /* --------------------------------------------- */
@@ -429,6 +496,67 @@ static int stringmatch(char *str1, char *str2)
 
 /*----------------------------------------------------------*/
 /*----------------------------------------------------------*/
+/*----------------------------------------------------------
+  MDHversion() - determines the NUMARIS version number given
+  the directory where the meas.out lives. The version is
+  determined by the name of the ascii file.
+  ----------------------------------------------------------*/
+int MDHversion(char *measoutdir)
+{
+  char fname[2000];
+
+  sprintf(fname,"%s/MrProt.asc",measoutdir);
+  if(fio_FileExistsReadable(fname))  return(15);
+
+  sprintf(fname,"%s/mrprot.asc",measoutdir);
+  if(fio_FileExistsReadable(fname))  return(15);
+
+  sprintf(fname,"%s/meas.asc",measoutdir);
+  if(fio_FileExistsReadable(fname))  return(21);
+
+  return(-1);
+}
+/*----------------------------------------------------------
+  MDHascPath() - returns the path to the MDH ascii file. This
+  will be either measoutdir/mrprot.asc (for NUMARIS 1.5) or
+  measoutdir/MrProt.asc (also 1.5) or measoutdir/meas.asc 
+  (for NUMARIS 2.1). Returns NULL if this file cannot be
+  found.
+  ----------------------------------------------------------*/
+char *MDHascPath(char *measoutdir)
+{
+  char fname[2000];
+  char *mrprot;
+  int len;
+
+  sprintf(fname,"%s/MrProt.asc",measoutdir);
+  if(fio_FileExistsReadable(fname)){
+    len = strlen(fname);
+    mrprot = (char *) calloc(sizeof(char),len+1);
+    memcpy(mrprot,fname,len);
+    return(mrprot);
+  }
+
+  sprintf(fname,"%s/mrprot.asc",measoutdir);
+  if(fio_FileExistsReadable(fname)){
+    len = strlen(fname);
+    mrprot = (char *) calloc(sizeof(char),len+1);
+    memcpy(mrprot,fname,len);
+    return(mrprot);
+  }
+
+  sprintf(fname,"%s/meas.asc",measoutdir);
+  if(fio_FileExistsReadable(fname)){
+    len = strlen(fname);
+    mrprot = (char *) calloc(sizeof(char),len+1);
+    memcpy(mrprot,fname,len);
+    return(mrprot);
+  }
+
+  return(NULL);
+}
+
+
 /*----------------------------------------------------------*/
 MDH *ReadMiniHeader(FILE *fp, MDH *mdh)
 {
@@ -588,14 +716,14 @@ int MDHbytesPerChunk(char *measoutpath)
   return(BytesPerChunk);
 }
 /*-----------------------------------------------------------------------
-  MDHnPCN() - returns the number of phase correction navigators
+  MDHnPCNs() - returns the number of phase correction navigators
   collected per slice based on the number in the first slice.
   --------------------------------------------------------------------------*/
-int MDHnPCN(char *measoutpath)
+int MDHnPCNs(char *measoutpath)
 {
   MDH *mdh=NULL;
   FILE *fp;
-  int nPCN;
+  int nPCNs;
   unsigned long offset;
   
   fp = fopen(measoutpath,"r");
@@ -606,17 +734,17 @@ int MDHnPCN(char *measoutpath)
   fread(&offset,sizeof(long),1, fp);
   fseek(fp,offset,SEEK_SET);
 
-  nPCN = 0;
+  nPCNs = 0;
   while(1){
     mdh = ReadMiniHeader(fp,mdh);
     fseek(fp,2*mdh->Ncols*sizeof(float),SEEK_CUR);
     if(! mdh->IsPCN) break;
-    nPCN ++;
+    nPCNs ++;
   }
 
   free(mdh);
   fclose(fp);
-  return(nPCN);
+  return(nPCNs);
 }
 
 /*-----------------------------------------------------------------------
@@ -628,17 +756,17 @@ int MDHnSlices(char *measoutpath)
   MDH *mdh=NULL;
   FILE *fp;
   unsigned long offset;
-  int nSlices, nPCN, nEchos, nPELs, chunksize;
+  int nSlices, nPCNs, nEchos, nPELs, chunksize;
   int BytesPerSlice, BytesPerSliceB;
   
   chunksize = MDHbytesPerChunk(measoutpath);
   if(chunksize < 0) return(-1);
-  nPCN   = MDHnPCN(measoutpath);
+  nPCNs   = MDHnPCNs(measoutpath);
   nEchos = MDHnEchos(measoutpath);
   nPELs  = MDHnPhaseEncodeLines(measoutpath);
 
   // Bytes per slice, including headers and PCNs
-  BytesPerSlice  = chunksize*(nPCN + nEchos*nPELs);
+  BytesPerSlice  = chunksize*(nPCNs + nEchos*nPELs);
   // Bytes per slice, minus one header size
   BytesPerSliceB = BytesPerSlice-MDH_SIZE_V15;
 
@@ -670,12 +798,12 @@ int MDHslicePosition(char *measoutpath, int Slice, float *Sag, float *Cor, float
   MDH *mdh=NULL;
   FILE *fp;
   unsigned long offset;
-  int nSlices, nPCN, nEchos, nPELs, chunksize;
+  int nSlices, nPCNs, nEchos, nPELs, chunksize;
   int BytesPerSlice;
   
   chunksize = MDHbytesPerChunk(measoutpath);
   if(chunksize < 0) return(1);
-  nPCN   = MDHnPCN(measoutpath);
+  nPCNs   = MDHnPCNs(measoutpath);
   nEchos = MDHnEchos(measoutpath);
   nPELs  = MDHnPhaseEncodeLines(measoutpath);
   nSlices = MDHnSlices(measoutpath);
@@ -687,7 +815,7 @@ int MDHslicePosition(char *measoutpath, int Slice, float *Sag, float *Cor, float
   }
 
   // Bytes per slice, including headers and PCNs
-  BytesPerSlice  = chunksize*(nPCN + nEchos*nPELs);
+  BytesPerSlice  = chunksize*(nPCNs + nEchos*nPELs);
 
   fp = fopen(measoutpath,"r");
   fread(&offset,sizeof(long),1, fp);
@@ -749,18 +877,18 @@ int MDHnFrames(char *measoutpath)
   MDH *mdh=NULL;
   FILE *fp;
   unsigned long offset;
-  int nFrames, nSlices, nPCN, nEchos, nPELs, chunksize;
+  int nFrames, nSlices, nPCNs, nEchos, nPELs, chunksize;
   int BytesPerFrame, BytesPerFrameB;
   
   chunksize = MDHbytesPerChunk(measoutpath);
   if(chunksize < 0) return(-1);
-  nPCN    = MDHnPCN(measoutpath);
+  nPCNs    = MDHnPCNs(measoutpath);
   nEchos  = MDHnEchos(measoutpath);
   nPELs   = MDHnPhaseEncodeLines(measoutpath);
   nSlices = MDHnSlices(measoutpath);
 
   // Bytes per frame, including headers and PCNs
-  BytesPerFrame  = chunksize*nSlices*(nPCN + nEchos*nPELs);
+  BytesPerFrame  = chunksize*nSlices*(nPCNs + nEchos*nPELs);
   // Bytes per frame, minus one header size
   BytesPerFrameB = BytesPerFrame-MDH_SIZE_V15;
 
@@ -791,7 +919,7 @@ int MDHnEchos(char *measoutpath)
   FILE *fp;
   int nEchos;
   unsigned long offset;
-  int nPCN, chunksize;
+  int nPCNs, chunksize;
   
   chunksize = MDHbytesPerChunk(measoutpath);
   if(chunksize < 0) return(-1);
@@ -800,8 +928,8 @@ int MDHnEchos(char *measoutpath)
   fseek(fp,offset,SEEK_SET);
 
   // Get past the phase correction navigators
-  nPCN = MDHnPCN(measoutpath);
-  fseek(fp,nPCN*chunksize,SEEK_CUR);
+  nPCNs = MDHnPCNs(measoutpath);
+  fseek(fp,nPCNs*chunksize,SEEK_CUR);
 
   nEchos = -1;
   while(1){
@@ -826,7 +954,7 @@ int MDHnPhaseEncodeLines(char *measoutpath)
   FILE *fp;
   int nPhaseEncodeLines;
   unsigned long offset;
-  int nPCN, chunksize;
+  int nPCNs, chunksize;
   
   chunksize = MDHbytesPerChunk(measoutpath);
   if(chunksize < 0) return(-1);
@@ -835,8 +963,8 @@ int MDHnPhaseEncodeLines(char *measoutpath)
   fseek(fp,offset,SEEK_SET);
 
   // Get past the phase correction navigators
-  nPCN = MDHnPCN(measoutpath);
-  fseek(fp,nPCN*chunksize,SEEK_CUR);
+  nPCNs = MDHnPCNs(measoutpath);
+  fseek(fp,nPCNs*chunksize,SEEK_CUR);
 
   nPhaseEncodeLines = -1;
   while(1){
@@ -861,13 +989,13 @@ float MDHreadTR(char *measoutpath)
   MDH *mdh=NULL;
   FILE *fp;
   unsigned long offset;
-  int nFrames, nSlices, nPCN, nEchos, nPELs, chunksize;
+  int nFrames, nSlices, nPCNs, nEchos, nPELs, chunksize;
   int BytesPerFrame, BytesPerFrameB;
   float TimeStamp0, TimeStamp1, TR;
   
   chunksize = MDHbytesPerChunk(measoutpath);
   if(chunksize < 0) return(-1);
-  nPCN    = MDHnPCN(measoutpath);
+  nPCNs    = MDHnPCNs(measoutpath);
   nEchos  = MDHnEchos(measoutpath);
   nPELs   = MDHnPhaseEncodeLines(measoutpath);
   nSlices = MDHnSlices(measoutpath);
@@ -875,7 +1003,7 @@ float MDHreadTR(char *measoutpath)
   if(nFrames == 1) return(0);
 
   // Bytes per frame, including headers and PCNs
-  BytesPerFrame  = chunksize*nSlices*(nPCN + nEchos*nPELs);
+  BytesPerFrame  = chunksize*nSlices*(nPCNs + nEchos*nPELs);
   // Bytes per frame, minus one header size
   BytesPerFrameB = BytesPerFrame-MDH_SIZE_V15;
 
@@ -914,18 +1042,18 @@ int MDHfastestDim(char *measoutpath)
   MDH *mdh1, *mdh2;
   FILE *fp;
   unsigned long offset;
-  int nPCN, FastestDim, chunksize;
+  int nPCNs, FastestDim, chunksize;
   
   chunksize = MDHbytesPerChunk(measoutpath);
   if(chunksize < 0) return(-1);
-  nPCN = MDHnPCN(measoutpath);
+  nPCNs = MDHnPCNs(measoutpath);
 
   fp = fopen(measoutpath,"r");
   fread(&offset,sizeof(long),1, fp);
   fseek(fp,offset,SEEK_SET);
 
   // Get past PCNs
-  fseek(fp,nPCN*chunksize,SEEK_CUR);
+  fseek(fp,nPCNs*chunksize,SEEK_CUR);
 
   // Read the first non-PCN header
   mdh1 = ReadMiniHeader(fp,NULL);
@@ -954,12 +1082,12 @@ float MDHreadTE(char *measoutpath, int nthEcho)
   MDH *mdh=NULL;
   FILE *fp;
   unsigned long offset;
-  int nPCN, nEchos, nPELs, chunksize, FastestDim;
+  int nPCNs, nEchos, nPELs, chunksize, FastestDim;
   float TimeStamp0, TimeStamp1, TimeStamp1a, TimeStamp1b, TE;
   
   chunksize = MDHbytesPerChunk(measoutpath);
   if(chunksize < 0) return(-1);
-  nPCN    = MDHnPCN(measoutpath);
+  nPCNs    = MDHnPCNs(measoutpath);
   nEchos  = MDHnEchos(measoutpath);
   if(nthEcho >= nEchos){
     printf("ERROR: requested TE=%d, max is %d\n",nthEcho,nEchos);
@@ -977,7 +1105,7 @@ float MDHreadTE(char *measoutpath, int nthEcho)
   fseek(fp,2*mdh->Ncols*sizeof(float),SEEK_CUR);
   TimeStamp0 = mdh->TimeStamp;
   // Get past remaining PCNs
-  fseek(fp,(nPCN-1)*chunksize,SEEK_CUR);
+  fseek(fp,(nPCNs-1)*chunksize,SEEK_CUR);
 
   if(FastestDim == 1){
     // Echo is the fastest (FLASH)
