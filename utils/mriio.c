@@ -1118,7 +1118,8 @@ analyzeRead(char *fname, int read_volume, int frame)
   else
     max_dim = height > depth ? height : depth ;
 
-#if 1
+#define SUPPORT_TEXAS 0
+#if SUPPORT_TEXAS
   if (hdr.dime.pixdim[0] > 3.5f)/* hack to support FIL and texas */
   {
     width = hdr.dime.dim[1]; depth = hdr.dime.dim[2]; height = hdr.dime.dim[3];
@@ -1127,6 +1128,7 @@ analyzeRead(char *fname, int read_volume, int frame)
 
 #if 1
   /* these are the sizes the image 'should' be */
+#if SUPPORT_TEXAS
   if (hdr.dime.pixdim[0] > 3.5f)/* hack to support FIL and texas */
   {
     /*    hdr.dime.pixdim[2] *= 1.3 ;*/
@@ -1141,6 +1143,7 @@ analyzeRead(char *fname, int read_volume, int frame)
 #endif
   }
   else
+#endif
   {
     width = max_dim / hdr.dime.pixdim[3] ;
     height = max_dim / hdr.dime.pixdim[2] ;
@@ -1150,7 +1153,7 @@ analyzeRead(char *fname, int read_volume, int frame)
 
   mri = 
     MRIallocSequence(width, height, depth, type, hdr.dime.dim[4]);
-#if 1
+#if SUPPORT_TEXAS
   if (hdr.dime.pixdim[0] > 3.5f)/* hack to support FIL and texas */
   {
     mri->xsize = hdr.dime.pixdim[1] ;
@@ -1189,6 +1192,7 @@ analyzeRead(char *fname, int read_volume, int frame)
 #if 1
   mri_dst = MRIinterpolate(mri, NULL) ;
   MRIfree(&mri) ;
+#if SUPPORT_TEXAS
   if (hdr.dime.pixdim[0] > 3.5f)/* hack to support FIL and texas */
   {
     mri = MRIreorder(mri_dst, NULL, ZDIM, -XDIM, -YDIM) ;
@@ -1198,6 +1202,7 @@ analyzeRead(char *fname, int read_volume, int frame)
     mri_dst = mri ;
 #endif
   }
+#endif
   if (mri_dst->width < 256)
   {
     int  x, y, z ;
@@ -1432,7 +1437,7 @@ read_byte_analyze_image(char *fname, MRI *mri, dsr *hdr)
   width = hdr->dime.dim[1] ;
   height = hdr->dime.dim[2] ;
   depth = hdr->dime.dim[3] ;
-#if 1
+#if SUPPORT_TEXAS
   if (hdr->dime.pixdim[0] > 3.5f)/* hack to support FIL and texas */
   {
     xoff = (mri->width - width) / 2 ;
@@ -1545,7 +1550,7 @@ read_byte_analyze_image(char *fname, MRI *mri, dsr *hdr)
           s = swapShort(s) ;
 #endif
           b = (char)(scale * (float)(s-smin));
-#if 1
+#if SUPPORT_TEXAS
           if (hdr->dime.pixdim[0] > 3.5f)/* hack to support FIL and texas */
           {
             xd = x + xoff ; yd = z + yoff ; zd = y + zoff;
