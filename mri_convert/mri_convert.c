@@ -58,6 +58,8 @@ int main(int argc, char *argv[])
   int forced_in_type, forced_out_type;
   char in_type_string[STRLEN], out_type_string[STRLEN];
   char subject_name[STRLEN];
+  char reslice_like_name[STRLEN];
+  int reslice_like_flag;
 
   /* ----- keep the compiler quiet ----- */
   mri2 = NULL;
@@ -103,6 +105,7 @@ int main(int argc, char *argv[])
   out_volume_type = MRI_CORONAL_SLICE_DIRECTORY;
   force_in_type_flag = force_out_type_flag = FALSE;
   subject_name[0] = '\0';
+  reslice_like_flag = FALSE;
 
   for(i = 1;i < argc;i++)
   {
@@ -359,6 +362,11 @@ int main(int argc, char *argv[])
     {
       get_string(argc, argv, &i, subject_name);
     }
+    else if(strcmp(argv[i], "-rl") == 0 || strcmp(argv[i], "--reslice_like") == 0)
+    {
+      get_string(argc, argv, &i, reslice_like_name);
+      reslice_like_flag = TRUE;
+    }
     else if(strcmp(argv[i], "-u") == 0 || strcmp(argv[i], "--usage") == 0)
     {
       usage(stdout);
@@ -451,9 +459,9 @@ int main(int argc, char *argv[])
 
   /* ----- warn if read only is desired and an output volume is specified or the output info flag is set ----- */
   if(read_only_flag && out_name[0] != '\0')
-    fprintf(stderr, "%s: warning: read only flag is set; nothing will be written to %s", Progname, out_name);
+    fprintf(stderr, "%s: warning: read only flag is set; nothing will be written to %s\n", Progname, out_name);
   if(read_only_flag && out_info_flag)
-    fprintf(stderr, "%s: warning: read only flag is set; no output information will be printed", Progname);
+    fprintf(stderr, "%s: warning: read only flag is set; no output information will be printed\n", Progname);
 
   /* ----- catch the parse-only flag ----- */
   if(parse_only_flag)
@@ -611,28 +619,46 @@ int main(int argc, char *argv[])
   if(in_stats_flag)
     MRIprintStats(mri, stdout);
 
-  template = MRIallocHeader(mri->width, mri->height, mri->depth, mri->type);
-  MRIcopyHeader(mri, template);
-  if(conform_flag)
+  if(reslice_like_flag)
   {
-    if(out_volume_type == MRI_CORONAL_SLICE_DIRECTORY)
+
+    printf("reading information from volume %s...\n", reslice_like_name);
+
+    template = MRIreadInfo(reslice_like_name);
+    if(template == NULL)
     {
-      template->width = template->height = template->depth = 256;
-      template->imnr0 = 1;
-      template->imnr1 = 256;
-      template->type = MRI_UCHAR;
-      template->thick = 1.0;
-      template->ps = 1.0;
-      template->xsize = template->ysize = template->zsize = 1.0;
-      template->xstart = template->ystart = template->zstart = -128.0;
-      template->xend = template->yend = template->zend = 128.0;
-      template->x_r = -1.0;  template->x_a =  0.0;  template->x_s =  0.0;
-      template->y_r =  0.0;  template->y_a =  0.0;  template->y_s = -1.0;
-      template->z_r =  0.0;  template->z_a =  1.0;  template->z_s =  0.0;
+      fprintf(stderr, "error reading from volume %s\n", reslice_like_name);
+      exit(1);
     }
+
   }
-  else if(out_volume_type != MRI_CORONAL_SLICE_DIRECTORY)
-      printf("the output volume is not a COR- directory; the --no_conform (-nc) argument is not needed\n");
+  else
+  {
+
+    template = MRIallocHeader(mri->width, mri->height, mri->depth, mri->type);
+    MRIcopyHeader(mri, template);
+    if(conform_flag)
+    {
+      if(out_volume_type == MRI_CORONAL_SLICE_DIRECTORY)
+      {
+        template->width = template->height = template->depth = 256;
+        template->imnr0 = 1;
+        template->imnr1 = 256;
+        template->type = MRI_UCHAR;
+        template->thick = 1.0;
+        template->ps = 1.0;
+        template->xsize = template->ysize = template->zsize = 1.0;
+        template->xstart = template->ystart = template->zstart = -128.0;
+        template->xend = template->yend = template->zend = 128.0;
+        template->x_r = -1.0;  template->x_a =  0.0;  template->x_s =  0.0;
+        template->y_r =  0.0;  template->y_a =  0.0;  template->y_s = -1.0;
+        template->z_r =  0.0;  template->z_a =  1.0;  template->z_s =  0.0;
+      }
+    }
+    else if(out_volume_type != MRI_CORONAL_SLICE_DIRECTORY)
+        printf("the output volume is not a COR- directory; the --no_conform (-nc) argument is not needed\n");
+
+  }
 
   /* ----- apply command-line parameters ----- */
   if(out_i_size_flag)
