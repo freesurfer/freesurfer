@@ -23,6 +23,7 @@ char *Progname ;
 
 static int verbose = 0 ;
 static int conform = 0;
+static int nc = 0;
 static int xdim = XDIM, ydim = YDIM, zdim = ZDIM ;
 static int raw_flag;
 static int raw_width, raw_height, raw_depth, raw_type;
@@ -44,7 +45,6 @@ main(int argc, char *argv[])
   char   *in_fname, *out_fname ;
   FILE   *fin;
   struct stat stat_buf;
-
 
   Progname = argv[0] ;
   ErrorInit(NULL, NULL, NULL) ;
@@ -72,7 +72,9 @@ main(int argc, char *argv[])
     if((fin = fopen(in_fname, "r")) == NULL)
       ErrorExit(ERROR_NO_FILE, "%s: could not open source file %s", 
               Progname, in_fname) ;
+
     mri = MRIreadRaw(fin, raw_width, raw_height, raw_depth, raw_type);
+
     fclose(fin);
   }
   else
@@ -128,25 +130,24 @@ main(int argc, char *argv[])
   }
 
   /* force conform if out type is COR- */
-/*
-  strcpy(dummy1, out_fname);
-  MRIunpackFileName(dummy1, &frame, &type, dummy2);
-  if(type == MRI_CORONAL_SLICE_DIRECTORY)
-    conform = 1;
-*/
+
+
 
   stat(out_fname, &stat_buf);
   if(S_ISDIR(stat_buf.st_mode))
     conform = 1;
+
+  /* nc flag overrides conform */
+  if(nc == 1)
+    conform = 0;
 
   if (conform)
   {
     if(verbose)
       printf("conforming volume...\n");
     mri2 = MRIconform(mri);
-/*    MRIfree(&mri);*/
     mri = MRIcopy(mri2, NULL);
-/*    MRIfree(&mri2);*/
+    MRIfree(&mri2);
   }
 
   if (transform_fname || inverse_transform_fname)
@@ -260,6 +261,11 @@ get_option(int argc, char *argv[])
   }
   else if (!stricmp(option, "conform"))
     conform = 1 ;
+  else if(!strcmp(option, "nc"))
+  {
+    printf("nc flag: conform overridden\n");
+    nc = 1;
+  }
   else if (!strcmp(option, "vsize"))
   {
     override_size_flag = 1;
