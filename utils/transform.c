@@ -431,24 +431,32 @@ LTAinverseTransformAtPoint(LTA *lta, float x, float y, float z, MATRIX *m_L)
     wtotal += w_p[i] ;
   }
 
-  if (DZERO(wtotal))   /* no transforms in range??? */
-    MatrixIdentity(4, m_L) ;
-  else /* now calculate linear combination of transforms at this point */
+
+  if (lta->num_xforms == 1)
   {
-    wmin = 0.1 / (double)lta->num_xforms ;
-    for (i = 0 ; i < lta->num_xforms ; i++)
+    m_L = MatrixInverse(lta->xforms[0].m_L, NULL) ;
+  }
+  else
+  {
+    if (DZERO(wtotal))   /* no transforms in range??? */
+      MatrixIdentity(4, m_L) ;
+    else /* now calculate linear combination of transforms at this point */
     {
-      lt = &lta->xforms[i] ;
-      w_k_p = w_p[i] / wtotal ;
-      if (w_k_p < wmin)   /* optimization - ignore this transform */
-        continue ;
-      
-      m_inv = MatrixInverse(lt->m_L, NULL) ;
-      if (!m_inv)
-        continue ;
-      MatrixScalarMul(m_inv, w_k_p, m_tmp) ;
-      MatrixAdd(m_L, m_tmp, m_L) ;
-      MatrixFree(&m_inv) ;
+      wmin = 0.1 / (double)lta->num_xforms ;
+      for (i = 0 ; i < lta->num_xforms ; i++)
+      {
+        lt = &lta->xforms[i] ;
+        w_k_p = w_p[i] / wtotal ;
+        if (w_k_p < wmin)   /* optimization - ignore this transform */
+          continue ;
+        
+        m_inv = MatrixInverse(lt->m_L, NULL) ;
+        if (!m_inv)
+          continue ;
+        MatrixScalarMul(m_inv, w_k_p, m_tmp) ;
+        MatrixAdd(m_L, m_tmp, m_L) ;
+        MatrixFree(&m_inv) ;
+      }
     }
   }
   return(m_L) ;
@@ -693,7 +701,7 @@ LTAinverseWorldToWorld(LTA *lta, float x, float y, float z, float *px,
   /* world to voxel */
   v_X->rptr[4][1] = 1.0f ;
   V3_X(v_X) = 128.0 - x ;
-  V3_Z(v_X) = (y - 128.0) ;
+  V3_Z(v_X) = (y + 128.0) ;
   V3_Y(v_X) = (-z + 128.0) ;
 
   LTAinverseTransformPoint(lta, v_X, v_Y) ;
