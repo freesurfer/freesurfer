@@ -15,7 +15,8 @@ VLalloc(int width, int height, int depth, float resolution)
 {
   VOXEL_LABELS_IMAGE *vli ;
   VOXEL_LABELS       ***vl ;
-  int                x, y ;
+  int                x, y, z ;
+  VL *v;
 
   vli = (VLI *)calloc(1, sizeof(VLI)) ;
   if (!vli)
@@ -40,6 +41,16 @@ VLalloc(int width, int height, int depth, float resolution)
     }
   }
 
+  // initialize pointers to be null
+  for (x =0; x < vli->width; x++)
+    for (y=0; y < vli->height; y++)
+      for (z=0; z < vli->depth; z++)
+      {
+        v = &vli->vl[x][y][z] ;
+        v->labels = 0;
+        v->counts = 0;
+      }	
+
   return(vli) ;
 }
 
@@ -60,8 +71,10 @@ VLfree(VLI **pvli)
       for (z=0; z < vli->depth; z++)
       {
         v = &vli->vl[x][y][z] ;
-        free(v->labels);
-        free(v->counts);
+	if (v->labels)
+	  free(v->labels);
+	if (v->counts)
+	  free(v->counts);
       }	
 
   // then free up arrays
