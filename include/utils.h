@@ -43,6 +43,7 @@ char *StrRemoveSpaces(char *str) ;
 char *StrUpper(char *str) ;
 char *StrLower(char *str) ;
 char *StrSkipNumber(char *str) ;
+char *StrReplace(char *src, char *dst, char csrc, int cdst) ;
 
 char *FileName(char *str) ;
 int  FileExists(char *fname) ;
