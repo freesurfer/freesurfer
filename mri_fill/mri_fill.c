@@ -13,7 +13,7 @@
 #include "timer.h"
 #include "cma.h"
 
-static char vcid[] = "$Id: mri_fill.c,v 1.52 2002/02/07 18:23:28 fischl Exp $";
+static char vcid[] = "$Id: mri_fill.c,v 1.53 2002/02/07 18:41:28 fischl Exp $";
 
 /*-------------------------------------------------------------------
                                 CONSTANTS
@@ -32,7 +32,7 @@ static char vcid[] = "$Id: mri_fill.c,v 1.52 2002/02/07 18:23:28 fischl Exp $";
 #define SEED_SEARCH_SIZE                9
 
 /* size of various orthogonal slices */
-#define SLICE_SIZE                      256
+#define SLICE_SIZE                      255
 
 /* the min # of neighbors on for a point to be allowed to be a seed point */
 #define MIN_NEIGHBORS                    5
