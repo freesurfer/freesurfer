@@ -45,7 +45,7 @@ MRI *MRIconform(MRI *mri)
   /* ----- change type if necessary ----- */
   if(res->type != templ->type)
   {
-    mri2 = MRIchangeType(res, templ->type, 0.0, 0.999);
+    mri2 = MRIchangeType(res, templ->type, 0.0, 0.999, FALSE);
     MRIfree(&res);
     if(mri2 == NULL)
       return(NULL);
