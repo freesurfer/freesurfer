@@ -231,6 +231,9 @@ typedef struct
   float        *dy2 ;
   float        *dz2 ;
 	COLOR_TABLE  *ct ;
+  int          useRealRAS;        /* if 0, vertex position is a conformed volume RAS with c_(r,a,s)=0 */
+                                  /* if 1, verteix position is a real RAS (volume stored RAS)         */
+                                  /* The default is 0.                                                */
 } MRI_SURFACE, MRIS ;
 
 
