@@ -2270,7 +2270,6 @@ FunV_tErr FunV_ConvertAnaIdxToFuncRAS ( tkmFunctionalVolumeRef this,
           xVoxelRef              oFuncRAS ) {
 
   FunV_tErr eResult = FunV_tErr_NoError;
-  xVoxel    temp;
 
   /* verify us */
   eResult = FunV_Verify( this );
@@ -2284,8 +2283,7 @@ FunV_tErr FunV_ConvertAnaIdxToFuncRAS ( tkmFunctionalVolumeRef this,
   }
   
   /* do the conversion */
-  FunD_ConvertAnaIdxToFuncIdx( this->mpOverlayVolume, iAnaIdx, &temp );
-  FunD_ConvertFuncIdxToFuncRAS( this->mpOverlayVolume, &temp, oFuncRAS );
+  FunD_ConvertAnaIdxToFuncRAS( this->mpOverlayVolume, iAnaIdx, oFuncRAS );
 
   goto cleanup;
 
@@ -3115,10 +3113,12 @@ FunV_tErr FunV_SelectAnaVoxelsByFuncValue ( tkmFunctionalVolumeRef this,
   FunV_tErr             eResult    = FunV_tErr_NoError;
   tBoolean*             visited    = NULL;
   FunV_tFindStatsParams params;
-  int                   nDimension =  0;
+  int                   nDimensionX =  0;
+  int                   nDimensionY =  0;
+  int                   nDimensionZ =  0;
+  int                  nSize       = 0;
 #ifdef Solaris
   int                  i           = 0;
-  int                  nSize       = 0;
 #endif
   
   DebugEnterFunction( ("FunV_SelectAnaVoxelsByFuncValue( this=%p, "
@@ -3135,19 +3135,19 @@ FunV_tErr FunV_SelectAnaVoxelsByFuncValue ( tkmFunctionalVolumeRef this,
 
   /* init a volume to keep track of visited voxels */
   DebugNote( ("Allocating visited tracker volume") );
-  tkm_GetAnaDimension( tkm_tVolumeType_Main, &nDimension );
-  visited = (tBoolean*) malloc( sizeof(tBoolean) * pow( nDimension, 3 ) );
+  tkm_GetAnaDimension( tkm_tVolumeType_Main, &nDimensionX, &nDimensionY, &nDimensionZ );
+  nSize = nDimensionX * nDimensionY * nDimensionZ ;
+  visited = (tBoolean*) malloc( sizeof(tBoolean) * nSize );
   DebugAssertThrowX( (NULL != visited), eResult, FunV_tErr_AllocationFailed );
   
   /* zero it. solaris doesn't like bzero here... ??? */
 #ifdef Solaris
   DebugNote( ("Zeroing visited volume iteratively") );
-  nSize = pow( nDimension, 3 );
   for( i = 0; i < nSize; i++ )
     visited[i] = FALSE;
 #else
   DebugNote( ("Zeroing visted volume with bzero") );
-  bzero( visited, pow( nDimension, 3 ) * sizeof( tBoolean ) );
+  bzero( visited, nSize * sizeof( tBoolean ) );
 #endif
   
   /* get the min value */
@@ -3197,7 +3197,9 @@ void FunV_SelectAnaVoxelsByFuncValueIter_ ( tkmFunctionalVolumeRef this,
               tBoolean*              iVisited ) {
 
   FunV_tErr              eFunctional = FunV_tErr_NoError;
-  int                    nDimension  = 0;
+  int                    nDimensionX  = 0;
+  int                    nDimensionY  = 0;
+  int                    nDimensionZ  = 0;
   int                    nZ          = 0;
   int                    nY          = 0;
   int                    nX          = 0;
@@ -3217,13 +3219,13 @@ void FunV_SelectAnaVoxelsByFuncValueIter_ ( tkmFunctionalVolumeRef this,
   iParams->mnIterationCount++;
 
   /* if we've already been here, exit */
-  tkm_GetAnaDimension( tkm_tVolumeType_Main, &nDimension );
-  if( iVisited[ xVoxl_ExpandToIndex( iAnaIdx,nDimension ) ] == 1 ) {
+  tkm_GetAnaDimension( tkm_tVolumeType_Main, &nDimensionX,&nDimensionY, &nDimensionZ  );
+  if( iVisited[ xVoxl_ExpandToIndex( iAnaIdx,nDimensionX, nDimensionY ) ] == 1 ) {
     goto cleanup;
   }
 
   /* make this voxel as visited */
-  iVisited[ xVoxl_ExpandToIndex( iAnaIdx,nDimension ) ] = 1;
+  iVisited[ xVoxl_ExpandToIndex( iAnaIdx,nDimensionX, nDimensionY ) ] = 1;
 
   /* get the value at the starting voxel */
   DisableDebuggingOutput;
