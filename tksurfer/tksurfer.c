@@ -18140,7 +18140,7 @@ int main(int argc, char *argv[])   /* new main */
   /* end rkt */
   
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: tksurfer.c,v 1.54 2003/09/02 16:17:01 kteich Exp $");
+  nargs = handle_version_option (argc, argv, "$Id: tksurfer.c,v 1.55 2003/09/03 17:50:27 kteich Exp $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -18175,10 +18175,10 @@ int main(int argc, char *argv[])   /* new main */
   /* begin rkt */
   
   /* here is the priority of the tksurfer.tcl files:
-     1) tksurfer.new.tcl in local dir
-     2) tksurfer.tcl in local dir
-     3) tksurfer.new.tcl in TKSURFER_SCRIPTS_DIR
-     4) tksurfer.tcl in TKSURFER_SCRIPTS_DIR
+     1) tksurfer.new.tcl in TKSURFER_SCRIPTS_DIR
+     2) tksurfer.tcl in TKSURFER_SCRIPTS_DIR
+     3) tksurfer.new.tcl in local dir
+     4) tksurfer.tcl in local dir
      5) tksurfer.new.tcl in FREESURFER_HOME/lib/tcl
      6) tksurfer.tcl in FREESURFER_HOME/lib/tcl
   */
@@ -18186,24 +18186,6 @@ int main(int argc, char *argv[])   /* new main */
   found_script = FALSE;
   tksurfer_scripts_dir = getenv ("TKSURFER_SCRIPTS_DIR");
   
-  if (!found_script)
-    {
-      strcpy (tksurfer_tcl, "tksurfer.new.tcl");
-      if ((fp=fopen(tksurfer_tcl,"r"))!=NULL)
-	{
-	  fclose(fp);
-	  found_script = TRUE;
-	}
-    }
-  if (!found_script)
-    {
-      strcpy (tksurfer_tcl, "tksurfer.tcl");
-      if ((fp=fopen(tksurfer_tcl,"r"))!=NULL)
-	{
-	  fclose(fp);
-	  found_script = TRUE;
-	}
-    }
   if (!found_script && tksurfer_scripts_dir)
     {
       sprintf (tksurfer_tcl, "%s/tksurfer.new.tcl", tksurfer_scripts_dir);
@@ -18216,6 +18198,24 @@ int main(int argc, char *argv[])   /* new main */
   if (!found_script && tksurfer_scripts_dir)
     {
       sprintf (tksurfer_tcl, "%s/tksurfer.tcl", tksurfer_scripts_dir);
+      if ((fp=fopen(tksurfer_tcl,"r"))!=NULL)
+	{
+	  fclose(fp);
+	  found_script = TRUE;
+	}
+    }
+  if (!found_script)
+    {
+      strcpy (tksurfer_tcl, "tksurfer.new.tcl");
+      if ((fp=fopen(tksurfer_tcl,"r"))!=NULL)
+	{
+	  fclose(fp);
+	  found_script = TRUE;
+	}
+    }
+  if (!found_script)
+    {
+      strcpy (tksurfer_tcl, "tksurfer.tcl");
       if ((fp=fopen(tksurfer_tcl,"r"))!=NULL)
 	{
 	  fclose(fp);
