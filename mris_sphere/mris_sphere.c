@@ -14,7 +14,7 @@
 #include "macros.h"
 #include "utils.h"
 
-static char vcid[]="$Id: mris_sphere.c,v 1.10 1999/01/10 03:17:46 fischl Exp $";
+static char vcid[]="$Id: mris_sphere.c,v 1.11 1999/02/09 22:03:16 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -126,7 +126,32 @@ main(int argc, char *argv[])
     MRIStalairachTransform(mris, mris) ;
     MRISprojectOntoSphere(mris, mris, DEFAULT_RADIUS) ;
     if (quick)
+    {
+      double mean, sigma, dmin, dmax ;
+
+      mean = MRIScomputeVertexSpacingStats(mris, &sigma, &dmin, &dmax) ;
+      fprintf(stderr, "vertex spacing %2.2f +- %2.2f (%2.2f-->%2.2f)\n",
+              mean, sigma, dmin, dmax) ;
+      mean = MRIScomputeFaceAreaStats(mris, &sigma, &dmin, &dmax) ;
+      fprintf(stderr, "face area %2.2f +- %2.2f (%2.2f-->%2.2f)\n",
+              mean, sigma, dmin, dmax) ;
+      parms.l_parea = 1 ; parms.l_nlarea = 0 ;
       MRISquickSphere(mris, &parms, max_passes) ;  
+      mean = MRIScomputeVertexSpacingStats(mris, &sigma, &dmin, &dmax) ;
+      fprintf(stderr, "vertex spacing %2.2f +- %2.2f (%2.2f-->%2.2f)\n",
+              mean, sigma, dmin, dmax) ;
+      mean = MRIScomputeFaceAreaStats(mris, &sigma, &dmin, &dmax) ;
+      fprintf(stderr, "face area %2.2f +- %2.2f (%2.2f-->%2.2f)\n",
+              mean, sigma, dmin, dmax) ;
+      parms.l_parea = 0 ; parms.l_nlarea = 1 ;
+      MRISquickSphere(mris, &parms, max_passes) ;  
+      mean = MRIScomputeVertexSpacingStats(mris, &sigma, &dmin, &dmax) ;
+      fprintf(stderr, "vertex spacing %2.2f +- %2.2f (%2.2f-->%2.2f)\n",
+              mean, sigma, dmin, dmax) ;
+      mean = MRIScomputeFaceAreaStats(mris, &sigma, &dmin, &dmax) ;
+      fprintf(stderr, "face area %2.2f +- %2.2f (%2.2f-->%2.2f)\n",
+              mean, sigma, dmin, dmax) ;
+    }
     else
       MRISunfold(mris, &parms, max_passes) ;  
     fprintf(stderr, "writing spherical brain to %s\n", out_fname) ;
@@ -242,6 +267,24 @@ get_option(int argc, char *argv[])
     nargs = 1 ;
     fprintf(stderr, "dt_increase=%2.3f\n", parms.dt_increase) ;
   }
+  else if (!stricmp(option, "NLAREA"))
+  {
+    parms.l_nlarea = atof(argv[2]) ;
+    nargs = 1 ;
+    fprintf(stderr, "nlarea = %2.3f\n", parms.l_nlarea) ;
+  }
+  else if (!stricmp(option, "PAREA"))
+  {
+    parms.l_parea = atof(argv[2]) ;
+    nargs = 1 ;
+    fprintf(stderr, "parea = %2.3f\n", parms.l_parea) ;
+  }
+  else if (!stricmp(option, "NLDIST"))
+  {
+    parms.l_nldist = atof(argv[2]) ;
+    nargs = 1 ;
+    fprintf(stderr, "nldist = %2.3f\n", parms.l_nldist) ;
+  }
   else if (!stricmp(option, "vnum"))
   {
     parms.nbhd_size = atof(argv[2]) ;
@@ -266,8 +309,9 @@ get_option(int argc, char *argv[])
   case 'Q':
     quick = 1 ;
     fprintf(stderr, "doing quick spherical unfolding.\n") ;
+    nbrs = 1 ;
     parms.l_spring = parms.l_dist = parms.l_parea = parms.l_area = 0.0 ; 
-    parms.l_narea = 1.0 ;
+    parms.l_nlarea = 1.0 ;
     parms.tol = 10 ;
     parms.n_averages = 32 ;
     break ;
