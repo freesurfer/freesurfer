@@ -17413,6 +17413,83 @@ mrisEraseFace(MRI_SURFACE *mris, MRI *mri, int fno)
 
 #if 1
 int
+MRISfindClosestOrigVertices(MRI_SURFACE *mris, int nbhd_size)
+{
+  int     vno, n, vlist[100000], vtotal, ns, i, vnum, nbr_count[100], min_n, min_vno ;
+  VERTEX  *v, *vn, *vn2 ;
+  float   dx, dy, dz, dist, min_dist, nx, ny, nz, dot ;
+
+  memset(nbr_count, 0, 100*sizeof(int)) ;
+
+  /* current vertex positions are gray matter, orig are white matter */
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    if (v->ripflag)
+      continue ;
+    nx = v->nx ; ny = v->ny ; nz = v->nz ;
+    if (vno == Gdiag_no)
+      DiagBreak() ;
+    dx = v->x - v->origx ; dy = v->y - v->origy ; dz = v->z - v->origz ; 
+    min_dist = sqrt(dx*dx + dy*dy + dz*dz) ;
+    v->marked = 1 ; vtotal = 1 ; vlist[0] = vno ;
+    min_n = 0 ; min_vno = vno ;
+    for (ns = 1 ; ns <= nbhd_size ; ns++)
+    {
+      vnum = 0 ;  /* will be # of new neighbors added to list */
+      for (i = 0 ; i < vtotal ; i++)
+      {
+        vn = &mris->vertices[vlist[i]] ;
+        if (vn->ripflag)
+          continue ;
+        if (vn->marked && vn->marked < ns-1)
+          continue ;
+        for (n = 0 ; n < vn->vnum ; n++)
+        {
+          vn2 = &mris->vertices[vn->v[n]] ;
+          if (vn2->ripflag || vn2->marked)  /* already processed */
+            continue ;
+          vlist[vtotal+vnum++] = vn->v[n] ;
+          vn2->marked = ns ;
+          dx = vn2->x-v->origx ; dy = vn2->y-v->origy ; dz = vn2->z-v->origz ;
+          dot = dx*nx + dy*ny + dz*nz ;
+          if (dot < 0) /* must be outwards from surface */
+            continue ;
+          dot = vn2->nx*nx + vn2->ny*ny + vn2->nz*nz ;
+          if (dot < 0) /* must be outwards from surface */
+            continue ;
+          dist = sqrt(dx*dx + dy*dy + dz*dz) ;
+          if (dist < min_dist)
+          {
+            min_n = ns ;
+            min_dist = dist ;
+            if (min_n == nbhd_size && DIAG_VERBOSE_ON)
+              fprintf(stdout, "%d --> %d = %2.3f\n",
+                      vno,vn->v[n], dist) ;
+						min_vno = vn->v[n] ;
+          }
+        }
+      }
+      vtotal += vnum ;
+    }
+
+    nbr_count[min_n]++ ;
+    for (n = 0 ; n < vtotal ; n++)
+    {
+      vn = &mris->vertices[vlist[n]] ;
+      if (vn->ripflag)
+        continue ;
+      vn->marked = 0 ;
+    }
+		v->curv = min_vno ;
+  }
+
+
+  for (n = 0 ; n <= nbhd_size ; n++)
+    fprintf(stdout, "%d vertices at %d distance\n", nbr_count[n], n) ;
+  return(NO_ERROR) ;
+}
+int
 MRISmeasureCorticalThickness(MRI_SURFACE *mris, int nbhd_size, float max_thick)
 {
   int     vno, n, vlist[100000], vtotal, ns, i, vnum, nbr_count[100], min_n,
