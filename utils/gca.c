@@ -3457,7 +3457,7 @@ GCAreclassifyUsingGibbsPriors(MRI *mri_inputs, GCA *gca, MRI *mri_dst,LTA *lta,
   VECTOR   *v_input, *v_canon ;
   GCA_NODE *gcan ;
   double   ll, lcma = 0.0, old_ll, new_ll, min_ll ;
-  MRI      *mri_changed, *mri_probs, *mri_zero ;
+  MRI      *mri_changed, *mri_probs /*, *mri_zero */ ;
 
 #if 0
   GCAannealUnlikelyVoxels(mri_inputs, gca, mri_dst, lta, max_iter*100,
