@@ -1354,6 +1354,7 @@ LogMapDiffuse(LOGMAP_INFO *lmi, IMAGE *Isrc, IMAGE *Iout, double k,
 {
   static  IMAGE *fSrcImage = NULL, *fIdst = NULL ;
   IMAGE         *fOut ;
+  float         fmin, fmax ;
 
   if (!ImageCheckSize(Isrc, fSrcImage, 0, 0, 0))
   {
@@ -1377,6 +1378,11 @@ LogMapDiffuse(LOGMAP_INFO *lmi, IMAGE *Isrc, IMAGE *Iout, double k,
 #endif
 
   ImageCopy(Isrc, fSrcImage) ;
+  if (Isrc->pixel_format != PFFLOAT)
+  {
+    ImageValRange(Isrc, &fmin, &fmax) ;
+    ImageScale(fSrcImage, fSrcImage, 0.0f, 1.0f) ;
+  }
   if (Iout->pixel_format == PFFLOAT)
     fOut = Iout ;
   else
@@ -1398,7 +1404,11 @@ LogMapDiffuse(LOGMAP_INFO *lmi, IMAGE *Isrc, IMAGE *Iout, double k,
   }
 
   if (fOut != Iout)
+  {
+    if (Isrc->pixel_format != PFFLOAT)
+      ImageScale(fOut, fOut, fmin, fmax) ;
     ImageCopy(fOut, Iout) ;
+  }
 
 #if 0
   switch (Iout->pixel_format)
