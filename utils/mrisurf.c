@@ -65,7 +65,6 @@ static double mrisComputeError(MRI_SURFACE *mris, INTEGRATION_PARMS *parms,
                                 float *parea_rms, float *pangle_rms,
                                float *pcurv_rms, float *pdist_rms);
 static int   mrisCountNegativeTriangles(MRI_SURFACE *mris) ;
-static int   mrisCountNegativeVertices(MRI_SURFACE *mris) ;
 static int   mrisAverageGradients(MRI_SURFACE *mris, int num_avgs) ;
 static int   mrisIntegrate(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, 
                            int n_avgs);
@@ -116,6 +115,7 @@ static int   mrisSmoothBoundaryNormals(MRI_SURFACE *mris, int niter) ;
 static int   mrisFlipPatch(MRI_SURFACE *mris) ;
 
 #if 0
+static int   mrisCountNegativeVertices(MRI_SURFACE *mris) ;
 static int   mrisComputeSpringNormalTerm(MRI_SURFACE *mris,
                                          INTEGRATION_PARMS *parms);
 static double mrisComputeAverageHeight(MRI_SURFACE *mris) ;
@@ -2167,6 +2167,30 @@ MRIStalairachTransform(MRI_SURFACE *mris_src, MRI_SURFACE *mris_dst)
   return(mris_dst) ;
 }
 #if 0
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
+static int
+mrisCountNegativeVertices(MRI_SURFACE *mris)
+{
+  int     vno, neg ;
+  VERTEX  *v ;
+
+  for (neg = vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    if (v->ripflag)
+      continue ;
+    if (v->neg)
+      neg++ ;
+  }
+
+  return(neg) ;
+}
 /*-----------------------------------------------------
         Parameters:
 
@@ -4838,7 +4862,11 @@ MRISwriteValues(MRI_SURFACE *mris, char *fname)
                     "MRISwriteValues(%s): val at vertex %d is not finite",
                     fname, k) ;
 
+#if 0
       fwrite(&f,1,sizeof(float),fp);
+#else
+      fwriteFloat(f, fp) ;
+#endif
       sum += f;
       sum2 += f*f;
       if (f>max) max=f;
@@ -4996,7 +5024,11 @@ MRISreadPatch(MRI_SURFACE *mris, char *pname)
                       "MRISreadPatch(%s): could not open file", fname));
 
 
+#if 0
   fread(&npts,1,sizeof(int),fp);
+#else
+  npts = freadInt(fp) ;
+#endif
   if (Gdiag & DIAG_SHOW)
     fprintf(stderr, "reading patch %s with %d vertices (%2.1f%% of total)\n",
             pname, npts, 100.0f*(float)npts/(float)mris->nvertices) ;
@@ -5004,7 +5036,11 @@ MRISreadPatch(MRI_SURFACE *mris, char *pname)
     mris->vertices[k].ripflag = TRUE;
   for (j=0;j<npts;j++)
   {
+#if 0
     fread(&i,1,sizeof(int),fp);
+#else
+    i = freadInt(fp) ;
+#endif
     if (i<0)
     {
       k = -i-1;
@@ -5036,6 +5072,7 @@ MRISreadPatch(MRI_SURFACE *mris, char *pname)
   mrisRipFaces(mris);
   mris->patch = 1 ;
   mris->status = MRIS_CUT ;
+
   mrisRemoveRipped(mris) ;
   MRISupdateSurface(mris) ;
 
@@ -5112,12 +5149,20 @@ MRISwritePatch(MRI_SURFACE *mris, char *fname)
                 (ERROR_NOFILE, 
                  "MRISwritePatch: can't create file %s\n",fname)) ;
 
+#if 0
   fwrite(&npts,1,sizeof(int),fp);
+#else
+  fwriteInt(npts, fp) ;
+#endif
   for (k=0;k<mris->nvertices;k++)
   if (!mris->vertices[k].ripflag)
   {
     i = (mris->vertices[k].border)?-(k+1):k+1;
+#if 0
     fwrite(&i,1,sizeof(int),fp);
+#else
+    fwriteInt(i, fp) ;
+#endif
     x = mris->vertices[k].x;
     y = mris->vertices[k].y;
     z = mris->vertices[k].z;
@@ -8110,24 +8155,6 @@ mrisFlipPatch(MRI_SURFACE *mris)
   }
 
   return(NO_ERROR) ;
-}
-
-static int
-mrisCountNegativeVertices(MRI_SURFACE *mris)
-{
-  int     vno, neg ;
-  VERTEX  *v ;
-
-  for (neg = vno = 0 ; vno < mris->nvertices ; vno++)
-  {
-    v = &mris->vertices[vno] ;
-    if (v->ripflag)
-      continue ;
-    if (v->neg)
-      neg++ ;
-  }
-
-  return(neg) ;
 }
 /*-----------------------------------------------------
         Parameters:
