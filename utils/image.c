@@ -2713,9 +2713,14 @@ ImageAppend(IMAGE *I, char *fname)
   char   tmpname[200] ;
 
   fp = fopen(fname, "r+b") ;
+#if 0
   if (!fp)
     ErrorReturn(-1, (ERROR_NO_FILE, "ImageAppend(%s) failed\n", fname)) ;
-  
+#endif
+
+  if (!fp)
+    return(ImageWrite(I, fname)) ;
+
   ecode = fread_header(fp, &Iheader, fname) ;
   if (ecode != HIPS_OK)
     ErrorExit(ERROR_NO_FILE, "ImageAppend: fread_header failed (%d)\n",ecode);
@@ -2737,7 +2742,7 @@ ImageAppend(IMAGE *I, char *fname)
     
     ecode = fwrite_header(fp, &Iheader, fname) ;
     if (ecode != HIPS_OK)
-      ErrorExit(ERROR_NO_FILE,"ImageAppend: fwrite_header failed (%d)\n",ecode);
+     ErrorExit(ERROR_NO_FILE,"ImageAppend: fwrite_header failed (%d)\n",ecode);
 
     nframes = Iheader.num_frame - 1 ;
     for (frame = 0 ; frame < nframes ; frame++)
@@ -2757,10 +2762,10 @@ ImageAppend(IMAGE *I, char *fname)
   else    /* seek back to start and increment # of frames */
   {
     if (fseek(fp, 0L, SEEK_SET) < 0)
-      ErrorReturn(-2, (ERROR_BADFILE,"ImageAppend(%s): could not seek to end"));
+      ErrorReturn(-2,(ERROR_BADFILE,"ImageAppend(%s): could not seek to end"));
     ecode = fwrite_header(fp, &Iheader, fname) ;
     if (ecode != HIPS_OK)
-      ErrorExit(ERROR_NO_FILE,"ImageAppend: fwrite_header failed (%d)\n",ecode);
+     ErrorExit(ERROR_NO_FILE,"ImageAppend: fwrite_header failed (%d)\n",ecode);
   }
 
   if (fseek(fp, 0L, SEEK_END) < 0)
@@ -2772,6 +2777,7 @@ ImageAppend(IMAGE *I, char *fname)
               "ImageAppend: fwrite_image frame %d failed (%d)\n",ecode,frame));
 
   free_hdrcon(&Iheader) ;
+  fclose(fp) ;
   return(NO_ERROR) ;
 }
 /*----------------------------------------------------------------------
