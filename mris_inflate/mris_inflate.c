@@ -14,7 +14,7 @@
 #include "mri.h"
 #include "macros.h"
 
-static char vcid[] = "$Id: mris_inflate.c,v 1.21 1999/09/22 19:28:59 fischl Exp $";
+static char vcid[] = "$Id: mris_inflate.c,v 1.22 1999/09/28 18:58:46 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -42,6 +42,7 @@ main(int argc, char *argv[])
   MRI_SURFACE  *mris ;
   int           msec ;
   struct timeb  then ;
+  float         radius ;
 
   TimerStart(&then) ;
   Gdiag |= DIAG_SHOW ;
@@ -63,7 +64,7 @@ main(int argc, char *argv[])
   parms.l_spring = 0.0 ;
   parms.l_spring_norm = 1.0 ;
   parms.l_curv = 0.0 ;
-  parms.niterations = 15 ;   /* per # of averages */
+  parms.niterations = 10 ;   /* per # of averages */
   parms.write_iterations = 50 /*WRITE_ITERATIONS */;
   parms.a = parms.b = parms.c = 0.0f ;  /* ellipsoid parameters */
   parms.integration_type = INTEGRATE_MOMENTUM ;
@@ -109,6 +110,15 @@ main(int argc, char *argv[])
   if (talairach_flag)
     MRIStalairachTransform(mris, mris) ;
 
+  radius = MRISaverageRadius(mris) ;
+#if 0
+#define AVERAGE_RADIUS 50 
+  parms.desired_rms_height *= AVERAGE_RADIUS / radius ;
+  fprintf(stderr, "average radius = %2.1f mm, set rms target to %2.3f\n",
+          radius, parms.desired_rms_height) ;
+#endif
+  fprintf(stderr, "avg radius = %2.1f mm, total surface area = %2.0f mm^2\n",
+          radius, mris->total_area) ;
   MRISsetNeighborhoodSize(mris, nbrs) ;
   MRISaverageVertexPositions(mris, navgs) ;
   MRISscaleBrainArea(mris) ;  /* current properties will be stored again */
