@@ -1,6 +1,6 @@
 #! /usr/bin/tixwish
 
-# $Id: tkmedit.tcl,v 1.57 2003/07/31 20:30:54 kteich Exp $
+# $Id: tkmedit.tcl,v 1.58 2003/08/04 15:15:09 kteich Exp $
 
 
 source $env(MRI_DIR)/lib/tcl/tkm_common.tcl
@@ -664,19 +664,36 @@ proc GetDefaultLocation { iType } {
 	    LoadSegmentation - LoadAuxSegmentation - SaveSegmentationAs -
 	    SaveAuxSegmentationAs - ExportChangedSegmentationVolume -
 	    ExportAuxChangedSegmentationVolume {
-		set gsaDefaultLocation($iType) $gsSubjectDirectory/mri
+		if { $gsSubjectDirectory != "/" } {
+		    set gsaDefaultLocation($iType) $gsSubjectDirectory/mri
+		} else {
+		    set gsaDefaultLocation($iType) [exec pwd]
+		}	       
 	    }
 	    LoadVolumeDisplayTransform - LoadAuxVolumeDisplayTransform  { 
-	     set gsaDefaultLocation($iType) $gsSubjectDirectory/mri/transforms
+		if { $gsSubjectDirectory != "/" } {
+		    set gsaDefaultLocation($iType) \
+			$gsSubjectDirectory/mri/transforms
+		} else {
+		    set gsaDefaultLocation($iType) [exec pwd]
+		}
 	    }
 	    SaveLabelAs - LoadLabel - ImportSurfaceAnnotation { 
-		set gsaDefaultLocation($iType) $gsSubjectDirectory/label
+		if { $gsSubjectDirectory != "/" } {
+		    set gsaDefaultLocation($iType) $gsSubjectDirectory/label
+		} else {
+		    set gsaDefaultLocation($iType) [exec pwd]
+		}
 	    }
 	    LoadMainSurface - LoadOriginalSurface - LoadPialSurface -
 	    LoadPialSurface - LoadMainAuxSurface - 
 	    LoadOriginalAuxSurface - LoadPialAuxSurface -
 	    WriteSurfaceValues { 
-		set gsaDefaultLocation($iType) $gsSubjectDirectory/surf
+		if { $gsSubjectDirectory != "/" } {
+		    set gsaDefaultLocation($iType) $gsSubjectDirectory/surf
+		} else {
+		    set gsaDefaultLocation($iType) [exec pwd]
+		}
 	    }
 	    LoadHeadPts_Points { 
 		set gsaDefaultLocation($iType) [exec pwd] 
@@ -694,7 +711,11 @@ proc GetDefaultLocation { iType } {
 		}
 	    }
 	    LoadFunctional-overlay - LoadFunctional-timecourse {
-		set gsaDefaultLocation($iType) $gsSubjectDirectory/fmri
+		if { $gsSubjectDirectory != "/" } {
+		    set gsaDefaultLocation($iType) $gsSubjectDirectory/fmri
+		} else {
+		    set gsaDefaultLocation($iType) [exec pwd]
+		}
 	    }
 	    SpecifyRegistration-overlay - SpecifyRegistration-timecourse {
 		set gsaDefaultLocation($iType) ""
@@ -707,11 +728,19 @@ proc GetDefaultLocation { iType } {
 		}
 	    }
 	    LoadGCA_Transform {
-		set gsaDefaultLocation($iType) \
-		    $gsSubjectDirectory/mri/transforms
-	    }
+		if { $gsSubjectDirectory != "/" } {
+		    set gsaDefaultLocation($iType) \
+			$gsSubjectDirectory/mri/transforms
+		} else {
+		    set gsaDefaultLocation($iType) [exec pwd]
+		}
+		 }
 	    default { 
-		set gsaDefaultLocation($iType) $gsSubjectDirectory 
+		if { $gsSubjectDirectory != "/" } {
+		    set gsaDefaultLocation($iType) $gsSubjectDirectory 
+		} else {
+		    set gsaDefaultLocation($iType) [exec pwd]
+		}
 	    }
 	}
     }
