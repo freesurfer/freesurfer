@@ -16,7 +16,7 @@
 #include "icosahedron.h"
 #include "mrishash.h"
 
-static char vcid[] = "$Id: mris_fix_topology.c,v 1.14 2002/10/29 22:57:02 fischl Exp $";
+static char vcid[] = "$Id: mris_fix_topology.c,v 1.15 2003/02/19 19:44:48 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -54,7 +54,7 @@ main(int argc, char *argv[])
   float         max_len ;
   struct timeb  then ;
 
-	parms.max_patches = 100 ;
+	parms.max_patches = 10 ;
 	parms.max_unchanged = 10 ;
 	parms.l_mri = 1 ;
 	parms.l_curv = 1 ;
