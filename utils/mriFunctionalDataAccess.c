@@ -1864,7 +1864,7 @@ FunD_tErr FunD_CalcFDRThreshold ( mriFunctionalDataRef this,
 		      nFrame,        /* 0-based frame number of input vol */
 		      iRate,         /* rate 0-1 */
 		      iSign,         /* 0=all, +1=only pos, -1=only neg */
-		      FALSE,         /* interp vals as -log10(p) */
+		      TRUE,          /* interp vals as -log10(p) */
 		      pLocalMaskVol, /* optional mask volume */
 		      &newMin,       /* voxel-wise thresh (vwth) 0-1, 
 					or if log10flag, -log10(vwth) */
