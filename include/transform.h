@@ -2,7 +2,6 @@
 #define TRANSFORM_H
 
 #include "matrix.h"
-#include "mri.h"
 
 typedef struct
 {
@@ -23,6 +22,7 @@ typedef struct
   int               type ;
 } LINEAR_TRANSFORM_ARRAY, LTA ;
 
+#include "mri.h"
 typedef struct
 {
   int        type ;
