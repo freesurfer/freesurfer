@@ -29,7 +29,7 @@
 #include "tiffio.h"
 #include "label.h"
 
-static char vcid[] = "$Id: mris2rgb.c,v 1.17 1998/06/03 05:16:06 fischl Exp $";
+static char vcid[] = "$Id: mris2rgb.c,v 1.18 1998/07/24 19:53:02 fischl Exp $";
 
 /*-------------------------------- CONSTANTS -----------------------------*/
 
@@ -77,6 +77,8 @@ static char *centroid_fnames[MAX_CENTROIDS] ;
 static int centroid_colors[MAX_CENTROIDS] ;
 static int mark_centroids(MRI_SURFACE *mris, char *centroid_fnames[], 
                           int *centroid_colors, int centroid_files) ;
+
+static float rescale = 1.0f ;
 
 /*-------------------------------- DATA ----------------------------*/
 
@@ -148,7 +150,7 @@ static int num_tpoints = 0 ;
 static float phi_spoint[MAX_POINTS], theta_spoint[MAX_POINTS] ;
 static int num_spoints = 0 ;
 static int mark_color = 1 ;
-
+static float light = 0.0f ;
 
 /*-------------------------------- FUNCTIONS ----------------------------*/
 
@@ -213,6 +215,8 @@ main(int argc, char *argv[])
       strcpy(hemi, "lh") ;
 
     is_flat = (strstr(name, ".flat") != NULL || strstr(name, ".patch")) ;
+    if (strstr(in_fname, ".geo"))
+      is_flat = 0 ;
     if (patch_flag || is_flat) /* read the orig surface, then the patch file */
     {
       FileNamePath(in_fname, path) ;
@@ -245,6 +249,11 @@ main(int argc, char *argv[])
     if (output_name)     /* user specified stem for .rgb file name */
       sprintf(name, "%s.%s", hemi, output_name) ;
 
+    if (!FEQUAL(rescale,1))
+    {
+      MRIScenter(mris, mris) ;
+      MRISscaleBrain(mris, mris,rescale) ;
+    }
     if (coord_fname)
     {
       if (MRISreadCanonicalCoordinates(mris, coord_fname) != NO_ERROR)
@@ -336,6 +345,9 @@ main(int argc, char *argv[])
     if (ino == 1)    /* do initialization first time through */
       OGLUinit(mris, frame_xdim, frame_ydim) ;/* specify lighting and such */
     
+    if (!FZERO(light))
+      OGLUsetLightingModel(-1.0f, -1.0f, -1.0f, -1.0f, light) ;
+
     mark_centroids(mris, centroid_fnames, centroid_colors, centroid_files) ;
     if (mrisp)
     {
@@ -703,6 +715,12 @@ get_option(int argc, char *argv[])
     noscale = 1 ;
   else if (!stricmp(option, "scale"))
     noscale = 0 ;
+  else if (!stricmp(option, "rescale"))
+  {
+    rescale = atof(argv[2]) ;
+    fprintf(stderr, "scaling brain by %2.2f\n", rescale) ;
+    nargs = 1 ;
+  }
   else if (!stricmp(option, "fov"))
   {
     fov = atoi(argv[2]) ;
@@ -796,6 +814,12 @@ get_option(int argc, char *argv[])
   {
     mark_color = atoi(argv[2]) ;
     nargs = 1 ;
+  }
+  else if (!stricmp(option, "light"))
+  {
+    light = atof(argv[2]) ;
+    nargs = 1 ;
+    fprintf(stderr, "setting lighting to %2.2f\n", light) ;
   }
   else if (!stricmp(option, "spoint"))
   {
