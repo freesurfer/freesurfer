@@ -12,7 +12,7 @@
 #include "mrimorph.h"
 #include "timer.h"
 
-static char vcid[] = "$Id: mri_fill.c,v 1.35 1999/08/27 21:44:10 fischl Exp $";
+static char vcid[] = "$Id: mri_fill.c,v 1.36 1999/09/02 23:08:41 fischl Exp $";
 
 /*-------------------------------------------------------------------
                                 CONSTANTS
@@ -331,9 +331,11 @@ main(int argc, char *argv[])
   }
 
   if (log_fp)
+  {
     fprintf(log_fp, "PONS: %d, %d, %d (TAL: %2.1f, %2.1f, %2.1f)\n",
             x_pons, y_pons, z_pons, pons_tal_x, pons_tal_y, pons_tal_z) ;
-  fclose(log_fp) ;
+    fclose(log_fp) ;
+  }
 
   if (atlas_name && 0)
   {
