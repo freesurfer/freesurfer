@@ -290,7 +290,7 @@ void MGH_nrerror(char *s)
   printf("%s\n",s);
 }
 
-void ludcmp(FLOATTYPE **a,int n,int *indx,FLOATTYPE *d)
+void mgh_ludcmp(FLOATTYPE **a,int n,int *indx,FLOATTYPE *d)
 {
   int i,imax=0,j,k; /* imax = 0 to shut up gcc */
   FLOATTYPE big,dum,sum,temp;
@@ -349,7 +349,7 @@ void ludcmp(FLOATTYPE **a,int n,int *indx,FLOATTYPE *d)
   free(vv);
 }
 
-void lubksb(FLOATTYPE **a,int n,int *indx,FLOATTYPE *b)
+void mgh_lubksb(FLOATTYPE **a,int n,int *indx,FLOATTYPE *b)
 {
   int i,ii= -1,ip,j;
   FLOATTYPE sum;
@@ -379,12 +379,12 @@ void inverse(FLOATTYPE **a,FLOATTYPE **y,int n)
 
   col = MGH_vector(n);
   indx = MGH_ivector(n);
-  ludcmp(a,n,indx,&d);
+  mgh_ludcmp(a,n,indx,&d);
   for (j=0;j<n;j++)
   {
     for (i=0;i<n;i++) col[i]=0.0;
     col[j]=1.0;
-    lubksb(a,n,indx,col);
+    mgh_lubksb(a,n,indx,col);
     for(i=0;i<n;i++) y[i][j]=col[i];
   }
 }
@@ -395,7 +395,7 @@ FLOATTYPE determinant(FLOATTYPE **a,int n)
   int j,*indx;
 
   indx = MGH_ivector(n);
-  ludcmp(a,n,indx,&d);
+  mgh_ludcmp(a,n,indx,&d);
   print_matrix(a,n,n);
   for (j=0;j<n;j++) d *= a[j][j];
   return d;
