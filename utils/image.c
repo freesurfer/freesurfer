@@ -889,7 +889,8 @@ ImageFindPeak(IMAGE *I, int *prow, int *pcol, float *pval)
   int    max_row = -1, max_col = -1, row, col, rows, cols ;
 
   if (I->pixel_format != PFFLOAT)
-    ErrorReturn(0.0f, (ERROR_UNSUPPORTED, "ImageFindPeak: only supports PFFLOAT")) ;
+    ErrorReturn(0.0f, 
+                (ERROR_UNSUPPORTED, "ImageFindPeak: only supports PFFLOAT")) ;
 
   rows = I->rows ;
   cols = I->cols ;
@@ -1495,8 +1496,7 @@ ImageCopyFrames(IMAGE *inImage, IMAGE *outImage,int start, int nframes,
     }
   }
 
-  outImage->rows = inImage->rows ;
-  outImage->cols = inImage->cols ;
+  ImageSetSize(outImage, inImage->rows, inImage->cols) ;
 
   return(0) ;
 }
@@ -1659,8 +1659,9 @@ ImageScaleDown(IMAGE *inImage, IMAGE *outImage, float scale)
     ErrorReturn(-1, (ERROR_NO_MEMORY,
                      "ImageScaleDown: output image not big enough\n")) ;
 
-  outImage->cols = nint((float)inImage->cols * scale) ;
-  outImage->rows = nint((float)inImage->rows * scale) ;
+  ImageSetSize(outImage, nint((float)inImage->rows * scale), 
+               nint((float)inImage->cols * scale)) ;
+
   inRows = inImage->rows ;
   inCols = inImage->cols ;
   outRows = outImage->rows ;
@@ -1940,8 +1941,8 @@ ImageReflect(IMAGE *inImage, IMAGE *outImage, int how)
     fprintf(stderr, "ImageReflect: output image not large enough\n") ;
     return(-1) ;
   }
-  outImage->rows = inImage->rows ;
-  outImage->cols = inImage->cols ;
+  ImageSetSize(outImage, inImage->rows, inImage->cols) ;
+
   switch(inImage->pixel_format)
   {
   case PFBYTE:
@@ -2557,10 +2558,11 @@ ImageMedianFilter(IMAGE *inImage, int wsize,
 {
   static float *sort_array = NULL ;
   static int   sort_size = 0 ;
-  int    ecode, x0, y0, rows, cols, x, y, whalf, xc, yc, dx, dy, frame ;
-  float  *sptr, *outPix, min_val, max_val ;
+  int    ecode, x0, y0, rows, cols, x, y, whalf, yc, dx, dy, frame,wsq,median_index;
+  float  *sptr, *outPix, min_val, max_val, *inPix ;
   byte   *in_image, *out_image ;
   IMAGE  *Iout, *Iin ;
+  register int xc ;
 
   rows = inImage->rows ;
   cols = inImage->cols ;
@@ -2611,6 +2613,8 @@ ImageMedianFilter(IMAGE *inImage, int wsize,
     return(NO_ERROR) ;
   }
 
+  median_index = wsize*wsize/2 ;
+  wsq = wsize*wsize ;
   whalf = (wsize-1)/2 ;
 
   /* create a static array for sorting pixels in */
@@ -2622,7 +2626,7 @@ ImageMedianFilter(IMAGE *inImage, int wsize,
   }
 
   if (!sort_array)
-    sort_array = (float *)calloc(wsize*wsize, sizeof(float)) ;
+    sort_array = (float *)calloc(wsq, sizeof(float)) ;
 
   for (frame = 0 ; frame < inImage->num_frame ; frame++)
   {
@@ -2652,7 +2656,8 @@ ImageMedianFilter(IMAGE *inImage, int wsize,
             yc = -yc ;
           else if (yc >= rows)
             yc = rows - (yc - rows + 1) ;
-          
+
+          inPix = IMAGEFseq_pix(inImage, 0, yc, frame) ;
           for (x = -whalf ; x <= whalf ; x++)
           {
             xc = x0 + x + dx ;
@@ -2660,12 +2665,16 @@ ImageMedianFilter(IMAGE *inImage, int wsize,
               xc = -xc ;
             else if (xc >= cols)
               xc = cols - (xc - cols + 1) ;
-            
+
+#if 0            
             *sptr++ = *IMAGEFseq_pix(inImage, xc, yc, frame) ;
+#else
+            *sptr++ = *(inPix + xc) ;
+#endif
           }
         }
-        qsort(sort_array, wsize*wsize, sizeof(float), compare_sort_array) ;
-        *outPix++ = sort_array[wsize*wsize/2] ;
+        qsort(sort_array, wsq, sizeof(float), compare_sort_array) ;
+        *outPix++ = sort_array[median_index] ;
       }
     }
   }
@@ -2674,7 +2683,7 @@ ImageMedianFilter(IMAGE *inImage, int wsize,
 static int
 compare_sort_array(const void *pf1, const void *pf2)
 {
-  float f1, f2 ;
+  register float f1, f2 ;
 
   f1 = *(float *)pf1 ;
   f2 = *(float *)pf2 ;
@@ -2682,10 +2691,10 @@ compare_sort_array(const void *pf1, const void *pf2)
 /*  return(f1 > f2 ? 1 : f1 == f2 ? 0 : -1) ;*/
   if (f1 > f2)
     return(1) ;
-  else if (f1 == f2)
-    return(0) ;
+  else if (f1 < f2)
+    return(-1) ;
 
-  return(-1) ;
+  return(0) ;
 }
 /*----------------------------------------------------------------------
             Parameters:
@@ -3376,8 +3385,7 @@ ImageAbs(IMAGE *inImage, IMAGE *outImage)
     }
   }
 
-  outImage->rows = inImage->rows ;
-  outImage->cols = inImage->cols ;
+  ImageSetSize(outImage, inImage->rows, inImage->cols) ;
   
   return(outImage) ;
 }
@@ -3406,10 +3414,8 @@ ImageSobel(IMAGE *inImage, IMAGE *gradImage,
       xImage = ImageAlloc(rows, cols, PFFLOAT, 1) ;
     }
     else
-    {
-      xImage->rows = rows ;
-      xImage->cols = cols ;
-    }
+      ImageSetSize(xImage, rows, cols) ;
+
     dxImage = xImage ;
   }
 
@@ -3422,22 +3428,19 @@ ImageSobel(IMAGE *inImage, IMAGE *gradImage,
       yImage = ImageAlloc(rows, cols, PFFLOAT, 1) ;
     }
     else
-    {
-      yImage->rows = rows ;
-      yImage->cols = cols ;
-    }
+      ImageSetSize(yImage, rows, cols) ;
+
     dyImage = yImage ;
   }
 
   
-  dxImage->cols = dyImage->cols = cols ;
-  dxImage->rows = dyImage->rows = rows ;
+  ImageSetSize(dxImage, rows, cols) ;
+  ImageSetSize(dyImage, rows, cols) ;
   ImageConvolve3x3(inImage, sx, dxImage) ;
   ImageConvolve3x3(inImage, sy, dyImage) ;
   if (gradImage)
   {
-    gradImage->cols = cols ;
-    gradImage->rows = rows ;
+    ImageSetSize(gradImage, rows, cols) ;
     gradpix = IMAGEFpix(gradImage, 0, 0) ;
   }
 
@@ -3490,7 +3493,7 @@ IMAGE *
 ImageXDerivative(IMAGE *inImage, IMAGE *xImage)
 {
   if (!xImage)
-    xImage = ImageAlloc(inImage->cols, inImage->rows, PFFLOAT, 1) ;
+    xImage = ImageAlloc(inImage->rows, inImage->cols, PFFLOAT, 1) ;
 
   ImageConvolve3x3(inImage, sx, xImage) ;
 
@@ -3505,7 +3508,7 @@ IMAGE *
 ImageYDerivative(IMAGE *inImage, IMAGE *yImage)
 {
   if (!yImage)
-    yImage = ImageAlloc(inImage->cols, inImage->rows, PFFLOAT, 1) ;
+    yImage = ImageAlloc(inImage->rows, inImage->cols, PFFLOAT, 1) ;
 
   ImageConvolve3x3(inImage, sy, yImage) ;
 
@@ -3614,9 +3617,7 @@ ImageLaplacian(IMAGE *inImage, IMAGE *outImage)
   cols = outImage->cols ;
 
   if (!outImage)
-  {
-    outImage = ImageAlloc(cols, rows, 1, PFFLOAT) ;
-  }
+    outImage = ImageAlloc(rows, cols, 1, PFFLOAT) ;
 
   switch (inImage->pixel_format)
   {
@@ -3673,13 +3674,12 @@ ImageConvolveGaussian(IMAGE *inImage,IMAGE *gImage, IMAGE *outImage,
   {
     if (tmpImage)
       ImageFree(&tmpImage) ;
-    tmpImage = ImageAlloc(inImage->cols, inImage->rows, PFFLOAT, 1) ;
+    tmpImage = ImageAlloc(inImage->rows, inImage->cols, PFFLOAT, 1) ;
   }
   if (!outImage)
-    outImage = ImageAlloc(inImage->cols, inImage->rows, PFFLOAT, 1) ;
+    outImage = ImageAlloc(inImage->rows, inImage->cols, PFFLOAT, 1) ;
 
-  tmpImage->rows = inImage->rows ;
-  tmpImage->cols = inImage->cols ;
+  ImageSetSize(tmpImage, inImage->rows, inImage->cols) ;
 
   kernel = IMAGEFpix(gImage, 0, 0) ;
   ksize = gImage->cols ;
@@ -3716,22 +3716,25 @@ ImageWrite(outImage, fname) ;
 void
 ImageConvolve1d(IMAGE *I, IMAGE *J, float k[], int len, int axis)
 {
-  int    x, y, i, width, height, xi,yi, halflen ;
-  float  total ;
+  int           x, y, width, height, halflen ;
+  register int  xi,yi, i ;
+  float         total, *ki, *outPix, *inPix, *inBase ;
 
   width = I->cols ;
   height = I->rows ;
 
   halflen = len/2 ;
+  outPix = IMAGEFpix(J, 0, 0) ;
   if (axis == IMAGE_HORIZONTAL)
   {
     for (y = 0 ; y < height ; y++)
     {
+      inBase = IMAGEFpix(I, 0, y) ;
       for (x = 0 ; x < width ; x++)
       {
         total = 0.0f ;
 
-        for (i = 0 ; i < len ; i++)
+        for (ki = k, i = 0 ; i < len ; i++)
         {
           xi = x + i - halflen ;
 #if 0
@@ -3746,15 +3749,20 @@ ImageConvolve1d(IMAGE *I, IMAGE *J, float k[], int len, int axis)
           else if (xi >= width)
             xi = width - 1 ;
 #endif
-          
-          if (!FZERO(*IMAGEFpix(I,xi,y)))
-            halflen = len/2 ;
 
-          total = total + k[i] * *IMAGEFpix(I, xi, y) ;
+#if 0          
+          total += *ki * *IMAGEFpix(I, xi, y) ;
+#else
+          inPix = inBase + xi ;
+          total += *ki++ * *inPix ;
+#endif
         }
-        if (!FZERO(total))
-          halflen = len/2 ;
+
+#if 0
         *IMAGEFpix(J, x, y) = total ;
+#else
+        *outPix++ = total ;
+#endif
       }
     }
   }
@@ -3764,30 +3772,30 @@ ImageConvolve1d(IMAGE *I, IMAGE *J, float k[], int len, int axis)
     {
       for (x = 0 ; x < width ; x++)
       {
+        inBase = IMAGEFpix(I, x, 0) ;
         total = 0.0f ;
 
-        for (i = 0 ; i < len ; i++)
+        for (ki = k, i = 0 ; i < len ; i++)
         {
           yi = y + i - halflen ;
-#if 0
-          /* Neumann boundary conditions */
-          if (yi < 0)
-            yi = -yi ;
-          else if (yi >= height)
-            yi = height - (yi - height+1) ;
-#else
           if (yi < 0)
             yi = 0 ;
           else if (yi >= height)
             yi = height - 1 ;
-#endif          
-          if (!FZERO(*IMAGEFpix(I,x,yi)))
-            halflen = len/2 ;
-          total = total + k[i] * *IMAGEFpix(I, x, yi) ;
+
+#if 0
+          total += *ki * *IMAGEFpix(I, x, yi) ;
+#else
+          inPix = inBase + yi*width ;
+          total += *ki++ * *inPix ;
+#endif
+
         }
-        if (!FZERO(total))
-          halflen = len/2 ;
+#if 0
         *IMAGEFpix(J, x, y) = total ;
+#else
+        *outPix++ = total ;
+#endif
       }
     }
   }
@@ -3955,7 +3963,7 @@ ImageGaussian(float xsigma, float ysigma)
              an image which is (4*sigma)+1
 ----------------------------------------------------------------------*/
 IMAGE *
-ImageGaussian1d(float sigma)
+ImageGaussian1d(float sigma, int max_len)
 {
   IMAGE *image ;
   float     norm, two_sigma, fx, k ;
@@ -3963,6 +3971,8 @@ ImageGaussian1d(float sigma)
 
   /* build the kernel in k */
   len = (int)nint(8.0f * sigma)+1 ;
+  if (max_len > len)
+    len = max_len ;
   half = len/2 ;
   image = ImageAlloc(1, len, PFFLOAT, 1) ;
 
@@ -4244,7 +4254,7 @@ MatFileWrite("means.mat", means, pix_per_frame, 1, "means") ;
   have the dimension (rows*cols) x (rows*cols).
 */
   ccols = crows = rows*cols ;
-  cimage = ImageAlloc(ccols, crows, PFFLOAT, 1) ;
+  cimage = ImageAlloc(crows, ccols, PFFLOAT, 1) ;
   if (!cimage)
   {
     fprintf(stderr, 
