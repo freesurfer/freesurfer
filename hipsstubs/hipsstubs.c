@@ -3,12 +3,12 @@
 
 #include "error.h"
 
-#if 1
-/* wrote replacements for these */
-int h_copy(void) ;
-int h_copy(void) {return(-1);}
+#if 0
+/* wrote replacements for these (in hipsrepl.c) */
 int init_header(void) ;
 int init_header(void) {return(-1);}
+int h_copy(void) ;
+int h_copy(void) {return(-1);}
 int free_header(void) ;
 int free_header(void) {return(-1);}
 #endif
