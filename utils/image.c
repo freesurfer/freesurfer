@@ -86,14 +86,16 @@ static int
 alloc_image_buffer(struct header *hd)
 {
   int fcb,cb;
+  long  npix ;
 
   if (hd->sizeimage == (hsize_t) 0)  /*dng*/
   {
     hd->imdealloc = (h_boolean) FALSE; /*dng*/
     return(HIPS_OK);
   }
-  if((hd->image = hcalloc((long)hd->sizeimage*(long)hd->num_frame,sizeof(byte))) == 
-     (byte *)NULL)    return(HIPS_ERROR);
+  npix = (long)hd->sizeimage*(long)hd->num_frame ;
+  if((hd->image = hcalloc(npix, sizeof(byte))) == (byte *)NULL)    
+    return(HIPS_ERROR);
   if (hd->pixel_format == PFMSBF || hd->pixel_format == PFLSBF) 
   {
     fcb = hd->fcol/8;
@@ -270,15 +272,50 @@ ImageFRead(FILE *fp, char *fname, int start, int nframes)
   I->image = startpix ;
 
   ImageValRange(I, &fmin, &fmax) ;
+#ifdef LINUX
+  if (I->pixel_format == PFDOUBLE || I->pixel_format == PFDBLCOM)
+    fmin =  -100000.0f ;
+#endif
   if (fmin < -10000.0f || fmax > 10000.0f)  /* wrong machine format */
   {
-    float *fpix, fval ;
-    long  npix ;
+    DCPIX  *dcpix, dcval ;
+    CPIX   *cpix, cval ;
+    double *dpix, dval ;
+    float  *fpix, fval ;
+    long   npix ;
 
-    npix = (long)I->numpix * I->num_frame ;
+    npix = (long)I->numpix * (long)I->num_frame ;
 
     switch (I->pixel_format)
     {
+    case PFDBLCOM:
+      dcpix = IMAGEDCpix(I, 0, 0) ;
+      while (npix--)
+      {
+        dcval = *dcpix ;
+        dcpix->real = swapDouble(dcval.real) ;
+        dcpix->imag = swapDouble(dcval.imag) ;
+        dcpix++ ;
+      }
+      break ;
+    case PFCOMPLEX:
+      cpix = IMAGECpix(I, 0, 0) ;
+      while (npix--)
+      {
+        cval = *cpix ;
+        cpix->real = swapDouble(cval.real) ;
+        cpix->imag = swapDouble(cval.imag) ;
+        cpix++ ;
+      }
+      break ;
+    case PFDOUBLE:
+      dpix = IMAGEDpix(I, 0, 0) ;
+      while (npix--)
+      {
+        dval = *dpix ;
+        *dpix++ = swapDouble(dval) ;
+      }
+      break ;
     case PFFLOAT:
       fpix = IMAGEFpix(I, 0, 0) ;
       while (npix--)
@@ -287,6 +324,10 @@ ImageFRead(FILE *fp, char *fname, int start, int nframes)
         *fpix++ = swapFloat(fval) ;
       }
       break ;
+    default:
+      ErrorReturn(NULL, 
+                  (ERROR_UNSUPPORTED, 
+                   "ImageFRead: unsupported type %d\n", I->pixel_format)) ;
     }
   }
   
