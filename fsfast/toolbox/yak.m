@@ -16,11 +16,11 @@ function yak(varargin)
 %
 % yak(cbstring) % for callback functions
 %
-% $Id: yak.m,v 1.1 2003/03/04 20:47:41 greve Exp $
+% $Id: yak.m,v 1.2 2003/07/19 00:17:03 greve Exp $
 
 if(nargin == 0)
   msg = 'USAGE: hfig = yak(flag,options)';
-  msg = sprintf('%s\n$Id: yak.m,v 1.1 2003/03/04 20:47:41 greve Exp $',msg);
+  msg = sprintf('%s\n$Id: yak.m,v 1.2 2003/07/19 00:17:03 greve Exp $',msg);
   qoe(msg);error(msg);
 end
 
@@ -384,6 +384,7 @@ switch (cbflag)
       s = sprintf(' %sr - show raw time course \n',s);
       s = sprintf(' %st - change sign to view (+,-,+/-)\n',s);
       s = sprintf(' %sv - save raw timecourse to ascii file\n',s);
+      s = sprintf(' %sw - toggle display of overlay\n',s);
       s = sprintf(' %sz - toggle zoom state\n',s);
       msgbox(s,'Yakview Help','help');
 
@@ -548,6 +549,12 @@ switch (cbflag)
        ud.ZoomState = ~ud.ZoomState;
        fprintf('Toggling Zoom State to %d\n',ud.ZoomState);
 
+     case {'w'},
+       ud.ovshow = ~ud.ovshow;
+       fprintf('Toggling Show Overlay to %d\n',ud.ovshow);
+       ud = redraw(ud);
+       setstatus(ud);
+
      case {'r'},
        if(~isempty(ud.raw) & ~ishandle2(ud.hRaw))
          hyak = gcf;
@@ -610,9 +617,17 @@ function ud = redraw(ud)
   % colorbar;
 
   if(~isempty(ud.ActImg))
+    if(ud.ovshow) 
+      ovminuse = ud.ovmin;
+      ovmaxuse = ud.ovmax;
+    else
+      ovminuse = 10^10;
+      ovmaxuse = 10^11;
+    end
     [ud.DisplayImg ud.CMap ud.CScale ] = ...
-        imgoverlaytc2(ud.UnderlayImgTC,...
-          ud.ActImg(:,:,ud.CurPlaneNo),ud.ovmin,ud.ovmax,ud.tail,ud.interp);
+	imgoverlaytc2(ud.UnderlayImgTC,ud.ActImg(:,:,ud.CurPlaneNo),...
+		      ovminuse,ovmaxuse,ud.tail,ud.interp);
+      
     if(ud.Mask) ud.DisplayImg = ud.DisplayImg.*ud.MaskImg; end
     image(ud.DisplayImg);
     colormap(ud.CMap);
@@ -702,6 +717,7 @@ function ud = new_user_data
                'ovmin',        log(.01),...
                'ovmax',        log(.00001),...
                'tail',         'both',...
+               'ovshow',       1,...
                'hcbar',        [],... % colorbar
                'CMap',          [], ...
                'CScale',        [], ...
