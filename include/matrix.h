@@ -33,32 +33,43 @@ typedef struct
 #define MATRIX_REAL        1
 #define MATRIX_COMPLEX     2
 
-extern MATRIX  *MatrixInverse(MATRIX *mIn, MATRIX *mOut) ;
-extern MATRIX  *MatrixAlloc(int rows, int cols, int type) ;
-extern int     MatrixFree(MATRIX **pmat) ;
-extern MATRIX  *MatrixMultiply(MATRIX *m1, MATRIX *m2, MATRIX *m3) ;
-extern MATRIX  *MatrixCopy(MATRIX *mIn, MATRIX *mOut) ;
-extern MATRIX  *MatrixRead(char *fname, MATRIX *mOut) ;
-extern MATRIX  *MatrixIdentity(int n, MATRIX *mI) ;
-extern void    MatrixPrint(FILE *fp, MATRIX *mat) ;
-extern MATRIX  *MatrixTranspose(MATRIX *mIn, MATRIX *mOut) ;
-extern MATRIX  *MatrixAdd(MATRIX *m1, MATRIX *m2, MATRIX *mOut) ;
-extern MATRIX  *MatrixSubtract(MATRIX *m1, MATRIX *m2, MATRIX *mOut) ;
-extern MATRIX  *MatrixScalarMul(MATRIX *mIn, float val, MATRIX *mOut) ;
-extern MATRIX  *MatrixClear(MATRIX *mat) ;
-extern MATRIX  *MatrixSquareElts(MATRIX *mIn, MATRIX *mOut) ;
-extern MATRIX  *MatrixDiag(MATRIX *mDiag, MATRIX *mOut) ;
-extern MATRIX  *MatrixCopyRegion(MATRIX *mSrc, MATRIX *mDst, int start_row, 
+MATRIX  *MatrixInverse(MATRIX *mIn, MATRIX *mOut) ;
+MATRIX  *MatrixAlloc(int rows, int cols, int type) ;
+int     MatrixFree(MATRIX **pmat) ;
+MATRIX  *MatrixMultiply(MATRIX *m1, MATRIX *m2, MATRIX *m3) ;
+MATRIX  *MatrixCopy(MATRIX *mIn, MATRIX *mOut) ;
+MATRIX  *MatrixRead(char *fname, MATRIX *mOut) ;
+MATRIX  *MatrixIdentity(int n, MATRIX *mI) ;
+int     MatrixPrint(FILE *fp, MATRIX *mat) ;
+MATRIX  *MatrixTranspose(MATRIX *mIn, MATRIX *mOut) ;
+MATRIX  *MatrixAdd(MATRIX *m1, MATRIX *m2, MATRIX *mOut) ;
+MATRIX  *MatrixSubtract(MATRIX *m1, MATRIX *m2, MATRIX *mOut) ;
+MATRIX  *MatrixScalarMul(MATRIX *mIn, float val, MATRIX *mOut) ;
+MATRIX  *MatrixClear(MATRIX *mat) ;
+MATRIX  *MatrixSquareElts(MATRIX *mIn, MATRIX *mOut) ;
+MATRIX  *MatrixDiag(MATRIX *mDiag, MATRIX *mOut) ;
+MATRIX  *MatrixCopyRegion(MATRIX *mSrc, MATRIX *mDst, int start_row, 
                                  int start_col, int rows, int cols, 
                                  int dest_row, int dest_col) ;
-extern MATRIX  *MatrixCopyRealRegion(MATRIX *mSrc, MATRIX *mDst,int start_row,
+MATRIX  *MatrixCopyRealRegion(MATRIX *mSrc, MATRIX *mDst,int start_row,
                                  int start_col, int rows, int cols, 
                                  int dest_row, int dest_col) ;
-extern MATRIX  *MatrixCopyImagRegion(MATRIX *mSrc, MATRIX *mDst, int start_row,
+MATRIX  *MatrixCopyImagRegion(MATRIX *mSrc, MATRIX *mDst, int start_row,
                                  int start_col, int rows, int cols, 
                                  int dest_row, int dest_col) ;
-extern MATRIX *MatrixRealToComplex(MATRIX *mReal, MATRIX *mImag, MATRIX *mOut);
+MATRIX *MatrixRealToComplex(MATRIX *mReal, MATRIX *mImag, MATRIX *mOut);
+float  MatrixDeterminant(MATRIX *m) ;
+MATRIX *MatrixEigenSystem(MATRIX *m, float *evalues, MATRIX *m_dst) ;
+MATRIX *MatrixSVD(MATRIX *mA, float *z, MATRIX *mV) ;
 
+#define VectorAlloc(n, type)       MatrixAlloc(n, 1, type)
+#define VectorFree(pm)             MatrixFree(pm)
+
+#define X_ROTATION   0
+#define Y_ROTATION   1
+#define Z_ROTATION   2
+
+MATRIX *MatrixAllocRotation(int n, float angle, int which) ;
 #define MatrixClone(mat)   MatrixCopy(mat, NULL)
 
 #endif
