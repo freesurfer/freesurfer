@@ -1047,4 +1047,27 @@ LabelFromMarkedSurface(MRI_SURFACE *mris)
   area->n_points = npoints ;
   return(area) ;
 }
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
+int
+LabelMarkSurface(LABEL *area, MRI_SURFACE *mris)
+{
+  int     n, vno ;
+  VERTEX  *v ;
+
+  for (n = 0 ; n < area->n_points ; n++)
+  {
+    vno = area->lv[n].vno ;
+    v = &mris->vertices[vno] ;
+    if (v->ripflag)
+      continue ;
+    v->marked = 1 ;
+  }
+  return(NO_ERROR) ;
+}
 
