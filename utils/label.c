@@ -11,10 +11,12 @@
 #include "utils.h"
 #include "mrisurf.h"
 #include "label.h"
+#include "mri.h"
 
 static Transform *labelLoadTransform(char *subject_name, char *sdir,
                                      General_transform *transform) ;
 
+#define MAX_VERTICES 500000
 /*-----------------------------------------------------
         Parameters:
 
@@ -173,21 +175,57 @@ LabelToCanonical(LABEL *area, MRI_SURFACE *mris)
 int
 LabelFromCanonical(LABEL *area, MRI_SURFACE *mris)
 {
-  int     n, vno ;
+  int     n, vno, ui, vi, vlist[500000], nvertices ;
   VERTEX  *v ;
+  MRI_SP  *mrisp ;
+  LV     *lv ;
+
+  mrisp = MRISPalloc(0.0f, 1) ;
 
   for (n = 0 ; n < area->n_points ; n++)
   {
-    DiagHeartbeat((float)n / (float)area->n_points) ;
-    vno =
-      MRISfindClosestCanonicalVertex(mris,area->lv[n].x,area->lv[n].y,
-                                     area->lv[n].z);
-    v = &mris->vertices[vno] ;
-    area->lv[n].vno = vno ;
-    area->lv[n].x = v->cx ;
-    area->lv[n].y = v->cy ;
-    area->lv[n].z = v->cz ;
+    MRISPcoordinate(mrisp, area->lv[n].x,area->lv[n].y,area->lv[n].z, &ui,&vi);
+    MRISPvox(mrisp, ui, vi) = 1 ;
   }
+
+  if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+    ImageWrite(mrisp->Ip, "label.tif") ;
+
+  /* now go through the surface and build a list of the vertices and
+     keep track of those which fall into volume regions marked as within
+     the area.
+     */
+  for (nvertices = vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    if (v->ripflag)
+      continue ;
+    MRISPcoordinate(mrisp, v->cx, v->cy, v->cz, &ui, &vi) ;
+    if (nvertices+1 >= MAX_VERTICES)
+      break ;
+    if (MRISPvox(mrisp, ui, vi) > 0.0f)
+      vlist[nvertices++] = vno ;
+  }
+
+  if (area->max_points < nvertices)
+  {
+    free(area->lv) ;
+    area->max_points = nvertices ;
+    area->lv = (LABEL_VERTEX *)calloc(nvertices, sizeof(LABEL_VERTEX)) ;
+    if (!area->lv)
+      ErrorExit(ERROR_NOMEMORY, 
+                "%s: LabelFromCanonical could not allocate %d-sized vector",
+                Progname, sizeof(LV)*nvertices) ;
+  }
+  area->n_points = nvertices ;
+  for (n = 0 ; n < nvertices ; n++)
+  {
+    lv = &area->lv[n] ;
+    lv->vno = vlist[n] ;
+    v = &mris->vertices[vlist[n]] ;
+    lv->x = v->cx ; lv->y = v->cy ; lv->z = v->cz ;
+  }
+  MRISPfree(&mrisp) ;
   return(NO_ERROR) ;
 }
 /*-----------------------------------------------------
@@ -197,6 +235,83 @@ LabelFromCanonical(LABEL *area, MRI_SURFACE *mris)
 
         Description
 ------------------------------------------------------*/
+#if 0
+#define VRES   2.0f
+#define VSIZE  256
+#define VDIM   (VSIZE/VRES)
+int
+LabelFromTalairach(LABEL *area, MRI_SURFACE *mris)
+{
+  int     n, vno, vlist[MAX_VERTICES], nvertices, xv, yv, zv ;
+  VERTEX  *v ;
+  MRI     *mri ;
+  Real    xw, yw, zw ;
+  LV     *lv ;
+
+  /* first write it into a volume */
+  mri = MRIalloc(VDIM,VDIM,VDIM, MRI_UCHAR) ;
+  mri->inverse_linear_transform = mris->inverse_linear_transform ;
+  mri->linear_transform = mris->linear_transform ;
+  MRIsetResolution(mri, VRES, VRES, VRES) ;
+  for (n = 0 ; n < area->n_points ; n++)
+  {
+    MRItalairachToVoxel(mri, area->lv[n].x,area->lv[n].y,area->lv[n].z,
+                        &xw, &yw, &zw) ;
+    xv = nint(xw) ; yv = nint(yw) ; zv = nint(zw) ;
+    if (xv < 0) xv = 0 ; if (yv < 0) yv = 0 ; if (zv < 0) zv = 0 ;
+    if (xv >= mri->width)  xv = mri->width-1 ;
+    if (yv >= mri->height) yv = mri->height-1 ;
+    if (zv >= mri->depth)  zv = mri->depth-1 ;
+    MRIvox(mri, xv, yv, zv) = 1 ;
+  }
+
+  if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+    MRIwrite(mri, "label.mnc") ;
+  /* now go through the surface and build a list of the vertices and
+     keep track of those which fall into volume regions marked as within
+     the area.
+     */
+  for (nvertices = vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    if (v->ripflag)
+      continue ;
+    MRISorigVertexToVoxel(v, mri, &xw, &yw, &zw) ;
+    xv = nint(xw) ; yv = nint(yw) ; zv = nint(zw) ;
+    if (xv < 0) xv = 0 ; if (yv < 0) yv = 0 ; if (zv < 0) zv = 0 ;
+    if (xv >= mri->width)  xv = mri->width-1 ;
+    if (yv >= mri->height) yv = mri->height-1 ;
+    if (zv >= mri->depth)  zv = mri->depth-1 ;
+    if (nvertices+1 >= MAX_VERTICES)
+      break ;
+    if (MRIvox(mri, xv, yv, zv) > 0)
+      vlist[nvertices++] = vno ;
+  }
+
+  if (area->max_points < nvertices)
+  {
+    free(area->lv) ;
+    area->max_points = nvertices ;
+    area->lv = (LABEL_VERTEX *)calloc(nvertices, sizeof(LABEL_VERTEX)) ;
+    if (!area->lv)
+      ErrorExit(ERROR_NOMEMORY, 
+                "%s: LabelFromTalairach could not allocate %d-sized vector",
+                Progname, sizeof(LV)*nvertices) ;
+  }
+  area->n_points = nvertices ;
+  for (n = 0 ; n < nvertices ; n++)
+  {
+    lv = &area->lv[n] ;
+    lv->vno = vlist[n] ;
+    v = &mris->vertices[vlist[n]] ;
+    lv->x = v->origx ; lv->y = v->origy ; lv->z = v->origz ;
+  }
+  mri->inverse_linear_transform = NULL ;
+  mri->linear_transform = NULL ;
+  MRIfree(&mri) ;
+  return(NO_ERROR) ;
+}
+#else
 int
 LabelFromTalairach(LABEL *area, MRI_SURFACE *mris)
 {
@@ -209,12 +324,13 @@ LabelFromTalairach(LABEL *area, MRI_SURFACE *mris)
     vno = MRIStalairachToVertex(mris,area->lv[n].x,area->lv[n].y,area->lv[n].z);
     v = &mris->vertices[vno] ;
     area->lv[n].vno = vno ;
-    area->lv[n].x = v->x ;
-    area->lv[n].y = v->y ;
-    area->lv[n].z = v->z ;
+    area->lv[n].x = v->origx ;
+    area->lv[n].y = v->origy ;
+    area->lv[n].z = v->origz ;
   }
   return(NO_ERROR) ;
 }
+#endif
 /*-----------------------------------------------------
         Parameters:
 
@@ -672,4 +788,79 @@ LabelRemoveDuplicates(LABEL *area)
             deleted, area->name) ;
   return(NO_ERROR) ;
 }
+/*-----------------------------------------------------
+        Parameters:
 
+        Returns value:
+
+        Description
+------------------------------------------------------*/
+double
+LabelArea(LABEL *area, MRI_SURFACE *mris)
+{
+  int      i ;
+  double   total_area ;
+  LV       *lv ;
+  VERTEX   *v ;
+
+  for (total_area = 0.0, i = 0 ; i < area->n_points ; i++)
+  {
+    lv = &area->lv[i] ;
+    v = &mris->vertices[lv->vno] ;
+    if (v->ripflag)
+      continue ;
+    total_area += v->area ;
+  }
+
+  return(total_area) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
+int
+LabelMean(LABEL *area, double *px, double *py, double *pz)
+{
+  int      i, n ;
+  double   x, y, z ;
+  LV       *lv ;
+
+  for (x = y = z = 0.0, n = i = 0 ; i < area->n_points ; i++)
+  {
+    lv = &area->lv[i] ;
+    
+    x += lv->x ; y += lv->y ; z += lv->z ; n++ ;
+  }
+
+  *px = x / (double)n ; *py = y / (double)n ; *pz = z / (double)n ;
+  return(NO_ERROR) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
+double
+LabelVariance(LABEL *area, double ux, double uy, double uz)
+{
+  int      i, n ;
+  double   xd, yd, zd, dsq ;
+  LV       *lv ;
+
+  for (dsq = 0.0, n = i = 0 ; i < area->n_points ; i++)
+  {
+    lv = &area->lv[i] ;
+
+    xd = lv->x - ux ; yd = lv->y - uy ; zd = lv->z - uz ;
+    dsq += xd*xd + yd*yd + zd*zd ;
+    n++ ;
+  }
+  
+  dsq /= (double)n ;
+  return(dsq) ;
+}
