@@ -44,7 +44,11 @@
 #define FRAME_Y             10
 
 #define DISPLAY_SIZE        128
+#ifdef LINUX
 #define MIN_FRAME_WIDTH     235
+#else
+#define MIN_FRAME_WIDTH     220
+#endif
 
 
 #define PANEL_HEIGHT        ((xvf->button_rows+1) * ROW_HEIGHT+4*WINDOW_PAD)
