@@ -127,6 +127,9 @@ protected:
   void BuildOverlay();
   void DrawOverlay ();
 
+  // Rebuilds the label-value stuff.
+  void RebuildLabelValueInfo ( float iRAS[3] );
+
   void SetLinkedStatus ( bool ibLinked ) {mViewIDLinkedList[GetID()]=ibLinked;}
   bool GetLinkedStatus () { return mViewIDLinkedList[GetID()]; }
 

@@ -891,38 +891,8 @@ ScubaView::DoMouseMoved( int iWindow[2],
   float ras[3];
   TranslateWindowToRAS( iWindow, ras );
 
-  map<string,string> labelValueMap;
-
-  stringstream sID;
-  sID << GetLabel() << " (" << GetID() << ")";
-  labelValueMap["View"] = sID.str();
-
-  // Get the RAS coords into a string and set that label/value.
-  stringstream ssRASCoords;
-  ssRASCoords.width(5);
-  ssRASCoords << ras[0] << " " << ras[1] << " " << ras[2];
-  labelValueMap["RAS"] = ssRASCoords.str();
-
-  // Go through our draw levels. For each one, get the Layer.
-  map<int,int>::iterator tLevelLayerID;
-  for( tLevelLayerID = mLevelLayerIDMap.begin(); 
-       tLevelLayerID != mLevelLayerIDMap.end(); ++tLevelLayerID ) {
-
-    int layerID = (*tLevelLayerID).second;
-    try {
-      Layer& layer = Layer::FindByID( layerID );
-      
-      // Ask the layer for info strings at this point.
-      layer.GetInfoAtRAS( ras, labelValueMap );
-    }
-    catch(...) {
-      DebugOutput( << "Couldn't find layer " << layerID );
-    }
-  }
-
-  // Set this labelValueMap in the array of label values under the
-  // name 'cursor'.
-  mLabelValueMaps["cursor"] = labelValueMap;
+  // Rebuild our label value info because the mouse has moved.
+  RebuildLabelValueInfo( ras );
 
 
   // Handle the navigation tool.
@@ -998,20 +968,24 @@ ScubaView::DoMouseMoved( int iWindow[2],
     }
   }
   
-  // Pass this tool to our layers.
-  for( tLevelLayerID = mLevelLayerIDMap.begin(); 
-       tLevelLayerID != mLevelLayerIDMap.end(); ++tLevelLayerID ) {
-    int layerID = (*tLevelLayerID).second;
-    try {
-      Layer& layer = Layer::FindByID( layerID );
-      layer.HandleTool( ras, mViewState, *this, iTool, iInput );
-      if( layer.WantRedisplay() ) {
-	RequestRedisplay();
-	layer.RedisplayPosted();
+  // If not a straight control-click, pass this tool to our layers.
+  if( !(iInput.IsControlKeyDown() && 
+	!iInput.IsShiftKeyDown() && !iInput.IsAltKeyDown()) ) {
+    map<int,int>::iterator tLevelLayerID;
+    for( tLevelLayerID = mLevelLayerIDMap.begin(); 
+	 tLevelLayerID != mLevelLayerIDMap.end(); ++tLevelLayerID ) {
+      int layerID = (*tLevelLayerID).second;
+      try {
+	Layer& layer = Layer::FindByID( layerID );
+	layer.HandleTool( ras, mViewState, *this, iTool, iInput );
+	if( layer.WantRedisplay() ) {
+	  RequestRedisplay();
+	  layer.RedisplayPosted();
+	}
       }
-    }
-    catch(...) {
-      DebugOutput( << "Couldn't find layer " << layerID );
+      catch(...) {
+	DebugOutput( << "Couldn't find layer " << layerID );
+      }
     }
   }
 }
@@ -1048,23 +1022,26 @@ ScubaView::DoMouseUp( int iWindow[2],
   }
 
 
-  // Pass this tool to our layers.
-  float ras[3];
-  TranslateWindowToRAS( iWindow, ras );
-  map<int,int>::iterator tLevelLayerID;
-  for( tLevelLayerID = mLevelLayerIDMap.begin(); 
-       tLevelLayerID != mLevelLayerIDMap.end(); ++tLevelLayerID ) {
-    int layerID = (*tLevelLayerID).second;
-    try {
-      Layer& layer = Layer::FindByID( layerID );
-      layer.HandleTool( ras, mViewState, *this, iTool, iInput );
-      if( layer.WantRedisplay() ) {
-	RequestRedisplay();
-	layer.RedisplayPosted();
+  // If not a straight control-click, pass this tool to our layers.
+  if( !(iInput.IsControlKeyDown() && 
+	!iInput.IsShiftKeyDown() && !iInput.IsAltKeyDown()) ) {
+    float ras[3];
+    TranslateWindowToRAS( iWindow, ras );
+    map<int,int>::iterator tLevelLayerID;
+    for( tLevelLayerID = mLevelLayerIDMap.begin(); 
+	 tLevelLayerID != mLevelLayerIDMap.end(); ++tLevelLayerID ) {
+      int layerID = (*tLevelLayerID).second;
+      try {
+	Layer& layer = Layer::FindByID( layerID );
+	layer.HandleTool( ras, mViewState, *this, iTool, iInput );
+	if( layer.WantRedisplay() ) {
+	  RequestRedisplay();
+	  layer.RedisplayPosted();
+	}
       }
-    }
-    catch(...) {
-      DebugOutput( << "Couldn't find layer " << layerID );
+      catch(...) {
+	DebugOutput( << "Couldn't find layer " << layerID );
+      }
     }
   }
 }
@@ -1082,23 +1059,26 @@ ScubaView::DoMouseDown( int iWindow[2],
   mOriginalCenterRAS[2] = mViewState.mCenterRAS[2];
   mOriginalZoom = mViewState.mZoomLevel;
 
-  // Pass this tool to our layers.
-  float ras[3];
-  TranslateWindowToRAS( iWindow, ras );
-  map<int,int>::iterator tLevelLayerID;
-  for( tLevelLayerID = mLevelLayerIDMap.begin(); 
-       tLevelLayerID != mLevelLayerIDMap.end(); ++tLevelLayerID ) {
-    int layerID = (*tLevelLayerID).second;
-    try {
-      Layer& layer = Layer::FindByID( layerID );
-      layer.HandleTool( ras, mViewState, *this, iTool, iInput );
-      if( layer.WantRedisplay() ) {
-	RequestRedisplay();
-	layer.RedisplayPosted();
+  // If not a straight control-click, pass this tool to our layers.
+  if( !(iInput.IsControlKeyDown() && 
+	!iInput.IsShiftKeyDown() && !iInput.IsAltKeyDown()) ) {
+    float ras[3];
+    TranslateWindowToRAS( iWindow, ras );
+    map<int,int>::iterator tLevelLayerID;
+    for( tLevelLayerID = mLevelLayerIDMap.begin(); 
+	 tLevelLayerID != mLevelLayerIDMap.end(); ++tLevelLayerID ) {
+      int layerID = (*tLevelLayerID).second;
+      try {
+	Layer& layer = Layer::FindByID( layerID );
+	layer.HandleTool( ras, mViewState, *this, iTool, iInput );
+	if( layer.WantRedisplay() ) {
+	  RequestRedisplay();
+	  layer.RedisplayPosted();
+	}
       }
-    }
-    catch(...) {
+      catch(...) {
       DebugOutput( << "Couldn't find layer " << layerID );
+      }
     }
   }
 }
@@ -1194,6 +1174,11 @@ ScubaView::DoKeyDown( int iWindow[2],
     }
     Set2DRASCenter( newRAS );
 
+    // Rebuild our label value info because the view has moved.
+    float ras[3];
+    TranslateWindowToRAS( iWindow, ras );
+    RebuildLabelValueInfo( ras );
+
   } else if( key == msZoomViewIn || key == msZoomViewOut ) {
 
     float newZoom = mViewState.mZoomLevel;
@@ -1207,6 +1192,10 @@ ScubaView::DoKeyDown( int iWindow[2],
     }
     Set2DZoomLevel( newZoom );
 
+    // Rebuild our label value info because the view has moved.
+    float ras[3];
+    TranslateWindowToRAS( iWindow, ras );
+    RebuildLabelValueInfo( ras );
   }
 
   RequestRedisplay();
@@ -1553,6 +1542,44 @@ ScubaView::BuildOverlay () {
   glEndList();
 
   mbRebuildOverlayDrawList = false;
+}
+
+void
+ScubaView::RebuildLabelValueInfo ( float iRAS[3] ) {
+
+  map<string,string> labelValueMap;
+
+  stringstream sID;
+  sID << GetLabel() << " (" << GetID() << ")";
+  labelValueMap["View"] = sID.str();
+
+  // Get the RAS coords into a string and set that label/value.
+  stringstream ssRASCoords;
+  ssRASCoords.width(5);
+  ssRASCoords << iRAS[0] << " " << iRAS[1] << " " << iRAS[2];
+  labelValueMap["RAS"] = ssRASCoords.str();
+
+  // Go through our draw levels. For each one, get the Layer.
+  map<int,int>::iterator tLevelLayerID;
+  for( tLevelLayerID = mLevelLayerIDMap.begin(); 
+       tLevelLayerID != mLevelLayerIDMap.end(); ++tLevelLayerID ) {
+
+    int layerID = (*tLevelLayerID).second;
+    try {
+      Layer& layer = Layer::FindByID( layerID );
+      
+      // Ask the layer for info strings at this point.
+      layer.GetInfoAtRAS( iRAS, labelValueMap );
+    }
+    catch(...) {
+      DebugOutput( << "Couldn't find layer " << layerID );
+    }
+  }
+
+  // Set this labelValueMap in the array of label values under the
+  // name 'cursor'.
+  mLabelValueMaps["cursor"] = labelValueMap;
+
 }
 
 void

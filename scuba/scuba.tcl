@@ -619,7 +619,8 @@ proc MakeScubaFrame { ifwTop } {
 	"%W MouseDownCallback %x %y %b; ScubaMouseDownCallback %x %y %b"
     bind $fwScuba <ButtonRelease> "%W MouseUpCallback %x %y %b"
     bind $fwScuba <KeyRelease> "%W KeyUpCallback %x %y %K"
-    bind $fwScuba <KeyPress> "%W KeyDownCallback %x %y %K"
+    bind $fwScuba <KeyPress> \
+	"%W KeyDownCallback %x %y %K; ScubaKeyDownCallback %x %y %K"
     bind $fwScuba <Enter> "focus $fwScuba"
 
     set gaWidget(scubaFrame,$frameID) $fwScuba
@@ -688,6 +689,21 @@ proc ScubaMouseDownCallback { inX inY iButton } {
     if { $viewID != $gaView(current,id) } {
 	SelectViewInViewProperties $viewID
     }
+}
+
+proc ScubaKeyDownCallback { inX inY iKey } {
+    
+
+    # This is kind of arbitrary, but since some keypresses can change
+    # the information that should be displayed in the label area,
+    # update here.
+    set viewID [GetSelectedViewID [GetMainFrameID]]
+
+    set err [catch { 
+	set labelValues [GetLabelValuesSet $viewID cursor] } sResult]
+    if { 0 != $err } { tkuErrorDlog $sResult; return }
+
+    UpdateLabelArea $labelValues
 }
 
 proc GetPreferences {} {
@@ -3100,7 +3116,7 @@ toplevel $gaWidget(window)
 # Make the tkcon panel. This must be done at this scope because the
 # tkcon.tcl script needs access to some global vars.
 set gaWidget(tkcon) [frame $gaWidget(window).tkcon -height 40]
-::tkcon::Init -root $gaWidget(window).tkcon -showmenu 0 -embed 1 -exec ""
+::tkcon::Init -root $gaWidget(tkcon) -showmenu 0 -embed 1 -exec ""
 tkcon attach main
 
 

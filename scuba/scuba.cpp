@@ -128,7 +128,7 @@ int main ( int argc, char** argv ) {
     
  
     while( 1 ) {
-      Tcl_DoOneEvent( TCL_ALL_EVENTS | TCL_DONT_WAIT );
+      Tcl_DoOneEvent( TCL_ALL_EVENTS );
     }
 
   }

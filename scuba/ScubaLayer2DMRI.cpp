@@ -135,7 +135,7 @@ ScubaLayer2DMRI::DrawIntoBuffer ( GLubyte* iBuffer, int iWidth, int iHeight,
   windowMax[1] = MIN( iHeight, MAX( winBoundsA[1], winBoundsB[1] ) );
 
   GLubyte* dest;
-  int const kLoop = 8;
+  int const kLoop = 1;
   float value[kLoop];
   float RAS[3];
   int color[kLoop][3];
@@ -146,7 +146,7 @@ ScubaLayer2DMRI::DrawIntoBuffer ( GLubyte* iBuffer, int iWidth, int iHeight,
   for( window[1] = windowMin[1]; window[1] < windowMax[1]; window[1]++ ) {
     dest = iBuffer + (window[1] * iWidth * 4) + (windowMin[0] * 4);
     for( window[0] = windowMin[0]; 
-	 window[0] + kLoop < windowMax[0]; window[0] += kLoop ) {
+	 window[0] + kLoop <= windowMax[0]; window[0] += kLoop ) {
 
       windowLoop.Set( window );
       for( int nLoop = 0; nLoop < kLoop; nLoop++ ) {
@@ -816,6 +816,9 @@ ScubaLayer2DMRI::HandleTool ( float iRAS[3], ViewState& iViewState,
 			      ScubaWindowToRASTranslator& iTranslator,
 			      ScubaToolState& iTool, InputState& iInput ) {
   
+  // Never handle control clicks, since that's a navigation thing
+  // handled by the view.
+
   switch( iTool.GetMode() ) {
   case ScubaToolState::voxelEditing:
     

@@ -265,17 +265,18 @@ x     - display text, progress, have buttons on right
 
 BRUCE'S LIST:::
 
-- b/c controled by mouse
+- b/c controled by mouse, perhaps mod+mouse when nav tool is on
 
 
 BUGS:::
 - fix radius in brush, it's really ugly
 - tabbing when in console switches frame, disable?
-- brings up tkcon window briefly when booting
-- ctrl-click to zoom in while in line tool draws line - handleTool should check to see if ctrl is down
-- info pane doesn't update when changing slices
+- brings up tkcon window briefly when booting, gobbles memory
 - undo label doens't work correctly
-
+- if create straight line with just click and release, crashes when try to draw
+- is control-middle button working properly?
+- crashes when zoom out completely
+  - because when get RAS bounds in window coords, can round down, and window coords can become invalid
 
 FUTURE IDEAS:::
 
