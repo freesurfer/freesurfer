@@ -15,3 +15,6 @@ MRI *mri_load_cor_as_float(char *cordir);
 MRI *mri_load_wfile(char *wfile);
 size_t mri_sizeof(MRI *vol);
 MRI *mri_reshape(MRI *vol, int ncols, int nrows, int nslices, int nframes);
+int MRIfdr2vwth(MRI *vol, int frame, double fdr, int signid, 
+		int log10flag, MRI *mask, double *vwth, MRI *ovol);
+int MRIdimMismatch(MRI *v1, MRI *v2, int frameflag);

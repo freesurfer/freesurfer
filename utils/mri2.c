@@ -1,7 +1,7 @@
 /*-------------------------------------------------------------------
   Name: mri2.c
   Author: Douglas N. Greve
-  $Id: mri2.c,v 1.8 2004/11/03 22:16:35 greve Exp $
+  $Id: mri2.c,v 1.9 2004/11/03 22:36:00 greve Exp $
   Purpose: more routines for loading, saving, and operating on MRI 
   structures.
   -------------------------------------------------------------------*/
@@ -673,8 +673,9 @@ int MRIdimMismatch(MRI *v1, MRI *v2, int frameflag)
 }
 
 /*---------------------------------------------------------------
-  MRIfdr() - computes False Discovery Rate (FDR) theshold, and
-  optionally thresholds the the MRI volume. 
+  MRISfdr2vwth() - computes the voxel-wise threshold needed to realize
+  the given False Discovery Rate (FDR) based on the values in the
+  given frame. Optionally thresholds the the MRI volume.
 
   frame - 0-based frame number of input volume to use
   fdr - false dicovery rate, between 0 and 1, eg: .05
@@ -707,34 +708,34 @@ int MRIdimMismatch(MRI *v1, MRI *v2, int frameflag)
 
   Ref: http://www.sph.umich.edu/~nichols/FDR/FDR.m
   *----------------------------------------------------*/
-int MRIfdr(MRI *vol, int frame, double fdr, int signid, int log10flag,
-	   MRI *mask, double *vwth, MRI *ovol)
+int MRIfdr2vwth(MRI *vol, int frame, double fdr, int signid, 
+		int log10flag, MRI *mask, double *vwth, MRI *ovol)
 {
   double *p=NULL, val=0.0, valnull=0.0, maskval;
   int Nv, np, c, r ,s, maskflag=0;
 
   if(vol->nframes <= frame){
-    printf("ERROR: MRIfdr: frame = %d, must be < nframes = %d\n",
+    printf("ERROR: MRIfdr2vwth: frame = %d, must be < nframes = %d\n",
 	   frame,vol->nframes);
     return(1);
   }
   if(vol->type != MRI_FLOAT){
-    printf("ERROR: MRIfdr: input volume is not of type MRI_FLOAT\n");
+    printf("ERROR: MRIfdr2vwth: input volume is not of type MRI_FLOAT\n");
     return(1);
   }
   if(ovol != NULL){
     if(ovol->type != MRI_FLOAT){
-      printf("ERROR: MRIfdr: output volume is not of type MRI_FLOAT\n");
+      printf("ERROR: MRIfdr2vwth: output volume is not of type MRI_FLOAT\n");
       return(1);
     }
     if(MRIdimMismatch(vol, ovol, 0)){
-      printf("ERROR: MRIfdr: output/input dimension mismatch\n");
+      printf("ERROR: MRIfdr2vwth: output/input dimension mismatch\n");
       return(1);
     }
   }
   if(mask != NULL){
     if(MRIdimMismatch(vol, mask, 0)){
-      printf("ERROR: MRIfdr: mask/input dimension mismatch\n");
+      printf("ERROR: MRIfdr2vwth: mask/input dimension mismatch\n");
       return(1);
     }
     maskflag = 1;
@@ -770,12 +771,12 @@ int MRIfdr(MRI *vol, int frame, double fdr, int signid, int log10flag,
       }
     }
   }
-  printf("MRIfdr: np = %d, nv = %d\n",np,Nv);
+  printf("MRIfdr2vwth: np = %d, nv = %d\n",np,Nv);
 
   // Check that something met the match criteria, 
   // otherwise return an error
   if(np==0){
-    printf("ERROR: MRIfdr: no matching voxels found\n");
+    printf("ERROR: MRIfdr2vwth: no matching voxels found\n");
     free(p);
     return(1);
   }
