@@ -955,6 +955,9 @@ XVdrawPoint(XV_FRAME *xvf, int which, int x, int y, int color)
   case XGREEN:
     gc = dimage->greenGC ;
     break ;
+  case XXOR:
+    gc = dimage->xorGC ;
+    break ;
   case XRED:
   default:
     gc = dimage->redGC ;
@@ -1020,6 +1023,9 @@ XVdrawBox(XV_FRAME *xvf, int which, int x, int y, int dx, int dy, int color)
     break ;
   case XPURPLE:
     gc = dimage->purpleGC ;
+    break ;
+  case XXOR:
+    gc = dimage->xorGC ;
     break ;
   case XRED:
   default:
@@ -1110,6 +1116,9 @@ XVdrawLine(XV_FRAME *xvf, int which, int x, int y, int dx, int dy, int color)
   case XGREEN:
     gc = dimage->greenGC ;
     break ;
+  case XXOR:
+    gc = dimage->xorGC ;
+    break ;
   case XRED:
   default:
     gc = dimage->redGC ;
@@ -1165,6 +1174,9 @@ XVdrawArrow(XV_FRAME *xvf, int which, int x, int y,float dx,float dy,int color)
     break ;
   case XBLUE:
     gc = dimage->blueGC ;
+    break ;
+  case XXOR:
+    gc = dimage->xorGC ;
     break ;
   case XGREEN:
     gc = dimage->greenGC ;
