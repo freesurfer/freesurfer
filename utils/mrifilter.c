@@ -3517,3 +3517,54 @@ MRIcomputeClassStatistics(MRI *mri_T1, MRI *mri_labeled, float gray_low,
   return(NO_ERROR) ;
 }
 
+MRI *MRImodeFilter(MRI *mri_src, MRI *mri_dst, int niter) ;
+
+MRI *
+MRImodeFilter(MRI *mri_src, MRI *mri_dst, int niter)
+{
+  int   x, y, z, n, width, height, depth, histo[256], xk, yk, zk, 
+        xi, yi, zi, val, i, max_histo, max_i ;
+
+  if (!mri_dst)
+    mri_dst = MRIclone(mri_src, NULL) ;
+
+  width = mri_src->width ; height = mri_src->height ; depth = mri_src->depth;
+
+  for (n = 0 ; n < niter ; n++)
+  {
+    for (z = 0 ; z < depth ; z++)
+    {
+      for (y = 0 ; y < height ; y++)
+      {
+        for (x = 0 ; x < width; x++)
+        {
+          memset(histo, 0, sizeof(histo)) ;
+          for (zk = -1 ; zk <= 1 ; zk++)
+          {
+            zi = mri_src->zi[z+zk] ;
+            for (yk = -1 ; yk <= 1 ; yk++)
+            {
+              yi = mri_src->yi[y+yk] ;
+              for (xk = -1 ; xk <= 1 ; xk++)
+              {
+                xi = mri_src->xi[x+xk] ;
+                val = MRIvox(mri_src, xi, yi, zi) ;
+                histo[val]++ ;
+              }
+            }
+          }
+          for (max_histo = max_i = i = 0 ; i < 256 ; i++)
+          {
+            if (histo[i] > max_histo)
+            {
+              max_histo = histo[i] ; max_i = i ;
+            }
+          }
+          MRIvox(mri_dst, x, y, z) = max_i ;
+        }
+      }
+    }
+  }
+  return(mri_dst) ;
+}
+
