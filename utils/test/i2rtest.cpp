@@ -35,8 +35,6 @@ using namespace std;
 int main(int argc, char *argv[])
 {
   string command;
-  string cpath = getenv("CPATH");
-  string debug = getenv("COMPILE_DEBUG");
 
   int width, height, depth;
   Real c_r, c_a, c_s;
