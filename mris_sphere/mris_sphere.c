@@ -15,7 +15,7 @@
 #include "utils.h"
 #include "timer.h"
 
-static char vcid[]="$Id: mris_sphere.c,v 1.19 1999/10/04 00:09:42 fischl Exp $";
+static char vcid[]="$Id: mris_sphere.c,v 1.20 1999/11/21 09:57:48 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -43,9 +43,21 @@ static int quick = 0 ;
 static int load = 0 ;
 static float inflate_area  = 0.0f ;
 static float inflate_tol  = 1.0f ;
-static int   inflate_avgs = 0 ;
 static float inflate_nlarea  = 0.0f ;
-static int   inflate_iterations = 300 ;
+
+#if 0
+static int   inflate_avgs = 64 ;
+static int   inflate_iterations = 50 ;
+static float l_convex = 1.0 ;
+static float l_spring_norm = .1 ;
+static float l_sphere = 0.25 ;
+#else
+static int   inflate_avgs = 0 ;
+static int   inflate_iterations = 200 ;
+static float l_convex = 1.0 ;
+static float l_spring_norm = 1.0 ;
+static float l_sphere = 0.25 ;
+#endif
 
 static char *orig_name = "smoothwm" ;
 static int smooth_avgs = 0 ;
@@ -66,7 +78,7 @@ main(int argc, char *argv[])
   ErrorInit(NULL, NULL, NULL) ;
   DiagInit(NULL, NULL, NULL) ;
 
-  parms.dt = .1 ;
+  parms.dt = .05 ;
   parms.projection = PROJECT_ELLIPSOID ;
   parms.tol = .5 /*1e-1*/ ;
   parms.n_averages = 1024 ;
@@ -152,11 +164,12 @@ main(int argc, char *argv[])
     strcpy(inflation_parms.base_name, parms.base_name) ;
     inflation_parms.write_iterations = parms.write_iterations ;
     inflation_parms.niterations = inflate_iterations ;
-    inflation_parms.l_spring_norm = 1.0 ;
+    inflation_parms.l_spring_norm = l_spring_norm ;
     inflation_parms.l_nlarea = inflate_nlarea ;
     inflation_parms.l_area = inflate_area ;
     inflation_parms.n_averages = inflate_avgs ;
-    inflation_parms.l_sphere = .25 ;
+    inflation_parms.l_sphere = l_sphere ;
+    inflation_parms.l_convex = l_convex ;
     inflation_parms.a = DEFAULT_RADIUS ;
     inflation_parms.tol = inflate_tol ;
     inflation_parms.integration_type = INTEGRATE_MOMENTUM ;
@@ -318,6 +331,24 @@ get_option(int argc, char *argv[])
     sscanf(argv[2], "%f", &parms.l_spring) ;
     nargs = 1 ;
     fprintf(stderr, "using l_spring = %2.3f\n", parms.l_spring) ;
+  }
+  else if (!stricmp(option, "convex"))
+  {
+    sscanf(argv[2], "%f", &l_convex) ;
+    nargs = 1 ;
+    fprintf(stderr, "using l_convex = %2.3f\n", l_convex) ;
+  }
+  else if (!stricmp(option, "spring_norm"))
+  {
+    sscanf(argv[2], "%f", &l_spring_norm) ;
+    nargs = 1 ;
+    fprintf(stderr, "using l_spring_norm = %2.3f\n", l_spring_norm) ;
+  }
+  else if (!stricmp(option, "sphere"))
+  {
+    sscanf(argv[2], "%f", &l_sphere) ;
+    nargs = 1 ;
+    fprintf(stderr, "using l_sphere = %2.3f\n", l_sphere) ;
   }
   else if (!stricmp(option, "name"))
   {
