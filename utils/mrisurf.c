@@ -1274,6 +1274,57 @@ MRISclone(MRI_SURFACE *mris_src)
       if (!vdst->n)
         ErrorExit(ERROR_NO_MEMORY, "MRISclone: could not allocate %d num",
                   vdst->n) ;
+
+      if (!vdst->tri_angle)
+      {
+        vdst->tri_angle = (float *)calloc(vdst->num,sizeof(float));
+        if (!vdst->tri_angle)
+          ErrorExit(ERROR_NO_MEMORY, "MRISclone: could not allocate %d faces",
+                    vdst->num) ;
+      }
+      if (!vdst->orig_tri_angle)
+      {
+        vdst->orig_tri_angle = (float *)calloc(vdst->num,sizeof(float));
+        if (!vdst->orig_tri_angle)
+          ErrorExit(ERROR_NO_MEMORY, "MRISclone: could not allocate %d faces",
+                    vdst->num) ;
+      }
+      if (!vdst->fnx)
+      {
+        vdst->fnx = (float *)calloc(vdst->num,sizeof(float));
+        if (!vdst->fnx)
+          ErrorExit(ERROR_NO_MEMORY, "MRISclone: could not allocate %d faces",
+                    vdst->num) ;
+      }
+      if (!vdst->fny)
+      {
+        vdst->fny = (float *)calloc(vdst->num,sizeof(float));
+        if (!vdst->fny)
+          ErrorExit(ERROR_NO_MEMORY, "MRISclone: could not allocate %d faces",
+                    vdst->num) ;
+      }
+      if (!vdst->fnz)
+      {
+        vdst->fnz = (float *)calloc(vdst->num,sizeof(float));
+        if (!vdst->fnz)
+          ErrorExit(ERROR_NO_MEMORY, "MRISclone: could not allocate %d faces",
+                    vdst->num) ;
+      }
+      if (!vdst->tri_area)
+      {
+        vdst->tri_area = (float *)calloc(vdst->num,sizeof(float));
+        if (!vdst->tri_area)
+          ErrorExit(ERROR_NO_MEMORY, "MRISclone: could not allocate %d faces",
+                    vdst->num) ;
+      }
+      if (!vdst->orig_tri_area)
+      {
+        vdst->orig_tri_area = (float *)calloc(vdst->num,sizeof(float));
+        if (!vdst->orig_tri_area)
+          ErrorExit(ERROR_NO_MEMORY, "MRISclone: could not allocate %d faces",
+                    vdst->num) ;
+      }
+
       for (n = 0; n < vdst->num; n++)
       {
         vdst->n[n] = vsrc->n[n] ;
