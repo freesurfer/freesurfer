@@ -702,6 +702,7 @@ ImageErode(IMAGE *Isrc, IMAGE *Idst, int which)
 {
   int i=which;            /* prevents warning */
   IMAGE *tmp; tmp = Isrc; /* prevents warning */
+  i = which + 1 ;
   return(Idst) ;
 }
 /*-----------------------------------------------------
