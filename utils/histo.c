@@ -1101,7 +1101,7 @@ HISTOfindPreviousPeak(HISTOGRAM *h, int b0, int whalf)
 		if (peak)
 			break ;
   }
-  return(b) ;
+  return(peak ? b : -1) ;
 }
 
 int
@@ -1276,9 +1276,9 @@ HISTOclearZeroBin(HISTOGRAM *h)
 {
   int b ;
 
-  for (b = 0 ; b < h->nbins-1 ; b++)
+  for (b = 0 ; b < h->nbins ; b++)
   {
-    if (h->bins[b] > 0)
+    if (h->bins[b] >= 0)
       break ;
   }
   h->counts[b] = 0 ;
