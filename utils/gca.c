@@ -6874,8 +6874,9 @@ GCAmaxLikelihoodBorderLabel(GCA *gca, MRI *mri_inputs, MRI *mri_labels,
     MRIvox(mri_labels, x, y, z) = orig_label ;
 
     p = GCAcomputeConditionalDensity(gc, vals, gca->ninputs, label) ;
-    if ((best_label == orig_label && p > min_ratio*max_p) ||
-        (best_label != orig_label && p > max_p))
+    if (((best_label == orig_label && p > min_ratio*max_p) ||
+        (best_label != orig_label && p > max_p)) &&
+				GCAisPossible(gca, mri_labels, label, transform, x, y, z))
     {
       max_p = p ;
       best_label = label ;
