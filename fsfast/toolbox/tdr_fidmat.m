@@ -2,7 +2,7 @@
 % for use with the time-domain reconstruction method. The
 % reconstruction matrix is not computed here.
 %
-% $Id: tdr_fidmat.m,v 1.5 2003/11/06 19:41:58 greve Exp $
+% $Id: tdr_fidmat.m,v 1.6 2003/11/07 00:42:32 greve Exp $
 
 %addpath /homes/4/greve/sg2/dale-matlab/utils; % for smoother
 
@@ -190,8 +190,9 @@ for n = 1:nTEs
   perev = TEPERevList(n);
   DTE = D(:,:,:,:,n);
   save(outfile,'fiddirlist','fidecho1ped','fidechospacing','nfidechoes',...
-     'fidfwhm','epiechospacing','delsamp','tDwell','TE','TEList','perev', ...
-     'DTE','D0','T2s','B0','epiref_dist','epiref_undist','sliceorder');
+       'fidfwhm','epiechospacing','delsamp','tDwell','TE','TEList', ...
+       'perev','DTE','D0','T2s','B0','epiref_dist','epiref_undist',...
+       'sliceorder','pedmat');
   clear DTE;
 end
 
