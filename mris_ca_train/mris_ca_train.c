@@ -14,6 +14,16 @@
 #include "gcsa.h"
 #include "transform.h"
 
+#define MAX_LABELS  1000
+static int write_ptable(char *fname, int *ptable, int nparcs) ;
+static int find_parc_index(int parc, int *ptable, int nparcs) ;
+static int  add_to_ptable(MRI_SURFACE *mris, int *ptable, int nparcs) ;
+static int *ptable = NULL ;
+static int nbrs = 2 ;
+static int navgs = 25 ;
+static int nparcs = 0 ;
+static char *ptable_fname = NULL ;
+
 int main(int argc, char *argv[]) ;
 static int get_option(int argc, char *argv[]) ;
 
@@ -22,7 +32,7 @@ static void usage_exit(int code) ;
 
 static char *orig_name = "smoothwm" ;
 
-static int ninputs = 2 ;  /* curv and sulc */
+static int ninputs = 1 ;  /* curv and sulc */
 static int icno = 7 ;
 
 static char *curv_name = "curv" ;
@@ -76,8 +86,8 @@ main(int argc, char *argv[])
 
   for (train_type = 0 ; train_type <= 1 ; train_type++)
   {
-    printf("computing %s for %d subject and writing results to %s\n",
-           train_type ? "covariances" : "means", nsubjects, out_fname) ;
+    printf("computing %s for %d subject \n",
+           train_type ? "covariances" : "means", nsubjects) ;
     for (i = 0 ; i < nsubjects ; i++)
     {
       subject_name = argv[i+4] ;
@@ -91,11 +101,14 @@ main(int argc, char *argv[])
       if (!mris)
         ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s for %s",
                   Progname, fname, subject_name) ;
+      MRISsetNeighborhoodSize(mris, nbrs) ;
       MRIScomputeSecondFundamentalForm(mris) ;
       MRISsaveVertexPositions(mris, ORIGINAL_VERTICES) ;
       if (MRISreadAnnotation(mris, annot_name) != NO_ERROR)
         ErrorExit(ERROR_NOFILE, "%s: could not read annot file %s for %s",
                   Progname, annot_name, subject_name) ;
+      if (ptable)
+        nparcs = add_to_ptable(mris, ptable, nparcs) ;
 
       if (MRISreadCanonicalCoordinates(mris, canon_surf_name) != NO_ERROR)
         ErrorExit(ERROR_NOFILE, "%s: could not read annot file %s for %s",
@@ -115,9 +128,14 @@ main(int argc, char *argv[])
         MRIScopyCurvatureToValues(mris) ;
         MRIScopyValToVal2(mris) ;
       }
+#if 0
       if (MRISreadCurvature(mris, curv_name) != NO_ERROR)
         ErrorExit(ERROR_NOFILE, "%s: could not read curv file %s for %s",
                   Progname, curv_name, subject_name) ;
+#else
+      MRISuseMeanCurvature(mris) ;
+      MRISaverageCurvatures(mris, navgs) ;
+#endif
       MRIScopyCurvatureToValues(mris) ;
 
       MRISrestoreVertexPositions(mris, CANONICAL_VERTICES) ;
@@ -135,6 +153,8 @@ main(int argc, char *argv[])
       GCSAnormalizeCovariances(gcsa) ;
   }
 
+  if (ptable)
+    write_ptable(fname, ptable, nparcs) ;
   printf("writing classifier array to %s...\n", out_fname) ;
   GCSAwrite(gcsa, out_fname) ;
   GCSAfree(&gcsa) ;
@@ -165,6 +185,12 @@ get_option(int argc, char *argv[])
     nargs = 1 ;
     printf("using %s as subjects directory\n", subjects_dir) ;
   }
+  else if (!stricmp(option, "nbrs"))
+  {
+    nbrs = atoi(argv[2]) ;
+    nargs = 1 ;
+    fprintf(stderr, "using neighborhood size=%d\n", nbrs) ;
+  }
   else if (!stricmp(option, "ORIG"))
   {
     orig_name = argv[2] ;
@@ -179,6 +205,15 @@ get_option(int argc, char *argv[])
   }
   else switch (toupper(*option))
   {
+  case 'A':
+    navgs = atoi(argv[2]) ;
+    nargs = 1 ;
+    break ;
+  case 'T':
+    ptable_fname = argv[2] ;
+    nargs = 1 ;
+    ptable = (int *)calloc(MAX_LABELS, sizeof(int)) ;
+    break ;
   case 'V':
     Gdiag_no = atoi(argv[2]) ;
     nargs = 1 ;
@@ -211,3 +246,50 @@ usage_exit(int code)
          Progname) ;
   exit(code) ;
 }
+static int
+write_ptable(char *fname, int *ptable, int nparcs)
+{
+  FILE   *fp ;
+  int    i ;
+
+  fp = fopen(fname, "w") ;
+  if (!fp)
+    ErrorReturn(ERROR_NOFILE,
+                (ERROR_NOFILE, "write_ptable(%s, %d): could not open file",
+                 fname, nparcs)) ;
+
+  for (i = 0 ; i < nparcs ; i++)
+    fprintf(fp, "%d   %d\n", i, ptable[i]) ;
+  fclose(fp) ;
+  return(NO_ERROR) ;
+}
+static int
+add_to_ptable(MRI_SURFACE *mris, int *ptable, int nparcs)
+{
+  int     vno, i ;
+  VERTEX  *v ;
+
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    i = find_parc_index(v->annotation, ptable, nparcs) ;
+    if (i < 0 || i >= nparcs)
+    {
+      ptable[i] = v->annotation ;
+      i = nparcs++ ;
+    }
+  }
+  return(nparcs) ;
+}
+
+static int
+find_parc_index(int parc, int *ptable, int nparcs)
+{
+  int   i ;
+
+  for (i = 0 ; i < nparcs ; i++)
+    if (ptable[i] == parc)
+      return(i) ;
+  return(-1) ;
+}
+

@@ -20,6 +20,7 @@ typedef struct
   float   *label_priors[GIBBS_SURFACE_NEIGHBORHOOD] ;
   int    *labels[GIBBS_SURFACE_NEIGHBORHOOD] ;
   short   nlabels[ GIBBS_SURFACE_NEIGHBORHOOD];
+  int     total_nbrs[GIBBS_SURFACE_NEIGHBORHOOD] ;
 } GCS, SURFACE_GAUSSIAN_CLASSIFIER ;
 
 typedef struct
@@ -52,6 +53,10 @@ int   GCSAnormalizeCovariances(GCSA *gcsa) ;
 int   GCSAwrite(GCSA *gcsa, char *fname) ;
 GCSA  *GCSAread(char *fname) ;
 int   GCSAlabel(GCSA *gcsa, MRI_SURFACE *mris) ;
+int   GCSAdump(GCSA *gcsa, int vno, MRI_SURFACE *mris, FILE *fp) ;
+int   read_annotation_table(void) ;
+char  *annotation_to_name(int annotation, int *pindex) ;
+int   GCSAreclassifyUsingGibbsPriors(GCSA *gcsa, MRI_SURFACE *mris) ;
 
 #else
 int  GCAvoxelToNode(GCA *gca, MRI *mri,
@@ -128,7 +133,6 @@ float GCAlabelProbability(MRI *mri_src, GCA *gca, LTA *lta,
 MRI   *GCAmaxLikelihoodBorders(GCA *gca, MRI *mri_inputs, MRI *mri_src,
                                MRI *mri_dst, LTA *lta, int max_iter,
                                float min_ratio) ;
-int GCSAdump(GCSA *gcsa, int vno, MRI_SURFACE *mris, FILE *fp) ;
 
 #define MIN_PRIOR  0.5
 

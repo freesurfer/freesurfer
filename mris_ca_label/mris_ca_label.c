@@ -20,6 +20,8 @@ static int get_option(int argc, char *argv[]) ;
 char *Progname ;
 static void usage_exit(int code) ;
 
+static int nbrs = 2 ;
+static int navgs = 25 ;
 static char *orig_name = "smoothwm" ;
 
 static char *curv_name = "curv" ;
@@ -27,6 +29,8 @@ static char *thickness_name = "thickness" ;
 static char *sulc_name = "sulc" ;
 
 static char subjects_dir[STRLEN] ;
+extern char *gcsa_write_fname ;
+extern int gcsa_write_iterations ;
 
 int
 main(int argc, char *argv[])
@@ -73,13 +77,14 @@ main(int argc, char *argv[])
     ErrorExit(ERROR_NOFILE, "%s: could not read classifier from %s",
               Progname, argv[4]) ;
 
-  sprintf(fname, "%s/%s/surf/%s.%s", subjects_dir, subject_name,hemi,orig_name);
+  sprintf(fname, "%s/%s/surf/%s.%s", subjects_dir,subject_name,hemi,orig_name);
   if (DIAG_VERBOSE_ON)
     printf("reading surface from %s...\n", fname) ;
   mris = MRISread(fname) ;
   if (!mris)
     ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s for %s",
               Progname, fname, subject_name) ;
+  MRISsetNeighborhoodSize(mris, nbrs) ;
   MRIScomputeSecondFundamentalForm(mris) ;
   MRISsaveVertexPositions(mris, ORIGINAL_VERTICES) ;
   if (MRISreadCanonicalCoordinates(mris, canon_surf_name) != NO_ERROR)
@@ -101,15 +106,23 @@ main(int argc, char *argv[])
     MRIScopyValToVal2(mris) ;
   }
   
+#if 0
   if (MRISreadCurvature(mris, curv_name) != NO_ERROR)
     ErrorExit(ERROR_NOFILE, "%s: could not read curv file %s for %s",
               Progname, sulc_name, subject_name) ;
+#else
+  MRISuseMeanCurvature(mris) ;
+  MRISaverageCurvatures(mris, navgs) ;
+#endif
   MRIScopyCurvatureToValues(mris) ;
   MRISrestoreVertexPositions(mris, CANONICAL_VERTICES) ;
   MRISprojectOntoSphere(mris, mris, DEFAULT_RADIUS) ;
   MRISsaveVertexPositions(mris, CANONICAL_VERTICES) ;
 
+  printf("labeling surface...\n") ;
   GCSAlabel(gcsa, mris) ;
+  printf("relabeling using gibbs priors...\n") ;
+  GCSAreclassifyUsingGibbsPriors(gcsa, mris) ;
 
   printf("writing output to %s...\n", out_fname) ;
   if (MRISwriteAnnotation(mris, out_fname) != NO_ERROR)
@@ -150,11 +163,28 @@ get_option(int argc, char *argv[])
     nargs = 1 ;
     printf("using %s as original surface\n", orig_name) ;
   }
+  else if (!stricmp(option, "nbrs"))
+  {
+    nbrs = atoi(argv[2]) ;
+    nargs = 1 ;
+    fprintf(stderr, "using neighborhood size=%d\n", nbrs) ;
+  }
   else switch (toupper(*option))
   {
+  case 'A':
+    navgs = atoi(argv[2]) ;
+    nargs = 1 ;
+    break ;
   case 'V':
     Gdiag_no = atoi(argv[2]) ;
     nargs = 1 ;
+    break ;
+  case 'W':
+    gcsa_write_iterations = atoi(argv[2]) ;
+    gcsa_write_fname = argv[3] ;
+    nargs = 2 ;
+    printf("writing out snapshots of gibbs process every %d iterations to %s\n"
+           ,gcsa_write_iterations, gcsa_write_fname) ;
     break ;
   case '?':
   case 'U':
