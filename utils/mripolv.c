@@ -33,7 +33,7 @@
                     MACROS AND CONSTANTS
 -------------------------------------------------------*/
 
-#define DEBUG_POINT(x,y,z)  (((x) == 35)&&((y)==4)&&((z)==31))
+#define DEBUG_POINT(x,y,z)  (((x) == 32)&&((y)==25)&&((z)==32))
 #define MAXLEN 256
 
 
@@ -1203,5 +1203,86 @@ init_basis_vectors(void)
 #endif
   }
   vertices_initialized = 1 ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
+MRI *
+MRIfindThinWMStrands(MRI *mri_src, MRI *mri_dst, int wsize)
+{
+  int      width, height, depth, x, y, z, whalf, yk, n, vertex,xi,yi,zi,
+           *pxi, *pyi, *pzi, thin, was_white, black_white, val ;
+  float    nx, ny, nz, xf, yf, zf ;
+  BUFTYPE  *pdst, *psrc ;
+
+  width = mri_src->width ;
+  height = mri_src->height ;
+  depth = mri_src->depth ;
+  whalf = (wsize-1)/2 ;
+
+  init_basis_vectors() ;
+  if (!mri_dst)
+    mri_dst = MRIclone(mri_src, NULL) ;
+
+  pxi = mri_src->xi ; pyi = mri_src->yi ; pzi = mri_src->zi ;
+  n = wsize*wsize ;
+  for (z = 0 ; z < depth ; z++)
+  {
+    DiagHeartbeat((float)z / (float)(depth-1)) ;
+    for (y = 0 ; y < height ; y++)
+    {
+      psrc = &MRIvox(mri_src, 0, y, z) ;  /* ptr to destination */
+      pdst = &MRIvox(mri_dst, 0, y, z) ;  /* ptr to destination */
+      for (x = 0 ; x < width ; x++)
+      {
+        thin = 0 ;
+if (DEBUG_POINT(x,y,z))
+    DiagBreak() ;
+        if (*psrc++) for (vertex = 0 ; !thin && vertex < NVERTICES ; vertex++)
+        {
+          was_white = -1 ;
+          black_white = -wsize-1 ;
+          nx = ic_x_vertices[vertex] ;  /* normal vector */
+          ny = ic_y_vertices[vertex] ;
+          nz = ic_z_vertices[vertex] ;
+          
+          xf = (float)x - wsize*nx ;
+          yf = (float)y - wsize*ny ;
+          zf = (float)z - wsize*nz ;
+          for (yk = -wsize ; yk <= wsize ; yk++)
+          {
+            xi = pxi[nint(xf)] ;
+            yi = pyi[nint(yf)] ;
+            zi = pzi[nint(zf)] ;
+            val = (float)MRIvox(mri_src, xi, yi, zi) ;
+            if ((was_white > 0) && !val)   /* white to black transition */
+            {
+               /* check to see if we previously had a b-to-w transition */
+              if (black_white >= -wsize)
+              {
+                thin = ((yk - black_white) <= wsize) ;
+if (DEBUG_POINT(x,y,z))
+    DiagBreak() ;
+                break ;
+              }
+            }
+            else if (!was_white && val > 0)  /* black to white transition */
+              black_white = yk ;
+            was_white = val > 0 ;
+            
+            xf += nx ; yf += ny ; zf += nz ;
+          }
+        }
+          
+        *pdst++ = thin ;
+      }
+    }
+  }
+  
+  return(mri_dst) ;
 }
 
