@@ -16,7 +16,7 @@
 #include "mrimorph.h"
 #include "mrinorm.h"
 
-static char vcid[] = "$Id: mris_make_surfaces.c,v 1.41 2002/08/01 21:54:36 fischl Exp $";
+static char vcid[] = "$Id: mris_make_surfaces.c,v 1.42 2002/09/10 14:21:09 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -103,7 +103,7 @@ static float max_thickness = 5.0 ;
 
 #define MAX_GRAY               95
 #define MIN_GRAY_AT_CSF_BORDER    40
-#define MID_GRAY               ((MAX_GRAY + MIN_GRAY_AT_CSF_BORDER) / 2)
+#define MID_GRAY               ((max_gray + min_gray_at_csf_border) / 2)
 #define MAX_GRAY_AT_CSF_BORDER    75
 #define MIN_CSF                10
 #define MAX_CSF                40
@@ -131,7 +131,7 @@ int
 main(int argc, char *argv[])
 {
   char          **av, *hemi, *sname, *cp, fname[STRLEN], mdir[STRLEN];
-  int           ac, nargs, i, label_val, replace_val, msec, n_averages ;
+  int           ac, nargs, i, label_val, replace_val, msec, n_averages, j ;
   MRI_SURFACE   *mris ;
   MRI           *mri_wm, *mri_kernel = NULL, *mri_smooth = NULL, 
                 *mri_filled, *mri_T1, *mri_labeled ;
@@ -398,7 +398,7 @@ main(int argc, char *argv[])
     MRIfree(&mri_kernel) ;
     if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
     {
-      char fname[200] ;
+      char fname[STRLEN] ;
       sprintf(fname, "sigma%.0f.mgh", current_sigma) ;
       fprintf(stderr, "writing smoothed volume to %s...\n", fname) ; 
       MRIwrite(mri_smooth, fname) ;
@@ -528,87 +528,76 @@ main(int argc, char *argv[])
 
   MRISsetVals(mris, -1) ;  /* clear target intensities */
 
-  if (smooth)
+  if (smooth && !nowhite)
   {
     printf("smoothing surface for %d iterations...\n", smooth) ;
     MRISaverageVertexPositions(mris, smooth) ;
   }
 
   fprintf(stderr, "repositioning cortical surface to gray/csf boundary.\n") ;
-  current_sigma = pial_sigma ;
   parms.l_repulse = 0 ;
-  MRImask(mri_T1, mri_labeled, mri_T1, BRIGHT_LABEL, 255) ;
-  MRImask(mri_T1, mri_labeled, mri_T1, BRIGHT_BORDER_LABEL, MID_GRAY) ;
-  if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
-    MRIwrite(mri_T1, "pial_masked.mgh") ;
   if (orig_pial)
   {
     printf("reading initial pial vertex positions from %s...\n", orig_pial) ;
     if (MRISreadVertexPositions(mris, orig_pial) != NO_ERROR)
       ErrorExit(Gerror, "reading orig pial positions failed") ;
   }
-  for (n_averages = max_pial_averages, i = 0 ; 
-       n_averages >= min_pial_averages ; 
-       n_averages /= 2, current_sigma /= 2, i++)
-  {
-
-    parms.sigma = current_sigma ;
-    mri_kernel = MRIgaussian1d(current_sigma, 100) ;
-    fprintf(stderr, "smoothing T1 volume with sigma = %2.3f\n", 
-            current_sigma) ;
-    if (!mri_smooth)
-      mri_smooth = MRIclone(mri_T1, NULL) ;
-#if 0
-    MRIconvolveGaussian(mri_T1, mri_smooth, mri_kernel) ;
-#endif
-    MRIfree(&mri_kernel) ;
-    if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
-    {
-      char fname[STRLEN] ;
-      sprintf(fname, "sigma%.0f.mgh", current_sigma) ;
-      fprintf(stderr, "writing smoothed volume to %s...\n", fname) ; 
-      MRIwrite(mri_smooth, fname) ;
-    }
-#if 0
-    parms.l_intensity = l_intensity * sigma ;
-    if (parms.l_intensity < 0.1)
-      parms.l_intensity = 0.1 ;
-#endif
-    parms.n_averages = n_averages ; parms.l_tsmooth = l_tsmooth ;
-    MRIScomputeBorderValues(mris, mri_T1, mri_smooth, max_gray, 
-                            max_gray_at_csf_border, min_gray_at_csf_border,
-                            min_csf,max_csf,current_sigma, max_thickness+1, parms.fp,
-                            GRAY_CSF) ;
-    if (vavgs)
-    {
-      fprintf(stderr, "averaging target values for %d iterations...\n",vavgs) ;
-      MRISaverageMarkedVals(mris, vavgs) ;
-      if (Gdiag_no > 0)
-      {
-        VERTEX *v ;
-        v = &mris->vertices[Gdiag_no] ;
-        fprintf(stderr,"v %d, target value = %2.1f, mag = %2.1f, dist=%2.2f\n",
-              Gdiag_no, v->val, v->mean, v->d) ;
-      }
-    }
-
-#if 0
-    if (parms.start_t == 0)
-    {
-      fprintf(stderr, "moving vertices to estimated pial surface...\n") ;
-      MRISmoveSurface(mris, mri_T1, mri_smooth,&parms);
-    }
-#endif
-    if (write_vals)
-    {
-      sprintf(fname, "./%s-gray%2.2f.w", hemi, current_sigma) ;
-      MRISwriteValues(mris, fname) ;
-    }
-    MRISpositionSurface(mris, mri_T1, mri_smooth,&parms);
-    /*    parms.l_nspring = 0 ;*/
-    if (!n_averages)
-      break ;
-  }
+	/*	parms.l_convex = 1000 ;*/
+	for (j = 0 ; j <= 0 ; parms.l_intensity *= 2, j++)  /* only once for now */
+	{
+		current_sigma = pial_sigma ;
+		for (n_averages = max_pial_averages, i = 0 ; 
+				 n_averages >= min_pial_averages ; 
+				 n_averages /= 2, current_sigma /= 2, i++)
+		{
+			
+			parms.sigma = current_sigma ;
+			mri_kernel = MRIgaussian1d(current_sigma, 100) ;
+			fprintf(stderr, "smoothing T1 volume with sigma = %2.3f\n", 
+							current_sigma) ;
+			parms.n_averages = n_averages ; parms.l_tsmooth = l_tsmooth ;
+			/*
+				replace bright stuff such as eye sockets with 255. Simply zeroing it out
+				would make the border always go through the sockets, and ignore subtle
+				local minima in intensity at the border of the sockets. Will set to 0
+				after border values have been computed so that it doesn't mess up gradients.
+			*/
+			MRImask(mri_T1, mri_labeled, mri_T1, BRIGHT_LABEL, 255) ;
+			MRImask(mri_T1, mri_labeled, mri_T1, BRIGHT_BORDER_LABEL, MID_GRAY) ;
+			if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+				MRIwrite(mri_T1, "pial_masked.mgh") ;
+			MRIScomputeBorderValues(mris, mri_T1, mri_smooth, max_gray, 
+															max_gray_at_csf_border, min_gray_at_csf_border,
+															min_csf,(max_csf+max_gray_at_csf_border)/2,
+															current_sigma, 2*max_thickness, parms.fp,
+															GRAY_CSF) ;
+			MRImask(mri_T1, mri_labeled, mri_T1, BRIGHT_LABEL, 0) ;
+			if (vavgs)
+			{
+				fprintf(stderr, "averaging target values for %d iterations...\n",vavgs) ;
+				MRISaverageMarkedVals(mris, vavgs) ;
+				if (Gdiag_no > 0)
+				{
+					VERTEX *v ;
+					v = &mris->vertices[Gdiag_no] ;
+					fprintf(stderr,"v %d, target value = %2.1f, mag = %2.1f, dist=%2.2f\n",
+									Gdiag_no, v->val, v->mean, v->d) ;
+				}
+			}
+			
+			if (write_vals)
+			{
+				sprintf(fname, "./%s-gray%2.2f.w", hemi, current_sigma) ;
+				MRISwriteValues(mris, fname) ;
+			}
+			if (!mri_smooth)
+				mri_smooth = MRIcopy(mri_T1, NULL) ;
+			MRISpositionSurface(mris, mri_T1, mri_smooth,&parms);
+			/*    parms.l_nspring = 0 ;*/
+			if (!n_averages)
+				break ;
+		}
+	}
 
   sprintf(fname, "%s/%s/surf/%s.%s%s%s", sdir, sname, hemi, pial_name, 
           output_suffix, suffix) ;
@@ -647,7 +636,7 @@ main(int argc, char *argv[])
       MRIfree(&mri_kernel) ;
       if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
       {
-        char fname[200] ;
+        char fname[STRLEN] ;
         sprintf(fname, "sigma%.0f.mgh", current_sigma) ;
         fprintf(stderr, "writing smoothed volume to %s...\n", fname) ; 
         MRIwrite(mri_smooth, fname) ;
@@ -1001,10 +990,39 @@ get_option(int argc, char *argv[])
             pial_sigma) ;
     nargs = 1 ;
   }
+  else if (!stricmp(option, "pa"))
+  {
+    max_pial_averages = atoi(argv[2]) ;
+    fprintf(stderr, "using max pial averages = %d\n", max_pial_averages) ;
+    nargs = 1 ;
+    if (isdigit(*argv[3]))
+    {
+      min_pial_averages = atoi(argv[3]) ;
+      fprintf(stderr, "using min pial averages = %d\n", min_pial_averages) ;
+      nargs++ ;
+    }
+	}
+  else if (!stricmp(option, "wa"))
+  {
+    max_white_averages = atoi(argv[2]) ;
+    fprintf(stderr, "using max white averages = %d\n", max_white_averages) ;
+    nargs = 1 ;
+    if (isdigit(*argv[3]))
+    {
+      min_white_averages = atoi(argv[3]) ;
+      fprintf(stderr, "using min white averages = %d\n", min_white_averages) ;
+      nargs++ ;
+    }
+	}
   else if (!stricmp(option, "add"))
   {
     add = 1 ;
     fprintf(stderr, "adding vertices to tessellation during deformation.\n");
+  }
+  else if (!stricmp(option, "max"))
+  {
+    max_thickness = atof(argv[2]) ; nargs = 1 ;
+    printf("using max_thickness = %2.1f\n", max_thickness) ;
   }
   else switch (toupper(*option))
   {
@@ -1400,7 +1418,7 @@ MRIfindBrightNonWM(MRI *mri_T1, MRI *mri_wm)
         val = *pT1++ ;
         wm = *pwm++ ;
 
-        if (x == 159 && y == 93 && z == 81)  /* T1=127 */
+        if (x == Gx && y == Gy && z == Gz)  /* T1=127 */
           DiagBreak() ;
         /* not white matter and bright (e.g. eye sockets) */
         if ((wm < WM_MIN_VAL) && (val > 125))
@@ -1449,6 +1467,9 @@ MRIfindBrightNonWM(MRI *mri_T1, MRI *mri_wm)
   /*    MRIwrite(mri_tmp, "tmp.mgh") ;*/
   nlabeled = MRIvoxelsInLabel(mri_labeled, BRIGHT_LABEL) ;
   fprintf(stderr, "%d bright non-wm voxels segmented.\n", nlabeled) ;
+
+	/* dilate outwards if exactly 0 */
+	MRIdilateInvThreshLabel(mri_labeled, mri_T1, mri_labeled, BRIGHT_LABEL, 3, 0) ;
 
   MRIfree(&mri_tmp) ;
   return(mri_labeled) ;
