@@ -2,7 +2,7 @@
    DICOM 3.0 reading functions
    Author: Sebastien Gicquel and Douglas Greve
    Date: 06/04/2001
-   $Id: DICOMRead.c,v 1.49 2003/10/21 20:48:19 tosa Exp $
+   $Id: DICOMRead.c,v 1.50 2003/12/15 17:43:11 tosa Exp $
 *******************************************************/
 
 #include <stdio.h>
@@ -3146,15 +3146,25 @@ CONDITION GetDICOMInfo(char *fname, DICOMInfo *dcminfo, BOOL ReadImage, int Imag
   else
     IsTagPresent[DCM_AcquisitionTime]=true;
 
-  // slice thickness
-  tag=DCM_MAKETAG(0x18, 0x50);
+  // slice thickness (use Slice Spacing)
+  tag=DCM_MAKETAG(0x18, 0x88);
   cond=GetDoubleFromString(object, tag, &dcminfo->SliceThickness);
-  if (cond != DCM_NORMAL || dcminfo->SliceThickness==0.0) {
-    dcminfo->SliceThickness=0.0;
-    cond2=cond;
+  if (cond != DCM_NORMAL || dcminfo->SliceThickness==0.0) 
+  {
 #ifdef _DEBUG
-    printf("WARNING: tag SliceThickness not found\n"); 
+    printf("WARNING: tag Slice Spacing not found\n"); 
 #endif  
+    // try Slice Thickness tag 
+    tag=DCM_MAKETAG(0x18, 0x50);
+    cond=GetDoubleFromString(object, tag, &dcminfo->SliceThickness);
+    if (cond != DCM_NORMAL || dcminfo->SliceThickness==0.0)
+    {
+      dcminfo->SliceThickness = 0.0;
+      cond2=cond;
+#ifdef _DEBUG
+      printf("WARNING: tag Slice Thickness not found\n");
+#endif
+    }
   }
   else
     IsTagPresent[DCM_SliceThickness]=true;
