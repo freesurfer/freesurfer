@@ -19,7 +19,7 @@
 #
 # VERSION
 #
-#	$Id: nmr-std-env.bash,v 1.1 2004/07/22 15:28:51 rudolph Exp $
+#	$Id: nmr-std-env.bash,v 1.2 2004/07/22 15:36:26 rudolph Exp $
 #
 # AUTHOR
 #
@@ -36,7 +36,7 @@
 
 # Version data
 SELF="nmr-std-env.bash"
-VERSION="$Id: nmr-std-env.bash,v 1.1 2004/07/22 15:28:51 rudolph Exp $"
+VERSION='$Id: nmr-std-env.bash,v 1.2 2004/07/22 15:36:26 rudolph Exp $'
 
 ## Turn on verboseness if desired ##
 if [ -n $NMR_STD_VERBOSE ] ; then
