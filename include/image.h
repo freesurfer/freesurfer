@@ -179,6 +179,8 @@ int      ImageSobelY(IMAGE *inImage, IMAGE *yImage) ;
 int      ImageConvolve3x3(IMAGE *inImage, float kernel[], IMAGE *outImage) ;
 IMAGE    *ImageXDerivative(IMAGE *inImage, IMAGE *xImage) ;
 IMAGE    *ImageYDerivative(IMAGE *inImage, IMAGE *yImage) ;
+void    ImageCircularConvolve1d(IMAGE *I, IMAGE *J, float k[], int len, 
+                                int axis) ;
 void    ImageConvolve1d(IMAGE *I, IMAGE *J, float k[], int len, int axis) ;
 void    ImageConvolve1dByte(IMAGE *I, IMAGE *J, float k[], int len, int axis) ;
 IMAGE   *ImageGaussian(float xsigma, float ysigma) ;
@@ -186,6 +188,8 @@ IMAGE   *ImageGaussian1d(float sigma, int max_len) ;
 IMAGE   *ImageConvolveGaussianByte(IMAGE *inImage, IMAGE *gImage, 
                                   IMAGE *outImage, int dst_frameno) ;
 IMAGE   *ImageConvolveGaussian(IMAGE *inImage, IMAGE *gImage, 
+                                  IMAGE *outImage, int dst_frameno) ;
+IMAGE   *ImageCircularConvolveGaussian(IMAGE *inImage, IMAGE *gImage, 
                                   IMAGE *outImage, int dst_frameno) ;
 IMAGE   *ImageConvolveGaussianFrames(IMAGE *inImage, IMAGE *gImage, 
                                   IMAGE *outImage) ;
