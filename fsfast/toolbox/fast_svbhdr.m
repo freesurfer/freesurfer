@@ -1,18 +1,30 @@
-function err = fast_svbhdr(m, bhdrfile)
-% err = fast_svbhdr(m, bhdrfile)
+function err = fast_svbhdr(m, bhdrfile, isstem)
+% err = fast_svbhdr(m, bhdrfile, <isstem>)
 %
 % m is a fast_mri_struct.
+% bhdrfile is the name of the bhdrfile or a bstem, depending
+%  upon the presence and value of isstem.
+% isstem - if present and equal to 1 then bhdrfile treated as
+%  a stem and the bhdr file name is bhdrfile.bhdr
+%
 % It is assumed that zero-based indexing is used.
 %
 % See also fast_ldbhdr and fast_mri_struct.
 %
-% $Id: fast_svbhdr.m,v 1.2 2003/08/02 00:56:14 greve Exp $
+% $Id: fast_svbhdr.m,v 1.3 2003/11/19 18:34:49 greve Exp $
 
 err = 1;
 
-if(nargin ~= 2)
-  fprintf('err = fast_svbhdr(fsfmri, bhdrfile)\n');
+if(nargin ~= 2 & nargin ~= 3)
+  fprintf('err = fast_svbhdr(fsfmri, bhdrfile, <isstem>)\n');
   return;
+end
+
+if(exist('isstem') ~= 1) isstem = []; end
+if(isempty(isstem)) isstem = 0; end
+
+if(isstem)
+  bhdrfile = sprintf('%s.bhdr',bhdrfile);
 end
 
 fid = fopen(bhdrfile,'w');
