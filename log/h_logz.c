@@ -2861,9 +2861,10 @@ LogMapInitForwardFilter(LOGMAP_INFO *lmi, int which)
 IMAGE *
 LogMapForwardFilter(LOGMAP_INFO *lmi, IMAGE *Isrc, IMAGE *Idst)
 {
-  int    rows, cols, row, col, ring, spoke, npix, i ;
+  register int i, ring, spoke;
+  register LOGPIX *lpix, **plpix ;
+  int    rows, cols, row, col, npix ;
   IMAGE  *Iout ;
-  LOGPIX *lpix ;
   CP     *cp ;
   CMI    *cmi ;
   float  *spix ;
@@ -2889,9 +2890,10 @@ LogMapForwardFilter(LOGMAP_INFO *lmi, IMAGE *Isrc, IMAGE *Idst)
     for (col = 0 ; col < cols ; col++, cp++, spix++)
     {
       npix = cp->npix ;
+      plpix = &cp->logpix[0] ;
       for (i = 0 ; i < npix ; i++)
       {
-        lpix = cp->logpix[i] ;
+        lpix = *plpix++ ;
         ring = lpix->ring ;
         spoke = lpix->spoke ;
 
@@ -2901,16 +2903,12 @@ LogMapForwardFilter(LOGMAP_INFO *lmi, IMAGE *Isrc, IMAGE *Idst)
   }
   
   /* now normalize logmap by area of each pixel */
+  lpix = LOG_PIX(lmi, 0, 0) ;
   for_all_log_pixels(lmi, ring, spoke)
   {
-    lpix = LOG_PIX(lmi, ring, spoke) ;
-#if 0
-    if (ring == 1 && spoke == 0)
-      fprintf(stderr, "normalizing (1,0) = %2.3f by %d\n", 
-              *IMAGEFpix(Iout, ring, spoke), lpix->ncpix) ;
-#endif
     if (lpix->ncpix > 0)
       *IMAGEFpix(Iout, ring, spoke) /= (float)lpix->ncpix ;
+    lpix++ ;
   }
 
   if (Iout != Idst)
