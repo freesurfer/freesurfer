@@ -1500,6 +1500,8 @@ typedef struct
 
   int* border_vno;      /* a list of border vnos */
   int  num_border_vnos;
+
+  int cached;   /* whether or not this label is in the cache */
 } LABL_LABEL;
 
 /* a fixed array of labels. */
@@ -1530,8 +1532,16 @@ int labl_draw_flag = 1;
 /* name of the color table. */
 char* labl_color_table_name;
 
+/* cache of labels at vnos */
+int   labl_cache_updated;
+int*  labl_num_labels_at_cache_vno;
+int** labl_cache;   // label_cache[vno][0..labl_num_labels_at_cache_vno[vno]]
+
 /* initialize everything. */
 int labl_initialize ();
+
+/* makes and updates the label cache */
+int labl_update_cache (int force_rebuild_all);
 
 /* loads a new color table. if any labels had existing indicies that
    are now out of bounds, they are set to 0. sends an update to the
@@ -18143,7 +18153,7 @@ int main(int argc, char *argv[])   /* new main */
   /* end rkt */
   
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: tksurfer.c,v 1.65 2004/05/01 19:25:43 kteich Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: tksurfer.c,v 1.66 2004/05/14 20:13:30 kteich Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -20063,7 +20073,7 @@ update_labels(int label_set, int vno, float dmin)
   
   /* send label update. */
   err = labl_find_label_by_vno( vno, 0, label_index_array, 
-				LABL_MAX_LABELS, &num_labels_found );
+				2, &num_labels_found );
   if (err == ERROR_NONE && num_labels_found > 0)
     {
       if (num_labels_found > 1) 
@@ -22027,6 +22037,7 @@ int labl_initialize () {
       labl_labels[label].visible = 0;
       labl_labels[label].border_vno = NULL;
       labl_labels[label].num_border_vnos = 0;
+      labl_labels[label].cached = 0;
     }
   
   labl_num_labels = 0;
@@ -22036,8 +22047,72 @@ int labl_initialize () {
   labl_num_labels_created = 0;
   labl_color_table_name = (char*) calloc (NAME_LENGTH, sizeof(char));
   labl_draw_flag = 1;
-  
+  labl_cache = NULL;
+  labl_num_labels_at_cache_vno = NULL;
+  labl_cache_updated = FALSE;
+
   return (ERROR_NONE);
+}
+
+int labl_update_cache (int force_rebuild_all) {
+
+  int label_index;
+  LABEL* label;
+  int label_vno;
+  int vno;
+  int* new;
+
+  /* if our basic stuff is not inited, do so now. */
+  if (NULL == labl_cache)
+    {
+      labl_cache = (int**) calloc (mris->nvertices, sizeof(int*));
+    }
+  if (NULL == labl_num_labels_at_cache_vno)
+    {
+      labl_num_labels_at_cache_vno =
+	(int*) calloc (mris->nvertices, sizeof(int));
+    }
+
+  if (force_rebuild_all)
+    {
+      for (vno = 0; vno < mris->nvertices; vno++)
+	labl_num_labels_at_cache_vno[vno] = 0;
+    }
+
+  for (label_index = 0; label_index < labl_num_labels; label_index++)
+    {
+      label = labl_labels[label_index].label;
+      if (!labl_labels[label_index].cached || force_rebuild_all)
+	{
+	  for (label_vno = 0; label_vno < label->n_points; label_vno++)
+	    {
+	      vno = label->lv[label_vno].vno;
+	      if (NULL == labl_cache[vno])
+		{
+		  labl_cache[vno] = (int*) calloc (1, sizeof(int));
+		  labl_cache[vno][0] = label_index;
+		  labl_num_labels_at_cache_vno[vno] = 1;
+		}
+	      else
+		{
+		  new = (int*) 
+		    calloc (labl_num_labels_at_cache_vno[vno]+1, sizeof(int));
+		  memcpy (new, labl_cache[vno], 
+			  labl_num_labels_at_cache_vno[vno] * sizeof(int));
+		  free (labl_cache[vno]);
+		  labl_cache[vno] = new;
+		  labl_cache[vno][labl_num_labels_at_cache_vno[vno]] = 
+		    label_index;
+		  labl_num_labels_at_cache_vno[vno]++;
+		}
+	    }
+	  labl_labels[label_index].cached = TRUE;
+	}
+    }
+
+  labl_cache_updated = TRUE;
+
+  return (NO_ERROR);
 }
 
 int labl_load_color_table (char* fname)
@@ -23163,6 +23238,10 @@ int labl_changed (int index)
   labl_labels[index].max_y = max_y + LABL_FUDGE;
   labl_labels[index].max_z = max_z + LABL_FUDGE;
   
+  /* this label needs to be recached */
+  labl_labels[index].cached = FALSE;
+  labl_cache_updated = FALSE;
+
   /* find the border. */
   labl_find_and_set_border (index);
 
@@ -23190,7 +23269,10 @@ int labl_remove (int index)
   
   /* decrement the number of labels. */
   labl_num_labels--;
-  
+
+  /* rebuild the cache index. */
+  labl_update_cache (TRUE);
+
   if (g_interp)
     {
       /* notify tcl that this label is gone. */
@@ -23234,67 +23316,53 @@ int labl_remove_all () {
 int labl_find_label_by_vno (int vno, int min_label, int* index_array,
 			    int array_size, int* out_num_found)
 {
-  int label_index;
-  int label_vno;
-  float x, y, z;
-  LABEL* label;
-  int num_found;
-  
-  /* get the location of this vertex. */
-  x = mris->vertices[vno].origx;
-  y = mris->vertices[vno].origy;
-  z = mris->vertices[vno].origz;
+  int num_to_copy, num_to_copy_from_beginning;
+  int i;
 
-  num_found = 0;
-  
   /* if they passed -1 for min_label, they really want 0. (ugh) */
   if (min_label < 0) 
     min_label = 0;
 
-  /* go through each label looking for this vno... */
-  for (label_index = min_label; label_index < labl_num_labels; label_index++)
-    {
-      /* check the bounds here. */
-      if (x >= labl_labels[label_index].min_x &&
-	  x <= labl_labels[label_index].max_x &&
-	  y >= labl_labels[label_index].min_y &&
-	  y <= labl_labels[label_index].max_y &&
-	  z >= labl_labels[label_index].min_z &&
-	  z <= labl_labels[label_index].max_z)
-	{
-	  label = labl_labels[label_index].label;
-	  
-	  /* if this label contains this vno, return it. */
-	  for (label_vno = 0; label_vno < label->n_points; label_vno++)
-	    {
-	      if (label->lv[label_vno].vno == vno)
-		{
+  /* update the cache if necessary */
+  if (!labl_cache_updated)
+    labl_update_cache (FALSE);
 
-		  if (num_found < array_size) 
-		    {
-		      index_array[num_found] = label_index;
-		      num_found++;
-		    }
-		  
-		  if (labl_debug)
-		    {
-		      printf( "Label %d\n", label_index );
-		      printf( "\tName: %s, %d vertices\n", 
-			      labl_labels[label_index].name, 
-			      labl_labels[label_index].label->n_points );
-		      printf( "\tStructure: %d Color: %d %d %d Visible: %d\n", 
-			      labl_labels[label_index].structure, 
-			      labl_labels[label_index].r, 
-			      labl_labels[label_index].g, 
-			      labl_labels[label_index].b, 
-			      labl_labels[label_index].visible );
-		    }
-		}
-	    }
+  /* return some points. */
+  num_to_copy = MIN(array_size,labl_num_labels_at_cache_vno[vno]);
+  num_to_copy_from_beginning = 0;
+  if (num_to_copy > 0) 
+    {
+      if (min_label != 0)
+	{
+	  /* find the first label index <= min_label */
+	  i = 0;
+	  while (labl_cache[vno][i] < min_label && 
+		 i < labl_num_labels_at_cache_vno[vno])
+	    i++;
+
+	  num_to_copy = labl_num_labels_at_cache_vno[vno] - i;
+	  if (num_to_copy > array_size) num_to_copy = array_size;
+
+	  num_to_copy_from_beginning = i;
+	  if (num_to_copy_from_beginning > array_size - num_to_copy)
+	    num_to_copy_from_beginning = array_size - num_to_copy;
+	  if( num_to_copy_from_beginning < 0 )
+	    num_to_copy_from_beginning = 0;
+
+
+	  memcpy (index_array, &(labl_cache[vno][i]),
+		  num_to_copy * sizeof(int));
+
+	  memcpy (&(index_array[num_to_copy]), labl_cache[vno],
+		  num_to_copy_from_beginning * sizeof(int));
+	}
+      else
+	{
+	  memcpy (index_array, labl_cache[vno], num_to_copy * sizeof(int));
 	}
     }
-  
-  *out_num_found = num_found;
+
+  *out_num_found = num_to_copy + num_to_copy_from_beginning;
 
   return (ERROR_NONE);
 } 
