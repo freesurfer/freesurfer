@@ -19,6 +19,8 @@ static int scale = SCALE ;
 static int ninputs = NINPUTS ;
 static int extract = 0 ;
 static int classifier = CLASSIFIER_GAUSSIAN ;
+static char priors_fname[100] = "priors.mnc" ;
+static int  verbose = 0 ;
 
 char *Progname ;
 
@@ -50,7 +52,7 @@ main(int argc, char *argv[])
   output_file_name = argv[2] ;
 
   mric = MRICalloc(classifier, ninputs, NULL) ;
-  MRICtrain(mric, training_file_name) ;
+  MRICtrain(mric, training_file_name, priors_fname) ;
   MRICwrite(mric, output_file_name) ;
   MRICfree(&mric) ;
   exit(0) ;
@@ -69,6 +71,15 @@ get_option(int argc, char *argv[])
   option = argv[1] + 1 ;            /* past '-' */
   switch (toupper(*option))
   {
+  case 'V':
+    verbose = 1 ;
+    break ;
+  case 'P':
+    strcpy(priors_fname, argv[2]) ;
+    nargs = 1 ;
+    if (verbose)
+      fprintf(stderr, "using priors file %s\n", priors_fname) ;
+    break ;
   case 'S':
     if (sscanf(argv[2], "%d", &scale) != 1)
       ErrorExit(ERROR_BADPARM, "%s: could not scan option from '%s'",
