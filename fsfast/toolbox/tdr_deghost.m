@@ -1,4 +1,4 @@
-function kimg2 = tdr_deghost(kimg,Rcol,Rrow,perev)
+function [kimg2, beta] = tdr_deghost(kimg,Rcol,Rrow,perev)
 % kimg2 = tdr_deghost(kimg,Rcol,Rrow,<perev>)
 %
 % Recons the rows of kimg with deghosting.
@@ -11,7 +11,7 @@ function kimg2 = tdr_deghost(kimg,Rcol,Rrow,perev)
 %  (perev=0) or even lines (perev=1) will be used as 
 %  reference. If perev is not passed, perev=0 is assumed.
 %
-% $Id: tdr_deghost.m,v 1.1 2003/09/22 14:53:10 greve Exp $
+% $Id: tdr_deghost.m,v 1.2 2003/10/28 04:34:02 greve Exp $
 %
 
 rsubdel = 3; % region around center
@@ -38,7 +38,7 @@ end
 
 % Recon separate images based on every-other kspace
 % line. Both will have wrap-around but neither will
-% have ghosting (may be hard to tell).
+% have ghosting (may be hard to tell the difference).
 img2ref = Rcol(:,refrows)*kimg(refrows,:)*Rrow;
 img2mov = Rcol(:,movrows)*kimg(movrows,:)*Rrow;
 
