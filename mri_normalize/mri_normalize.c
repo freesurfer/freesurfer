@@ -10,7 +10,7 @@
 #include "timer.h"
 #include "proto.h"
 #include "mrinorm.h"
-
+#include "mri_conform.h"
 
 int main(int argc, char *argv[]) ;
 static int get_option(int argc, char *argv[]) ;
@@ -71,6 +71,16 @@ main(int argc, char *argv[])
   if (!mri_src)
     ErrorExit(ERROR_NO_FILE, "%s: could not open source file %s", 
               Progname, in_fname) ;
+  if ((mri_src->type != MRI_UCHAR) ||
+      (!(mri_src->xsize == 1 && mri_src->ysize == 1 && mri_src->zsize == 1)))
+  {
+    MRI  *mri_tmp ;
+
+    fprintf(stderr, 
+            "downsampling to 8 bits and scaling to isotropic voxels...\n") ;
+    mri_tmp = MRIconform(mri_src) ;
+    mri_src = mri_tmp ;
+  }
 
   if (verbose)
     fprintf(stderr, "normalizing image...\n") ;
