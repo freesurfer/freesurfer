@@ -50,9 +50,10 @@ int check_finite(char *where, double what) ;
 #define DIAG_LOGDIFF    0x00002000L
 #define DIAG_HEARTBEAT  0x00004000L
 #define DIAG_SAVE_DIAGS 0x00008000L
+#define DIAG_INFO       0x00010000L
 
-#define DIAG_WAIT    0x08000000L
-#define DIAG_VERBOSE 0x10000000L   /* allows 2 levels for each type */
+#define DIAG_WAIT       0x08000000L
+#define DIAG_VERBOSE    0x10000000L   /* allows 2 levels for each type */
 #define DIAG_VERBOSE_ON  (Gdiag & DIAG_VERBOSE)
 
 /* supported colors */
