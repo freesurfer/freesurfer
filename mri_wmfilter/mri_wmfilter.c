@@ -10,7 +10,7 @@
 #include "matrix.h"
 #include "proto.h"
 
-static char vcid[] = "$Id: mri_wmfilter.c,v 1.10 1999/08/06 14:37:49 fischl Exp $";
+static char vcid[] = "$Id: mri_wmfilter.c,v 1.11 1999/08/06 18:47:58 fischl Exp $";
 
 /*-------------------------------------------------------------------
                                 CONSTANTS
@@ -83,8 +83,8 @@ main(int argc,char *argv[])
   int   i,j,option=1, nargs;
   float x,y,z;
   FILE  *fptr;
-  char  fname[200],mfname[200],pfname[200],dfname[200];
-  char  fpref[200],pname[200];
+  char  fname[STRLEN],mfname[STRLEN],pfname[STRLEN],dfname[STRLEN];
+  char  fpref[STRLEN],pname[STRLEN];
   char  *data_dir,*mri_dir;
 
   Progname = argv[0] ;
@@ -177,7 +177,7 @@ static void
 read_image_info(char *fpref)
 {
   FILE *fptr;
-  char fname[100];
+  char fname[STRLEN];
 
   sprintf(fname,"%s.info",fpref);
   fptr = fopen(fname,"r");
@@ -483,7 +483,7 @@ read_images(char *fpref)
 {
   int i,k;                   /* loop counters */
   FILE *fptr;
-  char fname[100];
+  char fname[STRLEN];
 
   numimg = imnr1-imnr0+1;
   bufsize = ((unsigned long)xnum)*ynum;
@@ -515,7 +515,7 @@ static void
 write_images(char *fpref)
 {
   int imnr;
-  char fname[200];
+  char fname[STRLEN];
   FILE *fptr;
 
   for (imnr=0;imnr<numimg;imnr++)
