@@ -5,6 +5,7 @@
 #include "xVoxel.h"
 #include "xList.h"
 #include "mriTransform.h"
+#include "mriVolume.h"
 
 /* Enable this to turn macros on, see details below. */
 #define FUND_USE_MACROS
@@ -108,6 +109,7 @@ typedef struct {
   /* transformation objects. */
   mriTransformRef mClientTransform;
   mriTransformRef mIdxToIdxTransform;
+  mriTransformRef mOriginalIdxToIdxTransform;
   MATRIX* mTkregMatrix;
   
   /* When we know we have error values present, these are used */
@@ -210,7 +212,8 @@ FunD_tErr FunD_New    ( mriFunctionalDataRef* opVolume,
 			char*                 isFileName,
 			char*                 isHeaderStem,
 			char*                 isRegistrationFile,
-			MATRIX*               iTkregMat );
+			MATRIX*               iTkregMat,
+			mriVolumeRef          iAnatomicalVolume );
 FunD_tErr FunD_Delete ( mriFunctionalDataRef* iopVolume );
 
 
@@ -222,7 +225,11 @@ FunD_tErr FunD_FindAndParseStemHeader_ ( mriFunctionalDataRef this,
 FunD_tErr FunD_GuessMetaInformation_   ( mriFunctionalDataRef this );
 
 /* Reads the register.dat file, allocates and initializes matricies. */
-FunD_tErr FunD_ParseRegistrationAndInitMatricies_ ( mriFunctionalDataRef this);
+FunD_tErr FunD_ParseRegistrationAndInitMatricies_ ( mriFunctionalDataRef this,
+					      mriVolumeRef iAnatomicalVolume );
+
+/* Restores registration matrix to original copy. */
+FunD_tErr FunD_RestoreRegistration ( mriFunctionalDataRef this );
 
 /* Calcs the deviations. Needs sigma and CovMtx, should be done after
    reading the header _and_ data files. Deviations are calced by
