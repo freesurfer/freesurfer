@@ -93,7 +93,6 @@ static void xvCreateImage(XV_FRAME *xvf, DIMAGE *dimage, int x, int y,
                           int which) ;
 static void xvFreeDimage(DIMAGE *dimage) ;
 static Panel_setting xvFileNameCommand(Panel_item item, Event *event) ;
-static char *xvGetTitle(XV_FRAME *xvf,int which, char *title, int with_value) ;
 static void debugMenuItem(Menu menu, Menu_item menu_item) ;
 static void show_diags(long diag) ;
 
@@ -981,7 +980,7 @@ xv_dimage_event_handler(Xv_Window xv_window, Event *event)
       break ;
     }
 
-    xvGetTitle(xvf, which, title, 0) ;
+    XVgetTitle(xvf, which, title, 0) ;
     sprintf(fmt, "%%10.10s: (%%3d, %%3d) --> %%2.%dlf\n", xvf->precision) ;
     if (!xvf->noprint)
       XVprintf(xvf, 0, fmt, title, x, yprint, val) ;
@@ -992,7 +991,7 @@ xv_dimage_event_handler(Xv_Window xv_window, Event *event)
         dimage2 = XVgetDimage(xvf, i, DIMAGE_IMAGE) ;
         if (dimage2 && (dimage2->sync == dimage->sync))
         {
-          xvGetTitle(xvf, i, title, 0) ;
+          XVgetTitle(xvf, i, title, 0) ;
           switch (dimage2->sourceImage->pixel_format)
           {
           case PFDOUBLE:
@@ -1867,7 +1866,7 @@ XVsetImageSize(XV_FRAME *xvf, int which, int rows, int cols)
     
     /* should free the ximage and the canvas, but don't know how yet */
     dimage->ximage = xvCreateXimage(xvf, dimage->dispImage) ;
-    if (xvGetTitle(xvf, i, title, 1))
+    if (XVgetTitle(xvf, i, title, 1))
       XVshowImageTitle(xvf, i, title) ;
 
 #if 0
@@ -2406,8 +2405,8 @@ XVsetDepthFunc(XV_FRAME *xvf,
   return(NO_ERROR) ;
 }
 
-static char *
-xvGetTitle(XV_FRAME *xvf, int which, char *title, int with_value)
+char *
+XVgetTitle(XV_FRAME *xvf, int which, char *title, int with_value)
 {
   char   *cp ;
   DIMAGE *dimage ;

@@ -175,6 +175,7 @@ int XVgetFileName(XV_FRAME *xvf, char *default_fname,
 int XVsetDepthFunc(XV_FRAME *xvf, 
                    IMAGE *(*get_image)(IMAGE *Iold, int which, int dir)) ;
 DIMAGE *XVgetDimage(XV_FRAME *xvf, int which, int type) ;
+char   *XVgetTitle(XV_FRAME *xvf,int which, char *title, int with_value) ;
 
 #define WINDOW_PAD          3
 
