@@ -4,12 +4,12 @@
 // mri_watershed.cpp
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2003/09/05 04:45:39 $
-// Revision       : $Revision: 1.23 $
+// Revision Author: $Author: tosa $
+// Revision Date  : $Date: 2003/12/05 21:04:18 $
+// Revision       : $Revision: 1.24 $
 //
 ////////////////////////////////////////////////////////////////////
-char *MRI_WATERSHED_VERSION = "$Revision: 1.23 $";
+char *MRI_WATERSHED_VERSION = "$Revision: 1.24 $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -539,7 +539,7 @@ int main(int argc, char *argv[])
   /************* Command line****************/
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_watershed.cpp,v 1.23 2003/09/05 04:45:39 kteich Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_watershed.cpp,v 1.24 2003/12/05 21:04:18 tosa Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -855,7 +855,7 @@ MRI *MRIstripSkull(MRI *mri_with_skull, MRI *mri_without_skull,
     {
 
       if(parms->surf || parms->h_shk)
-        MRISsmooth_surface(MRI_var->mris,5);
+        MRISsmooth_surface(MRI_var->mris,5); // smooth 5 times
       
       if(parms->h_shk != 0)
         MRISshrink_surface(MRI_var->mris,parms->h_shk);
@@ -863,17 +863,18 @@ MRI *MRIstripSkull(MRI *mri_with_skull, MRI *mri_without_skull,
       /*writing out the surface*/
       sprintf(fname,parms->surfname);
       strcat(fname,"_brain_surface");
+      MRI_var->mris->useRealRAS = 1; // note that we are not using surfaceRAS
       MRISwrite(MRI_var->mris,fname);
     }
   }
  
- /*find and write out the surfaces of the inner skull, scalp and outer skull*/
+  /*find and write out the surfaces of the inner skull, scalp and outer skull*/
   if(parms->template_deformation && parms->surf)
   {
+    // so far we got the brain surface
     //inner skull
-
-    MRISshrink_surface(MRI_var->mris,-3);
-    MRISsmooth_surface(MRI_var->mris,5);
+    MRISshrink_surface(MRI_var->mris,-3); // goes outward by 3 mm
+    MRISsmooth_surface(MRI_var->mris,5);  // smooth surface 5 times 
     
     if (parms->surf_dbg)
        write_image(MRI_var); 
@@ -881,8 +882,8 @@ MRI *MRIstripSkull(MRI *mri_with_skull, MRI *mri_without_skull,
     /*writing out the inner skull surface*/
     sprintf(fname,parms->surfname);
     strcat(fname,"_inner_skull_surface");
+    MRI_var->mris->useRealRAS = 1; // note that we are not using surfaceRAS
     MRISwrite(MRI_var->mris,fname);
-
 
     //scalp  
     MRISfree(&MRI_var->mris);
@@ -901,12 +902,13 @@ MRI *MRIstripSkull(MRI *mri_with_skull, MRI *mri_without_skull,
     /*writing out the surface*/
     sprintf(fname,parms->surfname);
     strcat(fname,"_outer_skin_surface");
+    MRI_var->mris->useRealRAS = 1; // note that we are not using surfaceRAS
     MRISwrite(MRI_var->mris,fname);
 
     //outer skull
-    MRISsmooth_surface(MRI_var->mris,3);
-    MRISshrink_surface(MRI_var->mris,3);
-    MRISsmooth_surface(MRI_var->mris,5);
+    MRISsmooth_surface(MRI_var->mris,3); // smooth 3 times
+    MRISshrink_surface(MRI_var->mris,3); // shrink 3 mm 
+    MRISsmooth_surface(MRI_var->mris,5); // smoth 5 times
 
     if (parms->surf_dbg)
       write_image(MRI_var); 
@@ -920,8 +922,6 @@ MRI *MRIstripSkull(MRI *mri_with_skull, MRI *mri_without_skull,
        label_voxels(parms,MRI_var,mri_with_skull);
      
   }
-
-
   /*save the volume with the surfaces written in it*/
   /*used to visualize the surfaces -> debuging */
   if(parms->template_deformation && parms->surf_dbg)
@@ -4507,6 +4507,7 @@ static void MRISsmooth_surface(MRI_SURFACE *mris,int niter)
   }
 }
 
+// we go into h in the surface normal direction
 static void MRISshrink_surface(MRIS *mris,int h)
 {
   int k;
