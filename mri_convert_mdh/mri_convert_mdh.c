@@ -13,7 +13,7 @@
 #include "version.h"
 
 #ifndef lint
-static char vcid[] = "$Id: mri_convert_mdh.c,v 1.11 2003/10/29 22:31:59 greve Exp $";
+static char vcid[] = "$Id: mri_convert_mdh.c,v 1.12 2003/12/19 21:48:02 greve Exp $";
 #endif /* lint */
 
 #define MDH_SIZE    128        //Number of bytes in the miniheader
@@ -60,6 +60,10 @@ int AssignFakeDCs(MRI *mri, float dcSag, float dcCor, float dcTra);
 int MDHdump(char *measoutpath);
 int MDHadcStats(char *measoutpath);
 int *MDHind2sub(int *siz, int ind, int ndim, int *sub);
+int MDHloadEchoChan(char *measout, int ChanId, int EchoId, int nReps,
+		    int nSlices, int nEchoes, int nRows, int nChans,
+		    int nCols, int nPCNs, int FasterDim, 
+		    MRI *mriReal, MRI *mriImag);
 
 /*--------------------------------------------------------------------*/
 char *Progname = NULL;
@@ -81,6 +85,7 @@ int DimSpeced=0;
 int nPerLine, nPCNs, nEchos, nPELs, nSlices, nFrames, FastestDim=0;
 float Thickness, DistFact=0.0, dcSag, dcCor, dcTra, TR=0.0, TE[500];
 float PhaseEncodeFOV, ReadoutFOV, FlipAngle;
+int Strict = 1;
 int nthpcn;
 
 /*------------------------------------------------------------------*/
@@ -105,7 +110,7 @@ int main(int argc, char **argv)
   int nargs;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_convert_mdh.c,v 1.11 2003/10/29 22:31:59 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_convert_mdh.c,v 1.12 2003/12/19 21:48:02 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -200,6 +205,26 @@ int main(int argc, char **argv)
     perror(NULL);    
     exit(1);
   }
+
+#if 0
+  mriReal = MRIallocSequence(nPerLine,nPELs,nSlices,MRI_FLOAT,nFrames);
+  mriImag = MRIallocSequence(nPerLine,nPELs,nSlices,MRI_FLOAT,nFrames);
+  for(n=0; n<nEchos; n++){
+    printf("Echo %d\n",n);
+    MDHloadEchoChan(measoutpath, 0, n, nFrames, nSlices, nEchos, 
+		    nPELs, nChans, nPerLine, nPCNs, FastestDim, 
+		    mriReal,mriImag);
+    printf(" Saving real\n");
+    sprintf(fname,"%s/echo%03dr.mgh",outdir,n+1);
+    MRIwrite(mriReal,fname);
+    printf(" Saving imag\n");
+    sprintf(fname,"%s/echo%03di.mgh",outdir,n+1);
+    MRIwrite(mriImag,fname);
+  }
+  MRIfree(&mriReal);
+  MRIfree(&mriImag);
+#endif
+
 
   //if(rev) printf("INFO: applying reversals\n");
 
@@ -1649,4 +1674,151 @@ int *MDHind2sub(int *siz, int ind, int ndim, int *sub)
   //for(n=0; n<ndim; n++) printf("n=%d, siz[n]=%d, sub[n]=%d\n",n,siz[n],sub[n]);
 
   return(sub);
+}
+
+/*---------------------------------------------------------------
+  MDHloadEchoChan() - loads the data for a given echo and channel
+  without trying to figure anything out about the size of any
+  of the dimensions. No reversals are applied.
+  ----------------------------------------------------------------*/
+int MDHloadEchoChan(char *measout, int ChanId, int EchoId, int nReps,
+		    int nSlices, int nEchoes, int nRows, int nChans,
+		    int nCols, int nPCNs, int FasterDim, 
+		    MRI *mriReal, MRI *mriImag)
+{
+  extern int Strict;
+  MDH *mdh;
+  int mdhversion;
+  FILE *fp;
+  long offset;
+  float *adc, *rptr, *iptr;
+  int rep, slice, n1, n2, n1max, n2max, row, echo, chan, col, d;
+  int ADCSizeBytes;
+
+  fp = fopen(measout,"r");
+  if(fp == NULL){
+    printf("ERROR: could not open %s\n",measout);
+    exit(1);
+  }
+
+  printf("EchoId = %d, ChanId = %d\n",EchoId,ChanId);
+  if(FasterDim == 1){ // Echo is faster 
+    printf("Echo is faster\n");
+    n1max = nRows;
+    n2max = nEchoes;
+  }
+  if(FasterDim == 2){ // Row is faster 
+    printf("Row is faster\n");
+    n1max = nEchoes;
+    n2max = nRows;
+  }
+
+  fread(&offset,sizeof(long),1, fp);
+  fseek(fp,offset,SEEK_SET);
+
+  ADCSizeBytes = 2*nCols * sizeof(float); // 2 = real/imag, 4 = float
+  adc = (float *) malloc(ADCSizeBytes);
+  mdh = NULL;
+  mdhversion = MDHversion(measout);
+
+  for(rep = 0; rep < nReps; rep++){
+    //printf("\n");
+    //printf("rep = %d/%d: Slice:  ",rep+1,nReps);
+    printf("%d ",rep+1); fflush(stdout);
+    
+    for(slice = 0; slice < nSlices; slice++){
+      //printf(" %d",slice);
+      d = slice + nSlices * rep;
+      
+      mdh = ReadMiniHeader(fp,mdh,mdhversion);
+      if(mdh->Slice != slice && Strict){
+	printf("ERROR: mdh->Slice = %d, slice = %d\n",
+	       mdh->Slice, slice);
+        exit(1);
+      }
+      if(mdh->Rep != rep && Strict){
+	printf("ERROR: mdh->Rep = %d, rep = %d\n",
+	       mdh->Rep, rep);
+        exit(1);
+      }
+      fseek(fp,ADCSizeBytes,SEEK_CUR);
+
+      /* skip the PCNs */
+      fseek(fp,(nPCNs-1)*(MDH_SIZE+ADCSizeBytes),SEEK_CUR);
+      
+      for(n1 = 0; n1 < n1max; n1++){
+	
+	for(n2 = 0; n2 < n2max; n2++){
+	  
+	  if(FasterDim == 1){ // Echo is faster 
+	    row  = n1;
+	    echo = n2;
+	  }
+	  if(FasterDim == 2){ // Row is faster 
+	    echo = n1;
+	    row  = n2;
+	  }
+
+	  for(chan = 0; chan < nChans; chan++){
+
+	    //printf("rep=%d, slc=%d, n1=%d, n2=%d, chan = %d\n",
+	    //   rep,slice,n1,n2,chan);
+	    
+	    /* Skip the mdh header */
+	    //fseek(fp,MDH_SIZE,SEEK_CUR);
+	    mdh = ReadMiniHeader(fp,mdh,mdhversion);
+	    if(feof(fp)){
+	      printf("ERROR: EOF\n");
+	      exit(1);
+	    }
+	    if(echo != mdh->Echo  && Strict){
+	      printf("ERROR: mdh->Echo = %d, echo = %d \n",
+		     mdh->Echo,echo);
+	      exit(1);
+	    }
+	    if(echo == 0 && mdh->LoopCounterLine != row && Strict){
+	      printf("ERROR: mdh->LCL = %d, row = %d (echo = %d)\n",
+		     mdh->LoopCounterLine,row,echo);
+	      exit(1);
+	    }
+	    if(echo == 1 && mdh->LoopCounterLine != 63-row && Strict){
+	      printf("ERROR: mdh->LCL = %d, row = %d (echo = %d)\n",
+		     mdh->LoopCounterLine,row,echo);
+	      exit(1);
+	    }
+
+	    /* Skip the adc if its not the one we want */
+	    if(chan != ChanId || echo != EchoId){
+	      fseek(fp,ADCSizeBytes,SEEK_CUR);
+	      if(feof(fp)){
+		printf("ERROR: EOF\n");
+		exit(1);
+	      }
+	      continue;
+	    }
+	    
+	    fread(adc,sizeof(float), 2*nCols, fp);
+	    if(feof(fp)){
+	      printf("ERROR: EOF\n");
+	      exit(1);
+	    }
+	    
+	    rptr = (float*) mriReal->slices[d][row];
+	    iptr = (float*) mriImag->slices[d][row];
+	    for(col=0; col < 2*nCols; col += 2){
+	      (*rptr++) = adc[col];
+	      (*iptr++) = adc[col+1];
+	    }
+	    
+	    
+	  } /* channel */
+	  
+	} /* n2 (echo or row) */
+      } /* n1 (row or echo) */
+    } /* slice */
+  } /* rep */ 
+  printf("\n");
+    
+  fclose(fp);
+  return(0);
 }
