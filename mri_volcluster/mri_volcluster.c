@@ -62,7 +62,7 @@ static void dump_options(FILE *fp);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_volcluster.c,v 1.5 2002/04/02 19:55:51 greve Exp $";
+static char vcid[] = "$Id: mri_volcluster.c,v 1.6 2002/08/06 19:23:49 greve Exp $";
 char *Progname = NULL;
 
 static char tmpstr[2000];
@@ -120,6 +120,8 @@ LABEL *label;
 float colres, rowres, sliceres, voxsize;
 
 FILE *fpsum;
+
+int fixtkreg = 1;
 
 /*--------------------------------------------------------------*/
 /*--------------------- MAIN -----------------------------------*/
@@ -190,8 +192,7 @@ int main(int argc, char **argv)
 
   /* Load the resolution and geometry information from the register.dat */
   CRS2MNI = LoadMNITransform(regfile, vol->width,vol->height,vol->depth,
-           &CRS2FSA, &FSA2Func, 
-           &colres, &rowres, &sliceres);
+           &CRS2FSA, &FSA2Func, &colres, &rowres, &sliceres);
   voxsize = colres * rowres * sliceres;
   if(debug){
     printf("VolumeRes: %g %g %g (%g)\n",colres,rowres,sliceres,voxsize);
@@ -437,6 +438,8 @@ static int parse_commandline(int argc, char **argv)
 
     else if (!strcasecmp(option, "--allowdiag")) allowdiag = 1;
     else if (!strcmp(option, "--maskinvert"))    maskinvert = 1;
+    else if (!strcmp(option, "--nofixtkreg"))    fixtkreg = 0;
+    else if (!strcmp(option, "--fixtkreg"))      fixtkreg = 1;
 
     /* -------- source volume inputs ------ */
     else if (!strcmp(option, "--i") || !strcmp(option, "--in")){
@@ -1010,23 +1013,43 @@ static void dump_options(FILE *fp)
    FreeSurfer Anatomical x, y, z.
    --------------------------------------------------------------- */
 static MATRIX *LoadMNITransform(char *regfile, int ncols, int nrows, 
-        int nslices, MATRIX **ppCRS2FSA,
-        MATRIX **ppFSA2Func,
+        int nslices, MATRIX **ppCRS2FSA, MATRIX **ppFSA2Func,
         float *colres, float *rowres, float *sliceres)
 {
+  extern int fixtkreg;
+  extern MRI *vol;
+  int float2int;
   char *SUBJECTS_DIR;
   int err;
   char *subject;
   float ipr, bpr, intensity;
-  MATRIX *R, *iR, *T, *Q, *iQ;
+  MATRIX *Rtmp, *R, *iR, *T, *iQ;
   MATRIX *CRS2MNI;
-  int float2int;
   char talxfmfile[1000];
     
   err = regio_read_register(regfile, &subject, &ipr, &bpr, 
             &intensity, &R, &float2int);
   if(err) exit(1);
   iR = MatrixInverse(R,NULL);
+
+  if( (fabs(vol->xsize - ipr) > .001) || fabs(vol->zsize - bpr) > .001){
+    printf("ERROR: Input volume voxel dimensions do not match those \n"
+     "in the registration file. If the input volume is in \n"
+     "bshort/bfloat format, check that there is an accompanying \n"
+     "bhdr file.\n");
+    exit(1);
+  }
+
+  if(fixtkreg && (float2int == FLT2INT_TKREG)){
+    printf("INFO: Fixing tkregister matrix\n");
+    printf("Original Reg Matrix: ----------------\n");
+    MatrixPrint(stdout,R);
+    Rtmp = MRIfixTkReg(vol,R);
+    MatrixFree(&R);
+    R = Rtmp;
+    printf("New Reg Matrix: ----------------\n");
+    MatrixPrint(stdout,R);
+  }
 
   /* get the SUBJECTS_DIR environment variable */
   SUBJECTS_DIR = getenv("SUBJECTS_DIR");
@@ -1042,14 +1065,14 @@ static MATRIX *LoadMNITransform(char *regfile, int ncols, int nrows,
   err = regio_read_mincxfm(talxfmfile, &T);
   if(err) exit(1);
 
-  Q = FOVQuantMatrix(ncols, nrows, nslices, ipr, ipr, bpr); 
-  iQ = MatrixInverse(Q,NULL);
+  iQ =   MRIxfmCRS2XYZtkreg(vol);
+  printf("Input volume FOV xfm Matrix: ----------------\n");
+  MatrixPrint(stdout,iQ);
 
   *ppCRS2FSA = MatrixMultiply(iR,iQ,NULL);
   CRS2MNI = MatrixMultiply(T,*ppCRS2FSA,NULL);
 
   MatrixFree(&iR);
-  MatrixFree(&Q);
   MatrixFree(&iQ);
   MatrixFree(&T);
 
