@@ -730,7 +730,7 @@ Volm_tErr Volm_LoadDisplayTransform ( mriVolumeRef this,
     }
     break;
   default:   /* don't know what to do yet */
-    fprintf(stderr, "LTA type isn't LINEAR_VOX_TO_VOX, LINEAR_RAS_TO_RAS - don't know what to do.\n");
+    fprintf(stderr, "LTA type (%d) isn't LINEAR_VOX_TO_VOX, LINEAR_RAS_TO_RAS - don't know what to do.\n", tran->type);
     LTAfree(&lta);
     return Volm_tErr_InvalidParamater;
     break ;
@@ -754,44 +754,17 @@ Volm_tErr Volm_LoadDisplayTransform ( mriVolumeRef this,
   // Kevin, please verify!
   //
   ////////////////////////////////////////////////////////////////////////////
-  // I had to copy Trns_NewFromLTA verbatim //////////////////////////////////
 
-  dispTran = (mriTransformRef) malloc(sizeof(mriTransform));
-  if( NULL == dispTran ) 
-  {
-    eResult = Trns_tErr_AllocationFailed;
-    goto error;
-  }
-  dispTran->mSignature = Trns_kSignature;
-  /* set our matrices to null. */
-  dispTran->mAtoRAS     = NULL;
-  dispTran->mBtoRAS     = NULL;
-  dispTran->mARAStoBRAS = NULL;
-  dispTran->mRAStoA     = NULL;
-  dispTran->mRAStoB     = NULL;
-  dispTran->mBRAStoARAS = NULL;
-  dispTran->mAtoB       = NULL;
-  dispTran->mBtoA       = NULL;
-
-  /* copy the matrix out of it */
-  Trns_CopyARAStoBRAS( dispTran, srcToDst );
-  // now we can free this matrix
-  MatrixFree(&srcToDst);
-
-  /* copy identities for the rest */
-  identity = MatrixIdentity( 4, NULL );
-  Trns_CopyAtoRAS( dispTran, identity );
-  Trns_CopyBtoRAS( dispTran, identity );
-  MatrixFree(&identity);
-
-  /* allocate our temp matricies */
-  dispTran->mCoord1 = MatrixAlloc( 4, 1, MATRIX_REAL );
-  dispTran->mCoord2 = MatrixAlloc( 4, 1, MATRIX_REAL );
-
-  // now copy the transform
+  // Make the transform. Set dispTran to ARAStoBRAS.
   if (this->mDisplayTransform)
     free(this->mDisplayTransform);
-  this->mDisplayTransform = dispTran;
+  Trns_New( &this->mDisplayTransform );
+  Trns_CopyARAStoBRAS( this->mDisplayTransform, srcToDst );
+  identity = MatrixIdentity( 4, NULL );
+  Trns_CopyAtoRAS( this->mDisplayTransform, identity );
+  Trns_CopyBtoRAS( this->mDisplayTransform, identity );
+  MatrixFree(&identity);
+
 
   //////////////////////////////////////////////////////////////////////////////  
   DebugCatch;
