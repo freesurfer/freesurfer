@@ -55,6 +55,8 @@ static int            x_click ;
 static int            y_click ;
 static int            z_click ;
 
+static int            talairach = 0 ; /* show image or Talairach coords */
+
 /*----------------------------------------------------------------------
                         STATIC PROTOTYPES
 ----------------------------------------------------------------------*/
@@ -77,7 +79,7 @@ mri_event_handler(XV_FRAME *xvf, Event *event,DIMAGE *dimage,
                   int *px, int *py, int *pz)
 {
   int       x, y, z, which, depth, view ;
-  Real      xr, yr, zr ;
+  Real      xr, yr, zr, xt, yt, zt ;
   HISTOGRAM *histo ;
   float     fmin, fmax ;
   XV_FRAME  *xvnew ;
@@ -88,7 +90,8 @@ mri_event_handler(XV_FRAME *xvf, Event *event,DIMAGE *dimage,
   depth = mri_depths[which] ;
   view = mri_views[which] ;
 
-  if (!mri || !mri->slices)  /* click can occur in the middle or other stuff */
+  /* click can occur in the middle of other stuff (sort of asynchonous) */
+  if (!mri || !mri->slices)  
     return ;
 
 /*
@@ -144,6 +147,8 @@ mri_event_handler(XV_FRAME *xvf, Event *event,DIMAGE *dimage,
   else if (z >= mri->depth)
     z = mri->depth-1 ;
 
+  if (talairach)
+    MRIvoxelToTalairachVoxel(mri, (Real)x, (Real)y, (Real)z, &xt, &yt, &zt) ;
   MRIvoxelToWorld(mri, (Real)x, (Real)y, (Real)z, &xr, &yr, &zr) ;
   switch (event_id(event))
   {
@@ -154,27 +159,38 @@ mri_event_handler(XV_FRAME *xvf, Event *event,DIMAGE *dimage,
     switch (mri->type)
     {
     case MRI_UCHAR:
-      XVprintf(xvf, 0, "(%d,%d,%d) --> %d",x,y,z,MRIvox(mri, x, y, z));
+      if (talairach)
+        XVprintf(xvf, 0, "T: (%d,%d,%d) --> %d",
+                 nint(xt),nint(yt),nint(zt),MRIvox(mri, x, y, z));
+      else
+        XVprintf(xvf, 0, "(%d,%d,%d) --> %d",x,y,z,MRIvox(mri, x, y, z));
       break ;
     case MRI_FLOAT:
-      XVprintf(xvf, 0, "(%d,%d,%d) --> %2.3f",x,y,z,MRIFvox(mri, x, y, z));
+      if (talairach)
+        XVprintf(xvf, 0, "T: (%d,%d,%d) --> %2.3f",
+                 nint(xt),nint(yt),nint(zt),MRIFvox(mri, x, y, z));
+      else
+        XVprintf(xvf, 0, "(%d,%d,%d) --> %2.3f",x,y,z,MRIFvox(mri, x, y, z));
       break ;
     }
     break ;
   default:
-    switch ((char)event->ie_code)
+    if (event_is_up(event)) switch ((char)event->ie_code)
     {
+    case 'T':
+      talairach = 1 ;
+      break ;
+    case 't':
+      talairach = 0 ;
+      break ;
     case 'h':
-      if (event_is_up(event))
-      {
-        MRIvalRange(mri, &fmin, &fmax) ;
-        histo = MRIhistogram(mri, (int)(fmax - fmin + 1)) ;
-        xvnew = XValloc(1, 1, 2, 200, 200, "histogram tool", NULL) ;
-        XVshowHistogram(xvnew, 0, histo) ;
-        xv_main_loop(xvnew->frame);
-        HISTOfree(&histo) ;
-        break ;
-      }
+      MRIvalRange(mri, &fmin, &fmax) ;
+      histo = MRIhistogram(mri, (int)(fmax - fmin + 1)) ;
+      xvnew = XValloc(1, 1, 2, 200, 200, "histogram tool", NULL) ;
+      XVshowHistogram(xvnew, 0, histo) ;
+      xv_main_loop(xvnew->frame);
+      HISTOfree(&histo) ;
+      break ;
     }
     break ;
   }
