@@ -4,7 +4,7 @@
   email:   analysis-bugs@nmr.mgh.harvard.edu
   Date:    2/27/02
   Purpose: Computes glm inferences on the surface.
-  $Id: mris_glm.c,v 1.11 2002/11/12 20:41:53 greve Exp $
+  $Id: mris_glm.c,v 1.12 2002/11/12 22:46:55 greve Exp $
 
 Things to do:
   0. Documentation.
@@ -33,6 +33,7 @@ Things to do:
 #include "sig.h"
 #include "fmriutils.h"
 #include "fsgdf.h"
+#include "mri2.h"
 
 #ifdef X
 #undef X
@@ -65,7 +66,7 @@ static char *getstem(char *bfilename);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mris_glm.c,v 1.11 2002/11/12 20:41:53 greve Exp $";
+static char vcid[] = "$Id: mris_glm.c,v 1.12 2002/11/12 22:46:55 greve Exp $";
 char *Progname = NULL;
 
 char *hemi        = NULL;
@@ -347,10 +348,10 @@ int main(int argc, char **argv)
       if(fsgd != NULL){
 	sprintf(tmpstr,"%s.fsgd",getstem(yid));
 	strcpy(fsgd->measname,surfmeasure);
-	sprintf(fsgd->datafile,"%s_000.bfloat",yid);
+	sprintf(fsgd->datafile,"%s_000.bfloat",getstem(yid));
       }
       fp = fopen(tmpstr,"w");
-      gdfPrint(fp,fsgd);
+      gdfPrintHeader(fp,fsgd);
       fprintf(fp,"Creator          %s\n",Progname);
       fprintf(fp,"SmoothSteps      %d\n",nsmooth);
       fprintf(fp,"SUBECTS_DIR      %s\n",SUBJECTS_DIR);
@@ -541,8 +542,9 @@ static int parse_commandline(int argc, char **argv)
       if(nargc < 1) argnerr(option,1);
       fsgdfile = pargv[0];
       nargsused = 1;
-      fsgd = gdfRead(fsgdfile);
+      fsgd = gdfRead(fsgdfile,0);
       if(fsgd==NULL) exit(1);
+      strcpy(fsgd->tesselation,"surface");
       if(nth_is_arg(nargc, pargv, 1)){
 	gd2mtx_method = pargv[1]; nargsused ++;
 	if(gdfCheckMatrixMethod(gd2mtx_method)) exit(1);
@@ -856,8 +858,15 @@ into a design matrix. Legal values are doss (Different Offset, Same
 Slope) and dods (Different Offset, Different Slope). doss will create
 a design matrix in which each class has it's own offset but forces all
 classes to have the same slope. dods models each class with it's own
-offset and slope. If neither of these models works for you, you will
-have to specify the design matrix manually. In that case, you can
+offset and slope. In either case, you'll need to know the order of the
+regressors in order to correctly specify the contrast vector. For
+doss, the first NClass columns refer to the offset for each class.
+The remaining columns are for the continuous variables. In dods, the
+first NClass columns again refer to the offset for each class.
+However, there will be NClass*NVar more columns (ie, one column for
+each variable for each class). The first NClass columns are for the
+first variable, etc. If neither of these models works for you, you
+will have to specify the design matrix manually. In that case, you can
 still specify an FSGDF but use 'none' as the gd2mtx. It can be
 advantageous to specify an FSGDF because this information will be
 propagated with the output data and can be used by tksurfer to display
