@@ -4,7 +4,7 @@
   email:   analysis-bugs@nmr.mgh.harvard.edu
   Date:    2/27/02
   Purpose: Finds clusters on the surface.
-  $Id: mri_surfcluster.c,v 1.10 2003/09/12 20:17:41 greve Exp $
+  $Id: mri_surfcluster.c,v 1.11 2004/07/09 16:54:13 greve Exp $
 */
 
 #include <stdio.h>
@@ -44,7 +44,7 @@ static int  stringmatch(char *str1, char *str2);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_surfcluster.c,v 1.10 2003/09/12 20:17:41 greve Exp $";
+static char vcid[] = "$Id: mri_surfcluster.c,v 1.11 2004/07/09 16:54:13 greve Exp $";
 char *Progname = NULL;
 
 char *subjectdir = NULL;
@@ -85,6 +85,12 @@ char *ocnfmt = "paint";
 int   ocnfmtid = MRI_VOLUME_TYPE_UNKNOWN;
 char *sumfile  = NULL;
 
+char *outlabelbase = NULL;
+char outlabelfile[1000];
+int  nthlab = 0;
+LABEL *outlabel;
+VERTEX *v;
+
 char *synthfunc  = NULL;
 char *subjectsdir = NULL;
 int debug = 0;
@@ -111,7 +117,7 @@ int main(int argc, char **argv)
   int nargs;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_surfcluster.c,v 1.10 2003/09/12 20:17:41 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_surfcluster.c,v 1.11 2004/07/09 16:54:13 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -168,16 +174,16 @@ int main(int argc, char **argv)
     if(srcfmt == NULL){
       srcval =  MRIread(srcid);
       if(srcval == NULL){
-  printf("ERROR: could not read %s\n",srcid);
-  exit(1);
+	printf("ERROR: could not read %s\n",srcid);
+	exit(1);
       }
     }
     else{
       srcfmtid = string_to_type(srcfmt); 
       srcval =  MRIreadType(srcid,srcfmtid);
       if(srcval == NULL){
-  printf("ERROR: could not read %s as type %s\n",srcid,srcfmt);
-  exit(1);
+	printf("ERROR: could not read %s as type %s\n",srcid,srcfmt);
+	exit(1);
       }
     }
     if(srcval->height != 1 || srcval->depth != 1){
@@ -203,10 +209,10 @@ int main(int argc, char **argv)
        srcframe,srcval->nframes);
       exit(1);
     }
-
+    
     for(vtx = 0; vtx < srcsurf->nvertices; vtx++)
       srcsurf->vertices[vtx].val = MRIFseq_vox(srcval,vtx,0,0,srcframe);
-    MRIfree(&srcval);
+    MRIfree(&srcval); 
   }
   printf("Done loading source values (nvtxs = %d)\n",srcsurf->nvertices);
 
@@ -269,9 +275,7 @@ int main(int argc, char **argv)
       fprintf(fp,"%4d     %6.1f  %6d  %8.2f   %6.1f %6.1f %6.1f\n",
        n+1, scs[n].maxval, scs[n].vtxmaxval, scs[n].area,
        scs[n].xxfm, scs[n].yxfm, scs[n].zxfm);
-
     }
-
     fclose(fp);
   }
 
@@ -282,8 +286,30 @@ int main(int argc, char **argv)
     sclustZeroSurfaceNonClusters(srcsurf);
     if(!strcmp(outfmt,"paint") || !strcmp(outfmt,"w")){
       MRISwriteValues(srcsurf,outid);
-      //srcval = MRIallocSequence(srcsurf->nvertices, 1, 1,MRI_FLOAT,1);
     }
+  }
+
+  /* -- Save output clusters as labels -- */
+  if(outlabelbase != NULL){
+    for(n=1; n <= NClusters; n++){
+      sprintf(outlabelfile,"%s-%04d.label",outlabelbase,n);
+      outlabel = LabelAlloc(scs[n-1].nmembers,srcsubjid,outlabelfile);
+      outlabel->n_points =  scs[n-1].nmembers;
+      nthlab = 0;
+      for(vtx = 0; vtx < srcsurf->nvertices; vtx++){
+	v = &srcsurf->vertices[vtx];
+	if(v->undefval == n){
+	  outlabel->lv[nthlab].x = v->x;
+	  outlabel->lv[nthlab].y = v->y;
+	  outlabel->lv[nthlab].z = v->z;
+	  outlabel->lv[nthlab].vno = vtx;
+	  outlabel->lv[nthlab].stat = v->val;
+	  nthlab++;
+	}
+      }
+      LabelWrite(outlabel,outlabelfile);
+      LabelFree(&outlabel);
+    } // End loop over clusters
   }
 
   /* --- Save the cluster number output --- */
@@ -292,10 +318,8 @@ int main(int argc, char **argv)
     sclustSetSurfaceValToClusterNo(srcsurf);
     if(!strcmp(ocnfmt,"paint") || !strcmp(ocnfmt,"w")){
       MRISwriteValues(srcsurf,ocnid);
-      //srcval = MRIallocSequence(srcsurf->nvertices, 1, 1,MRI_FLOAT,1);
     }
   }
-
 
   return(0);
 }
@@ -474,15 +498,19 @@ static int parse_commandline(int argc, char **argv)
       if(nargc < 1) argnerr(option,1);
       outid = pargv[0]; nargsused = 1;
       if(nth_is_arg(nargc, pargv, 1)){
-  outfmt = pargv[1]; nargsused ++;
+	outfmt = pargv[1]; nargsused ++;
       }
     }
     else if (!strcmp(option, "--ocn")){
       if(nargc < 1) argnerr(option,1);
       ocnid = pargv[0]; nargsused = 1;
       if(nth_is_arg(nargc, pargv, 1)){
-  ocnfmt = pargv[1]; nargsused ++;
+	ocnfmt = pargv[1]; nargsused ++;
       }
+    }
+    else if (!strcmp(option, "--olab")){
+      if(nargc < 1) argnerr(option,1);
+      outlabelbase = pargv[0]; nargsused = 1;
     }
 
     else if (!strcmp(option, "--synth")){
@@ -490,7 +518,6 @@ static int parse_commandline(int argc, char **argv)
       synthfunc = pargv[0];
       nargsused = 1;
     }
-
     else if (!strcmp(option, "--sd") || !strcmp(option, "--subjectsdir")){
       if(nargc < 1) argnerr(option,1);
       subjectsdir = pargv[0];
@@ -546,6 +573,7 @@ static void print_usage(void)
   printf("   --sum sumfile     : text summary file\n");
   printf("   --o outid <fmt>   : input with non-clusters set to 0\n");
   printf("   --ocn ocnid <fmt> : value is cluster number \n");
+  printf("   --olab labelbase  : output clusters as labels \n");
   printf("\n");
   printf("   --xfm xfmfile     : talairach transform (def is talairach.xfm) \n");
   printf("   --<no>fixmni      : <do not> fix MNI talairach coordinates\n");
@@ -644,6 +672,13 @@ static void print_help(void)
 "sure to put a ./ in front of outputid or else it will attempt to write\n"
 "the output to the subject's surf directory.\n"
 "\n"
+"--olab outlabelbase\n"
+"\n"
+"Save output clusters as labels. There will be a label file for each\n"
+"cluster. The name will be outlabelbase-XXXX.label, where XXXX is the\n"
+"4-digit, zero-paded cluster number. The stat field in the label will\n"
+"be the value of the input statistic at that vertex.\n"
+"\n"
 "--xfm xfmfile\n"
 "\n"
 "This is a transform file that is used to compute the Talairach \n"
@@ -690,7 +725,7 @@ static void print_help(void)
 "summary file is shown below.\n"
 "\n"
 "Cluster Growing Summary (mri_surfcluster)\n"
-"$Id: mri_surfcluster.c,v 1.10 2003/09/12 20:17:41 greve Exp $\n"
+"$Id: mri_surfcluster.c,v 1.11 2004/07/09 16:54:13 greve Exp $\n"
 "Input :      minsig-0-lh.w\n"
 "Frame Number:      0\n"
 "Minimum Threshold: 5\n"
