@@ -2,6 +2,7 @@
 #include <fstream>
 #include "string_fixed.h"
 #include <list>
+#include <stdio.h>
 #include <stdexcept>
 #include <sstream>
 #include <sys/types.h>
