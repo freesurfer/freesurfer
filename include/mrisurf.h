@@ -804,7 +804,7 @@ int  MRISmodeFilterAnnotations(MRI_SURFACE *mris, int niter) ;
 int  MRISmodeFilterZeroVals(MRI_SURFACE *mris) ;
 int  MRISreadBinaryAreas(MRI_SURFACE *mris, char *mris_fname) ;
 int  MRISwriteAreaErrorToValFile(MRI_SURFACE *mris, char *name) ;
-int  MRIStransform(MRI_SURFACE *mris, MRI *mri, LTA *lta) ;
+int  MRIStransform(MRI_SURFACE *mris, MRI *mri, LTA *lta, MRI *mri_dst) ;
 int  MRISanisotropicScale(MRI_SURFACE *mris, float sx, float sy, float sz) ;
 double MRIScomputeVertexSpacingStats(MRI_SURFACE *mris, double *psigma,
                                      double *pmin, double *pmax, int *pvno,
