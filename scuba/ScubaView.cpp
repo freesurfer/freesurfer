@@ -2888,7 +2888,7 @@ ScubaView::BuildOverlay () {
 
   
   // Line range.
-  float range = 0.5;
+  float range = mInPlaneMovementIncrements[mViewState.mInPlane] / 2.0;
 
   // Drawing paths.
   if( prefs.GetPrefAsBool( ScubaGlobalPreferences::DrawPaths )) {

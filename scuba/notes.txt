@@ -406,6 +406,10 @@ x button for zoom in and out
   
 BRUCE'S LIST:::
 
+- save layer setup to script
+
+- goto/send pt
+
 x alt-c behavior but lock in a layer
 
 - goto vertex
