@@ -14,7 +14,7 @@
 #include "macros.h"
 #include "utils.h"
 
-static char vcid[] = "$Id: mris_flatten.c,v 1.19 1998/11/16 20:27:33 fischl Exp $";
+static char vcid[] = "$Id: mris_flatten.c,v 1.20 1998/12/16 22:33:24 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -41,10 +41,11 @@ static int   max_passes = 1 ;
 static int sphere_flag = 0 ;
 static int plane_flag = 0 ;
 
-static int original_surf_flag = 0 ;
+
+static int one_surf_flag = 0 ;
+static char *original_surf_name = SMOOTH_NAME ;
 static float rescale = 1.0f ;
 
-#define SMOOTHWM_FNAME  "smoothwm" 
 
 int
 main(int argc, char *argv[])
@@ -101,10 +102,10 @@ main(int argc, char *argv[])
   }
   else
     strcpy(hemi, "lh") ;
-  if (original_surf_flag)
+  if (one_surf_flag)
     sprintf(in_surf_fname, "%s", in_patch_fname) ;
   else
-    sprintf(in_surf_fname, "%s/%s.%s", path, hemi, SMOOTHWM_FNAME) ;
+    sprintf(in_surf_fname, "%s/%s.%s", path, hemi, original_surf_name) ;
 
   if (parms.base_name[0] == 0)
   {
@@ -129,7 +130,7 @@ main(int argc, char *argv[])
     MRISsaveVertexPositions(mris, ORIGINAL_VERTICES) ;
   }
 
-  if (original_surf_flag)  /* only have the 1 surface - no patch file */
+  if (one_surf_flag)  /* only have the 1 surface - no patch file */
   { 
     mris->patch = 1 ; 
     mris->status = MRIS_PATCH ; 
@@ -159,8 +160,8 @@ main(int argc, char *argv[])
     else
       MRISflattenPatch(mris) ;
 
-    if (!sphere_flag && !original_surf_flag)
-      MRISreadOriginalProperties(mris, "smoothwm") ;
+    if (!sphere_flag && !one_surf_flag)
+      MRISreadOriginalProperties(mris, original_surf_name) ;
     MRISsetNeighborhoodSize(mris, nbrs) ;
 
     /* optimize metric properties of flat map */
@@ -351,8 +352,13 @@ get_option(int argc, char *argv[])
     fprintf(stderr, "limitting unfolding to %d passes\n", max_passes) ;
     nargs = 1 ;
     break ;
+  case '1':
+    one_surf_flag = 1 ;  /* patch is only surface file */
+    break ;
   case 'O':
-    original_surf_flag = 1 ;  /* patch is only surface file */
+    original_surf_name = argv[2] ;
+    nargs = 1 ;
+    fprintf(stderr,"reading original surface from %s...\n",original_surf_name);
     break ;
   case 'B':
     base_dt_scale = atof(argv[2]) ;
