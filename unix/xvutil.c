@@ -31,8 +31,8 @@
 ----------------------------------------------------------------------*/
 
 #define CHAR_WIDTH        8
-#define MAX_TITLE_CHARS   (MIN(STR_LEN-1, \
-                         (nint((float)xvf->display_cols / (float)CHAR_WIDTH))))
+#define MAX_TITLE_CHARS(d)   (MIN(STR_LEN-1, \
+                        (nint((float)d->dispImage->cols / (float)CHAR_WIDTH))))
 
 #define MAX_DISP_SCALES   4
 
@@ -574,7 +574,7 @@ XVshowImage(XV_FRAME *xvf, int which, IMAGE *image, int frame)
               dimage->dispImage->rows, dimage->dispImage->cols) ;
 #else
   scale = (xscale + yscale)/2.0f ;
-  ImageRescale(GtmpByteImage2, dimage->dispImage, scale) ;
+  ImageRescale(GtmpByteImage2, dimage->dispImage, xscale) ;
 #endif
 
   substtable = (unsigned long *) xv_get(xvf->cms,CMS_INDEX_TABLE);
@@ -797,6 +797,7 @@ XVshowImageTitle(XV_FRAME *xvf, int which, ...)
   va_list args ;
   char    *fmt, *str ;
   int     len, row, col, i, spaces ;
+  DIMAGE  *dimage ;
 
   va_start(args, which) ;
   fmt = va_arg(args, char *) ;
@@ -806,11 +807,12 @@ XVshowImageTitle(XV_FRAME *xvf, int which, ...)
   if (row >= xvf->rows)
     return(0) ;
 
-  item = xvf->dimages[row][col].title_item ;
-  str = xvf->dimages[row][col].title_string ;
+  dimage = &xvf->dimages[row][col] ;
+  item = dimage->title_item ;
+  str = dimage->title_string ;
   vsprintf(str, fmt, args) ;
   spaces = strlen(str) ;
-  spaces = MAX_TITLE_CHARS - strlen(str) ;
+  spaces = MAX_TITLE_CHARS(dimage) - strlen(str) ;
   spaces = nint((float)spaces/1.0f) ;
   for (i = 0 ; i < spaces ; i++)
     str[i] = ' ' ;
@@ -819,8 +821,8 @@ XVshowImageTitle(XV_FRAME *xvf, int which, ...)
 
   len = strlen(str) ;
 
-  if (len > (MAX_TITLE_CHARS+spaces/3))
-    str[len = MAX_TITLE_CHARS] = 0 ;
+  if (len > (MAX_TITLE_CHARS(dimage)+spaces/3))
+    str[len = MAX_TITLE_CHARS(dimage)] = 0 ;
   va_end(args) ;
   xv_set(item, PANEL_LABEL_STRING, str, NULL);
   XSync(xvf->display, 0) ;
@@ -1346,3 +1348,50 @@ XVsetImageSize(XV_FRAME *xvf, int which, int rows, int cols)
   dimage->ximage = xvCreateXimage(xvf, dimage->dispImage) ;
   return(0) ;
 }
+/*----------------------------------------------------------------------
+            Parameters:
+
+           Description:
+----------------------------------------------------------------------*/
+int
+XVresize(XV_FRAME *xvf)
+{
+  DIMAGE     *dimage ;
+  int        row, col, x, y, max_height, max_width ;
+
+  y = PANEL_HEIGHT ;
+  max_width = 0 ;
+  for (row = 0 ; row < xvf->rows ; row++)
+  {
+    x = 0 ;
+    max_height = 0 ;
+    for (col = 0 ; col < xvf->cols ; col++)
+    {
+      dimage = &xvf->dimages[row][col] ;
+      dimage->which = row * xvf->cols + col ;
+      dimage->x = x ;
+      dimage->y = y ;
+
+      xv_set(dimage->canvas,
+             XV_X,                  x,
+             XV_Y,                  y,
+             NULL) ;
+
+      xv_set(dimage->title_item,
+             XV_X, x,
+             XV_Y, y-CHAR_HEIGHT+CHAR_PAD,
+             NULL) ;
+
+
+      x += WINDOW_PAD + dimage->dispImage->cols ;
+      if (dimage->dispImage->rows >= max_height)
+        max_height = dimage->dispImage->rows ;
+    }
+    if (x >= max_width)
+      max_width = x ;
+    y += CHAR_HEIGHT + max_height ;
+  }
+  xv_set(xvf->frame, XV_WIDTH, max_width, XV_HEIGHT, y, NULL) ;
+  return(0) ;
+}
+
