@@ -13,7 +13,7 @@
 
 static int extract = 0 ;
 static int  verbose = 0 ;
-static int wsize = 5 ;
+static int wsize = 11 ;
 static float pct = 0.8 ;
 static float pslope = 1.0f ;
 static float nslope = 1.0f ;
@@ -61,13 +61,13 @@ main(int argc, char *argv[])
   mri_tmp = MRIintensitySegmentation(mri_src, NULL, wm_low, wm_hi, gray_hi);
 
   fprintf(stderr, "using local statistics to label ambiguous voxels...\n") ;
-  MRIhistoSegment(mri_src, mri_tmp, wm_low, wm_hi, gray_hi, 11, 3.0f) ;
+  MRIhistoSegment(mri_src, mri_tmp, wm_low, wm_hi, gray_hi, wsize, 3.0f) ;
 
   if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
     MRIwrite(mri_tmp, "/tmp/int.mnc") ;
   fprintf(stderr, 
           "using local geometry to label remaining ambiguous voxels...\n") ;
-  mri_labeled = MRIcpolvMedianCurveSegment(mri_src, mri_tmp, NULL, 5, 2.5);
+  mri_labeled = MRIcpolvMedianCurveSegment(mri_src, mri_tmp, NULL, 5, 3);
   fprintf(stderr, 
           "\nreclassifying voxels using Gaussian border classifier...\n") ;
 
@@ -78,7 +78,7 @@ main(int argc, char *argv[])
     */
   for (i = 0 ; i < niter ; i++)
   {
-    MRIreclassify(mri_src, mri_labeled, mri_labeled, wm_low-5, gray_hi+5, 7);
+    MRIreclassify(mri_src, mri_labeled, mri_labeled, wm_low-5, gray_hi+5,wsize);
   }
   MRIfree(&mri_tmp) ;
 
