@@ -88,6 +88,7 @@ proc tkuMakeActiveLabel { ifwTop args } {
 # -width : hard width of the label or 0 for flexible
 # -wrap : the length at which to wrap text
 # -font : font to use
+# -anchor : side to anchor (n, e, se, etc)
 proc tkuMakeNormalLabel { ifwTop args } {
     global kNormalFont
 
@@ -95,6 +96,7 @@ proc tkuMakeNormalLabel { ifwTop args } {
     set aArgs(-wrap) 0
     set aArgs(-width) 0
     set aArgs(-font) $kNormalFont
+    set aArgs(-justify) left
 
     # Set arg items and make sure we have the ones we require,
     array set aArgs $args
@@ -108,11 +110,12 @@ proc tkuMakeNormalLabel { ifwTop args } {
     frame $ifwTop
     
     label $ifwTop.lw \
-	    -font $aArgs(-font) \
-	    -text $aArgs(-label) \
-	    -width $aArgs(-width) \
-	    -justify left \
-	    -wraplength $aArgs(-wrap)
+	-font $aArgs(-font) \
+	-text $aArgs(-label) \
+	-width $aArgs(-width) \
+	-justify left \
+	-anchor $aArgs(-anchor) \
+	-wraplength $aArgs(-wrap)
 
     if { $aArgs(-wrap) != 0 } {
 	$ifwTop.lw configure -wraplength $aArgs(-wrap)
