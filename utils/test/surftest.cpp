@@ -43,6 +43,8 @@ void MPrint(MATRIX *m)
        << setw(15) << *MATRIX_RELT(m,4,4) << endl;
 }
 
+#if 0
+# now defined in utils lib
 int MRIRASToSurfaceRAS(MRI *mri, Real xr, Real yr, Real zr, Real *sxr, Real *syr, Real *szr)
 {
   double m11, m12, m13, m14;
@@ -81,6 +83,7 @@ int MRIRASToSurfaceRAS(MRI *mri, Real xr, Real yr, Real zr, Real *sxr, Real *syr
 
   return (NO_ERROR);
 }
+#endif
 
 using namespace std;
 
