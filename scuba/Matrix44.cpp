@@ -387,6 +387,52 @@ Matrix44::MultiplyVector3 ( int const iVector[3], float oVector[3] ) {
 void 
 Matrix44::MultiplyVector3 ( float const iVector[3], int oVector[3] ) {
 
+#if 1
+  float iX = iVector[0];
+  float iY = iVector[1];
+  float iZ = iVector[2];
+
+  float m11 = GetCR(0,0);
+  float m12 = GetCR(1,0);
+  float m13 = GetCR(2,0);
+  float m14 = GetCR(3,0);
+
+  float m21 = GetCR(0,1);
+  float m22 = GetCR(1,1);
+  float m23 = GetCR(2,1);
+  float m24 = GetCR(3,1);
+  
+  float m31 = GetCR(0,2);
+  float m32 = GetCR(1,2);
+  float m33 = GetCR(2,2);
+  float m34 = GetCR(3,2);
+  
+  float a = m11 * iX;
+  float b = m12 * iY;
+  float c = m13 * iZ;
+  float sum00 = a + b;
+  float sum01 = c + m14;
+  int sumI0 = (int) (sum00 + sum01);
+  
+  float d = m21 * iX;
+  float e = m22 * iY;
+  float f = m23 * iZ;
+  float sum10 = d + e;
+  float sum11 = f + m24;
+  int sumI1 = (int) (sum10 + sum11);
+
+  float g = m31 * iX;
+  float h = m32 * iY;
+  float i = m33 * iZ;
+  float sum20 = g + h;
+  float sum21 = i + m34;
+  int sumI2 = (int) (sum20 + sum21);
+
+  oVector[0] = sumI0;
+  oVector[1] = sumI1;
+  oVector[2] = sumI2;
+
+#else
   oVector[0] = (int) ( GetCR(0,0) * iVector[0] +
 		       GetCR(1,0) * iVector[1] +
 		       GetCR(2,0) * iVector[2] +
@@ -399,6 +445,7 @@ Matrix44::MultiplyVector3 ( float const iVector[3], int oVector[3] ) {
 		       GetCR(1,2) * iVector[1] +
 		       GetCR(2,2) * iVector[2] +
 		       GetCR(3,2) );
+#endif
 }
 
 inline Matrix44& operator*( Matrix44& m2, 
