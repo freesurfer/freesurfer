@@ -112,4 +112,8 @@
 #define ABS(x)  (((x) < 0) ? x : -x)
 #endif
 
+#ifdef SunOS
+#define memmove  memcpy
+#endif
+
 #endif
