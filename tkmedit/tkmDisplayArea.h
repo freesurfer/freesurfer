@@ -568,7 +568,9 @@ void      DspA_DrawHorizontalArrow_    ( xPoint2nRef       iStart,
 
 /* get info about the drawing state */
 DspA_tErr DspA_GetCursor        ( tkmDisplayAreaRef this, 
-				  xVoxelRef          opCursor );
+				  xVoxelRef         opCursor );
+DspA_tErr DspA_GetCursorInMRIIdx( tkmDisplayAreaRef this, 
+				  xVoxelRef         opMRIIdx );
 DspA_tErr DspA_GetOrientation   ( tkmDisplayAreaRef this, 
 				  mri_tOrientation* oOrientation );
 DspA_tErr DspA_GetZoomLevel     ( tkmDisplayAreaRef this, 

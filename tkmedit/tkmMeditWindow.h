@@ -201,10 +201,12 @@ MWin_tErr MWin_SetDTIAxisForComponent ( tkmMeditWindowRef this,
 					xColr_tComponent  iComponent );
 
 /* get the viewing state of the last clicked display area */
-MWin_tErr MWin_GetCursor   ( tkmMeditWindowRef   this,
-			     xVoxelRef         opCursor );
-MWin_tErr MWin_GetOrientation   ( tkmMeditWindowRef   this,
-				  mri_tOrientation*   oOrientation );
+MWin_tErr MWin_GetCursor         ( tkmMeditWindowRef   this,
+				   xVoxelRef           opCursor );
+MWin_tErr MWin_GetCursorInMRIIdx ( tkmMeditWindowRef   this,
+				   xVoxelRef           opMRIIdx );
+MWin_tErr MWin_GetOrientation    ( tkmMeditWindowRef   this,
+				   mri_tOrientation*   oOrientation );
 
 /* tkmedit needs to get the selected head pt. bad design. */
 MWin_tErr MWin_GetSelectedHeadPt ( tkmMeditWindowRef   this,

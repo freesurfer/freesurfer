@@ -3,8 +3,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2003/07/28 14:12:43 $
-// Revision       : $Revision: 1.79 $
+// Revision Date  : $Date: 2003/07/29 17:04:15 $
+// Revision       : $Revision: 1.80 $
 
 #include "tkmDisplayArea.h"
 #include "tkmMeditWindow.h"
@@ -5797,15 +5797,15 @@ DspA_tErr DspA_GetCursor ( tkmDisplayAreaRef this,
 			   xVoxelRef          opCursor ) {
   
   DspA_tErr eResult = DspA_tErr_NoErr;
-  
+
   /* verify us. */
   eResult = DspA_Verify ( this );
   if ( DspA_tErr_NoErr != eResult )
     goto error;
-  
-  /* return the cursor */
+
+  /* Return it. */
   xVoxl_Copy( opCursor, this->mpCursor );
-  
+
   goto cleanup;
   
  error:
@@ -5813,6 +5813,39 @@ DspA_tErr DspA_GetCursor ( tkmDisplayAreaRef this,
   /* print error message */
   if ( DspA_tErr_NoErr != eResult ) {
     DebugPrint( ("Error %d in DspA_GetCursor: %s\n",
+		 eResult, DspA_GetErrorString(eResult) ) );
+  }
+  
+ cleanup:
+  
+  return eResult;
+}
+
+DspA_tErr DspA_GetCursorInMRIIdx ( tkmDisplayAreaRef this, 
+				   xVoxelRef         opMRIIdx ) {
+  
+  DspA_tErr eResult = DspA_tErr_NoErr;
+  xVoxel    MRIIdx;
+
+  /* verify us. */
+  eResult = DspA_Verify ( this );
+  if ( DspA_tErr_NoErr != eResult )
+    goto error;
+
+  /* Convert the cursor to MRI idx. */
+  Volm_ConvertIdxToMRIIdx(this->mpVolume[tkm_tVolumeType_Main],
+			  this->mpCursor, &MRIIdx);
+
+  /* Return it. */
+  xVoxl_Copy( opMRIIdx, &MRIIdx );
+
+  goto cleanup;
+  
+ error:
+  
+  /* print error message */
+  if ( DspA_tErr_NoErr != eResult ) {
+    DebugPrint( ("Error %d in DspA_GetCursorInMRIIdx: %s\n",
 		 eResult, DspA_GetErrorString(eResult) ) );
   }
   

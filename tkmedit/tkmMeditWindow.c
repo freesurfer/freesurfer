@@ -1877,6 +1877,50 @@ MWin_tErr MWin_GetCursor ( tkmMeditWindowRef this,
   return eResult;
 }
 
+MWin_tErr MWin_GetCursorInMRIIdx ( tkmMeditWindowRef this,
+				   xVoxelRef         opMRIIdx ) {
+  
+  MWin_tErr eResult      = MWin_tErr_NoErr;
+  DspA_tErr eDispResult  = DspA_tErr_NoErr;
+  xVoxel    MRIIdx;
+
+  /* verify us. */
+  eResult = MWin_Verify ( this );
+  if ( MWin_tErr_NoErr != eResult )
+    goto error;
+  
+  /* verify the last clicked display area index. */
+  eResult = MWin_VerifyDisplayIndex ( this, this->mnLastClickedArea );
+  if ( MWin_tErr_NoErr != eResult )
+    goto error;
+  
+  /* got the cursor from the last clicked display. */
+  eDispResult = 
+    DspA_GetCursorInMRIIdx ( this->mapDisplays[this->mnLastClickedArea],
+			     &MRIIdx );
+  if ( DspA_tErr_NoErr != eDispResult ) {
+    eResult = MWin_tErr_ErrorAccessingDisplay;
+    goto error;
+  }
+  
+  /* return the cursor */
+  xVoxl_Copy( opMRIIdx, &MRIIdx );
+
+  goto cleanup;
+  
+ error:
+  
+  /* print error message */
+  if ( MWin_tErr_NoErr != eResult ) {
+    DebugPrint( ("Error %d in MWin_GetCursorInMRIIdx: %s\n",
+      eResult, MWin_GetErrorString(eResult) ) );
+  }
+  
+ cleanup:
+  
+  return eResult;
+}
+
 MWin_tErr MWin_GetOrientation ( tkmMeditWindowRef this,
         mri_tOrientation*   oOrientation ) {
 
