@@ -4,8 +4,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2004/10/27 20:33:11 $
-// Revision       : $Revision: 1.303 $
+// Revision Date  : $Date: 2004/10/28 15:33:28 $
+// Revision       : $Revision: 1.304 $
 //////////////////////////////////////////////////////////////////
 #include <stdio.h>
 #include <string.h>
@@ -26855,9 +26855,9 @@ static int deleteWorstVertices(MRIS *mris,RP *rp,DEFECT *defect,int *vertex_tran
   int i,nvoxels,niters,init,changed;
   float max;
   int max_i;
+	static float threshold=4.0f;
   nvoxels=0;
 	
-	static float threshold=4.0f;
 
 	if(fraction > 0.1)
 		threshold /= 2.0f;
