@@ -4,8 +4,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2004/06/14 17:31:41 $
-// Revision       : $Revision: 1.288 $
+// Revision Date  : $Date: 2004/06/14 19:50:11 $
+// Revision       : $Revision: 1.289 $
 //////////////////////////////////////////////////////////////////
 #include <stdio.h>
 #include <string.h>
@@ -2765,7 +2765,7 @@ mrisReadTransform(MRIS *mris, char *mris_fname)
   if (!FileExists(transform_fname))
     return(ERROR_NO_FILE) ;
 
-  if ((mris->lta = LTAreadEx(transform_fname)))
+  if (!(mris->lta = LTAreadEx(transform_fname)))
   {
     ErrorReturn(ERROR_NO_FILE, 
                 (ERROR_NOFILE, 
