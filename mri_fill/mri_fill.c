@@ -12,7 +12,7 @@
 #include "mrimorph.h"
 #include "timer.h"
 
-static char vcid[] = "$Id: mri_fill.c,v 1.38 1999/11/19 15:18:25 fischl Exp $";
+static char vcid[] = "$Id: mri_fill.c,v 1.39 2000/04/19 19:52:37 fischl Exp $";
 
 /*-------------------------------------------------------------------
                                 CONSTANTS
@@ -123,6 +123,10 @@ static char *atlas_name = NULL ;
 static float blur_sigma = 0.25f ;
 #endif
 
+static int labels[] =   
+{ THICKEN_FILL, NBHD_FILL, VENTRICLE_FILL, DIAGONAL_FILL, DEGENERATE_FILL };
+#define NLABELS  sizeof(labels) / (sizeof(labels[0]))
+
 /*-------------------------------------------------------------------
                              STATIC PROTOTYPES
 -------------------------------------------------------------------*/
@@ -166,12 +170,12 @@ static int MRIfillDegenerateLocations(MRI *mri_fill, int fillval) ;
 int
 main(int argc, char *argv[])
 {
-  int     x, y, z, xd, yd, zd, xnew, ynew, znew, msec ;
+  int     x, y, z, xd, yd, zd, xnew, ynew, znew, msec, i ;
   int     nargs, wm_rh_x, wm_rh_y, wm_rh_z, wm_lh_x, wm_lh_y, wm_lh_z ;
   char    input_fname[STRLEN],out_fname[STRLEN], fname[STRLEN] ;
   Real    xr, yr, zr, dist, min_dist ;
   MRI     *mri_cc, *mri_pons, *mri_lh_fill, *mri_rh_fill, *mri_lh_im, 
-          *mri_rh_im /*, *mri_blur*/ ;
+          *mri_rh_im /*, *mri_blur*/, *mri_labels ;
   int     x_pons, y_pons, z_pons, x_cc, y_cc, z_cc, xi, yi, zi ;
   MORPH_3D  *m3d ;
   struct timeb  then ;
@@ -202,6 +206,17 @@ main(int argc, char *argv[])
   mri_im = MRIread(input_fname) ;
   if (!mri_im)
     ErrorExit(ERROR_NOFILE, "%s: could not read %s", Progname, input_fname) ;
+
+  /* store all the things that are labeled other than white matter,
+     and erase them so they don't confuse the issue of finding the cc
+     and the pons. They will be restored later, before doing the fill.
+  */
+  mri_labels = MRIclone(mri_im, NULL) ;
+  for (i = 0 ; i < NLABELS ; i++)
+  {
+    MRIcopyLabel(mri_im, mri_labels, labels[i]) ;
+    MRIreplaceValues(mri_im, mri_im, labels[i], 0) ;
+  }
 
   if (atlas_name && 0)
   {
@@ -435,8 +450,9 @@ main(int argc, char *argv[])
     exit(0) ;
   }
 
-  MRIfree(&mri_cc) ;
-  MRIfree(&mri_pons) ;
+  for (i = 0 ; i < NLABELS ; i++)
+    MRIcopyLabel(mri_labels, mri_im, labels[i]) ;
+  MRIfree(&mri_labels) ; MRIfree(&mri_cc) ; MRIfree(&mri_pons) ;
   if (!Gdiag)
     fprintf(stderr, "done.\n") ;
 
