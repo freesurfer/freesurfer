@@ -1,7 +1,7 @@
 /*-------------------------------------------------------------------
   Name: mri2.c
   Author: Douglas N. Greve
-  $Id: mri2.c,v 1.6 2004/08/11 23:23:28 greve Exp $
+  $Id: mri2.c,v 1.7 2004/11/01 22:32:47 greve Exp $
   Purpose: more routines for loading, saving, and operating on MRI 
   structures.
   -------------------------------------------------------------------*/
@@ -16,6 +16,7 @@
 #include "bfileio.h"
 
 #include "mri2.h"
+#include "sig.h"
 
 /*-------------------------------------------------------------
   mri_load_bvolume() -- same as bf_ldvolume() but returns an
@@ -653,13 +654,186 @@ int MRIvol2Vol(MRI *src, MRI *targ, MATRIX *Vt2s,
 
   return(0);
 }
+/*---------------------------------------------------------------
+  MRIdimMismatch() - checks whether the dimensions on two volumes
+  are inconsistent. Returns: 
+    0 no mismatch
+    1 columns mismatch
+    2 rows mismatch
+    3 slices mismatch
+    4 frames mismatch - note: frameflag must = 1 to check frames
+  ---------------------------------------------------------------*/
+int MRIdimMismatch(MRI *v1, MRI *v2, int frameflag)
+{
+  if(v1->width  != v2->width)  return(1);
+  if(v1->height != v2->height) return(2);
+  if(v1->depth  != v2->depth)  return(3);
+  if(frameflag && v1->nframes != v2->nframes)  return(4);
+  return(0);
+}
 
+/*---------------------------------------------------------------
+  MRIfdr() - computes False Discovery Rate (FDR) theshold, and
+  optionally thresholds the the MRI volume. 
 
+  frame - 0-based frame number of input volume to use
+  fdr - false dicovery rate, between 0 and 1, eg: .05
+  signid -  
+      0 = use all values regardless of sign
+     +1 = use only positive values
+     -1 = use only negative values
+     If a vertex does not meet the sign criteria, its val2 is 0
+  log10flag - interpret vol values as -log10(p)
+  mask - binary mask volume. If the mask value at a voxel is 1,
+     then its the input voxel value will be used to compute the 
+     threshold (if it also meets the sign criteria). If the mask is
+     0, then ovol will be set to 0 at that location. Pass NULL if
+     not using a mask.
+  fdrthresh - FDR threshold between 0 and 1. If log10flag is set,
+     then fdrthresh = -log10(fdrthresh). ovol voxels with p values 
+     GREATER than fdrthresh will be 0. Note that this is the same
+     as requiring -log10(p) > -log10(fdrthresh).
+  ovol - output volume. Pass NULL if no output volume is needed.
 
+  So, for the ovol to be set to something non-zero, the vol must
+  meet the sign, mask, and threshold criteria. If vol meets all
+  the criteria, then ovol=vol (ie, no log10 transforms). vol
+  itself is not altered, unless it is also passed as the ovol.
+  Note: only frame=0 in the ovol is used.
 
+  Return Values:
+    0 - everything is OK
+    1 - something went wrong
 
+  Ref: http://www.sph.umich.edu/~nichols/FDR/FDR.m
+  *----------------------------------------------------*/
+int MRIfdr(MRI *vol, int frame, double fdr, int signid, int log10flag,
+	   MRI *mask, double *fdrthresh, MRI *ovol)
+{
+  double *p=NULL, val=0.0, valnull=0.0, maskval;
+  int Nv, np, c, r ,s, maskflag=0;
 
+  if(vol->nframes <= frame){
+    printf("ERROR: MRIfdr: frame = %d, must be < nframes = %d\n",
+	   frame,vol->nframes);
+    return(1);
+  }
+  if(vol->type != MRI_FLOAT){
+    printf("ERROR: MRIfdr: input volume is not of type MRI_FLOAT\n");
+    return(1);
+  }
+  if(ovol != NULL){
+    if(ovol->type != MRI_FLOAT){
+      printf("ERROR: MRIfdr: output volume is not of type MRI_FLOAT\n");
+      return(1);
+    }
+    if(MRIdimMismatch(vol, ovol, 0)){
+      printf("ERROR: MRIfdr: output/input dimension mismatch\n");
+      return(1);
+    }
+  }
+  if(mask != NULL){
+    if(MRIdimMismatch(vol, mask, 0)){
+      printf("ERROR: MRIfdr: mask/input dimension mismatch\n");
+      return(1);
+    }
+    maskflag = 1;
+  }
 
+  Nv = vol->width * vol->height * vol->depth;
+  if(log10flag) valnull = 0;
+  else          valnull = 1;
 
+  p = (double *) calloc(Nv,sizeof(double));
+  np = 0;
+  for(c=0; c < vol->width; c++){
+    for(r=0; r < vol->height; r++){
+      for(s=0; s < vol->depth; s++){
+
+	if(maskflag){
+	  // Must be in the mask if using a mask
+	  maskval = MRIgetVoxVal(mask,c,r,s,0);
+	  if(maskval < 0.5)  continue;
+	}
+	val = MRIFseq_vox(vol,c,r,s,frame);
+
+	// Check the sign
+	if(signid == -1 && val > 0) continue;
+	if(signid == +1 && val < 0) continue;
+
+	// Get value, convert from log10 if needed
+	val = fabs(val);
+	if(log10flag) val = pow(10,-val);
+
+	p[np] = val;
+	np++;
+      }
+    }
+  }
+  printf("MRIfdr: np = %d, nv = %d\n",np,Nv);
+
+  // Check that something met the match criteria, 
+  // otherwise return an error
+  if(np==0){
+    printf("ERROR: MRIfdr: no matching voxels found\n");
+    free(p);
+    return(1);
+  }
+
+  *fdrthresh = fdrthreshold(p,np,fdr);
+  free(p);
+
+  if(ovol == NULL){
+    if(log10flag) *fdrthresh = -log10(*fdrthresh);
+    return(0);
+  }
+
+  // Perform the thresholding
+  for(c=0; c < vol->width; c++){
+    for(r=0; r < vol->height; r++){
+      for(s=0; s < vol->depth; s++){
+
+	if(maskflag){
+	  maskval = MRIgetVoxVal(mask,c,r,s,0);
+	  if(maskval < 0.5){
+	    // Set to null if out of mask
+	    MRIFseq_vox(ovol,c,r,s,0) = valnull;
+	    continue;
+	  }
+	}
+
+	val = MRIFseq_vox(vol,c,r,s,frame);
+
+	if(signid == -1 && val > 0){
+	  // Set to null if wrong sign
+	  MRIFseq_vox(ovol,c,r,s,0) = valnull;
+	  continue;
+	}
+	if(signid == +1 && val < 0){
+	  // Set to null if wrong sign
+	  MRIFseq_vox(ovol,c,r,s,0) = valnull;
+	  continue;
+	}
+	
+	val = fabs(val);
+	if(log10flag) val = pow(10,-val);
+	
+	if(val > *fdrthresh){
+	  // Set to null if greather than thresh
+	  MRIFseq_vox(ovol,c,r,s,0) = valnull;
+	  continue;
+	}
+	
+	// Otherwise, it meets all criteria, so 
+	// pass the original value through
+	MRIFseq_vox(ovol,c,r,s,0) = 
+	  MRIFseq_vox(vol,c,r,s,frame);
+      }
+    }
+  }
+  if(log10flag) *fdrthresh = -log10(*fdrthresh);
+
+  return(0);
+}
 
 
