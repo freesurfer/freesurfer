@@ -6,7 +6,7 @@
   Purpose: averages the voxels within an ROI. The ROI
            can be constrained structurally (with a label file)
            and/or functionally (with a volumetric mask)
-  $Id: mri_vol2roi.c,v 1.10 2002/06/21 18:11:21 greve Exp $
+  $Id: mri_vol2roi.c,v 1.11 2002/07/18 19:20:14 greve Exp $
 */
 
 #include <stdio.h>
@@ -52,7 +52,7 @@ int CountLabelHits(MRI *SrcVol, MATRIX *Qsrc, MATRIX *Fsrc,
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_vol2roi.c,v 1.10 2002/06/21 18:11:21 greve Exp $";
+static char vcid[] = "$Id: mri_vol2roi.c,v 1.11 2002/07/18 19:20:14 greve Exp $";
 char *Progname = NULL;
 
 char *roifile    = NULL;
@@ -74,11 +74,12 @@ char *mskvolid   = NULL;
 char *mskfmt     = NULL;
 char *mskregfile = NULL;
 char *msk2srcregfile = NULL;
-int   msksamesrc  = 0;
+int   msksamesrc  = 1;
 
-float mskthresh = 0.5;
+float  mskthresh = 0.5;
 char  *msktail = "abs";
-int   mskframe = 0;
+int    mskinvert = 0;
+int    mskframe = 0;
 
 char  *finalmskvolid = NULL;
 
@@ -252,7 +253,8 @@ int main(int argc, char **argv)
     else mSrcMskVol = mMskVol;
 
     /* binarize the mask volume */
-    mri_binarize(mSrcMskVol, mskthresh, msktail, mSrcMskVol, &nmskhits);
+    mri_binarize(mSrcMskVol, mskthresh, msktail, mskinvert,
+     mSrcMskVol, &nmskhits);
   }
   else {mSrcMskVol = NULL; nmskhits = 0;}
   /*-------------- Done loading mask stuff -------------------------*/
@@ -409,6 +411,7 @@ static int parse_commandline(int argc, char **argv)
 
     else if (!strcasecmp(option, "--oldtxtstyle"))    oldtxtstyle = 1;
     else if (!strcasecmp(option, "--plaintxtstyle"))  plaintxtstyle = 1;
+    else if (!strcasecmp(option, "--mskinvert"))  mskinvert = 1;
 
     /* -------- ROI output file ------ */
     else if (!strcmp(option, "--roiavgtxt")){
@@ -480,6 +483,7 @@ static int parse_commandline(int argc, char **argv)
       if(nargc < 1) argnerr(option,1);
       mskregfile = pargv[0];
       nargsused = 1;
+      msksamesrc = 0;
     }
     else if (!strcmp(option, "--msksamesrc")){
       msksamesrc = 1;
@@ -559,11 +563,12 @@ static void print_usage(void)
   fprintf(stderr, "   --mskvol     mask volume path \n");
   fprintf(stderr, "   --mskfmt     mask volume format \n");
   fprintf(stderr, "   --mskreg     mask registration  (MaskXYZ = M*AnatXYZ)\n");
-  fprintf(stderr, "   --msksamesrc mask volume has same FOV as source \n");
+  //fprintf(stderr, "   --msksamesrc mask volume has same FOV as source \n");
   fprintf(stderr, "\n");
   fprintf(stderr, "   --mskthresh threshold (0.5) mask threshold\n");
   fprintf(stderr, "   --msktail   <abs>, pos, or neg (mask tail) \n");
   fprintf(stderr, "   --mskframe  0-based mask frame <0> \n");
+  fprintf(stderr, "   --mskinvert : invert the mask \n");
   fprintf(stderr, "\n");
   fprintf(stderr, "   --finalmskvol path in which to save final mask\n");
   fprintf(stderr, "\n");
@@ -677,6 +682,7 @@ static void dump_options(FILE *fp)
     else fprintf(fp,"msk volume same as source\n");
     fprintf(fp,"msk tail = %s\n",msktail); 
     fprintf(fp,"msk threshold = %f\n",mskthresh); 
+    fprintf(fp,"msk invert = %d\n",mskinvert); 
     fprintf(fp,"msk frame = %d\n",mskframe); 
   }
 
