@@ -1,7 +1,7 @@
 /*
   fsgdf.c
   Utilities for reading freesurfer group descriptor file format 
-  $Id: fsgdf.c,v 1.14 2002/11/18 16:24:46 kteich Exp $
+  $Id: fsgdf.c,v 1.15 2002/11/21 22:43:08 kteich Exp $
 
   See:   http://surfer.nmr.mgh.harvard.edu/docs/fsgdf.txt
 
@@ -899,31 +899,49 @@ int gdfGetNthClassColor(FSGD *gd, int nclass, char *color)
 }
 
 /*------------------------------------------------------------
-  gdfGetNumVariables() - returns the number of variables in the
-  output argument.
+  gdfGetNumVariables() - returns the number of variables in the output
+  argument. Special case: if nvariables is actually 0, we really do
+  have a 'variable,' it's just the subject index. So the graphing code
+  doesn't have to know about this, return 1.
   ------------------------------------------------------------*/
 int gdfGetNumVariables(FSGD *gd, int *nvariables)
 {
   if(NULL == gd)
     return(-1);
 
-  *nvariables = gd->nvariables;
+  if(gd->nvariables == 0)
+    {
+      *nvariables = 1;
+    }
+  else
+    {
+      *nvariables = gd->nvariables;
+    }
 
   return(0);
 }
 
 /*------------------------------------------------------------
-  gdfGetNthVariableLabel() - copies the nth variable label into
-  the output argument.
+  gdfGetNthVariableLabel() - copies the nth variable label into the
+  output argument. Special case: if 0 variables, copy Subject as the
+  label.
   ------------------------------------------------------------*/
 int gdfGetNthVariableLabel(FSGD *gd, int nvariable, char *label)
 {
   if(NULL == gd)
     return(-1);
-  if(nvariable < 0 || nvariable >= gd->nvariables)
+  if(nvariable < 0 || 
+     (gd->nvariables != 0 && nvariable >= gd->nvariables) )
     return(-1);
 
-  strcpy(label,gd->varlabel[nvariable]);
+  if(gd->nvariables == 0)
+    {
+      strcpy(label,"Subject");
+    }
+  else
+    {
+      strcpy(label,gd->varlabel[nvariable]);
+    }
 
   return(0);
 }
@@ -937,7 +955,14 @@ int gdfGetDefaultVariable(FSGD *gd, char *label)
   if(NULL == gd)
     return(-1);
   
-  strcpy(label,gd->defvarlabel);
+  if(gd->nvariables == 0)
+    {
+      strcpy(label,"Subject");
+    }
+  else
+    {
+      strcpy(label,gd->defvarlabel);
+    }
 
   return(0);
 }
@@ -1003,9 +1028,10 @@ int gdfGetNthSubjectClass(FSGD *gd, int nsubject, int *class)
 }
 
 /*------------------------------------------------------------
-  gdfGetNthSubjectNthValue() - returns the index of the nth
-  subject's nth variable value where nsubject is from 0 -> ninputs
-  and nvariable is from 0 -> nvariables.
+  gdfGetNthSubjectNthValue() - returns the index of the nth subject's
+  nth variable value where nsubject is from 0 -> ninputs and nvariable
+  is from 0 -> nvariables. Special case: if 0 variables, return the
+  subject index. 
   ------------------------------------------------------------*/
 int gdfGetNthSubjectNthValue(FSGD *gd, int nsubject, 
 			     int nvariable, float *value)
@@ -1014,10 +1040,18 @@ int gdfGetNthSubjectNthValue(FSGD *gd, int nsubject,
     return(-1);
   if(nsubject < 0 || nsubject >= gd->ninputs)
     return(-1);
-  if(nvariable < 0 || nvariable >= gd->nvariables)
+  if(nvariable < 0 || 
+     (gd->nvariables != 0 && nvariable >= gd->nvariables) )
     return(-1);
 
-  *value = gd->varvals[nsubject][nvariable];
+  if(gd->nvariables == 0)
+    {
+      *value = nsubject;
+    }
+  else
+    {
+      *value = gd->varvals[nsubject][nvariable];
+    }
 
   return(0);
 }
