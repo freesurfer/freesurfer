@@ -9,9 +9,9 @@
 
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2005/03/17 19:12:57 $
-// Revision       : $Revision: 1.238 $
-char *VERSION = "$Revision: 1.238 $";
+// Revision Date  : $Date: 2005/03/24 20:28:57 $
+// Revision       : $Revision: 1.239 $
+char *VERSION = "$Revision: 1.239 $";
 
 #define TCL
 #define TKMEDIT 
@@ -1076,7 +1076,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
      shorten our argc and argv count. If those are the only args we
      had, exit. */
   /* rkt: check for and handle version tag */
-  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.238 2005/03/17 19:12:57 kteich Exp $", "$Name:  $");
+  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.239 2005/03/24 20:28:57 kteich Exp $", "$Name:  $");
   if (nNumProcessedVersionArgs && argc - nNumProcessedVersionArgs == 1)
     exit (0);
   argc -= nNumProcessedVersionArgs;
@@ -5206,7 +5206,7 @@ int main ( int argc, char** argv ) {
     DebugPrint( ( "%s ", argv[nArg] ) );
   }
   DebugPrint( ( "\n\n" ) );
-  DebugPrint( ( "$Id: tkmedit.c,v 1.238 2005/03/17 19:12:57 kteich Exp $ $Name:  $\n" ) );
+  DebugPrint( ( "$Id: tkmedit.c,v 1.239 2005/03/24 20:28:57 kteich Exp $ $Name:  $\n" ) );
 
   
   /* init glut */
@@ -6918,7 +6918,7 @@ void GraphSelectedRegion () {
   while( xVoxl_IncrementUntilLimits( &idx, nDimensionX-1, 
 				     nDimensionY-1, nDimensionZ-1 )) {
 
-    Volm_GetValueAtIdx( gSelectionVolume, &idx, &value );
+    Volm_GetValueAtIdxUnsafe( gSelectionVolume, &idx, &value );
     if( 0 != value ) {
 	  
       /* add it to the functional display list. */
