@@ -13,7 +13,7 @@
 #include "mri.h"
 #include "macros.h"
 
-static char vcid[] = "$Id: mris_curvature.c,v 1.6 1997/12/11 18:58:00 fischl Exp $";
+static char vcid[] = "$Id: mris_curvature.c,v 1.7 1998/01/22 19:38:16 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -27,6 +27,7 @@ char *Progname ;
 
 static int write_flag = 0 ;
 static int nbrs = 2 ;
+static int navgs = 0 ;
 
 int
 main(int argc, char *argv[])
@@ -99,10 +100,12 @@ fprintf(stderr, "0: vnum = %d, v2num = %d, total=%d, area=%2.3f\n",
     hemi[2] = 0 ;
     
     MRISuseGaussianCurvature(mris) ;
+    MRISaverageCurvatures(mris, navgs) ;
     sprintf(fname, "%s/%s.K", path,name) ; 
     fprintf(stderr, "writing Gaussian curvature to %s...", fname) ;
     MRISwriteCurvature(mris, fname) ;
     MRISuseMeanCurvature(mris) ;
+    MRISaverageCurvatures(mris, navgs) ;
     sprintf(fname, "%s/%s.H", path,name) ; 
     fprintf(stderr, "done.\nwriting mean curvature to %s...", fname) ;
     MRISwriteCurvature(mris, fname) ;
@@ -136,6 +139,11 @@ get_option(int argc, char *argv[])
   }
   else switch (toupper(*option))
   {
+  case 'A':
+    navgs = atoi(argv[2]) ;
+    fprintf(stderr, "averaging curvature patterns %d times.\n", navgs) ;
+    nargs = 1 ;
+    break ;
   case 'V':
     Gdiag_no = atoi(argv[2]) ;
     nargs = 1 ;
