@@ -510,8 +510,8 @@ HISTOsmooth(HISTOGRAM *histo_src, HISTOGRAM *histo_dst,float sigma)
   {
     if (histo_dst->nbins < histo_src->nbins)
     {
-      fprintf(stderr, "realloc: histo_dst->nbins = %d, histo_src->nbins - %d\n",
-              histo_dst->nbins, histo_src->nbins);
+      // fprintf(stderr, "realloc: histo_dst->nbins = %d, histo_src->nbins = %d\n",
+      //         histo_dst->nbins, histo_src->nbins);
       HISTOrealloc(histo_dst, nbins);
     }
     histo_dst->nbins = nbins ;
