@@ -35,8 +35,8 @@
 int XShmQueryExtension(Display *disp) ;
 #endif 
 void useage(void);
-void update_proc(Widget w, XEvent *event, String *pars, Cardinal *npars);
 void mark_proc(Widget w, XEvent *event, String *pars, Cardinal *npars);
+void update_proc(Widget w, XEvent *event, String *pars, Cardinal *npars);
 void quit_proc(Widget w, XEvent *event, String *pars, Cardinal *npars);
 void repaint_proc(Widget w, XEvent *event, String *pars, Cardinal *npars);
 void loop_proc(Widget w, XEvent *event, String *pars, Cardinal *npars);
@@ -87,7 +87,6 @@ int pfmt=0,rows=0,cols=0;
 int running = 0;
 int direction = FORWARD;
 int curframe=0;
-int mpx;
 unsigned long interval = 33; /* 1s */
 char **fnames;
 /* -------- End Global Variables ------- */
@@ -103,8 +102,8 @@ static XtActionsRec actions[] = {
   {"Quit", quit_proc},
   {"Forward",forward_proc},
   {"Back",back_proc},
-  {"Mark",mark_proc},
-  {"Update",update_proc}
+  {"Update",update_proc},
+  {"Mark",mark_proc}
 };
 
 static char *fallback_resources[] = {
@@ -132,8 +131,7 @@ static char *fallback_resources[] = {
   "*Canvas.baseTranslations:   #override <Expose>:Refresh()",
   NULL
 };
-static char ckeys[] = "#override <Key>Left:Back()\n <Key>Right:Forward()\n \
-<Btn3Down>:Mark()\n <Btn3Motion>:Update()";
+static char ckeys[] = "#override <Key>Left:Back()\n <Key>Right:Forward()\n <Btn3Down>:Mark()\n <Btn3Motion>:Update()\n <Key>Escape:Quit()";
 static XtIntervalId timer;
 /* -------- End Static Variables -------- */
 
@@ -143,13 +141,10 @@ void useage(void)
   exit(1);
 }
 
+/* We need this even though it doesn't make sense.  Without this null 
+   procedure, update_proc() doesn't get called properly */
 void mark_proc(Widget w, XEvent *event, String *pars, Cardinal *npars)
 {
-  Window root,child;
-  int rx,ry,wy;
-  unsigned int mask;
-
-  XQueryPointer(xi.disp,xi.canvas,&root,&child,&rx,&ry,&mpx,&wy,&mask);
 }
 
 void update_proc(Widget w, XEvent *event, String *pars, Cardinal *npars)
@@ -160,12 +155,14 @@ void update_proc(Widget w, XEvent *event, String *pars, Cardinal *npars)
 
   XQueryPointer(xi.disp,xi.canvas,&root,&child,&rx,&ry,&wx,&wy,&mask);
 
-  if (wx>mpx) 
-    forward_proc(canvas,event,NULL,NULL);
-  else
-    back_proc(canvas,event,NULL,NULL);
+  if (wx>cols)
+    wx = cols;
+  else if (wx<0)
+    wx = 0;
 
-  mpx = wx;
+  curframe = (int)(((float)wx/(float)cols)*(nframes-1));
+
+  repaint_proc(canvas,NULL,NULL,NULL);
 }
 
 void start_timer(void)
