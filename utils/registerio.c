@@ -258,7 +258,7 @@ int regio_write_mincxfm(char *xfmfile, MATRIX *R)
   for(r=0;r<3;r++){ /* note: upper limit = 3 for xfm */
     for(c=0;c<4;c++)
       fprintf(fp,"%e ",R->rptr[r+1][c+1]);
-    if(r != 3) fprintf(fp,"\n");
+    if(r != 2) fprintf(fp,"\n");
     else       fprintf(fp,";");
   }
 
