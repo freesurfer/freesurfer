@@ -1,4 +1,4 @@
-% $Id: unwarp_resample.m,v 1.4 2004/09/13 17:43:50 greve Exp $
+% $Id: unwarp_resample.m,v 1.5 2004/09/13 17:49:33 greve Exp $
 %
 % In this file:
 %
@@ -62,19 +62,19 @@ if unwarpflag %E%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
   coords_z = fread(fid,2,'float32')*1000;
   Dx = fread(fid,ncoords_x*ncoords_y*ncoords_z,'float32')'*1000;
   if(length(Dx) ~= nv)
-    msg = sprintf('ERROR: reading Dx from %s, read %d, expected %d\n'...
+    msg = sprintf('ERROR: reading Dx from %s, read %d, expected %d\n',...
 		  gradfilename,nv,length(Dx));
-    qoe(msg);  error(msg);
+    qoe(msg); error(msg);
   end
   Dy = fread(fid,ncoords_x*ncoords_y*ncoords_z,'float32')'*1000;
   if(length(Dy) ~= nv)
-    msg = sprintf('ERROR: reading Dy from %s, read %d, expected %d\n'...
+    msg = sprintf('ERROR: reading Dy from %s, read %d, expected %d\n',...
 		  gradfilename,nv,length(Dy));
     qoe(msg);  error(msg);
   end
   Dz = fread(fid,ncoords_x*ncoords_y*ncoords_z,'float32')'*1000;
   if(length(Dz) ~= nv)
-    msg = sprintf('ERROR: reading Dz from %s, read %d, expected %d\n'...
+    msg = sprintf('ERROR: reading Dz from %s, read %d, expected %d\n',...
 		  gradfilename,nv,length(Dz));
     qoe(msg);  error(msg);
   end
