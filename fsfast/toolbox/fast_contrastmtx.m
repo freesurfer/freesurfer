@@ -40,6 +40,7 @@ R = [];
 for nthCond = 1:nConds
 
   RCond = fast_condctrstmtx(TER,TW,TPS,SumDelays,WDelays,RmPrestim);
+
   if(isempty(RCond)) R = []; return; end
 
   if(SumConds)
