@@ -20,6 +20,7 @@
 #include "diag.h"
 #include "windiag.h"
 #include "proto.h"
+#include "const.h"
 
 /*-----------------------------------------------------
                     MACROS AND CONSTANTS
