@@ -92,6 +92,9 @@ MRI  *GCAanneal(MRI *mri_inputs, GCA *gca, MRI *mri_dst,LTA *lta,
 int    GCAsourceVoxelToNode(GCA *gca, MRI *mri, LTA *lta,
                                  int xv, int yv, int zv, 
                                  int *pxn, int *pyn, int *pzn) ;
+int  GCAnodeToSourceVoxel(GCA *gca, MRI *mri, MATRIX *m_L, 
+                          int xv, int yv, int zv,
+                          int *pxn, int *pyn, int *pzn) ;
 #if 0
 int    GCAsampleStats(GCA *gca, MRI *mri, LTA *lta, int class, 
                       Real x, Real y, Real z, 
