@@ -45,6 +45,7 @@ typedef struct
   float      trans_mul ;  /* scaling of translation gradient */
   int        morph_skull ;
   int        disable_neck ;
+  MRI        *mri_red_in, *mri_red_ref ;  /* current (reduced) volumes */
 } MORPH_PARMS, MP ;
 
 
