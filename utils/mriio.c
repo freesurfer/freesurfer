@@ -8028,6 +8028,15 @@ static MRI *nifti1Read(char *fname, int read_volume)
     }
   }
 
+  mri->xsize = mri->xsize * space_units_factor;
+  mri->ysize = mri->ysize * space_units_factor;
+  mri->zsize = mri->zsize * space_units_factor;
+  mri->c_r = mri->c_r * space_units_factor;
+  mri->c_a = mri->c_a * space_units_factor;
+  mri->c_s = mri->c_s * space_units_factor;
+  if(hdr.dim[0] == 4)
+    mri->tr = mri->tr * time_units_factor;
+
   if(!read_volume)
     return(mri);
 
@@ -8631,6 +8640,15 @@ static MRI *niiRead(char *fname, int read_volume)
       return(NULL);
     }
   }
+
+  mri->xsize = mri->xsize * space_units_factor;
+  mri->ysize = mri->ysize * space_units_factor;
+  mri->zsize = mri->zsize * space_units_factor;
+  mri->c_r = mri->c_r * space_units_factor;
+  mri->c_a = mri->c_a * space_units_factor;
+  mri->c_s = mri->c_s * space_units_factor;
+  if(hdr.dim[0] == 4)
+    mri->tr = mri->tr * time_units_factor;
 
   if(!read_volume)
     return(mri);
