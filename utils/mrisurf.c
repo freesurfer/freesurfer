@@ -499,7 +499,7 @@ MRISreadOverAlloc(char *fname, double pct_over)
 
 /* if we're going to be arbitrary, we might as well be really arbitrary */
 #define WHICH_FACE_SPLIT(vno0, vno1) \
-            nint(sqrt(1.9*vno0) + sqrt(3.5*vno1)) 
+            (1*nint(sqrt(1.9*vno0) + sqrt(3.5*vno1)))
       /* 
          NOTE: for this to work properly in the write, the first two
          vertices in the first face (EVEN and ODD) must be 0 and 1.
@@ -4099,6 +4099,9 @@ MRISquickSphere(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int max_passes)
   struct  timeb start ;
   
   TimerStart(&start) ;
+
+  if (IS_QUADRANGULAR(mris))
+    MRISremoveTriangleLinks(mris) ;
 
   use_dists = (!FZERO(parms->l_dist) || !FZERO(parms->l_nldist)) &&
     (parms->nbhd_size > mris->nsize) ;
@@ -18377,7 +18380,7 @@ MRISsoapBubbleVals(MRI_SURFACE *mris, int navgs)
 int
 MRISremoveTriangleLinks(MRI_SURFACE *mris)
 {
-  int    fno ;
+  int    fno, which ;
   FACE   *f ;
 
   if (!IS_QUADRANGULAR(mris))
@@ -18391,8 +18394,17 @@ MRISremoveTriangleLinks(MRI_SURFACE *mris)
     f = &mris->faces[fno] ;
     if (f->ripflag)
       continue ;
-    mrisRemoveVertexLink(mris, f->v[1], f->v[2]) ;
-    mrisRemoveVertexLink(mris, f->v[2], f->v[1]) ;
+    which = WHICH_FACE_SPLIT(f->v[0], f->v[1]) ;
+    if (EVEN(which))
+    {
+      mrisRemoveVertexLink(mris, f->v[1], f->v[2]) ;
+      mrisRemoveVertexLink(mris, f->v[2], f->v[1]) ;
+    }
+    else
+    {
+      mrisRemoveVertexLink(mris, f->v[0], f->v[2]) ;
+      mrisRemoveVertexLink(mris, f->v[2], f->v[0]) ;
+    }
   }
   return(NO_ERROR) ;
 }
