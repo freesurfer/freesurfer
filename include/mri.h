@@ -3,6 +3,7 @@
 
 #include "const.h"
 #include "matrix.h"
+#include "volume_io.h"
 
 #define BUFTYPE  unsigned char
 
@@ -122,6 +123,11 @@ MRI   *MRIstd(MRI *mri_src, MRI*mri_dst, MRI *mri_mean, int wsize) ;
 MRI   *MRInorm(MRI *mri_src, MRI*mri_dst, MRI *mri_mean, MRI *mri_std) ;
 MRI   *MRIreadRaw(FILE *fp, int width, int height, int depth, int type) ;
 int   MRIinitHeader(MRI *mri) ;
+void  MRIvoxelToWorld(MRI *mri, Real xv, Real yv, Real zv, 
+                      Real *xw, Real *yw, Real *zw) ;
+void  MRIworldToVoxel(MRI *mri, Real xw, Real yw, Real zw,
+                Real *pxv, Real *pyv, Real *pzv) ;
+
 
 #include "image.h"
 
