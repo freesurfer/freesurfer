@@ -32,22 +32,22 @@
 #include "volcluster.h"
 
 static MATRIX *LoadMNITransform(char *regfile, int ncols, int nrows, 
-				int nslices, MATRIX **ppCRS2FSA,
-				MATRIX **ppFSA2Func,
-				float *colres, float *rowres, 
-				float *sliceres);
+        int nslices, MATRIX **ppCRS2FSA,
+        MATRIX **ppFSA2Func,
+        float *colres, float *rowres, 
+        float *sliceres);
 
 
 static MRI *MRIsynthUniform(int ncols, int nrows, int nslices, 
-			    int nframes, MRI *tvol);
+          int nframes, MRI *tvol);
 static MRI *MRIsynthLogUniform(int ncols, int nrows, int nslices, 
-			       int nframes, MRI *tvol);
+             int nframes, MRI *tvol);
 static double Gaussian01PDF(void);
 static MRI *MRIsynthGaussian(int ncols, int nrows, int nslices, 
-			     int nframes, MRI *tvol);
+           int nframes, MRI *tvol);
 static MRI *MRIbinarize01(MRI *vol, float thmin, float thmax, 
-			  char *thsign, int invert, 
-			  int lowval, int highval, MRI *binvol);
+        char *thsign, int invert, 
+        int lowval, int highval, MRI *binvol);
 
 
 static int  parse_commandline(int argc, char **argv);
@@ -62,7 +62,7 @@ static void dump_options(FILE *fp);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_volcluster.c,v 1.1 2002/01/23 01:04:05 greve Exp $";
+static char vcid[] = "$Id: mri_volcluster.c,v 1.2 2002/01/23 01:04:56 greve Exp $";
 char *Progname = NULL;
 
 int debug = 0;
@@ -166,18 +166,18 @@ int main(int argc, char **argv)
        vol->depth != maskvol->depth &&
        vol->height != maskvol->height){
       printf("ERROR: input volume and mask volume dimensions are "
-	     "inconsistent\n");
+       "inconsistent\n");
       exit(1);
     }
     if(maskframe >= maskvol->nframes){
       printf("ERROR: mask frame = %d >= nframes in mask (%d)\n",
-	     maskframe,maskvol->nframes);
+       maskframe,maskvol->nframes);
       exit(1);
 
     }
 
     binmask = MRIbinarize01(maskvol, maskthresh, -1, masksignstring, 
-			    maskinvert, 0, 1, NULL);
+          maskinvert, 0, 1, NULL);
     if(binmask == NULL) exit(1);
 
     if(outmaskid != NULL) MRIwriteType(binmask,outmaskid,outmasktype);
@@ -187,8 +187,8 @@ int main(int argc, char **argv)
 
   /* Load the resolution and geometry information from the register.dat */
   CRS2MNI = LoadMNITransform(regfile, vol->width,vol->height,vol->depth,
-			     &CRS2FSA, &FSA2Func, 
-			     &colres, &rowres, &sliceres);
+           &CRS2FSA, &FSA2Func, 
+           &colres, &rowres, &sliceres);
   voxsize = colres * rowres * sliceres;
   if(debug){
     printf("VolumeRes: %g %g %g (%g)\n",colres,rowres,sliceres,voxsize);
@@ -217,8 +217,8 @@ int main(int argc, char **argv)
      accounted for as either outside of a the threshold range or
      belonging to a cluster. The initialization is for thresholding */
   HitMap = clustInitHitMap(vol, frame, threshmin, threshmax, threshsign, 
-			   &nhits, &hitcol, &hitrow, &hitslc, 
-			   binmask, maskframe);
+         &nhits, &hitcol, &hitrow, &hitslc, 
+         binmask, maskframe);
   if(HitMap == NULL) exit(1);
   //MRIwriteType(HitMap,"hitmap",BSHORT_FILE);
 
@@ -257,21 +257,21 @@ int main(int argc, char **argv)
   }
 
   printf("INFO: Found %d clusters that meet threshold criteria\n",
-	 nclusters);
+   nclusters);
 
   if(debug)
     clustDumpClusterList(stdout,ClusterList, nclusters, vol, frame);
 
   /* Remove clusters that do not meet the minimum size requirement */
   ClusterList2 = clustPruneBySize(ClusterList,nclusters,
-				  voxsize,sizethresh,
-				  &nprunedclusters);
+          voxsize,sizethresh,
+          &nprunedclusters);
   //clustFreeClusterList(&ClusterList,nclusters);/* Free - does not work */
   nclusters = nprunedclusters;
   ClusterList = ClusterList2;
 
   printf("INFO: Found %d clusters that meet size criteria\n",
-	 nclusters);
+   nclusters);
 
   if(debug)
     clustDumpClusterList(stdout,ClusterList, nclusters, vol, frame);
@@ -280,7 +280,7 @@ int main(int argc, char **argv)
   if(distthresh > 0.0){
     printf("INFO: pruning by distance %g\n",distthresh);
     ClusterList2 = clustPruneByDistance(ClusterList,nclusters,
-					distthresh, &nprunedclusters);
+          distthresh, &nprunedclusters);
     //clustFreeClusterList(&ClusterList,nclusters);/* Free - does not work */
     nclusters = nprunedclusters;
     ClusterList = ClusterList2;
@@ -349,8 +349,8 @@ int main(int argc, char **argv)
     y = ClusterList[n]->y[ClusterList[n]->maxmember];
     z = ClusterList[n]->z[ClusterList[n]->maxmember];
     fprintf(fpsum,"%3d        %4d      %7.1f    %7.2f %7.2f %7.2f   %15.5f",
-	   n+1,ClusterList[n]->nmembers,voxsize*ClusterList[n]->nmembers,
-	    x,y,z, ClusterList[n]->maxval);
+     n+1,ClusterList[n]->nmembers,voxsize*ClusterList[n]->nmembers,
+      x,y,z, ClusterList[n]->maxval);
     if(debug)
       fprintf(fpsum,"  %3d %3d %3d \n",col,row,slc);
     else
@@ -377,12 +377,12 @@ int main(int argc, char **argv)
   if(labelfile != NULL){
     if(nlabelcluster > nclusters){
       fprintf(stderr,"ERROR: selected cluster number %d, "
-	      "but there are only %d clusters\n",nlabelcluster,nclusters+1);
+        "but there are only %d clusters\n",nlabelcluster,nclusters+1);
       exit(1);
     }
     printf("Computing Label\n");
     label = clustCluster2Label(ClusterList[nlabelcluster-1], vol, frame,
-			       colres, rowres, sliceres, FSA2Func);
+             colres, rowres, sliceres, FSA2Func);
     LabelWrite(label, labelfile);
   }
 
@@ -448,8 +448,8 @@ static int parse_commandline(int argc, char **argv)
       if(nargc < 1) argnerr(option,1);
       sscanf(pargv[0],"%d",&maskframe);
       if(maskframe < 0){
-	fprintf(stderr,"ERROR: negative frame number: frame = %d\n",maskframe);
-	exit(1);
+  fprintf(stderr,"ERROR: negative frame number: frame = %d\n",maskframe);
+  exit(1);
       }
       nargsused = 1;
     }
@@ -462,9 +462,9 @@ static int parse_commandline(int argc, char **argv)
       if(nargc < 1) argnerr(option,1);
       sscanf(pargv[0],"%f",&maskthresh);
       if(maskthresh < 0.0){
-	fprintf(stderr,"ERROR: negative mask threshold not"
-		"allowed (use -masksign)\n");
-	exit(1);
+  fprintf(stderr,"ERROR: negative mask threshold not"
+    "allowed (use -masksign)\n");
+  exit(1);
       }
       nargsused = 1;
     }
@@ -512,7 +512,7 @@ static int parse_commandline(int argc, char **argv)
       nargsused = 1;
     }
     else if (!strcmp(option, "--labelfile") ||
-	     !strcmp(option, "--label")){
+       !strcmp(option, "--label")){
       if(nargc < 1) argnerr(option,1);
       labelfile = pargv[0];
       nargsused = 1;
@@ -521,8 +521,8 @@ static int parse_commandline(int argc, char **argv)
       if(nargc < 1) argnerr(option,1);
       sscanf(pargv[0],"%d",&nlabelcluster);
       if(nlabelcluster <= 0){
-	fprintf(stderr,"ERROR: non-postive nlabelcluster not allowed\n");
-	exit(1);
+  fprintf(stderr,"ERROR: non-postive nlabelcluster not allowed\n");
+  exit(1);
       }
       nargsused = 1;
     }
@@ -530,8 +530,8 @@ static int parse_commandline(int argc, char **argv)
       if(nargc < 1) argnerr(option,1);
       sscanf(pargv[0],"%f",&threshmin);
       if(threshmin < 0.0){
-	fprintf(stderr,"ERROR: negative threshold not allowed (use -sign)\n");
-	exit(1);
+  fprintf(stderr,"ERROR: negative threshold not allowed (use -sign)\n");
+  exit(1);
       }
       nargsused = 1;
     }
@@ -539,8 +539,8 @@ static int parse_commandline(int argc, char **argv)
       if(nargc < 1) argnerr(option,1);
       sscanf(pargv[0],"%f",&threshmax);
       if(threshmax < 0.0){
-	fprintf(stderr,"ERROR: negative threshold not allowed (use -sign)\n");
-	exit(1);
+  fprintf(stderr,"ERROR: negative threshold not allowed (use -sign)\n");
+  exit(1);
       }
       nargsused = 1;
     }
@@ -553,8 +553,8 @@ static int parse_commandline(int argc, char **argv)
       if(nargc < 1) argnerr(option,1);
       sscanf(pargv[0],"%d",&frame);
       if(frame < 0){
-	fprintf(stderr,"ERROR: negative frame number: frame = %d\n",frame);
-	exit(1);
+  fprintf(stderr,"ERROR: negative frame number: frame = %d\n",frame);
+  exit(1);
       }
       nargsused = 1;
     }
@@ -562,8 +562,8 @@ static int parse_commandline(int argc, char **argv)
       if(nargc < 1) argnerr(option,1);
       sscanf(pargv[0],"%f",&sizethresh);
       if(sizethresh <= 0){
-	fprintf(stderr,"ERROR: negative cluster size threshold not allowed\n");
-	exit(1);
+  fprintf(stderr,"ERROR: negative cluster size threshold not allowed\n");
+  exit(1);
       }
       nargsused = 1;
     }
@@ -571,8 +571,8 @@ static int parse_commandline(int argc, char **argv)
       if(nargc < 1) argnerr(option,1);
       sscanf(pargv[0],"%d",&sizethreshvox);
       if(sizethreshvox <= 0){
-	fprintf(stderr,"ERROR: negative cluster size threshold not allowed\n");
-	exit(1);
+  fprintf(stderr,"ERROR: negative cluster size threshold not allowed\n");
+  exit(1);
       }
       nargsused = 1;
     }
@@ -580,8 +580,8 @@ static int parse_commandline(int argc, char **argv)
       if(nargc < 1) argnerr(option,1);
       sscanf(pargv[0],"%f",&distthresh);
       if(distthresh <= 0){
-	fprintf(stderr,"ERROR: negative distance threshold not allowed\n");
-	exit(1);
+  fprintf(stderr,"ERROR: negative distance threshold not allowed\n");
+  exit(1);
       }
       nargsused = 1;
     }
@@ -593,7 +593,7 @@ static int parse_commandline(int argc, char **argv)
     else{
       fprintf(stderr,"ERROR: Option %s unknown\n",option);
       if(singledash(option))
-	fprintf(stderr,"       Did you really mean -%s ?\n",option);
+  fprintf(stderr,"       Did you really mean -%s ?\n",option);
       exit(-1);
     }
     nargc -= nargsused;
@@ -900,8 +900,8 @@ static void check_options(void)
        strcmp(synthfunction,"loguniform") &&
        strcmp(synthfunction,"gaussian") ) {
       fprintf(stderr,
-	      "ERROR: synth = %s, must be uniform, loguniform, or gaussian\n",
-	      synthfunction);
+        "ERROR: synth = %s, must be uniform, loguniform, or gaussian\n",
+        synthfunction);
       err = 1;
     }
   }
@@ -975,9 +975,9 @@ static void dump_options(FILE *fp)
    FreeSurfer Anatomical x, y, z.
    --------------------------------------------------------------- */
 static MATRIX *LoadMNITransform(char *regfile, int ncols, int nrows, 
-				int nslices, MATRIX **ppCRS2FSA,
-				MATRIX **ppFSA2Func,
-				float *colres, float *rowres, float *sliceres)
+        int nslices, MATRIX **ppCRS2FSA,
+        MATRIX **ppFSA2Func,
+        float *colres, float *rowres, float *sliceres)
 {
   char *SUBJECTS_DIR;
   int err;
@@ -1003,7 +1003,7 @@ static MATRIX *LoadMNITransform(char *regfile, int ncols, int nrows,
 
   /* get the MINC talairach.xfm file name */
   sprintf(talxfmfile,"%s/%s/mri/transforms/talairach.xfm",
-	  SUBJECTS_DIR,subject);
+    SUBJECTS_DIR,subject);
   err = regio_read_mincxfm(talxfmfile, &T);
   if(err) exit(1);
 
@@ -1029,7 +1029,7 @@ static MATRIX *LoadMNITransform(char *regfile, int ncols, int nrows,
 /*---------------------------------------------------------------
   ---------------------------------------------------------------*/
 static MRI *MRIsynthUniform(int ncols, int nrows, int nslices, 
-			    int nframes, MRI *tvol)
+          int nframes, MRI *tvol)
 {
   MRI *vol;
   int col, row, slc, frm;
@@ -1046,9 +1046,9 @@ static MRI *MRIsynthUniform(int ncols, int nrows, int nslices,
   for(col = 0; col < vol->width;   col++){
     for(row = 0; row < vol->height;  row++){
       for(slc = 0; slc < vol->depth;   slc++){
-	for(frm = 0; frm < vol->nframes; frm++){
-	  MRIFseq_vox(vol,col,row,slc,frm) = (float) drand48();
-	}
+  for(frm = 0; frm < vol->nframes; frm++){
+    MRIFseq_vox(vol,col,row,slc,frm) = (float) drand48();
+  }
       }
     }
   }
@@ -1058,7 +1058,7 @@ static MRI *MRIsynthUniform(int ncols, int nrows, int nslices,
 /*---------------------------------------------------------------
   ---------------------------------------------------------------*/
 static MRI *MRIsynthLogUniform(int ncols, int nrows, int nslices, 
-			       int nframes, MRI *tvol)
+             int nframes, MRI *tvol)
 {
   MRI *vol;
   int col, row, slc, frm;
@@ -1075,9 +1075,9 @@ static MRI *MRIsynthLogUniform(int ncols, int nrows, int nslices,
   for(col = 0; col < vol->width;   col++){
     for(row = 0; row < vol->height;  row++){
       for(slc = 0; slc < vol->depth;   slc++){
-	for(frm = 0; frm < vol->nframes; frm++){
-	  MRIFseq_vox(vol,col,row,slc,frm) = (float)(-log10(drand48()));
-	}
+  for(frm = 0; frm < vol->nframes; frm++){
+    MRIFseq_vox(vol,col,row,slc,frm) = (float)(-log10(drand48()));
+  }
       }
     }
   }
@@ -1087,7 +1087,7 @@ static MRI *MRIsynthLogUniform(int ncols, int nrows, int nslices,
 /*---------------------------------------------------------------
   ---------------------------------------------------------------*/
 static MRI *MRIsynthGaussian(int ncols, int nrows, int nslices, 
-			     int nframes, MRI *tvol)
+           int nframes, MRI *tvol)
 {
   MRI *vol;
   int col, row, slc, frm;
@@ -1104,9 +1104,9 @@ static MRI *MRIsynthGaussian(int ncols, int nrows, int nslices,
   for(col = 0; col < vol->width;   col++){
     for(row = 0; row < vol->height;  row++){
       for(slc = 0; slc < vol->depth;   slc++){
-	for(frm = 0; frm < vol->nframes; frm++){
-	  MRIFseq_vox(vol,col,row,slc,frm) = (float)Gaussian01PDF();
-	}
+  for(frm = 0; frm < vol->nframes; frm++){
+    MRIFseq_vox(vol,col,row,slc,frm) = (float)Gaussian01PDF();
+  }
       }
     }
   }
@@ -1150,8 +1150,8 @@ static double Gaussian01PDF(void)
        must have the same dimensions as vol.
   ---------------------------------------------------------------*/
 static MRI *MRIbinarize01(MRI *vol, float thmin, float thmax, 
-			  char *thsign, int invert, 
-			  int lowval, int highval, MRI *binvol)
+        char *thsign, int invert, 
+        int lowval, int highval, MRI *binvol)
 {
   int ncols, nrows, nslices, nframes;
   int col, row, slice, frame;
@@ -1181,13 +1181,13 @@ static MRI *MRIbinarize01(MRI *vol, float thmin, float thmax,
   }
   else{
     if( (binvol->width != ncols) || (binvol->height != nrows) ||
-	(binvol->depth != nslices) || (binvol->nframes != nframes) ){
+  (binvol->depth != nslices) || (binvol->nframes != nframes) ){
       printf("ERROR: MRIbinarize01(): dimension missmatch\n");
       return(NULL);
     }
     if(binvol->type != MRI_INT){
       printf("ERROR: MRIbinarize01(): passed binvol "
-	     "type = %d, must be int (%d)\n",binvol->type,MRI_INT);
+       "type = %d, must be int (%d)\n",binvol->type,MRI_INT);
       return(NULL);
     }
   }
@@ -1196,45 +1196,45 @@ static MRI *MRIbinarize01(MRI *vol, float thmin, float thmax,
   for(col = 0; col < vol->width; col++){
     for(row = 0; row < vol->height; row++){
       for(slice = 0; slice < vol->depth; slice++){
-	for(frame = 0; frame < vol->nframes; frame++){
+  for(frame = 0; frame < vol->nframes; frame++){
 
-	  switch ( vol->type ){
-	  case MRI_UCHAR:
-	    val = (float)(MRISCseq_vox(vol,col,row,slice,frame));
-	    break;
-	  case MRI_INT:
-	    val = (float)(MRIIseq_vox(vol,col,row,slice,frame));
-	    break;
-	  case MRI_LONG:
-	    val = (float)(MRILseq_vox(vol,col,row,slice,frame));
-	    break;
-	  case MRI_FLOAT:
-	    val = (float)(MRIFseq_vox(vol,col,row,slice,frame));
-	    break;
-	  case MRI_SHORT:
-	    val = (float)(MRISseq_vox(vol,col,row,slice,frame));
-	    break;
-	  }
+    switch ( vol->type ){
+    case MRI_UCHAR:
+      val = (float)(MRISCseq_vox(vol,col,row,slice,frame));
+      break;
+    case MRI_INT:
+      val = (float)(MRIIseq_vox(vol,col,row,slice,frame));
+      break;
+    case MRI_LONG:
+      val = (float)(MRILseq_vox(vol,col,row,slice,frame));
+      break;
+    case MRI_FLOAT:
+      val = (float)(MRIFseq_vox(vol,col,row,slice,frame));
+      break;
+    case MRI_SHORT:
+      val = (float)(MRISseq_vox(vol,col,row,slice,frame));
+      break;
+    }
 
-	  if(ithsign ==  0) val = fabs(val);
-	  if(ithsign == -1) val = -val;
+    if(ithsign ==  0) val = fabs(val);
+    if(ithsign == -1) val = -val;
 
-	  r = 0;
-	  if(thmax > 0){
-	    if(val >= thmin && val <= thmax) r = 1;
-	  }
-	  else{
-	    if(val >= thmin ) r = 1;
-	  }
+    r = 0;
+    if(thmax > 0){
+      if(val >= thmin && val <= thmax) r = 1;
+    }
+    else{
+      if(val >= thmin ) r = 1;
+    }
 
-	  if(invert) r = !r;
+    if(invert) r = !r;
 
-	  if(r) MRIIseq_vox(binvol,col,row,slice,frame) = (short)highval;
-	  else  MRIIseq_vox(binvol,col,row,slice,frame) = (short)lowval;
+    if(r) MRIIseq_vox(binvol,col,row,slice,frame) = (short)highval;
+    else  MRIIseq_vox(binvol,col,row,slice,frame) = (short)lowval;
 
-	  if(r) nhits ++;
+    if(r) nhits ++;
 
-	}
+  }
       }
     }
   }
@@ -1243,4 +1243,4 @@ static MRI *MRIbinarize01(MRI *vol, float thmin, float thmax,
 
   return(binvol);
 }
-			 
+       
