@@ -3,8 +3,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2004/04/03 17:31:00 $
-// Revision       : $Revision: 1.120 $
+// Revision Date  : $Date: 2004/04/05 14:58:32 $
+// Revision       : $Revision: 1.121 $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -11355,10 +11355,10 @@ GCAcreateFlashGCAfromParameterGCA(GCA *gca_T1PD, double *TR, double *fa, double 
 	  
 					/* now map intensity and covariance info over */
 					T1 = gc_src->means[0] ; PD = gc_src->means[1] ;
-					if (T1 <= 0)
+					if (T1 < 0)
 					{
 						printf("WARN: ********************************************\n");
-						printf("WARN: (%d, %d, %d) has T1 = %f <= 0 and PD = %f\n", x, y, z, T1, PD);
+						printf("WARN: (%d, %d, %d) has T1 = %f < 0 and PD = %f\n", x, y, z, T1, PD);
 						printf("WARN: nlabels = %d\n", gcan_src->nlabels);
 						for (i=0;i < gcan_src->nlabels; ++i)
 							printf("WARN: %d: label = %d\n", i, gcan_src->labels[i]);
