@@ -736,6 +736,7 @@ int MRIgetVolumeName(char *string, char *name_only);
 MRI *MRIread(char *fname);
 MRI *MRIreadType(char *fname, int type);
 MRI *MRIreadInfo(char *fname);
+MRI *MRIreadHeader(char *fname, int type);
 int MRIwrite(MRI *mri, char *fname);
 int MRIwriteType(MRI *mri, char *fname, int type);
 MRI *MRIreadRaw(FILE *fp, int width, int height, int depth, int type);

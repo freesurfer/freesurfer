@@ -580,6 +580,31 @@ MRI *MRIreadInfo(char *fname)
 
 } /* end MRIreadInfo() */
 
+/*---------------------------------------------------------------
+  MRIreadHeader() - reads the MRI header of the given file name.
+  If type is MRI_VOLUME_TYPE_UNKNOWN, then the type will be 
+  inferred from the file name.
+  ---------------------------------------------------------------*/
+MRI *MRIreadHeader(char *fname, int type)
+{
+  int usetype;
+  MRI *mri = NULL;
+
+  usetype = type;
+
+  if(usetype == MRI_VOLUME_TYPE_UNKNOWN){
+    usetype = mri_identify(fname);
+    if(usetype == MRI_VOLUME_TYPE_UNKNOWN){
+      printf("ERROR: could not determine type of %s\n",fname);
+      return(NULL);
+    }
+  }
+  mri = mri_read(fname, usetype, FALSE, -1, -1);
+
+  return(mri);
+
+} /* end MRIreadInfo() */
+
 int MRIwriteType(MRI *mri, char *fname, int type)
 {
 
@@ -4828,7 +4853,7 @@ static int analyzeWriteFrame(MRI *mri, char *fname, int frame)
   det = MatrixDeterminant(T) ;
   if(det == 0){
     printf("WARNING: cannot determine volume orientation, "
-     "assuming identity.\n");
+     "assuming identity. It's ok if the output is a surface.\n");
     T = MatrixIdentity(4, T) ;
     if(mri->xsize > 0) T->rptr[1][1] = mri->xsize;
     if(mri->ysize > 0) T->rptr[2][2] = mri->ysize;
@@ -5033,7 +5058,7 @@ static int analyzeWrite4D(MRI *mri, char *fname)
   det = MatrixDeterminant(T) ;
   if(det == 0){
     printf("WARNING: cannot determine volume orientation, "
-     "assuming identity.\n");
+     "assuming identity. It's ok if the output is a surface.\n");
     T = MatrixIdentity(4, T) ;
     if(mri->xsize > 0) T->rptr[1][1] = mri->xsize;
     if(mri->ysize > 0) T->rptr[2][2] = mri->ysize;
