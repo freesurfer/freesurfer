@@ -5,6 +5,9 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <unistd.h>
+
+#include <sys/stat.h>
+
 #include "proto.h"
 #include "diag.h"
 #include "error.h"
@@ -97,6 +100,7 @@ double fmax=10000;
 double brainval = 80;
 double skullval = 20;
 double scalpval = 70;
+double airval = 10;
 int minscalpthickness = 5;
 int minskullthickness = 3;
 int maxskullthickness = 30;
@@ -152,16 +156,17 @@ main(int argc,char *argv[])
     FILE *fptr;
     char fpref[STRLEN];
     char *data_dir,*mri_dir;
+    struct stat buf;
 
     Progname = argv[0] ;
     DiagInit(NULL, NULL, NULL) ;
     ErrorInit(NULL, NULL, NULL) ;
 
     if (argc<2) {
-printf("\nUsage: %s name [mfile]\n",argv[0]);
-printf("\n");
-printf("                                               [vers: 050304]\n");
-exit(0);
+      printf("\nUsage: %s name [mfile]\n",argv[0]);
+      printf("\n");
+      printf("                                               [vers: 050304]\n");
+      exit(0);
     }
 
     data_dir = getenv("SUBJECTS_DIR");
@@ -180,8 +185,8 @@ exit(0);
     sprintf(pname,"%s",argv[1]);
     sprintf(fpref,"%s/%s",data_dir,pname);
 
-
-/* Shrinkwrap "brain" -> initial estimate of inner_skull.tri */
+#if 1
+    /* Shrinkwrap "brain" -> initial estimate of inner_skull.tri */
     sprintf(mfname,"%s/mri/brain/COR-",fpref);
     sprintf(ofname,"%s/bem/inner_skull_tmp.tri",fpref);
     sprintf(gfname,"%s/lib/bem/ic4.tri",mri_dir);
@@ -191,7 +196,8 @@ exit(0);
     read_image_info(mfname);
     read_images(mfname);
 
-    fzero = 10; fmax = 255; dfrac = 0.7; istilt = 0; fsteepness=0.50; fstrength=1.0;
+    fzero = 10; fmax = 255; dfrac = 0.7; istilt = 0;
+    fsteepness=0.50; fstrength=1.0;
     if (centerflag && MRIloaded)
       init_surf_to_image();
 
@@ -213,11 +219,18 @@ exit(0);
     write_geometry(ofname);
 
 
-/* Refine inner_skull.tri based on PD data */
+    /* Refine inner_skull.tri based on PD data */
     sprintf(mfname,"%s/mri/flash5/COR-",fpref);
     sprintf(ofname,"%s/bem/inner_skull.tri",fpref);
     sprintf(gfname,"%s/bem/inner_skull_tmp.tri",fpref);
 
+    if (stat(mfname, &buf)) {
+      printf("Cannot find flash5 data\n");
+      printf("Best guess at inner_skull.tri is in inner_skull_tmp.tri\n");
+      
+      exit(0);
+    }
+    
     read_geometry(gfname);
     read_image_info(mfname);
     read_images(mfname);
@@ -234,32 +247,36 @@ exit(0);
     estimate_thickness(10);
     sprintf(ofname,"%s/bem/outer_skull.tri",fpref);
     write_geometry(ofname);
-
+#endif
 
 /* Find outer_skin.tri */
-    sprintf(mfname,"%s/mri/flash5/COR-",fpref);
+    sprintf(mfname,"%s/mri/T1/COR-",fpref);
     sprintf(ofname,"%s/bem/outer_skin.tri",fpref);
 /*
-    sprintf(gfname,"%s/lib/bem/ic4.tri",mri_dir); centerflag = TRUE;
+    sprintf(mfname,"%s/mri/flash5/COR-",fpref);
+    sprintf(gfname,"%s/bem/outer_skull.tri",fpref); centerflag = FALSE;
 */
-    sprintf(gfname,"%s/lib/bem/outer_skull.tri",mri_dir); centerflag = FALSE;
+    sprintf(gfname,"%s/lib/bem/ic4.tri",mri_dir); centerflag = TRUE;
     read_geometry(gfname);
     read_image_info(mfname);
     read_images(mfname);
 
-    fzero = 40; fmax = 1000; dfrac = 1.2; istilt = 0; fsteepness=0.20; fstrength=0.5;
+    fzero = 20; fmax = 1000; dfrac = 1.5; istilt = 0; fsteepness=0.20; fstrength=1.0;
     if (centerflag && MRIloaded)
       init_surf_to_image();
 
-    shrinkmode = 4;
-    momentumflag = FALSE;
+    shrinkmode = 6;
     MRIflag = TRUE;
-    flattenflag = TRUE;
-    shrink(100,1);
-    shrink(100,1);
-    shrink(100,1);
+    flattenflag = FALSE;
+    momentumflag = TRUE;
+    shrink(200,10);
+    momentumflag = FALSE;
+    shrink(100,10);
+/*
+    shrinkmode = 7;
+    shrink(50,0);
+*/
     write_geometry(ofname);
-
 
     exit(0);
 }
@@ -579,7 +596,7 @@ static void
 shrink(int niter, int nsmoothsteps)
 {
   float x,y,z,sx,sy,sz,val,inval,outval,nc,force,force0,force1,force2;
-  float d,dx,dy,dz,sval,sinval,soutval,snc,outmax,inmean,sum,nsum;
+  float d,dx,dy,dz,sval,sinval,soutval,snc,inmean,inmax,outmean, outmax,sum,nsum;
   float nx,ny,nz;
   ss_vertex_type *v;
   int imnr,i,j,iter,k,m,n,smoothstep;
@@ -712,6 +729,8 @@ shrink(int niter, int nsmoothsteps)
         } else
         if (shrinkmode==5)
         {
+          ninside=20;
+          noutside=3;
           minmeanerr = 1e10;
           for (delpos= -maxdelpos; delpos<maxdelpos; delpos++)
           {
@@ -760,6 +779,117 @@ shrink(int niter, int nsmoothsteps)
             if (delpos==0)
               meanerr0 = meanerr;
           } 
+          force1 = 0;
+          if (mindelpos<0)
+            force1 = -1;
+          else if (mindelpos>0)
+            force1 = 1;
+          force = 0.5*force1*tanh(2.0*(meanerr0-minmeanerr)/meanerr0);
+        } else
+        if (shrinkmode==6)
+        {
+          ninside = 20;
+          noutside = 20;
+          nc = (v->x-v->xb)*v->nxb+(v->y-v->yb)*v->nyb+(v->z-v->zb)*v->nzb;
+          v->snc = nc;
+          for (h= -noutside;h<ninside;h++)
+          {
+            xt = x-nx*(h*delx);
+            yt = y-ny*(h*dely);
+            zt = z-nz*(h*delz);
+            imt = (int)((yt-yy0)/st+0.5-imnr0);
+            it = (int)((zz1-zt)/ps+0.5);
+            jt = (int)((xx1-xt)/ps+0.5);
+            if (imt<0||imt>=numimg||it<0||it>=IMGSIZE||jt<0||jt>=IMGSIZE)
+              valt = 0;
+            else
+              valt = im[imt][it][jt];
+            if (h<=0)
+              outsamp[-h] = valt;
+            if (h>=0)
+              insamp[h] = valt;
+          }
+          outmax = -1;
+          sum = nsum = 0;
+          for (h=1;h<noutside;h++)
+          {
+            valt = outsamp[h];
+            if (valt>outmax)
+              outmax = valt;
+            sum += valt;
+            nsum++;
+          }
+          outmean = sum/nsum;
+          inmax = -1;
+          sum = nsum = 0;
+          for (h=1;h<ninside;h++)
+          {
+            valt = insamp[h];
+            if (valt>inmax)
+              inmax = valt;
+            sum += valt;
+            nsum++;
+          }
+          inmean = sum/nsum;
+/*
+          force = fstrength*(0.5*tanh((insamp[0]-fzero)*fsteepness)+
+                             0.2*tanh((outmax-fzero)*fsteepness)+0.2*tanh((outmean-fzero)*fsteepness));\
+*/
+          force = fstrength*(0.2*tanh((insamp[0]-fzero)*fsteepness)+rtanh((inmax-fzero)*fsteepness)
+                             -1.0*tanh((fzero-outmean)*fsteepness)-0.5*tanh((fzero-outmax)*fsteepness));
+        } else
+        if (shrinkmode==7)
+        {
+          ninside=5;
+          noutside=20;
+          minmeanerr = 1e10;
+          for (delpos= -maxdelpos; delpos<maxdelpos; delpos++)
+          {
+            for (h= -noutside;h<ninside;h++)
+            {
+              xt = x-nx*(h*delx+istilt-delpos);
+              yt = y-ny*(h*dely+istilt-delpos);
+              zt = z-nz*(h*delz+istilt-delpos);
+              imt = (int)((yt-yy0)/st+0.5-imnr0);
+              it = (int)((zz1-zt)/ps+0.5);
+              jt = (int)((xx1-xt)/ps+0.5);
+              if (imt<0||imt>=numimg||it<0||it>=IMGSIZE||jt<0||jt>=IMGSIZE)
+                valt = 0;
+              else
+                valt = im[imt][it][jt];
+              if (h<=0)
+                outsamp[-h] = valt;
+              if (h>=0)
+                insamp[h] = valt;
+            }
+            sum = nsum = 0;
+            for (h=1;h<ninside;h++)
+            {
+              sum += insamp[h];
+              nsum += 1;
+            }
+            inmean = sum/nsum;
+            sum = nsum = 0;
+            for (h=1;h<ninside;h++)
+            {
+              sum += SQR(insamp[h]-inmean);
+              nsum += 1;
+            }
+            fzero = inmean*airval/scalpval;
+            for (h=1;h<noutside;h++)
+            {
+              sum += SQR(outsamp[h]-fzero);
+              nsum += 1;
+            }
+            meanerr = sqrt(sum/nsum)/inmean;
+            if (meanerr<minmeanerr)
+            {
+              minmeanerr = meanerr;
+              mindelpos = delpos;
+            }
+            if (delpos==0)
+              meanerr0 = meanerr;
+          }
           force1 = 0;
           if (mindelpos<0)
             force1 = -1;
@@ -885,7 +1015,7 @@ static void
 estimate_thickness(int niter)
 {
   float x,y,z,sx,sy,sz,val,inval,outval,nc,force,force0,force1,force2;
-  float d,dx,dy,dz,sval,sinval,soutval,snc,outmax,inmean,sum,nsum;
+  float d,dx,dy,dz,sval,sinval,soutval,snc,inmean,sum,nsum;
   float nx,ny,nz;
   ss_vertex_type *v;
   int imnr,i,j,iter,k,m,n;
