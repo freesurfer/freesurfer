@@ -12,8 +12,9 @@
 #include "mri.h"
 #include "macros.h"
 #include "transform.h"
+#include "version.h"
 
-static char vcid[] = "$Id: mri_evaluate_morph.c,v 1.1 2002/08/07 01:15:25 kteich Exp $";
+static char vcid[] = "$Id: mri_evaluate_morph.c,v 1.2 2003/04/15 20:49:59 kteich Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -35,10 +36,16 @@ main(int argc, char *argv[])
 {
   char         **av, *xform_name, *out_fname, fname[STRLEN], *seg_name, *s1, *s2 ;
   int          ac, nargs, i, nsubjects, j, nvoxels ;
-	MRI          *mri_seg[MAX_SUBJECTS] ;
-	float        overlap, total_overlap ;
-	TRANSFORM    *transform1, *transform2 ;
-	FILE         *fp ;
+  MRI          *mri_seg[MAX_SUBJECTS] ;
+  float        overlap, total_overlap ;
+  TRANSFORM    *transform1, *transform2 ;
+  FILE         *fp ;
+
+  /* rkt: check for and handle version tag */
+  nargs = handle_version_option (argc, argv, "$Id: mri_evaluate_morph.c,v 1.2 2003/04/15 20:49:59 kteich Exp $");
+  if (nargs && argc - nargs == 1)
+    exit (0);
+  argc -= nargs;
 
   Progname = argv[0] ;
   ErrorInit(NULL, NULL, NULL) ;

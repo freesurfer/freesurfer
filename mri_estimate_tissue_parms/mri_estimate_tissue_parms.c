@@ -13,6 +13,7 @@
 #include "utils.h"
 #include "timer.h"
 #include "matrix.h"
+#include "version.h"
 
 static int computeErrorSurface(char *fname, MRI **mri_flash, int nflash, int x, 
                                int y, int z, double min_PD, double max_PD, 
@@ -82,6 +83,12 @@ main(int argc, char *argv[])
   char   *in_fname, *out_PD_fname, *out_T1_fname ;
   int          msec, minutes, seconds, nvolumes ;
   struct timeb start ;
+
+  /* rkt: check for and handle version tag */
+  nargs = handle_version_option (argc, argv, "$Id: mri_estimate_tissue_parms.c,v 1.6 2003/04/15 20:48:54 kteich Exp $");
+  if (nargs && argc - nargs == 1)
+    exit (0);
+  argc -= nargs;
 
   Progname = argv[0] ;
   ErrorInit(NULL, NULL, NULL) ;

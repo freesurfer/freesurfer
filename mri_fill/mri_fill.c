@@ -13,8 +13,9 @@
 #include "timer.h"
 #include "mrinorm.h"
 #include "cma.h"
+#include "version.h"
 
-static char vcid[] = "$Id: mri_fill.c,v 1.60 2003/02/18 20:03:16 fischl Exp $";
+static char vcid[] = "$Id: mri_fill.c,v 1.61 2003/04/15 20:52:52 kteich Exp $";
 
 /*-------------------------------------------------------------------
                                 CONSTANTS
@@ -186,6 +187,12 @@ main(int argc, char *argv[])
   int     x_pons, y_pons, z_pons, x_cc, y_cc, z_cc, xi, yi, zi ;
   MORPH_3D  *m3d ;
   struct timeb  then ;
+
+  /* rkt: check for and handle version tag */
+  nargs = handle_version_option (argc, argv, "$Id: mri_fill.c,v 1.61 2003/04/15 20:52:52 kteich Exp $");
+  if (nargs && argc - nargs == 1)
+    exit (0);
+  argc -= nargs;
 
   TimerStart(&then) ;
   DiagInit(NULL, NULL, NULL) ;

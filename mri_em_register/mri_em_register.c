@@ -17,6 +17,7 @@
 #include "gca.h"
 #include "cma.h"
 #include "mrinorm.h"
+#include "version.h"
 
 static double TRs[MAX_GCA_INPUTS] ;
 static double fas[MAX_GCA_INPUTS] ;
@@ -154,6 +155,12 @@ main(int argc, char *argv[])
   int          msec, minutes, seconds, min_left_cbm, min_right_cbm ;
   struct timeb start ;
   float        old_log_p, log_p ;
+
+  /* rkt: check for and handle version tag */
+  nargs = handle_version_option (argc, argv, "$Id: mri_em_register.c,v 1.27 2003/04/15 20:48:16 kteich Exp $");
+  if (nargs && argc - nargs == 1)
+    exit (0);
+  argc -= nargs;
 
 	memset(exclude_list, 0, sizeof(exclude_list))  ;
 	/*	exclude_list[0] = 1 ;*/
