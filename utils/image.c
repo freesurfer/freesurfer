@@ -2236,6 +2236,323 @@ ImageScaleUp(IMAGE *inImage, IMAGE *outImage, float scale)
 
            Description:
 ----------------------------------------------------------------------*/
+IMAGE *
+ImageDifferentialScale(IMAGE *Isrc, IMAGE *Iout, 
+                                  int outRows, int outCols)
+{
+  int rows, cols ;
+
+  if (!Iout)
+    Iout = ImageAlloc(outRows, outCols, Isrc->pixel_format, Isrc->num_frame) ;
+
+  rows = Isrc->rows ;
+  cols = Isrc->cols ;
+  if (rows > outRows && cols > outCols)
+    ImageDifferentialScaleDown(Isrc, Iout, outRows, outCols) ;
+  else
+    if (rows <= outRows && cols <= outCols)
+      ImageDifferentialScaleUp(Isrc, Iout, outRows, outCols) ;
+  else
+    ErrorReturn(NULL, (ERROR_UNSUPPORTED,
+                       "ImageDifferentialScale: scaling must be same"
+                       "direction in both dimensions")) ;
+  return(Iout) ;
+}
+/*----------------------------------------------------------------------
+            Parameters:
+
+           Description:
+----------------------------------------------------------------------*/
+int
+ImageDifferentialScaleDown(IMAGE *Isrc, IMAGE *Iout, int outRows,int outCols)
+{
+  int    inRow, inCol, outRow, outCol, inCols, inRows, frame ;
+  UCHAR  *outPix ;
+  byte   *in_image, *out_image ;
+  float  *foutPix, xscale, yscale ;
+
+  if (!ImageCheckSize(Isrc, Iout, outRows, outCols, Isrc->num_frame))
+    ErrorReturn(-1, 
+                (ERROR_NO_MEMORY,
+                 "ImageDifferentialScaleDown: output image not big enough\n"));
+
+  ImageSetSize(Iout, outRows, outCols) ;
+
+  inRows = Isrc->rows ;
+  inCols = Isrc->cols ;
+  outRows = Iout->rows ;
+  outCols = Iout->cols ;
+  xscale = (float)outCols / (float)inCols ;
+  yscale = (float)outRows / (float)inRows ;
+
+  in_image = Isrc->image ;
+  out_image = Iout->image ;
+  for (frame = 0 ; frame < Isrc->num_frame ; frame++)
+  {
+    switch (Isrc->pixel_format)
+    {
+    case PFBYTE:
+      switch (Iout->pixel_format)
+      {
+      case PFFLOAT:  /* byte --> float */
+        foutPix = IMAGEFpix(Iout, 0, 0) ;
+        for (outRow = 0 ; outRow < outRows ; outRow++)
+          for (outCol = 0 ; outCol < outCols ; outCol++, foutPix++)
+          {
+            /* map center point to this output point */
+            inRow = nint((float)outRow / yscale) ;
+            inCol = nint((float)outCol / xscale) ;
+            *foutPix = (float)*IMAGEpix(Isrc, inCol, inRow) ;
+          }
+        break ;
+      case PFBYTE:  /* byte --> byte */
+        outPix = IMAGEpix(Iout, 0, 0) ;
+        for (outRow = 0 ; outRow < outRows ; outRow++)
+          for (outCol = 0 ; outCol < outCols ; outCol++, outPix++)
+          {
+            /* map center point to this output point */
+            inRow = nint((float)outRow / yscale) ;
+            inCol = nint((float)outCol / xscale) ;
+            if (inRow >= inRows || outRow >= outRows ||
+                inCol >= inCols || outCol >= outCols)
+            {
+              fprintf(stderr, "in: %d, %d --> out: %d, %d!\n",
+                      inRow, inCol, outRow, outCol) ;
+              exit(2) ;
+            }
+            *outPix = *IMAGEpix(Isrc, inCol, inRow) ;
+          }
+        break ;
+      default:
+        ErrorReturn(ERROR_UNSUPPORTED, 
+          (ERROR_UNSUPPORTED,
+           "ImageDifferentialScaleDown: unsupported output pixel format %d\n", 
+                         Iout->pixel_format)) ;
+        break ;
+      }
+      break ;
+    case PFFLOAT:   /* float --> byte */
+      switch (Iout->pixel_format)
+      {
+      case PFBYTE:
+        outPix = IMAGEpix(Iout, 0, 0) ;
+        for (outRow = 0 ; outRow < outRows ; outRow++)
+          for (outCol = 0 ; outCol < outCols ; outCol++, outPix++)
+          {
+            /* map center point to this output point */
+            inRow = nint((float)outRow / yscale) ;
+            inCol = nint((float)outCol / xscale) ;
+            *outPix = (UCHAR)*IMAGEFpix(Isrc, inCol, inRow) ;
+          }
+        break ;
+      case PFFLOAT:
+        foutPix = IMAGEFpix(Iout, 0, 0) ;
+        for (outRow = 0 ; outRow < outRows ; outRow++)
+          for (outCol = 0 ; outCol < outCols ; outCol++, foutPix++)
+          {
+            /* map center point to this output point */
+            inRow = nint((float)outRow / yscale) ;
+            inCol = nint((float)outCol / xscale) ;
+            *foutPix = (float)*IMAGEFpix(Isrc, inCol, inRow) ;
+          }
+        break ;
+      default:
+        ErrorReturn(ERROR_UNSUPPORTED, 
+            (ERROR_UNSUPPORTED,
+             "ImageDifferentialScaleDown: unsupported output pixel format %d", 
+                         Iout->pixel_format)) ;
+        break ;
+      }
+      break ;
+    case PFINT:
+      
+    default:
+      ErrorReturn(ERROR_UNSUPPORTED, 
+                  (ERROR_UNSUPPORTED,
+                   "ImageDifferentialScaleDown: unsupported pixel format %d", 
+                   Isrc->pixel_format)) ;
+    }
+    Isrc->image += Isrc->sizeimage ;
+    Isrc->firstpix += Isrc->sizeimage ;
+    if (Isrc != Iout)
+    {
+      Iout->image += Iout->sizeimage ;
+      Iout->firstpix += Iout->sizeimage ;
+    }
+  }
+  Isrc->image = Isrc->firstpix = in_image ;
+  Iout->image = Iout->firstpix = out_image ;
+  
+
+  return(0) ;
+}
+/*----------------------------------------------------------------------
+            Parameters:
+
+           Description:
+----------------------------------------------------------------------*/
+int
+ImageDifferentialScaleUp(IMAGE *Isrc, IMAGE *Iout, int outRows, int outCols)
+{
+  int    inRow, inCol, outRow, outCol, inCols, inRows, endCol, endRow, frame ;
+  UCHAR  *inPix, *outPix ;
+  UINT   *inIPix, *outIPix ;
+  float  *finPix, *foutPix, xscale, yscale ;
+  byte   *in_image, *out_image ;
+
+  if (!ImageCheckSize(Isrc, Iout, outRows, outCols, Isrc->num_frame))
+    ErrorReturn(ERROR_NO_MEMORY, 
+                (ERROR_NO_MEMORY,
+                 "ImageDifferentialScaleUp: output image not large enough"
+                 "%d x %d -> %d x %d",
+                 Isrc->rows, Isrc->cols, Iout->rows, Iout->cols));
+
+  inRows = Isrc->rows ;
+  inCols = Isrc->cols ;
+  xscale = (float)outCols / (float)inCols ;
+  yscale = (float)outRows / (float)inRows ;
+
+  in_image = Isrc->image ;
+  out_image = Iout->image ;
+  for (frame = 0 ; frame < Isrc->num_frame ; frame++)
+  {
+    switch (Isrc->pixel_format)
+    {
+    case PFBYTE:
+      switch (Iout->pixel_format)
+      {
+      case PFBYTE:
+        outPix = IMAGEpix(Iout, 0, 0) ;
+        for (outRow = 0 ; outRow < outRows ; outRow++)
+        {
+          for (outCol = 0 ; outCol < outCols ; outCol++)
+          {
+            inCol = (int)((float)outCol / xscale) ;
+            inRow = (int)((float)outRow / yscale) ;
+            inPix = IMAGEpix(Isrc, inCol, inRow) ;
+            *outPix++ = *inPix ;
+          }
+        }
+        break ;
+      case PFFLOAT:
+        inPix = IMAGEpix(Isrc, 0, 0) ;
+        for (inRow = 0 ; inRow < inRows ; inRow++)
+          for (inCol = 0 ; inCol < inCols ; inCol++, inPix++)
+          {
+            /* fill in a scale x scale area in the output image */
+            endRow = nint( (float)inRow * yscale + yscale) ;
+            endCol = nint( (float)inCol * xscale + xscale) ;
+            for (outRow = nint((float)inRow *yscale);outRow < endRow ;outRow++)
+            {
+              foutPix = IMAGEFpix(Iout, nint((float)inCol * xscale),outRow);
+              
+              for (outCol = nint( (float)inCol * xscale);outCol < endCol ; 
+                   outCol++,foutPix++)
+                *foutPix = (float)(*inPix) ;
+            }
+          }
+        break ;
+      default:
+        ErrorReturn(-1, 
+            (ERROR_UNSUPPORTED, 
+             "ImageDifferentialScaleUp: unsupported output pixel format %d\n", 
+                         Iout->pixel_format)) ;
+        break ;
+      }
+      break ;
+    case PFFLOAT:
+      switch (Iout->pixel_format)
+      {
+      case PFBYTE:
+        finPix = IMAGEFpix(Isrc, 0, 0) ;
+        for (inRow = 0 ; inRow < inRows ; inRow++)
+          for (inCol = 0 ; inCol < inCols ; inCol++, finPix++)
+          {
+            /* fill in a scale x scale area in the output image */
+            endRow = nint( (float)inRow * yscale + yscale) ;
+            endCol = nint( (float)inCol * xscale + xscale) ;
+            for (outRow = nint( (float)inRow*yscale);outRow < endRow ;outRow++)
+            {
+              outPix = IMAGEpix(Iout, nint((float)inCol * xscale), outRow) ;
+              
+              for (outCol = nint( (float)inCol * xscale) ; outCol < endCol ; 
+                   outCol++, outPix++)
+                *outPix = (UCHAR)(*finPix) ;
+            }
+          }
+        break ;
+      case PFFLOAT:
+        finPix = IMAGEFpix(Isrc, 0, 0) ;
+        for (inRow = 0 ; inRow < inRows ; inRow++)
+          for (inCol = 0 ; inCol < inCols ; inCol++, finPix++)
+          {
+            /* fill in a scale x scale area in the output image */
+            endRow = nint( (float)inRow * yscale + yscale) ;
+            endCol = nint( (float)inCol * xscale + xscale) ;
+            for (outRow = nint( (float)inRow*yscale);outRow < endRow ;outRow++)
+            {
+              foutPix = IMAGEFpix(Iout, nint((float)inCol * xscale),outRow);
+              
+              for (outCol = nint( (float)inCol * xscale) ; outCol < endCol ; 
+                   outCol++,foutPix++)
+                *foutPix = *finPix ;
+            }
+          }
+        break ;
+      default:
+        ErrorReturn(-1, 
+            (ERROR_UNSUPPORTED, 
+            "ImageDifferentialScaleUp: unsupported output pixel format %d\n", 
+                         Iout->pixel_format)) ;
+        break ;
+      }
+      break ;
+    case PFINT:
+      inIPix = IMAGEIpix(Isrc, 0, 0) ;
+      inRows = Isrc->rows ;
+      inCols = Isrc->cols ;
+      for (inRow = 0 ; inRow < inRows ; inRow++)
+        for (inCol = 0 ; inCol < inCols ; inCol++, inIPix++)
+        {
+          /* fill in a scale x scale area in the output image */
+          endRow = nint( (float)inRow * yscale + yscale) ;
+          endCol = nint( (float)inCol * xscale + xscale) ;
+          for (outRow = nint((float)inRow * yscale);outRow < endRow ; outRow++)
+          {
+            outIPix = IMAGEIpix(Iout, nint((float)inCol * xscale), outRow) ;
+            
+            for (outCol = nint( (float)inCol * xscale); outCol < endCol ; 
+                 outCol++, outIPix++)
+              *outIPix = *inIPix ;
+          }
+        }
+      break ;
+    default:
+      ErrorReturn(-2, 
+              (ERROR_UNSUPPORTED, 
+               "ImageDifferentialScaleUp: unsupported input pixel format %d", 
+               Isrc->pixel_format)) ;
+      break ;
+    }
+    Isrc->image += Isrc->sizeimage ;
+    Isrc->firstpix += Isrc->sizeimage ;
+    if (Isrc != Iout)
+    {
+      Iout->image += Iout->sizeimage ;
+      Iout->firstpix += Iout->sizeimage ;
+    }
+  }
+
+  Isrc->image = Isrc->firstpix = in_image ;
+  Iout->image = Iout->firstpix = out_image ;
+  
+  return(0) ;
+}
+/*----------------------------------------------------------------------
+            Parameters:
+
+           Description:
+----------------------------------------------------------------------*/
 int
 ImageReflect(IMAGE *inImage, IMAGE *outImage, int how)
 {
