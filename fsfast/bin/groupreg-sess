@@ -1,0 +1,497 @@
+#!/bin/csh -f
+# groupreg-sess
+#
+set VERSION = '$Id: groupreg-sess,v 1.1 2003/12/19 22:31:48 greve Exp $';
+
+set inputargs = ($argv);
+
+set groupid   = ();
+set analysis  = ();
+set contrast  = ();
+set gconmat   = ();
+set gconname  = ();
+set monly     = 0;
+set MLF       = ();
+set nolog     = 0;
+set volstem   = ces;
+set spacename = ();
+set spacedir  = ();
+set hemi      = ();
+set hemicode  = ();
+set PrintHelp = 0;
+
+if($#argv == 0)  goto usage_exit;
+set n = `echo $argv | grep -e -help | wc -l` 
+if($n != 0) then
+  set PrintHelp = 1;
+  goto usage_exit;
+endif
+set n = `echo $argv | grep version | wc -l` 
+if($n != 0) then
+  echo $VERSION
+  exit 0;
+endif
+set n = `echo $argv | grep nolog | wc -l` 
+if($n != 0) set nolog = 1;
+
+set SessList = `getsesspath $argv`;
+if($status || $#SessList == 0) then
+  echo "ERROR: cannot find any sessions" 
+  echo $SessList
+  exit 1;
+endif
+
+goto parse_args;
+parse_args_return:
+
+goto check_params;
+check_params_return:
+
+set nxsess = `wc -l $xmat | awk '{print $1}'`;
+if($nxsess != $#SessList) then
+  echo "ERROR: the number of lines in $xmat ($nxsess) does not equal"
+  echo "       the number of sessions ($#SessList)";
+  exit 1;
+endif
+
+set nclines = `wc -l $gconmat | awk '{print $1}'`;
+if($nclines != 1) then
+  echo "ERROR: the number of lines in $gconmat is $nclines."
+  echo "       There can only be one line."
+  exit 1;
+endif
+
+set nxbeta = `cat $xmat    | head -n 1 | wc -w | awk '{print $1}'`;
+set ncbeta = `cat $gconmat | head -n 1 | wc -w | awk '{print $1}'`;
+if($nxbeta != $ncbeta) then
+  echo "ERROR: the number of columns in $xmat ($nxbeta) does"
+  echo "       not match that of $gconmat ($ncbeta)."
+  exit 1;
+endif
+
+##### Create a log file ######
+if(! $nolog) then
+  set logdir = `pwd`/log;
+  mkdir -p $logdir
+  if(! -e $logdir) then
+    echo "ERROR: could not create $logdir"
+    exit 1;
+  endif
+  set LF = $logdir/groupreg-sess.log
+  if(-e $LF) mv $LF $LF.old
+else
+  echo "No log file"
+  set LF = /dev/null
+endif
+
+echo "----------------------------------------------------------"
+echo "groupreg-sess logfile is $LF"
+echo "----------------------------------------------------------"
+
+echo "groupreg-sess log file" >> $LF
+echo $VERSION >> $LF
+pwd           >> $LF
+echo $0     >> $LF
+echo $inputargs  >> $LF
+uname -a      >> $LF
+date          >> $LF
+
+## Get functional subdirectory from the info file ##
+set infofile = $analysis/analysis.info
+if(! -e $infofile) then
+  echo "ERROR: cannot find $infofile"
+  exit 1;
+endif
+set fsd = `cat $infofile | awk '{if($1 == "fsd") print $2}'`;
+
+mkdir -p $groupid
+set sessinfo = $groupid/session.info  
+if(-e $sessinfo) then
+  @ n1 = `cat $sessinfo | wc -l`;
+  @ n1 = $n1  - 1;
+  if($n1 != $#SessList) then
+    echo "ERROR: Current Session List is inconistent with previous group average"\
+         |& tee -a $LF
+    exit 1;
+  endif
+  foreach sess ($SessList)
+    set sessid = `basename $sess`
+    set n1 = `cat $sessinfo | grep -x $sessid | wc -l`;
+    if($n1 == 0) then
+      echo "ERROR: $sessid was not in original group average"
+      exit 1;
+    endif
+  end
+else
+  echo "SessionType: GroupAverage" > $sessinfo
+  foreach sess ($SessList)
+    set sessid = `basename $sess`
+    echo $sessid >> $sessinfo
+  end
+endif
+
+
+set outdir = $groupid/$fsd/$analysis/$spacedir-rfx/$gconname
+mkdir -p $outdir
+
+# Check that the input volume is there for each subj
+set InstemList = ();
+foreach sess ($SessList)
+  set instem = $sess/$fsd/$analysis/$spacedir/$contrast/$volstem$hemicode
+  set fname = $instem"_000.hdr";
+  if(! -e $fname) then
+    echo "ERROR: $fname does not exist"
+    exit 1;
+  endif
+set InstemList = ($InstemList $instem);
+end
+
+
+if(! $monly) set MLF = /tmp/extract-roi-$$.m
+rm -f $MLF 
+echo "MLF is $MLF" |& tee -a $LF
+
+set okfile = /tmp/extract-roi-$$.ok
+rm -f $okfile
+
+#--------------------------------------------#
+tee -a $MLF > /dev/null <<EOF
+
+tic;
+
+InstemList = splitstring('$InstemList');
+ninputs = size(InstemList,1);
+outdir = '$outdir';
+okfile = '$okfile';
+
+X = load('$xmat','-ascii');
+if(isempty(X))
+  fprintf('ERROR: loading %s\n','$xmat');
+  return;
+end
+[nxf nbeta] = size(X);
+
+C = load('$gconmat','-ascii');
+if(isempty(C))
+  fprintf('ERROR: loading %s\n','$gconmat');
+  return;
+end
+ncbeta = size(C,2);
+
+if(nbeta ~= ncbeta)
+  fprintf('ERROR: number of columns in X (%d) does not equal\n');
+  fprintf('  the number of columns in C (%d)\n',nbeta,ncbeta);
+  return;
+end
+
+if(nxf ~= ninputs)
+  fprintf('ERROR: number of rows in X (%d) does not equal\n');
+  fprintf('  the number of input (%d)\n',nxf,ninputs);
+  return;
+end
+
+instem = deblank(InstemList(1,:));
+[ns nr nc nf] = fmri_bvoldim(instem);
+if(isempty(ns))
+  fprintf('ERROR: loading %s\n',instem);
+  return;
+end
+if(nf > 1)
+  fprintf('ERROR: first-level contrast has more than one plane\n');
+  return;
+end
+
+nvslice = nr*nc;
+
+mristruct = fast_ldbhdr(instem);
+if(isempty(mristruct))
+  fprintf('ERROR: could not load bhdr for %s\n',instem);
+  return;
+end
+
+for slice = 1:ns
+  fprintf('slice = %d (%g)\n',slice,toc);
+
+  y = [];
+  for n = 1:ninputs
+
+    instem = deblank(InstemList(n,:));
+    yn = fast_ldbslice(instem,slice-1);
+    if(isempty(yn))
+      fprintf('ERROR: loading %s\n',instem);
+      return;
+    end
+
+    yn = reshape(yn,[nvslice nf])';
+    y = [y; yn];
+
+  end
+
+  [beta rvar] = fast_glmfit(y,X);
+  [F, Fsig, ces] = fast_fratio(beta,X,rvar,C);
+
+  beta = reshape(beta', [nr nc nbeta]);
+  rvar = reshape(rvar', [nr nc 1]);
+  F = reshape(F', [nr nc 1]);
+  Fsig = reshape(Fsig', [nr nc 1]);
+  ces = reshape(ces', [nr nc 1]);
+
+  stem = sprintf('%s/beta',outdir);
+  fast_svbslice(beta,stem,slice-1,'',mristruct);
+
+  stem = sprintf('%s/beta-var',outdir);
+  fast_svbslice(rvar,stem,slice-1,'',mristruct);
+
+  stem = sprintf('%s/f',outdir);
+  fast_svbslice(F,stem,slice-1,'',mristruct);
+
+  stem = sprintf('%s/ces',outdir);
+  fast_svbslice(ces,stem,slice-1,'',mristruct);
+
+  stem = sprintf('%s/fsig',outdir);
+  tmp = -sign(ces).*log10(abs(Fsig));
+  fast_svbslice(tmp,stem,slice-1,'',mristruct);
+
+end
+
+fmri_touch(okfile);
+fprintf('matlab groupreg-sess done (%g)\n',toc);
+
+return;
+
+
+EOF
+#--------------------------------------------#
+
+if(! $monly) then
+  cat $MLF | matlab -display iconic
+  rm -f $MLF
+  if(! -e $okfile) then
+    echo "ERROR: during matlab execution"
+    exit 1; 
+  endif
+endif
+
+date | tee -a $LF
+echo "groupreg-sess completed" | tee -a $LF
+echo " "
+echo " "
+
+exit 0;
+###############################################
+
+############--------------##################
+parse_args:
+set cmdline = ($argv);
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "-a":
+    case "-analysis":
+      if ( $#argv == 0) goto arg1err;
+      set analysis = $argv[1]; shift;
+      breaksw
+
+    case "-contrast"
+    case "-c"
+      if ( $#argv == 0) goto arg1err;
+      set contrast = $argv[1]; shift;
+      breaksw
+
+    case "-x"
+      if ( $#argv == 0) goto arg1err;
+      set xmat = $argv[1]; shift;
+      if(! -e $xmat) then
+        echo "ERROR: cannot find $xmat"
+        exit 1;
+      endif
+      breaksw
+
+    case "-gconmat"
+    case "-gcm"
+      if ( $#argv == 0) goto arg1err;
+      set gconmat = $argv[1]; shift;
+      if(! -e $gconmat) then
+        echo "ERROR: cannot find $gconmat"
+        exit 1;
+      endif
+      breaksw
+
+    case "-gconname"
+    case "-gcn"
+      if ( $#argv == 0) goto arg1err;
+      set gconname = $argv[1]; shift;
+      breaksw
+
+    case "-vol":
+      if ( $#argv == 0) goto arg1err;
+      set volstem = $argv[1]; shift;
+      breaksw
+
+    case "-group":
+      if ( $#argv == 0) goto arg1err;
+      set groupid = $argv[1]; shift;
+      breaksw
+
+    case "-space":
+      if ( $#argv == 0) goto arg1err;
+      set spacename = $argv[1]; shift;
+      breaksw
+
+    case "-spacedir":
+      if ( $#argv == 0) goto arg1err;
+      set spacedir = $argv[1]; shift;
+      breaksw
+
+    case "-hemi":
+      if ( $#argv == 0) goto arg1err;
+      set hemi = $argv[1]; shift;
+      set hemicode = "-$hemi";
+      breaksw
+
+    case "-monly":
+      if ( $#argv == 0) goto arg1err;
+      set MLF = $argv[1]; shift;
+      breaksw
+
+    case "-umask":
+      if ( $#argv == 0) goto arg1err;
+      umask $argv[1]; shift;
+      breaksw
+
+    case "-debug":
+      set verbose = 1;
+      set echo = 1;
+      breaksw
+
+    case "-cwd":
+    case "-nolog":
+      breaksw
+
+    case "-g":
+    case "-s":
+    case "-sf":
+    case "-df":
+    case "-d":
+      # ignore getsesspath arguments 
+      shift;
+      breaksw
+
+    default:
+      echo ERROR: Flag $flag unrecognized. 
+      echo $cmdline
+      exit 1
+      breaksw
+  endsw
+
+end
+
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+
+  if($#analysis == 0) then
+    echo "ERROR: no analysis specified "
+    exit 1
+  endif
+
+  if($#contrast == 0) then
+    echo "ERROR: no contrast specified "
+    exit 1
+  endif
+
+  if($#gconmat == 0) then
+    echo "ERROR: no group contrast mat file specified "
+    exit 1
+  endif
+
+  if($#gconname == 0) then
+    echo "ERROR: no group contrast name specified "
+    exit 1
+  endif
+
+  if($#xmat == 0) then
+    echo "ERROR: no design matrix specified "
+    exit 1
+  endif
+
+  if($#groupid == 0) then
+    echo "ERROR: no gruop name specified "
+    exit 1
+  endif
+
+  if($#spacename == 0) then
+    echo "ERROR: no space name specified "
+    exit 1
+  endif
+
+  if($spacename == sph && $#hemi == 0) then
+    echo "ERROR: must specify a hemi with sph space"
+    exit 1
+  endif
+
+  if($#spacedir == 0) set spacedir = $spacename
+
+goto check_params_return;
+############--------------##################
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+
+############--------------##################
+arg2err:
+  echo "ERROR: flag $flag requires two arguments"
+  exit 1
+############--------------##################
+
+############--------------##################
+usage_exit:
+  echo "USAGE: groupreg-sess"
+  echo ""
+  echo "Required:";
+  echo ""
+  echo "   -group    groupid"
+  echo "   -analysis aname : analysis"
+  echo "   -contrast cname : contrast"
+  echo "   -x xmat : design matrix file"
+  echo "   -gconmat cmat : group contrast mat file"
+  echo "   -gconname name : group contrast name"
+  echo "   -space spacename"
+  echo "   -spacedir spacedir"
+  echo "   -hemi hemi : lh or rh"
+  echo ""
+  echo "Optional:";
+  echo ""
+  echo "   -vol  stem : use stem instead of ces"
+  echo ""
+  echo "   -sf sessidfile  ..."
+  echo "   -df srchdirfile ..."
+  echo "   -s  sessid      ..."
+  echo "   -d  srchdir     ..."
+  echo ""
+  echo "   -help"
+  echo "   -debug"
+  echo "   -umask umask   : set unix file permission mask"
+  echo "   -version       : print version and exit"
+  echo ""
+
+  if(! $PrintHelp) exit 1;
+
+  echo $VERSION
+
+  cat $0 | awk 'BEGIN{prt=0}{if(prt) print $0; if($1 == "BEGINHELP") prt = 1 }'
+
+exit 1;
+
+
+#---- Everything below here is printed out as part of help -----#
+BEGINHELP
+
