@@ -161,7 +161,6 @@ main(int argc, char *argv[])
   FileNameOnly(out_fname, fname) ;
   FileNameRemoveExtension(fname, fname) ;
   strcpy(parms.base_name, fname) ;
-  Gdiag |= DIAG_WRITE ;
   fprintf(stderr, "logging results to %s.log\n", parms.base_name) ;
 
   TimerStart(&start) ;
@@ -367,17 +366,18 @@ main(int argc, char *argv[])
   
   if (voxel_coords)
   {
-    MRI *mri_tmp ;
-
     printf("transforming xform to voxel coordinates...\n") ;
     MRIrasXformToVoxelXform(mri_in_orig, mri_ref_orig,
                             parms.lta->xforms[0].m_L, 
                             parms.lta->xforms[0].m_L);
-    mri_tmp = MRIlinearTransform(mri_in_orig, NULL, parms.lta->xforms[0].m_L);
-    MRIwriteImageViews(mri_tmp, "morphed", IMAGE_SIZE) ;
-    MRIfree(&mri_tmp) ;
-
-    MRIwriteImageViews(mri_ref_orig, "target", IMAGE_SIZE) ;
+    if (Gdiag & DIAG_WRITE)
+    {
+      MRI *mri_tmp ;
+      
+      mri_tmp = MRIlinearTransform(mri_in_orig, NULL,parms.lta->xforms[0].m_L);
+      MRIwriteImageViews(mri_tmp, "morphed", IMAGE_SIZE) ;
+      MRIfree(&mri_tmp) ;
+    }
   }
   MRIfree(&mri_in) ; MRIfree(&mri_ref) ;
 
