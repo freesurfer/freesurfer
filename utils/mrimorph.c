@@ -41,9 +41,10 @@
     V3_LOAD(v, mns1->ox - mns2->ox, mns1->oy - mns2->oy, mns1->oz - mns2->oz)
 
 #define EXP_K            10.0
-#define IMAGE_SIZE       400
 #define BACKGROUND_VAL   10
 #define MAX_EXP          200
+
+int IMAGE_SIZE = DEFAULT_IMAGE_SIZE ;
 
 int MRIsampleReferenceWeightingGradient(MRI *mri, int x, int y, int z, 
                                         double *pdx, double *pdy, double *pdz);
@@ -2245,7 +2246,7 @@ m3dalloc(int width, int height, int depth, float node_spacing)
           Allocate and initialize a 3D morph structure.
 ------------------------------------------------------*/
 static MORPH_3D *
-m3dInit(MRI *mri_in, MRI *mri_ref, MORPH_PARMS *parms, float node_spacing)
+m3dInit(MRI *mri_in, MRI *mri_ref, MORPH_PARMS *parms, float size)
 {
   MORPH_3D   *m3d ;
   int        width, height, depth, x, y, i, j, k ;
@@ -2256,7 +2257,7 @@ m3dInit(MRI *mri_in, MRI *mri_ref, MORPH_PARMS *parms, float node_spacing)
   
   v_X = VectorAlloc(4, MATRIX_REAL) ;
   v_Y = VectorAlloc(4, MATRIX_REAL) ;
-  scale = mri_in->thick / node_spacing  ;
+  scale = mri_in->thick / size  ;
 
   /* put one node at the end of each row so expansion always interpolates */
   width = mri_in->width*scale+1 ; 
@@ -2266,7 +2267,7 @@ m3dInit(MRI *mri_in, MRI *mri_ref, MORPH_PARMS *parms, float node_spacing)
   if (!m3d)
     ErrorExit(ERROR_NOMEMORY, "m3dInit: could not allocate m3d") ;
 
-  m3d->node_spacing = node_spacing ;
+  m3d->node_spacing = size ;
   m3d->width = width ; m3d->height = height ; m3d->depth = depth ; 
   m3d->mri_in = mri_in ; m3d->mri_ref = mri_ref ; m3d->lta = parms->lta ;
 
@@ -2297,20 +2298,20 @@ m3dInit(MRI *mri_in, MRI *mri_ref, MORPH_PARMS *parms, float node_spacing)
   v_X->rptr[4][1] = 1.0f /*/ mri_in->thick*/ ;
   for (k = 0 ; k < depth ; k++)
   {
-    V3_Z(v_X) = (float)k / scale ;
+    V3_Z(v_X) = (float)k * m3d->node_spacing ;
     for (j = 0 ; j < height ; j++)
     {
-      V3_Y(v_X) = (float)j / scale ;
+      V3_Y(v_X) = (float)j * m3d->node_spacing ;
       for (i = 0 ; i < width ; i++)
       {
-        V3_X(v_X) = (float)i / scale ;
         mn = &m3d->nodes[i][j][k] ;
         mnp = &m3d->pnodes[i][j][k] ;
+        V3_X(v_X) = (float)i * m3d->node_spacing ;
         LTAtransformPoint(parms->lta, v_X, v_Y) ;
 #if !USE_ORIGINAL_PROPERTIES
-        mnp->ox = mn->x = V3_X(v_Y)*node_spacing ; 
-        mnp->oy = mn->y = V3_Y(v_Y)*node_spacing ; 
-        mnp->oz = mn->z = V3_Z(v_Y)*node_spacing ; 
+        mnp->ox = mn->x = V3_X(v_Y) ; 
+        mnp->oy = mn->y = V3_Y(v_Y) ; 
+        mnp->oz = mn->z = V3_Z(v_Y) ; 
 #else
         mnp->ox = V3_X(v_X) ; 
         mnp->oy = V3_Y(v_X) ; 
@@ -2441,7 +2442,6 @@ MRI3Dmorph(MRI *mri_in, MRI *mri_ref, MORPH_PARMS *parms)
   MRI          *mri_in_transformed ;
   MRI_SURFACE  *mris_ref_skull, *mris_in_skull ;
   float        dx, dy, dz ;
-  MATRIX       *m_tmp ;
 
   mriNormalizeStds(mri_ref) ;
   if (parms->levels >= 0)
@@ -2508,11 +2508,6 @@ MRI3Dmorph(MRI *mri_in, MRI *mri_ref, MORPH_PARMS *parms)
 #define MAX_LEVEL nlevels-1
   strcpy(base_name, parms->base_name) ;
   max_thick = mri_in_pyramid[MAX_LEVEL]->thick ;
-  m_tmp = parms->lta->xforms[0].m_L ;
-  parms->lta->xforms[0].m_L = 
-    MRIrasXformToVoxelXform(mri_in_pyramid[MAX_LEVEL],
-                            mri_ref_pyramid[MAX_LEVEL],m_tmp,NULL);
-  MatrixFree(&m_tmp) ;
   m3d = 
     m3dInit(mri_in_pyramid[MAX_LEVEL], mri_ref_pyramid[MAX_LEVEL], 
             parms, max_thick) ;
@@ -4302,9 +4297,15 @@ mriWriteImageView(MRI *mri, char *base_name, int target_size, int view,
     switch (view)
     {
     default:
+#if 1
     case MRI_CORONAL:    slice = mri->depth/2; break ;
     case MRI_SAGITTAL:   slice = mri->width/2 ; break ;
     case MRI_HORIZONTAL: slice = mri->height/2 ; break ;
+#else
+    case MRI_CORONAL:    slice = mri->depth/4; break ;
+    case MRI_SAGITTAL:   slice = mri->width/4 ; break ;
+    case MRI_HORIZONTAL: slice = mri->height/4 ; break ;
+#endif
     }
   }
   I = MRItoImageView(mri, NULL, slice, view, 0) ;
@@ -7063,6 +7064,10 @@ void computeRigidAlignmentGradient(float *p, float *g)
   MatrixFree(&m_dT_X_T) ; MatrixFree(&v_X) ; MatrixFree(&v_Y) ; 
   MatrixFree(&v_X_T) ; MatrixFree(&v_dT) ; MatrixFree(&m_tmp) ;
   MatrixFree(&m_L_inv) ; MatrixFree(&v_dw) ; MatrixFree(&m_dw_X_T) ;
+  if (!FZERO(parms->factor) && !FEQUAL(parms->factor,1.0f))
+  {
+    MatrixScalarMul(m_dL, parms->factor, m_dL) ;
+  }
 
 #if 0
   if (parms->rigid)  /* make gradient have 0 determinant */
