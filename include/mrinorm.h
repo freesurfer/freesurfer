@@ -109,5 +109,6 @@ MRI *MRIaverageFixedPoints(MRI *mri_src, MRI *mri_ctrl, MRI *mri_dst,int niter) 
 int MRInormAddFileControlPoints(MRI *mri_ctrl, int value) ;
 MRI *MRInormFindControlPointsInWindow(MRI *mri_src, int wm_target, float intensity_above, 
 																			float intensity_below, MRI *mri_ctrl, float whalf_mm, char *debug_str, int *pnctrl);
+MRI *MRIapplyBiasCorrection(MRI *mri_in, MRI *mri_bias, MRI *mri_out) ;
 
 #endif
