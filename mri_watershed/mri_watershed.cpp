@@ -4,12 +4,12 @@
 // mri_watershed.cpp
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2003/03/26 23:27:02 $
-// Revision       : $Revision: 1.3 $
+// Revision Author: $Author: kteich $
+// Revision Date  : $Date: 2003/03/28 18:16:15 $
+// Revision       : $Revision: 1.4 $
 //
 ////////////////////////////////////////////////////////////////////
-char *MRI_WATERSHED_VERSION = "$Revision: 1.3 $";
+char *MRI_WATERSHED_VERSION = "$Revision: 1.4 $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -301,9 +301,8 @@ int main(int argc, char *argv[])
 
   /************* Command line****************/
 
-  nargs = handle_version_option (argc, argv, "$Id: mri_watershed.cpp,v 1.3 2003/03/26 23:27:02 tosa Exp $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_watershed.cpp,v 1.4 2003/03/28 18:16:15 kteich Exp $");
   argc -= nargs ;
-  argv += nargs ;
   if (1 == argc)
     exit (0);
 
