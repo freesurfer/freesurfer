@@ -44,7 +44,7 @@ typedef struct
   CLUSTER      **clusters ;       /* pointers to CLUSTER_SET clusters */
   unsigned char *observed ;       /* used for randomizing training order */
   int           nobs ;            /* # of observations in training set */
-  MATRIX       *m_pi[MAX_OUTPUTS];/* used for psuedo-inverse calculation */
+  MATRIX       *m_pi ;            /* psuedo-inverse for LMS calculation */
 } RBF ;
 
 RBF   *RBFinit(int ninputs, int noutputs, int max_clusters[], char *names[]) ;
@@ -53,6 +53,8 @@ int   RBFtrain(RBF *rbf, int (*get_observation_func)
                void *parm, float momentum) ;
 int   RBFfree(RBF **prbf) ;
 int   RBFprint(RBF *rbf, FILE *fp) ;
+int   RBFprintActivations(RBF *rbf, VECTOR *v_obs, VECTOR *v_error, 
+                          int class, FILE *fp);
 int   RBFclassify(RBF *rbf, VECTOR *v_obs) ;
 int   RBFwrite(RBF *rbf, char *fname) ;
 RBF   *RBFread(char *fname) ;
