@@ -32,6 +32,7 @@ static int total_pruned = 0 ;
 #define GCA_VERSION                  2.0
 #define DEFAULT_MAX_LABELS_PER_GCAN  4
 
+static GC1D *findClosestValidGC(GCA *gca, int x, int y, int z, int label) ;
 static double FLASHforwardModel(double flip_angle, double TR, double PD, 
                                 double T1) ;
 static int    MRIorderIndices(MRI *mri, short *x_indices, short *y_indices, 
@@ -50,7 +51,7 @@ int MRIcomputeVoxelPermutation(MRI *mri, short *x_indices, short *y_indices,
 GCA *gcaAllocMax(int ninputs, float spacing, int width, int height, int depth, 
                  int max_labels) ;
 static int GCAupdateNode(GCA *gca, MRI *mri, int xn, int yn, int zn,
-                         float val,int label, GCA *gca_prune);
+                         float val,int label, GCA *gca_prune, int noint);
 static int GCAupdateNodeGibbsPriors(GCA *gca,MRI*mri,int xn,int yn,int zn,
                               int x, int y, int z, int label);
 static int different_nbr_labels(GCA *gca, int x, int y, int z, int wsize,
@@ -321,7 +322,8 @@ GCANfree(GCA_NODE *gcan)
   return(NO_ERROR) ;
 }
 int
-GCAtrain(GCA *gca, MRI *mri_inputs, MRI *mri_labels, LTA *lta, GCA *gca_prune)
+GCAtrain(GCA *gca, MRI *mri_inputs, MRI *mri_labels, LTA *lta, GCA *gca_prune,
+         int noint)
 {
   int    x, y, z, width, height, depth, label, val, xn, yn, zn, i,
          xnbr, ynbr, znbr, xn_nbr, yn_nbr, zn_nbr ;
@@ -352,7 +354,7 @@ GCAtrain(GCA *gca, MRI *mri_inputs, MRI *mri_labels, LTA *lta, GCA *gca_prune)
         GCAsourceVoxelToNode(gca, mri_inputs, lta, x, y, z, &xn, &yn, &zn) ;
 
         if (GCAupdateNode(gca, mri_inputs, xn, yn, zn, 
-                          (float)val,label,gca_prune) == NO_ERROR)
+                          (float)val,label,gca_prune, noint) == NO_ERROR)
           GCAupdateNodeGibbsPriors(gca, mri_labels, xn, yn, zn, x, y,z, label);
 
         if (xn == Ggca_x && yn == Ggca_y && zn == Ggca_z && 
@@ -377,7 +379,7 @@ GCAtrain(GCA *gca, MRI *mri_inputs, MRI *mri_labels, LTA *lta, GCA *gca_prune)
             continue ;  /* only update if it is a different node */
 
           if (GCAupdateNode(gca, mri_inputs, xn_nbr, yn_nbr, zn_nbr, 
-                            (float)val,label,gca_prune) == NO_ERROR)
+                            (float)val,label,gca_prune,noint) == NO_ERROR)
             GCAupdateNodeGibbsPriors(gca, mri_labels, xn_nbr, yn_nbr, zn_nbr, 
                                      x, y,z, label);
         }
@@ -530,7 +532,7 @@ GCAread(char *fname)
 
 static int
 GCAupdateNode(GCA *gca, MRI *mri, int xn, int yn, int zn, float val, int label,
-              GCA *gca_prune)
+              GCA *gca_prune, int noint)
 {
   int      n ;
   GCA_NODE *gcan ;
@@ -551,7 +553,7 @@ GCAupdateNode(GCA *gca, MRI *mri, int xn, int yn, int zn, float val, int label,
     DiagBreak() ;
 
 
-  if (label > 0 && gca_prune != NULL)
+  if (label > 0 && gca_prune != NULL && !noint)
   {
     GCA_NODE *gcan_prune ;
     GC1D     *gc_prune ;
@@ -631,7 +633,13 @@ GCAupdateNode(GCA *gca, MRI *mri, int xn, int yn, int zn, float val, int label,
   gc = &gcan->gcs[n] ;
 
   /* these will be updated when training is complete */
-  gc->mean += val ; gc->var += val*val ; gc->prior += 1.0f ;
+  if (noint)
+    gc->n_just_priors++ ;
+  else
+  { gc->mean += val ; gc->var += val*val ; }
+  gc->prior += 1.0f ;
+  if (gc->n_just_priors >= (int)gc->prior)
+    DiagBreak() ;
   gcan->total_training++ ;
   
   gcan->labels[n] = label ;
@@ -641,7 +649,7 @@ GCAupdateNode(GCA *gca, MRI *mri, int xn, int yn, int zn, float val, int label,
 int
 GCAcompleteTraining(GCA *gca)
 {
-  int      x, y, z, n, total_nodes, total_gcs, i, j ;
+  int      x, y, z, n, total_nodes, total_gcs, i, j, holes_filled ;
   float    nsamples ;
   GCA_NODE *gcan ;
   GC1D     *gc ;
@@ -655,6 +663,8 @@ GCAcompleteTraining(GCA *gca)
       {
         gcan = &gca->nodes[x][y][z] ;
         total_gcs += gcan->nlabels ;
+        if (x == Ggca_x && y == Ggca_y && z == Ggca_z)
+          DiagBreak() ;
         for (n = 0 ; n < gcan->nlabels ; n++)
         {
           float var ;
@@ -668,13 +678,21 @@ GCAcompleteTraining(GCA *gca)
               gc->label_priors[i][j] /= (float)nsamples ;
           }
 
-          gc->mean /= nsamples ;
-          var = gc->var / nsamples - gc->mean*gc->mean ;
-          if (var < -0.1)
-            DiagBreak() ;
-          if (var < MIN_VAR)
-            var = MIN_VAR ;
-          gc->var = var ;
+          nsamples -= gc->n_just_priors ;  /* for no-intensity training */
+          if (nsamples > 0)
+          {
+            gc->mean /= nsamples ;
+            var = gc->var / nsamples - gc->mean*gc->mean ;
+            if (var < -0.1)
+              DiagBreak() ;
+            if (var < MIN_VAR)
+              var = MIN_VAR ;
+            gc->var = var ;
+          }
+          else
+          {
+            gc->mean = gc->var = -1 ;  /* mark it for later processing */
+          }
           gc->prior /= (float)gcan->total_training ;
         }
         if (x == 63 && y == 107 && z == 120 && DIAG_VERBOSE_ON)
@@ -682,8 +700,45 @@ GCAcompleteTraining(GCA *gca)
       }
     }
   }
-  printf("%d classifiers: %2.1f per node\n", 
-         total_gcs, (float)total_gcs/(float)total_nodes) ;
+
+  printf("filling holes in the GCA...\n") ;
+  for (holes_filled = x = 0 ; x < gca->width ; x++)
+  {
+    for (y = 0 ; y < gca->height ; y++)
+    {
+      for (z = 0 ; z < gca->depth ; z++)
+      {
+        if (x == Ggca_x && y == Ggca_y && z == Ggca_z)
+          DiagBreak() ;
+        gcan = &gca->nodes[x][y][z] ;
+        for (n = 0 ; n < gcan->nlabels ; n++)
+        {
+          gc = &gcan->gcs[n] ;
+          if (gc->var < 0)
+          {
+            GC1D *gc_nbr ;
+
+            gc_nbr = findClosestValidGC(gca, x, y, z, gcan->labels[n]) ;
+            if (!gc_nbr)
+            {
+              ErrorPrintf(ERROR_BADPARM, 
+                          "gca(%d,%d,%d,%d) - could not find valid nbr label "
+                          "%s (%d)", x,  y, z, n, 
+                          cma_label_to_name(gcan->labels[n]),
+                          gcan->labels[n]) ;
+              continue ;
+            }
+            holes_filled++ ;
+            gc->mean = gc_nbr->mean ; gc->var = gc_nbr->var ;
+          }
+        }
+      }
+    }
+  }
+
+
+  printf("%d classifiers: %2.1f per node (%d holes filled)\n", 
+         total_gcs, (float)total_gcs/(float)total_nodes,holes_filled) ;
   if (total_pruned > 0)
   {
     printf("%d samples pruned during training\n", total_pruned) ;
@@ -770,6 +825,7 @@ GCAlabel(MRI *mri_inputs, GCA *gca, MRI *mri_dst, LTA *lta)
           printf("(%d, %d, %d): T1=%d, label %s (%d), p=%2.2e\n",
                  x, y, z, MRIvox(mri_inputs,x,y,z), 
                  cma_label_to_name(label), label, max_p) ;
+          dump_gcan(gcan, stdout, 0) ;
         }
         MRIvox(mri_dst, x, y, z) = label ;
       }
@@ -4137,13 +4193,20 @@ GCAconstrainLabelTopology(GCA *gca, MRI *mri_inputs,MRI *mri_src, MRI *mri_dst,
 
   mri_dst = MRIcopy(mri_src, mri_dst) ;
 
-  for (i = 1 ; i < 255 ; i++)
+  for (i = 1 ; i <= MAX_CMA_LABEL ; i++)
   {
     nvox = MRIvoxelsInLabel(mri_dst, i) ;
     if (!nvox)
       continue ;
     /*    printf("label %03d: %d voxels\n", i, nvox) ;*/
     mriseg = MRIsegment(mri_src, (float)i, (float)i) ;
+    if (!mriseg)
+    {
+      ErrorPrintf(Gerror,"GCAconstrainLabelTopology: label %s failed (%d vox)",
+                  cma_label_to_name(i), nvox) ;
+      continue ;
+    }
+
     /*    printf("\t%d segments:\n", mriseg->nsegments) ;*/
     for (j = 0 ; j < mriseg->nsegments ; j++)
     {
@@ -5737,6 +5800,8 @@ GCArenormalizeIntensities(GCA *gca, int *labels, float *intensities, int num)
     {
       for (xn = 0 ; xn < gca->width ; xn++)
       {
+        if (xn == Ggca_x && yn == Ggca_y && zn == Ggca_z)
+          DiagBreak() ;
         gcan = &gca->nodes[xn][yn][zn] ;
         for (n = 0 ; n < gcan->nlabels ; n++)
         {
@@ -5786,6 +5851,8 @@ GCArenormalizeIntensities(GCA *gca, int *labels, float *intensities, int num)
       for (xn = 0 ; xn < gca->width ; xn++)
       {
         gcan = &gca->nodes[xn][yn][zn] ;
+        if (xn == Ggca_x && yn == Ggca_y && zn == Ggca_z)
+          DiagBreak() ;
         for (n = 0 ; n < gcan->nlabels ; n++)
         {
           label = gcan->labels[n] ;
@@ -6297,5 +6364,87 @@ GCAhisto(GCA *gca, int nbins, int **pcounts)
   }
 
   return(NO_ERROR) ;
+}
+
+int
+GCArenormalizeToExample(GCA *gca, MRI *mri_seg, MRI *mri_T1)
+{
+  float     intensities[MAX_CMA_LABEL+1] ;
+  int       x, y, z, label, labels[MAX_CMA_LABEL+1], width, height, depth,
+            counts[MAX_CMA_LABEL+1] ;
+
+  for (label = 0 ; label <= MAX_CMA_LABEL ; label++)
+    labels[label] = label ;
+  memset(intensities, 0, MAX_CMA_LABEL*sizeof(float)) ;
+  memset(counts, 0, MAX_CMA_LABEL*sizeof(int)) ;
+
+  width = mri_seg->width ; height = mri_seg->height ; depth = mri_seg->height;
+  for (z = 0 ; z < depth ; z++)
+  {
+    for (y = 0 ; y < height ; y++)
+    {
+      for (x = 0 ; x < width ; x++)
+      {
+        label = MRIvox(mri_seg, x, y, z) ;
+        if (label == Gdiag_no)
+          DiagBreak() ;
+        if (label > MAX_CMA_LABEL)
+        {
+          ErrorPrintf(ERROR_BADPARM, 
+                      "GCArenormalizeToExample: bad label %d", label) ;
+          continue ;
+        }
+        intensities[label] += (float)MRIvox(mri_T1, x, y, z) ;
+        counts[label]++ ;
+      }
+    }
+  }
+
+  for (label = 0 ; label <= MAX_CMA_LABEL ; label++)
+  {
+    if (counts[label] <= 0)
+      continue ;
+    intensities[label] /= (float)counts[label] ;
+  }
+  GCArenormalizeIntensities(gca, labels, intensities, MAX_CMA_LABEL) ;
+
+  return(NO_ERROR) ;
+}
+
+static GC1D *
+findClosestValidGC(GCA *gca, int x0, int y0, int z0, int label)
+{
+  GC1D       *gc, *gc_min ;
+  int        x, y, z, n ;
+  double     dist, min_dist ;
+  GCA_NODE   *gcan ;
+
+  min_dist = gca->width+gca->height+gca->depth ;
+  gc_min = NULL ;
+  for (x = 0 ; x < gca->width && min_dist > 1 ; x++)
+  {
+    for (y = 0 ; y < gca->height && min_dist > 1 ; y++)
+    {
+      for (z = 0 ; z < gca->depth && min_dist > 1 ; z++)
+      {
+        gcan = &gca->nodes[x][y][z] ;
+        for (n = 0 ; n < gcan->nlabels && min_dist > 1 ; n++)
+        {
+          if (gcan->labels[n] != label)
+            continue ;
+          gc = &gcan->gcs[n] ;
+          if (gc->var < 0)   /* not a valid node */
+            continue ;
+          dist = sqrt(SQR(x-x0)+SQR(y-y0)+SQR(z-z0)) ;
+          if (dist < min_dist)
+          {
+            gc_min = gc ;
+            min_dist = dist ;
+          }
+        }
+      }
+    }
+  }
+  return(gc_min) ;
 }
 
