@@ -12,11 +12,13 @@
 #include "mrimorph.h"
 #include "timer.h"
 
-static char vcid[] = "$Id: mri_fill.c,v 1.32 1999/08/16 19:17:19 fischl Exp $";
+static char vcid[] = "$Id: mri_fill.c,v 1.33 1999/08/23 18:03:48 fischl Exp $";
 
 /*-------------------------------------------------------------------
                                 CONSTANTS
 -------------------------------------------------------------------*/
+
+#define DEBUG_POINT(x,y,z)  (((x==140) && (y==74)) &&((z)==174))
 
 #define PONS_LOG_FILE                   "pons.log"
 #define CC_LOG_FILE                     "cc.log"
@@ -68,22 +70,11 @@ static char vcid[] = "$Id: mri_fill.c,v 1.32 1999/08/16 19:17:19 fischl Exp $";
                                 GLOBAL DATA
 -------------------------------------------------------------------*/
 
-static int overlap_thresh = 95 ;
-
 static int lh_fill_val = MRI_LEFT_HEMISPHERE ;
 static int rh_fill_val = MRI_RIGHT_HEMISPHERE ;
 
 static int ylim0,ylim1,xlim0,xlim1;
 static int fill_holes_flag = TRUE;
-
-/* Talairach seed points for white matter in left and right hemispheres */
-static Real wm_rh_tal_x = 29.0 ;
-static Real wm_rh_tal_y = -12.0 ;
-static Real wm_rh_tal_z = 28.0 ;
-
-static Real wm_lh_tal_x = -29.0 ;
-static Real wm_lh_tal_y = -12.0 ;
-static Real wm_lh_tal_z = 28.0 ;
 
 /* corpus callosum seed point in Talairach coords */
 
@@ -124,16 +115,17 @@ static int logging = 0 ;
 static int fill_val = 0 ;   /* only non-zero for generating images of planes */
 static int cc_mask = 1 ;
 
-static int fix = 0 ;
 static char *sname ;
 
-static MRI  *mri_lh_priors = NULL, *mri_rh_priors = NULL ;
+static char *atlas_name = NULL ;
+#if 0
+static float blur_sigma = 0.25f ;
+#endif
 
 /*-------------------------------------------------------------------
                              STATIC PROTOTYPES
 -------------------------------------------------------------------*/
 
-int MRIsetValues(MRI *mri, int val) ;
 static int get_option(int argc, char *argv[]) ;
 static void print_version(void) ;
 static void print_help(void) ;
@@ -148,14 +140,23 @@ static int find_slice_center(MRI *mri,  int *pxo, int *pyo) ;
 static int find_corpus_callosum(MRI *mri, Real *ccx, Real *ccy, Real *ccz) ;
 static int find_pons(MRI *mri, Real *p_ponsx, Real *p_ponsy, Real *p_ponsz,
                      int mid_x) ;
-static int find_cc_slice(MRI *mri,Real *pccx,Real *pccy,Real *pccz);
-
+static int find_cc_slice(MRI *mri, Real *pccx, Real *pccy, Real *pccz) ;
 static int neighbors_on(MRI *mri, int x0, int y0, int z0) ;
 static int MRIfillVolume(MRI *mri_fill, MRI *mri_im, int x_seed, int y_seed, 
                          int z_seed, int fill_val) ;
 static int   mriFindBoundingBox(MRI *mri_im) ;
 MRI *MRIcombineHemispheres(MRI *mri_lh_fill, MRI *mri_rh_fill, MRI *mri_dst,
                       Real cc_tal_x) ;
+static MRI *mriReadBinaryProbabilities(char *atlas_name, char *suffix, 
+                                       M3D *m3d, char *subject_name, 
+                                       MRI *mri_dst) ;
+static MRI *mriReadConditionalProbabilities(MRI *mri_T1, char *atlas_name, 
+                                            char *suffix, int offset, 
+                                            M3D *m3d, MRI *mri_dst) ;
+static MRI *MRIfillVentricle(MRI *mri_src, MRI *mri_prob, MRI *mri_T1,
+                             MRI *mri_dst, float thresh, int out_label,
+                             int xmin, int xmax) ;
+
 /*-------------------------------------------------------------------
                                 FUNCTIONS
 -------------------------------------------------------------------*/
@@ -168,10 +169,11 @@ main(int argc, char *argv[])
   char    input_fname[STRLEN],out_fname[STRLEN], fname[STRLEN] ;
   Real    xr, yr, zr, dist, min_dist, lh_tal_x, rh_tal_x ;
   MRI     *mri_cc, *mri_pons, *mri_lh_fill, *mri_rh_fill, *mri_lh_im, 
-          *mri_rh_im ;
+          *mri_rh_im /*, *mri_blur*/ ;
   int     x_pons, y_pons, z_pons, x_cc, y_cc, z_cc, xi, yi, zi ;
   MORPH_3D  *m3d ;
   struct timeb  then ;
+  MRI    *mri_tmp ;
 
   TimerStart(&then) ;
   DiagInit(NULL, NULL, NULL) ;
@@ -195,9 +197,13 @@ main(int argc, char *argv[])
   if (!Gdiag)
     fprintf(stderr, "reading input volume...") ;
 
-  if (fix)
+  mri_im = MRIread(input_fname) ;
+  if (!mri_im)
+    ErrorExit(ERROR_NOFILE, "%s: could not read %s", Progname, input_fname) ;
+
+  if (atlas_name && 0)
   {
-    MRI  *mri_tmp ;
+    MRI *mri_p_wm ;
     char subjects_dir[STRLEN], mri_dir[STRLEN], *cp ;
 
     cp = getenv("MRI_DIR") ;
@@ -212,34 +218,39 @@ main(int argc, char *argv[])
                 "%s: could not read SUBJECTS_DIR from environment",Progname) ;
     strcpy(subjects_dir, cp) ;
 
-    sprintf(fname, "%s/%s/mri/transforms/talairach.m3d", subjects_dir,sname) ;
+
+    sprintf(fname, "%s/%s/mri/transforms/%s.m3d", subjects_dir,sname,
+            atlas_name) ;
     m3d = MRI3DreadSmall(fname) ;
     if (!m3d)
       ErrorExit(ERROR_NOFILE, 
                 "%s: could not open transform file %s\n",
                 Progname, fname) ;
-    sprintf(fname, "%s/average/%s#%d",
-            mri_dir, FILLED_PRIORS_FNAME, TRI_HI_PRIORS) ;
-    mri_lh_priors = MRIread(fname) ;
-    if (!mri_lh_priors)
-      ErrorExit(ERROR_NOFILE, "%s: could not read lh priors file %s",
-                Progname, fname) ;
-    mri_tmp = MRIapplyInverse3DMorph(mri_lh_priors, m3d, NULL) ;
-    MRIfree(&mri_lh_priors) ; mri_lh_priors = mri_tmp ;
+    fprintf(stderr, "removing extraneous white matter using atlas %s...\n",
+            atlas_name) ;
+    mri_p_wm = mriReadBinaryProbabilities(atlas_name, "wm", m3d, sname, NULL);
+    if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+      MRIwrite(mri_p_wm, "p_wm.mgh") ;
 
-    sprintf(fname, "%s/average/%s#%d",
-            mri_dir, FILLED_PRIORS_FNAME, TRI_LOW_PRIORS) ;
-    mri_lh_priors = MRIread(fname) ;
-    if (!mri_lh_priors)
-      ErrorExit(ERROR_NOFILE, "%s: could not read rh priors file %s",
-                Progname, fname) ;
-    mri_tmp = MRIapplyInverse3DMorph(mri_lh_priors, m3d, NULL) ;
-    MRIfree(&mri_lh_priors) ; mri_lh_priors = mri_tmp ;
+    MRIprobabilityThresholdNeighborhoodOff(mri_im, mri_p_wm, mri_im, 0.0, 3);
+    if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+      MRIwrite(mri_im, "wm_thresh.mgh") ;
+
+#if 0
+    fprintf(stderr, "filling high probability white matter...\n") ;
+    mri_blur = MRIgaussian1d(blur_sigma, 0) ;
+    if (!mri_blur)
+      ErrorExit(ERROR_BADPARM, 
+                "%s: could not allocate blurring kernel with sigma=%2.3f",
+                Progname, blur_sigma) ;
+    mri_tmp = MRIconvolveGaussian(mri_p_wm, NULL, mri_blur) ;
+    MRIfree(&mri_p_wm) ; mri_p_wm = mri_tmp ;
+    MRIprobabilityThreshold(mri_im, mri_p_wm, mri_im, 98.0, 255) ;
+#endif
+
+    MRIfree(&mri_p_wm) ;
     MRI3DmorphFree(&m3d) ;
   }
-  mri_im = MRIread(input_fname) ;
-  if (!mri_im)
-    ErrorExit(ERROR_NOFILE, "%s: could not read %s", Progname, input_fname) ;
 
   if (!Gdiag)
     fprintf(stderr, "done.\nsearching for cutting planes...") ;
@@ -271,7 +282,7 @@ main(int argc, char *argv[])
 
   if (!pons_seed_set)
   {
-    MRI  *mri_tmp, *mri_mask ;
+    MRI  *mri_mask ;
 
     if (cc_mask)
     {
@@ -315,6 +326,50 @@ main(int argc, char *argv[])
       ErrorExit(ERROR_BADPARM, "%s: could not find pons", Progname);
   }
 
+  if (atlas_name && 0)
+  {
+    MRI *mri_p_filled ;
+    char subjects_dir[STRLEN], mri_dir[STRLEN], *cp ;
+
+    cp = getenv("MRI_DIR") ;
+    if (!cp)
+      ErrorExit(ERROR_BADPARM, "%s: could not read MRI_DIR from environment",
+                Progname) ;
+    strcpy(mri_dir, cp) ;
+
+    cp = getenv("SUBJECTS_DIR") ;
+    if (!cp)
+      ErrorExit(ERROR_BADPARM, 
+                "%s: could not read SUBJECTS_DIR from environment",Progname) ;
+    strcpy(subjects_dir, cp) ;
+
+
+    sprintf(fname, "%s/%s/mri/transforms/%s.m3d", subjects_dir,sname,
+            atlas_name) ;
+    m3d = MRI3DreadSmall(fname) ;
+    if (!m3d)
+      ErrorExit(ERROR_NOFILE, 
+                "%s: could not open transform file %s\n",
+                Progname, fname) ;
+    fprintf(stderr, 
+            "removing extraneous filled white matter using atlas %s...\n",
+            atlas_name) ;
+    mri_p_filled = 
+      mriReadBinaryProbabilities(atlas_name, "filled", m3d, sname, NULL);
+    MRIwrite(mri_p_filled, "p_filled.mgh") ;
+
+    MRIprobabilityThresholdNeighborhoodOff(mri_im, mri_p_filled, mri_im,0.0,3);
+#if 1
+    fprintf(stderr, "filling high-probability regions...\n") ;
+    MRIprobabilityThresholdNeighborhoodOn(mri_im, mri_p_filled, mri_im, 
+                                          99.9, 5, 255);
+#endif
+    MRIwrite(mri_im, "filled_thresh.mgh") ;
+
+    MRIfree(&mri_p_filled) ;
+    MRI3DmorphFree(&m3d) ;
+  }
+
   MRIeraseTalairachPlane(mri_im, mri_cc, MRI_SAGITTAL, x_cc, y_cc, z_cc, 
                          SLICE_SIZE, fill_val);
   MRIeraseTalairachPlane(mri_im, mri_pons, MRI_HORIZONTAL, 
@@ -333,12 +388,9 @@ main(int argc, char *argv[])
     fprintf(stderr, "done.\n") ;
 
   /* find white matter seed point for the left hemisphere */
-#if 0
-  MRItalairachToVoxel(mri_im, wm_rh_tal_x,wm_rh_tal_y,wm_rh_tal_z,&xr,&yr,&zr);
-#else
   MRItalairachToVoxel(mri_im, cc_tal_x+SEED_SEARCH_SIZE,
                       cc_tal_y,cc_tal_z,&xr,&yr,&zr);
-#endif
+
   wm_rh_x = nint(xr) ; wm_rh_y = nint(yr) ; wm_rh_z = nint(zr) ;
   if ((MRIvox(mri_im, wm_rh_x, wm_rh_y, wm_rh_z) <= WM_MIN_VAL) ||
       (neighbors_on(mri_im, wm_rh_x, wm_rh_y, wm_rh_z) < MIN_NEIGHBORS))
@@ -452,7 +504,99 @@ main(int argc, char *argv[])
                       &xr, &yr, &zr) ;
   rh_tal_x = xr ;
   mri_fill = MRIcombineHemispheres(mri_lh_fill, mri_rh_fill, NULL, cc_tal_x) ;
+  MRIfree(&mri_lh_fill) ; MRIfree(&mri_rh_fill) ;
 
+  if (atlas_name)
+  {
+    MRI *mri_p_ventricle, *mri_fg, *mri_bg, *mri_T1, *mri_ventricle ;
+    char subjects_dir[STRLEN], mri_dir[STRLEN], *cp ;
+
+    cp = getenv("MRI_DIR") ;
+    if (!cp)
+      ErrorExit(ERROR_BADPARM, "%s: could not read MRI_DIR from environment",
+                Progname) ;
+    strcpy(mri_dir, cp) ;
+
+    cp = getenv("SUBJECTS_DIR") ;
+    if (!cp)
+      ErrorExit(ERROR_BADPARM, 
+                "%s: could not read SUBJECTS_DIR from environment",Progname) ;
+    strcpy(subjects_dir, cp) ;
+
+
+    sprintf(fname, "%s/%s/mri/transforms/%s.m3d", subjects_dir,sname,
+            atlas_name) ;
+    m3d = MRI3DreadSmall(fname) ;
+    if (!m3d)
+      ErrorExit(ERROR_NOFILE, 
+                "%s: could not open transform file %s\n",
+                Progname, fname) ;
+    fprintf(stderr, "filling ventricles using atlas %s...\n", atlas_name) ;
+    mri_p_ventricle = 
+      mriReadBinaryProbabilities(atlas_name, "left_ventricle",m3d,sname,NULL);
+    if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+      MRIwrite(mri_p_ventricle, "p_left_ventricle.mgh") ;
+
+    sprintf(fname, "%s/%s/mri/T1", subjects_dir,sname) ;
+    mri_T1 = MRIread(fname) ;
+    if (!mri_T1)
+      ErrorExit(ERROR_NOFILE, "%s: could not read T1 volume %s\n", 
+                Progname, fname) ;
+#if 0
+#define TMP_FILL_VAL   5
+    MRIprobabilityThreshold(mri_fill, mri_p_ventricle, mri_fill, 50.0, 
+                            TMP_FILL_VAL) ;
+    MRIdilateLabel(mri_fill, mri_fill, TMP_FILL_VAL, 2) ;
+    MRIreplaceValues(mri_fill, mri_fill, TMP_FILL_VAL, lh_fill_val) ;
+#else
+    MRItalairachToVoxel(mri_fill,cc_tal_x-10, cc_tal_y, cc_tal_z, &xr,&yr,&zr);
+    mri_ventricle = 
+      MRIfillVentricle(mri_fill, mri_p_ventricle, mri_T1, NULL, 90.0f, 
+                     lh_fill_val, nint(xr), mri_fill->width-1) ;
+    MRIwrite(mri_ventricle, "left_ventricle.mgh") ;
+    MRIdilate(mri_ventricle, mri_ventricle) ;
+    MRIdilate(mri_ventricle, mri_ventricle) ;
+    MRIunion(mri_fill, mri_ventricle, mri_fill) ;
+    MRIfree(&mri_ventricle) ;
+#endif
+                            
+    MRIfree(&mri_p_ventricle) ;
+    
+    mri_p_ventricle = 
+      mriReadBinaryProbabilities(atlas_name,"right_ventricle",m3d,sname,NULL);
+    if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+      MRIwrite(mri_p_ventricle, "p_right_ventricle.mgh") ;
+#if 0
+    MRIprobabilityThreshold(mri_fill, mri_p_ventricle, mri_fill, 50.0, 
+                            TMP_FILL_VAL);
+    MRIdilateLabel(mri_fill, mri_fill, TMP_FILL_VAL, 2) ;
+    MRIreplaceValues(mri_fill, mri_fill, TMP_FILL_VAL, rh_fill_val) ;
+#else
+    MRItalairachToVoxel(mri_fill,cc_tal_x+10,cc_tal_y, cc_tal_z, &xr,&yr,&zr);
+    mri_ventricle = 
+      MRIfillVentricle(mri_fill, mri_p_ventricle, mri_T1, NULL, 90.0f, 
+                       rh_fill_val, 0, nint(xr)) ;
+    MRIwrite(mri_ventricle, "right_ventricle.mgh") ;
+    MRIdilate(mri_ventricle, mri_ventricle) ;
+    MRIdilate(mri_ventricle, mri_ventricle) ;
+    MRIunion(mri_fill, mri_ventricle, mri_fill) ;
+#endif
+
+    MRIfree(&mri_T1) ; MRIfree(&mri_ventricle) ; MRIfree(&mri_p_ventricle) ;
+    MRI3DmorphFree(&m3d) ;
+
+    mri_fg = MRIclone(mri_fill, NULL) ;
+    MRIvox(mri_fg, wm_rh_x, wm_rh_y, wm_rh_z) = rh_fill_val ;
+    MRIvox(mri_fg, wm_lh_x, wm_lh_y, wm_lh_z) = lh_fill_val ;
+    MRIgrowLabel(mri_fill, mri_fg, lh_fill_val, lh_fill_val) ;
+    MRIgrowLabel(mri_fill, mri_fg, rh_fill_val, rh_fill_val) ;
+    mri_bg = MRIclone(mri_fill, NULL) ;
+    MRIvox(mri_bg, 0, 0, 0) = 1 ;
+    MRIgrowLabel(mri_fill, mri_bg, 0, 1) ;
+    MRIturnOnFG(mri_fill, mri_fg, mri_bg) ;
+    MRIturnOffBG(mri_fill, mri_bg) ;
+  }
+  
   if (!Gdiag)
     fprintf(stderr, "writing output to %s...", out_fname) ;
   MRIwrite(mri_fill, out_fname) ;
@@ -468,7 +612,7 @@ fill_brain(MRI *mri_fill, MRI *mri_im, int threshold)
 {
   int dir = -1, nfilled = 10000, ntotal = 0,iter = 0;
   int im0,im1,j0,j1,i0,i1,imnr,i,j;
-  int v1,v2,v3,vmax, prior ;
+  int v1,v2,v3,vmax ;
 
   mriFindBoundingBox(mri_im) ;
   while (nfilled>min_filled && iter<MAX_ITERATIONS)
@@ -517,17 +661,6 @@ fill_brain(MRI *mri_fill, MRI *mri_im, int threshold)
                 /* set vmax to biggest of three interior neighbors */
                 vmax = (v1>=v2&&v1>=v3)?v1:((v2>=v1&&v2>=v3)?v2:v3);
 
-                if (fix && threshold > 0)  /* fixing hemispheric overlap */
-                {
-                  if (vmax == lh_fill_val)
-                    prior = MRIvox(mri_rh_priors, j, i, imnr) ;
-                  else
-                    prior = MRIvox(mri_lh_priors, j, i, imnr) ;
-
-                  if (prior < overlap_thresh)
-                    continue ;
-                }
-
                 MRIvox(mri_fill, j, i, imnr) = vmax;
                 nfilled++;
                 ntotal++;
@@ -573,7 +706,7 @@ fill_holes(MRI *mri_fill)
         if (v == 0) cnt++;              /* count # of nbrs which are off */
         if (cnt>cntmax) im0=i0=x0=1;    /* break out of all 3 loops */
       }
-      if (x == 136 && i == 118 && z == 160)
+      if (x == 79 && i == 86 && z == 119)
         DiagBreak() ;
       if (cnt<=cntmax)   /* toggle pixel (off to on, or on to off) */
       {
@@ -610,7 +743,8 @@ get_option(int argc, char *argv[])
   {
     rh_fill_val = atoi(argv[2]) ;
     nargs = 1 ;
-    fprintf(stderr,"using %d as fill val for right hemisphere.\n",rh_fill_val);
+    fprintf(stderr,"using %d as fill val for right hemisphere.\n",
+            rh_fill_val);
   }
   else if (!strcmp(option, "lval"))   /* sorry */
   {
@@ -618,38 +752,20 @@ get_option(int argc, char *argv[])
     nargs = 1 ;
     fprintf(stderr,"using %d as fill val for left hemisphere.\n",lh_fill_val);
   }
-  else if (!strcmp(option, "fix"))
-  {
-    fix = 1 ; sname = argv[2] ; nargs = 1 ;
-    if (fix)
-      fprintf(stderr, "using 3D morph atlas to fix hemispheric overlap\n");
-    else
-      fprintf(stderr, "disabling hemispheric overlap fixing\n");
-  }
   else if (!strcmp(option, "ccmask"))
   {
     cc_mask = 1 /*!cc_mask*/ ;
     fprintf(stderr,"%susing corpus callosum to mask possible location of "
             "pons.\n", cc_mask ? "" : "not ");
   }
+  else if (!strcmp(option, "atlas"))
+  {
+    atlas_name = argv[2] ; sname = argv[3] ;
+    nargs = 2 ;
+    fprintf(stderr, "using atlas %s for auto filling...\n", atlas_name) ;
+  }
   else switch (toupper(*option))
   {
-  case 'R':
-    wm_rh_tal_x = atof(argv[2]) ;
-    wm_rh_tal_y = atof(argv[3]) ;
-    wm_rh_tal_z = atof(argv[4]) ;
-    nargs = 3 ;
-    fprintf(stderr, "using rh wm seed point (%2.0f, %2.0f, %2.0f)\n",
-            wm_rh_tal_x, wm_rh_tal_y, wm_rh_tal_z) ;
-    break ;
-  case 'L':
-    wm_lh_tal_x = atof(argv[2]) ;
-    wm_lh_tal_y = atof(argv[3]) ;
-    wm_lh_tal_z = atof(argv[4]) ;
-    nargs = 3 ;
-    fprintf(stderr, "using lh wm seed point (%2.0f, %2.0f, %2.0f)\n",
-            wm_lh_tal_x, wm_lh_tal_y, wm_lh_tal_z) ;
-    break ;
   case 'P':
     pons_tal_x = atof(argv[2]) ;
     pons_tal_y = atof(argv[3]) ;
@@ -743,7 +859,7 @@ print_help(void)
 
 /* aspect ratios are dy/dx */
 #define MIN_CC_AREA       350  /* smallest I've seen is 389 */
-#define MAX_CC_AREA      1400  /* biggest I've seen is 960 */
+#define MAX_CC_AREA      1400  /* biggest I've seen is 1154 */
 #define MIN_CC_ASPECT     0.1
 #define MAX_CC_ASPECT     0.65
 
@@ -1466,54 +1582,6 @@ neighbors_on(MRI *mri, int x0, int y0, int z0)
     nbrs++ ;
   return(nbrs) ;
 }
-/*-----------------------------------------------------
-        Parameters:
-
-        Returns value:
-
-        Description
-          Set an MRI intensity values to 0
-------------------------------------------------------*/
-int
-MRIsetValues(MRI *mri, int val)
-{
-  int   width, depth, height, bytes, y, z, frame, nframes ;
-
-  width = mri->width ;
-  height = mri->height ;
-  depth = mri->depth ;
-  nframes = mri->nframes ;
-  bytes = width ;
-
-  switch (mri->type)
-  {
-  case MRI_BITMAP:
-    bytes /= 8 ;
-    break ;
-  case MRI_FLOAT:
-    bytes *= sizeof(float) ;
-    break ;
-  case MRI_LONG:
-    bytes *= sizeof(long) ;
-    break ;
-  case MRI_INT:
-    bytes *= sizeof(int) ;
-    break ;
-  default:
-    break ;
-  }
-
-  for (frame = 0 ; frame < nframes ; frame++)
-  {
-    for (z = 0 ; z < depth ; z++)
-    {
-      for (y = 0 ; y < height ; y++)
-        memset(mri->slices[z+frame*depth][y], val, bytes) ;
-    }
-  }
-  
-  return(NO_ERROR) ;
-}
 #if 0
 static int mriExtendMaskDownward(MRI *mri) ;
 static int
@@ -1588,13 +1656,7 @@ MRIfillVolume(MRI *mri_fill, MRI *mri_im, int x_seed, int y_seed, int z_seed,
   MRIcopy(mri_fill, mri_im) ;
   MRIclear(mri_fill) ;
 
-#if 0
-  MRIvox(mri_fill, wm_lh_x, wm_lh_y, wm_lh_z) = lh_fill_val ;
-  MRIvox(mri_fill, wm_rh_x, wm_rh_y, wm_rh_z) = rh_fill_val ;
-#else
   MRIvox(mri_fill, x_seed, y_seed, z_seed) = fill_val ;
-#endif
-
 
   /* fill in background of complement (also sometimes called the foreground) */
   if (!Gdiag)
@@ -1648,6 +1710,15 @@ mriFindBoundingBox(MRI *mri_im)
   }
   return(NO_ERROR) ;
 }
+
+/*
+  combine the two filled hemispheres into a single filled volume.
+  Overlap in the volumes is resolved by filling from the most lateral
+  part of each hemisphere, and making the fill variable so that wide 
+  connections are filled before narrow ones (defined by the # of neighbors
+  that are on). Note that this routine modifies mri_lh and mri_rh so
+  that they do not overlap.
+*/
 
 MRI *
 MRIcombineHemispheres(MRI *mri_lh, MRI *mri_rh, MRI *mri_dst, Real cc_tal_x)
@@ -1769,11 +1840,13 @@ MRIcombineHemispheres(MRI *mri_lh, MRI *mri_rh, MRI *mri_dst, Real cc_tal_x)
               {
                 nfilled++ ;
                 MRIvox(mri_tmp, x, y, z) = rh ;
+                MRIvox(mri_lh, x, y, z) = 0 ;
               }
               else if (nleft > nright && nleft >= min_on)
               {
                 nfilled++ ;
                 MRIvox(mri_tmp, x, y, z) = lh ;
+                MRIvox(mri_rh, x, y, z) = 0 ;
               }
               else
                 nambiguous++ ;
@@ -1791,5 +1864,290 @@ MRIcombineHemispheres(MRI *mri_lh, MRI *mri_rh, MRI *mri_dst, Real cc_tal_x)
 
   if (Gdiag & DIAG_SHOW && ncorrected > 0)
     fprintf(stderr, "%d overlapping voxels corrected\n", ncorrected) ;
+  return(mri_dst) ;
+}
+
+
+static MRI *
+mriReadConditionalProbabilities(MRI *mri_T1, char *atlas_name, char *suffix, 
+                                int offset, M3D *m3d, MRI *mri_dst)
+{
+  MRI  *mri_mean, *mri_std, *mri_tmp ;
+  char *mri_dir, fname[STRLEN] ;
+
+  mri_dir = getenv("MRI_DIR") ;
+  if (!mri_dir)
+    ErrorExit(ERROR_BADPARM, "%s: could not read MRI_DIR from environment\n") ;
+
+  if (!mri_dst)
+    mri_dst = MRIclone(mri_T1, NULL) ;
+
+  /* read and transform the mean volume */
+  sprintf(fname, "%s/average/%s_%s.mgh#%d",
+          mri_dir, atlas_name, suffix, offset) ;
+  fprintf(stderr, "reading atlas means from %s...\n", fname) ;
+  mri_mean = MRIread(fname) ;
+  if (!mri_mean)
+    ErrorExit(ERROR_NOFILE, "%s: could not read mean file %s",
+              Progname, fname) ;
+  if (m3d)
+  {
+    mri_tmp = MRIapplyInverse3DMorph(mri_mean, m3d, NULL) ;
+    MRIfree(&mri_mean) ; mri_mean = mri_tmp ;
+  }
+
+  /* read and transform the standard deviation volume */
+  sprintf(fname, "%s/average/%s_%s.mgh#%d",
+          mri_dir, atlas_name, suffix, offset+1) ;
+  fprintf(stderr, "reading atlas sigmas from %s...\n", fname) ;
+  mri_std = MRIread(fname) ;
+  if (!mri_std)
+    ErrorExit(ERROR_NOFILE, "%s: could not read std file %s",
+              Progname, fname) ;
+  if (m3d)
+  {
+    mri_tmp = MRIapplyInverse3DMorph(mri_std, m3d, NULL) ;
+    MRIfree(&mri_std) ; mri_std = mri_tmp ;
+  }
+  mri_dst = 
+    MRIcomputeConditionalProbabilities(mri_T1, mri_mean, mri_std, NULL) ;
+  MRIfree(&mri_mean) ; MRIfree(&mri_std) ;
+  return(mri_dst) ;
+}
+
+static MRI *
+mriReadBinaryProbabilities(char *atlas_name, char *suffix, M3D *m3d, 
+                           char *subject_name, MRI *mri_dst)
+{
+  MRI  *mri_priors, *mri_T1, *mri_on_conditional, *mri_off_conditional, *mri_tmp ;
+  char *mri_dir, *subjects_dir, fname[STRLEN] ;
+
+  mri_dir = getenv("MRI_DIR") ;
+  if (!mri_dir)
+    ErrorExit(ERROR_BADPARM, "%s: could not read MRI_DIR from environment\n") ;
+  subjects_dir = getenv("SUBJECTS_DIR") ;
+  if (!subjects_dir)
+    ErrorExit(ERROR_BADPARM, 
+              "%s: could not read SUBJECTS_DIR from environment\n") ;
+
+  /* read in subject's T1 volume */
+  sprintf(fname, "%s/%s/mri/T1", subjects_dir, subject_name) ;
+  fprintf(stderr, "reading T1 volume from %s...\n", fname) ;
+  mri_T1 = MRIread(fname) ;
+  if (!mri_T1)
+    ErrorExit(ERROR_NOFILE, "%s: could not read T1 volume from %s",
+              Progname, fname) ;
+
+  /* read and transform the standard deviation volume */
+  sprintf(fname, "%s/average/%s_%s.mgh#0", mri_dir, atlas_name, suffix) ;
+  fprintf(stderr, "reading atlas priors from %s offset 0...\n", fname) ;
+  mri_priors = MRIread(fname) ;
+  if (!mri_priors)
+    ErrorExit(ERROR_NOFILE, "%s: could not read priors file %s",
+              Progname, fname) ;
+  if (m3d)
+  {
+    mri_tmp = MRIapplyInverse3DMorph(mri_priors, m3d, NULL) ;
+    MRIfree(&mri_priors) ; mri_priors = mri_tmp ;
+  }
+
+  mri_on_conditional = 
+    mriReadConditionalProbabilities(mri_T1, atlas_name, suffix, 1, m3d, NULL) ;
+  mri_off_conditional = 
+    mriReadConditionalProbabilities(mri_T1, atlas_name, suffix, 3, m3d, NULL) ;
+  mri_dst = 
+    MRIapplyBayesLaw(mri_priors,mri_on_conditional,mri_off_conditional,NULL);
+  MRIfree(&mri_T1) ; MRIfree(&mri_on_conditional) ;
+  MRIfree(&mri_priors) ; MRIfree(&mri_off_conditional) ;
+  return(mri_dst) ;
+}
+
+static MRI *
+MRIfillVentricle(MRI *mri_src, MRI *mri_prob, MRI *mri_T1, MRI *mri_dst, 
+                 float threshold, int out_label, int xabs_min, int xabs_max)
+{
+  BUFTYPE   *pprob, *pdst, *psrc, out_val, prob, in_val ;
+  int       width, height, depth, x, y, z, ymin, ymax, zmin, zmax, 
+            nfilled, xk, yk, zk, niter, xmin, xmax, expanded, expansions,
+            xi, yi, zi, ventricle_voxels, total_expanded ;
+
+  if (mri_prob->type != MRI_UCHAR)
+    ErrorReturn(NULL, (ERROR_UNSUPPORTED, 
+                       "MRI3Dthreshold: prob must be MRI_UCHAR")) ;
+
+  if (!mri_dst)
+    mri_dst = MRIclone(mri_src, NULL) ;
+
+  width = mri_src->width ; height = mri_src->height ; depth = mri_src->depth ; 
+  /* now apply the inverse morph to build an average wm representation
+     of the input volume 
+     */
+
+
+  total_expanded = ventricle_voxels = 0 ;
+  for (z = 0 ; z < depth ; z++)
+  {
+    for (y = 0 ; y < height ; y++)
+    {
+      pprob = &MRIvox(mri_prob, 0, y, z) ;
+      psrc = &MRIvox(mri_src, 0, y, z) ;
+      pdst = &MRIvox(mri_dst, 0, y, z) ;
+      for (x = 0 ; x < width ; x++)
+      {
+        if (DEBUG_POINT(x,y,z))
+          DiagBreak() ;
+        out_val = 0 ;
+        prob = *pprob++ ;   /* value from inverse morphed volume */
+        in_val = *psrc++ ;
+        if (prob >= threshold)        /* probably on */
+          out_val = out_label ;
+        else                         /* not sure, use original val */
+          out_val = 0 ;
+
+        if (out_val)
+          ventricle_voxels++ ;
+        *pdst++ = out_val ;
+      }
+    }
+  }
+
+  nfilled = niter = 0 ;
+  xmin = width ; ymin = height ; zmin = depth ;
+  xmax = ymax = zmax = 0 ;
+  do
+  {
+    expansions = expanded = 0 ;
+
+    /* compute bounding box */
+    if (!nfilled)  /* couldn't fill anymore in this bbox - expand it */
+    {
+      xmin = width ; ymin = height ; zmin = depth ;
+      xmax = ymax = zmax = 0 ;
+      for (z = 0 ; z < depth ; z++)
+      {
+        for (y = 0 ; y < height ; y++)
+        {
+          for (x = 0 ; x < width ; x++)
+          {
+            if (x == 151 && y == 139 && z == 69)
+              DiagBreak() ;
+            if (MRIvox(mri_dst, x, y, z) == out_label)
+            {
+              if (x < xmin)
+                xmin = x ;
+              if (y < ymin)
+                ymin = y ;
+              if (z < zmin)
+                zmin = z ;
+              if (x > xmax)
+                xmax = x ;
+              if (y > ymax)
+                ymax = y ;
+              if (z > zmax)
+                zmax = z ;
+            }
+          }
+        }
+      }
+      expanded = 1 ; expansions++ ;
+    }
+    else
+      expanded = 0 ;
+
+    nfilled = 0 ;
+
+    /* don't let bounding box grow outside limits imposed by caller.
+       This will (hopefully) prevent the filling from expanding medially
+       and escaping into the third ventricle.
+    */
+    if (xmin < xabs_min)
+      xmin = xabs_min ;
+    if (xmax > xabs_max)
+      xmax = xabs_max ;
+
+    if (!niter++)  /* first time through - shrink filled region */
+    {
+#define MAX_EXPANSIONS 5
+#define BUFFER         10
+
+      for (z = zmin ; z <= zmax ; z++)
+      {
+        for (y = ymin ; y <= ymax ; y++)
+        {
+          for (x = xmin ; x <= xmax ; x++)
+          {
+            /* if close to one of the borders */
+            if ((((x-xmin) <= BUFFER) || ((xmax-x) <= BUFFER)) ||
+                (((z-zmin) <= BUFFER) || ((zmax-z) <= BUFFER)) ||
+                (((y-ymin) <= BUFFER) || ((ymax-y) <= BUFFER)))
+            {
+              if (x == 151 && y == 139 && z == 69)
+                DiagBreak() ;
+              if (MRIvox(mri_dst, x, y, z) == out_label)
+                MRIvox(mri_dst, x, y, z) = 0 ;
+            }
+          }
+        }
+      }
+      xmin += BUFFER ; xmax -= BUFFER ;
+      ymin += BUFFER ; ymax -= BUFFER ;
+      zmin += BUFFER ; zmax -= BUFFER ;
+#if 1
+      if (out_label == lh_fill_val)
+        MRIwrite(mri_dst, "left_ventricle_p_fill.mgh") ;
+      else
+        MRIwrite(mri_dst, "right_ventricle_p_fill.mgh") ;
+#endif
+    }
+
+    fprintf(stderr, "ventricle bounding box [%d, %d, %d] --> [%d, %d, %d]\n",
+            xmin, ymin, zmin, xmax, ymax, zmax) ;
+    for (z = zmin ; z <= zmax ; z++)
+    {
+      for (y = ymin ; y <= ymax ; y++)
+      {
+        for (x = xmin ; x <= xmax ; x++)
+        {
+          if (x == 122 && y == 109 && z == 117)
+            DiagBreak() ;
+          if (MRIvox(mri_dst, x, y, z) == out_label)
+          {   /* a filled voxel - expand fill */
+            for (zk = -1 ; zk <= 1 ; zk++)
+            {
+              zi = mri_dst->zi[z+zk] ;
+              for (yk = -1 ; yk <= 1 ; yk++)
+              {
+                yi = mri_dst->yi[y+yk] ;
+                for (xk = -1 ; xk <= 1 ; xk++)
+                {
+                  xi = mri_dst->xi[x+xk] ;
+                  if (x == 122 && y == 108 && z == 117)
+                    DiagBreak() ;
+                  if ((MRIvox(mri_T1, xi, yi, zi) < 50) &&
+                      (MRIvox(mri_dst, xi, yi, zi) != out_label))
+                  {
+                    MRIvox(mri_dst, xi, yi, zi) = out_label ;
+                    nfilled++ ;
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+    fprintf(stderr, "%d ventricular voxels filled\n", nfilled) ;
+    total_expanded += nfilled ;
+
+    if ((ventricle_voxels + total_expanded > 20000) ||
+        (++expansions >= MAX_EXPANSIONS))
+      break ;
+
+  } while (!expanded || (nfilled > 0)) ;
+  
+  ventricle_voxels += total_expanded ;
+  fprintf(stderr, "%5d ventricular voxels, %5d from atlas %5d from fill.\n", 
+          ventricle_voxels, ventricle_voxels-total_expanded, total_expanded);
+
   return(mri_dst) ;
 }
