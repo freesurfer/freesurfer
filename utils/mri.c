@@ -9,9 +9,9 @@
 */
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: greve $
-// Revision Date  : $Date: 2003/05/09 20:13:54 $
-// Revision       : $Revision: 1.222 $
-char *MRI_C_VERSION = "$Revision: 1.222 $";
+// Revision Date  : $Date: 2003/05/09 20:20:50 $
+// Revision       : $Revision: 1.223 $
+char *MRI_C_VERSION = "$Revision: 1.223 $";
 
 /*-----------------------------------------------------
                     INCLUDE FILES
@@ -420,23 +420,31 @@ MATRIX *MRIfixTkReg(MRI *mov, MATRIX *R)
   -------------------------------------------------------------------*/
 MATRIX *MRIfsl2TkReg(MRI *ref, MRI *mov, MATRIX *FSLRegMat)
 {
-  MATRIX *RegMat=NULL, *invDmov, *Tmov;
+  MATRIX *RegMat=NULL, *invDmov, *Tmov, *Dref;
   MATRIX *invFSLRegMat, *invTref, *Tref;
 
-  /* R = Tmov * inv(Dmov) * inv(Mfsl) * inv(Ttarg) */
+  /* R = Tmov * inv(Dmov) * inv(Mfsl) * Dref * inv(Tref) */
   invDmov = MatrixAlloc(4,4,MATRIX_REAL);
   invDmov->rptr[1][1] = 1.0/mov->xsize;
   invDmov->rptr[2][2] = 1.0/mov->ysize;
   invDmov->rptr[3][3] = 1.0/mov->zsize;
   invDmov->rptr[4][4] = 1.0;
-  invFSLRegMat = MatrixInverse(FSLRegMat,NULL);
       
+  Dref = MatrixAlloc(4,4,MATRIX_REAL);
+  Dref->rptr[1][1] = ref->xsize;
+  Dref->rptr[2][2] = ref->ysize;
+  Dref->rptr[3][3] = ref->zsize;
+  Dref->rptr[4][4] = 1.0;
+
   Tmov = MRIxfmCRS2XYZtkreg(mov);
   Tref = MRIxfmCRS2XYZtkreg(ref);
   invTref = MatrixInverse(Tref,NULL);
 
+  invFSLRegMat = MatrixInverse(FSLRegMat,NULL);
+
   RegMat = MatrixMultiply(Tmov,invDmov,RegMat);
   RegMat = MatrixMultiply(RegMat,invFSLRegMat,RegMat);
+  RegMat = MatrixMultiply(RegMat,Dref,RegMat);
   RegMat = MatrixMultiply(RegMat,invTref,RegMat);
 
   MatrixFree(&invDmov);
@@ -445,6 +453,7 @@ MATRIX *MRIfsl2TkReg(MRI *ref, MRI *mov, MATRIX *FSLRegMat)
   MatrixFree(&Tmov);
   MatrixFree(&Tref);
   MatrixFree(&invTref);
+  MatrixFree(&Dref);
 
   return(RegMat);
 }
@@ -458,7 +467,7 @@ MATRIX *MRItkreg2FSL(MRI *ref, MRI *mov, MATRIX *tkRegMat)
 {
   MATRIX *FSLRegMat=NULL, *Dmov, *Tmov, *invTmov, *Tref, *Dref, *invDref;
 
-  /* R = Tmov * inv(Dmov) * inv(Mfsl) * inv(Tref) */
+  /* R = Tmov * inv(Dmov) * inv(Mfsl) * Dref * inv(Tref) */
   /* Mfsl =  inv( Dmov * inv(Tmov) * R * Tref * inv(Dref)) */
   Dmov = MatrixAlloc(4,4,MATRIX_REAL);
   Dmov->rptr[1][1] = mov->xsize;
@@ -496,6 +505,9 @@ MATRIX *MRItkreg2FSL(MRI *ref, MRI *mov, MATRIX *tkRegMat)
     MatrixPrint(stdout,Dref);
     printf("--- Rfsl ---------------------\n");
     MatrixPrint(stdout,FSLRegMat);
+    printf("--- R (from Rfsl) ------------\n");
+    tkRegMat = MRIfsl2TkReg(ref,mov,FSLRegMat);
+    MatrixPrint(stdout,tkRegMat);
   }
 
   MatrixFree(&Dmov);
@@ -503,6 +515,7 @@ MATRIX *MRItkreg2FSL(MRI *ref, MRI *mov, MATRIX *tkRegMat)
   MatrixFree(&invTmov);
   MatrixFree(&Tref);
   MatrixFree(&Dref);
+  MatrixFree(&invDref);
 
   return(FSLRegMat);
 }
