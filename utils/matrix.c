@@ -1084,7 +1084,13 @@ MatrixSVDInverse(MATRIX *m, MATRIX *m_inverse)
   m_w = MatrixAlloc(cols, cols, MATRIX_REAL) ;
 
   if (svdcmp(m_U->rptr, rows, cols, v_w->rptr[1], m_V->rptr) != NO_ERROR)
+  {
+    MatrixFree(&m_U) ;
+    VectorFree(&v_w) ;
+    MatrixFree(&m_V) ;
+    MatrixFree(&m_w) ;
     return(NULL) ;
+  }
 
   wmax = 0.0f ;
   for (row = 1 ; row <= rows ; row++)
@@ -1103,11 +1109,13 @@ MatrixSVDInverse(MATRIX *m, MATRIX *m_inverse)
   m_tmp = MatrixMultiply(m_w, m_Ut, NULL) ;
   m_inverse = MatrixMultiply(m_V, m_tmp, m_inverse) ;
 
-  MatrixFree(&m_Ut) ;
-  MatrixFree(&m_w) ;
   MatrixFree(&m_U) ;
   VectorFree(&v_w) ;
   MatrixFree(&m_V) ;
+  MatrixFree(&m_w) ;
+
+  MatrixFree(&m_Ut) ;
+  MatrixFree(&m_tmp) ;
   return(m_inverse) ;
 }
 
