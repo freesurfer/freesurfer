@@ -1,3 +1,4 @@
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -6,6 +7,7 @@
 
 #include "lpafile.h"
 #include "utils.h"
+#include "machine.h"
 #include "error.h"
 #include "proto.h"
 #include "hipsu.h"
@@ -58,6 +60,17 @@ LPAFreadImageAnswer(LPAF *lpaf, int current)
       break ;
 
   parms = xp->val.v_pi ;
+
+  if (parms[0] < 0 || parms[0] >= Iheader.cols)
+  {
+    parms[0] = swapInt(parms[0]) ;
+    parms[1] = swapInt(parms[1]) ;
+    for (i = 0 ; i < NPOINTS ; i++)
+    {
+      parms[2+2*i] = swapInt(parms[2*i]) ;
+      parms[2+2*i+1] = swapInt(parms[2*i+1]) ;
+    }
+  }
 
   if (parms[0] == INIT_VAL)  /* not yet written with real value */
     return(0) ;
