@@ -3,8 +3,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2003/05/06 21:10:08 $
-// Revision       : $Revision: 1.66 $
+// Revision Date  : $Date: 2003/05/07 16:42:23 $
+// Revision       : $Revision: 1.67 $
 
 #include "tkmDisplayArea.h"
 #include "tkmMeditWindow.h"
@@ -810,13 +810,13 @@ DspA_tErr DspA_SetOverlayVolume ( tkmDisplayAreaRef      this,
   
   /* turn functional data and color scale bar on if there is */
   if( bOverlayLoaded ) {
-    eResult = DspA_SetDisplayFlag( this, DspA_tDisplayFlag_FunctionalOverlay,
-				   TRUE );
+    eResult = 
+      DspA_SetDisplayFlag( this, DspA_tDisplayFlag_FunctionalOverlay, TRUE );
     if( DspA_tErr_NoErr != eResult )
       goto error;
     
-    eResult = DspA_SetDisplayFlag( this, 
-				   DspA_tDisplayFlag_FunctionalColorScaleBar, TRUE );
+    eResult = 
+      DspA_SetDisplayFlag(this,DspA_tDisplayFlag_FunctionalColorScaleBar,TRUE);
     if( DspA_tErr_NoErr != eResult )
       goto error;
   }
