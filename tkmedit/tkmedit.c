@@ -9,9 +9,9 @@
 
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2005/01/05 19:57:54 $
-// Revision       : $Revision: 1.236 $
-char *VERSION = "$Revision: 1.236 $";
+// Revision Date  : $Date: 2005/02/17 18:22:58 $
+// Revision       : $Revision: 1.237 $
+char *VERSION = "$Revision: 1.237 $";
 
 #define TCL
 #define TKMEDIT 
@@ -1076,7 +1076,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
      shorten our argc and argv count. If those are the only args we
      had, exit. */
   /* rkt: check for and handle version tag */
-  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.236 2005/01/05 19:57:54 kteich Exp $", "$Name:  $");
+  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.237 2005/02/17 18:22:58 kteich Exp $", "$Name:  $");
   if (nNumProcessedVersionArgs && argc - nNumProcessedVersionArgs == 1)
     exit (0);
   argc -= nNumProcessedVersionArgs;
@@ -5205,7 +5205,7 @@ int main ( int argc, char** argv ) {
     DebugPrint( ( "%s ", argv[nArg] ) );
   }
   DebugPrint( ( "\n\n" ) );
-  DebugPrint( ( "$Id: tkmedit.c,v 1.236 2005/01/05 19:57:54 kteich Exp $ $Name:  $\n" ) );
+  DebugPrint( ( "$Id: tkmedit.c,v 1.237 2005/02/17 18:22:58 kteich Exp $ $Name:  $\n" ) );
 
   
   /* init glut */
@@ -6674,13 +6674,15 @@ void RemoveVoxelsFromSelection ( xVoxelRef iaMRIIdx, int inCount ) {
 	  if( xVoxl_IsEqualFloat( delVoxel, &iaMRIIdx[nVoxel] ) ) {
 	    xList_RemoveItem( gSelectionList, (void**)&delVoxel );
 	    xVoxl_Delete( &delVoxel );
+
+	    /* Dec our selection count. */
+	    gSelectionCount--;
+
 	    break;
 	  }
 	}
       }
 
-      /* Dec our selection count. */
-      gSelectionCount--;
     }
   }
 }
@@ -6769,7 +6771,7 @@ void SaveSelectionToLabelFile ( char * isFileName ) {
       }
       DebugAssertThrowX( (Volm_tErr_NoErr == eVolume), 
 			 eResult, tkm_tErr_ErrorAccessingVolume );
-      
+
       /* get a ptr the vertex in the label file. */
       DebugNote( ("Geting ptr to vertex %d", nVoxel) );
       pVertex = &(pLabel->lv[nVoxel]);
@@ -6779,7 +6781,7 @@ void SaveSelectionToLabelFile ( char * isFileName ) {
       pVertex->x = xVoxl_GetFloatX( &ras );
       pVertex->y = xVoxl_GetFloatY( &ras );
       pVertex->z = xVoxl_GetFloatZ( &ras );
-      
+	
       /* set the vno to -1, which is significant somewhere outside
 	 the realm of tkmedit. set stat value to the mri value
 	 and deleted to not */
@@ -6791,7 +6793,6 @@ void SaveSelectionToLabelFile ( char * isFileName ) {
       
       /* inc our global count. */
       nVoxel++;
-
     }
   }
     
