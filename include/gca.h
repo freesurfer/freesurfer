@@ -157,7 +157,7 @@ float GCAlabelProbability(MRI *mri_src, GCA *gca, LTA *lta,
 MRI   *GCAmaxLikelihoodBorders(GCA *gca, MRI *mri_inputs, MRI *mri_src,
                                MRI *mri_dst, LTA *lta, int max_iter,
                                float min_ratio) ;
-int   GCAaccumumateTissueStatistics(GCA *gca, MRI *mri_T1, MRI *mri_PD, 
+int   GCAaccumulateTissueStatistics(GCA *gca, MRI *mri_T1, MRI *mri_PD, 
                                     MRI *mri_parc, LTA *lta) ;
 int   GCAnormalizeTissueStatistics(GCA *gca) ;
 char *cma_label_to_name(int label) ;
@@ -170,6 +170,7 @@ int GCAdump(GCA *gca, MRI *mri, int x, int y, int z, LTA *lta, FILE *fp,
 int GCArenormalizeIntensities(GCA *gca, int *labels, float *intensities, 
                               int num) ;
 double  GCAlabelMean(GCA *gca, int label) ;
+int     GCAregularizeConditionalDensities(GCA *gca, float smooth) ;
 
 
 #define MIN_PRIOR  0.5
