@@ -13,7 +13,7 @@
 #include "mri.h"
 #include "macros.h"
 
-static char vcid[] = "$Id: mris_inflate.c,v 1.4 1997/12/15 20:34:32 fischl Exp $";
+static char vcid[] = "$Id: mris_inflate.c,v 1.5 1997/12/19 20:24:22 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -117,7 +117,7 @@ main(int argc, char *argv[])
 
   if (parms.niterations > 0)
   {
-    MRISunfold(mris, &parms) ;
+    MRISunfold(mris, &parms, 100) ;
     if (Gdiag & DIAG_SHOW)
       fprintf(stderr, "writing inflated surface to %s\n", out_fname) ;
     MRISwrite(mris, out_fname) ;
