@@ -14,7 +14,7 @@
 #include "mri.h"
 #include "macros.h"
 
-static char vcid[] = "$Id: mris_inflate.c,v 1.22 1999/09/28 18:58:46 fischl Exp $";
+static char vcid[] = "$Id: mris_inflate.c,v 1.23 1999/10/12 18:37:10 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -318,7 +318,7 @@ get_option(int argc, char *argv[])
     parms.scale = atof(argv[2]) ;
     nargs = 1 ;
     parms.desired_rms_height = -1.0 ;
-    fprintf(stderr, "setting desired RMS to %2.2f of original\n",parms.scale);
+    fprintf(stderr, "scaling brain area during integration\n");
   }
   else if (!stricmp(option, "dt_inc"))
   {
