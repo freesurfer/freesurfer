@@ -5898,6 +5898,16 @@ read_image_info(char *fpref)
       fscanf(fptr, "%*s %*f") ;   /* ti */
       fscanf(fptr, "%*s %s",char_buf);
       fclose(fptr);
+
+      fov *= 1000;
+      ps *= 1000;
+      st *= 1000;
+      xx0 *= 1000;
+      xx1 *= 1000;
+      yy0 *= 1000;
+      yy1 *= 1000;
+      zz0 *= 1000;
+      zz1 *= 1000;
     }
   else 
     {
@@ -5931,21 +5941,11 @@ read_image_info(char *fpref)
 
   /* RKT: Check for fov == 0, which is incorrect. If it is, set it to
      0.256, which is a reasonable default.  */
-  if (0 == fov)
+  if (fabs(fov) < 0.00001)
     {
-      print ("surfer: WARNING: fov was 0, setting to 0.256\n");
+      print ("surfer: WARNING: fov was ~0, setting to 0.256\n");
       fov = 0.256;
     }
-  
-  fov *= 1000;
-  ps *= 1000;
-  st *= 1000;
-  xx0 *= 1000;
-  xx1 *= 1000;
-  yy0 *= 1000;
-  yy1 *= 1000;
-  zz0 *= 1000;
-  zz1 *= 1000;
 
   numimg = imnr1-imnr0+1;
 }
@@ -18342,7 +18342,7 @@ int main(int argc, char *argv[])   /* new main */
   /* end rkt */
   
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: tksurfer.c,v 1.94 2005/01/05 21:28:47 kteich Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: tksurfer.c,v 1.95 2005/03/16 20:30:22 kteich Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -21005,7 +21005,7 @@ int conv_initialize()
       FileNamePath (mris->fname, path);
       sprintf (fname, "%s/../mri/orig", path);
       
-      origMRI = MRIreadHeader (fname, MRI_CORONAL_SLICE_DIRECTORY);
+      origMRI = MRIreadHeader (fname, MRI_VOLUME_TYPE_UNKNOWN);
       if( NULL == origMRI ) 
 	{
 	  printf ("WARNING: Couldn't not load orig volume from %s\n"
