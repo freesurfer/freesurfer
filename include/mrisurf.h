@@ -322,6 +322,7 @@ int          MRISreadValues(MRI_SURFACE *mris, char *fname) ;
 
 int          MRISwrite(MRI_SURFACE *mris, char *fname) ;
 int          MRISwriteAscii(MRI_SURFACE *mris, char *fname) ;
+int          MRISwriteGeo(MRI_SURFACE *mris, char *fname) ;
 int          MRISwritePatchAscii(MRI_SURFACE *mris, char *fname) ;
 int          MRISwriteCurvature(MRI_SURFACE *mris, char *fname) ;
 int          MRISnormalizeCurvature(MRI_SURFACE *mris) ;
