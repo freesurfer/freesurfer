@@ -14,8 +14,9 @@
 #include "fio.h"
 #include "mrishash.h"
 #include "sig.h"
+#include "version.h"
 
-static char vcid[] = "$Id: mris_compute_acorr.c,v 1.3 2000/05/03 13:45:04 fischl Exp $";
+static char vcid[] = "$Id: mris_compute_acorr.c,v 1.4 2003/04/17 18:15:37 kteich Exp $";
 
 
 /*-------------------------------- CONSTANTS -----------------------------*/
@@ -105,6 +106,12 @@ main(int argc, char *argv[])
   MRI_SP       *mrisp ;
   LABEL        *area ;
   FILE         *fp ;
+
+  /* rkt: check for and handle version tag */
+  nargs = handle_version_option (argc, argv, "$Id: mris_compute_acorr.c,v 1.4 2003/04/17 18:15:37 kteich Exp $");
+  if (nargs && argc - nargs == 1)
+    exit (0);
+  argc -= nargs;
 
   fp = fopen("scalespace.dat", "w") ;
 

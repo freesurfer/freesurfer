@@ -12,8 +12,9 @@
 #include "mrisurf.h"
 #include "macros.h"
 #include "fio.h"
+#include "version.h"
 
-static char vcid[] = "$Id: mris_convert.c,v 1.13 2002/11/15 15:45:37 fischl Exp $";
+static char vcid[] = "$Id: mris_convert.c,v 1.14 2003/04/17 18:16:52 kteich Exp $";
 
 
 /*-------------------------------- CONSTANTS -----------------------------*/
@@ -53,6 +54,12 @@ main(int argc, char *argv[])
   char         **av, *in_fname, *out_fname, fname[STRLEN], hemi[10],
                *cp, path[STRLEN], *dot, ext[STRLEN] ;
   int          ac, nargs ;
+
+  /* rkt: check for and handle version tag */
+  nargs = handle_version_option (argc, argv, "$Id: mris_convert.c,v 1.14 2003/04/17 18:16:52 kteich Exp $");
+  if (nargs && argc - nargs == 1)
+    exit (0);
+  argc -= nargs;
 
   Progname = argv[0] ;
   ErrorInit(NULL, NULL, NULL) ;

@@ -14,6 +14,7 @@
 #include "gcsa.h"
 #include "transform.h"
 #include "annotation.h"
+#include "version.h"
 
 int main(int argc, char *argv[]) ;
 static int get_option(int argc, char *argv[]) ;
@@ -51,6 +52,12 @@ main(int argc, char *argv[])
   struct timeb start ;
   MRI_SURFACE  *mris ;
   GCSA         *gcsa ;
+
+  /* rkt: check for and handle version tag */
+  nargs = handle_version_option (argc, argv, "$Id: mris_ca_label.c,v 1.7 2003/04/17 18:11:43 kteich Exp $");
+  if (nargs && argc - nargs == 1)
+    exit (0);
+  argc -= nargs;
 
   Progname = argv[0] ;
   ErrorInit(NULL, NULL, NULL) ;

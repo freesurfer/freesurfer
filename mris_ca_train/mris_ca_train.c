@@ -13,6 +13,7 @@
 #include "timer.h"
 #include "gcsa.h"
 #include "transform.h"
+#include "version.h"
 
 #define MAX_LABELS  1000
 static int write_ptable(char *fname, int *ptable, int nparcs) ;
@@ -59,6 +60,12 @@ main(int argc, char *argv[])
   struct timeb start ;
   MRI_SURFACE  *mris ;
   GCSA         *gcsa ;
+
+  /* rkt: check for and handle version tag */
+  nargs = handle_version_option (argc, argv, "$Id: mris_ca_train.c,v 1.7 2003/04/17 18:13:15 kteich Exp $");
+  if (nargs && argc - nargs == 1)
+    exit (0);
+  argc -= nargs;
 
   Progname = argv[0] ;
   ErrorInit(NULL, NULL, NULL) ;
