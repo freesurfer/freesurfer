@@ -37,6 +37,9 @@
 /*-----------------------------------------------------
                     STATIC PROTOTYPES
 -------------------------------------------------------*/
+static  void break_here(void) ;
+static  void break_here(void){}
+
 /*----------------------------------------------------------------------
             Parameters:
 
@@ -911,4 +914,426 @@ ImageOffsetMedialAxis(IMAGE *Ioffset, IMAGE *Iedge)
     ImageFree(&Iout) ;
   }
   return(Iedge) ;
+}
+/*----------------------------------------------------------------------
+            Parameters:
+
+           Description:
+----------------------------------------------------------------------*/
+IMAGE *
+ImageCalculateOffsetDirection(IMAGE *Ix, IMAGE *Iy, int wsize, IMAGE *Ioffset)
+{
+  int    x0, y0, rows, cols, x, y, whalf ;
+  float  vx, vy, *g, *xpix, *ypix ;
+  static float *gaussian = NULL ;
+  static int   w = 0 ;
+  register float gauss, fxpix, fypix, dot_product ;
+  register int   xc, yc ;
+
+  rows = Ix->rows ;
+  cols = Ix->cols ;
+
+  if (!Ioffset)
+    Ioffset = ImageAlloc(rows, cols, PFFLOAT, 2) ;
+
+  whalf = (wsize-1)/2 ;
+
+  /* create a local gaussian window */
+  if (wsize != w)
+  {
+    free(gaussian) ;
+    gaussian = NULL ;
+    w = wsize ;
+  }
+
+  if (!gaussian)  /* allocate a gaussian bump */
+  {
+    float den, norm ;
+
+    gaussian = (float *)calloc(wsize*wsize, sizeof(float)) ;
+    den = wsize*wsize + wsize + 1 ;
+    norm = 0.0f ;
+    for (g = gaussian, y = 0 ; y < wsize ; y++)
+    {
+      yc = y - whalf ;
+      for (x = 0 ; x < wsize ; x++, g++) 
+      {
+        xc = x - whalf ;
+        *g = (float)exp(-36.0 * sqrt((double)(xc*xc+yc*yc)) / (double)den) ;
+        norm += *g ;
+      }
+    }
+
+    /* normalize gaussian */
+    for (g = gaussian, y = 0 ; y < wsize ; y++)
+    {
+      for (x = 0 ; x < wsize ; x++, g++) 
+        *g /= norm ;
+    }
+  }
+
+  xpix = IMAGEFpix(Ioffset, 0, 0) ;
+  ypix = IMAGEFseq_pix(Ioffset, 0, 0, 1) ;
+  for (y0 = 0 ; y0 < rows ; y0++)
+  {
+    for (x0 = 0 ; x0 < cols ; x0++, xpix++, ypix++)
+    {
+      
+/*
+  x and y are in window coordinates, while xc and yc are in image
+  coordinates.
+*/
+      /* first build offset direction */
+      vx = vy = 0.0f ;
+      for (g = gaussian, y = -whalf ; y <= whalf ; y++)
+      {
+        /* reflect across the boundary */
+        yc = y + y0 ;
+        if ((yc < 0) || (yc >= rows))
+        {
+          g += wsize ;
+          continue ;
+        }
+        
+        for (x = -whalf ; x <= whalf ; x++, g++)
+        {
+          xc = x0 + x ;
+          if ((xc < 0) || (xc >= cols))
+            continue ;
+          
+          fxpix = *IMAGEFpix(Ix, xc, yc) ;
+          fypix = *IMAGEFpix(Iy, xc, yc) ;
+          dot_product = x * fxpix + y * fypix ;
+          gauss = *g ;
+          dot_product *= gauss ;
+          vx += (dot_product * fxpix) ;
+          vy += (dot_product * fypix) ;
+        }
+      }
+
+      *xpix = -vx ;
+      *ypix = -vy ;
+    }
+  }
+
+  return(Ioffset) ;
+}
+/*----------------------------------------------------------------------
+            Parameters:
+
+           Description:
+              use an offset field to scale an image
+
+              first generate an offset field using the full resolution, but
+              only performing the offset calculation on pixel centers of the
+              scaled image. Then do length computation using gradient reversal
+              in the full image as the criterion.
+----------------------------------------------------------------------*/
+#define SMOOTH_SIGMA 4.0f
+#define WSIZE        3
+#define WHALF        (WSIZE-1)/2
+
+/* global for debugging, make local if this routine is ever really used. */
+IMAGE *Ioffset = NULL, *Ioffset2 = NULL, *Ix = NULL, *Iy = NULL, *Ismooth = NULL ;
+
+#define MEDIAN_INDEX  ((3*3-1)/2)
+static int compare_sort_array(const void *pf1, const void *pf2) ;
+
+IMAGE *
+ImageOffsetScale(IMAGE *Isrc, IMAGE *Idst)
+{
+  static IMAGE   *Igauss = NULL ;
+  int     srows, scols, drows, dcols, xs, ys ;
+  int     x0, y0, x, y, ystep, xstep, maxsteps, i, idx, idy ;
+  float   vx, vy, *g, *xpix, *ypix, dx, dy, ox, oy, delta, slope,
+          xf, yf, odx, ody, *dpix, *spix, sort_array[3*3], *sptr ;
+  static float *gaussian = NULL ;
+  register float gauss, fxpix, fypix, dot_product ;
+  register int   xc, yc ;
+
+  srows = Isrc->rows ;
+  scols = Isrc->cols ;
+  drows = Idst->rows ;
+  dcols = Idst->cols ;
+
+  xstep = nint((double)scols / (double)dcols) ;
+  ystep = nint((double)srows / (double)drows) ;
+
+  if (Ioffset && ((Ioffset->rows != drows) || (Ioffset->cols != dcols)))
+  {
+    ImageFree(&Ioffset) ;
+    ImageFree(&Ioffset2) ;
+  }
+  if (Ix && ((Ix->rows != srows) || (Ix->cols != scols)))
+  {
+    ImageFree(&Ix) ;
+    ImageFree(&Iy) ;
+    ImageFree(&Ismooth) ;
+  }
+
+  if (!Ix)
+  {
+    Ix = ImageAlloc(srows, scols, PFFLOAT, 1) ;
+    Iy = ImageAlloc(srows, scols, PFFLOAT, 1) ;
+    Ismooth = ImageAlloc(srows, scols, PFFLOAT, 1) ;
+  }
+  if (!Ioffset)
+  {
+    Ioffset = ImageAlloc(drows, dcols, PFFLOAT, 2) ;
+    Ioffset2 = ImageAlloc(drows, dcols, PFFLOAT, 2) ;
+  }
+  if (!Igauss)
+    Igauss = ImageGaussian1d(SMOOTH_SIGMA, 5) ;
+
+  ImageConvolveGaussian(Isrc, Igauss, Ismooth, 0) ;
+/* ImageWrite(Ismooth, "smooth.hipl") ;*/
+  ImageSobel(Ismooth, NULL, Ix, Iy) ;
+
+  /* now calculate offset image */
+  if (!gaussian)  /* allocate a gaussian bump */
+  {
+    float den, norm ;
+
+    gaussian = (float *)calloc(WSIZE*WSIZE, sizeof(float)) ;
+    den = WSIZE*WSIZE + WSIZE + 1 ;
+    norm = 0.0f ;
+    for (g = gaussian, y = 0 ; y < WSIZE ; y++)
+    {
+      yc = y - WHALF ;
+      for (x = 0 ; x < WSIZE ; x++, g++) 
+      {
+        xc = x - WHALF ;
+        *g = (float)exp(-36.0 * sqrt((double)(xc*xc+yc*yc)) / (double)den) ;
+        norm += *g ;
+      }
+    }
+
+    /* normalize gaussian */
+    for (g = gaussian, y = 0 ; y < WSIZE ; y++)
+    {
+      for (x = 0 ; x < WSIZE ; x++, g++) 
+        *g /= norm ;
+    }
+  }
+
+  xpix = IMAGEFpix(Ioffset, 0, 0) ;
+  ypix = IMAGEFseq_pix(Ioffset, 0, 0, 1) ;
+/*
+  x0 and y0 are the coordinates of the center of the window in the unscaled image.
+  xc and yc are the coordinates of the window used for the offset computation in
+     the unscaled coordinates.
+  x and y are local window coordinates (i.e. -1 .. 1)
+*/
+  for (y0 = nint(0.5*(double)ystep) ; y0 < srows ; y0 += ystep)
+  {
+    for (x0 = nint(0.5*(double)xstep) ; x0 < scols ; x0 += xstep, xpix++, ypix++)
+    {
+      
+/*
+  x and y are in window coordinates, while xc and yc are in image
+  coordinates.
+*/
+      /* build offset direction */
+      vx = vy = 0.0f ;
+      for (g = gaussian, y = -WHALF ; y <= WHALF ; y++)
+      {
+        /* reflect across the boundary */
+        yc = y + y0 ;
+        if ((yc < 0) || (yc >= srows))
+        {
+          g += WSIZE ;
+          continue ;
+        }
+        
+        for (x = -WHALF ; x <= WHALF ; x++, g++)
+        {
+          xc = x0 + x ;
+          if ((xc < 0) || (xc >= scols))
+            continue ;
+          
+          fxpix = *IMAGEFpix(Ix, xc, yc) ;
+          fypix = *IMAGEFpix(Iy, xc, yc) ;
+          dot_product = x * fxpix + y * fypix ;
+          gauss = *g ;
+          dot_product *= gauss ;
+          vx += (dot_product * fxpix) ;
+          vy += (dot_product * fypix) ;
+        }
+      }
+
+      *xpix = -vx ;
+      *ypix = -vy ;
+    }
+  }
+
+
+#if 0
+ImageWrite(Ioffset, "offset1.hipl") ;
+ImageWrite(Ix, "ix.hipl") ;
+ImageWrite(Iy, "iy.hipl") ;
+#endif
+
+  ImageCopy(Ioffset, Ioffset2) ;
+/* 
+  now normalize offset lengths by searching for reversal in gradient field 
+  in offset direction
+ */
+  maxsteps = MAX(xstep, ystep)*2 ;
+  xpix = IMAGEFpix(Ioffset2, 0, 0) ;
+  ypix = IMAGEFseq_pix(Ioffset2, 0, 0, 1) ;
+  for (ys = 0, y0 = nint(0.5*(double)ystep) ; y0 < srows ; y0 += ystep, ys++)
+  {
+    for (xs=0,x0 = nint(0.5*(double)xstep) ; x0 < scols ; x0 += xstep, xpix++, 
+         ypix++,xs++)
+    {
+      ox = *xpix ;   /* initial offset direction */
+      oy = *ypix ;
+
+#if 0
+      if (xs == 29 && ys == 27)
+      {
+        fprintf(stderr, "initial offset: (%2.5f, %2.5f)\n", ox, oy) ;
+        break_here() ;
+      }
+#endif
+      dx = *IMAGEFpix(Ix, x0, y0) ;  /* starting gradient values */
+      dy = *IMAGEFpix(Iy, x0, y0) ;
+#if 0
+      if (xs == 29 && ys == 27)
+        fprintf(stderr, "initial gradient is (%2.5f, %2.5f)\n", dx, dy) ;
+#endif
+
+#if 0
+      if (FZERO(ox) && (FZERO(oy)))
+#else
+#define SMALL 0.00001f
+
+      if ((fabs(ox) < SMALL) && (fabs(oy) < SMALL))
+#endif
+        continue ;
+
+      if (fabs(ox) > fabs(oy))  /* use unit steps in x direction */
+      {
+        delta = nint(ox / (float)fabs(ox)) ;
+        slope = delta  * oy / ox ;
+        for (i = 0, yf = (float)y0+slope, x = x0+delta; i <= maxsteps;
+             x += delta, yf += slope, i++)
+        {
+          y = nint(yf) ;
+          if (y <= 0 || y >= (srows-1) || x <= 0 || x >= (scols-1))
+            break ;
+          
+          odx = *IMAGEFpix(Ix, x, y) ;
+          ody = *IMAGEFpix(Iy, x, y) ;
+          dot_product = odx * dx + ody * dy ;
+          if (dot_product <= 0)
+            break ;
+        }
+        x -= delta ;
+        y = nint(yf - slope) ;
+      }
+      else                     /* use unit steps in y direction */
+      {
+        delta = nint(oy / (float)fabs(oy)) ;
+        slope = delta * ox / oy ;
+        for (i = 0, xf = (float)x0+slope, y = y0+delta; i < maxsteps;
+             y += delta, xf += slope, i++)
+        {
+          x = nint(xf) ;
+          if (y <= 0 || y >= (srows-1) || x <= 0 || x >= (scols-1))
+            break ;
+
+          odx = *IMAGEFpix(Ix, x, y) ;
+          ody = *IMAGEFpix(Iy, x, y) ;
+          dot_product = odx * dx + ody * dy ;
+          if (dot_product <= 0)
+            break ;
+        }
+        y -= delta ;
+        x = nint(xf - slope) ;
+      }
+
+      if (((x - x0) > maxsteps+1) || ((y-y0) > maxsteps+1))
+        break_here() ;
+      *xpix = x - x0 ;
+      *ypix = y - y0 ;
+    }
+  }
+
+#if 0 
+ImageWrite(Ioffset2, "offset2.hipl") ;
+#endif
+
+  /* now use the offset field to scale the image with a median filter */
+  xpix = IMAGEFpix(Ioffset2, 0, 0) ;
+  ypix = IMAGEFseq_pix(Ioffset2, 0, 0, 1) ;
+  dpix = IMAGEFpix(Idst, 0, 0) ;
+
+  /* apply median filter */
+  for (y0 = nint(0.5*(double)ystep) ; y0 < srows ; y0 += ystep)
+  {
+    for (x0 = nint(0.5*(double)xstep) ; x0 < scols ; x0 += xstep,xpix++,ypix++)
+    {
+      idx = nint(*xpix) ;   /*  offset direction */
+      idy = nint(*ypix) ;
+
+      for (sptr = sort_array, y = -WHALF ; y <= WHALF ; y++)
+      {
+        yc = y + y0 + idy ;
+        if (yc < 0)
+          yc = 0 ;
+        else if (yc >= srows)
+          yc = srows - 1 ;
+
+        spix = IMAGEFpix(Isrc, 0, yc) ;
+        for (x = -WHALF ; x <= WHALF ; x++)
+        {
+          xc = x0 + x + idx ;
+          if (xc < 0)
+            xc = 0 ;
+          else if (xc >= scols)
+            xc = scols - 1 ;
+#if 0            
+          *sptr++ = *IMAGEFseq_pix(inImage, xc, yc, frame) ;
+#else
+          *sptr++ = *(spix + xc) ;
+#endif
+        }
+      }
+      qsort(sort_array, 3*3, sizeof(float), compare_sort_array) ;
+      *dpix++ = sort_array[MEDIAN_INDEX] ;
+    }
+  }
+
+#if 0
+ImageWrite(Idst, "scale.hipl") ;
+#endif
+
+#if 0
+  ImageFree(&Igauss) ;
+  ImageFree(&Ismooth) ;
+  ImageFree(&Ix) ;
+  ImageFree(&Iy) ;
+  ImageFree(&Ioffset) ;
+  ImageFree(&Ioffset2) ;
+#endif
+
+  return(Idst) ;
+}
+
+static int
+compare_sort_array(const void *pf1, const void *pf2)
+{
+  register float f1, f2 ;
+
+  f1 = *(float *)pf1 ;
+  f2 = *(float *)pf2 ;
+
+/*  return(f1 > f2 ? 1 : f1 == f2 ? 0 : -1) ;*/
+  if (f1 > f2)
+    return(1) ;
+  else if (f1 < f2)
+    return(-1) ;
+
+  return(0) ;
 }
