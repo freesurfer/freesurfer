@@ -523,5 +523,7 @@ int   MRISaverageEveryOtherVertexPositions(MRI_SURFACE *mris, int navgs,
                                            int which) ;
 MRI   *MRISwriteSurfaceIntoVolume(MRI_SURFACE *mris, MRI *mri_template,
                                   MRI *mri) ;
+int   MRISmeasureCorticalThickness(MRI_SURFACE *mris, MRI *mri_brain, 
+                                   MRI *mri_wm, float nsigma) ;
 
 #endif
