@@ -2,7 +2,7 @@
    DICOM 3.0 reading functions
    Author: Sebastien Gicquel and Douglas Greve
    Date: 06/04/2001
-   $Id: DICOMRead.c,v 1.64 2004/09/29 15:43:22 tosa Exp $
+   $Id: DICOMRead.c,v 1.65 2004/09/29 17:25:39 tosa Exp $
 *******************************************************/
 
 #include <stdio.h>
@@ -338,7 +338,19 @@ MRI * sdcmLoadVolume(char *dcmfile, int LoadVolume, int nthonly)
 
   while (nlist--)
   {
+    // free strings
     free(sdfi_list[nlist]->FileName);
+    free(sdfi_list[nlist]->StudyDate);
+    free(sdfi_list[nlist]->StudyTime);
+    free(sdfi_list[nlist]->PatientName);
+    free(sdfi_list[nlist]->SeriesTime);
+    free(sdfi_list[nlist]->AcquisitionTime);
+    free(sdfi_list[nlist]->ScannerModel);
+    free(sdfi_list[nlist]->NumarisVer);
+    free(sdfi_list[nlist]->PulseSequence);
+    free(sdfi_list[nlist]->ProtocolName);
+    free(sdfi_list[nlist]->PhEncDir);
+    // free struct
     free(sdfi_list[nlist]);
   }
   free(sdfi_list);
