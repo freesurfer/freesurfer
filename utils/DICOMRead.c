@@ -2,7 +2,7 @@
    DICOM 3.0 reading functions
    Author: Sebastien Gicquel and Douglas Greve
    Date: 06/04/2001
-   $Id: DICOMRead.c,v 1.20 2002/04/30 22:13:31 greve Exp $
+   $Id: DICOMRead.c,v 1.21 2002/08/01 20:22:29 ebeth Exp $
 *******************************************************/
 
 #include <stdio.h>
@@ -3364,6 +3364,7 @@ int round(double d)
     return (int)c;
 }
 
+#if 0
 /*******************************************************
    RASFromOrientation
    Author: Sebastien Gicquel
@@ -3425,23 +3426,23 @@ int RASFromOrientation(MRI *mri, DICOMInfo *dcm)
   if (round(dcm->ImageOrientation[0])!=0)
     {
       if (round(dcm->ImageOrientation[4])!=0)
-  zdir=2;
+  zdir=2; /*E* MRI_HORIZONTAL */
       else
-  zdir=1;
+  zdir=1; /*E* MRI_CORONAL */
     }
   else if (round(dcm->ImageOrientation[1])!=0)
     {
       if (round(dcm->ImageOrientation[3])!=0)
-  zdir=2;
+  zdir=2; /*E* MRI_HORIZONTAL */
       else
-  zdir=0;
+  zdir=0; /*E* MRI_SAGITTAL */
     }
   else if (round(dcm->ImageOrientation[2])!=0)
     {
       if (round(dcm->ImageOrientation[3])!=0)
-  zdir=1;
+  zdir=1; /*E* MRI_CORONAL */
       else
-  zdir=0;
+  zdir=0; /*E* MRI_SAGITTAL */
     }
   else
     printf("WARNING: DICOM orientation problems\n");
@@ -3551,6 +3552,335 @@ int RASFromOrientation(MRI *mri, DICOMInfo *dcm)
  
   return 0;
 }
+
+#else
+
+/*******************************************************
+   RASFromOrientation
+   Author: E'beth Haley
+   Date: 08/01/2002
+   input: structure MRI, structure DICOMInfo
+   output: fill in MRI structure RAS-related fields
+   called-by: DICOMInfo2MRI
+   LIMITATIONS: may not set mri->slice_direction = MRI_FOO right yet.
+*******************************************************/
+
+//#define _RASFDEBUG
+#define _FIRSTMINUSLAST
+
+int RASFromOrientation(MRI *mri, DICOMInfo *dcm)
+
+     /*E* 
+
+       This code is intended to repair and generalize
+       RASFromOrientation, which is used for GE DICOM scans, to make
+       it more like the Doug Greve Siemens DICOM code, in that it
+       should refer to the direction-cosines matrix and not just try
+       to match up r/a/s with x/y/z.
+
+       meta: Doug Greve notes that we'd eventually like to be able to
+       load n frames at a time, and in that case, we'd probably have
+       to rewrite Sebastien's code from scratch - the least reason for
+       that is S uses "frames" to refer to slices=files.  In the
+       meantime, I'm just going to reimplement the function
+       RASFromOrientation, Dougstyle.
+
+       Note to self: the DICOMInfo struct is a Sebastienism.  Only
+       Sebastien code uses it.  The Siemens stuff struct is
+       SDCMFILEINFO.
+
+       Note to self: okay, the DICOMInfo knows the fname it was
+       created from, so we can use that to get things there are tags
+       for that don't appear in the DICOMInfo itself.
+
+       Siemens version: sdcmLoadVolume returns an MRI which it gets by
+       passing a dcmfilename to ScanSiemensDCMDir which returns a list
+       of SDCMFILEINFO's (that it gets from GetSDCMFileInfo which gets
+       stuff from a dcmfile)
+
+       RASFromOrientation is passed a DICOMInfo (that has been partway
+       filled in by DICOMInfo2MRI() - any other info we need we can
+       get from dcm->fname), and sets these elements of the mri
+       struct:
+
+       mri->x_r, mri->y_r, mri->z_r,
+       mri->x_a, mri->y_a, mri->z_a,
+       mri->x_s, mri->y_s, mri->z_s,
+       mri->slice_direction,
+       mri->c_r, mri->c_a, mri->c_s,
+       mri->ras_good_flag=1
+
+       By the time that calls RASFromOrientation(), the mri is already
+       partly filled in by DICOMInfo2MRI().  So it already has:
+
+       mri->width = dcm->Columns;
+       mri->height = dcm->Rows;
+       mri->depth = dcm->NumberOfFrames;
+       nvox = dcm->Rows*dcm->Columns*dcm->NumberOfFrames;
+       mri->fov = dcm->FieldOfView;
+       mri->thick = dcm->SliceThickness;
+       mri->xsize = dcm->xsize;
+       mri->ysize = dcm->ysize;
+       mri->zsize = dcm->SliceThickness;
+       mri->nframes = 1;
+       mri->tr = dcm->RepetitionTime;
+       mri->te = dcm->EchoTime;
+       mri->ti = dcm->InversionTime;
+       mri->flip_angle = dcm->FlipAngle;
+       mri->imnr0 = 1;
+       mri->imnr1 = dcm->NumberOfFrames;
+
+       We'll need e.g. dcm->NumberOfFrames (NSlices).
+
+       We'll more or less use:
+
+       T =  [ (Mdc * Delta)    P_o ]
+            [    0    0    0    1  ]
+
+       where Mdc = [ c r s ] is the matrix of direction cosines, which
+       we'll get from dcmImageDirCos(dcm->FileName, cx,cy,cz,
+       rx,ry,rz) plus a few lines (that should probably become a
+       dcmSliceDirCos()) to get the slice column, sx,sy,sz.
+
+       Well, okay, we're not using the 4x4 T, but rather
+       T3x3=Mdc*Delta and P_o separately.
+
+       Delta = pixel size in mm = get from dcmGetVolRes() (or use {
+       dcm->xsize, dcm->ysize, dcm->SliceThickness }.  BTW, this
+       code's Delta is the vector that the matrix Delta should be the
+       diag of: diag(Delta_c, Delta_r, Delta_s).
+
+       get P_o = [ P_ox P_oy P_oz ] from dcmImagePosition(char
+       *dcmfile, float *x, float *y, float *z) on first file - or
+       dcm->FirstImagePosition - wait, those are off by factors of -1,
+       -1, 1 from each other.
+
+       Doug's Siemens code uses dcmImagePosition, which multiplies x
+       and y by -1.  Sebastien's GE code multiplies by diag(-1,-1,1) =
+       his M1=RasScanner for "RAS coordinates inside scanner, if and
+       only if patient is lying supine head first."  So Doug's code
+       should apply just fine to this.
+
+       If you have strong feelings that I'm wrong about s[i] =
+       dcm->FirstImagePosition[i] - dcm->LastImagePosition[i];,
+       undefine _FIRSTMINUSLAST, because, sure, maybe last minus first
+       is right.  I'm open-minded on the subject - but the by-hand
+       calculations of c_ras come out right.
+
+       n[3] = [ width, height, depth ] = { dcm->Columns -1, dcm->Rows
+       -1, dcm->NumberOfFrames -1 }
+
+       and finally c_ras = center = T3x3 * n/2
+
+     */
+{
+  float c[3], r[3], s[3], Delta[3], c_ras[3],
+    Mdc[3][3], T3x3[3][3], rms;
+
+  int i,j, n[3];
+
+  dcmImageDirCos(dcm->FileName, c, c+1, c+2, r, r+1, r+2);
+
+  /*E* This next bit should probably become dcmSliceDirCos */
+  rms = 0.0;
+  for (i=0; i<3; i++)
+    {
+#ifdef _FIRSTMINUSLAST
+      s[i] = dcm->FirstImagePosition[i] - dcm->LastImagePosition[i];
+#else
+      s[i] = dcm->LastImagePosition[i] - dcm->FirstImagePosition[i];
+#endif
+      rms += s[i]*s[i];
+    }
+  rms = sqrt(rms);
+  for (i=0; i<3; i++)
+    {
+      s[i]/=rms;
+#ifdef _RASFDEBUG
+      fprintf(stderr, "s[%d] = %f\t", i, s[i]);
+#endif
+    }
+#ifdef _RASFDEBUG
+  fprintf(stderr, "\n\n");
+#endif
+
+
+  /*E* fill in the columns of the Matrix of Direction Cosines.  */
+#ifdef _RASFDEBUG
+  fprintf(stderr, "Mdc = \n");
+#endif
+  for (i=0; i<3; i++)
+    {
+      Mdc[i][0] = c[i];
+      Mdc[i][1] = r[i];
+      Mdc[i][2] = s[i];
+#ifdef _RASFDEBUG
+      fprintf (stderr, "[ %f %f %f ]\n", Mdc[i][0], Mdc[i][1], Mdc[i][2]);
+#endif
+    }
+
+  dcmGetVolRes(dcm->FileName, Delta, Delta+1, Delta+2);
+#ifdef _RASFDEBUG
+  fprintf (stderr, "Delta = %f, %f, %f\n", Delta[0], Delta[1], Delta[2]);
+#endif
+
+  /*E*  T3x3 =  Mdc * diag(Delta's)  */
+#ifdef _RASFDEBUG
+  fprintf(stderr, "T3x3 = \n");
+#endif
+  for (i=0; i<3; i++)
+    {
+#ifdef _RASFDEBUG
+      fprintf (stderr, "[ ");
+#endif
+      for (j=0; j<3; j++)
+  { 
+    T3x3[i][j] = Mdc[i][j] * Delta[j];
+#ifdef _RASFDEBUG
+    fprintf (stderr, "%f ", T3x3[i][j]);
+#endif
+  }
+#ifdef _RASFDEBUG
+      fprintf (stderr, " ]\n");
+#endif
+    }
+
+  /* fill in n, number */
+  n[0] = dcm->Columns -1;
+  n[1] = dcm->Rows -1;
+  n[2] = dcm->NumberOfFrames -1;  /*E* This is Slices :( */
+  /*E* The -1 is for how many center-to-center lengths there are.  */
+
+#ifdef _RASFDEBUG
+  fprintf(stderr, "n = %d\t%d\t%d\n\n", n[0], n[1], n[2]);
+#endif
+
+  /*E*
+    Doug: c_ras = center = T * n /2.0
+
+    i.e. P_o + Mdc * Delta * n/2
+
+    Okay, that's: take first voxel and go to center by adding on half
+    of [ reorder and rescale the nc/nr/ns ] = lengths of the sides of
+    the volume.
+
+    dcmImagePosition differs from DICOM file first image position by
+    factors of -1 -1 1.  Sebastien code also multiplies by
+    diag{-1,-1,1}, so it should be fine to use dcmImagePosition.
+
+  */
+
+  dcmImagePosition(dcm->FileName, c_ras, c_ras+1, c_ras+2); /*E* = P_o */
+#ifdef _RASFDEBUG
+  fprintf(stderr,
+    "dcmImagePosition, which converts LPS to RAS, gave: %f %f %f\n",
+    c_ras[0], c_ras[1], c_ras[2]);
+#endif
+
+  for (i=0; i<3; i++)
+    {
+      for (j=0; j<3; j++)
+  { 
+    c_ras[i] += T3x3[i][j] * (float) n[j] /2.;
+#ifdef _RASFDEBUG
+    fprintf(stderr,
+      "c_ras[%d] += T3x3[%d][%d] * n[%d] /2.\n",
+      i,i,j,j);
+    fprintf(stderr,
+      "adding T3x3[%d][%d] = %f, n[%d] = %d, T3x3[%d][%d] * n[%d] /2. = %f\n",
+      i, j, T3x3[i][j], j, n[j], i, j, j, T3x3[i][j] * (float) n[j] /2.);
+#endif
+  }
+    }
+
+#ifdef _RASFDEBUG
+  fprintf(stderr, "c_ras = %f\t%f\t%f\n\n", c_ras[0], c_ras[1], c_ras[2]);
+#endif
+
+  /*E* Now set mri values - the direction cosines.  */
+
+  mri->x_r = Mdc[0][0];
+  mri->y_r = Mdc[1][0];
+  mri->z_r = Mdc[2][0];
+  mri->x_a = Mdc[0][1];
+  mri->y_a = Mdc[1][1];
+  mri->z_a = Mdc[2][1];
+  mri->x_s = Mdc[0][2];
+  mri->y_s = Mdc[1][2];
+  mri->z_s = Mdc[2][2];
+  mri->c_r = c_ras[0];
+  mri->c_a = c_ras[1];
+  mri->c_s = c_ras[2];
+  mri->ras_good_flag = 1;
+
+  /*E* It remains to bother with: mri->slice_direction = MRI_FOO; Is
+    that legacy code, or do things refer to it?  */
+  
+  /*E* multiply broken - for one thing, the checks should be for
+    whether IO == +/- 1, not !=0.  Also, shouldn't the test image come
+    out coronal?  */
+
+  if (dcm->ImageOrientation[0]!=0.0)
+    {
+      if (dcm->ImageOrientation[4]!=0.0)
+  {
+    mri->slice_direction=MRI_HORIZONTAL;
+#ifdef _RASFDEBUG
+    fprintf(stderr, "slice_direction=MRI_HORIZONTAL\n");
+#endif
+  }
+      else
+  {
+    mri->slice_direction=MRI_CORONAL;
+#ifdef _RASFDEBUG
+    fprintf(stderr, "slice_direction=MRI_CORONAL\n");
+#endif
+  }
+    }
+  else if (dcm->ImageOrientation[1]!=0.0)
+    {
+      if (dcm->ImageOrientation[3]!=0.0)
+  {
+    mri->slice_direction=MRI_HORIZONTAL;
+#ifdef _RASFDEBUG
+    fprintf(stderr, "slice_direction=MRI_HORIZONTAL\n");
+#endif
+  }    
+      else
+  {
+    mri->slice_direction=MRI_SAGITTAL;
+#ifdef _RASFDEBUG
+    fprintf(stderr, "slice_direction=MRI_SAGITTAL\n");
+#endif
+  }    
+    }
+  else if (dcm->ImageOrientation[2]!=0.0)
+    {
+      if (dcm->ImageOrientation[3]!=0.0)
+  {
+    mri->slice_direction=MRI_CORONAL;
+#ifdef _RASFDEBUG
+    fprintf(stderr, "slice_direction=MRI_CORONAL\n");
+#endif
+  }
+      else
+  {
+    mri->slice_direction=MRI_SAGITTAL;
+#ifdef _RASFDEBUG
+    fprintf(stderr, "slice_direction=MRI_SAGITTAL\n");
+#endif
+  }    
+    }
+  else
+    {
+      mri->slice_direction=MRI_UNDEFINED;
+      fprintf(stderr, "DICOM has an unalignedey orientation - MRI_UNDEFINED\n");
+    }
+
+  return 0;
+}
+
+#endif
 
 /*******************************************************
    DICOM16To8
