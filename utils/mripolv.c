@@ -21,6 +21,7 @@
 #include "error.h"
 #include "proto.h"
 #include "mri.h"
+#include "mrimorph.h"
 #include "macros.h"
 #include "diag.h"
 #include "volume_io.h"
@@ -28,6 +29,7 @@
 #include "box.h"
 #include "region.h"
 #include "nr.h"
+#include "mrisegment.h"
 
 /*-----------------------------------------------------
                     MACROS AND CONSTANTS
@@ -1496,7 +1498,262 @@ MRIfindThinWMStrands(MRI *mri_src, MRI *mri_dst, int wsize)
   
   return(mri_dst) ;
 }
+/*-----------------------------------------------------
+        Parameters:
 
+        Returns value:
+
+        Description
+------------------------------------------------------*/
+#define MAX_LABELS   10000
+MRI *
+MRIresegmentThinWMStrands(MRI *mri_src, MRI *mri_dst, int thickness)
+{
+  int      width, height, depth, x, y, z, vertex, thin, i ;
+  float    nx, ny, nz, nd ;
+  BUFTYPE  *pdst, *psrc ;
+  Real     val, xf, yf, zf, max_dist, up_dist, down_dist ;
+  MRI      *mri_label ;
+  MRI_SEGMENTATION *mriseg ;
+
+  width = mri_src->width ;
+  height = mri_src->height ;
+  depth = mri_src->depth ;
+  max_dist = thickness/2+1 ;  /* allow search to extend into non-white */
+
+  init_basis_vectors() ;
+  if (!mri_dst)
+    mri_dst = MRIclone(mri_src, NULL) ;
+
+  for (vertex = 0 ; vertex < NVERTICES ; vertex++)
+  {
+    nx = ic_x_vertices[vertex] ;  /* normal vector */
+    ny = ic_y_vertices[vertex] ;
+    nz = ic_z_vertices[vertex] ;
+    for (z = 0 ; z < depth ; z++)
+    {
+      for (y = 0 ; y < height ; y++)
+      {
+        psrc = &MRIvox(mri_src, 0, y, z) ;  /* ptr to source */
+        pdst = &MRIvox(mri_dst, 0, y, z) ;  /* ptr to destination */
+        for (x = 0 ; x < width ; x++)
+        {
+          if (x == 153 && y == 151 && z == 149)
+            DiagBreak() ;
+          thin = 0 ;
+          if (*psrc++) 
+          {
+            /* first search 'downwards' to see if we can find non-white */
+            down_dist = thickness+1 ;
+            for (nd = 0 ; nd <= thickness+1 ; nd++)
+            {
+              xf = (Real)x - nd*nx ;
+              yf = (Real)y - nd*ny ;
+              zf = (Real)z - nd*nz ;
+              MRIsampleVolume(mri_src, xf, yf, zf, &val) ;
+              if (val < WM_MIN_VAL)
+              {
+                down_dist = nd-1 ;
+                break ;
+              }
+            }
+
+/* now search 'upwards' to see if we can find non-white */
+            up_dist = thickness+1 ;
+            for (nd = 0 ; nd <= thickness+1 ; nd++)
+            {
+              xf = (Real)x + nd*nx ;
+              yf = (Real)y + nd*ny ;
+              zf = (Real)z + nd*nz ;
+              MRIsampleVolume(mri_src, xf, yf, zf, &val) ;
+              if (val < WM_MIN_VAL)
+              {
+                up_dist = nd-1 ;
+                break ;
+              }
+            }
+            thin =  ((up_dist+down_dist) <= thickness) ;
+          }
+
+          if (thin)
+            *pdst++ = thin ;
+          else
+            pdst++ ;
+        }
+      }
+    }
+
+#if 0
+    MRIopen(mri_dst, mri_dst) ; MRIclose(mri_dst, mri_dst) ;
+    MRIwrite(mri_dst, "thin.mgh") ;
+#endif
+    fprintf(stderr, "segmenting thin strands...\n") ;
+    mriseg = MRIsegment(mri_dst, 1, 255) ;
+
+    fprintf(stderr, "%d segments found\n", mriseg->nsegments) ;
+    {
+      float max_area = 0.0 ;
+      int   max_i = -1 ;
+
+      mri_label = NULL ;
+      for (i = 0 ; i < mriseg->max_segments ; i++)
+      {
+        if (mriseg->segments[i].area > max_area)
+        {
+          max_area = mriseg->segments[i].area ;
+          max_i = i ;
+          if (mriseg->segments[i].nvoxels > 100)
+          {
+            fprintf(stderr, "segment %3d, area = %2.2f, nvox=%d\n",
+                    i, mriseg->segments[i].area, mriseg->segments[i].nvoxels) ;
+            mri_label = MRIsegmentToImage(mri_src, mri_label, mriseg, i) ;
+          }
+        }
+      }
+      if (max_i >= 0)
+      {
+        if (!mri_label)
+          mri_label = MRIsegmentToImage(mri_src, NULL, mriseg, i) ;
+        MRIwrite(mri_label, "max_label.mgh") ;
+        MRIfree(&mri_label) ;
+      }
+    }
+
+    break ;
+  }
+  
+  return(mri_dst) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
+#define MAX_LABELS   10000
+MRI *
+MRIthickenThinWMStrands(MRI *mri_src, MRI *mri_dst, int thickness, int nvoxels)
+{
+  int      width, height, depth, x, y, z, vertex, thin, i, total_filled, 
+           nfilled, nseg ;
+  float    nx, ny, nz, nd ;
+  BUFTYPE  *psrc, *pthin ;
+  Real     val, xf, yf, zf, max_dist, up_dist, down_dist ;
+  MRI_SEGMENTATION *mriseg ;
+  MRI              *mri_thin ;
+
+  width = mri_src->width ;
+  height = mri_src->height ;
+  depth = mri_src->depth ;
+  max_dist = thickness/2+1 ;  /* allow search to extend into non-white */
+
+  init_basis_vectors() ;
+  if (!mri_dst)
+    mri_dst = MRIclone(mri_src, NULL) ;
+  mri_thin = MRIclone(mri_src, NULL) ;
+
+  MRIcopy(mri_src, mri_dst) ;
+  total_filled = 0 ;
+  for (vertex = 0 /*17*/ ; vertex < NVERTICES ; vertex++)
+  {
+    MRIclear(mri_thin) ;
+    nx = ic_x_vertices[vertex] ;  /* normal vector */
+    ny = ic_y_vertices[vertex] ;
+    nz = ic_z_vertices[vertex] ;
+    for (z = 0 ; z < depth ; z++)
+    {
+      for (y = 0 ; y < height ; y++)
+      {
+        psrc = &MRIvox(mri_src, 0, y, z) ;  /* ptr to source */
+        pthin = &MRIvox(mri_thin, 0, y, z) ;  /* ptr to destination */
+        for (x = 0 ; x < width ; x++)
+        {
+          if (x == 160 && y == 147 && z == 116)
+            DiagBreak() ;
+          thin = 0 ;
+          if (*psrc++) 
+          {
+            /* first search 'downwards' to see if we can find non-white */
+            down_dist = thickness+1 ;
+            for (nd = 0 ; nd <= thickness+1 ; nd++)
+            {
+              xf = (Real)x - nd*nx ;
+              yf = (Real)y - nd*ny ;
+              zf = (Real)z - nd*nz ;
+              MRIsampleVolume(mri_src, xf, yf, zf, &val) ;
+              if (val < WM_MIN_VAL)
+              {
+                down_dist = nd-1 ;
+                break ;
+              }
+            }
+
+/* now search 'upwards' to see if we can find non-white */
+            up_dist = thickness+1 ;
+            for (nd = 0 ; nd <= thickness+1 ; nd++)
+            {
+              xf = (Real)x + nd*nx ;
+              yf = (Real)y + nd*ny ;
+              zf = (Real)z + nd*nz ;
+              MRIsampleVolume(mri_src, xf, yf, zf, &val) ;
+              if (val < WM_MIN_VAL)
+              {
+                up_dist = nd-1 ;
+                break ;
+              }
+            }
+            thin =  ((up_dist+down_dist) <= thickness) ;
+          }
+
+          if (thin)
+            *pthin++ = thin ;
+          else
+            pthin++ ;
+        }
+      }
+    }
+
+    mriseg = MRIsegment(mri_thin, 1, 255) ;
+    nfilled = 0 ;
+    for (nseg = i = 0 ; i < mriseg->max_segments ; i++)
+    {
+      MRI_SEGMENT *mseg ;
+      int         v, xd, yd, zd ;
+
+      if (mriseg->segments[i].nvoxels < nvoxels)
+        continue ;
+      nseg++ ;
+      mseg = &mriseg->segments[i] ;
+      for (v = 0 ; v < mseg->nvoxels ; v++)
+      {
+        x = mseg->voxels[v].x ; y = mseg->voxels[v].y ; z = mseg->voxels[v].z;
+        for (nd = -(thickness) ; nd <= thickness ; nd++)
+        {
+          xd = nint((Real)x + nd*nx) ;
+          yd = nint((Real)y + nd*ny) ;
+          zd = nint((Real)z + nd*nz) ;
+          if (xd == 126 && yd == 69 && zd == 127)
+            DiagBreak() ;
+          if ((MRIvox(mri_dst, xd, yd, zd) == 0) && 
+              MRIneighborsOn(mri_dst, xd, yd, zd, WM_MIN_VAL) >= 1)
+          {
+            nfilled++ ;
+            MRIvox(mri_dst, xd, yd, zd) = 200 ;
+          }
+        }
+      }
+    }
+    fprintf(stderr, "orientation %2d of %2d: %2d segments, %d filled\n", 
+            vertex, NVERTICES-1, nseg, nfilled) ;
+    total_filled += nfilled ;
+    MRIsegmentFree(&mriseg) ;
+  }
+
+  MRIfree(&mri_thin) ;
+  fprintf(stderr, "%d voxels filled\n", total_filled) ;
+  return(mri_dst) ;
+}
 /*-----------------------------------------------------
         Parameters:
 
@@ -3890,3 +4147,17 @@ MRIcpolvMedianAtVoxel(MRI *mri_src, int vertex, float x, float y, float z,
   qsort(plane_vals, wsize*wsize, sizeof(float), compare_sort_farray) ;
   return(plane_vals[wsize*wsize/2]) ;
 }
+int
+MRIvertexToVector(int vertex, float *pdx, float *pdy, float *pdz)
+{
+  if ((vertex < 0) || 
+      (vertex >= sizeof(ic_x_vertices) / sizeof(ic_x_vertices[0])))
+    ErrorReturn(ERROR_BADPARM, 
+                (ERROR_BADPARM, "MRIvertexToVector(%d): index out of range",
+                 vertex)) ;
+  *pdx = ic_x_vertices[vertex] ;
+  *pdy = ic_y_vertices[vertex] ;
+  *pdz = ic_z_vertices[vertex] ;
+  return(NO_ERROR) ;
+}
+
