@@ -13,7 +13,7 @@
 #include "mri.h"
 #include "region.h"
 
-static char vcid[] = "$Id: mri_nlfilter.c,v 1.1 1997/07/20 17:47:08 fischl Exp $";
+static char vcid[] = "$Id: mri_nlfilter.c,v 1.2 1997/07/20 17:58:26 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 static int get_option(int argc, char *argv[]) ;
@@ -75,6 +75,7 @@ main(int argc, char *argv[])
 
   MRIboundingBox(mri_src, 0, &region) ;
   REGIONexpand(&region, &region, filter_window_size) ;
+  MRIclipRegion(mri_src, &region, &region) ;
   if (Gdiag &DIAG_SHOW)
     fprintf(stderr, "extracting region (%d, %d, %d) --> (%d, %d, %d)\n",
             region.x,region.y,region.z,region.dx,region.dy,region.dz) ;
