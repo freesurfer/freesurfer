@@ -1,6 +1,6 @@
 /*----------------------------------------------------------
   Name: mri_label2label.c
-  $Id: mri_label2label.c,v 1.18 2003/09/11 21:48:01 greve Exp $
+  $Id: mri_label2label.c,v 1.19 2003/09/11 22:01:51 greve Exp $
   Author: Douglas Greve
   Purpose: Converts a label in one subject's space to a label
   in another subject's space using either talairach or spherical
@@ -59,7 +59,7 @@ static int  nth_is_arg(int nargc, char **argv, int nth);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_label2label.c,v 1.18 2003/09/11 21:48:01 greve Exp $";
+static char vcid[] = "$Id: mri_label2label.c,v 1.19 2003/09/11 22:01:51 greve Exp $";
 char *Progname = NULL;
 
 char  *srclabelfile = NULL;
@@ -117,7 +117,7 @@ int main(int argc, char **argv)
   MATRIX *xyzSrc, *xyzTrg;
   MHT *TrgHash, *SrcHash=NULL;
   VERTEX *srcvtx, *trgvtx, *trgregvtx;
-  int n,err,srcvtxno,trgvtxno,allzero,nrevhits;
+  int n,srcvtxno,trgvtxno,allzero,nrevhits;
   float dmin, projdist=0.0, dx, dy, dz;
   float SubjRadius, Scale;
   char fname[2000];
@@ -125,7 +125,7 @@ int main(int argc, char **argv)
   int nargs;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_label2label.c,v 1.18 2003/09/11 21:48:01 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_label2label.c,v 1.19 2003/09/11 22:01:51 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -181,29 +181,12 @@ int main(int argc, char **argv)
     printf("Starting volumetric mapping\n");
 
     /*** Load the Src2Tal registration ***/
-    if(strcmp(srcsubject,"talairach")){
-      sprintf(tmpstr,"%s/%s/mri/transforms/talairach.xfm",
-        SUBJECTS_DIR,srcsubject);
-      err = regio_read_mincxfm(tmpstr, &SrcVolReg);
-      if(err) {
-	fprintf(stderr,"ERROR reading %s\n",tmpstr);
-	exit(1);
-      }
-    }
-    else SrcVolReg = MatrixIdentity(4,NULL);
+    SrcVolReg = DevolveXFM(srcsubject, NULL, NULL);
+    if(SrcVolReg == NULL) exit(1);
     
     /*** Load the Trg2Tal registration ***/
-    if(strcmp(trgsubject,"talairach")){
-      sprintf(tmpstr,"%s/%s/mri/transforms/talairach.xfm",
-	      SUBJECTS_DIR,trgsubject);
-
-      err = regio_read_mincxfm(tmpstr, &TrgVolReg);
-      if(err) {
-	fprintf(stderr,"ERROR reading %s\n",tmpstr);
-	exit(1);
-      }
-    }
-    else TrgVolReg = MatrixIdentity(4,NULL);
+    TrgVolReg = DevolveXFM(trgsubject, NULL, NULL);
+    if(TrgVolReg == NULL) exit(1);
     
     /* Compte the Src-to-Trg Registration */
     InvTrgVolReg = MatrixInverse(TrgVolReg,NULL);
@@ -780,6 +763,12 @@ static void print_help(void)
 "     the ico)\n"
 "  6. Projections along the surface normal can be either negative or\n"
 "     positive, but can only be used with surface registration method.\n"
+"\n"
+"BUGS:\n"
+"\n"
+"When using volume registration method, you cannot specify the SUBJECTS_DIR\n"
+"on the command-line.\n"
+"\n"
 );
 
 
