@@ -1,0 +1,151 @@
+#!/bin/csh -fx
+# mkvoxshiftmap
+#
+# Careful when registering mag to exf because some of the misreg 
+# is due to a whole volume shift that will be modeled in the
+# B0 map.
+#
+# Still getting ringing
+
+set dphimg = phase.img
+set magimg = mag2.img
+set func   = func.img
+set tediff = 2.44 # ms
+set esp    = .580 # ms
+
+set dwelltoasymratio = `echo $esp/$tediff | bc -l`;
+echo dwelltoasymratio = $dwelltoasymratio
+
+set tmpdir = tmp
+mkdir -p $tmpdir
+
+set exf = $tmpdir/exf.img
+set brain = $tmpdir/brain.img
+set head = $tmpdir/head.img
+
+# Extract the middle time point for the example func (exf)
+# Get the number of frames
+set nframes = `avwinfo $func | awk '{if($1 == "dim4") print $2}'`
+if($nframes == 1) then
+  set nmidframe = 1;
+else
+  set nmidframe = `echo "$nframes/2" | bc `;
+endif
+echo $nframes $nmidframe
+
+avwroi $func $exf $nmidframe 1
+
+# Keep only the first frame from mag
+avwroi $magimg $tmpdir/mag 1 1
+set magimg = $tmpdir/mag.img
+
+# Create brain and head masks from the mag
+bet $magimg $brain
+avwmaths $brain -bin $brain
+avwmaths $brain -dil $head
+avwmaths $head  -dil $head
+avwmaths $head  -dil $head
+
+# Rescale the delta phase to be between -pi and pi. Starts out
+# at 0 - 4095. Make sure the phase is float precision
+mri_convert $dphimg $tmpdir/dph.img -odt float
+set dphimg = $tmpdir/dph.img
+avwmaths $dphimg -sub 2047.5 $dphimg
+avwmaths $dphimg -mul 0.00153436 $dphimg
+#mri_convert $dphimg $tmpdir/dph_000.bfloat
+
+set cmd1 = (prelude -p $dphimg \
+                    -a $magimg \
+                    -o $dphimg -f -v\
+                    -m $head);
+
+#if ($#phasepartitions != 0) then
+#  set cmd1 = ($cmd1 -n $phasepartitions)
+#endif
+
+echo $cmd1 
+$cmd1
+
+#mri_convert $dphimg $tmpdir/dph_000.bfloat
+
+# Create an image of 0s for merging with dph
+set ph1img = $tmpdir/ph1.img
+avwmaths $dphimg -mul 0 $ph1img
+
+# Merge, baby, merge
+set ph2img = $tmpdir/ph.img
+avwmerge -t $ph2img $ph1img $dphimg 
+
+# Merge mag with a copy of itself because two frames needed for fugue
+set mag2img = $tmpdir/mag2.img
+avwmerge -t $mag2img $magimg $magimg 
+
+# Create the voxel shift map (VSM). Use mag as input to assure
+# that VSM is same dimension as mag. The input only affects
+# the output dimension. The content of the input has no effect
+# on the VSM. Need to resample brain to exf?
+set vsm = $tmpdir/vsm.img
+set maguw = $tmpdir/maguw.img
+set cmd = (fugue -i $magimg -u $maguw \
+    -p $ph2img -d $dwelltoasymratio \
+    --mask=$brain --saveshift=$vsm);
+
+echo $cmd
+$cmd
+
+# Forward warp the mag in order to reg with func
+set magfw = $tmpdir/magfw.img
+set cmd = (fugue -i $magimg -w $magfw \
+    -p $ph2img -d $dwelltoasymratio --mask=$brain)
+$cmd
+
+# Reg magfw to example func
+flirt -in $magfw -ref $exf \
+  -out $tmpdir/magfw-in-exf.img \
+  -omat $tmpdir/magfw-in-exf.fsl.mat \
+  -bins 256 -cost corratio \
+  -searchrx -10 10 \
+  -searchry -10 10 \
+  -searchrz -10 10 \
+  -dof 6  -interp trilinear
+
+# Now resample VSM into epi space
+set vsmexf = $tmpdir/vsm-in-exf.img
+flirt -in $vsm -ref $exf \
+  -out $vsmexf \
+  -init $tmpdir/magfw-in-exf.fsl.mat \
+  -applyxfm
+
+# Resample mag into epi space for reference
+set magexf = $tmpdir/mag-in-exf.img
+flirt -in $magimg -ref $exf \
+  -out $magexf \
+  -init $tmpdir/magfw-in-exf.fsl.mat \
+  -applyxfm
+
+# Now apply the VSM to the exf
+set exfuw = $tmpdir/exfuw.img
+set cmd = (fugue -i $exf -u $exfuw --loadshift=$vsmexf);
+$cmd
+
+cp mag.mat $tmpdir/vsm.mat
+mri_convert $vsm $tmpdir/vsm_000.bfloat
+
+cp mag.mat $tmpdir/mag.mat
+mri_convert $magimg $tmpdir/mag_000.bfloat
+
+cp mag.mat $tmpdir/magfw.mat
+mri_convert $magfw $tmpdir/magfw_000.bfloat
+
+cp mag.mat $tmpdir/mag-in-exf.mat
+mri_convert $magexf $tmpdir/mag-in-exf_000.bfloat
+
+cp mag.mat $tmpdir/exf.mat
+mri_convert $exf $tmpdir/exf_000.bfloat
+
+cp mag.mat $tmpdir/exfuw.mat
+mri_convert $exfuw $tmpdir/exfuw_000.bfloat
+
+cp mag.mat $tmpdir/vsm-in-exf.mat
+mri_convert $tmpdir/vsm-in-exf.img $tmpdir/vsm-in-exf_000.bfloat
+
