@@ -6,8 +6,8 @@
 // 
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2005/01/31 21:16:25 $
-// Revision       : $Revision: 1.5 $
+// Revision Date  : $Date: 2005/04/01 21:00:33 $
+// Revision       : $Revision: 1.6 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -16,7 +16,6 @@
 #include <stdio.h>
 #include <string.h>
 #include "gcamorph.h"
-
 #include "mri.h"
 #include "matrix.h"
 #include "proto.h"
@@ -43,8 +42,11 @@ typedef struct
 
 #define MAX_ANGLE       RADIANS(25)
 
-#define PAD             2
+#define HIRES_PAD       10
+#define LOWRES_PAD      20
 
+static int fix_intensity = 0 ;
+static MRI *estimate_densities(GCA_MORPH *gcam, MRI *mri_lowres, MRI *mri_intensity) ;
 static MRI *mri_from_voxel_list(VOXEL_LIST *vl, MRI *mri) ;
 static int  free_voxel_list(VOXEL_LIST **pvoxel_list) ;
 static VOXEL_LIST *create_voxel_list(MRI *mri, float low_val, float hi_val , 
@@ -54,6 +56,7 @@ static int write_snapshot(MRI *mri_lowres, MRI *mri_hires,
 													int fno, int conform, char *fname) ;
 
 static double MAX_TRANS = 30 ;
+static int regrid = 0 ;
 
 static float compute_powell_sse(float *p) ;
 static int    powell_minimize(VOXEL_LIST *vl_lowres, VOXEL_LIST *vl_hires, MATRIX *mat);
@@ -80,42 +83,130 @@ static double find_optimal_linear_xform(VOXEL_LIST *vl_lowres, VOXEL_LIST *vl_hi
 																				float trans_steps,
 																				int nreductions);
 char *Progname ;
-static int target_label = Left_Hippocampus ;
+static int target_label = Right_Hippocampus ;
 
 static int skip = 2 ;
-
-#define nothing                    0
-#define alveus                     1
-#define perforant_pathway	         2
-#define parasubiculum		           3
-#define presubiculum			         4
-#define subiculum			             5
-#define CA1				                 6
-#define CA2				                 7
-#define CA3				                 8
-#define CA4				                 9
-#define GC_DG			                 10
-#define HATA				               11
-#define fimbria                    12
-#define lateral_ventricle		       13
-#define molecular_layer_HP         14
-#define molecular_layer_subiculum	 15
+static double distance = 1.0 ;
 
 static MRI *mri_hires_intensity = NULL ;
 static char *hires_intensity_fname = NULL ;
 
 #if 0
-static int gray_labels[] =
-	{
-		parasubiculum, presubiculum, subiculum, CA1, CA2, CA3, CA4, HATA,
-		molecular_layer_subiculum, molecular_layer_HP, GC_DG
-	} ;
-
-static int white_labels[] =
-	{
-		alveus, perforant_pathway, fimbria
-	} ;
+#ifdef nothing
+#undef nothing
 #endif
+#define  nothing 0
+#ifdef alveus
+#undef alveus
+#endif
+#define  alveus 1
+#ifdef perforant_pathway
+#undef perforant_pathway
+#endif
+#define  perforant_pathway 2
+#ifdef parasubiculum
+#undef parasubiculum
+#endif
+#define  parasubiculum 3
+#ifdef presubiculum
+#undef presubiculum
+#endif
+#define  presubiculum 4
+#ifdef subiculum
+#undef subiculum
+#endif
+#define  subiculum 5
+#ifdef CA1
+#undef CA1
+#endif
+#define  CA1 6
+#ifdef CA2
+#undef CA2
+#endif
+#define  CA2 7
+#ifdef CA3
+#undef CA3
+#endif
+#define  CA3 8
+#ifdef CA4
+#undef CA4
+#endif
+#define  CA4 9
+#ifdef GC_DG
+#undef GC_DG
+#endif
+#define GC_DG 10
+#ifdef HATA
+#undef HATA
+#endif
+#define HATA 11
+#ifdef fimbria
+#undef fimbria
+#endif
+#define fimbria 12
+#ifdef lateral_ventricle
+#undef lateral_ventricle
+#endif
+#define lateral_ventricle 13
+#ifdef molecular_layer_HP
+#undef molecular_layer_HP
+#endif
+#define molecular_layer_HP 14
+#ifdef hippocampal_fissure
+#undef hippocampal_fissure
+#endif
+#define hippocampal_fissure 15
+#ifdef entorhinal_cortex
+#undef entorhinal_cortex
+#endif
+#define entorhinal_cortex 16
+#ifdef molecular_layer_subiculum
+#undef molecular_layer_subiculum
+#endif
+#define molecular_layer_subiculum 17
+#ifdef Amygdala
+#undef Amygdala
+#endif
+#define Amygdala 18
+#ifdef Cerebral_White_Matter
+#undef Cerebral_White_Matter
+#endif
+#define Cerebral_White_Matter 19
+#ifdef Cerebral_Cortex
+#undef Cerebral_Cortex
+#endif
+#define Cerebral_Cortex 20
+#ifdef Inf_Lat_Vent
+#undef Inf_Lat_Vent
+#endif
+#define Inf_Lat_Vent 21
+
+
+#undef lateral_ventricle
+#define lateral_ventricle     13
+#undef entorhinal_cortex    
+#define entorhinal_cortex     16
+#undef Amygdala
+#define Amygdala              18
+#undef Cerebral_White_Matter  
+#define Cerebral_White_Matter 19
+#undef Cerebral_Cortex
+#define Cerebral_Cortex       20
+#undef Inf_Lat_Vent           
+#define Inf_Lat_Vent          21
+#endif
+
+static int non_hippo_labels[] =
+{
+	lateral_ventricle,	        
+	entorhinal_cortex,         
+	Amygdala,                  
+	Cerebral_White_Matter,     
+	Cerebral_Cortex,           
+	Inf_Lat_Vent
+} ;
+#define NUM_NON_HIPPO_LABELS  (sizeof(non_hippo_labels) / sizeof(non_hippo_labels[0]))
+
 
 static INTEGRATION_PARMS parms ;
 static TRANSFORM  *transform = NULL ;
@@ -126,15 +217,36 @@ main(int argc, char *argv[])
 {
 	char       **av, *hires_fname, *aseg_fname, *intensity_fname, *out_fname, fname[STRLEN] ;
   int        ac, nargs, i ;
-	MRI        *mri_intensity, *mri_lowres, *mri_hires, *mri_tmp ;
+	MRI        *mri_intensity, *mri_lowres, *mri_hires, *mri_tmp, *mri_target ;
 	VOXEL_LIST *vl_lowres, *vl_hires ;
 	MRI_REGION  box ;
   struct timeb start ;
-  int          msec, minutes, seconds ;
+  int          msec, minutes, seconds, label ;
 
 	parms.write_iterations = 0 ;
 	parms.start_t = 0 ;
 
+
+	/* for nonlinear morph */
+	mp.l_jacobian = 1 ;
+	mp.l_distance = 1 ;
+	mp.l_binary = .025 ;
+	mp.dt = 0.005 ;
+	mp.noneg = True ;
+	mp.exp_k = 20 ;
+	mp.momentum = 0.9 ;
+	if (FZERO(mp.l_smoothness))
+		mp.l_smoothness = 1 ;
+	mp.sigma = 8 ;
+	mp.relabel_avgs = -1 ;
+	mp.navgs = 256 ;
+	mp.levels = 6 ;
+	mp.integration_type = GCAM_INTEGRATE_BOTH ;
+	mp.nsmall = 1 ;
+	mp.reset_avgs = -1 ;
+	mp.tol = 0.1 ;
+	mp.niterations = 1000 ;
+	
   TimerStart(&start) ;
   setRandomSeed(-1L) ;
   DiagInit(NULL, NULL, NULL) ;
@@ -171,9 +283,20 @@ main(int argc, char *argv[])
 		mri_hires = mri_tmp ;
 	}
 
+	/* remove non-hippo labels if only doing linear morph */
+	if (transform == NULL)
+	{
+		for (i = 0 ; i < NUM_NON_HIPPO_LABELS ; i++)
+		{
+			label = non_hippo_labels[i] ;
+			MRIreplaceValues(mri_hires, mri_hires, label, 0) ;
+		}
+	}
+
 	MRIboundingBox(mri_hires, 0, &box) ;
-	box.x -= PAD ; box.y -= PAD ; box.z -= PAD ; 
-	box.dx += 2*PAD ; box.dy += 2*PAD ; box.dz += 2*PAD ; 
+	box.x -= HIRES_PAD ; box.y -= HIRES_PAD ; box.z -= HIRES_PAD ; 
+	box.dx += 2*HIRES_PAD ; box.dy += 2*HIRES_PAD ; box.dz += 2*HIRES_PAD ; 
+	MRIcropBoundingBox(mri_hires, &box) ;
 	mri_tmp = MRIextractRegion(mri_hires, NULL, &box) ;
 	MRIfree(&mri_hires) ;
 	mri_hires = mri_tmp ;
@@ -186,9 +309,26 @@ main(int argc, char *argv[])
 	if (!mri_lowres)
 		ErrorExit(ERROR_NOFILE, "%s: could not read aseg label volume %s",
 							Progname, aseg_fname) ;
-	mri_tmp = MRIclone(mri_lowres, NULL) ; MRIcopyLabel(mri_lowres, mri_tmp, target_label) ;
-	MRIfree(&mri_lowres) ; mri_lowres = mri_tmp ;
+#if 0
+	if (FZERO(mp.l_area_intensity) && FZERO(mp.l_log_likelihood)) /* only hippocampus label */
+	{
+		mri_tmp = MRIclone(mri_lowres, NULL) ; MRIcopyLabel(mri_lowres, mri_tmp, target_label) ;
+		MRIfree(&mri_lowres) ; mri_lowres = mri_tmp ;
+	}
 
+	MRIboundingBox(mri_lowres, 0, &box) ;
+	box.x -= LOWRES_PAD ; box.y -= LOWRES_PAD ; box.z -= LOWRES_PAD ; 
+	box.x = MAX(0, box.x) ; box.y = MAX(0, box.y) ;box.z = MAX(0, box.z) ;
+	box.dx += 2*LOWRES_PAD ; box.dy += 2*LOWRES_PAD ; box.dz += 2*LOWRES_PAD ; 
+	box.dx = MIN(mri_lowres->width-box.x-1, box.dx) ;
+	box.dy = MIN(mri_lowres->height-box.y-1, box.dy) ;
+	box.dz = MIN(mri_lowres->depth-box.z-1, box.dz) ;
+	mri_tmp = MRIextractRegion(mri_lowres, NULL, &box) ;
+	MRIfree(&mri_lowres) ;
+	mri_lowres = mri_tmp ;
+#endif
+
+	
   if (Gdiag & DIAG_WRITE && parms.write_iterations > 0)
   {
 		sprintf(fname, "%s_target", parms.base_name) ;
@@ -226,6 +366,9 @@ main(int argc, char *argv[])
 			vl_hires = create_voxel_list(mri_hires, 1, 255, NULL, skip/4) ;
 			powell_minimize(vl_lowres, vl_hires, ((LTA *)(transform->xform))->xforms[0].m_L) ;
 			free_voxel_list(&vl_hires) ;
+			LTAvoxelToRasXform((LTA *)(transform->xform), mri_hires, mri_lowres) ;
+			TransformWrite(transform, out_fname) ;
+			LTArasToVoxelXform((LTA *)(transform->xform), mri_hires, mri_lowres) ;
 		}
 		free_voxel_list(&vl_lowres) ;
 
@@ -236,7 +379,11 @@ main(int argc, char *argv[])
 			char fname[STRLEN] ;
 			int  i ;
 
+#if 0
 			mri_aligned = MRIsrcTransformedCentered(mri_hires, mri_lowres, ((LTA *)(transform->xform))->xforms[0].m_L, SAMPLE_NEAREST) ;
+#else
+			mri_aligned = MRITransformedCenteredMatrix(mri_hires, mri_lowres, ((LTA *)(transform->xform))->xforms[0].m_L) ;
+#endif
 			sprintf(fname, "%sfinal.mgz", parms.base_name) ;
 			MRIwrite(mri_aligned, fname) ;
 
@@ -257,61 +404,148 @@ main(int argc, char *argv[])
 	else   /* linear transform already computed - compute 3d morph */
 	{
 		GCA_MORPH *gcam ;
-		MATRIX    *m_L ;
+		MATRIX    *m_L, *m_I ;
 		LTA       *lta ;
 
-		lta = ((LTA *)(transform->xform)) ;
-    m_L = MRIrasXformToVoxelXform(mri_hires, mri_lowres, lta->xforms[0].m_L, NULL) ;
-    MatrixFree(&lta->xforms[0].m_L) ;
+		strcpy(mp.base_name, parms.base_name) ;
+		mp.max_grad = 0.3*mri_hires->xsize ;
 
-		if (MatrixDeterminant(m_L) < 0)
+		if (transform->type != MORPH_3D_TYPE)
 		{
-			MATRIX *m_I ;
+			lta = ((LTA *)(transform->xform)) ;
+			m_L = MRIrasXformToVoxelXform(mri_hires, mri_lowres, lta->xforms[0].m_L, NULL) ;
+			MatrixFree(&lta->xforms[0].m_L) ;
+			if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+				write_snapshot(mri_lowres, mri_hires, m_L, &parms, 0, 1,"linear_init");
 
-			printf("transform det < 0 --> replacing with identity and transforming hires label volume\n");
-			mri_tmp = MRIsrcTransformedCentered(mri_hires, mri_lowres, m_L, SAMPLE_NEAREST) ;
+			mri_tmp = MRITransformedCenteredMatrix(mri_hires, mri_lowres, m_L) ;
 			MRIfree(&mri_hires) ;
-			mri_hires = mri_tmp ;
+			mri_hires = MRImodeFilter(mri_tmp, NULL, 3) ;
 			m_I = MatrixIdentity(4, NULL) ;
 			MRIrasXformToVoxelXform(mri_hires, mri_lowres, m_I, m_L);
 			MatrixFree(&m_I) ;
-			
-			/* make sure none of the labels are on the border */
-			mri_tmp = MRIalloc(mri_hires->width+2, mri_hires->height+2, mri_hires->depth+2, MRI_UCHAR) ;
-			MRIextractInto(mri_hires, mri_tmp, 0, 0, 0, mri_hires->width, mri_hires->width, mri_hires->depth, 1, 1, 1);
-			MRIfree(&mri_hires) ; mri_hires = mri_tmp ;
-			MRIwrite(mri_hires, "hires_xformed.mgz") ;
-		}
 
-    lta->xforms[0].m_L = m_L ;
-		printf("initializing GCAM with vox->vox matrix:\n") ;
-		MatrixPrint(stdout, m_L) ;
-		memset(&mp, 0, sizeof(mp)) ;
-		strcpy(mp.base_name, parms.base_name) ;
-		mp.write_iterations = parms.write_iterations ;
-		mp.l_jacobian = 1 ;
-		mp.l_binary = 1 ;
-		mp.dt = 0.01 ;
-		mp.noneg = True ;
-		mp.exp_k = 20 ;
-		mp.max_grad = 0.3 ;
-		mp.momentum = 0.0 ;
-		mp.l_smoothness = 1 ;
-		mp.sigma = 8 ;
-		mp.relabel_avgs = -1 ;
-		mp.navgs = 64 ;
-		mp.levels = 4 ;
-		mp.integration_type = GCAM_INTEGRATE_BOTH ;
-		mp.nsmall = 1 ;
-		mp.reset_avgs = -1 ;
-		mp.tol = 0.0001 ;
-		mp.niterations = 1000 ;
-		gcam = GCAMalloc(mri_hires->width, mri_hires->height, mri_hires->depth);
-    GCAMinit(gcam, mri_lowres, NULL, transform, 0) ;
-		GCAMinitLabels(gcam, mri_hires) ;
-    GCAMsetStatus(gcam, GCAM_IGNORE_LIKELIHOOD) ; /* disable everything */
-		GCAMregister(gcam, mri_lowres, &mp) ;
-		GCAMwrite(gcam, out_fname) ;
+#if 0			
+			/* make sure none of the labels are on the border */
+			MRIboundingBox(mri_hires, 0, &box) ;
+			box.x -= HIRES_PAD ; box.y -= HIRES_PAD ; box.z -= HIRES_PAD ; 
+			box.dx += 2*HIRES_PAD ; box.dy += 2*HIRES_PAD ; box.dz += 2*HIRES_PAD ; 
+			mri_tmp = MRIextractRegion(mri_hires, NULL, &box) ;
+			MRIfree(&mri_hires) ; mri_hires = mri_tmp ;
+			if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+				MRIwrite(mri_hires, "hires_xformed.mgz") ;
+#endif
+
+			lta->xforms[0].m_L = m_L ;
+			printf("initializing GCAM with vox->vox matrix:\n") ;
+			MatrixPrint(stdout, m_L) ;
+			gcam = GCAMalloc(mri_hires->width, mri_hires->height, mri_hires->depth);
+
+			GCAMinit(gcam, mri_lowres, NULL, transform, 0) ;
+			GCAMinitVolGeom(gcam, mri_lowres, mri_hires) ;
+		}
+		else  /* use a previously create morph and integrate it some more */
+		{
+			printf("using previously create gcam...\n") ;
+			gcam = (GCA_MORPH *)(transform->xform) ;
+			if (FZERO(mp.l_area_intensity) && FZERO(mp.l_log_likelihood))
+				GCAMrasToVox(gcam, mri_lowres) ;
+			else
+				GCAMrasToVox(gcam, mri_intensity) ;
+		}
+		if (gcam->width != mri_hires->width ||
+				gcam->height != mri_hires->height ||
+				gcam->depth != mri_hires->depth)
+			ErrorExit(ERROR_BADPARM, "%s: warning gcam (%d, %d, %d), doesn't match hires vol (%d, %d, %d)",
+								Progname, gcam->width, gcam->height, gcam->depth,
+								mri_hires->width, mri_hires->height, mri_hires->depth) ;
+		if (regrid)
+		{
+			double pct_change ;
+			int    niter = 0, nlevels = mp.levels, level, npasses, navgs = mp.navgs,
+             level_steps, num_this_scale ;
+			mp.levels = 1 ;
+
+			for (npasses = 0 ; npasses < 3 ; npasses++)
+			{
+				mp.navgs = navgs ;
+				for (level = nlevels ; level >= 0 ; level--)
+				{
+					num_this_scale = 0 ;
+					do
+					{
+						GCAMinitLabels(gcam, mri_hires) ;
+						if (!FZERO(mp.l_area_intensity) || !FZERO(mp.l_log_likelihood))
+							estimate_densities(gcam, mri_lowres, mri_intensity) ;
+					
+						if (distance > 0)
+						{
+							printf("expanding GCAM border by %2.3f mm\n", distance) ;
+							GCAMexpand(gcam, distance) ;
+						}
+						level_steps = mp.start_t ;
+						GCAMregister(gcam, mri_lowres, &mp) ;
+						level_steps = mp.start_t - level_steps ;
+						GCAMvoxToRas(gcam) ;
+						GCAMwrite(gcam, out_fname) ;
+						GCAMrasToVox(gcam, mri_lowres) ;
+					
+						pct_change = 100.0*(mp.start_rms - mp.end_rms) / (mp.start_rms) ;
+						niter++ ;
+
+						/* regrid */
+						MRIfree(&mri_hires) ;
+						gcam = GCAMregrid(gcam, mri_lowres, HIRES_PAD, &mp, &mri_hires) ;
+						printf("outer loop iteration %d completed %d steps (%d this scale), rms = %2.3f (%2.1f%%) (was %2.1f)\n",
+									 niter, level_steps, num_this_scale+1, mp.end_rms, pct_change, mp.start_rms) ;
+						if (level_steps == 0 || ++num_this_scale > 10)
+							break ;
+					} while (pct_change > level_steps*mp.tol) ;
+					mp.navgs /= 4 ;
+				}
+			}
+			mp.integration_type = GCAM_INTEGRATE_BOTH ;
+			mp.navgs = navgs ; mp.tol *= .1 ;
+			mp.levels = nlevels ;
+			GCAMregister(gcam, mri_lowres, &mp) ;
+
+		}
+		else  /* don't regrid */
+		{
+			if (gcam->status == GCAM_UNLABELED)
+				GCAMinitLabels(gcam, mri_hires) ;
+
+			if (!DZERO(mp.l_area_intensity) || !DZERO(mp.l_log_likelihood))
+			{
+				mp.mri_binary = estimate_densities(gcam, mri_lowres, mri_intensity) ;
+				MRIfree(&mri_lowres) ;
+				mri_lowres = mp.mri_binary ;
+				mri_target = mri_intensity ;
+			}
+			else
+			{
+				mp.mri_binary = MRIcopy(mri_lowres, NULL) ;
+				mri_target = mri_lowres ;
+			}
+
+			/* remove other labels from segmentation image */
+			mri_tmp = MRIclone(mp.mri_binary, NULL) ;
+			MRIcopyLabel(mp.mri_binary, mri_tmp, target_label) ;
+			MRIfree(&mp.mri_binary) ; mp.mri_binary = mri_tmp ;
+
+			/*			if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)*/
+				MRIwrite(mp.mri_binary, "aseg_target.mgz") ;
+			for (i = 0 ; i < NUM_NON_HIPPO_LABELS ; i++)
+			{
+				label = non_hippo_labels[i] ;
+				GCAMsetLabelStatus(gcam, label, GCAM_BINARY_ZERO) ;
+			}
+			GCAMsetLabelStatus(gcam, 0, GCAM_NEVER_USE_LIKELIHOOD) ;
+			GCAMregister(gcam, mri_target, &mp) ;
+			GCAMvoxToRas(gcam) ;
+			GCAMwrite(gcam, out_fname) ;
+			GCAMrasToVox(gcam, mri_target) ;
+		}
 	}
 
   msec = TimerStop(&start) ;
@@ -340,6 +574,43 @@ get_option(int argc, char *argv[])
 		nargs = 3 ;
 		printf("debugging voxel (%d, %d, %d)\n", Gx, Gy, Gz) ;
 	}
+  else if (!stricmp(option, "FIX"))
+	{
+		fix_intensity = 1 ;
+		printf("using predefined intensities for class means...\n") ;
+	}
+  else if (!stricmp(option, "OPTIMAL"))
+  {
+    mp.integration_type = GCAM_INTEGRATE_OPTIMAL ;
+    printf("using optimal time-step integration\n") ;
+  }
+  else if (!stricmp(option, "MOMENTUM") || !stricmp(option, "FIXED"))
+  {
+    mp.integration_type = GCAM_INTEGRATE_FIXED ;
+    printf("using optimal time-step integration\n") ;
+  }
+  else if (!stricmp(option, "distance"))
+  {
+    distance = atof(argv[2]) ;
+		nargs = 1 ;
+    printf("expanding border by %2.1f mm every outer cycle\n", distance);
+  }
+  else if (!stricmp(option, "intensity") ||!stricmp(option, "ll"))
+  {
+    mp.l_log_likelihood = atof(argv[2]) ;
+		nargs = 1 ;
+    printf("setting l_log_likelihood = %2.1f\n", mp.l_log_likelihood );
+  }
+  else if (!stricmp(option, "noregrid"))
+  {
+		regrid = 0 ;
+    printf("disabling regridding...\n") ;
+  }
+  else if (!stricmp(option, "regrid"))
+  {
+		regrid = 1 ;
+    printf("enabling regridding...\n") ;
+  }
   else if (!stricmp(option, "view"))
 	{
 		Gsx = atoi(argv[2]) ;
@@ -348,29 +619,81 @@ get_option(int argc, char *argv[])
 		nargs = 3 ;
 		printf("viewing voxel (%d, %d, %d)\n", Gsx, Gsy, Gsz) ;
 	}
+  else if (!stricmp(option, "LEVELS"))
+  {
+    mp.levels = atoi(argv[2]) ;
+    nargs = 1 ;
+    printf("levels = %d\n", mp.levels) ;
+  }
+  else if (!stricmp(option, "area"))
+  {
+    mp.l_area = atof(argv[2]) ;
+    nargs = 1 ;
+    printf("using l_area=%2.3f\n", mp.l_area) ;
+  }
+  else if (!stricmp(option, "area_intensity"))
+  {
+    mp.l_area_intensity = atof(argv[2]) ;
+    nargs = 1 ;
+    printf("using l_area_intensity=%2.3f\n", mp.l_area_intensity) ;
+  }
+  else if (!stricmp(option, "tol"))
+  {
+    mp.tol = atof(argv[2]) ;
+    nargs = 1 ;
+    printf("using tol=%2.3f\n", mp.tol) ;
+  }
+  else if (!stricmp(option, "sigma"))
+  {
+    mp.sigma = atof(argv[2]) ;
+    nargs = 1 ;
+    printf("using sigma=%2.3f\n", mp.sigma) ;
+  }
+	else if (!stricmp(option, "rthresh"))
+  {
+		mp.ratio_thresh = atof(argv[2]) ;
+    nargs = 1 ;
+    printf("using compression ratio threshold = %2.3f...\n", mp.ratio_thresh) ;
+  }
 	else if (!stricmp(option, "dt"))
 	{
 		mp.dt = atof(argv[2]) ;
 		nargs = 1 ;
 		printf("using dt = %2.3f\n", mp.dt) ;
 	}
+	else if (!stricmp(option, "skip"))
+	{
+		skip = atoi(argv[2]);
+		printf("skipping %d voxels in hires data...\n", skip) ;
+		nargs = 1 ;
+	}
 	else switch (*option)
 	{
+	case 'D':
+		mp.l_distance = atof(argv[2]) ;
+		nargs = 1 ;
+		printf("using l_distance = %2.3f\n", mp.l_distance) ;
+		break ;
   case 'M':
     mp.momentum = atof(argv[2]) ;
     nargs = 1 ;
     printf("momentum = %2.2f\n", mp.momentum) ;
     break ;
-	case 'S':
-		skip = atoi(argv[2]);
-		printf("skipping %d voxels in hires data...\n", skip) ;
+	case 'N':
+		mp.niterations = atoi(argv[2]) ;
 		nargs = 1 ;
+		printf("using niterations = %d\n", mp.niterations) ;
+		break ;
+	case 'S':
+		mp.l_smoothness = atof(argv[2]) ;
+		nargs = 1 ;
+		printf("using l_smoothness = %2.3f\n", mp.l_smoothness) ;
 		break ;
 	case 'T':
 		printf("reading transform from %s...\n", argv[2]) ;
 		transform = TransformRead(argv[2]) ;
 		if (transform == NULL)
-			ErrorExit(ERROR_NOFILE,"%s: could not read transform from %s\n",argv[2]);
+			ErrorExit(ERROR_NOFILE,"%s: could not read transform from %s\n",Progname,argv[2]);
 		nargs = 1 ;
 		break ;
 	case 'I':
@@ -378,6 +701,27 @@ get_option(int argc, char *argv[])
 		nargs = 1 ;
 		printf("reading intensity image from %s for debugging...\n", hires_intensity_fname) ;
 		break ;
+	case 'B':
+    mp.l_binary = atof(argv[2]) ;
+    nargs = 1 ;
+    printf("using l_binary=%2.3f\n", mp.l_binary) ;
+    break ;
+  case 'J':
+    mp.l_jacobian = atof(argv[2]) ;
+    nargs = 1 ;
+    printf("using l_jacobian=%2.3f\n", mp.l_jacobian) ;
+    break ;
+  case 'A':
+		mp.navgs = atoi(argv[2]) ;
+    nargs = 1 ;
+    printf("smoothing gradient with %d averages...\n", mp.navgs) ;
+    break ;
+  case 'K':
+    mp.exp_k = atof(argv[2]) ;
+    printf("setting exp_k to %2.2f (default=%2.2f)\n",
+           mp.exp_k, EXP_K) ;
+    nargs = 1 ;
+    break ;
 	case 'W':
 		mp.write_iterations = parms.write_iterations = atoi(argv[2]) ;
 		Gdiag |= DIAG_WRITE ;
@@ -463,11 +807,6 @@ compute_optimal_transform(VOXEL_LIST *vl_lowres, VOXEL_LIST *vl_hires,
 		max_overlap = compute_overlap(vl_lowres, vl_hires, m_vox_xform) ;
 		printf("initial overlap = %2.2f...\n", max_overlap) ;
 		
-		if (Gdiag & DIAG_WRITE && parms->write_iterations > 0)
-		{
-			write_snapshot(mri_lowres, mri_hires, m_vox_xform, parms, parms->start_t, 1,NULL);
-		}
-		parms->start_t++ ;
 		MatrixFree(&m_trans) ; MatrixFree(&m_tmp) ; VectorFree(&v_cl) ; VectorFree(&v_ch) ;
 		if (Gdiag & DIAG_WRITE && parms->write_iterations > 0)
 		{
@@ -483,6 +822,11 @@ compute_optimal_transform(VOXEL_LIST *vl_lowres, VOXEL_LIST *vl_hires,
 	max_overlap = find_optimal_translation(vl_lowres, vl_hires, m_vox_xform, 
 																				 -trans, trans, 5, 4) ;
 		
+	if (Gdiag & DIAG_WRITE && parms->write_iterations > 0)
+	{
+		write_snapshot(mri_lowres, mri_hires, m_vox_xform, parms, parms->start_t,1,NULL);
+	}
+	parms->start_t++ ;
 #define MIN_SCALES 3
   /////////////////////////// loop here ////////////////////////////////////////////
   niter = 0 ; nscales = 1 ; scale = 1.0 ; good_step = 0 ; done = 0 ;
@@ -515,17 +859,13 @@ compute_optimal_transform(VOXEL_LIST *vl_lowres, VOXEL_LIST *vl_hires,
     /* search a finer nbhd (if do-while continues) */
     if ((max_overlap <= old_max_overlap)) /* couldn't take a step */
     {
-      if (good_step)
-      {
-				scale *= 0.25 ;
-				if (scale < min_search_scale)
-					break ;
-				good_step = 0 ;
-				printf("reducing scale to %2.4f\n", scale) ;
-				nscales++ ;
-      }
-      else
-				done = 1 ;
+			scale *= 0.25 ;
+			if (scale < min_search_scale)
+				break ;
+			good_step = 0 ;
+			printf("reducing scale to %2.4f\n", scale) ;
+			nscales++ ;
+			done = (good_step == 0) ;
     }
     else
       good_step = 1 ; /* took at least one good step at this scale */
@@ -1101,6 +1441,7 @@ write_snapshot(MRI *mri_lowres, MRI *mri_hires, MATRIX *m_vox_xform,
 {
 	MRI *mri_aligned ;
 	char fname[STRLEN] ;
+	LTA  *lta ;
 
 	if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
 	{
@@ -1114,27 +1455,38 @@ write_snapshot(MRI *mri_lowres, MRI *mri_hires, MATRIX *m_vox_xform,
 	}
 	else
 	{
-		MATRIX *m_ras ;
-
-    m_ras = MRIvoxelXformToRasXform(mri_hires, mri_lowres, m_vox_xform, NULL) ;
-		
-		mri_aligned = MRIapplyRASlinearTransformInterp(mri_hires, NULL, m_ras, SAMPLE_NEAREST);
-		MatrixFree(&m_ras) ;
+#if 0
+		mri_aligned = MRIsrcTransformedCentered(mri_hires_intensity, mri_lowres, m_vox_xform, SAMPLE_TRILINEAR) ;
+#else
+		lta = LTAalloc(1, NULL) ;
+		MatrixCopy(m_vox_xform, lta->xforms[0].m_L) ;
+		mri_aligned = MRITransformedCenteredMatrix(mri_hires_intensity, mri_lowres, m_vox_xform) ;
+#endif
 	}
-	sprintf(fname, "%s%03d", parms->base_name, fno) ;
+	if (in_fname)
+		sprintf(fname, "%s_%s", parms->base_name, in_fname) ;
+	else
+		sprintf(fname, "%s_%03d", parms->base_name, fno) ;
 	MRIwriteImageViews(mri_aligned, fname, IMAGE_SIZE) ;
 	if (in_fname)
-		strcpy(fname, in_fname) ;
+		sprintf(fname, "%s_%s.mgz", parms->base_name, in_fname) ;
 	else
-		sprintf(fname, "%s%03d.mgz", parms->base_name, fno) ;
+		sprintf(fname, "%s_%03d.mgz", parms->base_name, fno) ;
 	printf("writing snapshot to %s...\n", fname) ;
 	MRIwrite(mri_aligned, fname) ;
 	MRIfree(&mri_aligned) ;
 
 	{
+#if 0
 		mri_aligned = MRIsrcTransformedCentered(mri_hires, mri_lowres, m_vox_xform,
 																						SAMPLE_NEAREST) ;
-		sprintf(fname, "orig_%s%03d.mgz", parms->base_name, fno) ;
+#else
+		mri_aligned = MRITransformedCenteredMatrix(mri_hires, mri_lowres, m_vox_xform) ;
+#endif
+		if (in_fname)
+			sprintf(fname, "orig_%s_%s.mgz", parms->base_name, in_fname) ;
+		else
+			sprintf(fname, "orig_%s_%03d.mgz", parms->base_name, fno) ;
 		printf("writing snapshot to %s...\n", fname) ;
 		MRIwrite(mri_aligned, fname) ;
 		MRIfree(&mri_aligned) ;
@@ -1142,10 +1494,20 @@ write_snapshot(MRI *mri_lowres, MRI *mri_hires, MATRIX *m_vox_xform,
 
 	if (mri_hires_intensity)
 	{
+#if 0
 		mri_aligned = MRIsrcTransformedCentered(mri_hires_intensity, mri_lowres, m_vox_xform, SAMPLE_TRILINEAR) ;
-		sprintf(fname, "intensity_%s%03d", parms->base_name, fno) ;
+#else
+		mri_aligned = MRITransformedCenteredMatrix(mri_hires_intensity, mri_lowres, m_vox_xform) ;
+#endif
+		if (in_fname)
+			sprintf(fname, "intensity_%s_%s", parms->base_name, in_fname) ;
+		else
+			sprintf(fname, "intensity_%s_%03d", parms->base_name, fno) ;
 		MRIwriteImageViews(mri_aligned, fname, IMAGE_SIZE) ;
-		sprintf(fname, "intensity_%s%03d.mgz", parms->base_name, fno) ;
+		if (in_fname)
+			sprintf(fname, "intensity_%s_%s.mgz", parms->base_name, in_fname) ;
+		else
+			sprintf(fname, "intensity_%s_%03d.mgz", parms->base_name, fno) ;
 		printf("writing snapshot to %s...\n", fname) ;
 		MRIwrite(mri_aligned, fname) ;
 		MRIfree(&mri_aligned) ;
@@ -1241,3 +1603,120 @@ mri_from_voxel_list(VOXEL_LIST *vl, MRI *mri)
 	return(mri) ;
 }
 
+static MRI *
+estimate_densities(GCA_MORPH *gcam, MRI *mri_lowres, MRI *mri_intensities)
+{
+	GCAM_LABEL_TRANSLATION_TABLE gcam_ltt ;
+
+	gcam_ltt.nlabels = 0 ;
+
+	/* don't use inf_lat_vent label as it may be too small to
+		 give reliable estimate of density */
+  gcam_ltt.input_labels[gcam_ltt.nlabels] = alveus ;
+  gcam_ltt.output_labels[gcam_ltt.nlabels] = Right_Cerebral_White_Matter ;
+	if (fix_intensity)
+		gcam_ltt.means[gcam_ltt.nlabels] = 530 ;
+	gcam_ltt.nlabels++ ;
+  gcam_ltt.input_labels[gcam_ltt.nlabels] = perforant_pathway ;
+  gcam_ltt.output_labels[gcam_ltt.nlabels] = Right_Cerebral_White_Matter ;
+	if (fix_intensity)
+		gcam_ltt.means[gcam_ltt.nlabels] = 530 ;
+	gcam_ltt.nlabels++ ;
+  gcam_ltt.input_labels[gcam_ltt.nlabels] = parasubiculum ;
+  gcam_ltt.output_labels[gcam_ltt.nlabels] = Right_Hippocampus ;
+	if (fix_intensity)
+		gcam_ltt.means[gcam_ltt.nlabels] = 450 ;
+	gcam_ltt.nlabels++ ;
+  gcam_ltt.input_labels[gcam_ltt.nlabels] = presubiculum ;
+  gcam_ltt.output_labels[gcam_ltt.nlabels] = Right_Hippocampus ;
+	if (fix_intensity)
+		gcam_ltt.means[gcam_ltt.nlabels] = 450 ;
+	gcam_ltt.nlabels++ ;
+  gcam_ltt.input_labels[gcam_ltt.nlabels] = subiculum ;
+  gcam_ltt.output_labels[gcam_ltt.nlabels] = Right_Hippocampus ;
+	if (fix_intensity)
+		gcam_ltt.means[gcam_ltt.nlabels] = 450 ;
+	gcam_ltt.nlabels++ ;
+  gcam_ltt.input_labels[gcam_ltt.nlabels] = CA1 ;
+  gcam_ltt.output_labels[gcam_ltt.nlabels] = Right_Hippocampus ;
+	if (fix_intensity)
+		gcam_ltt.means[gcam_ltt.nlabels] = 450 ;
+	gcam_ltt.nlabels++ ;
+  gcam_ltt.input_labels[gcam_ltt.nlabels] = CA2 ;
+  gcam_ltt.output_labels[gcam_ltt.nlabels] = Right_Hippocampus ;
+	if (fix_intensity)
+		gcam_ltt.means[gcam_ltt.nlabels] = 450 ;
+	gcam_ltt.nlabels++ ;
+  gcam_ltt.input_labels[gcam_ltt.nlabels] = CA3 ;
+  gcam_ltt.output_labels[gcam_ltt.nlabels] = Right_Hippocampus ;
+	if (fix_intensity)
+		gcam_ltt.means[gcam_ltt.nlabels] = 450 ;
+	gcam_ltt.nlabels++ ;
+  gcam_ltt.input_labels[gcam_ltt.nlabels] = CA4 ;
+  gcam_ltt.output_labels[gcam_ltt.nlabels] = Right_Hippocampus ;
+	if (fix_intensity)
+		gcam_ltt.means[gcam_ltt.nlabels] = 450 ;
+	gcam_ltt.nlabels++ ;
+	gcam_ltt.input_labels[gcam_ltt.nlabels] = GC_DG ;
+	gcam_ltt.output_labels[gcam_ltt.nlabels] = Right_Hippocampus ;
+	if (fix_intensity)
+		gcam_ltt.means[gcam_ltt.nlabels] = 450 ;
+	gcam_ltt.nlabels++ ;
+	gcam_ltt.input_labels[gcam_ltt.nlabels] = HATA ;
+	gcam_ltt.output_labels[gcam_ltt.nlabels] = Right_Hippocampus ;
+	if (fix_intensity)
+		gcam_ltt.means[gcam_ltt.nlabels] = 450 ;
+	gcam_ltt.nlabels++ ;
+	gcam_ltt.input_labels[gcam_ltt.nlabels] = fimbria ;
+	gcam_ltt.output_labels[gcam_ltt.nlabels] = Right_Cerebral_White_Matter ;
+	if (fix_intensity)
+		gcam_ltt.means[gcam_ltt.nlabels] = 530 ;
+	gcam_ltt.nlabels++ ;
+	gcam_ltt.input_labels[gcam_ltt.nlabels] = lateral_ventricle ;
+	gcam_ltt.output_labels[gcam_ltt.nlabels] = Right_Lateral_Ventricle ;
+	if (fix_intensity)
+		gcam_ltt.means[gcam_ltt.nlabels] = 325 ;
+	gcam_ltt.nlabels++ ;
+	gcam_ltt.input_labels[gcam_ltt.nlabels] = molecular_layer_HP ;
+	gcam_ltt.output_labels[gcam_ltt.nlabels] = Right_Hippocampus ;
+	if (fix_intensity)
+		gcam_ltt.means[gcam_ltt.nlabels] = 450 ;
+	gcam_ltt.nlabels++ ;
+	gcam_ltt.input_labels[gcam_ltt.nlabels] = hippocampal_fissure ;
+	gcam_ltt.output_labels[gcam_ltt.nlabels] = Right_Lateral_Ventricle ;
+	if (fix_intensity)
+		gcam_ltt.means[gcam_ltt.nlabels] = 325 ;
+	gcam_ltt.nlabels++ ;
+	gcam_ltt.input_labels[gcam_ltt.nlabels] = entorhinal_cortex ;
+	gcam_ltt.output_labels[gcam_ltt.nlabels] = Right_Cerebral_Cortex ;
+	if (fix_intensity)
+		gcam_ltt.means[gcam_ltt.nlabels] = 450 ;
+	gcam_ltt.nlabels++ ;
+	gcam_ltt.input_labels[gcam_ltt.nlabels] = molecular_layer_subiculum ;
+	gcam_ltt.output_labels[gcam_ltt.nlabels] = Right_Hippocampus ;
+	if (fix_intensity)
+		gcam_ltt.means[gcam_ltt.nlabels] = 450 ;
+	gcam_ltt.nlabels++ ;
+	gcam_ltt.input_labels[gcam_ltt.nlabels] = Amygdala ;
+	gcam_ltt.output_labels[gcam_ltt.nlabels] = Right_Hippocampus ;
+	if (fix_intensity)
+		gcam_ltt.means[gcam_ltt.nlabels] = 450 ;
+	gcam_ltt.nlabels++ ;
+	gcam_ltt.input_labels[gcam_ltt.nlabels] = Cerebral_White_Matter ;
+	gcam_ltt.output_labels[gcam_ltt.nlabels] = Right_Cerebral_White_Matter ;
+	if (fix_intensity)
+		gcam_ltt.means[gcam_ltt.nlabels] = 580 ;
+	gcam_ltt.nlabels++ ;
+	gcam_ltt.input_labels[gcam_ltt.nlabels] = Cerebral_Cortex ;
+	gcam_ltt.output_labels[gcam_ltt.nlabels] = Right_Cerebral_Cortex ;
+	if (fix_intensity)
+		gcam_ltt.means[gcam_ltt.nlabels] = 450 ;
+	gcam_ltt.nlabels++ ;
+	gcam_ltt.input_labels[gcam_ltt.nlabels] = Inf_Lat_Vent ;
+	gcam_ltt.output_labels[gcam_ltt.nlabels] = Right_Lateral_Ventricle ;
+	if (fix_intensity)
+		gcam_ltt.means[gcam_ltt.nlabels] = 325 ;
+	gcam_ltt.nlabels++ ;
+
+	return(GCAMinitDensities(gcam, mri_lowres, mri_intensities, &gcam_ltt)) ;
+}
