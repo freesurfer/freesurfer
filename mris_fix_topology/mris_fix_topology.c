@@ -16,7 +16,7 @@
 #include "mrishash.h"
 #include "version.h"
 
-static char vcid[] = "$Id: mris_fix_topology.c,v 1.22 2004/10/26 23:03:38 segonne Exp $";
+static char vcid[] = "$Id: mris_fix_topology.c,v 1.23 2004/11/23 19:34:39 segonne Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -58,7 +58,7 @@ main(int argc, char *argv[])
   struct timeb  then ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_fix_topology.c,v 1.22 2004/10/26 23:03:38 segonne Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_fix_topology.c,v 1.23 2004/11/23 19:34:39 segonne Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -87,6 +87,9 @@ main(int argc, char *argv[])
 	parms.smooth=0;
 	//match patch onto surface using local intensities
 	parms.match=0;
+	// don't use the edge table
+	parms.edge_table=0;
+
 	//don't save
 	parms.save_fname=NULL;
 	parms.defect_number=-1;
@@ -346,21 +349,30 @@ get_option(int argc, char *argv[])
   }
 	else if (!stricmp(option, "match"))
   {
-    parms.match=1;
-    fprintf(stderr,"match patch onto surface using local intensities\n") ;
-    nargs = 0 ;
+    parms.match=atoi(argv[2]);
+		if(parms.match)
+			fprintf(stderr,"match patch onto surface using local intensities\n") ;
+		else 
+			fprintf(stderr,"do not match patch onto surface using local intensities\n") ;	
+    nargs = 1 ;
   }
 	else if (!stricmp(option, "smooth"))
   {
-    parms.smooth=1;
-    fprintf(stderr,"smooth patch\n") ;
-    nargs = 0 ;
+    parms.smooth=atoi(argv[2]);
+		if(parms.smooth)
+			fprintf(stderr,"smooth patch\n") ;
+		else
+			fprintf(stderr,"do not smooth patch\n") ;
+    nargs = 1 ;
   }
 	else if (!stricmp(option, "select"))
   {
-    parms.initial_selection=1;
-    fprintf(stderr,"using qsphere to infer potential solutions\n") ;
-    nargs = 0 ;
+    parms.initial_selection=atoi(argv[2]);
+		if(parms.initial_selection)
+			fprintf(stderr,"using qsphere to infer potential solutions\n") ;
+		else
+			fprintf(stderr,"random initial selection\n") ;
+    nargs = 1 ;
   }
 	else if (!stricmp(option, "save"))
   {
@@ -375,6 +387,8 @@ get_option(int argc, char *argv[])
   else if (!stricmp(option, "genetic"))
   {
     parms.search_mode=GENETIC_SEARCH;
+		if(parms.volume_resolution<=0)
+			parms.volume_resolution=2;
     fprintf(stderr,"using genetic algorithm\n") ;
     nargs = 0 ;
   }
@@ -388,23 +402,40 @@ get_option(int argc, char *argv[])
   }
 	else if (!stricmp(option, "variable"))
   {
-    parms.retessellation_mode=1;
-    fprintf(stderr,"ordering dependant final number of vertices\n"); 
-    nargs = 0 ;
+    parms.retessellation_mode=atoi(argv[2]);
+		if(parms.retessellation_mode)
+			fprintf(stderr,"ordering dependant final number of vertices\n");
+		else
+			fprintf(stderr,"keeping all vertices in ordered retessellation\n");
+    nargs = 1 ;
   }
 	else if (!stricmp(option, "eliminate"))
   {
-    parms.vertex_eliminate=1;
-    fprintf(stderr,"eliminate the less used vertices during search\n"); 
-    nargs = 0 ;
+    parms.vertex_eliminate=atoi(argv[2]);
+		if(parms.vertex_eliminate)
+			fprintf(stderr,"eliminate the less used vertices during search\n"); 
+		else
+			fprintf(stderr,"keep all vertices during search\n"); 
+    nargs = 1 ;
   }
 	else if (!stricmp(option, "keep"))
   {
-    parms.keep=1;
-    fprintf(stderr,"keep every vertex in the defect before search\n"); 
-    nargs = 0 ;
+    parms.keep=atoi(argv[2]);
+		if(parms.keep)
+			fprintf(stderr,"keep every vertex in the defect before search\n");
+		else
+			fprintf(stderr,"select defectuous vertices in each defect before search\n");
+    nargs = 1 ;
   }
-	
+	else if (!stricmp(option, "edge_table"))
+  {
+    parms.edge_table=atoi(argv[2]);
+		if(parms.edge_table)
+			fprintf(stderr,"use precomputed edge table\n"); 
+		else
+			fprintf(stderr,"do not use precomputed edge table\n"); 
+    nargs = 1 ;
+  }
   else if (!stricmp(option, "diag"))
   {
     printf("saving diagnostic information....\n") ;
@@ -533,21 +564,23 @@ static void print_parameters(void){
 		fprintf(stderr,"retessellation mode:           genetic search\n");
 		fprintf(stderr,"number of patches/generation : %d\n",parms.max_patches);
 		fprintf(stderr,"number of generations :        %d\n",parms.max_unchanged);
-		fprintf(stderr,"selection initial vertices :   %d\n",parms.keep);
 		if(parms.niters>0)
 			fprintf(stderr,"stopping after %d iterations\n",parms.niters);
 		fprintf(stderr,"surface mri loglikelihood coefficient :         %1.1f\n",(float)parms.l_mri);
 		fprintf(stderr,"volume mri loglikelihood coefficient :          %1.1f\n",(float)parms.l_unmri);
-		fprintf(stderr,"normal dot loglikelihood coefficient :          %1.1f\n",(float)parms.l_curv);
-		fprintf(stderr,"quadratic curvature loglikelihood coefficient : %1.1f\n",(float)parms.l_qcurv);
+		fprintf(stderr,"normal dot loglikelihood coefficient :          %2.1f\n",(float)parms.l_curv);
+		fprintf(stderr,"quadratic curvature loglikelihood coefficient : %2.1f\n",(float)parms.l_qcurv);
 		fprintf(stderr,"volume resolution :                             %d\n",parms.volume_resolution);
+		fprintf(stderr,"eliminate vertices during search :              %d\n",parms.vertex_eliminate);
+		fprintf(stderr,"initial vertex selection :                      %d\n",parms.keep);
 		break;
 	}
-	fprintf(stderr,"ordering dependant retessellation: %d\n",parms.retessellation_mode);
-	fprintf(stderr,"initial selection :                %d\n",parms.initial_selection);
-	fprintf(stderr,"smooth retessellated patch :       %d\n",parms.smooth);
-	fprintf(stderr,"match retessellated patch :        %d\n",parms.match);
-	fprintf(stderr,"verbose mode :                     %d\n",parms.verbose);
+	fprintf(stderr,"ordering dependant retessellation:              %d\n",parms.retessellation_mode);
+	fprintf(stderr,"initial patch selection :                       %d\n",parms.initial_selection);
+	fprintf(stderr,"use precomputed edge table :                    %d\n",parms.edge_table);
+	fprintf(stderr,"smooth retessellated patch :                    %d\n",parms.smooth);
+	fprintf(stderr,"match retessellated patch :                     %d\n",parms.match);
+	fprintf(stderr,"verbose mode :                                  %d\n",parms.verbose);
 	fprintf(stderr,"\n*************************************************************\n");
 }
 
