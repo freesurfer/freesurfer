@@ -6173,6 +6173,57 @@ MRIsampleZDerivative(MRI *mri, int x, int y, int z, int dir)
   dz /= ((float)nvox*mri->zsize) ;
   return(dz) ;
 }
+int   
+MRIsampleVolumeDirectionScale(MRI *mri, Real x, Real y, Real z,
+                              Real dx, Real dy, Real dz, Real *pmag,
+                              double sigma)
+{
+  int  width, height, depth ;
+  Real xp1, xm1, yp1, ym1, zp1, zm1, len ;
+  Real dist, val, k, ktotal, step_size, total_val ;
+  int  n ;
+
+  width = mri->width ; height = mri->height ; depth = mri->depth ; 
+  if (x >= width)
+    x = width - 1.0 ;
+  if (y >= height)
+    y = height - 1.0 ;
+  if (z >= depth)
+    z = depth - 1.0 ;
+  if (x < 0.0)
+    x = 0.0 ;
+  if (y < 0.0)
+    y = 0.0 ;
+  if (z < 0.0)
+    z = 0.0 ;
+
+  step_size = MAX(.5,sigma/2) ;
+  for (total_val = ktotal = 0.0,n = 0, len = 0.0, dist = step_size ; 
+       dist <= MAX(2*sigma,step_size); 
+       dist += step_size, n++)
+  {
+    if (FZERO(sigma))
+      k = 1.0 ;
+    else
+      k = exp(-dist*dist/(2*sigma*sigma)) ; 
+    ktotal += k ;
+    len += dist ;
+    xp1 = x + dist*dx ; yp1 = y + dist*dy ; zp1 = z + dist*dz ;
+    MRIsampleVolume(mri, xp1, yp1, zp1, &val) ;
+    total_val += k*val ;
+    
+    xm1 = x - dist*dx ; ym1 = y - dist*dy ; zm1 = z - dist*dz ;
+    MRIsampleVolume(mri, xm1, ym1, zm1, &val) ;
+    total_val += k*val ;
+    if (FZERO(step_size))
+      break ;
+  }
+  total_val /= (double)2.0*ktotal ; 
+
+  *pmag = total_val ;
+  return(NO_ERROR) ;
+}
+
 int
 MRIsampleVolumeDerivativeScale(MRI *mri, Real x, Real y, Real z, Real dx, 
                                Real dy, Real dz, Real *pmag, double sigma)
@@ -7411,6 +7462,8 @@ and for dest
             val111 = (float)MRIvox(src, si + 1, sj + 1, sk + 1);
           }
 
+          if (si == 154 && sj == 134 && sk == 136)
+            DiagBreak() ;
           if(src->type == MRI_SHORT)
           {
             val000 = (float)MRISvox(src, si    , sj    , sk    );
