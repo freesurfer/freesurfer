@@ -24,6 +24,7 @@
 #include "diag.h"
 #include "volume_io.h"
 #include "region.h"
+#include "machine.h"
 
 /*-----------------------------------------------------
                     MACROS AND CONSTANTS
@@ -216,6 +217,8 @@ MRIread(char *fpref)
     free(buf) ;
   }
 
+  if (!MRIisValid(mri))
+    MRIflipByteOrder(mri, mri) ;
   return(mri) ;
 }
 /*-----------------------------------------------------
@@ -892,6 +895,121 @@ mncWrite(MRI *mri, char *fname, int frame)
 
   delete_volume(volume) ;
   return(NO_ERROR) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
+int
+MRIisValid(MRI *mri)
+{
+  long   total, bad ;
+  float  *fpix ;
+  double exponent, val ;
+  int    x, y, z, width, height, depth, frame ;
+
+  width = mri->width ;
+  height = mri->height ;
+  depth = mri->depth ;
+
+  total = bad = 0 ;
+  for (frame = 0 ; frame < mri->nframes ; frame++)
+  {
+    for (z = 0 ; z < depth ; z++)
+    {
+      for (y = 0 ; y < height ; y++)
+      {
+        switch (mri->type)
+        {
+        case MRI_FLOAT:
+          fpix = &MRIFseq_vox(mri, 0, y, z, frame) ;
+          for (x = 0 ; x < width ; x++)
+          {
+            val = *fpix++ ;
+            if (val == 0.0)
+              continue ;
+            total++ ;
+            exponent = log10(fabs(val)) ;
+            if (exponent > 10.0)   /* any values this big are indicative */
+              return(0) ;
+            
+            if ((exponent > 6.0) || (exponent < -20))
+              bad++ ;
+            break ;
+          default:
+            return(1) ;
+            break ;
+          }
+        }
+      }
+    }
+  }
+
+  if (total)
+  {
+    float pct ;
+
+    pct = (float)bad / (float)total ;
+    return(pct < 0.50f) ;   /* less than 50% of non-zero pixels bad */
+  }
+
+  return(1) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
+MRI *
+MRIflipByteOrder(MRI *mri_src, MRI *mri_dst)
+{
+  float  *spix, fval, *dpix ;
+  int    x, y, z, width, height, depth, frame ;
+
+  if (!mri_dst)
+    mri_dst = MRIclone(mri_src, NULL) ;
+
+  width = mri_src->width ;
+  height = mri_src->height ;
+  depth = mri_src->depth ;
+
+  for (frame = 0 ; frame < mri_src->nframes ; frame++)
+  {
+    for (z = 0 ; z < depth ; z++)
+    {
+      for (y = 0 ; y < height ; y++)
+      {
+        switch (mri_src->type)
+        {
+        case MRI_FLOAT:
+          spix = &MRIFseq_vox(mri_src, 0, y, z, frame) ;
+          dpix = &MRIFseq_vox(mri_dst, 0, y, z, frame) ;
+          for (x = 0 ; x < width ; x++)
+          {
+            switch (mri_src->type)
+            {
+            case PFFLOAT:
+              fval = *spix++ ;
+              *dpix++ = swapFloat(fval) ;
+              break ;
+            default:
+              ErrorReturn(NULL, 
+                          (ERROR_UNSUPPORTED, 
+                           "MriFlipBytes: unsupported type %d\n", 
+                           mri_src->type)) ;
+              break ;
+            }
+          }
+        }
+      }
+    }
+  }
+  return(mri_dst) ;
 }
 
   c = header->hist.originator[8]; header->hist.originator[8] = header->hist.originator[9]; header->hist.originator[9] = c;
