@@ -8283,13 +8283,11 @@ size_t
 freadFloatEx(float *pf, FILE *fp)
 {
   int   ret ;
-
+  // 4 byte size 1 element -> ret =1 or 0
   ret = fread(pf,4,1,fp); // cannot distinguish feof nor ferror.  caller must check
 #ifdef Linux
   *pf = swapFloat(*pf) ;
 #endif
-  if (ret != 4)  // if it could not read all four bytes, then error
-    ret = 0;
   return ret;
 }
 
