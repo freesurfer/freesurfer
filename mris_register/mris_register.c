@@ -14,7 +14,7 @@
 #include "version.h"
 #include "gcsa.h"
 
-static char vcid[] = "$Id: mris_register.c,v 1.27 2005/02/11 23:56:15 segonne Exp $";
+static char vcid[] = "$Id: mris_register.c,v 1.28 2005/02/14 04:39:15 segonne Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -70,7 +70,7 @@ main(int argc, char *argv[])
   MRI_SP       *mrisp_template ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_register.c,v 1.27 2005/02/11 23:56:15 segonne Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_register.c,v 1.28 2005/02/14 04:39:15 segonne Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -239,9 +239,10 @@ get_option(int argc, char *argv[])
   {
     fprintf(stderr,"\nMultiframe Mode:\n");
 		fprintf(stderr,"Use -addframe option to add extra-fields into average atlas\n");
-		fprintf(stderr,"field code:\n");
+		fprintf(stderr,"\t-addframe which_field where_in_atlas l_corr l_pcorr\n");
+		fprintf(stderr,"\tfield code:\n");
 	 	for(n=0 ; n < NUMBER_OF_VECTORIAL_FIELDS ; n++)
-		 	fprintf(stderr,"     field %d is '%s' (type = %d)\n",n,ReturnFieldName(n),IsDistanceField(n));
+		 	fprintf(stderr,"\t      field %d is '%s' (type = %d)\n",n,ReturnFieldName(n),IsDistanceField(n));
 		exit(1);
 	}
 	else if (!stricmp(option, "init"))
@@ -264,7 +265,7 @@ get_option(int argc, char *argv[])
 		l_corr=atof(argv[4]);
 		l_pcorr=atof(argv[5]);
 
-		fprintf(stderr, "adding field %d with location %d in the atlas\n",which_field,where_in_atlas) ;
+		fprintf(stderr, "adding field %d (%s) with location %d in the atlas\n",which_field,ReturnFieldName(which_field),where_in_atlas) ;
 		/* check if this field exist or not */
 		for(n = 0 ; n < parms.nfields ; n++){
 			if(parms.fields[n].field==which_field){
