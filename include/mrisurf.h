@@ -7,6 +7,10 @@
 #include "image.h"
 #include "stats.h"
 
+#define TALAIRACH_COORDS     0
+#define SPHERICAL_COORDS     1
+#define ELLIPSOID_COORDS     2
+
 #define VERTICES_PER_FACE    4
 #define TRIANGLES_PER_FACE   2
 #define ANGLES_PER_TRIANGLE  3
@@ -260,6 +264,7 @@ int          MRISreadBinaryCurvature(MRI_SURFACE *mris, char *mris_fname) ;
 int          MRISreadCurvatureFile(MRI_SURFACE *mris, char *fname) ;
 int          MRISsampleStatVolume(MRI_SURFACE *mris, STAT_VOLUME *sv,int time);
 int          MRISwriteValues(MRI_SURFACE *mris, char *fname) ;
+int          MRISreadValues(MRI_SURFACE *mris, char *fname) ;
 
 /* constants for vertex->tethered */
 #define TETHERED_NONE           0
