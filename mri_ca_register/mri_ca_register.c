@@ -529,6 +529,14 @@ get_option(int argc, char *argv[])
     nargs = 3 ;
     printf("debugging node (%d, %d, %d)\n", Gx, Gy, Gz) ;
   }
+  else if (!stricmp(option, "DEBUG_VOXEL"))
+  {
+    Gvx = atoi(argv[2]) ;
+    Gvy = atoi(argv[3]) ;
+    Gvz = atoi(argv[4]) ;
+    nargs = 3 ;
+    printf("debugging voxel (%d, %d, %d)\n", Gvx, Gvy, Gvz) ;
+  }
   else if (!stricmp(option, "norm"))
   {
     norm_fname = argv[2] ;
