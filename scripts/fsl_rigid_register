@@ -1,8 +1,8 @@
 #!/bin/csh -f
 #
 # 
-# $Id: fsl_rigid_register,v 1.2 2003/05/08 17:57:22 greve Exp $
-set VERSION = '$Id: fsl_rigid_register,v 1.2 2003/05/08 17:57:22 greve Exp $';
+# $Id: fsl_rigid_register,v 1.3 2003/05/09 00:08:45 greve Exp $
+set VERSION = '$Id: fsl_rigid_register,v 1.3 2003/05/09 00:08:45 greve Exp $';
 
 set refvol = ();
 set invol = ();
@@ -114,6 +114,11 @@ echo " "
 echo "fsl_rigid_register Done"
 echo " "
 
+echo "To check results, run:"
+echo "tkmedit -f $refvol -aux $outvol"
+echo " "
+
+
 exit 0;
 ###############################################
 
@@ -167,6 +172,10 @@ while( $#argv != 0 )
 
     case "-verbose":
       set verbose = 1;
+      breaksw
+
+    case "-nocleanup":
+      set nocleanup = 1;
       breaksw
 
     case "-echo":
