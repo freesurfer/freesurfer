@@ -27,6 +27,7 @@ static int out_label = -1 ;
 
 static int compute_pct = 0 ;
 
+static char  *all_fname = NULL ;
 int
 main(int argc, char *argv[])
 {
@@ -131,6 +132,23 @@ main(int argc, char *argv[])
     }
   }
 
+  if (all_fname != NULL)
+  {
+
+    for (brain_volume = label = 0 ; label <= MAX_CMA_LABEL ; label++)
+    {
+      if (!IS_BRAIN(label))
+        continue ;
+      brain_volume += MRIvoxelsInLabel(mri, label) ;
+    }
+    printf("%d voxels in brain\n", brain_volume) ;
+    log_fp = fopen(all_fname, "w") ;
+    if (log_fp == NULL)
+      ErrorExit(ERROR_BADFILE, "%s: could not open %s for writing",
+                Progname, all_fname) ;
+    fprintf(log_fp,"%df\n", brain_volume) ;
+    fclose(log_fp) ;
+  }
   msec = TimerStop(&start) ;
   seconds = nint((float)msec/1000.0f) ;
   minutes = seconds / 60 ;
@@ -157,6 +175,11 @@ get_option(int argc, char *argv[])
   option = argv[1] + 1 ;            /* past '-' */
   switch (toupper(*option))
   {
+  case 'A':
+    all_fname = argv[2] ;
+    nargs = 1 ;
+    printf("writing total brain volume to %s...\n", all_fname) ;
+    break ;
   case 'T':
     in_label = atoi(argv[2]) ;
     out_label = atoi(argv[3]) ;
