@@ -115,6 +115,8 @@ StatReadVolume(char *prefix)
   int          dof_mean, dof_sigma, event_number, slice_number, which_alloc,
                width, height, nframes, nslices, t, event, nitems, x, y, z ;
   float        *buf, fval ;
+  int DatVersion, DOF;
+  float TER;
 
   FileNamePath(prefix, path) ;
   sv = (SV *)calloc(1, sizeof(SV)) ;
@@ -144,6 +146,12 @@ StatReadVolume(char *prefix)
     sscanf(line, "%*s %d", &sv->nevents) ;
     fgetl(line, MAX_LINE_LEN-1, fp) ;
     sscanf(line, "%*s %d", &sv->time_per_event) ;
+    DatVersion = 0;
+    if(fscanf(fp,"%*s %d",&DatVersion) != EOF){
+      fscanf(fp,"%*s %f",&TER);
+      fscanf(fp,"%*s %d",&DOF);
+      printf("SelXAvg Format TER = %g, DOF =  %d\n",TER,DOF);
+    }
     fclose(fp) ;
     which_alloc |= ALLOC_STDS ;
   }
@@ -162,23 +170,28 @@ StatReadVolume(char *prefix)
     exit(1);
   }
 
-  /* now read in the dof file */
-  sprintf(fname, "%s_000.dof", prefix) ;
-  fp = fopen(fname, "r") ;
-  if (fp)
-  {
-    while ((cp = fgetl(line, MAX_LINE_LEN-1, fp)) != NULL)
-    {
-      sscanf(cp, "%d %d %d", &event_number, &dof_mean, &dof_sigma) ;
-      sv->mean_dofs[event_number] = (float)dof_mean ;
-      sv->std_dofs[event_number] = (float)dof_sigma ;
+  if(DatVersion == 0){
+    /* read in the dof file */
+    sprintf(fname, "%s_000.dof", prefix) ;
+    fp = fopen(fname, "r") ;
+    if (fp){
+      while ((cp = fgetl(line, MAX_LINE_LEN-1, fp)) != NULL){
+  sscanf(cp, "%d %d %d", &event_number, &dof_mean, &dof_sigma) ;
+  sv->mean_dofs[event_number] = (float)dof_mean ;
+  sv->std_dofs[event_number] = (float)dof_sigma ;
+      }
+      fclose(fp) ;
     }
-    fclose(fp) ;
+    else{
+      fprintf(stderr,"WARNING: %s: StatReadVolume():\n",Progname);
+      fprintf(stderr,"%s does not exist\n",fname);
+    }
   }
-  else
-  {
-    fprintf(stderr,"WARNING: %s: StatReadVolume():\n",Progname);
-    fprintf(stderr,"%s does not exist\n",fname);
+  else{
+    for(event_number = 0; event_number < sv->nevents; event_number++){
+      sv->mean_dofs[event_number] = (float)DOF+1;
+      sv->std_dofs[event_number]  = (float)DOF;
+    }
   }
 
   /* count # of slices */
@@ -963,6 +976,7 @@ StatWriteVolume(SV *sv, char *prefix)
 
     if (sv->mri_avg_dofs[0]) /* keeping track of dofs on a per-voxel basis */
     {
+#if 0 /* don't write out _dof_ file */
       /* now write out dofs on a per-voxel basis */
       sprintf(fname, "%s_dof_%3.3d.bfloat", prefix, z) ;
       fp = fopen(fname, "w") ;
@@ -1013,6 +1027,7 @@ StatWriteVolume(SV *sv, char *prefix)
       }
       
       fclose(fp) ;
+#endif      
     }
   }
 
