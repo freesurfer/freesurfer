@@ -34,6 +34,7 @@
 
 static LTA  *ltaReadRegisterDat(char *fname) ;
 static LTA  *ltaMNIread(char *fname) ;
+static LTA  *ltaFSLread(const char *fname) ;
 static int  ltaMNIwrite(LTA *lta, char *fname) ;
 static LTA  *ltaReadFile(char *fname) ;
 
@@ -894,6 +895,8 @@ int TransformFileNameType(char *fname)
       return(MORPH_3D_TYPE) ;
     else if (!strcmp(dot, "LTA"))
       return(TRANSFORM_ARRAY_TYPE) ;
+    else if (!strcmp(dot, "FSLMAT"))
+      return(FSLREG_TYPE) ;
     else if (!strcmp(dot, "DAT"))
       return(REGISTER_DAT) ;
     else if (!strcmp(dot, "OCT"))
@@ -1343,6 +1346,7 @@ TransformRead(char *fname)
   {
   case MNI_TRANSFORM_TYPE:
   case LINEAR_VOX_TO_VOX:
+	case FSLREG_TYPE:
   case LINEAR_RAS_TO_RAS:
   case TRANSFORM_ARRAY_TYPE:
   default:
@@ -1395,13 +1399,13 @@ TransformFree(TRANSFORM **ptrans)
   the gca/gcamorph.
 */
 int
-TransformSample(TRANSFORM *transform, int xv, int yv, int zv, float *px, float *py, float *pz)
+TransformSample(TRANSFORM *transform, float xv, float yv, float zv, float *px, float *py, float *pz)
 {
   static VECTOR   *v_input, *v_canon = NULL ;
   float           xt, yt, zt ;
   LTA             *lta ;
   GCA_MORPH       *gcam ;
-  int errCode = NO_ERROR;
+  int errCode = NO_ERROR, xi, yi, zi;
 
   *px = *py = *pz = 0 ;
   if (transform->type == MORPH_3D_TYPE)
@@ -1422,9 +1426,10 @@ TransformSample(TRANSFORM *transform, int xv, int yv, int zv, float *px, float *
       zv = 0 ;
     if (zv >= gcam->mri_zind->depth)
       zv = gcam->mri_zind->depth-1 ;
-    xt = (int)MRISvox(gcam->mri_xind, xv, yv, zv)*gcam->spacing ;
-    yt = (int)MRISvox(gcam->mri_yind, xv, yv, zv)*gcam->spacing ;
-    zt = (int)MRISvox(gcam->mri_zind, xv, yv, zv)*gcam->spacing ;
+		xi = nint(xv) ; yi = nint(yv) ; zi = nint(zv) ;
+    xt = (int)MRISvox(gcam->mri_xind, xi, yi, zi)*gcam->spacing ;
+    yt = (int)MRISvox(gcam->mri_yind, xi, yi, zi)*gcam->spacing ;
+    zt = (int)MRISvox(gcam->mri_zind, xi, yi, zi)*gcam->spacing ;
   }
   else
   {
@@ -1438,9 +1443,9 @@ TransformSample(TRANSFORM *transform, int xv, int yv, int zv, float *px, float *
       *MATRIX_RELT(v_input, 4, 1) = 1.0 ;
       *MATRIX_RELT(v_canon, 4, 1) = 1.0 ;
     }
-    V3_X(v_input) = (float)xv;
-    V3_Y(v_input) = (float)yv;
-    V3_Z(v_input) = (float)zv;
+    V3_X(v_input) = xv;
+    V3_Y(v_input) = yv;
+    V3_Z(v_input) = zv;
     MatrixMultiply(lta->xforms[0].m_L, v_input, v_canon) ;
     xt = V3_X(v_canon) ; yt = V3_Y(v_canon) ; zt = V3_Z(v_canon) ;
     if (xt < 0) xt = 0;
@@ -1616,7 +1621,7 @@ TransformApply(TRANSFORM *transform, MRI *mri_src, MRI *mri_dst)
   switch (transform->type)
   {
   case MORPH_3D_TYPE:
-    mri_dst = GCAMmorphToAtlas(mri_src, (GCA_MORPH*)transform->xform, NULL) ;
+    mri_dst = GCAMmorphToAtlas(mri_src, (GCA_MORPH*)transform->xform, NULL, -1) ;
     break ;
   default:
     mri_dst = MRIlinearTransform(mri_src, NULL, ((LTA *)transform->xform)->xforms[0].m_L);
@@ -1694,27 +1699,27 @@ int mincFindVolume(const char *line, const char *line2, char **srcVol, char **ds
       pch = strtok((char *) line, " ");
       while (pch != NULL)
       {
-	strcpy(buf, pch);
-	if (strstr(buf, ".mnc")) // first src mnc volume
-	{
-	  mncorig = 1;
-	  if (count ==0) // src
-	  {
-	    count++;
-	    *srcVol = (char *) malloc(strlen(pch)+1);
-	    strcpy(*srcVol, pch);
-	    fprintf(stdout, "INFO: Src volume %s\n", *srcVol);
-	  }	
-	  else if (count == 1) // this is the second one must be dest volume
-	  {
-	    *dstVol = (char *) malloc(strlen(pch)+1);
-	    strcpy(*dstVol, pch);
-	    fprintf(stdout, "INFO: Target volume %s\n", *dstVol);
-	    count = 0; // restore for another case
-	    return 1;
-	  }
-	}
-	pch = strtok(NULL, " ");
+				strcpy(buf, pch);
+				if (strstr(buf, ".mnc")) // first src mnc volume
+				{
+					mncorig = 1;
+					if (count ==0) // src
+					{
+						count++;
+						*srcVol = (char *) malloc(strlen(pch)+1);
+						strcpy(*srcVol, pch);
+						fprintf(stdout, "INFO: Src volume %s\n", *srcVol);
+					}	
+					else if (count == 1) // this is the second one must be dest volume
+					{
+						*dstVol = (char *) malloc(strlen(pch)+1);
+						strcpy(*dstVol, pch);
+						fprintf(stdout, "INFO: Target volume %s\n", *dstVol);
+						count = 0; // restore for another case
+						return 1;
+					}
+				}
+				pch = strtok(NULL, " ");
       }
     }
     else // let us assume MINC GUI transform
@@ -1723,28 +1728,28 @@ int mincFindVolume(const char *line, const char *line2, char **srcVol, char **ds
       pch = strtok(NULL, " ");          // now points to filename
       if (pch != NULL)
       {
-	strcpy(buf, pch);
-	if (strstr(buf, ".mnc")) // if it is a minc file.  it is dst
-	{
-	  *dstVol = (char *) malloc(strlen(pch)+1);
-	  strcpy(*dstVol, pch);
-	}
-	pch = strtok((char *) line2, " "); // points to %Volume
-	pch = strtok(NULL, " ");        // now points to filename
-	if (pch != NULL)
-	{
-	  strcpy(buf, pch);
-	  if (strstr(buf, ".mnc")) // if it is a minc file   it is src
-	  {
-	    *srcVol = (char *) malloc(strlen(pch)+1);
-	    strcpy(*srcVol, pch);
-	  }
-	}
+				strcpy(buf, pch);
+				if (strstr(buf, ".mnc")) // if it is a minc file.  it is dst
+				{
+					*dstVol = (char *) malloc(strlen(pch)+1);
+					strcpy(*dstVol, pch);
+				}
+				pch = strtok((char *) line2, " "); // points to %Volume
+				pch = strtok(NULL, " ");        // now points to filename
+				if (pch != NULL)
+				{
+					strcpy(buf, pch);
+					if (strstr(buf, ".mnc")) // if it is a minc file   it is src
+					{
+						*srcVol = (char *) malloc(strlen(pch)+1);
+						strcpy(*srcVol, pch);
+					}
+				}
       }
       if (*srcVol)
-	fprintf(stdout, "INFO: Src volume %s\n", *srcVol);
+				fprintf(stdout, "INFO: Src volume %s\n", *srcVol);
       if (*dstVol)
-	fprintf(stdout, "INFO: Target volume %s\n", *dstVol);
+				fprintf(stdout, "INFO: Target volume %s\n", *dstVol);
     }
   }
   else
@@ -1756,20 +1761,20 @@ int mincFindVolume(const char *line, const char *line2, char **srcVol, char **ds
       strcpy(buf, pch);
       if (strstr(buf, "src")) // first src mnc volume
       {
-	// get next token
-	pch=strtok(NULL, " ");
-	*srcVol = (char *) malloc(strlen(pch)+1);
-	strcpy(*srcVol, pch);
-	fprintf(stdout, "INFO: Src volume %s\n", *srcVol);
+				// get next token
+				pch=strtok(NULL, " ");
+				*srcVol = (char *) malloc(strlen(pch)+1);
+				strcpy(*srcVol, pch);
+				fprintf(stdout, "INFO: Src volume %s\n", *srcVol);
       }
       else if (strstr(buf, "dst"))
       {
-	// get next token
-	pch=strtok(NULL, " "); 
-	*dstVol = (char *) malloc(strlen(pch)+1);
-	strcpy(*dstVol, pch);
-	fprintf(stdout, "INFO: Target volume %s\n", *dstVol);
-	return 1;
+				// get next token
+				pch=strtok(NULL, " "); 
+				*dstVol = (char *) malloc(strlen(pch)+1);
+				strcpy(*dstVol, pch);
+				fprintf(stdout, "INFO: Target volume %s\n", *dstVol);
+				return 1;
       }
       pch = strtok(NULL, " ");
     }
@@ -1987,6 +1992,9 @@ LTAreadEx(const char *fname)
   type = TransformFileNameType((char *) fname) ;
   switch (type)
   {
+	case FSLREG_TYPE:
+    lta = ltaFSLread(fname) ;
+		break ;
   case REGISTER_DAT:
     printf("INFO: This REGISTER_DAT transform is valid only for volumes between "
 	   " COR types with c_(r,a,s) = 0.\n");
@@ -2098,4 +2106,43 @@ int LTAvoxelXformToRASXform(const MRI *src, const MRI *dst, LT *voxTran, LT *ras
   getVolGeom(src, &voxTran->src);
   getVolGeom(dst, &voxTran->dst);
   return 1; 
+}
+static LTA  *
+ltaFSLread(const char *fname)
+{
+  LTA              *lta ;
+  LINEAR_TRANSFORM *lt ;
+  char             *cp, line[1000] ;
+  FILE             *fp ;
+  int              row ;
+  MATRIX           *m_L ;
+
+  fp = fopen(fname, "r") ;
+  if (!fp)
+    ErrorReturn(NULL, 
+                (ERROR_NOFILE, "ltFSLread: could not open file %s",fname));
+
+  lta = LTAalloc(1, NULL) ;
+  lt = &lta->xforms[0] ;
+  lt->sigma = 1.0f ;
+  lt->x0 = lt->y0 = lt->z0 = 0 ;
+
+  m_L = lt->m_L ;
+  for (row = 1 ; row <= 3 ; row++)
+  {
+    cp = fgetl(line, 900, fp) ;
+    if (!cp)
+    {
+      LTAfree(&lta) ;
+      ErrorReturn(NULL,
+                  (ERROR_BADFILE, "ltFSLread: could not read row %d from %s",
+                   row, fname)) ;
+    }
+    sscanf(cp, "%f %f %f %f",
+           MATRIX_RELT(m_L,row,1), MATRIX_RELT(m_L,row,2), 
+           MATRIX_RELT(m_L,row,3), MATRIX_RELT(m_L,row,4)) ;
+  }
+  fclose(fp) ;
+	lta->type = LINEAR_VOX_TO_VOX;
+  return(lta) ;
 }
