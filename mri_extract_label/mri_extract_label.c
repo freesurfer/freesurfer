@@ -12,7 +12,7 @@
 #include "gca.h"
 #include "transform.h"
 
-static char vcid[] = "$Id: mri_extract_label.c,v 1.1 2001/12/19 22:02:24 fischl Exp $";
+static char vcid[] = "$Id: mri_extract_label.c,v 1.2 2002/01/02 20:27:26 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -198,19 +198,19 @@ static void
 print_usage(void)
 {
   fprintf(stderr, 
-          "usage: %s [options] <input volume> <input surface> <registration file> <output .float file>\n",
+          "usage: %s [options] <input volume> <label 1> <label 2> ... <output name>\n",
           Progname) ;
+  fprintf(stderr, "where options are:\n") ;
+  fprintf(stderr, 
+          "\t-s <sigma>\tapply a Gaussian smoothing kernel\n"
+          "\t-t <xform file>\tapply the transform in <xform file> to extracted volume\n");
 }
 
 static void
 print_help(void)
 {
-  print_usage() ;
   fprintf(stderr, 
-     "\nThis program will paint a average Talairach stats onto a surface\n");
-  fprintf(stderr, "-imageoffset <image offset> - set offset to use\n") ;
-  fprintf(stderr, "-S                          - paint using surface "
-          "coordinates\n") ;
+          "\nThis program will extract a set of labeled voxels from an image\n") ;
   exit(1) ;
 }
 
