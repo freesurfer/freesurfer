@@ -1,6 +1,6 @@
 /* 
    fmriutils.c 
-   $Id: fmriutils.c,v 1.5 2004/03/08 22:05:29 greve Exp $
+   $Id: fmriutils.c,v 1.6 2004/10/06 22:04:24 greve Exp $
 */
 #include <stdio.h>
 #include <stdlib.h>
@@ -248,7 +248,6 @@ MRI *fMRIcomputeT(MRI *ces, MATRIX *X, MATRIX *C, MRI *var, MRI *t)
 
   return(t);
 }
-
 /*--------------------------------------------------------*/
 MRI *fMRIsigT(MRI *t, float DOF, MRI *sig)
 {
@@ -293,6 +292,136 @@ MRI *fMRIsigT(MRI *t, float DOF, MRI *sig)
 
   return(sig);
 }
+/*--------------------------------------------------------------------*/
+MRI *fMRIcomputeF(MRI *ces, MATRIX *X, MATRIX *C, MRI *var, MRI *F)
+{
+  int c, r, s, f, J;
+  MATRIX *Xt, *XtX, *iXtX, *CiXtX, *Ct, *CiXtXCt, *iCiXtXCt;
+  MATRIX *M, *cesvect, *cesvectt, *voxF;
+  float cesval, voxvar;
+
+  if(ces->nframes != C->rows ){
+    printf("ERROR: fMRIcomputeT: contrast effect size and contrast matrix "
+	   "have inconsistent dimensions.\n");
+    return(NULL);
+  }
+
+  if(F==NULL){
+    F = MRIallocSequence(ces->width, ces->height, ces->depth, 
+			      MRI_FLOAT, 1);
+    if(F==NULL){
+      printf("ERROR: fMRIcomputeF: could not alloc\n");
+      return(NULL);
+    }
+    MRIcopyHeader(ces,F);
+  }
+  else{
+    if(F->width  != ces->width || 
+       F->height != ces->height || 
+       F->depth  != ces->depth){
+      printf("ERROR: fMRIcomputeT: output dimension mismatch\n");
+      return(NULL);
+    }
+    if(F->type != MRI_FLOAT){
+      printf("ERROR: fMRIcomputeT: structure passed is not MRI_FLOAT\n");
+      return(NULL);
+    }
+  }
+
+  Xt      = MatrixTranspose(X,NULL);
+  XtX     = MatrixMultiply(Xt,X,NULL);
+  iXtX    = MatrixInverse(XtX,NULL);
+  CiXtX   = MatrixMultiply(C,iXtX,NULL);
+  Ct      = MatrixTranspose(C,NULL);
+  CiXtXCt = MatrixMultiply(CiXtX,Ct,NULL);
+  iCiXtXCt = MatrixInverse(CiXtXCt,NULL);
+  J = C->rows;
+  cesvect = MatrixAlloc(ces->nframes,1,MATRIX_REAL);
+  cesvectt = MatrixAlloc(1,ces->nframes,MATRIX_REAL);
+  M = NULL;
+  voxF = NULL;
+
+  for(c=0; c < ces->width; c++){
+    for(r=0; r < ces->height; r++){
+      for(s=0; s < ces->depth; s++){
+	voxvar = MRIgetVoxVal(var, c, r, s, 0);
+	if(voxvar == 0)
+	  MRIFseq_vox(F,c,r,s,0) = 0;
+	else{
+	  for(f=0; f < ces->nframes; f++){
+	    cesval = MRIgetVoxVal(ces, c, r, s, 0);
+	    cesvect->rptr[f+1][1]  = cesval;
+	    cesvectt->rptr[1][f+1] = cesval;
+	  }
+	  M = MatrixMultiply(iCiXtXCt,cesvect,M);
+	  voxF = MatrixMultiply(cesvectt,M,voxF);
+
+	  MRIFseq_vox(F,c,r,s,0) = voxF->rptr[1][1];
+	}
+      }
+    }
+  }
+
+  MatrixFree(&Xt);
+  MatrixFree(&XtX);
+  MatrixFree(&iXtX);
+  MatrixFree(&CiXtX);
+  MatrixFree(&Ct);
+  MatrixFree(&CiXtXCt);
+  MatrixFree(&iCiXtXCt);
+  MatrixFree(&cesvect);
+  MatrixFree(&cesvectt);
+  MatrixFree(&M);
+
+  return(F);
+}
+
+/*--------------------------------------------------------*/
+// This does not work yet because we need an F test
+MRI *fMRIsigF(MRI *F, float DOF1, float DOF2, MRI *sig)
+{
+  int c, r, s, f;
+  float Fval, sigFval;
+
+  if(sig==NULL){
+    sig = MRIallocSequence(F->width, F->height, F->depth, 
+			   MRI_FLOAT, F->nframes);
+    if(sig==NULL){
+      printf("ERROR: fMRIsigT: could not alloc\n");
+      return(NULL);
+    }
+    MRIcopyHeader(F,sig);
+  }
+  else{
+    if(F->width   != sig->width  || 
+       F->height  != sig->height || 
+       F->depth   != sig->depth  ||
+       F->nframes != sig->nframes){
+      printf("ERROR: fMRIsigT: output dimension mismatch\n");
+      return(NULL);
+    }
+    if(sig->type != MRI_FLOAT){
+      printf("ERROR: fMRIsigT: structure passed is not MRI_FLOAT\n");
+      return(NULL);
+    }
+  }
+
+  for(c=0; c < F->width; c++){
+    for(r=0; r < F->height; r++){
+      for(s=0; s < F->depth; s++){
+	for(f=0; f < F->nframes; f++){
+	  Fval = MRIFseq_vox(F,c,r,s,f);
+          //sigFval = sigF(Fval, rint(DOF1), rint(DOF2));
+          sigFval = sigt(Fval, rint(DOF1));
+	  MRIFseq_vox(sig,c,r,s,f) = sigFval;
+	}
+      }
+    }
+  }
+
+  return(sig);
+}
+
 /*--------------------------------------------------------*/
 MRI *fMRInskip(MRI *inmri, int nskip, MRI *outmri)
 {
