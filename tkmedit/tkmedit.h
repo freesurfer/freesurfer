@@ -107,11 +107,12 @@ typedef enum {
   tkm_tTclCommand_UpdateBrushTarget,
   tkm_tTclCommand_UpdateBrushShape,
   tkm_tTclCommand_UpdateBrushInfo,
+  tkm_tTclCommand_UpdateFloodSelectParams,
   tkm_tTclCommand_UpdateCursorColor,
   tkm_tTclCommand_UpdateCursorShape,
   tkm_tTclCommand_UpdateSurfaceLineWidth,
   tkm_tTclCommand_UpdateSurfaceLineColor,
-  tkm_tTclCommand_UpdateParcBrushInfo,
+  tkm_tTclCommand_UpdateSegBrushInfo,
   tkm_tTclCommand_UpdateVolumeColorScale,
   tkm_tTclCommand_UpdateSegmentationVolumeAlpha,
   tkm_tTclCommand_UpdateDTIVolumeAlpha,
@@ -149,8 +150,8 @@ typedef enum {
   tkm_tTclCommand_ShowOverlayRegistrationOptions,
   tkm_tTclCommand_ShowSegmentationOptions,
   tkm_tTclCommand_ShowAuxSegmentationOptions,
-  tkm_tTclCommand_ClearParcColorTable,
-  tkm_tTclCommand_AddParcColorTableEntry,
+  tkm_tTclCommand_ClearSegColorTable,
+  tkm_tTclCommand_AddSegColorTableEntry,
   
   /* histogram */
   tkm_tTclCommand_DrawHistogram,
@@ -253,7 +254,7 @@ void tkm_CalcSegLabelVolume ( tkm_tSegType iVolume,
 			      xVoxelRef    iAnaIdx,
 			      int*         onVolume );
  
-/* editing the parcellation */
+/* editing the segmentation */
 void tkm_EditSegmentation      ( tkm_tSegType      iVolume,
 				 xVoxelRef         iAnaIdx,
 				 int               inIndex );
@@ -327,6 +328,12 @@ void tkm_SelectVoxelArray    ( xVoxelRef iaAnaIdx, int inCount );
 void tkm_DeselectVoxel       ( xVoxelRef iAnaIdx );
 void tkm_DeselectVoxelArray  ( xVoxelRef iaAnaIdx, int inCount );
 void tkm_ClearSelection      ();
+void tkm_FloodSelect         ( xVoxelRef         iSeedAnaIdx,
+			       tBoolean          ib3D,
+			       tkm_tVolumeTarget iSrc,
+			       int               inFuzzy,
+			       int               inDistance,
+			       tBoolean          ibSelect );
 
 /* event processing */
 void tkm_HandleIdle ();

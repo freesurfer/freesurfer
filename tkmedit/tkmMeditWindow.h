@@ -360,7 +360,11 @@ int MWin_TclSetSurfaceLineColor ( ClientData  iClientData,
 				  Tcl_Interp* ipInterp,
 				  int        argc,
 				  char*        argv[] );
-int MWin_TclSetParcBrushInfo ( ClientData  iClientData, 
+int MWin_TclSetFloodSelectParams ( ClientData  iClientData, 
+				   Tcl_Interp* ipInterp,
+				   int   argc,
+				   char*   argv[] );
+int MWin_TclSetSegBrushInfo ( ClientData  iClientData, 
 			       Tcl_Interp* ipInterp,
 			       int   argc,
 			       char*   argv[] );

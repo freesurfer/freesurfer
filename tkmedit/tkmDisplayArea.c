@@ -3,8 +3,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2003/05/12 17:29:20 $
-// Revision       : $Revision: 1.68 $
+// Revision Date  : $Date: 2003/05/20 20:05:35 $
+// Revision       : $Revision: 1.69 $
 
 #include "tkmDisplayArea.h"
 #include "tkmMeditWindow.h"
@@ -50,9 +50,10 @@
 
 
 /* tool and brush info is static */
-static DspA_tTool              sTool  = DspA_tTool_SelectVoxels;
-static DspA_tBrushSettings     sBrush;
-static DspA_tParcBrushSettings sParcBrush;
+static DspA_tTool                sTool  = DspA_tTool_SelectVoxels;
+static DspA_tBrushSettings       sBrush;
+static DspA_tSegBrushSettings   sSegBrush;
+static DspA_tFloodSelectSettings sFloodSelectSettings;
 
 /* cursor info too */
 static xColor3f     sCursorColor = { 1, 0, 0 };
@@ -199,13 +200,19 @@ DspA_tErr DspA_New ( tkmDisplayAreaRef* oppWindow,
   DspA_SetBrushInfoToDefault( this, DspA_tBrush_EditOne );
   DspA_SetBrushInfoToDefault( this, DspA_tBrush_EditTwo );
   
-  /* default parc brush info */
-  sParcBrush.mNewValue  = 0;
-  sParcBrush.mb3D       = FALSE;
-  sParcBrush.mSrc       = tkm_tVolumeTarget_MainAna;
-  sParcBrush.mnFuzzy    = 0;
-  sParcBrush.mnDistance = 0;
+  /* default seg brush info */
+  sSegBrush.mNewValue  = 0;
+  sSegBrush.mb3D       = FALSE;
+  sSegBrush.mSrc       = tkm_tVolumeTarget_MainAna;
+  sSegBrush.mnFuzzy    = 0;
+  sSegBrush.mnDistance = 0;
   
+  /* default flood select info */
+  sFloodSelectSettings.mb3D       = FALSE;
+  sFloodSelectSettings.mSrc       = tkm_tVolumeTarget_MainAna;
+  sFloodSelectSettings.mnFuzzy    = 0;
+  sFloodSelectSettings.mnDistance = 0;
+
   /* set default cursor color */
   color.mfRed   = 1.0;
   color.mfGreen = 0.0;
@@ -2126,6 +2133,48 @@ DspA_tErr DspA_SetSurfaceLineColor ( tkmDisplayAreaRef this,
   return eResult;
 }
 
+DspA_tErr DspA_SetFloodSelectParams ( tkmDisplayAreaRef          this,
+				      DspA_tFloodSelectSettings* iSettings ) {
+  
+  DspA_tErr eResult            = DspA_tErr_NoErr;
+  char      sTclArguments[STRLEN] = "";
+  
+  /* verify us. */
+  eResult = DspA_Verify ( this );
+  if ( DspA_tErr_NoErr != eResult )
+    goto error;
+  
+  /* set the brush theshold info */
+  sFloodSelectSettings = *iSettings;
+  
+  /* if we're the currently focused display... */
+  if( sFocusedDisplay == this ) {
+    
+    /* send the tcl update. */
+    sprintf ( sTclArguments, "%d %d %d %d",
+	      (int)sFloodSelectSettings.mb3D,
+	      (int)sFloodSelectSettings.mSrc,
+	      (int)sFloodSelectSettings.mnFuzzy,
+	      (int)sFloodSelectSettings.mnDistance );
+    tkm_SendTclCommand( tkm_tTclCommand_UpdateFloodSelectParams, 
+			sTclArguments );
+  }
+  
+  goto cleanup;
+  
+ error:
+  
+  /* print error message */
+  if ( DspA_tErr_NoErr != eResult ) {
+    DebugPrint( ("Error %d in DspA_SetFloodSelectParams: %s\n",
+		 eResult, DspA_GetErrorString(eResult) ) );
+  }
+  
+ cleanup:
+  
+  return eResult;
+}
+
 DspA_tErr DspA_SetCursorShape ( tkmDisplayAreaRef this,
 				DspA_tMarker      iShape ) {
   
@@ -2171,8 +2220,8 @@ DspA_tErr DspA_SetCursorShape ( tkmDisplayAreaRef this,
   return eResult;
 }
 
-DspA_tErr DspA_SetParcBrushInfo ( tkmDisplayAreaRef        this,
-				  DspA_tParcBrushSettings* iSettings ) {
+DspA_tErr DspA_SetSegBrushInfo ( tkmDisplayAreaRef        this,
+				  DspA_tSegBrushSettings* iSettings ) {
   
   DspA_tErr eResult            = DspA_tErr_NoErr;
   char      sTclArguments[STRLEN] = "";
@@ -2191,16 +2240,16 @@ DspA_tErr DspA_SetParcBrushInfo ( tkmDisplayAreaRef        this,
   }
   
   /* set brush data */
-  sParcBrush = *iSettings;
+  sSegBrush = *iSettings;
   
   /* if we're the currently focused display... */
   if( sFocusedDisplay == this ) {
     
     /* send the tcl update. */
     sprintf( sTclArguments, "%d %d %d %d %d", 
-	     sParcBrush.mNewValue, sParcBrush.mb3D,
-	     sParcBrush.mSrc, sParcBrush.mnFuzzy, sParcBrush.mnDistance );
-    tkm_SendTclCommand( tkm_tTclCommand_UpdateParcBrushInfo, sTclArguments );
+	     sSegBrush.mNewValue, sSegBrush.mb3D,
+	     sSegBrush.mSrc, sSegBrush.mnFuzzy, sSegBrush.mnDistance );
+    tkm_SendTclCommand( tkm_tTclCommand_UpdateSegBrushInfo, sTclArguments );
   }
   
   goto cleanup;
@@ -2209,7 +2258,7 @@ DspA_tErr DspA_SetParcBrushInfo ( tkmDisplayAreaRef        this,
   
   /* print error message */
   if ( DspA_tErr_NoErr != eResult ) {
-    DebugPrint( ("Error %d in DspA_SetParcBrushInfo: %s\n",
+    DebugPrint( ("Error %d in DspA_SetSegBrushInfo: %s\n",
 		 eResult, DspA_GetErrorString(eResult) ) );
   }
   
@@ -2692,9 +2741,9 @@ DspA_tErr DspA_HandleMouseUp_ ( tkmDisplayAreaRef this,
   DspA_tErr    eResult     = DspA_tErr_NoErr;
   xPoint2n     bufferPt    = {0,0};
   xVoxelRef    pVolumeVox  = NULL;
-  int          nParcIndex  = 0;
+  int          nSegIndex  = 0;
   tkm_tSegType segType     = tkm_tSegType_Main;
-  DspA_tParcBrushSettings parcBrush;
+  DspA_tSegBrushSettings segBrush;
   
   xVoxl_New( &pVolumeVox );
   
@@ -2787,7 +2836,7 @@ DspA_tErr DspA_HandleMouseUp_ ( tkmDisplayAreaRef this,
     }
   }
   
-  /* if edit parc tool... */
+  /* if edit seg tool... */
   if( this->mabDisplayFlags[DspA_tDisplayFlag_AuxSegmentationVolume] ) {
     segType = tkm_tSegType_Aux;
   } else {
@@ -2807,16 +2856,16 @@ DspA_tErr DspA_HandleMouseUp_ ( tkmDisplayAreaRef this,
 	
 	/* get the color and set our brush info with the same settings
 	   except for the new color */
-	tkm_GetSegLabel( segType, pVolumeVox, &nParcIndex, NULL );
-	parcBrush = sParcBrush;
-	parcBrush.mNewValue = nParcIndex;
-	parcBrush.mDest = segType;
-	DspA_SetParcBrushInfo( this, &parcBrush );
+	tkm_GetSegLabel( segType, pVolumeVox, &nSegIndex, NULL );
+	segBrush = sSegBrush;
+	segBrush.mNewValue = nSegIndex;
+	segBrush.mDest = segType;
+	DspA_SetSegBrushInfo( this, &segBrush );
 	
       } else {
 
 	DebugNote( ("Calling DspA_BrushVoxels_ from mouse up") );
-	parcBrush.mDest = segType;
+	segBrush.mDest = segType;
 	eResult = DspA_BrushVoxels_( this, pVolumeVox,  
 				     NULL, DspA_EditSegmentationVoxels_ );
 	if( DspA_tErr_NoErr != eResult )
@@ -2828,9 +2877,9 @@ DspA_tErr DspA_HandleMouseUp_ ( tkmDisplayAreaRef this,
       
       /* button three does a flood fill */
     case 3:
-      tkm_FloodFillSegmentation( segType, pVolumeVox, sParcBrush.mNewValue, 
-				 sParcBrush.mb3D, sParcBrush.mSrc, 
-				 sParcBrush.mnFuzzy, sParcBrush.mnDistance );
+      tkm_FloodFillSegmentation( segType, pVolumeVox, sSegBrush.mNewValue, 
+				 sSegBrush.mb3D, sSegBrush.mSrc, 
+				 sSegBrush.mnFuzzy, sSegBrush.mnDistance );
       this->mbSliceChanged = TRUE;
       break;
     }
@@ -2844,6 +2893,28 @@ DspA_tErr DspA_HandleMouseUp_ ( tkmDisplayAreaRef this,
     
   }
   
+  /* if select tool and button 3, does a flood select. */
+  if( DspA_tTool_SelectVoxels == sTool 
+      && TRUE == ipEvent->mbShiftKey ) {
+    
+    if( 3 == ipEvent->mButton ) {
+      tkm_FloodSelect( pVolumeVox, 
+		       sFloodSelectSettings.mb3D,
+		       sFloodSelectSettings.mSrc, 
+		       sFloodSelectSettings.mnFuzzy,
+		       sFloodSelectSettings.mnDistance,
+		       FALSE );
+    } else if( 2 == ipEvent->mButton ) {
+      tkm_FloodSelect( pVolumeVox, 
+		       sFloodSelectSettings.mb3D,
+		       sFloodSelectSettings.mSrc, 
+		       sFloodSelectSettings.mnFuzzy,
+		       sFloodSelectSettings.mnDistance,
+		       TRUE );
+    }
+    this->mbSliceChanged = TRUE;
+  }
+
   /* if edit tool and shift */
   if( DspA_tTool_EditVoxels == sTool 
       && ipEvent->mbShiftKey ) {
@@ -2960,6 +3031,7 @@ DspA_tErr DspA_HandleMouseDown_ ( tkmDisplayAreaRef this,
   if( ( 2 == ipEvent->mButton
 	|| 3 == ipEvent->mButton )
       && DspA_tTool_SelectVoxels == sTool
+      && !ipEvent->mbShiftKey
       && !ipEvent->mbCtrlKey
       && !ipEvent->mbAltKey ) {
     
@@ -2982,7 +3054,7 @@ DspA_tErr DspA_HandleMouseDown_ ( tkmDisplayAreaRef this,
     
   }
   
-  /* if edit parc tool with button 1 or 3, clear the undo list */
+  /* if edit seg tool with button 1 or 3, clear the undo list */
   if( ( 1 == ipEvent->mButton
 	|| 3 == ipEvent->mButton )
       && DspA_tTool_EditSegmentation == sTool 
@@ -3144,7 +3216,7 @@ DspA_tErr DspA_HandleMouseMoved_ ( tkmDisplayAreaRef this,
     
   }
   
-  /* if edit parc tool button 1... */
+  /* if edit seg tool button 1... */
   if( this->mabDisplayFlags[DspA_tDisplayFlag_AuxSegmentationVolume] ) {
     segType = tkm_tSegType_Aux;
   } else {
@@ -3155,9 +3227,9 @@ DspA_tErr DspA_HandleMouseMoved_ ( tkmDisplayAreaRef this,
       && ipEvent->mButton == 2
       && !(ipEvent->mbAltKey)) {
     
-    /* edit the parc volume */
+    /* edit the seg volume */
     DebugNote( ("Calling DspA_BrushVoxels_ from mouse moved") );
-    sParcBrush.mDest = segType;
+    sSegBrush.mDest = segType;
     eResult = DspA_BrushVoxels_( this, &anaIdx, 
 				 NULL, DspA_EditSegmentationVoxels_ );
     if( DspA_tErr_NoErr != eResult )
@@ -3172,6 +3244,7 @@ DspA_tErr DspA_HandleMouseMoved_ ( tkmDisplayAreaRef this,
   if( ( 2 == ipEvent->mButton
 	|| 3 == ipEvent->mButton )
       && DspA_tTool_SelectVoxels == sTool
+      && !ipEvent->mbShiftKey
       && !ipEvent->mbCtrlKey
       && !ipEvent->mbAltKey ) {
     
@@ -3683,8 +3756,8 @@ void DspA_EditSegmentationVoxels_ ( xVoxelRef ipaVoxel, int inCount,
   DebugEnterFunction( ("DspA_EditSegmentationVoxels_( ipaVoxel=%p, "
 		       "inCount=%d, ipData=%p", ipaVoxel, inCount, ipData) );
 
-  tkm_EditSegmentationArray( sParcBrush.mDest, 
-			     ipaVoxel, inCount, sParcBrush.mNewValue );
+  tkm_EditSegmentationArray( sSegBrush.mDest, 
+			     ipaVoxel, inCount, sSegBrush.mNewValue );
 
   DebugExitFunction;
 }

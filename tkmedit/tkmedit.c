@@ -3,10 +3,10 @@
   ===========================================================================*/
 
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2003/05/20 16:17:49 $
-// Revision       : $Revision: 1.150 $
-char *VERSION = "$Revision: 1.150 $";
+// Revision Author: $Author: kteich $
+// Revision Date  : $Date: 2003/05/20 20:05:35 $
+// Revision       : $Revision: 1.151 $
+char *VERSION = "$Revision: 1.151 $";
 
 #define TCL
 #define TKMEDIT 
@@ -218,6 +218,21 @@ tBoolean gEnableFileNameGuessing = TRUE;
 
 // ==========================================================================
 
+// =============================================================== CANCELLING
+
+/* These functions let the user cancel an action that is taking a long
+   time. */
+int gCancelListening    = 0;
+int gCancelUserCanceled = 0;
+
+void InitializeUserCancel ();
+void StartListeningForUserCancel ();
+void StopListeningForUserCancel ();
+int DidUserCancel ();
+void HandleUserCancelCallback (int signal);
+
+// ==========================================================================
+
 // ================================================== SELECTING CONTROL POINTS
 
 /* returns distance to nearest control point on the same plane. returns
@@ -291,9 +306,6 @@ x3DListRef gSelectedVoxels;
 tkm_tErr InitSelectionModule ();
 void   DeleteSelectionModule ();
 
-/* grabs the list of voxels selected and draws them into the buffer. */
-void DrawSelectedVoxels ( char * inBuffer, int inPlane, int inPlaneNum );
-
 /* adds or removes voxels to selections. if a voxel that isn't in the 
    selection is told to be removed, no errors occur. this is called from the 
    brush function. The iaAnaIdx parameter can be an array. */
@@ -314,9 +326,21 @@ void GraphSelectedRegion ();
    and having values above the func value at the cursor */
 void SelectVoxelsByFuncValue ( FunV_tFindStatsComp iCompare );
 
-/* values used in calculating selection color */
-#define kSel_IntensifyValue 100
-#define kSel_TooClose      10
+typedef struct {
+  tBoolean   mbSelect; /* 1 for select, 0 for deselect */
+  int        mnCount;
+} tkm_tFloodSelectCallbackData;
+tkm_tErr FloodSelect ( xVoxelRef         iSeedAnaIdx,
+		       tBoolean          ib3D,
+		       tkm_tVolumeTarget iSrc,
+		       int               inFuzzy,
+		       int               inDistance,
+		       tBoolean          ibSelect );
+
+/* Callback for the flood. */
+Volm_tVisitCommand FloodSelectCallback ( xVoxelRef iAnaIdx,
+					 float     iValue,
+					 void*     iData );
 
 // ===========================================================================
 
@@ -324,7 +348,6 @@ void SelectVoxelsByFuncValue ( FunV_tFindStatsComp iCompare );
 
 #include "mriVolume.h"
 
-/* we declare tkm_knNumVolumeTypes, but we only use the main and aux */
 static mriVolumeRef     gAnatomicalVolume[tkm_knNumVolumeTypes];
 static int              gnAnatomicalDimensionX = 0;
 static int              gnAnatomicalDimensionY = 0;
@@ -997,7 +1020,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
      shorten our argc and argv count. If those are the only args we
      had, exit. */
   /* rkt: check for and handle version tag */
-  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.150 2003/05/20 16:17:49 tosa Exp $");
+  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.151 2003/05/20 20:05:35 kteich Exp $");
   if (nNumProcessedVersionArgs && argc - nNumProcessedVersionArgs == 1)
     exit (0);
   argc -= nNumProcessedVersionArgs;
@@ -4753,10 +4776,14 @@ int main ( int argc, char** argv ) {
   DebugNote( ("Initalizing undo list") );
   eResult = InitUndoList();
   DebugAssertThrow( (eResult == tkm_tErr_NoErr) );
+
   DebugNote( ("Initalizing selection module") );
   eResult = InitSelectionModule();
   DebugAssertThrow( (eResult == tkm_tErr_NoErr) );
   
+  DebugNote( ("Initalizing user cancel listener") );
+  InitializeUserCancel();
+
   /* create functional volume */
   DebugNote( ("Creating functional volume") );
   eFunctional = FunV_New( &gFunctionalVolume,
@@ -5998,7 +6025,7 @@ void RemoveVoxelsFromSelection ( xVoxelRef iaAnaIdx, int inCount ) {
     e3DList = x3Lst_RemoveItem( gSelectedVoxels, &where, (void**)&voxel );
     if( e3DList != x3Lst_tErr_NoErr ) {
       if( e3DList != x3Lst_tErr_ItemNotInSpace ) {
-	DebugPrint( ( "x3Lst error %d in RemoveVoxelFromSelection. "
+	DebugPrint( ( "x3Lst error %d in RemoveVoxelsFromSelection. "
 		      "voxel %d of %d = %d, %d, %d\n",
 		      e3DList, nVoxel, inCount, xVoxl_ExpandInt( voxel ) ) );
       }
@@ -6310,6 +6337,157 @@ void SelectVoxelsByFuncValue ( FunV_tFindStatsComp iCompare ) {
   DebugExitFunction;
 }
 
+tkm_tErr FloodSelect ( xVoxelRef         iSeedAnaIdx,
+		       tBoolean          ib3D,
+		       tkm_tVolumeTarget iSrc,
+		       int               inFuzzy,
+		       int               inDistance,
+		       tBoolean          ibSelect ) {
+  
+  tkm_tErr                    eResult      = tkm_tErr_NoErr;
+  Volm_tFloodParams           params;
+  tkm_tFloodSelectCallbackData callbackData;
+  mriVolumeRef                sourceVolume = NULL;
+  Volm_tErr                   eVolume      = Volm_tErr_NoErr;
+  char                        sTclArguments[tkm_knTclCmdLen] = "";
+
+  DebugEnterFunction( ("FloodSelect( iSeedAnaIdx=%d,%d,%d "
+		       "ib3D=%d, iSrc=%d, inFuzzy=%d "
+		       "inDistance=%d", xVoxl_ExpandInt(iSeedAnaIdx),
+		       ib3D, iSrc, inFuzzy, inDistance) );
+  
+  DebugAssertThrowX( (NULL != iSeedAnaIdx), 
+		     eResult, tkm_tErr_InvalidParameter );
+  
+  xVoxl_Copy( &params.mSourceIdx, iSeedAnaIdx );
+  params.mfFuzziness             = inFuzzy;
+  params.mComparator             = Volm_tValueComparator_EQ;
+  params.mfMaxDistance           = inDistance;
+  params.mb3D                    = ib3D;
+  MWin_GetOrientation ( gMeditWindow, &params.mOrientation );
+
+  /* Set the callback function data. Tell it to use the callback data
+     we just initialized. */
+  params.mpFunction     = FloodSelectCallback;
+  params.mpFunctionData = (void*)&callbackData;
+
+  callbackData.mbSelect = ibSelect;
+  callbackData.mnCount  = 0;
+
+  /* See what source volume to use. For everything other than the main
+     anatomical volume, check to see if it exists first. For the
+     segmentation targets, set the fuzzinees to 0, since it doesn't
+     really apply to label values. */
+  switch( iSrc ) {
+  case tkm_tVolumeTarget_MainAna:
+    sourceVolume = gAnatomicalVolume[tkm_tVolumeType_Main];
+    break;
+  case tkm_tVolumeTarget_AuxAna:
+    if( NULL == gAnatomicalVolume[tkm_tVolumeType_Aux] ) {
+      strcpy( sTclArguments, 
+	      "\"Cannot use aux volume as source if it is not loaded.\"" );
+      tkm_SendTclCommand( tkm_tTclCommand_ErrorDlog, sTclArguments );
+      goto cleanup;
+    }
+    sourceVolume = gAnatomicalVolume[tkm_tVolumeType_Aux];
+    break;
+  case tkm_tVolumeTarget_MainSeg:
+    if( NULL == gSegmentationVolume[tkm_tSegType_Main] ) {
+      strcpy( sTclArguments, 
+	      "\"Cannot use segmentation as source if it is not loaded.\"" );
+      tkm_SendTclCommand( tkm_tTclCommand_ErrorDlog, sTclArguments );
+      goto cleanup;
+    }
+    sourceVolume = gSegmentationVolume[tkm_tSegType_Main];
+    params.mfFuzziness = 0;
+    break;
+  case tkm_tVolumeTarget_AuxSeg:
+    if( NULL == gSegmentationVolume[tkm_tSegType_Aux] ) {
+      strcpy( sTclArguments, 
+	    "\"Cannot use aux segmentation as source if it is not loaded.\"" );
+      tkm_SendTclCommand( tkm_tTclCommand_ErrorDlog, sTclArguments );
+      goto cleanup;
+    }
+    sourceVolume = gSegmentationVolume[tkm_tSegType_Aux];
+    params.mfFuzziness = 0;
+    break;
+  default:
+    DebugThrowX( eResult, tkm_tErr_InvalidParameter );
+    break;
+  }
+
+  /* Now get the source volume value. */
+  Volm_GetValueAtIdx( sourceVolume, iSeedAnaIdx, &params.mfSourceValue );
+
+  /* Start listening for a cancel. */
+  StartListeningForUserCancel();
+
+  /* Do it! */
+  eVolume = Volm_Flood( sourceVolume, &params );
+  if( Volm_tErr_FloodMaxIterationCountReached == eVolume ) {
+    strcpy( sTclArguments, 
+	    "\"The area you tried to select was too large, and tkmedit "
+	    "couldn't select all of it. Try clicking near the edge of "
+	    "the region it selected to continue with another "
+	    "flood selection. \"" );
+    tkm_SendTclCommand( tkm_tTclCommand_ErrorDlog, sTclArguments );
+  }
+
+  /* If we selected more than 1000 voxels, we printed a message and
+     started printing update dots. Now close off the message. */
+  if( callbackData.mnCount > 1000 ) {
+    printf( "done. %d voxels selected. \n", callbackData.mnCount );
+  }
+
+  /* Stop listening for the cancel. */
+  StopListeningForUserCancel();
+
+  UpdateAndRedraw();
+  
+  DebugCatch;
+  DebugCatchError( eResult, tkm_tErr_NoErr, tkm_GetErrorString );
+  EndDebugCatch;
+  
+  DebugExitFunction;
+
+  return eResult;
+}
+
+Volm_tVisitCommand FloodSelectCallback ( xVoxelRef iAnaIdx,
+					 float     iValue,
+					 void*     iData ) {
+
+  tkm_tFloodSelectCallbackData* callbackData;
+
+  callbackData = (tkm_tFloodSelectCallbackData*)iData;
+
+  /* Incremenet our count. If it's over 1000, print a message saying
+     the user can cancel and start printing update dots. */
+  callbackData->mnCount++;
+  if( callbackData->mnCount == 1000 ) {
+    printf( "Selecting (press ctrl-c to cancel) " );
+  }
+  if( callbackData->mnCount > 1000 && 
+      callbackData->mnCount % 100 == 0 ) {
+    printf( "." );
+    fflush( stdout );
+  }
+  
+  /* Check the user cancel. If they canceled, stop. */
+  if( DidUserCancel() ) {
+    return Volm_tVisitComm_Stop;
+  }
+
+  /* Select or deselect this voxel. */
+  if( callbackData->mbSelect ) {
+    AddVoxelsToSelection( iAnaIdx, 1 );
+  } else {
+    RemoveVoxelsFromSelection( iAnaIdx, 1 );
+  }
+
+  return Volm_tVisitComm_Continue;
+}
+
 
 // ===========================================================================
 
@@ -6605,6 +6783,52 @@ void SendCachedTclCommands () {
     SendTCLCommand( gCachedTclCommands[nCommand] );
   }
 }
+
+// =============================================================== CANCELLING
+
+void InitializeUserCancel () {
+
+  /* init the flags and register our handler. */
+  gCancelListening = 0;
+  gCancelUserCanceled = 0;
+  signal( SIGINT, HandleUserCancelCallback );
+}
+
+void StartListeningForUserCancel () {
+
+  /* set our listening flag. */
+  gCancelListening = 1;
+}
+
+void StopListeningForUserCancel () {
+
+  /* stop listening and reset the canceled flag. */
+  gCancelListening = 0;
+  gCancelUserCanceled = 0;
+}
+
+int DidUserCancel () {
+
+  /* just return the canceled flag. */
+  return gCancelUserCanceled ;
+}
+
+void HandleUserCancelCallback (int signal) {
+
+  /* if we're listening, set the flag, if not, exit normally. */
+  if( gCancelListening ) {
+
+      gCancelUserCanceled = 1;
+
+   } else {
+
+      printf( "Killed\n" );
+      fflush( stdout );
+      exit(1);
+    }
+}
+
+// ==========================================================================
 
 // ============================================================= VOLUME ACCESS
 
@@ -8423,7 +8647,7 @@ tkm_tErr LoadSegmentationColorTable ( tkm_tSegType iVolume,
      and for each one, make a string of its number and its label, and send
      that as a new entry. */
   DebugNote( ("Clearing color table in interface") );
-  tkm_SendTclCommand( tkm_tTclCommand_ClearParcColorTable, "" );
+  tkm_SendTclCommand( tkm_tTclCommand_ClearSegColorTable, "" );
   DebugNote( ("Getting number of color table entries") );
   CLUT_GetNumEntries( gColorTable[iVolume], &nNumEntries );
   for( nEntry = 0; nEntry < nNumEntries; nEntry++ ) {
@@ -8436,7 +8660,7 @@ tkm_tErr LoadSegmentationColorTable ( tkm_tSegType iVolume,
     DebugNote( ("Making tcl command") );
     xUtil_snprintf( sTclArguments, sizeof(sTclArguments),
         "%d \"%s\"", nEntry, sLabel );
-    tkm_SendTclCommand( tkm_tTclCommand_AddParcColorTableEntry,
+    tkm_SendTclCommand( tkm_tTclCommand_AddSegColorTableEntry,
       sTclArguments );
   }
 
@@ -9101,192 +9325,6 @@ Volm_tVisitCommand FloodFillSegmentationCallback ( xVoxelRef iAnaIdx,
 
   return Volm_tVisitComm_Continue;
 }
-
-
-#ifdef KILLME
-
-void FloodFillSegmentation ( tkm_tSegType                iVolume,
-			     xVoxelRef                   iAnaIdx,
-			     tkm_tParcFloodFillParamsRef iParams ) {
-  
-  tBoolean* visited     = NULL;
-  tkm_tErr  eResult     = tkm_tErr_NoErr;
-  int       nSize       = 0;
-  int       nDimensionX = 0;
-  int       nDimensionY = 0;
-  int       nDimensionZ = 0;
-#ifdef Solaris
-  int      i            = 0;
-#endif
-  
-  DebugEnterFunction( ("FloodFillSegmentation( iAnaIdx=%d,%d,%d, iParams=%p )",
-		       xVoxl_ExpandInt( iAnaIdx ), iParams) );
-  
-  DebugAssertThrowX( (iVolume >= 0 && iVolume <= tkm_knNumSegTypes),
-		     eResult, tkm_tErr_InvalidParameter );
-  DebugAssertThrowX( (NULL != iAnaIdx),
-		     eResult, tkm_tErr_InvalidParameter );
-
-  DebugAssertThrowX( (NULL != gSegmentationVolume[iVolume]),
-		     eResult, tkm_tErr_ErrorAccessingSegmentationVolume );
-
-  Volm_GetDimensions( gSegmentationVolume[iVolume], 
-		      &nDimensionX, &nDimensionY, &nDimensionZ );
-  nSize = nDimensionX * nDimensionY * nDimensionZ;
-  
-  /* init a volume to keep track of visited voxels */
-  DebugNote( ("Allocating visited tracker volume") );
-  visited = (tBoolean*) malloc( sizeof(tBoolean) * nSize) ;
-  DebugAssertThrowX( (NULL != visited), eResult, tkm_tErr_CouldntAllocate );
-  
-  /* zero it. solaris doesn't like bzero here... ??? */
-#ifdef Solaris
-  for( i = 0; i < nSize; i++ )
-    visited[i] = FALSE;
-#else
-  bzero( visited, nSize * sizeof( tBoolean ) );
-#endif
-  
-  /* recursivly iterate with these values */
-  DebugNote( ("Starting iteration") );
-  IterateFloodFillSegmentation( iVolume, iAnaIdx, iParams, visited );
-  
-  DebugCatch;
-  DebugCatchError( eResult, tkm_tErr_NoErr, tkm_GetErrorString );
-  EndDebugCatch;
-  
-  UpdateAndRedraw();
-  
-  DebugNote( ("Freeing visited volume") );
-  if( NULL != visited )
-    free( visited );
-  
-  DebugExitFunction;
-}
-
-void IterateFloodFillSegmentation ( tkm_tSegType                iVolume,
-				    xVoxelRef                   iAnaIdx,
-				    tkm_tParcFloodFillParamsRef iParams,
-				    tBoolean*                   iVisited ) {
-  
-  Volm_tErr    eVolume   = Volm_tErr_NoErr;
-  int          nZ        = 0;
-  int          nBeginX   = 0;
-  int          nEndX     = 0;
-  int          nBeginY   = 0;
-  int          nEndY     = 0;
-  int          nBeginZ   = 0;
-  int          nEndZ     = 0;
-  int          nY        = 0;
-  int          nX        = 0;
-  xVoxel       anaIdx;
-  int          srcValue  = 0;
-  float        fValue    = 0;
-  float        fDistance = 0;
-  
-  /* don't do this too many times. */
-  iParams->mnIterationDepth++;
-  if( iParams->mnIterationDepth > iParams->mnIterationLimit ) {
-    iParams->mbIterationLimitReached = TRUE;
-    goto cleanup;
-  }
-  
-  /* if we've already been here, exit */
-  if( iVisited[ xVoxl_ExpandToIndex( iAnaIdx,gnAnatomicalDimensionX, 
-				     gnAnatomicalDimensionY ) ] == 1 ) {
-    goto cleanup;
-  }
-  
-  /* make this voxel as visited */
-  iVisited[ xVoxl_ExpandToIndex( iAnaIdx,gnAnatomicalDimensionX, 
-				 gnAnatomicalDimensionY ) ] = 1;
-  
-  /* See what src value to get. We can already be sure the proper
-     volumes exist because they have been checked by now. */
-  switch( iParams->mSource ) {
-  case tkm_tVolumeTarget_MainAna:
-  case tkm_tVolumeTarget_AuxAna:
-    Volm_GetValueAtIdx( gAnatomicalVolume[iParams->mSource], iAnaIdx, 
-			&fValue);
-    srcValue = (int)fValue;
-    break;
-  case tkm_tVolumeTarget_MainSeg:
-  case tkm_tVolumeTarget_AuxSeg:
-    GetSegLabel( iVolume, iAnaIdx, &srcValue, NULL );
-    break;
-  default:
-    return;
-    break;
-  }
-
-  /* if this is not the voxel we're looking for, exit. */
-  if( srcValue < iParams->mnTargetValue - iParams->mnFuzziness ||
-      srcValue > iParams->mnTargetValue + iParams->mnFuzziness ) {
-    goto cleanup;
-  }
-  
-  /* check distance if >0. if it's over our max distance, exit, */
-  if( iParams->mnDistance > 0 ) {
-    fDistance = sqrt(
-         ((xVoxl_GetX(iAnaIdx) - xVoxl_GetX(&(iParams->mAnchor))) * 
-          (xVoxl_GetX(iAnaIdx) - xVoxl_GetX(&(iParams->mAnchor)))) +
-         ((xVoxl_GetY(iAnaIdx) - xVoxl_GetY(&(iParams->mAnchor))) * 
-          (xVoxl_GetY(iAnaIdx) - xVoxl_GetY(&(iParams->mAnchor)))) +
-         ((xVoxl_GetZ(iAnaIdx) - xVoxl_GetZ(&(iParams->mAnchor))) * 
-          (xVoxl_GetZ(iAnaIdx) - xVoxl_GetZ(&(iParams->mAnchor)))) );
-    if( fDistance > iParams->mnDistance )
-      goto cleanup;
-  }
-  
-  /* if so, set this value in the parc */
-  SetSegmentationValue( iVolume, iAnaIdx, iParams->mnNewIndex );
-  
-  /* calc our bounds */
-  nBeginX = xVoxl_GetX(iAnaIdx) - 1;
-  nEndX    = xVoxl_GetX(iAnaIdx) + 1;
-  nBeginY = xVoxl_GetY(iAnaIdx) - 1;
-  nEndY    = xVoxl_GetY(iAnaIdx) + 1;
-  nBeginZ = xVoxl_GetZ(iAnaIdx) - 1;
-  nEndZ    = xVoxl_GetZ(iAnaIdx) + 1;
-  
-  /* if we're not in 3d, limit one of them based on the orientation */
-  if( !iParams->mb3D ) {
-    switch( iParams->mOrientation ) {
-    case mri_tOrientation_Coronal:
-      nBeginZ = nEndZ = xVoxl_GetZ(iAnaIdx);
-      break;
-    case mri_tOrientation_Horizontal:
-      nBeginY = nEndY = xVoxl_GetY(iAnaIdx);
-      break;
-    case mri_tOrientation_Sagittal:
-      nBeginX = nEndX = xVoxl_GetX(iAnaIdx);
-      break;
-    default:
-      goto cleanup;
-      break;
-    }
-  }
-  
-  /* check the surrounding voxels */
-  for( nZ = nBeginZ; nZ <= nEndZ; nZ++ ) {
-    for( nY = nBeginY; nY <= nEndY; nY++ ) {
-      for( nX = nBeginX; nX <= nEndX; nX++ ) {
-	xVoxl_Set( &anaIdx, nX, nY, nZ );
-	eVolume = Volm_VerifyIdx( gAnatomicalVolume[tkm_tVolumeType_Main], 
-				  &anaIdx );
-	if( Volm_tErr_NoErr == eVolume ) {
-	  IterateFloodFillSegmentation( iVolume, &anaIdx, iParams, iVisited );
-	}
-      }
-    }
-  }
-  
- cleanup:
-  
-  iParams->mnIterationDepth--;
-}
-
-#endif
 
 
 void SwapSegmentationAndVolume ( mriVolumeRef   iGroup,
@@ -10838,6 +10876,16 @@ void tkm_ClearSelection () {
   ClearSelection ();
 }
 
+void tkm_FloodSelect ( xVoxelRef         iSeedAnaIdx,
+		       tBoolean          ib3D,
+		       tkm_tVolumeTarget iSrc,
+		       int               inFuzzy,
+		       int               inDistance,
+		       tBoolean          ibSelect ) {
+ 
+  FloodSelect( iSeedAnaIdx, ib3D, iSrc, inFuzzy, inDistance, ibSelect );
+}
+
 void tkm_ClearUndoList () {
   
   ClearUndoList ();
@@ -11097,11 +11145,12 @@ char *kTclCommands [tkm_knNumTclCommands] = {
   "UpdateBrushTarget",
   "UpdateBrushShape",
   "UpdateBrushInfo",
+  "UpdateFloodSelectParams",
   "UpdateCursorColor",
   "UpdateCursorShape",
   "UpdateSurfaceLineWidth",
   "UpdateSurfaceLineColor",
-  "UpdateParcBrushInfo",
+  "UpdateSegBrushInfo",
   "UpdateVolumeColorScaleInfo",
   "UpdateSegmentationVolumeAlpha",
   "UpdateDTIVolumeAlpha",
@@ -11139,8 +11188,8 @@ char *kTclCommands [tkm_knNumTclCommands] = {
   "tkm_SetMenuItemGroupStatus tMenuGroup_Registration",
   "tkm_SetMenuItemGroupStatus tMenuGroup_SegmentationOptions",
   "tkm_SetMenuItemGroupStatus tMenuGroup_AuxSegmentationOptions",
-  "ClearParcColorTable",
-  "AddParcColorTableEntry",
+  "ClearSegColorTable",
+  "AddSegColorTableEntry",
   
   /* histogram */
   "BarChart_Draw",

@@ -2839,8 +2839,11 @@ MWin_tErr MWin_RegisterTclCommands ( tkmMeditWindowRef this,
   Tcl_CreateCommand ( ipInterp, "SetSurfaceLineColor",
 		      MWin_TclSetSurfaceLineColor,
 		      (ClientData) this, (Tcl_CmdDeleteProc*) NULL );
-  Tcl_CreateCommand ( ipInterp, "SetParcBrushInfo",
-		      MWin_TclSetParcBrushInfo,
+  Tcl_CreateCommand ( ipInterp, "SetFloodSelectParams",
+		      MWin_TclSetFloodSelectParams,
+		      (ClientData) this, (Tcl_CmdDeleteProc*) NULL );
+  Tcl_CreateCommand ( ipInterp, "SetSegBrushInfo",
+		      MWin_TclSetSegBrushInfo,
 		      (ClientData) this, (Tcl_CmdDeleteProc*) NULL );
   Tcl_CreateCommand ( ipInterp, "SelectCurrentSegLabel",
 		      MWin_TclSelectCurrentSegLabel,
@@ -4138,7 +4141,79 @@ int MWin_TclSetSurfaceLineColor ( ClientData  ipClientData,
 } 
 
 
-int MWin_TclSetParcBrushInfo ( ClientData  ipClientData, 
+int MWin_TclSetFloodSelectParams ( ClientData  ipClientData, 
+				   Tcl_Interp* ipInterp,
+				   int         argc,
+				   char*       argv[] ) {
+
+  tkmMeditWindowRef this         = NULL;
+  int               eTclResult   = TCL_OK;
+  MWin_tErr         eResult      = MWin_tErr_NoErr;
+  DspA_tErr         eDispResult  = DspA_tErr_NoErr;
+  char              sError[256]  = "";       
+  DspA_tFloodSelectSettings settings;
+
+  /* grab us from the client data ptr */
+  this = (tkmMeditWindowRef) ipClientData;
+
+  /* verify us. */
+  eResult = MWin_Verify ( this );
+  if ( MWin_tErr_NoErr != eResult )
+    goto error;
+
+  /* if not accepting commands yet, return. */
+  if( !this->mbAcceptingTclCommands )
+    goto cleanup;
+
+  /* verify the last clicked display area index. */
+  eResult = MWin_VerifyDisplayIndex ( this, this->mnLastClickedArea );
+  if ( MWin_tErr_NoErr != eResult )
+    goto error;
+
+  /* verify the number of arguments. */
+  if ( argc != 5 ) {
+    eResult = MWin_tErr_WrongNumberArgs;
+    goto error;
+  }
+
+  /* parse the args */
+  settings.mb3D        = (int) atoi( argv[1] );
+  settings.mSrc        = (tkm_tVolumeTarget) atoi( argv[2] );
+  settings.mnFuzzy     = (int) atoi( argv[3] );
+  settings.mnDistance  = (int) atoi( argv[4] );
+
+  /* call on the last clicked display. */
+  eDispResult = 
+    DspA_SetFloodSelectParams ( this->mapDisplays[this->mnLastClickedArea], 
+				&settings );
+  if ( DspA_tErr_NoErr != eDispResult ) {
+    eResult = MWin_tErr_ErrorAccessingDisplay;
+    goto error;
+  }
+  goto cleanup;
+
+ error:
+
+  /* print error message */
+  if ( MWin_tErr_NoErr != eResult ) {
+
+    sprintf ( sError, "Error %d in MWin_TclSetFloodSelectParams: %s\n",
+        eResult, MWin_GetErrorString(eResult) );
+
+    DebugPrint( (sError ) );
+
+    /* set tcl result, volatile so tcl will make a copy of it. */
+    Tcl_SetResult( ipInterp, MWin_GetErrorString(eResult), TCL_VOLATILE );
+  }
+
+  eTclResult = TCL_ERROR;
+
+ cleanup:
+
+  return eTclResult;
+}
+
+int MWin_TclSetSegBrushInfo ( ClientData  ipClientData, 
 			       Tcl_Interp* ipInterp,
 			       int         argc,
 			       char*       argv[] ) {
@@ -4148,7 +4223,7 @@ int MWin_TclSetParcBrushInfo ( ClientData  ipClientData,
   MWin_tErr         eResult      = MWin_tErr_NoErr;
   DspA_tErr         eDispResult  = DspA_tErr_NoErr;
   char              sError[256]  = "";       
-  DspA_tParcBrushSettings settings;
+  DspA_tSegBrushSettings settings;
 
   /* grab us from the client data ptr */
   this = (tkmMeditWindowRef) ipClientData;
@@ -4182,7 +4257,7 @@ int MWin_TclSetParcBrushInfo ( ClientData  ipClientData,
 
   /* call on the last clicked display. */
   eDispResult = 
-    DspA_SetParcBrushInfo ( this->mapDisplays[this->mnLastClickedArea], 
+    DspA_SetSegBrushInfo ( this->mapDisplays[this->mnLastClickedArea], 
 			    &settings );
   if ( DspA_tErr_NoErr != eDispResult ) {
     eResult = MWin_tErr_ErrorAccessingDisplay;
@@ -4195,7 +4270,7 @@ int MWin_TclSetParcBrushInfo ( ClientData  ipClientData,
   /* print error message */
   if ( MWin_tErr_NoErr != eResult ) {
 
-    sprintf ( sError, "Error %d in MWin_TclSetParcBrushInfo: %s\n",
+    sprintf ( sError, "Error %d in MWin_TclSetSegBrushInfo: %s\n",
         eResult, MWin_GetErrorString(eResult) );
 
     DebugPrint( (sError ) );

@@ -132,7 +132,7 @@ typedef struct {
   
 } DspA_tBrushSettings;
 
-/* parcellation brush settings. */
+/* segmentation brush settings. */
 typedef struct {
   int               mNewValue;
   tBoolean          mb3D;
@@ -142,8 +142,16 @@ typedef struct {
   tkm_tSegType      mDest;      /* The volume to affect; determined by which
 				   seg volume is active. */
 
-} DspA_tParcBrushSettings;
+} DspA_tSegBrushSettings;
 
+
+/* flood select settings. */
+typedef struct {
+  tBoolean           mb3D;
+  tkm_tVolumeTarget  mSrc;       /* Volume to use as source voxels. */
+  int                mnFuzzy;
+  int                mnDistance;
+} DspA_tFloodSelectSettings;
 
 typedef enum {
   DspA_tSelectAction_None   = -1,
@@ -407,8 +415,10 @@ DspA_tErr DspA_SetSurfaceLineWidth   ( tkmDisplayAreaRef this,
 DspA_tErr DspA_SetSurfaceLineColor   ( tkmDisplayAreaRef this,
 				       Surf_tVertexSet   iSurface,
 				       xColor3fRef       iColor );
-DspA_tErr DspA_SetParcBrushInfo      ( tkmDisplayAreaRef this,
-				       DspA_tParcBrushSettings* iSettings );
+DspA_tErr DspA_SetFloodSelectParams ( tkmDisplayAreaRef this,
+				       DspA_tFloodSelectSettings* iSettings );
+DspA_tErr DspA_SetSegBrushInfo      ( tkmDisplayAreaRef this,
+				       DspA_tSegBrushSettings* iSettings );
 DspA_tErr DspA_ChangeSliceBy         ( tkmDisplayAreaRef this,
 				       int               inDelta );
 DspA_tErr DspA_SetSegmentationAlpha  ( tkmDisplayAreaRef this,
