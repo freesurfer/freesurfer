@@ -94,11 +94,10 @@ static DIMAGE *xvGetDimage(int which, int alloc) ;
 static void xv_dimage_event_handler(Xv_Window window, Event *event) ;
 static XImage *xvCreateXimage(XV_FRAME *xvf, IMAGE *image) ;
 static Panel_setting xvHipsCommand(Panel_item item, Event *event) ;
-static void xvHipsCmdFrameInit(void) ;
+static void xvHipsCmdFrameInit(XV_FRAME *xvf) ;
 static void xvCreateImage(XV_FRAME *xvf, DIMAGE *dimage, int x, int y, 
                           int which) ;
 static void xvFreeDimage(DIMAGE *dimage) ;
-static void hipsCmdFrameDone(Frame frame) ;
 
 /*----------------------------------------------------------------------
                               GLOBAL DATA
@@ -172,7 +171,7 @@ XValloc(int rows, int cols, int button_rows, int display_rows,
     }
   }
 
-  xvHipsCmdFrameInit() ;
+  xvHipsCmdFrameInit(xvf) ;
 
   xvInitImages(xvf) ;
 
@@ -791,7 +790,7 @@ xvHipsCommand(Panel_item item, Event *event)
   DIMAGE  *dimage ;
 
   strcpy(hips_cmd_str, (char *)xv_get(hips_cmd_panel_item, PANEL_VALUE)) ;
-  xv_set(hips_cmd_frame, XV_SHOW, FALSE, NULL) ;
+  xv_set(hips_cmd_frame, FRAME_CMD_PUSHPIN_IN, FALSE, XV_SHOW, FALSE, NULL) ;
 
   dimage = xvGetDimage(hips_cmd_source, 0) ;
   if (!dimage)
@@ -827,11 +826,10 @@ xvHipsCommand(Panel_item item, Event *event)
            Description:
 ----------------------------------------------------------------------*/
 static void
-xvHipsCmdFrameInit(void) 
+xvHipsCmdFrameInit(XV_FRAME *xvf) 
 {
   hips_cmd_frame = (Frame)
-    xv_create((Xv_opaque)NULL, FRAME_CMD,
-              FRAME_DONE_PROC, hipsCmdFrameDone,
+    xv_create(xvf->frame, FRAME_CMD,
               XV_HEIGHT, HIPS_CMD_ROWS,
               XV_WIDTH,  HIPS_CMD_COLS,
               XV_X,      600,
@@ -1480,10 +1478,5 @@ xvFreeDimage(DIMAGE *dimage)
 
 /*  (*dimage->ximage->destroy_image)(dimage->ximage)*/
   /* lots of other stuff needed here */
-}
-static void
-hipsCmdFrameDone(Frame frame)
-{
-  xv_set(hips_cmd_frame, FRAME_CMD_PUSHPIN_IN, FALSE, XV_SHOW, FALSE, NULL) ;
 }
 
