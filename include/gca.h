@@ -69,7 +69,8 @@ int  GCAvoxelToNode(GCA *gca, MRI *mri,
 GCA  *GCAalloc(int ninputs, float spacing, int width, int height, int depth) ;
 int  GCAfree(GCA **pgca) ;
 int  GCANfree(GCA_NODE *gcan) ;
-int  GCAtrain(GCA *gca, MRI *mri_inputs, MRI *mri_labels, LTA *lta) ;
+int  GCAtrain(GCA *gca, MRI *mri_inputs, MRI *mri_labels, LTA *lta, 
+              GCA *gca_prune) ;
 int  GCAwrite(GCA *gca, char *fname) ;
 GCA  *GCAread(char *fname) ;
 int  GCAcompleteTraining(GCA *gca) ;
@@ -128,8 +129,15 @@ MRI   *GCAconstrainLabelTopology(GCA *gca, MRI *mri_inputs, MRI *mri_src,
 MRI   *GCAexpandLabelIntoWM(GCA *gca, MRI *mri_inputs, MRI *mri_src,
                             MRI *mri_dst, LTA *lta,MRI *mri_fixed,
                             int target_label) ;
+MRI   *GCAexpandVentricle(GCA *gca, MRI *mri_inputs, MRI *mri_src,
+                          MRI *mri_dst, LTA *lta, int target_label) ;
 MRI   *GCAnormalizeSamples(MRI *mri_in, GCA *gca, GCA_SAMPLE *gcas, 
                            int nsamples, LTA *lta) ;
+float GCAlabelProbability(MRI *mri_src, GCA *gca, LTA *lta,
+                          int x, int y, int z, int label) ;
+MRI   *GCAmaxLikelihoodBorders(GCA *gca, MRI *mri_inputs, MRI *mri_src,
+                               MRI *mri_dst, LTA *lta, int max_iter,
+                               float min_ratio) ;
 
 #define MIN_PRIOR  0.5
 
