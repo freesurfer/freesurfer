@@ -1822,7 +1822,7 @@ static MRI *
 mriBuildVoronoiDiagramShort(MRI *mri_src, MRI *mri_ctrl, MRI *mri_dst)
 {
   int     width, height, depth, x, y, z, xk, yk, zk, xi, yi, zi, 
-          *pxi, *pyi, *pzi, nchanged, n, total ;
+          *pxi, *pyi, *pzi, nchanged, n, total, visited ;
   BUFTYPE *pmarked, *pctrl, ctrl, mark ;
   short   *psrc, *pdst ;
   float   src, val, mean ;
@@ -1846,7 +1846,7 @@ mriBuildVoronoiDiagramShort(MRI *mri_src, MRI *mri_ctrl, MRI *mri_dst)
       pdst = &MRISvox(mri_dst, 0, y, z) ;
       for (x = 0 ; x < width ; x++)
       {
-        if (x == 141 && y == 68 && z == 127)
+        if (x == Gx && y == Gy && z == Gz)
           DiagBreak() ;
         ctrl = *pctrl++ ;
         src = (float)*psrc++ ;
@@ -1865,6 +1865,7 @@ mriBuildVoronoiDiagramShort(MRI *mri_src, MRI *mri_ctrl, MRI *mri_dst)
 
   total = width*height*depth - total ;  /* total # of voxels to be processed */
   mri_marked = MRIcopy(mri_ctrl, NULL) ;
+  MRIreplaceValues(mri_marked, mri_marked, CONTROL_MARKED, CONTROL_NBR) ;
 
   /* now propagate values outwards */
   do
@@ -1876,11 +1877,27 @@ mriBuildVoronoiDiagramShort(MRI *mri_src, MRI *mri_ctrl, MRI *mri_dst)
       with CONTROL_TMP, and they are the only ones which need to be
       examined.
     */
+#if 0
+    MRIreplaceValues(mri_ctrl, mri_ctrl, CONTROL_HAS_VAL, CONTROL_TMP) ;
     mriMarkUnmarkedNeighbors(mri_marked, mri_ctrl, mri_marked, CONTROL_MARKED, 
                              CONTROL_TMP);
     MRIreplaceValues(mri_marked, mri_marked, CONTROL_MARKED, CONTROL_NONE) ;
     MRIreplaceValues(mri_marked, mri_marked, CONTROL_TMP, CONTROL_MARKED) ;
-    for (z = 0 ; z < depth ; z++)
+#else
+    /* voxels that were CONTROL_TMP were filled on previous iteration, now they
+       should be labeled as marked
+    */
+    /* only process nbrs of marked values (that aren't already marked) */
+    mriMarkUnmarkedNeighbors(mri_marked, mri_marked, mri_marked, CONTROL_NBR, CONTROL_TMP);
+    MRIreplaceValues(mri_marked, mri_marked, CONTROL_NBR, CONTROL_MARKED) ;
+    MRIreplaceValues(mri_marked, mri_marked, CONTROL_TMP, CONTROL_NBR) ;
+#endif
+
+    /*
+      everything in mri_marked=CONTROL_TMP is now a nbr of a point
+      with a value.
+    */
+    for (visited = z = 0 ; z < depth ; z++)
     {
       for (y = 0 ; y < height ; y++)
       {
@@ -1888,8 +1905,10 @@ mriBuildVoronoiDiagramShort(MRI *mri_src, MRI *mri_ctrl, MRI *mri_dst)
         pdst = &MRISvox(mri_dst, 0, y, z) ;
         for (x = 0 ; x < width ; x++)
         {
+          if (x == Gx && y == Gy && z == Gz)
+            DiagBreak() ;
           mark = *pmarked++ ;
-          if (mark != CONTROL_MARKED)  /* not a neighbor of a marked point */
+          if (mark != CONTROL_NBR)  /* not a neighbor of a marked point */
           {
             pdst++ ; ;
             continue ;
@@ -1897,6 +1916,7 @@ mriBuildVoronoiDiagramShort(MRI *mri_src, MRI *mri_ctrl, MRI *mri_dst)
 
           /* now see if any neighbors are on and set this voxel to the
              average of the marked neighbors (if any) */
+          visited++ ;
           mean = 0.0f ; n = 0 ;
           for (zk = -1 ; zk <= 1 ; zk++)
           {
@@ -1907,7 +1927,7 @@ mriBuildVoronoiDiagramShort(MRI *mri_src, MRI *mri_ctrl, MRI *mri_dst)
               for (xk = -1 ; xk <= 1 ; xk++)
               {
                 xi = pxi[x+xk] ;
-                if (MRIvox(mri_ctrl, xi, yi, zi))
+                if (MRIvox(mri_marked, xi, yi, zi) == CONTROL_MARKED)
                 {
                   n++ ; mean += (float)MRISvox(mri_dst, xi, yi, zi) ;
                 }
@@ -1916,7 +1936,6 @@ mriBuildVoronoiDiagramShort(MRI *mri_src, MRI *mri_ctrl, MRI *mri_dst)
           }
           if (n > 0)  /* some neighbors were on */
           {
-            MRIvox(mri_ctrl, x, y, z) = CONTROL_TMP ; /* it has a value */
             *pdst++ = mean / (float)n ;
             nchanged++ ;
           }
@@ -1928,8 +1947,8 @@ mriBuildVoronoiDiagramShort(MRI *mri_src, MRI *mri_ctrl, MRI *mri_dst)
     total -= nchanged ;
     if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
       fprintf(stderr, 
-              "Voronoi: %d voxels assigned, %d remaining.      \n", 
-              nchanged, total) ;
+              "Voronoi: %d voxels assigned, %d remaining, %d visited.      \n", 
+              nchanged, total, visited) ;
   } while (nchanged > 0 && total > 0) ;
 
   if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
