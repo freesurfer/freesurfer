@@ -1167,9 +1167,15 @@ int main(int argc, char *argv[])
   {
     printf("writing to %s...\n", out_name);
     if(force_out_type_flag)
-      MRIwriteType(mri, out_name, out_volume_type);
+    {
+      if(MRIwriteType(mri, out_name, out_volume_type) != NO_ERROR)
+        exit(1);
+    }
     else
-      MRIwrite(mri, out_name);
+    {
+      if(MRIwrite(mri, out_name) != NO_ERROR)
+        exit(1);
+    }
   }
 
   exit(0);
