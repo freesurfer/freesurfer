@@ -3,8 +3,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2004/01/20 18:27:54 $
-// Revision       : $Revision: 1.89 $
+// Revision Date  : $Date: 2004/01/20 22:46:47 $
+// Revision       : $Revision: 1.90 $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -4339,6 +4339,9 @@ GCAmri(GCA *gca, MRI *mri)
     mri->ysize = gca->node_spacing;
     mri->zsize = gca->node_spacing;
   }
+  // in order to create the gca volume, the volume must have the same direction cosines
+  GCAcopyDSToMRI(gca, mri);
+
   width = mri->width ; height = mri->height ; depth = mri->depth ;
 
   for (frame = 0 ; frame < gca->ninputs ; frame++)
@@ -4367,6 +4370,7 @@ GCAmri(GCA *gca, MRI *mri)
   }
   return(mri) ;
 }
+
 MRI *
 GCAlabelMri(GCA *gca, MRI *mri, int label, TRANSFORM *transform)
 {
@@ -6171,11 +6175,14 @@ GCAbuildMostLikelyVolume(GCA *gca, MRI *mri)
     mri->ysize = gca->prior_spacing;
     mri->zsize = gca->prior_spacing;
   }
-  
+  // most likely volume should agree with direction cosines
+  GCAcopyDSToMRI(gca, mri);
+
   if (mri->nframes != gca->ninputs)
     ErrorExit(ERROR_BADPARM, "GCAbuildMostLikelyVolume: mri->frames (%d) does not match gca->ninputs (%d)",
 	      mri->nframes, gca->ninputs) ;
 
+  
   // mri is prior if mri = NULL
   width = mri->width ; depth = mri->depth ; height = mri->height ;  
   for (z = 0 ; z < depth ; z++)
