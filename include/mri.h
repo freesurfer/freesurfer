@@ -298,5 +298,7 @@ int        MRIunpackFileName(char *inFname, int *pframe, int *ptype,
                              char *outFname) ;
 Volume     MRItoVolume(MRI *mri) ;
 MRI        *MRIfromVolume(Volume volume, int start_frame, int end_frame) ;
+int        MRIisValid(MRI *mri) ;
+MRI        *MRIflipByteOrder(MRI *mri_src, MRI *mri_dst) ;
 
 #endif
