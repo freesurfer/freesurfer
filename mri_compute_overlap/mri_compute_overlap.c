@@ -125,25 +125,26 @@ main(int argc, char *argv[])
     nlabels = total_nvox1 = total_nvox2 = total_nshared = 0 ;
     for (i = 3 ; i < argc ; i++)
     {
+      float volume_overlap, volume_diff ;
+
       lno = atoi(argv[i]) ;
       nvox1 = MRIvoxelsInLabel(mri1, lno) ;
       nvox2 = MRIvoxelsInLabel(mri2, lno) ;
       nvox_mean = (float)(nvox1+nvox2)/2 ;
       nshared = MRIlabelOverlap(mri1, mri2, lno) ;
-      
+      volume_diff = 100.0f*(float)abs(nvox1-nvox2)/nvox_mean ;
+      volume_overlap = 100.0f*(float)nshared/nvox_mean ;
       if (!quiet)
       {
         printf("label %d: volume diff = |(%d - %d)| / %2.1f = %2.2f\n",
                lno,nvox1,nvox2,nvox_mean,
-               100.0f*(float)abs(nvox1-nvox2)/nvox_mean);
+               volume_diff);
         printf("label %d: volume overlap = %d / %2.1f = %2.2f\n",
-               lno, nshared, nvox_mean, 100.0f*(float)nshared/nvox_mean) ;
+               lno, nshared, nvox_mean, volume_overlap) ;
       }
       if (log_fp)
       {
-        fprintf(log_fp, "%2.2f  %2.2f\n", 
-                100.0f*(float)abs(nvox1-nvox2)/nvox_mean,
-                100.0f*(float)nshared/nvox_mean) ;
+        fprintf(log_fp, "%2.2f  %2.2f\n", volume_diff, volume_overlap) ;
         fclose(log_fp) ;
       }
       total_nvox1 += nvox1 ;
