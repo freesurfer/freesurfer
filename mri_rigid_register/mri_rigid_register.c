@@ -61,6 +61,7 @@ M_reg
 #include "timer.h"
 #include "matrix.h"
 #include "transform.h"
+#include "version.h"
 
 //#define LINEAR_CORONAL_RAS_TO_CORONAL_RAS       21
 
@@ -130,6 +131,12 @@ main(int argc, char *argv[])
   struct timeb start ;
   LTA    *lta ;
   MATRIX *M_reg, *vox_s2vox_t, *m_coronalras_src2trg;
+
+  /* rkt: check for and handle version tag */
+  nargs = handle_version_option (argc, argv, "$Id: mri_rigid_register.c,v 1.11 2003/04/16 17:35:11 kteich Exp $");
+  if (nargs && argc - nargs == 1)
+    exit (0);
+  argc -= nargs;
 
   Progname = argv[0] ;
   ErrorInit(NULL, NULL, NULL) ;

@@ -14,6 +14,7 @@
 #include "diag.h"
 #include "mrimorph.h"
 #include "transform.h"
+#include "version.h"
 
 char         *Progname ;
 static MORPH_PARMS  parms ;
@@ -47,6 +48,12 @@ main(int argc, char *argv[])
   struct timeb start ;
   MORPH_3D     *m3d ;
   MRI          *mri_in_reduced, *mri_ref_reduced ;
+
+  /* rkt: check for and handle version tag */
+  nargs = handle_version_option (argc, argv, "$Id: mri_register.c,v 1.17 2003/04/16 17:33:27 kteich Exp $");
+  if (nargs && argc - nargs == 1)
+    exit (0);
+  argc -= nargs;
 
   parms.morph_skull = 0 ;
   parms.niterations = 100 ;

@@ -4,13 +4,13 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 //
-// ID             : $Id: mri_segment.c,v 1.20 2003/01/21 20:36:33 tosa Exp $
-// Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2003/01/21 20:36:33 $
-// Revision       : $Revision: 1.20 $
+// ID             : $Id: mri_segment.c,v 1.21 2003/04/16 17:37:05 kteich Exp $
+// Revision Author: $Author: kteich $
+// Revision Date  : $Date: 2003/04/16 17:37:05 $
+// Revision       : $Revision: 1.21 $
 //
 ////////////////////////////////////////////////////////////////////
-char *MRI_SEGMENT_VERSION = "$Revision: 1.20 $";
+char *MRI_SEGMENT_VERSION = "$Revision: 1.21 $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -27,6 +27,7 @@ char *MRI_SEGMENT_VERSION = "$Revision: 1.20 $";
 #include "mri.h"
 #include "mrinorm.h"
 #include "timer.h"
+#include "version.h"
 
 #define BRIGHT_LABEL         130
 #define BRIGHT_BORDER_LABEL  100
@@ -92,6 +93,12 @@ main(int argc, char *argv[])
   int     nargs, i, msec ;
   struct timeb  then ;
   float   white_mean, white_sigma, gray_mean, gray_sigma ;
+
+  /* rkt: check for and handle version tag */
+  nargs = handle_version_option (argc, argv, "$Id: mri_segment.c,v 1.21 2003/04/16 17:37:05 kteich Exp $");
+  if (nargs && argc - nargs == 1)
+    exit (0);
+  argc -= nargs;
 
   Progname = argv[0] ;
   DiagInit(NULL, NULL, NULL) ;

@@ -5,6 +5,7 @@
 #include "mri.h"
 #include "mrisurf.h"
 #include "macros.h"
+#include "version.h"
 
 #define IMGSIZE 256
 
@@ -15,6 +16,13 @@ int main(int argc, char *argv[])
   char *inner_mris_fname,*outer_mris_fname,*input_mri_pref,*output_mri_pref;
   MRI *mri,*mri_src;
   MRI_SURFACE *inner_mris,*outer_mris;
+  int nargs;
+
+  /* rkt: check for and handle version tag */
+  nargs = handle_version_option (argc, argv, "$Id: mri_ribbon.c,v 1.4 2003/04/16 17:34:08 kteich Exp $");
+  if (nargs && argc - nargs == 1)
+    exit (0);
+  argc -= nargs;
 
   /* Set command-line parameters */
   if (argc!=5) {
