@@ -20,10 +20,6 @@
 
 #define WM_MIN_VAL    2.0 /* anything below this is not white matter */
 
-#if 0
-static int immin1,immax1,imin1,imax1,jmin1,jmax1;
-static int immin2,immax2,imin2,imax2,jmin2,jmax2;
-#endif
 static int ilim0,ilim1,jlim0,jlim1;
 static int fill_holes_flag = TRUE;
 
@@ -37,6 +33,7 @@ static Real wm_rh_tal_y = -12.0 ;
 static Real wm_rh_tal_z = 28.0 ;
 
 /* corpus callosum seed point in Talairach coords */
+#if 1
 static Real cc_tal_x = -1.0 ;
 static Real cc_tal_y = -1.0 ;
 static Real cc_tal_z = 27.0 ;
@@ -44,11 +41,22 @@ static Real cc_tal_z = 27.0 ;
 static Real pons_tal_x = -2.0 ;
 static Real pons_tal_y = -22.0 ;
 static Real pons_tal_z = -17.0 ;
+#else
+
+static Real cc_tal_x = -4.0 ;
+static Real cc_tal_y = -32.0 ;
+static Real cc_tal_z = 27.0 ;
+
+static Real pons_tal_x = -10.0 ;
+static Real pons_tal_y = -36.0 ;
+static Real pons_tal_z = -20.0 ;
+
+#endif
 
 char *Progname ;
 
 #define MAX_ITERATIONS  1000  /* was 10 */
-#define MIN_FILLED      0     /* was 100 */
+#define MIN_FILLED      100     /* was 100 */
 
 
 static int get_option(int argc, char *argv[]) ;
@@ -63,10 +71,10 @@ static int neighbor_threshold = DEFAULT_NEIGHBOR_THRESHOLD ;
 static MRI *mri_fill, *mri_im ;
 
 static int fill_holes(void) ;
-static int fill_brain(float threshold,int clip_flag) ;
+static int fill_brain(float threshold) ;
 void main(int argc, char *argv[]) ;
-static int find_cutting_plane(MRI *mri, Real x_tal, Real y_tal,Real z_tal,
-                              int orientation) ;
+static MRI *find_cutting_plane(MRI *mri, Real x_tal, Real y_tal,Real z_tal,
+                              int orientation, int *pxv, int *pvy, int *pzv) ;
 
 void
 main(int argc, char *argv[])
@@ -76,6 +84,8 @@ main(int argc, char *argv[])
   int     nseed, nargs, wm_lh_x, wm_lh_y, wm_lh_z, wm_rh_x, wm_rh_y, wm_rh_z ;
   char    input_fname[200],out_fname[200],*data_dir;
   Real    x, y, z ;
+  MRI     *mri_cc, *mri_pons ;
+  int     x_pons, y_pons, z_pons, x_cc, y_cc, z_cc ;
 #if 0
   int     timin ;
   char    fname[200];
@@ -129,9 +139,30 @@ main(int argc, char *argv[])
     ErrorExit(ERROR_NOFILE, "%s: could not read %s", input_fname) ;
   mri_fill = MRIclone(mri_im, NULL) ;
 
-  find_cutting_plane(mri_im, pons_tal_x,pons_tal_y, pons_tal_z,MRI_HORIZONTAL);
-  find_cutting_plane(mri_im, cc_tal_x, cc_tal_y, cc_tal_z, MRI_SAGITTAL) ;
+  /* 
+     note: must do CC first to avoid disconnecting brainstem. Otherwise,
+     if the seed point winds up in the brainstem it may be mistaken
+     for the CC (it will be an in-plane-disconnected structure in
+     about the right place, with about the right area.
+     */
+  mri_cc = 
+    find_cutting_plane(mri_im, cc_tal_x, cc_tal_y, cc_tal_z, MRI_SAGITTAL,
+                       &x_cc, &y_cc, &z_cc) ;
+  mri_pons = 
+    find_cutting_plane(mri_im, pons_tal_x,pons_tal_y, pons_tal_z,
+                       MRI_HORIZONTAL, &x_pons, &y_pons, &z_pons);
 
+  MRIeraseTalairachPlane(mri_im, mri_cc, MRI_SAGITTAL, x_cc, y_cc, z_cc, 
+                         SLICE_SIZE);
+  MRIeraseTalairachPlane(mri_im, mri_pons, MRI_HORIZONTAL, 
+                         x_pons, y_pons, z_pons, SLICE_SIZE) ;
+  if (Gdiag & DIAG_WRITE)
+  {
+    MRIwrite(mri_pons, "pons.mnc") ;
+    MRIwrite(mri_cc, "cc.mnc") ;
+  }
+  MRIfree(&mri_cc) ;
+  MRIfree(&mri_pons) ;
 
 #if 0
   sprintf(fname,"fill.dat");
@@ -210,7 +241,7 @@ main(int argc, char *argv[])
     }
 #endif
   
-  fill_brain(WM_MIN_VAL,TRUE);    /* fill from 2 seeds in wm outwards */
+  fill_brain(WM_MIN_VAL);    /* fill from 2 seeds in wm outwards */
 
   /*MRIwrite(mri_fill, "fill1.mnc") ;*/
   
@@ -219,7 +250,7 @@ main(int argc, char *argv[])
   MRIclear(mri_fill) ;
   MRIvox(mri_fill,1,1,1) = 255;              /* seed for background */
   
-  fill_brain(-WM_MIN_VAL,FALSE);/* fill in connected component of background */
+  fill_brain(-WM_MIN_VAL);/* fill in connected component of background */
   /*MRIwrite(mri_fill, "fill2.mnc") ;*/
   if (fill_holes_flag)              
     fill_holes();         /* fill in islands with fewer than 10 nbrs on */
@@ -249,7 +280,7 @@ main(int argc, char *argv[])
 
 
   /* fill in background of complement (also sometimes called the foreground) */
-  fill_brain(-WM_MIN_VAL,TRUE);   
+  fill_brain(-WM_MIN_VAL);   
   /*MRIwrite(mri_fill, "fill4.mnc") ;*/
   ilim0 = mri_im->height ; jlim0 = mri_im->width ;
   ilim1 = jlim1 = 0;
@@ -286,7 +317,7 @@ main(int argc, char *argv[])
   MRIwrite(mri_fill, out_fname) ;
 }
 static int 
-fill_brain(float threshold,int clip_flag)
+fill_brain(float threshold)
 {
   int dir = -1, nfilled = 10000, ntotal = 0,iter = 0;
   int im0,im1,j0,j1,i0,i1,imnr,i,j;
@@ -333,20 +364,9 @@ fill_brain(float threshold,int clip_flag)
               {
                 /* set vmax to biggest of three interior neighbors */
                 vmax = (v1>=v2&&v1>=v3)?v1:((v2>=v1&&v2>=v3)?v2:v3);
-#if 0
-                if (clip_flag&&((imnr>immin1&&imnr<immax1&&
-                                 i>imin1&&i<imax1&&
-                                 j>jmin1&&j<jmax1) ||
-                                (imnr>immin2&&imnr<immax2&&
-                                 i>imin2&&i<imax2&&
-                                 j>jmin2&&j<jmax2)));
-                else
-#endif
-                {
-                  MRIvox(mri_fill, j, i, imnr) = vmax;
-                  nfilled++;
-                  ntotal++;
-                }
+                MRIvox(mri_fill, j, i, imnr) = vmax;
+                nfilled++;
+                ntotal++;
               }
             }
           }
@@ -442,13 +462,15 @@ get_option(int argc, char *argv[])
 static void
 print_version(void)
 {
-  fprintf(stderr, "fill version -1\n") ;
+  fprintf(stderr, "fill version 1\n") ;
   exit(0) ;
 }
 static void
 print_help(void)
 {
-  fprintf(stderr, "usage: fill [options] <name> <seed>\n") ;
+  fprintf(stderr, 
+          "usage: %s [options] <input MR directory> <output MR directory>\n",
+          Progname) ;
   fprintf(stderr, "where options are:\n") ;
   fprintf(stderr, 
           "\t-T <threshold>  - specify fill_holes threshold (default=%d)\n",
@@ -462,87 +484,229 @@ print_help(void)
    of the input image.
 */
 
-#define MAX_SLICES   15
-#define MIN_AREA     100
-#define SEARCH_SIZE  7
-#define SHALF        ((SEARCH_SIZE-1)/2)
-#define CUT_WIDTH    1
-#define HWIDTH       ((CUT_WIDTH-1)/2)
+#define MAX_SLICES     15
+#define HALF_SLICES    ((MAX_SLICES-1)/2)
+#define CUT_WIDTH      1
+#define HALF_CUT      ((CUT_WIDTH-1)/2)
+#define MIN_CC_AREA    1500
+#define MAX_CC_AREA    2500
+#define MIN_PONS_AREA  500
+#define MAX_PONS_AREA  1500
+#define SEARCH_STEP    5
+#define MAX_OFFSET     50
 
-static int
-find_cutting_plane(MRI *mri, Real x_tal, Real y_tal,Real z_tal,int orientation)
+static MRI *
+find_cutting_plane(MRI *mri, Real x_tal, Real y_tal,Real z_tal,int orientation,
+                   int *pxv, int *pyv, int *pzv)
 {
-  MRI        *mri_slices[MAX_SLICES], *mri_filled[MAX_SLICES] ;
+  MRI        *mri_slices[MAX_SLICES], *mri_filled[MAX_SLICES], *mri_cut ;
   Real       dx, dy, dz, x, y, z, dist, min_dist ;
-  int        slice, offset, shalf, area[MAX_SLICES], min_area, min_slice,
-             xv, yv, zv, x0, y0, z0, xi, yi, zi ;
-  char       fname[100] ;
+  int        slice, offset, area[MAX_SLICES], min_area, min_slice,xo,yo,
+             xv, yv, zv, x0, y0, z0, xi, yi, zi, MIN_AREA, MAX_AREA, done,
+             x1, y1 ;
+  char       fname[100], *name ;
   MRI_REGION region ;
-
-  /* check to make sure seed point is in white matter */
-  MRItalairachToVoxel(mri, x_tal, y_tal,  z_tal, &x, &y,&z) ;
-  xv = nint(x) ; yv = nint(y) ; zv = nint(z) ;
-  min_dist = SEARCH_SIZE*SEARCH_SIZE*2 ;
-  if (MRIvox(mri, xv, yv, zv) < WM_MIN_VAL)   /* find a valid seed point */
-  {
-    for (z0 = -SHALF ; z0 <= SHALF ; z0++)
-    {
-      zi = mri->zi[zv+z0] ;
-      for (y0 = -SHALF ; y0 <= SHALF ; y0++)
-      {
-        yi = mri->yi[yv+y0] ;
-        for (x0 = -SHALF ; x0 <= SHALF ; x0++)
-        {
-          xi = mri->xi[xv+x0] ;
-          dist = x0*x0 + y0*y0 + z0*z0 ;
-          if ((MRIvox(mri, xi, yi, zi) >= WM_MIN_VAL) && (dist < min_dist))
-          {
-            /* found a new seed point */
-            x = (Real)xi ; y = (Real)yi ; z = (Real)zi ;
-            min_dist = dist ;
-            MRIvoxelToTalairach(mri, x, y, z, &x_tal, &y_tal, &z_tal) ;
-          }
-        }
-      }
-    }
-    if (min_dist > SEARCH_SIZE*SEARCH_SIZE)
-      ErrorExit(ERROR_BADPARM, 
-                "%s: could not find valid seed around (%d, %d, %d)",
-                Progname, xv, yv, zv) ;
-  }
-  
 
   switch (orientation)
   {
   default:
-  case MRI_SAGITTAL:   dx = 1.0 ; dy = dz = 0.0 ; break ;
-  case MRI_HORIZONTAL: dz = 1.0 ; dx = dy = 0.0 ; break ;
-  case MRI_CORONAL:    dy = 1.0 ; dx = dz = 0.0 ; break ;
+  case MRI_SAGITTAL:   
+    dx = 1.0 ; dy = dz = 0.0 ; 
+    name = "corpus callosum" ;
+    MIN_AREA = MIN_CC_AREA ; MAX_AREA = MAX_CC_AREA ;
+    break ;
+  case MRI_HORIZONTAL: 
+    dz = 1.0 ; dx = dy = 0.0 ; 
+    name = "pons" ;
+    MIN_AREA = MIN_PONS_AREA ; MAX_AREA = MAX_PONS_AREA ;
+    break ;
+  case MRI_CORONAL:    
+    dy = 1.0 ; dx = dz = 0.0 ; 
+    MIN_AREA = MIN_CC_AREA ; MAX_AREA = MAX_CC_AREA ;
+    name = "coronal" ;
+    break ;
   }
 
-  shalf = (MAX_SLICES-1)/2 ;
-  x0 = y0 = (SLICE_SIZE-1)/2 ;
+  xo = yo = (SLICE_SIZE-1)/2 ;  /* center point of the slice */
+
+  /* search for valid seed point */
+  MRItalairachToVoxel(mri, x_tal, y_tal,  z_tal, &x, &y, &z) ;
+  xv = nint(x) ; yv = nint(y) ; zv = nint(z) ;
+  mri_slices[0] = 
+    MRIextractTalairachPlane(mri, NULL, orientation, xv, yv, zv, SLICE_SIZE);
+  mri_filled[0] = MRIfillFG(mri_slices[0],NULL,xo,yo, 0, (int)WM_MIN_VAL,127);
+  MRIboundingBox(mri_filled[0], 1, &region) ;
+  area[0] = region.dx * region.dy ;
+
+#if 0
+#undef DIAG_VERBOSE_ON
+#define DIAG_VERBOSE_ON  1
+#endif
+  
+  if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+  {
+    sprintf(fname, "%s_slice.mnc", orientation == MRI_SAGITTAL ? "cc":"pons");
+    MRIwrite(mri_slices[0], fname) ;
+    sprintf(fname, "%s_filled.mnc", orientation == MRI_SAGITTAL ? "cc":"pons");
+    MRIwrite(mri_filled[0], fname) ;
+  }
+  
+  /* now check to see if it could be a valid seed point based on:
+     1) bound on the area
+     2) the connected component is completely contained in the slice.
+     */
+  done =  
+    ((area[0] >= MIN_AREA) &&
+     (area[0] <= MAX_AREA) &&
+     (region.y > 0) &&
+     (region.x > 0) &&
+     (region.x+region.dx < SLICE_SIZE-1) &&
+     (region.y+region.dy < SLICE_SIZE-1)) ;
+
+  if (done)  /* center the seed */
+  {
+    x0 = region.x + region.dx / 2 ;
+    y0 = region.y + region.dy / 2 ;
+    min_dist = 10000 ; xi = yi = 0 ;
+    for (y1 = 0 ; y1 < SLICE_SIZE ; y1++)
+    {
+      for (x1 = 0 ; x1 < SLICE_SIZE ; x1++)
+      {
+        if (MRIvox(mri_filled[0], x1, y1, 0))
+        {
+          dist = (x1-x0)*(x1-x0) + (y1-y0)*(y1-y0) ;
+          if (dist < min_dist)
+          {
+            min_dist = dist ;
+            xi = x1 ; yi = y1 ;
+          }
+        }
+      }
+    }
+    switch (orientation)   
+    {
+    default:
+    case MRI_HORIZONTAL: xv += xi - xo ; zv += yi - yo ; break ;
+    case MRI_SAGITTAL:   zv += xi - xo ; yv += yi - yo ; break ;
+    }
+    x = (Real)xv ; y = (Real)yv ; z = (Real)zv ;
+    MRIvoxelToTalairach(mri, x, y, z, &x_tal, &y_tal, &z_tal) ;
+  }
+
+  MRIfree(&mri_slices[0]) ;
+  MRIfree(&mri_filled[0]) ;
+
+  offset = 0 ;
+  while (!done)
+  {
+    offset += SEARCH_STEP ;   /* search at a greater radius */
+    if (offset >= MAX_OFFSET)
+      ErrorExit(ERROR_BADPARM, "%s: could not find valid seed for the %s",
+                Progname, name) ;
+    for (z0 = zv-offset ; !done && z0 <= zv+offset ; z0 += offset)
+    {
+      zi = mri->zi[z0] ;
+      for (y0 = yv-offset ; !done && y0 <= yv+offset ; y0 += offset)
+      {
+        yi = mri->yi[y0] ;
+        for (x0 = xv-offset ; !done && x0 <= xv+offset ; x0 += offset)
+        {
+          xi = mri->xi[x0] ;
+          mri_slices[0] = 
+            MRIextractTalairachPlane(mri, NULL, orientation, xi, yi, zi, 
+                                     SLICE_SIZE);
+          mri_filled[0] = 
+            MRIfillFG(mri_slices[0], NULL, xo, yo, 0, (int)WM_MIN_VAL,127);
+          MRIboundingBox(mri_filled[0], 1, &region) ;
+          area[0] = region.dx * region.dy ;
+
+          if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+          {
+            sprintf(fname, "%s_slice.mnc", 
+                    orientation == MRI_SAGITTAL ? "cc":"pons");
+            MRIwrite(mri_slices[0], fname) ;
+            sprintf(fname, "%s_filled.mnc", 
+                    orientation == MRI_SAGITTAL ? "cc":"pons");
+            MRIwrite(mri_filled[0], fname) ;
+          }
+    
+          /* now check to see if it could be a valid seed point based on:
+             1) bound on the area
+             2) the connected component is completely contained in the slice.
+             */
+          if ((area[0] >= MIN_AREA) &&
+              (area[0] <= MAX_AREA) &&
+              (region.y > 0) &&
+              (region.x > 0) &&
+              (region.x+region.dx < SLICE_SIZE-1) &&
+              (region.y+region.dy < SLICE_SIZE-1))
+          {
+            /* center the seed */
+            x0 = region.x + region.dx / 2 ;
+            y0 = region.y + region.dy / 2 ;
+            min_dist = 10000 ;
+            for (y1 = 0 ; y1 < SLICE_SIZE ; y1++)
+            {
+              for (x1 = 0 ; x1 < SLICE_SIZE ; x1++)
+              {
+                if (MRIvox(mri_filled[0], x1, y1, 0))
+                {
+                  dist = (x1-x0)*(x1-x0) + (y1-y0)*(y1-y0) ;
+                  if (dist < min_dist)
+                  {
+                    min_dist = dist ;
+                    xv = x1 ; yv = y1 ;
+                  }
+                }
+              }
+            }
+            switch (orientation)   
+            {
+            default:
+            case MRI_HORIZONTAL: xi += xv - xo ; zi += yv - yo ; break ;
+            case MRI_SAGITTAL:   zi += xv - xo ; yi += yv - yo ; break ;
+            }
+
+            x = (Real)xi ; y = (Real)yi ; z = (Real)zi ;
+            MRIvoxelToTalairach(mri, x, y, z, &x_tal, &y_tal, &z_tal) ;
+            done = 1 ;
+            xv = xi ; yv = yi ; zv = zi ;
+          }
+          MRIfree(&mri_slices[0]) ;
+          MRIfree(&mri_filled[0]) ;
+        }
+      }
+    }
+  }
+
+  if (Gdiag & DIAG_SHOW)
+    fprintf(stderr, "%s seed point found at (%d, %d, %d)\n", name, xv, yv, zv);
+
   for (slice = 0 ; slice < MAX_SLICES ; slice++)
   {
-    offset = slice - shalf ;
+    offset = slice - HALF_SLICES ;
     x = x_tal + dx*offset ; y = y_tal + dy*offset ; z = z_tal + dz*offset ; 
     MRItalairachToVoxel(mri, x, y,  z, &x, &y,&z) ;
     xv = nint(x) ; yv = nint(y) ; zv = nint(z) ;
     mri_slices[slice] = 
       MRIextractTalairachPlane(mri, NULL, orientation, xv, yv, zv, SLICE_SIZE);
     mri_filled[slice] = 
-      MRIfillFG(mri_slices[slice], NULL, x0, y0, 0, (int)WM_MIN_VAL, 127);
+      MRIfillFG(mri_slices[slice], NULL, xo, yo, 0, (int)WM_MIN_VAL, 127);
     MRIboundingBox(mri_filled[slice], 1, &region) ;
-    area[slice] = region.dx * region.dy ;
+
+    /* don't trust slices that extend to the border of the image */
+    if (!region.x || !region.y || region.x+region.dx >= SLICE_SIZE ||
+        region.y+region.dy >= SLICE_SIZE)
+      area[slice] = 0 ;
+    else
+      area[slice] = region.dx * region.dy ;
+
+    if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
+      fprintf(stderr, "slice[%d] @ (%d, %d, %d): area = %d\n", 
+              slice, xv, yv, zv, area[slice]) ;
 
     if (orientation == MRI_SAGITTAL)  /* extend to top and bottom of slice */
-    {
-#if 0
-      region.dy = SLICE_SIZE ;region.y = 0 ; 
-#else
       region.dy = SLICE_SIZE - region.y ;
-#endif
-    }
 
     /*    for (yv = region.y ; yv < region.y+region.dy ; yv++)*/
     for (yv = region.y ; yv < region.y+region.dy ; yv++)
@@ -553,52 +717,51 @@ find_cutting_plane(MRI *mri, Real x_tal, Real y_tal,Real z_tal,int orientation)
       }
     }
 
-    if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
-      fprintf(stderr, "slice[%d]: area = %d\n", slice, area[slice]) ;
-
     if ((Gdiag & DIAG_WRITE) && !(slice % 5))
     {
-      sprintf(fname, "slice%d.mnc", slice) ;
+      sprintf(fname, "%s_slice.mnc", 
+              orientation == MRI_SAGITTAL ? "cc":"pons");
       MRIwrite(mri_slices[slice], fname) ;
-      sprintf(fname, "filled%d.mnc", slice) ;
+      sprintf(fname, "%s_filled.mnc", 
+              orientation == MRI_SAGITTAL ? "cc":"pons");
       MRIwrite(mri_filled[slice], fname) ;
     }
   }
 
-  min_area = area[1] ; min_slice = 0 ;
-  for (slice = 2 ; slice < MAX_SLICES-1 ; slice++)
+  min_area = 10000 ; min_slice = -1 ;
+  for (slice = 1 ; slice < MAX_SLICES-1 ; slice++)
   {
-    if (area[slice] < min_area && area[slice] > MIN_AREA)
+    if (area[slice] < min_area && 
+        area[slice] >= MIN_AREA && area[slice] <= MAX_AREA)
     {
       min_area = area[slice] ;
       min_slice = slice ;
     }
   }
 
+  if (min_slice < 0)
+    ErrorExit(ERROR_BADPARM, "%s: could not find valid seed for the %s",
+              Progname, name);
   if (Gdiag & DIAG_WRITE)
   {
-    sprintf(fname, "slice.mnc") ;
+    sprintf(fname, "%s_slice.mnc", orientation == MRI_SAGITTAL ? "cc":"pons");
     MRIwrite(mri_slices[min_slice], fname) ;
-    sprintf(fname, "filled.mnc") ;
+    sprintf(fname, "%s_filled.mnc", orientation == MRI_SAGITTAL ? "cc":"pons");
     MRIwrite(mri_filled[min_slice], fname) ;
   }
 
-  /* now make the cut(s) */
-  for (slice = min_slice-HWIDTH ; slice <= min_slice+HWIDTH ; slice++)
-  {
-    offset = slice - shalf ;
-    x = x_tal + dx*offset ; y = y_tal + dy*offset ; z = z_tal + dz*offset ; 
-    MRItalairachToVoxel(mri, x, y,  z, &x, &y,&z) ;
-    xv = nint(x) ; yv = nint(y) ; zv = nint(z) ;
 
-    if (Gdiag & DIAG_SHOW && slice == min_slice)
-      fprintf(stderr, 
-              "min area %d at slice %d, coord = (%d, %d, %d)\n", 
-              min_area, min_slice, xv, yv, zv) ;
+  offset = min_slice - HALF_SLICES ;
+  x = x_tal + dx*offset ; y = y_tal + dy*offset ; z = z_tal + dz*offset ; 
+  MRItalairachToVoxel(mri, x_tal, y,  z, &x, &y, &z) ;
+  *pxv = nint(x) ; *pyv = nint(y) ; *pzv = nint(z) ;
+  mri_cut = MRIcopy(mri_filled[min_slice], NULL) ;
+  if (Gdiag & DIAG_SHOW)
+    fprintf(stderr, 
+            "%s: min area %d at slice %d, coord = (%d, %d, %d)\n", 
+            name, min_area, min_slice, *pxv, *pyv, *pzv) ;
 
-    MRIeraseTalairachPlane(mri, mri_filled[slice], 
-                           orientation, xv, yv, zv, SLICE_SIZE);
-  }
+
 
   for (slice = 0 ; slice < MAX_SLICES ; slice++)
   {
@@ -606,6 +769,6 @@ find_cutting_plane(MRI *mri, Real x_tal, Real y_tal,Real z_tal,int orientation)
     MRIfree(&mri_filled[slice]) ;
   }
 
-  return(NO_ERROR) ;
+  return(mri_cut) ;
 }
 
