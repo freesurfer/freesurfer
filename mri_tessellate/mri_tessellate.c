@@ -3,8 +3,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2003/09/30 17:11:58 $
-// Revision       : $Revision: 1.18 $
+// Revision Date  : $Date: 2003/11/17 20:14:31 $
+// Revision       : $Revision: 1.19 $
 //
 //
 // How it works.
@@ -39,7 +39,7 @@
 //
 //          MRIvoxelToSurfaceRAS()
 //
-char *MRI_TESSELLATE_VERSION = "$Revision: 1.18 $";
+char *MRI_TESSELLATE_VERSION = "$Revision: 1.19 $";
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -133,7 +133,7 @@ main(int argc, char *argv[])
   int  nargs ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_tessellate.c,v 1.18 2003/09/30 17:11:58 tosa Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_tessellate.c,v 1.19 2003/11/17 20:14:31 tosa Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -454,7 +454,7 @@ get_option(int argc, char *argv[])
     break ;
   case 'N':
     compatibility = 0;
-    printf("surface saved uses coordinates in the real RAS where c_(r,a,s) != 0");
+    printf("surface saved uses coordinates in the real RAS where c_(r,a,s) != 0\n");
     break;
   case '?':
   case 'U':
