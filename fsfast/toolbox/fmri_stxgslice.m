@@ -14,7 +14,7 @@
 % global CmpIdeal
 % global QuitOnError;
 %
-% $Id: fmri_stxgslice.m,v 1.2 2003/03/20 20:38:52 greve Exp $
+% $Id: fmri_stxgslice.m,v 1.3 2003/05/12 18:35:16 greve Exp $
 %
 
 fprintf(1,' ---------- StXGSlice.m : Starting ------------\n');
@@ -355,7 +355,7 @@ if(~isempty(fstatstem) | ~isempty(fsigstem) )
   end
 
   if(OutputFormat == 0)     pSig = -log(abs(pSig))  .*sign(pSig);
-  elseif(OutputFormat == 1) pSig = -log10(abs(pSig)).*sign(pSig);
+  elseif(OutputFormat == 1) pSig = fast_log10p(pSig);
   end
 
   if(~isempty(fstatstem))
