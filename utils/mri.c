@@ -6707,12 +6707,12 @@ MRIlinearTransform(MRI *mri_src, MRI *mri_dst, MATRIX *mA)
     ErrorReturn(NULL, (ERROR_BADPARM,
                        "MRIlinearTransform: xform is singular")) ;
 
-  width = mri_dst->width ; height = mri_dst->height ; depth = mri_dst->depth ;
   if (!mri_dst)
     mri_dst = MRIclone(mri_src, NULL) ;
   else
     MRIclear(mri_dst) ;
 
+  width = mri_dst->width ; height = mri_dst->height ; depth = mri_dst->depth ;
   v_X = VectorAlloc(4, MATRIX_REAL) ;  /* input (src) coordinates */
   v_Y = VectorAlloc(4, MATRIX_REAL) ;  /* transformed (dst) coordinates */
 
