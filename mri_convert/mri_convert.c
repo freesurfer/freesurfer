@@ -3,9 +3,9 @@
 // original: written by Bruce Fischl (Apr 16, 1997)
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2004/09/30 16:00:19 $
-// Revision       : $Revision: 1.94 $
+// Revision Author: $Author: greve $
+// Revision Date  : $Date: 2004/10/04 21:18:26 $
+// Revision       : $Revision: 1.95 $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -74,6 +74,12 @@ int main(int argc, char *argv[])
   int out_i_direction_flag, out_j_direction_flag, out_k_direction_flag;
   int in_tr_flag = 0;
   float in_tr = 0;
+  int in_ti_flag = 0;
+  float in_ti = 0;
+  int in_te_flag = 0;
+  float in_te = 0;
+  int in_flip_angle_flag = 0;
+  float in_flip_angle = 0;
   float magnitude;
   float i_dot_j, i_dot_k, j_dot_k;
   float in_center[3], out_center[3];
@@ -220,7 +226,7 @@ int main(int argc, char *argv[])
   nskip = 0;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_convert.c,v 1.94 2004/09/30 16:00:19 tosa Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_convert.c,v 1.95 2004/10/04 21:18:26 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -498,6 +504,21 @@ int main(int argc, char *argv[])
     {
       get_floats(argc, argv, &i, &in_tr, 1);
       in_tr_flag = TRUE;
+    }
+    else if( strcmp(argv[i], "-TI") == 0 )
+    {
+      get_floats(argc, argv, &i, &in_ti, 1);
+      in_ti_flag = TRUE;
+    }
+    else if( strcmp(argv[i], "-te") == 0 )
+    {
+      get_floats(argc, argv, &i, &in_te, 1);
+      in_te_flag = TRUE;
+    }
+    else if( strcmp(argv[i], "-flip_angle") == 0 )
+    {
+      get_floats(argc, argv, &i, &in_flip_angle, 1);
+      in_flip_angle_flag = TRUE;
     }
 
     else if(strcmp(argv[i], "-odt") == 0 || strcmp(argv[i], "--out_data_type") == 0)
@@ -1282,6 +1303,9 @@ int main(int argc, char *argv[])
     strcpy(mri->subject_name, subject_name);
 
   if(in_tr_flag) mri->tr = in_tr;
+  if(in_ti_flag) mri->ti = in_ti;
+  if(in_te_flag) mri->te = in_te;
+  if(in_flip_angle_flag) mri->flip_angle = in_flip_angle;
 
   /* ----- correct starts, ends, and fov if necessary ----- */
   if(in_i_size_flag || in_j_size_flag || in_k_size_flag)
@@ -1964,7 +1988,11 @@ void usage(FILE *stream)
   fprintf(stream, "  -nc --nochange - don't change type of input to that of template\n");
   fprintf(stream, "\n");
   fprintf(stream, "\n");
-  fprintf(stream, "  -tr TR : TR in seconds\n");
+  fprintf(stream, "  -tr TR : TR in msec\n");
+  fprintf(stream, "  -te TE : TE in msec\n");
+  fprintf(stream, "  -TI TI : TI in msec (note upper case flag)\n");
+  fprintf(stream, "  -flip_angle flip angle : radians \n");
+
   fprintf(stream, "\n");
   fprintf(stream, "  --unwarp_gradient_nonlinearity \n"
                   "      <sonata | allegra | GE> \n"
