@@ -2,7 +2,7 @@
 # epidewarp.fsl
 #
 
-set VERSION = '$Id: epidewarp.fsl,v 1.12 2005/03/30 18:10:51 greve Exp $'
+set VERSION = '$Id: epidewarp.fsl,v 1.13 2005/03/30 22:42:02 greve Exp $'
 set inputargs = ($argv);
 
 set dph = ();
@@ -538,7 +538,7 @@ Help Outline:
   BUGS
   BUG REPORTING
   AUTHORS
-
+  REFERENCES AND ACKNOWLEDGMENTS
 
 SUMMARY
 
@@ -727,11 +727,24 @@ Doug Greve, Dave Tuch, Tom Liu, and Bryon Mueller with generous help
 from the FSL crew (www.fmrib.ox.ac.uk/fsl) and the Biomedical
 Informatics Research Network (www.nbirn.net).
 
-Reference:
+REFERENCES AND ACKNOWLEDGMENTS:
+
+For prelude:
+
+M. Jenkinson. A Fast, Automated, N-Dimensional Phase Unwrapping
+Algorithm Magnetic Resonance in Medicine, 49(1), 193-197, 2003.
+
+For fugue:
+
+M. Jenkinson. Improved Unwarping of EPI Volumes using Regularised B0
+Maps International Conference on Human Brain Mapping - HBM2001.
 
 Jezzard, Peter, and Balaban, Robert S. Correction for Geometric
 Distortion in Echo Planar Images from B0 Field Variations. Mag Res
 Med, 1995, 34:65-73.
 
+For epidewarp.fsl we ask that the following be placed in the 
+acknowledgement section of you papers:
 
-
+  "Some of the scripts involved in this work were developed by 
+   FBIRN (www.nbirn.net)."
