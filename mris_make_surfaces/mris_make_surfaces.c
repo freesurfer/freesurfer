@@ -17,7 +17,7 @@
 #include "mrimorph.h"
 #include "mrinorm.h"
 
-static char vcid[] = "$Id: mris_make_surfaces.c,v 1.29 2000/01/28 19:18:50 fischl Exp $";
+static char vcid[] = "$Id: mris_make_surfaces.c,v 1.30 2000/01/28 19:20:33 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -100,7 +100,7 @@ main(int argc, char *argv[])
   int           ac, nargs, i, label_val, replace_val, msec, n_averages ;
   MRI_SURFACE   *mris ;
   MRI           *mri_wm, *mri_kernel = NULL, *mri_smooth = NULL, 
-                *mri_filled, *mri_T1, *mri_T1_save ;
+                *mri_filled, *mri_T1 ;
   float         max_len ;
   double        l_intensity, current_sigma ;
   struct timeb  then ;
@@ -222,7 +222,6 @@ main(int argc, char *argv[])
     }
   }
   /* remove other hemi */
-  mri_T1_save = MRIcopy(mri_T1, NULL) ;
   MRIdilateLabel(mri_filled, mri_filled, replace_val, 1) ;
   MRImask(mri_T1, mri_filled, mri_T1, replace_val,0) ;
   MRIfree(&mri_filled) ;
@@ -363,7 +362,6 @@ main(int argc, char *argv[])
       break ;
   }
 
-  /*  MRIfree(&mri_T1) ;  mri_T1 = mri_T1_save ; */
   if (!nowhite)
   {
     sprintf(fname, "%s/%s/surf/%s.%s%s", sdir, sname,hemi,WHITE_MATTER_NAME,
