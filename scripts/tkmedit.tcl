@@ -2088,12 +2088,12 @@ proc CreateMenuBar { ifwMenuBar } {
       { command \
       "Save Segmentation" \
       "SaveParcellationVolume" \
-      tMenuGroup_Parcellation } \
+      tMenuGroup_Segmentation } \
       \
       { command \
       "Save Segmentation As..." \
       {DoFileDlog SaveParcellationAs} \
-      tMenuGroup_Parcellation } \
+      tMenuGroup_Segmentation } \
       \
       { separator } \
       \
@@ -2455,7 +2455,7 @@ proc CreateMenuBar { ifwMenuBar } {
       { command \
       "Configure Segmentation Brush..." \
       DoEditParcBrushInfoDlog\
-      tMenuGroup_Parcellation } \
+      tMenuGroup_Segmentation } \
       \
       { separator } \
       \
@@ -2564,7 +2564,7 @@ proc CreateMenuBar { ifwMenuBar } {
       { command \
       "Select Current Label" \
       SelectCurrentROI \
-      tMenuGroup_Parcellation } \
+      tMenuGroup_Segmentation } \
       \
       { command \
       "Recompute Segmentation" \
@@ -2574,7 +2574,7 @@ proc CreateMenuBar { ifwMenuBar } {
       { command \
       "Graph Current Label Average" \
       GraphCurrentROIAvg \
-      tMenuGroup_Parcellation } } } \
+      tMenuGroup_Segmentation } } } \
       \
       { cascade "Head Points" { \
       \
