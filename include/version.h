@@ -37,5 +37,14 @@
 
 int handle_version_option (int argc, char** argv, char* id_string);
 
+/* This function does pretty much the same thing except it prints out
+   more information in the format necessary for the BIRN provenance
+   spec. Call it similarly, but also pass in the dollarNamedollar CVS
+   variable for the version_string. This will be the tag used to check
+   out this version of the code.
+ */
 
+int
+handle_info_option (int argc, char** argv, 
+		    char* id_string, char* version_string);
 #endif

@@ -1,10 +1,50 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <time.h>
+#include <sys/utsname.h>
+#include <unistd.h>
 #include "version.h"
 
-
+/* I have no idea what this is */
 // char version[] = "version 1.0, Wed Apr 26 11:11:26 EDT 2000" ;
+
+/* Set our compiler name */
+#if defined(__GNUC__)
+#  define COMPILER_NAME "GCC"
+#endif
+
+/* If GCC (probably is) get the version number */
+#if defined(__GNUC__)
+# if defined(__GNU_PATCHLEVEL__)
+#  define COMPILER_VERSION (__GNUC__ * 10000 \
+                            + __GNUC_MINOR__ * 100 \
+                            + __GNUC_PATCHLEVEL__)
+# else
+#  define COMPILER_VERSION (__GNUC__ * 10000 \
+                            + __GNUC_MINOR__ * 100)
+# endif
+#else
+#  define COMPILE_VERSION 0
+#endif
+
+/* Figure out the platform. */
+#if defined(Linux) || defined(linux) || defined(__linux)
+#  define PLATFORM "Linux"
+#endif
+#if defined(Darwin) || defined(__MACOSX__) || defined(__APPLE__)
+#  define PLATFORM "Darwin"
+#endif
+#if defined(IRIX) || defined(sgi) || defined(mips) || defined(_SGI_SOURCE)
+#  define PLATFORM "IRIX"
+#endif
+#if defined(sun) || defined(__sun)
+# if defined(__SVR4) || defined(__svr4__)
+#  define PLATFORM "Solaris"
+# else
+#  define PLATFORM "SunOS"
+# endif
+#endif
 
 
 /* This function looks for the --version, or -version tag in the
@@ -37,7 +77,7 @@
 int
 handle_version_option (int argc, char** argv, char* id_string) 
 {
-  
+
 #if defined(__GNUC__)
 # if defined(__GNU_PATCHLEVEL__)
 #  define __GNUC_VERSION__ (__GNUC__ * 10000 \
@@ -83,6 +123,96 @@ handle_version_option (int argc, char** argv, char* id_string)
 	  
 	  fprintf (stdout, "%s Platform: %s C lib: %d\n",
 		   id_string, __PLATFORM__, __GNUC_VERSION__);
+	  
+	  num_processed_args++;
+
+	  /* Copy later args one step back. */
+	  for (nnarg = narg; nnarg < argc - num_processed_args; nnarg++)
+	    {
+	      strcpy (argv[nnarg], argv[nnarg+1] );
+	    }
+	}
+    }
+  
+  /* Return the number of arguments processed. */
+  return num_processed_args;
+}
+
+/* This function does pretty much the same thing except it prints out
+   more information in the format necessary for the BIRN provenance
+   spec. Call it similarly, but also pass in the dollarNamedollar CVS
+   variable for the version_string. This will be the tag used to check
+   out this version of the code. 
+*/
+
+int
+handle_info_option (int argc, char** argv, 
+		    char* id_string, char* version_string) 
+{
+
+  int narg = 0;
+  int nnarg = 0;
+  int num_processed_args = 0;
+  char *option = NULL;
+  time_t seconds;
+  struct tm broken_time;
+  struct utsname kernel_info;
+  int result;
+  char time_stamp[1024];
+  char user[1024];
+  char machine[1024];
+  char platform_version[1024];
+
+  /* Go through each option looking for --all-info, or -all-info */
+  for (narg = 1; narg < argc; narg++) 
+    {
+      option = argv[narg];
+      
+      if (!strncmp(option,"--all-info",11) ||
+	  !strncmp(option,"-all-info",10))
+	{
+
+	  /* Print out the entire command line. */
+	  for (nnarg = 0; nnarg < argc; nnarg++)
+	    fprintf (stdout, "%s ", argv[nnarg]);
+	  fprintf (stdout, "\n");
+
+	  /* Find the time string. */
+	  seconds = time(NULL);
+	  gmtime_r (&seconds, &broken_time);
+	  sprintf (time_stamp, "%02d/%02d/%02d-%02d:%02d:%02d-GMT",
+		   broken_time.tm_year%100, /* mod here to change 103 to 03 */
+		   broken_time.tm_mon+1, /* +1 here because tm_mon is 0-11 */
+		   broken_time.tm_mday, broken_time.tm_hour,
+		   broken_time.tm_min, broken_time.tm_sec);
+
+	  /* Use getlogin() to get the user controlling this process. */
+	  strcpy (user, getlogin()); 
+
+	  /* Call uname to get the machine. */
+	  result = uname (&kernel_info);
+	  if (0 != result)
+	    {
+	      fprintf (stderr, "uname() returned %d\n", result);
+	    }
+	  strcpy (machine, kernel_info.machine);
+	  strcpy (platform_version, kernel_info.version);
+
+	  /* Build the info string. */
+	  fprintf (stdout, "ProgramName: %s ProgramVersion: %s "
+		   "TimeStamp: %s CVS: %s User: %s Machine: %s "
+		   "Platform: %s PlatformVersion: %s CompilerName: %s "
+		   "CompilerVersion: %d\n",
+		   argv[0],
+		   version_string,
+		   time_stamp,
+		   id_string,
+		   user,
+		   machine,
+		   PLATFORM,
+		   platform_version,
+		   COMPILER_NAME,
+		   COMPILER_VERSION);
 	  
 	  num_processed_args++;
 
