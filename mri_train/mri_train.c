@@ -32,14 +32,14 @@ static int train_cpolv = 0 ;
 
 static RBF_PARMS rbf_parms =
 {
-{ 2, NCLUSTERS, NCLUSTERS, NCLUSTERS, 2}
+{ NCLUSTERS/2, NCLUSTERS, NCLUSTERS, NCLUSTERS, NCLUSTERS, NCLUSTERS/2}
 } ;
 void 
 main(int argc, char *argv[])
 {
   MRIC    *mric ;
   char    *training_file_name, *output_file_name ;
-  int     nargs, error ;
+  int     nargs, error, i ;
 
   Progname = argv[0] ;
   DiagInit(NULL, NULL, NULL) ;
@@ -61,22 +61,29 @@ main(int argc, char *argv[])
 
   if (nclusters > 0)
   {
-    rbf_parms.max_clusters[BACKGROUND] = nclusters/2 ;
-    rbf_parms.max_clusters[BRIGHT_MATTER] = nclusters/2 ;
-    rbf_parms.max_clusters[GRAY_MATTER] = nclusters ;
-    rbf_parms.max_clusters[WHITE_MATTER] = nclusters ;
-    rbf_parms.max_clusters[BORDER_MATTER] = nclusters ;
+    for (i = 0 ; i < NCLASSES ; i++)
+    {
+      if (ISWHITE(i) || i == GRAY_MATTER)
+        rbf_parms.max_clusters[i] = nclusters ;
+      else
+        rbf_parms.max_clusters[i] = nclusters/2 ;
+    }
   }
   else
     nclusters = NCLUSTERS ;
 
   if (train_cpolv)
   {
-    rbf_parms.max_clusters[CSF] = nclusters ;
-    rbf_parms.max_clusters[GRAY_MATTER] = 0 ;
-    rbf_parms.max_clusters[WHITE_MATTER] = nclusters/2 ;
-    rbf_parms.max_clusters[BORDER_MATTER] = nclusters/2 ;
-    rbf_parms.max_clusters[BRIGHT_MATTER] = 0 ;
+    for (i = 0 ; i < NCLASSES ; i++)
+    {
+      if (ISWHITE(i))
+        rbf_parms.max_clusters[i] = nclusters/3 ;
+      else
+        if (i == CSF)
+          rbf_parms.max_clusters[i] = nclusters ;
+      else
+          rbf_parms.max_clusters[i] = 0 ;
+    }
   }
 
   mric = MRICalloc(1, &classifier, &features, (void *)&rbf_parms) ;
