@@ -144,22 +144,25 @@ main(int argc, char *argv[])
           break ;
         }
         MRIfree(&mri) ; mri = mri_tmp ;
-        fprintf(stderr, "done.\n") ;
+        fprintf(stderr, "transform application complete.\n") ;
       }
       if (!mri_mean)
       {
+        fprintf(stderr, "allocating mean and standard deviation volumes...") ;
         mri_mean = MRIalloc(mri->width, mri->height, mri->depth, MRI_FLOAT) ;
         mri_std = MRIalloc(mri->width, mri->height, mri->depth, MRI_FLOAT) ;
         if (!mri_mean || !mri_std)
           ErrorExit(ERROR_NOMEMORY, "%s: could not allocate templates.\n",
                     Progname) ;
+        fprintf(stderr, "done.\n") ;
       }
 
+      fprintf(stderr, "updating mean and variance estimates...") ;
       MRIaccumulateMeansAndVariances(mri, mri_mean, mri_std) ;
+      fprintf(stderr, "done.\n") ;
       MRIfree(&mri) ;
     }
     MRIcomputeMeansAndStds(mri_mean, mri_std, dof) ;
-#if 1
     mri_mean->dof = dof ;
     mri = MRIfloatToChar(mri_mean, NULL) ;
     if (which == LH_FILLED_VOLUME)
@@ -173,15 +176,14 @@ main(int argc, char *argv[])
       MRIwrite(mri, out_fname) ;
     else
       MRIappend(mri, out_fname) ;
-    MRIfree(&mri_mean) ;
+    MRIfree(&mri_mean) ; MRIfree(&mri) ;
     fprintf(stderr, "\nwriting %s variances to %s...", volume_name,out_fname);
     mri = MRIfloatToChar(mri_std, NULL) ;
     if (dof <= 1) /* can't calulate variances - set them to reasonable val */
       MRIreplaceValues(mri, mri, 0, 1) ;
     MRIappend(mri, out_fname) ;
     fprintf(stderr, "done.\n") ;
-#endif
-    MRIfree(&mri_std) ;
+    MRIfree(&mri_std) ; MRIfree(&mri) ;
   }
 
   fprintf(stderr, "done.\n") ;
@@ -252,7 +254,7 @@ int
 MRIaccumulateMeansAndVariances(MRI *mri, MRI *mri_mean, MRI *mri_std)
 {
   int    x, y, z, width, height, depth ;
-  float  val ;
+  float  val, *pmean, *pstd ;
   
   width = mri->width ; height = mri->height ; depth = mri->depth ;
 
@@ -260,13 +262,20 @@ MRIaccumulateMeansAndVariances(MRI *mri, MRI *mri_mean, MRI *mri_std)
   {
     for (y = 0 ; y < height ; y++)
     {
+      pmean = &MRIFvox(mri_mean, 0, y, z) ;
+      pstd = &MRIFvox(mri_std, 0, y, z) ;
       for (x = 0 ; x < width ; x++)
       {
         if (x == 128 && y == 128 && z == 128)
           DiagBreak() ;
         val = MRIvox(mri,x,y,z) ;
+#if 1
+        *pmean++ += val ;
+        *pstd++ += val*val ;
+#else
         MRIFvox(mri_mean,x,y,z) += val ;
         MRIFvox(mri_std,x,y,z) += val*val ;
+#endif
       }
     }
   }
