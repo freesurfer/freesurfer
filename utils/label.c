@@ -866,3 +866,45 @@ LabelVariance(LABEL *area, double ux, double uy, double uz)
   dsq /= (double)n ;
   return(dsq) ;
 }
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
+int
+LabelMark(LABEL *area, MRI_SURFACE *mris)
+{
+  int    n, vno ;
+  VERTEX *v ;
+
+  for (n = 0 ; n < area->n_points ; n++)
+  {
+    vno = area->lv[n].vno ;
+    v = &mris->vertices[vno] ;
+    v->marked = 1 ;
+  }
+  return(NO_ERROR) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
+int
+LabelUnmark(LABEL *area, MRI_SURFACE *mris)
+{
+  int    n, vno ;
+  VERTEX *v ;
+
+  for (n = 0 ; n < area->n_points ; n++)
+  {
+    vno = area->lv[n].vno ;
+    v = &mris->vertices[vno] ;
+    v->marked = 0 ;
+  }
+  return(NO_ERROR) ;
+}
