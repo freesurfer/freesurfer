@@ -290,6 +290,7 @@ typedef struct
   float   l_tspring ;         /* coefficient of tangential spring term */
   float   l_nspring ;         /* coefficient of normal spring term */
   float   l_repulse ;         /* repulsize force on tessellation */
+  float   l_repulse_ratio ;   /* repulsize force on tessellation */
   float   l_boundary ;        /* coefficient of boundary term */
   float   l_dist ;            /* coefficient of distance term */
   float   l_neg ;
@@ -691,7 +692,8 @@ int  MRISwriteAreaErrorToValFile(MRI_SURFACE *mris, char *name) ;
 int  MRIStransform(MRI_SURFACE *mris, MRI *mri, LTA *lta) ;
 int  MRISanisotropicScale(MRI_SURFACE *mris, float sx, float sy, float sz) ;
 double MRIScomputeVertexSpacingStats(MRI_SURFACE *mris, double *psigma,
-                                     double *pmin, double *pmax, int *pvno);
+                                     double *pmin, double *pmax, int *pvno,
+                                     int *pvno2);
 double MRIScomputeFaceAreaStats(MRI_SURFACE *mris, double *psigma,
                                      double *pmin, double *pmax);
 int MRISprintTessellationStats(MRI_SURFACE *mris, FILE *fp) ;
