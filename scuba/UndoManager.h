@@ -23,6 +23,18 @@ class UndoAction {
   virtual void Redo ();
 };
 
+class UndoableAction {
+
+ public:
+
+  UndoableAction() {}
+  virtual ~UndoableAction ();
+
+  std::list<UndoAction*> mActions;
+  std::string msTitle;
+
+};
+
 class UndoManager : public TclCommandListener {
 
   friend class UndoManagerTester;
@@ -40,29 +52,37 @@ class UndoManager : public TclCommandListener {
   void BeginAction ( std::string isTitle );
   void EndAction ();
 
-  std::string GetTitle ();
-
-  // Adds an action to the undo list.
+  // Adds an action to the Undo list.
   void AddAction ( UndoAction* iAction );
 
-  // Calls Undo or Redo on all the actions in our undo list.
+  // Get titles for our undo and redo actions.
+  std::string GetUndoTitle ();
+  std::string GetRedoTitle ();
+
+  // Calls Undo or Redo on all the actions in our undo list. Calling
+  // Undo takes an action off the undo list and puts it on the Redo
+  // list, and vice versa.
   void Undo ();
   void Redo ();
 
   virtual TclCommandResult
     DoListenToTclCommand ( char* isCommand, int iArgc, char** iasArgv );
 
+  // Clear undo and redo lists.
+  void Clear();
+
  protected:
   
   UndoManager();
 
-  std::string msTitle;
+  // Action we're currently building.
+  UndoableAction* mCurrentAction;
 
-  // List of undo actions.
-  std::list<UndoAction*> mActions;
+  // List of undo and redo actions.
+  std::list<UndoableAction*> mUndoActions;
+  std::list<UndoableAction*> mRedoActions;
 
-  // If true, we're ready to undo. If false, we're ready to redo.
-  bool bUndo;
+  int mcMaxActions;
 };
 
 
