@@ -20,6 +20,39 @@ extern int errno;
 int stricmp(char *str1, char *str2) ;
 #endif
 
+char *type_to_string(int type)
+{
+  char *typestring;
+  char *tmpstr;
+  int lentmp;
+
+  switch(type){
+  case MRI_CORONAL_SLICE_DIRECTORY: tmpstr = "COR"; break;
+  case MRI_MINC_FILE:      tmpstr = "MINC"; break;
+  case MRI_ANALYZE_FILE:   tmpstr = "analyze3d"; break;
+  case MRI_ANALYZE4D_FILE: tmpstr = "analyze4d"; break;
+  case MRI_MGH_FILE: tmpstr = "MGH"; break;
+  case GENESIS_FILE: tmpstr = "genesis"; break;
+  case GE_LX_FILE:   tmpstr = "gelx"; break;
+  case SIEMENS_FILE: tmpstr = "siemens"; break;
+  case DICOM_FILE:   tmpstr = "dicom"; break;
+  case SIEMENS_DICOM_FILE: tmpstr = "siemens_dicom"; break;
+  case BRIK_FILE:   tmpstr = "brik"; break;
+  case BSHORT_FILE: tmpstr = "bshort"; break;
+  case BFLOAT_FILE: tmpstr = "bfloat"; break;
+  case SDT_FILE:    tmpstr = "varian"; break;
+  case OTL_FILE:    tmpstr = "outline"; break;
+  case GDF_FILE:    tmpstr = "gdf"; break;
+  default: tmpstr = "unknown"; break;
+  }
+
+  lentmp = strlen(tmpstr);
+  typestring = (char *)calloc(lentmp+1,sizeof(char));
+  memcpy(typestring,tmpstr,lentmp);
+  return(typestring);
+}
+
+
 int string_to_type(char *string)
 {
 
