@@ -72,6 +72,8 @@ int string_to_type(char *string)
     type = MRI_ANALYZE4D_FILE;
   if(strcmp(ls, "mgh") == 0)
     type = MRI_MGH_FILE;
+  if(strcmp(ls, "signa") == 0)
+    type = SIGNA_FILE;
   if(strcmp(ls, "ge") == 0 || strcmp(ls, "genesis") == 0)
     type = GENESIS_FILE;
   if(strcmp(ls, "gelx") == 0 || strcmp(ls, "lx") == 0)
