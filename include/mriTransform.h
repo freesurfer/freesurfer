@@ -53,15 +53,22 @@ Trns_tErr Trns_Delete     ( mriTransformRef* iopTransform );
 Trns_tErr Trns_DeepClone  ( mriTransformRef  this,
           mriTransformRef* opTransform );
 
-/* these are the minimum that should be set in a normal situation */
+/* these are the minimum that should be set in a normal
+   situation. Note that every time you copy one of these, the other
+   matrices (the inverses of these tree and the compositions, AtoB and
+   BtoA) will be recalculated in Trns_CalcMatricies_. */
 Trns_tErr Trns_CopyAtoRAS     ( mriTransformRef this,
 				MATRIX*         iAtoRAS );
-Trns_tErr Trns_CopyAtoB     ( mriTransformRef this,
-			      MATRIX*         iAtoB );
 Trns_tErr Trns_CopyBtoRAS     ( mriTransformRef this,
 				MATRIX*         iBtoRAS );
 Trns_tErr Trns_CopyARAStoBRAS ( mriTransformRef this,
 				MATRIX*         iARAStoBRAS );
+
+/* Alternatively, use this if you only have one matrix to use. It will
+   set AtoB and calc BtoA and then not touch the rest of the
+   matrices. */
+Trns_tErr Trns_CopyAtoB     ( mriTransformRef this,
+			      MATRIX*         iAtoB );
 
 /* access internal matrices */
 Trns_tErr Trns_GetAtoRAS     ( mriTransformRef this,
