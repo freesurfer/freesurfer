@@ -1,4 +1,4 @@
-function [M_R] = vox2ras_rsolve(Vc_C, inPlaneRotation, varargin)
+function [M_R] = vox2ras_rsolveAA(Vc_C, inPlaneRotation, varargin)
 %%
 %% NAME
 %%
@@ -10,7 +10,7 @@ function [M_R] = vox2ras_rsolve(Vc_C, inPlaneRotation, varargin)
 %%
 %% VERSION
 %%
-%% 	$Id: vox2ras_rsolveAA.m,v 1.1 2004/06/03 18:11:28 rudolph Exp $
+%% 	$Id: vox2ras_rsolveAA.m,v 1.2 2004/06/03 18:23:25 rudolph Exp $
 %%
 %% SYNOPSIS
 %%
