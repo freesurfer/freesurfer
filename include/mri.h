@@ -304,7 +304,7 @@ MRI   *MRIapplyOffset(MRI *mri_src, MRI *mri_dst, MRI *mri_offset) ;
 
 MRI   *MRIclone(MRI *mri_src, MRI *mri_dst) ;  // it just copies the header info
 MRI   *MRIcloneRoi(MRI *mri_src, MRI *mri_dst) ;
-MRI   *MRIthreshold(MRI *mri_src, MRI *mri_dst, BUFTYPE threshold) ;
+MRI   *MRIthreshold(MRI *mri_src, MRI *mri_dst, float threshold) ;
 MRI   *MRIinvertContrast(MRI *mri_src, MRI *mri_dst, float threshold) ;
 MRI   *MRIbinarize(MRI *mri_src, MRI *mri_dst, BUFTYPE threshold,
                    BUFTYPE low_val, BUFTYPE hi_val) ;
