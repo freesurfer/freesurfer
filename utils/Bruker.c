@@ -4,8 +4,8 @@
 /* date       :8/27/2003                  */
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2003/09/03 21:03:53 $
-// Revision       : $Revision: 1.3 $
+// Revision Date  : $Date: 2003/09/03 21:25:34 $
+// Revision       : $Revision: 1.4 $
 
 // there are many files present in Bruker directory
 //
@@ -112,7 +112,7 @@
 
 /* Martin Hoerrmann. */
 
-char *BRUCKER_C_VERSION= "$Revision: 1.3 $";
+char *BRUCKER_C_VERSION= "$Revision: 1.4 $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -656,10 +656,10 @@ int readBrukerReco(char *recoFile, BrukerTransform *pTran)
     else if ( !strcmp( Parameter,"$RECO_fov") )
     {
       lRead = sscanf( Value, "%d", &dim);
+      pTran->dim = dim;
       if (dim != 3)
       {
 	fprintf(stderr, "INFO: fov dimension is %d. The data is not a 3D volume.\n", dim);
-	pTran->dim = dim;
       }
       if (!fgets(line, sizeof(line), fp))
       {
