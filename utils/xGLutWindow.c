@@ -376,8 +376,8 @@ void xGWin_PassEventToAllWindows ( xGWin_tEventRef ipEvent ) {
 }
 
 void xGWin_GLutKeyboardCallback ( unsigned char icKey, 
-          int           inX, 
-          int           inY ) {
+				  int           inX, 
+				  int           inY ) {
 
   xGWin_tEventRef pEvent        = NULL;
   int             nState        = 0;
@@ -407,8 +407,43 @@ void xGWin_GLutKeyboardCallback ( unsigned char icKey,
   if( pEvent->mbCtrlKey ) {
     ucModifiedKey = (unsigned char)((int)icKey + ((int)'a' - xGWin_knCtrlA));
     if ( (ucModifiedKey >= 'a' && ucModifiedKey <= 'z')
-   || (ucModifiedKey >= 'A' && ucModifiedKey <= 'Z') ) {
-    pEvent->mKey = ucModifiedKey;
+	 || (ucModifiedKey >= 'A' && ucModifiedKey <= 'Z') ) {
+      pEvent->mKey = ucModifiedKey;
+    } else {
+      /* we also have special codes for the control-number keys. check
+	 those. */
+      switch( icKey ) {
+      case xGWin_knCtrl0:
+	pEvent->mKey = '0';
+	break;
+      case xGWin_knCtrl1:
+	pEvent->mKey = '1';
+	break;
+      case xGWin_knCtrl2:
+	pEvent->mKey = '2';
+	break;
+      case xGWin_knCtrl3:
+	pEvent->mKey = '3';
+	break;
+      case xGWin_knCtrl4:
+	pEvent->mKey = '4';
+	break;
+      case xGWin_knCtrl5:
+	pEvent->mKey = '5';
+	break;
+      case xGWin_knCtrl6:
+	pEvent->mKey = '6';
+	break;
+      case xGWin_knCtrl7:
+	pEvent->mKey = '7';
+	break;
+      case xGWin_knCtrl8:
+	pEvent->mKey = '8';
+	break;
+      case xGWin_knCtrl9:
+	pEvent->mKey = '9';
+	break;
+      }
     }
   }
 

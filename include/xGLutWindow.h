@@ -50,6 +50,16 @@ enum {
 };
 
 #define xGWin_knCtrlA 1
+#define xGWin_knCtrl0 48
+#define xGWin_knCtrl1 49
+#define xGWin_knCtrl2 0
+#define xGWin_knCtrl3 27
+#define xGWin_knCtrl4 28
+#define xGWin_knCtrl5 29
+#define xGWin_knCtrl6 30
+#define xGWin_knCtrl7 31
+#define xGWin_knCtrl8 127
+#define xGWin_knCtrl9 57
 
 typedef struct {
 
