@@ -166,6 +166,10 @@ FunD_tErr FunD_New ( mriFunctionalDataRef* opVolume,
   
   FunD_DebugPrint( this );
 
+  /* Get the value range. */
+  DebugNote( ("Getting value range") );
+  MRIvalRange( this->mpData, &this->mMinValue, &this->mMaxValue );
+
   /* return what we got */
   *opVolume = this;
   
