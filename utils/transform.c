@@ -368,7 +368,11 @@ LTAtransformAtPoint(LTA *lta, float x, float y, float z, MATRIX *m_L)
   }
 
   if (DZERO(wtotal))   /* no transforms in range??? */
+#if 0
     MatrixIdentity(4, m_L) ;
+#else
+  MatrixCopy(lta->xforms[0].m_L, m_L) ;
+#endif
   else /* now calculate linear combination of transforms at this point */
   {
     wmin = 0.1 / (double)lta->num_xforms ;
@@ -391,12 +395,88 @@ LTAtransformAtPoint(LTA *lta, float x, float y, float z, MATRIX *m_L)
 
         Description
 ------------------------------------------------------*/
+MATRIX *
+LTAinverseTransformAtPoint(LTA *lta, float x, float y, float z, MATRIX *m_L)
+{
+  LT       *lt ;
+  int      i ;
+  double   w_p[MAX_TRANSFORMS], wtotal, dsq, sigma, dx, dy, dz, w_k_p, wmin ;
+  static MATRIX  *m_tmp = NULL ;
+  MATRIX   *m_inv ;
+
+
+  if (m_L == NULL)
+    m_L = MatrixAlloc(4, 4, MATRIX_REAL) ;
+  else
+    MatrixClear(m_L) ;
+
+  if (m_tmp == NULL)
+    m_tmp = MatrixAlloc(4, 4, MATRIX_REAL) ;
+
+  /* first compute normalized weights */
+  for (wtotal = 0.0, i = 0 ; i < lta->num_xforms ; i++)
+  {
+    lt = &lta->xforms[i] ;
+    dx = lta->xforms[i].x0 - x ;
+    dy = lta->xforms[i].y0 - y ;
+    dz = lta->xforms[i].z0 - z ;
+    dsq = (dx*dx+dy*dy+dz*dz) ;
+    sigma = lt->sigma ;
+    w_p[i] = /*(1 / (sigma*sqrt(2.0*M_PI))) * */ exp(-dsq/(2*sigma*sigma));
+    wtotal += w_p[i] ;
+  }
+
+  if (DZERO(wtotal))   /* no transforms in range??? */
+    MatrixIdentity(4, m_L) ;
+  else /* now calculate linear combination of transforms at this point */
+  {
+    wmin = 0.1 / (double)lta->num_xforms ;
+    for (i = 0 ; i < lta->num_xforms ; i++)
+    {
+      lt = &lta->xforms[i] ;
+      w_k_p = w_p[i] / wtotal ;
+      if (w_k_p < wmin)   /* optimization - ignore this transform */
+        continue ;
+      
+      m_inv = MatrixInverse(lt->m_L, NULL) ;
+      if (!m_inv)
+        continue ;
+      MatrixScalarMul(m_inv, w_k_p, m_tmp) ;
+      MatrixAdd(m_L, m_tmp, m_L) ;
+      MatrixFree(&m_inv) ;
+    }
+  }
+  return(m_L) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
 VECTOR *
 LTAtransformPoint(LTA *lta, VECTOR *v_X, VECTOR *v_Y)
 {
   static MATRIX *m_L = NULL ;
   
   m_L = LTAtransformAtPoint(lta, V3_X(v_X), V3_Y(v_X), V3_Z(v_X), m_L) ;
+  v_Y = MatrixMultiply(m_L, v_X, v_Y) ;
+  return(v_Y) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
+VECTOR *
+LTAinverseTransformPoint(LTA *lta, VECTOR *v_X, VECTOR *v_Y)
+{
+  static MATRIX *m_L = NULL ;
+  
+  m_L = LTAinverseTransformAtPoint(lta, V3_X(v_X), V3_Y(v_X), V3_Z(v_X), m_L);
   v_Y = MatrixMultiply(m_L, v_X, v_Y) ;
   return(v_Y) ;
 }
@@ -532,7 +612,8 @@ ltaMNIread(char *fname)
 
   lta = LTAalloc(1, NULL) ;
   lt = &lta->xforms[0] ;
-  lt->sigma = lt->x0 = lt->y0 = lt->z0 = 0 ;
+  lt->sigma = 1.0f ;
+  lt->x0 = lt->y0 = lt->z0 = 0 ;
 
   fgetl(line, 900, fp) ;
   fgetl(line, 900, fp) ;
@@ -554,5 +635,71 @@ ltaMNIread(char *fname)
   MatrixFree(&V) ; MatrixFree(&W) ; MatrixFree(&m_tmp) ;
   fclose(fp) ;
   return(lta) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
+int
+LTAworldToWorld(LTA *lta, float x, float y, float z, float *px, float *py, 
+                float *pz)
+{
+  static VECTOR *v_X, *v_Y = NULL ;
+
+  if (v_Y == NULL)
+  {
+    v_X = VectorAlloc(4, MATRIX_REAL) ;
+    v_Y = VectorAlloc(4, MATRIX_REAL) ;
+  }
+  /* world to voxel */
+  v_X->rptr[4][1] = 1.0f ;
+  V3_X(v_X) = 128.0 - x ;
+  V3_Z(v_X) = (y + 128.0) ;
+  V3_Y(v_X) = (-z + 128.0) ;
+
+  LTAtransformPoint(lta, v_X, v_Y) ;
+
+  /* voxel to world */
+  *px = 128.0 - V3_X(v_Y) ;
+  *py = V3_Z(v_Y)  - 128.0 ;
+  *pz = -(V3_Y(v_Y) - 128.0) ;
+
+  return(NO_ERROR) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
+int
+LTAinverseWorldToWorld(LTA *lta, float x, float y, float z, float *px, 
+                       float *py, float *pz)
+{
+  static VECTOR *v_X, *v_Y = NULL ;
+
+  if (v_Y == NULL)
+  {
+    v_X = VectorAlloc(4, MATRIX_REAL) ;
+    v_Y = VectorAlloc(4, MATRIX_REAL) ;
+  }
+  /* world to voxel */
+  v_X->rptr[4][1] = 1.0f ;
+  V3_X(v_X) = 128.0 - x ;
+  V3_Z(v_X) = (y - 128.0) ;
+  V3_Y(v_X) = (-z + 128.0) ;
+
+  LTAinverseTransformPoint(lta, v_X, v_Y) ;
+
+  /* voxel to world */
+  *px = 128.0 - V3_X(v_Y) ;
+  *py = V3_Z(v_Y)  - 128.0 ;
+  *pz = -(V3_Y(v_Y) - 128.0) ;
+
+  return(NO_ERROR) ;
 }
 
