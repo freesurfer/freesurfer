@@ -21,6 +21,7 @@ PathManager::GetManager() {
 }
 
 PathManager::PathManager () {
+  mbSendUpdates = true;
 }
 
 void

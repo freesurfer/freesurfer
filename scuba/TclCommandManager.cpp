@@ -420,6 +420,24 @@ TclCommandManager::SetCommandLineParameters ( int iArgc, char** iArgv ) {
   mArgv = iArgv;
 }
 
+string
+TclCommandManager::RunTclScript ( char* ifnScript ) {
+
+  if( mInterp ) {
+
+    int rTcl = Tcl_EvalFile( mInterp, ifnScript );
+    const char* sTclResult = Tcl_GetStringResult( mInterp );
+    if( TCL_OK != rTcl ) {
+      DebugOutput( << "Error on EvalFile: \"" << ifnScript << "\", " 
+		   << sTclResult );
+    } 
+    return string(sTclResult);
+  } else {
+    return "";
+  }
+
+}
+
 int
 TclCommandManager::ConvertArgumentToInt ( std::string isArg ) {
 

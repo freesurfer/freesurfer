@@ -408,12 +408,17 @@ BRUCE'S LIST:::
 
 - writeable coords for goto
 
-- alt-c will go through layers making top one visible and the rest
+- write out voxel intensities on a path
+  - Generate Summary tool
+    - works on ROI (all voxels) or path (sample every x distance)
+    - list of things to write out
+
+x alt-c will go through layers making top one visible and the rest
   hidden, and shuffle the order
 
-- change alt-xyz to match tkmedit behavior
+x change alt-xyz to match tkmedit behavior
 
-- option to turn cursor off
+x option to turn cursor off
 
 x data collection transform 
 x markers
@@ -454,17 +459,86 @@ nav tools draw onscreen sliders for feedback
 
 SCUBA VERSION
 
-- start new project
- - copy main window from scubatest
+x start new project
+ x copy main window from scubatest
  - get same functionality
 
-- get menus working
+x command line options
 
-- connect keybindings
+x x/y/z plane buttons
+  x little icons
 
-- make a properties windows stack widget that emulates current scuba
+x get view flag menus working
+
+x auto-config on change view modes
+
+x connect keybindings
 
 - get the new layers window working
+  - signal for when view's layers are changed
 
+- when current layer/data collection change, update menus
+  - Save Volume <VolumeName>
+  - disable invalid items
 
+int curLayer
+int curROIp
 
+SetCurrentLayer
+ - update menu items
+
+NewVolume
+ - get template volume ID
+NewVolume( templateID )
+ - make volume using template
+ - set label
+ - make layer, add to views
+SaveVolume
+ - layer->Volume()->Save()
+SaveVolumeAs
+ - get filename
+ - layer->Volume()->SetFileName
+ - SaveVolume
+LoadLabel
+ - get file name, LoadLabel( fn )
+LoadLabel( fn )
+ - layer->Volume()->NewROIFromlabel( fn );
+ - label->SetLabel()
+SaveLabel
+ - layer->Volume()->WriteROIToLabel( curROI, fn )
+SaveLabelAs
+ - get filename
+ - curROI->SetFileName( fn )
+ - SaveLabel
+ExportROIsAsLabels
+ - get filename
+ - layer->Volume()->WriteROIsToSegmentation( fn )
+LoadPaths
+ - get filename
+ - PathManager->ReadPathFile( fn )
+SavePathsAs
+ - get filename
+ - PathManager->WritePathFile( fn )
+ImportMarkersFromControlPoints
+ - get filename
+ - view->ImportControlPoints( layer()->Volume()->GetID, fn )
+ExportMarkersToControlPoints
+ - get filename
+ - view->ExportControlPoints( layer()->Volume()->GetID, fn )
+SaveTIFF
+ - get filename
+ - frame->CaptureFrameToFile( fn )
+SaveSceneSetupScript
+ - get filename
+ - write script
+Undo
+Redo
+Preferences
+SetCurrentViewMode
+SetCurrentInPlane
+SetFlipView
+setAutoConfigure
+SetShowCoordinates
+SetShowFPS
+SetShowMarkers
+SetShowPlaneIntersections

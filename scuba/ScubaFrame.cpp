@@ -177,32 +177,16 @@ ScubaFrame::DoListenToTclCommand( char* isCommand, int, char** iasArgv ) {
 	sResult = "bad view ID";
 	return error;
       }
-      
-      for( int nRow = 0; nRow < mcRows; nRow++ ) {
-	int cCols = mcCols[nRow];
-	for( int nCol = 0; nCol < cCols; nCol++ ) {
-	  
-	  try {
-	    View* view = GetViewAtColRow( nCol, nRow );
-	    if( view->GetID() == viewID ) {
-	      mnSelectedViewRow = nRow;
-	      mnSelectedViewCol = nCol;
-	      return ok;
-	    }
-	  }
-	  catch(...) {
-	    stringstream ssError;
-	    ssError << "couldn't get view at col " 
-		    << nCol << " row " << nRow;
-	    sResult = ssError.str();
-	    return error;
-	  }
-	}
+
+      try {
+	SetSelectedView( viewID );
       }
-      stringstream ssError;
-      ssError << "View ID " << viewID << " is not currently on screen.";
-      sResult = ssError.str();
-      return error;
+      catch(...) {
+	stringstream ssError;
+	ssError << "View ID " << viewID << " is not currently on screen.";
+	sResult = ssError.str();
+	return error;
+      }
     }
   }
   
@@ -451,33 +435,10 @@ ScubaFrame::DoListenToTclCommand( char* isCommand, int, char** iasArgv ) {
       }
 
       try {
-
-	// Try getting this view first.
-	View& srcView = View::FindByID( viewID );
-	// ScubaView& scubaView = dynamic_cast<ScubaView&>(view);
-	ScubaView& srcScubaView = (ScubaView&)srcView;
-
-	// For each view in this frame...
-	for( int nRow = 0; nRow < mcRows; nRow++ ) {
-	  int cCols = mcCols[nRow];
-	  for( int nCol = 0; nCol < cCols; nCol++ ) {
-	    
-	    try {
-	      View* destView = GetViewAtColRow( nCol, nRow );
-	      ScubaView& destScubaView = *(ScubaView*)destView;
-	      if( destView->GetID() != viewID ) {
-		srcScubaView.CopyLayerSettingsToView( destScubaView );
-	      }
-	    } 
-	    catch(...) {
-	      DebugOutput( << "Couldn't find a view where there was supposed "
-			   << "to be one: " << nCol << ", " << nRow );
-	    }
-	  }
-	}
+	CopyLayerSettingsToAllViews( viewID );
       }
       catch(...) {
-	sResult = "bad view ID";
+	sResult = "Couldn't auto-configure.";
 	return error;
       }
 
@@ -566,6 +527,31 @@ ScubaFrame::GetSelectedView () {
 }
 
 void
+ScubaFrame::SetSelectedView ( int iViewID ) {
+
+  for( int nRow = 0; nRow < mcRows; nRow++ ) {
+    int cCols = mcCols[nRow];
+    for( int nCol = 0; nCol < cCols; nCol++ ) {
+      
+      try {
+	View* view = GetViewAtColRow( nCol, nRow );
+	if( view->GetID() == iViewID ) {
+	  mnSelectedViewRow = nRow;
+	  mnSelectedViewCol = nCol;
+	  return;
+	}
+      }
+      catch(...) {
+	stringstream ssError;
+	ssError << "couldn't get view at col " 
+		<< nCol << " row " << nRow;
+	throw runtime_error( ssError.str() );
+      }
+    }
+  }
+}
+
+void
 ScubaFrame::TranslateWindowToView ( int iWindow[2], int inCol, int inRow,
 				    int oView[2] ) {
 
@@ -597,7 +583,7 @@ ScubaFrame::SizeViewsToConfiguration() {
 
 void
 ScubaFrame::DoDraw() {
-  
+
   for( int nRow = 0; nRow < mcRows; nRow++ ) {
     int cCols = mcCols[nRow];
     for( int nCol = 0; nCol < cCols; nCol++ ) {
@@ -665,6 +651,7 @@ ScubaFrame::DoReshape() {
 void
 ScubaFrame::DoTimer() {
 
+#if 0
   // In our timer function we scan our views and ask if they want
   // redisplays.
   for( int nRow = 0; nRow < mcRows; nRow++ ) {
@@ -686,6 +673,7 @@ ScubaFrame::DoTimer() {
       }
     }
   }  
+#endif
 }
 
 void
@@ -699,6 +687,7 @@ ScubaFrame::DoMouseMoved( int iWindow[2], InputState& iInput ) {
       int viewCoords[2];
       TranslateWindowToView( iWindow, nCol, nRow, viewCoords );
       view->MouseMoved( viewCoords, iInput, mTool );
+
       if( view->WantRedisplay() ) {
 	RequestRedisplay();
 	view->RedisplayPosted();
@@ -719,6 +708,11 @@ ScubaFrame::DoMouseUp( int iWindow[2], InputState& iInput ) {
       int viewCoords[2];
       TranslateWindowToView( iWindow, nCol, nRow, viewCoords );
       view->MouseUp( viewCoords, iInput, mTool );
+    
+      if( view->WantRedisplay() ) {
+	RequestRedisplay();
+	view->RedisplayPosted();
+      }
     }
   }
   catch(...) {
@@ -760,6 +754,11 @@ ScubaFrame::DoKeyDown( int iWindow[2], InputState& iInput ) {
 			   viewCoords );
 
     view->KeyDown( viewCoords, iInput, mTool );
+    
+    if( view->WantRedisplay() ) {
+      RequestRedisplay();
+      view->RedisplayPosted();
+    }
   }
   catch(...) {
   } 
@@ -776,6 +775,11 @@ ScubaFrame::DoKeyUp( int iWindow[2], InputState& iInput ) {
 			   viewCoords );
 
     view->KeyUp( viewCoords, iInput, mTool );
+
+    if( view->WantRedisplay() ) {
+      RequestRedisplay();
+      view->RedisplayPosted();
+    }
   }
   catch(...) {
   } 
@@ -879,7 +883,7 @@ ScubaFrame::SetViewConfiguration( ScubaFrame::ViewConfiguration iConfig ) {
 
 
 View*
-ScubaFrame::GetViewAtColRow( int iCol, int iRow ) {
+ScubaFrame::GetViewAtColRow ( int iCol, int iRow ) {
 
   try { 
     View* view = (mViews[iRow])[iCol];
@@ -899,6 +903,43 @@ ScubaFrame::GetViewAtColRow( int iCol, int iRow ) {
 void 
 ScubaFrame::SetViewAtColRow( int iCol, int iRow, View* const iView ) {
   (mViews[iRow])[iCol] = iView;
+}
+
+void
+ScubaFrame::CopyLayerSettingsToAllViews ( int iViewID ) {
+  
+  View& srcView = View::FindByID( iViewID );
+ // ScubaView& scubaView = dynamic_cast<ScubaView&>(view);
+  ScubaView& srcScubaView = (ScubaView&)srcView;
+  
+  // For each view in this frame...
+  for( int nRow = 0; nRow < mcRows; nRow++ ) {
+    int cCols = mcCols[nRow];
+    for( int nCol = 0; nCol < cCols; nCol++ ) {
+      
+      try {
+	View* destView = GetViewAtColRow( nCol, nRow );
+	ScubaView& destScubaView = *(ScubaView*)destView;
+	if( destView->GetID() != iViewID ) {
+	  srcScubaView.CopyLayerSettingsToView( destScubaView );
+	}
+      } 
+      catch(...) {
+	DebugOutput( << "Couldn't find a view where there was supposed "
+		     << "to be one: " << nCol << ", " << nRow );
+      }
+    }
+  }
+}
+
+int
+ScubaFrame::GetNumberOfRows () {
+  return mcRows;
+}
+
+int
+ScubaFrame::GetNumberOfColsAtRow ( int inRow ) {
+  return mcCols[inRow];
 }
 
 View*

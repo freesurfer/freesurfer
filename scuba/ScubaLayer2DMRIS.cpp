@@ -55,11 +55,11 @@ ScubaLayer2DMRIS::DrawIntoBuffer ( GLubyte* iBuffer, int iWidth, int iHeight,
 				   ViewState& iViewState,
 				   ScubaWindowToRASTranslator& iTranslator ) {
 
- if( NULL == mSurface ) {
+  if( NULL == mSurface ) {
     DebugOutput( << "No surface to draw" );
     return;
   }
-
+  
   list<int> drawList;
   int cIntersectionsInFace = 0;
   int intersectionPair[2][2];

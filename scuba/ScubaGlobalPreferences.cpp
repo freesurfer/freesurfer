@@ -143,6 +143,67 @@ ScubaGlobalPreferences::DoListenToTclCommand ( char* isCommand,
 }
 
 
+void 
+ScubaGlobalPreferences::SetPreferencesValue ( PrefKey iKey, bool ibValue ) {
+
+  if( iKey == ViewFlipLeftRight  ||
+      iKey == ShowConsole ||
+      iKey == AutoConfigureView ||
+      iKey == DrawCoordinateOverlay ||
+      iKey == DrawMarkers ||
+      iKey == DrawPlaneIntersections ||
+      iKey == ShowFPS ) {
+  
+    PreferencesManager& prefsMgr = PreferencesManager::GetManager();
+    PreferencesManager::IntPrefValue value( (int) ibValue );
+    prefsMgr.SetValue( GetStringForKey( iKey ), value );
+
+    // Send a broadcast to our listeners to notify that a prefs values
+    // has changed.
+    stringstream ssValue;
+    ssValue << (int)ibValue;
+    string sValue = ssValue.str();
+    SendBroadcast( GetStringForKey( iKey ), (void*)&sValue );
+
+  } else {
+    throw runtime_error( "Not a bool key" );
+  }
+}
+
+void 
+ScubaGlobalPreferences::SetPreferencesValue ( PrefKey iKey, string isValue ) {
+
+  if( iKey == KeyInPlaneX ||
+      iKey == KeyInPlaneY ||
+      iKey == KeyInPlaneZ ||
+      iKey == KeyCycleViewsInFrame ||
+      iKey == KeyShuffleLayers ||
+      iKey == KeyMouseButtonOne ||
+      iKey == KeyMouseButtonTwo ||
+      iKey == KeyMouseButtonThree ||
+      iKey == KeyMoveViewLeft ||
+      iKey == KeyMoveViewRight ||
+      iKey == KeyMoveViewUp ||
+      iKey == KeyMoveViewDown ||
+      iKey == KeyMoveViewIn ||
+      iKey == KeyMoveViewOut ||
+      iKey == KeyZoomViewIn ||
+      iKey == KeyZoomViewOut ) {
+  
+    PreferencesManager& prefsMgr = PreferencesManager::GetManager();
+    PreferencesManager::StringPrefValue value( isValue );
+    prefsMgr.SetValue( GetStringForKey( iKey ), value );
+
+    // Send a broadcast to our listeners to notify that a prefs values
+    // has changed.
+    string sValue( isValue );
+    SendBroadcast( GetStringForKey( iKey ), (void*)&isValue );
+
+  } else {
+    throw runtime_error( "Not a string key" );
+  }
+}
+
 bool 
 ScubaGlobalPreferences::GetPrefAsBool ( PrefKey iKey ) {
 

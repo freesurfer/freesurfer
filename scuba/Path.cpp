@@ -7,6 +7,7 @@ template <typename T>
 Path<T>::Path () {
 
   mIndexOfSegmentEnd = 0;
+  mbSelected = false;
 }
 
 template <typename T>

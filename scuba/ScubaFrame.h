@@ -24,6 +24,7 @@ public:
   // c13 is 1 view in row 0 and 3 in row 1.
   enum ViewConfiguration { c1, c22, c44, c13 };
   void SetViewConfiguration( ViewConfiguration iConfig );
+  ViewConfiguration GetViewConfiguration() { return mViewConfiguration; }
 
   virtual TclCommandResult
     DoListenToTclCommand( char* isCommand, int iArgc, char** iArgv );
@@ -36,7 +37,26 @@ public:
     mFactory = iFactory; 
   }
 
+  // Return the selected view.
   View* GetSelectedView ();
+
+  // Select a view.
+  void SetSelectedView ( int iViewID );
+
+  // Get number of rows and cols in the current configuration.
+  int GetNumberOfRows ();
+  int GetNumberOfColsAtRow ( int inRow );
+
+  // Access functions to get/set views at a col/row position. This can
+  // be used even if the current view configuration doesn't have the
+  // given col/row in range. However if GetView is called and the
+  // col/row view hasn't been set yet, it will throw an exception.
+  View* GetViewAtColRow( int iCol, int iRow );
+  void SetViewAtColRow( int iCol, int iRow, View* const iView );
+
+  // Copy layers in one view to all other views.
+  void CopyLayerSettingsToAllViews ( int iViewID );
+
 protected:
 
   // Adjusts window coords for a view.
@@ -60,13 +80,6 @@ protected:
   // Given a window location, returns a pointer to a view. Or could
   // throw an exception.
   View* FindViewAtWindowLoc( int iWindow[2], int* onCol, int* onRow );
-
-  // Access functions to get/set views at a col/row position. This can
-  // be used even if the current view configuration doesn't have the
-  // given col/row in range. However if GetView is called and the
-  // col/row view hasn't been set yet, it will throw an exception.
-  View* GetViewAtColRow( int iCol, int iRow );
-  void SetViewAtColRow( int iCol, int iRow, View* const iView );
 
   void CaptureToFile ( std::string ifn );
 

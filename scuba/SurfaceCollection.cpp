@@ -66,14 +66,15 @@ SurfaceCollection::SetSurfaceFileName ( string& ifnMRIS ) {
 void
 SurfaceCollection::LoadSurface () {
 
-  /* If we already have data... */
+  DataManager dataMgr = DataManager::GetManager();
+  MRISLoader mrisLoader = dataMgr.GetMRISLoader();
+
+  // If we already have data...
   if( NULL != mMRIS ) {
 
-    /* Try to load this and see what we get. If it's the same as what
-       we already have, we're fine. If not, keep this one and release
-       the one we have. */
-    DataManager dataMgr = DataManager::GetManager();
-    MRISLoader mrisLoader = dataMgr.GetMRISLoader();
+    // Try to load this and see what we get. If it's the same as what
+    // we already have, we're fine. If not, keep this one and release
+    // the one we have.
     MRIS* newMRIS = NULL;
     try { 
       newMRIS = mrisLoader.GetData( mfnMRIS );
@@ -96,14 +97,9 @@ SurfaceCollection::LoadSurface () {
 
     /* Save new data. */
     mMRIS = newMRIS;
-  }
-}
 
-MRIS*
-SurfaceCollection::GetMRIS () { 
+  } else {
 
-  if( NULL == mMRIS ) {
-    
     DataManager dataMgr = DataManager::GetManager();
     MRISLoader mrisLoader = dataMgr.GetMRISLoader();
     
@@ -142,6 +138,14 @@ SurfaceCollection::GetMRIS () {
 
   if( msLabel == "" ) {
     SetLabel( mfnMRIS );
+  }
+}
+
+MRIS*
+SurfaceCollection::GetMRIS () { 
+
+  if( NULL == mMRIS ) {
+    LoadSurface();
   }
 
   return mMRIS;

@@ -47,7 +47,12 @@ class Path : public IDTracker<Path<T> >,
   void ReadFromStream ( std::istream& iStream );
   void WriteToStream  ( std::ostream& ioStream );
 
+  void SetSelected ( bool ibSelected ) { mbSelected = ibSelected; }
+  bool IsSelected () { return mbSelected; }
+
  protected:
+  bool mbSelected;
+
   std::vector<Point3<T> > mVertices;
   int mIndexOfSegmentEnd;
 };

@@ -143,27 +143,24 @@ VolumeCollection::MakeUsingTemplate ( int iCollectionID ) {
 void
 VolumeCollection::LoadVolume () {
 
-  /* If we already have data... */
+  DataManager dataMgr = DataManager::GetManager();
+  MRILoader mriLoader = dataMgr.GetMRILoader();
+
+  // If we already have data...
   if( NULL != mMRI ) {
 
-    /* Try to load this and see what we get. If it's the same as what
-       we already have, we're fine. If not, keep this one and release
-       the one we have. */
-    DataManager dataMgr = DataManager::GetManager();
-    MRILoader mriLoader = dataMgr.GetMRILoader();
-    MRI* newMRI = NULL;
-    try { 
-      newMRI = mriLoader.GetData( mfnMRI );
-    }
-    catch( exception e ) {
-      throw logic_error( "Couldn't load MRI" );
+    // Try to load this and see what we get. If it's the same as what
+    // we already have, we're fine. If not, keep this one and release
+    // the one we have.
+    MRI* newMRI = NULL; try { newMRI = mriLoader.GetData( mfnMRI ); }
+    catch( exception e ) { throw logic_error( "Couldn't load MRI" );
     }
 
     if( newMRI == mMRI ) {
       return;
     }
 
-    /* Release old data. */
+    // Release old data.
     try { 
       mriLoader.ReleaseData( &mMRI );
     } 
@@ -171,19 +168,12 @@ VolumeCollection::LoadVolume () {
       cerr << "Couldn't release data"  << endl;
     }
 
-    /* Save new data. */
+    // Save new data.
     mMRI = newMRI;
-  }
-}
 
-MRI*
-VolumeCollection::GetMRI() { 
+  } else {
 
-  if( NULL == mMRI ) {
-    
-    DataManager dataMgr = DataManager::GetManager();
-    MRILoader mriLoader = dataMgr.GetMRILoader();
-
+    // Don't already have it, so get it.
     try { 
       mMRI = mriLoader.GetData( mfnMRI );
     }
@@ -196,6 +186,15 @@ VolumeCollection::GetMRI() {
     }
 
     InitializeFromMRI();
+  }
+}
+
+MRI*
+VolumeCollection::GetMRI() { 
+
+  // If we don't already have one, load it.
+  if( NULL == mMRI ) {
+    LoadVolume();
   }
 
   return mMRI; 

@@ -30,6 +30,9 @@ class ScubaGlobalPreferences : public TclCommandListener, public Broadcaster {
 
   void SavePreferences ();
 
+  void SetPreferencesValue ( PrefKey iKey, bool ibValue );
+  void SetPreferencesValue ( PrefKey iKey, std::string isValue );
+
   virtual TclCommandResult
     DoListenToTclCommand ( char* isCommand, int iArgc, char** iasArgv );
 

@@ -52,9 +52,6 @@ ScubaLayer2DMRI::ScubaLayer2DMRI () {
     }
   }
 
-  PathManager& pathMgr = PathManager::GetManager();
-  pathMgr.AddListener( this );
-
   TclCommandManager& commandMgr = TclCommandManager::GetManager();
   commandMgr.AddCommand( *this, "Set2DMRILayerVolumeCollection", 2, 
 			 "layerID collectionID",
@@ -139,7 +136,7 @@ ScubaLayer2DMRI::SetVolumeCollection ( VolumeCollection& iVolume ) {
 
 void 
 ScubaLayer2DMRI::DrawIntoBuffer ( GLubyte* iBuffer, int iWidth, int iHeight,
-				  ViewState& iViewState,
+				  ViewState&,
 				  ScubaWindowToRASTranslator& iTranslator ) {
 
   if( NULL == mVolume ) {
@@ -266,37 +263,6 @@ ScubaLayer2DMRI::DrawIntoBuffer ( GLubyte* iBuffer, int iWidth, int iHeight,
   }
 
   delete &loc;
-
-  // Line range.
-  float range = 0;
-  switch( iViewState.mInPlane ) {
-  case 0: range = mVolume->GetVoxelXSize() / 2.0; break;
-  case 1: range = mVolume->GetVoxelYSize() / 2.0; break;
-  case 2: range = mVolume->GetVoxelZSize() / 2.0; break;
-  }
-
-  // Drawing path.
-  int lineColor[3];
-  if( mCurrentPath ) {
-    lineColor[0] = 0; lineColor[1] = 255; lineColor[2] = 0;
-    DrawRASPathIntoBuffer( iBuffer, iWidth, iHeight, lineColor, 
-			   iViewState, iTranslator, *mCurrentPath );
-  }
-  list<Path<float>*>::iterator tPath;
-  PathManager& pathMgr = PathManager::GetManager();
-  list<Path<float>*>& pathList = pathMgr.GetPathList();
-  for( tPath = pathList.begin(); tPath != pathList.end(); ++tPath ) {
-    Path<float>* path = *tPath;
-    if( path->GetNumVertices() > 0 ) {
-      Point3<float>& beginRAS = path->GetVertexAtIndex( 0 );
-      if( mCurrentPath != path &&
-	  iViewState.IsRASVisibleInPlane( beginRAS.xyz(), range ) ) {
-	lineColor[0] = 255; lineColor[1] = 0; lineColor[2] = 0;
-	DrawRASPathIntoBuffer( iBuffer, iWidth, iHeight, lineColor,
-			       iViewState, iTranslator, *path );
-      }
-    }
-  }
 
 }
 
@@ -962,11 +928,7 @@ ScubaLayer2DMRI::DoListenToTclCommand ( char* isCommand, int iArgc, char** iasAr
 }
 
 void
-ScubaLayer2DMRI::DoListenToMessage ( string isMessage, void* ) {
-
-  if( isMessage == "pathChanged" ) {
-    RequestRedisplay();
-  }
+ScubaLayer2DMRI::DoListenToMessage ( string, void* ) {
 }
 
 void
@@ -1220,15 +1182,20 @@ ScubaLayer2DMRI::HandleTool ( float iRAS[3], ViewState& iViewState,
 
       Point3<float> ras( iRAS );
 	  
-      /* Button down, no current path */
+      /* Button down, no current path. If button 1, create a new path
+	 and set the first vertex at that point. If 2 or 3, find a
+	 path near the click and make it the current path. Select the
+	 path we made or found. */
       if( NULL == mCurrentPath ) {
 
 	switch( iInput.Button() ) {
 	case 1:
 	  mFirstPathRAS.Set( iRAS );
 	  mCurrentPath = new Path<float>;
+	  pathMgr.ManagePath( *mCurrentPath );
 	  mCurrentPath->AddVertex( ras );
 	  mCurrentPath->MarkEndOfSegment();
+	  mCurrentPath->SetSelected( true );
 
 	  // Make a undo list entry.
 	  undoList.BeginAction( "New Path" );
@@ -1239,11 +1206,15 @@ ScubaLayer2DMRI::HandleTool ( float iRAS[3], ViewState& iViewState,
 	case 2:
 	case 3:
 	  mCurrentPath = FindClosestPathInPlane( iRAS, iViewState );
+	  mCurrentPath->SetSelected( true );
 	  mLastPathMoveRAS.Set( iRAS );
 	  break;
 	}
 
-	/* Button down, current path */
+	/* Button down, current path. If 1, add a new vertex at this
+	   click. If 2, end the path at the click. If button 3,
+	   stretch the path back to the first point and end it
+	   there. In these cases, unselect the path. */
       } else {
 
 	switch( iInput.Button() ) {
@@ -1257,7 +1228,7 @@ ScubaLayer2DMRI::HandleTool ( float iRAS[3], ViewState& iViewState,
 	  // manage this path, and 'let it go' by setting the current
 	  // path to NULL.
 	  mCurrentPath->AddVertex( ras );
-	  pathMgr.ManagePath( *mCurrentPath );
+	  mCurrentPath->SetSelected( false );
 	  mCurrentPath = NULL;
 	  break;
 	case 3:
@@ -1274,9 +1245,7 @@ ScubaLayer2DMRI::HandleTool ( float iRAS[3], ViewState& iViewState,
 			       iTool.GetEdgePathEdgeBias() );
 	  }
 
-	  pathMgr.ManagePath( *mCurrentPath );
-
-	  // If Shift is down, fill this path.
+	  // TEST CODE: If Shift is down, fill this path.
 	  if( iInput.IsShiftKeyDown() ) {
 	    Point3<float> seed;
 	    float offsets[6][3];
@@ -1308,6 +1277,7 @@ ScubaLayer2DMRI::HandleTool ( float iRAS[3], ViewState& iViewState,
 	    }
 	  }
 
+	  mCurrentPath->SetSelected( false );
 	  mCurrentPath = NULL;
 
 	  break;
@@ -1318,7 +1288,8 @@ ScubaLayer2DMRI::HandleTool ( float iRAS[3], ViewState& iViewState,
 
     } else if ( iInput.IsButtonDragEvent() ) {
 
-      /* Drag event, current line */
+      /* Drag event, current line. This only happens with button
+	 two. We should already have a current path so move that. */
       if( 2 == iInput.Button() ) {
 	
 	if( NULL != mCurrentPath ) {
@@ -1334,7 +1305,10 @@ ScubaLayer2DMRI::HandleTool ( float iRAS[3], ViewState& iViewState,
 
     } else if ( iInput.IsButtonUpEvent() ) {
 
-      /* Button up, current path */
+      /* Button up, current path. If we were dragging with button 2,
+	 don't do anything, but if button 3, find the closest path to
+	 the mouse up point, and if it's still the same path we
+	 clicked before, delete it. Then unselect the path. */
       if( NULL != mCurrentPath ) {
 	
 	if( 3 == iInput.Button() ) {
@@ -1354,6 +1328,7 @@ ScubaLayer2DMRI::HandleTool ( float iRAS[3], ViewState& iViewState,
 	if( 3 == iInput.Button() ||
 	    2 == iInput.Button() ) {
 	  
+	  mCurrentPath->SetSelected( false );
 	  mCurrentPath = NULL;
 	}
 
@@ -1362,10 +1337,9 @@ ScubaLayer2DMRI::HandleTool ( float iRAS[3], ViewState& iViewState,
       
     } else {
 
-      /* No mouse event, current path */
+      /* No mouse event, current path. Stretch the path out to our
+	 current mouse position. */
       if( NULL != mCurrentPath ) {
-	
-	pathMgr.DisableUpdates();
 
 	Point3<float>& end = mCurrentPath->GetPointAtEndOfLastSegment();
 	if( iTool.GetMode() == ScubaToolState::straightPath ) {
@@ -1376,8 +1350,6 @@ ScubaLayer2DMRI::HandleTool ( float iRAS[3], ViewState& iViewState,
 			     iTool.GetEdgePathStraightBias(),
 			     iTool.GetEdgePathEdgeBias() );
 	}
-	
-	pathMgr.EnableUpdates();
 
 	RequestRedisplay();
       }

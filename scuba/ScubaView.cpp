@@ -12,6 +12,7 @@
 #include "Point3.h"
 #include "VectorOps.h"
 #include "Utilities.h"
+#include "PathManager.h"
 
 using namespace std;
 
@@ -63,6 +64,9 @@ ScubaView::ScubaView() {
 
   ScubaViewBroadcaster& broadcaster = ScubaViewBroadcaster::GetBroadcaster();
   broadcaster.AddListener( this );
+
+  PathManager& pathMgr = PathManager::GetManager();
+  pathMgr.AddListener( this );
 
   // Try setting our initial transform to the default transform with
   // id 0. If it's not there, create it.
@@ -1350,6 +1354,12 @@ ScubaView::DoListenToMessage ( string isMessage, void* iData ) {
     if( viewID != GetID() ) {
       CalcViewIntersectionPoints( viewID );
     }
+  }
+
+  if( isMessage == "pathChanged" ||
+      isMessage == "pathVertexAdded" ) {
+    mbRebuildOverlayDrawList = true;
+    RequestRedisplay();
   }
 
   View::DoListenToMessage( isMessage, iData );
@@ -2732,6 +2742,48 @@ ScubaView::BuildOverlay () {
       }
     }
   }
+
+
+  
+  // Line range.
+  float range = 0.5;
+
+  // Drawing paths.
+  list<Path<float>*>::iterator tPath;
+  PathManager& pathMgr = PathManager::GetManager();
+  list<Path<float>*>& pathList = pathMgr.GetPathList();
+  for( tPath = pathList.begin(); tPath != pathList.end(); ++tPath ) {
+    Path<float>* path = *tPath;
+    if( path->GetNumVertices() > 0 ) {
+      Point3<float>& beginRAS = path->GetVertexAtIndex( 0 );
+      if( mViewState.IsRASVisibleInPlane( beginRAS.xyz(), range ) ) {
+	
+	if( path->IsSelected() ) { glColor3f( 0, 1, 0 ); }
+	else                     { glColor3f( 1, 0, 0 ); }
+
+	int cVertices = path->GetNumVertices();
+	for( int nCurVertex = 1; nCurVertex < cVertices; nCurVertex++ ) {
+	  
+	  int nBackVertex = nCurVertex - 1;
+	  
+	  Point3<float>& curVertex  = path->GetVertexAtIndex( nCurVertex );
+	  Point3<float>& backVertex = path->GetVertexAtIndex( nBackVertex );
+	  
+	  int curWindow[2], backWindow[2];
+	  TranslateRASToWindow( curVertex.xyz(), curWindow );
+	  TranslateRASToWindow( backVertex.xyz(), backWindow );
+	  
+	  glBegin( GL_LINES );
+	  glVertex2d( backWindow[0], backWindow[1] );
+	  glVertex2d( curWindow[0], curWindow[1] );
+	  glEnd();
+	}
+	
+      }
+    }
+  }
+  
+
 
 
   glEndList();

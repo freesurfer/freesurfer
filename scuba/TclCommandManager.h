@@ -3,8 +3,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2004/10/04 01:49:34 $
-// Revision       : $Revision: 1.14 $
+// Revision Date  : $Date: 2005/01/19 20:43:22 $
+// Revision       : $Revision: 1.15 $
 
 #ifndef TclCommandManager_h
 #define TclCommandManager_h
@@ -111,6 +111,9 @@ class TclCommandManager : public DebugReporter, public TclCommandListener {
 
   void SetCommandLineParameters ( int iArgc, char** iArgv );
 
+  // Just run a script.
+  std::string RunTclScript ( char* ifnScript );
+  
   // For converting arguments. Will throw run_time exception if not
   // it's an unconvertible value. The exception's message will
   // specify what the problem with the value was.
@@ -118,7 +121,6 @@ class TclCommandManager : public DebugReporter, public TclCommandListener {
   static float ConvertArgumentToFloat ( std::string isArg );
   static bool ConvertArgumentToBoolean ( std::string isArg );
   static std::string ConvertBooleanToReturnValue ( bool ib );
-
 
  protected:
 
