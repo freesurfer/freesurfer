@@ -61,6 +61,9 @@ static char           image_path[100] = "." ;
 
 static int            talairach = 0 ; /* show image or Talairach coords */
 static int            fixed[MAX_IMAGES] = { 0 } ;
+static MRI_SURFACE    *mri_surface = NULL ;
+static int            dont_redraw = 0 ;
+static int            show_three_views = 0 ;
 
 /*----------------------------------------------------------------------
                         STATIC PROTOTYPES
@@ -276,7 +279,7 @@ mri_event_handler(XV_FRAME *xvf, Event *event,DIMAGE *dimage,
             sprintf(fname, "%s/tmp/edit.dat", image_path) ;
             if (!FileExists(fname))
             {
-              XVprintf(xvf, 0, "could not find edit.dat from %s", image_path) ;
+              XVprintf(xvf,0,"could not find edit.dat from %s", image_path);
               return(ERROR_NO_FILE) ;
             }
           }
@@ -291,13 +294,14 @@ mri_event_handler(XV_FRAME *xvf, Event *event,DIMAGE *dimage,
       }
       if (fscanf(fp, "%f %f %f", &xft, &yft, &zft) != 3)
       {
-        XVprintf(xvf,0,"could not scan Talairach coordinates out of %s",fname);
+        XVprintf(xvf,0,"could not scan Talairach coordinates out of %s",
+                 fname);
         fclose(fp) ;
         return(ERROR_BAD_FILE) ;
       }
       fclose(fp) ;
       if (talairach)
-        MRItalairachToVoxel(mri, (Real)xft, (Real)yft, (Real)zft,&xv, &yv,&zv);
+        MRItalairachToVoxel(mri, (Real)xft,(Real)yft,(Real)zft,&xv,&yv,&zv);
       else
         MRIworldToVoxel(mri, (Real)xf, (Real)yf, (Real)zf, &xv, &yv, &zv) ;
       XVMRIsetPoint(xvf, which, nint(xv), nint(yv), nint(zv)) ;
@@ -326,7 +330,7 @@ fprintf(stderr, "voxel (%d, %d, %d)\n", nint(xv), nint(yv), nint(zv)) ;
             sprintf(fname, "%s/tmp/edit.dat", image_path) ;
             if (!FileExists(fname))
             {
-              XVprintf(xvf, 0, "could not find edit.dat from %s", image_path) ;
+              XVprintf(xvf,0,"could not find edit.dat from %s", image_path) ;
               return(ERROR_BAD_FILE) ;
             }
           }
@@ -394,6 +398,8 @@ fprintf(stderr, "voxel (%d, %d, %d)\n", x_click, y_click, z_click) ;
 
     if (which_click != which)   /* erase old point */
     {
+      if (!event_is_up(event))
+        dont_redraw = 1 ;  /* inhibit 1 redraw of surface */
       old_which = which_click ;
       which_click = dimage->which ;
       XVrepaintImage(xvf, old_which) ;
@@ -404,6 +410,8 @@ fprintf(stderr, "voxel (%d, %d, %d)\n", x_click, y_click, z_click) ;
       xv_set(view_panel, PANEL_LABEL_STRING, view_str, NULL) ;
     }
 
+    if (!event_is_up(event))
+      dont_redraw = 1 ;  /* inhibit 1 redraw of surface */
     XVMRIsetPoint(xvf, which_click, x, y, z) ;
   }
   return(NO_ERROR) ;
@@ -846,6 +854,7 @@ get_next_slice(IMAGE *Iold, int which, int dir)
         y_click = depth ;
         break ;
       }
+      dont_redraw = 2 ;  /* inhibit 1 redraw of surface */
       XVMRIsetPoint(xvf, which_click, x_click, y_click, z_click) ;
     }
   }
@@ -876,10 +885,98 @@ static void
 repaint_handler(XV_FRAME *xvf, DIMAGE *dimage)
 {
   int which = dimage->which ;
+  MRI *mri ;
 
-  if ((dimage->sync || (which == which_click)) && (mris[which] != NULL))
+  mri = mris[which] ;
+  if (!mri)
+    return ;
+
+  if (mri_surface && !dont_redraw)
+  {
+    VERTEX  *v, *vn ;
+    int     vno, n ;
+    Real    xv, yv, zv, slice, xv2, yv2, zv2, dx, dy ;
+
+    for (vno = 0 ; vno < mri_surface->nvertices ; vno++)
+    {
+      v = &mri_surface->vertices[vno] ;
+      if (v->ripflag)
+        continue ;
+      MRIworldToVoxel(mri, v->x, v->y, v->z, &xv, &yv, &zv) ;
+
+      switch (mri_views[which])
+      {
+      default:
+      case MRI_CORONAL:
+        /*
+          Z=0 is the back of the head,
+          X=0 is the right side of the head
+          Y=0 is the neck/brain stem
+          */
+        slice = mri_depths[which] - mri->imnr0 ;
+        if ((zv > slice-1) && (zv < slice+1))
+        {
+          for (n = 0 ; n < v->vnum ; n++)
+          {
+            vn = &mri_surface->vertices[v->v[n]] ;
+            MRIworldToVoxel(mri,vn->x, vn->y, vn->z, &xv2, &yv2, &zv2) ;
+            if ((zv2 > slice-1) && (zv2 < slice+1))
+            {
+              dx = xv2-xv ; dy = yv2-yv ;
+              XVdrawLinef(xvf, which, xv, yv, dx, dy, XCYAN) ;
+            }
+          }
+        }
+        break ;
+      case MRI_SAGITTAL:
+        /*
+          Z=0 is the back of the head,
+          X=0 is the right side of the head
+          Y=0 is the neck/brain stem
+          */
+        slice = mri_slices[which] ;
+        if ((xv > slice-1) && (xv < slice+1))
+        {
+          for (n = 0 ; n < v->vnum ; n++)
+          {
+            vn = &mri_surface->vertices[v->v[n]] ;
+            MRIworldToVoxel(mri, vn->x, vn->y, vn->z, &xv2, &yv2, &zv2);
+            if ((xv2 > slice-1) && (xv2 < slice+1))
+            {
+              dx = zv2-zv ; dy = yv2-yv ;
+              XVdrawLinef(xvf, which, zv, yv, dx, dy, XCYAN) ;
+            }
+          }
+        }
+        break ;
+      case MRI_HORIZONTAL:
+        /*
+          Z=0 is the back of the head,
+          X=0 is the right side of the head
+          Y=0 is the neck/brain stem
+          */
+        slice = mri_depths[which] ;
+        if ((yv > slice-1) && (yv < slice+1))
+        {
+          for (n = 0 ; n < v->vnum ; n++)
+          {
+            vn = &mri_surface->vertices[v->v[n]] ;
+            MRIworldToVoxel(mri, vn->x, vn->y, vn->z, &xv2, &yv2, &zv2) ;
+            if ((yv2 > slice-1) && (yv2 < slice+1))
+            {
+              dx = xv2-xv ; dy = zv2-zv ;
+              XVdrawLinef(xvf, which, xv, zv, dx, dy, XCYAN) ;
+            }
+          }
+        }
+        break ;
+      }
+    }
+  }
+  dont_redraw = 0 ;
+  if (dimage->sync || (which == which_click))
     XVMRIdrawPoint(xvf, which, mri_views[which], 0, 
-                   mris[which], x_click, y_click, z_click, XRED) ;
+                   mri, x_click, y_click, z_click, XRED) ;
 }
 /*----------------------------------------------------------------------
             Parameters:
@@ -968,7 +1065,7 @@ XVMRIsetView(XV_FRAME *xvf, int which, int view)
   }
 
   sync = dimage->sync ;
-  if (sync)
+  if (sync && !show_three_views)
   {
     for (which2 = 0 ; which2 < xvf->rows*xvf->cols ; which2++)
     {
@@ -1017,6 +1114,8 @@ XVMRIsetView(XV_FRAME *xvf, int which, int view)
   {
     mri_views[which] = view ;
     XVMRIshowFrame(xvf, mri, which, slice, mri_frames[which]) ;  
+    if (show_three_views)
+      XVsyncAll(xvf, 0) ;
 #if 0
     if (sync)  /* if they were synced, reinstate it */
       XVsyncAll(xvf, which) ;
@@ -1051,7 +1150,7 @@ int
 XVMRIsetPoint(XV_FRAME *xvf, int which, int x, int y, int z)
 {
   DIMAGE   *dimage, *dimage2 ;
-  int      which2, x2, y2, z2, slice ;
+  int      which2, x2, y2, z2, slice, old_redraw = dont_redraw ;
   MRI      *mri, *mri2 ;
   char     fmt[150], title[50], buf[100] ;
   Real     xr, yr, zr ;
@@ -1097,6 +1196,8 @@ XVMRIsetPoint(XV_FRAME *xvf, int which, int x, int y, int z)
   {
     for (which2 = 0 ; which2 < xvf->rows*xvf->cols ; which2++)
     {
+      if (which2 == which)
+        continue ;
       dimage2 = XVgetDimage(xvf, which2, DIMAGE_IMAGE) ;
       mri2 = mris[which2] ;
       if (dimage2 /* && (which2 != which) */ && mri2)
@@ -1123,6 +1224,13 @@ XVMRIsetPoint(XV_FRAME *xvf, int which, int x, int y, int z)
           break ;
         }
         XVshowImageTitle(xvf, which2, "%s (%s)", title, buf) ;
+        /*
+          this dont redraw stuff is such a hack, but I can't think
+          of an easy way to prevent tons of irritating redraws
+          otherwise.
+          */
+        if (old_redraw < 2 || which2 > which)  /* will get redrawn itself */
+          dont_redraw = old_redraw ;
         XVrepaintImage(xvf, which2) ;
       }
     }
@@ -1292,6 +1400,34 @@ int
 XVMRIfixDepth(XV_FRAME *xvf, int which, int fix)
 {
   fixed[which] = fix ;
+  return(NO_ERROR) ;
+}
+/*----------------------------------------------------------------------
+            Parameters:
+
+           Description:
+             Allow user to specify some MRs that shouldn't move in depth
+             with the rest.
+----------------------------------------------------------------------*/
+int
+XVMRIspecifySurface(XV_FRAME *xvf, MRI_SURFACE *mrisurf)
+{
+  mri_surface = mrisurf ;
+  return(NO_ERROR) ;
+}
+/*----------------------------------------------------------------------
+            Parameters:
+
+           Description:
+              Show three views of the same MRI at the same time,
+              similar to syncing, but don't sync the views.
+----------------------------------------------------------------------*/
+int
+XVMRIshowThreeViews(XV_FRAME *xvf)
+{
+  XVsyncAll(xvf, 0) ;
+  show_three_views = 1 ;
+
   return(NO_ERROR) ;
 }
 
