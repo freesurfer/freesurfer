@@ -2648,7 +2648,7 @@ int
 ImageAddSpeckleNoise(IMAGE *inImage,IMAGE *outImage, float amp)
 {
   long    npix ;
-  float  *inPix, *outPix, gnoise, out ;
+  float  *inPix, *outPix, noise, out ;
   byte   *psrc, *pdst ;
 
   if (inImage->pixel_format != outImage->pixel_format)
@@ -2664,8 +2664,8 @@ ImageAddSpeckleNoise(IMAGE *inImage,IMAGE *outImage, float amp)
     outPix = IMAGEFpix(outImage, 0, 0) ;
     while (npix--)
     {
-      gnoise = (float)randomNumber(1.0-(double)amp, 1.0+(double)amp) ;
-      *outPix++ += *inPix++ * gnoise ;
+      noise = (float)randomNumber(1.0-(double)amp, 1.0+(double)amp) ;
+      *outPix++ = *inPix++ * noise ;
     }
     break ;
   case PFBYTE:
@@ -2673,13 +2673,13 @@ ImageAddSpeckleNoise(IMAGE *inImage,IMAGE *outImage, float amp)
     pdst = IMAGEpix(outImage, 0, 0) ;
     while (npix--)
     {
-      gnoise = (float)randomNumber(1.0-(double)amp, 1.0+(double)amp) ;
-      out = (float)(*psrc++) * gnoise ;
+      noise = (float)randomNumber(1.0-(double)amp, 1.0+(double)amp) ;
+      out = (float)(*psrc++) * noise ;
       if (out > 255.0f)
         out = 255.0f ;
       else if (out < 0.0f)
         out = 0.0f ;
-      *pdst++ += (byte)out ;
+      *pdst++ = (byte)out ;
     }
     break ;
   default:
@@ -2703,7 +2703,7 @@ int
 ImageAddSaltNoise(IMAGE *inImage,IMAGE *outImage, float density)
 {
   long     npix ;
-  float  *inPix, *outPix, gnoise, in ;
+  float  *inPix, *outPix, noise, in ;
   byte   *psrc, *pdst, bin ;
 
   if (inImage->pixel_format != outImage->pixel_format)
@@ -2719,11 +2719,11 @@ ImageAddSaltNoise(IMAGE *inImage,IMAGE *outImage, float density)
     outPix = IMAGEFpix(outImage, 0, 0) ;
     while (npix--)
     {
-      gnoise = (float)randomNumber(0.0, 1.0) ;
+      noise = (float)randomNumber(0.0, 1.0) ;
       in = *inPix++ ;
-      if (gnoise < density)
+      if (noise < density)
       {
-        if (gnoise < density/2.0f)
+        if (noise < density/2.0f)
           in = 0.0f ;
         else
           in = 1.0f ;
@@ -2736,11 +2736,11 @@ ImageAddSaltNoise(IMAGE *inImage,IMAGE *outImage, float density)
     pdst = IMAGEpix(outImage, 0, 0) ;
     while (npix--)
     {
-      gnoise = (float)randomNumber(0.0, 1.0) ;
+      noise = (float)randomNumber(0.0, 1.0) ;
       bin = *psrc++ ;
-      if (gnoise < density)
+      if (noise < density)
       {
-        if (gnoise < density/2.0f)
+        if (noise < density/2.0f)
           bin = 0 ;
         else
           bin = 255 ;
@@ -2789,6 +2789,7 @@ ImageAddNoise(IMAGE *inImage, IMAGE *outImage, float amp)
   case PFBYTE:
     psrc = IMAGEpix(inImage, 0, 0) ;
     pdst = IMAGEpix(outImage, 0, 0) ;
+    amp *= 255.0f ;
     while (npix--)
     {
       gnoise = (float)randomNumber(-(double)amp, (double)amp) ;
