@@ -27,16 +27,17 @@ static int out_label = -1 ;
 static int all_flag = 0 ;
 static int compute_pct = 0 ;
 static char *brain_fname = NULL ;
+static char *icv_fname = NULL ;
 
 int
 main(int argc, char *argv[])
 {
   char   **av ;
-  int    ac, nargs, msec, minutes, label, volume, seconds, i, brain_volume ;
+  int    ac, nargs, msec, minutes, label, volume, seconds, i ;
   struct timeb start ;
   MRI    *mri ;
   FILE   *log_fp ;
-	double  vox_volume ;
+	double  vox_volume, brain_volume ;
 
   Progname = argv[0] ;
   ErrorInit(NULL, NULL, NULL) ;
@@ -84,20 +85,33 @@ main(int argc, char *argv[])
 		if (mri_brain == NULL)
 			ErrorExit(ERROR_BADPARM, "%s: could not read brain volume from %s\n", Progname,brain_fname) ;
 
-		brain_volume = MRItotalVoxelsOn(mri_brain, WM_MIN_VAL) ;
+		brain_volume = (double)MRItotalVoxelsOn(mri_brain, WM_MIN_VAL) ;
 		MRIfree(&mri_brain) ;
+		brain_volume *= (mri->xsize * mri->ysize * mri->zsize) ;
 	}
   else if (compute_pct)
   {
-    for (brain_volume = label = 0 ; label <= MAX_CMA_LABEL ; label++)
+    for (brain_volume = 0.0, label = 0 ; label <= MAX_CMA_LABEL ; label++)
     {
       if (!IS_BRAIN(label))
         continue ;
-      brain_volume += MRIvoxelsInLabel(mri, label) ;
+      brain_volume += (double)MRIvoxelsInLabel(mri, label) ;
     }
+		brain_volume *= (mri->xsize * mri->ysize * mri->zsize) ;
   }
+	else if (icv_fname)
+	{
+		FILE *fp ;
+		fp = fopen(icv_fname, "r") ;
+		if (fp == NULL)
+			ErrorExit(ERROR_NOFILE, "%s: could not open ICV file %s\n", Progname, icv_fname) ;
+		if (fscanf(fp, "%lf", &brain_volume) != 1)
+			ErrorExit(ERROR_NOFILE, "%s: could not read ICV from %s\n", Progname, icv_fname) ;
+		fclose(fp) ;
+		printf("using intra-cranial volume = %2.1f\n", brain_volume) ;
+	}
 	else
-    brain_volume = 1 ;
+    brain_volume = 1.0 ;
 
   for (i = 2 ; i < argc ; i++)
   {
@@ -122,7 +136,7 @@ main(int argc, char *argv[])
 
     if (compute_pct)
     {
-      printf("%d voxels (%2.1f mm^3) in label %d, %%%2.6f of brain volume (%d)\n", 
+      printf("%d voxels (%2.1f mm^3) in label %d, %%%2.6f of brain volume (%2.0f)\n", 
              volume, volume*vox_volume,label, 100.0*(float)volume/(float)brain_volume,
              brain_volume) ;
       if (log_fp)
@@ -167,7 +181,13 @@ get_option(int argc, char *argv[])
   char *option ;
   
   option = argv[1] + 1 ;            /* past '-' */
-  switch (toupper(*option))
+	if (!stricmp(option, "ICV"))
+	{
+		icv_fname = argv[2] ;
+		printf("reading ICV from %s\n", icv_fname) ;
+		nargs = 1 ;
+	}
+	else switch (toupper(*option))
   {
 	case 'A':
 		all_flag = 1 ;
