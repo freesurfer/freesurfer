@@ -493,6 +493,7 @@ extern float ic_y_vertices[]  ;
 extern float ic_z_vertices[]  ;
 
 
+#include "label.h"
 #include "histo.h"
 
 #define MRI_VOLUME_TYPE_UNKNOWN      -1
@@ -533,6 +534,8 @@ int        MRIvalRangeRegion(MRI *mri, float *pmin, float *pmax,
                              MRI_REGION *region) ;
 HISTOGRAM  *MRIhistogramRegion(MRI *mri, int nbins, HISTOGRAM *histo,
                                MRI_REGION *region) ;
+HISTOGRAM  *MRIhistogramLabelStruct(MRI *mri, int nbins, HISTOGRAM *histo,
+                              LABEL *label) ;
 MRI        *MRIhistoEqualizeRegion(MRI *mri_src, MRI *mri_dst, int low, 
                                    MRI_REGION *region) ;
 MRI        *MRIapplyHistogramToRegion(MRI *mri_src, MRI *mri_dst, 
