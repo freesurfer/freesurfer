@@ -95,7 +95,7 @@ int main(int argc, char *argv[])
   int nargs;
   Progname=argv[0];
 
-  nargs = handle_version_option (argc, argv, "$Id: mri_parselabel.cpp,v 1.11 2004/06/10 19:30:58 tosa Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_parselabel.cpp,v 1.12 2004/06/10 19:44:45 tosa Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -332,37 +332,35 @@ int main(int argc, char *argv[])
     if (xv < 0 || yv < 0 || zv < 0 
 	|| xv > mriIn->width-1 || yv > mriIn->height-1 || zv > mriIn->depth -1)
     {
-      cerr << "Vertex " << i << vertices[i] << " has invalid voxel position " << Vertex(xv, yv, zv) << endl;
-
-      MRIfree(&mriIn);
-      MRIfree(&mriOut);
-  
-      return -1;
+      cerr << i << vertices[i] << " has invalid voxel position:" << Vertex(xv, yv, zv) << endl;
     }
-    MRIvox(mriOut, nint(xv), nint(yv), nint(zv)) = (unsigned char) val;
-    //////////////////////////////////////////////////////////////////////////
-    // check possible others.  look around 3x3x3 neighbors
-    for (int z0=-1; z0 < 2; ++z0)
-      for (int y0=-1; y0 < 2; ++y0)
-	for (int x0=-1; x0 < 2; ++x0)
-	{
-	  int x = nint(xv) + x0;
-	  int y = nint(yv) + y0;
-	  int z = nint(zv) + z0;
-	  Real xr, yr, zr;
-	  // go back to RAS to see whether the point is close enough
-	  voxToRAS(mriIn, x, y, z, &xr, &yr, &zr);
-	  // if the difference is 1/2 voxel size mm then equal
-	  if (Vertex(xr, yr, zr) == vertices[i] && (x0+y0+z0) != 0)
+    else
+    {
+      MRIvox(mriOut, nint(xv), nint(yv), nint(zv)) = (unsigned char) val;
+      //////////////////////////////////////////////////////////////////////////
+      // check possible others.  look around 3x3x3 neighbors
+      for (int z0=-1; z0 < 2; ++z0)
+	for (int y0=-1; y0 < 2; ++y0)
+	  for (int x0=-1; x0 < 2; ++x0)
 	  {
-	    MRIvox(mriOut, x, y, z ) = (unsigned char) val;
-	    cout << "added voxel:" << Vertex(x, y, z)  
-		 << "for vertex :" << Vertex(xr, yr, zr) << endl; 
-	    cout << "       when:" << Vertex(nint(xv),nint(yv),nint(zv)) 
-		 << "for vertex :" << vertices[i] << endl;
-	    added++;
+	    int x = nint(xv) + x0;
+	    int y = nint(yv) + y0;
+	    int z = nint(zv) + z0;
+	    Real xr, yr, zr;
+	    // go back to RAS to see whether the point is close enough
+	    voxToRAS(mriIn, x, y, z, &xr, &yr, &zr);
+	    // if the difference is 1/2 voxel size mm then equal
+	    if (Vertex(xr, yr, zr) == vertices[i] && (x0+y0+z0) != 0)
+	    {
+	      MRIvox(mriOut, x, y, z ) = (unsigned char) val;
+	      cout << "added voxel:" << Vertex(x, y, z)  
+		   << "for vertex :" << Vertex(xr, yr, zr) << endl; 
+	      cout << "       when:" << Vertex(nint(xv),nint(yv),nint(zv)) 
+		   << "for vertex :" << vertices[i] << endl;
+	      added++;
+	    }
 	  }
-	}
+    }
     //////////////////////////////////////////////////////////////////////////
   }
   cout << "filling done" << endl;
