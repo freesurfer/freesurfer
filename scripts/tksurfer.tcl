@@ -754,8 +754,8 @@ proc DoLoadOverlayDlog {} {
   
   # buttons.
         tkm_MakeCancelOKButtons $fwButtons $wwDialog \
-    {set val [ExpandFileName $sFileName kFileName_Surface]; \
-    DoLoadValueFile $nFieldIndex }
+      {set val [ExpandFileName $sFileName kFileName_Surface]; \
+     DoLoadValueFile $nFieldIndex }
 
   pack $fwFile $fwFileNote $fwField $fwFieldNote $fwButtons \
     -side top       \
@@ -1023,7 +1023,7 @@ proc DoDecimationDlog {} {
   frame $fwMain
 
   # make file name selector
-  set sFileName "hi"
+  set sFileName ""
   tkm_MakeFileSelector $fwFileName \
     "Write Decimation File:" sFileName
 
@@ -1031,10 +1031,11 @@ proc DoDecimationDlog {} {
   tkm_MakeEntry $fwSpacing "Spacing: " fSpacing 6 
 
   # buttons.
+  set okCmd { DoDecimation $sFileName $fSpacing; UpdateAndRedraw}
   tkm_MakeCancelOKButtons $fwButtons $wwDialog \
-    { tkm_UpdateFileSelectorVariable $fwFileName; \
-    DoDecimation $sFileName $fSpacing; UpdateAndRedraw }
-
+      "tkm_UpdateFileSelectorVariable $fwFileName; \
+    $okCmd"
+  
   pack $fwMain $fwFileName $fwSpacing $fwButtons \
     -side top       \
     -expand yes     \
@@ -3258,6 +3259,8 @@ proc DoInflate { inSteps } {
 }
 
 proc DoDecimation { isFileName ifSpacing } { 
+    global dec
+    
     if { $ifSpacing > 0.999} {
   subsample_dist $ifSpacing
     } else {
