@@ -13,16 +13,12 @@
 #include "proto.h"
 #include "mrisurf.h"
 #include "macros.h"
+#include "oglutil.h"
 
-static char vcid[] = "$Id: mris_show.c,v 1.10 1997/10/23 19:31:11 fischl Exp $";
+static char vcid[] = "$Id: mris_show.c,v 1.11 1997/10/27 16:43:26 fischl Exp $";
 
 
 /*-------------------------------- CONSTANTS -----------------------------*/
-
-#define FIELDSIGN_POS      4    /* blue */
-#define FIELDSIGN_NEG      5    /* yellow */
-#define BORDER             6 
-#define MARKED             7 
 
 #define FRAME_SIZE         600
 
@@ -32,12 +28,12 @@ static char vcid[] = "$Id: mris_show.c,v 1.10 1997/10/23 19:31:11 fischl Exp $";
 
 #define ORIG_SURFACE_LIST   1
 #define ELLIPSOID_LIST      1
-#define SCALE_FACTOR   0.55f
-#define FOV            (256.0f*SCALE_FACTOR)
 
 #ifndef GLUT_ESCAPE_KEY
 #define GLUT_ESCAPE_KEY  27
 #endif
+
+#define MAX_MARKED       100
 
 /*-------------------------------- PROTOTYPES ----------------------------*/
 
@@ -48,8 +44,6 @@ static void usage_exit(void) ;
 static void print_usage(void) ;
 static void print_help(void) ;
 static void print_version(void) ;
-static void load_brain_coords(float x,float y, float z, float v[]) ;
-static int  MRISGLcompile(MRI_SURFACE *mris) ;
 /* static void rotate_brain(float angle, char c) ;*/
 
 static void keyboard_handler(unsigned char key, int x, int y) ;
@@ -60,16 +54,14 @@ static void controlLights(int value) ;
 
 static void display_handler(void) ;
 static void home(MRI_SURFACE *mris) ;
-static void gfxinit(MRI_SURFACE *mris) ;
-static void set_lighting_model(float lite0, float lite1, float lite2, 
-             float lite3, float newoffset) ;
 
 /*-------------------------------- DATA ----------------------------*/
 
 char *Progname ;
 static char *surf_fname ;
 static MRI_SURFACE  *mris, *mris_ellipsoid = NULL ;
-static int marked_vertex = -1 ;
+static int nmarked = 0 ;
+static int marked_vertices[MAX_MARKED] = { -1 } ;
 static long frame_xdim = FRAME_SIZE;
 static long frame_ydim = FRAME_SIZE;
 
@@ -93,16 +85,17 @@ static void findAreaExtremes(MRI_SURFACE *mris) ;
 static char curvature_fname[100] = "" ;
 
 
-static float cslope = 5.0f ;
-
-static char *patch_name = NULL ;
+static float cslope = 1.75f ;
+static int patch_flag = 0 ;
+static int compile_flags = 0 ;
 
 /*-------------------------------- FUNCTIONS ----------------------------*/
 
 int
 main(int argc, char *argv[])
 {
-  char         **av, *in_fname, *out_fname, wname[200] ;
+  char         **av, *in_fname, *out_fname, wname[200], fname[100], hemi[10],
+               *cp, path[100], name[100] ;
   int          ac, nargs ;
   float        angle ;
 
@@ -133,15 +126,37 @@ main(int argc, char *argv[])
 
   surf_fname = in_fname = argv[1] ;
   out_fname = argv[2] ;
-  mris = MRISread(in_fname) ;
-  if (!mris)
-    ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s",
-              Progname, in_fname) ;
-  if (patch_name)
-    if (MRISreadPatch(mris, patch_name) != NO_ERROR)
-      ErrorExit(ERROR_NOFILE, "%s: could not read patch file %s",
-                Progname, patch_name) ;
 
+  if (patch_flag)   /* read in orig surface before reading in patch */
+  {
+    FileNamePath(surf_fname, path) ;
+    cp = strchr(surf_fname, '.') ;
+    if (cp)
+    {
+      strncpy(hemi, cp-2, 2) ;
+      hemi[2] = 0 ;
+    }
+    else
+      strcpy(hemi, "lh") ;
+    sprintf(fname, "%s/%s.orig", path, hemi) ;
+    mris = MRISread(fname) ;
+    MRISreadTriangleProperties(mris, fname) ;
+    if (!mris)
+      ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s",
+                Progname, fname) ;
+    FileNameOnly(surf_fname, name) ;
+    if (MRISreadPatch(mris, name) != NO_ERROR)
+      ErrorExit(ERROR_NOFILE, "%s: could not read patch file %s",
+                Progname, surf_fname) ;
+    MRIScomputeTriangleProperties(mris) ;  /* recompute areas and normals */
+  }
+  else
+  {
+    mris = MRISread(in_fname) ;
+    if (!mris)
+      ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s",
+                Progname, in_fname) ;
+  }
   if (curvature_fname[0])
     MRISreadCurvatureFile(mris, curvature_fname) ;
   if (ellipsoid_flag)
@@ -172,10 +187,15 @@ main(int argc, char *argv[])
   glutCreateWindow(wname) ;          /* open the window */
   glutHideWindow() ;
   glutDisplayFunc(display_handler) ; /* specify a drawing callback function */
-  gfxinit(mris) ;                    /* specify lighting and such */
+  OGLUinit(mris, frame_xdim, frame_ydim) ; /* specify lighting and such */
+
+  /* now compile the surface tessellation */
+  glNewList(ORIG_SURFACE_LIST, GL_COMPILE) ;
+  OGLUcompile(mris, marked_vertices, compile_flags, cslope) ;
+  glEndList() ;
 
   glMatrixMode(GL_MODELVIEW);
-  if (patch_name)
+  if (patch_flag)
   {
     angle = 90.0f ;
     glRotatef(angle, 1.0f, 0.0f, 0.0f) ;
@@ -246,15 +266,20 @@ get_option(int argc, char *argv[])
   else switch (toupper(*option))
   {
   case 'P':
-    patch_name = argv[2] ;
-    nargs = 1 ;
+    patch_flag = 1 ;
+    compile_flags |= PATCH_FLAG ;
+    nargs = 0 ;
     break ;
   case 'C':
     strcpy(curvature_fname, argv[2]) ;
     nargs = 1 ;
     break ;
   case 'V':
-    sscanf(argv[2], "%d", &marked_vertex) ;
+    if (nmarked >= MAX_MARKED-1)
+      ErrorExit(ERROR_NOMEMORY, "%s: too many vertices marked (%d)",
+                Progname, nmarked) ;
+    sscanf(argv[2], "%d", &marked_vertices[nmarked++]) ;
+    marked_vertices[nmarked] = -1 ;  /* terminate list */
     nargs = 1 ;
     break ;
   case 'X':
@@ -330,98 +355,6 @@ print_version(void)
   exit(1) ;
 }
 
-static int meshr = 100;   /* mesh color */
-#if 0
-static int meshg = 100;
-static int meshb = 100;
-#endif
-
-int
-MRISGLcompile(MRI_SURFACE *mris)
-{
-  int          k,n, red, green, blue, error ;
-  face_type    *f;
-  vertex_type  *v ;
-  float        v1[3], min_curv, max_curv, offset ;
-  Real         x, y, z ;
-
-  if (Gdiag & DIAG_SHOW)
-    fprintf(stderr, "compiling surface tesselation...") ;
-
-  min_curv = mris->min_curv ;
-  max_curv = mris->max_curv ;
-  if (-min_curv > max_curv)
-    max_curv = -min_curv ;
-
-  for (k=0;k<mris->nfaces;k++) if (!mris->faces[k].ripflag)
-  {
-    f = &mris->faces[k];
-    glBegin(GL_QUADS) ;
-    for (n=0;n<4;n++)
-    {
-      v = &mris->vertices[f->v[n]];
-#if 0
-      if (v->ripflag)
-        continue ;
-#endif
-      if (patch_name && v->nz < 0) /* don't display negative flat stuff */
-        continue ;
-      if (k == marked_vertex)
-        glColor3ub(0,0,240) ;      /* paint the marked vertex blue */
-      else if (v->border)
-        glColor3f(240,240,0.0);
-      else   /* color it depending on curvature */
-      {
-#define MIN_GRAY  50
-#define MAX_COLOR ((float)(255 - MIN_GRAY))
-
-        red = green = blue = MIN_GRAY ;
-        if (FZERO(max_curv))  /* no curvature info */
-          red = green = blue = meshr ;    /* paint it gray */
-
-        /* curvatures seem to be sign-inverted??? */
-        if (v->curv > 0)  /* color it red */
-        {
-          offset = MAX_COLOR*tanh(cslope * (v->curv/max_curv)) ;
-          red = MIN_GRAY + nint(offset);
-        }
-        else              /* color it green */
-        {
-          offset = MAX_COLOR*tanh(cslope*(-v->curv/max_curv)) ;
-          green = MIN_GRAY + nint(offset);
-        }
-        glColor3ub(red,green,blue);  /* specify the RGB color */
-      }
-      load_brain_coords(v->nx,v->ny,v->nz,v1);
-      glNormal3fv(v1);                /* specify the normal for lighting */
-      load_brain_coords(v->x,v->y,v->z,v1);
-      glVertex3fv(v1);                /* specify the position of the vertex*/
-    }
-    glEnd() ;   /* done specifying this polygon */
-  }
-
-  if (Gdiag & DIAG_SHOW)
-    fprintf(stderr, "done.\n") ;
-
-  error = glGetError() ;
-  if (error != GL_NO_ERROR)
-  {
-    const char *errstr ;
-
-    errstr = gluErrorString(error) ;
-    fprintf(stderr, "GL error %d: %s\n", error, errstr) ;
-    exit(1) ;
-  }
-  return(NO_ERROR) ;
-}
-
-static void
-load_brain_coords(float x,float y, float z, float v[])
-{
-  v[0] = -x;
-  v[1] = z;
-  v[2] = y;
-}
 
 #define SHOW_AXES  0
 
@@ -433,59 +366,13 @@ display_handler(void)
 #if COMPILE_SURFACE
   glCallList(current_list) ;      /* render sphere display list */
 #else
-  MRISGLcompile(mris) ;
+  OGLUcompile(mris, marked_vertices, compile_flags, cslope) ;
 #endif
 
 #if SHOW_AXES
   glCallList(2) ;      /* show axes */
 #endif
   glutSwapBuffers() ;  /* swap rendered buffer into display */
-}
-
-static void
-gfxinit(MRI_SURFACE *mris)
-{
-  int    error ;
-  double zfov, fov ;
-
-  glViewport(0,0,frame_xdim,frame_ydim);
-  glLoadIdentity();
-  glMatrixMode(GL_PROJECTION);
-
-  zfov = 10.0f*FOV ; fov = FOV ;
-  glOrtho(-fov, fov, -fov, fov, -zfov, zfov);
-
-  glClearColor(0.0, 0.0, 0.0, 1.0);
-  glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-  set_lighting_model(-1.0f, -1.0f, -1.0f, -1.0f, -1.0f) ;
-
-  glDepthFunc(GL_LEQUAL);
-  glEnable(GL_DEPTH_TEST);
-
-  /* now specify where the model is in space */
-  glMatrixMode(GL_MODELVIEW);
-  glLoadIdentity();
-
-#if 0
-  /* MRI coords (vs. viewer:translate_brain_) */
-  glTranslatef(mris->xctr, -mris->zctr,-mris->yctr); 
-#endif
-
-#if COMPILE_SURFACE
-  glNewList(ORIG_SURFACE_LIST, GL_COMPILE) ;
-  MRISGLcompile(mris) ;
-  glEndList() ;
-#endif
-
-  error = glGetError() ;
-  if (error != GL_NO_ERROR)
-  {
-    const char *errstr ;
-
-    errstr = gluErrorString(error) ;
-    fprintf(stderr, "GL error %d: %s\n", error, errstr) ;
-    exit(1) ;
-  }
 }
 
 static void
@@ -546,14 +433,14 @@ keyboard_handler(unsigned char key, int x, int y)
     cslope /= 1.5f ;
     fprintf(stderr, "cslope = %2.3f\n", cslope) ;
     glNewList(ORIG_SURFACE_LIST, GL_COMPILE) ;
-    MRISGLcompile(mris) ;
+    OGLUcompile(mris, marked_vertices, compile_flags, cslope) ;
     glEndList() ;
     break ;
   case '*':
     cslope *= 1.5f ;
     fprintf(stderr, "cslope = %2.3f\n", cslope) ;
     glNewList(ORIG_SURFACE_LIST, GL_COMPILE) ;
-    MRISGLcompile(mris) ;
+    OGLUcompile(mris, marked_vertices, compile_flags, cslope) ;
     glEndList() ;
     break ;
   case '-':
@@ -600,7 +487,7 @@ keyboard_handler(unsigned char key, int x, int y)
     MRIScenter(mris, mris) ;
 #if COMPILE_SURFACE
     glNewList(ORIG_SURFACE_LIST, GL_COMPILE) ;
-    MRISGLcompile(mris) ;
+    OGLUcompile(mris, marked_vertices, compile_flags, cslope) ;
     glEndList() ;
 #endif
     glutSetWindowTitle(wname) ;
@@ -613,7 +500,7 @@ keyboard_handler(unsigned char key, int x, int y)
 #if COMPILE_SURFACE
     glDeleteLists(ORIG_SURFACE_LIST, 1) ;
     glNewList(ELLIPSOID_LIST, GL_COMPILE) ;
-    MRISGLcompile(mris) ;
+    OGLUcompile(mris, marked_vertices, compile_flags, cslope) ;
     glEndList() ;
 #endif
     current_list = ELLIPSOID_LIST ;
@@ -633,7 +520,7 @@ keyboard_handler(unsigned char key, int x, int y)
 #if COMPILE_SURFACE
     glDeleteLists(ELLIPSOID_LIST, 1) ;
     glNewList(ELLIPSOID_LIST, GL_COMPILE) ;
-    MRISGLcompile(mris) ;
+    OGLUcompile(mris, marked_vertices, compile_flags, cslope) ;
     glEndList() ;
 #endif
     break ;
@@ -646,74 +533,6 @@ keyboard_handler(unsigned char key, int x, int y)
     glutPostRedisplay() ;
 }
 
-#define LIGHT0_BR  0.4 /* was 0.2 */
-#define LIGHT1_BR  0.0 
-#define LIGHT2_BR  0.6 /* was 0.3 */
-#define LIGHT3_BR  0.2 /* was 0.1 */
-#define OFFSET 0.25   /* was 0.15 */
-static void
-set_lighting_model(float lite0, float lite1, float lite2, float lite3, 
-                   float newoffset)
-{
-  float offset = OFFSET ;
-  static GLfloat mat0_ambient[] =  { 0.0, 0.0, 0.0, 1.0 };
-  static GLfloat mat0_diffuse[] =  { OFFSET, OFFSET, OFFSET, 1.0 };
-  static GLfloat mat0_emission[] = { 0.0, 0.0, 0.0, 1.0 };
-  static GLfloat light0_diffuse[] = { LIGHT0_BR, LIGHT0_BR, LIGHT0_BR, 1.0 };
-  static GLfloat light1_diffuse[] = { LIGHT1_BR, LIGHT1_BR, LIGHT1_BR, 1.0 };
-  static GLfloat light2_diffuse[] = { LIGHT2_BR, LIGHT2_BR, LIGHT2_BR, 1.0 };
-  static GLfloat light3_diffuse[] = { LIGHT3_BR, LIGHT3_BR, LIGHT3_BR, 1.0 };
-  static GLfloat light0_position[] = { 0.0, 0.0, 1.0, 0.0 };
-  static GLfloat light1_position[] = { 0.0, 0.0,-1.0, 0.0 };
-  static GLfloat light2_position[] = { 0.6, 0.6, 1.6, 0.0 };
-  static GLfloat light3_position[] = {-1.0, 0.0, 0.0, 0.0 };
-  static GLfloat lmodel_ambient[] =  { 0.0, 0.0, 0.0, 0.0 };
-
-  if (lite0 < 0.0)     lite0 = light0_diffuse[0];
-  if (lite1 < 0.0)     lite1 = light1_diffuse[0];
-  if (lite2 < 0.0)     lite2 = light2_diffuse[0];
-  if (lite3 < 0.0)     lite3 = light3_diffuse[0];
-  newoffset = offset;
-
-  /* material: change DIFFUSE,EMISSION (purpler: EMISSION=0.05*newoffset) */
-  mat0_diffuse[0] = mat0_diffuse[1] = mat0_diffuse[2] = newoffset;
-  mat0_emission[0] = mat0_emission[1] = mat0_emission[2] = 0.1*newoffset;
-
-  /* lights: change DIFFUSE */
-  light0_diffuse[0] = light0_diffuse[1] = light0_diffuse[2] = lite0;
-  light1_diffuse[0] = light1_diffuse[1] = light1_diffuse[2] = lite1;
-  light2_diffuse[0] = light2_diffuse[1] = light2_diffuse[2] = lite2;
-  light3_diffuse[0] = light3_diffuse[1] = light3_diffuse[2] = lite3;
-
-  glMatrixMode(GL_MODELVIEW);
-  glPushMatrix();
-    glLoadIdentity();
-
-    glMaterialfv(GL_FRONT, GL_AMBIENT, mat0_ambient);
-    glMaterialfv(GL_FRONT, GL_DIFFUSE, mat0_diffuse);
-    glMaterialfv(GL_FRONT, GL_EMISSION, mat0_emission);
-
-    glLightfv(GL_LIGHT0, GL_DIFFUSE, light0_diffuse);
-    glLightfv(GL_LIGHT1, GL_DIFFUSE, light1_diffuse);
-    glLightfv(GL_LIGHT2, GL_DIFFUSE, light2_diffuse);
-    glLightfv(GL_LIGHT3, GL_DIFFUSE, light3_diffuse);
-
-    /* might need to move */
-    glLightfv(GL_LIGHT0, GL_POSITION, light0_position);
-    glLightfv(GL_LIGHT1, GL_POSITION, light1_position);
-    glLightfv(GL_LIGHT2, GL_POSITION, light2_position);
-    glLightfv(GL_LIGHT3, GL_POSITION, light3_position);
-
-    /* turn off default global 0.2 ambient (inf. viewpnt, not 2-sided OK) */
-    glLightModelfv(GL_LIGHT_MODEL_AMBIENT, lmodel_ambient);
-    glEnable(GL_COLOR_MATERIAL);
-    glEnable(GL_LIGHTING);
-    glEnable(GL_LIGHT0);
-    glEnable(GL_LIGHT1);
-    glEnable(GL_LIGHT2);
-    glEnable(GL_LIGHT3);
-  glPopMatrix();
-}
 #if 0
 static void
 rotate_brain(float angle, char c)
@@ -868,6 +687,7 @@ special_key_handler(int key, int x, int y)
 }
 
 
+#if 0
 #define NUM_LIGHTS 4
 static void
 controlLights(int value)
@@ -908,42 +728,6 @@ controlLights(int value)
 
   glutPostRedisplay() ;
 }
-
-#if SHOW_AXES
-  /* build axes */
-  glNewList(2, GL_COMPILE) ;
-
-  /* x axis */
-  glBegin(GL_LINE) ;
-  glColor3ub(meshr,0,0) ;
-  load_brain_coords(mris->xlo-30,mris->yctr,mris->zctr,v1);
-  glVertex3fv(v1);               
-  load_brain_coords(mris->xhi+30,mris->yctr,mris->zctr,v1);
-  glColor3ub(meshr,0,0) ;
-  glVertex3fv(v1);               
-  glEnd() ;
-
-  /* y axis */
-  glBegin(GL_LINE) ;
-  load_brain_coords(mris->xctr,mris->ylo-30,mris->zctr,v1);
-  glColor3ub(meshr,0,0) ;
-  glVertex3fv(v1);               
-  load_brain_coords(mris->xctr,mris->yhi+30,mris->zctr,v1);
-  glColor3ub(meshr,0,0) ;
-  glVertex3fv(v1);               
-  glEnd() ;
-
-  /* z axis */
-  glBegin(GL_LINE) ;
-  load_brain_coords(mris->xctr,mris->yctr,mris->zlo-30,v1);
-  glColor3ub(meshr,0,0) ;
-  glVertex3fv(v1);               
-  load_brain_coords(mris->xctr,mris->yctr,mris->zhi+30,v1);
-  glColor3ub(meshr,0,0) ;
-  glVertex3fv(v1);               
-  glEnd() ;
-
-  glEndList() ;
 #endif
 
 static void
@@ -953,14 +737,24 @@ home(MRI_SURFACE *mris)
 
   glMatrixMode(GL_MODELVIEW);
   glLoadIdentity();
-  if (mris->hemisphere == RIGHT_HEMISPHERE)
-    angle = RIGHT_HEMISPHERE_ANGLE ;
+  if (patch_flag)
+  {
+    angle = 90.0f ;
+    glRotatef(angle, 1.0f, 0.0f, 0.0f) ;
+    glRotatef(angle, 0.0f, 1.0f, 0.0f) ;
+  }
   else
-    angle = LEFT_HEMISPHERE_ANGLE ;
-  glRotatef(angle, 0.0f, 1.0f, 0.0f) ;
+  {
+    if (mris->hemisphere == RIGHT_HEMISPHERE)
+      angle = RIGHT_HEMISPHERE_ANGLE ;
+    else
+      angle = LEFT_HEMISPHERE_ANGLE ;
+    glRotatef(angle, 0.0f, 1.0f, 0.0f) ;
+  }
   glMatrixMode(GL_PROJECTION);
   glLoadIdentity();
-  glOrtho(-FOV, FOV, -FOV, FOV, -10.0f*FOV, 10.0f*FOV);
+  glOrtho(-oglu_fov, oglu_fov, -oglu_fov, oglu_fov, 
+          -10.0f*oglu_fov, 10.0f*oglu_fov);
 }
 static void
 findAreaExtremes(MRI_SURFACE *mris)
