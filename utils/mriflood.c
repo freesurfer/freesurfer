@@ -6,11 +6,11 @@
 //  
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2003/04/22 15:37:40 $
-// Revision       : $Revision: 1.12 $
+// Revision Date  : $Date: 2003/04/22 18:22:49 $
+// Revision       : $Revision: 1.13 $
 //
 ////////////////////////////////////////////////////////////////////
-char *MRIFLOOD_VERSION = "$Revision: 1.12 $";
+char *MRIFLOOD_VERSION = "$Revision: 1.13 $";
 
 #include <math.h>
 #include <stdlib.h>
@@ -1146,8 +1146,8 @@ int IllegalCorticalNeighbour(MRI *mri_masked, MRI *mri_white, int i,int j,int k)
             illegalflag++;
           }
           // debug illegal check voxel values for voxels near i,j,k
-          if ((i==checkx) && (j==checky) && (k==checkz))
-            printf("illegal check at (%d,%d,%d) vox = %d\n", x, y, z, vox);
+          // if ((i==checkx) && (j==checky) && (k==checkz))
+          //  printf("illegal check at (%d,%d,%d) vox = %d\n", x, y, z, vox);
         }
       }
 
