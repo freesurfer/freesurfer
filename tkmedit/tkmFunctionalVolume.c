@@ -2058,9 +2058,9 @@ FunV_tErr FunV_GetColorForValue ( tkmFunctionalVolumeRef this,
   /* at this pt, if the abs value of f is below the min, don't do
      any more processing. */
   if( fabs(f) < min ) {
-    oColor->mfRed   = 0;
-    oColor->mfGreen = 0;
-    oColor->mfBlue  = 0;
+    oColor->mfRed   = br;
+    oColor->mfGreen = bg;
+    oColor->mfBlue  = bb;
     goto cleanup;
   }
 
