@@ -8316,6 +8316,7 @@ mghRead(char *fname, int read_volume, int frame)
       myclose = pclose;  // assign function pointer for closing
       strcpy(command,"zcat ");
       strcat(command, fname);
+      errno = 0; 
       fp = popen(command, "r");
       if (!fp)
       {
@@ -8610,12 +8611,21 @@ mghWrite(MRI *mri, char *fname, int frame)
       // pipe can executed under shell and thus understands >
       strcpy(command, "gzip -f -c > ");
       strcat(command, fname);
+      errno = 0;
       fp = popen(command, "w");
       if (!fp)
       {
 	errno = 0;
 	ErrorReturn(ERROR_BADPARM, 
 		    (ERROR_BADPARM,"mghWrite(%s, %d): could not open file",
+		     fname, frame)) ;
+      }
+      if (errno)
+      {
+	pclose(fp);
+	errno = 0;
+	ErrorReturn(ERROR_BADPARM, 
+		    (ERROR_BADPARM,"mghWrite(%s, %d): gzip had error",
 		     fname, frame)) ;
       }
     }

@@ -3,8 +3,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2004/05/27 16:21:12 $
-// Revision       : $Revision: 1.140 $
+// Revision Date  : $Date: 2004/05/27 19:33:39 $
+// Revision       : $Revision: 1.141 $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -1507,6 +1507,7 @@ GCAwrite(GCA *gca, char *fname)
     myclose = pclose;
     strcpy(command, "gzip -f -c > ");
     strcat(command, fname);
+    errno=0;
     fp = popen(command, "w");
     if (errno)
     {
@@ -1665,6 +1666,7 @@ GCAread(char *fname)
     myclose = pclose;
     strcpy(command, "zcat ");
     strcat(command, fname);
+    errno=0;
     fp = popen(command, "r");
     if (errno)
     {
