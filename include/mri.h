@@ -347,6 +347,7 @@ MRI   *MRImorph(MRI *mri_src, MRI *mri_dst, int which) ;
 MRI   *MRIerode(MRI *mri_src, MRI *mri_dst) ;
 MRI   *MRIerodeRegion(MRI *mri_src, MRI *mri_dst,int wsize,MRI_REGION *region);
 MRI   *MRIdilate(MRI *mri_src, MRI *mri_dst) ;
+MRI    *MRIdilateUchar(MRI *mri_src, MRI *mri_dst) ;
 MRI   *MRIopen(MRI *mri_src, MRI *mri_dst) ;
 MRI   *MRIclose(MRI *mri_src, MRI *mri_dst) ;
 /* the following use 4 (or 6 in 3-D) connectivity */
@@ -358,6 +359,7 @@ MRI   *MRIunion(MRI *mri1, MRI *mri2, MRI *mri_dst) ;
 MRI   *MRIintersect(MRI *mri1, MRI *mri2, MRI *mri_dst) ;
 MRI   *MRIcomplement(MRI *mri_src, MRI *mri_dst) ;
 MRI   *MRIxor(MRI *mri1, MRI *mri2, MRI *mri_dst, int t1, int t2) ;
+MRI   *MRIand(MRI *mri1, MRI *mri2, MRI *mri_dst, int thresh) ;
 MRI   *MRIcomputeResidual(MRI *mri1, MRI *mri2, MRI *mri_dst, int t1, int t2) ;
 
 /* filtering operations */
@@ -714,6 +716,7 @@ MRI *MRIprobabilityThresholdNeighborhoodOn(MRI *mri_src, MRI *mri_prob,
 MRI *MRIprobabilityThreshold(MRI *mri_src, MRI *mri_prob, MRI *mri_dst, 
                              float threshold, int out_label) ;
 MRI *MRIdilateLabel(MRI *mri_src, MRI *mri_dst, int label, int niter) ;
+MRI *MRIdilateLabelUchar(MRI *mri_src, MRI *mri_dst, int label, int niter) ;
 MRI *MRIdilateThreshLabel(MRI *mri_src, MRI *mri_val, MRI *mri_dst, int label, 
                           int niter, int thresh) ;
 MRI *MRIdilateInvThreshLabel(MRI *mri_src, MRI *mri_val, MRI *mri_dst, int label, 

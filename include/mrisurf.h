@@ -584,6 +584,10 @@ int          MRIScountNegativeTriangles(MRI_SURFACE *mris) ;
 int          MRISstoreMeanCurvature(MRI_SURFACE *mris) ;
 int          MRISreadTetherFile(MRI_SURFACE *mris, char *fname, float radius) ;
 int          MRISreadVertexPositions(MRI_SURFACE *mris, char *fname) ;
+int          MRISspringTermWithGaussianCurvature(MRI_SURFACE *mris, double gaussian_norm, double l_spring) ;
+double       MRISmomentumTimeStep(MRI_SURFACE *mris, float momentum, float dt, float tol, 
+																	float n_averages) ;
+int          MRISapplyGradient(MRI_SURFACE *mris, double dt) ;
 int          MRIScomputeNormals(MRI_SURFACE *mris) ;
 int          MRIScomputeMetricProperties(MRI_SURFACE *mris) ;
 int          MRISrestoreOldPositions(MRI_SURFACE *mris) ;
@@ -731,6 +735,7 @@ MRISfindClosestOrigVertices(MRI_SURFACE *mris, int nbhd_size) ;
 int   MRISmarkRandomVertices(MRI_SURFACE *mris, float prob_marked) ;
 int   MRISmarkNegativeVertices(MRI_SURFACE *mris, int mark) ;
 int   MRISripNegativeVertices(MRI_SURFACE *mris) ;
+int   MRISclearGradient(MRI_SURFACE *mris) ;
 int   MRISclearMarks(MRI_SURFACE *mris) ;
 int   MRISclearFixedValFlags(MRI_SURFACE *mris) ;
 int   MRIScopyFixedValFlagsToMarks(MRI_SURFACE *mris) ;
