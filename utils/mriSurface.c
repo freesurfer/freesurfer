@@ -10,6 +10,7 @@ char Surf_ksaErrorStrings [Surf_knNumErrorCodes][256] = {
   "Memory allocation failed.",
   "Error loading surface (MRISread).",
   "Error loading vertex set.",
+  "Error loading annotation.",
   "Error accessing surface.",
   "Last face.",
   "Last vertex.",
@@ -259,6 +260,40 @@ Surf_tErr Surf_IsVertexSetLoaded ( mriSurfaceRef   this,
   
   if( Surf_tErr_NoErr != eResult ) {
     DebugPrint( ("Error %d in Surf_IsVertexSetLoaded: %s\n",
+		 eResult, Surf_GetErrorString( eResult ) ) );
+  }
+  
+ cleanup:
+  
+  return eResult;
+}
+
+
+Surf_tErr Surf_LoadAnnotation ( mriSurfaceRef   this,
+				char*           isFileName ) {
+  
+  Surf_tErr eResult = Surf_tErr_NoErr;
+  int       eMRIS   = NO_ERROR;
+  
+  eResult = Surf_Verify( this );
+  if( Surf_tErr_NoErr != eResult ) 
+    goto error;
+  
+  /* read in the annotation */
+  eMRIS = MRISreadAnnotation( this->mSurface, isFileName );
+  if( eMRIS != NO_ERROR ) {
+    
+    /* restore the vertices */
+    eResult = Surf_tErr_ErrorLoadingAnnotation;
+    goto error;
+  }
+  
+  goto cleanup;
+  
+ error:
+  
+  if( Surf_tErr_NoErr != eResult ) {
+    DebugPrint( ("Error %d in Surf_LoadAnnotation: %s\n",
 		 eResult, Surf_GetErrorString( eResult ) ) );
   }
   
@@ -810,6 +845,32 @@ Surf_tErr Surf_GetDistance ( mriSurfaceRef this,
   return eResult;
 }
 
+
+Surf_tErr Surf_GetMRIS ( mriSurfaceRef   this,
+			 MRIS**          opSurface ) {
+  
+  Surf_tErr eResult = Surf_tErr_NoErr;
+  
+  eResult = Surf_Verify( this );
+  if( Surf_tErr_NoErr != eResult ) 
+    goto error;
+  
+  /* pass back the surface. */
+  *opSurface = this->mSurface;
+  
+  goto cleanup;
+  
+ error:
+  
+  if( Surf_tErr_NoErr != eResult ) {
+    DebugPrint( ("Error %d in Surf_GetMRIS: %s\n",
+		 eResult, Surf_GetErrorString( eResult ) ) );
+  }
+  
+ cleanup:
+  
+  return eResult;
+}
 
 Surf_tErr Surf_GetSurfaceSetName ( Surf_tVertexSet iSet,
 				   char*           osName ) {
