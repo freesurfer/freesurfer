@@ -94,7 +94,7 @@ IMAGE *
 ImageCalculateNitShiOffset(IMAGE *Ix, IMAGE *Iy, int wsize, 
                           float mu, float c, IMAGE *Ioffset)
 {
-  int    x0, y0, rows, cols, x, y, whalf ;
+  int    x0, y0, rows, cols, x, y, whalf, x_plus_off, y_plus_off ;
   float  vx, vy, vsq, c1, *g, *xpix, *ypix ;
   static float *gaussian = NULL ;
   static int   w = 0 ;
@@ -193,6 +193,16 @@ ImageCalculateNitShiOffset(IMAGE *Ix, IMAGE *Iy, int wsize,
       vx = vx*c1 / (float)sqrt((double)(mu*mu + vsq)) ;
       vy = vy*c1 / (float)sqrt((double)(mu*mu + vsq)) ;
 #endif
+      x_plus_off = x0 - vx ;
+      y_plus_off = y0 - vy ;
+      if (x_plus_off < 0)
+        vx = x0 ;
+      else if (x_plus_off >= cols)
+        vx = x0-cols+1 ;
+      if (y_plus_off < 0)
+        vy = y0 ;
+      else if (y_plus_off >= rows)
+        vy = y0-rows+1 ;
       *xpix = -vx ;
       *ypix = -vy ;
     }
