@@ -663,7 +663,7 @@ Volm_tErr Volm_GetDimensions ( mriVolumeRef this,
 
   /* return the dimension */
   DebugNote( ("Returning the dimension") );
-  *onDimensionZ = this->mnDimensionX;
+  *onDimensionX = this->mnDimensionX;
   *onDimensionY = this->mnDimensionY;
   *onDimensionZ = this->mnDimensionZ;
 
