@@ -10,7 +10,7 @@ if { $err } {
     load [file dirname [info script]]/libscuba[info sharedlibextension] scuba
 }
 
-DebugOutput "\$Id: scuba.tcl,v 1.28 2004/05/06 16:55:57 kteich Exp $"
+DebugOutput "\$Id: scuba.tcl,v 1.29 2004/05/10 21:38:56 kteich Exp $"
 
 # gTool
 #   current - current selected tool (nav,)
@@ -650,11 +650,23 @@ proc MakeScubaFrameBindings { iFrameID } {
 	set gaView(current,inPlane) x
 	SetViewInPlane [GetSelectedViewID [GetMainFrameID]] $gaView(current,inPlane)
     }
+    bind $fwScuba <Alt-Key-$sKeyInPlaneX> {
+	set gaView(current,inPlane) x
+	SetViewInPlane [GetSelectedViewID [GetMainFrameID]] $gaView(current,inPlane)
+    }
     bind $fwScuba <Key-$sKeyInPlaneY> {
 	set gaView(current,inPlane) y
 	SetViewInPlane [GetSelectedViewID [GetMainFrameID]] $gaView(current,inPlane)
     }
+    bind $fwScuba <Alt-Key-$sKeyInPlaneY> {
+	set gaView(current,inPlane) y
+	SetViewInPlane [GetSelectedViewID [GetMainFrameID]] $gaView(current,inPlane)
+    }
     bind $fwScuba <Key-$sKeyInPlaneZ> { 
+	set gaView(current,inPlane) z
+	SetViewInPlane [GetSelectedViewID [GetMainFrameID]] $gaView(current,inPlane)
+    }
+    bind $fwScuba <Alt-Key-$sKeyInPlaneZ> { 
 	set gaView(current,inPlane) z
 	SetViewInPlane [GetSelectedViewID [GetMainFrameID]] $gaView(current,inPlane)
     }
