@@ -1,5 +1,4 @@
 ## 
 ## Makefile.am
 ##
-
-SUBDIRS = utils
+SUBDIRS=utils tkmedit mri_convert

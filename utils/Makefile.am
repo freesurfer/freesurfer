@@ -15,13 +15,11 @@ tqli.o: tqli.c
 	source='$<' object='$@' libtool=no \
 	depfile='$(DEPDIR)/$*.Po' tmpdepfile='$(DEPDIR)/$*.TPo' \
 	$(CCDEPMODE) $(depcomp) \
-	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) \
-	$(CPPFLAGS) $(AM_CFLAGS) -ffloat-store -c `test -f '$<' || echo '$(srcdir)/'`$<
+	$(COMPILE) -ffloat-store -c `test -f '$<' || echo '$(srcdir)/'`$<
 
 .c.o:
 	source='$<' object='$@' libtool=no \
 	depfile='$(DEPDIR)/$*.Po' tmpdepfile='$(DEPDIR)/$*.TPo' \
 	$(CCDEPMODE) $(depcomp) \
-	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) \
-	$(CPPFLAGS) $(AM_CFLAGS) -c `test -f '$<' || echo '$(srcdir)/'`$<
+	$(COMPILE) -c `test -f '$<' || echo '$(srcdir)/'`$<
 
