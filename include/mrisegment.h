@@ -20,6 +20,7 @@ typedef struct
   int      x0, x1 ;
   int      y0, y1 ;
   int      z0, z1 ;
+  int      ignore ;
 } MRI_SEGMENT ;
 
 typedef struct
@@ -43,5 +44,6 @@ int              MRIcompactSegments(MRI_SEGMENTATION *mriseg) ;
 int              MRIremoveSmallSegments(MRI_SEGMENTATION *mriseg,
                                         int min_voxels) ;
 int              MRIsegmentMax(MRI_SEGMENTATION *mriseg) ;
+int              MRIsegmentClearIgnoreFlags(MRI_SEGMENTATION *mriseg) ;
 
 #endif

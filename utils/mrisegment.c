@@ -659,6 +659,8 @@ MRIsegmentMax(MRI_SEGMENTATION *mriseg)
   for (segno = 0 ; segno < mriseg->nsegments ; segno++)
   {
     mseg = &mriseg->segments[segno] ;
+    if (mseg->ignore)
+      continue ;
 
     nvox = mseg->nvoxels ;
     if (nvox > max_voxels)
@@ -668,5 +670,19 @@ MRIsegmentMax(MRI_SEGMENTATION *mriseg)
     }
   }
   return(max_segno) ;
+}
+
+int
+MRIsegmentClearIgnoreFlags(MRI_SEGMENTATION *mriseg)
+{
+  int         segno ;
+  MRI_SEGMENT *mseg ;
+
+  for (segno = 0 ; segno < mriseg->nsegments ; segno++)
+  {
+    mseg = &mriseg->segments[segno] ;
+    mseg->ignore = 0 ;
+  }
+  return(NO_ERROR) ;
 }
 
