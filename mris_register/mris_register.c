@@ -12,7 +12,7 @@
 #include "mri.h"
 #include "macros.h"
 
-static char vcid[] = "$Id: mris_register.c,v 1.11 2000/02/07 16:15:56 fischl Exp $";
+static char vcid[] = "$Id: mris_register.c,v 1.12 2002/03/29 20:42:44 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -21,6 +21,7 @@ static void usage_exit(void) ;
 static void print_usage(void) ;
 static void print_help(void) ;
 static void print_version(void) ;
+static int  compute_area_ratios(MRI_SURFACE *mris) ;
 
 static int max_passes = 4 ;
 static int nbrs = 1 ;
@@ -35,6 +36,7 @@ static float dgamma = 0.0f ;
 char *Progname ;
 static char curvature_fname[100] = "" ;
 static char *orig_name = "smoothwm" ;
+static char *jacobian_fname = NULL ;
 
 static INTEGRATION_PARMS  parms ;
 
@@ -53,6 +55,7 @@ main(int argc, char *argv[])
 
   memset(&parms, 0, sizeof(parms)) ;
   parms.projection = PROJECT_SPHERE ;
+  parms.flags |= IP_USE_CURVATURE ;
   parms.tol = 1e-0*10 ;
   parms.min_averages = 0 ;
   parms.l_area = 0.0 ;
@@ -163,6 +166,16 @@ main(int argc, char *argv[])
   MRISregister(mris, mrisp_template, &parms, max_passes) ;
   fprintf(stderr, "writing registered surface to %s...\n", out_fname) ;
   MRISwrite(mris, out_fname) ;
+  if (jacobian_fname)
+  {
+    MRIScomputeMetricProperties(mris) ;
+    compute_area_ratios(mris) ;  /* will put results in v->curv */
+#if 0
+    MRISwriteArea(mris, jacobian_fname) ;
+#else
+    MRISwriteCurvature(mris, jacobian_fname) ;
+#endif
+  }
 
   MRISPfree(&mrisp_template) ;
   MRISfree(&mris) ;
@@ -200,6 +213,12 @@ get_option(int argc, char *argv[])
   {
     reverse_flag = 1 ;
     fprintf(stderr, "mirror image reversing brain before morphing...\n") ;
+  }
+  else if (!stricmp(option, "jacobian"))
+  {
+    jacobian_fname = argv[2] ;
+    nargs = 1 ;
+    printf("writing out jacobian of mapping to %s\n", jacobian_fname) ;
   }
   else if (!stricmp(option, "dist"))
   {
@@ -401,5 +420,25 @@ print_version(void)
 {
   fprintf(stderr, "%s\n", vcid) ;
   exit(1) ;
+}
+
+static int
+compute_area_ratios(MRI_SURFACE *mris)
+{
+  VERTEX  *v ;
+  int     vno ;
+  float   area_scale ;
+
+  area_scale = mris->total_area / mris->orig_area  ;
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    if (v->ripflag)
+      continue ;
+
+    v->curv = v->area / (v->origarea*area_scale) ;
+  }
+
+  return(NO_ERROR) ;
 }
 
