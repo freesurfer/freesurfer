@@ -431,10 +431,10 @@ extern int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris, double
 #define INFLATED_CURV_CORR_FRAME       0
 #define SULC_CORR_FRAME                1
 #define CURVATURE_CORR_FRAME           2 
-#define T1MID_CORR_FRAME               3 
-#define T2MID_CORR_FRAME               4
-#define PDMID_CORR_FRAME               5
-#define GRAYMID_CORR_FRAME             6
+#define GRAYMID_CORR_FRAME             3
+#define T1MID_CORR_FRAME               4 
+#define T2MID_CORR_FRAME               5
+#define PDMID_CORR_FRAME               6
 #define AMYGDALA_CORR_FRAME            7 
 #define HIPPOCAMPUS_CORR_FRAME         8
 #define PALLIDUM_CORR_FRAME            9
