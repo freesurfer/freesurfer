@@ -84,38 +84,19 @@ typedef struct vertex_type_
   float logarat,ologarat,sqrtarat; /* for area term */
   float logshear,shearx,sheary,oshearx,osheary;  /* for shear term */
   float smx,smy,smz,osmx,osmy,osmz;              /* smoothed curr,last move */
-  int   marked;            /* cursor */
   int   oripflag,origripflag;  /* cuts flags */
   float coord[3];
 #endif
+  int   marked;            /* for a variety of uses */
   int   ripflag ;
   int   border;            /* flag */
   float area,origarea ;
   int   tethered ;
   float theta, phi ;             /* parameterization */
+  float K ;                /* Gaussian curvature */
+  float H ;                /* mean curvature */
+  float k1, k2 ;           /* the principal curvatures */
 } vertex_type, VERTEX ;
-
-#if 0
-typedef struct face2_type_
-{
-  int v[VERTICES_PER_FACE];                      /* vertex numbers */
-  int ripflag;                   /* ripped face */
-} face2_type;
-
-typedef struct vertex2_type_
-{
-  float x,y,z;           /* curr position */
-  float nx,ny,nz;        /* curr normal */
-  float curv;            /* curr curvature */
-  int num;               /* number neighboring faces */
-  int *f;                /* array neighboring face numbers */
-  int *n;                /* [0-3, num long] */
-  int vnum;              /* number neighboring vertices */
-  int *v;                /* array neighboring vertex numbers, vnum long */
-  int ripflag;           /* cut flags */
-  int border;            /* flag */
-} vertex2_type;
-#endif
 
 typedef struct
 {
@@ -287,6 +268,11 @@ int          MRIScomputeEulerNumber(MRI_SURFACE *mris, int *pnvertices,
                                     int *pnfaces, int *pnedges) ;
 int          MRIStopologicalDefectIndex(MRI_SURFACE *mris) ;
 int          MRISremoveTopologicalDefects(MRI_SURFACE *mris,float curv_thresh);
+
+int          MRIScomputeSecondFundamentalForm(MRI_SURFACE *mris) ;
+int          MRISuseGaussianCurvature(MRI_SURFACE *mris) ;
+int          MRISuseMeanCurvature(MRI_SURFACE *mris) ;
+
 
 /* constants for vertex->tethered */
 #define TETHERED_NONE           0
