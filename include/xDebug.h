@@ -1,13 +1,13 @@
-/*
 #ifdef xDebug_H
-
-#define GLOBAL 
-#else
 #define GLOBAL extern
+#else
+#define GLOBAL
 #endif
 
 GLOBAL char gDebuggingOn;
-*/
+
+#undef GLOBAL
+
 #ifndef xDebug_H
 #define xDebug_H
 

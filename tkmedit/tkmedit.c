@@ -159,9 +159,9 @@ int zf, ozf;
 float fsf;
 static int xdim,ydim;
 unsigned long bufsize;
-unsigned char **im[MAXIM];
+//unsigned char **im[MAXIM];
 unsigned char **im_b[MAXIM];
-unsigned char **im2[MAXIM];
+//unsigned char **im2[MAXIM];
 unsigned char **fill[MAXIM];
 unsigned char **dummy_im[MAXIM];
 unsigned char **sim[6]; 
@@ -407,6 +407,8 @@ void DrawWithFloatVertexArray ( GLenum inMode,
         float *inVertices, int inNumVertices );
 
 
+#define kFunctionalColorBarWidth 8
+void DrawFunctionalColorScaleBar ( char * inBuffer );
 void DrawFunctionalData ( char * inBuffer, int inVoxelSize,
         int inPlane, int inPlaneNum );
 
@@ -704,6 +706,13 @@ char IsDisplaySelectedVoxels ();
 void SaveSelectionToLabelFile ( char * inFileName );
 void LoadSelectionFromLabelFile ( char * inFileName );
 
+/* send the selected voxels to the functional display module */
+void GraphSelectedRegion ();
+
+/* values used in calculating selection color */
+#define kSel_IntensifyValue 100
+#define kSel_TooClose       10
+
 // ===========================================================================
 
 // =============================================================== BRUSH UTILS
@@ -848,14 +857,20 @@ void GetCursorInVoxelCoords ( VoxelRef ioVoxel );
 
 // ===========================================================================
 
-// ====================================================== SETTING VOXEL VALUES
+// ============================================================= VOLUME ACCESS
 
-                                   /* these are mainly here for purposes of
-              readability. they just access an array
-              based on voxel values. */
+static int gVolumeDimension;
 
-inline void SetVoxelValue ( int x, int y, int z, unsigned char inValue );
-inline unsigned char GetVoxelValue ( int x, int y, int z );
+typedef unsigned char * tVolumeRef;
+static tVolumeRef gAnatomicalVolume;
+static tVolumeRef gAuxAnatomicalVolume;
+
+void InitVolume ( tVolumeRef* ioVolume, int inDimension );
+inline void SetVoxelValue ( tVolumeRef inVolume,
+          int x, int y, int z, unsigned char inValue );
+inline unsigned char GetVoxelValue ( tVolumeRef inVolume,
+             int x, int y, int z );
+unsigned char * GetVolumeSlicePtr ( tVolumeRef inVolume, int inSlice );
 
 // ===========================================================================
 
@@ -1024,8 +1039,7 @@ int show_canon_vertex(void) ;
 int dump_vertex(int vno) ;
 int write_images(char *fpref) ;
 int read_images(char *fpref) ;
-void draw_image(int imc, int ic, int jc, unsigned char *** inImageSpace) ;
-void draw_second_image(int imc, int ic, int jc) ;
+void draw_image(int imc, int ic, int jc, tVolumeRef inVolume) ;
 void drawpts(void) ;
 void write_dipoles(char *fname) ;
 void write_decimation(char *fname) ;
@@ -1724,7 +1738,8 @@ void getPlane(char* fbuffer, int zf, int xoff, int yoff)
          floating point calculation is to slow on R5000 and
          this cast during memory access kills the remaining speed
          */
-      dhcache[myoff+w] = im[(int)z][(int)(256-1-y)][(int)x];
+      //      dhcache[myoff+w] = im[(int)z][(int)(256-1-y)][(int)x];
+      dhcache[myoff+w] = GetVoxelValue ( gAnatomicalVolume, x, (256-1-y), z );
       x += sux;
       y += suy; 
       z += suz;
@@ -2882,7 +2897,8 @@ edit_pixel(int action)
           }
 
           // get the pixel value at this voxel.
-          thePixelValue = GetVoxelValue ( theX, theY, theZ );
+          thePixelValue = 
+      GetVoxelValue ( gAnatomicalVolume, theX, theY, theZ );
 
           // choose a new color.
           if ( TO_WHITE == action && 
@@ -2909,7 +2925,8 @@ edit_pixel(int action)
     }
 
     // set the pixel value.
-    SetVoxelValue ( theX, theY, theZ, theNewPixelValue );
+    SetVoxelValue ( gAnatomicalVolume,
+        theX, theY, theZ, theNewPixelValue );
         }
 
         EnableDebuggingOutput;
@@ -3575,7 +3592,7 @@ void redraw(void) {
   if (drawsecondflag && second_im_allocated) {
 
     // kt - call draw_image with im2 instead of draw_second_image
-    draw_image ( imc, ic, jc, im2 );
+    draw_image ( imc, ic, jc, gAuxAnatomicalVolume );
 
   } else {
 
@@ -3583,7 +3600,7 @@ void redraw(void) {
     if (do_overlay)
       draw_image_hacked(imc,ic,jc);
     else
-      draw_image ( imc, ic, jc, im ); 
+      draw_image ( imc, ic, jc, gAnatomicalVolume ); 
 
   }
 
@@ -3694,9 +3711,13 @@ imval(float px,float py,float pz)
   y = px*tm[1][0]+py*tm[1][1]+pz*tm[1][2]+tm[1][3];
   z = px*tm[2][0]+py*tm[2][1]+pz*tm[2][2]+tm[2][3];
   mri2pix(x,y,z,&j,&i,&imn);
-  if (imn>=0&&imn<numimg&&i>=0&&i<ynum&&j>=0&&j<xnum)
-    return(im[imn][ynum-1-i][j]);
-  else return 0;
+  if (imn>=0&&imn<numimg&&i>=0&&i<ynum&&j>=0&&j<xnum) {
+
+    return ( GetVoxelValue ( gAnatomicalVolume, 
+           j, ynum-1-i, imn ) );
+  }
+  else
+    return 0;
 }
 
 float
@@ -3878,6 +3899,8 @@ read_images(char *fpref)
   int i,j,k;
   FILE *fptr, *xfptr;
   char fname[STRLEN], char_buf[STRLEN];
+  unsigned char theIntensity;
+  unsigned char * theSlicePtr;
 
   sprintf(fname,"%s.info",fpref);
   fptr = fopen(fname,"r");
@@ -3944,14 +3967,18 @@ read_images(char *fpref)
 
   bufsize = ((unsigned long)xnum)*ynum;
   buf = (unsigned char *)lcalloc(bufsize,sizeof(char));
-  for (k=0;k<numimg;k++)
-  {
+
+  /*
+  for (k=0;k<numimg;k++) {
     im[k] = (unsigned char **)lcalloc(ynum,sizeof(char *));
-    for (i=0;i<ynum;i++)
-    {
+    for (i=0;i<ynum;i++) {
       im[k][i] = (unsigned char *)lcalloc(xnum,sizeof(char));
     }
   }
+  */
+
+  InitVolume ( &gAnatomicalVolume, xnum );
+    
   for (k=0;k<6;k++)
   {
     sim[k] = (unsigned char **)lcalloc(ynum,sizeof(char *));
@@ -3968,22 +3995,35 @@ read_images(char *fpref)
     fptr = fopen(fname,"rb");
     if(fptr==NULL){printf("medit: ### File %s not found.\n",fname);exit(1);}
     fread(buf,sizeof(char),bufsize,fptr);
-    buffer_to_image(buf,im[k],xnum,ynum);
+
+    theSlicePtr = GetVolumeSlicePtr ( gAnatomicalVolume, k );
+    memcpy ( theSlicePtr, buf, xnum*ynum ); 
+   //    buffer_to_image ( buf, &theSlicePtr, xnum, ynum );
+
     fclose(fptr);
   }
 
   for (k=0;k<numimg;k++)
-  for (i=0;i<ynum;i++)
-  for (j=0;j<xnum;j++)
-  {
-    if (im[k][i][j]/2>sim[3][i][j]) sim[3][i][j] = im[k][i][j]/2;
-    if (im[k][i][j]/2>sim[4][k][j]) sim[4][k][j] = im[k][i][j]/2;
-    if (im[k][i][j]/2>sim[5][i][k]) sim[5][i][k] = im[k][i][j]/2;
+    for (i=0;i<ynum;i++)
+      for (j=0;j<xnum;j++) {
+
+  theIntensity = GetVoxelValue ( gAnatomicalVolume, j, i, k ) / 2;
+
+  if ( theIntensity > sim[3][i][j]) 
+    sim[3][i][j] = theIntensity;
+  
+  if ( theIntensity > sim[4][k][j]) 
+    sim[4][k][j] = theIntensity;
+  
+  if ( theIntensity > sim[5][i][k]) 
+    sim[5][i][k] = theIntensity;
   }
+
   for (i=0;i<ynum;i++)
-  for (j=0;j<xnum;j++)
-  for (k=0;k<3;k++)
-    sim[k][i][j] = sim[k+3][i][j];
+    for (j=0;j<xnum;j++)
+      for (k=0;k<3;k++)
+  sim[k][i][j] = sim[k+3][i][j];
+
   return(0);
 }
 
@@ -3995,6 +4035,8 @@ read_second_images(char *imdir2)
   FILE *fptr;
   char fname[NAME_LENGTH], cmd[NAME_LENGTH], fpref[NAME_LENGTH];
   char fnamefirst[NAME_LENGTH], notilde[NAME_LENGTH];
+  unsigned char theIntensity;
+  unsigned char * theSlicePtr = NULL;
 
   strcpy(imtype2, imdir2) ;
 
@@ -4025,17 +4067,30 @@ read_second_images(char *imdir2)
     fptr = fopen(fname,"rb");
     if(fptr==NULL){printf("medit: ### File %s not found.\n",fname);return(0);}
     fread(buf,sizeof(char),bufsize,fptr);
-    buffer_to_image(buf,im2[k],xnum,ynum);
+
+    theSlicePtr = GetVolumeSlicePtr ( gAuxAnatomicalVolume, k );
+    memcpy ( theSlicePtr, buf, xnum*ynum );
+    //    buffer_to_image ( buf, &theSlicePtr, xnum, ynum );
+
     fclose(fptr);
   }
 
   for (k=0;k<numimg;k++)
-  for (i=0;i<ynum;i++)
-  for (j=0;j<xnum;j++) {
-    if (im2[k][i][j]/2>sim2[3][i][j]) sim2[3][i][j] = im2[k][i][j]/2;
-    if (im2[k][i][j]/2>sim2[4][k][j]) sim2[4][k][j] = im2[k][i][j]/2;
-    if (im2[k][i][j]/2>sim2[5][i][k]) sim2[5][i][k] = im2[k][i][j]/2;
+    for (i=0;i<ynum;i++)
+      for (j=0;j<xnum;j++) {
+
+  theIntensity = GetVoxelValue ( gAuxAnatomicalVolume, j, i, k ) / 2;
+
+  if ( theIntensity > sim[3][i][j]) 
+    sim[3][i][j] = theIntensity;
+  
+  if ( theIntensity > sim[4][k][j]) 
+    sim[4][k][j] = theIntensity;
+  
+  if ( theIntensity > sim[5][i][k]) 
+    sim[5][i][k] = theIntensity;
   }
+
   for (i=0;i<ynum;i++)
   for (j=0;j<xnum;j++)
   for (k=0;k<3;k++)
@@ -4053,6 +4108,7 @@ write_images(char *fpref)
   int k;
   FILE *fptr;
   char fname[STRLEN];
+  unsigned char * theSlicePtr;
 
   if (!editflag) { 
     printf(
@@ -4062,8 +4118,12 @@ write_images(char *fpref)
       changed[k] = FALSE;
       file_name(fpref,fname,k+imnr0,"%03d");
       fptr = fopen(fname,"wb");
-      image_to_buffer(im[k],buf,xnum,ynum);
-      fwrite(buf,sizeof(char),bufsize,fptr);
+
+      theSlicePtr = GetVolumeSlicePtr ( gAnatomicalVolume, k );
+      memcpy ( buf, theSlicePtr, xnum*ynum );
+      //      image_to_buffer ( &theSlicePtr, buf, xnum, ynum );
+
+      fwrite ( buf,sizeof(char),bufsize,fptr);
       fclose(fptr);
       printf("medit: file %s written\n",fname);PR
     }
@@ -4295,9 +4355,11 @@ void HandleMouseUp ( XButtonEvent inEvent ) {
               zooming. ctrl-button1 is zoom in,
               ctrl-button2 is zoom out. when zooming, 
               we center on the point first and then
-              zoom in or out. */
+              zoom in or out. but we only zoom if not 
+              in all 3 mode. */
   // if ctrl was down...
-  if ( inEvent.state & ControlMask ) {
+  if ( inEvent.state & ControlMask 
+       && !all3flag ) {
   
     // always zoom in on button 1.
     if ( 1 == inEvent.button ) {
@@ -4813,9 +4875,7 @@ void UnzoomView () {
 }
   
 
-void draw_image( int imc, int ic, int jc,
-                 unsigned char *** inImageSpace )
-{
+void draw_image( int imc, int ic, int jc, tVolumeRef inVolume ) {
   int i,j,k;
   int theDestIndex;
   int hax,hay,curs;
@@ -4916,7 +4976,8 @@ void draw_image( int imc, int ic, int jc,
             if ( IsVoxelInBounds ( theVoxX, theVoxY, theVoxZ )) {
 
               // get the index into hacked_map from im
-              v = inImageSpace[theVoxZ][theVoxY][theVoxX] + MAPOFFSET;
+              v = GetVoxelValue ( inVolume, theVoxX, theVoxY, theVoxZ )
+    + MAPOFFSET;
               
               // if we're truncating values and the index is below the min
               // or above the max, set it to MAPOFFSET
@@ -5048,7 +5109,8 @@ void draw_image( int imc, int ic, int jc,
 
             if ( IsVoxelInBounds ( theVoxX, theVoxY, theVoxZ ) ) {
 
-              v = inImageSpace[theVoxZ][theVoxY][theVoxX] + MAPOFFSET;
+               v = GetVoxelValue ( inVolume, theVoxX, theVoxY, theVoxZ )
+    + MAPOFFSET;
               
               if ( truncflag )
                 if ( v < white_lolim + MAPOFFSET || 
@@ -5085,7 +5147,7 @@ void draw_image( int imc, int ic, int jc,
         }
         
   if ( FuncDis_IsDataLoaded () ) {
-    DrawFunctionalData ( vidbuf, theVoxelSize, CORONAL, imc/zf );
+    DrawFunctionalData ( vidbuf, theVoxelSize, HORIZONTAL, imc/zf );
   }
 
   if ( IsDisplaySelectedVoxels () ) {
@@ -5152,7 +5214,8 @@ void draw_image( int imc, int ic, int jc,
 
             if ( IsVoxelInBounds ( theVoxX, theVoxY, theVoxZ ) ) {
               
-              v = inImageSpace[theVoxZ][theVoxY][theVoxX] + MAPOFFSET;
+              v = GetVoxelValue ( inVolume, theVoxX, theVoxY, theVoxZ )
+    + MAPOFFSET;
               
               if ( truncflag )
                 if ( v < white_lolim + MAPOFFSET ||
@@ -5184,7 +5247,7 @@ void draw_image( int imc, int ic, int jc,
         }
 
   if ( FuncDis_IsDataLoaded () ) {
-    DrawFunctionalData ( vidbuf, theVoxelSize, CORONAL, imc/zf );
+    DrawFunctionalData ( vidbuf, theVoxelSize, SAGITTAL, imc/zf );
   }
 
   if ( IsDisplaySelectedVoxels () ) {
@@ -5240,6 +5303,11 @@ void draw_image( int imc, int ic, int jc,
           if ( theScreenX == xdim - 2 )
             theDestIndex += kBytesPerPixel * hax;
         }
+    }
+
+    // finally, if we're doing functional overlay, draw the color bar.
+    if ( FuncDis_IsOverlayVisible() ) {
+      DrawFunctionalColorScaleBar ( vidbuf );
     }
 
     rectwrite(0,0,xdim-1,ydim-1,vidbuf);
@@ -5340,13 +5408,13 @@ DrawControlPoints ( char * inBuffer, int inPlane, int inPlaneNum ) {
 void DrawFunctionalData ( char * inBuffer, int inVoxelSize,
         int inPlane, int inPlaneNum ) {
 
+  FuncDis_ErrorCode theErr;
   VoxelRef theVoxel;
   int x, y;
   float theValue;
   int theScreenX, theScreenY, theScreenZ, theScreenH, theScreenV;
   char theDestRed, theDestGreen, theDestBlue;
   long theDestColor;
-  FuncDis_ErrorCode theErr;
 
   // if we're not visible, don't draw.
   if ( !FuncDis_IsOverlayVisible() ) {
@@ -5356,7 +5424,7 @@ void DrawFunctionalData ( char * inBuffer, int inVoxelSize,
   Voxel_New ( &theVoxel );
 
   DisableDebuggingOutput;
-  
+
   for ( y = 0; y < ynum; y++ ) {
     for ( x = 0; x < xnum; x++ ) {
 
@@ -5386,9 +5454,6 @@ void DrawFunctionalData ( char * inBuffer, int inVoxelSize,
   
   if ( IsScreenPtInWindow ( theScreenX, theScreenY, theScreenZ ) ) {
     
-    DebugPrint "-- (%d, %d, %d): %2.5f\n",
-      EXPAND_VOXEL_INT(theVoxel), theValue EndDebugPrint;
-
     ScreenToScreenXY ( theScreenX, theScreenY, theScreenZ,
            inPlane, &theScreenH, &theScreenV );
     
@@ -5422,274 +5487,46 @@ void DrawFunctionalData ( char * inBuffer, int inVoxelSize,
 
   Voxel_Delete ( &theVoxel );
 }
+
+void DrawFunctionalColorScaleBar ( char * inBuffer ) {
+
+  float theMax;
+  int x, y;
+  float theValue;
+  char theDestRed, theDestGreen, theDestBlue;
+  long theDestColor;
+
+  // get the current max threshold value
+  FuncDis_GetCurrentThresholdMax ( &theMax );
+
+  // go thru the y pixels
+  for ( y = 0; y < ydim; y++ ) {
+
+    // get an interpolated value within the range of -max to +max 
+    // determined by the y value
+    theValue = (float)y * (float)((theMax*2.0)/(float)ydim) - theMax;
+
+    // get the functional color for this value
+    FuncDis_CalcColorForValue ( theValue, 0.25,
+        &theDestRed, &theDestGreen, &theDestBlue );
+
+    // build a pixel
+    theDestColor = 
+      ( (unsigned char)kPixelComponentLevel_Max << kPixelOffset_Alpha |
+  (unsigned char)theDestBlue << kPixelOffset_Blue |
+  (unsigned char)theDestGreen << kPixelOffset_Green |
+  (unsigned char)theDestRed << kPixelOffset_Red );
+
+    // draw a row of it.
+    for ( x = xdim - kFunctionalColorBarWidth; x < xdim; x++ ) {
+      
+      FillBoxInBuffer ( inBuffer, x, y, 1, theDestColor );
+    }
+  }
+}
  
 
-/*
-void DrawFunctionalData ( char * inBuffer, int inPlane, int inPlaneNum ) {
 
-  VoxelValueListRef theList;
-  VoxelValueList_ErrorCode theListErr;
-  VoxelRef theVoxel;
-  float theValue;
-  int theScreenX, theScreenY, theScreenZ, theScreenH, theScreenV;
-
-  Voxel_New ( &theVoxel );
-
-  VoxelValueList_New ( &theList );
-  GetFunctionalValuesInPlane ( inPlane, inPlaneNum, theList );
-
-  theListErr = kVoxelValueListErr_NoErr;
-  while ( kVoxelValueListErr_NoErr == theListErr ) {
-    
-    theListErr =
-      VoxelValueList_GetNextVoxelAndValue ( theList,
-              theVoxel, &theValue );
-    
-    DisableDebuggingOutput;
-
-    VoxelToScreen ( Voxel_GetX(theVoxel), Voxel_GetY(theVoxel),
-        Voxel_GetZ(theVoxel), 
-        inPlane, &theScreenX, &theScreenY, &theScreenZ );
-    
-    if ( IsScreenPtInWindow ( theScreenX, theScreenY, theScreenZ ) ) {
-
-      EnableDebuggingOutput;
-      DebugPrint "-- (%d, %d, %d): %2.5f\n",
-  Voxel_GetX(theVoxel), Voxel_GetY(theVoxel), 
-  Voxel_GetZ(theVoxel), theValue EndDebugPrint;
-
-      ScreenToScreenXY ( theScreenX, theScreenY, theScreenZ,
-       inPlane, &theScreenH, &theScreenV );
-
-      FillBoxInBuffer ( inBuffer, theScreenH, theScreenV, 5,
-      kRGBAColor_Red );
-    }
-
-    EnableDebuggingOutput;
-  }
-
-  Voxel_Delete ( &theVoxel );
-}
-*/
-
-void
-draw_second_image(int imc, int ic, int jc)
-{
-  int i,j,imnr,k;
-  int hax,hay,curs;
-  int idx_buf;
-  GLubyte v;
-
-  hax = xdim/2;
-  hay = ydim/2;
-  if (all3flag) curs = 15;
-  else          curs = 2;
-  
-  if (maxflag && !all3flag)
-  {
-    k = 0;
-    for (i=0;i<ydim;i++)
-      for (j=0;j<xdim;j++)
-      {
-        if (plane==CORONAL)
-          vidbuf[k] = sim2[0][255-i/zf][j/zf]+MAPOFFSET;
-        else if (plane==HORIZONTAL)
-          vidbuf[k] = sim2[1][i/zf][j/zf]+MAPOFFSET;
-        else if (plane==SAGITTAL)
-          vidbuf[k] = sim2[2][255-i/zf][j/zf]+MAPOFFSET;
-        k++;
-      }
-  }
-  else /*No max flag */        
-  {
-    if (plane==CORONAL || all3flag)
-    {
-      k = 0;
-      for (i=0;i<ydim;i++)
-        for (j=0;j<xdim;j++)
-        {
-          if (i == 128 && j == 128)
-            DiagBreak() ;
-          if (all3flag && (i%2 || j%2)) continue;
-          if (imc/zf>=0&&imc/zf<imnr1)
-      v = im2[imc/zf][(ydim-1-i)/zf][j/zf]+MAPOFFSET;  
-    else 
-      v=MAPOFFSET;
-          if (truncflag)
-            if (v<white_lolim+MAPOFFSET || v>white_hilim+MAPOFFSET)
-              v=MAPOFFSET;
-          if (i==ipt||j==jpt) v=255-(v-MAPOFFSET)+MAPOFFSET;
-          if ((i==ic&&abs(j-jc)<=curs)||
-              (j==jc&&abs(i-ic)<=curs))
-      {
-        if (all3flag) {
-    idx_buf = 4*((xdim*hay) + k + ((i/2)*hax)) ;
-    vidbuf[idx_buf] = 255;
-    vidbuf[idx_buf+1] = vidbuf[idx_buf + 2] = 0;
-    k++;
-        } else {
-    vidbuf[k]=255;
-    vidbuf[k+1] = vidbuf[k+2]= 0;
-    k+=4;
-        }
-      }
-          else if (all3flag) 
-      {
-        idx_buf = 4*((xdim*hay) + k + ((i/2)*hax)) ;
-        
-        vidbuf[idx_buf] = vidbuf[idx_buf+1] = vidbuf[idx_buf + 2] = hacked_map[v];
-        /*
-    #else
-    vidbuf[idx_buf] = vidbuf[idx_buf+1] = vidbuf[idx_buf + 2] = v;
-    #endif
-    vidbuf[idx_buf + 3]=255;
-        */
-        k++;
-      }
-          else
-      {
-        
-        vidbuf[k] = vidbuf[k+1] = vidbuf[k+2]= hacked_map[v]; 
-        /*
-    #else 
-    vidbuf[k] = vidbuf[k+1] = vidbuf[k+2]= v; 
-    #endif
-        */
-        vidbuf[k+3]=255;
-        k+=4;
-      }
-        }
-    } 
-    if (plane==HORIZONTAL || all3flag)
-      {
-      k = 0;
-      for (imnr=0;imnr<ydim;imnr++)
-        for (j=0;j<xdim;j++)
-        {
-          if (all3flag && (imnr%2 || j%2)) continue;
-          if (imnr/zf>=0&&imnr/zf<imnr1)
-            v = im2[imnr/zf][(ydim-1-ic)/zf][j/zf]+MAPOFFSET;
-          else v=MAPOFFSET;
-          if (truncflag)
-            if (v<white_lolim+MAPOFFSET || v>white_hilim+MAPOFFSET)
-              v=MAPOFFSET;
-          if (imnr==impt||j==jpt) v=255-(v-MAPOFFSET)+MAPOFFSET;
-          if ((imnr==imc&&abs(j-jc)<=curs)||
-              (j==jc&&abs(imnr-imc)<=curs))
-      {
-        if (all3flag) {
-    /*idx_buf = 4*((xdim*hay) + hax + k + ((imnr/2)*hax)) ;*/
-    idx_buf = 4*(k + ((imnr/2)*hax));
-    vidbuf[idx_buf] = 255;
-    vidbuf[idx_buf+1] = vidbuf[idx_buf + 2] = 0;
-    k++;
-        } else {
-    vidbuf[k]=255;
-    vidbuf[k+1] = vidbuf[k+2]= 0;
-    k+=4;
-        }
-      }
-    else if (all3flag)
-      {
-        /* idx_buf = 4*((xdim*hay) + hax + k + ((imnr/2)*hax)) ; */
-        idx_buf = 4*(k + ((imnr/2)*hax));
-        vidbuf[idx_buf] = vidbuf[idx_buf+1] = vidbuf[idx_buf + 2] = hacked_map[v];
-        /*
-    #else
-    vidbuf[idx_buf] = vidbuf[idx_buf+1] = vidbuf[idx_buf + 2] = v;
-    #endif
-        */
-        vidbuf[idx_buf + 3]=255;
-        k++;
-      }
-          else
-      {
-        
-        vidbuf[k] = vidbuf[k+1] = vidbuf[k+2]= hacked_map[v];
-        /*
-    #else
-    vidbuf[k] = vidbuf[k+1] = vidbuf[k+2]= v;
-    #endif
-        */
-        vidbuf[k+3]=255;
-        k+=4;
-      }
-        }
-    } /*else*/
-    if (plane==SAGITTAL || all3flag)
-    {
-      k = 0;
-      for (i=0;i<ydim;i++)
-        for (imnr=0;imnr<xdim;imnr++)
-    {
-      if (all3flag && (i%2 || imnr%2)) continue;
-      if (imnr/zf>=0&&imnr/zf<imnr1)
-        v = im2[imnr/zf][(ydim-1-i)/zf][jc/zf]+MAPOFFSET;  
-      else v=MAPOFFSET;
-      if (truncflag)
-        if (v<white_lolim+MAPOFFSET || v>white_hilim+MAPOFFSET)
-    v=MAPOFFSET;
-      if (imnr==impt||i==ipt) v=255-(v-MAPOFFSET)+MAPOFFSET;
-      if ((imnr==imc&&abs(i-ic)<=curs)||
-    (i==ic&&abs(imnr-imc)<=curs)) {
-        if (all3flag) {
-    /*idx_buf = 4*(k + ((i/2)*hax));*/
-    idx_buf = 4*((xdim*hay) + hax + k + ((i/2)*hax)) ;
-    vidbuf[idx_buf] = 255;
-    vidbuf[idx_buf+1] = vidbuf[idx_buf + 2] = 0;
-    k++;
-        } else {
-    vidbuf[k]=255;
-    vidbuf[k+1] = vidbuf[k+2]= 0;
-    k+=4;
-        }
-      }
-      else if (all3flag) 
-        {
-    /* idx_buf = 4*(k + ((i/2)*hax)); */
-    idx_buf = 4*((xdim*hay) + hax + k + ((i/2)*hax)) ;
-    vidbuf[idx_buf] = vidbuf[idx_buf+1] = vidbuf[idx_buf + 2] = hacked_map[v]; 
-    /*
-      #else
-      vidbuf[idx_buf] = vidbuf[idx_buf+1] = vidbuf[idx_buf + 2] = v;
-      #endif
-    */
-    vidbuf[idx_buf + 3]=255;
-    k++;
-        }
-      else
-        {
-    
-    vidbuf[k] = vidbuf[k+1] = vidbuf[k+2]= hacked_map[v];   
-    /*
-      #else
-      vidbuf[k] = vidbuf[k+1] = vidbuf[k+2]= v; 
-      #endif
-    */
-    vidbuf[k+3]=255;
-    k+=4;
-        }
-    }
-    }
-    if (all3flag) 
-    {
-      k = 0;
-      for (i=0;i<ydim;i++)
-        for (j=0;j<xdim;j++) 
-        {
-          if (i%2 || j%2) continue;
-          {
-            idx_buf = 4*(hax + k + i/2*hax);
-            vidbuf[idx_buf] = vidbuf[idx_buf+1] = vidbuf[idx_buf+2]= 
-              sim[2][255-i/zf][j/zf]+MAPOFFSET;
-            vidbuf[idx_buf+3] = 255;
-            k++;
-          }
-        }
-    }
-    rectwrite(0,0,xdim-1,ydim-1,vidbuf);
-  }
-}
 
 void
 show_orig_surface(void) {
@@ -6996,7 +6833,8 @@ write_dipoles(char *fname)
   for (i=0;i<ynum;i+=dip_spacing)
   for (j=0;j<xnum;j+=dip_spacing)
 
-  if (im[k][i][j]!=0)
+    if ( GetVoxelValue ( gAnatomicalVolume, j, i, k ) != 0 )
+      //  if (im[k][i][j]!=0)
 
 /*
   if (sqrt(0.0+SQR(k-numimg/2)+SQR(i-ynum/2)+SQR(j-xnum/2))<=100)
@@ -7297,6 +7135,7 @@ smooth_3d(int niter)
   int i2,j2,k2;
   int n;
   float sum;
+  unsigned char theIntensity;
 
   if (!dummy_im_allocated) {
     for (k=0;k<numimg;k++) {
@@ -7318,11 +7157,13 @@ smooth_3d(int niter)
         for(k2=k-1;k2<k+2;k2++)  /* 27 */
         for(i2=i-1;i2<i+2;i2++)
         for(j2=j-1;j2<j+2;j2++) {
-          sum += im[k2][i2][j2];
+    sum += GetVoxelValue ( gAnatomicalVolume, j2, i2, k2 );
+    //          sum += im[k2][i2][j2];
           n++;
         }
         /*dummy_im[k][i][j] = (sum+im[k][i][j])/(float)(n+1);*/
-        dummy_im[k][i][j] = (sum + 27*im[k][i][j])/(float)(n+27);
+        dummy_im[k][i][j] = (sum + 27*GetVoxelValue(gAnatomicalVolume,j,i,k))/
+    (float)(n+27);
       }
       fflush(stdout);
     }
@@ -7330,9 +7171,10 @@ smooth_3d(int niter)
 
   /* update view */
   for (k=0;k<numimg;k++)
-  for (i=0;i<ynum;i++)
-  for (j=0;j<xnum;j++)
-    im[k][i][j] = dummy_im[k][i][j];
+    for (i=0;i<ynum;i++)
+      for (j=0;j<xnum;j++)
+  SetVoxelValue ( gAnatomicalVolume, j, i, k, dummy_im[k][i][j] );
+
   for (k=0;k<numimg;k++)
     changed[k] = TRUE;
   editedimage = TRUE;
@@ -7341,17 +7183,27 @@ smooth_3d(int niter)
   for (i=0;i<ynum;i++)
   for (j=0;j<xnum;j++)
     sim[k][i][j] = 0;
+
   for (k=0;k<numimg;k++)
+    for (i=0;i<ynum;i++)
+      for (j=0;j<xnum;j++) {
+
+  theIntensity = GetVoxelValue ( gAnatomicalVolume, j, i, k ) / 2;
+
+  if ( theIntensity > sim[3][i][j]) 
+    sim[3][i][j] = theIntensity;
+  
+  if ( theIntensity > sim[4][k][j]) 
+    sim[4][k][j] = theIntensity;
+  
+  if ( theIntensity > sim[5][i][k]) 
+    sim[5][i][k] = theIntensity;
+      }
+
   for (i=0;i<ynum;i++)
-  for (j=0;j<xnum;j++) {
-    if (im[k][i][j]/2>sim[3][i][j]) sim[3][i][j] = im[k][i][j]/2;
-    if (im[k][i][j]/2>sim[4][k][j]) sim[4][k][j] = im[k][i][j]/2;
-    if (im[k][i][j]/2>sim[5][i][k]) sim[5][i][k] = im[k][i][j]/2;
-  }
-  for (i=0;i<ynum;i++)
-  for (j=0;j<xnum;j++)
-  for (k=0;k<3;k++)
-    sim[k][i][j] = sim[k+3][i][j];
+    for (j=0;j<xnum;j++)
+      for (k=0;k<3;k++)
+  sim[k][i][j] = sim[k+3][i][j];
 
   printf("\nmedit: finished %d smooth_3d steps\n",niter);PR
 }
@@ -7365,6 +7217,7 @@ flip_corview_xyz(char *newx, char *newy, char *newz)
   int xx,xy,xz,yx,yy,yz,zx,zy,zz;
   int i,j,k;
   int ni,nj,nk;
+  unsigned char theIntensity;
 
   ni = nj = nk = 0;
   fx=(newx[0]=='-')?1:0;
@@ -7399,7 +7252,8 @@ flip_corview_xyz(char *newx, char *newy, char *newz)
       if(fx) nj=255-nj;
       if(fy) ni=255-ni;
       if(fz) nk=255-nk;
-      dummy_im[k][i][j] = im[nk][ni][nj];
+      dummy_im[k][i][j] = GetVoxelValue ( gAnatomicalVolume, nj, ni, nk );
+      // dummy_im[k][i][j] = im[nk][ni][nj];
     }
     fflush(stdout);
   }
@@ -7409,7 +7263,7 @@ flip_corview_xyz(char *newx, char *newy, char *newz)
   for (k=0;k<numimg;k++)
   for (i=0;i<ynum;i++)
   for (j=0;j<xnum;j++)
-    im[k][i][j] = dummy_im[k][i][j];
+    SetVoxelValue ( gAnatomicalVolume, j, i, k, dummy_im[k][i][j] );
   for (k=0;k<numimg;k++)
     changed[k] = TRUE;
   editedimage = TRUE;
@@ -7418,13 +7272,23 @@ flip_corview_xyz(char *newx, char *newy, char *newz)
   for (i=0;i<ynum;i++)
   for (j=0;j<xnum;j++)
     sim[k][i][j] = 0;
+
   for (k=0;k<numimg;k++)
-  for (i=0;i<ynum;i++)
-  for (j=0;j<xnum;j++) {
-    if (im[k][i][j]/2>sim[3][i][j]) sim[3][i][j] = im[k][i][j]/2;
-    if (im[k][i][j]/2>sim[4][k][j]) sim[4][k][j] = im[k][i][j]/2;
-    if (im[k][i][j]/2>sim[5][i][k]) sim[5][i][k] = im[k][i][j]/2;
-  }
+    for (i=0;i<ynum;i++)
+      for (j=0;j<xnum;j++) {
+
+  theIntensity = GetVoxelValue ( gAnatomicalVolume, j, i, k ) / 2;
+
+  if ( theIntensity > sim[3][i][j]) 
+    sim[3][i][j] = theIntensity;
+  
+  if ( theIntensity > sim[4][k][j]) 
+    sim[4][k][j] = theIntensity;
+  
+  if ( theIntensity > sim[5][i][k]) 
+    sim[5][i][k] = theIntensity;
+      }
+
   for (i=0;i<ynum;i++)
   for (j=0;j<xnum;j++)
   for (k=0;k<3;k++)
@@ -7496,14 +7360,15 @@ wmfilter_corslice(int imc)
 
   /*for (k=0;k<numimg-1;k++)*/
   for (k=k2-ws2;k<=k2+ws2;k++)
-  for (i=0;i<ynum-1;i++)
-  for (j=0;j<xnum-1;j++) {
-    im_b[k][i][j] = im[k][i][j];
-    im2[k][i][j] = im[k][i][j];
-    if (im_b[k][i][j]>fwhite_hilim || im_b[k][i][j]<fwhite_lolim)
-      im_b[k][i][j] = 0;
-    fill[k][i][j] = im_b[k][i][j];
-  }
+    for (i=0;i<ynum-1;i++)
+      for (j=0;j<xnum-1;j++) {
+  im_b[k][i][j] = GetVoxelValue ( gAnatomicalVolume, j, i, k );
+  SetVoxelValue ( gAuxAnatomicalVolume, j, i, k,
+      GetVoxelValue ( gAnatomicalVolume, j, i, k ) );
+  if (im_b[k][i][j]>fwhite_hilim || im_b[k][i][j]<fwhite_lolim)
+    im_b[k][i][j] = 0;
+  fill[k][i][j] = im_b[k][i][j];
+      }
 
   k = k2;
   printf("medit: %d unique orientations\n",ncor);PR
@@ -7572,7 +7437,7 @@ wmfilter_corslice(int imc)
       for (di = -ws2;di<=ws2;di++)
       for (dj = -ws2;dj<=ws2;dj++) {
         f = im_b[k+dk][i+di][j+dj];
-        f2 = im2[k+dk][i+di][j+dj];
+        f2 = GetVoxelValue ( gAuxAnatomicalVolume, j+dj, i+di, k+dk );
         s = dk*c+di*b+dj*a;
         if (fabs(s)<=0.5) {
           numvox++;
@@ -7584,7 +7449,7 @@ wmfilter_corslice(int imc)
       if (numnz!=0) sum /= numnz;
       if (numvox!=0) sum2 /= numvox;
       f = im_b[k][i][j];
-      f2 = im2[k][i][j];
+      f2 = GetVoxelValue ( gAuxAnatomicalVolume, j, i, k );
       if (flossflag && f!=0 && numz/numvox>cfracz && f<=fgray_hilim) {
         f=0; printf("."); }
       else if (spackleflag && f==0 && numnz/numvox>cfracnz) {
@@ -7607,8 +7472,10 @@ wmfilter_corslice(int imc)
   for (k=k2-ws2;k<=k2+ws2;k++)
   for (i=0;i<ynum-1;i++)
   for (j=0;j<xnum-1;j++) {
-    if (k==k2) im2[k][i][j] = im_b[k][i][j];
-    else       im2[k][i][j] = 0;
+    if ( k == k2 ) 
+      SetVoxelValue ( gAuxAnatomicalVolume, j, i, k, im_b[k][i][j] );
+    else       
+      SetVoxelValue ( gAuxAnatomicalVolume, j, i, k, 0 );
   }
   printf("medit: wmfiltered slice put in 2nd image set (can't be saved)\n");PR
   drawsecondflag = TRUE;
@@ -7641,7 +7508,7 @@ norm_allslices(int normdir)
       if (normdir==POSTANT)   {x=i; y=255-k;}  /* SAG:x */
       if (normdir==INFSUP)    {x=j;     y=i;}  /* COR:y */
       if (normdir==RIGHTLEFT) {x=k; y=255-j;}  /* HOR:x */
-      imf[y][x] = im[k][i][j];
+      imf[y][x] = GetVoxelValue ( gAnatomicalVolume, j, i, k );
       if ((255-y)<=flim0)
         imf[y][x]*=ffrac0;
       else if ((255-y)<=flim1)
@@ -7653,7 +7520,7 @@ norm_allslices(int normdir)
       else
         imf[y][x]*=ffrac3;
       if (imf[y][x]>255) imf[y][x]=255;
-      im[k][i][j] = floor(imf[y][x]+0.5);
+      SetVoxelValue ( gAnatomicalVolume, j, i, k, floor(imf[y][x]+0.5) );
     }
     fflush(stdout);
   }
@@ -7702,7 +7569,7 @@ void norm_slice(int imc, int ic,int jc, int normdir)
     if (normdir==POSTANT)   {x=i; y=255-k;}  /* SAG:x */
     if (normdir==INFSUP)    {x=j;     y=i;}  /* COR:y */
     if (normdir==RIGHTLEFT) {x=k; y=255-j;}  /* HOR:x */
-    imf[y][x] = im[k][i][j];
+    imf[y][x] = GetVoxelValue ( gAnatomicalVolume, j, i, k );
     if ((255-y)<=flim0)
       imf[y][x]*=ffrac0;
     else if ((255-y)<=flim1)
@@ -7714,7 +7581,7 @@ void norm_slice(int imc, int ic,int jc, int normdir)
     else
       imf[y][x]*=ffrac3;
     if (imf[y][x]>255) imf[y][x]=255;
-    im2[k][i][j] = floor(imf[y][x]+0.5);
+    SetVoxelValue ( gAuxAnatomicalVolume, j, i, k, floor(imf[y][x]+0.5) );
   }
   printf("medit: normalized slice put in 2nd image set (can't be saved)\n");PR
   drawsecondflag = TRUE;
@@ -7726,12 +7593,8 @@ alloc_second_im(void)
 {
   int i,k;
 
-  for (k=0;k<numimg;k++) {
-    im2[k] = (unsigned char **)lcalloc(ynum,sizeof(char *));
-    for (i=0;i<ynum;i++) {
-      im2[k][i] = (unsigned char *)lcalloc(xnum,sizeof(char));
-    }
-  }
+  InitVolume ( &gAuxAnatomicalVolume, xnum );
+
   for (k=0;k<6;k++) {
     sim2[k] = (unsigned char **)lcalloc(ynum,sizeof(char *));
     for (i=0;i<ynum;i++) {
@@ -8126,6 +7989,12 @@ int W_LoadSelectionFromLabelFile WBEGIN
      redraw ();
      WEND
 
+     // graphing selection
+int W_GraphSelectedRegion WBEGIN
+     ERR ( 1, "Wrong # args: GraphSelectedRegion" )
+     GraphSelectedRegion ();
+     WEND
+
 // surface
 int W_ShowCurrentSurface WBEGIN
      ERR ( 1, "Wrong # args: ShowCurrentSurface" )
@@ -8469,7 +8338,7 @@ char **argv;
           W_DeleteSelectedControlPoints, REND );
   Tcl_CreateCommand ( interp, "ProcessControlPointFile", 
           W_ProcessContrlPointFile,      REND );
-  Tcl_CreateCommand ( interp, "WriteControllPtFile",
+  Tcl_CreateCommand ( interp, "WriteControlPtFile",
           W_WriteControlPointFile,       REND );
 
   // edit
@@ -8489,6 +8358,10 @@ char **argv;
           W_LoadSelectionFromLabelFile, REND );
   Tcl_CreateCommand ( interp, "LoadLabel", 
           W_LoadSelectionFromLabelFile, REND );
+
+  // graphing selections
+  Tcl_CreateCommand ( interp, "GraphSelectedRegion",
+          W_GraphSelectedRegion, REND );
 
   // surfaces
   Tcl_CreateCommand ( interp, "LoadMainSurface",       
@@ -8663,12 +8536,12 @@ char **argv;
 
   /*Tk_MainLoop();*/  /* standard */
 
+  // kt - set the functions it needs to interface with us.
+  FuncDis_SetRedrawFunction ( &redraw );
+  FuncDis_SetSendTCLCommandFunction ( &SendTCLCommand );
+
   // kt - if doing functional data, init graph window.
   if ( FuncDis_IsDataLoaded () ) {
-
-    // set the functions it needs to interface with us.
-    FuncDis_SetRedrawFunction ( &redraw );
-    FuncDis_SetSendTCLCommandFunction ( &SendTCLCommand );
 
     // now init the graph window.
     FuncDis_InitGraphWindow ( interp );
@@ -8848,22 +8721,24 @@ static void Prompt(interp, partial)
 
 void ReadVolumeWithMRIRead ( char * inFileOrPath ) {
 
-  MRI * theUnconformedVolume, *theVolume;
+  MRI *theVolume;
   int theSlice, theRow, theCol;
+  unsigned char theIntensity;
+  unsigned char * theSlicePtr;
 
   // pass the path to MRIRead
-  theUnconformedVolume = MRIread ( inFileOrPath );
+  theVolume = MRIread ( inFileOrPath );
 
   // make sure the result is good.
-  if ( NULL == theUnconformedVolume ) {
+  if ( NULL == theVolume ) {
     OutputPrint "Couldn't read volume data at %s\n", 
       inFileOrPath EndOutputPrint;
     exit ( 1 );
   }
 
   // conform it.
-  theVolume = MRIconform ( theUnconformedVolume );
-
+  theVolume = MRIconform ( theVolume );
+  
   // grab all the data we need.
   imnr0 = theVolume->imnr0;
   imnr1 = theVolume->imnr1;
@@ -8917,14 +8792,7 @@ void ReadVolumeWithMRIRead ( char * inFileOrPath ) {
   DebugPrint "\ttransform_loaded = %d\n", transform_loaded EndDebugPrint;
   */
 
-  // each slice is an array of rows. each row is an array of cols.
-  // im[][][] is our volume buffer.
-  for ( theSlice = 0 ; theSlice < numimg; theSlice++ ) {
-    im[theSlice] = (BUFTYPE**)lcalloc ( ynum, sizeof(BUFTYPE*) );
-    for ( theRow = 0; theRow < ynum; theRow++ ) {
-      im[theSlice][theRow] = (BUFTYPE*)lcalloc ( xnum, sizeof(BUFTYPE) );
-    }
-  }
+  InitVolume ( &gAnatomicalVolume, xnum );
 
   // sim[][][] is a small volume buffer.
   for ( theSlice = 0 ; theSlice < 6; theSlice++ ) {
@@ -8936,7 +8804,8 @@ void ReadVolumeWithMRIRead ( char * inFileOrPath ) {
 
   // read in all image data into im[], set changed[] for all slices to nil.
   for ( theSlice = 0; theSlice < numimg; theSlice++ ) {
-    memcpy ( im[theSlice], theVolume->slices[theSlice], 
+    theSlicePtr = GetVolumeSlicePtr ( gAnatomicalVolume, theSlice );
+    memcpy ( theSlicePtr, *theVolume->slices[theSlice],
        xnum * ynum * sizeof(BUFTYPE) );
     changed[theSlice] = FALSE;
   }
@@ -8944,14 +8813,18 @@ void ReadVolumeWithMRIRead ( char * inFileOrPath ) {
   for ( theSlice = 0; theSlice < numimg; theSlice++ )
     for ( theRow = 0; theRow < ynum; theRow++ )
       for ( theCol = 0; theCol < xnum; theCol++ ) {
-  if ( im[theSlice][theRow][theCol]/2 > sim[3][theRow][theCol]) 
-    sim[3][theRow][theCol] = im[theSlice][theRow][theCol]/2;
 
-  if ( im[theSlice][theRow][theCol]/2 > sim[4][theSlice][theCol]) 
-    sim[4][theSlice][theCol] = im[theSlice][theRow][theCol]/2;
-
-  if ( im[theSlice][theRow][theCol]/2 > sim[5][theRow][theSlice]) 
-    sim[4][theRow][theSlice] = im[theSlice][theRow][theCol]/2;
+  theIntensity = 
+    GetVoxelValue ( gAnatomicalVolume, theCol, theRow, theSlice ) / 2;
+  
+  if ( theIntensity > sim[3][theRow][theCol]) 
+    sim[3][theRow][theCol] = theIntensity;
+  
+  if ( theIntensity > sim[4][theSlice][theCol]) 
+    sim[4][theSlice][theCol] = theIntensity;
+  
+  if ( theIntensity > sim[5][theRow][theSlice]) 
+    sim[5][theRow][theSlice] = theIntensity;
       }
 
   for ( theRow = 0; theRow < ynum; theRow++ )
@@ -9536,6 +9409,9 @@ void DrawSelectedVoxels ( char * inBuffer, int inPlane, int inPlaneNum ) {
   int theListCount, theListIndex;
   char theListErr;
   int theScreenX, theScreenY, theScreenZ, theScreenH, theScreenV;
+  unsigned char theValue;
+  int theIntensifiedValue;
+  long theColor;
 
   Voxel_New ( &theVoxel );
 
@@ -9583,6 +9459,33 @@ void DrawSelectedVoxels ( char * inBuffer, int inPlane, int inPlaneNum ) {
   continue;
       }
 
+      // get the value of the voxel.
+      theValue = GetVoxelValue ( gAnatomicalVolume, 
+         EXPAND_VOXEL_INT(theVoxel) );
+      
+      // calculate an intensified green value.
+      theIntensifiedValue = theValue + kSel_IntensifyValue;
+      if ( theIntensifiedValue > kPixelComponentLevel_Max ) {
+  theIntensifiedValue = kPixelComponentLevel_Max;
+      }
+
+      // if the other components are within a certain range, lessen them
+      // a little, otherwise the green will not show up.
+      if ( abs(theIntensifiedValue - theValue) <= kSel_TooClose ) {
+
+  theValue -= kSel_IntensifyValue;
+  if ( theValue < 0 ) {
+    theValue = 0;
+  }
+      }
+
+      // construct a new color with full green component.
+      theColor = 
+  ( (unsigned char)kPixelComponentLevel_Max << kPixelOffset_Alpha |
+    (unsigned char)theValue << kPixelOffset_Blue |
+    (unsigned char)theIntensifiedValue << kPixelOffset_Green |
+    (unsigned char)theValue << kPixelOffset_Red );
+      
       // go to screen points
       VoxelToScreen ( Voxel_GetX(theVoxel), Voxel_GetY(theVoxel),
           Voxel_GetZ(theVoxel), 
@@ -9596,7 +9499,7 @@ void DrawSelectedVoxels ( char * inBuffer, int inPlane, int inPlaneNum ) {
          inPlane, &theScreenH, &theScreenV );
     
   FillBoxInBuffer ( inBuffer, theScreenH, theScreenV,
-        gLocalZoom*zf, kRGBAColor_Green );
+        gLocalZoom*zf, theColor );
       }
     }
   }
@@ -9834,6 +9737,67 @@ void LoadSelectionFromLabelFile ( char * inFileName ) {
   Voxel_Delete ( &theVoxel );
 }
 
+void GraphSelectedRegion () {
+
+  char theError;
+  int theListIndex, theListVoxelIndex, theListCount;
+  VoxelRef theAnatomicalVoxel = NULL;
+  VoxelListRef theList = NULL;
+
+  Voxel_New ( &theAnatomicalVoxel );
+
+  // clear the functional display list.
+  FuncDis_ClearCurrentVoxelList ();
+
+  // for every list in a plane of the space... 
+  for ( theListIndex = 0; 
+  theListIndex < kVSpace_NumListsInPlane; 
+  theListIndex++ ) {
+
+    // get the list
+    theError = VSpace_GetVoxelsInXPlane ( gSelectedVoxels, 
+            theListIndex, &theList );
+    if ( kVSpaceErr_NoErr != theError ) {
+      DebugPrint "\tError in VSpace_GetVoxelsInXPlane (%d): %s\n",
+  theError, VSpace_GetErrorString ( theError ) EndDebugPrint;
+      goto cleanup;
+    }
+
+    // get the num of voxels in the list.
+    theError = VList_GetCount ( theList, &theListCount );
+    if ( kVListErr_NoErr != theError ) {
+      DebugPrint "\tError in VList_GetCount (%d): %s\n",
+  theError, VList_GetErrorString ( theError ) EndDebugPrint;
+      goto cleanup;
+    }
+
+    for ( theListVoxelIndex = 0;
+    theListVoxelIndex < theListCount;
+    theListVoxelIndex++ ) {
+      
+      // get a voxel.
+      theError = VList_GetNthVoxel ( theList, 
+             theListVoxelIndex, theAnatomicalVoxel );
+      if ( kVListErr_NoErr != theError ) {
+  DebugPrint "\tError in VList_GetNthVoxel (%d): %s\n",
+    theError, VList_GetErrorString ( theError ) EndDebugPrint;
+  goto cleanup;
+      }
+
+      // add it to the functional display list.
+      FuncDis_AddCurrentVoxel ( theAnatomicalVoxel );
+    }
+  }
+
+  // update the graph.
+  FuncDis_UpdateGraph ();
+
+ cleanup:
+
+  if ( NULL != theAnatomicalVoxel )
+    Voxel_Delete ( &theAnatomicalVoxel );
+}
+
 // ===========================================================================
 
 // =============================================================== BRUSH UTILS
@@ -9941,7 +9905,8 @@ void EditVoxel ( VoxelRef inVoxel, void * inData ) {
   theEditAction = *(int*)inData;
 
   // get the pixel value at this voxel.
-  thePixelValue = GetVoxelValue ( EXPAND_VOXEL_INT(inVoxel) );
+  thePixelValue = GetVoxelValue ( gAnatomicalVolume, 
+          EXPAND_VOXEL_INT(inVoxel) );
   
   // choose a new color.
   if ( TO_WHITE == theEditAction && 
@@ -9967,7 +9932,8 @@ void EditVoxel ( VoxelRef inVoxel, void * inData ) {
   }
   
   // set the pixel value.
-  SetVoxelValue ( EXPAND_VOXEL_INT(inVoxel), theNewPixelValue );
+  SetVoxelValue ( gAnatomicalVolume, 
+      EXPAND_VOXEL_INT(inVoxel), theNewPixelValue );
 
   // mark the slice files that we changed.
   changed [ Voxel_GetZ(inVoxel) ] = TRUE;
@@ -10923,7 +10889,8 @@ void PrintScreenPointInformation ( int j, int i, int ic ) {
   ScreenToVoxel ( plane, j, i, ic, &theVoxX, &theVoxY, &theVoxZ );
 
   // grab the value and print it
-  thePixelValue = im[theVoxZ][theVoxY][theVoxX];
+  thePixelValue =
+    GetVoxelValue ( gAnatomicalVolume, theVoxX, theVoxY, theVoxZ );
   printf ( "Value: %s = %d", imtype, thePixelValue );
 
   // we need to set selectedpixval because it's linked in the tcl script
@@ -10932,7 +10899,8 @@ void PrintScreenPointInformation ( int j, int i, int ic ) {
 
   // if there's a second image, print that value too
   if ( second_im_allocated ) {
-    thePixelValue = im2[theVoxZ][theVoxY][theVoxX];
+    thePixelValue =  
+      GetVoxelValue ( gAuxAnatomicalVolume, theVoxX, theVoxY, theVoxZ );
     printf ( ", %s = %d", imtype2, thePixelValue );
 
     // we set secondpixval so redraw() will se the window title.
@@ -11082,11 +11050,11 @@ void SendTCLCommand ( char * inCommand ) {
   theInterp = GetTCLInterp ();
 
   if ( NULL != theInterp ) {
-    DebugPrint "Sending cmd: %s\n", inCommand EndDebugPrint;
+    //    DebugPrint "Sending cmd: %s\n", inCommand EndDebugPrint;
     theErr = Tcl_Eval ( theInterp, inCommand );
     if ( *theInterp->result != 0 ) {
-      DebugPrint "Cmd: %s\n", inCommand EndDebugPrint;
-      DebugPrint "\tResult: %s\n", theInterp->result EndDebugPrint;
+      //      DebugPrint "Cmd: %s\n", inCommand EndDebugPrint;
+      //      DebugPrint "\tResult: %s\n", theInterp->result EndDebugPrint;
     }
     if ( TCL_OK != theErr ) {
       DebugPrint "Cmd: %s\n", inCommand EndDebugPrint;
@@ -11098,24 +11066,59 @@ void SendTCLCommand ( char * inCommand ) {
 
 
 
-inline
-void SetVoxelValue ( int x, int y, int z, unsigned char inValue ) {
+// ============================================================= VOLUME ACCESS
 
-  if ( IsVoxelInBounds ( x, y, z ) ) {
+void InitVolume ( tVolumeRef* ioVolume, int inDimension ) {
 
-    im[z][y][x] = inValue;
+  tVolumeRef theVolume = NULL;
+
+  gVolumeDimension = inDimension;
+  theVolume = (tVolumeRef) malloc ( gVolumeDimension * 
+            gVolumeDimension *
+            gVolumeDimension );
+
+  if ( NULL == theVolume ) {
+    DebugPrint "InitVolume(): Fatal error, couldn't allocate volume.\n"
+      EndDebugPrint;
+    exit(1);
   }
+
+  *ioVolume = theVolume;
 }
 
 inline
-unsigned char GetVoxelValue ( int x, int y, int z ) {
+void SetVoxelValue ( tVolumeRef inVolume,
+         int x, int y, int z, unsigned char inValue ) {
 
-  if ( IsVoxelInBounds ( x, y, z ) ) {
+  //  if ( IsVoxelInBounds ( x, y, z ) ) {
 
-    return im[z][y][x];
-  }
+    //    im[z][y][x] = inValue;
+    inVolume [ (gVolumeDimension * gVolumeDimension * z) +
+       (gVolumeDimension * y) + x ] = inValue;
+    //  }
+}
 
+inline
+unsigned char GetVoxelValue ( tVolumeRef inVolume,
+            int x, int y, int z ) {
+
+  //  if ( IsVoxelInBounds ( x, y, z ) ) {
+
+    //    return im[z][y][x];
+    return inVolume [ (gVolumeDimension * gVolumeDimension * z) +
+        (gVolumeDimension * y) + x ];
+    //  }
   return 0;
+}
+
+unsigned char * GetVolumeSlicePtr ( tVolumeRef inVolume, int inSlice ) {
+
+  unsigned char * theSlicePtr = NULL;
+
+  theSlicePtr = 
+    &( inVolume[ (gVolumeDimension * gVolumeDimension * inSlice) ]);
+
+  return theSlicePtr;
 }
 
 // ============================================================== EDITING UNDO
@@ -11286,13 +11289,15 @@ void UndoActionWrapper      ( xUndL_tEntryPtr  inUndoneEntry,
   }
 
   // get the value at this voxel.
-  theVoxelValue = GetVoxelValue ( EXPAND_VOXEL_INT(theEntryToUndo->mVoxel) );
+  theVoxelValue = GetVoxelValue ( gAnatomicalVolume,
+          EXPAND_VOXEL_INT(theEntryToUndo->mVoxel) );
 
   // create an entry for it.
   NewUndoEntry ( &theUndoneEntry, theEntryToUndo->mVoxel, theVoxelValue );
 
   // set the voxel value.
-  SetVoxelValue ( EXPAND_VOXEL_INT(theEntryToUndo->mVoxel),
+  SetVoxelValue ( gAnatomicalVolume,
+      EXPAND_VOXEL_INT(theEntryToUndo->mVoxel),
       theEntryToUndo->mValue );
 
   // pass back the new entry.

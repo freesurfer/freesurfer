@@ -81,7 +81,7 @@ xList_tErr xList_Delete ( xListRef* ioppList );
               signature.
            */
 xList_tErr xList_InsertItem ( xListRef this,
-            void* ipItemToInsert );
+            void*    ipItemToInsert );
 
                                    /* desc:
               removes an item from the list. 
@@ -92,7 +92,7 @@ xList_tErr xList_InsertItem ( xListRef this,
               allocate node.
            */
 xList_tErr xList_RemoveItem ( xListRef this,
-            void* ipItemToRemove );
+            void*    ipItemToRemove );
 
                                    /* desc:
               searches list for item, returns true if
@@ -104,7 +104,8 @@ xList_tErr xList_RemoveItem ( xListRef this,
               ipItemToRemove.
            */
 xList_tErr xList_IsInList ( xListRef this,
-          void* ipItem, char* obpIsInList );
+          void*    ipItem, 
+          char*    obpIsInList );
 
                                    /* desc:
               empties the list. only deletes nodes, 
@@ -123,7 +124,7 @@ xList_tErr xList_Clear ( xListRef this );
               signature for list or node.
            */
 xList_tErr xList_GetCount ( xListRef this,
-          int* opCount );
+          int*     opCount );
 
                                    /* desc:
               item by item acccess. gets first item
@@ -136,7 +137,7 @@ xList_tErr xList_GetCount ( xListRef this,
               signature.
            */
 xList_tErr xList_GetFirstItem ( xListRef this,
-        void** oppFirstItem );
+        void**   oppFirstItem );
 
                                    /* desc: given an item, searches the list
               for the item, gets the next node, and
@@ -146,7 +147,8 @@ xList_tErr xList_GetFirstItem ( xListRef this,
               signature.
            */
 xList_tErr xList_GetNextItem ( xListRef this,
-             void* ipCurrentItem, void** oppNextItem );
+             void*    ipCurrentItem, 
+             void**   oppNextItem );
 
                                    /* desc:
               quicker for simple sequential access.
@@ -171,7 +173,7 @@ xList_tErr xList_ResetPosition ( xListRef this );
               signature.
            */
 xList_tErr xList_GetNextItemFromPosition ( xListRef this,
-             void** oppNextItem );
+             void**   oppNextItem );
 
                                    /* desc:
               for stack style access. pushes onto the 
@@ -183,7 +185,7 @@ xList_tErr xList_GetNextItemFromPosition ( xListRef this,
               will be nil.
            */
 xList_tErr xList_PushItem ( xListRef this, 
-          void* ipItemToInsert );
+          void*    ipItemToInsert );
 
                                    /* desc:
               for stack style access. pops an item off
