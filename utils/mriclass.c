@@ -37,6 +37,20 @@
 #define POLV_WSIZE             5
 #define DEBUG_POINT(x,y,z)     (((x) == 40)&&((y)==62)&&((z)==94))
 
+#define MAX_FILES 100
+
+/*-----------------------------------------------------
+                       STRUCTURES
+-------------------------------------------------------*/
+
+typedef struct
+{
+  FILE  *fp ;
+  int   npixels[MAX_INPUTS] ;
+  MRIC  *mric ;
+  int   round ;
+} GET_INPUT_PARMS ;
+
 /*-----------------------------------------------------
                       GLOBAL DATA
 -------------------------------------------------------*/
@@ -64,9 +78,22 @@ static int mricTrainRBF(MRIC *mric, FILE *fp, int nfiles, int round) ;
 static int mricGetClassifierInput(VECTOR *v_inputs, int no, void *parm,
                                   int same_class,int *pclass) ;
 
+static int mricGetClassObservation(GET_INPUT_PARMS *parms,
+                                   VECTOR *v_obs, int obs_no, int class) ;
+static int mricFillInputParms(MRIC *mric, FILE *fp, int round, 
+                              GET_INPUT_PARMS *parms) ;
+
 /*-----------------------------------------------------
                     GLOBAL FUNCTIONS
 -------------------------------------------------------*/
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+          Free an MRIC structure and all its members.
+------------------------------------------------------*/
 int
 MRICfree(MRIC **pmric)
 {
@@ -116,7 +143,7 @@ MRICalloc(int nrounds, int *types, int *features, void *parms)
   mric->nrounds = nrounds ;
   for (round = 0 ; round < nrounds ; round++)
   {
-    for (ninputs = 0, f = 0x001 ; f != MAX_FEATURE ; f<<= 1)
+    for (ninputs = 0, f = 0x001 ; f <= MAX_FEATURE ; f<<= 1)
       if (f & features[round])
         ninputs++ ;
     
@@ -1126,7 +1153,7 @@ MRICfeatureName(MRIC *mric, int round, int feature_number)
   /* first ninputs-1 correspond to inputs #s, rest to frames in priors */
 
   /* find bit which corresponds to this # */
-  for (f = 0x001, fno = 0 ; f != MAX_FEATURE ; f<<=1)
+  for (f = 0x001, fno = 0 ; f <= MAX_FEATURE ; f<<=1)
     if ((f & mric->features[round]) && (fno++ == feature_number))
       break ;
 
@@ -1218,15 +1245,6 @@ mricComputeGCStatistics(MRIC *mric, FILE *fp, int nfiles, int round)
         Description
           Train a Radial Basis Function classifier.
 ------------------------------------------------------*/
-#define MAX_FILES 100
-typedef struct
-{
-  FILE  *fp ;
-  int   npixels[MAX_INPUTS] ;
-  MRIC  *mric ;
-  int   round ;
-} GET_INPUT_PARMS ;
-
 static int 
 mricTrainRBF(MRIC *mric, FILE *fp, int nfiles, int round)
 {
@@ -1247,9 +1265,42 @@ mricTrainRBF(MRIC *mric, FILE *fp, int nfiles, int round)
     mri = MRIreadInfo(source_fname) ;
     parms.npixels[fno] = mri->width * mri->height * mri->depth ;
     fno++ ;
+    MRIfree(&mri) ;
   }
   rewind(fp) ;
   RBFtrain(mric->classifier[round].rbf, mricGetClassifierInput, &parms, 0.0f) ;
+  return(NO_ERROR) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+           Fill the elements of a GET_INPUT_PARMS structure.
+------------------------------------------------------*/
+static int 
+mricFillInputParms(MRIC *mric, FILE *fp, int round, GET_INPUT_PARMS *parms)
+{
+  char             *cp, source_fname[100], line[100] ;
+  int              fno ;
+  MRI              *mri ;
+
+  parms->fp = fp ;
+  parms->mric = mric ;
+  parms->round = round ;
+
+  fno = 0 ;
+  rewind(fp) ;
+  while ((cp = fgetl(line, 299, fp)) != NULL)
+  {
+    sscanf(cp, "%s %*s", source_fname) ;
+    mri = MRIreadInfo(source_fname) ;
+    parms->npixels[fno] = mri->width * mri->height * mri->depth ;
+    fno++ ;
+    MRIfree(&mri) ;
+  }
+  rewind(fp) ;
   return(NO_ERROR) ;
 }
 /*-----------------------------------------------------
@@ -1328,5 +1379,208 @@ MRIvox(mri_wm, 63, 63, 63) = 0 ;
   MRICcomputeInputs(mric,mri_src, x, y, z, v_inputs, mric->features[round]) ;
   *pclass = MRIvox(mri_target, x, y, z) ;
   return(NO_ERROR) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+          Examine the statistical distribution of features in
+          the training set (means and variances). Useful for
+          clustering analysis.
+------------------------------------------------------*/
+int
+MRICexamineTrainingSet(MRIC *mric, char *file_name, int round)
+{
+  char             *cp, source_fname[100], line[100] ;
+  GET_INPUT_PARMS  parms ;
+  int              fno ;
+  MRI              *mri ;
+  FILE             *fp ;
+
+  fp = fopen(file_name, "r") ;
+  if (!fp)
+    ErrorReturn(ERROR_NO_FILE, 
+                (ERROR_NO_FILE, 
+                 "MRICexamineTrainingSet(%s): could not open file",file_name));
+  parms.fp = fp ;
+  parms.mric = mric ;
+  parms.round = round ;
+
+  fno = 0 ;
+  rewind(fp) ;
+  while ((cp = fgetl(line, 299, fp)) != NULL)
+  {
+    sscanf(cp, "%s %*s", source_fname) ;
+    mri = MRIreadInfo(source_fname) ;
+    parms.npixels[fno] = mri->width * mri->height * mri->depth ;
+    fno++ ;
+  }
+  rewind(fp) ;
+
+  parms.fp = fp ;
+  parms.mric = mric ;
+  parms.round = round ;
+  RBFexamineTrainingSet(mric->classifier[round].rbf, mricGetClassifierInput, 
+                        &parms) ;
+
+  return(NO_ERROR) ;
+}
+
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+          Build a pairwise scatter plot of the (normalized) 
+          features in the given mric.
+------------------------------------------------------*/
+#define SCATTER_ROUND     0
+
+int
+MRICbuildScatterPlot(MRIC *mric, int class, MATRIX *m_scatter,
+                 char *training_file_name)
+{
+  static int       first = 0 ;
+  int              obs_no = 0, i, x, y, nbins, half_bins, bin_offset ;
+  VECTOR           *v_obs ;
+#if 0
+  float            *means, *stds, mean, std ;
+#endif
+  float            v, z[2], *mins, *maxs,mn,mx ;
+  RBF              *rbf ;
+  GET_INPUT_PARMS  parms ;
+  FILE             *fp ;
+
+  nbins = m_scatter->rows ;
+  half_bins = (nbins-1)/2 ;
+  bin_offset = half_bins ;
+  if (!first)
+  {
+    first = 1 ;
+    if (Gdiag & DIAG_SHOW)
+      fprintf(stderr, "examining training set...") ;
+    MRICexamineTrainingSet(mric, training_file_name, SCATTER_ROUND) ;
+    if (Gdiag & DIAG_SHOW)
+      fprintf(stderr, "done.\n") ;
+  }
+
+  fp = fopen(training_file_name, "r") ;
+  if (!fp)
+    ErrorReturn(ERROR_NO_FILE, 
+                (ERROR_NO_FILE, 
+                 "MRICbuildScatterPlot(%s): could not open file",
+                 training_file_name));
+  mricFillInputParms(mric, fp, SCATTER_ROUND, &parms) ;
+
+  rbf = mric->classifier[SCATTER_ROUND].rbf ;
+
+  v_obs = VectorAlloc(rbf->ninputs, MATRIX_REAL) ;
+
+  /* not really a good idea to be messing with the CS internal parameters,
+     but it's much easier than the alternative, because all the other CS stuff
+     is class-specific, but the means and stds for normalizing the inputs 
+     should be across all classes.
+     */
+
+  /* now fill in scatter plot */
+#if 0
+  means = rbf->cs[0]->means ;
+  stds = rbf->cs[0]->stds ;
+  while (mricGetClassObservation(&parms, v_obs,obs_no++,class) == NO_ERROR)
+  {
+    for (i = 0 ; i < rbf->ninputs ; i++)
+    {
+      mean = means[i] ;
+      std = stds[i] ;
+      v = VECTOR_ELT(v_obs, i+1) ;
+      z[i] = (v - mean) / std ;
+    }
+
+    /* map 0 to half_bins, -MAX_SIGMA*sigma to 0, MAX_SIGMA*sigma to nbins */
+    x = z[0]/MAX_SIGMA*half_bins + bin_offset ;
+    y = z[1]/MAX_SIGMA*half_bins + bin_offset ;
+    if (x < 0) x = 0 ; else if (x >= nbins) x = nbins-1 ;
+    if (y < 0) y = 0 ; else if (y >= nbins) y = nbins-1 ;
+    m_scatter->rptr[x][y] += 1.0f ;
+  }
+#else
+  mins = rbf->min_inputs ;
+  maxs = rbf->max_inputs ;
+  while (mricGetClassObservation(&parms,v_obs,obs_no++,class) == NO_ERROR)
+  {
+    for (i = 0 ; i < rbf->ninputs ; i++)
+    {
+      mn = mins[i] ;
+      mx = maxs[i] ;
+      v = VECTOR_ELT(v_obs, i+1) ;
+      z[i] = (v - mn) / (mx - mn) ;   /* scale it to 0 --> 1 */
+    }
+
+    /* map 0 to half_bins, -MAX_SIGMA*sigma to 0, MAX_SIGMA*sigma to nbins */
+    x = z[0]*(nbins-1)+1 ;
+    y = z[1]*(nbins-1)+1 ;
+    if (x <= 0) 
+      DiagBreak() ; 
+    else if (x > nbins) 
+      DiagBreak() ;
+    if (y <= 0) 
+      DiagBreak() ; 
+    else if (y > nbins) 
+      DiagBreak() ;
+    m_scatter->rptr[x][y] += 1.0f ;
+  }
+#endif
+  VectorFree(&v_obs) ;
+  return(NO_ERROR) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+          Find the next observation for a given class. Stolen
+          from rbf.c, but both really need it so....
+------------------------------------------------------*/
+static int
+mricGetClassObservation(GET_INPUT_PARMS *parms, VECTOR *v_obs, 
+                        int desired_class_obs_no, int class)
+{
+  int             ret, classno, obs_no, class_obs_no ;
+  static int      last_class = -1 ;
+  static int      last_class_obs = -1 ;
+  static int      last_obs = -1 ;
+
+  desired_class_obs_no++ ;     /* it is a count - not an index */
+  classno = class ;
+  if (classno == last_class && desired_class_obs_no > last_class_obs)
+  {
+    /* start at one past previous observation, not at start */
+    class_obs_no = last_class_obs ;
+    obs_no = last_obs+1 ;
+  }
+  else
+    class_obs_no = obs_no = 0 ;
+
+  do
+  {
+    ret = mricGetClassifierInput(v_obs, obs_no++, parms, 1, &classno);
+    if ((ret == NO_ERROR) && (classno == class))
+      class_obs_no++ ;
+  } while ((ret == NO_ERROR) && (class_obs_no < desired_class_obs_no)) ;
+
+  if (ret == NO_ERROR)
+  {
+    last_class = classno ;
+    last_obs = obs_no-1 ;
+    last_class_obs = desired_class_obs_no ;
+  }
+  else
+    last_class = last_obs = last_class_obs = -1 ;
+
+  return(ret) ;
 }
 
