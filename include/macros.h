@@ -85,4 +85,8 @@
 
 #define ISPOW2(n)   (exp2((float)nint(log2((float)n))) == (float)n)
 
+#ifndef INT32B
+#define INT32B  long
+#endif
+
 #endif
