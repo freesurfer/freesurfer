@@ -1,6 +1,6 @@
 /*---------------------------------------------------------------
   Name: resample.c
-  $Id: resample.c,v 1.8 2002/08/01 17:41:59 greve Exp $
+  $Id: resample.c,v 1.9 2002/09/06 19:44:26 greve Exp $
   Author: Douglas N. Greve
   Purpose: code to perform resapling from one space to another, 
   including: volume-to-volume, volume-to-surface, and surface-to-surface.
@@ -46,6 +46,7 @@
   to be implemented.
   ---------------------------------------------------------------*/
 
+#define RESAMPLE_SOURCE_CODE_FILE
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -735,6 +736,8 @@ MRI *surf2surf_nnfr(MRI *SrcSurfVals, MRI_SURFACE *SrcSurfReg,
   VERTEX *v;
   MHT *SrcHash, *TrgHash;
   float dmin;
+  extern char *ResampleVtxMapFile;
+  FILE *fp = NULL;
 
   /* check dimension consistency */
   if(SrcSurfVals->width != SrcSurfReg->nvertices){
@@ -771,6 +774,15 @@ MRI *surf2surf_nnfr(MRI *SrcSurfVals, MRI_SURFACE *SrcSurfReg,
     SrcHash = MHTfillVertexTableRes(SrcSurfReg, NULL,CURRENT_VERTICES,16);
   }
 
+  /* Open vertex map file */
+  if(ResampleVtxMapFile != NULL){
+    fp = fopen(ResampleVtxMapFile,"w");
+    if(fp == NULL){
+      printf("ERROR: could not open %s\n",ResampleVtxMapFile);
+      exit(1);
+    }
+  }
+
   /*---------------------------------------------------------------
     Go through the forwad loop (finding closest srcvtx to each trgvtx).
     This maps each target vertex to a source vertex */
@@ -802,9 +814,18 @@ MRI *surf2surf_nnfr(MRI *SrcSurfVals, MRI_SURFACE *SrcSurfReg,
     /* accumulate mapped values for each frame */
     for(f=0; f < SrcSurfVals->nframes; f++)
       MRIFseq_vox(TrgSurfVals,tvtx,0,0,f) += 
-  MRIFseq_vox(SrcSurfVals,svtx,0,0,f);
+	MRIFseq_vox(SrcSurfVals,svtx,0,0,f);
+
+    if(ResampleVtxMapFile != NULL){
+      fprintf(fp,"%6d  (%6.1f,%6.1f,%6.1f)   ",tvtx,v->x,v->y,v->z);
+      v = &(SrcSurfReg->vertices[svtx]);
+      fprintf(fp,"%6d  (%6.1f,%6.1f,%6.1f)    %5.4f\n",svtx,v->x,v->y,v->z,dmin);
+      fflush(fp);
+    }
   }
   printf("\n");
+
+  if(ResampleVtxMapFile != NULL) fclose(fp);
 
   /*---------------------------------------------------------------
     Go through the reverse loop (finding closest trgvtx to each srcvtx
