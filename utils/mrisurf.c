@@ -17094,7 +17094,11 @@ MRIScomputeBorderValues(MRI_SURFACE *mris,MRI *mri_brain,
           */
           if ((next_val >= outside_low) && 
               (next_val <= border_hi) &&
+#if 0
               (!local_max_found || (val < max_mag_val)))
+#else
+              (!local_max_found || (max_mag < fabs(mag))))
+#endif
           {          
             local_max_found = 1 ;
             max_mag_dist = dist ;
