@@ -149,19 +149,25 @@ int is_cor(char *fname)
 {
 
   struct stat stat_buf;
+  char *fname2, *base;
+  int iscor = 0;
 
   if(stat(fname, &stat_buf) < 0)
     return(0);
 
   /* if it's a directory, it's a COR dir. */
   if(S_ISDIR(stat_buf.st_mode))
-    return(1);
+    iscor = 1;
 
   /* if the first four letters are COR- */
-  if(strncmp(fname,"COR-",4) == 0)
-    return(1);
+  fname2 = strdup(fname);
+  base = basename(fname2);
+  if(strncmp(base,"COR-",4) == 0)
+    iscor = 1;;
 
-  return(0);
+  free(fname2);
+
+  return(iscor);;
 
 }  /*  end is_cor()  */
 
