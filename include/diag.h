@@ -30,6 +30,7 @@ int  DiagFprintf(unsigned long diag_bits, char *fmt, ...) ;
 void DiagBreak(void) ;  /* dummy for break points in debugger */
 void DiagHeartbeat(float pct_done) ;
 void DiagShowPctDone(float pct_done, int nprints) ;
+int check_finite(char *where, double what) ;
 
 /* diagnostic codes */
 #define DIAG_LP         0x00000001L   /* license plate detection diagnostics */
