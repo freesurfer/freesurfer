@@ -3,8 +3,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2003/10/02 19:21:03 $
-// Revision       : $Revision: 1.89 $
+// Revision Date  : $Date: 2003/10/02 20:58:18 $
+// Revision       : $Revision: 1.90 $
 
 #include "tkmDisplayArea.h"
 #include "tkmMeditWindow.h"
@@ -6785,6 +6785,7 @@ DspA_tErr DspA_SendPointInformationToTcl_ ( tkmDisplayAreaRef this,
 					    xVoxelRef         iAnaIdx ) {
   
   xVoxel                voxel;
+  CLUT_tErr             eColorTable        = CLUT_tErr_NoErr;
   char                  sTclArguments[STRLEN] = "";
   int                   nSlice             = 0;
   float                 fVolumeValue       = 0;
@@ -6795,6 +6796,7 @@ DspA_tErr DspA_SendPointInformationToTcl_ ( tkmDisplayAreaRef this,
   FunV_tFunctionalValue funcValue          = 0;
   tBoolean              bFuncSelection     = FALSE;
   int                   nSegLabelIndex     = 0;
+  float                 fSegLabelIndex     = 0;
   char                  sLabel[STRLEN]        = "";
   int                   nValue             = 0;
   DspA_tHistogramParams histoParams;
@@ -6983,7 +6985,23 @@ DspA_tErr DspA_SendPointInformationToTcl_ ( tkmDisplayAreaRef this,
   /* and the seg label if we have one */
   if( NULL != this->mSegmentationVolume[tkm_tSegType_Main] ) {
 
-    tkm_GetSegLabel( tkm_tSegType_Main, &MRIIdx, &nSegLabelIndex, sLabel );
+
+    /* Get the value in ana idx space (this was messing up for some
+       volumes with weird CRAS transforms) and get the corresponding
+       label string. */
+    Volm_GetValueAtIdx_( this->mSegmentationVolume[tkm_tSegType_Main],
+			 iAnaIdx, &fSegLabelIndex );
+    if( 0 == fSegLabelIndex ) {
+      strcpy( sLabel, "None" );
+    } else {
+      eColorTable = 
+	CLUT_GetLabel( this->mSegmentationColorTable[tkm_tSegType_Main],
+		       fSegLabelIndex, sLabel );
+      if( CLUT_tErr_NoErr != eColorTable ) {
+	strcpy( sLabel, "Out of bounds." );
+      }
+    }
+    
     
     /* if this is a click, and this is the seg volume we're looking
        at, set the index */
@@ -7023,7 +7041,21 @@ DspA_tErr DspA_SendPointInformationToTcl_ ( tkmDisplayAreaRef this,
   /* and the aux seg label if we have one */
   if( NULL != this->mSegmentationVolume[tkm_tSegType_Aux] ) {
 
-    tkm_GetSegLabel( tkm_tSegType_Aux, &MRIIdx, &nSegLabelIndex, sLabel );
+    /* Get the value in ana idx space (this was messing up for some
+       volumes with weird CRAS transforms) and get the corresponding
+       label string. */
+    Volm_GetValueAtIdx_( this->mSegmentationVolume[tkm_tSegType_Aux],
+			 iAnaIdx, &fSegLabelIndex );
+    if( 0 == fSegLabelIndex ) {
+      strcpy( sLabel, "None" );
+    } else {
+      eColorTable = 
+	CLUT_GetLabel( this->mSegmentationColorTable[tkm_tSegType_Aux],
+		       fSegLabelIndex, sLabel );
+      if( CLUT_tErr_NoErr != eColorTable ) {
+	strcpy( sLabel, "Out of bounds." );
+      }
+    }
     
     /* if this is a click, and this is the seg volume we're looking
        at, set the index */
