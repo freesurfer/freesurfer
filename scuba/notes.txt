@@ -237,10 +237,6 @@ option menus for data collections in label dlogs
 
 
 
-static version
- - redo argument letters
-
-
 BRUCE'S LIST:::
 
 - b/c controled by mouse

@@ -1987,18 +1987,11 @@ proc UpdateCurrentViewProperties {} {
 	# Get the current value of this layer.
 	set layerID [GetLayerInViewAtLevel $gaView(current,id) $nLevel]
 
-	$gaWidget(viewProperties,drawLevelMenu$nLevel) \
-	    config -disablecallback 1
-	set gaView(current,draw$nLevel) $layerID
-	$gaWidget(viewProperties,drawLevelMenu$nLevel) \
-	    config -disablecallback 0
-
 	# Disable callback.
 	$gaWidget(viewProperties,drawLevelMenu$nLevel) \
 	    config -disablecallback 1
 
-	# Find the index of the layer ID at this draw level in the
-	# view, and set the menu appropriately.
+	# Set the layer id in the draw level.
 	$gaWidget(viewProperties,drawLevelMenu$nLevel) config -value $layerID
 
 	# Renable the callback.
