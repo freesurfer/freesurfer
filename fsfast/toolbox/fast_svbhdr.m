@@ -11,7 +11,7 @@ function err = fast_svbhdr(m, bhdrfile, isstem)
 %
 % See also fast_ldbhdr and fast_mri_struct.
 %
-% $Id: fast_svbhdr.m,v 1.4 2004/03/18 23:18:45 greve Exp $
+% $Id: fast_svbhdr.m,v 1.5 2004/11/09 17:41:28 greve Exp $
 
 err = 1;
 
@@ -75,7 +75,7 @@ fprintf(fid,'      normal_s: %f\n',SliceNorm(3));
 fprintf(fid,'      image_te: %f\n',m.te);
 fprintf(fid,'      image_tr: %f\n',m.tr);
 fprintf(fid,'      image_ti: %f\n',m.ti);
-fprintf(fid,'    flip_angle: %f\n',pi*m.flip_angle/180);
+fprintf(fid,'    flip_angle: %f\n',m.flip_angle);
 
 fclose(fid);
 

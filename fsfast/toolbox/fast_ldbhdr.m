@@ -16,7 +16,7 @@ function m = fast_ldbhdr(bhdrfile);
 %
 % See also fast_svbhdr and fast_mri_struct.
 %
-% $Id: fast_ldbhdr.m,v 1.5 2004/10/30 17:32:13 greve Exp $
+% $Id: fast_ldbhdr.m,v 1.6 2004/11/09 17:41:28 greve Exp $
 
 m = [];
 
@@ -72,7 +72,7 @@ while(1)
    case {'image_te:'},      m.te = val;
    case {'image_tr:'},      m.tr = val;
    case {'image_ti:'},      m.ti = val;
-   case {'flip_angle:'},    m.flip_angle = 180*val/pi;
+   case {'flip_angle:'},    m.flip_angle = val;
   end
   
 end % while (1)
