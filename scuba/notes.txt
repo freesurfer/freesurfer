@@ -313,8 +313,39 @@ x  - on ctor, gets stuff from prefs file
 x  - ScubaView gets R/L flip bool from here
  - modify PreferencesManager to have PreferencesUsers class, others mix in, have SavePrerferences() call that clientes use to set prefs before file is saved
 
-
 x ScubaView needs to use TranslateWindowToRAS when drawing coords on side of window
+
+
+ROIs
+ - multiple
+ - must be resolution independent, or dependent on resolution of volume/data
+   - if just list of RAS coords, might not work between 1mm and 0.8mm res vols
+ - selections are tied to volume collections
+   - need volume collection panel with data, list of ROIs
+
+ - Data panel
+   - menu of ROIS
+   - New ROI, Delete ROI button
+   - congifure color or LUT value of ROI
+
+ - NewROI <colID>  - returns roiID
+ - GetListOfROISForCollection <colID> - returns list of roiID
+ - SelectRAS <roiID> <ras>
+
+
+
+Edit ROI tool
+ - color or structure settings
+ - brush
+   - select voxels in any 'selectable' volume collection 
+ - fill
+   - option for stopping at existing ROI
+   - always stops at lines
+
+line tools
+ - draw series of lines with different tools, i.e. polygon, circle, weighted
+ - just act as 'fill boundaries'
+
 
 
 
