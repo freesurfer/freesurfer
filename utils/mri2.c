@@ -1,7 +1,7 @@
 /*-------------------------------------------------------------------
   Name: mri2.c
   Author: Douglas N. Greve
-  $Id: mri2.c,v 1.1 2001/02/06 18:06:41 greve Exp $
+  $Id: mri2.c,v 1.2 2001/02/24 00:26:28 greve Exp $
   Purpose: more routines for loading, saving, and operating on MRI 
   structures.
   -------------------------------------------------------------------*/
@@ -34,7 +34,7 @@ MRI * mri_load_bvolume(char *bfstem)
 
   /* allocate the MRI */
   vol = MRIallocSequence(bfvol->ncols,bfvol->nrows,
-			 bfvol->nslcs,MRI_FLOAT,bfvol->nfrms);
+       bfvol->nslcs,MRI_FLOAT,bfvol->nfrms);
   if(vol==NULL){
     bf_freebfd(&bfvol);
     fprintf(stderr,"mri_load_bvolume(): could not alloc vol\n");
@@ -45,10 +45,10 @@ MRI * mri_load_bvolume(char *bfstem)
   for(r=0;r<bfvol->nrows;r++){
     for(c=0;c<bfvol->ncols;c++){
       for(s=0;s<bfvol->nslcs;s++){
-	for(f=0;f<bfvol->nfrms;f++){
-	  val = BF_GETVAL(bfvol,r,c,s,f);
-	  MRIFseq_vox(vol,c,r,s,f) = val;
-	}
+  for(f=0;f<bfvol->nfrms;f++){
+    val = BF_GETVAL(bfvol,r,c,s,f);
+    MRIFseq_vox(vol,c,r,s,f) = val;
+  }
       }
     }
   }
@@ -75,17 +75,13 @@ int mri_save_as_bvolume(MRI *vol, char *stem, int svendian, int svtype)
   for(r=0;r<bfvol->nrows;r++){
     for(c=0;c<bfvol->ncols;c++){
       for(s=0;s<bfvol->nslcs;s++){
-	for(f=0;f<bfvol->nfrms;f++){
-	  val = MRIFseq_vox(vol,c,r,s,f);
-	  BF_SETVAL(val,bfvol,r,c,s,f);
-	}
+  for(f=0;f<bfvol->nfrms;f++){
+    val = MRIFseq_vox(vol,c,r,s,f);
+    BF_SETVAL(val,bfvol,r,c,s,f);
+  }
       }
     }
   }
-
-  r = 0; c = 82314; s = 0; f = 0;
-  printf("mri = %g, bf = %g\n",MRIFseq_vox(vol,c,r,s,f),
-	 BF_GETVAL(bfvol,r,c,s,f));
 
   /* save the BF_DATA volume */
   bf_svvolume(bfvol,stem,svendian,svtype);
@@ -109,14 +105,14 @@ MRI * mri_load_bvolume_frame(char *bfstem, int frameno)
 
   if(frameno >= bfvol->nfrms){
     fprintf(stderr,"ERROR: mri_load_bvolume_frame(): frameno = %d, exceeds "
-	    "number of frames in %s = %d\n",frameno,bfstem,bfvol->nfrms);
+      "number of frames in %s = %d\n",frameno,bfstem,bfvol->nfrms);
     bf_freebfd(&bfvol);
     return(NULL);
   }
 
   /* allocate the MRI */
   vol = MRIallocSequence(bfvol->ncols,bfvol->nrows,
-			 bfvol->nslcs,MRI_FLOAT,1);
+       bfvol->nslcs,MRI_FLOAT,1);
   if(vol==NULL){
     bf_freebfd(&bfvol);
     fprintf(stderr,"mri_load_bvolume_frame(): could not alloc vol\n");
@@ -127,8 +123,8 @@ MRI * mri_load_bvolume_frame(char *bfstem, int frameno)
   for(r=0;r<bfvol->nrows;r++){
     for(c=0;c<bfvol->ncols;c++){
       for(s=0;s<bfvol->nslcs;s++){
-	val = BF_GETVAL(bfvol,r,c,s,frameno);
-	MRIFseq_vox(vol,c,r,s,0) = val;
+  val = BF_GETVAL(bfvol,r,c,s,frameno);
+  MRIFseq_vox(vol,c,r,s,0) = val;
       }
     }
   }
@@ -156,7 +152,7 @@ int mri_save_as_cor(MRI *vol,  char *cordir, int frame, int rescale)
   
   if(frame >= vol->nframes){
     fprintf(stderr,"mri_save_as_cor(): frame = %d, must be <= %d\n",
-	    frame,vol->nframes);
+      frame,vol->nframes);
     return(1);
   }
 
@@ -183,8 +179,8 @@ int mri_save_as_cor(MRI *vol,  char *cordir, int frame, int rescale)
   for(r=0; r < rmax ; r++){
     for(c=0; c < cmax ; c++){
       for(s=0; s < smax ; s++){
-	val = MRIFseq_vox(vol,c,r,s,0);
-	CORVAL(COR,r,c,s) = (unsigned char) val;
+  val = MRIFseq_vox(vol,c,r,s,0);
+  CORVAL(COR,r,c,s) = (unsigned char) val;
       }
     }
   }
@@ -209,7 +205,7 @@ MRI *mri_rescale(MRI *vol, float min, float max, MRI *outvol)
   if(outvol != NULL) tmpvol = outvol;
   else{
     tmpvol = MRIallocSequence(vol->width,vol->height,vol->depth,
-			      MRI_FLOAT,vol->nframes);
+            MRI_FLOAT,vol->nframes);
     if(tmpvol == NULL) return(NULL);
   }
 
@@ -219,11 +215,11 @@ MRI *mri_rescale(MRI *vol, float min, float max, MRI *outvol)
   for(r=0;r<vol->height;r++){
     for(c=0;c<vol->width;c++){
       for(s=0;s<vol->depth;s++){
-	for(f=0;f<vol->nframes;f++){
-	  val = MRIFseq_vox(vol,c,r,s,f);
-	  if(volmin > val) volmin = val;
-	  if(volmax < val) volmax = val;
-	}
+  for(f=0;f<vol->nframes;f++){
+    val = MRIFseq_vox(vol,c,r,s,f);
+    if(volmin > val) volmin = val;
+    if(volmax < val) volmax = val;
+  }
       }
     }
   }
@@ -234,11 +230,11 @@ MRI *mri_rescale(MRI *vol, float min, float max, MRI *outvol)
   for(r=0;r<vol->height;r++){
     for(c=0;c<vol->width;c++){
       for(s=0;s<vol->depth;s++){
-	for(f=0;f<vol->nframes;f++){
-	  val = MRIFseq_vox(vol,c,r,s,f);
-	  val = range*val + min;
-	  MRIFseq_vox(tmpvol,c,r,s,f) = val;
-	}
+  for(f=0;f<vol->nframes;f++){
+    val = MRIFseq_vox(vol,c,r,s,f);
+    val = range*val + min;
+    MRIFseq_vox(tmpvol,c,r,s,f) = val;
+  }
       }
     }
   }
@@ -260,11 +256,11 @@ int mri_minmax(MRI *vol, float *min, float *max)
   for(r=0;r<vol->height;r++){
     for(c=0;c<vol->width;c++){
       for(s=0;s<vol->depth;s++){
-	for(f=0;f<vol->nframes;f++){
-	  val = MRIFseq_vox(vol,c,r,s,f);
-	  if(*min > val) *min = val;
-	  if(*max < val) *max = val;
-	}
+  for(f=0;f<vol->nframes;f++){
+    val = MRIFseq_vox(vol,c,r,s,f);
+    if(*min > val) *min = val;
+    if(*max < val) *max = val;
+  }
       }
     }
   }
@@ -293,12 +289,12 @@ int mri_framepower(MRI *vol, float *framepower)
     /* power = 0.5 -- use sqrt() */
     if( fabs(framepower[f]-0.5) < .00001  ){
       for(r=0;r<vol->height;r++){
-	for(c=0;c<vol->width;c++){
-	  for(s=0;s<vol->depth;s++){
-	    val = MRIFseq_vox(vol,c,r,s,f);
-	    MRIFseq_vox(vol,c,r,s,f) = sqrt(val);
-	  }
-	}
+  for(c=0;c<vol->width;c++){
+    for(s=0;s<vol->depth;s++){
+      val = MRIFseq_vox(vol,c,r,s,f);
+      MRIFseq_vox(vol,c,r,s,f) = sqrt(val);
+    }
+  }
       }
       continue;
     }
@@ -306,12 +302,12 @@ int mri_framepower(MRI *vol, float *framepower)
     /* power = 2 -- use val*val */
     if( fabs(framepower[f]-0.5) < .00001  ){
       for(r=0;r<vol->height;r++){
-	for(c=0;c<vol->width;c++){
-	  for(s=0;s<vol->depth;s++){
-	    val = MRIFseq_vox(vol,c,r,s,f);
-	    MRIFseq_vox(vol,c,r,s,f) = val*val;
-	  }
-	}
+  for(c=0;c<vol->width;c++){
+    for(s=0;s<vol->depth;s++){
+      val = MRIFseq_vox(vol,c,r,s,f);
+      MRIFseq_vox(vol,c,r,s,f) = val*val;
+    }
+  }
       }
       continue;
     }
@@ -319,10 +315,10 @@ int mri_framepower(MRI *vol, float *framepower)
     /* generic: use pow() -- least efficient */
     for(r=0;r<vol->height;r++){
       for(c=0;c<vol->width;c++){
-	for(s=0;s<vol->depth;s++){
-	  val = MRIFseq_vox(vol,c,r,s,f);
-	  MRIFseq_vox(vol,c,r,s,f) = pow(val,framepower[f]);
-	}
+  for(s=0;s<vol->depth;s++){
+    val = MRIFseq_vox(vol,c,r,s,f);
+    MRIFseq_vox(vol,c,r,s,f) = pow(val,framepower[f]);
+  }
       }
     }
 
@@ -356,7 +352,7 @@ MRI *mri_binarize(MRI *vol, float thresh, char *tail, MRI *volbin, int *nover)
 
   if(volbin == NULL){
     voltmp = MRIallocSequence(vol->width,vol->height,vol->depth,
-			      MRI_FLOAT,vol->nframes); 
+            MRI_FLOAT,vol->nframes); 
     if(voltmp == NULL) return(NULL);
   }
   else voltmp = volbin;
@@ -365,19 +361,19 @@ MRI *mri_binarize(MRI *vol, float thresh, char *tail, MRI *volbin, int *nover)
   for(r=0;r<vol->height;r++){
     for(c=0;c<vol->width;c++){
       for(s=0;s<vol->depth;s++){
-	for(f=0;f<vol->nframes;f++){
-	  val = MRIFseq_vox(vol,c,r,s,f); 
-	  switch(tailcode){
-	  case 2: val = -val; break;
-	  case 3: val = fabs(val); break;
-	  }
-	  if(val > thresh){
-	    val = 1.0;
-	    (*nover) ++;
-	  }
-	  else             val = 0.0;
-	  MRIFseq_vox(voltmp,c,r,s,f) = val;
-	}
+  for(f=0;f<vol->nframes;f++){
+    val = MRIFseq_vox(vol,c,r,s,f); 
+    switch(tailcode){
+    case 2: val = -val; break;
+    case 3: val = fabs(val); break;
+    }
+    if(val > thresh){
+      val = 1.0;
+      (*nover) ++;
+    }
+    else             val = 0.0;
+    MRIFseq_vox(voltmp,c,r,s,f) = val;
+  }
       }
     }
   }
@@ -405,8 +401,8 @@ MRI *mri_load_cor_as_float(char *cordir)
   for(r=0;r<vol->height;r++){
     for(c=0;c<vol->width;c++){
       for(s=0;s<vol->depth;s++){
-	val = (float)(MRIseq_vox(ucvol,c,r,s,0));
-	MRIFseq_vox(vol,c,r,s,0) = val;
+  val = (float)(MRIseq_vox(ucvol,c,r,s,0));
+  MRIFseq_vox(vol,c,r,s,0) = val;
       }
     }
   }
