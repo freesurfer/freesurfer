@@ -206,7 +206,7 @@ MRI *MRIreadType(char *fname, int type)
   }
   else
   {
-    ErrorReturn(NULL, (ERROR_BADPARM, "MRIread(): code inconsistency (file type recognized but not caught)"));
+    ErrorReturn(NULL, (ERROR_BADPARM, "MRIreadType(): code inconsistency (file type recognized but not caught)"));
   }
 
   if(mri == NULL)
@@ -222,15 +222,15 @@ MRI *MRIreadType(char *fname, int type)
           {
             if(devIsinf((MRIFvox(mri, i, j, k))) != 0)
             {
-              ErrorReturn(NULL, (ERROR_BADPARM, "MRIread(): Inf at voxel %d, %d, %d", i, j, k));
+              ErrorReturn(NULL, (ERROR_BADPARM, "MRIreadType(): Inf at voxel %d, %d, %d", i, j, k));
             }
             else if(devIsnan((MRIFvox(mri, i, j, k))))
             {
-              ErrorReturn(NULL, (ERROR_BADPARM, "MRIread(): NaN at voxel %d, %d, %d", i, j, k));
+              ErrorReturn(NULL, (ERROR_BADPARM, "MRIreadType(): NaN at voxel %d, %d, %d", i, j, k));
             }
             else
             {
-              ErrorReturn(NULL, (ERROR_BADPARM, "MRIread(): bizarre value (not Inf, not NaN, but not finite) at %d, %d, %d", i, j, k));
+              ErrorReturn(NULL, (ERROR_BADPARM, "MRIreadType(): bizarre value (not Inf, not NaN, but not finite) at %d, %d, %d", i, j, k));
             }
           }
   }
@@ -420,6 +420,7 @@ static MRI *corRead(char *fname, int read_volume)
   float c_r, c_a, c_s;
   char xform[STRLEN];
   long gotten;
+  char xform_use[STRLEN];
 
   /* ----- check that it is a directory we've been passed ----- */
   if(stat(fname, &stat_buf) < 0)
@@ -689,6 +690,7 @@ if(x_r == 0.0 && x_a == 0.0 && x_s == 0.0 && y_r == 0.0 && y_a == 0.0 && y_s == 
   mri->y_r = y_r;  mri->y_a = y_a;  mri->y_s = y_s;
   mri->z_r = z_r;  mri->z_a = z_a;  mri->z_s = z_s;
   mri->c_r = c_r;  mri->c_a = c_a;  mri->c_s = c_s;
+
   if(strlen(xform) > 0)
   {
 
@@ -697,18 +699,34 @@ if(x_r == 0.0 && x_a == 0.0 && x_s == 0.0 && y_r == 0.0 && y_a == 0.0 && y_s == 
     else
       sprintf(mri->transform_fname, "%s/%s", fname, xform);
 
-    if(input_transform_file(mri->transform_fname, &(mri->transform)) == NO_ERROR)
+    strcpy(xform_use, mri->transform_fname);
+
+    if(!FileExists(xform_use))
     {
-      mri->linear_transform = get_linear_transform_ptr(&mri->transform);
-      mri->inverse_linear_transform = get_inverse_linear_transform_ptr(&mri->transform);
-      mri->free_transform = 1;
+      printf("can't find talairach file %s\n", xform_use);
+      sprintf(xform_use, "%s/../transforms/talairach.xfm", fname);
+      printf("trying %s instead...\n", xform_use);
+      if(!FileExists(xform_use))
+        printf("can't find that either, proceeding without...\n");
+      else
+        printf("found that and using it\n");
     }
-    else
+
+    if(FileExists(xform_use))
     {
-      ErrorPrintf(ERROR_BAD_FILE, "error loading transform from %s", mri->transform_fname);
-      mri->linear_transform = NULL;
-      mri->inverse_linear_transform = NULL;
-      mri->free_transform = 1;
+      if(input_transform_file(xform_use, &(mri->transform)) == NO_ERROR)
+      {
+        mri->linear_transform = get_linear_transform_ptr(&mri->transform);
+        mri->inverse_linear_transform = get_inverse_linear_transform_ptr(&mri->transform);
+        mri->free_transform = 1;
+      }
+      else
+      {
+        ErrorPrintf(ERROR_BAD_FILE, "error loading transform from %s", xform_use);
+        mri->linear_transform = NULL;
+        mri->inverse_linear_transform = NULL;
+        mri->free_transform = 1;
+      }
     }
 
   }
