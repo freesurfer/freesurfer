@@ -3537,6 +3537,9 @@ goto_vertex(int vno)
   }
   v = &mris->vertices[vno] ;
 
+  DebugPrint "found vertex %d at RAS pt (%2.2f, %2.2f, %2.2f)\n",
+    vno, v->x, v->y, v->z EndDebugPrint;
+
   // hilite this vertex.
   HiliteSurfaceVertex ( v, kSurfaceType_Current );
 
