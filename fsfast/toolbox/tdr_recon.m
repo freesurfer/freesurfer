@@ -2,35 +2,36 @@
 % reconstruction according to the time-domain reconstruction
 % algorithm 
 %
-% $Id: tdr_recon.m,v 1.4 2003/09/30 01:39:15 greve Exp $
+% $Id: tdr_recon.m,v 1.5 2003/11/06 19:43:41 greve Exp $
 tic;
 
 
 if(0)
   %topdir = '/space/greve/2/users/greve/dng072203';
-  topdir = '/space/greve/2/users/greve/fb-104.2/';
-  TE0 = 20;
+  topdir = '/space/greve/2/users/greve/fb-105.2/';
+  TE0 = 50;
   run = 1;
   usefid = 1;
-  %nframes = 85;
-  nframes = 1;
+  nframes = 85;
+  %nframes = 1;
   
   if(TE0 == 30)
     kepidir = sprintf('%s/rawk/sing-echo-r%d/mgh',topdir,run);
     epiecho = 1;
   else
-    kepidir = sprintf('%s/rawk/dual-echo-r%d/mgh',topdir,run);
+    kepidir = sprintf('%s/sm%d/mgh',topdir,run);
     if(TE0 == 20) epiecho = 1;
     else          epiecho = 2;
     end
   end
   
   %rcolmatfile = sprintf('%s/R%2d.1.mat',topdir,TE0);
-  rcolmatfile = sprintf('%s/R%2d.mat',topdir,TE0);
+  rcolmatfile = sprintf('%s/tdr/R%2d.1.mat',topdir,TE0);
 
   sessdir = sprintf('%s/tdr-te%2d-r%d',topdir,TE0,run);
-  bhdrfile = sprintf('%s/siemens-te30/bold/001/f.bhdr',topdir);
-
+  %bhdrfile = sprintf('%s/siemens-te30/bold/001/f.bhdr',topdir);
+  bhdrfile = [];
+  
   funcdir = sprintf('%s/bold/001',sessdir);
   funcstem = sprintf('%s/f',funcdir);
   mkdirp(funcdir);
@@ -88,6 +89,27 @@ evenrows = 2:2:nrows;
 kepi_rfile = sprintf('%s/echo%03dr.mgh',kepidir,epiecho);
 kepi_ifile = sprintf('%s/echo%03di.mgh',kepidir,epiecho);
 
+% Get Phase Encode Shift for all frames %
+fprintf('Estimating shift in phase encode at each frame (%g)\n',toc);
+nthecho = find(TEList == TE);
+vref = epiref_dist(:,:,:,nthecho);
+pevoxshift = zeros(nframes,1);
+for frame = 1:nframes
+  kr = load_mgh(kepi_rfile,[],frame);
+  kr = permute(kr,[2 1 3]);
+  ki = load_mgh(kepi_ifile,[],frame);
+  ki = permute(ki,[2 1 3]);
+  kvol = kr + i*ki;
+  [krvol, dgbeta] = tdr_recon_rows(kvol,Rrow,perev);
+  ind = 40:87;
+  pevoxshift(frame) = tdr_peshift(vref(:,ind,:),krvol(:,ind,:));
+end
+fprintf('   done (%g).\n',toc);
+fname = sprintf('%s-peshift.dat',funcstem);
+fp = fopen(fname,'w');
+fprintf(fp,'%g\n',pevoxshift);
+fclose(fp);
+
 vol = zeros(nrows,ncols/2,nslices,nframes);
 for nthAcqSlice = 1:nslices
   fprintf('nthAcqSlice = %d, toc = %g\n',nthAcqSlice,toc);
@@ -104,6 +126,7 @@ for nthAcqSlice = 1:nslices
     kepi_i = kepi_i';
     
     kepi = kepi_r + i * kepi_i;
+    kepi = tdr_kshift(kepi,pevoxshift(frame));
     
     % Apply transforms to make EPI k-space image match the 
     % that of the first echo of the FID. These same transforms
@@ -113,7 +136,7 @@ for nthAcqSlice = 1:nslices
     %if(perev) kepi = flipud(kepi);  end 
     
     % Recon the rows %
-    kepi2 = tdr_deghost(kepi,Rcol,Rrow,perev);
+    kepi2 = tdr_deghost(kepi,Rrow,perev);
     %kepi2 = kepi*Rrow; % without deghosting
     
     if(~usefid)
