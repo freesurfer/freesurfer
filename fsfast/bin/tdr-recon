@@ -1,7 +1,7 @@
 #!/bin/tcsh -f
 # tdr-fidmat
 
-set VERSION = '$Id: tdr-recon,v 1.4 2003/10/20 22:20:46 greve Exp $';
+set VERSION = '$Id: tdr-recon,v 1.5 2003/11/07 00:44:32 greve Exp $';
 
 set inputargs = ($argv);
 
@@ -78,6 +78,7 @@ while($nthecho <= $nechoes)
   echo "Echo $nthecho -----------"| & tee -a $LF
   date | & tee -a $LF
   set funcstem = $outstem$nthecho
+  echo "funcstem is $funcstem" | & tee -a $LF
 
   set MLF = $outdir/run_tdr_recon_$nthecho.m
   rm -f $MLF
