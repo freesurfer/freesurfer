@@ -16,6 +16,7 @@
 #include "transform.h"
 #include "version.h"
 
+//E/ Maybe should update these three to not demand MRI_SHORT - but they're never called.
 MRI *MRIsadd(MRI *mri1, MRI *mri2, MRI *mri_dst) ;
 MRI *MRIsscalarMul(MRI *mri_src, MRI *mri_dst, float scalar) ;
 MRI *MRIssqrt(MRI *mri_src, MRI *mri_dst) ;
@@ -68,7 +69,7 @@ main(int argc, char *argv[])
   double rms ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_ms_fitparms.c,v 1.12 2003/07/08 15:47:30 ebeth Exp $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_ms_fitparms.c,v 1.13 2003/08/19 20:05:54 ebeth Exp $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -153,8 +154,8 @@ main(int argc, char *argv[])
         FZERO(mri_flash[nvolumes]->flip_angle))
       ErrorExit(ERROR_BADPARM, "%s: invalid TR or FA for image %d:%s",
                 Progname, nvolumes, in_fname) ;
-    if (mri_flash[nvolumes]->type != MRI_SHORT)
-      ErrorExit(ERROR_BADPARM, "%s: input volumes must be 16 bits/voxel", Progname) ;
+    //E/    if (mri_flash[nvolumes]->type != MRI_SHORT)
+    //E/      ErrorExit(ERROR_BADPARM, "%s: input volumes must be 16 bits/voxel", Progname) ;
 
     nvolumes++ ;
   }
@@ -549,7 +550,8 @@ estimate_ms_params(MRI **mri_flash, MRI **mri_flash_synth, int nvolumes, MRI *mr
     {
       mri = mri_flash[j] ;
 #if 0
-      val = ImageValues[j] = MRISvox(mri, x, y, z) ;
+      //E/ val = ImageValues[j] = MRISvox(mri, x, y, z) ;
+      val = ImageValues[j] = MRIgetVoxVal(mri, x, y, z, 0);
 #endif
       voxvec1->data[0]=x; voxvec1->data[1]=y; voxvec1->data[2]=z;
       MatrixMultiply(vox2ras[j],voxvec1,rasvec1);
@@ -596,24 +598,32 @@ estimate_ms_params(MRI **mri_flash, MRI **mri_flash_synth, int nvolumes, MRI *mr
       max_indx = MIN(best_indx+step[stepindx]/2,nvalues-1);
       center_indx = best_indx;
     }
-    T1 = MRISvox(mri_T1, x, y, z) = (short)nint(SignalTableT1[best_indx]);
+
+    //E/ T1 = MRISvox(mri_T1, x, y, z) = (short)nint(SignalTableT1[best_indx]);
+    T1 = SignalTableT1[best_indx];
+    MRIsetVoxVal(mri_T1, x, y, z, 0, T1);
+
     PD = norm/SignalTableNorm[best_indx];
     if ((short)PD < 0)
       PD = (double)(0x7fff-1) ;
-    MRISvox(mri_PD, x, y, z) = PD ;
+    //E/ MRISvox(mri_PD, x, y, z) = PD ;
+    MRIsetVoxVal(mri_PD, x, y, z, 0, PD);
     for (j = 0 ; j < nvolumes ; j++)
     {
       mri = mri_flash_synth[j] ;
-      MRISvox(mri, x, y, z) = (short)nint(PD*SignalTableNorm[best_indx]*SignalTableValues[best_indx][j]);
+      //E/ MRISvox(mri, x, y, z) = (short)nint(PD*SignalTableNorm[best_indx]*SignalTableValues[best_indx][j]);
+      MRIsetVoxVal(mri, x, y, z, 0, PD*SignalTableNorm[best_indx]*SignalTableValues[best_indx][j]);
     }
     sse = 0;
     for (j = 0 ; j < nvolumes ; j++)
     {
-      err = MRISvox(mri_flash_synth[j], x, y, z)-ImageValues[j]*norm;
+      //E/ err = MRISvox(mri_flash_synth[j], x, y, z)-ImageValues[j]*norm;
+      err = MRIgetVoxVal(mri_flash_synth[j], x, y, z, 0)-ImageValues[j]*norm;
       sse += err*err; 
     }
     total_sse += sse ;
-    MRISvox(mri_sse, x, y, z) = (short)nint(sqrt(sse));
+    //E/ MRISvox(mri_sse, x, y, z) = (short)nint(sqrt(sse));
+    MRIsetVoxVal(mri_sse, x, y, z, 0, sqrt(sse));
 		if (T1 >= 4999 && ImageValues[0] > 70 && ImageValues[1] > 70)
 			DiagBreak() ;
   }
@@ -695,7 +705,8 @@ estimate_ms_params_with_kalpha(MRI **mri_flash, MRI **mri_flash_synth, int nvolu
     {
       mri = mri_flash[k] ;
 #if 0
-      val = ImageValues[k] = MRISvox(mri, x, y, z) ;
+      //E/ val = ImageValues[k] = MRISvox(mri, x, y, z) ;
+      val = ImageValues[k] = MRIgetVoxVal(mri, x, y, z, 0) ;
 #endif
       voxvec1->data[0]=x; voxvec1->data[1]=y; voxvec1->data[2]=z;
       MatrixMultiply(vox2ras[k],voxvec1,rasvec1);
@@ -782,41 +793,50 @@ estimate_ms_params_with_kalpha(MRI **mri_flash, MRI **mri_flash_synth, int nvolu
 				center_FA_indx = best_FA_indx;
 			}
 
-			T1 = MRISvox(mri_T1, x, y, z) = (short)nint(SignalTableT1[best_T1_indx]);
+			//E/ T1 = MRISvox(mri_T1, x, y, z) = (short)nint(SignalTableT1[best_T1_indx]);
+			T1 = SignalTableT1[best_T1_indx];
+			MRIsetVoxVal(mri_T1, x, y, z, 0, T1);
+
 			FAk = MRIFvox(mri_fa, x, y, z) = SignalTableFAk[best_FA_indx];
 			PD = norm/SignalTableNorm[best_T1_indx][best_FA_indx];
 			if ((short)PD < 0)
 				PD = (double)(0x7fff-1) ;
-			MRISvox(mri_PD, x, y, z) = PD ;
+			//E/ MRISvox(mri_PD, x, y, z) = PD ;
+			MRIsetVoxVal(mri_PD, x, y, z, 0, PD);
 			for (k = 0 ; k < nvolumes ; k++)
 			{
 				mri = mri_flash_synth[k] ;
-				MRISvox(mri, x, y, z) = 
-					(short)nint(PD*SignalTableNorm[best_T1_indx][best_FA_indx] *
-											SignalTableValues[best_T1_indx][best_FA_indx][k]);
+				//E/ MRISvox(mri, x, y, z) = (short)nint(PD*SignalTableNorm[best_T1_indx][best_FA_indx] * SignalTableValues[best_T1_indx][best_FA_indx][k]);
+				MRIsetVoxVal(mri, x, y, z, 0,
+					     PD * SignalTableNorm[best_T1_indx][best_FA_indx]
+					     * SignalTableValues[best_T1_indx][best_FA_indx][k]);
 			}
 			last_sse = sse ;
 			sse = 0 ;
 			for (k = 0 ; k < nvolumes ; k++)
 			{
-				err = MRISvox(mri_flash_synth[k], x, y, z)-ImageValues[k]*norm;
+			        //E/ err = MRISvox(mri_flash_synth[k], x, y, z)-ImageValues[k]*norm;
+			        err = MRIgetVoxVal(mri_flash_synth[k], x, y, z, 0)-ImageValues[k]*norm;
 				sse += err*err; 
 			}
 			if (last_sse < 0)
 				last_sse = sse+1 ;  /* first time */
-			MRISvox(mri_sse, x, y, z) = (short)nint(sqrt(sse));
+			//E/ MRISvox(mri_sse, x, y, z) = (short)nint(sqrt(sse));
+			MRIsetVoxVal(mri_sse, x, y, z, 0, sqrt(sse));
 			if (sse > last_sse)  /* revert to old values */
 			{
 				T1 = last_T1 ; FAk = last_FAk ; PD = last_PD ;
 				best_T1_indx = nint((T1 - T1_MIN) * (nvalues-1) / (T1_MAX - T1_MIN)) ;
 				best_FA_indx = nint((FAk - FAk_MIN) * (nvalues-1) / (FAk_MAX - FAk_MIN)) ;
-				MRISvox(mri_PD, x, y, z) = PD ;
+				//E/ MRISvox(mri_PD, x, y, z) = PD ;
+				MRIsetVoxVal(mri_PD, x, y, z, 0, PD) ;
 				for (k = 0 ; k < nvolumes ; k++)
 				{
 					mri = mri_flash_synth[k] ;
-					MRISvox(mri, x, y, z) = 
-						(short)nint(PD*SignalTableNorm[best_T1_indx][best_FA_indx] *
-												SignalTableValues[best_T1_indx][best_FA_indx][k]);
+					//E/ MRISvox(mri, x, y, z) = (short)nint(PD*SignalTableNorm[best_T1_indx][best_FA_indx] * SignalTableValues[best_T1_indx][best_FA_indx][k]);
+					MRIsetVoxVal(mri, x, y, z, 0,
+						     PD * SignalTableNorm[best_T1_indx][best_FA_indx]
+						     * SignalTableValues[best_T1_indx][best_FA_indx][k]);
 				}
 				sse = last_sse ;
 			}
@@ -926,7 +946,8 @@ estimate_rigid_regmatrix(MRI *mri_source, MRI *mri_target, MATRIX *M_reg)
       voxmat1->rptr[2][indx] = y;
       voxmat1->rptr[3][indx] = z;
       voxmat1->rptr[4][indx] = 1;
-      voxval1[indx] = MRISvox(mri_source, x, y, z); 
+      //E/ voxval1[indx] = MRISvox(mri_source, x, y, z); 
+      voxval1[indx] = MRIgetVoxVal(mri_source, x, y, z, 0); 
     }
   }
   
@@ -1126,8 +1147,10 @@ dFLASH_dk(MRI *mri_T1, MRI *mri_PD, MRI *mri_fa, double TR, double flip_angle, i
 {
 	double T1, PD, dk, k, e_TR_T1_minus_1, cos_ka, numer, denom, e_TR_T1 ;
 
-	T1 = MRISvox(mri_T1, x, y, z) ;
-	PD = MRISvox(mri_PD, x, y, z) ;
+	//E/ T1 = MRISvox(mri_T1, x, y, z) ;
+	T1 = MRIgetVoxVal(mri_T1, x, y, z, 0) ;
+	//E/ PD = MRISvox(mri_PD, x, y, z) ;
+	PD = MRIgetVoxVal(mri_PD, x, y, z, 0) ;
 	k = MRIFvox(mri_fa, x, y, z) ;
 
 	e_TR_T1 = exp(TR/T1) ;
