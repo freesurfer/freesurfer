@@ -3,8 +3,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2003/04/23 17:02:59 $
-// Revision       : $Revision: 1.61 $
+// Revision Date  : $Date: 2003/04/23 21:10:33 $
+// Revision       : $Revision: 1.62 $
 
 #include "tkmDisplayArea.h"
 #include "tkmMeditWindow.h"
@@ -3326,6 +3326,10 @@ DspA_tErr DspA_HandleKeyDown_ ( tkmDisplayAreaRef this,
       eResult = 
 	DspA_ToggleDisplayFlag( this, DspA_tDisplayFlag_AuxVolume );
       break;
+    case 'c':
+      eResult = 
+	DspA_ToggleDisplayFlag( this, DspA_tDisplayFlag_AuxVolume );
+      break;
     case 'f':
       if( NULL != this->mpFunctionalVolume ) {
 	if( 1 == this->mabDisplayFlags[DspA_tDisplayFlag_Anatomical] ) {
@@ -3340,6 +3344,15 @@ DspA_tErr DspA_HandleKeyDown_ ( tkmDisplayAreaRef this,
     case 'g':
       eResult = 
       DspA_ToggleDisplayFlag( this, DspA_tDisplayFlag_AuxSegmentationVolume );
+      break;
+    case 'x':
+      eResult = DspA_SetOrientation( this, mri_tOrientation_Sagittal );
+      break;
+    case 'y':
+      eResult = DspA_SetOrientation( this, mri_tOrientation_Horizontal );
+      break;
+    case 'z':
+      eResult = DspA_SetOrientation( this, mri_tOrientation_Coronal );
       break;
     }
   }
@@ -6536,7 +6549,10 @@ DspA_tErr DspA_SendPointInformationToTcl_ ( tkmDisplayAreaRef this,
   switch (this->mpVolume[tkm_tVolumeType_Main]->mpMriValues->type)
     {
     default:
-      if( this->mabDisplayFlags[DspA_tDisplayFlag_AuxVolume] ) {
+      /* If there is an aux volume loaded and it's not being
+	 displayed, show the value in stars, otherwise no stars. */
+      if( (NULL == this->mpVolume[tkm_tVolumeType_Aux]) ||
+	  this->mabDisplayFlags[DspA_tDisplayFlag_AuxVolume] ) {
 	sprintf( sTclArguments, "%s %d", 
 		 DspA_ksaDisplaySet[iSet], (int)fVolumeValue );
       } else {
@@ -6687,7 +6703,10 @@ DspA_tErr DspA_SendPointInformationToTcl_ ( tkmDisplayAreaRef this,
       
       /* else just the label */
     } else {
-      if( this->mabDisplayFlags[DspA_tDisplayFlag_AuxSegmentationVolume] ) {
+      /* If there is an aux volume loaded and it's not being
+	 displayed, show the value in stars, otherwise no stars. */
+      if( (NULL == this->mSegmentationVolume[tkm_tSegType_Aux]) ||
+	  this->mabDisplayFlags[DspA_tDisplayFlag_AuxSegmentationVolume] ) {
 	sprintf( sTclArguments, "%s \"%s\"",
 		 DspA_ksaDisplaySet[iSet], sLabel );
       } else {
