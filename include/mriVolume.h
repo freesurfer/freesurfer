@@ -80,6 +80,12 @@ typedef enum {
   Volm_knNumSampleTypes
 } Volm_tSampleType;
 
+typedef enum {
+  Volm_tResampleMethod_RAS = 0,
+  Volm_tResampleMethod_Slice,
+  Volm_knNumResampleMethods
+} Volm_tResampleMethod;
+
 typedef struct {
   xVoxel           mSourceIdx;       /* The starting voxel */
   float            mfSourceValue;    /* The value at the starting voxel */
@@ -133,6 +139,20 @@ typedef struct {
   MATRIX   *m_resample_inv;                 /* original volume->256^3 */
   float    mfMinValue;                      /* max value in mpMriValues */
   float    mfMaxValue;                      /* min value in mpMriValues */
+
+  /* There are two versions of the resample matrices; one that takes
+     into effect the RAS transform and one that doesn't. Normally you
+     would want to use the RAS transform, but the other is available
+     for viewing the volume in its slice orientation. They both have
+     pixel size component, however. */
+  Volm_tResampleMethod mResampleMethod;
+  MATRIX*              mResampleToRAS;
+  MATRIX*              mResampleToRASOrig;
+  MATRIX*              mResampleToRASInverse;
+  MATRIX*              mResampleToSlice;
+  MATRIX*              mResampleToSliceOrig;
+  MATRIX*              mResampleToSliceInverse;
+
 
   VECTOR* mpTmpScreenIdx;     /* Used as tmp variables in macros. */
   VECTOR* mpTmpMRIIdx;
@@ -191,6 +211,10 @@ Volm_tErr Volm_GetType              ( mriVolumeRef this,
 Volm_tErr Volm_GetValueMinMax       ( mriVolumeRef this,
 				      float*       ofMin,
 				      float*       ofMax );
+
+Volm_tErr Volm_SetResampleMethod  ( mriVolumeRef         this,
+				    Volm_tResampleMethod iMethod );
+
 
 Volm_tErr Volm_SetSampleType  ( mriVolumeRef     this,
 				Volm_tSampleType iType );
@@ -318,6 +342,9 @@ Volm_tErr Volm_ExtractAndSetVolumeName  ( mriVolumeRef this,
    using the given MRI as its voxel values. */
 Volm_tErr Volm_SetFromMRI_ ( mriVolumeRef this,
 			     MRI*        iMRI );
+
+/* Calculates this->mIdxToRASTransform baesd on resample method. */
+Volm_tErr Volm_CalculateIdxToRAS_ ( mriVolumeRef this );
 
 /* Note that the functions in this section are implemented as
    functions and macros. The functions are slower but safer, and the
