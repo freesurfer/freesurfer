@@ -1,6 +1,6 @@
 #! /usr/bin/tixwish
 
-# $Id: tkmedit.tcl,v 1.76 2004/04/29 22:09:27 kteich Exp $
+# $Id: tkmedit.tcl,v 1.77 2004/04/29 23:05:24 kteich Exp $
 
 
 source $env(FREESURFER_HOME)/lib/tcl/tkm_common.tcl
@@ -796,6 +796,14 @@ proc GetDefaultLocation { iType } {
 	    }
 	}
     }
+
+    # If location is a directory, make sure last char is a slash.
+    if { [file isdirectory $gsaDefaultLocation($iType)] } {
+	if { [string range $gsaDefaultLocation($iType) end end] != "/" } {
+	    set gsaDefaultLocation($iType) $gsaDefaultLocation($iType)/
+	}
+    }
+
     return $gsaDefaultLocation($iType)
 }
 proc SetDefaultLocation { iType isValue } {
