@@ -1658,6 +1658,8 @@ void usage(FILE *stream)
   fprintf(stream, "  -oi, --out_info\n");
   fprintf(stream, "  -is, --in_stats\n");
   fprintf(stream, "  -os, --out_stats\n");
+  fprintf(stream, "  -im, --in_matrix\n");
+  fprintf(stream, "  -om, --out_matrix\n");
   fprintf(stream, "\n");
   fprintf(stream, "  -iis, --in_i_size <size>\n");
   fprintf(stream, "  -ijs, --in_j_size <size>\n");
