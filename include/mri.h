@@ -120,6 +120,8 @@ MRI   *MRIextractInto(MRI *mri_src, MRI *mri_dst, int x0, int y0, int z0,
 MRI   *MRImean(MRI *mri_src, MRI *mri_dst, int wsize) ;
 MRI   *MRIstd(MRI *mri_src, MRI*mri_dst, MRI *mri_mean, int wsize) ;
 MRI   *MRInorm(MRI *mri_src, MRI*mri_dst, MRI *mri_mean, MRI *mri_std) ;
+MRI   *MRIreadRaw(FILE *fp, int width, int height, int depth, int type) ;
+int   MRIinitHeader(MRI *mri) ;
 
 #include "image.h"
 
