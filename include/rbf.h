@@ -46,6 +46,7 @@ typedef struct
   CLUSTER      **clusters ;       /* pointers to CLUSTER_SET clusters */
   unsigned char *observed ;       /* used for randomizing training order */
   int           nobs ;            /* # of observations in training set */
+  MATRIX       *m_pi[MAX_OUTPUTS];/* used for psuedo-inverse calculation */
 } RBF ;
 
 RBF   *RBFinit(int ninputs, int noutputs, int max_clusters[], char *names[]) ;
