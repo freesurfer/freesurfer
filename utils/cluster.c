@@ -45,6 +45,7 @@ static CLUSTER  *clusterDivide(CLUSTER *csrc, CLUSTER *cdst) ;
 static int      normalizeObservation(CLUSTER_SET *cs, VECTOR *v_obs) ;
 static int      clusterWriteInto(FILE *fp, CLUSTER *cluster) ;
 static CLUSTER  *clusterReadFrom(FILE *fp, CLUSTER *cluster) ;
+static int      clusterCopy(CLUSTER *csrc, CLUSTER *cdst) ;
 
 /*-----------------------------------------------------
                     GLOBAL FUNCTIONS
@@ -442,9 +443,12 @@ clusterComputeStatistics(CLUSTER *cluster)
 #endif
   }
   else
+    return(ERROR_BADPARM) ;
+#if 0
     ErrorReturn(ERROR_BADPARM, 
                 (ERROR_BADPARM, "clusterComputeStatistics: cluster %d "
                  "has no observations", cluster->cno)) ;
+#endif
 
   cluster->m_evectors = 
     MatrixEigenSystem(cluster->m_scatter, cluster->evalues, 
@@ -580,7 +584,7 @@ int
 CScluster(CLUSTER_SET *cs, int (*get_observation_func)
           (VECTOR *v_obs, int no, void *parm), void *parm)
 {
-  int         obs_no ;
+  int         obs_no, epoch = 0 ;
   VECTOR      *v_obs ;
 
   v_obs = VectorAlloc(cs->ninputs, MATRIX_REAL) ;
@@ -590,23 +594,33 @@ CScluster(CLUSTER_SET *cs, int (*get_observation_func)
 
   do
   {
-    /*CSprint(cs, stderr) ;*/
+    do
+    {
+      if (++epoch > 2*cs->max_clusters)
+        ErrorReturn(ERROR_BADFILE, (ERROR_BADFILE,
+                                    "CScluster: could not find %d partitions",
+                                    cs->max_clusters)) ;
+#if DEBUG
+      fprintf(stderr, "\n") ;
+      CSprint(cs, stderr) ;
+#endif
+      CSreset(cs) ;
+      obs_no = 0 ;
+      while ((*get_observation_func)(v_obs, obs_no++, parm) == NO_ERROR)
+        CSnewObservation(cs, v_obs) ;
+      if (CScomputeStatistics(cs) != NO_ERROR)
+        return(Gerror) ;
+    } while (CSdivide(cs) == CS_CONTINUE) ;
+    
+    /* Go through the data one more time to rebuild scatter matrices and means 
+       with final # of clusters */
     CSreset(cs) ;
     obs_no = 0 ;
     while ((*get_observation_func)(v_obs, obs_no++, parm) == NO_ERROR)
       CSnewObservation(cs, v_obs) ;
     if (CScomputeStatistics(cs) != NO_ERROR)
       return(Gerror) ;
-  } while (CSdivide(cs) == CS_CONTINUE) ;
-
-  /* Go through the data one more time to rebuild scatter matrices and means 
-     with final # of clusters */
-  CSreset(cs) ;
-  obs_no = 0 ;
-  while ((*get_observation_func)(v_obs, obs_no++, parm) == NO_ERROR)
-    CSnewObservation(cs, v_obs) ;
-  if (CScomputeStatistics(cs) != NO_ERROR)
-    return(Gerror) ;
+  } while (cs->nclusters < cs->max_clusters) ;
 
   if (cs->normalize)
     CSrenormalize(cs) ;
@@ -654,11 +668,18 @@ CSreset(CLUSTER_SET *cs)
 int
 CScomputeStatistics(CLUSTER_SET *cs)
 {
-  int    c ;
+  int    c, c1 ;
 
   for (c = 0 ; c < cs->nclusters ; c++)
     if (clusterComputeStatistics(cs->clusters+c) != NO_ERROR)
-      return(Gerror) ;
+    {
+      /* this cluster has failed for some reason (no observations?),
+         delete it and continue */
+      cs->nclusters-- ;
+      for (c1 = c ; c1 < cs->nclusters ; c1++)
+        clusterCopy(cs->clusters+c1+1, cs->clusters+c1) ;
+      c-- ;
+    }
 
   cs->nsamples = cs->nobs ;
   cs->nobs = 0 ;
@@ -912,5 +933,30 @@ clusterReadFrom(FILE *fp, CLUSTER *cluster)
     MatrixEigenSystem(cluster->m_scatter, cluster->evalues, 
                       cluster->m_evectors) ;
   return(cluster) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+          Copy the data from one cluster into another.
+------------------------------------------------------*/
+static int
+clusterCopy(CLUSTER *csrc, CLUSTER *cdst)
+{
+  MatrixCopy(csrc->m_scatter, cdst->m_scatter) ;
+  if (csrc->m_inverse)
+    MatrixCopy(csrc->m_inverse, cdst->m_inverse) ;
+  MatrixCopy(csrc->m_evectors, cdst->m_evectors) ;
+  VectorCopy(csrc->v_means, cdst->v_means) ;
+  VectorCopy(csrc->v_seed, cdst->v_seed) ;
+  memmove(cdst->evalues, csrc->evalues, csrc->m_scatter->rows*sizeof(float)) ;
+  cdst->nobs = csrc->nobs ;
+  cdst->nsamples = csrc->nsamples ;
+  cdst->det = csrc->det ;
+  cdst->ill_conditioned = csrc->ill_conditioned ;
+  
+  return(NO_ERROR) ;
 }
 
