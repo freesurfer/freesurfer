@@ -4,9 +4,9 @@
 
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2003/07/25 20:43:53 $
-// Revision       : $Revision: 1.164 $
-char *VERSION = "$Revision: 1.164 $";
+// Revision Date  : $Date: 2003/07/28 14:11:56 $
+// Revision       : $Revision: 1.165 $
+char *VERSION = "$Revision: 1.165 $";
 
 #define TCL
 #define TKMEDIT 
@@ -316,8 +316,8 @@ tkm_tErr AllocateSelectionVolume ();
 /* adds or removes voxels to selections. if a voxel that isn't in the 
    selection is told to be removed, no errors occur. this is called from the 
    brush function. The iaAnaIdx parameter can be an array. */
-void AddVoxelsToSelection      ( xVoxelRef  iaAnaIdx, int inCount );
-void RemoveVoxelsFromSelection ( xVoxelRef  iaAnaIdx, int inCount );
+void AddVoxelsToSelection      ( xVoxelRef  iaMRIIdx, int inCount );
+void RemoveVoxelsFromSelection ( xVoxelRef  iaMRIIdx, int inCount );
 
 /* clears the current selection */
 void ClearSelection ();
@@ -337,7 +337,7 @@ typedef struct {
   tBoolean   mbSelect; /* 1 for select, 0 for deselect */
   int        mnCount;
 } tkm_tFloodSelectCallbackData;
-tkm_tErr FloodSelect ( xVoxelRef         iSeedAnaIdx,
+tkm_tErr FloodSelect ( xVoxelRef         iSeedMRIIdx,
 		       tBoolean          ib3D,
 		       tkm_tVolumeTarget iSrc,
 		       int               inFuzzy,
@@ -345,7 +345,7 @@ tkm_tErr FloodSelect ( xVoxelRef         iSeedAnaIdx,
 		       tBoolean          ibSelect );
 
 /* Callback for the flood. */
-Volm_tVisitCommand FloodSelectCallback ( xVoxelRef iAnaIdx,
+Volm_tVisitCommand FloodSelectCallback ( xVoxelRef iMRIIdx,
 					 float     iValue,
 					 void*     iData );
 
@@ -633,11 +633,6 @@ tkm_tErr LoadDTIVolume ( char*              isNameEV,
 			 tAxis              iGreenAxis,
 			 tAxis              iBlueAxis );
 
-void GetDTIColorAtVoxel ( xVoxelRef        iAnaIdx,
-			  mri_tOrientation iPlane,
-			  xColor3fRef      iBaseColor,
-			  xColor3fRef      oColor );
-
 void SetDTIAlpha ( float ifAlpha );
 
 // ===========================================================================
@@ -741,11 +736,11 @@ void   DeleteUndoVolume ();
 void   AddAnaIdxAndValueToUndoVolume ( xVoxelRef iAnaIdx,
            int       iValue );
 
-/* sees if there is a value for this ana idx, i.e. if it can be undone */
-tBoolean IsAnaIdxInUndoVolume         ( xVoxelRef iAnaIdx );
+/* sees if there is a value for this MRI idx, i.e. if it can be undone */
+tBoolean IsMRIIdxInUndoVolume         ( xVoxelRef iMRIIdx );
 
 /* resotres the values for all voxels touching this one */
-void   RestoreUndoVolumeAroundAnaIdx ( xVoxelRef iAnaIdx );
+void   RestoreUndoVolumeAroundMRIIdx ( xVoxelRef iMRIIdx );
 
 /* clears the volume */
 void   ClearUndoVolume ();
@@ -759,7 +754,7 @@ void   ClearUndoVolume ();
 mriHeadPointListRef gHeadPoints = NULL;
 
 tkm_tErr LoadHeadPts ( char* isHeadPtsFile, 
-           char* isTransformFile );
+		       char* isTransformFile );
 
 void RestoreHeadPoints        ();
 void WriteHeadPointsTransform ();
@@ -771,7 +766,7 @@ void TranslateHeadPts        ( float ifDistance,
 
 void SetSelectedHeadPointLabel ( char* isNewLabel );
 
-void AlignSelectedHeadPointToAnaIdx ( xVoxelRef iAnaIdx );
+void AlignSelectedHeadPointToMRIIdx ( xVoxelRef iMRIIdx );
 
 /* ======================================================================= */
 
@@ -1047,7 +1042,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
      shorten our argc and argv count. If those are the only args we
      had, exit. */
   /* rkt: check for and handle version tag */
-  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.164 2003/07/25 20:43:53 kteich Exp $");
+  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.165 2003/07/28 14:11:56 kteich Exp $");
   if (nNumProcessedVersionArgs && argc - nNumProcessedVersionArgs == 1)
     exit (0);
   argc -= nNumProcessedVersionArgs;
@@ -3299,21 +3294,21 @@ int TclSetSelectedHeadPointLabel ( ClientData inClientData,
   return TCL_OK;
 }
 
-int TclAlignSelectedHeadPointToAnaIdx ( ClientData inClientData, 
-          Tcl_Interp* inInterp,
-          int argc, char* argv[] ) {
+int TclAlignSelectedHeadPointToMRIIdx ( ClientData inClientData, 
+					Tcl_Interp* inInterp,
+					int argc, char* argv[] ) {
   
-  xVoxel anaIdx;
+  xVoxel MRIIdx;
   
   if ( argc != 4 ) {
-    Tcl_SetResult ( inInterp, "wrong # args: AlignSelectedHeadPointToAnaIdx",
+    Tcl_SetResult ( inInterp, "wrong # args: AlignSelectedHeadPointToMRIIdx",
         TCL_VOLATILE );
     return TCL_ERROR;
   }
   
   if( gbAcceptingTclCommands ) {
-    xVoxl_Set( &anaIdx, atoi( argv[1] ), atoi( argv[2] ), atoi( argv[3] ) );
-    AlignSelectedHeadPointToAnaIdx( &anaIdx );
+    xVoxl_Set( &MRIIdx, atoi( argv[1] ), atoi( argv[2] ), atoi( argv[3] ) );
+    AlignSelectedHeadPointToMRIIdx( &MRIIdx );
   }
   
   return TCL_OK;
@@ -5306,8 +5301,8 @@ int main ( int argc, char** argv ) {
           TclSetSelectedHeadPointLabel,
           (ClientData) NULL, (Tcl_CmdDeleteProc*) NULL );
   
-  Tcl_CreateCommand ( interp, "AlignSelectedHeadPointToAnaIdx",
-          TclAlignSelectedHeadPointToAnaIdx,
+  Tcl_CreateCommand ( interp, "AlignSelectedHeadPointToMRIIdx",
+          TclAlignSelectedHeadPointToMRIIdx,
           (ClientData) NULL, (Tcl_CmdDeleteProc*) NULL );
   
   Tcl_CreateCommand ( interp, "LoadGCA",
@@ -5812,7 +5807,7 @@ void ProcessControlPointFile ( ) {
   float      rasZ         = 0;
   int      nNumPointsRead       = 0;
   xVoxel    ras;
-  xVoxel    idx;
+  xVoxel    MRIIdx;
   
   DebugEnterFunction( ("ProcessControlPointFile ()") );
   
@@ -5843,13 +5838,14 @@ void ProcessControlPointFile ( ) {
       
       /* transform from ras to voxel */
       xVoxl_SetFloat( &ras, rasX, rasY, rasZ );
-      eVolume = Volm_ConvertRASToIdx( gAnatomicalVolume[tkm_tVolumeType_Main],
-              &ras, &idx );
+      eVolume = 
+	Volm_ConvertRASToMRIIdx( gAnatomicalVolume[tkm_tVolumeType_Main],
+				 &ras, &MRIIdx );
       DebugAssertThrowX( (Volm_tErr_NoErr == eVolume), 
-       eResult, tkm_tErr_ErrorAccessingVolume );
+			 eResult, tkm_tErr_ErrorAccessingVolume );
       
       /* add it to our cntrl points list */
-      NewControlPoint( &idx, FALSE );
+      NewControlPoint( &MRIIdx, FALSE );
     }
   }    
   
@@ -5872,15 +5868,15 @@ void ProcessControlPointFile ( ) {
    control.dat file in RAS space */
 void WriteControlPointFile ( ) {
   
-  tkm_tErr   eResult          = tkm_tErr_NoErr;
-  Volm_tErr  eVolume          = Volm_tErr_NoErr;
-  x3Lst_tErr e3DList          = x3Lst_tErr_NoErr;
-  xList_tErr eList          = xList_tErr_NoErr;
+  tkm_tErr   eResult                  = tkm_tErr_NoErr;
+  Volm_tErr  eVolume                  = Volm_tErr_NoErr;
+  x3Lst_tErr e3DList                  = x3Lst_tErr_NoErr;
+  xList_tErr eList                    = xList_tErr_NoErr;
   char       sFileName[tkm_knPathLen] = "";
-  FILE*       file          = NULL;
-  int       nPlane          = 0;
-  xListRef   list          = NULL;
-  xVoxelRef  idx          = NULL;
+  FILE*      file                     = NULL;
+  int        nPlane                   = 0;
+  xListRef   list                     = NULL;
+  xVoxelRef  MRIIdx                   = NULL;
   xVoxel     ras;
   
   DebugEnterFunction( ("WriteControlPointFile()") );
@@ -5905,19 +5901,20 @@ void WriteControlPointFile ( ) {
     
     /* traverse the list */
     eList = xList_ResetPosition( list );
-    while( (eList = xList_NextFromPos( list, (void**)&idx )) 
+    while( (eList = xList_NextFromPos( list, (void**)&MRIIdx )) 
      != xList_tErr_EndOfList ) {
       
-      if( idx ) {
-  
-  /* transform to ras space. */
-  eVolume = Volm_ConvertIdxToRAS(gAnatomicalVolume[tkm_tVolumeType_Main],
-               idx, &ras );
-  DebugAssertThrowX( (Volm_tErr_NoErr == eVolume), 
-         eResult, tkm_tErr_ErrorAccessingVolume );
-  
-  /* write to the file */
-  fprintf( file, "%f %f %f\n", xVoxl_ExpandFloat(&ras) );
+      if( MRIIdx ) {
+	
+	/* transform to ras space. */
+	eVolume = 
+	  Volm_ConvertMRIIdxToRAS(gAnatomicalVolume[tkm_tVolumeType_Main],
+				  MRIIdx, &ras );
+	DebugAssertThrowX( (Volm_tErr_NoErr == eVolume), 
+			   eResult, tkm_tErr_ErrorAccessingVolume );
+	
+	/* write to the file */
+	fprintf( file, "%f %f %f\n", xVoxl_ExpandFloat(&ras) );
       }
     }
     
@@ -5938,33 +5935,33 @@ void WriteControlPointFile ( ) {
 }
 
 
-float FindNearestControlPoint ( xVoxelRef   inVolumeVox, 
-        mri_tOrientation inPlane,
-        xVoxelRef*   outCtrlPt ) {
+float FindNearestControlPoint ( xVoxelRef        iMRIIdx, 
+				mri_tOrientation inPlane,
+				xVoxelRef*       opCtrlPt ) {
   
-  tBoolean     bFound    = FALSE;
-  float         fDistance  = 0;
+  tBoolean      bFound           = FALSE;
+  float         fDistance        = 0;
   float         fClosestDistance = 0;
-  float         fFoundDistance  = 0;
-  xListRef     list    = NULL;
-  xVoxelRef    voxel    = NULL;
-  xVoxelRef    closestVoxel  = NULL;
-  x3Lst_tErr   e3DList    = x3Lst_tErr_NoErr;
-  xList_tErr   eList    = xList_tErr_NoErr;
+  float         fFoundDistance   = 0;
+  xListRef      list             = NULL;
+  xVoxelRef     MRIIdx           = NULL;
+  xVoxelRef     closestMRIIdx    = NULL;
+  x3Lst_tErr    e3DList          = x3Lst_tErr_NoErr;
+  xList_tErr    eList            = xList_tErr_NoErr;
   
   /* get the list to search in */
   switch ( inPlane ) {
   case mri_tOrientation_Coronal: 
     e3DList = x3Lst_GetItemsInZPlane( gControlPointList, 
-              xVoxl_GetZ(inVolumeVox), &list );
+				      xVoxl_GetZ(iMRIIdx), &list );
     break;
   case mri_tOrientation_Horizontal: 
     e3DList = x3Lst_GetItemsInYPlane( gControlPointList, 
-              xVoxl_GetY(inVolumeVox), &list );
+				      xVoxl_GetY(iMRIIdx), &list );
     break;
   case mri_tOrientation_Sagittal: 
     e3DList = x3Lst_GetItemsInXPlane( gControlPointList, 
-              xVoxl_GetX(inVolumeVox), &list );
+				      xVoxl_GetX(iMRIIdx), &list );
     break;
   default:
     bFound = FALSE;
@@ -5984,26 +5981,25 @@ float FindNearestControlPoint ( xVoxelRef   inVolumeVox,
     
     /* traverse the list */
     eList = xList_ResetPosition( list );
-    while( (eList = xList_NextFromPos( list, (void**)&voxel )) 
-     != xList_tErr_EndOfList ) {
+    while( (eList = xList_NextFromPos( list, (void**)&MRIIdx )) 
+	   != xList_tErr_EndOfList ) {
       
-      if( voxel ) {
-  
-  /* get the distance to the clicked voxel... */
-  fDistance = sqrt(
-       ((xVoxl_GetX(inVolumeVox) - xVoxl_GetX(voxel)) * 
-        (xVoxl_GetX(inVolumeVox) - xVoxl_GetX(voxel))) +
-       ((xVoxl_GetY(inVolumeVox) - xVoxl_GetY(voxel)) * 
-        (xVoxl_GetY(inVolumeVox) - xVoxl_GetY(voxel))) +
-       ((xVoxl_GetZ(inVolumeVox) - xVoxl_GetZ(voxel)) * 
-        (xVoxl_GetZ(inVolumeVox) - xVoxl_GetZ(voxel))) );
-  
-  /* if it's less than our max, mark the distance and copy the vox */
-  if ( fDistance < fClosestDistance ) {
-    fClosestDistance = fDistance;
-    closestVoxel = voxel;
-    bFound = TRUE;
-  }
+      if( MRIIdx ) {
+	
+	/* get the distance to the clicked voxel... */
+	fDistance = sqrt(((xVoxl_GetX(iMRIIdx) - xVoxl_GetX(MRIIdx)) * 
+			  (xVoxl_GetX(iMRIIdx) - xVoxl_GetX(MRIIdx))) +
+			 ((xVoxl_GetY(iMRIIdx) - xVoxl_GetY(MRIIdx)) * 
+			  (xVoxl_GetY(iMRIIdx) - xVoxl_GetY(MRIIdx))) +
+			 ((xVoxl_GetZ(iMRIIdx) - xVoxl_GetZ(MRIIdx)) * 
+			  (xVoxl_GetZ(iMRIIdx) - xVoxl_GetZ(MRIIdx))) );
+	
+	/* if it's less than our max, mark the distance and copy the vox */
+	if ( fDistance < fClosestDistance ) {
+	  fClosestDistance = fDistance;
+	  closestMRIIdx = MRIIdx;
+	  bFound = TRUE;
+	}
       }
     }
     
@@ -6014,7 +6010,7 @@ float FindNearestControlPoint ( xVoxelRef   inVolumeVox,
     if ( bFound ) {
       
       /* return it. */
-      *outCtrlPt = closestVoxel;
+      *opCtrlPt = closestMRIIdx;
       fFoundDistance = fClosestDistance;
     }
   }
@@ -6034,40 +6030,40 @@ float FindNearestControlPoint ( xVoxelRef   inVolumeVox,
   return fFoundDistance;
 }
 
-void NewControlPoint ( xVoxelRef iCtrlPt,
-           tBoolean  ibWriteToFile ) {
+void NewControlPoint ( xVoxelRef iMRIIdx,
+		       tBoolean  ibWriteToFile ) {
   
   x3Lst_tErr e3DList = x3Lst_tErr_NoErr;
-  xVoxelRef  ctrlPt  = NULL;
+  xVoxelRef  MRIIdx  = NULL;
   
   /* allocate a copy of the voxel */
-  xVoxl_New( &ctrlPt );
-  xVoxl_Copy( ctrlPt, iCtrlPt );
+  xVoxl_New( &MRIIdx );
+  xVoxl_Copy( MRIIdx, iMRIIdx );
   
   /* add the voxel to the ctrl pt space */
-  e3DList = x3Lst_AddItem( gControlPointList, ctrlPt, ctrlPt );
+  e3DList = x3Lst_AddItem( gControlPointList, MRIIdx, MRIIdx );
   if( e3DList != x3Lst_tErr_NoErr )
     DebugPrint( ( "x3Lst error %d in NewCtrlPt.\n", e3DList ) );
   
   /* write it to the control point file. */
   if( ibWriteToFile )
-    WriteVoxelToControlFile( ctrlPt );
+    WriteVoxelToControlFile( MRIIdx );
 }
 
-void DeleteControlPoint ( xVoxelRef ipCtrlPt ) {
+void DeleteControlPoint ( xVoxelRef iMRIIdx ) {
   
   x3Lst_tErr e3DList = x3Lst_tErr_NoErr;
-  xVoxelRef  ctrlPt  = NULL;
+  xVoxelRef  MRIIdx  = NULL;
   
-  ctrlPt = ipCtrlPt;
+  MRIIdx = iMRIIdx;
   
   /* remove the item */
-  e3DList = x3Lst_RemoveItem( gControlPointList, ctrlPt, (void**)&ctrlPt );
+  e3DList = x3Lst_RemoveItem( gControlPointList, MRIIdx, (void**)&MRIIdx );
   if( e3DList != x3Lst_tErr_NoErr )
     goto error;
   
   /* delete it */
-  xVoxl_Delete( &ctrlPt );
+  xVoxl_Delete( &MRIIdx );
   
   goto cleanup;
   
@@ -6459,7 +6455,7 @@ void SelectVoxelsByFuncValue ( FunV_tFindStatsComp iCompare ) {
   DebugExitFunction;
 }
 
-tkm_tErr FloodSelect ( xVoxelRef         iSeedAnaIdx,
+tkm_tErr FloodSelect ( xVoxelRef         iSeedMRIIdx,
 		       tBoolean          ib3D,
 		       tkm_tVolumeTarget iSrc,
 		       int               inFuzzy,
@@ -6473,15 +6469,14 @@ tkm_tErr FloodSelect ( xVoxelRef         iSeedAnaIdx,
   Volm_tErr                   eVolume      = Volm_tErr_NoErr;
   char                        sTclArguments[tkm_knTclCmdLen] = "";
 
-  DebugEnterFunction( ("FloodSelect( iSeedAnaIdx=%d,%d,%d "
-		       "ib3D=%d, iSrc=%d, inFuzzy=%d "
-		       "inDistance=%d", xVoxl_ExpandInt(iSeedAnaIdx),
-		       ib3D, iSrc, inFuzzy, inDistance) );
+  DebugEnterFunction( ("FloodSelect( iSeedMRIIdx=%p, ib3D=%d, iSrc=%d, "
+		       "inFuzzy=%d, inDistance=%d", iSeedMRIIdx, ib3D,
+		       iSrc, inFuzzy, inDistance) );
   
-  DebugAssertThrowX( (NULL != iSeedAnaIdx), 
+  DebugAssertThrowX( (NULL != iSeedMRIIdx), 
 		     eResult, tkm_tErr_InvalidParameter );
   
-  xVoxl_Copy( &params.mSourceIdx, iSeedAnaIdx );
+  xVoxl_Copy( &params.mSourceIdx, iSeedMRIIdx );
   params.mfFuzziness             = inFuzzy;
   params.mComparator             = Volm_tValueComparator_EQ;
   params.mfMaxDistance           = inDistance;
@@ -6539,7 +6534,7 @@ tkm_tErr FloodSelect ( xVoxelRef         iSeedAnaIdx,
   }
 
   /* Now get the source volume value. */
-  Volm_GetValueAtIdx( sourceVolume, iSeedAnaIdx, &params.mfSourceValue );
+  Volm_GetValueAtMRIIdx( sourceVolume, iSeedMRIIdx, &params.mfSourceValue );
 
   /* Start listening for a cancel. */
   StartListeningForUserCancel();
@@ -6567,7 +6562,7 @@ tkm_tErr FloodSelect ( xVoxelRef         iSeedAnaIdx,
   return eResult;
 }
 
-Volm_tVisitCommand FloodSelectCallback ( xVoxelRef iAnaIdx,
+Volm_tVisitCommand FloodSelectCallback ( xVoxelRef iMRIIdx,
 					 float     iValue,
 					 void*     iData ) {
 
@@ -6594,9 +6589,9 @@ Volm_tVisitCommand FloodSelectCallback ( xVoxelRef iAnaIdx,
 
   /* Select or deselect this voxel. */
   if( callbackData->mbSelect ) {
-    AddVoxelsToSelection( iAnaIdx, 1 );
+    AddVoxelsToSelection( iMRIIdx, 1 );
   } else {
-    RemoveVoxelsFromSelection( iAnaIdx, 1 );
+    RemoveVoxelsFromSelection( iMRIIdx, 1 );
   }
 
   return Volm_tVisitComm_Continue;
@@ -7366,6 +7361,7 @@ tkm_tErr SetVolumeDirty ( tkm_tVolumeType iVolume, tBoolean ibDirty ) {
     tkm_SendTclCommand( tkm_tTclCommand_UpdateAuxVolumeDirty,ibDirty?"1":"0" );
     break;
   default:
+    break;
   }
 
   DebugCatch;
@@ -7717,6 +7713,7 @@ void EditAnatomicalVolumeInRangeArray ( tkm_tVolumeType iVolume,
 	break;
 
       default:
+	break;
       }
     }
   }
@@ -7726,55 +7723,58 @@ void EditAnatomicalVolumeInRangeArray ( tkm_tVolumeType iVolume,
 }
 
 void SetAnatomicalVolumeRegion ( tkm_tVolumeType iVolume,
-				 int             iAnaX0,
-				 int             iAnaX1,
-				 int             iAnaY0,
-				 int             iAnaY1,
-				 int             iAnaZ0,
-				 int             iAnaZ1,
+				 int             iMRIIdxX0,
+				 int             iMRIIdxX1,
+				 int             iMRIIdxY0,
+				 int             iMRIIdxY1,
+				 int             iMRIIdxZ0,
+				 int             iMRIIdxZ1,
 				 float           iNewValue ) {
   
   tkm_tErr   eResult = tkm_tErr_NoErr;
   Volm_tErr  eVolume = Volm_tErr_NoErr;
-  xVoxel     begin;
-  xVoxel     end;
-  xVoxel     cur;
+  xVoxel     beginMRIIdx;
+  xVoxel     endMRIIdx;
+  xVoxel     curMRIIdx;
 
   DebugEnterFunction( ("SetAnatomicalVolumeRegion( iVolume=%d, "
-		       "iAnaX0=%d, iAnaY0=%d, iAnaZ0=%d, "
-		       "iAnaX1=%d, iAnaY1=%d, iAnaZ1=%d )",
-		       iVolume, iAnaX0, iAnaY0, iAnaZ0,
-		       iAnaX1, iAnaY1, iAnaZ1) );
+		       "iMRIIdxX0=%d, iMRIIdxY0=%d, iMRIIdxZ0=%d, "
+		       "iMRIIdxX1=%d, iMRIIdxY1=%d, iMRIIdxZ1=%d )",
+		       iVolume, iMRIIdxX0, iMRIIdxY0, iMRIIdxZ0,
+		       iMRIIdxX1, iMRIIdxY1, iMRIIdxZ1) );
 
   DebugAssertThrowX( (iVolume >= 0 && iVolume < tkm_knNumVolumeTypes),
 		     eResult, tkm_tErr_InvalidParameter );
   
   /* Make sure we got a good range. */
-  xVoxl_Set( &begin, 
-	     MIN( iAnaX0, iAnaX1 ),
-	     MIN( iAnaY0, iAnaY1 ),
-	     MIN( iAnaZ0, iAnaZ1 ) );
-  eVolume = Volm_VerifyIdxInMRIBounds( gAnatomicalVolume[iVolume], &begin );
+  xVoxl_Set( &beginMRIIdx, 
+	     MIN( iMRIIdxX0, iMRIIdxX1 ),
+	     MIN( iMRIIdxY0, iMRIIdxY1 ),
+	     MIN( iMRIIdxZ0, iMRIIdxZ1 ) );
+  eVolume = 
+    Volm_VerifyIdxInMRIBounds( gAnatomicalVolume[iVolume], &beginMRIIdx );
   DebugAssertThrowX( (Volm_tErr_NoErr == eVolume), 
 		     eResult, tkm_tErr_InvalidParameter );
-  xVoxl_Set( &end, 
-	     MAX( iAnaX0, iAnaX1 ),
-	     MAX( iAnaY0, iAnaY1 ),
-	     MAX( iAnaZ0, iAnaZ1 ) );
-  eVolume = Volm_VerifyIdxInMRIBounds( gAnatomicalVolume[iVolume], &end );
+  xVoxl_Set( &endMRIIdx, 
+	     MAX( iMRIIdxX0, iMRIIdxX1 ),
+	     MAX( iMRIIdxY0, iMRIIdxY1 ),
+	     MAX( iMRIIdxZ0, iMRIIdxZ1 ) );
+  eVolume = 
+    Volm_VerifyIdxInMRIBounds( gAnatomicalVolume[iVolume], &endMRIIdx );
   DebugAssertThrowX( (Volm_tErr_NoErr == eVolume), 
 		     eResult, tkm_tErr_InvalidParameter );
 
   /* step through the volume and set everything to this value. */
   DebugNote( ("Setting volume values") );
-  xVoxl_Copy( &cur, &begin );
-  while( xVoxl_IncrementWithMinsUntilLimits( &cur, 
-					     xVoxl_GetX(&begin), 
-					     xVoxl_GetY(&begin), 
-					     xVoxl_GetX(&end), 
-					     xVoxl_GetY(&end), 
-					     xVoxl_GetZ(&end) ) ) {
-    Volm_SetValueAtIdx_( gAnatomicalVolume[iVolume], &cur, iNewValue );
+  xVoxl_Copy( &curMRIIdx, &beginMRIIdx );
+  while( xVoxl_IncrementWithMinsUntilLimits( &curMRIIdx,
+					     xVoxl_GetX(&beginMRIIdx),
+					     xVoxl_GetY(&beginMRIIdx),
+					     xVoxl_GetX(&endMRIIdx),
+					     xVoxl_GetY(&endMRIIdx),
+					     xVoxl_GetZ(&endMRIIdx) ) ) {
+    Volm_SetValueAtMRIIdx_( gAnatomicalVolume[iVolume], &
+			    curMRIIdx, iNewValue );
   }
   
   /* volume is dirty. */
@@ -9709,79 +9709,6 @@ tkm_tErr LoadDTIVolume ( char*              isNameEV,
   return eResult;
 }
 
-void GetDTIColorAtVoxel ( xVoxelRef        iAnaIdx,
-			  mri_tOrientation iPlane,
-			  xColor3fRef      iBaseColor,
-			  xColor3fRef      oColor ) {
-  
-  Volm_tErr eVolm = Volm_tErr_NoErr;
-  float     x     = 0;
-  float     y     = 0;
-  float     z     = 0;
-  xColr_tComponent comp;
-  xColor3f  color;
-  
-  if( xVoxl_GetX(iAnaIdx) >= 128 &&
-      xVoxl_GetZ(iAnaIdx) >= 128 &&
-      xVoxl_GetY(iAnaIdx) >= 128 ) {
-    ;
-  }
-
-  /* Make sure this voxel is in the bounds of the DTI volume */
-  eVolm = Volm_VerifyIdxInMRIBounds( gDTIVolume, iAnaIdx );
-  if( Volm_tErr_NoErr != eVolm ) {
-    *oColor = *iBaseColor;
-    return;
-  }
-
-  /* Check our 0 alpha special case. */
-  if( 0 == gfDTIAlpha ) {
-    *oColor = *iBaseColor;
-    return;
-  }
-
-  /* Get the x, y, and z values. frame 0 has the x value, 1 has y, and
-     2 has z. */
-  Volm_GetValueAtIdxFrame( gDTIVolume, iAnaIdx, 0, &x );
-  Volm_GetValueAtIdxFrame( gDTIVolume, iAnaIdx, 1, &y );
-  Volm_GetValueAtIdxFrame( gDTIVolume, iAnaIdx, 2, &z );
-
-  if( x != 0 && y != 0 && z != 0 ) {
-    
-    /* Map to the colors. We use fabs() here because the value in the
-       volume could be negative. */
-    for( comp = xColr_tComponent_Red; comp <= xColr_tComponent_Blue; comp++ ) {
-      switch( gaDTIAxisForComponent[comp] ) {
-      case tAxis_X: xColr_SetFloatComponent( &color, comp, fabs(x) ); break;
-      case tAxis_Y: xColr_SetFloatComponent( &color, comp, fabs(y) ); break;
-      case tAxis_Z: xColr_SetFloatComponent( &color, comp, fabs(z) ); break;
-      default: xColr_SetFloatComponent( &color, comp, 0 ); break;
-      }
-    }
-  
-    /* If alpha is 1, just set the color. */
-    if( 1 == gfDTIAlpha ) {
-
-      oColor->mfRed = color.mfRed;
-      oColor->mfGreen = color.mfGreen;
-      oColor->mfBlue = color.mfBlue;
-
-    } else {
-      
-      /* Blend with the destination color. */
-      oColor->mfRed   = MIN( 1, (gfDTIAlpha * color.mfRed) + 
-			     (float)((1.0-gfDTIAlpha) * iBaseColor->mfRed));
-      oColor->mfGreen = MIN( 1, (gfDTIAlpha * color.mfGreen) + 
-			   (float)((1.0-gfDTIAlpha) * iBaseColor->mfGreen));
-      oColor->mfBlue  = MIN( 1, (gfDTIAlpha * color.mfBlue) + 
-			     (float)((1.0-gfDTIAlpha) * iBaseColor->mfBlue));
-    }
-
-  } else {
-    *oColor = *iBaseColor;
-  }
-}
-            
 void SetDTIAlpha ( float ifAlpha ) {
   
   char sTclArguments[STRLEN] = "";
@@ -10140,11 +10067,11 @@ void AddAnaIdxAndValueToUndoVolume ( xVoxelRef    iAnaIdx,
   return;
 }
 
-tBoolean IsAnaIdxInUndoVolume ( xVoxelRef iAnaIdx ) {
+tBoolean IsMRIIdxInUndoVolume ( xVoxelRef iMRIIdx ) {
   
-  tBoolean       bIsInVolume = FALSE;
-  xSVol_tErr       eVolume   = xSVol_tErr_NoErr;
-  UndoVolumeEntryRef entry   = NULL;
+  tBoolean           bIsInVolume = FALSE;
+  xSVol_tErr         eVolume     = xSVol_tErr_NoErr;
+  UndoVolumeEntryRef entry       = NULL;
   
   if( NULL == gUndoVolume ) {
     DebugPrint( ( "IsAnaIdxInUndoVolume: Undo volume not inited.\n"
@@ -10153,7 +10080,7 @@ tBoolean IsAnaIdxInUndoVolume ( xVoxelRef iAnaIdx ) {
   }
   
   /* try getting a voxel at this location */
-  eVolume = xSVol_Get( gUndoVolume, iAnaIdx, (void**)&entry );
+  eVolume = xSVol_Get( gUndoVolume, iMRIIdx, (void**)&entry );
   if( xSVol_tErr_NoErr != eVolume )
     goto cleanup;
   
@@ -10166,44 +10093,43 @@ tBoolean IsAnaIdxInUndoVolume ( xVoxelRef iAnaIdx ) {
   return bIsInVolume;
 }
 
-void RestoreUndoVolumeAroundAnaIdx ( xVoxelRef iAnaIdx ) {
+void RestoreUndoVolumeAroundMRIIdx ( xVoxelRef iMRIIdx ) {
   
-  Volm_tErr       eVolume = Volm_tErr_NoErr;
+  Volm_tErr          eVolume = Volm_tErr_NoErr;
   UndoVolumeEntryRef entry   = NULL;
-  int         nZ       = 0;
-  int         nY       = 0;
-  int         nX       = 0;
-  xVoxel       anaIdx;
+  int                nZ      = 0;
+  int                nY      = 0;
+  int                nX      = 0;
+  xVoxel             MRIIdx;
   
   /* if this voxel is in the volume... */
-  xSVol_Get( gUndoVolume, iAnaIdx, (void**)&entry );
+  xSVol_Get( gUndoVolume, iMRIIdx, (void**)&entry );
   if( NULL != entry ) {
     
     /* restore the value */
-    Volm_SetValueAtIdx( gAnatomicalVolume[tkm_tVolumeType_Main], iAnaIdx,
-      (Volm_tValue)entry->mRestoreValue );
+    Volm_SetValueAtMRIIdx_( gAnatomicalVolume[tkm_tVolumeType_Main], iMRIIdx,
+			    (Volm_tValue)entry->mRestoreValue );
     
     /* remove the voxel */
-    xSVol_Set( gUndoVolume, iAnaIdx, NULL );
+    xSVol_Set( gUndoVolume, iMRIIdx, NULL );
     DeleteUndoVolumeEntry( &entry );
     
-  } else {
-    return;
+
+    /* try restoring surrounding voxels as well. */
+    for( nZ = xVoxl_GetZ(iMRIIdx)-1; nZ <= xVoxl_GetZ(iMRIIdx)+1; nZ++ )
+      for( nY = xVoxl_GetY(iMRIIdx)-1; nY <= xVoxl_GetY(iMRIIdx)+1; nY++ )
+	for( nX = xVoxl_GetX(iMRIIdx)-1; nX <= xVoxl_GetX(iMRIIdx)+1; nX++ ) {
+	  xVoxl_Set( &MRIIdx, nX, nY, nZ );
+	  eVolume = 
+	    Volm_VerifyMRIIdx_( gAnatomicalVolume[tkm_tVolumeType_Main],
+				&MRIIdx);
+	  if( Volm_tErr_NoErr == eVolume ) {
+	    RestoreUndoVolumeAroundMRIIdx( &MRIIdx );
+	  }
+	}
+    
+    UpdateAndRedraw();
   }
-  
-  /* try restoring surrounding voxels as well. */
-  for( nZ = xVoxl_GetZ(iAnaIdx)-1; nZ <= xVoxl_GetZ(iAnaIdx)+1; nZ++ )
-    for( nY = xVoxl_GetY(iAnaIdx)-1; nY <= xVoxl_GetY(iAnaIdx)+1; nY++ )
-      for( nX = xVoxl_GetX(iAnaIdx)-1; nX <= xVoxl_GetX(iAnaIdx)+1; nX++ ) {
-  xVoxl_Set( &anaIdx, nX, nY, nZ );
-  eVolume = Volm_VerifyIdx( gAnatomicalVolume[tkm_tVolumeType_Main], 
-          &anaIdx );
-  if( Volm_tErr_NoErr == eVolume ) {
-    RestoreUndoVolumeAroundAnaIdx( &anaIdx );
-  }
-      }
-  
-  UpdateAndRedraw();
 }
 
 void ClearUndoVolume () {
@@ -10221,7 +10147,7 @@ void ClearUndoVolume () {
 /* ============================================================ HEAD POINTS */
 
 tkm_tErr LoadHeadPts ( char* isHeadPtsFile, 
-           char* isTransformFile ) {
+		       char* isTransformFile ) {
   
   tkm_tErr  eResult        = tkm_tErr_NoErr;
   HPtL_tErr eHeadPts        = HPtL_tErr_NoErr;
@@ -10248,9 +10174,9 @@ tkm_tErr LoadHeadPts ( char* isHeadPtsFile,
   
   DebugNote( ("Creating head points list") );
   eHeadPts = HPtL_New( &gHeadPoints,
-           sHeadPtsFile, spTransformFileArg, gIdxToRASTransform );
+		       sHeadPtsFile, spTransformFileArg, gIdxToRASTransform );
   DebugAssertThrowX( (HPtL_tErr_NoErr == eHeadPts),
-         eResult, tkm_tErr_CouldntLoadHeadPointsList );
+		     eResult, tkm_tErr_CouldntLoadHeadPointsList );
   
   DebugNote( ("Setting head point list in window") );
   MWin_SetHeadPointList( gMeditWindow, -1, gHeadPoints );
@@ -10488,7 +10414,7 @@ void SetSelectedHeadPointLabel ( char* isNewLabel ) {
   return;
 }
 
-void AlignSelectedHeadPointToAnaIdx ( xVoxelRef iAnaIdx ) {
+void AlignSelectedHeadPointToMRIIdx ( xVoxelRef iMRIIdx ) {
   
   HPtL_tHeadPointRef pHeadPoint = NULL;
   MWin_tErr       eWindow  = MWin_tErr_NoErr;
@@ -10504,7 +10430,7 @@ void AlignSelectedHeadPointToAnaIdx ( xVoxelRef iAnaIdx ) {
     
     /* align to it */
     eHeadPts = HPtL_AlignPointToClientVoxel( gHeadPoints, 
-               pHeadPoint, iAnaIdx );
+					     pHeadPoint, iMRIIdx );
     if( HPtL_tErr_NoErr != eHeadPts )
       goto error;
     
@@ -10517,12 +10443,12 @@ void AlignSelectedHeadPointToAnaIdx ( xVoxelRef iAnaIdx ) {
  error:
   
   if( MWin_tErr_NoErr != eWindow ) {
-    DebugPrint( ( "MWin error %d in SetSelectedHeadPointLabel: %s\n",
+    DebugPrint( ( "MWin error %d in AlignSelectedHeadPointToMRIIdx: %s\n",
       eWindow, MWin_GetErrorString( eWindow ) ) );
   }
   
   if(  HPtL_tErr_NoErr != eHeadPts ) {
-    DebugPrint( ( "HPtL error %d in SetSelectedHeadPointLabel: %s\n",
+    DebugPrint( ( "HPtL error %d in AlignSelectedHeadPointToMRIIdx: %s\n",
       eWindow, HPtL_GetErrorString( eHeadPts ) ) );
   }
   
@@ -10967,25 +10893,25 @@ void tkm_DisplayAlert ( char* isAction, char* isMsg, char* isDesc ) {
   DebugPrint( ("ALERT: %s\n%s\n", isAction, isMsg) );
 }
 
-void tkm_MakeControlPoint ( xVoxelRef iAnaIdx ) {
+void tkm_MakeControlPoint ( xVoxelRef iMRIIdx ) {
   
-  if( NULL == iAnaIdx ) {
-    DebugPrint( ( "tkm_NewCtrlPt(): Passed NULL voxel.\n" ) );
+  if( NULL == iMRIIdx ) {
+    DebugPrint( ( "tkm_MakeControlPoint(): Passed NULL voxel.\n" ) );
     return;
   }
   
-  NewControlPoint ( iAnaIdx, TRUE );
+  NewControlPoint( iMRIIdx, TRUE );
 }
 
-void tkm_RemoveControlPointWithinDist ( xVoxelRef   iAnaIdx,
-          mri_tOrientation iPlane,
-          int       inDistance ) {
+void tkm_RemoveControlPointWithinDist ( xVoxelRef        iMRIIdx,
+					mri_tOrientation iPlane,
+					int              inDistance ) {
   
   float         fDistance = 0;
-  xVoxelRef    pCtrlPt   = NULL;
+  xVoxelRef     pCtrlPt   = NULL;
   
   /* find the closest control point */
-  fDistance = FindNearestControlPoint( iAnaIdx, iPlane, &pCtrlPt );
+  fDistance = FindNearestControlPoint( iMRIIdx, iPlane, &pCtrlPt );
   
   /* if we found one and it's in range... */
   if( NULL != pCtrlPt &&
@@ -11096,20 +11022,20 @@ void tkm_ClearUndoVolume () {
   ClearUndoVolume();
 }
 
-void tkm_RestoreUndoVolumeAroundAnaIdx ( xVoxelRef iAnaIdx ) {
+void tkm_RestoreUndoVolumeAroundMRIIdx ( xVoxelRef iMRIIdx ) {
   
-  RestoreUndoVolumeAroundAnaIdx( iAnaIdx );
+  RestoreUndoVolumeAroundMRIIdx( iMRIIdx );
 }
 
-tBoolean tkm_IsAnaIdxInUndoVolume ( xVoxelRef iAnaIdx ) {
+tBoolean tkm_IsMRIIdxInUndoVolume ( xVoxelRef iMRIIdx ) {
   
-  return IsAnaIdxInUndoVolume( iAnaIdx );
+  return IsMRIIdxInUndoVolume( iMRIIdx );
 }
 
-void tkm_GetHeadPoint ( xVoxelRef      iAnaIdx,
-      mri_tOrientation    iOrientation,
-      tBoolean      ibFlat,
-      HPtL_tHeadPointRef* opPoint ) {
+void tkm_GetHeadPoint ( xVoxelRef           iMRIIdx,
+			mri_tOrientation    iOrientation,
+			tBoolean            ibFlat,
+			HPtL_tHeadPointRef* opPoint ) {
   
   HPtL_tErr eHeadPts = HPtL_tErr_NoErr;
   HPtL_tHeadPointRef pPoint = NULL;
@@ -11134,10 +11060,10 @@ void tkm_GetHeadPoint ( xVoxelRef      iAnaIdx,
     
     if( ibFlat ) {
       eHeadPts = HPtL_FindFlattenedNearestPoint( gHeadPoints, plane,
-             iAnaIdx, &pPoint );
+						 iMRIIdx, &pPoint );
     } else {
       eHeadPts = HPtL_FindNearestPoint( gHeadPoints, plane,
-          1.0, iAnaIdx, &pPoint );
+					1.0, iMRIIdx, &pPoint );
     }
     if( HPtL_tErr_NoErr != eHeadPts )
       goto error;
@@ -11204,44 +11130,11 @@ void tkm_GetSegLabel ( tkm_tSegType iVolume,
   GetSegLabel( iVolume, inVoxel, onIndex, osLabel );
 }
 
-void tkm_SelectCurrentSegLabel ( tkm_tSegType iVolume,
-				 int          inIndex ) {
-
-  tkm_tErr eResult = tkm_tErr_NoErr;
-  
-  eResult = SelectSegLabel( iVolume, inIndex );
-  if( tkm_tErr_NoErr != eResult ) {
-    tkm_DisplayError( "Selecting Current Segmentation Label",
-		      "Tool failed",
-		      "Tkmedit couldn't select the current label. You are "
-		      "probably trying to select in invalid label. Make sure "
-		      "you click on a label first and its name appears in "
-		      "the tools window in the seg label line." );
-  }
-}
-
-void tkm_GraphCurrentSegLabelAvg ( tkm_tSegType iVolume,
-			      int          inIndex ) {
-  
-  tkm_tErr eResult = tkm_tErr_NoErr;
-  
-  eResult = GraphSegLabel( iVolume, inIndex );
-  if( tkm_tErr_NoErr != eResult ) {
-    tkm_DisplayError( "Graphing Current Segmentation Label Average",
-		      "Tool failed",
-		      "Tkmedit couldn't graph the current label. You are "
-		      "probably trying to graph in invalid label. Make sure "
-		      "you click on a label first and its name appears in "
-		      "the tools window in the seg label line. Also, make "
-		      "sure that functional time course data is loaded." );
-  }
-}
-
 void tkm_CalcSegLabelVolume ( tkm_tSegType iVolume,
-			      xVoxelRef    iAnaIdx,
+			      xVoxelRef    iMRIIdx,
 			      int*         onVolume ) {
   
-  CalcSegLabelVolume( iVolume, iAnaIdx, onVolume );
+  CalcSegLabelVolume( iVolume, iMRIIdx, onVolume );
 }
 
 void tkm_EditSegmentation ( tkm_tSegType iVolume,
@@ -11283,14 +11176,6 @@ void tkm_FloodFillSegmentation ( tkm_tSegType    iVolume,
 			 inFuzzy, inDistance );
 }
 
-void tkm_GetDTIColorAtVoxel ( xVoxelRef        iAnaIdx,
-			      mri_tOrientation iPlane,
-			      xColor3fRef      iBaseColor,
-			      xColor3fRef      oColor ) {
-  
-  GetDTIColorAtVoxel( iAnaIdx, iPlane, iBaseColor, oColor );
-}
-            
 void tkm_SetSurfaceDistance    ( xVoxelRef iAnaIdx,
 				 float     ifDistance ) {
   

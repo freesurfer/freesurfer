@@ -485,12 +485,6 @@ void DspA_SelectVoxels_           ( xVoxelRef ipaVoxel, int inCount, void* );
 /* no parameter here */
 void DspA_EditSegmentationVoxels_ ( xVoxelRef ipaVoxel, int inCount, void* );
 
-/* select the currently clicked seg label */
-DspA_tErr DspA_SelectCurrentSegLabel ( tkmDisplayAreaRef this );
-
-/* graph the avg of the currently clicked seg label */
-DspA_tErr DspA_GraphCurrentSegLabelAvg ( tkmDisplayAreaRef this );
-
 /* gets current mouse position, translates to volume idx, and sends
    info to tcl as mouseover info. */
 DspA_tErr DspA_SendMouseInfoToTcl ( tkmDisplayAreaRef this );

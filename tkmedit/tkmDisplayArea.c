@@ -3,8 +3,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2003/07/25 20:43:42 $
-// Revision       : $Revision: 1.78 $
+// Revision Date  : $Date: 2003/07/28 14:12:43 $
+// Revision       : $Revision: 1.79 $
 
 #include "tkmDisplayArea.h"
 #include "tkmMeditWindow.h"
@@ -2821,7 +2821,7 @@ DspA_tErr DspA_HandleMouseUp_ ( tkmDisplayAreaRef this,
     
     /* If Shift-edit, restore-undo around the clicked point. */
     if( ipEvent->mbShiftKey ) {
-      tkm_RestoreUndoVolumeAroundAnaIdx( pVolumeVox );
+      tkm_RestoreUndoVolumeAroundMRIIdx( pVolumeVox );
     }
     break;
 
@@ -3729,6 +3729,7 @@ DspA_tErr DspA_BrushVoxels_ ( tkmDisplayAreaRef this,
     }
   }
 
+
   /* Calc the limits and cap them. */
   nXMin = MAX( nXCenter - nXRadius, 0 );
   nXMax = MIN( nXCenter + nXRadius, nDimensionX );
@@ -3869,80 +3870,6 @@ void DspA_EditSegmentationVoxels_ ( xVoxelRef ipaVoxel, int inCount,
 			     ipaVoxel, inCount, sSegBrush.mNewValue );
 
   DebugExitFunction;
-}
-
-DspA_tErr DspA_SelectCurrentSegLabel ( tkmDisplayAreaRef this ) {
-  
-  DspA_tErr eResult = DspA_tErr_NoErr;
-  tkm_tSegType segType = tkm_tSegType_Main;
-  
-  /* verify us. */
-  eResult = DspA_Verify ( this );
-  if ( DspA_tErr_NoErr != eResult )
-    goto error;
-  
-  if( this->mabDisplayFlags[DspA_tDisplayFlag_AuxSegmentationVolume] ) {
-    segType = tkm_tSegType_Aux;
-  } else {
-    segType = tkm_tSegType_Main;
-  }
-  
-  /* if we have the data and our index is good, tell tkmedit to select stuff */
-  if( NULL != this->mSegmentationVolume[segType]
-      && -1 != this->mnSegmentationVolumeIndex ) {
-    tkm_SelectCurrentSegLabel( segType, this->mnSegmentationVolumeIndex );
-  }
-  
-  goto cleanup;
-  
- error:
-  
-  /* print error message */
-  if ( DspA_tErr_NoErr != eResult ) {
-    DebugPrint( ("Error %d in DspA_SelectCurrentSegLabel: %s\n",
-		 eResult, DspA_GetErrorString(eResult) ) );
-  }
-  
- cleanup:
-  
-  return eResult;
-}
-
-DspA_tErr DspA_GraphCurrentSegLabelAvg ( tkmDisplayAreaRef this ) {
-  
-  DspA_tErr    eResult = DspA_tErr_NoErr;
-  tkm_tSegType segType = tkm_tSegType_Main;
-  
-  /* verify us. */
-  eResult = DspA_Verify ( this );
-  if ( DspA_tErr_NoErr != eResult )
-    goto error;
-  
-  if( this->mabDisplayFlags[DspA_tDisplayFlag_AuxSegmentationVolume] ) {
-    segType = tkm_tSegType_Aux;
-  } else {
-    segType = tkm_tSegType_Main;
-  }
-
-  /* if we have the data and our index is good, tell tkmedit to handle it */
-  if( NULL != this->mSegmentationVolume[segType]
-      && -1 != this->mnSegmentationVolumeIndex ) {
-    tkm_GraphCurrentSegLabelAvg( segType, this->mnSegmentationVolumeIndex );
-  }
-  
-  goto cleanup;
-  
- error:
-  
-  /* print error message */
-  if ( DspA_tErr_NoErr != eResult ) {
-    DebugPrint( ("Error %d in DspA_GraphCurrentSegLabelAvg: %s\n",
-		 eResult, DspA_GetErrorString(eResult) ) );
-  }
-  
- cleanup:
-  
-  return eResult;
 }
 
 DspA_tErr DspA_SendMouseInfoToTcl ( tkmDisplayAreaRef this ) {
@@ -4996,7 +4923,7 @@ DspA_tErr DspA_DrawUndoableVoxelsOverlayToFrame_ ( tkmDisplayAreaRef this ) {
 	  goto error;
 
 	/* Is this voxel is in the undo volume? */
-	if( tkm_IsAnaIdxInUndoVolume ( &anaIdx ) ) {
+	if( tkm_IsMRIIdxInUndoVolume ( &anaIdx ) ) {
 
 	  /* Get the color at the dest. */
 	  color.mnRed   = pDest[DspA_knRedPixelCompIndex];

@@ -10,6 +10,7 @@
 #include "xGLutWindow.h"
 #include "mriHeadPointList.h"
 #include "mriSurface.h"
+#include "mriVolume.h"
 
 typedef unsigned char tVolumeValue;
 typedef tVolumeValue* tVolumeRef;
@@ -229,33 +230,18 @@ void tkm_DisplayError   ( char* isAction, char* isError, char* isDesc );
 void tkm_DisplayAlert   ( char* isAction, char* isMsg, char* isDesc );
 
 /* volume value */
-void tkm_GetAnaDimension  ( tkm_tVolumeType iVolume,
-			    int*            onDimensionX, 
-			    int*            onDimensionY, 
-			    int*            onDimensionZ );
-tBoolean tkm_IsValidAnaIdx ( tkm_tVolumeType iVolume,
-			     xVoxelRef       iAnaIdx );
+void tkm_GetAnatomicalVolume ( tkm_tVolumeType iVolume,
+			       mriVolumeRef*   opVolume );
 
 /* segmentation value */
-void tkm_GetSegmentationColorAtVoxel ( tkm_tSegType iVolume,
-				       xVoxelRef    iAnaIdx,
-				       xColor3fRef  iBaseColor,
-				       xColor3fRef  oColor );
 void tkm_GetSegLabel                 ( tkm_tSegType iVolume,
 				       xVoxelRef    iAnaIdx, 
 				       int*         onIndex,
 				       char*        osLabel );
 
-/* selects all the voxels in the label with the given index */
-void tkm_SelectCurrentSegLabel     ( tkm_tSegType iVolume,
-				     int          inIndex );
-/* graphs the avg of all the voxels in the label with the given index */
-void tkm_GraphCurrentSegLabelAvg   ( tkm_tSegType iVolume,
-				     int          inIndex );
-
 /* get the volume of an segmentation label */
 void tkm_CalcSegLabelVolume ( tkm_tSegType iVolume,
-			      xVoxelRef    iAnaIdx,
+			      xVoxelRef    iMRIIdx,
 			      int*         onVolume );
  
 /* editing the segmentation */
@@ -274,16 +260,10 @@ void tkm_FloodFillSegmentation ( tkm_tSegType      iVolume,
 				 int               inFuzzy,
 				 int               inDistance );
 
-/* dti color */
-void tkm_GetDTIColorAtVoxel ( xVoxelRef        iAnaIdx,
-			      mri_tOrientation iPlane,
-			      xColor3fRef      iBaseColor,
-			      xColor3fRef      oColor );
-            
 
 /* dealing with control points */
-void tkm_MakeControlPoint             ( xVoxelRef        iAnaIdx );
-void tkm_RemoveControlPointWithinDist ( xVoxelRef        iAnaIdx,
+void tkm_MakeControlPoint             ( xVoxelRef        iMRIIdx );
+void tkm_RemoveControlPointWithinDist ( xVoxelRef        iMRIIdx,
 					mri_tOrientation iPlane,
 					int              inDistance );
 void tkm_WriteControlFile             ();
@@ -303,12 +283,12 @@ void tkm_EditAnatomicalVolumeInRangeArray( tkm_tVolumeType  iVolume,
 
 /* Sets a region in the anatomical volume to a new value. */
 void tkm_SetAnatomicalVolumeRegion ( tkm_tVolumeType iVolume,
-				     int             iAnaX0,
-				     int             iAnaX1,
-				     int             iAnaY0,
-				     int             iAnaY1,
-				     int             iAnaZ0,
-				     int             iAnaZ1,
+				     int             iMRIIdxX0,
+				     int             iMRIIdxX1,
+				     int             iMRIIdxY0,
+				     int             iMRIIdxY1,
+				     int             iMRIIdxZ0,
+				     int             iMRIIdxZ1,
 				     float           iNewValue );
 
 /* undo list */
@@ -317,11 +297,11 @@ void tkm_RestoreUndoList ();
 
 /* undo volume */
 void     tkm_ClearUndoVolume               ();
-void     tkm_RestoreUndoVolumeAroundAnaIdx ( xVoxelRef iAnaIdx );
-tBoolean tkm_IsAnaIdxInUndoVolume          ( xVoxelRef iAnaIdx );
+void     tkm_RestoreUndoVolumeAroundMRIIdx ( xVoxelRef iMRIIdx );
+tBoolean tkm_IsMRIIdxInUndoVolume          ( xVoxelRef iMRIIdx );
 
 /* head points */
-void tkm_GetHeadPoint ( xVoxelRef           iAnaIdx,
+void tkm_GetHeadPoint ( xVoxelRef           iMRIIdx,
 			mri_tOrientation    iOrientation,
 			tBoolean            ibFlat,
 			HPtL_tHeadPointRef* opPoint );
@@ -333,7 +313,7 @@ void tkm_DeselectVoxel       ( xVoxelRef iMRIIdx );
 void tkm_DeselectVoxelArray  ( xVoxelRef iaMRIIdx, int inCount );
 void tkm_ClearSelection      ();
 tBoolean tkm_IsSelectionPresent ();
-void tkm_FloodSelect         ( xVoxelRef         iSeedAnaIdx,
+void tkm_FloodSelect         ( xVoxelRef         iSeedMRIIdx,
 			       tBoolean          ib3D,
 			       tkm_tVolumeTarget iSrc,
 			       int               inFuzzy,

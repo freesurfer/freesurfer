@@ -368,14 +368,6 @@ int MWin_TclSetSegBrushInfo ( ClientData  iClientData,
 			       Tcl_Interp* ipInterp,
 			       int   argc,
 			       char*   argv[] );
-int MWin_TclSelectCurrentSegLabel ( ClientData  iClientData, 
-			       Tcl_Interp* ipInterp,
-			       int   argc,
-			       char*   argv[] );
-int MWin_TclGraphCurrentSegLabelAvg ( ClientData  iClientData, 
-				 Tcl_Interp* ipInterp,
-				 int   argc,
-				 char*   argv[] );
 int MWin_TclSetSurfaceDistanceAtCursor ( ClientData  iClientData, 
 					 Tcl_Interp* ipInterp,
 					 int   argc,

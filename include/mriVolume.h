@@ -283,6 +283,12 @@ Volm_tErr Volm_ConvertIdxToMRIIdx  ( mriVolumeRef this,
 Volm_tErr Volm_ConvertMRIIdxToIdx  ( mriVolumeRef this,
 				     xVoxelRef    iMRIIdx,
 				     xVoxelRef    oIdx );
+Volm_tErr Volm_ConvertMRIIdxToRAS  ( mriVolumeRef this,
+				     xVoxelRef    iMRIIdx,
+				     xVoxelRef    oRAS );
+Volm_tErr Volm_ConvertRASToMRIIdx  ( mriVolumeRef this,
+				     xVoxelRef    iRAS,
+				     xVoxelRef    oMRIIdx );
 
 Volm_tErr Volm_GetIdxToRASTransform ( mriVolumeRef     this,
 				      mriTransformRef* opTransform );
