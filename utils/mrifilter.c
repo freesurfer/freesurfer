@@ -32,7 +32,8 @@
                     MACROS AND CONSTANTS
 -------------------------------------------------------*/
 
-#define DEBUG_POINT(x,y,z)  (((x) == 36)&&((y)==14) &&((z)==31))
+#define DEBUG_POINT(x,y,z)  (((x==8&&y==9) || (x==9&&y==8)) &&((z)==15))
+
 /*-----------------------------------------------------
                     STATIC PROTOTYPES
 -------------------------------------------------------*/
@@ -140,8 +141,6 @@ MRIoffsetDirection(MRI *mri_grad, int wsize, MRI *mri_direction)
       dir_zpix = &MRIFseq_vox(mri_direction, whalf, y, z, 2) ;
       for (x = whalf ; x < width-whalf ; x++)
       {
-if (DEBUG_POINT(x,y,z))
-  DiagBreak() ;
         ox = MRIFvox(mri_grad, x, y, z) ;
         oy = MRIFseq_vox(mri_grad, x, y, z, 1) ;
         oz = MRIFseq_vox(mri_grad, x, y, z, 2) ;
@@ -204,7 +203,7 @@ MRI *
 MRIoffsetMagnitude(MRI *mri_src, MRI *mri_dst, int maxsteps)
 {
   int          width, height, depth, x, y, z, x1, y1, z1, steps ;
-  float        odx, ody, odz, dx, dy, dz, *xpix, *ypix, *zpix, len, dot,
+  float        odx, ody, odz, dx, dy, dz, *xpix, *ypix, *zpix, len, dot = 0.0f,
                adx, ady, adz ;
   signed char  *dst_xpix, *dst_ypix, *dst_zpix ;
 
@@ -231,9 +230,6 @@ MRIoffsetMagnitude(MRI *mri_src, MRI *mri_dst, int maxsteps)
       dst_zpix = &MRISCseq_vox(mri_dst, 0, y, z, 2) ;
       for (x = 0 ; x < width ; x++)
       {
-if (DEBUG_POINT(x,y,z))
-  DiagBreak() ;
-
         odx = *xpix++ ; ody = *ypix++ ; odz = *zpix++ ;
         adx = fabs(odx) ; ady = fabs(ody) ; adz = fabs(odz) ;
 
@@ -263,7 +259,7 @@ if (DEBUG_POINT(x,y,z))
             if (dot <= 0.0f)
               break ;
           }
-          /*          if (!FZERO(dot))*/
+          if (!FZERO(dot))
             steps-- ;
         }
         else
@@ -333,25 +329,9 @@ MRIapplyOffset(MRI *mri_src, MRI *mri_dst, MRI *mri_offset)
       }
       for (x = 0 ; x < width ; x++)
       {
-if (DEBUG_POINT(x,y,z))
-  DiagBreak() ;
         dx = *pdx++ ;
         dy = *pdy++ ;
         dz = *pdz++ ;
-#if 0
-        if (x +dx >= width)
-          dx = width - x - 1 ;
-        else if (x + dx < 0)
-          dx = -x ;
-        if (y + dy >= height)
-          dy = height - y - 1 ;
-        else if (y + dy < 0)
-          dy = -y ;
-        if (z +dz >= depth)
-          dz = depth - z - 1 ;
-        else if (z + dz < 0)
-          dz = -z ;
-#endif
 
         switch (mri_src->type)
         {
@@ -918,6 +898,9 @@ MRIxSobel(MRI *mri_src, MRI *mri_x, int frame)
       
       for (x = 1 ; x < width ; x++)
       {
+if (DEBUG_POINT(x,y,z))
+  DiagBreak() ;
+
         right = (float)*tr_pix++ + 2.0f * (float)*mr_pix++ + (float)*br_pix++ ;
         *outPtr++ = (right - left) / 8.0f ;
         left = middle ;
@@ -968,6 +951,8 @@ MRIySobel(MRI *mri_src, MRI *mri_y, int frame)
       
       for (x = 1 ; x < width ; x++)
       {
+if (DEBUG_POINT(x,y,z))
+  DiagBreak() ;
         right = (float)*br_pix++ - (float)*tr_pix++ ;
         *outPtr++ = (right + 2.0f * middle + left) / 8.0f ;
         left = middle ;
@@ -1433,8 +1418,6 @@ MRImedian(MRI *mri_src, MRI *mri_dst, int wsize)
       pdst = &MRIvox(mri_dst, 0, y, z) ;
       for (x = 0 ; x < width ; x++)
       {
-if (DEBUG_POINT(x,y,z))
-  DiagBreak() ;
         for (sptr = sort_array, z0 = -whalf ; z0 <= whalf ; z0++)
         {
           zi = mri_src->zi[z+z0] ;
