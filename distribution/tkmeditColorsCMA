@@ -87,3 +87,25 @@
  86  Corpus_Callosum                        250 255 50 0
  96  Left-Amygdala-Anterior               205   10  125    0
  97  Right-Amygdala-Anterior              205   10  125    0
+
+201  alveus                        254	254	254	0
+202  perforant_pathway		 255	128	128	0
+203  parasubiculum		 255	255	0	0
+204  presubiculum			 64	0	64	0
+205  subiculum			 0	0	255	0
+206  CA1				 255	0	0	0
+207  CA2				 128	128	255	0
+208  CA3				 0	128	0	0
+209  CA4				 196	160	128	0
+210 GC-DG			 255	128	255	0
+211 HATA				 128	255	128	0
+212 fimbria      128 128 128 0
+213 lateral_ventricle		 255	0	255	0
+214 molecular_layer_HP            128    0       0       0
+215 hippocampal_fissure           64	255	196	0
+216 entorhinal_cortex             255	204	102	0
+217 molecular_layer_subiculum	 0	0	0	0
+218 Amygdala                          103  255  255    0    
+219 Cerebral_White_Matter               0  225    0     0   
+220 Cerebral_Cortex               	 205   62   78     0 
+221 Inf_Lat_Vent                      196   58  250     0 
