@@ -809,6 +809,7 @@ mri_bc_sc_bias_correct/Makefile \
 fsfast/Makefile fsfast/bin/Makefile fsfast/docs/Makefile fsfast/toolbox/Makefile \
 matlab/Makefile \
 hiam_make_surfaces/Makefile \
+mris_volume/Makefile \
  ) 
 
 
