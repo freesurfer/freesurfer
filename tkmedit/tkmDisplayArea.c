@@ -4520,13 +4520,16 @@ DspA_tErr DspA_DrawVectorField_ ( tkmDisplayAreaRef this ) {
   faColor[0] = 0;
   faColor[1] = 1;
   faColor[2] = 0;
-  
+
+  /* this was some test code. it still doesn't work quite right. */
+#if 0  
   xVoxl_Set( &start, 120.5, 120.5, 120.5 );
   xVoxl_SetFloat( &direction, .5, .3, .1 );
   //  while( xVoxl_IncrementWithMinUntilLimit( &start, 120.5, 121.5 ) ) {
     
     DspA_DrawVector_( this, faColor, &start, &direction );
     //  }
+#endif
 
   goto cleanup;
 
