@@ -2,24 +2,28 @@ function rt = fast_fxcfg_fir(DoWhat,thing)
 % rt = fast_fxcfg_fir(DoWhat,thing)
 %
 % DoWhat can be:
-%  iserm  - returns 1 if erm, 0 otherwise
-%  nparams 
-%  nregressors
-%  matrix
-%  amatrix (for erm only)
-%  parseline
-%  createline
+%  iserm  - returns 1 if erm, 0 otherwise. thing not needed.
+%  nparams - returns number of parameters in model (4). thing not needed.
+%  nregressors - number of regressors in current X matrix. thing=flacfg
+%  matrix - X matrix. thing=flacfg
+%  amatrix - identity. thing=flacfg
+%  parseline - parses the line, thing = line
+%  createline - create a model line. thing=flacfg
 %  (autopsd not available for fir)
 %
 % thing - line to be parsed or flacfg (see fast_flacfg_struct).
 %
 % FIR Parameters:
 %  1. EventId
-%  2. BoxCarWidth
-%  3. PSDMin
-%  4. dPSD
-%  5. PSDMax
+%  2. PSDMin
+%  3. dPSD
+%  4. PSDMax
 %
+% $Id: fast_fxcfg_fir.m,v 1.2 2003/03/18 06:16:07 greve Exp $
+
+% Things to do:
+% Handle tpx
+
 
 rt = [];
 
@@ -49,7 +53,7 @@ switch(DoWhat)
   rt = 1;
  
  case 'nparams'
-  rt = 5;
+  rt = 4;
  
  case 'nregressors'
   if(isempty(flacfg)) pr_fla_needed(DoWhat); return; end
@@ -66,7 +70,6 @@ switch(DoWhat)
   rt = eye(nreg);
  
  case 'matrix'
-
   if(isempty(flacfg)) pr_fla_needed(DoWhat); return; end
   X = get_matrix(flacfg);
   if(isempty(X)) return; end
@@ -79,6 +82,10 @@ switch(DoWhat)
   end
   rt = parseline(line);
   
+ case 'createline'
+  if(isempty(flacfg)) pr_fla_needed(DoWhat); return; end
+  rt = createline(flacfg);
+ 
  otherwise
   fprintf('ERROR: fast_erm_fir: getwhat = %s, unrecognized\n',getwhat);
 
@@ -94,7 +101,13 @@ return;
 %------------------------------------------------------------%
 function fxcfg = parseline(line)
 % Read and check input line
-% InputLine: Effect Fixed Label FIR EvId BCW PSDMin dPSD PSDMax
+% InputLine: Effect Fixed Label FIR EvId PSDMin dPSD PSDMax
+% Parameters:
+%  1. EventId
+%  2. PSDMin
+%  3. dPSD
+%  4. PSDMax
+
 fxcfg = [];
 
 nparams = fast_fxcfg_fir('nparams');
@@ -141,120 +154,44 @@ if(evid < 1)
   fxcfg = [];
   return;
 end
-
-psdwin = get_psdwin(fxcfg.params);
-if(isempty(psdwin)) 
+if(rem(evid,1) ~= 0)
+  fprintf('ERROR: fir: evid=%g, must be integer \n',evid);
   fxcfg = [];
   return;
 end
 
-
-return;
-
-%------------------------------------------------------------%
-function nthfx = get_nthfx(flacfg)
-
-nthfx = [];
-
-if(isempty(flacfg.nthfx))
-  fprintf('ERROR: nthfx is empty\n');
+psdwin = fxcfg.params(2:4);
+if(fast_psdwin(psdwin) ~= 1)
+  fxcfg = [];
   return;
 end
 
-nfx = length(flacfg.fxlist);
-if(flacfg.nthfx < 1 | flacfg.nthfx > nfx)
-  fprintf('ERROR: nthfx = %d, out of range\n',flacfg.nthfx);
-  return;
-end
-
-nthfx = flacfg.nthfx;
-
-return;
-%------------------------------------------------------------%
-function psdwin = get_psdwin(params)
-psdwin = [];
-
-bcw     = params(2);
-psdmin  = params(3);
-dpsd    = params(4);
-psdmax  = params(5);
-
-if(rem(bcw,dpsd) ~= 0)
-  fprintf('ERROR: fir: bcw=%g not int mult of dpsd=%g\n',bcw,dpsd);
-  return; 
-end
-if(rem(bcw,psdmin) ~= 0)
-  fprintf('ERROR: fir: psdmin=%g not int mult of dpsd=%g\n',psdmin,dpsd);
-  return; 
-end
-if(rem(psdmax,dpsd) ~= 0)
-  fprintf('ERROR: fir: psdmax=%g not int mult of dpsd=%g\n',psdmax,dpsd);
-  return; 
-end
-
-psdmax = psdmax + bcw - dpsd;
-psdwin = [psdmin dpsd psdmax];
-
 return;
 
-%------------------------------------------------------------%
-function fxcfg = get_fxcfg(flacfg)
-fxcfg = [];
+%-----------------------------------------------------------%
+function line = createline(flacfg)
+line = [];
 
-nthfx = get_nthfx(flacfg);
-if(isempty(nthfx)) return; end
-fxcfg = flacfg.fxlist(nthfx).fx;
+fxcfg = fast_fxcfg('getfxcfg',flacfg);
+if(isempty(fxcfg)) return; end
 
+line = sprintf('Effect %s %s %s %d %g %g %g\n',...
+	       fxcfg.fxtype,fxcfg.label,fxcfg.model,...
+	       fxcfg.params(1),fxcfg.params(2),...
+	       fxcfg.params(3),fxcfg.params(4));
 return;
+
 
 %------------------------------------------------------------%
 function nr = get_nregressors(flacfg)
 
 nr = [];
 
-fxcfg = get_fxcfg(flacfg);
+fxcfg = fast_fxcfg('getfxcfg',flacfg);
 if(isempty(fxcfg)) return; end
 
-psdwin = get_psdwin(fxcfg.params);
-if(isempty(psdwin)) return; end
-
-psdmin  = psdwin(1);
-dpsd    = psdwin(2);
-psdmax  = psdwin(3);
-
-nr = (psdmax-psdmin)/dpsd;
-
-return;
-
-%------------------------------------------------------------%
-function nthrun = get_nthrun(flacfg)
-nthrun = [];
-
-if(isempty(flacfg.nthrun))
-  fprintf('ERROR: fir: nthrun is empty\n');
-  return;
-end
-if(isempty(flacfg.sesscfg))
-  fprintf('ERROR: fir: sesscfg is empty\n');
-  return;
-end
-nruns = length(flacfg.sesscfg.ntp);
-if(flacfg.nthrun < 1 | flacfg.nthrun > nruns)
-  fprintf('ERROR: fir: nthrun=%d, out of range\n');
-  return;
-end
-  
-nthrun = flacfg.nthrun;
-
-return;
-
-%------------------------------------------------------------%
-function ntp = get_ntp(flacfg)
-ntp = [];
-
-nthrun = get_nthrun(flacfg);
-if(isempty(nthrun)) return; end
-ntp = flacfg.sesscfg.ntp(nthrun);
+psdwin = fxcfg.params(2:4);
+nr = fast_psdwin(psdwin,'npsdwin');
 
 return;
 
@@ -264,74 +201,48 @@ X = [];
 
 nr = get_nregressors(flacfg);
 if(isempty(nr)) return; end
-ntp = get_ntp(flacfg);
+ntp = fast_fxcfg('getntp',flacfg);
 if(isempty(ntp)) return; end
-fxcfg = get_fxcfg(flacfg);
+fxcfg = fast_fxcfg('getfxcfg',flacfg);
 if(isempty(fxcfg)) return; end
 
-[tPres, EvIdPres, wPres] = get_evsch(flacfg);
-if(isempty(tPres)) return; end
+evsch = fast_fxcfg('getevsch',flacfg);
+if(isempty(evsch)) return; end
+
+tPres = evsch(:,1);
+EvIdPres  = evsch(:,2);
+if(size(evsch,2) == 3) wPres = evsch(:,3);
+else wPres = [];
+end
 
 evid   = fxcfg.params(1);
-bcw    = fxcfg.params(2);
-psdmin = fxcfg.params(3);
-dpsd   = fxcfg.params(4);
-psdmax = fxcfg.params(5);
+psdmin = fxcfg.params(2);
+dpsd   = fxcfg.params(3);
+psdmax = fxcfg.params(4);
 psd = [psdmin dpsd psdmax];
+if(fast_psdwin(psd) ~= 1) return; end
 
 indEvId = find(EvIdPres == evid);
 tPresEvId = tPres(indEvId);
-if(~isempty(wPres)) wPresEvId = wPres(indEvId); end
+if(~isempty(wPres)) wPresEvId = wPres(indEvId); 
+else wPresEvId = [];
+end
 
-X = fast_sched2Xfir(tPresEvId,ntp,flacfg.TR,psd,bcw,flacfg.tDelay,wPres); 
+if(isempty(flacfg.useevschweight) | flacfg.useevschweight == 0)
+  wPresEvId = [];
+end
+
+wRun = fast_fxcfg('getrunweight',flacfg);
+if(isempty(wRun)) return; end
+
+X = fast_sched2Xfir(tPresEvId,ntp,flacfg.TR,psd,flacfg.tDelay,wPresEvId); 
+
+if(wRun ~= 1) X = wRun * X; end
+
+% Handle tpx, flacfg.usetpexclude
 
 return;
-
 %------------------------------------------------------------%
-function [tpres, evidpres, wpres] = get_evsch(flacfg)
-tpres = [];
-evidpres = [];
-wpres = [];
-
-nthrun = get_nthrun(flacfg);
-if(isempty(nthrun)) return; end
-% Should check for erm too
-
-nruns_evsch = length(flacfg.sesscfg.evsch);
-if(nruns_evsch < nthrun)
-  fprintf('ERROR: fir: flacfg.sesscfg.evsch not enough runs\n');
-  return;
-end
-
-if(isempty(flacfg.sesscfg.evsch(nthrun).tpres))
-  fprintf('ERROR: fir: flacfg.sesscfg.evsch(%d).tpres is empty\n',nthrun);
-  return;
-end
-
-if(isempty(flacfg.sesscfg.evsch(nthrun).evidpres))
-  fprintf('ERROR: fir: flacfg.sesscfg.evsch(%d).evidpres is empty\n',nthrun);
-  return;
-end
-
-tpres = flacfg.sesscfg.evsch(nthrun).tpres;
-evidpres = flacfg.sesscfg.evsch(nthrun).evidpres;
-wpres = flacfg.sesscfg.evsch(nthrun).wpres;
-
-if(length(tpres) ~= length(evidpres))
-  fprintf('ERROR: fir: tpres and evid have a different number of reps\n');
-  tpres = []; evidpres = []; wpres = [];
-  return;
-end
-
-if(~isempty(wpres))
-  if(length(tpres) ~= length(wpres))
-    fprintf('ERROR: fir: tpres and wpres have a different number of reps\n');
-    tpres = []; evidpres = []; wpres = [];
-    return;
-  end
-end
-
-return;
 
 
 
