@@ -70,6 +70,8 @@ MWin_tErr MWin_New ( tkmMeditWindowRef* oppWindow,
       eResult = MWin_tErr_DisplayAreaAllocationFailed;
       goto error;
     }
+
+    DspA_SetID( this->mapDisplays[nDisplay], nDisplay );
   }
 
   /* default last clicked area. */
@@ -300,21 +302,21 @@ MWin_tErr MWin_PositionDisplays_ ( tkmMeditWindowRef this ) {
   /* if we're on 1x1, just make the focused one big and the rest
      little */
   if( this->mnCols == 1 && this->mnRows == 1 ) {
-
+    
     for( nDisplay = nDisplay; nDisplay < MWin_knMaxNumAreas; nDisplay++ ) {
       
       location.mnX = location.mnY = 0;
       if( nDisplay == this->mnLastClickedArea ) {
-  nWidth = this->mnWidth;
-  nHeight = this->mnHeight;
+	nWidth = this->mnWidth;
+	nHeight = this->mnHeight;
       } else {
-  nWidth = nHeight = 0;
+	nWidth = nHeight = 0;
       }
       eDispResult = DspA_SetPosition ( this->mapDisplays[nDisplay],
-               location, nWidth, nHeight );
+				       location, nWidth, nHeight );
       if ( DspA_tErr_NoErr != eDispResult ) {
-  eResult = MWin_tErr_ErrorAccessingDisplay;
-  goto error;
+	eResult = MWin_tErr_ErrorAccessingDisplay;
+	goto error;
       }
     }
     
@@ -323,17 +325,17 @@ MWin_tErr MWin_PositionDisplays_ ( tkmMeditWindowRef this ) {
   
   /* get the zoom level, cursor, and orientation of the last clicked pane */
   eDispResult = DspA_GetZoomLevel( this->mapDisplays[this->mnLastClickedArea], 
-           &nZoomLevel );
+				   &nZoomLevel );
   if ( DspA_tErr_NoErr != eDispResult )
     goto error;
   
   eDispResult = DspA_GetCursor( this->mapDisplays[this->mnLastClickedArea],
-        &cursor );
+				&cursor );
   if ( DspA_tErr_NoErr != eDispResult )
     goto error;
   
   eDispResult =DspA_GetOrientation( this->mapDisplays[this->mnLastClickedArea],
-            &orientation );
+				    &orientation );
   if ( DspA_tErr_NoErr != eDispResult )
     goto error;
   
@@ -343,32 +345,32 @@ MWin_tErr MWin_PositionDisplays_ ( tkmMeditWindowRef this ) {
       
       /* if mult orienations, set different orientation on each */
       if( MWin_tLinkPolicy_MultipleOrientations == this->mLinkPolicy ) {
-  
-  /* set its position and size */
-  location.mnX = (nX * this->mnWidth / this->mnCols);
-  location.mnY = (nY * this->mnHeight / this->mnRows);
-  eDispResult = DspA_SetPosition ( this->mapDisplays[nDisplay],
-           location, 
-           this->mnWidth / this->mnCols, 
-           this->mnHeight / this->mnRows);
-  if ( DspA_tErr_NoErr != eDispResult )
-    goto error;
-  
-  /* set an orientation */
-  eDispResult = 
-    DspA_SetOrientation ( this->mapDisplays[nDisplay], 
-            nDisplay % mri_knNumOrientations );
-  if ( DspA_tErr_NoErr != eDispResult )
-    goto error;
-      
-  /* set them all to the same cursor */
-  eDispResult = DspA_SetCursor( this->mapDisplays[nDisplay], &cursor );
-  if ( DspA_tErr_NoErr != eDispResult )
-    goto error;
-  
-
+	
+	/* set its position and size */
+	location.mnX = (nX * this->mnWidth / this->mnCols);
+	location.mnY = (nY * this->mnHeight / this->mnRows);
+	eDispResult = DspA_SetPosition ( this->mapDisplays[nDisplay],
+					 location, 
+					 this->mnWidth / this->mnCols, 
+					 this->mnHeight / this->mnRows);
+	if ( DspA_tErr_NoErr != eDispResult )
+	  goto error;
+	
+	/* set an orientation */
+	eDispResult = 
+	  DspA_SetOrientation ( this->mapDisplays[nDisplay], 
+				nDisplay % mri_knNumOrientations );
+	if ( DspA_tErr_NoErr != eDispResult )
+	  goto error;
+	
+	/* set them all to the same cursor */
+	eDispResult = DspA_SetCursor( this->mapDisplays[nDisplay], &cursor );
+	if ( DspA_tErr_NoErr != eDispResult )
+	  goto error;
+	
+	
       } else if( MWin_tLinkPolicy_Mosaic == this->mLinkPolicy ) {
-
+	
   /* this is a yflip */
   nMosaicHackedIndex = ((this->mnRows - 1) - nY) * this->mnCols + nX;
 
@@ -2115,13 +2117,13 @@ MWin_tErr MWin_CursorChanged  ( tkmMeditWindowRef this,
       
       /* if this is not the display that called us... */
       if( ipDisplay != (this->mapDisplays[nDisplay]) ) {
-  
-  /* set the cursor. */
-  eDispResult = DspA_SetCursor ( this->mapDisplays[nDisplay], ipCursor );
-  if ( DspA_tErr_NoErr != eDispResult ) {
-    eResult = MWin_tErr_ErrorAccessingDisplay;
-    goto error;
-  }
+	
+	/* set the cursor. */
+	eDispResult = DspA_SetCursor ( this->mapDisplays[nDisplay], ipCursor );
+	if ( DspA_tErr_NoErr != eDispResult ) {
+	  eResult = MWin_tErr_ErrorAccessingDisplay;
+	  goto error;
+	}
   
       }
     }
