@@ -6750,7 +6750,7 @@ static int print_unknown_labels(char *prefix)
 
 } /* end print_unknown_labels() */
 
-static int read_otl_file(FILE *fp, MRI *mri, int slice, mriColorLookupTableRef color_table, int fill_flag, int translate_label_flag)
+static int read_otl_file(FILE *fp, MRI *mri, int slice, mriColorLookupTableRef color_table, int fill_flag, int translate_label_flag, int zero_outlines_flag)
 {
 
   int n_outlines = -1;
@@ -7077,6 +7077,13 @@ static int read_otl_file(FILE *fp, MRI *mri, int slice, mriColorLookupTableRef c
         if(fill_flag && label_value != 0)
           parc_fill(label_value, seed_x, seed_y);
 
+        if(zero_outlines_flag)
+        {
+          for(j = 0;j < n_rows;j++)
+            cma_field[points[2*j]][points[2*j+1]] = 0;
+        }
+
+
       }
 
     }
@@ -7108,7 +7115,7 @@ static int read_otl_file(FILE *fp, MRI *mri, int slice, mriColorLookupTableRef c
 
 } /* end read_otl_file() */
 
-MRI *MRIreadOtl(char *fname, int width, int height, int slices, char *color_file_name, int read_volume_flag, int fill_flag, int translate_labels_flag)
+MRI *MRIreadOtl(char *fname, int width, int height, int slices, char *color_file_name, int flags)
 {
 
   char stem[STRLEN];
@@ -7119,6 +7126,28 @@ MRI *MRIreadOtl(char *fname, int width, int height, int slices, char *color_file
   char first_name[STRLEN], last_name[STRLEN];
   FILE *fp;
   mriColorLookupTableRef color_table;
+  int read_volume_flag, fill_flag, translate_labels_flag, zero_outlines_flag;
+
+  /* ----- set local flags ----- */
+
+  read_volume_flag = FALSE;
+  fill_flag = FALSE;
+  translate_labels_flag = FALSE;
+  zero_outlines_flag = FALSE;
+
+  if(flags & READ_OTL_READ_VOLUME_FLAG)
+    read_volume_flag = TRUE;
+
+  if(flags & READ_OTL_FILL_FLAG)
+    fill_flag = TRUE;
+
+  if(flags & READ_OTL_TRANSLATE_LABELS_FLAG)
+    translate_labels_flag = TRUE;
+
+  if(flags & READ_OTL_ZERO_OUTLINES_FLAG)
+    zero_outlines_flag = TRUE;
+
+  /* ----- reset our unknown label list ----- */
 
   clear_unknown_labels();
 
@@ -7165,6 +7194,17 @@ MRI *MRIreadOtl(char *fname, int width, int height, int slices, char *color_file
     ErrorReturn(NULL, (ERROR_BADPARM, "MRIreadOtl(): couldn't find any file between %s and %s", first_name, last_name));
   }
 
+  if(!read_volume_flag)
+  {
+    mri = MRIallocHeader(width, height, slices, MRI_SHORT);
+    if(mri == NULL)
+    {
+      errno = 0;
+      ErrorReturn(NULL, (ERROR_NOMEMORY, "MRIreadOtl(): error allocating MRI structure"));
+    }
+    return(mri);
+  }
+
   mri = MRIalloc(width, height, slices, MRI_SHORT);
   if(mri == NULL)
   {
@@ -7185,7 +7225,7 @@ MRI *MRIreadOtl(char *fname, int width, int height, int slices, char *color_file
     sprintf(c, "%d.otl", i);
     if((fp = fopen(stem, "r")) != NULL)
     {
-      if(read_otl_file(fp, mri, i, color_table, fill_flag, translate_labels_flag) != NO_ERROR)
+      if(read_otl_file(fp, mri, i, color_table, fill_flag, translate_labels_flag, zero_outlines_flag) != NO_ERROR)
       {
         MRIfree(&mri);
         return(NULL);
@@ -7194,14 +7234,14 @@ MRI *MRIreadOtl(char *fname, int width, int height, int slices, char *color_file
     }
   }
 
+  CLUT_Delete(&color_table);
+
   if(!one_file_exists)
   {
     MRIfree(&mri);
     errno = 0;
     ErrorReturn(NULL, (ERROR_BADFILE, "MRIreadOtl(): found at least one file between %s and %s but couldn't open it!", first_name, last_name));
   }
-
-  CLUT_Delete(&color_table);
 
   if(n_unknown_labels > 0)
   {
