@@ -5,7 +5,7 @@ function [beta, rvar, t, tsig] = fast_vvglm(y,x,polyorder)
 % and y are treated as their own set of equations to solve, ie,
 %   y(:,c) = x(:,c)*beta(c) + n
 %
-% $Id: fast_vvglm.m,v 1.1 2004/04/28 02:17:46 greve Exp $
+% $Id: fast_vvglm.m,v 1.2 2004/06/11 17:22:27 greve Exp $
 
 beta = [];
 
@@ -45,18 +45,21 @@ end
 
 % Now do voxel-by-voxel fit
 sumx2 = sum(x.^2);
-indz = find(sumx2==0);
-sumx2(indz) = 10e10;
+indz = find(sumx2<eps);
+sumx2(indz) = 1e10;
 sumxy = sum(x.*y);
 beta = sumxy ./ sumx2;
 yhat = x .* repmat(beta,[nf 1]);
 r = y - yhat;
 rvar = sum(r.^2)/dof;
+indz = find(rvar<eps);
+rvar(indz) = 1e10;
 
 % Do t-test
 betavar = rvar ./ sumx2;
 t = beta./sqrt(betavar);
 tsig = tTest(dof,t);
+
 
 % This is to test linear FPRs under null hypothesis
 % [pdf, alpha, nxhist, fpr] = ComputePDF(tsig,.01,1,.01);
