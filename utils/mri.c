@@ -9,9 +9,9 @@
 */
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2003/02/11 15:39:49 $
-// Revision       : $Revision: 1.212 $
-char *MRI_C_VERSION = "$Revision: 1.212 $";
+// Revision Date  : $Date: 2003/02/11 16:09:17 $
+// Revision       : $Revision: 1.213 $
+char *MRI_C_VERSION = "$Revision: 1.213 $";
 
 /*-----------------------------------------------------
                     INCLUDE FILES
@@ -2000,9 +2000,9 @@ MRIvoxelToWorld(MRI *mri, Real xv, Real yv, Real zv,
   case MRI_UNDEFINED:
     /*      ras for MRIvox(mri, i, j, k)    */
     // W = M * V, C = M * Cv -> W - C = M * (V - Cv) -> W = M *(V - Cv) + C
-    rip = xv - (mri->width-1) / 2.0; 
-    rjp = yv - (mri->height-1) / 2.0;
-    rkp = zv - (mri->depth-1) / 2.0;
+    rip = xv - (mri->width) / 2.0; 
+    rjp = yv - (mri->height) / 2.0;
+    rkp = zv - (mri->depth) / 2.0;
 
     *pxw = 
       mri->x_r * mri->xsize * rip + 
