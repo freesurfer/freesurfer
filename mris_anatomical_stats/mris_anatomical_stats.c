@@ -15,7 +15,7 @@
 #include "fio.h"
 #include "version.h"
 
-static char vcid[] = "$Id: mris_anatomical_stats.c,v 1.18 2004/10/27 20:32:10 fischl Exp $";
+static char vcid[] = "$Id: mris_anatomical_stats.c,v 1.19 2004/11/04 16:00:51 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -67,8 +67,6 @@ main(int argc, char *argv[])
   MRI           *mri_wm, *mri_kernel = NULL, *mri_orig ;
   double        gray_volume, wm_volume, thickness_mean, thickness_var,
                 total_abs_mean_curvature, total_abs_gaussian_curvature, ici, fi ;
-  double        InterVertexDistAvg,InterVertexDistStdDev;
-  double        VertexRadiusAvg,VertexRadiusStdDev;
   int           annotation = 0 ;
   FILE          *log_fp = NULL ;
   VERTEX        *v ;
@@ -77,7 +75,7 @@ main(int argc, char *argv[])
   int           n_vertices = -1;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_anatomical_stats.c,v 1.18 2004/10/27 20:32:10 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_anatomical_stats.c,v 1.19 2004/11/04 16:00:51 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -100,20 +98,23 @@ main(int argc, char *argv[])
     usage_exit() ;
 
   sname = argv[1] ;
-  if (strlen(sdir) == 0)
-    {
-      cp = getenv("SUBJECTS_DIR") ;
-      if (!cp)
-	ErrorExit(ERROR_BADPARM, 
-		  "%s: SUBJECTS_DIR not defined in environment.\n", Progname) ;
-      strcpy(sdir, cp) ;
-    }
-  
-  hemi = argv[2] ; 
-  if (argc > 3)  surf_name = argv[3] ;
-  else           surf_name = WHITE_MATTER_NAME ;
+	if (strlen(sdir) == 0)
+	{
+		cp = getenv("SUBJECTS_DIR") ;
+		if (!cp)
+			ErrorExit(ERROR_BADPARM, 
+								"%s: SUBJECTS_DIR not defined in environment.\n", Progname) ;
+		strcpy(sdir, cp) ;
+	}
 
-  if (sigma > 0.0)  mri_kernel = MRIgaussian1d(sigma, 100) ;
+  hemi = argv[2] ; 
+  if (argc > 3)
+    surf_name = argv[3] ;
+  else
+    surf_name = WHITE_MATTER_NAME ;
+
+  if (sigma > 0.0)
+    mri_kernel = MRIgaussian1d(sigma, 100) ;
   sprintf(fname, "%s/%s/mri/wm", sdir, sname) ;
   fprintf(stderr, "reading volume %s...\n", fname) ;
   mri_wm = MRIread(fname) ;
@@ -153,9 +154,22 @@ main(int argc, char *argv[])
   
 #endif
 
-  fprintf(stderr,"Computing inter-vertex distance\n");
-  InterVertexDistAvg = MRISavgInterVetexDist(mris, &InterVertexDistStdDev);
-  VertexRadiusAvg = MRISavgVetexRadius(mris, &VertexRadiusStdDev);
+#if 0
+  fprintf(stderr, "measuring cortical thickness...") ;
+  MRISmeasureCorticalThickness(mris, mri_wm) ;
+#endif
+  MRIScopyCurvatureToImagValues(mris) ;   /* save thickness measures */
+
+  fprintf(stderr, "done.\ncomputing second fundamental form...") ;
+  MRISsetNeighborhoodSize(mris, 2) ;
+  MRIScomputeSecondFundamentalForm(mris) ;
+  if (annotation_name)
+	{
+/*    MRISreadAnnotFile(mris, annotation_name) ;*/
+    if (MRISreadAnnotation(mris, annotation_name) != NO_ERROR)
+			ErrorExit(ERROR_NOFILE, "%s:  could  not read annotation file %s", Progname, annotation_name) ;
+	}
+  fprintf(stderr, "done.\n") ;
 
   if (label_name)
   {
@@ -184,23 +198,6 @@ main(int argc, char *argv[])
     histo_gray = NULL ; mri_orig = NULL ;
   }
 
-#if 0
-  fprintf(stderr, "measuring cortical thickness...") ;
-  MRISmeasureCorticalThickness(mris, mri_wm) ;
-#endif
-  MRIScopyCurvatureToImagValues(mris) ;   /* save thickness measures */
-
-  fprintf(stderr, "\ncomputing second fundamental form...") ;
-  MRISsetNeighborhoodSize(mris, 2) ;
-  MRIScomputeSecondFundamentalForm(mris) ;
-  if (annotation_name)
-	{
-/*    MRISreadAnnotFile(mris, annotation_name) ;*/
-    if (MRISreadAnnotation(mris, annotation_name) != NO_ERROR)
-			ErrorExit(ERROR_NOFILE, "%s:  could  not read annotation file %s", Progname, annotation_name) ;
-	}
-  fprintf(stderr, "done.\n") ;
-
   if (log_file_name)
   {
     log_fp = fopen(log_file_name, "a") ;
@@ -220,7 +217,7 @@ main(int argc, char *argv[])
       fprintf(stdout, "    number of vertices\n");
       fprintf(stdout, "    total surface area (mm^2)\n");
       fprintf(stdout, "    total gray matter volume (mm^3)\n");
-      fprintf(stdout, "    average cortical thickness +- standard deviation (mm)\n");
+      fprintf(stdout, "    average cortical thickness +- standard error (mm)\n");
       fprintf(stdout, "    integrated rectified mean curvature\n");
       fprintf(stdout, "    integrated rectified Gaussian curvature\n");
       fprintf(stdout, "    folding index\n");
@@ -255,8 +252,13 @@ main(int argc, char *argv[])
     {
 
       annotation = v->annotation ;
+			if (mris->ct && Gdiag_no >= 0)
+			{
+				ct_index = CTABannotationToIndex(mris->ct, annotation);
+				if (ct_index == Gdiag_no) /* 6 is ectorhinal */
+					DiagBreak() ;
+			}
 
-/*      MRISripVerticesWithoutMark(mris, mark) ; */
       MRISripVerticesWithoutAnnotation(mris, annotation) ;
 
       n_vertices = MRIScountVertices(mris);
@@ -291,11 +293,7 @@ main(int argc, char *argv[])
         fprintf(stdout, "  %7.3f", fi);
         fprintf(stdout, "  %6.3f",ici);
 
-				if (mris->ct != NULL)
-					ct_index = CTABannotationToIndex(mris->ct, annotation);
-				else
-					ct_index = -1 ;
-
+        ct_index = CTABannotationToIndex(mris->ct, annotation);
         if(ct_index < 0)
           fprintf(stdout, "  ** annotation %08x", annotation);
         else
@@ -335,17 +333,11 @@ main(int argc, char *argv[])
                 total_abs_gaussian_curvature) ;
         fprintf(stdout, "folding index                           = %2.3f\n", fi);
         fprintf(stdout, "intrinsic curvature index               = %2.3f\n",ici);
-        fprintf(stdout, "avg inter-vertex dist (mm)              = %g +/- %g\n",
-		InterVertexDistAvg,InterVertexDistStdDev);
-        fprintf(stdout, "avg vertex radius (mm)                  = %g +/- %g\n",
-		VertexRadiusAvg,VertexRadiusStdDev);
 
       }
 
       MRISrestoreSurface(mris) ;
-/*      MRISreplaceMarks(mris, mark, -1) ; */
       MRISreplaceAnnotations(mris, annotation, -1) ;
-/*      MRISripVerticesWithMark(mris, -1) ; */
       MRISripVerticesWithAnnotation(mris, -1) ;
 
     }
@@ -357,8 +349,6 @@ main(int argc, char *argv[])
     MRIScomputeCurvatureStats(mris, &thickness_mean, &thickness_var,
                               ignore_below, ignore_above) ;
     
-    fprintf(stdout, "number of vertices                      = %d\n", 
-	    mris->nvertices);
     fprintf(stdout, "total surface area                      = %2.0f mm^2\n", 
             mris->total_area) ;
     
@@ -381,11 +371,6 @@ main(int argc, char *argv[])
     MRIScomputeCurvatureIndices(mris, &ici, &fi) ;
     fprintf(stdout, "folding index                           = %2.3f\n", fi);
     fprintf(stdout, "intrinsic curvature index               = %2.3f\n", ici);
-    fprintf(stdout, "avg inter-vertex dist (mm)              = %g +/- %g\n",
-	    InterVertexDistAvg,InterVertexDistStdDev);
-    fprintf(stdout, "avg vertex radius (mm)                  = %g +/- %g\n",
-	    VertexRadiusAvg,VertexRadiusStdDev);
-
   }
   if (log_fp)
   {
@@ -473,6 +458,10 @@ get_option(int argc, char *argv[])
     fprintf(stderr,"writing histograms of intensity distributions to %s...\n",
             gray_histo_name);
     break ;
+	case 'V':
+		Gdiag_no = atoi(argv[2]) ;
+		nargs = 1 ;
+		break ;
   case 'A':
     annotation_name = argv[2] ;
     nargs = 1 ;
@@ -613,31 +602,32 @@ MRIScomputeCurvatureStats(MRI_SURFACE *mris, double *pavg, double *pvar,
 double
 MRISmeasureCorticalGrayMatterVolume(MRI_SURFACE *mris)
 {
-  VERTEX    *v ;
-  int       vno ;
-  double    mean, var, total, volume, n ;
+	FACE      *f ;
+	VERTEX    *v ;
+  int       fno, m, vno ;
+  double    mean, total, volume, n, avg_thick ;
 
-  for (n = total = 0.0, vno = 0 ; vno < mris->nvertices ; vno++)
+  for (n = total = 0.0, fno = 0 ; fno < mris->nfaces ; fno++)
   {
-    v = &mris->vertices[vno] ;
-    if (v->ripflag)
+    f = &mris->faces[fno] ;
+    if (f->ripflag)
       continue ;
-    volume = (v->curv * v->area) ;
+		for (avg_thick = 0.0, m = 0 ; m < VERTICES_PER_FACE ; m++)
+		{
+			vno = f->v[m] ;
+			v = &mris->vertices[vno] ;
+			avg_thick += v->curv ;
+		}
+		avg_thick /= VERTICES_PER_FACE ;
+    volume = (avg_thick * f->area) ;
     total += volume ;
     n += 1.0 ;
   }
 
-  mean = total / n ;
-  for (var = 0.0, vno = 0 ; vno < mris->nvertices ; vno++)
-  {
-    v = &mris->vertices[vno] ;
-    if (v->ripflag)
-      continue ;
-    volume = (v->curv * v->area) ;
-    var += (volume - mean) * (volume - mean) ;
-  }
-
-  var /= n ;
+	if (n > 0)
+		mean = total / n ;
+	else
+		mean = 0 ;
   return(total) ;
 }
 
@@ -772,10 +762,14 @@ MRISripVerticesWithoutAnnotation(MRI_SURFACE *mris, int annotation)
   for (vno = 0 ; vno < mris->nvertices ; vno++)
   {
     v = &mris->vertices[vno] ;
+#if 0
     if (v->ripflag)
       continue ;
+#endif
     if (v->annotation != annotation)
       v->ripflag = 1 ;
+		else
+			v->ripflag = 0 ;
   }
   MRISripFaces(mris) ;
   return(NO_ERROR) ;
