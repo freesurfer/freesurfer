@@ -5,7 +5,7 @@
 # editing.
 #
 # mkfsdist
-# $Id: mkfsdist,v 1.25 2003/05/16 15:46:50 kteich Exp $
+# $Id: mkfsdist,v 1.26 2003/05/16 16:12:01 kteich Exp $
 #
 # Usage: mkfsdist sourcedir targetdir platform [options]
 #
@@ -71,7 +71,7 @@
 #  files found in tar-exclude-more and tar-exclude-gca.
 #
 # 
-set VERSION = '$Id: mkfsdist,v 1.25 2003/05/16 15:46:50 kteich Exp $';
+set VERSION = '$Id: mkfsdist,v 1.26 2003/05/16 16:12:01 kteich Exp $';
 
 # To include the autoseg in the distribution set environment varible
 # KEEPAUTOSEG to 1 before running mkfsdist (ie, setenv KEEPAUTOSEG 1)
@@ -108,6 +108,7 @@ if($#argv < 3) then
   echo "   options include:"
   echo "     --no-compress, --compress: create or don't create a gzipped tarfile (default yes)"
   echo "   the following specify which components to include:"
+  echo "     --no-freesurfer, --freesurfer (default yes)"
   echo "     --no-auto-seg, --auto-seg (default no)"
   echo "     --no-average, --average (default yes)"
   echo "     --no-minc, --minc (default yes)"
@@ -128,6 +129,7 @@ set PLATFORM = $argv[3];
 
 set COMPRESS   = 1
 set AUTO_SEG   = 0
+set MAIN_TREE  = 1
 set AVERAGE    = 1
 set MINC       = 1
 set TALAIRACH  = 1
@@ -138,6 +140,9 @@ foreach option ($argv)
   switch ("$option")
     case "--no-compress":
       set COMPRESS = 0
+      breaksw
+    case "--no-freesurfer":
+      set MAIN_TREE = 0
       breaksw
     case "--auto-seg":
       set AUTO_SEG = 1
@@ -316,178 +321,180 @@ if ( $AVERAGE ) then
 endif 
 
 # ---- Tar up source dir ------- #
-pushd $SOURCE_DIR > /dev/null
-cd ..
+if( $MAIN_TREE ) then
 
-set SOURCE_DIR_REL = `basename $SOURCE_DIR`
-
-# Create the exclude file for the freesurfer source dir. Basically we
-# want to exclude platform-specific binary and lib directories and any
-# backup or temp files (i.e. README~, tkmedit.031402)
-set EXCLUDE_FILE = /tmp/exclude
-rm -f $EXCLUDE_FILE
-if( "$PLATFORM" != "Linux" ) then
-  find $SOURCE_DIR_REL | grep Linux >> $EXCLUDE_FILE
-endif
-if( "$PLATFORM" != "Darwin" ) then
-  find $SOURCE_DIR_REL | grep Darwin >> $EXCLUDE_FILE
-endif
-if( "$PLATFORM" != "Solaris" ) then
-  find $SOURCE_DIR_REL | grep Solaris >> $EXCLUDE_FILE
-endif
-find $SOURCE_DIR_REL | grep Linux2 >> $EXCLUDE_FILE
-find $SOURCE_DIR_REL | grep IRIX >> $EXCLUDE_FILE
-find $SOURCE_DIR_REL | grep SunOS >> $EXCLUDE_FILE
-find $SOURCE_DIR_REL -name \*.03\* >> $EXCLUDE_FILE
-find $SOURCE_DIR_REL -name \*.02\* >> $EXCLUDE_FILE
-find $SOURCE_DIR_REL -name \*.01\* >> $EXCLUDE_FILE
-find $SOURCE_DIR_REL -name \*~ >> $EXCLUDE_FILE
-find $SOURCE_DIR_REL -name \#\*\# >> $EXCLUDE_FILE
-find $SOURCE_DIR_REL -name \*.bu >> $EXCLUDE_FILE
-find $SOURCE_DIR_REL -name \*.bak >> $EXCLUDE_FILE
-find $SOURCE_DIR_REL -name \*.log >> $EXCLUDE_FILE
-find $SOURCE_DIR_REL -name \*.old >> $EXCLUDE_FILE
-find $SOURCE_DIR_REL -name .xdebug\* >> $EXCLUDE_FILE
-find $SOURCE_DIR_REL -name tar-exclude >> $EXCLUDE_FILE
-find $SOURCE_DIR_REL -name tar-exclude-more >> $EXCLUDE_FILE
-
-# For the distribution, we exclude the UpdateFromSnapshot.sh script
-# and UPDATE instructions.
-find $SOURCE_DIR_REL -name UpdateFromSnapshot.sh >> $EXCLUDE_FILE
-find $SOURCE_DIR_REL -name UPDATE >> $EXCLUDE_FILE
-
-
-echo "--------------------------------------------" | tee -a $LF
-echo "Tarring $SOURCE_DIR" | tee -a $LF
-date | tee -a $LF
-set TF = $TARGET_DIR/freesurfer.tar
-rm -f $TF
-set tarcmd = ( tar cv -f $TF  $SOURCE_DIR_REL --exclude-from $EXCLUDE_FILE )
-if( -e $SOURCE_DIR/tar-exclude ) then
-  set tarcmd = ($tarcmd --exclude-from $SOURCE_DIR/tar-exclude)
-endif
-if( -e $SOURCE_DIR/tar-exclude-more ) then
-  set tarcmd = ($tarcmd --exclude-from $SOURCE_DIR/tar-exclude-more)
-endif
-if( -e $SOURCE_DIR/tar-exclude-gca && ! $KEEPAUTOSEG) then
-  set tarcmd = ($tarcmd --exclude-from $SOURCE_DIR/tar-exclude-gca)
-endif
-echo $tarcmd | tee -a $LF
-$tarcmd  >> $LF
-
-rm -f $EXCLUDE_FILE
-
-date | tee -a $LF
-
-
-
-#--- Special for tksurfer, tkmedit, and tkregister in freesurfer_alpha ---#
-# Note: static vs dynamic only applies to Linux.
-# This part assures that the statically linked versions of tksurfer,
-# tkmedit, and tkregister are the default in the Linux distribution. 
-# In the NMR version (ie, ~inverse/freesurfer_alpha), these programs are
-# dynamically linked, and the static version have a .static extension.
-# Also, tksurfer is replaced by tksurfer.new in all OSs; note that there
-# will still be tksurfer.new.
-#
-# NMR Center          Linux                Sun/IRIX
-# ------------------  -----------------    --------------
-# tkmedit             tkmedit.dynamic      tkmedit
-# tkmedit.static      tkmedit              N/A
-# tkregister          tkregister.dynamic   tkregister
-# tkregister.static   tkregister           N/A
-# tksurfer            Excluded             Excluded
-# tksurfer.new        tksurfer.new         tksurfer.new
-# tksurfer.new        tksurfer.dynamic     tksurfer
-# tksurfer.new.static tksurfer             N/A
-# tksurfer.new.static tksurfer.new         N/A
-#
-# A temporary freesurfer_alpha is created in the target 
-# directory, and, under that, bin/Linux is created.
-# The relevant files are copied according to
-# the translation described above. This freesurfer_alpha is appended
-# to the tar of the original freesurfer_alpha. The temporary 
-# freesurfer_alpha is then deledted, and the tar file is compressed.
-# When the distribution is extracted, the static versions will 
-# overwrite the dynamic version (though there will be .dynamic and
-# .static files there).
-if( "`basename $SOURCE_DIR`" == "freesurfer_alpha" ) then
-
-  echo "------------------------------------------" | tee -a $LF
-  echo "Handling tkmedit, tksurfer, and tkregister" | tee -a $LF
+  pushd $SOURCE_DIR > /dev/null
+  cd ..
+  
+  set SOURCE_DIR_REL = `basename $SOURCE_DIR`
+  
+  # Create the exclude file for the freesurfer source dir. Basically we
+  # want to exclude platform-specific binary and lib directories and any
+  # backup or temp files (i.e. README~, tkmedit.031402)
+  set EXCLUDE_FILE = /tmp/exclude
+  rm -f $EXCLUDE_FILE
+  if( "$PLATFORM" != "Linux" ) then
+    find $SOURCE_DIR_REL | grep Linux >> $EXCLUDE_FILE
+  endif
+  if( "$PLATFORM" != "Darwin" ) then
+    find $SOURCE_DIR_REL | grep Darwin >> $EXCLUDE_FILE
+  endif
+  if( "$PLATFORM" != "Solaris" ) then
+    find $SOURCE_DIR_REL | grep Solaris >> $EXCLUDE_FILE
+  endif
+  find $SOURCE_DIR_REL | grep Linux2 >> $EXCLUDE_FILE
+  find $SOURCE_DIR_REL | grep IRIX >> $EXCLUDE_FILE
+  find $SOURCE_DIR_REL | grep SunOS >> $EXCLUDE_FILE
+  find $SOURCE_DIR_REL -name \*.03\* >> $EXCLUDE_FILE
+  find $SOURCE_DIR_REL -name \*.02\* >> $EXCLUDE_FILE
+  find $SOURCE_DIR_REL -name \*.01\* >> $EXCLUDE_FILE
+  find $SOURCE_DIR_REL -name \*~ >> $EXCLUDE_FILE
+  find $SOURCE_DIR_REL -name \#\*\# >> $EXCLUDE_FILE
+  find $SOURCE_DIR_REL -name \*.bu >> $EXCLUDE_FILE
+  find $SOURCE_DIR_REL -name \*.bak >> $EXCLUDE_FILE
+  find $SOURCE_DIR_REL -name \*.log >> $EXCLUDE_FILE
+  find $SOURCE_DIR_REL -name \*.old >> $EXCLUDE_FILE
+  find $SOURCE_DIR_REL -name .xdebug\* >> $EXCLUDE_FILE
+  find $SOURCE_DIR_REL -name tar-exclude >> $EXCLUDE_FILE
+  find $SOURCE_DIR_REL -name tar-exclude-more >> $EXCLUDE_FILE
+  
+  # For the distribution, we exclude the UpdateFromSnapshot.sh script
+  # and UPDATE instructions.
+  find $SOURCE_DIR_REL -name UpdateFromSnapshot.sh >> $EXCLUDE_FILE
+  find $SOURCE_DIR_REL -name UPDATE >> $EXCLUDE_FILE
+  
+  
+  echo "--------------------------------------------" | tee -a $LF
+  echo "Tarring $SOURCE_DIR" | tee -a $LF
   date | tee -a $LF
-  pushd $TARGET_DIR > /dev/null
-  set FSA_TMP_DIR = freesurfer_alpha;
-  mkdir -p $FSA_TMP_DIR
+  set TF = $TARGET_DIR/freesurfer.tar
+  rm -f $TF
+  set tarcmd = ( tar cv -f $TF  $SOURCE_DIR_REL --exclude-from $EXCLUDE_FILE )
+  if( -e $SOURCE_DIR/tar-exclude ) then
+    set tarcmd = ($tarcmd --exclude-from $SOURCE_DIR/tar-exclude)
+  endif
+  if( -e $SOURCE_DIR/tar-exclude-more ) then
+    set tarcmd = ($tarcmd --exclude-from $SOURCE_DIR/tar-exclude-more)
+  endif
+  if( -e $SOURCE_DIR/tar-exclude-gca && ! $KEEPAUTOSEG) then
+    set tarcmd = ($tarcmd --exclude-from $SOURCE_DIR/tar-exclude-gca)
+  endif
+  echo $tarcmd | tee -a $LF
+  $tarcmd  >> $LF
   
-  # Go through each OS - actually only applies to Linux #
-  foreach OS (Linux)
+  rm -f $EXCLUDE_FILE
   
-    # tkmedit and tkregister #
-    mkdir -p $FSA_TMP_DIR/bin/$OS
-    foreach binary (tkmedit tkregister)
-      # Copy dynamic #
-      set fdynamic = $SOURCE_DIR/bin/$OS/$binary
-      if(! -e $fdynamic) then
-        echo "ERROR: cannot find $fdynamic"| tee -a $LF
-        exit 1;
-      endif
-      cp $fdynamic $FSA_TMP_DIR/bin/$OS/$binary.dynamic
-      # Copy static #
-      set fstatic = $SOURCE_DIR/bin/$OS/$binary.static
-      if(! -e $fstatic) then
-        echo "ERROR: cannot find $fstatic"| tee -a $LF
-        exit 1;
-      endif
-      cp $fstatic  $FSA_TMP_DIR/bin/$OS/$binary
-    end # foreach binary (tkmedit tkregister)
+  date | tee -a $LF
   
-  end#foreach OS
   
-  # ----------- Handle tksurfer ----------------------#
-  foreach OS (Linux Solaris IRIX)
-    mkdir -p $FSA_TMP_DIR/bin/$OS
   
-    # Get path to tksurfer.new
-    set tksurfernew = $SOURCE_DIR/bin/$OS/tksurfer.new
-    if(! -e $tksurfernew) then
-      echo "ERROR: cannot find $tksurfernew"| tee -a $LF
-      exit 1;
-    endif
+  #--- Special for tksurfer, tkmedit, and tkregister in freesurfer_alpha ---#
+  # Note: static vs dynamic only applies to Linux.
+  # This part assures that the statically linked versions of tksurfer,
+  # tkmedit, and tkregister are the default in the Linux distribution. 
+  # In the NMR version (ie, ~inverse/freesurfer_alpha), these programs are
+  # dynamically linked, and the static version have a .static extension.
+  # Also, tksurfer is replaced by tksurfer.new in all OSs; note that there
+  # will still be tksurfer.new.
+  #
+  # NMR Center          Linux                Sun/IRIX
+  # ------------------  -----------------    --------------
+  # tkmedit             tkmedit.dynamic      tkmedit
+  # tkmedit.static      tkmedit              N/A
+  # tkregister          tkregister.dynamic   tkregister
+  # tkregister.static   tkregister           N/A
+  # tksurfer            Excluded             Excluded
+  # tksurfer.new        tksurfer.new         tksurfer.new
+  # tksurfer.new        tksurfer.dynamic     tksurfer
+  # tksurfer.new.static tksurfer             N/A
+  # tksurfer.new.static tksurfer.new         N/A
+  #
+  # A temporary freesurfer_alpha is created in the target 
+  # directory, and, under that, bin/Linux is created.
+  # The relevant files are copied according to
+  # the translation described above. This freesurfer_alpha is appended
+  # to the tar of the original freesurfer_alpha. The temporary 
+  # freesurfer_alpha is then deledted, and the tar file is compressed.
+  # When the distribution is extracted, the static versions will 
+  # overwrite the dynamic version (though there will be .dynamic and
+  # .static files there).
+  if( "`basename $SOURCE_DIR`" == "freesurfer_alpha" ) then
   
-    # Copy tksurfer.new to tksurfer (except Linux) #
-    if("$OS" != "Linux") then
-      # Solaris and IRIX
-      cp $tksurfernew $FSA_TMP_DIR/bin/$OS/tksurfer
-      cp $tksurfernew $FSA_TMP_DIR/bin/$OS/tksurfer.new
-    else
-      # Linux - must handle stat/dyn linked version #
-      cp $tksurfernew $FSA_TMP_DIR/bin/$OS/tksurfer.dynamic
-      cp $tksurfernew $FSA_TMP_DIR/bin/$OS/tksurfer.new.dynamic
-      # Copy tksurfer.new.static to tksurfer (Linux only)#
-      set tksurfernew_static = $SOURCE_DIR/bin/$OS/tksurfer.new.static
-      if(! -e $tksurfernew_static) then
-        echo "ERROR: cannot find $tksurfernew_static"| tee -a $LF
-        exit 1;
-      endif
-      cp $tksurfernew_static  $FSA_TMP_DIR/bin/$OS/tksurfer
-      cp $tksurfernew_static  $FSA_TMP_DIR/bin/$OS/tksurfer.new
-    endif
-  
-  end #foreach OS
-  
-  echo "Appending temporary freesurfer_alpha to tar `date`"| tee -a $LF
-  tar rv -f $TF ./$FSA_TMP_DIR >> $LF
-  
-  echo "Removing temporary directory `date`"| tee -a $LF
-  rm -rf $FSA_TMP_DIR
-
-endif # specials for freesurfer_alpha #
-
-echo "Compressing tar file `date`"| tee -a $LF
-gzip $TF
+    echo "------------------------------------------" | tee -a $LF
+    echo "Handling tkmedit, tksurfer, and tkregister" | tee -a $LF
+    date | tee -a $LF
+    pushd $TARGET_DIR > /dev/null
+    set FSA_TMP_DIR = freesurfer_alpha;
+    mkdir -p $FSA_TMP_DIR
     
-
+    # Go through each OS - actually only applies to Linux #
+    foreach OS (Linux)
+    
+      # tkmedit and tkregister #
+      mkdir -p $FSA_TMP_DIR/bin/$OS
+      foreach binary (tkmedit tkregister)
+        # Copy dynamic #
+        set fdynamic = $SOURCE_DIR/bin/$OS/$binary
+        if(! -e $fdynamic) then
+          echo "ERROR: cannot find $fdynamic"| tee -a $LF
+          exit 1;
+        endif
+        cp $fdynamic $FSA_TMP_DIR/bin/$OS/$binary.dynamic
+        # Copy static #
+        set fstatic = $SOURCE_DIR/bin/$OS/$binary.static
+        if(! -e $fstatic) then
+          echo "ERROR: cannot find $fstatic"| tee -a $LF
+          exit 1;
+        endif
+        cp $fstatic  $FSA_TMP_DIR/bin/$OS/$binary
+      end # foreach binary (tkmedit tkregister)
+    
+    end#foreach OS
+    
+    # ----------- Handle tksurfer ----------------------#
+    foreach OS (Linux Solaris IRIX)
+      mkdir -p $FSA_TMP_DIR/bin/$OS
+    
+      # Get path to tksurfer.new
+      set tksurfernew = $SOURCE_DIR/bin/$OS/tksurfer.new
+      if(! -e $tksurfernew) then
+        echo "ERROR: cannot find $tksurfernew"| tee -a $LF
+        exit 1;
+      endif
+    
+      # Copy tksurfer.new to tksurfer (except Linux) #
+      if("$OS" != "Linux") then
+        # Solaris and IRIX
+        cp $tksurfernew $FSA_TMP_DIR/bin/$OS/tksurfer
+        cp $tksurfernew $FSA_TMP_DIR/bin/$OS/tksurfer.new
+      else
+        # Linux - must handle stat/dyn linked version #
+        cp $tksurfernew $FSA_TMP_DIR/bin/$OS/tksurfer.dynamic
+        cp $tksurfernew $FSA_TMP_DIR/bin/$OS/tksurfer.new.dynamic
+        # Copy tksurfer.new.static to tksurfer (Linux only)#
+        set tksurfernew_static = $SOURCE_DIR/bin/$OS/tksurfer.new.static
+        if(! -e $tksurfernew_static) then
+          echo "ERROR: cannot find $tksurfernew_static"| tee -a $LF
+          exit 1;
+        endif
+        cp $tksurfernew_static  $FSA_TMP_DIR/bin/$OS/tksurfer
+        cp $tksurfernew_static  $FSA_TMP_DIR/bin/$OS/tksurfer.new
+      endif
+    
+    end #foreach OS
+    
+    echo "Appending temporary freesurfer_alpha to tar `date`"| tee -a $LF
+    tar rv -f $TF ./$FSA_TMP_DIR >> $LF
+    
+    echo "Removing temporary directory `date`"| tee -a $LF
+    rm -rf $FSA_TMP_DIR
+  
+  endif # specials for freesurfer_alpha #
+  
+  echo "Compressing tar file `date`"| tee -a $LF
+  gzip $TF
+    
+endif
 
 #-- Tar up the minc bin and libs -------#
 if( $MINC ) then
