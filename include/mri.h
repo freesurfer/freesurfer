@@ -96,6 +96,8 @@ MRI   *MRIalloc(int width, int height, int depth, int type) ;
 MRI   *MRIallocSequence(int width, int height,int depth,int type,int nframes);
 MRI   *MRIallocHeader(int width, int height, int depth, int type) ;
 int   MRIallocIndices(MRI *mri) ;
+int   MRIsetResolution(MRI *mri, float xres, float yres, float zres) ;
+int   MRIsetTransform(MRI *mri,   General_transform *transform) ;
 
 
 /* correlation routines */
@@ -268,6 +270,8 @@ int   MRIvoxelToVoxel(MRI *mri_src, MRI *mri_dst, Real xv, Real yv, Real zv,
                                Real *pxt, Real *pyt, Real *pzt) ;
 int   MRItalairachVoxelToVoxel(MRI *mri, Real xt, Real yt, Real zt,
                                Real *pxv, Real *pyv, Real *pzv) ;
+int   MRItalairachVoxelToWorld(MRI *mri, Real xt, Real yt, Real zt,
+                               Real *pxw, Real *pyw, Real *pzw) ;
 int   MRIvoxelToTalairach(MRI *mri, Real xv, Real yv, Real zv,
                                Real *pxt, Real *pyt, Real *pzt) ;
 int   MRItalairachToVoxel(MRI *mri, Real xt, Real yt, Real zt,
