@@ -1,6 +1,11 @@
 #!/bin/csh -f
+#
+# WARNING: this file is under revision control. Please
+# use the appropriate checkin/checkout procedures when
+# editing.
+#
 # mkfsdist
-# $Id: mkfsdist,v 1.3 2002/03/15 16:35:02 greve Exp $
+# $Id: mkfsdist,v 1.4 2002/03/15 19:00:37 greve Exp $
 #
 # Usage: mkfsdist targetdir
 #
@@ -44,7 +49,7 @@
 #  files found in freesurfer_alpha/tar-exclude-more.
 #
 # 
-set VERSION = '$Id: mkfsdist,v 1.3 2002/03/15 16:35:02 greve Exp $';
+set VERSION = '$Id: mkfsdist,v 1.4 2002/03/15 19:00:37 greve Exp $';
 
 # This is where freesurfer_alpha lives #
 set FSA_DIR = ~inverse/freesurfer_alpha;
@@ -98,6 +103,12 @@ echo " "
 echo "Creating FreeSurfer Distribution in $TARGET_DIR"
 echo " "
 
+# This is where the MNI stuff lives #
+if(! -e /space/lyon/9/pubsw) then
+  echo "ERROR: cannot find /space/lyon/9/pubsw"
+  exit 1;
+endif
+
 # Create the target directory #
 mkdir -p $TARGET_DIR
 if($status) then
@@ -131,8 +142,6 @@ echo $VERSION  >> $LF
 echo "$0"    >> $LF
 echo "$argv" >> $LF
 date >> $LF
-
-#goto here;
 
 # ---- Tar up freesurfer_alpha ------- #
 cd $FSA_DIR
@@ -251,15 +260,23 @@ gzip $TF
 echo "Removing temporary directory `date`"| tee -a $LF
 rm -rf $FSA_TMP_DIR
 
-#-- Tar up the minc bin and libs (for functional) -------#
+#-- Tar up the minc bin and libs -------#
 echo "--------------------------------------------" | tee -a $LF
 echo "Tarring minc" | tee -a $LF
-cd ~inverse/minc
-cd ..
 date | tee -a $LF
-set TF = $TARGET_DIR/minc.tar.gz
+cd /space/lyon/9/pubsw
+set TF = $TARGET_DIR/minc.tar
 rm -f $TF
-tar cvz -f $TF ./minc >> $LF
+foreach os (IRIX SolSparc SunOS5 Linux2 Solaris)
+  echo $os | tee -a $LF
+  set mnidir = ./$os/packages/mni
+  if(! -e $mnidir) then
+    echo "WARNING: cannot find $mnidir" | tee -a $LF
+    continue;
+  endif
+  tar rv -f $TF ./$os/packages/mni >> $LF
+end
+gzip $TF
 date | tee -a $LF
 
 #----- Tar up the talairach (MNI305) subject --------#
