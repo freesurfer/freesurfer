@@ -781,8 +781,11 @@ xv_dimage_event_handler(Xv_Window xv_window, Event *event)
   /* do boundary checking */
   if (y < 0) y = 0 ;
   if (x < 0) x = 0 ;
-  if (y >= dimage->sourceImage->rows) y = dimage->sourceImage->rows - 1 ;
-  if (x >= dimage->sourceImage->cols) x = dimage->sourceImage->cols - 1 ;
+  if (!event_ctrl_is_down(event)) /* let only rubber box go to right edge */
+  {
+    if (y >= dimage->sourceImage->rows) y = dimage->sourceImage->rows-1 ;
+    if (x >= dimage->sourceImage->cols) x = dimage->sourceImage->cols-1 ;
+  }
 
   if (xvf->ydir >= 0)
     yprint = (dimage->sourceImage->rows-1)-y ;
@@ -791,6 +794,8 @@ xv_dimage_event_handler(Xv_Window xv_window, Event *event)
 
   if (event_ctrl_is_down(event)) 
   {
+    if (y >= dimage->sourceImage->rows) y = dimage->sourceImage->rows ;
+    if (x >= dimage->sourceImage->cols) x = dimage->sourceImage->cols ;
     switch (event_id(event)) 
     {
     case MS_RIGHT:
@@ -821,6 +826,7 @@ xv_dimage_event_handler(Xv_Window xv_window, Event *event)
       else if (event_is_up(event))  /* erase box and show zoomed image */
       {
         int dir = xvf->ydir ;
+DiagBreak() ;
         xvf->ydir = -1 ;
         XVdrawBox(xvf, which, dimage->x1, dimage->y1, dimage->dx1,
                   dimage->dy1, XXOR) ;
@@ -840,10 +846,10 @@ xv_dimage_event_handler(Xv_Window xv_window, Event *event)
         else
           dimage->y0 = dimage->y1 ;
 
-        if (dimage->x0 + dimage->dx1 >= dimage->sourceImage->cols)
-          dimage->dx1 = dimage->sourceImage->cols - dimage->x0 - 1 ;
-        if (dimage->y0 + dimage->dy1 >= dimage->sourceImage->rows)
-          dimage->dy1 = dimage->sourceImage->rows - dimage->y0 - 1 ;
+        if (dimage->x0 + dimage->dx1 > dimage->sourceImage->cols)
+          dimage->dx1 = dimage->sourceImage->cols - dimage->x0 ;
+        if (dimage->y0 + dimage->dy1 > dimage->sourceImage->rows)
+          dimage->dy1 = dimage->sourceImage->rows - dimage->y0 ;
         if ((dimage->dx1 >= 2) && (dimage->dy1 >= 2))
         {
           float rscale, cscale ;
