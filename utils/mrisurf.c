@@ -839,6 +839,8 @@ normalize_binary_curvature(MRI_SURFACE *mris)
 #define DEFAULT_C  122.0f
 #endif
 
+#define MAX_DIM    DEFAULT_B
+
 extern double sqrt(double) ;
 
 MRI_SURFACE *
@@ -1317,13 +1319,13 @@ MRISunfold(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
     sprintf(fname, "%s.out", parms->base_name) ;
     parms->fp = fopen(fname, "w") ;
   }
-  printf("tol=%2.1e, host=%5.5s, nav=%d, l_ang=%2.2f, l_ar=%2.2f\n", 
+  printf("tol=%2.1e, host=%5.5s, nav=%d, l_angle=%2.2f, l_area=%2.2f\n", 
          parms->tol, host_name, parms->n_averages, parms->l_angle, 
          parms->l_area) ;
   if (Gdiag & DIAG_SHOW)
   {
     fprintf(parms->fp, 
-            "tol=%2.1e, host=%5.5s, nav=%d, l_ang=%2.2f, l_ar=%2.2f\n", 
+            "tol=%2.1e, host=%5.5s, nav=%d, l_angle=%2.2f, l_area=%2.2f\n", 
             parms->tol, host_name, parms->n_averages, parms->l_angle, 
             parms->l_area) ;
     fflush(parms->fp) ;
@@ -1395,14 +1397,14 @@ mrisIntegrate(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
 {
   char    base_name[100] ;
   int     vno, t, fno, imin, write_iterations, num, negative, n_averages, 
-          niterations ;
-  VERTEX  *v0, *v1, *v2, *v3 ;
+          niterations, ano, tno ;
+  VERTEX  *v0, *v1, *v2, *v3, *va, *vb, *vo ;
   VECTOR  *v_a, *v_b, *v_c, *v_d, *v_a_x_n, *v_b_x_n, *v_c_x_n, *v_d_x_n,
-          *v_n0, *v_n1, *v_tmp, *v_sum, *v_angle_delta ;
+          *v_n0, *v_n, *v_n1, *v_tmp, *v_sum ;
   FACE    *face ;
   double  sse, old_sse, angle_sse, area_sse ;
   float   delta_t, orig_area0, area0, orig_area1, area1, 
-          delta0, delta1, l_area, l_corr, l_angle ;
+          delta0, delta1, l_area, l_corr, l_angle, delta, len ;
 
   sprintf(base_name, "surf/%s.%s", mris->hemisphere == LEFT_HEMISPHERE ?
               "lh" : "rh", parms->base_name) ;
@@ -1426,7 +1428,6 @@ mrisIntegrate(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
   v_b_x_n = VectorAlloc(3, MATRIX_REAL) ;      
   v_c_x_n = VectorAlloc(3, MATRIX_REAL) ;      
   v_d_x_n = VectorAlloc(3, MATRIX_REAL) ;      
-  v_angle_delta = VectorAlloc(3, MATRIX_REAL) ;
 
   switch (parms->projection)
   {
@@ -1455,7 +1456,7 @@ mrisIntegrate(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
     printf("%d: dt: %2.3f, rms: %2.4f (%2.3f, %2.1f), neg: %d (%2.1f)"
            ", avgs: %d\n", parms->start_t, delta_t, 
            sqrt(sse/(float)num), sqrt(area_sse/(float)num), 
-           DEGREES(sqrt(angle_sse/(float)num)), 
+           DEGREES(sqrt(angle_sse/(float)(num*3))), 
            negative, mris->neg_area, n_averages);
     if (Gdiag & DIAG_SHOW)
     {
@@ -1463,7 +1464,8 @@ mrisIntegrate(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
         fprintf(parms->fp, "%d: dt: %2.3f, rms: %2.4f (%2.3f, %2.1f), "
                 "neg: %d (%2.1f) avgs: %d\n", parms->start_t, 
                 delta_t, sqrt(sse/(float)num), sqrt(area_sse/(float)num), 
-                DEGREES(sqrt(angle_sse/(float)num)), negative, mris->neg_area, 
+                DEGREES(sqrt(angle_sse/(float)(num*3))), 
+                negative, mris->neg_area, 
                 n_averages);
       fflush(parms->fp) ;
     }
@@ -1474,10 +1476,21 @@ mrisIntegrate(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
       if (Gdiag & DIAG_SHOW)
         fprintf(stderr, "writing %s...", fname) ;
       MRISwrite(mris, fname) ;
-      sprintf(fname, "%s%4.4d.area_error", base_name, 0) ;
-      if (Gdiag & DIAG_SHOW)
-        fprintf(stderr, " %s...", fname) ;
-      MRISwriteAreaError(mris, fname) ;
+      if (!FZERO(parms->l_area))
+      {
+        sprintf(fname, "%s%4.4d.area_error", base_name, 0) ;
+        if (Gdiag & DIAG_SHOW)
+          fprintf(stderr, " %s...", fname) ;
+        MRISwriteAreaError(mris, fname) ;
+      }
+
+      if (!FZERO(parms->l_angle))
+      {
+        sprintf(fname, "%s%4.4d.angle_error", base_name, 0) ;
+        if (Gdiag & DIAG_SHOW)
+          fprintf(stderr, " %s...", fname) ;
+        MRISwriteAngleError(mris, fname) ;
+      }
       if (Gdiag & DIAG_SHOW)
       {
         fprintf(stderr, "done.\n") ;
@@ -1515,7 +1528,8 @@ mrisIntegrate(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
       VERTEX_EDGE(v_c, v2, v3) ;
       orig_area0 = face->orig_area[0] ; area0 = face->area[0] ;
       orig_area1 = face->orig_area[1] ; area1 = face->area[1] ;
-      delta0 = area0 - orig_area0 ; delta1 = area1 - orig_area1 ;
+      delta0 = parms->l_area * (area0 - orig_area0) ; 
+      delta1 = parms->l_area * (area1 - orig_area1) ;
       V3_CROSS_PRODUCT(v_a, v_n0, v_a_x_n) ;
       V3_CROSS_PRODUCT(v_b, v_n1, v_b_x_n) ;
       V3_CROSS_PRODUCT(v_c, v_n1, v_c_x_n) ;
@@ -1547,6 +1561,51 @@ mrisIntegrate(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
       V3_ADD(v_tmp, v_sum, v_sum) ;
       v3->dx += V3_X(v_sum) ; v3->dy += V3_Y(v_sum) ; v3->dz += V3_Z(v_sum) ;
 
+      /* now calculate the angle contributions */
+      for (tno = 0 ; tno < TRIANGLES_PER_FACE ; tno++)
+      {
+        v_n = tno == 0 ? v_n0 : v_n1 ;
+        for (ano = 0 ; ano < ANGLES_PER_TRIANGLE ; ano++)
+        {
+          if (tno == 0) switch (ano)   /* vertices for triangle 1 */
+          {
+          case 0: vo = v0 ; va = v3 ; vb = v1 ; break ;
+          case 1: vo = v1 ; va = v0 ; vb = v3 ; break ;
+          case 2: vo = v3 ; va = v1 ; vb = v0 ; break ;
+          }
+          else switch (ano)             /* vertices for triangle 2 */
+          {
+          case 0: vo = v1 ; va = v3 ; vb = v2 ; break ;
+          case 1: vo = v2 ; va = v1 ; vb = v3 ; break ;
+          case 2: vo = v3 ; va = v2 ; vb = v1 ; break ;
+          }
+          delta = deltaAngle(face->angle[tno][ano],face->orig_angle[tno][ano]);
+          delta *= parms->l_angle ;
+          VERTEX_EDGE(v_a, vo, va) ; VERTEX_EDGE(v_b, vo, vb) ;
+
+          /* this angle's contribution to va */
+          V3_CROSS_PRODUCT(v_a, v_n0, v_tmp) ;
+          len = V3_DOT(v_a,v_a) ;
+          if (!FZERO(len))
+            V3_SCALAR_MUL(v_tmp, delta/len, v_tmp) ;
+          else
+            V3_SCALAR_MUL(v_tmp, 0.0f, v_tmp) ;
+          va->dx += V3_X(v_tmp) ; va->dy += V3_Y(v_tmp); va->dz += V3_Z(v_tmp);
+
+          /* this angle's contribution to vb */
+          V3_CROSS_PRODUCT(v_n, v_b, v_sum) ;
+          len = V3_DOT(v_b,v_b) ;
+          if (!FZERO(len))
+            V3_SCALAR_MUL(v_sum, delta/len, v_sum) ;
+          else
+            V3_SCALAR_MUL(v_sum, 0.0f, v_sum) ;
+          vb->dx += V3_X(v_sum) ; vb->dy += V3_Y(v_sum); vb->dz += V3_Z(v_sum);
+
+          /* this angle's contribution to vo */
+          V3_ADD(v_tmp, v_sum, v_sum) ;
+          vo->dx -= V3_X(v_sum); vo->dy -= V3_Y(v_sum); vo->dz -= V3_Z(v_sum) ;
+        }
+      }
     }    /* done with all faces */
 
 #if !AVERAGE_AREAS
@@ -1570,7 +1629,7 @@ mrisIntegrate(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
            "avgs: %d\n", t+1,   delta_t, 
            (float)sqrt(sse/(float)num), 
            (float)sqrt(area_sse/(float)num), 
-           (float)DEGREES(sqrt(angle_sse/(float)num)), 
+           (float)DEGREES(sqrt(angle_sse/(float)(num*3))), 
            negative, mris->neg_area, n_averages) ;
     fflush(stdout) ;
     if (Gdiag & DIAG_SHOW)
@@ -1580,7 +1639,7 @@ mrisIntegrate(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
               ", avgs: %d\n", t+1, delta_t, 
               (float)sqrt(sse/(float)num), 
               (float)sqrt(area_sse/(float)num), 
-              (float)DEGREES(sqrt(angle_sse/(float)num)), 
+              (float)DEGREES(sqrt(angle_sse/(float)(num*3))), 
               negative,mris->neg_area, n_averages) ;
       fflush(parms->fp) ;
     }
@@ -1619,8 +1678,6 @@ mrisIntegrate(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
   VectorFree(&v_c_x_n) ;
   VectorFree(&v_d_x_n) ;
 
-  VectorFree(&v_angle_delta) ;
-
   return(t-parms->start_t) ;  /* return actual # of steps taken */
 }
 /*-----------------------------------------------------
@@ -1635,7 +1692,7 @@ mrisComputeError(MRI_SURFACE *mris, float l_area,float l_angle,
                   double *parea_error, double *pangle_error, int *pn)
 {
   double  sse, sse_area, sse_angle, delta ;
-  int     fno, tno ;
+  int     ano, fno, tno ;
   FACE    *face ;
 
   sse_angle = sse_area = 0.0 ;
@@ -1646,8 +1703,11 @@ mrisComputeError(MRI_SURFACE *mris, float l_area,float l_angle,
     {
       delta = (double)(face->area[tno] - face->orig_area[tno]) ;
       sse_area += delta*delta ;
-      delta = deltaAngle(face->angle[tno], face->orig_angle[tno]);
-      sse_angle += delta*delta ;
+      for (ano = 0 ; ano < ANGLES_PER_TRIANGLE ; ano++)
+      {
+        delta = deltaAngle(face->angle[tno][ano], face->orig_angle[tno][ano]);
+        sse_angle += delta*delta ;
+      }
       if (!finite(sse_area) || !finite(sse_angle))
         ErrorExit(ERROR_BADPARM, "sse is not finite at face %d:%d!\n",fno,tno);
     }
@@ -1670,7 +1730,7 @@ double
 mrisComputeSSE(MRI_SURFACE *mris, float l_area, float l_angle)
 {
   double  sse, sse_area, sse_angle, delta ;
-  int     tno, fno ;
+  int     ano, tno, fno ;
   FACE    *face ;
 
   sse_angle = sse_area = 0.0 ;
@@ -1681,8 +1741,11 @@ mrisComputeSSE(MRI_SURFACE *mris, float l_area, float l_angle)
     {
       delta = (double)(face->area[tno] - face->orig_area[tno]) ;
       sse_area += delta*delta ;
-      delta = deltaAngle(face->angle[tno], face->orig_angle[tno]);
-      sse_angle += delta*delta ;
+      for (ano = 0 ; ano < ANGLES_PER_TRIANGLE ; ano++)
+      {
+        delta = deltaAngle(face->angle[tno][ano], face->orig_angle[tno][ano]);
+        sse_angle += delta*delta ;
+      }
       if (!finite(sse_area) || !finite(sse_angle))
         ErrorExit(ERROR_BADPARM, "sse is not finite at face %d:%d!\n",fno,tno);
     }
@@ -1845,7 +1908,7 @@ mrisFindPoles(MRIS *mris)
 static int
 mrisOrientEllipsoid(MRI_SURFACE *mris)
 {
-  int     fno, tno ;
+  int     fno, tno, ano ;
   VERTEX  *v ;
   FACE    *face ;
   float   dot ;
@@ -1865,6 +1928,8 @@ mrisOrientEllipsoid(MRI_SURFACE *mris)
       {
         face->area[tno] *= -1.0f ;
         face->nx[tno] *= -1.0f; face->ny[tno] *= -1.0f; face->nz[tno] *= -1.0f;
+        for (ano = 0 ; ano < ANGLES_PER_TRIANGLE ; ano++)
+          face->angle[tno][ano] *= -1.0f ;
       }
     }
   }
@@ -1951,9 +2016,14 @@ mrisAverageGradients(MRI_SURFACE *mris, int num_avgs)
         dx += vn->dx ; dy += vn->dy ; dz += vn->dz ;
       }
       num = (float)v->vnum + 1.0f ;
-      v->dx = dx / num ;
-      v->dy = dy / num ;
-      v->dz = dz / num ;
+      v->odx = dx / num ;
+      v->ody = dy / num ;
+      v->odz = dz / num ;
+    }
+    for (vno = 0 ; vno < mris->nvertices ; vno++)
+    {
+      v = &mris->vertices[vno] ;
+      v->dx = v->odx ; v->dy = v->ody ; v->dz = v->odz ;
     }
   }
   return(NO_ERROR) ;
@@ -1968,7 +2038,7 @@ mrisAverageGradients(MRI_SURFACE *mris, int num_avgs)
 int
 MRISreadTriangleProperties(MRI_SURFACE *mris, char *mris_fname)
 {
-  int     tno, vnum,fnum, fno, vno ;
+  int     ano, tno, vnum,fnum, fno, vno ;
   FACE    *face ;
   VERTEX  *v ;
   float   f;
@@ -2056,8 +2126,11 @@ MRISreadTriangleProperties(MRI_SURFACE *mris, char *mris_fname)
     face = &mris->faces[fno] ;
     for (tno = 0 ; tno < TRIANGLES_PER_FACE ; tno++)
     {
-      f = freadFloat(fp);
-      face->orig_angle[tno] = f ;
+      for (ano = 0 ; ano < ANGLES_PER_TRIANGLE ; ano++)
+      {
+        f = freadFloat(fp);
+        face->orig_angle[tno][ano] = f ;
+      }
     }
   }
 
@@ -2073,7 +2146,7 @@ MRISreadTriangleProperties(MRI_SURFACE *mris, char *mris_fname)
 int
 MRISwriteTriangleProperties(MRI_SURFACE *mris, char *mris_fname)
 {
-  int     fno, tno ;
+  int     fno, tno, ano ;
   FACE    *face ;
   FILE    *fp;
   char    fname[100], fpref[100], hemi[20], *cp ;
@@ -2123,7 +2196,10 @@ MRISwriteTriangleProperties(MRI_SURFACE *mris, char *mris_fname)
   {
     face = &mris->faces[fno] ;
     for (tno = 0 ; tno < TRIANGLES_PER_FACE ; tno++)
-      putf(face->angle[tno], fp) ;
+    {
+      for (ano = 0 ; ano < ANGLES_PER_TRIANGLE ; ano++)
+        putf(face->angle[tno][ano], fp) ;
+    }
   }
 
   fclose(fp);
@@ -2162,10 +2238,11 @@ int
 MRIScomputeTriangleProperties(MRI_SURFACE *mris)
 {
   VECTOR  *v_a, *v_b, *v_c, *v_d, *v_n ;
-  VERTEX  *v0, *v1, *v2, *v3 ;
+  VERTEX  *v0, *v1, *v2, *v3, *va, *vb, *vo ;
   FACE    *face ;
-  int     fno ;
-  float   area, angle, dot ;
+  int     tno, fno, ano, min_fno, min_tno  ;
+  float   area, angle, dot, cross, min_p, dz ;
+  static  int first = 1 ;
 
   v_a = VectorAlloc(3, MATRIX_REAL) ;
   v_b = VectorAlloc(3, MATRIX_REAL) ;
@@ -2173,6 +2250,7 @@ MRIScomputeTriangleProperties(MRI_SURFACE *mris)
   v_d = VectorAlloc(3, MATRIX_REAL) ;
   v_n = VectorAlloc(3, MATRIX_REAL) ;       /* normal vector */
 
+  min_p = 1000.0f ; min_fno = min_tno = -1 ;
   mris->total_area = 0.0f ;
   for (fno = 0 ; fno < mris->nfaces ; fno++)
   {
@@ -2190,22 +2268,68 @@ MRIScomputeTriangleProperties(MRI_SURFACE *mris)
     V3_CROSS_PRODUCT(v_a, v_d, v_n) ;
     area = V3_LEN(v_n) * 0.5f ;
     dot = V3_DOT(v_a, v_d) ;
-    angle = atan2(area*2.0f, dot) ;
-    face->angle[0] = angle ;
     face->area[0] = area ;
     V3_NORMALIZE(v_n, v_n) ;             /* make it a unit vector */
     face->nx[0] = V3_X(v_n); face->ny[0] = V3_Y(v_n); face->nz[0] = V3_Z(v_n);
 
     /* compute metric properties of second triangle */
     V3_CROSS_PRODUCT(v_c, v_b, v_n) ;
-    area = V3_LEN(v_n) * 0.5f ;
-    dot = V3_DOT(v_c, v_b) ;
-    angle = atan2(area*2.0f, dot) ;
-    face->angle[1] = angle ;
     face->area[1] = area ;
     V3_NORMALIZE(v_n, v_n) ;             /* make it a unit vector */
     face->nx[1] = V3_X(v_n); face->ny[1] = V3_Y(v_n); face->nz[1] = V3_Z(v_n);
     mris->total_area += area ;
+
+    /* now compute angles */
+    for (tno = 0 ; tno < TRIANGLES_PER_FACE ; tno++)
+    {
+      VECTOR_LOAD(v_n, face->nx[tno], face->ny[tno], face->nz[tno]) ;
+      if ((V3_X(v_n) < V3_Y(v_n)) && (V3_X(v_n) < V3_Z(v_n)))
+        dz = fabs(V3_X(v_n)) ;
+      else if (V3_Y(v_n) < V3_Z(v_n))
+        dz = fabs(V3_Y(v_n)) ;
+      else
+        dz = fabs(V3_Z(v_n)) ;
+      if (dz < min_p)
+      {
+        min_p = dz ;
+        min_fno = fno ;
+        min_tno = tno ;
+      }
+      for (ano = 0 ; ano < ANGLES_PER_TRIANGLE ; ano++)
+      {
+        if (tno == 0) switch (ano)   /* vertices for triangle 1 */
+        {
+        case 0: vo = v0 ; va = v3 ; vb = v1 ; break ;
+        case 1: vo = v1 ; va = v0 ; vb = v3 ; break ;
+        case 2: vo = v3 ; va = v1 ; vb = v0 ; break ;
+        }
+        else switch (ano)             /* vertices for triangle 2 */
+        {
+        case 0: vo = v1 ; va = v3 ; vb = v2 ; break ;
+        case 1: vo = v2 ; va = v1 ; vb = v3 ; break ;
+        case 2: vo = v3 ; va = v2 ; vb = v1 ; break ;
+        }
+        VERTEX_EDGE(v_a, vo, va) ;VERTEX_EDGE(v_b, vo, vb) ;
+        
+        cross = VectorTripleProduct(v_b, v_a, v_n) ;
+        dot = V3_DOT(v_a, v_b) ;
+        angle = atan2(cross, dot) ;
+        face->angle[tno][ano] = angle ;
+
+#if 0
+        if (angle < 0.0f || angle >= M_PI)
+          fprintf(stderr, "angle [%d][%d][%d] = %2.1f\n",
+                  fno,tno,ano,DEGREES(angle)) ;
+#endif
+      }
+    }
+  }
+
+  if (first)
+  {
+    first = 0 ;
+    fprintf(stderr, "max planar triangle at face %d, tri %d (%2.3f)\n", 
+            min_fno, min_tno, min_p) ;
   }
 
   VectorFree(&v_a) ;
@@ -2222,7 +2346,7 @@ MRIScomputeTriangleProperties(MRI_SURFACE *mris)
 
         Description
 ------------------------------------------------------*/
-#define MAX_MM    DEFAULT_A/10.0f
+#define MAX_MM    MAX_DIM/10.0f
 #define MAX_DT    1000000.0f
 
 static float
@@ -3367,10 +3491,10 @@ MRISwriteAreaError(MRI_SURFACE *mris, char *fname)
 int
 MRISwriteAngleError(MRI_SURFACE *mris, char *fname)
 {
-#if 0
-  int    k,i, n ;
+  int    vno, fno, tno, ano, i, n ;
   float  error ;
   FILE   *fp;
+  FACE   *face ;
   VERTEX *v ;
   
   if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
@@ -3384,13 +3508,22 @@ MRISwriteAngleError(MRI_SURFACE *mris, char *fname)
 
   fwrite3(mris->nvertices,fp);
   fwrite3(mris->nfaces,fp);
-  for (k=0;k<mris->nvertices;k++)
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
   {
+    v = &mris->vertices[vno] ;
     error = 0.0f ;
-    v = &mris->vertices[k] ;
-    for (n = 0; n < v->num; n++)
+    for (fno = 0 ; fno < v->num ; fno++)
     {
-      error += fabs(v->tri_angle[n] - v->orig_tri_angle[n]) ;
+      face = &mris->faces[v->f[fno]] ;
+      for (tno = 0 ; tno < TRIANGLES_PER_FACE ; tno++)
+      {
+        for (ano = 0 ; ano < ANGLES_PER_TRIANGLE ; ano++)
+        {
+          error += 
+            fabs(deltaAngle(face->angle[tno][ano],face->orig_angle[tno][ano]));
+        }
+      }
+      error /= (float)(v->num*TRIANGLES_PER_FACE*ANGLES_PER_TRIANGLE) ;
     }
     i = DEGREES(error) * 100.0 ;
     fwrite2((int)i,fp);
@@ -3398,7 +3531,6 @@ MRISwriteAngleError(MRI_SURFACE *mris, char *fname)
   fclose(fp);
   if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
     fprintf(stderr, "done.\n") ;
-#endif
   return(NO_ERROR) ;
 }
 /*-----------------------------------------------------
