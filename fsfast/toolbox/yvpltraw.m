@@ -441,7 +441,7 @@ function [ud, err] = load_rescale(ud)
 err = 1;
 
 for nthrun = 1:ud.ad.Nruns,
-  if(~isempty(ud.XX.RescaleTarget))
+  if(~isempty(ud.XX.RescaleTarget) & ud.XX.RescaleTarget ~= 0)
     run = ud.ad.runlist(nthrun);
     mvf= sprintf('%s/%03d/%s.meanval',ud.fsd,run,ud.ad.funcstem);
     fid = fopen(mvf,'r');
