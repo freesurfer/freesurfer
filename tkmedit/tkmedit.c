@@ -47,7 +47,7 @@ int Tix_SafeInit ( Tcl_Interp* interp );
 #include <stdio.h>
 #include <string.h>
 #include <sys/time.h>
-#include "MRIio.h"
+#include "MRIio_old.h"
 #include "volume_io.h"
 #include "rgb_image.h"
 #include "fio.h"

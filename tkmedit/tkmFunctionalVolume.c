@@ -1,7 +1,7 @@
 #include "tkmFunctionalVolume.h"
 #include <stdlib.h>
 #include <math.h>
-#include "mritransform.h"
+#include "mri_transform.h"
 #include "xUtilities.h"
 
                                    /* about the script */
