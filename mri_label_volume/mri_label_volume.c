@@ -133,7 +133,7 @@ main(int argc, char *argv[])
     }
     else
     {
-      printf("%d (%2.1f mm^3)voxels in label %d\n", volume, 
+      printf("%d (%2.1f mm^3) voxels in label %d\n", volume, 
 						 volume*vox_volume, label) ;
       if (log_fp)
       {
