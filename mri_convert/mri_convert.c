@@ -1025,18 +1025,21 @@ int main(int argc, char *argv[])
     mri->x_r = in_i_directions[0];
     mri->x_a = in_i_directions[1];
     mri->x_s = in_i_directions[2];
+    mri->ras_good_flag = 1;
   }
   if(in_j_direction_flag)
   {
     mri->y_r = in_j_directions[0];
     mri->y_a = in_j_directions[1];
     mri->y_s = in_j_directions[2];
+    mri->ras_good_flag = 1;
   }
   if(in_k_direction_flag)
   {
     mri->z_r = in_k_directions[0];
     mri->z_a = in_k_directions[1];
     mri->z_s = in_k_directions[2];
+    mri->ras_good_flag = 1;
   }
   if(in_center_flag)
   {
@@ -1263,7 +1266,8 @@ int main(int argc, char *argv[])
       }
     }
     else if(out_volume_type != MRI_CORONAL_SLICE_DIRECTORY)
-        printf("the output volume is not a COR- directory; the --no_conform (-nc) argument is not needed\n");
+        printf("the output volume is not a COR- directory."
+         "The --no_conform (-nc) argument is not needed\n");
 
   }
 
@@ -1363,20 +1367,34 @@ int main(int argc, char *argv[])
   }
 
   /* ----- reslice if necessary ----- */
-  if(mri->xsize != template->xsize || mri->ysize != template->ysize || mri->zsize != template->zsize ||
-     mri->width != template->width || mri->height != template->height || mri->depth != template->depth ||
-     mri->x_r != template->x_r || mri->x_a != template->x_a || mri->x_s != template->x_s ||
-     mri->y_r != template->y_r || mri->y_a != template->y_a || mri->y_s != template->y_s ||
-     mri->z_r != template->z_r || mri->z_a != template->z_a || mri->z_s != template->z_s ||
-     mri->c_r != template->c_r || mri->c_a != template->c_a || mri->c_s != template->c_s)
+  if(mri->xsize != template->xsize || 
+     mri->ysize != template->ysize || 
+     mri->zsize != template->zsize ||
+     mri->width != template->width || 
+     mri->height != template->height || 
+     mri->depth != template->depth ||
+     mri->x_r != template->x_r || 
+     mri->x_a != template->x_a || 
+     mri->x_s != template->x_s ||
+     mri->y_r != template->y_r || 
+     mri->y_a != template->y_a || 
+     mri->y_s != template->y_s ||
+     mri->z_r != template->z_r || 
+     mri->z_a != template->z_a || 
+     mri->z_s != template->z_s ||
+     mri->c_r != template->c_r || 
+     mri->c_a != template->c_a || 
+     mri->c_s != template->c_s)
   {
-    printf("reslicing (%s)...\n", (resample_type_val == RESAMPLE_INTERPOLATE ? "interpolate" : 
-                                  (resample_type_val == RESAMPLE_NEAREST     ? "nearest" : 
-                                  (resample_type_val == RESAMPLE_SINC        ? "sinc" : 
-                                  (resample_type_val == RESAMPLE_WEIGHTED    ? "weighted" : "unknown")))));
+    printf("Reslicing using ");
+    switch(resample_type_val){
+    case RESAMPLE_INTERPOLATE: printf("trilinear interpolation \n"); break;
+    case RESAMPLE_NEAREST:     printf("nearest \n"); break;
+    case RESAMPLE_SINC:        printf("sinc \n"); break;
+    case RESAMPLE_WEIGHTED:    printf("weighted \n"); break;
+    }
     mri2 = MRIresample(mri, template, resample_type_val);
-    if(mri2 == NULL)
-      exit(1);
+    if(mri2 == NULL) exit(1);
     MRIfree(&mri);
     mri = mri2;
   }
@@ -1676,7 +1694,10 @@ void usage(FILE *stream)
   printf("  --sdcmlist (list of DICOM files for conversion)\n");
   printf("  -ti, --template_info : dump info about template\n");
   printf("\n");
-
+  printf("Notes: \n");
+  printf("\n");
+  printf("If the user specifies any of the direction cosines, the ras_good_flag is set.\n");
+  printf("\n");
 
 } /* end usage() */
 
