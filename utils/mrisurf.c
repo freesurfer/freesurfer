@@ -4067,7 +4067,7 @@ MRISquickSphere(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int max_passes)
   base_averages = parms->n_averages ;
   niter = parms->niterations ;
   passno = 0 ;
-#if 0
+#if 1
   if ((parms->flags & IPFLAG_QUICK) == 0)
     parms->tol = parms->tol * 1024 / (sqrt((double)base_averages+1)) ;
 #endif
@@ -20759,9 +20759,11 @@ MRIScorrectTopology(MRI_SURFACE *mris, MRI_SURFACE *mris_corrected)
     defect = &dl->defects[i] ;
     if (i == 47)
       DiagBreak() ;
+#if 0
     if (Gdiag & DIAG_SHOW)
       fprintf(stderr, "\rdefect %d (area %2.3f)      ", 
               i, defect->area) ;
+#endif
     mrisMarkRetainedPartOfDefect(mris, defect, fdl, AREA_THRESHOLD,
                                  MARK_RETAIN, MARK_DISCARD, mht) ;
     mrisFindDefectConvexHull(mris, defect) ;
@@ -21222,8 +21224,8 @@ MRISmarkAmbiguousVertices(MRI_SURFACE *mris, int mark)
     fprintf(stderr, "marking ambiguous vertices...\n") ;
   for (nmarked = fno = 0 ; fno < mris->nfaces ; fno++)
   {
-    if (Gdiag & DIAG_SHOW && !(fno % 1000))
-      fprintf(stderr, "\r%d of %d faces processed, %d ambiguous", 
+    if (Gdiag & DIAG_SHOW && !(fno % 10000))
+      fprintf(stderr, "%d of %d faces processed, %d ambiguous\n", 
               fno, mris->nfaces-1, nmarked) ;
     f = &mris->faces[fno] ;
     if (fno == Gdiag_no)
@@ -21242,9 +21244,11 @@ MRISmarkAmbiguousVertices(MRI_SURFACE *mris, int mark)
     if (nfaces > 1 || area_scale*f->area < 0.001)  /* part of a defect */
     {
       nmarked++ ;
+#if 0
       if (Gdiag & DIAG_SHOW)
         fprintf(stderr, "\r%d of %d faces processed, %d ambiguous", 
                 fno, mris->nfaces-1, nmarked) ;
+#endif
 
 
       if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
@@ -21359,6 +21363,7 @@ MRISsegmentDefects(MRI_SURFACE *mris, int mark_ambiguous, int mark_segmented)
       DiagBreak() ;
     mrisSegmentDefect(mris, vno, &dl->defects[dl->ndefects++], 
                       mark_ambiguous, mark_segmented) ;
+#if 0
     if (Gdiag & DIAG_SHOW)
     {
       DEFECT *defect = &dl->defects[dl->ndefects-1] ;
@@ -21373,6 +21378,7 @@ MRISsegmentDefects(MRI_SURFACE *mris, int mark_ambiguous, int mark_segmented)
               defect->area, defect->cx, defect->cy, defect->cz) ;
 #endif
     }
+#endif
     if (Gdiag & DIAG_WRITE && fp)
     {
       int n ;
@@ -22181,9 +22187,10 @@ mrisTessellateDefect(MRI_SURFACE *mris, MRI_SURFACE *mris_corrected,
       DiagBreak() ;
     vlist[nvertices++] = defect->border[i] ;
   }
-  fprintf(stderr, 
-          "\rretessellating defect %d with %d vertices (chull=%d).    ", 
-          dno++, nvertices, defect->nchull) ;
+  if (nvertices > 250)
+    fprintf(stderr, 
+            "retessellating defect %d with %d vertices (convex hull=%d).\n", 
+            dno++, nvertices, defect->nchull) ;
   if (nvertices == 0)  /* should never happen */
     return(NO_ERROR) ;
 
