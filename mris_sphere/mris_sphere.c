@@ -15,7 +15,7 @@
 #include "utils.h"
 #include "timer.h"
 
-static char vcid[]="$Id: mris_sphere.c,v 1.22 2001/01/12 19:17:41 fischl Exp $";
+static char vcid[]="$Id: mris_sphere.c,v 1.23 2002/03/29 20:48:52 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -56,7 +56,7 @@ static int   inflate_avgs = 0 ;
 static int   inflate_iterations = 300 ;
 static float l_convex = 1.0 ;
 static float l_spring_norm = 1.0 ;
-static float l_sphere = 0.01 ;
+static float l_sphere = 0.1 ;
 #endif
 
 static char *orig_name = "smoothwm" ;
@@ -70,6 +70,7 @@ main(int argc, char *argv[])
   int          ac, nargs, msec ;
   MRI_SURFACE  *mris ;
   struct timeb  then ;
+  float         max_dim ;
 
   Gdiag = DIAG_SHOW ;
 
@@ -155,6 +156,18 @@ main(int argc, char *argv[])
   fprintf(stderr, "unfolding cortex into spherical form...\n");
   if (talairach)
     MRIStalairachTransform(mris, mris) ;
+
+  max_dim = MAX(abs(mris->xlo), abs(mris->xhi)) ;
+  max_dim = MAX(abs(max_dim), abs(mris->ylo)) ;
+  max_dim = MAX(abs(max_dim), abs(mris->yhi)) ;
+  max_dim = MAX(abs(max_dim), abs(mris->zlo)) ;
+  max_dim = MAX(abs(max_dim), abs(mris->zhi)) ;
+  if (max_dim > .75*DEFAULT_RADIUS)
+  {
+    float ratio = .75*DEFAULT_RADIUS / (max_dim) ;
+    printf("scaling brain by %2.3f...\n", ratio) ;
+    MRISscaleBrain(mris, mris, ratio) ;
+  }
 
   if (!load && inflate)
   {
