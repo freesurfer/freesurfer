@@ -1065,7 +1065,7 @@ proc DoSpecifyStemAndRegistration { isType ifnVolume } {
 }
 
 proc DoLoadDTIDlog {} {
-    global gDialog
+    global gDialog glShortcutDirs
     global nColorX nColorY nColorZ
 
     set wwDialog .wwLoadDTIDlog
