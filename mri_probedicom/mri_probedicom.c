@@ -28,7 +28,7 @@
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_probedicom.c,v 1.5 2002/12/03 18:29:00 greve Exp $";
+static char vcid[] = "$Id: mri_probedicom.c,v 1.6 2003/02/13 21:20:51 greve Exp $";
 char *Progname = NULL;
 
 static int  parse_commandline(int argc, char **argv);
@@ -117,19 +117,19 @@ int main(int argc, char **argv)
       exit(0);
     }
 
-    cond=DCM_OpenFile(dicomfile, DCM_PART10FILE, &object);
+    cond=DCM_OpenFile(dicomfile, DCM_PART10FILE|DCM_ACCEPTVRMISMATCH, &object);
     if (cond == DCM_NORMAL){
       printf("part10\n");
       exit(0);
     }
 
-    cond=DCM_OpenFile(dicomfile, DCM_ORDERLITTLEENDIAN, &object);
+    cond=DCM_OpenFile(dicomfile, DCM_ORDERLITTLEENDIAN|DCM_ACCEPTVRMISMATCH, &object);
     if (cond == DCM_NORMAL){
       printf("littleendian\n");
       exit(0);
     }
 
-    cond=DCM_OpenFile(dicomfile, DCM_ORDERBIGENDIAN, &object);
+    cond=DCM_OpenFile(dicomfile, DCM_ORDERBIGENDIAN|DCM_ACCEPTVRMISMATCH, &object);
     if (cond == DCM_NORMAL){
       printf("bigendian\n");
       exit(0);
@@ -574,192 +574,6 @@ char *RepString(int RepCode)
   return(repstring);
 }
 /*---------------------------------------------------------------*/
-#if 0
-/* put into DICOMRead.c */
-DCM_OBJECT *GetObjectFromFile(char *fname, unsigned long options)
-{
-  CONDITION cond;
-  DCM_OBJECT *object;
-  
-  if(! IsDICOM(fname)){
-    fprintf(stderr,"ERROR: %s is not a dicom file\n",fname);
-    return(NULL);
-  }
-
-  cond=DCM_OpenFile(fname, DCM_PART10FILE|options, &object);
-  if (cond != DCM_NORMAL)
-    cond=DCM_OpenFile(fname, DCM_ORDERLITTLEENDIAN|options, &object);
-  if (cond != DCM_NORMAL)
-    cond=DCM_OpenFile(fname, DCM_ORDERBIGENDIAN|options, &object);
-  if (cond != DCM_NORMAL)
-    cond=DCM_OpenFile(fname, DCM_FORMATCONVERSION|options, &object);
-
-  if(cond != DCM_NORMAL){
-    COND_DumpConditions();
-    return(NULL);
-  }
-
-  return(object);
-}
-/*---------------------------------------------------------------*/
-int AllocElement(DCM_ELEMENT *e)
-{
-  switch(e->representation){
-
-  case DCM_AE: 
-  case DCM_AS: 
-  case DCM_CS: 
-  case DCM_DA: 
-  case DCM_DS: 
-  case DCM_DT: 
-  case DCM_IS: 
-  case DCM_LO: 
-  case DCM_LT: 
-  case DCM_OB: 
-  case DCM_OW: 
-  case DCM_PN: 
-  case DCM_SH: 
-  case DCM_ST: 
-  case DCM_TM: 
-  case DCM_UI: 
-    e->d.string = (char *) calloc(e->length+1,sizeof(char));
-    e->d.string[e->length] = '\0'; /* add null terminator */
-    break;
-  case DCM_SS: 
-    e->d.ss = (short *) calloc(e->length,sizeof(short));
-    break;
-  case DCM_SL:
-    e->d.sl = (long *) calloc(e->length,sizeof(long));
-    break;
-  case DCM_SQ: 
-    e->d.sq = (LST_HEAD *) calloc(e->length,sizeof(LST_HEAD));
-    break;
-  case DCM_UL: 
-    e->d.ul = (unsigned long *) calloc(e->length,sizeof(unsigned long));
-    break;
-  case DCM_US:
-    e->d.us = (unsigned short *) calloc(e->length,sizeof(unsigned short));
-    break;
-  case DCM_AT: 
-    e->d.at = (DCM_TAG *) calloc(e->length,sizeof(DCM_TAG));
-    break;
-  case DCM_FD: 
-    fprintf(stderr,"Element is of type double, not supported by CTN\n");
-    exit(1);
-    break;
-  case DCM_FL: 
-    fprintf(stderr,"Element is of type float, not supported by CTN\n");
-    exit(1);
-    break;
-  default: 
-    fprintf(stderr,"AllocElement: %d unrecognized",e->representation);
-    return(1);
-  }
-
-  return(0);
-}
-/*---------------------------------------------------------------*/
-int FreeElement(DCM_ELEMENT *e)
-{
-  switch(e->representation){
-
-  case DCM_AE: 
-  case DCM_AS: 
-  case DCM_CS: 
-  case DCM_DA: 
-  case DCM_DS: 
-  case DCM_DT: 
-  case DCM_IS: 
-  case DCM_LO: 
-  case DCM_LT: 
-  case DCM_OB: 
-  case DCM_OW: 
-  case DCM_PN: 
-  case DCM_SH: 
-  case DCM_ST: 
-  case DCM_TM: 
-  case DCM_UI: 
-    free(e->d.string);
-    e->d.string = NULL;
-    break;
-  case DCM_SS: 
-    free(&e->d.ss);
-    e->d.ss = NULL;
-    break;
-  case DCM_SL:
-    free(&e->d.sl);
-    e->d.sl = NULL;
-    break;
-  case DCM_SQ: 
-    free(&e->d.sq);
-    e->d.sq = NULL;
-    break;
-  case DCM_UL: 
-    free(&e->d.ul);
-    e->d.ul = NULL;
-    break;
-  case DCM_US:
-    free(&e->d.us);
-    e->d.us = NULL;
-    break;
-  case DCM_AT: 
-    free(&e->d.at);
-    e->d.at = NULL;
-    break;
-  case DCM_FD: 
-    fprintf(stderr,"Element is of type double, not supported by CTN\n");
-    exit(1);
-    break;
-  case DCM_FL: 
-    fprintf(stderr,"Element is of type float, not supported by CTN\n");
-    exit(1);
-    break;
-  default: 
-    fprintf(stderr,"FreeElement: %d unrecognized",e->representation);
-    return(1);
-  }
-
-  return(0);
-}
-/*---------------------------------------------------------------*/
-DCM_ELEMENT *GetElementFromFile(char *dicomfile, long grpid, long elid)
-{
-  DCM_OBJECT *object;
-  CONDITION cond;
-  DCM_ELEMENT *element;
-  DCM_TAG tag;
-  unsigned long rtnLength;
-  void * Ctx = NULL;
-
-  element = (DCM_ELEMENT *) calloc(1,sizeof(DCM_ELEMENT));
-
-  object = GetObjectFromFile(dicomfile, 0);
-  if(object == NULL) exit(1);
-
-  tag=DCM_MAKETAG(grpid,elid);
-  cond = DCM_GetElement(&object, tag, element);
-  if(cond != DCM_NORMAL){
-    free(element);
-    return(NULL);
-    //COND_DumpConditions();
-    //exit(1);
-  }
-  AllocElement(element);
-  cond = DCM_GetElementValue(&object, element, &rtnLength, &Ctx);
-  if(cond != DCM_NORMAL){
-    FreeElement(element);
-    free(element);
-    return(NULL);
-    //COND_DumpConditions();
-    //exit(1);
-  }
-  DCM_CloseObject(&object);
-
-  return(element);
-}
-#endif
-
-
 /*---------------------------------------------------------------
   ElementValueString() - returns the value of the element as a
   null terminated string. Does not parse multiple valued elements.
@@ -1330,42 +1144,3 @@ int RenderImage(int argc, char **argv){
 
 
 
-#if 0
-/*---------------------------------------------------------------*/
-size_t RepSize(int RepCode)
-{
-  size_t repsize = 0;
-
-  switch(RepCode){
-
-  case DCM_AE: repsize = sizeof(char); break;
-  case DCM_AS: repsize = sizeof(char); break;
-  case DCM_AT: repsize = sizeof(DCM_TAG); break;
-  case DCM_CS: repsize = sizeof(char); break;
-  case DCM_DA: repsize = sizeof(char); break;
-  case DCM_DS: repsize = sizeof(char); break;
-  case DCM_DT: repsize = sizeof(char); break;
-  case DCM_FD: repsize = sizeof(double); break;
-  case DCM_FL: repsize = sizeof(float); break;
-  case DCM_IS: repsize = sizeof(char); break;
-  case DCM_LO: repsize = sizeof(char); break;
-  case DCM_LT: repsize = sizeof(char); break;
-  case DCM_OB: repsize = sizeof(char); break;
-  case DCM_OW: repsize = sizeof(char); break;
-  case DCM_PN: repsize = sizeof(char); break;
-  case DCM_SS: repsize = sizeof(short); break;
-  case DCM_SH: repsize = sizeof(char); break;
-  case DCM_SL: repsize = sizeof(long); break;
-  case DCM_SQ: repsize = sizeof(LST_HEAD); break;
-  case DCM_ST: repsize = sizeof(char); break;
-  case DCM_TM: repsize = sizeof(char); break;
-  case DCM_UI: repsize = sizeof(char); break;
-  case DCM_UL: repsize = sizeof(unsigned long); break;
-  case DCM_US: repsize = sizeof(unsigned short); break;
-  default: 
-    fprintf(stderr,"RepSize: %d unrecognized",RepCode);
-  }
-
-  return(repsize);
-}
-#endif

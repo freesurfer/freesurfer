@@ -14,7 +14,7 @@
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_parse_sdcmdir.c,v 1.4 2002/12/03 22:01:36 greve Exp $";
+static char vcid[] = "$Id: mri_parse_sdcmdir.c,v 1.5 2003/02/13 21:21:15 greve Exp $";
 char *Progname = NULL;
 
 static int  parse_commandline(int argc, char **argv);
@@ -46,8 +46,6 @@ int main(int argc, char **argv)
   int nthfile;
   char *fname, *psname, *protoname;
   int PrevRunNo;
-  char *tmpstring;
-  int Maj, Min, MinMin;
 
   Progname = argv[0] ;
   argc --;
@@ -73,16 +71,18 @@ int main(int argc, char **argv)
   else outstream = stdout;
 
   /* Get all the Siemens DICOM files from this directory */
-  fprintf(stderr,"INFO: scanning path to Siemens DICOM DIR:\n   %s\n",sdicomdir);
+  fprintf(stderr,"INFO: scanning path to Siemens DICOM DIR:\n   %s\n",
+	  sdicomdir);
   sdfi_list = ScanSiemensDCMDir(sdicomdir, &nlist);
   if(sdfi_list == NULL){
     fprintf(stderr,"ERROR: scanning directory %s\n",sdicomdir);
     exit(1);
   }
-  fprintf(stderr,"INFO: found %d Siemens files\n",nlist);
+  printf("INFO: found %d Siemens files\n",nlist);
 
   /* Sort the files by Series, Slice Position, and Image Number */
-  fprintf(stderr,"Sorting\n");
+  printf("Sorting\n");
+  fflush(stdout);fflush(stderr);
   SortSDCMFileInfo(sdfi_list,nlist);
 
   /* Assign run numbers to each file (count number of runs)*/
@@ -104,16 +104,7 @@ int main(int argc, char **argv)
     PrevRunNo = sdfi->RunNo;
 
     sdfi->RepetitionTime /= 1000.0;
-
-    if(sdfi->IsMosaic ){
-      /* The TR definition will depend upon the software version */
-      tmpstring = sdcmExtractNumarisVer(sdfi->NumarisVer, &Maj, &Min, &MinMin);
-      if(tmpstring == NULL) exit(1);
-      free(tmpstring);
-      if(Min == 1 && MinMin <= 6)
-	sdfi->RepetitionTime  = sdfi->RepetitionTime * (sdfi->VolDim[2]);
-    /* Need to add any gap (eg, as in a hammer sequence */
-  }
+    if(sdfi->IsMosaic )  sdfi->RepetitionTime *= sdfi->VolDim[2];
 
     fname     = fio_basename(sdfi->FileName,NULL);
     psname    = strip_white_space(sdfi->PulseSequence);
@@ -229,8 +220,6 @@ static void print_help(void)
 {
   printf("\n");
   print_usage() ;
-  printf("\n");
-  printf("%s\n",vcid);
   printf("\n");
 
   printf(
