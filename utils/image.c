@@ -4260,4 +4260,110 @@ ImageEntropy(IMAGE *I, int pairflag)
   free(table) ;
   return(total_entropy) ;
 }
+/*----------------------------------------------------------------------
+            Parameters:
+
+           Description:
+              downsample an image by 2 (no lowpass filtering)
+----------------------------------------------------------------------*/
+IMAGE *
+ImageDownsample2(IMAGE *Isrc, IMAGE *Idst)
+{
+  int    srows, scols, drows, dcols, drow, dcol ;
+  float  *sptr, *dptr ;
+
+  srows = Isrc->rows ;
+  scols = Isrc->cols ;
+  drows = srows / 2 ;
+  dcols = scols / 2 ;
+
+  if (!ImageCheckSize(Isrc, Idst, drows, dcols, 0))
+  {
+    if (Idst)
+      ImageFree(&Idst) ;
+    Idst = ImageAlloc(drows, dcols, Isrc->pixel_format, Isrc->num_frame);
+  }
+
+  if (Isrc->pixel_format != PFFLOAT)
+    ErrorReturn(Idst, (ERROR_UNSUPPORTED, 
+                       "ImageDownsample2: unsupported input pixel format %d", 
+                       Isrc->pixel_format)) ;
+  if (Idst->pixel_format != PFFLOAT)
+    ErrorReturn(Idst, (ERROR_UNSUPPORTED, 
+                       "ImageDownsample2: unsupported output pixel format %d", 
+                       Idst->pixel_format)) ;
+
+  sptr = IMAGEFpix(Isrc, 0, 0) ;
+  dptr = IMAGEFpix(Idst, 0, 0) ;
+  for (drow = 0 ; drow < drows ; drow++)
+  {
+    for (dcol = 0 ; dcol < dcols ; dcol++, sptr++)
+      *dptr++ = *sptr++ ;
+
+    sptr += scols ;  /* skip a row */
+  }
+  return(Idst) ;
+}
+/*----------------------------------------------------------------------
+            Parameters:
+
+           Description:
+              upsample an image by 2 using a peg filter for
+              interpolation (convolution with 2x2 array of ones)
+----------------------------------------------------------------------*/
+IMAGE *
+ImageUpsample2(IMAGE *Isrc, IMAGE *Idst)
+{
+  static IMAGE *Itmp = NULL ;
+  int    srows, scols, drows, dcols, srow, scol ;
+  float  *sptr, *dptr ;
+
+  srows = Isrc->rows ;
+  scols = Isrc->cols ;
+  drows = srows * 2 ;
+  dcols = scols * 2 ;
+
+  if (!ImageCheckSize(Isrc, Idst, drows, dcols, 0))
+  {
+    if (Idst)
+      ImageFree(&Idst) ;
+    Idst = ImageAlloc(drows, dcols, Isrc->pixel_format, Isrc->num_frame);
+  }
+
+  if (Isrc->pixel_format != PFFLOAT)
+    ErrorReturn(Idst, (ERROR_UNSUPPORTED, 
+                       "ImageUpsample2: unsupported input pixel format %d", 
+                       Isrc->pixel_format)) ;
+  if (Idst->pixel_format != PFFLOAT)
+    ErrorReturn(Idst, (ERROR_UNSUPPORTED, 
+                       "ImageUpsample2: unsupported output pixel format %d", 
+                       Idst->pixel_format)) ;
+
+  if (!ImageCheckSize(Idst, Itmp, 0, 0, 0))
+  {
+    if (Itmp)
+      ImageFree(&Itmp) ;
+    Itmp = ImageAlloc(drows, dcols, Isrc->pixel_format, Isrc->num_frame);
+  }
+  else
+    ImageSetSize(Itmp, drows, dcols) ;
+
+  /* first interleave zeros in the final-sized image */
+  sptr = IMAGEFpix(Isrc, 0, 0) ;
+  dptr = IMAGEFpix(Itmp, 0, 0) ;
+  for (srow = 0 ; srow < srows ; srow++)
+  {
+    for (scol = 0 ; scol < scols ; scol++)
+    {
+      *dptr++ = *sptr++ ;
+      *dptr++ = 0.0f ;    /* interleave with zeros */
+    }
+
+    dptr += dcols ;  /* skip a row */
+  }
+  ImageMeanFilter(Itmp, 2, Idst) ;
+
+  return(Idst) ;
+}
+
 
