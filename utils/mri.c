@@ -6927,11 +6927,11 @@ MRI *MRIchangeType(MRI *src, int dest_type, float f_low, float f_high, int no_sc
           if(src->type == MRI_SHORT)
             val = MRISvox(src, i, j, k);
           if(src->type == MRI_INT)
-            val = MRISvox(src, i, j, k);
+            val = MRIIvox(src, i, j, k);
           if(src->type == MRI_LONG)
-            val = MRISvox(src, i, j, k);
+            val = MRILvox(src, i, j, k);
           if(src->type == MRI_FLOAT)
-            val = MRISvox(src, i, j, k);
+            val = MRIFvox(src, i, j, k);
 
           val = dest_min + scale * (val - src_min);
 
@@ -6975,6 +6975,147 @@ MRI *MRIchangeType(MRI *src, int dest_type, float f_low, float f_high, int no_sc
   return(dest);
 
 } /* end MRIchangeType() */
+
+MATRIX *MRIgetResampleMatrix(MRI *src, MRI *template_vol)
+{
+
+  MATRIX *src_mat, *dest_mat; /* from i to ras */
+  float src_center_x, src_center_y, src_center_z;
+  float dest_center_x, dest_center_y, dest_center_z;
+  float s14, s24, s34;
+  float d14, d24, d34;
+  float src_det, dest_det;
+  MATRIX *src_inv, *m;
+
+  /* ----- fake the ras values if ras_good_flag is not set ----- */
+  if(!src->ras_good_flag)
+  {
+    if(src->slice_direction == MRI_CORONAL)
+    {
+      src->x_r = -1; src->x_a =  0; src->x_s =  0;
+      src->y_r =  0; src->y_a =  0; src->y_s = -1;
+      src->z_r =  0; src->z_a =  1; src->z_s =  0;
+    }
+    else if(src->slice_direction == MRI_SAGITTAL)
+    {
+      src->x_r =  0; src->x_a =  1; src->x_s =  0;
+      src->y_r =  0; src->y_a =  0; src->y_s = -1;
+      src->z_r =  1; src->z_a =  0; src->z_s =  0;
+    }
+    else if(src->slice_direction == MRI_HORIZONTAL)
+    {
+      src->x_r = -1; src->x_a =  0; src->x_s =  0;
+      src->y_r =  0; src->y_a = -1; src->y_s =  0;
+      src->z_r =  0; src->z_a =  0; src->z_s = -1;
+    }
+    else
+    {
+      ErrorReturn(NULL, (ERROR_BADPARM, "MRIresample(): source volume orientation is unknown"));
+    }
+  }
+
+  src_mat = MatrixAlloc(4, 4, MATRIX_REAL);
+  if(src_mat == NULL)
+  {
+    ErrorReturn(NULL, (ERROR_NOMEMORY, "MRIresample(): can't allocate source volume matrix"));
+  }
+
+  dest_mat = MatrixAlloc(4, 4, MATRIX_REAL);
+  if(dest_mat == NULL)
+  {
+    MatrixFree(&src_mat);
+    ErrorReturn(NULL, (ERROR_NOMEMORY, "MRIresample(): can't allocate destination volume matrix"));
+  }
+
+/*
+
+below: solve each row of src_mat * [midx;midy;midz;1] = centerr, centera, centers
+and for dest
+
+  src->x_r * src->xsize * src_center_x + src->y_r * src->ysize * src_center_y + src->z_r * src->zsize * src_center_z + s14 = src->c_r;
+  src->x_a * src->xsize * src_center_x + src->y_a * src->ysize * src_center_y + src->z_a * src->zsize * src_center_z + s24 = src->c_a;
+  src->x_s * src->xsize * src_center_x + src->y_s * src->ysize * src_center_y + src->z_s * src->zsize * src_center_z + s34 = src->c_s;
+
+  dest->x_r * dest->xsize * dest_center_x + dest->y_r * dest->ysize * dest_center_y + dest->z_r * dest->zsize * dest_center_z + d14 = dest->c_r;
+  dest->x_a * dest->xsize * dest_center_x + dest->y_a * dest->ysize * dest_center_y + dest->z_a * dest->zsize * dest_center_z + d24 = dest->c_a;
+  dest->x_s * dest->xsize * dest_center_x + dest->y_s * dest->ysize * dest_center_y + dest->z_s * dest->zsize * dest_center_z + d34 = dest->c_s;
+
+*/
+
+  src_center_x = (float)(src->width - 1) / 2.0;
+  src_center_y = (float)(src->height - 1) / 2.0;
+  src_center_z = (float)(src->depth - 1) / 2.0;
+
+  dest_center_x = (float)(template_vol->width - 1) / 2.0;
+  dest_center_y = (float)(template_vol->height - 1) / 2.0;
+  dest_center_z = (float)(template_vol->depth - 1) / 2.0;
+
+  s14 = src->c_r - (src->x_r * src->xsize * src_center_x + src->y_r * src->ysize * src_center_y + src->z_r * src->zsize * src_center_z);
+  s24 = src->c_a - (src->x_a * src->xsize * src_center_x + src->y_a * src->ysize * src_center_y + src->z_a * src->zsize * src_center_z);
+  s34 = src->c_s - (src->x_s * src->xsize * src_center_x + src->y_s * src->ysize * src_center_y + src->z_s * src->zsize * src_center_z);
+
+  d14 = template_vol->c_r - (template_vol->x_r * template_vol->xsize * dest_center_x + template_vol->y_r * template_vol->ysize * dest_center_y + template_vol->z_r * template_vol->zsize * dest_center_z);
+  d24 = template_vol->c_a - (template_vol->x_a * template_vol->xsize * dest_center_x + template_vol->y_a * template_vol->ysize * dest_center_y + template_vol->z_a * template_vol->zsize * dest_center_z);
+  d34 = template_vol->c_s - (template_vol->x_s * template_vol->xsize * dest_center_x + template_vol->y_s * template_vol->ysize * dest_center_y + template_vol->z_s * template_vol->zsize * dest_center_z);
+
+  stuff_four_by_four(src_mat, src->x_r * src->xsize, src->y_r * src->ysize, src->z_r * src->zsize, s14, 
+                              src->x_a * src->xsize, src->y_a * src->ysize, src->z_a * src->zsize, s24, 
+                              src->x_s * src->xsize, src->y_s * src->ysize, src->z_s * src->zsize, s34, 
+                                                0.0,                   0.0,                   0.0, 1.0);
+
+  stuff_four_by_four(dest_mat, template_vol->x_r * template_vol->xsize, template_vol->y_r * template_vol->ysize, template_vol->z_r * template_vol->zsize, d14, 
+                               template_vol->x_a * template_vol->xsize, template_vol->y_a * template_vol->ysize, template_vol->z_a * template_vol->zsize, d24, 
+                               template_vol->x_s * template_vol->xsize, template_vol->y_s * template_vol->ysize, template_vol->z_s * template_vol->zsize, d34, 
+                                                                   0.0,                                     0.0,                                     0.0, 1.0);
+
+  src_det = MatrixDeterminant(src_mat);
+  dest_det = MatrixDeterminant(dest_mat);
+
+  if(src_det == 0.0)
+  {
+    errno = 0;
+    ErrorPrintf(ERROR_BADPARM, "MRIresample(): source matrix has zero determinant; matrix is:");
+    MatrixPrint(stderr, src_mat);
+    MatrixFree(&src_mat);
+    MatrixFree(&dest_mat);
+    return(NULL);
+  }
+
+  if(dest_det == 0.0)
+  {
+    errno = 0;
+    ErrorPrintf(ERROR_BADPARM, "MRIresample(): destination matrix has zero determinant; matrix is:");
+    MatrixPrint(stderr, dest_mat);
+    MatrixFree(&src_mat);
+    MatrixFree(&dest_mat);
+    return(NULL);
+  }
+
+  src_inv = MatrixInverse(src_mat, NULL);
+
+  if(src_inv == NULL)
+  {
+    errno = 0;
+    ErrorPrintf(ERROR_BADPARM, "MRIresample(): error inverting matrix; determinant is %g, matrix is:", src_det);
+    MatrixPrint(stderr, src_mat);
+    MatrixFree(&src_mat);
+    MatrixFree(&dest_mat);
+    return(NULL);
+  }
+
+  m = MatrixMultiply(src_inv, dest_mat, NULL);
+  if(m == NULL)
+    return(NULL);
+
+  MatrixFree(&src_inv);
+  MatrixFree(&src_mat);
+  MatrixFree(&dest_mat);
+
+  printf("MRIresample() matrix is:\n");
+  MatrixPrint(stdout, m);
+  return(m) ;
+
+} /* end MRIreslice() */
 
 MRI *MRIresample(MRI *src, MRI *template_vol, int resample_type)
 {
@@ -7167,6 +7308,10 @@ and for dest
         sj = (int)floor(sj_f);
         sk = (int)floor(sk_f);
 
+        if (si == 147 && sj == 91 && sk == 86)
+          DiagBreak() ;
+        if (di == 129 && dj == 164 && dk == 147)
+          DiagBreak() ;
         si_f = si_f - si;
         sj_f = sj_f - sj;
         sk_f = sk_f - sk;
@@ -7449,6 +7594,64 @@ and for dest
       }
     }
   }
+
+  {
+    MATRIX  *m_old_voxel_to_ras, *m_voxel_to_ras,
+            *m_old_ras_to_voxel, *v_ras, *v_vox, *m_new_ras_to_voxel, *v_vox2 ;
+
+    m_old_voxel_to_ras = MRIgetVoxelToRasXform(src) ;
+
+    m_voxel_to_ras = MatrixMultiply(m_old_voxel_to_ras, m, NULL) ;
+    dest->x_r = *MATRIX_RELT(m_voxel_to_ras,1,1)/dest->xsize;
+    dest->x_a = *MATRIX_RELT(m_voxel_to_ras,2,1)/dest->xsize;
+    dest->x_s = *MATRIX_RELT(m_voxel_to_ras,3,1)/dest->xsize;
+
+    dest->y_r = *MATRIX_RELT(m_voxel_to_ras,1,2)/dest->ysize;
+    dest->y_a = *MATRIX_RELT(m_voxel_to_ras,2,2)/dest->ysize;
+    dest->y_s = *MATRIX_RELT(m_voxel_to_ras,3,2)/dest->ysize;
+
+    dest->z_r = *MATRIX_RELT(m_voxel_to_ras,1,3)/dest->zsize;
+    dest->z_a = *MATRIX_RELT(m_voxel_to_ras,2,3)/dest->zsize;
+    dest->z_s = *MATRIX_RELT(m_voxel_to_ras,3,3)/dest->zsize;
+
+    /* compute the RAS coordinates of the center of the dest. image
+       and put them in c_r, c_a, and c_s.
+    */
+    v_vox = VectorAlloc(4, MATRIX_REAL) ;
+
+    /* voxel coords of center of dest image */
+    VECTOR_ELT(v_vox,4) = 1.0 ;
+    VECTOR_ELT(v_vox,1) = (dest->width-1)/2.0 ;
+    VECTOR_ELT(v_vox,2) = (dest->height-1)/2.0 ;
+    VECTOR_ELT(v_vox,3) = (dest->depth-1)/2.0 ;
+
+    v_vox2 = MatrixMultiply(m, v_vox, NULL) ; /* voxel coords in source image */
+    v_ras = MatrixMultiply(m_old_voxel_to_ras, v_vox2, NULL) ; /* ras cntr of dest */
+
+    dest->c_r = VECTOR_ELT(v_ras, 1);
+    dest->c_a = VECTOR_ELT(v_ras, 2);
+    dest->c_s = VECTOR_ELT(v_ras, 3);
+    dest->ras_good_flag = 1 ;
+
+    if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
+    {
+      m_new_ras_to_voxel = MRIgetRasToVoxelXform(dest) ;
+      m_old_ras_to_voxel = MRIgetRasToVoxelXform(src) ;
+      V3_X(v_ras) = V3_Y(v_ras) = V3_Z(v_ras) = 0.0 ;
+      MatrixMultiply(m_old_ras_to_voxel, v_ras, v_vox) ;
+      printf("old RAS (0,0,0) -> (%2.0f, %2.0f, %2.0f)\n",
+             VECTOR_ELT(v_vox,1), VECTOR_ELT(v_vox,2), VECTOR_ELT(v_vox,3)) ;
+      MatrixMultiply(m_new_ras_to_voxel, v_ras, v_vox) ;
+      printf("new RAS (0,0,0) -> (%2.0f, %2.0f, %2.0f)\n",
+             VECTOR_ELT(v_vox,1), VECTOR_ELT(v_vox,2), VECTOR_ELT(v_vox,3)) ;
+      MatrixFree(&m_new_ras_to_voxel) ; MatrixFree(&m_old_ras_to_voxel) ;
+    }
+
+
+    MatrixFree(&v_vox) ; MatrixFree(&v_vox2) ; MatrixFree(&v_ras) ;
+    MatrixFree(&m_voxel_to_ras) ; MatrixFree(&m_old_voxel_to_ras) ;
+  }
+
 
   MatrixFree(&dp);
   MatrixFree(&sp);
