@@ -4,8 +4,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2004/10/28 15:33:28 $
-// Revision       : $Revision: 1.304 $
+// Revision Date  : $Date: 2004/11/04 16:01:33 $
+// Revision       : $Revision: 1.305 $
 //////////////////////////////////////////////////////////////////
 #include <stdio.h>
 #include <string.h>
@@ -6313,6 +6313,8 @@ MRIScomputeTriangleProperties(MRI_SURFACE *mris)
     face = &mris->faces[fno] ;
     if (face->ripflag)
       continue ;
+		if (fno == Gx)
+			DiagBreak() ;
     v0 = &mris->vertices[face->v[0]] ;
     v1 = &mris->vertices[face->v[1]] ;
     v2 = &mris->vertices[face->v[2]] ;
@@ -6368,7 +6370,11 @@ MRIScomputeTriangleProperties(MRI_SURFACE *mris)
       continue ;
     v->area = 0.0 ;
     for (fno = 0 ; fno < v->num ; fno++)
-      v->area += mris->faces[v->f[fno]].area ;
+		{
+			face = &mris->faces[v->f[fno]] ;
+			if (face->ripflag == 0)
+				v->area += face->area ;
+		}
     v->area /= 2.0 ;
   }
 
@@ -9892,8 +9898,6 @@ MRIScomputeSecondFundamentalForm(MRI_SURFACE *mris)
     if (vertex->ripflag)
       continue ;
 
-    if (vno == 142915)
-      DiagBreak() ;
     VECTOR_LOAD(v_n, vertex->nx, vertex->ny, vertex->nz) ;
     VECTOR_LOAD(v_e1, vertex->e1x, vertex->e1y, vertex->e1z) ;
     VECTOR_LOAD(v_e2, vertex->e2x, vertex->e2y, vertex->e2z) ;
@@ -9915,7 +9919,7 @@ MRIScomputeSecondFundamentalForm(MRI_SURFACE *mris)
       if (vnb->ripflag)
         continue ;
       /* 
-	 calculate the projection of this vertex onto the local tangent plane 
+				 calculate the projection of this vertex onto the local tangent plane 
       */
       VECTOR_LOAD(v_yi, vnb->x-vertex->x, vnb->y-vertex->y,vnb->z-vertex->z);
       ui = V3_DOT(v_yi, v_e1) ; vi = V3_DOT(v_yi, v_e2) ;
