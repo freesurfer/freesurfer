@@ -1,11 +1,12 @@
 #!/bin/csh -f 
 
-set VERSION = '$Id: ghostdet,v 1.2 2004/04/28 03:49:50 greve Exp $';
+set VERSION = '$Id: ghostdet,v 1.3 2004/05/06 18:33:42 greve Exp $';
 set inputargs = ($argv);
 
 set instem   = ();
 set maskstem = ();
 set outdir   = ();
+set outmaskstem = ();
 set sigstem  = ();
 set betastem = ();
 set rvarstem = ();
@@ -15,6 +16,7 @@ set maskthresh = 0.1;
 set allowoverlap = 0;
 set pedim = 2; # coldim, ie, row-to-row
 set synth = 0;
+set inmgh = 0;
 set monly = 0;
 
 set PrintHelp = 0;
@@ -65,7 +67,9 @@ rm -f $MLF
   #---------------------------------------------#
 tee -a > /dev/null $MLF  <<EOF
 instem   = '$instem';
+inmgh    = $inmgh;
 maskstem = '$maskstem';
+outmaskstem = '$outmaskstem';
 sigstem  = '$sigstem';
 betastem = '$betastem';
 rvarstem = '$rvarstem';
@@ -77,11 +81,27 @@ pedim        = $pedim;
 synth        = $synth;
 
 fprintf('Loading %s\n',instem);
-[f mristruct] = fast_ldbslice(instem);
-if(isempty(f))
-  fprintf('ERROR: cannot find %s\n',instem);
-  return;
+if(~inmgh)
+  [f mristruct] = fast_ldbslice(instem);
+  if(isempty(f))
+    fprintf('ERROR: cannot load %s\n',instem);
+    return;
+  end
+else
+  [f M mr_params Mdc] = load_mgh(instem);
+  if(isempty(f))
+    fprintf('ERROR: cannot load %s\n',instem);
+    return;
+  end
+  f = permute(f,[2 1 3 4]);
+  [nr nc ns nf] = size(f);
+  mristruct.voldim = [nr nc ns];
+  mristruct.nframes = nf;
+  mristruct.volres = sqrt(sum(M(1:3,1:3).^2));
+  mristruct.T = M;
 end
+
+
 [nr nc ns nf] = size(f);
 nv = nr*nc*ns;
 fmn = mean(f,4);
@@ -100,58 +120,82 @@ else
   brain = fmn > maskthresh*fmnglobal;
 end
 indbrain = find(brain);
-nbrain = length(indbrain);
 
+% Compute corresponding voxels in the ghost
+indghost = indbrain2ghost(size(brain),indbrain,pedim);
+
+% Remove voxels in ghost that are 0 (equiv: keep voxels 
+% that are non-zero).
+indgnz = find(fmn(indghost) > eps);
+indghost = indghost(indgnz);
+
+% Remap the remaining ghost voxels back to the brain. 
+% This may remove some voxels from the inside of the
+% brain corresponding to the edge of the volume where
+% the ghost may be zero.
+indbrain = indbrain2ghost(size(brain),indghost,pedim);
+
+% Now remake the actual masks
+brain = zeros(nr, nc, ns);
+brain(indbrain) = 1;
+ghost = zeros(nr, nc, ns);
+ghost(indghost) = 1;
+
+nbrain = length(indbrain);
 fprintf('nbrain = %d (%g%%)\n',nbrain,100*nbrain/nv);
 
-ghost = fast_ghostmask(brain);
-%indghost = find(ghost);
+% Voxels that ghost from brain to nonbrain
+indbraintoair = find(brain & ~ghost);
+nbraintoair = length(indbraintoair);
 
-% Find voxels in the brain that are not in the ghost
-if(allowoverlap) indbrainnotghost = find(brain);
-else             indbrainnotghost = find(brain & ~ghost);
-end
-[rbrain cbrain sbrain] = ind2sub(size(brain),indbrainnotghost);
+% Voxels that ghost from nonbrain to brain
+indairtobrain = find(~brain & ghost);
 
-% For book keeping, only count the ghost voxels that are
-% not zero. This should be done better.
-indbrainnotghost2 = find(brain & ~ghost & ~fzmask);
-nbrainnotghost = length(indbrainnotghost2);
-fprintf('nbrainnotghost = %d\n',nbrainnotghost);
+% Voxels that map from brain to brain
+indbraintobrain = find(brain & ghost);
 
-% Compute the corresponding locations in the ghost
-if(pedim==2)
-  % Phase encode is in column direction, ie, from row-to-row
-  rghost = rbrain+round(nr/2);
-  indtmp = find(rghost>nr);
-  rghost(indtmp) = rghost(indtmp) - nr;
-  cghost = cbrain;
-else
-  % Phase encode is in row direction, ie, from col-to-col
-  cghost = cbrain+round(nc/2);
-  indtmp = find(cghost>nc);
-  cghost(indtmp) = cghost(indtmp) - nc;
-  rghost = rbrain;
-end
-indghostnotbrain = sub2ind(size(brain),rghost,cghost,sbrain);
+% Voxels that are in neither brain nor ghost
+indnothing = find(~brain & ~ghost);
+
+% Reshape to nframes by nvoxels
+f = fast_vol2mat(f);
+
+% Compute ghost intensity suppression based on only those 
+% voxels that map from brain to air
+brainmean = mean(reshape1d(f(:,indbraintoair)));
+ghostmean = mean(reshape1d(f(:,indairtobrain)));
+nothingmean = mean(reshape1d(f(:,indnothing)));
+gsr = brainmean/ghostmean;% Ghost suppression ratio
+nsr = brainmean/nothingmean;% Nothing suppression ratio
+fprintf('mean: brain = %g, ghost = %g, GSR = %g, NSR = %g\n',...
+    brainmean,ghostmean,gsr,nsr);
 
 % Use ghost voxel waveforms to predict the waveform in the brain,
 % use quadradic (2) detrending. Bigger betas are worse.
-f = reshape(f,[nv nf])'; %'
-y = f(:,indbrainnotghost);
-x = f(:,indghostnotbrain);
+y = f(:,indbrain);
+x = f(:,indghost);
 if(synth)
   fprintf('Synthsizing raw data\n');
   x = randn(size(x));
   y = randn(size(y));
 end
+
+fprintf('Performing estimation\n');
 [beta rvar t tsig] = fast_vvglm(y,x,2);
+
+% Put the sig values into a volume. Make the voxels
+% that map from brain-to-air pos. Those that map
+% from brain-to-brain negative.
+tsigvol = zeros(nr,nc,ns);
+tsigvol(indbrain) = -log10(tsig);
+tsigvol(indbraintobrain) = -tsigvol(indbraintobrain);
 
 if(~isempty(gprfile))
   % Treat like finding false positives, 
-  %   the "ghost" positive rate (GPR)
-  ind = find(abs(tsig) ~= 1);
-  [pdf alpha nxhist gpr] = ComputePDF(tsig(ind),.001,1,.001);
+  %  the "ghost" positive rate (GPR)
+  % Only use voxels that map from brain to air
+  tsigtmp = 10.^(-abs(tsigvol(indbraintoair)));
+  [pdf alpha nxhist gpr] = ComputePDF(tsigtmp,.001,1,.001);
   fp = fopen(gprfile,'w');
   if(fp == -1)
     fpritnf('ERROR: could not open %s\n',gprfile);
@@ -161,36 +205,41 @@ if(~isempty(gprfile))
   fclose(fp);
 end
 
+% Compute the GPR for a single point along the curve
+% to save in the summary file
 pthresh = .001;
-nover = length(find(abs(tsig) < pthresh));
-pover = nover/nbrainnotghost;
+nover = length(find(tsigvol(indbraintoair) > -log10(pthresh)));
+pover = nover/nbraintoair;
 pctover = 100*pover;
-fprintf('pthresh = %g, nover = %d (%g%%)\n',...
-    pthresh,nover,pctover);
+gprthresh = pover/pthresh;
+gprsig = 1-binomialcdf(nover,nbraintoair,pthresh);
 
-% Compute average ghost intensity suppression
-brainmean = mean(reshape1d(y));
-ghostmean = mean(reshape1d(x));
-fprintf('mean: brain = %g, ghost = %g, brain/ghost = %g\n',...
-    brainmean,ghostmean,brainmean/ghostmean);
+fprintf('pthresh = %g, nover = %d (%g%%), gpr = %g, sig=%g\n',...
+    pthresh,nover,pctover,gprthresh,gprsig);
 
 if(~isempty(betastem))
   betavol = zeros(nr,nc,ns);
-  betavol(indbrainnotghost) = beta;
+  betavol(indbrain) = beta;
   fast_svbslice(betavol,betastem,-1,'',mristruct);
 end
 
 if(~isempty(sigstem))
-  tsigvol = zeros(nr,nc,ns);
-  tsigvol(indbrainnotghost) = -log10(tsig); % pos for brain
-  %tsigvol(indghostnotbrain) = +log10(tsig); % neg for ghost
   fast_svbslice(tsigvol,sigstem,-1,'',mristruct);
 end
 
 if(~isempty(rvarstem))
   rvarvol = zeros(nr,nc,ns);
-  rvarvol(indbrainnotghost) = rvar;
+  rvarvol(indbrain) = rvar;
   fast_svbslice(rvarvol,rvarstem,-1,'',mristruct);
+end
+
+if(~isempty(outmaskstem))
+  outmask = zeros(size(brain));
+  outmask(indbraintoair) = 1;
+  outmask(indairtobrain) = 2;
+  indbrainandghost = find(brain & ghost);
+  outmask(indbrainandghost) = 3;
+  fast_svbslice(outmask,outmaskstem,-1,'',mristruct);
 end
 
 if(~isempty(sumfile))
@@ -202,7 +251,9 @@ if(~isempty(sumfile))
   fprintf(fp,'date           %s\n',date);
   fprintf(fp,'pwd            %s\n',pwd);
   fprintf(fp,'instem         %s\n',instem);
+  fprintf(fp,'inmgh          %d\n',inmgh);
   fprintf(fp,'maskstem       %s\n',maskstem);
+  fprintf(fp,'outmaskstem    %s\n',outmaskstem);
   fprintf(fp,'pedim          %d\n',pedim);
   fprintf(fp,'allowoverlap   %d\n',allowoverlap);
   fprintf(fp,'synth          %d\n',synth);
@@ -213,15 +264,17 @@ if(~isempty(sumfile))
   fprintf(fp,'maskthresh     %g\n',maskthresh);
   fprintf(fp,'nbrain         %d\n',nbrain);
   fprintf(fp,'pctbrain       %g\n',100*nbrain/nv);
-  fprintf(fp,'nbrainnotghost %d\n',nbrainnotghost);
+  fprintf(fp,'nbraintoair    %d\n',nbraintoair);
   fprintf(fp,'brainmean      %g\n',brainmean);
   fprintf(fp,'ghostmean      %g\n',ghostmean);
-  fprintf(fp,'rbrainghost    %g\n',brainmean/ghostmean);
   fprintf(fp,'pthresh        %g\n',pthresh);
   fprintf(fp,'pover          %g\n',pover);
-  fprintf(fp,'gpr            %g\n',pover/pthresh);
   fprintf(fp,'pctover        %g\n',pctover);
   fprintf(fp,'nover          %d\n',nover);
+  fprintf(fp,'gpr            %g\n',gprthresh);
+  fprintf(fp,'gsr            %g\n',gsr);
+  fprintf(fp,'nsr            %g\n',nsr);
+  fprintf(fp,'gprsig         %g\n',-log10(gprsig));
   %fprintf(fp,'\n',);
   fclose(fp);
 
@@ -260,12 +313,20 @@ while( $#argv != 0 )
     case "--i":
       if ( $#argv == 0) goto arg1err;
       set instem = $argv[1]; shift;
+      breaksw
 
+    case "--imgh":
+      set inmgh = 1;
       breaksw
 
     case "--m":
       if ( $#argv == 0) goto arg1err;
       set maskstem = $argv[1]; shift;
+      breaksw
+
+    case "--om":
+      if ( $#argv == 0) goto arg1err;
+      set outmaskstem = $argv[1]; shift;
       breaksw
 
     case "--mthresh":
@@ -296,6 +357,7 @@ while( $#argv != 0 )
     case "--o":
       if ( $#argv == 0) goto arg1err;
       set outdir = $argv[1]; shift;
+      set outmaskstem  = $outdir/mask
       set sigstem  = $outdir/sig
       set betastem = $outdir/beta
       set rvarstem = $outdir/rvar
@@ -399,7 +461,9 @@ usage_exit:
   echo "USAGE: ghostdet"
   echo ""
   echo "  --i instem "
+  echo "  --imgh : load input as mgh file"
   echo "  --m maskstem"
+  echo "  --om outmaskstem"
   echo "  --mthresh maskthresh"
   echo "  --p sigstem "
   echo "  --b betastem "
