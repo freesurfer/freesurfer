@@ -18163,7 +18163,7 @@ int main(int argc, char *argv[])   /* new main */
   /* end rkt */
   
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: tksurfer.c,v 1.40 2003/04/16 21:11:56 kteich Exp $");
+  nargs = handle_version_option (argc, argv, "$Id: tksurfer.c,v 1.41 2003/05/12 17:31:15 kteich Exp $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -23379,7 +23379,7 @@ int fbnd_new_line_from_marked_vertices ()
   num_path = 0;
   num_checked = 0;
   
-  printf ("surfer: making line");
+  printf ("surfer: making line (ctrl-c to cancel)");
   cncl_start_listening ();
   for (marked_index = 0; marked_index < nmarked-1; marked_index++)
     {
