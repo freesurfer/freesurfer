@@ -577,7 +577,7 @@ MRISfastRead(char *fname)
   else 
   {
     if (MRISreadBinaryCurvature(mris, fname) != NO_ERROR)
-      return(NULL) ;
+      fprintf(stderr, "ignoring curvature file...\n") ; /*return(NULL) ;*/
 #if 0
     if (mrisReadBinaryAreas(mris, fname) != NO_ERROR)
       return(NULL) ;
@@ -1773,6 +1773,52 @@ mrisReadBinaryAreas(MRI_SURFACE *mris, char *mris_fname)
 
         Description
 ------------------------------------------------------*/
+int
+MRISwriteArea(MRI_SURFACE *mris, char *sname)
+{
+  int   k;
+  FILE  *fp;
+  char  *cp, fname[100], path[100] ;
+
+  if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
+    fprintf(stderr, "writing area file...") ;
+
+  cp = strchr(sname, '/') ;
+  if (!cp)                 /* no path - use same one as mris was read from */
+  {
+    FileNamePath(mris->fname, path) ;
+    sprintf(fname, "%s/%s", path, sname) ;
+  }
+  else   
+    strcpy(fname, sname) ;  /* path specified explcitly */
+
+  /*  mris->orig_area = 0.0f ;*/
+  fp = fopen(fname,"wb");
+  if (fp==NULL) 
+    ErrorReturn(ERROR_BADPARM, 
+              (ERROR_BADPARM,"mrisWriteBinaryAreas: no area file %s\n",fname));
+  fwrite3(mris->nvertices,fp);
+  fwrite3(mris->nfaces,fp);
+
+  for (k=0;k<mris->nvertices;k++)
+    fwriteFloat(mris->vertices[k].origarea, fp);
+  fclose(fp);
+
+  /* hack to correct for overestimation of area in compute_normals */
+#if 0
+  mris->orig_area /= 2; 
+  if (Gdiag & DIAG_SHOW)
+    fprintf(stderr, "total area = %2.0f.\n", mris->orig_area) ;
+#endif
+  return(NO_ERROR) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
 #if 0
 static int
 mrisReadFieldsign(MRI_SURFACE *mris, char *mris_fname)
@@ -2459,11 +2505,11 @@ MRISremoveNegativeVertices(MRI_SURFACE *mris, INTEGRATION_PARMS *parms,
 
     sprintf(fname, "%s.%s.out", 
             mris->hemisphere == RIGHT_HEMISPHERE ? "rh":"lh",parms->base_name);
-  }
-  if (Gdiag & DIAG_WRITE)
-  {
-    parms->fp = fopen(fname, "w") ;
-    mrisLogIntegrationParms(parms->fp, mris, parms) ;
+    if (Gdiag & DIAG_WRITE)
+    {
+      parms->fp = fopen(fname, "w") ;
+      mrisLogIntegrationParms(parms->fp, mris, parms) ;
+    }
   }
   if (Gdiag & DIAG_SHOW)
     mrisLogIntegrationParms(stderr, mris, parms) ;
@@ -3033,17 +3079,17 @@ MRISunfoldOnSphere(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int max_passes)
       if (nbrs[i])
         fprintf(stderr, "%d: %d | ", i, nbrs[i]) ;
     fprintf(stderr, "\n") ;
-  }
-  if (Gdiag & DIAG_WRITE)
-  {
-    sprintf(fname, "%s.out", parms->base_name) ;
-    if (!parms->start_t)
-      parms->fp = fopen(fname, "w") ;
-    mrisLogIntegrationParms(parms->fp, mris,parms) ;
-    for (i = mris->nsize+1 ; i <= parms->nbhd_size ; i++)
-      if (nbrs[i])
-        fprintf(parms->fp, "%d: %d | ", i, nbrs[i]) ;
-    fprintf(parms->fp, "\n") ;
+    if (Gdiag & DIAG_WRITE)
+    {
+      sprintf(fname, "%s.out", parms->base_name) ;
+      if (!parms->start_t)
+        parms->fp = fopen(fname, "w") ;
+      mrisLogIntegrationParms(parms->fp, mris,parms) ;
+      for (i = mris->nsize+1 ; i <= parms->nbhd_size ; i++)
+        if (nbrs[i])
+          fprintf(parms->fp, "%d: %d | ", i, nbrs[i]) ;
+      fprintf(parms->fp, "\n") ;
+    }
   }
   if (Gdiag & DIAG_SHOW)
     mrisLogIntegrationParms(stderr, mris, parms) ;
@@ -4912,13 +4958,21 @@ MRISscaleBrain(MRI_SURFACE *mris_src, MRI_SURFACE *mris_dst, float scale)
         Description
 ------------------------------------------------------*/
 int
-MRISwriteCurvature(MRI_SURFACE *mris, char *fname)
+MRISwriteCurvature(MRI_SURFACE *mris, char *sname)
 {
   int    k,i ;
   float  curv;
-  /*  char   fname[100], fpref[100], hemi[20], *cp ;*/
+  char   fname[100], *cp, path[100] ;
   FILE   *fp;
   
+  cp = strchr(sname, '/') ;
+  if (!cp)                 /* no path - use same one as mris was read from */
+  {
+    FileNamePath(mris->fname, path) ;
+    sprintf(fname, "%s/%s", path, sname) ;
+  }
+  else   
+    strcpy(fname, sname) ;  /* path specified explcitly */
   fp = fopen(fname,"wb");
   if (fp==NULL) 
     ErrorReturn(ERROR_NOFILE, 
@@ -7001,9 +7055,11 @@ MRISinflateBrain(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
   niterations = parms->niterations ;
   MRISstoreMetricProperties(mris) ;
   rms_height = MRISrmsTPHeight(mris) ;
+#if 0
   if (parms->scale > 0)
     desired_rms_height = parms->scale * rms_height ;
   else
+#endif
     desired_rms_height = parms->desired_rms_height ;
   fprintf(stderr, "inflating to desired rms height = %2.3f\n", 
           desired_rms_height);
@@ -10066,7 +10122,6 @@ MRISuseNegCurvature(MRI_SURFACE *mris)
   mris->min_curv = 0 ; mris->max_curv = 1 ;
   return(NO_ERROR) ;
 }
-
 /*-----------------------------------------------------
         Parameters:
 
@@ -10084,3 +10139,51 @@ MRISworldToTalairachVoxel(MRI_SURFACE *mris, MRI *mri, Real xw, Real yw,
   MRIworldToVoxel(mri, xt, yt, zt, pxv, pyv, pzv) ;
   return(NO_ERROR) ;
 }
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
+int
+MRISaverageVertexPositions(MRI_SURFACE *mris, int navgs)
+{
+  int    i, vno, vnb, *pnb, vnum ;
+  float  x, y, z, num ;
+  VERTEX *v, *vn ;
+
+  for (i = 0 ; i < navgs ; i++)
+  {
+    for (vno = 0 ; vno < mris->nvertices ; vno++)
+    {
+      v = &mris->vertices[vno] ;
+      if (v->ripflag)
+        continue ;
+      x = v->x ; y = v->y ; z = v->z ;
+      pnb = v->v ;
+      vnum = v->vnum ;
+      for (num = 0.0f, vnb = 0 ; vnb < vnum ; vnb++)
+      {
+        vn = &mris->vertices[*pnb++] ;    /* neighboring vertex pointer */
+        if (vn->ripflag)
+          continue ;
+        num++ ;
+        x += vn->x ; y += vn->y ; z += vn->z ;
+      }
+      num++ ;   /* account for central vertex */
+      v->tdx = x / num ;
+      v->tdy = y / num ;
+      v->tdz = z / num ;
+    }
+    for (vno = 0 ; vno < mris->nvertices ; vno++)
+    {
+      v = &mris->vertices[vno] ;
+      if (v->ripflag)
+        continue ;
+      v->x = v->tdx ; v->y = v->tdy ; v->z = v->tdz ;
+    }
+  }
+  return(NO_ERROR) ;
+}
+
