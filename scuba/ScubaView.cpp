@@ -1835,6 +1835,9 @@ ScubaView::DoMouseMoved( int iWindow[2],
 	  layer.RedisplayPosted();
 	}
       }
+      catch(runtime_error e) {
+	throw( e );
+      }
       catch(...) {
 	DebugOutput( << "Couldn't find layer " << layerID );
       }
@@ -1932,6 +1935,9 @@ ScubaView::DoMouseUp( int iWindow[2],
 	  layer.RedisplayPosted();
 	}
       }
+      catch(runtime_error e) {
+	throw( e );
+      }
       catch(...) {
 	DebugOutput( << "Couldn't find layer " << layerID );
       }
@@ -2019,7 +2025,7 @@ ScubaView::DoMouseDown( int iWindow[2],
 	}
       }
       catch(runtime_error e) {
-	DebugOutput( << "Error from layer " << layerID << ": " << e.what() );
+	throw( e );
       }
       catch(...) {
 	DebugOutput( << "Couldn't find layer " << layerID );
@@ -2141,6 +2147,9 @@ ScubaView::DoKeyDown( int iWindow[2],
 	RequestRedisplay();
 	layer.RedisplayPosted();
       }
+    }
+    catch(runtime_error e) {
+      throw( e );
     }
     catch(...) {
       DebugOutput( << "Couldn't find layer " << layerID );

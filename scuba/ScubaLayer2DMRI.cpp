@@ -1034,6 +1034,12 @@ ScubaLayer2DMRI::DoListenToTclCommand ( char* isCommand, int iArgc, char** iasAr
       VolumeCollectionFlooder::Params params;
       SetFloodParams( tool, view.GetViewState(), params );
 
+      // Make sure we have a source volume.
+      if( tool.GetFloodSourceCollection() < 0 ) {
+	sResult = "Specify a fill source data collection.";
+	return error;
+      }
+
       // Make the right kind of flooder.
       VolumeCollectionFlooder* flooder = NULL;
       if( 0 == strcmp( iasArgv[7], "voxelEditingNew" ) ) {
@@ -1130,32 +1136,34 @@ ScubaLayer2DMRI::HandleTool ( float iRAS[3], ViewState& iViewState,
 	SetFloodParams( iTool, iViewState, params );
 
 	// Create and run the flood object.
-	VolumeCollectionFlooder* flooder = NULL;
 	if( ScubaToolState::voxelEditing == iTool.GetMode() ) {
 	  if( iInput.Button() == 2 || 
 	      (iInput.Key()[0] == 'f' && !iInput.IsControlKeyDown()) ) {
-	    flooder = new ScubaLayer2DMRIFloodVoxelEdit( iTool.GetNewValue() );
+	    ScubaLayer2DMRIFloodVoxelEdit flooder( iTool.GetNewValue() );
+	    flooder.Flood( *mVolume, iRAS, params );
 	  } else if( iInput.Button() == 3|| 
 	      (iInput.Key()[0] == 'f' && iInput.IsControlKeyDown()) ) {
-	    flooder = new ScubaLayer2DMRIFloodVoxelEdit(iTool.GetEraseValue());
+	    ScubaLayer2DMRIFloodVoxelEdit flooder(iTool.GetEraseValue());
+	    flooder.Flood( *mVolume, iRAS, params );
 	  }
 	} else if( ScubaToolState::roiEditing == iTool.GetMode() ) {
 	  if( iInput.Button() == 2|| 
 	      (iInput.Key()[0] == 'f' && !iInput.IsControlKeyDown()) ) {
-	    flooder = new ScubaLayer2DMRIFloodSelect( true );
+	    ScubaLayer2DMRIFloodSelect flooder( true );
+	    flooder.Flood( *mVolume, iRAS, params );
 	  } else if( iInput.Button() == 3|| 
 	      (iInput.Key()[0] == 'f' && iInput.IsControlKeyDown()) ) {
-	    flooder = new ScubaLayer2DMRIFloodSelect( false );
+	    ScubaLayer2DMRIFloodSelect flooder( false );
+	    flooder.Flood( *mVolume, iRAS, params );
 	  }
 	}
-	flooder->Flood( *mVolume, iRAS, params );
-	delete flooder;
-
+	  
 	RequestRedisplay();
       }      
       delete &loc;
     }
 
+    // Eyedropper the color and set the tool.
     if( iInput.IsShiftKeyDown() && iInput.IsControlKeyDown() &&
 	iInput.IsButtonDownEvent() && 2 == iInput.Button() ) {
 
@@ -1881,7 +1889,7 @@ ScubaLayer2DMRIFloodVoxelEdit::ScubaLayer2DMRIFloodVoxelEdit ( float iValue ) {
 
 void
 ScubaLayer2DMRIFloodVoxelEdit::DoBegin () {
-      
+
   // Create a task in the progress display manager.
   ProgressDisplayManager& manager =
     ProgressDisplayManager::GetManager();

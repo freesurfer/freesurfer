@@ -1718,7 +1718,6 @@ VolumeCollectionFlooder::DoBegin () {
 
 void 
 VolumeCollectionFlooder::DoEnd () {
-
 }
 
 bool
@@ -2051,8 +2050,6 @@ VolumeCollectionFlooder::Flood ( VolumeCollection& iVolume,
   mVolume = &iVolume;
   mParams = &iParams;
 
-  this->DoBegin();
-
   // Get the seed voxel.
   Point3<int> seedVoxel;
   iVolume.RASToMRIIndex( iRASSeed, seedVoxel.xyz() );
@@ -2138,7 +2135,7 @@ VolumeCollectionFlooder::Flood ( VolumeCollection& iVolume,
     } else {
       cerr << "Nothing was on the same plane! "
 	   << seedVoxel << ", " << adjacentVoxel << endl;
-      return;
+      throw runtime_error("Error on flood");
     }
 
     Point3<float> onPlaneRAS, oneUpRAS, oneDownRAS;
@@ -2164,11 +2161,13 @@ VolumeCollectionFlooder::Flood ( VolumeCollection& iVolume,
 	     << "\tPlane " << seedVoxel << ", " << onPlaneRAS << endl
 	     << "\tOne up " << oneUp << ", " << oneUpRAS << endl
 	     << "\tOne down " << oneDown << ", " << oneDownRAS << endl;
-	return;
+	throw runtime_error("Error on flood");
       }
     }
   }
 
+  // Start it up.
+  this->DoBegin();
 
   // Push the seed onto the list. 
   vector<CheckPair> checkPairs;

@@ -679,29 +679,24 @@ ScubaFrame::DoTimer() {
 void
 ScubaFrame::DoMouseMoved( int iWindow[2], InputState& iInput ) {
 
-  try {
-    int nRow, nCol;
+  int nRow, nCol;
+  
+  View* view = FindViewAtWindowLoc( iWindow, &nCol, &nRow );
+  if( NULL != view ) {
+    int viewCoords[2];
+    TranslateWindowToView( iWindow, nCol, nRow, viewCoords );
+    view->MouseMoved( viewCoords, iInput, mTool );
     
-    View* view = FindViewAtWindowLoc( iWindow, &nCol, &nRow );
-    if( NULL != view ) {
-      int viewCoords[2];
-      TranslateWindowToView( iWindow, nCol, nRow, viewCoords );
-      view->MouseMoved( viewCoords, iInput, mTool );
-
-      if( view->WantRedisplay() ) {
-	RequestRedisplay();
-	view->RedisplayPosted();
-      }
+    if( view->WantRedisplay() ) {
+      RequestRedisplay();
+      view->RedisplayPosted();
     }
-  }
-  catch(...) {
   }
 }
 
 void
 ScubaFrame::DoMouseUp( int iWindow[2], InputState& iInput ) {
 
-  try {
     int nRow, nCol;
     View* view = FindViewAtWindowLoc( iWindow, &nCol, &nRow );
     if( NULL != view ) {
@@ -714,15 +709,11 @@ ScubaFrame::DoMouseUp( int iWindow[2], InputState& iInput ) {
 	view->RedisplayPosted();
       }
     }
-  }
-  catch(...) {
-  } 
 }
 
 void
 ScubaFrame::DoMouseDown( int iWindow[2], InputState& iInput ) {
 
-  try {
     int nRow, nCol;
     View* view = FindViewAtWindowLoc( iWindow, &nCol, &nRow );
     if( NULL != view ) {
@@ -738,15 +729,11 @@ ScubaFrame::DoMouseDown( int iWindow[2], InputState& iInput ) {
       TranslateWindowToView( iWindow, nCol, nRow, viewCoords );
       view->MouseDown( viewCoords, iInput, mTool );
     }
-  }
-  catch(...) {
-  } 
 }
 
 void
 ScubaFrame::DoKeyDown( int iWindow[2], InputState& iInput ) {
 
-  try {
     View* view = GetViewAtColRow( mnSelectedViewCol, mnSelectedViewRow );
 
     int viewCoords[2];
@@ -759,15 +746,11 @@ ScubaFrame::DoKeyDown( int iWindow[2], InputState& iInput ) {
       RequestRedisplay();
       view->RedisplayPosted();
     }
-  }
-  catch(...) {
-  } 
 }
 
 void
 ScubaFrame::DoKeyUp( int iWindow[2], InputState& iInput ) {
 
-  try {
     View* view = GetViewAtColRow( mnSelectedViewCol, mnSelectedViewRow );
 
     int viewCoords[2];
@@ -780,9 +763,6 @@ ScubaFrame::DoKeyUp( int iWindow[2], InputState& iInput ) {
       RequestRedisplay();
       view->RedisplayPosted();
     }
-  }
-  catch(...) {
-  } 
 }
 
 void
@@ -1056,7 +1036,11 @@ ScubaFrame::CaptureToFile ( string ifn ) {
     _TIFFfree( lineBuffer );
   }
 
+  catch(runtime_error e) {
+    throw runtime_error( string("Error saving TIFF: ") + e.what() );
+  }
   catch(...) {
+    throw runtime_error( "Error saving TIFF: " );
   }
 
   if( NULL != pixelData ) 
