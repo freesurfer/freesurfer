@@ -13,7 +13,7 @@
 #include "mri.h"
 #include "macros.h"
 
-static char vcid[] = "$Id: mris_average_curvature.c,v 1.3 1998/07/02 22:56:37 fischl Exp $";
+static char vcid[] = "$Id: mris_average_curvature.c,v 1.4 2000/01/11 20:21:37 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -29,7 +29,7 @@ static int normalize_flag = 0 ;
 static int condition_no = 0 ;
 static int stat_flag = 0 ;
 static char *output_surf_name = NULL ;
-static float sigma = 0.0f ;
+static int navgs = 0 ;
 
 int
 main(int argc, char *argv[])
@@ -80,7 +80,9 @@ main(int argc, char *argv[])
     if (normalize_flag)
       MRISnormalizeCurvature(mris) ;
 #endif
+    MRISaverageCurvatures(mris, navgs) ;
     mrisp = MRIStoParameterization(mris, NULL, 1, 0) ;
+#if 0
     if (!FZERO(sigma))
     {
       MRI_SP  *mrisp_blur ;
@@ -93,6 +95,7 @@ main(int argc, char *argv[])
       MRISPfree(&mrisp) ;
       mrisp = mrisp_blur ;
     }
+#endif
     MRISPcombine(mrisp, mrisp_total, 0) ;
     MRISPfree(&mrisp) ;
     if (i < argc-2)
@@ -179,8 +182,8 @@ get_option(int argc, char *argv[])
   else switch (toupper(*option))
   {
   case 'A':
-    sigma = atof(argv[2]) ;
-    fprintf(stderr, "blurring thickness measures with sigma=%2.3f\n",sigma);
+    navgs = atoi(argv[2]) ;
+    fprintf(stderr, "blurring thickness for %d iterations\n",navgs);
     nargs = 1 ;
     break ;
   case 'O':
