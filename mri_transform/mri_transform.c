@@ -14,7 +14,7 @@
 #define LINEAR_CORONAL_RAS_TO_CORONAL_RAS       21
 //E/ should be in transform.h if it isn't already
 
-static char vcid[] = "$Id: mri_transform.c,v 1.3 2002/11/20 23:36:51 ebeth Exp $";
+static char vcid[] = "$Id: mri_transform.c,v 1.4 2003/02/06 21:35:19 tosa Exp $";
 
 //E/ For transformations: for case LINEAR_RAS_TO_RAS, we convert to
 //vox2vox with MRIrasXformToVoxelXform() in mri.c; for case
@@ -49,6 +49,9 @@ main(int argc, char *argv[])
   LTA         *lta ;
   MATRIX      *m, *m_total ;
   TRANSFORM   *transform ;
+
+  VECTOR *mine;
+  VECTOR *c;
 
   Progname = argv[0] ;
   ErrorInit(NULL, NULL, NULL) ;
@@ -124,7 +127,7 @@ main(int argc, char *argv[])
       m = MatrixCopy(lta->xforms[0].m_L, NULL) ;
       //E/ mri_rigid_register writes out m as src2trg
       
-      if (lta->type == LINEAR_RAS_TO_RAS || LINEAR_CORONAL_RAS_TO_CORONAL_RAS)
+      if (lta->type == LINEAR_RAS_TO_RAS || lta->type == LINEAR_CORONAL_RAS_TO_CORONAL_RAS)
 	/* convert it to a voxel transform */
       {
         ras_flag = 1 ;
@@ -155,6 +158,22 @@ main(int argc, char *argv[])
 	else
 	  //E/ how else could ras_flag be set? prev tx a R2R/CR2CR tx?
 	  exit(1);
+
+	//////////////////////////////////////////////////////////////
+	MatrixPrint(stdout, m_tmp);
+	c = VectorAlloc(4, MATRIX_REAL);
+	c->rptr[1][1] = (mri_in->width)/2.;
+	c->rptr[2][1] = (mri_in->height)/2.;
+	c->rptr[3][1] = (mri_in->depth)/2.;
+	c->rptr[4][1] = 1.;
+	mine = MatrixMultiply(m_tmp, c, NULL);
+	MatrixPrint(stdout, mine);
+	printf("voxel pos = %.2f, %.2f, %.2f for %.2f, %.2f, %.2f\n",
+	       mine->rptr[1][1], mine->rptr[2][1], mine->rptr[3][1],
+	       c->rptr[1][1], c->rptr[2][1], c->rptr[3][1]);
+	VectorFree(&mine);
+	/////////////////////////////////////////////////////////////
+
         MatrixFree(&m_total) ; m_total = m_tmp ;
       }
       LTAfree(&lta) ;
