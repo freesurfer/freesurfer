@@ -666,6 +666,17 @@ set tDlogSpecs(ImportParcellation) [list \
   -okCmd {LoadSegmentationVolume %s1 %s2; \
   SetDefaultLocation ImportParcellation_Volume %s1; \
   SetDefaultLocation ImportParcellation_ColorTable %s2} ]
+set tDlogSpecs(ImportParcellationFile) [list \
+  -title "Import Segmentation" \
+  -prompt1 "Load Volume File:" \
+  -note1 "The file containing the segmentation data" \
+  -default1 [list GetDefaultLocation ImportParcellation_File] \
+  -prompt2 "Load Color Table:" \
+  -note2 "The file containing the colors and ROI definitions" \
+  -default2 [list GetDefaultLocation ImportParcellation_ColorTable] \
+  -okCmd {LoadSegmentationVolume %s1 %s2; \
+  SetDefaultLocation ImportParcellation_Volume %s1; \
+  SetDefaultLocation ImportParcellation_ColorTable %s2} ]
 set tDlogSpecs(SaveParcellationAs) [list \
   -title "Save Segmenation As" \
   -prompt1 "Save COR Volume:" \
@@ -2103,6 +2114,10 @@ proc CreateMenuBar { ifwMenuBar } {
       { command \
       "Load Segmentation..." \
       {DoFileDlog ImportParcellation} } \
+      \
+      { command \
+      "Import Segmentation from File..." \
+      {DoFileDlog ImportParcellationFile} } \
       \
       { command \
       "Save Segmentation" \
