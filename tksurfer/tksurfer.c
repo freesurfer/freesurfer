@@ -9346,33 +9346,33 @@ sclv_smooth(int niter, int field)
   surface_compiled = 0 ;
   printf("surfer: sclv_smooth(%d,%s)\n",niter,sclv_field_names[field]);
   for (iter=0;iter<niter;iter++)
-    {
-      printf(".");fflush(stdout);
-      for (k=0;k<mris->nvertices;k++)
-	sclv_get_value( (&(mris->vertices[k])), 
-			field, &(mris->vertices[k].tdx));
-      for (k=0;k<mris->nvertices;k++)
 	{
-	  v = &mris->vertices[k];
-	  sum=v->tdx;
-	  if (k == Gdiag_no)
-	    DiagBreak() ;
-	  n = 0;
-	  for (m=0;m<v->vnum;m++)
+		printf(".");fflush(stdout);
+		for (k=0;k<mris->nvertices;k++)
+			sclv_get_value( (&(mris->vertices[k])), 
+											field, &(mris->vertices[k].tdx));
+		for (k=0;k<mris->nvertices;k++)
+		{
+			v = &mris->vertices[k];
+			sum=v->tdx;
+			if (k == Gdiag_no)
+				DiagBreak() ;
+			n = 1;
+			for (m=0;m<v->vnum;m++)
 	    {
 	      sum += mris->vertices[v->v[m]].tdx;
 	      n++;
 	    }
-	  average = 0;
-	  if( n != 0 ) 
-	    average = sum / (float)n;
-	  if (!finite(sum))
-	    DiagBreak() ;
-	  if (!finite(average))
-	    DiagBreak() ;
-	  sclv_set_value (v, field, average);
+			average = 0;
+			if( n != 0 ) 
+				average = sum / (float)n;
+			if (!finite(sum))
+				DiagBreak() ;
+			if (!finite(average))
+				DiagBreak() ;
+			sclv_set_value (v, field, average);
+		}
 	}
-    }
   printf("\n");PR;
   
   /* values have changed, need to recalc frequencies */
@@ -18153,7 +18153,7 @@ int main(int argc, char *argv[])   /* new main */
   /* end rkt */
   
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: tksurfer.c,v 1.67 2004/06/10 15:28:46 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: tksurfer.c,v 1.68 2004/06/10 17:49:53 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
