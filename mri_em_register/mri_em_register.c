@@ -6,8 +6,8 @@
 // 
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2004/04/05 14:58:14 $
-// Revision       : $Revision: 1.41 $
+// Revision Date  : $Date: 2004/04/06 15:35:41 $
+// Revision       : $Revision: 1.42 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -136,7 +136,7 @@ main(int argc, char *argv[])
   float        old_log_p, log_p ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_em_register.c,v 1.41 2004/04/05 14:58:14 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_em_register.c,v 1.42 2004/04/06 15:35:41 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -855,7 +855,7 @@ find_optimal_transform(MRI *mri, GCA *gca, GCA_SAMPLE *gcas, int nsamples,
   HISTOGRAM *h_mri, *h_smooth ;
 #endif
 
-  fprintf(stderr, "find_optimal_transform: nsampels %d, passno %d, spacing %d\n",
+  fprintf(stderr, "find_optimal_transform: nsamples %d, passno %d, spacing %d\n",
 					nsamples, passno, spacing);
 
 #define MIN_SEARCH_SCALE 0.1
