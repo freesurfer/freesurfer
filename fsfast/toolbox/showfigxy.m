@@ -1,64 +1,144 @@
-function showfigxy(event,hfig)
+function showfigxy(varargin)
 % Displays the last clicked point and current mouse point
-% in the current figure. To use, create the figure 
-% (eg, using plot or image), then, with that figure as 
-% the current figure, run showfigxy;
+% in the current figure. If there is an image in the window,
+% the value at the point is also printed out.
 %
-% $Id: showfigxy.m,v 1.1 2004/01/14 22:01:08 greve Exp $
+% To use, create the figure (eg, using plot or image), then, with that
+% figure as the current figure, run showfigxy;
+%
+% Run showfigxy('help') for key press commands or hit 'h'
+% when the cursor is in the figure to print help to terminal.
+%
+% To change the crosshair color, run 
+%    showfigxy('crosshaircolor','newcolor') 
+% where newcolor is a single letter color spec accepted by plot.
+%
+% Note: this will take over keyboard and mousing callbacks!
+%
+% $Id: showfigxy.m,v 1.2 2004/01/15 04:06:54 greve Exp $
 %
 
-if(nargin == 0)  event = 'init'; end
-if(nargin < 2)   hfig = gcf; end
+if(nargin == 0)  event = 'init'; 
+else             event = varargin{1};
+end
 
+if(strcmp(event,'help'))
+  printhelp;
+  return;
+end
+
+if(~strcmp(event,'init'))  hfig = gcf; end
+if(strcmp(event,'init') & nargin ~= 2)
+  hfig = gcf; 
+end
+
+%--------------------------------------------------------------%
 switch(event)
  
  case 'init'
+  set(hfig,'KeyPressFcn','showfigxy(''kbd'')');
   set(hfig,'WindowButtonDownFcn','showfigxy(''wbd'')');
   set(hfig,'WindowButtonMotionFcn','showfigxy(''wbm'')');
   ud = get(hfig,'UserData');
-  ud.curxytxt = uicontrol('Style', 'text','Position',  [1 1 200 20]);
-  ud.curxy = [0 0];
-  ud.mvxytxt = uicontrol('Style', 'text','Position',  [210 1 200 20]);
-  ud.mvxy = [0 0];
+  ud.curxytxt = uicontrol('Style', 'text','Position',  [1 1 250 20]);
+  ud.mvxytxt = uicontrol('Style', 'text','Position',  [260 1 250 20]);
+  ax = axis;
+  ud.curxy = [ax(1)/2 ax(2)/2];
+  ud.mvxy = [ax(1)/2 ax(2)/2];
   ud.hcursor1 = [];
   ud.hcursor2 = [];
+  ud.zoom  = 0;
+  ud.xzoom = 0;
+  ud.yzoom = 0;
+  ud.usecrosshair = 1;
+  ud.crosshaircolor = 'g';
+  ud = drawcrosshair(ud);
   set(hfig,'UserData',ud);
   
-  case 'wbd';
-   ud = get(hfig,'UserData');
-   xyz = get(gca,'CurrentPoint');
-   x = xyz(1,1);
-   y = xyz(1,2);  
-   ax = axis;
-   if(x < ax(1) | x > ax(2) | y < ax(3) | y > ax(4)) return; end
-   ud.curxy = [x y];
-   set(hfig,'UserData',ud);
-   setxystring(hfig,'cur');
-   %fprintf('x = %g, y = %g\n',x,y);
-   a = axis;
-   if(~isempty(ud.hcursor1) & ishandle(ud.hcursor1))
-     delete(ud.hcursor1);
-     delete(ud.hcursor2);
-   end
-   hold on;
-   ud.hcursor1 = plot([a(1) a(2)],[y y],'g-');
-   ud.hcursor2 = plot([x x],[a(3) a(4)],'g-');
-   hold off;
-   set(hfig,'UserData',ud);
-   
-   
-  case 'wbm';
-   ud = get(hfig,'UserData');
-   xyz = get(gca,'CurrentPoint');
-   x = xyz(1,1);
-   y = xyz(1,2);  
-   %ax = axis;
-   %if(x < ax(1) | x > ax(2) | y < ax(3) | y > ax(4)) return; end
-   ud.mvxy = [x y];
-   set(hfig,'UserData',ud);
-   setxystring(hfig,'mv');
-   %fprintf('x = %g, y = %g\n',x,y);
+ case 'crosshaircolor'
+  if(nargin == 2) 
+    ud = get(hfig,'UserData');
+    ud.crosshaircolor = varargin{2};
+    ud = drawcrosshair(ud); 
+    set(hfig,'UserData',ud);
+  end
+  
+ case 'wbd';
+  ud = get(hfig,'UserData');
+  xyz = get(gca,'CurrentPoint');
+  x = xyz(1,1);
+  y = xyz(1,2);  
+  ax = axis;
+  if(x < ax(1) | x > ax(2) | y < ax(3) | y > ax(4)) return; end
+  ud.curxy = [x y];
+  set(hfig,'UserData',ud);
+  setxystring(hfig,'cur');
+  %fprintf('x = %g, y = %g\n',x,y);
+  ud = drawcrosshair(ud);
+  set(hfig,'UserData',ud);
+  
+ case 'wbm';
+  ud = get(hfig,'UserData');
+  xyz = get(gca,'CurrentPoint');
+  x = xyz(1,1);
+  y = xyz(1,2);  
+  ax = axis;
+  if(x < ax(1) | x > ax(2) | y < ax(3) | y > ax(4)) return; end
+  ud.mvxy = [x y];
+  set(hfig,'UserData',ud);
+  setxystring(hfig,'mv');
+  %fprintf('x = %g, y = %g\n',x,y);
+  
+ case 'kbd';
 
+  ud = get(hfig,'UserData');
+  c = get(hfig,'CurrentCharacter'); 
+  %fprintf('c = %s (%d)\n',c,c);
+
+  switch(c)
+   
+   case 'c', 
+    ud.usecrosshair = ~ud.usecrosshair;
+    ud = drawcrosshair(ud);
+     
+   case 'd', 
+    db = get(hfig,'DoubleBuffer');
+    if(strcmp(db,'on'))
+      set(hfig,'DoubleBuffer','off');
+    else
+      set(hfig,'DoubleBuffer','on');
+    end     
+   
+   case 'h', 
+    printhelp;
+   
+   case 'x', 
+    ud.xzoom = ~ud.xzoom ;
+    if(ud.xzoom) zoom xon;
+    else         zoom xoff;
+    end
+   
+   case 'y', zoom;
+    ud.yzoom = ~ud.yzoom ;
+    if(ud.yzoom) zoom yon;
+    else         zoom yoff;
+    end
+   
+   case 'z', zoom;
+    ud.zoom = ~ud.zoom ;
+    if(ud.zoom)   
+      ud.xzoom = 1; 
+      ud.yzoom = 1; 
+      zoom on;
+    else
+      ud.xzoom = 0; 
+      ud.yzoom = 0; 
+      zoom off;
+    end
+  
+  end
+
+  set(hfig,'UserData',ud);
 end
 
 return;  
@@ -66,12 +146,80 @@ return;
 
 %---------------------------------------------------------%
 function setxystring(hfig,type)
+  img = isimage;
   ud = get(hfig,'UserData');
   if(strcmp(type,'cur'))
-    xystring = sprintf('x = %g, y = %g ',ud.curxy(1),ud.curxy(2));
-    set(ud.curxytxt,'string',xystring);
+    x = ud.curxy(1); 
+    y = ud.curxy(2);
+    htxt = ud.curxytxt;
   else
-    xystring = sprintf('x = %g, y = %g ',ud.mvxy(1),ud.mvxy(2));
-    set(ud.mvxytxt,'string',xystring);
+    x = ud.mvxy(1); 
+    y = ud.mvxy(2);
+    htxt = ud.mvxytxt;
   end
+
+  xystring = sprintf('x = %g, y = %g ',x,y);
+  if(~isempty(img))
+    v = img(round(y),round(x));
+    xystring = sprintf('%s, v = %g',xystring,v);
+  end
+
+  set(htxt,'string',xystring);
 return;  
+
+%---------------------------------------------------------%
+function img = isimage
+  % Image if the current axis has an image in it.
+  img = [];
+  
+  chlist = get(gca,'children');
+  nc = length(chlist);
+  for n = 1:nc
+    c = chlist(n);
+    s = get(c);
+    if(isfield(s,'CData')) 
+      img = s.CData; 
+      return; 
+    end
+  end
+
+return;
+
+%---------------------------------------------------------%
+function ud = drawcrosshair(ud)
+  if(ud.usecrosshair)
+    if(~isempty(ud.hcursor1) & ishandle(ud.hcursor1))
+      delete(ud.hcursor1);
+      delete(ud.hcursor2);
+    end
+    hold on;
+    a = axis;
+    x = ud.curxy(1);
+    y = ud.curxy(2);
+    ud.hcursor1 = plot([a(1) a(2)],[y y],ud.crosshaircolor);
+    ud.hcursor2 = plot([x x],[a(3) a(4)],ud.crosshaircolor);
+    hold off;
+  else
+    if(~isempty(ud.hcursor1) & ishandle(ud.hcursor1))
+      delete(ud.hcursor1);
+      delete(ud.hcursor2);
+    end
+  end
+   
+return;
+
+%---------------------------------------------------------%
+function printhelp
+  fprintf('\n');
+  help showfigxy;
+  fprintf('c - toggle crosshair\n');
+  fprintf('d - toggle double buffering\n');
+  fprintf('h - print help\n');
+  fprintf('x - toggle x zoom\n');
+  fprintf('y - toggle y zoom\n');
+  fprintf('z - toggle zoom\n');
+  fprintf('\n');
+
+return;
+
+
