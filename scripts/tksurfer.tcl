@@ -1,6 +1,6 @@
 #! /usr/bin/tixwish
 
-# $Id: tksurfer.tcl,v 1.54 2004/03/17 18:31:14 kteich Exp $
+# $Id: tksurfer.tcl,v 1.55 2004/03/18 17:46:43 kteich Exp $
 
 package require BLT;
 
@@ -155,6 +155,7 @@ set gaLinkedVars(currentvaluefield) 0
 set gaLinkedVars(falpha) 1.0
 set gaLinkedVars(fthresh) 0
 set gaLinkedVars(fmid) 0
+set gaLinkedVars(foffset) 0
 set gaLinkedVars(fthreshmax) 0
 set gaLinkedVars(fslope) 1.0
 set gaLinkedVars(fnumconditions) 0
@@ -195,7 +196,7 @@ set gaLinkedVars(colortablename) ""
 array set gaLinkedVarGroups {
     scene { light0 light1 light2 light3 offset }
     overlay { falpha colscale truncphaseflag invphaseflag revphaseflag 
-	complexvalflag foffset fthresh fmid fslope fmin fmax 
+	complexvalflag foffset fthresh fmid foffset fslope fmin fmax 
 	fnumtimepoints fnumconditions ftimepoint fcondition 
 	ignorezeroesinhistogramflag}
     curvature { cslope cmid cmin cmax forcegraycurvatureflag }
@@ -205,7 +206,7 @@ array set gaLinkedVarGroups {
 	colscalebarflag verticesflag currentvaluefield drawcursorflag }
     cvavg { cmid dipavg }
     mouseover { mouseoverflag }
-    all { light0 light1 light2 light3 offset colscale truncphaseflag invphaseflag revphaseflag complexvalflag ignorezeroesinhistogramflag currentvaluefield falpha  fthresh fmid fthreshmax fslope  fnumconditions fnumtimepoints ftimepoint fcondition fmin fmax cslope cmid cmin cmax forcegraycurvatureflag angle_cycles angle_offset sulcflag surfcolor vertexset overlayflag funcmin funcmax scalebarflag colscalebarflag verticesflag cmid dipavg curvflag mouseoverflag redrawlockflag drawlabelflag labelstyle timeresolution numprestimpoints colortablename }
+    all { light0 light1 light2 light3 offset colscale truncphaseflag invphaseflag revphaseflag complexvalflag ignorezeroesinhistogramflag currentvaluefield falpha  fthresh fmid foffset fthreshmax fslope  fnumconditions fnumtimepoints ftimepoint fcondition fmin fmax cslope cmid cmin cmax forcegraycurvatureflag angle_cycles angle_offset sulcflag surfcolor vertexset overlayflag funcmin funcmax scalebarflag colscalebarflag verticesflag cmid dipavg curvflag mouseoverflag redrawlockflag drawlabelflag labelstyle timeresolution numprestimpoints colortablename }
     redrawlock { redrawlockflag }
     graph { timeresolution numprestimpoints }
     label { colortablename drawlabelflag labelstyle }
@@ -970,7 +971,9 @@ proc DoConfigOverlayDisplayDlog {} {
 	set ewMid    $fwThresh.ewMid
 	set ewMax    $fwThresh.ewMax
 	set ewSlope  $fwThresh.ewSlope
-	set ewValue  $fwHisto.ewValue
+	set fwValueOffset $fwHisto.fwValueOffset
+	set ewValue  $fwValueOffset.ewValue
+	set ewOffset $fwValueOffset.ewOffset
 	set fwCopy   $fwHisto.fwCopy
 	set bwCopy   $fwCopy.bwCopy
 	set owTarget $fwCopy.owTarget
@@ -1024,10 +1027,18 @@ proc DoConfigOverlayDisplayDlog {} {
 	$ewMid.lwLabel config -fg blue
 	$ewMax.lwLabel config -fg green
 
+	frame $fwValueOffset
+
 	# this is the field that will show the current value of the
 	# graph.
 	tkm_MakeActiveLabel $ewValue "Current value: " gsHistoValue 20
 	set gsHistoValue "Move mouse over graph bar"
+
+	# The offset field.
+	tkm_MakeEntry $ewOffset "Offset" gaLinkedVars(foffset) 6 {}
+
+	pack $ewValue -side left -expand yes -fill x
+	pack $ewOffset -side left
 
 	# set initial values for the histogram.
 	SetMin $gbwHisto $gaLinkedVars(fthresh)
@@ -1065,7 +1076,7 @@ proc DoConfigOverlayDisplayDlog {} {
 	pack $lwHisto -side top
 	pack $gbwHisto -fill both -expand yes
 	pack $fwThresh -side top
-	pack $ewValue -side top -expand yes -fill x
+	pack $fwValueOffset -side top -expand yes -fill x
 	pack $fwCopy -side top  -expand yes -fill x
 
 	# buttons.
