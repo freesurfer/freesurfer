@@ -150,6 +150,8 @@ MRI   *GCAexpandLabelIntoWM(GCA *gca, MRI *mri_inputs, MRI *mri_src,
                             int target_label) ;
 MRI   *GCAexpandVentricle(GCA *gca, MRI *mri_inputs, MRI *mri_src,
                           MRI *mri_dst, LTA *lta, int target_label) ;
+MRI   *GCAexpandCortex(GCA *gca, MRI *mri_inputs, MRI *mri_src,
+                       MRI *mri_dst, LTA *lta) ;
 MRI   *GCAnormalizeSamples(MRI *mri_in, GCA *gca, GCA_SAMPLE *gcas, 
                            int nsamples, LTA *lta) ;
 float GCAlabelProbability(MRI *mri_src, GCA *gca, LTA *lta,
@@ -173,8 +175,12 @@ int GCArenormalizeIntensities(GCA *gca, int *labels, float *intensities,
                               int num) ;
 double  GCAlabelMean(GCA *gca, int label) ;
 int     GCAregularizeConditionalDensities(GCA *gca, float smooth) ;
+int     GCAmeanFilterConditionalDensities(GCA *gca, float navgs) ;
+int     GCArenormalizeToFlash(GCA *gca, char *tissue_parms_fname, MRI *mri) ;
 
 
 #define MIN_PRIOR  0.5
+
+extern int Ggca_x, Ggca_y, Ggca_z, Ggca_label ;
 
 #endif
