@@ -56,7 +56,7 @@ function rt = fast_fxcfg(DoWhat,thing)
 % fast_fxcfg_poly, fast_fxcfg_fir, fast_fxcfg_extreg, fast_fxcfg_gamma
 %
 %
-% $Id: fast_fxcfg.m,v 1.6 2003/08/07 06:57:33 greve Exp $
+% $Id: fast_fxcfg.m,v 1.7 2003/08/21 03:43:46 greve Exp $
 
 % Things to do:
 %   nregressorstot - total number of regressors
@@ -128,7 +128,7 @@ switch(DoWhat)
   end
   flacfg.nthfx = svnthfx;
   rt = nfixedreg;
-  
+ 
  case 'checkermid'
   % returns 1 if ok, 0 or [] otherwise
   if(isempty(flacfg)) pr_fla_needed(DoWhat); return; end

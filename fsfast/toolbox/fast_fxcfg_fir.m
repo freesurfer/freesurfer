@@ -20,7 +20,7 @@ function rt = fast_fxcfg_fir(DoWhat,thing)
 %  4. PSDMax
 %  5. BCW
 %
-% $Id: fast_fxcfg_fir.m,v 1.7 2003/08/04 01:43:23 greve Exp $
+% $Id: fast_fxcfg_fir.m,v 1.8 2003/08/21 03:41:30 greve Exp $
 
 rt = [];
 
@@ -60,7 +60,8 @@ switch(DoWhat)
   fprintf('ERROR: fir: cannot autopsd\n');
   rt = []; 
  
- case 'amatrix'
+ case {'irfmatrix'}
+  % BUG: breaks for ERF
   if(isempty(flacfg)) pr_fla_needed(DoWhat); return; end
   nreg = fast_fxcfg_fir('nregressors',flacfg);
   if(isempty(nreg)) return; end
@@ -88,7 +89,7 @@ switch(DoWhat)
   rt = createline(flacfg);
  
  otherwise
-  fprintf('ERROR: fast_fxcfg_fir: getwhat = %s, unrecognized\n',getwhat);
+  fprintf('ERROR: fast_fxcfg_fir: DoWhat = %s, unrecognized\n',DoWhat);
 
 end
 
