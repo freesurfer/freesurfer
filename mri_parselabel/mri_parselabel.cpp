@@ -138,7 +138,7 @@ int main(int argc, char *argv[])
   int nargs;
   Progname=argv[0];
 
-  nargs = handle_version_option (argc, argv, "$Id: mri_parselabel.cpp,v 1.14 2004/06/10 21:46:23 tosa Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_parselabel.cpp,v 1.15 2004/06/10 21:55:12 tosa Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -164,8 +164,10 @@ int main(int argc, char *argv[])
     cerr << "                       default is to use the surface ras value."<< endl;
     return -1;
   }
-  else if (argc == 4)
+  else if (argc==4)
   {
+    cerr << "You gave the arguments of the following: " << argc <<  endl;
+    cerr << argv[1] << " " << argv[2] << " " << argv[3] << endl;
     // check to make sure that -stats is set
     if (!stats)
     {
