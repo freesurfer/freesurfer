@@ -24,6 +24,7 @@ static char *parc_dir = "parc" ;
 static char *orig_dir = "orig" ;
 static char *xform_name = "talairach.xfm" ;
 static int prune = 0 ;
+static float smooth = -1 ;
 
 static int ninputs = 1 ;  /* T1 intensity */
 
@@ -141,6 +142,12 @@ main(int argc, char *argv[])
     gca_prune = gca ;
   } while (n++ < prune) ;
 
+  if (smooth)
+  {
+    printf("regularizing conditional densities with smooth=%2.2f\n", smooth) ;
+    GCAregularizeConditionalDensities(gca, smooth) ;
+  }
+
   GCAwrite(gca, out_fname) ;
   GCAfree(&gca) ;
   msec = TimerStop(&start) ;
@@ -218,6 +225,16 @@ get_option(int argc, char *argv[])
     strcpy(subjects_dir, argv[2]) ;
     nargs = 1 ;
     printf("using %s as subjects directory\n", subjects_dir) ;
+  }
+  else if (!stricmp(option, "SMOOTH"))
+  {
+    smooth = atof(argv[2]) ;
+    if (smooth <= 0 || smooth > 1)
+      ErrorExit(ERROR_BADPARM, 
+                "%s: smoothing parameter %2.1f must be in [0,1]\n",
+                Progname, smooth) ;
+    nargs = 1 ;
+    printf("imposing %2.1f smoothing on conditional statistics\n", smooth) ;
   }
   else switch (toupper(*option))
   {
