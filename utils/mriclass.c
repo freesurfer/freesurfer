@@ -27,6 +27,7 @@
 #include "artmap.h"
 #include "gclass.h"
 #include "mriclass.h"
+#include "utils.h"
 
 /*-----------------------------------------------------
                     MACROS AND CONSTANTS
@@ -123,13 +124,25 @@ MRICalloc(int type, int ninputs, void *parms)
         Description
 ------------------------------------------------------*/
 int
-MRICtrain(MRIC *mric, char *file_name)
+MRICtrain(MRIC *mric, char *file_name, char *prior_fname)
 {
   char  source_fname[100], target_fname[100], line[300], *cp ;
   FILE  *fp ;
   int   fno, nfiles ;
   MRI   *mri_src, *mri_target ;
   BOX   bounding_box ;
+
+  if (prior_fname)
+  {
+    FileNameAbsolute(prior_fname, mric->prior_fname) ;
+    mric->mri_priors = MRIread(prior_fname) ;
+    if (!mric->mri_priors)
+      ErrorReturn(ERROR_NO_FILE, 
+                  (ERROR_NO_FILE, "MRICtrain: could not load prior file '%s'",
+                  prior_fname)) ;
+  }
+  else
+    mric->mri_priors = NULL ;
 
   /* first figure out the total # of files */
   fp = fopen(file_name, "r") ;
@@ -212,6 +225,7 @@ MRICtrain(MRIC *mric, char *file_name)
   MRICcomputeCovariances(mric) ;
 
   fclose(fp) ;
+
   return(NO_ERROR) ;
 }
 #if 0
@@ -241,13 +255,16 @@ MRICread(char *fname)
   MRIC  *mric ;
   int   ninputs, type ;
   FILE  *fp ;
+  char  prior_fname[100], line[100], *cp ;
 
   fp = fopen(fname, "r") ;
   if (!fp)
     ErrorReturn(NULL, 
                 (ERROR_NO_FILE,"MRICread(%s): could not open file", fname));
 
-  if (fscanf(fp, "%d %d\n", &type, &ninputs) != 2)
+  prior_fname[0] = 0 ;
+  cp = fgetl(line, 99, fp) ;
+  if (sscanf(cp, "%d %d %s", &type, &ninputs, prior_fname) < 2)
   {
     fclose(fp) ;
     ErrorReturn(NULL, (ERROR_BADFILE, "MRICread(%s): could not scan parms",
@@ -255,6 +272,8 @@ MRICread(char *fname)
   }
 
   mric = MRICalloc(type, ninputs, NULL) ;
+  if (*prior_fname)
+    mric->mri_priors = MRIread(prior_fname) ;
   switch (type)
   {
   case CLASSIFIER_GAUSSIAN:
@@ -285,7 +304,10 @@ MRICwrite(MRIC *mric, char *fname)
     ErrorReturn(ERROR_NO_FILE, 
               (ERROR_NO_FILE,"MRICwrite(%s): could not open file",fname));
 
-  fprintf(fp, "%d %d\n", mric->type, mric->ninputs) ;
+  fprintf(fp, "%d %d", mric->type, mric->ninputs) ;
+  if (mric->mri_priors)
+    fprintf(fp, " %s", mric->prior_fname) ;
+  fprintf(fp, "\n") ;
   switch (mric->type)
   {
   case CLASSIFIER_GAUSSIAN:
@@ -305,16 +327,20 @@ MRICwrite(MRIC *mric, char *fname)
         Description
 
 ------------------------------------------------------*/
-#define PRETTY_SURE   .90f
+#define PRETTY_SURE              .90f
+#define DEFINITELY_BACKGROUND    LO_LIM
+
 MRI *
 MRICclassify(MRIC *mric, MRI *mri_src, MRI *mri_dst, 
             float conf, MRI *mri_probs, MRI *mri_classes)
 {
-  MATRIX     *m_inputs ;
+  MATRIX     *m_inputs, *m_priors ;
   GCLASSIFY  *gc ;
-  int        x, y, z, width, depth, height, classno, nclasses, row ;
+  int        x, y, z, width, depth, height, classno, nclasses, row, xt, yt, zt;
   BUFTYPE    *psrc, src, *pdst, *pclasses ;
   float      prob, *pprobs = NULL, inputs[MAX_INPUTS+1] ;
+  Real       xrt, yrt, zrt ;
+  MRI        *mri_priors ;
 
   if (conf < 0.0f || conf >= 1.0f)
     conf = PRETTY_SURE ;
@@ -323,6 +349,11 @@ MRICclassify(MRIC *mric, MRI *mri_src, MRI *mri_dst,
     mri_dst = MRIclone(mri_src, NULL) ;
 
   m_inputs = MatrixAlloc(mric->ninputs, 1, MATRIX_REAL) ;
+  mri_priors = mric->mri_priors ;
+  if (mri_priors)
+    m_priors = MatrixAlloc(mric->gc->nclasses, 1, MATRIX_REAL) ;
+  else
+    m_priors = NULL ;
 
   width = mri_src->width ;
   height = mri_src->height ;
@@ -347,12 +378,31 @@ MRICclassify(MRIC *mric, MRI *mri_src, MRI *mri_dst,
       for (x = 0 ; x < width ; x++)
       {
         src = *psrc++ ;
-        MRICcomputeInputs(mri_src, x, y, z, inputs, mric->ninputs) ;
-        for (row = 1 ; row <= mric->ninputs ; row++)
-          m_inputs->rptr[row][1] = inputs[row] ;
-        
-        /* now classify this observation */
-        classno = GCclassify(gc, m_inputs, &prob) ;
+        if (src < DEFINITELY_BACKGROUND)
+        {
+          classno = BACKGROUND ;
+          prob = 1.0f ;
+        }
+        else
+        {
+          if (mri_priors)
+          {
+            MRIvoxelToVoxel(mri_src, mri_priors,
+                            (Real)x, (Real)y, (Real)z,&xrt, &yrt,&zrt);
+            xt = mri_priors->xi[nint(xrt)] ;
+            yt = mri_priors->yi[nint(yrt)] ;
+            zt = mri_priors->zi[nint(zrt)] ;
+            for (classno = 0 ; classno < nclasses ; classno++)
+              m_priors->rptr[classno+1][1] = 
+                MRIFseq_vox(mri_priors, xt, yt, zt, classno) ;
+          }
+          MRICcomputeInputs(mri_src, x, y, z, inputs, mric->ninputs) ;
+          for (row = 1 ; row <= mric->ninputs ; row++)
+            m_inputs->rptr[row][1] = inputs[row] ;
+          
+          /* now classify this observation */
+          classno = GCclassify(gc, m_inputs, m_priors, &prob) ;
+        }
 
         if (pclasses)
           *pclasses++ = (BUFTYPE)classno ;
@@ -367,6 +417,8 @@ MRICclassify(MRIC *mric, MRI *mri_src, MRI *mri_dst,
   }
 
   MatrixFree(&m_inputs) ;
+  if (m_priors)
+    MatrixFree(&m_priors) ;
 
   return(mri_dst) ;
 }
