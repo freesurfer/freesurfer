@@ -69,7 +69,6 @@ static double mrisComputeError(MRI_SURFACE *mris, INTEGRATION_PARMS *parms,
                                 float *parea_rms, float *pangle_rms,
                                float *pcurv_rms, float *pdist_rms,
                                float *pcorr_rms);
-static int   mrisCountNegativeTriangles(MRI_SURFACE *mris) ;
 static int   mrisAverageGradients(MRI_SURFACE *mris, int num_avgs) ;
 static int   mrisIntegrate(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, 
                            int n_avgs);
@@ -3199,7 +3198,7 @@ mrisRemoveNegativeArea(MRI_SURFACE *mris, INTEGRATION_PARMS *parms,
   if (!FZERO(l_area))
   { snum = "area" ;   pnum = &parms->l_area ; }
   else if (!FZERO(l_parea))
-#if 1
+#if 0
   { snum = "parea" ;  pnum = &parms->l_parea  ; }
 #else
   { snum = "area" ;  pnum = &parms->l_area  ; }
@@ -3365,7 +3364,7 @@ mrisIntegrate(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int n_averages)
   total_small = 0.0 ; nsmall = 0 ;
 
   total_vertices = (double)mrisValidVertices(mris) ;
-  neg = mrisCountNegativeTriangles(mris) ;
+  neg = MRIScountNegativeTriangles(mris) ;
   pct_neg = (double)neg / total_vertices ;
   pct_neg_area = 
     (float)mris->neg_area / (float)(mris->total_area+mris->neg_area) ;
@@ -3903,8 +3902,8 @@ mrisOrientPlane(MRI_SURFACE *mris)
 
         Description
 ------------------------------------------------------*/
-static int
-mrisCountNegativeTriangles(MRI_SURFACE *mris)
+int
+MRIScountNegativeTriangles(MRI_SURFACE *mris)
 {
   int     tno, fno, negative ;
   FACE    *face ;
@@ -8432,7 +8431,7 @@ mrisLogStatus(MRI_SURFACE *mris,INTEGRATION_PARMS *parms,FILE *fp, float dt)
   if (!(Gdiag & DIAG_SHOW))
     return(NO_ERROR) ;
 
-  negative = mrisCountNegativeTriangles(mris) ;
+  negative = MRIScountNegativeTriangles(mris) ;
   sse  = mrisComputeError(mris, parms,&area_rms,&angle_rms,&curv_rms,&dist_rms,
                    &corr_rms);
 #if  0
@@ -9154,7 +9153,7 @@ mrisComputeCorrelationError(MRI_SURFACE *mris, INTEGRATION_PARMS *parms,
 #endif
     target = MRISPfunctionVal(parms->mrisp_template, mris, x, y, z, 
                               parms->frame_no) ;
-#define DISABLE_STDS  1
+#define DISABLE_STDS  0
 #if DISABLE_STDS
 std = 1.0f ;
 #else
@@ -9786,7 +9785,7 @@ MRISrigidBodyAlignGlobal(MRI_SURFACE *mris, INTEGRATION_PARMS *parms,
   for (degrees = max_degrees ; degrees >= min_degrees ; degrees /= 2.0f)
   {
     mina = minb = ming = 0.0 ;
-    min_sse = mrisComputeCorrelationError(mris, parms, 1) ;
+    min_sse = mrisComputeCorrelationError(mris, parms, 0) ;
     delta = 2*degrees / (float)nangles ;
     if (Gdiag & DIAG_SHOW)
       fprintf(stderr, "scanning %2.2f degree nbhd, min sse = %2.2f\n", 
@@ -9799,7 +9798,7 @@ MRISrigidBodyAlignGlobal(MRI_SURFACE *mris, INTEGRATION_PARMS *parms,
         {
           MRISsaveVertexPositions(mris, TMP_VERTICES) ;
           MRISrotate(mris, mris, alpha, beta, gamma) ;
-          sse = mrisComputeCorrelationError(mris, parms, 1) ;
+          sse = mrisComputeCorrelationError(mris, parms, 0) ;
           if (sse < min_sse)
           {
 #if 0
@@ -9831,7 +9830,7 @@ MRISrigidBodyAlignGlobal(MRI_SURFACE *mris, INTEGRATION_PARMS *parms,
     if (!FZERO(mina) || !FZERO(minb) || !FZERO(ming))
     {
       MRISrotate(mris, mris, mina, minb, ming) ;
-      sse = mrisComputeCorrelationError(mris, parms, 1) ;
+      sse = mrisComputeCorrelationError(mris, parms, 0) ;
       if (Gdiag & DIAG_SHOW)
         fprintf(stderr, "min sse = %2.2f at (%2.2f, %2.2f, %2.2f)\n",
                 sse, DEGREES(mina), DEGREES(minb), DEGREES(ming)) ;
@@ -9953,7 +9952,7 @@ MRISzeroNegativeAreas(MRI_SURFACE *mris)
 int
 MRISfindClosestCannonicalVertex(MRI_SURFACE *mris, float x, float y, float z)
 {
-  int    vno, min_v=-1 ;
+  int    vno, min_v = -1 ;
   VERTEX *v ;
   float  d, min_d, dx, dy, dz ;
 
@@ -10044,18 +10043,30 @@ MRISuseCurvatureMax(MRI_SURFACE *mris)
 int
 MRISuseNegCurvature(MRI_SURFACE *mris)
 {
-  int    vno ;
+  int    vno, fno, tno ;
   VERTEX *vertex ;
+  FACE   *f ;
 
   for (vno = 0 ; vno < mris->nvertices ; vno++)
   {
     vertex = &mris->vertices[vno] ;
-    vertex->curv = vertex->neg ;
+    if (vertex->ripflag)
+      continue ;
+    vertex->curv = 0 ;
+    for (fno = 0 ; fno < vertex->num ; fno++)
+    {
+      f = &mris->faces[vertex->f[fno]] ;
+      for (tno = 0 ; tno < TRIANGLES_PER_FACE ; tno++)
+        if (f->area[tno] < 0.0f)
+          vertex->curv = 1.0f ;
+        
+    }
   }
 
   mris->min_curv = 0 ; mris->max_curv = 1 ;
   return(NO_ERROR) ;
 }
+
 /*-----------------------------------------------------
         Parameters:
 
@@ -10073,4 +10084,3 @@ MRISworldToTalairachVoxel(MRI_SURFACE *mris, MRI *mri, Real xw, Real yw,
   MRIworldToVoxel(mri, xt, yt, zt, pxv, pyv, pzv) ;
   return(NO_ERROR) ;
 }
-
