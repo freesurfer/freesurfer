@@ -15,7 +15,7 @@
 #include "fio.h"
 #include "version.h"
 
-static char vcid[] = "$Id: mris_anatomical_stats.c,v 1.17 2004/08/25 15:46:36 fischl Exp $";
+static char vcid[] = "$Id: mris_anatomical_stats.c,v 1.18 2004/10/27 20:32:10 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -77,7 +77,7 @@ main(int argc, char *argv[])
   int           n_vertices = -1;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_anatomical_stats.c,v 1.17 2004/08/25 15:46:36 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_anatomical_stats.c,v 1.18 2004/10/27 20:32:10 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -291,7 +291,11 @@ main(int argc, char *argv[])
         fprintf(stdout, "  %7.3f", fi);
         fprintf(stdout, "  %6.3f",ici);
 
-        ct_index = CTABannotationToIndex(mris->ct, annotation);
+				if (mris->ct != NULL)
+					ct_index = CTABannotationToIndex(mris->ct, annotation);
+				else
+					ct_index = -1 ;
+
         if(ct_index < 0)
           fprintf(stdout, "  ** annotation %08x", annotation);
         else
