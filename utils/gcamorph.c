@@ -1691,6 +1691,10 @@ GCAMmorphFromAtlas(MRI *mri_in, GCA_MORPH *gcam, MRI *mri_morphed)
   MRIsoapBubble(mri_morphed, mri_ctrl, mri_morphed, 5) ;
 
   MRIfree(&mri_ctrl) ;
+
+  // use gcam src information to the morphed image
+  useVolGeomToMRI(&gcam->src, mri_morphed);
+
   return(mri_morphed) ;
 }
 
