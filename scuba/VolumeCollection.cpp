@@ -190,120 +190,32 @@ VolumeCollection::UpdateRASBounds () {
 void
 VolumeCollection::RASToMRIIndex ( float iRAS[3], int oIndex[3] ) {
   
-#if 0
-  VECTOR_ELT( mWorldCoord, 1 ) = iRAS[0];
-  VECTOR_ELT( mWorldCoord, 2 ) = iRAS[1];
-  VECTOR_ELT( mWorldCoord, 3 ) = iRAS[2];
-  VECTOR_ELT( mWorldCoord, 4 ) = 1.0;
-  MatrixMultiply( mWorldToIndexMatrix, mWorldCoord, mIndexCoord );
-  oIndex[0] = (int) rint( VECTOR_ELT( mIndexCoord, 1 ) );
-  oIndex[1] = (int) rint( VECTOR_ELT( mIndexCoord, 2 ) );
-  oIndex[2] = (int) rint( VECTOR_ELT( mIndexCoord, 3 ) );
-
-  oIndex[0] = (int) rint(
+  oIndex[0] = (int) (
 		     *MATRIX_RELT(mWorldToIndexMatrix,1,1) * iRAS[0] +
 		     *MATRIX_RELT(mWorldToIndexMatrix,1,2) * iRAS[1] +
 		     *MATRIX_RELT(mWorldToIndexMatrix,1,3) * iRAS[2] +
 		     *MATRIX_RELT(mWorldToIndexMatrix,1,4) );
-  oIndex[1] = (int) rint(
+  oIndex[1] = (int) (
 		     *MATRIX_RELT(mWorldToIndexMatrix,2,1) * iRAS[0] +
 		     *MATRIX_RELT(mWorldToIndexMatrix,2,2) * iRAS[1] +
 		     *MATRIX_RELT(mWorldToIndexMatrix,2,3) * iRAS[2] +
 		     *MATRIX_RELT(mWorldToIndexMatrix,2,4) );
-  oIndex[2] = (int) rint(
+  oIndex[2] = (int) (
 		     *MATRIX_RELT(mWorldToIndexMatrix,3,1) * iRAS[0] +
 		     *MATRIX_RELT(mWorldToIndexMatrix,3,2) * iRAS[1] +
 		     *MATRIX_RELT(mWorldToIndexMatrix,3,3) * iRAS[2] +
 		     *MATRIX_RELT(mWorldToIndexMatrix,3,4) );
   
-
-#else
+#if 0
 
   int cacheIndex[3];
   WorldToIndexCacheIndex( iRAS, cacheIndex );
   Point3<int> index = 
     mWorldToIndexCache->Get( cacheIndex[0], cacheIndex[1], cacheIndex[2] );
-  
+
   oIndex[0] = index.x();
   oIndex[1] = index.y();
   oIndex[2] = index.z();
-
-#endif
-}
-
-void
-VolumeCollection::RASToMRIIndexBatch ( float iRAS[4][3], int oIndex[4][3] ) {
-  
-#if 0
-  VECTOR_ELT( mWorldCoord, 1 ) = iRAS[0];
-  VECTOR_ELT( mWorldCoord, 2 ) = iRAS[1];
-  VECTOR_ELT( mWorldCoord, 3 ) = iRAS[2];
-  VECTOR_ELT( mWorldCoord, 4 ) = 1.0;
-  MatrixMultiply( mWorldToIndexMatrix, mWorldCoord, mIndexCoord );
-  oIndex[0] = (int) rint( VECTOR_ELT( mIndexCoord, 1 ) );
-  oIndex[1] = (int) rint( VECTOR_ELT( mIndexCoord, 2 ) );
-  oIndex[2] = (int) rint( VECTOR_ELT( mIndexCoord, 3 ) );
-#else
-  oIndex[0][0] = (int) rint(
-		     *MATRIX_RELT(mWorldToIndexMatrix,1,1) * iRAS[0][0] +
-		     *MATRIX_RELT(mWorldToIndexMatrix,1,2) * iRAS[0][1] +
-		     *MATRIX_RELT(mWorldToIndexMatrix,1,3) * iRAS[0][2] +
-		     *MATRIX_RELT(mWorldToIndexMatrix,1,4) );
-  oIndex[0][1] = (int) rint(
-		     *MATRIX_RELT(mWorldToIndexMatrix,2,1) * iRAS[0][0] +
-		     *MATRIX_RELT(mWorldToIndexMatrix,2,2) * iRAS[0][1] +
-		     *MATRIX_RELT(mWorldToIndexMatrix,2,3) * iRAS[0][2] +
-		     *MATRIX_RELT(mWorldToIndexMatrix,2,4) );
-  oIndex[0][2] = (int) rint(
-		     *MATRIX_RELT(mWorldToIndexMatrix,3,1) * iRAS[0][0] +
-		     *MATRIX_RELT(mWorldToIndexMatrix,3,2) * iRAS[0][1] +
-		     *MATRIX_RELT(mWorldToIndexMatrix,3,3) * iRAS[0][2] +
-		     *MATRIX_RELT(mWorldToIndexMatrix,3,4) );
-  oIndex[1][0] = (int) rint(
-		     *MATRIX_RELT(mWorldToIndexMatrix,1,1) * iRAS[1][0] +
-		     *MATRIX_RELT(mWorldToIndexMatrix,1,2) * iRAS[1][1] +
-		     *MATRIX_RELT(mWorldToIndexMatrix,1,3) * iRAS[1][2] +
-		     *MATRIX_RELT(mWorldToIndexMatrix,1,4) );
-  oIndex[1][1] = (int) rint(
-		     *MATRIX_RELT(mWorldToIndexMatrix,2,1) * iRAS[1][0] +
-		     *MATRIX_RELT(mWorldToIndexMatrix,2,2) * iRAS[1][1] +
-		     *MATRIX_RELT(mWorldToIndexMatrix,2,3) * iRAS[1][2] +
-		     *MATRIX_RELT(mWorldToIndexMatrix,2,4) );
-  oIndex[1][2] = (int) rint(
-		     *MATRIX_RELT(mWorldToIndexMatrix,3,1) * iRAS[1][0] +
-		     *MATRIX_RELT(mWorldToIndexMatrix,3,2) * iRAS[1][1] +
-		     *MATRIX_RELT(mWorldToIndexMatrix,3,3) * iRAS[1][2] +
-		     *MATRIX_RELT(mWorldToIndexMatrix,3,4) );
-  oIndex[2][0] = (int) rint(
-		     *MATRIX_RELT(mWorldToIndexMatrix,1,1) * iRAS[2][0] +
-		     *MATRIX_RELT(mWorldToIndexMatrix,1,2) * iRAS[2][1] +
-		     *MATRIX_RELT(mWorldToIndexMatrix,1,3) * iRAS[2][2] +
-		     *MATRIX_RELT(mWorldToIndexMatrix,1,4) );
-  oIndex[2][1] = (int) rint(
-		     *MATRIX_RELT(mWorldToIndexMatrix,2,1) * iRAS[2][0] +
-		     *MATRIX_RELT(mWorldToIndexMatrix,2,2) * iRAS[2][1] +
-		     *MATRIX_RELT(mWorldToIndexMatrix,2,3) * iRAS[2][2] +
-		     *MATRIX_RELT(mWorldToIndexMatrix,2,4) );
-  oIndex[2][2] = (int) rint(
-		     *MATRIX_RELT(mWorldToIndexMatrix,3,1) * iRAS[2][0] +
-		     *MATRIX_RELT(mWorldToIndexMatrix,3,2) * iRAS[2][1] +
-		     *MATRIX_RELT(mWorldToIndexMatrix,3,3) * iRAS[2][2] +
-		     *MATRIX_RELT(mWorldToIndexMatrix,3,4) );
-  oIndex[3][0] = (int) rint(
-		     *MATRIX_RELT(mWorldToIndexMatrix,1,1) * iRAS[3][0] +
-		     *MATRIX_RELT(mWorldToIndexMatrix,1,2) * iRAS[3][1] +
-		     *MATRIX_RELT(mWorldToIndexMatrix,1,3) * iRAS[3][2] +
-		     *MATRIX_RELT(mWorldToIndexMatrix,1,4) );
-  oIndex[3][1] = (int) rint(
-		     *MATRIX_RELT(mWorldToIndexMatrix,2,1) * iRAS[3][0] +
-		     *MATRIX_RELT(mWorldToIndexMatrix,2,2) * iRAS[3][1] +
-		     *MATRIX_RELT(mWorldToIndexMatrix,2,3) * iRAS[3][2] +
-		     *MATRIX_RELT(mWorldToIndexMatrix,2,4) );
-  oIndex[3][2] = (int) rint(
-		     *MATRIX_RELT(mWorldToIndexMatrix,3,1) * iRAS[3][0] +
-		     *MATRIX_RELT(mWorldToIndexMatrix,3,2) * iRAS[3][1] +
-		     *MATRIX_RELT(mWorldToIndexMatrix,3,3) * iRAS[3][2] +
-		     *MATRIX_RELT(mWorldToIndexMatrix,3,4) );
 
 #endif
 }
@@ -433,70 +345,28 @@ VolumeCollection::GetMRINearestValueAtRAS ( float iRAS[3] ) {
 
   Real value = 0;
   if( NULL != mMRI ) {
-    //    int index[3];
-    //    RASToMRIIndex( iRAS, index );
 
-    int cacheIndex[3];
-    WorldToIndexCacheIndex( iRAS, cacheIndex );
-    Point3<int> index = 
-      mWorldToIndexCache->Get( cacheIndex[0], cacheIndex[1], cacheIndex[2] );
+    int index[3];
+    RASToMRIIndex( iRAS, index );
 
     switch( mMRI->type ) {
     case MRI_UCHAR:
-      value = (float)MRIvox(mMRI, index.x(), index.y(), index.z() );
+      value = (float)MRIvox(mMRI, index[0], index[1], index[2] );
       break ;
     case MRI_SHORT:
-      value = (float)MRISvox(mMRI, index.x(), index.y(), index.z() );
+      value = (float)MRISvox(mMRI, index[0], index[1], index[2] );
       break ;
     case MRI_INT:
-      value = (float)MRIIvox(mMRI, index.x(), index.y(), index.z() );
+      value = (float)MRIIvox(mMRI, index[0], index[1], index[2] );
       break ;
     case MRI_FLOAT:
-      value = MRIFvox(mMRI, index.x(), index.y(), index.z() );
+      value = MRIFvox(mMRI, index[0], index[1], index[2] );
       break ;
     default:
       value = 0;
     }
   }
   return (float)value;
-}
-
-void 
-VolumeCollection::GetMRINearestValueAtRASBatch ( float iRAS[4][3], 
-						 float oValue[4] ){
-
-  if( NULL != mMRI ) {
-    int index[4][3];
-    RASToMRIIndexBatch( iRAS, index );
-    switch( mMRI->type ) {
-      case MRI_UCHAR:
-	oValue[0] = (float)MRIvox(mMRI, index[0][0], index[0][1], index[0][2]);
-	oValue[1] = (float)MRIvox(mMRI, index[1][0], index[1][1], index[1][2]);
-	oValue[2] = (float)MRIvox(mMRI, index[2][0], index[2][1], index[2][2]);
-	oValue[3] = (float)MRIvox(mMRI, index[3][0], index[3][1], index[3][2]);
-	break;
-      case MRI_SHORT:
-	oValue[0] =(float)MRISvox(mMRI, index[0][0], index[0][1], index[0][2]);
-	oValue[1] =(float)MRISvox(mMRI, index[1][0], index[1][1], index[1][2]);
-	oValue[2] =(float)MRISvox(mMRI, index[2][0], index[2][1], index[2][2]);
-	oValue[3] =(float)MRISvox(mMRI, index[3][0], index[3][1], index[3][2]);
-	break;
-      case MRI_INT:
-	oValue[0] =(float)MRIIvox(mMRI, index[0][0], index[0][1], index[0][2]);
-	oValue[1] =(float)MRIIvox(mMRI, index[1][0], index[1][1], index[1][2]);
-	oValue[2] =(float)MRIIvox(mMRI, index[2][0], index[2][1], index[2][2]);
-	oValue[3] =(float)MRIIvox(mMRI, index[3][0], index[3][1], index[3][2]);
-	break;
-      case MRI_FLOAT:
-	oValue[0] =(float)MRIFvox(mMRI, index[0][0], index[0][1], index[0][2]);
-	oValue[1] =(float)MRIFvox(mMRI, index[1][0], index[1][1], index[1][2]);
-	oValue[2] =(float)MRIFvox(mMRI, index[2][0], index[2][1], index[2][2]);
-	oValue[3] =(float)MRIFvox(mMRI, index[3][0], index[3][1], index[3][2]);
-	break;
-      default:
-	break;
-    }
-  }
 }
 
 float 
@@ -1180,12 +1050,32 @@ void
 VolumeCollection::WorldToIndexCacheIndex ( float const iRAS[3],
 					   int oCacheIndex[3] ) const {
 
+  float iRASX = iRAS[0];
+  float iRASY = iRAS[1];
+  float iRASZ = iRAS[2];
+
+  float oneOverVoxelX = mOneOverVoxelSize[0];
+  float oneOverVoxelY = mOneOverVoxelSize[1];
+  float oneOverVoxelZ = mOneOverVoxelSize[2];
+
+  float mMinRASX = mMinRASBounds[0];
+  float mMinRASY = mMinRASBounds[1];
+  float mMinRASZ = mMinRASBounds[2];
+
+  float cacheX = (iRASX - mMinRASX) * oneOverVoxelX;
+  float cacheY = (iRASY - mMinRASY) * oneOverVoxelY;
+  float cacheZ = (iRASZ - mMinRASZ) * oneOverVoxelZ;
+
+  oCacheIndex[0] = (int) cacheX;
+  oCacheIndex[1] = (int) cacheY;
+  oCacheIndex[2] = (int) cacheZ;
+
+#if 0
   oCacheIndex[0] = (int)((iRAS[0] - mMinRASBounds[0]) * mOneOverVoxelSize[0]);
   oCacheIndex[1] = (int)((iRAS[1] - mMinRASBounds[1]) * mOneOverVoxelSize[1]);
   oCacheIndex[2] = (int)((iRAS[2] - mMinRASBounds[2]) * mOneOverVoxelSize[2]);
+#endif
 }
-
-
 
 VolumeCollectionFlooder::VolumeCollectionFlooder () {
   mVolume = NULL;

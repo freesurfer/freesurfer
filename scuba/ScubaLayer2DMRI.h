@@ -58,9 +58,11 @@ class ScubaLayer2DMRI : public Layer {
 
   static int const cGrayscaleLUTEntries;
   static int const kMaxPixelComponentValue;  
+  static float const kMaxPixelComponentValueFloat;  
   void BuildGrayscaleLUT ();
   void SetBrightness ( float iBrightness ) { mBrightness = iBrightness; }
-  void SetContrast ( float iContrast ) { mContrast = iContrast; }
+  void SetContrast ( float iContrast ) { 
+    mContrast = iContrast; mNegContrast = -mContrast; }
 
   void SetMinVisibleValue ( float iValue ) { mMinVisibleValue = iValue; }
   float GetMinVisibleValue () { return mMinVisibleValue; }
@@ -107,7 +109,7 @@ class ScubaLayer2DMRI : public Layer {
   SampleMethod mSampleMethod;
   ColorMapMethod mColorMapMethod;
 
-  float mBrightness, mContrast;
+  float mBrightness, mContrast, mNegContrast;
   //  std::map<int,float> mGrayscaleLUT; // 0-255
   int mGrayscaleLUT[256]; // 0-255
 

@@ -271,9 +271,7 @@ BRUCE'S LIST:::
 BUGS:::
 - fix radius in brush, it's really ugly
 - tabbing when in console switches frame, disable?
-- first run on x session crashes
 - brings up tkcon window briefly when booting
-- is control-middle button working properly?
 - sometimes filling returns an error with NewTask tcl cmd
 
 FUTURE IDEAS:::
@@ -287,42 +285,7 @@ nav tools draw onscreen sliders for feedback
  - start at mouse point, use expo scale towards edge for min/max values
 
 
+ 
 
-
-profiling
-DrawIntoBuffer with loop=1
-  togl: 29.2%
-  glut: 27.2%
-DrawIntoBuffer with loop=8
-  togl: 27.2%
-  glut: 26.4%
-
-DrawIntoBuffer with loop=4 unrolled
-  togl: 13.4%
-  after making mGrayscaleLUT int : 12.9%
-
-
-world->index cache
-numentries = (min - max + 1)   *   1/voxelsize
-index = (ras - min)  *   1/voxelsize
-
-
-begin -128   end 128
-
-ras   index 
-0     128
--128  0
-
-begin 0 end 255 voxelsize .5
-0     0
-0.5   1
-1     2
-
-
-
-Volume3<Point3<int> > mRASToIndex;
-
-CalcRASToIndex () {
-
-
-}
+optimization
+ - replace if's in DrawIntoBuffer with function pointers, i.e. GetValueAtRASForSampleMethod and GetColorOfValueForColorMapMethod

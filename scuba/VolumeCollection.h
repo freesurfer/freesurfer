@@ -39,7 +39,6 @@ class VolumeCollection : public DataCollection {
   void UpdateRASBounds ();
 
   void RASToMRIIndex ( float iRAS[3], int oIndex[3] );
-  void RASToMRIIndexBatch ( float iRAS[4][3], int oIndex[4][3] );
   void RASToMRIIndex ( float iRAS[3], float oIndex[3] );
   void MRIIndexToRAS ( int iIndex[3], float oRAS[3] );
   void MRIIndexToRAS ( float iIndex[3], float oRAS[3] );
@@ -48,7 +47,6 @@ class VolumeCollection : public DataCollection {
   bool IsMRIIndexInMRIBounds ( int iIndex[3] );
 
   float GetMRINearestValueAtRAS ( float iRAS[3] );
-  void GetMRINearestValueAtRASBatch ( float iRAS[4][3], float oValue[4] );
   float GetMRITrilinearValueAtRAS ( float iRAS[3] );
   float GetMRISincValueAtRAS ( float iRAS[3] );
   

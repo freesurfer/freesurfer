@@ -822,7 +822,7 @@ ScubaView::DoListenToMessage ( string isCommand, void* iData ) {
 void
 ScubaView::DoDraw() {
 
-#ifdef DEBUG
+#if 1
   ::Timer timer;
   timer.Start();
 #endif
@@ -831,7 +831,7 @@ ScubaView::DoDraw() {
   DrawFrameBuffer();
   DrawOverlay();
 
-#ifdef DEBUG
+#if 1
   int msec = timer.TimeNow();
   float fps = 1.0 / ((float)msec/1000.0);
 
