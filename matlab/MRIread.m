@@ -1,9 +1,12 @@
-function mri = MRIread(fspec,headeronly)
-% mri = MRIread(fspec,headeronly)
+function mri = MRIread(fstring,headeronly)
+% mri = MRIread(fstring,headeronly)
 %
-% Reads in a volume based on the fspec. fspec can be:
-%  1. MGH file. Eg, f.mgh or f.mgz
-%  2. BVolume Stem. Eg, f for f_000.bshort or f_000.bfloat
+% Reads in a volume based on the fstring. fstring can be:
+% 1. A stem, in which case the format and full file name is determined
+%     by finding a file on disk called fstring.ext, where ext can be
+%     either mgh, mgz, or bhdr
+%  2. MGH file. Eg, f.mgh or f.mgz
+%  3. BVolume HDR file. Eg, f.bhdr 
 %
 % Creates a structure similar to the FreeSurfer MRI struct
 % defined in mri.h. Times are in ms and angles are in radians.
@@ -14,18 +17,25 @@ function mri = MRIread(fspec,headeronly)
 %
 % If headeronly=1, then the pixel data is not read in.
 %
-% $Id: MRIread.m,v 1.3 2004/11/10 19:01:22 greve Exp $
+% $Id: MRIread.m,v 1.4 2004/11/13 16:44:28 greve Exp $
 
 mri = [];
 
 if(nargin < 1 | nargin > 2)
-  fprintf('mri = MRIread(fspec,headeronly)\n');
+  fprintf('mri = MRIread(fstring,headeronly)\n');
   return;
 end
 if(exist('headeronly')~=1) headeronly = 0; end
 
+[fspec fstem fmt] = MRIfspec(fstring);
+if(isempty(fspec))
+  fprintf('ERROR: cannot determine format of %s\n',fstring);
+  return;
+end
+
 %-------------- MGH ------------------------%
-if(MRIisMGH(fspec)) 
+switch(fmt)
+  case {'mgh','mgz'}
   [mri.vol, M, mr_parms, volsz] = load_mgh(fspec,headeronly);
   if(isempty(M))
     fprintf('ERROR: loading %s as MGH\n',fspec);
@@ -44,9 +54,9 @@ if(MRIisMGH(fspec))
   te = mr_parms(3);
   ti = mr_parms(4);
 %--------------- bshort/bfloat -----------------------%  
-else
+ case {'bhdr'}
   if(~headeronly)
-    [mri.vol bmri] = fast_ldbslice(fspec);  
+    [mri.vol bmri] = fast_ldbslice(fstem);  
     if(isempty(mri.vol))
       fprintf('ERROR: loading %s as bvolume\n',fspec);
       mri = [];
@@ -55,13 +65,13 @@ else
     volsz = size(mri.vol);
   else
     mri.vol = [];
-    bmri = fast_ldbhdr(fspec);
+    bmri = fast_ldbhdr(fstem);
     if(isempty(bmri))
       fprintf('ERROR: loading %s as bvolume\n',fspec);
       mri = [];
       return;
     end
-    [nslices nrows ncols ntp] = fmri_bvoldim(fspec);
+    [nslices nrows ncols ntp] = fmri_bvoldim(fstem);
     volsz = [nrows ncols nslices ntp];
   end
   M = bmri.T;
@@ -69,9 +79,15 @@ else
   flip_angle = bmri.flip_angle;
   te = bmri.te;
   ti = bmri.ti;
+ otherwise
+  fprintf('ERROR: format %s not supported\n',fmt);
+  mri = [];
+  return;
 end
 %--------------------------------------%
 
+mri.fspec = fspec;
+mri.pwd = pwd;
 mri.flip_angle = flip_angle;
 mri.tr  = tr;
 mri.te  = te;
@@ -82,8 +98,9 @@ mri.vox2ras1 = vox2ras_0to1(M);
 
 % Dimensions not redundant when using header only
 volsz(length(volsz)+1:4) = 1; % Make sure all dims are represented
-mri.width   = volsz(2);
-mri.height  = volsz(1);
+mri.volsize = volsz(1:3); % only spatial components
+mri.height  = volsz(1);   % Note that height (rows) is the first dimension
+mri.width   = volsz(2);   % Note that width (cols) is the second dimension
 mri.depth   = volsz(3);
 mri.nframes = volsz(4);
 
@@ -95,6 +112,7 @@ mri.nframes = volsz(4);
 mri.xsize = sqrt(sum(M(:,1).^2));
 mri.ysize = sqrt(sum(M(:,2).^2));
 mri.zsize = sqrt(sum(M(:,3).^2));
+mri.volres = [mri.xsize mri.ysize mri.zsize];
 
 mri.x_r = M(1,1)/mri.xsize;
 mri.x_a = M(2,1)/mri.xsize;
@@ -107,6 +125,9 @@ mri.y_s = M(3,2)/mri.ysize;
 mri.z_r = M(1,3)/mri.zsize;
 mri.z_a = M(2,3)/mri.zsize;
 mri.z_s = M(3,3)/mri.zsize;
+
+% Matrix of direction cosines
+mri.Mdc = [M(1:3,1)/mri.xsize M(1:3,2)/mri.ysize M(1:3,3)/mri.zsize];
 
 ic = [(mri.width)/2 (mri.height)/2 (mri.depth)/2 1]';
 c = M*ic;
