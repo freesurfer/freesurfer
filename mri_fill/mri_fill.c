@@ -10,7 +10,7 @@
 #include "macros.h"
 #include "proto.h"
 
-static char vcid[] = "$Id: mri_fill.c,v 1.16 1998/06/16 20:47:31 fischl Exp $";
+static char vcid[] = "$Id: mri_fill.c,v 1.17 1999/01/21 18:48:46 fischl Exp $";
 
 /*-------------------------------------------------------------------
                                 CONSTANTS
@@ -799,7 +799,7 @@ find_cutting_plane(MRI *mri, Real x_tal, Real y_tal,Real z_tal,int orientation,
         MRIvox(mri_cut, xv, yv, 0) = 1 ;
       }
     }
-    if (Gdiag & DIAG_WRITE)
+    if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
     {
       sprintf(fname, "%s_filled.mnc", 
               orientation == MRI_SAGITTAL ? "cc":"pons");
@@ -935,7 +935,7 @@ find_cutting_plane(MRI *mri, Real x_tal, Real y_tal,Real z_tal,int orientation,
         }
       }
       
-      if ((Gdiag & DIAG_WRITE) && !(slice % 1))
+      if ((Gdiag & DIAG_WRITE) && !(slice % 1) && DIAG_VERBOSE_ON)
       {
         sprintf(fname, "%s_slice%d.mnc", 
                 orientation == MRI_SAGITTAL ? "cc":"pons", slice);
@@ -998,7 +998,7 @@ find_cutting_plane(MRI *mri, Real x_tal, Real y_tal,Real z_tal,int orientation,
       ErrorReturn(NULL, 
                   (ERROR_BADPARM, "%s: could not find valid seed for the %s",
                    Progname, name));
-    if (Gdiag & DIAG_WRITE)
+    if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
     {
       sprintf(fname, "%s_slice.mnc", 
               orientation == MRI_SAGITTAL ? "cc":"pons");
@@ -1123,7 +1123,7 @@ find_corpus_callosum(MRI *mri, Real *pccx, Real *pccy, Real *pccz)
   xv = nint(xr) ; yv = nint(yr) ; zv = nint(zr) ;
   mri_slice = 
     MRIextractTalairachPlane(mri, NULL, MRI_CORONAL,xv,yv,zv,SLICE_SIZE) ;
-  if (Gdiag & DIAG_WRITE)
+  if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
   {
     MRIwrite(mri_slice, "cor.mnc") ;
   }
@@ -1207,7 +1207,7 @@ find_pons(MRI *mri, Real *p_ponsx, Real *p_ponsy, Real *p_ponsz)
 
   /* (xv,yv,zv) are the coordinates of the center of the slice */
 
-  if (Gdiag & DIAG_WRITE)
+  if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
     MRIwrite(mri_slice, "pons.mnc") ;
 
 /*
@@ -1334,7 +1334,7 @@ find_cc_slice(MRI *mri, Real *pccx, Real *pccy, Real *pccz)
       fprintf(stderr, "slice[%d] @ (%d, %d, %d): area = %d\n", 
               slice, xv, yv, zv, area[slice]) ;
 
-    if ((Gdiag & DIAG_WRITE) && !(slice % 1))
+    if ((Gdiag & DIAG_WRITE) && !(slice % 1) && DIAG_VERBOSE_ON)
     {
       sprintf(fname, "cc_slice%d.mnc", slice);
       MRIwrite(mri_slice, fname) ;
