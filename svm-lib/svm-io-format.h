@@ -15,7 +15,7 @@
 #define __SVM_IO_FORMAT_H__
 
 #include <stdio.h>
-#include <iostream.h>
+#include <iostream>
 #include <string.h>
 
 inline const char* readFormat(int a) {
@@ -50,7 +50,7 @@ bool read(P& p, const char *fileName, bool binary = false)
 {
   FILE *f = ((strcmp(fileName,"-"))?fopen(fileName,"r"):stdin);
   if ( f == NULL ) {
-    cerr << "I/O Error: could not open file " << fileName << "\n";
+    std::cerr << "I/O Error: could not open file " << fileName << "\n";
     return false;
   }
 
@@ -66,7 +66,7 @@ bool write(const P& p, const char *fileName,
   FILE *f = ((strcmp(fileName,"-"))?
 	     fopen(fileName,((appendFlag)?"a":"w")):stdout);
   if ( f == NULL ) {
-    cerr << "I/O Error: could not open file " << fileName << "\n";
+    std::cerr << "I/O Error: could not open file " << fileName << "\n";
     return false;
   }
 

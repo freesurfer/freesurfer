@@ -28,7 +28,7 @@
 #define __SVM_KERNEL_H__ 
 
 #include <stdio.h>
-#include <iostream.h>
+#include <iostream>
 #include <math.h>
 
 #include "svm-kernel-param.h"
@@ -41,7 +41,7 @@ class Kernel {
   // message if it's still null.
   bool isDefined() const {
     if ( _p == NULL ) {
-      cerr << "Kerel error: attempting to use a kernel that has not "
+      std::cerr << "Kerel error: attempting to use a kernel that has not "
 	   << "been defined yet.\n";
       return false;
     }
