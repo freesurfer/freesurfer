@@ -127,11 +127,11 @@ static int gdfWrite(MRI *mri, char *fname);
 
 /********************************************/
 
-static void short_buffer_to_image(short *buf, MRI *mri, int slice, int frame) ;
-static void int_buffer_to_image(int *buf, MRI *mri, int slice, int frame) ;
-static void long_buffer_to_image(long *buf, MRI *mri, int slice, int frame) ;
-static void float_buffer_to_image(float *buf, MRI *mri, int slice, int frame) ;
-static void buffer_to_image(BUFTYPE *buf, MRI *mri, int slice, int frame) ;
+static void short_local_buffer_to_image(short *buf, MRI *mri, int slice, int frame) ;
+static void int_local_buffer_to_image(int *buf, MRI *mri, int slice, int frame) ;
+static void long_local_buffer_to_image(long *buf, MRI *mri, int slice, int frame) ;
+static void float_local_buffer_to_image(float *buf, MRI *mri, int slice, int frame) ;
+static void local_buffer_to_image(BUFTYPE *buf, MRI *mri, int slice, int frame) ;
 static MRI *sdtRead(char *fname, int read_volume);
 static MRI *mghRead(char *fname, int read_volume, int frame) ;
 static int mghWrite(MRI *mri, char *fname, int frame) ;
@@ -7451,30 +7451,30 @@ MRI *MRIreadRaw(FILE *fp, int width, int height, int depth, int type)
                    Progname, slice, pixels)) ;
     }
     if(type == 0)
-      buffer_to_image(buf, mri, slice, 0) ;
+      local_buffer_to_image(buf, mri, slice, 0) ;
     if(type == 1)
     {
       for(i = 0;i < pixels;i++)
         ((int *)buf)[i] = orderIntBytes(((int *)buf)[i]);
-      int_buffer_to_image((int *)buf, mri, slice, 0);
+      int_local_buffer_to_image((int *)buf, mri, slice, 0);
     }
     if(type == 2)
     {
       for(i = 0;i < pixels;i++)
         ((long *)buf)[i] = orderLongBytes(((long *)buf)[i]);
-      long_buffer_to_image((long *)buf, mri, slice, 0);
+      long_local_buffer_to_image((long *)buf, mri, slice, 0);
     }
     if(type == 3)
     {
       for(i = 0;i < pixels;i++)
         ((float *)buf)[i] = orderFloatBytes(((float *)buf)[i]);
-      float_buffer_to_image((float *)buf, mri, slice, 0);
+      float_local_buffer_to_image((float *)buf, mri, slice, 0);
     }
     if(type == 4)
     {
       for(i = 0;i < pixels;i++)
         ((short *)buf)[i] = orderShortBytes(((short *)buf)[i]);
-      short_buffer_to_image((short *)buf, mri, slice, 0);
+      short_local_buffer_to_image((short *)buf, mri, slice, 0);
     }
   }
 
@@ -7484,7 +7484,7 @@ MRI *MRIreadRaw(FILE *fp, int width, int height, int depth, int type)
 }
 
 static void
-int_buffer_to_image(int *buf, MRI *mri, int slice, int frame)
+int_local_buffer_to_image(int *buf, MRI *mri, int slice, int frame)
 {
   int           y, width, height ;
   int           *pslice ;
@@ -7617,7 +7617,7 @@ image_to_float_buffer(float *buf, MRI *mri, int slice)
 #endif
 
 static void
-long_buffer_to_image(long *buf, MRI *mri, int slice, int frame)
+long_local_buffer_to_image(long *buf, MRI *mri, int slice, int frame)
 {
   int           y, width, height ;
   long          *pslice ;
@@ -7634,7 +7634,7 @@ long_buffer_to_image(long *buf, MRI *mri, int slice, int frame)
 
 
 static void
-float_buffer_to_image(float *buf, MRI *mri, int slice, int frame)
+float_local_buffer_to_image(float *buf, MRI *mri, int slice, int frame)
 {
   int           y, width, height ;
   float         *pslice ;
@@ -7650,7 +7650,7 @@ float_buffer_to_image(float *buf, MRI *mri, int slice, int frame)
 }
 
 static void
-short_buffer_to_image(short *buf, MRI *mri, int slice, int frame)
+short_local_buffer_to_image(short *buf, MRI *mri, int slice, int frame)
 {
   int           y, width, height ;
   short         *pslice ;
@@ -7666,7 +7666,7 @@ short_buffer_to_image(short *buf, MRI *mri, int slice, int frame)
 }
 
 static void
-buffer_to_image(BUFTYPE *buf, MRI *mri, int slice, int frame)
+local_buffer_to_image(BUFTYPE *buf, MRI *mri, int slice, int frame)
 {
   int           y, width, height ;
   BUFTYPE       *pslice ;
@@ -7824,7 +7824,7 @@ mghRead(char *fname, int read_volume, int frame)
                         (ERROR_BADFILE, "%s: could not read %dth slice (%d)",
                          Progname, z, bytes)) ;
           }
-          buffer_to_image(buf, mri, z, frame-start_frame) ;
+          local_buffer_to_image(buf, mri, z, frame-start_frame) ;
           break ;
         default:
           errno = 0;
