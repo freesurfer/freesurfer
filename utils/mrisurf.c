@@ -4,8 +4,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2004/08/02 19:22:09 $
-// Revision       : $Revision: 1.298 $
+// Revision Date  : $Date: 2004/08/02 19:50:01 $
+// Revision       : $Revision: 1.299 $
 //////////////////////////////////////////////////////////////////
 #include <stdio.h>
 #include <string.h>
@@ -2821,6 +2821,20 @@ mrisReadTransform(MRIS *mris, char *mris_fname)
 	lt->src.c_r = 0;
 	lt->src.c_a = 0;
 	lt->src.c_s = 0;
+      }
+    }
+  }
+  else // lt->src.valid == 1
+  {
+    // verify
+    if (mris->vg.valid)
+    {
+      if (!FZERO(lt->src.c_r - mris->vg.c_r)
+	  || !FZERO(lt->src.c_a - mris->vg.c_a)
+	  || !FZERO(lt->src.c_s - mris->vg.c_s))
+      {
+	fprintf(stderr, "WARNING: the source volume info is not consistent between \n");
+	fprintf(stderr, "WARNING: the info contained in the surface data and that of the transform.\n");
       }
     }
   }
