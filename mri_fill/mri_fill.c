@@ -10,7 +10,7 @@
 #include "macros.h"
 #include "proto.h"
 
-static char vcid[] = "$Id: mri_fill.c,v 1.20 1999/06/16 19:32:43 fischl Exp $";
+static char vcid[] = "$Id: mri_fill.c,v 1.21 1999/06/17 14:03:31 fischl Exp $";
 
 /*-------------------------------------------------------------------
                                 CONSTANTS
@@ -123,11 +123,14 @@ static MRI *mri_fill, *mri_im ;
 static int logging = 0 ;
 
 static int fill_val = 0 ;   /* only non-zero for generating images of planes */
+static int cc_mask = 1 ;
 
 /*-------------------------------------------------------------------
                              STATIC PROTOTYPES
 -------------------------------------------------------------------*/
 
+static int mriExtendMaskDownward(MRI *mri) ;
+int MRIsetValues(MRI *mri, int val) ;
 static int get_option(int argc, char *argv[]) ;
 static void print_version(void) ;
 static void print_help(void) ;
@@ -239,7 +242,37 @@ main(int argc, char *argv[])
   }
 
   if (!pons_seed_set)
-    find_pons(mri_im, &pons_tal_x, &pons_tal_y, &pons_tal_z) ;
+	{
+		MRI  *mri_tmp, *mri_mask ;
+		int  i ;
+
+		if (cc_mask)
+		{
+			fprintf(stderr, 
+							"masking possible pons locations using cc cutting plane\n") ;
+			mri_tmp = MRIcopy(mri_im, NULL) ;
+			mri_mask = MRIcopy(mri_cc, NULL) ;
+			MRIdilate(mri_mask, mri_mask) ; MRIdilate(mri_mask, mri_mask) ;
+			MRIreplaceValues(mri_mask, mri_mask, 0, 255) ;
+			MRIreplaceValues(mri_mask, mri_mask, 1, 0) ;
+			for (x = x_cc-64 ; x < x_cc+64 ; x++)
+				MRIeraseTalairachPlaneNew(mri_tmp, mri_mask, MRI_SAGITTAL, x, y_cc, 
+																	z_cc, 2*SLICE_SIZE, 0);
+			if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+			{
+				MRIwrite(mri_tmp, "erased.mnc") ;
+				MRIwrite(mri_mask, "mask.mnc") ;
+			}
+		}
+		else
+			mri_tmp = mri_im ;
+    find_pons(mri_tmp, &pons_tal_x, &pons_tal_y, &pons_tal_z) ;
+		if (mri_tmp != mri_im)
+		{
+			MRIfree(&mri_tmp) ;
+			MRIfree(&mri_mask) ;
+		}
+	}
   mri_pons = 
     find_cutting_plane(mri_im, pons_tal_x,pons_tal_y, pons_tal_z,
                        MRI_HORIZONTAL, &x_pons, &y_pons, &z_pons,
@@ -601,6 +634,12 @@ get_option(int argc, char *argv[])
     rh_fill_val = atoi(argv[2]) ;
     nargs = 1 ;
     fprintf(stderr,"using %d as fill val for left hemisphere.\n",rh_fill_val);
+  }
+  else if (!strcmp(option, "ccmask"))
+  {
+		cc_mask = !cc_mask ;
+    fprintf(stderr,"%susing corpus callosum to mask possible location of "
+						"pons.\n", cc_mask ? "" : "not ");
   }
   else switch (toupper(*option))
   {
@@ -1203,7 +1242,7 @@ find_corpus_callosum(MRI *mri, Real *pccx, Real *pccy, Real *pccz)
 
 #define MIN_BRAINSTEM_THICKNESS    15
 #define MAX_BRAINSTEM_THICKNESS    35
-#define MIN_DELTA_THICKNESS         3
+#define MIN_DELTA_THICKNESS         6
 #define MIN_BRAINSTEM_HEIGHT       25
 
 static int
@@ -1430,3 +1469,79 @@ neighbors_on(MRI *mri, int x0, int y0, int z0)
     nbrs++ ;
   return(nbrs) ;
 }
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+          Set an MRI intensity values to 0
+------------------------------------------------------*/
+int
+MRIsetValues(MRI *mri, int val)
+{
+  int   width, depth, height, bytes, y, z, frame, nframes ;
+
+  width = mri->width ;
+  height = mri->height ;
+  depth = mri->depth ;
+  nframes = mri->nframes ;
+  bytes = width ;
+
+  switch (mri->type)
+  {
+  case MRI_BITMAP:
+    bytes /= 8 ;
+    break ;
+  case MRI_FLOAT:
+    bytes *= sizeof(float) ;
+    break ;
+  case MRI_LONG:
+    bytes *= sizeof(long) ;
+    break ;
+  case MRI_INT:
+    bytes *= sizeof(int) ;
+    break ;
+  default:
+    break ;
+  }
+
+  for (frame = 0 ; frame < nframes ; frame++)
+  {
+    for (z = 0 ; z < depth ; z++)
+    {
+      for (y = 0 ; y < height ; y++)
+        memset(mri->slices[z+frame*depth][y], val, bytes) ;
+    }
+  }
+  
+  return(NO_ERROR) ;
+}
+static int
+mriExtendMaskDownward(MRI *mri)
+{
+  int     width, height, depth, x, y, z, y1 ;
+  BUFTYPE *psrc, max_val, val ;
+
+  width = mri->width ;
+  height = mri->height ;
+  depth = mri->depth ;
+
+  for (z = 0 ; z < depth ; z++)
+  {
+    for (y = 0 ; y < height ; y++)
+    {
+      psrc = &MRIvox(mri, 0, y, z) ;
+      for (x = 0 ; x < width ; x++)
+      {
+        if ((val = *psrc++) > 0)
+        {
+					for (y1 = y ; y1 < mri->height ; y1++)
+						MRIvox(mri, x, y1, z) = val ;
+        }
+      }
+    }
+  }
+	return(NO_ERROR) ;
+}
+
