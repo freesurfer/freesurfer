@@ -478,11 +478,17 @@ proc Overlay_DoConfigDlog {} {
     "set gbIgnoreThreshold \$gbIgnoreThreshold" } }
 
 
+#  tkm_MakeSliders $fwThresholdSliders [list \
+#    [list {"Threshold minimum"} gfThreshold(min) \
+#    $gfOverlayRange(min) $gfOverlayRange(max) 100 {} 1 0.25] \
+#    [list {"Threshold midpoint"} gfThreshold(mid) \
+#    $gfOverlayRange(min) $gfOverlayRange(max) 100 {} 1 0.25]]
   tkm_MakeSliders $fwThresholdSliders [list \
     [list {"Threshold minimum"} gfThreshold(min) \
-    $gfOverlayRange(min) $gfOverlayRange(max) 100 {} 1 0.25] \
+    -10000 10000 100 {} 1 0.25] \
     [list {"Threshold midpoint"} gfThreshold(mid) \
-    $gfOverlayRange(min) $gfOverlayRange(max) 100 {} 1 0.25]]
+    -10000 10000 100 {} 1 0.25]]
+
   tkm_MakeEntry $fwThresholdSlope "Threshold slope" gfThreshold(slope) 6
 
 
