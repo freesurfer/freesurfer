@@ -123,6 +123,7 @@ typedef enum {
   tkm_tTclCommand_UpdateVolumeDirty,
   tkm_tTclCommand_UpdateAuxVolumeDirty,
   tkm_tTclCommand_UpdateVolumeValueMinMax,
+  tkm_tTclCommand_UpdateVolumeSampleType,
   
   /* display status */
   tkm_tTclCommand_ShowVolumeCoords,
