@@ -66,6 +66,7 @@ typedef enum {
   tkm_tErr_CouldntAllocate,
   tkm_tErr_SurfaceNotLoaded,
   tkm_tErr_OverlayNotLoaded,
+  tkm_tErr_GCANotLoaded,
   tkm_tErr_SegmentationNotLoaded,
   tkm_tErr_CouldntCacheScriptName,
   tkm_tErr_InvalidScriptName,
@@ -92,7 +93,8 @@ typedef enum {
   tkm_tTclCommand_UpdateFunctionalCoords,
   tkm_tTclCommand_UpdateFunctionalRASCoords,
   tkm_tTclCommand_UpdateFunctionalValue,
-  tkm_tTclCommand_UpdateROILabel,
+  tkm_tTclCommand_UpdateSegLabel,
+  tkm_tTclCommand_UpdateAuxSegLabel,
   tkm_tTclCommand_UpdateHeadPointLabel,
   tkm_tTclCommand_UpdateDistance,
   tkm_tTclCommand_UpdateZoomLevel,
@@ -108,7 +110,7 @@ typedef enum {
   tkm_tTclCommand_UpdateSurfaceLineColor,
   tkm_tTclCommand_UpdateParcBrushInfo,
   tkm_tTclCommand_UpdateVolumeColorScale,
-  tkm_tTclCommand_UpdateROIGroupAlpha,
+  tkm_tTclCommand_UpdateSegmentationVolumeAlpha,
   tkm_tTclCommand_UpdateTimerStatus,
   tkm_tTclCommand_UpdateHomeDirectory,
   tkm_tTclCommand_UpdateVolumeDirty,
@@ -119,7 +121,8 @@ typedef enum {
   tkm_tTclCommand_ShowRASCoords,
   tkm_tTclCommand_ShowTalCoords,
   tkm_tTclCommand_ShowAuxValue,
-  tkm_tTclCommand_ShowROILabel,
+  tkm_tTclCommand_ShowSegLabel,
+  tkm_tTclCommand_ShowAuxSegLabel,
   tkm_tTclCommand_ShowHeadPointLabel,
   tkm_tTclCommand_ShowFuncCoords,
   tkm_tTclCommand_ShowFuncValue,
@@ -135,12 +138,12 @@ typedef enum {
   tkm_tTclCommand_ShowOriginalSurfaceViewingOptions,
   tkm_tTclCommand_ShowCanonicalSurfaceViewingOptions,
   tkm_tTclCommand_ShowHeadPointLabelEditingOptions,
-  tkm_tTclCommand_ShowROIGroupOptions,
   tkm_tTclCommand_ShowVLIOptions,
   tkm_tTclCommand_ShowGCAOptions,
   tkm_tTclCommand_ShowDTIOptions,
   tkm_tTclCommand_ShowOverlayRegistrationOptions,
   tkm_tTclCommand_ShowSegmentationOptions,
+  tkm_tTclCommand_ShowAuxSegmentationOptions,
   tkm_tTclCommand_ClearParcColorTable,
   tkm_tTclCommand_AddParcColorTableEntry,
   
@@ -164,15 +167,26 @@ typedef enum {
 } tkm_tTclCommand;
 
 typedef enum {
-  
   tkm_tVolumeType_Main = 0,
   tkm_tVolumeType_Aux,
-  tkm_tVolumeType_Parc,
   tkm_knNumVolumeTypes
 } tkm_tVolumeType;
 
 typedef enum {
-  
+  tkm_tSegType_Main = 0,
+  tkm_tSegType_Aux,
+  tkm_knNumSegTypes
+} tkm_tSegType;
+
+typedef enum {
+  tkm_tVolumeTarget_MainAna = 0,
+  tkm_tVolumeTarget_AuxAna,
+  tkm_tVolumeTarget_MainSeg,
+  tkm_tVolumeTarget_AuxSeg,
+  tkm_knNumVolumeTargets
+} tkm_tVolumeTarget;
+
+typedef enum {
   tkm_tSurfaceType_Main = 0,
   tkm_tSurfaceType_Aux,
   tkm_knNumSurfaceTypes
@@ -206,39 +220,48 @@ void tkm_DisplayAlert   ( char* isAction, char* isMsg, char* isDesc );
 
 /* volume value */
 void tkm_GetValueAtAnaIdx ( tkm_tVolumeType iVolume,
-          xVoxelRef       iAnaIdx,
-          tVolumeValue*   oValue );
+			    xVoxelRef       iAnaIdx,
+			    tVolumeValue*   oValue );
 void tkm_GetAnaDimension  ( tkm_tVolumeType iVolume,
-          int*            onDimensionX, int*  onDimensionY, int* onDimensionZ );
+			    int*            onDimensionX, 
+			    int*            onDimensionY, 
+			    int*            onDimensionZ );
 tBoolean tkm_IsValidAnaIdx ( tkm_tVolumeType iVolume,
-           xVoxelRef       iAnaIdx );
+			     xVoxelRef       iAnaIdx );
 
-/* roi value */
-void tkm_GetROIColorAtVoxel ( xVoxelRef   iAnaIdx,
-            xColor3fRef iBaseColor,
-            xColor3fRef oColor );
-void tkm_GetROILabel        ( xVoxelRef   iAnaIdx, 
-            int*        onIndex,
-            char*       osLabel );
+/* segmentation value */
+void tkm_GetSegmentationColorAtVoxel ( tkm_tSegType iVolume,
+				       xVoxelRef    iAnaIdx,
+				       xColor3fRef  iBaseColor,
+				       xColor3fRef  oColor );
+void tkm_GetSegLabel                 ( tkm_tSegType iVolume,
+				       xVoxelRef    iAnaIdx, 
+				       int*         onIndex,
+				       char*        osLabel );
 
 /* selects all the voxels in the label with the given index */
-void tkm_SelectCurrentROI     ( int inIndex );
+void tkm_SelectCurrentSegLabel     ( tkm_tSegType iVolume,
+				     int          inIndex );
 /* graphs the avg of all the voxels in the label with the given index */
-void tkm_GraphCurrentROIAvg   ( int inIndex );
+void tkm_GraphCurrentSegLabelAvg   ( tkm_tSegType iVolume,
+				     int          inIndex );
 
-/* get the volume of an roi */
-void tkm_CalcROIVolume ( xVoxelRef iAnaIdx,
-			 int*      onVolume );
-
+/* get the volume of an segmentation label */
+void tkm_CalcSegLabelVolume ( tkm_tSegType iVolume,
+			      xVoxelRef    iAnaIdx,
+			      int*         onVolume );
+ 
 /* editing the parcellation */
-void tkm_EditSegmentation      ( xVoxelRef       iAnaIdx,
-         int             inIndex );
-void tkm_FloodFillSegmentation ( xVoxelRef       iAnaIdx,
-         int             inIndex,
-         tBoolean        ib3D,
-         tkm_tVolumeType iSrc,
-         int             inFuzzy,
-         int             inDistance );
+void tkm_EditSegmentation      ( tkm_tSegType      iVolume,
+				 xVoxelRef         iAnaIdx,
+				 int               inIndex );
+void tkm_FloodFillSegmentation ( tkm_tSegType      iVolume,
+				 xVoxelRef         iAnaIdx,
+				 int               inIndex,
+				 tBoolean          ib3D,
+				 tkm_tVolumeTarget iSrc,
+				 int               inFuzzy,
+				 int               inDistance );
 
 /* dti color */
 void tkm_GetDTIColorAtVoxel ( xVoxelRef        iAnaIdx,

@@ -2,9 +2,9 @@
 // tkmDisplayArea.c
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2003/01/14 15:53:57 $
-// Revision       : $Revision: 1.44 $
+// Revision Author: $Author: kteich $
+// Revision Date  : $Date: 2003/01/14 23:06:52 $
+// Revision       : $Revision: 1.45 $
 
 #include "tkmDisplayArea.h"
 #include "tkmMeditWindow.h"
@@ -109,6 +109,7 @@ DspA_tErr DspA_New ( tkmDisplayAreaRef* oppWindow,
   DspA_tErr         eResult      = DspA_tErr_NoErr;
   tkmDisplayAreaRef this         = NULL;
   int               nFlag        = 0;
+  int               nSegVolume   = 0;
   int               nSurface     = 0;
   xColor3f          color;
   
@@ -152,7 +153,7 @@ DspA_tErr DspA_New ( tkmDisplayAreaRef* oppWindow,
   this->mnVolumeSizeY           = 0;
   this->mnVolumeSizeZ           = 0;
   this->mpSelectedHeadPoint     = NULL;
-  this->mnROIGroupIndex        = -1;
+  this->mnSegmentationVolumeIndex        = -1;
   for( nSurface = 0; nSurface < Surf_knNumVertexSets; nSurface++ )
     DspA_SetSurfaceLineWidth( this, nSurface, 1 );
   xColr_Set( &color, 1, 1, 0 );
@@ -170,7 +171,9 @@ DspA_tErr DspA_New ( tkmDisplayAreaRef* oppWindow,
   /* null ptrs for display data. */
   this->mpVolume                = NULL;
   this->mpAuxVolume             = NULL;
-  this->mROIGroup               = NULL;
+  for( nSegVolume = 0; nSegVolume < tkm_knNumSegTypes; nSegVolume++ ) {
+    this->mSegmentationVolume[nSegVolume] = NULL;
+  }
   for( nSurface = 0; nSurface < tkm_knNumSurfaceTypes; nSurface++ ) {
     this->mpSurface[nSurface]       = NULL;
     this->maSurfaceLists[nSurface]  = NULL;
@@ -195,7 +198,7 @@ DspA_tErr DspA_New ( tkmDisplayAreaRef* oppWindow,
   /* default parc brush info */
   sParcBrush.mNewValue  = 0;
   sParcBrush.mb3D       = FALSE;
-  sParcBrush.mSrc       = tkm_tVolumeType_Main;
+  sParcBrush.mSrc       = tkm_tVolumeTarget_MainAna;
   sParcBrush.mnFuzzy    = 0;
   sParcBrush.mnDistance = 0;
   
@@ -575,11 +578,12 @@ DspA_tErr DspA_SetAuxVolume ( tkmDisplayAreaRef this,
   return eResult;
 }
 
-DspA_tErr DspA_SetROIGroup ( tkmDisplayAreaRef this,
-			     mriVolumeRef      iGroup ) {
+DspA_tErr DspA_SetSegmentationVolume ( tkmDisplayAreaRef this,
+				       tkm_tSegType      iType,
+				       mriVolumeRef      iVolume ) {
   
   DspA_tErr eResult            = DspA_tErr_NoErr;
-  tBoolean  bHaveGroup         = FALSE;
+  tBoolean  bHaveVolume         = FALSE;
   char      sTclArguments[STRLEN] = "";
   
   /* verify us. */
@@ -587,24 +591,43 @@ DspA_tErr DspA_SetROIGroup ( tkmDisplayAreaRef this,
   if( DspA_tErr_NoErr != eResult )
     goto error;
   
+  DebugAssertThrowX( (iType >= 0 && iType < tkm_knNumSegTypes),
+		     eResult, DspA_tErr_InvalidParameter );
+
   /* save the group */
-  this->mROIGroup = iGroup;
+  this->mSegmentationVolume[iType] = iVolume;
   
   /* turn stuff on or off based on if we have one. */
-  if( this->mROIGroup != NULL ) {
-    bHaveGroup = TRUE;
+  if( this->mSegmentationVolume[iType] != NULL ) {
+    bHaveVolume = TRUE;
   }
   
-  /* turn roi group on */
-  eResult = DspA_SetDisplayFlag( this, DspA_tDisplayFlag_ROIGroupOverlay,
-				 bHaveGroup );
-  if( DspA_tErr_NoErr != eResult )
-    goto error;
-  
-  /* show roi label */
-  sprintf( sTclArguments, "%d", (int)bHaveGroup );
-  tkm_SendTclCommand( tkm_tTclCommand_ShowROILabel, sTclArguments );
-  tkm_SendTclCommand( tkm_tTclCommand_ShowROIGroupOptions, sTclArguments );
+  /* show the appropriate seg label and highlight the appropriate
+     volume. */
+  sprintf( sTclArguments, "%d", (int)bHaveVolume );
+  switch( iType ) {
+  case tkm_tSegType_Main:
+    tkm_SendTclCommand( tkm_tTclCommand_ShowSegLabel, sTclArguments );
+    if( bHaveVolume ) {
+      DspA_SetDisplayFlag( this, 
+			   DspA_tDisplayFlag_SegmentationVolumeOverlay, TRUE );
+      DspA_SetDisplayFlag( this,
+			   DspA_tDisplayFlag_AuxSegmentationVolume, FALSE );
+    }
+    break;
+  case tkm_tSegType_Aux:
+    tkm_SendTclCommand( tkm_tTclCommand_ShowAuxSegLabel, sTclArguments );
+    if( bHaveVolume ) {
+      DspA_SetDisplayFlag( this, 
+			   DspA_tDisplayFlag_SegmentationVolumeOverlay, TRUE );
+      DspA_SetDisplayFlag( this, DspA_tDisplayFlag_AuxSegmentationVolume,
+			   TRUE );
+    }
+    break;
+  default:
+  }
+  tkm_SendTclCommand( tkm_tTclCommand_ShowSegmentationOptions, 
+		      sTclArguments );
   
   /* if we're focused, send the new information for the cursor */
   if( sFocusedDisplay == this ) {
@@ -622,7 +645,7 @@ DspA_tErr DspA_SetROIGroup ( tkmDisplayAreaRef this,
   
   /* print error message */
   if( DspA_tErr_NoErr != eResult ) {
-    DebugPrint( ("Error %d in DspA_SetROIGroup: %s\n",
+    DebugPrint( ("Error %d in DspA_SetSegmentationVolume: %s\n",
 		 eResult, DspA_GetErrorString(eResult) ) );
   }
   
@@ -1445,9 +1468,10 @@ DspA_tErr DspA_SetDisplayFlag ( tkmDisplayAreaRef this,
 				DspA_tDisplayFlag iWhichFlag,
 				tBoolean          ibNewValue ) {
   
-  DspA_tErr eResult            = DspA_tErr_NoErr;
-  char      sTclArguments[STRLEN] = "";
-  tBoolean  bNewValue          = FALSE;
+  DspA_tErr    eResult               = DspA_tErr_NoErr;
+  char         sTclArguments[STRLEN] = "";
+  tBoolean     bNewValue             = FALSE;
+  tkm_tSegType segType               = tkm_tSegType_Main;
   
   /* verify us. */
   eResult = DspA_Verify( this );
@@ -1490,11 +1514,29 @@ DspA_tErr DspA_SetDisplayFlag ( tkmDisplayAreaRef this,
     
     break;
     
-  case DspA_tDisplayFlag_ROIGroupOverlay:
-  case DspA_tDisplayFlag_ROIVolumeCount:
+  case DspA_tDisplayFlag_AuxSegmentationVolume:
     
-    /* if no roi group, set to false. */
-    if( NULL == this->mROIGroup )
+    /* if no aux seg volume, set to false. */
+    if( NULL == this->mSegmentationVolume[tkm_tSegType_Aux] )
+      bNewValue = FALSE;
+
+    /* if the flag is different, set dirty flag */
+    if( this->mabDisplayFlags[iWhichFlag] != bNewValue )
+      this->mbSliceChanged = TRUE;
+
+    break;
+
+  case DspA_tDisplayFlag_SegmentationVolumeOverlay:
+  case DspA_tDisplayFlag_SegLabelVolumeCount:
+    
+    if( this->mabDisplayFlags[DspA_tDisplayFlag_AuxSegmentationVolume] ) {
+      segType = tkm_tSegType_Aux;
+    } else {
+      segType = tkm_tSegType_Main;
+    }
+
+    /* if no segmentation, set to false. */
+    if( NULL == this->mSegmentationVolume[segType] )
       bNewValue = FALSE;
     
     /* if the flag is different, set dirty flag */
@@ -2450,10 +2492,11 @@ DspA_tErr DspA_HandleEvent ( tkmDisplayAreaRef this,
 DspA_tErr DspA_HandleMouseUp_ ( tkmDisplayAreaRef this, 
 				xGWin_tEventRef   ipEvent ) {
   
-  DspA_tErr   eResult     = DspA_tErr_NoErr;
-  xPoint2n    bufferPt    = {0,0};
-  xVoxelRef   pVolumeVox  = NULL;
-  int         nParcIndex  = 0;
+  DspA_tErr    eResult     = DspA_tErr_NoErr;
+  xPoint2n     bufferPt    = {0,0};
+  xVoxelRef    pVolumeVox  = NULL;
+  int          nParcIndex  = 0;
+  tkm_tSegType segType     = tkm_tSegType_Main;
   DspA_tParcBrushSettings parcBrush;
   
   xVoxl_New( &pVolumeVox );
@@ -2548,8 +2591,13 @@ DspA_tErr DspA_HandleMouseUp_ ( tkmDisplayAreaRef this,
   }
   
   /* if edit parc tool... */
+  if( this->mabDisplayFlags[DspA_tDisplayFlag_AuxSegmentationVolume] ) {
+    segType = tkm_tSegType_Aux;
+  } else {
+    segType = tkm_tSegType_Main;
+  }
   if( DspA_tTool_EditSegmentation == sTool
-      && NULL != this->mROIGroup
+      && NULL != this->mSegmentationVolume[segType]
       && !ipEvent->mbCtrlKey) {
     
     switch( ipEvent->mButton ) {
@@ -2562,9 +2610,10 @@ DspA_tErr DspA_HandleMouseUp_ ( tkmDisplayAreaRef this,
 	
 	/* get the color and set our brush info with the same settings
 	   except for the new color */
-	tkm_GetROILabel( pVolumeVox, &nParcIndex, NULL );
+	tkm_GetSegLabel( segType, pVolumeVox, &nParcIndex, NULL );
 	parcBrush = sParcBrush;
 	parcBrush.mNewValue = nParcIndex;
+	parcBrush.mDest = segType;
 	DspA_SetParcBrushInfo( this, &parcBrush );
 	
       } else {
@@ -2580,15 +2629,15 @@ DspA_tErr DspA_HandleMouseUp_ ( tkmDisplayAreaRef this,
       
       /* button three does a flood fill */
     case 3:
-      tkm_FloodFillSegmentation( pVolumeVox, sParcBrush.mNewValue, 
+      tkm_FloodFillSegmentation( segType, pVolumeVox, sParcBrush.mNewValue, 
 				 sParcBrush.mb3D, sParcBrush.mSrc, 
 				 sParcBrush.mnFuzzy, sParcBrush.mnDistance );
       this->mbSliceChanged = TRUE;
       break;
     }
     
-    /* send the cursor info again to update the new roi volume after 
-       editing. */
+    /* send the cursor info again to update the new seg label volume
+       after editing. */
     eResult = DspA_SendPointInformationToTcl_( this, DspA_tDisplaySet_Cursor,
 					       pVolumeVox );
     if ( DspA_tErr_NoErr != eResult )
@@ -2771,6 +2820,7 @@ DspA_tErr DspA_HandleMouseMoved_ ( tkmDisplayAreaRef this,
   xVoxel             newCenterIdx;
   int                nNewSlice    = 0;
   int                nNewZoomLevel= 0;
+  tkm_tSegType       segType      = tkm_tSegType_Main;
   
   xVoxl_New( &pVolumeVox );
   
@@ -2882,12 +2932,18 @@ DspA_tErr DspA_HandleMouseMoved_ ( tkmDisplayAreaRef this,
   }
   
   /* if edit parc tool button 1... */
+  if( this->mabDisplayFlags[DspA_tDisplayFlag_AuxSegmentationVolume] ) {
+    segType = tkm_tSegType_Aux;
+  } else {
+    segType = tkm_tSegType_Main;
+  }
   if( DspA_tTool_EditSegmentation == sTool
-      && NULL != this->mROIGroup
+      && NULL != this->mSegmentationVolume[segType]
       && ipEvent->mButton == 2
       && !(ipEvent->mbAltKey)) {
     
     /* edit the parc volume */
+    sParcBrush.mDest = segType;
     eResult = DspA_BrushVoxels_( this, pVolumeVox, 
 				 NULL, DspA_EditSegmentationVoxels_ );
     if( DspA_tErr_NoErr != eResult )
@@ -3093,7 +3149,7 @@ DspA_tErr DspA_HandleKeyDown_ ( tkmDisplayAreaRef this,
     
   case 'm':
     /* m toggles the segmentation display */
-    eResult = DspA_ToggleDisplayFlag( this, DspA_tDisplayFlag_ROIGroupOverlay);
+    eResult = DspA_ToggleDisplayFlag( this, DspA_tDisplayFlag_SegmentationVolumeOverlay);
     if ( DspA_tErr_NoErr != eResult )
       goto error;
     break;
@@ -3461,23 +3517,30 @@ void DspA_SelectVoxels_ ( xVoxelRef ipVoxel, void* ipData ) {
 }
 
 void DspA_EditSegmentationVoxels_ ( xVoxelRef ipVoxel, void* ipData ) {
-  
-  tkm_EditSegmentation( ipVoxel, sParcBrush.mNewValue );
+
+  tkm_EditSegmentation( sParcBrush.mDest, ipVoxel, sParcBrush.mNewValue );
 }
 
-DspA_tErr DspA_SelectCurrentROI ( tkmDisplayAreaRef this ) {
+DspA_tErr DspA_SelectCurrentSegLabel ( tkmDisplayAreaRef this ) {
   
   DspA_tErr eResult = DspA_tErr_NoErr;
+  tkm_tSegType segType = tkm_tSegType_Main;
   
   /* verify us. */
   eResult = DspA_Verify ( this );
   if ( DspA_tErr_NoErr != eResult )
     goto error;
   
+  if( this->mabDisplayFlags[DspA_tDisplayFlag_AuxSegmentationVolume] ) {
+    segType = tkm_tSegType_Aux;
+  } else {
+    segType = tkm_tSegType_Main;
+  }
+  
   /* if we have the data and our index is good, tell tkmedit to select stuff */
-  if( NULL != this->mROIGroup
-      && -1 != this->mnROIGroupIndex ) {
-    tkm_SelectCurrentROI( this->mnROIGroupIndex );
+  if( NULL != this->mSegmentationVolume[segType]
+      && -1 != this->mnSegmentationVolumeIndex ) {
+    tkm_SelectCurrentSegLabel( segType, this->mnSegmentationVolumeIndex );
   }
   
   goto cleanup;
@@ -3486,7 +3549,7 @@ DspA_tErr DspA_SelectCurrentROI ( tkmDisplayAreaRef this ) {
   
   /* print error message */
   if ( DspA_tErr_NoErr != eResult ) {
-    DebugPrint( ("Error %d in DspA_SelectCurrentROI: %s\n",
+    DebugPrint( ("Error %d in DspA_SelectCurrentSegLabel: %s\n",
 		 eResult, DspA_GetErrorString(eResult) ) );
   }
   
@@ -3495,19 +3558,26 @@ DspA_tErr DspA_SelectCurrentROI ( tkmDisplayAreaRef this ) {
   return eResult;
 }
 
-DspA_tErr DspA_GraphCurrentROIAvg ( tkmDisplayAreaRef this ) {
+DspA_tErr DspA_GraphCurrentSegLabelAvg ( tkmDisplayAreaRef this ) {
   
-  DspA_tErr eResult = DspA_tErr_NoErr;
+  DspA_tErr    eResult = DspA_tErr_NoErr;
+  tkm_tSegType segType = tkm_tSegType_Main;
   
   /* verify us. */
   eResult = DspA_Verify ( this );
   if ( DspA_tErr_NoErr != eResult )
     goto error;
   
+  if( this->mabDisplayFlags[DspA_tDisplayFlag_AuxSegmentationVolume] ) {
+    segType = tkm_tSegType_Aux;
+  } else {
+    segType = tkm_tSegType_Main;
+  }
+
   /* if we have the data and our index is good, tell tkmedit to handle it */
-  if( NULL != this->mROIGroup
-      && -1 != this->mnROIGroupIndex ) {
-    tkm_GraphCurrentROIAvg( this->mnROIGroupIndex );
+  if( NULL != this->mSegmentationVolume[segType]
+      && -1 != this->mnSegmentationVolumeIndex ) {
+    tkm_GraphCurrentSegLabelAvg( segType, this->mnSegmentationVolumeIndex );
   }
   
   goto cleanup;
@@ -3516,7 +3586,7 @@ DspA_tErr DspA_GraphCurrentROIAvg ( tkmDisplayAreaRef this ) {
   
   /* print error message */
   if ( DspA_tErr_NoErr != eResult ) {
-    DebugPrint( ("Error %d in DspA_GraphCurrentROIAvg: %s\n",
+    DebugPrint( ("Error %d in DspA_GraphCurrentSegLabelAvg: %s\n",
 		 eResult, DspA_GetErrorString(eResult) ) );
   }
   
@@ -4167,7 +4237,7 @@ DspA_tErr DspA_BuildCurrentFrame_ ( tkmDisplayAreaRef this ) {
   FunV_tFunctionalValue funcValue   = 0.0;
   xColor3f              color       = {0,0,0};
   xColor3f              funcColor   = {0,0,0};
-  xColor3f              roiColor    = {0,0,0};
+  xColor3f              segColor    = {0,0,0};
   xColor3f              dtiColor    = {0,0,0};
   int                   nY          = 0;
   
@@ -4258,12 +4328,18 @@ DspA_tErr DspA_BuildCurrentFrame_ ( tkmDisplayAreaRef this ) {
 	  color = dtiColor;
 	}
 	
-	/* if we are showing roi... */
-	if( this->mabDisplayFlags[DspA_tDisplayFlag_ROIGroupOverlay] ) {
+	/* if we are showing segmentation... */
+	if(this->mabDisplayFlags[DspA_tDisplayFlag_SegmentationVolumeOverlay]){
 	  
-	  /* get roi color blended in. */
-	  tkm_GetROIColorAtVoxel( pVoxel, &color, &roiColor );
-	  color = roiColor;
+	  /* get seg color blended in. */
+	  if(this->mabDisplayFlags[DspA_tDisplayFlag_AuxSegmentationVolume]) {
+	    tkm_GetSegmentationColorAtVoxel( tkm_tSegType_Aux, 
+					     pVoxel, &color, &segColor );
+	  } else {
+	    tkm_GetSegmentationColorAtVoxel( tkm_tSegType_Main, 
+					     pVoxel, &color, &segColor );
+	  }
+	  color = segColor;
 	}
 	
 	/* if we are showing undoable voxels... */
@@ -6005,11 +6081,12 @@ DspA_tErr DspA_SendPointInformationToTcl_ ( tkmDisplayAreaRef this,
   xVoxel                funcRAS;
   FunV_tFunctionalValue funcValue          = 0;
   tBoolean              bFuncSelection     = FALSE;
-  int                   nROIIndex          = 0;
+  int                   nSegLabelIndex     = 0;
   char                  sLabel[STRLEN]        = "";
   int                   nValue             = 0;
   DspA_tHistogramParams histoParams;
   float                 fDistance          = 0;
+  tkm_tSegType          segType            = tkm_tSegType_Main;
 
   xVoxel MRIIdx;
 
@@ -6171,21 +6248,27 @@ DspA_tErr DspA_SendPointInformationToTcl_ ( tkmDisplayAreaRef this,
 			sTclArguments );
   }
   
-  /* and the roi label if we have one */
-  if( NULL != this->mROIGroup ) {
-    tkm_GetROILabel( iAnaIdx, &nROIIndex, sLabel );
+  /* and the seg label if we have one */
+  if( NULL != this->mSegmentationVolume[tkm_tSegType_Main] ) {
+
+    tkm_GetSegLabel( tkm_tSegType_Main, iAnaIdx, &nSegLabelIndex, sLabel );
     
-    /* if this is a click, set the index */
-    if( DspA_tDisplaySet_Cursor == iSet ) {
-      this->mnROIGroupIndex = nROIIndex;
+    /* if this is a click, and this is the seg volume we're looking
+       at, set the index */
+    if( DspA_tDisplaySet_Cursor == iSet &&
+	!this->mabDisplayFlags[DspA_tDisplayFlag_AuxSegmentationVolume]) {
+      this->mnSegmentationVolumeIndex = nSegLabelIndex;
     }
     
-    /* if this is a click with the edit tool and the volume count flag is
-       on, calc and display the volume */
+    /* if this is a click with the edit tool and the volume count flag
+       is on, and this is the volume we're looking at, calc and
+       display the volume */
     if( DspA_tDisplaySet_Cursor == iSet &&
         DspA_tTool_EditSegmentation == sTool &&
-        this->mabDisplayFlags[DspA_tDisplayFlag_ROIVolumeCount] ) {
-      tkm_CalcROIVolume( iAnaIdx, &nValue );
+        this->mabDisplayFlags[DspA_tDisplayFlag_SegLabelVolumeCount] &&
+	!this->mabDisplayFlags[DspA_tDisplayFlag_AuxSegmentationVolume]) {
+
+      tkm_CalcSegLabelVolume( tkm_tSegType_Main, iAnaIdx, &nValue );
       sprintf( sTclArguments, "%s \"%s (%d)\"",
                DspA_ksaDisplaySet[iSet], sLabel, nValue );
       
@@ -6194,7 +6277,39 @@ DspA_tErr DspA_SendPointInformationToTcl_ ( tkmDisplayAreaRef this,
       sprintf( sTclArguments, "%s \"%s\"",
                DspA_ksaDisplaySet[iSet], sLabel );
     }
-    tkm_SendTclCommand( tkm_tTclCommand_UpdateROILabel, sTclArguments );
+    tkm_SendTclCommand( tkm_tTclCommand_UpdateSegLabel, sTclArguments );
+  }
+  
+  /* and the aux seg label if we have one */
+  if( NULL != this->mSegmentationVolume[tkm_tSegType_Aux] ) {
+
+    tkm_GetSegLabel( tkm_tSegType_Aux, iAnaIdx, &nSegLabelIndex, sLabel );
+    
+    /* if this is a click, and this is the seg volume we're looking
+       at, set the index */
+    if( DspA_tDisplaySet_Cursor == iSet &&
+	this->mabDisplayFlags[DspA_tDisplayFlag_AuxSegmentationVolume]) {
+      this->mnSegmentationVolumeIndex = nSegLabelIndex;
+    }
+    
+    /* if this is a click with the edit tool and the volume count flag
+       is on, and this is the volume we're looking at, calc and
+       display the volume */
+    if( DspA_tDisplaySet_Cursor == iSet &&
+        DspA_tTool_EditSegmentation == sTool &&
+        this->mabDisplayFlags[DspA_tDisplayFlag_SegLabelVolumeCount] &&
+	this->mabDisplayFlags[DspA_tDisplayFlag_AuxSegmentationVolume]) {
+
+      tkm_CalcSegLabelVolume( tkm_tSegType_Aux, iAnaIdx, &nValue );
+      sprintf( sTclArguments, "%s \"%s (%d)\"",
+               DspA_ksaDisplaySet[iSet], sLabel, nValue );
+      
+      /* else just the label */
+    } else {
+      sprintf( sTclArguments, "%s \"%s\"",
+               DspA_ksaDisplaySet[iSet], sLabel );
+    }
+    tkm_SendTclCommand( tkm_tTclCommand_UpdateAuxSegLabel, sTclArguments );
   }
   
   /* and the head point label if it's on */

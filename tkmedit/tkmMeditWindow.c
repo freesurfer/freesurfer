@@ -592,9 +592,10 @@ MWin_tErr MWin_SetAuxVolume ( tkmMeditWindowRef this,
   return eResult;
 }
 
-MWin_tErr MWin_SetROIGroup ( tkmMeditWindowRef this,
-           int               inDispIndex,
-           mriVolumeRef      iGroup ) {
+MWin_tErr MWin_SetSegmentationVolume ( tkmMeditWindowRef this,
+				       tkm_tSegType      iType,
+				       int               inDispIndex,
+				       mriVolumeRef      iVolume ) {
 
   MWin_tErr eResult       = MWin_tErr_NoErr;
   DspA_tErr eDispResult   = DspA_tErr_NoErr;
@@ -623,7 +624,9 @@ MWin_tErr MWin_SetROIGroup ( tkmMeditWindowRef this,
   nDispIndex < nDispIndexMax; 
   nDispIndex++ ) {
 
-    eDispResult = DspA_SetROIGroup ( this->mapDisplays[nDispIndex], iGroup );
+    eDispResult = 
+      DspA_SetSegmentationVolume ( this->mapDisplays[nDispIndex], 
+				   iType, iVolume );
     if ( DspA_tErr_NoErr != eDispResult ) {
       eResult = MWin_tErr_ErrorAccessingDisplay;
       goto error;
@@ -636,7 +639,7 @@ MWin_tErr MWin_SetROIGroup ( tkmMeditWindowRef this,
 
   /* print error message */
   if ( MWin_tErr_NoErr != eResult ) {
-    DebugPrint( ("Error %d in MWin_SetROIGroup: %s\n",
+    DebugPrint( ("Error %d in MWin_SetSegmentationVolume: %s\n",
       eResult, MWin_GetErrorString(eResult) ) );
   }
 
@@ -2654,11 +2657,11 @@ MWin_tErr MWin_RegisterTclCommands ( tkmMeditWindowRef this,
   Tcl_CreateCommand ( ipInterp, "SetParcBrushInfo",
           MWin_TclSetParcBrushInfo,
           (ClientData) this, (Tcl_CmdDeleteProc*) NULL );
-  Tcl_CreateCommand ( ipInterp, "SelectCurrentROI",
-          MWin_TclSelectCurrentROI,
+  Tcl_CreateCommand ( ipInterp, "SelectCurrentSegLabel",
+          MWin_TclSelectCurrentSegLabel,
           (ClientData) this, (Tcl_CmdDeleteProc*) NULL );
-  Tcl_CreateCommand ( ipInterp, "GraphCurrentROIAvg",
-          MWin_TclGraphCurrentROIAvg,
+  Tcl_CreateCommand ( ipInterp, "GraphCurrentSegLabelAvg",
+          MWin_TclGraphCurrentSegLabelAvg,
           (ClientData) this, (Tcl_CmdDeleteProc*) NULL );
   Tcl_CreateCommand ( ipInterp, "SetSurfaceDistanceAtCursor",
           MWin_TclSetSurfaceDistanceAtCursor,
@@ -3948,9 +3951,9 @@ int MWin_TclSetSurfaceLineColor ( ClientData  ipClientData,
 
 
 int MWin_TclSetParcBrushInfo ( ClientData  ipClientData, 
-             Tcl_Interp* ipInterp,
-             int         argc,
-             char*       argv[] ) {
+			       Tcl_Interp* ipInterp,
+			       int         argc,
+			       char*       argv[] ) {
 
   tkmMeditWindowRef this         = NULL;
   int               eTclResult   = TCL_OK;
@@ -3985,14 +3988,14 @@ int MWin_TclSetParcBrushInfo ( ClientData  ipClientData,
   /* parse the args and get a color and 3d */
   settings.mNewValue   = (int) atoi( argv[1] );
   settings.mb3D        = (int) atoi( argv[2] );
-  settings.mSrc        = (tkm_tVolumeType) atoi( argv[3] );
+  settings.mSrc        = (tkm_tVolumeTarget) atoi( argv[3] );
   settings.mnFuzzy     = (int) atoi( argv[4] );
   settings.mnDistance  = (int) atoi( argv[5] );
 
   /* call on the last clicked display. */
   eDispResult = 
     DspA_SetParcBrushInfo ( this->mapDisplays[this->mnLastClickedArea], 
-          &settings );
+			    &settings );
   if ( DspA_tErr_NoErr != eDispResult ) {
     eResult = MWin_tErr_ErrorAccessingDisplay;
     goto error;
@@ -4020,7 +4023,7 @@ int MWin_TclSetParcBrushInfo ( ClientData  ipClientData,
   return eTclResult;
 }
 
-int MWin_TclSelectCurrentROI ( ClientData  iClientData, 
+int MWin_TclSelectCurrentSegLabel ( ClientData  iClientData, 
              Tcl_Interp* ipInterp,
              int         argc,
              char*       argv[] ) {
@@ -4055,7 +4058,7 @@ int MWin_TclSelectCurrentROI ( ClientData  iClientData,
   }
 
   /* pass on to the last clicked display. */
-  eDispResult = DspA_SelectCurrentROI
+  eDispResult = DspA_SelectCurrentSegLabel
     ( this->mapDisplays[this->mnLastClickedArea] );
   if ( DspA_tErr_NoErr != eDispResult ) {
     eResult = MWin_tErr_ErrorAccessingDisplay;
@@ -4068,7 +4071,7 @@ int MWin_TclSelectCurrentROI ( ClientData  iClientData,
   /* print error message */
   if ( MWin_tErr_NoErr != eResult ) {
 
-    sprintf ( sError, "Error %d in MWin_TclSelectCurrentROI: %s\n",
+    sprintf ( sError, "Error %d in MWin_TclSelectCurrentSegLabel: %s\n",
         eResult, MWin_GetErrorString(eResult) );
 
     DebugPrint( (sError ) );
@@ -4084,7 +4087,7 @@ int MWin_TclSelectCurrentROI ( ClientData  iClientData,
   return eTclResult;
 }
 
-int MWin_TclGraphCurrentROIAvg ( ClientData  iClientData, 
+int MWin_TclGraphCurrentSegLabelAvg ( ClientData  iClientData, 
          Tcl_Interp* ipInterp,
          int         argc,
          char*       argv[] ) {
@@ -4119,7 +4122,7 @@ int MWin_TclGraphCurrentROIAvg ( ClientData  iClientData,
   }
 
   /* pass on to the last clicked display. */
-  eDispResult = DspA_GraphCurrentROIAvg
+  eDispResult = DspA_GraphCurrentSegLabelAvg
     ( this->mapDisplays[this->mnLastClickedArea] );
   if ( DspA_tErr_NoErr != eDispResult ) {
     eResult = MWin_tErr_ErrorAccessingDisplay;
@@ -4132,7 +4135,7 @@ int MWin_TclGraphCurrentROIAvg ( ClientData  iClientData,
   /* print error message */
   if ( MWin_tErr_NoErr != eResult ) {
 
-    sprintf ( sError, "Error %d in MWin_TclGraphCurrentROIAvg: %s\n",
+    sprintf ( sError, "Error %d in MWin_TclGraphCurrentSegLabelAvg: %s\n",
         eResult, MWin_GetErrorString(eResult) );
 
     DebugPrint( (sError ) );

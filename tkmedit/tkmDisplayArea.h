@@ -59,8 +59,9 @@ typedef enum {
   DspA_tDisplayFlag_FunctionalColorScaleBar,
   DspA_tDisplayFlag_MaskToFunctionalOverlay,
   DspA_tDisplayFlag_HistogramPercentChange,
-  DspA_tDisplayFlag_ROIGroupOverlay,
-  DspA_tDisplayFlag_ROIVolumeCount,
+  DspA_tDisplayFlag_SegmentationVolumeOverlay,
+  DspA_tDisplayFlag_AuxSegmentationVolume,
+  DspA_tDisplayFlag_SegLabelVolumeCount,
   DspA_tDisplayFlag_DTIOverlay,
   DspA_tDisplayFlag_VectorField,
   DspA_tDisplayFlag_FocusFrame,
@@ -132,12 +133,14 @@ typedef struct {
 
 /* parcellation brush settings. */
 typedef struct {
-  int             mNewValue;
-  tBoolean        mb3D;
-  tkm_tVolumeType mSrc; 
-  int             mnFuzzy;
-  int             mnDistance;
-  
+  int               mNewValue;
+  tBoolean          mb3D;
+  tkm_tVolumeTarget mSrc;       /* Volume to use as source voxels. */
+  int               mnFuzzy;
+  int               mnDistance;
+  tkm_tSegType      mDest;      /* The volume to affect; determined by which
+				   seg volume is active. */
+
 } DspA_tParcBrushSettings;
 
 
@@ -237,7 +240,7 @@ struct tkmDisplayArea {
   tBoolean               mabDisplayFlags [DspA_knNumDisplayFlags];
   tBoolean               mbSliceChanged;
   HPtL_tHeadPointRef     mpSelectedHeadPoint;
-  int                    mnROIGroupIndex;
+  int                    mnSegmentationVolumeIndex;
   int                    manSurfaceLineWidth[Surf_knNumVertexSets];
   xColor3f               maSurfaceLineColor[Surf_knNumVertexSets];
   
@@ -257,7 +260,7 @@ struct tkmDisplayArea {
   /* display data */
   mriVolumeRef           mpVolume;
   mriVolumeRef           mpAuxVolume;
-  mriVolumeRef           mROIGroup;
+  mriVolumeRef           mSegmentationVolume[tkm_knNumSegTypes];
   mriSurfaceRef          mpSurface[tkm_knNumSurfaceTypes];
   tkmFunctionalVolumeRef mpFunctionalVolume;
   x3DListRef             mpControlPoints;
@@ -318,8 +321,9 @@ DspA_tErr DspA_SetAuxVolume                  ( tkmDisplayAreaRef this,
                                                int               inSizeX,
                                                int               inSizeY,
                                                int               inSizeZ) ;
-DspA_tErr DspA_SetROIGroup                   ( tkmDisplayAreaRef this,
-					       mriVolumeRef      iGroup );
+DspA_tErr DspA_SetSegmentationVolume         ( tkmDisplayAreaRef this,
+					       tkm_tSegType      iType,
+					       mriVolumeRef      iVolume );
 DspA_tErr DspA_SetSurface                    ( tkmDisplayAreaRef this, 
 					       tkm_tSurfaceType  iType,
 					       mriSurfaceRef     ipSurface );
@@ -441,11 +445,11 @@ void DspA_SelectVoxels_           ( xVoxelRef ipVoxel, void* );
 /* no parameter here */
 void DspA_EditSegmentationVoxels_ ( xVoxelRef ipVoxel, void* );
 
-/* select the currently clicked roi */
-DspA_tErr DspA_SelectCurrentROI ( tkmDisplayAreaRef this );
+/* select the currently clicked seg label */
+DspA_tErr DspA_SelectCurrentSegLabel ( tkmDisplayAreaRef this );
 
-/* graph the avg of the currently clicked roi */
-DspA_tErr DspA_GraphCurrentROIAvg ( tkmDisplayAreaRef this );
+/* graph the avg of the currently clicked seg label */
+DspA_tErr DspA_GraphCurrentSegLabelAvg ( tkmDisplayAreaRef this );
 
 /* gets current mouse position, translates to volume idx, and sends
    info to tcl as mouseover info. */

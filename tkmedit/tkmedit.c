@@ -1,11 +1,12 @@
 /*============================================================================
   Copyright (c) 1996 Martin Sereno and Anders Dale
-  =============================================================================*/
+  ===========================================================================*/
+
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2003/01/13 23:10:42 $
-// Revision       : $Revision: 1.121 $
-char *VERSION = "$Revision: 1.121 $";
+// Revision Author: $Author: kteich $
+// Revision Date  : $Date: 2003/01/14 23:06:52 $
+// Revision       : $Revision: 1.122 $
+char *VERSION = "$Revision: 1.122 $";
 
 #define TCL
 #define TKMEDIT 
@@ -104,6 +105,7 @@ char *tkm_ksaErrorStrings [tkm_knNumErrorCodes] = {
   "A memory allocation failed.",
   "Tried to call a function on an unloaded surface.",
   "Functional overlay is not loaded.",
+  "GCA volume is not loaded.",
   "Segmentation data is not loaded.",
   "Couldn't cache the script name.",
   "gettimeofday failed.",
@@ -196,15 +198,15 @@ char *ksaFileNameSubDirs[tkm_knNumFileNameTypes] = {
    remainder of the input file name. if it starts with a /, nothing will be
    added. */
 void MakeFileName ( char*     isInput,
-        tkm_tFileName  iType, 
-        char*         osCompleteFileName,
-        int         inDestSize );
+		    tkm_tFileName  iType, 
+		    char*         osCompleteFileName,
+		    int         inDestSize );
 
 /* attempts to extract a name from the data */
 void ExtractSubjectName ( char* isDataSource,
-        char* osSubjectName );
+			  char* osSubjectName );
 void ExtractVolumeName  ( char* isDataSource,
-        char* osVolumeName );
+			  char* osVolumeName );
 
 /* only tries to prepend subdirectories if this flag is true. it is set to
    false if -f is used on the command line. */
@@ -389,90 +391,163 @@ void ScaleOverlayRegisgtration     ( float ifDistance, char isDirection );
 
 // ===========================================================================
 
-// ================================================ SEGMENTATION and ROI GROUPS
+// ============================================================== SEGMENTATION
 
 #include "mriColorLookupTable.h"
 
-#define kfDefaultROIGroupAlpha 0.3
+#define kfDefaultSegmentationAlpha 0.3
 
-static mriVolumeRef        gPreviousSegmentationVolume    = NULL;
-static mriVolumeRef        gSegmentationVolume    = NULL;
-static mriVolumeRef        gSegmentationChangedVolume    = NULL;
+/* gSegmentationVolume is the normal segmentation volume,
+   gPreviousSegmentationVolume is a backup that is created before it
+   is recomputed in RecomputeSegmentation, and
+   gSegmentationChangedVolume contains flags at the values that were
+   changed in this session. */
+static mriVolumeRef  gSegmentationVolume[tkm_knNumSegTypes];
+static mriVolumeRef  gPreviousSegmentationVolume[tkm_knNumSegTypes];
+static mriVolumeRef  gSegmentationChangedVolume[tkm_knNumSegTypes];
+
 static mriColorLookupTableRef gColorTable  = NULL;
-static float          gfROIAlpha   = kfDefaultROIGroupAlpha;
+static float         gfSegmentationAlpha   = kfDefaultSegmentationAlpha;
 
-void RecomputeSegmentation(mriVolumeRef inVol, 
-			   mriVolumeRef inSegVol, mriVolumeRef inSegChanged, 
-			   mriVolumeRef outVol) ;
+/* Creates a new segementation volume from the settings from an
+   existing anatomical volume, basically just copying it and erasing
+   the value contents. */
+tkm_tErr NewSegmentationVolume  ( tkm_tSegType    iVolume,
+				  tkm_tVolumeType iFromVolume,
+				  char*           inColorFileName );
 
-tkm_tErr NewSegmentationVolume ( tkm_tVolumeType iFromVolume,
-				 char*           inColorFileName );
+/* Loads a segmentation volume, can be a different dimension than the
+   anatomical (i think) */
+tkm_tErr LoadSegmentationVolume ( tkm_tSegType    iVolume,
+				  char*           inVolumeDir,
+				  char*           inColorFileName );
 
-tkm_tErr LoadSegmentationVolume ( char* inVolumeDirWithPrefix,
-				  char* inColorFileName );
-void SaveSegmentationVolume ( char* inVolumeDirWithPrefix );
+/* Saves a segmentation volume to COR format. */
+void SaveSegmentationVolume     ( tkm_tSegType    iVolume,
+				  char*           inVolumeDir );
 
-tkm_tErr ImportSurfaceAnnotationToSegmentation ( char* inAnnotationFileName,
-						 char* inColorFileName );
+/* Uses the ChangedVolume to save a volume with only those label
+   values that have been editied in this session. Basically an AND of
+   the SegmentationVolume and ChangedVolume. */
+typedef struct {
+  mriVolumeRef mSrcVolume;
+  mriVolumeRef mDestVolume;
+} tkm_tExportSegmentationParams, *tkm_tExportSegmentationParamsRef;
+tkm_tErr ExportChangedSegmentationVolume ( tkm_tSegType    iVolume,
+					   char*           inVolumeDir );
+
+/* Creates an segmentation from a surface annotation file. Only the
+   voxel values that lie on the surface will be filled. */
+tkm_tErr ImportSurfaceAnnotationToSegmentation ( tkm_tSegType iVolume,
+						 char*    inAnnotationFileName,
+						 char*    inColorFileName );
 
 tkm_tErr LoadSegmentationColorTable ( char* inColorFileName );
 
-void SetROIGroupAlpha       ( float     ifAlpha );
-void GetROIColorAtVoxel       ( xVoxelRef   inVoxel,
-				xColor3fRef iBaseColor,
-				xColor3fRef oColor );
-void GetROILabel       ( xVoxelRef   ipVoxel, 
-			 int*   onIndex,
-			 char*   osLabel );
-tkm_tErr SelectROI       ( int     inIndex );
-tkm_tErr GraphROI       ( int     inIndex );
 
+/* Sets the display alpha for determining the opacity of the
+   segmentation overlay. */
+void SetSegmentationAlpha ( float ifAlpha );
+
+/* Gets a color at an index in a seg volume. Given a base color, this
+   function will blend the label color according to the opacity alpha
+   and return the new color. */
+void GetSegmentationColorAtVoxel ( tkm_tSegType iVolume,
+				   xVoxelRef   inVoxel,
+				   xColor3fRef iBaseColor,
+				   xColor3fRef oColor );
+
+/* Returns the name of the label and/or label index for a location. */
+void GetSegLabel        ( tkm_tSegType iVolume,
+			  xVoxelRef   ipVoxel, 
+			  int*        onIndex,
+			  char*       osLabel );
+
+/* Adds all voxels in a label to the selection. */
+tkm_tErr SelectSegLabel ( tkm_tSegType iVolume,
+			  int          inIndex );
+
+/* Graphs the average of all the voxels in a label. */
+tkm_tErr GraphSegLabel  ( tkm_tSegType iVolume,
+		     int          inIndex );
+
+/* Calls GCAreclassifyUsingGibbsPriors to recalc the segmentation
+   using changed values, finally updating the segemention values with
+   the changes. If gDisplayIntermediateResults is on, will draw
+   intermediate volumes as well. The gRecaluclatingSegemention is used
+   during this function by the callback to update the proper
+   segmentation. */
+tkm_tSegType gRecaluclatingSegemention = tkm_tSegType_Main;
+void RecomputeSegmentation ( tkm_tSegType iVolume );
+static void RecomputeUpdateCallback( MRI* iMRIValues );
+
+/* A call back for a visit function. If the two values are equal
+   (there's a float in ipnTarget) then this voxel will be added to the
+   selection. */
 Volm_tVisitCommand AddSimilarVoxelToSelection ( xVoxelRef iAnaIdx,
 						float     iValue,
 						void*     ipnTarget );
+/* A call back for a visit function. If the two values are equal
+   (there's a float in ipnTarget) then this voxel will be added to the
+   functional selection so it can later be graphed. */
 Volm_tVisitCommand AddSimilarVoxelToGraohAvg  ( xVoxelRef iAnaIdx,
 						float     iValue,
 						void*     ipnTarget );
 
-/* a callback to an undo entry */
-int  EditSegmentation       ( xVoxelRef   iAnaIdx,
-			      int   inIndex );
+/* A call back for a visit function. When run on the changed volume by
+   ExportChangedSegmentationVolume, for each value that is 1, sets the
+   value in the dest volume to the value in the src volume. Uses
+   tkm_tExportSegmentationParamsRef. */
+Volm_tVisitCommand SetChangedSegmentationValue ( xVoxelRef iAnaIdx,
+						 float     iValue,
+						 void*     iData );
 
-/* for calcing the volume of an roi */
-void CalcROIVolume    ( xVoxelRef ipVoxel,
-			int*    onVolume );
-void IterateCalcROIVolume ( xVoxelRef iAnaIdx, 
-			    int      inIndex, 
-			    tBoolean* iVisited, 
-			    int*      onVolume );
+/* A callback to an undo entry. Sets the segmentation volume value at
+   this index, as well as the changed volume index.  */
+int  EditSegmentation ( tkm_tSegType iVolume,
+			xVoxelRef    iAnaIdx,
+			int          inIndex );
 
+/* Calculates the volume of a contiguous label. */
+void CalcSegLabelVolume        ( tkm_tSegType iVolume,
+			    xVoxelRef    ipVoxel,
+			    int*         onVolume );
+void IterateCalcSegLabelVolume ( tkm_tSegType iVolume,
+			    xVoxelRef    iAnaIdx, 
+			    int          inIndex, 
+			    tBoolean*    iVisited, 
+			    int*         onVolume );
+
+/* Use to set the segmentation value. Also adds to the undo
+   list. TODO: Add it to the undo list, it doesn't currently. */
+void SetSegmentationValue    ( tkm_tSegType iVolume,
+			       xVoxelRef    iAnaIdx,
+			       int          inIndex );
+
+/* Flood fills a segmentation volume with various parameters. */
 typedef struct {
   int      mnTargetValue;      /* the value to look for */
   int      mnFuzziness;        /* the range around the target value */
   int      mnDistance;        /* maximum distance to affect */
-  xVoxel    mAnchor;        /* the anchor of the fill */
-  tBoolean    mb3D;          /* whether to go in all directions */
+  xVoxel   mAnchor;        /* the anchor of the fill */
+  tBoolean mb3D;          /* whether to go in all directions */
   mri_tOrientation mOrientation;      /* plane to go in if 2D */
-  tkm_tVolumeType mSource;        /* what volume to get the target val */
+  tkm_tVolumeTarget mSource;        /* what volume to get the target val */
   int      mnNewIndex;        /* new value to set in the parc */
   int      mnIterationDepth;   /* how many iteration levels currently */
   int      mnIterationLimit;   /* how deep to go */
-  tBoolean    mbIterationLimitReached; /* whether we were stopped by the limit */
+  tBoolean mbIterationLimitReached; /* whether we were stopped by the limit */
 } tkm_tParcFloodFillParams, *tkm_tParcFloodFillParamsRef;
 
-/* use to set the segmentation value. also adds to the undo list */
-void SetSegmentationValue    ( xVoxelRef   iAnaIdx,
-			       int   inIndex );
-void FloodFillSegmentation   ( xVoxelRef       iAnaIdx,
-			       tkm_tParcFloodFillParamsRef iParams );
-void IterateFloodFillSegmentation ( xVoxelRef      iAnaIdx,
+void FloodFillSegmentation        ( tkm_tSegType                iVolume,
+				    xVoxelRef                   iAnaIdx,
+				    tkm_tParcFloodFillParamsRef iParams );
+void IterateFloodFillSegmentation ( tkm_tSegType                iVolume, 
+				    xVoxelRef                   iAnaIdx,
 				    tkm_tParcFloodFillParamsRef iParams,
-				    tBoolean*      iVisited );
+				    tBoolean*                   iVisited );
 
 #define knMaxFloodFillIteration 10000
-
-void SwapROIGroupAndVolume ( mriVolumeRef   iGroup,
-			     mriVolumeRef    iVolume );
 
 // ===========================================================================
 
@@ -866,8 +941,8 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
   tBoolean      bLoadingLabel        = FALSE;
   char        sSubjectTest[tkm_knPathLen]    = "";
   char        sScriptName[tkm_knPathLen]    = "";
-  float        fROIGroupAlpha      = 0;
-  tBoolean      bROIGroupAlpha      = FALSE;
+  float        fSegmentationAlpha      = 0;
+  tBoolean      bSegmentationAlpha      = FALSE;
   
   DebugEnterFunction( ("ParseCmdLineArgs( argc=%d, argv=%s )", 
            argc, argv[0]) );
@@ -1390,15 +1465,15 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
 	/* check for the value following the switch */
 	if( argc > nCurrentArg + 1 &&
 	    '-' != argv[nCurrentArg+1][0] ) {
-	  
+    
 	  /* get the value */
 	  DebugNote( ("Parsing -roialpha option") );
-	  fROIGroupAlpha = (float) atof( argv[nCurrentArg+1] );
-	  bROIGroupAlpha = TRUE;
+	  fSegmentationAlpha = (float) atof( argv[nCurrentArg+1] );
+	  bSegmentationAlpha = TRUE;
 	  nCurrentArg +=2 ;
-	  
-	} else { 
     
+	} else { 
+	  
 	  /* misuse of that switch */
 	  tkm_DisplayError( "Parsing -roialpha option",
 			    "Expected an argument",
@@ -1406,9 +1481,9 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
 			    "value to use." );
 	  nCurrentArg += 1;
 	}
-  
+	
       } else if( MATCH( sArg, "-aux" ) ) {
-  
+	
 	/* check for the value following the switch */
 	if( argc > nCurrentArg + 1
 	    && '-' != argv[nCurrentArg+1][0] ) {
@@ -1826,11 +1901,11 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
   
   /* load segmentation */
   if( bLoadingSegmentation ) {
-    eResult = LoadSegmentationVolume( sSegmentationPath, 
-              sSegmentationColorFile );
+    eResult = LoadSegmentationVolume( tkm_tSegType_Main, sSegmentationPath,
+				      sSegmentationColorFile );
     /* set roi alpha */
-    if( bROIGroupAlpha ) {
-      SetROIGroupAlpha( fROIGroupAlpha );
+    if( bSegmentationAlpha ) {
+      SetSegmentationAlpha( fSegmentationAlpha );
     }
   }
   
@@ -2467,14 +2542,14 @@ tkm_tErr LoadSurface ( tkm_tSurfaceType iType,
      interpolated vertex display. */
   DebugNote( ("Setting tcl options") );
   tkm_SendTclCommand( tkm_tTclCommand_ShowSurfaceLoadingOptions, 
-          bLoaded ? "1" : "0" );
+		      bLoaded ? "1" : "0" );
   tkm_SendTclCommand( tkm_tTclCommand_ShowSurfaceViewingOptions, 
-          bLoaded ? "1" : "0" );
+		      bLoaded ? "1" : "0" );
   MWin_SetDisplayFlag( gMeditWindow, -1, DspA_tDisplayFlag_MainSurface, 
-           bLoaded ? TRUE : FALSE);
+		       bLoaded ? TRUE : FALSE);
   MWin_SetDisplayFlag( gMeditWindow, -1,
-           DspA_tDisplayFlag_InterpolateSurfaceVertices,
-           bLoaded ? TRUE : FALSE);
+		       DspA_tDisplayFlag_InterpolateSurfaceVertices,
+		       bLoaded ? TRUE : FALSE);
   
   /* load other vertices. if these fail, it's okay. */
   DebugNote( ("Loading orig set") );
@@ -3020,7 +3095,7 @@ int TclSaveVolume ( ClientData inClientData, Tcl_Interp* inInterp,
         int argc, char* argv[] ) {
   
   if ( argc != 2 ) {
-    Tcl_SetResult ( inInterp, "wrong # args: SaveVolume [0=main,1=aux]",
+    Tcl_SetResult ( inInterp, "wrong # args: SaveVolume 0=main,1=aux",
 		    TCL_VOLATILE );
     return TCL_ERROR;
   }
@@ -3036,7 +3111,7 @@ int TclSaveVolumeAs ( ClientData inClientData, Tcl_Interp* inInterp,
           int argc, char* argv[] ) {
   
   if ( argc != 3 ) {
-    Tcl_SetResult ( inInterp, "wrong # args: SaveVolumeAs [0=main,1=aux] "
+    Tcl_SetResult ( inInterp, "wrong # args: SaveVolumeAs 0=main,1=aux "
 		    "volume_path:string", TCL_VOLATILE );
     return TCL_ERROR;
   }
@@ -3400,7 +3475,7 @@ int TclLoadMainSurface ( ClientData inClientData, Tcl_Interp* inInterp,
     break;
   default:
     Tcl_SetResult ( inInterp, 
-        "wrong # args: LoadMainSurface [0=main|1=aux] "
+        "wrong # args: LoadMainSurface 0=main,1=aux"
         "surface_name:string", TCL_VOLATILE );
     return TCL_ERROR;
   }
@@ -3429,7 +3504,7 @@ int TclLoadCanonicalSurface ( ClientData inClientData, Tcl_Interp* inInterp,
     break;
   default:
     Tcl_SetResult ( inInterp, 
-        "wrong # args: LoadCanonicalSurface [0=main|1=aux]"
+        "wrong # args: LoadCanonicalSurface 0=main,1=aux"
         "surface_name:string", TCL_VOLATILE );
     return TCL_ERROR;
   }
@@ -3458,7 +3533,7 @@ int TclLoadOriginalSurface ( ClientData inClientData, Tcl_Interp* inInterp,
     break;
   default:
     Tcl_SetResult ( inInterp, 
-        "wrong # args: LoadOriginalSurface [0=main|1=aux]"
+        "wrong # args: LoadOriginalSurface 0=main,1=aux"
         "surface_name:string", TCL_VOLATILE );
     return TCL_ERROR;
   }
@@ -3483,7 +3558,7 @@ int TclUnloadSurface ( ClientData inClientData, Tcl_Interp* inInterp,
     type = atoi( argv[1] );
     break;
   default:
-    Tcl_SetResult ( inInterp, "wrong # args: UnloadSurface [0=main|1=aux]",
+    Tcl_SetResult ( inInterp, "wrong # args: UnloadSurface 0=main,1=aux",
 		    TCL_VOLATILE );
     return TCL_ERROR;
   }
@@ -3530,7 +3605,7 @@ int TclWriteSurfaceValues ( ClientData inClientData, Tcl_Interp* inInterp,
     break;
   default:
     Tcl_SetResult ( inInterp, 
-        "wrong # args: WriteSurfaceValues [0=main|1=aux] "
+        "wrong # args: WriteSurfaceValues 0=main,1=aux "
         "file_name:string", TCL_VOLATILE );
     return TCL_ERROR;
   }
@@ -3706,10 +3781,9 @@ int TclAverageSurfaceVertexPositions ( ClientData inClientData,
 				       Tcl_Interp* inInterp,
 				       int argc, char* argv[] ) {
   
-  if ( argc != 2 ) {
-    Tcl_SetResult ( inInterp,
-		    "wrong # args: AverageSurfaceVertexPositions num_averages",
-		    TCL_VOLATILE );
+  if ( argc != 2) {
+    Tcl_SetResult ( inInterp, "wrong # args: AverageSurfaceVertexPositions "
+		    "num_averages", TCL_VOLATILE );
     return TCL_ERROR;
   }
   
@@ -3725,15 +3799,15 @@ int TclNewSegmentationVolume ( ClientData inClientData,
 			       Tcl_Interp* inInterp,
 			       int argc, char* argv[] ) {
   
-  if ( argc != 3 ) {
-    Tcl_SetResult ( inInterp,
-		    "wrong # args: NewSegmentationVolume [0=main|1=aux] color_file:string",
-		    TCL_VOLATILE );
+  if ( argc != 4 ) {
+    Tcl_SetResult ( inInterp, "wrong # args: NewSegmentationVolume "
+		    "volume:0=main,1=aux from_anatomical:0=main,1=aux "
+		    "color_file:string", TCL_VOLATILE );
     return TCL_ERROR;
   }
   
   if( gbAcceptingTclCommands ) {
-    NewSegmentationVolume ( atoi(argv[1]), argv[2] );
+    NewSegmentationVolume ( atoi(argv[1]), atoi(argv[2]), argv[3] );
   }  
   
   return TCL_OK;
@@ -3743,98 +3817,34 @@ int TclLoadSegmentationVolume ( ClientData inClientData,
         Tcl_Interp* inInterp,
         int argc, char* argv[] ) {
   
-  if ( argc != 3 ) {
-    Tcl_SetResult ( inInterp,
-        "wrong # args: LoadSegmentationVolume directory_and_prefix:string color_file:string",
-        TCL_VOLATILE );
+  if ( argc != 4 ) {
+    Tcl_SetResult ( inInterp, "wrong # args: LoadSegmentationVolume "
+		    "volume:0=main,1=aux directory_and_prefix:string "
+		    "color_file:string", TCL_VOLATILE );
     return TCL_ERROR;
   }
   
   if( gbAcceptingTclCommands ) {
-    LoadSegmentationVolume ( argv[1], argv[2] );
+    LoadSegmentationVolume ( atoi(argv[1]), argv[2], argv[3] );
   }  
   
   return TCL_OK;
 }
 
-static void
-update_segmentation(MRI *mri_seg)
-{
-  MRIcopy(mri_seg, gSegmentationVolume->mpMriValues) ;
-  if( gbAcceptingTclCommands && gDisplayIntermediateResults) {
-    UpdateAndRedraw() ;
-    MWin_ForceRedraw( gMeditWindow ) ;
-  }  
-}
-
-void RecomputeSegmentation(mriVolumeRef inVol, 
-         mriVolumeRef inSegVol, mriVolumeRef inSegChanged, 
-         mriVolumeRef outVol)
-{
-  
-  if (NULL == gGCAVolume || NULL == gGCATransform)
-    return ;
-  
-  GCAreclassifyUsingGibbsPriors(inVol->mpMriValues, gGCAVolume, 
-        inSegVol->mpMriValues,
-        gGCATransform, 10, inSegChanged->mpMriValues,
-        1, 
-        update_segmentation);
-  
-}
-
 int TclRecomputeSegmentation ( ClientData inClientData, 
-             Tcl_Interp* inInterp,
-             int argc, char* argv[] ) {
+			       Tcl_Interp* inInterp,
+			       int argc, char* argv[] ) {
   
-  char     sError[tkm_knErrStringLen]    = "";
-  Volm_tErr eVolume         = Volm_tErr_NoErr;
-  
-  if (NULL == gGCAVolume){
-    Tcl_SetResult ( inInterp,
-        "RecomputeSegmentation: GCA must be loaded first with LoadGCA command",
-        TCL_VOLATILE );
-    return TCL_ERROR;
-  }
-  if ( argc != 1 ) {
-    Tcl_SetResult ( inInterp,
-        "wrong # args: RecomputeSegmentation",
-        TCL_VOLATILE );
+  if ( argc != 2 ) {
+    Tcl_SetResult ( inInterp, "wrong # args: RecomputeSegmentation "
+		    "volume:0=main,1=aux", TCL_VOLATILE );
     return TCL_ERROR;
   }
   
-  if( gbAcceptingTclCommands ) 
-    {
-      if (NULL == gPreviousSegmentationVolume)
-  {
-    
-    /* allocate backup volume */
-    DebugNote( ("Creating backup segmentation") );
-    eVolume = Volm_DeepClone( gSegmentationVolume,
-            &gPreviousSegmentationVolume );
-    DebugAssertThrowX( (Volm_tErr_NoErr == eVolume),
-           eVolume, tkm_tErr_ErrorAccessingSegmentationVolume );
-  }
-      else
-  gPreviousSegmentationVolume->mpMriValues =
-    MRIcopy(gSegmentationVolume->mpMriValues, 
-      gPreviousSegmentationVolume->mpMriValues) ;
-      RecomputeSegmentation ( gAnatomicalVolume[tkm_tVolumeType_Main],
-            gSegmentationVolume, gSegmentationChangedVolume,
-            gSegmentationVolume) ;
-      UpdateAndRedraw() ;
-    }  
-  DebugCatch;
-  DebugCatchError( eVolume, tkm_tErr_NoErr, tkm_GetErrorString );
-  xUtil_snprintf( sError, sizeof(sError), "recomputing segmentation" );
-  tkm_DisplayError( sError,
-        tkm_GetErrorString(eVolume),
-        "Tkmedit couldn't restore previous segmentation") ;
-  
-  EndDebugCatch;
-  
-  DebugExitFunction;
-  
+  if( gbAcceptingTclCommands ) {
+    RecomputeSegmentation( atoi(argv[1]) );
+  }  
+
   return TCL_OK;
 }
 
@@ -3842,15 +3852,16 @@ int TclImportSurfaceAnnotationToSegmentation ( ClientData inClientData,
 					       Tcl_Interp* inInterp,
 					       int argc, char* argv[] ) {
   
-  if ( argc != 3 ) {
-    Tcl_SetResult ( inInterp,
-        "wrong # args: ImportSurfaceAnnotationToSegmentation annotation:string color_file:string",
-        TCL_VOLATILE );
+  if ( argc != 4 ) {
+    Tcl_SetResult ( inInterp, "wrong # args: "
+		    "ImportSurfaceAnnotationToSegmentation "
+		    "volume:[main=0,aux=1] annotation:string "
+		    "color_file:string", TCL_VOLATILE );
     return TCL_ERROR;
   }
   
   if( gbAcceptingTclCommands ) {
-    ImportSurfaceAnnotationToSegmentation ( argv[1], argv[2] );
+    ImportSurfaceAnnotationToSegmentation ( atoi(argv[1]), argv[2], argv[3] );
   }  
   
   return TCL_OK;
@@ -3860,96 +3871,120 @@ int TclSetGCADisplayStatus ( ClientData inClientData,
            Tcl_Interp* inInterp,
            int argc, char* argv[] ) {
   
-  DebugEnterFunction( ("TclSetGCADisplayStatus( argc=%d, argv=%s )", 
-           argc, argv[0]) );
   if ( argc != 2 ) {
-    Tcl_SetResult ( inInterp,
-        "wrong # args: SetGCADisplayStatus %d:new status",
-        TCL_VOLATILE );
+    Tcl_SetResult ( inInterp, "wrong # args: SetGCADisplayStatus new_status",
+		    TCL_VOLATILE );
     return TCL_ERROR;
   }
   
-  if( gbAcceptingTclCommands ) 
-    {
-      gDisplayIntermediateResults = atoi(argv[1]) ;
-    }  
-  
-  return TCL_OK;
-}
-int TclRestorePreviousSegmentation ( ClientData inClientData, 
-             Tcl_Interp* inInterp,
-             int argc, char* argv[] ) {
-  
-  if ( argc != 1 ) {
-    Tcl_SetResult ( inInterp,
-        "wrong # args: RestorePreviousSegmentation",
-        TCL_VOLATILE );
-    return TCL_ERROR;
-  }
-  
-  if( gbAcceptingTclCommands && NULL != gPreviousSegmentationVolume) {
-    MRIcopy(gPreviousSegmentationVolume->mpMriValues, 
-      gSegmentationVolume->mpMriValues);
-    UpdateAndRedraw() ;
+  if( gbAcceptingTclCommands ) {
+    gDisplayIntermediateResults = atoi(argv[1]) ;
   }  
   
   return TCL_OK;
 }
 
-int TclSaveSegmentationVolume ( ClientData inClientData, 
-        Tcl_Interp* inInterp,
-        int argc, char* argv[] ) {
+int TclRestorePreviousSegmentation ( ClientData inClientData, 
+				     Tcl_Interp* inInterp,
+				     int argc, char* argv[] ) {
   
-  if ( argc > 2 ) {
-    Tcl_SetResult ( inInterp,
-        "wrong # args: SaveSegmentationVolume [directory:string]",
-        TCL_VOLATILE );
+  tkm_tErr     eResult   = tkm_tErr_NoErr;
+  Volm_tErr    eVolume   = Volm_tErr_NoErr;
+  tkm_tSegType volume    = tkm_tSegType_Main;
+
+  if ( argc != 2 ) {
+    Tcl_SetResult ( inInterp, "wrong # args: RestorePreviousSegmentation "
+		    "volume:0=main,1=aux", TCL_VOLATILE );
+    return TCL_ERROR;
+  }
+  
+  /* Check the volume parameter since we're about to use it. */
+  volume = (tkm_tSegType) atoi(argv[1]);
+  DebugAssertThrowX( (volume >= 0 && volume < tkm_knNumSegTypes),
+		     eResult, tkm_tErr_InvalidParameter );
+
+  if( gbAcceptingTclCommands && 
+      NULL != gPreviousSegmentationVolume[volume] ) {
+    
+    /* Delete seg volume. */
+    DebugNote( ("Deleting segmentation") );
+    eVolume = Volm_Delete( &gSegmentationVolume[volume] );
+    DebugAssertThrowX( (Volm_tErr_NoErr == eVolume), eVolume, 
+		       tkm_tErr_ErrorAccessingSegmentationVolume );
+    
+    /* Copy backup volume into seg volume. */
+    DebugNote( ("Copying backup segmentation") );
+    eVolume = Volm_DeepClone( gPreviousSegmentationVolume[volume],
+			      &gSegmentationVolume[volume] );
+    DebugAssertThrowX( (Volm_tErr_NoErr == eVolume), eVolume, 
+		       tkm_tErr_ErrorAccessingSegmentationVolume );
+
+    UpdateAndRedraw() ;
+  }  
+  
+  DebugCatch;
+  DebugCatchError( eResult, tkm_tErr_NoErr, tkm_GetErrorString );
+  DebugCatchError( eVolume, Volm_tErr_NoErr, Volm_GetErrorString );
+  tkm_DisplayError( "Recomputing Segemention", Volm_GetErrorString(eVolume),
+		    "Tkmedit couldn't restore previous segmentation") ;
+  EndDebugCatch;
+
+  return TCL_OK;
+}
+
+int TclSaveSegmentationVolume ( ClientData inClientData, 
+				Tcl_Interp* inInterp,
+				int argc, char* argv[] ) {
+  
+  if ( argc != 2 && argc != 3 ) {
+    Tcl_SetResult ( inInterp, "wrong # args: SaveSegmentationVolume "
+		    "volume:0=main,1=aux [directory:string]", TCL_VOLATILE );
     return TCL_ERROR;
   }
   
   if( gbAcceptingTclCommands ) {
+
     /* if they gave us a filename, use it, else pass null. */
-    if( argc == 1 ) {
-      SaveSegmentationVolume ( NULL );
+    if( argc == 2 ) {
+      SaveSegmentationVolume( atoi(argv[1]), NULL );
     } else {
-      SaveSegmentationVolume ( argv[1] );
+      SaveSegmentationVolume( atoi(argv[1]), argv[2] );
     }
   }  
   
   return TCL_OK;
 }
 
-int TclSwapROIGroupAndAuxVolume ( ClientData inClientData, 
-          Tcl_Interp* inInterp,
-          int argc, char* argv[] ) {
+int TclExportChangedSegmentationVolume ( ClientData inClientData, 
+					 Tcl_Interp* inInterp,
+					 int argc, char* argv[] ) {
   
-  if ( argc != 1 ) {
-    Tcl_SetResult ( inInterp,
-        "wrong # args: SwapROIGroupAndAuxVolume",
-        TCL_VOLATILE );
+  if ( argc != 3 ) {
+    Tcl_SetResult ( inInterp, "wrong # args: ExportChangedSegmentationVolume "
+		    "volume:0=main,1=aux [directory:string]", TCL_VOLATILE );
     return TCL_ERROR;
   }
   
   if( gbAcceptingTclCommands ) {
-    SwapROIGroupAndVolume( gSegmentationVolume, gAnatomicalVolume[tkm_tVolumeType_Aux] );
+    ExportChangedSegmentationVolume( atoi(argv[1]), argv[2] );
   }  
   
   return TCL_OK;
 }
 
-int TclSetROIGroupAlpha ( ClientData inClientData, 
+int TclSetSegmentationAlpha ( ClientData inClientData, 
         Tcl_Interp* inInterp,
         int argc, char* argv[] ) {
   
   if ( argc != 2 ) {
     Tcl_SetResult ( inInterp,
-        "wrong # args: SetROIGroupAlpha alpha:float",
+        "wrong # args: SetSegmentationAlpha alpha:float",
         TCL_VOLATILE );
     return TCL_ERROR;
   }
   
   if( gbAcceptingTclCommands ) {
-    SetROIGroupAlpha ( atof(argv[1]) );
+    SetSegmentationAlpha ( atof(argv[1]) );
   }  
   
   return TCL_OK;
@@ -4381,11 +4416,11 @@ int main ( int argc, char** argv ) {
   tkm_SendTclCommand( tkm_tTclCommand_ShowCanonicalSurfaceViewingOptions,"0" );
   tkm_SendTclCommand( tkm_tTclCommand_ShowOriginalSurfaceViewingOptions, "0" );
   tkm_SendTclCommand( tkm_tTclCommand_ShowHeadPointLabel, "0" );
-  tkm_SendTclCommand( tkm_tTclCommand_ShowROIGroupOptions, "0" );
   tkm_SendTclCommand( tkm_tTclCommand_ShowDTIOptions, "0" );
   tkm_SendTclCommand( tkm_tTclCommand_ShowVLIOptions, "0" );
   tkm_SendTclCommand( tkm_tTclCommand_ShowGCAOptions, "0" );
   tkm_SendTclCommand( tkm_tTclCommand_ShowSegmentationOptions, "0" );
+  tkm_SendTclCommand( tkm_tTclCommand_ShowAuxSegmentationOptions, "0" );
   tkm_SendTclCommand( tkm_tTclCommand_ShowVolumeDirtyOptions, "0" );
   tkm_SendTclCommand( tkm_tTclCommand_ShowAuxVolumeDirtyOptions, "0" );
   tkm_SendTclCommand( tkm_tTclCommand_ShowMainTransformLoadedOptions, "0" );
@@ -4395,6 +4430,12 @@ int main ( int argc, char** argv ) {
   for( volume = 0; volume < tkm_knNumVolumeTypes; volume++ ) {
     gAnatomicalVolume[volume] = NULL;
     SetVolumeDirty( volume, FALSE );
+  }
+
+  for( volume = 0; volume < tkm_knNumSegTypes; volume++ ) {
+    gPreviousSegmentationVolume[volume] = NULL;
+    gSegmentationVolume[volume] = NULL;
+    gSegmentationChangedVolume[volume] = NULL;
   }
   
   /* find the user's home directory, or where the program is running from */
@@ -4570,11 +4611,11 @@ int main ( int argc, char** argv ) {
       /* set env variable */
       sprintf( sTclEnvVar, "%s=%s", "TCL_LIBRARY", sNewTclLib );
       if( putenv( sTclEnvVar ) ) {
-  OutputPrint "ERROR: Couldn't set TCL_LIBRARY env var.\n" 
-    EndOutputPrint;
-  DebugPrint( ( "Couldn't set TCL_LIBRARY to %s\n", sNewTclLib
-          ) );
-  exit( 1 );
+	OutputPrint "ERROR: Couldn't set TCL_LIBRARY env var.\n" 
+	  EndOutputPrint;
+	DebugPrint( ( "Couldn't set TCL_LIBRARY to %s\n", sNewTclLib
+		      ) );
+	exit( 1 );
       }
       sprintf( sTkEnvVar, "%s=%s", "TK_LIBRARY", sNewTkLib );
       if( putenv( sTkEnvVar ) ) {
@@ -4931,16 +4972,16 @@ int main ( int argc, char** argv ) {
           TclSaveSegmentationVolume,
           (ClientData) NULL, (Tcl_CmdDeleteProc*) NULL );
   
+  Tcl_CreateCommand ( interp, "ExportChangedSegmentationVolume",
+          TclExportChangedSegmentationVolume,
+          (ClientData) NULL, (Tcl_CmdDeleteProc*) NULL );
+  
   Tcl_CreateCommand ( interp, "ImportSurfaceAnnotationToSegmentation",
           TclImportSurfaceAnnotationToSegmentation,
           (ClientData) NULL, (Tcl_CmdDeleteProc*) NULL );
   
-  Tcl_CreateCommand ( interp, "SwapROIGroupAndAuxVolume",
-          TclSwapROIGroupAndAuxVolume,
-          (ClientData) NULL, (Tcl_CmdDeleteProc*) NULL );
-  
-  Tcl_CreateCommand ( interp, "SetROIGroupAlpha",
-          TclSetROIGroupAlpha,
+  Tcl_CreateCommand ( interp, "SetSegmentationAlpha",
+          TclSetSegmentationAlpha,
           (ClientData) NULL, (Tcl_CmdDeleteProc*) NULL );
   
   Tcl_CreateCommand ( interp, "LoadFunctionalOverlay",
@@ -5065,8 +5106,8 @@ int main ( int argc, char** argv ) {
   }
   
   /* set default roi group alpha */
-  DebugNote( ("Setting default ROI group alpha") );
-  SetROIGroupAlpha( gfROIAlpha );
+  DebugNote( ("Setting default segmentation group alpha") );
+  SetSegmentationAlpha( gfSegmentationAlpha );
   
   /* if using csurf interface, call the func that hides a bunch of stuff. */
   if( gbUseCsurfInterface ) {
@@ -5780,10 +5821,10 @@ tkm_tErr LoadSelectionFromLabelFile ( char* isFileName ) {
   
   xUtil_snprintf( sError, sizeof(sError), "Loading label %s", isFileName );
   tkm_DisplayError( sError,
-        tkm_GetErrorString(eResult),
-        "Tkmedit couldn't read the label you "
-        "specified. This could be because the format "
-        "wasn't valid or the file wasn't found." );
+		    tkm_GetErrorString(eResult),
+		    "Tkmedit couldn't read the label you "
+		    "specified. This could be because the format "
+		    "wasn't valid or the file wasn't found." );
   EndDebugCatch;
   
   if( NULL != pLabel ) {
@@ -7246,26 +7287,30 @@ void ScaleOverlayRegisgtration ( float ifFactor,
 
 
 
-// ================================================= SEGMENTATION and ROI GROUP
+// ============================================================ SEGMENTATION 
 
-tkm_tErr NewSegmentationVolume ( tkm_tVolumeType iFromVolume,
+tkm_tErr NewSegmentationVolume ( tkm_tSegType    iVolume,
+				 tkm_tVolumeType iFromVolume,
 				 char*           isColorFileName ) {
   
   tkm_tErr     eResult                      = tkm_tErr_NoErr;
+  Volm_tErr    eVolume                      = Volm_tErr_NoErr;
   mriVolumeRef newVolume                    = NULL;
   mriVolumeRef newChangedVolume             = NULL;
-  Volm_tErr    eVolume                      = Volm_tErr_NoErr;
   char         sError[tkm_knErrStringLen]   = "";
 
-  DebugEnterFunction( ("LoadSegmentationVolume( iFromVolume=%d, "
-		       "isColorFileName=%s )", (int)iFromVolume,
-		       isColorFileName) );
+  DebugEnterFunction( ("LoadSegmentationVolume( iVolume=%d, iFromVolume=%d, "
+		       "isColorFileName=%s )", (int)iVolume,
+		       (int)iFromVolume, isColorFileName) );
   
+  DebugAssertThrowX( (iVolume >= 0 && iVolume <= tkm_knNumSegTypes),
+		     eResult, tkm_tErr_InvalidParameter );
   DebugAssertThrowX( (NULL != isColorFileName),
-         eResult, tkm_tErr_InvalidParameter );
+		     eResult, tkm_tErr_InvalidParameter );
   
 
-  /* Create the new volume from the existing anatomical. */
+  /* Create the new volume from the existing anatomical. Set it to all
+     zeroes. */
   DebugNote( ("Creating new segmentation volume") );
   eVolume = Volm_New( &newVolume );
   DebugAssertThrowX( (Volm_tErr_NoErr == eVolume),
@@ -7273,7 +7318,9 @@ tkm_tErr NewSegmentationVolume ( tkm_tVolumeType iFromVolume,
   eVolume = Volm_CreateFromVolume( newVolume, gAnatomicalVolume[iFromVolume] );
   DebugAssertThrowX( (Volm_tErr_NoErr == eVolume),
 		     eResult, tkm_tErr_ErrorAccessingSegmentationVolume );
-
+  eVolume = Volm_SetAllValues( newVolume, 0 );
+  DebugAssertThrowX( (Volm_tErr_NoErr == eVolume),
+		     eResult, tkm_tErr_ErrorAccessingSegmentationVolume );
 
   /* Try to load the color table. */
   DebugNote( ("Loading color table.") );
@@ -7282,7 +7329,8 @@ tkm_tErr NewSegmentationVolume ( tkm_tVolumeType iFromVolume,
 		     eResult, tkm_tErr_ErrorAccessingSegmentationVolume );
 
   
-  /* allocate flag volume from the new segmentation volume. */
+  /* allocate flag volume from the new segmentation volume. set
+     everything in it to zero */
   DebugNote( ("Creating segmentation flag volume") );
   eVolume = Volm_New( &newChangedVolume );
   DebugAssertThrowX( (Volm_tErr_NoErr == eVolume),
@@ -7290,34 +7338,43 @@ tkm_tErr NewSegmentationVolume ( tkm_tVolumeType iFromVolume,
   eVolume = Volm_CreateFromVolume( newChangedVolume, newVolume );
   DebugAssertThrowX( (Volm_tErr_NoErr == eVolume),
 		     eResult, tkm_tErr_CouldntLoadSegmentation );
+  eVolume = Volm_SetAllValues( newChangedVolume, 0 );
+  DebugAssertThrowX( (Volm_tErr_NoErr == eVolume),
+		     eResult, tkm_tErr_ErrorAccessingSegmentationVolume );
+  
 
 
-  /* free existing segmentation if present. */
-  if( NULL != gSegmentationVolume ) {
+  /* free existing segmentations if present. */
+  if( NULL != gSegmentationVolume[iVolume] ) {
     DebugNote( ("Deleting existing roi group") );
-    eVolume = Volm_Delete( &gSegmentationVolume );
+    eVolume = Volm_Delete( &gSegmentationVolume[iVolume] );
     DebugAssertThrowX( (Volm_tErr_NoErr == eVolume),
-           eResult, tkm_tErr_ErrorAccessingSegmentationVolume );
+		       eResult, tkm_tErr_ErrorAccessingSegmentationVolume );
     
     DebugNote( ("Deleting existing flag volume") );
-    eVolume = Volm_Delete( &gSegmentationChangedVolume );
+    eVolume = Volm_Delete( &gSegmentationChangedVolume[iVolume] );
     DebugAssertThrowX( (Volm_tErr_NoErr == eVolume),
            eResult, tkm_tErr_ErrorAccessingSegmentationVolume );
   }
   
 
   /* Save these volumes. */
-  gSegmentationVolume        = newVolume;
-  gSegmentationChangedVolume = newChangedVolume;
+  gSegmentationVolume[iVolume]        = newVolume;
+  gSegmentationChangedVolume[iVolume] = newChangedVolume;
 
-  /* enable our segmentation options */
-  DebugNote( ("Enabling segmentation options in interface") );
-  tkm_SendTclCommand( tkm_tTclCommand_ShowSegmentationOptions, "1" );
-  
-  /* set segmentation volume in window */
+  /* enable our segmentation options and set segmentation volume in window */
   if( gMeditWindow ) {
-    DebugNote( ("Setting roi group in main window") );
-    MWin_SetROIGroup( gMeditWindow, -1, gSegmentationVolume );
+    if( tkm_tSegType_Main == iVolume ) {
+      DebugNote( ("Enabling segmentation options in interface") );
+      tkm_SendTclCommand( tkm_tTclCommand_ShowSegmentationOptions, "1" );
+    } else {
+      DebugNote( ("Enabling ayx segmentation options in interface") );
+      tkm_SendTclCommand( tkm_tTclCommand_ShowAuxSegmentationOptions, "1" );
+    }
+  
+    DebugNote( ("Setting segmentation in main window") );
+    MWin_SetSegmentationVolume( gMeditWindow, iVolume, 
+				-1, gSegmentationVolume[iVolume] );
   }
   
   DebugCatch;
@@ -7325,12 +7382,9 @@ tkm_tErr NewSegmentationVolume ( tkm_tVolumeType iFromVolume,
 		   tkm_GetErrorString );
   
   if( eResult != tkm_tErr_CouldntLoadColorTable ) {
-    xUtil_snprintf( sError, sizeof(sError),
-		    "Creating Segmentation" );
-    tkm_DisplayError( sError,
-		      tkm_GetErrorString(eResult),
+    xUtil_snprintf( sError, sizeof(sError), "Creating Segmentation" );
+    tkm_DisplayError( sError, tkm_GetErrorString(eResult),
 		      "Tkmedit couldn't create a segmentation." );
-
   }
 
   EndDebugCatch;
@@ -7340,18 +7394,23 @@ tkm_tErr NewSegmentationVolume ( tkm_tVolumeType iFromVolume,
   return eResult;
 }
 
-tkm_tErr LoadSegmentationVolume ( char* isVolumeDirWithPrefix,
-          char* isColorFileName ) {
+tkm_tErr LoadSegmentationVolume ( tkm_tSegType iVolume,
+				  char*        isVolumeDirWithPrefix,
+				  char*        isColorFileName ) {
   
-  tkm_tErr  eResult         = tkm_tErr_NoErr;
-  char      sSegmentationFileName[tkm_knPathLen] = "";
-  Volm_tErr eVolume         = Volm_tErr_NoErr;
-  char      sError[tkm_knErrStringLen]     = "";
+  tkm_tErr     eResult         = tkm_tErr_NoErr;
+  Volm_tErr    eVolume         = Volm_tErr_NoErr;
+  mriVolumeRef newVolume                    = NULL;
+  mriVolumeRef newChangedVolume             = NULL;
+  char         sSegmentationFileName[tkm_knPathLen] = "";
+  char         sError[tkm_knErrStringLen]     = "";
 
-  DebugEnterFunction( ("LoadSegmentationVolume( isVolumeDirWithPrefix=%s, "
-           "isColorFileName=%s )", isVolumeDirWithPrefix,
-           isColorFileName) );
+  DebugEnterFunction( ("LoadSegmentationVolume( iVolume=%d, "
+		       "isVolumeDirWithPrefix=%s, isColorFileName=%s )", 
+		       iVolume, isVolumeDirWithPrefix, isColorFileName) );
   
+  DebugAssertThrowX( (iVolume >= 0 && iVolume <= tkm_knNumSegTypes),
+		     eResult, tkm_tErr_InvalidParameter );
   DebugAssertThrowX( (NULL != isVolumeDirWithPrefix),
          eResult, tkm_tErr_InvalidParameter );
   DebugAssertThrowX( (NULL != isColorFileName),
@@ -7362,27 +7421,14 @@ tkm_tErr LoadSegmentationVolume ( char* isVolumeDirWithPrefix,
   MakeFileName( isVolumeDirWithPrefix, tkm_tFileName_Segmentation, 
     sSegmentationFileName, sizeof(sSegmentationFileName) );
     
-  /* free existing roi group if present. */
-  if( NULL != gSegmentationVolume ) {
-    DebugNote( ("Deleting existing roi group") );
-    eVolume = Volm_Delete( &gSegmentationVolume );
-    DebugAssertThrowX( (Volm_tErr_NoErr == eVolume),
-           eResult, tkm_tErr_ErrorAccessingSegmentationVolume );
-    
-    DebugNote( ("Deleting existing flag volume") );
-    eVolume = Volm_Delete( &gSegmentationChangedVolume );
-    DebugAssertThrowX( (Volm_tErr_NoErr == eVolume),
-           eResult, tkm_tErr_ErrorAccessingSegmentationVolume );
-  }
-  
   /* read in segmentation volume */
   DebugNote( ("Creating segmentation overlay") );
-  eVolume = Volm_New( &gSegmentationVolume );
+  eVolume = Volm_New( &newVolume );
   DebugAssertThrowX( (Volm_tErr_NoErr == eVolume),
 		     eResult, tkm_tErr_ErrorAccessingSegmentationVolume );
 
   DebugNote( ("Importing segmentation into roi group") );
-  eVolume = Volm_ImportData( gSegmentationVolume, sSegmentationFileName );
+  eVolume = Volm_ImportData( newVolume, sSegmentationFileName );
   DebugAssertThrowX( (Volm_tErr_NoErr == eVolume),
 		     eResult, tkm_tErr_CouldntLoadSegmentation );
   
@@ -7392,31 +7438,48 @@ tkm_tErr LoadSegmentationVolume ( char* isVolumeDirWithPrefix,
   DebugAssertThrowX( (Volm_tErr_NoErr == eVolume),
 		     eResult, tkm_tErr_ErrorAccessingSegmentationVolume );
 
-  
-  /* allocate flag volume */
+  /* allocate changed volume */
   DebugNote( ("Creating segmentation flag volume") );
-  eVolume = Volm_New( &gSegmentationChangedVolume );
+  eVolume = Volm_New( &newChangedVolume );
   DebugAssertThrowX( (Volm_tErr_NoErr == eVolume),
 		     eResult, tkm_tErr_ErrorAccessingSegmentationVolume );
-  eVolume = Volm_ImportData( gSegmentationChangedVolume, 
-			     sSegmentationFileName );
+  eVolume = Volm_CreateFromVolume( newChangedVolume, newVolume );
   DebugAssertThrowX( (Volm_tErr_NoErr == eVolume),
 		     eResult, tkm_tErr_CouldntLoadSegmentation );
-  /*
-  gSegmentationChangedVolume->mpMriValues = 
-    MRIclone(gSegmentationVolume->mpMriValues,NULL);
-  DebugAssertThrowX( (NULL != gSegmentationChangedVolume->mpMriValues ),
+  eVolume = Volm_SetAllValues( newChangedVolume, 0 );
+  DebugAssertThrowX( (Volm_tErr_NoErr == eVolume),
 		     eResult, tkm_tErr_ErrorAccessingSegmentationVolume );
-  */
 
-  /* enable our segmentation options */
-  DebugNote( ("Enabling segmentation options in interface") );
-  tkm_SendTclCommand( tkm_tTclCommand_ShowSegmentationOptions, "1" );
+  /* free existing roi group if present. */
+  if( NULL != gSegmentationVolume[iVolume] ) {
+    DebugNote( ("Deleting existing roi group") );
+    eVolume = Volm_Delete( &gSegmentationVolume[iVolume] );
+    DebugAssertThrowX( (Volm_tErr_NoErr == eVolume),
+           eResult, tkm_tErr_ErrorAccessingSegmentationVolume );
+    
+    DebugNote( ("Deleting existing flag volume") );
+    eVolume = Volm_Delete( &gSegmentationChangedVolume[iVolume] );
+    DebugAssertThrowX( (Volm_tErr_NoErr == eVolume),
+		       eResult, tkm_tErr_ErrorAccessingSegmentationVolume );
+  }
   
-  /* set segmentation volume in window */
+  /* Save these volumes. */
+  gSegmentationVolume[iVolume]        = newVolume;
+  gSegmentationChangedVolume[iVolume] = newChangedVolume;
+
+  /* enable our segmentation options and set segmentation volume in window */
   if( gMeditWindow ) {
-    DebugNote( ("Setting roi group in main window") );
-    MWin_SetROIGroup( gMeditWindow, -1, gSegmentationVolume );
+    if( tkm_tSegType_Main == iVolume ) {
+      DebugNote( ("Enabling segmentation options in interface") );
+      tkm_SendTclCommand( tkm_tTclCommand_ShowSegmentationOptions, "1" );
+    } else {
+      DebugNote( ("Enabling ayx segmentation options in interface") );
+      tkm_SendTclCommand( tkm_tTclCommand_ShowAuxSegmentationOptions, "1" );
+    }
+
+    DebugNote( ("Setting segmentation in main window") );
+    MWin_SetSegmentationVolume( gMeditWindow, iVolume, 
+		      -1, gSegmentationVolume[iVolume] );
   }
   
   DebugCatch;
@@ -7440,62 +7503,200 @@ tkm_tErr LoadSegmentationVolume ( char* isVolumeDirWithPrefix,
   return eResult;
 }
 
-void SaveSegmentationVolume ( char* isVolumeDirWithPrefix ) {
+void SaveSegmentationVolume ( tkm_tSegType iVolume,
+			      char*        isVolumeDirWithPrefix ) {
   
+  tkm_tErr  eResult         = tkm_tErr_NoErr;
+  char      sError[tkm_knErrStringLen] = "";
   Volm_tErr eVolume         = Volm_tErr_NoErr;
   char      sSegmentationFileName[tkm_knPathLen] = "";
-  char*      psSegmentationFileName     = NULL;
+  char*     psSegmentationFileName     = NULL;
   
+  DebugEnterFunction( ("SaveSegmentationVolume ( iVolume=%d, "
+		       "isVolumeDirWithPrefix=%s )", (int)iVolume,
+		       isVolumeDirWithPrefix) );
+
+  DebugAssertThrowX( (iVolume >= 0 && iVolume <= tkm_knNumSegTypes),
+		     eResult, tkm_tErr_InvalidParameter );
+  DebugAssertThrowX( (NULL != gSegmentationVolume[iVolume]),
+		     eResult, tkm_tErr_ErrorAccessingSegmentationVolume );
+
   /* make a file name if they gave us one. */
   if( NULL != isVolumeDirWithPrefix ) {
     MakeFileName( isVolumeDirWithPrefix, tkm_tFileName_Segmentation, 
-      sSegmentationFileName, sizeof(sSegmentationFileName) );
+		  sSegmentationFileName, sizeof(sSegmentationFileName) );
     psSegmentationFileName = sSegmentationFileName;
   } else {
     psSegmentationFileName = NULL;
   }
   
-  eVolume = Volm_ExportNormToCOR( gSegmentationVolume, psSegmentationFileName );
+  /* Export the thing to a COR volume. */
+  OutputPrint "Saving... " EndOutputPrint;
+  DebugNote( ("Exporting to COR") );
+  eVolume = Volm_ExportNormToCOR( gSegmentationVolume[iVolume], 
+				  psSegmentationFileName );
+  DebugAssertThrowX( (Volm_tErr_NoErr == eVolume), 
+		     eResult, tkm_tErr_CouldntWriteFile );
+  OutputPrint "done.\n" EndOutputPrint;
   
-  if( Volm_tErr_NoErr != eVolume ) {
-    DebugPrint( ( "SaveSegmentationVolume: Couldn't save %s\n",
-      sSegmentationFileName ) );
-    OutputPrint "Error saving segmentation data.\n" EndOutputPrint;
+  DebugCatch;
+  DebugCatchError( eResult, tkm_tErr_NoErr, tkm_GetErrorString );
+  
+  if( eResult != tkm_tErr_CouldntLoadColorTable ) {
+    xUtil_snprintf( sError, sizeof(sError),
+		    "Saving Segmentation %s", isVolumeDirWithPrefix );
+    tkm_DisplayError( sError,
+		      tkm_GetErrorString(eResult),
+		      "Tkmedit couldn't save the segmentation you "
+		      "specified. This could be because the segmentation "
+		      "volume wasn't loaded or the destination directory "
+		      "wasn't valid." );
   }
+
+  EndDebugCatch;
   
+  DebugExitFunction;
 }
 
-tkm_tErr ImportSurfaceAnnotationToSegmentation ( char* isAnnotationFileName,
-						 char* isColorFileName ) { 
+tkm_tErr ExportChangedSegmentationVolume ( tkm_tSegType iVolume,
+					   char*        isVolumeDir ) {
+  
+  tkm_tErr                      eResult                    = tkm_tErr_NoErr;
+  Volm_tErr                     eVolume                    = Volm_tErr_NoErr;
+  mriVolumeRef                  newVolume                  = NULL;
+  char                          sSegmentationFileName[tkm_knPathLen] = "";
+  tkm_tExportSegmentationParams params;
+  
+  DebugEnterFunction( ("ExportChangedSegmentationVolume ( iVolume=%d, "
+		       "isVolumeDir=%s )", (int)iVolume, isVolumeDir) );
 
-  tkm_tErr  eResult         = tkm_tErr_NoErr;
-  Surf_tErr eSurface        = Surf_tErr_NoErr;
-  Volm_tErr eVolume         = Volm_tErr_NoErr;
-  char      sDirName[tkm_knPathLen] = "";
-  MRIS*     mris            = NULL;
-  int       nVertex         = 0;
-  VERTEX*   pVertex         = 0;
-  xColor3n  color;
-  int       nStructure      = 0;
-  xVoxel    surfRAS;
-  xVoxel    anaIdx;
-  float     dx              = 0;
-  float     dy              = 0;
-  float     dz              = 0;
-  float     len             = 0;
-  float     d               = 0;
-  char      sError[tkm_knErrStringLen] = "";
+  DebugAssertThrowX( (iVolume >= 0 && iVolume <= tkm_knNumSegTypes),
+		     eResult, tkm_tErr_InvalidParameter );
+  DebugAssertThrowX( (NULL != isVolumeDir),
+		     eResult, tkm_tErr_InvalidParameter );
+  DebugAssertThrowX( (NULL != gSegmentationVolume[iVolume]),
+		     eResult, tkm_tErr_ErrorAccessingSegmentationVolume );
+  DebugAssertThrowX( (NULL != gSegmentationChangedVolume[iVolume]),
+		     eResult, tkm_tErr_ErrorAccessingSegmentationVolume );
+
+  /* make a file name. */
+  if( NULL != isVolumeDir ) {
+    MakeFileName( isVolumeDir, tkm_tFileName_Segmentation, 
+		  sSegmentationFileName, sizeof(sSegmentationFileName) );
+  }
+  
+  OutputPrint "Saving... " EndOutputPrint;
+
+  /* Create the new volume from the existing segmentation. Set it to all
+     zeroes. */
+  DebugNote( ("Creating new segmentation volume") );
+  eVolume = Volm_New( &newVolume );
+  DebugAssertThrowX( (Volm_tErr_NoErr == eVolume),
+		     eResult, tkm_tErr_ErrorAccessingSegmentationVolume );
+  eVolume = Volm_CreateFromVolume( newVolume, gSegmentationVolume[iVolume] );
+  DebugAssertThrowX( (Volm_tErr_NoErr == eVolume),
+		     eResult, tkm_tErr_ErrorAccessingSegmentationVolume );
+  eVolume = Volm_SetAllValues( newVolume, 0 );
+  DebugAssertThrowX( (Volm_tErr_NoErr == eVolume),
+		     eResult, tkm_tErr_ErrorAccessingSegmentationVolume );
+
+  /* Fill out the params. */
+  params.mSrcVolume = gSegmentationVolume[iVolume];
+  params.mDestVolume = newVolume;
+
+  /* Export the thing to a COR volume. */
+  DebugNote( ("Running compare") );
+  eVolume = 
+    Volm_VisitAllVoxels( gSegmentationChangedVolume[iVolume],
+			 &SetChangedSegmentationValue, (void*)&params );
+  DebugAssertThrowX( (Volm_tErr_NoErr == eVolume),
+		     eResult, tkm_tErr_ErrorAccessingSegmentationVolume );
+
+  /* Now save it. */
+  eVolume = Volm_ExportNormToCOR( newVolume, sSegmentationFileName );
+  DebugAssertThrowX( (Volm_tErr_NoErr == eVolume), 
+		     eResult, tkm_tErr_CouldntWriteFile );
+
+  /* And get rid of the volume. */
+  Volm_Delete( &newVolume );
+
+  OutputPrint "done.\n" EndOutputPrint;
+  
+  DebugCatch;
+  DebugCatchError( eResult, tkm_tErr_NoErr, tkm_GetErrorString );
+  EndDebugCatch;
+  
+  DebugExitFunction;
+  
+  return eResult;
+}
+
+tkm_tErr ImportSurfaceAnnotationToSegmentation ( tkm_tSegType iVolume,
+						 char*   isAnnotationFileName,
+						 char*   isColorFileName ) { 
+
+  tkm_tErr     eResult                 = tkm_tErr_NoErr;
+  Surf_tErr    eSurface                = Surf_tErr_NoErr;
+  Volm_tErr    eVolume                 = Volm_tErr_NoErr;
+  mriVolumeRef newVolume               = NULL;
+  mriVolumeRef newChangedVolume        = NULL;
+  MRIS*        mris                    = NULL;
+  int          nVertex                 = 0;
+  VERTEX*      pVertex                 = 0;
+  xColor3n     color;
+  int          nStructure              = 0;
+  xVoxel       surfRAS;
+  xVoxel       anaIdx;
+  float        dx                      = 0;
+  float        dy                      = 0;
+  float        dz                      = 0;
+  float        len                     = 0;
+  float        d                       = 0;
+  char         sError[tkm_knErrStringLen] = "";
+
+  DebugAssertThrowX( (iVolume >= 0 && iVolume <= tkm_knNumSegTypes),
+		     eResult, tkm_tErr_InvalidParameter );
+  DebugAssertThrowX( (NULL != isAnnotationFileName),
+		     eResult, tkm_tErr_InvalidParameter );
+  DebugAssertThrowX( (NULL != isColorFileName),
+		     eResult, tkm_tErr_InvalidParameter );
 
   /* Make sure we have a surface loaded. */
   DebugAssertThrowX( (NULL != gSurface[tkm_tSurfaceType_Main]),
 		     eResult, tkm_tErr_SurfaceNotLoaded );
   
+  /* Create the new volume from the existing anatomical. Set it to all
+     zeroes.*/
+  DebugNote( ("Creating new segmentation volume") );
+  eVolume = Volm_New( &newVolume );
+  DebugAssertThrowX( (Volm_tErr_NoErr == eVolume),
+		     eResult, tkm_tErr_ErrorAccessingSegmentationVolume );
+  eVolume = Volm_CreateFromVolume( newVolume, 
+				   gAnatomicalVolume[tkm_tVolumeType_Main] );
+  DebugAssertThrowX( (Volm_tErr_NoErr == eVolume),
+		     eResult, tkm_tErr_ErrorAccessingSegmentationVolume );
+  eVolume = Volm_SetAllValues( newVolume, 0 );
+  DebugAssertThrowX( (Volm_tErr_NoErr == eVolume),
+		     eResult, tkm_tErr_ErrorAccessingSegmentationVolume );
+
+  /* Allocate flag volume from the new segmentation volume. Set it to
+     all zeroes. */
+  DebugNote( ("Creating segmentation flag volume") );
+  eVolume = Volm_New( &newChangedVolume );
+  DebugAssertThrowX( (Volm_tErr_NoErr == eVolume),
+		     eResult, tkm_tErr_ErrorAccessingSegmentationVolume );
+  eVolume = Volm_CreateFromVolume( newChangedVolume, newVolume );
+  DebugAssertThrowX( (Volm_tErr_NoErr == eVolume),
+		     eResult, tkm_tErr_CouldntLoadSegmentation );
+  eVolume = Volm_SetAllValues( newChangedVolume, 0 );
+  DebugAssertThrowX( (Volm_tErr_NoErr == eVolume),
+		     eResult, tkm_tErr_ErrorAccessingSegmentationVolume );
+
   /* Try to load the color table. */
   DebugNote( ("Loading color table.") );
   eResult = LoadSegmentationColorTable( isColorFileName );
   DebugAssertThrowX( (Volm_tErr_NoErr == eResult),
 		     eResult, tkm_tErr_CouldntLoadColorTable );
-
 
   /* Read the annotation into the surface. */
   DebugNote( ("Reading annotation.") );
@@ -7504,45 +7705,11 @@ tkm_tErr ImportSurfaceAnnotationToSegmentation ( char* isAnnotationFileName,
   DebugAssertThrowX( (Surf_tErr_NoErr == eSurface),
 		     eResult, tkm_tErr_ErrorAccessingSurface );
 
-  /* free existing roi group if present. */
-  if( NULL != gSegmentationVolume ) {
-    DebugNote( ("Deleting existing roi group") );
-    eVolume = Volm_Delete( &gSegmentationVolume );
-    DebugAssertThrowX( (Volm_tErr_NoErr == eVolume),
-           eResult, tkm_tErr_ErrorAccessingSegmentationVolume );
-    
-    DebugNote( ("Deleting existing flag volume") );
-    eVolume = Volm_Delete( &gSegmentationChangedVolume );
-    DebugAssertThrowX( (Volm_tErr_NoErr == eVolume),
-           eResult, tkm_tErr_ErrorAccessingSegmentationVolume );
-  }
-  
-  /* Get the original source dir of the anatomical volume. */
-  DebugNote( ("Copying original source dir of anatomical") );
-  eVolume = Volm_CopySourceDir( gAnatomicalVolume[tkm_tVolumeType_Main],
-				sDirName, sizeof(sDirName) );
-  DebugAssertThrowX( (Volm_tErr_NoErr == eVolume),
-		     eResult, tkm_tErr_ErrorAccessingVolume );
-
-  /* Create a new volume and import the same data as the
-     anatomical. */
-  DebugNote( ("Creating segmentation overlay") );
-  eVolume = Volm_New ( &gSegmentationVolume );
-  DebugAssertThrowX( (Volm_tErr_NoErr == eVolume),
-		     eResult, tkm_tErr_ErrorAccessingSegmentationVolume );
-  DebugNote( ("Importing data") );
-  eVolume = Volm_ImportData ( gSegmentationVolume, sDirName );
-  DebugAssertThrowX( (Volm_tErr_NoErr == eVolume),
-		     eResult, tkm_tErr_ErrorAccessingSegmentationVolume );
-  
   /* Get a direct pointer to the surface. */
   DebugNote( ("Getting MRIS") );
   eSurface = Surf_GetMRIS( gSurface[tkm_tSurfaceType_Main], &mris );
   DebugAssertThrowX( (Surf_tErr_NoErr == eSurface),
 		     eResult, tkm_tErr_ErrorAccessingSurface );
-
-  /* Clear the volume. */
-  MRIclear( gSegmentationVolume->mpMriValues );
 
   /* For every vertex in the surface, get the annot value. Unpack it
      to an RGB value. Look in the LUT to get the corresponding
@@ -7579,8 +7746,8 @@ tkm_tErr ImportSurfaceAnnotationToSegmentation ( char* isAnnotationFileName,
 		      pVertex->x + (d * dx),
 		      pVertex->y + (d * dy),
 		      pVertex->z + (d * dz) );
-      Volm_ConvertRASToIdx( gSegmentationVolume, &surfRAS, &anaIdx );
-      Volm_SetValueAtIdx( gSegmentationVolume, &anaIdx, (float)nStructure );
+      Volm_ConvertRASToIdx( newVolume, &surfRAS, &anaIdx );
+      Volm_SetValueAtIdx( newVolume, &anaIdx, (float)nStructure );
     }
     if( !(nVertex % 1000) ) {
       fprintf( stdout, "\rConverting annotation... %.2f%% done",
@@ -7590,24 +7757,37 @@ tkm_tErr ImportSurfaceAnnotationToSegmentation ( char* isAnnotationFileName,
   }
   fprintf( stdout, "\rConverting annotation... 100%% done       \n" );
 
-  /* allocate flag volume */
-  DebugNote( ("Creating segmentation flag volume") );
-  eVolume = Volm_New( &gSegmentationChangedVolume );
-  DebugAssertThrowX( (Volm_tErr_NoErr == eVolume),
-		     eResult, tkm_tErr_ErrorAccessingSegmentationVolume );
-  gSegmentationChangedVolume->mpMriValues = 
-    MRIclone(gSegmentationVolume->mpMriValues,NULL);
-  DebugAssertThrowX( (NULL != gSegmentationChangedVolume->mpMriValues ),
-		     eResult, tkm_tErr_ErrorAccessingSegmentationVolume );
-  
-  /* enable our segmentation options */
-  DebugNote( ("Enabling segmentation options in interface") );
-  tkm_SendTclCommand( tkm_tTclCommand_ShowSegmentationOptions, "1" );
-  
-  /* set segmentation volume in window */
+
+  /* free existing segmentations if present. */
+  if( NULL != gSegmentationVolume[iVolume] ) {
+    DebugNote( ("Deleting existing roi group") );
+    eVolume = Volm_Delete( &gSegmentationVolume[iVolume] );
+    DebugAssertThrowX( (Volm_tErr_NoErr == eVolume),
+		       eResult, tkm_tErr_ErrorAccessingSegmentationVolume );
+    
+    DebugNote( ("Deleting existing flag volume") );
+    eVolume = Volm_Delete( &gSegmentationChangedVolume[iVolume] );
+    DebugAssertThrowX( (Volm_tErr_NoErr == eVolume),
+           eResult, tkm_tErr_ErrorAccessingSegmentationVolume );
+  }
+
+  /* Save these volumes. */
+  gSegmentationVolume[iVolume]        = newVolume;
+  gSegmentationChangedVolume[iVolume] = newChangedVolume;
+
+  /* enable our segmentation options and set segmentation volume in window */
   if( gMeditWindow ) {
-    DebugNote( ("Setting roi group in main window") );
-    MWin_SetROIGroup( gMeditWindow, -1, gSegmentationVolume );
+    if( tkm_tSegType_Main == iVolume ) {
+      DebugNote( ("Enabling segmentation options in interface") );
+      tkm_SendTclCommand( tkm_tTclCommand_ShowSegmentationOptions, "1" );
+    } else {
+      DebugNote( ("Enabling ayx segmentation options in interface") );
+      tkm_SendTclCommand( tkm_tTclCommand_ShowAuxSegmentationOptions, "1" );
+    }
+  
+    DebugNote( ("Setting main segmentation in main window") );
+    MWin_SetSegmentationVolume( gMeditWindow, iVolume, 
+		      -1, gSegmentationVolume[iVolume] );
   }
   
   DebugCatch;
@@ -7700,30 +7880,32 @@ tkm_tErr LoadSegmentationColorTable ( char* isColorFileName ) {
 }
 
 
-void SetROIGroupAlpha ( float ifAlpha ) {
+void SetSegmentationAlpha ( float ifAlpha ) {
   
   char sTclArguments[STRLEN] = "";
   
   if( ifAlpha >= 0 && ifAlpha <= 1.0 ) {
-    gfROIAlpha = ifAlpha;
+    gfSegmentationAlpha = ifAlpha;
     UpdateAndRedraw ();
   }
   
-  sprintf( sTclArguments, "%f", gfROIAlpha );
-  tkm_SendTclCommand( tkm_tTclCommand_UpdateROIGroupAlpha, sTclArguments ); 
+  sprintf( sTclArguments, "%f", gfSegmentationAlpha );
+  tkm_SendTclCommand( tkm_tTclCommand_UpdateSegmentationVolumeAlpha, 
+		      sTclArguments ); 
   
 }
 
-void GetROIColorAtVoxel ( xVoxelRef   ipVoxel,        
-        xColor3fRef iBaseColor,
-        xColor3fRef oColor ) {
+void GetSegmentationColorAtVoxel ( tkm_tSegType iVolume, 
+				   xVoxelRef    ipVoxel,        
+				   xColor3fRef  iBaseColor,
+				   xColor3fRef  oColor ) {
   
-  int        index     = 0;
-  CLUT_tErr   eColorTable  = CLUT_tErr_NoErr;
-  xColor3f    roiColor;
+  int        index        = 0;
+  CLUT_tErr  eColorTable  = CLUT_tErr_NoErr;
+  xColor3f   roiColor;
   
   /* get the index of this voxel */
-  GetROILabel( ipVoxel, &index, NULL );
+  GetSegLabel( iVolume, ipVoxel, &index, NULL );
   
   /* If 0, just use the base color */
   if( 0 == index ) {
@@ -7737,12 +7919,12 @@ void GetROIColorAtVoxel ( xVoxelRef   ipVoxel,
     goto error;
   
   /* blend them */
-  oColor->mfRed = (gfROIAlpha * roiColor.mfRed) + 
-    (float)((1.0-gfROIAlpha) * iBaseColor->mfRed);
-  oColor->mfGreen = (gfROIAlpha * roiColor.mfGreen) + 
-    (float)((1.0-gfROIAlpha) * iBaseColor->mfGreen);
-  oColor->mfBlue = (gfROIAlpha * roiColor.mfBlue) + 
-    (float)((1.0-gfROIAlpha) * iBaseColor->mfBlue);
+  oColor->mfRed = (gfSegmentationAlpha * roiColor.mfRed) + 
+    (float)((1.0-gfSegmentationAlpha) * iBaseColor->mfRed);
+  oColor->mfGreen = (gfSegmentationAlpha * roiColor.mfGreen) + 
+    (float)((1.0-gfSegmentationAlpha) * iBaseColor->mfGreen);
+  oColor->mfBlue = (gfSegmentationAlpha * roiColor.mfBlue) + 
+    (float)((1.0-gfSegmentationAlpha) * iBaseColor->mfBlue);
   
   goto cleanup;
   
@@ -7756,17 +7938,19 @@ void GetROIColorAtVoxel ( xVoxelRef   ipVoxel,
   return;
 }
 
-void GetROILabel ( xVoxelRef ipVoxel, 
-       int*   onIndex,
-       char*   osLabel ) {
+void GetSegLabel ( tkm_tSegType iVolume,
+		   xVoxelRef    ipVoxel, 
+		   int*         onIndex,
+		   char*        osLabel ) {
   
-  int     index        = 0;
   CLUT_tErr   eColorTable  = CLUT_tErr_NoErr;
   Volm_tErr   eVolume      = Volm_tErr_NoErr;
-  float     fValue        = 0;
+  int         index        = 0;
+  float       fValue        = 0;
   
   /* get the voxel at this location */
-  eVolume = Volm_GetValueAtIdx( gSegmentationVolume, ipVoxel, &fValue );
+  eVolume = 
+    Volm_GetValueAtIdx( gSegmentationVolume[iVolume], ipVoxel, &fValue );
   if( Volm_tErr_NoErr == eVolume ) {
     index = (int)fValue;
   } else {
@@ -7780,8 +7964,8 @@ void GetROILabel ( xVoxelRef ipVoxel,
     } else {
       eColorTable = CLUT_GetLabel( gColorTable, index, osLabel );
       if( CLUT_tErr_NoErr != eColorTable ) {
-  /* pass an out of bounds notice. */
-  strcpy( osLabel, "Out of bounds." );
+	/* pass an out of bounds notice. */
+	strcpy( osLabel, "Out of bounds." );
       }
     }
   }
@@ -7807,47 +7991,9 @@ void GetROILabel ( xVoxelRef ipVoxel,
   return;
 }
 
-void SelectCurrentROI ( int inIndex ) {
-  
-#if 0
-  xVoxel voxel;
-  tVolumeValue index = 0;
-  
-  OutputPrint "Selecting... 0%%" EndOutputPrint;
-  
-  /* go thru the volume */
-  for( xVoxl_SetZ( &voxel, 0 );
-       xVoxl_GetZ( &voxel ) < gVolumeDimension;
-       xVoxl_SetZ( &voxel, xVoxl_GetZ( &voxel ) + 1 ) ) {
-    for( xVoxl_SetY( &voxel, 0 );
-   xVoxl_GetY( &voxel ) < gVolumeDimension;
-   xVoxl_SetY( &voxel, xVoxl_GetY( &voxel ) + 1 ) ) {
-      for( xVoxl_SetX( &voxel, 0 );
-     xVoxl_GetX( &voxel ) < gVolumeDimension;
-     xVoxl_SetX( &voxel, xVoxl_GetX( &voxel ) + 1 ) ) {
-  
-  /* get the index. if it's the same, add this voxel to the selection */
-  index = GetVoxelValue( gSegmentationVolume, xVoxl_ExpandInt(&voxel) );
-  if( index == inIndex )
-    AddVoxelToSelection( &voxel );
-      }
-    }
-    
-    OutputPrint "\rSelecting... %.2f%%       ",
-      ((float)xVoxl_GetZ( &voxel ) / (float)gVolumeDimension) * 100.0
-      EndOutputPrint;
-  }
-  
-  OutputPrint "\rSelecting... done!       \n" EndOutputPrint;
-  
-  /* redraw */
-  UpdateAndRedraw();
-#endif
-}
-
 Volm_tVisitCommand AddSimilarVoxelToSelection ( xVoxelRef iAnaIdx,
-            float     iValue,
-            void*     ipnTarget ) {
+						float     iValue,
+						void*     ipnTarget ) {
   int nIndex = 0;
   int nTargetIndex = 0;
   
@@ -7861,8 +8007,8 @@ Volm_tVisitCommand AddSimilarVoxelToSelection ( xVoxelRef iAnaIdx,
 }
 
 Volm_tVisitCommand AddSimilarVoxelToGraohAvg ( xVoxelRef iAnaIdx,
-                 float     iValue,
-                 void*     ipnTarget ) {
+					       float     iValue,
+					       void*     ipnTarget ) {
   int nIndex = 0;
   int nTargetIndex = 0;
   
@@ -7875,15 +8021,39 @@ Volm_tVisitCommand AddSimilarVoxelToGraohAvg ( xVoxelRef iAnaIdx,
   return Volm_tVisitComm_Continue;
 }
 
+Volm_tVisitCommand SetChangedSegmentationValue ( xVoxelRef iAnaIdx,
+						 float     iValue,
+						 void*     iData ) {
+  tkm_tExportSegmentationParamsRef params = NULL;
+  float                            value;
 
-tkm_tErr SelectROI ( int inIndex ) {
+  if( iValue ) {
+
+    params = (tkm_tExportSegmentationParamsRef)iData;
+
+    /* Get the value from the segmentation volume and set it in the
+       volume to export. */
+    Volm_GetValueAtIdx( params->mSrcVolume, iAnaIdx, &value );
+    Volm_SetValueAtIdx( params->mDestVolume, iAnaIdx, value );
+  }
   
-  tkm_tErr  eResult   = tkm_tErr_NoErr;
-  Volm_tErr eVolume   = Volm_tErr_NoErr;
-  int      nNumEntries   = 0;
+  return Volm_tVisitComm_Continue;
+}
+
+
+tkm_tErr SelectSegLabel ( tkm_tSegType iVolume,
+			  int          inIndex ) {
   
-  DebugEnterFunction( ("SelectROI ( inIndex=%d )", inIndex) );
+  tkm_tErr  eResult     = tkm_tErr_NoErr;
+  Volm_tErr eVolume     = Volm_tErr_NoErr;
+  int       nNumEntries = 0;
   
+  DebugEnterFunction( ("SelectSegLabel ( iVolume=%d, inIndex=%d )", 
+		       iVolume, inIndex) );
+  
+  DebugAssertThrowX( (iVolume >= 0 && iVolume <= tkm_knNumSegTypes),
+		     eResult, tkm_tErr_InvalidParameter );
+
   /* make sure we're loaded */
   DebugNote( ("Checking parameters") );
   DebugAssertThrowX( (NULL != gSegmentationVolume || NULL != gColorTable),
@@ -7897,8 +8067,9 @@ tkm_tErr SelectROI ( int inIndex ) {
   
   /* do it */
   OutputPrint "Selecting... " EndOutputPrint;
-  eVolume = Volm_VisitAllVoxels( gSegmentationVolume, &AddSimilarVoxelToSelection,
-         (void*)&inIndex );
+  eVolume = 
+    Volm_VisitAllVoxels( gSegmentationVolume[iVolume], 
+			 &AddSimilarVoxelToSelection, (void*)&inIndex );
   DebugAssertThrowX( (Volm_tErr_NoErr == eVolume),
          eResult, tkm_tErr_ErrorAccessingSegmentationVolume );
   OutputPrint "done.\n" EndOutputPrint;
@@ -7914,7 +8085,8 @@ tkm_tErr SelectROI ( int inIndex ) {
   return eResult;
 }
 
-tkm_tErr GraphROI ( int inIndex ) {
+tkm_tErr GraphSegLabel ( tkm_tSegType iVolume,
+			 int          inIndex ) {
   
   tkm_tErr  eResult        = tkm_tErr_NoErr;
   Volm_tErr eVolume        = Volm_tErr_NoErr;
@@ -7922,7 +8094,8 @@ tkm_tErr GraphROI ( int inIndex ) {
   int      nNumEntries        = 0;
   char      sLabel[CLUT_knLabelLen] = "";
   
-  DebugEnterFunction( ("GraphROI ( inIndex=%d )", inIndex) );
+  DebugEnterFunction( ("GraphSegLabel ( iVolume=%d, inIndex=%d )", 
+		       iVolume, inIndex) );
   
   /* make sure we're loaded */
   DebugNote( ("Checking parameters") );
@@ -7942,8 +8115,9 @@ tkm_tErr GraphROI ( int inIndex ) {
   
   /* do it */
   OutputPrint "Finding voxels... " EndOutputPrint;
-  eVolume = Volm_VisitAllVoxels( gSegmentationVolume, &AddSimilarVoxelToGraohAvg,
-         (void*)&inIndex );
+  eVolume = 
+    Volm_VisitAllVoxels( gSegmentationVolume[iVolume], 
+			 &AddSimilarVoxelToGraohAvg, (void*)&inIndex );
   DebugAssertThrowX( (Volm_tErr_NoErr == eVolume),
          eResult, tkm_tErr_ErrorAccessingSegmentationVolume );
   OutputPrint "done.\n" EndOutputPrint;
@@ -7969,21 +8143,83 @@ tkm_tErr GraphROI ( int inIndex ) {
   return eResult;
 }
 
-int EditSegmentation ( xVoxelRef   iAnaIdx,
-           int         inIndex ) {
+static void
+RecomputeUpdateCallback( MRI* iMRIValues ) {
+
+  MRIcopy( iMRIValues, 
+	   gSegmentationVolume[gRecaluclatingSegemention]->mpMriValues );
+  if( gbAcceptingTclCommands && gDisplayIntermediateResults ) {
+    UpdateAndRedraw() ;
+    MWin_ForceRedraw( gMeditWindow ) ;
+  }
+}
+
+void RecomputeSegmentation ( tkm_tSegType iVolume ) {
+  
+  tkm_tErr     eResult   = tkm_tErr_NoErr;
+  Volm_tErr    eVolume   = Volm_tErr_NoErr;
+
+  DebugEnterFunction( ("RecomputeSegmentation( iVolume=%d )", 
+		       (int)iVolume ) );
+  
+  DebugAssertThrowX( (iVolume >= 0 && iVolume < tkm_knNumSegTypes),
+		     eResult, tkm_tErr_InvalidParameter );
+  DebugAssertThrowX( (NULL == gGCAVolume && NULL == gGCATransform),
+		     eResult, tkm_tErr_GCANotLoaded );
+  
+  /* Delete the old backup if it exists. */
+  if( NULL != gPreviousSegmentationVolume[iVolume] ) {
+    DebugNote( ("Deleting old backup segmentation") );
+    eVolume = Volm_Delete( &gPreviousSegmentationVolume[iVolume] );
+    DebugAssertThrowX( (Volm_tErr_NoErr == eVolume), eVolume, 
+		       tkm_tErr_ErrorAccessingSegmentationVolume );
+  }
+  
+  /* Make backup volume. */
+  DebugNote( ("Creating backup segmentation") );
+  eVolume = Volm_DeepClone( gSegmentationVolume[iVolume],
+			    &gPreviousSegmentationVolume[iVolume] );
+  DebugAssertThrowX( (Volm_tErr_NoErr == eVolume), eVolume, 
+		     tkm_tErr_ErrorAccessingSegmentationVolume );
+  
+  /* Reclassify using the update function declared above. */
+  gRecaluclatingSegemention = iVolume;
+  GCAreclassifyUsingGibbsPriors( 
+             gAnatomicalVolume[tkm_tVolumeType_Main]->mpMriValues, 
+	     gGCAVolume, 
+	     gSegmentationVolume[iVolume]->mpMriValues,
+	     gGCATransform, 10, 
+	     gSegmentationChangedVolume[iVolume]->mpMriValues, 1, 
+	     RecomputeUpdateCallback);
+  
+  UpdateAndRedraw() ;
+
+  DebugCatch;
+  DebugCatchError( eResult, tkm_tErr_NoErr, tkm_GetErrorString );
+  DebugCatchError( eVolume, Volm_tErr_NoErr, Volm_GetErrorString );
+  EndDebugCatch;
+
+  DebugExitFunction;
+}
+
+int EditSegmentation ( tkm_tSegType iVolume,
+		       xVoxelRef    iAnaIdx,
+		       int          inIndex ) {
+
   int        nOldValue = 0;
   Volm_tValue newValue = 0;
   
-  GetROILabel( iAnaIdx, &nOldValue, NULL );
+  GetSegLabel( iVolume, iAnaIdx, &nOldValue, NULL );
   newValue = (Volm_tValue)inIndex;
-  Volm_SetValueAtIdx( gSegmentationVolume, iAnaIdx, newValue );
-  Volm_SetValueAtIdx( gSegmentationChangedVolume, iAnaIdx, 1 );
+  Volm_SetValueAtIdx( gSegmentationVolume[iVolume], iAnaIdx, newValue );
+  Volm_SetValueAtIdx( gSegmentationChangedVolume[iVolume], iAnaIdx, 1 );
   
   return nOldValue;
 }
 
-void CalcROIVolume ( xVoxelRef iAnaIdx,
-         int*     onVolume ) {
+void CalcSegLabelVolume ( tkm_tSegType iVolume,
+			  xVoxelRef    iAnaIdx,
+			  int*         onVolume ) {
   
   tkm_tErr  eResult = tkm_tErr_NoErr;
   int      index   = 0;
@@ -7993,7 +8229,7 @@ void CalcROIVolume ( xVoxelRef iAnaIdx,
   int      i         = 0;
 #endif
   
-  DebugEnterFunction( ("CalcROIVolume( iAnaIdx=%p, onVolume=%p )",
+  DebugEnterFunction( ("CalcSegLabelVolume( iAnaIdx=%p, onVolume=%p )",
            iAnaIdx, onVolume) );
   
   DebugAssertThrowX( (NULL != iAnaIdx && NULL != onVolume),
@@ -8020,14 +8256,14 @@ void CalcROIVolume ( xVoxelRef iAnaIdx,
   
   DebugNote( ("Getting initial value at %d,%d,%d", 
         xVoxl_ExpandInt( iAnaIdx )) );
-  GetROILabel( iAnaIdx, &index, NULL );
+  GetSegLabel( iVolume, iAnaIdx, &index, NULL );
   if( 0 == index ) {
     DebugGotoCleanup;
   }
   
   /* recursivly iterate with these values */
   DebugNote( ("Starting iteration") );
-  IterateCalcROIVolume( iAnaIdx, index, visited, onVolume );
+  IterateCalcSegLabelVolume( iVolume, iAnaIdx, index, visited, onVolume );
   
   DebugCatch;
   DebugCatchError( eResult, tkm_tErr_NoErr, tkm_GetErrorString );
@@ -8040,10 +8276,11 @@ void CalcROIVolume ( xVoxelRef iAnaIdx,
   DebugExitFunction;
 }
 
-void IterateCalcROIVolume ( xVoxelRef iAnaIdx, 
-          int      inIndex, 
-          tBoolean* iVisited, 
-          int*      onVolume ) {
+void IterateCalcSegLabelVolume ( tkm_tSegType iVolume,
+				 xVoxelRef    iAnaIdx, 
+				 int          inIndex, 
+				 tBoolean*    iVisited, 
+				 int*         onVolume ) {
   
   
   Volm_tErr    eVolume   = Volm_tErr_NoErr;
@@ -8060,16 +8297,18 @@ void IterateCalcROIVolume ( xVoxelRef iAnaIdx,
   int         index   = 0;
   
   /* if we've already been here, exit */
-  if( iVisited[ xVoxl_ExpandToIndex( iAnaIdx,gnAnatomicalDimensionX, gnAnatomicalDimensionY ) ] == 1 ) {
+  if( iVisited[ xVoxl_ExpandToIndex( iAnaIdx,gnAnatomicalDimensionX, 
+				     gnAnatomicalDimensionY ) ] == 1 ) {
     goto cleanup;
   }
   
   /* make this voxel as visited */
-  iVisited[ xVoxl_ExpandToIndex( iAnaIdx,gnAnatomicalDimensionX, gnAnatomicalDimensionY ) ] = 1;
+  iVisited[ xVoxl_ExpandToIndex( iAnaIdx,gnAnatomicalDimensionX, 
+				 gnAnatomicalDimensionY ) ] = 1;
   
   
   /* get index at this point */
-  GetROILabel( iAnaIdx, &index, NULL );
+  GetSegLabel( iVolume, iAnaIdx, &index, NULL );
   
   /* if this is not the voxel we're looking for, exit. */
   if( index != inIndex ) {
@@ -8081,21 +8320,22 @@ void IterateCalcROIVolume ( xVoxelRef iAnaIdx,
   
   /* calc our bounds */
   nBeginX = xVoxl_GetX(iAnaIdx) - 1;
-  nEndX    = xVoxl_GetX(iAnaIdx) + 1;
+  nEndX   = xVoxl_GetX(iAnaIdx) + 1;
   nBeginY = xVoxl_GetY(iAnaIdx) - 1;
-  nEndY    = xVoxl_GetY(iAnaIdx) + 1;
+  nEndY   = xVoxl_GetY(iAnaIdx) + 1;
   nBeginZ = xVoxl_GetZ(iAnaIdx) - 1;
-  nEndZ    = xVoxl_GetZ(iAnaIdx) + 1;
+  nEndZ   = xVoxl_GetZ(iAnaIdx) + 1;
   
   /* check the surrounding voxels */
   for( nZ = nBeginZ; nZ <= nEndZ; nZ++ ) {
     for( nY = nBeginY; nY <= nEndY; nY++ ) {
       for( nX = nBeginX; nX <= nEndX; nX++ ) {
 	xVoxl_Set( &anaIdx, nX, nY, nZ );
-	eVolume = Volm_VerifyIdx( gAnatomicalVolume[tkm_tVolumeType_Main], 
-				  &anaIdx );
+	eVolume = 
+	  Volm_VerifyIdx( gAnatomicalVolume[tkm_tVolumeType_Main], &anaIdx );
 	if( Volm_tErr_NoErr == eVolume ) {
-	  IterateCalcROIVolume( &anaIdx, inIndex, iVisited, onVolume );
+	  IterateCalcSegLabelVolume( iVolume, &anaIdx, inIndex, 
+				     iVisited, onVolume );
 	}
       }
     }
@@ -8105,31 +8345,43 @@ void IterateCalcROIVolume ( xVoxelRef iAnaIdx,
   ;
 }
 
-void SetSegmentationValue ( xVoxelRef  iAnaIdx,
-          int        inIndex ) {
+void SetSegmentationValue ( tkm_tSegType iVolume,
+			    xVoxelRef    iAnaIdx,
+			    int          inIndex ) {
   
-  
-  EditSegmentation( iAnaIdx, inIndex );
+  /* TODO: add the change to the undo list. */
+  EditSegmentation( iVolume, iAnaIdx, inIndex );
 }
 
 
-void FloodFillSegmentation ( xVoxelRef       iAnaIdx,
-           tkm_tParcFloodFillParamsRef iParams ) {
+void FloodFillSegmentation ( tkm_tSegType                iVolume,
+			     xVoxelRef                   iAnaIdx,
+			     tkm_tParcFloodFillParamsRef iParams ) {
   
-  tBoolean* visited    = NULL;
-  tkm_tErr  eResult    = tkm_tErr_NoErr;
-  int      nSize      = 0;
+  tBoolean* visited     = NULL;
+  tkm_tErr  eResult     = tkm_tErr_NoErr;
+  int       nSize       = 0;
+  int       nDimensionX = 0;
+  int       nDimensionY = 0;
+  int       nDimensionZ = 0;
 #ifdef Solaris
-  int      i         = 0;
+  int      i            = 0;
 #endif
   
   DebugEnterFunction( ("FloodFillSegmentation( iAnaIdx=%d,%d,%d, iParams=%p )",
-           xVoxl_ExpandInt( iAnaIdx ), iParams) );
+		       xVoxl_ExpandInt( iAnaIdx ), iParams) );
   
-  nSize =
-    gnAnatomicalDimensionX *
-    gnAnatomicalDimensionY *
-    gnAnatomicalDimensionZ ;
+  DebugAssertThrowX( (iVolume >= 0 && iVolume <= tkm_knNumSegTypes),
+		     eResult, tkm_tErr_InvalidParameter );
+  DebugAssertThrowX( (NULL != iAnaIdx),
+		     eResult, tkm_tErr_InvalidParameter );
+
+  DebugAssertThrowX( (NULL != gSegmentationVolume[iVolume]),
+		     eResult, tkm_tErr_ErrorAccessingSegmentationVolume );
+
+  Volm_GetDimensions( gSegmentationVolume[iVolume], 
+		      &nDimensionX, &nDimensionY, &nDimensionZ );
+  nSize = nDimensionX * nDimensionY * nDimensionZ;
   
   /* init a volume to keep track of visited voxels */
   DebugNote( ("Allocating visited tracker volume") );
@@ -8146,7 +8398,7 @@ void FloodFillSegmentation ( xVoxelRef       iAnaIdx,
   
   /* recursivly iterate with these values */
   DebugNote( ("Starting iteration") );
-  IterateFloodFillSegmentation( iAnaIdx, iParams, visited );
+  IterateFloodFillSegmentation( iVolume, iAnaIdx, iParams, visited );
   
   DebugCatch;
   DebugCatchError( eResult, tkm_tErr_NoErr, tkm_GetErrorString );
@@ -8161,24 +8413,25 @@ void FloodFillSegmentation ( xVoxelRef       iAnaIdx,
   DebugExitFunction;
 }
 
-void IterateFloodFillSegmentation ( xVoxelRef      iAnaIdx,
-            tkm_tParcFloodFillParamsRef iParams,
-            tBoolean*      iVisited ) {
+void IterateFloodFillSegmentation ( tkm_tSegType                iVolume,
+				    xVoxelRef                   iAnaIdx,
+				    tkm_tParcFloodFillParamsRef iParams,
+				    tBoolean*                   iVisited ) {
   
   Volm_tErr    eVolume   = Volm_tErr_NoErr;
-  int         nZ   = 0;
-  int         nBeginX   = 0;
-  int         nEndX   = 0;
-  int         nBeginY   = 0;
-  int         nEndY   = 0;
-  int         nBeginZ   = 0;
-  int         nEndZ   = 0;
-  int         nY   = 0;
-  int         nX   = 0;
+  int          nZ        = 0;
+  int          nBeginX   = 0;
+  int          nEndX     = 0;
+  int          nBeginY   = 0;
+  int          nEndY     = 0;
+  int          nBeginZ   = 0;
+  int          nEndZ     = 0;
+  int          nY        = 0;
+  int          nX        = 0;
   xVoxel       anaIdx;
-  int         srcValue   = 0;
-  float         fValue   = 0;
-  float         fDistance = 0;
+  int          srcValue  = 0;
+  float        fValue    = 0;
+  float        fDistance = 0;
   
   /* don't do this too many times. */
   iParams->mnIterationDepth++;
@@ -8188,29 +8441,33 @@ void IterateFloodFillSegmentation ( xVoxelRef      iAnaIdx,
   }
   
   /* if we've already been here, exit */
-  if( iVisited[ xVoxl_ExpandToIndex( iAnaIdx,gnAnatomicalDimensionX, gnAnatomicalDimensionY ) ] == 1 ) {
+  if( iVisited[ xVoxl_ExpandToIndex( iAnaIdx,gnAnatomicalDimensionX, 
+				     gnAnatomicalDimensionY ) ] == 1 ) {
     goto cleanup;
   }
   
   /* make this voxel as visited */
-  iVisited[ xVoxl_ExpandToIndex( iAnaIdx,gnAnatomicalDimensionX, gnAnatomicalDimensionY ) ] = 1;
+  iVisited[ xVoxl_ExpandToIndex( iAnaIdx,gnAnatomicalDimensionX, 
+				 gnAnatomicalDimensionY ) ] = 1;
   
-  /* see what src value to get */
+  /* See what src value to get. We can already be sure the proper
+     volumes exist because they have been checked by now. */
   switch( iParams->mSource ) {
-  case tkm_tVolumeType_Main:
-  case tkm_tVolumeType_Aux:
+  case tkm_tVolumeTarget_MainAna:
+  case tkm_tVolumeTarget_AuxAna:
     Volm_GetValueAtIdx( gAnatomicalVolume[iParams->mSource], iAnaIdx, 
-      &fValue);
+			&fValue);
     srcValue = (int)fValue;
     break;
-  case tkm_tVolumeType_Parc:
-    GetROILabel( iAnaIdx, &srcValue, NULL );
+  case tkm_tVolumeTarget_MainSeg:
+  case tkm_tVolumeTarget_AuxSeg:
+    GetSegLabel( iVolume, iAnaIdx, &srcValue, NULL );
     break;
   default:
-    goto cleanup;
+    return;
     break;
   }
-  
+
   /* if this is not the voxel we're looking for, exit. */
   if( srcValue < iParams->mnTargetValue - iParams->mnFuzziness ||
       srcValue > iParams->mnTargetValue + iParams->mnFuzziness ) {
@@ -8231,7 +8488,7 @@ void IterateFloodFillSegmentation ( xVoxelRef      iAnaIdx,
   }
   
   /* if so, set this value in the parc */
-  SetSegmentationValue( iAnaIdx, iParams->mnNewIndex );
+  SetSegmentationValue( iVolume, iAnaIdx, iParams->mnNewIndex );
   
   /* calc our bounds */
   nBeginX = xVoxl_GetX(iAnaIdx) - 1;
@@ -8263,12 +8520,12 @@ void IterateFloodFillSegmentation ( xVoxelRef      iAnaIdx,
   for( nZ = nBeginZ; nZ <= nEndZ; nZ++ ) {
     for( nY = nBeginY; nY <= nEndY; nY++ ) {
       for( nX = nBeginX; nX <= nEndX; nX++ ) {
-  xVoxl_Set( &anaIdx, nX, nY, nZ );
-  eVolume = Volm_VerifyIdx( gAnatomicalVolume[tkm_tVolumeType_Main], 
-          &anaIdx );
-  if( Volm_tErr_NoErr == eVolume ) {
-    IterateFloodFillSegmentation( &anaIdx, iParams, iVisited );
-  }
+	xVoxl_Set( &anaIdx, nX, nY, nZ );
+	eVolume = Volm_VerifyIdx( gAnatomicalVolume[tkm_tVolumeType_Main], 
+				  &anaIdx );
+	if( Volm_tErr_NoErr == eVolume ) {
+	  IterateFloodFillSegmentation( iVolume, &anaIdx, iParams, iVisited );
+	}
       }
     }
   }
@@ -8278,8 +8535,8 @@ void IterateFloodFillSegmentation ( xVoxelRef      iAnaIdx,
   iParams->mnIterationDepth--;
 }
 
-void SwapROIGroupAndVolume ( mriVolumeRef   iGroup,
-           mriVolumeRef    iVolume ) {
+void SwapSegmentationAndVolume ( mriVolumeRef   iGroup,
+			     mriVolumeRef    iVolume ) {
   
   printf( "UNSUPPORTED\n" );
 }
@@ -8405,7 +8662,7 @@ tkm_tErr LoadDTIVolume ( char*              isNameEV,
 
   } while( xVoxl_IncrementUntilLimits( &EVIdx, zEVX, zEVY, zEVZ ) );
     
-  fprintf( stdout, "\rProcessing DTI volumes: 100%% dane.        \n" );
+  fprintf( stdout, "\rProcessing DTI volumes: 100%% dane.         " );
 
   /* Delete the FA volume. */
   Volm_Delete( &FAVolume );
@@ -8490,7 +8747,7 @@ void GetDTIColorAtVoxel ( xVoxelRef        iAnaIdx,
       (float)((1.0-gfDTIAlpha) * iBaseColor->mfRed));
     oColor->mfGreen = MIN( 1, (gfDTIAlpha * color.mfGreen) + 
       (float)((1.0-gfDTIAlpha) * iBaseColor->mfGreen));
-    oColor->mfBlue = MIN( 1, (gfROIAlpha * color.mfBlue) + 
+    oColor->mfBlue = MIN( 1, (gfDTIAlpha * color.mfBlue) + 
       (float)((1.0-gfDTIAlpha) * iBaseColor->mfBlue));
   
   } else {
@@ -9832,116 +10089,139 @@ void tkm_GetAnaDimension  ( tkm_tVolumeType iVolume,
 }
 
 tBoolean tkm_IsValidAnaIdx ( tkm_tVolumeType iVolume,
-           xVoxelRef     iAnaIdx ) {
+			     xVoxelRef     iAnaIdx ) {
   
   Volm_tErr    eVolume   = Volm_tErr_NoErr;
   eVolume = Volm_VerifyIdx( gAnatomicalVolume[iVolume], iAnaIdx );
   return ( Volm_tErr_NoErr == eVolume );
 }
 
-void tkm_GetROIColorAtVoxel ( xVoxelRef inVoxel, 
-            xColor3fRef iBaseColor,
-            xColor3fRef oColor ) {
+void tkm_GetSegmentationColorAtVoxel ( tkm_tSegType iVolume,
+			      xVoxelRef    inVoxel, 
+			      xColor3fRef  iBaseColor,
+			      xColor3fRef  oColor ) {
   
-  GetROIColorAtVoxel( inVoxel, iBaseColor, oColor );
+  GetSegmentationColorAtVoxel( iVolume, inVoxel, iBaseColor, oColor );
 }
 
-void tkm_GetROILabel ( xVoxelRef inVoxel, 
-           int* onIndex, char* osLabel ) {
+void tkm_GetSegLabel ( tkm_tSegType iVolume,
+		       xVoxelRef    inVoxel, 
+		       int*         onIndex,
+		       char*        osLabel ) {
   
-  GetROILabel( inVoxel, onIndex, osLabel );
+  GetSegLabel( iVolume, inVoxel, onIndex, osLabel );
 }
 
-void tkm_SelectCurrentROI ( int inIndex ) {
-  
+void tkm_SelectCurrentSegLabel ( tkm_tSegType iVolume,
+				 int          inIndex ) {
+
   tkm_tErr eResult = tkm_tErr_NoErr;
   
-  eResult = SelectROI( inIndex );
+  eResult = SelectSegLabel( iVolume, inIndex );
   if( tkm_tErr_NoErr != eResult ) {
-    tkm_DisplayError( "Selecting Current ROI",
-          "Tool failed",
-          "Tkmedit couldn't select the current ROI. You are "
-          "probably trying to select in invalid ROI. Make sure "
-          "you click on an ROI first and its name appears in "
-          "the tools window in the ROI line. ");
+    tkm_DisplayError( "Selecting Current Segmentation Label",
+		      "Tool failed",
+		      "Tkmedit couldn't select the current label. You are "
+		      "probably trying to select in invalid label. Make sure "
+		      "you click on a label first and its name appears in "
+		      "the tools window in the seg label line." );
   }
 }
 
-void tkm_GraphCurrentROIAvg ( int inIndex ) {
+void tkm_GraphCurrentSegLabelAvg ( tkm_tSegType iVolume,
+			      int          inIndex ) {
   
   tkm_tErr eResult = tkm_tErr_NoErr;
   
-  eResult = GraphROI( inIndex );
+  eResult = GraphSegLabel( iVolume, inIndex );
   if( tkm_tErr_NoErr != eResult ) {
-    tkm_DisplayError( "Graphing Current ROI Average",
-          "Tool failed",
-          "Tkmedit couldn't graph the current ROI. You are "
-          "probably trying to graph in invalid ROI. Make sure "
-          "you click on an ROI first and its name appears in "
-          "the tools window in the ROI line. Also, make sure "
-          "that functional time course data is loaded." );
+    tkm_DisplayError( "Graphing Current Segmentation Label Average",
+		      "Tool failed",
+		      "Tkmedit couldn't graph the current label. You are "
+		      "probably trying to graph in invalid label. Make sure "
+		      "you click on a label first and its name appears in "
+		      "the tools window in the seg label line. Also, make "
+		      "sure that functional time course data is loaded." );
   }
 }
 
-void tkm_CalcROIVolume ( xVoxelRef iAnaIdx,
-       int*   onVolume ) {
+void tkm_CalcSegLabelVolume ( tkm_tSegType iVolume,
+			      xVoxelRef    iAnaIdx,
+			      int*         onVolume ) {
   
-  CalcROIVolume( iAnaIdx, onVolume );
+  CalcSegLabelVolume( iVolume, iAnaIdx, onVolume );
 }
 
-void tkm_EditSegmentation ( xVoxelRef  iAnaIdx,
-          int        inIndex ) {
+void tkm_EditSegmentation ( tkm_tSegType iVolume,
+			    xVoxelRef    iAnaIdx,
+			    int          inIndex ) {
   
-  SetSegmentationValue( iAnaIdx, inIndex );
+  SetSegmentationValue( iVolume, iAnaIdx, inIndex );
 }
 
 
-void tkm_FloodFillSegmentation ( xVoxelRef   iAnaIdx,
-         int     inIndex,
-         tBoolean   ib3D,
-         tkm_tVolumeType iSrc,
-         int     inFuzzy,
-         int     inDistance ) {
+void tkm_FloodFillSegmentation ( tkm_tSegType    iVolume,
+				 xVoxelRef       iAnaIdx,
+				 int             inIndex,
+				 tBoolean        ib3D,
+				 tkm_tVolumeType iSrc,
+				 int             inFuzzy,
+				 int             inDistance ) {
   
   tkm_tParcFloodFillParams params;
-  char         sTclArguments[1024] = "";
-  float         anaValue;
+  char                     sTclArguments[1024] = "";
+  float                    anaValue;
   
-  params.mnFuzziness    = inFuzzy;
-  params.mnDistance    = inDistance;
+  params.mnFuzziness             = inFuzzy;
+  params.mnDistance              = inDistance;
   xVoxl_Copy( &params.mAnchor, iAnaIdx );
-  params.mb3D      = ib3D;
-  params.mSource    = iSrc;
-  params.mnNewIndex    = inIndex;
-  params.mnIterationDepth = 0;
-  params.mnIterationLimit = knMaxFloodFillIteration;
+  params.mb3D                    = ib3D;
+  params.mSource                 = iSrc;
+  params.mnNewIndex              = inIndex;
+  params.mnIterationDepth        = 0;
+  params.mnIterationLimit        = knMaxFloodFillIteration;
   params.mbIterationLimitReached = FALSE;
   MWin_GetOrientation ( gMeditWindow, &params.mOrientation );
   
-  /* see what target value to get */
+  /* see what target value to get. for everything other than the main
+     anatomical volume, check to see if it exists first. for the
+     segmentation targets, set the fuzzinees to 0, since it doesn't
+     really apply to label values. */
   switch( params.mSource ) {
-  case tkm_tVolumeType_Main:
-  case tkm_tVolumeType_Aux:
-    if( NULL == gAnatomicalVolume[params.mSource] ) {
-      strcpy( sTclArguments, 
-        "\"Cannot use aux volume as source if it is not loaded.\"" );
-      tkm_SendTclCommand( tkm_tTclCommand_ErrorDlog, sTclArguments );
-      goto cleanup;
-    }
-    Volm_GetValueAtIdx( gAnatomicalVolume[params.mSource], iAnaIdx, 
-      &anaValue);
+  case tkm_tVolumeTarget_MainAna:
+    Volm_GetValueAtIdx( gAnatomicalVolume[tkm_tVolumeType_Main], 
+			iAnaIdx, &anaValue );
     params.mnTargetValue = (int)anaValue;
     break;
-  case tkm_tVolumeType_Parc:
-    if( NULL == gSegmentationVolume ) {
+  case tkm_tVolumeTarget_AuxAna:
+    if( NULL == gAnatomicalVolume[tkm_tVolumeType_Aux] ) {
       strcpy( sTclArguments, 
-        "\"Cannot use ROI group as source if it is not loaded.\"" );
+	      "\"Cannot use aux volume as source if it is not loaded.\"" );
       tkm_SendTclCommand( tkm_tTclCommand_ErrorDlog, sTclArguments );
       goto cleanup;
     }
-    GetROILabel( iAnaIdx, &params.mnTargetValue, NULL );
-    
-    /* no fuzziness if we're using the segmentation */
+    Volm_GetValueAtIdx( gAnatomicalVolume[tkm_tVolumeType_Aux], 
+			iAnaIdx, &anaValue);
+    params.mnTargetValue = (int)anaValue;
+    break;
+  case tkm_tVolumeTarget_MainSeg:
+    if( NULL == gSegmentationVolume[tkm_tSegType_Main] ) {
+      strcpy( sTclArguments, 
+	      "\"Cannot use segmentation as source if it is not loaded.\"" );
+      tkm_SendTclCommand( tkm_tTclCommand_ErrorDlog, sTclArguments );
+      goto cleanup;
+    }
+    GetSegLabel( tkm_tSegType_Main, iAnaIdx, &params.mnTargetValue, NULL );
+    params.mnFuzziness = 0;
+    break;
+  case tkm_tVolumeTarget_AuxSeg:
+    if( NULL == gSegmentationVolume[tkm_tSegType_Aux] ) {
+      strcpy( sTclArguments, 
+	    "\"Cannot use aux segmentation as source if it is not loaded.\"" );
+      tkm_SendTclCommand( tkm_tTclCommand_ErrorDlog, sTclArguments );
+      goto cleanup;
+    }
+    GetSegLabel( tkm_tSegType_Aux, iAnaIdx, &params.mnTargetValue, NULL );
     params.mnFuzziness = 0;
     break;
   default:
@@ -9950,7 +10230,7 @@ void tkm_FloodFillSegmentation ( xVoxelRef   iAnaIdx,
   }
   
   /* do it! */
-  FloodFillSegmentation( iAnaIdx, &params );
+  FloodFillSegmentation( iVolume, iAnaIdx, &params );
   
   /* see if our iteration limit was reached. if so, spit out an error. */
   if( params.mbIterationLimitReached ) {
@@ -9971,10 +10251,10 @@ void tkm_FloodFillSegmentation ( xVoxelRef   iAnaIdx,
 }
 
 void tkm_GetDTIColorAtVoxel ( xVoxelRef        iAnaIdx,
-            mri_tOrientation iPlane,
-            xColor3fRef      iBaseColor,
+			      mri_tOrientation iPlane,
+			      xColor3fRef      iBaseColor,
             xColor3fRef      oColor ) {
-
+  
   GetDTIColorAtVoxel( iAnaIdx, iPlane, iBaseColor, oColor );
 }
             
@@ -10007,7 +10287,8 @@ char *kTclCommands [tkm_knNumTclCommands] = {
   "UpdateFunctionalCoords",
   "UpdateFunctionalRASCoords",
   "UpdateFunctionalValue",
-  "UpdateROILabel",
+  "UpdateSegLabel",
+  "UpdateAuxSegLabel",
   "UpdateHeadPointLabel",
   "UpdateSurfaceDistance",
   "UpdateZoomLevel",
@@ -10023,7 +10304,7 @@ char *kTclCommands [tkm_knNumTclCommands] = {
   "UpdateSurfaceLineColor",
   "UpdateParcBrushInfo",
   "UpdateVolumeColorScaleInfo",
-  "UpdateROIGroupAlpha",
+  "UpdateSegmentationVolumeAlpha",
   "UpdateTimerStatus",
   "UpdateHomeDirectory",
   "UpdateVolumeDirty",
@@ -10034,7 +10315,8 @@ char *kTclCommands [tkm_knNumTclCommands] = {
   "ShowRASCoords",
   "ShowTalCoords",
   "ShowAuxValue",
-  "ShowROILabel",
+  "ShowSegLabel",
+  "ShowAuxSegLabel",
   "ShowHeadPointLabel",
   "ShowFuncCoords",
   "ShowFuncValue",
@@ -10050,12 +10332,12 @@ char *kTclCommands [tkm_knNumTclCommands] = {
   "tkm_SetMenuItemGroupStatus tMenuGroup_OriginalSurfaceViewing",
   "tkm_SetMenuItemGroupStatus tMenuGroup_CanonicalSurfaceViewing",
   "tkm_SetMenuItemGroupStatus tMenuGroup_HeadPoints",
-  "tkm_SetMenuItemGroupStatus tMenuGroup_ROIGroupOptions",
   "tkm_SetMenuItemGroupStatus tMenuGroup_VLIOptions",
   "tkm_SetMenuItemGroupStatus tMenuGroup_GCAOptions",
   "tkm_SetMenuItemGroupStatus tMenuGroup_DTIOptions",
   "tkm_SetMenuItemGroupStatus tMenuGroup_Registration",
-  "tkm_SetMenuItemGroupStatus tMenuGroup_Segmentation",
+  "tkm_SetMenuItemGroupStatus tMenuGroup_SegmentationOptions",
+  "tkm_SetMenuItemGroupStatus tMenuGroup_AuxSegmentationOptions",
   "ClearParcColorTable",
   "AddParcColorTableEntry",
   

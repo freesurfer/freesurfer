@@ -100,50 +100,51 @@ MWin_tErr MWin_PositionDisplays_       ( tkmMeditWindowRef this );
 
 /* setting display info. specify by display area index, starting from 0
    for the upper-left area. use -1 to specify all areas. */
-MWin_tErr MWin_SetVolume         ( tkmMeditWindowRef this,
-				   int     inDispIndex,
-				   mriVolumeRef   ipVolume,
-				   int     inSizeX,
-				   int     inSizeY,
-				   int     inSizeZ );
-MWin_tErr MWin_SetAuxVolume         ( tkmMeditWindowRef this,
-				      int     inDispIndex,
-				      mriVolumeRef   ipVolume,
-				      int     inSizeX,
-				      int     inSizeY,
-				      int     inSizeZ) ;
-MWin_tErr MWin_SetROIGroup         ( tkmMeditWindowRef this,
-				     int       inDispIndex,
-				     mriVolumeRef     iGroup );
-MWin_tErr MWin_SetSurface         ( tkmMeditWindowRef this, 
-				    int               inDispIndex,
-				    tkm_tSurfaceType  iType,
-				    mriSurfaceRef     ipSurface );
-MWin_tErr MWin_SetOverlayVolume         ( tkmMeditWindowRef this,
-					  int       inDispIndex,
-					  tkmFunctionalVolumeRef ipVol );
-MWin_tErr MWin_SetControlPointsSpace       ( tkmMeditWindowRef this,
-					     int       inDispIndex,
-					     x3DListRef     ipVoxels );
-MWin_tErr MWin_SetSelectionSpace       ( tkmMeditWindowRef this, 
-					 int       inDispIndex,
-					 x3DListRef     ipVoxels );
-MWin_tErr MWin_SetHeadPointList         ( tkmMeditWindowRef this,
-					  int       inDispIndex,
-					  mriHeadPointListRef iList );
-MWin_tErr MWin_SetGCA           ( tkmMeditWindowRef this,
-				  int       inDispIndex,
-				  GCA*       iVolume,
-				  TRANSFORM* iTransform );
-MWin_tErr MWin_SetVLIs            ( tkmMeditWindowRef this,
-				    int       inDispIndex,
-				    VLI*       iVLI1,
-				    VLI*       iVLI2,
-				    char*       isVLI1_name,
-				    char*       isVLI2_name );
-MWin_tErr MWin_SetDTIVolume         ( tkmMeditWindowRef   this, 
-				      int                 inDispIndex,
-				      mriVolumeRef        iVolume );
+MWin_tErr MWin_SetVolume              ( tkmMeditWindowRef this,
+					int               inDispIndex,
+					mriVolumeRef      ipVolume,
+					int               inSizeX,
+					int               inSizeY,
+					int               inSizeZ );
+MWin_tErr MWin_SetAuxVolume           ( tkmMeditWindowRef this,
+					int               inDispIndex,
+					mriVolumeRef      ipVolume,
+					int               inSizeX,
+					int               inSizeY,
+					int               inSizeZ) ;
+MWin_tErr MWin_SetSegmentationVolume  ( tkmMeditWindowRef this,
+					tkm_tSegType      iVolume,
+					int               inDispIndex,
+					mriVolumeRef      iGroup );
+MWin_tErr MWin_SetSurface             ( tkmMeditWindowRef this, 
+					int               inDispIndex,
+					tkm_tSurfaceType  iType,
+					mriSurfaceRef     ipSurface );
+MWin_tErr MWin_SetOverlayVolume       ( tkmMeditWindowRef this,
+					int               inDispIndex,
+					tkmFunctionalVolumeRef ipVol );
+MWin_tErr MWin_SetControlPointsSpace  ( tkmMeditWindowRef this,
+					int               inDispIndex,
+					x3DListRef        ipVoxels );
+MWin_tErr MWin_SetSelectionSpace      ( tkmMeditWindowRef this, 
+					int               inDispIndex,
+					x3DListRef        ipVoxels );
+MWin_tErr MWin_SetHeadPointList       ( tkmMeditWindowRef this,
+					int               inDispIndex,
+					mriHeadPointListRef iList );
+MWin_tErr MWin_SetGCA                 ( tkmMeditWindowRef this,
+					int               inDispIndex,
+					GCA*              iVolume,
+					TRANSFORM*        iTransform );
+MWin_tErr MWin_SetVLIs                ( tkmMeditWindowRef this,
+					int               inDispIndex,
+					VLI*              iVLI1,
+					VLI*              iVLI2,
+					char*             isVLI1_name,
+					char*             isVLI2_name );
+MWin_tErr MWin_SetDTIVolume           ( tkmMeditWindowRef this, 
+					int               inDispIndex,
+					mriVolumeRef      iVolume );
 
 
 /* viewing state changes. specify the display area the same way as above. */
@@ -349,11 +350,11 @@ int MWin_TclSetParcBrushInfo ( ClientData  iClientData,
 			       Tcl_Interp* ipInterp,
 			       int   argc,
 			       char*   argv[] );
-int MWin_TclSelectCurrentROI ( ClientData  iClientData, 
+int MWin_TclSelectCurrentSegLabel ( ClientData  iClientData, 
 			       Tcl_Interp* ipInterp,
 			       int   argc,
 			       char*   argv[] );
-int MWin_TclGraphCurrentROIAvg ( ClientData  iClientData, 
+int MWin_TclGraphCurrentSegLabelAvg ( ClientData  iClientData, 
 				 Tcl_Interp* ipInterp,
 				 int   argc,
 				 char*   argv[] );
