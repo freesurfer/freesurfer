@@ -282,14 +282,25 @@ proc unzoomcoords { } {  ;# update nice (stop loop)
 # to use this function.
 proc SetPlane { inNewPlane } {
 
-    global plane
+    global plane jc ic imc
 
+#    if { $plane == $inNewPlane } {
+#  puts "SetPlane: new plane = plane, exiting.";
+#  return;
+#    }
+
+    puts "SetPlane: on enter, j/i/im = ($jc,$ic,$imc)"
     SaveCursorInVoxel;
+    puts "          after saving cursor j/i/im = ($jc,$ic,$imc)"
     set plane $inNewPlane;
+    puts "          set plane to $inNewPlane"
     SetCursorToSavedVoxel;
+    puts "          after restoring cursor, j/i/im = ($jc,$ic,$imc)"
     redraw;
     update idletasks;
+    puts "          after updating idletasks, j/i/im = ($jc,$ic,$imc)"
     sendupdate;
+    puts "          on exit, j/i/im = ($jc,$ic,$imc)"
 }    
 
 # kt - this does a similar thing except with switching between all3 view.
@@ -716,7 +727,7 @@ scale $f.sc -from $sagmin -to $sagmax -length $sclenx -variable newjc \
    -orient horizontal -tickinterval 127 -showvalue false -font $sfont \
    -width 11 -resolution 1
 pack $f.sc -side left
-bind $f.sc <ButtonRelease> { SetPlane $sag; }
+bind $f.sc <ButtonRelease> { SetPlane $sag; redraw; }
 #bind $f.sc <B1-Motion> { redraw }
 edlabval $f "none" 0 n 0 3 row
 pack $f.none -side top
@@ -737,7 +748,7 @@ scale $f.sc -from $hormin -to $hormax -length $sclenx -variable newic \
    -orient horizontal -tickinterval 127 -showvalue false -font $sfont \
    -width 11 -resolution 1
 pack $f.sc -side left
-bind $f.sc <ButtonRelease> { SetPlane $hor; }
+bind $f.sc <ButtonRelease> { SetPlane $hor; redraw; }
 #bind $f.sc <B1-Motion> { redraw }
 edlabval $f "none" 0 n 0 3 row
 pack $f.none -side top
