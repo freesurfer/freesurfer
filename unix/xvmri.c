@@ -79,12 +79,14 @@ void
 mri_event_handler(XV_FRAME *xvf, Event *event,DIMAGE *dimage, 
                   int *px, int *py, int *pz)
 {
-  int       x, y, z, which, depth, view ;
+  int       x, y, z, which, depth, view, x2, y2, z2 ;
   Real      xr, yr, zr, xt, yt, zt ;
   HISTOGRAM *histo ;
   float     fmin, fmax ;
   XV_FRAME  *xvnew ;
-  MRI       *mri ;
+  MRI       *mri, *mri2 ;
+  char      fmt[150], title[50], buf[100] ;
+  DIMAGE    *dimage2 ;
 
   which = dimage->which ;
   mri = mris[which] ;
@@ -216,6 +218,37 @@ mri_event_handler(XV_FRAME *xvf, Event *event,DIMAGE *dimage,
     y_click = y ;
     z_click = z ;
     XVrepaintImage(xvf, which_click) ;
+    if (dimage->sync)
+    {
+      int which2 ;
+
+      for (which2 = 0 ; which2 < xvf->rows*xvf->cols ; which2++)
+      {
+        dimage2 = XVgetDimage(xvf, which2, DIMAGE_IMAGE) ;
+        mri2 = mris[which2] ;
+        if (dimage2 && (which2 != which) && mri2)
+        {
+          MRIvoxelToVoxel(mri, mri2, (Real)x, (Real)y, (Real)z, &xr, &yr, &zr);
+          x2 = nint(xr) ; y2 = nint(yr) ; z2 = nint(zr) ;
+          x2 = MAX(0, x2) ; y2 = MAX(0, y2) ; z2 = MAX(0, z2) ;
+          x2 = MIN(mri2->width-1, x2) ; y2 = MIN(mri2->height-1, y2) ; 
+          z2 = MIN(mri2->depth-1, z2) ;
+          XVgetTitle(xvf, which2, title, 0) ;
+          sprintf(fmt, "%%10.10s: (%%3d, %%3d) --> %%2.%dlf\n", xvf->precision);
+          switch (mri2->type)
+          {
+          case MRI_UCHAR:
+            sprintf(buf, "%d", MRIseq_vox(mri2, x2, y2, z2,mri_frames[which2]));
+            break ;
+          case MRI_FLOAT:
+            sprintf(buf, "%2.3f",MRIFseq_vox(mri2,x2,y2,z2,mri_frames[which2]));
+            break ;
+          }
+          XVshowImageTitle(xvf, which2, "%s (%s)", title, buf) ;
+        }
+
+      }
+    }
   }
   if (px)
     *px = x ;
@@ -223,7 +256,6 @@ mri_event_handler(XV_FRAME *xvf, Event *event,DIMAGE *dimage,
     *py = y ;
   if (pz)
     *pz = z ;
-
 }
 
 /*----------------------------------------------------------------------
@@ -441,7 +473,7 @@ viewMenuItem(Menu menu, Menu_item menu_item)
 {
   char   *menu_str ;
   MRI    *mri, *mri2 ;
-  int    slice, which, view, which2, sync ;
+  int    slice, slice2, offset, which, view, which2, sync ;
   DIMAGE *dimage, *dimage2 ;
 
   which = which_click ;
@@ -484,10 +516,28 @@ viewMenuItem(Menu menu, Menu_item menu_item)
         continue ;
       dimage2 = XVgetDimage(xvf, which2, DIMAGE_IMAGE) ;
       mri2 = mris[which2] ;
-      if (dimage2 && mri2 && (dimage2->sync == sync))
+      if (dimage2 && mri2 /* && (dimage2->sync == sync) */)
       {
+        switch (view)
+        {
+        case MRI_CORONAL:
+          offset = mri->zstart - mri2->zstart ;
+          slice2 = slice - mri->imnr0 ;  /* turn it into an index */
+          slice2 = (slice2+offset) / mri2->zsize + mri2->imnr0 ;
+          break ;
+        case MRI_SAGITAL:
+          offset = mri->xstart - mri2->xstart ;
+          slice2 = (slice+offset) / mri2->xsize ;
+          break ;
+        case MRI_HORIZONTAL:
+          offset = mri->ystart - mri2->ystart ;
+          slice2 = (slice+offset) / mri2->ysize ;
+          break ;
+        default:
+          slice2 = slice ;
+        }
         XVMRIsetView(xvf, which2, view) ;
-        XVMRIshowFrame(xvf, mri2, which2, slice, mri_frames[which2]) ;
+        XVMRIshowFrame(xvf, mri2, which2, slice2, mri_frames[which2]) ;
       }
     }
   }
