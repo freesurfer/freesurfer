@@ -18,7 +18,7 @@ function [Fsig, F, betamn] = flacffx(flac,conname,saveresults,jknthrun)
 %
 % If saveresults, 
 %
-% $Id: flacffx.m,v 1.3 2005/01/11 19:57:22 greve Exp $
+% $Id: flacffx.m,v 1.4 2005/03/16 20:53:16 greve Exp $
 %
 
 Fsig = [];
@@ -186,10 +186,15 @@ for nthcon = conind
   Fsig = p;
   Fsig.vol = -log10(p.vol);
 
-  F.vol = fast_mat2vol(F.vol,F.volsize);
-  p.vol = fast_mat2vol(p.vol,p.volsize);
-  Fsig.vol = fast_mat2vol(Fsig.vol,Fsig.volsize);
+  if(J == 1)
+    F.vol    = F.vol    .* sign(gam(nthcon).vol);
+    Fsig.vol = Fsig.vol .* sign(gam(nthcon).vol);
+  end
 
+  F.vol    = fast_mat2vol(F.vol,F.volsize);
+  p.vol    = fast_mat2vol(p.vol,p.volsize);
+  Fsig.vol = fast_mat2vol(Fsig.vol,Fsig.volsize);
+      
   if(saveresults)
     condir = sprintf('%s/%s',flaffxdir,flac.con(nthcon).name);
     mkdirpcmd = sprintf('mkdir -p %s',condir);
