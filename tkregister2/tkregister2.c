@@ -1,10 +1,10 @@
 /*============================================================================
  Copyright (c) 1996 Martin Sereno and Anders Dale
 =============================================================================*/
-/*   $Id: tkregister2.c,v 1.10 2003/03/17 03:32:32 greve Exp $   */
+/*   $Id: tkregister2.c,v 1.11 2003/04/07 20:40:12 greve Exp $   */
 
 #ifndef lint
-static char vcid[] = "$Id: tkregister2.c,v 1.10 2003/03/17 03:32:32 greve Exp $";
+static char vcid[] = "$Id: tkregister2.c,v 1.11 2003/04/07 20:40:12 greve Exp $";
 #endif /* lint */
 
 #define TCL
@@ -562,11 +562,11 @@ int Register(ClientData clientData,Tcl_Interp *interp, int argc, char *argv[])
   }
 
   /*------------------------------------------------------*/
-  if(ps_2 != mov_vol->xsize){
-    printf("WARNING: pixel size in regfile (%f) does not match that of "
-	   "movable volume (%f)\n",ps_2,mov_vol->xsize);
+  if( abs(ps_2 - mov_vol->xsize) > .001 ){
+    printf("WARNING: pixel size in regfile (%g) does not match that of "
+	   "movable volume (%g)\n",ps_2,mov_vol->xsize);
   }
-  if(st_2 != mov_vol->zsize){
+  if( abs(st_2 - mov_vol->zsize) > .001 ){
     printf("WARNING: slice thickness in regfile (%f) does not match that of "
 	   "movable volume (%f)\n",st_2,mov_vol->zsize);
   }
