@@ -4,8 +4,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2004/06/14 20:27:17 $
-// Revision       : $Revision: 1.291 $
+// Revision Date  : $Date: 2004/07/21 21:13:36 $
+// Revision       : $Revision: 1.292 $
 //////////////////////////////////////////////////////////////////
 #include <stdio.h>
 #include <string.h>
@@ -18386,7 +18386,11 @@ mrisFindNextOutwardFace(MRI_SURFACE *mris, MHT *mht, int vno, double max_dist)
       for (j = 0 ; j < nfound ; j++)
       {
         if (fptr[j] >= 0)
+	{
+	  if (total_found ==1000)
+	    ErrorExit(ERROR_BADPARM, "too many intersecting faces.  check filled volume for correctness\n");
           flist[total_found++] = fptr[j] ;
+	}
       }
       for (i = 0 ; i < total_found ; i++)
         if (vertexInFace(mris, vno, flist[i]))
@@ -18395,7 +18399,11 @@ mrisFindNextOutwardFace(MRI_SURFACE *mris, MHT *mht, int vno, double max_dist)
       for (fptr = flist,total_found = 0, j = 0 ; j < nfound ; j++, fptr++)
       {
         if (*fptr >= 0)
-          flist[total_found++] = *fptr ;
+	{
+	  if (total_found ==1000)
+	    ErrorExit(ERROR_BADPARM, "too many intersecting faces.  check filled volume for correctness\n");
+	  flist[total_found++] = *fptr ;
+	}
       }
     }
     if (total_found > 0)
@@ -18453,7 +18461,11 @@ mrisFindNextInwardFace(MRI_SURFACE *mris, MHT *mht, int vno, double max_dist)
       for (j = 0 ; j < nfound ; j++)
       {
         if (fptr[j] >= 0)
+	{
+	  if (total_found ==1000)
+	    ErrorExit(ERROR_BADPARM, "too many intersecting faces.  check filled volume for correctness\n");
           flist[total_found++] = fptr[j] ;
+	}
       }
       for (i = 0 ; i < total_found ; i++)
         if (vertexInFace(mris, vno, flist[i]))
@@ -18462,7 +18474,11 @@ mrisFindNextInwardFace(MRI_SURFACE *mris, MHT *mht, int vno, double max_dist)
       for (fptr = flist,total_found = 0, j = 0 ; j < nfound ; j++, fptr++)
       {
         if (*fptr >= 0)
-          flist[total_found++] = *fptr ;
+        {
+	  if (total_found ==1000)
+	    ErrorExit(ERROR_BADPARM, "too many intersecting faces.  check filled volume for correctness\n");
+	  flist[total_found++] = *fptr ;
+	}
       }
     }
     if (total_found > 0)
@@ -18654,6 +18670,8 @@ mrisDirectionTriangleIntersection(MRI_SURFACE *mris, float x0, float y0,
 	    if (flist)
 	      flist[found] = fno ;
 	    found++ ;
+	    if (found ==1000)
+	      ErrorExit(ERROR_BADPARM, "too many intersecting faces.  check filled volume for correctness\n");
 	    *pdist = min_dist = dist ;
 	  }
 	}
@@ -18720,6 +18738,8 @@ mrisDirectionTriangleIntersection(MRI_SURFACE *mris, float x0, float y0,
 	  if (flist)
 	    flist[found] = fno ;
 	  found++ ;
+	  if (found ==1000)
+	    ErrorExit(ERROR_BADPARM, "too many intersecting faces.  check filled volume for correctness\n");
 	  if (dist < min_dist)
 	    *pdist = min_dist = dist ;
 	}
@@ -18765,6 +18785,8 @@ mrisDirectionTriangleIntersection(MRI_SURFACE *mris, float x0, float y0,
 	{
 	  flist[found] = fno ;
 	  found++ ;
+	  if (found ==1000)
+	    ErrorExit(ERROR_BADPARM, "too many intersecting faces.  check filled volume for correctness\n");
 	}
       }
       return(found) ;
@@ -22865,6 +22887,8 @@ mrisDivideEdge(MRI_SURFACE *mris, int vno1, int vno2)
         if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
           fprintf(stdout, " face %d shared.\n", fno) ;
         flist[vnew->num++] = fno ;
+	if (vnew->num == 100)
+	  ErrorExit(ERROR_BADPARM, "Too many faces to divide edge");
         vnew->vnum++ ; vnew->vtotal = vnew->vnum ;
       }
   }
@@ -22872,6 +22896,9 @@ mrisDivideEdge(MRI_SURFACE *mris, int vno1, int vno2)
   mris->nvertices++ ;
 
   /* will be part of two new faces also */
+  // total array size is going to be vnew->num*2!
+  if (vnew->num == 50)
+    ErrorExit(ERROR_BADPARM, "Too many faces to divide edge");
   for (n = 0 ; n < vnew->num ; n++)
     flist[vnew->num+n] = mris->nfaces+n ;
   vnew->num *= 2 ;
@@ -22991,9 +23018,6 @@ mrisDivideFace(MRI_SURFACE *mris, int fno, int vno1, int vno2, int vnew_no)
   if (vno1 == Gdiag_no || vno2 == Gdiag_no || vnew_no == Gdiag_no)
     DiagBreak() ;
 
-  if (fno ==  10919 || mris->nfaces == 10919)
-    DiagBreak() ;
-
   /* divide this face in two, reusing one of the face indices, and allocating
      one new one
   */
@@ -23001,8 +23025,7 @@ mrisDivideFace(MRI_SURFACE *mris, int fno, int vno1, int vno2, int vnew_no)
     return(ERROR_NO_MEMORY) ;
 
   fnew_no = mris->nfaces++ ;
-  if (fnew_no == 12452)
-    DiagBreak() ;
+
   f1 = &mris->faces[fno] ;
   f2 = &mris->faces[fnew_no] ;
   v1 = &mris->vertices[vno1] ;
@@ -24125,7 +24148,11 @@ mrisFindUnambiguousFace(MRI_SURFACE *mris, MHT *mht, VERTEX *v, int *pnfound)
       for (j = 0 ; j < nfound ; j++)
       {
         if (fptr[j] >= 0)
+	{
+	  if (total_found == 1000)
+	    ErrorExit(ERROR_BADPARM, "Too many ambiguous faces");
           flist[total_found++] = fptr[j] ;
+	}
       }
     }
   }
@@ -24168,7 +24195,11 @@ mrisChooseFace(MRI_SURFACE *mris, MHT *mht, VERTEX *v)
       for (j = 0 ; j < nfound ; j++)
       {
         if (fptr[j] >= 0)
-          flist[total_found++] = fptr[j] ;
+        {
+	  if (total_found == 1000)
+	    ErrorExit(ERROR_BADPARM, "Too many surface found");
+	  flist[total_found++] = fptr[j] ;
+	}
       }
     }
   }
@@ -24234,7 +24265,11 @@ mrisChooseFace(MRI_SURFACE *mris, MHT *mht, VERTEX *v)
       for (j = 0 ; j < nfound ; j++)
       {
         if (fptr[j] >= 0)
+	{
+	  if (total_found == 1000)
+	    ErrorExit(ERROR_BADPARM, "Too many surfaces");
           flist[total_found++] = fptr[j] ;
+	}
       }
     }
   }
@@ -24509,7 +24544,11 @@ mrisChooseFace(MRI_SURFACE *mris, MHT *mht, VERTEX *v)
         break ;
     }
     if (l >= VERTICES_PER_FACE)
+    {
+      if (nfaces == 10000)
+	ErroExit(ERROR_BADPARM, "Too many faces");
       flist[nfaces++] = bin->fno ;
+    }
   }
   if (!nfaces)  /* something went wrong, but Anders will fix it */
   {
@@ -24638,7 +24677,11 @@ mrisFindUnambiguousFace(MRI_SURFACE *mris, MHT *mht, VERTEX *v)
         break ;
     }
     if (l >= VERTICES_PER_FACE)
+    {
+      if (nfaces == 10000)
+	ErrorExit(ERROR_BADPARM, "Too many faces");
       flist[nfaces++] = bin->fno ;
+    }
   }
   if (!nfaces)
   {
@@ -25389,11 +25432,10 @@ mrisFindAllOverlappingFaces(MRI_SURFACE *mris, MHT *mht,int fno, int *flist)
 	for (bin = bucket->bins, i = 0 ; i < bucket->nused ; i++, bin++)
 	{
 	  f2 = &mris->faces[bin->fno] ;
-	  if ((bin->fno == 114877 && fno == 114875) ||
-	      (fno == 114877 && bin->fno == 114875))
-	    DiagBreak() ;
 	  if (!f2->ripflag)  /* only add it once */
 	  {
+	    if (nfaces == 100000)
+	      ErrorExit(ERROR_BADPARM, "Too many faces");
 	    all_faces[nfaces++] = bin->fno ;
 	    f2->ripflag = 1 ;
 	  }
@@ -25411,9 +25453,6 @@ mrisFindAllOverlappingFaces(MRI_SURFACE *mris, MHT *mht,int fno, int *flist)
     f2 = &mris->faces[all_faces[i]] ;
     if (all_faces[i] == Gdiag_no)
       DiagBreak() ;
-    if ((all_faces[i] == 117486 && fno == 114877) ||
-        (fno == 117486 && all_faces[i] == 114877))
-      DiagBreak() ;
     for (n = 0 ; n < VERTICES_PER_FACE ; n++)
     {
       edge1.vno1 = f1->v[n] ; 
@@ -25430,6 +25469,8 @@ mrisFindAllOverlappingFaces(MRI_SURFACE *mris, MHT *mht,int fno, int *flist)
         if (edgesIntersect(mris, &edge1, &edge2))
         {
           f2->ripflag = 1 ;  /* use ripflag as a mark */
+	  if (total_found==1000)
+	    ErrorExit(ERROR_BADPARM, "Too many intersected faces");
           flist[total_found++] = all_faces[i] ;
         }
       }
@@ -26766,8 +26807,11 @@ MRISmarkAmbiguousVertices(MRI_SURFACE *mris, int mark)
       if (flist[i] == fno)
         break ;
     if (i >= nfaces)
+    {
+      if (nfaces == 1000)
+	ErrorExit(ERROR_BADPARM, "Too many faces");
       flist[nfaces++] = fno ;
-
+    }
     if ((nfaces > 1 || area_scale*f->area < 0.001) || ((fno <= 5) && Gdiag & DIAG_SAVE_DIAGS))  /* part of a defect */
     {
       nmarked++ ;
@@ -27134,6 +27178,8 @@ mrisMarkRetainedPartOfDefect(MRI_SURFACE *mris, DEFECT *defect,
       {
         if (nfaces == 7127)
           DiagBreak() ;
+	if (nfaces == 100000)
+	  ErrorExit(ERROR_BADPARM, "Too many faces");
         flist[nfaces++] = v->f[n2] ;
         mris->faces[v->f[n2]].ripflag = 1 ;  /* temporary */
       }
@@ -27268,8 +27314,8 @@ mrisMarkRetainedPartOfDefect(MRI_SURFACE *mris, DEFECT *defect,
     {
       if (mris->faces[v->f[n2]].ripflag == 0)
       {
-        if (nfaces == 7127)
-          DiagBreak() ;
+	if (nfaces == 100000)
+	  ErrroExit(ERROR_BADPARM, "Too many faces");
         flist[nfaces++] = v->f[n2] ;
         mris->faces[v->f[n2]].ripflag = 1 ;  /* temporary */
       }
