@@ -106,7 +106,7 @@ read_annotation_table(void)
     cp = "." ;
 
   if(annotation_table_file == NULL)
-    sprintf(fname, "%s/Simple_surface_labels2002.txt.txt", cp) ;
+    sprintf(fname, "%s/Simple_surface_labels2002.txt", cp) ;
   else
     sprintf(fname, "%s",annotation_table_file);
 
