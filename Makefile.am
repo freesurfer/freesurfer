@@ -75,8 +75,14 @@ release:
 	    f=`echo "$$p" | sed 's|^.*/||;$(transform)'`; \
 	    echo " $(INSTALL_SCRIPT) $$d$$p $(DESTDIR)$(libdir)/tcl/$$f"; \
 	    $(INSTALL_SCRIPT) $$d$$p $(DESTDIR)$(libdir)/tcl/$$f; \
+	    cat $(DESTDIR)$(libdir)/tcl/$$f | sed 's|/usr/local/bin/tclsh7.4|/usr/bin/tclsh|' > $(DESTDIR)$(libdir)/tcl/$$f; \
 	  else :; fi; \
 	done
+	$(mkinstalldirs) $(DESTDIR)$(prefix)
+	d="$(srcdir)/scripts/"; \
+	    f="freesurferenv.csh"; \
+	    echo " $(INSTALL_SCRIPT) $$d$$p $(DESTDIR)$(prefix)/$$f"; \
+	    $(INSTALL_SCRIPT) $$d$$f $(DESTDIR)$(prefix)/$$f 
 	$(MAKE) install -C images
 	$(MAKE) release -C distribution
 
