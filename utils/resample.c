@@ -1,6 +1,6 @@
 /*---------------------------------------------------------------
   Name: resample.c
-  $Id: resample.c,v 1.15 2004/07/06 19:04:16 fischl Exp $
+  $Id: resample.c,v 1.16 2004/08/11 23:24:34 greve Exp $
   Author: Douglas N. Greve
   Purpose: code to perform resapling from one space to another, 
   including: volume-to-volume, volume-to-surface, and surface-to-surface.
@@ -255,7 +255,10 @@ MATRIX *ComputeQFWD(MATRIX *Q, MATRIX *F, MATRIX *W, MATRIX *D, MATRIX *QFWD)
 }
 
 /*------------------------------------------------------------
-  vol2vol_linear() - resample one volume into another assuming
+  vol2vol_linear() - DO NOT USE THIS FUNCTION. Use MRIvol2Vol()
+  as found in mri2.c. 
+
+  Resample one volume into another assuming
   that the transformation is completely linear.  Msrc2trg is the
   linear mapping from the Anatomical Space of the Source Subject
   to the Anatomical Space of the Target Subject.
