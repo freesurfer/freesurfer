@@ -2,7 +2,7 @@
 # mris_glm-sess
 #
 
-set VERSION = '$Id: mris_glm-sess,v 1.1 2004/08/25 03:07:34 greve Exp $';
+set VERSION = '$Id: mris_glm-sess,v 1.2 2004/08/25 03:13:44 greve Exp $';
 set fsgdf = ();
 set analysis = ();
 set contrast = ();
@@ -292,7 +292,7 @@ usage_exit:
   echo " -frame frame : 0-based frame in the map (default is 0)"
   echo " -hemi hemi (lh or rh)"
   echo " -projfrac frac : projection fraction (default is $projfrac)"
-  echo " -no-force-paint : do not force a repaint even with .w file is there"
+  echo " -no-force-paint : do not force a repaint unless no .w file is found"
   echo ""
   echo " <mris_glm arguments>"
   echo ""
@@ -385,7 +385,8 @@ smoothing amount (if any), and the all the output arguments (eg,
 or the user can save the estimation outputs only and then computes
 contrasts with a separate call to mris_glm. Note that --beta_in,
 --var_in, --meas, and --design cannot be specified through
-mris_glm-sess.
+mris_glm-sess. Note: the mris_glm arguments all have two dashes (--).
+
 
 EXAMPLES
 
@@ -426,8 +427,10 @@ pat-105-fmri
 pat-106-fmri
 ---------------- cut here ---------------
 
-This has 8 sessions that have the same order as in my.fsgd. Note that the 
-session name is not the same as the subject name.
+This has 8 sessions that have the same order as in my.fsgd. Note that
+the session name is not the same as the subject name. The subject name
+for a session is obtained from the sessid/subjectname file, and this
+must match the subject name in the FSGD file.
 
 The command to process this data set would be:
 
