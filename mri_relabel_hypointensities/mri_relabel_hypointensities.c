@@ -16,7 +16,7 @@
 #include "mrishash.h"
 #include "cma.h"
 
-static char vcid[] = "$Id: mri_relabel_hypointensities.c,v 1.2 2003/05/28 15:22:24 fischl Exp $";
+static char vcid[] = "$Id: mri_relabel_hypointensities.c,v 1.3 2003/09/15 14:32:18 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -30,9 +30,6 @@ static int relabel_hypointensities_neighboring_gray(MRI *mri) ;
 
 
 char *Progname ;
-
-static char *label_name = NULL ;
-static char *annotation_name = NULL ;
 
 static char *surf_name = "white" ;
 
@@ -122,17 +119,6 @@ get_option(int argc, char *argv[])
 	}
   else switch (toupper(*option))
   {
-  case 'L':
-    label_name = argv[2] ;
-    nargs = 1 ;
-    fprintf(stderr, "limiting computations to label %s.\n", label_name) ;
-    break ;
-  case 'A':
-    annotation_name = argv[2] ;
-    nargs = 1 ;
-    fprintf(stderr, "computing statistics for each annotation in %s.\n", 
-            annotation_name) ;
-    break ;
   case '?':
   case 'U':
     print_usage() ;
@@ -158,7 +144,7 @@ static void
 print_usage(void)
 {
   fprintf(stderr, 
-          "usage: %s [options] <subject name> <hemi> [<surface name>]\n", 
+          "usage: %s [options] <input aseg> <surface  directory> <output aseg>\n",
           Progname) ;
 }
 
