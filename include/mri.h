@@ -299,7 +299,7 @@ int   MRItransformRegion(MRI *mri_src, MRI *mri_dst, MRI_REGION *src_region,
 MRI   *MRIextractTalairachPlane(MRI *mri_src, MRI *mri_dst, int orientation, 
                                 int x, int y, int z, int size) ;
 int   MRIeraseTalairachPlane(MRI *mri, MRI *mri_mask, int orientation, 
-                             int x, int y, int z,int size);
+                             int x, int y, int z,int size,int fill_val);
 
 int   MRIsampleVolume(MRI *mri, Real x, Real y, Real z, Real *pval) ;
 
