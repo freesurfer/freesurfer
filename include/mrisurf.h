@@ -328,7 +328,7 @@ typedef struct
   float   l_pcorr ;           /* polar correlation for rigid body */
   float   l_curv ;            /* coefficient of curvature term */
   float   l_scurv ;           /* coefficient of curvature term */
-	float   l_link ;            /* coefficient of link term to keep white and pial vertices approximately along normal */
+  float   l_link ;            /* coefficient of link term to keep white and pial vertices approximately along normal */
   float   l_spring ;          /* coefficient of spring term */
   float   l_spring_norm ;     /* coefficient of normalize spring term */
   float   l_tspring ;         /* coefficient of tangential spring term */
@@ -346,7 +346,7 @@ typedef struct
   float   l_tsmooth ;         /* thickness smoothness term */
   float   l_surf_repulse ;    /* repulsive orig surface (for white->pial) */
   float   l_external ;        /* external (user-defined) coefficient */
-	float   l_shrinkwrap ;      /* move in if MRI=0 and out otherwise */
+  float   l_shrinkwrap ;      /* move in if MRI=0 and out otherwise */
   int     n_averages ;        /* # of averages */
   int     min_averages ;
   int     nbhd_size ;
