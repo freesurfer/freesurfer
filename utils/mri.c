@@ -9,9 +9,9 @@
 */
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2003/11/18 21:42:59 $
-// Revision       : $Revision: 1.248 $
-char *MRI_C_VERSION = "$Revision: 1.248 $";
+// Revision Date  : $Date: 2003/12/08 21:55:44 $
+// Revision       : $Revision: 1.249 $
+char *MRI_C_VERSION = "$Revision: 1.249 $";
 
 /*-----------------------------------------------------
                     INCLUDE FILES
@@ -5220,54 +5220,103 @@ MRItoImageView(MRI *mri, IMAGE *I, int slice, int view, int frame)
 {
   int      width, height, depth, x, y, yp, w, h, d,
            xm, ym, zm, format ;
-	float    fmin, fmax ;
-	Real     val ;
+  float    fmin, fmax ;
+  Real     val ;
   int src_slice_direction;
+  int xsign, ysign;
 
+  src_slice_direction = getSliceDirection(mri);
+  // only strict slice direction is supported
+  if (src_slice_direction == MRI_UNDEFINED)
+    ErrorReturn(NULL, 
+                (ERROR_UNSUPPORTED, 
+                 "MRItoImageView(%d, %d): unsupported view/slice direction %d",
+                 slice, view, src_slice_direction)) ;
+
+  // generic routines to get the right axes
+  // 
+  // should be able to do this in generic terms.
+  // don't have time to do that
+  //
+  // Define the view to be the following:
+  // coronal    = (-R, -S)  
+  // sagittal   = ( A, -S)
+  // horizontal = (-R,  A)
+  //
+  // translate these direction into (x,y)
   d = w = h = xm = ym = zm = 0 ;  /* silly compiler warnings */
   width = mri->width ;
   height = mri->height ;
   depth = mri->depth ;
 
-  src_slice_direction = getSliceDirection(mri);
-  if (view == src_slice_direction)
+  switch(src_slice_direction)
   {
-    w = width ;
-    h = height ;
-    d = depth ;
-  }
-  else if (src_slice_direction != MRI_CORONAL)
-  {
-    ErrorReturn(NULL, 
-                (ERROR_UNSUPPORTED, 
-                 "MRItoImageView(%d, %d): unsupported view/slice direction %d",
-                 slice, view, src_slice_direction)) ;
-  }
-  else switch (view)
-  {
+  case MRI_CORONAL: // x direction can be -R or R, y direction can be -S or S, z direction can be -A or A
+    //     +/-1  0  0
+    //      0    0  +/-1
+    //      0  +/-1 0
+    switch(view)
+    {
+    case MRI_CORONAL: 
+      w = width; h = height; d = depth;
+      xsign = (mri->x_r > 0) ? -1 : 1; ysign = (mri->y_s > 0) ? -1 : 1;
+      break;
+    case MRI_SAGITTAL:
+      w = depth; h = height; d = width; 
+      xsign = (mri->z_a > 0) ?  1 : -1; ysign = (mri->y_s > 0) ? -1 : 1;
+      break;
+    case MRI_HORIZONTAL:
+      w = width; h = depth;  d = height; 
+      xsign = (mri->x_r > 0) ? -1 : 1; ysign = (mri->z_a > 0) ? 1 : -1;
+      break;
+    }
+    break;
+  case MRI_SAGITTAL: // x direction can be -A or A, y direction can be -S or S, z direction can be -R or R
+    //    0    0   +/-1
+    //  +/-1   0    0
+    //    0  +/-1   0
+    switch(view)
+    {
+    case MRI_CORONAL: 
+      w = depth; h = height; d = width; 
+      xsign = (mri->z_r > 0) ? -1 : 1; ysign = (mri->y_s > 0) ? -1 : 1;      
+      break;
+    case MRI_SAGITTAL:
+      w = width; h = height; d = depth; 
+      xsign = (mri->x_a > 0) ? 1 : -1; ysign = (mri->y_s > 0) ? -1 : 1;
+      break;
+    case MRI_HORIZONTAL:
+      w = depth; h = width;  d = height; 
+      xsign = (mri->z_r > 0) ? -1 : 1; ysign = (mri->x_a > 0) ? 1 : -1;
+      break;
+    }
+    break;
+  case MRI_HORIZONTAL: // x direction can be -R or R, y direction can be -A or A, z direction can be -S or S
+    //   +/-1  0   0
+    //    0   +/-1 0
+    //    0    0  +/-1
+    switch(view)
+    {
+    case MRI_CORONAL: 
+      w = width; h = depth; d = height; 
+      xsign = (mri->x_r > 0) ? -1 : 1; ysign = (mri->z_s > 0) ? -1 : 1;
+      break;
+    case MRI_SAGITTAL:
+      w = height; h = depth; d = width; 
+      xsign = (mri->y_a > 0) ? 1 : -1; ysign = (mri->z_s > 0) ? -1 : 1;
+      break;
+    case MRI_HORIZONTAL:
+      w = width; h = height;  d = depth; 
+      xsign = (mri->x_r > 0) ? -1 : 1; ysign = (mri->y_a > 0) ?  1 : -1;
+      break;
+    }
+    break;
   default:
-    ErrorReturn(NULL, 
+   ErrorReturn(NULL, 
                 (ERROR_UNSUPPORTED, 
                  "MRItoImageView(%d, %d): unsupported view/slice direction %d",
                  slice, view, src_slice_direction)) ;
-    break ;
-  case MRI_CORONAL:
-    w = width ;
-    h = height ;
-    d = depth ;
-    break ;
-  case MRI_SAGITTAL:
-    w = depth ;
-    h = height ;
-    d = width ;
-    break ;
-  case MRI_HORIZONTAL:
-    w = width ;
-    h = depth ;
-    d = height ;
-    break ;
-  }
-
+  }    
   if (slice < 0 || slice >= d)
     ErrorReturn(NULL, (ERROR_BADPARM, "MRItoImageView: bad slice %d\n",slice));
 
@@ -5281,110 +5330,167 @@ MRItoImageView(MRI *mri, IMAGE *I, int slice, int view, int frame)
 #endif
 
   if (I && ((I->rows != h) || (I->cols != w) || (I->pixel_format != format)))
+  {
+    ImageFree(&I);
     I = NULL ;  /* must allocate a new one */
-
+  }
   if (!I)
     I = ImageAlloc(h, w, format, 1) ;
 
-	fmin = 10000000 ; fmax = -fmin ;
+  fmin = 10000000 ; fmax = -fmin ;
+
+  // Image values assigned from MRI
+  // we need to gert min and max in IMAGE
   for (y = 0 ; y < h ; y++)
   {
-    yp = h - (y+1) ;   /* hips coordinate system is inverted */
     for (x = 0 ; x < w ; x++)
     {
-      if (view == src_slice_direction)
-      {
-        xm = x ;
-        ym = y ;
-        zm = slice ;
-      }
-      else switch (view)   /* calculate coordinates in MR structure */
+      switch(src_slice_direction)
       {
       case MRI_CORONAL:
-        xm = x ;
-        ym = y ;
-        zm = slice ;
-        break ;
+	switch (view)   /* calculate coordinates in MR structure */
+	{
+	case MRI_CORONAL:
+	  xm = (xsign> 0) ? x : (w - 1 -x);
+	  ym = (ysign> 0) ? y : (h - 1 -y);
+	  zm = slice ;
+	  break ;
+	case MRI_SAGITTAL:
+	  xm = slice ; 
+	  ym = (ysign>0) ? y : (h - 1 - y);
+	  zm = (xsign>0) ? x : (w - 1 - x);
+	  break ;
+	case MRI_HORIZONTAL:
+	  xm = (xsign>0) ? x : (w - 1 - x);
+	  ym = slice ;
+	  zm = (ysign>0) ? y : (h - 1 - y);
+	  break ;
+	}
+	break;
       case MRI_SAGITTAL:
-        xm = slice ; ;
-        ym = y ;
-        zm = x ;
-        break ;
+	switch (view)   /* calculate coordinates in MR structure */
+	{
+	case MRI_CORONAL:
+	  xm = slice;
+	  ym = (ysign>0) ? y : (h - 1 - y);
+	  zm = (xsign>0) ? x : (w - 1 - x);
+	  break ;
+	case MRI_SAGITTAL:
+	  xm = (xsign>0) ? x : (w - 1 - x); 
+	  ym = (ysign>0) ? y : (h - 1 - y);
+	  zm = slice ;
+	  break ;
+	case MRI_HORIZONTAL:
+	  xm = (ysign>0) ? y : (h - 1 - y);
+	  ym = slice;
+	  zm = (xsign>0) ? x : (w - 1 - x); 
+	  break ;
+	}
+	break;
       case MRI_HORIZONTAL:
-        xm = x ;
-        ym = slice ;
-        zm = y ;
-        break ;
+	switch (view)   /* calculate coordinates in MR structure */
+	{
+	case MRI_CORONAL:
+	  xm = (xsign>0) ? x : (w - 1 - x);
+	  ym = slice ;
+	  zm = (ysign>0) ? y : (h - 1 - y);
+	  break ;
+	case MRI_SAGITTAL:
+	  xm = slice ; 
+	  ym = (xsign>0) ? x : (w - 1 - x);
+	  zm = (ysign>0) ? y : (h - 1 - y);
+	  break ;
+	case MRI_HORIZONTAL:
+	  xm = (xsign>0) ? x : (w - 1 - x);
+	  ym = (ysign>0) ? y : (h - 1 - y);
+	  zm = slice ;
+	  break ;
+	}
+	break;
       }
       MRIsampleVolumeFrame(mri, xm, ym, zm, frame, &val) ;
+      // check min max
       if (val > fmax)
 	fmax = val ;
       if (val < fmin)
 	fmin = val ;
     }
   }
-  
-  
   if (FZERO(fmax-fmin))
     ErrorReturn(I, (ERROR_BADPARM, "MRItoImageView: constant image")) ;
-  
+
+  // after all these calculation, we are going to do it again?  
   for (y = 0 ; y < h ; y++)
   {
-    yp = h - (y+1) ;   /* hips coordinate system is inverted */
+
     for (x = 0 ; x < w ; x++)
     {
-      if (view == src_slice_direction)
-      {
-        xm = x ;
-        ym = y ;
-        zm = slice ;
-      }
-      else switch (view)   /* calculate coordinates in MR structure */
+      switch(src_slice_direction)
       {
       case MRI_CORONAL:
-        xm = x ;
-        ym = y ;
-        zm = slice ;
-        break ;
+	switch (view)   /* calculate coordinates in MR structure */
+	{
+	case MRI_CORONAL:
+	  xm = (xsign> 0) ? x : (w - 1 -x);
+	  ym = (ysign> 0) ? y : (h - 1 -y);
+	  zm = slice ;
+	  break ;
+	case MRI_SAGITTAL:
+	  xm = slice ; 
+	  ym = (ysign>0) ? y : (h - 1 - y);
+	  zm = (xsign>0) ? x : (w - 1 - x);
+	  break ;
+	case MRI_HORIZONTAL:
+	  xm = (xsign>0) ? x : (w - 1 - x);
+	  ym = slice ;
+	  zm = (ysign>0) ? y : (h - 1 - y);
+	  break ;
+	}
+	break;
       case MRI_SAGITTAL:
-        xm = slice ; ;
-        ym = y ;
-        zm = x ;
-        break ;
+	switch (view)   /* calculate coordinates in MR structure */
+	{
+	case MRI_CORONAL:
+	  xm = slice;
+	  ym = (ysign>0) ? y : (h - 1 - y);
+	  zm = (xsign>0) ? x : (w - 1 - x);
+	  break ;
+	case MRI_SAGITTAL:
+	  xm = (xsign>0) ? x : (w - 1 - x); 
+	  ym = (ysign>0) ? y : (h - 1 - y);
+	  zm = slice ;
+	  break ;
+	case MRI_HORIZONTAL:
+	  xm = (ysign>0) ? y : (h - 1 - y);
+	  ym = slice;
+	  zm = (xsign>0) ? x : (w - 1 - x); 
+	  break ;
+	}
+	break;
       case MRI_HORIZONTAL:
-        xm = x ;
-        ym = slice ;
-        zm = y ;
-        break ;
+	switch (view)   /* calculate coordinates in MR structure */
+	{
+	case MRI_CORONAL:
+	  xm = (xsign>0) ? x : (w - 1 - x);
+	  ym = slice ;
+	  zm = (ysign>0) ? y : (h - 1 - y);
+	  break ;
+	case MRI_SAGITTAL:
+	  xm = slice ; 
+	  ym = (xsign>0) ? x : (w - 1 - x);
+	  zm = (ysign>0) ? y : (h - 1 - y);
+	  break ;
+	case MRI_HORIZONTAL:
+	  xm = (xsign>0) ? x : (w - 1 - x);
+	  ym = (ysign>0) ? y : (h - 1 - y);
+	  zm = slice ;
+	  break ;
+	}
+	break;
       }
-
-#if 0
-      switch (mri->type)
-      {
-      case MRI_INT:
-        *IMAGEIpix(I, x, yp) = MRIIseq_vox(mri, xm, ym, zm, frame) ;
-        break ;
-      case MRI_FLOAT:
-        *IMAGEFpix(I, x, yp) = MRIFseq_vox(mri, xm, ym, zm, frame) ;
-        break ;
-      case MRI_UCHAR:
-        *IMAGEpix(I, x, yp) = MRIseq_vox(mri, xm, ym, zm, frame) ;
-        break ;
-      case MRI_SHORT:
-        *IMAGESpix(I, x, yp) = MRISseq_vox(mri, xm, ym, zm, frame) ;
-        break ;
-      default:
-      case MRI_LONG:
-        ImageFree(&I) ;
-        ErrorReturn(NULL, 
-                    (ERROR_UNSUPPORTED, "MRItoImageView: unsupported type %d",
-                     mri->type)) ;
-        break ;
-      }
-#else
       MRIsampleVolumeFrame(mri, xm, ym, zm, frame, &val) ;
+      yp = h - (y+1) ;   /* hips coordinate system is inverted */
       *IMAGEpix(I, x, yp) = (byte)(255.0 * (val - fmin) / (fmax - fmin)) ;
-#endif
     }
   }
 
@@ -5425,7 +5531,7 @@ MRItoImage(MRI *mri, IMAGE *I, int slice)
       image_to_buffer(I->image, mri, slice) ;
     else 
 #endif
-      switch (mri->type)
+    switch (mri->type)
     {
     case MRI_INT:
       memcpy(IMAGEIpix(I, 0, yp), mri->slices[slice][y], width*sizeof(int)) ;
@@ -5435,7 +5541,7 @@ MRItoImage(MRI *mri, IMAGE *I, int slice)
       break ;
     case MRI_UCHAR:
       memcpy(IMAGEpix(I, 0, yp), mri->slices[slice][y], 
-              width*sizeof(unsigned char)) ;
+	     width*sizeof(unsigned char)) ;
       break ;
     default:
     case MRI_LONG:
