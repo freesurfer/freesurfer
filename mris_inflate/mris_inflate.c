@@ -14,7 +14,7 @@
 #include "mri.h"
 #include "macros.h"
 
-static char vcid[] = "$Id: mris_inflate.c,v 1.20 1999/08/24 16:21:21 fischl Exp $";
+static char vcid[] = "$Id: mris_inflate.c,v 1.21 1999/09/22 19:28:59 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -31,17 +31,15 @@ static int talairach_flag = 0 ;
 static int nbrs = 2 ;
 static int navgs = 0 ;
 
-#define DESIRED_RADIUS   50.0   /* 10 cm radius */
-
 #define BASE_DT_SCALE    1.0
 static float base_dt_scale = BASE_DT_SCALE ;
+
 int
 main(int argc, char *argv[])
 {
   char         **av, *in_fname, *out_fname, fname[100], *cp, path[100] ;
   int          ac, nargs ;
   MRI_SURFACE  *mris ;
-  double       radius, scale ;
   int           msec ;
   struct timeb  then ;
 
@@ -58,13 +56,14 @@ main(int argc, char *argv[])
   parms.epsilon = EPSILON ;
   parms.dt = 0.9 ;
   parms.base_dt = BASE_DT_SCALE*parms.dt ;
-  parms.n_averages = 0 ; /*N_AVERAGES*/ ;
-  parms.l_angle = 0.0 /* L_ANGLE */ ;
+  parms.n_averages = 16 ;
+  parms.l_angle = 0.0 ;
   parms.l_dist = .1 ;
-  parms.l_area = 0.0 /* L_AREA */ ;
-  parms.l_spring = 1.0 ;
+  parms.l_area = 0.0 ;
+  parms.l_spring = 0.0 ;
+  parms.l_spring_norm = 1.0 ;
   parms.l_curv = 0.0 ;
-  parms.niterations = 70 ;   
+  parms.niterations = 15 ;   /* per # of averages */
   parms.write_iterations = 50 /*WRITE_ITERATIONS */;
   parms.a = parms.b = parms.c = 0.0f ;  /* ellipsoid parameters */
   parms.integration_type = INTEGRATE_MOMENTUM ;
@@ -110,15 +109,21 @@ main(int argc, char *argv[])
   if (talairach_flag)
     MRIStalairachTransform(mris, mris) ;
 
-  radius = MRISaverageRadius(mris) ;
-  scale = DESIRED_RADIUS/radius ;
-  MRISscaleBrain(mris, mris, scale) ;
-
   MRISsetNeighborhoodSize(mris, nbrs) ;
   MRISaverageVertexPositions(mris, navgs) ;
   MRISscaleBrainArea(mris) ;  /* current properties will be stored again */
   if (FZERO(parms.l_sphere))
+  {
+#if 1
     MRISinflateBrain(mris, &parms) ;
+#else
+    parms.n_averages = 32 ; parms.niterations = 30 ; parms.l_dist = 1.0 ;
+    MRISinflateBrain(mris, &parms) ;
+    MRISscaleBrainArea(mris) ;
+    parms.n_averages = 0 ; parms.niterations = 70 ; parms.l_dist = .1 ;
+    MRISinflateBrain(mris, &parms) ;
+#endif
+  }
   else
     MRISinflateToSphere(mris, &parms) ;
   fprintf(stderr, "writing inflated surface to %s\n", out_fname) ;
@@ -195,6 +200,14 @@ get_option(int argc, char *argv[])
     nargs = 1 ;
     fprintf(stderr, "l_dist = %2.3f\n", parms.l_dist) ;
   }
+  else if (!stricmp(option, "area"))
+  {
+    if (argc < 2)
+      print_usage() ;
+    sscanf(argv[2], "%f", &parms.l_parea) ;
+    nargs = 1 ;
+    fprintf(stderr, "l_parea = %2.3f\n", parms.l_parea) ;
+  }
   else if (!stricmp(option, "curv"))
   {
     if (argc < 2)
@@ -210,6 +223,22 @@ get_option(int argc, char *argv[])
     parms.l_spring = atof(argv[2]) ;
     nargs = 1 ;
     fprintf(stderr, "l_spring = %2.3f\n", parms.l_spring) ;
+  }
+  else if (!stricmp(option, "nspring"))
+  {
+    if (argc < 2)
+      print_usage() ;
+    parms.l_nspring = atof(argv[2]) ;
+    nargs = 1 ;
+    fprintf(stderr, "l_nspring = %2.3f\n", parms.l_nspring) ;
+  }
+  else if (!stricmp(option, "tspring"))
+  {
+    if (argc < 2)
+      print_usage() ;
+    parms.l_tspring = atof(argv[2]) ;
+    nargs = 1 ;
+    fprintf(stderr, "l_tspring = %2.3f\n", parms.l_tspring) ;
   }
   else if (!stricmp(option, "spring_norm"))
   {
