@@ -42,8 +42,8 @@ KinputAlloc(int rows, int cols, int nscales, int input_size, float sigma,
     kinput->parms.sigma_scale_factor = sigma_scale_factor ;
 
 #if !USE_PYRAMID
-  kinput->xInputs = ImageAlloc(cols, rows, PFFLOAT, nscales) ;
-  kinput->yInputs = ImageAlloc(cols, rows, PFFLOAT, nscales) ;
+  kinput->xInputs = ImageAlloc(rows, cols, PFFLOAT, nscales) ;
+  kinput->yInputs = ImageAlloc(rows, cols, PFFLOAT, nscales) ;
   for (scale = 1 ; scale < nscales ; scale++)
   {
     kinput->gImages[scale] = 
