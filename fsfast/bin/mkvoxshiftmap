@@ -7,8 +7,10 @@
 #
 # Still getting ringing
 
+date
+
 set dphimg = phase.img
-set magimg = mag2.img
+set magimg = mag.img
 set func   = func.img
 set tediff = 2.44 # ms
 set esp    = .580 # ms
@@ -16,7 +18,7 @@ set esp    = .580 # ms
 set dwelltoasymratio = `echo $esp/$tediff | bc -l`;
 echo dwelltoasymratio = $dwelltoasymratio
 
-set tmpdir = tmp
+set tmpdir = tmp2
 mkdir -p $tmpdir
 
 set exf = $tmpdir/exf.img
@@ -27,7 +29,7 @@ set head = $tmpdir/head.img
 # Get the number of frames
 set nframes = `avwinfo $func | awk '{if($1 == "dim4") print $2}'`
 if($nframes == 1) then
-  set nmidframe = 1;
+  set nmidframe = 0;
 else
   set nmidframe = `echo "$nframes/2" | bc `;
 endif
@@ -36,7 +38,7 @@ echo $nframes $nmidframe
 avwroi $func $exf $nmidframe 1
 
 # Keep only the first frame from mag
-avwroi $magimg $tmpdir/mag 1 1
+avwroi $magimg $tmpdir/mag 0 1
 set magimg = $tmpdir/mag.img
 
 # Create brain and head masks from the mag
@@ -48,11 +50,10 @@ avwmaths $head  -dil $head
 
 # Rescale the delta phase to be between -pi and pi. Starts out
 # at 0 - 4095. Make sure the phase is float precision
-mri_convert $dphimg $tmpdir/dph.img -odt float
-set dphimg = $tmpdir/dph.img
-avwmaths $dphimg -sub 2047.5 $dphimg
-avwmaths $dphimg -mul 0.00153436 $dphimg
-#mri_convert $dphimg $tmpdir/dph_000.bfloat
+#mri_convert $dphimg $tmpdir/dph.img -odt float
+#set dphimg = $tmpdir/dph.img
+avwmaths_32R $dphimg -sub 2047.5 -mul 0.00153436 $dphimg
+#avwmaths $dphimg $dphimg
 
 set cmd1 = (prelude -p $dphimg \
                     -a $magimg \
@@ -65,8 +66,6 @@ set cmd1 = (prelude -p $dphimg \
 
 echo $cmd1 
 $cmd1
-
-#mri_convert $dphimg $tmpdir/dph_000.bfloat
 
 # Create an image of 0s for merging with dph
 set ph1img = $tmpdir/ph1.img
@@ -96,7 +95,8 @@ $cmd
 # Forward warp the mag in order to reg with func
 set magfw = $tmpdir/magfw.img
 set cmd = (fugue -i $magimg -w $magfw \
-    -p $ph2img -d $dwelltoasymratio --mask=$brain)
+    -p $ph2img -d $esp --asym=$tediff --mask=$brain )
+#-d $dwelltoasymratio 
 $cmd
 
 # Reg magfw to example func
@@ -128,6 +128,14 @@ set exfuw = $tmpdir/exfuw.img
 set cmd = (fugue -i $exf -u $exfuw --loadshift=$vsmexf);
 $cmd
 
+# Now mask the unwarped exf using the mag brain mask.
+# This is necessary to prevent "ringing" - brain mask
+# may need to be down-sampled
+set exfuwmask = $tmpdir/exfuwm.img
+set cmd = (avwmaths $exfuw -mul $brain $exfuwmask)
+echo $cmd
+$cmd
+
 cp mag.mat $tmpdir/vsm.mat
 mri_convert $vsm $tmpdir/vsm_000.bfloat
 
@@ -146,6 +154,24 @@ mri_convert $exf $tmpdir/exf_000.bfloat
 cp mag.mat $tmpdir/exfuw.mat
 mri_convert $exfuw $tmpdir/exfuw_000.bfloat
 
+cp mag.mat $tmpdir/exfuwm.mat
+mri_convert $exfuwmask $tmpdir/exfuwm_000.bfloat
+
 cp mag.mat $tmpdir/vsm-in-exf.mat
 mri_convert $tmpdir/vsm-in-exf.img $tmpdir/vsm-in-exf_000.bfloat
 
+cp mag.mat $tmpdir/brain.mat
+mri_convert $tmpdir/brain.img $tmpdir/brain_000.bshort
+
+cp mag.mat $tmpdir/head.mat
+mri_convert $tmpdir/head.img $tmpdir/head_000.bshort
+
+cp mag.mat $tmpdir/magfw-in-exf.mat
+mri_convert $tmpdir/magfw-in-exf.img $tmpdir/magfw-in-exf_000.bshort
+
+#mri_convert $dphimg $tmpdir/dph_000.bfloat
+#mri_convert $dphimg $tmpdir/dph_000.bfloat
+
+
+
+date
