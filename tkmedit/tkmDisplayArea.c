@@ -3,8 +3,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2004/01/15 00:03:41 $
-// Revision       : $Revision: 1.98 $
+// Revision Date  : $Date: 2004/02/20 18:06:59 $
+// Revision       : $Revision: 1.99 $
 
 #include "tkmDisplayArea.h"
 #include "tkmMeditWindow.h"
@@ -5124,6 +5124,7 @@ DspA_tErr DspA_DrawSegmentationOverlayToFrame_ ( tkmDisplayAreaRef this ) {
   int        yMax        = 0;
   int        yInc        = 0;
   float      value;
+  float      fAlpha      = 0;
   
   /* get a ptr to the frame buffer. */
   pDest = this->mpFrameBuffer;
@@ -5159,26 +5160,35 @@ DspA_tErr DspA_DrawSegmentationOverlayToFrame_ ( tkmDisplayAreaRef this ) {
 
       if( 0 != value ) {
 
-	/* Get a color from the look up table. */
+	/* Get a color from the look up table. If we got an error,
+	   draw this voxel as red with an alpha 1, overriding the
+	   user's overlay's alpha. Otherwise just use the user's
+	   alpha. */
 	eCLUT = CLUT_GetColorInt( this->mSegmentationColorTable[seg],
 				  value, &overlayColor );
-	if( CLUT_tErr_NoErr != eCLUT )
-	  goto error;
-	
+	if( CLUT_tErr_NoErr == eCLUT ) {
+	  fAlpha = this->mfSegmentationAlpha;
+	} else {
+	  fAlpha = 1.0;
+	  overlayColor.mnRed   = 255;
+	  overlayColor.mnGreen = 0;
+	  overlayColor.mnBlue  = 0;
+	}
+
 	/* Get the color at the dest. */
 	color.mnRed   = pDest[DspA_knRedPixelCompIndex];
 	color.mnGreen = pDest[DspA_knGreenPixelCompIndex];
 	color.mnBlue  = pDest[DspA_knBluePixelCompIndex];
 	
 	newColor.mnRed = 
-	  ((float)color.mnRed * (1.0 - this->mfSegmentationAlpha)) +
-	  ((float)overlayColor.mnRed * this->mfSegmentationAlpha);
+	  ((float)color.mnRed * (1.0 - fAlpha)) +
+	  ((float)overlayColor.mnRed * fAlpha);
 	newColor.mnGreen = 
-	  ((float)color.mnGreen * (1.0 - this->mfSegmentationAlpha)) +
-	  ((float)overlayColor.mnGreen * this->mfSegmentationAlpha);
+	  ((float)color.mnGreen * (1.0 - fAlpha)) +
+	  ((float)overlayColor.mnGreen * fAlpha);
 	newColor.mnBlue = 
-	  ((float)color.mnBlue * (1.0 - this->mfSegmentationAlpha)) +
-	  ((float)overlayColor.mnBlue * this->mfSegmentationAlpha);
+	  ((float)color.mnBlue * (1.0 - fAlpha)) +
+	  ((float)overlayColor.mnBlue * fAlpha);
 	
 	/* set the pixel */
 	pDest[DspA_knRedPixelCompIndex]   = (GLubyte)newColor.mnRed;
