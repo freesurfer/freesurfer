@@ -1,5 +1,15 @@
-function [vol, M, mr_parms, Mdc] = load_mgh(fname)
-% [vol, M, mr_parms, Mdc] = load_mgh(fname)
+function [vol, M, mr_parms, Mdc] = load_mgh(fname,slices,frames)
+% [vol, M, mr_parms, Mdc] = load_mgh(fname,<slices>,<frames>)
+%
+% fname - path of the mgh file
+% 
+% slices - list of one-based slice numbers to load. All
+%   slices are loaded if slices is not specified, or
+%   if slices is empty, or if slices(1) <= 0.
+%
+% frames - list of one-based frame numbers to load. All
+%   frames are loaded if frames is not specified, or
+%   if frames is empty, or if frames(1) <= 0.
 %
 % M is the 4x4 vox2ras transform such that
 % y(i1,i2,i3), xyz1 = M*[i1 i2 i3 1] where the
@@ -10,16 +20,25 @@ function [vol, M, mr_parms, Mdc] = load_mgh(fname)
 %
 % See also: save_mgh, vox2ras_0to1
 %
-% $Id: load_mgh.m,v 1.5 2003/07/31 21:45:54 ebeth Exp $
+% $Id: load_mgh.m,v 1.6 2003/09/21 23:10:11 greve Exp $
 
 vol = [];
 M = [];
 mr_parms = [];
 
-if(nargin < 1 | nargin > 1)
-  msg = 'USAGE: [vol M] = load_mgh(fname)';
+if(nargin < 1 | nargin > 3)
+  msg = 'USAGE: [vol M] = load_mgh(fname,<slices>,<frames>)';
+  fprintf('%s',msg);
   return;
 end
+
+if(exist('slices')~=1) slices = []; end
+if(isempty(slices)) slices = 0; end
+if(slices(1) <= 0) slices = 0; end
+
+if(exist('frames')~=1) frames = []; end
+if(isempty(frames)) frames = 0; end
+if(frames(1) <= 0) frames = 0; end
 
 fid    = fopen(fname, 'rb', 'b') ;
 if(fid == -1)
@@ -33,6 +52,22 @@ ndim3   = fread(fid, 1, 'int') ;
 nframes = fread(fid, 1, 'int') ;
 type    = fread(fid, 1, 'int') ; 
 dof     = fread(fid, 1, 'int') ; 
+
+if(slices(1) > 0)
+  ind = find(slices > ndim3);
+  if(~isempty(ind))
+    fprintf('ERROR: load_mgh: some slices exceed nslices\n');
+    return;
+  end
+end
+
+if(frames(1) > 0)
+  ind = find(frames > nframes);
+  if(~isempty(ind))
+    fprintf('ERROR: load_mgh: some frames exceed nframes\n');
+    return;
+  end
+end
 
 UNUSED_SPACE_SIZE= 256;
 USED_SPACE_SIZE = (3*4+4*3*4);  % space for ras transform
@@ -65,33 +100,107 @@ MRI_BITMAP = 5 ;
 
 fseek(fid, unused_space_size, 'cof') ;
 
-nv = ndim1 * ndim2 * ndim3 * nframes;  
+if(slices(1) <= 0 & frames(1) <= 0)
 
-switch type
-  case MRI_FLOAT,
+  nv = ndim1 * ndim2 * ndim3 * nframes;  
+
+  switch type
+   case MRI_FLOAT,
     vol = fread(fid, nv, 'float32') ; 
-  case MRI_UCHAR,
+   case MRI_UCHAR,
     vol = fread(fid, nv, 'uchar') ; 
-  case MRI_SHORT,
+   case MRI_SHORT,
     vol = fread(fid, nv, 'short') ; 
-  case MRI_INT,
+   case MRI_INT,
     vol = fread(fid, nv, 'int') ; 
+  end
+
+  if(~feof(fid))
+    [mr_parms count] = fread(fid,4,'float32');
+    if(count ~= 4) 
+      fprintf('WARNING: error reading MR params\n');
+    end
+  end
+
+  fclose(fid) ;
+  
+  nread = prod(size(vol));
+  if(nread ~= nv)
+    fprintf('ERROR: tried to read %d, actually read %d\n',nv,nread);
+    vol = [];
+    return;
+  end
+  vol = reshape(vol,[ndim1 ndim2 ndim3 nframes]);
+  return;
+
 end
+
+%----- only gets here if a subest of slices/frames are to be loaded ---------%
+
+% Determine number of bytes per voxel
+switch type
+ case MRI_FLOAT,
+  nbytespervox = 4;
+ case MRI_UCHAR,
+  nbytespervox = 1;
+ case MRI_SHORT,
+  nbytespervox = 2;
+ case MRI_INT,
+  nbytespervox = 4;
+end
+    
+if(frames(1) <= 0) frames = [1:nframes]; end
+if(slices(1) <= 0) slices = [1:ndim3]; end
+
+nvslice = ndim1 * ndim2;
+nvvol   = ndim1 * ndim2 * ndim3;
+filepos0 = ftell(fid);
+vol = zeros(ndim1,ndim2,length(slices),length(frames));
+nthframe = 1;
+for frame = frames
+
+  nthslice = 1;
+  for slice = slices
+    filepos = ((frame-1)*nvvol + (slice-1)*nvslice)*nbytespervox + filepos0;
+    fseek(fid,filepos,'bof');
+    
+    switch type
+     case MRI_FLOAT,
+      tmpslice = fread(fid, nvslice, 'float32') ; 
+     case MRI_UCHAR,
+      tmpslice = fread(fid, nvslice, 'uchar') ; 
+     case MRI_SHORT,
+      tmpslice = fread(fid, nvslice, 'short') ; 
+     case MRI_INT,
+      tmpslice = fread(fid, nvslice, 'int') ; 
+    end
+
+    nread = prod(size(tmpslice));
+    if(nread ~= nvslice)
+      fprintf('ERROR: load_mgh: reading slice %d, frame %d\n',slice,frame);
+      fprintf('  tried to read %d, actually read %d\n',nvslice,nread);
+      fclose(fid);
+      return;
+    end
+
+    vol(:,:,nthslice,nthframe) = reshape(tmpslice,[ndim1 ndim2]);
+    nthslice = nthslice + 1;
+  end
+
+  nthframe = nthframe + 1;
+end
+
+% seek to just beyond the last slice/frame %
+filepos = (nframes-1)*nvvol + (ndim3-1)*nvslice + filepos0;
+fseek(fid,filepos,'bof');
+
 if(~feof(fid))
   [mr_parms count] = fread(fid,4,'float32');
   if(count ~= 4) 
     fprintf('WARNING: error reading MR params\n');
   end
 end
-fclose(fid) ;
 
-nread = prod(size(vol));
-if(nread ~= nv)
-  fprintf('ERROR: tried to read %d, actually read %d\n',nv,nread);
-  vol = [];
-  return;
-end
-  
-vol = reshape(vol,[ndim1 ndim2 ndim3 nframes]);
+fclose(fid) ;
 
 return;
