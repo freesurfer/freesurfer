@@ -11,6 +11,7 @@
               INCLUDE FILES
 -----------------------------------------------------------------*/
 
+#ifndef LINUX
 int not_used_000(void)
 {
   int i;
@@ -18,7 +19,7 @@ int not_used_000(void)
   return(i);
 }
 
-#if 0 /* not used (dng)*/
+#else
  
 #include <stdio.h>
 #include <stdlib.h>
