@@ -6,7 +6,7 @@
    2) matrices are 1-based
    3) RAS coords versus Siemens XYZ coords. (flip the sign on x and z)
 
-   (gdb) run --unwarp_gradient_nonlinearity allegra fullUnwarp JacobianCorrection linear 0 testImas/621-4-100.ima /tmp/COR
+   (gdb) run --unwarp_gradient_nonlinearity allegra fullUnwarp noJacobianCorrection linear 0 testImas/621-4-100.ima COR
 
 */
 
@@ -20,26 +20,12 @@
 #include "unwarpGradientNonlinearity.h"
 
 MRI *unwarpGradientNonlinearity(MRI *mri, 
-				char *unwarp_gradientType, 
-				char *unwarp_partialUnwarp, 
-				char *unwarp_jacobianCorrection,
-				char *unwarp_interpType,
-				int unwarp_sincInterpHW)
+        char *unwarp_gradientType, 
+        char *unwarp_partialUnwarp, 
+        char *unwarp_jacobianCorrection,
+        char *unwarp_interpType,
+        int unwarp_sincInterpHW)
 {
-  int loadGradientData(char *unwarp_gradientType, 
-		       MATRIX *M_XYZ_2_beadIJK,
-		       float **p_bead_dX,
-		       float **p_bead_dY,
-		       float **p_bead_dZ,
-		       int *p_maxBeadI,
-		       int *p_maxBeadJ,
-		       int *p_maxBeadK);
-
-  int linInterp(float *bead_dX, float *bead_dY, float *bead_dZ, 
-		float beadI, float beadJ, float beadK, 
-		int maxBeadI, int maxBeadJ, int maxBeadK,
-		float *p_voxel_dX, float *p_voxel_dY, float *p_voxel_dZ);
-	      
   MRI *mri_unwarped;
   int RR, CC, SS, FF;
   MATRIX *M_tmp, *M_CRS_2_XYZ, *M_XYZ_2_CRS;
@@ -77,22 +63,22 @@ MRI *unwarpGradientNonlinearity(MRI *mri,
   
   /* Allocate memory and provide header for mri_unwarped */
   mri_unwarped = MRIallocSequence(mri->width, 
-				  mri->height, 
-				  mri->depth, 
-				  MRI_FLOAT, 
-				  mri->nframes);
+          mri->height, 
+          mri->depth, 
+          MRI_FLOAT, 
+          mri->nframes);
   MRIcopyHeader(mri, mri_unwarped);
 
   /* Read in scanner specific distortion data */
   M_XYZ_2_beadIJK = MatrixAlloc(4, 4, MATRIX_REAL);
-  loadGradientData(unwarp_gradientType, 
-		   M_XYZ_2_beadIJK,
-		   &bead_dX,
-		   &bead_dY,
-		   &bead_dZ,
-		   &maxBeadI,
-		   &maxBeadJ,
-		   &maxBeadK);
+  uGN_loadGradientData(unwarp_gradientType, 
+           M_XYZ_2_beadIJK,
+           &bead_dX,
+           &bead_dY,
+           &bead_dZ,
+           &maxBeadI,
+           &maxBeadJ,
+           &maxBeadK);
   
   /* Read in the matrix that maps CRS {column, row, slice} to Siemens XYZ
      scanner coordinates. Note that this involves putting minus signs
@@ -127,97 +113,97 @@ MRI *unwarpGradientNonlinearity(MRI *mri,
     {
       *(MATRIX_RELT(voxelCRS, 3, 1)) = SS;
       for(RR = 0; RR < mri->height; RR++)
-	{
-	  *(MATRIX_RELT(voxelCRS, 2, 1)) = RR;
-	  for(CC = 0; CC < mri->width; CC++)
-	    {
-	      *(MATRIX_RELT(voxelCRS, 1, 1)) = CC;
-	      
-	      /* compute Siemens scanner XYZ for this voxel */
-	      MatrixMultiply(M_CRS_2_XYZ, voxelCRS, tmpVec1);
-	      voxel_X = *(MATRIX_RELT(tmpVec1, 1, 1));
-	      voxel_Y = *(MATRIX_RELT(tmpVec1, 2, 1));
-	      voxel_Z = *(MATRIX_RELT(tmpVec1, 3, 1));
+  {
+    *(MATRIX_RELT(voxelCRS, 2, 1)) = RR;
+    for(CC = 0; CC < mri->width; CC++)
+      {
+        *(MATRIX_RELT(voxelCRS, 1, 1)) = CC;
+        
+        /* compute Siemens scanner XYZ for this voxel */
+        MatrixMultiply(M_CRS_2_XYZ, voxelCRS, tmpVec1);
+        voxel_X = *(MATRIX_RELT(tmpVec1, 1, 1));
+        voxel_Y = *(MATRIX_RELT(tmpVec1, 2, 1));
+        voxel_Z = *(MATRIX_RELT(tmpVec1, 3, 1));
 
-	      /* compute beadIJK for this voxel */
-	      MatrixMultiply(M_CRS_2_beadIJK, voxelCRS, tmpVec1);
-	      beadI = *(MATRIX_RELT(tmpVec1, 1, 1));
-	      beadJ = *(MATRIX_RELT(tmpVec1, 2, 1));
-	      beadK = *(MATRIX_RELT(tmpVec1, 3, 1));
-	      
-	      /* linearly interpolate to find [dX dY dZ] for this voxel */
-	      linInterp(bead_dX, bead_dY, bead_dZ, 
-			beadI, beadJ, beadK, 
-			maxBeadI, maxBeadJ, maxBeadK,
-			&voxel_dX, &voxel_dY, &voxel_dZ);
-	      
-	      /* map X+dX, etc. to CC+dCC, etc. */
-	      *(MATRIX_RELT(tmpVec1, 1, 1)) = voxel_X + voxel_dX;
-	      *(MATRIX_RELT(tmpVec1, 2, 1)) = voxel_Y + voxel_dY;
-	      *(MATRIX_RELT(tmpVec1, 3, 1)) = voxel_Z + voxel_dZ;
-	      MatrixMultiply(M_XYZ_2_CRS, tmpVec1, tmpVec1);
-	      voxel_CC_plus_dCC = *(MATRIX_RELT(tmpVec1, 1, 1));
-	      voxel_RR_plus_dRR = *(MATRIX_RELT(tmpVec1, 2, 1));
-	      voxel_SS_plus_dSS = *(MATRIX_RELT(tmpVec1, 3, 1));
+        /* compute beadIJK for this voxel */
+        MatrixMultiply(M_CRS_2_beadIJK, voxelCRS, tmpVec1);
+        beadI = *(MATRIX_RELT(tmpVec1, 1, 1));
+        beadJ = *(MATRIX_RELT(tmpVec1, 2, 1));
+        beadK = *(MATRIX_RELT(tmpVec1, 3, 1));
+        
+        /* linearly interpolate to find [dX dY dZ] for this voxel */
+        uGN_linInterp(bead_dX, bead_dY, bead_dZ, 
+          beadI, beadJ, beadK, 
+          maxBeadI, maxBeadJ, maxBeadK,
+          &voxel_dX, &voxel_dY, &voxel_dZ);
+        
+        /* map X+dX, etc. to CC+dCC, etc. */
+        *(MATRIX_RELT(tmpVec1, 1, 1)) = voxel_X + voxel_dX;
+        *(MATRIX_RELT(tmpVec1, 2, 1)) = voxel_Y + voxel_dY;
+        *(MATRIX_RELT(tmpVec1, 3, 1)) = voxel_Z + voxel_dZ;
+        MatrixMultiply(M_XYZ_2_CRS, tmpVec1, tmpVec1);
+        voxel_CC_plus_dCC = *(MATRIX_RELT(tmpVec1, 1, 1));
+        voxel_RR_plus_dRR = *(MATRIX_RELT(tmpVec1, 2, 1));
+        voxel_SS_plus_dSS = *(MATRIX_RELT(tmpVec1, 3, 1));
 
-	      /* interpolate to find the value at CC+dCC, etc. */
-	      for(FF = 0; FF < mri->nframes; FF++)
-		{
-		  if(strcmp(unwarp_interpType, "linear") == 0)
-		    MRIsampleVolumeFrame(mri, 
-					 ((Real) voxel_CC_plus_dCC), 
-					 ((Real) voxel_RR_plus_dRR),
-					 ((Real) voxel_SS_plus_dSS),
-					 FF, 
-					 &tmpVal);
-		  else if(strcmp(unwarp_interpType, "sinc") == 0)
-		    {
-		      /* Note: after twitzel writes
-		         MRIsincSampleVolumeFrame, uncomment the line
-		         below, and cut out the lines between %^& */
-		      
-		      /* 
-			 MRIsincSampleVolumeFrame(mri, 
-			 ((Real) voxel_CC_plus_dCC), 
-			 ((Real) voxel_RR_plus_dRR),
-			 ((Real) voxel_SS_plus_dSS),
-			 FF,
-			 unwarp_sincInterpHW,
-			 &tmpVal);
-		      */
-		      
-		      /* %^& -- start cut here --- */
-		      if(mri->nframes != 1)
-			{
-			  printf("\nAt present, sinc interpolation ");
-			  printf("not supported for 4-D data.\n");
-			  printf("Use linear interpolation instead\n\n");
-			  exit(1);
-			}
-		      else
-			MRIsincSampleVolume(mri, 
-					    ((Real) voxel_CC_plus_dCC), 
-					    ((Real) voxel_RR_plus_dRR),
-					    ((Real) voxel_SS_plus_dSS),
-					    unwarp_sincInterpHW,
-					    &tmpVal);
-		      /* %^& -- end cut here --- */
-		    }
+        /* interpolate to find the value at CC+dCC, etc. */
+        for(FF = 0; FF < mri->nframes; FF++)
+    {
+      if(strcmp(unwarp_interpType, "linear") == 0)
+        MRIsampleVolumeFrame(mri, 
+           ((Real) voxel_CC_plus_dCC), 
+           ((Real) voxel_RR_plus_dRR),
+           ((Real) voxel_SS_plus_dSS),
+           FF, 
+           &tmpVal);
+      else if(strcmp(unwarp_interpType, "sinc") == 0)
+        {
+          /* Note: after twitzel writes
+             MRIsincSampleVolumeFrame, uncomment the line
+             below, and cut out the lines between %^& */
+          
+          /* 
+       MRIsincSampleVolumeFrame(mri, 
+       ((Real) voxel_CC_plus_dCC), 
+       ((Real) voxel_RR_plus_dRR),
+       ((Real) voxel_SS_plus_dSS),
+       FF,
+       unwarp_sincInterpHW,
+       &tmpVal);
+          */
+          
+          /* %^& -- start cut here --- */
+          if(mri->nframes != 1)
+      {
+        printf("\nAt present, sinc interpolation ");
+        printf("not supported for 4-D data.\n");
+        printf("Use linear interpolation instead\n\n");
+        exit(1);
+      }
+          else
+      MRIsincSampleVolume(mri, 
+              ((Real) voxel_CC_plus_dCC), 
+              ((Real) voxel_RR_plus_dRR),
+              ((Real) voxel_SS_plus_dSS),
+              unwarp_sincInterpHW,
+              &tmpVal);
+          /* %^& -- end cut here --- */
+        }
 
-		  /* write interpolated value into mri_unwarped */
-		  (MRIFseq_vox(mri_unwarped, CC, RR, SS, FF)) = tmpVal;
-		  
-		} /* FF */
-	      
-	    } /* CC */
-	  
-	} /* RR */
+      /* write interpolated value into mri_unwarped */
+      (MRIFseq_vox(mri_unwarped, CC, RR, SS, FF)) = tmpVal;
+      
+    } /* FF */
+        
+      } /* CC */
+    
+  } /* RR */
       
     } /* SS */
 
   /* if Jacobian correction */
   if(strcmp(unwarp_jacobianCorrection, "JacobianCorrection") == 0)
-    {	
+    {  
 
       voxelCornerCC_slab1 = malloc(sizeof(float)*((mri->width)+1)*((mri->height)+1));
       voxelCornerCC_slab2 = malloc(sizeof(float)*((mri->width)+1)*((mri->height)+1));
@@ -228,198 +214,198 @@ MRI *unwarpGradientNonlinearity(MRI *mri,
       
       *(MATRIX_RELT(voxelCRS, 3, 1)) = -0.5;
       for(RR = 0; RR <= mri->height; RR++)
-	{
-	  *(MATRIX_RELT(voxelCRS, 2, 1)) = RR - 0.5;
-	  for(CC = 0; CC <= mri->width; CC++)
-	    {
-	      *(MATRIX_RELT(voxelCRS, 1, 1)) = CC - 0.5;
-	      
-	      /* index into the voxelCorner slabs */
-	      index = CC + RR*((mri->width) + 1);
+  {
+    *(MATRIX_RELT(voxelCRS, 2, 1)) = RR - 0.5;
+    for(CC = 0; CC <= mri->width; CC++)
+      {
+        *(MATRIX_RELT(voxelCRS, 1, 1)) = CC - 0.5;
+        
+        /* index into the voxelCorner slabs */
+        index = CC + RR*((mri->width) + 1);
 
-	      /* compute Siemens scanner XYZ for this point */
-	      MatrixMultiply(M_CRS_2_XYZ, voxelCRS, tmpVec1);
-	      voxel_X = *(MATRIX_RELT(tmpVec1, 1, 1));
-	      voxel_Y = *(MATRIX_RELT(tmpVec1, 2, 1));
-	      voxel_Z = *(MATRIX_RELT(tmpVec1, 3, 1));
-	      
-	      /* compute beadIJK for this point */
-	      MatrixMultiply(M_CRS_2_beadIJK, voxelCRS, tmpVec1);
-	      beadI = *(MATRIX_RELT(tmpVec1, 1, 1));
-	      beadJ = *(MATRIX_RELT(tmpVec1, 2, 1));
-	      beadK = *(MATRIX_RELT(tmpVec1, 3, 1));
-	      
-	      /* linearly interpolate to find [dX dY dZ] for this point */
-	      linInterp(bead_dX, bead_dY, bead_dZ, 
-			beadI, beadJ, beadK, 
-			maxBeadI, maxBeadJ, maxBeadK,
-			&voxel_dX, &voxel_dY, &voxel_dZ);
-	      
-	      /* map X+dX, etc. to CC+dCC, etc. */
-	      *(MATRIX_RELT(tmpVec1, 1, 1)) = voxel_X + voxel_dX;
-	      *(MATRIX_RELT(tmpVec1, 2, 1)) = voxel_Y + voxel_dY;
-	      *(MATRIX_RELT(tmpVec1, 3, 1)) = voxel_Z + voxel_dZ;
-	      MatrixMultiply(M_XYZ_2_CRS, tmpVec1, tmpVec1);
-	      voxelCornerCC_slab2[index] = *(MATRIX_RELT(tmpVec1, 1, 1));
-	      voxelCornerRR_slab2[index] = *(MATRIX_RELT(tmpVec1, 2, 1));
-	      voxelCornerSS_slab2[index] = *(MATRIX_RELT(tmpVec1, 3, 1));
+        /* compute Siemens scanner XYZ for this point */
+        MatrixMultiply(M_CRS_2_XYZ, voxelCRS, tmpVec1);
+        voxel_X = *(MATRIX_RELT(tmpVec1, 1, 1));
+        voxel_Y = *(MATRIX_RELT(tmpVec1, 2, 1));
+        voxel_Z = *(MATRIX_RELT(tmpVec1, 3, 1));
+        
+        /* compute beadIJK for this point */
+        MatrixMultiply(M_CRS_2_beadIJK, voxelCRS, tmpVec1);
+        beadI = *(MATRIX_RELT(tmpVec1, 1, 1));
+        beadJ = *(MATRIX_RELT(tmpVec1, 2, 1));
+        beadK = *(MATRIX_RELT(tmpVec1, 3, 1));
+        
+        /* linearly interpolate to find [dX dY dZ] for this point */
+        uGN_linInterp(bead_dX, bead_dY, bead_dZ, 
+          beadI, beadJ, beadK, 
+          maxBeadI, maxBeadJ, maxBeadK,
+          &voxel_dX, &voxel_dY, &voxel_dZ);
+        
+        /* map X+dX, etc. to CC+dCC, etc. */
+        *(MATRIX_RELT(tmpVec1, 1, 1)) = voxel_X + voxel_dX;
+        *(MATRIX_RELT(tmpVec1, 2, 1)) = voxel_Y + voxel_dY;
+        *(MATRIX_RELT(tmpVec1, 3, 1)) = voxel_Z + voxel_dZ;
+        MatrixMultiply(M_XYZ_2_CRS, tmpVec1, tmpVec1);
+        voxelCornerCC_slab2[index] = *(MATRIX_RELT(tmpVec1, 1, 1));
+        voxelCornerRR_slab2[index] = *(MATRIX_RELT(tmpVec1, 2, 1));
+        voxelCornerSS_slab2[index] = *(MATRIX_RELT(tmpVec1, 3, 1));
 
-	    } /* CC */
+      } /* CC */
 
-	} /* RR */
+  } /* RR */
       
       /* loop through each voxel */
       for(SS = 0; SS < mri->depth; SS++)
-	{
-	  *(MATRIX_RELT(voxelCRS, 3, 1)) = SS + 0.5;
+  {
+    *(MATRIX_RELT(voxelCRS, 3, 1)) = SS + 0.5;
 
-	  /* swap slab1 and slab2 */
-	  tmpPtr = voxelCornerCC_slab1; 
-	  voxelCornerCC_slab1 = voxelCornerCC_slab2;
-	  voxelCornerCC_slab2 = tmpPtr;
-	  
-	  tmpPtr = voxelCornerRR_slab1; 
-	  voxelCornerRR_slab1 = voxelCornerRR_slab2;
-	  voxelCornerRR_slab2 = tmpPtr;
-	  
-	  tmpPtr = voxelCornerSS_slab1; 
-	  voxelCornerSS_slab1 = voxelCornerSS_slab2;
-	  voxelCornerSS_slab2 = tmpPtr;
-	  
-	  for(RR = 0; RR <= mri->height; RR++)
-	    {
-	      *(MATRIX_RELT(voxelCRS, 2, 1)) = RR - 0.5;
-	      for(CC = 0; CC <= mri->width; CC++)
-		{
-		  *(MATRIX_RELT(voxelCRS, 1, 1)) = CC - 0.5;
-		  
-		  /* index into the voxelCorner slabs */
-		  index = CC + RR*((mri->width) + 1);
+    /* swap slab1 and slab2 */
+    tmpPtr = voxelCornerCC_slab1; 
+    voxelCornerCC_slab1 = voxelCornerCC_slab2;
+    voxelCornerCC_slab2 = tmpPtr;
+    
+    tmpPtr = voxelCornerRR_slab1; 
+    voxelCornerRR_slab1 = voxelCornerRR_slab2;
+    voxelCornerRR_slab2 = tmpPtr;
+    
+    tmpPtr = voxelCornerSS_slab1; 
+    voxelCornerSS_slab1 = voxelCornerSS_slab2;
+    voxelCornerSS_slab2 = tmpPtr;
+    
+    for(RR = 0; RR <= mri->height; RR++)
+      {
+        *(MATRIX_RELT(voxelCRS, 2, 1)) = RR - 0.5;
+        for(CC = 0; CC <= mri->width; CC++)
+    {
+      *(MATRIX_RELT(voxelCRS, 1, 1)) = CC - 0.5;
+      
+      /* index into the voxelCorner slabs */
+      index = CC + RR*((mri->width) + 1);
 
-		  /* compute Siemens scanner XYZ for this voxel */
-		  MatrixMultiply(M_CRS_2_XYZ, voxelCRS, tmpVec1);
-		  voxel_X = *(MATRIX_RELT(tmpVec1, 1, 1));
-		  voxel_Y = *(MATRIX_RELT(tmpVec1, 2, 1));
-		  voxel_Z = *(MATRIX_RELT(tmpVec1, 3, 1));
-		  
-		  /* compute beadIJK for this voxel */
-		  MatrixMultiply(M_CRS_2_beadIJK, voxelCRS, tmpVec1);
-		  beadI = *(MATRIX_RELT(tmpVec1, 1, 1));
-		  beadJ = *(MATRIX_RELT(tmpVec1, 2, 1));
-		  beadK = *(MATRIX_RELT(tmpVec1, 3, 1));
-		  
-		  /* linearly interpolate to find [dX dY dZ] for this voxel */
-		  linInterp(bead_dX, bead_dY, bead_dZ, 
-			    beadI, beadJ, beadK, 
-			    maxBeadI, maxBeadJ, maxBeadK,
-			    &voxel_dX, &voxel_dY, &voxel_dZ);
-		   
-		  /* map X+dX, etc. to CC+dCC, etc. */
-		  *(MATRIX_RELT(tmpVec1, 1, 1)) = voxel_X + voxel_dX;
-		  *(MATRIX_RELT(tmpVec1, 2, 1)) = voxel_Y + voxel_dY;
-		  *(MATRIX_RELT(tmpVec1, 3, 1)) = voxel_Z + voxel_dZ;
-		  MatrixMultiply(M_XYZ_2_CRS, tmpVec1, tmpVec1);
-		  voxelCornerCC_slab2[index] = *(MATRIX_RELT(tmpVec1, 1, 1));
-		  voxelCornerRR_slab2[index] = *(MATRIX_RELT(tmpVec1, 2, 1));
-		  voxelCornerSS_slab2[index] = *(MATRIX_RELT(tmpVec1, 3, 1));
+      /* compute Siemens scanner XYZ for this voxel */
+      MatrixMultiply(M_CRS_2_XYZ, voxelCRS, tmpVec1);
+      voxel_X = *(MATRIX_RELT(tmpVec1, 1, 1));
+      voxel_Y = *(MATRIX_RELT(tmpVec1, 2, 1));
+      voxel_Z = *(MATRIX_RELT(tmpVec1, 3, 1));
+      
+      /* compute beadIJK for this voxel */
+      MatrixMultiply(M_CRS_2_beadIJK, voxelCRS, tmpVec1);
+      beadI = *(MATRIX_RELT(tmpVec1, 1, 1));
+      beadJ = *(MATRIX_RELT(tmpVec1, 2, 1));
+      beadK = *(MATRIX_RELT(tmpVec1, 3, 1));
+      
+      /* linearly interpolate to find [dX dY dZ] for this voxel */
+      uGN_linInterp(bead_dX, bead_dY, bead_dZ, 
+        beadI, beadJ, beadK, 
+        maxBeadI, maxBeadJ, maxBeadK,
+        &voxel_dX, &voxel_dY, &voxel_dZ);
+       
+      /* map X+dX, etc. to CC+dCC, etc. */
+      *(MATRIX_RELT(tmpVec1, 1, 1)) = voxel_X + voxel_dX;
+      *(MATRIX_RELT(tmpVec1, 2, 1)) = voxel_Y + voxel_dY;
+      *(MATRIX_RELT(tmpVec1, 3, 1)) = voxel_Z + voxel_dZ;
+      MatrixMultiply(M_XYZ_2_CRS, tmpVec1, tmpVec1);
+      voxelCornerCC_slab2[index] = *(MATRIX_RELT(tmpVec1, 1, 1));
+      voxelCornerRR_slab2[index] = *(MATRIX_RELT(tmpVec1, 2, 1));
+      voxelCornerSS_slab2[index] = *(MATRIX_RELT(tmpVec1, 3, 1));
 
-		} /* CC */
-	      
-	    } /* RR */
-	  
-	  for(RR = 0; RR < mri->height; RR++)
-	    {
-	      for(CC = 0; CC < mri->width; CC++)
-		{
-		  /* index into the voxelCorner slabs */
-		  index = CC + RR*((mri->width) + 1);
-		  
-		  cv[0][0] = voxelCornerRR_slab1[index];
-		  cv[0][1] = voxelCornerCC_slab1[index];
-		  cv[0][2] = voxelCornerSS_slab1[index];
+    } /* CC */
+        
+      } /* RR */
+    
+    for(RR = 0; RR < mri->height; RR++)
+      {
+        for(CC = 0; CC < mri->width; CC++)
+    {
+      /* index into the voxelCorner slabs */
+      index = CC + RR*((mri->width) + 1);
+      
+      cv[0][0] = voxelCornerRR_slab1[index];
+      cv[0][1] = voxelCornerCC_slab1[index];
+      cv[0][2] = voxelCornerSS_slab1[index];
 
-		  cv[4][0] = voxelCornerRR_slab2[index];
-		  cv[4][1] = voxelCornerCC_slab2[index];
-		  cv[4][2] = voxelCornerSS_slab2[index];
-		  
-		  /* index into the voxelCorner slabs */
-		  index = CC + (RR+1)*((mri->width) + 1);
-		  
-		  cv[1][0] = voxelCornerRR_slab1[index];
-		  cv[1][1] = voxelCornerCC_slab1[index];
-		  cv[1][2] = voxelCornerSS_slab1[index];
-		  
-		  cv[5][0] = voxelCornerRR_slab2[index];
-		  cv[5][1] = voxelCornerCC_slab2[index];
-		  cv[5][2] = voxelCornerSS_slab2[index];
+      cv[4][0] = voxelCornerRR_slab2[index];
+      cv[4][1] = voxelCornerCC_slab2[index];
+      cv[4][2] = voxelCornerSS_slab2[index];
+      
+      /* index into the voxelCorner slabs */
+      index = CC + (RR+1)*((mri->width) + 1);
+      
+      cv[1][0] = voxelCornerRR_slab1[index];
+      cv[1][1] = voxelCornerCC_slab1[index];
+      cv[1][2] = voxelCornerSS_slab1[index];
+      
+      cv[5][0] = voxelCornerRR_slab2[index];
+      cv[5][1] = voxelCornerCC_slab2[index];
+      cv[5][2] = voxelCornerSS_slab2[index];
 
-		  /* index into the voxelCorner slabs */
-		  index = (CC+1) + (RR+1)*((mri->width) + 1);
+      /* index into the voxelCorner slabs */
+      index = (CC+1) + (RR+1)*((mri->width) + 1);
 
-		  cv[2][0] = voxelCornerRR_slab1[index];
-		  cv[2][1] = voxelCornerCC_slab1[index];
-		  cv[2][2] = voxelCornerSS_slab1[index];
+      cv[2][0] = voxelCornerRR_slab1[index];
+      cv[2][1] = voxelCornerCC_slab1[index];
+      cv[2][2] = voxelCornerSS_slab1[index];
 
-		  cv[6][0] = voxelCornerRR_slab2[index];
-		  cv[6][1] = voxelCornerCC_slab2[index];
-		  cv[6][2] = voxelCornerSS_slab2[index];
+      cv[6][0] = voxelCornerRR_slab2[index];
+      cv[6][1] = voxelCornerCC_slab2[index];
+      cv[6][2] = voxelCornerSS_slab2[index];
 
-		  /* index into the voxelCorner slabs */
-		  index = (CC+1) + RR*((mri->width) + 1);
-		  
-		  cv[3][0] = voxelCornerRR_slab1[index];
-		  cv[3][1] = voxelCornerCC_slab1[index];
-		  cv[3][2] = voxelCornerSS_slab1[index];
-		  
-		  cv[7][0] = voxelCornerRR_slab2[index];
-		  cv[7][1] = voxelCornerCC_slab2[index];
-		  cv[7][2] = voxelCornerSS_slab2[index];
-		  
-		  cubeVol = 0;
-		  for(tt = 0; tt < 12; tt++)
-		    {
-		      nA = cubeFaces[tt][0] - 1;
-		      nB = cubeFaces[tt][1] - 1;
-		      nC = cubeFaces[tt][2] - 1;
-		      
-		      cubeVol += 
-			(+ cv[nA][0]*(cv[nB][1]*cv[nC][2] - cv[nB][2]*cv[nC][1])
-			 - cv[nA][1]*(cv[nB][0]*cv[nC][2] - cv[nB][2]*cv[nC][0])
-			 + cv[nA][2]*(cv[nB][0]*cv[nC][1] - cv[nB][1]*cv[nC][0]));
-		    }
-		  cubeVol /= 6;
+      /* index into the voxelCorner slabs */
+      index = (CC+1) + RR*((mri->width) + 1);
+      
+      cv[3][0] = voxelCornerRR_slab1[index];
+      cv[3][1] = voxelCornerCC_slab1[index];
+      cv[3][2] = voxelCornerSS_slab1[index];
+      
+      cv[7][0] = voxelCornerRR_slab2[index];
+      cv[7][1] = voxelCornerCC_slab2[index];
+      cv[7][2] = voxelCornerSS_slab2[index];
+      
+      cubeVol = 0;
+      for(tt = 0; tt < 12; tt++)
+        {
+          nA = cubeFaces[tt][0] - 1;
+          nB = cubeFaces[tt][1] - 1;
+          nC = cubeFaces[tt][2] - 1;
+          
+          cubeVol += 
+      (+ cv[nA][0]*(cv[nB][1]*cv[nC][2] - cv[nB][2]*cv[nC][1])
+       - cv[nA][1]*(cv[nB][0]*cv[nC][2] - cv[nB][2]*cv[nC][0])
+       + cv[nA][2]*(cv[nB][0]*cv[nC][1] - cv[nB][1]*cv[nC][0]));
+        }
+      cubeVol /= 6;
 
-		  /* The orientation of cubeFaces above was
-		  (unfortunately) chosen to be one that results in
-		  negative volume for the cube. We could reorder
-		  cubeFaces, but instead, we will be lazy and simply
-		  invert the sign of cubeVol */
-		  cubeVol = -cubeVol;
+      /* The orientation of cubeFaces above was
+      (unfortunately) chosen to be one that results in
+      negative volume for the cube. We could reorder
+      cubeFaces, but instead, we will be lazy and simply
+      invert the sign of cubeVol */
+      cubeVol = -cubeVol;
 
-		  /* Negative Jacobians are set to 0 */
-		  if(cubeVol < 0)
-		    cubeVol = 0;
-		  
-		  /* If the Jacobian is too large, send it to 0 gracefully */
-		  if(cubeVol > 10)
-		    cubeVol = 20 - cubeVol;
-		  
-		  /* The line above will make any Jacobians greater
+      /* Negative Jacobians are set to 0 */
+      if(cubeVol < 0)
+        cubeVol = 0;
+      
+      /* If the Jacobian is too large, send it to 0 gracefully */
+      if(cubeVol > 10)
+        cubeVol = 20 - cubeVol;
+      
+      /* The line above will make any Jacobians greater
                      than 20 negative, so set these to zero */
-		  if(cubeVol < 0)
-		    cubeVol = 0;
-		  
-		  /* write jacobian corrected value into mri_unwarped */
-		  for(FF = 0; FF < mri->nframes; FF++)
-		    {
-		      (MRIFseq_vox(mri_unwarped, CC, RR, SS, FF)) *= cubeVol;
-		    } /* FF */
+      if(cubeVol < 0)
+        cubeVol = 0;
+      
+      /* write jacobian corrected value into mri_unwarped */
+      for(FF = 0; FF < mri->nframes; FF++)
+        {
+          (MRIFseq_vox(mri_unwarped, CC, RR, SS, FF)) *= cubeVol;
+        } /* FF */
 
-		} /* CC */
-	      
-	    } /* RR */
+    } /* CC */
+        
+      } /* RR */
 
-	} /* SS */
+  } /* SS */
       
       free(voxelCornerCC_slab1);
       free(voxelCornerCC_slab2);
@@ -446,14 +432,14 @@ MRI *unwarpGradientNonlinearity(MRI *mri,
   
 }
 
-int loadGradientData(char *unwarp_gradientType, 
-		     MATRIX *M_XYZ_2_beadIJK,
-		     float **p_bead_dX,
-		     float **p_bead_dY,
-		     float **p_bead_dZ,
-		     int *p_maxBeadI,
-		     int *p_maxBeadJ,
-		     int *p_maxBeadK)
+int uGN_loadGradientData(char *unwarp_gradientType, 
+       MATRIX *M_XYZ_2_beadIJK,
+       float **p_bead_dX,
+       float **p_bead_dY,
+       float **p_bead_dZ,
+       int *p_maxBeadI,
+       int *p_maxBeadJ,
+       int *p_maxBeadK)
 {
   FILE *fp;
   float tmpMat[16];
@@ -514,12 +500,12 @@ int loadGradientData(char *unwarp_gradientType,
       BYTESWAP = 1;
       
       if( (sizeof(int) != 4) || (sizeof(float) != 4) )
-	{
-	  printf("Error: because floats or ints are not 4-bytes\n");
-	  printf("on this architecture, there was a problem reading\n");
-	  printf("in the distortion offset data in %s/data/\n", MRI_DIR);
-	  exit(1);
-	}
+  {
+    printf("Error: because floats or ints are not 4-bytes\n");
+    printf("on this architecture, there was a problem reading\n");
+    printf("in the distortion offset data in %s/data/\n", MRI_DIR);
+    exit(1);
+  }
     }
   
   /*
@@ -591,10 +577,10 @@ int loadGradientData(char *unwarp_gradientType,
 
 }
 
-int linInterp(float *bead_dX, float *bead_dY, float *bead_dZ, 
-	      float beadI, float beadJ, float beadK, 
-	      int maxBeadI, int maxBeadJ, int maxBeadK,
-	      float *p_voxel_dX, float *p_voxel_dY, float *p_voxel_dZ)
+int uGN_linInterp(float *bead_dX, float *bead_dY, float *bead_dZ, 
+      float beadI, float beadJ, float beadK, 
+      int maxBeadI, int maxBeadJ, int maxBeadK,
+      float *p_voxel_dX, float *p_voxel_dY, float *p_voxel_dZ)
 {
 
   int index;
@@ -692,38 +678,38 @@ int linInterp(float *bead_dX, float *bead_dY, float *bead_dZ,
   ccc = beadK - ((int) beadK);
 
   *p_voxel_dX = (XXX[0][0][0]*(1-aaa)*(1-bbb)*(1-ccc) + 
-		 XXX[1][0][0]*aaa*(1-bbb)*(1-ccc) + 
-		 XXX[0][1][0]*(1-aaa)*bbb*(1-ccc) + 
-		 XXX[0][0][1]*(1-aaa)*(1-bbb)*ccc + 
-		 XXX[1][1][0]*aaa*bbb*(1-ccc) + 
-		 XXX[1][0][1]*aaa*(1-bbb)*ccc + 
-		 XXX[0][1][1]*(1-aaa)*bbb*ccc + 
-		 XXX[1][1][1]*aaa*bbb*ccc);
+     XXX[1][0][0]*aaa*(1-bbb)*(1-ccc) + 
+     XXX[0][1][0]*(1-aaa)*bbb*(1-ccc) + 
+     XXX[0][0][1]*(1-aaa)*(1-bbb)*ccc + 
+     XXX[1][1][0]*aaa*bbb*(1-ccc) + 
+     XXX[1][0][1]*aaa*(1-bbb)*ccc + 
+     XXX[0][1][1]*(1-aaa)*bbb*ccc + 
+     XXX[1][1][1]*aaa*bbb*ccc);
 
   *p_voxel_dY = (YYY[0][0][0]*(1-aaa)*(1-bbb)*(1-ccc) + 
-		 YYY[1][0][0]*aaa*(1-bbb)*(1-ccc) + 
-		 YYY[0][1][0]*(1-aaa)*bbb*(1-ccc) + 
-		 YYY[0][0][1]*(1-aaa)*(1-bbb)*ccc + 
-		 YYY[1][1][0]*aaa*bbb*(1-ccc) + 
-		 YYY[1][0][1]*aaa*(1-bbb)*ccc + 
-		 YYY[0][1][1]*(1-aaa)*bbb*ccc + 
-		 YYY[1][1][1]*aaa*bbb*ccc);
+     YYY[1][0][0]*aaa*(1-bbb)*(1-ccc) + 
+     YYY[0][1][0]*(1-aaa)*bbb*(1-ccc) + 
+     YYY[0][0][1]*(1-aaa)*(1-bbb)*ccc + 
+     YYY[1][1][0]*aaa*bbb*(1-ccc) + 
+     YYY[1][0][1]*aaa*(1-bbb)*ccc + 
+     YYY[0][1][1]*(1-aaa)*bbb*ccc + 
+     YYY[1][1][1]*aaa*bbb*ccc);
 
   *p_voxel_dZ = (ZZZ[0][0][0]*(1-aaa)*(1-bbb)*(1-ccc) + 
-		 ZZZ[1][0][0]*aaa*(1-bbb)*(1-ccc) + 
-		 ZZZ[0][1][0]*(1-aaa)*bbb*(1-ccc) + 
-		 ZZZ[0][0][1]*(1-aaa)*(1-bbb)*ccc + 
-		 ZZZ[1][1][0]*aaa*bbb*(1-ccc) + 
-		 ZZZ[1][0][1]*aaa*(1-bbb)*ccc + 
-		 ZZZ[0][1][1]*(1-aaa)*bbb*ccc + 
-		 ZZZ[1][1][1]*aaa*bbb*ccc);
+     ZZZ[1][0][0]*aaa*(1-bbb)*(1-ccc) + 
+     ZZZ[0][1][0]*(1-aaa)*bbb*(1-ccc) + 
+     ZZZ[0][0][1]*(1-aaa)*(1-bbb)*ccc + 
+     ZZZ[1][1][0]*aaa*bbb*(1-ccc) + 
+     ZZZ[1][0][1]*aaa*(1-bbb)*ccc + 
+     ZZZ[0][1][1]*(1-aaa)*bbb*ccc + 
+     ZZZ[1][1][1]*aaa*bbb*ccc);
 
 
 
   return(1);
 
 }
-	      
+        
 /* printf("!!! %f !!!\n", ((Real) MRISvox(mri, 114, 114, 114))); */
 /* MRIsampleVolume(mri, 114, 114, 114, &tmpmuk); */
 
