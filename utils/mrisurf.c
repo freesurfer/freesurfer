@@ -72,7 +72,6 @@ static MRI_SURFACE *mrisReadTriangleFile(char *fname) ;
 static int         mrisReadTriangleFilePositions(MRI_SURFACE*mris,
                                                   char *fname) ;
 
-static int   mrisReadBinaryAreas(MRI_SURFACE *mris, char *mris_fname) ;
 /*static int   mrisReadFieldsign(MRI_SURFACE *mris, char *fname) ;*/
 static double mrisComputeSSE(MRI_SURFACE *mris, INTEGRATION_PARMS *parms) ;
 static double mrisComputeNonlinearAreaSSE(MRI_SURFACE *mris) ;
@@ -492,7 +491,7 @@ MRISread(char *fname)
       MRISuseMeanCurvature(mris) ;
     }
        
-    if (mrisReadBinaryAreas(mris, fname) != NO_ERROR)
+    if (MRISreadBinaryAreas(mris, fname) != NO_ERROR)
      fprintf(stderr, "ignoring area file...\n") ; /*return(NULL) ;*/
   }
 
@@ -736,7 +735,7 @@ MRISfastRead(char *fname)
     if (MRISreadBinaryCurvature(mris, fname) != NO_ERROR)
       fprintf(stderr, "ignoring curvature file...\n") ; /*return(NULL) ;*/
 #if 0
-    if (mrisReadBinaryAreas(mris, fname) != NO_ERROR)
+    if (MRISreadBinaryAreas(mris, fname) != NO_ERROR)
       return(NULL) ;
 #endif
   }
@@ -2353,8 +2352,8 @@ MRISreadCurvatureFile(MRI_SURFACE *mris, char *sname)
 
         Description
 ------------------------------------------------------*/
-static int
-mrisReadBinaryAreas(MRI_SURFACE *mris, char *mris_fname)
+int
+MRISreadBinaryAreas(MRI_SURFACE *mris, char *mris_fname)
 {
   int   k,vnum,fnum;
   float f;
@@ -2372,14 +2371,14 @@ mrisReadBinaryAreas(MRI_SURFACE *mris, char *mris_fname)
   fp = fopen(fname,"r");
   if (fp==NULL) 
     ErrorReturn(ERROR_BADPARM, 
-              (ERROR_BADPARM,"mrisReadBinaryAreas: no area file %s\n",fname));
+              (ERROR_BADPARM,"MRISreadBinaryAreas: no area file %s\n",fname));
   fread3(&vnum,fp);
   fread3(&fnum,fp);
   if (vnum!=mris->nvertices)
   {
     fclose(fp) ;
     ErrorReturn(ERROR_NOFILE, 
-                (ERROR_NOFILE, "mrisReadBinaryAreas: incompatible vertex "
+                (ERROR_NOFILE, "MRISreadBinaryAreas: incompatible vertex "
                  "number in file %s", fname)) ;
   }
 
@@ -10430,11 +10429,11 @@ mrisComputeAngleAreaTerms(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
 static int
 mrisComputeNonlinearAreaTerm(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
 {
-  int     fno, ano ;
-  VERTEX  *v0, *v1, *v2, *va, *vb, *vo ;
+  int     fno ;
+  VERTEX  *v0, *v1, *v2 ;
   VECTOR  *v_a, *v_b, *v_a_x_n, *v_b_x_n, *v_n, *v_tmp, *v_sum ;
   FACE    *face ;
-  double  orig_area, area, delta, len, area_scale, scale, l_narea, ratio ;
+  double  orig_area, area, delta, area_scale, scale, l_narea, ratio ;
 
 #if METRIC_SCALE
   if (mris->patch || 
