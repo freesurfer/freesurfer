@@ -5,16 +5,17 @@
 #include "machine.h"
 #include "fio.h"
 
-#define IMAUTILS_SRC
 #include "imautils.h"
-#undef IMAUTILS_SRC
+
+IMA_DICTIONARY_ENTRY ImaDictionary[NMAX_IMA_DICTIONARY];
+int nImaDictionary = 0, ImaDictionaryGood = 0;
+char *imaTypeString[6] = {"short","int","long","float","double","string"};
+int imaTypeSize[6] = {sizeof(short),sizeof(int),sizeof(long),
+		      sizeof(float),sizeof(double),sizeof(char)};
 
 static int imaSetDictEntry(int nthEntry, char *key, int offset, 
          char *typestring, int nitems);
 static int imaGetKeyEntryNo(char *key);
-
-extern IMA_DICTIONARY_ENTRY ImaDictionary[NMAX_IMA_DICTIONARY];
-extern int nImaDictionary, ImaDictionaryGood;
 
 /*--------------------------------------------------------------------
   imaLoadVal() - loads a value of length nbytes*nitems from the file
