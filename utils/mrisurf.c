@@ -31688,6 +31688,9 @@ MRIScombine(MRI_SURFACE *mris_src, MRI_SURFACE *mris_total,
     vdst->marked++ ;
     switch (which)
     {
+		case VERTEX_COORDS:
+			vdst->origx += v->origx ; vdst->origy += v->origy ; vdst->origz += v->origz ; 
+			break ;
     case VERTEX_AREA:
       vdst->d += v->origarea ;
       break ;
@@ -31714,6 +31717,11 @@ MRIScombine(MRI_SURFACE *mris_src, MRI_SURFACE *mris_total,
     mean = vdst->d / (float)vdst->marked ;
     switch (which)
     {
+		case VERTEX_COORDS:
+			vdst->origx /= (float)vdst->marked ; 
+			vdst->origy /= (float)vdst->marked ; 
+			vdst->origz /= (float)vdst->marked ;
+			break ;
     case VERTEX_AREA:  /* don't normalize by # of vertices mapped!! */
       vdst->origarea += vdst->d ;
       vdst->val2 += vdst->d * vdst->d ;
@@ -31754,6 +31762,9 @@ MRIScombine(MRI_SURFACE *mris_src, MRI_SURFACE *mris_total,
     vdst->marked++ ;
     switch (which)
     {
+		case VERTEX_COORDS:
+			vdst->origx = v->origx ; vdst->origy = v->origy ; vdst->origz = v->origz ; 
+			break ;
 		case VERTEX_ANNOTATION:
 			vdst->annotation = v->annotation ;
 			break ;
@@ -31819,6 +31830,9 @@ MRISsphericalCopy(MRI_SURFACE *mris_src, MRI_SURFACE *mris_dst,
     vdst->val2 = v->val2 ;
     switch (which)
     {
+		case VERTEX_COORDS:
+			vdst->origx = v->origx ; vdst->origy = v->origy ; vdst->origz = v->origz ; 
+			break ;
 		case VERTEX_ANNOTATION:
 			vdst->annotation = v->annotation ;
 			break ;

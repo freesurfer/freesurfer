@@ -16,7 +16,7 @@
 #include "icosahedron.h"
 #include "label.h"
 
-static char vcid[] = "$Id: mris_spherical_average.c,v 1.6 2002/08/01 22:00:28 fischl Exp $";
+static char vcid[] = "$Id: mris_spherical_average.c,v 1.7 2002/11/19 18:21:47 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -39,7 +39,6 @@ static char *orig_name = "orig" ;
 
 static int which_ic = 7 ;
 static char *sdir = NULL ;
-static int keep_stat = 0 ;
 
 int
 main(int argc, char *argv[])
@@ -90,8 +89,6 @@ main(int argc, char *argv[])
     which = VERTEX_CURV ;
   else if (!stricmp(argv[1], "label"))
     which = VERTEX_LABEL ;
-  else if (!stricmp(argv[1], "annotation"))
-    which = VERTEX_ANNOTATION ;
   else
     usage_exit() ;
 
@@ -124,6 +121,8 @@ main(int argc, char *argv[])
     if (!mris)
       ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s",
               Progname, fname) ;
+		if (which == VERTEX_COORDS)
+			MRISsaveVertexPositions(mris, ORIGINAL_VERTICES) ;
     MRISprojectOntoSphere(mris, mris, DEFAULT_RADIUS) ;
     if (i == FIRST_SUBJECT)  /* scale the icosahedron up */
     {
@@ -135,10 +134,6 @@ main(int argc, char *argv[])
 
     switch (which)
     {
-    case VERTEX_ANNOTATION:
-      if (MRISreadAnnotation(mris, data_fname) != NO_ERROR)
-        ErrorExit(ERROR_BADPARM, "%s: could not read annotation from %s", Progname, data_fname) ;
-      break ;
     case VERTEX_LABEL:
       if (i == FIRST_SUBJECT)
         area_avg = LabelAlloc(mris_avg->nvertices, NULL, data_fname) ;
@@ -150,8 +145,6 @@ main(int argc, char *argv[])
       if (!area)
         ErrorExit(ERROR_BADFILE,"%s: could not read label file %s for %s.\n",
                   Progname, data_fname, argv[i]);
-      if (keep_stat == 0)
-        LabelSetStat(area, 1.0f) ;
       area_avg = LabelSphericalCombine(mris, area, mht, mris_avg, area_avg) ;
       break ;
     case VERTEX_CURVATURE:
@@ -253,10 +246,6 @@ main(int argc, char *argv[])
       fprintf(stderr,"writing blurred pattern to surface to %s\n",out_fname);
     switch (which)
     {
-    case VERTEX_ANNOTATION:
-      if (MRISwriteAnnotation(mris, out_fname) != NO_ERROR)
-        ErrorExit(ERROR_BADFILE, "%s: writing output annotation to %s failed", Progname,out_fname);
-      break ;
     case VERTEX_LABEL:
       printf("writing label with %d points to %s...\n", area->n_points,
              out_fname) ;
@@ -268,9 +257,10 @@ main(int argc, char *argv[])
     case VERTEX_CURV:
       MRISwriteCurvature(mris, out_fname) ;
       break ;
-    case VERTEX_COORDS:
-      MRISwrite(mris, out_fname) ;
-      break ;
+		case VERTEX_COORDS:
+			MRISrestoreVertexPositions(mris, ORIGINAL_VERTICES) ;
+			MRISwrite(mris, out_fname) ;
+			break ;
     default:
       break ;
     }
@@ -302,11 +292,6 @@ get_option(int argc, char *argv[])
     ohemi = argv[2] ;
     fprintf(stderr, "output hemisphere = %s\n", ohemi) ;
     nargs = 1 ;
-  }
-  else if (!stricmp(option, "keep_stat"))
-  {
-    keep_stat = 1 ;
-    printf("retaining label statistics when averaging...\n") ;
   }
   else if (!stricmp(option, "ic"))
   {
@@ -383,7 +368,6 @@ print_usage(void)
           "\tlabel\n"
           "\tvals\n"
           "\tcurv\n"
-          "\tannotation\n"
           "\tarea\n") ;
 }
 
