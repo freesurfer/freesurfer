@@ -3,10 +3,10 @@
   ===========================================================================*/
 
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2004/06/24 16:23:28 $
-// Revision       : $Revision: 1.209 $
-char *VERSION = "$Revision: 1.209 $";
+// Revision Author: $Author: kteich $
+// Revision Date  : $Date: 2004/06/30 16:52:11 $
+// Revision       : $Revision: 1.210 $
+char *VERSION = "$Revision: 1.210 $";
 
 #define TCL
 #define TKMEDIT 
@@ -1044,14 +1044,14 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
   
   /* first get the functional threshold so we don't overwrite the defaults */
   DebugNote( ("Getting default functional threshold") );
-  eFunctional = FunV_GetThreshold( gFunctionalVolume, &min, &min, &slope );
+  eFunctional = FunV_GetThreshold( gFunctionalVolume, &min, &mid, &slope );
   DebugAssertThrow( (FunV_tErr_NoError == eFunctional ) );
   
   /* First look for the version option and handle that. If found,
      shorten our argc and argv count. If those are the only args we
      had, exit. */
   /* rkt: check for and handle version tag */
-  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.209 2004/06/24 16:23:28 fischl Exp $", "$Name:  $");
+  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.210 2004/06/30 16:52:11 kteich Exp $", "$Name:  $");
   if (nNumProcessedVersionArgs && argc - nNumProcessedVersionArgs == 1)
     exit (0);
   argc -= nNumProcessedVersionArgs;
@@ -1081,7 +1081,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
     printf("-mm-main <min> <max>             : color scale min and max for main volume\n");
     printf("-bc-aux <brightness> <contrast>  : brightness and contrast for aux volume\n");
     printf("-mm-aux <min> <max>              : color scale min and max for aux volume\n");
-    printf("-overlay <file>             : load functional overlay volume\n");
+    printf("-overlay <fie>             : load functional overlay volume\n");
     printf("-overlay-reg <registration> : load registration file for overlay volume \n");
     printf("                            : (default is register.dat in same path as\n");
     printf("                            :  volume)\n");
@@ -1612,25 +1612,6 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
 	  nCurrentArg += 1;
 	}
   
-      } else if( MATCH( sArg, "-sdir" ) ) {
-	/* check for the value following the switch */
-	if( argc > nCurrentArg + 1 &&
-	    '-' != argv[nCurrentArg+1][0] ) {
-	  
-	  /* get the value */
-	  DebugNote( ("Parsing -sdir option") );
-	  gsCommandLineSubjectsDir = argv[nCurrentArg+1] ;
-	  nCurrentArg +=2 ;
-	  
-	} else { 
-	  
-	  /* misuse of that switch */
-	  tkm_DisplayError( "Parsing -fslope option",
-			    "Expected an argument",
-			    "This option needs an argument: the threshold "
-			    "value to use." );
-	  nCurrentArg += 1;
-	}
       } else if( MATCH( sArg, "-fslope" ) ) {
 	
 	/* check for the value following the switch */
@@ -1653,6 +1634,25 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
 	  nCurrentArg += 1;
 	}
   
+      } else if( MATCH( sArg, "-sdir" ) ) {
+	/* check for the value following the switch */
+	if( argc > nCurrentArg + 1 &&
+	    '-' != argv[nCurrentArg+1][0] ) {
+	  
+	  /* get the value */
+	  DebugNote( ("Parsing -sdir option") );
+	  gsCommandLineSubjectsDir = argv[nCurrentArg+1] ;
+	  nCurrentArg +=2 ;
+	  
+	} else { 
+	  
+	  /* misuse of that switch */
+	  tkm_DisplayError( "Parsing -sdir option",
+			    "Expected an argument",
+			    "This option needs an argument: the subjects "
+			    "dir to use." );
+	  nCurrentArg += 1;
+	}
       } else if( MATCH( sArg, "-fsmooth" ) ) {
 	
 	/* check for the value following the switch */
@@ -2263,9 +2263,9 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
   
   
   /* set functional color scale stuff */
-  if( bThresh || bMid || bThresh ) {
+  if( bThresh || bMid || bSlope ) {
     DebugNote( ("Setting functional threshold min=%f mid=%f slope=%f\n",
-    min, mid, slope ) );
+		min, mid, slope ) );
     eFunctional = FunV_SetThreshold( gFunctionalVolume, min, mid, slope );
   }
   if( bTruncPhaseFlag ) {
@@ -5009,7 +5009,7 @@ int main ( int argc, char** argv ) {
     DebugPrint( ( "%s ", argv[nArg] ) );
   }
   DebugPrint( ( "\n\n" ) );
-  DebugPrint( ( "$Id: tkmedit.c,v 1.209 2004/06/24 16:23:28 fischl Exp $ $Name:  $\n" ) );
+  DebugPrint( ( "$Id: tkmedit.c,v 1.210 2004/06/30 16:52:11 kteich Exp $ $Name:  $\n" ) );
 
   
   /* init glut */
