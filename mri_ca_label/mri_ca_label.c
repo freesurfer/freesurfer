@@ -19,6 +19,8 @@
 static char *example_T1 = NULL ;
 static char *example_segmentation = NULL ;
 
+static int avgs = 0 ;
+
 static int insert_thin_temporal_white_matter(MRI *mri_in, 
                                              MRI *mri_labeled, 
                                              GCA *gca, 
@@ -114,7 +116,8 @@ main(int argc, char *argv[])
     if (!gca)
     ErrorExit(ERROR_NOFILE, "%s: could not read classifier array from %s",
               Progname, argv[1]) ;
-      
+
+
     GCAhisto(gca, 100, &counts) ;
 
     max_i = 0 ;
@@ -170,6 +173,9 @@ main(int argc, char *argv[])
   if (!gca)
     ErrorExit(ERROR_NOFILE, "%s: could not read classifier array from %s",
               Progname, gca_fname) ;
+
+  if (avgs)
+    GCAmeanFilterConditionalDensities(gca, avgs) ;
 
   if (alpha > 0)
     mri_in->flip_angle = alpha ;
@@ -519,8 +525,9 @@ get_option(int argc, char *argv[])
     nargs = 1 ;
     break ;
   case 'A':
-    anneal = 1 ;
-    fprintf(stderr, "using simulated annealing to find optimum\n") ;
+    avgs = atoi(argv[2]) ;
+    nargs = 1 ;
+    fprintf(stderr, "applying mean filter %d times to conditional densities...\n", avgs) ;
     break ;
   case 'W':
     gca_write_iterations = atoi(argv[2]) ;
