@@ -2743,7 +2743,8 @@ mrisMomentumTimeStep(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
         fprintf(stderr, "sse increased by %2.0f%%, undoing time step...\n",
                 (float)sse/starting_sse * 100.0f) ;
       delta_t = 0.0 ;          /* didn't take a step */
-      parms->dt = parms->base_dt ;
+      if (parms->dt > parms->base_dt)
+        parms->dt = parms->base_dt ;
       for (vno = 0 ; vno < mris->nvertices ; vno++)
       {
         vertex = &mris->vertices[vno] ;
