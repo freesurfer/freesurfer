@@ -126,6 +126,7 @@ static void            (*XVquit_func)(void) = NULL;
 typedef void    (*repaint_func)(XV_FRAME *xvf,DIMAGE *dimage) ;
 static repaint_func XVrepaint_handlers[MAX_HANDLERS] ;
 static int num_repaint_handlers = 0 ;
+static int draw_points = 0 ;
 
 /*----------------------------------------------------------------------
             Parameters:
@@ -1108,6 +1109,11 @@ xv_dimage_event_handler(Xv_Window xv_window, Event *event)
     if (!event_left_is_down(event))  /* not draggin with left mouse - quit */
       break ;
   case MS_LEFT:
+    if (draw_points)
+    {
+      XVrepaintImage(xvf, which) ;
+      XVdrawPoint(xvf, which, x, y, XRED) ;
+    }
     switch (dimage->sourceImage->pixel_format)
     {
     case PFDOUBLE:
@@ -1136,6 +1142,11 @@ xv_dimage_event_handler(Xv_Window xv_window, Event *event)
         if (dimage2 && (dimage2->sync == dimage->sync))
         {
           XVgetTitle(xvf, i, title, 0) ;
+          if (draw_points)
+          {
+            XVrepaintImage(xvf, i) ;
+            XVdrawPoint(xvf, i, x, y, XRED) ;
+          }
           switch (dimage2->sourceImage->pixel_format)
           {
           case PFDOUBLE:
@@ -1253,6 +1264,20 @@ xv_dimage_event_handler(Xv_Window xv_window, Event *event)
       case 'd':
       case 'D':
         xv_set(debug_frame, XV_SHOW, TRUE, FRAME_CMD_PUSHPIN_IN, TRUE,NULL) ;
+        break ;
+      case 'P':
+        draw_points = 1 ;
+        break ;
+      case 'p':
+        draw_points = 0 ;
+        XVrepaintImage(xvf, which) ;
+        if (dimage->sync)
+          for (i = 0 ; i < xvf->rows*xvf->cols ; i++)
+          {
+            dimage2 = XVgetDimage(xvf, i, DIMAGE_IMAGE) ;
+            if (dimage2 && (dimage2->sync == dimage->sync))
+              XVrepaintImage(xvf, i) ;
+          }
         break ;
       case 'R':
         xvf->rescale = 1 ;
