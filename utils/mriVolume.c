@@ -42,7 +42,9 @@ Volm_tErr Volm_New ( mriVolumeRef* opVolume ) {
   /* init members to defaults */
   DebugNote( ("Setting members to default values") );
   this->mSignature             = Volm_kSignature;
-  this->mnDimension            = 0;
+  this->mnDimensionX           = 0;
+  this->mnDimensionY           = 0;
+  this->mnDimensionZ           = 0;
   this->mpMriValues           = NULL;
   this->mpSnapshot             = NULL;
   this->mpMaxValues            = NULL;
@@ -180,7 +182,9 @@ Volm_tErr Volm_DeepClone  ( mriVolumeRef  this,
 
   /* set dimension */
   DebugNote( ("Setting dimension") );
-  clone->mnDimension = this->mnDimension;
+  clone->mnDimensionX = this->mnDimensionX;
+  clone->mnDimensionY = this->mnDimensionY;
+  clone->mnDimensionZ = this->mnDimensionZ;
   
   /* copy mri volumes */
   DebugNote( ("Cloning normalized volume") );
@@ -293,7 +297,9 @@ Volm_tErr Volm_ImportData ( mriVolumeRef this,
                      eResult, Volm_tErr_CouldntNormalizeVolume );
 
   /* grab the xsize of the conformed volume as our dimension */
-  this->mnDimension = mriVolume->xend - mriVolume->xstart;
+  this->mnDimensionX = abs(mriVolume->xend - mriVolume->xstart);
+  this->mnDimensionY = abs(mriVolume->yend - mriVolume->ystart);
+  this->mnDimensionZ = abs(mriVolume->zend - mriVolume->zstart);
   this->m_resample = m_resample ;
   this->m_resample_orig = MatrixCopy(m_resample, NULL) ;
 
@@ -623,25 +629,28 @@ void Volm_GetMaxColorAtXYSlice ( mriVolumeRef     this,
   *oColor = this->maColorTable[value];
 }
 
-Volm_tErr Volm_GetDimension ( mriVolumeRef this,
-            int*         onDimension ) {
+Volm_tErr Volm_GetDimensions ( mriVolumeRef this,
+            int*         onDimensionX, int*  onDimensionY, int* onDimensionZ ) {
 
   Volm_tErr eResult = Volm_tErr_NoErr;
 
-  DebugEnterFunction( ("Volm_GetDimension( this=%p, onDimension=%p )",
-           this, onDimension ) );
+  DebugEnterFunction( ("Volm_GetDimensions( this=%p, onDimension=%p,%p,%p )",
+           this, onDimensionX, onDimensionY, onDimensionZ ) );
 
   DebugNote( ("Verifying volume") );
   eResult = Volm_Verify( this );
   DebugAssertThrow( (eResult == Volm_tErr_NoErr) );
   
   DebugNote( ("Checking parameters") );
-  DebugAssertThrowX( (onDimension != NULL),
-         eResult, Volm_tErr_InvalidParamater );
+  DebugAssertThrowX( (onDimensionX != NULL) && (onDimensionY != NULL) &&
+                     (onDimensionZ != NULL),
+                     eResult, Volm_tErr_InvalidParamater );
 
   /* return the dimension */
   DebugNote( ("Returning the dimension") );
-  *onDimension = this->mnDimension;
+  *onDimensionZ = this->mnDimensionX;
+  *onDimensionY = this->mnDimensionY;
+  *onDimensionZ = this->mnDimensionZ;
 
   DebugCatch;
   DebugCatchError( eResult, Volm_tErr_NoErr, Volm_GetErrorString );
@@ -1090,17 +1099,20 @@ Volm_tErr Volm_VisitAllVoxels ( mriVolumeRef        this,
        row or plane. */
     switch( eVisit ) {
     case Volm_tVisitComm_Continue:
-      bGo = xVoxl_IncrementUntilLimit( &idx, this->mnDimension-1 );
+      bGo = xVoxl_IncrementUntilLimits( &idx, this->mnDimensionX-1, this->mnDimensionY-1,
+                                        this->mnDimensionZ-1);
       continue;
       break;
     case Volm_tVisitComm_SkipRestOfRow:
-      idx.mfX = this->mnDimension-1;
-      bGo = xVoxl_IncrementUntilLimit( &idx, this->mnDimension-1 );
+      idx.mfX = this->mnDimensionX-1;
+      bGo = xVoxl_IncrementUntilLimits( &idx, this->mnDimensionX-1,
+                                        this->mnDimensionY-1, this->mnDimensionZ-1);
       break;
     case Volm_tVisitComm_SkipRestOfPlane:
-      idx.mfX = this->mnDimension-1;
-      idx.mfY = this->mnDimension-1;
-      bGo = xVoxl_IncrementUntilLimit( &idx, this->mnDimension-1 );
+      idx.mfX = this->mnDimensionX-1;
+      idx.mfY = this->mnDimensionY-1;
+      bGo = xVoxl_IncrementUntilLimits( &idx, this->mnDimensionX-1,
+                                        this->mnDimensionY-1, this->mnDimensionZ-1);
       break;
     case Volm_tVisitComm_Stop:
       bGo = FALSE;
@@ -1126,9 +1138,9 @@ Volm_tErr Volm_FindMaxValues ( mriVolumeRef this ) {
   xPoint2n         point       = {0, 0};
   int              nSlice      = 0;
   Volm_tValue      value       = 0;
+  int                  nSize       = 0;
 #ifdef Solaris
   int                  i           = 0;
-  int                  nSize       = 0;
 #endif
 
   DebugEnterFunction( ("Volm_FindMaxValues( this=%p )", this) );
@@ -1145,41 +1157,44 @@ Volm_tErr Volm_FindMaxValues ( mriVolumeRef this ) {
      and reallocate them. */
   if( NULL != this->mpMaxValues )
     free( this->mpMaxValues );
-  this->mpMaxValues = (Volm_tValueRef) malloc( mri_knNumOrientations * 
-                 pow( this->mnDimension, 2) *
-                 sizeof(Volm_tValue) );
+  nSize = 
+    MAX(this->mnDimensionX, this->mnDimensionY) * 
+    MAX(this->mnDimensionX, this->mnDimensionZ) *
+    mri_knNumOrientations ;
+  this->mpMaxValues = (Volm_tValueRef) malloc( nSize * sizeof(Volm_tValue) );
   DebugAssertThrowX( (NULL != this->mpMaxValues),
          eResult, Volm_tErr_AllocationFailed );
 #ifdef Solaris
   DebugNote( ("Zeroing visited volume iteratively") );
-  nSize = pow( mri_knNumOrientations * this->mnDimension, 2 );
+#if 0
+  nSize = pow( mri_knNumOrientations * this->mnDimension, 2 );  /* is this a bug???? (BRF) */
+#endif
   for( i = 0; i < nSize; i++ )
     this->mpMaxValues[i] = (Volm_tValue)0;
 #else
   DebugNote( ("Zeroing visted volume with bzero") );
-  bzero( this->mpMaxValues, mri_knNumOrientations * 
-   pow(this->mnDimension,2) * sizeof(Volm_tValue) );
+  bzero( this->mpMaxValues, nSize) ;
 #endif
 
   /* go through the max value buffer. for each orientation */
   for( orientation = 0;
        orientation < mri_knNumOrientations; 
        orientation++ ) {
-
-    /* for every point in... */
-    for( point.mnY = 0; point.mnY < this->mnDimension; point.mnY++ ) {
-      for( point.mnX = 0; point.mnX < this->mnDimension; point.mnX++ ) {
     
-  /* now go thru every slice in the volume at this point.
-     for every slice... */
-  for( nSlice = 0; nSlice < this->mnDimension; nSlice++ ) {
-
-    /* get the value at this point */
-    Volm_GetNormValueAtXYSlice_( orientation, &point, nSlice, &value );
-
-    if( value > Volm_GetMaxValueAtXYSlice_( this, orientation, &point ))
-      Volm_SetMaxValueAtXYSlice_( this, orientation, &point, value ); 
-  }
+    /* for every point in... */
+    for( point.mnY = 0; point.mnY < this->mnDimensionY; point.mnY++ ) {
+      for( point.mnX = 0; point.mnX < this->mnDimensionX; point.mnX++ ) {
+        
+        /* now go thru every slice in the volume at this point.
+           for every slice... */
+        for( nSlice = 0; nSlice < this->mnDimensionZ; nSlice++ ) {
+          
+          /* get the value at this point */
+          Volm_GetNormValueAtXYSlice_( orientation, &point, nSlice, &value );
+          
+          if( value > Volm_GetMaxValueAtXYSlice_( this, orientation, &point ))
+            Volm_SetMaxValueAtXYSlice_( this, orientation, &point, value ); 
+        }
       }
     }
   }
@@ -1442,7 +1457,8 @@ Volm_tErr Volm_Threshold ( mriVolumeRef this,
   /* step through the volume... */
   xVoxl_Set( &idx, 0, 0, 0 );
   DebugNote( ("Thresholding normalized volume") );
-  while( xVoxl_IncrementUntilLimit( &idx, this->mnDimension-1 ) ) {
+  while( xVoxl_IncrementUntilLimits( &idx, this->mnDimensionX-1,
+                                     this->mnDimensionY-1, this->mnDimensionZ-1) ) {
     
     value = Volm_GetNormValueAtIdx_( this, &idx );
   
@@ -1485,16 +1501,18 @@ Volm_tErr Volm_Flip ( mriVolumeRef     this,
   DebugAssertThrow( (eResult == Volm_tErr_NoErr) );
 
   /* get our limits */
-  nXLimit = nYLimit = nZLimit = this->mnDimension-1;
+  nXLimit = this->mnDimensionX-1 ;
+  nYLimit = this->mnDimensionY-1 ;
+  nZLimit = this->mnDimensionZ-1;
   switch( iAxis ) {
   case mri_tOrientation_Coronal:
-    nZLimit = (this->mnDimension-1) / 2;
+    nZLimit = (this->mnDimensionZ-1) / 2;
     break;
   case mri_tOrientation_Sagittal:
-    nXLimit = (this->mnDimension-1) / 2;
+    nXLimit = (this->mnDimensionX-1) / 2;
     break;
   case mri_tOrientation_Horizontal:
-    nYLimit = (this->mnDimension-1) / 2;
+    nYLimit = (this->mnDimensionY-1) / 2;
     break;
   default:
     DebugAssertThrowX( (1), eResult, Volm_tErr_InvalidParamater );
@@ -1509,21 +1527,21 @@ Volm_tErr Volm_Flip ( mriVolumeRef     this,
     switch( iAxis ) {
     case mri_tOrientation_Coronal:
       xVoxl_Set( &flippedIdx,
-     xVoxl_GetX( &idx ), 
-     xVoxl_GetY( &idx ), 
-     this->mnDimension-1 - xVoxl_GetZ( &idx ) );
+                 xVoxl_GetX( &idx ), 
+                 xVoxl_GetY( &idx ), 
+                 this->mnDimensionZ-1 - xVoxl_GetZ( &idx ) );
       break;
     case mri_tOrientation_Sagittal:
       xVoxl_Set( &flippedIdx,
-     this->mnDimension-1 - xVoxl_GetX( &idx ), 
-     xVoxl_GetY( &idx ), 
-     xVoxl_GetZ( &idx ) );
+                 this->mnDimensionX-1 - xVoxl_GetX( &idx ), 
+                 xVoxl_GetY( &idx ), 
+                 xVoxl_GetZ( &idx ) );
       break;
     case mri_tOrientation_Horizontal:
       xVoxl_Set( &flippedIdx,
-     xVoxl_GetX( &idx ), 
-     this->mnDimension-1 - xVoxl_GetY( &idx ), 
-     xVoxl_GetZ( &idx ) );
+                 xVoxl_GetX( &idx ), 
+                 this->mnDimensionY-1 - xVoxl_GetY( &idx ), 
+                 xVoxl_GetZ( &idx ) );
       break;
     default:
       DebugAssertThrowX( (1), eResult, Volm_tErr_InvalidParamater );
@@ -2107,8 +2125,8 @@ int Volm_GetMaxValueIndex_ ( mriVolumeRef     this,
            mri_tOrientation iOrientation, 
            xPoint2nRef      iPoint ) {
 
-  return (iOrientation * this->mnDimension * this->mnDimension) +
-    (iPoint->mnY * this->mnDimension) +
+  return (iOrientation * this->mnDimensionZ * this->mnDimensionY) +
+    (iPoint->mnY * this->mnDimensionX) +
     iPoint->mnX;
 }
 
@@ -2156,23 +2174,14 @@ Volm_tErr Volm_VerifyIdx_ ( mriVolumeRef this,
 
   Volm_tErr eResult = Volm_tErr_NoErr;
 
-#if 0
+
   DebugAssertThrowX( (xVoxl_GetX(iIdx) >= 0 &&
-          xVoxl_GetRoundX(iIdx) < this->mnDimension &&
+          xVoxl_GetRoundX(iIdx) < this->mnDimensionX &&
           xVoxl_GetY(iIdx) >= 0 &&
-          xVoxl_GetRoundY(iIdx) < this->mnDimension &&
+          xVoxl_GetRoundY(iIdx) < this->mnDimensionY &&
           xVoxl_GetZ(iIdx) >= 0 &&
-          xVoxl_GetRoundZ(iIdx) < this->mnDimension),
+          xVoxl_GetRoundZ(iIdx) < this->mnDimensionZ),
          eResult, Volm_tErr_InvalidIdx );
-#else
-  DebugAssertThrowX( (xVoxl_GetX(iIdx) >= 0 &&
-          xVoxl_GetRoundX(iIdx) < this->mpMriValues->width &&
-          xVoxl_GetY(iIdx) >= 0 &&
-          xVoxl_GetRoundY(iIdx) < this->mpMriValues->height &&
-          xVoxl_GetZ(iIdx) >= 0 &&
-          xVoxl_GetRoundZ(iIdx) < this->mpMriValues->depth),
-         eResult, Volm_tErr_InvalidIdx );
-#endif
 
   DebugCatch;
   EndDebugCatch;
