@@ -5,8 +5,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2004/08/25 15:46:17 $
-// Revision       : $Revision: 1.34 $
+// Revision Date  : $Date: 2004/09/14 13:38:54 $
+// Revision       : $Revision: 1.35 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -121,7 +121,7 @@ main(int argc, char *argv[])
   int    modified;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_ms_fitparms.c,v 1.34 2004/08/25 15:46:17 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_ms_fitparms.c,v 1.35 2004/09/14 13:38:54 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -1845,7 +1845,7 @@ compute_T2star_map(MRI **mri_flash, int nvolumes, int *scan_types)
 					VECTOR_ELT(vY, e+1) = log(val) ;
 				}
 				vParms = MatrixMultiply(mXpinv, vY, vParms) ;
-				if (!FZERO(*MATRIX_RELT(vParms, 1, 1)))
+				if (*MATRIX_RELT(vParms, 1, 1) > 0)
 					T2star = 1 / *MATRIX_RELT(vParms, 1, 1) ;
 				else
 					T2star = 0 ;
