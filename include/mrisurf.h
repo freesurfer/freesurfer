@@ -89,7 +89,7 @@ typedef struct vertex_type_
   int *v;                /* array neighboring vertex numbers, vnum long */
   int v2num ;            /* number of 2-connected neighbors */
   int v3num ;            /* number of 3-connected neighbors */
-  int vtotal ;          /* total # of neighbors, will be same as one of above*/
+  int vtotal ;        /* total # of neighbors, will be same as one of above*/
   float d ;              /* for distance calculations */
   int nsize ;            /* size of neighborhood (e.g. 1, 2, 3) */
 #if 0
@@ -98,14 +98,14 @@ typedef struct vertex_type_
   float *fny ;           /* face normal - y component */
   float *fnz ;           /* face normal - z component */
   float *tri_area ;      /* array of triangle areas - num long */
-  float *orig_tri_area ;     /* array of original triangle areas - num long */
+  float *orig_tri_area ; /* array of original triangle areas - num long */
   float *tri_angle ;     /* angles of each triangle this vertex belongs to */
   float *orig_tri_angle ;/* original values of above */
-  int   annotation;      /* area label (defunct--now from label file name!) */
+  int   annotation;     /* area label (defunct--now from label file name!) */
   float stress;          /* explosion */
   float logarat,ologarat,sqrtarat; /* for area term */
   float logshear,shearx,sheary,oshearx,osheary;  /* for shear term */
-  float smx,smy,smz,osmx,osmy,osmz;              /* smoothed curr,last move */
+  float smx,smy,smz,osmx,osmy,osmz;            /* smoothed curr,last move */
   int   oripflag,origripflag;  /* cuts flags */
   float coord[3];
   float ftmp ;          /* temporary floating pt. storage */
@@ -351,6 +351,8 @@ MRI_SURFACE  *MRISradialProjectOntoEllipsoid(MRI_SURFACE *mris_src,
                                              float a, float b, float c);
 MRI_SURFACE  *MRISclone(MRI_SURFACE *mris_src) ;
 MRI_SURFACE  *MRIScenter(MRI_SURFACE *mris_src, MRI_SURFACE *mris_dst) ;
+int          MRISvertexToVoxel(VERTEX *v, MRI *mri,Real *pxv, Real *pyv, 
+                               Real *pzv) ;
 int          MRISworldToTalairachVoxel(MRI_SURFACE *mris, MRI *mri, 
                                        Real xw, Real yw, Real zw,
                                        Real *pxv, Real *pyv, Real *pzv) ;
@@ -507,4 +509,18 @@ int          MRISrestoreVertexPositions(MRI_SURFACE *mris, int which) ;
 #define ERROR_RATIO  1.03  /* 1.01 then 1.03 */
 
 #define NO_LABEL     -1
+
+
+#define WHITE_SURFACE 0
+#define GRAY_SURFACE  1
+#define GRAY_MID      2
+
+int   MRISpositionSurface(MRI_SURFACE *mris, MRI *mri_brain, MRI *mri_wm, 
+                          float nsigma,int where, float dt);
+int   MRISaverageVals(MRI_SURFACE *mris, int navgs) ;
+int   MRISaverageEveryOtherVertexPositions(MRI_SURFACE *mris, int navgs, 
+                                           int which) ;
+MRI   *MRISwriteSurfaceIntoVolume(MRI_SURFACE *mris, MRI *mri_template,
+                                  MRI *mri) ;
+
 #endif
