@@ -1278,6 +1278,33 @@ LTAinverseWorldToWorld(LTA *lta, float x, float y, float z, float *px,
   return(NO_ERROR) ;
 }
 
+int
+LTAinverseWorldToWorldEx(LTA *lta, float x, float y, float z, float *px, 
+                       float *py, float *pz)
+{
+  static VECTOR *v_X, *v_Y = NULL ;
+
+  if (v_Y == NULL)
+  {
+    v_X = VectorAlloc(4, MATRIX_REAL) ;
+    v_Y = VectorAlloc(4, MATRIX_REAL) ;
+  }
+  /* world to voxel */
+  v_X->rptr[4][1] = 1.0f ;
+  V3_X(v_X) = x ;
+  V3_Y(v_X) = y ;
+  V3_Z(v_X) = z ;
+
+  LTAinverseTransformPoint(lta, v_X, v_Y) ;
+
+  /* voxel to world */
+  *px = V3_X(v_Y) ;
+  *py = V3_Y(v_Y) ;
+  *pz = V3_Z(v_Y) ;
+
+  return(NO_ERROR) ;
+}
+
 // this assumes that lta was ras to ras
 int
 LTAtoVoxelCoords(LTA *lta, MRI *mri)

@@ -2,9 +2,9 @@
 /* transform.h                                                         */
 /*                                                                     */
 /* Warning: Do not edit the following four lines.  CVS maintains them. */
-/* Revision Author: $Author: tosa $                                           */
-/* Revision Date  : $Date: 2004/12/08 19:29:57 $                                             */
-/* Revision       : $Revision: 1.34 $                                         */
+/* Revision Author: $Author: kteich $                                           */
+/* Revision Date  : $Date: 2005/01/05 21:27:52 $                                             */
+/* Revision       : $Revision: 1.35 $                                         */
 /*                                                                     */
 /***********************************************************************/
 
@@ -77,7 +77,9 @@ int      LTAworldToWorld(LTA *lta, float x, float y, float z,
 int      LTAworldToWorldEx(LTA *lta, float x, float y, float z,
 			   float *px, float *py, float *pz);
 int      LTAinverseWorldToWorld(LTA *lta, float x, float y, float z,
-                         float *px, float *py, float *pz);
+				float *px, float *py, float *pz);
+int      LTAinverseWorldToWorldEx(LTA *lta, float x, float y, float z,
+				  float *px, float *py, float *pz);
 VECTOR   *LTAtransformPoint(LTA *lta, VECTOR *v_X, VECTOR *v_Y) ;
 VECTOR   *LTAinverseTransformPoint(LTA *lta, VECTOR *v_X, VECTOR *v_Y) ;
 double   LTAtransformPointAndGetWtotal(LTA *lta, VECTOR *v_X, VECTOR *v_Y) ;
@@ -133,6 +135,8 @@ int       TransformSwapInverse(TRANSFORM *transform) ;
 MRI       *TransformApply(TRANSFORM *transform, MRI *mri_src, MRI *mri_dst) ;
 MRI       *TransformApplyType(TRANSFORM *transform, MRI *mri_src, MRI *mri_dst, int interp_type) ;
 MRI       *TransformApplyInverse(TRANSFORM *transform, MRI *mri_src, MRI *mri_dst) ;
+
+MATRIX* TransformCompose(TRANSFORM *transform);
 
 // VOL_GEOM utilities
 void initVolGeom(VOL_GEOM *vg);
