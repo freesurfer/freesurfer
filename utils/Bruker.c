@@ -4,8 +4,8 @@
 /* date       :8/27/2003                  */
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2003/09/03 21:25:34 $
-// Revision       : $Revision: 1.4 $
+// Revision Date  : $Date: 2003/09/04 15:48:17 $
+// Revision       : $Revision: 1.5 $
 
 // there are many files present in Bruker directory
 //
@@ -112,7 +112,7 @@
 
 /* Martin Hoerrmann. */
 
-char *BRUCKER_C_VERSION= "$Revision: 1.4 $";
+char *BRUCKER_C_VERSION= "$Revision: 1.5 $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -165,6 +165,7 @@ MRI *brukerRead(char *fname, int read_volume)
     return (MRI *) 0;
 
   // now allocate MRI
+  type = bTran.type;
   mri = MRIalloc(width, height, depth, type);
   mri->tr = TR;
   mri->te = TE;
@@ -276,7 +277,8 @@ int separate_parameter_and_value(char *sWholeLine, char *sParameter, char *sValu
   P0+=2;                        /* advance past ## */
   strcpy(sParameter,P0);        /* initialize sParameter */
   P0 = sParameter;              /* reset P0 */
-  while ( *P0 != '=' ) P0++;    /* search for '=' */
+  while ( *P0 != '=' ) 
+    P0++;    /* search for '=' */
   *P0 = '\0';                   /* terminate string */
   P0++;                         /* step past '=' */
   strcpy(sValue,P0);            /* initialize sValue */
@@ -285,8 +287,12 @@ int separate_parameter_and_value(char *sWholeLine, char *sParameter, char *sValu
     *P1 = *P0;
   /* Eliminate parentheses and CR in the value string. */
   for (P0=sValue; *P0; P0++)
-    if ( *P0=='(' || *P0==')' || *P0=='\n' ) *P0=' ';
-
+  {
+    if ( *P0=='(' || *P0==')') 
+      *P0=' ';
+    else if ( *P0=='\n')
+      *P0='\0';
+  }
   return(0);
 }
 
@@ -715,6 +721,16 @@ int readBrukerReco(char *recoFile, BrukerTransform *pTran)
 	pTran->ft_size[2] = pTran->ft_size[0]; // just fake 
       }
     }
+    else if ( !strcmp( Parameter, "$RECO_wordtype"))
+    {
+      if (strncmp(Value, "_16BIT_SGN_INT", 13)==0)
+	pTran->type = MRI_SHORT;
+      else
+      {
+	fprintf(stderr, "INFO: unsupported data type %s\n", Value);
+	return 0;
+      }
+    }
     else if ( !strcmp( Parameter, "$RECO_mode"))
     {
       printf("INFO: reconstruction mode was %s\n", Value);
@@ -743,6 +759,7 @@ int readBrukerVolume(MRI *mri, char *dataFile)
   int k,j;
   int nread;
   int swap_bytes_flag = 0;
+  int size;
 
   if (!mri)
   {
@@ -757,6 +774,17 @@ int readBrukerVolume(MRI *mri, char *dataFile)
     fprintf(stderr, "ERROR: could not open dataFile %s", dataFile);
     return 0;
   }
+  switch(mri->type)
+  {
+  case MRI_UCHAR: size = sizeof(unsigned char); break;
+  case MRI_SHORT: size = sizeof(short); break;
+  case MRI_FLOAT: size = sizeof(float); break;
+  case MRI_INT:   size = sizeof(int); break;
+  case MRI_LONG:  size = sizeof(long); break;
+  default:
+    fprintf(stderr, "INFO: unknown size.  bail out\n"); return (0);
+  }
+
   for (k = 0; k < mri->depth; ++k)
     for (j = 0; j < mri->height; ++j)
     {
