@@ -197,6 +197,7 @@ typedef struct
 
 #define IPFLAG_HVARIABLE           0x0001   /* for parms->flags */
 #define IPFLAG_NO_SELF_INT_TEST    0x0002
+#define IPFLAG_QUICK               0x0004  /* sacrifice quality for speed */
 
 #define INTEGRATE_LINE_MINIMIZE    0  /* use quadratic fit */
 #define INTEGRATE_MOMENTUM         1
