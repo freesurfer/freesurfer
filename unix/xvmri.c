@@ -26,8 +26,41 @@
 #include "histo.h"
 
 /*----------------------------------------------------------------------
+                           CONSTANTS
+----------------------------------------------------------------------*/
+
+#define MAX_IMAGES  30
+
+/*----------------------------------------------------------------------
                            GLOBAL DATA
 ----------------------------------------------------------------------*/
+
+IMAGE          *Idisplay[MAX_IMAGES] = { NULL } ;
+MRI            *mris[MAX_IMAGES] ;
+int            mri_views[MAX_IMAGES] ;
+int            mri_depths[MAX_IMAGES] ;
+
+/*----------------------------------------------------------------------
+                           STATIC DATA
+----------------------------------------------------------------------*/
+
+static XV_FRAME       *xvf ;
+static Menu           view_menu ;
+static char           view_str[100] ;
+static Panel_item     view_panel ;
+
+static int            x_click ;
+static int            y_click ;
+static int            z_click ;
+static int            which_click = -1 ;
+
+/*----------------------------------------------------------------------
+                        STATIC PROTOTYPES
+----------------------------------------------------------------------*/
+
+static void viewMenuItem(Menu menu, Menu_item menu_item) ;
+static IMAGE *get_next_slice(IMAGE *Iold, int which, int dir) ;
+static void repaint_handler(XV_FRAME *xvf, DIMAGE *dimage) ;
 
 /*----------------------------------------------------------------------
                               FUNCTIONS
@@ -39,14 +72,23 @@
            Description:
 ----------------------------------------------------------------------*/
 void 
-mri_event_handler(XV_FRAME *xvf,int depth,MRI *mri,Event *event,DIMAGE *dimage,
-                  int view, int *px, int *py, int *pz)
+mri_event_handler(XV_FRAME *xvf, Event *event,DIMAGE *dimage, 
+                  int *px, int *py, int *pz)
 {
-  int       x, y, z ;
+  int       x, y, z, which, depth, view ;
   Real      xr, yr, zr ;
   HISTOGRAM *histo ;
   float     fmin, fmax ;
   XV_FRAME  *xvnew ;
+  MRI       *mri ;
+
+  which = dimage->which ;
+  mri = mris[which] ;
+  depth = mri_depths[which] ;
+  view = mri_views[which] ;
+
+  if (!mri || !mri->slices)  /* click can occur in the middle or other stuff */
+    return ;
 
 /*
   The convention  is  that  positive xspace coordinates run
@@ -54,7 +96,7 @@ mri_event_handler(XV_FRAME *xvf,int depth,MRI *mri,Event *event,DIMAGE *dimage,
   yspace  coordinates run from patient posterior to anterior
   and positive zspace coordinates run from inferior to superior.
  */   
-  switch (view)
+  switch (mri_views[which])
   {
   default:
   case MRI_CORONAL:
@@ -127,20 +169,49 @@ mri_event_handler(XV_FRAME *xvf,int depth,MRI *mri,Event *event,DIMAGE *dimage,
     }
     break ;
   }
+
+  if (event_is_up(event) && (event_id(event) == MS_LEFT))
+  {
+    int view, old_which ;
+
+    if (which_click != which)   /* erase old point */
+    {
+      old_which = which_click ;
+      which_click = dimage->which ;
+      XVrepaintImage(xvf, old_which) ;
+    }
+
+    view = mri_views[which] ;
+    sprintf(view_str, "view: %s", 
+            view == MRI_CORONAL ? "CORONAL" :
+            view == MRI_SAGITAL ? "SAGITAL" : "HORIZONTAL") ;
+    xv_set(view_panel, PANEL_LABEL_STRING, view_str, NULL) ;
+    x_click = x ;
+    y_click = y ;
+    z_click = z ;
+    XVrepaintImage(xvf, which_click) ;
+  }
   if (px)
     *px = x ;
   if (py)
     *py = y ;
   if (pz)
     *pz = z ;
+
 }
+
+/*----------------------------------------------------------------------
+            Parameters:
+
+           Description:
+----------------------------------------------------------------------*/
 void
 XVMRIdrawPoint(XV_FRAME *xvf, int which, int view, int depth, MRI *mri,
                int x,int y,int z,int color)
 {
   int xi, yi ;
 
-  switch (view)
+  switch (mri_views[which])
   {
   default:
   case MRI_CORONAL:
@@ -163,7 +234,11 @@ XVMRIdrawPoint(XV_FRAME *xvf, int which, int view, int depth, MRI *mri,
   }
   XVdrawPoint(xvf, which, xi, yi, color) ;
 }
+/*----------------------------------------------------------------------
+            Parameters:
 
+           Description:
+----------------------------------------------------------------------*/
 void
 XVMRIdrawRegion(XV_FRAME *xvf, int which, int view, int depth, MRI *mri,
                 MRI_REGION *reg, int color)
@@ -199,4 +274,253 @@ XVMRIdrawRegion(XV_FRAME *xvf, int which, int view, int depth, MRI *mri,
   }
   XVdrawBox(xvf, which, xi, yi, dx, dy, color) ;
 }
+/*----------------------------------------------------------------------
+            Parameters:
 
+           Description:
+----------------------------------------------------------------------*/
+IMAGE *
+XVMRIshow(XV_FRAME *xvf, MRI *mri, int which, int slice)
+{
+  IMAGE  *I ;
+  float  mag ;
+
+  if (which_click == which && mri != mris[which])
+    which_click = -1 ;  /* a new MR image shown */
+
+  if (!mri)
+    return(NULL) ;
+
+  if (slice < 0)  /* set slice to middle of slice direction */
+  {
+    switch (mri_views[which])
+    {
+    case MRI_CORONAL:
+      slice = (mri->imnr0 + mri->imnr1) / 2 ;
+      break ;
+    case MRI_SAGITAL:
+      slice = mri->width / 2 ;
+      break ;
+    case MRI_HORIZONTAL:
+      slice = mri->height / 2 ;
+      break ;
+    }
+  }
+
+  mri_depths[which] = slice ;
+  switch (mri_views[which])
+  {
+  case MRI_CORONAL:
+    slice -= mri->imnr0 ;
+    break ;
+  case MRI_SAGITAL:
+  case MRI_HORIZONTAL:
+    break ;
+  }
+
+  
+  I = MRItoImageView(mri, Idisplay[which], slice, mri_views[which], 0) ;
+  if (!I)
+    return(NULL) ;
+
+
+  mag = MIN((float)xvf->display_rows / (float)I->rows,
+            (float)xvf->display_cols / (float)I->cols) ;
+
+  XVsetImageSize(xvf, which, nint((float)I->rows*mag), 
+                 nint((float)I->cols*mag));
+  XVresize(xvf) ;
+
+  /* must be done before XVshowImage to draw point properly */
+  if (which_click < 0)  /* reset current click point */
+  {
+    which_click = which ;
+    z_click = mri->depth / 2 ;
+    y_click = mri->height / 2 ;
+    x_click = mri->width / 2 ;
+#if 0
+    XVMRIdrawPoint(xvf, which, mri_views[which], 0, mri, x_click,
+                   y_click, z_click, XXOR);
+#endif
+  }
+  XVshowImage(xvf, which, I, 0) ;
+
+
+  if (Idisplay[which] && (I != Idisplay[which]))
+    ImageFree(&Idisplay[which]) ;
+
+  Idisplay[which] = I ;
+
+  mris[which] = mri ;
+  return(I) ;
+}
+/*----------------------------------------------------------------------
+            Parameters:
+
+           Description:
+----------------------------------------------------------------------*/
+int  
+XVMRIinit(XV_FRAME *xvf_init, int view_row, int view_col)
+{
+  int i ;
+
+  for (i = 0 ; i < MAX_IMAGES ; i++)
+    mri_views[i] = MRI_CORONAL ;
+
+  xvf = xvf_init ;
+  XVsetDepthFunc(xvf, get_next_slice) ;
+  XVsetPrintStatus(xvf, 0) ;
+  XVsetYDir(xvf, 1) ;
+  sprintf(view_str, "view: CORONAL") ;
+  view_menu = (Menu)
+    xv_create((Xv_opaque)NULL, MENU,
+              MENU_NOTIFY_PROC,    viewMenuItem,
+              MENU_STRINGS,        "CORONAL", "SAGITAL", "HORIZONTAL", NULL,
+              NULL) ;
+
+  view_panel = (Panel_item)
+    xv_create(xvf->panel, PANEL_BUTTON,
+              PANEL_LABEL_STRING,    view_str,
+              XV_X,                  view_col,
+              XV_Y,                  view_row,
+              PANEL_ITEM_MENU,       view_menu,
+              NULL) ;
+
+  XVsetRepaintHandler(repaint_handler) ;
+  return(NO_ERROR) ;
+}
+/*----------------------------------------------------------------------
+            Parameters:
+
+           Description:
+----------------------------------------------------------------------*/
+static void 
+viewMenuItem(Menu menu, Menu_item menu_item)
+{
+  char *menu_str ;
+  MRI  *mri ;
+  int  slice, which, view ;
+
+  which = which_click ;
+  if (which_click < 0)   /* no current window */
+    which = 0 ;
+
+  mri = mris[which] ;
+  if (!mri)              /* no mri in current window */
+    return ;
+
+  menu_str = (char *)xv_get(menu_item, MENU_STRING) ;
+
+  if (!stricmp(menu_str, "CORONAL"))
+  {
+    view = MRI_CORONAL ;
+    slice = z_click + mri->imnr0 ;
+  }
+  else if (!stricmp(menu_str, "SAGITAL"))
+  {
+    view = MRI_SAGITAL ;
+    slice = x_click ;
+  }
+  else
+  {
+    view = MRI_HORIZONTAL ;
+    slice = y_click ;
+  }
+
+  XVMRIsetView(xvf, which, view) ;
+  XVMRIshow(xvf, mri, which, slice) ;
+  sprintf(view_str, "view: %s", menu_str) ;
+  xv_set(view_panel, PANEL_LABEL_STRING, view_str, NULL) ;
+}
+/*----------------------------------------------------------------------
+            Parameters:
+
+           Description:
+----------------------------------------------------------------------*/
+static IMAGE *
+get_next_slice(IMAGE *Iold, int which, int dir)
+{
+  IMAGE *I ;
+  MRI   *mri ;
+  int   depth, offset ;
+
+  if (!Iold)
+    return(NULL) ;
+
+  mri = mris[which] ;
+  if (mri)
+  {
+    depth = mri_depths[which] + dir ;
+    if (mri_views[which] == MRI_CORONAL)
+      offset = mri->imnr0 ;
+    else
+      offset = 0 ;
+
+    I = MRItoImageView(mri, Idisplay[which], depth-offset, mri_views[which],0);
+    
+    if (!I)
+      I = Idisplay[which] ;         /* failed to get next slice */
+    else
+    {
+      mri_depths[which] = depth ;   /* new depth is valid */
+      if (Idisplay[which] && (Idisplay[which] != I))
+        ImageFree(&Idisplay[which]) ;
+      Idisplay[which] = I ;
+    }
+  }
+  else
+    I = Iold ;
+
+  return(I) ;
+}
+/*----------------------------------------------------------------------
+            Parameters:
+
+           Description:
+----------------------------------------------------------------------*/
+void
+XVMRIshowAll(XV_FRAME *xvf)
+{
+  int i ;
+
+  for (i = 0 ; i < MAX_IMAGES ; i++)
+    XVMRIshow(xvf, mris[i], i, mri_depths[i]) ;
+}
+/*----------------------------------------------------------------------
+            Parameters:
+
+           Description:
+----------------------------------------------------------------------*/
+static void
+repaint_handler(XV_FRAME *xvf, DIMAGE *dimage)
+{
+  if (dimage->which == which_click && (mris[which_click] != NULL))
+    XVMRIdrawPoint(xvf, which_click, mri_views[which_click], 0, 
+                   mris[which_click], x_click, y_click, z_click, XRED) ;
+}
+/*----------------------------------------------------------------------
+            Parameters:
+
+           Description:
+----------------------------------------------------------------------*/
+int
+XVMRIfree(MRI **pmri, int which)
+{
+  MRI *mri ;
+
+  mri = *pmri ;
+  mris[which] = NULL ;
+  MRIfree(pmri) ;
+  return(NO_ERROR) ;
+}
+/*----------------------------------------------------------------------
+            Parameters:
+
+           Description:
+----------------------------------------------------------------------*/
+int
+XVMRIsetView(XV_FRAME *xvf, int which, int view)
+{
+  mri_views[which] = view ;
+  return(NO_ERROR) ;
+}
