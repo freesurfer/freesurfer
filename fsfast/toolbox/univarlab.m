@@ -2,8 +2,8 @@ function varargout = univarlab(varargin)
 % UNIVARLAB Application M-file for univarlab.fig
 %    FIG = UNIVARLAB launch univarlab GUI.
 %    UNIVARLAB('callback_name', ...) invoke the named callback.
-% Last Modified by GUIDE v2.0 10-Aug-2003 23:32:39
-% $Id: univarlab.m,v 1.5 2003/08/12 05:31:08 greve Exp $
+% Last Modified by GUIDE v2.0 15-Aug-2003 01:12:14
+% $Id: univarlab.m,v 1.6 2003/08/15 05:40:33 greve Exp $
 
 % To do:
 %   Closing/Quiting functions
@@ -100,6 +100,7 @@ gd.C1AmpMan    = [1.0 -2 2];  % Use this val to construct manual signal
 gd.C2AmpMan    = [1.0 -2 2];  % Use this val to construct manual signal
 
 gd.Whiten      = 0;    % Whitening flag (0 or 1)
+gd.FitMean     = 0;    % Include regressor for MeanOffset
 
   % ---------- Raw Synthesized Vectors -----------------------%
 gd.t = gd.TR*[0:gd.ntp-1]';
@@ -127,41 +128,11 @@ gd = SetGUIParams(gd);
 
 gd.ShowRaw = 1;
 gd.ShowRawSignal = 1;
+gd.ShowRawObserved = 1;
 gd.ShowACF = 1;
 gd.ShowHRF = 1;
 
 return;
-
-% --------------------------------------------------------------------
-function varargout = RPER_menu_Callback(h, eventdata, gd, varargin)
-if(strcmp(gd.ScheduleType,'rper')) return; end
-gd.ScheduleType = 'rper';
-set(gd.FIER_menu,'checked','off');
-set(gd.Blocked_menu,'checked','off');
-set(gd.RPER_menu,'checked','on');
-Schedule_pb_Callback(h, eventdata, gd, varargin);
-return;
-
-% --------------------------------------------------------------------
-function varargout = FIER_menu_Callback(h, eventdata, gd, varargin)
-if(strcmp(gd.ScheduleType,'fier')) return; end
-gd.ScheduleType = 'fier';
-set(gd.RPER_menu,'checked','off');
-set(gd.Blocked_menu,'checked','off');
-set(gd.FIER_menu,'checked','on');
-Schedule_pb_Callback(h, eventdata, gd, varargin);
-return;
-
-% --------------------------------------------------------------------
-function varargout = Blocked_menu_Callback(h, eventdata, gd, varargin)
-if(strcmp(gd.ScheduleType,'blocked')) return; end
-gd.ScheduleType = 'blocked';
-set(gd.RPER_menu,'checked','off');
-set(gd.FIER_menu,'checked','off');
-set(gd.Blocked_menu,'checked','on');
-Schedule_pb_Callback(h, eventdata, gd, varargin);
-return;
-
 
 % --------------------------------------------------------------------
 function varargout = quit_pb_Callback(h, eventdata, gd, varargin)
@@ -198,6 +169,28 @@ gd = PlotRaw(gd);
 gd = PlotACF(gd);
 gd = PlotHRF(gd);
 guidata(gd.hunivarlab,gd);
+return;
+
+% --------------------------------------------------------------------
+function varargout = Schedule_pum_Callback(h, eventdata, gd, varargin)
+s = get(h,'string');
+v = get(h,'value');
+%scheduletype = lower(char(s(v,:)));
+scheduletype = lower(deblank(s(v,:)));
+if(strcmp(scheduletype,gd.ScheduleType)) return; end
+gd.ScheduleType = scheduletype;
+gd = NewStimSched(gd);
+gd = MakeFirstLevelAnalysis(gd);
+gd = SynthC1Signal(gd);
+gd = SynthC2Signal(gd);
+gd = SynthSignal(gd);
+gd = SynthObserved(gd);
+gd = Estimate(gd);
+gd = PlotRaw(gd);
+gd = PlotACF(gd);
+gd = PlotHRF(gd);
+guidata(gd.hunivarlab,gd);
+
 return;
 
 % --------------------------------------------------------------------
@@ -440,6 +433,21 @@ gd = PlotACF(gd);
 return;
 
 % --------------------------------------------------------------------
+function varargout = FitMean_cb_Callback(h, eventdata, gd, varargin)
+gd.FitMean = ~gd.FitMean; 
+gd = MakeFirstLevelAnalysis(gd);
+gd = SynthC1Signal(gd);
+gd = SynthC2Signal(gd);
+gd = SynthSignal(gd);
+gd = SynthObserved(gd);
+gd = Estimate(gd);
+gd = PlotRaw(gd);
+gd = PlotACF(gd);
+gd = PlotHRF(gd);
+guidata(gd.hunivarlab, gd);
+return;
+
+% --------------------------------------------------------------------
 function varargout = ViewFIRDesign_Callback(h, eventdata, gd, varargin)
 if(isempty(gd.hXFIR) | ~ishandle(gd.hXFIR)) gd.hXFIR = figure; end
 figure(gd.hXFIR);
@@ -482,7 +490,7 @@ gd.FIREstFLA.nthfx = 1;
 FIRPSD = fast_fxcfg('irftaxis',gd.FIREstFLA);
 nPerFIR = length(FIRPSD);
 FIRHRF1 = gd.FIRbeta(1:nPerFIR);
-FIRHRF2 = gd.FIRbeta(nPerFIR+1:end);
+FIRHRF2 = gd.FIRbeta(nPerFIR+1:2*nPerFIR);
 
 gd.GamEstFLA.nthfx = 1;
 GamEstPSD = fast_fxcfg('irftaxis',gd.GamEstFLA);
@@ -508,15 +516,14 @@ ud = get(gcf,'userdata');
 gd = guidata(ud.hunivarlab);
 gd.ShowHRF = 0;
 gd.hHRF = [];
-set(gd.ShowHRF_pb,'enable','on');
 guidata(gd.hunivarlab,gd)
 return;
 
 % --------------------------------------------------------------------
-function varargout = ShowHRF_pb_Callback(h, eventdata, gd, varargin)
+function varargout = ShowHRF_mi_Callback(h, eventdata, gd, varargin)
+if(gd.ShowHRF)  figure(gd.hHRF); return; end
 gd.ShowHRF = 1;
 gd = PlotHRF(gd);
-set(gd.ShowHRF_pb,'enable','off');
 guidata(gd.hunivarlab,gd)
 return;
 
@@ -539,6 +546,13 @@ if(~isfield(gd,'hRaw') | isempty(gd.hRaw) | ~ishandle(gd.hRaw))
 		'Callback', 'univarlab(''ToggleRawTrace'',''signal'')',...
 		'tooltipstring','Toggle Display of Signal Raw Trace',...
 		'value',gd.ShowRawSignal);
+  ud.hToggleRawObserved = ...
+      uicontrol('Style', 'checkbox', ...
+		'String', 'Observed',...
+		'Position', [1 26 50 25], ...
+		'Callback', 'univarlab(''ToggleRawTrace'',''observed'')',...
+		'tooltipstring','Toggle Display of Observed Trace',...
+		'value',gd.ShowRawSignal);
   ud.hunivarlab = gd.hunivarlab;
   set(gd.hRaw,'userdata',ud);
 end
@@ -557,20 +571,26 @@ p2 = (ymin-.05*yrange)*ones(nind2,1);
 %p1 = gd.schedule(ind1,2) * (ymax-ymin)/2 + ymin;
 %p2 = gd.schedule(ind2,2) * (ymax-ymin)/2 + ymin;
 
-if(gd.ShowRawSignal)
 plot(gd.t,gd.ysignal,'+-', ...
      gd.t,gd.yobserved, 'o-', ...
      gd.t,gd.yhatfir, ...
      gd.t,gd.yhatgam, gd.t,gd.yhatmangam, ...
      gd.t(ind1),p1,'*', gd.t(ind2),p2,'d');
 legend('True Signal','Observed','FIR','Gamma','Man-Gamma','C1Stim','C2Stim');
-else
-plot(gd.t,gd.yobserved, 'o-', ...
-     gd.t,gd.yhatfir, ...
-     gd.t,gd.yhatgam, gd.t,gd.yhatmangam, ...
-     gd.t(ind1),p1,'*', gd.t(ind2),p2,'d');
-legend('Observed','FIR','Gamma','Man-Gamma','C1Stim','C2Stim');
-end
+gd.hRawTrace = get(gca,'children');
+gd.RawTraceId = strvcat('signal','observed','fir','gamma','man-gamma',...
+			'c1stim','c2stim');
+gd.RawTraceId = flipud(gd.RawTraceId);
+gd = HideRaw(gd);
+
+%if(gd.ShowRawSignal)
+%else
+%plot(gd.t,gd.yobserved, 'o-', ...
+%     gd.t,gd.yhatfir, ...
+%     gd.t,gd.yhatgam, gd.t,gd.yhatmangam, ...
+%     gd.t(ind1),p1,'*', gd.t(ind2),p2,'d');
+%legend('Observed','FIR','Gamma','Man-Gamma','C1Stim','C2Stim');
+%end
 
 title('Raw Time Courses');
 xlabel('time (sec)');
@@ -585,29 +605,43 @@ ud = get(gcf,'userdata');
 gd = guidata(ud.hunivarlab);
 gd.ShowRaw = 0;
 gd.hRaw = [];
-set(gd.ShowRaw_pb,'enable','on');
 guidata(gd.hunivarlab,gd)
 return;
 
 % --------------------------------------------------------------------
-function varargout = ShowRaw_pb_Callback(h, eventdata, gd, varargin)
+function varargout = ShowRaw_mi_Callback(h, eventdata, gd, varargin)
+if(gd.ShowRaw) 
+  figure(gd.hRaw);
+  return;
+end
 gd.ShowRaw = 1;
 gd = PlotRaw(gd);
-set(gd.ShowRaw_pb,'enable','off');
 guidata(gd.hunivarlab,gd)
 return;
 
 %-------------------------------------------------%
-% Callback for ACF figure toggle switch %
+% Callback for Raw figure toggle switch %
 function gd = ToggleRawTrace(traceid)
 ud = get(gcf,'userdata');
 gd = guidata(ud.hunivarlab);
 switch(traceid)
- case 'signal'
-  gd.ShowRawSignal = ~gd.ShowRawSignal;
+ case 'signal',   gd.ShowRawSignal   = ~gd.ShowRawSignal;
+ case 'observed', gd.ShowRawObserved = ~gd.ShowRawObserved;
 end
-gd = PlotRaw(gd);
+gd = HideRaw(gd);
 guidata(gd.hunivarlab,gd)
+return;
+
+%-------------------------------------------------%
+function gd = HideRaw(gd)
+i = strmatch('signal',gd.RawTraceId);
+if(gd.ShowRawSignal) set(gd.hRawTrace(i),'visible','on');
+else                 set(gd.hRawTrace(i),'visible','off');
+end  
+i = strmatch('observed',gd.RawTraceId);
+if(gd.ShowRawObserved) set(gd.hRawTrace(i),'visible','on');
+else                   set(gd.hRawTrace(i),'visible','off');
+end  
 return;
 
 %-------------------------------------------------%
@@ -682,9 +716,15 @@ ud = get(gcf,'userdata');
 gd = guidata(ud.hunivarlab);
 gd.ShowACF = 0;
 gd.hACF = [];
-set(gd.ShowACF_pb,'enable','on');
 guidata(gd.hunivarlab,gd)
 return;
+
+% --------------------------------------------------------------------
+function varargout = ShowACF_mi_Callback(h, eventdata, gd, varargin)
+if(gd.ShowACF)  figure(gd.hACF); return; end
+gd.ShowACF = 1;
+gd = PlotACF(gd);
+guidata(gd.hunivarlab,gd)
 
 % --------------------------------------------------------------------
 function varargout = ShowACF_pb_Callback(h, eventdata, gd, varargin)
@@ -708,15 +748,11 @@ return;
 %-----------------------------------------------------%
 function gd = SetGUIParams(gd)
 
-if(strcmp(gd.ScheduleType,'rper')) set(gd.RPER_menu,'checked','on');
-else set(gd.RPER_menu,'checked','off');
-end
-if(strcmp(gd.ScheduleType,'fier')) set(gd.FIER_menu,'checked','on');
-else set(gd.FIER_menu,'checked','off');
-end
-if(strcmp(gd.ScheduleType,'blocked')) set(gd.Blocked_menu,'checked','on');
-else set(gd.Blocked_menu,'checked','off');
-end
+if(strcmp(gd.ScheduleType,'rper')) v = 1; end
+if(strcmp(gd.ScheduleType,'fier')) v = 2; end
+if(strcmp(gd.ScheduleType,'blocked')) v = 3; end
+set(gd.Schedule_pum,'value',v);
+
 set(gd.GamDeltaSynth_et,'string',sprintf('%g',gd.GamDeltaSynth(1)));
 set(gd.GamTauSynth_et,'string',sprintf('%g',gd.GamTauSynth(1)));
 set(gd.C1AmpSynth_et,'string',sprintf('%g',gd.C1AmpSynth(1)));
@@ -789,6 +825,10 @@ gd.FIREstFLA.fxlist(1).fx = fast_fxcfg('parseline',fxline);
 fxline = sprintf('effect fixed cond2 fir 2 %g %g %g 0',...
 		       gd.FIRPSDMin(1), gd.TR, gd.FIRPSDMax(1));
 gd.FIREstFLA.fxlist(2).fx = fast_fxcfg('parseline',fxline);
+if(gd.FitMean)
+  gd.FIREstFLA.fxlist(3).fx = fast_fxcfg('parseline',...
+   [sprintf('effect random drift polynomial %d',0)]);
+end
 gd.XFIR = fast_fla_desmat(gd.FIREstFLA);
 gd.RFIR = eye(gd.ntp) - gd.XFIR*inv(gd.XFIR'*gd.XFIR)*gd.XFIR'; 
 gd.FIRDOF = size(gd.XFIR,1)-size(gd.XFIR,2);
@@ -814,6 +854,7 @@ gd.GamSynthFLA.fxlist(1).fx = fast_fxcfg('parseline',fxline);
 fxline = sprintf('effect fixed cond2 gamma 2 0 .1 30 0 0 %g %g 0',...
 		 gd.GamDeltaSynth(1),gd.GamTauSynth(1));
 gd.GamSynthFLA.fxlist(2).fx = fast_fxcfg('parseline',fxline);
+if(gd.FitMean) clear gd.GamSynthFLA.fxlist(3); end
 gd.XGamSynth = fast_fla_desmat(gd.GamSynthFLA);
 set(gd.hunivarlab,'pointer','arrow');
 return;
@@ -912,12 +953,29 @@ return;
 
 %----------------------------------------------------------%
 function gd = EstimateManual(gd);
-gd.yhatmangam = gd.XGam * [gd.C1AmpMan(1) gd.C2AmpMan(1)]';
+if(gd.FitMean)
+  gd.yhatmangam = gd.XGam * [gd.C1AmpMan(1) gd.C2AmpMan(1) 0]';
+else
+  gd.yhatmangam = gd.XGam * [gd.C1AmpMan(1) gd.C2AmpMan(1)]';
+end
 gd.resmangam  = gd.yobserved - gd.yhatmangam;
 gd.resmangamvar = sum(gd.resmangam.^2)/gd.GamDOF;
 gd.resmangamstd = sqrt(gd.resmangamvar);
 set(gd.ManGamRStdTxt,'string',sprintf('%3.2f',gd.resmangamstd));
 return;
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
