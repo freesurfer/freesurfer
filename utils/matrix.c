@@ -2203,6 +2203,11 @@ MatrixPseudoInverse(MATRIX *m, MATRIX *m_pseudo_inv)
   mT = MatrixTranspose(m, NULL) ;
   mTm = MatrixMultiply(mT, m, NULL) ;
   mTm_inv = MatrixInverse(mTm, NULL) ;
+  if (!mTm_inv)
+  {
+    MatrixFree(&mT) ; MatrixFree(&mTm) ;
+    return(NULL) ;
+  }
   m_pseudo_inv = MatrixMultiply(mTm_inv, mT, m_pseudo_inv) ;
 
   MatrixFree(&mT) ; MatrixFree(&mTm) ; MatrixFree(&mTm_inv) ; 
