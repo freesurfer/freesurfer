@@ -29,9 +29,10 @@ MRI *MRIconform(MRI *mri)
   templ->xsize = templ->ysize = templ->zsize = 1.0;
   templ->xstart = templ->ystart = templ->zstart = -128.0;
   templ->xend = templ->yend = templ->zend = 128.0;
-  templ->x_r = -1.0;  templ->x_a =  0.0;  templ->x_s =  0.0;
-  templ->y_r =  0.0;  templ->y_a =  0.0;  templ->y_s = -1.0;
-  templ->z_r =  0.0;  templ->z_a =  1.0;  templ->z_s =  0.0;
+  templ->x_r = -1.0;      templ->x_a =  0.0;      templ->x_s =  0.0;
+  templ->y_r =  0.0;      templ->y_a =  0.0;      templ->y_s = -1.0;
+  templ->z_r =  0.0;      templ->z_a =  1.0;      templ->z_s =  0.0;
+  templ->c_r = mri->c_r;  templ->c_a = mri->c_a;  templ->c_s = mri->c_s;
   templ->slice_direction = MRI_CORONAL;
 
   /* ----- change type if necessary ----- */
