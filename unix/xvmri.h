@@ -22,6 +22,4 @@
 void mri_event_handler(XV_FRAME *xvf,int depth,MRI *mri,Event *event,
                        DIMAGE *dimage, int view) ;
 
-int  XVMRIshowHistogram(XV_FRAME *xvf, int which, MRI_HISTO *mrih) ;
-
 #endif
