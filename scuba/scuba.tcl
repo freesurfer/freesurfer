@@ -10,7 +10,7 @@ if { $err } {
     load [file dirname [info script]]/libscuba[info sharedlibextension] scuba
 }
 
-DebugOutput "\$Id: scuba.tcl,v 1.44 2004/08/01 20:11:51 kteich Exp $"
+DebugOutput "\$Id: scuba.tcl,v 1.45 2004/08/14 23:57:19 kteich Exp $"
 
 # gTool
 #   current - current selected tool (nav,)
@@ -436,7 +436,9 @@ proc MakeMenuBar { ifwTop } {
 
     tkuMakeMenu -menu $gaMenu(edit) -label "Edit" -items {
 	{command "Nothing to undo" 
-	    { UndoOrRedo; RedrawFrame [GetMainFrameID]; UpdateUndoMenuItem } }
+	    { Undo; RedrawFrame [GetMainFrameID]; UpdateUndoMenuItem } }
+	{command "Nothing to redo" 
+	    { Redo; RedrawFrame [GetMainFrameID]; UpdateUndoMenuItem } }
 	{separator}
 	{command "Preferences..." { DoPrefsDlog } }
     }
@@ -471,6 +473,11 @@ proc UpdateUndoMenuItem {} {
     catch { set sLabel [GetUndoTitle] }
 
     tkuSetMenuItemName $gaMenu(edit) 1 $sLabel
+
+    set sLabel "Nothing to redo"
+    catch { set sLabel [GetRedoTitle] }
+
+    tkuSetMenuItemName $gaMenu(edit) 2 $sLabel
 }
 
 proc MakeToolBar { ifwTop } {
@@ -621,6 +628,13 @@ proc MakeTaskArea { ifwTop } {
     frame $fwButtons
 
     set gaTask(buttonFrame) $fwButtons
+
+    pack $gaTask(buttonFrame)
+    button $gaTask(buttonFrame).bw0
+    button $gaTask(buttonFrame).bw1
+    button $gaTask(buttonFrame).bw2
+    button $gaTask(buttonFrame).bw3
+    button $gaTask(buttonFrame).bw4
 
     pack $ewLabel $ewProgress -side left -anchor w
     pack $fwButtons -side right -anchor e
@@ -3060,12 +3074,13 @@ proc NewTask { args } {
 
     set nButton 0
     foreach btn $aArgs(-buttons) {
-	button $gaTask(buttonFrame).bw$nButton -text $btn \
+	$gaTask(buttonFrame).bw$nButton config -text $btn \
 	    -command "TaskCallback \"$btn\""
 	pack $gaTask(buttonFrame).bw$nButton \
 	    -side left -anchor e
 	incr nButton
     }
+    set gaTask(numButtons) $nButton
 
     set gaTask(callbacks) {}
     set gaTask(percent) 0
@@ -3112,11 +3127,9 @@ proc EndTask {} {
     set gaTask(label) "Ready."
     set gaTask(progress) ""
 
-    # Destroy the button frame to kill the buttons, then recreate the
-    # button frame.
-    destroy $gaTask(buttonFrame)
-    frame $gaTask(buttonFrame)
-    pack $gaTask(buttonFrame) -side right -anchor e
+    for { set nButton 0 } { $nButton < $gaTask(numButtons) } { incr nButton } {
+	pack forget $gaTask(buttonFrame).bw$nButton
+    }
 
     set gaTask(going) 0
 }
