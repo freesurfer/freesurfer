@@ -71,6 +71,8 @@ static double mrisComputeSSE(MRI_SURFACE *mris, INTEGRATION_PARMS *parms) ;
 static double mrisComputeSpringEnergy(MRI_SURFACE *mris) ;
 static double mrisComputeIntensityError(MRI_SURFACE *mris, 
                                         INTEGRATION_PARMS *parms);
+static double mrisComputeIntensityGradientError(MRI_SURFACE *mris, 
+                                        INTEGRATION_PARMS *parms);
 static double mrisComputeSphereError(MRI_SURFACE *mris, 
                                      INTEGRATION_PARMS *parms);
 static double mrisComputeDistanceError(MRI_SURFACE *mris) ;
@@ -116,6 +118,9 @@ static int   mrisCountValidLinks(MRI_SURFACE *mris, int vno1, int vno2) ;
 static int   mrisComputeSpringTerm(MRI_SURFACE *mris, double l_spring);
 static int   mrisComputeIntensityTerm(MRI_SURFACE*mris,double l_intensity,
                                       MRI *mri_brain, MRI *mri_smooth);
+static int   mrisComputeIntensityGradientTerm(MRI_SURFACE*mris,
+                                              double l_grad,
+                                              MRI *mri_brain, MRI *mri_smooth);
 static int   mrisComputeSphereTerm(MRI_SURFACE *mris, double l_sphere, 
                                    float radius) ;
 static int   mrisComputeExpansionTerm(MRI_SURFACE *mris, double l_expand) ;
@@ -149,16 +154,18 @@ static int  mrisNeighborAtVoxel(MRI_SURFACE *mris, MRI *mri, int vno,
                                 int xv,int yv,int zv) ;
 
 
+#if 0
+static int  mrisFindNormalDistanceLimits(MRI_SURFACE *mris, MRI *mri_filled, 
+                                         int vno, float max_dist,
+                                         float *pmax_outward_distance,
+                                         float *pmax_inward_distance) ;
+#endif
 static int  mrisComputeTangentialSpringTerm(MRI_SURFACE *mris,double l_spring);
 static int   mrisComputeNormalSpringTerm(MRI_SURFACE *mris, double l_spring) ;
 static int   mrisRemoveNeighborGradientComponent(MRI_SURFACE *mris, int vno) ;
 static int   mrisRemoveNormalGradientComponent(MRI_SURFACE *mris, int vno) ;
 
 #if 0
-static int  mrisFindNormalDistanceLimits(MRI_SURFACE *mris, MRI *mri_filled, 
-                                         int vno, float max_dist,
-                                         float *pmax_outward_distance,
-                                         float *pmax_inward_distance) ;
 static int   mrisSmoothNormalOutliers(MRI_SURFACE *mris, double nlen) ;
 static int   mrisDebugVertex(MRI_SURFACE *mris, int vno) ;
                                              double l_spring);
@@ -3606,7 +3613,7 @@ mrisIntegrate(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int n_averages)
 
   if (Gdiag_no >= 0)
     fprintf(stderr,
-            "vertex %d curvature = %2.5f, position = (%2.3f,%2.3f,%2.3f)\n",
+            "v %d curvature = %2.5f, position = (%2.3f,%2.3f,%2.3f)\n",
         Gdiag_no, mris->vertices[Gdiag_no].H,
         mris->vertices[Gdiag_no].x,
         mris->vertices[Gdiag_no].y,
@@ -3669,7 +3676,7 @@ mrisIntegrate(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int n_averages)
     mrisProjectSurface(mris) ;
     MRIScomputeMetricProperties(mris) ;
     if (Gdiag_no >= 0)
-      fprintf(stderr, "vertex %d curvature = %2.3f\n",
+      fprintf(stderr, "v %d curvature = %2.3f\n",
               Gdiag_no, mris->vertices[Gdiag_no].H) ;
     /* only print stuff out if we actually took a step */
     sse = mrisComputeSSE(mris, parms) ;
@@ -3818,7 +3825,8 @@ double
 mrisComputeSSE(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
 {
   double  sse, sse_area, sse_angle, delta, sse_curv, sse_spring, sse_dist,
-          area_scale, sse_corr, sse_neg_area, l_corr, sse_val, sse_sphere ;
+          area_scale, sse_corr, sse_neg_area, l_corr, sse_val, sse_sphere,
+          sse_grad ;
   int     ano, tno, fno ;
   FACE    *face ;
 
@@ -3832,7 +3840,7 @@ mrisComputeSSE(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
 #endif
 
   sse_corr = sse_angle = sse_neg_area = sse_val = sse_sphere =
-    sse_area = sse_spring = sse_curv = sse_dist = 0.0 ;
+    sse_area = sse_spring = sse_curv = sse_dist = sse_grad = 0.0 ;
   if (!FZERO(parms->l_angle)||!FZERO(parms->l_area)||(!FZERO(parms->l_parea)))
   {
     for (fno = 0 ; fno < mris->nfaces ; fno++)
@@ -3873,6 +3881,8 @@ mrisComputeSSE(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
     sse_corr = mrisComputeCorrelationError(mris, parms, 1) ;
   if (!FZERO(parms->l_intensity))
     sse_val = mrisComputeIntensityError(mris, parms) ;
+  if (!FZERO(parms->l_grad))
+    sse_grad = mrisComputeIntensityGradientError(mris, parms) ;
   if (!FZERO(parms->l_sphere))
     sse_sphere = mrisComputeSphereError(mris, parms) ;
 
@@ -3880,6 +3890,7 @@ mrisComputeSSE(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
     (double)parms->l_area   * sse_neg_area + 
     (double)parms->l_sphere * sse_sphere + 
     (double)parms->l_intensity    * sse_val + 
+    (double)parms->l_grad    * sse_grad + 
     (double)parms->l_parea  * sse_area + 
     (double)parms->l_angle  * sse_angle + 
     (double)parms->l_dist   * sse_dist + 
@@ -4714,7 +4725,7 @@ mrisAsynchronousTimeStep(MRI_SURFACE *mris, float momentum,
       vertex->odx *= mag ; vertex->ody *= mag ; vertex->odz *= mag ;
     }
     if (vno == Gdiag_no)
-      fprintf(stderr, "moving vertex %d by (%2.3f, %2.3f, %2.3f) --> "
+      fprintf(stderr, "moving v %d by (%2.3f, %2.3f, %2.3f) --> "
               "(%2.1f, %2.1f, %2.1f), nz=%2.2f, a=%2.3f\n",
               vno, vertex->odx, vertex->ody, vertex->odz,
               vertex->x, vertex->y, vertex->z, vertex->nz,vertex->area) ;
@@ -4824,7 +4835,7 @@ mrisMomentumTimeStep(MRI_SURFACE *mris, float momentum, float dt, float tol,
       vertex->odx *= mag ; vertex->ody *= mag ; vertex->odz *= mag ;
     }
     if (vno == Gdiag_no)
-      fprintf(stderr, "moving vertex %d by (%2.3f, %2.3f, %2.3f) --> "
+      fprintf(stderr, "moving v %d by (%2.3f, %2.3f, %2.3f) --> "
               "(%2.1f, %2.1f, %2.1f), nz=%2.2f, a=%2.3f\n",
               vno, vertex->odx, vertex->ody, vertex->odz,
               vertex->x, vertex->y, vertex->z, vertex->nz,vertex->area) ;
@@ -6911,7 +6922,7 @@ mrisComputeCurvatureGradientTerm(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
     vertex->dy += l_curv * V3_Y(v_delta) ; 
     vertex->dz += l_curv * V3_Z(v_delta) ;
     if (vno == Gdiag_no)
-      fprintf(stderr, "moving vertex %d by (%2.3f, %2.3f, %2.3f)\n",
+      fprintf(stderr, "moving v %d by (%2.3f, %2.3f, %2.3f)\n",
               vno, vertex->dx, vertex->dy, vertex->dz) ;
   }
   
@@ -8576,7 +8587,7 @@ mrisComputeNormalSpringTerm(MRI_SURFACE *mris, double l_spring)
     vertex->dy += l_spring * sy ;
     vertex->dz += l_spring * sz ;
     if (vno == Gdiag_no)
-      fprintf(stderr, "vertex %d spring term: (%2.3f, %2.3f, %2.3f)\n",
+      fprintf(stderr, "v %d spring normal term: (%2.3f, %2.3f, %2.3f)\n",
               vno, vertex->dx, vertex->dy, vertex->dz) ;
   }
   
@@ -8648,7 +8659,7 @@ mrisComputeTangentialSpringTerm(MRI_SURFACE *mris, double l_spring)
     v->dy += l_spring * sy ;
     v->dz += l_spring * sz ;
     if (vno == Gdiag_no)
-      fprintf(stderr, "vertex %d spring term: (%2.3f, %2.3f, %2.3f)\n",
+      fprintf(stderr, "v %d spring tangent term: (%2.3f, %2.3f, %2.3f)\n",
               vno, v->dx, v->dy, v->dz) ;
   }
   
@@ -8721,8 +8732,82 @@ mrisComputeIntensityTerm(MRI_SURFACE *mris, double l_intensity, MRI *mri_brain,
     v->dy += dy ;
     v->dz += dz ;
     if (vno == Gdiag_no)
-      fprintf(stderr, "v %d spring term: (%2.3f, %2.3f, %2.3f)\n",
+      fprintf(stderr, "v %d intensity term: (%2.3f, %2.3f, %2.3f)\n",
               vno, v->dx, v->dy, v->dz) ;
+  }
+  
+
+  return(NO_ERROR) ;
+}
+static int
+mrisComputeIntensityGradientTerm(MRI_SURFACE*mris, double l_grad,
+                                 MRI *mri_brain, MRI *mri_smooth)
+{
+  int     vno ;
+  VERTEX  *v ;
+  float   x, y, z, nx, ny, nz ;
+  Real    mag0, xw, yw, zw, del, mag_outside, mag_inside, delI, delV,
+          dx, dy, dz, val_outside, val_inside, val_dist ;
+
+  if (FZERO(l_grad))
+    return(NO_ERROR) ;
+
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    if (v->ripflag)
+      continue ;
+    if (vno == Gdiag_no)
+      DiagBreak() ;
+
+    x = v->x ; y = v->y ; z = v->z ;
+    MRIworldToVoxel(mri_brain, x, y, z, &xw, &yw, &zw) ;
+    MRIsampleVolumeGradient(mri_smooth, xw, yw, zw, &dx, &dy, &dz) ;
+    mag0 = sqrt(dx*dx+dy*dy+dz*dz) ;
+    nx = v->nx ; ny = v->ny ; nz = v->nz ;
+
+    /* compute intensity gradient using smoothed volume */
+
+    /* sample outward from surface */
+    xw = x + nx ; yw = y + ny ; zw = z + nz ;
+    MRIworldToVoxel(mri_smooth, xw, yw, zw, &xw, &yw, &zw) ;
+    MRIsampleVolumeGradient(mri_smooth, xw, yw, zw, &dx, &dy, &dz) ;
+    mag_outside = sqrt(dx*dx+dy*dy+dz*dz) ;
+    MRIsampleVolume(mri_smooth, xw, yw, zw, &val_outside) ;
+
+    /* sample inward from surface */
+    xw = x - nx ; yw = y - ny ; zw = z - nz ;
+    MRIworldToVoxel(mri_smooth, xw, yw, zw, &xw, &yw, &zw) ;
+    MRIsampleVolumeGradient(mri_smooth, xw, yw, zw, &dx, &dy, &dz) ;
+    mag_inside = sqrt(dx*dx+dy*dy+dz*dz) ;
+    MRIsampleVolume(mri_smooth, xw, yw, zw, &val_inside) ;
+
+    if (mag_outside > mag_inside)   /* gradients suggest edge is outwards */
+      val_dist = val_outside - v->val ;
+    else   /* gradients suggest edge is outwards */
+      val_dist = val_inside - v->val ;
+
+    /* diminish the effect of gradients that are in locations whos
+       intensity values are far from the target.
+       */
+    val_dist = 2 / (2 + val_dist*val_dist) ;
+    delV = 1.0f /*v->mean - mag0*/ ;
+    delI = (mag_outside - mag_inside) / 2.0 ;
+#if 1
+    if (!FZERO(delI))
+      delI /= fabs(delI) ;
+#endif
+    del = val_dist * l_grad * delV * delI ;
+    dx = nx * del ; dy = ny * del ; dz = nz * del ;
+
+    v->dx += dx ;   
+    v->dy += dy ;
+    v->dz += dz ;
+    if (vno == Gdiag_no)
+      fprintf(stderr, 
+        "v %d intensity gradient term: (%2.3f, %2.3f, %2.3f) "
+              "(mag = %2.1f, [%2.1f,%2.1f])\n",
+              vno, v->dx, v->dy, v->dz, mag0, mag_inside, mag_outside) ;
   }
   
 
@@ -8965,7 +9050,7 @@ max_del = 10000.0f ;
 
     if (vno == Gdiag_no && Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
       fprintf(stderr, 
-            "computing distance term for vertex %d @ (%2.2f, %2.2f, %2.2f)\n",
+            "computing distance term for v %d @ (%2.2f, %2.2f, %2.2f)\n",
               vno, v->x, v->y, v->z) ;
 
     for (n = 0 ; n < vnum ; n++)
@@ -9008,7 +9093,7 @@ if (fabs(delta) > max_del)
     v->dy += l_dist * V3_Y(v_delta) ;
     v->dz += l_dist * V3_Z(v_delta) ;
     if (vno == Gdiag_no)
-      fprintf(stderr, "vertex %d, distance term: (%2.3f, %2.3f, %2.3f)\n",
+      fprintf(stderr, "v %d, distance term: (%2.3f, %2.3f, %2.3f)\n",
               vno, v->dx, v->dy, v->dz) ;
   }
 
@@ -9056,6 +9141,8 @@ mrisLogIntegrationParms(FILE *fp, MRI_SURFACE *mris,INTEGRATION_PARMS *parms)
     fprintf(fp, ", l_dist=%2.4f", parms->l_dist) ;
   if (!FZERO(parms->l_intensity))
     fprintf(fp, ", l_intensity=%2.4f", parms->l_intensity) ;
+  if (!FZERO(parms->l_grad))
+    fprintf(fp, ", l_grad=%2.4f", parms->l_grad) ;
   if (!FZERO(parms->l_sphere))
     fprintf(fp, ", l_sphere=%2.4f", parms->l_sphere) ;
   if (!FZERO(parms->l_expand))
@@ -10412,7 +10499,7 @@ mrisComputeCorrelationError(MRI_SURFACE *mris, INTEGRATION_PARMS *parms,
 #endif
     target = MRISPfunctionVal(parms->mrisp_template, mris, x, y, z, 
                               parms->frame_no) ;
-#define DEFAULT_STD  10.0f
+#define DEFAULT_STD  4.0f
 #define DISABLE_STDS  0
 #if DISABLE_STDS
 std = 1.0f ;
@@ -11823,6 +11910,7 @@ MRISpositionSurface(MRI_SURFACE *mris, MRI *mri_brain, MRI *mri_smooth,
     mht = MHTfillTable(mris, mht) ;
     mrisClearGradient(mris) ;
     mrisComputeIntensityTerm(mris, parms->l_intensity, mri_brain, mri_smooth);
+    mrisComputeIntensityGradientTerm(mris, parms->l_grad,mri_brain,mri_smooth);
     mrisAverageGradients(mris, avgs) ;
     mrisComputeSpringTerm(mris, parms->l_spring) ;
     mrisComputeNormalSpringTerm(mris, parms->l_nspring) ;
@@ -12469,7 +12557,10 @@ MRIScomputeWhiteSurfaceValues(MRI_SURFACE *mris, MRI *mri_brain,
       total_mean_white += mean_white ;
       total_mean_gray += mean_gray ;
     }
-    
+    v->mean = 20.0f ;
+    if (vno == Gdiag_no)
+      fprintf(stderr, "v %d, target value = %2.1f, mag = %2.1f\n",
+              Gdiag_no, v->val, v->mean) ;
   }
   total_mean_white /= (float)total_vertices ; 
   total_mean_gray /= (float)total_vertices ;
@@ -12508,9 +12599,9 @@ int
 MRIScomputeGraySurfaceValues(MRI_SURFACE *mris, MRI *mri_brain, 
                              MRI *mri_wm, float nsigma, float gray_surface)
 {
-  Real    val, x, y, z ;
-  int     total_vertices, vno, xv, yv, zv, xo, yo, zo, xi, yi, zi, nvox ;
-  float   total, total_sq, sigma, mean_gray, mean_pial, mean ;
+  Real    val, x, y, z, min_val, xw, yw, zw, dx, dy, dz, mag ;
+  int     total_vertices, vno ;
+  float   mean_gray, mean_pial, dist ;
   VERTEX  *v ;
 
   if (gray_surface <= 0.0f)
@@ -12524,76 +12615,40 @@ MRIScomputeGraySurfaceValues(MRI_SURFACE *mris, MRI *mri_brain,
     v = &mris->vertices[vno] ;
     if (v->ripflag)
       continue ;
-    v->d = 0.0f ;
-    MRISvertexToVoxel(v, mri_wm, &x, &y, &z) ;
-    xv = nint(x) ; yv = nint(y) ; zv = nint(z) ;
-    
-    /* compute mean and variance of wm in a neighborhood of voxel */
-    total = total_sq = 0.0f ; nvox = 0 ;
-    for (zo = zv-WHALF ; zo <= zv + WHALF ; zo++)
+    if (vno == Gdiag_no)
+      DiagBreak() ;
+
+    /* search in the normal direction to find the min value */
+    min_val = 10000.0f ; mag = 5.0f ;
+    for (dist = 0.0f ; dist < 10.0f ; dist += 0.5f)
     {
-      zi = mri_wm->zi[zo] ;
-      for (yo = yv-WHALF ; yo <= yv + WHALF ; yo++)
+      x = v->x + v->nx*dist ; y = v->y + v->ny*dist ; z = v->z + v->nz*dist ; 
+      MRIworldToVoxel(mri_brain, x, y, z, &xw, &yw, &zw) ;
+      MRIsampleVolume(mri_brain, xw, yw, zw, &val) ;
+      if (val < min_val)
       {
-        yi = mri_wm->yi[yo] ;
-        for (xo = xv-WHALF ; xo <= xv + WHALF ; xo++)
+        MRIsampleVolumeGradient(mri_brain, xw, yw, zw, &dx, &dy, &dz) ;
+        if (min_val >= gray_surface)
         {
-          xi = mri_wm->xi[xo] ;
-          val = (Real)MRIvox(mri_wm, xi, yi, zi) ;
-          if (val < WM_MIN_VAL)
-          {
-            val = (Real)MRIvox(mri_brain, xi, yi, zi) ;
-            if (val < MIN_GRAY || val > MAX_GRAY)
-              continue ;
-#if 0
-            if (MRIneighborsOn(mri_wm, xi, yi, zi, WM_MIN_VAL+1) == 0)
-              continue ;   /* not a border voxel */
-#endif
-            total += val ;
-            total_sq += val * val ;
-            nvox++ ;
-          }
+          mag = sqrt(dx*dx + dy*dy + dz*dz) ;
+          min_val = val ;
         }
       }
     }
-    if (!nvox)
-      v->val = 0.0f ;
-    else
-    {
-      mean = total / (float)nvox ;
-      sigma = sqrt(total_sq / (float)nvox - mean*mean) ;
-      MRISvertexToVoxel(v, mri_wm, &x, &y, &z) ;
-      MRIsampleVolume(mri_brain, x, y, z, &val) ;
-      v->val = mean - nsigma * sigma ;
-      mean_pial += v->val ;
-      mean_gray += mean ;
-      total_vertices++ ;
-    }
-    v->val = gray_surface /* 63 */ /*68*/ ;
-    
-  }
-  mean_gray /= (float)total_vertices ; mean_pial /= (float)total_vertices ;
-  for (vno = 0 ; vno < mris->nvertices ; vno++)
-  {
-    v = &mris->vertices[vno] ;
-    if (v->ripflag)
-      continue ;
-    if (FZERO(v->val))   /* no border voxels nearby */
-      v->val = mean_pial ;
-  }
+    if (min_val < gray_surface)
+      min_val = gray_surface ;
 
-#if 0
-  for (vno = 0 ; vno < mris->nvertices ; vno++)
-  {
-    v = &mris->vertices[vno] ;
-    if (v->ripflag)
-      continue ;
-    v->val = mean_pial ;
+    v->val = min_val ;
+    v->mean = mag ;
+    mean_gray += min_val ; total_vertices++ ;
+    if (vno == Gdiag_no)
+      fprintf(stderr, "v %d, target value = %2.1f, mag = %2.1f\n",
+              Gdiag_no, v->val, v->mean) ;
   }
-#endif
+  mean_gray /= (float)total_vertices ; 
 
-  fprintf(stdout, "mean gray=%2.1f, pial surface=%2.1f, averaging targets and "
-            "smoothing surface\n", mean_gray, mean_pial) ;
+  /*  MRISaverageVals(mris, 3) ;*/
+  fprintf(stdout, "mean pial surface=%2.1f\n", mean_gray) ;
   return(NO_ERROR) ;
 }
 /*-----------------------------------------------------
@@ -12631,7 +12686,6 @@ MRISreverse(MRI_SURFACE *mris, int which)
   }
   return(NO_ERROR) ;
 }
-#if 0
 /*-----------------------------------------------------
         Parameters:
 
@@ -12639,6 +12693,7 @@ MRISreverse(MRI_SURFACE *mris, int which)
 
         Description
 ------------------------------------------------------*/
+#if 0
 #define X_DOM   0
 #define Y_DOM   1
 #define Z_DOM   2
@@ -13990,6 +14045,45 @@ mrisComputeIntensityError(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
   }
   
   return(parms->l_intensity * sse) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
+static double
+mrisComputeIntensityGradientError(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
+{
+  int     vno ;
+  VERTEX  *v ;
+  float   x, y, z ;
+  Real    mag0, xw, yw, zw, dx, dy, dz ;
+  double  sse, del0 ;
+
+  if (FZERO(parms->l_grad))
+    return(0.0f) ;
+
+  for (sse = 0.0, vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    if (v->ripflag)
+      continue ;
+    if (vno == Gdiag_no)
+      DiagBreak() ;
+
+    x = v->x ; y = v->y ; z = v->z ;
+    
+    MRIworldToVoxel(parms->mri_smooth, x, y, z, &xw, &yw, &zw) ;
+    MRIsampleVolumeGradient(parms->mri_smooth, xw, yw, zw, &dx, &dy, &dz) ;
+    mag0 = sqrt(dx*dx + dy*dy + dz*dz) ;
+
+    del0 = v->mean - mag0 ;
+    sse += (del0 * del0) ;
+  }
+  
+  return(parms->l_grad * sse) ;
 }
 /*-----------------------------------------------------
         Parameters:

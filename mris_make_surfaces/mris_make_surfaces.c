@@ -15,7 +15,7 @@
 #include "mrishash.h"
 #include "macros.h"
 
-static char vcid[] = "$Id: mris_make_surfaces.c,v 1.2 1998/09/04 23:02:18 fischl Exp $";
+static char vcid[] = "$Id: mris_make_surfaces.c,v 1.3 1998/10/28 15:35:31 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -50,7 +50,7 @@ main(int argc, char *argv[])
   int           ac, nargs ;
   MRI_SURFACE   *mris ;
   MRI           *mri_wm, *mri_brain, *mri_kernel = NULL, *mri_smooth, 
-                *mri_filled ;
+                *mri_filled, *mri_T1 ;
   int           label_val, replace_val ;
   int           msec ;
   struct timeb  then ;
@@ -64,7 +64,7 @@ main(int argc, char *argv[])
   parms.tol = 1e-4 ;
   parms.dt = 0.75f ;
   parms.base_dt = BASE_DT_SCALE*parms.dt ;
-  parms.n_averages = 8 /* 32*/ ; /*N_AVERAGES*/ ;
+  parms.n_averages = 2 /*8*/ /* 32*/ ; /*N_AVERAGES*/ ;
 #if 0
   parms.l_spring = 1.0f ;
 #else
@@ -72,6 +72,7 @@ main(int argc, char *argv[])
   parms.l_tspring = 1.0f ;
 #endif
   parms.l_intensity = 0.075 /* 0.025f*/ ;
+  parms.l_grad = 1.0f ;
   parms.niterations = 0 ;
   parms.write_iterations = 5 /*WRITE_ITERATIONS */;
   parms.integration_type = INTEGRATE_MOMENTUM ;
@@ -133,6 +134,13 @@ main(int argc, char *argv[])
   MRIfree(&mri_filled) ;
 
 
+  sprintf(fname, "%s/%s/mri/T1", sdir, sname) ;
+  fprintf(stderr, "reading volume %s...\n", fname) ;
+  mri_T1 = MRIread(fname) ;
+  if (!mri_T1)
+    ErrorExit(ERROR_NOFILE, "%s: could not read input volume %s",
+              Progname, fname) ;
+
   sprintf(fname, "%s/%s/mri/wm", sdir, sname) ;
   fprintf(stderr, "reading volume %s...\n", fname) ;
   mri_wm = MRIread(fname) ;
@@ -142,30 +150,32 @@ main(int argc, char *argv[])
 
   if (mri_kernel)
   {
-    fprintf(stderr, "smoothing brain volume with sigma = %2.3f\n", sigma) ;
-    mri_smooth = MRIclone(mri_brain, NULL) ;
-    MRIconvolveGaussian(mri_brain, mri_smooth, mri_kernel) ;
+    fprintf(stderr, "smoothing T1 volume with sigma = %2.3f\n", sigma) ;
+    mri_smooth = MRIclone(mri_T1, NULL) ;
+    MRIconvolveGaussian(mri_T1, mri_smooth, mri_kernel) ;
     if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON) 
       MRIwrite(mri_smooth, "/tmp/brain_smooth.mnc") ;
     MRIfree(&mri_kernel);
   }
   else
-    mri_smooth = mri_brain ;
+    mri_smooth = mri_T1 ;
 
   sprintf(fname, "%s/%s/surf/%s.%s", sdir, sname, hemi, ORIG_NAME) ;
-  fprintf(stderr, "reading input surface %s...\n", fname) ;
+  fprintf(stderr, "reading spherical surface %s...\n", fname) ;
   mris = MRISread(fname) ;
   if (!mris)
     ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s",
               Progname, fname) ;
 
+  MRIScomputeWhiteSurfaceValues(mris, mri_brain, mri_wm, nsigma) ;
   fprintf(stderr, "repositioning cortical surface to gray/white boundary.\n");
   if (!nsigma_set)
     nsigma = 0.1f ;
-  MRISaverageVertexPositions(mris, 4) ;
+  MRISaverageVertexPositions(mris, 4) ;  /* start with a smooth surface */
   strcpy(parms.base_name, WHITE_MATTER_NAME) ;
-  MRIScomputeWhiteSurfaceValues(mris, mri_brain, mri_wm, nsigma) ;
-  MRISpositionSurface(mris, mri_brain, mri_smooth,&parms);
+
+
+  MRISpositionSurface(mris, mri_T1, mri_smooth,&parms);
 
   sprintf(fname, "%s/%s/surf/%s.%s", sdir, sname, hemi, WHITE_MATTER_NAME) ;
   fprintf(stderr, "writing white matter surface to %s...\n", fname) ;
@@ -180,7 +190,7 @@ main(int argc, char *argv[])
   parms.l_nspring = 0.5 ;
   strcpy(parms.base_name, GRAY_MATTER_NAME) ;
   MRIScomputeGraySurfaceValues(mris, mri_brain, mri_wm, nsigma, gray_surface) ;
-  MRISpositionSurface(mris, mri_brain, mri_smooth,&parms);
+  MRISpositionSurface(mris, mri_T1, mri_smooth,&parms);
 
   sprintf(fname, "%s/%s/surf/%s.%s", sdir, sname, hemi, GRAY_MATTER_NAME) ;
   fprintf(stderr, "writing pial surface to %s...\n", fname) ;
@@ -248,6 +258,12 @@ get_option(int argc, char *argv[])
     parms.l_spring = atof(argv[2]) ;
     nargs = 1 ;
     fprintf(stderr, "l_spring = %2.3f\n", parms.l_spring) ;
+  }
+  else if (!stricmp(option, "grad"))
+  {
+    parms.l_grad = atof(argv[2]) ;
+    nargs = 1 ;
+    fprintf(stderr, "l_grad = %2.3f\n", parms.l_grad) ;
   }
   else if (!stricmp(option, "tspring"))
   {
