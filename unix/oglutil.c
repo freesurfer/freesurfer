@@ -17,7 +17,7 @@
 #include "macros.h"
 #include "oglutil.h"
 
-static char vcid[] = "$Id: oglutil.c,v 1.3 1997/10/31 23:44:00 fischl Exp $";
+static char vcid[] = "$Id: oglutil.c,v 1.4 1997/11/01 22:41:55 fischl Exp $";
 
 
 /*-------------------------------- CONSTANTS -----------------------------*/
@@ -35,7 +35,7 @@ static char vcid[] = "$Id: oglutil.c,v 1.3 1997/10/31 23:44:00 fischl Exp $";
 /*-------------------------------- PROTOTYPES ----------------------------*/
 
 static void load_brain_coords(float x,float y, float z, float v[]) ;
-static void set_lighting_model(float lite0, float lite1, float lite2, 
+void   OGLUsetLightingModel(float lite0, float lite1, float lite2, 
              float lite3, float newoffset) ;
 
 double oglu_fov = FOV ;
@@ -44,13 +44,20 @@ int
 OGLUinit(MRI_SURFACE *mris, long frame_xdim, long frame_ydim)
 {
   int    error ;
-  double zfov ;
+  double zfov, max_dim ;
 
   glViewport(0,0,frame_xdim,frame_ydim);
   glLoadIdentity();
   glMatrixMode(GL_PROJECTION);
   
   oglu_fov = FOV ;
+  max_dim = MAX(mris->xhi, MAX(mris->yhi, mris->zhi)) ;
+  max_dim = MAX(max_dim, MAX(-mris->xlo, MAX(-mris->ylo, -mris->zlo))) ;
+  if (2*max_dim < FOV)
+    oglu_fov = 2*max_dim ;
+  else
+    oglu_fov = FOV ;
+
   if (mris->xlo < -oglu_fov)
     oglu_fov = -1.1f * mris->xlo ;
   if (mris->ylo < -oglu_fov)
@@ -65,7 +72,7 @@ OGLUinit(MRI_SURFACE *mris, long frame_xdim, long frame_ydim)
 
   glClearColor(0.0, 0.0, 0.0, 1.0);
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-  set_lighting_model(-1.0f, -1.0f, -1.0f, -1.0f, -1.0f) ;
+  OGLUsetLightingModel(-1.0f, -1.0f, -1.0f, -1.0f, -1.0f) ;
 
   glDepthFunc(GL_LEQUAL);
   glEnable(GL_DEPTH_TEST);
@@ -91,8 +98,8 @@ OGLUinit(MRI_SURFACE *mris, long frame_xdim, long frame_ydim)
 #define LIGHT2_BR  0.6 /* was 0.3 */
 #define LIGHT3_BR  0.2 /* was 0.1 */
 #define OFFSET 0.25   /* was 0.15 */
-static void
-set_lighting_model(float lite0, float lite1, float lite2, float lite3, 
+void
+OGLUsetLightingModel(float lite0, float lite1, float lite2, float lite3, 
                    float newoffset)
 {
   float offset = OFFSET ;
@@ -113,7 +120,10 @@ set_lighting_model(float lite0, float lite1, float lite2, float lite3,
   if (lite1 < 0.0)     lite1 = light1_diffuse[0];
   if (lite2 < 0.0)     lite2 = light2_diffuse[0];
   if (lite3 < 0.0)     lite3 = light3_diffuse[0];
-  newoffset = offset;
+  if (newoffset < 0.0)
+    newoffset = offset;
+  else
+    offset = newoffset ;
 
   /* material: change DIFFUSE,EMISSION (purpler: EMISSION=0.05*newoffset) */
   mat0_diffuse[0] = mat0_diffuse[1] = mat0_diffuse[2] = newoffset;
