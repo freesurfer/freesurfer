@@ -22,7 +22,7 @@
 #include "transform.h"
 #include "talairachex.h"
 
-static char vcid[] = "$Id: mri_fill.c,v 1.75 2004/05/13 19:53:38 tosa Exp $";
+static char vcid[] = "$Id: mri_fill.c,v 1.76 2004/06/04 14:31:05 tosa Exp $";
 
 
 /*-------------------------------------------------------------------
@@ -250,7 +250,7 @@ main(int argc, char *argv[])
   // Gdiag = 0xFFFFFFFF;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_fill.c,v 1.75 2004/05/13 19:53:38 tosa Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_fill.c,v 1.76 2004/06/04 14:31:05 tosa Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -717,7 +717,7 @@ main(int argc, char *argv[])
     MRItalairachToVoxelEx(mri_im, cc_tal_x+2*SEED_SEARCH_SIZE,  
                         cc_tal_y,cc_tal_z,&xr,&yr,&zr, lta);
 
-    printf("search rh wm seed point around TAL:(%.2f, %.2f, %.2f) SRC: (%.2f, %.2f, %.2f)\n",
+    printf("search rh wm seed point around talairach space:(%.2f, %.2f, %.2f) SRC: (%.2f, %.2f, %.2f)\n",
 	   cc_tal_x+2*SEED_SEARCH_SIZE, cc_tal_y, cc_tal_z, xr, yr, zr);
 
     wm_rh_x = nint(xr) ; wm_rh_y = nint(yr) ; wm_rh_z = nint(zr) ;
@@ -779,7 +779,7 @@ main(int argc, char *argv[])
     /* find white matter seed point for the left hemisphere */
     MRItalairachToVoxelEx(mri_im, cc_tal_x-2*SEED_SEARCH_SIZE,  
                         cc_tal_y, cc_tal_z, &xr, &yr, &zr, lta);
-    printf("search rh wm seed point around talairach space (%.2f, %.2f, %.2f), SRC: (%.2f, %.2f, %.2f)\n",
+    printf("search lh wm seed point around talairach space (%.2f, %.2f, %.2f), SRC: (%.2f, %.2f, %.2f)\n",
 	   cc_tal_x-2*SEED_SEARCH_SIZE, cc_tal_y, cc_tal_z, xr, yr, zr);
 
     wm_lh_x = nint(xr) ; wm_lh_y = nint(yr) ; wm_lh_z = nint(zr) ;
