@@ -118,14 +118,15 @@ Surf_tErr Surf_GetNextAndNeighborVertex  ( mriSurfaceRef   this,
 Surf_tErr Surf_GetNthVertex ( mriSurfaceRef   this,
             Surf_tVertexSet iSet,
             int             inIndex,
-            xVoxelRef       oClientVoxel );
+            xVoxelRef       oClientVoxel,
+            char*           osDescription );
 
 /* find the closest vertex to the given location */
 Surf_tErr Surf_GetClosestVertex ( mriSurfaceRef   this,
           Surf_tVertexSet iSet,
           xVoxelRef       iClientVoxel,
           xVoxelRef       oClientVoxel,
-          char*           osResult );
+          char*           osDescription );
 
 Surf_tErr Surf_GetSurfaceSetName ( Surf_tVertexSet iSet,
            char*           osName );
