@@ -108,6 +108,7 @@ typedef struct {
   /* transformation objects. */
   mriTransformRef mClientTransform;
   mriTransformRef mIdxToIdxTransform;
+  MATRIX* mTkregMatrix;
   
   /* When we know we have error values present, these are used */
   tBoolean mbErrorDataPresent;
@@ -221,8 +222,7 @@ FunD_tErr FunD_FindAndParseStemHeader_ ( mriFunctionalDataRef this,
 FunD_tErr FunD_GuessMetaInformation_   ( mriFunctionalDataRef this );
 
 /* Reads the register.dat file, allocates and initializes matricies. */
-FunD_tErr FunD_ParseRegistrationAndInitMatricies_ ( mriFunctionalDataRef this,
-						    MATRIX *tkregMat);
+FunD_tErr FunD_ParseRegistrationAndInitMatricies_ ( mriFunctionalDataRef this);
 
 /* Calcs the deviations. Needs sigma and CovMtx, should be done after
    reading the header _and_ data files. Deviations are calced by
