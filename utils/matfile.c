@@ -2,10 +2,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-#if 0
-#include <mat.h>
-#endif
-
 #include "matfile.h"
 #include "matrix.h"
 #include "error.h"
@@ -17,6 +13,13 @@ static double **matAlloc(int rows, int ncols) ;
 static void   matFree(double **matrix, int nrows, int ncols) ;
 static int    readMatFile(FILE *fp, MATFILE *mf, double **real_matrix, 
                                      double **imag_matrix) ;
+
+#ifndef SPARC
+static void   swapBytes(MATFILE *mf) ;
+static short  swapShort(short s) ;
+static long   swapLong(long l) ;
+static double swapDouble(double dval) ;
+#endif
 
 static char *Progname = "matfile" ;
 
@@ -56,17 +59,18 @@ MatlabRead(const char *fname)
   DiagPrintf(DIAG_WRITE, "MatlabRead: reading header\n");
 
   name = readMatHeader(fp, &mf) ;
-  if(name==NULL) {
+  if(name==NULL) 
+  {
     ErrorPrintf(ERROR_BADFILE, "MatlabRead: readHeader returned NULL\n");
     return(NULL);
   }
 
-DiagPrintf(DIAG_WRITE, "MatlabRead: allocating real matrix (r=%d,c=%d)\n",
+  DiagPrintf(DIAG_WRITE, "MatlabRead: allocating real matrix (r=%d,c=%d)\n",
    (int)mf.mrows,(int)mf.ncols);
 
   real_matrix = matAlloc((int)mf.mrows, (int)mf.ncols) ;
 
-DiagPrintf(DIAG_WRITE, "MatlabRead: done real mtx alloc\n");
+  DiagPrintf(DIAG_WRITE, "MatlabRead: done real mtx alloc\n");
 
   if (mf.imagf)
       imag_matrix = matAlloc((int)mf.mrows, (int)mf.ncols) ;
@@ -106,7 +110,7 @@ DiagPrintf(DIAG_WRITE, "MatlabRead: done real mtx alloc\n");
   if (mf.imagf)
       matFree(imag_matrix, nrows, ncols) ;
 
-DiagPrintf(DIAG_WRITE, "MatlabRead: done\n");
+  DiagPrintf(DIAG_WRITE, "MatlabRead: done\n");
 
   return(mat) ;
 }
@@ -292,127 +296,150 @@ matAlloc(int rows, int cols)
 static int
 readMatFile(FILE *fp, MATFILE *mf, double **real_matrix, double **imag_matrix)
 {
-    int     row, col, type, nitems ;
-    short   sval ;
-    long    lval ;
-    double  dval ;
-    char    bval ;
-    float   fval ;
-
-    type = (int)mf->type - ((int)mf->type / 1000) * 1000 ;   /* remove 1000s from type */
-    type = type - type / 100 * 100 ;               /* remove 100s from type */
-    type = type / 10 * 10 ;       /* 10s digit specifies data type */
-    switch (type)
+  int     row, col, type, nitems ;
+  short   sval ;
+  long    lval ;
+  double  dval ;
+  char    bval ;
+  float   fval ;
+  
+  
+  type = (int)mf->type - ((int)mf->type / 1000) * 1000 ;   /* remove 1000s */
+  type = type - type / 100 * 100 ;               /* remove 100s from type */
+  type = type / 10 * 10 ;       /* 10s digit specifies data type */
+  switch (type)
+  {
+  case 0:
+    type = MAT_DOUBLE ;
+    break ;
+  case 10:
+    type = MAT_FLOAT ;
+    break ;
+  case 20:
+    type = MAT_INT ;
+    break ;
+  case 30:  /* signed */
+  case 40:  /* unsigned */
+    type = MAT_SHORT ;
+    break ;
+  case 50:     /* bytes */
+    type = MAT_BYTE ;
+    break ;
+  default:
+    ErrorPrintf(ERROR_BADFILE, "unsupported matlab format %d (%s)\n",
+                type, type == MAT_FLOAT ? "float" : "unknown") ;
+    break ;
+  }
+  
+  /* data is stored column by column, real first then imag (if any) */
+  for (col = 0 ; col < mf->ncols ; col++)
+  {
+    for (row = 0 ; row < mf->mrows ; row++)
     {
-    case 0:
-        type = MAT_DOUBLE ;
-        break ;
-    case 10:
-        type = MAT_FLOAT ;
-        break ;
-    case 20:
-        type = MAT_INT ;
-        break ;
-    case 30:  /* signed */
-    case 40:  /* unsigned */
-        type = MAT_SHORT ;
-        break ;
-    case 50:     /* bytes */
-        type = MAT_BYTE ;
-        break ;
-    default:
-        ErrorPrintf(ERROR_BADFILE, "unsupported matlab format %d (%s)\n",
-                        type, type == MAT_FLOAT ? "float" : "unknown") ;
-        break ;
-    }
-    
-    /* data is stored column by column, real first then imag (if any) */
-    for (col = 0 ; col < mf->ncols ; col++)
-    {
-        for (row = 0 ; row < mf->mrows ; row++)
+      switch(type)
+      {
+      case MAT_BYTE:
+        nitems = fread(&bval, 1, sizeof(char), fp) ;
+        if (nitems != sizeof(char))
         {
-            switch(type)
-            {
-            case MAT_BYTE:
-                nitems = fread(&bval, 1, sizeof(char), fp) ;
-                if (nitems != sizeof(char))
-                {
-                    ErrorPrintf(ERROR_BADFILE, "%s: could not read val[%d, %d] from .mat file\n",
-                                    Progname, row, col) ;
-                    /*exit(4)*/return(-1) ;
-                }
-                real_matrix[row][col] = (double)bval ;
-                break ;
-            case MAT_SHORT:
-                nitems = fread(&sval, 1, sizeof(short), fp) ;
-                if (nitems != sizeof(char))
-                {
-                    ErrorPrintf(ERROR_BADFILE, "%s: could not read val[%d, %d] from .mat file\n",
-                                    Progname, row, col) ;
-                    /*exit(4)*/return(-1) ;
-                }
-                real_matrix[row][col] = (double)sval ;
-                break ;
-            case MAT_INT:   /* 32 bit integer */
-                nitems = fread(&lval, 1, sizeof(long), fp) ;
-                if (nitems != sizeof(long))
-                {
-                    ErrorPrintf(ERROR_BADFILE, "%s: could not read val[%d, %d] from .mat file\n",
-                                    Progname, row, col) ;
-                    /*exit(4)*/return(-1) ;
-                }
-                real_matrix[row][col] = (double)lval ;
-                break ;
-            case MAT_FLOAT:
-                nitems = fread(&fval, 1, sizeof(float), fp) ;
-                if (nitems != sizeof(float))
-                {
-                    ErrorPrintf(ERROR_BADFILE, "%s: could not read val[%d, %d] from .mat file\n",
-                                    Progname, row, col) ;
-                    /*exit(4)*/return(-1) ;
-                }
-                real_matrix[row][col] = (double)fval ;
-                break ;
-            case MAT_DOUBLE:
-                nitems = fread(&dval, 1, sizeof(double), fp) ;
-                if (nitems != sizeof(double))
-                {
-                    ErrorPrintf(ERROR_BADFILE, "%s: could not read val[%d, %d] from .mat file\n",
-                                    Progname, row, col) ;
-                    /*exit(4)*/return(-1) ;
-                }
-                real_matrix[row][col] = dval ;
-                break ;
-            default:
-                break ;
-            }
+          ErrorPrintf(ERROR_BADFILE, 
+                      "%s: could not read val[%d, %d] from .mat file\n",
+                      Progname, row, col) ;
+          /*exit(4)*/return(-1) ;
         }
-    }
-
-    if (imag_matrix) for (col = 0 ; col < mf->ncols ; col++)
-    {
-        for (row = 0 ; row < mf->mrows ; row++)
+        real_matrix[row][col] = (double)bval ;
+        break ;
+      case MAT_SHORT:
+        nitems = fread(&sval, 1, sizeof(short), fp) ;
+        if (nitems != sizeof(char))
         {
-            switch(type)
-            {
-            case MAT_DOUBLE:
-                nitems = fread(&dval, 1, sizeof(double), fp) ;
-                if (nitems != sizeof(double))
-                {
-      ErrorPrintf(ERROR_BADFILE, "%s: could not read val[%d, %d]"
-        "from .mat file\n",Progname, row, col) ;
-                    /*exit(4) ;*/
-      return(-1);
-                }
-                break ;
-            default:
-                break ;
-            }
-            imag_matrix[row][col] = dval ;
+          ErrorPrintf(ERROR_BADFILE, 
+                      "%s: could not read val[%d, %d] from .mat file\n",
+                      Progname, row, col) ;
+          /*exit(4)*/return(-1) ;
         }
-    }
+#ifndef SPARC
+        if (mf->type >= MATFILE_SPARC)
+          sval = swapShort(sval) ;
+#endif
+        real_matrix[row][col] = (double)sval ;
+        break ;
+      case MAT_INT:   /* 32 bit integer */
+        nitems = fread(&lval, 1, sizeof(long), fp) ;
+        if (nitems != sizeof(long))
+        {
+          ErrorPrintf(ERROR_BADFILE, 
+                      "%s: could not read val[%d, %d] from .mat file\n",
+                      Progname, row, col) ;
+          /*exit(4)*/return(-1) ;
+        }
 
-    return(type) ;
+#ifndef SPARC
+        if (mf->type >= MATFILE_SPARC)
+          lval = swapLong(lval) ;
+#endif
+        real_matrix[row][col] = (double)lval ;
+        break ;
+      case MAT_FLOAT:
+        nitems = fread(&fval, 1, sizeof(float), fp) ;
+        if (nitems != sizeof(float))
+        {
+          ErrorPrintf(ERROR_BADFILE, 
+                      "%s: could not read val[%d, %d] from .mat file\n",
+                      Progname, row, col) ;
+          /*exit(4)*/return(-1) ;
+        }
+#ifndef SPARC
+        if (mf->type >= MATFILE_SPARC)
+          fval = (float)swapLong((long)fval) ;
+#endif
+        real_matrix[row][col] = (double)fval ;
+        break ;
+      case MAT_DOUBLE:
+        nitems = fread(&dval, 1, sizeof(double), fp) ;
+        if (nitems != sizeof(double))
+        {
+          ErrorPrintf(ERROR_BADFILE, 
+                      "%s: could not read val[%d, %d] from .mat file\n",
+                      Progname, row, col) ;
+          /*exit(4)*/return(-1) ;
+        }
+#ifndef SPARC
+        if (mf->type >= MATFILE_SPARC)
+          dval = swapDouble(dval) ;
+#endif
+        real_matrix[row][col] = dval ;
+        break ;
+      default:
+        break ;
+      }
+    }
+  }
+  
+  if (imag_matrix) for (col = 0 ; col < mf->ncols ; col++)
+  {
+    for (row = 0 ; row < mf->mrows ; row++)
+    {
+      switch(type)
+      {
+      case MAT_DOUBLE:
+        nitems = fread(&dval, 1, sizeof(double), fp) ;
+        if (nitems != sizeof(double))
+        {
+          ErrorPrintf(ERROR_BADFILE, "%s: could not read val[%d, %d]"
+                      "from .mat file\n",Progname, row, col) ;
+          /*exit(4) ;*/
+          return(-1);
+        }
+        break ;
+      default:
+        break ;
+      }
+      imag_matrix[row][col] = dval ;
+    }
+  }
+  
+  return(type) ;
 }
 
 static char *
@@ -426,10 +453,20 @@ DiagPrintf(DIAG_WRITE, "readMatHeader: fp=%lx, mf=%lx\n",fp,mf);
     nitems = fread(mf, 1, sizeof(MATHD), fp) ; 
     if (nitems != sizeof(MATHD))
     {
-      ErrorPrintf(ERROR_BADFILE, "%s:only read %d bytes of header\n", Progname, nitems) ;
+      ErrorPrintf(ERROR_BADFILE, "%s:only read %d bytes of header\n", 
+                  Progname, nitems) ;
       /*exit(1) ;*/
       return(NULL);
     }
+#ifndef SPARC
+    DiagPrintf(DIAG_WRITE, "type = %ld\n", mf->type) ;
+    if (mf->type >= MATFILE_SPARC || mf->type < 0)
+    {
+      DiagPrintf(DIAG_WRITE, "mat file generated on a sparc\n") ;
+      swapBytes(mf) ;
+    }
+    DiagPrintf(DIAG_WRITE, "after swap, type = %ld\n", mf->type) ;
+#endif
 
     DiagPrintf(DIAG_WRITE, "readMatHeader: nitems = %d, namelen=%d\n",
        nitems,(int)mf->namlen+1);
@@ -459,3 +496,84 @@ DiagPrintf(DIAG_WRITE, "readMatHeader: fp=%lx, mf=%lx\n",fp,mf);
     return(name) ;
 }
 
+#ifndef SPARC
+static void
+swapBytes(MATFILE *mf)
+{
+  mf->type = swapLong(mf->type) ;
+  mf->mrows = swapLong(mf->mrows) ;
+  mf->ncols = swapLong(mf->ncols) ;
+  mf->namlen = swapLong(mf->namlen) ;
+}
+
+typedef union
+{
+  long l ;
+  char buf[4] ;
+  short s[2] ;
+} SWAP_LONG ;
+
+static long
+swapLong(long l)
+{
+  SWAP_LONG  sl ;
+  short      s ;
+
+  /* first swap bytes in each word */
+  sl.l = l ;
+  sl.s[0] = swapShort(sl.s[0]) ;
+  sl.s[1] = swapShort(sl.s[1]) ;
+
+  /* now swap words */
+  s = sl.s[0] ;
+  sl.s[0] = sl.s[1] ;
+  sl.s[1] = s ;
+
+  return(sl.l) ;
+}
+
+typedef union
+{
+  short  s ;
+  char   buf[sizeof(short)] ;
+} SWAP_SHORT ;
+
+static short
+swapShort(short s)
+{
+  SWAP_SHORT ss ;
+  char       c ;
+
+  /* first swap bytes in word */
+  ss.s = s ;
+  c = ss.buf[0] ;
+  ss.buf[0] = ss.buf[1] ;
+  ss.buf[1] = c ;
+
+  return(ss.s) ;
+}
+
+typedef union
+{
+  double  d ;
+  long    l[sizeof(double) / sizeof(long)] ;
+} SWAP_DOUBLE ;
+
+static double
+swapDouble(double d)
+{
+  SWAP_DOUBLE  sd ;
+  long         l ;
+
+  sd.d = d ;
+
+  sd.l[0] = swapLong(sd.l[0]) ;
+  sd.l[1] = swapLong(sd.l[1]) ;
+  l = sd.l[0] ;
+  sd.l[0] = sd.l[1] ;
+  sd.l[1] = l ;
+
+  return(sd.d) ;
+}
+
+#endif
