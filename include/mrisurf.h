@@ -293,6 +293,8 @@ int          MRISreadCurvatureFile(MRI_SURFACE *mris, char *fname) ;
 int          MRISreadValues(MRI_SURFACE *mris, char *fname) ;
 
 int          MRISwrite(MRI_SURFACE *mris, char *fname) ;
+int          MRISwriteAscii(MRI_SURFACE *mris, char *fname) ;
+int          MRISwritePatchAscii(MRI_SURFACE *mris, char *fname) ;
 int          MRISwriteCurvature(MRI_SURFACE *mris, char *fname) ;
 int          MRISwriteAreaError(MRI_SURFACE *mris, char *fname) ;
 int          MRISwriteAngleError(MRI_SURFACE *mris, char *fname) ;
