@@ -112,7 +112,7 @@ MATRIX *MatrixAsciiRead(char *fname, MATRIX *m) ;
 #define V3_LOAD       VECTOR3_LOAD
 
 
-float  Vector3Angle(VECTOR *v1, VECTOR *v2) ;
+double  Vector3Angle(VECTOR *v1, VECTOR *v2) ;
 
 float  VectorLen(VECTOR *v) ;
 float  VectorAngle(VECTOR *v1, VECTOR *v2) ;
