@@ -74,7 +74,7 @@ static int   rbfGradientDescent(RBF *rbf, int (*get_observation_func)
                 int *pclass), void *parm) ;
 static int   rbfComputeHiddenActivations(RBF *rbf, VECTOR *v_obs) ;
 static float rbfGaussian(MATRIX *m_sigma_inverse,VECTOR *v_means,
-                         VECTOR *v_obs, VECTOR *v_z);
+                         VECTOR *v_obs, VECTOR *v_z, float norm);
 static int   rbfShowClusterCenters(RBF *rbf, FILE *fp) ;
 static int   rbfAdjustOutputWeights(RBF *rbf, VECTOR *v_error) ;
 static int   rbfAdjustHiddenCenters(RBF *rbf, VECTOR *v_error) ;
@@ -149,10 +149,13 @@ RBFinit(int ninputs, int noutputs, int max_clusters[], char *names[])
 
   for (rbf->nhidden = i = 0 ; i < noutputs ; i++)
   {
-    rbf->cs[i] = CSinit(max_clusters[i], ninputs, CLUSTER_DONT_NORMALIZE) ;
-    if (!rbf->cs[i])
-      ErrorExit(ERROR_NO_MEMORY, "RBFinit: could not allocate cs %d", i) ;
-    rbf->nhidden += max_clusters[i] ;
+    if (max_clusters[i] > 0)
+    {
+      rbf->cs[i] = CSinit(max_clusters[i], ninputs, CLUSTER_DONT_NORMALIZE) ;
+      if (!rbf->cs[i])
+        ErrorExit(ERROR_NO_MEMORY, "RBFinit: could not allocate cs %d", i) ;
+      rbf->nhidden += max_clusters[i] ;
+    }
   }
 
   
@@ -213,6 +216,9 @@ RBFtrain(RBF *rbf, int (*get_observation_func)
 
   for (i = 0 ; i < rbf->noutputs ; i++)
   {
+    if (!rbf->cs[i])
+      continue ;
+
     if (Gdiag & DIAG_SHOW)
       fprintf(stderr, "finding %d clusters for class %s...", 
               rbf->cs[i]->max_clusters, rbf->class_names[i]) ;
@@ -236,7 +242,7 @@ RBFtrain(RBF *rbf, int (*get_observation_func)
   for (cno = class = 0 ; class < rbf->noutputs ; class++)
   {
     cs = rbf->cs[class] ;
-    for (c = 0 ; c < cs->nclusters ; c++, cno++)
+    if (cs) for (c = 0 ; c < cs->nclusters ; c++, cno++)
       rbf->clusters[cno] = cs->clusters+c ;
   }
 
@@ -343,6 +349,8 @@ RBFprint(RBF *rbf, FILE *fp)
     CSprint(rbf->cs[i], stderr) ;
 #else
     cs = rbf->cs[i] ;
+    if (!cs)
+      continue ;
     for (c = 0 ; c < cs->nclusters ; c++)
     {
       cluster = cs->clusters+c ;
@@ -490,7 +498,8 @@ rbfComputeHiddenActivations(RBF *rbf, VECTOR *v_obs)
   {
     cluster = rbf->clusters[c] ;
     total += RVECTOR_ELT(rbf->v_hidden,c+1) = 
-      rbfGaussian(cluster->m_inverse, cluster->v_means, v_obs, rbf->v_z[c]);
+      rbfGaussian(cluster->m_inverse, cluster->v_means, v_obs, rbf->v_z[c],
+                  cluster->norm);
   }
 #if 1
   /* normalize hidden layer activations */
@@ -521,6 +530,8 @@ rbfShowClusterCenters(RBF *rbf, FILE *fp)
   for (i = 0 ; i < rbf->noutputs ; i++)
   {
     cs = rbf->cs[i] ;
+    if (!cs)
+      continue ;
     fprintf(fp, "class %s:\n", rbf->class_names[i]) ;
     for (c = 0 ; c < cs->nclusters ; c++)
     {
@@ -548,7 +559,8 @@ rbfShowClusterCenters(RBF *rbf, FILE *fp)
           input v_obs.
 ------------------------------------------------------*/
 static float
-rbfGaussian(MATRIX *m_sigma_inverse,VECTOR *v_means,VECTOR *v_obs, VECTOR *v_z)
+rbfGaussian(MATRIX *m_sigma_inverse,VECTOR *v_means,VECTOR *v_obs, 
+            VECTOR *v_z, float norm)
 {
   float   val = 0.0f ;
   static VECTOR  *v_zT = NULL ;
@@ -565,7 +577,7 @@ rbfGaussian(MATRIX *m_sigma_inverse,VECTOR *v_means,VECTOR *v_obs, VECTOR *v_z)
   else if (val > 0.0f)   /* error - shouldn't happen, but can because of lms */
     val = 0.0f ;
   else
-    val = exp(val) ;
+    val = norm * exp(val) ;
 
 #if 0
   MatrixFree(&m_tmp1) ;
@@ -1126,8 +1138,11 @@ RBFexamineTrainingSet(RBF *rbf, int (*get_observation_func)
   {
     for (i = 0 ; i < rbf->ninputs ; i++)
     {
-      rbf->cs[c]->means[i] = means[i] ;
-      rbf->cs[c]->stds[i] = stds[i] ;
+      if (rbf->cs[c])
+      {
+        rbf->cs[c]->means[i] = means[i] ;
+        rbf->cs[c]->stds[i] = stds[i] ;
+      }
     }
   }
 
@@ -1154,7 +1169,7 @@ RBFcopyWeights(RBF *rbf_src, RBF *rbf_dst)
     CLUSTER_SET *cs_src, *cs_dst ;
 
     for (i = 0 ; i < rbf_src->noutputs ; i++)
-      max_clusters[i] = rbf_src->cs[i]->max_clusters ;
+      max_clusters[i] = rbf_src->cs[i] ? rbf_src->cs[i]->max_clusters : 0 ;
 
     rbf_dst = RBFinit(rbf_src->ninputs, rbf_src->noutputs, max_clusters, 
                       rbf_src->class_names) ;
@@ -1164,7 +1179,7 @@ RBFcopyWeights(RBF *rbf_src, RBF *rbf_dst)
     {
       cs_src = rbf_src->cs[class] ;
       cs_dst = rbf_dst->cs[class] ;
-      for (c = 0 ; c < cs_src->nclusters ; c++, cno++)
+      if (cs_src) for (c = 0 ; c < cs_src->nclusters ; c++, cno++)
         rbf_dst->clusters[cno] = cs_dst->clusters+c ;
     }
     rbf_dst->m_delta_sigma_inv = 
@@ -1412,14 +1427,16 @@ RBFwriteInto(RBF *rbf, FILE *fp)
   fprintf(fp, "%d %d %d\n", rbf->noutputs, rbf->ninputs, rbf->nhidden) ;
   fprintf(fp, "\n# class names and max # of clusters\n") ;
   for (i = 0 ; i < rbf->noutputs ; i++)
-    fprintf(fp, "%d %s\n", rbf->cs[i]->max_clusters, rbf->class_names[i]) ;
+    fprintf(fp, "%d %s\n", rbf->cs[i] ? rbf->cs[i]->max_clusters : 0, 
+            rbf->class_names[i]) ;
 
   fprintf(fp, "# weights:\n") ;
   MatrixAsciiWriteInto(fp, rbf->m_wij) ;
   for (i = 0 ; i < rbf->noutputs ; i++)
   {
     fprintf(fp, "CLASS: %s\n", rbf->class_names[i]) ;
-    CSwriteInto(fp, rbf->cs[i]) ;
+    if (rbf->cs[i])
+      CSwriteInto(fp, rbf->cs[i]) ;
   }
   return(NO_ERROR) ;
 }
@@ -1459,13 +1476,14 @@ RBFreadFrom(FILE *fp)
   for (i = 0 ; i < rbf->noutputs ; i++)
   {
     fgetl(line, 199, fp) ;   /* skip class name */
-    CSreadFrom(fp, rbf->cs[i]) ;
+    if (rbf->cs[i])
+      CSreadFrom(fp, rbf->cs[i]) ;
   }
 
   /* fill in cluster pointers in rbf struct for convenience sake */
   for (cno = class = 0 ; class < rbf->noutputs ; class++)
   {
-    for (c = 0 ; c < rbf->cs[class]->nclusters ; c++, cno++)
+    if (rbf->cs[class]) for (c = 0 ; c < rbf->cs[class]->nclusters ; c++,cno++)
       rbf->clusters[cno] = rbf->cs[class]->clusters+c ;
   }
 
