@@ -14,7 +14,7 @@
 #include "macros.h"
 #include "fio.h"
 
-static char vcid[] = "$Id: mris_anatomical_stats.c,v 1.7 2002/04/25 20:42:49 fischl Exp $";
+static char vcid[] = "$Id: mris_anatomical_stats.c,v 1.8 2002/05/20 16:45:15 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -58,13 +58,13 @@ main(int argc, char *argv[])
   MRI_SURFACE   *mris ;
   MRI           *mri_wm, *mri_kernel = NULL, *mri_orig ;
   double        gray_volume, wm_volume, thickness_mean, thickness_var,
-                total_abs_curvature, ici, fi ;
+                total_abs_mean_curvature, total_abs_gaussian_curvature, ici, fi ;
   int           mark = 0 ;
   FILE          *log_fp = NULL ;
   VERTEX        *v ;
   HISTOGRAM     *histo_gray ;
 
-  total_abs_curvature = gray_volume = 0.0 ;
+  total_abs_mean_curvature = total_abs_gaussian_curvature = gray_volume = 0.0 ;
   Progname = argv[0] ;
   ErrorInit(NULL, NULL, NULL) ;
   DiagInit(NULL, NULL, NULL) ;
@@ -233,13 +233,13 @@ main(int argc, char *argv[])
             thickness_mean, sqrt(thickness_var)) ;
       
       MRISuseMeanCurvature(mris) ;
-      total_abs_curvature = MRIScomputeAbsoluteCurvature(mris) ;
+      total_abs_mean_curvature = MRIScomputeAbsoluteCurvature(mris) ;
       fprintf(stdout, "integrated rectified mean curvature     = %2.3f\n", 
-              total_abs_curvature) ;
+              total_abs_mean_curvature) ;
       MRISuseGaussianCurvature(mris) ;
-      total_abs_curvature = MRIScomputeAbsoluteCurvature(mris) ;
+      total_abs_gaussian_curvature = MRIScomputeAbsoluteCurvature(mris) ;
       fprintf(stdout, "integrated rectified Gaussian curvature = %2.3f\n", 
-              total_abs_curvature) ;
+              total_abs_gaussian_curvature) ;
       MRIScomputeCurvatureIndices(mris, &ici, &fi) ;
       fprintf(stdout, "folding index                           = %2.3f\n", fi);
       fprintf(stdout, "intrinsic curvature index               = %2.3f\n",ici);
@@ -267,27 +267,28 @@ main(int argc, char *argv[])
             thickness_mean, sqrt(thickness_var)) ;
     
     MRISuseMeanCurvature(mris) ;
-    total_abs_curvature = MRIScomputeAbsoluteCurvature(mris) ;
+    total_abs_mean_curvature = MRIScomputeAbsoluteCurvature(mris) ;
     fprintf(stdout, "integrated rectified mean curvature     = %2.3f\n", 
-            total_abs_curvature) ;
+            total_abs_mean_curvature) ;
     MRISuseGaussianCurvature(mris) ;
-    total_abs_curvature = MRIScomputeAbsoluteCurvature(mris) ;
+    total_abs_gaussian_curvature = MRIScomputeAbsoluteCurvature(mris) ;
     fprintf(stdout, "integrated rectified Gaussian curvature = %2.3f\n", 
-            total_abs_curvature) ;
+            total_abs_gaussian_curvature) ;
     MRIScomputeCurvatureIndices(mris, &ici, &fi) ;
     fprintf(stdout, "folding index                           = %2.3f\n", fi);
     fprintf(stdout, "intrinsic curvature index               = %2.3f\n", ici);
   }
   if (log_fp)
   {
-    fprintf(log_fp, "%% %s: <wm vol> <surf area> <gray vol> <thick mean> <thick var> <integ rect. Gauss curv> <fold index> <intr curv ind>\n",sname) ;
-    fprintf(log_fp, "%2.0f\t%2.0f\t%2.0f\t%2.3f\t%2.3f\t%2.3f\t%2.3f\t%2.3f\n", 
+    fprintf(log_fp, "%% %s: <wm vol> <surf area> <gray vol> <thick mean> <thick var> <integ rect. mean curv> <integ rect. Gauss curv> <fold index> <intr curv ind>\n",sname) ;
+    fprintf(log_fp, "%2.0f\t%2.0f\t%2.0f\t%2.3f\t%2.3f\t%2.3f\t%2.3f\t%2.3f\t%2.3f\n", 
             wm_volume,
             mris->total_area,
             gray_volume,
             thickness_mean, 
             sqrt(thickness_var), 
-            total_abs_curvature, 
+            total_abs_mean_curvature, 
+            total_abs_gaussian_curvature, 
             fi, 
             ici) ;
     fclose(log_fp) ;
