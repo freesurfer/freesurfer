@@ -16,6 +16,40 @@ MRI *conform_voxels(MRI *mri);
 MRI *conform_size(MRI *mri);
 MRI *conform_direction(MRI *mri);
 
+MATRIX *MRIgetConformMatrix(MRI *mri)
+{
+
+  MRI *templ;
+  MATRIX *m_resample ;
+
+  if(mri->ras_good_flag == 0)
+  {
+    mri->x_r = -1.0;  mri->x_a =  0.0;  mri->x_s =  0.0;
+    mri->y_r =  0.0;  mri->y_a =  0.0;  mri->y_s = -1.0;
+    mri->z_r =  0.0;  mri->z_a =  1.0;  mri->z_s =  0.0;
+ } 
+
+  templ = MRIallocHeader(256, 256, 256, MRI_UCHAR);
+
+  templ->imnr0 = 1;
+  templ->imnr1 = 256;
+  templ->thick = 1.0;
+  templ->ps = 1.0;
+  templ->xsize = templ->ysize = templ->zsize = 1.0;
+  templ->xstart = templ->ystart = templ->zstart = -128.0;
+  templ->xend = templ->yend = templ->zend = 128.0;
+  templ->x_r = -1.0;      templ->x_a =  0.0;      templ->x_s =  0.0;
+  templ->y_r =  0.0;      templ->y_a =  0.0;      templ->y_s = -1.0;
+  templ->z_r =  0.0;      templ->z_a =  1.0;      templ->z_s =  0.0;
+  templ->c_r = mri->c_r;  templ->c_a = mri->c_a;  templ->c_s = mri->c_s;
+  templ->slice_direction = MRI_CORONAL;
+
+
+  m_resample = MRIgetResampleMatrix(mri, templ);
+
+  return(m_resample);
+}
+
 MRI *MRIconform(MRI *mri)
 {
 
@@ -28,7 +62,7 @@ MRI *MRIconform(MRI *mri)
     res->x_r = -1.0;  res->x_a =  0.0;  res->x_s =  0.0;
     res->y_r =  0.0;  res->y_a =  0.0;  res->y_s = -1.0;
     res->z_r =  0.0;  res->z_a =  1.0;  res->z_s =  0.0;
-  }
+ } 
 
   templ = MRIallocHeader(256, 256, 256, MRI_UCHAR);
 
@@ -54,6 +88,7 @@ MRI *MRIconform(MRI *mri)
       return(NULL);
     res = mri2;
   }
+
 
   /* ----- reslice if necessary ----- */
   if(res->xsize != templ->xsize || res->ysize != templ->ysize   || res->zsize != templ->zsize ||
