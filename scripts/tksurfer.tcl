@@ -631,14 +631,14 @@ proc FillOverlayLayerMenu { iowOverlay } {
     foreach entry $lEntries { 
   $iowOverlay delete $entry
     }
-      
+    
     set nValueIndex 0
     while { [info exists gaScalarValueID($nValueIndex,label)] } {
   $iowOverlay add command $nValueIndex \
-   -label $gsaLabelContents($gaScalarValueID($nValueIndex,label),name)
+      -label $gsaLabelContents($gaScalarValueID($nValueIndex,label),name)
   incr nValueIndex
     }
-
+    
     $iowOverlay config -disablecallback 0
 }
 
@@ -714,8 +714,7 @@ proc DoConfigOverlayDisplayDlog {} {
     if { [Dialog_Create $wwDialog "Configure Overlay Display" {-borderwidth 10}] } {
   
   set fwMain             $wwDialog.fwMain
-  set fwTimePoint        $wwDialog.fwTimePoint
-  set fwCondition        $wwDialog.fwCondition
+  set fwPlane            $wwDialog.fwPlane
   set fwColorScale       $wwDialog.fwColorScale
   set fwFlags            $wwDialog.fwFlags
   set fwHisto            $wwDialog.fwHisto
@@ -731,7 +730,16 @@ proc DoConfigOverlayDisplayDlog {} {
   if { $nMaxTimePoint < 0 } {
       set nMaxTimePoint 0
   }
-  
+
+  # The plane of data we're viewing.
+  set lwPlane            $fwPlane.lwPlane
+  set fwTimePoint        $fwPlane.fwTimePoint
+  set fwCondition        $fwPlane.fwCondition
+
+  frame $fwPlane -relief ridge -border 2
+
+  label $lwPlane -text "Location" -font [tkm_GetLabelFont]
+
   tkm_MakeEntryWithIncDecButtons \
       $fwTimePoint "Time Point (0-$nMaxTimePoint)" \
       gaLinkedVars(ftimepoint) \
@@ -741,8 +749,13 @@ proc DoConfigOverlayDisplayDlog {} {
       $fwCondition "Condition (0-$nMaxCondition)" \
       gaLinkedVars(fcondition) \
       {} 1 "0 $nMaxCondition"
-  
+
+  grid $lwPlane     -column 0 -row 0 -columnspan 2
+  grid $fwTimePoint -column 0 -row 1 -sticky w
+  grid $fwCondition -column 1 -row 1 -sticky w
+
   # color scale
+  if { 0 } {
   tkm_MakeRadioButtons $fwColorScale y "Color Scale" \
       gaLinkedVars(colscale) { 
     { text "Color Wheel (Complex)" 0 {} }
@@ -752,19 +765,96 @@ proc DoConfigOverlayDisplayDlog {} {
     { text "Heat Scale (Stat, Positive)" 1 {} }
     { text "Blue to Red (Signed)" 6 {} }
     { text "Not Here (Signed)" 9 {} } }
+  }
+
+
+  set lwColorScale  $fwColorScale.lwColorScale
+  set lwSingle      $fwColorScale.lwSingle
+  set lwComplex     $fwColorScale.lwComplex
+  set cbwColorWheel $fwColorScale.cbwColorWheel
+  set cbwRYGBWheel  $fwColorScale.cbwRYGBWheel
+  set cbwTwoCond    $fwColorScale.cbwTwoCond
+  set cbwGreenRed   $fwColorScale.cbwGreenRed
+  set cbwHeat       $fwColorScale.cbwHeat
+  set cbwBlueRed    $fwColorScale.cbwBlueRed
+
+  frame $fwColorScale -relief ridge -border 2
+
+  label $lwColorScale -text "Color Scale" -font [tkm_GetLabelFont]
+  label $lwSingle -text "Single" -font [tkm_GetLabelFont]
+  label $lwComplex -text "Complex" -font [tkm_GetLabelFont]
+
+  radiobutton $cbwColorWheel -font [tkm_GetNormalFont] \
+      -variable gaLinkedVars(colscale) -value 0 -text "Color Wheel"
+  radiobutton $cbwRYGBWheel -font [tkm_GetNormalFont] \
+      -variable gaLinkedVars(colscale) -value 8 -text "RYGB Wheel"
+  radiobutton $cbwTwoCond -font [tkm_GetNormalFont] \
+      -variable gaLinkedVars(colscale) -value 4 -text "Two Cond G/R"
+
+  radiobutton $cbwGreenRed -font [tkm_GetNormalFont] \
+      -variable gaLinkedVars(colscale) -value 7 -text "Green Red"
+  radiobutton $cbwHeat -font [tkm_GetNormalFont] \
+      -variable gaLinkedVars(colscale) -value 1 -text "Heat"
+  radiobutton $cbwBlueRed -font [tkm_GetNormalFont] \
+      -variable gaLinkedVars(colscale) -value 6 -text "Blue Red"
+
+  grid $lwColorScale  -column 0 -row 0 -columnspan 4
+  grid $lwSingle      -column 0 -row 1 -sticky e
+  grid $cbwGreenRed   -column 1 -row 1 -sticky w
+  grid $cbwHeat       -column 2 -row 1 -sticky w
+  grid $cbwBlueRed    -column 3 -row 1 -sticky w
+  grid $lwComplex     -column 0 -row 2 -sticky e
+  grid $cbwColorWheel -column 1 -row 2 -sticky w
+  grid $cbwRYGBWheel  -column 2 -row 2 -sticky w
+  grid $cbwTwoCond    -column 3 -row 2 -sticky w
   
   # checkboxes for truncate, inverse, reverse phase, complex values
+  if { 0 } {
   tkm_MakeCheckboxes $fwFlags y {
       { text "Truncate" gaLinkedVars(truncphaseflag) {} }
       { text "Inverse" gaLinkedVars(invphaseflag) {} }
       { text "Reverse" gaLinkedVars(revphaseflag) {} }
       { text "Complex" gaLinkedVars(complexvalflag) {} } }
-  
+  } 
+
+  set lwOptions   $fwFlags.lwOptions
+        set cbwTruncate $fwFlags.cbwTruncate
+        set cbwInverse  $fwFlags.cbwInverse
+        set cbwReverse  $fwFlags.cbwReverse
+        set cbwComplex  $fwFlags.cbwComplex
+
+        frame $fwFlags -relief ridge -border 2
+
+  label $lwOptions -text "Display Options" -font [tkm_GetLabelFont]
+
+  checkbutton $cbwTruncate \
+      -variable gaLinkedVars(truncphaseflag) \
+      -text "Truncate" \
+      -font [tkm_GetNormalFont]
+  checkbutton $cbwInverse \
+      -variable gaLinkedVars(invphaseflag) \
+      -text "Inverse" \
+      -font [tkm_GetNormalFont]
+  checkbutton $cbwReverse \
+      -variable gaLinkedVars(revphaseflag) \
+      -text "Reverse" \
+      -font [tkm_GetNormalFont]
+  checkbutton $cbwComplex \
+      -variable gaLinkedVars(complexvalflag) \
+      -text "Complex" \
+      -font [tkm_GetNormalFont]
+
+  grid $lwOptions   -column 0 -row 0 -columnspan 4
+  grid $cbwTruncate -column 0 -row 1 -stick w
+  grid $cbwInverse  -column 1 -row 1 -stick w
+  grid $cbwReverse  -column 2 -row 1 -stick w
+  grid $cbwComplex  -column 3 -row 1 -stick w
 
   # create the histogram frame and subunits
-  frame $fwHisto
+  frame $fwHisto -relief ridge -border 2
 
-  set gbwHisto  $fwHisto.bwHisto
+  set lwHisto  $fwHisto.lwHisto
+  set gbwHisto $fwHisto.bwHisto
   set fwThresh $fwHisto.fwThresh
   set ewMin    $fwThresh.ewMin
   set ewMid    $fwThresh.ewMid
@@ -774,6 +864,8 @@ proc DoConfigOverlayDisplayDlog {} {
   set fwCopy   $fwHisto.fwCopy
   set bwCopy   $fwCopy.bwCopy
   set owTarget $fwCopy.owTarget
+
+  label $lwHisto -text "Threshold" -font [tkm_GetLabelFont]
 
   # create a barchart object. configure it to hide the legend
   # and rotate the labels on the x axis.
@@ -800,10 +892,8 @@ proc DoConfigOverlayDisplayDlog {} {
   # height of the bar.
   bind $gbwHisto <Motion> {
       if { [$gbwHisto element closest %x %y aFound -halo 1] } { 
-    set gsHistoValue "Value ~$aFound(x) Count [expr round($aFound(y))]"
-      } else {
-    set gsHistoValue "Move mouse over graph bar"
-      }
+    set gsHistoValue "Value $aFound(x) Count [expr round($aFound(y))]"
+      } 
   }
     
   # make the entries for the threshold values.
@@ -851,6 +941,7 @@ proc DoConfigOverlayDisplayDlog {} {
   pack $bwCopy $owTarget \
       -side left
   
+  pack $lwHisto -side top
   pack $gbwHisto -fill both -expand yes
   pack $fwThresh -side top
   pack $ewValue -side top -expand yes -fill x
@@ -865,7 +956,7 @@ proc DoConfigOverlayDisplayDlog {} {
     [list Help {ShowOverlayHelpWindow}] \
   ]
   
-  pack $fwMain $fwTimePoint $fwCondition $fwColorScale \
+  pack $fwMain $fwPlane $fwColorScale \
       $fwFlags $fwHisto $fwButtons \
       -side top       \
       -expand yes     \
@@ -994,19 +1085,9 @@ proc UpdateOverlayDlogInfo {} {
     } result]
 #    if {$err != 0} {puts "ERROR updating histo: $result"}
 
-    # change the range of the threshold sliders. 
+    # rebuild the copy target menu
     catch {
-  [.wwConfigOverlayDisplayDlog.lfwThreshold subwidget frame].fwThresholdSliders.sw0 config \
-      -from $gaLinkedVars(fmin)
-  [.wwConfigOverlayDisplayDlog.lfwThreshold subwidget frame].fwThresholdSliders.sw0 config \
-      -to $gaLinkedVars(fmax)
-  }
-    
-    catch {
-  [.wwConfigOverlayDisplayDlog.lfwThreshold subwidget frame].fwThresholdSliders.sw1 config \
-      -from $gaLinkedVars(fmin)
-  [.wwConfigOverlayDisplayDlog.lfwThreshold subwidget frame].fwThresholdSliders.sw1 config \
-      -to $gaLinkedVars(fmax)
+      FillOverlayLayerMenu .wwConfigOverlayDisplayDlog.fwHisto.fwCopy.owTarget
     }
 }
 
@@ -1224,10 +1305,11 @@ proc DoLoadValueFile { inField } {
     set sExtension [file extension $val]
     if { $sExtension == ".bfloat" || $sExtension == ".bshort" } {
   DoSpecifyStemAndRegistration $inField
-
+  
     } else {
   # else pass to normal function
   sclv_read_binary_values $inField
+  UpdateOverlayDlogInfo
   UpdateAndRedraw
     }
 }
@@ -1264,7 +1346,7 @@ proc DoSpecifyStemAndRegistration { inField } {
 
   # buttons.
         tkm_MakeCancelOKButtons $fwButtons $wwDialog \
-    "sclv_read_bfile_values $inField \$sPath \$sStem \$sRegistration; UpdateAndRedraw"
+      "sclv_read_bfile_values $inField \$sPath \$sStem \$sRegistration; UpdateAndRedraw; UpdateOverlayDlogInfo "
 
   pack $fwStem $fwStemNote $fwReg $fwRegNote $fwButtons \
     -side top       \
