@@ -265,6 +265,10 @@ xList_tErr xList_Clear ( xListRef this ) {
     free ( pDelNode );
   }
 
+  this->mpHead = NULL;
+  this->mpTail = NULL;
+  this->mpNext = NULL;
+
  cleanup:
 
   return eResult;
