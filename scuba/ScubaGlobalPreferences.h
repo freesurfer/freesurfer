@@ -2,14 +2,26 @@
 #define ScubaGlobalPreferences_h
 
 #include "TclCommandManager.h"
+#include "Broadcaster.h"
 
-class ScubaGlobalPreferences : public TclCommandListener {
+// This class acts as a bridge between PreferencesManager and the rest
+// of the Scuba objects. Scuba objects can add themselves as listeners
+// to this object to get messages when preference values have been
+// changed by the user. This class also acts as the bridge between
+// prefs values and tcl.
+
+class ScubaGlobalPreferences : public TclCommandListener, public Broadcaster {
 
  public:
 
   enum PrefKey { ShowConsole, ViewFlipLeftRight,
-		 KeyInPlaneX, KeyInPlaneY, KeyInPlaneZ, 
-		 KeyCycleViewsInFrame };
+		 KeyInPlaneX, KeyInPlaneY, KeyInPlaneZ,
+		 KeyMoveViewLeft, KeyMoveViewRight,
+		 KeyMoveViewUp, KeyMoveViewDown,
+		 KeyMoveViewIn, KeyMoveViewOut,
+		 KeyZoomViewIn, KeyZoomViewOut,
+		 KeyCycleViewsInFrame,
+		 DrawCoordinateOverlay, DrawCenterCrosshairOverlay };
 
   // Gets the static reference to this class.
   static ScubaGlobalPreferences& GetPreferences();
@@ -19,7 +31,8 @@ class ScubaGlobalPreferences : public TclCommandListener {
   virtual TclCommandResult
     DoListenToTclCommand ( char* isCommand, int iArgc, char** iasArgv );
 
-  bool GetPrefAsBool ( PrefKey iKey );
+  bool        GetPrefAsBool   ( PrefKey iKey );
+  std::string GetPrefAsString ( PrefKey iKey );
 
  protected:
 

@@ -101,3 +101,12 @@ if { $sResult != "This is an error string." } {
     puts "Error on ReturnError:"
     puts "Result value was incorrect: $sResult"
 }
+
+set err [catch { TestThrow } sResult]
+if { $err == 0 } {
+    puts "TestThrow did not return an error: $sResult"
+}
+if { $sResult != "throw" } {
+    puts "Error on TestThrow:"
+    puts "Result value was incorrect: $sResult"
+}

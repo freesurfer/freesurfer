@@ -1,5 +1,6 @@
 #include <stdexcept>
 #include "ToglManager.h"
+#include "Scuba-impl.h"
 
 extern "C" {
 #include "glut.h"
@@ -7,6 +8,7 @@ extern "C" {
 
 using namespace std;
 
+char* Progname = "test_ToglManager";
 
 class TestFrame : public ToglFrame {
 public:
@@ -16,19 +18,19 @@ protected:
   virtual void DoDraw();
   virtual void DoReshape();
   virtual void DoTimer();
-  virtual void DoMouseMoved( int inX, int inY, InputState& iModifier );
-  virtual void DoMouseUp( int inX, int inY, InputState& iInput );
-  virtual void DoMouseDown( int inX, int inY, InputState& iInput );
-  virtual void DoKeyDown( int inX, int inY, InputState& iInput );
-  virtual void DoKeyUp( int inX, int inY, InputState& iInput );
+  virtual void DoMouseMoved( int iWindow[2], InputState& iModifier );
+  virtual void DoMouseUp( int iWindow[2], InputState& iInput );
+  virtual void DoMouseDown( int iWindow[2], InputState& iInput );
+  virtual void DoKeyDown( int iWindow[2], InputState& iInput );
+  virtual void DoKeyUp( int iWindow[2], InputState& iInput );
 
   bool bTimerCalled;
 };
 
 
 TestFrame::TestFrame( ToglFrame::ID iID ) : ToglFrame( iID ) {
-  DebugOutput( << "Created TestFrame " << iID );
   SetOutputStreamToCerr();
+  DebugOutput( << "Created TestFrame " << iID );
   bTimerCalled = false;
 }
 
@@ -59,38 +61,38 @@ TestFrame::DoTimer() {
 }
 
 void
-TestFrame::DoMouseMoved( int inX, int inY, InputState& iInput ) {
+TestFrame::DoMouseMoved( int iWindow[2], InputState& iInput ) {
 
   DebugOutput( << "TestFrame " << mID << ": DoMouseMoved " 
-	       << inX << ", " << inY << ", " << iInput );
+	       << iWindow[0] << ", " << iWindow[1] << ", " << iInput );
 }
 
 void
-TestFrame::DoMouseUp( int inX, int inY, InputState& iInput ) {
+TestFrame::DoMouseUp( int iWindow[2], InputState& iInput ) {
 
   DebugOutput( << "TestFrame " << mID << ": DoMouseUp "
-	       << inX << ", " << inY << ", " << iInput );
+	       << iWindow[0] << ", " << iWindow[1] << ", " << iInput );
 }
 
 void
-TestFrame::DoMouseDown( int inX, int inY, InputState& iInput ) {
+TestFrame::DoMouseDown( int iWindow[2], InputState& iInput ) {
 
   DebugOutput( << "TestFrame " << mID << ": DoMouseDown "
-	       << inX << ", " << inY << ", " << iInput );
+	       << iWindow[0] << ", " << iWindow[1] << ", " << iInput );
 }
 
 void
-TestFrame::DoKeyDown( int inX, int inY, InputState& iInput ) {
+TestFrame::DoKeyDown( int iWindow[2], InputState& iInput ) {
 
   DebugOutput( << "TestFrame " << mID << ": DoKeyDown "
-	       << inX << ", " << inY << ", " << iInput );
+	       << iWindow[0] << ", " << iWindow[1] << ", " << iInput );
 }
 
 void
-TestFrame::DoKeyUp( int inX, int inY, InputState& iInput ) {
+TestFrame::DoKeyUp( int iWindow[2], InputState& iInput ) {
 
   DebugOutput( << "TestFrame " << mID << ": DoKeyUp "
-	       << inX << ", " << inY << ", " << iInput );
+	       << iWindow[0] << ", " << iWindow[1] << ", " << iInput );
 }
 
 

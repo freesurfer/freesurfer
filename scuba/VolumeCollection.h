@@ -70,6 +70,7 @@ class VolumeCollection : public DataCollection {
 			      std::list<Point3<float> >& oPoints );
 
   void WriteROIToLabel ( int iROIID, std::string ifnLabel );
+  int  NewROIFromLabel ( std::string ifnLabel );
   void WriteROIsToSegmentation ( std::string ifnVolume );
 
 protected:

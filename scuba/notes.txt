@@ -1,221 +1,3 @@
- x]---====--- PLAN
-
-featureset 1
-
-- X/GL window embedded in tcl/tk frame
-- multiple volume loading
-- window supports multiple viewpane configs
-- viewing pane supports 
-  - multiple orientations
-   - overlays of loaded volumes
-   - grayscale or LUT
-- output shows values and coordinate systems
-- volume editing
-- selection
-- control points
-
-
-components:
-
-TCLCommandManager
- - AddListener( RespondToCommandFunc )
- - AddCommand( commandName, arguments.. )
- - SendCommand( commandName, arguments... )
- - keeps list of commands
- - registers single processing function with TCL
- - on called, compare command name with stored list, then lookup listeners to that command and broadcast to them
- - typdef (void)(RespondToCommandFunc)( commandName, arguments... )
-
-DataManager
- - LoadVolume( name );
- - LoadSurface( name );
- - void ReleaseVolume( MRI* );
- - void ReleaseSurface( MRIS* );
- - loads data and keeps track of it
-   - if another layer request the data, will just hand them the pointer
-   - does reference counting
-
-PreferencesManager
- - UseFile ( fname )
-   - look in ./fname, ~/fname etc
- - RegisterPref{Int,Float,String}( keyName, description, defaultValue )
-   - if not found, writes entry in prefs file with description in comments and default value
- - {Set,Get}PrefAs{Int,Float,String}( keyName )
-   - set or return value from prefs file
-
-DataCollection
- - static DataCollection* GetDataCollection( CollectionID );
- - Unload()
- - holds a central data type and then associated data
- - GetInfoAtRAS( iX,iY,iZ, oasLabels, oasValues )
-
-VolumeDataCollection : DataCollection
- - MRI*
- - selection list
- - transform stuff
-
-SurfaceDataCollection : DataCollection
- - MRIS*
- - selection list
- - scalars
-
-DataCollectionFactory
- - static CollectionID NewDataCollection( iType );
-
-ToglManager
- - all togl stuff
- - passes to a Frame
- - Tcl: Click(iX,iY), MouseMoved(iX,iY)
-
-Frame:
- - 1..n views
- - manages configuration, passing clicks along, key events, to proper view
- - other objects can register for idle events
- - tool modes
- - GetInfoAtWindowLocation( iX,iY, ocPairs, oasLabels, oasValues )
- - one view is selected
-   - SelectThisView() - calls UnselectThisView() on all other vies
-   - UnselectThisView()
-
-View
- - manages 1..n layers
- - manages clicks, polling data, sending updates to tcl
- - tells layers to draw into proper GL area
- - orientation : 2D: plane, zoom, view center, tp, condition
-                 3D: camera location, look, up
- - knows RAS coordinate space , converts window<->RAS
- - GetInfoAtWindowLocation( iX,iY, ocPairs, oasLabels, oasValues )
- - link information: type, which views are linked
- - SetView()
- - SetMarker()
- - SetLayers( iczLayers, iaLayerIDs ) 
-
-Layer
- - static Layer& GetLayer( LayerID );
- - static GetLayerIDList( oczLayers, oaLayerIDs )
- - Layer ( collectionID )
- - GetInfoAtRAS( iX,iY,iZ ocPairs, oasLabels, oasValues )
-  - drawing attributes:
-   - opactiy
-   - drawing level : 0 for base, 1 for overlay, or user-settable
-   - modes supported : 2D, 3D, graph, etc,
-   - transform : transform for this layer
- - subclasses
-   - contruction checks if collection type is appropriate for this layer
-   - 2DMRI( VolumeDataCollection )
-     - draws slices
-     - color scale : gray, color, or LUT
-     - LUT file
-     - sample type : nearest, trilinear, sinc
-   - 2DMRIS( SurfaceDataCollection )
-     - does intersections
-     - scalar files, color scale for each
-     - interpolation type
-   - 3DMRIS( SurfaceDataCollection )
-     - draws mesh
-     - scalar files, color scale for each
-   - Graph( VolumeDataCollection )
-     - current time point, condition
-
-LayerFactory
- - static LayerID NewLayer( iType );
-
-
-on redraw:
-ToglFrame
-  - for each view, view->Draw( this->Mode )
-View::Draw( iMode )
-  - for each drawing level 0..n
-    - for each layer in this level
-      - layer->DrawIntoView( this->ViewInfo, this->Mode, this->Orientation )
-Layer::DrawIntoView
-  - 2DMRI
-    - find bounds in volume from view bounds
-    - for each voxel
-      - get value -> color, apply color scale etc
-      - apply with opacity to existing buffer (from ViewInfo)
-  - 2DMRIS
-    - do intersection to find draw list
-    - apply color to vertex etc
-
-
-
-
-volume loading
- - Menu command: Load Volume...
- - Tk dlog box for loading volume
-     - Volume FN, optional label
-     - checkbox for Automatically Create Layer, with optional transform FN
-
-     collectionID NewVolumeDataCollection <volume_fn> <label>
-     if bCreateLayer
-       set layerID [New2DMRILayer collectionID]
-       if bTransform       
-         SetLayerTransform layerID <fnTransform>
-
-- layer info manager
- - use [GetLayerIDList] to get list of layers
- - scrolling list of panels, for each layer
-   set type [GetLayerType layerID]
-   switch type {
-     make widgets for layer info and settings
-   }
-
-- view info manager
- - for each view, list of possible layers, can add remove and reorder
-
-- info update
- - tk send mouse location to ToglManager
-   - frame->MouseMoved
-     - view->MouseMoved
-       - view transforms to 3/5D point, calls on layer->MouseMoved
-         - polls DataCollection for info
-	 - calls update functions via TclCommandManager
-
-- linked cursors
- - tk pass clicks to ToglManager
-   - passes to Frame, interprets tool and calls tool function
-     - View gets SetView()
-       - if View is linked, goes through static list of linked Views and calls SetCursor()
-
-
-  for static tcl responders: 
-    first time layer or view is created, 
-      if (bTclFunctionsNotRegistered)
-        RegisterTclFunctions()
-
-Layer:
-  GetLayerIDList     --- returns a list of layer IDs
-  GetLayerType <layerID>     --- returns a text string {2DMRI,2DMRIS,etc}
-  GetLayerOpacity <layerID>
-  SetLayerOpacity <layerID> <opacity>
-
-ScubaFrame:
-  SetFrameViewConfiguration <frameID> <configuration>
-  GetViewIDFromFrameRowCol <frameID> <row> <col>   --- returns view ID
-  GetSelectedViewID <frameID>    --- returns view ID
-
-ScubaView:
-  SetViewZoomLevel <viewID> <zoomLevel>
-  SetViewInPlane <viewID> <plane>
-  SetViewRASCenter <viewID> <X> <Y> <Z>
-  AddLayerToView <viewID> <layerID> <level>
-  RemoveLayerFromViewAtLevel <viewID> <level>
-  RemoveAllLayersFromView <viewID>
-
-ScubaLayerFactory:
-  MakeLayer <layerType>   --- returns layer ID
-
-ScubaLayer2DMRI:
-  SetVolumeCollection <layerID> <collectionID>
-
-DataCollection:
-  NewVolumeDataCollection <filename>   --- returns collection ID
-  
-
-
-
-plan :
 
 test_ScubaLayers
 x report info at RAS
@@ -267,9 +49,9 @@ x - when link functions called, goes through linked list and calls the same
 x - Copy These Layers to Current Views button in views props, copies layer/level settings to other views, tcl function takes list of view IDs
 
 ScubaToolState
- - registers tcl functions for getting and setting stuff (with id)
+x  - registers tcl functions for getting and setting stuff (with id)
  - tool: { navigation, marker, voxel paint, voxel clone, voxel selection, voxel restore, control points }
- - brush : radius, 3d, shape
+x  - brush : radius, 3d, shape
  - voxel paint : min/max, new value
  - voxel clone : min/max, source
 
@@ -393,7 +175,7 @@ x  - ScubaLayer2DMRI calls FindPoitnsOnLine with DrawPixel() to draw its lines
 x  - ScubaLayer2DMRI calls FindPoitnsOnLine() to add points to edges
 x  - when fill, check that volume for stopping
 x  - only stop on _other_ ROIs
- - cancel dlog
+x  - cancel dlog
 
 x Dlog boxes
 x  - C interface
@@ -431,16 +213,16 @@ x  - Declare UndoSelectAction(bSelect, RAS)
 
 Labels
 x - save .label
-  - interface
- - export structure labels as segmentations
-  - interface
- - load label
-  - interface
- - import segmentation
-  - interface
+x   - interface
+x - export structure labels as segmentations
+x   - interface
+x  - load label
+x   - interface
 
-number shortcuts for brush size
+x number shortcuts for brush size
 
+option menus for data collections in label dlogs
+ - add -menu type to dlog code
 
 
 
@@ -452,19 +234,16 @@ number shortcuts for brush size
 BRUCE'S LIST:::
 
 b/c controled by mouse
-in and out slice pg up/down
-turning off ras coord display
-display cursor
-default to voxel size not 1mm.
+x in and out slice pg up/down
+x turning off ras coord display
+x display cursor
+x default to voxel size not 1mm.
 
 
 BUGS:::
-- viewflip pref is saved, but ScubaGlobalPrefs isn't doing all it should, need to add other values
-- when load /tmp/test-10.mgh, zoom in, doesn't draw until change min to 1
-- start up blank, load bert T1, draws black until move min to 1
 - fix radius in brush, it's really ugly
-- only open up dlog in fill if takes longer than 2 seconds
-- increase max distance in fill
+- tabbing when in console switches frame, disable?
+
 
 FUTURE IDEAS:::
 

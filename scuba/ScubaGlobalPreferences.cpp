@@ -53,7 +53,17 @@ ScubaGlobalPreferences::DoListenToTclCommand ( char* isCommand, int iArgc,
 	sKey == GetStringForKey( KeyInPlaneX ) ||
 	sKey == GetStringForKey( KeyInPlaneY ) ||
 	sKey == GetStringForKey( KeyInPlaneZ ) ||
-	sKey == GetStringForKey( KeyCycleViewsInFrame ) ) {
+	sKey == GetStringForKey( KeyCycleViewsInFrame ) ||
+	sKey == GetStringForKey( DrawCoordinateOverlay ) ||
+	sKey == GetStringForKey( DrawCenterCrosshairOverlay ) ||
+	sKey == GetStringForKey( KeyMoveViewLeft ) ||
+	sKey == GetStringForKey( KeyMoveViewRight ) ||
+	sKey == GetStringForKey( KeyMoveViewUp ) ||
+	sKey == GetStringForKey( KeyMoveViewDown ) ||
+	sKey == GetStringForKey( KeyMoveViewIn ) ||
+	sKey == GetStringForKey( KeyMoveViewOut ) ||
+	sKey == GetStringForKey( KeyZoomViewIn ) ||
+	sKey == GetStringForKey( KeyZoomViewOut ) ) {
       
       PreferencesManager& prefsMgr = PreferencesManager::GetManager();
       string sValue = prefsMgr.GetValue( sKey );
@@ -74,7 +84,9 @@ ScubaGlobalPreferences::DoListenToTclCommand ( char* isCommand, int iArgc,
 
     string sKey = iasArgv[1];
     if( sKey == GetStringForKey( ViewFlipLeftRight ) ||
-	sKey == GetStringForKey( ShowConsole ) ) {
+	sKey == GetStringForKey( ShowConsole ) ||
+	sKey == GetStringForKey( DrawCoordinateOverlay ) ||
+	sKey == GetStringForKey( DrawCenterCrosshairOverlay ) ) {
 
       bool bValue;
 
@@ -94,37 +106,35 @@ ScubaGlobalPreferences::DoListenToTclCommand ( char* isCommand, int iArgc,
       PreferencesManager::IntPrefValue prefValue( bValue );
       prefsMgr.SetValue( sKey, prefValue );
 
-    } else if( sKey == GetStringForKey( ViewFlipLeftRight ) ||
-	       sKey == GetStringForKey( ShowConsole ) ) {
+    } else if( sKey == GetStringForKey( KeyInPlaneX ) ||
+	       sKey == GetStringForKey( KeyInPlaneY ) ||
+	       sKey == GetStringForKey( KeyInPlaneZ ) ||
+	       sKey == GetStringForKey( KeyCycleViewsInFrame ) ) {
 
-      bool bValue;
-
-      if( 0 == strcmp( iasArgv[2], "true" ) || 
-	  0 == strcmp( iasArgv[2], "1" )) {
-	bValue = true;
-      } else if( 0 == strcmp( iasArgv[2], "false" ) ||
-		 0 == strcmp( iasArgv[2], "0" ) ) {
-	bValue = false;
-      } else {
-	sResult = "bad value for key " + string(iasArgv[1]) + ", \"" +
-	  string(iasArgv[2]) + "\", should be true, 1, false, or 0";
-	return error;	
-      }
+      string sValue = iasArgv[2];
 
       PreferencesManager& prefsMgr = PreferencesManager::GetManager();
-      PreferencesManager::IntPrefValue prefValue( bValue );
+      PreferencesManager::StringPrefValue prefValue( sValue );
       prefsMgr.SetValue( sKey, prefValue );
     }
+
+    // Send a broadcast to our listeners to notify that a prefs values
+    // has changed.
+    string sValue( iasArgv[2] );
+    SendBroadcast( sKey, (void*)&sValue );
   }
 
   return ok;
 }
 
+
 bool 
 ScubaGlobalPreferences::GetPrefAsBool ( PrefKey iKey ) {
 
   if( iKey == ViewFlipLeftRight  ||
-      iKey == ShowConsole ) {
+      iKey == ShowConsole ||
+      iKey == DrawCoordinateOverlay ||
+      iKey == DrawCenterCrosshairOverlay ) {
   
     PreferencesManager& prefsMgr = PreferencesManager::GetManager();
     string sValue = prefsMgr.GetValue( GetStringForKey( iKey ) );
@@ -138,30 +148,55 @@ ScubaGlobalPreferences::GetPrefAsBool ( PrefKey iKey ) {
   return false;
 }
 
+string 
+ScubaGlobalPreferences::GetPrefAsString ( PrefKey iKey ) {
+
+  if( iKey == KeyInPlaneX ||
+      iKey == KeyInPlaneY ||
+      iKey == KeyInPlaneZ ||
+      iKey == KeyCycleViewsInFrame ||
+      iKey == KeyMoveViewLeft ||
+      iKey == KeyMoveViewRight ||
+      iKey == KeyMoveViewUp ||
+      iKey == KeyMoveViewDown ||
+      iKey == KeyMoveViewIn ||
+      iKey == KeyMoveViewOut ||
+      iKey == KeyZoomViewIn ||
+      iKey == KeyZoomViewOut ) {
+  
+    PreferencesManager& prefsMgr = PreferencesManager::GetManager();
+    string sValue = prefsMgr.GetValue( GetStringForKey( iKey ) );
+    PreferencesManager::StringPrefValue value( sValue );
+    return value.GetValue();
+
+  } else {
+    throw runtime_error( "Not a string key" );
+  }
+
+  return "";
+}
 
 string 
 ScubaGlobalPreferences::GetStringForKey ( PrefKey iKey ) {
 
   switch( iKey ) {
-  case ShowConsole:
-    return "ShowConsole";
-    break;
-  case ViewFlipLeftRight:
-    return "ViewFlipLeftRight";
-    break;
-  case KeyInPlaneX:
-    return "KeyInPlaneX";
-    break;
-  case KeyInPlaneY:
-    return "KeyInPlaneY";
-    break;
-  case KeyInPlaneZ:
-    return "KeyInPlaneZ";
-    break;
-  case KeyCycleViewsInFrame:
-    return "KeyCycleViewsInFrame";
-    break;
-default:
+  case ShowConsole:                return "ShowConsole";                 break;
+  case ViewFlipLeftRight:          return "ViewFlipLeftRight";           break;
+  case KeyInPlaneX:                return "KeyInPlaneX";                 break;
+  case KeyInPlaneY:                return "KeyInPlaneY";                 break;
+  case KeyInPlaneZ:                return "KeyInPlaneZ";                 break;
+  case KeyCycleViewsInFrame:       return "KeyCycleViewsInFrame";        break;
+  case DrawCoordinateOverlay:      return "DrawCoordinateOverlay";       break;
+  case DrawCenterCrosshairOverlay: return "DrawCenterCrosshairOverlay";  break;
+  case KeyMoveViewLeft:            return "KeyMoveViewLeft";             break;
+  case KeyMoveViewRight:           return "KeyMoveViewRight";            break;
+  case KeyMoveViewUp:              return "KeyMoveViewUp";               break;
+  case KeyMoveViewDown:            return "KeyMoveViewDown";             break;
+  case KeyMoveViewIn:              return "KeyMoveViewIn";               break;
+  case KeyMoveViewOut:             return "KeyMoveViewOut";              break;
+  case KeyZoomViewIn:              return "KeyZoomViewIn";               break;
+  case KeyZoomViewOut:             return "KeyZoomViewOut";              break;
+  default:
     throw runtime_error( "Invalid key" );
   }
   return "";
@@ -204,6 +239,57 @@ ScubaGlobalPreferences::ReadPreferences () {
   PreferencesManager::StringPrefValue cycleKey( "q" );
   prefsMgr.RegisterValue( GetStringForKey( KeyCycleViewsInFrame ), 
 			  "Key to cycle view in a frame.", cycleKey );
+
+  PreferencesManager::IntPrefValue drawCoordinateOverlay( true );
+  prefsMgr.RegisterValue( GetStringForKey( DrawCoordinateOverlay ), 
+			  "Draw the coordinate overlay in views.", 
+			  drawCoordinateOverlay );
+
+  PreferencesManager::IntPrefValue drawCenterCrosshairOverlay( true );
+  prefsMgr.RegisterValue( GetStringForKey( DrawCenterCrosshairOverlay ), 
+			  "Draw the center crosshair overlay in views.", 
+			  drawCenterCrosshairOverlay );
+
+  PreferencesManager::StringPrefValue moveViewLeft( "Left" );
+  prefsMgr.RegisterValue( "KeyMoveViewLeft", 
+			  "Key to move the view to the left.",
+			  moveViewLeft );
+
+  PreferencesManager::StringPrefValue moveViewRight( "Right" );
+  prefsMgr.RegisterValue( "KeyMoveViewRight", 
+			  "Key to move the view to the right.",
+			  moveViewRight );
+
+  PreferencesManager::StringPrefValue moveViewUp( "Up" );
+  prefsMgr.RegisterValue( "KeyMoveViewUp", 
+			  "Key to move the view up.",
+			  moveViewUp );
+
+  PreferencesManager::StringPrefValue moveViewDown( "Down" );
+  prefsMgr.RegisterValue( "KeyMoveViewDown", 
+			  "Key to move the view down.",
+			  moveViewDown );
+
+  PreferencesManager::StringPrefValue moveViewIn( "Prior" );
+  prefsMgr.RegisterValue( "KeyMoveViewIn", 
+			  "Key to move the view in in plane.",
+			  moveViewIn );
+
+  PreferencesManager::StringPrefValue moveViewOut( "Next" );
+  prefsMgr.RegisterValue( "KeyMoveViewOut", 
+			  "Key to move the view out in plane.",
+			  moveViewOut );
+
+  PreferencesManager::StringPrefValue zoomViewIn( "equal" );
+  prefsMgr.RegisterValue( "KeyZoomViewIn", 
+			  "Key to zoom the view in in plane.",
+			  zoomViewIn );
+
+  PreferencesManager::StringPrefValue zoomViewOut( "minus" );
+  prefsMgr.RegisterValue( "KeyZoomViewOut", 
+			  "Key to zoom the view out in plane.",
+			  zoomViewOut );
+
 }
 
 void

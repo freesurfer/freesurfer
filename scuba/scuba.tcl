@@ -148,11 +148,27 @@ proc GetDefaultFileLocation { iType } {
 
     global gsaDefaultLocation 
     global env
+    global gSubject
     if { [info exists gsaDefaultLocation($iType)] == 0 } {
 	switch $iType {
 	    LoadVolume {
 		if { [info exists env(SUBJECTS_DIR)] } {
-		    set gsaDefaultLocation($iType) $env(SUBJECTS_DIR)
+		    if { [info exists gSubject(homeDir)] } {
+			set gsaDefaultLocation($iType) $gSubject(homeDir)/mri
+		    } else {
+			set gsaDefaultLocation($iType) $env(SUBJECTS_DIR)
+		    }
+		} else {
+		    set gsaDefaultLocation($iType) [exec pwd]
+		}	       
+	    }
+	    SaveLabel - LoadLabel {
+		if { [info exists env(SUBJECTS_DIR)] } {
+		    if { [info exists gSubject(homeDir)] } {
+			set gsaDefaultLocation($iType) $gSubject(homeDir)/label
+		    } else {
+			set gsaDefaultLocation($iType) $env(SUBJECTS_DIR)
+		    }
 		} else {
 		    set gsaDefaultLocation($iType) [exec pwd]
 		}	       
@@ -403,7 +419,10 @@ proc MakeMenuBar { ifwTop } {
 
     tkuMakeMenu -menu $gaMenu(file) -label "File" -items {
 	{command "Load Volume..." { DoLoadVolumeDlog } }
+	{command "Load Label..." { DoLoadLabelDlog } }
 	{separator}
+	{command "Save Label..." { DoSaveLabelDlog } }
+	{command "Export Labels as Segmenation..." { DoExportLabelsDlog } }
 	{command "Quit:Alt Q" { Quit } }
     }
 
@@ -412,17 +431,23 @@ proc MakeMenuBar { ifwTop } {
     tkuMakeMenu -menu $gaMenu(edit) -label "Edit" -items {
 	{command "Nothing to undo" 
 	    { UndoOrRedo; RedrawFrame [GetMainFrameID]; UpdateUndoMenuItem } }
+	{separator}
+	{command "Preferences..." { DoPrefsDlog } }
     }
 
     pack $gaMenu(edit) -side left
 
     tkuMakeMenu -menu $gaMenu(view) -label "View" -items {
 	{check "Flip Left/Right" { SetViewFlipLeftRightYZ $gaView(current,id) $gaView(flipLeftRight) } gaView(flipLeftRight) }
+	{check "Coordinate Overlay" { SetPreferencesValue DrawCoordinateOverlay $gaView(coordOverlay); RedrawFrame [GetMainFrameID] } gaView(coordOverlay) }
+	{check "Center Crosshair Overlay" { SetPreferencesValue DrawCenterCrosshairOverlay $gaView(crosshairOverlay); RedrawFrame [GetMainFrameID] } gaView(crosshairOverlay) }
 	{check "Show Console:Alt N" { ShowHideConsole $gaView(tkcon,visible) } gaView(tkcon,visible) }
     }
 
     set gaView(flipLeftRight) [GetPreferencesValue ViewFlipLeftRight]
     set gaView(tkcon,visible) [GetPreferencesValue ShowConsole]
+    set gaView(coordOverlay)  [GetPreferencesValue DrawCoordinateOverlay]
+    set gaView(crosshairOverlay)  [GetPreferencesValue DrawCenterCrosshairOverlay]
 
     pack $gaMenu(view) -side left
 
@@ -559,7 +584,7 @@ proc MakeScubaFrame { ifwTop } {
     set fwScuba $ifwTop.fwScuba
     
     set frameID [GetNewFrameID]
-    togl $fwScuba -width 512 -height 512 -rgba true -ident $frameID -time 100
+    togl $fwScuba -width 512 -height 512 -rgba true -ident $frameID -time 20
 
     bind $fwScuba <Motion> \
 	"%W MouseMotionCallback %x %y %b; ScubaMouseMotionCallback %x %y %b"
@@ -638,6 +663,40 @@ proc ScubaMouseDownCallback { inX inY iButton } {
     }
 }
 
+proc GetPreferences {} {
+    global gaPrefs
+
+    foreach sKey {
+	KeyMoveViewLeft
+	KeyMoveViewRight
+	KeyMoveViewUp 
+	KeyMoveViewDown 
+	KeyMoveViewIn 
+	KeyMoveViewOut
+	KeyZoomViewIn 
+	KeyZoomViewOut
+    } {
+	set gaPrefs($sKey) [GetPreferencesValue $sKey]
+    }
+}
+
+proc SetPreferences {} {
+    global gaPrefs
+
+    foreach sKey {
+	KeyMoveViewLeft
+	KeyMoveViewRight
+	KeyMoveViewUp 
+	KeyMoveViewDown 
+	KeyMoveViewIn 
+	KeyMoveViewOut
+	KeyZoomViewIn 
+	KeyZoomViewOut
+    } {
+	SetPreferencesValue $sKey $gaPrefs($sKey)
+    }
+}
+
 proc Quit {} {
     dputs "Quit  "
     global gaView
@@ -646,9 +705,9 @@ proc Quit {} {
     # Set our prefs values and save our prefs.
     SetPreferencesValue ViewFlipLeftRight $gaView(flipLeftRight)
     SetPreferencesValue ShowConsole $gaView(tkcon,visible)
-    set f [open log.txt w]
-    puts $f "SetPreferencesValue ShowConsole $gaView(tkcon,visible)"
-    close $f
+    SetPreferencesValue DrawCoordinateOverlay $gaView(coordOverlay)
+    SetPreferencesValue DrawCenterCrosshairOverlay $gaView(crosshairOverlay)
+    SetPreferences
     SaveGlobalPreferences
 
     exit
@@ -1081,10 +1140,10 @@ proc MakeToolsPanel { ifwTop } {
     
     tkuMakeSliders $fwPropsFillSub.swFuzziness -sliders {
 	{-label "Fill Fuzziness" -variable gaTool(current,fuzziness) 
-	    -min 0 -max 20 -entry true
+	    -min 0 -max 50 -entry true
 	    -command {SetToolFloodFuzziness $gaFrame([GetMainFrameID],toolID) $gaTool(current,fuzziness)}}
 	{-label "Fill Max Distance" -variable gaTool(current,maxDistance) 
-	    -min 0 -max 20 -entry true
+	    -min 0 -max 100 -entry true
 	    -command {SetToolFloodMaxDistance $gaFrame([GetMainFrameID],toolID) $gaTool(current,maxDistance)}}
     }
 
@@ -1306,6 +1365,14 @@ proc MakeViewPropertiesPanel { ifwTop } {
     
     button $fwProps.bwCopyLayers -text "Copy Layers to Other Views" \
 	-command { CopyViewLayersToAllViewsInFrame [GetMainFrameID] $gaView(current,id) }
+
+    tkuMakeEntry $fwProps.ewInPlaneInc \
+	-label "In-plane key increment" \
+	-font [tkuNormalFont] \
+	-variable gaView(current,inPlaneInc) \
+	-command {SetViewInPlaneMovementIncrement $gaView(current,id) $gaView(current,inPlaneInc) } \
+	-notify 1
+    set gaWidget(viewProperties,inPlaneInc) $fwProps.ewInPlaneInc
     
     grid $fwProps.fwMenu    -column 0 -row 0 -sticky nw
     grid $fwProps.ewID      -column 0 -row 1 -sticky nw
@@ -1318,6 +1385,7 @@ proc MakeViewPropertiesPanel { ifwTop } {
     }
     grid $fwProps.mwTransform  -column 0 -row 14 -sticky ew -columnspan 3
     grid $fwProps.bwCopyLayers -column 0 -row 15 -sticky ew -columnspan 3
+    grid $fwProps.ewInPlaneInc -column 0 -row 16 -sticky ew -columnspan 3
     
     grid $fwProps -column 0 -row 0 -sticky news
 
@@ -1878,7 +1946,9 @@ proc SelectViewInViewProperties { iViewID } {
     set gaView(current,linked) [GetViewLinkedStatus $iViewID]
     set gaView(current,transformID) [GetViewTransform $iViewID]
     set gaView(current,inPlane) [GetViewInPlane $iViewID]
- 
+    set gaView(current,inPlaneInc) [GetViewInPlaneMovementIncrement $iViewID]
+    tkuRefreshEntryNotify $gaWidget(viewProperties,inPlaneInc)
+
     for { set nLevel 0 } { $nLevel < 10 } { incr nLevel } {
 	set gaView(current,draw$nLevel) \
 	    [GetLayerInViewAtLevel $iViewID $nLevel]
@@ -2398,15 +2468,64 @@ proc DrawLabelArea {} {
 	# setting the labels blank. Don't save the new total because
 	# that's really the number of labels we have _created_, and we
 	# don't want to recreate them.
-	for { set nDelLabel [expr $nLabel - 1] }  \
+	for { set nDelLabel $nLabel }  \
 	    { $nDelLabel < $gaWidget(labelArea,numberOfLabels) } \
 	    { incr nDelLabel } {
-
-		set fw $gaWidget(labelArea).fw$nLabel
+		
+		set fw $gaWidget(labelArea).fw$nDelLabel
 		$fw.ewLabel.lw config -text ""
 		$fw.ewValue.lw config -text ""
 	    }
 
+    }
+}
+
+# PREFS DIALOG =========================================================
+
+proc DoPrefsDlog {} {
+    global gaDialog
+    global gaPrefs
+    
+    set wwDialog .prefs
+    if { [tkuCreateDialog $wwDialog "Preferences" {-borderwidth 10}] } {
+
+	set fwKeys     $wwDialog.fwKeys
+	set fwButtons  $wwDialog.fwButtons
+
+	frame $fwKeys
+
+	foreach {sKey sLabel} {
+	    KeyMoveViewLeft   "Move View Left"
+	    KeyMoveViewRight  "Move View Right"
+	    KeyMoveViewUp     "Move View Up"
+	    KeyMoveViewDown   "Move View Down"
+	    KeyMoveViewIn     "Move View In"
+	    KeyMoveViewOut    "Move View Out"
+	    KeyZoomViewIn     "Zoom View In"
+	    KeyZoomViewOut    "Zoom View Out"
+	} {
+   
+	    tkuMakeEntry $fwKeys.fw$sKey \
+		-label $sLabel -width 8 -font [tkuNormalFont] \
+		-labelwidth 20 \
+		-variable gaPrefs($sKey) \
+		-command "SetPreferencesValue $sKey \$gaPrefs($sKey)" \
+		-notify 1
+
+	    pack $fwKeys.fw$sKey \
+		-side top -fill x -expand yes
+	   
+	}
+	
+
+	tkuMakeCloseButton $fwButtons $wwDialog
+	
+	pack $fwKeys $fwButtons \
+	    -side top       \
+	    -expand yes     \
+	    -fill x         \
+	    -padx 5         \
+	    -pady 5
     }
 }
 
@@ -2754,11 +2873,112 @@ proc DoLoadVolumeDlog {} {
 	    }
 	    LoadVolume %s1 1 $frameID
 	}
+}
 
-    # Future options.
-#       -type2 checkbox \
-#	-prompt2 "Automatically create new layer" \
-#	-defaultvalue2 1 \
+proc DoSaveLabelDlog {} {
+    dputs "DoSaveLabelDlog  "
+
+    global glShortcutDirs
+    global gaROI
+    global gaCollection
+
+    if { [info exists gaCollection(current,id)] &&
+	 $gaCollection(current,id) >= -1 } {
+
+	if { [info exists gaROI(current,id)] &&
+	     $gaROI(current,id) >= -1 } {
+	    
+	    tkuDoFileDlog -title "Save Label" \
+		-prompt1 "Will save ROI \"$gaROI(current,label)\" from data collection \"$gaCollection(current,label)\"" \
+		-type1 note \
+		-prompt2 "Save Label: " \
+		-defaultdir2 [GetDefaultFileLocation SaveLabel] \
+		-shortcuts $glShortcutDirs \
+		-okCmd { 
+		    set err [catch {
+			WriteVolumeROIToLabel $gaCollection(current,id) \
+			    $gaROI(current,id) %s1
+		    } sResult]
+		    if { 0 != $err } { tkuErrorDlog $sResult }
+		}
+	    
+	} else {
+	    tkuErrorDlog "No ROI is selected. Make sure you have selected one in the Data Collections panel."
+	}
+	
+    } else {
+	
+	 tkuErrorDlog "There are no data collections. Load some data and try again."
+
+     }
+ }
+
+
+proc DoLoadLabelDlog {} {
+    dputs "DoLoadLabelDlog  "
+
+    global glShortcutDirs
+    global gaCollection
+
+    if { [info exists gaCollection(current,id)] &&
+	 $gaCollection(current,id) >= -1 } {
+
+	tkuDoFileDlog -title "Load Label" \
+	    -prompt1 "Will create a new ROI for collection \"$gaCollection(current,label)\"" \
+	    -type1 note \
+	    -prompt2 "Load Label: " \
+	    -defaultdir2 [GetDefaultFileLocation LoadLabel] \
+	    -shortcuts $glShortcutDirs \
+	    -okCmd { 
+		set err [catch {
+		    set roiID [NewVolumeROIFromLabel \
+				   $gaCollection(current,id) %s2]
+		} sResult]
+		if { 0 != $err } { 
+		    tkuErrorDlog $sResult 
+		} else {
+		    SetROILabel $roiID [file tail %s2]
+		    UpdateROIList
+		    SelectROIInROIProperties $roiID
+		    RedrawFrame [GetMainFrameID]
+		}
+	    }
+	
+    } else {
+	
+	tkuErrorDlog "There are no data collections. Load some data and try again."
+	
+     }
+ }
+
+
+ proc DoExportLabelsDlog {} {
+     dputs "DoExportLabelsDlog"
+
+     global glShortcutDirs
+     global gaCollection
+
+     if { [info exists gaCollection(current,id)] &&
+	  $gaCollection(current,id) >= -1 } {
+
+	 tkuDoFileDlog -title "Export Segmentation" \
+	     -prompt1 "Will export all structure ROIs from data collection \"$gaCollection(current,label)\"" \
+	     -type1 note \
+	     -prompt2 "Save Volume: " \
+	     -defaultdir2 [GetDefaultFileLocation ExportSegmentation] \
+	     -shortcuts $glShortcutDirs \
+	     -okCmd { 
+		 set err [catch {
+		     WriteVolumeROIsToSegmentation \
+			 $gaCollection(current,id) %s1
+		 } sResult]
+		 if { 0 != $err } { tkuErrorDlog $sResult }
+	     }
+
+     } else {
+	 tkuErrorDlog "There are no data collections. Load some data and try again."
+     }
+
 }
 
 
@@ -2789,9 +3009,7 @@ while { $nArg < $argc } {
 	    set sSubject [lindex $argv $nArg]
 	    lappend lCommands "SetSubjectName $sSubject"
 	}
-	s - segmentation - seg {
-	    
-	}
+	
 	help - default {
 	    if {$sOption != "help"} {puts "Option $sOption not recognized."}
 	    puts ""
@@ -2902,6 +3120,8 @@ SelectToolInToolProperties navigation
 
 ShowHideConsole $gaView(tkcon,visible)
 
+GetPreferences
+
 MakeScubaFrameBindings [GetMainFrameID]
 
 # Now execute all the commands we cached before.
@@ -2921,3 +3141,12 @@ bind $gaWidget(window) <Alt-Key-n> {
     }
     ShowHideConsole $gaView(tkcon,visible)
 }
+bind $gaWidget(window) <Key-1> {set gaTool(current,radius) 1; SetToolBrushRadius $gaFrame([GetMainFrameID],toolID) $gaTool(current,radius) } 
+bind $gaWidget(window) <Key-2> {set gaTool(current,radius) 2; SetToolBrushRadius $gaFrame([GetMainFrameID],toolID) $gaTool(current,radius) }
+bind $gaWidget(window) <Key-3> {set gaTool(current,radius) 3; SetToolBrushRadius $gaFrame([GetMainFrameID],toolID) $gaTool(current,radius) }
+bind $gaWidget(window) <Key-4> {set gaTool(current,radius) 4; SetToolBrushRadius $gaFrame([GetMainFrameID],toolID) $gaTool(current,radius) }
+bind $gaWidget(window) <Key-5> {set gaTool(current,radius) 5; SetToolBrushRadius $gaFrame([GetMainFrameID],toolID) $gaTool(current,radius) }
+bind $gaWidget(window) <Key-6> {set gaTool(current,radius) 6; SetToolBrushRadius $gaFrame([GetMainFrameID],toolID) $gaTool(current,radius) }
+bind $gaWidget(window) <Key-7> {set gaTool(current,radius) 7; SetToolBrushRadius $gaFrame([GetMainFrameID],toolID) $gaTool(current,radius) }
+bind $gaWidget(window) <Key-8> {set gaTool(current,radius) 8; SetToolBrushRadius $gaFrame([GetMainFrameID],toolID) $gaTool(current,radius) }
+bind $gaWidget(window) <Key-9> {set gaTool(current,radius) 9; SetToolBrushRadius $gaFrame([GetMainFrameID],toolID) $gaTool(current,radius) }

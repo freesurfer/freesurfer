@@ -16,9 +16,12 @@ ScubaView::ScubaView() {
   mbRebuildOverlayDrawList = true;
   mViewIDLinkedList[GetID()] = false;
   mbFlipLeftRightInYZ = true;
+  mInPlaneMovementIncrement = 1.0;
 
   ScubaGlobalPreferences& globalPrefs =
     ScubaGlobalPreferences::GetPreferences();
+
+  globalPrefs.AddListener( this );
 
   mbFlipLeftRightInYZ = 
     globalPrefs.GetPrefAsBool( ScubaGlobalPreferences::ViewFlipLeftRight );
@@ -42,49 +45,6 @@ ScubaView::ScubaView() {
       DebugOutput( << "Couldn't make default transform!" );
     }
   }
-
-#if 0
-
-#define FLIP_Z
-#define VIEW
-
-  float radians = (float)M_PI;
-  MATRIX* rotate = MatrixIdentity( 4, NULL );
-#ifdef FLIP_X
-  *MATRIX_RELT(rotate,1,1) = 1;
-  *MATRIX_RELT(rotate,2,2) = cos(radians);
-  *MATRIX_RELT(rotate,2,3) = -sin(radians);
-  *MATRIX_RELT(rotate,3,2) = sin(radians);
-  *MATRIX_RELT(rotate,3,3) = cos(radians);
-  *MATRIX_RELT(rotate,4,4) = 1;
-#endif
-#ifdef FLIP_Y
-  *MATRIX_RELT(rotate,1,1) = cos(radians);
-  *MATRIX_RELT(rotate,1,3) = sin(radians);
-  *MATRIX_RELT(rotate,2,2) = 1;
-  *MATRIX_RELT(rotate,3,1) = -sin(radians);
-  *MATRIX_RELT(rotate,3,3) = cos(radians);
-  *MATRIX_RELT(rotate,4,4) = 1;
-#endif
-#ifdef FLIP_Z
-  *MATRIX_RELT(rotate,1,1) = cos(radians);
-  *MATRIX_RELT(rotate,1,2) = -sin(radians);
-  *MATRIX_RELT(rotate,2,1) = sin(radians);
-  *MATRIX_RELT(rotate,2,2) = cos(radians);
-  *MATRIX_RELT(rotate,3,3) = 1;
-  *MATRIX_RELT(rotate,4,4) = 1;
-#endif
-
-#ifdef WORLD
-  mWorldToView = rotate;
-  mViewToWorld = MatrixInverse( mWorldToView, NULL );
-#endif
-#ifdef VIEW
-  mViewToWorld = rotate;
-  mWorldToView = MatrixInverse( mViewToWorld, NULL );
-#endif
-
-#endif
 
 
   TclCommandManager& commandMgr = TclCommandManager::GetManager();
@@ -127,58 +87,34 @@ ScubaView::ScubaView() {
 			 "Set the left-right flip flag for a view." );
   commandMgr.AddCommand( *this, "GetViewFlipLeftRightYZ", 1, "viewID",
 			 "Returns the left-right flip flag for a view." );
+  commandMgr.AddCommand( *this, "SetViewInPlaneMovementIncrement", 2,
+			 "viewID increment",
+			 "Set the amount that using the in plane movement "
+			 "keys will increment or decrement the in plane "
+			 "RAS value." );
+  commandMgr.AddCommand( *this, "GetViewInPlaneMovementIncrement", 1, "viewID",
+			 "Returns the amount the in plane movement "
+			 "increment." );
+
+  // Get some prefs values
+  ScubaGlobalPreferences& prefs = ScubaGlobalPreferences::GetPreferences();
+  msMoveViewLeft = 
+    prefs.GetPrefAsString( ScubaGlobalPreferences::KeyMoveViewLeft );
+  msMoveViewRight = 
+    prefs.GetPrefAsString( ScubaGlobalPreferences::KeyMoveViewRight );
+  msMoveViewUp = 
+    prefs.GetPrefAsString( ScubaGlobalPreferences::KeyMoveViewUp );
+  msMoveViewDown = 
+    prefs.GetPrefAsString( ScubaGlobalPreferences::KeyMoveViewDown );
+  msMoveViewIn = 
+    prefs.GetPrefAsString( ScubaGlobalPreferences::KeyMoveViewIn );
+  msMoveViewOut = 
+    prefs.GetPrefAsString( ScubaGlobalPreferences::KeyMoveViewOut );
+  msZoomViewIn = 
+    prefs.GetPrefAsString( ScubaGlobalPreferences::KeyZoomViewIn );
+  msZoomViewOut = 
+    prefs.GetPrefAsString( ScubaGlobalPreferences::KeyZoomViewOut );
   
-
-  PreferencesManager& prefsMgr = PreferencesManager::GetManager();
-  prefsMgr.UseFile( ".scuba" );
-
-  PreferencesManager::StringPrefValue moveViewLeft( "Left" );
-  prefsMgr.RegisterValue( "KeyMoveViewLeft", 
-			  "Key to move the view to the left.",
-			  moveViewLeft );
-  msMoveViewLeft = prefsMgr.GetValue( "KeyMoveViewLeft" );
-
-  PreferencesManager::StringPrefValue moveViewRight( "Right" );
-  prefsMgr.RegisterValue( "KeyMoveViewRight", 
-			  "Key to move the view to the right.",
-			  moveViewRight );
-  msMoveViewRight = prefsMgr.GetValue( "KeyMoveViewRight" );
-
-  PreferencesManager::StringPrefValue moveViewUp( "Up" );
-  prefsMgr.RegisterValue( "KeyMoveViewUp", 
-			  "Key to move the view up.",
-			  moveViewUp );
-  msMoveViewUp = prefsMgr.GetValue( "KeyMoveViewUp" );
-
-  PreferencesManager::StringPrefValue moveViewDown( "Down" );
-  prefsMgr.RegisterValue( "KeyMoveViewDown", 
-			  "Key to move the view down.",
-			  moveViewDown );
-  msMoveViewDown = prefsMgr.GetValue( "KeyMoveViewDown" );
-
-  PreferencesManager::StringPrefValue moveViewIn( "period" );
-  prefsMgr.RegisterValue( "KeyMoveViewIn", 
-			  "Key to move the view in in plane.",
-			  moveViewIn );
-  msMoveViewIn = prefsMgr.GetValue( "KeyMoveViewIn" );
-
-  PreferencesManager::StringPrefValue moveViewOut( "comma" );
-  prefsMgr.RegisterValue( "KeyMoveViewOut", 
-			  "Key to move the view out in plane.",
-			  moveViewOut );
-  msMoveViewOut = prefsMgr.GetValue( "KeyMoveViewOut" );
-
-  PreferencesManager::StringPrefValue zoomViewIn( "equal" );
-  prefsMgr.RegisterValue( "KeyZoomViewIn", 
-			  "Key to zoom the view in in plane.",
-			  zoomViewIn );
-  msZoomViewIn = prefsMgr.GetValue( "KeyZoomViewIn" );
-
-  PreferencesManager::StringPrefValue zoomViewOut( "minus" );
-  prefsMgr.RegisterValue( "KeyZoomViewOut", 
-			  "Key to zoom the view out in plane.",
-			  zoomViewOut );
-  msZoomViewOut = prefsMgr.GetValue( "KeyZoomViewOut" );
 
   map<string,string> labelValueMap;
   mLabelValueMaps["cursor"] = labelValueMap;
@@ -731,6 +667,43 @@ ScubaView::DoListenToTclCommand( char* isCommand, int iArgc, char** iasArgv ) {
     }
   }
 
+  // SetViewInPlaneMovementIncrement <viewID> <increment>
+  if( 0 == strcmp( isCommand, "SetViewInPlaneMovementIncrement" ) ) {
+    int viewID = strtol(iasArgv[1], (char**)NULL, 10);
+    if( ERANGE == errno ) {
+      sResult = "bad view ID";
+      return error;
+    }
+    
+    if( mID == viewID ) {
+      
+      float increment = strtof( iasArgv[2], (char**)NULL );
+      if( ERANGE == errno ) {
+	sResult = "bad increment";
+	return error;
+      }
+      
+      SetInPlaneMovementIncrement( increment );
+    }
+  }
+
+  // GetViewInPlaneMovementIncrement <viewID>
+  if( 0 == strcmp( isCommand, "GetViewInPlaneMovementIncrement" ) ) {
+    int viewID = strtol(iasArgv[1], (char**)NULL, 10);
+    if( ERANGE == errno ) {
+      sResult = "bad view ID";
+      return error;
+    }
+    
+    if( mID == viewID ) {
+
+      sReturnFormat = "f";
+      stringstream ssReturnValues;
+      ssReturnValues << GetInPlaneMovementIncrement();
+      sReturnValues = ssReturnValues.str();
+    }
+  }
+
   return ok;
 }
 
@@ -741,6 +714,22 @@ ScubaView::DoListenToMessage ( string isCommand, void* iData ) {
     RebuildOverlayDrawList(); // our overlay coords are different now
     RequestRedisplay();
   }
+
+  if( isCommand == "DrawCoordinateOverlay" ||
+      isCommand == "DrawCenterCrosshairOverlay" ) {
+    RebuildOverlayDrawList(); // our overlay will be different
+    RequestRedisplay();
+  }
+
+  // We cache these values but down have to act on them right away.
+  if( isCommand == "KeyMoveViewLeft" )  msMoveViewLeft  = *(string*)iData;
+  if( isCommand == "KeyMoveViewRight" ) msMoveViewRight = *(string*)iData;
+  if( isCommand == "KeyMoveViewUp" )    msMoveViewUp    = *(string*)iData;
+  if( isCommand == "KeyMoveViewDown" )  msMoveViewDown  = *(string*)iData;
+  if( isCommand == "KeyMoveViewIn" )    msMoveViewIn    = *(string*)iData;
+  if( isCommand == "KeyMoveViewOut" )   msMoveViewOut   = *(string*)iData;
+  if( isCommand == "KeyZoomViewIn" )    msZoomViewIn    = *(string*)iData;
+  if( isCommand == "KeyZoomViewOut" )   msZoomViewOut   = *(string*)iData;
 }
 
 void
@@ -1027,13 +1016,19 @@ ScubaView::DoMouseDown( int iWindow[2],
 void
 ScubaView::DoKeyDown( int iWindow[2], 
 		      InputState& iInput, ScubaToolState& iTool ) {
+  string key = iInput.Key();
 
+  // Start with a move distance of 1. If we're moving in plane, set
+  // that to the specific in plane increment. If control is down,
+  // multiplay that value by 10.
   float moveDistance = 1.0;
+  if( key == msMoveViewIn || key == msMoveViewOut ) {
+    moveDistance = mInPlaneMovementIncrement;
+  }
   if( iInput.IsControlKeyDown() ) {
     moveDistance = 10.0;
   }
 
-  string key = iInput.Key();
   
 
   if( key == msMoveViewLeft || key == msMoveViewRight ||
@@ -1282,89 +1277,108 @@ ScubaView::BuildOverlay () {
   if( !mbRebuildOverlayDrawList )
     return;
 
+  // Open the overlay display list.
+  glNewList( kOverlayDrawListID + mID, GL_COMPILE );
+    
+
   // Draw the HUD overlay if necessary. We need to take our edge
   // window coords and translate them to RAS coords and draw them on
   // the sides of the screens. Note w'ere only really using one of the
   // coords in each left/right/bottom/top/plane calculation because we
   // don't care about the other dimensions.
-  int window[2];
-  float ras[3];
-  char sXLabel, sYLabel, sZLabel;
-  float left, right, top, bottom, plane;
-  switch( mViewState.mInPlane ) {
-  case ViewState::X: 
-    sXLabel = 'a';
-    sYLabel = 's';
-    sZLabel = 'r';
-    window[0] = 0;       TranslateWindowToRAS( window, ras ); left = ras[1];
-    window[0] = mWidth;  TranslateWindowToRAS( window, ras ); right = ras[1];
-    window[1] = 0;       TranslateWindowToRAS( window, ras ); top = ras[2];
-    window[1] = mHeight; TranslateWindowToRAS( window, ras );bottom = ras[2];
-    plane = ras[0];
-    break;
-  case ViewState::Y: 
-    sXLabel = 'r';
-    sYLabel = 's';
-    sZLabel = 'a';
-    window[0] = 0;       TranslateWindowToRAS( window, ras ); left = ras[0];
-    window[0] = mWidth;  TranslateWindowToRAS( window, ras ); right = ras[0];
-    window[1] = 0;       TranslateWindowToRAS( window, ras ); top = ras[2];
-    window[1] = mHeight; TranslateWindowToRAS( window, ras );bottom = ras[2];
-    plane = ras[1];
-    break;
-  case ViewState::Z: 
-  default:
-    sXLabel = 'r';
-    sYLabel = 'a';
-    sZLabel = 's';
-    window[0] = 0;       TranslateWindowToRAS( window, ras ); left = ras[0];
-    window[0] = mWidth;  TranslateWindowToRAS( window, ras ); right = ras[0];
-    window[1] = 0;       TranslateWindowToRAS( window, ras ); top = ras[1];
-    window[1] = mHeight; TranslateWindowToRAS( window, ras );bottom = ras[1];
-    plane = ras[2];
-    break;
-  }
+  ScubaGlobalPreferences& prefs = ScubaGlobalPreferences::GetPreferences();
+  if( prefs.GetPrefAsBool( ScubaGlobalPreferences::DrawCoordinateOverlay )) {
 
-
-  glNewList( kOverlayDrawListID + mID, GL_COMPILE );
-
-  glColor3f( 1, 1, 1 );
-
-  // Now draw the labels we calc'd before.
-  char sLabel[60];
-  sprintf( sLabel, "%c%.2f", sXLabel, left );
-  glRasterPos2i( 0, mHeight / 2 );
-  for( int nChar = 0; nChar < (int)strlen( sLabel ); nChar++ ) {
-    glutBitmapCharacter( GLUT_BITMAP_8_BY_13, sLabel[nChar] );
-  }
-  sprintf( sLabel, "%c%.2f", sXLabel, right );
-  glRasterPos2i( mWidth - strlen(sLabel)*8, mHeight / 2 );
-  for( int nChar = 0; nChar < (int)strlen( sLabel ); nChar++ ) {
-    glutBitmapCharacter( GLUT_BITMAP_8_BY_13, sLabel[nChar] );
-  }
-  sprintf( sLabel, "%c%.2f", sYLabel, top );
-  glRasterPos2i( mWidth / 2 - (strlen(sLabel)*8 / 2), mHeight-1-13 );
-  for( int nChar = 0; nChar < (int)strlen( sLabel ); nChar++ ) {
-    glutBitmapCharacter( GLUT_BITMAP_8_BY_13, sLabel[nChar] );
-  }
-  sprintf( sLabel, "%c%.2f", sYLabel, bottom );
-  glRasterPos2i( mWidth / 2 - (strlen(sLabel)*8 / 2), 4 );
-  for( int nChar = 0; nChar < (int)strlen( sLabel ); nChar++ ) {
-    glutBitmapCharacter( GLUT_BITMAP_8_BY_13, sLabel[nChar] );
-  }
-  sprintf( sLabel, "%c%.2f", sZLabel, plane );
-  glRasterPos2i( mWidth - (strlen(sLabel)*8), 4 );
-  for( int nChar = 0; nChar < (int)strlen( sLabel ); nChar++ ) {
-    glutBitmapCharacter( GLUT_BITMAP_8_BY_13, sLabel[nChar] );
-  }
-  if( mViewState.mZoomLevel != 1 ) {
-    sprintf( sLabel, "%.2fx", mViewState.mZoomLevel );
-    glRasterPos2i( 0, mHeight-1-13 );
+    int window[2];
+    float ras[3];
+    char sXLabel, sYLabel, sZLabel;
+    float left, right, top, bottom, plane;
+    switch( mViewState.mInPlane ) {
+    case ViewState::X: 
+      sXLabel = 'a';
+      sYLabel = 's';
+      sZLabel = 'r';
+      window[0] = 0;       TranslateWindowToRAS( window, ras ); left  = ras[1];
+      window[0] = mWidth;  TranslateWindowToRAS( window, ras ); right = ras[1];
+      window[1] = 0;       TranslateWindowToRAS( window, ras ); top   = ras[2];
+      window[1] = mHeight; TranslateWindowToRAS( window, ras ); bottom= ras[2];
+      plane = ras[0];
+      break;
+    case ViewState::Y: 
+      sXLabel = 'r';
+      sYLabel = 's';
+      sZLabel = 'a';
+      window[0] = 0;       TranslateWindowToRAS( window, ras ); left  = ras[0];
+      window[0] = mWidth;  TranslateWindowToRAS( window, ras ); right = ras[0];
+      window[1] = 0;       TranslateWindowToRAS( window, ras ); top   = ras[2];
+      window[1] = mHeight; TranslateWindowToRAS( window, ras ); bottom= ras[2];
+      plane = ras[1];
+      break;
+    case ViewState::Z: 
+    default:
+      sXLabel = 'r';
+      sYLabel = 'a';
+      sZLabel = 's';
+      window[0] = 0;       TranslateWindowToRAS( window, ras ); left  = ras[0];
+      window[0] = mWidth;  TranslateWindowToRAS( window, ras ); right = ras[0];
+      window[1] = 0;       TranslateWindowToRAS( window, ras ); top   = ras[1];
+      window[1] = mHeight; TranslateWindowToRAS( window, ras ); bottom= ras[1];
+      plane = ras[2];
+      break;
+    }
+    
+    glColor3f( 1, 1, 1 );
+    
+    // Now draw the labels we calc'd before.
+    char sLabel[60];
+    sprintf( sLabel, "%c%.2f", sXLabel, left );
+    glRasterPos2i( 0, mHeight / 2 + 7 );
     for( int nChar = 0; nChar < (int)strlen( sLabel ); nChar++ ) {
       glutBitmapCharacter( GLUT_BITMAP_8_BY_13, sLabel[nChar] );
     }
+    sprintf( sLabel, "%c%.2f", sXLabel, right );
+    glRasterPos2i( mWidth - strlen(sLabel)*8, mHeight / 2 + 7 );
+    for( int nChar = 0; nChar < (int)strlen( sLabel ); nChar++ ) {
+      glutBitmapCharacter( GLUT_BITMAP_8_BY_13, sLabel[nChar] );
+    }
+    sprintf( sLabel, "%c%.2f", sYLabel, top );
+    glRasterPos2i( mWidth / 2 - (strlen(sLabel)*8 / 2), mHeight-1-13 );
+    for( int nChar = 0; nChar < (int)strlen( sLabel ); nChar++ ) {
+      glutBitmapCharacter( GLUT_BITMAP_8_BY_13, sLabel[nChar] );
+    }
+    sprintf( sLabel, "%c%.2f", sYLabel, bottom );
+    glRasterPos2i( mWidth / 2 - (strlen(sLabel)*8 / 2), 4 );
+    for( int nChar = 0; nChar < (int)strlen( sLabel ); nChar++ ) {
+      glutBitmapCharacter( GLUT_BITMAP_8_BY_13, sLabel[nChar] );
+    }
+    sprintf( sLabel, "%c%.2f", sZLabel, plane );
+    glRasterPos2i( mWidth - (strlen(sLabel)*8), 4 );
+    for( int nChar = 0; nChar < (int)strlen( sLabel ); nChar++ ) {
+      glutBitmapCharacter( GLUT_BITMAP_8_BY_13, sLabel[nChar] );
+    }
+    if( mViewState.mZoomLevel != 1 ) {
+      sprintf( sLabel, "%.2fx", mViewState.mZoomLevel );
+      glRasterPos2i( 0, mHeight-1-13 );
+      for( int nChar = 0; nChar < (int)strlen( sLabel ); nChar++ ) {
+	glutBitmapCharacter( GLUT_BITMAP_8_BY_13, sLabel[nChar] );
+      }
+    }
   }
 
+  if( prefs.GetPrefAsBool( ScubaGlobalPreferences::DrawCenterCrosshairOverlay )) {
+
+    glColor3f( 1, 0, 0 );
+
+    glBegin( GL_LINES );
+    glVertex2d( 0, mHeight/2 );
+    glVertex2d( mWidth-1, mHeight/2 );
+    glEnd();
+
+    glBegin( GL_LINES );
+    glVertex2d( mWidth/2, 0 );
+    glVertex2d( mWidth/2, mHeight-1 );
+    glEnd();
+  }
 
   glEndList();
 

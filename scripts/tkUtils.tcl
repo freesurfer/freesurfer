@@ -1,6 +1,6 @@
 # tkUtils.tcl (tku)
 
-# $Id: tkUtils.tcl,v 1.7 2004/03/24 17:06:25 kteich Exp $
+# $Id: tkUtils.tcl,v 1.8 2004/03/29 02:00:00 kteich Exp $
 
 # tkuMakeMenu isMenuButton "Menu Name" {item...}
 # item = { command   "Item Name" command                [group_name] }
@@ -148,6 +148,7 @@ proc tkuMakeEntry { ifwTop args } {
     set aArgs(-width) 0
     set aArgs(-font) $kLabelFont
     set aArgs(-labelwidth) 0
+    set aArgs(-labelanchor) w
     set aArgs(-command) ""
     set aArgs(-notify) 0
 
@@ -165,9 +166,10 @@ proc tkuMakeEntry { ifwTop args } {
     if { $aArgs(-label) != "" } {
 	
 	label $ifwTop.lwLabel \
-		-width $aArgs(-labelwidth) \
-		-text $aArgs(-label) \
-		-font $aArgs(-font)
+	    -anchor $aArgs(-labelanchor) \
+	    -width $aArgs(-labelwidth) \
+	    -text $aArgs(-label) \
+	    -font $aArgs(-font)
 	
 	pack $ifwTop.lwLabel \
 		-side left \
@@ -352,7 +354,7 @@ proc tkuAddMenuItemsToMenu { isMenu ilMenuItems } {
 
 proc tkuSetMenuItemName { ifwMenu inIndex isName } {
 
-    puts "[$ifwMenu.mw entryconfigure $inIndex]"
+    $ifwMenu.mw entryconfigure $inIndex -label $isName
 }
 
 proc tkuAddItemToMenuGroup { isGroupName ifwMenuObject inMenuItemNum } {
@@ -751,7 +753,7 @@ proc tkuDoSubPercent { isPercent isString isSubstitution } {
 # -cancel : cmd to execute on cancel
 # -promptN : prompt for item N (required to make this item active)
 # -noteN : note for item N
-# -typeN : type for item N (file,dir,text,checkbutton)
+# -typeN : type for item N (file,dir,text,checkbutton,note)
 # -defaultfuncN : func to return default dir for item N
 # -defaultdirN : default dir for item N
 # -shortcutdirs :  shortcut list for all file and dir itmes
@@ -866,6 +868,10 @@ proc tkuDoFileDlog { args } {
                            [list -type text -label "$aArgs(-prompt$nField)" \
 				-variable sFileName$nField]
 		       ] 
+		}
+		note { 
+		    tkuMakeNormalLabel [set fwPrompt$nField] \
+			-label "$aArgs(-prompt$nField)"
 		}
 		default { continue; }
 	    }

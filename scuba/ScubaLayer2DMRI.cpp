@@ -138,8 +138,9 @@ ScubaLayer2DMRI::DrawIntoBuffer ( GLubyte* iBuffer, int iWidth, int iHeight,
 
       // Make sure this is within the bounds. If it is...
       int color[3];
+      color[0] = color[1] = color[2] = 0;
       if( mVolume->IsRASInMRIBounds( RAS ) ) {
-	
+
 	float value = 0;
 	switch( mSampleMethod ) {
 	case nearest:
@@ -159,6 +160,7 @@ ScubaLayer2DMRI::DrawIntoBuffer ( GLubyte* iBuffer, int iWidth, int iHeight,
 	  
 	  switch( mColorMapMethod ) { 
 	  case grayscale: {
+
 	    int nLUT = (int) floor( (cGrayscaleLUTEntries-1) * 
 				    ((value - mMinVisibleValue) /
 				     (mMaxVisibleValue - mMinVisibleValue)) );
@@ -225,33 +227,40 @@ ScubaLayer2DMRI::DrawIntoBuffer ( GLubyte* iBuffer, int iWidth, int iHeight,
 	    }
 	    break;
 	  }
+	}	
+	
+	int selectColor[3];
+	if( mVolume->IsRASSelected( RAS, selectColor ) ) {
+	  color[0] = (int) (((float)color[0] * (1.0 - mROIOpacity)) +
+			    ((float)selectColor[0] * mROIOpacity));
+	  color[1] = (int) (((float)color[1] * (1.0 - mROIOpacity)) +
+			    ((float)selectColor[1] * mROIOpacity));
+	  color[2] = (int) (((float)color[2] * (1.0 - mROIOpacity)) +
+			    ((float)selectColor[2] * mROIOpacity));
+	}
 
-	  int selectColor[3];
-	  if( mVolume->IsRASSelected( RAS, selectColor ) ) {
-	    color[0] = (int) (((float)color[0] * (1.0 - mROIOpacity)) +
-			      ((float)selectColor[0] * mROIOpacity));
-	    color[1] = (int) (((float)color[1] * (1.0 - mROIOpacity)) +
-			      ((float)selectColor[1] * mROIOpacity));
-	    color[2] = (int) (((float)color[2] * (1.0 - mROIOpacity)) +
-			      ((float)selectColor[2] * mROIOpacity));
-	  }
 
 #if 0
-	  if( mVolume->IsRASEdge( RAS ) ) {
-	    color[0] = 255; color[1] = color[2] = 0;
-	  }
+	if( mVolume->IsRASEdge( RAS ) ) {
+	  color[0] = 255; color[1] = color[2] = 0;
+	}
 #endif
 
-	  // Write the RGB value to the buffer. Write a 255 in the
-	  // alpha byte.
-	  dest[0] = (GLubyte) (((float)dest[0] * (1.0 - mOpacity)) +
-			       ((float)color[0] * mOpacity));
-	  dest[1] = (GLubyte) (((float)dest[1] * (1.0 - mOpacity)) +
-			       ((float)color[1] * mOpacity));
-	  dest[2] = (GLubyte) (((float)dest[2] * (1.0 - mOpacity)) +
-			       ((float)color[2] * mOpacity));
-	  dest[3] = (GLubyte)255;
-	}
+	// Write the RGB value to the buffer. Write a 255 in the
+	// alpha byte.
+#if 0
+	dest[0] = (GLubyte) (((float)dest[0] * (1.0 - mOpacity)) +
+			     ((float)color[0] * mOpacity));
+	dest[1] = (GLubyte) (((float)dest[1] * (1.0 - mOpacity)) +
+			     ((float)color[1] * mOpacity));
+	dest[2] = (GLubyte) (((float)dest[2] * (1.0 - mOpacity)) +
+			     ((float)color[2] * mOpacity));
+	dest[3] = (GLubyte)255;
+#endif
+	dest[0] = (GLubyte) color[0];
+	dest[1] = (GLubyte) color[1];
+	dest[2] = (GLubyte) color[2];
+	dest[3] = (GLubyte)255;
       }
 
       // Advance our pixel buffer pointer.
@@ -259,8 +268,6 @@ ScubaLayer2DMRI::DrawIntoBuffer ( GLubyte* iBuffer, int iWidth, int iHeight,
       
     }
   }
-
-
 
   if( mCurrentLine ) {
     int lineBegin[2];
@@ -320,7 +327,14 @@ ScubaLayer2DMRI::GetInfoAtRAS ( float iRAS[3],
       ssValue << value;
     }
 
-    iLabelValues[mVolume->GetLabel()] = ssValue.str();
+    iLabelValues[mVolume->GetLabel() + " value"] = ssValue.str();
+
+    int index[3];
+    mVolume->RASToMRIIndex( iRAS, index );
+
+    stringstream ssIndex;
+    ssIndex << index[0] << " " << index[1] << " " << index[2];
+    iLabelValues[mVolume->GetLabel() + " index"] = ssIndex.str();
   }
 }
   
@@ -958,15 +972,6 @@ ScubaLayer2DMRI::BuildGrayscaleLUT () {
 
     // Assign in table.
     mGrayscaleLUT[(int)nEntry] = normValue;
-
-
-#ifdef DEBUG
-    if( (int)nEntry == 0 || ((int)nEntry % 32) == 0 ||
-	(int)nEntry == cGrayscaleLUTEntries ){
-      cerr << "BuildGrayscaleLUT: entry " << nEntry
-	   << " = " << normValue << endl;
-    }
-#endif
   }
 }
 
@@ -1037,25 +1042,23 @@ ScubaLayer2DMRI::EndLine( float iRAS[3],
 
 ScubaLayer2DMRIFloodSelect::ScubaLayer2DMRIFloodSelect ( bool ibSelect ) {
   mbSelect = ibSelect;
+  mbFloodDlogOpen = false;
 }
 
 
 void
 ScubaLayer2DMRIFloodSelect::DoBegin () {
       
-  // Startup our dialog box.
-  TclDlogManager& manager = TclDlogManager::GetManager();
-  list<string> lButtons;
-  lButtons.push_back( "Stop" );
+  // Start the timer. If it goes past 2 seconds we'll open a dialog box.
+  mFloodTimer.Start();
+  mbFloodDlogOpen = false;
 
   // Start our undo action.
   UndoManager& undoList = UndoManager::GetManager();
 
   if( mbSelect ) {
-    manager.NewDlog( "Selecting", "Selecting voxels", true, lButtons );
     undoList.BeginAction( "Selection Fill" );
   } else {
-    manager.NewDlog( "Unselecting", "Unselecting voxels", true, lButtons );
     undoList.BeginAction( "Unselection Fill" );
   }
 
@@ -1064,9 +1067,15 @@ ScubaLayer2DMRIFloodSelect::DoBegin () {
 void 
 ScubaLayer2DMRIFloodSelect::DoEnd () {
 
-  TclDlogManager& manager = TclDlogManager::GetManager();
-  manager.CloseDlog();
+  // If the dialog is open, close it.
+  if( mbFloodDlogOpen ) {
+    
+    TclDlogManager& manager = TclDlogManager::GetManager();
+    manager.CloseDlog();
+    mbFloodDlogOpen = false;
+  }
 
+  // End our undo action.
   UndoManager& undoList = UndoManager::GetManager();
   undoList.EndAction();
 }
@@ -1074,22 +1083,41 @@ ScubaLayer2DMRIFloodSelect::DoEnd () {
 bool
 ScubaLayer2DMRIFloodSelect::DoStopRequested () {
 
-  TclDlogManager& manager = TclDlogManager::GetManager();
-  int nButton = manager.CheckDlogForButton();
-  if( nButton == 0 ) {
-    return true;
-  } else {
-    return false;
-  }
+  // If the dialog is open, check for the stop button.
+  if( mbFloodDlogOpen ) {
+    
+    TclDlogManager& manager = TclDlogManager::GetManager();
+    int nButton = manager.CheckDlogForButton();
+    if( nButton == 0 ) {
+      return true;
+    } 
+  } 
+
+  return false;
 }
 
 bool
 ScubaLayer2DMRIFloodSelect::CompareVoxel ( float iRAS[3] ) {
-  
-  static int c = 0;
-  TclDlogManager& manager = TclDlogManager::GetManager();
-  manager.UpdateDlog( "", ++c );
 
+  // Use this to check how much time the flood is taking. If over two
+  // seconds, open a dialog box.
+  if( !mbFloodDlogOpen &&
+      mFloodTimer.TimeNow() > 2000 ) {
+    
+    TclDlogManager& manager = TclDlogManager::GetManager();
+    list<string> lButtons;
+    lButtons.push_back( "Stop" );
+
+    if( mbSelect ) {
+      manager.NewDlog( "Selecting", "Selecting voxels", false, lButtons );
+    } else {
+      manager.NewDlog( "Unselecting", "Unselecting voxels", false, lButtons );
+    }
+
+    mbFloodDlogOpen = true;
+  }
+
+  // Always return true.
   return true;
 }
 

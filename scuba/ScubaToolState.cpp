@@ -16,7 +16,7 @@ ScubaToolState::ScubaToolState() {
   mbFloodStopAtLines = true;
   mbFloodStopAtROIs = true;
   mFloodFuzziness = 0;
-  mFloodMaxDistance = 20;
+  mFloodMaxDistance = 0;
   mbFlood3D = true;
 
   TclCommandManager& commandMgr = TclCommandManager::GetManager();

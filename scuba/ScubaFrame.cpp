@@ -584,6 +584,7 @@ ScubaFrame::DoDraw() {
 	view->Draw();
       }
       catch(...){
+	cerr << "Error drawing view at " << nCol << ", " << nRow << endl;
       }
 
       // If this is our selected view, draw a green box around it.

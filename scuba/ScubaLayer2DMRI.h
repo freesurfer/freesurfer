@@ -5,6 +5,7 @@
 #include "VolumeCollection.h"
 #include "ScubaColorLUT.h"
 #include "UndoManager.h"
+#include "Timer.h"
 
 class ScubaLayer2DMRI : public Layer {
 
@@ -105,6 +106,9 @@ class ScubaLayer2DMRIFloodSelect : public VolumeCollectionFlooder {
   virtual void DoVoxel ( float iRAS[3] );
 
   bool mbSelect;
+
+  Timer mFloodTimer;
+  bool mbFloodDlogOpen;
 };
 
 class UndoSelectionAction : public UndoAction {

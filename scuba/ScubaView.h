@@ -64,6 +64,10 @@ class ScubaView : public View, public ScubaWindowToRASTranslator, public Listene
   void SetFlipLeftRightYZ ( bool iFlip );
   bool GetFlipLeftRightYZ () { return mbFlipLeftRightInYZ; }
 
+  void SetInPlaneMovementIncrement ( float iIncrement ) { 
+    mInPlaneMovementIncrement = iIncrement; }
+  float GetInPlaneMovementIncrement () { return mInPlaneMovementIncrement; }
+
 protected:
 
   // Tells all the layers to draw in the correct order to the frame
@@ -138,6 +142,8 @@ protected:
   float mOriginalCenterRAS[3];
   float mOriginalZoom;
 
+  float mInPlaneMovementIncrement;
+
   // The buffer for this view.
   GLubyte* mBuffer;
 
@@ -156,7 +162,6 @@ protected:
   static std::map<int,bool> mViewIDLinkedList;
 
   ScubaTransform* mWorldToView;
-
 
   bool mbFlipLeftRightInYZ;
 };  

@@ -94,6 +94,8 @@ public:
     } else if( 0 == strcmp( isCommand, "ReturnError" ) ) {
       sResult = "This is an error string.";
       return error;
+    } else if( 0 == strcmp( isCommand, "TestThrow" ) ) {
+      throw runtime_error( "throw" );
     }
     return ok;
   }
@@ -238,6 +240,7 @@ public:
     commandMgr.AddCommand( *listener, "ReturnNestedList2", 0, "", "" );
     commandMgr.AddCommand( *listener, "ReturnMessage", 0, "", "" );  
     commandMgr.AddCommand( *listener, "ReturnError", 0, "", "" );
+    commandMgr.AddCommand( *listener, "TestThrow", 0, "", "" );
   
     // Run the script that will test tcl return stuff.
     cerr << "Running tcl script..." << endl;
@@ -285,7 +288,7 @@ int main ( int iArgc, char** iArgv ) {
     int rTcl = Tcl_Init( interp );
     Assert( TCL_OK == rTcl, "Tcl_Init returned not TCL_OK" );
 
-    for( int nTrial = 0; nTrial < 50; nTrial++ ) {
+    for( int nTrial = 0; nTrial < 1; nTrial++ ) {
       
       TclCommandManagerTester tester0;
       tester0.Test( interp );

@@ -27,6 +27,10 @@ VolumeCollection::VolumeCollection () :
   commandMgr.AddCommand( *this, "WriteVolumeROIToLabel", 3, 
 			 "collectionID roiID fileName", 
 			 "Writes an ROI to a label file." );
+  commandMgr.AddCommand( *this, "NewVolumeROIFromLabel", 2, 
+			 "collectionID fileName", 
+			 "Creates an ROI from a label file and returns the "
+			 "ID of the new ROI." );
   commandMgr.AddCommand( *this, "WriteVolumeROIsToSegmentation", 2, 
 			 "collectionID fileName", 
 			 "Writes a series of structure ROIs to a "
@@ -151,6 +155,7 @@ VolumeCollection::GetVoxelZSize () {
 }
 
 
+#if 1
 void
 VolumeCollection::RASToMRIIndex ( float iRAS[3], int oIndex[3] ) {
   
@@ -202,6 +207,29 @@ VolumeCollection::MRIIndexToRAS ( float iIndex[3], float oRAS[3] ) {
   oRAS[1] = VECTOR_ELT( mWorldCoord, 2 );
   oRAS[2] = VECTOR_ELT( mWorldCoord, 3 );
 }
+
+#else
+
+void
+VolumeCollection::RASToMRIIndex ( float iRAS[3], int oIndex[3] ) {
+  oIndex[0] = iRAS[0]; oIndex[1] = iRAS[1]; oIndex[2] = iRAS[2];
+}
+
+void
+VolumeCollection::RASToMRIIndex ( float iRAS[3], float oIndex[3] ) {
+  oIndex[0] = iRAS[0]; oIndex[1] = iRAS[1]; oIndex[2] = iRAS[2];
+}
+
+void
+VolumeCollection::MRIIndexToRAS ( int iIndex[3], float oRAS[3] ) {
+  oRAS[0] = iIndex[0]; oRAS[1] = iIndex[1]; oRAS[2] = iIndex[2];
+}
+
+void
+VolumeCollection::MRIIndexToRAS ( float iIndex[3], float oRAS[3] ) {
+  oRAS[0] = iIndex[0]; oRAS[1] = iIndex[1]; oRAS[2] = iIndex[2];
+}
+#endif
 
 bool 
 VolumeCollection::IsRASInMRIBounds ( float iRAS[3] ) {
@@ -352,8 +380,24 @@ VolumeCollection::DoListenToTclCommand ( char* isCommand,
        return error;
      }
     }
-    sReturnFormat = "s";
-    sReturnValues = mfnMRI;
+  }
+  
+  // NewVolumeROIFromLabel <collectionID> <fileName>
+  if( 0 == strcmp( isCommand, "NewVolumeROIFromLabel" ) ) {
+    int collectionID = strtol(iasArgv[1], (char**)NULL, 10);
+    if( ERANGE == errno ) {
+      sResult = "bad collection ID";
+      return error;
+    }
+    
+    if( mID == collectionID ) {
+     
+       int roiID = NewROIFromLabel( string(iasArgv[2]) );
+       stringstream ssReturnValues;
+       ssReturnValues << roiID;
+       sReturnValues = ssReturnValues.str();
+       sReturnFormat = "i";
+    }
   }
   
   // WriteVolumeROIsToSegmentation <collectionID> <fileName>
@@ -420,41 +464,48 @@ bool
 VolumeCollection::IsRASSelected ( float iRAS[3], int oColor[3] ) {
 
   if( mSelectedROIID >= 0 ) {
-    int index[3];
-    RASToMRIIndex( iRAS, index );
 
-    bool bSelected = false;
-    bool bFirstColor = true;
+    try {
 
-    map<int,ScubaROI*>::iterator tIDROI;
-    for( tIDROI = mROIMap.begin();
-	 tIDROI != mROIMap.end(); ++tIDROI ) {
-      int roiID = (*tIDROI).first;
+      int index[3];
+      RASToMRIIndex( iRAS, index );
       
-      ScubaROI* roi = &ScubaROI::FindByID( roiID );
-      //    ScubaROIVolume* volumeROI = dynamic_cast<ScubaROIVolume*>(roi);
-      ScubaROIVolume* volumeROI = (ScubaROIVolume*)roi;
-      if( volumeROI->IsVoxelSelected( index ) ) {
-	bSelected = true;
-	int color[3];
-	volumeROI->GetDrawColor( color );
-	if( bFirstColor ) {
-	  oColor[0] = color[0];
-	  oColor[1] = color[1];
-	  oColor[2] = color[2];
-	  bFirstColor = false;
-	} else {
-	  oColor[0] = (int) (((float)color[0] * 0.5) +
-			     ((float)oColor[0] * 0.5));
-	  oColor[1] = (int) (((float)color[1] * 0.5) +
-			     ((float)oColor[1] * 0.5));
-	  oColor[2] = (int) (((float)color[2] * 0.5) +
-			     ((float)oColor[2] * 0.5));
+      bool bSelected = false;
+      bool bFirstColor = true;
+      
+      map<int,ScubaROI*>::iterator tIDROI;
+      for( tIDROI = mROIMap.begin();
+	   tIDROI != mROIMap.end(); ++tIDROI ) {
+	int roiID = (*tIDROI).first;
+	
+	ScubaROI* roi = &ScubaROI::FindByID( roiID );
+	//    ScubaROIVolume* volumeROI = dynamic_cast<ScubaROIVolume*>(roi);
+	ScubaROIVolume* volumeROI = (ScubaROIVolume*)roi;
+	if( volumeROI->IsVoxelSelected( index ) ) {
+	  bSelected = true;
+	  int color[3];
+	  volumeROI->GetDrawColor( color );
+	  if( bFirstColor ) {
+	    oColor[0] = color[0];
+	    oColor[1] = color[1];
+	    oColor[2] = color[2];
+	    bFirstColor = false;
+	  } else {
+	    oColor[0] = (int) (((float)color[0] * 0.5) +
+			       ((float)oColor[0] * 0.5));
+	    oColor[1] = (int) (((float)color[1] * 0.5) +
+			       ((float)oColor[1] * 0.5));
+	    oColor[2] = (int) (((float)color[2] * 0.5) +
+			       ((float)oColor[2] * 0.5));
+	  }
 	}
       }
+      
+      return bSelected;
     }
-    
-    return bSelected;
+    catch(...) {
+      return false;
+    }
 
   } else {
     return false;
@@ -612,7 +663,8 @@ VolumeCollection::GetRASPointsInSphere ( float iCenterRAS[3], int iRadius,
 	float distance = sqrt( ((nX-iCenterRAS[0]) * (nX-iCenterRAS[0])) + 
 			       ((nY-iCenterRAS[1]) * (nY-iCenterRAS[1])) + 
 			       ((nZ-iCenterRAS[2]) * (nZ-iCenterRAS[2])) );
-	if( distance > iRadius ) {
+
+	if( distance > (float)iRadius ) {
 	  continue;
 	}
 
@@ -683,6 +735,44 @@ VolumeCollection::WriteROIToLabel ( int iROIID, string ifnLabel ) {
   }
 }
 
+int 
+VolumeCollection::NewROIFromLabel ( string ifnLabel ) {
+
+  char* fnLabel = strdup( ifnLabel.c_str() );
+  LABEL* label = LabelRead( NULL, fnLabel );
+  free( fnLabel );
+  if( NULL == label ) {
+    throw runtime_error( "Couldn't read label" );
+  }
+
+  ScubaROIVolume* volumeROI = NULL;
+  try { 
+    int roiID = NewROI();
+    ScubaROI* roi = &ScubaROI::FindByID( roiID );
+    //    ScubaROIVolume* volumeROI = dynamic_cast<ScubaROIVolume*>(roi);
+    volumeROI = (ScubaROIVolume*)roi;
+  }
+  catch(...) {
+    throw runtime_error( "Couldn't make ROI" );
+  }
+
+  for( int nPoint = 0; nPoint < label->n_points; nPoint++ ) {
+
+    float ras[3];
+    ras[0] = label->lv[nPoint].x;
+    ras[1] = label->lv[nPoint].y;
+    ras[2] = label->lv[nPoint].z;
+
+    int index[3];
+    RASToMRIIndex( ras, index );
+
+    volumeROI->SelectVoxel( index );
+  }
+ 
+  LabelFree( &label );
+
+  return volumeROI->GetID();
+}
 
 void
 VolumeCollection::WriteROIsToSegmentation ( string ifnVolume ) {

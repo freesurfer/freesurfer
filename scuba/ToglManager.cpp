@@ -1,5 +1,6 @@
 #include <stdexcept>
 #include "ToglManager.h"
+#include "Timer.h"
 
 using namespace std;
 

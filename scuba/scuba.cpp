@@ -1,4 +1,5 @@
 #include "ScubaGlobalPreferences.h"
+#include "PreferencesManager.h"
 #include "ToglManager.h"
 #include "ScubaFrame.h"
 #include "ScubaView.h"
@@ -28,9 +29,15 @@ int Scuba_Init ( Tcl_Interp* iInterp ) {
 
     ScubaLayerFactory& layerFactory = 
       ScubaLayerFactory::GetFactory();
+    layerFactory.SetOutputStreamToCerr();
 
     ScubaDataCollectionFactory& dataFactory = 
       ScubaDataCollectionFactory::GetFactory();
+    dataFactory.SetOutputStreamToCerr();
+
+    PreferencesManager& prefsMgr = PreferencesManager::GetManager();
+    //    prefsMgr.SetOutputStreamToCerr();
+    prefsMgr.UseFile( ".scuba" );
 
     ScubaGlobalPreferences preferences =
       ScubaGlobalPreferences::GetPreferences();
