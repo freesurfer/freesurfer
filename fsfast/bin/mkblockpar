@@ -1,6 +1,6 @@
 #!/bin/csh -f
 
-set VERSION = '$Id: mkblockpar,v 1.1 2003/03/04 21:22:09 greve Exp $';
+set VERSION = '$Id: mkblockpar,v 1.2 2003/04/18 22:10:34 greve Exp $';
 
 ##### Print out version info, if needed ####
 set n = `echo $argv | grep version | wc -l` 
@@ -40,7 +40,7 @@ while($epoch <= $nepochs)
   @ ntr = 0;
   while($ntr < $nper_epoch)
     printf "%6.3f  %3d\n" $t $code >> $parname
-    @ t = `echo $t + $TR | bc -l`;
+    set t = `echo "$t + $TR" | bc -l`;
     @ ntr = $ntr + 1;
   end
 
