@@ -1,6 +1,6 @@
 /*----------------------------------------------------------
   Name: mri_annotation2label.c
-  $Id: mri_annotation2label.c,v 1.2 2001/05/08 21:56:07 greve Exp $
+  $Id: mri_annotation2label.c,v 1.3 2001/05/09 19:18:18 greve Exp $
   Author: Douglas Greve
   Purpose: Converts an annotation to a labels.
 
@@ -72,13 +72,14 @@ static int  singledash(char *flag);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_annotation2label.c,v 1.2 2001/05/08 21:56:07 greve Exp $";
+static char vcid[] = "$Id: mri_annotation2label.c,v 1.3 2001/05/09 19:18:18 greve Exp $";
 char *Progname = NULL;
 
 char  *subject   = NULL;
 char  *annotation = "aparc";
 char  *hemi       = NULL;
 char  *labelbase = NULL;
+char  *surfacename = "white";
 
 MRI_SURFACE *Surf;
 LABEL *label     = NULL;
@@ -123,7 +124,7 @@ int main(int argc, char **argv)
   }
 
   /* ------ Load subject's surface ------ */
-  sprintf(tmpstr,"%s/%s/surf/%s.%s",SUBJECTS_DIR,subject,hemi,"white"); 
+  sprintf(tmpstr,"%s/%s/surf/%s.%s",SUBJECTS_DIR,subject,hemi,surfacename); 
   printf("Reading surface \n %s\n",tmpstr);
   Surf = MRISread(tmpstr);
   if(Surf == NULL){
@@ -216,6 +217,11 @@ static int parse_commandline(int argc, char **argv)
       subject = pargv[0];
       nargsused = 1;
     }
+    else if (!strcmp(option, "--surface") || !strcmp(option, "--surf")){
+      if(nargc < 1) argnerr(option,1);
+      surfacename = pargv[0];
+      nargsused = 1;
+    }
     else if (!strcmp(option, "--labelbase")){
       if(nargc < 1) argnerr(option,1);
       labelbase = pargv[0];
@@ -256,8 +262,9 @@ static void print_usage(void)
   fprintf(stdout, "   --subject    source subject\n");
   fprintf(stdout, "   --hemi       hemisphere (lh or rh) (with surface)\n");
   fprintf(stdout, "   --labelbase  output will be base-XXX.label \n");
-  fprintf(stdout, "   --annotation as found in SUBJDIR/labels <aparc>\n");
   fprintf(stdout, "\n");
+  fprintf(stdout, "   --annotation as found in SUBJDIR/labels <aparc>\n");
+  fprintf(stdout, "   --surface    name of surface <white>\n");  
   fprintf(stdout, "   --help       display help\n");  
   fprintf(stdout, "   --version    display version\n");  
   fprintf(stdout, "\n");
@@ -268,7 +275,8 @@ static void dump_options(FILE *fp)
   fprintf(fp,"subject = %s\n",subject);
   fprintf(fp,"annotation = %s\n",annotation);
   fprintf(fp,"hemi = %s\n",hemi);
-  fprintf(fp,"labelbase = %s\n",  labelbase);
+  fprintf(fp,"labelbase = %s\n",labelbase);
+  fprintf(fp,"surface   = %s\n",surfacename);
   fprintf(fp,"\n");
   return;
 }
@@ -279,41 +287,53 @@ static void print_help(void)
   printf("This program will convert an annotation into multiple label files.\n");
 
   printf(" 
-  User specifies the subject, hemisphere, label base, and 
-  (optionally) the annotation base. By default, the annotation
-  base is aparc. The program will get the annotations from
-  SUBJECTS_DIR/subject/label/hemi_annotbase.annot. A separate
-  label file is created for each annotation index; the name of
-  the file conforms to labelbase-XXX.label, where XXX is the
-  zero-padded 3 digit annotation index. If labelbase includes
-  a directory path, that directory must already exist. If there
-  are no points in the annotation file for a particular index,
-  no label file is created. The human-readable names that correspond 
-  to the annotation indices for aparc can be found in
-  $MRI_DIR/christophe_parc.txt.  This annotation key also appears 
-  at the end of this help.
+User specifies the subject, hemisphere, label base, and (optionally)
+the annotation base and surface. By default, the annotation base is
+aparc. The program will retrieves the annotations from
+SUBJECTS_DIR/subject/label/hemi_annotbase.annot. A separate label file
+is created for each annotation index; the name of the file conforms to
+labelbase-XXX.label, where XXX is the zero-padded 3 digit annotation
+index. If labelbase includes a directory path, that directory must
+already exist. If there are no points in the annotation file for a
+particular index, no label file is created. The xyz coordinates in the
+label file are obtained from the values at that vertex of the
+specified surface. The default surface is 'white'. Other options
+include 'pial' and 'orig'.  The human-readable names that correspond
+to the annotation indices for aparc can be found in
+$MRI_DIR/christophe_parc.txt.  This annotation key also appears at the
+end of this help.
 
-  Example:
+Bugs:
+
+  If the name of the label base does not include a forward slash (ie, '/') 
+  then the program will attempt to put the label files in 
+  $SUBJECTS_DIR/subject/label.  So, if you want the labels to go into the 
+  current directory, make sure to put a './' in front of the label base.
+
+Example:
 
   mri_annotation2label --subject LW --hemi rh --labelbase ./labels/aparc-rh
 
   This will get annotations from $SUBJECTS_DIR/LW/label/rh_aparc.annot
   and then create about 94 label files: aparc-rh-001.label, 
-  aparc-rh-002.label, ... Note that the directory labels must already
+  aparc-rh-002.label, ... Note that the directory 'labels' must already
   exist. 
 
-  Testing:
-  1. Load annotations in tksurfer:  
+Testing:
+
+  1. Start tksurfer:  
        tksurfer -LW lh inflated
        % read_annotations lh_aparc
      When a point is clicked on, it prints out a lot of info, including
+     something like:
        annot = S_temporalis_sup (93, 3988701) (221, 220, 60)
      This indicates that annotion number 93 was hit. Save this point.
    
-  2. Load label into tksurfer (new job):
+  2. Start another tksurfer and load the label:
        tksurfer -LW lh inflated
-       [edit label field and read]
-     Verify that label pattern looks like that from the annotation
+       [edit label field and hit the 'Read' button]
+     Verify that label pattern looks like the annotation as seen in
+     the tksurfer window from step 1.
 
   3. Load label into tkmedit
        tkmedit LW T1
