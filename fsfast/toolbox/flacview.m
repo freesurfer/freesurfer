@@ -1,7 +1,7 @@
 function r = flacview(varargin)
 % r = flacview(varargin)
 
-version = '$Id: flacview.m,v 1.1 2004/11/30 23:52:38 greve Exp $';
+version = '$Id: flacview.m,v 1.2 2005/01/23 17:11:05 greve Exp $';
 r = 1;
 
 %% Print usage if there are no arguments %%
@@ -205,14 +205,33 @@ switch(flag)
   
  case {'kbd'} %----------- Keyboard -------------%
   c = get(s.hfig,'CurrentCharacter'); 
-  fprintf('c = %s (%d)\n',c,c);
+  %fprintf('c = %s (%d)\n',c,c);
   switch(c)
    case {'m'}
     s.mosviewprev = s.mosview;
     s.mosview = ~s.mosview;
     redraw = 1;
+   case {'o'}
+    tit  = 'Adjust Overlay Threshold';
+    prompt = {'Sat Threshold:','Min Threshold'};
+    lines  = 1;
+    def = {sprintf('%7.4f',s.thsat),sprintf('%7.4f',s.thmin)};
+    answer   = inputdlg(prompt,tit,lines,def);
+    if(~isempty(answer))
+      asat = sscanf(answer{1},'%f');
+      amin = sscanf(answer{2},'%f');
+      if(asat <= amin)
+	msg = sprintf('Sat threshold (%f) cannot be less than min (%f)',...
+		      asat,amin);
+	errordlg(msg);
+      elseif(asat ~= s.thsat | amin ~= s.thmin)
+	s.thmin = amin;
+	s.thsat = asat;
+	s = make_overlay(s);	 
+	redraw  = 1;
+      end 
+    end
   end % switch c
-
   
 end % switch flag
 
@@ -257,7 +276,7 @@ function s = main_struct
   s.beta           = [];
   s.con            = [];
   s.thmin          = 2;
-  s.thmax          = 5;
+  s.thsat          = 5;
   s.nthcon         =  1;
   s.hfig           = [];
   s.haxis          = [];
@@ -405,7 +424,7 @@ function s = make_overlay(s)
 basemos = vol2mos(s.base);
 conmos = vol2mos(s.con(s.nthcon).fsig.vol);
 [displaymos s.cmap s.cscale ] = ...
-    imgoverlaytc2(basemos,conmos,s.thmin,s.thmax,'abs',0);
+    imgoverlaytc2(basemos,conmos,s.thmin,s.thsat,'abs',0);
 s.displayvol = mos2vol(displaymos,s.func.volsize);
 
 return;
