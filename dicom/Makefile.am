@@ -2,7 +2,7 @@
 # Makefile.am
 #
 # Makefile.am specify i addtion to the standard
-AM_CPPFLAGS=-I$(top_srcdir)/include -I$(top_srcdir)/include/dicom
+AM_CPPFLAGS=-I$(top_srcdir)/include -I$(top_srcdir)/include/dicom -fno-strict-aliasing
 AM_LDFLAGS=
 
 noinst_LIBRARIES= libdicom.a
