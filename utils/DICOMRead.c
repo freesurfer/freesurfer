@@ -2,7 +2,7 @@
    DICOM 3.0 reading functions
    Author: Sebastien Gicquel and Douglas Greve
    Date: 06/04/2001
-   $Id: DICOMRead.c,v 1.44 2003/09/09 15:36:32 tosa Exp $
+   $Id: DICOMRead.c,v 1.45 2003/09/09 17:49:44 tosa Exp $
 *******************************************************/
 
 #include <stdio.h>
@@ -4321,10 +4321,17 @@ int DICOMRead(char *FileName, MRI **mri, int ReadImage)
 	  inputIndex = i;
 	  inputImageNumber = aDicomInfo[i]->ImageNumber;
 	}
-	// print the starting filename for the studies
-	if (aDicomInfo[i]->ImageNumber ==1)
+	// print starting filename for the studies
+	if (i == 0)
 	{
-	  startIndices[count]= i;
+	  startIndices[count] = i;
+	  count++;
+	  printf(" %s\n", aDicomInfo[i]->FileName);
+	}
+	// get a different studies
+	else if (i != 0 && aDicomInfo[i]->AcquisitionTime != aDicomInfo[i-1]->AcquisitionTime)
+	{
+	  startIndices[count] = i;
 	  count++;
 	  printf(" %s\n", aDicomInfo[i]->FileName);
 	}
@@ -4336,14 +4343,20 @@ int DICOMRead(char *FileName, MRI **mri, int ReadImage)
     nextIndex = inputIndex;
     for (i=0; i < count; i++)
     {
+      // startIndices is bigger than inputIndex, then it is not the
+      // starting index of the selected file.
       if (startIndices[i] > inputIndex)
       {
 	if (i > 0)
-	  inputIndex = startIndices[i-1];
-	nextIndex = startIndices[i];
+	  inputIndex = startIndices[i-1]; // inputIndex is the previous one
+	nextIndex = startIndices[i];      // next series starting here
 	break;
       }
     }
+    // could end up nextIndex = inputIndex
+    if (inputIndex == nextIndex)
+      nextIndex = inputIndex+1; 
+
     free((void *) startIndices);
   }
   else // only 1 studies
