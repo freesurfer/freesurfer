@@ -4765,12 +4765,27 @@ static int analyzeWriteFrame(MRI *mri, char *fname, int frame)
   int i, j, k;
   int bytes_per_voxel;
   short i1, i2, i3;
+  int shortmax;
 
   if(frame >= mri->nframes){
     fprintf(stderr,"ERROR: analyzeWriteFrame(): frame number (%d) exceeds "
       "number of frames (%d)\n",frame,mri->nframes);
     return(1);
   }
+
+  shortmax = (int)(pow(2.0,15.0));
+  if(mri->width > shortmax)
+    printf("ANALYZE FORMAT WARNING: ncols %d in volume exceeds %d\n",
+     mri->width,shortmax);
+  if(mri->height > shortmax)
+    printf("ANALYZE FORMAT WARNING: nrows %d in volume exceeds %d\n",
+     mri->height,shortmax);
+  if(mri->depth > shortmax)
+    printf("ANALYZE FORMAT WARNING: nslices %d in volume exceeds %d\n",
+     mri->depth,shortmax);
+  if(mri->nframes > shortmax)
+    printf("ANALYZE FORMAT WARNING:  nframes %d in volume exceeds %d\n",
+     mri->nframes,shortmax);
 
   c = strrchr(fname, '.');
   if(c == NULL)
@@ -4977,6 +4992,7 @@ static int analyzeWrite4D(MRI *mri, char *fname)
   int i, j, k, frame;
   int bytes_per_voxel;
   short i1, i2, i3;
+  int shortmax;
 
   c = strrchr(fname, '.');
   if(c == NULL)
@@ -4991,6 +5007,20 @@ static int analyzeWrite4D(MRI *mri, char *fname)
     ErrorReturn(ERROR_BADPARM, (ERROR_BADPARM, "analyzeWrite4D(): "
         "bad file name %s", fname));
   }
+
+  shortmax = (int)(pow(2.0,15.0));
+  if(mri->width > shortmax)
+    printf("ANALYZE FORMAT WARNING: ncols %d in volume exceeds %d\n",
+     mri->width,shortmax);
+  if(mri->height > shortmax)
+    printf("ANALYZE FORMAT WARNING: nrows %d in volume exceeds %d\n",
+     mri->height,shortmax);
+  if(mri->depth > shortmax)
+    printf("ANALYZE FORMAT WARNING: nslices %d in volume exceeds %d\n",
+     mri->depth,shortmax);
+  if(mri->nframes > shortmax)
+    printf("ANALYZE FORMAT WARNING:  nframes %d in volume exceeds %d\n",
+     mri->nframes,shortmax);
 
   /* create the file name for the header */
   strcpy(hdr_fname, fname);
