@@ -855,6 +855,8 @@ MRI *MRIrande(int ncols, int nrows, int nslices, int nframes,
 	      float avg, int order, MRI *mri);
 MRI *MRIdrand48(int ncols, int nrows, int nslices, int nframes,
 		float min, float max, MRI *mri);
+MRI *MRIsampleCDF(int ncols, int nrows, int nslices, int nframes,
+		  double *xCDF, double *CDF, int nCDF, MRI *mri);
 MRI *MRIconst(int ncols, int nrows, int nslices, int nframes,
 	      float val, MRI *mri);
 int MRInormalizeSequence(MRI *mri, float target) ;

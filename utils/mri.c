@@ -8,10 +8,10 @@
  *
 */
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2004/02/12 19:29:42 $
-// Revision       : $Revision: 1.257 $
-char *MRI_C_VERSION = "$Revision: 1.257 $";
+// Revision Author: $Author: greve $
+// Revision Date  : $Date: 2004/02/13 00:52:59 $
+// Revision       : $Revision: 1.258 $
+char *MRI_C_VERSION = "$Revision: 1.258 $";
 
 /*-----------------------------------------------------
                     INCLUDE FILES
@@ -10686,6 +10686,47 @@ MRI *MRIdrand48(int ncols, int nrows, int nslices, int nframes,
 	}
       }
       n++;
+    }
+  }
+
+  return(mri);
+}
+/*---------------------------------------------------------------------
+  MRIsampleCDF() - fills an MRI structure with values sampled from a 
+  the given CDF. See PDFsampleCDF(). CDF[n] is the probability that
+  the random number is <= xCDF[n].
+  --------------------------------------------------------------------*/
+MRI *MRIsampleCDF(int ncols, int nrows, int nslices, int nframes,
+		  double *xCDF, double *CDF, int nCDF, MRI *mri)
+{
+  int c, r, s, f;
+
+  if(mri==NULL){
+    mri = MRIallocSequence(ncols, nrows, nslices, MRI_FLOAT, nframes);
+    if(mri==NULL){
+      printf("ERROR: MRIsampleCDF: could not alloc\n");
+      return(NULL);
+    }
+  }
+  else{
+    if(mri->width != ncols   || mri->height != nrows || 
+       mri->depth != nslices || mri->nframes != nframes){
+      printf("ERROR: MRIsampleCDF: dimension mismatch\n");
+      return(NULL);
+    }
+    if(mri->type != MRI_FLOAT){
+      printf("ERROR: MRIsampleCDF: structure passed is not MRI_FLOAT\n");
+      return(NULL);
+    }
+  }
+
+  for(f=0; f<nframes; f++){
+    for(s=0; s<nslices; s++){
+      for(r=0; r<nrows; r++){
+	for(c=0; c<ncols; c++){
+	  MRIFseq_vox(mri,c,r,s,f) = PDFsampleCDF(xCDF,CDF,nCDF);
+	}
+      }
     }
   }
 
