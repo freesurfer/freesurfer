@@ -1,7 +1,7 @@
 #!/bin/csh -f
 # func2tal-sess
 #
-set VERSION = '$Id: func2tal-sess,v 1.1 2003/03/04 21:22:08 greve Exp $';
+set VERSION = '$Id: func2tal-sess,v 1.2 2003/08/12 22:51:26 greve Exp $';
 
 set res = ();
 set analysis    = ();
@@ -9,6 +9,7 @@ set ScriptOnly = 0;
 set umaskarg = ();
 set spacedir = tal;
 set xfmfile = talairach.xfm
+set fixxfm = 0;
 
 if($#argv == 0) then
   goto usage_exit;
@@ -123,6 +124,7 @@ foreach sess ($SessList)
     set cmd = (func2tal $umaskarg -funcstem $funcstem )
     set cmd = ($cmd -talstem $talstem -res $res -reg $regfile)
     set cmd = ($cmd -xfm $xfmfile);
+    if($fixxfm) set cmd = ($cmd -fixxfm);
     pwd |& tee -a $LF
     echo $cmd |& tee -a $LF
     $cmd |& tee -a $LF
@@ -205,6 +207,14 @@ while( $#argv != 0 )
     case "-xfm":
       if ( $#argv == 0) goto arg1err;
       set xfmfile = $argv[1]; shift;
+      breaksw
+
+    case "-fixxfm":
+      set fixxfm = 1;
+      breaksw
+
+    case "-nofixxfm":
+      set fixxfm = 0;
       breaksw
 
     case "-sd":
