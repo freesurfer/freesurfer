@@ -1,13 +1,14 @@
 #!/bin/tcsh -f
 # tdr-avgechoes
 
-set VERSION = '$Id: tdr-avgechoes,v 1.2 2003/10/04 20:17:29 greve Exp $';
+set VERSION = '$Id: tdr-avgechoes,v 1.3 2003/12/19 21:57:11 greve Exp $';
 
 set inputargs = ($argv);
 
 set instemlist = ();
 set telist     = ();
 set outstem    = ();
+set wechostem  = ();
 set avgmethod  = ();
 set monly      = 0;
 
@@ -50,11 +51,17 @@ date          >> $LF
 
 set StartTime = `date`;
 mkdir -p $outdir/wecho
-set wechostem = $outdir/wecho/wecho
+if($#wechostem == 0 && $avgmethod == wavg) then
+  set wechostem = $outdir/wecho/wecho
+endif
 
 set MLF = $outdir/run_tdr_avgechoes.m
 echo "Matlab file is $MLF"
 rm -f $MLF
+
+set okfile = /tmp/tdr_avgechoes.$$.ok
+rm -f $okfile
+
   #---------------------------------------------#
 tee -a > /dev/null $MLF  <<EOF
 
@@ -64,6 +71,7 @@ telist = [$telist];
 outstem = '$outstem';
 wechostem = '$wechostem';
 avgmethod = '$avgmethod';
+okfile    = '$okfile';
 
 fout = 0;
 wecho = [];
@@ -73,6 +81,12 @@ for n = 1:nechoes
   fprintf('Loading %s (%g)\n',instem,toc);
   [fin mristruct] = fast_ldbslice(instem, -1);
   if(isempty(fin)) return; end
+
+  % Compute the mean to use as replacement
+  %if(n == 1) fmn = sum(fin,4);
+  %else fmn = fmn + sum(fin,4);
+  %end
+
   if(strcmp(avgmethod,'avg'))
     fout = fout + fin;
   else
@@ -88,6 +102,17 @@ for n = 1:nechoes
     fout = fout + fin .* repmat(finw,[1 1 1 nframes]);
     wecho(:,:,:,n) = finw;
   end
+
+end
+
+if(strcmp(avgmethod,'wavg'))
+  % When fout is computed above, the weights are not
+  % normaliazed (ie sum(w) ~= 1). This section rescales
+  % each voxel so that effectively sum(w) = 1. 
+  wechosum = sum(wecho,4);
+  ind = find(wechosum==0);
+  wechosum(ind) = 1;
+  fout = fout ./ repmat(wechosum,[1 1 1 nframes]);
 end
 
 foutmin = min(reshape1d(fout));
@@ -95,17 +120,18 @@ foutmax = max(reshape1d(fout));
 fscale = (2^14-1)/(foutmax-foutmin);
 fout = fscale*(fout-foutmin);
 fprintf('Saving to %s (%g)\n',outstem,toc);
-fast_svbslice(fout,outstem,-1,'bshort',mristruct);
+err = fast_svbslice(fout,outstem,-1,'bshort',mristruct);
+if(err) return; end
 
 if(~isempty(wechostem))
   % normalize and save the echo weights %
   fprintf('Saving weights to to %s (%g)\n',wechostem,toc);
-  wechosum = sum(wecho,4);
-  ind = find(wechosum==0);
-  wechosum(ind) = 1;
   wecho = wecho ./ repmat(wechosum,[1 1 1 nechoes]);
-  fast_svbslice(wecho,wechostem,-1,'',mristruct);
+  err = fast_svbslice(wecho,wechostem,-1,'',mristruct);
+  if(err) return; end
 end
+
+fmri_touch(okfile);
 
 fprintf('tdr_avgechoes done (%g)\n',toc);
 return;
@@ -119,6 +145,11 @@ if(! $monly) then
   echo "--------------------------" >> $LF
   cat $MLF | matlab -display iconic -nojvm -nosplash | & tee -a $LF
   echo "" | & tee -a $LF
+  if(! -e $okfile) then
+    echo "ERROR: during matlab execution" | & tee -a $LF
+    exit 1;
+  endif
+  rm -f $okfile
 endif
 
 echo "Started at $StartTime" |& tee -a $LF
@@ -208,6 +239,11 @@ check_params:
       exit 1;
     endif
   end
+
+  if($#wechostem != 0 && $avgmethod == avg) then
+    echo "ERROR: cannot save wecho when method is avg"
+    exit 1;
+  endif
 
   if($#outstem == 0) then
     echo "ERROR: no outstem specified"
