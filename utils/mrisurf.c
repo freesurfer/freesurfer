@@ -6539,7 +6539,7 @@ MRISsampleStatVolume(MRI_SURFACE *mris, STAT_VOLUME *sv,int time_point,
   depth  = sv->mri_pvals[0]->depth ;
   for (vno = 0 ; vno < mris->nvertices ; vno++)
   {
-    if (vno == 161)
+    if (vno == 2452)
       DiagBreak() ;
     v = &mris->vertices[vno] ;
     x = (Real)v->x ; y = (Real)v->y ; z = (Real)v->z ;
@@ -6559,7 +6559,7 @@ MRISsampleStatVolume(MRI_SURFACE *mris, STAT_VOLUME *sv,int time_point,
       break ;
     }
     xv = nint(xt) ; yv = nint(yt) ; zv = nint(zt) ;
-    if (xv >= 0 && xv < width && yv >= 0 && yv <= height && zv>=0&&zv<=depth)
+    if (xv >= 0 && xv < width && yv >= 0 && yv < height && zv>=0&&zv<depth)
       v->val = MRIFseq_vox(sv->mri_pvals[0], xv, yv, zv, time_point) ;
     if (vno == 1446)
       DiagBreak() ;
