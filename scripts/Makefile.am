@@ -72,6 +72,7 @@ parcellate_subject-rh \
 printdat \
 progressbar.tcl \
 recon-all-nmr \
+recon-all \
 register_child \
 register.csh \
 register_elderly_subject \
@@ -156,3 +157,7 @@ twocond-masked-views.tcl \
 twocond-views.tcl \
 wrappers.tcl \
 fsgdfPlot.tcl
+
+recon-all: recon-all-nmr
+	cat ./recon-all-nmr | grep -v dASEGd > ./recon-all
+	chmod a+x ./recon-all
