@@ -52,7 +52,7 @@ main(int argc, char *argv[])
   struct timeb start ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_average.c,v 1.19 2003/04/15 17:41:53 kteich Exp $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_average.c,v 1.20 2003/06/13 15:22:10 fischl Exp $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -310,7 +310,21 @@ static void
 usage_exit(int code)
 {
   printf("usage: %s [options] <volume> ... <output volume>\n", Progname) ;
-  printf("\t-a    rigid alignment of input volumes before averaging\n") ;
+  printf("\t-a              rigid alignment of input volumes before averaging\n") ;
+  printf("\t-dt <float n>   set dt to n (default=1e-6)\n") ;
+  printf("\t-tol <float n>  set tol to n (default=1e-5)\n") ;
+  printf("\t-conform        interpolate volume to be isotropic 1mm^3\n") ;
+  printf("\t-noconform      inhibit isotropic volume interpolation\n");
+  printf("\t-reduce <int n> reduce input images n (default=2) times\n") ;
+  printf("\t-sinc <int n>   using sinc interpolation with windowwidth of 2*n (default=3)\n") ;
+  printf("\t-trilinear      use trilinear interpolation\n");
+  printf("\t-window         apply hanning window to volumes\n");
+  printf("\t-w <int n>      write snapshots every n iterations\n");
+  printf("\t-t <x> <y> <z>  translation of second volume\n");
+  printf("\t-r <x> <y> <z>  rotation of second volume around each axis in degrees\n");
+  printf("\t-m <float n>    use momentum n (default=0)\n");
+  printf("\t-a              align volumes before averaging\n");
+  printf("\t-u              print usage\n");
   exit(code) ;
 }
 
