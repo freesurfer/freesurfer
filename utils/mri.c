@@ -7471,20 +7471,30 @@ MRI *MRIresample(MRI *src, MRI *template_vol, int resample_type)
   /* ----- fake the ras values if ras_good_flag is not set ----- */
   if(!src->ras_good_flag)
   {
+    int warn = 0;
     if(src->slice_direction == MRI_CORONAL)
     {
+      if(src->x_r != -1 || src->x_a != 0 || src->x_s !=  0 ||
+   src->y_r !=  0 || src->y_a != 0 || src->y_s != -1 ||
+   src->z_r !=  0 || src->z_a != 1 || src->z_s !=  0) warn = 1;
       src->x_r = -1; src->x_a =  0; src->x_s =  0;
       src->y_r =  0; src->y_a =  0; src->y_s = -1;
       src->z_r =  0; src->z_a =  1; src->z_s =  0;
     }
     else if(src->slice_direction == MRI_SAGITTAL)
     {
+      if(src->x_r !=  0 || src->x_a != 1 || src->x_s !=  0 ||
+   src->y_r !=  0 || src->y_a != 0 || src->y_s != -1 ||
+   src->z_r !=  1 || src->z_a != 0 || src->z_s !=  0) warn = 1;
       src->x_r =  0; src->x_a =  1; src->x_s =  0;
       src->y_r =  0; src->y_a =  0; src->y_s = -1;
       src->z_r =  1; src->z_a =  0; src->z_s =  0;
     }
     else if(src->slice_direction == MRI_HORIZONTAL)
     {
+      if(src->x_r != -1 || src->x_a !=  0 || src->x_s !=  0 ||
+   src->y_r !=  0 || src->y_a != -1 || src->y_s !=  0 ||
+   src->z_r !=  0 || src->z_a !=  0 || src->z_s != -1) warn = 1;
       src->x_r = -1; src->x_a =  0; src->x_s =  0;
       src->y_r =  0; src->y_a = -1; src->y_s =  0;
       src->z_r =  0; src->z_a =  0; src->z_s = -1;
@@ -7493,6 +7503,11 @@ MRI *MRIresample(MRI *src, MRI *template_vol, int resample_type)
     {
       ErrorReturn(NULL, (ERROR_BADPARM, "MRIresample(): source volume orientation is unknown"));
     }
+    if(warn){
+      printf("MRIresample(): WARNING: ras_good_flag is not set, changing orientation\n"
+       "to default.\n");
+    }
+
   }
 
   src_mat = MatrixAlloc(4, 4, MATRIX_REAL);
