@@ -1700,7 +1700,7 @@ ImageDifferentialScale(IMAGE *Isrc, IMAGE *Iout,
       ImageDifferentialScaleUp(Isrc, Iout, outRows, outCols) ;
   else
     ErrorReturn(NULL, (ERROR_UNSUPPORTED,
-                       "ImageDifferentialScale: scaling must be same"
+                       "ImageDifferentialScale: scaling must be same "
                        "direction in both dimensions")) ;
   return(Iout) ;
 }
