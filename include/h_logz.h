@@ -54,6 +54,8 @@ typedef struct _LOGPIX
   void  *user ;          /* misc. pointer for whoever */
   double weight ;         /* for gradient calculation */
   struct _LOGPIX    *nbd[9] ;    /* 8-connected neighbors and self */
+  float  rho ;           /* radial log coordinate */
+  float  phi ;           /* angular log coordinate */
 } LOGPIX ;
 
 typedef struct
@@ -98,6 +100,8 @@ typedef struct
 #define LOG_PIX_NEIGHBORS(m,r,s) LOG_PIX(m, r, s)->neighbors
 #define LOG_PIX_N_NEIGHBORS(m,r,s) LOG_PIX(m, r, s)->n_neighbors
 #define LOG_PIX_NBD(m,r,s,d)     LOG_PIX(m,r,s)->nbd[d]
+#define LOG_PIX_RHO(m,r,s)       LOG_PIX(m, r, s)->rho
+#define LOG_PIX_PHI(m,r,s)       LOG_PIX(m, r, s)->phi
 
 
 /*
