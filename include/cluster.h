@@ -15,6 +15,7 @@ typedef struct
   int     nsamples ;        /* # of samples in this cluster */
   int     cno ;             /* index of this cluster (for diagnostics) */
   float   det ;             /* determinant of scatter matrix */
+  float   norm ;            /* sqrt(det(scatter)) for Gaussian */
   int     ill_conditioned;  /* was the scatter matrix singular */
 } CLUSTER ;
 
