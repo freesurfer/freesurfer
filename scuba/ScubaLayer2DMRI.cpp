@@ -1358,6 +1358,9 @@ EdgePathFinder::GetEdgeCost ( Point2<int>& iPoint ) {
   // a really weird looking line.
   float RAS[3];
   mTranslator->TranslateWindowToRAS( iPoint.xy(), RAS );
-  return mVolume->GetMRIMagnitudeValueAtRAS( RAS ) + 0.1;
-
+  if( mVolume->IsRASInMRIBounds( RAS ) ) {
+    return mVolume->GetMRIMagnitudeValueAtRAS( RAS ) + 0.1;
+  } else {
+    return mLongestEdge;
+  }
 }
