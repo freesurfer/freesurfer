@@ -14,7 +14,7 @@
 #include "macros.h"
 #include "utils.h"
 
-static char vcid[]="$Id: mris_sphere.c,v 1.5 1998/01/10 17:12:52 fischl Exp $";
+static char vcid[]="$Id: mris_sphere.c,v 1.6 1998/01/10 17:14:06 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -36,7 +36,7 @@ static double disturb = 0 ;
 static float min_neg_pct = 0.05f/100.0f ;  /* less than 0.05% negative */
 static int   min_neg = 20 ;
 static int   nospring = 0 ;
-static int   max_passes = 2 ;
+static int   max_passes = 1 ;
 static int   randomly_project = 0 ;
 static float scale = 1.0 ;
 static int mrisDisturbVertices(MRI_SURFACE *mris, double amount) ;
