@@ -3,9 +3,9 @@
 // written by Bruce Fischl
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2004/12/07 20:09:22 $
-// Revision       : $Revision: 1.312 $
+// Revision Author: $Author: tosa $
+// Revision Date  : $Date: 2004/12/08 20:11:33 $
+// Revision       : $Revision: 1.313 $
 //////////////////////////////////////////////////////////////////
 #include <stdio.h>
 #include <string.h>
@@ -3741,6 +3741,9 @@ MRISclone(MRI_SURFACE *mris_src)
     fdst = &mris_dst->faces[fno] ;
     memmove(fdst, fsrc, sizeof(FACE)) ;
   }
+  // copy geometry info
+  copyVolGeom(&mris_src->vg, &mris_dst->vg);
+
   return(mris_dst) ;
 }
 /*-----------------------------------------------------
