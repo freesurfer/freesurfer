@@ -1,3 +1,12 @@
+// nmovie.c
+//
+// Warning: Do not edit the following four lines.  CVS maintains them.
+// Revision Author: $Author: tosa $
+// Revision Date  : $Date: 2003/01/22 21:48:39 $
+// Revision       : $Revision: 1.18 $
+//
+////////////////////////////////////////////////////////////////////
+char *NMOVIE_VERSION = "$Revision: 1.18 $";
 #include <stdio.h>
 #include <image.h>
 #include <stdlib.h>
@@ -544,6 +553,11 @@ get_option(int argc, char *argv[])
   char *option ;
 
   option = argv[1] + 1 ;            /* past '-' */
+  if (!strcasecmp(option, "-version"))
+  {
+    printf("Version: %s\n", NMOVIE_VERSION);
+    exit(0);
+  }
   StrUpper(option) ;
   switch (*option)
   {
