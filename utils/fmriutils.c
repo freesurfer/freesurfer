@@ -1,6 +1,6 @@
 /* 
    fmriutils.c 
-   $Id: fmriutils.c,v 1.3 2002/10/31 18:26:48 greve Exp $
+   $Id: fmriutils.c,v 1.4 2003/09/21 21:12:47 greve Exp $
 */
 #include <stdio.h>
 #include <stdlib.h>
@@ -292,4 +292,55 @@ MRI *fMRIsigT(MRI *t, float DOF, MRI *sig)
   }
 
   return(sig);
+}
+/*--------------------------------------------------------*/
+MRI *fMRInskip(MRI *inmri, int nskip, MRI *outmri)
+{
+  int c, r, s, fin, fout;
+  int nframesout;
+  float val;
+
+  if(inmri->nframes <= nskip){
+    printf("ERROR: fMRInskip: nskip >= nframes\n");
+    return(NULL);
+  }
+
+  nframesout = inmri->nframes - nskip;
+  if(outmri==NULL){
+    outmri = MRIallocSequence(inmri->width, inmri->height, inmri->depth, 
+			      inmri->type, nframesout);
+    if(outmri==NULL){
+      printf("ERROR: fMRInskip: could not alloc\n");
+      return(NULL);
+    }
+    MRIcopyHeader(inmri,outmri);
+  }
+  else{
+    if(outmri->width  != inmri->width || 
+       outmri->height != inmri->height || 
+       outmri->depth  != inmri->depth || 
+       outmri->nframes != nframesout){
+      printf("ERROR: fMRInskip: output dimension mismatch\n");
+      return(NULL);
+    }
+    if(outmri->type != inmri->type){
+      printf("ERROR: fMRInskip: structure type mismatch\n");
+      return(NULL);
+    }
+  }
+
+  MRIclear(outmri);
+  for(fout=0; fout < outmri->nframes; fout++){
+    fin = fout + nskip;
+    for(s=0; s < outmri->depth; s++){
+      for(r=0; r < outmri->height; r++){
+	for(c=0; c < outmri->width; c++){
+	  val = MRIgetVoxVal(inmri, c, r, s, fin);
+	  MRIsetVoxVal(outmri,c, r, s, fout, val);
+	}
+      }
+    }
+  }
+
+  return(outmri);
 }
