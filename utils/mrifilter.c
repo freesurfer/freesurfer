@@ -2247,6 +2247,8 @@ MRI *MRIgaussianSmooth(MRI *src, float std, int norm, MRI *targ)
  */
 static void MRImodifySampledHeader(MRI *mri_src, MRI *mri_dst)
 {
+  Real c_r, c_a, c_s;
+
   if (!mri_dst)
     ErrorExit(ERROR_BADPARM, "dst volume must be given");
 
@@ -2259,7 +2261,6 @@ static void MRImodifySampledHeader(MRI *mri_src, MRI *mri_dst)
   mri_dst->ysize = mri_src->ysize * 2.0f ;
   mri_dst->zsize = mri_src->zsize * 2.0f ;
 
-  Real c_r, c_a, c_s;
   // calculate c_ras value
   MRIcalcCRASforSampledVolume(mri_src, mri_dst, &c_r, &c_a, &c_s);
   mri_dst->c_a = c_a;

@@ -9,9 +9,9 @@
  */
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2005/01/27 16:01:32 $
-// Revision       : $Revision: 1.288 $
-char *MRI_C_VERSION = "$Revision: 1.288 $";
+// Revision Date  : $Date: 2005/01/27 20:03:33 $
+// Revision       : $Revision: 1.289 $
+char *MRI_C_VERSION = "$Revision: 1.289 $";
 
 /*-----------------------------------------------------
   INCLUDE FILES
@@ -2570,6 +2570,7 @@ MRIextractInto(MRI *mri_src, MRI *mri_dst, int x0, int y0, int z0,
 {
   int  width, height, depth, ys, zs, yd, zd, bytes, frame, xsize,ysize,zsize,
     dst_alloced = 0 ;
+  Real c_r, c_a, c_s;
 
   width = mri_src->width ;
   depth = mri_src->depth ;
@@ -2685,7 +2686,6 @@ MRIextractInto(MRI *mri_src, MRI *mri_dst, int x0, int y0, int z0,
     }
   }
   // calculate c_ras
-  Real c_r, c_a, c_s;
   MRIcalcCRASforExtractedVolume(mri_src, mri_dst, x0, y0, z0, x1, y1, z1, &c_r, &c_a, &c_s); 
   mri_dst->c_r = c_r;
   mri_dst->c_a = c_a;
