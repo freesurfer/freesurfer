@@ -14,7 +14,7 @@
 #include "macros.h"
 #include "utils.h"
 
-static char vcid[] = "$Id: mris_flatten.c,v 1.21 2000/06/07 18:52:49 fischl Exp $";
+static char vcid[] = "$Id: mris_flatten.c,v 1.22 2001/01/12 19:16:47 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -50,8 +50,8 @@ static float rescale = 1.0f ;
 int
 main(int argc, char *argv[])
 {
-  char         **av, in_surf_fname[100], *in_patch_fname, *out_patch_fname, 
-               fname[100], path[100], *cp, hemi[10] ;
+  char         **av, in_surf_fname[STRLEN], *in_patch_fname, *out_patch_fname, 
+               fname[STRLEN], path[STRLEN], *cp, hemi[10] ;
   int          ac, nargs ;
   MRI_SURFACE  *mris ;
 
@@ -178,7 +178,7 @@ main(int argc, char *argv[])
 
   if (plane_flag || sphere_flag)
   {
-    char fname[100] ;
+    char fname[STRLEN] ;
     FILE *fp ;
 
 #if 0
