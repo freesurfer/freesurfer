@@ -1,10 +1,10 @@
 /*============================================================================
  Copyright (c) 1996 Martin Sereno and Anders Dale
 =============================================================================*/
-/*   $Id: tkregister2.c,v 1.25 2004/08/12 17:42:04 greve Exp $   */
+/*   $Id: tkregister2.c,v 1.26 2004/08/27 19:17:53 greve Exp $   */
 
 #ifndef lint
-static char vcid[] = "$Id: tkregister2.c,v 1.25 2004/08/12 17:42:04 greve Exp $";
+static char vcid[] = "$Id: tkregister2.c,v 1.26 2004/08/27 19:17:53 greve Exp $";
 #endif /* lint */
 
 #define TCL
@@ -206,6 +206,7 @@ static int MRIisConformant(MRI *vol);
 #define WINDOW_ROWS 512
 #define WINDOW_COLS 512
 
+float FOV = 256;
 int plane = CORONAL;
 int plane_init = CORONAL;
 int slice_init = -1;
@@ -699,9 +700,11 @@ int Register(ClientData clientData,Tcl_Interp *interp, int argc, char *argv[])
   imnr0 = 0;
   imnr1 = 255;
   
-  zf = ozf = (int)nint((float)xdim/xnum); /* zoom factor */
+  zf = (int)nint((float)xdim/xnum); /* zoom factor */
+  ozf = zf;
   fsf = (float)zf;
   printf("Zoom Factor = %g\n",(float)zf);
+  printf("FOV = %g\n",FOV);
 
   ps = targ_vol->xsize;
   st = targ_vol->zsize;
@@ -848,9 +851,10 @@ static int parse_commandline(int argc, char **argv)
     else if (!strcmp(option, "--surf")){
       LoadSurf = 1;
       UseSurf  = 1;
-      nargsused = 1;
+      nargsused = 0;
       if(nth_is_arg(nargc, pargv, 0)){
-	surfname = pargv[0]; nargsused ++;
+	surfname = pargv[0]; 
+        nargsused ++;
 	printf("surfname set to %s\n",surfname);
       }
     }
@@ -917,6 +921,11 @@ static int parse_commandline(int argc, char **argv)
       sscanf(pargv[0],"%lf",&fthresh);
       nargsused = 1;
     }
+    else if ( !strcmp(option, "--fov") ){
+      if(nargc < 1) argnerr(option,1);
+      sscanf(pargv[0],"%f",&FOV);
+      nargsused = 1;
+    }
     else{
       fprintf(stderr,"ERROR: Option %s unknown\n",option);
       if(singledash(option))
@@ -948,6 +957,7 @@ static void print_usage(void)
   printf("   --plane  orient  : startup view plane <cor>, sag, ax\n");
   printf("   --slice  sliceno : startup slice number\n");
   printf("   --volview volid  : startup with targ or mov\n");
+  printf("   --fov FOV  : window FOV in mm (default is 256)\n");
   printf("   --surf surfname : display surface as an overlay \n");
   printf("   --reg  register.dat : input/output registration file\n");
   printf("   --regheader : compute regstration from headers\n");
@@ -1030,6 +1040,11 @@ static void print_help(void)
 "  --slice sliceno\n"
 "\n"
 "  Set the initial slice to view. \n"
+"\n"
+"  --fov FOV\n"
+"\n"
+"  Set the view port field-of-view. Default is 256. Note, the zoom\n"
+"  can also be controlled interactively with - and =.\n"
 "\n"
 "  --surf <surfacename>\n"
 "\n"
@@ -1177,6 +1192,8 @@ static void print_help(void)
 "x show sagittal view\n"
 "y show horizontal view\n"
 "z show coronal view\n"
+"- or _ zoom out\n"
+"+ or = zoom in\n"
 "p translate up\n"
 ". translate down\n"
 "l translate left\n"
@@ -1644,6 +1661,7 @@ MATRIX *ScreenCR2XYZMtx(MATRIX *T)
   extern int xdim,ydim,zf; /* Screen dim and zoom factor */
   extern int xnum,ynum,numimg; /* Anat: Nr, Nc, Ns */
   static int first = 1;
+  extern float FOV;
   static MATRIX *Pxyz, *dcCol, *dcRow, *crsCur, *xyzCur;
   float deltaCol, deltaRow;
   int NcScreen, NrScreen;
@@ -1678,8 +1696,8 @@ MATRIX *ScreenCR2XYZMtx(MATRIX *T)
 
   xyzCur = MatrixMultiply(Ttarg,crsCur,xyzCur);
 
-  deltaCol = 256.0/NcScreen;
-  deltaRow = 256.0/NrScreen;
+  deltaCol = FOV/NcScreen;
+  deltaRow = FOV/NrScreen;
 
   switch(plane){
   case CORONAL:
@@ -1689,9 +1707,11 @@ MATRIX *ScreenCR2XYZMtx(MATRIX *T)
     dcRow->rptr[1][1] =  0.0;
     dcRow->rptr[2][1] =  0.0;
     dcRow->rptr[3][1] = +1.0;
-    Pxyz->rptr[1][1] = +128.0; /*x*/
+    //Pxyz->rptr[1][1] = +128.0; /*x*/
+    Pxyz->rptr[1][1] = +FOV/2; /*x*/
     Pxyz->rptr[2][1] = xyzCur->rptr[2][1]; /*y*/
-    Pxyz->rptr[3][1] = -127.0; /*z*/
+    //Pxyz->rptr[3][1] = -127.0; /*z*/
+    Pxyz->rptr[3][1] = -(FOV-2)/2; /*z*/
     break;
   case SAGITTAL:
     dcCol->rptr[1][1] =  0.0;
@@ -1701,8 +1721,10 @@ MATRIX *ScreenCR2XYZMtx(MATRIX *T)
     dcRow->rptr[2][1] =  0.0;
     dcRow->rptr[3][1] = +1.0;
     Pxyz->rptr[1][1] = xyzCur->rptr[1][1]; /*x*/
-    Pxyz->rptr[2][1] = -128.0; /*y*/
-    Pxyz->rptr[3][1] = -127.0; /*z*/
+    //Pxyz->rptr[2][1] = -128.0; /*y*/
+    Pxyz->rptr[2][1] = -FOV/2; /*y*/
+    //Pxyz->rptr[3][1] = -127.0; /*z*/
+    Pxyz->rptr[3][1] = -(FOV-2)/2; /*z*/
     break;
   case HORIZONTAL:
     dcCol->rptr[1][1] = -1.0;
@@ -1711,8 +1733,10 @@ MATRIX *ScreenCR2XYZMtx(MATRIX *T)
     dcRow->rptr[1][1] =  0.0;
     dcRow->rptr[2][1] = +1.0;
     dcRow->rptr[3][1] =  0.0;
-    Pxyz->rptr[1][1] = +128.0;
-    Pxyz->rptr[2][1] = -127.0;
+    //Pxyz->rptr[1][1] = +128.0;
+    Pxyz->rptr[1][1] = +FOV/2; 
+    //Pxyz->rptr[2][1] = -127.0;
+    Pxyz->rptr[2][1] = -(FOV-2)/2;
     Pxyz->rptr[3][1] = xyzCur->rptr[3][1]; /*z*/
     break;
   }
@@ -2248,6 +2272,18 @@ int do_one_gl_event(Tcl_Interp *interp)   /* tcl */
 	case XK_y: plane=CORONAL;    updateflag = TRUE; break;
 	case XK_z: plane=HORIZONTAL; updateflag = TRUE; break;
 	case XK_s: if(LoadSurf) UseSurf = !UseSurf; updateflag = TRUE; break;
+
+	case '+':
+	case '=':
+	  FOV = FOV/2;
+	  updateflag = TRUE; 
+	  break;
+	case '-':
+	case '_':
+	  FOV = 2*FOV;
+	  updateflag = TRUE; 
+	  break;
+
 
           /* others */
 	case XK_Up:
@@ -3537,7 +3573,7 @@ char **argv;
   int nargs;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: tkregister2.c,v 1.25 2004/08/12 17:42:04 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: tkregister2.c,v 1.26 2004/08/27 19:17:53 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
