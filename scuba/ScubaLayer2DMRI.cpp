@@ -1105,8 +1105,11 @@ ScubaLayer2DMRI::HandleTool ( float iRAS[3], ViewState& iViewState,
 	      // Editing. Get the original value for the undo item.
 	      float origValue = mVolume->GetMRINearestValue( loc );
 
-	      // If only brushing zero, skip if not zero.
-	      if( iTool.GetOnlyBrushZero() && origValue != 0 )
+	      // If only brushing zero and are brushing, skip if not
+	      // zero.
+	      if( iTool.GetOnlyBrushZero() && 
+		  iInput.Button() == 2 &&
+		  origValue != 0 )
 		continue; 
 
 	      // New value depends on voxel button.
@@ -1139,7 +1142,6 @@ ScubaLayer2DMRI::HandleTool ( float iRAS[3], ViewState& iViewState,
 	    undoList.AddAction( action );
 	  }
 	}
-
 	RequestRedisplay();
       }
     }
