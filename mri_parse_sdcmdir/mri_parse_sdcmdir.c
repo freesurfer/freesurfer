@@ -14,7 +14,7 @@
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_parse_sdcmdir.c,v 1.3 2002/10/07 17:19:59 greve Exp $";
+static char vcid[] = "$Id: mri_parse_sdcmdir.c,v 1.4 2002/12/03 22:01:36 greve Exp $";
 char *Progname = NULL;
 
 static int  parse_commandline(int argc, char **argv);
@@ -46,6 +46,8 @@ int main(int argc, char **argv)
   int nthfile;
   char *fname, *psname, *protoname;
   int PrevRunNo;
+  char *tmpstring;
+  int Maj, Min, MinMin;
 
   Progname = argv[0] ;
   argc --;
@@ -102,7 +104,16 @@ int main(int argc, char **argv)
     PrevRunNo = sdfi->RunNo;
 
     sdfi->RepetitionTime /= 1000.0;
-    if(sdfi->IsMosaic )  sdfi->RepetitionTime *= sdfi->VolDim[2];
+
+    if(sdfi->IsMosaic ){
+      /* The TR definition will depend upon the software version */
+      tmpstring = sdcmExtractNumarisVer(sdfi->NumarisVer, &Maj, &Min, &MinMin);
+      if(tmpstring == NULL) exit(1);
+      free(tmpstring);
+      if(Min == 1 && MinMin <= 6)
+	sdfi->RepetitionTime  = sdfi->RepetitionTime * (sdfi->VolDim[2]);
+    /* Need to add any gap (eg, as in a hammer sequence */
+  }
 
     fname     = fio_basename(sdfi->FileName,NULL);
     psname    = strip_white_space(sdfi->PulseSequence);
@@ -218,6 +229,8 @@ static void print_help(void)
 {
   printf("\n");
   print_usage() ;
+  printf("\n");
+  printf("%s\n",vcid);
   printf("\n");
 
   printf(
