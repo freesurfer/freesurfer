@@ -230,10 +230,12 @@ void setMRIforSurface(MRI *mri)
     // we checked conformed in mriOKforSurface(). The only thing missing is c_(r,a,s) = 0
     // for surface creation assume that the volume is conformed and c_(r,a,s) = 0
     mri->c_r=mri->c_a=mri->c_s = 0;
-		MatrixFree(&mri->i_to_r__) ;
-		MatrixFree(&mri->r_to_i__) ;
-		mri->i_to_r__ = extract_i_to_r(mri);
-		mri->r_to_i__ = extract_r_to_i(mri);
+    if (mri->i_to_r__)
+      MatrixFree(&mri->i_to_r__) ;
+    if (mri->r_to_i__)
+      MatrixFree(&mri->r_to_i__) ;
+    mri->i_to_r__ = extract_i_to_r(mri);
+    mri->r_to_i__ = extract_r_to_i(mri);
   }
 }
 
