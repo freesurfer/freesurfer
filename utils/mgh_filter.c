@@ -7,13 +7,13 @@
 #define SWAP(a,b) tempr=(a);(a)=(b);(b)=tempr
 
 /* Prototypes     */
-void four1(float data[],int nn,int isign);
-void lowpass(float data[],int nn,float hi);
-void bandpass(float data[], int nn,float lo,float hi);
+static void four1(float data[],int nn,int isign);
+static void lowpass(float data[],int nn,float hi);
+static void bandpass(float data[], int nn,float lo,float hi);
 void bpfilter(FLOATTYPE **data,int nchan,int nsamp,float lo,float hi);
 /* End prototypes */
 
-void four1(float data[],int nn,int isign)
+static void four1(float data[],int nn,int isign)
 {
   int n,mmax,m,j,istep,i;
   double wtemp,wr,wpr,wpi,wi,theta;
@@ -65,7 +65,7 @@ void four1(float data[],int nn,int isign)
   }
 }
 
-void lowpass(float data[],int nn,float hi)
+static void lowpass(float data[],int nn,float hi)
 {
   float norm,f,w,wc;
   int i;
@@ -84,7 +84,7 @@ void lowpass(float data[],int nn,float hi)
   four1(data-1,nn,-1);
 }
 
-void bandpass(float data[], int nn,float lo,float hi)
+static void bandpass(float data[], int nn,float lo,float hi)
 {
   float norm,f,fl,fh,w,wh,wl;
   int i;
