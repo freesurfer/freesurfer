@@ -894,6 +894,11 @@ MRI *MRIremoveNaNs(MRI *mri_src, MRI *mri_dst) ;
 MRI *MRImakePositive(MRI *mri_src, MRI *mri_dst);
 MRI *MRIeraseNegative(MRI *mri_src, MRI *mri_dst) ;
 
+MRI *MRImarkLabelBorderVoxels(MRI *mri_src, MRI *mri_dst, int label, int mark, int six_connected) ;
+int MRIcomputeLabelNbhd(MRI *mri_labels, MRI *mri_vals, int x, int y, int z, int *label_counts, float *label_means, 
+												int whalf, int max_labels) ;
+float MRIvoxelsInLabelWithPartialVolumeEffects(MRI *mri, MRI *mri_vals, int label) ;
+
 /* extract the RASToVoxeMatrix from an MRI */
 MATRIX *GetSurfaceRASToVoxelMatrix(MRI *mri);
 
