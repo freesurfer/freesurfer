@@ -1690,8 +1690,8 @@ analyzeRead(char *fname, int read_volume, int frame)
                  hdr.dime.datatype)) ;
 
   width = hdr.dime.dim[1];
-  depth = hdr.dime.dim[2];
-  height = hdr.dime.dim[3];
+  depth = hdr.dime.dim[3];
+  height = hdr.dime.dim[2];
 
   if(!read_volume)
     mri_dst = MRIallocHeader(width, height, depth, type);
@@ -2720,7 +2720,11 @@ genesisRead(char *fname, int read_volume, int frame)
 
     /* determine the axis reordering that's needed */
     /* start with the x axis; is the R, A, or S coordinate the longest? */
-
+/*
+printf("%g, %g, %g\n", x_vec[0], x_vec[1], x_vec[2]);
+printf("%g, %g, %g\n", y_vec[0], y_vec[1], y_vec[2]);
+printf("%g, %g, %g\n", z_vec[0], z_vec[1], z_vec[2]);
+*/
     xmax = IMAX3(fabs(x_vec[0]), fabs(x_vec[1]), fabs(x_vec[2]));
     ymax = IMAX3(fabs(y_vec[0]), fabs(y_vec[1]), fabs(y_vec[2]));
     zmax = IMAX3(fabs(z_vec[0]), fabs(z_vec[1]), fabs(z_vec[2]));
@@ -2757,7 +2761,10 @@ genesisRead(char *fname, int read_volume, int frame)
 
     /* must be each of 1, 2, and 3 in some order */
     if(xmax + ymax + zmax != 6 || xmax * ymax * zmax != 6)
+{
+printf("eisd: %d %d %d\n", xmax, ymax, zmax);
       ErrorReturn(NULL, (ERROR_BADPARM, "genesisRead(%s): error interpreting slice direction", fname));
+}
     /* assign {xyz}_{ras} coordinates */
 /*
     mri->x_r = x_vec[0] / mri->width;
@@ -3550,10 +3557,11 @@ brikRead(char *fname, int read_volume, int frame)
   char header_type_line[STRLEN], header_name_line[STRLEN], header_count_line[STRLEN];
   char header_line[STRLEN];
   char name[STRLEN], type[STRLEN];
-  int i;
+  int count;
   MRI *mri, *mri2;
   char byteorder_string[STRLEN], *tilde;
   int brick_type;
+  char *buf;
   int i, j, k;
   char swapbuf[4];
   int orient_vals[3];
@@ -3681,8 +3689,10 @@ brikRead(char *fname, int read_volume, int frame)
 
     buf = (char *)malloc(mri->width * mri->height * mri->depth * data_size[mri->type]);
 
+    if(fread(buf, data_size[mri->type], mri->width * mri->height * mri->depth, fin) < mri->width * mri->height * mri->depth)
+      ErrorReturn(NULL, (ERROR_BADFILE, "error reading from file %s", fname));
 
-    if(strncmp(byteorder_string, "MSB", 3) == 0)
+    fclose(fin);
 
     for(c = byteorder_string;*c == ' ' || *c == '\'';c++);
 
@@ -3697,7 +3707,7 @@ brikRead(char *fname, int read_volume, int frame)
           memcpy(swapbuf, &buf[i], 4);
           buf[i + 0] = swapbuf[3];
           buf[i + 1] = swapbuf[2];
-    if(strncmp(byteorder_string, "LSB", 3) == 0)
+          buf[i + 2] = swapbuf[1];
           buf[i + 3] = swapbuf[0];
         }
     }
@@ -3713,21 +3723,28 @@ brikRead(char *fname, int read_volume, int frame)
           buf[i + 0] = swapbuf[3];
           buf[i + 1] = swapbuf[2];
           buf[i + 2] = swapbuf[1];
-  mri2 = MRIalloc(mri->width, mri->height, mri->depth, mri->type);
+          buf[i + 3] = swapbuf[0];
         }
-  for(i = 0;i < mri->depth;i++)
-  {
-  if(mri2->type == MRI_UCHAR)
-    buffer_to_image(buf, mri2, i, frame);
-  else if(mri2->type == MRI_SHORT)
-    short_buffer_to_image((short *)buf, mri2, i, frame);
-  else
-    ErrorReturn(NULL, (ERROR_UNSUPPORTED, "brikRead(): unsupported type %d", mri->type));
-  }
-          for(k = 0;k < mri->width;k++)
-  MRIfree(&mri);
     }
-  free(buf);
+#endif
+
+    mri2 = MRIalloc(mri->width, mri->height, mri->depth, mri->type);
+
+    if(mri2->type == MRI_UCHAR)
+    {
+      for(i = 0;i < mri->depth;i++)
+        for(j = 0;j < mri->height;j++)
+          for(k = 0;k < mri->width;k++)
+            MRIvox(mri2, k, j, i) = buf[k + j*mri->width + i*mri->width*mri->height];
+    }
+    else if(mri2->type == MRI_SHORT)
+    {
+      for(i = 0;i < mri->depth;i++)
+        for(j = 0;j < mri->height;j++)
+          for(k = 0;k < mri->width;k++)
+            MRISvox(mri2, k, j, i) = ((short *)buf)[k + j*mri->width + i*mri->width*mri->height];
+    }
+    else
       ErrorReturn(NULL, (ERROR_UNSUPPORTED, "brikRead(): unsupported type %d", mri->type));
 
     MRIfree(&mri);
