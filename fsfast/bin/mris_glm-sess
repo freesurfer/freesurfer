@@ -2,7 +2,7 @@
 # mris_glm-sess
 #
 
-set VERSION = '$Id: mris_glm-sess,v 1.3 2004/10/04 20:15:42 greve Exp $';
+set VERSION = '$Id: mris_glm-sess,v 1.4 2004/10/19 19:34:27 greve Exp $';
 set fsgdf = ();
 set analysis = ();
 set contrast = ();
@@ -14,6 +14,13 @@ set frame = 0;
 set projfrac = 0.5;
 set ForcePaint = 1;
 set nolog = 0;
+set VolFWHM = ();
+set VolSynth  = 0;
+set SurfSynth  = 0;
+
+set DateStr = "`date '+%y%m%d%H%M%S'`"
+set ProcId = $$
+set SynthId = $ProcId-$DateStr
 
 set cmdargs = ($argv);
 
@@ -92,13 +99,22 @@ foreach sess ($SessList)
     exit 1;
   endif
 
-  set mapw = $condir/$map-$frame-$hemi.w
+  if(! $VolSynth ) then
+    set mapw = $condir/$map-$frame-$hemi.w
+  else
+    set paintdir = $condir/synthesize/$SynthId
+    mkdir -p  $paintdir
+    set mapw = $paintdir/synth-$hemi.w
+  endif
+
   if(! -e $mapw || $ForcePaint) then
     echo "INFO: painting ..." | tee -a $LF
     set cmd = (mri_vol2surf --src $mapstem --src_type bfloat)
     set cmd = ($cmd --srcreg $sess/$fsd/register.dat --hemi $hemi)
     set cmd = ($cmd --projfrac $projfrac --frame $frame)
     set cmd = ($cmd --out $mapw --out_type paint)
+    if($#VolFWHM ) set cmd = ($cmd --fwhm $VolFWHM )
+    if($VolSynth ) set cmd = ($cmd --srcsynth -1 )    
     echo "------------------------------------" | tee -a $LF
     pwd | tee -a $LF
     echo $cmd | tee -a $LF
@@ -118,7 +134,11 @@ set fssubjlist = `cat $fsgdf | awk '{if($1 == "Input") print $2}'`
 
 # Compare the FSGD file to the session list
 if($#subjlist != $#fssubjlist) then
-  echo "ERROR: number of fsgdf inputs does not equal number of sessions"| tee -a $LF
+  echo "ERROR: number of fsgdf inputs ($#fssubjlist) does not equal number of sessions ($#subjlist)"| tee -a $LF
+  echo "Subjects in fsgd file: " | tee -a $LF
+  echo "   $fssubjlist" | tee -a $LF
+  echo "Subjects from sessions: " | tee -a $LF
+  echo "  $subjlist " | tee -a $LF
   exit 1;
 endif
 
@@ -143,6 +163,16 @@ $cmd | tee -a $LF
 if($status) then
   echo "ERROR: mris_glm"| tee -a $LF
   exit 1;
+endif
+
+# Clean up from synthesis runs
+if($VolSynth) then
+  foreach sess ($SessList)
+    set sessid = `basename $sess`;
+    set condir = $sess/$fsd/$analysis/$contrast
+    set paintdir = $condir/synthesize/$SynthId
+    rm -r $paintdir
+  end
 endif
 
 echo ""
@@ -186,6 +216,21 @@ while( $#argv != 0 )
     case "--frame":
       if ( $#argv == 0) goto arg1err;
       set frame = $argv[1]; shift;
+      breaksw
+
+    case "-volfwhm":
+      if ( $#argv == 0) goto arg1err;
+      set VolFWHM = $argv[1]; shift;
+      set ForcePaint = 1;
+      breaksw
+
+    case "-volsynth":
+      set VolSynth = 1;
+      set ForcePaint = 1;
+      breaksw
+
+    case "-surfsynth":
+      set SurfSynth = 1;
       breaksw
 
     case "-projfrac":
@@ -282,6 +327,11 @@ if($#fsgdf == 0) then
   exit 1;
 endif
 
+if($VolSynth && $SurfSynth) then
+  echo "ERROR: cannot specify both Volume and Surface synthesis"
+  exit 1;
+endif
+
 goto check_params_return;
 ############--------------##################
 
@@ -304,6 +354,8 @@ usage_exit:
   echo " -hemi hemi (lh or rh)"
   echo " -projfrac frac : projection fraction (default is $projfrac)"
   echo " -no-force-paint : do not force a repaint unless no .w file is found"
+  echo " -volfwhm FWHM : smooth in the volume FWHM mm (usually used with synth)"
+  echo " -volsynth  : synthesize input volume as white gaussian noise"
   echo ""
   echo " <mris_glm arguments>"
   echo ""
@@ -385,18 +437,39 @@ statistic is painted regardless of whether the paint file is there
 or not. If the paint file is not there, a paint command will 
 always be issued.
 
+-volfwhm FWHM
+
+Smooth the input volume with FWHM mm. Forces painting. In general, you
+probably want to do volumetric smoothing as a preprocessing step with
+spatialsmooth-sess. This feature is mainly useful in conjunction with
+running simulations (See -volsynth). Note: to perform surface-based
+smoothing, use the mris_glm --nsmooth option.
+
+-volsynth
+
+Synthsize the input volume with gaussian white noise. This is only
+useful for simulations. Forces painting. The output w file will go in
+subdirectory under the contrast directory. The subdirectory will be
+called synthesize/SynthID where SynthID is a unique code. The SynthID
+directory will automatically be deleted. Synthsizing the volume can be
+used in conjunction with -volfwhm to smooth the white gaussian volume
+to the same amount as performed in the analysis. Note that mris_glm
+also has the ability to synthesize noise, but this is done on the
+surface instead of in the volume, which may yield different results.
+
 <mris_glm arguments>
 
 As mentioned above, mris_glm-sess is just a front-end for mris_glm.
 mris_glm-sess collects all of the relevant input data and creates the
 mri_glm command-line. However, the user must supply the rest of the
-mris_glm command-line, such as the name of the target subject, the
-smoothing amount (if any), and the all the output arguments (eg,
---beta, --var, etc). A contrast can be specified at this time as well,
-or the user can save the estimation outputs only and then computes
-contrasts with a separate call to mris_glm. Note that --beta_in,
---var_in, --meas, and --design cannot be specified through
-mris_glm-sess. Note: the mris_glm arguments all have two dashes (--).
+mris_glm command-line, such as the name of the target subject
+(--trgsubj), the amount of surface smoothing (--nsmooth), and the all
+the output arguments (eg, --beta, --var, etc). A group contrast can be
+specified at the time mris_glm-sess is run, or the user can save the
+estimation outputs only and then computes contrasts with a separate
+call to mris_glm. Note that --beta_in, --var_in, --meas, and --design
+cannot be specified through mris_glm-sess. Note: the mris_glm
+arguments all have two dashes (--).
 
 
 EXAMPLES
