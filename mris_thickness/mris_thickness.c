@@ -13,7 +13,7 @@
 #include "mri.h"
 #include "macros.h"
 
-static char vcid[] = "$Id: mris_thickness.c,v 1.3 1999/06/06 02:25:51 fischl Exp $";
+static char vcid[] = "$Id: mris_thickness.c,v 1.4 1999/09/28 19:28:13 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -25,6 +25,8 @@ static void print_version(void) ;
 
 char *Progname ;
 static char pial_name[100] = "pial" ;
+
+static int nbhd_size = 20 ;
 
 int
 main(int argc, char *argv[])
@@ -63,16 +65,20 @@ main(int argc, char *argv[])
 #else
   sprintf(fname, "%s/%s/surf/%s.%s", sdir, sname, hemi, pial_name) ;
 #endif
+  if (!FileExists(fname))
+    sprintf(fname, "%s/%s/surf/%s.gray", sdir, sname, hemi) ;
+
   fprintf(stderr, "reading gray matter surface %s...\n", fname) ;
   mris = MRISread(fname) ;
   if (!mris)
     ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s",
               Progname, fname) ;
+
   if (MRISreadOriginalProperties(mris, WHITE_MATTER_NAME) != NO_ERROR)
     ErrorExit(Gerror, "%s: could not read white matter surface", Progname) ;
   fprintf(stderr, "measuring gray matter thickness...\n") ;
 
-  MRISmeasureCorticalThickness(mris) ;
+  MRISmeasureCorticalThickness(mris, nbhd_size) ;
 
 #if 0
   sprintf(fname, "%s/%s/surf/%s", sdir, sname, out_fname) ;
@@ -103,10 +109,16 @@ get_option(int argc, char *argv[])
   else if (!stricmp(option, "pial"))
   {
     strcpy(pial_name, argv[2]) ;
-    fprintf(stderr,  "writing pial surface to file named %s\n", pial_name) ;
+    fprintf(stderr,  "reading pial surface from file named %s\n", pial_name) ;
+    nargs = 1 ;
   }
   else switch (toupper(*option))
   {
+  case 'N':
+    nbhd_size = atoi(argv[2]) ;
+    fprintf(stderr, "using neighborhood size=%d\n", nbhd_size) ;
+    nargs = 1 ;
+    break ;
   case '?':
   case 'U':
     print_usage() ;
