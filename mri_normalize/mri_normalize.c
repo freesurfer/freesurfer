@@ -20,11 +20,13 @@ static MRI *compute_bias(MRI *mri_src, MRI *mri_dst, MRI *mri_bias) ;
 static int conform = 0 ;
 static int gentle_flag = 0 ;
 
+static float bias_sigma = 4.0 ;
+
 static char *mask_fname ;
 char *Progname ;
 
 static int prune = 0 ;  /* off by default */
-static MRI_NORM_INFO  mni ={};
+static MRI_NORM_INFO  mni = {} ;
 static int verbose = 1 ;
 static int num_3d_iter = 2 ;
 
@@ -51,7 +53,7 @@ main(int argc, char *argv[])
   struct timeb start ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_normalize.c,v 1.31 2004/07/27 14:57:52 tosa Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_normalize.c,v 1.32 2004/08/12 14:23:10 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -120,6 +122,7 @@ main(int argc, char *argv[])
 	}
 
 #if 0
+#if 0
   if ((mri_src->type != MRI_UCHAR) ||
       (!(mri_src->xsize == 1 && mri_src->ysize == 1 && mri_src->zsize == 1)))
 #else
@@ -133,6 +136,8 @@ main(int argc, char *argv[])
     mri_tmp = MRIconform(mri_src) ;
     mri_src = mri_tmp ;
   }
+#endif
+
 
   if (verbose)
     fprintf(stderr, "normalizing image...\n") ;
@@ -164,7 +169,7 @@ main(int argc, char *argv[])
 	MRI3dGentleNormalize(mri_dst, NULL, DEFAULT_DESIRED_WHITE_MATTER_VALUE,
 											 mri_dst,
 											 intensity_above, intensity_below/2,
-											 file_only);
+											 file_only, bias_sigma);
 	mri_orig = MRIcopy(mri_dst, NULL) ;
   for (n = 0 ; n < num_3d_iter ; n++)
   {
@@ -175,19 +180,19 @@ main(int argc, char *argv[])
       MRI3dGentleNormalize(mri_dst, NULL, DEFAULT_DESIRED_WHITE_MATTER_VALUE,
                            mri_dst,
                            intensity_above/2, intensity_below/2,
-                           control_point_fname != NULL && !n && no1d);
+                           control_point_fname != NULL && !n && no1d, bias_sigma);
     else
 		{
 			if (file_only)
 				MRI3dNormalize(mri_orig, mri_dst, DEFAULT_DESIRED_WHITE_MATTER_VALUE,
 											 mri_dst,
 											 intensity_above, intensity_below,
-											 file_only, prune);
+											 file_only, prune, bias_sigma);
 			else
 				MRI3dNormalize(mri_orig, mri_dst, DEFAULT_DESIRED_WHITE_MATTER_VALUE,
 											 mri_dst,
 											 intensity_above, intensity_below,
-											 control_point_fname != NULL && !n && no1d, prune);
+											 control_point_fname != NULL && !n && no1d, prune, bias_sigma);
 		}
   }
 
@@ -244,6 +249,12 @@ get_option(int argc, char *argv[])
 		no1d = 1 ;
     num_3d_iter = 1 ;
     printf("disabling 1D normalization and setting niter=1, make sure to use -f to specify control points\n") ;
+  }
+  else if (!stricmp(option, "sigma"))
+  {
+		bias_sigma = atof(argv[2]) ;
+		nargs = 1 ;
+    printf("using Gaussian smoothing of bias field, sigma=%2.3f\n", bias_sigma) ;
   }
   else if (!stricmp(option, "conform"))
   {
