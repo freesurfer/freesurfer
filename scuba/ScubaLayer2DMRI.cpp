@@ -937,70 +937,31 @@ ScubaLayer2DMRI::HandleTool ( float iRAS[3], ViewState& iViewState,
     break;
 
   case ScubaToolState::straightLine:
-
-    switch( iInput.Button() ) {
-    case 1: 
-
-      // If our button is down, if it's a new click, start a line. If
-      // it's dragging, just streatch the line. If the button is not
-      // down, it's a mouse up, and we'll end the line.
-      if( iInput.IsButtonDownEvent() ) {
-	mFirstLineRAS.Set( iRAS );
-	mCurrentLine = NewLine();
-      } else if( iInput.IsButtonDragEvent() ) {
-	StretchLineStraight( *mCurrentLine, mFirstLineRAS.xyz(), iRAS );
-      } else if( iInput.IsButtonUpEvent() ) {
-	EndLine( *mCurrentLine, iTranslator );
-	mCurrentLine = NULL;
-      }
-
-      RequestRedisplay();
-      break;
-    case 2:
- 
-      // Find a line, and move it.
-      if( iInput.IsButtonDownEvent() ) {
-	mCurrentLine = FindClosestLine( iRAS, iViewState );
-	mLastLineMoveRAS.Set( iRAS );
-      } else if( iInput.IsButtonDragEvent() ) {
-	if( NULL != mCurrentLine ) { 
-	  Point3<float> deltaRAS( iRAS[0] - mLastLineMoveRAS.x(),
-				  iRAS[1] - mLastLineMoveRAS.y(),
-				  iRAS[2] - mLastLineMoveRAS.z() );
-	  mCurrentLine->Move( deltaRAS );
-	  mLastLineMoveRAS.Set( iRAS );
-	}
-      } else if( iInput.IsButtonUpEvent() ) {
-	mCurrentLine = NULL;
-      }
-
-      RequestRedisplay();
-     break;
-    }
-    break;
-
   case ScubaToolState::edgeLine:
-
+    
     switch( iInput.Button() ) {
     case 1: 
-
-      // Start, stretch, or end the current line.
+      
       if( iInput.IsButtonDownEvent() ) {
 	mFirstLineRAS.Set( iRAS );
 	mCurrentLine = NewLine();
-      } else if( iInput.IsButtonDragEvent() ) {
-	StretchLineAsEdge( *mCurrentLine, mFirstLineRAS.xyz(), 
-			   iRAS, iViewState, iTranslator );
       } else if( iInput.IsButtonUpEvent() ) {
 	EndLine( *mCurrentLine, iTranslator );
 	mCurrentLine = NULL;
+      } else if( iInput.IsButtonDragEvent() ) {
+	if( iTool.GetMode() == ScubaToolState::straightLine ) {
+	  StretchLineStraight( *mCurrentLine, mFirstLineRAS.xyz(), iRAS );
+	} else if( iTool.GetMode() == ScubaToolState::edgeLine ) {
+	  StretchLineAsEdge( *mCurrentLine, mFirstLineRAS.xyz(), 
+			     iRAS, iViewState, iTranslator );
+	}
       }
 
       RequestRedisplay();
       break;
-
+      
     case 2:
- 
+      
       // Find a line, and move it.
       if( iInput.IsButtonDownEvent() ) {
 	mCurrentLine = FindClosestLine( iRAS, iViewState );
@@ -1018,7 +979,24 @@ ScubaLayer2DMRI::HandleTool ( float iRAS[3], ViewState& iViewState,
       }
 
       RequestRedisplay();
-     break;
+      break;
+
+    case 3:
+ 
+      // Find a line on mouse down and select it. If on mouse up,
+      // we're nearest to the same line, delete it.
+      if( iInput.IsButtonDownEvent() ) {
+	mCurrentLine = FindClosestLine( iRAS, iViewState );
+      } else if( iInput.IsButtonUpEvent() ) {
+	PointList3<float>* delLine = FindClosestLine( iRAS, iViewState );
+	if( delLine == mCurrentLine ) {
+	  DeleteLine( delLine );
+	}
+	mCurrentLine = NULL;
+      }
+
+      RequestRedisplay();
+      break;
     }
     
     break;
@@ -1193,6 +1171,19 @@ ScubaLayer2DMRI::FindClosestLine ( float iRAS[3],
   return closestLine;
 }
 
+void
+ScubaLayer2DMRI::DeleteLine ( PointList3<float>* iLine ) {
+
+  std::list<PointList3<float>*>::iterator tLine;
+  for( tLine = mLines.begin(); tLine != mLines.end(); ++tLine ) {
+    PointList3<float>* line = *tLine;
+    if( line == iLine ) {
+      mLines.erase( tLine );
+      delete line;
+      break;
+    }
+  }
+}
 
 void
 ScubaLayer2DMRI::DrawRASPointListIntoBuffer ( GLubyte* iBuffer, 

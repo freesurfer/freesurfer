@@ -86,6 +86,9 @@ class ScubaLayer2DMRI : public Layer {
     FindClosestLine         ( float iRAS[3],
 			      ViewState& iViewState );
 
+  // Delete a line from our list.
+  void DeleteLine           ( PointList3<float>* iLine );
+
   void DrawRASPointListIntoBuffer ( GLubyte* iBuffer, int iWidth, int iHeight,
 				    int iColor[3], ViewState& iViewState,
 				    ScubaWindowToRASTranslator& iTranslator,
