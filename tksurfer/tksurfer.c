@@ -14465,6 +14465,12 @@ floodfill_marked_patch(int filltype)
       
       /* begin rkt */
       undo_finish_action ();
+      
+      clear_vertex_marks();
+
+      /* might need to reuild vertex positions */
+      vset_set_current_set(vset_current_set) ;
+    
       /* end rkt */
       
       redraw() ;
@@ -19387,15 +19393,15 @@ show_flat_regions(char *surf_name, double thresh)
 static void
 resize_brain(float surface_area)
 {
-	float scale ;
-
-	MRIScomputeMetricProperties(mris) ;
-	scale = sqrt(surface_area / mris->total_area) ;
-	MRISscaleBrain(mris, mris, scale) ;
-	MRIScomputeMetricProperties(mris) ;
-	vset_save_surface_vertices(VSET_MAIN) ;
+  float scale ;
+  
+  MRIScomputeMetricProperties(mris) ;
+  scale = sqrt(surface_area / mris->total_area) ;
+  MRISscaleBrain(mris, mris, scale) ;
+  MRIScomputeMetricProperties(mris) ;
+  vset_save_surface_vertices(VSET_MAIN) ;
   vset_set_current_set(vset_current_set) ;
-	redraw() ;
+  redraw() ;
 }
 
 void
