@@ -1,6 +1,6 @@
 #! /usr/bin/tixwish
 
-# $Id: tkmedit.tcl,v 1.42 2003/04/25 16:50:29 kteich Exp $
+# $Id: tkmedit.tcl,v 1.43 2003/05/05 16:43:29 kteich Exp $
 
 source $env(MRI_DIR)/lib/tcl/tkm_common.tcl
 
@@ -42,7 +42,7 @@ set glDisplayFlag { \
   flag_Cursor \
   flag_MainSurface \
   flag_OriginalSurface \
-  flag_CanonicalSurface \
+  flag_PialSurface \
   flag_InterpolateSurfaceVertices \
   flag_DisplaySurfaceVertices \
   flag_ControlPoints \
@@ -123,7 +123,7 @@ set ksaDisplayedVolumeString(1) "aux"
 # Surf_tVertexSet
 set Surf_tVertexSet_Main      0
 set Surf_tVertexSet_Original  1
-set Surf_tVertexSet_Canonical 2
+set Surf_tVertexSet_Pial 2
 
 set ksaSurfaceVertexSetString(0) "Main Surface"
 set ksaSurfaceVertexSetString(1) "Original Surface"
@@ -240,7 +240,7 @@ set gCursor(shape) $DspA_tMarker_Crosshair
 
 # surface
 foreach surface "$Surf_tVertexSet_Main $Surf_tVertexSet_Original \
-  $Surf_tVertexSet_Canonical" {
+  $Surf_tVertexSet_Pial" {
     set gSurface($surface,width) 0
     set gSurface($surface,color,red)   0
     set gSurface($surface,color,green) 0
@@ -303,7 +303,7 @@ proc UpdateVolumeCursor { iSet inX inY inZ } {
 }
 
 proc UpdateVolumeSlice { inSlice } {
-    global gnVolSlice 
+    global gnVolSlice
     set gnVolSlice $inSlice
 }
 
@@ -576,7 +576,7 @@ proc GetDefaultLocation { iType } {
 		set gsaDefaultLocation($iType) $gsSubjectDirectory/label
 	    }
 	    LoadMainSurface - LoadOriginalSurface - LoadPialSurface -
-	    LoadCanonicalSurface - LoadMainAuxSurface - 
+	    LoadPialSurface - LoadMainAuxSurface - 
 	    LoadOriginalAuxSurface - LoadPialAuxSurface -
 	    WriteSurfaceValues { 
 		set gsaDefaultLocation($iType) $gsSubjectDirectory/surf
@@ -738,7 +738,7 @@ set tDlogSpecs(LoadPialSurface) [list \
   -entry1 [list GetDefaultLocation LoadPialSurface] \
   -default1 [list GetDefaultLocation LoadPialSurface] \
   -presets1 $glShortcutDirs \
-  -okCmd {LoadCanonicalSurface %s1; \
+  -okCmd {LoadPialSurface %s1; \
   SetDefaultLocation LoadPialSurface %s1} ]
 set tDlogSpecs(LoadMainAuxSurface) [list \
   -title "Load Aux Main Surface" \
@@ -764,7 +764,7 @@ set tDlogSpecs(LoadPialAuxSurface) [list \
   -entry1 [list GetDefaultLocation LoadPialAuxSurface] \
   -default1 [list GetDefaultLocation LoadPialAuxSurface] \
   -presets1 $glShortcutDirs \
-  -okCmd {LoadCanonicalSurface 1 %s1; \
+  -okCmd {LoadPialSurface 1 %s1; \
   SetDefaultLocation LoadPialAuxSurface %s1} ]
 set tDlogSpecs(WriteSurfaceValues) [list \
   -title "Write Surface Values" \
@@ -928,7 +928,7 @@ proc DoFileDlog { which } {
 proc FindVertex { inVertex } {
 
     global Surf_tVertexSet_Main Surf_tVertexSet_Original
-    global Surf_tVertexSet_Canonical
+    global Surf_tVertexSet_Pial
     global gFindingSurface
 
     if { $Surf_tVertexSet_Main   == $gFindingSurface } {
@@ -937,8 +937,8 @@ proc FindVertex { inVertex } {
     if { $Surf_tVertexSet_Original  == $gFindingSurface } {
   GotoOriginalVertex $inVertex
     }
-    if { $Surf_tVertexSet_Canonical == $gFindingSurface } {
-  GotoCanonicalVertex $inVertex
+    if { $Surf_tVertexSet_Pial == $gFindingSurface } {
+  GotoPialVertex $inVertex
     }
 }
 
@@ -1567,7 +1567,7 @@ proc DoSurfaceInfoDlog { } {
     global gDialog
     global gSurface
     global Surf_tVertexSet_Main Surf_tVertexSet_Original 
-    global Surf_tVertexSet_Canonical
+    global Surf_tVertexSet_Pial
     global ksaSurfaceVertexSetString
 
     set wwDialog .wwSurfaceInfoDlog
@@ -1581,7 +1581,7 @@ proc DoSurfaceInfoDlog { } {
   frame $fwTop
 
   foreach surface "$Surf_tVertexSet_Main $Surf_tVertexSet_Original \
-    $Surf_tVertexSet_Canonical" {
+    $Surf_tVertexSet_Pial" {
       
       set fwSurface $fwTop.fwSurface$surface
       set fwColor   $fwSurface.fwColor
@@ -2564,16 +2564,24 @@ proc SetAndSendDisplayFlag { iFlag iValue } {
 
 proc MakeKeyBindings { iwTop } {
 
+    global Surf_tVertexSet_Main Surf_tVertexSet_Original Surf_tVertexSet_Pial
+
     bind $iwTop <Control-Key-1> \
 	{SetAndSendDisplayFlag flag_AuxVolume 0}
     bind $iwTop <Control-Key-2> \
 	{SetAndSendDisplayFlag flag_AuxVolume 1}
     bind $iwTop <Control-Key-m> \
 	{ToggleAndSendDisplayFlag flag_MainSurace}
+    bind $iwTop <Alt-Key-m> \
+	{FindNearestSurfaceVertex $Surf_tVertexSet_Main}
     bind $iwTop <Control-Key-o> \
 	{ToggleAndSendDisplayFlag flag_OriginalSurface}
+    bind $iwTop <Alt-Key-o> \
+	{FindNearestSurfaceVertex $Surf_tVertexSet_Original}
     bind $iwTop <Control-Key-p> \
-	{ToggleAndSendDisplayFlag flag_CanonicalSurface}
+	{ToggleAndSendDisplayFlag flag_PialSurface}
+    bind $iwTop <Alt-Key-p> \
+	{FindNearestSurfaceVertex $Surf_tVertexSet_Pial}
     bind $iwTop <Control-Key-v> \
 	{ToggleAndSendDisplayFlag flag_DisplaySurfaceVertices}
     bind $iwTop <Control-Key-i> \
@@ -3000,9 +3008,9 @@ proc CreateMenuBar { ifwMenuBar } {
 	    tMenuGroup_OriginalSurfaceViewing }
 	{ check
 	    "Pial Surface:Ctrl P"
-	    "SendDisplayFlagValue flag_CanonicalSurface"
-	    gbDisplayFlag(flag_CanonicalSurface) 
-	    tMenuGroup_CanonicalSurfaceViewing }
+	    "SendDisplayFlagValue flag_PialSurface"
+	    gbDisplayFlag(flag_PialSurface) 
+	    tMenuGroup_PialSurfaceViewing }
 	{ check
 	    "Surface Vertices:Ctrl V"
 		"SendDisplayFlagValue flag_DisplaySurfaceVertices"
@@ -3145,17 +3153,17 @@ proc CreateMenuBar { ifwMenuBar } {
 		SmartCutAtCursor } } }
 	{ cascade "Surface" {
 	    { command 
-		"Show Nearest Main Vertex"
+		"Show Nearest Main Vertex:Alt M"
 		ShowNearestMainVertex
 		tMenuGroup_SurfaceViewing }
 	    { command
-		"Show Nearest Original Vertex"
+		"Show Nearest Original Vertex:Alt O"
 		ShowNearestOriginalVertex
 		tMenuGroup_OriginalSurfaceViewing }
 	    { command
-		"Show Nearest Pial Vertex"
-		ShowNearestCanonicalVertex
-		tMenuGroup_CanonicalSurfaceViewing }
+		"Show Nearest Pial Vertex:Alt P"
+		ShowNearestPialVertex
+		tMenuGroup_PialSurfaceViewing }
 	    { separator }
 	    { command 
 		"Show Nearest Main Surface Edge"
@@ -3167,8 +3175,8 @@ proc CreateMenuBar { ifwMenuBar } {
 		tMenuGroup_OriginalSurfaceViewing }
 	    { command
 		"Show Nearest Pial Surface Edge"
-		ShowNearestInterpolatedCanonicalVertex
-		tMenuGroup_CanonicalSurfaceViewing }
+		ShowNearestInterpolatedPialVertex
+		tMenuGroup_PialSurfaceViewing }
 	    { separator }
 	    { command
 		"Find Main Vertex..."
@@ -3180,8 +3188,8 @@ proc CreateMenuBar { ifwMenuBar } {
 		tMenuGroup_OriginalSurfaceViewing }
 	    { command
 		"Find Pial Vertex..."
-		{ DoFindVertexDlog $Surf_tVertexSet_Canonical }
-		tMenuGroup_CanonicalSurfaceViewing }
+		{ DoFindVertexDlog $Surf_tVertexSet_Pial }
+		tMenuGroup_PialSurfaceViewing }
 	    { separator }
 	    { command
 		"Set Vertex Distance at Cursor"
@@ -3401,9 +3409,9 @@ proc CreateToolBar { ifwToolBar } {
       { image icon_surface_original gbDisplayFlag(flag_OriginalSurface) \
       "SendDisplayFlagValue flag_OriginalSurface" \
       "Show Original Surface" } \
-      { image icon_surface_pial gbDisplayFlag(flag_CanonicalSurface) \
-      "SendDisplayFlagValue flag_CanonicalSurface" \
-      "Show Canonical Surface" } }
+      { image icon_surface_pial gbDisplayFlag(flag_PialSurface) \
+      "SendDisplayFlagValue flag_PialSurface" \
+      "Show Pial Surface" } }
 
     tkm_MakeToolbar $fwVolumeToggles \
       1 \
