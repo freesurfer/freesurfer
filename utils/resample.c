@@ -1,6 +1,6 @@
 /*---------------------------------------------------------------
   Name: resample.c
-  $Id: resample.c,v 1.14 2004/04/21 18:20:00 greve Exp $
+  $Id: resample.c,v 1.15 2004/07/06 19:04:16 fischl Exp $
   Author: Douglas N. Greve
   Purpose: code to perform resapling from one space to another, 
   including: volume-to-volume, volume-to-surface, and surface-to-surface.
@@ -31,7 +31,7 @@
 
   D - Registration matrix. Converts from Anatomical Space to Unwarpded
       Scanner Space.
-  W - Warping matrix. Converts from Unwarpded Scanner Space to Warped
+  W - Warping matrix. Converts from Unwarped Scanner Space to Warped
       Scanner Space.
   F - FOV matrix. Converts from Warpded Scanner Space to Field-of-View
       Space (the space created by the axes centered in the FOV and 
@@ -1033,7 +1033,7 @@ MATRIX * ConstMatrix(int rows, int cols, float val)
 int MRIsurf2Vol(MRI *surfvals, MRI *vol, MRI *map)
 {
   int vtx, c, r, s, f, nhits;
-  float val;
+  float val ;
 
   if(vol->width  != map->width ||
      vol->height != map->height||
@@ -1051,20 +1051,29 @@ int MRIsurf2Vol(MRI *surfvals, MRI *vol, MRI *map)
   for(c=0; c < vol->width; c++){
     for(r=0; r < vol->height; r++){
       for(s=0; s < vol->depth; s++){
-	vtx = MRIIseq_vox(map,c,r,s,0);
-	for(f = 0; f < vol->nframes; f++){
-	  if(vtx < 0){
-	    MRIsetVoxVal(vol,c,r,s,f,0.0);
-	    continue;
-	  }
-	  val = MRIgetVoxVal(surfvals,vtx,0,0,f);
-	  MRIsetVoxVal(vol,c,r,s,f,val);
-	  nhits++;
-	}
+				vtx = MRIIseq_vox(map,c,r,s,0);
+				for(f = 0; f < vol->nframes; f++){
+					if(vtx < 0)
+					{
+#if 0
+						MRIsetVoxVal(vol,c,r,s,f,0.0);
+#endif
+						continue;
+					}
+					val = MRIgetVoxVal(surfvals,vtx,0,0,f);
+					MRIsetVoxVal(vol,c,r,s,f,val);
+					nhits++;
+				}
       }
     }
   }
-  
+
+  /*
+		WARNING! nhits will not be correct in the case where
+		this function is called multiple times (e.g. for filling
+		the cortical ribbon) as it won't take into account the fact that a voxel
+		is mapped more than one times (which will happen a lot).
+	*/
   return(nhits);
 }
 /*-------------------------------------------------------------------
@@ -1145,8 +1154,8 @@ MRI *MRImapSurf2VolClosest(MRIS *surf, MRI *vol, MATRIX *Qa2v, float projfrac)
     }
     else{
       /* Get the xyz of the vertex as projected along the normal a
-   distance equal to a fraction of the cortical thickness at
-   that point. */
+				 distance equal to a fraction of the cortical thickness at
+				 that point. */
       ProjNormFracThick(&xvtx,&yvtx,&zvtx,surf,vtx,projfrac);
     }
 
@@ -1169,7 +1178,7 @@ MRI *MRImapSurf2VolClosest(MRIS *surf, MRI *vol, MATRIX *Qa2v, float projfrac)
       printf("diag -----------------------------\n");
       printf("vtx = %d  %g %g %g\n",vtx,xvtx,yvtx,zvtx);
       printf("fCRS  %g %g %g\n",fcrs->rptr[1][1],
-       fcrs->rptr[2][1],fcrs->rptr[3][1]);
+						 fcrs->rptr[2][1],fcrs->rptr[3][1]);
       printf("CRS  %d %d %d\n",c,r,s);
     }
 
@@ -1185,15 +1194,15 @@ MRI *MRImapSurf2VolClosest(MRIS *surf, MRI *vol, MATRIX *Qa2v, float projfrac)
     /* [4] is already 1 */
 
     /* Compute XYZ of rounded CRS in volume space. This
-     is the XYZ of the center of the voxel*/
+			 is the XYZ of the center of the voxel*/
     /* xyzcrs = Tvol * icrs */
     //MatrixMultiply(Tvol,icrs,xyzcrs);
 
     /* Compute the distance between the voxel and the
        vertex (actually distance squared) */
     d2 = SQR( vol->xsize*(c - icrs->rptr[1][1]) ) + 
-         SQR( vol->ysize*(r - icrs->rptr[2][1]) ) + 
-         SQR( vol->zsize*(s - icrs->rptr[3][1]) );
+			SQR( vol->ysize*(r - icrs->rptr[2][1]) ) + 
+			SQR( vol->zsize*(s - icrs->rptr[3][1]) );
 
     /* Check whether this voxel has been hit. If not
        just set its map vertex and dist to current. */
