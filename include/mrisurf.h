@@ -9,11 +9,6 @@
 typedef struct face_type_
 {
   int    v[VERTICES_PER_FACE];           /* vertex numbers of this face */
-  float  orig_area ;                     /* area before unfolding */
-  float  area ;                          /* 0.5 * (a x b  + c x d) . n*/
-  float  nx ;
-  float  ny ;
-  float  nz ;                            /* face normal (a x b) */
   int    ripflag;                        /* ripped face */
 #if 0
   float logshear,shearx,sheary;  /* compute_shear */
@@ -25,7 +20,6 @@ typedef struct vertex_type_
   float x,y,z;           /* curr position */
   float nx,ny,nz;        /* curr normal */
   float dx, dy, dz ;     /* current change in position */
-  float odx, ody, odz ;  /* last change in position */
 #if 0
   float ox,oy,oz;        /* last position */
 #endif
@@ -54,6 +48,10 @@ typedef struct vertex_type_
   int *n;                /* [0-3, num long] */
   int vnum;              /* number neighboring vertices */
   int *v;                /* array neighboring vertex numbers, vnum long */
+  float *tri_area ;      /* array of triangle areas - num long */
+  float *orig_tri_area ;     /* array of original triangle areas - num long */
+  float *tri_angle ;     /* angles of each triangle this vertex belongs to */
+  float *orig_tri_angle ;/* original values of above */
 #if 0
   int   annotation;      /* area label (defunct--now from label file name!) */
   float stress;          /* explosion */
@@ -114,9 +112,11 @@ typedef struct
   float        max_curv ;
   float        min_curv ;
   float        total_area ;
+  float        orig_area ;
+  float        neg_area ;
+  int          zeros ;
   int          hemisphere ;            /* which hemisphere */
   int          initialized ;
-
   General_transform transform ;   /* the next two are from this struct */
   Transform         *linear_transform ;
   Transform         *inverse_linear_transform ;
@@ -141,6 +141,7 @@ MRI_SURFACE  *MRISunfold(MRI_SURFACE *mris, int niterations, float momentum,
                          float l_area, float l_angle, float l_corr);
 int          MRIScomputeFaceAreas(MRI_SURFACE *mris) ;
 int          MRISupdateEllipsoidSurface(MRI_SURFACE *mris) ;
+int          MRISwriteTriangleProperties(MRI_SURFACE *mris, char *mris_fname);
 
 
 /* constants for vertex->tethered */
