@@ -13,7 +13,7 @@
 #include "mri.h"
 #include "macros.h"
 
-static char vcid[] = "$Id: mris_inflate.c,v 1.2 1997/11/02 00:02:50 fischl Exp $";
+static char vcid[] = "$Id: mris_inflate.c,v 1.3 1997/11/06 21:46:55 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -27,6 +27,9 @@ char *Progname ;
 
 static INTEGRATION_PARMS  parms ;
 static int patch_flag = 0 ;
+static int desired_curvature_set = 0 ;
+
+#define DESIRED_RADIUS   50.0   /* 10 cm radius */
 
 int
 main(int argc, char *argv[])
@@ -34,22 +37,28 @@ main(int argc, char *argv[])
   char         **av, *in_fname, *out_fname, path[100], fname[100],*cp,hemi[10];
   int          ac, nargs ;
   MRI_SURFACE  *mris ;
+  double       radius, scale ;
 
   Progname = argv[0] ;
   ErrorInit(NULL, NULL, NULL) ;
   DiagInit(NULL, NULL, NULL) ;
 
+  strcpy(parms.base_name, "inflated") ;
   parms.projection = NO_PROJECTION ;
-  parms.tol = 1000*TOL ;
-  parms.base_dt = DELTA_T ;
-  parms.n_averages = N_AVERAGES ;
+  parms.tol = 1e-4 ;
+  parms.dt = parms.base_dt = 0.01 ;
+  parms.n_averages = 0 ; /*N_AVERAGES*/ ;
   parms.l_angle = 0.0 /* L_ANGLE */ ;
   parms.l_area = 0.0 /* L_AREA */ ;
   parms.l_curv = 1.0 ;
-  parms.niterations = 1 ;
-  parms.write_iterations = 1 /*WRITE_ITERATIONS */;
+  parms.niterations = 1000 ;
+  parms.write_iterations = 25 /*WRITE_ITERATIONS */;
   parms.a = parms.b = parms.c = 0.0f ;  /* ellipsoid parameters */
   parms.integration_type = INTEGRATE_MOMENTUM ;
+  parms.momentum = MOMENTUM ;
+  parms.dt_increase = DT_INCREASE ;
+  parms.dt_decrease = DT_DECREASE ;
+  parms.error_ratio = ERROR_RATIO ;
   /*  parms.integration_type = INTEGRATE_LINE_MINIMIZE ;*/
 
   ac = argc ;
@@ -102,6 +111,13 @@ main(int argc, char *argv[])
     MRISreadTriangleProperties(mris, in_fname) ;
   }
 
+  MRIStalairachTransform(mris, mris) ;
+  radius = MRISaverageRadius(mris) ;
+  scale = DESIRED_RADIUS/radius ;
+  MRISscaleBrain(mris, mris, scale) ;
+  if (Gdiag & DIAG_SHOW)
+    fprintf(stderr, "scaling brain by %2.2f\n", scale) ;
+
   if (parms.niterations > 0)
   {
     MRISunfold(mris, &parms) ;
@@ -109,6 +125,7 @@ main(int argc, char *argv[])
       fprintf(stderr, "writing inflated surface to %s\n", out_fname) ;
     MRISwrite(mris, out_fname) ;
   }
+
 
 #if 0
   sprintf(fname, "%s.area_error", out_fname) ;
@@ -140,30 +157,29 @@ get_option(int argc, char *argv[])
     print_help() ;
   else if (!stricmp(option, "-version"))
     print_version() ;
-  else if (!stricmp(option, "area"))
-  {
-    sscanf(argv[2], "%f", &parms.l_area) ;
-    nargs = 1 ;
-    fprintf(stderr, "using l_area = %2.3f\n", parms.l_area) ;
-  }
   else if (!stricmp(option, "name"))
   {
     strcpy(parms.base_name, argv[2]) ;
     nargs = 1 ;
-    fprintf(stderr, "using base name = %s\n", parms.base_name) ;
+    fprintf(stderr, "base name = %s\n", parms.base_name) ;
   }
-
   else if (!stricmp(option, "angle"))
   {
     sscanf(argv[2], "%f", &parms.l_angle) ;
     nargs = 1 ;
-    fprintf(stderr, "using l_angle = %2.3f\n", parms.l_angle) ;
+    fprintf(stderr, "l_angle = %2.3f\n", parms.l_angle) ;
   }
   else if (!stricmp(option, "area"))
   {
     sscanf(argv[2], "%f", &parms.l_area) ;
     nargs = 1 ;
-    fprintf(stderr, "using l_area = %2.3f\n", parms.l_area) ;
+    fprintf(stderr, "l_area = %2.3f\n", parms.l_area) ;
+  }
+  else if (!stricmp(option, "curv"))
+  {
+    parms.l_curv = atof(argv[2]) ;
+    nargs = 1 ;
+    fprintf(stderr, "l_curv = %2.3f\n", parms.l_curv) ;
   }
   else if (!stricmp(option, "no_proj"))
   {
@@ -174,20 +190,44 @@ get_option(int argc, char *argv[])
   {
     parms.tol = atof(argv[2]) ;
     nargs = 1 ;
-    fprintf(stderr, "using tol = %2.2e\n", parms.tol) ;
+    fprintf(stderr, "tol = %2.2e\n", parms.tol) ;
+  }
+  else if (!stricmp(option, "hvariable"))
+  {
+    parms.flags |= IPFLAG_HVARIABLE ;
+    fprintf(stderr, "variable Hdesired to drive integration\n") ;
   }
   else if (!stricmp(option, "lm"))
   {
     parms.integration_type = INTEGRATE_LINE_MINIMIZE ;
     parms.tol = TOL ;
-    fprintf(stderr, "using line minimization with tol = %2.2e\n", parms.tol) ;
+    fprintf(stderr, "integrating with line minimization (tol = %2.2e)\n", 
+            parms.tol) ;
   }
   else if (!stricmp(option, "dt"))
   {
     parms.integration_type = INTEGRATE_MOMENTUM ;
-    parms.base_dt = atof(argv[2]) ;
+    parms.dt = parms.base_dt = atof(argv[2]) ;
     nargs = 1 ;
-    fprintf(stderr, "using momentum with dt = %2.2f\n", parms.base_dt) ;
+    fprintf(stderr, "momentum with dt = %2.2f\n", parms.base_dt) ;
+  }
+  else if (!stricmp(option, "error_ratio"))
+  {
+    parms.error_ratio = atof(argv[2]) ;
+    nargs = 1 ;
+    fprintf(stderr, "error_ratio=%2.3f\n", parms.error_ratio) ;
+  }
+  else if (!stricmp(option, "dt_inc"))
+  {
+    parms.dt_increase = atof(argv[2]) ;
+    nargs = 1 ;
+    fprintf(stderr, "dt_increase=%2.3f\n", parms.dt_increase) ;
+  }
+  else if (!stricmp(option, "dt_dec"))
+  {
+    parms.dt_decrease = atof(argv[2]) ;
+    nargs = 1 ;
+    fprintf(stderr, "dt_decrease=%2.3f\n", parms.dt_decrease) ;
   }
   else switch (toupper(*option))
   {
@@ -195,7 +235,7 @@ get_option(int argc, char *argv[])
     parms.integration_type = INTEGRATE_MOMENTUM ;
     parms.momentum = atof(argv[2]) ;
     nargs = 1 ;
-    fprintf(stderr, "using momentum = %2.2f\n", parms.momentum) ;
+    fprintf(stderr, "momentum = %2.2f\n", parms.momentum) ;
     break ;
   case 'P':
     patch_flag = 1 ;
@@ -204,19 +244,20 @@ get_option(int argc, char *argv[])
     Gdiag_no = atoi(argv[2]) ;
     break ;
   case 'H':
+    desired_curvature_set = 1 ;
     parms.Hdesired = atof(argv[2]) ;
-    fprintf(stderr, "inflating to desired curvature %2.2f\n", parms.Hdesired);
+    fprintf(stderr, "inflating to desired curvature %2.4f\n", parms.Hdesired);
     nargs = 1 ;
     break ;
   case 'W':
     sscanf(argv[2], "%d", &parms.write_iterations) ;
     nargs = 1 ;
-    fprintf(stderr, "using write iterations = %d\n", parms.write_iterations) ;
+    fprintf(stderr, "write iterations = %d\n", parms.write_iterations) ;
     break ;
   case 'A':
     sscanf(argv[2], "%d", &parms.n_averages) ;
     nargs = 1 ;
-    fprintf(stderr, "using n_averages = %d\n", parms.n_averages) ;
+    fprintf(stderr, "n_averages = %d\n", parms.n_averages) ;
     break ;
   case '?':
   case 'U':
@@ -226,7 +267,7 @@ get_option(int argc, char *argv[])
   case 'N':
     sscanf(argv[2], "%d", &parms.niterations) ;
     nargs = 1 ;
-    fprintf(stderr, "using niterations = %d\n", parms.niterations) ;
+    fprintf(stderr, "niterations = %d\n", parms.niterations) ;
     break ;
   default:
     fprintf(stderr, "unknown option %s\n", argv[1]) ;
