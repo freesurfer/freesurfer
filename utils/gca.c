@@ -2,9 +2,9 @@
 // originally written by Bruce Fischl
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2004/05/25 18:20:39 $
-// Revision       : $Revision: 1.134 $
+// Revision Author: $Author: tosa $
+// Revision Date  : $Date: 2004/05/26 16:04:27 $
+// Revision       : $Revision: 1.135 $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -4592,6 +4592,9 @@ different_nbr_max_labels(GCA *gca, int x, int y, int z, int wsize, int label)
         gcap = &gca->priors[xi][yi][zi] ;
 	if (gcap == NULL)
 	  continue;
+	if (gcap->nlabels == 0) // no priors nor labels exist
+	  continue;
+
 	max_p = gcap->priors[0] ; max_label = gcap->labels[0] ;
         for (n = 1 ; n < gcap->nlabels ; n++)
           if (gcap->priors[n] >= max_p)
@@ -6491,6 +6494,8 @@ GCAbuildMostLikelyVolumeFrame(GCA *gca, MRI *mri, int frame)
 	    gcan = &gca->nodes[xn][yn][zn] ;
 	    gcap = &gca->priors[xp][yp][zp] ;
 	    if (gcap == NULL)
+	      continue;
+	    if (gcap->nlabels ==0)
 	      continue;
 	    max_prior = gcap->priors[0] ; max_label = gcap->labels[0] ; gc_max = NULL ;
 	    for (n = 1 ; n < gcap->nlabels ; n++)
