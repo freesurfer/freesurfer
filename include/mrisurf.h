@@ -403,7 +403,7 @@ int          MRISrestoreOldPositions(MRI_SURFACE *mris) ;
 int          MRISstoreCurrentPositions(MRI_SURFACE *mris) ;
 int          MRISupdateSurface(MRI_SURFACE *mris) ;
 double       MRISpercentDistanceError(MRI_SURFACE *mris) ;
-
+int          MRISscaleBrainArea(MRI_SURFACE *mris) ;
 
 MRI_SP       *MRISPcombine(MRI_SP *mrisp, MRI_SP *mrisp_template, int fno);
 double       MRISPfunctionVal(MRI_SURFACE_PARAMETERIZATION *mrisp, 
