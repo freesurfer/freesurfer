@@ -49,7 +49,50 @@ paint scripts images distribution
 SUBDIRS=unix dicom hipsstubs rgb utils log fsgdf $(MRISUBDIRS) $(MRISSUBDIRS) $(GLSUBDIRS) $(FSGDF) $(FSLUTILS) $(STATSDIRS) \
 $(MISCDIRS) scuba
 
-.PHONY: release
+.PHONY: release uninstall-release
 
-release: install
+# contains the list of files to release public
+include release_files.sh
+
+release: 
+	@$(NORMAL_INSTALL)
+	$(mkinstalldirs) $(DESTDIR)$(bindir)
+	@list=$(PROGS); for p in $$list ; do \
+	  $(MAKE) install -C $$p; \
+	done
+	@list=$(SCRIPTS_BIN); for p in $$list; do \
+	  d="$(srcdir)/scripts/"; \
+	  if test -f $$d$$p; then \
+	    f=`echo "$$p" | sed 's|^.*/||;$(transform)'`; \
+	    echo " $(INSTALL_SCRIPT) $$d$$p $(DESTDIR)$(bindir)/$$f"; \
+	    $(INSTALL_SCRIPT) $$d$$p $(DESTDIR)$(bindir)/$$f; \
+	  else :; fi; \
+	done
+	@list=$(SCRIPTS_LIB); for p in $$list; do \
+	  d="$(srcdir)/scripts/"; \
+	  if test -f $$d$$p; then \
+	    f=`echo "$$p" | sed 's|^.*/||;$(transform)'`; \
+	    echo " $(INSTALL_SCRIPT) $$d$$p $(DESTDIR)$(libdir)/tcl/$$f"; \
+	    $(INSTALL_SCRIPT) $$d$$p $(DESTDIR)$(libdir)/tcl/$$f; \
+	  else :; fi; \
+	done
+	$(MAKE) install -C images
 	$(MAKE) release -C distribution
+
+uninstall-release:
+	@$(NORMAL_UNINSTALL)
+	@list=$(PROGS); for p in $$list ; do \
+	  $(MAKE) uninstall -C $$p; \
+	done
+	@list=$(SCRIPTS_BIN); for p in $$list; do \
+	  f=`echo "$$p" | sed 's|^.*/||;$(transform)'`; \
+	  echo " rm -f $(DESTDIR)$(bindir)/$$f"; \
+	  rm -f $(DESTDIR)$(bindir)/$$f; \
+	done
+	@list=$(SCRIPTS_LIB); for p in $$list; do \
+	  f=`echo "$$p" | sed 's|^.*/||;$(transform)'`; \
+	  echo " rm -f $(DESTDIR)$(libdir)/tcl/$$f"; \
+	  rm -f $(DESTDIR)$(libdir)/tcl/$$f; \
+	done
+	$(MAKE) uninstall -C images
+	$(MAKE) uninstall-release -C distribution
