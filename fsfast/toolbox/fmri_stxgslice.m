@@ -14,7 +14,7 @@
 % global CmpIdeal
 % global QuitOnError;
 %
-% $Id: fmri_stxgslice.m,v 1.1 2003/03/04 20:47:40 greve Exp $
+% $Id: fmri_stxgslice.m,v 1.2 2003/03/20 20:38:52 greve Exp $
 %
 
 fprintf(1,' ---------- StXGSlice.m : Starting ------------\n');
@@ -161,8 +161,8 @@ Ch = hd.hCovMtx;
 
 if(~isempty(CMtxFile))
   fprintf('Loading %s\n',CMtxFile);
-  load(CMtxFile);
-  RM = ContrastMtx_0;
+  tmp = load(CMtxFile);
+  RM = tmp.ContrastMtx_0;
   nRM = size(RM,2);
   nh  = size(hAvg,3);
   if(nRM ~= nh)

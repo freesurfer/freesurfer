@@ -1,12 +1,12 @@
 % fmri_isavgstg (Inter-Subject Averaging, Random Effects)
 %
-% $Id: fmri_isavgstg.m,v 1.1 2003/03/04 20:47:39 greve Exp $
+% $Id: fmri_isavgstg.m,v 1.2 2003/03/20 20:39:05 greve Exp $
 
-fprintf('\n$Id: fmri_isavgstg.m,v 1.1 2003/03/04 20:47:39 greve Exp $\n');
+fprintf('\n$Id: fmri_isavgstg.m,v 1.2 2003/03/20 20:39:05 greve Exp $\n');
 
 nS = size(isavgdat,1);
-load(CMtxFile);
-RM = ContrastMtx_0;
+tmp = load(CMtxFile);
+RM = tmp.ContrastMtx_0;
 
 % ---------- Go through each slice ----------------- %
 for slc = FirstSlice : FirstSlice+nSlices-1,
