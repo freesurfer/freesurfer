@@ -7,6 +7,7 @@
 #include "macros.h"
 #include "error.h"
 #include "diag.h"
+#include "timer.h"
 #include "proto.h"
 #include "mrinorm.h"
 
@@ -18,14 +19,17 @@ char *Progname ;
 
 static MRI_NORM_INFO  mni ;
 static int verbose = 1 ;
+static int num_3d_iter = 5 ;
 
 int
 main(int argc, char *argv[])
 {
   char   **av ;
-  int    ac, nargs ;
+  int    ac, nargs, n ;
   MRI    *mri_src, *mri_dst = NULL ;
   char   *in_fname, *out_fname ;
+  int          msec, minutes, seconds ;
+  struct timeb start ;
 
   Progname = argv[0] ;
   ErrorInit(NULL, NULL, NULL) ;
@@ -61,16 +65,29 @@ main(int argc, char *argv[])
 
   if (verbose)
     fprintf(stderr, "done.\nnormalizing image...") ;
+  TimerStart(&start) ;
   MRInormInit(mri_src, &mni, 0, 0, 0, 0, 0.0f) ;
   mri_dst = MRInormalize(mri_src, NULL, &mni) ;
   if (!mri_dst)
     ErrorExit(ERROR_BADPARM, "%s: normalization failed", Progname) ;
+
+  for (n = 0 ; n < num_3d_iter ; n++)
+  {
+    fprintf(stderr, "3d normalization pass %d of %d\n", n+1, num_3d_iter) ;
+    MRI3dNormalize(mri_dst, NULL, DEFAULT_DESIRED_WHITE_MATTER_VALUE, mri_dst);
+  }
 
   if (verbose)
     fprintf(stderr, "\ndone. writing output to %s", out_fname) ;
   MRIwrite(mri_dst, out_fname) ;
   if (verbose)
     fprintf(stderr, "\n") ;
+  msec = TimerStop(&start) ;
+  seconds = nint((float)msec/1000.0f) ;
+  minutes = seconds / 60 ;
+  seconds = seconds % 60 ;
+  fprintf(stderr, "3D bias adjustment took %d minutes and %d seconds.\n", 
+          minutes, seconds) ;
   exit(0) ;
   return(0) ;
 }
@@ -98,11 +115,9 @@ get_option(int argc, char *argv[])
     verbose = !verbose ;
     break ;
   case 'N':
-#if 0
-    sscanf(argv[2], "%d", &reductions) 
-    fprintf(stderr, "reducing %d times\n", reductions) ;
-#endif
+    num_3d_iter = atoi(argv[2]) ;
     nargs = 1 ;
+    fprintf(stderr, "performing 3d normalization %d times\n", num_3d_iter) ;
     break ;
   case '?':
   case 'U':
