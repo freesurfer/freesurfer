@@ -2,7 +2,7 @@
    DICOM 3.0 reading functions
    Author: Sebastien Gicquel and Douglas Greve
    Date: 06/04/2001
-   $Id: DICOMRead.c,v 1.22 2002/08/05 19:06:29 ebeth Exp $
+   $Id: DICOMRead.c,v 1.23 2002/08/21 20:32:19 kteich Exp $
 *******************************************************/
 
 #include <stdio.h>
@@ -3350,7 +3350,9 @@ int CleanFileNames(char **FileNames, int NumberOfDICOMFiles, char ***CleanedFile
   return DCM_NOERROR;
 }
 
-int round(double d)
+/* kteich - renamed this to myRound because round() was causing
+   versioning problems */
+int myRound(double d)
 {
   double c, f, ddown, dup; 
 
@@ -3416,30 +3418,30 @@ int RASFromOrientation(MRI *mri, DICOMInfo *dcm)
   RasScanner->rptr[3][3]=1.;
   
   Scanner2dicom=MatrixAlloc(3, 3, 1);
-  Scanner2dicom->rptr[1][1]=round(dcm->ImageOrientation[0]);
-  Scanner2dicom->rptr[2][1]=round(dcm->ImageOrientation[1]);
-  Scanner2dicom->rptr[3][1]=round(dcm->ImageOrientation[2]);
-  Scanner2dicom->rptr[1][2]=round(dcm->ImageOrientation[3]);
-  Scanner2dicom->rptr[2][2]=round(dcm->ImageOrientation[4]);
-  Scanner2dicom->rptr[3][2]=round(dcm->ImageOrientation[5]);
+  Scanner2dicom->rptr[1][1]=myRound(dcm->ImageOrientation[0]);
+  Scanner2dicom->rptr[2][1]=myRound(dcm->ImageOrientation[1]);
+  Scanner2dicom->rptr[3][1]=myRound(dcm->ImageOrientation[2]);
+  Scanner2dicom->rptr[1][2]=myRound(dcm->ImageOrientation[3]);
+  Scanner2dicom->rptr[2][2]=myRound(dcm->ImageOrientation[4]);
+  Scanner2dicom->rptr[3][2]=myRound(dcm->ImageOrientation[5]);
 
-  if (round(dcm->ImageOrientation[0])!=0)
+  if (myRound(dcm->ImageOrientation[0])!=0)
     {
-      if (round(dcm->ImageOrientation[4])!=0)
+      if (myRound(dcm->ImageOrientation[4])!=0)
   zdir=2; /*E* MRI_HORIZONTAL */
       else
   zdir=1; /*E* MRI_CORONAL */
     }
-  else if (round(dcm->ImageOrientation[1])!=0)
+  else if (myRound(dcm->ImageOrientation[1])!=0)
     {
-      if (round(dcm->ImageOrientation[3])!=0)
+      if (myRound(dcm->ImageOrientation[3])!=0)
   zdir=2; /*E* MRI_HORIZONTAL */
       else
   zdir=0; /*E* MRI_SAGITTAL */
     }
-  else if (round(dcm->ImageOrientation[2])!=0)
+  else if (myRound(dcm->ImageOrientation[2])!=0)
     {
-      if (round(dcm->ImageOrientation[3])!=0)
+      if (myRound(dcm->ImageOrientation[3])!=0)
   zdir=1; /*E* MRI_CORONAL */
       else
   zdir=0; /*E* MRI_SAGITTAL */
