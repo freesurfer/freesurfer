@@ -3,6 +3,7 @@
 #include <string.h>
 #include "resample.h"
 #include "registerio.h"
+#include "fio.h"
 
 
 /* ----------------------------------------------------------
@@ -174,7 +175,10 @@ int regio_write_register(char *regfile, char *subject, float inplaneres,
 
   return(0);
 }
-/* -------------------------------------------------------------- */
+/* -------------------------------------------------------------- 
+   regio_read_mincxfm() - reads a 3x4 transform as the last three
+   lines of the xfmfile. Blank lines at the end will defeat it.
+   -------------------------------------------------------------- */
 int regio_read_mincxfm(char *xfmfile, MATRIX **R)
 {
   FILE *fp;
@@ -186,7 +190,7 @@ int regio_read_mincxfm(char *xfmfile, MATRIX **R)
 
   fp = fopen(xfmfile,"r");
   if(fp==NULL){
-    perror("regio_read_xfm");
+    perror("regio_read_mincxfm");
     fprintf(stderr,"Could read %s\n",xfmfile);
     return(1);
   }
@@ -201,7 +205,7 @@ int regio_read_mincxfm(char *xfmfile, MATRIX **R)
 
   *R = MatrixAlloc(4,4,MATRIX_REAL);
   if(*R == NULL){
-    fprintf(stderr,"regio_read_xfm(): could not alloc R\n");
+    fprintf(stderr,"regio_read_mincxfm(): could not alloc R\n");
     fclose(fp);
     return(1);
   }
@@ -212,7 +216,7 @@ int regio_read_mincxfm(char *xfmfile, MATRIX **R)
     for(c=0;c<4;c++){
       n = fscanf(fp,"%f",&val);
       if(n != 1){
-  perror("regio_read_xfm()");
+  perror("regio_read_mincxfm()");
   fprintf(stderr,"Error reading R[%d][%d] from %s\n",r,c,xfmfile);
   fclose(fp);
   return(1);
@@ -226,4 +230,83 @@ int regio_read_mincxfm(char *xfmfile, MATRIX **R)
 
   fclose(fp);
   return(0);
+}
+/* -------------------------------------------------------------- 
+   regio_read_xfm4() - reads a 4x4 transform as the last four
+   lines of the xfmfile. Blank lines at the end will defeat it.
+   -------------------------------------------------------------- */
+int regio_read_xfm4(char *xfmfile, MATRIX **R)
+{
+  FILE *fp;
+  char tmpstr[1000];
+  int r,c,n,nlines;
+  float val;
+
+  memset(tmpstr,'\0',1000);
+
+  fp = fopen(xfmfile,"r");
+  if(fp==NULL){
+    perror("regio_read_xfm4");
+    fprintf(stderr,"Could read %s\n",xfmfile);
+    return(1);
+  }
+
+  /* Count the number of lines */
+  nlines = 0;
+  while(fgets(tmpstr,1000,fp) != NULL) nlines ++;
+  rewind(fp);
+
+  /* skip all but the last 3 lines */
+  for(n=0;n<nlines-4;n++) fgets(tmpstr,1000,fp);
+
+  *R = MatrixAlloc(4,4,MATRIX_REAL);
+  if(*R == NULL){
+    fprintf(stderr,"regio_read_xfm4(): could not alloc R\n");
+    fclose(fp);
+    return(1);
+  }
+  MatrixClear(*R);
+
+  /* registration matrix */
+  for(r=0;r<3;r++){ /* note: upper limit = 3 for xfm */
+    for(c=0;c<4;c++){
+      n = fscanf(fp,"%f",&val);
+      if(n != 1){
+  perror("regio_read_xfm4()");
+  fprintf(stderr,"Error reading R[%d][%d] from %s\n",r,c,xfmfile);
+  fclose(fp);
+  return(1);
+      }
+      (*R)->rptr[r+1][c+1] = val;
+      /*printf("%7.4f ",val);*/
+    }
+    /*printf("\n");*/
+  }
+  (*R)->rptr[3+1][3+1] = 1.0;
+
+  fclose(fp);
+  return(0);
+}
+/* -------------------------------------------------------------- 
+   regio_read_xfm() - reads a transform. If the file ends in .xfm,
+   then the last three lines are read, and the last line of the
+   transform is set to 0 0 0 1. Otherwise, the last four lines
+   are read. Blank lines at the end will defeat it. This should
+   be able to read tlas properly.
+   -------------------------------------------------------------- */
+int regio_read_xfm(char *xfmfile, MATRIX **R)
+{
+  char *ext;
+  int err = 0;
+
+  ext = fio_extension(xfmfile);
+
+  if(strcmp(ext,"xfm") == 0)
+    err = regio_read_mincxfm(xfmfile,R);
+  else
+    err = regio_read_xfm4(xfmfile,R);
+
+  free(ext);
+
+  return(err);
 }
