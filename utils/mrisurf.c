@@ -396,7 +396,7 @@ MRISreadOverAlloc(char *fname, double pct_over)
 
   chklc() ;    /* check to make sure license.dat is present */
   type = mrisFileNameType(fname) ;
-  if (type == MRIS_ASCII_QUADRANGLE_FILE)
+  if (type == MRIS_ASCII_TRIANGLE_FILE)
   {
     mris = mrisReadAsciiFile(fname) ;
     if (!mris)
@@ -579,7 +579,7 @@ MRISreadOverAlloc(char *fname, double pct_over)
     else
       mris->hemisphere = LEFT_HEMISPHERE ;
   }
-  if ((version<0) || type == MRIS_ASCII_QUADRANGLE_FILE)
+  if ((version<0) || type == MRIS_ASCII_TRIANGLE_FILE)
   {
     for (vno = 0 ; vno< mris->nvertices ; vno++)
     {
@@ -655,7 +655,7 @@ MRISreadOverAlloc(char *fname, double pct_over)
   MRIScomputeNormals(mris);
   mrisComputeVertexDistances(mris) ;
   mrisReadTransform(mris, fname) ;
-  if (type == MRIS_ASCII_QUADRANGLE_FILE || type == MRIS_GEO_TRIANGLE_FILE)
+  if (type == MRIS_ASCII_TRIANGLE_FILE || type == MRIS_GEO_TRIANGLE_FILE)
   {
 #if 0
     MRISsetNeighborhoodSize(mris, 2) ;
@@ -713,7 +713,7 @@ MRISfastRead(char *fname)
 
   mris = NULL ; fp = NULL ;
   type = mrisFileNameType(fname) ;
-  if (type == MRIS_ASCII_QUADRANGLE_FILE)
+  if (type == MRIS_ASCII_TRIANGLE_FILE)
   {
     mris = mrisReadAsciiFile(fname) ;
     if (!mris)
@@ -865,7 +865,7 @@ MRISfastRead(char *fname)
     else
       mris->hemisphere = LEFT_HEMISPHERE ;
   }
-  if ((version<0) || type == MRIS_ASCII_QUADRANGLE_FILE)
+  if ((version<0) || type == MRIS_ASCII_TRIANGLE_FILE)
   {
     for (vno = 0 ; vno< mris->nvertices ; vno++)
     {
@@ -946,7 +946,7 @@ MRISfastRead(char *fname)
   mrisComputeVertexDistances(mris) ;
   mrisReadTransform(mris, fname) ;
 #endif
-  if (type == MRIS_ASCII_QUADRANGLE_FILE || type == MRIS_GEO_TRIANGLE_FILE)
+  if (type == MRIS_ASCII_TRIANGLE_FILE || type == MRIS_GEO_TRIANGLE_FILE)
   {
     MRISsetNeighborhoodSize(mris, 2) ;
     MRIScomputeSecondFundamentalForm(mris) ;
@@ -1004,7 +1004,7 @@ MRISwrite(MRI_SURFACE *mris, char *name)
   chklc() ;
   MRISbuildFileName(mris, name, fname) ;
   type = mrisFileNameType(fname) ;
-  if (type == MRIS_ASCII_QUADRANGLE_FILE)
+  if (type == MRIS_ASCII_TRIANGLE_FILE)
     return(MRISwriteAscii(mris, fname)) ;
   else if (type == MRIS_GEO_TRIANGLE_FILE)
     return(MRISwriteGeo(mris, fname)) ;
@@ -2310,10 +2310,12 @@ MRISremoveRipped(MRI_SURFACE *mris)
 int
 MRIScomputeNormals(MRI_SURFACE *mris) 
 {
-  int       k,n, num ;
+  int       k,n, num, i ;
   VERTEX    *v ;
   FACE      *f;
   float     norm[3],snorm[3], len ;
+
+  i = 0 ;
 
 #if 0
   if (mris->status == MRIS_PLANE)
@@ -2362,6 +2364,9 @@ MRIScomputeNormals(MRI_SURFACE *mris)
     }
     else
     {
+      if (i++ > 5)
+        continue ;
+
       if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
         fprintf(stderr, "vertex %d: degenerate normal\n", k) ;
 
@@ -7669,7 +7674,7 @@ MRISwritePatch(MRI_SURFACE *mris, char *fname)
   FILE   *fp;
 
   type = mrisFileNameType(fname) ;
-  if (type == MRIS_ASCII_QUADRANGLE_FILE)
+  if (type == MRIS_ASCII_TRIANGLE_FILE)
     return(MRISwritePatchAscii(mris, fname)) ;
   else if (type == MRIS_GEO_TRIANGLE_FILE)
     return(MRISwriteGeo(mris, fname)) ;
@@ -13650,7 +13655,7 @@ MRISwritePatchAscii(MRI_SURFACE *mris, char *fname)
 
   type = mrisFileNameType(fname) ;
 #if 0
-  if (type == MRIS_ASCII_QUADRANGLE_FILE)
+  if (type == MRIS_ASCII_TRIANGLE_FILE)
     return(MRISwriteAscii(mris, fname)) ;
 #endif
 
@@ -13725,10 +13730,14 @@ mrisReadAsciiFile(char *fname)
                "MRISreadAsciiFile: could not open file %s",fname));
 
   patch = 0 ;
-  cp = fgetl(line, 100, fp) ;
+  cp = fgetl(line, STRLEN, fp) ;
   sscanf(cp, "%d %d\n", &nvertices, &nfaces) ;
   mris = MRISalloc(nvertices, nfaces) ;
-  mris->type = MRIS_ASCII_QUADRANGLE_FILE ;
+#if 0
+  mris->type = MRIS_ASCII_TRIANGLE_FILE ;
+#else
+  mris->type = MRIS_TRIANGULAR_SURFACE ;
+#endif
   for (vno = 0 ; vno < mris->nvertices ; vno++)
   {
     v = &mris->vertices[vno] ;
@@ -26782,7 +26791,7 @@ MRISreadVerticesOnly(char *fname)
   type = mrisFileNameType(fname) ;
   switch (type)
   {
-  case MRIS_ASCII_QUADRANGLE_FILE:
+  case MRIS_ASCII_TRIANGLE_FILE:
   case MRIS_ICO_FILE:
   case MRIS_GEO_TRIANGLE_FILE:
     ErrorReturn(NULL, 
