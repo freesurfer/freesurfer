@@ -2,9 +2,9 @@
 /* transform.h                                                         */
 /*                                                                     */
 /* Warning: Do not edit the following four lines.  CVS maintains them. */
-/* Revision Author: $Author: tosa $                                           */
-/* Revision Date  : $Date: 2003/09/18 20:33:03 $                                             */
-/* Revision       : $Revision: 1.23 $                                         */
+/* Revision Author: $Author: kteich $                                           */
+/* Revision Date  : $Date: 2003/10/31 20:20:14 $                                             */
+/* Revision       : $Revision: 1.24 $                                         */
 /*                                                                     */
 /***********************************************************************/
 
@@ -74,6 +74,8 @@ MRI      *LTAtransform(MRI *mri_src, MRI *mri_dst, LTA *lta) ;
 MATRIX   *LTAtransformAtPoint(LTA *lta, float x, float y,float z,MATRIX *m_L);
 int      LTAworldToWorld(LTA *lta, float x, float y, float z,
                          float *px, float *py, float *pz);
+int      LTAworldToWorldEx(LTA *lta, float x, float y, float z,
+			   float *px, float *py, float *pz);
 int      LTAinverseWorldToWorld(LTA *lta, float x, float y, float z,
                          float *px, float *py, float *pz);
 VECTOR   *LTAtransformPoint(LTA *lta, VECTOR *v_X, VECTOR *v_Y) ;

@@ -950,16 +950,62 @@ LTAworldToWorld(LTA *lta, float x, float y, float z, float *px, float *py,
   }
   /* world to voxel */
   v_X->rptr[4][1] = 1.0f ;
+#if 0
   V3_X(v_X) = 128.0 - x ;
   V3_Z(v_X) = (y + 128.0) ;
   V3_Y(v_X) = (-z + 128.0) ;
+#else
+  V3_X(v_X) = x ;
+  V3_Y(v_X) = y ;
+  V3_Z(v_X) = z ;
+#endif
 
   LTAtransformPoint(lta, v_X, v_Y) ;
 
   /* voxel to world */
+#if 0
   *px = 128.0 - V3_X(v_Y) ;
   *py = V3_Z(v_Y)  - 128.0 ;
   *pz = -(V3_Y(v_Y) - 128.0) ;
+#else
+  *px = V3_X(v_Y) ;
+  *py = V3_Y(v_Y) ;
+  *pz = V3_Z(v_Y) ;
+#endif
+
+  return(NO_ERROR) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+	This is the same as LTAworldToWorld but doesn't
+	do the weird (and mostly incorrect) voxel conversion.
+------------------------------------------------------*/
+int
+LTAworldToWorldEx(LTA *lta, float x, float y, float z, float *px, float *py, 
+                float *pz)
+{
+  static VECTOR *v_X, *v_Y = NULL ;
+
+  if (v_Y == NULL)
+  {
+    v_X = VectorAlloc(4, MATRIX_REAL) ;
+    v_Y = VectorAlloc(4, MATRIX_REAL) ;
+  }
+
+  v_X->rptr[4][1] = 1.0f ;
+  V3_X(v_X) = x ;
+  V3_Y(v_X) = y ;
+  V3_Z(v_X) = z ;
+
+  LTAtransformPoint(lta, v_X, v_Y) ;
+
+  *px = V3_X(v_Y) ;
+  *py = V3_Y(v_Y) ;
+  *pz = V3_Z(v_Y) ;
 
   return(NO_ERROR) ;
 }
