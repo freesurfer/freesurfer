@@ -94,7 +94,7 @@ main(int argc, char *argv[])
   TRANSFORM    *transform = NULL ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_ca_normalize.c,v 1.13 2003/06/13 15:24:26 fischl Exp $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_ca_normalize.c,v 1.14 2003/06/18 19:03:58 fischl Exp $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -282,6 +282,8 @@ main(int argc, char *argv[])
   {
     for (norm_samples = i = 0 ; i < NSTRUCTURES ; i++)
     {
+			if (normalization_structures[i] == Gdiag_no)
+				DiagBreak() ;
       printf("finding control points in %s....\n", cma_label_to_name(normalization_structures[i])) ;
       gcas_struct = find_control_points(gca, gcas, nsamples, &struct_samples, n,
                                         normalization_structures[i], mri_in, transform, min_prior,
@@ -538,6 +540,9 @@ find_control_points(GCA *gca, GCA_SAMPLE *gcas_total,
 	}
 #endif
 
+	if (label == Gdiag_no)
+		DiagBreak() ;
+
 	MRIvalRange(mri_in, &fmin, &fmax) ;
 	nbins = (int)(fmax-fmin+1);
   histo = HISTOalloc(nbins) ; hsmooth = HISTOalloc(nbins) ;
@@ -620,6 +625,14 @@ find_control_points(GCA *gca, GCA_SAMPLE *gcas_total,
 					for (means[n] = vars[n] = 0.0, i = 0 ; i < region_samples ; i++)
 					{
 						MRIsampleVolumeFrame(mri_in, gcas_region[i].x,gcas_region[i].y,gcas_region[i].z, n, &val) ;
+						if (FZERO(val))
+						{
+							if (i < (region_samples-1))
+								memmove(&gcas_region[i], &gcas_region[i+1], (region_samples-(i+1))*sizeof(GCA_SAMPLE)) ;
+							i-- ;
+							region_samples-- ;
+							continue ;
+						}
 						histo->counts[(int)val]++ ;
 						means[n] += val ;
 						vars[n] += (val*val) ;
@@ -648,6 +661,8 @@ find_control_points(GCA *gca, GCA_SAMPLE *gcas_total,
 
 					for (means[n] = vars[n] = 0.0, i = 0 ; i < region_samples ; i++)
 					{
+						if (gcas_region[i].label < 0)
+							continue ;
 						MRIsampleVolumeFrame(mri_in, gcas_region[i].x,gcas_region[i].y,gcas_region[i].z, n, &val) ;
 						means[n] += val ;
 						vars[n] += (val*val) ;
@@ -880,12 +895,18 @@ discard_unlikely_control_points(GCA *gca, GCA_SAMPLE *gcas, int nsamples,
 	{
 		MRIvalRangeFrame(mri_in, &fmin, &fmax, n) ;
 		h = HISTOalloc(nint(fmax-fmin)+1) ;
+		h->bin_size = (fmax-fmin)/(float)h->nbins ;
+		for (i = 0 ; i < h->nbins ; i++)
+			h->bins[i] = (i+1)*h->bin_size ;
+
 		for (i = 0 ; i < nsamples ; i++)
 		{
 			xv = gcas[i].x ; yv = gcas[i].y ; zv = gcas[i].z ;
 			if (xv == Gx && yv == Gy && zv == Gz)
 				DiagBreak() ;
 			MRIsampleVolumeFrame(mri_in, gcas[i].x,gcas[i].y,gcas[i].z, n, &val) ;
+			if (FZERO(val))
+				DiagBreak() ;
 			h->counts[nint(val-fmin)]++ ;
 		}
 
