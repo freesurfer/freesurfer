@@ -188,6 +188,7 @@ IMAGE *LogMapApplyOffset(LOGMAP_INFO *lmi, IMAGE *Isrc, IMAGE *Ioffset,
                          IMAGE *Idst) ;
 IMAGE *LogMapGaussianFilter(LOGMAP_INFO *lmi, IMAGE *Isrc, 
                               IMAGE *Igaussian, IMAGE *Idst) ;
+IMAGE *LogMapOffset(LOGMAP_INFO *lmi, IMAGE *Isrc, int wsize, IMAGE *Ioffset) ;
 
 #if 0
 #define for_each_neighbor(lmi, ptr, i, j, r, s) \
