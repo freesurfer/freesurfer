@@ -52,6 +52,8 @@ int main(int argc, char *argv[])
   float out_i_directions[3], out_j_directions[3], out_k_directions[3];
   int in_i_direction_flag, in_j_direction_flag, in_k_direction_flag;
   int out_i_direction_flag, out_j_direction_flag, out_k_direction_flag;
+  int in_tr_flag = 0;
+  float in_tr = 0;
   float magnitude;
   float i_dot_j, i_dot_k, j_dot_k;
   float in_center[3], out_center[3];
@@ -197,7 +199,8 @@ int main(int argc, char *argv[])
       transform_flag = TRUE;
       invert_transform_flag = TRUE;
     }
-    else if(strcmp(argv[i], "-iis") == 0 || strcmp(argv[i], "--in_i_size") == 0)
+    else if(strcmp(argv[i], "-iis") == 0 || 
+      strcmp(argv[i], "--in_i_size") == 0)
     {
       get_floats(argc, argv, &i, &in_i_size, 1);
       in_i_size_flag = TRUE;
@@ -387,6 +390,12 @@ int main(int argc, char *argv[])
       get_ints(argc, argv, &i, &in_n_k, 1);
       in_n_k_flag = TRUE;
     }
+    else if( strcmp(argv[i], "-tr") == 0 )
+    {
+      get_floats(argc, argv, &i, &in_tr, 1);
+      in_tr_flag = TRUE;
+    }
+
     else if(strcmp(argv[i], "-odt") == 0 || strcmp(argv[i], "--out_data_type") == 0)
     {
       get_string(argc, argv, &i, out_data_type_string);
@@ -987,12 +996,9 @@ int main(int argc, char *argv[])
   }
 
   /* ----- apply command-line parameters ----- */
-  if(in_i_size_flag)
-    mri->xsize = in_i_size;
-  if(in_j_size_flag)
-    mri->ysize = in_j_size;
-  if(in_k_size_flag)
-    mri->zsize = in_k_size;
+  if(in_i_size_flag)    mri->xsize = in_i_size;
+  if(in_j_size_flag)    mri->ysize = in_j_size;
+  if(in_k_size_flag)    mri->zsize = in_k_size;
   if(in_i_direction_flag)
   {
     mri->x_r = in_i_directions[0];
@@ -1019,6 +1025,8 @@ int main(int argc, char *argv[])
   }
   if(subject_name[0] != '\0')
     strcpy(mri->subject_name, subject_name);
+
+  if(in_tr_flag) mri->tr = in_tr;
 
   /* ----- correct starts, ends, and fov if necessary ----- */
   if(in_i_size_flag || in_j_size_flag || in_k_size_flag)
@@ -1508,6 +1516,8 @@ void usage(FILE *stream)
   fprintf(stream, "  -oc, --out_center <R coordinate> <A coordinate> <S coordinate>\n");
   fprintf(stream, "\n");
   fprintf(stream, "  -odt, --out_data_type <uchar|short|int|float>\n");
+  fprintf(stream, "\n");
+  fprintf(stream, "  -tr TR : TR in seconds\n");
   fprintf(stream, "\n");
   fprintf(stream, "  --unwarp_gradient_nonlinearity \n"
                   "      <sonata | allegra | GE> \n"
