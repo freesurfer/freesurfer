@@ -3,6 +3,7 @@
 if($#argv < 2) then
   echo "parse-measasc meas.asc varname1 <varname2 ...>"
   echo "   NOTE: many varnames may need quotes"
+  echo "   NOTE: use nslices as varname to get number of slices"
   exit 1;
 endif
 
@@ -35,12 +36,27 @@ dos2unix $tmpfile >& /dev/null
 
 set vallist = ();
 foreach v ("$varname")
-  set val = `cat $tmpfile |  awk -v v="$v" '{if($1 == v) print $3}'`;
-  if($#val == 0) then
-    echo "ERROR: cannot find $v in $measasc"
-    exit 1;
+  if("$varname" != "nslices") then
+    set val = `cat $tmpfile |  awk -v v="$v" '{if($1 == v) print $3}'`;
+    if($#val == 0) then
+      echo "ERROR: cannot find $v in $measasc"
+      exit 1;
+    endif
+    set val = `echo "$val" | sed 's/\[//g' | sed 's/\]//g'`;
+  else
+    # Count the number of slices
+    @ nslices = 0;
+    while(1)
+      set tmp = `parse-measasc $tmpfile "sSliceArray.asSlice\[$nslices\].dReadoutFOV"`
+      if($status) break;
+      @ nslices = $nslices + 1;
+    end
+    if($nslices == 0) then
+      echo "ERROR: could not find any slices"
+      exit 1;
+    endif
+    set val = $nslices
   endif
-  set val = `echo "$val" | sed 's/\[//g' | sed 's/\]//g'`;
   set vallist = ($vallist $val);
 end
 
@@ -49,3 +65,4 @@ rm $tmpfile
 echo $vallist
 
 exit 0
+
