@@ -69,7 +69,7 @@ double PDFerlang(int order)
   -------------------------------------------------------------------*/
 double PDFsampleCDF(double *xcdf, double *cdf, int ncdf)
 {
-  double u, x, d, dmin;
+  double u, x=0, d, dmin;
   int n;
 
   u = drand48();
