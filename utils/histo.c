@@ -59,8 +59,9 @@ HISTOdump(HISTOGRAM *histo, FILE *fp)
   {
     fprintf(fp, "nbins = %d\n", histo->nbins) ;
     for (bin_no = 0 ; bin_no < histo->nbins ; bin_no++)
-      fprintf(fp, "bin[%d] = %d = %d\n",
-              bin_no, histo->bins[bin_no], histo->counts[bin_no]) ;
+      if (histo->counts[bin_no])
+        fprintf(fp, "bin[%d] = %d = %d\n",
+                bin_no, histo->bins[bin_no], histo->counts[bin_no]) ;
   }
   return(NO_ERROR) ;
 }
@@ -500,13 +501,13 @@ HISTOsmooth(HISTOGRAM *histo_src, HISTOGRAM *histo_dst,float sigma)
 int
 HISTOfindLastPeak(HISTOGRAM *h, int wsize, float min_pct)
 {
-  int  peak, b, bw, nbins, whalf, val, max_count, count, min_count ;
+  int  peak, b, bw, nbins, whalf, center_val, max_count, other_val, min_count ;
 
   for (max_count = b = 0 ; b < h->nbins ; b++)
   {
-    val = h->counts[b];
-    if (val > max_count)
-      max_count = val ;
+    center_val = h->counts[b];
+    if (center_val > max_count)
+      max_count = center_val ;
   }
 
   if (!max_count)
@@ -522,14 +523,16 @@ HISTOfindLastPeak(HISTOGRAM *h, int wsize, float min_pct)
 */
   for (b = nbins-1 ; b >= 0 ; b--)
   {
-    val = h->counts[b] ;
+    center_val = h->counts[b] ;
+    if (center_val <= min_count)
+      continue ;
     peak = 1 ;
     for (bw = b-whalf ; bw <= b+whalf ; bw++)
     {
       if (bw < 0 || bw >= nbins)
         continue ;
-      count = h->counts[bw] ;
-      if (count > val || (count < min_count))
+      other_val = h->counts[bw] ;
+      if (other_val > center_val)
         peak = 0 ;
     }
     if (peak)
@@ -537,5 +540,304 @@ HISTOfindLastPeak(HISTOGRAM *h, int wsize, float min_pct)
   }
 
   return(-1) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
+int
+HISTOfindFirstPeak(HISTOGRAM *h, int wsize, float min_pct)
+{
+  int  peak, b, bw, nbins, whalf, center_val, max_count, other_val, min_count ;
+
+  for (max_count = b = 0 ; b < h->nbins ; b++)
+  {
+    center_val = h->counts[b];
+    if (center_val > max_count)
+      max_count = center_val ;
+  }
+
+  if (!max_count)
+    return(-1) ;
+
+  min_count = nint(min_pct * (float)max_count) ;
+  whalf = (wsize-1)/2 ;
+  nbins = h->nbins ;
+
+/*
+   check to see if the value at b is bigger than anything else within
+   a whalfxwhalf window on either side.
+*/
+  for (b = 0 ; b < nbins ; b++)
+  {
+    center_val = h->counts[b] ;
+    if (center_val <= min_count)
+      continue ;
+    peak = 1 ;
+    for (bw = b-whalf ; bw <= b+whalf ; bw++)
+    {
+      if (bw < 0 || bw >= nbins)
+        continue ;
+      other_val = h->counts[bw] ;
+      if (other_val > center_val)
+        peak = 0 ;
+#if 0
+      else if (center_val > other_val)
+        peak++ ;
+#endif
+    }
+    if (peak)
+      return(b) ;
+  }
+
+  return(-1) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
+int
+HISTOfindValley(HISTOGRAM *h, int wsize, int b0, int b1)
+{
+  int  valley, b, bw, nbins, whalf, center_val, max_count, other_val ;
+
+  for (max_count = b = 0 ; b < h->nbins ; b++)
+  {
+    center_val = h->counts[b];
+    if (center_val > max_count)
+      max_count = center_val ;
+  }
+
+  if (!max_count)
+    return(-1) ;
+
+  whalf = (wsize-1)/2 ;
+  nbins = h->nbins ;
+
+  if (b0 < 0)
+    b0 = 0 ;
+  if ((b1 < 0) || (b1 >= nbins))
+    b1 = nbins - 1 ;
+
+/*
+   check to see if the value at b is smaller than anything else within
+   a whalfxwhalf window on either side.
+*/
+  for (b = b0 ; b <= b1 ; b++)
+  {
+    center_val = h->counts[b] ;
+    valley = 1 ;
+    for (bw = b-whalf ; bw <= b+whalf ; bw++)
+    {
+      if (bw < 0 || bw >= nbins)
+        continue ;
+      other_val = h->counts[bw] ;
+      if (other_val < center_val)  
+        valley = 0 ;  /* something is smaller than current - not minimum */
+    }
+    if (valley)
+      return(b) ;
+  }
+
+  return(-1) ;
+}
+
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
+/* only a peak if it is at least MIN_STD intensity units away
+   from the mean in the wsize neighborhood.
+   */
+#define MIN_STD   1.9
+
+int
+HISTOfindLastPeakInRegion(HISTOGRAM *h, int wsize, float min_pct, int b0, 
+                          int b1)
+{
+  int    peak, b, bw, nbins, whalf, center_val, max_count, other_val, 
+         min_count, total ;
+  float  mean_count ;
+
+  for (max_count = b = 0 ; b < h->nbins ; b++)
+  {
+    center_val = h->counts[b];
+    if (center_val > max_count)
+      max_count = center_val ;
+  }
+
+  if (!max_count)
+    return(-1) ;
+
+  min_count = nint(min_pct * (float)max_count) ;
+  whalf = (wsize-1)/2 ;
+  nbins = h->nbins ;
+
+/*
+   check to see if the value at b is bigger than anything else within
+   a whalfxwhalf window on either side.
+*/
+  for (b = b1 ; b >= b0 ; b--)
+  {
+    center_val = h->counts[b] ;
+    peak = 1 ;
+    for (total = 0, bw = b-whalf ; bw <= b+whalf ; bw++)
+    {
+      if (bw < 0 || bw >= nbins)
+        continue ;
+      other_val = h->counts[bw] ;
+      total += other_val ;
+      if (other_val > center_val)
+      {
+        peak = 0 ;
+        break ;
+      }
+    }
+    /* if average height in peak is greater than min_count accept it */
+    if (peak)
+    {
+      if ((float)total/(float)wsize >= min_count)
+      {
+        mean_count = (float)total / (float)wsize ;
+        if (((float)center_val-mean_count) >= MIN_STD)
+          return(b) ;
+      }
+    }
+  }
+
+  return(-1) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
+int
+HISTOfindFirstPeakInRegion(HISTOGRAM *h, int wsize, float min_pct, 
+                           int b0, int b1)
+{
+  int  peak, b, bw, nbins, whalf, center_val, max_count, other_val, min_count,
+       total ;
+
+  for (max_count = b = 0 ; b < h->nbins ; b++)
+  {
+    center_val = h->counts[b];
+    if (center_val > max_count)
+      max_count = center_val ;
+  }
+
+  if (!max_count)
+    return(-1) ;
+
+  min_count = nint(min_pct * (float)max_count) ;
+  whalf = (wsize-1)/2 ;
+  nbins = h->nbins ;
+
+/*
+   check to see if the value at b is bigger than anything else within
+   a whalfxwhalf window on either side.
+*/
+  for (b = b0 ; b <= b1 ; b++)
+  {
+    center_val = h->counts[b] ;
+    if (center_val <= min_count)
+      continue ;
+    peak = 1 ;
+    for (total = 0, bw = b-whalf ; bw <= b+whalf ; bw++)
+    {
+      if (bw < 0 || bw >= nbins )
+        continue ;
+      other_val = h->counts[bw] ;
+      if (other_val > center_val)
+        peak = 0 ;
+    }
+    /* if average height in peak is greater than min_count accept it */
+    if (peak && ((float)total/(float)wsize >= min_count))
+      return(b) ;
+  }
+
+  return(-1) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
+int
+HISTOfindHighestPeakInRegion(HISTOGRAM *h, int b0, int b1)
+{
+  int  b, nbins, val, max_count, max_count_bin ;
+
+  nbins = h->nbins ;
+
+/*
+   check to see if the value at b is bigger than anything else within
+   a whalfxwhalf window on either side.
+*/
+  max_count = 0 ; max_count_bin = -1 ;
+  for (b = b0 ; b <= b1 ; b++)
+  {
+    val = h->counts[b] ;
+    if (val > max_count)
+    {
+      max_count_bin = b ;
+      max_count= val ;
+    }
+  }
+
+  return(max_count_bin) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
+int
+HISTOplot(HISTOGRAM *histo, char *fname)
+{
+  FILE *fp ;
+  int  bin_no ;
+
+  fp = fopen(fname, "w") ;
+
+  for (bin_no = 0 ; bin_no < histo->nbins ; bin_no++)
+    fprintf(fp, "%d  %d\n", bin_no, histo->counts[bin_no]) ;
+  fclose(fp) ;
+  return(NO_ERROR) ;
+}
+/* at least one value on each side which is below the central value */
+/* 
+   the standard deviation of the peak around it's mean must be at least
+   two or above.
+*/
+int
+HISTOcountPeaksInRegion(HISTOGRAM *h, int wsize, float min_pct, 
+                        int *peaks, int max_peaks, int b0, int b1)
+{
+  int npeaks = 0, peak_index ;
+
+  do
+  {
+    peak_index = HISTOfindLastPeakInRegion(h, wsize, min_pct, b0, b1);
+    peaks[npeaks++] = peak_index ;
+    b1 = peak_index - wsize/2 ;
+  } while (peak_index >= 0 && npeaks < max_peaks) ;
+
+  return(npeaks) ;
 }
 
