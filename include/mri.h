@@ -290,6 +290,7 @@ extern float ic_z_vertices[]  ;
 #define MRI_CORONAL_SLICE_DIRECTORY   0
 #define MRI_MINC_FILE                 1
 
+int        MRImatch(MRI *mri1, MRI *mri2) ;
 int        MRIvalRange(MRI *mri, float *pmin, float *pmax) ;
 HISTOGRAM  *MRIhistogram(MRI *mri, int nbins) ;
 MRI        *MRIhistoEqualize(MRI *mri_src, MRI *mri_dst, int low) ;
