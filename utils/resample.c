@@ -1,6 +1,6 @@
 /*---------------------------------------------------------------
   Name: resample.c
-  $Id: resample.c,v 1.12 2003/08/29 22:50:06 greve Exp $
+  $Id: resample.c,v 1.13 2003/09/05 18:14:11 greve Exp $
   Author: Douglas N. Greve
   Purpose: code to perform resapling from one space to another, 
   including: volume-to-volume, volume-to-surface, and surface-to-surface.
@@ -543,31 +543,31 @@ MRI * vol2maskavg(MRI *SrcVol, MRI *SrcMskVol, int *nhits)
   for(c=0; c < SrcVol->width; c++){
     for(r=0; r < SrcVol->height; r++){
       for(s=0; s < SrcVol->depth; s++){
-  /* get mask value at r,c,s */
-  mskval = MRIFseq_vox(SrcMskVol,c,r,s,0); 
-  if(mskval > 0.5){ 
-    /* accumulate sum over suprathreshold points */
-    (*nhits)++;
-    for(f=0; f < SrcVol->nframes; f++){
-      val = MRIFseq_vox(SrcVol,c,r,s,f);
-      MRIFseq_vox(MskAvg,0,0,0,f) += val;
-    }
-  }
+	/* get mask value at r,c,s */
+	mskval = MRIgetVoxVal(SrcMskVol,c,r,s,0);
+	if(mskval > 0.5){ 
+	  /* accumulate sum over suprathreshold points */
+	  (*nhits)++;
+	  for(f=0; f < SrcVol->nframes; f++){
+	    val = MRIgetVoxVal(SrcVol,c,r,s,f);
+	    MRIFseq_vox(MskAvg,0,0,0,f) += val;
+	  }
+	}
       }
     }
   }
-
+  
   printf("INFO: vol2maskavg: nhits = %d\n",*nhits);
   if(*nhits != 0){
     /* divide by the number of hits to get the average*/
     for(f=0; f < SrcVol->nframes; f++){
       val = MRIFseq_vox(MskAvg,0,0,0,f);
       MRIFseq_vox(MskAvg,0,0,0,f) = val/(*nhits);
-      /*printf("%2d %g %g\n",f,val,MRIFseq_vox(MskAvg,0,0,0,f));*/
+      //printf("%2d %g %g\n",f,val,MRIFseq_vox(MskAvg,0,0,0,f));
     }
   }
   else{
-    fprintf(stderr,"WARNING: there were no voxels in the input mask > 0.5\n");
+    printf("WARNING: there were no voxels in the input mask > 0.5\n");
   }
 
   /* return the Masked Average */
