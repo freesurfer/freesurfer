@@ -530,7 +530,8 @@ LabelAlloc(int max_points, char *subject_name, char *label_name)
   if (!area->lv)
     ErrorExit(ERROR_NOMEMORY, 
               "%s: LabelAlloc(%s) could not allocate %d-sized vector",
-              Progname, label_name, sizeof(LV)*area->n_points) ;
+              Progname, label_name ? label_name : "", 
+							sizeof(LV)*area->n_points) ;
   return(area) ;
 }
 /*-----------------------------------------------------
@@ -979,6 +980,13 @@ LabelUnmark(LABEL *area, MRI_SURFACE *mris)
   }
   return(NO_ERROR) ;
 }
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
 int
 LabelToOriginal(LABEL *area, MRI_SURFACE *mris)
 {
@@ -995,3 +1003,37 @@ LabelToOriginal(LABEL *area, MRI_SURFACE *mris)
   }
   return(NO_ERROR) ;
 }
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
+LABEL *
+LabelFromMarkedSurface(MRI_SURFACE *mris)
+{
+	int    vno, npoints, n ;
+	LABEL  *area ;
+  VERTEX *v ;
+
+	for (npoints = vno = 0 ; vno < mris->nvertices ; vno++)
+		if (mris->vertices[vno].marked)
+			npoints++ ;
+
+	if (!npoints)
+		return(NULL) ;
+	area = LabelAlloc(npoints, NULL, NULL) ;
+	for (n = vno = 0 ; vno < mris->nvertices ; vno++)
+	{
+    v = &mris->vertices[vno] ;
+		if (!v->marked)
+			continue ;
+		area->lv[n].x = v->x ;
+		area->lv[n].y = v->y ;
+		area->lv[n].z = v->z ;
+		area->lv[n].vno = vno ;
+	}
+	return(area) ;
+}
+
