@@ -336,7 +336,7 @@ puts "Douglas N. Greve, Ph.D., MGH-NMR Center"
 puts ""
 puts "VERSION"
 puts ""
-puts {$Id: unpacksdcmdir,v 1.6 2002/10/02 18:23:06 greve Exp $}
+puts {$Id: unpacksdcmdir,v 1.7 2002/10/21 20:13:58 greve Exp $}
 
 exit 1;
 
@@ -778,7 +778,6 @@ if {! [file exists $dicomdir]} {
   exit 1;
 }
 
-
 # Check that the target directory is writable
 set targparent [file dirname $targdir];
 if { ! [file writable $targparent] } {
@@ -803,7 +802,7 @@ if [catch {open $LogFile w} LF] {
 }
 puts "INFO: Logfile is $LogFile"
 puts $LF "Log file created by unpacksdcmdir"
-puts $LF {$Id: unpacksdcmdir,v 1.6 2002/10/02 18:23:06 greve Exp $};
+puts $LF {$Id: unpacksdcmdir,v 1.7 2002/10/21 20:13:58 greve Exp $};
 puts $LF "$LogFile"
 puts $LF [pwd];
 puts $LF [exec date];
@@ -954,6 +953,21 @@ while { [gets $FileId line] >= 0 } {
   # Keep a list of the files in each series
   lappend FilesInRun $DCMFile;
 }
+
+if { $nthline == 0 } {
+  puts $LF "ERROR: no dicom files found in $dicomdir"
+  puts "ERROR: no dicom files found in $dicomdir"
+  # Check again that the input directory is there #
+  if {! [file exists $dicomdir] || 1} {
+    puts $LF "There could be network trouble because $dicomdir existed "
+    puts $LF "at the beginning of this process but can no long be found."
+    puts "There could be network trouble because $dicomdir existed "
+    puts "at the beginning of this process but can no long be found."
+    exit 1;
+  }
+  exit 1;
+}
+
 lappend SeriesFileLists $FilesInRun;
 close $FileId;
 
