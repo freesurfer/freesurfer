@@ -1,7 +1,7 @@
 #!/bin/csh -f
 # tar-sess
 #
-set VERSION = '$Id: tar-sess,v 1.1 2004/12/06 00:09:59 greve Exp $';
+set VERSION = '$Id: tar-sess,v 1.2 2004/12/10 00:28:27 greve Exp $';
 
 set cmdargs = ($argv);
 
@@ -68,8 +68,12 @@ foreach sess ($SessList)
   tar rvf $tarfiletmp $flist
 end # Loop over sessions #
 
-if($compress) gzip $tarfiletmp
-mv $tarfiletmp $tarfile
+if($compress) then
+  gzip $tarfiletmp
+  mv $tarfiletmp.gz $tarfile
+else
+  mv $tarfiletmp $tarfile
+endif
 
 echo "Started at $StartTime" 
 echo "Ended   at `date`"     
