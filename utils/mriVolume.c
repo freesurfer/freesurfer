@@ -48,6 +48,7 @@ Volm_tErr Volm_New ( mriVolumeRef* opVolume ) {
   this->mnDimensionX           = 0;
   this->mnDimensionY           = 0;
   this->mnDimensionZ           = 0;
+  this->mnDimensionFrame       = 1;
   this->mpMriValues           = NULL;
   this->mpSnapshot             = NULL;
   this->mpMaxValues            = NULL;
@@ -198,6 +199,7 @@ Volm_tErr Volm_DeepClone  ( mriVolumeRef  this,
   clone->mnDimensionX = this->mnDimensionX;
   clone->mnDimensionY = this->mnDimensionY;
   clone->mnDimensionZ = this->mnDimensionZ;
+  clone->mnDimensionFrame = this->mnDimensionFrame;
   
   /* copy mri volumes */
   DebugNote( ("Cloning normalized volume") );
@@ -314,10 +316,12 @@ Volm_tErr Volm_ImportData ( mriVolumeRef this,
   MatrixPrint(stderr, m_resample);
 #endif
   
-  /* grab the xsize of the conformed volume as our dimension */
+  /* grab the end-start values as our dimension. also nframes. */
   this->mnDimensionX = abs(mriVolume->xend - mriVolume->xstart);
   this->mnDimensionY = abs(mriVolume->yend - mriVolume->ystart);
   this->mnDimensionZ = abs(mriVolume->zend - mriVolume->zstart);
+  this->mnDimensionFrame = mriVolume->nframes;
+
   this->m_resample = m_resample ;
   this->m_resample_orig = MatrixCopy(m_resample, NULL) ;
   DebugNote( ("Calculating inverse of resample matrix") );
@@ -964,19 +968,6 @@ Volm_tErr Volm_GetValueAtIdx ( mriVolumeRef this,
   eResult = Volm_VerifyIdx_( this, iIdx );
   DebugAssertThrow( (eResult == Volm_tErr_NoErr) );
   
-#if 0 /* ???????? */
-  /* transform idx to display transform */
-  if( NULL != this->mDisplayTransform  && 0) 
-    {
-      Volm_ApplyDisplayTransform_( this, iIdx, &disp ); /* Trns_ConvertBtoA */
-      /*    if( Volm_VerifyIdx_( this, &disp ) == Volm_tErr_NoErr ) */
-      {
-	Volm_GetSincNormValueAtIdx_( this, &disp, &rValue );
-      }
-      *oValue = (float)rValue;
-    } 
-#endif
-
   /* return the value */
   DebugNote( ("Fetching the value at (%d,%d,%d) and returning it",
 	      xVoxl_ExpandInt( iIdx )));
@@ -995,19 +986,6 @@ Volm_tErr Volm_GetValueAtIdxUnsafe ( mriVolumeRef this,
 				     xVoxelRef    iIdx,
 				     float*       oValue ) {
   
-#if 0 /* ??????? */
-  /* return the raw value. transform idx to display transform */
-  if( NULL != this->mDisplayTransform && 0) 
-    {
-      Volm_ApplyDisplayTransform_( this, iIdx, &disp );
-      /*    if( Volm_VerifyIdx_( this, &disp ) == Volm_tErr_NoErr ) */
-      {
-	Volm_GetSincNormValueAtIdx_( this, &disp, &rValue );
-      }
-      *oValue = (float)rValue;
-    } 
-#endif
-
   Volm_GetValueAtIdx_( this, iIdx, oValue );
 
   return Volm_tErr_NoErr;
@@ -1034,6 +1012,86 @@ Volm_tErr Volm_SetValueAtIdx ( mriVolumeRef this,
   /* set the value */
   DebugNote( ("Setting the norm value") );
   Volm_SetValueAtIdx_( this, iIdx, iValue );
+  
+  DebugCatch;
+  DebugCatchError( eResult, Volm_tErr_NoErr, Volm_GetErrorString );
+  EndDebugCatch;
+  
+  DebugExitFunction;
+  
+  return eResult;
+}
+
+Volm_tErr Volm_GetValueAtIdxFrame  ( mriVolumeRef this,
+				     xVoxelRef    iIdx,
+				     int          iFrame,
+				     float*       oValue ) {
+  
+  Volm_tErr eResult = Volm_tErr_NoErr;
+  
+  DebugEnterFunction( ("Volm_GetValueAtIdxFrame( this=%p, iIdx=%p, iFrame=%d,"
+		       "oValue=%p )", this, iIdx, iFrame, oValue ) );
+  
+  DebugNote( ("Verifying volume") );
+  eResult = Volm_Verify( this );
+  DebugAssertThrow( (eResult == Volm_tErr_NoErr) );
+  
+  DebugNote( ("Checking parameters") );
+  DebugAssertThrowX( (iIdx != NULL && oValue != NULL),
+		     eResult, Volm_tErr_InvalidParamater );
+  eResult = Volm_VerifyIdx_( this, iIdx );
+  DebugAssertThrow( (eResult == Volm_tErr_NoErr) );
+  eResult = Volm_VerifyFrame_( this, iFrame );
+  DebugAssertThrow( (eResult == Volm_tErr_NoErr) );
+    
+  /* return the value */
+  DebugNote( ("Fetching the value at (%d,%d,%d) frame %d and returning it",
+	      xVoxl_ExpandInt( iIdx ), iFrame));
+  Volm_GetValueAtIdxFrame_( this, iIdx, iFrame, oValue );
+
+  DebugCatch;
+  DebugCatchError( eResult, Volm_tErr_NoErr, Volm_GetErrorString );
+  EndDebugCatch;
+  
+  DebugExitFunction;
+  
+  return eResult;
+}
+
+Volm_tErr Volm_GetValueAtIdxFrameUnsafe ( mriVolumeRef this,
+					  xVoxelRef    iIdx,
+					  int          iFrame,
+					  float*       oValue ) {
+  
+  Volm_GetValueAtIdxFrame_( this, iIdx, iFrame, oValue );
+
+  return Volm_tErr_NoErr;
+}
+
+Volm_tErr Volm_SetValueAtIdxFrame ( mriVolumeRef this,
+				    xVoxelRef    iIdx,
+				    int          iFrame,
+				    float        iValue ) {
+  
+  Volm_tErr eResult = Volm_tErr_NoErr;
+  
+  DebugEnterFunction( ("Volm_SetValueAtIdx( this=%p, iIdx=%p, "
+		       "iValue=%d )", this, iIdx, (int)iValue ) );
+  
+  DebugNote( ("Verifying volume") );
+  eResult = Volm_Verify( this );
+  DebugAssertThrow( (eResult == Volm_tErr_NoErr) );
+  
+  DebugNote( ("Checking parameters") );
+  DebugAssertThrowX( (iIdx != NULL), eResult, Volm_tErr_InvalidParamater );
+  eResult = Volm_VerifyIdx_( this, iIdx );
+  DebugAssertThrow( (eResult == Volm_tErr_NoErr) );
+  eResult = Volm_VerifyFrame_( this, iFrame );
+  DebugAssertThrow( (eResult == Volm_tErr_NoErr) );
+  
+  /* set the value */
+  DebugNote( ("Setting the value") );
+  Volm_SetValueAtIdxFrame_( this, iIdx, iFrame, iValue );
   
   DebugCatch;
   DebugCatchError( eResult, Volm_tErr_NoErr, Volm_GetErrorString );
@@ -2415,6 +2473,100 @@ void Volm_SetValueAtIdx_ ( mriVolumeRef     this,
     }
 }
 
+void Volm_GetValueAtIdxFrame_ ( mriVolumeRef this,
+				xVoxelRef    iIdx,
+				int          iFrame,
+				float*       oValue) {
+  
+  /* First convert to MRI index, and then switch on the volume data
+     type and use the proper MRIvox access function to get the
+     value. */
+  Volm_ConvertScreenIdxToMRIIdx_( this, iIdx, &this->mTmpVoxel );
+
+  switch( this->mpMriValues->type ) {
+    case MRI_UCHAR:
+      *oValue = 
+	MRIseq_vox( this->mpMriValues, xVoxl_GetX(&this->mTmpVoxel), 
+		    xVoxl_GetY(&this->mTmpVoxel), xVoxl_GetZ(&this->mTmpVoxel),
+		    iFrame );
+      break;
+    case MRI_INT:
+      *oValue = 
+	MRIIseq_vox( this->mpMriValues, xVoxl_GetX(&this->mTmpVoxel), 
+		     xVoxl_GetY(&this->mTmpVoxel),xVoxl_GetZ(&this->mTmpVoxel),
+		     iFrame );
+      break;
+    case MRI_LONG:
+      *oValue = 
+	MRILseq_vox( this->mpMriValues, xVoxl_GetX(&this->mTmpVoxel), 
+		     xVoxl_GetY(&this->mTmpVoxel),xVoxl_GetZ(&this->mTmpVoxel),
+		     iFrame );
+      break;
+    case MRI_FLOAT:
+      *oValue = 
+	MRIFseq_vox( this->mpMriValues, xVoxl_GetX(&this->mTmpVoxel), 
+		     xVoxl_GetY(&this->mTmpVoxel),xVoxl_GetZ(&this->mTmpVoxel),
+		     iFrame );
+      break;
+    case MRI_SHORT:
+      *oValue = 
+	MRISseq_vox( this->mpMriValues, xVoxl_GetX(&this->mTmpVoxel), 
+		     xVoxl_GetY(&this->mTmpVoxel),xVoxl_GetZ(&this->mTmpVoxel),
+		     iFrame );
+      break;
+    default:
+      *oValue = 0;
+      break ;
+    }
+}
+
+void Volm_SetValueAtIdxFrame_ ( mriVolumeRef     this,
+				xVoxelRef        iIdx,
+				int          iFrame,
+				float            iValue ) {
+  
+  /* First convert to MRI index, and then switch on the volume data
+     type and use the proper MRIvox access function to set the
+     value. */
+  Volm_ConvertScreenIdxToMRIIdx_( this, iIdx, &this->mTmpVoxel );
+
+  switch (this->mpMriValues->type)
+    {
+    default:
+      break ;
+    case MRI_UCHAR:
+      MRIseq_vox( this->mpMriValues, xVoxl_GetX(&this->mTmpVoxel), 
+		  xVoxl_GetY(&this->mTmpVoxel), xVoxl_GetZ(&this->mTmpVoxel),
+		  iFrame ) = 
+	(BUFTYPE) iValue;
+      break ;
+    case MRI_SHORT:
+      MRISseq_vox( this->mpMriValues, xVoxl_GetX(&this->mTmpVoxel), 
+		   xVoxl_GetY(&this->mTmpVoxel), xVoxl_GetZ(&this->mTmpVoxel),
+		   iFrame ) = 
+	(short) iValue;
+      break ;
+    case MRI_FLOAT:
+      MRIFseq_vox( this->mpMriValues, xVoxl_GetX(&this->mTmpVoxel), 
+		   xVoxl_GetY(&this->mTmpVoxel), xVoxl_GetZ(&this->mTmpVoxel),
+		   iFrame ) = 
+	(float) iValue;
+      break ;
+    case MRI_LONG:
+      MRILseq_vox( this->mpMriValues, xVoxl_GetX(&this->mTmpVoxel), 
+		   xVoxl_GetY(&this->mTmpVoxel), xVoxl_GetZ(&this->mTmpVoxel),
+		   iFrame ) = 
+	(long) iValue;
+      break ;
+    case MRI_INT:
+      MRIIseq_vox( this->mpMriValues, xVoxl_GetX(&this->mTmpVoxel), 
+		   xVoxl_GetY(&this->mTmpVoxel), xVoxl_GetZ(&this->mTmpVoxel),
+		   iFrame ) = 
+	(int) iValue;
+      break ;
+    }
+}
+
 void Volm_GetSincValueAtIdx_ ( mriVolumeRef     this,
 			       xVoxelRef        iIdx,
 			       Real*            irValue) {
@@ -2519,6 +2671,60 @@ Volm_tErr Volm_VerifyIdx_ ( mriVolumeRef this,
 		      xVoxl_GetRoundY(&mriIdx) < this->mnDimensionY &&
 		      xVoxl_GetZ(&mriIdx) >= 0 &&
 		      xVoxl_GetRoundZ(&mriIdx) < this->mnDimensionZ),
+		     eResult, Volm_tErr_InvalidIdx );
+  
+  DebugCatch;
+  EndDebugCatch;
+  return eResult;
+}
+
+Volm_tErr Volm_VerifyIdxInMRIBounds ( mriVolumeRef this,
+				      xVoxelRef    iScreenIdx ) {
+  
+  Volm_tErr eResult = Volm_tErr_NoErr;
+
+  eResult = Volm_Verify( this );
+  DebugAssertThrow( (Volm_tErr_NoErr == eResult ) );
+  
+  /* Stuff the screen index. */
+  DebugNote( ("Stuffing iScreenIdx into vector") );
+  *MATRIX_RELT(this->mpTmpScreenIdx,1,1) = xVoxl_GetFloatX(iScreenIdx);
+  *MATRIX_RELT(this->mpTmpScreenIdx,2,1) = xVoxl_GetFloatY(iScreenIdx);
+  *MATRIX_RELT(this->mpTmpScreenIdx,3,1) = xVoxl_GetFloatZ(iScreenIdx);
+  *MATRIX_RELT(this->mpTmpScreenIdx,4,1) = 1.0 ;
+
+  /* Multiple by the resample matrix. */
+  DebugNote( ("Multiplying screen index by resample matrix") );
+  MatrixMultiply( this->m_resample, this->mpTmpScreenIdx, this->mpTmpMRIIdx );
+
+  /* Stuff the outgoing voxel */
+  DebugNote( ("Stuffing result vector into voxel") );
+  xVoxl_SetFloat( &this->mTmpVoxel, 
+		  *MATRIX_RELT(this->mpTmpMRIIdx,1,1),
+		  *MATRIX_RELT(this->mpTmpMRIIdx,1,2), 
+		  *MATRIX_RELT(this->mpTmpMRIIdx,1,3) );
+
+  DebugNote( ("Checking mri idx") );
+  DebugAssertThrowX((xVoxl_GetX(&this->mTmpVoxel) >= 0 &&
+		     xVoxl_GetRoundX(&this->mTmpVoxel) < this->mnDimensionX &&
+		     xVoxl_GetY(&this->mTmpVoxel) >= 0 &&
+		     xVoxl_GetRoundY(&this->mTmpVoxel) < this->mnDimensionY &&
+		     xVoxl_GetZ(&this->mTmpVoxel) >= 0 &&
+		     xVoxl_GetRoundZ(&this->mTmpVoxel) < this->mnDimensionZ),
+		    eResult, Volm_tErr_InvalidIdx );
+  
+  DebugCatch;
+  EndDebugCatch;
+  
+  return eResult;
+}
+
+Volm_tErr Volm_VerifyFrame_ ( mriVolumeRef this,
+			      int          iFrame ) {
+  
+  Volm_tErr eResult = Volm_tErr_NoErr;
+
+  DebugAssertThrowX( (iFrame >= 0 && iFrame < this->mnDimensionFrame),
 		     eResult, Volm_tErr_InvalidIdx );
   
   DebugCatch;
