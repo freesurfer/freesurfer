@@ -2,9 +2,9 @@
 // originally written by Bruce Fischl
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: xhan $
-// Revision Date  : $Date: 2005/04/01 15:05:44 $
-// Revision       : $Revision: 1.161 $
+// Revision Author: $Author: fischl $
+// Revision Date  : $Date: 2005/04/01 20:37:16 $
+// Revision       : $Revision: 1.162 $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -30,6 +30,7 @@
 #endif
 
 int Ggca_label = -1 ;
+int Ggca_nbr_label = -1 ;
 int Ggca_x = -1 ;
 int Ggca_y = -1 ;
 int Ggca_z = -1 ;
@@ -324,7 +325,8 @@ void GCAreinit(MRI *mri, GCA *gca)
   gca->c_a = mri->c_a;
   gca->c_s = mri->c_s;
 
-  printf("gca reinit c_(ras) = (%.2f, %.2f, %.2f)\n", gca->c_r, gca->c_a, gca->c_s);
+	if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
+		printf("gca reinit c_(ras) = (%.2f, %.2f, %.2f)\n", gca->c_r, gca->c_a, gca->c_s);
 
   // modify width height depth
   if (gca->width != mri->width)
@@ -554,7 +556,7 @@ dump_gcan(GCA *gca, GCA_NODE *gcan, FILE *fp, int verbose, GCA_PRIOR *gcap)
     // find the same label in gcap
     for (n1 = 0 ; n1 < gcap->nlabels ; n1++)
       if (gcap->labels[n1] == gcan->labels[n])
-	break ;
+				break ;
     // the following won't happen
     if (n1 >= gcap->nlabels)
       continue ;
@@ -575,26 +577,26 @@ dump_gcan(GCA *gca, GCA_NODE *gcan, FILE *fp, int verbose, GCA_PRIOR *gcap)
     {
       for (i = 0 ; i < gca->ninputs ; i++)
       {
-	for (j = 0 ; j < gca->ninputs ; j++)
-	{
-	  fprintf(fp, "%2.1f\t", *MATRIX_RELT(m_cov,i+1,j+1)) ;
-	}
-	fprintf(fp, "\n") ;
+				for (j = 0 ; j < gca->ninputs ; j++)
+				{
+					fprintf(fp, "%2.1f\t", *MATRIX_RELT(m_cov,i+1,j+1)) ;
+				}
+				fprintf(fp, "\n") ;
       }
       // 6 neighbors
       for (i = 0 ; i < GIBBS_NEIGHBORS ; i++)
       {
-	fprintf(fp, "\tnbr %d (%d,%d,%d): %d labels\n",
-		i, xnbr_offset[i], ynbr_offset[i], znbr_offset[i], 
-		gc->nlabels[i]) ;
-	fflush(fp);
-	for (j = 0 ; j < gc->nlabels[i] ; j++)
-	{
-	  fprintf(fp, "\t\tlabel %s, prior %2.3f\n", 
-		  cma_label_to_name(gc->labels[i][j]),
-		  gc->label_priors[i][j]) ;
-	  fflush(fp);
-	}
+				fprintf(fp, "\tnbr %d (%d,%d,%d): %d labels\n",
+								i, xnbr_offset[i], ynbr_offset[i], znbr_offset[i], 
+								gc->nlabels[i]) ;
+				fflush(fp);
+				for (j = 0 ; j < gc->nlabels[i] ; j++)
+				{
+					fprintf(fp, "\t\tlabel %s, prior %2.3f\n", 
+									cma_label_to_name(gc->labels[i][j]),
+									gc->label_priors[i][j]) ;
+					fflush(fp);
+				}
       }
     }
   }
@@ -1359,10 +1361,10 @@ GCAtrain(GCA *gca, MRI *mri_inputs, MRI *mri_labels, TRANSFORM *transform, GCA *
       printf("logging image intensities to GCA log file 'gca*.log'\n") ;
       for (label = 0 ; label <= MAX_CMA_LABEL ; label++)
       {
-	char fname[STRLEN] ;
-	sprintf(fname, "gca%d.log", label) ;
-	if (FileExists(fname))
-	  unlink(fname) ;
+				char fname[STRLEN] ;
+				sprintf(fname, "gca%d.log", label) ;
+				if (FileExists(fname))
+					unlink(fname) ;
       }
     }
   }
@@ -1383,111 +1385,112 @@ GCAtrain(GCA *gca, MRI *mri_inputs, MRI *mri_labels, TRANSFORM *transform, GCA *
     {
       for (z = 0 ; z < depth ; z++)
       {
-	/// debugging /////////////////////////////////////
+				/// debugging /////////////////////////////////////
         if (x == Gx && y == Gy && z == Gz)
           DiagBreak() ;
         if (x == Ggca_x && y == Ggca_y && z == Ggca_z)
           DiagBreak() ;
 
-	///////////////////////////////////////////////////
+				///////////////////////////////////////////////////
 	
-	// get the segmented voxel label
+				// get the segmented voxel label
         label = MRIvox(mri_labels, x, y, z) ;
 #if 0  
         if (!label)
           continue ;
 #endif
-	// get all the values to vals[] in inputs at this point
-	// mri_inputs are T1, PD etc. 
-	load_vals(mri_inputs, x, y, z, vals, gca->ninputs) ;
-	// segmented volume->talairach volume->node			
+				// get all the values to vals[] in inputs at this point
+				// mri_inputs are T1, PD etc. 
+				load_vals(mri_inputs, x, y, z, vals, gca->ninputs) ;
+				// segmented volume->talairach volume->node			
         if (!GCAsourceVoxelToNode(gca, mri_inputs, transform, x, y, z, &xn, &yn, &zn))
-	  if (!GCAsourceVoxelToPrior(gca, mri_inputs, transform, x, y, z, &xp, &yp, &zp))
-	  {
-	    // got node point (xn, yn. zn) and prior point (xp, yp, zp) for
-	    // this label volume point (x, y, z)
-	    // update the value at this prior point
-	    GCAupdatePrior(gca, mri_inputs, xp, yp, zp, label) ;
-	    if ((GCAupdateNode(gca, mri_inputs, xn, yn, zn, 
-			       vals,label,gca_prune, noint) == NO_ERROR) &&
-		!(gca->flags & GCA_NO_MRF))
-	      //                                         node        label point
-	      GCAupdateNodeGibbsPriors(gca, mri_labels, xn, yn, zn, x, y,z, label);
+					if (!GCAsourceVoxelToPrior(gca, mri_inputs, transform, x, y, z, &xp, &yp, &zp))
+					{
+						// got node point (xn, yn. zn) and prior point (xp, yp, zp) for
+						// this label volume point (x, y, z)
+						// update the value at this prior point
+						GCAupdatePrior(gca, mri_inputs, xp, yp, zp, label) ;
+						if ((GCAupdateNode(gca, mri_inputs, xn, yn, zn, 
+															 vals,label,gca_prune, noint) == NO_ERROR) &&
+								!(gca->flags & GCA_NO_MRF))
+							//                                         node        label point
+							GCAupdateNodeGibbsPriors(gca, mri_labels, xn, yn, zn, x, y,z, label);
 
-	    /// debugging code /////////////////////////////////////////////////////
-	    if (xn == Gxn && yn == Gyn && zn == Gzn)
-	    {
-	      PrintInfoOnLabels(gca, label, xn,yn,zn, xp,yp,zp, x,y,z);
-	    }
-	    if (xn == Ggca_x && yn == Ggca_y && zn == Ggca_z && 
-		(label == Ggca_label || Ggca_label < 0))
-	    {
-	      GC1D *gc ;
-	      int  i ;
-	      gc = GCAfindGC(gca, xn, yn, zn, label) ;
-	      if (gc)
-	      {
-		if (logging)
-		{
-		  char fname[STRLEN] ;
-		  sprintf(fname, "gca%d.log", label) ;
-		  logfp = fopen(fname, "a") ;
-		}
-		printf("voxel(%d,%d,%d) = ", x, y, z) ;
-		for (i = 0 ; i < gca->ninputs ; i++)
-		{
-		  printf("%2.1f ", (vals[i])) ;
-		  if (logging)
-		    fprintf(logfp, "%2.1f ", (vals[i])) ;
-		}
+						/// debugging code /////////////////////////////////////////////////////
+						if (xn == Gxn && yn == Gyn && zn == Gzn)
+						{
+							PrintInfoOnLabels(gca, label, xn,yn,zn, xp,yp,zp, x,y,z);
+						}
+						if (xn == Ggca_x && yn == Ggca_y && zn == Ggca_z && 
+								(label == Ggca_label || (Ggca_label < 0))
+								&& (Ggca_nbr_label < 0))
+						{
+							GC1D *gc ;
+							int  i ;
+							gc = GCAfindGC(gca, xn, yn, zn, label) ;
+							if (gc)
+							{
+								if (logging)
+								{
+									char fname[STRLEN] ;
+									sprintf(fname, "gca%d.log", label) ;
+									logfp = fopen(fname, "a") ;
+								}
+								printf("voxel(%d,%d,%d) = ", x, y, z) ;
+								for (i = 0 ; i < gca->ninputs ; i++)
+								{
+									printf("%2.1f ", (vals[i])) ;
+									if (logging)
+										fprintf(logfp, "%2.1f ", (vals[i])) ;
+								}
 		
-		printf(" --> node(%d,%d,%d), "
-		       "label %s (%d), mean ",xn, yn, zn, cma_label_to_name(label),label) ;
-		for (i = 0 ; i < gca->ninputs ; i++)
-		  printf("%2.1f ", gc->means[i] / gc->ntraining) ;
-		printf("\n") ;
-		gcan = &gca->nodes[xn][yn][zn];
-		printf("   node labels:"); 
-		for (i=0; i < gcan->nlabels; ++i)
-		  printf("%d ", gcan->labels[i]);
+								printf(" --> node(%d,%d,%d), "
+											 "label %s (%d), mean ",xn, yn, zn, cma_label_to_name(label),label) ;
+								for (i = 0 ; i < gca->ninputs ; i++)
+									printf("%2.1f ", gc->means[i] / gc->ntraining) ;
+								printf("\n") ;
+								gcan = &gca->nodes[xn][yn][zn];
+								printf("   node labels:"); 
+								for (i=0; i < gcan->nlabels; ++i)
+									printf("%d ", gcan->labels[i]);
                 printf("\n");
-		printf(" --> prior (%d,%d,%d)\n", xp, yp, zp);
-		gcap = &gca->priors[xp][yp][zp];
-		if (gcap==NULL)
-		  continue;
-		printf("   prior labels:"); 
-		for (i=0; i < gcap->nlabels; ++i)
-		  printf("%d ", gcap->labels[i]);
+								printf(" --> prior (%d,%d,%d)\n", xp, yp, zp);
+								gcap = &gca->priors[xp][yp][zp];
+								if (gcap==NULL)
+									continue;
+								printf("   prior labels:"); 
+								for (i=0; i < gcap->nlabels; ++i)
+									printf("%d ", gcap->labels[i]);
                 printf("\n");
-		if (logging)
-		{
-		  fprintf(logfp, "\n") ;
-		  fclose(logfp) ;
-		}
-	      }
-	      ////////////////////////////////////////////////////////////
-	    }
-	  }
+								if (logging)
+								{
+									fprintf(logfp, "\n") ;
+									fclose(logfp) ;
+								}
+							}
+							////////////////////////////////////////////////////////////
+						}
+					}
       }
       if (gca->flags & GCA_NO_MRF)
-	continue ;
+				continue ;
 #if 0
       for (i = 0 ; i < GIBBS_NEIGHBORS ; i++)
       {
-	xnbr = x+xnbr_offset[i] ; 
-	ynbr = y+ynbr_offset[i] ; 
-	znbr = z+znbr_offset[i] ; 
-	if (!GCAsourceVoxelToNode(gca, mri_inputs, transform, 
-				  xnbr, ynbr, znbr,&xn_nbr,&yn_nbr,&zn_nbr))
-	{
-	  if (xn_nbr == xn && yn_nbr == yn && zn_nbr == zn)
-	    continue ;  /* only update if it is a different node */
+				xnbr = x+xnbr_offset[i] ; 
+				ynbr = y+ynbr_offset[i] ; 
+				znbr = z+znbr_offset[i] ; 
+				if (!GCAsourceVoxelToNode(gca, mri_inputs, transform, 
+																	xnbr, ynbr, znbr,&xn_nbr,&yn_nbr,&zn_nbr))
+				{
+					if (xn_nbr == xn && yn_nbr == yn && zn_nbr == zn)
+						continue ;  /* only update if it is a different node */
 	    
-	  if (GCAupdateNode(gca, mri_inputs, xn_nbr, yn_nbr, zn_nbr, 
-			    vals,label,gca_prune,noint) == NO_ERROR)
-	    GCAupdateNodeGibbsPriors(gca, mri_labels, xn_nbr, yn_nbr, zn_nbr, 
-				     x, y,z, label);
-	}
+					if (GCAupdateNode(gca, mri_inputs, xn_nbr, yn_nbr, zn_nbr, 
+														vals,label,gca_prune,noint) == NO_ERROR)
+						GCAupdateNodeGibbsPriors(gca, mri_labels, xn_nbr, yn_nbr, zn_nbr, 
+																		 x, y,z, label);
+				}
       }
 #endif
     }
@@ -5178,9 +5181,17 @@ GCAupdateNodeGibbsPriors(GCA *gca, MRI*mri, int xn, int yn, int zn,
     xnbr = mri->xi[xl+xnbr_offset[i]] ;// xnbr_offset 1, -1, 0,  0, 0,  0
     ynbr = mri->yi[yl+ynbr_offset[i]] ;// ynbr_offset 0,  0, 1, -1, 0,  0
     znbr = mri->zi[zl+znbr_offset[i]] ;// znbr_offset 0,  0, 0,  0, 1, -1
-    
+
     // get the label from the neighbor
     nbr_label = MRIvox(mri, xnbr, ynbr, znbr) ;
+    if (xn == Ggca_x && yn == Ggca_y && zn == Ggca_z && label == Ggca_label
+				&& (xnbr_offset[i] == -1) && (nbr_label == Ggca_nbr_label))
+		{
+			printf("(%d, %d, %d) --> node (%d, %d, %d), label %s (%d), nbr (%d, %d, %d) = %s (%d)\n",
+						 xl, yl, zl, xn, yn, zn, cma_label_to_name(label), label,
+						 xnbr, ynbr, znbr, cma_label_to_name(nbr_label), nbr_label) ;
+
+		}
 
     /* now see if this label exists already as a nbr */
     for (n = 0 ; n < gc->nlabels[i] ; n++)
@@ -9872,11 +9883,7 @@ GCAhistoScaleImageIntensities(GCA *gca, MRI *mri)
   MRI        *mri_frame ;
 
   GCAlabelMean(gca, Left_Cerebral_White_Matter, wm_means) ;
-
-  //why compute Left again? must be right -xh
-  //  GCAlabelMean(gca, Left_Cerebral_White_Matter, tmp) ;
-  GCAlabelMean(gca, Right_Cerebral_White_Matter, tmp) ; //changed by xhan
-
+  GCAlabelMean(gca, Left_Cerebral_White_Matter, tmp) ;
   max_wm = 0 ;
   for (r = 0 ; r < gca->ninputs ; r++)
   {
