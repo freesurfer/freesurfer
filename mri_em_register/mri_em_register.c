@@ -95,10 +95,11 @@ static double blur_sigma = 0.0f ;
    argv[3]  - directory in which to write out registered brain.
 */
 
-#define NPARMS     12
-#define NSAMPLES   (NPARMS*20)
-
+#define NPARMS           12
+#define NSAMPLES        (NPARMS*20)
+#define CTL_POINT_PCT   .2
 static int nsamples = NSAMPLES ;
+
 int
 main(int argc, char *argv[])
 {
@@ -416,7 +417,7 @@ main(int argc, char *argv[])
     /* remove the least likely samples */
     printf("sorting %d (%d/%d l/r cerebellum) white matter points by "
            "likelihood\n", nused, nleft_cbm, nright_cbm) ;
-    for (nleft_used = nright_used = i = 0 ; i < nused/10 ; i++)
+    for (nleft_used = nright_used = i = 0 ; i < nint(nused*CTL_POINT_PCT); i++)
     {
       if (parms.gcas[ordered_indices[i]].label == Left_Cerebellum_White_Matter)
         nleft_used++ ;
@@ -433,12 +434,13 @@ main(int argc, char *argv[])
 
     }
 
-    min_left_cbm = (int)(nleft_cbm*.1+.9) ;
-    min_right_cbm = (int)(nright_cbm*.1+.9) ;
-    printf("%d/%d (l/r) cerebellar points initially in top 10%%, min (%d,%d)\n"
-           , nleft_used,nright_used, min_left_cbm, min_right_cbm) ;
+    min_left_cbm = nint(nleft_cbm*CTL_POINT_PCT+.9) ;
+    min_right_cbm = nint(nright_cbm*CTL_POINT_PCT+.9) ;
+    printf("%d/%d (l/r) cerebellar points initially in top %d%%, min (%d,%d)\n"
+           , nleft_used,nright_used, (int)(CTL_POINT_PCT*100.0f),
+           min_left_cbm, min_right_cbm) ;
           
-    for (i = nused/10 ; i < nsamples ; i++)
+    for (i = nint(nused*CTL_POINT_PCT) ; i < nsamples ; i++)
     {
       if ((parms.gcas[ordered_indices[i]].label == 
            Left_Cerebellum_White_Matter) && nleft_used < min_left_cbm)
@@ -477,7 +479,7 @@ main(int argc, char *argv[])
                                 norm_fname, parms.lta) ;
 #endif
 
-    if (nused/10 > 0)
+    if (nint(nused*CTL_POINT_PCT) > 0)
       mri_norm = GCAnormalizeSamples(mri_in, gca, parms.gcas, nsamples,
                                      parms.lta) ;
     printf("writing normalized volume to %s...\n", norm_fname) ;
