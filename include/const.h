@@ -16,6 +16,7 @@
 #define False 0
 #endif
 
+#define FSMALL          0.00001f
 #define MAX_LINE_LEN    2000
 #define UNDEFINED       255
 #define DEFINED(r, s)   ((r != UNDEFINED) && (s != UNDEFINED))
