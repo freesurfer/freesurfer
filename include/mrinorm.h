@@ -102,5 +102,6 @@ MRI *MRIsoapBubbleExpand(MRI *mri_src, MRI *mri_ctrl, MRI *mri_dst,int niter);
 int MRI3dUseFileControlPoints(MRI *mri, char *fname) ;
 int MRI3dWriteControlPoints(char *control_volume_fname) ;
 int MRI3dWriteBias(char *bias_volume_fname) ;
+int MRInormAddFileControlPoints(MRI *mri_ctrl, int value) ;
 
 #endif
