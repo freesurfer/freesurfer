@@ -5,8 +5,8 @@
 AM_CXXFLAGS=-I$(top_srcdir)/include -I$(top_srcdir)/include/dicom
 AM_LDFLAGS=-L$(top_srcdir)/lib
 
-check_PROGRAMS=mnitest i2rtest icotest surftest extest mghxform
-TESTS=mnitest i2rtest icotest extest mghxform
+check_PROGRAMS=mnitest i2rtest icotest surftest extest mghxform inftest
+TESTS=mnitest i2rtest icotest extest mghxform inftest
 
 mnitest_SOURCES=mnitest.cpp
 i2rtest_SOURCES=i2rtest.cpp
@@ -14,6 +14,7 @@ icotest_SOURCES=icotest.cpp
 surftest_SOURCES=surftest.cpp
 extest_SOURCES=extest.cpp
 mghxform_SOURCES=mghxform.cpp
+inftest_SOURCES=inftest.cpp
 
 LDADD=$(addprefix $(top_srcdir)/, $(LIBS_MGH))
 
