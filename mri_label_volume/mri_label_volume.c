@@ -22,13 +22,20 @@ char *Progname ;
 static char *log_fname = NULL ;
 static void usage_exit(int code) ;
 
+static  int spread_sheet = 0 ;
+
 static int in_label = -1 ;
 static int out_label = -1 ;
 
+static  char  *subject_name = NULL ;
 static int all_flag = 0 ;
 static int compute_pct = 0 ;
 static char *brain_fname = NULL ;
 static char *icv_fname = NULL ;
+
+#define MAX_COLS 10000
+static char *col_strings[MAX_COLS] ;
+static int ncols  = 0 ;
 
 int
 main(int argc, char *argv[])
@@ -41,7 +48,7 @@ main(int argc, char *argv[])
 	double  vox_volume, brain_volume ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_label_volume.c,v 1.13 2003/09/05 04:45:34 kteich Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_label_volume.c,v 1.14 2003/10/02 13:56:57 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -67,8 +74,7 @@ main(int argc, char *argv[])
 
   mri = MRIread(argv[1]) ;
   if (!mri)
-    ErrorExit(ERROR_NOFILE, "%s: could not read volume from %s",Progname,
-              argv[1]) ;
+    ErrorExit(ERROR_NOFILE, "%s: could not read volume from %s", Progname,argv[1]) ;
 
 	vox_volume = mri->xsize * mri->ysize * mri->zsize ;
 
@@ -120,6 +126,20 @@ main(int argc, char *argv[])
 	else
     brain_volume = 1.0 ;
 
+	if (spread_sheet)
+	{ 
+		int i ;
+
+		log_fp = fopen(log_fname, "a+") ;
+		fprintf(log_fp, "%s  ", subject_name) ;
+		if  (icv_fname || compute_pct)
+			fprintf(log_fp, "%f ", brain_volume)  ;
+
+		for (i = 0 ;i < ncols ; i++)
+			fprintf(log_fp, "%s ", col_strings[i])  ;
+		fclose(log_fp) ;
+	}
+
   for (i = 2 ; i < argc ; i++)
   {
     label = atoi(argv[i]) ;
@@ -148,7 +168,11 @@ main(int argc, char *argv[])
              brain_volume) ;
       if (log_fp)
       {
-        fprintf(log_fp,"%2.6f\n", 100.0*(float)volume*vox_volume/(float)brain_volume) ;
+				if (spread_sheet)
+					fprintf(log_fp,"%2.6f ", 100.0*(float)volume*vox_volume/(float)brain_volume) ;
+				else
+					fprintf(log_fp,"%2.6f\n", 100.0*(float)volume*vox_volume/(float)brain_volume) ;
+				
         fclose(log_fp) ;
       }
     }
@@ -158,11 +182,21 @@ main(int argc, char *argv[])
 						 volume*vox_volume, label) ;
       if (log_fp)
       {
-        fprintf(log_fp,"%2.1f\n", vox_volume*(float)volume) ;
+				if (spread_sheet)
+					fprintf(log_fp,"%2.6f ", (float)volume*vox_volume) ;
+				else
+					fprintf(log_fp,"%2.1f\n", vox_volume*(float)volume) ;
         fclose(log_fp) ;
       }
     }
   }
+
+	if (spread_sheet)
+	{
+		log_fp = fopen(log_fname, "a+") ;
+		fprintf(log_fp,  "\n") ;
+		fclose(log_fp) ;
+	}
 
   msec = TimerStop(&start) ;
   seconds = nint((float)msec/1000.0f) ;
@@ -196,6 +230,17 @@ get_option(int argc, char *argv[])
 	}
 	else switch (toupper(*option))
   {
+	case 'C':
+		if (ncols >=  MAX_COLS)
+			ErrorExit(ERROR_NOMEMORY, "%s: too many columns specified (max=%d)\n", Progname, ncols) ;
+		col_strings[ncols++] = argv[2] ;
+		nargs = 1 ;
+		break ;
+	case 'S':
+		spread_sheet = 1  ;
+		subject_name = argv[2] ;
+		nargs = 1 ;
+		break  ;
 	case 'A':
 		all_flag = 1 ;
 		printf("computing volume of all non-zero voxels\n") ;
