@@ -290,6 +290,10 @@ set glLabel { \
   kLabel_ValBak \
   kLabel_Val2Bak \
   kLabel_ValStat \
+  kLabel_ImagVal \
+  kLabel_Mean \
+  kLabel_MeanImag \
+  kLabel_StdError \
   kLabel_Amplitude \
   kLabel_Angle \
   kLabel_Degree \
@@ -318,6 +322,10 @@ set gsaLabelContents(kLabel_Val2,name)              "Overlay Layer 2"
 set gsaLabelContents(kLabel_ValBak,name)            "Overlay Layer 3"
 set gsaLabelContents(kLabel_Val2Bak,name)           "Overlay Layer 4"
 set gsaLabelContents(kLabel_ValStat,name)           "Overlay Layer 5"
+set gsaLabelContents(kLabel_ValImag,name)           "Overlay Layer 6"
+set gsaLabelContents(kLabel_Mean,name)               "Overlay Layer 7"
+set gsaLabelContents(kLabel_MeanImag,name)           "Overlay Layer 8"
+set gsaLabelContents(kLabel_StdError,name)           "Overlay Layer 9"
 set gsaLabelContents(kLabel_Amplitude,name)         "Amplitude"
 set gsaLabelContents(kLabel_Angle,name)             "Angle"
 set gsaLabelContents(kLabel_Degree,name)            "Degree"
@@ -365,6 +373,14 @@ set gaScalarValueID(kLabel_Val2Bak,index) 3
 set gaScalarValueID(3,label) kLabel_Val2Bak
 set gaScalarValueID(kLabel_ValStat,index) 4
 set gaScalarValueID(4,label) kLabel_ValStat
+set gaScalarValueID(kLabel_ValImag,index) 5
+set gaScalarValueID(5,label) kLabel_ValImag
+set gaScalarValueID(kLabel_Mean,index) 6
+set gaScalarValueID(6,label) kLabel_Mean
+set gaScalarValueID(kLabel_MeanIma,index) 7
+set gaScalarValueID(7,label) kLabel_MeanImag
+set gaScalarValueID(kLabel_StdError,index) 8
+set gaScalarValueID(8,label) kLabel_StdError
 
 # tool bar frames
 set gfwaToolBar(main)  ""
@@ -1336,6 +1352,26 @@ proc CreateMenuBar { ifwMenuBar } {
       gbShowLabel(kLabel_ValStat) \
       mg_OverlayLoaded } \
       { check \
+      "Overlay Layer 6" \
+      "ShowLabel kLabel_ValImag $gbShowLabel(kLabel_ValImag)"\
+      gbShowLabel(kLabel_ValImag) \
+      mg_OverlayLoaded } \
+      { check \
+      "Overlay Layer 7" \
+      "ShowLabel kLabel_Mean $gbShowLabel(kLabel_Mean)"\
+      gbShowLabel(kLabel_Mean) \
+      mg_OverlayLoaded } \
+      { check \
+      "Overlay Layer 8" \
+      "ShowLabel kLabel_MeanImag $gbShowLabel(kLabel_MeanImag)"\
+      gbShowLabel(kLabel_MeanImag) \
+      mg_OverlayLoaded } \
+      { check \
+      "Overlay Layer 9" \
+      "ShowLabel kLabel_StdError $gbShowLabel(kLabel_StdError)"\
+      gbShowLabel(kLabel_StdError) \
+      mg_OverlayLoaded } \
+      { check \
       "Amplitude" \
       "ShowLabel kLabel_Amplitude $gbShowLabel(kLabel_Amplitude)"\
       gbShowLabel(kLabel_Amplitude) } \
@@ -1457,6 +1493,34 @@ proc CreateMenuBar { ifwMenuBar } {
       SendLinkedVarGroup view; UpdateAndRedraw } \
       gaLinkedVars(currentvaluefield) \
       4 \
+      mg_OverlayLoaded } \
+      \
+      { radio "Overlay Layer 6" \
+      { sclv_set_current_field 5; \
+      SendLinkedVarGroup view; UpdateAndRedraw } \
+      gaLinkedVars(currentvaluefield) \
+      5 \
+      mg_OverlayLoaded } \
+      \
+      { radio "Overlay Layer 7" \
+      { sclv_set_current_field 6; \
+      SendLinkedVarGroup view; UpdateAndRedraw } \
+      gaLinkedVars(currentvaluefield) \
+      6 \
+      mg_OverlayLoaded } \
+      \
+      { radio "Overlay Layer 8" \
+      { sclv_set_current_field 7; \
+      SendLinkedVarGroup view; UpdateAndRedraw } \
+      gaLinkedVars(currentvaluefield) \
+      7 \
+      mg_OverlayLoaded } \
+      \
+      { radio "Overlay Layer 9" \
+      { sclv_set_current_field 8; \
+      SendLinkedVarGroup view; UpdateAndRedraw } \
+      gaLinkedVars(currentvaluefield) \
+      8 \
       mg_OverlayLoaded } } } \
       \
       { separator } \
@@ -2060,7 +2124,11 @@ proc CreateLabelFrame { ifwTop iSet } {
     $label == "kLabel_Val2" ||     \
     $label == "kLabel_ValBak" ||   \
     $label == "kLabel_Val2Bak" ||  \
-    $label == "kLabel_ValStat" } { 
+    $label == "kLabel_ValStat" ||  \
+    $label == "kLabel_ValImag" ||  \
+    $label == "kLabel_Mean" ||  \
+    $label == "kLabel_MeanImag" ||  \
+    $label == "kLabel_StdError" } { 
       tkm_MakeEntry $fwLabel "" gsaLabelContents($label,name) 14
   } else {
       tkm_MakeActiveLabel $fwLabel "" gsaLabelContents($label,name) 14
