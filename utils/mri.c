@@ -9,9 +9,9 @@
  */
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2004/10/27 20:33:11 $
-// Revision       : $Revision: 1.278 $
-char *MRI_C_VERSION = "$Revision: 1.278 $";
+// Revision Date  : $Date: 2004/11/01 21:06:04 $
+// Revision       : $Revision: 1.279 $
+char *MRI_C_VERSION = "$Revision: 1.279 $";
 
 /*-----------------------------------------------------
   INCLUDE FILES
@@ -6471,6 +6471,12 @@ MRIsetResolution(MRI *mri, float xres, float yres, float zres)
   mri->xstart *= xres ; mri->xend *= xres ;
   mri->ystart *= yres ; mri->yend *= yres ;
   mri->zstart *= zres ; mri->zend *= zres ;
+	mri->thick = MAX(MAX(xres,yres),zres) ;
+#if 0
+	mri->x_r = mri->x_r * xres ; mri->x_a = mri->x_a * xres ; mri->x_s = mri->x_s * xres ;
+	mri->y_r = mri->y_r * yres ; mri->y_a = mri->y_a * yres ; mri->y_s = mri->y_s * yres ;
+	mri->z_r = mri->z_r * zres ; mri->z_a = mri->z_a * zres ; mri->z_s = mri->z_s * zres ;
+#endif
   return(NO_ERROR) ;
 }
 /*-----------------------------------------------------
