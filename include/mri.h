@@ -121,7 +121,7 @@ MRI   *MRIrotate(MRI *mri_src, MRI *mri_dst, MATRIX *mR, MATRIX *mO) ;
 MRI   *MRIscale(MRI *mri_src, MRI *mri_dst, float sx, float sy, float sz) ;
 MRI   *MRIaffine(MRI *mri_src, MRI *mri_dst, MATRIX *mA, MATRIX *mB) ;
 MRI   *MRIconfThresh(MRI *mri_src, MRI *mri_probs, MRI *mri_classes, 
-                     MRI *mri_dst, float thresh, int min_target,int max_target);
+                     MRI *mri_dst,float thresh, int min_target,int max_target);
 
 /* debugging */
 int   MRIdump(MRI *mri, FILE *fp) ;
@@ -264,6 +264,11 @@ int   MRItalairachToVoxel(MRI *mri, Real xt, Real yt, Real zt,
 
 int   MRItransformRegion(MRI *mri_src, MRI *mri_dst, MRI_REGION *src_region,
                                  MRI_REGION *dst_region) ;
+
+/* resampling routines */
+MRI   *MRIupsample2(MRI *mri_src, MRI *mri_dst) ;
+MRI   *MRIdownsample2(MRI *mri_src, MRI *mri_dst) ;
+
 
 #include "image.h"
 
