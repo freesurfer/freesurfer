@@ -211,7 +211,13 @@ ltaReadFile(char *fname)
   if (fp==NULL) 
     ErrorReturn(NULL,
                 (ERROR_BADFILE, "ltaReadFile(%s): can't open file",fname));
-  cp = fgetl(line, 199, fp) ; sscanf(cp, "type      = %d\n", &type) ;
+  cp = fgetl(line, 199, fp) ; 
+  if (cp == NULL)
+  {
+    fclose(fp) ;
+    ErrorReturn(NULL, (ERROR_BADFILE, "ltaReadFile(%s): can't read data",fname));
+  }
+  sscanf(cp, "type      = %d\n", &type) ;
   cp = fgetl(line, 199, fp) ; sscanf(cp, "nxforms   = %d\n", &nxforms) ;
   lta = LTAalloc(nxforms, NULL) ;
   lta->type = type ;
@@ -1175,7 +1181,7 @@ TransformApply(TRANSFORM *transform, MRI *mri_src, MRI *mri_dst)
   switch (transform->type)
   {
   case MORPH_3D_TYPE:
-    mri_dst = GCAMapplyMorph(mri_src, (GCA_MORPH*)transform->xform, NULL) ;
+    mri_dst = GCAMmorphToAtlas(mri_src, (GCA_MORPH*)transform->xform, NULL) ;
     break ;
   default:
     mri_dst = MRIlinearTransform(mri_src, NULL, ((LTA *)transform->xform)->xforms[0].m_L);
@@ -1190,7 +1196,7 @@ TransformApplyInverse(TRANSFORM *transform, MRI *mri_src, MRI *mri_dst)
   switch (transform->type)
   {
   case MORPH_3D_TYPE:
-    mri_dst = GCAMapplyInverseMorph(mri_src, (GCA_MORPH*)transform->xform, NULL) ;
+    mri_dst = GCAMmorphFromAtlas(mri_src,(GCA_MORPH*)transform->xform,NULL);
     break ;
   default:
     mri_dst = MRIinverseLinearTransform(mri_src, NULL, ((LTA *)transform->xform)->xforms[0].m_L);
