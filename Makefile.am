@@ -13,7 +13,7 @@ mri_evaluate_morph mri_extract mri_extract_conditions mri_extract_label \
 mri_fill mri_gca_ambiguous mri_head mri_histo_eq mri_info mri_joint_density \
 mri_label_histo mri_label_vals mri_label_volume mri_label2label mri_label2vol mri_linear_register \
 mri_make_bem_surfaces mri_make_register mri_make_template mri_mark_temporal_lobe mri_mask mri_ms_fitparms \
-mri_matrix_multiply \
+mri_matrix_multiply mri_modify \
 mri_nlfilter mri_normalize mri_partial_ribbon mri_paint mri_parselabel mri_parse_sdcmdir mri_polv mri_probe_ima \
 mri_reduce mri_register mri_relabel_hypointensities mri_remove_neck mri_ribbon mri_rigid_register \
 mri_segment mri_seghead mri_surfacemask mri_strip_skull mri_strip_subject_info mri_strip_nonwhite mri_surf2surf \
