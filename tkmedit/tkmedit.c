@@ -4,9 +4,9 @@
 
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2003/09/26 20:42:32 $
-// Revision       : $Revision: 1.180 $
-char *VERSION = "$Revision: 1.180 $";
+// Revision Date  : $Date: 2003/09/29 15:33:28 $
+// Revision       : $Revision: 1.181 $
+char *VERSION = "$Revision: 1.181 $";
 
 #define TCL
 #define TKMEDIT 
@@ -395,6 +395,13 @@ void EditAnatomicalVolumeInRangeArray ( tkm_tVolumeType iVolume,
 					Volm_tValue     inLow,
 					Volm_tValue     inHigh, 
 					Volm_tValue     inNewValue );
+
+void CloneAnatomicalVolumeInRangeArray ( tkm_tVolumeType iDestVolume,
+					 tkm_tVolumeType iSourceVolume,
+					 xVoxelRef       iaMRIIdx, 
+					 int             inCount,
+					 Volm_tValue     inLow,
+					 Volm_tValue     inHigh );
 
 void SetAnatomicalVolumeRegion ( tkm_tVolumeType iVolume,
 				 int             iAnaX0,
@@ -1027,7 +1034,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
      shorten our argc and argv count. If those are the only args we
      had, exit. */
   /* rkt: check for and handle version tag */
-  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.180 2003/09/26 20:42:32 kteich Exp $", "$Name:  $");
+  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.181 2003/09/29 15:33:28 kteich Exp $", "$Name:  $");
   if (nNumProcessedVersionArgs && argc - nNumProcessedVersionArgs == 1)
     exit (0);
   argc -= nNumProcessedVersionArgs;
@@ -7692,6 +7699,66 @@ void EditAnatomicalVolumeInRangeArray ( tkm_tVolumeType iVolume,
   SetVolumeDirty( iVolume, TRUE );
 }
 
+void CloneAnatomicalVolumeInRangeArray ( tkm_tVolumeType iDestVolume,
+					 tkm_tVolumeType iSourceVolume,
+					 xVoxelRef       iaMRIIdx, 
+					 int             inCount,
+					 Volm_tValue     inLow,
+					 Volm_tValue     inHigh ) {
+  
+  int          nVoxel   = 0;
+  float        sourceValue    = 0;
+  float        value    = 0;
+
+  if( NULL == gAnatomicalVolume[iDestVolume] ) {
+    return;
+  }
+
+  /* for each voxel we got... */
+  for( nVoxel = 0; nVoxel < inCount; nVoxel++ ) {
+
+    /* get the value at this point. */
+    Volm_GetValueAtMRIIdx( gAnatomicalVolume[iDestVolume], 
+			   &(iaMRIIdx[nVoxel]), &value );
+
+    /* Get the new value from the source volume. */
+    Volm_GetValueAtMRIIdx( gAnatomicalVolume[iSourceVolume], 
+			   &(iaMRIIdx[nVoxel]), &sourceValue );
+
+    /* if it's in the range and it's a different value... */
+    if( value >= inLow && value <= inHigh &&
+	value != sourceValue ) {
+      
+      Volm_SetValueAtMRIIdx( gAnatomicalVolume[iDestVolume], 
+			     &(iaMRIIdx[nVoxel]), sourceValue );
+      
+      switch( iDestVolume ) {
+      case tkm_tVolumeType_Main:
+	/* if this is an edit on the main volume, add it to the undo list
+	   using the EditAnatomicalVolume function and also add it to the
+	   undo volume. */
+	AddVoxelAndValueToUndoList( EditAnatomicalVolume, 
+				    &(iaMRIIdx[nVoxel]), value ); 
+	AddAnaIdxAndValueToUndoVolume( &(iaMRIIdx[nVoxel]), value ); 
+	break;
+	
+      case tkm_tVolumeType_Aux:
+	/* if this is an edit on the aux volume, add it to the undo list
+	   using the EditAuxAnatomicalVolume function. */
+	AddVoxelAndValueToUndoList( EditAuxAnatomicalVolume, 
+				    &(iaMRIIdx[nVoxel]), value ); 
+	break;
+
+      default:
+	break;
+      }
+    }
+  }
+  
+  /* volume is dirty. */
+  SetVolumeDirty( iDestVolume, TRUE );
+}
+
 void SetAnatomicalVolumeRegion ( tkm_tVolumeType iVolume,
 				 int             iMRIIdxX0,
 				 int             iMRIIdxX1,
@@ -10931,6 +10998,19 @@ void tkm_EditAnatomicalVolumeInRangeArray( tkm_tVolumeType  iVolume,
   
   EditAnatomicalVolumeInRangeArray( iVolume, iaVolumeVox, inCount,
 				    inLow, inHigh, inNewValue );
+  
+}
+
+void tkm_CloneAnatomicalVolumeInRangeArray( tkm_tVolumeType  iDestVolume, 
+					    tkm_tVolumeType  iSourceVolume, 
+					    xVoxelRef        iaVolumeVox, 
+					    int              inCount,
+					    Volm_tValue      inLow, 
+					    Volm_tValue      inHigh ) {
+  
+  CloneAnatomicalVolumeInRangeArray( iDestVolume, iSourceVolume,
+				     iaVolumeVox, inCount,
+				     inLow, inHigh );
   
 }
 
