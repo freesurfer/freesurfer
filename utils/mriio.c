@@ -55,6 +55,7 @@
 
 #include "bfileio.h"
 
+
 #define MM_PER_METER  1000.0f
 #define INFO_FNAME    "COR-.info"
 
@@ -160,6 +161,42 @@ static float afni_orientations[][3] = { { -1.0,  0.0,  0.0 },
 static short cma_field[512][512];
 static char unknown_labels[MAX_UNKNOWN_LABELS][STRLEN];
 static int n_unknown_labels;
+
+// here I take the narrow view of slice_direction being
+// defined only when c_(r,a,s) = 0
+int decideSliceDirection(MRI *mri)
+{
+  int direction;
+  if (mri->c_r == 0 && mri->c_a == 0 && mri->c_s == 0)
+  {
+    int direction = MRI_UNDEFINED;
+    if      (mri->x_r == -1 && mri->y_s == -1 && mri->z_a == 1)
+      direction = MRI_CORONAL;
+    else if (mri->x_a == 1  && mri->y_s == -1 && mri->z_r == 1)
+      direction = MRI_SAGITTAL;
+    else if (mri->x_r == -1 && mri->y_a == -1 && mri->z_s == 1)
+      direction = MRI_HORIZONTAL;
+    else
+      direction = MRI_UNDEFINED;
+  }
+  else
+    direction = MRI_UNDEFINED;
+
+  if (mri->slice_direction == MRI_UNDEFINED)
+    return direction;
+  else
+  {
+    // if not undefined but values differ then tell user about it
+    if (mri->slice_direction != direction)
+    {
+      ErrorPrintf(ERROR_BADPARM, "slice_direction is changed to %d, originally %d", 
+		  direction, mri->slice_direction);
+      return direction;
+    }
+    else
+      return direction;
+  }
+}
 
 int mriio_command_line(int argc, char *argv[])
 {
@@ -1015,6 +1052,7 @@ if(x_r == 0.0 && x_a == 0.0 && x_s == 0.0 && y_r == 0.0 && y_a == 0.0 && y_s == 
   x_r = -1.0;
   y_s = -1.0;
   z_a = 1.0;
+  mri->slice_direction = MRI_CORONAL;
 }
 
   mri->imnr0 = imnr0;
@@ -1041,6 +1079,8 @@ if(x_r == 0.0 && x_a == 0.0 && x_s == 0.0 && y_r == 0.0 && y_a == 0.0 && y_s == 
   mri->y_r = y_r;  mri->y_a = y_a;  mri->y_s = y_s;
   mri->z_r = z_r;  mri->z_a = z_a;  mri->z_s = z_s;
   mri->c_r = c_r;  mri->c_a = c_a;  mri->c_s = c_s;
+
+  mri->slice_direction = decideSliceDirection(mri);
 
   if(strlen(xform) > 0)
   {
@@ -1801,6 +1841,7 @@ static MRI *mincRead(char *fname, int read_volume)
   delete_volume_input(&input_info);
   delete_volume(vol);
 
+  mri->slice_direction = decideSliceDirection(mri);
   printf("Done reading minc\n");
 
   return(mri);
@@ -2771,6 +2812,7 @@ static int bvolumeWrite(MRI *vol, char *fname_passed, int type)
       subject_info->y_r =  0.0;  subject_info->y_a = 0.0;  subject_info->y_s = -1.0;
       subject_info->z_r =  0.0;  subject_info->z_a = 1.0;  subject_info->z_s =  0.0;
       subject_info->c_r =  0.0;  subject_info->c_a = 0.0;  subject_info->c_s =  0.0;
+      subject_info->slice_direction = MRI_CORONAL;
     }
   }
 
@@ -3485,6 +3527,7 @@ static int orient_with_register(MRI *mri)
     subject_mri->z_r =  0.0;  subject_mri->z_a =  1.0;  subject_mri->z_s =  0.0;
     subject_mri->c_r =  0.0;  subject_mri->c_a =  0.0;  subject_mri->c_s =  0.0;
     subject_mri->ras_good_flag = 1;
+    subject_mri->slice_direction = MRI_CORONAL;
 
   }
 
@@ -8488,8 +8531,8 @@ mghRead(char *fname, int read_volume, int frame)
   fclose(fp) ;
 
   // some software uses slice_direction flag
-  mri->slice_direction = MRI_UNDEFINED;
-
+  mri->slice_direction = decideSliceDirection(mri);
+  
   return(mri) ;
 }
 
