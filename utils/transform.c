@@ -29,6 +29,7 @@
 
 #define MAX_TRANSFORMS (1024*4)
 
+static LTA  *ltaReadRegisterDat(char *fname) ;
 static LTA  *ltaMNIread(char *fname) ;
 static int  ltaMNIwrite(LTA *lta, char *fname) ;
 static LTA  *ltaReadFile(char *fname) ;
@@ -153,6 +154,27 @@ LTAread(char *fname)
   type = TransformFileNameType(fname) ;
   switch (type)
   {
+	case REGISTER_DAT:
+		lta = ltaReadRegisterDat(fname) ;
+    if (!lta)
+      return(NULL) ;
+    V = MatrixAlloc(4, 4, MATRIX_REAL) ;  /* world to voxel transform */
+    W = MatrixAlloc(4, 4, MATRIX_REAL) ;  /* voxel to world transform */
+    *MATRIX_RELT(V, 1, 1) = -1 ; *MATRIX_RELT(V, 1, 4) = 128 ;
+    *MATRIX_RELT(V, 2, 3) = -1 ; *MATRIX_RELT(V, 2, 4) = 128 ;
+    *MATRIX_RELT(V, 3, 2) = 1 ;  *MATRIX_RELT(V, 3, 4) = 128 ;
+    *MATRIX_RELT(V, 4, 4) = 1 ;
+    
+    *MATRIX_RELT(W, 1, 1) = -1 ; *MATRIX_RELT(W, 1, 4) = 128 ;
+    *MATRIX_RELT(W, 2, 3) = 1 ; *MATRIX_RELT(W, 2, 4) = -128 ;
+    *MATRIX_RELT(W, 3, 2) = -1 ;  *MATRIX_RELT(W, 3, 4) = 128 ;
+    *MATRIX_RELT(W, 4, 4) = 1 ;
+    
+    m_tmp = MatrixMultiply(lta->xforms[0].m_L, W, NULL) ;
+    MatrixMultiply(V, m_tmp, lta->xforms[0].m_L) ;
+    MatrixFree(&V) ; MatrixFree(&W) ; MatrixFree(&m_tmp) ;
+    lta->type = LINEAR_VOX_TO_VOX ;
+		break ;
   case MNI_TRANSFORM_TYPE:
     lta = ltaMNIread(fname) ;
     if (!lta)
@@ -670,6 +692,8 @@ TransformFileNameType(char *fname)
       return(MORPH_3D_TYPE) ;
     else if (!strcmp(dot, "LTA"))
       return(TRANSFORM_ARRAY_TYPE) ;
+    else if (!strcmp(dot, "DAT"))
+      return(REGISTER_DAT) ;
     else if (!strcmp(dot, "OCT"))
       return(TRANSFORM_ARRAY_TYPE) ;
     else if (!strcmp(dot, "XFM"))
@@ -1211,3 +1235,20 @@ TransformApplyInverse(TRANSFORM *transform, MRI *mri_src, MRI *mri_dst)
   return(mri_dst) ;
 }
 
+#include "stats.h"
+static LTA *
+ltaReadRegisterDat(char *fname)
+{
+	LTA        *lta ;
+	fMRI_REG   *reg ;
+
+  lta = LTAalloc(1, NULL) ;
+  lta->xforms[0].sigma = 1.0f ;
+  lta->xforms[0].x0 = lta->xforms[0].y0 = lta->xforms[0].z0 = 0 ;
+	reg = StatReadRegistration(fname) ;
+	MatrixCopy(reg->mri2fmri, lta->xforms[0].m_L) ;
+	StatFreeRegistration(&reg) ;
+
+	lta->type = LINEAR_VOXEL_TO_VOXEL ;
+  return(lta) ;
+}

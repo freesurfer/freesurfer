@@ -7640,6 +7640,7 @@ MRISwriteAnnotation(MRI_SURFACE *mris, char *sname)
 
 	if (mris->ct)   /* also write annotation in */
 	{
+		printf("writing colortable into annotation file...\n") ;
 		fwriteInt(TAG_COLORTABLE, fp) ;
 		CTABwriteInto(fp, mris->ct);
 	}

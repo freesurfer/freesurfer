@@ -1490,6 +1490,7 @@ writeSnapshot(MRI *mri, MORPH_PARMS *parms, int n)
 {
   MRI   *mri_tmp ;
   char  fname[STRLEN] ;
+	TRANSFORM transform ;
 
   if (!(Gdiag & DIAG_WRITE))
     return(NO_ERROR) ;
@@ -1520,6 +1521,13 @@ writeSnapshot(MRI *mri, MORPH_PARMS *parms, int n)
   sprintf(fname, "%s%3.3d", parms->base_name, n) ;
   MRIwriteImageViews(mri_tmp, fname, IMAGE_SIZE) ;
   MRIfree(&mri_tmp) ;
+
+  sprintf(fname, "%s%3.3d_fsamples.mgh", parms->base_name, n) ;
+	printf("writing transformed samples to %s....\n", fname) ;
+	(LTA *)transform.xform = parms->lta ;
+	transform.type = LINEAR_VOX_TO_VOX ;
+	GCAtransformAndWriteSamples((GCA *)parms->vgca, mri, parms->gcas, parms->nsamples, fname, 
+															parms->transform) ;
 
   return(NO_ERROR) ;
 }
@@ -6838,7 +6846,6 @@ static void dfp_em_step_func(int itno, float rms, void *vparms, float *p) ;
 static void 
 dfp_step_func(int itno, float sse, void *vparms, float *p)
 {
-  static int total_steps = 0 ;
   MP     *parms = (MP *)vparms ;
   int    i, row, col ;
   float  rms ;
@@ -6854,11 +6861,11 @@ dfp_step_func(int itno, float sse, void *vparms, float *p)
     intensity_rms = computeRigidAlignmentErrorFunctional(p) ;
     parms->m_xform_mean = m_save ;
     intensity_rms = sqrt(intensity_rms) ;
-    fprintf(stderr, "%03d: %2.3f (intensity=%2.3f)\n", itno,rms,intensity_rms);
+    fprintf(stderr, "%03d: %2.3f (intensity=%2.3f)\n", parms->start_t+itno,rms,intensity_rms);
   }
   else
   {
-    fprintf(stderr, "%03d: %2.3f\n", itno, rms) ;
+    fprintf(stderr, "%03d: %2.3f\n", parms->start_t+itno, rms) ;
   }
 
   /* read out current transform */
@@ -6879,11 +6886,11 @@ dfp_step_func(int itno, float sse, void *vparms, float *p)
     m_tmp = MRIvoxelXformToRasXform(g_mri_in, g_mri_ref, m_save, NULL) ;
     m_voxel = MRIrasXformToVoxelXform(parms->mri_in,parms->mri_ref,m_tmp,NULL);
     parms->lta->xforms[0].m_L = m_voxel ;
-    writeSnapshot(parms->mri_in, parms, total_steps++) ;
+    writeSnapshot(parms->mri_in, parms, parms->start_t+itno) ;
     MatrixFree(&m_voxel) ; MatrixFree(&m_tmp) ;
     parms->lta->xforms[0].m_L = m_save ;
   }
-  logIntegration(parms, itno, (double)rms) ;
+  logIntegration(parms, parms->start_t+itno, (double)rms) ;
 }
 
 static void 
@@ -6916,8 +6923,7 @@ dfp_em_step_func(int itno, float sse, void *vparms, float *p)
     MatrixFree(&m_voxel) ; MatrixFree(&m_tmp) ;
     parms->lta->xforms[0].m_L = m_save ;
   }
-  logIntegration(parms, itno, (double)sse) ;
-	/*  parms->start_t++ ;*/
+  logIntegration(parms, parms->start_t+itno, (double)sse) ;
 }
 
 static int
@@ -6951,6 +6957,7 @@ mriQuasiNewtonLinearAlignPyramidLevel(MRI *mri_in, MRI *mri_ref,
     dfpmin(p, 12, parms->tol, &iter, &fnew, 
          computeRigidAlignmentErrorFunctional,
          computeRigidAlignmentGradient, dfp_step_func, parms) ;
+		parms->start_t += iter ;
 
     /* read out current transform */
     m_L = parms->lta->xforms[0].m_L ;
@@ -7309,17 +7316,17 @@ static void
 computeEMAlignmentGradient(float *p, float *g)
 {
 #if 1
-  int    width, height, depth, row, col, i, xn, yn, zn, xv, yv, zv ;
-  VECTOR *v_X, *v_Y ; /* original and transformed coordinate systems */
-  MATRIX *m_tmp, *m_L, *m_dL, *m_dI_X_T ;
-  VECTOR *v_dI, *v_X_T ;      /* gradient of mri_ref */
-  Real   ref_val, in_val /*, len*/ ;
-  double delta = 0.0, dx, dy, dz, std ;
+  int    width, height, depth, row, col, i, xn, yn, zn, xv, yv, zv, n ;
+  VECTOR *v_X, *v_Y, *v_means, *v_X_T ; /* original and transformed coordinate systems */
+  MATRIX *m_L, *m_dL, *m_dI_X_T, *m_delI, *m_inv_cov, *m_tmp1, *m_tmp2 ;
+  double dx, dy, dz ;
   MRI    *mri_in ;
   MP     *parms ;
   GCA    *gca ;
   GCA_SAMPLE *gcas ;
   TRANSFORM *transform ;
+	float   vals[MAX_GCA_INPUTS] ;
+	GC1D    *gc ;
 
   gca = g_gca ; parms = g_parms ; mri_in = g_mri_in ;
   gcas = parms->gcas ;
@@ -7339,13 +7346,15 @@ computeEMAlignmentGradient(float *p, float *g)
 
 
   width = mri_in->width ; height = mri_in->height ; depth = mri_in->depth ;
-  m_tmp = MatrixAlloc(4, 4, MATRIX_REAL) ;
   m_dI_X_T = MatrixAlloc(4, 4, MATRIX_REAL) ;
   v_X = VectorAlloc(4, MATRIX_REAL) ;    /* input (src) coordinates */
-  v_Y = VectorAlloc(4, MATRIX_REAL) ;    /* transformed (dst) coordinates */
   v_X_T = RVectorAlloc(4, MATRIX_REAL) ; /* transpose of input coords */
-  v_dI = VectorAlloc(4, MATRIX_REAL) ;   /* gradient of target image */
+  v_Y = VectorAlloc(4, MATRIX_REAL) ;    /* transformed (dst) coordinates */
+	v_means = VectorAlloc(gca->ninputs, MATRIX_REAL) ;
+	m_tmp1 = m_tmp2 = NULL ;
 
+  m_delI = MatrixAlloc(4,gca->ninputs, MATRIX_REAL) ;
+  m_inv_cov = MatrixAlloc(gca->ninputs,gca->ninputs, MATRIX_REAL) ;
 
   transform = TransformAlloc(LINEAR_VOX_TO_VOX, NULL) ;
   MatrixCopy(m_L, ((LTA *)(transform->xform))->xforms[0].m_L) ;
@@ -7354,31 +7363,45 @@ computeEMAlignmentGradient(float *p, float *g)
   {
     xn = gcas[i].xp ; yn = gcas[i].yp ; zn = gcas[i].zp ; 
     GCApriorToSourceVoxel(gca, mri_in, transform, xn, yn, zn, &xv, &yv, &zv) ;
+		gc = GCAfindSourceGC(gca, mri_in, transform, xv, yv, zv, gcas[i].label) ;
     
-    V3_X(v_X) = xv ; V3_Y(v_X) = yv ; V3_Z(v_X) = zv ;
-    in_val = MRIvox(mri_in, xv, yv, zv) ; 
-    ref_val = gcas[i].mean ; std = sqrt(gcas[i].var) ;
-    MatrixTranspose(v_X, v_X_T) ;
+    V3_X(v_X) = xv ; V3_Y(v_X) = yv ; V3_Z(v_X) = zv ; MatrixTranspose(v_X, v_X_T) ;
 
-    if (DZERO(std))
-      std = 1 ;
-    MRIsampleVolumeGradient(mri_in, xv, yv, zv, &dx, &dy, &dz) ;
-    delta = (ref_val-in_val)/std;
+		if (gc)
+		{
+			load_mean_vector(gc, v_means, gca->ninputs) ;
+			load_inverse_covariance_matrix(gc, m_inv_cov, gca->ninputs) ;
+		}
+		else
+		{
+			MatrixClear(v_means) ; MatrixIdentity(gca->ninputs, m_inv_cov) ;
+		}
+
+		load_vals(mri_in, xv, yv, zv, vals, gca->ninputs) ;
+
+		/* construct gradient tensor */
+		for (n = 0 ; n < gca->ninputs ; n++)
+		{
+			MRIsampleVolumeGradientFrame(mri_in, xv, yv, zv, &dx, &dy, &dz, n) ;
+			*MATRIX_RELT(m_delI, 1, n+1) = dx ;
+			*MATRIX_RELT(m_delI, 2, n+1) = dy ;
+			*MATRIX_RELT(m_delI, 3, n+1) = dz ;
+			VECTOR_ELT(v_means, n+1) -= vals[n] ;
+		}
     
-    V3_X(v_dI) = dx ; V3_Y(v_dI) = dy ; V3_Z(v_dI) = dz ; 
-    MatrixMultiply(v_dI, v_X_T, m_dI_X_T) ;
+    m_tmp1 = MatrixMultiply(v_means, v_X_T, m_tmp1) ;     /* (I(Lr) - A(r)) r' */
+		MatrixMultiply(m_inv_cov, m_tmp1, m_tmp1) ;          /* inv(C) * (I(Lr) - A(r)) r' */
+		m_tmp2 = MatrixMultiply(m_delI, m_tmp1, m_tmp2) ;
     
-    MatrixScalarMul(m_dI_X_T, delta, m_tmp) ;
-    MatrixCheck(m_tmp) ;
-    MatrixAdd(m_tmp, m_dL, m_dL) ;
+    MatrixCheck(m_tmp2) ;
+    MatrixAdd(m_tmp2, m_dL, m_dL) ;
     
     MatrixCheck(m_dL) ;
   }
 
-  MatrixScalarMul(m_dL, parms->l_intensity/(double)(parms->nsamples), 
-                  m_dL);
-  MatrixFree(&m_dI_X_T) ; MatrixFree(&v_X) ;
-  MatrixFree(&v_X_T) ; MatrixFree(&v_dI) ; MatrixFree(&m_tmp) ;
+  MatrixScalarMul(m_dL, parms->l_intensity/(double)(gca->ninputs*parms->nsamples), m_dL);
+  MatrixFree(&m_dI_X_T) ; MatrixFree(&v_X) ; MatrixFree(&m_inv_cov) ;
+  MatrixFree(&m_tmp1) ; MatrixFree(&m_tmp2) ; MatrixFree(&v_X_T) ;
 
   for (i = row = 1 ; row <= 3 ; row++)
   {
@@ -7388,8 +7411,7 @@ computeEMAlignmentGradient(float *p, float *g)
       g[i++] = m_dL->rptr[row][col] ;
     }
   }
-  MatrixFree(&m_L) ;
-  MatrixFree(&m_dL) ;
+  MatrixFree(&m_L) ; MatrixFree(&m_dL) ; MatrixFree(&m_delI) ; VectorFree(&v_means) ;
 #endif
 }
 static float
@@ -7734,16 +7756,12 @@ mriQuasiNewtonEMAlignPyramidLevel(MRI *mri_in, GCA *gca, MP *parms)
       break ;
     if (steps > 1)
       fprintf(stderr,"pass %d through quasi-newton minimization...\n",steps);
-#if 0
-		else
-			dfp_em_step_func(0, fnew, parms, p) ;
-#endif
     fold = fnew ;
+    dfp_em_step_func(0, fnew, parms, p) ;
     dfpmin(p, 12, parms->tol, &iter, &fnew, 
          computeEMAlignmentErrorFunctional,
          computeEMAlignmentGradient, dfp_em_step_func, parms) ;
 		parms->start_t += iter ;
-
     /* read out current transform */
     m_L = parms->lta->xforms[0].m_L ;
     for (i = row = 1 ; row <= 3 ; row++)
