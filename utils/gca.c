@@ -472,7 +472,7 @@ GCAread(char *fname)
           {
             gc->nlabels[i] = freadInt(fp) ;
 
-#if 0
+#if 1
             /* allocate new ones */
             gc->label_priors[i] = 
               (float *)calloc(gc->nlabels[i],sizeof(float));
@@ -2886,6 +2886,18 @@ gcaFindMaxPriors(GCA *gca, float *max_priors)
   return(NO_ERROR) ;
 }
 
+static int xn_bad = 15 ;
+static int yn_bad = 24 ;
+static int zn_bad = 27 ;
+static int xt_bad = 62 ;
+static int yt_bad = 98 ;
+static int zt_bad = 108 ;
+static int xl_bad = 56 ;
+static int yl_bad = 99 ;
+static int zl_bad = 106 ;
+static int label_bad = 42 ;
+static int nbr_label_bad = 42 ;
+static int bad_i = 0 ;
 
 static int
 GCAupdateNodeGibbsPriors(GCA *gca, MRI*mri, int xt, int yt, int zt,
@@ -2897,9 +2909,13 @@ GCAupdateNodeGibbsPriors(GCA *gca, MRI*mri, int xt, int yt, int zt,
 
   GCAvoxelToNode(gca, mri, xt, yt, zt, &xn, &yn, &zn) ;
 
+  if (xl == xl_bad && yl == yl_bad && zl == zl_bad)
+    DiagBreak() ;
+  if (xt == xt_bad && yt == yt_bad && zt == zt_bad)
+    DiagBreak() ;
   if ((xn == 16 && yn == 26 && zn == 27 && label == 0))
     DiagBreak() ;
-  if (((xn == 16 && yn == 25 && zn == 27/* && label == 42*/)))
+  if (((xn == xn_bad && yn == yn_bad && zn == zn_bad && label == label_bad)))
     DiagBreak() ;
 
   gcan = &gca->nodes[xn][yn][zn] ;
@@ -2922,6 +2938,12 @@ GCAupdateNodeGibbsPriors(GCA *gca, MRI*mri, int xt, int yt, int zt,
     znbr = mri->zi[zl+znbr_offset[i]] ;
 
     nbr_label = MRIvox(mri, xnbr, ynbr, znbr) ;
+    if (xn == xn_bad && yn == yn_bad && zn == zn_bad && label == label_bad &&
+        nbr_label == nbr_label_bad)
+      DiagBreak() ;
+    if (xn == xn_bad && yn == yn_bad && zn == zn_bad && label == label_bad &&
+        nbr_label == nbr_label_bad && i == bad_i)
+      DiagBreak() ;
 
     /* now see if this label exists already as a nbr */
     for (n = 0 ; n < gc->nlabels[i] ; n++)
@@ -2935,9 +2957,14 @@ GCAupdateNodeGibbsPriors(GCA *gca, MRI*mri, int xt, int yt, int zt,
 
     if (n >= gc->nlabels[i])   /* not there - reallocate stuff */
     {
-#if 0
+#if 1
       char *old_labels ;
       float *old_label_priors ;
+
+      if (xl == 54 && yl == 105 && zl == 112)
+        DiagBreak() ;
+      if (xt == 62 && yt == 98 && zt == 108)
+        DiagBreak() ;
 
       old_labels = gc->labels[i] ;
       old_label_priors = gc->label_priors[i] ;
@@ -2957,7 +2984,7 @@ GCAupdateNodeGibbsPriors(GCA *gca, MRI*mri, int xt, int yt, int zt,
       {
         memmove(gc->label_priors[i], old_label_priors, 
                 gc->nlabels[i]*sizeof(float)) ;
-        memmove(gc->labels, old_labels, gc->nlabels[i]*sizeof(char)) ;
+        memmove(gc->labels[i], old_labels, gc->nlabels[i]*sizeof(char)) ;
 
         /* free the old ones */
         free(old_label_priors) ; free(old_labels) ;

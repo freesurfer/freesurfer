@@ -39,8 +39,8 @@ typedef struct
   float   mean ;
   float   var ;
   float   prior ;
-  float   label_priors[GIBBS_NEIGHBORHOOD][MAX_NBR_LABELS] ;
-  char    labels[GIBBS_NEIGHBORHOOD][MAX_NBR_LABELS] ;
+  float   *label_priors[GIBBS_NEIGHBORHOOD] ;
+  char    *labels[GIBBS_NEIGHBORHOOD] ;
   short   nlabels[ GIBBS_NEIGHBORHOOD];
 } GC1D, GAUSSIAN_CLASSIFIER_1D ;
 
