@@ -16,25 +16,22 @@ PathManager::GetManager() {
 PathManager::PathManager () {
 }
 
-Path<float>*
-PathManager::NewPath () {
+void
+PathManager::ManagePath ( Path<float>& iPath ) {
 
-  Path<float>* path = new Path<float>;
-  path->AddListener( this );
-  mPaths.push_back( path );
-  return path;
+  iPath.AddListener( this );
+  mPaths.push_back( &iPath );
 }
 
 void
-PathManager::DeletePath ( Path<float>* iPath ) {
+PathManager::UnmanagePath ( Path<float>& iPath ) {
 
   list<Path<float>*>::iterator tPath;
   for( tPath = mPaths.begin(); tPath != mPaths.end(); ++tPath ) {
     Path<float>* path = *tPath;
-    if( path == iPath ) {
+    if( path->GetID() == iPath.GetID() ) {
       int pathID = path->GetID();
       mPaths.erase( tPath );
-      delete path;
 
       // Notify listeners of changee.
       SendBroadcast( "pathChanged", (void*)&pathID );
@@ -75,3 +72,4 @@ PathManager::DoListenToMessage ( string isMessage, void* iData ) {
     }
   }
 }
+

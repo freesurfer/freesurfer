@@ -8,6 +8,7 @@
 #include "TclCommandManager.h"
 #include "Listener.h"
 #include "Broadcaster.h"
+#include "UndoManager.h"
 
 class PathManager : public TclCommandListener,
 		    public Broadcaster,  // pathChanged <id>
@@ -19,9 +20,9 @@ class PathManager : public TclCommandListener,
 
   static PathManager& GetManager ();
 
-  Path<float>* NewPath ();
+  void ManagePath ( Path<float>& iPath );
 
-  void DeletePath ( Path<float>* iPath );
+  void UnmanagePath ( Path<float>& iPath );
 
   std::list<Path<float>* >& GetPathList ();
 
@@ -41,8 +42,6 @@ class PathManager : public TclCommandListener,
   std::list<Path<float>* > mPaths;
   bool mbSendUpdates;
 };
-
-
 
 
 #endif
