@@ -41,9 +41,11 @@ ScubaToolState::DoListenToTclCommand ( char* isCommand,
 	newMode = navigation;
       } else if ( 0 == strcmp( iasArgv[2], "voxelEditing" )) {
 	newMode = voxelEditing;
+      } else if ( 0 == strcmp( iasArgv[2], "roiEditing" )) {
+	newMode = roiEditing;
       } else {
 	sResult = "bad mode \"" + string(iasArgv[2]) + 
-	  "\", should be navigation, voxelEditing.";
+	  "\", should be navigation, voxelEditing, roiEditing.";
 	return error;
       }
       SetMode( newMode );
@@ -66,6 +68,9 @@ ScubaToolState::DoListenToTclCommand ( char* isCommand,
 	break;
       case voxelEditing:
 	sReturnValues = "voxelEditing";
+	break;
+      case roiEditing:
+	sReturnValues = "roiEditing";
 	break;
       }
       sReturnFormat = "s";

@@ -26,6 +26,10 @@ ScubaColorLUT::ScubaColorLUT() {
 			 "Set the LUT file name for a colorLUT." );
   commandMgr.AddCommand( *this, "GetColorLUTFileName", 1, "lutID",
 			 "Returns the LUT file name for a transform." );
+  commandMgr.AddCommand( *this, "GetColorLUTNumberOfEntries", 1, "lutID",
+			 "Returns the number of entries in an LUT." );
+  commandMgr.AddCommand( *this, "GetColorLUTEntryLabel", 2, "lutID entry",
+			 "Returns the label for an entry in an LUT." );
 
 }
 
@@ -43,30 +47,30 @@ TclCommandListener::TclCommandResult
 ScubaColorLUT::DoListenToTclCommand ( char* isCommand, 
 				      int iArgc, char** iasArgv ) {
 
-  // SetColorLUTLabel <transformID> <label>
+  // SetColorLUTLabel <lutID> <label>
   if( 0 == strcmp( isCommand, "SetColorLUTLabel" ) ) {
-    int transformID = strtol(iasArgv[1], (char**)NULL, 10);
+    int lutID = strtol(iasArgv[1], (char**)NULL, 10);
     if( ERANGE == errno ) {
       sResult = "bad transform ID";
       return error;
     }
     
-    if( mID == transformID ) {
+    if( mID == lutID ) {
       
       string sLabel = iasArgv[2];
       SetLabel( sLabel );
     }
   }
 
-  // GetColorLUTLabel <transformID>
+  // GetColorLUTLabel <lutID>
   if( 0 == strcmp( isCommand, "GetColorLUTLabel" ) ) {
-    int transformID = strtol(iasArgv[1], (char**)NULL, 10);
+    int lutID = strtol(iasArgv[1], (char**)NULL, 10);
     if( ERANGE == errno ) {
       sResult = "bad transform ID";
       return error;
     }
     
-    if( mID == transformID ) {
+    if( mID == lutID ) {
       sReturnFormat = "s";
       stringstream ssReturnValues;
       ssReturnValues << "\"" << GetLabel() << "\"";
@@ -74,32 +78,76 @@ ScubaColorLUT::DoListenToTclCommand ( char* isCommand,
     }
   }
 
-  // SetColorLUTFileName <transformID> <fileName>
+  // SetColorLUTFileName <lutID> <fileName>
   if( 0 == strcmp( isCommand, "SetColorLUTFileName" ) ) {
-    int transformID = strtol(iasArgv[1], (char**)NULL, 10);
+    int lutID = strtol(iasArgv[1], (char**)NULL, 10);
     if( ERANGE == errno ) {
       sResult = "bad transform ID";
       return error;
     }
     
-    if( mID == transformID ) {
+    if( mID == lutID ) {
       
       UseFile( iasArgv[2] );
     }
   }
 
-  // GetColorLUTFileName <transformID>
+  // GetColorLUTFileName <lutID>
   if( 0 == strcmp( isCommand, "GetColorLUTFileName" ) ) {
-    int transformID = strtol(iasArgv[1], (char**)NULL, 10);
+    int lutID = strtol(iasArgv[1], (char**)NULL, 10);
     if( ERANGE == errno ) {
       sResult = "bad transform ID";
       return error;
     }
     
-    if( mID == transformID ) {
+    if( mID == lutID ) {
       sReturnFormat = "s";
       stringstream ssReturnValues;
       ssReturnValues << "\"" << mfnLUT << "\"";
+      sReturnValues = ssReturnValues.str();
+    }
+  }
+
+  // GetColorLUTNumberOfEntries <lutID>
+  if( 0 == strcmp( isCommand, "GetColorLUTNumberOfEntries" ) ) {
+    int lutID = strtol(iasArgv[1], (char**)NULL, 10);
+    if( ERANGE == errno ) {
+      sResult = "bad transform ID";
+      return error;
+    }
+    
+    if( mID == lutID ) {
+      sReturnFormat = "i";
+      stringstream ssReturnValues;
+      ssReturnValues << mcEntries;
+      sReturnValues = ssReturnValues.str();
+    }
+  }
+
+  // GetColorLUTEntryLabel <lutID> <entry>
+  if( 0 == strcmp( isCommand, "GetColorLUTEntryLabel" ) ) {
+    int lutID = strtol(iasArgv[1], (char**)NULL, 10);
+    if( ERANGE == errno ) {
+      sResult = "bad transform ID";
+      return error;
+    }
+    
+    if( mID == lutID ) {
+
+      int nEntry = strtol(iasArgv[2], (char**)NULL, 10);
+      if( ERANGE == errno ) {
+	sResult = "bad entry";
+	return error;
+      }
+
+      if( nEntry < 0 || nEntry >= mcEntries ) {
+	sResult = "No entry at this index";
+	return error;
+      }
+
+      sReturnFormat = "s";
+      stringstream ssReturnValues;
+      ssReturnValues << "\"" << GetLabelAtIndex(nEntry) << "\"";
       sReturnValues = ssReturnValues.str();
     }
   }

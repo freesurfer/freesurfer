@@ -49,7 +49,6 @@ ScubaROIVolume::SetROIBounds ( int iBounds[3] ) {
       mVoxels[nZ][nY] = (bool*) calloc( mBounds[0], sizeof(bool) );
     }
   }
-
 }
 
 void

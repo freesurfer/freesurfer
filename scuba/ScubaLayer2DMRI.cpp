@@ -218,6 +218,23 @@ ScubaLayer2DMRI::DrawIntoBuffer ( GLubyte* iBuffer, int iWidth, int iHeight,
 	    }
 	    break;
 	  }
+
+	  int selectColor[3];
+	  if( mVolume->IsRASSelected( RAS, selectColor ) ) {
+#if 0
+	    color[0] = (int) (((float)color[0] * 0.3) +
+			      ((float)selectColor[0] * 0.7));
+	    color[1] = (int) (((float)color[1] * 0.3) +
+			      ((float)selectColor[1] * 0.7));
+	    color[2] = (int) (((float)color[2] * 0.3) +
+			      ((float)selectColor[2] * 0.7));
+#else
+	    color[0] = selectColor[0];
+	    color[1] = selectColor[1];
+	    color[2] = selectColor[2];
+#endif
+	  }
+
 	  
 	  // Write the RGB value to the buffer. Write a 255 in the
 	  // alpha byte.
@@ -683,10 +700,23 @@ ScubaLayer2DMRI::HandleTool ( float iRAS[3],
   
   switch( iTool.GetMode() ) {
   case ScubaToolState::voxelEditing:
-
+    
     switch( iInput.Button() ) {
     case 1: 
       mVolume->SetMRIValueAtRAS( iRAS, 255 );
+      RequestRedisplay();
+      break;
+    }
+
+  case ScubaToolState::roiEditing:
+
+    switch( iInput.Button() ) {
+    case 2: 
+      mVolume->SelectRAS( iRAS );
+      RequestRedisplay();
+      break;
+    case 3: 
+      mVolume->UnselectRAS( iRAS );
       RequestRedisplay();
       break;
     }

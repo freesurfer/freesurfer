@@ -248,6 +248,7 @@ VolumeCollection::DoNewROI () {
     bounds[0] = mMRI->width;
     bounds[1] = mMRI->height;
     bounds[2] = mMRI->depth;
+    
     roi->SetROIBounds( bounds );
   }
   
@@ -260,9 +261,10 @@ VolumeCollection::SelectRAS ( float iRAS[3] ) {
   if( mSelectedROIID >= 0 ) {
     int index[3];
     RASToMRIIndex( iRAS, index );
-    ScubaROIVolume* roi = 
-      dynamic_cast<ScubaROIVolume*>(&ScubaROI::FindByID( mSelectedROIID ));
-    roi->SelectVoxel( index );
+    ScubaROI* roi = &ScubaROI::FindByID( mSelectedROIID );
+    //    ScubaROIVolume* volumeROI = dynamic_cast<ScubaROIVolume*>(roi);
+    ScubaROIVolume* volumeROI = (ScubaROIVolume*)roi;
+    volumeROI->SelectVoxel( index );
   }
 }
 
@@ -272,21 +274,53 @@ VolumeCollection::UnselectRAS ( float iRAS[3] ) {
   if( mSelectedROIID >= 0 ) {
     int index[3];
     RASToMRIIndex( iRAS, index );
-    ScubaROIVolume* roi = 
-      dynamic_cast<ScubaROIVolume*>(&ScubaROI::FindByID( mSelectedROIID ));
-    roi->UnselectVoxel( index );
+    ScubaROI* roi = &ScubaROI::FindByID( mSelectedROIID );
+    //    ScubaROIVolume* volumeROI = dynamic_cast<ScubaROIVolume*>(roi);
+    ScubaROIVolume* volumeROI = (ScubaROIVolume*)roi;
+    volumeROI->UnselectVoxel( index );
   }
 }
 
 bool 
-VolumeCollection::IsRASSelected ( float iRAS[3] ) {
+VolumeCollection::IsRASSelected ( float iRAS[3], int oColor[3] ) {
 
   if( mSelectedROIID >= 0 ) {
     int index[3];
     RASToMRIIndex( iRAS, index );
-    ScubaROIVolume* roi = 
-      dynamic_cast<ScubaROIVolume*>(&ScubaROI::FindByID( mSelectedROIID ));
-    return roi->IsVoxelSelected( index );
+
+    bool bSelected = false;
+    bool bFirstColor = true;
+
+    map<int,ScubaROI*>::iterator tIDROI;
+    for( tIDROI = mROIMap.begin();
+	 tIDROI != mROIMap.end(); ++tIDROI ) {
+      int roiID = (*tIDROI).first;
+      
+      ScubaROI* roi = &ScubaROI::FindByID( roiID );
+      //    ScubaROIVolume* volumeROI = dynamic_cast<ScubaROIVolume*>(roi);
+      ScubaROIVolume* volumeROI = (ScubaROIVolume*)roi;
+      if( volumeROI->IsVoxelSelected( index ) ) {
+	bSelected = true;
+	int color[3];
+	volumeROI->GetDrawColor( color );
+	if( bFirstColor ) {
+	  oColor[0] = color[0];
+	  oColor[1] = color[1];
+	  oColor[2] = color[2];
+	  bFirstColor = false;
+	} else {
+	  oColor[0] = (int) (((float)color[0] * 0.5) +
+			     ((float)oColor[0] * 0.5));
+	  oColor[1] = (int) (((float)color[1] * 0.5) +
+			     ((float)oColor[1] * 0.5));
+	  oColor[2] = (int) (((float)color[2] * 0.5) +
+			     ((float)oColor[2] * 0.5));
+	}
+      }
+    }
+    
+    return bSelected;
+
   } else {
     return false;
   }

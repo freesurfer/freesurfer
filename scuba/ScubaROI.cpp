@@ -1,4 +1,5 @@
 #include "ScubaROI.h"
+#include "ScubaColorLUT.h"
 
 using namespace std;
 
@@ -8,6 +9,10 @@ ScubaROIStaticTclListener ScubaROI::mStaticListener;
 
 
 ScubaROI::ScubaROI () {
+  mType = Free;
+  mLUTID = 0;
+  mStructure = 0;
+  mColor[0] = mColor[1] = mColor[2] = 0;
 
   TclCommandManager& commandMgr = TclCommandManager::GetManager();
   commandMgr.AddCommand( *this, "SetROILabel", 2, "roiID label",
@@ -18,6 +23,10 @@ ScubaROI::ScubaROI () {
 			 "Sets ROI type. type should be structure or free." );
   commandMgr.AddCommand( *this, "GetROIType", 1, "roiID",
 			 "Returns ROI type of structure or free." );
+  commandMgr.AddCommand( *this, "SetROILUTID", 2, "roiID lutID",
+			 "Sets the LUT ID for an ROI." );
+  commandMgr.AddCommand( *this, "GetROILUTID", 1, "roiID",
+			 "Returns LUT ID for an ROI." );
   commandMgr.AddCommand( *this, "SetROIStructure", 2, "roiID structure",
 			 "Sets ROI structure index." );
   commandMgr.AddCommand( *this, "GetROIStructure", 1, "roiID",
@@ -28,6 +37,7 @@ ScubaROI::ScubaROI () {
   commandMgr.AddCommand( *this, "GetROIColor", 1, "roiID",
 			 "Returns ROI color as a list of red, green, and "
 			 "blue integers from 0-255." );
+
 }
 
 ScubaROI::~ScubaROI () {
@@ -116,6 +126,51 @@ ScubaROI::DoListenToTclCommand ( char* isCommand, int iArgc, char** iasArgv ) {
     }
   }
 
+  // SetROILUTID <roiID> <lutID>
+  if( 0 == strcmp( isCommand, "SetROILUTID" ) ) {
+    int roiID = strtol(iasArgv[1], (char**)NULL, 10);
+    if( ERANGE == errno ) {
+      sResult = "bad roi ID";
+      return error;
+    }
+    
+    if( mID == roiID ) {
+
+      int lutID = strtol(iasArgv[2], (char**)NULL, 10);
+      if( ERANGE == errno ) {
+	sResult = "bad lut ID";
+	return error;
+      }
+    
+      try {
+	ScubaColorLUT& lut = ScubaColorLUT::FindByID( lutID );
+      }
+      catch(...) {
+	sResult = "bad lut ID, doesn't exist";
+	return error;
+      }
+      
+      SetColorLUT( lutID );
+    }
+  }
+
+  // GetROILUTID <roiID>
+  if( 0 == strcmp( isCommand, "GetROILUTID" ) ) {
+    int roiID = strtol(iasArgv[1], (char**)NULL, 10);
+    if( ERANGE == errno ) {
+      sResult = "bad roi ID";
+      return error;
+    }
+    
+    if( mID == roiID ) {
+      
+      stringstream ssReturnValues;
+      ssReturnValues << GetColorLUT();
+      sReturnValues = ssReturnValues.str();
+      sReturnFormat = "i";
+    }
+  }
+
   // SetROIStructure <roiID> <structure>
   if( 0 == strcmp( isCommand, "SetROIStructure" ) ) {
     int roiID = strtol(iasArgv[1], (char**)NULL, 10);
@@ -198,6 +253,7 @@ ScubaROI::DoListenToTclCommand ( char* isCommand, int iArgc, char** iasArgv ) {
     }
     
     if( mID == roiID ) {
+      
       sReturnFormat = "Liiil";
       stringstream ssReturnValues;
       ssReturnValues << mColor[0] << " " << mColor[1] << " "
@@ -223,6 +279,31 @@ ScubaROI::GetColor( int oColor[3] ) {
   oColor[0] = mColor[0];
   oColor[1] = mColor[1];
   oColor[2] = mColor[2];
+}
+
+void 
+ScubaROI::GetDrawColor( int oColor[3] ) {
+
+  switch( mType ) {
+  case Free:
+    oColor[0] = mColor[0];
+    oColor[1] = mColor[1];
+    oColor[2] = mColor[2];
+    break;
+  case Structure: {
+    try {
+      ScubaColorLUT& lut = ScubaColorLUT::FindByID( mLUTID );
+      lut.GetColorAtIndex( mStructure, oColor );
+    }
+    catch(...) {
+      // Couldn't find LUT, just use red.
+      oColor[0] = 255;
+      oColor[1] = 0;
+      oColor[2] = 0;
+    }
+  }
+    break;
+  }
 }
 
 ScubaROIStaticTclListener::ScubaROIStaticTclListener () {

@@ -44,7 +44,7 @@ class VolumeCollection : public DataCollection {
 
   void SelectRAS ( float iRAS[3] );
   void UnselectRAS ( float iRAS[3] );
-  bool IsRASSelected ( float iRAS[3] );
+  bool IsRASSelected ( float iRAS[3], int oColor[3] );
 
 protected:
   std::string mfnMRI;

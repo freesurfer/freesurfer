@@ -359,17 +359,20 @@ x  - bool IsRASSelected()
 x  - Un/SelectRAS functions called by Layer
 
 
-Collection panel
- - ROI pane
-   - list of collection's ROIs - SelectCollectionROI colID roiID
-   - free/structure rb - SetROIType roiID strucutre|free
-   - LUT pdm
-   - structure pdm - SetROIType roiID structure, SetROIStructure roiID strctr
-   - color picker - SetROIType roiID free, SetROIColor roiID red green blue
-   - New button - MakeNewROI colID, select it
+x Collection panel
+x  - ROI pane
+x    - list of collection's ROIs - SelectCollectionROI colID roiID
+x    - free/structure rb - SetROIType roiID strucutre|free
+x    - LUT pdm
+x    - structure pdm - SetROIType roiID structure, SetROIStructure roiID strctr
+x    - color picker - SetROIType roiID free, SetROIColor roiID red green blue
+x    - New button - MakeNewROI colID, select it
 
-
-
+x - ScubaLayer2DMRI
+x   - VolumeCollection::IsRASSelected needs to check all ROIs, return the color
+x     - if multiple selections, blend colors
+x   - in DrawIntoBuffer, get color of ROI and do blending
+  - selection opacity 
 
 
 ROIs
@@ -378,21 +381,6 @@ ROIs
    - if just list of RAS coords, might not work between 1mm and 0.8mm res vols
  - selections are tied to volume collections
    - need volume collection panel with data, list of ROIs
-
- - Data panel
-   - menu of ROIS
-   - New ROI, Delete ROI button
-   - congifure color or LUT value of ROI
-
- - gaCollection(current)
-
- - NewROI <colID>  - returns roiID
- - GetListOfROISForCollection <colID> - returns list of roiID
- - SelectROIInCollection <colID> <roiID>
-
- - SelectROI( roiID )
- - {Un}SelectRAS( ras ) - selects/unselects from current roi
- - {Un}SelectRASArea( area ) - has to look at data's resolution to find necessary step values to select proper elements in area
 
 
 
@@ -473,6 +461,8 @@ Frame Info
 BUGS:::
 - when number of labelvalues decreases, old one is left behind with old value
 - save tkcon history when quit?
+- ROI properies
+  - no LUT is selected on startup
 
 
 future ideas:

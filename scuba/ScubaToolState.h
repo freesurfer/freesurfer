@@ -10,7 +10,7 @@ class ScubaToolState : public TclCommandListener, public IDTracker<ScubaToolStat
   ScubaToolState();
   virtual ~ScubaToolState();
 
-  enum Mode { navigation, voxelEditing };
+  enum Mode { navigation, voxelEditing, roiEditing };
 
   void SetMode ( Mode iMode ) { mMode = iMode; }
   Mode GetMode () { return mMode; }

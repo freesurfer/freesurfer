@@ -59,7 +59,8 @@ foreach sSourceFileName { tkUtils.tcl tkcon.tcl } {
 
 # gaFrame
 #   n - id of frame
-#     viewConfi
+#     viewConfig
+#     toolID
 
 # gaView
 #   current
@@ -85,7 +86,11 @@ foreach sSourceFileName { tkUtils.tcl tkcon.tcl } {
 #     contrast - 2DMRI only
 #   idList - list of IDs in layer props listbox
 
+# gaTool
+#   n - id of tool
+#     mode
 
+set gbDebugOutput false
 proc dputs { isMsg } {
     global gbDebugOutput
     if { $gbDebugOutput } {
@@ -96,6 +101,8 @@ proc dputs { isMsg } {
 
 set gNextFrameID 0
 proc GetNewFrameID { } {
+    dputs "GetNewFrameID   "
+
     global gNextFrameID
     set frameID $gNextFrameID
     incr gNextFrameID
@@ -103,6 +110,8 @@ proc GetNewFrameID { } {
 }
 
 proc BuildShortcutDirsList {} {
+    dputs "BuildShortcutDirsList  "
+
     global glShortcutDirs env
     set glShortcutDirs {}
     if { [info exists env(SUBJECTS_DIR)] } {
@@ -124,6 +133,8 @@ proc BuildShortcutDirsList {} {
 
 
 proc AddDirToShortcutDirsList { iDir } {
+    dputs "AddDirToShortcutDirsList  $iDir  "
+
 
     global glShortcutDirs
     foreach dir $glShortcutDirs {
@@ -133,6 +144,8 @@ proc AddDirToShortcutDirsList { iDir } {
 }
 
 proc GetDefaultFileLocation { iType } {
+    dputs "GetDefaultFileLocation  $iType  "
+
     global gsaDefaultLocation 
     global env
     if { [info exists gsaDefaultLocation($iType)] == 0 } {
@@ -164,6 +177,8 @@ proc GetDefaultFileLocation { iType } {
 }
 
 proc SetDefaultFileLocation { iType isValue } {
+    dputs "SetDefaultFileLocation  $iType $isValue  "
+
     global gsaDefaultLocation
     if { [string range $isValue 0 0] == "/" } {
 	set gsaDefaultLocation($iType) $isValue
@@ -171,6 +186,8 @@ proc SetDefaultFileLocation { iType isValue } {
 }
 
 proc SetSubjectName { isSubject } {
+    dputs "SetSubjectName  $isSubject  "
+
     global gSubject
     global gaWidget
     global env
@@ -196,6 +213,8 @@ proc SetSubjectName { isSubject } {
 }
 
 proc FindFile { ifn } {
+    dputs "FindFile  $ifn  "
+
     global gSubject
 
     set fn $ifn
@@ -236,6 +255,8 @@ proc FindFile { ifn } {
 }
 
 proc ExtractLabelFromFileName { ifnData } {
+    dputs "ExtractLabelFromFileName  $ifnData  "
+
     global gbDebugOutput
 
     set sSeparator [string range [file join " " " "] 1 1]
@@ -327,6 +348,8 @@ proc ExtractLabelFromFileName { ifnData } {
 
 set ksImageDir   "$env(FREESURFER_HOME)/lib/images/"
 proc LoadImages {} {
+    dputs "LoadImages  "
+
 
     global ksImageDir
     
@@ -365,6 +388,8 @@ proc LoadImages {} {
 
 
 proc MakeMenuBar { ifwTop } {
+    dputs "MakeMenuBar  $ifwTop  "
+
 
     global gaMenu
     set fwMenuBar     $ifwTop.fwMenuBar
@@ -392,6 +417,8 @@ proc MakeMenuBar { ifwTop } {
 
 
 proc MakeToolBar { ifwTop } {
+    dputs "MakeToolBar  $ifwTop  "
+
     global gaTool
     global gaFrame
 
@@ -407,6 +434,7 @@ proc MakeToolBar { ifwTop } {
 	-buttons {
 	    { -type image -name navigation -image icon_navigate } 
 	    { -type image -name voxelEditing -image icon_edit_volume } 
+	    { -type image -name roiEditing -image icon_edit_label } 
 	}
 
     set gaTool($gaFrame([GetMainFrameID],toolID),mode) navigation
@@ -442,11 +470,15 @@ proc MakeToolBar { ifwTop } {
 }
 
 proc ToolBarWrapper { isName iValue } {
+    dputs "ToolBarWrapper  $isName $iValue  "
+
     global gaLayer
     global gaFrame
+    global gaROI
+
     if { $iValue == 1 } {
 	switch $isName {
-	    navigation - voxelEditing {
+	    navigation - voxelEditing - roiEditing {
 		SetToolMode $gaFrame([GetMainFrameID],toolID) $isName
 	    }
 	    c1 - c22 - c13 {
@@ -467,11 +499,16 @@ proc ToolBarWrapper { isName iValue } {
 		    $gaLayer(current,id) $gaLayer(current,sampleMethod)
 		RedrawFrame [GetMainFrameID]
 	    }
+	    structure - free {
+		SetROIType $gaROI(current,id) $gaROI(current,type)
+		RedrawFrame [GetMainFrameID]
+	    }
 	}
     }
 }
 
 proc GetMainFrameID {} {
+
     global gFrameWidgetToID
     global gaWidget
     if { ![info exists gaWidget(scubaFrame)] } {
@@ -481,6 +518,8 @@ proc GetMainFrameID {} {
 }
 
 proc MakeScubaFrame { ifwTop } {
+    dputs "MakeScubaFrame  $ifwTop  "
+
     global gFrameWidgetToID
     global gaFrame
     global gaTool
@@ -510,6 +549,8 @@ proc MakeScubaFrame { ifwTop } {
 }
 
 proc MakeScubaFrameBindings { iFrameID } {
+    dputs "MakeScubaFrameBindings  $iFrameID  "
+
     global gaWidget
 
     set fwScuba $gaWidget(scubaFrame,$iFrameID)
@@ -540,6 +581,8 @@ proc MakeScubaFrameBindings { iFrameID } {
 }
 
 proc ScubaMouseMotionCallback { inX inY iButton } {
+    dputs "ScubaMouseMotionCallback  $inX $inY $iButton  "
+
 
     set err [catch { 
 	set viewID [GetViewIDAtFrameLocation [GetMainFrameID] $inX $inY] 
@@ -554,6 +597,8 @@ proc ScubaMouseMotionCallback { inX inY iButton } {
 }
 
 proc ScubaMouseDownCallback { inX inY iButton } {
+    dputs "ScubaMouseDownCallback  $inX $inY $iButton  "
+
     global gaView
 
     set viewID [GetSelectedViewID [GetMainFrameID]]
@@ -563,6 +608,8 @@ proc ScubaMouseDownCallback { inX inY iButton } {
 }
 
 proc Quit {} {
+    dputs "Quit  "
+
 
     SaveGlobalPreferences
     exit
@@ -571,6 +618,8 @@ proc Quit {} {
 # INTERFACE CREATION ==================================================
 
 proc MakeLabelArea { ifwTop } {
+    dputs "MakeLabelArea  $ifwTop  "
+
     global gaWidget
 
     set fwLabelArea     $ifwTop.fwLabelArea
@@ -584,6 +633,8 @@ proc MakeLabelArea { ifwTop } {
 }
 
 proc MakeNavigationArea { ifwTop } {
+    dputs "MakeNavigationArea  $ifwTop  "
+
     global gaWidget
 
     set fwNavArea $ifwTop.fwNavArea
@@ -615,6 +666,8 @@ proc MakeNavigationArea { ifwTop } {
 }
 
 proc MakeSubjectsLoaderPanel { ifwTop } {
+    dputs "MakeSubjectsLoaderPanel  $ifwTop  "
+
     global gaWidget
     global gaSubject
 
@@ -666,18 +719,27 @@ proc MakeSubjectsLoaderPanel { ifwTop } {
 }
 
 proc MakePropertiesPanel { ifwTop } {
+    dputs "MakePropertiesPanel  $ifwTop  "
+
     global gaWidget
 
     set fwTop  $ifwTop.fwProps
     
-    tixNoteBook $fwTop
-    
-    $fwTop add collectionPanel -label "Data Collections"
-    $fwTop add layerPanel -label Layers
-    $fwTop add viewPanel -label Views
-    $fwTop add subjectsLoader -label Subjects
-    $fwTop add transformPanel -label Transforms
-    $fwTop add lutPanel -label "Color LUTs"
+    tixListNoteBook $fwTop
+
+    foreach {panelName sLabel} {
+	collectionPanel "Data Collections"
+	layerPanel Layers
+	viewPanel Views
+	subjectsLoader Subjects
+	transformPanel Transforms
+	lutPanel "Color LUTs"
+    } {
+	
+	$fwTop subwidget hlist add $panelName -text $sLabel
+	$fwTop add $panelName -label $sLabel
+    }
+    $fwTop subwidget hlist config -width 12
 
     set gaWidget(collectionProperties) \
 	[MakeDataCollectionsPropertiesPanel [$fwTop subwidget collectionPanel]]
@@ -703,13 +765,18 @@ proc MakePropertiesPanel { ifwTop } {
 }
 
 proc MakeDataCollectionsPropertiesPanel { ifwTop } {
+    dputs "MakeDataCollectionsPropertiesPanel  $ifwTop  "
+
     global gaWidget
     global gaCollection
+    global gaROI
     global glShortcutDirs
 
     set fwTop        $ifwTop.fwLayerProps
     set fwMenu       $fwTop.fwMenu
     set fwProps      $fwTop.fwProps
+    set fwROIs       $fwTop.fwROIs
+    set fwCommands   $fwTop.fwCommands
 
     frame $fwTop
 
@@ -730,7 +797,7 @@ proc MakeDataCollectionsPropertiesPanel { ifwTop } {
     tkuMakeActiveLabel $fwPropsCommon.ewID \
 	-variable gaCollection(current,id) -width 2
     tkuMakeActiveLabel $fwPropsCommon.ewType \
-	-variable gaCollection(current,type) -width 5
+	-variable gaCollection(current,type) -width 10
     tkuMakeEntry $fwPropsCommon.ewLabel \
 	-variable gaCollection(current,label) \
 	-command {SetCollectionLabel $gaCollection(current,id) $gaCollection(current,label); UpdateCollectionList} \
@@ -764,16 +831,92 @@ proc MakeDataCollectionsPropertiesPanel { ifwTop } {
     set gaWidget(collectionProperties,surface) $fwPropsSurface
 
 
+    frame $fwROIs
+    tixOptionMenu $fwROIs.menu \
+	-label "Current ROI:" \
+	-variable gaROI(current,menuIndex) \
+	-command { ROIPropertiesMenuCallback }
+    set gaWidget(roiProperties,menu) $fwROIs.menu
+
+    tkuMakeActiveLabel $fwROIs.ewID \
+	-variable gaROI(current,id) -width 2
+    tkuMakeEntry $fwROIs.ewLabel \
+	-variable gaROI(current,label) \
+	-command {SetROILabel $gaROI(current,id) $gaROI(current,label); UpdateROIList} \
+	-notify 1
+    set gaWidget(roiProperties,labelEntry) $fwROIs.ewLabel
+
+    tkuMakeToolbar $fwROIs.tbwType \
+	-allowzero 0 -radio 1 \
+	-variable gaROI(current,type) \
+	-command ToolBarWrapper \
+	-buttons {
+	    {-type text -name free -label "Free"}
+	    {-type text -name structure -label "Structure"}
+	}
+    
+    tixOptionMenu $fwROIs.mwLUT \
+	-label "LUT:" \
+	-command "ROIPropertiesLUTMenuCallback"
+    set gaWidget(roiProperties,lutMenu) $fwROIs.mwLUT
+
+    tixScrolledListBox $fwROIs.lbStructure \
+	-scrollbar auto \
+	-browsecmd ROIPropertiesStructureListBoxCallback
+   $fwROIs.lbStructure subwidget listbox configure -selectmode single
+   set gaWidget(roiProperties,structureListBox) $fwROIs.lbStructure
+
+    tkuMakeActiveLabel $fwROIs.ewStructure \
+	-variable gaROI(current,structureLabel)
+    
+   
+    # hack, necessary to init color pickers first time
+    set gaROI(current,redColor) 0
+    set gaROI(current,greenColor) 0
+    set gaROI(current,blueColor) 0
+    
+    tkuMakeColorPickers $fwROIs.cpFree \
+	-pickers {
+	    {-label "Free Color:" 
+		-redVariable   gaROI(current,redColor) 
+		-greenVariable gaROI(current,greenColor)
+		-blueVariable  gaROI(current,blueColor)
+		-command {SetROIColor $gaROI(current,id) $gaROI(current,redColor) $gaROI(current,greenColor) $gaROI(current,blueColor); RedrawFrame [GetMainFrameID]}}
+	}
+    set gaWidget(roiProperties,freeColor) $fwROIs.cpFree
+
+    grid $fwROIs.menu        -column 0 -columnspan 2 -row 0 -sticky new
+    grid $fwROIs.ewID        -column 0 -row 1   -sticky nw
+    grid $fwROIs.ewLabel     -column 1 -row 1   -sticky new
+    grid $fwROIs.tbwType     -column 0 -columnspan 2 -row 2   -sticky new
+    grid $fwROIs.mwLUT       -column 0 -columnspan 2 -row 3   -sticky new
+    grid $fwROIs.lbStructure -column 0 -columnspan 2 -row 4   -sticky new
+    grid $fwROIs.ewStructure -column 0 -columnspan 2 -row 5   -sticky new
+    grid $fwROIs.cpFree      -column 0 -columnspan 2 -row 6   -sticky new
+
+    grid columnconfigure $fwROIs 0 -weight 0
+    grid columnconfigure $fwROIs 1 -weight 1
+
+    frame $fwCommands
+    button $fwCommands.bwMakeROI -text "Make New ROI" \
+	-command { set roiID [NewCollectionROI $gaCollection(current,id)]; SetROILabel $roiID "New ROI"; UpdateROIList; SelectROIInROIProperties $roiID }
+    pack $fwCommands.bwMakeROI -expand yes -fill x
+
+
     grid $fwPropsCommon -column 0 -row 0 -sticky news
 
-    grid $fwMenu -column 0 -row 0 -sticky new
-    grid $fwProps -column 0 -row 1 -sticky news
+    grid $fwMenu     -column 0 -row 0 -sticky new
+    grid $fwProps    -column 0 -row 1 -sticky news
+    grid $fwROIs     -column 0 -row 3 -sticky news
+    grid $fwCommands -column 0 -row 4 -sticky news
 
     return $fwTop
 }
 
 
 proc MakeLayerPropertiesPanel { ifwTop } {
+    dputs "MakeLayerPropertiesPanel  $ifwTop  "
+
     global gaWidget
     global gaLayer
     global glShortcutDirs
@@ -906,6 +1049,8 @@ proc MakeLayerPropertiesPanel { ifwTop } {
 }
 
 proc MakeViewPropertiesPanel { ifwTop } {
+    dputs "MakeViewPropertiesPanel  $ifwTop  "
+
     global gaWidget
     global gaView
 
@@ -977,6 +1122,8 @@ proc MakeViewPropertiesPanel { ifwTop } {
 }
 
 proc MakeTransformsPanel { ifwTop } {
+    dputs "MakeTransformsPanel  $ifwTop  "
+
     global gaWidget
     global gaTransform
 
@@ -1039,6 +1186,8 @@ proc MakeTransformsPanel { ifwTop } {
 }
 
 proc MakeLUTsPanel { ifwTop } {
+    dputs "MakeLUTsPanel  $ifwTop  "
+
     global gaWidget
     global gaLUT
     global glShortcutDirs
@@ -1089,10 +1238,14 @@ proc MakeLUTsPanel { ifwTop } {
 # DATA COLLECTION PROPERTIES FUNCTIONS =====================================
 
 proc CollectionPropertiesMenuCallback { iColID } {
+    dputs "CollectionPropertiesMenuCallback  $iColID  "
+
     SelectCollectionInCollectionProperties $iColID
 }
 
 proc SelectCollectionInCollectionProperties { iColID } {
+    dputs "SelectCollectionInCollectionProperties  $iColID  "
+
     global gaWidget
     global gaCollection
 
@@ -1119,7 +1272,7 @@ proc SelectCollectionInCollectionProperties { iColID } {
 	Volume { 
 	    # Pack the type panel.
 	    grid $gaWidget(collectionProperties,volume) \
-		-column 0 -row 1 -sticky news
+		-column 0 -row 2 -sticky news
 
 	    # Get the type specific properties.
 	    set gaCollection(current,fileName) \
@@ -1128,19 +1281,24 @@ proc SelectCollectionInCollectionProperties { iColID } {
 	Surface {
 	    # Pack the type panel.
 	    grid $gaWidget(collectionProperties,surface) \
-		-column 0 -row 1 -sticky news
+		-column 0 -row 2 -sticky news
 
 	    # Get the type specific properties.
 	    set gaCollection(current,fileName)\
 		[GetSurfaceCollectionFileName $iColID]
 	}
     }
+
+    # Rebuild the ROI list.
+    UpdateROIList
 }
 
 # This builds the data collection ID list and populates the menu that
 # selects the current collection in the collection props panel.  It
 # should be called whenever a collection is created or deleted.
 proc UpdateCollectionList {} {
+    dputs "UpdateCollectionList  "
+
     global gaWidget
     global gaCollection
 
@@ -1154,15 +1312,200 @@ proc UpdateCollectionList {} {
 	 $gaCollection(current,id) >= 0 } {
 	SelectCollectionInCollectionProperties $gaCollection(current,id)
     }
+
+    UpdateROIList
+}
+
+# ROI PROPERTIES FUNCTIONS ===============================================
+
+proc ROIPropertiesMenuCallback { iROIID } {
+    dputs "ROIPropertiesMenuCallback  $iROIID  "
+
+    SelectROIInROIProperties $iROIID
+}
+
+proc SelectROIInROIProperties { iROIID } {
+    dputs "SelectROIInROIProperties  $iROIID  "
+
+    global gaWidget
+    global gaCollection
+    global gaROI
+
+    SelectCollectionROI $gaCollection(current,id) $iROIID
+
+    # Get the general ROI properties from the ROI and load them into
+    # the 'current' slots.
+    set gaROI(current,id) $iROIID
+    set gaROI(current,label) [GetROILabel $iROIID]
+    tkuRefreshEntryNotify $gaWidget(roiProperties,labelEntry)
+    set gaROI(current,type) [GetROIType $iROIID]
+    set gaROI(current,lutID) [GetROILUTID $iROIID]
+    set gaROI(current,structure) [GetROIStructure $iROIID]
+    set lColor [GetROIColor $iROIID]
+    set gaROI(current,redColor) [lindex $lColor 0]
+    set gaROI(current,greenColor) [lindex $lColor 1]
+    set gaROI(current,blueColor) [lindex $lColor 2]
+    tkuUpdateColorPickerValues $gaWidget(roiProperties,freeColor)
+
+    # Make sure that this is the item selected in the menu. Disable the
+    # callback and set the value of the menu to collection ID. Then
+    # reenable the callback.
+    $gaWidget(roiProperties,menu) config -disablecallback 1
+    $gaWidget(roiProperties,menu) config -value $iROIID
+    $gaWidget(roiProperties,menu) config -disablecallback 0
+
+    # Show the right LUT in the listbox.
+    SelectLUTInROIProperties $gaROI(current,lutID)
+
+    SelectStructureInROIProperties $gaROI(current,structure)
+}
+
+proc ClearROIInROIProperties {} {
+    dputs "ClearROIInROIProperties  "
+
+    global gaWidget
+    global gaROI
+
+    # Clear the stuff in the current slots.
+    set gaROI(current,id) -1
+    set gaROI(current,label) ""
+    tkuRefreshEntryNotify $gaWidget(roiProperties,labelEntry)
+    
+    # Clear the listbox.
+    $gaWidget(roiProperties,structureListBox) subwidget listbox \
+	delete 0 end
+}
+
+proc ROIPropertiesLUTMenuCallback { iLUTID } {
+    dputs "ROIPropertiesLUTMenuCallback  $iLUTID  "
+
+    SelectLUTInROIProperties $iLUTID
+}
+
+
+proc SelectLUTInROIProperties { iLUTID } {
+    dputs "SelectLUTInROIProperties  $iLUTID  "
+
+    global gaROI
+    global gaWidget
+    global gaCollection
+
+    # Set the ROI data if we can.
+    catch {
+	set gaROI(current,lutID) $iLUTID
+	SetROILUTID $gaROI(current,id) $gaROI(current,lutID)
+    }
+
+    # Clear the listbox.
+    $gaWidget(roiProperties,structureListBox) subwidget listbox \
+	delete 0 end
+
+    # Put the entries in the list box.
+    set cEntries [GetColorLUTNumberOfEntries $gaROI(current,lutID)]
+    for { set nEntry 0 } { $nEntry < $cEntries } { incr nEntry } {
+	catch {
+	    set sLabel "$nEntry: [GetColorLUTEntryLabel $gaROI(current,lutID) $nEntry]"
+	    $gaWidget(roiProperties,structureListBox) subwidget listbox \
+		insert end $sLabel
+	}
+    }
+
+    # Make sure the right menu item is selected.
+    $gaWidget(roiProperties,lutMenu) config -disablecallback 1
+    $gaWidget(roiProperties,lutMenu) config -value $iLUTID
+    $gaWidget(roiProperties,lutMenu) config -disablecallback 0
+
+    SelectStructureInROIProperties $gaROI(current,structure)
+}
+
+proc ROIPropertiesStructureListBoxCallback {} {
+    dputs "ROIPropertiesStructureListBoxCallback  "
+
+    global gaWidget
+
+    set nStructure [$gaWidget(roiProperties,structureListBox) \
+			subwidget listbox curselection]
+
+    SelectStructureInROIProperties $nStructure
+}
+
+
+proc SelectStructureInROIProperties { inStructure } {
+    dputs "SelectStructureInROIProperties  $inStructure  "
+
+    global gaROI
+    global gaWidget
+    
+    # Set value in ROI.
+    catch {
+	set gaROI(current,structure) $inStructure
+	SetROIStructure $gaROI(current,id) $gaROI(current,structure)
+	RedrawFrame [GetMainFrameID]
+
+	# Set the label.
+	set gaROI(current,structureLabel) "$inStructure: [GetColorLUTEntryLabel $gaROI(current,lutID) $inStructure]"
+    }
+    
+    # Make sure the structure is highlighted and visible in the listbox.
+    catch {
+	$gaWidget(roiProperties,structureListBox) subwidget listbox \
+	    selection clear 0 end
+	$gaWidget(roiProperties,structureListBox) subwidget listbox \
+	    selection set $gaROI(current,structure)
+	$gaWidget(roiProperties,structureListBox) subwidget listbox \
+	    see $gaROI(current,structure)
+    }
+
+}
+
+# This builds the roi ID list based on the current data collection and
+# populates the menu that selects the current roi in the
+# collection/roi props panel.  It should be called whenever a
+# collection or roi is created or deleted or when a new collection is
+# selected.
+proc UpdateROIList {} {
+    dputs "UpdateROIList  "
+
+    global gaWidget
+    global gaCollection
+    global gaROI
+
+    if { [info exists gaCollection(current,id)] &&
+	 $gaCollection(current,id) >= 0} {
+
+	# Get the roi ID list and build the menu.
+	set gaROI(idList) [GetROIIDListForCollection $gaCollection(current,id)]
+	FillMenuFromList $gaWidget(roiProperties,menu) \
+	    $gaROI(idList) "GetROILabel %s" {} false
+
+	# Reselect the current ROI. If it doesn't exist in this
+	# collection, get a new roi ID from the list we got from the
+	# collection. If there aren't any, clear the properties.
+	if { [info exists gaROI(current,id)] } {
+	    if { [lsearch $gaROI(idList) $gaROI(current,id)] == -1 } {
+		if { [llength $gaROI(idList)] > 0 } {
+		    set gaROI(current,id) [lindex $gaROI(idList) 0]
+		} else {
+		    ClearROIInROIProperties
+		    return
+		}
+	    }
+	    SelectROIInROIProperties $gaROI(current,id)
+	}
+    }
 }
 
 # LAYER PROPERTIES FUNCTIONS ===========================================
 
 proc LayerPropertiesMenuCallback { iLayerID } {
+    dputs "LayerPropertiesMenuCallback  $iLayerID  "
+
     SelectLayerInLayerProperties $iLayerID
 }
 
 proc LayerPropertiesLUTMenuCallback { iLUTID } {
+    dputs "LayerPropertiesLUTMenuCallback  $iLUTID  "
+
     global gaLayer
     
     # Set the LUT in this layer and redraw.
@@ -1171,6 +1514,8 @@ proc LayerPropertiesLUTMenuCallback { iLUTID } {
 }
 
 proc SelectLayerInLayerProperties { iLayerID } {
+    dputs "SelectLayerInLayerProperties  $iLayerID  "
+
     global gaWidget
     global gaLayer
 
@@ -1249,6 +1594,8 @@ proc SelectLayerInLayerProperties { iLayerID } {
 # view props panel. It should be called whenever a layer is created or
 # deleted, or when a lyer is added to or removed from a view.
 proc UpdateLayerList {} {
+    dputs "UpdateLayerList  "
+
     global gaLayer
     global gaWidget
     global gaView
@@ -1285,10 +1632,14 @@ proc UpdateLayerList {} {
 # VIEW PROPERTIES FUNCTIONS =============================================
 
 proc ViewPropertiesMenuCallback { iViewID } {
+    dputs "ViewPropertiesMenuCallback  $iViewID  "
+
     SelectViewInViewProperties $iViewID
 }
 
 proc ViewPropertiesDrawLevelMenuCallback { iLevel iLayerID } {
+    dputs "ViewPropertiesDrawLevelMenuCallback  $iLevel $iLayerID  "
+
     global gaView
     global gaLayer
     
@@ -1298,6 +1649,8 @@ proc ViewPropertiesDrawLevelMenuCallback { iLevel iLayerID } {
 }
 
 proc ViewPropertiesTransformMenuCallback { iTransformID } {
+    dputs "ViewPropertiesTransformMenuCallback  $iTransformID  "
+
     global gaView
     global gaTransform
     
@@ -1307,6 +1660,8 @@ proc ViewPropertiesTransformMenuCallback { iTransformID } {
 }
 
 proc SelectViewInViewProperties { iViewID } {
+    dputs "SelectViewInViewProperties  $iViewID  "
+
     global gaWidget
     global gaView
 
@@ -1346,6 +1701,8 @@ proc SelectViewInViewProperties { iViewID } {
 # and makes sure the draw level menus are set properly. Call it
 # whenever a layer has been set in the current view.
 proc UpdateCurrentViewProperties {} {
+    dputs "UpdateCurrentViewProperties  "
+
     global gaWidget
     global gaView
     global gaLayer
@@ -1375,6 +1732,8 @@ proc UpdateCurrentViewProperties {} {
 # populates the menu that selects the view in the view props panel. It
 # should be called every time the view configuration changes.
 proc UpdateViewList {} {
+    dputs "UpdateViewList  "
+
     global gaView
     global gaWidget
 
@@ -1411,6 +1770,8 @@ proc UpdateViewList {} {
 # SUBJECTS LOADER FUNCTIONS =============================================
 
 proc SubjectsLoaderSubjectMenuCallback { inSubject } {
+    dputs "SubjectsLoaderSubjectMenuCallback  $inSubject  "
+
     global gaSubject
 
     # Get the name at this index in the nameList, then select that
@@ -1420,6 +1781,8 @@ proc SubjectsLoaderSubjectMenuCallback { inSubject } {
 }
 
 proc SelectSubjectInSubjectsLoader { isSubject } {
+    dputs "SelectSubjectInSubjectsLoader  $isSubject  "
+
     global gaWidget
     global gaSubject
     global env
@@ -1480,12 +1843,16 @@ proc SelectSubjectInSubjectsLoader { isSubject } {
 }
 
 proc LoadVolumeFromSubjectsLoader { isVolume } {
+    dputs "LoadVolumeFromSubjectsLoader  $isVolume  "
+
     global gaSubject
 
     LoadVolume "$isVolume" 1 [GetMainFrameID]
 }
 
 proc LoadSurfaceFromSubjectsLoader { isSurface } {
+    dputs "LoadSurfaceFromSubjectsLoader  $isSurface  "
+
     global gaSubject
 
     LoadSurface "$isSurface" 1 [GetMainFrameID]
@@ -1493,6 +1860,8 @@ proc LoadSurfaceFromSubjectsLoader { isSurface } {
 
 # Builds the subject nameList by looking in SUBJECTS_DIR.
 proc UpdateSubjectList {} {
+    dputs "UpdateSubjectList  "
+
     global gaSubject
     global gaWidget
     global env
@@ -1536,10 +1905,14 @@ proc UpdateSubjectList {} {
 # TRANSFORM PROPERTIES FUNCTIONS =========================================
 
 proc TransformPropertiesMenuCallback { iTransformID } {
+    dputs "TransformPropertiesMenuCallback  $iTransformID  "
+
     SelectTransformInTransformProperties $iTransformID
 }
 
 proc SelectTransformInTransformProperties { iTransformID } {
+    dputs "SelectTransformInTransformProperties  $iTransformID  "
+
     global gaWidget
     global gaTransform
 
@@ -1576,6 +1949,8 @@ proc SelectTransformInTransformProperties { iTransformID } {
 # view props panel. It should be called whenever a transform is created or
 # deleted, or when a lyer is added to or removed from a view.
 proc UpdateTransformList {} {
+    dputs "UpdateTransformList  "
+
     global gaTransform
     global gaWidget
     global gaView
@@ -1599,6 +1974,8 @@ proc UpdateTransformList {} {
 }
 
 proc UpdateCurrentTransformValueList {} {
+    dputs "UpdateCurrentTransformValueList  "
+
     global gaTransform
     global gaWidget
 
@@ -1616,6 +1993,8 @@ proc UpdateCurrentTransformValueList {} {
 }
 
 proc ClearSetTransformValuesButton {} {
+    dputs "ClearSetTransformValuesButton  "
+
     global gaWidget
 
     # Change the set button to normal.
@@ -1625,10 +2004,14 @@ proc ClearSetTransformValuesButton {} {
 # COLOR LUT PROPERTIES FUNCTIONS =========================================
 
 proc LUTPropertiesMenuCallback { iLUTID } {
+    dputs "LUTPropertiesMenuCallback  $iLUTID  "
+
     SelectLUTInLUTProperties $iLUTID
 }
 
 proc SelectLUTInLUTProperties { iLUTID } {
+    dputs "SelectLUTInLUTProperties  $iLUTID  "
+
     global gaWidget
     global gaLUT
 
@@ -1653,6 +2036,8 @@ proc SelectLUTInLUTProperties { iLUTID } {
 # layer props panel. It should be called whenever a transform is created or
 # deleted.
 proc UpdateLUTList {} {
+    dputs "UpdateLUTList  "
+
     global gaLUT
     global gaWidget
 
@@ -1671,11 +2056,17 @@ proc UpdateLUTList {} {
     # Now rebuild the lut list in the layer props panel.
     FillMenuFromList $gaWidget(layerProperties,lutMenu) $gaLUT(idList) \
 	"GetColorLUTLabel %s" {} false
+
+    # Rebuild the list in the ROI props.
+    FillMenuFromList $gaWidget(roiProperties,lutMenu) $gaLUT(idList) \
+	"GetColorLUTLabel %s" {} false
 }
 
 # LABEL AREA FUNCTIONS ==================================================
 
 proc ShowHideLabelArea { ibShow } {
+    dputs "ShowHideLabelArea  $ibShow  "
+
     global gaWidget
 
     if { $ibShow } {
@@ -1687,6 +2078,8 @@ proc ShowHideLabelArea { ibShow } {
 }
 
 proc UpdateLabelArea { ilLabelValues } {
+    dputs "UpdateLabelArea  $ilLabelValues  "
+
     global glLabelValues
     set glLabelValues $ilLabelValues
 
@@ -1694,6 +2087,8 @@ proc UpdateLabelArea { ilLabelValues } {
 }
 
 proc DrawLabelArea {} {
+    dputs "DrawLabelArea  "
+
     global gaWidget
     global glLabelValues
 
@@ -1737,6 +2132,8 @@ proc DrawLabelArea {} {
 # VIEW CONFIGURATION ==================================================
 
 proc SetLayerInAllViewsInFrame { iFrameID iLayerID } {
+    dputs "SetLayerInAllViewsInFrame  $iFrameID $iLayerID  "
+
 
     # For each view...
     set err [catch { set cRows [GetNumberOfRowsInFrame $iFrameID] } sResult]
@@ -1809,6 +2206,8 @@ proc FillMenuFromList { imw ilEntries iLabelFunction ilLabels ibNone  } {
 # DATA LOADING =====================================================
 
 proc MakeVolumeCollection { ifnVolume } {
+    dputs "MakeVolumeCollection  $ifnVolume  "
+
 
     set err [catch { set colID [MakeDataCollection Volume] } sResult]
     if { 0 != $err } { tkuErrorDlog $sResult; return }
@@ -1826,6 +2225,8 @@ proc MakeVolumeCollection { ifnVolume } {
 }
 
 proc MakeSurfaceCollection { ifnSurface } {
+    dputs "MakeSurfaceCollection  $ifnSurface  "
+
 
     set err [catch { set colID [MakeDataCollection Surface] } sResult]
     if { 0 != $err } { tkuErrorDlog $sResult; return }
@@ -1843,6 +2244,8 @@ proc MakeSurfaceCollection { ifnSurface } {
 }
 
 proc Make2DMRILayer { isLabel } {
+    dputs "Make2DMRILayer  $isLabel  "
+
 
     set err [catch { set layerID [MakeLayer 2DMRI] } sResult]
     if { 0 != $err } { tkuErrorDlog $sResult; return }
@@ -1856,6 +2259,8 @@ proc Make2DMRILayer { isLabel } {
 }
 
 proc Make2DMRISLayer { isLabel } {
+    dputs "Make2DMRISLayer  $isLabel  "
+
 
     set err [catch { set layerID [MakeLayer 2DMRIS] } sResult]
     if { 0 != $err } { tkuErrorDlog $sResult; return }
@@ -1869,6 +2274,8 @@ proc Make2DMRISLayer { isLabel } {
 }
 
 proc LoadVolume { ifnVolume ibCreateLayer iFrameIDToAdd } {
+    dputs "LoadVolume  $ifnVolume $ibCreateLayer $iFrameIDToAdd  "
+
 
     set fnVolume [FindFile $ifnVolume]
 
@@ -1899,6 +2306,8 @@ proc LoadVolume { ifnVolume ibCreateLayer iFrameIDToAdd } {
 }
 
 proc LoadSurface { ifnSurface ibCreateLayer iFrameIDToAdd } {
+    dputs "LoadSurface  $ifnSurface $ibCreateLayer $iFrameIDToAdd  "
+
 
     set fnSurface [FindFile $ifnSurface]
 
@@ -1929,6 +2338,8 @@ proc LoadSurface { ifnSurface ibCreateLayer iFrameIDToAdd } {
 }
 
 proc DoLoadVolumeDlog {} {
+    dputs "DoLoadVolumeDlog  "
+
     global glShortcutDirs
 
     tkuDoFileDlog -title "Load Volume" \
