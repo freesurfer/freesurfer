@@ -1,79 +1,86 @@
-function [roivar, mask, navg] = fast_weiskopf(fslice,nroi,mask,navg)
-% [roivar, mask, navg] = fast_weiskopf(fslice,nroi,<mask>,<navg>)
+function [roivar, nroi, roivar0] = fast_weiskopf(fslice,radlist,porder,seed)
+% [roivar, nroi, roivar0] = fast_weiskopf(fslice,<radlist>,<porder>,<seed>)
 %
 % Computes the variance over an ROI of a given number of voxels.
 %
 % fslice - functional data [nr nc nf] = size(fslice);
-% nroi - list of number of voxels in each roi to test
-% mask - only choose voxels from the given mask. If mask is not
-%   specified, then fslice is thresholded to give a mask. If mask
-%   is null, then no mask is used.
-% navg - randomly select navg sets for each roi, and average the
-%   variances across them.
+% radlist - list of "radii"
+% porder - detrend with polynomial of given order.
+% seed - center radius as [r0 c0] = seed. Default center of slice.
 %
 % When fslice is white, then the following two curves should be the
 % same: loglog(nroi,roivar,nroi,1./nroi)
 %
-% Results: never indicates that there's a problem because the
-% voxels are too dispersed across the volume.
-%
-% $Id: fast_weiskopf.m,v 1.1 2004/05/03 03:28:46 greve Exp $
+% $Id: fast_weiskopf.m,v 1.2 2004/05/04 05:05:34 greve Exp $
 %
 % (c) Douglas N. Greve, 2004
 
 roivar = [];
-polyorder = 2; % detrending order
+nroi = [];
 
-if(nargin < 2 | nargin > 4)
-  fprintf('[roivar, mask, navg] = fast_weiskopf(fslice,nroi,<mask>,<navg>)\n');
+if(nargin < 1 | nargin > 4)
+  fprintf('[roivar nroi roivar0] = fast_weiskopf(fslice,<radlist>,<porder>,<seed>)\n');
   return;
 end
 
 [nr nc nf] = size(fslice);
-
-if(~exist('navg','var')) navg = []; end
-if(isempty(navg)) navg = 10; end
-
-if(~exist('mask','var'))
-  % Mask not specified; get by thresholding
-  fslicemn = mean(fslice,3);
-  fslicegmn = mean(reshape1d(fslicemn));
-  mask = fslicemn > 2*fslicegmn;
-end
-if(isempty(mask)) 
-  % Mask specified but null; no mask.
-  mask = ones(nr,nc);
-end
-indmask = find(mask);
-nmask = length(indmask);
-
-if(max(nroi) > nmask)
-  fprintf('ERROR: max(nroi) > nmask)\n');
+nv = nr*nc;
+if(nf == 1)
+  fprintf('ERROR: fslice only have one frame\n');
   return;
 end
 
-% Reshape and mask
-fslice = reshape(fslice,[nr*nc nf])';
-fslice = fslice(:,indmask);
 
-% Detrend
-X = fast_polytrendmtx(1,nf,1,polyorder);
-R = eye(nf) - X*inv(X'*X)*X';
-fslice = R*fslice;
-
-nrois = length(nroi);
-for nthroi = 1:nrois
-  nroiuse = nroi(nthroi);
-  tmpstd = zeros(navg,1);
-  for nthavg = 1:navg
-    ind = randperm(nmask);
-    ind = ind(1:nroiuse);
-    tmpstd(nthavg) = std(mean(fslice(:,ind),2));
-  end
-
-  roivar(nthroi) = mean(tmpstd.^2);
-  
+if(~exist('seed','var')) seed = []; end
+if(isempty(seed)) 
+  r0 = round(nr/2) + 1;
+  c0 = round(nc/2) + 1;
+else
+  r0 = seed(1);
+  c0 = seed(2);
 end
+
+if(~exist('radlist','var')) radlist = []; end
+if(isempty(radlist)) 
+  radmax = min(round(nr/2)-1,round(nc/2)-1);
+  radlist = [1:radmax];
+end
+
+fslice = reshape(fslice,[nv nf])';
+
+if(~exist('porder','var')) porder = []; end
+if(~isempty(porder)) 
+  X = fast_polytrendmtx(1,nf,1,porder);
+  R = eye(nf) - X*inv(X'*X)*X';
+  fslice = R*fslice;
+end
+
+nradlist = length(radlist);
+for nthrad = 1:nradlist
+  rad = radlist(nthrad);
+  r = r0 + [-rad:rad];
+  c = c0 + [-rad:rad];
+  if(min(r)<1 | max(r)>nr  | min(c)<1 | max(c)>nc)
+    fprintf('ERROR: radius %g is too large for seed/slice slice\n',rad);
+    roivar = []; nroi = [];
+    return;
+  end
+  m = zeros(nr,nc);
+  m(r,c) = 1;
+  ind = find(m);
+  nroi(nthrad) = length(ind);
+  fslicemnroi = mean(fslice(:,ind),2);
+  roivar(nthrad) = std(fslicemnroi).^2;
+end
+
+% Compute the vox-by-vox mean variance over max rad
+rad = max(radlist);
+r = r0 + [-rad:rad];
+c = c0 + [-rad:rad];
+m = zeros(nr,nc);
+m(r,c) = 1;
+ind = find(m);
+roivar0 = mean(std(fslice(:,ind)).^2);
 
 return;
 
