@@ -12,7 +12,7 @@
 #include "mrimorph.h"
 #include "timer.h"
 
-static char vcid[] = "$Id: mri_fill.c,v 1.34 1999/08/25 20:29:52 fischl Exp $";
+static char vcid[] = "$Id: mri_fill.c,v 1.35 1999/08/27 21:44:10 fischl Exp $";
 
 /*-------------------------------------------------------------------
                                 CONSTANTS
@@ -70,6 +70,7 @@ static char vcid[] = "$Id: mri_fill.c,v 1.34 1999/08/25 20:29:52 fischl Exp $";
                                 GLOBAL DATA
 -------------------------------------------------------------------*/
 
+static FILE *log_fp = NULL ;
 static int lh_fill_val = MRI_LEFT_HEMISPHERE ;
 static int rh_fill_val = MRI_RIGHT_HEMISPHERE ;
 
@@ -280,6 +281,9 @@ main(int argc, char *argv[])
       ErrorExit(ERROR_BADPARM, "%s: could not find corpus callosum", Progname);
   }
 
+  if (log_fp)
+    fprintf(log_fp, "CC:   %d, %d, %d (TAL: %2.1f, %2.1f, %2.1f)\n",
+            x_cc, y_cc, z_cc, cc_tal_x, cc_tal_y, cc_tal_z) ;
   if (!pons_seed_set)
   {
     MRI  *mri_mask ;
@@ -325,6 +329,11 @@ main(int argc, char *argv[])
     if (!mri_pons)
       ErrorExit(ERROR_BADPARM, "%s: could not find pons", Progname);
   }
+
+  if (log_fp)
+    fprintf(log_fp, "PONS: %d, %d, %d (TAL: %2.1f, %2.1f, %2.1f)\n",
+            x_pons, y_pons, z_pons, pons_tal_x, pons_tal_y, pons_tal_z) ;
+  fclose(log_fp) ;
 
   if (atlas_name && 0)
   {
@@ -789,6 +798,14 @@ get_option(int argc, char *argv[])
       exit(1) ;
     }
     nargs = 1 ;
+    break ;
+  case 'L':
+    log_fp = fopen(argv[2], "w") ;
+    if (!log_fp)
+      ErrorExit(ERROR_BADPARM, "%s: could not open cutting plane log file %s",
+                Progname, argv[2]) ;
+    nargs = 1 ;
+    fprintf(stderr, "logging cutting plane coordinates to %s...\n", argv[2]) ;
     break ;
   case 'F':
     fill_val = atoi(argv[2]) ;
