@@ -3999,16 +3999,17 @@ int MWin_TclSetCursorShape ( ClientData  ipClientData,
 }
 
 int MWin_TclSetSurfaceLineWidth ( ClientData  ipClientData, 
-           Tcl_Interp* ipInterp,
-           int         argc,
-           char*       argv[] ) {
+				  Tcl_Interp* ipInterp,
+				  int         argc,
+				  char*       argv[] ) {
 
   tkmMeditWindowRef this         = NULL;
   int               eTclResult   = TCL_OK;
   MWin_tErr         eResult      = MWin_tErr_NoErr;
   DspA_tErr         eDispResult  = DspA_tErr_NoErr;
   char              sError[256]  = "";       
-  Surf_tVertexSet   surface      = Surf_tVertexSet_None;
+  Surf_tVertexSet   set          = Surf_tVertexSet_None;
+  tkm_tSurfaceType  surface      = tkm_tSurfaceType_Main;
   int               nWidth       = 0;
 
   /* grab us from the client data ptr */
@@ -4029,19 +4030,20 @@ int MWin_TclSetSurfaceLineWidth ( ClientData  ipClientData,
     goto error;
 
   /* verify the number of arguments. */
-  if ( argc != 3 ) {
+  if ( argc != 4 ) {
     eResult = MWin_tErr_WrongNumberArgs;
     goto error;
   }
 
   /* parse the args */
-  surface = (Surf_tVertexSet) atoi( argv[1] );
-  nWidth  = atoi( argv[2] );
+  surface = (tkm_tSurfaceType) atoi( argv[1] );
+  set     = (Surf_tVertexSet) atoi( argv[2] );
+  nWidth  = atoi( argv[3] );
 
   /* call the on the last clicked display */
-   eDispResult = 
+  eDispResult = 
     DspA_SetSurfaceLineWidth ( this->mapDisplays[this->mnLastClickedArea], 
-             surface, nWidth );
+			       surface, set, nWidth );
   if ( DspA_tErr_NoErr != eDispResult ) {
     eResult = MWin_tErr_ErrorAccessingDisplay;
     goto error;
@@ -4078,7 +4080,8 @@ int MWin_TclSetSurfaceLineColor ( ClientData  ipClientData,
   MWin_tErr         eResult      = MWin_tErr_NoErr;
   DspA_tErr         eDispResult  = DspA_tErr_NoErr;
   char              sError[256]  = "";       
-  Surf_tVertexSet   surface      = Surf_tVertexSet_None;
+  Surf_tVertexSet   set          = Surf_tVertexSet_None;
+  tkm_tSurfaceType  surface      = tkm_tSurfaceType_Main;
   xColor3f          color;
 
   /* grab us from the client data ptr */
@@ -4099,21 +4102,22 @@ int MWin_TclSetSurfaceLineColor ( ClientData  ipClientData,
     goto error;
 
   /* verify the number of arguments. */
-  if ( argc != 5 ) {
+  if ( argc != 6 ) {
     eResult = MWin_tErr_WrongNumberArgs;
     goto error;
   }
 
   /* parse the args */
-  surface       = (Surf_tVertexSet) atoi( argv[1] );
-  color.mfRed   = atof( argv[2] );
-  color.mfGreen = atof( argv[3] );
-  color.mfBlue  = atof( argv[4] );
+  surface = (tkm_tSurfaceType) atoi( argv[1] );
+  set     = (Surf_tVertexSet) atoi( argv[2] );
+  color.mfRed   = atof( argv[3] );
+  color.mfGreen = atof( argv[4] );
+  color.mfBlue  = atof( argv[5] );
 
   /* call the on the last clicked display */
    eDispResult = 
-    DspA_SetSurfaceLineColor ( this->mapDisplays[this->mnLastClickedArea], 
-             surface, &color );
+     DspA_SetSurfaceLineColor ( this->mapDisplays[this->mnLastClickedArea], 
+				surface, set, &color );
   if ( DspA_tErr_NoErr != eDispResult ) {
     eResult = MWin_tErr_ErrorAccessingDisplay;
     goto error;
