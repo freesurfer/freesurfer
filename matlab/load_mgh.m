@@ -1,4 +1,4 @@
-function [vol, M, mr_parms, Mdc, c_ras] = load_mgh(fname,slices,frames)
+function [vol, M, mr_parms, ras_xform] = load_mgh(fname,slices,frames)
 % [vol, M, mr_parms, Mdc] = load_mgh(fname,<slices>,<frames>)
 %
 % fname - path of the mgh file
@@ -20,7 +20,7 @@ function [vol, M, mr_parms, Mdc, c_ras] = load_mgh(fname,slices,frames)
 %
 % See also: save_mgh, vox2ras_0to1
 %
-% $Id: load_mgh.m,v 1.9 2004/01/20 19:15:24 ebeth Exp $
+% $Id: load_mgh.m,v 1.10 2004/01/23 18:55:50 ebeth Exp $
 
 vol = [];
 M = [];
@@ -88,7 +88,8 @@ if (ras_good_flag)
 
   M = [Mdc*D Pxyz_0;  ...
 	0 0 0 1];
-  c_ras = Pxyz_c;
+  ras_xform = [Mdc Pxyz_c; ...
+	0 0 0 1];
   unused_space_size = unused_space_size - USED_SPACE_SIZE ;
 end
 
