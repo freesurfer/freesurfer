@@ -186,6 +186,7 @@ Volm_tErr Volm_LoadDisplayTransform ( mriVolumeRef this,
 Volm_tErr Volm_UnloadDisplayTransform ( mriVolumeRef this );
 
 
+
 /* Use the GetColor functions when you just need to display a color on
    the screen. It gets a sampled value and passes it through the color
    table to return an intensity color. */

@@ -629,6 +629,8 @@ Volm_tErr Volm_ExportNormToCOR ( mriVolumeRef this,
   return eResult;
 }
 
+
+
 ////////////////////////////////////////////////////////////////////////////////
 Volm_tErr Volm_LoadDisplayTransform ( mriVolumeRef this,
 				      char*        isFileName ) 
@@ -2541,6 +2543,35 @@ Volm_tErr Volm_SetColorMinMax ( mriVolumeRef this,
   /* recalc the color table */
   eResult = Volm_MakeColorTable( this );
   DebugAssertThrow( (Volm_tErr_NoErr == eResult) );
+  
+  DebugCatch;
+  DebugCatchError( eResult, Volm_tErr_NoErr, Volm_GetErrorString );
+  EndDebugCatch;
+  
+  DebugExitFunction;
+  
+  return eResult;
+}
+
+Volm_tErr Volm_GetBrightnessAndContrast ( mriVolumeRef this,
+					  float*       ofBrightness,
+					  float*       ofContrast ) {
+  
+  Volm_tErr eResult = Volm_tErr_NoErr;
+  
+  DebugEnterFunction( ("Volm_getBrightnessAndContrast( this=%p, "
+		       "ofBrightness=%p, ofContrast=%p )", this,
+		       ofBrightness, ofContrast) );
+  
+  DebugNote( ("Verifying volume") );
+  eResult = Volm_Verify( this );
+  DebugAssertThrow( (eResult == Volm_tErr_NoErr) );
+  DebugAssertThrowX( (NULL != ofBrightness && NULL != ofContrast),
+		     eResult, Volm_tErr_InvalidParamater );
+  
+  /* return the values */
+  *ofBrightness = this->mfColorBrightness;
+  *ofContrast   = this->mfColorContrast;
   
   DebugCatch;
   DebugCatchError( eResult, Volm_tErr_NoErr, Volm_GetErrorString );
