@@ -4534,12 +4534,13 @@ ImageUnpad(IMAGE *Isrc, IMAGE *Idst, int rows, int cols)
 int
 ImageValid(IMAGE *I)
 {
-  int    size ;
+  long   size, total, bad ;
   float  *fpix ;
   double *dpix, exponent, val ;
 
-  size = I->rows * I->cols * I->num_frame ;
+  size = (long)I->rows * (long)I->cols * (long)I->num_frame ;
 
+  total = bad = 0 ;
   switch (I->pixel_format)
   {
   case PFFLOAT:
@@ -4549,9 +4550,13 @@ ImageValid(IMAGE *I)
       val = *fpix++ ;
       if (val == 0.0)
         continue ;
+      total++ ;
       exponent = log10(fabs(val)) ;
-      if ((exponent > 6.0) || (exponent < -50))
+      if (exponent > 10.0)   /* any values this big are indicative */
         return(0) ;
+
+      if ((exponent > 6.0) || (exponent < -20))
+        bad++ ;
     }
     break ;
   case PFDOUBLE:
@@ -4561,13 +4566,25 @@ ImageValid(IMAGE *I)
       val = *dpix++ ;
       if (val == 0.0)
         continue ;
+      total++ ;
       exponent = log10(fabs(val)) ;
-      if ((exponent > 6.0) || (exponent < -50))
+      if (exponent > 10.0)   /* any values this big are indicative */
         return(0) ;
+
+      if ((exponent > 6.0) || (exponent < -20))
+        bad++ ;
     }
     break ;
   case PFDBLCOM:
     break ;
+  }
+
+  if (total)
+  {
+    float pct ;
+
+    pct = (float)bad / (float)total ;
+    return(pct < 0.50f) ;   /* less than 50% of non-zero pixels bad */
   }
 
   return(1) ;
