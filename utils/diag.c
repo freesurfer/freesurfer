@@ -92,10 +92,8 @@ DiagShowImage(unsigned long diag_bits, int win, int which, IMAGE *I,
 
   WinShowImage(win, I, which) ;
   WinSetName(win, which, name) ;
-#if 1
   if (diag_bits & DIAG_WAIT)     /* wait for a keystroke before continuing */
     fgetc(stdin) ;    
-#endif
 
   return(win) ;
 }
