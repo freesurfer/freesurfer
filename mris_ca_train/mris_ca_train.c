@@ -195,6 +195,7 @@ main(int argc, char *argv[])
   if (ptable)
     write_ptable(fname, ptable, nparcs) ;
   printf("writing classifier array to %s...\n", out_fname) ;
+	gcsa->ptable_fname = ptable_fname ;
   GCSAwrite(gcsa, out_fname) ;
   GCSAfree(&gcsa) ;
   msec = TimerStop(&start) ;
