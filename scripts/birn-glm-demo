@@ -1,7 +1,7 @@
 #!/bin/csh -f
 # birn-glm-demo
-# $Id: birn-glm-demo,v 1.2 2003/01/08 18:03:48 greve Exp $
-set VERSION = '$Id: birn-glm-demo,v 1.2 2003/01/08 18:03:48 greve Exp $';
+# $Id: birn-glm-demo,v 1.3 2003/01/08 18:06:34 greve Exp $
+set VERSION = '$Id: birn-glm-demo,v 1.3 2003/01/08 18:06:34 greve Exp $';
 
 set inputargs = ($argv);
 
@@ -144,15 +144,15 @@ res = y-yhat;
 resvar = sum(res.^2)/DOF;
 
 g = C*B;
-vrf = C*inv(X'*X)*C';
-gstd = sqrt(resvar*vrf);
+vmf = C*inv(X'*X)*C';
+gstd = sqrt(resvar*vmf);
 t = g/gstd;
 p = tTest(DOF,abs(t),300);
 
 fprintf(grfid,'offset = %g\n',B(1));
 fprintf(grfid,'slope = %g\n',B(2));
 fprintf(grfid,'resvar = %g\n',resvar);
-fprintf(grfid,'vrf = %g\n',vrf);
+fprintf(grfid,'vrf = %g\n',1/vmf);
 fprintf(grfid,'ces = %g\n',g);
 fprintf(grfid,'cesstd = %g\n',gstd);
 fprintf(grfid,'t = %g\n',t);
