@@ -413,6 +413,11 @@ FunD_tErr FunD_ParseRegistrationAndInitMatricies ( mriFunctionalDataRef this ) {
   float   slices           = 0;
   float   rows             = 0;
   float   cols             = 0;
+  FILE*   fRegister        = NULL;
+  FunD_tConversionMethod convMethod     = FunD_tConversionMethod_FCF;
+  char                   sLine[1024]    = "";
+  char                   sKeyWord[1024] = "";
+  tBoolean               bGood          = FALSE;
 
   // read the registration info.
   strcpy( theFileName, this->mRegistration );
@@ -477,6 +482,42 @@ FunD_tErr FunD_ParseRegistrationAndInitMatricies ( mriFunctionalDataRef this ) {
   Trns_DebugPrint_( this->mIdxToIdxTransform );
   Trns_DebugPrint_( this->mRASToIdxTransform );
   */
+
+
+  /* At this point we scan thru the register file looking for a line
+     with the string tkregister, floor, or round on it. This will specify
+     our conversion method. If nothing is found, tkregister will be used. */
+  fRegister = fopen( theFileName, "r" );
+  if( NULL == fRegister ) {
+    DebugPrint( ("FunD_ParseRegistrationAndInitMatricies(): Couldn\'t open registration info from %s to look for conversion type.\n", theFileName ) );
+    return FunD_tErr_CouldntReadRegisterFile;
+  }
+
+  /* Start with our default of tkregister. */
+  convMethod = FunD_tConversionMethod_FCF;
+
+  while( !feof( fRegister )) {
+
+    /* read line and look for string */
+    fgets( sLine, 1024, fRegister );
+    bGood = sscanf( sLine, "%s", sKeyWord );
+    if( bGood ) {
+
+      if( strcmp( sKeyWord, "tkregister" ) == 0 ) {
+        convMethod = FunD_tConversionMethod_FCF;
+      }
+      if( strcmp( sKeyWord, "floor" ) == 0 ) {
+        convMethod = FunD_tConversionMethod_FFF;
+      }
+      if( strcmp( sKeyWord, "round" ) == 0 ) {
+        convMethod = FunD_tConversionMethod_Round;
+      }
+    }
+  }
+
+  fclose( fRegister );
+
+  FunD_SetConversionMethod( this, convMethod );
 
   return FunD_tErr_NoError;
 }

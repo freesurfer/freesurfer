@@ -508,12 +508,17 @@ FunV_tErr FunV_LoadFunctionalVolume_ ( tkmFunctionalVolumeRef this,
     goto error;
   }
 
+  /* rkt - commented out because the functional volume should no
+     longer set the conversion method explicitly. it should only be
+     set when parsing the register.dat file. */
+#if 0
   /* set the conversion method */
   eVolume = FunD_SetConversionMethod( pVolume, this->mDefaultConvMethod );
   if( FunD_tErr_NoError != eVolume ) {
     eResult = FunV_tErr_ErrorAccessingInternalVolume;
     goto error;
   }
+#endif
 
   /* return the volume */
   *ioppVolume = pVolume;
