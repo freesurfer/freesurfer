@@ -50,7 +50,7 @@
 QUEUE *
 Qalloc(int max_elts)
 {
-  QUEUE *q ;
+  QUEUE *q ; int i=max_elts;
 
   q = (QUEUE *)calloc(1, sizeof(QUEUE)) ;
   

@@ -47,6 +47,13 @@
 
 -----------------------------------------------------------------*/
 
+/******************************************************************
+  Notes from Doug:
+  1.  There may need to be some checking to make sure that the image
+  supplied to some of the functions is in the correct format.
+
+ ******************************************************************/
+
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -693,6 +700,8 @@ ImageDilate(IMAGE *Isrc, IMAGE *Idst, int which)
 IMAGE   *
 ImageErode(IMAGE *Isrc, IMAGE *Idst, int which)
 {
+  int i=which;            /* prevents warning */
+  IMAGE *tmp; tmp = Isrc; /* prevents warning */
   return(Idst) ;
 }
 /*-----------------------------------------------------
@@ -869,12 +878,12 @@ morphFilter(IMAGE *Isrc, IMAGE *Idst)
                  row_start, row_end, col_start, col_end, *dpix, *endpix ;
   register int   val, frow, fcol ;
 
-  row_pix = rows = Isrc->rows ;
-  cols = Isrc->cols ;
+  row_pix = (int)rows = Isrc->rows ;
+  cols = (int)Isrc->cols ;
 
   /* first do borders - top row */
-  dpix = IMAGEIpix(Idst, 0, 0) ;
-  endpix = IMAGEIpix(Idst, Idst->cols-1, Idst->rows-1) ;
+  dpix = (int *)IMAGEIpix(Idst, 0, 0) ;
+  endpix = (int *)IMAGEIpix(Idst, Idst->cols-1, Idst->rows-1) ;
 
   for (row = 0 ; row < rows ; row++)
   {
@@ -916,9 +925,9 @@ morphApplyLut(IMAGE *Isrc, IMAGE *Idst, unsigned char *lut)
   rows = Isrc->rows ;
   cols = Isrc->cols ;
 
-  dpix = IMAGEpix(Idst, 0, 0) ;
+  dpix = (unsigned char *)IMAGEpix(Idst, 0, 0) ;
   endpix = IMAGEpix(Idst, Idst->cols-1, Idst->rows-1) ;
-  spix = IMAGEIpix(Isrc, 0, 0) ;
+  spix = (int *)IMAGEIpix(Isrc, 0, 0) ;
   for (row = 0 ; row < rows ; row++)
   {
     for (col = 0 ; col < cols ; col++)
