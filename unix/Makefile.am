@@ -2,7 +2,7 @@
 # Makefile.am
 #
 # Makefile.am specify i addtion to the standard
-AM_CPPFLAGS=$(GL_CFLAGS) $(GLUT_CFLAGS) -I$(top_srcdir)/include -I$(top_srcdir)/include/dicom
+AM_CPPFLAGS=$(X_CFLAGS) $(GLUT_CFLAGS) -I$(top_srcdir)/include -I$(top_srcdir)/include/dicom
 AM_LDFLAGS=
 
 lib_LIBRARIES= libunix.a
