@@ -9,7 +9,9 @@ function f = pulsespectrum(x0,x1,w)
 % 
 % If x0 = -x1, then the result will be all real.
 %
-% $Id: pulsespectrum.m,v 1.1 2004/01/17 05:32:45 greve Exp $
+% $Id: pulsespectrum.m,v 1.2 2004/01/26 03:16:40 greve Exp $
+
+f = [];
 
 if(nargin ~= 3)
   fprintf('f = pulsespectrum(x0,x1,w)\n');
