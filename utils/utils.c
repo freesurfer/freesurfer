@@ -483,7 +483,7 @@ FileName(char *full_name)
 int
 FileType(char *fname)
 {
-  char *dot, buf[100], *number ;
+  char *dot, buf[STR_LEN], *number ;
 
   if (*fname == '@')
     return(LIST_FILE) ;
@@ -521,7 +521,7 @@ FileType(char *fname)
 int
 FileNumber(char *fname)
 {
-  char buf[100], *number ;
+  char buf[STR_LEN], *number ;
   int  num ;
 
   strcpy(buf, fname) ;
@@ -546,7 +546,7 @@ FileNumberOfEntries(char *fname)
 {
   int  type, num, nentries ;
   FILE *fp ;
-  char buf[100], line[200], *cp ;
+  char buf[STR_LEN], line[2*STR_LEN], *cp ;
 
   strcpy(buf, fname) ;   /* we will modify fname, don't ruin callers copy */
   fname = buf ;
@@ -629,7 +629,7 @@ FileFullName(char *full_name)
 char *
 FileTmpName(char *basename)
 {
-  static char fname[100] ;
+  static char fname[STR_LEN] ;
   int         i ;
   FILE        *fp ;
 
@@ -691,7 +691,7 @@ angleDistance(float theta1, float theta2)
 int
 stricmp(char *str1, char *str2)
 {
-  char buf1[100], buf2[100] ;
+  char buf1[STR_LEN], buf2[STR_LEN] ;
 
   strcpy(buf1, str1) ;
   strcpy(buf2, str2) ;
