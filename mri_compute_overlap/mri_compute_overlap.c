@@ -17,9 +17,8 @@ int main(int argc, char *argv[]) ;
 static int get_option(int argc, char *argv[]) ;
 
 char *Progname ;
+static char *log_fname = NULL ;
 static void usage_exit(int code) ;
-
-static int normalize_flag = 0 ;
 
 
 int
@@ -30,6 +29,7 @@ main(int argc, char *argv[])
   int          msec, minutes, seconds, wrong, total, correct ;
   struct timeb start ;
   MRI    *mri1, *mri2, *mri_diff ;
+  FILE   *log_fp ;
 
   Progname = argv[0] ;
   ErrorInit(NULL, NULL, NULL) ;
@@ -58,6 +58,16 @@ main(int argc, char *argv[])
   if (!mri2)
     ErrorExit(ERROR_NOFILE, "%s: could not read volume from %s",Progname,
               argv[2]) ;
+
+  if (log_fname)
+  {
+    log_fp = fopen(log_fname, "a+") ;
+    if (!log_fp)
+      ErrorExit(ERROR_BADFILE, "%s: could not open %s for writing",
+                Progname, log_fname) ;
+  }
+  else
+    log_fp = NULL ;
   mri_diff = MRIabsdiff(mri1, mri2, NULL) ;
   MRIbinarize(mri_diff, mri_diff, 1, 0, 1) ;
   wrong = MRIvoxelsInLabel(mri_diff, 1) ;
@@ -72,8 +82,14 @@ main(int argc, char *argv[])
 #endif
 
   correct = total-wrong ;
-  printf("%d of %d voxels correctly labeled - %2.1f%%\n",
+  printf("%d of %d voxels correctly labeled - %2.2f%%\n",
          correct, total, 100.0f*(float)correct/(float)total) ;
+  if (log_fp)
+  {
+    fprintf(log_fp,"%d  %d  %2.4f\n", correct, total, 
+            100.0f*(float)correct/(float)total) ;
+    fclose(log_fp) ;
+  }
 
   msec = TimerStop(&start) ;
   seconds = nint((float)msec/1000.0f) ;
@@ -101,11 +117,10 @@ get_option(int argc, char *argv[])
   option = argv[1] + 1 ;            /* past '-' */
   switch (toupper(*option))
   {
-  case 'N':
-    normalize_flag = atoi(argv[2]) ;
-    fprintf(stderr, "noise-sensitiviy normalization %s\n",
-            normalize_flag ? "on" : "off") ;
+  case 'L':
+    log_fname = argv[2] ;
     nargs = 1 ;
+    fprintf(stderr, "logging results to %s\n", log_fname) ;
     break ;
   case '?':
   case 'U':
@@ -127,11 +142,10 @@ get_option(int argc, char *argv[])
 static void
 usage_exit(int code)
 {
-  printf("usage: %s [options] <inverse operator> <EEG/MEG data file>",
+  printf("usage: %s [options] <volume 1> <volume 2>",
          Progname) ;
   printf(
          "\tf <f low> <f hi> - apply specified filter (not implemented yet)\n"
          );
-  printf("\tn - noise-sensitivity normalize inverse (default=1)") ;
   exit(code) ;
 }
