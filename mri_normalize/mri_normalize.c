@@ -79,7 +79,7 @@ main(int argc, char *argv[])
   }
 
   if (verbose)
-    fprintf(stderr, "\writing output to %s\n", out_fname) ;
+    fprintf(stderr, "writing output to %s\n", out_fname) ;
   MRIwrite(mri_dst, out_fname) ;
   msec = TimerStop(&start) ;
   seconds = nint((float)msec/1000.0f) ;
