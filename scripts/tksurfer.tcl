@@ -1409,6 +1409,7 @@ proc DoSpecifyStemAndRegistration { inField } {
 
     global val sPath sStem sRegistration
     global gDialog gaLinkedVars
+    global env user_data test_data
 
     set wwDialog .wwDoSpecifyStemAndRegistration
 
@@ -1460,6 +1461,7 @@ proc DoSaveValuesAsDlog {} {
 
     global gDialog
     global gaScalarValueID gsaLabelContents
+    global env user_data test_data
 
     set knWidth 400
     set wwDialog .wwSaveValuesAs
@@ -1521,7 +1523,7 @@ proc DoSaveValuesAsDlog {} {
 proc GDF_LoadDlog {} {
     global gDialog gaLinkedVars
     global gaScalarValueID gsaLabelContents
-    global env
+    global env user_data test_data
 
     set wwDialog .wwLoadGDFDlog
 
@@ -1728,6 +1730,7 @@ proc DoInflateDlog {} {
 proc DoDecimationDlog {} {
 
     global gDialog
+    global env user_data test_data
 
     set wwDialog .wwDecimationDlog
 
