@@ -1601,7 +1601,7 @@ br = (slice_in_mosaic - bc) / mos_r;
 /*-----------------------------------------------------------*/
 static MRI *mincRead(char *fname, int read_volume)
 {
-
+  // Real wx, wy, wz;
   MRI *mri;
   Volume vol;
   Status status;
@@ -1725,9 +1725,9 @@ static MRI *mincRead(char *fname, int read_volume)
     mri->z_r = -mri->z_r;  mri->z_a = -mri->z_a;  mri->z_s = -mri->z_s;
   }
 
-  voxel[0] = (mri->width - 1) / 2.0;
-  voxel[1] = (mri->height - 1) / 2.0;
-  voxel[2] = (mri->depth - 1) / 2.0;
+  voxel[0] = (mri->width) / 2.0;
+  voxel[1] = (mri->height) / 2.0;
+  voxel[2] = (mri->depth) / 2.0;
   voxel[3] = 0.0;
   convert_voxel_to_world(vol, voxel, &worldr, &worlda, &worlds);
   mri->c_r = worldr;
@@ -1748,6 +1748,12 @@ static MRI *mincRead(char *fname, int read_volume)
          (yfov > zfov ? yfov : zfov ) );
 
   strcpy(mri->fname, fname);
+
+  //////////////////////////////////////////////////////////////////////////
+  // test transform their way and our way:
+  // MRIvoxelToWorld(mri, voxel[0], voxel[1], voxel[2], &wx, &wy, &wz);
+  // printf("MNI calculated %.2f, %.2f, %.2f vs. MRIvoxelToWorld: %.2f, %.2f, %.2f\n",
+  //  	 worldr, worlda, worlds, wx, wy, wz);
 
   /* ----- copy the data from the file to the mri structure ----- */
   if(read_volume){
@@ -1925,10 +1931,10 @@ static MRI *mincRead2(char *fname, int read_volume)
     mri->z_r = -mri->z_r;  mri->z_a = -mri->z_a;  mri->z_s = -mri->z_s;
   }
 
-  /* Get center point */
-  voxel[0] = (mri->width  - 1) / 2.0;
-  voxel[1] = (mri->height - 1) / 2.0;
-  voxel[2] = (mri->depth  - 1) / 2.0;
+  /* Get center point */       // don't.  our convention is different
+  voxel[0] = (mri->width)/2.;  // (mri->width  - 1) / 2.0;
+  voxel[1] = (mri->height)/2.; // (mri->height - 1) / 2.0;
+  voxel[2] = (mri->depth)/2.;  //(mri->depth  - 1) / 2.0;
   voxel[3] = 0.0;
   convert_voxel_to_world(vol, voxel, &worldr, &worlda, &worlds);
   mri->c_r = worldr;
