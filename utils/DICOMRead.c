@@ -2,7 +2,7 @@
    DICOM 3.0 reading functions
    Author: Sebastien Gicquel and Douglas Greve
    Date: 06/04/2001
-   $Id: DICOMRead.c,v 1.58 2004/09/28 20:18:12 tosa Exp $
+   $Id: DICOMRead.c,v 1.59 2004/09/28 22:20:09 tosa Exp $
 *******************************************************/
 
 #include <stdio.h>
@@ -1832,6 +1832,13 @@ char **ScanSiemensSeries(char *dcmfile, int *nList)
   fprintf(stderr,"INFO: found %d files in series\n",*nList);
   fflush(stderr);
 
+  // free memory
+  while(NFiles--) 
+  {
+    free(NameList[NFiles]);
+  }
+  free(NameList);
+  
   if(*nList == 0){
     free(SeriesList);
     return(NULL);
