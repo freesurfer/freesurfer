@@ -4298,3 +4298,56 @@ MRInormalizeHighSignalLowStd(MRI *mri_src, MRI *mri_norm, float bias_sigma, floa
   return(mri_norm) ;
 }
 
+
+MRI *
+MRIapplyBiasCorrection(MRI *mri_in, MRI *mri_bias, MRI *mri_out)
+{
+	int    x, y, z ;
+	Real   bias, val, xd, yd, zd ;
+	MATRIX *m_in_vox2ras, *m_bias_ras2vox, *m_vox2vox ;
+	VECTOR *v1, *v2 ;
+
+	v1 = VectorAlloc(4, MATRIX_REAL) ;
+	v2 = VectorAlloc(4, MATRIX_REAL) ;
+	*MATRIX_RELT(v1, 4,1) = 1 ;
+
+	if (mri_out == NULL)
+		mri_out = MRIclone(mri_in, NULL) ;
+
+	m_in_vox2ras = MRIgetVoxelToRasXform(mri_in) ;
+	m_bias_ras2vox = MRIgetRasToVoxelXform(mri_bias) ;
+	m_vox2vox = MatrixMultiply(m_bias_ras2vox, m_in_vox2ras, NULL) ;
+	MatrixFree(&m_in_vox2ras) ;
+	MatrixFree(&m_bias_ras2vox) ;
+	printf("using vox2vox xform:\n") ;
+	MatrixPrint(stdout, m_vox2vox) ;
+	for (x = 0 ; x < mri_in->width ; x++)
+	{
+		V3_X(v1) = x ;
+		for (y = 0 ; y < mri_in->height ; y++)
+		{
+			V3_Y(v1) = y ;
+			for (z = 0 ; z < mri_in->depth ; z++)
+			{
+				val = MRIgetVoxVal(mri_in, x, y, z, 0) ;
+				if (x == Gx && y == Gy && z == Gz)
+					DiagBreak() ;
+				V3_Z(v1) = z ;
+				MatrixMultiply(m_vox2vox, v1, v2) ;
+				xd = V3_X(v2) ; yd = V3_Y(v2) ; zd = V3_Z(v2) ; 
+				if (MRIindexNotInVolume(mri_bias, xd, yd, zd) == 0)
+				{
+					MRIsampleVolume(mri_bias, xd, yd, zd, &bias) ;
+					val *= bias ;
+					if (bias < 0)
+						DiagBreak() ;
+				}
+				MRIsetVoxVal(mri_out, x, y, z, 0, val) ;
+			}
+		}
+	}
+
+	MatrixFree(&m_vox2vox) ;
+	return(mri_out) ;
+
+}
