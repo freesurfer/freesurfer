@@ -8,10 +8,10 @@
 
       Description:  
 
-  $Header: /space/repo/1/dev/dev/utils/backprop.c,v 1.1 1996/04/04 17:59:21 fischl Exp $
+  $Header: /space/repo/1/dev/dev/utils/backprop.c,v 1.2 1996/04/15 16:13:11 fischl Exp $
   $Log: backprop.c,v $
-  Revision 1.1  1996/04/04 17:59:21  fischl
-  Initial revision
+  Revision 1.2  1996/04/15 16:13:11  fischl
+  removed warnings
 
 ----------------------------------------------------------------------*/
 
@@ -423,7 +423,7 @@ int
 BackpropWrite(BACKPROP *backprop, char *fname, int argc, char *argv[], 
               char *comments, int mode)
 {
-  FILE           *fp ;
+  FILE           *fp = NULL ;
   int            i ;
   char           *user, *time_str ;
   time_t         tt ;
@@ -568,7 +568,7 @@ BackpropWrite(BACKPROP *backprop, char *fname, int argc, char *argv[],
 int
 BackpropProcess(BACKPROP *backprop, float *I)
 {
-  int     i, class ;
+  int     i, class = -1 ;
   LAYER   *hidden, *output ;
   float   maxX ;
 
