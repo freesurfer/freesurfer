@@ -8585,16 +8585,16 @@ MRISinflateBrain(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
   
   sse = mrisComputeSSE(mris, parms) ;
   if (Gdiag & DIAG_SHOW)
-    fprintf(stderr,"%3.3d: dt: %2.4f, rms height=%2.3f, avgs=%d, sse=%2.1f\n", 
-            0, 0.0f, (float)rms_height, n_averages, (float)sse) ;
+    fprintf(stderr,"%3.3d: dt: %2.4f, rms height=%2.3f, avgs=%d\n", 
+            0, 0.0f, (float)rms_height, n_averages) ;
   else
     fprintf(stderr, "\rstep %3.3d: RMS=%2.3f (target=%2.3f)   ", 0, 
             rms_height, desired_rms_height);
   if (Gdiag & DIAG_WRITE)
   {
     fprintf(parms->fp, 
-            "%3.3d: dt: %2.4f, rms height=%2.3f, avgs=%d, sse=%2.1f\n", 
-            0, 0.0f, (float)rms_height, n_averages, (float)sse) ;
+            "%3.3d: dt: %2.4f, rms height=%2.3f, avgs=%d\n", 
+            0, 0.0f, (float)rms_height, n_averages) ;
     fflush(parms->fp) ;
   }
 
@@ -8633,16 +8633,16 @@ MRISinflateBrain(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
       rms_height = MRISrmsTPHeight(mris) ;
       if (Gdiag & DIAG_SHOW)
         fprintf(stderr, 
-                "%3.3d: dt: %2.4f, rms height=%2.3f, avgs=%d, sse=%2.1f\n", 
-                n+1,(float)delta_t, (float)rms_height, n_averages, (float)sse);
+                "%3.3d: dt: %2.4f, rms height=%2.3f, avgs=%df\n", 
+                n+1,(float)delta_t, (float)rms_height, n_averages);
       else
         fprintf(stderr, "\rstep %3.3d: RMS=%2.3f (target=%2.3f)   ", 
                 n+1, rms_height, desired_rms_height) ;
       if (Gdiag & DIAG_WRITE)
       {
         fprintf(parms->fp, 
-                "%3.3d: dt: %2.4f, rms height=%2.3f, avgs=%d, sse=%2.1f\n", 
-                n+1,(float)delta_t, (float)rms_height, n_averages, (float)sse);
+                "%3.3d: dt: %2.4f, rms height=%2.3f, avgs=%d\n", 
+                n+1,(float)delta_t, (float)rms_height, n_averages);
         fflush(parms->fp) ;
       }
       
@@ -16286,7 +16286,7 @@ mrisRemoveTriangleLinks(MRI_SURFACE *mris)
   int    fno ;
   FACE   *f ;
 
-  if (Gdiag & DIAG_SHOW)
+  if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
     fprintf(stderr, "removing non-quadrangular links.\n") ;
 
   for (fno = 0 ; fno < mris->nfaces ; fno += 2)
