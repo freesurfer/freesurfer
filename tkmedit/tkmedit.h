@@ -111,6 +111,7 @@ typedef enum {
   tkm_tTclCommand_UpdateCursorShape,
   tkm_tTclCommand_UpdateSurfaceLineWidth,
   tkm_tTclCommand_UpdateSurfaceLineColor,
+  tkm_tTclCommand_UpdateUseRealRAS,
   tkm_tTclCommand_UpdateSegBrushInfo,
   tkm_tTclCommand_UpdateVolumeColorScale,
   tkm_tTclCommand_UpdateSegmentationVolumeAlpha,
@@ -165,6 +166,7 @@ typedef enum {
   tkm_tTclCommand_FinishBuildingInterface,
   
   /* misc */
+  tkm_tTclCommand_DoResolveUseRealRASDlog,
   tkm_tTclCommand_ErrorDlog,  
   tkm_tTclCommand_FormattedErrorDlog,
   tkm_tTclCommand_AlertDlog,
@@ -322,6 +324,9 @@ void tkm_FloodSelect         ( xVoxelRef         iSeedMRIIdx,
 			       int               inFuzzy,
 			       int               inDistance,
 			       tBoolean          ibSelect );
+
+/* useRealRAS */
+tBoolean tkm_UseRealRAS();
 
 /* event processing */
 void tkm_HandleIdle ();
