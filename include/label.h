@@ -10,6 +10,7 @@ typedef struct
   float         y ;
   float         z ;
   unsigned char deleted ;
+  float         stat ;     /* statistic (might not be used) */
 } LABEL_VERTEX, LV ;
 
 typedef struct
