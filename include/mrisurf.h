@@ -7,6 +7,7 @@
 #include "image.h"
 #include "matrix.h"
 #include "transform.h"
+#include "const.h"
 
 #define TALAIRACH_COORDS     0
 #define SPHERICAL_COORDS     1
@@ -181,7 +182,7 @@ typedef struct
   int               free_transform ;
   double       radius ;           /* radius (if status==MRIS_SPHERE) */
   float        a, b, c ;          /* ellipsoid parameters */
-  char         fname[100] ;       /* file it was originally loaded from */
+  char         fname[STRLEN] ;    /* file it was originally loaded from */
   float        Hmin ;             /* min mean curvature */
   float        Hmax ;             /* max mean curvature */
   float        Kmin ;             /* min Gaussian curvature */
