@@ -8,7 +8,7 @@ function flacnew = flac_customize(flac)
 %
 % See flac_desmtx for how the design matrices are built.
 %
-% $Id: flac_customize.m,v 1.3 2004/11/13 16:46:07 greve Exp $
+% $Id: flac_customize.m,v 1.4 2004/12/11 00:06:27 greve Exp $
 
 flacnew = [];
 if(nargin ~= 1)
@@ -47,6 +47,7 @@ if(isempty(mri))
 end
 flacnew.mri = mri;
 flacnew.ntp = mri.nframes;
+flacnew.funcfspec = fstem;
 
 nev = length(flac.ev);
 for nthev = 1:nev
@@ -96,6 +97,22 @@ for nthev = 1:nev
   end
 
 end
+
+flacnew = flac_desmat(flacnew);
+flacnew.betafspec = sprintf('%s/%s/fla/%s/%s/beta',flacnew.sess,...
+			    flacnew.fsd,flacnew.name,...
+			    flacnew.runlist(flacnew.nthrun,:));
+flacnew.rvarfspec = sprintf('%s/%s/fla/%s/%s/rvar',flacnew.sess,...
+			    flacnew.fsd,flacnew.name,...
+			    flacnew.runlist(flacnew.nthrun,:));
+flacnew.indtask = flac_taskregind(flacnew);			    
+flacnew.indnuis = flac_nuisregind(flacnew);			    
+
+flacnew.maskfspec = sprintf('%s/%s/masks/%s%s',flacnew.sess,...
+			    flacnew.fsd,flacnew.mask);
+
+flacnew.acfsegfspec = sprintf('%s/%s/masks/%s',flacnew.sess,...
+		      flacnew.fsd,flacnew.acfsegstem);
 
 return;
 
