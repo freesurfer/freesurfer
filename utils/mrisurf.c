@@ -3,9 +3,9 @@
 // written by Bruce Fischl
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: segonne $
-// Revision Date  : $Date: 2005/02/27 19:01:29 $
-// Revision       : $Revision: 1.336 $
+// Revision Author: $Author: tosa $
+// Revision Date  : $Date: 2005/02/28 17:16:11 $
+// Revision       : $Revision: 1.337 $
 //////////////////////////////////////////////////////////////////
 #include <stdio.h>
 #include <string.h>
@@ -25530,9 +25530,11 @@ MRIStranslate(MRI_SURFACE *mris, float dx, float dy, float dz)
   return(NO_ERROR) ;
 }
 /*-----------------------------------------------------
-  Parameters:
+  MRIStransform
 
-  Returns value:
+  Parameters: mris, mri, lta, mri_dst
+
+  Returns value: int
 
   Description
   Apply a linear transform (possibly octree) to a surface.
@@ -25560,6 +25562,11 @@ MRIStransform(MRI_SURFACE *mris, MRI *mri, LTA *lta, MRI *mri_dst)
   int dstPresent = 1;
   int error = 0;
   char errMsg[256];
+  int dstNotGiven=0;
+
+  if (!mri_dst)
+    dstNotGiven = 1;
+
   // depend on the type of transform you have to handle differently
   //
   //       orig              ------>      RAS   c_(ras) != 0
@@ -25592,14 +25599,20 @@ MRIStransform(MRI_SURFACE *mris, MRI *mri, LTA *lta, MRI *mri_dst)
   
   // if volumes are not given, then try to get them from transform
   lt = &lta->xforms[0];
-  
-  // check the c_ras values
-  if (lta->type == LINEAR_RAS_TO_RAS){
+
+  /////////////////////////////////////////////////////////////////////
+  // The following rather fragile treatment about volume info is
+  // that lta may or may not store the valid src and dst info
+  // when the transform was created
+  // Another problem is due to the convention of conformed volume
+  ////////////////////////////////////////////////////////////////////
+  //////////////////////////////////////////////////////////////////
+  // check the c_ras values for mri side
+  if (lta->type == LINEAR_RAS_TO_RAS) {
     if (mri && lt->src.valid == 1){
-      // the following if- has bug, it will always be true -xh
-      if (!FZERO(lt->src.c_r - lt->src.c_r) 
-	  || !FZERO(lt->src.c_a - lt->src.c_a) 
-	  || !FZERO(lt->src.c_s - lt->src.c_s))
+      if (!(FZERO(lt->src.c_r - lt->src.c_r) 
+	    && FZERO(lt->src.c_a - lt->src.c_a) 
+	    && FZERO(lt->src.c_s - lt->src.c_s)))
 	{
 	  fprintf(stderr, "WARNING:*********************************************************\n");
 	  fprintf(stderr, "WARNING: c_(ras) values are not equal for the input volume and the transform src.\n");
@@ -25608,10 +25621,9 @@ MRIStransform(MRI_SURFACE *mris, MRI *mri, LTA *lta, MRI *mri_dst)
 	}
     }
     if (mri && mris->vg.valid == 1){
-      // the following if- has bug, it will always be true -xh
-      if (!FZERO(mris->vg.c_r - mris->vg.c_r) 
-	  || !FZERO(mris->vg.c_a - mris->vg.c_a) 
-	  || !FZERO(mris->vg.c_s - mris->vg.c_s)){
+      if (!(FZERO(mris->vg.c_r - mris->vg.c_r) 
+	    && FZERO(mris->vg.c_a - mris->vg.c_a) 
+	    && FZERO(mris->vg.c_s - mris->vg.c_s))){
 	fprintf(stderr, "WARNING:*********************************************************\n");
 	fprintf(stderr, "WARNING: c_(ras) values are not equal for the input volume and the surface stored volume.\n");
 	fprintf(stderr, "WARNING: The transformed surface position may be shifted.\n");
@@ -25632,7 +25644,7 @@ MRIStransform(MRI_SURFACE *mris, MRI *mri, LTA *lta, MRI *mri_dst)
     mri->ras_good_flag = 1;
     MRIreInitCache(mri);
   }
-  // if mri is not given, get it from the surface 
+  // if mri is not given and transform does not have it, get it from the surface 
   else if (!mri && mris->vg.valid == 1){
     fprintf(stderr, "INFO:try to get src info from the surface.\n");
     mri = MRIallocHeader(mris->vg.width, mris->vg.height, mris->vg.depth, MRI_UCHAR);
@@ -25648,6 +25660,7 @@ MRIStransform(MRI_SURFACE *mris, MRI *mri, LTA *lta, MRI *mri_dst)
     strcpy(errMsg, "When mri == NULL, the transform must have the valid src info.\n");
     goto mristransform_cleanup;
   }
+  ///////////////////////////////////////////////////////////////////////////
   // mri_dst side
   // Note: if mri_dst is not given, override the one stored in the transform
   if (!mri_dst && lt->dst.valid == 1){
@@ -25679,6 +25692,21 @@ MRIStransform(MRI_SURFACE *mris, MRI *mri, LTA *lta, MRI *mri_dst)
     mri_dst->xsize = 1; mri_dst->ysize = 1; mri_dst->zsize = 1;
     mri_dst->ras_good_flag = 1;
   }
+  // WATCH /////////////////////////////////////////////////////////////////////////
+  // When dst is not given, our convention is that the dst is conformed and thus we need 
+  // to modify mri_dst to be coronal conformed volume (even though transform target was not, 
+  // as in the case of MNI average_305 being non-coronal, non-conformed
+  //////////////////////////////////////////////////////////////////////////////////
+  if (dstNotGiven)
+  {
+    // assuming mri is conformed
+    mri_dst->width =mri->width; mri_dst->height =mri->height; mri_dst->depth =mri->depth;
+    mri_dst->xsize =mri->xsize; mri_dst->ysize =mri->ysize; mri_dst->zsize = mri->zsize;
+    mri_dst->x_r = -1; mri_dst->y_r = 0; mri_dst->z_r = 0;
+    mri_dst->x_a = 0;  mri_dst->y_a = 0; mri_dst->z_a = 1;
+    mri_dst->x_s = 0;  mri_dst->y_s = -1; mri_dst->z_s = 0;
+    // this means that we only retain c_ras info
+  }
   // you must reinitialise cache
   MRIreInitCache(mri_dst);
 
@@ -25688,6 +25716,20 @@ MRIStransform(MRI_SURFACE *mris, MRI *mri, LTA *lta, MRI *mri_dst)
   // Now we can calculate
   if (lta->type == LINEAR_RAS_TO_RAS)
   {
+    //  we follow the right hand side of the map
+    //
+    //    conformed -----> surfaceRAS (c_ras = 0)
+    //       |              |
+    //       V              V
+    //    conformed -----> RAS (c_ras != 0)
+    //       |              |
+    //       |             xfm
+    //       V              v
+    //  conformed dst ---> RAS (c_ras != 0)
+    //       |              |
+    //       V              V
+    //  conformed dst ---> surfaceRAS (c_ras = 0)
+    //
     RASFromSurfaceRAS = RASFromSurfaceRAS_(mri); // needs only c_(ras) info
     surfaceRASFromRAS = surfaceRASFromRAS_(mri_dst);  // need only c_(ras) info
     m = MatrixMultiply(lta->xforms[0].m_L, RASFromSurfaceRAS, NULL);
@@ -25753,6 +25795,7 @@ MRIStransform(MRI_SURFACE *mris, MRI *mri, LTA *lta, MRI *mri_dst)
   else
     return(NO_ERROR) ;
 }
+
 /*-----------------------------------------------------
   Parameters:
 
