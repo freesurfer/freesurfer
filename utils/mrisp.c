@@ -663,28 +663,6 @@ MRISfromParameterization(MRI_SP *mrisp, MRI_SURFACE *mris, int fno)
     if (((u0 == DEBUG_U) || (u1 == DEBUG_U)) &&
         ((v0 == DEBUG_V) || (v1 == DEBUG_V)))
       DiagBreak() ;
-    curv = *IMAGEFseq_pix(mrisp->Ip, u1, v1, fno) ;
-if (curv  > 100000.0)
-  DiagBreak() ;
-if (*IMAGEFseq_pix(mrisp->Ip, u1, v1, fno) > 100000.0)
-  DiagBreak() ;
-    curv = 
-      du        * dv        * *IMAGEFseq_pix(mrisp->Ip, u1, v1, fno) ;
-if ((curv > 10000.0) || (vertex->curv > 1000.0))
-  DiagBreak() ;
-    curv =
-      (1.0f-du) * dv        * *IMAGEFseq_pix(mrisp->Ip, u0, v1, fno) ;
-if ((curv > 10000.0) || (vertex->curv > 1000.0))
-  DiagBreak() ;
-    curv = 
-      (1.0f-du) * (1.0f-dv) * *IMAGEFseq_pix(mrisp->Ip, u0, v0, fno) ;
-if ((curv > 10000.0) || (vertex->curv > 1000.0))
-  DiagBreak() ;
-    curv =
-      du        * (1.0f-dv) * *IMAGEFseq_pix(mrisp->Ip, u1, v0, fno) ;
-if ((curv > 10000.0) || (vertex->curv > 1000.0))
-  DiagBreak() ;
-    
     /* do bilinear interpolation */
     curv = 
       du        * dv        * *IMAGEFseq_pix(mrisp->Ip, u1, v1, fno) +
@@ -693,8 +671,89 @@ if ((curv > 10000.0) || (vertex->curv > 1000.0))
       du        * (1.0f-dv) * *IMAGEFseq_pix(mrisp->Ip, u1, v0, fno) ;
 
     vertex->curv = curv ;
-if ((curv > 10000.0) || (vertex->curv > 1000.0))
-  DiagBreak() ;
+  }
+
+  return(mris) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
+MRI_SURFACE *
+MRISnormalizeFromParameterization(MRI_SP *mrisp, MRI_SURFACE *mris, int fno)
+{
+  float     a, b, c, phi, theta, x, y, z, uf, vf, du, dv, curv, d, var ;
+  int       vno, u0, v0, u1, v1 ;
+  VERTEX    *vertex ;
+
+  if (!mris)
+    mris = MRISclone(mrisp->mris) ;
+
+  if (FZERO(mris->radius))
+    a = b = c = MRISaverageRadius(mris) ;
+  else
+    a = b = c = mris->radius ;
+
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    vertex = &mris->vertices[vno] ;
+    x = vertex->x ; y = vertex->y ; z = vertex->z ;
+    theta = atan2(vertex->y/b, vertex->x/a) ;
+    if (theta < 0.0f)
+      theta = 2 * M_PI + theta ;  /* make it 0 --> 2*PI */
+    d = c*c-z*z ; if (d < 0.0) d = 0.0 ;
+    phi = atan2(sqrt(d), z) ;
+    if (phi < RADIANS(1))
+      DiagBreak() ;
+    if (vno == 60935)
+      DiagBreak() ;
+
+    uf = PHI_DIM(mrisp) * phi / PHI_MAX ;
+    vf = THETA_DIM(mrisp) * theta / THETA_MAX ;
+    u0 = floor(uf) ; u1 = ceil(uf) ;
+    v0 = floor(vf) ; v1 = ceil(vf) ;
+    du = uf - (float)u0 ; dv = vf - (float)v0 ;
+
+    /* enforce spherical topology  */
+    if (u0 < 0)  /* enforce spherical topology  */
+      u0 = -u0 ;
+    if (u0 >= U_DIM(mrisp))
+      u0 = U_DIM(mrisp)-(u0-U_DIM(mrisp)+1) ;
+    if (u1 < 0)  /* enforce spherical topology  */
+      u1 = -u1 ;
+    if (u1 >= U_DIM(mrisp))
+      u1 = U_DIM(mrisp)-(u1-U_DIM(mrisp)+1) ;
+    if (v0 < 0) 
+      v0 += V_DIM(mrisp) ;
+    if (v0 >= V_DIM(mrisp))
+      v0 -= V_DIM(mrisp) ;
+    if (v1 < 0) 
+      v1 += V_DIM(mrisp) ;
+    if (v1 >= V_DIM(mrisp))
+      v1 -= V_DIM(mrisp) ;
+
+    if (((u0 == DEBUG_U) || (u1 == DEBUG_U)) &&
+        ((v0 == DEBUG_V) || (v1 == DEBUG_V)))
+      DiagBreak() ;
+    /* do bilinear interpolation */
+    curv = 
+      du        * dv        * *IMAGEFseq_pix(mrisp->Ip, u1, v1, fno) +
+      (1.0f-du) * dv        * *IMAGEFseq_pix(mrisp->Ip, u0, v1, fno) +
+      (1.0f-du) * (1.0f-dv) * *IMAGEFseq_pix(mrisp->Ip, u0, v0, fno) +
+      du        * (1.0f-dv) * *IMAGEFseq_pix(mrisp->Ip, u1, v0, fno) ;
+
+    var = 
+      du        * dv        * *IMAGEFseq_pix(mrisp->Ip, u1, v1, fno+1) +
+      (1.0f-du) * dv        * *IMAGEFseq_pix(mrisp->Ip, u0, v1, fno+1) +
+      (1.0f-du) * (1.0f-dv) * *IMAGEFseq_pix(mrisp->Ip, u0, v0, fno+1) +
+      du        * (1.0f-dv) * *IMAGEFseq_pix(mrisp->Ip, u1, v0, fno+1) ;
+
+    if (FZERO(var))
+      var = FSMALL ;
+    vertex->curv = curv / (sqrt(var)) ;
   }
 
   return(mris) ;
