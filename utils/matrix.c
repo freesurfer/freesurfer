@@ -2033,3 +2033,21 @@ VectorAngle(VECTOR *v1, VECTOR *v2)
   return(angle) ;
 }
 
+float
+Vector3Angle(VECTOR *v1, VECTOR *v2)
+{
+  float  angle, l1, l2, dot, norm, x, y, z ;
+
+  x = V3_X(v1) ; y = V3_Y(v1) ; z = V3_Z(v1) ; l1 = sqrt(x*x+y*y+z*z) ;
+  x = V3_X(v2) ; y = V3_Y(v2) ; z = V3_Z(v2) ; l2 = sqrt(x*x+y*y+z*z) ;
+  norm = l1*l2 ;
+  if (FZERO(norm))
+    return(0.0f) ;
+  dot = V3_DOT(v1, v2) ;
+  if (dot > norm)
+    angle = acos(1.0) ;
+  else
+    angle = acos(dot / norm) ;
+  return(angle) ;
+}
+
