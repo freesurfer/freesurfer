@@ -70,8 +70,9 @@ int clustDumpClusterList(FILE *fp, VOLCLUSTER **vclist, int nlist,
 /*----------------------------------------------------------*/
 typedef struct {
   int nsim; /* number of simulation runs to generate table */
+  long int seed; /* seed for random number generator */
   int nvox; /* number of voxels/vertices in search area */
-  double totvol; /* total volume (mm^3) or area (mm^2) in search*/
+  double totsize; /* total volume (mm^3) or area (mm^2) in search*/
   double fwhm;   /* fwhm in mm */
   int nsmooth;   /* number of smooth steps, surf only */
   double   ithr_lo, ithr_hi; /* intensity threshold range */

@@ -784,8 +784,9 @@ int CHTprint(FILE *fp, CHT *cht)
 
   fprintf(fp,"# CHT 1\n");
   fprintf(fp,"# nsim        %d\n",cht->nsim);
+  fprintf(fp,"# seed        %ld\n",cht->seed);
   fprintf(fp,"# nvox        %d\n",cht->nvox);
-  fprintf(fp,"# totvol      %lf\n",cht->totvol);
+  fprintf(fp,"# totsize     %lf\n",cht->totsize);
   fprintf(fp,"# fwhm        %lf\n",cht->fwhm);
   fprintf(fp,"# nsmooth     %d\n",cht->nsmooth);
   fprintf(fp,"# n_ithr      %d\n",cht->n_ithr);
@@ -836,8 +837,9 @@ CHT *CHTread(char *fname)
   char tag[1000];
   char tmpstr[1000];
   int nsim; /* number of simulation runs to generate table */
+  long int seed; // Seed for random number generator
   int nvox; /* number of voxels/vertices in search area */
-  double totvol; /* total volume (mm^3) or area (mm^2) in search*/
+  double totsize; /* total volume (mm^3) or area (mm^2) in search*/
   double fwhm;   /* fwhm in mm */
   int nsmooth;   /* number of smooth steps, surf only */
   double   ithr_lo, ithr_hi; /* intensity threshold range */
@@ -879,8 +881,9 @@ CHT *CHTread(char *fname)
     //printf("%s \n",tag);
 
     if(!strcmp(tag,"nsim"))    sscanf(tmpstr,"%*s %*s %d", &nsim);
+    if(!strcmp(tag,"seed"))    sscanf(tmpstr,"%*s %*s %ld",&seed);
     if(!strcmp(tag,"nvox"))    sscanf(tmpstr,"%*s %*s %d", &nvox);
-    if(!strcmp(tag,"totvol"))  sscanf(tmpstr,"%*s %*s %lf",&totvol);
+    if(!strcmp(tag,"totsize"))  sscanf(tmpstr,"%*s %*s %lf",&totsize);
     if(!strcmp(tag,"fwhm"))    sscanf(tmpstr,"%*s %*s %lf",&fwhm);
     if(!strcmp(tag,"nsmooth")) sscanf(tmpstr,"%*s %*s %d", &nsmooth);
     if(!strcmp(tag,"n_ithr"))  sscanf(tmpstr,"%*s %*s %d", &n_ithr);
@@ -894,8 +897,9 @@ CHT *CHTread(char *fname)
   
   cht = CHTalloc(n_ithr, ithr_lo, ithr_hi, n_sthr, sthr_lo, sthr_hi);
   cht->nsim    = nsim;
+  cht->seed    = seed;
   cht->nvox    = nvox;
-  cht->totvol  = totvol;
+  cht->totsize = totsize;
   cht->fwhm    = fwhm;
   cht->nsmooth = nsmooth;
   strcpy(cht->ithr_sign,ithr_sign);
@@ -928,14 +932,15 @@ CHT *CHTread(char *fname)
   and 0 if they are the same. If an item in the targ is less than 0,
   then it's value is replaced with the value of the source. This 
   does not trigger a 1 return and allows for values to be filled in.
+  Does not compare seeds.
   ----------------------------------------------------------------*/
 int CHTcompare(CHT *src, CHT *targ)
 {
   if(targ->nvox < 0) targ->nvox = src->nvox;
   else if(targ->nvox != src->nvox) return(1);
 
-  if(targ->totvol < 0) targ->totvol = src->totvol;
-  else if(targ->totvol != src->totvol) return(1);
+  if(targ->totsize < 0) targ->totsize = src->totsize;
+  else if(targ->totsize != src->totsize) return(1);
 
   if(targ->fwhm < 0) targ->fwhm = src->fwhm;
   else if(targ->fwhm != src->fwhm) return(1);
