@@ -1,7 +1,7 @@
 /*-------------------------------------------------------------------
   Name: mri2.c
   Author: Douglas N. Greve
-  $Id: mri2.c,v 1.10 2004/11/04 17:56:59 greve Exp $
+  $Id: mri2.c,v 1.11 2004/12/20 02:02:40 kteich Exp $
   Purpose: more routines for loading, saving, and operating on MRI 
   structures.
   -------------------------------------------------------------------*/
@@ -673,7 +673,7 @@ int MRIdimMismatch(MRI *v1, MRI *v2, int frameflag)
 }
 
 /*---------------------------------------------------------------
-  MRISfdr2vwth() - computes the voxel-wise threshold needed to realize
+  MRIfdr2vwth() - computes the voxel-wise threshold needed to realize
   the given False Discovery Rate (FDR) based on the values in the
   given frame. Optionally thresholds the the MRI volume.
 
