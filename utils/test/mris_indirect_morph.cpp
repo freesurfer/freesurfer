@@ -50,7 +50,7 @@ void lubksb(double** a,int n,int* indx,double* b);
 
 void MRISsampleTemplateMappingToSource(MRI_SURFACE *mris, MRI_SURFACE *mris_template);
 
-static char vcid[] = "$Id: mris_indirect_morph.cpp,v 1.1 2005/02/08 17:22:48 xhan Exp $";
+static char vcid[] = "$Id: mris_indirect_morph.cpp,v 1.2 2005/02/08 19:17:55 xhan Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -68,6 +68,8 @@ char *out_name = NULL;
 int debugflag = 0;
 int debugvtx = 0;
 int pathflag = 0; 
+
+int normflag = 0;
 
 int register_flag = 0;
 
@@ -105,7 +107,7 @@ int main(int argc, char *argv[])
   int          transform_type;
   
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_indirect_morph.cpp,v 1.1 2005/02/08 17:22:48 xhan Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_indirect_morph.cpp,v 1.2 2005/02/08 19:17:55 xhan Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -405,6 +407,11 @@ get_option(int argc, char *argv[])
       debugvtx = atoi(argv[2]);
       nargs = 1;
     }
+  else if(!stricmp(option, "norm"))
+    {
+      normflag = 1;
+      printf("Normalize the sampled mapping to same length\n");
+    }
   else if (!stricmp(option, "xform")){
     xform_fname = argv[2];
     nargs = 1;
@@ -560,6 +567,8 @@ void MRISsampleTemplateMappingToSource(MRI_SURFACE *mris, MRI_SURFACE *mris_temp
   int index, k, facenumber, closestface;
   double sopt, topt, tmps, tmpt; /* triangle parametrization parameters */
   double value, distance;
+  double Radius, length, scale;
+  double sumx, sumy, sumz, sumweight, weight;
   VERTEX *vertex, *V1, *V2, *V3;
   FACE *face;
   ANNpointArray QueryPt;
@@ -580,6 +589,13 @@ void MRISsampleTemplateMappingToSource(MRI_SURFACE *mris, MRI_SURFACE *mris_temp
 
   QueryPt = annAllocPts(1,3);
 
+  if(normflag){
+    /* Compute the radius of the template mapping */
+    vertex = &mris_template->vertices[0];
+    Radius = sqrt(vertex->origx *vertex->origx + vertex->origy*vertex->origy
+	      + vertex->origz*vertex->origz);
+    printf("Radius = %g\n", Radius);
+  }
 
   for(index = 0; index < mris->nvertices; index++){
     vertex = &mris->vertices[index];
@@ -622,9 +638,32 @@ void MRISsampleTemplateMappingToSource(MRI_SURFACE *mris, MRI_SURFACE *mris_temp
     V1 = &mris_template->vertices[face->v[0]];
     V2 = &mris_template->vertices[face->v[1]];
     V3 = &mris_template->vertices[face->v[2]];
-    vertex->origx = sopt*V3->origx + topt*V2->origx + (1.0-sopt-topt)*V1->origx;
-    vertex->origy = sopt*V3->origy + topt*V2->origy + (1.0-sopt-topt)*V1->origy;
-    vertex->origz = sopt*V3->origz + topt*V2->origz + (1.0-sopt-topt)*V1->origz;
+    sumx = 0.0; sumy = 0.0; sumz = 0.0; sumweight = 0.0;
+    weight = 1.0/(1e-20 + (V1->x - vertex->x)*(V1->x - vertex->x) + (V1->y - vertex->y)*(V1->y - vertex->y) + (V1->z - vertex->z)*(V1->z - vertex->z));
+    sumx += weight*V1->origx; sumy += weight*V1->origy; sumz += weight*V1->origz;
+    sumweight += weight;
+    weight = 1.0/(1e-20 + (V2->x - vertex->x)*(V2->x - vertex->x) + (V2->y - vertex->y)*(V2->y - vertex->y) + (V2->z - vertex->z)*(V2->z - vertex->z));
+    sumx += weight*V2->origx; sumy += weight*V2->origy; sumz += weight*V2->origz;
+    sumweight += weight;
+    weight = 1.0/(1e-20 + (V3->x - vertex->x)*(V3->x - vertex->x) + (V3->y - vertex->y)*(V3->y - vertex->y) + (V3->z - vertex->z)*(V3->z - vertex->z));
+    sumx += weight*V3->origx; sumy += weight*V3->origy; sumz += weight*V3->origz;
+    sumweight += weight; 
+    
+    vertex->origx = sumx /(sumweight + 1e-30);
+    vertex->origy = sumy /(sumweight + 1e-30);
+    vertex->origz = sumz /(sumweight + 1e-30);
+
+    //    vertex->origx = sopt*V3->origx + topt*V2->origx + (1.0-sopt-topt)*V1->origx;
+    //vertex->origy = sopt*V3->origy + topt*V2->origy + (1.0-sopt-topt)*V1->origy;
+    //vertex->origz = sopt*V3->origz + topt*V2->origz + (1.0-sopt-topt)*V1->origz;
+    if(normflag){
+      length = sqrt(vertex->origx *vertex->origx + vertex->origy*vertex->origy
+	      + vertex->origz*vertex->origz);
+      scale = Radius/(length + 1e-20);
+      vertex->origx *= scale;
+      vertex->origy *= scale;
+      vertex->origz *= scale;
+    }
 
   }
   
