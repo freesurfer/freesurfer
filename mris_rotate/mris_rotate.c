@@ -13,7 +13,7 @@
 #include "mri.h"
 #include "macros.h"
 
-static char vcid[] = "$Id: mris_rotate.c,v 1.1 1997/09/15 16:45:16 fischl Exp $";
+static char vcid[] = "$Id: mris_rotate.c,v 1.2 1998/02/09 18:55:19 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -30,8 +30,8 @@ main(int argc, char *argv[])
 {
   char         **av, *in_fname, *out_fname ;
   int          ac, nargs ;
-  MRI_SURFACE  *mris_src, *mris_dst ;
-  float        delta_theta, delta_phi ;
+  MRI_SURFACE  *mris ;
+  float        alpha, beta, gamma ;
 
   Progname = argv[0] ;
   ErrorInit(NULL, NULL, NULL) ;
@@ -46,30 +46,35 @@ main(int argc, char *argv[])
     argv += nargs ;
   }
 
-  if (argc < 5)
+  if (argc < 6)
     usage_exit() ;
 
   in_fname = argv[1] ;
-  if (sscanf(argv[2], "%f", &delta_phi) != 1)
-    ErrorExit(ERROR_BADPARM, "%s: could not scan delta phi from %s",
+  if (sscanf(argv[2], "%f", &alpha) != 1)
+    ErrorExit(ERROR_BADPARM, "%s: could not scan alpha from %s",
               Progname, argv[2]) ;
-  if (sscanf(argv[3], "%f", &delta_theta) != 1)
-    ErrorExit(ERROR_BADPARM, "%s: could not scan delta phi from %s",
+  if (sscanf(argv[3], "%f", &beta) != 1)
+    ErrorExit(ERROR_BADPARM, "%s: could not scan beta from %s",
               Progname, argv[3]) ;
-  out_fname = argv[4] ;
+  if (sscanf(argv[4], "%f", &gamma) != 1)
+    ErrorExit(ERROR_BADPARM, "%s: could not scan gamma from %s",
+              Progname, argv[4]) ;
+  out_fname = argv[5] ;
 
-  mris_src = MRISread(in_fname) ;
-  if (!mris_src)
+  mris = MRISfastRead(in_fname) ;
+  if (!mris)
     ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s",
               Progname, in_fname) ;
-  
-  mris_dst = MRISrotate(mris_src,NULL,RADIANS(delta_phi),RADIANS(delta_theta));
-  if (!mris_dst)
+
+  alpha = RADIANS(alpha) ; beta = RADIANS(beta) ; gamma = RADIANS(gamma) ;
+  MRIScenter(mris, mris) ;
+  MRISrotate(mris, mris, alpha, beta, gamma) ;
+  if (!mris)
     ErrorExit(ERROR_NOFILE, "%s: could not rotate surface", Progname) ;
 
   if (Gdiag & DIAG_SHOW)
     fprintf(stderr, "writing rotated surface to %s\n", out_fname) ;
-  MRISwrite(mris_dst, out_fname) ;
+  MRISwrite(mris, out_fname) ;
 
   exit(0) ;
   return(0) ;  /* for ansi */
