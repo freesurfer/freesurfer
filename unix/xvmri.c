@@ -258,7 +258,11 @@ mri_event_handler(XV_FRAME *xvf, Event *event,DIMAGE *dimage,
     break ;
   }
 
+#if 0
   if (event_is_up(event) && (event_id(event) == MS_LEFT))
+#else
+  if (event_id(event) == MS_LEFT)
+#endif
   {
     int view, old_which ;
 
@@ -749,7 +753,7 @@ XVMRIsetPoint(XV_FRAME *xvf, int which, int x, int y, int z)
     {
       dimage2 = XVgetDimage(xvf, which2, DIMAGE_IMAGE) ;
       mri2 = mris[which2] ;
-      if (dimage2 && (which2 != which) && mri2)
+      if (dimage2 /* && (which2 != which) */ && mri2)
       {
         MRIvoxelToVoxel(mri, mri2, (Real)x, (Real)y, (Real)z, &xr, &yr, &zr);
         x2 = nint(xr) ; y2 = nint(yr) ; z2 = nint(zr) ;
