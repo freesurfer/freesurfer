@@ -49,10 +49,7 @@ typedef struct {
 
   int mnDimension;
 
-  MRI*           mpNormValues;    /* normalized color values (0-255) */
-  MRI*           mpRawValues;     /* raw values. used if the volume
-             is not unsigned chars before 
-             normalization. */
+  MRI*           mpMriValues;    /* normalized color values (0-255) */
   BUFTYPE*       mpSnapshot;      /* copy of normalized values */
   Volm_tValueRef mpMaxValues;     /* max projection. 3 planes, each dimension
              of a slice. 
@@ -72,7 +69,10 @@ typedef struct {
   float mfColorBrightness;                 /* threshold */
   float mfColorContrast;                   /* squash */
   xColor3f maColorTable[Volm_knNumValues]; /* color for each value */
-
+  MATRIX   *m_resample_orig ;              /* matrix that takes 256^3->original volume */
+  MATRIX   *m_resample ;                   /* matrix that takes 256^3->original volume */
+  float     max_val ;                      /* max value in mpMriValues */
+  float     min_val ;                      /* min value in mpMriValues */
 } mriVolume, *mriVolumeRef;
 
 typedef enum {
@@ -300,15 +300,15 @@ int Volm_GetMaxValueIndex_ ( mriVolumeRef     this,
 #define Volm_GetNormValueAtXYSlice_(iOrientation,iPoint,inSlice,oValue) \
   switch( iOrientation ) {                                          \
   case mri_tOrientation_Coronal:                                    \
-    *(oValue) = MRIvox( this->mpNormValues, (iPoint)->mnX,          \
+    *(oValue) = MRIvox( this->mpMriValues, (iPoint)->mnX,          \
             (iPoint)->mnY, (inSlice) );                 \
     break;                                                          \
   case mri_tOrientation_Horizontal:                                 \
-    *(oValue) = MRIvox( this->mpNormValues, (iPoint)->mnX,          \
+    *(oValue) = MRIvox( this->mpMriValues, (iPoint)->mnX,          \
             (inSlice), (iPoint)->mnY );                 \
     break;                                                          \
   case mri_tOrientation_Sagittal:                                   \
-    *(oValue) = MRIvox( this->mpNormValues, (inSlice),              \
+    *(oValue) = MRIvox( this->mpMriValues, (inSlice),              \
             (iPoint)->mnY, (iPoint)->mnX );             \
     break;                                                          \
   default:                                                          \
@@ -318,13 +318,13 @@ int Volm_GetMaxValueIndex_ ( mriVolumeRef     this,
 
 
 #define Volm_GetNormValueAtIdx_(this,iIdx) \
-       (Volm_tValue) MRIvox( this->mpNormValues, xVoxl_GetX(iIdx), \
+       (Volm_tValue) MRIvox( this->mpMriValues, xVoxl_GetX(iIdx), \
            xVoxl_GetY(iIdx), xVoxl_GetZ(iIdx) )
 #define Volm_GetSincNormValueAtIdx_(this,iIdx,irValue) \
-       MRIsincSampleVolume(this->mpNormValues,xVoxl_GetFloatX(iIdx), \
+       MRIsincSampleVolume(this->mpMriValues,xVoxl_GetFloatX(iIdx), \
                       xVoxl_GetFloatY(iIdx),xVoxl_GetFloatZ(iIdx),2,irValue)
 #define Volm_SetNormValueAtIdx_(this,iIdx,iValue) \
-                     MRIvox( this->mpNormValues, xVoxl_GetX(iIdx), \
+                     MRIvox( this->mpMriValues, xVoxl_GetX(iIdx), \
                        xVoxl_GetY(iIdx), xVoxl_GetZ(iIdx) ) = iValue
 float       Volm_GetRawValueAtIdx_      ( mriVolumeRef     this,
             xVoxelRef        iIdx );
