@@ -32,6 +32,12 @@
 #include "diag.h"
 #include "const.h"
 #include "proto.h"
+#include "error.h"
+
+/*----------------------------------------------------------------------
+                            CONSTANTS
+----------------------------------------------------------------------*/
+
 /*----------------------------------------------------------------------
                            STATIC DATA
 ----------------------------------------------------------------------*/
@@ -84,7 +90,7 @@ ConGraphInit(LOGMAP_INFO *lmi)
   nrows = lmi->nrows ;
 
   /* allocate more neighbors than we will ever need */
-  lmi->max_neighbors = ncols * nrows * 8 ;
+  lmi->max_neighbors = nrings * nspokes * 8 ;
   lmi->neighbors =
     (NEIGHBOR *)calloc(lmi->max_neighbors, sizeof(NEIGHBOR)) ;
   if (!lmi->neighbors)
@@ -201,11 +207,11 @@ static NEIGHBOR *
 newNeighbor(LOGMAP_INFO *lmi)
 {
   if (lmi->n_neighbors >= lmi->max_neighbors)
-  {
-    fprintf(stderr, "newNeighbor: too many total neighbors (%d)\n",
-            lmi->n_neighbors) ;
-    exit(1) ;
-  }
+    ErrorReturn(lmi->neighbors + lmi->n_neighbors,
+                (ERROR_NO_MEMORY, 
+                "newNeighbor: too many total neighbors (%d)\n",
+                lmi->n_neighbors)) ;
+
 
   return(lmi->neighbors + lmi->n_neighbors++) ;
 }
