@@ -21,6 +21,7 @@ void get_floats(int argc, char *argv[], int *pos, float *vals, int nvals);
 void get_string(int argc, char *argv[], int *pos, char *val);
 void usage_message(FILE *stream);
 void usage(FILE *stream);
+float findMinSize(MRI *mri);
 
 int debug=0;
 
@@ -39,6 +40,7 @@ int main(int argc, char *argv[])
   int in_info_flag, out_info_flag;
   int template_info_flag;
   int conform_flag;
+  int conform_min;  // conform to the smallest dimension
   int parse_only_flag;
   int reorder_flag;
   int in_stats_flag, out_stats_flag;
@@ -102,6 +104,7 @@ int main(int argc, char *argv[])
   int force_ras_good = FALSE;
   char gdf_image_stem[STRLEN];
   int in_matrix_flag, out_matrix_flag;
+  float minSize;
 
   for(i=0;i<argc;i++) printf("%s ",argv[i]);
   printf("\n");
@@ -183,9 +186,10 @@ int main(int argc, char *argv[])
   gdf_image_stem[0] = '\0';
   in_matrix_flag = FALSE;
   out_matrix_flag = FALSE;
+  conform_min = FALSE;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_convert.c,v 1.51 2003/05/28 18:26:24 ch Exp $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_convert.c,v 1.52 2003/07/03 22:00:30 tosa Exp $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -208,6 +212,8 @@ int main(int argc, char *argv[])
       get_string(argc, argv, &i, out_name);
     else if(strcmp(argv[i], "-nc") == 0 || strcmp(argv[i], "--no_conform") == 0)
       conform_flag = FALSE;
+    else if (strcmp(argv[i], "-cm") == 0 || strcmp(argv[i], "--conform_min") == 0)
+      conform_min = TRUE;
     else if(strcmp(argv[i], "-po") == 0 || strcmp(argv[i], "--parse_only") == 0)
       parse_only_flag = TRUE;
     else if(strcmp(argv[i], "-ii") == 0 || strcmp(argv[i], "--in_info") == 0)
@@ -730,12 +736,17 @@ int main(int argc, char *argv[])
     }
   }
   /**** Finished parsing command line ****/
+  /* option inconsistency checks */
   if(force_ras_good && (in_i_direction_flag || in_j_direction_flag ||
       in_k_direction_flag)){
-    printf("ERROR: cannot use --force_ras_good and --in_?_direction_flag\n");
+    fprintf(stderr, "ERROR: cannot use --force_ras_good and --in_?_direction_flag\n");
     exit(1);
   }
-
+  if (conform_flag == FALSE && conform_min == TRUE)
+  {
+    fprintf(stderr, "You cannot use both -nc (--no_conform) and -cm (--conform_min) at the same time.\n");
+    exit(1);
+  }
   /* ----- catch zero or negative voxel dimensions ----- */
 
   sizes_good_flag = TRUE;
@@ -1350,9 +1361,21 @@ int main(int argc, char *argv[])
         template->imnr0 = 1;
         template->imnr1 = 256;
         template->type = MRI_UCHAR;
-        template->thick = 1.0;
-        template->ps = 1.0;
-        template->xsize = template->ysize = template->zsize = 1.0;
+	if (conform_min==TRUE)
+	{
+	  // find out the min size 
+	  minSize = findMinSize(mri);
+	  template->thick = minSize;
+	  template->ps = minSize;
+	  template->xsize = template->ysize = template->zsize = minSize;
+	  printf("Data is conformed to %g size for all directin\n", minSize); 
+	}
+	else
+	{
+	  template->thick = 1.0;
+	  template->ps = 1.0;
+	  template->xsize = template->ysize = template->zsize = 1.0;
+	}
         template->xstart = template->ystart = template->zstart = -128.0;
         template->xend = template->yend = template->zend = 128.0;
         template->x_r = -1.0;  template->x_a =  0.0;  template->x_s =  0.0;
@@ -1820,4 +1843,25 @@ void usage(FILE *stream)
 
 } /* end usage() */
 
+float findMinSize(MRI *mri)
+{
+  float xsize, ysize, zsize;
+  xsize = mri->xsize;
+  ysize = mri->ysize;
+  zsize = mri->zsize;
+  // there are 3! = 6 ways of ordering
+  //             xy  yz  zx
+  // x > y > z    z min
+  // x > z > y    y min  
+  // z > x > y    y min
+  //////////////////////////
+  // y > x > z    z min
+  // y > z > x    x min
+  // z > y > x    x min
+  if (xsize > ysize)
+    return (ysize > zsize) ? zsize : ysize;
+  else
+    return (zsize > xsize) ? xsize : zsize;
+  
+}
 /* EOF */
