@@ -1,28 +1,42 @@
-function flac = fast_ldflac(flacfile)
-% flac = fast_ldflac(flacfile)
+function flac = fast_ldflac(flacfile,flac)
+% flac = fast_ldflac(flacfile,<flac>)
 %
-% $Id: fast_ldflac.m,v 1.8 2004/11/17 01:02:18 greve Exp $
+% $Id: fast_ldflac.m,v 1.9 2004/11/18 00:00:01 greve Exp $
 
-flac = [];
-if(nargin > 1)
-  fprintf('flac = fast_ldflac(flacfile)\n');
+if(nargin < 0 | nargin > 2)
+  fprintf('flac = fast_ldflac(flacfile,<flac>)\n');
+  flac = [];
   return;
 end
 
-flac.name = '';
-flac.fsd = '';
-flac.runlistfile = '';
-flac.funcstem = '';
-flac.runlistfile = '';
-flac.TR = [];
-flac.mask = '';
-flac.inorm = [];
-flac.whiten = 0;
-flac.fixacf = 0;
-flac.acfsegstem = '';
-flac.format = '';
-flac.formatext = '';
-%flac.ev = []; % Leave commented
+if(~exist('flac','var')) flac = []; end
+if(isempty(flac))
+  flac.name = '';
+  flac.fsd = '';
+  flac.runlistfile = '';
+  flac.funcstem = '';
+  flac.runlistfile = '';
+  flac.TR = [];
+  flac.mask = '';
+  flac.inorm = [];
+  flac.whiten = 0;
+  flac.fixacf = 0;
+  flac.acfsegstem = '';
+  flac.format = '';
+  flac.formatext = '';
+  %flac.ev = []; % Leave commented
+  flac.inheritlevel = 0;
+  inherit = 0;
+else
+  flac.inheritlevel = flac.inheritlevel + 1;
+  if(flac.inheritlevel > 10)
+    fprintf('ERROR: maximum INHERIT level exceeded.\n');
+    fprintf('       Check for circular INHERIT statements.\n');
+    flac = [];
+    return;
+  end
+  inherit = 1;
+end
 if(nargin == 0) return; end
 
 fp = fopen(flacfile,'r');
@@ -63,7 +77,18 @@ while(1)
   %fprintf('key = %s\n',key);
   
   switch(key)
-   case 'flacname',    flac.name        = sscanf(tline,'%*s %s',1);
+   case 'flacname',    
+    name  = sscanf(tline,'%*s %s',1);
+    if(~inherit) 
+      flac.name = name; % Dont inherit the name
+    else 
+      if(strcmp(flac.name,name))
+	fprintf('ERROR: flac parent and child have the same name\n');
+	flac = [];
+	return;
+      end
+    end 
+    
    case 'fsd',         flac.fsd         = sscanf(tline,'%*s %s',1);
    case 'TR',          flac.TR          = sscanf(tline,'%*s %f',1);
    case 'funcstem',    flac.funcstem    = sscanf(tline,'%*s %s',1);
@@ -74,6 +99,17 @@ while(1)
    case 'acfbins',     flac.acfbins     = sscanf(tline,'%*s %d',1);
    case 'fixacf',      flac.fixacf      = sscanf(tline,'%*s %d',1);
    case 'ACFSEG',      flac.acfsegstem  = sscanf(tline,'%*s %s',1);
+   case 'INHERIT',     
+    inheritflacname  = sscanf(tline,'%*s %s',1);
+    flacdir = dirname(flacfile);
+    inheritfile = sprintf('%s/%s',flacdir,inheritflacname);
+    if(strcmp(flacfile,inheritfile))
+      fprintf('ERROR: flac file %s cannot INHERIT itself.\n',flacfile);
+      flac = [];
+      return;
+    end
+    flac = fast_ldflac(inheritfile,flac);
+    if(isempty(flac)) return; end
    case 'FORMAT',      
     flac.format  = sscanf(tline,'%*s %s',1);
     if(strcmp(flac.format,'bvolume')) flac.formatext = ''; 
