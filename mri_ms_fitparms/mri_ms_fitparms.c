@@ -5,8 +5,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2004/01/15 21:55:55 $
-// Revision       : $Revision: 1.22 $
+// Revision Date  : $Date: 2004/01/16 15:06:00 $
+// Revision       : $Revision: 1.23 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -63,7 +63,6 @@ static char *residual_name = NULL ;
 
 #define MAX_IMAGES 100
 
-
 static double FLASHforwardModel(double flip_angle, double TR, double PD, 
                                 double T1) ;
 
@@ -81,7 +80,8 @@ static double estimate_ms_params_with_kalpha(MRI **mri_flash, MRI **mri_flash_sy
 #endif
 static void estimate_rigid_regmatrix(MRI *mri_source, MRI *mri_traget, MATRIX *M_reg);
 
-static float        tr = 0, te = 0, fa = 0 ;
+static float  tr = 0, te = 0;
+static double fa = 0 ;
 
 static int write_iterations=0;
 
@@ -110,7 +110,7 @@ main(int argc, char *argv[])
   int    modified;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_ms_fitparms.c,v 1.22 2004/01/15 21:55:55 tosa Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_ms_fitparms.c,v 1.23 2004/01/16 15:06:00 tosa Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
