@@ -438,6 +438,18 @@ MRIgetEqualizeHisto(MRI *mri, HISTOGRAM *histo_eq, int low, int high,int norm)
   HISTOfree(&histo) ;
   return(histo_eq) ;
 }
+#if 1
+MRI *
+MRIhistoEqualize(MRI *mri_src, MRI *mri_dst, int low, int high)
+{
+  HISTOGRAM  histo_eq ;
+
+  MRIgetEqualizeHisto(mri_src, &histo_eq, low, high, 1) ;
+  mri_dst = MRIapplyHistogram(mri_src, mri_dst, &histo_eq) ;
+/*  MRIcrunch(mri_dst, mri_dst) ;*/
+  return(mri_dst) ;
+}
+#else
 /*-----------------------------------------------------
         Parameters:
 
@@ -505,6 +517,7 @@ MRIhistoEqualize(MRI *mri_src, MRI *mri_template,MRI *mri_dst,int low,int high)
   }
   return(mri_dst) ;
 }
+#endif
 /*-----------------------------------------------------
         Parameters:
 
