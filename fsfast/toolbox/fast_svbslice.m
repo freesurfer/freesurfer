@@ -11,7 +11,7 @@ function err = fast_svbslice(y,stem,sliceno,bext,mristruct)
 %
 % See also fast_ldbslice, fast_mri_struct, fast_svbhdr.
 % 
-% $Id: fast_svbslice.m,v 1.9 2003/08/23 00:29:14 greve Exp $
+% $Id: fast_svbslice.m,v 1.10 2003/12/19 22:15:42 greve Exp $
 
 err = 1;
 
@@ -31,13 +31,15 @@ end
 if(sliceno >= 0)
   % Save as a single slice %
   fname = sprintf('%s_%03d.%s',stem,sliceno,bext);
-  fmri_svbfile(y,fname);
+  err = fmri_svbfile(y,fname);
+  if(err) return; end
 else
   % Save as an entire volume %
   nslices = size(y,3);
   for slice = 0:nslices-1
     fname = sprintf('%s_%03d.%s',stem,slice,bext);
-    fmri_svbfile(squeeze(y(:,:,slice+1,:)),fname);
+    err = fmri_svbfile(squeeze(y(:,:,slice+1,:)),fname);
+    if(err) return; end
   end
 
   % Check for extra slices and delete them %
