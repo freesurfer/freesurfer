@@ -145,11 +145,9 @@ RecReadPartially(char *fname, int iop_neeg, int iop_nmeg,int flag)
   
   /* added by twitzel */
   if(flag & 1) {
-    rec->nmeg_channels = 0;
     tnchan = rec->neeg_channels;
   }
   if(flag & 2) {
-    rec->neeg_channels = 0;
     tnchan = rec->nmeg_channels;
   }
 
@@ -176,7 +174,12 @@ RecReadPartially(char *fname, int iop_neeg, int iop_nmeg,int flag)
   fclose(fp);
   printf("rec file read, sample period %2.4f, starting latency %2.4f\n",
          rec->latencies[1]-rec->latencies[0], rec->latencies[0]);
-
+  if(flag & 1) {
+    rec->nmeg_channels=0;
+  }
+  if(flag & 2) {
+    rec->neeg_channels=0;
+  }                                                                                                                                                                           
 #if 0  
   sol_dipcmp_val[sol_nrec] = matrix(sol_nnz*sol_nperdip,sol_ntime);
 #endif
