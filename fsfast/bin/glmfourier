@@ -1,7 +1,7 @@
 #!/bin/csh -f
 # glmfourier
 
-set VERSION = '$Id: glmfourier,v 1.1 2004/06/03 22:51:35 greve Exp $'
+set VERSION = '$Id: glmfourier,v 1.2 2004/06/04 18:08:38 greve Exp $'
 set inputargs = ($argv);
 set ystem = ();
 set period = ();
@@ -226,9 +226,10 @@ ymn = fast_mat2vol(ymn,[nr nc ns]);
 betagls = fast_mat2vol(betagls,[nr nc ns]);
 Fsiggls = fast_mat2vol(Fsiggls,[nr nc ns]);
 rvargls = fast_mat2vol(rvargls,[nr nc ns]);
+Fsigols = fast_mat2vol(Fsigols,[nr nc ns]);
 
 %----- Save --------------------------------------------%
-stem = sprintf('%s/ymn',outdir);
+stem = sprintf('%s/h-offset',outdir);
 fast_svbslice(ymn,stem,-1,[],mristruct);
 stem = sprintf('%s/beta',outdir);
 fast_svbslice(betagls,stem,-1,[],mristruct);
@@ -236,6 +237,8 @@ stem = sprintf('%s/rvar',outdir);
 fast_svbslice(rvargls,stem,-1,[],mristruct);
 stem = sprintf('%s/omnibus/fsig',outdir);
 fast_svbslice(-log10(Fsiggls),stem,-1,[],mristruct);
+stem = sprintf('%s/omnibus/fsigols',outdir);
+fast_svbslice(-log10(Fsigols),stem,-1,[],mristruct);
 
 %------ Save mat file -------------------------------------------%
 xmatoutfile = sprintf('%s/X.mat',outdir);
