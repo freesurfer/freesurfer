@@ -35,7 +35,7 @@ mris_sample_label mris_sample_parc mris_segment_vals mris_smooth mris_sphere \
 mris_spherical_average mris_surface_to_vol_distances mrisp_paint \
 mris_talairach mris_thickness mris_thickness_comparison mris_transform \
 mris_translate_annotation mris_twoclass \
-mris_w_to_curv
+mris_w_to_curv spherical_stats
 
 FSGDF=mri_gdfglm mris_glm
 

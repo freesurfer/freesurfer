@@ -800,6 +800,7 @@ mri_vol2vol/Makefile \
 dngtester/Makefile \
 mri_threshold/Makefile \
 dummy/Makefile \
+spherical_stats/Makefile \
  ) 
 
 
