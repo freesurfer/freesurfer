@@ -83,6 +83,7 @@ typedef struct
 #ifdef _STATS_SRC
   char *stats_talxfm = "talairach.xfm";
   int  statnorm_float2int = FLT2INT_TKREG;
+  #undef _STATS_SRC
 #else
   extern char *stats_talxfm;
   extern int  statnorm_float2int;
