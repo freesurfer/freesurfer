@@ -472,6 +472,9 @@ int          MRISrestoreVertexPositions(MRI_SURFACE *mris, int which) ;
 #define DT_DECREASE  1.0
 #endif
 #define DT_MIN       0.01
+#ifdef ERROR_RATIO
+#undef ERROR_RATIO
+#endif
 #define ERROR_RATIO  1.03  /* 1.01 then 1.03 */
 
 #define NO_LABEL     -1
