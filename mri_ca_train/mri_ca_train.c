@@ -4,8 +4,8 @@
 /*                                                                     */
 /* Warning: Do not edit the following four lines.  CVS maintains them. */
 /* Revision Author: $Author: tosa $                                           */
-/* Revision Date  : $Date: 2004/03/17 18:52:09 $                                             */
-/* Revision       : $Revision: 1.28 $                                         */
+/* Revision Date  : $Date: 2004/03/18 14:52:49 $                                             */
+/* Revision       : $Revision: 1.29 $                                         */
 /***********************************************************************/
 
 #include <stdio.h>
@@ -1000,7 +1000,7 @@ get_option(int argc, char *argv[])
 static void
 usage_exit(int code)
 {
-  printf("Purpose: %s trains GCA data with (multiple) subject(s)\n"); 
+  printf("Purpose: %s trains GCA data with (multiple) subject(s)\n", Progname); 
   printf("Usage  : %s [options] <subject1> <subject2> ... <output gca fname>\n",
          Progname) ;
   printf("where SUBJECTS_DIR env variable must be set.\n"
