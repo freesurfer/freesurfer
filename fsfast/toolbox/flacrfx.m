@@ -1,123 +1,164 @@
-% flacrfx.m
-% $Id: flacrfx.m,v 1.1 2005/01/23 17:13:12 greve Exp $
-tic;
+function ok = flacrfx(flac,contrast)
+% ok = flacffx(flac,<contrast>)
+%
+% Random effects averaging of the first-level analysis. Uses
+% weighted least squares. Algorithm is correct even when 
+% contrast matrix has multiple rows.
+%
+% flac is a customized flac.
+% contrast is name of a contrast, or empty for all.
+%
+% Saves results to flac/rfx.
+%
+% $Id: flacrfx.m,v 1.2 2005/01/24 20:22:29 greve Exp $
+%
 
-%sess = '/homes/4/greve/links/sg1/skb/skb-101.1';
-%flacdir = '/homes/4/greve/links/sg1/skb/flac/';
-%flacfile = sprintf('%s/fn-swf-nvr.flac',flacdir);
-
-%sess = '/homes/4/greve/links/sg1/dng081403/dng-siemens';
-%flacdir = '/homes/4/greve/links/sg1/dng081403/flac';
-%flacfile = sprintf('%s/sm0-swf-omni.flac',flacdir);
-
-sess = '/homes/4/greve/links/sg1/xval/dng';
-flacdir = '/homes/4/greve/links/sg1/xval/flac';
-%flacfile = sprintf('%s/samc.flac',flacdir);
-
-
-flaclist = '';
-
-if(0)
-flaclist = 'samc';
-flaclist = strvcat(flaclist,'samc-rsyn');
-flaclist = strvcat(flaclist,'samc-rsyn-f025');
-flaclist = strvcat(flaclist,'samc-rsyn-f050');
-flaclist = strvcat(flaclist,'samc-rsyn-f075');
-flaclist = strvcat(flaclist,'samc-rsyn-f100');
+ok = 0;
+if(nargin < 1 | nargin > 2)
+  fprintf('ok = flacffx(flac,<contrast>)\n');
+  return;
 end
-
-flaclist = strvcat(flaclist,'samc-rsyn-snc-00-gn');
-flaclist = strvcat(flaclist,'samc-rsyn-snc-05-gn');
-flaclist = strvcat(flaclist,'samc-rsyn-snc-10-gn');
-
-if(0)
-flaclist = strvcat(flaclist,'samc-rsyn-snc-15');
-flaclist = strvcat(flaclist,'samc-rsyn-snc-20');
-flaclist = strvcat(flaclist,'samc-rsyn-snc-25');
-flaclist = strvcat(flaclist,'samc-rsyn-snc-30');
-flaclist = strvcat(flaclist,'samc-rsyn-snc-60');
-end
-
-nflacs = size(flaclist,1);
-
-for nthflac = 1:nflacs
-  flacname = deblank(flaclist(nthflac,:)); 
-  fprintf('flac %s\n',flacname);
-  
-  %flacfile = sprintf('%s/samc-rsyn-sm5.flac',flacdir);
-  flacfile = sprintf('%s/%s.flac',flacdir,flacname);
-    
-    
-flac = fast_ldflac(flacfile);
-flac.sess = sess;
 
 flac.nthrun = 1;
 flac = flac_customize(flac);
-flac = flac_desmat(flac);
+if(isempty(flac)) return; end
 
 nruns = size(flac.runlist,1);
+if(nruns == 1)
+  fprintf('ERROR: cannot RFx with only 1 run\n');
+  return;
+end
+
 ncon = length(flac.con);
+if(~exist('contrast','var')) contrast = []; end
+if(isempty(contrast))
+  nthconlist = [1:ncon];
+else
+  nthconlist = flac_conindex(contrast,flac);
+  if(isempty(nthconlist)) 
+    fprintf('ERROR: contrast %s does not exist\n',contrast);
+    return; 
+  end
+end
 
 flarfxdir = sprintf('%s/%s/fla/%s/rfx',flac.sess,flac.fsd, ...
 		    flac.name);
 mkdirpcmd = sprintf('mkdir -p %s',flarfxdir);
 unix(mkdirpcmd);
 
-betamnsaved = 0;
+matfile = sprintf('%s/%s/fla/%s/%s/flac.mat',flac.sess,flac.fsd, ...
+		    flac.name,flac.runlist(1,:));
+flac.mat = load(matfile);
+nseg = size(flac.mat.nacfseg,2);
+Nv = prod(flac.mri.volsize);
 
-for nthcon = 1:ncon
+% Load beta and rvar for all runs at the start
+betaruns = [];
+rvarruns = [];
+for nthrun = 1:nruns
+  flac.nthrun = nthrun;
+  flac = flac_customize(flac);
 
+  betarun = MRIread(flac.betafspec);
+  if(isempty(betarun)) return; end
+  betarun.vol = fast_vol2mat(betarun.vol);
+  betaruns(:,:,nthrun) = betarun.vol; %
+
+  rvarrun = MRIread(flac.rvarfspec);
+  rvarrun.vol = fast_vol2mat(rvarrun.vol);
+  rvarruns(1,:,nthrun) = rvarrun.vol; %
+end
+betamn = mean(betaruns,3);
+
+outfspec = sprintf('%s/beta.mgh',flarfxdir);
+mri = flac.mri;
+mri.vol = fast_mat2vol(betamn,mri.volsize);
+MRIwrite(mri,outfspec);
+
+% Now go through each contrast -----------------------
+for nthcon = nthconlist
+  
   C = flac.con(nthcon).C;
   J = size(C,1);
-  fprintf('%d %s, J=%d\n',nthcon,flac.con(nthcon).name,J);
-  if(J ~= 1) continue; end
-
-  
-  betasum = 0;
-  gam = [];
-  for nthrun = 1:nruns
-    fprintf('nthrun = %d/%d\n',nthrun,nruns);
-    flac.nthrun = nthrun;
-    flac = flac_customize(flac);
-    betarun = MRIread(flac.betafspec);
-    if(~betamnsaved) betasum = betasum + betarun.vol; end
-    betarun.vol = fast_vol2mat(betarun.vol);
-    gamrun = C*betarun.vol;
-    gam = [gam; gamrun];
-  end % run
-
-  X = ones(nruns,1);
-  [beta rvar vdof] = fast_glmfitw(gam,X);
-  [F dof1 dof2 ces] = fast_fratiow(beta,X,rvar,1);
-  p = FTest(dof1, dof2, F);
-  sig = -log10(p);
-  sigmri = betarun;
-  sigmri.vol = fast_mat2vol(sig,sigmri.volsize);
-
+  fprintf('  contrast %d %s, J=%d\n',nthcon,flac.con(nthcon).name,J);
   condir = sprintf('%s/%s',flarfxdir,flac.con(nthcon).name);
   mkdirpcmd = sprintf('mkdir -p %s',condir);
   unix(mkdirpcmd);
-  outfspec = sprintf('%s/fsig.mgh',condir);
-  MRIwrite(sigmri,outfspec);
-  
-  Fmri = betarun;
-  Fmri.vol = fast_mat2vol(F,Fmri.volsize); 
-  outfspec = sprintf('%s/f.mgh',condir);
-  MRIwrite(Fmri,outfspec);
 
-  if(~betamnsaved)
-    betamn = betarun;
-    betamn.vol = betasum/nruns;
-    betafspec = sprintf('%s/beta.mgh',flarfxdir);
-    MRIwrite(betamn,betafspec);
-    betamnsaved = 1;
-  end
+  beta_rfx = zeros(J,Nv);
+  rvar_rfx = zeros(1,Nv);
+  F_rfx    = zeros(1,Nv);
+  Fsig_rfx = zeros(1,Nv);
+  for nthseg = 0:nseg
+    indseg = find(flac.mat.acfseg.vol == nthseg);
+    
+    y_rfx = [];
+    M_rfx = [];
+    X_rfx = [];
+    for nthrun = 1:nruns
+      flac.nthrun = nthrun;
+      flac = flac_customize(flac);
+      
+      gamrun = C*betaruns(:,indseg,nthrun);
+      y_rfx = [y_rfx; gamrun];
+
+      rvarrunsegmn = mean(rvarruns(1,indseg,nthrun));
+      
+      % Compute the covariance for gamma
+      Xrun = flac.X;
+      if(nthseg > 0)
+	nacf = flac.mat.nacfseg(:,nthseg);
+	Srun = toeplitz(nacf);
+	Mrun = rvarrunsegmn*inv(C*Xrun'*inv(Srun)*Xrun*C');
+      else
+	Mrun = rvarrunsegmn*inv(C*Xrun'*Xrun*C');
+      end
+      M_rfx = fast_blockdiag2(M_rfx,Mrun);
+      
+      X_rfx = [X_rfx; eye(J)];
+    end % run
+
+    % Construct the GLM for the RFx analysis
+    W_rfx  = inv(chol(M_rfx)');
+    y_rfxw = W_rfx*y_rfx;
+    X_rfxw = W_rfx*X_rfx;
+    C_rfx  = eye(size(X_rfxw,2));
+
+    [betatmp rvartmp vdof] = fast_glmfitw(y_rfxw,X_rfxw);
+    [Ftmp dof1 dof2 ces] = fast_fratiow(betatmp,X_rfxw,rvartmp,C_rfx);
+    Fsigtmp = FTest(dof1, dof2, Ftmp);
+
+    beta_rfx(:,indseg) = betatmp;
+    rvar_rfx(:,indseg) = rvartmp;
+    F_rfx(:,indseg)    = Ftmp;
+    Fsig_rfx(:,indseg) = Fsigtmp;
+
+  end % seg
+  
+  outfspec = sprintf('%s/gam.mgh',condir);
+  mri = flac.mri;
+  mri.vol = fast_mat2vol(beta_rfx,mri.volsize);
+  MRIwrite(mri,outfspec);
+  
+  outfspec = sprintf('%s/gamvar.mgh',condir);
+  mri = flac.mri;
+  mri.vol = fast_mat2vol(rvar_rfx,mri.volsize);
+  MRIwrite(mri,outfspec);
+  
+  outfspec = sprintf('%s/f.mgh',condir);
+  mri = flac.mri;
+  mri.vol = fast_mat2vol(F_rfx,mri.volsize);
+  MRIwrite(mri,outfspec);
+  
+  outfspec = sprintf('%s/fsig.mgh',condir);
+  mri = flac.mri;
+  mri.vol = fast_mat2vol(Fsig_rfx,mri.volsize);
+  indnz = find(mri.vol ~= 0);
+  mri.vol(indnz) = -log10(mri.vol(indnz));
+  MRIwrite(mri,outfspec);
   
 end % contrast
 
-end % flac
-
-fprintf('flacrfx done\n');
-
-
+ok = 1;
+return;
 
