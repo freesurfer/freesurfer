@@ -2685,6 +2685,51 @@ MRImultiply(MRI *mri1, MRI *mri2, MRI *mri_dst)
 
 ------------------------------------------------------*/
 MRI *
+MRIscaleAndMultiply(MRI *mri1, float scale, MRI *mri2, MRI *mri_dst)
+{
+  int     width, height, depth, x, y, z ;
+  BUFTYPE *p1, *p2, *pdst ;
+  float   out_val ;
+
+  width = mri1->width ;
+  height = mri1->height ;
+  depth = mri1->depth ;
+
+  if (!mri_dst)
+  {
+    mri_dst = MRIalloc(width, height, depth, mri1->type) ;
+    MRIcopyHeader(mri1, mri_dst) ;
+  }
+
+  for (z = 0 ; z < depth ; z++)
+  {
+    for (y = 0 ; y < height ; y++)
+    {
+      p1 = mri1->slices[z][y] ;
+      p2 = mri2->slices[z][y] ;
+      pdst = mri_dst->slices[z][y] ;
+      for (x = 0 ; x < width ; x++)
+      {
+        out_val = *p1++ * (*p2++/scale) ;
+        if (out_val > 255)
+          out_val = 255 ;
+        else if (out_val < 0)
+          out_val = 0 ;
+        *pdst++ = (BUFTYPE)nint(out_val) ;
+      }
+    }
+  }
+  return(mri_dst) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+
+------------------------------------------------------*/
+MRI *
 MRIdivide(MRI *mri1, MRI *mri2, MRI *mri_dst)
 {
   int     width, height, depth, x, y, z ;
