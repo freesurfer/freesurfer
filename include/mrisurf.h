@@ -270,6 +270,7 @@ typedef struct
   float   l_angle ;           /* coefficient of angle term */
   float   l_area ;            /* coefficient of (negative) area term */
   float   l_parea ;           /* coefficient of (all) area term */
+  float   l_narea ;           /* coefficient of (all) area term */
   float   l_corr ;            /* coefficient of correlation term */
   float   l_pcorr ;           /* polar correlation for rigid body */
   float   l_curv ;            /* coefficient of curvature term */
