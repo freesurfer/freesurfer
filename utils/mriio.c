@@ -797,7 +797,8 @@ mncRead(char *fname, int read_volume, int frame)
   MRI                 *mri ;
   char                *dim_names[MAX_DIM] ;
   Volume              volume ;
-  int                 error, start_frame, end_frame, sizes[MAX_DIM] ;
+  int                 error, start_frame, end_frame, sizes[MAX_DIM], nframes,
+                      ndim ;
   volume_input_struct input_info ;
 
   dim_names[0] = MIxspace ;
@@ -814,16 +815,20 @@ mncRead(char *fname, int read_volume, int frame)
   if (error)
     return(NULL) ;
 
+  get_volume_sizes(volume, sizes) ;
+  ndim = get_volume_n_dimensions(volume) ;
+  if (ndim < 4)
+    nframes = 1 ;
+  else
+    nframes = sizes[3] ;
   if (frame < 0)
   {
-    get_volume_sizes(volume, sizes) ;
     start_frame = 0 ;
-    end_frame = sizes[3]-1 ;
+    end_frame = nframes-1 ;
   }
   else
   {
-    get_volume_sizes(volume, sizes) ;
-    if (frame >= sizes[3])
+    if (frame >= nframes)
     {
       delete_volume(volume) ;
       ErrorReturn(NULL,
