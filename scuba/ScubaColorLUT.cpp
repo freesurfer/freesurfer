@@ -297,7 +297,7 @@ ScubaColorLUTStaticTclListener::~ScubaColorLUTStaticTclListener () {
 
 TclCommandListener::TclCommandResult
 ScubaColorLUTStaticTclListener::DoListenToTclCommand ( char* isCommand, 
-						       int, char** iasArgv ) {
+						       int, char** ) {
 
   // GetColorLUTIDList
   if( 0 == strcmp( isCommand, "GetColorLUTIDList" ) ) {

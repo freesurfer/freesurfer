@@ -25,7 +25,8 @@ ScubaLayerFactory::GetFactory() {
 }
 
 TclCommandListener::TclCommandResult
-ScubaLayerFactory::DoListenToTclCommand( char* isCommand, int iArgc, char** iasArgv ) {
+ScubaLayerFactory::DoListenToTclCommand( char* isCommand, 
+					 int, char** iasArgv ) {
   
   // MakeLayer <layerType>   -- returns layer ID
   if( 0 == strcmp( isCommand, "MakeLayer" ) ) {
