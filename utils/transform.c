@@ -29,6 +29,8 @@
 
 #define MAX_TRANSFORMS (1024*4)
 
+static LTA  *ltaMNIread(char *fname) ;
+
 /*-----------------------------------------------------
         Parameters:
 
@@ -125,7 +127,11 @@ LTAread(char *fname)
   int              i, type, nxforms ;
   char             line[200], *cp ;
   LTA              *lta ;
-  
+
+  type = TransformFileNameType(fname) ;
+  if (type == MNI_TRANSFORM_TYPE)
+    return(ltaMNIread(fname)) ;
+
   fp = fopen(fname,"r");
   if (fp==NULL) 
     ErrorReturn(NULL,
@@ -491,5 +497,42 @@ TransformFileNameType(char *fname)
   }
 
   return(file_type) ;
+}
+
+static LTA  *
+ltaMNIread(char *fname)
+{
+  LTA              *lta ;
+  LINEAR_TRANSFORM *lt ;
+  char             *cp, line[300] ;
+  FILE             *fp ;
+  int              row ;
+  MATRIX           *m_L ;
+
+  fp = fopen(fname, "r") ;
+  if (!fp)
+    ErrorReturn(NULL, 
+                (ERROR_NOFILE, "ltMNIread: could not open file %s",fname));
+  lta = LTAalloc(1, NULL) ;
+  lt = &lta->xforms[0] ;
+  lt->sigma = lt->x0 = lt->y0 = lt->z0 = 0 ;
+
+  fgetl(line, 200, fp) ;
+  fgetl(line, 200, fp) ;
+  fgetl(line, 200, fp) ;
+  fgetl(line, 200, fp) ;
+  fgetl(line, 200, fp) ;
+
+  m_L = lt->m_L ;
+  for (row = 1 ; row <= 3 ; row++)
+  {
+    cp = fgetl(line, 200, fp) ;
+    sscanf(cp, "%f %f %f %f",
+           MATRIX_RELT(m_L,row,1), MATRIX_RELT(m_L,row,2), 
+           MATRIX_RELT(m_L,row,3), MATRIX_RELT(m_L,row,4)) ;
+  }
+  MatrixAsciiWriteInto(stderr, lt->m_L) ;
+  fclose(fp) ;
+  return(lta) ;
 }
 
