@@ -208,6 +208,10 @@ double VectorVar(MATRIX *v, double *pMean);
 double VectorStdDev(MATRIX *v, double *pMean);
 double VectorRange(MATRIX *v, double *pVmin, double *pVmax);
 
+MATRIX *GaussianMatrix(int len, float std, int norm, MATRIX *G);
+MATRIX *GaussianVector(int len, float mean, float std, int norm,
+		       MATRIX *g);
+
 #endif
 
 

@@ -3048,3 +3048,74 @@ MatrixSimilarityTransform(MATRIX *m_src, MATRIX *m_mul, MATRIX *m_dst)
 	return(m_dst) ;
 }
 
+/*---------------------------------------------------------------
+  GaussianVector() - creates a vector with len rows. The gaussian
+  curve is centered at the meanth row and has std. The mean can
+  be non-integer. If norm == 1, then the sum is adjusted to be 1.
+---------------------------------------------------------------*/
+MATRIX *GaussianVector(int len, float mean, float std, int norm,
+		       MATRIX *g)
+{
+  int n;
+  float v,sum,var,f;
+
+  if(g == NULL) g = MatrixAlloc(len,1,MATRIX_REAL);
+  else{
+    if(g->rows != len){
+      printf("ERROR: GaussianVector: dimension mismatch\n");
+      return(NULL);
+    }
+  }
+
+  var = std*std;
+  f = 2*M_PI*std;
+  sum = 0;
+  for(n=0; n < len; n++){
+    v = exp( -(n-mean)*(n-mean)/(2*var) )/f;
+    if(norm) sum += v;
+    g->rptr[n+1][1] = v;
+  }
+
+  if(norm){
+    for(n=0; n < len; n++){
+      g->rptr[n+1][1] /= sum;
+    }
+  }
+
+  return(g);
+}
+/*---------------------------------------------------------------
+  GaussianMatrix() - creates a gaussian convolution matrix. Each row
+  is a gaussian waveform with centered at the diagonal with standard
+  deviation std.  If norm == 1, then the sum of each row is adjusted
+  to be 1. The matrix will be len-by-len.
+  ---------------------------------------------------------------*/
+MATRIX *GaussianMatrix(int len, float std, int norm, MATRIX *G)
+{
+  int r, c;
+  float d,v,sum,var,f;
+
+  if(G == NULL) G = MatrixAlloc(len,len,MATRIX_REAL);
+  else{
+    if(G->rows != len || G->cols != len){
+      printf("ERROR: GaussianMatrix: dimension mismatch\n");
+      return(NULL);
+    }
+  }
+
+  var = std*std;
+  f = 2*M_PI*std;
+
+  for(r=0; r<len; r++){
+    sum = 0;
+    for(c=0; c < len; c++){
+      d = c-r;
+      v = exp( -(d*d)/(2*var) )/f;
+      if(norm) sum += v;
+      G->rptr[r+1][c+1] = v;
+    }
+    if(norm) for(c=0; c < len; c++) G->rptr[r+1][c+1] /= sum;
+  }
+
+  return(G);
+}
