@@ -966,18 +966,18 @@ ScubaLayer2DMRI::DoListenToTclCommand ( char* isCommand, int iArgc, char** iasAr
     
     if( mID == layerID ) {
 
-      float ras[3];
-      ras[0] = TclCommandManager::ConvertArgumentToFloat( iasArgv[2] );
-      ras[1] = TclCommandManager::ConvertArgumentToFloat( iasArgv[3] );
-      ras[2] = TclCommandManager::ConvertArgumentToFloat( iasArgv[4] );
-
       int index[3];
-      mVolume->RASToMRIIndex( ras, index );
+      index[0] = TclCommandManager::ConvertArgumentToInt( iasArgv[2] );
+      index[1] = TclCommandManager::ConvertArgumentToInt( iasArgv[3] );
+      index[2] = TclCommandManager::ConvertArgumentToInt( iasArgv[4] );
+
+      float ras[3];
+      mVolume->MRIIndexToRAS( index, ras );
 
       stringstream ssReturnValues;
-      ssReturnValues << index[0] << " " << index[1] << " " << index[2];
+      ssReturnValues << ras[0] << " " << ras[1] << " " << ras[2];
       sReturnValues = ssReturnValues.str();
-      sReturnFormat = "Liiil";
+      sReturnFormat = "Lfffl";
 
       return ok;
     }
@@ -1216,7 +1216,6 @@ ScubaLayer2DMRI::HandleTool ( float iRAS[3], ViewState& iViewState,
 	// updated on the screen. But we want to make this at least as
 	// big enough to cover whole voxels. So we'll increase the
 	// rect by the size of the voxel in window coords.
-	Point3<float> updateRectRAS[2];
 	Point2<int> updateRectWindow[2];
 
 	// Get a 0,0,0 voxel and a voxel-size voxel, convert both to

@@ -10,7 +10,7 @@ if { $err } {
     load [file dirname [info script]]/libscuba[info sharedlibextension] scuba
 }
 
-DebugOutput "\$Id: scuba.tcl,v 1.87 2005/02/25 17:19:22 kteich Exp $"
+DebugOutput "\$Id: scuba.tcl,v 1.88 2005/03/01 19:11:30 kteich Exp $"
 
 # gTool
 #   current - current selected tool (nav,)
@@ -1068,8 +1068,7 @@ proc GotoCoordsInputCallback {} {
 	if { "$gCoordsInput(system)" == "ras" } {
 	    
 	    # Set the cursor.
-	    SetViewRASCenter $gaView(current,id) \
-		[lindex $sFiltered 0] [lindex $sFiltered 1] \
+	    SetViewRASCursor [lindex $sFiltered 0] [lindex $sFiltered 1] \
 		[lindex $sFiltered 2]
 	    RedrawFrame [GetMainFrameID]
 	    
@@ -1089,11 +1088,11 @@ proc GotoCoordsInputCallback {} {
 		$gaWidget(coordsEntry) selection range 0 end
 		return;
 	    }
-	    
+
 	    set lRAS [Get2DMRIRASCoordsFromIndex $gaTool(current,targetLayer) \
 			  [lindex $sFiltered 0] [lindex $sFiltered 1] \
 			  [lindex $sFiltered 2]]
-	    SetViewRASCenter $gaView(current,id) \
+	    SetViewRASCursor \
 		[lindex $lRAS 0] [lindex $lRAS 1] [lindex $lRAS 2]
 	    RedrawFrame [GetMainFrameID]
  
@@ -4606,7 +4605,7 @@ proc SaveSceneScript { ifnScene } {
     set f [open $ifnScene w]
 
     puts $f "\# Scene file generated "
-    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.87 2005/02/25 17:19:22 kteich Exp $"
+    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.88 2005/03/01 19:11:30 kteich Exp $"
     puts $f ""
 
     # Find all the data collections.

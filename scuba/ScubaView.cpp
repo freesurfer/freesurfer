@@ -3151,6 +3151,8 @@ ScubaViewStaticTclListener::ScubaViewStaticTclListener () {
 			 "collectionID fileName", 
 			 "Imports markers from a control.dat file using "
 			 "a volume collection to transform them.." );
+  commandMgr.AddCommand( *this, "SetViewRASCursor", 3, "x y z", 
+			 "Sets the cursor in RAS coords." );
 }
 
 ScubaViewStaticTclListener::~ScubaViewStaticTclListener () {
@@ -3255,6 +3257,31 @@ ScubaViewStaticTclListener::DoListenToTclCommand ( char* isCommand,
     vol->ExportControlPoints( fnControlPoints, lMarkers );
   }
   
+  // SetViewRASCursor <X> <Y> <Z>
+  if( 0 == strcmp( isCommand, "SetViewRASCursor" ) ) {
+
+    float x = (float) strtod( iasArgv[1], (char**)NULL );
+    if( ERANGE == errno ) {
+	sResult = "bad x coordinate";
+	return error;
+    }
+    float y = (float) strtod( iasArgv[2], (char**)NULL );
+    if( ERANGE == errno ) {
+      sResult = "bad y coordinate";
+      return error;
+    }
+    float z = (float) strtod( iasArgv[3], (char**)NULL );
+    if( ERANGE == errno ) {
+      sResult = "bad z coordinate";
+      return error;
+    }
+    
+    float ras[3];
+    ras[0] = x; ras[1] = y; ras[2] = z;
+    ScubaView::SetCursor( ras );
+
+  }
+
   return ok;
 }
 
