@@ -17,7 +17,7 @@
 #include "oglutil.h"
 
 #if 0
-static char vcid[] = "$Id: oglutil.c,v 1.22 1999/03/23 00:06:09 fischl Exp $";
+static char vcid[] = "$Id: oglutil.c,v 1.23 1999/05/10 03:09:53 fischl Exp $";
 #endif
 
 /*-------------------------------- CONSTANTS -----------------------------*/
@@ -290,8 +290,7 @@ OGLUcompile(MRI_SURFACE *mris, int *marked_vertices, int flags, float cslope)
       if ((flags & PATCH_FLAG) && (v->nz < 0) && !(flags & NEG_FLAG))
         continue ;
 
-#if 1
-      if (flags & COORD_FLAG)
+      if (flags & COORD_FLAG && getenv("THIN_LINES") == NULL)
       {
         int    itheta, iphi ;
         float  phi_dist, theta_dist, dist, xc, yc, zc, radius, theta, phi ;
@@ -335,7 +334,6 @@ OGLUcompile(MRI_SURFACE *mris, int *marked_vertices, int flags, float cslope)
 #endif
       }
       else
-#endif
         coord_coef = 0 ;
 
       if (marked)
@@ -449,8 +447,8 @@ OGLUcompile(MRI_SURFACE *mris, int *marked_vertices, int flags, float cslope)
     }
 
     
-#if 0
-  if (flags & COORD_FLAG)    /* draw canonical coordinate system */
+  /* draw canonical coordinate system */
+  if (flags & COORD_FLAG && getenv("THIN_LINES") != NULL)
   {
     float  cheight = 15*0.05 ; /* dist edge above surface (0.05 in surfer.c) */
     FACE   *f ;
@@ -495,6 +493,7 @@ OGLUcompile(MRI_SURFACE *mris, int *marked_vertices, int flags, float cslope)
           RGBcolor(255,230,0);
           RGBcolor(180,135,255);
           RGBcolor(150,255,255);
+          RGBcolor(255,230, 0) ;  
           glLineWidth(1.0f);
           for (fvno = 0 ; fvno < VERTICES_PER_FACE ; fvno++)
             fcoords[fvno] = DEGREES(vf[fvno]->phi) ;
@@ -504,6 +503,7 @@ OGLUcompile(MRI_SURFACE *mris, int *marked_vertices, int flags, float cslope)
           avg_coord = DEGREES(theta_avg) ;
           RGBcolor(180,135,255);
           RGBcolor(150,255,255);
+          RGBcolor(255,230, 0) ;  
           glLineWidth(1.0f);
           for (fvno = 0 ; fvno < VERTICES_PER_FACE ; fvno++)
             fcoords[fvno] = DEGREES(vf[fvno]->theta) ;
@@ -574,7 +574,6 @@ OGLUcompile(MRI_SURFACE *mris, int *marked_vertices, int flags, float cslope)
     }
   }
 
-#endif
 
 #if 0
   if (flags & COORD_FLAG)    /* draw canonical coordinate system */
