@@ -1,6 +1,6 @@
 /*----------------------------------------------------------
   Name: mri_label2label.c
-  $Id: mri_label2label.c,v 1.1 2001/05/08 17:35:23 greve Exp $
+  $Id: mri_label2label.c,v 1.2 2001/05/08 17:38:23 greve Exp $
   Author: Douglas Greve
   Purpose: Converts a label in one subject's space to a label
   in another subject's space using either talairach or spherical
@@ -55,7 +55,7 @@ static int  singledash(char *flag);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_label2label.c,v 1.1 2001/05/08 17:35:23 greve Exp $";
+static char vcid[] = "$Id: mri_label2label.c,v 1.2 2001/05/08 17:38:23 greve Exp $";
 char *Progname = NULL;
 
 char  *srclabelfile = NULL;
@@ -152,11 +152,11 @@ int main(int argc, char **argv)
     /*** Load the Src2Tal registration ***/
     if(strcmp(srcsubject,"talairach")){
       sprintf(tmpstr,"%s/%s/mri/transforms/talairach.xfm",
-	      SUBJECTS_DIR,srcsubject);
+        SUBJECTS_DIR,srcsubject);
       err = regio_read_mincxfm(tmpstr, &SrcVolReg);
       if(err) {
-	fprintf(stderr,"ERROR reading %s\n",tmpstr);
-	exit(1);
+  fprintf(stderr,"ERROR reading %s\n",tmpstr);
+  exit(1);
       }
     }
     else SrcVolReg = MatrixIdentity(4,NULL);
@@ -164,12 +164,12 @@ int main(int argc, char **argv)
     /*** Load the Trg2Tal registration ***/
     if(strcmp(trgsubject,"talairach")){
       sprintf(tmpstr,"%s/%s/mri/transforms/talairach.xfm",
-	      SUBJECTS_DIR,trgsubject);
+        SUBJECTS_DIR,trgsubject);
 
       err = regio_read_mincxfm(tmpstr, &TrgVolReg);
       if(err) {
-	fprintf(stderr,"ERROR reading %s\n",tmpstr);
-	exit(1);
+  fprintf(stderr,"ERROR reading %s\n",tmpstr);
+  exit(1);
       }
     }
     else TrgVolReg = MatrixIdentity(4,NULL);
@@ -196,8 +196,8 @@ int main(int argc, char **argv)
       trglabel->lv[n].stat = srclabel->lv[n].stat;
 
       /*printf("%3d  %6.4f %6.4f %6.4f    %6.4f %6.4f %6.4f\n",n,
-	     srclabel->lv[n].x,srclabel->lv[n].y,srclabel->lv[n].z,
-	     trglabel->lv[n].x,trglabel->lv[n].y,trglabel->lv[n].z);*/
+       srclabel->lv[n].x,srclabel->lv[n].y,srclabel->lv[n].z,
+       trglabel->lv[n].x,trglabel->lv[n].y,trglabel->lv[n].z);*/
     }
 
     MatrixFree(&SrcVolReg) ;
@@ -220,17 +220,17 @@ int main(int argc, char **argv)
       printf("Reading source registration \n %s\n",tmpstr);
       SrcSurfReg = MRISread(tmpstr);
       if(SrcSurfReg == NULL){
-	fprintf(stderr,"ERROR: could not read %s\n",tmpstr);
+  fprintf(stderr,"ERROR: could not read %s\n",tmpstr);
         exit(1);
       }
     }
     else{
       printf("Reading icosahedron, order = %d, radius = %g\n",
-	     srcicoorder,IcoRadius);
+       srcicoorder,IcoRadius);
       SrcSurfReg = ReadIcoByOrder(srcicoorder,IcoRadius);
       if(SrcSurfReg==NULL) {
-	printf("ERROR reading icosahedron\n");
-	exit(1);
+  printf("ERROR reading icosahedron\n");
+  exit(1);
       }
     }
 
@@ -241,7 +241,7 @@ int main(int argc, char **argv)
       printf("Reading target registration \n %s\n",tmpstr);
       TrgSurf = MRISread(tmpstr);
       if(TrgSurf == NULL){
-	fprintf(stderr,"ERROR: could not read %s\n",tmpstr);
+  fprintf(stderr,"ERROR: could not read %s\n",tmpstr);
         exit(1);
       }
       /* load target registration surface */
@@ -249,17 +249,17 @@ int main(int argc, char **argv)
       printf("Reading target registration \n %s\n",tmpstr);
       TrgSurfReg = MRISread(tmpstr);
       if(TrgSurfReg == NULL){
-	fprintf(stderr,"ERROR: could not read %s\n",tmpstr);
+  fprintf(stderr,"ERROR: could not read %s\n",tmpstr);
         exit(1);
       }
     }
     else{
       printf("Reading icosahedron, order = %d, radius = %g\n",
-	     trgicoorder,IcoRadius);
+       trgicoorder,IcoRadius);
       TrgSurfReg = ReadIcoByOrder(trgicoorder,IcoRadius);
       if(TrgSurfReg==NULL) {
-	printf("ERROR reading icosahedron\n");
-	exit(1);
+  printf("ERROR reading icosahedron\n");
+  exit(1);
       }
       TrgSurf = TrgSurfReg;
     }
@@ -274,9 +274,9 @@ int main(int argc, char **argv)
       /* vertex number of the source label */
       srcvtxno = srclabel->lv[n].vno;
       if(srcvtxno < 0 || srcvtxno >= SrcSurfReg->nvertices){
-	fprintf(stderr,"ERROR: label %d: vno = %d, max = %d\n",n,
-		srcvtxno, SrcSurfReg->nvertices);
-	exit(1);
+  fprintf(stderr,"ERROR: label %d: vno = %d, max = %d\n",n,
+    srcvtxno, SrcSurfReg->nvertices);
+  exit(1);
       }
 
       if(srcvtxno != 0) allzero = 0;
@@ -389,9 +389,9 @@ static int parse_commandline(int argc, char **argv)
       if(nargc < 1) argnerr(option,1);
       regmethod = pargv[0];
       if(strcmp(regmethod,"surface") && strcmp(regmethod,"volume") &&
-	 strcmp(regmethod,"surf") && strcmp(regmethod,"vol")){
-	fprintf(stderr,"ERROR: regmethod must be surface or volume\n");
-	exit(1);
+   strcmp(regmethod,"surf") && strcmp(regmethod,"vol")){
+  fprintf(stderr,"ERROR: regmethod must be surface or volume\n");
+  exit(1);
       }
       if(!strcmp(regmethod,"surf")) regmethod = "surface";
       if(!strcmp(regmethod,"vol"))  regmethod = "volume";
@@ -400,7 +400,7 @@ static int parse_commandline(int argc, char **argv)
     else{
       fprintf(stderr,"ERROR: Option %s unknown\n",option);
       if(singledash(option))
-	fprintf(stderr,"       Did you really mean -%s ?\n",option);
+  fprintf(stderr,"       Did you really mean -%s ?\n",option);
       exit(-1);
     }
     nargc -= nargsused;
@@ -506,7 +506,7 @@ static void check_options(void)
   else{ /* volume */
     if(!strcmp(srcsubject,"ico") || !strcmp(trgsubject,"ico")){
       fprintf(stderr,"ERROR: cannot use volume registration "
-	      "method with subject ico\n");      
+        "method with subject ico\n");      
       exit(1);
     }
     if(hemi != NULL){
@@ -526,7 +526,7 @@ static void check_options(void)
   }
 
   if(!strcmp(regmethod,"surface") && (!strcmp(srcsubject,"talairach") ||
-				      !strcmp(trgsubject,"talairach"))){
+              !strcmp(trgsubject,"talairach"))){
     fprintf(stderr,"ERROR: cannot use talairach with surface mapping\n");
     exit(1);
   }
