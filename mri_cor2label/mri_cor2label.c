@@ -1,6 +1,6 @@
 /*----------------------------------------------------------
   Name: mri_cor2label.c
-  $Id: mri_cor2label.c,v 1.4 2003/01/03 23:14:27 greve Exp $
+  $Id: mri_cor2label.c,v 1.5 2003/04/15 20:46:38 kteich Exp $
   Author: Douglas Greve
   Purpose: Converts values in a COR file to a label.
   -----------------------------------------------------------*/
@@ -11,6 +11,7 @@
 #include "diag.h"
 #include "proto.h"
 #include "label.h"
+#include "version.h"
 
 static int  parse_commandline(int argc, char **argv);
 static void check_options(void);
@@ -20,7 +21,7 @@ static void print_help(void) ;
 static void print_version(void) ;
 static void argnerr(char *option, int n);
 
-static char vcid[] = "$Id: mri_cor2label.c,v 1.4 2003/01/03 23:14:27 greve Exp $";
+static char vcid[] = "$Id: mri_cor2label.c,v 1.5 2003/04/15 20:46:38 kteich Exp $";
 char *Progname ;
 int main(int argc, char *argv[]) ;
 
@@ -44,6 +45,13 @@ float xsum, ysum, zsum;
 int main(int argc, char **argv)
 {
   FILE *fp;
+  int nargs;
+
+  /* rkt: check for and handle version tag */
+  nargs = handle_version_option (argc, argv, "$Id: mri_cor2label.c,v 1.5 2003/04/15 20:46:38 kteich Exp $");
+  if (nargs && argc - nargs == 1)
+    exit (0);
+  argc -= nargs;
 
   Progname = argv[0] ;
   argc --;

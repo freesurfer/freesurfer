@@ -184,10 +184,11 @@ int main(int argc, char *argv[])
   in_matrix_flag = FALSE;
   out_matrix_flag = FALSE;
 
-  nargs = handle_version_option (argc, argv, "$Id: mri_convert.c,v 1.49 2003/03/28 18:21:28 kteich Exp $");
-  argc -= nargs ;
-  if (1 == argc)
+  /* rkt: check for and handle version tag */
+  nargs = handle_version_option (argc, argv, "$Id: mri_convert.c,v 1.50 2003/04/15 20:45:21 kteich Exp $");
+  if (nargs && argc - nargs == 1)
     exit (0);
+  argc -= nargs;
 
   for(i = 1;i < argc;i++)
   {

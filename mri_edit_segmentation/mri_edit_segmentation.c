@@ -12,6 +12,7 @@
 #include "mrinorm.h"
 #include "mri_conform.h"
 #include "cma.h"
+#include "version.h"
 
 static int mle_label(MRI *mri_T1, MRI *mri_out_labeled, int x, int y, 
 										 int z, int wsize, int l1, int l2) ;
@@ -50,6 +51,12 @@ main(int argc, char *argv[])
   char   *in_fname, *T1_fname, *out_fname ;
   int          msec, minutes, seconds ;
   struct timeb start ;
+
+  /* rkt: check for and handle version tag */
+  nargs = handle_version_option (argc, argv, "$Id: mri_edit_segmentation.c,v 1.6 2003/04/15 20:47:29 kteich Exp $");
+  if (nargs && argc - nargs == 1)
+    exit (0);
+  argc -= nargs;
 
   Progname = argv[0] ;
   ErrorInit(NULL, NULL, NULL) ;
