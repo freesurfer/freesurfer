@@ -607,7 +607,17 @@ MRI *MRIread(char *fname)
   FileNameFromWildcard(fname, buf) ; fname = buf ;
   mri = mri_read(fname, MRI_VOLUME_TYPE_UNKNOWN, TRUE, -1, -1);
 
-  return(mri);
+  /* some volume format needs to read many different files for slices (GE DICOM or COR).
+     we make sure that mri_read() read the slices, not just one   */
+  
+  if (mri->depth==1)
+  {
+    MRIfree(&mri);
+    ErrorReturn(NULL, (ERROR_BADPARM, 
+		       "Read one slice only. Did you put all the slices in the same directory?"));
+  }
+  else
+    return(mri);
 
 } /* end MRIread() */
 
