@@ -117,6 +117,9 @@ Surf_tErr Surf_Delete ( mriSurfaceRef* iopSurface ) {
   /* free surface */
   MRISfree( &(this->mSurface) );
   
+  /* free faces */
+  free( this->maFaces );
+
   /* free file name */
   free( this->msFileName );
   
