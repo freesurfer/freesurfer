@@ -1,8 +1,8 @@
 #!/bin/csh -f
 #
 # 
-# $Id: fsl_rigid_register,v 1.6 2003/08/21 22:55:49 greve Exp $
-set VERSION = '$Id: fsl_rigid_register,v 1.6 2003/08/21 22:55:49 greve Exp $';
+# $Id: fsl_rigid_register,v 1.7 2003/08/21 23:28:03 ebeth Exp $
+set VERSION = '$Id: fsl_rigid_register,v 1.7 2003/08/21 23:28:03 ebeth Exp $';
 
 set refvol = ();
 set invol = ();
@@ -20,7 +20,7 @@ set maxangle = 90;
 set bins = 256;
 set cost = corratio;
 set costlist = (mutualinfo corratio normcorr normmi leastsq);
-set flsmatfile = ();
+set fslmatfile = ();
 set regmatfile = ();
 set xfmmatfile = ();
 
@@ -450,7 +450,7 @@ Do not compute init registration matrix from geometry.
 
 -initxfm fslmatfile
 
-Use matrix in flsmatfile as the initial registation matrix. If no
+Use matrix in fslmatfile as the initial registation matrix. If no
 initialization is specified, the identity is assumed. Forces
 -noinitgeom.
 
