@@ -3417,6 +3417,17 @@ static MRI *genesisRead(char *fname, int read_volume)
   fread(&(header->ysize), 4, 1, fp);  header->ysize = orderFloatBytes(header->ysize);
   header->ps = header->xsize;
 
+  /* all in micro-seconds */
+#define MICROSECONDS_PER_MILLISECOND 1e3
+  fseek(fp, image_header_offset + 194, SEEK_SET);
+  header->tr = freadInt(fp)/MICROSECONDS_PER_MILLISECOND ;
+  fseek(fp, image_header_offset + 198, SEEK_SET);
+  header->ti = freadInt(fp)/MICROSECONDS_PER_MILLISECOND  ;
+  fseek(fp, image_header_offset + 202, SEEK_SET);
+  header->te = freadInt(fp)/MICROSECONDS_PER_MILLISECOND  ;
+  fseek(fp, image_header_offset + 254, SEEK_SET);
+  header->flip_angle = freadShort(fp) ;
+
   fseek(fp, image_header_offset + 130, SEEK_SET);
   fread(&c_r,  4, 1, fp);  c_r  = orderFloatBytes(c_r);
   fread(&c_a,  4, 1, fp);  c_a  = orderFloatBytes(c_a);
