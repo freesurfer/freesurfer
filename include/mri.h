@@ -106,8 +106,9 @@ typedef struct
 
 MATRIX *MRIxfmCRS2XYZ(MRI *mri, int base);
 MATRIX *MRIxfmCRS2XYZtkreg(MRI *mri);
-MATRIX *MRIfixTkReg(MRI *ref, MRI *mov, MATRIX *R);
+MATRIX *MRItkReg2Native(MRI *ref, MRI *mov, MATRIX *R);
 MATRIX *MRItkRegMtx(MRI *ref, MRI *mov, MATRIX *D);
+MATRIX *MRIfixTkReg(MRI *mov, MATRIX *R);
 
 float MRIgetVoxVal(MRI *mri, int c, int r, int s, int f);
 int   MRIsetVoxVal(MRI *mri, int c, int r, int s, int f, float voxval);
