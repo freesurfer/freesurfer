@@ -1024,7 +1024,12 @@ MRInormFindControlPoints(MRI *mri_src, int wm_target, float intensity_above,
                   if (MRIvox(mri_ctrl, xi, yi, zi))
 									{
 										n++ ;
-										val = MRIvox(mri_src, xi, yi, zi) ;
+										switch (mri_src->type)
+										{
+										default:
+										case MRI_UCHAR: val = MRIvox(mri_src, xi, yi, zi) ; break ;
+										case MRI_SHORT: val = MRISvox(mri_src, xi, yi, zi) ; break ;
+										}
 										mean_val += val ;
 										if (val > max_val)
 											max_val = val ;
@@ -1118,7 +1123,6 @@ MRInormFindControlPoints(MRI *mri_src, int wm_target, float intensity_above,
                   if (MRIvox(mri_ctrl, xi, yi, zi))
 									{
                     n++ ;   /* count # of 27-connected control points */
-										val = MRIvox(mri_src, xi, yi, zi) ;
 										mean_val += val ;
 										if (val > max_val)
 											max_val = val ;
@@ -1173,7 +1177,7 @@ MRInormFindControlPoints(MRI *mri_src, int wm_target, float intensity_above,
     {
       for (x = 0 ; x < width ; x++)
       {
-        val0 = MRIvox(mri_src, x, y, z) ;
+        val0 = MRIgetVoxVal(mri_src, x, y, z, 0) ;
         if (val0 >= low_thresh && val0 <= hi_thresh)
         {
 #undef WHALF
@@ -1190,7 +1194,7 @@ MRInormFindControlPoints(MRI *mri_src, int wm_target, float intensity_above,
               for (xk = -WHALF ; ctrl && xk <= WHALF ; xk++)
               {
                 xi = pxi[x+xk] ;
-                val = MRIvox(mri_src, xi, yi, zi) ;
+                val = MRIgetVoxVal(mri_src, xi, yi, zi, 0) ;
                 if (val > hi_thresh || val < low_thresh)
                   ctrl = 0 ;   /* not homogeneous enough */
               }
@@ -1225,7 +1229,7 @@ MRInormFindControlPoints(MRI *mri_src, int wm_target, float intensity_above,
       {
         for (x = 0 ; x < width ; x++)
         {
-          val0 = MRIvox(mri_src, x, y, z) ;
+          val0 = MRIgetVoxVal(mri_src, x, y, z, 0) ;
           ctrl = MRIvox(mri_ctrl, x, y, z) ;
           low_gradients = 0 ;
           if (val0 >= low_thresh && val0 <= hi_thresh && !ctrl)
@@ -1250,7 +1254,7 @@ MRInormFindControlPoints(MRI *mri_src, int wm_target, float intensity_above,
                   xi = pxi[x+xk] ;
                   if (MRIvox(mri_ctrl, xi, yi, zi)) /* neighboring ctrl pt */
                   {
-                    val = MRIvox(mri_src, xi, yi, zi) ;
+                    val = MRIgetVoxVal(mri_src, xi, yi, zi, 0) ;
                     dist = sqrt(xk*xk+yk*yk+zk*zk) ;
                     if (FZERO(dist))
                       dist = 1.0 ;
@@ -1373,7 +1377,10 @@ MRInormGentlyFindControlPoints(MRI *mri_src, int wm_target,
     wm_target = DEFAULT_DESIRED_WHITE_MATTER_VALUE ;
   width = mri_src->width ; height = mri_src->height ; depth = mri_src->depth ; 
   if (!mri_ctrl)
+	{
     mri_ctrl = MRIalloc(width, height, depth, MRI_UCHAR) ;
+		MRIcopyHeader(mri_src, mri_ctrl) ;
+	}
 
   pxi = mri_src->xi ; pyi = mri_src->yi ; pzi = mri_src->zi ;
   /*
@@ -1637,15 +1644,15 @@ MRIbuildBiasImage(MRI *mri_src, MRI *mri_ctrl, MRI *mri_bias)
 }
 #else
 MRI *
-MRIbuildBiasImage(MRI *mri_src, MRI *mri_ctrl, MRI *mri_bias)
+MRIbuildBiasImage(MRI *mri_src, MRI *mri_ctrl, MRI *mri_bias, float sigma)
 {
   int     width, height, depth, x,y,z ;
 	MRI     *mri_kernel ;
 
   width = mri_src->width ; height = mri_src->height ; depth = mri_src->depth ; 
 
-	mri_kernel = MRIgaussian1d(4, -1) ;
-  mri_bias = MRIcopy(mri_src, NULL) ;
+	mri_kernel = MRIgaussian1d(sigma, -1) ;
+  mri_bias = MRIclone(mri_src, NULL) ;
   fprintf(stderr, "building Voronoi diagram...\n") ;
   MRIbuildVoronoiDiagram(mri_src, mri_ctrl, mri_bias) ;
   fprintf(stderr, "performing soap bubble smoothing...\n") ;
@@ -1658,7 +1665,7 @@ MRIbuildBiasImage(MRI *mri_src, MRI *mri_ctrl, MRI *mri_bias)
 			for (z = 0 ; z < mri_src->depth ; z++)
 			{
 				if (MRIvox(mri_ctrl,x,y,z) > 0)
-					MRIvox(mri_bias,x,y,z) = MRIvox(mri_src,x,y,z) ;
+					MRIsetVoxVal(mri_bias,x,y,z, 0, MRIgetVoxVal(mri_src,x,y,z,0)) ;
 			}
 		}
 	}
@@ -1681,10 +1688,9 @@ MRIbuildBiasImage(MRI *mri_src, MRI *mri_ctrl, MRI *mri_bias)
 
 MRI *
 MRI3dNormalize(MRI *mri_orig, MRI *mri_src, int wm_target, MRI *mri_norm,
-               float intensity_above, float intensity_below, int only_file, int prune)
+               float intensity_above, float intensity_below, int only_file, int prune, float bias_sigma)
 {
   int     width, height, depth, x, y, z, src, bias, n ;
-  BUFTYPE *psrc, *pbias, *pnorm ;
   float   norm ;
 	MRI     *mri_bias = NULL, *mri_ctrl ;
 	/*	double  wm_std = 10 ;*/
@@ -1706,7 +1712,8 @@ MRI3dNormalize(MRI *mri_orig, MRI *mri_src, int wm_target, MRI *mri_norm,
 		{
 			int nctrl ;
 
-			mri_ctrl = MRIclone(mri_src, NULL) ;
+      mri_ctrl = MRIalloc(mri_src->width, mri_src->height, mri_src->depth, MRI_UCHAR) ;
+			MRIcopyHeader(mri_src, mri_ctrl) ;
 			nctrl = MRInormAddFileControlPoints(mri_ctrl, 255) ;
 			fprintf(stderr, "only using %d control points from file...\n", nctrl) ;
 		}
@@ -1730,7 +1737,7 @@ MRI3dNormalize(MRI *mri_orig, MRI *mri_src, int wm_target, MRI *mri_norm,
 
 #endif
 
-		mri_bias = MRIbuildBiasImage(mri_src, mri_ctrl, mri_bias) ;
+		mri_bias = MRIbuildBiasImage(mri_src, mri_ctrl, mri_bias, bias_sigma) ;
 		if (bias_volume_fname)
 		{
 			fprintf(stderr, "writing bias field volume to %s...\n",
@@ -1753,19 +1760,17 @@ MRI3dNormalize(MRI *mri_orig, MRI *mri_src, int wm_target, MRI *mri_norm,
 		{
 			for (y = 0 ; y < height ; y++)
 			{
-				psrc = &MRIvox(mri_src, 0, y, z) ;
-				pbias = &MRIvox(mri_bias, 0, y, z) ;
-				pnorm = &MRIvox(mri_norm, 0, y, z) ;
 				for (x = 0 ; x < width ; x++)
 				{
-					src = *psrc++ ; bias = *pbias++ ;
+					src = MRIgetVoxVal(mri_src, x, y, z, 0) ;
+					bias = MRIgetVoxVal(mri_bias, x, y, z, 0) ;
 					if (!bias)   /* should never happen */
 						norm = (float)src ;
 					else
 						norm = (float)src * (float)wm_target / (float)bias ;
-					if (norm > 255.0f)
+					if (norm > 255.0f && mri_norm->type == MRI_UCHAR)
 						norm = 255.0f ;
-					*pnorm++ = nint(norm) ;
+					MRIsetVoxVal(mri_norm, x, y, z, 0, norm) ;
 					if (x == Gx && y == Gy && z == Gz)
 					{
 						if (Gx >= 0)
@@ -1793,10 +1798,9 @@ MRI3dNormalize(MRI *mri_orig, MRI *mri_src, int wm_target, MRI *mri_norm,
 ------------------------------------------------------*/
 MRI *
 MRI3dGentleNormalize(MRI *mri_src, MRI *mri_bias, int wm_target, MRI *mri_norm,
-                     float intensity_above,float intensity_below,int only_file)
+                     float intensity_above,float intensity_below,int only_file, float bias_sigma)
 {
   int     width, height, depth, x, y, z, src, bias, free_bias ;
-  BUFTYPE *psrc, *pbias, *pnorm ;
   float   norm ;
 
   if (!wm_target)
@@ -1818,7 +1822,8 @@ MRI3dGentleNormalize(MRI *mri_src, MRI *mri_bias, int wm_target, MRI *mri_norm,
     {
       int nctrl ;
 
-      mri_ctrl = MRIclone(mri_src, NULL) ;
+      mri_ctrl = MRIalloc(mri_src->width, mri_src->height, mri_src->depth, MRI_UCHAR) ;
+			MRIcopyHeader(mri_src, mri_ctrl) ;
       nctrl = MRInormAddFileControlPoints(mri_ctrl, 255) ;
       fprintf(stderr, "only using %d control points from file...\n", nctrl) ;
     }
@@ -1830,7 +1835,7 @@ MRI3dGentleNormalize(MRI *mri_src, MRI *mri_bias, int wm_target, MRI *mri_norm,
       MRIwrite(mri_ctrl, control_volume_fname) ;
     }
     MRIbinarize(mri_ctrl, mri_ctrl, 1, CONTROL_NONE, CONTROL_MARKED) ;
-    mri_bias = MRIbuildBiasImage(mri_src, mri_ctrl, NULL) ;
+    mri_bias = MRIbuildBiasImage(mri_src, mri_ctrl, NULL, bias_sigma) ;
     if (bias_volume_fname)
     {
       fprintf(stderr, "writing bias field volume to %s...\n",
@@ -1857,19 +1862,19 @@ MRI3dGentleNormalize(MRI *mri_src, MRI *mri_bias, int wm_target, MRI *mri_norm,
   {
     for (y = 0 ; y < height ; y++)
     {
-      psrc = &MRIvox(mri_src, 0, y, z) ;
-      pbias = &MRIvox(mri_bias, 0, y, z) ;
-      pnorm = &MRIvox(mri_norm, 0, y, z) ;
       for (x = 0 ; x < width ; x++)
       {
-        src = *psrc++ ; bias = *pbias++ ;
+				if (x == Gx && y == Gy && z == Gz)
+					DiagBreak() ;
+        src = MRIgetVoxVal(mri_src, x, y, z, 0) ;
+				bias = MRIgetVoxVal(mri_bias, x, y, z, 0) ;
         if (!bias)   /* should never happen */
           norm = (float)src ;
         else
           norm = (float)src * (float)wm_target / (float)bias ;
-        if (norm > 255.0f)
+        if (norm > 255.0f && mri_norm->type == MRI_UCHAR)
           norm = 255.0f ;
-        *pnorm++ = nint(norm) ;
+        MRIsetVoxVal(mri_norm, x, y, z, 0, norm) ;
       }
     }
   }
@@ -2042,6 +2047,9 @@ mriBuildVoronoiDiagramShort(MRI *mri_src, MRI *mri_ctrl, MRI *mri_dst)
   MRI     *mri_marked ;
   float   scale ;
 
+	if (mri_src->type != MRI_SHORT || mri_ctrl->type != MRI_UCHAR || mri_dst->type != MRI_SHORT)
+		ErrorExit(ERROR_UNSUPPORTED, "mriBuildVoronoiDiagramShort: incorrect input type(s)") ;
+
   width = mri_src->width ; height = mri_src->height ; depth = mri_src->depth ; 
   if (!mri_dst)
     mri_dst = MRIclone(mri_src, NULL) ;
@@ -2149,7 +2157,7 @@ mriBuildVoronoiDiagramShort(MRI *mri_src, MRI *mri_ctrl, MRI *mri_dst)
           }
           if (n > 0)  /* some neighbors were on */
           {
-            *pdst++ = mean / (float)n ;
+            *pdst++ = nint(mean / (float)n) ;
             nchanged++ ;
           }
           else   /* should never happen anymore */
@@ -2185,8 +2193,7 @@ mriBuildVoronoiDiagramFloat(MRI *mri_src, MRI *mri_ctrl, MRI *mri_dst)
   int     width, height, depth, x, y, z, xk, yk, zk, xi, yi, zi, 
           *pxi, *pyi, *pzi, nchanged, n, total, visited ;
   BUFTYPE ctrl, mark ;
-  float   *psrc, *pdst ;
-  float   src, val, mean ;
+  float   src, val, mean, *pdst, *psrc ;
   MRI     *mri_marked ;
   float   scale ;
 
@@ -2295,7 +2302,7 @@ mriBuildVoronoiDiagramFloat(MRI *mri_src, MRI *mri_ctrl, MRI *mri_dst)
           }
           if (n > 0)  /* some neighbors were on */
           {
-            *pdst++ = mean / (float)n ;
+            *pdst++ = (mean / (float)n) ;
             nchanged++ ;
           }
           else   /* should never happen anymore */
@@ -3163,6 +3170,9 @@ mriMarkUnmarkedNeighbors(MRI *mri_src, MRI *mri_marked,
   int     width, height, depth, x, y, z, xk, yk, zk, xi, yi, zi, *pxi, *pyi, 
           *pzi ;
   BUFTYPE *psrc, val ;
+
+	if (mri_src->type != MRI_UCHAR || mri_marked->type != MRI_UCHAR || mri_dst->type != MRI_UCHAR)
+		ErrorExit(ERROR_UNSUPPORTED, "mriMarkUnmarkedNeighbors: all inputs must be MRI_UCHAR") ;
 
   width = mri_src->width ; height = mri_src->height ; depth = mri_src->depth ; 
   if (!mri_dst)
