@@ -386,7 +386,7 @@ StrReplace(char *src, char *dst, char csrc, int cdst)
         nothing.
 ------------------------------------------------------------------------*/
 char *
-FileName(char *full_name, char *fname)
+FileNameOnly(char *full_name, char *fname)
 {
   char *slash, *number, *at ;
 
@@ -444,7 +444,7 @@ FileExists(char *fname)
         nothing.
 ------------------------------------------------------------------------*/
 char *
-FileNameNoExtensions(char *full_name)
+FileName(char *full_name)
 {
   char *fname, *number, *at ;
 
@@ -553,11 +553,11 @@ FileNumberOfEntries(char *fname)
     switch (type)
     {
     case LIST_FILE:
-      fp = fopen(FileNameNoExtensions(fname), "rb") ;
+      fp = fopen(FileName(fname), "rb") ;
       if (!fp)
         ErrorReturn(-1, (ERROR_NO_FILE, 
                          "FileNumberOfEntries: could not open %s",
-                         FileNameNoExtensions(fname))) ;
+                         FileName(fname))) ;
       cp = fgetl(line, 199, fp) ;
       nentries = 0 ;
       while (cp)
