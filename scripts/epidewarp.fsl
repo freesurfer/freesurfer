@@ -2,7 +2,7 @@
 # epidewarp.fsl
 #
 
-set VERSION = '$Id: epidewarp.fsl,v 1.4 2004/11/23 21:13:42 greve Exp $'
+set VERSION = '$Id: epidewarp.fsl,v 1.5 2004/11/23 22:20:43 greve Exp $'
 set inputargs = ($argv);
 
 set dph = ();
@@ -23,6 +23,7 @@ set npart = ();
 set epidw = ();
 set vsm = ();
 set exfdw = ();
+set exf = ();
 
 set tmpdir = ();
 set cleanup = 1;
@@ -63,28 +64,38 @@ which prelude >> $LF
 which fugue   >> $LF
 
 # Some temp files
-set exf   = $tmpdir/exf.img
 set brain = $tmpdir/brain.img
 set head  = $tmpdir/head.img
 
 # See if there's a .mat file to propogate
-set epibase = `basename $epi .img`;
+if($#epi) then
+  set epibase = `basename $epi .img`;
+else
+  set epibase = `basename $exf .img`;
+endif
 set epimat = $epibase.mat
 if(! -e $epimat) set epimat = ();
 
-# Extract the middle time point for the example func (exf)
-set nframes = `avwinfo $epi | awk '{if($1 == "dim4") print $2}'`
-if($nframes == 1) then
-  set nmidframe = 0;
-else
-  set nmidframe = `echo "$nframes/2" | bc `;
+if($#exf == 0) then
+  # Extract the middle time point for the example func (exf)
+  set exf   = $tmpdir/exf.img
+  set nframes = `avwinfo $epi | awk '{if($1 == "dim4") print $2}'`
+  if($nframes == 1) then
+    set nmidframe = 0;
+  else
+    set nmidframe = `echo "$nframes/2" | bc `;
+  endif
+  echo "nframes = $nframes, nmidframe = $nmidframe" |& tee -a $LF
+  set cmd = (avwroi $epi $exf $nmidframe 1)
+  echo $cmd |& tee -a $LF
+  $cmd |& tee -a $LF
+  if($status) exit 1;
+  if($#epimat) cp $epimat `dirname $exf`/`basename $exf .img`.mat 
 endif
-echo "nframes = $nframes, nmidframe = $nmidframe" |& tee -a $LF
-set cmd = (avwroi $epi $exf $nmidframe 1)
-echo $cmd |& tee -a $LF
-$cmd |& tee -a $LF
-if($status) exit 1;
-if($#epimat) cp $epimat `dirname $exf`/`basename $exf .img`.mat 
+if(! -e $exf) then
+  echo "ERROR: cannot find $exf"
+  exit 1;
+endif
 
 # Keep only the first frame from mag
 set cmd = (avwroi $mag $tmpdir/mag 0 1)
@@ -216,6 +227,7 @@ endif
 # Check whether we can stop at this point
 if($#exfdw == 0 && $#epidw == 0) goto done;
 
+#------------------ Dewarp the exf --------------------------#
 if($#exfdw != 0) then
   # Now apply the VSM to the exf
   set cmd = (fugue -i $exf -u $exfdw --loadshift=$vsm --mask=$brain );
@@ -227,8 +239,47 @@ if($#exfdw != 0) then
     set exfbase = `basename $exfdw .img`;
     cp $epimat $exfbase.mat
   endif
+endif
+
+#------------------ Dewarp the epis --------------------------#
+if($#epidw != 0) then
+  set nframes = `avwinfo $epi | awk '{if($1 == "dim4") print $2}'`;
+
+  # Split the epi into multiple volumes
+  set epipath = `pwd`/$epi
+  mkdir -p $tmpdir/epi-split
+  pushd $tmpdir/epi-split
+  set cmd = (avwsplit $epipath)
+  echo $cmd 
+  $cmd 
+  if($status) exit 1;
+  popd
+
+  # Go through each frame
+  @ nthframe = 0
+  while($nthframe < $nframes)
+    set invol  = $tmpdir/epi-split/`printf vol%04d.img $nthframe`;
+    set outvol = $tmpdir/epi-split/`printf voldw%04d.img $nthframe`;
+    set cmd = (fugue -i $invol -u $outvol --loadshift=$vsm --mask=$brain );
+    echo $cmd |& tee -a $LF
+    $cmd |& tee -a $LF
+    if($status) exit 1;
+    @ nthframe = $nthframe + 1;
+  end
+
+  # Merge them back - could they make this more convoluted???
+  set cmd = (avwmerge -t $epidw `ls $tmpdir/epi-split/voldw*img`);
+  echo $cmd |& tee -a $LF
+  $cmd |& tee -a $LF
+  if($status) exit 1;
+
+  if($#epimat) then # Propogate mat file
+    set epidwbase = `basename $epidw .img`;
+    cp $epimat $epidwbase.mat
+  endif
 
 endif
+
 
 goto done;
 
@@ -270,6 +321,11 @@ while( $#argv != 0 )
         echo "ERROR: cannot find $dph"
         exit 1;
       endif
+      breaksw
+
+    case "--exf":
+      if ( $#argv == 0) goto arg1err;
+      set exf = $argv[1]; shift;
       breaksw
 
     case "--epi":
@@ -365,6 +421,11 @@ check_params:
     exit 1;
   endif
 
+  if($#epi == 0 && $exf == 0) then
+    echo "ERROR: must specify either epi or exf."
+    exit 1;
+  endif
+
   if($#vsm == 0) then
     echo "ERROR: no output VSM specified"    
     exit 1;
@@ -387,6 +448,10 @@ check_params:
   endif
 
   if($#epidw != 0) then
+    if($#epi == 0) then
+      echo "ERROR: need --epi with --epidw"
+      exit 1;
+    endif
     set epidwdir = `dirname $epidw`;
     mkdir -p $epidwdir
     if($status) then
@@ -421,7 +486,8 @@ usage_exit:
   echo "Inputs"
   echo "  --mag volid     : B0 magnitude volume"
   echo "  --dph volid     : B0 phase difference volume"
-  echo "  --epi volid     : epi volume"
+  echo "  --exf volid     : example func volume (or use epi)"
+  echo "  --epi volid     : epi volume to unwarp"
   echo "  --tediff tediff : difference in B0 field map TEs"
   echo "  --esp esp       : EPI echo spacing"
   echo "  --sigma sigmamm : 2D spatial gaussing smoothing stddev (def 2mm)"
@@ -455,24 +521,27 @@ SUMMARY
 Front end for FSLs PRELUDE and FUGUE programs to correct for B0
 distortion in functional EPI scans. The programs use a B0 fieldmap.
 This is assumed to be two conventional GREs collected at two different
-echo times (TEs). The field map should be acquired with the same
-slice prescription, slice thickness, slice skip, and field-of-view
-as the EPI. The field map can have a higher in-plane resolution.
+echo times (TEs). The field map should be acquired with the same slice
+prescription, slice thickness, slice skip, voxel resolution, and
+field-of-view as the EPI. The field map can have a higher in-plane
+resolution.  This script uses only FSL commands (ie, FreeSurfer not
+needed).
 
 For the stock Siemens field map, two field maps are required, one to
-get the phase and another to get the magnitude. The volume that is
+get the phase and another to get the magnitude (this will change with
+new version so the Siemens scanner software). The volume that is
 stored as the phase is actually the phase difference and is scaled
-between 0 to 4095 for -pi to pi. The magnitude volumes for both 
-TEs are saved, but only one is needed.
+between 0 to 4095 for -pi to pi. The magnitude volumes for both TEs
+are saved, but only one is needed.
 
 All volumes are assumed to be in analyze 4D format. All volumes should
-be referred to as volid.img. If the EPI volume has a .mat file, this
-will be propagated to the outputs.
+be referred to as volid.img. If the EPI or EXF volume has a .mat file,
+this will be propagated to the outputs.
 
 ALGORITHM OVERVIEW
 
 1. Create a brain mask from the mag volume (BET)
-2. Create a head mask by dilating the brain mask
+2. Create a head mask by dilating the brain mask 3 times
 3. Rescale the phase image to -pi to pi
 4. Unwrap the phase (PRELUDE)
 5. Create and smooth the voxel shift map (VSM) (FUGUE)
@@ -481,8 +550,6 @@ ALGORITHM OVERVIEW
 8. Register the forward warped mag with the example func (FLIRT)
 9. Resample the VSM into EPI space (FLIRT)
 10. Dewarp the EPI and/or Example Func (FUGUE).
-
-The EPI and Example Func should be in register with the mag volume.
 
 ARGUMENTS:
 
@@ -496,16 +563,28 @@ present, then only the first is used.
 Phase difference volume (Echo2-Echo1). These are assumed to be scaled
 between 0 to 4095 for -pi to pi. Eg, dph.img
 
+--exf examplevolid
+
+Single volume to use as the example func. If not supplied, then the
+middle time point from the EPIs will be used. This volume must have
+enough anatomy to be able to register with the mag. It should also
+have the exact same geometry as any EPIs. This option allows the user
+to specify a functional for the example and then a statistical map as
+the EPI.
+
 --epi epivolid
 
-EPI volume to dewarp.
+EPI volume to dewarp. This could be a time series or a single frame
+statistical map. If it is a stat map, then supply an example func
+(--exf) to assure that there is some anatomy for registration to
+the mag volume.
 
 --tediff tediff
 
 Difference in the echo times of the B0 field map in ms. This number is
 set when acquiring the field map. This is often set to 2.46 ms at 3T,
 which is the amount of time it takes for the fat and water to
-rephase. Scales with field strength.
+rephase. The rephase time scales with field strength.
 
 --esp echospacing
 
@@ -533,16 +612,14 @@ encode direction due to B0 distortion. This argument is required.
 
 --exfdw exfdwvolid
 
-This is the middle time point from the EPI time series (the "example
-functional") with B0 distortion removed. Mainly good for checking how
-good the dewarping is without having to dewarp the entire time
-series. NOTE: the voxels outside the brain are set to 0.
+This is exf volume or the middle time point from the EPI time series
+(the "example functional") with B0 distortion removed. Mainly good for
+checking how good the dewarping is without having to dewarp the entire
+time series.
 
 --epidw epidwvolid
 
-This is the EPI time series with B0 distortion removed. NOTE: the
-voxels outside the brain are set to 0. Currenly only the example
-functional is unwarped so this argument has no effect.
+This is the EPI time series with B0 distortion removed.
 
 --tmpdir tmpdir
 
@@ -565,6 +642,12 @@ Forces deleting of the tmp dir regardless of whether --tmpdir or
 
 Prints copious amounts to the screen.
 
+NOTES
+
+The output will not necessarily be registered with the mag volume. To
+compare the mag with the dewarped output, first register the mag 
+to the dewarped output.
+
 SEE ALSO
 
 http://www.fmrib.ox.ac.uk/fsl/fugue
@@ -574,9 +657,6 @@ BUGS
 
 1. Currently does not work when the B0 field map has a different
 in-plane resolution than the EPI.
-
-2. Currently only dewarps the example functional (ie, does not do
-anything to the EPI yet).
 
 AUTHORS
 
