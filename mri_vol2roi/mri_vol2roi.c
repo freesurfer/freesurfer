@@ -6,7 +6,7 @@
   Purpose: averages the voxels within an ROI. The ROI
            can be constrained structurally (with a label file)
            and/or functionally (with a volumetric mask)
-  $Id: mri_vol2roi.c,v 1.6 2001/08/13 21:27:57 greve Exp $
+  $Id: mri_vol2roi.c,v 1.7 2002/02/18 22:27:14 greve Exp $
 */
 
 #include <stdio.h>
@@ -51,7 +51,7 @@ int CountLabelHits(MRI *SrcVol, MATRIX *Qsrc, MATRIX *Fsrc,
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_vol2roi.c,v 1.6 2001/08/13 21:27:57 greve Exp $";
+static char vcid[] = "$Id: mri_vol2roi.c,v 1.7 2002/02/18 22:27:14 greve Exp $";
 char *Progname = NULL;
 
 char *roifile    = NULL;
@@ -170,10 +170,13 @@ int main(int argc, char **argv)
   if(labelfile != NULL){
     Label = LabelReadFile(labelfile);
     if(Label == NULL) exit(1);
-    /* load in the label-to-source registration */
+    /* load in the source-to-label registration */
     if(src2lblregfile != NULL){
-      err = regio_read_mincxfm(src2lblregfile, &Msrc2lbl);
+      err = regio_read_xfm(src2lblregfile, &Msrc2lbl);
       if(err) exit(1);
+      printf("-- Source2Label %s \n---- \n",src2lblregfile);
+      MatrixPrint(stdout,Msrc2lbl);
+      printf("-------------------------------\n");
     }
     else Msrc2lbl = NULL;
   }
