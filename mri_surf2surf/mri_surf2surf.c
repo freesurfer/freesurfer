@@ -1,6 +1,6 @@
 /*----------------------------------------------------------
   Name: mri_surf2surf.c
-  $Id: mri_surf2surf.c,v 1.7 2002/07/01 21:48:25 greve Exp $
+  $Id: mri_surf2surf.c,v 1.8 2002/09/05 20:05:47 greve Exp $
   Author: Douglas Greve
   Purpose: Resamples data from one surface onto another. If
   both the source and target subjects are the same, this is
@@ -44,7 +44,7 @@ int GetNVtxsFromValFile(char *filename, char *fmt);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_surf2surf.c,v 1.7 2002/07/01 21:48:25 greve Exp $";
+static char vcid[] = "$Id: mri_surf2surf.c,v 1.8 2002/09/05 20:05:47 greve Exp $";
 char *Progname = NULL;
 
 char *surfreg = "sphere.reg";
@@ -544,7 +544,8 @@ static void print_help(void)
 "    Format type string. Can be either curv (for FreeSurfer curvature file), \n"
 "    paint or w (for FreeSurfer paint files), or anything accepted by \n"
 "    mri_convert. If no type string  is given, then the type is determined \n"
-"    from the sourcefile (if possible).\n"
+"    from the sourcefile (if possible). If curv is used, then the curvature\n"
+"    file will be looked for in $SUBJECTS_DIR/srcsubject/surf/hemi.sourcefile.\n"
 "\n"
 "  --trgsubject subjectname\n"
 "\n"
@@ -627,7 +628,7 @@ static void print_help(void)
 "   7th order icosahedron and save in analyze4d format:\n"
 "\n"
 "   mri_surf2surf --hemi lh --srcsubject bert \n"
-"      --srcsurfval $SUBJECTS_DIR/bert/surf/lh.thickness --src_type curv \n"
+"      --srcsurfval thickness --src_type curv \n"
 "      --trgsubject ico --trgicoorder 7 \n"
 "      --trgsurfval bert-thickness-lh.img --trg_type analyze4d \n"
 "\n"
