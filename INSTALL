@@ -1,0 +1,23 @@
+-*- text -*-
+
+Freesurfer compilation/installation
+===================================
+
+If you have /usr/pubsw/packages, then you only do
+
+./configure --prefix=$installdir
+./make
+./make install
+
+(if you do not specify prefix, then the install directory is /usr/local,
+ which you may not have rights to install.)
+
+If you have mni installed somewhere, then you change the configure line to:
+
+./configure --prefix=$installdir --with-mni-dir=$mnidir
+
+You can see all the options by 
+
+./configure --help
+
+Please send email to tosa@nmr.mgh.harvard.edu if you have problems.
