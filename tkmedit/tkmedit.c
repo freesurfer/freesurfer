@@ -2671,8 +2671,8 @@ void set_scale(void)
       f = 1.0/(1.0+exp(-fsquash*(f-fthresh)));
       v = f*fscale+0.5;
     }
-    mapcolor(i+MAPOFFSET,v,v,v);
     mapcolor_hacked(i+MAPOFFSET,v);
+    mapcolor(i+MAPOFFSET,v,v,v);
   }
   mapcolor(NUMVALS+MAPOFFSET,v,0.0,0.0);
 }
@@ -3565,8 +3565,9 @@ draw_second_image(int imc, int ic, int jc)
             DiagBreak() ;
           if (all3flag && (i%2 || j%2)) continue;
           if (imc/zf>=0&&imc/zf<imnr1)
-            v = im2[imc/zf][(ydim-1-i)/zf][j/zf]+MAPOFFSET;
-          else v=MAPOFFSET;
+      v = im2[imc/zf][(ydim-1-i)/zf][j/zf]+MAPOFFSET;  
+    else 
+      v=MAPOFFSET;
           if (truncflag)
             if (v<white_lolim+MAPOFFSET || v>white_hilim+MAPOFFSET)
               v=MAPOFFSET;
@@ -3576,13 +3577,21 @@ draw_second_image(int imc, int ic, int jc)
           if (all3flag) 
           {
             idx_buf = 4*((xdim*hay) + k + ((i/2)*hax)) ;
-            vidbuf[idx_buf] = vidbuf[idx_buf+1] = vidbuf[idx_buf + 2] = v;
-            vidbuf[idx_buf + 3]=255;
+#ifdef Linux
+            vidbuf[idx_buf] = vidbuf[idx_buf+1] = vidbuf[idx_buf + 2] = hacked_map[v];
+#else
+      vidbuf[idx_buf] = vidbuf[idx_buf+1] = vidbuf[idx_buf + 2] = v;
+#endif
+      vidbuf[idx_buf + 3]=255;
             k++;
           }
           else
           {
-            vidbuf[k] = vidbuf[k+1] = vidbuf[k+2]= v; 
+#ifdef Linux
+            vidbuf[k] = vidbuf[k+1] = vidbuf[k+2]= hacked_map[v]; 
+#else 
+      vidbuf[k] = vidbuf[k+1] = vidbuf[k+2]= v; 
+#endif
             vidbuf[k+3]=255;
             k+=4;
           }
@@ -3607,13 +3616,21 @@ draw_second_image(int imc, int ic, int jc)
           if (all3flag)
           {
             idx_buf = 4*((xdim*hay) + hax + k + ((imnr/2)*hax)) ;
-            vidbuf[idx_buf] = vidbuf[idx_buf+1] = vidbuf[idx_buf + 2] = v;
+#ifdef Linux
+            vidbuf[idx_buf] = vidbuf[idx_buf+1] = vidbuf[idx_buf + 2] = hacked_map[v];
+#else
+      vidbuf[idx_buf] = vidbuf[idx_buf+1] = vidbuf[idx_buf + 2] = v;
+#endif
             vidbuf[idx_buf + 3]=255;
             k++;
           }
           else
           {
-            vidbuf[k] = vidbuf[k+1] = vidbuf[k+2]= v; 
+#ifdef Linux 
+            vidbuf[k] = vidbuf[k+1] = vidbuf[k+2]= hacked_map[v];
+#else
+      vidbuf[k] = vidbuf[k+1] = vidbuf[k+2]= v;
+#endif
             vidbuf[k+3]=255;
             k+=4;
           }
@@ -3638,13 +3655,21 @@ draw_second_image(int imc, int ic, int jc)
           if (all3flag) 
           {
             idx_buf = 4*(k + ((i/2)*hax));
+#ifdef Linux
+      vidbuf[idx_buf] = vidbuf[idx_buf+1] = vidbuf[idx_buf + 2] = hacked_map[v]; 
+#else
             vidbuf[idx_buf] = vidbuf[idx_buf+1] = vidbuf[idx_buf + 2] = v;
+#endif
             vidbuf[idx_buf + 3]=255;
             k++;
           }
           else
           {
+#ifdef Linux
+      vidbuf[k] = vidbuf[k+1] = vidbuf[k+2]= hacked_map[v];   
+#else
             vidbuf[k] = vidbuf[k+1] = vidbuf[k+2]= v; 
+#endif
             vidbuf[k+3]=255;
             k+=4;
           }
