@@ -9,6 +9,7 @@
 #include  <stdlib.h>
 #include <fcntl.h>
 #include <unistd.h>
+#include <string.h>
 #include "proto.h"
 #include  "rgb_image.h"
 #include "machine.h"
@@ -210,7 +211,7 @@ cvtimage( long *buffer)
     cvtlongs(buffer+26,4);
 }
 
-static void (*i_errfunc)();
+static void (*i_errfunc)(char *ebuf);
 
 /*  error handler for the image library.  If the iseterror() routine
   has been called, sprintf's the args into a string and calls the
@@ -237,7 +238,7 @@ i_errhdlr(char *fmt, int a1, int a2, int a3, int a4)
 
 /* this function sets the error handler for i_errhdlr */
 void
-i_seterror(void (*func)(void))
+i_seterror(void (*func)(char *))
 {
   i_errfunc = func;
 }
