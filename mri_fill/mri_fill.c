@@ -12,7 +12,7 @@
 #include "mrimorph.h"
 #include "timer.h"
 
-static char vcid[] = "$Id: mri_fill.c,v 1.28 1999/07/19 15:15:55 fischl Exp $";
+static char vcid[] = "$Id: mri_fill.c,v 1.29 1999/08/05 23:44:09 fischl Exp $";
 
 /*-------------------------------------------------------------------
                                 CONSTANTS
@@ -285,8 +285,8 @@ main(int argc, char *argv[])
                                   z_cc, 2*SLICE_SIZE, 0);
       if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
       {
-        MRIwrite(mri_tmp, "erased.mnc") ;
-        MRIwrite(mri_mask, "mask.mnc") ;
+        MRIwrite(mri_tmp, "erased.mgh") ;
+        MRIwrite(mri_mask, "mask.mgh") ;
       }
     }
     else
@@ -319,8 +319,8 @@ main(int argc, char *argv[])
                          x_pons, y_pons, z_pons, SLICE_SIZE, fill_val) ;
   if (fill_val)
   {
-    fprintf(stderr,"writing out image with cutting planes to 'planes.mnc'.\n");
-    MRIwrite(mri_im, "planes.mnc") ;
+    fprintf(stderr,"writing out image with cutting planes to 'planes.mgh'.\n");
+    MRIwrite(mri_im, "planes.mgh") ;
     fprintf(stderr, "done.\n") ;
     exit(0) ;
   }
@@ -571,7 +571,7 @@ fill_holes(MRI *mri_fill)
         if (v == 0) cnt++;              /* count # of nbrs which are off */
         if (cnt>cntmax) im0=i0=x0=1;    /* break out of all 3 loops */
       }
-      if (x == 79 && i == 86 && z == 119)
+      if (x == 136 && i == 118 && z == 160)
         DiagBreak() ;
       if (cnt<=cntmax)   /* toggle pixel (off to on, or on to off) */
       {
@@ -809,9 +809,9 @@ find_cutting_plane(MRI *mri, Real x_tal, Real y_tal,Real z_tal,int orientation,
   
   if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
   {
-    sprintf(fname, "%s_seed.mnc", orientation == MRI_SAGITTAL ? "cc":"pons");
+    sprintf(fname, "%s_seed.mgh", orientation == MRI_SAGITTAL ? "cc":"pons");
     MRIwrite(mri_slices[0], fname) ;
-    sprintf(fname, "%s_seed_fill.mnc", orientation==MRI_SAGITTAL?"cc":"pons");
+    sprintf(fname, "%s_seed_fill.mgh", orientation==MRI_SAGITTAL?"cc":"pons");
     MRIwrite(mri_filled[0], fname) ;
   }
   
@@ -851,10 +851,10 @@ find_cutting_plane(MRI *mri, Real x_tal, Real y_tal,Real z_tal,int orientation,
     xv = *pxv ; yv = *pyv ; zv = *pzv ;
     if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
     {
-      sprintf(fname, "%s_filled.mnc", 
+      sprintf(fname, "%s_filled.mgh", 
               orientation == MRI_SAGITTAL ? "cc":"pons");
       MRIwrite(mri_slices[0], fname) ;
-      sprintf(fname, "%s_cut.mnc", 
+      sprintf(fname, "%s_cut.mgh", 
               orientation == MRI_SAGITTAL ? "cc":"pons");
       MRIwrite(mri_cut, fname) ;
     }
@@ -902,10 +902,10 @@ find_cutting_plane(MRI *mri, Real x_tal, Real y_tal,Real z_tal,int orientation,
 
           if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
           {
-            sprintf(fname, "%s_seed.mnc", 
+            sprintf(fname, "%s_seed.mgh", 
                     orientation == MRI_SAGITTAL ? "cc":"pons");
             MRIwrite(mri_slices[0], fname) ;
-            sprintf(fname, "%s_seed_fill.mnc", 
+            sprintf(fname, "%s_seed_fill.mgh", 
                     orientation == MRI_SAGITTAL ? "cc":"pons");
             MRIwrite(mri_filled[0], fname) ;
           }
@@ -992,10 +992,10 @@ find_cutting_plane(MRI *mri, Real x_tal, Real y_tal,Real z_tal,int orientation,
       
       if ((Gdiag & DIAG_WRITE) && !(slice % 1) && DIAG_VERBOSE_ON)
       {
-        sprintf(fname, "%s_slice%d.mnc", 
+        sprintf(fname, "%s_slice%d.mgh", 
                 orientation == MRI_SAGITTAL ? "cc":"pons", slice);
         MRIwrite(mri_slices[slice], fname) ;
-        sprintf(fname, "%s_filled%d.mnc", 
+        sprintf(fname, "%s_filled%d.mgh", 
                 orientation == MRI_SAGITTAL ? "cc":"pons", slice);
         MRIwrite(mri_filled[slice], fname) ;
       }
@@ -1055,10 +1055,10 @@ find_cutting_plane(MRI *mri, Real x_tal, Real y_tal,Real z_tal,int orientation,
                    Progname, name));
     if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
     {
-      sprintf(fname, "%s_slice.mnc", 
+      sprintf(fname, "%s_slice.mgh", 
               orientation == MRI_SAGITTAL ? "cc":"pons");
       MRIwrite(mri_slices[min_slice], fname) ;
-      sprintf(fname, "%s_filled.mnc", 
+      sprintf(fname, "%s_filled.mgh", 
               orientation == MRI_SAGITTAL ? "cc":"pons");
       MRIwrite(mri_filled[min_slice], fname) ;
     }
@@ -1180,7 +1180,7 @@ find_corpus_callosum(MRI *mri, Real *pccx, Real *pccy, Real *pccz)
     MRIextractTalairachPlane(mri, NULL, MRI_CORONAL,xv,yv,zv,SLICE_SIZE) ;
   if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
   {
-    MRIwrite(mri_slice, "cor.mnc") ;
+    MRIwrite(mri_slice, "cor.mgh") ;
   }
   MRIboundingBox(mri_slice, 1, &region) ;
   x0 = region.x+region.dx/2 ;
@@ -1231,7 +1231,7 @@ find_corpus_callosum(MRI *mri, Real *pccx, Real *pccy, Real *pccz)
 
 #define MIN_BRAINSTEM_THICKNESS    15
 #define MAX_BRAINSTEM_THICKNESS    35
-#define MIN_DELTA_THICKNESS         6
+#define MIN_DELTA_THICKNESS         3
 #define MIN_BRAINSTEM_HEIGHT       25
 
 static int
@@ -1276,7 +1276,7 @@ find_pons(MRI *mri, Real *p_ponsx, Real *p_ponsy, Real *p_ponsz)
   /* (xv,yv,zv) are the coordinates of the center of the slice */
 
   if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
-    MRIwrite(mri_slice, "pons.mnc") ;
+    MRIwrite(mri_slice, "pons.mgh") ;
 
 /*
    search from the front of the head at the bottom of a sagittal slice
@@ -1317,7 +1317,7 @@ find_pons(MRI *mri, Real *p_ponsx, Real *p_ponsy, Real *p_ponsz)
             y, xstart, xstart-thickness+1, area) ;
 
   if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
-    MRIwrite(mri_filled, "pons_filled.mnc") ;
+    MRIwrite(mri_filled, "pons_filled.mgh") ;
 
 /* 
    now, starting from that slice, proceed upwards until we find a
@@ -1404,9 +1404,9 @@ find_cc_slice(MRI *mri, Real *pccx, Real *pccy, Real *pccz)
 
     if ((Gdiag & DIAG_WRITE) && !(slice % 1) && DIAG_VERBOSE_ON)
     {
-      sprintf(fname, "cc_slice%d.mnc", slice);
+      sprintf(fname, "cc_slice%d.mgh", slice);
       MRIwrite(mri_slice, fname) ;
-      sprintf(fname, "cc_filled%d.mnc", slice);
+      sprintf(fname, "cc_filled%d.mgh", slice);
       MRIwrite(mri_filled, fname) ;
     }
     MRIfree(&mri_filled) ; MRIfree(&mri_slice) ;
@@ -1561,7 +1561,7 @@ MRIfillVolume(MRI *mri_fill, MRI *mri_im, int x_seed, int y_seed, int z_seed,
   /* fill from 2 seeds in wm outwards */
   fill_brain(mri_fill, mri_im, WM_MIN_VAL);
 
-  /*MRIwrite(mri_fill, "fill1.mnc") ;*/
+  /*MRIwrite(mri_fill, "fill1.mgh") ;*/
   
   /* set im to initial outward fill */
   MRIcopy(mri_fill, mri_im) ;
