@@ -4,8 +4,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2004/11/23 17:15:56 $
-// Revision       : $Revision: 1.97 $
+// Revision Date  : $Date: 2004/11/29 19:25:12 $
+// Revision       : $Revision: 1.98 $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -226,7 +226,7 @@ int main(int argc, char *argv[])
   nskip = 0;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_convert.c,v 1.97 2004/11/23 17:15:56 tosa Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_convert.c,v 1.98 2004/11/29 19:25:12 tosa Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -1402,20 +1402,9 @@ int main(int argc, char *argv[])
 	  exit(1);
 	}
 	// now setup dst volume info
-	lt = &lta_transform->xforms[0];
-	lt->dst.valid = 1;
-	tmp = MRIreadHeader(out_like_name, MRI_VOLUME_TYPE_UNKNOWN);	// flsmat does not contain src and dst info
-	lt->dst.width = tmp->width;
-	lt->dst.height = tmp->height;
-	lt->dst.depth = tmp->depth;
-	lt->dst.xsize = tmp->xsize;
-	lt->dst.ysize = tmp->ysize;
-	lt->dst.zsize = tmp->zsize;
-	lt->dst.x_r = tmp->x_r; lt->dst.x_a = tmp->x_a; lt->dst.x_s = tmp->x_s;
-	lt->dst.y_r = tmp->y_r; lt->dst.y_a = tmp->y_a; lt->dst.y_s = tmp->y_s;
-	lt->dst.z_r = tmp->z_r; lt->dst.z_a = tmp->z_a; lt->dst.z_s = tmp->z_s;
-	lt->dst.c_r = tmp->c_r; lt->dst.c_a = tmp->c_a; lt->dst.c_s = tmp->c_s;
-	strcpy(lt->dst.fname, tmp->fname);
+	tmp = MRIreadHeader(out_like_name, MRI_VOLUME_TYPE_UNKNOWN); // flsmat does not contain src and dst info
+	LTAmodifySrcDstGeom(lta_transform, mri, tmp); // add src and dst information
+	LTAchangeType(lta_transform, LINEAR_VOX_TO_VOX);
 	MRIfree(&tmp);
       }
 
