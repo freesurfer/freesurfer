@@ -124,6 +124,10 @@ main(int argc, char *argv[])
               Progname, argv[1]) ;
 
 
+    if (gca->flags & GCA_NO_MRF)
+      ErrorExit(ERROR_BADPARM, "%s: gca %s built without markov priors",
+                Progname, argv[1]) ;
+
     GCAhisto(gca, 100, &counts) ;
 
     max_i = 0 ;
