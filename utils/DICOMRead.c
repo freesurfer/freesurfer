@@ -2,7 +2,7 @@
    DICOM 3.0 reading functions
    Author: Sebastien Gicquel and Douglas Greve
    Date: 06/04/2001
-   $Id: DICOMRead.c,v 1.65 2004/09/29 17:25:39 tosa Exp $
+   $Id: DICOMRead.c,v 1.66 2004/09/30 15:06:17 tosa Exp $
 *******************************************************/
 
 #include <stdio.h>
@@ -3837,6 +3837,7 @@ int IsDICOM(char *fname)
   }
 
   if (cond != DCM_NORMAL){
+    DCM_CloseObject(&object);
     if(d) printf("Opening as littleendian\n");
     cond=DCM_OpenFile(fname, DCM_ORDERLITTLEENDIAN|DCM_ACCEPTVRMISMATCH, 
 		      &object);
@@ -3844,6 +3845,7 @@ int IsDICOM(char *fname)
   }
 
   if (cond != DCM_NORMAL){
+    DCM_CloseObject(&object);
     if(d) printf("Opening as bigendian\n");
     cond=DCM_OpenFile(fname, DCM_ORDERBIGENDIAN|DCM_ACCEPTVRMISMATCH, 
 		      &object);
@@ -3851,13 +3853,15 @@ int IsDICOM(char *fname)
   }
 
   if (cond != DCM_NORMAL){
+    DCM_CloseObject(&object);
     if(d) printf("Opening as format conversion\n");
     cond=DCM_OpenFile(fname, DCM_FORMATCONVERSION|DCM_ACCEPTVRMISMATCH, 
 		      &object);
     if (cond != DCM_NORMAL && d) DCMPrintCond(cond);
   }
 
-  if(cond == DCM_NORMAL) DCM_CloseObject(&object);
+  if(cond == DCM_NORMAL) 
+    DCM_CloseObject(&object);
 
   fflush(stdout);fflush(stderr);
 
