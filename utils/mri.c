@@ -2004,6 +2004,7 @@ MRIinitHeader(MRI *mri)
   mri->z_r = mri->z_a = mri->z_s = 0.0;
   mri->c_r = mri->c_a = mri->c_s = 0.0;
   mri->ras_good_flag = 0;
+  mri->gdf_image_stem[0] = '\0';
   return(NO_ERROR) ;
 }
 /*-----------------------------------------------------
@@ -4148,6 +4149,8 @@ MRIcopyHeader(MRI *mri_src, MRI *mri_dst)
   strcpy(mri_dst->subject_name, mri_src->subject_name);
   strcpy(mri_dst->path_to_t1, mri_src->path_to_t1);
   strcpy(mri_dst->fname_format, mri_src->fname_format);
+
+  strcpy(mri_dst->gdf_image_stem, mri_src->gdf_image_stem);
 
   return(NO_ERROR) ;
 }
