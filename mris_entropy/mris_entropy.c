@@ -13,7 +13,7 @@
 #include "mri.h"
 #include "macros.h"
 
-static char vcid[] = "$Id: mris_entropy.c,v 1.2 2002/01/16 20:15:25 fischl Exp $";
+static char vcid[] = "$Id: mris_entropy.c,v 1.3 2002/08/01 21:55:04 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -157,6 +157,7 @@ get_option(int argc, char *argv[])
   case 'L':
     log_fname = argv[2] ;
     printf("logging results to %s...\n", log_fname) ;
+    nargs = 1 ;
     break ;
   case 'A':
     navgs = atoi(argv[2]) ;
