@@ -16,9 +16,12 @@
 #include "mrimorph.h"
 #include "mrinorm.h"
 
-static char vcid[] = "$Id: mris_make_surfaces.c,v 1.32 2000/02/07 15:54:05 fischl Exp $";
+static char vcid[] = "$Id: mris_make_surfaces.c,v 1.33 2000/03/07 12:14:24 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
+
+#define BRIGHT_LABEL         130
+#define BRIGHT_BORDER_LABEL  100
 
 static int  get_option(int argc, char *argv[]) ;
 static void usage_exit(void) ;
@@ -32,7 +35,8 @@ MRI *MRIfillVentricle(MRI *mri_inv_lv, MRI *mri_T1, float thresh,
                       int out_label, MRI *mri_dst);
 
 int MRISfindExpansionRegions(MRI_SURFACE *mris) ;
-int MRIremoveEditT1(MRI *mri_T1, MRI *mri_wm) ;
+int MRIsmoothBrightWM(MRI *mri_T1, MRI *mri_wm) ;
+MRI *MRIfindBrightNonWM(MRI *mri_T1, MRI *mri_wm) ;
 
 
 char *Progname ;
@@ -92,6 +96,7 @@ static float max_thickness = 5.0 ;
 
 #define MAX_GRAY               95
 #define MIN_CSF_BORDER_GRAY    40
+#define MID_GRAY               ((MAX_GRAY + MIN_CSF_BORDER_GRAY) / 2)
 #define MAX_CSF_BORDER_GRAY    75
 #define MIN_CSF                10
 
@@ -102,7 +107,7 @@ main(int argc, char *argv[])
   int           ac, nargs, i, label_val, replace_val, msec, n_averages ;
   MRI_SURFACE   *mris ;
   MRI           *mri_wm, *mri_kernel = NULL, *mri_smooth = NULL, 
-                *mri_filled, *mri_T1 ;
+                *mri_filled, *mri_T1, *mri_labeled ;
   float         max_len ;
   double        l_intensity, current_sigma ;
   struct timeb  then ;
@@ -227,6 +232,12 @@ main(int argc, char *argv[])
   }
   /* remove other hemi */
   MRIdilateLabel(mri_filled, mri_filled, replace_val, 1) ;
+  if (replace_val == RH_LABEL)
+  {
+    MRIdilateLabel(mri_filled, mri_filled, RH_LABEL2, 1) ;
+    MRImask(mri_T1, mri_filled, mri_T1, RH_LABEL2,0) ;
+  }
+
   MRImask(mri_T1, mri_filled, mri_T1, replace_val,0) ;
   MRIfree(&mri_filled) ;
 
@@ -236,7 +247,8 @@ main(int argc, char *argv[])
   if (!mri_wm)
     ErrorExit(ERROR_NOFILE, "%s: could not read input volume %s",
               Progname, fname) ;
-  MRIremoveEditT1(mri_T1, mri_wm) ;
+  MRIsmoothBrightWM(mri_T1, mri_wm) ;
+  mri_labeled = MRIfindBrightNonWM(mri_T1, mri_wm) ;
   if (overlay)
   {
     fprintf(stderr, "overlaying editing into T1 volume...\n") ;
@@ -268,7 +280,6 @@ main(int argc, char *argv[])
   MRIScomputeMetricProperties(mris) ;    /* recompute surface normals */
   MRISstoreMetricProperties(mris) ;
   MRISsaveVertexPositions(mris, ORIGINAL_VERTICES) ;
-  fprintf(stderr, "repositioning cortical surface to gray/white boundary\n");
 
   if (add)
   {
@@ -280,6 +291,15 @@ main(int argc, char *argv[])
   l_intensity = parms.l_intensity ;
   MRISsetVals(mris, -1) ;  /* clear white matter intensities */
 
+  if (!nowhite)
+  {
+    fprintf(stderr, "repositioning cortical surface to gray/white boundary\n");
+
+    MRImask(mri_T1, mri_labeled, mri_T1, BRIGHT_LABEL, 0) ;
+    MRImask(mri_T1, mri_labeled, mri_T1, BRIGHT_BORDER_LABEL, 0) ;
+    if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+      MRIwrite(mri_T1, "white_masked.mgh") ;
+  }
   current_sigma = white_sigma ;
   for (n_averages = max_white_averages, i = 0 ; 
        n_averages >= min_white_averages ; 
@@ -438,6 +458,10 @@ main(int argc, char *argv[])
   fprintf(stderr, "repositioning cortical surface to gray/csf boundary.\n") ;
   current_sigma = pial_sigma ;
   parms.l_repulse = 0 ;
+  MRImask(mri_T1, mri_labeled, mri_T1, BRIGHT_LABEL, 255) ;
+  MRImask(mri_T1, mri_labeled, mri_T1, BRIGHT_BORDER_LABEL, MID_GRAY) ;
+  if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+    MRIwrite(mri_T1, "pial_masked.mgh") ;
   for (n_averages = max_pial_averages, i = 0 ; 
        n_averages >= min_pial_averages ; 
        n_averages /= 2, current_sigma /= 2, i++)
@@ -516,6 +540,7 @@ main(int argc, char *argv[])
     MRISsetVals(mris, -1) ;  /* clear white matter intensities */
 
     current_sigma = white_sigma ;
+    MRImask(mri_T1, mri_labeled, mri_T1, BRIGHT_LABEL, 0) ;
     for (n_averages = max_white_averages, i = 0 ; 
          n_averages >= min_white_averages ; 
          n_averages /= 2, current_sigma /= 2, i++)
@@ -1136,16 +1161,16 @@ MRISfindExpansionRegions(MRI_SURFACE *mris)
 }
 
 int
-MRIremoveEditT1(MRI *mri_T1, MRI *mri_wm)
+MRIsmoothBrightWM(MRI *mri_T1, MRI *mri_wm)
 {
-  int     width, height, depth, x, y, z, nremoved, nthresholded ;
+  int     width, height, depth, x, y, z, nthresholded ;
   BUFTYPE *pT1, *pwm, val, wm ;
 
   width = mri_T1->width ;
   height = mri_T1->height ;
   depth = mri_T1->depth ;
 
-  nremoved = nthresholded = 0 ;
+  nthresholded = 0 ;
   for (z = 0 ; z < depth ; z++)
   {
     for (y = 0 ; y < height ; y++)
@@ -1164,21 +1189,68 @@ MRIremoveEditT1(MRI *mri_T1, MRI *mri_wm)
             val = DEFAULT_DESIRED_WHITE_MATTER_VALUE ;
           }
         }
-        else
-        {
-          if (val > 125)  /* not white matter and bright (e.g. eye sockets) */
-          {
-            nremoved++ ;
-            val = 0 ;
-          }
-        }
         *pT1++ = val ;
       }
     }
   }
-  fprintf(stderr, 
-          "%d bright non-wm voxels removed, %d bright wm thresholded.\n",
-          nremoved, nthresholded) ;
+
+  fprintf(stderr, "%d bright wm thresholded.\n", nthresholded) ;
 
   return(NO_ERROR) ;
 }
+MRI *
+MRIfindBrightNonWM(MRI *mri_T1, MRI *mri_wm)
+{
+  int     width, height, depth, x, y, z, nlabeled ;
+  BUFTYPE *pT1, *pwm, val, wm ;
+  MRI     *mri_labeled, *mri_tmp ;
+
+  mri_labeled = MRIclone(mri_T1, NULL) ;
+  width = mri_T1->width ;
+  height = mri_T1->height ;
+  depth = mri_T1->depth ;
+
+  for (z = 0 ; z < depth ; z++)
+  {
+    for (y = 0 ; y < height ; y++)
+    {
+      pT1 = &MRIvox(mri_T1, 0, y, z) ;
+      pwm = &MRIvox(mri_wm, 0, y, z) ;
+      for (x = 0 ; x < width ; x++)
+      {
+        val = *pT1++ ;
+        wm = *pwm++ ;
+
+        /* not white matter and bright (e.g. eye sockets) */
+        if ((wm < WM_MIN_VAL) && (val > 125))
+          MRIvox(mri_labeled, x, y, z) = BRIGHT_LABEL ;
+      }
+    }
+  }
+
+  /* find all connected voxels that are above 115 */
+  MRIdilateThreshLabel(mri_labeled, mri_T1, NULL, BRIGHT_LABEL, 10,115);
+  MRIclose(mri_labeled, mri_labeled) ;
+  
+  /* expand once more to all neighboring voxels that are bright. At
+     worst we will erase one voxel of white matter.
+  */
+  mri_tmp = 
+    MRIdilateThreshLabel(mri_labeled, mri_T1, NULL, BRIGHT_LABEL,1,100);
+  MRIxor(mri_labeled, mri_tmp, mri_tmp, 1, 255) ;
+  MRIreplaceValues(mri_tmp, mri_tmp, 1, BRIGHT_BORDER_LABEL) ;
+  MRIunion(mri_tmp, mri_labeled, mri_labeled) ;
+#if 0
+  fprintf(stderr, "selectively smoothing volume....\n") ;
+  MRIsoapBubbleLabel(mri_T1, mri_labeled, mri_T1, BRIGHT_LABEL, 200) ;
+#endif
+  if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+    MRIwrite(mri_labeled, "label.mgh") ;
+  /*    MRIwrite(mri_tmp, "tmp.mgh") ;*/
+  nlabeled = MRIvoxelsInLabel(mri_labeled, BRIGHT_LABEL) ;
+  fprintf(stderr, "%d bright non-wm voxels segmented.\n", nlabeled) ;
+
+  MRIfree(&mri_tmp) ;
+  return(mri_labeled) ;
+}
+
