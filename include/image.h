@@ -84,7 +84,7 @@ IMAGE   *ImageCorrelate(IMAGE *Itemplate, IMAGE *Isrc, int zpad,IMAGE *Icorr) ;
 IMAGE   *ImageCopyArea(IMAGE *Isrc, IMAGE *Idst, int srow, int scol,
             int drow, int dcol, int rows, int cols) ;
 int     ImageClearArea(IMAGE *I, int row, int col, int rows, int cols,
-          float val) ;
+          float val, int frame) ;
 float   ImageFindPeak(IMAGE *I, int *prow, int *pcol, float *pval) ;
 IMAGE   *ImagePowerSpectrum(IMAGE *Isrc, IMAGE *Idst) ;
 IMAGE   *ImageNormalizePix(IMAGE *Isrc, IMAGE *Idst) ;

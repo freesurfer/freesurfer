@@ -580,10 +580,10 @@ ImageCopyArea(IMAGE *Isrc, IMAGE *Idst, int srow, int scol,
         Description
 ------------------------------------------------------*/
 int
-ImageClearArea(IMAGE *I, int r0, int c0, int rows, int cols, float val)
+ImageClearArea(IMAGE *I, int r0, int c0, int rows,int cols,float val,int frame)
 {
   float   *fptr ;
-  int     row, col ;
+  int     row, col, start_frame, end_frame ;
   byte    *cptr, cval ;
 
   if (r0 < 0) r0 = 0 ;
@@ -594,29 +594,40 @@ ImageClearArea(IMAGE *I, int r0, int c0, int rows, int cols, float val)
 
   rows = MIN(I->rows, r0+rows) ;
   cols = MIN(I->cols, c0+cols) ;
-  
-  for (row = r0 ; row < rows ; row++)
+
+  if (frame < 0)
   {
-    switch (I->pixel_format)
-    {
-    case PFFLOAT:
-      fptr = IMAGEFpix(I, c0, row) ;
-      for (col = c0 ; col < cols ; col++)
-        *fptr++ = val ;
-      break ;
-    case PFBYTE:
-      cptr = IMAGEpix(I, c0, row) ;
-      cval = (char)val ;
-      for (col = c0 ; col < cols ; col++)
-        *cptr++ = cval ;
-      break ;
-    default:
-      ErrorReturn(ERROR_UNSUPPORTED, 
-                  (ERROR_UNSUPPORTED, 
-                   "ImageClearArea: unsupported image format %d",
-                   I->pixel_format)) ;
-      break ;
-    }
+    start_frame = 0 ;
+    end_frame = I->num_frame-1 ;
+  }
+  else
+    start_frame = end_frame = frame ;
+
+  for (frame = start_frame ; frame <= end_frame ; frame++)
+  {
+    for (row = r0 ; row < rows ; row++)
+      {
+        switch (I->pixel_format)
+        {
+        case PFFLOAT:
+          fptr = IMAGEFseq_pix(I, c0, row, frame) ;
+          for (col = c0 ; col < cols ; col++)
+            *fptr++ = val ;
+          break ;
+        case PFBYTE:
+          cptr = IMAGEseq_pix(I, c0, row, frame) ;
+          cval = (char)val ;
+          for (col = c0 ; col < cols ; col++)
+            *cptr++ = cval ;
+          break ;
+        default:
+          ErrorReturn(ERROR_UNSUPPORTED, 
+                      (ERROR_UNSUPPORTED, 
+                       "ImageClearArea: unsupported image format %d",
+                       I->pixel_format)) ;
+          break ;
+        }
+      }
   }
   return(0) ;
 }
