@@ -3147,7 +3147,6 @@ MRIreduceSlice(MRI *mri_src, MRI *mri_dst, float *k, int len, int axis)
       }
     }
     break ;
-  case MRI_DEPTH:
   }
 
 /*  mri_dst = MRIcopy(mri_src, mri_dst) ;*/

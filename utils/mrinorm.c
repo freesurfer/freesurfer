@@ -1225,6 +1225,7 @@ MRInormGentlyFindControlPoints(MRI *mri_src, int wm_target,
         }
         if (val0 >= low_thresh && val0 <= hi_thresh)
         {
+#undef WSIZE
 #define WSIZE   5
 #define WHALF  ((WSIZE-1)/2)
           ctrl = 128 ;

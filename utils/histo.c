@@ -148,8 +148,8 @@ HISTOcopy(HISTOGRAM *histo_src, HISTOGRAM *histo_dst)
   if (!histo_dst)
     histo_dst = HISTOalloc(histo_src->nbins) ;
   histo_dst->nbins = histo_src->nbins ;
-  memcpy(histo_dst->counts, histo_src->counts, sizeof(histo_src->counts)*histo_src->nbins) ;
-  memcpy(histo_dst->bins, histo_src->bins, sizeof(histo_src->bins)*histo_src->nbins) ;
+  memcpy(histo_dst->counts, histo_src->counts, sizeof(*histo_src->counts)*histo_src->nbins) ;
+  memcpy(histo_dst->bins, histo_src->bins, sizeof(*histo_src->bins)*histo_src->nbins) ;
   return(histo_dst) ;
 }
 /*-----------------------------------------------------
@@ -265,7 +265,7 @@ HISTOclearCounts(HISTOGRAM *histo_src, HISTOGRAM *histo_dst)
   if (!histo_dst)
   {
     histo_dst = HISTOalloc(histo_src->nbins) ;
-    memcpy(histo_dst->bins, histo_src->bins, sizeof(histo_src->bins)) ;
+    memcpy(histo_dst->bins, histo_src->bins, sizeof(*histo_src->bins)) ;
   }
 
   memset(histo_dst->counts, 0, sizeof(histo_dst->counts)) ;

@@ -2,9 +2,9 @@
 // originally written by Bruce Fischl
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2004/06/08 16:39:40 $
-// Revision       : $Revision: 1.146 $
+// Revision Author: $Author: fischl $
+// Revision Date  : $Date: 2004/06/30 17:04:55 $
+// Revision       : $Revision: 1.147 $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -6238,22 +6238,22 @@ gcaVoxelGibbsLogLikelihood(GCA *gca, MRI *mri_labels, MRI *mri_inputs, int x,
     if (label > MAX_CMA_LABEL)
     {
       printf("\ngcaVoxelGibbsLogLikelihood() is called with label %d at (%d, %d, %d)\n", label, x, y, z); 
-      printf("gcan = %x, gcap = %x\n", (unsigned int )gcan, (unsigned int)gcap);
+      printf("gcan = %p, gcap = %p\n", gcan, gcap);
       if (gcan)
       {
-	printf("gcan->nlabels = %d, gcan->total_training = %d ", gcan->nlabels, gcan->total_training);
-	printf("log(return) = %.2f\n",
-	       log(0.01f/((float) gcan->total_training*GIBBS_NEIGHBORS)));
-	printf("labels for this location\n");
-	for (n=0; n < gcan->nlabels; n++)
-	  printf("label=%s (%d); ", cma_label_to_name(gcan->labels[n]), gcan->labels[n]);
+				printf("gcan->nlabels = %d, gcan->total_training = %d ", gcan->nlabels, gcan->total_training);
+				printf("log(return) = %.2f\n",
+							 log(0.01f/((float) gcan->total_training*GIBBS_NEIGHBORS)));
+				printf("labels for this location\n");
+				for (n=0; n < gcan->nlabels; n++)
+					printf("label=%s (%d); ", cma_label_to_name(gcan->labels[n]), gcan->labels[n]);
       }
     }
     //////////////////////////////////////////////////////////////////////////////
     for (n = 0 ; n < gcan->nlabels ; n++)
     {
       if (gcan->labels[n] == label)
-	break ;
+				break ;
     }
     // could not find the label, then 
     if (n >= gcan->nlabels)
@@ -6282,22 +6282,22 @@ gcaVoxelGibbsLogLikelihood(GCA *gca, MRI *mri_labels, MRI *mri_inputs, int x,
       nbr_label = MRIvox(mri_labels, xnbr, ynbr, znbr) ;
       for (j = 0 ; j < gc->nlabels[i] ; j++)
       {
-	if (nbr_label == gc->labels[i][j])
-	  break ;
+				if (nbr_label == gc->labels[i][j])
+					break ;
       }
       if (j < gc->nlabels[i])
       {
-	if (!FZERO(gc->label_priors[i][j]))
-	  nbr_prior += log(gc->label_priors[i][j]) ;
-	else
-	  nbr_prior += log(0.1f/(float)gcan->total_training) ; /*BIG_AND_NEGATIVE */
-	check_finite("gcaVoxelGibbsLogLikelihood: label_priors", nbr_prior) ;
+				if (!FZERO(gc->label_priors[i][j]))
+					nbr_prior += log(gc->label_priors[i][j]) ;
+				else
+					nbr_prior += log(0.1f/(float)gcan->total_training) ; /*BIG_AND_NEGATIVE */
+				check_finite("gcaVoxelGibbsLogLikelihood: label_priors", nbr_prior) ;
       }
       else   /* never occurred - make it unlikely */
       {
-	if (x == Ggca_x && y == Ggca_y && z == Ggca_z)
-	  DiagBreak() ;
-	nbr_prior += log(0.1f/(float)gcan->total_training) ; /*BIG_AND_NEGATIVE*/
+				if (x == Ggca_x && y == Ggca_y && z == Ggca_z)
+					DiagBreak() ;
+				nbr_prior += log(0.1f/(float)gcan->total_training) ; /*BIG_AND_NEGATIVE*/
       }
     }
     // added to the previous value
@@ -6318,7 +6318,7 @@ gcaVoxelGibbsLogLikelihood(GCA *gca, MRI *mri_labels, MRI *mri_inputs, int x,
   {
     printf("gcaVoxelLogLikelihood: (%d, %d, %d)\n", x, y, z);
     printf("label %s(%d) log_likelihood %.2f is less than no label found %.2f\n",
-	   cma_label_to_name(label), label, log_likelihood, tmp);
+					 cma_label_to_name(label), label, log_likelihood, tmp);
   }
 #endif
   return(log_likelihood) ;
