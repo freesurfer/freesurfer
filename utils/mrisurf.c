@@ -61,7 +61,7 @@
 #define MRIS_ASCII_FILE     1
 #define MRIS_GEO_FILE       2    /* movie.byu format */
 
-#define NEG_AREA_K          20.0  /* was 200 */
+static double NEG_AREA_K=20.0 ; /* was 200 */
 /* limit the size of the ratio so that the exp() doesn't explode */
 #define MAX_NEG_RATIO       (400 / NEG_AREA_K)
 #define MAX_ASYNCH_MM       0.3
@@ -4366,9 +4366,11 @@ MRI_SURFACE *
 MRISquickSphere(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int max_passes)
 {
   int     niter, passno, msec, nbrs[MAX_NBHD_SIZE],i,use_dists, base_averages ;
-  double  pct_error ;
+  double  pct_error, orig_k, last_sse, sse, pct_change ;
   struct  timeb start ;
-  
+
+  orig_k = NEG_AREA_K ;
+
   TimerStart(&start) ;
 
   if (IS_QUADRANGULAR(mris))
@@ -4442,12 +4444,29 @@ MRISquickSphere(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int max_passes)
 #if 1
   if ((parms->flags & IPFLAG_QUICK) == 0)
     parms->tol = parms->tol * 1024 / (sqrt((double)base_averages+1)) ;
-#endif
-  do
+#endif	
+for (i = 0, NEG_AREA_K = orig_k ; i < 4 ; NEG_AREA_K *= 4, i++)
   {
-    mrisIntegrationEpoch(mris, parms, base_averages) ;
-  } while (++passno < max_passes) ;
+		passno = 0 ;
+		do
+		{
+			last_sse = MRIScomputeSSE(mris, parms) ;
+			printf("epoch %d (K=%2.1f), pass %d, starting sse = %2.2f\n",
+						 i+1, NEG_AREA_K, passno+1, last_sse) ;
+			niter = mrisIntegrationEpoch(mris, parms, base_averages) ;
+			sse = MRIScomputeSSE(mris, parms) ;
+			pct_change = (last_sse - sse) / (last_sse*niter) ; /* per timestep */
+			passno++ ;
+			printf("pass %d complete, delta sse/iter = %2.2f/%d = %2.2f\n",
+						 passno, (last_sse-sse)/last_sse, niter, pct_change) ;
+		} while (pct_change > parms->tol) ;
+#if 0
+		if (passno == 1)   /* couldn't make any progress at all */
+			break ;
+#endif
+  } 
 
+	NEG_AREA_K = orig_k ;
   pct_error = MRISpercentDistanceError(mris) ;
   fprintf(stdout, "final distance error %%%2.2f\n", (float)pct_error);
   mrisProjectSurface(mris) ;
@@ -13691,7 +13710,7 @@ mrisLogStatus(MRI_SURFACE *mris,INTEGRATION_PARMS *parms,FILE *fp, float dt)
   sse = sqrt(sse) ;
 #endif
   if (FZERO(parms->l_corr) && FZERO(parms->l_pcorr))
-    fprintf(fp, "%3.3d: dt: %2.2f, sse: %2.0f (%2.3f, %2.1f, %2.3f), "
+    fprintf(fp, "%3.3d: dt: %2.2f, sse: %2.1f (%2.3f, %2.1f, %2.3f), "
             "neg: %d (%%%2.3f:%%%2.2f), avgs: %d\n", 
             parms->t, dt, sse, area_rms, (float)DEGREES(angle_rms), dist_rms,
             negative, 100.0*mris->neg_area/(mris->neg_area+mris->total_area),
@@ -30420,25 +30439,24 @@ MRI *MRISsmoothMRI(MRIS *Surf, MRI *Src, int nSmoothSteps, MRI *Targ)
 
   SrcTmp = MRIcopy(Src,NULL);
   for(nthstep = 0; nthstep < nSmoothSteps; nthstep ++){
-    //printf("Step = %d\n",nthstep); fflush(stdout);
+    printf("Step = %d\n",nthstep); fflush(stdout);
 
     for(vtx = 0; vtx < Surf->nvertices; vtx++){
-      if(Surf->vertices[vtx].ripflag) continue;
       nnbrs = Surf->vertices[vtx].vnum;
 
       for(frame = 0; frame < Targ->nframes; frame ++){
-	val = MRIFseq_vox(SrcTmp,vtx,0,0,frame);
-	
-	for(nthnbr = 0; nthnbr < nnbrs; nthnbr++){
-	  nbrvtx = Surf->vertices[vtx].v[nthnbr];
-	  val += MRIFseq_vox(SrcTmp,nbrvtx,0,0,frame) ;
-	}/* end loop over neighbor */
-	
-	MRIFseq_vox(Targ,vtx,0,0,frame) = (val/(nnbrs+1));
+  val = MRIFseq_vox(SrcTmp,vtx,0,0,frame);
+
+  for(nthnbr = 0; nthnbr < nnbrs; nthnbr++){
+    nbrvtx = Surf->vertices[vtx].v[nthnbr];
+    val += MRIFseq_vox(SrcTmp,nbrvtx,0,0,frame) ;
+  }/* end loop over neighbor */
+
+  MRIFseq_vox(Targ,vtx,0,0,frame) = (val/(nnbrs+1));
       }/* end loop over frame */
-      
+
     } /* end loop over vertex */
-    
+
     MRIcopy(Targ,SrcTmp);
   }/* end loop over smooth step */
 
