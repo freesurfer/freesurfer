@@ -4,6 +4,8 @@
 #include <string.h>
 #include "error.h"
 #include "proto.h"
+#include "macros.h"
+#include "utils.h"
 
 #include <X11/Xlib.h>
 #include <X11/Intrinsic.h>
@@ -22,6 +24,8 @@
 #include <X11/extensions/xf86dga.h>
 #endif 
 
+static int nocolor = 0 ;
+
 #define NONE  0
 #define LOOP  1
 #define SWING 2
@@ -30,6 +34,8 @@
 #define REVERSE 1
 
 #define INTERVAL_INC 15
+
+char *Progname ;
 
 /* -------- Prototypes -------- */
 #ifdef __sun__ 
@@ -404,7 +410,11 @@ void rgb2xcol(IMAGE *I, byte *ximgdata, int fnum)
   for(i=0;i<rows;i++,xptr -= ximg->bytes_per_line)
     for(j=0, ip = xptr; j<cols; j++)
       {
-  r = *bptr++; g = *bptr++; b = *bptr++;
+        if (nocolor)
+        { r = *bptr; g = *bptr; }
+        else
+        { r = *bptr++; g = *bptr++; }
+        b = *bptr++;
   
   if (xi.rshift<0) 
     r = r << (-xi.rshift);
@@ -483,7 +493,7 @@ void ConvertImages(int nframes, char **argv)
 {
   IMAGE *I;
   int i;
-  
+
   for(i=0;i<nframes;i++)
     {
       I = ImageRead(argv[i+1]);
@@ -521,10 +531,49 @@ void MakeDispNames(int argc, char **argv)
     }
 }
 
+static int get_option(int argc, char *argv[]) ;
+/*----------------------------------------------------------------------
+            Parameters:
+
+           Description:
+----------------------------------------------------------------------*/
+static int
+get_option(int argc, char *argv[])
+{
+  int  nargs = 0 ;
+  char *option ;
+
+  option = argv[1] + 1 ;            /* past '-' */
+  StrUpper(option) ;
+  switch (*option)
+  {
+  case '?':
+  case 'U':
+    useage() ;
+    exit(1) ;
+    break ;
+  case '1':
+    nocolor = 1 ;
+    break ;
+  }
+  return(nargs) ;
+}
 int main(int argc, char **argv)
 {
-  IMAGE *I;
-  int i;
+  IMAGE   *I;
+  int     i;
+  int     ac, nargs ;
+  char    **av ;
+
+  Progname = argv[0] ;
+  ac = argc ;
+  av = argv ;
+  for ( ; argc > 1 && ISOPTION(*argv[1]) ; argc--, argv++)
+  {
+    nargs = get_option(argc, argv) ;
+    argc -= nargs ;
+    argv += nargs ;
+  }
 
   XInit(&argc,&argv);
 
@@ -534,6 +583,15 @@ int main(int argc, char **argv)
   for(i=1;i<argc;i++)
     {
       I = ImageReadHeader(argv[i]);
+      switch (I->pixel_format)
+      {
+      case PFBYTE:
+      case PFFLOAT:
+        nocolor = 1 ;
+        break ;
+      default:
+        break ;
+      }
       pfmt = MAX(pfmt,I->pixel_format);
       rows = MAX(rows,I->orows);
       cols = MAX(cols,I->ocols);
