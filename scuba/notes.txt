@@ -354,7 +354,7 @@ x fill tool
 
 ======== HERE
 
-- hide/show paths
+x hide/show paths
 
 - histo tool
   - redesign so that it can be left open
@@ -406,6 +406,10 @@ x button for zoom in and out
   
 BRUCE'S LIST:::
 
+- alt-c behavior but lock in a layer
+
+- unload volume
+
 - goto vertex
 
 - writeable coords for goto
@@ -441,7 +445,6 @@ x Segment Slice by Histogram
     x tk histogram, choose seg vol, get table from it, assign values
 
 BUGS:::
-- path tool click button 2 if not paths present crashes
 - tabbing when in console switches frame, disable?
 - brings up tkcon window briefly when booting
 - color picker window, open twice?
@@ -460,7 +463,7 @@ nav tools draw onscreen sliders for feedback
  - function to translate v position into modifcation value
  - start at mouse point, use expo scale towards edge for min/max values
 
-SCUBA VERSION
+QT VERSION
 
 x start new project
  x copy main window from scubatest
@@ -479,18 +482,15 @@ x connect keybindings
 
 - get the new layers window working
   x working on pdmTransform
-  - ignore markers for histogram.
+  x ignore markers for histogram.
     - doesn't set properly for small_values.mgz
   - min/mid/max marker for heat scale
-
-- value field doesn't update properly for float values (small_values.mgz)
 
 x default dirs for file dlogs if subject is loaded
 
 QtVolumeHistogram
   - still crashing sometimes when mousing over bars, rigorous testing
-  - get threading to work
-    - when switching vols before thread is done, is terminate() okay to call?
+    - crashes right after "got rect"
 
 - when current layer/data collection change, update menus
   - Save Volume <VolumeName>

@@ -20,6 +20,8 @@ ScubaDataCollectionFactory::GetFactory() {
     commandMgr.AddCommand( sFactory, "MakeDataCollection", 1, "collectionType",
 			   "Make a new data collection of the given type "
 			   "and return the collectionID." );
+    commandMgr.AddCommand( sFactory, "DeleteDataCollection", 1, "id",
+			   "Delete a data collection." );
 
   }
 
@@ -67,9 +69,30 @@ ScubaDataCollectionFactory::DoListenToTclCommand( char* isCommand,
       sResult = "bad collection type";
       return error;
     }
+  }
+    
+  // DeleteDataCollection <id>
+  if( 0 == strcmp( isCommand, "DeleteDataCollection" ) ) {
+
+    int colID = strtol(iasArgv[1], (char**)NULL, 10);
+    if( ERANGE == errno ) {
+      sResult = "bad collection ID";
+      return error;
+    }
+    
+    try {
+      DataCollection& collection = DataCollection::FindByID( colID );
+      delete &collection;
+      
+    }
+    catch( runtime_error e ) {
+      DebugOutput( << "Bad collection type name" );
+      sResult = "bad collection type";
+      return error;
+    }
     
   }
-
+  
   return ok;
 }
 

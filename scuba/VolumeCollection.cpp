@@ -80,6 +80,7 @@ VolumeCollection::~VolumeCollection() {
   MRILoader mriLoader = dataMgr.GetMRILoader();
   try { 
     mriLoader.ReleaseData( &mMRI );
+    SendBroadcast( "DataDeleted", NULL );
   } 
   catch(...) {
     cerr << "Couldn't release data"  << endl;
@@ -1271,7 +1272,6 @@ VolumeCollection::WriteROIsToSegmentation ( string ifnVolume ) {
 void
 VolumeCollection::SetDataToWorldTransform ( int iTransformID ) {
 
-  cerr << "VolumeCollection::SetDataToWorldTransform " << iTransformID << endl;
   DataCollection::SetDataToWorldTransform( iTransformID );
   CalcWorldToIndexTransform();
 }
@@ -1865,7 +1865,7 @@ VolumeLocation::VolumeLocation ( VolumeCollection& iVolume,
 				 float const iRAS[3] )
   : DataLocation( iRAS ), mVolume( iVolume ) {
 
-  mVolume.RASToMRIIndex( iRAS, mIdxi );
+  mVolume.RASToMRIIndex( iRAS, mIdxf );
   mIdxi[0] = (int) mIdxf[0];
   mIdxi[1] = (int) mIdxf[1];
   mIdxi[2] = (int) mIdxf[2];
