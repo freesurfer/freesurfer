@@ -6,8 +6,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: pengyu $
-// Revision Date  : $Date: 2004/11/05 20:36:03 $
-// Revision       : $Revision: 1.1 $
+// Revision Date  : $Date: 2004/11/05 20:42:35 $
+// Revision       : $Revision: 1.2 $
 ////////////////////////////////////////////
 
 #include <math.h>
@@ -35,7 +35,7 @@
 #include "matrix.h"
 #include "mriTransform.h"
 
-static char vcid[] = "$Id: mri_extract_ma_intensity.c,v 1.1 2004/11/05 20:36:03 pengyu Exp $";
+//static char vcid[] = "$Id: mri_extract_ma_intensity.c,v 1.2 2004/11/05 20:42:35 pengyu Exp $";
 
 int             main(int argc, char *argv[]) ; 
 static int      get_option(int argc, char *argv[]) ; 
@@ -48,12 +48,12 @@ static Real cc_tal_z = 96 ;
 int 
 main(int argc, char *argv[]) 
 { 
-	char        fname[STRLEN];
 	int         nargs, msec, n_sample = 100, n=0, i=0; 
 	struct timeb  then ;
 	MRI         *mri_pd, *mri_t1;
-	File        *fp_in, *fp_out;
-	float       x, y, radius, val=0, val_pd=0, val_t1=0;
+	FILE        *fp_in, *fp_out;
+	float       x, y, radius, val=0;
+	Real        val_pd=0, val_t1=0;
 
 	Progname = argv[0] ; 
 	DiagInit(NULL, NULL, NULL) ; 
@@ -103,10 +103,10 @@ main(int argc, char *argv[])
 
 	for (i=0; i<n_sample; i++)
 	{
-		fscanf(fp_in, "%d   %f   %f   %f   %f\n", n, x, y, radius, val);
+		fscanf(fp_in, "%d   %f   %f   %f   %f\n", &n, &x, &y, &radius, &val);
 		MRIsampleVolumeFrameType(mri_pd, cc_tal_x, y, x, 0, SAMPLE_TRILINEAR, &val_pd) ;
 		MRIsampleVolumeFrameType(mri_t1, cc_tal_x, y, x, 0, SAMPLE_TRILINEAR, &val_t1) ;
-		fprintf(fp_out, "%d   %f   %f   %f   %f\n", n, x, y, radius, val, val_pd, val_t1);
+		fprintf(fp_out, "%d   %f   %f   %f   %f   %f   %f\n", n, x, y, radius, val, val_pd, val_t1);
 	}
 
 	MRIfree(&mri_t1) ;
