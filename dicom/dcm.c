@@ -86,9 +86,9 @@
 **	and convert the object to and from its "stream" representation.
 **	In addition, the package can parse a file which contains a stream
 **	and create its internal object.
-** Last Update:		$Author: tosa $, $Date: 2004/06/23 14:06:36 $
+** Last Update:		$Author: tosa $, $Date: 2004/06/30 20:23:40 $
 ** Source File:		$RCSfile: dcm.c,v $
-** Revision:		$Revision: 1.12 $
+** Revision:		$Revision: 1.13 $
 ** Status:		$State: Exp $
 */
 
@@ -3685,7 +3685,7 @@ exportFixedFields(DCM_ELEMENT * e,
 union {
     unsigned short sh[2];
     unsigned char ch[4];
-}   groupElement;
+}   groupElement = {};
 
 static CONDITION
 exportData(PRIVATE_OBJECT ** object, PRV_ELEMENT_ITEM * item,
