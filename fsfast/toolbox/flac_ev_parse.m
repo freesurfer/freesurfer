@@ -6,7 +6,7 @@ function ev = flac_ev_parse(tline)
 %
 % EV EVName ModelName Type <parameters>
 %
-% $Id: flac_ev_parse.m,v 1.2 2004/10/17 18:35:43 greve Exp $
+% $Id: flac_ev_parse.m,v 1.3 2004/10/23 01:43:05 greve Exp $
 
 ev = [];
 if(nargin > 1)
@@ -75,16 +75,16 @@ switch (ev.model)
   
   [item c] = sscanfitem(tline,7);
   if(c ~= 1) fprintf('Format error\n'); ev=[]; return; end
-  ev.psdwin(2) = sscanf(item,'%f',1); % dpsd
+  ev.psdwin(2) = sscanf(item,'%f',1); % psdmax
   
   [item c] = sscanfitem(tline,8);
   if(c ~= 1) fprintf('Format error\n'); ev=[]; return; end
-  ev.psdwin(3) = sscanf(item,'%f',1); % psdmax
+  ev.psdwin(3) = sscanf(item,'%f',1); % dpsd
 
-  ev.npsd = round((ev.psdwin(3)-ev.psdwin(1))/ev.psdwin(2));
-  ev.nreg = ev.nreg;
+  ev.npsd = round((ev.psdwin(2)-ev.psdwin(1))/ev.psdwin(3));
+  ev.nreg = ev.npsd;
   ev.ishrf = 1;  
-  
+
  %--------------------------------------------
  case {'spmhrf'} % SPM HRF regressor
    % 3 parameters: stf, nderiv, dpsd
