@@ -2705,7 +2705,7 @@ ImageBuildExponentialFilter(IMAGE *gradImage, int wsize, float k,
     }
   }
 
-  ImageWrite(filterSequence, "filter.hipl") ;
+/*  ImageWrite(filterSequence, "filter.hipl") ;*/
   return(0) ;
 }
 /*----------------------------------------------------------------------
@@ -3569,23 +3569,28 @@ ImageConvolveGaussian(IMAGE *inImage,IMAGE *gImage, IMAGE *outImage,
   kernel = IMAGEFpix(gImage, 0, 0) ;
   ksize = gImage->cols ;
   ImageConvolve1d(inImage, tmpImage, kernel, ksize, IMAGE_VERTICAL) ;
+#if 0
 {
   static int gno = 0 ;
   char fname[100] ;
   sprintf(fname, "t%d.hipl", gno++) ;
 ImageWrite(tmpImage, fname) ;
 }
+#endif
 
   buf = IMAGEFpix(outImage, 0, 0) ;
-  outImage->image = (UCHAR *)IMAGEFseq_pix(outImage, 0, 0, dst_frameno) ;
+  outImage->image = (byte *)IMAGEFseq_pix(outImage, 0, 0, dst_frameno) ;
   ImageConvolve1d(tmpImage, outImage, kernel, ksize, IMAGE_HORIZONTAL) ;
+#if 0
 {
   static int gno = 0 ;
   char fname[100] ;
   sprintf(fname, "g%d.hipl", gno++) ;
 ImageWrite(outImage, fname) ;
 }
-  outImage->image = (UCHAR *)buf ;
+#endif
+
+  outImage->image = (byte *)buf ;
   return(outImage) ;
 }
 /*----------------------------------------------------------------------
