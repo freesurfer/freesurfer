@@ -440,6 +440,8 @@ XVrepaintImage(XV_FRAME *xvf, int which)
     return ;
   dimage->entered = 1 ;
   image = dimage->dispImage ;
+  if (!dimage->entered)
+    ImageWrite(image, "repaint.hipl") ;
   XPutImage(xvf->display, (Drawable)dimage->window, xvf->gc, dimage->ximage, 
             0, 0, 0, 0, image->cols, image->rows);
   if (XVrepaint_handler)
@@ -1647,6 +1649,12 @@ XVsetImageSize(XV_FRAME *xvf, int which, int rows, int cols)
     if (xvGetTitle(i, title, 1))
       XVshowImageTitle(xvf, i, title) ;
 
+/* 
+   must show image here to refill dispImage, otherwise repaint will display
+   a blank image.
+*/
+    XVshowImage(xvf, i, dimage->sourceImage, dimage->frame) ;
+
     if (dimage->sync)
     {
       if (i == which)    /* just did one passed in by caller */
@@ -1657,7 +1665,7 @@ XVsetImageSize(XV_FRAME *xvf, int which, int rows, int cols)
         if (i == which)
           continue ;
         dimage2 = xvGetDimage(xvf, i, 0) ;
-        if (dimage2 &&  (dimage2->sync && dimage->sync))
+        if (dimage2 &&  (dimage2->sync == dimage->sync))
           break ;
       }
       if (i < xvf->rows*xvf->cols)
