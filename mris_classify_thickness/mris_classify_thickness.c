@@ -5,6 +5,7 @@
 #include <ctype.h>
 
 
+#include "timer.h"
 #include "macros.h"
 #include "error.h"
 #include "diag.h"
@@ -15,7 +16,7 @@
 #include "mrishash.h"
 #include "sig.h"
 
-static char vcid[] = "$Id: mris_classify_thickness.c,v 1.1 2000/05/02 16:42:13 fischl Exp $";
+static char vcid[] = "$Id: mris_classify_thickness.c,v 1.2 2000/05/09 14:45:13 fischl Exp $";
 
 
 /*-------------------------------- CONSTANTS -----------------------------*/
@@ -123,6 +124,8 @@ main(int argc, char *argv[])
   LABEL        *area, **labels = NULL ;
   FILE         *fp = NULL ;
   double       snr, max_snr ;
+  struct timeb start ;
+  int          msec, minutes, seconds ;
 
   if (write_flag && DIAG_VERBOSE_ON)
     fp = fopen("scalespace.dat", "w") ;
@@ -139,6 +142,8 @@ main(int argc, char *argv[])
     argc -= nargs ;
     argv += nargs ;
   }
+
+  TimerStart(&start) ;
 
   /* subject_name hemi surface curvature */
   if (argc < 7)
@@ -400,7 +405,7 @@ main(int argc, char *argv[])
     cvector_add_variances(c1_var, c2_var, num_class1, num_class2,
                           vtotal_var, nvertices) ;
     if (use_no_distribution)
-      snr = cvector_compute_dist_free_snr(c1_avg_curvs, num_class1,c2_avg_curvs,
+      snr = cvector_compute_dist_free_snr(c1_avg_curvs,num_class1,c2_avg_curvs,
                                           num_class2, c1_mean, c2_mean,
                                           vsnr, nvertices, &i);
     else
@@ -492,11 +497,13 @@ main(int argc, char *argv[])
     }
   } while (nlabels < MIN_LABELS) ;
 
+  fprintf(stderr, "%d labels found - extracting thickness at optimal "
+          "scale...\n", nlabels) ;
+
   /* now build feature vectors for each subject */
-
-
   extract_thickness_at_best_scale(mris, c1_avg_curvs, vbest_avgs, c1_curvs, 
                                   nvertices, num_class1);
+  fprintf(stderr, "extracting thickness for class 2...\n") ;
   extract_thickness_at_best_scale(mris, c2_avg_curvs, vbest_avgs, c2_curvs, 
                                   nvertices, num_class2);
 
@@ -607,6 +614,12 @@ main(int argc, char *argv[])
     }
   }
   
+  msec = TimerStop(&start) ;
+  seconds = nint((float)msec/1000.0f) ;
+  minutes = seconds / 60 ;
+  seconds = seconds % 60 ;
+  fprintf(stderr, "classification took %d minutes and %d seconds.\n", 
+          minutes, seconds) ;
   exit(0) ;
   return(0) ;  /* for ansi */
 }
@@ -840,36 +853,43 @@ cvector_compute_dist_free_snr(float **c1_curvs, int num_class1,
                               float *c1_mean, float *c2_mean, float *vsnr, 
                               int num, int *pi)
 {
-  int     i, max_i, n ;
+  int     i, max_i, n, correct, total ;
   double  max_snr, mean, snr ;
 
   max_i = -1 ;
   for (max_snr = 0.0, i = 0 ; i < num ; i++)
   {
     mean = (c1_mean[i] + c2_mean[i])/2 ;
-    snr = 0 ;
+    snr = 0 ; correct = 0 ;
     if (c1_mean[i] > c2_mean[i])
     {
       for (n = 0 ; n < num_class1 ; n++)
         if (c1_curvs[n][i] > mean)
-          snr++ ;
+          correct++ ;
+
       for (n = 0 ; n < num_class2 ; n++)
         if (c2_curvs[n][i] < mean)
-          snr++ ;
+          correct++ ;
     }
     else
     {
       for (n = 0 ; n < num_class1 ; n++)
         if (c1_curvs[n][i] < mean)
-          snr++ ;
+          correct++ ;
+
       for (n = 0 ; n < num_class2 ; n++)
         if (c2_curvs[n][i] > mean)
           snr++ ;
     }
-    
+
+    total = num_class1 + num_class2 ;
+    snr = (double)correct / (double)total ;
     vsnr[i] = snr ;
     if (snr > max_snr)
+    {
+      *pi = i ;
       max_snr = snr ;
+    }
   }
   *pi = max_i ;
   return(max_snr) ;
@@ -943,7 +963,7 @@ cvector_add_variances(float *c1_var, float *c2_var, int num_class1,
 
   total_dof = num_class1 + num_class2 ;
   for (i = 0 ; i < nvertices ; i++)
-    vtotal_var[i] = (c1_var[i]*num_class1 * c2_var[i]*num_class2) / total_dof ;
+    vtotal_var[i] = (c1_var[i]*num_class1 + c2_var[i]*num_class2) / total_dof ;
 
   return(NO_ERROR) ;
 }
