@@ -4,8 +4,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2004/12/01 16:07:43 $
-// Revision       : $Revision: 1.310 $
+// Revision Date  : $Date: 2004/12/07 16:37:38 $
+// Revision       : $Revision: 1.311 $
 //////////////////////////////////////////////////////////////////
 #include <stdio.h>
 #include <string.h>
@@ -7812,11 +7812,14 @@ MRISreadAnnotation(MRI_SURFACE *mris, char *sname)
     }
   }
 
-  while (!feof(fp))
+  while (1)
   {
     int tag ;
 
     tag = freadInt(fp) ;
+    if (feof(fp))
+      break;
+    
     switch (tag)
     {
     case TAG_COLORTABLE:
@@ -7828,7 +7831,6 @@ MRISreadAnnotation(MRI_SURFACE *mris, char *sname)
       break ;
     }
   }
-
   fclose(fp);
 
 #if 0
@@ -26825,7 +26827,7 @@ static void updateVertexStatistics(MRIS *mris, MRIS* mris_corrected,DVS *dvs, RP
   DEFECT *defect;
   EDGE_TABLE *etable;
   int i,nedges;
-  float total_vertex_fitness,new_fitness;
+  float total_vertex_fitness=0.f,new_fitness;
   VERTEX *v;
 	static int first_time=1;
 	
