@@ -4,8 +4,8 @@
 // 
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2004/05/25 18:20:39 $
-// Revision       : $Revision: 1.34 $
+// Revision Date  : $Date: 2004/05/26 15:05:34 $
+// Revision       : $Revision: 1.35 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -348,7 +348,7 @@ GCAMregister(GCA_MORPH *gcam, MRI *mri, GCA_MORPH_PARMS *parms)
 						}
             sprintf(fname, "%s_target%d", parms->base_name, level) ;
             MRIwriteImageViews(mri_gca, fname, IMAGE_SIZE) ;
-            sprintf(fname, "%s_target%d.mgh", parms->base_name, level) ;
+            sprintf(fname, "%s_target%d.mgz", parms->base_name, level) ;
             printf("writing target volume to %s...\n", fname) ;
             MRIwrite(mri_gca, fname) ;
             MRIfree(&mri_gca) ;
@@ -1967,7 +1967,7 @@ GCAMmorphToAtlas(MRI *mri_src, GCA_MORPH *gcam, MRI *mri_morphed, int frame)
 					{
 						if (xd > -1 && yd > -1 && zd > 0 &&
 								xd < width && yd < height && zd < depth)
-							val = MRIgetVoxVal(mri_src, xd, yd, zd, frame) ;
+							MRIsampleVolumeFrameType(mri_src, xd, yd, zd, frame, SAMPLE_TRILINEAR, &val) ;
 						else
 							val = 0.0 ;
 						MRIsetVoxVal(mri_morphed, x, y, z, frame-start_frame, val) ;
@@ -2327,7 +2327,7 @@ write_snapshot(GCA_MORPH *gcam, MRI *mri, GCA_MORPH_PARMS *parms, int iter)
 
   mri_morphed = GCAMmorphToAtlas(parms->mri, gcam, NULL, parms->mri->nframes-1) ;
   sprintf(base_name, "%s_%3.3d", parms->base_name, iter) ;
-  sprintf(fname, "%s.mgh", base_name) ;
+  sprintf(fname, "%s.mgz", base_name) ;
   printf("writing snapshot to %s\n", fname) ;
   MRIwrite(mri_morphed, fname) ;
   MRIwriteImageViews(mri_morphed, base_name, IMAGE_SIZE) ;
@@ -2355,7 +2355,7 @@ write_snapshot(GCA_MORPH *gcam, MRI *mri, GCA_MORPH_PARMS *parms, int iter)
   
   if (write_samples > 0)
   {
-    sprintf(fname, "%s_fsamples_%3.3d.mgh", parms->base_name, iter) ;
+    sprintf(fname, "%s_fsamples_%3.3d.mgz", parms->base_name, iter) ;
     printf("writing samples to %s....\n", fname) ;
     MRIwrite(mri_samples, fname) ;
   }
@@ -2381,7 +2381,7 @@ write_snapshot(GCA_MORPH *gcam, MRI *mri, GCA_MORPH_PARMS *parms, int iter)
           if (gcamn->status & GCAM_IGNORE_LIKELIHOOD)
             mriFillRegion(mri_samples, xv, yv, zv, gcamn->label, 1) ;
         }
-    sprintf(fname, "%s_labels_%3.3d.mgh", parms->base_name, iter) ;
+    sprintf(fname, "%s_labels_%3.3d.mgz", parms->base_name, iter) ;
     printf("writing label samples to %s....\n", fname) ;
     MRIwrite(mri_samples, fname) ;
   }
@@ -2554,7 +2554,7 @@ gcamComputeGradient(GCA_MORPH *gcam, MRI *mri, MRI *mri_smooth, GCA_MORPH_PARMS 
     mri_tmp = gcamWriteMRI(gcam, NULL, GCAM_Y_GRAD) ;
     mri_grad = MRIupsample2(mri_tmp, NULL) ;
     MRIfree(&mri_tmp) ;
-    sprintf(fname, "%s_ygrad_before_%3.3d.mgh", parms->base_name, i) ;
+    sprintf(fname, "%s_ygrad_before_%3.3d.mgz", parms->base_name, i) ;
     printf("writing y gradient to %s...\n", fname) ;
     MRIwrite(mri_grad, fname) ;
     MRIfree(&mri_grad) ;
@@ -2570,7 +2570,7 @@ gcamComputeGradient(GCA_MORPH *gcam, MRI *mri, MRI *mri_smooth, GCA_MORPH_PARMS 
     mri_tmp = gcamWriteMRI(gcam, NULL, GCAM_Y_GRAD) ;
     mri_grad = MRIupsample2(mri_tmp, NULL) ;
     MRIfree(&mri_tmp) ;
-    sprintf(fname, "%s_ygrad_after_%3.3d.mgh", parms->base_name, i) ;
+    sprintf(fname, "%s_ygrad_after_%3.3d.mgz", parms->base_name, i) ;
     printf("writing smoothed y gradient to %s...\n", fname) ;
     MRIwrite(mri_grad, fname) ;
     MRIfree(&mri_grad) ;
