@@ -266,7 +266,8 @@ HISTOGRAM  *MRIhistogram(MRI *mri, int nbins) ;
 MRI        *MRIhistoEqualize(MRI *mri_src, MRI *mri_dst, int low) ;
 MRI        *MRIapplyHistogram(MRI *mri_src, MRI *mri_dst, HISTOGRAM *histo) ;
 MRI        *MRIcrunch(MRI *mri_src, MRI *mri_dst) ;
-HISTOGRAM  *MRIgetEqualizeHisto(MRI *mri, HISTOGRAM *histo_eq, int low) ;
+HISTOGRAM  *MRIgetEqualizeHisto(MRI *mri, HISTOGRAM *histo_eq, int low, 
+                                int norm) ;
 MRI        *MRIhistoNormalize(MRI *mri_src, MRI *mri_norm, MRI *mri_template,
                   int low) ;
 MRI        *MRIadaptiveHistoNormalize(MRI *mri_src, MRI *mri_norm, 
@@ -274,17 +275,22 @@ MRI        *MRIadaptiveHistoNormalize(MRI *mri_src, MRI *mri_norm,
                                       int hsize, int low) ;
 
 /* these are adaptive (i.e. only operate on a subregion of the whole image */
-HISTOGRAM  *MRIhistogramRegion(MRI *mri, int nbins, MRI_REGION *region) ;
+MRI_REGION *MRIclipRegion(MRI *mri, MRI_REGION *reg_src, MRI_REGION *reg_clip);
+int        MRIvalRangeRegion(MRI *mri, float *pmin, float *pmax, 
+                             MRI_REGION *region) ;
+HISTOGRAM  *MRIhistogramRegion(MRI *mri, int nbins, HISTOGRAM *histo,
+                               MRI_REGION *region) ;
 MRI        *MRIhistoEqualizeRegion(MRI *mri_src, MRI *mri_dst, int low, 
                                    MRI_REGION *region) ;
 MRI        *MRIapplyHistogramToRegion(MRI *mri_src, MRI *mri_dst, 
                                     HISTOGRAM *histo, MRI_REGION *region) ;
 HISTOGRAM  *MRIgetEqualizeHistoRegion(MRI *mri, HISTOGRAM *histo_eq, int low, 
-                                      MRI_REGION *region) ;
+                                      MRI_REGION *region, int norm) ;
 MRI        *MRIhistoNormalizeRegion(MRI *mri_src, MRI *mri_norm, 
                                     MRI *mri_template, int low, 
                                     MRI_REGION *wreg, 
                                     MRI_REGION *h_src_reg, 
                                     MRI_REGION *h_tmp_reg) ;
+MRI        *MRIextractRegion(MRI *mri_src, MRI *mri_dst, MRI_REGION *region) ;
 
 #endif
