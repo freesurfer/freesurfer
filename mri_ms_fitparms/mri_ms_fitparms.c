@@ -157,6 +157,9 @@ main(int argc, char *argv[])
         FZERO(mri_flash[nvolumes]->flip_angle))
       ErrorExit(ERROR_BADPARM, "%s: invalid TR or FA for image %d:%s",
                 Progname, nvolumes, in_fname) ;
+    if (mri_flash[nvolumes]->type != MRI_SHORT)
+      ErrorExit(ERROR_BADPARM, "%s: input volumes must be 16 bits/voxel", Progname) ;
+
     nvolumes++ ;
   }
 
