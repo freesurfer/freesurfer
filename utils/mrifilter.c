@@ -1326,6 +1326,94 @@ MRIstdRegion(MRI *mri_src, MRI*mri_dst, MRI *mri_mean, int wsize,
            perform a mean filter on the input MRI
 ------------------------------------------------------*/
 MRI *
+MRImeanByte(MRI *mri_src, MRI *mri_dst, int wsize)
+{
+  int     width, height, depth, x, y, z, whalf, x0, y0, z0, val ;
+  BUFTYPE *psrc, *pdst ;
+  float   wcubed ;
+  
+
+  wcubed = (float)(wsize*wsize*wsize) ;
+  whalf = wsize/2 ;
+  width = mri_src->width ;
+  height = mri_src->height ;
+  depth = mri_src->depth ;
+
+  if (!mri_dst)
+  {
+    mri_dst = MRIalloc(width, height, depth, MRI_UCHAR) ;
+    MRIcopyHeader(mri_src, mri_dst) ;
+  }
+
+  if (mri_dst->type != MRI_UCHAR)
+    ErrorReturn(mri_dst, 
+                (ERROR_UNSUPPORTED, "MRImeanByte: dst must be MRI_UCHAR")) ;
+
+  for (z = whalf ; z < depth-whalf ; z++)
+  {
+    for (y = whalf ; y < height-whalf ; y++)
+    {
+      pdst = &MRIvox(mri_dst, whalf, y, z) ;
+      for (x = whalf ; x < width-whalf ; x++)
+      {
+        for (val = 0, z0 = -whalf ; z0 <= whalf ; z0++)
+        {
+          for (y0 = -whalf ; y0 <= whalf ; y0++)
+          {
+            psrc = &MRIvox(mri_src, x-whalf, y+y0, z+z0) ;
+            for (x0 = -whalf ; x0 <= whalf ; x0++)
+            {
+              val += (int)*psrc++ ;
+            }
+          }
+        }
+        *pdst++ = (BUFTYPE)nint((float)val / wcubed) ;
+      }
+    }
+  }
+
+  /* now copy information to borders from source image */
+  for (x = 0 ; x < width ; x++)
+  {
+    for (y = 0 ; y < height ; y++)
+    {
+      for (z = 0 ; z < whalf ; z++)
+        MRIvox(mri_dst, x, y, z) = MRIvox(mri_src,x,y,z) ;
+      for (z = depth-whalf ; z < depth ; z++)
+        MRIvox(mri_dst, x, y, z) = MRIvox(mri_src,x,y,z) ;
+    }
+  }
+  for (x = 0 ; x < width ; x++)
+  {
+    for (z = 0 ; z < depth ; z++)
+    {
+      for (y = 0 ; y < whalf ; y++)
+        MRIvox(mri_dst, x, y, z) = MRIvox(mri_src,x,y,z) ;
+      for (y = height-whalf ; y < height ; y++)
+        MRIvox(mri_dst, x, y, z) = MRIvox(mri_src,x,y,z) ;
+    }
+  }
+  for (z = 0 ; z < depth ; z++)
+  {
+    for (y = 0 ; y < height ; y++)
+    {
+      for (x = 0 ; x < whalf ; x++)
+        MRIvox(mri_dst, x, y, z) = MRIvox(mri_src,x,y,z) ;
+      for (x = width-whalf ; x < width ; x++)
+        MRIvox(mri_dst, x, y, z) = MRIvox(mri_src,x,y,z) ;
+    }
+  }
+  return(mri_dst) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+           perform a mean filter on the input MRI
+------------------------------------------------------*/
+MRI *
 MRImean(MRI *mri_src, MRI *mri_dst, int wsize)
 {
   int     width, height, depth, x, y, z, whalf, x0, y0, z0, val ;
