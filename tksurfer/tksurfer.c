@@ -18342,7 +18342,7 @@ int main(int argc, char *argv[])   /* new main */
   /* end rkt */
   
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: tksurfer.c,v 1.95 2005/03/16 20:30:22 kteich Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: tksurfer.c,v 1.96 2005/03/17 17:56:07 kteich Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -21008,10 +21008,16 @@ int conv_initialize()
       origMRI = MRIreadHeader (fname, MRI_VOLUME_TYPE_UNKNOWN);
       if( NULL == origMRI ) 
 	{
-	  printf ("WARNING: Couldn't not load orig volume from %s\n"
-		  "         Talairach coords will be incorrect.\n", fname);
+	  strcat (fname, ".mgz");
+	  origMRI = MRIreadHeader (fname, MRI_VOLUME_TYPE_UNKNOWN);
+	  if( NULL == origMRI ) 
+	    {
+	      printf ("WARNING: Couldn't not load orig volume from %s\n"
+		      "         Talairach coords will be incorrect.\n", fname);
+	    }
 	}
-      else 
+
+      if (NULL != origMRI)
 	{
 	  surfaceRAStoRAS = surfaceRASFromRAS_( origMRI );
 	}
