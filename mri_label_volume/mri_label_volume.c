@@ -12,6 +12,7 @@
 #include "mri_conform.h"
 #include "utils.h"
 #include "timer.h"
+#include "cma.h"
 
 int main(int argc, char *argv[]) ;
 static int get_option(int argc, char *argv[]) ;
@@ -23,11 +24,13 @@ static void usage_exit(int code) ;
 static int in_label = -1 ;
 static int out_label = -1 ;
 
+static int compute_pct = 0 ;
+
 int
 main(int argc, char *argv[])
 {
   char   **av ;
-  int    ac, nargs, msec, minutes, label, volume, seconds ;
+  int    ac, nargs, msec, minutes, label, volume, seconds, i, brain_volume ;
   struct timeb start ;
   MRI    *mri ;
   FILE   *log_fp ;
@@ -55,27 +58,63 @@ main(int argc, char *argv[])
   if (!mri)
     ErrorExit(ERROR_NOFILE, "%s: could not read volume from %s",Progname,
               argv[1]) ;
-  label = atoi(argv[2]) ;
 
   if (in_label >= 0)
     MRIreplaceValues(mri, mri, in_label, out_label) ;
 
-  volume = MRIvoxelsInLabel(mri, label) ;
-  if (log_fname)
+  if (compute_pct)
   {
-    log_fp = fopen(log_fname, "a+") ;
-    if (!log_fp)
-      ErrorExit(ERROR_BADFILE, "%s: could not open %s for writing",
-                Progname, log_fname) ;
+    for (brain_volume = label = 0 ; label <= MAX_CMA_LABEL ; label++)
+    {
+      if (!IS_BRAIN(label))
+        continue ;
+      brain_volume += MRIvoxelsInLabel(mri, label) ;
+    }
   }
   else
-    log_fp = NULL ;
+    brain_volume = 1 ;
 
-  printf("%d voxels in label\n", volume) ;
-  if (log_fp)
+  for (i = 2 ; i < argc ; i++)
   {
-    fprintf(log_fp,"%d\n", volume) ;
-    fclose(log_fp) ;
+    label = atoi(argv[i]) ;
+    printf("processing label %d...\n", label) ;
+
+
+    volume = MRIvoxelsInLabel(mri, label) ;
+    if (log_fname)
+    {
+      char fname[STRLEN] ;
+
+      sprintf(fname, log_fname, label) ;
+      printf("logging to %s...\n", fname) ;
+      log_fp = fopen(fname, "a+") ;
+      if (!log_fp)
+        ErrorExit(ERROR_BADFILE, "%s: could not open %s for writing",
+                  Progname, fname) ;
+    }
+    else
+      log_fp = NULL ;
+
+    if (compute_pct)
+    {
+      printf("%d voxels in label %d, %%%2.6f of brain volume (%d)\n", 
+             volume, label, 100.0*(float)volume/(float)brain_volume,
+             brain_volume) ;
+      if (log_fp)
+      {
+        fprintf(log_fp,"%2.6f\n", 100.0*(float)volume/(float)brain_volume) ;
+        fclose(log_fp) ;
+      }
+    }
+    else
+    {
+      printf("%d voxels in label %d\n", volume, label) ;
+      if (log_fp)
+      {
+        fprintf(log_fp,"%d\n", volume) ;
+        fclose(log_fp) ;
+      }
+    }
   }
 
   msec = TimerStop(&start) ;
@@ -113,7 +152,10 @@ get_option(int argc, char *argv[])
   case 'L':
     log_fname = argv[2] ;
     nargs = 1 ;
-    fprintf(stderr, "logging results to %s\n", log_fname) ;
+    /*    fprintf(stderr, "logging results to %s\n", log_fname) ;*/
+    break ;
+  case 'P':
+    compute_pct = 1 ;
     break ;
   case '?':
   case 'U':
