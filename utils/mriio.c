@@ -304,6 +304,7 @@ static MRI *mri_read(char *fname, int type, int volume_flag, int start_frame, in
 {
 
   MRI *mri, *mri2;
+  IMAGE *I;
   char fname_copy[STRLEN]; 
   char *at, *pound, *colon;
   char *ep;
@@ -493,6 +494,12 @@ static MRI *mri_read(char *fname, int type, int volume_flag, int start_frame, in
   else if(type == NIFTI1_FILE)
   {
     mri = nifti1Read(fname_copy, volume_flag);
+  }
+  else if (type == IMAGE_FILE)
+  {
+    I = ImageRead(fname_copy);
+    mri = ImageToMRI(I);
+    ImageFree(&I);
   }
   else
   {
