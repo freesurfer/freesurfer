@@ -3,9 +3,9 @@
 // written by Bruce Fischl
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2004/12/07 16:37:38 $
-// Revision       : $Revision: 1.311 $
+// Revision Author: $Author: fischl $
+// Revision Date  : $Date: 2004/12/07 20:09:22 $
+// Revision       : $Revision: 1.312 $
 //////////////////////////////////////////////////////////////////
 #include <stdio.h>
 #include <string.h>
@@ -5592,7 +5592,7 @@ MRIScomputeSSEExternal(MRI_SURFACE *mris, INTEGRATION_PARMS *parms,
   else
     sse = 0 ;
   *ext_sse = sse ;
-  sse = MRIScomputeSSE(mris, parms) ;
+  sse = MRIScomputeSSE(mris, parms) ;  /* throw out ext_sse as it will be recomputed */
 
   return(sse) ;
 }
@@ -20100,6 +20100,182 @@ mrisDirectionTriangleIntersection(MRI_SURFACE *mris, float x0, float y0,
             100.0f*(float)ngrad/(float)mris->nvertices,
             100.0f*(float)nmin/(float)mris->nvertices, num_changed) ;
   }
+  return(NO_ERROR) ;
+}
+int
+MRIScomputeInvertedGrayWhiteBorderValues(MRI_SURFACE *mris,MRI *mri_brain,
+																				 MRI *mri_smooth, Real inside_hi, Real border_hi,
+																				 Real border_low, Real outside_low, Real outside_hi,
+																				 double sigma,
+																				 float max_thickness, FILE *log_fp)
+{
+	Real    val, x, y, z, xw, yw, zw ;
+	int     total_vertices, vno, inward_increasing ;
+	VERTEX  *v ;
+	Real    mean_white, mean_gray, std_white, std_gray, nsigma, gw_thresh  ;
+	
+	std_white = std_gray = mean_white = mean_gray = 0.0 ;
+	for (total_vertices = vno = 0 ; vno < mris->nvertices ; vno++)
+	{
+		v = &mris->vertices[vno] ;
+		if (v->ripflag)
+			continue ;
+		total_vertices++ ;
+		if (vno == Gdiag_no)
+			DiagBreak() ;
+		
+		x = v->x+1.0*v->nx ; y = v->y+1.0*v->ny ; z = v->z+1.0*v->nz ;
+    MRIsurfaceRASToVoxel(mri_brain, x, y, z, &xw, &yw, &zw);
+    MRIsampleVolume(mri_brain, xw, yw, zw, &val) ;
+		mean_gray += val ;
+		std_gray += (val*val) ;
+
+		x = v->x-0.5*v->nx ; y = v->y-0.5*v->ny ; z = v->z-0.5*v->nz ;
+    MRIsurfaceRASToVoxel(mri_brain, x, y, z, &xw, &yw, &zw);
+    MRIsampleVolume(mri_brain, xw, yw, zw, &val) ;
+		mean_white += val ;
+		std_white += (val*val) ;
+	}
+
+	mean_white /= (float)total_vertices ;
+	std_white = sqrt(std_white / (float)total_vertices - mean_white*mean_white) ;
+	mean_gray /= (float)total_vertices ;
+	std_gray = sqrt(std_gray / (float)total_vertices - mean_gray*mean_gray) ;
+	nsigma = (mean_gray-mean_white) / (std_gray+std_white) ;
+	gw_thresh = mean_white + nsigma*std_white ;
+	printf("white %2.1f +- %2.1f,    gray %2.1f +- %2.1f, G/W boundary at %2.1f\n",
+				 mean_white, std_white, mean_gray, std_gray, gw_thresh) ;
+
+	inward_increasing = mean_gray < mean_white ;
+	for (total_vertices = vno = 0 ; vno < mris->nvertices ; vno++)
+	{
+		v = &mris->vertices[vno] ;
+		if (v->ripflag)
+			continue ;
+		if (vno == Gdiag_no)
+			DiagBreak() ;
+		v->val = gw_thresh ;
+	}
+
+  return(NO_ERROR) ;
+}
+#define MAX_SAMPLES 1000
+int
+MRIScomputeInvertedPialBorderValues(MRI_SURFACE *mris,MRI *mri_brain,
+																				 MRI *mri_smooth, Real inside_hi, Real border_hi,
+																				 Real border_low, Real outside_low, Real outside_hi,
+																				 double sigma,
+																				 float max_thickness, FILE *log_fp)
+{
+	Real    val, x, y, z, xw, yw, zw, dist, idist, target_val, max_idist ;
+	int     total_vertices, vno, inward_increasing, non_brain_found ;
+	VERTEX  *v ;
+	Real    mean_white, mean_gray, std_white, std_gray, nsigma, gw_thresh  ;
+	float   min_dist, max_dist ;
+	
+	MRISclearMarks(mris) ;  /* for soap bubble smoothing later */
+	
+	std_white = std_gray = mean_white = mean_gray = 0.0 ;
+	for (total_vertices = vno = 0 ; vno < mris->nvertices ; vno++)
+	{
+		v = &mris->vertices[vno] ;
+		if (v->ripflag)
+			continue ;
+		total_vertices++ ;
+		if (vno == Gdiag_no)
+			DiagBreak() ;
+		
+		x = v->x+1.0*v->nx ; y = v->y+1.0*v->ny ; z = v->z+1.0*v->nz ;
+    MRIsurfaceRASToVoxel(mri_brain, x, y, z, &xw, &yw, &zw);
+    MRIsampleVolume(mri_brain, xw, yw, zw, &val) ;
+		mean_gray += val ;
+		std_gray += (val*val) ;
+
+		x = v->x-0.5*v->nx ; y = v->y-0.5*v->ny ; z = v->z-0.5*v->nz ;
+    MRIsurfaceRASToVoxel(mri_brain, x, y, z, &xw, &yw, &zw);
+    MRIsampleVolume(mri_brain, xw, yw, zw, &val) ;
+		mean_white += val ;
+		std_white += (val*val) ;
+	}
+
+	mean_white /= (float)total_vertices ;
+	std_white = sqrt(std_white / (float)total_vertices - mean_white*mean_white) ;
+	mean_gray /= (float)total_vertices ;
+	std_gray = sqrt(std_gray / (float)total_vertices - mean_gray*mean_gray) ;
+	nsigma = (mean_gray-mean_white) / (std_gray+std_white) ;
+	gw_thresh = mean_white + nsigma*std_white ;
+	printf("white %2.1f +- %2.1f,    gray %2.1f +- %2.1f, G/W boundary at %2.1f\n",
+				 mean_white, std_white, mean_gray, std_gray, gw_thresh) ;
+
+	inward_increasing = mean_gray < mean_white ;
+	for (total_vertices = vno = 0 ; vno < mris->nvertices ; vno++)
+	{
+		v = &mris->vertices[vno] ;
+		if (v->ripflag)
+			continue ;
+		if (vno == Gdiag_no)
+			DiagBreak() ;
+
+		/* find outward distance to sample over */
+		for (dist = 0.0 ; dist < 2*max_thickness ; dist += STEP_SIZE)
+		{
+			x = v->x+dist*v->nx ; y = v->y+dist*v->ny ; z = v->z+dist*v->nz ;
+			MRIsurfaceRASToVoxel(mri_brain, x, y, z, &xw, &yw, &zw);
+			MRIsampleVolume(mri_brain, xw, yw, zw, &val) ;
+			if (fabs(val-mean_gray) > std_gray)
+				continue ;
+			break ;
+		}
+		min_dist = dist ;
+
+		for (dist = min_dist ; dist < 2*max_thickness ; dist += STEP_SIZE)
+		{
+			x = v->x+dist*v->nx ; y = v->y+dist*v->ny ; z = v->z+dist*v->nz ;
+			MRIsurfaceRASToVoxel(mri_brain, x, y, z, &xw, &yw, &zw);
+			MRIsampleVolume(mri_brain, xw, yw, zw, &val) ;
+			if (fabs(val-mean_gray) < 2*std_gray)
+				continue ;
+			break ;
+		}
+		max_dist = dist ;
+		if (fabs(val-mean_white) < std_white)  /* could have crossed from one bank to another */
+		{
+			/* see if we can find any non-wm intensities */
+			non_brain_found = 0 ;
+			target_val = val ;
+			for (dist = max_dist+STEP_SIZE ; dist <= max_dist+4 ; dist += STEP_SIZE)
+			{
+				x = v->x+dist*v->nx ; y = v->y+dist*v->ny ; z = v->z+dist*v->nz ;
+				MRIsurfaceRASToVoxel(mri_brain, x, y, z, &xw, &yw, &zw);
+				MRIsampleVolume(mri_brain, xw, yw, zw, &val) ;
+				if ((fabs(val-mean_white) > 2*std_white) && (fabs(val-mean_gray) > 2*std_gray))
+				{
+					non_brain_found = 1 ;
+					break ;
+				}
+			}
+			if (non_brain_found == 0)  /* back into the wm - back the intensity between min and max_dist furthest from mean */
+			{
+				max_idist = 0 ;
+				for (dist = min_dist ; dist <= max_dist ; dist += STEP_SIZE)
+				{
+					x = v->x+dist*v->nx ; y = v->y+dist*v->ny ; z = v->z+dist*v->nz ;
+					MRIsurfaceRASToVoxel(mri_brain, x, y, z, &xw, &yw, &zw);
+					MRIsampleVolume(mri_brain, xw, yw, zw, &val) ;
+					idist = fabs(val-mean_gray) ;
+					if (idist > max_dist)
+					{
+						max_dist  = idist ;
+						target_val = val ;
+					}
+				}
+			}
+			val = target_val ;
+		}
+		v->marked = 1 ;
+		v->val = val ;
+	}
+
   return(NO_ERROR) ;
 }
 /*-----------------------------------------------------
