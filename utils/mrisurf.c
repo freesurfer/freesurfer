@@ -13025,6 +13025,8 @@ mrisComputeRepulsiveTerm(MRI_SURFACE *mris, double l_repulse, MHT *mht)
     v = &mris->vertices[vno] ;
     if (v->ripflag)
       continue ;
+    if (vno == Gdiag_no)
+			DiagBreak() ;
     x = v->x ; y = v->y ; z = v->z ; 
     bucket = MHTgetBucket(mht, x, y, z) ;
     if (!bucket)
@@ -13055,7 +13057,11 @@ mrisComputeRepulsiveTerm(MRI_SURFACE *mris, double l_repulse, MHT *mht)
           }
         }
         norm = sqrt(dx*dx+dy*dy+dz*dz) ; 
+				if (FZERO(norm))
+					norm = 1.0 ;
         dx /= norm ; dy /= norm ; dz /= norm ;
+				if (!finite(dx) || !finite(dy) || !finite(dz))
+					DiagBreak() ;
         sx += scale * dx ; sy += scale * dy ; sz += scale*dz ;
         num++ ;
       }
