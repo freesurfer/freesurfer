@@ -124,7 +124,7 @@ handle_version_option (int argc, char** argv,
 	  /* Strip the "{Name: " and "}" from the id string. */
 	  if (strlen(version_string) > 7)
 	    {
-	      strcpy (stripped_version_string, &(version_string[5]));
+	      strcpy (stripped_version_string, &(version_string[7]));
 	      length = strlen (stripped_version_string);
 	      if (length > 2)
 		{
@@ -135,6 +135,9 @@ handle_version_option (int argc, char** argv,
 	    {
 	      strcpy (stripped_version_string, version_string);
 	    }
+
+	  fprintf (stdout, "%s\n", stripped_version_string);
+		   
 #endif
 	  
 	  num_processed_args++;
