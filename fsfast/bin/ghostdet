@@ -1,6 +1,6 @@
 #!/bin/csh -f 
 
-set VERSION = '$Id: ghostdet,v 1.4 2004/05/06 21:47:58 greve Exp $';
+set VERSION = '$Id: ghostdet,v 1.5 2004/05/06 22:44:14 greve Exp $';
 set inputargs = ($argv);
 
 set instem    = ();
@@ -414,46 +414,50 @@ brain_thresh  0.5
 n_brain_erode 3
 n_air_erode   3
 
-brain_mean - mean of the voxels inside the brain voxels chosen for the
-  analysis. Each voxel in the brain has a corresponding voxel in the ghost.
+brain_mean - mean of the subset of voxels inside the brain voxels
+  chosen for the analysis. Each voxel in the brain has a corresponding
+  voxel in the ghost.
 
 ghost_mean - mean of the voxels inside the ghost voxels chosen for the
-  analysis. Each voxel in the ghost has a corresponding voxel in the brain.
+  analysis. Each voxel in the ghost has a corresponding voxel in the
+  brain.
 
-air_mean - mean of the voxels outside both the head and the ghost of the
-  head.
+air_mean - mean of the voxels outside both the head and the ghost of 
+  the head.
 
-brain_ghost_ratio - ratio of the mean of the brain to the mean of the ghost.
-  This is the primary measure of ghost suppression.
+brain_ghost_ratio - ratio of the mean of the brain to the mean of the
+  ghost.  This is the primary measure of ghost suppression.
 
-brain_air_ratio - ratio of the mean of the brain to the mean of the air.
-  This is the ideal value of upper limit to the brain_ghost_ratio.
+brain_air_ratio - ratio of the mean of the brain to the mean of the
+  air.  This is the ideal value of upper limit to the
+  brain_ghost_ratio.
 
-ghost_air_ratio - ratio of the mean of the ghost to the mean of the air.
-  This ratio should be 1 ideally.
+ghost_air_ratio - ratio of the mean of the ghost to the mean of the
+  air.  This ratio should be 1 ideally.
 
 n_air - number of voxels in the air.
 
-n_brain - number of voxels in the subset of the brain used for the analysis. 
-  Note: this should NOT be interpreted as brain volume. See below for how this
-  is computed. Note: each brain voxels has a corresponding ghost voxel,
-  so the number of ghost voxels is equal to the number of brain voxels.
+n_brain - number of voxels in the subset of the brain used for the
+  analysis.  Note: this should NOT be interpreted as brain volume. See
+  below for how this is computed. Note: each brain voxels has a
+  corresponding ghost voxel, so the number of ghost voxels is equal to
+  the number of brain voxels.
 
-head_thresh - fraction of grand mean to use to initially segment the head.
-  This threshold is passed to FSL BET. Default is 0.05.
+head_thresh - fraction of grand mean to use to initially segment the
+  head.  This threshold is passed to FSL BET. Default is 0.05.
 
-n_head_dilate - the head mask created by BET is dilated (grown) by this 
-  number of voxels. Default is 3.
-  
-brain_thresh - fraction of grand mean to use to initially segment the brain.
-  This threshold is passed to FSL BET. Default is 0.5.
+n_head_dilate - the head mask created by BET is dilated (grown) by
+  this number of voxels. Default is 3.
 
-n_brain_erode - the brain mask created by BET is eroded (shrunk) by this 
-  number of voxels. Default is 3.
-  
-n_air_erode - the air mask is eroded (shrunk) by this number of voxels. 
-  Default is 3.
-  
+brain_thresh - fraction of grand mean to use to initially segment the
+  brain.  This threshold is passed to FSL BET. Default is 0.5.
+
+n_brain_erode - the brain mask created by BET is eroded (shrunk) by
+  this number of voxels. Default is 3.
+
+n_air_erode - the air mask is eroded (shrunk) by this number of
+  voxels.  Default is 3.  
+
 ALGORITHM
 
 The basic measure of ghosting is to compare the average intensity in
@@ -466,12 +470,16 @@ overlap, and we do not want to consider these voxels because it would
 skew the results. We want head-ghost voxel pairs for which the ghost
 voxel is absolutely not in any tissue. A simple intensity-based
 segmentation of the head often fails because there is some tissue (eg
-the skull) that can have an intensity comparable to the ghost. In
-addition to determining which voxels are head and ghost, it is nice to
-know which voxels are "air". The average in the air will give a lower
-limit that the ghost can achieve. Note that the average air intensity
-will always be non-zero because of the nature of k-space
-reconstruction.
+the skull) that can have an intensity comparable to the ghost, and
+these areas cannot be eliminated purely based on intensity without
+eliminating the ghost itself.  In addition to determining which voxels
+are head and ghost, it is nice to know which voxels are "air". The
+average in the air will give a lower limit that the ghost can
+achieve. Note that the average air intensity will always be non-zero
+because of the nature of k-space reconstruction.
+
+Here is the algorthm this program uses to choose the subset of voxels
+for brain, ghost, and air.
 
 1. Average the functional volume into a single volume. All the masks
 are created based on this volume. In the tmpdir, this will be the fmn
