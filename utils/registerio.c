@@ -146,12 +146,10 @@ int regio_print_register(FILE *fp, char *subject, float inplaneres,
   default: 
     printf("ERROR: regio_print_register: f2i code = %d, unrecoginized\n",
      float2int);
-    fclose(fp);
     return(1);
   }
 
   fprintf(fp,"%s\n",f2imethod);
-  fclose(fp);
 
 
   return(0);
