@@ -39,6 +39,13 @@ typedef enum {
   Surf_knNumVertexSets
 } Surf_tVertexSet;
 
+typedef enum {
+
+  Surf_tValueSet_None = -1,
+  Surf_tValueSet_Val = 0,
+
+  Surf_knNumValueSets
+} Surf_tValueSet;
 
 #define Surf_kSignature 0x0934cba4
 
@@ -51,6 +58,9 @@ typedef struct {
 typedef struct {
 
   long mSignature;
+
+  /* source file name */
+  char* msFileName;
 
   /* surface object */
   MRIS* mSurface;
@@ -87,6 +97,10 @@ Surf_tErr Surf_LoadVertexSet ( mriSurfaceRef   this,
              char*           isName,
              Surf_tVertexSet iSet );
 
+/* writes the val fields to a separate file. */
+Surf_tErr Surf_WriteValues ( mriSurfaceRef  this,
+           char*          isFileName );
+
 /* return status of a vertex set */
 Surf_tErr Surf_IsVertexSetLoaded ( mriSurfaceRef   this,
            Surf_tVertexSet iSet,
@@ -96,7 +110,7 @@ Surf_tErr Surf_IsVertexSetLoaded ( mriSurfaceRef   this,
    vertex values in it in client coord system */
 Surf_tErr Surf_ConvertSurfaceToClientSpace_ ( mriSurfaceRef   this,
                 Surf_tVertexSet iSet );
-               
+
 
 /* for iterating thru the vertices in the surface. first step is to set the 
    iteration start point by passing an orientation and plane. the plane should
@@ -122,21 +136,38 @@ Surf_tErr Surf_GetNthVertex ( mriSurfaceRef   this,
             char*           osDescription );
 
 /* find the closest vertex to the given location */
-Surf_tErr Surf_GetClosestVertex ( mriSurfaceRef   this,
-          Surf_tVertexSet iSet,
-          xVoxelRef       iClientVoxel,
-          xVoxelRef       oClientVoxel,
-          char*           osDescription );
+Surf_tErr Surf_GetClosestVertexVoxel ( mriSurfaceRef   this,
+               Surf_tVertexSet iSet,
+               xVoxelRef       iClientVoxel,
+               xVoxelRef       oClientVoxel,
+               char*           osDescription );
 
 Surf_tErr Surf_GetSurfaceSetName ( Surf_tVertexSet iSet,
            char*           osName );
 
 
+/* sets a vertex value within the MRIS structure. */
+Surf_tErr Surf_SetVertexValue ( mriSurfaceRef   this,
+        Surf_tVertexSet iVertexSet,
+        Surf_tValueSet  iValueSet,
+        xVoxelRef       iClientVoxel,
+        float           iValue );
+Surf_tErr Surf_GetVertexValue ( mriSurfaceRef   this,
+        Surf_tVertexSet iVertexSet,
+        Surf_tValueSet  iValueSet,
+        xVoxelRef       iClientVoxel,
+        float*          opValue );
+
 /* helper functions */
-float Surf_GetVertexValue ( vertex_type*      iVertex,
+float Surf_GetVertexCoord ( vertex_type*      iVertex,
           Surf_tVertexSet   iSet,
           Surf_tOrientation iOrientation );
-
+void Surf_GetClosestVertex ( mriSurfaceRef   this,
+           Surf_tVertexSet iSet,
+           xVoxelRef       iSurfaceVoxel,
+           vertex_type**   opVertex,
+           int*            onIndex,
+           float*          ofDistance);
 void Surf_ConvertVertexToVoxel ( vertex_type*    iVertex,
          Surf_tVertexSet iSet,
          mriTransformRef iTransform,
