@@ -4,12 +4,12 @@
 // mri_watershed.cpp
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2005/01/21 15:57:30 $
-// Revision       : $Revision: 1.30 $
+// Revision Author: $Author: segonne $
+// Revision Date  : $Date: 2005/03/23 02:06:14 $
+// Revision       : $Revision: 1.31 $
 //
 ////////////////////////////////////////////////////////////////////
-char *MRI_WATERSHED_VERSION = "$Revision: 1.30 $";
+char *MRI_WATERSHED_VERSION = "$Revision: 1.31 $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -66,7 +66,6 @@ extern "C" {
 
 #define WRITE_SURFACES 0
 #define NO_SELF_INTERSECTION 0
-
 
 #define MAX_MASK_VOLUMES  50
 static int nmask_volumes = 0 ;
@@ -583,7 +582,7 @@ int main(int argc, char *argv[])
   /************* Command line****************/
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_watershed.cpp,v 1.30 2005/01/21 15:57:30 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_watershed.cpp,v 1.31 2005/03/23 02:06:14 segonne Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -885,6 +884,23 @@ MRI *MRIstripSkull(MRI *mri_with_skull, MRI *mri_without_skull,
     
    /*template process*/
     ////////////////////////////////////////////////////////////////////////////
+		//make sure that the global minimum will not influence the analysis
+		if(MRI_var->decision){
+			int i,j,k;
+			float scale=MRI_var->scale;
+			for(k=0;k<MRI_var->depth;k++)
+				for(j=0;j<MRI_var->height;j++)
+					for(i=0;i<MRI_var->width;i++)
+						MRIvox(MRI_var->mri_src,i,j,k)=(unsigned short)MIN(255,scale*MRIvox(mri_with_skull,i,j,k));
+		}else{
+			int i,j,k;
+			for(k=0;k<MRI_var->depth;k++)
+				for(j=0;j<MRI_var->height;j++)
+					for(i=0;i<MRI_var->width;i++)
+						MRIvox(MRI_var->mri_src,i,j,k)=MRIvox(mri_with_skull,i,j,k);
+		}
+
+
     Template_Deformation(parms,MRI_var); 
     // MRIfree(&smooth);
 
@@ -1680,11 +1696,11 @@ static int Pre_CharSorting(STRIP_PARMS *parms,MRI_variables *MRI_var)
       // 
       if(MRI_var->Basin[k][j][i].type!=3)
       {
-	// change the basin type to 1 for the seed point
+				// change the basin type to 1 for the seed point
         MRI_var->Basin[k][j][i].type=1;
-	// next points to the global min Basin
+				// next points to the global min Basin
         MRI_var->Basin[k][j][i].next=(Cell*)(&MRI_var->Basin[kg][jg][ig]);
-	// increase the global min Basin size
+				// increase the global min Basin size
         ((BasinCell*)(MRI_var->Basin[kg][jg][ig].next))->size++;
       }
       n--;
@@ -3115,6 +3131,7 @@ static void Template_Deformation(STRIP_PARMS *parms,MRI_variables *MRI_var)
     brainsize = calcBrainSize(MRI_var->mri_src, MRI_var->mris);
     fprintf(stderr, "\n                  step3 brainsize = %d\n", brainsize);
 #endif
+
     ////////////////////////////////////////////////////////////////////
     MRISgoToClosestDarkestPoint(MRI_var);
     // MRISwrite(MRI_var->mris, "surface4");
@@ -6415,9 +6432,9 @@ static void MRISComputeLocalValues(MRI_variables *MRI_var)
       vsphere->ty=sqrt(MRI_var->mris_var_dCOG->vertices[k].curv);
       vsphere->tz=vsphere->tx/vsphere->ty;
       if(vsphere->tz>=0)
-	negvertices++;
+				negvertices++;
       else
-	posvertices++;
+				posvertices++;
     }
     if(VERBOSE_MODE)
       fprintf(stderr,"\n      %5.2f%% of 'positive'vertices"
@@ -6427,10 +6444,11 @@ static void MRISComputeLocalValues(MRI_variables *MRI_var)
 
   if(VERBOSE_MODE)
     fprintf(stderr,"\n      first pass on the vertices of the tesselation");
+
   for(ref=0,k=0;k<nvertices;k++)
   {
     v = &mris->vertices[k] ;
-    vsphere= &mris->vertices[k];
+    vsphere = &mrisphere->vertices[k];
     v->marked=0 ;
     
     /*determine the normal direction in Voxel coordinates*/
@@ -6442,18 +6460,18 @@ static void MRISComputeLocalValues(MRI_variables *MRI_var)
 
     /* 
        find the distance in the directions parallel and anti-parallel to
-       the surface normal in which the gradient is pointing 'inwards'.
-       If this 
+       the surface normal in which the gradient is pointing 'inwards'. 
     */
-    /*if atlas Mode on, use atlas information to infer the border position*/
+    /* if atlas Mode on, use atlas information to infer the border position*/
     /*    NOT USED RIGHT NOW...
-    if(MRI_var->atlas)
-      {
-  if(vsphere->tz>0.5)
-    ref=(int)(MIN(vsphere->ty/2,1.));  
-  else
-    ref=0;
-    }*/
+					if(MRI_var->atlas)
+					{
+					if(vsphere->tz>0.5)
+					ref=(int)(MIN(vsphere->ty/2,1.));  
+					else
+					ref=0;
+					}
+		*/
     noutside=10+ref;
     ninside=-10+ref;
     
@@ -6528,62 +6546,62 @@ static void MRISComputeLocalValues(MRI_variables *MRI_var)
     v = &mris->vertices[k] ;
     vsphere=&mrisphere->vertices[k];
     vsphere->marked=0;
-
+		
     if(v->marked)
-    {
-      distance=0;n=0;
-      for (m=0;m<v->vnum;m++)
-      {
-	if(mris->vertices[v->v[m]].marked==1)
-	{
-	  distance+=mris->vertices[v->v[m]].mean;
-	  n++;
-	}
-      }
-      if(n)
-        distance/=(float)n;
-      else distance=1000;
-    }
+			{
+				distance=0;n=0;
+				for (m=0;m<v->vnum;m++)
+					{
+						if(mris->vertices[v->v[m]].marked==1)
+							{
+								distance+=mris->vertices[v->v[m]].mean;
+								n++;
+							}
+					}
+				if(n)
+					distance/=(float)n;
+				else distance=1000;
+			}
     if(v->marked && ((fabs(distance-v->mean)<3.) || (!n)))
-    {
-      vsphere->marked=1;
-      vsphere->x=v->val;
-      vsphere->z=v->val2;
-
-      if(!n)
-      {
-	vsphere->mean=0.5;
-	nmissing++;
-      }
-      else
-	vsphere->mean=1.;
-    }
+			{
+				vsphere->marked=1;
+				vsphere->x=v->val;
+				vsphere->z=v->val2;
+				
+				if(!n)
+					{
+						vsphere->mean=0.5;
+						nmissing++;
+					}
+				else
+					vsphere->mean=1.;
+			}
     else
-    {
-      vsphere->marked=0;
-      nmissing++;
-      vsphere->x=MRI_var->CSF_intensity;
-      vsphere->z=MRI_var->GM_intensity;
-      vsphere->mean=0.2;
-      /*if Atlas Mode on, we can use the spatial information to infer where the surface is*/
-      if(MRI_var->atlas)
-      {
-	sse=vsphere->tz;
-	if(sse>0)
-	{   
-	  x = v->x ; y = v->y ; z = v->z ; 
-	  myWorldToVoxel(mri, x, y, z, &xw, &yw, &zw) ;
-	  MRIsampleVolume(mri, xw, yw, zw, &val) ;    
-	  if(val>mean_csf && val<MRI_var->WM_intensity)/*probably GM intensity*/
-	  {
-	    vsphere->z=(val+vsphere->z)/2.;
-	    if(SQR(sse)<1.)
-	      vsphere->mean=0.5;
-	    else
-	      vsphere->mean=0.25;
-	  }
-	}
-      }
+			{
+				vsphere->marked=0;
+				nmissing++;
+				vsphere->x=MRI_var->CSF_intensity;
+				vsphere->z=MRI_var->GM_intensity;
+				vsphere->mean=0.2;
+				/*if Atlas Mode on, we can use the spatial information to infer where the surface is*/
+				if(MRI_var->atlas)
+					{
+						sse=vsphere->tz;
+						if(sse>0)
+							{   
+								x = v->x ; y = v->y ; z = v->z ; 
+								myWorldToVoxel(mri, x, y, z, &xw, &yw, &zw) ;
+							MRIsampleVolume(mri, xw, yw, zw, &val) ;    
+							if(val>mean_csf && val<MRI_var->WM_intensity)/*probably GM intensity*/
+								{
+									vsphere->z=(val+vsphere->z)/2.;
+									if(SQR(sse)<1.)
+										vsphere->mean=0.5;
+									else
+										vsphere->mean=0.25;
+								}
+						}
+				}
     }
   }
 
@@ -6609,12 +6627,12 @@ static void MRISComputeLocalValues(MRI_variables *MRI_var)
       gm=vsphere->tz*w1;
       n=1;
       for (m=0;m<v->vnum;m++)
-      {
-	csf+=mrisphere->vertices[v->v[m]].tx*mrisphere->vertices[v->v[m]].ty;
-	w1+=mrisphere->vertices[v->v[m]].ty;
-	gm+=mrisphere->vertices[v->v[m]].tz*mrisphere->vertices[v->v[m]].ty;
-	n++;
-      }
+				{
+					csf+=mrisphere->vertices[v->v[m]].tx*mrisphere->vertices[v->v[m]].ty;
+					w1+=mrisphere->vertices[v->v[m]].ty;
+					gm+=mrisphere->vertices[v->v[m]].tz*mrisphere->vertices[v->v[m]].ty;
+					n++;
+				}
       vsphere->x=csf/w1;
       vsphere->z=gm/w1;
       vsphere->mean=w1/n;
@@ -7074,7 +7092,10 @@ static void MRISFineSegmentation(MRI_variables *MRI_var)
   MRISsetNeighborhoodSize(mris, 2) ;
   MRIScomputeNormals(mris);
 
-  fmax=MRI_var->WM_MAX;
+  fmax=MRI_var->WM_MAX + 25.0f ; /* being careful */
+	//flo
+	// do h = 0 -2 -1 1 2 3 in gotodarkestpoint
+
 
   dist = (float ***) malloc( mris->nvertices*sizeof(float**) );
 
@@ -7268,14 +7289,14 @@ static void MRISFineSegmentation(MRI_variables *MRI_var)
         force1=(1+tanh(F*(1/r-E)))/2;
       }
       else
-         Error("\n Problem with normal component being 0");
-
-
- 
-        /******************************/
+				Error("\n Problem with normal component being 0");
+			
+			
+			
+			/******************************/
       if(!MRIGRADIENT)
-      {
-				find_normal(nx,ny,nz,n1,n2,MRI_var->direction);
+				{
+					find_normal(nx,ny,nz,n1,n2,MRI_var->direction);
 				for (h=0;h<4;h++)
 					for (a=-1;a<2;a++)
 						for (b=-1;b<2;b++)
@@ -7395,7 +7416,7 @@ static void MRISFineSegmentation(MRI_variables *MRI_var)
 														if (nb_GM>9 && nb_TR<9)
 															force=0.5;
 														else if (nb_GTM>30)
-															force=0.1;
+															force=0.15;
 														else
 															force=-0.0;
 													}
@@ -7425,6 +7446,8 @@ static void MRISFineSegmentation(MRI_variables *MRI_var)
       force3=v->val;
       force4=v->val2;
       force1=force1;
+
+			v->curv=force; //test
 
       f1m+=force1;
       f2m+=force;
@@ -7558,6 +7581,7 @@ static void MRISFineSegmentation(MRI_variables *MRI_var)
     // printf("iter = %d, cout = %.6f\n", iter, cout);
     // if (iter%10==0)
     //   printf("brainsize = %d\n", calcBrainSize(mri, mris));
+
   }
   fprintf(stderr,"%d iterations\n",iter);
 
@@ -7595,7 +7619,8 @@ static void MRISgoToClosestDarkestPoint(MRI_variables *MRI_var)
   float d,dx,dy,dz,nx,ny,nz;
   VERTEX *v; 
   int iter,k,m,n;
-  int h;
+
+	int h;
   float decay=0.8,update=0.9;
 
   double val,dist,min_val,distance;
@@ -7661,7 +7686,7 @@ static void MRISgoToClosestDarkestPoint(MRI_variables *MRI_var)
 	// if the nearby voxels are uniform grey, then the min_val is set to
 	// that color and distance is -1 (i.e. push-in farther).
 	// can be avoided by going the other way, i.e. h=1 to -1
-	if(val<min_val) 
+	if(val<min_val) /* don't move if not sure */ 
 	{
 	  min_val=val;
 	  distance=dist;  
