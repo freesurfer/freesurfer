@@ -7405,6 +7405,67 @@ MRIScopyValuesToImagValues(MRI_SURFACE *mris)
         Description
 ------------------------------------------------------*/
 int
+MRISreadInflatedCoordinates(MRI_SURFACE *mris, char *sname)
+{
+  if (!sname)
+    sname = "inflated" ;
+  MRISsaveVertexPositions(mris, TMP_VERTICES) ;
+  if (MRISreadVertexPositions(mris, sname) != NO_ERROR)
+    return(Gerror) ;
+  MRISsaveVertexPositions(mris, INFLATED_VERTICES) ;
+  MRISrestoreVertexPositions(mris, TMP_VERTICES) ;
+  return(NO_ERROR) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
+int
+MRISreadFlattenedCoordinates(MRI_SURFACE *mris, char *sname)
+{
+  int    vno, fno ;
+  VERTEX *v ;
+  FACE   *f ;
+
+  if (!sname)
+    sname = "patch" ;
+  MRISsaveVertexPositions(mris, TMP_VERTICES) ;
+  if (MRISreadPatchNoRemove(mris, sname) != NO_ERROR)
+    return(Gerror) ;
+  MRISsaveVertexPositions(mris, FLATTENED_VERTICES) ;
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    if (v->ripflag)
+    {
+      v->z = -10000 ;
+      v->ripflag = 0 ;
+    }
+  }
+  for (fno = 0 ; fno < mris->nfaces ; fno++)
+  {
+    f = &mris->faces[fno] ;
+    if (f->ripflag)
+    {
+      f->ripflag = 0 ;
+    }
+  }
+  MRISrestoreVertexPositions(mris, TMP_VERTICES) ;
+  MRIScomputeMetricProperties(mris) ;
+  
+  return(NO_ERROR) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
+int
 MRISreadCanonicalCoordinates(MRI_SURFACE *mris, char *sname)
 {
   MRISsaveVertexPositions(mris, TMP_VERTICES) ;
@@ -13260,6 +13321,12 @@ MRISsaveVertexPositions(MRI_SURFACE *mris, int which)
 #endif
     switch (which)
     {
+    case INFLATED_VERTICES:
+      v->infx = v->x ; v->infy = v->y ; v->infz = v->z ;
+      break ;
+    case FLATTENED_VERTICES:
+      v->fx = v->x ; v->fy = v->y ; v->fz = v->z ;
+      break ;
     case CANONICAL_VERTICES:
       v->cx = v->x ; v->cy = v->y ; v->cz = v->z ;
       break ;
@@ -13328,6 +13395,12 @@ MRISrestoreVertexPositions(MRI_SURFACE *mris, int which)
 #endif
     switch (which)
     {
+    case INFLATED_VERTICES:
+      v->x = v->infx ; v->y = v->infy ; v->z = v->infz ;
+      break ;
+    case FLATTENED_VERTICES:
+      v->x = v->fx ; v->y = v->fy ; v->z = v->fz ;
+      break ;
     case CANONICAL_VERTICES:
       v->x = v->cx ; v->y = v->cy ; v->z = v->cz ;
       break ;
@@ -13340,6 +13413,7 @@ MRISrestoreVertexPositions(MRI_SURFACE *mris, int which)
       break ;
     }
   }
+  mrisComputeSurfaceDimensions(mris) ;
   return(NO_ERROR) ;
 }
 /*-----------------------------------------------------
