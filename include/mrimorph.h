@@ -11,8 +11,9 @@ typedef struct
 {
   double     l_intensity ;   /* coefficient of intensity term */
   double     l_area ;        /* coefficient of area term */
-  double     l_narea ;       /* coefficient of negative area term */
+  double     l_nlarea ;      /* coefficient of nonlinear area term */
   double     l_dist ;        /* coefficient of distance term */
+  double     exp_k ;         /* nonlinear area exponent coefficient */
   LTA        *lta ;          /* octree transform */
   double     dt ;
   double     momentum ;

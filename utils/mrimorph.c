@@ -30,7 +30,7 @@
 #include "proto.h"
 #include "region.h"
 
-#define NEG_K            10.0
+#define EXP_K            10.0
 #define IMAGE_SIZE       400
 #define BACKGROUND_VAL   10
 
@@ -1542,10 +1542,12 @@ openLogFile(MORPH_PARMS *parms)
       fprintf(parms->log_fp, "l_dist = %2.4f\n", parms->l_dist) ;
     if (!FZERO(parms->l_area))
       fprintf(parms->log_fp, "l_area = %2.4f\n", parms->l_area) ;
-    if (!FZERO(parms->l_narea))
-      fprintf(parms->log_fp, "l_narea = %2.4f\n", parms->l_narea) ;
+    if (!FZERO(parms->l_nlarea))
+      fprintf(parms->log_fp, "l_nlarea = %2.4f\n", parms->l_nlarea) ;
     if (!FZERO(parms->sigma))
       fprintf(parms->log_fp, "sigma   = %2.4f\n", parms->sigma) ;
+    if (!FZERO(parms->exp_k))
+      fprintf(parms->log_fp, "exp k   = %2.1f\n", parms->exp_k) ;
     fflush(parms->log_fp) ;
   }
   fprintf(stderr, "dt = %2.2e, momentum=%2.2f, tol=%2.2e\n",
@@ -1556,8 +1558,8 @@ openLogFile(MORPH_PARMS *parms)
     fprintf(stderr, "l_dist = %2.4f\n", parms->l_dist) ;
   if (!FZERO(parms->l_area))
     fprintf(stderr, "l_area = %2.4f\n", parms->l_area) ;
-  if (!FZERO(parms->l_narea))
-    fprintf(stderr, "l_narea = %2.4f\n", parms->l_narea) ;
+  if (!FZERO(parms->l_nlarea))
+    fprintf(stderr, "l_nlarea = %2.4f\n", parms->l_nlarea) ;
     if (!FZERO(parms->sigma))
       fprintf(stderr, "sigma   = %2.4f\n", parms->sigma) ;
   fflush(stderr) ;
@@ -1593,8 +1595,8 @@ static double   mri3DSSE(MRI *mri_in, MRI *mri_ref, MORPH_PARMS *parms,
 static double   mri3DCorrelationSSE(MRI *mri_in, MRI *mri_ref, MORPH_3D *m3d);
 static double   mri3DDistanceSSE(MRI *mri_in, MRI *mri_ref, MORPH_3D *m3d) ;
 static double   mri3DAreaSSE(MRI *mri_in, MRI *mri_ref, MORPH_3D *m3d) ;
-static double   mri3DNegAreaSSE(MRI *mri_in, MRI *mri_ref, MORPH_3D *m3d,
-                                double l_narea) ;
+static double   mri3DNonlinearAreaSSE(MRI *mri_in,MRI *mri_ref,MORPH_3D *m3d,
+                                      MORPH_PARMS *parms);
 static int      mri3DCorrelationTerm(MRI *mri_in, MRI *mri_ref,
                                      MRI *mri_ref_blur, double l_intensity, 
                                      int xin, int yin, int zin,
@@ -1603,8 +1605,10 @@ static int      mri3DCorrelationTerm(MRI *mri_in, MRI *mri_ref,
 static int      mri3DDistanceTerm(MORPH_3D *m3d, double l_distance, 
                                   int i, int j, int k,
                                    double *pdx, double *pdy, double *pdz) ;
-static int      mri3DAreaTerm(MORPH_3D *m3d,  double l_area, double l_narea, 
-                              int i, int j, 
+static int      mri3DNonlinearAreaTerm(MORPH_3D *m3d, double l_nlarea,int i, 
+                                       int j, int k, double *pdx, double *pdy,
+                                       double *pdz, MORPH_PARMS *parms);
+static int      mri3DAreaTerm(MORPH_3D *m3d,  double l_area, int i, int j, 
                               int k, double *pdx, double *pdy, double *pdz) ;
 static MORPH_3D *mri3DInit(MRI *mri_in, MRI *mri_ref,
                            MORPH_PARMS *parms, float scale) ;
@@ -1641,11 +1645,11 @@ static double
 mri3DSSE(MRI *mri_in, MRI *mri_ref, MORPH_PARMS *parms, MORPH_3D *m3d,
          double *pintensity_rms, double *pdistance_rms, double *parea_rms)
 {
-  double   sse, intensity_sse, area_sse, distance_sse, nvox, narea_sse ;
+  double   sse, intensity_sse, area_sse, distance_sse, nvox, nlarea_sse ;
 
   intensity_sse = mri3DCorrelationSSE(mri_in, mri_ref, m3d);
   area_sse = mri3DAreaSSE(mri_in, mri_ref, m3d);
-  narea_sse = mri3DNegAreaSSE(mri_in, mri_ref, m3d, parms->l_narea);
+  nlarea_sse = mri3DNonlinearAreaSSE(mri_in, mri_ref, m3d, parms);
   distance_sse = mri3DDistanceSSE(mri_in, mri_ref, m3d);
 
   nvox = m3d->width * m3d->height * m3d->depth ;
@@ -1655,7 +1659,7 @@ mri3DSSE(MRI *mri_in, MRI *mri_ref, MORPH_PARMS *parms, MORPH_3D *m3d,
   sse = 
     parms->l_intensity * intensity_sse + 
     parms->l_area * area_sse + 
-    parms->l_narea * narea_sse + 
+    parms->l_nlarea * nlarea_sse + 
     parms->l_dist * distance_sse ;
   return(sse) ;
 }
@@ -1815,7 +1819,8 @@ mri3DDistanceSSE(MRI *mri_in, MRI *mri_ref, MORPH_3D *m3d)
           Compute SSE for area term.
 ------------------------------------------------------*/
 static double
-mri3DNegAreaSSE(MRI *mri_in, MRI *mri_ref, MORPH_3D *m3d, double l_narea)
+mri3DNonlinearAreaSSE(MRI *mri_in, MRI *mri_ref, MORPH_3D *m3d, 
+                      MORPH_PARMS *parms)
 {
   double     sse, delta, n3, ratio ;
   int        i, j, k, width, height, depth ;
@@ -1847,9 +1852,13 @@ mri3DNegAreaSSE(MRI *mri_in, MRI *mri_ref, MORPH_3D *m3d, double l_narea)
           ratio = 0 ;
           fprintf(stderr, "orig area = 0 at (%d, %d, %d)!!!\n", i, j, k) ;
         }
-        delta = log(1.0+exp(-NEG_K*ratio));
+#if 0
+        delta = (1.0 / parms->exp_k) * log(1.0+exp(-parms->exp_k*ratio));
+#else
+        delta = log(1+exp(parms->exp_k*ratio)) / parms->exp_k - ratio ;
+#endif
 
-        sse += delta * delta * mri_in->thick ;
+        sse += delta * mri_in->thick ;
         if (!finitep(delta) || !finitep(sse))
           DiagBreak() ;
       }
@@ -2265,7 +2274,7 @@ MRI3Dmorph(MRI *mri_in, MRI *mri_ref, MORPH_PARMS *parms)
       mri_ref_blur = 
         MRIconvolveGaussianMeanAndStdByte(mri_ref, NULL, mri_kernel) ;
       mri_in_blur = MRIconvolveGaussian(mri_in, NULL, mri_kernel) ;
-      mri3DAlignPyramidLevel(mri_in_blur, mri_ref_blur,mri_ref_blur,parms,m3d);
+      mri3DAlignPyramidLevel(mri_in_blur,mri_ref_blur,mri_ref_blur,parms,m3d);
       MRIfree(&mri_kernel) ; MRIfree(&mri_in_blur) ; MRIfree(&mri_ref_blur) ;
     }
     else
@@ -2871,12 +2880,12 @@ mri3DDistanceTerm(MORPH_3D *m3d, double l_distance, int i, int j, int k,
 ------------------------------------------------------*/
 #define AREA_NEIGHBORS 4
 static int
-mri3DAreaTerm(MORPH_3D *m3d, double l_area, double l_narea,int i, int j, int k,
+mri3DAreaTerm(MORPH_3D *m3d, double l_area, int i, int j, int k,
               double *pdx, double *pdy, double *pdz)
 {
   MORPH_NODE     *mn, *mni, *mnj, *mnk ;
   MNP            *mnp ;
-  float          delta, delta_scale, ratio, node_spacing, n3 ;
+  float          delta, node_spacing, n3 ;
   int            n ;
   static VECTOR  *v_a = NULL, *v_b, *v_c, *v_c_x_b, *v_b_x_a,*v_a_x_c,*v_grad,
                  *v_tmp ;
@@ -2948,10 +2957,130 @@ mri3DAreaTerm(MORPH_3D *m3d, double l_area, double l_narea,int i, int j, int k,
     V3_LOAD(v_b, mnj->x - mn->x, mnj->y - mn->y, mnj->z - mn->z) ;
     V3_LOAD(v_c, mnk->x - mn->x, mnk->y - mn->y, mnk->z - mn->z) ;
     delta = (mnp->orig_area - mnp->area) / n3 ;
+    if (mnp->area < 0)
+      DiagBreak() ;
+    if (delta > 100000)
+      DiagBreak() ;
+    
+    /* compute cross-products and add the appropriate 
+       (i.e. scaled by area difference) cross-products to the gradient */
+    switch (n)
+    {
+    default:
+    case 0:    /* first do central node */
+      V3_CROSS_PRODUCT(v_c, v_b, v_c_x_b) ;
+      V3_CROSS_PRODUCT(v_b, v_a, v_b_x_a) ;
+      V3_CROSS_PRODUCT(v_a, v_c, v_a_x_c) ;
+      V3_ADD(v_c_x_b, v_b_x_a, v_tmp) ;
+      V3_ADD(v_a_x_c, v_tmp, v_tmp) ;
+      V3_SCALAR_MUL(v_tmp, delta, v_grad) ;
+      break ;
+    case 1:       /*  i-1 */
+      V3_CROSS_PRODUCT(v_c, v_b, v_c_x_b) ;
+      V3_SCALAR_MUL(v_c_x_b, -delta, v_tmp) ;
+      V3_ADD(v_tmp, v_grad, v_grad) ;
+      break ;
+    case 2:      /* j-1 */
+      V3_CROSS_PRODUCT(v_a, v_c, v_a_x_c) ;
+      V3_SCALAR_MUL(v_a_x_c, -delta, v_tmp) ;
+      V3_ADD(v_tmp, v_grad, v_grad) ;
+      break ;
+    case 3:      /* k-1 */
+      V3_CROSS_PRODUCT(v_b, v_a, v_b_x_a) ;
+      V3_SCALAR_MUL(v_b_x_a, -delta, v_tmp) ;
+      V3_ADD(v_tmp, v_grad, v_grad) ;
+      break ;
+    }
+  }
+  l_area /= (float)AREA_NEIGHBORS ;
+  *pdx = l_area * V3_X(v_grad) ;
+  *pdy = l_area * V3_Y(v_grad) ;
+  *pdz = l_area * V3_Z(v_grad) ;
+  return(NO_ERROR) ;
+}
+static int
+mri3DNonlinearAreaTerm(MORPH_3D *m3d, double l_nlarea, int i, int j, int k, 
+                       double *pdx, double *pdy, double *pdz, 
+                       MORPH_PARMS *parms)
+{
+  MORPH_NODE     *mn, *mni, *mnj, *mnk ;
+  MNP            *mnp ;
+  float          delta, delta_scale, ratio, node_spacing, n3 ;
+  int            n ;
+  static VECTOR  *v_a = NULL, *v_b, *v_c, *v_c_x_b, *v_b_x_a,*v_a_x_c,*v_grad,
+                 *v_tmp ;
+
+  if ((FZERO(l_nlarea)) || 
+      (i >= m3d->width-1 || j >= m3d->height-1 || k >= m3d->depth-1) ||
+      i <= 0 || j <= 0 || k <= 0)
+  {
+    *pdx = *pdy = *pdz = 0.0 ;
+    return(NO_ERROR) ;
+  }
+
+  node_spacing = m3d->node_spacing ; 
+#if SCALE_INVARIANT
+  n3 = node_spacing * node_spacing * node_spacing ; 
+#else
+  n3 = 1.0f ;
+#endif
+  if (!v_a)   /* initialize */
+  {
+    v_a = VectorAlloc(3, MATRIX_REAL) ;
+    v_b = VectorAlloc(3, MATRIX_REAL) ;
+    v_c = VectorAlloc(3, MATRIX_REAL) ;
+    v_grad = VectorAlloc(3, MATRIX_REAL) ;
+    v_c_x_b = VectorAlloc(3, MATRIX_REAL) ;
+    v_b_x_a = VectorAlloc(3, MATRIX_REAL) ;
+    v_a_x_c = VectorAlloc(3, MATRIX_REAL) ;
+    v_tmp = VectorAlloc(3, MATRIX_REAL) ;
+  }
+
+  for (n = 0 ; n < AREA_NEIGHBORS ; n++)
+  {
+    /* assign mn pointers to appropriate nodes */
+    switch (n)
+    {
+    default:
+    case 0:    /* first do central node */
+      mn = &m3d->nodes[i][j][k] ;
+      mnp = &m3d->pnodes[i][j][k] ;
+      mni = &m3d->nodes[i+1][j][k] ;
+      mnj = &m3d->nodes[i][j+1][k] ;
+      mnk = &m3d->nodes[i][j][k+1] ;
+      break ;
+    case 1:       /*  i-1 */
+      mn = &m3d->nodes[i-1][j][k] ;
+      mnp = &m3d->pnodes[i-1][j][k] ;
+      mni = &m3d->nodes[i][j][k] ;
+      mnj = &m3d->nodes[i-1][j+1][k] ;
+      mnk = &m3d->nodes[i-1][j][k+1] ;
+      break ;
+    case 2:       /* j-1 */
+      mn = &m3d->nodes[i][j-1][k] ;
+      mnp = &m3d->pnodes[i][j-1][k] ;
+      mni = &m3d->nodes[i+1][j-1][k] ;
+      mnj = &m3d->nodes[i][j][k] ;
+      mnk = &m3d->nodes[i][j-1][k+1] ;
+      break ;
+    case 3:      /* k-1 */
+      mn = &m3d->nodes[i][j][k-1] ;
+      mnp = &m3d->pnodes[i][j][k-1] ;
+      mni = &m3d->nodes[i+1][j][k-1] ;
+      mnj = &m3d->nodes[i][j+1][k-1] ;
+      mnk = &m3d->nodes[i][j][k] ;
+      break ;
+    }
+
+    /* compute cross products and area delta */
+    V3_LOAD(v_a, mni->x - mn->x, mni->y - mn->y, mni->z - mn->z) ;
+    V3_LOAD(v_b, mnj->x - mn->x, mnj->y - mn->y, mnj->z - mn->z) ;
+    V3_LOAD(v_c, mnk->x - mn->x, mnk->y - mn->y, mnk->z - mn->z) ;
+    delta = (mnp->orig_area - mnp->area) / n3 ;
 #if 0
     ratio = delta_scale = 1 ;
 #else
-#define MAX_AREA_SCALE (l_narea)
+#define MAX_AREA_SCALE (l_nlarea)
     /* scale up the area coefficient if the area of the current node is
        close to 0 or already negative */
     if (!FZERO(mnp->orig_area))
@@ -2964,7 +3093,11 @@ mri3DAreaTerm(MORPH_3D *m3d, double l_area, double l_narea,int i, int j, int k,
     if (mnp->area < 0)
       DiagBreak() ;
     /*delta = mnp->area / mnp->orig_area ;delta = 100*pow(0.001, abs(10*x));*/
-    delta_scale =(MAX_AREA_SCALE)-((MAX_AREA_SCALE-1)/(1.0+exp(-NEG_K*ratio)));
+#if 0
+    delta_scale = l_nlarea * (1 - (1/(1.0+exp(-parms->exp_k*ratio)))) ;
+#else
+    delta_scale = l_nlarea/(1.0+exp(parms->exp_k*ratio)) ;
+#endif
     if (delta_scale > 10000)
       DiagBreak() ;
 #endif
@@ -3005,10 +3138,9 @@ mri3DAreaTerm(MORPH_3D *m3d, double l_area, double l_narea,int i, int j, int k,
       break ;
     }
   }
-  l_area /= (float)AREA_NEIGHBORS ;
-  *pdx = l_area * V3_X(v_grad) ;
-  *pdy = l_area * V3_Y(v_grad) ;
-  *pdz = l_area * V3_Z(v_grad) ;
+  *pdx = V3_X(v_grad) ;
+  *pdy = V3_Y(v_grad) ;
+  *pdz = V3_Z(v_grad) ;
   return(NO_ERROR) ;
 }
 /*-----------------------------------------------------
@@ -3045,7 +3177,7 @@ mri3DAlignPyramidLevel(MRI *mri_in, MRI *mri_ref, MRI *mri_ref_blur,
                  &intensity_rms, &distance_rms, &area_rms) ; 
   old_rms = rms = sqrt(sse / nvox) ;
   old_rms += parms->tol*rms ;
-  log3DIntegration(parms, m3d,0,dt,rms, intensity_rms, distance_rms, area_rms);
+  log3DIntegration(parms, m3d,0,dt,rms, intensity_rms, distance_rms,area_rms);
 
   last_neg = m3d->neg ;
   if ((Gdiag & DIAG_WRITE) && (parms->write_iterations > 0) && !parms->start_t)
@@ -3059,7 +3191,8 @@ mri3DAlignPyramidLevel(MRI *mri_in, MRI *mri_ref, MRI *mri_ref_blur,
 #endif
   }
 
-  last_avg = current_avg = rms ;
+  last_avg = old_rms ;
+  current_avg = rms ;
   for (n = parms->start_t ; n < parms->start_t+parms->niterations ; n++)
   {
 #if 0
@@ -3150,7 +3283,9 @@ mri3DIntegrationStep(MRI *mri_in, MRI *mri_ref, MRI *mri_ref_blur,
             !finitep(xgrad) || !finitep(ygrad) || !finitep(zgrad))
           DiagBreak() ;
 
-        mri3DAreaTerm(m3d, parms->l_area,parms->l_narea,x, y, z, &dx,&dy,&dz);
+        mri3DAreaTerm(m3d, parms->l_area, x, y, z, &dx,&dy,&dz);
+        mri3DNonlinearAreaTerm(m3d, parms->l_nlarea, x, y, z, &dx, &dy, &dz,
+                               parms) ;
         xgrad += dx ; ygrad += dy ; zgrad += dz ;
         if (!finitep(dz) || !finitep(dy) || !finitep(dx) ||
             !finitep(xgrad) || !finitep(ygrad) || !finitep(zgrad))
@@ -4144,7 +4279,10 @@ mriNormalizeStds(MRI *mri)
 
   mean_std = MRImeanFrame(mri, 1) ;
   if (FZERO(mean_std))
-    mean_std = 1.0 ;
+  {
+    mri->mean = 0.0 ;
+    return(NO_ERROR) ;
+  }
   width = mri->width ; height = mri->height ; depth = mri->depth ;
   for (z = 0 ; z < depth ; z++)
   {

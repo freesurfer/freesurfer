@@ -49,10 +49,11 @@ main(int argc, char *argv[])
   parms.niterations = 100 ;
   parms.l_intensity = 0.1 ;
   parms.levels = -1 ;   /* use default */
-  parms.l_dist = 1.0 ; parms.l_area = 1.0 ;
-  parms.l_narea = 100 ;
+  parms.l_dist = 1.0 ; parms.l_area = 0.0 ;
+  parms.l_nlarea = 100 ;
   parms.dt = .5 ;
   parms.tol = 1.5e-2 ;
+  parms.exp_k = 10.0 ;
   parms.sigma = 0.0f ;
   Progname = argv[0] ;
 
@@ -205,11 +206,11 @@ get_option(int argc, char *argv[])
     nargs = 1 ;
     fprintf(stderr, "l_area = %2.2f\n", parms.l_area) ;
   }
-  else if (!strcmp(option, "NAREA"))
+  else if (!strcmp(option, "NLAREA"))
   {
-    parms.l_narea = atof(argv[2]) ;
+    parms.l_nlarea = atof(argv[2]) ;
     nargs = 1 ;
-    fprintf(stderr, "l_narea = %2.2f\n", parms.l_narea) ;
+    fprintf(stderr, "l_nlarea = %2.2f\n", parms.l_nlarea) ;
   }
   else if (!strcmp(option, "LEVELS"))
   {
@@ -264,6 +265,10 @@ get_option(int argc, char *argv[])
     parms.niterations = atoi(argv[2]) ;
     nargs = 1 ;
     fprintf(stderr, "niterations = %d\n", parms.niterations) ;
+    break ;
+  case 'K':
+    parms.exp_k = atof(argv[2]) ;
+    fprintf(stderr, "using exponential k = %2.1f\n", parms.exp_k) ;
     break ;
   case 'W':
     parms.write_iterations = atoi(argv[2]) ;
