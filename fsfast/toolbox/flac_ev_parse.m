@@ -6,7 +6,7 @@ function ev = flac_ev_parse(tline)
 %
 % EV EVName ModelName Type <parameters>
 %
-% $Id: flac_ev_parse.m,v 1.5 2004/10/25 18:19:09 greve Exp $
+% $Id: flac_ev_parse.m,v 1.6 2004/11/01 04:38:08 greve Exp $
 
 ev = [];
 if(nargin > 1)
@@ -143,6 +143,14 @@ switch (ev.model)
   ev.nreg = ev.params(1);
   ev.ishrf = 0;  
 
+ %--------------------------------------------
+ case {'nyquist'} % Temporal nyquist
+  % 0 parameters
+  % EV Nyq nyquist nuiss 
+  ev.nreg = 1;
+  ev.ishrf = 0;  
+
+ %--------------------------------------------  
  otherwise
   fprintf('ERROR: model %s unrecoginized\n');
   ev = [];

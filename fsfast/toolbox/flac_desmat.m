@@ -7,7 +7,7 @@ function flacnew = flac_desmat(flac)
 % done by flac_customize but could be done in some other way (allows
 % for optseq-type optimization).
 %
-% $Id: flac_desmat.m,v 1.2 2004/10/25 18:18:43 greve Exp $
+% $Id: flac_desmat.m,v 1.3 2004/11/01 04:38:08 greve Exp $
 
 flacnew = [];
 
@@ -53,6 +53,9 @@ for nthev = 1:nev
       nharmonics = ev.params(2);
       tdelay     = ev.params(3); % Need to add
       X = fast_fourier_reg(period,flac.ntp,flac.TR,nharmonics);
+      flacnew.ev(nthev).X = X;
+     case {'nyquist'}  
+      X = 2*(rem([1:flac.ntp]',2)-.5);
       flacnew.ev(nthev).X = X;
      case {'nonpar'}  
       % Nonpar X must be already loaded with flac_customize.
