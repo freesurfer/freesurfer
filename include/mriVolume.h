@@ -27,7 +27,7 @@ typedef enum {
   Volm_tErr_NormValuesNotPresent,
   Volm_tErr_ScannerTransformNotPresent,
   Volm_tErr_IdxToRASTransformNotPresent,
-
+  
   Volm_knNumErrorCodes
 } Volm_tErr;
 
@@ -46,28 +46,28 @@ typedef Volm_tValue *Volm_tValueRef;
 typedef struct {
   
   long mSignature;
-
+  
   int mnDimensionX;
   int mnDimensionY;
   int mnDimensionZ;
-
+  
   MRI*           mpMriValues;    /* normalized color values (0-255) */
   BUFTYPE*       mpSnapshot;      /* copy of normalized values */
   Volm_tValueRef mpMaxValues;     /* max projection. 3 planes, each dimension
              of a slice. 
              mpMaxValues[orientation][x][y] */
-
+  
   mriTransformRef    mIdxToRASTransform;           /* idx -> ras (by MRI) */
   //  LTA*               mDisplayTransform;            /* buf -> index */
   mriTransformRef    mDisplayTransform;            /* buf -> index */
   mriTransformRef    mMNITalLtzToRealTalTransform; /* tal (z<0) -> real tal */
   mriTransformRef    mMNITalGtzToRealTalTransform; /* tal (z>0) -> real tal */
   mriTransformRef    mScannerTransform;            /* idx -> scnaner */
-
+  
   char msSubjectName[mri_knSubjectNameLen];
   char msVolumeName[mri_knSubjectNameLen];
   char msOriginalPath[mri_knPathLen];
-
+  
   float mfColorBrightness;                 /* threshold */
   float mfColorContrast;                   /* squash */
   xColor3f maColorTable[Volm_knNumValues]; /* color for each value */
@@ -121,7 +121,9 @@ void Volm_GetMaxColorAtXYSlice ( mriVolumeRef     this,
          xColor3fRef      oColor );
 
 Volm_tErr Volm_GetDimensions        ( mriVolumeRef this,
-             int*         onDimensionX, int*         onDimensionY, int*         onDimensionZ );
+              int*         onDimensionX, 
+              int*         onDimensionY, 
+              int*         onDimensionZ );
 
 /* get a normal value. before calling the unsafe version, make sure
    the volume is valid, the index is in bounds, and you're passing

@@ -167,39 +167,45 @@ float xVoxl_GetFloatZ ( xVoxelRef this ) {
   return this->mfZ;
 }
 
-tBoolean xVoxl_IncrementUntilLimit ( xVoxelRef this, int inLimit ) {
+tBoolean xVoxl_IncrementWithMinUntilLimit ( xVoxelRef this, 
+              float inMin, float inLimit ) {
 
   if( this->mfX < inLimit ) {
-    this->mfX += 1;
+    this->mfX += 1.0;
     return TRUE;
   } else if( this->mfY < inLimit ) {
-    this->mfX = 0;
-    this->mfY += 1;
+    this->mfX = inMin;
+    this->mfY += 1.0;
     return TRUE;
   } else if( this->mfZ < inLimit ) {
-    this->mfX = 0;
-    this->mfY = 0;
-    this->mfZ += 1;
+    this->mfX = inMin;
+    this->mfY = inMin;
+    this->mfZ += 1.0;
     return TRUE;
   } else {
     return FALSE;
   }
 }
 
-tBoolean xVoxl_IncrementUntilLimits ( xVoxelRef this, int inXLimit, 
-              int inYLimit, int inZLimit ) {
+tBoolean xVoxl_IncrementUntilLimit ( xVoxelRef this, float inLimit ) {
+
+  return xVoxl_IncrementWithMinUntilLimit( this, 0, inLimit );
+}
+
+tBoolean xVoxl_IncrementUntilLimits ( xVoxelRef this, float inXLimit, 
+              float inYLimit, float inZLimit ) {
 
   if( this->mfX < inXLimit ) {
-    this->mfX += 1;
+    this->mfX += 1.0;
     return TRUE;
   } else if( this->mfY < inYLimit ) {
     this->mfX = 0;
-    this->mfY += 1;
+    this->mfY += 1.0;
     return TRUE;
   } else if( this->mfZ < inZLimit ) {
     this->mfX = 0;
     this->mfY = 0;
-    this->mfZ += 1;
+    this->mfZ += 1.0;
     return TRUE;
   } else {
     return FALSE;

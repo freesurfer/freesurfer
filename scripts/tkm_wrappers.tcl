@@ -1157,6 +1157,7 @@ proc tkm_BrowseFile { iVariable {iDefaultFunc ""} {ilDirectories ""} } {
     
     # set the default location 
     if { $iDefaultFunc != "" } {
+  puts "default func is $iDefaultFunc, [eval $iDefaultFunc]"
   [$wwDirDlog subwidget fsbox] configure -directory [eval $iDefaultFunc]
     }
     
@@ -1167,7 +1168,7 @@ proc tkm_BrowseFile { iVariable {iDefaultFunc ""} {ilDirectories ""} } {
     
     # when they click ok, call the tkm_HandleSelectDirectory function,
     # passing in the variable from the parent dialog.
-    $wwDirDlog config -command "tkm_HandleSelectDirectory $iVariable"
+    $wwDirDlog config -command "tkm_HandleSelectFile $iVariable"
     
     $wwDirDlog popup
 }

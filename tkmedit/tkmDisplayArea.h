@@ -59,8 +59,9 @@ typedef enum {
   DspA_tDisplayFlag_MaskToFunctionalOverlay,
   DspA_tDisplayFlag_HistogramPercentChange,
   DspA_tDisplayFlag_ROIGroupOverlay,
-  DspA_tDisplayFlag_TensorOverlay,
   DspA_tDisplayFlag_ROIVolumeCount,
+  DspA_tDisplayFlag_DTIOverlay,
+  DspA_tDisplayFlag_VectorField,
   DspA_tDisplayFlag_FocusFrame,
   DspA_tDisplayFlag_UndoVolume,
   DspA_tDisplayFlag_Axes,
@@ -96,7 +97,7 @@ typedef enum {
   DspA_tBrush_EditTwo,
   DspA_knNumBrushes
 } DspA_tBrush;
- 
+
 /* the threshold settings for a brush */
 typedef struct {
   int mnLow;
@@ -107,15 +108,15 @@ typedef struct {
 /* the combined brush settings. all use the same shape, but there can be
    different threshold settings (for different mouse buttons). */
 typedef struct {
-
+  
   /* shape */
   int mnRadius;
   DspA_tBrushShape mShape;
   tBoolean mb3D;
-
+  
   /* thresholds */
   DspA_tBrushInfo mInfo[ DspA_knNumBrushes ];
-
+  
 } DspA_tBrushSettings;
 
 /* parcellation brush settings. */
@@ -125,7 +126,7 @@ typedef struct {
   tkm_tVolumeType mSrc; 
   int             mnFuzzy;
   int             mnDistance;
-
+  
 } DspA_tParcBrushSettings;
 
 
@@ -152,7 +153,7 @@ typedef enum {
 /* parameters for the tcl histogram bar chart */
 #define DspA_knHistoTitleLength 256
 typedef struct {
-
+  
   char    msTitle[DspA_knHistoTitleLength];
   char    msXAxisTitle[DspA_knHistoTitleLength];
   char    msYAxisTitle[DspA_knHistoTitleLength];
@@ -162,13 +163,13 @@ typedef struct {
   char**  masXAxisLabels;
   float*  mafValues1;
   float*  mafValues2;
-
+  
 } DspA_tHistogramParams, *DspA_tHistogramParamsRef;
 
 #define DspA_kSignature 0x194ffb2
 
 struct tkmDisplayArea {
-
+  
   tSignature             mSignature;
   
   /* superpane info */
@@ -186,7 +187,7 @@ struct tkmDisplayArea {
   GLubyte*               mpFrameBuffer;
   float                  mfFrameBufferScaleX;
   float                  mfFrameBufferScaleY;
-
+  
   /* view state */
   xVoxelRef              mpLastCursor;
   xVoxelRef              mpCursor;
@@ -201,25 +202,24 @@ struct tkmDisplayArea {
   int                    mnROIGroupIndex;
   int                    manSurfaceLineWidth[Surf_knNumVertexSets];
   xColor3f               maSurfaceLineColor[Surf_knNumVertexSets];
-
+  
   /* for navigation tool */
   xVoxelRef              mpOriginalZoomCenter;
   int                    mnOriginalSlice;
   int                    mnOriginalZoomLevel;
   xPoint2n               mLastClick;
   xPoint2f               mTotalDelta;
-
+  
   /* updated whenever we get a mouse moved event */
   xPoint2n               mMouseLocation;
-
+  
   /* surface lists */
   xGrowableArrayRef*     maSurfaceLists[tkm_knNumSurfaceTypes];
-
+  
   /* display data */
   mriVolumeRef           mpVolume;
   mriVolumeRef           mpAuxVolume;
   mriVolumeRef           mROIGroup;
-  mriVolumeRef           mTensor;
   mriSurfaceRef          mpSurface[tkm_knNumSurfaceTypes];
   tkmFunctionalVolumeRef mpFunctionalVolume;
   x3DListRef             mpControlPoints;
@@ -231,6 +231,7 @@ struct tkmDisplayArea {
   VLI*                   mVLI2 ;
   char                   isVLI1_name[STRLEN] ;
   char                   isVLI2_name[STRLEN] ;
+  mriVolumeRef           mpDTIVolume[tkm_knNumDTIVolumeTypes];
 };
 typedef struct tkmDisplayArea tkmDisplayArea;
 typedef tkmDisplayArea *tkmDisplayAreaRef;
@@ -244,10 +245,10 @@ typedef tkmDisplayArea *tkmDisplayAreaRef;
 
 #define DspA_knMaxZoomLevel 16
 #define DspA_knMinZoomLevel  1
-  
+
 #define DspA_knMaxBrushRadius 100
 #define DspA_knMinBrushRadius  1
-  
+
 #define DspA_knCursorCrosshairSize       4
 #define DspA_knControlPointCrosshairSize 4
 #define DspA_knSurfaceVertexSize         2
@@ -281,8 +282,6 @@ DspA_tErr DspA_SetAuxVolume                  ( tkmDisplayAreaRef this,
                                                int               inSizeZ) ;
 DspA_tErr DspA_SetROIGroup                   ( tkmDisplayAreaRef this,
                  mriVolumeRef      iGroup );
-DspA_tErr DspA_SetTensor                   ( tkmDisplayAreaRef this,
-                 mriVolumeRef      iTensor );
 DspA_tErr DspA_SetSurface                    ( tkmDisplayAreaRef this, 
                  tkm_tSurfaceType  iType,
                  mriSurfaceRef     ipSurface );
@@ -297,11 +296,14 @@ DspA_tErr DspA_SetHeadPointList              ( tkmDisplayAreaRef this,
 DspA_tErr DspA_SetGCA                        ( tkmDisplayAreaRef this,
                  GCA*              iVolume,
                  TRANSFORM*        iTransform );
-DspA_tErr DspA_SetVLIs                        ( tkmDisplayAreaRef this,
+DspA_tErr DspA_SetVLIs                       ( tkmDisplayAreaRef this,
                  VLI*              iVLI1,
                  VLI*              iVLI2,
                  char*             isVLI1_name,
                  char*             isVLI2_name);
+DspA_tErr DspA_SetDTIVolume                  ( tkmDisplayAreaRef  this, 
+                 tkm_tDTIVolumeType iType,
+                 mriVolumeRef       iVolume );
 
 /* viewing state changes */
 DspA_tErr DspA_SetCursor             ( tkmDisplayAreaRef this, 
@@ -444,6 +446,7 @@ DspA_tErr DspA_DrawFrameBuffer_        ( tkmDisplayAreaRef this );
 DspA_tErr DspA_DrawSurface_            ( tkmDisplayAreaRef this );
 DspA_tErr DspA_DrawHeadPoints_         ( tkmDisplayAreaRef this );
 DspA_tErr DspA_DrawControlPoints_      ( tkmDisplayAreaRef this );
+DspA_tErr DspA_DrawVectorField_        ( tkmDisplayAreaRef this );
 DspA_tErr DspA_DrawCursor_             ( tkmDisplayAreaRef this );
 DspA_tErr DspA_DrawFrameAroundDisplay_ ( tkmDisplayAreaRef this );
 DspA_tErr DspA_DrawAxes_               ( tkmDisplayAreaRef this );
@@ -461,16 +464,20 @@ DspA_tErr DspA_DrawMarker_             ( tkmDisplayAreaRef this,
            float*            ifaColor,
            xPoint2nRef       ipWhere,
            int               inSize );
-void DspA_DrawVerticalArrow_           ( xPoint2nRef iStart,
-           int         inLength,
-           char*       isLabel );
-void DspA_DrawHorizontalArrow_         ( xPoint2nRef iStart,
-           int         inLength,
-           char*       isLabel );
+DspA_tErr DspA_DrawVector_             ( tkmDisplayAreaRef this,
+           float*            ifaColor,
+           xVoxelRef         ipVoxelStart,
+           xVoxelRef         ipVoxelDirection );
+void      DspA_DrawVerticalArrow_      ( xPoint2nRef       iStart,
+           int               inLength,
+           char*             isLabel );
+void      DspA_DrawHorizontalArrow_    ( xPoint2nRef       iStart,
+           int               inLength,
+           char*             isLabel );
 
 /* get info about the drawing state */
 DspA_tErr DspA_GetCursor        ( tkmDisplayAreaRef this, 
-         xVoxelRef          opCursor );
+          xVoxelRef          opCursor );
 DspA_tErr DspA_GetOrientation   ( tkmDisplayAreaRef this, 
           mri_tOrientation* oOrientation );
 DspA_tErr DspA_GetZoomLevel     ( tkmDisplayAreaRef this, 
@@ -515,6 +522,9 @@ DspA_tErr DspA_IsSurfaceCachced_     ( tkmDisplayAreaRef this,
 DspA_tErr DspA_ConvertVolumeToBuffer_ ( tkmDisplayAreaRef this,
           xVoxelRef         ipVolumeVox,
           xPoint2nRef       opBufferPt );
+DspA_tErr DspA_ConvertVolumeToBufferf_ ( tkmDisplayAreaRef this,
+           xVoxelRef         ipVolumeVox,
+           xPoint2fRef       opBufferPt );
 
 DspA_tErr DspA_ConvertBufferToVolume_ ( tkmDisplayAreaRef this,
           xPoint2nRef       ipBufferPt,
@@ -550,9 +560,9 @@ DspA_tErr DspA_Verify       ( tkmDisplayAreaRef this );
 DspA_tErr DspA_VerifyVolumeVoxel_ ( tkmDisplayAreaRef this,
             xVoxelRef          ipVoxel );
 DspA_tErr DspA_VerifyScreenPoint_ ( tkmDisplayAreaRef this,
-             xPoint2nRef       ipScreenPt );
+            xPoint2nRef       ipScreenPt );
 DspA_tErr DspA_VerifyBufferPoint_ ( tkmDisplayAreaRef this,
-             xPoint2nRef       ipBufferPt );
+            xPoint2nRef       ipBufferPt );
 
 /* set up opengl port */
 void DspA_SetUpOpenGLPort_ ( tkmDisplayAreaRef this );
@@ -563,13 +573,4 @@ void DspA_DebugPrint_ ( tkmDisplayAreaRef this );
 void DspA_Signal ( char* isFuncName, int inLineNum, DspA_tErr ieCode );
 char* DspA_GetErrorString ( DspA_tErr ieCode );
 
-
 #endif
-
-
-
-
-
-
-
-

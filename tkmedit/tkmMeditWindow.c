@@ -592,59 +592,6 @@ MWin_tErr MWin_SetAuxVolume ( tkmMeditWindowRef this,
   return eResult;
 }
 
-MWin_tErr MWin_SetTensor                   ( tkmMeditWindowRef this,
-                 int               inDispIndex,
-                 mriVolumeRef      iTensor ){
-
-  MWin_tErr eResult       = MWin_tErr_NoErr;
-  DspA_tErr eDispResult   = DspA_tErr_NoErr;
-  int       nDispIndex    = 0;
-  int       nDispIndexMin = inDispIndex;
-  int       nDispIndexMax = inDispIndex+1;
-  
-  /* verify us. */
-  eResult = MWin_Verify ( this );
-  if ( MWin_tErr_NoErr != eResult )
-    goto error;
-
-  /* verify the display index. */
-  eResult = MWin_VerifyDisplayIndex ( this, inDispIndex );
-  if ( MWin_tErr_NoErr != eResult )
-    goto error;
-
-  /* if working on all displays, set the iteration bounds. */
-  if ( MWin_kAllDisplayAreas == inDispIndex ) {
-    nDispIndexMin = 0;
-    nDispIndexMax = MWin_knMaxNumAreas;
-  }
-
-  /* set the volume */
-  for ( nDispIndex = nDispIndexMin; 
-        nDispIndex < nDispIndexMax; 
-        nDispIndex++ ) {
-    
-    eDispResult = DspA_SetTensor ( this->mapDisplays[nDispIndex], iTensor );
-    if ( DspA_tErr_NoErr != eDispResult ) {
-      eResult = MWin_tErr_ErrorAccessingDisplay;
-      goto error;
-    }
-  }
-
-  goto cleanup;
-
- error:
-
-  /* print error message */
-  if ( MWin_tErr_NoErr != eResult ) {
-    DebugPrint( ("Error %d in MWin_SetTensor: %s\n",
-      eResult, MWin_GetErrorString(eResult) ) );
-  }
-
- cleanup:
-
-  return eResult;
-}
-
 MWin_tErr MWin_SetROIGroup ( tkmMeditWindowRef this,
            int               inDispIndex,
            mriVolumeRef      iGroup ) {
@@ -969,13 +916,13 @@ MWin_tErr MWin_SetHeadPointList ( tkmMeditWindowRef   this,
   return eResult;
 }
 
-MWin_tErr MWin_SetVLIs                        ( tkmMeditWindowRef this,
-                 int               inDispIndex,
-                 VLI*              iVLI1,
-                 VLI*              iVLI2,
-                 char*             isVLI1_name,
-                 char*             isVLI2_name ) {
-
+MWin_tErr MWin_SetVLIs  ( tkmMeditWindowRef this,
+        int               inDispIndex,
+        VLI*              iVLI1,
+        VLI*              iVLI2,
+        char*             isVLI1_name,
+        char*             isVLI2_name ) {
+  
   MWin_tErr eResult     = MWin_tErr_NoErr;
   DspA_tErr eDispResult = DspA_tErr_NoErr;
   int       nDispIndex    = 0;
@@ -1018,6 +965,61 @@ MWin_tErr MWin_SetVLIs                        ( tkmMeditWindowRef this,
   /* print error message */
   if ( MWin_tErr_NoErr != eResult ) {
     DebugPrint( ("Error %d in MWin_SetVLIs: %s\n",
+      eResult, MWin_GetErrorString(eResult) ) );
+  }
+
+ cleanup:
+
+  return eResult;
+}
+
+MWin_tErr MWin_SetDTIVolume  ( tkmMeditWindowRef  this,
+             int                inDispIndex,
+             tkm_tDTIVolumeType iType,
+             mriVolumeRef       iVolume ) {
+  
+  MWin_tErr eResult     = MWin_tErr_NoErr;
+  DspA_tErr eDispResult = DspA_tErr_NoErr;
+  int       nDispIndex    = 0;
+  int       nDispIndexMin = inDispIndex;
+  int       nDispIndexMax = inDispIndex+1;
+
+  /* verify us. */
+  eResult = MWin_Verify ( this );
+  if ( MWin_tErr_NoErr != eResult )
+    goto error;
+
+  /* verify the display index. */
+  eResult = MWin_VerifyDisplayIndex ( this, inDispIndex );
+  if ( MWin_tErr_NoErr != eResult )
+    goto error;
+
+  /* if working on all displays, set the iteration bounds. */
+  if ( MWin_kAllDisplayAreas == inDispIndex ) {
+    nDispIndexMin = 0;
+    nDispIndexMax = MWin_knMaxNumAreas;
+  }
+
+  /* set the DTI volume */
+  for ( nDispIndex = nDispIndexMin; 
+  nDispIndex < nDispIndexMax; 
+  nDispIndex++ ) {
+
+    eDispResult = DspA_SetDTIVolume ( this->mapDisplays[nDispIndex],
+              iType, iVolume );
+    if ( DspA_tErr_NoErr != eDispResult ) {
+      eResult = MWin_tErr_ErrorAccessingDisplay;
+      goto error;
+    }
+  }
+
+  goto cleanup;
+
+ error:
+
+  /* print error message */
+  if ( MWin_tErr_NoErr != eResult ) {
+    DebugPrint( ("Error %d in MWin_SetDTIVolume: %s\n",
       eResult, MWin_GetErrorString(eResult) ) );
   }
 

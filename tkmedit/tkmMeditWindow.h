@@ -115,9 +115,6 @@ MWin_tErr MWin_SetAuxVolume         ( tkmMeditWindowRef this,
 MWin_tErr MWin_SetROIGroup         ( tkmMeditWindowRef this,
              int       inDispIndex,
              mriVolumeRef     iGroup );
-MWin_tErr MWin_SetTensor       ( tkmMeditWindowRef this,
-         int       inDispIndex,
-         mriVolumeRef     iTensor );
 MWin_tErr MWin_SetSurface         ( tkmMeditWindowRef this, 
             int               inDispIndex,
             tkm_tSurfaceType  iType,
@@ -144,6 +141,10 @@ MWin_tErr MWin_SetVLIs            ( tkmMeditWindowRef this,
             VLI*       iVLI2,
             char*       isVLI1_name,
             char*       isVLI2_name );
+MWin_tErr MWin_SetDTIVolume         ( tkmMeditWindowRef   this, 
+              int                 inDispIndex,
+              tkm_tDTIVolumeType  iType,
+              mriVolumeRef        iVolume );
 
 
 /* viewing state changes. specify the display area the same way as above. */

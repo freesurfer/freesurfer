@@ -49,9 +49,11 @@ inline float xVoxl_GetFloatX ( xVoxelRef this );
 inline float xVoxl_GetFloatY ( xVoxelRef this );
 inline float xVoxl_GetFloatZ ( xVoxelRef this );
 
-tBoolean xVoxl_IncrementUntilLimit ( xVoxelRef this, int inLimit );
-tBoolean xVoxl_IncrementUntilLimits ( xVoxelRef this, int inXLimit, 
-              int inYLimit, int inZLimit );
+tBoolean xVoxl_IncrementUntilLimit ( xVoxelRef this, float inLimit );
+tBoolean xVoxl_IncrementWithMinUntilLimit ( xVoxelRef this, 
+              float inMin, float inLimit );
+tBoolean xVoxl_IncrementUntilLimits ( xVoxelRef this, float inXLimit, 
+              float inYLimit, float inZLimit );
 
 int xVoxl_ExpandToIndex ( xVoxelRef this, int inDimensionX, int inDimensionY );
 

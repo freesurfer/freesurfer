@@ -101,6 +101,7 @@ DspA_tErr DspA_New ( tkmDisplayAreaRef* oppWindow,
   tkmDisplayAreaRef this         = NULL;
   int               nFlag        = 0;
   int               nSurface     = 0;
+  int               nDTI         = 0;
   xColor3f          color;
 
   /* allocate us. */
@@ -162,10 +163,6 @@ DspA_tErr DspA_New ( tkmDisplayAreaRef* oppWindow,
   this->mpVolume                = NULL;
   this->mpAuxVolume             = NULL;
   this->mROIGroup               = NULL;
-#if 0
-  MRIFseq_vox(this->mTensor, x,y,z,col*row+row) ;
-#endif
-  this->mTensor                 = NULL;
   for( nSurface = 0; nSurface < tkm_knNumSurfaceTypes; nSurface++ ) {
     this->mpSurface[nSurface]       = NULL;
     this->maSurfaceLists[nSurface]  = NULL;
@@ -178,6 +175,9 @@ DspA_tErr DspA_New ( tkmDisplayAreaRef* oppWindow,
   this->mGCATransform           = NULL;
   this->mVLI1                   = NULL;
   this->mVLI2                   = NULL;
+  for( nDTI = 0; nDTI < tkm_knNumDTIVolumeTypes; nDTI++ ) {
+    this->mpDTIVolume[nDTI] = NULL;
+  }
   
   /* set default brush info */
   sBrush.mnRadius = 1;
@@ -625,64 +625,6 @@ DspA_tErr DspA_SetROIGroup ( tkmDisplayAreaRef this,
   return eResult;
 }
 
-DspA_tErr DspA_SetTensor ( tkmDisplayAreaRef this,
-           mriVolumeRef      iTensor ) {
-
-  DspA_tErr eResult            = DspA_tErr_NoErr;
-  tBoolean  bHaveTensor         = FALSE;
-  char      sTclArguments[STRLEN] = "";
-  
-  /* verify us. */
-  eResult = DspA_Verify( this );
-  if( DspA_tErr_NoErr != eResult )
-    goto error;
-
-  /* save the group */
-  this->mTensor = iTensor;
-
-  /* turn stuff on or off based on if we have one. */
-  if( this->mTensor != NULL ) {
-    bHaveTensor = TRUE;
-  }
-
-  /* turn roi group on */
-  eResult = DspA_SetDisplayFlag( this, DspA_tDisplayFlag_TensorOverlay,
-                                 bHaveTensor );
-  if( DspA_tErr_NoErr != eResult )
-    goto error;
-  
-  /* show roi label */
-  sprintf( sTclArguments, "%d", (int)bHaveTensor );
-#if 0
-  tkm_SendTclCommand( tkm_tTclCommand_ShowROILabel, sTclArguments );
-  tkm_SendTclCommand( tkm_tTclCommand_ShowROIGroupOptions, sTclArguments );
-#endif
-
-  /* if we're focused, send the new information for the cursor */
-  if( sFocusedDisplay == this ) {
-    DspA_SendPointInformationToTcl_( this, DspA_tDisplaySet_Cursor,
-                                     this->mpCursor );
-  }
-  
-  /* redraw */
-  this->mbSliceChanged = TRUE;
-  DspA_Redraw_( this );
-
-  goto cleanup;
-
- error:
-
-  /* print error message */
-  if( DspA_tErr_NoErr != eResult ) {
-    DebugPrint( ("Error %d in DspA_Tensor: %s\n",
-      eResult, DspA_GetErrorString(eResult) ) );
-  }
-
- cleanup:
-
-  return eResult;
-}
-
 DspA_tErr DspA_SetSurface ( tkmDisplayAreaRef this, 
           tkm_tSurfaceType  iType,
           mriSurfaceRef     ipSurface ) {
@@ -904,11 +846,11 @@ DspA_tErr DspA_SetHeadPointList ( tkmDisplayAreaRef   this,
   return eResult;
 }
 
-DspA_tErr DspA_SetVLIs                        ( tkmDisplayAreaRef this,
-                 VLI*              iVLI1,
-                 VLI*              iVLI2,
-                 char*             isVLI1_name,
-                 char*             isVLI2_name) {
+DspA_tErr DspA_SetVLIs  ( tkmDisplayAreaRef this,
+        VLI*              iVLI1,
+        VLI*              iVLI2,
+        char*             isVLI1_name,
+        char*             isVLI2_name) {
 
   DspA_tErr eResult            = DspA_tErr_NoErr;
 
@@ -930,6 +872,54 @@ DspA_tErr DspA_SetVLIs                        ( tkmDisplayAreaRef this,
   /* print error message */
   if( DspA_tErr_NoErr != eResult ) {
     DebugPrint( ("Error %d in DspA_SetVLIs: %s\n",
+      eResult, DspA_GetErrorString(eResult) ) );
+  }
+
+ cleanup:
+
+  return eResult;
+}
+
+
+DspA_tErr DspA_SetDTIVolume  ( tkmDisplayAreaRef this,
+             tkm_tDTIVolumeType  iType,
+             mriVolumeRef        iVolume ) {
+
+  
+  DspA_tErr eResult             = DspA_tErr_NoErr;
+  char       sTclArguments[tkm_knTclCmdLen] = "";
+
+  /* verify us. */
+  eResult = DspA_Verify( this );
+  if( DspA_tErr_NoErr != eResult )
+    goto error;
+  
+  if( iType < 0 || iType >= tkm_knNumDTIVolumeTypes ) {
+    eResult = DspA_tErr_InvalidParameter;
+    goto error;
+  }
+
+  /* Save the volume. */
+  this->mpDTIVolume[iType] = iVolume;
+
+  /* Show the DTI options if we got a volume.  */
+  sprintf( sTclArguments, "%d", (int)(NULL != iVolume) );
+  tkm_SendTclCommand( tkm_tTclCommand_ShowDTIOptions, sTclArguments );
+
+  /* turn DTI display on. */
+  if( NULL != this->mpDTIVolume[iType] ) {
+    eResult = DspA_SetDisplayFlag( this, DspA_tDisplayFlag_DTIOverlay, TRUE );
+    if( DspA_tErr_NoErr != eResult )
+      goto error;
+  }
+
+  goto cleanup;
+
+ error:
+
+  /* print error message */
+  if( DspA_tErr_NoErr != eResult ) {
+    DebugPrint( ("Error %d in DspA_SetDTIVolume: %s\n",
       eResult, DspA_GetErrorString(eResult) ) );
   }
 
@@ -1495,7 +1485,6 @@ DspA_tErr DspA_SetDisplayFlag ( tkmDisplayAreaRef this,
 
     break;
 
-  case DspA_tDisplayFlag_TensorOverlay:
   case DspA_tDisplayFlag_ROIGroupOverlay:
   case DspA_tDisplayFlag_ROIVolumeCount:
 
@@ -1583,6 +1572,22 @@ DspA_tErr DspA_SetDisplayFlag ( tkmDisplayAreaRef this,
     /* check to see if we have a list */
     if( NULL == this->mHeadPoints )
       bNewValue = FALSE;
+
+    /* if the flag is different, set dirty flag */
+    if( this->mabDisplayFlags[iWhichFlag] != bNewValue )
+      this->mbSliceChanged = TRUE;
+
+    break;
+
+  case DspA_tDisplayFlag_DTIOverlay:
+
+    /* if no DTI data, set to false. */
+    if( NULL == this->mpDTIVolume[tkm_tDTIVolumeType_X] ||
+  NULL == this->mpDTIVolume[tkm_tDTIVolumeType_Y] ||
+  NULL == this->mpDTIVolume[tkm_tDTIVolumeType_Z] ||
+  NULL == this->mpDTIVolume[tkm_tDTIVolumeType_FA] ) {
+      bNewValue = FALSE;
+    }
 
     /* if the flag is different, set dirty flag */
     if( this->mabDisplayFlags[iWhichFlag] != bNewValue )
@@ -3600,6 +3605,15 @@ DspA_tErr DspA_HandleDraw_ ( tkmDisplayAreaRef this ) {
     }
   }
 
+  /* draw the control points */
+  //  if( this->mabDisplayFlags[DspA_tDisplayFlag_VectorField] ) {
+    eResult = DspA_DrawVectorField_( this );
+    if ( DspA_tErr_NoErr != eResult ) {
+      DspA_Signal( "DspA_HandleDraw_", __LINE__, eResult );
+      eResult = DspA_tErr_NoErr;
+    }
+    //  }
+
   /* draw the surface */
   eResult = DspA_DrawSurface_ ( this );
   if ( DspA_tErr_NoErr != eResult ) {
@@ -4097,6 +4111,7 @@ DspA_tErr DspA_BuildCurrentFrame_ ( tkmDisplayAreaRef this ) {
   xColor3f              color       = {0,0,0};
   xColor3f              funcColor   = {0,0,0};
   xColor3f              roiColor    = {0,0,0};
+  xColor3f              dtiColor    = {0,0,0};
   int                   nY          = 0;
 
   //  xUtil_StartTimer();
@@ -4144,7 +4159,7 @@ DspA_tErr DspA_BuildCurrentFrame_ ( tkmDisplayAreaRef this ) {
       eResult = DspA_ConvertBufferToVolume_ ( this, &volumePt, pVoxel );
       if ( DspA_tErr_NoErr != eResult )
   goto error;
-
+      
       /* check it. */
       eResult = DspA_VerifyVolumeVoxel_( this, pVoxel );
       if( DspA_tErr_NoErr == eResult ) {
@@ -4169,25 +4184,23 @@ DspA_tErr DspA_BuildCurrentFrame_ ( tkmDisplayAreaRef this ) {
         Volm_GetColorAtIdx( this->mpVolume, pVoxel, &color );
       }
     }
-
+    
   } else {
-
+    
     /* color is just black */
     color.mfRed   = 0;
     color.mfGreen = 0;
     color.mfBlue  = 0;
   }
 
-  /* if we are showing tensors... */
-  if( this->mabDisplayFlags[DspA_tDisplayFlag_TensorOverlay] ) {
-    
-#if 0
-    /* get roi color blended in. */
-    tkm_GetROIColorAtVoxel( pVoxel, &color, &roiColor );
-    color = roiColor;
-#endif
+  /* If we are showing the DTI volume, get a blended color at this
+     voxel and use this color. */
+  if( this->mabDisplayFlags[DspA_tDisplayFlag_DTIOverlay] ) {
+    tkm_GetDTIColorAtVoxel( pVoxel, this->mOrientation, 
+          &color, &dtiColor );
+    color = dtiColor;
   }
-  
+
   /* if we are showing roi... */
   if( this->mabDisplayFlags[DspA_tDisplayFlag_ROIGroupOverlay] ) {
     
@@ -4429,12 +4442,12 @@ DspA_tErr DspA_DrawControlPoints_ ( tkmDisplayAreaRef this ) {
     faColor[0] = 0;
     faColor[1] = 1;
     faColor[2] = 0;
-  
+    
     /* traverse the list */
     eList = xList_ResetPosition( list );
     while( (eList = xList_NextFromPos( list, (void**)&controlPt )) 
      != xList_tErr_EndOfList ) {
-
+      
       if( controlPt ) {
   
   /* convert the control point to be in the middle of voxel */
@@ -4445,7 +4458,7 @@ DspA_tErr DspA_DrawControlPoints_ ( tkmDisplayAreaRef this ) {
     xVoxl_SetFloatY( &convertedPt, xVoxl_GetFloatY( &convertedPt ) + 0.5 );
   if( xVoxl_GetZ( &convertedPt ) == xVoxl_GetFloatZ( &convertedPt ) )
     xVoxl_SetFloatZ( &convertedPt, xVoxl_GetFloatZ( &convertedPt ) + 0.5 );
-
+  
   /* convert to buffer point. */
   eResult = DspA_ConvertVolumeToBuffer_ ( this, &convertedPt, &bufferPt );
   if ( DspA_tErr_NoErr != eResult )
@@ -4474,6 +4487,54 @@ DspA_tErr DspA_DrawControlPoints_ ( tkmDisplayAreaRef this ) {
   /* print error message */
   if ( DspA_tErr_NoErr != eResult ) {
     DebugPrint( ("Error %d in DspA_DrawControlPoints_: %s\n",
+      eResult, DspA_GetErrorString(eResult) ) );
+  }
+
+ cleanup:
+
+  return eResult;
+}
+
+DspA_tErr DspA_DrawVectorField_ ( tkmDisplayAreaRef this ) {
+
+  DspA_tErr    eResult    = DspA_tErr_NoErr;
+  float        faColor[3] = {0, 0, 0};
+  xVoxel       start;
+  xVoxel       direction;
+
+  /* decide which list we want out of the space. */
+  switch ( this->mOrientation ) {
+  case mri_tOrientation_Coronal:
+    break;
+  case mri_tOrientation_Sagittal:
+    break;
+  case mri_tOrientation_Horizontal:
+    break;
+  default:
+    eResult = DspA_tErr_InvalidOrientation;
+    goto error;
+    break;
+  }
+
+  /* set color */
+  faColor[0] = 0;
+  faColor[1] = 1;
+  faColor[2] = 0;
+  
+  xVoxl_Set( &start, 120.5, 120.5, 120.5 );
+  xVoxl_SetFloat( &direction, .5, .3, .1 );
+  //  while( xVoxl_IncrementWithMinUntilLimit( &start, 120.5, 121.5 ) ) {
+    
+    DspA_DrawVector_( this, faColor, &start, &direction );
+    //  }
+
+  goto cleanup;
+
+ error:
+
+  /* print error message */
+  if ( DspA_tErr_NoErr != eResult ) {
+    DebugPrint( ("Error %d in DspA_DrawVectorField_: %s\n",
       eResult, DspA_GetErrorString(eResult) ) );
   }
 
@@ -4889,11 +4950,11 @@ DspA_tErr DspA_BuildSurfaceDrawLists_ ( tkmDisplayAreaRef this,
 }
 
 DspA_tErr DspA_DrawMarker_ ( tkmDisplayAreaRef this,
-        DspA_tMarker      iType,
-        float*            ifaColor,
-        xPoint2nRef       ipWhere,
-        int               inSize ) {
-
+           DspA_tMarker      iType,
+           float*            ifaColor,
+           xPoint2nRef       ipWhere,
+           int               inSize ) {
+  
   DspA_tErr eResult = DspA_tErr_NoErr;
   int       nWidth  = 0;
   int       nHeight = 0;
@@ -4960,6 +5021,66 @@ DspA_tErr DspA_DrawMarker_ ( tkmDisplayAreaRef this,
   /* print error message */
   if ( DspA_tErr_NoErr != eResult ) {
     DebugPrint( ("Error %d in DspA_DspA_DrawMarker_: %s\n",
+      eResult, DspA_GetErrorString(eResult) ) );
+  }
+
+ cleanup:
+
+  return eResult;
+
+}
+
+DspA_tErr DspA_DrawVector_ ( tkmDisplayAreaRef this,
+           float*            ifaColor,
+           xVoxelRef         ipVoxelStart,
+           xVoxelRef         ipVoxelDirection ) {
+  
+  DspA_tErr eResult = DspA_tErr_NoErr;
+  xPoint2f  bufferStart;
+  xVoxel    voxelEnd;
+  xPoint2f  bufferEnd;
+  
+  DspA_ConvertVolumeToBufferf_ ( this, ipVoxelStart, &bufferStart );
+  xVoxl_SetFloatX( &voxelEnd, 
+       xVoxl_GetFloatX( ipVoxelStart ) +
+       xVoxl_GetFloatX( ipVoxelDirection ));
+  xVoxl_SetFloatY( &voxelEnd, 
+       xVoxl_GetFloatY( ipVoxelStart ) +
+       xVoxl_GetFloatY( ipVoxelDirection ));
+  xVoxl_SetFloatZ( &voxelEnd, 
+       xVoxl_GetFloatZ( ipVoxelStart ) +
+       xVoxl_GetFloatZ( ipVoxelDirection ));
+  DspA_ConvertVolumeToBufferf_ ( this, &voxelEnd, &bufferEnd );
+
+#if 0
+  fprintf( stderr, "vox start %.2f, %.2f, %.2f dir %.2f, %.2f, %.2f "
+     "bufst %.2f, %.2f bufend %.2f, %.2f\n",
+     xVoxl_ExpandFloat(ipVoxelStart),
+     xVoxl_ExpandFloat(ipVoxelDirection),  
+     bufferStart.mfX, bufferStart.mfY,
+     bufferEnd.mfX, bufferEnd.mfY );
+#endif  
+
+  DspA_SetUpOpenGLPort_( this );
+    
+  glLineWidth( 1 );
+
+  /* draw the vector */
+  glBegin ( GL_LINES );
+  glColor3f ( 1, 0, 0 );
+  glVertex2f ( bufferStart.mfX, bufferStart.mfY );
+  glColor3fv ( ifaColor );
+  glVertex2f ( bufferEnd.mfX, bufferEnd.mfY );
+  glEnd ();
+  
+  goto cleanup;
+
+  goto error;
+ error:
+
+  /* print error message */
+  if ( DspA_tErr_NoErr != eResult ) {
+    DebugPrint( ("Error %d in DspA_DrawVector_: %s\n",
       eResult, DspA_GetErrorString(eResult) ) );
   }
 
@@ -5253,7 +5374,7 @@ int DspA_GetSurfaceListIndex_ ( tkmDisplayAreaRef this,
 
 
 DspA_tErr DspA_ConvertVolumeToBuffer_ ( tkmDisplayAreaRef this,
-        xVoxelRef          ipVolumeVox,
+          xVoxelRef         ipVolumeVox,
           xPoint2nRef       opBufferPt ) {
 
   DspA_tErr eResult     = DspA_tErr_NoErr;
@@ -5309,6 +5430,67 @@ DspA_tErr DspA_ConvertVolumeToBuffer_ ( tkmDisplayAreaRef this,
   /* print error message */
   if ( DspA_tErr_NoErr != eResult ) {
     DebugPrint( ("Error %d in DspA_DspA_ConvertVolumeToBuffer_: %s\n",
+      eResult, DspA_GetErrorString(eResult) ) );
+  }
+
+ cleanup:
+
+  return eResult;
+}
+
+DspA_tErr DspA_ConvertVolumeToBufferf_ ( tkmDisplayAreaRef this,
+           xVoxelRef         ipVolumeVox,
+           xPoint2fRef       opBufferPt ) {
+
+  DspA_tErr eResult     = DspA_tErr_NoErr;
+  float     fX          = 0;
+  float     fY          = 0;
+  float     fZoomLevel  = (float) this->mnZoomLevel;
+  float     fVolumeSize = (float) this->mnVolumeSizeX;
+
+  /* verify the voxel */
+  eResult = DspA_VerifyVolumeVoxel_( this, ipVolumeVox );
+  if ( DspA_tErr_NoErr != eResult )
+    goto error;
+
+  /* first extract the points in the voxel that are on the same place as
+     our orientation. */
+  switch ( this->mOrientation ) {
+  case mri_tOrientation_Coronal:
+    fX = xVoxl_GetFloatX( ipVolumeVox );
+    fY = xVoxl_GetFloatY( ipVolumeVox );
+    break;
+  case mri_tOrientation_Horizontal:
+    fX = xVoxl_GetFloatX( ipVolumeVox );
+    fY = xVoxl_GetFloatZ( ipVolumeVox );
+    break;
+  case mri_tOrientation_Sagittal:
+    fX = xVoxl_GetFloatZ( ipVolumeVox );
+    fY = xVoxl_GetFloatY( ipVolumeVox );
+    break;
+  default:
+    eResult = DspA_tErr_InvalidOrientation;
+    goto error;
+    break;
+  }
+
+  /* flip */
+  fY = GLDRAW_Y_FLIP_FLOAT(fY);
+
+  /* now zoom the coords to our zoomed buffer state and return them */
+  opBufferPt->mfX = (fZoomLevel * (fX - xVoxl_GetFloatX(this->mpZoomCenter))) +
+    (fVolumeSize/2.0);
+  opBufferPt->mfY = (fZoomLevel * (fY - 
+        GLDRAW_Y_FLIP_FLOAT(xVoxl_GetFloatY(this->mpZoomCenter)))) +
+    (fVolumeSize/2.0);
+
+  goto cleanup;
+
+ error:
+
+  /* print error message */
+  if ( DspA_tErr_NoErr != eResult ) {
+    DebugPrint( ("Error %d in DspA_DspA_ConvertVolumeToBufferf_: %s\n",
       eResult, DspA_GetErrorString(eResult) ) );
   }
 

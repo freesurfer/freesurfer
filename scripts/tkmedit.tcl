@@ -50,8 +50,9 @@ set glDisplayFlag { \
   flag_MaskToFunctionalOverlay \
   flag_HistogramPercentChange \
   flag_ROIGroupOverlay \
-  flag_TensorOverlay \
   flag_ROIVolumeCount \
+  flag_DTIOverlay \
+  flag_VectorField \
   flag_FocusFrame \
   flag_UndoVolume \
   flag_Axes \
@@ -492,6 +493,7 @@ proc SendCursorConfiguration {} {
 
 proc GetDefaultLocation { iType } {
     global gsaDefaultLocation gsHomeDirectory
+    puts "GetDefaultLocation $iType"
     if { [info exists gsaDefaultLocation($iType)] == 0 } {
   switch $iType {
       LoadHeadPts_Points { set gsaDefaultLocation($iType) [exec pwd] }
@@ -499,12 +501,15 @@ proc GetDefaultLocation { iType } {
       default { set gsaDefaultLocation($iType) $gsHomeDirectory }
   }
     }
+    puts "returning $gsaDefaultLocation($iType)"
     return $gsaDefaultLocation($iType)
 }
 proc SetDefaultLocation { iType isValue } {
     global gsaDefaultLocation
+    puts "SetDefaultLocation $iType $isValue"
     if { [string range $isValue 0 0] == "/" } {
   set gsaDefaultLocation($iType) $isValue
+  puts "set it"
     }
 }
 set tDlogSpecs(LoadVolume) [list \
@@ -716,6 +721,19 @@ set tDlogSpecs(LoadHeadPts) [list \
   -okCmd {LoadHeadPts %s1 %s2; \
   SetDefaultLocation LoadHeadPts_Points %s1; \
   SetDefaultLocation LoadHeadPts_Transform %s2} ]
+set tDlogSpecs(LoadDTIVolumes) [list \
+  -title "Load DTI Volumes" \
+  -prompt1 "Load X Value Volume:" \
+  -note1 "The file name of the volume of X values" \
+  -default1 [list GetDefaultLocation LoadDTIVolumes] \
+  -prompt2 "Load Y Value Volume:" \
+  -note2 "The file name of the volume of Y values" \
+  -prompt3 "Load Z Value Volume:" \
+  -note3 "The file name of the volume of Z values" \
+  -prompt4 "Load FA Value Volume:" \
+  -note4 "The file name of the volume of FA values" \
+  -okCmd {LoadDTIVolumes %s1 %s2 %s3 %s4; \
+  SetDefaultLocation LoadDTIVolumes %s1} ]
 set tDlogSpecs(SaveRGB) [list \
   -title "Save RGB" \
   -prompt1 "Save RGB File:" \
@@ -2198,6 +2216,12 @@ proc CreateMenuBar { ifwMenuBar } {
       { separator } \
       \
       { command \
+      "Load DTI Volumes..." \
+      {DoFileDlog LoadDTIVolumes} } \
+      \
+      { separator } \
+      \
+      { command \
       "Save Control Points" \
       WriteControlPointFile } \
       \
@@ -2456,6 +2480,18 @@ proc CreateMenuBar { ifwMenuBar } {
       "SendDisplayFlagValue flag_ROIVolumeCount" \
       gbDisplayFlag(flag_ROIVolumeCount)  \
       tMenuGroup_ROIGroupOptions } \
+      \
+      { check \
+      "DTI Overlay" \
+      "SendDisplayFlagValue flag_DTIOverlay" \
+      gbDisplayFlag(flag_DTIOverlay)  \
+      tMenuGroup_DTIOptions } \
+      \
+      { check \
+      "Vector Field" \
+      "SendDisplayFlagValue flag_VectorField" \
+      gbDisplayFlag(flag_VectorField)  \
+      tMenuGroup_VectorFieldOptions } \
       \
       { check \
       "Selection / Label" \
@@ -3049,7 +3085,7 @@ proc BarChart_Draw { args } {
 
     # get the params
     array set tArgs $args
-
+    
     # find an unused window name.
     set nSuffix 0
     set wwChartWindow .bcw0
@@ -3066,15 +3102,15 @@ proc BarChart_Draw { args } {
   # create window and set its size.
   toplevel $wwChartWindow
   wm geometry $wwChartWindow 600x800
-
+  
   # create the chart. configure the x axis to call BarChart_GetXLabel
   # to get its labels. create two empty elements.
   blt::barchart $bcw -barmode aligned
   pack $bcw -expand true -fill both
   $bcw axis configure x \
-    -command { BarChart_GetXLabel } \
-    -rotate 90 \
-    -tickfont $kNormalFont
+      -command { BarChart_GetXLabel } \
+      -rotate 90 \
+      -tickfont $kNormalFont
   $bcw element create V1
   $bcw element create V2
     }
@@ -3082,14 +3118,14 @@ proc BarChart_Draw { args } {
     # set the window and chart title.
     wm title $wwChartWindow $tArgs(-title)
     $bcw config -title $tArgs(-title)
-
+    
     # set the x axis labels.
     set glsXAxisLabels($bcw) $tArgs(-xAxisLabels)
 
     # set the label titles.
     $bcw axis config x -title $tArgs(-xAxisTitle)
     $bcw axis config y -title $tArgs(-yAxisTitle)
-
+    
     # create a vector of indices for the elements. these are used
     # as indices into the x axis labels list.
     blt::vector vX

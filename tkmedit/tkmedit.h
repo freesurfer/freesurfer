@@ -49,12 +49,14 @@ typedef enum {
   tkm_tErr_CouldntLoadColorTable,
   tkm_tErr_CouldntLoadHeadPointsList,
   tkm_tErr_CouldntLoadSegmentation,
-  tkm_tErr_CouldntLoadTensor,
   tkm_tErr_CouldntLoadOverlay,
   tkm_tErr_CouldntLoadTimeCourse,
   tkm_tErr_CouldntLoadTransform,
   tkm_tErr_CouldntLoadGCA,
   tkm_tErr_CouldntLoadVLI,
+  tkm_tErr_CouldntLoadDTIVolume,
+  tkm_tErr_CouldntLoadVectorField,
+  tkm_tErr_CouldntLoadVolume,
   tkm_tErr_ErrorAccessingFile,
   tkm_tErr_ErrorAccessingVolume,
   tkm_tErr_ErrorAccessingSegmentationVolume,
@@ -74,7 +76,7 @@ typedef enum {
 
 /* commands for the tcl side of things */
 typedef enum {
-
+  
   /* updating vars */
   tkm_tTclCommand_UpdateLinkedCursorFlag = 0,
   tkm_tTclCommand_UpdateVolumeCursor,
@@ -109,7 +111,7 @@ typedef enum {
   tkm_tTclCommand_UpdateTimerStatus,
   tkm_tTclCommand_UpdateHomeDirectory,
   tkm_tTclCommand_UpdateVolumeDirty,
-
+  
   /* display status */
   tkm_tTclCommand_ShowVolumeCoords,
   tkm_tTclCommand_ShowRASCoords,
@@ -133,20 +135,21 @@ typedef enum {
   tkm_tTclCommand_ShowROIGroupOptions,
   tkm_tTclCommand_ShowVLIOptions,
   tkm_tTclCommand_ShowGCAOptions,
+  tkm_tTclCommand_ShowDTIOptions,
   tkm_tTclCommand_ShowOverlayRegistrationOptions,
   tkm_tTclCommand_ShowSegmentationOptions,
   tkm_tTclCommand_ClearParcColorTable,
   tkm_tTclCommand_AddParcColorTableEntry,
-
+  
   /* histogram */
   tkm_tTclCommand_DrawHistogram,
-
+  
   /* interface configuration */
   tkm_tTclCommand_MoveToolWindow,
   tkm_tTclCommand_RaiseToolWindow,
   tkm_tTclCommand_CsurfInterface,
   tkm_tTclCommand_FinishBuildingInterface,
-
+  
   /* misc */
   tkm_tTclCommand_ErrorDlog,  
   tkm_tTclCommand_FormattedErrorDlog,
@@ -158,7 +161,7 @@ typedef enum {
 } tkm_tTclCommand;
 
 typedef enum {
-
+  
   tkm_tVolumeType_Main = 0,
   tkm_tVolumeType_Aux,
   tkm_tVolumeType_Parc,
@@ -166,14 +169,22 @@ typedef enum {
 } tkm_tVolumeType;
 
 typedef enum {
-
+  
   tkm_tSurfaceType_Main = 0,
   tkm_tSurfaceType_Aux,
   tkm_knNumSurfaceTypes
 } tkm_tSurfaceType;
 
 typedef enum {
+  tkm_tDTIVolumeType_X = 0,
+  tkm_tDTIVolumeType_Y,
+  tkm_tDTIVolumeType_Z,
+  tkm_tDTIVolumeType_FA,
+  tkm_knNumDTIVolumeTypes,
+} tkm_tDTIVolumeType;
 
+typedef enum {
+  
   tkm_tAxis_X = 0,
   tkm_tAxis_Y,
   tkm_tAxis_Z,
@@ -234,6 +245,13 @@ void tkm_FloodFillSegmentation ( xVoxelRef       iAnaIdx,
          tkm_tVolumeType iSrc,
          int             inFuzzy,
          int             inDistance );
+
+/* dti color */
+void tkm_GetDTIColorAtVoxel ( xVoxelRef        iAnaIdx,
+            mri_tOrientation iPlane,
+            xColor3fRef      iBaseColor,
+            xColor3fRef      oColor );
+            
 
 /* dealing with control points */
 void tkm_MakeControlPoint             ( xVoxelRef        iAnaIdx );
