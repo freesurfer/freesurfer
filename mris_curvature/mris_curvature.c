@@ -13,7 +13,7 @@
 #include "mri.h"
 #include "macros.h"
 
-static char vcid[] = "$Id: mris_curvature.c,v 1.3 1997/11/03 17:27:09 fischl Exp $";
+static char vcid[] = "$Id: mris_curvature.c,v 1.4 1997/11/03 20:06:13 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -90,9 +90,14 @@ mrisComputeNormals(mris) ;
     hemi[2] = 0 ;
     
     MRISuseGaussianCurvature(mris) ;
-    sprintf(fname, "%s/%s.K", path,name) ; MRISwriteCurvature(mris, fname) ;
+    sprintf(fname, "%s/%s.K", path,name) ; 
+    fprintf(stderr, "writing Gaussian curvature to %s...", fname) ;
+    MRISwriteCurvature(mris, fname) ;
     MRISuseMeanCurvature(mris) ;
-    sprintf(fname, "%s/%s.H", path,name) ; MRISwriteCurvature(mris, fname) ;
+    sprintf(fname, "%s/%s.H", path,name) ; 
+    fprintf(stderr, "done.\nwriting mean curvature to %s...", fname) ;
+    MRISwriteCurvature(mris, fname) ;
+    fprintf(stderr, "done.\n") ;
   }
   exit(0) ;
   return(0) ;  /* for ansi */
