@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
+#include <errno.h>
 #include "mri.h"
 #include "error.h"
 #include "mri_identify.h"
@@ -17,6 +18,8 @@ void get_floats(int argc, char *argv[], int *pos, float *vals, int nvals);
 void get_string(int argc, char *argv[], int *pos, char *val);
 void usage_message(FILE *stream);
 void usage(FILE *stream);
+
+extern int errno;
 
 char *Progname;
 
@@ -632,6 +635,7 @@ int main(int argc, char *argv[])
 
   if(in_volume_type == MRI_VOLUME_TYPE_UNKNOWN)
   {
+    errno = 0;
     ErrorPrintf(ERROR_BADFILE, "unknown file type for file %s", in_name_only);
     if(in_like_flag)
       MRIfree(&mri_in_like);
@@ -640,6 +644,7 @@ int main(int argc, char *argv[])
 
   if(roi_flag && in_volume_type != GENESIS_FILE)
   {
+    errno = 0;
     ErrorPrintf(ERROR_BADPARM, "rois must be in GE format");
     if(in_like_flag)
       MRIfree(&mri_in_like);
@@ -653,6 +658,7 @@ int main(int argc, char *argv[])
 
     if(!in_like_flag && !in_n_k_flag)
     {
+      errno = 0;
       ErrorPrintf(ERROR_BADPARM, "parcellation read: must specify a volume depth with either in_like or in_k_count");
       if(in_like_flag)
         MRIfree(&mri_in_like);
@@ -661,6 +667,7 @@ int main(int argc, char *argv[])
 
     if(!color_file_flag)
     {
+      errno = 0;
       ErrorPrintf(ERROR_BADPARM, "parcellation read: must specify a color file name");
       if(in_like_flag)
         MRIfree(&mri_in_like);
@@ -707,6 +714,7 @@ int main(int argc, char *argv[])
 
     if(!in_like_flag && !in_n_k_flag)
     {
+      errno = 0;
       ErrorPrintf(ERROR_BADPARM, "roi read: must specify a volume depth with either in_like or in_k_count");
       if(in_like_flag)
         MRIfree(&mri_in_like);
@@ -767,6 +775,7 @@ int main(int argc, char *argv[])
        mri->depth   != mri_in_like->depth ||
        mri->nframes != mri_in_like->nframes)
     {
+      errno = 0;
       ErrorPrintf(ERROR_BADPARM, "volume sizes do not match\n");
       ErrorPrintf(ERROR_BADPARM, "%s: (width, height, depth, frames) = (%d, %d, %d, %d)\n", in_name, mri->width, mri->height, mri->depth, mri->nframes);
       ErrorPrintf(ERROR_BADPARM, "%s: (width, height, depth, frames) = (%d, %d, %d, %d)\n", in_like_name, mri_in_like->width, mri_in_like->height, mri_in_like->depth, mri_in_like->nframes);
@@ -779,6 +788,7 @@ int main(int argc, char *argv[])
 
     if(MRIcopyHeader(mri_in_like, mri) != NO_ERROR)
     {
+      errno = 0;
       ErrorPrintf(ERROR_BADPARM, "error copying information from %s structure to %s structure\n", in_like_name, in_name);
       MRIfree(&mri);
       MRIfree(&mri_in_like);

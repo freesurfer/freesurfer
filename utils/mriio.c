@@ -26,6 +26,7 @@
 #include <ctype.h>
 #include <dirent.h>
 #include <time.h>
+#include <errno.h>
 
 #include "utils.h"
 #include "error.h"
@@ -105,6 +106,8 @@ static int mghAppend(MRI *mri, char *fname, int frame) ;
 
 /********************************************/
 
+extern int errno;
+
 extern char *Progname;
 
 static char *command_line;
@@ -159,7 +162,10 @@ int mriio_set_subject_name(char *name)
     subject_name = (char *)malloc(STRLEN);
 
   if(subject_name == NULL)
+  {
+    errno = 0;
     ErrorReturn(ERROR_NO_MEMORY, (ERROR_NO_MEMORY, "mriio_set_subject_name(): could't allocate %d bytes...!", STRLEN));
+  }
 
   if(name == NULL)
     strcpy(subject_name, name);
@@ -222,6 +228,7 @@ static MRI *mri_read(char *fname, int type, int volume_flag, int start_frame, in
     type = string_to_type(at);
     if(type == MRI_VOLUME_TYPE_UNKNOWN)
     {
+      errno = 0;
       ErrorReturn(NULL, (ERROR_BADPARM, "mri_read(): unknown type '%s'\n", at));
     }
   }
@@ -230,6 +237,7 @@ static MRI *mri_read(char *fname, int type, int volume_flag, int start_frame, in
     type = mri_identify(fname_copy);
     if(type == MRI_VOLUME_TYPE_UNKNOWN)
     {
+      errno = 0;
       ErrorReturn(NULL, (ERROR_BADPARM, "mri_read(): couldn't determine type of file %s", fname_copy));
     }
   }
@@ -243,18 +251,21 @@ static MRI *mri_read(char *fname, int type, int volume_flag, int start_frame, in
       colon++;
       if(*colon == '\0')
       {
+        errno = 0;
         ErrorReturn(NULL, (ERROR_BADPARM, "mri_read(): bad frame specification ('%s:')\n", pound));
       }
 
       start_frame = strtol(pound, &ep, 10);
       if(*ep != '\0')
       {
+        errno = 0;
         ErrorReturn(NULL, (ERROR_BADPARM, "mri_read(): bad start frame ('%s')\n", pound));
       }
 
       end_frame = strtol(colon, &ep, 10);
       if(*ep != '\0')
       {
+        errno = 0;
         ErrorReturn(NULL, (ERROR_BADPARM, "mri_read(): bad end frame ('%s')\n", colon));
       }
 
@@ -264,22 +275,26 @@ static MRI *mri_read(char *fname, int type, int volume_flag, int start_frame, in
       start_frame = end_frame = strtol(pound, &ep, 10);
       if(*ep != '\0')
       {
+        errno = 0;
         ErrorReturn(NULL, (ERROR_BADPARM, "mri_read(): bad frame ('%s')\n", pound));
       }
     }
 
     if(start_frame < 0)
     {
+      errno = 0;
       ErrorReturn(NULL, (ERROR_BADPARM, "mri_read(): frame (%d) is less than zero\n", start_frame));
     }
 
     if(end_frame < 0)
     {
+      errno = 0;
       ErrorReturn(NULL, (ERROR_BADPARM, "mri_read(): frame (%d) is less than zero\n", end_frame));
     }
 
     if(start_frame > end_frame)
     {
+      errno = 0;
       ErrorReturn(NULL, (ERROR_BADPARM, "mri_read(): the start frame (%d) is greater than the end frame (%d)\n", start_frame, end_frame));
     }
 
@@ -335,6 +350,7 @@ static MRI *mri_read(char *fname, int type, int volume_flag, int start_frame, in
   }
   else
   {
+    errno = 0;
     ErrorReturn(NULL, (ERROR_BADPARM, "mri_read(): code inconsistency (file type recognized but not caught)"));
   }
 
@@ -347,6 +363,7 @@ static MRI *mri_read(char *fname, int type, int volume_flag, int start_frame, in
   {
     volume_frames = mri->nframes;
     MRIfree(&mri);
+    errno = 0;
     ErrorReturn(NULL, (ERROR_BADPARM, "mri_read(): start frame (%d) is out of range (%d frames in volume)", start_frame, volume_frames));
   }
 
@@ -354,6 +371,7 @@ static MRI *mri_read(char *fname, int type, int volume_flag, int start_frame, in
   {
     volume_frames = mri->nframes;
     MRIfree(&mri);
+    errno = 0;
     ErrorReturn(NULL, (ERROR_BADPARM, "mri_read(): end frame (%d) is out of range (%d frames in volume)", end_frame, volume_frames));
   }
 
@@ -454,14 +472,17 @@ static int nan_inf_check(MRI *mri)
             {
               if(devIsinf((MRIFseq_vox(mri, i, j, k, t))) != 0)
               {
+                errno = 0;
                 ErrorReturn(ERROR_BADPARM, (ERROR_BADPARM, "nan_inf_check(): Inf at voxel %d, %d, %d, %d", i, j, k, t));
               }
               else if(devIsnan((MRIFseq_vox(mri, i, j, k, t))))
               {
+                errno = 0;
                 ErrorReturn(ERROR_BADPARM, (ERROR_BADPARM, "nan_inf_check(): NaN at voxel %d, %d, %d, %d", i, j, k, t));
               }
               else
               {
+                errno = 0;
                 ErrorReturn(ERROR_BADPARM, (ERROR_BADPARM, "nan_inf_check(): bizarre value (not Inf, not NaN, but not finite) at %d, %d, %d, %d", i, j, k, t));
               }
           }
@@ -546,6 +567,7 @@ int MRIwriteType(MRI *mri, char *fname, int type)
   }
   else
   {
+    errno = 0;
     ErrorReturn(ERROR_BADPARM, (ERROR_BADPARM, "MRIwriteType(): code inconsistency (file type recognized but not caught)"));
   }
 
@@ -562,6 +584,7 @@ int MRIwrite(MRI *mri, char *fname)
   chklc() ;
   if((int_type = mri_identify(fname)) < 0)
   {
+    errno = 0;
     ErrorReturn(ERROR_BADPARM, (ERROR_BADPARM, "unknown file type for file (%s)", fname));
   }
 
@@ -617,11 +640,13 @@ static MRI *corRead(char *fname, int read_volume)
   /* ----- check that it is a directory we've been passed ----- */
   if(stat(fname, &stat_buf) < 0)
   {
+    errno = 0;
     ErrorReturn(NULL, (ERROR_BADFILE, "corRead(): can't stat %s", fname));
   }
 
   if(!S_ISDIR(stat_buf.st_mode))
   {
+    errno = 0;
     ErrorReturn(NULL, (ERROR_BADFILE, "corRead(): %s isn't a directory", fname));
   }
 
@@ -638,6 +663,7 @@ static MRI *corRead(char *fname, int read_volume)
   sprintf(fbase, "COR-.info");
   if((fp = fopen(fname_use, "r")) == NULL)
   {
+    errno = 0;
     ErrorReturn(NULL, (ERROR_BADFILE, "corRead(): can't open file %s", fname_use));
   }
 
@@ -772,6 +798,7 @@ static MRI *corRead(char *fname, int read_volume)
   /* ----- check for required fields ----- */
   if((gotten & COR_ALL_REQUIRED) != COR_ALL_REQUIRED)
   {
+    errno = 0;
     ErrorPrintf(ERROR_BADFILE, "missing fields in file %s:", fname_use);
     if(!(gotten & IMNR0_FLAG))
       ErrorPrintf(ERROR_BADFILE, "  imnr0 field missing");
@@ -914,6 +941,7 @@ if(x_r == 0.0 && x_a == 0.0 && x_s == 0.0 && y_r == 0.0 && y_a == 0.0 && y_s == 
       }
       else
       {
+        errno = 0;
         ErrorPrintf(ERROR_BAD_FILE, "error loading transform from %s", xform_use);
         mri->linear_transform = NULL;
         mri->inverse_linear_transform = NULL;
@@ -934,6 +962,7 @@ if(x_r == 0.0 && x_a == 0.0 && x_s == 0.0 && y_r == 0.0 && y_a == 0.0 && y_s == 
     if((fp = fopen(fname_use, "r")) == NULL)
     {
       MRIfree(&mri);
+      errno = 0;
       ErrorReturn(NULL, (ERROR_BADFILE, "corRead(): can't open file %s", fname_use));
     }
     for(j = 0;j < mri->height;j++)
@@ -941,6 +970,7 @@ if(x_r == 0.0 && x_a == 0.0 && x_s == 0.0 && y_r == 0.0 && y_a == 0.0 && y_s == 
       if(fread(mri->slices[i-mri->imnr0][j], 1, mri->width, fp) < mri->width)
       {
         MRIfree(&mri);
+        errno = 0;
         ErrorReturn(NULL, (ERROR_BADFILE, "corRead(): error reading from file %s", fname_use));
       }
     }
@@ -964,6 +994,7 @@ static int corWrite(MRI *mri, char *fname)
 
   if(mri->slices == NULL)
   {
+    errno = 0;
     ErrorReturn(ERROR_BADPARM, (ERROR_BADPARM, "corWrite(): mri structure to be written contains no voxel data"));
   }
 
@@ -1005,11 +1036,13 @@ static int corWrite(MRI *mri, char *fname)
   /* ----- check that it is a directory we've been passed ----- */
   if(stat(fname, &stat_buf) < 0)
   {
+    errno = 0;
     ErrorReturn(ERROR_BADFILE, (ERROR_BADFILE, "corWrite(): can't stat %s", fname));
   }
 
   if(!S_ISDIR(stat_buf.st_mode))
   {
+    errno = 0;
     ErrorReturn(ERROR_BADFILE, (ERROR_BADFILE, "corWrite(): %s isn't a directory", fname));
   }
 
@@ -1025,6 +1058,7 @@ static int corWrite(MRI *mri, char *fname)
   sprintf(fbase, "COR-.info");
   if((fp = fopen(fname_use, "w")) == NULL)
   {
+    errno = 0;
     ErrorReturn(ERROR_BADFILE, (ERROR_BADFILE, "corWrite(): can't open file %s for writing", fname_use));
   }
 
@@ -1061,6 +1095,7 @@ static int corWrite(MRI *mri, char *fname)
     sprintf(fbase, "COR-%03d", i);
     if((fp = fopen(fname_use, "w")) == NULL)
     {
+      errno = 0;
       ErrorReturn(ERROR_BADFILE, (ERROR_BADFILE, "corWrite(): can't open file %s for writing", fname_use));
     }
     for(j = 0;j < mri->height;j++)
@@ -1068,6 +1103,7 @@ static int corWrite(MRI *mri, char *fname)
       if(fwrite(mri->slices[i-mri->imnr0][j], 1, mri->width, fp) < mri->width)
       {
         fclose(fp);
+        errno = 0;
         ErrorReturn(ERROR_BADFILE, (ERROR_BADFILE, "corWrite(): error writing to file %s ", fname_use));
       }
     }
@@ -1116,6 +1152,7 @@ static MRI *siemensRead(char *fname, int read_volume_flag)
 
   if(c < fname_use)
   {
+    errno = 0;
     ErrorReturn(NULL, (ERROR_BADPARM, "siemensRead(): bad file name %s (must end in '.ima' or '.IMA')", fname_use));
   }
   if(strcmp(".ima", c) == 0)
@@ -1124,6 +1161,7 @@ static MRI *siemensRead(char *fname, int read_volume_flag)
     sprintf(ima, "IMA");
   else
   {
+    errno = 0;
     ErrorReturn(NULL, (ERROR_BADPARM, "siemensRead(): bad file name %s (must end in '.ima' or '.IMA')", fname_use));
   }
 
@@ -1140,6 +1178,7 @@ static MRI *siemensRead(char *fname, int read_volume_flag)
 
   if(!FileExists(fname_use))
   {
+    errno = 0;
     ErrorReturn(NULL, (ERROR_BADFILE, "siemensRead(): file %s doesn't exist", fname_use));
   }
 
@@ -1168,6 +1207,7 @@ static MRI *siemensRead(char *fname, int read_volume_flag)
   sprintf(c, "%d.%s", n_low, ima);
   if((fp = fopen(fname_use, "r")) == NULL)
   {
+    errno = 0;
     ErrorReturn(NULL, (ERROR_BADFILE, "siemensRead(): can't open file %s (low = %d, this = %d, high = %d)", fname_use, n_low, file_n, n_high));
   }
 
@@ -1195,6 +1235,7 @@ static MRI *siemensRead(char *fname, int read_volume_flag)
   StrLower(ps2);
   if(strstr(ps2, "scout") != NULL)
   {
+    errno = 0;
     ErrorReturn(NULL, (ERROR_BADPARM, "siemensRead(): series appears to be a scout (sequence file name is %s)", pulse_sequence_name));
   }
 
@@ -1205,6 +1246,7 @@ static MRI *siemensRead(char *fname, int read_volume_flag)
     n_t = 1;
     if(base_raw_matrix_size != rows || base_raw_matrix_size != cols)
     {
+      errno = 0;
       ErrorReturn(NULL, (ERROR_BADPARM, "siemensRead(): bad file/base matrix sizes"));
     }
     mos_r = mos_c = 1;
@@ -1215,10 +1257,12 @@ static MRI *siemensRead(char *fname, int read_volume_flag)
 
     if(rows % base_raw_matrix_size != 0)
     {
+      errno = 0;
       ErrorReturn(NULL, (ERROR_BADPARM, "siemensRead(): file rows (%hd) not divisible by image rows (%d)", rows, base_raw_matrix_size));
     }
     if(cols % base_raw_matrix_size != 0)
     {
+      errno = 0;
       ErrorReturn(NULL, (ERROR_BADPARM, "siemensRead(): file cols (%hd) not divisible by image cols (%d)", cols, base_raw_matrix_size));
     }
 
@@ -1233,6 +1277,7 @@ static MRI *siemensRead(char *fname, int read_volume_flag)
 
     if(n_files % mosaics_per_volume != 0)
     {
+      errno = 0;
       ErrorReturn(NULL, (ERROR_BADPARM, "siemensRead(): files in volume (%d) not divisible by mosaics per volume (%d)", n_files, mosaics_per_volume));
     }
 
@@ -1333,6 +1378,7 @@ static MRI *siemensRead(char *fname, int read_volume_flag)
     mri->slice_direction = MRI_SAGITTAL;
   else
   {
+    errno = 0;
     ErrorReturn(NULL, (ERROR_BADFILE, "siemensRead(): bad slice direction (%d) in file %s", i, fname_use));
   }
 
@@ -1370,6 +1416,7 @@ printf("%d, %d, %d, %d\n", mri->width, mri->height, mri->depth, mri->nframes);
       if((fp = fopen(fname_use, "r")) == NULL)
       {
         MRIfree(&mri);
+        errno = 0;
         ErrorReturn(NULL, (ERROR_BADFILE, "siemensRead(): can't open file %s (low = %d, this = %d, high = %d)", fname_use, n_low, file_n, n_high));
       }
 
@@ -1444,6 +1491,12 @@ static MRI *mincRead(char *fname, int read_volume)
   dim_names[2] = MIzspace;
   dim_names[3] = MItime;
 
+  if(!FileExists(fname))
+  {
+    errno = 0;
+    ErrorReturn(NULL, (ERROR_BADFILE, "mincRead(): can't find file %s", fname));
+  }
+
   status = start_volume_input(fname, 0, dim_names, NC_UNSPECIFIED, 0, 0, 0, TRUE, &vol, NULL, &input_info);
 
 /*
@@ -1454,6 +1507,7 @@ printf("%d\n", vol->nc_data_type);
 
   if(status != OK)
   {
+    errno = 0;
     ErrorReturn(NULL, (ERROR_BADPARM, "mincRead(): error reading volume from file %s", fname));
   }
 
@@ -1461,6 +1515,7 @@ printf("%d\n", vol->nc_data_type);
   ndims = get_volume_n_dimensions(vol);
   if(ndims != 3 && ndims != 4)
   {
+    errno = 0;
     ErrorReturn(NULL, (ERROR_BADPARM, "mincRead(): %d dimensions in file; expecting 3 or 4", ndims));
   }
 
@@ -1487,6 +1542,7 @@ printf("%d\n", vol->nc_data_type);
     dtype = MRI_FLOAT;
   else
   {
+    errno = 0;
     ErrorReturn(NULL, (ERROR_BADPARM, "mincRead(): bad data type (%d) in input file %s", vol->nc_data_type, fname));
   }
 
@@ -1720,6 +1776,7 @@ static int mincWrite(MRI *mri, char *fname)
   }
   else
   {
+    errno = 0;
     ErrorReturn(ERROR_BADPARM, (ERROR_BADPARM, "mincWrite(): bad data type (%d) in mri structure", mri->type));
   }
 
@@ -1838,6 +1895,7 @@ static int bshortWrite(MRI *mri, char *fname_passed)
 
   if(mri->type != MRI_SHORT)
   {
+    errno = 0;
     ErrorReturn(ERROR_UNSUPPORTED, (ERROR_UNSUPPORTED, "bshortWrite(): data type %d unsupported", mri->type));
   }
 
@@ -1914,6 +1972,7 @@ other possibles:
     if((fp = fopen(fname, "w")) == NULL)
     {
       free(buf);
+      errno = 0;
       ErrorReturn(ERROR_BADFILE, (ERROR_BADFILE, "bshortWrite(): can't open file %s", fname));
     }
     fprintf(fp, "%d %d %d %d\n", mri->width, mri->height, mri->nframes, 0);
@@ -1924,6 +1983,7 @@ other possibles:
     if((fp = fopen(fname, "w")) == NULL)
     {
       free(buf);
+      errno = 0;
       ErrorReturn(ERROR_BADFILE, (ERROR_BADFILE, "bshortWrite(): can't open file %s", fname));
     }
 
@@ -1958,6 +2018,7 @@ other possibles:
   {
     if((subjects_dir = getenv("SUBJECTS_DIR")) == NULL)
     {
+      errno = 0;
       ErrorPrintf(ERROR_BADPARM, "bshortWrite(): environment variable SUBJECTS_DIR unset");
     }
     else
@@ -2014,6 +2075,7 @@ other possibles:
 
     if((as = MatrixAlloc(4, 4, MATRIX_REAL)) == NULL)
     {
+      errno = 0;
       ErrorPrintf(ERROR_BADPARM, "bshortWrite(): error creating matrix");
       bad_flag = TRUE;
     }
@@ -2024,6 +2086,7 @@ other possibles:
 
     if((af = MatrixAlloc(4, 4, MATRIX_REAL)) == NULL)
     {
+      errno = 0;
       ErrorPrintf(ERROR_BADPARM, "bshortWrite(): error creating matrix");
       bad_flag = TRUE;
     }
@@ -2034,6 +2097,7 @@ other possibles:
 
     if((bs = MatrixAlloc(4, 4, MATRIX_REAL)) == NULL)
     {
+      errno = 0;
       ErrorPrintf(ERROR_BADPARM, "bshortWrite(): error creating matrix");
       bad_flag = TRUE;
     }
@@ -2044,6 +2108,7 @@ other possibles:
 
     if((bf = MatrixAlloc(4, 4, MATRIX_REAL)) == NULL)
     {
+      errno = 0;
       ErrorPrintf(ERROR_BADPARM, "bshortWrite(): error creating matrix");
       bad_flag = TRUE;
     }
@@ -2054,6 +2119,7 @@ other possibles:
 
     if((cs = MatrixAlloc(4, 4, MATRIX_REAL)) == NULL)
     {
+      errno = 0;
       ErrorPrintf(ERROR_BADPARM, "bshortWrite(): error creating matrix");
       bad_flag = TRUE;
     }
@@ -2064,6 +2130,7 @@ other possibles:
 
     if((cf = MatrixAlloc(4, 4, MATRIX_REAL)) == NULL)
     {
+      errno = 0;
       ErrorPrintf(ERROR_BADPARM, "bshortWrite(): error creating matrix");
       bad_flag = TRUE;
     }
@@ -2074,6 +2141,7 @@ other possibles:
 
     if(bad_flag)
     {
+      errno = 0;
       ErrorPrintf(ERROR_BADPARM, "bshortWrite(): error creating one or more matrices; aborting register.dat write and writing bhdr instead");
       MRIfree(&subject_info);
     }
@@ -2087,38 +2155,45 @@ other possibles:
 
     if((det = MatrixDeterminant(as)) == 0.0)
     {
+      errno = 0;
       ErrorPrintf(ERROR_BADPARM, "bshortWrite(): bad determinant in matrix (check structural volume)");
       bad_flag = TRUE;
     }
     if((det = MatrixDeterminant(bs)) == 0.0)
     {
+      errno = 0;
       ErrorPrintf(ERROR_BADPARM, "bshortWrite(): bad determinant in matrix (check structural volume)");
       bad_flag = TRUE;
     }
     if((det = MatrixDeterminant(cs)) == 0.0)
     {
+      errno = 0;
       ErrorPrintf(ERROR_BADPARM, "bshortWrite(): bad determinant in matrix (check structural volume)");
       bad_flag = TRUE;
     }
 
     if((det = MatrixDeterminant(af)) == 0.0)
     {
+      errno = 0;
       ErrorPrintf(ERROR_BADPARM, "bshortWrite(): bad determinant in matrix (check functional volume)");
       bad_flag = TRUE;
     }
     if((det = MatrixDeterminant(bf)) == 0.0)
     {
+      errno = 0;
       ErrorPrintf(ERROR_BADPARM, "bshortWrite(): bad determinant in matrix (check functional volume)");
       bad_flag = TRUE;
     }
     if((det = MatrixDeterminant(cf)) == 0.0)
     {
+      errno = 0;
       ErrorPrintf(ERROR_BADPARM, "bshortWrite(): bad determinant in matrix (check functional volume)");
       bad_flag = TRUE;
     }
 
     if(bad_flag)
     {
+      errno = 0;
       ErrorPrintf(ERROR_BADPARM, "bshortWrite(): one or more zero determinants; aborting register.dat write and writing bhdr instead");
       MRIfree(&subject_info);
     }
@@ -2132,22 +2207,26 @@ other possibles:
 
     if((iaf = MatrixInverse(af, NULL)) == NULL)
     {
+      errno = 0;
       ErrorPrintf(ERROR_BADPARM, "bshortWrite(): error inverting matrix");
       bad_flag = TRUE;
     }
     if((ibf = MatrixInverse(bf, NULL)) == NULL)
     {
+      errno = 0;
       ErrorPrintf(ERROR_BADPARM, "bshortWrite(): error inverting matrix");
       bad_flag = TRUE;
     }
     if((ics = MatrixInverse(cs, NULL)) == NULL)
     {
+      errno = 0;
       ErrorPrintf(ERROR_BADPARM, "bshortWrite(): error inverting matrix");
       bad_flag = TRUE;
     }
 
     if(bad_flag)
     {
+      errno = 0;
       ErrorPrintf(ERROR_BADPARM, "bshortWrite(): one or more zero determinants; aborting register.dat write and writing bhdr instead");
       MRIfree(&subject_info);
     }
@@ -2213,6 +2292,7 @@ other possibles:
 
   if(bad_flag)
   {
+    errno = 0;
     ErrorPrintf(ERROR_BADPARM, "bshortWrite(): error during matrix multiplications; aborting register.dat write and writing bhdr instead");
   }
 
@@ -2244,6 +2324,7 @@ other possibles:
     if((fp = fopen(analyse_fname, "w")) == NULL)
     {
       MRIfree(&subject_info);
+      errno = 0;
       ErrorReturn(ERROR_BADFILE, (ERROR_BADFILE, "bshortWrite(): couldn't open file %s for writing", analyse_fname));
     }
 
@@ -2260,6 +2341,7 @@ other possibles:
     if((fp = fopen(register_fname, "w")) == NULL)
     {
       MRIfree(&subject_info);
+      errno = 0;
       ErrorReturn(ERROR_BADFILE, (ERROR_BADFILE, "bshortWrite(): couldn't open file %s for writing", register_fname));
     }
 
@@ -2283,6 +2365,7 @@ other possibles:
     sprintf(fname, "%s.bhdr", stem);
     if((fp = fopen(fname, "w")) == NULL)
     {
+      errno = 0;
       ErrorReturn(ERROR_BADFILE, (ERROR_BADFILE, "bshortWrite(): can't open file %s", fname));
     }
 
@@ -2317,6 +2400,7 @@ static int bfloatWrite(MRI *mri, char *stem)
 
   if(mri->type != MRI_FLOAT)
   {
+    errno = 0;
     ErrorReturn(ERROR_UNSUPPORTED, (ERROR_UNSUPPORTED, "bfloatWrite(): data type %d unsupported", mri->type));
   }
 
@@ -2330,6 +2414,7 @@ static int bfloatWrite(MRI *mri, char *stem)
     if((fp = fopen(fname, "r")) == NULL)
     {
       free(buf);
+      errno = 0;
       ErrorReturn(ERROR_BADFILE, (ERROR_BADFILE, "bfloatWrite(): can't open file %s", fname));
     }
     fprintf(fp, "%d %d %d %d\n", mri->width, mri->height, mri->nframes, 0);
@@ -2340,6 +2425,7 @@ static int bfloatWrite(MRI *mri, char *stem)
     if((fp = fopen(fname, "r")) == NULL)
     {
       free(buf);
+      errno = 0;
       ErrorReturn(ERROR_BADFILE, (ERROR_BADFILE, "bfloatWrite(): can't open file %s", fname));
     }
 
@@ -2377,6 +2463,7 @@ static int bfloatWrite(MRI *mri, char *stem)
   sprintf(fname, "%s.bhdr", stem);
   if((fp = fopen(fname, "r")) == NULL)
   {
+    errno = 0;
     ErrorReturn(ERROR_BADFILE, (ERROR_BADFILE, "bfloatWrite(): can't open file %s", fname));
   }
 
@@ -2420,6 +2507,7 @@ static MRI *get_b_info(char *fname_passed, int read_volume, char *directory, cha
     sprintf(extension, "bfloat");
   else
   {
+    errno = 0;
     ErrorReturn(NULL, (ERROR_UNSUPPORTED, "internal error: get_b_info() passed type %d", type));
   }
 
@@ -2496,6 +2584,7 @@ static MRI *get_b_info(char *fname_passed, int read_volume, char *directory, cha
       if(m == NULL)
       {
         MRIfree(&mri);
+        errno = 0;
         ErrorReturn(NULL, (ERROR_NO_MEMORY, "error allocating matrix in %s read", extension));
       }
 
@@ -2542,6 +2631,7 @@ static MRI *get_b_info(char *fname_passed, int read_volume, char *directory, cha
     if((fp = fopen(fname, "r")) == NULL)
     {
       MRIfree(&mri);
+      errno = 0;
       ErrorReturn(NULL, (ERROR_BADFILE, "can't find file %s (last resort); bailing out on read", fname));
     }
     fscanf(fp, "%d %d %d %*d", &nx, &ny, &nt);
@@ -2554,6 +2644,7 @@ static MRI *get_b_info(char *fname_passed, int read_volume, char *directory, cha
     if(!FileExists(fname))
     {
       MRIfree(&mri);
+      errno = 0;
       ErrorReturn(NULL, (ERROR_BADFILE, "can't find file %s; bailing out on read", fname));
     }
     for(nslices = 0;FileExists(fname);nslices++)
@@ -2640,6 +2731,7 @@ static MRI *bshortRead(char *fname_passed, int read_volume)
       if((fp = fopen(fname, "r")) == NULL)
       {
         MRIfree(&mri);
+        errno = 0;
         ErrorReturn(NULL, (ERROR_BADFILE, "bshortRead(): error opening file %s", fname));
       }
 
@@ -2649,6 +2741,7 @@ static MRI *bshortRead(char *fname_passed, int read_volume)
         {
           fclose(fp);
           MRIfree(&mri);
+          errno = 0;
           ErrorReturn(NULL, (ERROR_BADFILE, "bshortRead(): error reading from file %s", fname));
         }
         if(swap_bytes_flag)
@@ -2684,6 +2777,7 @@ static int orient_with_register(MRI *mri)
     sprintf(subject_directory, "%s/%s/mri/T1", subjects_dir, mri->subject_name);
     if((subject_mri = MRIreadInfo(subject_directory)) == NULL)
     {
+      errno = 0;
       ErrorPrintf(ERROR_BADPARM, "can't get get information from %s; ", subject_directory);
       sprintf(subject_directory, "%s/%s/mri/T1", subjects_dir, mri->subject_name);
       ErrorPrintf(ERROR_BADPARM, "trying %s instead...\n", subject_directory);
@@ -2692,11 +2786,15 @@ static int orient_with_register(MRI *mri)
     }
   }
   else
+  {
+    errno = 0;
     ErrorPrintf(ERROR_BADPARM, "can't get environment variable SUBJECTS_DIR");
+  }
 
   if(subject_mri == NULL)
   {
 
+    errno = 0;
     ErrorPrintf(ERROR_BADPARM, "guessing at COR- orientation...\n");
 
     subject_mri = MRIallocHeader(256, 256, 256, MRI_UCHAR);
@@ -2715,6 +2813,7 @@ static int orient_with_register(MRI *mri)
   if(det == 0.0)
   {
     MRIfree(&subject_mri);
+    errno = 0;
     ErrorPrintf(ERROR_BADPARM, "orient_with_register(): registration matrix has zero determinant");
     ErrorPrintf(ERROR_BADPARM, "matrix is:");
     MatrixPrint(stderr, mri->register_mat);
@@ -2726,6 +2825,7 @@ static int orient_with_register(MRI *mri)
   if(rinv == NULL)
   {
     MRIfree(&subject_mri);
+    errno = 0;
     ErrorPrintf(ERROR_BADPARM, "orient_with_register(): error inverting registration matrix");
     ErrorPrintf(ERROR_BADPARM, "matrix is:");
     MatrixPrint(stderr, mri->register_mat);
@@ -2747,6 +2847,7 @@ static int orient_with_register(MRI *mri)
       MatrixFree(&fa);
     MatrixFree(&rinv);
     MRIfree(&subject_mri);
+    errno = 0;
     ErrorReturn(ERROR_NO_MEMORY, (ERROR_NO_MEMORY, "orient_with_register(): error allocating matrix"));
   }
 
@@ -2768,6 +2869,7 @@ static int orient_with_register(MRI *mri)
     MatrixFree(&sa);
     MatrixFree(&fa);
     MatrixFree(&rinv);
+    errno = 0;
     ErrorPrintf(ERROR_BADPARM, "orient_with_register(): destination (ijk) -> r space matrix has zero determinant");
     ErrorPrintf(ERROR_BADPARM, "matrix is:");
     MatrixPrint(stderr, sa);
@@ -2783,6 +2885,7 @@ static int orient_with_register(MRI *mri)
     MatrixFree(&sa);
     MatrixFree(&fa);
     MatrixFree(&rinv);
+    errno = 0;
     ErrorPrintf(ERROR_BADPARM, "orient_with_register(): error inverting destination (ijk) -> r space matrix");
     ErrorPrintf(ERROR_BADPARM, "matrix is:");
     MatrixPrint(stderr, sainv);
@@ -2797,6 +2900,7 @@ static int orient_with_register(MRI *mri)
     MatrixFree(&sr);
     MatrixFree(&sa);
     MatrixFree(&sainv);
+    errno = 0;
     ErrorReturn(ERROR_BADPARM, (ERROR_BADPARM, "orient_with_register(): error multiplying matrices"));
   }
 
@@ -2807,6 +2911,7 @@ static int orient_with_register(MRI *mri)
   {
     MatrixFree(&sr);
     MatrixFree(&sa);
+    errno = 0;
     ErrorReturn(ERROR_BADPARM, (ERROR_BADPARM, "orient_with_register(): error multiplying matrices"));
   }
 
@@ -2815,6 +2920,7 @@ static int orient_with_register(MRI *mri)
   MatrixFree(&r2);
   if(fr == NULL)
   {
+    errno = 0;
     ErrorReturn(ERROR_BADPARM, (ERROR_BADPARM, "orient_with_register(): error multiplying matrices"));
   }
 
@@ -2870,7 +2976,10 @@ static int decompose_b_fname(char *fname, char *dir, char *stem)
   }
 
   if(*stem_start == '\0')
+  {
+    errno = 0;
     ErrorReturn(ERROR_BADPARM, (ERROR_BADPARM, "decompose_b_fname(): bad bshort/bfloat file specifier \"%s\"", fname));
+  }
 
   if(dot != NULL)
     if(strcmp(dot, ".bshort") == 0 || strcmp(dot, ".bfloat") == 0)
@@ -2933,6 +3042,7 @@ static MRI *bfloatRead(char *fname_passed, int read_volume)
       if((fp = fopen(fname, "r")) == NULL)
       {
         MRIfree(&mri);
+        errno = 0;
         ErrorReturn(NULL, (ERROR_BADFILE, "bfloatRead(): error opening file %s", fname));
       }
 
@@ -2942,6 +3052,7 @@ static MRI *bfloatRead(char *fname_passed, int read_volume)
         {
           fclose(fp);
           MRIfree(&mri);
+          errno = 0;
           ErrorReturn(NULL, (ERROR_BADFILE, "bfloatRead(): error reading from file %s", fname));
         }
         if(swap_bytes_flag)
@@ -3199,6 +3310,7 @@ static MRI *genesisRead(char *fname, int read_volume)
   /* ----- check the first (passed) file ----- */
   if(!FileExists(fname))
   {
+    errno = 0;
     ErrorReturn(NULL, (ERROR_BADFILE, "genesisRead(): error opening file %s", fname));
   }
 
@@ -3236,11 +3348,13 @@ static MRI *genesisRead(char *fname, int read_volume)
     }
     else
     {
+      errno = 0;
       ErrorReturn(NULL, (ERROR_BADPARM, "genesisRead(): can't determine file name format for %s", fname));
     }
   }
   else
   {
+    errno = 0;
     ErrorReturn(NULL, (ERROR_BADPARM, "genesisRead(): can't determine file name format for %s", fname));
   }
 
@@ -3276,6 +3390,7 @@ static MRI *genesisRead(char *fname, int read_volume)
   if((fp = fopen(fname_use, "r")) == NULL)
   {
     MRIfree(&header);
+    errno = 0;
     ErrorReturn(NULL, (ERROR_BADFILE, "genesisRead(): error opening file %s\n", fname_use));
   }
 
@@ -3370,6 +3485,7 @@ static MRI *genesisRead(char *fname, int read_volume)
       if((fp = fopen(fname_use, "r")) == NULL)
       {
         MRIfree(&mri);
+        errno = 0;
         ErrorReturn(NULL, (ERROR_BADFILE, "genesisRead(): error opening file %s", fname_use));
       }
 
@@ -3383,6 +3499,7 @@ static MRI *genesisRead(char *fname, int read_volume)
         {
           fclose(fp);
           MRIfree(&mri);
+          errno = 0;
           ErrorReturn(NULL, (ERROR_BADFILE, "genesisRead(): error reading from file file %s", fname_use));
         }
 #ifdef Linux
@@ -3429,6 +3546,7 @@ static MRI *gelxRead(char *fname, int read_volume)
   /* ----- check the first (passed) file ----- */
   if(!FileExists(fname))
   {
+    errno = 0;
     ErrorReturn(NULL, (ERROR_BADFILE, "genesisRead(): error opening file %s", fname));
   }
 
@@ -3468,6 +3586,7 @@ static MRI *gelxRead(char *fname, int read_volume)
   }
   else
   {
+    errno = 0;
     ErrorReturn(NULL, (ERROR_BADPARM, "genesisRead(): can't determine file name format for %s", fname));
   }
 
@@ -3502,6 +3621,7 @@ static MRI *gelxRead(char *fname, int read_volume)
   sprintf(fname_use, fname_format, im_low);
   if((fp = fopen(fname_use, "r")) == NULL)
   {
+    errno = 0;
     ErrorReturn(NULL, (ERROR_BADFILE, "genesisRead(): error opening file %s\n", fname_use));
   }
 
@@ -3588,6 +3708,7 @@ static MRI *gelxRead(char *fname, int read_volume)
       if((fp = fopen(fname_use, "r")) == NULL)
       {
         MRIfree(&mri);
+        errno = 0;
         ErrorReturn(NULL, (ERROR_BADFILE, "genesisRead(): error opening file %s", fname_use));
       }
 
@@ -3599,6 +3720,7 @@ static MRI *gelxRead(char *fname, int read_volume)
         {
           fclose(fp);
           MRIfree(&mri);
+          errno = 0;
           ErrorReturn(NULL, (ERROR_BADFILE, "genesisRead(): error reading from file file %s", fname_use));
         }
 #ifdef Linux
@@ -3641,10 +3763,12 @@ static MRI *analyzeRead(char *fname, int read_volume)
   c = strrchr(fname, '.');
   if(c == NULL)
   {
+    errno = 0;
     ErrorReturn(NULL, (ERROR_BADPARM, "analyzeRead(): bad file name %s", fname));
   }
   if(strcmp(c, ".img") != 0)
   {
+    errno = 0;
     ErrorReturn(NULL, (ERROR_BADPARM, "analyzeRead(): bad file name %s", fname));
   }
 
@@ -3656,6 +3780,7 @@ static MRI *analyzeRead(char *fname, int read_volume)
 
   if((fp = fopen(hdr_fname, "r")) == NULL)
   {
+    errno = 0;
     ErrorReturn(NULL, (ERROR_BADFILE, "read_analyze_header(): error opening file %s", fname));
   }
   fread(&hdr, sizeof(hdr), 1, fp);
@@ -3694,6 +3819,7 @@ static MRI *analyzeRead(char *fname, int read_volume)
   }
   else
   {
+    errno = 0;
     ErrorReturn(NULL, (ERROR_UNSUPPORTED, "analyzeRead: unsupported data type %d", hdr.dime.datatype));
   }
 
@@ -3743,6 +3869,7 @@ static MRI *analyzeRead(char *fname, int read_volume)
     if((fp = fopen(fname, "r")) == NULL)
     {
       MRIfree(&mri);
+      errno = 0;
       ErrorReturn(NULL, (ERROR_BADFILE, "analyzeRead: error opening file %s", fname));
     }
 
@@ -3761,6 +3888,7 @@ static MRI *analyzeRead(char *fname, int read_volume)
         {
           free(buf);
           fclose(fp);
+          errno = 0;
           ErrorReturn(NULL, (ERROR_BADFILE, "analyzeRead: error reading from file %s\n", fname));
         }
 
@@ -3805,6 +3933,7 @@ static MRI *analyzeRead(char *fname, int read_volume)
     if(m->rows != 4 || m->cols != 4)
     {
       MRIfree(&mri);
+      errno = 0;
       ErrorReturn(NULL, (ERROR_BADFILE, "analyzeRead(): not a 4 by 4 matrix in file %s", mat_fname));
     }
 
@@ -3832,6 +3961,7 @@ static MRI *analyzeRead(char *fname, int read_volume)
     if(center_ras_mat == NULL)
     {
 
+      errno = 0;
       ErrorPrintf(ERROR_BADPARM, "multiplying: m * cim:\n");
       ErrorPrintf(ERROR_BADPARM, "m = \n");
       MatrixPrint(stderr, m);
@@ -3842,6 +3972,7 @@ static MRI *analyzeRead(char *fname, int read_volume)
       MatrixFree(&center_index_mat);
       MatrixFree(&center_ras_mat);
       MRIfree(&mri);
+      errno = 0;
       ErrorReturn(NULL, (ERROR_BADPARM, "analyzeRead(): error in matrix multiplication"));
 
 
@@ -3881,10 +4012,12 @@ static int analyzeWrite(MRI *mri, char *fname)
   c = strrchr(fname, '.');
   if(c == NULL)
   {
+    errno = 0;
     ErrorReturn(ERROR_BADPARM, (ERROR_BADPARM, "analyzeRead(): bad file name %s", fname));
   }
   if(strcmp(c, ".img") != 0)
   {
+    errno = 0;
     ErrorReturn(ERROR_BADPARM, (ERROR_BADPARM, "analyzeRead(): bad file name %s", fname));
   }
 
@@ -3923,6 +4056,7 @@ static int analyzeWrite(MRI *mri, char *fname)
   }
   else
   {
+    errno = 0;
     ErrorReturn(ERROR_BADPARM, (ERROR_BADPARM, "analyzeWrite(): bad data type %d", mri->type));
   }
 
@@ -3955,6 +4089,7 @@ static int analyzeWrite(MRI *mri, char *fname)
   minv = MatrixInverse(m, NULL);
   if(minv == NULL)
   {
+    errno = 0;
     ErrorPrintf(ERROR_BADPARM, "analyzeWrite(): error inverting matrix\n");
     MatrixPrint(stdout, m);
     MatrixFree(&m);
@@ -3990,11 +4125,13 @@ static int analyzeWrite(MRI *mri, char *fname)
   if((fp = fopen(hdr_fname, "w")) == NULL)
   {
     MatrixFree(&m);
+    errno = 0;
     ErrorReturn(ERROR_BADFILE, (ERROR_BADFILE, "analyzeWrite(): error opening file %s for writing", hdr_fname));
   }
   if(fwrite(&hdr, sizeof(hdr), 1, fp) != 1)
   {
     MatrixFree(&m);
+    errno = 0;
     ErrorReturn(ERROR_BADFILE, (ERROR_BADFILE, "analyzeWrite(): error writing to file %s", hdr_fname));
   }
   fclose(fp);
@@ -4010,6 +4147,7 @@ static int analyzeWrite(MRI *mri, char *fname)
   /* ----- write the data ----- */
   if((fp = fopen(fname, "w")) == NULL)
   {
+    errno = 0;
     ErrorReturn(ERROR_BADFILE, (ERROR_BADFILE, "analyzeWrite(): error opening file %s for writing", fname));
   }
 
@@ -4019,6 +4157,7 @@ static int analyzeWrite(MRI *mri, char *fname)
     {
       if(fwrite(mri->slices[i][j], bytes_per_voxel, mri->width, fp) != mri->width)
       {
+        errno = 0;
         ErrorReturn(ERROR_BADFILE, (ERROR_BADFILE, "analyzeWrite(): error writing to file %s", fname));
       }
     }
@@ -4098,11 +4237,13 @@ static MRI *afniRead(char *fname, int read_volume)
 
   if(c == NULL)
   {
+      errno = 0;
       ErrorReturn(NULL, (ERROR_BADPARM, "afniRead(): bad file name %s", fname));
   }
 
   if(strcmp(c, ".BRIK") != 0)
   {
+      errno = 0;
       ErrorReturn(NULL, (ERROR_BADPARM, "afniRead(): bad file name %s", fname));
   }
 
@@ -4110,6 +4251,7 @@ static MRI *afniRead(char *fname, int read_volume)
 
   if((fp = fopen(header_fname, "r")) == NULL)
   {
+    errno = 0;
     ErrorReturn(NULL, (ERROR_BADFILE, "afniRead(): error opening file %s", header_fname));
   }
 
@@ -4128,12 +4270,14 @@ static MRI *afniRead(char *fname, int read_volume)
   {
     nframes = header->nframes;
     MRIfree(&header);
+    errno = 0;
     ErrorReturn(NULL, (ERROR_UNSUPPORTED, "afniRead(): nframes = %d (only 1 frame supported)", nframes));
   }
 
   if((fp = fopen(fname, "r")) == NULL)
   {
     MRIfree(&header);
+    errno = 0;
     ErrorReturn(NULL, (ERROR_BADFILE, "afniRead(): error opening file %s", header_fname));
   }
 
@@ -4147,6 +4291,7 @@ static MRI *afniRead(char *fname, int read_volume)
   {
     fclose(fp);
     MRIfree(&header);
+    errno = 0;
     ErrorReturn(NULL, (ERROR_BADFILE, "afniRead(): BRIK file length (%d) is not divisible by the number of voxels (%d)", brik_file_length, nvoxels));
   }
 
@@ -4162,6 +4307,7 @@ static MRI *afniRead(char *fname, int read_volume)
   {
     fclose(fp);
     MRIfree(&header);
+    errno = 0;
     ErrorReturn(NULL, (ERROR_UNSUPPORTED, "afniRead(): don't know what to do with %d bytes per voxel", bytes_per_voxel));
   }
 
@@ -4180,6 +4326,7 @@ static MRI *afniRead(char *fname, int read_volume)
         {
           fclose(fp);
           MRIfree(&header);
+          errno = 0;
           ErrorReturn(NULL, (ERROR_BADFILE, "afniRead(): error reading from file %s", fname));
         }
 
@@ -4310,6 +4457,7 @@ static MRI *read_afni_header(FILE *fp, int *big_endian_flag)
         else
         {
           MRIfree(&mri);
+          errno = 0;
           ErrorReturn(NULL, (ERROR_BADPARM, "read_afni_header(): unknown type %s", type));
         }
 
@@ -4318,11 +4466,13 @@ static MRI *read_afni_header(FILE *fp, int *big_endian_flag)
           if(strncmp(type, "integer-attribute", 17) != 0)
           {
             MRIfree(&mri);
+            errno = 0;
             ErrorReturn(NULL, (ERROR_BADPARM, "read_afni_header(): variable %s listed as %s (expecting integer-attribute)", name, type));
           }
           if(count < 3)
           {
             MRIfree(&mri);
+            errno = 0;
             ErrorReturn(NULL, (ERROR_BADPARM, "read_afni_header(): not enough variables in %s (need 3, have %d", name, count));
           }
           if(ip[0] < 0 || ip[0] > 5 ||
@@ -4330,6 +4480,7 @@ static MRI *read_afni_header(FILE *fp, int *big_endian_flag)
              ip[2] < 0 || ip[2] > 5)
           {
             MRIfree(&mri);
+            errno = 0;
             ErrorReturn(NULL, (ERROR_BADPARM, "read_afni_header(): %s variables should be 0 to 5, inclusive (are %d, %d, %d here)", name, ip[0], ip[1], ip[2]));
           }
 
@@ -4345,6 +4496,7 @@ static MRI *read_afni_header(FILE *fp, int *big_endian_flag)
           if(det == 0)
           {
             MRIfree(&mri);
+            errno = 0;
             ErrorReturn(NULL, (ERROR_BADPARM, "read_afni_header(): error in orientations %d, %d, %d (direction cosine matrix has determinant zero)", ip[0], ip[1], ip[2]));
           }
 
@@ -4361,11 +4513,13 @@ static MRI *read_afni_header(FILE *fp, int *big_endian_flag)
           if(strncmp(type, "integer-attribute", 17) != 0)
           {
             MRIfree(&mri);
+            errno = 0;
             ErrorReturn(NULL, (ERROR_BADPARM, "read_afni_header(): variable %s listed as %s (expecting integer-attribute)", name, type));
           }
           if(count < 3)
           {
             MRIfree(&mri);
+            errno = 0;
             ErrorReturn(NULL, (ERROR_BADPARM, "read_afni_header(): not enough variables in %s (need 3, have %d", name, count));
           }
 
@@ -4381,11 +4535,13 @@ static MRI *read_afni_header(FILE *fp, int *big_endian_flag)
           if(strncmp(type, "float-attribute", 15) != 0)
           {
             MRIfree(&mri);
+            errno = 0;
             ErrorReturn(NULL, (ERROR_BADPARM, "read_afni_header(): variable %s listed as %s (expecting float-attribute)", name, type));
           }
           if(count < 3)
           {
             MRIfree(&mri);
+            errno = 0;
             ErrorReturn(NULL, (ERROR_BADPARM, "read_afni_header(): not enough variables in %s (need 3, have %d", name, count));
           }
 
@@ -4401,11 +4557,13 @@ static MRI *read_afni_header(FILE *fp, int *big_endian_flag)
           if(count < 3)
           {
             MRIfree(&mri);
+            errno = 0;
             ErrorReturn(NULL, (ERROR_BADPARM, "read_afni_header(): not enough variables in %s (need 3, have %d", name, count));
           }
           if(strncmp(type, "float-attribute", 15) != 0)
           {
             MRIfree(&mri);
+            errno = 0;
             ErrorReturn(NULL, (ERROR_BADPARM, "read_afni_header(): variable %s listed as %s (expecting float-attribute)", name, type));
           }
 
@@ -4421,6 +4579,7 @@ static MRI *read_afni_header(FILE *fp, int *big_endian_flag)
           if(strncmp(type, "string-attribute", 16) != 0)
           {
             MRIfree(&mri);
+            errno = 0;
             ErrorReturn(NULL, (ERROR_BADPARM, "read_afni_header(): variable %s listed as %s (expecting string-attribute)", name, type));
           }
           if(strcmp(s, "MSB_FIRST") == 0)
@@ -4430,6 +4589,7 @@ static MRI *read_afni_header(FILE *fp, int *big_endian_flag)
           else
           {
             MRIfree(&mri);
+            errno = 0;
             ErrorReturn(NULL, (ERROR_BADPARM, "read_afni_header(): unrecognized byte order string %s", s));
           }
 
@@ -4456,6 +4616,7 @@ static MRI *read_afni_header(FILE *fp, int *big_endian_flag)
   if((gotten & AFNI_ALL_REQUIRED) != AFNI_ALL_REQUIRED)
   {
 
+    errno = 0;
     ErrorPrintf(ERROR_BADFILE, "missing fields in afni header file");
 
     if(!(gotten & ORIENT_SPECIFIC_FLAG))
@@ -4544,18 +4705,21 @@ static int *get_afni_int(FILE *fp, int count, char *name)
     if(feof(fp))
     {
       free(buf);
+      errno = 0;
       ErrorReturn(NULL, (ERROR_BADPARM, "get_afni_int(): hit EOF while reading %d ints for %s", count, name));
     }
 
     if(blank_flag)
     {
       free(buf);
+      errno = 0;
       ErrorReturn(NULL, (ERROR_BADPARM, "get_afni_int(): hit a blank line while reading %d ints for %s", count, name));
     }
 
     if(strncmp(line, "type", 4) == 0)
     {
       free(buf);
+      errno = 0;
       ErrorReturn(NULL, (ERROR_BADPARM, "get_afni_int(): hit a type line while reading %d ints for %s", count, name));
     }
 
@@ -4600,18 +4764,21 @@ static float *get_afni_float(FILE *fp, int count, char *name)
     if(feof(fp))
     {
       free(buf);
+      errno = 0;
       ErrorReturn(NULL, (ERROR_BADPARM, "get_afni_float(): hit EOF while reading %d floats for %s", count, name));
     }
 
     if(blank_flag)
     {
       free(buf);
+      errno = 0;
       ErrorReturn(NULL, (ERROR_BADPARM, "get_afni_float(): hit a blank line while reading %d floats for %s", count, name));
     }
 
     if(strncmp(line, "type", 4) == 0)
     {
       free(buf);
+      errno = 0;
       ErrorReturn(NULL, (ERROR_BADPARM, "get_afni_float(): hit a type line while reading %d floats for %s", count, name));
     }
 
@@ -4645,6 +4812,7 @@ static char *get_afni_string(FILE *fp, int count, char *name)
   if(c != '\'')
   {
     free(buf);
+    errno = 0;
     ErrorReturn(NULL, (ERROR_BADPARM, "get_afni_string(): afni header string %s does not start with \"'\"", name));
   }
 
@@ -4654,6 +4822,7 @@ static char *get_afni_string(FILE *fp, int count, char *name)
     if(feof(fp))
     {
       free(buf);
+      errno = 0;
       ErrorReturn(NULL, (ERROR_BADPARM, "get_afni_string(): end of file reached at %d of %d bytes of string %s", i+1, count, name));
     }
 
@@ -4661,6 +4830,7 @@ static char *get_afni_string(FILE *fp, int count, char *name)
 
     if(i == count - 1 && c != '~')
     {
+      errno = 0;
       ErrorPrintf(ERROR_BADPARM, "warning: string %s does not end with \"~\"", name);
     }
 
@@ -4690,6 +4860,7 @@ static int afniWrite(MRI *mri, char *fname)
   float f;
   char *c;
 
+  errno = 0;
   ErrorReturn(ERROR_UNSUPPORTED, (ERROR_UNSUPPORTED, "AFNI BRIK write unsupported"));
 
   /* ----- keep compiler quiet ----- */
@@ -4698,6 +4869,7 @@ static int afniWrite(MRI *mri, char *fname)
 
   if(mri->nframes != 1)
   {
+      errno = 0;
       ErrorReturn(ERROR_UNSUPPORTED, (ERROR_UNSUPPORTED, "afniRead(): writing of anything but 1 frame unsupported (mri->nframes = %d)", mri->nframes));
   }
 
@@ -4717,6 +4889,7 @@ static int afniWrite(MRI *mri, char *fname)
 
   if(orient_specific[0] == -1 || orient_specific[1] == -1 || orient_specific[2] == -1)
   {
+    errno = 0;
     ErrorPrintf(ERROR_UNSUPPORTED, "afniWrite(): oblique volume writing to AFNI unsupported");
     ErrorPrintf(ERROR_UNSUPPORTED, "x_(r, a, s) = (%g, %g, %g)", mri->x_r, mri->x_a, mri->x_s);
     ErrorPrintf(ERROR_UNSUPPORTED, "y_(r, a, s) = (%g, %g, %g)", mri->y_r, mri->y_a, mri->y_s);
@@ -4740,6 +4913,7 @@ static int afniWrite(MRI *mri, char *fname)
     bytes_per_voxel = 4;
   else
   {
+      errno = 0;
       ErrorReturn(ERROR_UNSUPPORTED, (ERROR_UNSUPPORTED, "afniRead(): unsupported data type %d", mri->type));
   }
 
@@ -4748,11 +4922,13 @@ static int afniWrite(MRI *mri, char *fname)
 
   if(c == NULL)
   {
+      errno = 0;
       ErrorReturn(ERROR_BADPARM, (ERROR_BADPARM, "afniRead(): bad file name %s", fname));
   }
 
   if(strcmp(c, ".BRIK") != 0)
   {
+      errno = 0;
       ErrorReturn(ERROR_BADPARM, (ERROR_BADPARM, "afniRead(): bad file name %s", fname));
   }
 
@@ -4760,6 +4936,7 @@ static int afniWrite(MRI *mri, char *fname)
 
   if((fp = fopen(header_fname, "w")) == NULL)
   {
+    errno = 0;
     ErrorReturn(ERROR_BADFILE, (ERROR_BADFILE, "afniWrite(): can't open file %s for writing", header_fname));
   }
 
@@ -4815,6 +4992,7 @@ static int afniWrite(MRI *mri, char *fname)
 
   if((fp = fopen(fname, "w")) == NULL)
   {
+    errno = 0;
     ErrorReturn(ERROR_BADFILE, (ERROR_BADFILE, "afniWrite(): can't open file %s for writing", fname));
   }
 
@@ -4902,6 +5080,7 @@ static int bad_ras_fill(MRI *mri)
   }
   else
   {
+    errno = 0;
     ErrorReturn(ERROR_BADPARM, (ERROR_BADPARM, "bad_ras_fill(): unknown slice direction"));
   }
 
@@ -4928,6 +5107,7 @@ static int voxel_center_to_center_voxel(MRI *mri, float *x, float *y, float *z)
   if(mi == NULL)
   {
     MatrixFree(&m);
+    errno = 0;
     ErrorReturn(ERROR_BADPARM, (ERROR_BADPARM, "voxel_center_to_center_voxel(): error inverting matrix"));
   }
 
@@ -4936,6 +5116,7 @@ static int voxel_center_to_center_voxel(MRI *mri, float *x, float *y, float *z)
   {
     MatrixFree(&m);
     MatrixFree(&mi);
+    errno = 0;
     ErrorReturn(ERROR_NOMEMORY, (ERROR_NOMEMORY, "voxel_center_to_center_voxel(): couldn't allocate matrix"));
   }
 
@@ -4950,6 +5131,7 @@ static int voxel_center_to_center_voxel(MRI *mri, float *x, float *y, float *z)
     MatrixFree(&m);
     MatrixFree(&mi);
     MatrixFree(&r);
+    errno = 0;
     ErrorReturn(ERROR_BADPARM, (ERROR_BADPARM, "voxel_center_to_center_voxel(): error in matrix multiplication"));
   }
 
@@ -5023,6 +5205,7 @@ static MRI *gdfRead(char *fname, int read_volume)
 
   if((fp = fopen(fname, "r")) == NULL)
   {
+    errno = 0;
     ErrorReturn(NULL, (ERROR_BADFILE, "gdfRead(): error opening file %s", fname));
   }
 
@@ -5087,6 +5270,7 @@ static MRI *gdfRead(char *fname, int read_volume)
 
   if(!(path_d && ipr_d && st_d && s_d && o_d))
   {
+    errno = 0;
     ErrorPrintf(ERROR_BADPARM, "gdfRead(): missing field(s) from %s:", fname);
     if(!path_d)
       ErrorPrintf(ERROR_BADPARM, "  IMAGE_FILE_PATH");
@@ -5132,6 +5316,7 @@ static MRI *gdfRead(char *fname, int read_volume)
     data_type = MRI_UCHAR;
   else
   {
+    errno = 0;
     ErrorReturn(NULL, (ERROR_BADPARM, "gdfRead(): unknown data type '%s'", data_type_string));
   }
 
@@ -5146,6 +5331,7 @@ static MRI *gdfRead(char *fname, int read_volume)
     orientation = MRI_HORIZONTAL;
   else
   {
+    errno = 0;
     ErrorReturn(NULL, (ERROR_BADPARM, "gdfRead(): can't determine orientation from string '%s'", os_orig));
   }
 
@@ -5157,6 +5343,7 @@ static MRI *gdfRead(char *fname, int read_volume)
     units_factor = 100.0;
   else
   {
+    errno = 0;
     ErrorReturn(NULL, (ERROR_BADPARM, "gdfRead(): unknown units '%s'", units_string));
   }
 
@@ -5168,6 +5355,7 @@ static MRI *gdfRead(char *fname, int read_volume)
   c = strrchr(file_path_1, '*');
   if(c == NULL)
   {
+    errno = 0;
     ErrorReturn(NULL, (ERROR_BADPARM, "gdfRead(): file path %s does not contain '*'\n", file_path));
   }
 
@@ -5200,6 +5388,7 @@ static MRI *gdfRead(char *fname, int read_volume)
 
   if(n_files == 1)
   {
+    errno = 0;
     ErrorReturn(NULL, (ERROR_BADFILE, "gdfRead(): can't find file %s\n", fname_use));
   }
 
@@ -5244,6 +5433,7 @@ static MRI *gdfRead(char *fname, int read_volume)
     if(ucbuf == NULL)
     {
       MRIfree(&mri);
+      errno = 0;
       ErrorReturn(NULL, (ERROR_NOMEMORY, "gdfRead(): error allocating %d bytes for read buffer", mri->width));
     }
   }
@@ -5253,6 +5443,7 @@ static MRI *gdfRead(char *fname, int read_volume)
     if(sbuf == NULL)
     {
       MRIfree(&mri);
+      errno = 0;
       ErrorReturn(NULL, (ERROR_NOMEMORY, "gdfRead(): error allocating %d bytes for read buffer", mri->width * sizeof(short)));
     }
   }
@@ -5262,12 +5453,14 @@ static MRI *gdfRead(char *fname, int read_volume)
     if(fbuf == NULL)
     {
       MRIfree(&mri);
+      errno = 0;
       ErrorReturn(NULL, (ERROR_NOMEMORY, "gdfRead(): error allocating %d bytes for read buffer", mri->width * sizeof(float)));
     }
   }
   else
   {
     MRIfree(&mri);
+    errno = 0;
     ErrorReturn(NULL, (ERROR_BADPARM, "gdfRead(): internal error; data type %d accepted but not supported in read", mri->type));
   }
 
@@ -5286,6 +5479,7 @@ static MRI *gdfRead(char *fname, int read_volume)
         free(sbuf);
       if(mri->type == MRI_FLOAT)
         free(fbuf);
+      errno = 0;
       ErrorReturn(NULL, (ERROR_BADFILE, "gdfRead(): error opening file %s", fname_use));
     }
 
@@ -5297,6 +5491,7 @@ static MRI *gdfRead(char *fname, int read_volume)
         {
           free(ucbuf);
           MRIfree(&mri);
+          errno = 0;
           ErrorReturn(NULL, (ERROR_BADFILE, "gdfRead(): error reading from file %s", fname_use));
         }
         for(k = 0;k < mri->width;k++)
@@ -5312,6 +5507,7 @@ static MRI *gdfRead(char *fname, int read_volume)
         {
           free(sbuf);
           MRIfree(&mri);
+          errno = 0;
           ErrorReturn(NULL, (ERROR_BADFILE, "gdfRead(): error reading from file %s", fname_use));
         }
 #ifdef Linux
@@ -5332,6 +5528,7 @@ static MRI *gdfRead(char *fname, int read_volume)
         {
           free(fbuf);
           MRIfree(&mri);
+          errno = 0;
           ErrorReturn(NULL, (ERROR_BADFILE, "gdfRead(): error reading from file %s", fname_use));
         }
 #ifdef Linux
@@ -5362,6 +5559,7 @@ static MRI *gdfRead(char *fname, int read_volume)
 static int gdfWrite(MRI *mri, char *fname)
 {
 
+  errno = 0;
   ErrorReturn(ERROR_UNSUPPORTED, (ERROR_UNSUPPORTED, "GDF read unsupported"));
 
 }
@@ -5454,6 +5652,7 @@ static int read_otl_file(FILE *fp, MRI *mri, int slice, mriColorLookupTableRef c
   fgets(line, STRLEN, fp);
   if(strncmp(line, "GDF FILE VERSION", 15) != 0)
   {
+    errno = 0;
     ErrorReturn(ERROR_BADFILE, (ERROR_BADFILE, "otl slice %s does not appear to be a GDF file", slice));
   }
 
@@ -5462,6 +5661,7 @@ static int read_otl_file(FILE *fp, MRI *mri, int slice, mriColorLookupTableRef c
   {
     if(feof(fp))
     {
+      errno = 0;
       ErrorReturn(ERROR_BADFILE, (ERROR_BADFILE, "premature EOF () in otl file %d", slice));
     }
     fgets(line, STRLEN, fp);
@@ -5476,6 +5676,7 @@ static int read_otl_file(FILE *fp, MRI *mri, int slice, mriColorLookupTableRef c
   {
     if(feof(fp))
     {
+      errno = 0;
       ErrorReturn(ERROR_BADFILE, (ERROR_BADFILE, "premature EOF (in main header) in otl file %d", slice));
     }
     fgets(line, STRLEN, fp);
@@ -5496,6 +5697,7 @@ static int read_otl_file(FILE *fp, MRI *mri, int slice, mriColorLookupTableRef c
 
   if(n_outlines == -1)
   {
+    errno = 0;
     ErrorReturn(ERROR_BADPARM, (ERROR_BADPARM, "bad or undefined ONUM in otl file %d", slice));
   }
 
@@ -5503,6 +5705,7 @@ static int read_otl_file(FILE *fp, MRI *mri, int slice, mriColorLookupTableRef c
   {
     if(feof(fp))
     {
+      errno = 0;
       ErrorReturn(ERROR_BADFILE, (ERROR_BADFILE, "premature EOF (ready for next outline) in otl file %d", slice));
     }
 
@@ -5512,6 +5715,7 @@ static int read_otl_file(FILE *fp, MRI *mri, int slice, mriColorLookupTableRef c
     {
       if(feof(fp))
       {
+        errno = 0;
         ErrorReturn(ERROR_BADFILE, (ERROR_BADFILE, "premature EOF (searching for gdf header) in otl file %d", slice));
       }
       fgets(line, STRLEN, fp);
@@ -5528,6 +5732,7 @@ static int read_otl_file(FILE *fp, MRI *mri, int slice, mriColorLookupTableRef c
 
       if(feof(fp))
       {
+        errno = 0;
         ErrorReturn(ERROR_BADFILE, (ERROR_BADFILE, "premature EOF (in gdf header) in otl file %d", slice));
       }
       fgets(line, STRLEN, fp);
@@ -5558,26 +5763,31 @@ static int read_otl_file(FILE *fp, MRI *mri, int slice, mriColorLookupTableRef c
 
     if(n_rows < 0)
     {
+      errno = 0;
       ErrorReturn(ERROR_BADPARM, (ERROR_BADPARM, "bad or undefined ROW_NUM in otl file %d", slice));
     }
 
     if(n_cols != 2)
     {
+      errno = 0;
       ErrorReturn(ERROR_BADPARM, (ERROR_BADPARM, "bad or undefined COL_NUM in otl file %d", slice));
     }
 
     if(label[0] == '\0')
     {
+      errno = 0;
       ErrorReturn(ERROR_BADPARM, (ERROR_BADPARM, "bad or undefined LABEL in otl file %d", slice));
     }
 
     if(seed_x < 0 || seed_x >= 512 || seed_y < 0 || seed_y >= 512)
     {
+      errno = 0;
       ErrorReturn(ERROR_BADPARM, (ERROR_BADPARM, "bad or undefined SEED in otl file %d", slice));
     }
 
     if(strcmp(type, "short") != 0 && type[0] != '\0')
     {
+      errno = 0;
       ErrorReturn(ERROR_UNSUPPORTED, (ERROR_UNSUPPORTED, "unsupported TYPE \"%s\"in otl file %d", type, slice));
     }
 
@@ -5586,6 +5796,7 @@ static int read_otl_file(FILE *fp, MRI *mri, int slice, mriColorLookupTableRef c
       fgets(line, STRLEN, fp);
       if(feof(fp))
       {
+        errno = 0;
         ErrorReturn(ERROR_BADFILE, (ERROR_BADFILE, "premature EOF (searching for points) in otl file %d", slice));
       }
     } while(strncmp(line, "START POINTS", 12) != 0);
@@ -5593,6 +5804,7 @@ static int read_otl_file(FILE *fp, MRI *mri, int slice, mriColorLookupTableRef c
     points = (short *)malloc(2 * n_rows * sizeof(short));
     if(points == NULL)
     {
+      errno = 0;
       ErrorReturn(ERROR_NOMEMORY, (ERROR_NOMEMORY, "error allocating memory for points in otl file %d", slice));
     }
 
@@ -5600,6 +5812,7 @@ static int read_otl_file(FILE *fp, MRI *mri, int slice, mriColorLookupTableRef c
     if(n_read != n_rows * 2)
     {
       free(points);
+      errno = 0;
       ErrorReturn(ERROR_BADFILE, (ERROR_BADFILE, "error reading points from otl file %d", slice));
     }
 
@@ -5607,6 +5820,7 @@ static int read_otl_file(FILE *fp, MRI *mri, int slice, mriColorLookupTableRef c
     if(strncmp(line, "END POINTS", 10) != 0)
     {
       free(points);
+      errno = 0;
       ErrorReturn(ERROR_BADFILE, (ERROR_BADFILE, "error after points (\"END POINTS\" expected but not found) in otl file %d", slice));
     }
 
@@ -5704,6 +5918,7 @@ MRI *MRIreadOtl(char *fname, int width, int height, int slices, char *color_file
   c = strrchr(stem, '.');
   if(c == NULL)
   {
+    errno = 0;
     ErrorReturn(NULL, (ERROR_BADPARM, "MRIreadOtl(): bad file name: %s", fname));
   }
 
@@ -5711,6 +5926,7 @@ MRI *MRIreadOtl(char *fname, int width, int height, int slices, char *color_file
 
   if(c < stem)
   {
+    errno = 0;
     ErrorReturn(NULL, (ERROR_BADPARM, "MRIreadOtl(): bad file name: %s", fname));
   }
 
@@ -5730,18 +5946,21 @@ MRI *MRIreadOtl(char *fname, int width, int height, int slices, char *color_file
 
   if(!one_file_exists)
   {
+    errno = 0;
     ErrorReturn(NULL, (ERROR_BADPARM, "MRIreadOtl(): couldn't find any file between %s and %s", first_name, last_name));
   }
 
   mri = MRIalloc(width, height, slices, MRI_SHORT);
   if(mri == NULL)
   {
+    errno = 0;
     ErrorReturn(NULL, (ERROR_NOMEMORY, "MRIreadOtl(): error allocating MRI structure"));
   }
 
   if(CLUT_New(&color_table, color_file_name) != CLUT_tErr_NoErr)
   {
     MRIfree(&mri);
+    errno = 0;
     ErrorReturn(NULL, (ERROR_BADFILE, "MRIreadOtl(): error reading color file %s", color_file_name));
   }
 
@@ -5763,6 +5982,7 @@ MRI *MRIreadOtl(char *fname, int width, int height, int slices, char *color_file
   if(!one_file_exists)
   {
     MRIfree(&mri);
+    errno = 0;
     ErrorReturn(NULL, (ERROR_BADFILE, "MRIreadOtl(): found at least one file between %s and %s but couldn't open it!", first_name, last_name));
   }
 
@@ -5795,6 +6015,7 @@ MRI *MRIreadGeRoi(char *fname, int n_slices)
 
   if((fp = fopen(fname, "r")) == NULL)
   {
+    errno = 0;
     ErrorReturn(NULL, (ERROR_BADFILE, "MRIreadGeRoi(): error opening file %s", fname));
   }
 
@@ -5818,8 +6039,8 @@ MRI *MRIreadGeRoi(char *fname, int n_slices)
 
   if(n_digits < 3)
   {
+    errno = 0;
     ErrorReturn(NULL, (ERROR_BADPARM, "MRIreadGeRoi(): bad GE file name (couldn't find three consecutive digits in the base file name)"));
-    return(NULL);
   }
 
   strcpy(prefix, fname);
@@ -5833,6 +6054,7 @@ MRI *MRIreadGeRoi(char *fname, int n_slices)
 
   if(mri == NULL)
   {
+    errno = 0;
     ErrorReturn(NULL, (ERROR_NOMEMORY, "MRIreadGeRoi(): couldn't allocate MRI structure"));
   }
 
@@ -5857,6 +6079,7 @@ MRI *MRIreadGeRoi(char *fname, int n_slices)
         {
           fclose(fp);
           MRIfree(&mri);
+          errno = 0;
           ErrorReturn(NULL, (ERROR_BADFILE, "MRIreadGeRoi(): error reading from file file %s", fname_use));
         }
 #ifdef Linux
@@ -5873,6 +6096,7 @@ MRI *MRIreadGeRoi(char *fname, int n_slices)
   if(!read_one_flag)
   {
     MRIfree(&mri);
+    errno = 0;
     ErrorReturn(NULL, (ERROR_BADFILE, "MRIreadGeRoi(): didn't read any ROI files"));
   }
 
@@ -5913,7 +6137,10 @@ static MRI *sdtRead(char *fname, int read_volume)
 
   /* open the header */
   if((fp = fopen(header_fname, "r")) == NULL)
+  {
+    errno = 0;
     ErrorReturn(NULL, (ERROR_BADFILE, "sdtRead(%s): could not open header file %s\n", fname, header_fname));
+  }
 
   while(!feof(fp))
   {
@@ -5928,6 +6155,7 @@ static MRI *sdtRead(char *fname, int read_volume)
         if(ndim < 3 || ndim > 4)
           {
           fclose(fp);
+          errno = 0;
           ErrorReturn(NULL, (ERROR_UNSUPPORTED, "sdtRead(%s): only 3 or 4 dimensions supported (numDim = %d)\n", fname, ndim));
           }
       }
@@ -5936,6 +6164,7 @@ static MRI *sdtRead(char *fname, int read_volume)
         if(ndim == -1)
         {
           fclose(fp);
+          errno = 0;
           ErrorReturn(NULL, (ERROR_BADFILE, "sdtRead(%s): 'dim' before 'numDim' in header file %s\n", fname, header_fname));
         }
         if(ndim == 3)
@@ -5949,6 +6178,7 @@ static MRI *sdtRead(char *fname, int read_volume)
           if(dim[3] != 1)
           {
             fclose(fp);
+            errno = 0;
             ErrorReturn(NULL, (ERROR_UNSUPPORTED, "sdtRead(%s): nframes != 1 unsupported for sdt (dim(4) = %d)\n", fname, dim[3]));
           }
         }
@@ -5968,11 +6198,13 @@ static MRI *sdtRead(char *fname, int read_volume)
         else if(strncmp(colon, "COMPLEX", 7) == 0)
         {
           fclose(fp);
+          errno = 0;
           ErrorReturn(NULL, (ERROR_UNSUPPORTED, "sdtRead(%s): unsupported data type '%s'\n", fname, colon));
         }
         else
         {
           fclose(fp);
+          errno = 0;
           ErrorReturn(NULL, (ERROR_BADFILE, "sdtRead(%s): unknown data type '%s'\n", fname, colon));
         }
       }
@@ -5999,6 +6231,7 @@ static MRI *sdtRead(char *fname, int read_volume)
         else
         {
           fclose(fp);
+          errno = 0;
           ErrorReturn(NULL, (ERROR_BADFILE, "sdtRead(%s): unknown orientation %s\n", fname, colon));
         }
       }
@@ -6011,14 +6244,23 @@ static MRI *sdtRead(char *fname, int read_volume)
   fclose(fp);
 
   if(data_type == -1)
+  {
+    errno = 0;
     ErrorReturn(NULL, (ERROR_BADFILE, "sdtRead(%s): data type undefined\n", fname));
+  }
   if(dim[0] == -1 || dim[1] == -1 || dim[2] == -1)
+  {
+    errno = 0;
     ErrorReturn(NULL, (ERROR_BADFILE, "sdtRead(%s): one or more dimensions undefined\n", fname));
+  }
 
   if(read_volume)
   {
     if((fp = fopen(fname, "r")) == NULL)
+    {
+      errno = 0;
       ErrorReturn(NULL, (ERROR_BADFILE, "sdtRead(%s): error opening data file %s\n", fname, fname));
+    }
 
     mri = MRIreadRaw(fp, dim[0], dim[1], dim[2], data_type);
 
@@ -6101,9 +6343,12 @@ MRI *MRIreadRaw(FILE *fp, int width, int height, int depth, int type)
   for (slice = 0 ; slice < depth ; slice++)
   {
     if (fread(buf, data_size[type], pixels, fp) != pixels)
+    {
+      errno = 0;
       ErrorReturn(NULL,
                   (ERROR_BADFILE, "%s: could not read %dth slice (%d)",
                    Progname, slice, pixels)) ;
+    }
     if(type == 0)
       buffer_to_image(buf, mri, slice, 0) ;
     if(type == 1)
@@ -6362,8 +6607,11 @@ mghRead(char *fname, int read_volume, int frame)
 
   fp = fopen(fname, "rb") ;
   if (!fp)
+  {
+    errno = 0;
     ErrorReturn(NULL, (ERROR_BADPARM,"mghRead(%s, %d): could not open file",
                        fname, frame)) ;
+  }
   version = freadInt(fp) ;
   width = freadInt(fp) ;
   height = freadInt(fp) ;
@@ -6467,12 +6715,16 @@ mghRead(char *fname, int read_volume, int frame)
           break ;
         case MRI_UCHAR:
           if (fread(buf, sizeof(BUFTYPE), bytes, fp) != bytes)
+          {
+            errno = 0;
             ErrorReturn(NULL,
                         (ERROR_BADFILE, "%s: could not read %dth slice (%d)",
                          Progname, z, bytes)) ;
+          }
           buffer_to_image(buf, mri, z, frame-start_frame) ;
           break ;
         default:
+          errno = 0;
           ErrorReturn(NULL, 
                       (ERROR_UNSUPPORTED, "mghRead: unsupported type %d",
                        mri->type)) ;
@@ -6531,9 +6783,12 @@ mghWrite(MRI *mri, char *fname, int frame)
   }
   fp = fopen(fname, "wb") ;
   if (!fp)
+  {
+    errno = 0;
     ErrorReturn(ERROR_BADPARM, 
                 (ERROR_BADPARM,"mghWrite(%s, %d): could not open file",
                  fname, frame)) ;
+  }
 
   /* WARNING - adding or removing anything before nframes will
      cause mghAppend to fail.
@@ -6613,12 +6868,16 @@ mghWrite(MRI *mri, char *fname, int frame)
         case MRI_UCHAR:
           if (fwrite(&MRIseq_vox(mri,0,y,z,frame), sizeof(BUFTYPE), width, fp) 
               != width)
+          {
+            errno = 0;
             ErrorReturn(ERROR_BADFILE, 
                         (ERROR_BADFILE, 
                          "mghWrite: could not write %d bytes to %s",
                          width, fname)) ;
+          }
           break ;
         default:
+          errno = 0;
           ErrorReturn(ERROR_UNSUPPORTED, 
                       (ERROR_UNSUPPORTED, "mghWrite: unsupported type %d",
                        mri->type)) ;
@@ -6656,39 +6915,24 @@ MRIreorder(MRI *mri_src, MRI *mri_dst, int xdim, int ydim, int zdim)
   default:
   case XDIM: 
     if (mri_dst->width != width)
-      ErrorReturn(NULL,(ERROR_BADPARM, "MRIreorder: incorrect dst width"));
-/*
-    if(mri_dst->ras_good_flag)
     {
-      mri_dst->x_r = mri_src->x_r * ras_sign;
-      mri_dst->x_a = mri_src->x_a * ras_sign;
-      mri_dst->x_s = mri_src->x_s * ras_sign;
+      errno = 0;
+      ErrorReturn(NULL,(ERROR_BADPARM, "MRIreorder: incorrect dst width"));
     }
-*/
     break ;
   case YDIM: 
     if (mri_dst->height != width)
-      ErrorReturn(NULL,(ERROR_BADPARM, "MRIreorder: incorrect dst width"));
-/*
-    if(mri_dst->ras_good_flag)
     {
-      mri_dst->y_r = mri_src->x_r * ras_sign;
-      mri_dst->y_a = mri_src->x_a * ras_sign;
-      mri_dst->y_s = mri_src->x_s * ras_sign;
+      errno = 0;
+      ErrorReturn(NULL,(ERROR_BADPARM, "MRIreorder: incorrect dst width"));
     }
-*/
     break ;
   case ZDIM: 
     if (mri_dst->depth != width)
-      ErrorReturn(NULL,(ERROR_BADPARM, "MRIreorder: incorrect dst width"));
-/*
-    if(mri_dst->ras_good_flag)
     {
-      mri_dst->z_r = mri_src->x_r * ras_sign;
-      mri_dst->z_a = mri_src->x_a * ras_sign;
-      mri_dst->z_s = mri_src->x_s * ras_sign;
+      errno = 0;
+      ErrorReturn(NULL,(ERROR_BADPARM, "MRIreorder: incorrect dst width"));
     }
-*/
     break ;
   }
   ras_sign = (ydim < 0 ? -1.0 : 1.0);
@@ -6697,39 +6941,24 @@ MRIreorder(MRI *mri_src, MRI *mri_dst, int xdim, int ydim, int zdim)
   default:
   case XDIM: 
     if (mri_dst->width != height)
-      ErrorReturn(NULL,(ERROR_BADPARM, "MRIreorder: incorrect dst height"));
-/*
-    if(mri_dst->ras_good_flag)
     {
-      mri_dst->x_r = mri_src->y_r * ras_sign;
-      mri_dst->x_a = mri_src->y_a * ras_sign;
-      mri_dst->x_s = mri_src->y_s * ras_sign;
+      errno = 0;
+      ErrorReturn(NULL,(ERROR_BADPARM, "MRIreorder: incorrect dst height"));
     }
-*/
     break ;
   case YDIM: 
     if (mri_dst->height != height)
-      ErrorReturn(NULL,(ERROR_BADPARM, "MRIreorder: incorrect dst height"));
-/*
-    if(mri_dst->ras_good_flag)
     {
-      mri_dst->y_r = mri_src->y_r * ras_sign;
-      mri_dst->y_a = mri_src->y_a * ras_sign;
-      mri_dst->y_s = mri_src->y_s * ras_sign;
+      errno = 0;
+      ErrorReturn(NULL,(ERROR_BADPARM, "MRIreorder: incorrect dst height"));
     }
-*/
     break ;
   case ZDIM: 
     if (mri_dst->depth != height)
-      ErrorReturn(NULL,(ERROR_BADPARM, "MRIreorder: incorrect dst height"));
-/*
-    if(mri_dst->ras_good_flag)
     {
-      mri_dst->z_r = mri_src->y_r * ras_sign;
-      mri_dst->z_a = mri_src->y_a * ras_sign;
-      mri_dst->z_s = mri_src->y_s * ras_sign;
+      errno = 0;
+      ErrorReturn(NULL,(ERROR_BADPARM, "MRIreorder: incorrect dst height"));
     }
-*/
     break ;
   }
   ras_sign = (zdim < 0 ? -1.0 : 1.0);
@@ -6738,39 +6967,24 @@ MRIreorder(MRI *mri_src, MRI *mri_dst, int xdim, int ydim, int zdim)
   default:
   case XDIM: 
     if (mri_dst->width != depth)
-      ErrorReturn(NULL,(ERROR_BADPARM, "MRIreorder: incorrect dst depth"));
-/*
-    if(mri_dst->ras_good_flag)
     {
-      mri_dst->x_r = mri_src->z_r * ras_sign;
-      mri_dst->x_a = mri_src->z_a * ras_sign;
-      mri_dst->x_s = mri_src->z_s * ras_sign;
+      errno = 0;
+      ErrorReturn(NULL,(ERROR_BADPARM, "MRIreorder: incorrect dst depth"));
     }
-*/
     break ;
   case YDIM: 
     if (mri_dst->height != depth)
-      ErrorReturn(NULL,(ERROR_BADPARM, "MRIreorder: incorrect dst depth"));
-/*
-    if(mri_dst->ras_good_flag)
     {
-      mri_dst->y_r = mri_src->z_r * ras_sign;
-      mri_dst->y_a = mri_src->z_a * ras_sign;
-      mri_dst->y_s = mri_src->z_s * ras_sign;
+      errno = 0;
+      ErrorReturn(NULL,(ERROR_BADPARM, "MRIreorder: incorrect dst depth"));
     }
-*/
     break ;
   case ZDIM: 
     if (mri_dst->depth != depth)
-      ErrorReturn(NULL,(ERROR_BADPARM, "MRIreorder: incorrect dst depth"));
-/*
-    if(mri_dst->ras_good_flag)
     {
-      mri_dst->z_r = mri_src->z_r * ras_sign;
-      mri_dst->z_a = mri_src->z_a * ras_sign;
-      mri_dst->z_s = mri_src->z_s * ras_sign;
+      errno = 0;
+      ErrorReturn(NULL,(ERROR_BADPARM, "MRIreorder: incorrect dst depth"));
     }
-*/
     break ;
   }
 
@@ -6828,6 +7042,7 @@ MRIreorder(MRI *mri_src, MRI *mri_dst, int xdim, int ydim, int zdim)
           MRIvox(mri_dst, xd, yd, zd) = MRIvox(mri_src, xs, ys, zs) ;
           break ;
         default:
+          errno = 0;
           ErrorReturn(NULL,
                       (ERROR_UNSUPPORTED, 
                        "MRIreorder: unsupported voxel format %d",
@@ -6858,9 +7073,12 @@ MRIwriteInfo(MRI *mri, char *fpref)
   sprintf(fname,"%s/%s",fpref, INFO_FNAME);
   fp = fopen(fname,"w");
   if (fp == NULL) 
+  {
+    errno = 0;
     ErrorReturn(ERROR_NO_FILE, 
                 (ERROR_NO_FILE,
                  "MRIwriteInfo(%s): could not open %s.\n", fpref, fname)) ;
+  }
 
   fprintf(fp, "%s %d\n", "imnr0", mri->imnr0);
   fprintf(fp, "%s %d\n", "imnr1", mri->imnr1);
@@ -6896,7 +7114,10 @@ MRIwriteInfo(MRI *mri, char *fpref)
 #if 0
     /* doesn't work - I don't know why */
     if (output_transform_file(fname, "talairach xfm", &mri->transform) != OK)
+    {
+      errno = 0;
       ErrorPrintf(ERROR_BADFILE, "MRIwriteInfo(%s): xform write failed",fpref);
+    }
 #endif
 
   }
@@ -6931,9 +7152,12 @@ MRIappend(MRI *mri, char *fpref)
   if (type == MRI_MGH_FILE)
     return(mghAppend(mri, fname, frame)) ;
   else
+  {
+    errno = 0;
     ErrorReturn(ERROR_UNSUPPORTED, 
                 (ERROR_UNSUPPORTED, "MRIappend(%s): file type not supported",
                 fname)) ;
+  }
 
   return(NO_ERROR) ;
 }
@@ -6956,9 +7180,12 @@ mghAppend(MRI *mri, char *fname, int frame)
   fclose(fp) ;
   fp = fopen(fname, "r+b") ;
   if (!fp)
+  {
+    errno = 0;
     ErrorReturn(ERROR_BADPARM, 
                 (ERROR_BADPARM,"mghAppend(%s, %d): could not open file",
                  fname, frame)) ;
+  }
 
   /* WARNING - this is dependent on the order of writing in mghWrite */
   width = mri->width ; height = mri->height ; depth = mri->depth ;
@@ -6985,12 +7212,16 @@ mghAppend(MRI *mri, char *fname, int frame)
         case MRI_UCHAR:
           if (fwrite(&MRIseq_vox(mri,0,y,z,frame), sizeof(BUFTYPE), width, fp) 
               != width)
+          {
+            errno = 0;
             ErrorReturn(ERROR_BADFILE, 
                         (ERROR_BADFILE, 
                          "mghAppend: could not write %d bytes to %s",
                          width, fname)) ;
+          }
           break ;
         default:
+          errno = 0;
           ErrorReturn(ERROR_UNSUPPORTED, 
                       (ERROR_UNSUPPORTED, "mghAppend: unsupported type %d",
                        mri->type)) ;
@@ -7059,7 +7290,10 @@ MRIunpackFileName(char *inFname, int *pframe, int *ptype, char *outFname)
     else if (!strcmp(at, "SDT"))
       *ptype = SDT_FILE;
     else
+    {
+      errno = 0;
       ErrorExit(ERROR_UNSUPPORTED, "unknown file type %s", at);
+    }
   }
   else  /* no '@' found */
   {
@@ -7089,6 +7323,7 @@ MRIunpackFileName(char *inFname, int *pframe, int *ptype, char *outFname)
     {
       if(stat(outFname, &stat_buf) < 0)
       {
+        errno = 0;
         ErrorReturn(ERROR_BADFILE, (ERROR_BAD_FILE, "can't stat file %s", outFname));
       }
       if(S_ISDIR(stat_buf.st_mode))
@@ -7096,7 +7331,10 @@ MRIunpackFileName(char *inFname, int *pframe, int *ptype, char *outFname)
     }
 
     if(*ptype == -1)
+    {
+      errno = 0;
       ErrorReturn(ERROR_BADPARM, (ERROR_BADPARM, "unrecognized file type for file %s", outFname));
+    }
 
   }
 

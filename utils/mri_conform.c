@@ -3,10 +3,13 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <math.h>
+#include <errno.h>
 #include "mri.h"
 #include "error.h"
 #include "histo.h"
 #include "mri_conform.h"
+
+extern int errno;
 
 MRI *conform_type(MRI *mri);
 MRI *conform_voxels(MRI *mri);
@@ -231,8 +234,11 @@ MRI *conform_type(MRI *mri)
     nv += counts[i];
 
   if(i == -1)
+  {
+    errno = 0;
     ErrorExit(ERROR_BADPARM, "MRIconform (value scaling): histogram is too thin for\na clipping fraction of %g",
               FRACTION_SCALE);
+  }
 
   e1 = (i-1) * bin_size + min;
 
@@ -241,8 +247,11 @@ MRI *conform_type(MRI *mri)
     nv += counts[i];
 
   if(i == N_BINS)
+  {
+    errno = 0;
     ErrorExit(ERROR_BADPARM, "MRIconform (value scaling): histogram is too thin for\na clipping fraction of %g",
               FRACTION_SCALE);
+  }
 
   e2 = (i+1) * bin_size + min;
 
