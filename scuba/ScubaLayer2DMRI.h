@@ -25,9 +25,12 @@ class ScubaLayer2DMRI : public Layer {
 				ViewState& iViewState,
 				ScubaWindowToRASTranslator& iTranslator );
 
-  void GetGrayscaleColorForValue ( float iValue, GLubyte* iBase, int* oColor );
-  void GetHeatscaleColorForValue ( float iValue, GLubyte* iBase, int* oColor );
-  void GetColorLUTColorForValue  ( float iValue, GLubyte* iBase, int* oColor );
+  void GetGrayscaleColorForValue ( float iValue, 
+				   GLubyte* const iBase, int* oColor );
+  void GetHeatscaleColorForValue ( float iValue, 
+				   GLubyte* const iBase, int* oColor );
+  void GetColorLUTColorForValue  ( float iValue, 
+				   GLubyte* const iBase, int* oColor );
   
   // Asks the layer to describe a point of data by adding pairs of
   // labels and values.

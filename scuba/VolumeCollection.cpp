@@ -126,7 +126,7 @@ VolumeCollection::GetMRI() {
     mOneOverVoxelSize[2] = 1.0 / mVoxelSize[2];
 
     try { 
-      //      CalcWorldToIndexCache(); 
+      // CalcWorldToIndexCache(); 
     }
     catch(...) { 
       DebugOutput( << "Failed while calcing world to index cache  " );
@@ -190,6 +190,52 @@ VolumeCollection::UpdateRASBounds () {
 void
 VolumeCollection::RASToMRIIndex ( float iRAS[3], int oIndex[3] ) {
   
+
+  float rasX = iRAS[0];
+  float rasY = iRAS[1];
+  float rasZ = iRAS[2];
+
+  float m11 = *MATRIX_RELT(mWorldToIndexMatrix,1,1);
+  float m12 = *MATRIX_RELT(mWorldToIndexMatrix,1,2);
+  float m13 = *MATRIX_RELT(mWorldToIndexMatrix,1,3);
+  float m14 = *MATRIX_RELT(mWorldToIndexMatrix,1,4);
+
+  float m21 = *MATRIX_RELT(mWorldToIndexMatrix,2,1);
+  float m22 = *MATRIX_RELT(mWorldToIndexMatrix,2,2);
+  float m23 = *MATRIX_RELT(mWorldToIndexMatrix,2,3);
+  float m24 = *MATRIX_RELT(mWorldToIndexMatrix,2,4);
+  
+  float m31 = *MATRIX_RELT(mWorldToIndexMatrix,3,1);
+  float m32 = *MATRIX_RELT(mWorldToIndexMatrix,3,2);
+  float m33 = *MATRIX_RELT(mWorldToIndexMatrix,3,3);
+  float m34 = *MATRIX_RELT(mWorldToIndexMatrix,3,4);
+  
+  float a = m11 * rasX;
+  float b = m12 * rasY;
+  float c = m13 * rasZ;
+  float sum0 = a + b + c + m14;
+  int sumI0 = (int) sum0;
+  
+  float d = m21 * rasX;
+  float e = m22 * rasY;
+  float f = m23 * rasZ;
+  float sum1 = d + e + f + m24;
+  int sumI1 = (int) sum1;
+
+  float g = m31 * rasX;
+  float h = m32 * rasY;
+  float i = m33 * rasZ;
+  float sum2 = g + h + i + m34;
+  int sumI2 = (int) sum2;
+
+
+  oIndex[0] = sumI0;
+  oIndex[1] = sumI1;
+  oIndex[2] = sumI2;
+
+
+#if 0
+
   oIndex[0] = (int) (
 		     *MATRIX_RELT(mWorldToIndexMatrix,1,1) * iRAS[0] +
 		     *MATRIX_RELT(mWorldToIndexMatrix,1,2) * iRAS[1] +
@@ -205,9 +251,9 @@ VolumeCollection::RASToMRIIndex ( float iRAS[3], int oIndex[3] ) {
 		     *MATRIX_RELT(mWorldToIndexMatrix,3,2) * iRAS[1] +
 		     *MATRIX_RELT(mWorldToIndexMatrix,3,3) * iRAS[2] +
 		     *MATRIX_RELT(mWorldToIndexMatrix,3,4) );
+#endif
   
 #if 0
-
   int cacheIndex[3];
   WorldToIndexCacheIndex( iRAS, cacheIndex );
   Point3<int> index = 
