@@ -920,7 +920,7 @@ repaint_handler(XV_FRAME *xvf, DIMAGE *dimage)
           {
             vn = &mri_surface->vertices[v->v[n]] ;
             MRIworldToVoxel(mri,vn->x, vn->y, vn->z, &xv2, &yv2, &zv2) ;
-            if ((zv2 > slice-1) && (zv2 < slice+1))
+            if ((zv2 > slice-.5) && (zv2 < slice+.5))
             {
               dx = xv2-xv ; dy = yv2-yv ;
               XVdrawLinef(xvf, which, xv, yv, dx, dy, XCYAN) ;
@@ -935,13 +935,13 @@ repaint_handler(XV_FRAME *xvf, DIMAGE *dimage)
           Y=0 is the neck/brain stem
           */
         slice = mri_slices[which] ;
-        if ((xv > slice-1) && (xv < slice+1))
+        if ((xv > slice-.5) && (xv < slice+.5))
         {
           for (n = 0 ; n < v->vnum ; n++)
           {
             vn = &mri_surface->vertices[v->v[n]] ;
             MRIworldToVoxel(mri, vn->x, vn->y, vn->z, &xv2, &yv2, &zv2);
-            if ((xv2 > slice-1) && (xv2 < slice+1))
+            if ((xv2 > slice-.5) && (xv2 < slice+.5))
             {
               dx = zv2-zv ; dy = yv2-yv ;
               XVdrawLinef(xvf, which, zv, yv, dx, dy, XCYAN) ;
@@ -956,13 +956,13 @@ repaint_handler(XV_FRAME *xvf, DIMAGE *dimage)
           Y=0 is the neck/brain stem
           */
         slice = mri_depths[which] ;
-        if ((yv > slice-1) && (yv < slice+1))
+        if ((yv > slice-.5) && (yv < slice+.5))
         {
           for (n = 0 ; n < v->vnum ; n++)
           {
             vn = &mri_surface->vertices[v->v[n]] ;
             MRIworldToVoxel(mri, vn->x, vn->y, vn->z, &xv2, &yv2, &zv2) ;
-            if ((yv2 > slice-1) && (yv2 < slice+1))
+            if ((yv2 > slice-.5) && (yv2 < slice+.5))
             {
               dx = xv2-xv ; dy = zv2-zv ;
               XVdrawLinef(xvf, which, xv, zv, dx, dy, XCYAN) ;
