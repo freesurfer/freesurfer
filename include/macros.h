@@ -52,8 +52,10 @@
 #ifndef SunOS
 #define FZERO(f)     (fabs(f) < 0.0000001F)
 #define iszero(f)   (FZERO(f))
+#define DZERO(d)     (fabs(d) < 1e-15)
 #else
 #define FZERO(f)     (iszero(f))
+#define DZERO(d)     (iszero(d))
 #endif
 
 #define ISINT(f)      ((float)((int)f) == f)
