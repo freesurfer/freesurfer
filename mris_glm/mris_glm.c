@@ -4,7 +4,7 @@
   email:   analysis-bugs@nmr.mgh.harvard.edu
   Date:    2/27/02
   Purpose: Computes glm inferences on the surface.
-  $Id: mris_glm.c,v 1.7 2002/10/29 17:46:57 greve Exp $
+  $Id: mris_glm.c,v 1.8 2002/10/30 22:49:50 greve Exp $
 
 Things to do:
   0. Documentation.
@@ -62,7 +62,7 @@ MATRIX *ReadAsciiMatrix(char *asciimtxfname);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mris_glm.c,v 1.7 2002/10/29 17:46:57 greve Exp $";
+static char vcid[] = "$Id: mris_glm.c,v 1.8 2002/10/30 22:49:50 greve Exp $";
 char *Progname = NULL;
 
 char *hemi        = NULL;
@@ -143,6 +143,8 @@ MRI *tmpmri, *tmpmri2, *SrcHits, *SrcDist, *TrgHits, *TrgDist;
 
 float DOF;
 char *SUBJECTS_DIR;
+
+int Force=0;
 
 /*---------------------------------------------------------------*/
 int main(int argc, char **argv)
@@ -447,6 +449,7 @@ static int parse_commandline(int argc, char **argv)
     if (!strcasecmp(option, "--help"))  print_help() ;
     else if (!strcasecmp(option, "--version")) print_version() ;
     else if (!strcasecmp(option, "--debug"))   debug = 1;
+    else if (!strcasecmp(option, "--force"))   Force = 1;
 
     else if (!strcmp(option, "--synth")){
       if(nargc < 1) argnerr(option,1);
@@ -510,7 +513,7 @@ static int parse_commandline(int argc, char **argv)
 	  exit(1);
 	}
       }
-      if(Xcondition > 100000){
+      if(Xcondition > 100000 && !Force){
 	printf("ERROR: Design matrix is badly conditioned, check for linear\n"
 	       "dependency  between columns (ie, two or more columns \n"
 	       "that add up to another column).\n\n");
@@ -718,6 +721,7 @@ static void print_usage(void)
   printf("   --t       name <fmt> : t-ratio of contrast \n");
   printf("   --sigt    name <fmt> : signficance of t-ratio (ie, t-Test) \n");
   printf("\n");
+  printf("   --force              : force processing with badly cond X\n");
   printf("   --synth seed : substitute white gaussian noise for data\n");
   printf("   --sd    subjectsdir : default is env SUBJECTS_DIR\n");
   printf("\n");
@@ -801,18 +805,20 @@ COMMAND-LINE ARGUMENTS
 --design fname
 
 File name for design matrix. The design matrix must be in an ASCII
-file. The first column must be the id assigned to the subject 
-during FreeSurfer reconstruction. The following columns are the
-the design matrix. It is possible for the design matrix to be
-ill-conditioned. This means that two columns are identical or that
-one column is equal to a weighted sum of any of the other columns.
-In this case, the matrix cannot be inverted and so the analysis
-must stop. The matrix is judged to be ill-conditioned if its 
-condition number is greater than 100000. It is possible to test
-the condition of a matrix without having to include all the 
-command-line options needed for a full analysis. Just run:
-    mris_glm --design fname
-It will print out an INFO line with the condition number.
+file. The first column must be the id assigned to the subject during
+FreeSurfer reconstruction. The following columns are the the design
+matrix. It is possible for the design matrix to be
+ill-conditioned. This means that two columns are identical or that one
+column is equal to a weighted sum of any of the other columns.  In
+this case, the matrix cannot be inverted and so the analysis must
+stop. The matrix is judged to be ill-conditioned if its condition
+number is greater than 100000. This threshold is semi-arbitary. It is
+possible to test the condition of a matrix without having to include
+all the command-line options needed for a full analysis. Just run:
+          mris_glm --design fname 
+It will print out an INFO line with the condition number. You can
+force processing with the given design matrix by PRECEDING the
+--design flag with --force.
 
 --surfmeas name 
 
@@ -951,6 +957,12 @@ sign as the t-ratio from which it was computed. The significance
 is computed from a double-sided t-test and is NOT corrected for
 multiple comparisons across space. fmt is the format (see OUTPUT 
 FORMATS).
+
+--force
+
+Force processing eventhough the design matrix condition number 
+exceeds 10000.
+
 
 --synth seed
 
