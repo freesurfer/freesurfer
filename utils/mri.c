@@ -96,7 +96,7 @@ static long mris_alloced = 0 ;
   at CRS 1,1,1 instead of 0,0,0, then set base = 1. This is 
   necessary with SPM matrices.
 
-  See also: MRIxfmCRS2XYZtkreg, MRIfixTkReg
+  See also: MRIxfmCRS2XYZtkreg, MRItkReg2Native
   ------------------------------------------------------*/
 MATRIX *MRIxfmCRS2XYZ(MRI *mri, int base)
 {
@@ -196,8 +196,8 @@ MATRIX *MRIxfmCRS2XYZtkreg(MRI *mri)
   return(K);
 }
 /*-------------------------------------------------------------------
-  MRIfixTkReg() - "fixes" a tkregister-compatible registration matrix
-  R so that it works with the geometry native to the two volumes. The
+  MRItkReg2Native() - converts a tkregister-compatible registration matrix
+  R to one that works with the geometry native to the two volumes. The
   matrix R maps tkXYZ of the ref volume to tkXYZ of the mov volume. In
   a typical application, ref is the anatomical volume and mov is the
   functional volume. The purpose of this function is to be able to use
@@ -208,7 +208,7 @@ MATRIX *MRIxfmCRS2XYZtkreg(MRI *mri)
 
   See also: MRItkRegMtx, MRIxfmCRS2XYZtkreg, MRIxfmCRS2XYZ
   -------------------------------------------------------------------*/
-MATRIX *MRIfixTkReg(MRI *ref, MRI *mov, MATRIX *R)
+MATRIX *MRItkReg2Native(MRI *ref, MRI *mov, MATRIX *R)
 {
   MATRIX *Kref, *Kmov;
   MATRIX *Tref, *Tmov, *D;
@@ -230,7 +230,7 @@ MATRIX *MRIfixTkReg(MRI *ref, MRI *mov, MATRIX *R)
   MatrixMultiply(D,invTref,D);
 
   if(0) {
-    printf("MRIfixTkReg -----------------------------\n");
+    printf("MRITkReg2Native -----------------------------\n");
     printf("Tref ----------------\n");
     MatrixPrint(stdout,Tref);
     printf("Tmov ----------------\n");
@@ -254,7 +254,7 @@ MATRIX *MRIfixTkReg(MRI *ref, MRI *mov, MATRIX *R)
 /*----------------------------------------------------------------
   MRItkRegMtx() - creates a tkregsiter-compatible matrix from the
   matrix that aligns the two volumes assuming the native geometry.
-  This is the counterpart to MRIfixTkReg(). If D is null, it is
+  This is the counterpart to MRITkReg2Native(). If D is null, it is
   assumed to be the identity. R: MovXYZ = R*RefXYZ. Typically,
   Ref is the Anatomical Reference, and Mov is the functional.
   ---------------------------------------------------------------*/
@@ -288,6 +288,121 @@ MATRIX *MRItkRegMtx(MRI *ref, MRI *mov, MATRIX *D)
 
   return(R);
 }
+/*-------------------------------------------------------------
+  MRIfixTkReg() - this routine will adjust a matrix created by the
+  "old" tkregister program. The old program had a problem in the way
+  it chose the CRS of a voxel in the functional volume based on a
+  point in the anatomical volume. The functional CRS of a point in
+  anatomical space rarely (if ever) falls directly on a functional
+  voxel, so it's necessary to choose a functional voxel given that the
+  point falls between functional voxels (or it can be interpolated).
+  The old tkregister program did not interpolate, rather it would
+  choose the CRS in the following way: iC = floor(fC), iR = ceil(fR),
+  and iS = floor(fS), where iC is the integer column number and fC is
+  the floating point column, etc. Unfortunately, this is not nearest
+  neighbor and it's not invertible. The right way to do it is to do
+  nearest neighbor (ie, round to the closest integer). Unfortunately,
+  there are a lot of data sets out there that have been regsitered
+  with the old program, and we don't want to force poeple to
+  reregister with the "new" program. This routine attempts to adjust
+  the matrix created with the old program so that it will work with
+  code that assumes that pure nearest neighbor was used.
+
+  It does this by randomly sampling the anatomical volume in xyz
+  and computing the tkreg'ed CRS for each point.
+
+    Pcrs = inv(Tmov)*R*Pxyz 
+    PcrsTkReg = fcf(Pcrs) -- fcf is floor ceiling floor
+
+  We seek a new R (Rfix) define with
+
+    PcrsFix = inv(Tmov)*Rfix*Pxyz
+
+  such that that the difference between PcrsFix and PcrsTkReg are
+  minimized. To do this, we set
+
+    PcrsFix = PcrsTkReg = inv(Tmov)*Rfix*Pxyz
+
+  and solve for Rfix (this is an LMS solution):
+
+    Rfix = Tmov*(PcrsTkReg*Pxyz')*inv(Pxyz*Pxyz');
+
+  Applications that read in the registration matrix should detect the
+  truncation method used (see below), fix the matrix if necessary, and
+  proceed as if nearest neighbor/rounding was used.  The type of
+  truncation can be determined from the last line of the registration
+  file (after the matrix itself). If there is nothing there or the
+  string "tkregister" is there, then the matrix should be
+  converted. Otherwise, the string "round" should be there. The
+  function regio_read_register (from registerio.c) will return the
+  type of matrix in the float2int variable. It will be either
+  FLT2INT_TKREG or FLT2INT_ROUND (constants defined in resample.h).
+  ---------------------------------------------------------------*/
+MATRIX *MRIfixTkReg(MRI *mov, MATRIX *R)
+{
+  int n, ntest = 1000;
+  MATRIX *Pxyz, *Pcrs, *PcrsTkReg;
+  MATRIX *PxyzT, *PxyzPxyzT, *invPxyzPxyzT;
+  MATRIX *Tmov,*invTmov,*Rfix;
+  MATRIX *tmp;
+  float xrange, yrange, zrange;
+
+  /* Assume a COR reference image */
+  xrange = 256.0;
+  yrange = 256.0;
+  zrange = 256.0;
+
+  Tmov = MRIxfmCRS2XYZtkreg(mov);
+  invTmov = MatrixInverse(Tmov,NULL);
+
+  Pxyz      = MatrixAlloc(4,ntest,MATRIX_REAL);
+  PcrsTkReg = MatrixAlloc(4,ntest,MATRIX_REAL);
+
+  /* Fill xyz with rand within the reference volume range */
+  for(n=0;n<ntest;n++) {
+    Pxyz->rptr[1][n+1] = xrange * (drand48()-0.5);
+    Pxyz->rptr[2][n+1] = yrange * (drand48()-0.5);
+    Pxyz->rptr[3][n+1] = zrange * (drand48()-0.5);
+    Pxyz->rptr[4][n+1] = 1;
+  }
+
+  /* Compute floating mov CRS from targ XYZ */
+  /* Pcrs = inv(Tmov)*R*Pxyz */
+  tmp = MatrixMultiply(R,Pxyz,NULL);
+  Pcrs = MatrixMultiply(invTmov,tmp,NULL);
+  MatrixFree(&tmp);
+
+  /* Truncate floating mov CRS using tkregister method*/
+  for(n=0;n<ntest;n++) {
+    PcrsTkReg->rptr[1][n+1] = floor(Pcrs->rptr[1][n+1]);
+    PcrsTkReg->rptr[2][n+1] =  ceil(Pcrs->rptr[2][n+1]);
+    PcrsTkReg->rptr[3][n+1] = floor(Pcrs->rptr[3][n+1]);
+    PcrsTkReg->rptr[4][n+1] = 1;
+  }
+  MatrixFree(&Pcrs);
+
+  //Rfix = Tmov*(PcrsTkreg*Pxyz')*inv(Pxyz*Pxyz');
+  PxyzT = MatrixTranspose(Pxyz,NULL);
+  PxyzPxyzT = MatrixMultiply(Pxyz,PxyzT,NULL);
+  invPxyzPxyzT = MatrixInverse(PxyzPxyzT,NULL);
+  tmp = MatrixMultiply(PcrsTkReg,PxyzT,NULL);
+  MatrixMultiply(Tmov,tmp,tmp);
+  Rfix = MatrixMultiply(tmp,invPxyzPxyzT,NULL);
+
+
+  MatrixFree(&Pxyz);
+  MatrixFree(&PcrsTkReg);
+  MatrixFree(&PxyzT);
+  MatrixFree(&PxyzPxyzT);
+  MatrixFree(&invPxyzPxyzT);
+  MatrixFree(&Tmov);
+  MatrixFree(&invTmov);
+  MatrixFree(&tmp);
+
+  return(Rfix);
+}
+
+
 /*-------------------------------------------------------------------
   MRIgetVoxVal() - returns voxel value as a float regardless of
   the underlying data type.
