@@ -1,13 +1,15 @@
 #!/bin/csh -f
 # latgrinder-sess
 #
-set VERSION = '$Id: latgrinder-sess,v 1.1 2004/06/01 18:33:44 greve Exp $'
+set VERSION = '$Id: latgrinder-sess,v 1.2 2004/06/04 03:45:53 greve Exp $'
 
 set inputargs = ($argv);
 
 set analysis = ();
 set pthresh  = ();
 set latdir   = ();
+set paint    = 0;
+set targsubj = average7
 
 set MLF = ();
 set monly = 0;
@@ -86,7 +88,6 @@ foreach sess ($SessList)
   set latpath = $sess/$fsd/$analysis/$latdir
   mkdir -p $latpath
 end
-
 
 if(! $monly) set MLF = /tmp/latgrinder-sess-$$.m
 echo MLF is $MLF
@@ -188,8 +189,33 @@ echo "-----------------------------------------------------"| tee -a $LF
 
 set StartTime = `date`;
 if(! $monly) then
-  cat $MLF | matlab -nojvm -nosplash -display iconic
+  cat $MLF | matlab -nojvm -nosplash -display iconic | tee -a $LF
   rm -f $MLF
+endif
+
+if($paint) then
+  foreach sess ($SessList)
+    set subject = `cat $sess/subjectname`;
+    set reg = $sess/$fsd/register.dat
+    foreach stem (lat latm sig)
+      set instem  = $sess/$fsd/$analysis/$latdir/$stem
+      set outstem = $sess/$fsd/$analysis/$latdir/$stem-$targsubj-$hemi
+      foreach hemi (lh rh)
+        set cmd = (mri_vol2surf --src $instem --src_type bfloat)
+        set cmd = ($cmd --srcreg $reg --trgsubject $targsubj --hemi $hemi)
+        set cmd = ($cmd --projfrac 0.5 --out $outstem --out_type bfloat)
+        echo "----------------------------" | tee -a $LF
+        pwd | tee -a $LF
+        echo $SUBJECTS_DIR | tee -a $LF
+        echo $cmd | tee -a $LF
+        $cmd | tee -a $LF
+        if($status) then
+           echo "ERROR: mri_vol2surf" | tee -a $LF
+           exit 1;
+        endif
+      end
+    end
+  end
 endif
 
 echo "" | tee -a $LF
@@ -232,6 +258,10 @@ while( $#argv != 0 )
       if ( $#argv == 0) goto arg1err;
       set MLF = $argv[1]; shift;
       set monly = 1;
+      breaksw
+
+    case "-paint":
+      set paint = 1;
       breaksw
 
     case "-umask":
@@ -305,6 +335,7 @@ usage_exit:
   echo "   -a analysisname : session-level functional analysis name"
   echo "   -thresh  -log10(sigthresh) : eg, 2 for .01"
   echo "   -latdir latdir  : latency contrast directory"
+  echo "   -paint : paint results on $targsubj"
   echo ""
   echo "   -sf sessidfile  ..."
   echo "   -df srchdirfile ..."
@@ -345,6 +376,10 @@ zero for some conditions and non-zero for others.
 
 These results can be treated just as any other contrast. Specify the map 
 as either sig, lat, or latm.
+
+If -paint is specified, then the three output volumes are sampled onto
+the surface of average7. The results will be stored in sig-average7-?h,
+lat-average7-?h, and latm-average7-?h in bfloat format.
 
 Example:
 
