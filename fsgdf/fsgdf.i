@@ -38,4 +38,5 @@ extern int gdfGetNthSubjectNthValue(FSGD *gd, int nsubject,
 				     int nvariable, float *OUTPUT);
 extern int gdfGetNthSubjectMeasurement(FSGD *gd, int nsubject, 
 					int x, int y, int z, float *OUTPUT);
-
+extern int gdfOffsetSlope(FSGD *gd, int nclass, int nvar,
+			  int x, int y, int z, float *OUTPUT, float *OUTPUT);

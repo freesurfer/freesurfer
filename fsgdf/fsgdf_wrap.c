@@ -208,7 +208,7 @@ SWIG_TypeClientData(swig_type_info *ti, void *clientdata) {
 #endif
 
 /*
- * $Header: /space/repo/1/dev/dev/fsgdf/fsgdf_wrap.c,v 1.3 2002/11/13 19:29:05 kteich Exp $
+ * $Header: /space/repo/1/dev/dev/fsgdf/fsgdf_wrap.c,v 1.4 2002/11/18 21:35:29 kteich Exp $
  * 
  * swigtcl8.swg
  */
@@ -996,6 +996,7 @@ extern int gdfGetNthSubjectID(FSGD *,int,char *);
 extern int gdfGetNthSubjectClass(FSGD *,int,int *);
 extern int gdfGetNthSubjectNthValue(FSGD *,int,int,float *);
 extern int gdfGetNthSubjectMeasurement(FSGD *,int,int,int,int,float *);
+extern int gdfOffsetSlope(FSGD *,int,int,int,int,int,float *,float *);
 
 #include <ctype.h>
 
@@ -1794,6 +1795,43 @@ _wrap_gdfGetNthSubjectMeasurement(ClientData clientData, Tcl_Interp *interp, int
 }
 
 static int
+_wrap_gdfOffsetSlope(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]) {
+    FSGD *arg1 ;
+    int arg2 ;
+    int arg3 ;
+    int arg4 ;
+    int arg5 ;
+    int arg6 ;
+    float *arg7 ;
+    float *arg8 ;
+    int result;
+    float temp7 ;
+    float temp8 ;
+    
+    {
+        arg7 = &temp7;
+    }
+    {
+        arg8 = &temp8;
+    }
+    if (SWIG_GetArgs(interp, objc, objv,"piiiii:gdfOffsetSlope gd nclass nvar x y z ",&arg1,SWIGTYPE_p_FSGD,&arg2,&arg3,&arg4,&arg5,&arg6) == TCL_ERROR) return TCL_ERROR;
+    result = (int)gdfOffsetSlope(arg1,arg2,arg3,arg4,arg5,arg6,arg7,arg8);
+    
+    Tcl_SetObjResult(interp,Tcl_NewIntObj((long) result));
+    {
+        Tcl_Obj *o;
+        o = Tcl_NewDoubleObj((double) *(arg7));
+        Tcl_ListObjAppendElement(interp,Tcl_GetObjResult(interp),o);
+    }
+    {
+        Tcl_Obj *o;
+        o = Tcl_NewDoubleObj((double) *(arg8));
+        Tcl_ListObjAppendElement(interp,Tcl_GetObjResult(interp),o);
+    }
+    return TCL_OK;
+}
+
+static int
 _wrap_ptrvalue(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[]) {
     Tcl_Interp *arg1 ;
     char *arg2 ;
@@ -1912,6 +1950,7 @@ static swig_command_info swig_commands[] = {
     { SWIG_prefix "gdfGetNthSubjectClass", (swig_wrapper_func) _wrap_gdfGetNthSubjectClass, NULL},
     { SWIG_prefix "gdfGetNthSubjectNthValue", (swig_wrapper_func) _wrap_gdfGetNthSubjectNthValue, NULL},
     { SWIG_prefix "gdfGetNthSubjectMeasurement", (swig_wrapper_func) _wrap_gdfGetNthSubjectMeasurement, NULL},
+    { SWIG_prefix "gdfOffsetSlope", (swig_wrapper_func) _wrap_gdfOffsetSlope, NULL},
     { SWIG_prefix "ptrvalue", (swig_wrapper_func) _wrap_ptrvalue, NULL},
     { SWIG_prefix "ptrset", (swig_wrapper_func) _wrap_ptrset, NULL},
     { SWIG_prefix "ptrcreate", (swig_wrapper_func) _wrap_ptrcreate, NULL},
