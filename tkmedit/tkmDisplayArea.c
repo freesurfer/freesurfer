@@ -3,8 +3,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2003/12/08 07:59:32 $
-// Revision       : $Revision: 1.94 $
+// Revision Date  : $Date: 2004/01/08 23:02:45 $
+// Revision       : $Revision: 1.95 $
 
 #include "tkmDisplayArea.h"
 #include "tkmMeditWindow.h"
@@ -212,6 +212,11 @@ DspA_tErr DspA_New ( tkmDisplayAreaRef* oppWindow,
   this->mVLI2                   = NULL;
   this->mpDTIVolume             = NULL;
   
+  /* No line vertices yet. */
+  this->mLineVertex1.mnX = this->mLineVertex1.mnY = -1;
+  this->mLineVertex2.mnX = this->mLineVertex2.mnY = -1;
+  this->mNumLineVoxels = 0;
+
   /* set default brush info */
   sBrush.mnRadius = 1;
   sBrush.mShape   = DspA_tBrushShape_Square;
@@ -2834,6 +2839,8 @@ DspA_tErr DspA_HandleMouseUp_ ( tkmDisplayAreaRef this,
   tkm_tSegType segType     = tkm_tSegType_Main;
   DspA_tSegBrushSettings segBrush;
   tBoolean     bSelect     = FALSE;
+  xVoxel       lineVox;
+
   
   xVoxl_New( &pVolumeVox );
   
@@ -3020,6 +3027,43 @@ DspA_tErr DspA_HandleMouseUp_ ( tkmDisplayAreaRef this,
       }
     }
     break;
+
+
+  case DspA_tTool_Line:
+    
+    /* If button 2, set one of the vertices. If button three, clear
+       both vertices. */
+    if( !ipEvent->mbCtrlKey &&
+	!ipEvent->mbAltKey ) {
+
+      DspA_NormalizeVoxel_( pVolumeVox, this->mOrientation, &lineVox );
+
+      if( 2 == ipEvent->mButton ) {
+	
+	if( this->mLineVertex1.mnX < 0 || this->mLineVertex1.mnY < 0 ) {
+	  this->mLineVertex1.mnX = xVoxl_GetX( &lineVox );
+	  this->mLineVertex1.mnY = xVoxl_GetY( &lineVox );
+
+	} else { 
+	  
+	  if( this->mLineVertex2.mnX >= 0 || this->mLineVertex2.mnY >= 0 ) {
+	    this->mLineVertex1 = this->mLineVertex2;
+	  }
+	  this->mLineVertex2.mnX = xVoxl_GetX( &lineVox );
+	  this->mLineVertex2.mnY = xVoxl_GetY( &lineVox );;
+	}
+	
+      } else if ( 3 == ipEvent->mButton ) {
+
+	this->mLineVertex1.mnX = -1;
+	this->mLineVertex1.mnY = -1;
+	this->mLineVertex2 = this->mLineVertex1;
+      }
+      DspA_BuildLineToolVoxelList_( this );
+      this->mbSliceChanged = TRUE;
+    }
+    break;
+
 
   default:
     break;
@@ -3567,6 +3611,9 @@ DspA_tErr DspA_HandleKeyDown_ ( tkmDisplayAreaRef this,
       break;
     case 'g':
       eResult = DspA_SetTool( this, DspA_tTool_EditSegmentation );
+      break;
+    case 'l':
+      eResult = DspA_SetTool( this, DspA_tTool_Line );
       break;
     case 'n':
       eResult = DspA_SetTool( this, DspA_tTool_Navigate );
@@ -4128,6 +4175,13 @@ DspA_tErr DspA_HandleDraw_ ( tkmDisplayAreaRef this ) {
 	eResult = DspA_tErr_NoErr;
       }
     }
+
+    /* Line tool lines. */
+    eResult = DspA_DrawLinesToFrame_ ( this );
+    if ( DspA_tErr_NoErr != eResult ) {
+      DspA_Signal( "DspA_HandleDraw_", __LINE__, eResult );
+      eResult = DspA_tErr_NoErr;
+    }
   }
   
   /* Draw the frame buffer to screen. */
@@ -4207,6 +4261,13 @@ DspA_tErr DspA_HandleDraw_ ( tkmDisplayAreaRef this ) {
     }
   }
   
+  /* Line tool lines. */
+  eResult = DspA_DrawLines_ ( this );
+  if ( DspA_tErr_NoErr != eResult ) {
+    DspA_Signal( "DspA_HandleDraw_", __LINE__, eResult );
+    eResult = DspA_tErr_NoErr;
+  }
+
   /* rebuilt all our slice changes, so we can clear this flag. */
   this->mbSliceChanged = FALSE;
   
@@ -4605,6 +4666,141 @@ DspA_tErr DspA_DrawAxes_ ( tkmDisplayAreaRef this ) {
   return eResult;
 }
 
+DspA_tErr DspA_DrawLinesToFrame_ ( tkmDisplayAreaRef this ) {
+  
+  DspA_tErr eResult     = DspA_tErr_NoErr;
+  xPoint2n  bufferPt    = {0,0};
+  GLubyte*  pFrame      = NULL;
+  xColor3f  color;
+  xVoxel    anaIdx;
+  int       nLineVox    = 0;
+  int       yMin        = 0;
+  int       yMax        = 0;
+  int       yInc        = 0;
+ 
+  /* If we don't have good vertices, bail. */
+  if( this->mLineVertex1.mnX < 0 || this->mLineVertex1.mnY < 0 ||
+      this->mLineVertex2.mnX < 0 || this->mLineVertex2.mnY < 0 )
+    goto cleanup;
+
+  /* get a ptr to the frame buffer. */
+  pFrame = this->mpFrameBuffer;
+
+  if( mri_tOrientation_Horizontal == this->mOrientation ){
+    yMin = 0; yMax = this->mnVolumeSizeY-1; yInc = 1;
+  } else {
+    yMin = this->mnVolumeSizeY-1; yMax = 0; yInc = -1;
+  }
+  
+  /* Just loop through getting the anatomical color at this index. */
+  for ( bufferPt.mnY = yMin; bufferPt.mnY != yMax; bufferPt.mnY += yInc) {
+    for ( bufferPt.mnX = 0; 
+	  bufferPt.mnX < this->mnVolumeSizeX; bufferPt.mnX ++ ) {
+      
+      /* get a volume voxel.*/
+      eResult = DspA_ConvertBufferToVolume_ ( this, &bufferPt, &anaIdx );
+      if ( DspA_tErr_NoErr != eResult )
+	goto error;
+      
+      for( nLineVox = 0; nLineVox < this->mNumLineVoxels; nLineVox++ ) {
+
+	if( xVoxl_IsEqualInt( &(this->mLineVoxels[nLineVox]), &anaIdx ) ) {
+	  
+	  /* get the current color in the buffer */
+	  xColr_SetFloat( &color, (float)pFrame[DspA_knRedPixelCompIndex] /
+			(float)DspA_knMaxPixelValue,
+			  (float)pFrame[DspA_knGreenPixelCompIndex] /
+			  (float)DspA_knMaxPixelValue,
+			  (float)pFrame[DspA_knBluePixelCompIndex] /
+			  (float)DspA_knMaxPixelValue );
+	  
+	  /* make it redder */
+	  xColr_HilightComponent( &color, xColr_tComponent_Red );
+	  
+	  /* put it back */
+	  pFrame[DspA_knRedPixelCompIndex]   = 
+	    (GLubyte)(color.mfRed * (float)DspA_knMaxPixelValue);
+	  pFrame[DspA_knGreenPixelCompIndex] = 
+	    (GLubyte)(color.mfGreen * (float)DspA_knMaxPixelValue);
+	  pFrame[DspA_knBluePixelCompIndex]  = 
+	    (GLubyte)(color.mfBlue * (float)DspA_knMaxPixelValue);
+	  pFrame[DspA_knAlphaPixelCompIndex] = DspA_knMaxPixelValue;
+
+	  break;
+	}
+      }
+
+      /* advance our pointer. */
+      pFrame += DspA_knNumBytesPerPixel;
+    }
+  }
+
+  goto cleanup;
+  
+  goto error;
+  
+ error:
+  
+  /* print error message */
+  if ( DspA_tErr_NoErr != eResult ) {
+    DebugPrint( ("Error %d in DspA_DrawLinesToFrame_: %s\n",
+		 eResult, DspA_GetErrorString(eResult) ) );
+  }
+  
+ cleanup:
+  
+  return eResult;
+}
+
+DspA_tErr DspA_DrawLines_ ( tkmDisplayAreaRef this ) {
+  
+  DspA_tErr eResult     = DspA_tErr_NoErr;
+  xPoint2f  drawPoint1;
+  xPoint2f  drawPoint2;
+ 
+  /* If we don't have good vertices, bail. */
+  if( this->mLineVertex1.mnX < 0 || this->mLineVertex1.mnY < 0 ||
+      this->mLineVertex2.mnX < 0 || this->mLineVertex2.mnY < 0 )
+    goto cleanup;
+
+  /* convert to zoomed coords. */
+  drawPoint1.mfX = ((float)this->mnZoomLevel * ((float)(this->mLineVertex1.mnX) - xVoxl_GetFloatX(this->mpZoomCenter))) + (float)(this->mnVolumeSizeX/2.0);
+  drawPoint1.mfY = ((float)this->mnZoomLevel * ((float)(this->mLineVertex1.mnY) - xVoxl_GetFloatY(this->mpZoomCenter))) + (float)(this->mnVolumeSizeY/2.0);
+  
+  drawPoint2.mfX = ((float)this->mnZoomLevel * ((float)(this->mLineVertex2.mnX) - xVoxl_GetFloatX(this->mpZoomCenter))) + (float)(this->mnVolumeSizeX/2.0);
+  drawPoint2.mfY = ((float)this->mnZoomLevel * ((float)(this->mLineVertex2.mnY) - xVoxl_GetFloatY(this->mpZoomCenter))) + (float)(this->mnVolumeSizeY/2.0);
+  
+  /* y flip */
+  drawPoint1.mfY = GLDRAW_Y_FLIP(drawPoint1.mfY);
+  drawPoint2.mfY = GLDRAW_Y_FLIP(drawPoint2.mfY);
+
+  DspA_SetUpOpenGLPort_( this );
+  
+  /* draw a green line */
+  glColor3f ( 0.0, 1.0, 0.0 );
+  
+  glBegin( GL_LINE_STRIP );
+  glVertex2f( drawPoint1.mfX, drawPoint1.mfY );
+  glVertex2f( drawPoint2.mfX, drawPoint2.mfY );
+  glEnd ();
+
+  goto cleanup;
+  
+  goto error;
+  
+ error:
+  
+  /* print error message */
+  if ( DspA_tErr_NoErr != eResult ) {
+    DebugPrint( ("Error %d in DspA_DrawLines_: %s\n",
+		 eResult, DspA_GetErrorString(eResult) ) );
+  }
+  
+ cleanup:
+  
+  return eResult;
+}
+
 void DspA_DrawVerticalArrow_ ( xPoint2nRef iStart,
 			       int         inLength,
 			       char*       isLabel ) {
@@ -4743,6 +4939,7 @@ DspA_tErr DspA_BuildCurrentFrame_ ( tkmDisplayAreaRef this ) {
 	      bufferPt.mnX < this->mnVolumeSizeX; bufferPt.mnX ++ ) {
 	  
 	  /* get a volume voxel.*/
+
 	  eResult = DspA_ConvertBufferToVolume_ ( this, &bufferPt, &anaIdx );
 	  if ( DspA_tErr_NoErr != eResult )
 	    goto error;
@@ -6267,6 +6464,69 @@ DspA_tErr DspA_GetClosestInterpSurfVoxel ( tkmDisplayAreaRef this,
   if ( xGArr_tErr_NoErr != eList ) {
     DebugPrint( ("Error %d in DspA_GetClosestInterpSurfVoxel: %s\n",
 		 eResult, xGArr_GetErrorString(eList) ) );
+  }
+  
+ cleanup:
+  
+  return eResult;
+}
+
+
+DspA_tErr DspA_BuildLineToolVoxelList_( tkmDisplayAreaRef this ) {
+  
+  DspA_tErr  eResult    = DspA_tErr_NoErr;
+  xPoint2n   bufferPt;
+  xVoxel     anaIdx;
+  xVoxel     lineVox;
+  int px, qx, tx, py, qy, ty;
+
+  px = this->mLineVertex1.mnX;
+  py = this->mLineVertex1.mnY;
+  qx = this->mLineVertex2.mnX;
+  qy = this->mLineVertex2.mnY;
+
+  this->mNumLineVoxels = 0;
+  for( bufferPt.mnY = 0; bufferPt.mnY < this->mnVolumeSizeY; bufferPt.mnY += this->mnZoomLevel ) {
+    for( bufferPt.mnX = 0; bufferPt.mnX < this->mnVolumeSizeX; bufferPt.mnX += this->mnZoomLevel ) {
+      
+      eResult = DspA_ConvertBufferToVolume_ ( this, &bufferPt, &anaIdx );
+      if ( DspA_tErr_NoErr == eResult ) {
+
+	DspA_NormalizeVoxel_( &anaIdx, this->mOrientation, &lineVox );
+	tx = xVoxl_GetX( &lineVox );
+	ty = xVoxl_GetY( &lineVox );
+	
+	if( ABS( (qy-py)*(tx-px) - (ty-py)*(qx-px) ) >=
+	    MAX( abs(qx-px), ABS(qy-py) ) )
+	  continue;
+	if( (qx<px && px<tx) || (qy<py && py<ty) ) 
+	  continue;
+	if( (tx<px && px<qx) || (ty<py && py<qy) ) 
+	  continue;
+	if( (px<qx && qx<tx) || (py<qy && qy<ty) )
+	  continue;
+	if( (tx<qx && qx<px) || (ty<qy && qy<py) )
+	  continue;
+
+	if( this->mNumLineVoxels < DspA_knMaxNumLineVoxels ) {
+	  xVoxl_Copy( &(this->mLineVoxels[this->mNumLineVoxels]), &anaIdx );
+	  this->mNumLineVoxels++;
+	}
+      }
+    }
+  }  
+
+
+  goto cleanup;
+  
+  goto error;
+  
+ error:
+  
+  /* print error message */
+  if ( DspA_tErr_NoErr != eResult ) {
+    DebugPrint( ("Error %d in DspA_BuildLineToolVoxelList_: %s\n",
+		 eResult, DspA_GetErrorString(eResult) ) );
   }
   
  cleanup:

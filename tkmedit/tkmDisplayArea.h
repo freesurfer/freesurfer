@@ -81,6 +81,7 @@ typedef enum {
   DspA_tTool_EditVoxels,
   DspA_tTool_EditSegmentation,
   DspA_tTool_EditCtrlPts,
+  DspA_tTool_Line,
   DspA_knNumTools
 } DspA_tTool;
 
@@ -307,6 +308,14 @@ struct tkmDisplayArea {
   char                   isVLI1_name[STRLEN] ;
   char                   isVLI2_name[STRLEN] ;
   mriVolumeRef           mpDTIVolume;
+
+  /* For line tool. These are in index coordinates, but are
+     plane-free. */
+#define DspA_knMaxNumLineVoxels 500
+  xPoint2n mLineVertex1;
+  xPoint2n mLineVertex2;
+  xVoxel mLineVoxels[DspA_knMaxNumLineVoxels];
+  int mNumLineVoxels;
 
   /* This is the actual volume size, as opposed to mnVolumeSize */
   int mnVolumeDimensionX;
@@ -564,6 +573,7 @@ DspA_tErr DspA_DrawVectorField_        ( tkmDisplayAreaRef this );
 DspA_tErr DspA_DrawCursor_             ( tkmDisplayAreaRef this );
 DspA_tErr DspA_DrawFrameAroundDisplay_ ( tkmDisplayAreaRef this );
 DspA_tErr DspA_DrawAxes_               ( tkmDisplayAreaRef this );
+DspA_tErr DspA_DrawLines_              ( tkmDisplayAreaRef this );
 
 /* build the frame buffer */
 DspA_tErr DspA_BuildCurrentFrame_              ( tkmDisplayAreaRef this );
@@ -572,6 +582,7 @@ DspA_tErr DspA_DrawDTIOverlayToFrame_          ( tkmDisplayAreaRef this );
 DspA_tErr DspA_DrawUndoableVoxelsOverlayToFrame_ ( tkmDisplayAreaRef this );
 DspA_tErr DspA_DrawFunctionalOverlayToFrame_   ( tkmDisplayAreaRef this );
 DspA_tErr DspA_DrawSelectionToFrame_           ( tkmDisplayAreaRef this );
+DspA_tErr DspA_DrawLinesToFrame_               ( tkmDisplayAreaRef this );
 
 /* other drawing subfunctions */
 DspA_tErr DspA_BuildSurfaceDrawLists_  ( tkmDisplayAreaRef this,
@@ -628,6 +639,9 @@ DspA_tErr DspA_GetClosestInterpSurfVoxel ( tkmDisplayAreaRef this,
 					   xVoxelRef         oOrigAnaIdx,
 					   xVoxelRef         oInterpAnaIdx,
 					   char*             osDescription );
+
+/* Calcs the line tool list of voxels in the line. */
+DspA_tErr DspA_BuildLineToolVoxelList_ ( tkmDisplayAreaRef this );
 
 /* handles the lists of surface points */
 DspA_tErr DspA_InitSurfaceLists_     ( tkmDisplayAreaRef this,
