@@ -734,6 +734,7 @@ MATRIX *MRIrasXformToVoxelXform(MRI *mri_src, MRI *mri_dst,
 
 
 int MRIsincSampleVolume(MRI *mri, Real x, Real y, Real z, int hw, Real *pval);
-MRI *
-MRIsincTransform(MRI *mri_src, MRI *mri_dst, MATRIX *mA, int hw);
+MRI *MRIsincTransform(MRI *mri_src, MRI *mri_dst, MATRIX *mA, int hw);
+int MRIlabelOverlap(MRI *mri1, MRI *mri2, int label) ;
+
 #endif
