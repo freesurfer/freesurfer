@@ -4,7 +4,7 @@ function mkdirp(path)
 % This is an attempt to recreate the unix "mkdir -p" command
 % in matlab.  It has some problems (following links?).
 %
-% $Id: mkdirp.m,v 1.1 2003/03/04 20:47:41 greve Exp $
+% $Id: mkdirp.m,v 1.2 2004/07/16 18:51:32 greve Exp $
 
 if(nargin ~= 1)
   msg = 'USAGE: mkdirp(path)';
@@ -39,11 +39,14 @@ for n = size(dirlist,1): -1 : 1
   nd = prod(size(dir(dirnm))); 
   if(nd == 0)
     [st msg] = mkdir(dirnm);
-    if(st==0)  qoe(msg); error(msg); end
+    nd = prod(size(dir(dirnm))); 
+    if(nd == 0)
+      msg = sprintf('ERROR: making dir %s in %s\n',dirnm,pwd);
+      if(st==0)  qoe(msg); error(msg); end
+    end
   end
 
   cd(dirnm);
-
 end
 
 cd(wd);
