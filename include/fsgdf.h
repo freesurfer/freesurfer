@@ -39,8 +39,10 @@ int   gdfFree(FSGD **ppgd);
 FSGD *gdfRead(char *gdfname);
 int   gdfPrint(FILE *fp, FSGD *gd);
 FSGD *gdfRead(char *gdfname);
+int gdfCheckMatrixMethod(char *gd2mtx_method);
 MATRIX *gdfMatrixDOSS(FSGD *gd, MATRIX *X);
 MATRIX *gdfMatrixDODS(FSGD *gd, MATRIX *X);
+MATRIX *gdfMatrix(FSGD *gd, char *gd2mtx_method, MATRIX *X);
 
 int gdfGetTitle(FSGD *gd, char *title);
 int gdfGetMeasurementName(FSGD *gd, char *name);
