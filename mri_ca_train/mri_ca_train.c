@@ -46,7 +46,7 @@ main(int argc, char *argv[])
   TimerStart(&start) ;
 
   parms.use_gradient = 0 ;
-  parms.spacing = 4.0f ;
+  parms.spacing = 3.0f ;
 
   ac = argc ;
   av = argv ;
@@ -192,7 +192,7 @@ get_option(int argc, char *argv[])
 static void
 usage_exit(int code)
 {
-  printf("usage: %s [options] <subject 1> <subject 2> ... <output file>",
+  printf("usage: %s [options] <subject 1> <subject 2> ... <output file>\n",
          Progname) ;
   printf(
          "\t-spacing  - spacing of classifiers in canonical space\n");
