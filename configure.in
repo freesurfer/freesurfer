@@ -201,6 +201,7 @@ found=$CPUFLAGS
 AC_MSG_RESULT($found)
 # verify the flag work (need to make this as macro)
 ###############################################################
+ac_save_CFLAGS=$CFLAGS
 CFLAGS="$CPUFLAGS $CFLAGS"
 echo "$as_me:$LINENO: checking whether $CC accepts $CPUFLAGS" >&5
 echo $ECHO_N "checking whether $CC accepts $CPUFLAGS... $ECHO_C" >&6
@@ -244,15 +245,19 @@ ac_cv_prog_cc_cpuflags=no
 fi
 rm -f conftest.$ac_objext conftest.$ac_ext
 fi
+
 echo "$as_me:$LINENO: result: $ac_cv_prog_cc_cpuflags" >&5
 echo "${ECHO_T}$ac_cv_prog_cc_cpuflags" >&6
 
 if test $ac_cv_prog_cc_cpuflags = yes; then
-CFLAGS = "$CPUFLAGS $CFLAGS"
-CXXFLAGS = "$CPUFLAGS $CFLAGS"
+ CPUFLAGS=""
 else
-AC_MSG_NOTICE([this gcc cannot accept $CPUFLAGSD])
+ AC_MSG_NOTICE("this gcc cannot accept $CPUFLAGS")
 fi 
+
+CFLAGS=$ac_save_CFLAGS
+CFLAGS="$CPUFLAGS $CFLAGS"
+CXXFLAGS="$CPUFLAGS $CXXFLAGS"
 
 #####
 else
