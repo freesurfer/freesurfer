@@ -4,7 +4,7 @@
 */
 /*----------------------------------------------------------------------
            File Name:
-               map.c
+               h_logz.c
 
            Author:
              Bruce Fischl with algorithms stolen from Rich Wallace.
@@ -84,7 +84,7 @@ static int    logFilterNbd(LOGMAP_INFO *lmi, int filter[NBD_SIZE],
                            IMAGE *inImage, IMAGE *outImage, 
                            int doweight) ;
 #define NEW_DIFFUSION 1
-#if NEW_DIFFUSION
+#if !NEW_DIFFUSION
 static double diffusionCalculateK(LOGMAP_INFO *lmi,IMAGE *image,double k);
 #endif
 static void logPatchHoles(LOGMAP_INFO *lmi) ;
@@ -1216,7 +1216,12 @@ LogMapDiffuse(LOGMAP_INFO *lmi, IMAGE *inImage, IMAGE *outImage,
   return(k) ;
 }
 
+/*
+   KERNEL_MUL is 1/2 dt
+*/
 #if NEW_DIFFUSION
+
+
 #define FOUR_CONNECTED 0
 #if FOUR_CONNECTED
 #define KERNEL_MUL    0.25f
@@ -1231,7 +1236,7 @@ LogMapDiffusePerona(LOGMAP_INFO *lmi, IMAGE *inImage, IMAGE *outImage,
 
 {
   int     ring, spoke, i, rows, cols, n_ring, n_spoke, ci, j ;
-  float   weight, c[9], fvals[9], dst_val ;
+  float   weight, c[NBD_SIZE], fvals[NBD_SIZE], w[NBD_SIZE], dst_val, rho ;
   FILE    *fp ;
   LOGPIX  *pix ;
   static  IMAGE *tmpImage = NULL, *gradImage = NULL ;
@@ -1271,6 +1276,22 @@ LogMapDiffusePerona(LOGMAP_INFO *lmi, IMAGE *inImage, IMAGE *outImage,
 
   ImageCopy(inImage, tmpImage) ;
 
+/* 
+   the w array account for the nonuniform spacing of pixels in the radial
+   direction
+*/
+  for (i = 0 ; i < NBD_SIZE ; i++)
+    w[i] = 1.0f ;
+  if (doweight)
+  {
+    w[N_NE] = 1.0f / M_E ;
+    w[N_E] = 1.0f / M_E ;
+    w[N_SE] = 1.0f / M_E ;
+    w[N_NW] = M_E ;
+    w[N_W] = M_E ;
+    w[N_SW] = M_E ;
+  }
+
   if (0 && (Gdiag & DIAG_WRITE))
     fp = fopen("diffuse.dat", "w") ;
   else
@@ -1291,21 +1312,22 @@ LogMapDiffusePerona(LOGMAP_INFO *lmi, IMAGE *inImage, IMAGE *outImage,
       else
         weight = 1.0 ;
 
+      rho = LOG_PIX_RHO(lmi, ring, spoke) ;
+
       for (j = 0 ; j < NBD_SIZE ; j++)
       {
         n_ring = LOG_PIX_NBD(lmi, ring, spoke, j)->ring ;
         n_spoke = LOG_PIX_NBD(lmi, ring, spoke, j)->spoke ;
+
         fvals[j] = *IMAGEFpix(tmpImage, n_ring, n_spoke) ;
-        
-        c[j] = KERNEL_MUL * C(*IMAGEFpix(gradImage, n_ring, n_spoke), k) ;
+        c[j] = w[j] * KERNEL_MUL * C(*IMAGEFpix(gradImage, n_ring, n_spoke),k);
       }
 
-      c[N_SELF] = 1.0f ;
-      for (ci = 0 ; ci < NBD_SIZE ; ci++)
+      for (c[N_SELF] = 1.0f, ci = 0 ; ci < NBD_SIZE ; ci++)
         if (ci != N_SELF)
           c[N_SELF] -= c[ci] ;
       
-      for (dst_val = 0.0f, ci = 0 ; ci <= NBD_SIZE ; ci++)
+      for (dst_val = 0.0f, ci = 0 ; ci < NBD_SIZE ; ci++)
         dst_val += fvals[ci] * c[ci] ;
 
       *IMAGEFpix(outImage, ring, spoke) = dst_val ;
@@ -1465,10 +1487,9 @@ double
 LogMapDiffuseCurvature(LOGMAP_INFO *lmi,IMAGE *inImage,IMAGE *outImage,
                        double A, int niterations, int doweight)
 {
-  LOGPIX    *npix ;
-  int       ring, spoke, i, ci ; 
-  double    weight;
-  float     c[NBD_SIZE], fvals[NBD_SIZE], dst_val ;
+/*  LOGPIX    *npix ;*/
+  int       ring, spoke, n_ring, n_spoke, i, j, ci ; 
+  float     c[NBD_SIZE], fvals[NBD_SIZE], w[NBD_SIZE], dst_val ;
   FILE      *fp ;
   IMAGE *srcImage, *dstImage, *tmpImagePtr ;
   static  IMAGE *tmpImage = NULL, *gradImage = NULL ;
@@ -1521,6 +1542,22 @@ LogMapDiffuseCurvature(LOGMAP_INFO *lmi,IMAGE *inImage,IMAGE *outImage,
   srcImage = tmpImage ;
   dstImage = outImage ;
 
+/* 
+   the w array account for the nonuniform spacing of pixels in the radial
+   direction
+*/
+  for (i = 0 ; i < NBD_SIZE ; i++)
+    w[i] = 1.0f ;
+  if (doweight)
+  {
+    w[N_NE] = 1.0f / M_E ;
+    w[N_E] = 1.0f / M_E ;
+    w[N_SE] = 1.0f / M_E ;
+    w[N_NW] = M_E ;
+    w[N_W] = M_E ;
+    w[N_SW] = M_E ;
+  }
+
   for (i = 0 ; i < niterations ; i++)
   {
     if (fp)
@@ -1531,61 +1568,23 @@ LogMapDiffuseCurvature(LOGMAP_INFO *lmi,IMAGE *inImage,IMAGE *outImage,
 
     for_each_log_pixel(lmi, ring, spoke)  /* do diffusion on each pixel */
     {
-      npix = LOG_PIX_NBD(lmi, ring, spoke, N_NW) ;
-      fvals[N_NW] = *IMAGEFpix(srcImage, npix->ring, npix->spoke) ;
-      npix = LOG_PIX_NBD(lmi, ring, spoke, N_N) ;
-      fvals[N_N] = *IMAGEFpix(srcImage, npix->ring, npix->spoke) ;
-      npix = LOG_PIX_NBD(lmi, ring, spoke, N_NE) ;
-      fvals[N_NE] = *IMAGEFpix(srcImage, npix->ring, npix->spoke) ;
-      npix = LOG_PIX_NBD(lmi, ring, spoke, N_W) ;
-      fvals[N_W] = *IMAGEFpix(srcImage, npix->ring, npix->spoke) ;
-      npix = LOG_PIX_NBD(lmi, ring, spoke, N_E) ;
-      fvals[N_E] = *IMAGEFpix(srcImage, npix->ring, npix->spoke) ;
-      npix = LOG_PIX_NBD(lmi, ring, spoke, N_SW) ;
-      fvals[N_SW] = *IMAGEFpix(srcImage, npix->ring, npix->spoke) ;
-      npix = LOG_PIX_NBD(lmi, ring, spoke, N_S) ;
-      fvals[N_S] = *IMAGEFpix(srcImage, npix->ring, npix->spoke) ;
-      npix = LOG_PIX_NBD(lmi, ring, spoke, N_SE) ;
-      fvals[N_SE] = *IMAGEFpix(srcImage, npix->ring, npix->spoke) ;
-      fvals[N_SELF] = *IMAGEFpix(srcImage, ring, spoke) ;
-
-      npix = LOG_PIX_NBD(lmi, ring, spoke, N_NW) ;
-      c[N_NW] = .125 / *IMAGEFpix(gradImage, npix->ring, npix->spoke) ;
-      npix = LOG_PIX_NBD(lmi, ring, spoke, N_N) ;
-      c[N_N] = .125 / *IMAGEFpix(gradImage, npix->ring, npix->spoke) ;
-      npix = LOG_PIX_NBD(lmi, ring, spoke, N_NE) ;
-      c[N_NE] = .125 / *IMAGEFpix(gradImage, npix->ring, npix->spoke) ;
-      npix = LOG_PIX_NBD(lmi, ring, spoke, N_W) ;
-      c[N_W] = .125 / *IMAGEFpix(gradImage, npix->ring, npix->spoke) ;
-      npix = LOG_PIX_NBD(lmi, ring, spoke, N_E) ;
-      c[N_E] = .125 / *IMAGEFpix(gradImage, npix->ring, npix->spoke) ;
-      npix = LOG_PIX_NBD(lmi, ring, spoke, N_SW) ;
-      c[N_SW] = .125 / *IMAGEFpix(gradImage, npix->ring, npix->spoke) ;
-      npix = LOG_PIX_NBD(lmi, ring, spoke, N_S) ;
-      c[N_S] = .125 / *IMAGEFpix(gradImage, npix->ring, npix->spoke) ;
-      npix = LOG_PIX_NBD(lmi, ring, spoke, N_SE) ;
-      c[N_SE] = .125 / *IMAGEFpix(gradImage, npix->ring, npix->spoke) ;
+      for (j = 0 ; j < NBD_SIZE ; j++)
+      {
+        n_ring = LOG_PIX_NBD(lmi, ring, spoke, j)->ring ;
+        n_spoke = LOG_PIX_NBD(lmi, ring, spoke, j)->spoke ;
+        fvals[j] = *IMAGEFpix(srcImage, n_ring, n_spoke) ;
+        c[j] = w[j] * KERNEL_MUL / *IMAGEFpix(gradImage, n_ring, n_spoke) ;
+      }
 
       /* center coefficient is 1 - (sum of the other coefficients) */
-      c[N_SELF] = 1.0f ;
-      for (ci = 0 ; ci < NBD_SIZE ; ci++)
-      {
-        if (ci == N_SELF)
-          continue ;
-        c[N_SELF] -= c[ci] ;
-      }
+      for (c[N_SELF] = 1.0f, ci = 0 ; ci < NBD_SIZE ; ci++)
+        if (ci != N_SELF)
+          c[N_SELF] -= c[ci] ;
 
       for (dst_val = 0.0f, ci = 0 ; ci < NBD_SIZE ; ci++)
         dst_val += fvals[ci] * c[ci] ;
 
-#if 1
-      if (doweight)
-        weight = LOG_PIX_WEIGHT(lmi, ring, spoke) ;
-      else
-#endif
-        weight = 1.0f ;
-
-      *IMAGEFpix(dstImage, ring, spoke) = dst_val * weight ;
+      *IMAGEFpix(dstImage, ring, spoke) = dst_val ;
 
     }
     /* swap them */
