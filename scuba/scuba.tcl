@@ -10,7 +10,7 @@ if { $err } {
     load [file dirname [info script]]/libscuba[info sharedlibextension] scuba
 }
 
-DebugOutput "\$Id: scuba.tcl,v 1.73 2005/02/03 23:15:57 kteich Exp $"
+DebugOutput "\$Id: scuba.tcl,v 1.74 2005/02/04 22:12:21 kteich Exp $"
 
 # gTool
 #   current - current selected tool (nav,)
@@ -956,7 +956,7 @@ proc ScubaKeyUpCallback { inX inY iState iKey } {
 	RedrawFrame [GetMainFrameID]
     }
 
-    if { "$iKey" == "c" } {
+    if { "$iKey" == "$gaPrefs(KeyShuffleLayers)" } {
 	set viewID [GetSelectedViewID [GetMainFrameID]]
 	set nHighestLevel 0
 	for { set nLevel 0 } { $nLevel < 10 } { incr nLevel } {
@@ -966,10 +966,24 @@ proc ScubaKeyUpCallback { inX inY iState iKey } {
 	    }
 	}
 
-	for { set nLevel 0 } { $nLevel < $nHighestLevel } { incr nLevel } {
-	    SetLayerInViewAtLevel $viewID $curLayer([expr $nLevel+1]) $nLevel
+	for { set nLevel 0 } { $nLevel <= $nHighestLevel } { incr nLevel } {
+	    if { $gaView(current,lockedShuffle$nLevel) } {
+		continue
+	    }
+
+	    set nNextLevel [expr $nLevel+1]
+	    if { $nNextLevel > $nHighestLevel } { set nNextLevel 0 }
+	    while { $gaView(current,lockedShuffle$nNextLevel) } {
+		incr nNextLevel
+		if { $nNextLevel > $nHighestLevel } { set nNextLevel 0 }
+		if { $nNextLevel == $nLevel } {
+		    ::tkcon_tcl_puts "ALL LOCKED?"
+		    return
+		}
+	    }
+
+	    SetLayerInViewAtLevel $viewID $curLayer($nNextLevel) $nLevel
 	}
-	SetLayerInViewAtLevel $viewID $curLayer(0) $nHighestLevel
 
 	SelectViewInViewProperties $viewID
     }
@@ -1960,79 +1974,137 @@ proc MakeViewPropertiesPanel { ifwTop } {
 
     frame $fwTop
 
-    frame $fwProps -relief ridge -border 2
 
-    tixOptionMenu $fwProps.fwMenu \
+    frame $fwProps -relief ridge -border 2
+    set fw1 $fwProps.fw1
+    set fw2 $fwProps.fw2
+    set fw3 $fwProps.fw3
+    set fw4 $fwProps.fw4
+    set fw5 $fwProps.fw5
+    set fw6 $fwProps.fw6
+    set fw7 $fwProps.fw7
+    
+
+    # Row 1: view menu
+    frame $fw1
+    tixOptionMenu $fw1.fwMenu \
 	-label "View:" \
 	-variable gaView(current,menuIndex) \
 	-command { ViewPropertiesMenuCallback }
-    set gaWidget(viewProperties,menu) $fwProps.fwMenu
+    set gaWidget(viewProperties,menu) $fw1.fwMenu
 
-    tkuMakeActiveLabel $fwProps.ewID \
+    pack $fw1.fwMenu -fill x
+
+    # Row 2: ID, col, row labels
+    frame $fw2
+    tkuMakeActiveLabel $fw2.ewID \
 	-label "ID: " \
 	-variable gaView(current,id) -width 2
-    tkuMakeActiveLabel $fwProps.ewCol \
+    tkuMakeActiveLabel $fw2.ewCol \
 	-label "Column: " \
 	-variable gaView(current,col) -width 2
-    tkuMakeActiveLabel $fwProps.ewRow \
+    tkuMakeActiveLabel $fw2.ewRow \
 	-label "Row: " \
 	-variable gaView(current,row) -width 2
 
-    tkuMakeCheckboxes $fwProps.cbwLinked \
+    pack $fw2.ewID $fw2.ewCol $fw2.ewRow \
+	-side left -fill x
+
+    # Row 3: linked and locked cbs
+    frame $fw3
+    tkuMakeCheckboxes $fw3.cbwLinked \
 	-checkboxes {
 	    {-type text -label "Linked" -variable gaView(current,linked)
 		-command {SetViewLinkedStatus $gaView(current,id) $gaView(current,linked)} }
 	}
 
-    # This Locked on Cursor also sets the global pref to the same value.
-    tkuMakeCheckboxes $fwProps.cbwLocked \
+    tkuMakeCheckboxes $fw3.cbwLocked \
 	-checkboxes {
 	    {-type text -label "Locked on Cursor"
 		-variable gaView(current,lockedCursor)
 		-command {SetViewLockOnCursor $gaView(current,id) $gaView(current,lockedCursor); SetPreferencesValue LockOnCursor $gaView(current,lockedCursor); set gaPrefs(LockOnCursor) [GetPreferencesValue LockOnCursor]} }
 	}
 
+    pack $fw3.cbwLinked $fw3.cbwLinked \
+	-side left -fill x
+
+    # Row 4: The table for draw layers.
+    frame $fw4 -relief raised -border 2
+    tkuMakeNormalLabel $fw4.lwLevel -label "Lvl"
+    tkuMakeNormalLabel $fw4.lwLocked -label "Lckd"
+    tkuMakeNormalLabel $fw4.lwLayer -label "Layer"
+
     for { set nLevel 0 } { $nLevel < 10 } { incr nLevel } {
-	tixOptionMenu $fwProps.mwDraw$nLevel \
-	    -label "Draw Level $nLevel:" \
+
+	tkuMakeNormalLabel $fw4.lw$nLevel \
+	    -label "$nLevel"
+
+	checkbutton $fw4.cbwLocked$nLevel \
+	    -variable gaView(current,lockedShuffle$nLevel)
+
+	tixOptionMenu $fw4.mwDraw$nLevel \
+	    -label "" \
 	    -variable gaView(current,draw$nLevel) \
 	    -command "ViewPropertiesDrawLevelMenuCallback $nLevel"
 	set gaWidget(viewProperties,drawLevelMenu$nLevel) \
-	    $fwProps.mwDraw$nLevel
+	    $fw4.mwDraw$nLevel
     }
 
-    tixOptionMenu $fwProps.mwTransform \
+    grid $fw4.lwLevel   -column 0 -row 0
+    grid $fw4.lwLocked  -column 1 -row 0
+    grid $fw4.lwLayer   -column 2 -row 0
+
+    for { set nLevel 0 } { $nLevel < 10 } { incr nLevel } {
+	grid $fw4.lw$nLevel \
+	    -column 0 -row [expr $nLevel + 1] -sticky w
+	grid $fw4.cbwLocked$nLevel  \
+	    -column 1 -row [expr $nLevel + 1] -sticky w
+	grid $fw4.mwDraw$nLevel \
+	    -column 2 -row [expr $nLevel + 1] -sticky ew
+    }
+
+    grid columnconfigure $fw4 0 -weight 0
+    grid columnconfigure $fw4 1 -weight 0
+    grid columnconfigure $fw4 2 -weight 1
+
+    # Row 5: The transform menu.
+    frame $fw5
+    tixOptionMenu $fw5.mwTransform \
 	-label "Transform:" \
 	-variable gaView(current,transformID) \
 	-command "ViewPropertiesTransformMenuCallback"
     set gaWidget(viewProperties,transformMenu) \
-	$fwProps.mwTransform
-    
-    button $fwProps.bwCopyLayers -text "Copy Layers to Other Views" \
+	$fw5.mwTransform
+
+    pack $fw5.mwTransform -fill x
+
+    # Row 6: The copy button.    
+    frame $fw6
+    button $fw6.bwCopyLayers -text "Copy Layers to Other Views" \
 	-command { CopyViewLayersToAllViewsInFrame [GetMainFrameID] $gaView(current,id) }
 
-    tkuMakeEntry $fwProps.ewInPlaneInc \
+    pack $fw6.bwCopyLayers -fill x
+
+    # Row 7: The in plane inc field.
+    frame $fw7
+    tkuMakeEntry $fw7.ewInPlaneInc \
 	-label "In-plane key increment" \
 	-font [tkuNormalFont] \
 	-variable gaView(current,inPlaneInc) \
 	-command {SetViewInPlaneMovementIncrement $gaView(current,id) $gaView(current,inPlane) $gaView(current,inPlaneInc) } \
 	-notify 1
-    set gaWidget(viewProperties,inPlaneInc) $fwProps.ewInPlaneInc
+    set gaWidget(viewProperties,inPlaneInc) $fw7.ewInPlaneInc
     
-    grid $fwProps.fwMenu    -column 0 -row 0 -sticky nw
-    grid $fwProps.ewID      -column 0 -row 1 -sticky nw
-    grid $fwProps.ewCol     -column 1 -row 1 -sticky e
-    grid $fwProps.ewRow     -column 2 -row 1 -sticky e
-    grid $fwProps.cbwLinked -column 0 -row 2 -sticky ew
-    grid $fwProps.cbwLocked -column 1 -row 2 -sticky ew -columnspan 2
-    for { set nLevel 0 } { $nLevel < 10 } { incr nLevel } {
-	grid $fwProps.mwDraw$nLevel \
-	    -column 0 -row [expr $nLevel + 3] -sticky ew -columnspan 3
-    }
-    grid $fwProps.mwTransform  -column 0 -row 14 -sticky ew -columnspan 3
-    grid $fwProps.bwCopyLayers -column 0 -row 15 -sticky ew -columnspan 3
-    grid $fwProps.ewInPlaneInc -column 0 -row 16 -sticky ew -columnspan 3
-    
+    pack $fw7.ewInPlaneInc -fill x
+
+    grid $fwProps.fw1 -column 0 -row 0 -sticky we
+    grid $fwProps.fw2 -column 0 -row 1 -sticky we
+    grid $fwProps.fw3 -column 0 -row 2 -sticky we
+    grid $fwProps.fw4 -column 0 -row 3 -sticky nswe
+    grid $fwProps.fw5 -column 0 -row 4 -sticky we
+    grid $fwProps.fw6 -column 0 -row 5 -sticky we
+    grid $fwProps.fw7 -column 0 -row 6 -sticky we
+
     grid $fwProps -column 0 -row 0 -sticky news
 
     return $fwTop
@@ -3480,8 +3552,8 @@ proc DrawLabelArea {} {
 	foreach lLabelValue $glLabelValues($nArea) {
 	    
 	    set label [lindex $lLabelValue 0]
-	    set value [lindex $lLabelValue 1]
-	    
+	    set glLabelValues($nLabel,value) [lindex $lLabelValue 1]
+
 	    set fw $gaWidget(labelArea,$nArea).fw$nLabel
 	    set ewLabel $fw.ewLabel
 	    set ewValue $fw.ewValue
@@ -3491,7 +3563,13 @@ proc DrawLabelArea {} {
 		frame $fw
 		
 		tkuMakeNormalLabel $ewLabel -label $label -width 20
-		tkuMakeNormalLabel $ewValue -label $value -width 20
+		entry $ewValue \
+		    -textvariable glLabelValues($nLabel,value) \
+		    -font [tkuNormalFont] \
+		    -width 20 \
+		    -state disabled \
+		    -relief flat \
+		    -background [tix option get disabled_bg]
 		
 		pack $ewLabel $ewValue -side left -anchor w
 		pack $fw
@@ -3499,7 +3577,7 @@ proc DrawLabelArea {} {
 	    } else {
 		
 		$ewLabel.lw config -text $label
-		$ewValue.lw config -text $value
+		$ewValue config -textvariable glLabelValues($nLabel,value)
 	    }
 	    
 	    incr nLabel
@@ -3526,7 +3604,7 @@ proc DrawLabelArea {} {
 		    
 		    set fw $gaWidget(labelArea,$nArea).fw$nDelLabel
 		    $fw.ewLabel.lw config -text ""
-		    $fw.ewValue.lw config -text ""
+		    $fw.ewValue config -textvariable ""
 		}
 	}
     }
@@ -4439,7 +4517,7 @@ proc SaveSceneScript { ifnScene } {
     set f [open $ifnScene w]
 
     puts $f "\# Scene file generated "
-    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.73 2005/02/03 23:15:57 kteich Exp $"
+    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.74 2005/02/04 22:12:21 kteich Exp $"
     puts $f ""
 
     # Find all the data collections.
