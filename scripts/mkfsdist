@@ -1,6 +1,6 @@
 #!/bin/csh -f
 # mkfsdist
-# $Id: mkfsdist,v 1.1 2001/05/31 00:40:39 greve Exp $
+# $Id: mkfsdist,v 1.2 2001/05/31 23:41:04 greve Exp $
 #
 # Usage: mkfsdist targetdir
 #
@@ -8,53 +8,54 @@
 # specified on the command-line. The distribution can be installed 
 # by following the instructions in freesurfer_alpha/INSTALL.
 #
-# The files created are:
+# These files are created in the target directory:
+#  INSTALL -- installation instructions (copied from freesurfer_alpha);
+#  license.freesurfer -- license agreement (copied from freesurfer_alpha);
 #  fsa.tar.gz -- the freesurfer_alpha tree
 #  minc.tar.gz -- ~inverse/minc (for running functional autoreg)
 #  talairach.tar.gz -- $SUBJECTS_DIR/talairach (MNI 305)
-#
-# Several test subjects can be created by setting the 
-# TestSubjNoList variable. For example, if
-#
-#     set TestSubjNoList = (1 2 3);
-#
-# then the script will look for test_subject1, test_subject2,
-# and test_subject3. They will be tarred into test_subject1.tar.gz, 
-# test_subject2.tar.gz, etc.
+#  bert.001.tar.gz -- tutorial data, run 1
+#  bert.002.tar.gz -- tutorial data, run 2
+#  bert.003.tar.gz -- tutorial data, run 3
 #
 # Symbolic Links in freesurfer_alpha:
 # 
 #  It does not follow symbolic links, so any symbolic link
-#  in freesurfer_alpha must have a relative pointer to someplace in the
+#  in freesurfer_alpha must have a pointer relative to someplace in the
 #  freesurfer_alpha tree.  
+#
+# Dynamic and Statically Linked Programs
+#
+#  The only programs that are dynamically linked are tksurfer, tkmedit,
+#  and tkregister. These programs are replaced by their statically
+#  linked counterparts. The dynamically linked programs are included
+#  with a .dynamic extension. The process that does this is fairly
+#  involved. See comments in the code for more detail.
 #
 # Excluding files and directories from freesurfer_alpha:
 # 
 #  Files and directories within the freesurfer_alpha tree can be targeted
 #  for exclusion by entering them into freesurfer_alpha/tar-exclude. This
-#  is useful for exluding the license file (.license) as well as other
+#  is useful for excluding the license file (.license) as well as other
 #  files that just take up space. When adding items to the exclude file,
 #  put only one name on each line and make sure there are no trailing
 #  white spaces. This name will be exluded where ever it is found in the 
-#  tree, either as a file or as a directory.
+#  tree, either as a file or as a directory.  It will also exclude the
+#  files found in freesurfer_alpha/tar-exclude-more.
+#
+# 
+set VERSION = '$Id: mkfsdist,v 1.2 2001/05/31 23:41:04 greve Exp $';
 
 # This is where freesurfer_alpha lives #
 set FSA_DIR = ~inverse/freesurfer_alpha;
 
-# This is where the test subjects live #
-set DIST_SUBJECTS_DIR = /space/annecy/5/users/inverse/DIST_SUBJECTS
-
-# This is a list of test subject number to use. It will look for 
-# $DIST_SUBJECTS_DIR/test_subjectN where N is each number in the
-# list.
-#set TestSubjNoList = (1 2 3);
-set TestSubjNoList = (1)
+# This is where the 3 runs of the test subject live #
+set BERT_ORIG_DIR = /space/neo/5/recon/evelina/bert2001
 
 if($#argv != 1) then
-  echo "USAGE: mkfsdist2 targetdir"
+  echo "USAGE: mkfsdist targetdir"
   exit 1;
 endif
-
 set TARGET_DIR = $argv[1];
 
 # Check that freesurfer_alpha is there #
@@ -63,15 +64,15 @@ if(! -e $FSA_DIR) then
   exit 1;
 endif
 
-# Check that test subjects are there #
-if(! -e $DIST_SUBJECTS_DIR) then
-  echo "ERROR: cannot find $DIST_SUBJECTS_DIR"
+# Check that test subject runs are there #
+if(! -e $BERT_ORIG_DIR) then
+  echo "ERROR: cannot find $BERT_ORIG_DIR"
   exit 1;
 endif
-foreach testsubjno ($TestSubjNoList)
-  set tsdir = $DIST_SUBJECTS_DIR/test_subject$testsubjno
-  if( ! -e $tsdir ) then
-    echo "ERROR: cannot find $tsdir"
+foreach run (1 2 3)
+  set rundir = `printf %s/%03d $BERT_ORIG_DIR $run`;
+  if( ! -e $rundir ) then
+    echo "ERROR: cannot find $rundir"
     exit 1
   endif
 end
@@ -98,6 +99,13 @@ pushd $TARGET_DIR  > /dev/null
 set TARGET_DIR = `pawd`;
 popd > /dev/null
 
+# Make sure the target dir is not inadvertently set to 
+# freesurfer_alpha
+if("$TARGET_DIR" == "$FSA_DIR") then
+  echo "ERROR: target dir == freesurfer_alpha source tree"
+  exit 1;
+endif
+
 # Put a file with the date as name in the target dir 
 set DateStr = "`date '+%Y%m%d'`"
 touch $TARGET_DIR/$DateStr
@@ -108,11 +116,10 @@ if(-e $LF) mv $LF $LF.old
 echo "Log file is $LF"
 
 echo "Log file for FreeSurfer (alpha) distribution creation" >> $LF
-echo "$Id: mkfsdist,v 1.1 2001/05/31 00:40:39 greve Exp $"  >> $LF
+echo $VERSION  >> $LF
 echo "$0"    >> $LF
 echo "$argv" >> $LF
 date >> $LF
-
 
 # ---- Tar up freesurfer_alpha ------- #
 cd $FSA_DIR
@@ -120,12 +127,93 @@ cd ..
 echo "--------------------------------------------" | tee -a $LF
 echo "Tarring $FSA_DIR" | tee -a $LF
 date | tee -a $LF
-set TF = $TARGET_DIR/fsa.tar.gz
+set TF = $TARGET_DIR/fsa.tar
 rm -f $TF
-tar cvz -f $TF \
-    --exclude-from $FSA_DIR/tar-exclude \
-    ./freesurfer_alpha >> $LF
+set tarcmd = ( tar cv -f $TF --exclude-from $FSA_DIR/tar-exclude \
+    --exclude-from $FSA_DIR/tar-exclude-more ./freesurfer_alpha)
+echo $tarcmd | tee -a $LF
+$tarcmd  >> $LF
+
 date | tee -a $LF
+
+#------ Special for tksurfer, tkmedit, and tkregister -----------#
+# This part assures that the statically linked versions of tksurfer,
+# tkmedit, and tkregister are included in the distribution. In the
+# NMR version (ie, ~inverse/freesurfer_alpha), these programs are
+# dynamically linked, and the static version have a .static extension.
+# Furthermore, tksurfer in the distribution corresponds to 
+# tksurfer.new.static. All versions of these programs are excluded
+# by the tar-exclude file.
+#
+# ~inverese/freesurfer_alpha    Distribution
+# --------------------------    -----------------
+# tkmedit                       tkmedit.dynamic
+# tkmedit.static                tkmedit
+# tkregister                    tkregister.dynamic
+# tkregister.static             tkregister
+# tksurfer.new                  tksurfer.dynamic
+# tksurfer.new.static           tksurfer
+#
+# A temporary freesurfer_alpha is created in the target 
+# directory, and, under that, bin/$OS is created, where OS is Linux,
+# IRIX, and Solaris. The relevant files are copied according to
+# the translation described above. This freesurfer_alpha is appended
+# to the tar of the original freesurfer_alpha. The temporary 
+# freesurfer_alpha is then deledted, and the tar file is compressed.
+echo "------------------------------------------" | tee -a $LF
+echo "Handling tkmedit, tksurfer, and tkregister" | tee -a $LF
+date | tee -a $LF
+pushd $TARGET_DIR > /dev/null
+set FSA_TMP_DIR = freesurfer_alpha;
+mkdir -p $FSA_TMP_DIR
+
+# Go through each OS #
+foreach OS (Linux IRIX Solaris)
+
+  # tkmedit and tkregister #
+  mkdir -p $FSA_TMP_DIR/bin/$OS
+  foreach binary (tkmedit tkregister)
+    # Copy dynamic #
+    set fdynamic = $FSA_DIR/bin/$OS/$binary
+    if(! -e $fdynamic) then
+      echo "ERROR: cannot find $fdynamic"| tee -a $LF
+      exit 1;
+    endif
+    cp $fdynamic $FSA_TMP_DIR/bin/$OS/$binary.dynamic
+    # Copy static #
+    set fstatic = $FSA_DIR/bin/$OS/$binary.static
+    if(! -e $fstatic) then
+      echo "ERROR: cannot find $fstatic"| tee -a $LF
+      exit 1;
+    endif
+    cp $fstatic  $FSA_TMP_DIR/bin/$OS/$binary
+  end # foreach binary (tkmedit tkregister)
+
+  # Copy tksurfer.new to tksurfer.dynamic #
+  set fdynamic = $FSA_DIR/bin/$OS/tksurfer.new
+  if(! -e $fdynamic) then
+    echo "ERROR: cannot find $fdynamic"| tee -a $LF
+    exit 1;
+  endif
+  cp $fdynamic $FSA_TMP_DIR/bin/$OS/tksurfer.dynamic
+  # Copy tksurfer.new.static to tksurfer #
+  set fstatic = $FSA_DIR/bin/$OS/tksurfer.new.static
+  if(! -e $fstatic) then
+    echo "ERROR: cannot find $fstatic"| tee -a $LF
+    exit 1;
+  endif
+  cp $fstatic  $FSA_TMP_DIR/bin/$OS/tksurfer
+
+end#foreach OS
+
+echo "Appending temporary freesurfer_alpha to tar `date`"| tee -a $LF
+tar rv -f $TF ./$FSA_TMP_DIR >> $LF
+
+echo "Compressing tar file `date`"| tee -a $LF
+gzip $TF
+
+echo "Removing temporary directory `date`"| tee -a $LF
+rm -rf $FSA_TMP_DIR
 
 #-- Tar up the minc bin and libs (for functional) -------#
 echo "--------------------------------------------" | tee -a $LF
@@ -138,8 +226,6 @@ rm -f $TF
 tar cvz -f $TF ./minc >> $LF
 date | tee -a $LF
 
-endif
-
 #----- Tar up the talairach (MNI305) subject --------#
 echo "--------------------------------------------" | tee -a $LF
 echo "Tarring talairach subject" | tee -a $LF
@@ -151,17 +237,17 @@ rm -f $TF
 tar cvz -f $TF ./talairach >> $LF
 date | tee -a $LF
 
-#----- Tar up each test subject --------#
-pushd DIST_SUBJECTS_DIR > /dev/null
-foreach tsno ($TestSubjNoList)
-  echo "--------------------------------------------" | tee -a $LF
-  echo "Tarring test subject $tsno" | tee -a $LF
-  date | tee -a $LF
-  set testsubject = test_subject$tsno
-  set TF = $TARGET_DIR/$testsubject.tar.gz
+#----- Tar up each run of the test subject --------#
+echo "--------------------------------------------" | tee -a $LF
+date | tee -a $LF  
+pushd $BERT_ORIG_DIR > /dev/null
+foreach run (1 2 3)
+  echo "Tarring bert run $run" | tee -a $LF
+  set rundir = `printf %03d $run`;
+  set TF = $TARGET_DIR/bert.$rundir.tar.gz
   rm -f $TF
-  tar cvz -f $TF ./$testsubject >> $LF
-  date | tee -a $LF
+  tar cvz -f $TF ./$rundir >> $LF
+  date | tee -a $LF  
 end
 
 echo "------------------------------------------" | tee -a $LF
@@ -169,7 +255,10 @@ echo "------------------------------------------" | tee -a $LF
 # Copy the INSTALL File
 cp $FSA_DIR/INSTALL $TARGET_DIR
 
-echo "$0: done"
+# Copy the License Agreement File
+cp $FSA_DIR/docs/license.freesurfer $TARGET_DIR
+
+echo "$0 done"
 
 
 exit 0
