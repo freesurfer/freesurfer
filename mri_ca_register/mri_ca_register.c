@@ -107,9 +107,9 @@ main(int argc, char *argv[])
   parms.dt = 0.05 ;  /* was 5e-6 */
   parms.momentum = 0.9 ;
   parms.tol = .1 ;  /* at least 1% decrease in sse */
-  parms.l_distance = 0.0 ;
-  parms.l_jacobian = 1.0 ;
-  parms.l_area = 0 ;
+/* /\* /\\* /\\\* /\\\\*   parms.l_distance = 0.0 ; *\\\\/ *\\\/ *\\/ *\/ */
+/* /\* /\\* /\\\* /\\\\*   parms.l_jacobian = 1.0 ; *\\\\/ *\\\/ *\\/ *\/ */
+/* /\* /\\* /\\\* /\\\\*   parms.l_area = 0 ; *\\\\/ *\\\/ *\\/ *\/ */
   parms.l_label = 1.0 ;
   parms.l_map = 0.0 ;
   parms.label_dist = 3.0 ;
@@ -212,7 +212,7 @@ main(int argc, char *argv[])
     GCA *gca_tmp ;
     
     printf("mapping GCA into %d-dimensional FLASH space...\n", mri_inputs->nframes) ;
-    gca_tmp = GCAcreateFlashGCAfromParameterGCA(gca, TRs, fas, TEs, mri_inputs->nframes, 100) ;
+    gca_tmp = GCAcreateFlashGCAfromParameterGCA(gca, TRs, fas, TEs, mri_inputs->nframes, GCA_DEFAULT_NOISE_PARAMETER) ;
     GCAfree(&gca) ;
     gca = gca_tmp ;
     if (ninputs != gca->ninputs)
