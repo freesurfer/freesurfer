@@ -1,4 +1,6 @@
-function [M_v1, M_v2, M_Ru1, M_Ru2] = vox2ras_rsolve(Vc_C, inPlaneRotation)
+function [M_Ru1, M_Ru2, M_v1, M_v2] = vox2ras_rsolve(Vc_C, inPlaneRotation)
+%%
+%%	(USE vox2ras_rsolveAA INSTEAD OF THIS METHOD!)
 %%
 %% NAME
 %%
@@ -10,11 +12,11 @@ function [M_v1, M_v2, M_Ru1, M_Ru2] = vox2ras_rsolve(Vc_C, inPlaneRotation)
 %%
 %% VERSION
 %%
-%% 	$Id: vox2ras_rsolve.m,v 1.3 2004/05/26 21:33:47 rudolph Exp $
+%% 	$Id: vox2ras_rsolve.m,v 1.4 2004/06/03 18:11:28 rudolph Exp $
 %%
 %% SYNOPSIS
 %%
-%%     [M_v1 M_v2 M_Ru1 M_Ru2] = vox2ras_rsolve(Vc_C, inPlaneRotation)
+%%     [M_Ru1 M_Ru2 M_v1 M_v2 ] = vox2ras_rsolve(Vc_C, inPlaneRotation)
 %%
 %% ARGUMENTS
 %%
@@ -22,10 +24,10 @@ function [M_v1, M_v2, M_Ru1, M_Ru2] = vox2ras_rsolve(Vc_C, inPlaneRotation)
 %%					a volume
 %%	inPlaneRotation	in	scalar float defining the in plane rotation as
 %%					read from the data meas.asc file
-%%      M_v1		out     1st candidate vox2ras matrix (no rotation)
-%%	M_v2		out	2nd candidate vox2ras matrix (no rotation)
 %%	M_Ru1		out	v1 rotated by f(inPlaneRotation)
 %%	M_Ru2		out	v2 rotated by f(inPlaneRotation)
+%%      M_v1		out     1st candidate vox2ras matrix (no rotation)
+%%	M_v2		out	2nd candidate vox2ras matrix (no rotation)
 %%
 %%		where f() is a linear function on inPlaneRotation
 %%
@@ -40,7 +42,18 @@ function [M_v1, M_v2, M_Ru1, M_Ru2] = vox2ras_rsolve(Vc_C, inPlaneRotation)
 %%				 0	 0	 0	1
 %%
 %%	Two candidate matrices are returned due to the quadratic nature of the
-%%	solutions.
+%%	solutions, although for all practical purposes only the first solution
+%%	is important.
+%%
+%%	This method originally used an empirical linear function to "rotate" the
+%%	solution vox2ras matrices to a Siemens-based reference. Soon afterwards,
+%%	a method was found that exactly determined the Siemens-based reference 
+%% 	orientation that depreciated the empirical linear function - and formed
+%%	the basis of the vox2ras_rsolveAA function. 
+%%
+%%	For completeness sake, this method was folded back into this function, but
+%%	the vox2ras_rsolveAA is simpler and can address different slab orientations.
+%%
 %%
 %% PRECONDITIONS
 %%
@@ -59,6 +72,8 @@ function [M_v1, M_v2, M_Ru1, M_Ru2] = vox2ras_rsolve(Vc_C, inPlaneRotation)
 %%
 %% SEE ALSO
 %%
+%%	vox2ras_rsolveAA- determine the rotational component of a vox2ras matrix
+%%				using Siemens reference orientations directly
 %%	vox2ras_ksolve	- determine the k-space col in RAS of a vox2ras matrix
 %%	vox2ras_dfmeas	- main function: determines the vox2ras matrix from a
 %%			  Siemens meas.asc file.
@@ -71,6 +86,11 @@ function [M_v1, M_v2, M_Ru1, M_Ru2] = vox2ras_rsolve(Vc_C, inPlaneRotation)
 %% 26 May 2004
 %% o Touching up... 
 %% o 4x4 return sizes fixed.
+%%
+%% 02 June 2004
+%% o Changed return calling parameters
+%% o Normalize only first two columns
+%% o Incorporated Siemens reference orientation calculations
 %%
 
 ci	= Vc_C(1);
@@ -109,9 +129,6 @@ M3_v1 = [
 	ak1	-1	ck
 ];
 
-for col=1:3,
-	M3_v1(:,col) = M3_v1(:,col) ./ norm(M3_v1(:,col));
-end
 
 M3_v2 = [
 	ai2	bi2	ci
@@ -119,10 +136,33 @@ M3_v2 = [
 	ak2	-1	ck
 ];
 
-for col=1:3,
+for col=1:2,
+	M3_v1(:,col) = M3_v1(:,col) ./ norm(M3_v1(:,col));
+end
+
+for col=1:2,
 	M3_v2(:,col) = M3_v2(:,col) ./ norm(M3_v2(:,col));
 end
 
+%% First candidate
+theta_c1	= atan(-ak1);
+theta_f1	= theta_c1 - inPlaneRotation;
+M3_Mu1		= [	 cos(theta_f1)	 sin(theta_f1)	0
+			-sin(theta_f1)	 cos(theta_f1)	0
+			 	0		0	1];
+M3_Ru1		= M3_v1 * M3_Mu1;
+
+%% Second candidate
+theta_c2	= atan(-ak2);
+theta_f2	= theta_c2 - inPlaneRotation;
+M3_Mu2		= [	 cos(theta_f2)	 sin(theta_f2)	0
+			-sin(theta_f2)	 cos(theta_f2)	0
+			 	0		0	1];
+M3_Ru2		= M3_v2 * M3_Mu2;
+
+%% ***********************************************************
+%% DEPRECIATED - Using theta_c1 improves accuracy 
+%% ***********************************************************
 %% The above calculated rotation matrices define an (x,y) plane
 %%	given by the first two column vectors. Since we have
 %%	"hardcoded" two components of these vectors, we have
@@ -141,17 +181,20 @@ end
 %%		b = -0.5188 (roughly equal to pi/6 = )
 %%
 
-m		= -1.0025;
-b		= -0.5188;
-theta_f		= m*inPlaneRotation + b;
-%theta_f		= inPlaneRotation;
-
-M3_Mu	= [	 cos(theta_f)	 sin(theta_f)	0
-		-sin(theta_f)	 cos(theta_f)	0
-		 	0		0	1];
-	
-M3_Ru1	= M3_v1 * M3_Mu;
-M3_Ru2	= M3_v2 * M3_Mu;
+%  m		= -1.0025;
+%  b		= -0.5188;
+%  theta_f		= m*inPlaneRotation + b;
+%  %theta_f		= inPlaneRotation;
+%  
+%  M3_Mu	= [	 cos(theta_f)	 sin(theta_f)	0
+%  		-sin(theta_f)	 cos(theta_f)	0
+%  		 	0		0	1];
+%  	
+%  M3_Ru1	= M3_v1 * M3_Mu;
+%  M3_Ru2	= M3_v2 * M3_Mu;
+%% ***********************************************************
+%%                                                 DEPRECIATED
+%% ***********************************************************
 
 M_v1	= eye(4);	M_v1(1:3, 1:3)	= M3_v1;
 M_v2	= eye(4);	M_v2(1:3, 1:3)	= M3_v2;

@@ -10,7 +10,7 @@ function [M_V] = vox2ras_ksolve(M_R, Vc_Ps, varargin)
 %%
 %% VERSION
 %%
-%%	$Id: vox2ras_ksolve.m,v 1.3 2004/05/26 21:33:47 rudolph Exp $
+%%	$Id: vox2ras_ksolve.m,v 1.4 2004/06/03 18:11:28 rudolph Exp $
 %%
 %% SYNOPSIS
 %%
@@ -51,7 +51,10 @@ function [M_V] = vox2ras_ksolve(M_R, Vc_Ps, varargin)
 %%
 %% SEE ALSO
 %%
+%%	vox2ras_rsolveAA- determine the rotational component of a vox2ras matrix
+%%				using Siemens reference orientations directly
 %%	vox2ras_rsolve	- determine the rotational component of a vox2ras matrix
+%%				using Siemens reference orientations indirectly
 %%	vox2ras_dfmeas	- main function: determines the vox2ras matrix from a
 %%			  Siemens meas.asc file.
 %% 

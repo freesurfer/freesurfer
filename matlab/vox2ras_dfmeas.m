@@ -104,13 +104,19 @@ function [M_V] = vox2ras_dfmeas(str_filename, varargin)
 %%
 %% SEE ALSO
 %%
-%%	vox2ras_ksolve	- determine the k-space col in RAS of a vox2ras matrix
+%%	vox2ras_rsolveAA- determine the rotational component of a vox2ras matrix
+%%				using Siemens reference orientations directly
 %%	vox2ras_rsolve	- determine the rotational component of a vox2ras matrix
+%%				using Siemens reference orientations indirectly
+%%	vox2ras_ksolve	- determine the k-space col in RAS of a vox2ras matrix
 %%
 %% HISTORY
 %%
 %% 25 May 2004
 %% o Initial design and coding.
+%%
+%% 02 June 2004
+%% o vox2ras_rsolveAA
 %%
 
 %% Check for override specifications and set default values
@@ -206,9 +212,8 @@ cmd = ['cat meas.asc | grep -a sSliceArray.asSlice | grep dInPlaneRot' ...
     		' | awk ' char(39) '{print $3}' char(39)];
 [s, inPlaneRot]    		= system(cmd);
 inPlaneRotation			= str2num(inPlaneRot);
-[M_v1, M_v2, M_Ru1, M_Ru2]	= vox2ras_rsolve(Vc_N, inPlaneRotation);
-M_Ru1(:,3)			= M_Ru1(:,3) .* Vr_voxelDimension(3);
-M_R				= M_Ru1;
+
+[M_R]				= vox2ras_rsolveAA(Vc_N, inPlaneRotation);
 
 %% Parse meas.asc file for sPosition vector
 Vc_Ps = zeros(3,1);
