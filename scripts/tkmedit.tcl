@@ -1,6 +1,6 @@
 #! /usr/bin/tixwish
 
-# $Id: tkmedit.tcl,v 1.55 2003/07/25 20:38:22 kteich Exp $
+# $Id: tkmedit.tcl,v 1.56 2003/07/28 14:14:05 kteich Exp $
 
 
 source $env(MRI_DIR)/lib/tcl/tkm_common.tcl
@@ -3553,17 +3553,9 @@ proc CreateMenuBar { ifwMenuBar } {
 	}}
 	{ cascade "Segmentation" {
 	    { command
-		"Select Current Label"
-		SelectCurrentSegLabel
-		tMenuGroup_Segmentation }
-	    { command
 		"Recompute Segmentation"
 		DoRecomputeSegmentation
 		tMenuGroup_GCAOptions }
-	    { command
-		"Graph Current Label Average"
-		GraphCurrentSegLabelAvg
-		tMenuGroup_Segmentation } 
 	}}
 	{ cascade "Head Points" {
 	    { command
