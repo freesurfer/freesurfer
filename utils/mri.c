@@ -7370,6 +7370,7 @@ MRI *MRIresample(MRI *src, MRI *template_vol, int resample_type)
   int di, dj, dk;
   int si, sj, sk;
   float si_f, sj_f, sk_f;
+  float si_ff, sj_ff, sk_ff;
   MATRIX *sp, *dp;
   float val, val000, val001, val010, val011, val100, val101, val110, val111;
   float w000, w001, w010, w011, w100, w101, w110, w111;
@@ -7378,6 +7379,7 @@ MRI *MRIresample(MRI *src, MRI *template_vol, int resample_type)
   float w[8];
   int wi[8];
   int mwi;
+  Real pval;
 
   /* ----- keep the compiler quiet ----- */
   val = 0.0;
@@ -7544,25 +7546,30 @@ and for dest
 
         MatrixMultiply(m, dp, sp);
 
-        si_f = *MATRIX_RELT(sp, 1, 1);
-        sj_f = *MATRIX_RELT(sp, 2, 1);
-        sk_f = *MATRIX_RELT(sp, 3, 1);
+        si_ff = *MATRIX_RELT(sp, 1, 1);
+        sj_ff = *MATRIX_RELT(sp, 2, 1);
+        sk_ff = *MATRIX_RELT(sp, 3, 1);
 
-        si = (int)floor(si_f);
-        sj = (int)floor(sj_f);
-        sk = (int)floor(sk_f);
+        si = (int)floor(si_ff);
+        sj = (int)floor(sj_ff);
+        sk = (int)floor(sk_ff);
 
         if (si == 147 && sj == 91 && sk == 86)
           DiagBreak() ;
         if (di == 129 && dj == 164 && dk == 147)
           DiagBreak() ;
-        si_f = si_f - si;
-        sj_f = sj_f - sj;
-        sk_f = sk_f - sk;
+        si_f = si_ff - si;
+        sj_f = sj_ff - sj;
+        sk_f = sk_ff - sk;
 
-        if(si < 0.0 || si >= (float)(src->width - 2) ||
-           sj < 0.0 || sj >= (float)(src->height - 2) ||
-           sk < 0.0 || sk >= (float)(src->depth - 2))
+        if(resample_type == RESAMPLE_SINC)
+        {
+          MRIsincSampleVolume(src, si_ff, sj_ff, sk_ff, 5, &pval);
+          val = (float)pval;
+        }
+        else if(si < 0.0 || si >= (float)(src->width - 2) ||
+                sj < 0.0 || sj >= (float)(src->height - 2) ||
+                sk < 0.0 || sk >= (float)(src->depth - 2))
         {
           val = 0.0;
         }
