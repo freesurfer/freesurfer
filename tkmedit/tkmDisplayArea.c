@@ -3,8 +3,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2003/05/27 19:06:24 $
-// Revision       : $Revision: 1.72 $
+// Revision Date  : $Date: 2003/06/05 20:39:22 $
+// Revision       : $Revision: 1.73 $
 
 #include "tkmDisplayArea.h"
 #include "tkmMeditWindow.h"
@@ -888,8 +888,8 @@ DspA_tErr DspA_SetControlPointsSpace ( tkmDisplayAreaRef this,
   return eResult;
 }
 
-DspA_tErr DspA_SetSelectionSpace( tkmDisplayAreaRef this, 
-				  x3DListRef        ipVoxels ) {
+DspA_tErr DspA_SetSelectionSpace( tkmDisplayAreaRef this,
+				  char***           ipVolume ) {
   
   DspA_tErr eResult = DspA_tErr_NoErr;
   
@@ -899,7 +899,7 @@ DspA_tErr DspA_SetSelectionSpace( tkmDisplayAreaRef this,
     goto error;
   
   /* save the selected voxels */
-  this->mpSelection = ipVoxels;
+  this->mpSelection = ipVolume;
   
   /* turn selection display on. */
   if( NULL != this->mpSelection ) {
@@ -910,7 +910,7 @@ DspA_tErr DspA_SetSelectionSpace( tkmDisplayAreaRef this,
   }
   
   /* find the center of the selection and go there */
-  eResult = DspA_SetCursorToCenterOfSpace( this, ipVoxels );
+  eResult = DspA_SetCursorToCenterOfSpace( this, ipVolume );
   if( DspA_tErr_NoErr != eResult )
     goto error;
   
@@ -2559,97 +2559,59 @@ DspA_tErr DspA_GetSlice ( tkmDisplayAreaRef this,
 }
 
 DspA_tErr DspA_SetCursorToCenterOfSpace ( tkmDisplayAreaRef this,
-					  x3DListRef        ipList ) {
+					  char***           ipVolume ) {
   
-  DspA_tErr  eResult                 = DspA_tErr_NoErr;
-  xList_tErr eList                   = xList_tErr_NoErr;
-  x3Lst_tErr e3DList                 = x3Lst_tErr_NoErr;
-  int        nSlice                  = 0;
-  xListRef   list                    = NULL;
-  int        nVoxels                 = 0;
-  tBoolean   bInRun                  = FALSE;
-  int        nNumSlicesInRun         = 0;
-  int        nFirstSliceInRun        = 0;
-  int        nNumSlicesInLongestRun  = 0;
-  int        nFirstSliceInLongestRun = 0;
-  int        nLastSliceInLongestRun  = 0;
-  
-  DebugEnterFunction( ("DspA_SetCursorToCenterOfSpace( this=%p, ipList=%p )",
-		       this, ipList) );
+  DspA_tErr  eResult   = DspA_tErr_NoErr;
+  tBoolean   bGotLabel = FALSE;
+  int        nZ        = 0;
+  int        nY        = 0;
+  int        nX        = 0;
+  int        nMinX     = 0;
+  int        nMaxX     = 0;
+  int        nMinY     = 0;
+  int        nMaxY     = 0;
+  int        nMinZ     = 0;
+  int        nMaxZ     = 0;
+  xVoxel     cursor;
+
+  DebugEnterFunction( ("DspA_SetCursorToCenterOfSpace( this=%p, ipVolume=%p )",
+		       this, ipVolume) );
   
   DebugNote( ("Verifying self") );
   eResult = DspA_Verify( this );
   DebugAssertThrow( (eResult == DspA_tErr_NoErr) );
   
-  /* for each slice */
-  for( nSlice = 0; nSlice < this->mnVolumeSizeZ; nSlice++ ) {
-    
-    /* depending on what orientation we are in, get a list of voxels sorted
-       by our slice number */
-    switch ( this->mOrientation ) {
-    case mri_tOrientation_Coronal:
-      DebugNote( ("Getting list in z plane for slice %d",nSlice) );
-      e3DList = x3Lst_GetItemsInZPlane( this->mpSelection, nSlice, &list );
-      break;
-    case mri_tOrientation_Sagittal:
-      DebugNote( ("Getting list in x plane for slice %d",nSlice) );
-      e3DList = x3Lst_GetItemsInXPlane( this->mpSelection, nSlice, &list );
-      break;
-    case mri_tOrientation_Horizontal:
-      DebugNote( ("Getting list in y plane for slice %d",nSlice) );
-      e3DList = x3Lst_GetItemsInYPlane( this->mpSelection, nSlice, &list );
-      break;
-    default:
-      eResult = DspA_tErr_InvalidOrientation;
-      goto error;
-      break;
-    }
-    
-    /* see if we have any voxels here. */
-    DebugNote( ("Getting number of voxels in list with xList_GetCount") );
-    eList = xList_GetCount( list, &nVoxels );
-    DebugAssertThrowX( (eList==xList_tErr_NoErr), 
-		       eResult, DspA_tErr_ErrorAccessingList );
-    
-    /* if there's a voxel here... */
-    if( nVoxels > 0 ) {
-      
-      /* if we're not in a run, start a run. set the ctr to one and save
-	 the beginning slice of the run. */
-      if( !bInRun ) {
-	bInRun           = TRUE;
-	nNumSlicesInRun  = 1;
-	nFirstSliceInRun = nSlice;
-	
-	/* if we are in a run, inc the counter */
-      } else {
-	nNumSlicesInRun++;
-      }
-      
-      /* if there's no voxel here, and we were in a run... */
-    } else if( bInRun ) {
-      
-      /* end the run. if the run size is greater than our max, save 
-	 the midpoint of the start and end of the run. */
-      bInRun = FALSE;
-      if( nNumSlicesInRun > nNumSlicesInLongestRun ) {
-	nFirstSliceInLongestRun = nFirstSliceInRun;
-	nLastSliceInLongestRun  = nSlice - 1;
-	nNumSlicesInLongestRun  = nNumSlicesInRun;
+  /* Go through the selection volume and get the bounds of the
+     selection. */
+  bGotLabel = FALSE;
+  nMinX = nMinY = nMinZ = 999999;
+  nMaxX = nMaxY = nMaxZ = 0;
+  for( nZ = 0; nZ < this->mnVolumeSizeZ; nZ++ ) {
+    for( nY = 0; nY < this->mnVolumeSizeY; nY++ ) {
+      for( nX = 0; nX < this->mnVolumeSizeX; nX++ ) {
+	if( this->mpSelection[nZ][nY][nX] ) {
+	  bGotLabel = TRUE;
+	  if( nZ > nMaxZ ) nMaxZ = nZ;
+	  if( nY > nMaxY ) nMaxY = nY;
+	  if( nX > nMaxX ) nMaxX = nX;
+	  if( nZ < nMinZ ) nMinZ = nZ;
+	  if( nY < nMinY ) nMinY = nY;
+	  if( nX < nMinX ) nMinX = nX;
+	}
       }
     }
+  }  
+
+  if( bGotLabel ) {
+
+    /* Set the cursor to the center of those bounds. */
+    xVoxl_Set( &cursor, 
+	       nMinX + ((nMaxX - nMinX) / 2),
+	       nMinY + ((nMaxY - nMinY) / 2),
+	       nMinZ + ((nMaxZ - nMinZ) / 2) );
+    DspA_SetCursor( this, &cursor );
   }
-  
-  /* if we found a run.. */
-  if( nNumSlicesInLongestRun > 0 ) {
-    
-    /* set the slice to the middle of the run */
-    DebugNote( ("Setting slice to middle of run") );
-    DspA_SetSlice( this, 
-		   ((nLastSliceInLongestRun - nFirstSliceInLongestRun) / 2) +
-		   nFirstSliceInLongestRun);
-  }
-  
+
   DebugCatch;
   DebugCatchError( eResult, DspA_tErr_NoErr, DspA_GetErrorString );
   EndDebugCatch;
@@ -5315,109 +5277,67 @@ DspA_tErr DspA_DrawVectorField_ ( tkmDisplayAreaRef this ) {
 
 DspA_tErr DspA_DrawSelectionToFrame_ ( tkmDisplayAreaRef this ) {
   
-  DspA_tErr     eResult           = DspA_tErr_NoErr;
-  xListRef      list       = NULL;
-  xList_tErr    eList      = xList_tErr_NoErr;
-  x3Lst_tErr    e3DList    = x3Lst_tErr_NoErr;
-  xVoxelRef     selection         = NULL;
-  xPoint2n      bufferPt          = {0,0};
-  GLubyte*      pFrame            = NULL;
+  DspA_tErr     eResult  = DspA_tErr_NoErr;
+  xPoint2n      bufferPt = {0,0};
+  GLubyte*      pFrame   = NULL;
+  xVoxel        anaIdx;
   xColor3f      color;
-  int           nX                = 0;
-  int           nY                = 0;
+  int           yMin     = 0;
+  int           yMax     = 0;
+  int           yInc     = 0;
   
-  
-  /* decide which list we want out of the space. */
-  switch ( this->mOrientation ) {
-  case mri_tOrientation_Coronal:
-    e3DList = x3Lst_GetItemsInZPlane( this->mpSelection,
-				      DspA_GetCurrentSliceNumber_(this),
-				      &list );
-    break;
-  case mri_tOrientation_Sagittal:
-    e3DList = x3Lst_GetItemsInXPlane( this->mpSelection, 
-				      DspA_GetCurrentSliceNumber_(this),
-				      &list );
-    break;
-  case mri_tOrientation_Horizontal:
-    e3DList = x3Lst_GetItemsInYPlane( this->mpSelection,
-				      DspA_GetCurrentSliceNumber_(this),
-				      &list );
-    break;
-  default:
-    eResult = DspA_tErr_InvalidOrientation;
-    goto error;
-    break;
+  /* get a ptr to the frame buffer. */
+  pFrame = this->mpFrameBuffer;
+
+  if( mri_tOrientation_Horizontal == this->mOrientation ){
+    yMin = 0; yMax = this->mnVolumeSizeY; yInc = 1;
+  } else {
+    yMin = this->mnVolumeSizeY; yMax = 0; yInc = -1;
   }
   
-  /* check for error. */
-  if ( x3Lst_tErr_NoErr != e3DList )
-    goto error;
-  
-  /* if we got a list... */
-  if ( NULL != list ) {
-    
-    /* traverse the list */
-    eList = xList_ResetPosition( list );
-    while( (eList = xList_NextFromPos( list, (void**)&selection )) 
-	   != xList_tErr_EndOfList ) {
+  /* Just loop through getting the anatomical color at this index. */
+  for ( bufferPt.mnY = yMin; bufferPt.mnY != yMax; bufferPt.mnY += yInc) {
+    for ( bufferPt.mnX = 0; 
+	  bufferPt.mnX < this->mnVolumeSizeX; bufferPt.mnX ++ ) {
       
-      if( selection ) {
-	
-	/* covert to a buffer point. */
-	eResult = DspA_ConvertVolumeToBuffer_ ( this, selection, &bufferPt );
-	if ( DspA_tErr_NoErr != eResult )
-	  goto error;
-	
-	/* y flip the volume pt to flip the image over. */
-	bufferPt.mnY = Y_FLIP(bufferPt.mnY);
-	
-	/* write it back to the buffer */
-	for( nY = bufferPt.mnY; 
-	     BUFFER_Y_LT(nY,BUFFER_Y_INC(bufferPt.mnY,this->mnZoomLevel));
-	     nY = BUFFER_Y_INC(nY,1) ) {
-	  for( nX = bufferPt.mnX; nX < bufferPt.mnX + this->mnZoomLevel;nX++) {
-	    
-	    pFrame = this->mpFrameBuffer + 
-	      ( (nY * this->mnVolumeSizeX) + nX ) * DspA_knNumBytesPerPixel;
-	    
-	    /* get the current color in the buffer */
-	    xColr_SetFloat( &color, (float)pFrame[DspA_knRedPixelCompIndex] /
-		       (float)DspA_knMaxPixelValue,
-		       (float)pFrame[DspA_knGreenPixelCompIndex] /
-		       (float)DspA_knMaxPixelValue,
-		       (float)pFrame[DspA_knBluePixelCompIndex] /
-		       (float)DspA_knMaxPixelValue );
-	    
-	    /* make it greener */
-	    xColr_HilightComponent( &color, xColr_tComponent_Green );
-	    
-	    /* put it back */
-	    pFrame[DspA_knRedPixelCompIndex]   = 
-	      (GLubyte)(color.mfRed * (float)DspA_knMaxPixelValue);
-	    pFrame[DspA_knGreenPixelCompIndex] = 
-	      (GLubyte)(color.mfGreen * (float)DspA_knMaxPixelValue);
-	    pFrame[DspA_knBluePixelCompIndex]  = 
-	      (GLubyte)(color.mfBlue * (float)DspA_knMaxPixelValue);
-	    pFrame[DspA_knAlphaPixelCompIndex] = DspA_knMaxPixelValue;
-	  }
-	}
+      /* get a volume voxel.*/
+      eResult = DspA_ConvertBufferToVolume_ ( this, &bufferPt, &anaIdx );
+      if ( DspA_tErr_NoErr != eResult )
+	goto error;
+      
+	if( this->mpSelection
+	    [xVoxl_GetZ(&anaIdx)][xVoxl_GetY(&anaIdx)][xVoxl_GetX(&anaIdx)] ) {
+	  
+	  /* get the current color in the buffer */
+	  xColr_SetFloat( &color, (float)pFrame[DspA_knRedPixelCompIndex] /
+			  (float)DspA_knMaxPixelValue,
+			  (float)pFrame[DspA_knGreenPixelCompIndex] /
+			  (float)DspA_knMaxPixelValue,
+			  (float)pFrame[DspA_knBluePixelCompIndex] /
+			  (float)DspA_knMaxPixelValue );
+	  
+	  /* make it greener */
+	  xColr_HilightComponent( &color, xColr_tComponent_Green );
+	  
+	  /* put it back */
+	  pFrame[DspA_knRedPixelCompIndex]   = 
+	    (GLubyte)(color.mfRed * (float)DspA_knMaxPixelValue);
+	  pFrame[DspA_knGreenPixelCompIndex] = 
+	    (GLubyte)(color.mfGreen * (float)DspA_knMaxPixelValue);
+	  pFrame[DspA_knBluePixelCompIndex]  = 
+	    (GLubyte)(color.mfBlue * (float)DspA_knMaxPixelValue);
+	  pFrame[DspA_knAlphaPixelCompIndex] = DspA_knMaxPixelValue;
+	  
       }
+
+      /* advance our pointer. */
+      pFrame += DspA_knNumBytesPerPixel;
     }
-    
-    if( eList != xList_tErr_EndOfList )
-      goto error;
   }
-  
+      
   goto cleanup;
   
  error:
-  
-  if ( x3Lst_tErr_NoErr != e3DList )
-    eResult = DspA_tErr_ErrorAccessingSelection;
-  
-  if ( xList_tErr_NoErr != eList )
-    eResult = DspA_tErr_ErrorAccessingSelection;
   
   /* print error message */
   if ( DspA_tErr_NoErr != eResult ) {

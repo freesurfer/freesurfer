@@ -834,8 +834,8 @@ MWin_tErr MWin_SetControlPointsSpace ( tkmMeditWindowRef this,
 
 
 MWin_tErr MWin_SetSelectionSpace ( tkmMeditWindowRef this, 
-           int               inDispIndex,
-           x3DListRef        ipVoxels ) {
+				   int               inDispIndex,
+				   char***           ipVolume ) {
   
   MWin_tErr eResult     = MWin_tErr_NoErr;
   DspA_tErr eDispResult = DspA_tErr_NoErr;
@@ -865,7 +865,7 @@ MWin_tErr MWin_SetSelectionSpace ( tkmMeditWindowRef this,
   nDispIndex++ ) {
 
     eDispResult = DspA_SetSelectionSpace ( this->mapDisplays[nDispIndex],
-             ipVoxels );
+					   ipVolume );
     if ( DspA_tErr_NoErr != eDispResult ) {
       eResult = MWin_tErr_ErrorAccessingDisplay;
       goto error;

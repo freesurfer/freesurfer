@@ -286,7 +286,7 @@ struct tkmDisplayArea {
   mriSurfaceRef          mpSurface[tkm_knNumSurfaceTypes];
   tkmFunctionalVolumeRef mpFunctionalVolume;
   x3DListRef             mpControlPoints;
-  x3DListRef             mpSelection;
+  char***                mpSelection;
   mriHeadPointListRef    mHeadPoints;
   GCA*                   mGCAVolume;
   TRANSFORM*             mGCATransform;
@@ -360,7 +360,7 @@ DspA_tErr DspA_SetOverlayVolume              ( tkmDisplayAreaRef this,
 DspA_tErr DspA_SetControlPointsSpace         ( tkmDisplayAreaRef this,
 					       x3DListRef        ipVoxels );
 DspA_tErr DspA_SetSelectionSpace             ( tkmDisplayAreaRef this, 
-					       x3DListRef        ipVoxels );
+					       char***           ipVolume );
 DspA_tErr DspA_SetHeadPointList              ( tkmDisplayAreaRef this,
 					       mriHeadPointListRef iList );
 DspA_tErr DspA_SetGCA                        ( tkmDisplayAreaRef this,
@@ -446,11 +446,9 @@ DspA_tErr DspA_GetPosition ( tkmDisplayAreaRef this,
 DspA_tErr DspA_GetSlice    ( tkmDisplayAreaRef this,
 			     int*              onSlice );
 
-/* sets the cursor to the center of the selection within the current
-   slice, but finding out what the largest run of voxels are in the
-   current orientation and going to the center. */
+/* Sets the cursor to the center of the selection volume. */
 DspA_tErr DspA_SetCursorToCenterOfSpace ( tkmDisplayAreaRef this,
-					  x3DListRef        ipList );
+					  char***           ipVolume );
 
 /* routes events to specialized handlers */
 DspA_tErr DspA_HandleEvent ( tkmDisplayAreaRef this, 

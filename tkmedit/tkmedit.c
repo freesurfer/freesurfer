@@ -4,9 +4,9 @@
 
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2003/06/05 14:45:05 $
-// Revision       : $Revision: 1.153 $
-char *VERSION = "$Revision: 1.153 $";
+// Revision Date  : $Date: 2003/06/05 20:39:23 $
+// Revision       : $Revision: 1.154 $
+char *VERSION = "$Revision: 1.154 $";
 
 #define TCL
 #define TKMEDIT 
@@ -105,6 +105,7 @@ char *tkm_ksaErrorStrings [tkm_knNumErrorCodes] = {
   "Error accessing surface.",
   "Couldnt write a file.",
   "A memory allocation failed.",
+  "The anatomical volume is not loaded.",
   "Tried to call a function on an unloaded surface.",
   "Functional overlay is not loaded.",
   "GCA volume is not loaded.",
@@ -301,10 +302,16 @@ void AverageSurfaceVertexPositions        ( int             inNumAverages );
    the usual functions for adding and removing voxels as well as
    saving them out to a file. */
 
-x3DListRef gSelectedVoxels;
+char*** gSelectionVolume;
+int     gSelectionVolumeXDimension;
+int     gSelectionVolumeYDimension;
+int     gSelectionVolumeZDimension;
+int     gSelectionCount;
 
 tkm_tErr InitSelectionModule ();
 void   DeleteSelectionModule ();
+
+tkm_tErr AllocateSelectionVolume ();
 
 /* adds or removes voxels to selections. if a voxel that isn't in the 
    selection is told to be removed, no errors occur. this is called from the 
@@ -1020,7 +1027,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
      shorten our argc and argv count. If those are the only args we
      had, exit. */
   /* rkt: check for and handle version tag */
-  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.153 2003/06/05 14:45:05 kteich Exp $");
+  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.154 2003/06/05 20:39:23 kteich Exp $");
   if (nNumProcessedVersionArgs && argc - nNumProcessedVersionArgs == 1)
     exit (0);
   argc -= nNumProcessedVersionArgs;
@@ -4796,7 +4803,7 @@ int main ( int argc, char** argv ) {
   DebugAssertThrow( (MWin_tErr_NoErr == eWindow ) );
   
   DebugNote( ("Setting selection list in window.") );
-  eWindow = MWin_SetSelectionSpace( gMeditWindow, -1, gSelectedVoxels );
+  eWindow = MWin_SetSelectionSpace( gMeditWindow, -1, gSelectionVolume );
   DebugAssertThrow( (MWin_tErr_NoErr == eWindow ) );
   
   /* start by disabling a bunch of stuff. if it gets loaded, the options
@@ -5943,21 +5950,89 @@ void DeleteControlPoint ( xVoxelRef ipCtrlPt ) {
 
 tkm_tErr InitSelectionModule () {
   
-  tkm_tErr   eResult = tkm_tErr_NoErr;
-  x3Lst_tErr e3DList = x3Lst_tErr_NoErr;
+  gSelectionVolume           = NULL;
+  gSelectionVolumeXDimension = 0;
+  gSelectionVolumeYDimension = 0;
+  gSelectionVolumeZDimension = 0;
+  gSelectionCount            = 0;
+  AllocateSelectionVolume();
+
+  return tkm_tErr_NoErr;
+}
+
+void DeleteSelectionModule () {
   
-  DebugEnterFunction( ("InitSelectionModule()") );
+  DebugEnterFunction( ("DeleteSelectionModule()") );
+
+  if( NULL != gSelectionVolume ) {
+
+    DebugNote( ( "Deleting selection volume.\n" ) );
+    free( gSelectionVolume );
+  }
+
+  DebugExitFunction;
+}
+
+tkm_tErr AllocateSelectionVolume () {
+
+  tkm_tErr   eResult     = tkm_tErr_NoErr;
+  Volm_tErr  eVolume     = Volm_tErr_NoErr;
+  int        nZ          = 0;
+  int        nY          = 0;
   
-  DebugNote( ("Creating selction space") );
-  e3DList = x3Lst_New( &gSelectedVoxels, NUM_UNDOS );
-  DebugAssertThrowX( (x3Lst_tErr_NoErr == e3DList),
-         eResult, tkm_tErr_Unrecoverable );
-  
-  DebugNote( ("Setting comparator in selection space") );
-  e3DList = x3Lst_SetComparator( gSelectedVoxels, CompareVoxels );
-  DebugAssertThrowX( (x3Lst_tErr_NoErr == e3DList),
-         eResult, tkm_tErr_Unrecoverable );
-  
+  DebugEnterFunction( ("AllocateSelectionVolume()") );
+
+  if( NULL == gAnatomicalVolume[tkm_tVolumeType_Main] )
+     return;
+
+  /* If the volume already exists, delete it. */
+  if( NULL != gSelectionVolume ) 
+    free( gSelectionVolume );
+
+  /* Get the dimensions of the anatomical volume. */
+  eVolume = Volm_GetDimensions( gAnatomicalVolume[tkm_tVolumeType_Main],
+				&gSelectionVolumeXDimension, 
+				&gSelectionVolumeYDimension, 
+				&gSelectionVolumeZDimension );
+  DebugAssertThrowX( (Volm_tErr_NoErr == eVolume),
+		     eResult, tkm_tErr_ErrorAccessingVolume );
+
+  /* We increment the dimensions by a fudge factor to allow for
+     rounding errors in the drawing code when converting to anatomical
+     indices, it makes it faster because we don't have to test
+     bounds. */
+  gSelectionVolumeXDimension += 2;
+  gSelectionVolumeYDimension += 2;
+  gSelectionVolumeZDimension += 2;
+
+  /* Allocate our volume. */
+  DebugNote( ("Allocating zs") );
+  gSelectionVolume = 
+    (char***) calloc( gSelectionVolumeZDimension, sizeof(char**) );
+  DebugAssertThrowX( (NULL != gSelectionVolume),
+		     eResult, tkm_tErr_CouldntAllocate );
+  for( nZ = 0; nZ < gSelectionVolumeZDimension; nZ++ ) {
+
+    DebugNote( ("Allocating z = %d", nZ) );
+    gSelectionVolume[nZ] = 
+      (char**) calloc( gSelectionVolumeYDimension, sizeof(char*) );
+    DebugAssertThrowX( (NULL != gSelectionVolume),
+		       eResult, tkm_tErr_CouldntAllocate );
+
+    for( nY = 0; nY < gSelectionVolumeYDimension; nY++ ) {
+
+      DebugNote( ("Allocating y = %d", nY) );
+      gSelectionVolume[nZ][nY] = 
+	(char*) calloc( gSelectionVolumeXDimension, sizeof(char) );
+      DebugAssertThrowX( (NULL != gSelectionVolume),
+			 eResult, tkm_tErr_CouldntAllocate );
+    }
+  }
+
+  /* Set it in the window. */
+  DebugNote( ("Setting selection list in window.") );
+  MWin_SetSelectionSpace( gMeditWindow, -1, gSelectionVolume );
+
   DebugCatch;
   DebugCatchError( eResult, tkm_tErr_NoErr, tkm_GetErrorString );
   EndDebugCatch;
@@ -5967,129 +6042,96 @@ tkm_tErr InitSelectionModule () {
   return eResult;
 }
 
-void DeleteSelectionModule () {
-  
-  if ( NULL == gSelectedVoxels )
-    return;
-  
-  DebugNote( ( "Deleting selection module.\n" ) );
-  x3Lst_Delete( &gSelectedVoxels );
-  
-}
-
 void AddVoxelsToSelection ( xVoxelRef iaAnaIdx, int inCount ) {
   
-  x3Lst_tErr e3DList = x3Lst_tErr_NoErr;
   int        nVoxel  = 0;
-  xVoxelRef  anaIdx  = NULL;
+  xVoxel     anaIdx;
   
-  if ( NULL == gSelectedVoxels )
-    return;
+  if ( NULL == gSelectionVolume ) {
+    AllocateSelectionVolume();
+  }
   
   /* For each voxel we got... */
   for( nVoxel = 0; nVoxel < inCount; nVoxel++ ) {
     
     /* Allocate a copy of the voxel */
-    xVoxl_New( &anaIdx );
-    xVoxl_Copy( anaIdx, &(iaAnaIdx[nVoxel]) );
+    xVoxl_Copy( &anaIdx, &(iaAnaIdx[nVoxel]) );
     
-    /* add the voxel to the ctrl pt space */
-    e3DList = x3Lst_AddItem( gSelectedVoxels, anaIdx, anaIdx );
-    if( e3DList != x3Lst_tErr_NoErr )
-      DebugPrint( ( "x3Lst error %d in AddVoxelToSelection.\n", e3DList ) );
+    /* Set this location in the selection volume to 1 */
+    gSelectionVolume
+      [xVoxl_GetZ(&anaIdx)][xVoxl_GetY(&anaIdx)][xVoxl_GetX(&anaIdx)] = 1;
+
+    /* Inc our selection count. */
+    gSelectionCount++;
   }
 }
 
 void RemoveVoxelsFromSelection ( xVoxelRef iaAnaIdx, int inCount ) {
   
-  x3Lst_tErr e3DList = x3Lst_tErr_NoErr;
-  xVoxelRef  voxel   = NULL;
   int        nVoxel  = 0;
-  xVoxel     where;
+  xVoxel     anaIdx;
   
-  if ( NULL == gSelectedVoxels )
+  if ( NULL == gSelectionVolume )
     return;
   
   for( nVoxel = 0; nVoxel < inCount; nVoxel++ ) {
     
     /* Copy the voxel into the location voxel. */
-    xVoxl_Copy( &where, &(iaAnaIdx[nVoxel]) );
+    xVoxl_Copy( &anaIdx, &(iaAnaIdx[nVoxel]) );
     
-    voxel = &(iaAnaIdx[nVoxel]);
+    /* Set this location in the selection volume to 0 */
+    gSelectionVolume
+      [xVoxl_GetZ(&anaIdx)][xVoxl_GetY(&anaIdx)][xVoxl_GetX(&anaIdx)] = 0;
     
-    /* Remove the item. we'll get back a ptr to the actual voxel we
-       added. We may get an error if the voxel is out of bounds. If
-       so, just continue. If we got a different error, print an error
-       message.  */
-    e3DList = x3Lst_RemoveItem( gSelectedVoxels, &where, (void**)&voxel );
-    if( e3DList != x3Lst_tErr_NoErr ) {
-      if( e3DList != x3Lst_tErr_ItemNotInSpace ) {
-	DebugPrint( ( "x3Lst error %d in RemoveVoxelsFromSelection. "
-		      "voxel %d of %d = %d, %d, %d\n",
-		      e3DList, nVoxel, inCount, xVoxl_ExpandInt( voxel ) ) );
-      }
-      continue;
-    }
-    
-    /* delete it */
-    xVoxl_Delete( &voxel );
+    /* Dec our selection count. */
+    gSelectionCount--;
   }
 }
 
 
 void ClearSelection () {
+
+  int nZ = 0;
+  int nY = 0;
+  int nX = 0;
   
-  x3Lst_tErr e3DList = x3Lst_tErr_NoErr;
-  
-  if ( NULL == gSelectedVoxels )
+  if ( NULL == gSelectionVolume )
     return;
   
-  e3DList = x3Lst_Clear( gSelectedVoxels );
-  if ( e3DList != x3Lst_tErr_NoErr )
-    DebugPrint( ( "x3Lst error %d in ClearSelection\n",
-      e3DList ) );
-  
-  MWin_RedrawAll( gMeditWindow );
+  /* Set all values in the volume to 0 */
+  for( nZ = 0; nZ < gSelectionVolumeZDimension; nZ++ ) {
+    for( nY = 0; nY < gSelectionVolumeYDimension; nY++ ) {
+      for( nX = 0; nX < gSelectionVolumeXDimension; nX++ ) {
+	gSelectionVolume[nZ][nY][nX] = 0;
+      }
+    }
+  }  
+
+  /* Zero the selection count */
+  gSelectionCount = 0;
 }
 
 void SaveSelectionToLabelFile ( char * isFileName ) {
   
-  tkm_tErr  eResult       = tkm_tErr_NoErr;
-  Volm_tErr  eVolume       = Volm_tErr_NoErr;
-  char    sFileName[tkm_knPathLen] = "";
-  LABEL*  pLabel       = NULL;
-  LABEL_VERTEX* pVertex       = NULL;
-  xVoxelRef  idx       = NULL;
-  xVoxel  ras;
-  xListRef  list       = NULL;
-  x3Lst_tErr  e3DList       = x3Lst_tErr_NoErr;
-  xList_tErr  eList       = xList_tErr_NoErr;
-  int    nNumVoxels     = 0;
-  int    nListCount     = 0;
-  int    nVoxel       = 0;
-  int    nPlane       = 0;
-  int    eLabel       = 0;
+  tkm_tErr      eResult                  = tkm_tErr_NoErr;
+  Volm_tErr     eVolume                  = Volm_tErr_NoErr;
+  char          sFileName[tkm_knPathLen] = "";
+  int           nX                       = 0;
+  int           nY                       = 0;
+  int           nZ                       = 0;
+  xVoxel        idx;
+  xVoxel        ras;
+  LABEL*        pLabel                   = NULL;
+  LABEL_VERTEX* pVertex                  = NULL;
+  int           nVoxel                   = 0;
+  int           eLabel                   = 0;
   
   DebugEnterFunction( ("SaveSelectionToLabelFile ( isFileName=%s )",
            isFileName) );
   
-  /* get the number of selected voxels we have, or the sum of the voxels
-     in a particular plane. */
-  for ( nPlane = 0; nPlane < gnAnatomicalDimensionZ; nPlane++ ) {
-    
-    DebugNote( ("Getting x items for plane %d", nPlane) );
-    e3DList = x3Lst_GetItemsInXPlane( gSelectedVoxels, nPlane, &list );
-    DebugAssertThrowX( (x3Lst_tErr_NoErr == e3DList),
-           eResult, tkm_tErr_ErrorAccessingList );
-    
-    DebugNote( ("Getting number of items in list in plane %d", nPlane) );
-    eList = xList_GetCount( list, &nListCount );
-    DebugAssertThrowX( (xList_tErr_NoErr == eList),
-           eResult, tkm_tErr_ErrorAccessingList );
-    
-    nNumVoxels += nListCount;
-  }
-  
+  DebugAssertThrowX( (NULL != gSelectionVolume),
+		     eResult, tkm_tErr_NoErr );
+
   /* make the file name */
   DebugNote( ("Making file name from %s", isFileName) );
   MakeFileName( isFileName, tkm_tFileName_Label, 
@@ -6098,66 +6140,60 @@ void SaveSelectionToLabelFile ( char * isFileName ) {
   /* allocate a label file with that number of voxels, our subject name,
      and the passed in label file name. */
   DebugNote( ("Allocating label with %d voxels") );  
-  pLabel = LabelAlloc( nNumVoxels, NULL, sFileName );
+  pLabel = LabelAlloc( gSelectionCount, NULL, sFileName );
   DebugAssertThrowX( (NULL != pLabel), eResult, tkm_tErr_CouldntAllocate );
   
   /* set the number of points in the label */
-  pLabel->n_points = nNumVoxels;
+  pLabel->n_points = gSelectionCount;
   
-  /* for each plane */
+  /* Look for selected voxels */
   nVoxel = 0;
-  for ( nPlane = 0; nPlane < gnAnatomicalDimensionZ; nPlane++ ) {
-    
-    /* get the list for this x value. */
-    DebugNote( ("Getting x items for plane %d", nPlane) );
-    e3DList = x3Lst_GetItemsInXPlane( gSelectedVoxels, nPlane, &list );
-    DebugAssertThrowX( (x3Lst_tErr_NoErr == e3DList),
-           eResult, tkm_tErr_ErrorAccessingList );
-    
-    /* traverse the list */
-    DebugNote( ("Resetting list position") );
-    eList = xList_ResetPosition( list );
-    while( (eList = xList_NextFromPos( list, (void**)&idx )) 
-     != xList_tErr_EndOfList ) {
-      
-      if( idx ) {
+  for( nZ = 0; nZ < gSelectionVolumeZDimension; nZ++ ) {
+    for( nY = 0; nY < gSelectionVolumeYDimension; nY++ ) {
+      for( nX = 0; nX < gSelectionVolumeXDimension; nX++ ) {
+
+	if( gSelectionVolume[nZ][nY][nX] ) {
+	  
+	  /* Fill out a voxel */
+	  xVoxl_Set( &idx, nX, nY, nZ );
+	  
+	  /* convert voxel to ras */
+	  eVolume = 
+	    Volm_ConvertIdxToRAS(gAnatomicalVolume[tkm_tVolumeType_Main],
+				 &idx, &ras );
+	  DebugAssertThrowX( (Volm_tErr_NoErr == eVolume), 
+			     eResult, tkm_tErr_ErrorAccessingVolume );
+	  
+	  /* get a ptr the vertex in the label file. */
+	  DebugNote( ("Geting ptr to vertex %d", nVoxel) );
+	  pVertex = &(pLabel->lv[nVoxel]);
   
-  /* convert voxel to ras */
-  eVolume = Volm_ConvertIdxToRAS(gAnatomicalVolume[tkm_tVolumeType_Main],
-               idx, &ras );
-  DebugAssertThrowX( (Volm_tErr_NoErr == eVolume), 
-         eResult, tkm_tErr_ErrorAccessingVolume );
-  
-  /* get a ptr the vertex in the label file. */
-  DebugNote( ("Geting ptr to vertex %d", nVoxel) );
-  pVertex = &(pLabel->lv[nVoxel]);
-  
-  /* set the vertex */
-  DebugNote( ("Setting values of vertex %d", nVoxel) );
-  pVertex->x = xVoxl_GetFloatX( &ras );
-  pVertex->y = xVoxl_GetFloatY( &ras );
-  pVertex->z = xVoxl_GetFloatZ( &ras );
-  
-  /* set the vno to -1, which is significant somewhere outside the realm
-     of tkmedit. set stat value to something decent and deleted to not */
-  pVertex->vno = -1;
-  pVertex->stat = 0;
-  pVertex->deleted = FALSE;
-  
-  /* inc our global count. */
-  nVoxel++;
+	  /* set the vertex */
+	  DebugNote( ("Setting values of vertex %d", nVoxel) );
+	  pVertex->x = xVoxl_GetFloatX( &ras );
+	  pVertex->y = xVoxl_GetFloatY( &ras );
+	  pVertex->z = xVoxl_GetFloatZ( &ras );
+	  
+	  /* set the vno to -1, which is significant somewhere outside
+	     the realm of tkmedit. set stat value to something decent
+	     and deleted to not */
+	  pVertex->vno = -1;
+	  pVertex->stat = 0;
+	  pVertex->deleted = FALSE;
+	  
+	  /* inc our global count. */
+	  nVoxel++;
+	}
+
       }
     }
-    
-    DebugAssertThrowX( (eList == xList_tErr_EndOfList),
-           eResult, tkm_tErr_ErrorAccessingList );
   }
-  
+    
   /* write the file */
   DebugNote( ("Writing label file to %s", sFileName) );
   eLabel = LabelWrite( pLabel, sFileName );
   DebugAssertThrowX( (NO_ERROR == eLabel),
-         eResult, tkm_tErr_CouldntWriteFile );
+		     eResult, tkm_tErr_CouldntWriteFile );
   
   DebugCatch;
   DebugCatchError( eResult, tkm_tErr_NoErr, tkm_GetErrorString );
@@ -6220,7 +6256,7 @@ tkm_tErr LoadSelectionFromLabelFile ( char* isFileName ) {
   }    
   
   /* set the window's selection again to force a redraw. */
-  MWin_SetSelectionSpace( gMeditWindow, -1, gSelectedVoxels );
+  MWin_SetSelectionSpace( gMeditWindow, -1, gSelectionVolume );
   
   DebugCatch;
   DebugCatchError( eResult, tkm_tErr_NoErr, tkm_GetErrorString );
@@ -6245,64 +6281,50 @@ tkm_tErr LoadSelectionFromLabelFile ( char* isFileName ) {
 
 void GraphSelectedRegion () {
   
-  xVoxelRef  voxel   = NULL;
-  xListRef   list   = NULL;
+  xVoxel     voxel;
   FunV_tErr  eFunctional = FunV_tErr_NoError;
-  x3Lst_tErr e3DList   = x3Lst_tErr_NoErr;
-  xList_tErr eList   = xList_tErr_NoErr;
-  int       nPlane   = 0;
+  int        nX                       = 0;
+  int        nY                       = 0;
+  int        nZ                       = 0;
   
+  DebugEnterFunction( ("GraphSelectedRegion()") );
+  
+  DebugAssertThrow( (NULL != gSelectionVolume ) );
+
   // clear the functional display list.
   eFunctional = FunV_BeginSelectionRange( gFunctionalVolume );
   if( FunV_tErr_NoError != eFunctional )
     goto error;
   
-  // get the ctrl pts in the list...
-  for ( nPlane = 0; nPlane < gnAnatomicalDimensionZ; nPlane++ ) {
-    
-    // get the list for this x value.
-    e3DList = x3Lst_GetItemsInXPlane( gSelectedVoxels, nPlane, &list );
-    if( e3DList != x3Lst_tErr_NoErr )
-      goto error;
-    
-    /* traverse the list */
-    eList = xList_ResetPosition( list );
-    while( (eList = xList_NextFromPos( list, (void**)&voxel )) 
-     != xList_tErr_EndOfList ) {
-      
-      if( voxel ) {
-  
-  /* add it to the functional display list. */
-  eFunctional = 
-    FunV_AddAnatomicalVoxelToSelectionRange( gFunctionalVolume, 
-               voxel );
-  if( FunV_tErr_NoError != eFunctional )
-    goto error;
+  /* Look for selected voxels. */
+  for( nZ = 0; nZ < gSelectionVolumeZDimension; nZ++ ) {
+    for( nY = 0; nY < gSelectionVolumeYDimension; nY++ ) {
+      for( nX = 0; nX < gSelectionVolumeXDimension; nX++ ) {
+
+	if( gSelectionVolume[nZ][nY][nX] ) {
+	  
+	  /* Fill out a voxel */
+	  xVoxl_Set( &voxel, nX, nY, nZ );
+	  
+	  
+	  /* add it to the functional display list. */
+	  eFunctional = 
+	    FunV_AddAnatomicalVoxelToSelectionRange( gFunctionalVolume, 
+						     &voxel );
+	  if( FunV_tErr_NoError != eFunctional )
+	    goto error;
+	}
       }
     }
-    
-    if( eList != xList_tErr_EndOfList )
-      goto error;
   }
-  
+
   /* finish the list */
   eFunctional = FunV_EndSelectionRange( gFunctionalVolume );
   if( FunV_tErr_NoError != eFunctional )
     goto error;
   
-  goto cleanup;
-  
- error:
-  
-  if( eList != xList_tErr_NoErr ) {
-    DebugPrint( ( "xList error %d in GraphSelectedRegion.\n", eList ) );
-    OutputPrint "Error graphing selection.\n" EndOutputPrint;
-  }
-  
-  if( e3DList != x3Lst_tErr_NoErr ) {
-    DebugPrint( ( "x3Lst error %d in GraphSelectedRegion.\n", eList ) );
-    OutputPrint "Error graphing selection.\n" EndOutputPrint;
-  }
+
+  DebugCatch;
   
   if( eFunctional != FunV_tErr_NoError ) {
     DebugPrint( ( "FunV error %d in GraphSelectedRegion.\n", 
@@ -6310,9 +6332,9 @@ void GraphSelectedRegion () {
     OutputPrint "Error graphing selection.\n" EndOutputPrint;
   }
   
-  
- cleanup:
-  return;
+  EndDebugCatch;
+
+  DebugExitFunction;
 }
 
 void SelectVoxelsByFuncValue ( FunV_tFindStatsComp iCompare ) {
@@ -6898,46 +6920,9 @@ tkm_tErr LoadVolume ( tkm_tVolumeType iType,
   Volm_GetDimensions( gAnatomicalVolume[iType], &gnAnatomicalDimensionX, 
           &gnAnatomicalDimensionY, &gnAnatomicalDimensionZ  );
   
-  
-#if 1
-  /* is this right (BRF)? Are they supposed to be screen dimensions? */
-  gnAnatomicalDimensionX = gnAnatomicalDimensionY = gnAnatomicalDimensionZ = 256 ;
-#else
-  gnAnatomicalDimensionX = gAnatomicalVolume[iType]->mpMriValues->width ;
-  gnAnatomicalDimensionY = gAnatomicalVolume[iType]->mpMriValues->height ;
-  gnAnatomicalDimensionZ = gAnatomicalVolume[iType]->mpMriValues->depth ;
-  {
-    MATRIX *m_vox_to_ras ;
-    VECTOR *v_vox, *v_ras ;
-    int     r, c ;
-    
-    printf("w = %d, h = %d, d = %d\n",
-     gAnatomicalVolume[iType]->mpMriValues->width,
-     gAnatomicalVolume[iType]->mpMriValues->height,
-     gAnatomicalVolume[iType]->mpMriValues->depth) ;
-    
-    m_vox_to_ras = MatrixInverse(gAnatomicalVolume[iType]->m_resample, NULL) ;
-    for (r = 1 ; r <= 3 ; r++)
-      {
-  *MATRIX_RELT(m_vox_to_ras, r, 4) = 0 ;
-  for (c = 1 ; c <= 3 ; c++)
-    if (!FZERO(*MATRIX_RELT(m_vox_to_ras, r, c)))
-      *MATRIX_RELT(m_vox_to_ras, r, c) = 1.0 ;
-      }
-    
-    v_vox = VectorAlloc(4, 1) ;
-    v_vox->rptr[4][1] = 1.0 ;
-    V3_X(v_vox) = gAnatomicalVolume[iType]->mpMriValues->width ;
-    V3_Y(v_vox) = gAnatomicalVolume[iType]->mpMriValues->height ;
-    V3_Z(v_vox) = gAnatomicalVolume[iType]->mpMriValues->depth ;
-    v_ras = MatrixMultiply(m_vox_to_ras, v_vox,NULL) ;
-    gnAnatomicalDimensionX = fabs(V3_X(v_ras)) ;
-    gnAnatomicalDimensionY = fabs(V3_Y(v_ras)) ;
-    gnAnatomicalDimensionZ = fabs(V3_Z(v_ras)) ;
-    MatrixFree(&m_vox_to_ras) ; MatrixFree(&v_vox) ; MatrixFree(&v_ras) ;
-  }
-  
-#endif
+  /* Actually screen dimensions. */
+  gnAnatomicalDimensionX = 
+    gnAnatomicalDimensionY = gnAnatomicalDimensionZ = 256 ;
   
   /*  if (Gdiag & DIAG_SHOW)
   printf("setting anatomical dimensions to %d, %d, %d\n",
@@ -6956,9 +6941,10 @@ tkm_tErr LoadVolume ( tkm_tVolumeType iType,
   if( NULL != gMeditWindow ) {
     DebugNote( ("Setting volume in main window") );
     switch( iType ) {
-    case tkm_tVolumeType_Main:  /* idx to ras xform always comes from main volume */
+    case tkm_tVolumeType_Main:
       MWin_SetVolume( gMeditWindow, -1, gAnatomicalVolume[iType],
-          gnAnatomicalDimensionX, gnAnatomicalDimensionY, gnAnatomicalDimensionZ  );
+		      gnAnatomicalDimensionX, 
+		      gnAnatomicalDimensionY, gnAnatomicalDimensionZ  );
       
       /* get a ptr to the idx to ras transform */
       DebugNote( ("Getting a pointer to the idx to RAS transform") );
@@ -6974,10 +6960,12 @@ tkm_tErr LoadVolume ( tkm_tVolumeType iType,
     }
   }
   
-
   gm_screen2ras = extract_i_to_r( gAnatomicalVolume[iType]->mpMriValues );
   gm_ras2screen = extract_r_to_i( gAnatomicalVolume[iType]->mpMriValues );
 
+  /* Allocate the selection volume now that we have an anatomical
+     volume. */
+  AllocateSelectionVolume();
 
   DebugCatch;
   DebugCatchError( eResult, tkm_tErr_NoErr, tkm_GetErrorString );

@@ -66,6 +66,7 @@ typedef enum {
   tkm_tErr_ErrorAccessingSurface,
   tkm_tErr_CouldntWriteFile,
   tkm_tErr_CouldntAllocate,
+  tkm_tErr_AnatomicalVolumeNotLoaded,
   tkm_tErr_SurfaceNotLoaded,
   tkm_tErr_OverlayNotLoaded,
   tkm_tErr_GCANotLoaded,

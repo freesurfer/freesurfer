@@ -132,7 +132,7 @@ MWin_tErr MWin_SetControlPointsSpace  ( tkmMeditWindowRef this,
 					x3DListRef        ipVoxels );
 MWin_tErr MWin_SetSelectionSpace      ( tkmMeditWindowRef this, 
 					int               inDispIndex,
-					x3DListRef        ipVoxels );
+					char***           ipVolume );
 MWin_tErr MWin_SetHeadPointList       ( tkmMeditWindowRef this,
 					int               inDispIndex,
 					mriHeadPointListRef iList );
