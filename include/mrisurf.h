@@ -115,7 +115,7 @@ typedef struct vertex_type_
   float logshear,shearx,sheary,oshearx,osheary;  /* for shear term */
   float smx,smy,smz,osmx,osmy,osmz;            /* smoothed curr,last move */
   int   oripflag,origripflag;  /* cuts flags */
-  float coord[3];
+  float coords[3];
 #if 0
   float ftmp ;          /* temporary floating pt. storage */
 #endif
