@@ -42,9 +42,9 @@
 ** Intent:		This file contains definitions and function prototypes
 **			for the OBJECT facility which allows the user to
 **			manipulate DICOM Objects.
-** Last Update:		$Author: kteich $, $Date: 2003/02/10 20:36:24 $
+** Last Update:		$Author: tosa $, $Date: 2004/09/08 16:42:13 $
 ** Source File:		$RCSfile: dicom_objects.h,v $
-** Revision:		$Revision: 1.3 $
+** Revision:		$Revision: 1.4 $
 ** Status:		$State: Exp $
 */
 
@@ -100,16 +100,18 @@ typedef enum {
     DCM_OBJECTELEMENTLIST
 }   DCM_OBJECTTYPE;
 
-#if LONGSIZE == 64
+  /* under 32bit and 64 bit OSs, unsigned int is always 32bit
+     thus don't use long in 32 bit */
+  //#if LONGSIZE == 64
 typedef unsigned int DCM_TAG;
 #define DCM_MAKETAG(g, e) (((((unsigned int)(g)) << 16) & 0xffff0000) \
 | ((unsigned int)(e) & 0xffff))
-#else
-typedef unsigned long DCM_TAG;
-#define DCM_MAKETAG(g, e) (((((unsigned long)(g)) << 16) & 0xffff0000) \
-| ((unsigned long)(e) & 0xffff))
+  //#else
+  //typedef unsigned long DCM_TAG;
+  //#define DCM_MAKETAG(g, e) (((((unsigned long)(g)) << 16) & 0xffff0000) \
+  //| ((unsigned long)(e) & 0xffff))
 
-#endif
+  // #endif
 
 #define	DCM_TAG_GROUP(t) (unsigned short) ((t) >> 16)
 #define	DCM_TAG_ELEMENT(t) (unsigned short) ((t) & 0xffff)

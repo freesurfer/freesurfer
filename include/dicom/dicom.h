@@ -46,9 +46,9 @@
 **			Radiology.  It also defines unique identifiers
 **			for standard classes and objects defined by the
 **			standard.
-** Last Update:		$Author: kteich $, $Date: 2003/02/10 20:36:24 $
+** Last Update:		$Author: tosa $, $Date: 2004/09/08 16:41:54 $
 ** Source File:		$RCSfile: dicom.h,v $
-** Revision:		$Revision: 1.3 $
+** Revision:		$Revision: 1.4 $
 ** Status:		$State: Exp $
 */
 
@@ -88,14 +88,19 @@ extern "C" {
     typedef unsigned short U16;	/* unsigned, 16 bit */
     typedef short S16;		/* signed, 16 bit */
 
-#if LONGSIZE == 64 && INTSIZE == 32	/* Such as an Alpha */
-    typedef unsigned int U32;
-    typedef int S32;
+#if LONGSIZE==32
+  /* note that under both 64 bit and 32 bit OS, unsigned int is 32 bit
+     and int is 32 bit.  Thus we can avoid setting the above */
+  typedef unsigned int U32;
+  typedef int S32;
+  // the following is unnecessary
+  // #if LONGSIZE == 64 && INTSIZE == 32	/* Such as an Alpha */
+  //  typedef unsigned int U32;
+  //  typedef int S32;
 
-#elif LONGSIZE == 32		/* Most 32 bit workstations */
-    typedef unsigned long U32;
-    typedef long S32;
-
+  // #elif LONGSIZE == 32		/* Most 32 bit workstations */
+  //  typedef unsigned long U32;
+  //   typedef long S32;
 #else				/* Something we do not support */
 
 /* The writers of this code assume that we can find a 32 bit integer
