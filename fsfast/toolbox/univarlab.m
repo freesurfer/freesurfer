@@ -2,8 +2,8 @@ function varargout = univarlab(varargin)
 % UNIVARLAB Application M-file for univarlab.fig
 %    FIG = UNIVARLAB launch univarlab GUI.
 %    UNIVARLAB('callback_name', ...) invoke the named callback.
-% Last Modified by GUIDE v2.0 20-Aug-2003 01:47:49
-% $Id: univarlab.m,v 1.7 2003/08/20 06:43:46 greve Exp $
+% Last Modified by GUIDE v2.0 20-Aug-2003 23:16:15
+% $Id: univarlab.m,v 1.8 2003/08/21 03:39:01 greve Exp $
 
 % To do:
 %   Closing/Quiting functions
@@ -125,10 +125,10 @@ gd.hXFIR = [];
 gd.hXGam = [];
 gd = SetGUIParams(gd);
 
-gd.ShowRaw = 1;
+gd.ShowRaw = 0;
 gd.ShowRawSignal = 1;
 gd.ShowRawObserved = 1;
-gd.ShowACF = 1;
+gd.ShowACF = 0;
 gd.ShowHRF = 1;
 
 return;
@@ -174,8 +174,8 @@ return;
 function varargout = Schedule_pum_Callback(h, eventdata, gd, varargin)
 s = get(h,'string');
 v = get(h,'value');
-%scheduletype = lower(char(s(v,:)));
-scheduletype = lower(deblank(s(v,:)));
+scheduletype = lower(char(s(v,:)));
+%scheduletype = lower(deblank(s(v,:)));
 if(strcmp(scheduletype,gd.ScheduleType)) return; end
 gd.ScheduleType = scheduletype;
 gd = NewStimSched(gd);
@@ -398,6 +398,17 @@ if(val < gd.C1AmpMan(2) | val > gd.C1AmpMan(3))
   return;
 end
 gd.C1AmpMan(1) = val;
+set(gd.C1ManAmp_sl,'value',gd.C1AmpMan(1));
+gd = EstimateManual(gd);
+gd = PlotRaw(gd);
+guidata(gd.hunivarlab,gd);
+return;
+
+% --------------------------------------------------------------------
+function varargout = C1ManAmp_sl_Callback(h, eventdata, gd, varargin)
+val = get(h,'value');
+gd.C1AmpMan(1) = val;
+set(gd.C1AmpMan_et,'string',sprintf('%g',gd.C1AmpMan(1)));
 gd = EstimateManual(gd);
 gd = PlotRaw(gd);
 guidata(gd.hunivarlab,gd);
@@ -411,10 +422,22 @@ if(val < gd.C2AmpMan(2) | val > gd.C2AmpMan(3))
   return;
 end
 gd.C2AmpMan(1) = val;
+set(gd.C2ManAmp_sl,'value',gd.C1AmpMan(2));
 gd = EstimateManual(gd);
 gd = PlotRaw(gd);
 guidata(gd.hunivarlab,gd);
 return;
+
+% --------------------------------------------------------------------
+function varargout = C2ManAmp_sl_Callback(h, eventdata, gd, varargin)
+val = get(h,'value');
+gd.C2AmpMan(1) = val;
+set(gd.C2AmpMan_et,'string',sprintf('%g',gd.C2AmpMan(1)));
+gd = EstimateManual(gd);
+gd = PlotRaw(gd);
+guidata(gd.hunivarlab,gd);
+return;
+
 
 % --------------------------------------------------------------------
 function varargout = Whiten_cb_Callback(h, eventdata, gd, varargin)
@@ -499,16 +522,25 @@ GamSynthHRF1 = GamSynthHRF * gd.C1AmpSynth(1);
 GamSynthHRF2 = GamSynthHRF * gd.C2AmpSynth(1);
 
 gd.FIREstFLA.nthfx = 1;
-FIRPSD = fast_fxcfg('irftaxis',gd.FIREstFLA);
-nPerFIR = length(FIRPSD);
-FIRHRF1 = gd.FIRbeta(1:nPerFIR);
-FIRHRF2 = gd.FIRbeta(nPerFIR+1:2*nPerFIR);
+[FIRHRF1 FIRPSD] = fast_fla_irf(gd.FIREstFLA,gd.FIRbeta);
+gd.FIREstFLA.nthfx = 2;
+[FIRHRF2 FIRPSD] = fast_fla_irf(gd.FIREstFLA,gd.FIRbeta);
 
 gd.GamEstFLA.nthfx = 1;
-GamEstPSD = fast_fxcfg('irftaxis',gd.GamEstFLA);
-GamEstHRF = fast_fxcfg('irfmatrix',gd.GamEstFLA);
-GamEstHRF1 = GamEstHRF * gd.Gambeta(1:1+gd.GamNDeriv);
-GamEstHRF2 = GamEstHRF * gd.Gambeta(2+gd.GamNDeriv:2+2*gd.GamNDeriv);
+[GamEstHRF1 GamEstPSD] = fast_fla_irf(gd.GamEstFLA,gd.Gambeta);
+gd.GamEstFLA.nthfx = 2;
+[GamEstHRF2 GamEstPSD] = fast_fla_irf(gd.GamEstFLA,gd.Gambeta);
+
+%FIRPSD = fast_fxcfg('irftaxis',gd.FIREstFLA);
+%nPerFIR = length(FIRPSD);
+%FIRHRF1 = gd.FIRbeta(1:nPerFIR);
+%FIRHRF2 = gd.FIRbeta(nPerFIR+1:2*nPerFIR);
+
+%gd.GamEstFLA.nthfx = 1;
+%GamEstPSD = fast_fxcfg('irftaxis',gd.GamEstFLA);
+%GamEstHRF = fast_fxcfg('irfmatrix',gd.GamEstFLA);
+%GamEstHRF1 = GamEstHRF * gd.Gambeta(1:1+gd.GamNDeriv);
+%GamEstHRF2 = GamEstHRF * gd.Gambeta(2+gd.GamNDeriv:2+2*gd.GamNDeriv);
 
 plot(GamSynthPSD,GamSynthHRF1,'+-',...
      GamSynthPSD,GamSynthHRF2,'+-',...
@@ -841,7 +873,7 @@ if(gd.FitMean)
   gd.FIREstFLA.fxlist(3).fx = fast_fxcfg('parseline',...
    [sprintf('effect random drift polynomial %d',0)]);
 end
-gd.XFIR = fast_fla_desmat(gd.FIREstFLA);
+[gd.XFIR gd.FIREstFLA] = fast_fla_desmat(gd.FIREstFLA);
 gd.RFIR = eye(gd.ntp) - gd.XFIR*inv(gd.XFIR'*gd.XFIR)*gd.XFIR'; 
 gd.FIRDOF = size(gd.XFIR,1)-size(gd.XFIR,2);
 gd.FIRDOF = size(gd.XFIR,1)-size(gd.XFIR,2);
@@ -854,7 +886,7 @@ gd.GamEstFLA.fxlist(1).fx = fast_fxcfg('parseline',fxline);
 fxline = sprintf('effect fixed cond2 gamma 2 0 .1 30 0 0 %g %g %d',...
 		 gd.GamDeltaEst(1),gd.GamTauEst(1),gd.GamNDeriv);
 gd.GamEstFLA.fxlist(2).fx = fast_fxcfg('parseline',fxline);
-gd.XGam = fast_fla_desmat(gd.GamEstFLA);
+[gd.XGam gd.GamEstFLA] = fast_fla_desmat(gd.GamEstFLA);
 gd.RGam = eye(gd.ntp) - gd.XGam*inv(gd.XGam'*gd.XGam)*gd.XGam'; 
 gd.GamDOF = size(gd.XGam,1)-size(gd.XGam,2);
 
@@ -867,7 +899,7 @@ fxline = sprintf('effect fixed cond2 gamma 2 0 .1 30 0 0 %g %g 0',...
 		 gd.GamDeltaSynth(1),gd.GamTauSynth(1));
 gd.GamSynthFLA.fxlist(2).fx = fast_fxcfg('parseline',fxline);
 if(gd.FitMean) clear gd.GamSynthFLA.fxlist(3); end
-gd.XGamSynth = fast_fla_desmat(gd.GamSynthFLA);
+[gd.XGamSynth gd.GamSynthFLA] = fast_fla_desmat(gd.GamSynthFLA);
 set(gd.hunivarlab,'pointer','arrow');
 return;
 
@@ -977,6 +1009,9 @@ gd.resmangamvar = sum(gd.resmangam.^2)/gd.GamDOF;
 gd.resmangamstd = sqrt(gd.resmangamvar);
 set(gd.ManGamRStdTxt,'string',sprintf('%3.2f',gd.resmangamstd));
 return;
+
+
+
 
 
 
