@@ -426,7 +426,7 @@ MRI        *MRIbuildDistanceMap(MRI *mri_src, MRI *mri_distance,
                                 float x0, float y0, float z0, float r) ;
 MRI        *MRIupdateDistanceMap(MRI *mri_distance) ;
 MRI        *MRIfill(MRI *mri_src, MRI *mri_dst, int seed_x, int seed_y, 
-                    int seed_z, int threshold, int fill_val) ;
+                    int seed_z, int threshold, int fill_val, int max_count) ;
 MRI        *MRIfillFG(MRI *mri_src, MRI *mri_dst, int seed_x, int seed_y, 
                     int seed_z, int threshold, int fill_val, int *npix) ;
                     
@@ -525,6 +525,14 @@ int   MRIclassifyAmbiguous(MRI *mri_src, MRI *mri_labeled, MRI *mri_border,
 MRI   *MRIremoveBrightStuff(MRI *mri_src, MRI *mri_dst, int threshold) ;
 int   MRIreclassify(MRI *mri_src, MRI *mri_labeled, 
                     MRI *mri_dst, float wm_low, float gray_hi, int wsize) ;
+
+
+MRI *MRImaskThreshold(MRI *mri_src, MRI *mri_mask, MRI *mri_dst,
+                             float threshold, int out_label) ;
+int MRIfillVolume(MRI *mri) ;
+int MRIgrowLabel(MRI *mri, MRI *mri_bg, int in_label, int out_label) ;
+int MRIturnOnFG(MRI *mri, MRI *mri_fg) ;
+int MRIturnOffBG(MRI *mri, MRI *mri_bg) ;
 
 #define MRI_NOT_WHITE   1
 #define MRI_AMBIGUOUS   128
