@@ -35,7 +35,7 @@
 -------------------------------------------------------*/
 
 #define POLV_WSIZE             5
-#define DEBUG_POINT(x,y,z)     (((x) == 44)&&((y)==14)&&((z)==31))
+#define DEBUG_POINT(x,y,z)     (((x) == 35)&&((y)==4)&&((z)==31))
 
 #define MAX_FILES 100
 
@@ -429,15 +429,17 @@ MRICclassify(MRIC *mric, MRI *mri_src, MRI *mri_dst,
   MATRIX     *m_priors ;
   VECTOR     *v_inputs ;
   GCLASSIFY  *gc ;
-  int        x, y, z, width, depth, height, classno, nclasses, xt, yt,zt,
-             round, x1, y1, z1, x0, type, c, bg ;
+  int        x, y, z, width, depth, height, classno, nclasses, xt, yt,zt, type,
+             round, x1, y1, z1, x0, c, bg, max_white_class,max_non_white_class;
   BUFTYPE    *psrc, src, *pdst, *pclasses ;
-  float      prob, *pprobs = NULL, total, min_output, fmin, fmax ;
+  float      prob, *pprobs = NULL, total, min_output, fmin, fmax, white_prob,
+             non_white_prob, max_white_prob, max_non_white_prob, p ;
   Real       xrt, yrt, zrt ;
   MRI        *mri_priors, *mri_in ;
   MRI_REGION bounding_box ;
   RBF        *rbf ;
 
+  max_white_class = max_non_white_class = -1 ;
 #if 0
   MRIboundingBox(mri_src, DEFINITELY_BACKGROUND, &bounding_box) ;
 #else
@@ -507,8 +509,6 @@ MRICclassify(MRIC *mric, MRI *mri_src, MRI *mri_dst,
               m_priors->rptr[classno+1][1] = 
                 MRIFseq_vox(mri_priors, xt, yt, zt, classno) ;
           }
-if (DEBUG_POINT(x,y,z))
-  DiagBreak() ;
           MRICcomputeInputs(mric,mri_in,x,y,z, v_inputs,mric->features[round]);
 
           switch (type)  /* now classify this observation */
@@ -528,6 +528,49 @@ if (DEBUG_POINT(x,y,z))
                 min_output = RVECTOR_ELT(rbf->v_outputs, c) ;
             for (total = 0.0f, c = 1 ; c <= rbf->noutputs ; c++)
               total += RVECTOR_ELT(rbf->v_outputs, c)-min_output ;
+
+            /* must sum all probs of white and not white */
+            max_non_white_prob = max_white_prob = -1.0f ;
+            non_white_prob = white_prob = 0.0f ;
+#if 0
+if (DEBUG_POINT(x,y,z))
+  DiagBreak() ;
+#endif
+
+            for (c = 0 ; c < rbf->noutputs ; c++)
+            {
+              p = RVECTOR_ELT(rbf->v_outputs, c+1) ;
+              if (ISWHITE(c))
+              {
+                if (p > max_white_prob)
+                {
+                  max_white_prob = p ;
+                  max_white_class = c ;
+                }
+                white_prob += p ;
+              }
+              else
+              {
+                if (p > max_non_white_prob)
+                {
+                  max_non_white_prob = p ;
+                  max_non_white_class = c ;
+                }
+                non_white_prob += p ;
+              }
+            }
+            if (white_prob > non_white_prob)
+            {
+              classno = max_white_class ;
+              prob = white_prob ;
+            }
+            else
+            {
+              classno = max_non_white_class ;
+              prob = non_white_prob ;
+            }
+            
+
             if (!FZERO(total))
               prob = (RVECTOR_ELT(rbf->v_outputs, classno+1)-min_output)/total;
             else
@@ -540,7 +583,12 @@ if (DEBUG_POINT(x,y,z))
           if (pprobs)
             *pprobs++ = prob ;
           if (ISWHITE(classno) && (prob > conf))
-            *pdst++ = src ;
+          {
+            if (!src && mric->features[round] == FEATURE_CPOLV_MEDIAN5)
+              *pdst = 255 ;
+            else
+              *pdst++ = src ;
+          }
           else
             *pdst++ = 0 /*src*/ ;
         }
@@ -643,6 +691,14 @@ MRICcomputeInputs(MRIC *mric, MRI *mri, int x,int y,int z,VECTOR *v_inputs,
       mri_cpolv = MRIcentralPlaneOfLeastVarianceNormal(mri, NULL, POLV_WSIZE) ;
     if (Gdiag & DIAG_WRITE)
       MRIwrite(mri_cpolv, "cpolv.mnc") ;
+#if 0
+    if (features & FEATURE_CPOLV_MEDIAN5)
+    {
+      if (mri_cpolv_median5)
+        MRIfree(&mri_cpolv_median5) ;
+      mri_cpolv_median5 = MRIpolvMedian(mri, NULL, mri_cpolv, 5) ;
+    }
+#endif
   }
   total_calls++ ;
 /* 
@@ -686,8 +742,10 @@ MRICcomputeInputs(MRIC *mric, MRI *mri, int x,int y,int z,VECTOR *v_inputs,
       MRIfree(&mri_cpolv_mean5) ;
     if (mri_cpolv_median3)
       MRIfree(&mri_cpolv_median3) ;
+#if 1
     if (mri_cpolv_median5)
       MRIfree(&mri_cpolv_median5) ;
+#endif
 
     if (features & FEATURE_ZSCORE3)
     {
@@ -761,6 +819,7 @@ MRICcomputeInputs(MRIC *mric, MRI *mri, int x,int y,int z,VECTOR *v_inputs,
       mri_cpolv_mean5 = MRIpolvMeanRegion(mri, NULL, mri_cpolv, 5, &region) ;
     if (features & FEATURE_CPOLV_MEDIAN3)
       mri_cpolv_median3 = MRIpolvMedianRegion(mri, NULL, mri_cpolv,3,&region);
+#if 1
     if (features & FEATURE_CPOLV_MEDIAN5)
     {
       static int first = 1 ;
@@ -772,6 +831,7 @@ MRICcomputeInputs(MRIC *mric, MRI *mri, int x,int y,int z,VECTOR *v_inputs,
         MRIwrite(mri_cpolv_median5, "median5.mnc") ;
       }
     }
+#endif
     if (features & FEATURE_MIN3)
       mri_min3 = MRIerodeRegion(mri, NULL, 3, &region) ;
     if (features & FEATURE_MIN5)
@@ -813,8 +873,13 @@ MRICcomputeInputs(MRIC *mric, MRI *mri, int x,int y,int z,VECTOR *v_inputs,
     VECTOR_ELT(v_inputs, index++) = (float)MRIvox(mri_cpolv_mean5, x0,y0,z0) ;
   if (features & FEATURE_CPOLV_MEDIAN3)
     VECTOR_ELT(v_inputs, index++) = (float)MRIvox(mri_cpolv_median3, x0,y0,z0);
+#if 1
   if (features & FEATURE_CPOLV_MEDIAN5)
     VECTOR_ELT(v_inputs, index++) = (float)MRIvox(mri_cpolv_median5, x0,y0,z0);
+#else
+  if (features & FEATURE_CPOLV_MEDIAN5)
+    VECTOR_ELT(v_inputs, index++) = (float)MRIvox(mri_cpolv_median5, x,y,z);
+#endif
   if (features & FEATURE_MIN3)
     VECTOR_ELT(v_inputs, index++) = (float)MRIvox(mri_min3, x0, y0, z0) ;
   if (features & FEATURE_MIN5)
@@ -1404,7 +1469,11 @@ mricTrainRBF(MRIC *mric, FILE *fp, int nfiles, int round)
     MRIfree(&mri) ;
   }
   rewind(fp) ;
-  RBFtrain(mric->classifier[round].rbf, mricGetClassifierInput, &parms, 0.0f) ;
+  
+  if (RBFtrain(mric->classifier[round].rbf,mricGetClassifierInput,
+               &parms,0.0f) != NO_ERROR)
+    return(Gerror) ;
+
   return(NO_ERROR) ;
 }
 /*-----------------------------------------------------
@@ -1493,7 +1562,22 @@ mricGetClassifierInput(VECTOR *v_inputs, int no, void *parm,
     if (!cp)
       return(ERROR_NO_FILE) ;
     mri_src = MRIread(source_fname) ;
+    if (!mri_src)
+    {
+      fclose(fp) ;
+      ErrorReturn(ERROR_BADFILE, 
+                  (ERROR_BADFILE, "mricGetClassifierInput: could not "
+                   "open src file %s", source_fname)) ;
+    }
     mri_wm = MRIread(wm_fname) ;
+    if (!mri_wm)
+    {
+      MRIfree(&mri_src) ;
+      fclose(fp) ;
+      ErrorReturn(ERROR_BADFILE, 
+                  (ERROR_BADFILE, "mricGetClassifierInput: could not "
+                   "open wmfilter file %s", wm_fname)) ;
+    }
 #if 0
 MRIvox(mri_src, 60, 63, 63) = 200 ;
 MRIvox(mri_src, 61, 63, 63) = 201 ;
