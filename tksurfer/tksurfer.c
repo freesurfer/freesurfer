@@ -15,6 +15,7 @@
 #include "rgb_image.h"
 #include "const.h"
 #include "version.h"
+//////////////////////////////////////////////////////
 
 static void resize_brain(float surface_area) ;
 static void set_value_label_name(char *label_name, int field) ;
@@ -159,6 +160,18 @@ char *Progname = "surfer" ;
 #endif
 
 /* begin rkt */
+// It seems that the later version of Tix uses ITcl and ITk.
+// stupid tix people who cannot handle version.   I had to use gcc version.
+// you cannot include itk.h either(producing so many unknowns) either.
+#if (__GNUC__ > 2)
+#ifndef Itcl_Init
+int Itcl_Init(Tcl_Interp* interp);
+#endif
+#ifndef Itk_Init
+int Itk_Init(Tcl_Interp* interp);
+#endif
+#endif
+
 /* make these decls if the headers are screwed up */
 #ifndef Blt_Init
 int Blt_Init ( Tcl_Interp* interp );
@@ -18208,7 +18221,7 @@ int main(int argc, char *argv[])   /* new main */
   /* end rkt */
   
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: tksurfer.c,v 1.74 2004/08/26 15:30:07 tosa Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: tksurfer.c,v 1.75 2004/09/16 14:02:07 tosa Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -18396,6 +18409,16 @@ int main(int argc, char *argv[])   /* new main */
     fprintf(stderr, "Tcl_Init failed: %s\n", interp->result); }
   if (Tk_Init(interp) == TCL_ERROR) {
     fprintf(stderr, "Tk_Init failed: %s\n", interp->result); }
+
+  // later version of Tix needs these.  Unfortunately Tix does not define Major and Minor
+  // to distinguish what it is (stupidity).  I had to use gnu ;-(....
+#if (__GNUC__ > 2)
+  if (Itcl_Init(interp) == TCL_ERROR) {
+    fprintf(stderr, "Itcl_Init failed: %s\n", interp->result); }
+  if (Itk_Init(interp) == TCL_ERROR) {
+    fprintf(stderr, "Itk_Init failed: %s\n", interp->result); }
+#endif
+
   /* begin rkt */
   if (Tix_Init(interp) == TCL_ERROR) {
     fprintf(stderr, "Tix_Init failed: %s\n", interp->result); }
