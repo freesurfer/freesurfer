@@ -13,7 +13,7 @@
 #include "macros.h"
 #include "version.h"
 
-static char vcid[] = "$Id: mris_make_template.c,v 1.8 2003/09/05 04:45:43 kteich Exp $";
+static char vcid[] = "$Id: mris_make_template.c,v 1.9 2004/07/16 21:32:09 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -61,7 +61,7 @@ main(int argc, char *argv[])
   INTEGRATION_PARMS parms ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_make_template.c,v 1.8 2003/09/05 04:45:43 kteich Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_make_template.c,v 1.9 2004/07/16 21:32:09 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -161,7 +161,7 @@ main(int argc, char *argv[])
       parms.mrisp_template = mrisp_template ;
       parms.l_corr = 1.0f ;
 
-      MRISrigidBodyAlignGlobal(mris, &parms, 1.0, 32.0, 8) ;
+      MRISrigidBodyAlignGlobal(mris, &parms, 1.0, 64.0, 8) ;
 			if (Gdiag & DIAG_WRITE)
 				MRISwrite(mris, "sphere.rot.global") ;
       MRISrigidBodyAlignLocal(mris, &parms) ;
