@@ -910,9 +910,9 @@ void Volm_GetIntColorAtIdx ( mriVolumeRef this,
     colorIdx = (int) (Volm_knNumColorTableEntries * 
 		      (value - this->mfColorMin) / 
 		      (this->mfColorMax - this->mfColorMin)) ;
-    
-    *oColor = this->manColorTable[colorIdx];
   }
+    
+  *oColor = this->manColorTable[colorIdx];
 }
 
 void Volm_GetColorAtXYSlice ( mriVolumeRef     this,
