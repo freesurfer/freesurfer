@@ -1,8 +1,8 @@
 % yakview - views images, stat overlays, and hemodynamic responses.
-% $Id: yakview.m,v 1.4 2003/09/29 00:53:22 greve Exp $
+% $Id: yakview.m,v 1.5 2004/03/22 20:29:30 greve Exp $
 
 fprintf(1,'\n\n');
-fprintf(1,'yakview: $Id: yakview.m,v 1.4 2003/09/29 00:53:22 greve Exp $\n');
+fprintf(1,'yakview: $Id: yakview.m,v 1.5 2004/03/22 20:29:30 greve Exp $\n');
 
 if(~exist('UseVersion')) UseVersion = 2; end
 
@@ -30,6 +30,11 @@ fprintf(1,'\n\n');
 fprintf(1,'Loading Base ...       '); tic;
 if(~ImgMkMosaic)
   s = fast_ldbfile(ImgFile,1);
+  if(isempty(s))
+    fprintf('ERROR: loading %s\n',ImgFile);
+    return;
+  end
+  
   fprintf('%g sec\n',toc);
   s = s(:,:,1); % keep only first plane of the base 
   basesize = size(s);
