@@ -4,10 +4,11 @@
 #include <stdarg.h>
 #include "xDebug.h"
 
-tBoolean xDbg_gbOutput   = FALSE;
-FILE*    xDbg_gStream    = NULL;
-int      xDbg_gType      = xDebug_Nothing;
-char*    xDbg_gsRequest  = NULL;
+tBoolean xDbg_gbOutput     = FALSE;
+tBoolean xDbg_gbSegfaulted = FALSE;
+FILE*    xDbg_gStream      = NULL;
+int      xDbg_gType        = xDebug_Nothing;
+char*    xDbg_gsRequest    = NULL;
 char xDbg_sStackDesc[xDbg_knMaxDescLength];
 char xDbg_sCurNoteDesc[xDbg_knMaxDescLength];
 
@@ -148,6 +149,12 @@ void xDbg_PrintStack () {
 void xDbg_SegfaultHandler ( int inSignal ) {
 
   DebugPrint( ("\nSegfault\n%s\n", xDbg_sCurNoteDesc ) );
+
+  /* Keeps us from segfaulting more than once. */
+  if( xDbg_gbSegfaulted ) {
+    exit( 1 );
+  }
+  xDbg_gbSegfaulted = TRUE;
 
   xDbg_PrintStack();
 
