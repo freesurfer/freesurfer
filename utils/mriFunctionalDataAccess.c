@@ -124,7 +124,6 @@ FunD_tErr FunD_New ( mriFunctionalDataRef* outVolume,
   /* init transform objects */
   DebugNote( ("Creating transforms") );
   Trns_New( &(this->mIdxToIdxTransform) );
-  Trns_New( &(this->mRASToIdxTransform) );
   
   /* Copy client transform */
   Trns_DeepClone( iTransform, &this->mClientTransform );
@@ -246,7 +245,6 @@ FunD_tErr FunD_Delete ( mriFunctionalDataRef * ioVolume ) {
   
   // delete our transformers.
   Trns_Delete( &(this->mIdxToIdxTransform) );
-  Trns_Delete( &(this->mRASToIdxTransform) );
   Trns_Delete( &(this->mClientTransform) );
   
   // delete the structure.
@@ -515,7 +513,6 @@ FunD_tErr FunD_ParseRegistrationAndInitMatricies ( mriFunctionalDataRef this , M
   
   /*
     Trns_DebugPrint_( this->mIdxToIdxTransform );
-    Trns_DebugPrint_( this->mRASToIdxTransform );
   */
   
   
@@ -706,7 +703,6 @@ FunD_tErr FunD_SetRegistrationToIdentity ( mriFunctionalDataRef this ) {
   MatrixIdentity( 4, mID );
   
   Trns_CopyARAStoBRAS( this->mIdxToIdxTransform, mID );
-  Trns_CopyARAStoBRAS( this->mRASToIdxTransform, mID );
   
   MatrixFree( &mID );
   
@@ -1006,9 +1002,6 @@ FunD_tErr FunD_ApplyTransformToRegistration( mriFunctionalDataRef this,
   eTransform = Trns_ApplyTransform( this->mIdxToIdxTransform, invTransform );
   if( Trns_tErr_NoErr != eTransform )
     return FunD_tErr_ErrorAccessingTransform;
-  eTransform = Trns_ApplyTransform( this->mRASToIdxTransform, invTransform );
-  if( Trns_tErr_NoErr != eTransform )
-    return FunD_tErr_ErrorAccessingTransform;
   
   MatrixFree( &invTransform );
   
@@ -1029,9 +1022,6 @@ FunD_tErr FunD_TranslateRegistration ( mriFunctionalDataRef this,
   
   /* do the inverse of this action */
   eTransform = Trns_Translate( this->mIdxToIdxTransform, -ifDistance, iAxis );
-  if( Trns_tErr_NoErr != eTransform )
-    return FunD_tErr_ErrorAccessingTransform;
-  eTransform = Trns_Translate( this->mRASToIdxTransform, -ifDistance, iAxis );
   if( Trns_tErr_NoErr != eTransform )
     return FunD_tErr_ErrorAccessingTransform;
   
@@ -1075,9 +1065,6 @@ FunD_tErr FunD_RotateRegistration ( mriFunctionalDataRef this,
   eTransform = Trns_Rotate( this->mIdxToIdxTransform, -ifDegrees, iAxis );
   if( Trns_tErr_NoErr != eTransform )
     return FunD_tErr_ErrorAccessingTransform;
-  eTransform = Trns_Rotate( this->mRASToIdxTransform, -ifDegrees, iAxis );
-  if( Trns_tErr_NoErr != eTransform )
-    return FunD_tErr_ErrorAccessingTransform;
   
   /* translate back */
   FunD_TranslateRegistration( this, fX, tAxis_X );
@@ -1103,18 +1090,15 @@ FunD_tErr FunD_ScaleRegistration ( mriFunctionalDataRef this,
   eTransform = Trns_Scale( this->mIdxToIdxTransform, 1.0 / ifFactor, iAxis );
   if( Trns_tErr_NoErr != eTransform )
     return FunD_tErr_ErrorAccessingTransform;
-  eTransform = Trns_Scale( this->mRASToIdxTransform, 1.0 / ifFactor, iAxis );
-  if( Trns_tErr_NoErr != eTransform )
-    return FunD_tErr_ErrorAccessingTransform;
   
   return FunD_tErr_NoError;
 }
 
-FunD_tErr FunD_GetDataAtAnaIdx ( mriFunctionalDataRef this,
-         xVoxelRef inVoxel, 
-         int inCondition, 
-         int inTimePoint,
-         float *outData ) {
+FunD_tErr FunD_GetData ( mriFunctionalDataRef this,
+			 xVoxelRef inVoxel, 
+			 int inCondition, 
+			 int inTimePoint,
+			 float *outData ) {
   
   FunD_tErr theErr             = FunD_tErr_NoError;
   xVoxelRef theFunctionalVoxel = NULL;
@@ -1163,62 +1147,10 @@ FunD_tErr FunD_GetDataAtAnaIdx ( mriFunctionalDataRef this,
   return theErr;
 }
 
-FunD_tErr FunD_GetDataAtRAS ( mriFunctionalDataRef this,
-            xVoxelRef            inVoxel, 
-            int                  inCondition, 
-            int                  inTimePoint,
-            float*               outData ) {
-  
-  FunD_tErr theErr             = FunD_tErr_NoError;
-  xVoxelRef         theFunctionalVoxel = NULL;
-  float theValue;
-  
-  xVoxl_New ( &theFunctionalVoxel );
-  
-  *outData = 0;
-  
-  // make sure we're valid.
-  theErr = FunD_AssertIsValid ( this );
-  if ( FunD_tErr_NoError != theErr ) {
-    goto cleanup;
-  }
-  
-  // convert to func index
-  FunD_ConvertRASToFuncIdx( this, inVoxel, theFunctionalVoxel );
-  
-  // make sure all the indicies are valid.
-  if ( !FunD_IsFunctionalVoxelValid(this,theFunctionalVoxel) ) {
-    theErr =  FunD_tErr_InvalidFunctionalVoxel;
-    goto cleanup;
-  }
-  
-  if ( !FunD_IsConditionIndexValid(this,inCondition) ) {
-    theErr = FunD_tErr_InvalidConditionIndex;
-    goto cleanup;
-  }
-  
-  if ( !FunD_IsTimePointValid(this,inTimePoint) ) {
-    theErr = FunD_tErr_InvalidTimePoint;
-    goto cleanup;
-  }  
-  
-  // get the data at this point.
-  theValue = FunD_GetValue ( this, theFunctionalVoxel, 
-           inCondition, inTimePoint );
-  
-  // return it.
-  *outData = theValue;
-  
- cleanup:
-  
-  xVoxl_Delete ( &theFunctionalVoxel );
-  
-  return theErr;
-}
-
-FunD_tErr FunD_GetDataAtAnaIdxForAllTimePoints
-( mriFunctionalDataRef this,xVoxelRef inVoxel, int inCondition, 
-  float *outData ) {
+FunD_tErr FunD_GetDataForAllTimePoints ( mriFunctionalDataRef this,
+					 xVoxelRef            inVoxel, 
+					 int                  inCondition, 
+					 float                *outData ) {
   
   FunD_tErr theErr;
   xVoxelRef theFunctionalVoxel;
@@ -1234,56 +1166,6 @@ FunD_tErr FunD_GetDataAtAnaIdxForAllTimePoints
   
   // convert to func index
   FunD_ConvertAnaIdxToFuncIdx( this, inVoxel, theFunctionalVoxel );
-  
-  // make sure all the indicies are valid.
-  if ( !FunD_IsFunctionalVoxelValid(this,theFunctionalVoxel) ) {
-    theErr = FunD_tErr_InvalidFunctionalVoxel;
-    goto cleanup;
-  }
-  
-  if ( !FunD_IsConditionIndexValid(this,inCondition) ) {
-    theErr =  FunD_tErr_InvalidConditionIndex;
-    goto cleanup;
-  }
-  
-  // for each time point...
-  for ( theTimePoint = 0;
-  theTimePoint < this->mNumTimePoints;
-  theTimePoint++ ) {
-    
-    // get the data at this point.
-    theValue = FunD_GetValue ( this, theFunctionalVoxel,
-             inCondition, theTimePoint );
-    
-    // put it in output array.
-    outData[theTimePoint] = theValue;
-  }
-  
- cleanup:
-  
-  xVoxl_Delete ( &theFunctionalVoxel );
-  
-  return theErr;
-}
-
-FunD_tErr FunD_GetDataAtRASForAllTimePoints
-( mriFunctionalDataRef this, xVoxelRef inVoxel, int inCondition, 
-  float *outData ) {
-  
-  FunD_tErr theErr;
-  xVoxelRef theFunctionalVoxel;
-  int theTimePoint;
-  float theValue;
-  
-  xVoxl_New( &theFunctionalVoxel );
-  
-  // make sure we're valid.
-  theErr = FunD_AssertIsValid ( this );
-  if ( FunD_tErr_NoError != theErr )
-    return theErr;
-  
-  // convert to func index
-  FunD_ConvertRASToFuncIdx( this, inVoxel, theFunctionalVoxel );
   
   // make sure all the indicies are valid.
   if ( !FunD_IsFunctionalVoxelValid(this,theFunctionalVoxel) ) {
@@ -1951,8 +1833,8 @@ void FunD_ConvertRASToFuncIdx ( mriFunctionalDataRef this,
   
   xVoxl_Copy( &sCoord1, inRAS );
   
-  eTransform = Trns_ConvertAtoB( this->mRASToIdxTransform, 
-         &sCoord1, &sCoord2 );
+  eTransform = Trns_ConvertBRAStoB( this->mIdxToIdxTransform, 
+				    &sCoord1, &sCoord2 );
   if( Trns_tErr_NoErr != eTransform ) {
     xVoxl_Set( outFuncIdx, -1, -1, -1 );
     return;
@@ -1989,8 +1871,9 @@ void FunD_ConvertFuncIdxToFuncRAS ( mriFunctionalDataRef this,
   
   xVoxl_Copy( &sCoord1, iFuncIdx );
   
-  eTransform = Trns_ConvertBtoRAS( this->mRASToIdxTransform, 
+  eTransform = Trns_ConvertBtoRAS( this->mIdxToIdxTransform, 
            &sCoord1, &sCoord2 );
+
   if( Trns_tErr_NoErr != eTransform ) {
     xVoxl_Set( oFuncRAS, -1, -1, -1 );
     return;

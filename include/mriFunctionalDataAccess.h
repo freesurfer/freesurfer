@@ -91,7 +91,6 @@ typedef struct {
   // transformation objects.
   mriTransformRef mClientTransform;
   mriTransformRef mIdxToIdxTransform;
-  mriTransformRef mRASToIdxTransform;
   
   // slice condition plane row col
   
@@ -195,25 +194,15 @@ FunD_tErr FunD_ScaleRegistration            ( mriFunctionalDataRef this,
 					      float                ifFactor,
 					      tAxis                iAxis );
 
-FunD_tErr FunD_GetDataAtAnaIdx ( mriFunctionalDataRef this,
-				 xVoxelRef             inVoxel, 
-				 int                  inPlane, 
-				 int                  inCondition,
-				 float*               outData );
-FunD_tErr FunD_GetDataAtRAS    ( mriFunctionalDataRef this,
-				 xVoxelRef             inVoxel, 
-				 int                  inPlane, 
-				 int                  inCondition,
-				 float*               outData );
-
-FunD_tErr FunD_GetDataAtAnaIdxForAllTimePoints ( mriFunctionalDataRef this,
-						 xVoxelRef            inVoxel, 
-						 int              inCondition, 
-						 float*              outData );
-FunD_tErr FunD_GetDataAtRASForAllTimePoints    ( mriFunctionalDataRef this,
-						 xVoxelRef            inVoxel, 
-						 int              inCondition, 
-						 float*              outData );
+FunD_tErr FunD_GetData                ( mriFunctionalDataRef this,
+					xVoxelRef             inVoxel, 
+					int                  inPlane, 
+					int                  inCondition,
+					float*               outData );
+FunD_tErr FunD_GetDataForAllTimePoints ( mriFunctionalDataRef this,
+					 xVoxelRef            inVoxel, 
+					 int              inCondition, 
+					 float*              outData );
 
 /* deviations are calced by multplying sigma by the square root of the
    diagonal of the CovMtx, then indexing in by time major (time,cond
