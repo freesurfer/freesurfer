@@ -4,7 +4,7 @@
   email:   analysis-bugs@nmr.mgh.harvard.edu
   Date:    2/27/02
   Purpose: Converts a label to a segmentation volume.
-  $Id: mri_label2vol.c,v 1.8 2005/03/01 18:04:58 greve Exp $
+  $Id: mri_label2vol.c,v 1.9 2005/03/01 19:24:15 greve Exp $
 */
 
 
@@ -54,7 +54,7 @@ static int *NthLabelMap(MRI *aseg, int *nlabels);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_label2vol.c,v 1.8 2005/03/01 18:04:58 greve Exp $";
+static char vcid[] = "$Id: mri_label2vol.c,v 1.9 2005/03/01 19:24:15 greve Exp $";
 char *Progname = NULL;
 
 char *LabelList[100];
@@ -108,7 +108,7 @@ int main(int argc, char **argv)
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option (argc, argv, 
-      "$Id: mri_label2vol.c,v 1.8 2005/03/01 18:04:58 greve Exp $", "$Name:  $");
+      "$Id: mri_label2vol.c,v 1.9 2005/03/01 19:24:15 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -898,7 +898,7 @@ static int *NthLabelMap(MRI *aseg, int *nlabels)
     for(r=0; r < aseg->height; r++){
       for(s=0; s < aseg->depth; s++){
         v = (int)MRIgetVoxVal(aseg,c,r,s,0);
-	if(v > 0 && v < 999) tmpmap[v] = 1;
+	if(v >= 0 && v < 999) tmpmap[v] = 1;
       }
     }
   }
