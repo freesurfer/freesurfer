@@ -1,0 +1,18 @@
+#!/bin/sh
+
+# for subject in /space/inverse/4/users/inverse/subjects/anders; do
+
+subject=$1
+
+model=/homes/nmrnew/home/inverse/local/lib/model/average_305.mnc
+dir=`pwd`
+base=$SUBJECTS_DIR/$subject/mri
+transform=$base/transforms/talairach.xfm
+echo registering $subject
+cd $SUBJECTS_DIR/$subject/mri
+# cortominc orig orig/orig.mnc
+mri_convert orig orig/orig.mnc
+mkdir -p transforms
+mritotal -verbose -debug -clobber -protocol icbm orig/orig.mnc transforms/talairach.xfm > orig/orig.log && rm orig/orig.mnc
+mri_add_xform_to_header $transform $base/orig $base/orig
+cd $dir
