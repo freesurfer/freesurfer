@@ -247,7 +247,10 @@ GCclassify(GCLASSIFY *gc, MATRIX *m_x, MATRIX *m_priors, float *prisk)
       prior = m_priors->rptr[cno+1][1] ;
     else
       prior = 1.0f ;
-    log_p = log(prior) + gcl->w0 + m_tmp2->rptr[1][1] + m_tmp3->rptr[1][1] ;
+    if (FZERO(prior))
+      log_p = gcl->w0 + m_tmp2->rptr[1][1] + m_tmp3->rptr[1][1] ;
+    else
+      log_p = log(prior) + gcl->w0 + m_tmp2->rptr[1][1] + m_tmp3->rptr[1][1] ;
     gc->log_probabilities[cno] = log_p ;
     sum_p += exp(log_p) ;
     if (log_p > max_p)  /* tentatively set this as the most probable class */
