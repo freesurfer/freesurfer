@@ -38,6 +38,8 @@ static char subjects_dir[STRLEN] ;
 extern char *gcsa_write_fname ;
 extern int gcsa_write_iterations ;
 
+static int novar = 0 ;
+
 int
 main(int argc, char *argv[])
 {
@@ -156,6 +158,9 @@ main(int argc, char *argv[])
 #endif
 
 
+  if (novar)
+    GCSAsetCovariancesToIdentity(gcsa) ;
+
   MRISrestoreVertexPositions(mris, CANONICAL_VERTICES) ;
   MRISprojectOntoSphere(mris, mris, DEFAULT_RADIUS) ;
   MRISsaveVertexPositions(mris, CANONICAL_VERTICES) ;
@@ -218,6 +223,11 @@ get_option(int argc, char *argv[])
     orig_name = argv[2] ;
     nargs = 1 ;
     printf("using %s as original surface\n", orig_name) ;
+  }
+  else if (!stricmp(option, "NOVAR"))
+  {
+    novar = 1 ;
+    printf("setting all covariance matrices to the identity...\n") ;
   }
 #if 0
   else if (!stricmp(option, "NORM"))
