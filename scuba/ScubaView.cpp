@@ -178,7 +178,10 @@ ScubaView::ScubaView() {
   commandMgr.AddCommand( *this, "EndValueRangeFillInView", 1, "viewID",
 			 "Performs the series of value range fills "
 			 "specified by DoOneValueRangeFill." );
-			 
+  commandMgr.AddCommand( *this, "ConvertWindowToViewRAS", 3, 
+			 "viewID windowX windowY",
+			 "Returns the RAS coordinates of the input window "
+			 "coordinate." );
 
   // Get some prefs values
   ScubaGlobalPreferences& prefs = ScubaGlobalPreferences::GetPreferences();
@@ -1394,6 +1397,41 @@ ScubaView::DoListenToTclCommand( char* isCommand,
   }
 
 
+  // ConvertWindowToViewRAS <viewID> <X> <Y>
+  if( 0 == strcmp( isCommand, "ConvertWindowToViewRAS" ) ) {
+    int viewID;
+    try {
+      viewID = TclCommandManager::ConvertArgumentToInt( iasArgv[1] );
+    }
+    catch( runtime_error e ) {
+      sResult = string("bad viewID: ") + e.what();
+      return error;
+    }
+    
+    if( mID == viewID ) {
+
+      int window[2];
+      float ras[3];
+      try {
+	window[0] = TclCommandManager::ConvertArgumentToInt( iasArgv[2] );
+	window[1] = TclCommandManager::ConvertArgumentToInt( iasArgv[3] );
+      }
+      catch( runtime_error e ) {
+	sResult = string("bad window coordinate: ") + e.what();
+	return error;
+      }
+
+      TranslateWindowToRAS( window, ras );
+      
+      stringstream ssReturn;
+      sReturnFormat = "Lfffl";
+      ssReturn << ras[0] << " " << ras[1] << " " << ras[2];
+      sReturnValues = ssReturn.str();
+      return ok;
+    }
+  }
+
+
   return ok;
 }
 
@@ -1990,8 +2028,11 @@ ScubaView::DoMouseDown( int iWindow[2],
 
 void
 ScubaView::DoKeyDown( int iWindow[2], 
-		      InputState& iInput, ScubaToolState& ) {
+		      InputState& iInput, ScubaToolState& iTool ) {
   string key = iInput.Key();
+
+  float ras[3];
+  TranslateWindowToRAS( iWindow, ras );
 
   // Start with a move distance of 1. If we're moving in plane, set
   // that to the specific in plane increment. If control is down,
@@ -2065,8 +2106,6 @@ ScubaView::DoKeyDown( int iWindow[2],
     Set2DRASCenter( newCenterRAS );
 
     // Rebuild our label value info because the view has moved.
-    float ras[3];
-    TranslateWindowToRAS( iWindow, ras );
     RebuildLabelValueInfo( ras, "mouse" );
 
   } else if( key == msZoomViewIn || key == msZoomViewOut ) {
@@ -2086,6 +2125,24 @@ ScubaView::DoKeyDown( int iWindow[2],
     float ras[3];
     TranslateWindowToRAS( iWindow, ras );
     RebuildLabelValueInfo( ras, "mouse" );
+  }
+
+  // Pass this tool to our layers.
+  map<int,int>::iterator tLevelLayerID;
+  for( tLevelLayerID = mLevelLayerIDMap.begin(); 
+       tLevelLayerID != mLevelLayerIDMap.end(); ++tLevelLayerID ) {
+    int layerID = (*tLevelLayerID).second;
+    try {
+      Layer& layer = Layer::FindByID( layerID );
+      layer.HandleTool( ras, mViewState, *this, iTool, iInput );
+      if( layer.WantRedisplay() ) {
+	RequestRedisplay();
+	layer.RedisplayPosted();
+      }
+    }
+    catch(...) {
+      DebugOutput( << "Couldn't find layer " << layerID );
+    }
   }
 
   RequestRedisplay();

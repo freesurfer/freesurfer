@@ -86,6 +86,9 @@ public:
   void SetLockOnCursor ( bool ibLock ) { mbLockOnCursor = ibLock; }
   bool GetLockOnCursor () { return mbLockOnCursor; }
 
+  // Get view state.
+  ViewState& GetViewState () { return mViewState; }
+
   // Get the map of label values.
   std::map<std::string,std::string>& GetLabelValueMap ( std::string isSet );
 

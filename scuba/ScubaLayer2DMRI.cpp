@@ -7,6 +7,7 @@
 #include "Array2.h"
 #include "PathManager.h"
 #include "VectorOps.h"
+#include "ScubaView.h"
 
 using namespace std;
 
@@ -116,8 +117,13 @@ ScubaLayer2DMRI::ScubaLayer2DMRI () {
   commandMgr.AddCommand( *this, "Get2DMRIRASCoordsFromIndex", 4, 
 			 "layerID x y z", "Returns a list of RAS coords "
 			 "converted from the input index coords." );
-
-  
+  commandMgr.AddCommand( *this, "Flood2DMRIVolume", 7,
+			 "layerID x y z toolID viewID type", 
+			 "Floods the volume in a 2DMRIS layer at the input "
+			 "RAS point x,y,z, using the input tool and view "
+			 "for settings. Floods are of the following types: "
+			 "voxelEditingNew, voxelEditingErase, "
+			 "roiEditingSelect, roiEditingUnselect." );
 }
 
 ScubaLayer2DMRI::~ScubaLayer2DMRI () {
@@ -452,9 +458,6 @@ ScubaLayer2DMRI::DoListenToTclCommand ( char* isCommand, int iArgc, char** iasAr
 	
       try { 
 	DataCollection& data = DataCollection::FindByID( collectionID );
-	if( data.GetID() != collectionID ) {
-	  cerr << "IDs didn't match" << endl;
-	}
 	VolumeCollection& volume = (VolumeCollection&)data;
 	// VolumeCollection& volume = dynamic_cast<VolumeCollection&>(data);
 	
@@ -975,6 +978,82 @@ ScubaLayer2DMRI::DoListenToTclCommand ( char* isCommand, int iArgc, char** iasAr
     }
   }
 
+  // Flood2DMRISVolume <layerID x y z toolID type>
+  if( 0 == strcmp( isCommand, "Flood2DMRIVolume" ) ) {
+    int layerID;
+    try {
+      layerID = TclCommandManager::ConvertArgumentToInt( iasArgv[1] );
+    }
+    catch( runtime_error e ) {
+      sResult = string("bad layerID: ") + e.what();
+      return error;
+    }
+    
+    if( mID == layerID ) {
+
+      float ras[3];
+      try { 
+	ras[0] = TclCommandManager::ConvertArgumentToFloat( iasArgv[2] );
+	ras[1] = TclCommandManager::ConvertArgumentToFloat( iasArgv[3] );
+	ras[2] = TclCommandManager::ConvertArgumentToFloat( iasArgv[4] );
+      }
+      catch( runtime_error e ) {
+	sResult = string("bad RAS coord: ") + e.what();
+	return error;
+      }
+
+      int toolID;
+      try {
+	toolID = TclCommandManager::ConvertArgumentToInt( iasArgv[5] );
+	ScubaToolState::FindByID( toolID );
+      }
+      catch( runtime_error e ) {
+	sResult = string("bad toolID: ") + e.what();
+	return error;
+      }
+      
+      int viewID;
+      try {
+	viewID = TclCommandManager::ConvertArgumentToInt( iasArgv[6] );
+	View::FindByID( viewID );
+      }
+      catch( runtime_error e ) {
+	sResult = string("bad viewID: ") + e.what();
+	return error;
+      }
+      
+      // Get the view and tool and use them to set the params.
+      View& genericView = View::FindByID( viewID );
+      ScubaView& view = (ScubaView&) genericView;
+      ScubaToolState& tool = ScubaToolState::FindByID( toolID );
+      VolumeCollectionFlooder::Params params;
+      SetFloodParams( tool, view.GetViewState(), params );
+
+      // Make the right kind of flooder.
+      VolumeCollectionFlooder* flooder = NULL;
+      if( 0 == strcmp( iasArgv[7], "voxelEditingNew" ) ) {
+	flooder = new ScubaLayer2DMRIFloodVoxelEdit( tool.GetNewValue() );
+      } else if( 0 == strcmp( iasArgv[7], "voxelEditingErase" ) ) {
+	flooder = new ScubaLayer2DMRIFloodVoxelEdit( tool.GetEraseValue() );
+      } else if( 0 == strcmp( iasArgv[7], "roiEditingSelect" ) ) {
+	flooder = new ScubaLayer2DMRIFloodSelect( true );
+      } else if( 0 == strcmp( iasArgv[7], "roiEditingUnselect" ) ) {
+	flooder = new ScubaLayer2DMRIFloodSelect( false );
+      } else {
+	sResult = "bad type \"" + string(iasArgv[7]) +
+	  "\", should be voxelEditingNew, voxelEditingErase, "
+	  "roiEditingSelect, roiEditingUnselect.";
+	return error;	
+      }
+
+      // Do the flood.
+      flooder->Flood( *mVolume, ras, params );
+      delete flooder;
+
+      return ok;
+    }
+  }
+
   return Layer::DoListenToTclCommand( isCommand, iArgc, iasArgv );
 }
 
@@ -1033,9 +1112,13 @@ ScubaLayer2DMRI::HandleTool ( float iRAS[3], ViewState& iViewState,
     // If shift key is down, we're filling. Make a flood params object
     // and fill it out, then make a flood select object, specifying
     // select or unselect in the ctor. Then run the flood object with
-    // the params.
-    if( iInput.IsShiftKeyDown() && iInput.IsButtonDownEvent() &&
-	(2 == iInput.Button() || 3 == iInput.Button()) ) {
+    // the params.  Hack: Added a 'f' key shortcut for
+    // Jean. Definitely a better way of doing this but don't want to
+    // do it now.
+    if( iInput.IsShiftKeyDown() && 
+	(( iInput.IsButtonDownEvent() && 
+	   (2 == iInput.Button() || 3 == iInput.Button()) )      ||
+	 ( iInput.Key()[0] == 'f' )) ) {
 
       VolumeLocation& loc =
 	(VolumeLocation&) mVolume->MakeLocationFromRAS( iRAS );
@@ -1047,15 +1130,19 @@ ScubaLayer2DMRI::HandleTool ( float iRAS[3], ViewState& iViewState,
 	// Create and run the flood object.
 	VolumeCollectionFlooder* flooder = NULL;
 	if( ScubaToolState::voxelEditing == iTool.GetMode() ) {
-	  if( iInput.Button() == 2 ) {
+	  if( iInput.Button() == 2 || 
+	      (iInput.Key()[0] == 'f' && !iInput.IsControlKeyDown()) ) {
 	    flooder = new ScubaLayer2DMRIFloodVoxelEdit( iTool.GetNewValue() );
-	  } else if( iInput.Button() == 3 ) {
+	  } else if( iInput.Button() == 3|| 
+	      (iInput.Key()[0] == 'f' && iInput.IsControlKeyDown()) ) {
 	    flooder = new ScubaLayer2DMRIFloodVoxelEdit(iTool.GetEraseValue());
 	  }
 	} else if( ScubaToolState::roiEditing == iTool.GetMode() ) {
-	  if( iInput.Button() == 2 ) {
+	  if( iInput.Button() == 2|| 
+	      (iInput.Key()[0] == 'f' && !iInput.IsControlKeyDown()) ) {
 	    flooder = new ScubaLayer2DMRIFloodSelect( true );
-	  } else if( iInput.Button() == 3 ) {
+	  } else if( iInput.Button() == 3|| 
+	      (iInput.Key()[0] == 'f' && iInput.IsControlKeyDown()) ) {
 	    flooder = new ScubaLayer2DMRIFloodSelect( false );
 	  }
 	}

@@ -185,6 +185,11 @@ ToglManager::KeyDownCallback ( struct Togl* iTogl, int iArgc, char* iArgv[] ) {
 
   } else {
   
+    // If shift, change key to lowercase.
+    if( mState.mbShiftKey ) {
+      sKey = tolower(sKey[0]);
+    }
+
     // Record the key.
     mState.msKey = sKey;
     

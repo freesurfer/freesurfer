@@ -10,7 +10,7 @@ if { $err } {
     load [file dirname [info script]]/libscuba[info sharedlibextension] scuba
 }
 
-DebugOutput "\$Id: scuba.tcl,v 1.81 2005/02/16 18:44:30 kteich Exp $"
+DebugOutput "\$Id: scuba.tcl,v 1.82 2005/02/17 19:53:30 kteich Exp $"
 
 # gTool
 #   current - current selected tool (nav,)
@@ -956,13 +956,13 @@ proc ScubaKeyUpCallback { inX inY iState iKey } {
     global gaPrefs
     global gaWidget
     global gaView
-    
+
     # Check for the mouse key equivs.
     foreach {sKey nButton} {
 	KeyMouseButtonOne   1
 	KeyMouseButtonTwo   2
 	KeyMouseButtonThree 3 } {
-	if { "$iKey" == "$gaPrefs($sKey)" } {
+	if { [string tolower "$iKey"] == [string tolower "$gaPrefs($sKey)"] } {
 	    $gaWidget(scubaFrame,0) MouseUpCallback $inX $inY $nButton
 	}
     }
@@ -4594,7 +4594,7 @@ proc SaveSceneScript { ifnScene } {
     set f [open $ifnScene w]
 
     puts $f "\# Scene file generated "
-    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.81 2005/02/16 18:44:30 kteich Exp $"
+    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.82 2005/02/17 19:53:30 kteich Exp $"
     puts $f ""
 
     # Find all the data collections.
@@ -4772,6 +4772,159 @@ proc UpdateFrame { iFrameID } {
     RedrawFrame $iFrameID
     after idle { incr DELAY_TIMER }
     vwait DELAY_TIMER
+}
+
+
+
+proc MakeHistogramFillWindow {} {
+    global gaLayer
+    global gaROI
+
+    # Build a list of non-seg volumes for the source layer list.
+    set lSourceLayers {}
+    foreach layerID $gaLayer(idList) {
+	if { [GetLayerType $layerID] == "2DMRI" } {
+	    if { [Get2DMRILayerColorMapMethod $layerID] == "grayscale" } {
+		set sLabel [GetLayerLabel $layerID]
+		lappend lSourceLayers [list $layerID "$sLabel"]
+	    }
+	}
+    }
+
+    if { [llength $lSourceLayers] == 0 } {
+	tkuFormattedErrorDlog "Couldn't Make Histogram" \
+	    "No anatomical volume layer available as a source." \
+	    "To use the histogram fill window, you need a layer with an anatomical (grayscale) volume as the source and a layer with a segmentation volume as the destination."
+	return
+    }
+
+    # For each of these source layers, get the data and then the ROI
+    # list. Build a menu out of these ROIs.
+    set lROIs {}
+    foreach layerIDLabel $lSourceLayers {
+	set layerID [lindex $layerIDLabel 0]
+	set volID [Get2DMRILayerVolumeCollection $layerID]
+	set lROIID [GetROIIDListForCollection $volID]
+	foreach roiID $lROIID {
+	    set sLabel [GetROILabel $roiID]
+	    lappend lROIs [list $roiID "$sLabel"]
+	}
+    }
+
+    # Build a list of seg volumes for the dest list.
+    set lDestLayers {}
+    foreach layerID $gaLayer(idList) {
+	if { [GetLayerType $layerID] == "2DMRI" } {
+	    if { [Get2DMRILayerColorMapMethod $layerID] == "lut" } {
+		set sLabel [GetLayerLabel $layerID]
+		lappend lDestLayers [list $layerID "$sLabel"]
+	    }
+	}
+    }
+    
+    if { [llength $lDestLayers] == 0 } {
+	tkuFormattedErrorDlog "Couldn't Make Histogram" \
+	    "No segmentation volume layer available as a destination." \
+	    "To use the histogram fill window, you need a layer with an anatomical (grayscale) volume as the source and a layer with a segmentation volume as the destination."
+	return
+    }
+
+    tkuDoFileDlog -title "Histogram Fill" \
+	-type1 menu \
+	-prompt1 "Source layer (anatomical): " \
+	-menu1 $lSourceLayers \
+	\
+	-type2 checkbox \
+	-prompt2 "Use ROI" \
+	-defaultvalue2 0 \
+	\
+	-type3 menu \
+	-prompt3 "ROI: " \
+	-menu3 $lROIs \
+	\
+	-type4 menu \
+	-prompt4 "Fill layer (segmentation): " \
+	-menu4 $lDestLayers \
+	\
+	-okCmd "MakeHistogramFillWindow2 %s1 %s2 %s3 %s4"
+}
+
+proc MakeHistogramFillWindow2 { iSourceLayer ibUseROI iROI iDestLayer } {
+    global gaView
+
+    set viewID $gaView(current,id)
+    set sourceVol [Get2DMRILayerVolumeCollection $iSourceLayer]
+    set roiID -1
+    if { $ibUseROI } { set roiID $iROI }
+    set destVol [Get2DMRILayerVolumeCollection $iDestLayer]
+    set numBins 250
+    set lutID [Get2DMRILayerColorLUT $iDestLayer]
+
+    # Get the histogram data from the source volume.
+    set err [catch {
+	set lResult [GetVolumeHistogramInView $viewID $sourceVol $roiID $numBins]
+	set minBinValue [lindex $lResult 0]
+	set binIncrement [lindex $lResult 1]
+	set lCounts [lindex $lResult 2]
+    } sResult]
+    if { $err != 0 } {
+	tkuErrorDlog "$sResult"
+	return
+    }
+
+    set min $minBinValue
+    set max [expr $minBinValue + ($numBins * $binIncrement)]
+    set inc $binIncrement
+
+    if { [llength $lCounts] == 0 ||
+	 $min == $max } {
+	tkuErrorDlog "No area available to histogram; either there is no slice data visible, or the specified ROI isn't in the view."
+	return;
+    }
+
+    # Build the CLUT data from the dest color table.
+    set lCLUT {}
+    set cEntries [GetColorLUTNumberOfEntries $lutID]
+    for { set nEntry 0 } { $nEntry < $cEntries } { incr nEntry } {
+
+	set sLabel [GetColorLUTEntryLabel $lutID $nEntry]
+	set RGBFloat [GetColorLUTEntryRGB $lutID $nEntry]
+	set RGBHex [hl_IntRGBColorToHexString [lindex $RGBFloat 0] [lindex $RGBFloat 2] [lindex $RGBFloat 2]]
+
+	lappend lCLUT [list $nEntry $sLabel \#$RGBHex]
+    }
+
+    # Get source label.
+    set sTitle "Volume: [GetCollectionLabel $sourceVol]"
+    
+    # Build the window.
+    toplevel .wwHisto
+    MakeHistogram .wwHisto.fwTop .wwHisto \
+	-title $sTitle \
+	-min $min -max $max \
+	-increment $inc -numBars [expr $max - $min] \
+	-values $lCounts -clut $lCLUT \
+	-okCmd "DoHistogramLabel $sourceVol $roiID $destVol"
+    pack .wwHisto.fwTop -fill both -expand yes
+}
+
+proc DoHistogramLabel { iSourceVol iROIID iDestVol iValueRanges } {
+    global gaView
+
+    # This starts the fill.
+    BeginValueRangeFillInView $gaView(current,id) \
+	$iSourceVol $iROIID $iDestVol
+
+    # Do one fill for each of our ranges.
+    foreach valueRange $iValueRanges {
+	set begin [lindex $valueRange 0]
+	set end [lindex $valueRange 1]
+	set value [lindex $valueRange 2]
+	DoOneValueRangeFillInView $gaView(current,id) $begin $end $value
+    }
+    
+    # Finish it up. (This actually performs the fill in c code.)
+    EndValueRangeFillInView $gaView(current,id)
 }
 
 # MAIN =============================================================
@@ -4993,156 +5146,4 @@ bind $gaWidget(window) <Alt-Key-n> {
 	set gaView(tkcon,visible) 1
     }
     ShowHideConsole $gaView(tkcon,visible)
-}
-
-
-proc MakeHistogramFillWindow {} {
-    global gaLayer
-    global gaROI
-
-    # Build a list of non-seg volumes for the source layer list.
-    set lSourceLayers {}
-    foreach layerID $gaLayer(idList) {
-	if { [GetLayerType $layerID] == "2DMRI" } {
-	    if { [Get2DMRILayerColorMapMethod $layerID] == "grayscale" } {
-		set sLabel [GetLayerLabel $layerID]
-		lappend lSourceLayers [list $layerID "$sLabel"]
-	    }
-	}
-    }
-
-    if { [llength $lSourceLayers] == 0 } {
-	tkuFormattedErrorDlog "Couldn't Make Histogram" \
-	    "No anatomical volume layer available as a source." \
-	    "To use the histogram fill window, you need a layer with an anatomical (grayscale) volume as the source and a layer with a segmentation volume as the destination."
-	return
-    }
-
-    # For each of these source layers, get the data and then the ROI
-    # list. Build a menu out of these ROIs.
-    set lROIs {}
-    foreach layerIDLabel $lSourceLayers {
-	set layerID [lindex $layerIDLabel 0]
-	set volID [Get2DMRILayerVolumeCollection $layerID]
-	set lROIID [GetROIIDListForCollection $volID]
-	foreach roiID $lROIID {
-	    set sLabel [GetROILabel $roiID]
-	    lappend lROIs [list $roiID "$sLabel"]
-	}
-    }
-
-    # Build a list of seg volumes for the dest list.
-    set lDestLayers {}
-    foreach layerID $gaLayer(idList) {
-	if { [GetLayerType $layerID] == "2DMRI" } {
-	    if { [Get2DMRILayerColorMapMethod $layerID] == "lut" } {
-		set sLabel [GetLayerLabel $layerID]
-		lappend lDestLayers [list $layerID "$sLabel"]
-	    }
-	}
-    }
-    
-    if { [llength $lDestLayers] == 0 } {
-	tkuFormattedErrorDlog "Couldn't Make Histogram" \
-	    "No segmentation volume layer available as a destination." \
-	    "To use the histogram fill window, you need a layer with an anatomical (grayscale) volume as the source and a layer with a segmentation volume as the destination."
-	return
-    }
-
-    tkuDoFileDlog -title "Histogram Fill" \
-	-type1 menu \
-	-prompt1 "Source layer (anatomical): " \
-	-menu1 $lSourceLayers \
-	\
-	-type2 checkbox \
-	-prompt2 "Use ROI" \
-	-defaultvalue2 0 \
-	\
-	-type3 menu \
-	-prompt3 "ROI: " \
-	-menu3 $lROIs \
-	\
-	-type4 menu \
-	-prompt4 "Fill layer (segmentation): " \
-	-menu4 $lDestLayers \
-	\
-	-okCmd "MakeHistogramFillWindow2 %s1 %s2 %s3 %s4"
-}
-
-proc MakeHistogramFillWindow2 { iSourceLayer ibUseROI iROI iDestLayer } {
-    global gaView
-
-    set viewID $gaView(current,id)
-    set sourceVol [Get2DMRILayerVolumeCollection $iSourceLayer]
-    set roiID -1
-    if { $ibUseROI } { set roiID $iROI }
-    set destVol [Get2DMRILayerVolumeCollection $iDestLayer]
-    set numBins 250
-    set lutID [Get2DMRILayerColorLUT $iDestLayer]
-
-    # Get the histogram data from the source volume.
-    set err [catch {
-	set lResult [GetVolumeHistogramInView $viewID $sourceVol $roiID $numBins]
-	set minBinValue [lindex $lResult 0]
-	set binIncrement [lindex $lResult 1]
-	set lCounts [lindex $lResult 2]
-    } sResult]
-    if { $err != 0 } {
-	tkuErrorDlog "$sResult"
-	return
-    }
-
-    set min $minBinValue
-    set max [expr $minBinValue + ($numBins * $binIncrement)]
-    set inc $binIncrement
-
-    if { [llength $lCounts] == 0 ||
-	 $min == $max } {
-	tkuErrorDlog "No area available to histogram; either there is no slice data visible, or the specified ROI isn't in the view."
-	return;
-    }
-
-    # Build the CLUT data from the dest color table.
-    set lCLUT {}
-    set cEntries [GetColorLUTNumberOfEntries $lutID]
-    for { set nEntry 0 } { $nEntry < $cEntries } { incr nEntry } {
-
-	set sLabel [GetColorLUTEntryLabel $lutID $nEntry]
-	set RGBFloat [GetColorLUTEntryRGB $lutID $nEntry]
-	set RGBHex [hl_IntRGBColorToHexString [lindex $RGBFloat 0] [lindex $RGBFloat 2] [lindex $RGBFloat 2]]
-
-	lappend lCLUT [list $nEntry $sLabel \#$RGBHex]
-    }
-
-    # Get source label.
-    set sTitle "Volume: [GetCollectionLabel $sourceVol]"
-    
-    # Build the window.
-    toplevel .wwHisto
-    MakeHistogram .wwHisto.fwTop .wwHisto \
-	-title $sTitle \
-	-min $min -max $max \
-	-increment $inc -numBars [expr $max - $min] \
-	-values $lCounts -clut $lCLUT \
-	-okCmd "DoHistogramLabel $sourceVol $roiID $destVol"
-    pack .wwHisto.fwTop -fill both -expand yes
-}
-
-proc DoHistogramLabel { iSourceVol iROIID iDestVol iValueRanges } {
-    global gaView
-
-    # This starts the fill.
-    BeginValueRangeFillInView $gaView(current,id) \
-	$iSourceVol $iROIID $iDestVol
-
-    # Do one fill for each of our ranges.
-    foreach valueRange $iValueRanges {
-	set begin [lindex $valueRange 0]
-	set end [lindex $valueRange 1]
-	set value [lindex $valueRange 2]
-	DoOneValueRangeFillInView $gaView(current,id) $begin $end $value
-    }
-    
-    # Finish it up. (This actually performs the fill in c code.)
-    EndValueRangeFillInView $gaView(current,id)
 }
