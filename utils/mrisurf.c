@@ -14410,6 +14410,42 @@ mrisEraseFace(MRI_SURFACE *mris, MRI *mri, int fno)
 #define WHALF                 (5-1)/2
 #define MAX_THICKNESS 6.0f
 
+#if 1
+int
+MRISmeasureCorticalThickness(MRI_SURFACE *mris)
+{
+  int     vno, n ;
+  VERTEX  *v, *vn ;
+  float   dx, dy, dz, dist, min_dist ;
+
+  /* current vertex positions are gray matter, orig are white matter */
+  MRISsetNeighborhoodSize(mris, 2) ;
+  MRIScomputeMetricProperties(mris) ;  /* fill in new distances */
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    if (v->ripflag)
+      continue ;
+    if (vno == Gdiag_no)
+      DiagBreak() ;
+    dx = v->x - v->origx ; dy = v->y - v->origy ; dz = v->z - v->origz ; 
+    min_dist = sqrt(dx*dx + dy*dy + dz*dz) ;
+    for (n = 0 ; n < v->vtotal ; n++)
+    {
+      vn = &mris->vertices[v->v[n]] ;
+      if (vn->ripflag)
+        continue ;
+      dx = vn->x - v->origx ; dy = vn->y - v->origy ; dz = vn->z - v->origz ; 
+      dist = sqrt(dx*dx + dy*dy + dz*dz) ;
+      if (dist < min_dist)
+        min_dist = dist ;
+    }
+    v->curv = min_dist ;
+  }
+
+  return(NO_ERROR) ;
+}
+#else
 int
 MRISmeasureCorticalThickness(MRI_SURFACE *mris)
 {
@@ -14454,6 +14490,7 @@ MRISmeasureCorticalThickness(MRI_SURFACE *mris)
   MHTfree(&mht) ;
   return(NO_ERROR) ;
 }
+#endif
 #if 0
 /*-----------------------------------------------------
         Parameters:
