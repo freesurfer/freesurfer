@@ -1,6 +1,6 @@
 #! /usr/bin/tixwish
 
-# $Id: tksurfer.tcl,v 1.56 2004/06/10 20:24:03 kteich Exp $
+# $Id: tksurfer.tcl,v 1.57 2004/07/02 20:05:51 kteich Exp $
 
 package require BLT;
 
@@ -1688,7 +1688,7 @@ proc DoLabelToOverlayDlog {} {
 		menubutton.width 8
 	    }
 	
-	FillOverlayLayerMenu $fwTarget current
+	FillOverlayLayerMenu $fwTarget first-empty
 	
 	# buttons.
 	tkm_MakeCancelOKButtons $fwButtons $wwDialog \
@@ -4250,7 +4250,8 @@ proc GetDefaultLocation { iType } {
 	    LoadSurface - SaveSurfaceAs - LoadMainSurface -
 	    LoadInflatedSurface - LoadWhiteSurface - LoadPialSurface -
 	    LoadOriginalSurface - LoadCurvature - SaveCurvatureAs -
-	    LoadPatch - SavePatchAs {
+	    LoadPatch - SavePatchAs -
+	    SaveValuesAs {
 		set gsaDefaultLocation($iType) \
 		    [ExpandFileName "" kFileName_Surface]
 	    }
