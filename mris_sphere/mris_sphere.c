@@ -15,7 +15,7 @@
 #include "utils.h"
 #include "timer.h"
 
-static char vcid[]="$Id: mris_sphere.c,v 1.17 1999/08/13 19:27:07 fischl Exp $";
+static char vcid[]="$Id: mris_sphere.c,v 1.18 1999/09/28 13:38:06 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -68,7 +68,7 @@ main(int argc, char *argv[])
 
   parms.dt = .1 ;
   parms.projection = PROJECT_ELLIPSOID ;
-  parms.tol = 1e-1 ;
+  parms.tol = .5 /*1e-1*/ ;
   parms.n_averages = 1024 ;
   parms.min_averages = 0 ;
   parms.l_angle = 0.0 /* L_ANGLE */ ;
