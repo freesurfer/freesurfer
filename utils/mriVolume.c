@@ -7,8 +7,6 @@
 #include "mriTransform.h"
 #include "xList.h"
 
-extern tBoolean gScaleUpFlag ;
-
 //#define LINEAR_CORONAL_RAS_TO_CORONAL_RAS       21
 // should be in transform.h if they aren't already
 
@@ -401,26 +399,6 @@ Volm_tErr Volm_ImportData ( mriVolumeRef this,
   DebugAssertThrowX( (NULL != mriVolume), 
 		     eResult, Volm_tErr_CouldntReadVolume );
 
-	if (gScaleUpFlag == TRUE)
-	{
-		float scale, fov_x, fov_y, fov_z  ;
-
-		scale = 1.0/MIN(MIN(mriVolume->xsize, mriVolume->ysize),mriVolume->zsize) ;
-		printf("scaling voxel sizes up by %2.2f\n", scale) ;
-		mriVolume->xsize *= scale ; mriVolume->ysize *= scale ; mriVolume->zsize *= scale ;
-    fov_x = mriVolume->xsize * mriVolume->width;
-    fov_y = mriVolume->ysize * mriVolume->height;
-    fov_z = mriVolume->zsize * mriVolume->depth;
-    mriVolume->xend = fov_x / 2.0;
-    mriVolume->xstart = -mriVolume->xend;
-    mriVolume->yend = fov_y / 2.0;
-    mriVolume->ystart = -mriVolume->yend;
-    mriVolume->zend = fov_z / 2.0;
-    mriVolume->zstart = -mriVolume->zend;
-
-    mriVolume->fov = (fov_x > fov_y ? (fov_x > fov_z ? fov_x : fov_z) : (fov_y > fov_z ? fov_y : fov_z) );
-	}
-
   DebugNote( ("Setting from MRI") );
   eResult = Volm_SetFromMRI_( this, mriVolume );
   DebugAssertThrow( (eResult == Volm_tErr_NoErr) );
@@ -479,7 +457,6 @@ Volm_tErr Volm_SetFromMRI_ ( mriVolumeRef this,
   this->mnDimensionZ = iMRI->depth;
   this->mnDimensionFrame = iMRI->nframes;
 
-
   /* set the volumes in this */
   this->mpMriValues = iMRI;
 
@@ -533,7 +510,7 @@ Volm_tErr Volm_SetFromMRI_ ( mriVolumeRef this,
   Trns_CopyBtoRAS( this->mScannerTransform, identity );
 
 
-  /* Set the initial resample method. */
+   /* Set the initial resample method. */
   Volm_SetResampleMethod( this, Volm_tResampleMethod_RAS );
 
 
@@ -3166,6 +3143,54 @@ Volm_tErr Volm_ExtractAndSetVolumeName ( mriVolumeRef this,
     xUtil_strncpy( this->msVolumeName, isSource,sizeof( this->msVolumeName ) );
   }
   
+  DebugCatch;
+  DebugCatchError( eResult, Volm_tErr_NoErr, Volm_GetErrorString );
+  EndDebugCatch;
+  
+  DebugExitFunction;
+  
+  return eResult;
+}
+
+Volm_tErr Volm_SetMinVoxelSizeToOne ( mriVolumeRef this ) {
+
+  Volm_tErr eResult    = Volm_tErr_NoErr;
+  float scale, fov_x, fov_y, fov_z  ;
+
+  DebugEnterFunction( ("Volm_SetMinVoxelSizeToOne( this=%p )", this ) );
+  
+  DebugNote( ("Verifying volume") );
+  eResult = Volm_Verify( this );
+  DebugAssertThrow( (eResult == Volm_tErr_NoErr) );
+
+  /* Calculate the scale factor and size the xyzsize values. */
+  scale = 1.0/MIN(MIN(this->mpMriValues->xsize, this->mpMriValues->ysize),this->mpMriValues->zsize) ;
+  printf("scaling voxel sizes up by %2.2f\n", scale) ;
+  this->mpMriValues->xsize *= scale ; 
+  this->mpMriValues->ysize *= scale ; 
+  this->mpMriValues->zsize *= scale ;
+  
+  /* Find the fov for each dimension. */
+  fov_x = this->mpMriValues->xsize * this->mpMriValues->width;
+  fov_y = this->mpMriValues->ysize * this->mpMriValues->height;
+  fov_z = this->mpMriValues->zsize * this->mpMriValues->depth;
+  
+  /* Recalc the bounds. */
+  this->mpMriValues->xend = fov_x / 2.0;
+  this->mpMriValues->xstart = -this->mpMriValues->xend;
+  this->mpMriValues->yend = fov_y / 2.0;
+  this->mpMriValues->ystart = -this->mpMriValues->yend;
+  this->mpMriValues->zend = fov_z / 2.0;
+  this->mpMriValues->zstart = -this->mpMriValues->zend;
+  
+  /* Find the overall fov. */
+  this->mpMriValues->fov = (fov_x > fov_y ? (fov_x > fov_z ? fov_x : fov_z) : (fov_y > fov_z ? fov_y : fov_z) );
+
+  /* Set from the newly fov'd MRI. */
+  DebugNote( ("Setting from MRI") );
+  eResult = Volm_SetFromMRI_( this, this->mpMriValues );
+  DebugAssertThrow( (eResult == Volm_tErr_NoErr) );
+
   DebugCatch;
   DebugCatchError( eResult, Volm_tErr_NoErr, Volm_GetErrorString );
   EndDebugCatch;
