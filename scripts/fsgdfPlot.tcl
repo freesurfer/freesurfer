@@ -930,7 +930,6 @@ proc FsgdfPlot_ShowWindow { iID } {
     wm deiconify $gWidgets($iID,wwTop)
     if { [info exists gWidgets($iID,state,window,geometry)] } {
 	wm geometry $gWidgets($iID,wwTop) $gWidgets($iID,state,window,geometry)
-	puts "set geomtery $gWidgets($iID,state,window,geometry)"
     }
 }
 
@@ -941,7 +940,6 @@ proc FsgdfPlot_HideWindow { iID } {
     if { [info exists gWidgets($iID,wwTop)] } {
 	set gWidgets($iID,state,window,geometry) \
 	    [wm geometry $gWidgets($iID,wwTop)]
-	puts "saved geometry $gWidgets($iID,state,window,geometry)"
 	wm withdraw $gWidgets($iID,wwTop)
     }
 }
