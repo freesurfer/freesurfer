@@ -17266,7 +17266,7 @@ MRIScomputeBorderValues(MRI_SURFACE *mris,MRI *mri_brain,
     if (vno == Gdiag_no)
     {
       char fname[STRLEN] ;
-      sprintf(fname, "v%2.0f.log", sigma*100) ;
+      sprintf(fname, "v%d.%2.0f.log", sigma*100) ;
       fp = fopen(fname, "w") ;
       fprintf(stderr, 
               "v %d: inward dist %2.2f, outward dist %2.2f, sigma %2.1f\n",
