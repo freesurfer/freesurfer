@@ -4,8 +4,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2004/08/12 18:00:41 $
-// Revision       : $Revision: 1.92 $
+// Revision Date  : $Date: 2004/09/28 22:02:08 $
+// Revision       : $Revision: 1.93 $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -220,7 +220,7 @@ int main(int argc, char *argv[])
   nskip = 0;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_convert.c,v 1.92 2004/08/12 18:00:41 tosa Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_convert.c,v 1.93 2004/09/28 22:02:08 tosa Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -1803,6 +1803,8 @@ int main(int argc, char *argv[])
       }
     }
   }
+  // free memory
+  MRIfree(&mri);
 
   exit(0);
 
