@@ -484,20 +484,30 @@ DspA_tErr DspA_UnnormalizeVoxel_ ( xVoxelRef        ipNormIdx,
 				   mri_tOrientation iOrientation,
 				   xVoxelRef        opAnaIdx );
 
+/* this sees if two voxels intersect a plane in 3D and if so, returns
+   true, as well as the 2D intersection points on that plane; one the
+   simple projection of the first voxel onto the plane, and the other
+   the actual point on the line between the two voxels where it
+   interesects the plane. */
 tBoolean xUtil_LineIntersectsPlane ( xVoxelRef         ipAnaIdxA,
 				     xVoxelRef         ipAnaIdxB,
 				     int               inPlane,
 				     xPoint2fRef       opIntersectionPt,
 				     xPoint2fRef     opInterpIntersectionPt );
-DspA_tErr DspA_AdjustSurfaceDrawPoint_ ( tkmDisplayAreaRef this,
-					 xPoint2fRef       ipPoint );
+
+/* walks through a surafce list and draws the points with openGL. can
+   be used to draw lines or points. the port should already be set up
+   with the proper color and point size. */
+DspA_tErr DspA_ParsePointList_ ( tkmDisplayAreaRef this,
+				 GLenum            inMode,
+				 xGrowableArrayRef ipList );
+
+/* used to move a drawn crosshair point from .0,.0,.0 to .5,.5,.5 to
+   make it show in the middle of a voxel. */
 DspA_tErr DspA_AdjustSurfaceAnaIdx   ( tkmDisplayAreaRef this,
 				       xVoxelRef         iAnaIdx );
 DspA_tErr DspA_UnadjustSurfaceAnaIdx ( tkmDisplayAreaRef this,
 				       xVoxelRef         iAnaIdx );
-DspA_tErr DspA_ParsePointList_ ( tkmDisplayAreaRef this,
-				 GLenum            inMode,
-				 xGrowableArrayRef ipList );
 
 /* schedule a redraw */
 DspA_tErr DspA_Redraw_ ( tkmDisplayAreaRef this );
