@@ -5,8 +5,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: xhan $
-// Revision Date  : $Date: 2005/04/01 20:38:45 $
-// Revision       : $Revision: 1.1 $
+// Revision Date  : $Date: 2005/04/04 00:42:57 $
+// Revision       : $Revision: 1.2 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -28,6 +28,8 @@
 #include "label.h"
 
 #define VERTEX_EDGE(vec, v0, v1)   VECTOR_LOAD(vec,v1->x-v0->x,v1->y-v0->y, v1->z-v0->z)
+
+static int verbose = 0;
 
 int main(int argc, char *argv[]) ;
 static int get_option(int argc, char *argv[]) ;
@@ -51,7 +53,7 @@ main(int argc, char *argv[])
   VERTEX  *v0, *v1, *v2;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_volume.c,v 1.1 2005/04/01 20:38:45 xhan Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_volume.c,v 1.2 2005/04/04 00:42:57 xhan Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -64,14 +66,12 @@ main(int argc, char *argv[])
   
   ac = argc ;
   av = argv ;
-#if 0
   for ( ; argc > 1 && ISOPTION(*argv[1]) ; argc--, argv++)
   {
     nargs = get_option(argc, argv) ;
     argc -= nargs ;
     argv += nargs ;
   }
-#endif
   
   if (argc < 2)
     usage_exit(1) ;
@@ -80,13 +80,14 @@ main(int argc, char *argv[])
 
   /*** Read in the input surfaces ***/
   in_fname = argv[1] ;
-  printf("reading %s...\n", in_fname) ;
+  if(verbose) printf("reading %s...\n", in_fname) ;
     
   mris = MRISread(in_fname) ;
   if (mris == NULL)
     ErrorExit(ERROR_NOFILE, "%s: could not read surface %s",
 	      Progname, in_fname) ;
 
+  if(verbose)
   printf("surface file read in.\n");
 
   v_a = VectorAlloc(3, MATRIX_REAL) ;
@@ -127,9 +128,13 @@ main(int argc, char *argv[])
   seconds = nint((float)msec/1000.0f) ;
   minutes = seconds / 60 ;
   seconds = seconds % 60 ;
+  if(verbose)
   printf("Volume computation took %d minutes and %d seconds.\n", minutes, seconds) ;
 
+  if(verbose)
   printf("total volume surrounded by the surface is %g\n", total_volume);
+else
+ printf("%g\n", total_volume);
 
   MRISfree(&mris);
   
@@ -149,6 +154,17 @@ get_option(int argc, char *argv[])
   
   option = argv[1] + 1 ;            /* past '-' */
 
+  switch(*option){ 
+    case 'v':
+    case 'V':
+      verbose = 1;
+    break;
+    default:
+      printf("unknown option %s\n", argv[1]);
+    exit(1);
+   break;
+  }
+
   return(nargs) ;
 }
 
@@ -162,7 +178,7 @@ usage_exit(int code)
 {
   printf("usage: %s surface_file_name\n", Progname) ;
   printf("\t This program computes the volume of the given closed surface using a divergence formula \n");
- 
+  printf("\t use -v option to output more messages\n"); 
   exit(code) ;
 }
 
