@@ -6,11 +6,11 @@
 //  
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2003/03/18 19:21:53 $
-// Revision       : $Revision: 1.10 $
+// Revision Date  : $Date: 2003/04/22 15:34:05 $
+// Revision       : $Revision: 1.11 $
 //
 ////////////////////////////////////////////////////////////////////
-char *MRIFLOOD_VERSION = "$Revision: 1.10 $";
+char *MRIFLOOD_VERSION = "$Revision: 1.11 $";
 
 #include <math.h>
 #include <stdlib.h>
@@ -712,10 +712,13 @@ MRI *MRISpartialribbon(MRI_SURFACE *inner_mris_lh,MRI_SURFACE *outer_mris_lh,MRI
   MRIcopy(mri_dst,mri_inter1);
   // DebugVoxel("after merge", mri_inter1, checkx, checky, checkz);
 
-  printf("Illegality check on cortex voxels...\n");
-  MRIerodecerebralcortex(mri_inter1,mri_mask,mri_inter2,mri_inter3);
-  // DebugVoxel("after erode", mri_inter1, checkx, checky, checkz);
-
+  // note that mri_mask can be null
+  if (mri_mask)
+  {
+    printf("Illegality check on cortex voxels...\n");
+    MRIerodecerebralcortex(mri_inter1,mri_mask,mri_inter2,mri_inter3);
+    // DebugVoxel("after erode", mri_inter1, checkx, checky, checkz);
+  }
   printf("Illegality check on cortex voxels near hippocampus...\n");
   MRIcorrecthippocampus(mri_inter1,mri_dst);
   // DebugVoxel("after hippo", mri_dst, checkx, checky, checkz);
@@ -990,6 +993,7 @@ void MRIerodecerebralcortex(MRI *mri_masked,MRI *mri_cma,MRI *mri_white,MRI *mri
   int width,height,depth,i,j,k,vox,erodedvoxelcount,olderodedvoxelcount,unknowncount;
   int erodewhitecount;
   int erodecortexcma;
+  
   width=mri_cma->width;
   height=mri_cma->height;
   depth=mri_cma->depth;
