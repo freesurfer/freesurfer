@@ -9,9 +9,9 @@
  */
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2005/01/26 21:18:21 $
-// Revision       : $Revision: 1.286 $
-char *MRI_C_VERSION = "$Revision: 1.286 $";
+// Revision Date  : $Date: 2005/01/26 21:35:19 $
+// Revision       : $Revision: 1.287 $
+char *MRI_C_VERSION = "$Revision: 1.287 $";
 
 /*-----------------------------------------------------
   INCLUDE FILES
@@ -418,19 +418,19 @@ MATRIX *MRIfixTkReg(MRI *mov, MATRIX *R)
   from the mov to the ref whereas the tkreg matrix maps from the ref
   to the mov.
 
-      mov voxel --(Tmov)--> tkRegXYZ(mov)
-       ^                          ^
-       | inv(Dmov)                |
-       |                          |
-      mov' physvox                |
-       ^                          |
-       | inv(Mfsl)                | R
-       |                          |
-      ref' physvox                |
-       ^                          |
-       | Dref                     |
-       |                          |
-      ref voxel <--inv(Tref)--tkRegXYZ(ref)
+  mov voxel --(Tmov)--> tkRegXYZ(mov)
+  ^                          ^
+  | inv(Dmov)                |
+  |                          |
+  mov' physvox                |
+  ^                          |
+  | inv(Mfsl)                | R
+  |                          |
+  ref' physvox                |
+  ^                          |
+  | Dref                     |
+  |                          |
+  ref voxel <--inv(Tref)--tkRegXYZ(ref)
   -------------------------------------------------------------------*/
 MATRIX *MRIfsl2TkReg(MRI *ref, MRI *mov, MATRIX *FSLRegMat)
 {
@@ -477,19 +477,19 @@ MATRIX *MRIfsl2TkReg(MRI *ref, MRI *mov, MATRIX *FSLRegMat)
   mov to the ref whereas the tkreg matrix maps from the ref to the
   mov.
 
-      mov voxel<--inv(Tmov)-- tkRegXYZ(mov)
-       |                           ^
-       |  Dmov                     |
-       V                           |
-      mov' physvox                 |
-       |                           |
-       |  Mfsl                     | R
-       V                           |
-      ref' physvox                 |
-       |                           |
-       |  inv(Dref)                |
-       V                           |
-      ref voxel -- Tref  -->  tkRegXYZ(ref)
+  mov voxel<--inv(Tmov)-- tkRegXYZ(mov)
+  |                           ^
+  |  Dmov                     |
+  V                           |
+  mov' physvox                 |
+  |                           |
+  |  Mfsl                     | R
+  V                           |
+  ref' physvox                 |
+  |                           |
+  |  inv(Dref)                |
+  V                           |
+  ref voxel -- Tref  -->  tkRegXYZ(ref)
 
   -------------------------------------------------------------------*/
 MATRIX *MRItkreg2FSL(MRI *ref, MRI *mov, MATRIX *tkRegMat)
@@ -3357,7 +3357,7 @@ MRIthreshold(MRI *mri_src, MRI *mri_dst, float threshold)
         val = MRIgetVoxVal(mri_src, x, y, z, 0) ;
         if (val < threshold)
           val = 0 ;
-				MRIsetVoxVal(mri_dst, x, y, z, 0, val) ;
+	MRIsetVoxVal(mri_dst, x, y, z, 0, val) ;
       }
     }
   }
@@ -6532,11 +6532,11 @@ MRIsetResolution(MRI *mri, float xres, float yres, float zres)
   mri->xstart *= xres ; mri->xend *= xres ;
   mri->ystart *= yres ; mri->yend *= yres ;
   mri->zstart *= zres ; mri->zend *= zres ;
-	mri->thick = MAX(MAX(xres,yres),zres) ;
+  mri->thick = MAX(MAX(xres,yres),zres) ;
 #if 0
-	mri->x_r = mri->x_r * xres ; mri->x_a = mri->x_a * xres ; mri->x_s = mri->x_s * xres ;
-	mri->y_r = mri->y_r * yres ; mri->y_a = mri->y_a * yres ; mri->y_s = mri->y_s * yres ;
-	mri->z_r = mri->z_r * zres ; mri->z_a = mri->z_a * zres ; mri->z_s = mri->z_s * zres ;
+  mri->x_r = mri->x_r * xres ; mri->x_a = mri->x_a * xres ; mri->x_s = mri->x_s * xres ;
+  mri->y_r = mri->y_r * yres ; mri->y_a = mri->y_a * yres ; mri->y_s = mri->y_s * yres ;
+  mri->z_r = mri->z_r * zres ; mri->z_a = mri->z_a * zres ; mri->z_s = mri->z_s * zres ;
 #endif
   return(NO_ERROR) ;
 }
@@ -7587,54 +7587,54 @@ MRIinterpolateIntoVolume(MRI *mri, Real x, Real y, Real z, Real val)
   switch (mri->type)
   {
   case MRI_UCHAR:
-		MRIvox(mri, xm, ym, zm) += nint(xpd * ypd * zpd * val) ;
-		MRIvox(mri, xm, ym, zp) += nint(xpd * ypd * zmd * val) ;
-		MRIvox(mri, xm, yp, zm) += nint(xpd * ymd * zpd * val) ;
-		MRIvox(mri, xm, yp, zp) += nint(xpd * ymd * zmd * val) ;
-		MRIvox(mri, xp, ym, zm) += nint(xmd * ypd * zpd * val) ;
-		MRIvox(mri, xp, ym, zp) += nint(xmd * ypd * zmd * val) ;
-		MRIvox(mri, xp, yp, zm) += nint(xmd * ymd * zpd * val) ;
-		MRIvox(mri, xp, yp, zp) += nint(xmd * ymd * zmd * val) ;
+    MRIvox(mri, xm, ym, zm) += nint(xpd * ypd * zpd * val) ;
+    MRIvox(mri, xm, ym, zp) += nint(xpd * ypd * zmd * val) ;
+    MRIvox(mri, xm, yp, zm) += nint(xpd * ymd * zpd * val) ;
+    MRIvox(mri, xm, yp, zp) += nint(xpd * ymd * zmd * val) ;
+    MRIvox(mri, xp, ym, zm) += nint(xmd * ypd * zpd * val) ;
+    MRIvox(mri, xp, ym, zp) += nint(xmd * ypd * zmd * val) ;
+    MRIvox(mri, xp, yp, zm) += nint(xmd * ymd * zpd * val) ;
+    MRIvox(mri, xp, yp, zp) += nint(xmd * ymd * zmd * val) ;
     break ;
   case MRI_FLOAT:
-		MRIFvox(mri, xm, ym, zm) += (xpd * ypd * zpd * val) ;
-		MRIFvox(mri, xm, ym, zp) += (xpd * ypd * zmd * val) ;
-		MRIFvox(mri, xm, yp, zm) += (xpd * ymd * zpd * val) ;
-		MRIFvox(mri, xm, yp, zp) += (xpd * ymd * zmd * val) ;
-		MRIFvox(mri, xp, ym, zm) += (xmd * ypd * zpd * val) ;
-		MRIFvox(mri, xp, ym, zp) += (xmd * ypd * zmd * val) ;
-		MRIFvox(mri, xp, yp, zm) += (xmd * ymd * zpd * val) ;
-		MRIFvox(mri, xp, yp, zp) += (xmd * ymd * zmd * val) ;
+    MRIFvox(mri, xm, ym, zm) += (xpd * ypd * zpd * val) ;
+    MRIFvox(mri, xm, ym, zp) += (xpd * ypd * zmd * val) ;
+    MRIFvox(mri, xm, yp, zm) += (xpd * ymd * zpd * val) ;
+    MRIFvox(mri, xm, yp, zp) += (xpd * ymd * zmd * val) ;
+    MRIFvox(mri, xp, ym, zm) += (xmd * ypd * zpd * val) ;
+    MRIFvox(mri, xp, ym, zp) += (xmd * ypd * zmd * val) ;
+    MRIFvox(mri, xp, yp, zm) += (xmd * ymd * zpd * val) ;
+    MRIFvox(mri, xp, yp, zp) += (xmd * ymd * zmd * val) ;
     break ;
   case MRI_SHORT:
-		MRISvox(mri, xm, ym, zm) += nint(xpd * ypd * zpd * val) ;
-		MRISvox(mri, xm, ym, zp) += nint(xpd * ypd * zmd * val) ;
-		MRISvox(mri, xm, yp, zm) += nint(xpd * ymd * zpd * val) ;
-		MRISvox(mri, xm, yp, zp) += nint(xpd * ymd * zmd * val) ;
-		MRISvox(mri, xp, ym, zm) += nint(xmd * ypd * zpd * val) ;
-		MRISvox(mri, xp, ym, zp) += nint(xmd * ypd * zmd * val) ;
-		MRISvox(mri, xp, yp, zm) += nint(xmd * ymd * zpd * val) ;
-		MRISvox(mri, xp, yp, zp) += nint(xmd * ymd * zmd * val) ;
+    MRISvox(mri, xm, ym, zm) += nint(xpd * ypd * zpd * val) ;
+    MRISvox(mri, xm, ym, zp) += nint(xpd * ypd * zmd * val) ;
+    MRISvox(mri, xm, yp, zm) += nint(xpd * ymd * zpd * val) ;
+    MRISvox(mri, xm, yp, zp) += nint(xpd * ymd * zmd * val) ;
+    MRISvox(mri, xp, ym, zm) += nint(xmd * ypd * zpd * val) ;
+    MRISvox(mri, xp, ym, zp) += nint(xmd * ypd * zmd * val) ;
+    MRISvox(mri, xp, yp, zm) += nint(xmd * ymd * zpd * val) ;
+    MRISvox(mri, xp, yp, zp) += nint(xmd * ymd * zmd * val) ;
     break ;
   case MRI_INT:
-		MRIIvox(mri, xm, ym, zm) += nint(xpd * ypd * zpd * val) ;
-		MRIIvox(mri, xm, ym, zp) += nint(xpd * ypd * zmd * val) ;
-		MRIIvox(mri, xm, yp, zm) += nint(xpd * ymd * zpd * val) ;
-		MRIIvox(mri, xm, yp, zp) += nint(xpd * ymd * zmd * val) ;
-		MRIIvox(mri, xp, ym, zm) += nint(xmd * ypd * zpd * val) ;
-		MRIIvox(mri, xp, ym, zp) += nint(xmd * ypd * zmd * val) ;
-		MRIIvox(mri, xp, yp, zm) += nint(xmd * ymd * zpd * val) ;
-		MRIIvox(mri, xp, yp, zp) += nint(xmd * ymd * zmd * val) ;
+    MRIIvox(mri, xm, ym, zm) += nint(xpd * ypd * zpd * val) ;
+    MRIIvox(mri, xm, ym, zp) += nint(xpd * ypd * zmd * val) ;
+    MRIIvox(mri, xm, yp, zm) += nint(xpd * ymd * zpd * val) ;
+    MRIIvox(mri, xm, yp, zp) += nint(xpd * ymd * zmd * val) ;
+    MRIIvox(mri, xp, ym, zm) += nint(xmd * ypd * zpd * val) ;
+    MRIIvox(mri, xp, ym, zp) += nint(xmd * ypd * zmd * val) ;
+    MRIIvox(mri, xp, yp, zm) += nint(xmd * ymd * zpd * val) ;
+    MRIIvox(mri, xp, yp, zp) += nint(xmd * ymd * zmd * val) ;
     break ;
   case MRI_LONG:
-		MRILvox(mri, xm, ym, zm) += nint(xpd * ypd * zpd * val) ;
-		MRILvox(mri, xm, ym, zp) += nint(xpd * ypd * zmd * val) ;
-		MRILvox(mri, xm, yp, zm) += nint(xpd * ymd * zpd * val) ;
-		MRILvox(mri, xm, yp, zp) += nint(xpd * ymd * zmd * val) ;
-		MRILvox(mri, xp, ym, zm) += nint(xmd * ypd * zpd * val) ;
-		MRILvox(mri, xp, ym, zp) += nint(xmd * ypd * zmd * val) ;
-		MRILvox(mri, xp, yp, zm) += nint(xmd * ymd * zpd * val) ;
-		MRILvox(mri, xp, yp, zp) += nint(xmd * ymd * zmd * val) ;
+    MRILvox(mri, xm, ym, zm) += nint(xpd * ypd * zpd * val) ;
+    MRILvox(mri, xm, ym, zp) += nint(xpd * ypd * zmd * val) ;
+    MRILvox(mri, xm, yp, zm) += nint(xpd * ymd * zpd * val) ;
+    MRILvox(mri, xm, yp, zp) += nint(xpd * ymd * zmd * val) ;
+    MRILvox(mri, xp, ym, zm) += nint(xmd * ypd * zpd * val) ;
+    MRILvox(mri, xp, ym, zp) += nint(xmd * ypd * zmd * val) ;
+    MRILvox(mri, xp, yp, zm) += nint(xmd * ymd * zpd * val) ;
+    MRILvox(mri, xp, yp, zp) += nint(xmd * ymd * zmd * val) ;
     break ;
   default:
     ErrorReturn(ERROR_UNSUPPORTED, 
@@ -9068,10 +9068,10 @@ MRIcopyFrame(MRI *mri_src, MRI *mri_dst, int src_frame, int dst_frame)
   if (mri_src->type != mri_dst->type)
     ErrorReturn(NULL,(ERROR_UNSUPPORTED,
                       "MRIcopyFrame: src and dst must be same type"));
-	if (dst_frame >= mri_dst->nframes)
-		ErrorReturn(NULL, 
-								(ERROR_BADPARM, "MRIcopyFrame: dst frame #%d out of range (nframes=%d)\n",
-								 dst_frame, mri_dst->nframes)) ;
+  if (dst_frame >= mri_dst->nframes)
+    ErrorReturn(NULL, 
+		(ERROR_BADPARM, "MRIcopyFrame: dst frame #%d out of range (nframes=%d)\n",
+		 dst_frame, mri_dst->nframes)) ;
   MRIcopyHeader(mri_src, mri_dst) ;
 
   switch (mri_src->type)
@@ -9563,7 +9563,7 @@ MATRIX *MRIgetResampleMatrix(MRI *src, MRI *template_vol)
 MRI *
 MRIresample(MRI *src, MRI *template_vol, int resample_type)
 {
-	return(MRIresampleFill(src, template_vol, resample_type, 0)) ;
+  return(MRIresampleFill(src, template_vol, resample_type, 0)) ;
 } /* end MRIresample() */
 
 MRI *MRIresampleFill(MRI *src, MRI *template_vol, int resample_type, float fill_val)
@@ -9602,7 +9602,7 @@ MRI *MRIresampleFill(MRI *src, MRI *template_vol, int resample_type, float fill_
   /* ----- fake the ras values if ras_good_flag is not set ----- */
   if(!src->ras_good_flag)
     printf("MRIresample(): WARNING: ras_good_flag is not set, changing orientation\n"
-					 "to default.\n");
+	   "to default.\n");
 
   // get dst voxel -> src voxel transform
   m = MRIgetResampleMatrix(src, template_vol);
@@ -9618,7 +9618,7 @@ MRI *MRIresampleFill(MRI *src, MRI *template_vol, int resample_type, float fill_
   dest = MRIalloc(template_vol->width, template_vol->height, template_vol->depth, src->type);
   if(dest == NULL)
     return(NULL);
-	MRIreplaceValues(dest, dest, 0.0f, fill_val) ;
+  MRIreplaceValues(dest, dest, 0.0f, fill_val) ;
 
   MRIcopyHeader(template_vol, dest);
   MRIcopyPulseParameters(src, dest) ;
@@ -9661,9 +9661,9 @@ MRI *MRIresampleFill(MRI *src, MRI *template_vol, int resample_type, float fill_
         if(di % 20 == 0 && dj == di && dk == dj)
         {
           printf("MRIresample() sample point: %3d %3d %3d: %f (%3d + %f) %f (%3d + %f) %f (%3d + %f)\n", di, dj, dk, 
-								 si_ff, si, si_f, 
-								 sj_ff, sj, sj_f, 
-								 sk_ff, sk, sk_f);
+		 si_ff, si, si_f, 
+		 sj_ff, sj, sj_f, 
+		 sk_ff, sk, sk_f);
         }
 #endif
 
@@ -9752,13 +9752,13 @@ MRI *MRIresampleFill(MRI *src, MRI *template_vol, int resample_type, float fill_
           if(resample_type == SAMPLE_TRILINEAR)
           {
             val = (1.0-si_f) * (1.0-sj_f) * (1.0-sk_f) * val000 + 
-							(1.0-si_f) * (1.0-sj_f) * (    sk_f) * val001 + 
-							(1.0-si_f) * (    sj_f) * (1.0-sk_f) * val010 + 
-							(1.0-si_f) * (    sj_f) * (    sk_f) * val011 + 
-							(    si_f) * (1.0-sj_f) * (1.0-sk_f) * val100 + 
-							(    si_f) * (1.0-sj_f) * (    sk_f) * val101 + 
-							(    si_f) * (    sj_f) * (1.0-sk_f) * val110 + 
-							(    si_f) * (    sj_f) * (    sk_f) * val111;
+	      (1.0-si_f) * (1.0-sj_f) * (    sk_f) * val001 + 
+	      (1.0-si_f) * (    sj_f) * (1.0-sk_f) * val010 + 
+	      (1.0-si_f) * (    sj_f) * (    sk_f) * val011 + 
+	      (    si_f) * (1.0-sj_f) * (1.0-sk_f) * val100 + 
+	      (    si_f) * (1.0-sj_f) * (    sk_f) * val101 + 
+	      (    si_f) * (    sj_f) * (1.0-sk_f) * val110 + 
+	      (    si_f) * (    sj_f) * (    sk_f) * val111;
           }
 
           if(resample_type == SAMPLE_NEAREST)
@@ -9801,7 +9801,7 @@ MRI *MRIresampleFill(MRI *src, MRI *template_vol, int resample_type, float fill_
 
           if(resample_type == SAMPLE_WEIGHTED)
           {
-						/* unfinished */
+	    /* unfinished */
             si_f2 = si_f * si_f;
             sj_f2 = sj_f * sj_f;
             sk_f2 = sk_f * sk_f;
@@ -11222,24 +11222,24 @@ MRImakePositive(MRI *mri_src, MRI *mri_dst)
 MRI *
 MRIeraseNegative(MRI *mri_src, MRI *mri_dst)
 {
-	int  x, y, z ;
-	float  val ;
+  int  x, y, z ;
+  float  val ;
 
-	mri_dst = MRIcopy(mri_src, mri_dst) ;
+  mri_dst = MRIcopy(mri_src, mri_dst) ;
 
-	for (x = 0 ; x < mri_src->width ; x++)
-	{
-		for (y = 0 ; y < mri_src->height ; y++)
-		{
-			for (z = 0 ; z < mri_src->depth ; z++)
-			{
-				val = MRIgetVoxVal(mri_src, x, y, z, 0) ;
-				if (val < 0)
-					MRIsetVoxVal(mri_dst, x, y, z, 0, 0) ;
-			}
-		}
-	}
-	return(mri_dst) ;
+  for (x = 0 ; x < mri_src->width ; x++)
+  {
+    for (y = 0 ; y < mri_src->height ; y++)
+    {
+      for (z = 0 ; z < mri_src->depth ; z++)
+      {
+	val = MRIgetVoxVal(mri_src, x, y, z, 0) ;
+	if (val < 0)
+	  MRIsetVoxVal(mri_dst, x, y, z, 0, 0) ;
+      }
+    }
+  }
+  return(mri_dst) ;
 }
 int
 MRIsampleVolumeSlice(MRI *mri, Real x, Real y, Real z, Real *pval, int slice_direction)
@@ -11247,7 +11247,7 @@ MRIsampleVolumeSlice(MRI *mri, Real x, Real y, Real z, Real *pval, int slice_dir
   int  OutOfBounds;
   int  xm, xp, ym, yp, zm, zp, width, height, depth ;
   Real val, xmd, ymd, xpd, ypd ;  /* d's are distances */
-	Real val11, val12, val21, val22 ;
+  Real val11, val12, val21, val22 ;
 
   if (FEQUAL((int)x,x) && FEQUAL((int)y,y) && FEQUAL((int)z, z))
     return(MRIsampleVolumeType(mri, x, y, z, pval, SAMPLE_NEAREST)) ;
@@ -11280,14 +11280,14 @@ MRIsampleVolumeSlice(MRI *mri, Real x, Real y, Real z, Real *pval, int slice_dir
   xpd = (1.0f - xmd) ;
   ypd = (1.0f - ymd) ;
 
-	switch (slice_direction)
-	{
-	case MRI_CORONAL:
-		zp = nint(z) ;
-		val11 = MRIgetVoxVal(mri, xm, ym, zp, 0) ;
-		val12 = MRIgetVoxVal(mri, xm, yp, zp, 0) ;
-		val21 = MRIgetVoxVal(mri, xp, ym, zp, 0) ;
-		val22 = MRIgetVoxVal(mri, xp, yp, zp, 0) ;
+  switch (slice_direction)
+  {
+  case MRI_CORONAL:
+    zp = nint(z) ;
+    val11 = MRIgetVoxVal(mri, xm, ym, zp, 0) ;
+    val12 = MRIgetVoxVal(mri, xm, yp, zp, 0) ;
+    val21 = MRIgetVoxVal(mri, xp, ym, zp, 0) ;
+    val22 = MRIgetVoxVal(mri, xp, yp, zp, 0) ;
     *pval = val = xpd * ypd * val11 + xpd * ymd * val12 + xmd * ypd * val21 +
       xmd * ymd * val22 ;
     break ;
@@ -11303,236 +11303,236 @@ MRIsampleVolumeSlice(MRI *mri, Real x, Real y, Real z, Real *pval, int slice_dir
 float
 MRIvoxelsInLabelWithPartialVolumeEffects(MRI *mri, MRI *mri_vals, int label)
 {
-	float   volume, vox_vol ;
-	int     x, y, z, nbr_label_counts[MAX_CMA_LABELS],label_counts[MAX_CMA_LABELS], this_label, border, nbr_label, max_count,
-          vox_label ;
-	MRI     *mri_border ;
-	float   label_means[MAX_CMA_LABELS], pv, mean_label, mean_nbr, val ;
+  float   volume, vox_vol ;
+  int     x, y, z, nbr_label_counts[MAX_CMA_LABELS],label_counts[MAX_CMA_LABELS], this_label, border, nbr_label, max_count,
+    vox_label ;
+  MRI     *mri_border ;
+  float   label_means[MAX_CMA_LABELS], pv, mean_label, mean_nbr, val ;
 
-	vox_vol = mri->xsize*mri->ysize*mri->zsize ;
+  vox_vol = mri->xsize*mri->ysize*mri->zsize ;
 
-	/* first find border voxels */
-	mri_border = MRImarkLabelBorderVoxels(mri, NULL, label, 1, 1) ;
-	if (DIAG_VERBOSE_ON && (Gdiag & DIAG_WRITE))
-		MRIwrite(mri_border, "b.mgz") ;
-	volume = 0 ;
-	for (x = 0 ; x < mri->width ; x++)
+  /* first find border voxels */
+  mri_border = MRImarkLabelBorderVoxels(mri, NULL, label, 1, 1) ;
+  if (DIAG_VERBOSE_ON && (Gdiag & DIAG_WRITE))
+    MRIwrite(mri_border, "b.mgz") ;
+  volume = 0 ;
+  for (x = 0 ; x < mri->width ; x++)
+  {
+    for (y = 0 ; y < mri->height ; y++)
+    {
+      for (z = 0 ; z < mri->depth ; z++)
+      {
+	if (x == Gx && y == Gy && z == Gz)
+	  DiagBreak() ;
+	vox_label = MRIgetVoxVal(mri, x, y, z, 0) ;
+	border = MRIgetVoxVal(mri_border, x, y, z, 0) ;
+	if ((vox_label != label) && (border == 0))
+	  continue ;
+
+	if (border == 0)
+	  volume += vox_vol ;
+	else /* compute partial volume */
 	{
-		for (y = 0 ; y < mri->height ; y++)
-		{
-			for (z = 0 ; z < mri->depth ; z++)
-			{
-				if (x == Gx && y == Gy && z == Gz)
-					DiagBreak() ;
-				vox_label = MRIgetVoxVal(mri, x, y, z, 0) ;
-				border = MRIgetVoxVal(mri_border, x, y, z, 0) ;
-				if ((vox_label != label) && (border == 0))
-					continue ;
+	  MRIcomputeLabelNbhd(mri, mri_vals, x, y, z, nbr_label_counts, label_means, 1, MAX_CMA_LABELS) ;
+	  MRIcomputeLabelNbhd(mri, mri_vals, x, y, z, label_counts, label_means, 7, MAX_CMA_LABELS) ;
+	  val = MRIgetVoxVal(mri_vals, x, y, z, 0) ;  /* compute partial volume based on intensity */
+	  mean_label = label_means[vox_label] ;
+	  nbr_label = -1 ; max_count = 0 ;
+	  /* look for a label that is a nbr and is on the other side of val from the label mean */
+	  for (this_label = 0 ; this_label < MAX_CMA_LABELS ; this_label++)
+	  {
+	    if (this_label == vox_label)
+	      continue ;
+	    if (nbr_label_counts[this_label] == 0)   /* not a nbr */
+	      continue ;
 
-				if (border == 0)
-					volume += vox_vol ;
-				else /* compute partial volume */
-				{
-					MRIcomputeLabelNbhd(mri, mri_vals, x, y, z, nbr_label_counts, label_means, 1, MAX_CMA_LABELS) ;
-					MRIcomputeLabelNbhd(mri, mri_vals, x, y, z, label_counts, label_means, 7, MAX_CMA_LABELS) ;
-					val = MRIgetVoxVal(mri_vals, x, y, z, 0) ;  /* compute partial volume based on intensity */
-					mean_label = label_means[vox_label] ;
-					nbr_label = -1 ; max_count = 0 ;
-					/* look for a label that is a nbr and is on the other side of val from the label mean */
-					for (this_label = 0 ; this_label < MAX_CMA_LABELS ; this_label++)
-					{
-						if (this_label == vox_label)
-							continue ;
-						if (nbr_label_counts[this_label] == 0)   /* not a nbr */
-							continue ;
+	    if ((label_counts[this_label] > max_count) && 
+		((label_means[this_label] - val) * (mean_label - val) < 0))
+	    {
+	      max_count = label_means[this_label] ;
+	      nbr_label = this_label ;
+	    }
+	  }
+	  if (vox_label != label && nbr_label != label)  /* this struct not in voxel */
+	    continue ;
 
-						if ((label_counts[this_label] > max_count) && 
-								((label_means[this_label] - val) * (mean_label - val) < 0))
-						{
-							max_count = label_means[this_label] ;
-							nbr_label = this_label ;
-						}
-					}
-					if (vox_label != label && nbr_label != label)  /* this struct not in voxel */
-						continue ;
-
-					if (max_count == 0)  /* couldn't find an appropriate label */
-						volume += vox_vol ;
-					else    /* compute partial volume pct */
-					{
-						mean_nbr = label_means[nbr_label] ;
-						pv = (val - mean_nbr) / (mean_label - mean_nbr) ;
-						if (vox_label == label)
-							volume += vox_vol * pv ;
-						else
-							volume += vox_vol * (1-pv) ;
-						if (pv < 0 || pv > 1)
-							DiagBreak() ;
-					}
-				}
-			}
-		}
+	  if (max_count == 0)  /* couldn't find an appropriate label */
+	    volume += vox_vol ;
+	  else    /* compute partial volume pct */
+	  {
+	    mean_nbr = label_means[nbr_label] ;
+	    pv = (val - mean_nbr) / (mean_label - mean_nbr) ;
+	    if (vox_label == label)
+	      volume += vox_vol * pv ;
+	    else
+	      volume += vox_vol * (1-pv) ;
+	    if (pv < 0 || pv > 1)
+	      DiagBreak() ;
+	  }
 	}
+      }
+    }
+  }
 
-	MRIfree(&mri_border) ;
-	return(volume) ;
+  MRIfree(&mri_border) ;
+  return(volume) ;
 }
 
 MRI *
 MRImakeDensityMap(MRI *mri, MRI *mri_vals, int label, MRI *mri_dst)
 {
-	float   vox_vol, volume ;
-	int     x, y, z, nbr_label_counts[MAX_CMA_LABELS],label_counts[MAX_CMA_LABELS], this_label, border, nbr_label, max_count,
-          vox_label ;
-	MRI     *mri_border ;
-	float   label_means[MAX_CMA_LABELS], pv, mean_label, mean_nbr, val ;
+  float   vox_vol, volume ;
+  int     x, y, z, nbr_label_counts[MAX_CMA_LABELS],label_counts[MAX_CMA_LABELS], this_label, border, nbr_label, max_count,
+    vox_label ;
+  MRI     *mri_border ;
+  float   label_means[MAX_CMA_LABELS], pv, mean_label, mean_nbr, val ;
 
-	if (mri_dst == NULL)
-		mri_dst = MRIalloc(mri->width, mri->height, mri->depth, MRI_FLOAT) ;
+  if (mri_dst == NULL)
+    mri_dst = MRIalloc(mri->width, mri->height, mri->depth, MRI_FLOAT) ;
 
-	/* first find border voxels */
-	mri_border = MRImarkLabelBorderVoxels(mri, NULL, label, 1, 1) ;
-	if (DIAG_VERBOSE_ON && (Gdiag & DIAG_WRITE))
-		MRIwrite(mri_border, "b.mgz") ;
-	vox_vol = mri->xsize*mri->ysize*mri->zsize ;
-	for (x = 0 ; x < mri->width ; x++)
+  /* first find border voxels */
+  mri_border = MRImarkLabelBorderVoxels(mri, NULL, label, 1, 1) ;
+  if (DIAG_VERBOSE_ON && (Gdiag & DIAG_WRITE))
+    MRIwrite(mri_border, "b.mgz") ;
+  vox_vol = mri->xsize*mri->ysize*mri->zsize ;
+  for (x = 0 ; x < mri->width ; x++)
+  {
+    for (y = 0 ; y < mri->height ; y++)
+    {
+      for (z = 0 ; z < mri->depth ; z++)
+      {
+	if (x == Gx && y == Gy && z == Gz)
+	  DiagBreak() ;
+	vox_label = MRIgetVoxVal(mri, x, y, z, 0) ;
+	border = MRIgetVoxVal(mri_border, x, y, z, 0) ;
+	if ((vox_label != label) && (border == 0))
+	  continue ;
+
+	volume = vox_vol ;
+	if (border == 0)
+	  volume = vox_vol ;
+	else  /* compute partial volume */
 	{
-		for (y = 0 ; y < mri->height ; y++)
-		{
-			for (z = 0 ; z < mri->depth ; z++)
-			{
-				if (x == Gx && y == Gy && z == Gz)
-					DiagBreak() ;
-				vox_label = MRIgetVoxVal(mri, x, y, z, 0) ;
-				border = MRIgetVoxVal(mri_border, x, y, z, 0) ;
-				if ((vox_label != label) && (border == 0))
-					continue ;
+	  MRIcomputeLabelNbhd(mri, mri_vals, x, y, z, nbr_label_counts, label_means, 1, MAX_CMA_LABELS) ;
+	  MRIcomputeLabelNbhd(mri, mri_vals, x, y, z, label_counts, label_means, 7, MAX_CMA_LABELS) ;
+	  val = MRIgetVoxVal(mri_vals, x, y, z, 0) ;  /* compute partial volume based on intensity */
+	  mean_label = label_means[vox_label] ;
+	  nbr_label = -1 ; max_count = 0 ;
+	  /* look for a label that is a nbr and is on the other side of val from the label mean */
+	  for (this_label = 0 ; this_label < MAX_CMA_LABELS ; this_label++)
+	  {
+	    if (this_label == vox_label)
+	      continue ;
+	    if (nbr_label_counts[this_label] == 0)   /* not a nbr */
+	      continue ;
 
-				volume = vox_vol ;
-				if (border == 0)
-					volume = vox_vol ;
-				else  /* compute partial volume */
-				{
-					MRIcomputeLabelNbhd(mri, mri_vals, x, y, z, nbr_label_counts, label_means, 1, MAX_CMA_LABELS) ;
-					MRIcomputeLabelNbhd(mri, mri_vals, x, y, z, label_counts, label_means, 7, MAX_CMA_LABELS) ;
-					val = MRIgetVoxVal(mri_vals, x, y, z, 0) ;  /* compute partial volume based on intensity */
-					mean_label = label_means[vox_label] ;
-					nbr_label = -1 ; max_count = 0 ;
-					/* look for a label that is a nbr and is on the other side of val from the label mean */
-					for (this_label = 0 ; this_label < MAX_CMA_LABELS ; this_label++)
-					{
-						if (this_label == vox_label)
-							continue ;
-						if (nbr_label_counts[this_label] == 0)   /* not a nbr */
-							continue ;
+	    if ((label_counts[this_label] > max_count) && 
+		((label_means[this_label] - val) * (mean_label - val) < 0))
+	    {
+	      max_count = label_means[this_label] ;
+	      nbr_label = this_label ;
+	    }
+	  }
+	  if (vox_label != label && nbr_label != label)  /* this struct not in voxel */
+	    continue ;
 
-						if ((label_counts[this_label] > max_count) && 
-								((label_means[this_label] - val) * (mean_label - val) < 0))
-						{
-							max_count = label_means[this_label] ;
-							nbr_label = this_label ;
-						}
-					}
-					if (vox_label != label && nbr_label != label)  /* this struct not in voxel */
-						continue ;
-
-					if (max_count > 0)  /* compute partial volume pct */
-					{
-						mean_nbr = label_means[nbr_label] ;
-						pv = (val - mean_nbr) / (mean_label - mean_nbr) ;
-						if (vox_label == label)
-							volume = pv*vox_vol ;
-						else
-							volume = vox_vol * (1-pv) ;
-						if (pv < 0 || pv > 1)
-							DiagBreak() ;
-					}
-				}
-				MRIsetVoxVal(mri_dst, x, y, z, 0, volume) ;
-			}
-		}
+	  if (max_count > 0)  /* compute partial volume pct */
+	  {
+	    mean_nbr = label_means[nbr_label] ;
+	    pv = (val - mean_nbr) / (mean_label - mean_nbr) ;
+	    if (vox_label == label)
+	      volume = pv*vox_vol ;
+	    else
+	      volume = vox_vol * (1-pv) ;
+	    if (pv < 0 || pv > 1)
+	      DiagBreak() ;
+	  }
 	}
+	MRIsetVoxVal(mri_dst, x, y, z, 0, volume) ;
+      }
+    }
+  }
 
-	MRIfree(&mri_border) ;
-	return(mri_dst) ;
+  MRIfree(&mri_border) ;
+  return(mri_dst) ;
 }
 
 MRI *
 MRImarkLabelBorderVoxels(MRI *mri_src, MRI *mri_dst, int label, int mark, int six_connected)
 {
-	int  x, y, z, xk, yk, zk, xi, yi, zi, this_label, that_label, border ;
+  int  x, y, z, xk, yk, zk, xi, yi, zi, this_label, that_label, border ;
 
-	if (mri_dst == NULL)
-		mri_dst = MRIclone(mri_src, NULL) ;
+  if (mri_dst == NULL)
+    mri_dst = MRIclone(mri_src, NULL) ;
 
-	for (x = 0 ; x < mri_src->width ; x++)
+  for (x = 0 ; x < mri_src->width ; x++)
+  {
+    for (y = 0 ; y < mri_src->height ; y++)
+    {
+      for (z = 0 ; z < mri_src->depth ; z++)
+      {
+	this_label = MRIgetVoxVal(mri_src, x, y, z, 0) ;
+	border = 0 ;
+	for (xk = -1 ; xk <= 1 && !border ; xk++)
 	{
-		for (y = 0 ; y < mri_src->height ; y++)
-		{
-			for (z = 0 ; z < mri_src->depth ; z++)
-			{
-				this_label = MRIgetVoxVal(mri_src, x, y, z, 0) ;
-				border = 0 ;
-				for (xk = -1 ; xk <= 1 && !border ; xk++)
-				{
-					xi = mri_src->xi[x+xk] ;
-					for (yk = -1 ; yk <= 1 && !border ; yk++)
-					{
-						yi = mri_src->yi[y+yk] ;
-						for (zk = -1 ; zk <= 1 ; zk++)
-						{
-							if (six_connected && (abs(xk)+abs(yk)+abs(zk) != 1))
-								continue ;
-							zi = mri_src->zi[z+zk] ;
-							that_label = MRIgetVoxVal(mri_src, xi, yi, zi, 0) ;
-							if (((this_label == label) && (that_label != label)) ||
-									((this_label != label) && (that_label == label)))
-							{
-								border = 1 ;
-								break ;
-							}
-						}
-					}
-				}
-				if (border)
-					MRIsetVoxVal(mri_dst, x, y, z, 0, mark) ;
-			}
-		}
+	  xi = mri_src->xi[x+xk] ;
+	  for (yk = -1 ; yk <= 1 && !border ; yk++)
+	  {
+	    yi = mri_src->yi[y+yk] ;
+	    for (zk = -1 ; zk <= 1 ; zk++)
+	    {
+	      if (six_connected && (abs(xk)+abs(yk)+abs(zk) != 1))
+		continue ;
+	      zi = mri_src->zi[z+zk] ;
+	      that_label = MRIgetVoxVal(mri_src, xi, yi, zi, 0) ;
+	      if (((this_label == label) && (that_label != label)) ||
+		  ((this_label != label) && (that_label == label)))
+	      {
+		border = 1 ;
+		break ;
+	      }
+	    }
+	  }
 	}
+	if (border)
+	  MRIsetVoxVal(mri_dst, x, y, z, 0, mark) ;
+      }
+    }
+  }
 
-	return(mri_dst) ;
+  return(mri_dst) ;
 }
 
 int
 MRIcomputeLabelNbhd(MRI *mri_labels, MRI *mri_vals, int x, int y, int z, int *label_counts, float *label_means, 
-										int whalf, int max_labels)
+		    int whalf, int max_labels)
 {
-	int    xi, yi, zi, xk, yk, zk, label ;
-	float  val ;
+  int    xi, yi, zi, xk, yk, zk, label ;
+  float  val ;
 
-	memset(label_counts, 0, sizeof(label_counts[0])*max_labels) ;
-	memset(label_means, 0, sizeof(label_means[0])*max_labels) ;
-	for (xk = -whalf ; xk <= whalf ; xk++)
-	{
-		xi = mri_vals->xi[x+xk] ;
-		for (yk = -whalf ; yk <= whalf ; yk++)
-		{
-			yi = mri_vals->yi[y+yk] ;
-			for (zk = -whalf ; zk <= whalf ; zk++)
-			{
-				zi = mri_vals->zi[z+zk] ;
-				label = MRIgetVoxVal(mri_labels, xi, yi, zi, 0) ;
-				val = MRIgetVoxVal(mri_vals, xi, yi, zi, 0) ;
-				label_counts[label]++ ;
-				label_means[label] += val ;
-			}
-		}
-	}
+  memset(label_counts, 0, sizeof(label_counts[0])*max_labels) ;
+  memset(label_means, 0, sizeof(label_means[0])*max_labels) ;
+  for (xk = -whalf ; xk <= whalf ; xk++)
+  {
+    xi = mri_vals->xi[x+xk] ;
+    for (yk = -whalf ; yk <= whalf ; yk++)
+    {
+      yi = mri_vals->yi[y+yk] ;
+      for (zk = -whalf ; zk <= whalf ; zk++)
+      {
+	zi = mri_vals->zi[z+zk] ;
+	label = MRIgetVoxVal(mri_labels, xi, yi, zi, 0) ;
+	val = MRIgetVoxVal(mri_vals, xi, yi, zi, 0) ;
+	label_counts[label]++ ;
+	label_means[label] += val ;
+      }
+    }
+  }
 
-	for (label = 0 ; label < max_labels ; label++)
-		if (label_counts[label] > 0)
-			label_means[label] /= label_counts[label] ;
-	return(NO_ERROR) ;
+  for (label = 0 ; label < max_labels ; label++)
+    if (label_counts[label] > 0)
+      label_means[label] /= label_counts[label] ;
+  return(NO_ERROR) ;
 }
 
 /** 
@@ -11601,15 +11601,15 @@ void MRIcalcCRASforSampledVolume(MRI *src, MRI *dst, Real *pr, Real *pa, Real *p
  * @param x0   start position
  * @param y0 
  * @param z0 
- * @param x1   end position
- * @param y1 
- * @param z1 
+ * @param dx   width
+ * @param dy   height
+ * @param dz   depth
  * @param pr   output Real*  c_r 
  * @param pa                 c_a
  * @param ps                 c_s
  */
 void MRIcalcCRASforExtractedVolume(MRI *src, int x0, int y0, int z0, int dx, int dy, int dz, 
-				Real *pr, Real *pa, Real *ps)
+				   Real *pr, Real *pa, Real *ps)
 {
   int cx, cy, cz;
   // The "center" voxel position of the extracted volume in the original voxel position 
