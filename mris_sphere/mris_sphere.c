@@ -15,7 +15,7 @@
 #include "utils.h"
 #include "timer.h"
 
-static char vcid[]="$Id: mris_sphere.c,v 1.15 1999/06/07 06:57:11 fischl Exp $";
+static char vcid[]="$Id: mris_sphere.c,v 1.16 1999/07/24 15:25:38 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -46,6 +46,9 @@ static float inflate_tol  = 1.0f ;
 static int   inflate_avgs = 0 ;
 static float inflate_nlarea  = 0.0f ;
 static int   inflate_iterations = 200 ;
+
+static char *orig_name = "smoothwm" ;
+static int smooth_avgs = 0 ;
 
 int
 main(int argc, char *argv[])
@@ -127,7 +130,15 @@ main(int argc, char *argv[])
   fprintf(stderr, "reading original vertex positions...\n") ;
   if (!FZERO(disturb))
     mrisDisturbVertices(mris, disturb) ;
-  MRISreadOriginalProperties(mris, "smoothwm") ;
+  MRISreadOriginalProperties(mris, orig_name) ;
+  if (smooth_avgs > 0)
+  {
+    MRISsaveVertexPositions(mris, TMP_VERTICES) ;
+    MRISrestoreVertexPositions(mris, ORIGINAL_VERTICES) ;
+    MRISaverageVertexPositions(mris, smooth_avgs) ;
+    MRISsaveVertexPositions(mris, ORIGINAL_VERTICES) ;
+    MRISrestoreVertexPositions(mris, TMP_VERTICES) ;
+  }
   
   fprintf(stderr, "unfolding cortex into spherical form...\n");
   if (talairach)
@@ -229,6 +240,13 @@ get_option(int argc, char *argv[])
   {
     parms.integration_type = INTEGRATE_LINE_MINIMIZE ;
     fprintf(stderr, "integrating with line minimization\n") ;
+  }
+  else if (!stricmp(option, "avgs"))
+  {
+    smooth_avgs = atoi(argv[2]) ;
+    fprintf(stderr, "smoothing original positions %d times before computing metrics\n",
+            smooth_avgs) ;
+    nargs = 1 ;
   }
   else if (!stricmp(option, "talairach"))
   {
@@ -375,6 +393,11 @@ get_option(int argc, char *argv[])
   }
   else switch (toupper(*option))
   {
+  case 'O':
+    orig_name = argv[2] ;
+    fprintf(stderr, "using %s as original surface...\n", orig_name) ;
+    nargs = 1 ;
+    break ;
   case 'P':
     max_passes = atoi(argv[2]) ;
     fprintf(stderr, "limitting unfolding to %d passes\n", max_passes) ;
