@@ -130,6 +130,9 @@ typedef struct
   float         xsize;
   float         ysize;
   float         zsize;
+  MRI          *mri_node__;       // these three MRI are helper to get
+  MRI          *mri_prior__;      // appropriate transforms
+  MRI          *mri_tal__;
 } GAUSSIAN_CLASSIFIER_ARRAY, GCA ;
 
 
@@ -316,7 +319,7 @@ int    GCAreplaceLabels(GCA *gca, int in_label, int out_label) ;
 // setting up global node and prior volume parameters
 void GCAsetup(GCA *gca);
 void GCAreinit(MRI *mri, GCA *gca); // reinit gca with mri values
-void GCAcleanup();
+void GCAcleanup(GCA *gca);
 void GCAcopyDCToMRI(GCA *gca, MRI *mri); // copy direction cosine info to MRI
 void GCAsetVolGeom(GCA *gca, VOL_GEOM *vg); 
 int GCAregularizeCovarianceMatrices(GCA *gca, double lambda) ;
