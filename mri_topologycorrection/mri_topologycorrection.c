@@ -58,6 +58,11 @@ static int get_option(int argc, char *argv[])
     parms.final_surface_file=argv[2];
     fprintf(stderr,"Mode:          Writing out final surface into %s\n",parms.final_surface_file) ;
     nargs = 1 ;
+  }else if (!strcmp(option, "verbose"))
+  {
+    parms.verbose_mode=1;
+    fprintf(stderr,"Mode:          verbose mode on\n") ;
+    nargs = 0 ;
   }else if (!strcmp(option, "initial_surf"))
   {
     parms.initial_surface_file=argv[2];
