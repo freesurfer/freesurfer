@@ -37,7 +37,7 @@ void set_matrix(MATRIX *m, float e11, float e12, float e13, float e14,
 void usage(void)
 {
 
-  fprintf(stderr, "usage: %s <subject name> <fct stem>\n", Progname);
+  fprintf(stderr, "usage: %s <subject name> <fct stem> [<structural dir>]\n", Progname);
 
 } /* end usage() */
 
@@ -56,17 +56,24 @@ int main(int argc, char *argv[])
   Progname = strrchr(argv[0], '/');
   Progname = (Progname == NULL ? argv[0] : Progname + 1);
 
-  if((subjects_dir = getenv("SUBJECTS_DIR")) == NULL)
-    ErrorExit(ERROR_BAD_PARM, "%s: can't get environment variable SUBJECTS_DIR", Progname);
-
-  if(argc == 3)
+  if(argc == 3 || argc == 4)
   {
     fct_stem = argv[2];
     read_functional_header(fct_stem);
     subject_name = argv[1];
-    sprintf(file_name, "%s/%s/mri/T1", subjects_dir, subject_name);
-    if((high_res_vol = MRIreadInfo(file_name)) == NULL)
-      ErrorExit(ERROR_NO_FILE, "%s: couldn't open volume %s", Progname, file_name);
+    if(argc == 3)
+    {
+      if((subjects_dir = getenv("SUBJECTS_DIR")) == NULL)
+        ErrorExit(ERROR_BAD_PARM, "%s: can't get environment variable SUBJECTS_DIR", Progname);
+      sprintf(file_name, "%s/%s/mri/T1", subjects_dir, subject_name);
+      if((high_res_vol = MRIreadInfo(file_name)) == NULL)
+        ErrorExit(ERROR_NO_FILE, "%s: couldn't open volume %s", Progname, file_name);
+    }
+    else
+    {
+      if((high_res_vol = MRIreadInfo(argv[3])) == NULL)
+        ErrorExit(ERROR_NO_FILE, "%s: couldn't open volume %s", Progname, file_name);
+    }
   }
   else
   {
@@ -124,13 +131,17 @@ void read_functional_header(char *fct_stem)
   char *s;
   int good_fct_header_flag = 0;
 
-  /* try both .awshdr (from translate_aws) and .ras (from imgs2bshort) */
+  /* try .awshdr (from translate_aws), .bhdr, and .ras (from imgs2bshort) */
   sprintf(aws_header_name, "%s.awshdr", fct_stem);
   if((fp = fopen(aws_header_name, "r")) == NULL)
   {
+    sprintf(aws_header_name, "%s.bhdr", fct_stem);
+    if((fp = fopen(aws_header_name, "r")) == NULL)
+    {
     sprintf(aws_header_name, "%s.ras", fct_stem);
     if((fp = fopen(aws_header_name, "r")) == NULL)
-      ErrorExit(ERROR_NO_FILE, "%s: couldn't open file %s", Progname, aws_header_name);
+      ErrorExit(ERROR_NO_FILE, "%s: couldn't open file header file", Progname);
+    }
   }
 
   while(fgets(aws_header_line, STRLEN, fp) != NULL)
@@ -151,24 +162,6 @@ void read_functional_header(char *fct_stem)
     {
       s+=10;
       fct_n_s = (float)atof(s);
-      good_fct_header_flag = 1;
-    }
-    if((s = strstr(aws_header_line, "center_r")) != NULL)
-    {
-      s+=10;
-      fct_c_r = (float)atof(s);
-      good_fct_header_flag = 1;
-    }
-    if((s = strstr(aws_header_line, "center_a")) != NULL)
-    {
-      s+=10;
-      fct_c_a = (float)atof(s);
-      good_fct_header_flag = 1;
-    }
-    if((s = strstr(aws_header_line, "center_s")) != NULL)
-    {
-      s+=10;
-      fct_c_s = (float)atof(s);
       good_fct_header_flag = 1;
     }
     if((s = strstr(aws_header_line, "top_left_r")) != NULL)
@@ -253,6 +246,13 @@ void read_functional_header(char *fct_stem)
 
   if(good_fct_header_flag == 0)
     ErrorExit(ERROR_BAD_FILE, "%s: %s does not contain necessary ras information", Progname, aws_header_name);
+
+  fct_c_r = fct_tl_r + (fct_br_r - fct_tl_r) / 2 + fct_slice_thickness * fct_n_r * (fct_slices - 1) / 2;
+  fct_c_a = fct_tl_a + (fct_br_a - fct_tl_a) / 2 + fct_slice_thickness * fct_n_a * (fct_slices - 1) / 2;
+  fct_c_s = fct_tl_s + (fct_br_s - fct_tl_s) / 2 + fct_slice_thickness * fct_n_s * (fct_slices - 1) / 2;
+
+printf("%g %g %g\n", fct_n_r, fct_n_a, fct_n_s);
+printf("%g %g %g\n", fct_c_r, fct_c_a, fct_c_s);
 
   fct_in_plane_resolution = sqrt((fct_tl_r - fct_tr_r) * (fct_tl_r - fct_tr_r) +
                                  (fct_tl_a - fct_tr_a) * (fct_tl_a - fct_tr_a) +
