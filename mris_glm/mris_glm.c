@@ -4,7 +4,7 @@
   email:   analysis-bugs@nmr.mgh.harvard.edu
   Date:    2/27/02
   Purpose: Computes glm inferences on the surface.
-  $Id: mris_glm.c,v 1.1 2002/10/18 18:35:17 greve Exp $
+  $Id: mris_glm.c,v 1.2 2002/10/18 18:52:32 greve Exp $
 
 Things to do:
   0. Documentation.
@@ -66,7 +66,7 @@ MATRIX *ReadAsciiMatrix(char *asciimtxfname);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mris_glm.c,v 1.1 2002/10/18 18:35:17 greve Exp $";
+static char vcid[] = "$Id: mris_glm.c,v 1.2 2002/10/18 18:52:32 greve Exp $";
 char *Progname = NULL;
 
 char *hemi        = NULL;
@@ -172,12 +172,18 @@ int main(int argc, char **argv)
 
   if(xmatfile != NULL) MatlabWrite(X,xmatfile,"X");
 
+  /* X is the design matrix */
   Xt = MatrixTranspose(X,NULL);
   XtX = MatrixMultiply(Xt,X,NULL);
   iXtX = MatrixInverse(XtX,NULL);
+
+  /* Q is the matrix that when multiplied by y gives beta */
   Q = MatrixMultiply(iXtX,Xt,NULL);
 
+  /* T is the matrix that when multiplied by y gives the signal estimate */
   T = MatrixMultiply(X,Q,NULL);
+
+  /* R is the matrix that when multiplied by y gives the residual error */
   R = MatrixSubtract(MatrixIdentity(nsubjects,NULL),T,NULL);
   DOF = MatrixTrace(R);
 
@@ -213,11 +219,6 @@ int main(int argc, char **argv)
     }
     else{
       /* Use target subject (still called IcoSurf) */
-      //sprintf(fname,"%s/%s/surf/%s.%s",SUBJECTS_DIR,trgsubject,hemi,surfregid);
-      //printf("  INFO: loading target registration surface  %s\n",fname);
-      //fflush(stdout);
-      //IcoSurf = MRISread(fname) ;
-
       IcoSurf = MRISloadSurfSubject(trgsubject,hemi,surfregid,SUBJECTS_DIR);
       if(IcoSurf == NULL){
 	printf("ERROR: could not load registration surface\n");
@@ -239,11 +240,6 @@ int main(int argc, char **argv)
 	fflush(stdout);
 	
 	/* Read in the spherical registration surface */
-	//sprintf(fname,"%s/%s/surf/%s.%s",SUBJECTS_DIR,subject,hemi,surfregid);
-	//printf("  INFO: loading registration surface  %s\n",fname);
-	//fflush(stdout);
-	//SurfReg = MRISread(fname) ;
-
 	SurfReg = MRISloadSurfSubject(subject,hemi,surfregid,SUBJECTS_DIR);
 	if(SurfReg == NULL){
 	  printf("ERROR: could not load registration surface\n");
@@ -313,7 +309,7 @@ int main(int argc, char **argv)
 	
 	/* Copy into SrcVals structure */
 	for(vtx = 0; vtx < IcoSurf->nvertices; vtx++)
-	  MRIFseq_vox(SrcVals,vtx,0,0,nthsubj) = MRIFseq_vox(tmpmri2,vtx,0,0,frame);
+	  MRIFseq_vox(SrcVals,vtx,0,0,nthsubj)=MRIFseq_vox(tmpmri2,vtx,0,0,0);
 	
 	MRIfree(&tmpmri);
 	MRISfree(&SurfReg);
