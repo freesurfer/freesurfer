@@ -101,5 +101,6 @@ uninstall-release:
 	  echo " rm -f $(DESTDIR)$(libdir)/tcl/$$f"; \
 	  rm -f $(DESTDIR)$(libdir)/tcl/$$f; \
 	done
+	rm -f $(DSESTDIR)$(prefix)/freesurferenv.csh
 	$(MAKE) uninstall -C images
 	$(MAKE) uninstall-release -C distribution
