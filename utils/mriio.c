@@ -1905,9 +1905,11 @@ static MRI *mincRead(char *fname, int read_volume)
   /* --- one time point if there are only three dimensions in the file --- */
   if(ndims == 3) dim_sizes[3] = 1;
 
-  printf("DimSizes: %d, %d, %d, %d, %d\n", ndims, dim_sizes[0], 
-   dim_sizes[1], dim_sizes[2], dim_sizes[3]);
-  printf("DataType: %d\n", vol->nc_data_type);
+	if ((Gdiag & DIAG_SHOW) && DIAG_VERBOSE_ON)
+		printf("DimSizes: %d, %d, %d, %d, %d\n", ndims, dim_sizes[0], 
+					 dim_sizes[1], dim_sizes[2], dim_sizes[3]);
+	if ((Gdiag & DIAG_SHOW) && DIAG_VERBOSE_ON)
+		printf("DataType: %d\n", vol->nc_data_type);
 
   dtype = get_volume_nc_data_type(vol, &sflag) ;
   dtype = orderIntBytes(vol->nc_data_type) ;
@@ -2023,17 +2025,19 @@ static MRI *mincRead(char *fname, int read_volume)
 
   pVox2WorldGen = get_voxel_to_world_transform(vol);
   pVox2WorldLin = get_linear_transform_ptr(pVox2WorldGen);
-  printf("MINC Linear Transform\n");
-  for(i=0;i<4;i++){
-    for(j=0;j<4;j++) printf("%7.4f ",pVox2WorldLin->m[j][i]);
-    printf("\n");
-  }
+	if ((Gdiag & DIAG_SHOW) && DIAG_VERBOSE_ON)
+	{
+		printf("MINC Linear Transform\n");
+		for(i=0;i<4;i++){
+			for(j=0;j<4;j++) printf("%7.4f ",pVox2WorldLin->m[j][i]);
+			printf("\n");
+		}
+	}
 
   delete_volume_input(&input_info);
   delete_volume(vol);
 
-  printf("Done reading minc\n");
-
+	
   return(mri);
 
 } /* end mincRead() */
@@ -2114,7 +2118,8 @@ static MRI *mincRead2(char *fname, int read_volume)
      i,dim_names[i],dim_sizes[i],separations[i],
      vol->direction_cosines[i][0],vol->direction_cosines[i][1],
      vol->direction_cosines[i][2]);
-  printf("DataType: %d\n", vol->nc_data_type);
+	if ((Gdiag & DIAG_SHOW) && DIAG_VERBOSE_ON)
+		printf("DataType: %d\n", vol->nc_data_type);
 
   /* Translate data type to that of mri structure */
   switch(vol->nc_data_type){
@@ -2205,12 +2210,15 @@ static MRI *mincRead2(char *fname, int read_volume)
   MatrixFree(&T);
   pVox2WorldGen = get_voxel_to_world_transform(vol);
   pVox2WorldLin = get_linear_transform_ptr(pVox2WorldGen);
-  printf("MINC Linear Transform ----------------------\n");
-  for(i=0;i<4;i++){
-    for(j=0;j<4;j++) printf("%7.4f ",pVox2WorldLin->m[j][i]);
-    printf("\n");
-  }
-  printf("-------------------------------------------\n");
+	if ((Gdiag & DIAG_SHOW) && DIAG_VERBOSE_ON)
+	{
+		printf("MINC Linear Transform ----------------------\n");
+		for(i=0;i<4;i++){
+			for(j=0;j<4;j++) printf("%7.4f ",pVox2WorldLin->m[j][i]);
+			printf("\n");
+		}
+		printf("-------------------------------------------\n");
+	}
 
   /* ----- copy the data from the file to the mri structure ----- */
   if(read_volume){
@@ -2467,12 +2475,15 @@ static int mincWrite2(MRI *mri, char *fname)
   MatrixPrint(stdout,T);
   pVox2WorldGen = get_voxel_to_world_transform(minc_volume);
   pVox2WorldLin = get_linear_transform_ptr(pVox2WorldGen);
-  printf("MINC Linear Transform ----------------------\n");
-  for(i=0;i<4;i++){
-    for(j=0;j<4;j++) printf("%7.4f ",pVox2WorldLin->m[j][i]);
-    printf("\n");
-  }
-  printf("--------------------------------------------\n");
+	if ((Gdiag & DIAG_SHOW) && DIAG_VERBOSE_ON)
+	{
+		printf("MINC Linear Transform ----------------------\n");
+		for(i=0;i<4;i++){
+			for(j=0;j<4;j++) printf("%7.4f ",pVox2WorldLin->m[j][i]);
+			printf("\n");
+		}
+		printf("--------------------------------------------\n");
+	}
   MatrixFree(&T);
 
   printf("Setting Volume Values\n");
@@ -8347,16 +8358,16 @@ mghRead(char *fname, int read_volume, int frame)
       fp = popen(command, "r");
       if (!fp)
       {
-	errno = 0;
-	ErrorReturn(NULL, (ERROR_BADPARM,"mghRead(%s, %d): could not open gzipped file",
-			   fname, frame)) ;
+				errno = 0;
+				ErrorReturn(NULL, (ERROR_BADPARM,"mghRead(%s, %d): could not open gzipped file",
+													 fname, frame)) ;
       }
       if (errno)
       {
-	pclose(fp);
-	errno = 0;
-	ErrorReturn(NULL, (ERROR_BADPARM,"mghRead(%s, %d): zcat encountered error",
-			   fname, frame)) ;
+				pclose(fp);
+				errno = 0;
+				ErrorReturn(NULL, (ERROR_BADPARM,"mghRead(%s, %d): zcat encountered error",
+													 fname, frame)) ;
       }
     }
     else if (!stricmp(ext, "mgh"))
@@ -8365,9 +8376,9 @@ mghRead(char *fname, int read_volume, int frame)
       fp = fopen(fname, "rb") ;
       if (!fp)
       {
-	errno = 0;
-	ErrorReturn(NULL, (ERROR_BADPARM,"mghRead(%s, %d): could not open file",
-			   fname, frame)) ;
+				errno = 0;
+				ErrorReturn(NULL, (ERROR_BADPARM,"mghRead(%s, %d): could not open file",
+													 fname, frame)) ;
       }
     }
   }
@@ -8382,7 +8393,7 @@ mghRead(char *fname, int read_volume, int frame)
   nread = freadIntEx(&version, fp) ;
   if (!nread)
     ErrorReturn(NULL, (ERROR_BADPARM,"mghRead(%s, %d): read error",
-		       fname, frame)) ;
+											 fname, frame)) ;
 
   width = freadInt(fp) ;
   height = freadInt(fp) ;
@@ -8428,7 +8439,7 @@ mghRead(char *fname, int read_volume, int frame)
     {
       int count;
       for (count=0; count < mri->nframes*width*height*depth*bpv; count++)
-	fgetc(fp);
+				fgetc(fp);
     }
     else
       fseek(fp, mri->nframes*width*height*depth*bpv, SEEK_CUR) ;
@@ -8440,18 +8451,18 @@ mghRead(char *fname, int read_volume, int frame)
       start_frame = end_frame = frame ;
       if (gzipped) // pipe cannot seek
       {
-	int count;
-	for (count=0; count < frame*width*height*depth*bpv; count++)
-	  fgetc(fp);
+				int count;
+				for (count=0; count < frame*width*height*depth*bpv; count++)
+					fgetc(fp);
       }
       else
-	fseek(fp, frame*width*height*depth*bpv, SEEK_CUR) ;
+				fseek(fp, frame*width*height*depth*bpv, SEEK_CUR) ;
       nframes = 1 ;
     }
     else
     {  /* hack - # of frames < -1 means to only read in that
-	  many frames. Otherwise I would have had to change the whole
-	  MRIread interface and that was too much of a pain. Sorry.
+					many frames. Otherwise I would have had to change the whole
+					MRIread interface and that was too much of a pain. Sorry.
        */
       if (frame < -1)  
         nframes = frame*-1 ; 
@@ -8467,17 +8478,17 @@ mghRead(char *fname, int read_volume, int frame)
     {
       for (z = 0 ; z < depth ; z++)
       {
-	if (fread(buf, sizeof(char), bytes, fp) != bytes)
-	{
-	  // fclose(fp) ;
-	  myclose(fp); 
-	  free(buf) ;
-	  ErrorReturn(NULL, (ERROR_BADFILE, "mghRead(%s): could not read %d bytes at slice %d",
-			     fname, bytes, z)) ;
-	}
+				if (fread(buf, sizeof(char), bytes, fp) != bytes)
+				{
+					// fclose(fp) ;
+					myclose(fp); 
+					free(buf) ;
+					ErrorReturn(NULL, (ERROR_BADFILE, "mghRead(%s): could not read %d bytes at slice %d",
+														 fname, bytes, z)) ;
+				}
         switch (type)
         {
-	case MRI_INT:
+				case MRI_INT:
           for (i = y = 0 ; y < height ; y++)
           {
             for (x = 0 ; x < width ; x++, i++)
@@ -8487,7 +8498,7 @@ mghRead(char *fname, int read_volume, int frame)
             }
           }
           break ;
-	case MRI_SHORT:
+				case MRI_SHORT:
           for (i = y = 0 ; y < height ; y++)
           {
             for (x = 0 ; x < width ; x++, i++)
@@ -8497,8 +8508,8 @@ mghRead(char *fname, int read_volume, int frame)
             }
           }
           break ;
-	case MRI_TENSOR:
-	case MRI_FLOAT:
+				case MRI_TENSOR:
+				case MRI_FLOAT:
           for (i = y = 0 ; y < height ; y++)
           {
             for (x = 0 ; x < width ; x++, i++)
@@ -8551,13 +8562,13 @@ mghRead(char *fname, int read_volume, int frame)
   else
   {
     fprintf(stderr,
-	    "-----------------------------------------------------------------\n"
-	    "Could not find the direction cosine information.\n"
-	    "Will use the CORONAL orientation.\n"
-	    "If not suitable, please provide the information in %s.\n"
-	    "-----------------------------------------------------------------\n",
-	    fname  
-	    );
+						"-----------------------------------------------------------------\n"
+						"Could not find the direction cosine information.\n"
+						"Will use the CORONAL orientation.\n"
+						"If not suitable, please provide the information in %s.\n"
+						"-----------------------------------------------------------------\n",
+						fname  
+						);
     setDirectionCosine(mri, MRI_CORONAL);
   }
   // read TR, Flip, TE, TI, FOV
@@ -8591,7 +8602,7 @@ mghRead(char *fname, int read_volume, int frame)
       fseek( fp, SEEK_SET, tag_data_begin );
       mri->tag_data = malloc( tag_data_size );
       if( NULL != mri->tag_data ) 
-	fread( mri->tag_data, tag_data_size, 1, fp );
+				fread( mri->tag_data, tag_data_size, 1, fp );
     }
   }
   // fclose(fp) ;
