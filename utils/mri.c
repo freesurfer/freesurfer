@@ -7,6 +7,11 @@
  *       DATE:        1/8/97
  *
 */
+// Warning: Do not edit the following four lines.  CVS maintains them.
+// Revision Author: $Author: tosa $
+// Revision Date  : $Date: 2003/01/14 18:41:33 $
+// Revision       : $Revision: 1.204 $
+char *MRI_C_VERSION = "$Revision: 1.204 $";
 
 /*-----------------------------------------------------
                     INCLUDE FILES
@@ -1798,29 +1803,30 @@ int
 MRIvoxelToWorld(MRI *mri, Real xv, Real yv, Real zv, 
                 Real *pxw, Real *pyw, Real *pzw)
 {
-  int   ip, jp, kp ;
+  Real   rip, rjp, rkp ; // Real is "double" in volume_io/basic.h
 
   switch (mri->slice_direction)
   {
   default:
   case MRI_UNDEFINED:
     /*      ras for MRIvox(mri, i, j, k)    */
-    ip = xv - (mri->width-1) / 2;
-    jp = yv - (mri->height-1) / 2;
-    kp = zv - (mri->depth-1) / 2;
+    // W = M * V, C = M * Cv -> W - C = M * (V - Cv) -> W = M *(V - Cv) + C
+    rip = xv - (mri->width-1) / 2.0; 
+    rjp = yv - (mri->height-1) / 2.0;
+    rkp = zv - (mri->depth-1) / 2.0;
 
     *pxw = 
-      mri->x_r * mri->xsize * ip + 
-      mri->y_r * mri->ysize * jp + 
-      mri->z_r * mri->zsize * kp + mri->c_r;
+      mri->x_r * mri->xsize * rip + 
+      mri->y_r * mri->ysize * rjp + 
+      mri->z_r * mri->zsize * rkp + mri->c_r;
     *pyw = 
-      mri->x_a * mri->xsize * ip + 
-      mri->y_a * mri->ysize * jp + 
-      mri->z_a * mri->zsize * kp + mri->c_a;
+      mri->x_a * mri->xsize * rip + 
+      mri->y_a * mri->ysize * rjp + 
+      mri->z_a * mri->zsize * rkp + mri->c_a;
     *pzw = 
-      mri->x_s * mri->xsize * ip + 
-      mri->y_s * mri->ysize * jp + 
-      mri->z_s * mri->zsize * kp + mri->c_s;
+      mri->x_s * mri->xsize * rip + 
+      mri->y_s * mri->ysize * rjp + 
+      mri->z_s * mri->zsize * rkp + mri->c_s;
     break ;
 
   case MRI_CORONAL:
@@ -1902,8 +1908,8 @@ MRIworldToVoxel(MRI *mri, Real xw, Real yw, Real zw,
   {
 	default:
   case MRI_UNDEFINED:
-#if 1
     {
+      // W - C = M *(V - Cv) -> V = M^(-1) * (W-C) + Cv
       MATRIX *m_R, *m_R_inv ;
       VECTOR *v_w, *v_v ;
       m_R = MatrixAlloc(3,3,MATRIX_REAL) ;
@@ -1927,35 +1933,14 @@ MRIworldToVoxel(MRI *mri, Real xw, Real yw, Real zw,
       }
       MatrixFree(&m_R) ;
       v_w = VectorAlloc(3, MATRIX_REAL) ;
-      V3_LOAD(v_w, xw, yw, zw) ;
+      V3_LOAD(v_w, xw - mri->c_r, yw - mri->c_a, zw - mri->c_s) ;
       v_v = MatrixMultiply(m_R_inv, v_w, NULL) ;
 
-      *pxv = V3_X(v_v) + (mri->width-1)/2 ;
-      *pyv = V3_Y(v_v) + (mri->height-1)/2 ;
-      *pzv = V3_Z(v_v) + (mri->depth-1)/2 ;
+      *pxv = V3_X(v_v) + (mri->width-1)/2.0 ; // don't use 2 but 2.0 to get double promotion
+      *pyv = V3_Y(v_v) + (mri->height-1)/2.0 ;
+      *pzv = V3_Z(v_v) + (mri->depth-1)/2.0 ;
       VectorFree(&v_v) ; VectorFree(&v_w) ; MatrixFree(&m_R_inv) ;
     }
-#else
-    *pxv = 
-      (mri->width-1)/2 +
-      ((mri->x_r * (xw-mri->c_r)) +
-       (mri->y_r * (yw-mri->c_a)) +
-       (mri->z_r * (zw-mri->c_s)))
-      / mri->xsize ;
-
-    *pyv = 
-      (mri->height-1)/2 +
-      ((mri->x_a * (xw-mri->c_r)) +
-       (mri->y_a * (yw-mri->c_a)) +
-       (mri->z_a * (zw-mri->c_s)))
-      / mri->ysize ;
-    *pzv = 
-      (mri->depth-1)/2 +
-      ((mri->x_s * (xw-mri->c_r)) +
-       (mri->y_s * (yw-mri->c_a)) +
-       (mri->z_s * (zw-mri->c_s)))
-      / mri->zsize ;
-#endif
     break;
   case MRI_CORONAL:
 #if 0
