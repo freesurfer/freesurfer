@@ -1,6 +1,6 @@
 #! /usr/bin/tixwish
 
-# $Id: tkmedit.tcl,v 1.38 2003/04/21 17:12:41 kteich Exp $
+# $Id: tkmedit.tcl,v 1.39 2003/04/21 20:09:06 kteich Exp $
 
 source $env(MRI_DIR)/lib/tcl/tkm_common.tcl
 
@@ -2960,7 +2960,7 @@ proc CreateMenuBar { ifwMenuBar } {
 	}}
 	{ separator }
 	{ check 
-	    "Anatomical Volume"
+	    "Anatomical Volume:Ctrl A"
 	    "SendDisplayFlagValue flag_Anatomical"
 	    gbDisplayFlag(flag_Anatomical) }
 	{ radio 
@@ -3375,7 +3375,7 @@ proc CreateToolBar { ifwToolBar } {
       UpdateToolWrapper { \
       { image 0 icon_navigate "Navigate Tool (n)" } \
       { image 1 icon_edit_label "Select Voxels Tool (s)" } \
-      { image 2 icon_edit_volume "Edit Voxels Tool (e)" } \
+      { image 2 icon_edit_volume "Edit Voxels Tool (a)" } \
       { image 3 icon_edit_parc "Edit Segmentation Tool (g)" } \
       { image 4 icon_edit_ctrlpts "Edit Ctrl Pts Tool (c)" } }
 
