@@ -1,6 +1,6 @@
 #!/bin/csh -f
 
-set SPMMAT2REGISTER_VER = '$Id: spmmat2register,v 1.1 1999/10/22 17:11:35 greve Exp $';
+set SPMMAT2REGISTER_VER = '$Id: spmmat2register,v 1.2 1999/10/22 20:15:08 greve Exp $';
 
 set funcvol   = ();
 set structvol = ();
@@ -15,16 +15,26 @@ parse_args_return:
 goto check_args;
 check_args_return:
 
+set UseStructMat = 1;
 set structmatfile = $structvol.mat
 if(! -e $structmatfile ) then
-  echo "ERROR: cannot find $structmatfile"
-  exit 1;
+  set structimgfile = $structvol.img
+  if(! -e $structimgfile ) then
+   echo "ERROR: cannot find $structmatfile or $structimgfile "
+   exit 1;
+  endif
+  set UseStructMat = 0;
 endif
 
+set UseFuncMat = 1;
 set funcmatfile = $funcvol.mat
 if(! -e $funcmatfile ) then
-  echo "ERROR: cannot find $funcmatfile"
-  exit 1;
+  set funcimgfile = $funcvol.img
+  if(! -e $funcimgfile ) then
+   echo "ERROR: cannot find $funcmatfile or $funcimgfile "
+   exit 1;
+  endif
+  set UseFuncMat = 0;
 endif
 
 set outdir = `dirname $regfile`;
@@ -33,11 +43,24 @@ set okfile = "$outdir/tmp_spm2reg.ok"
 rm -f $okfile
 
 matlab -display iconic > /dev/null <<EOF
-  load ('$structmatfile');
-  Mc = M;
-  load ('$funcmatfile');
-  Mf = M;
 
+  if($UseStructMat) 
+    load ('$structmatfile');
+    Mc = M;
+  else
+    Mc = spm_get_space('$structvol');
+  end
+
+  if($UseFuncMat) 
+    load ('$funcmatfile');
+    Mf = M;
+  else
+    Mf = spm_get_space('$funcvol');
+  end
+
+  tmp = Mc(2,:);
+  Mc(2,:) = Mc(3,:);
+  Mc(3,:) = tmp;
   dvf = sqrt(sum(Mf(1:3,1:3).^2));
   Qc = zeros(4);
   Qc(1,1) = 1;
