@@ -275,6 +275,7 @@ MATRIX *load_covariance_matrix(GC1D *gc, MATRIX *m_cov, int ninputs) ;
 MATRIX *load_inverse_covariance_matrix(GC1D *gc, MATRIX *m_cov, int ninputs) ;
 double covariance_determinant(GC1D *gc, int ninputs) ;
 void load_vals(MRI *mri_inputs, float x, float y, float z, float *vals, int ninputs) ;
+int    GCAisPossible(GCA *gca, MRI *mri, int label, TRANSFORM *transform, int x, int y, int z) ;
 double GCAcomputePosteriorDensity(GCA_PRIOR *gcap, GCA_NODE *gcan, int n, float *vals, int ninputs) ;
 double GCAcomputeConditionalDensity(GC1D *gc, float *vals, int ninputs, int label) ;
 double GCAmahDistIdentityCovariance(GC1D *gc, float *vals, int ninputs) ;

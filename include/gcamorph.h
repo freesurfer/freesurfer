@@ -45,7 +45,6 @@ typedef struct
   MRI  *mri_xind ;    /* MRI->gca transform */
   MRI  *mri_yind ;
   MRI  *mri_zind ;
-	int  relabel ;
 } GCA_MORPH, GCAM ;
 
 typedef struct
@@ -77,6 +76,8 @@ typedef struct
 	double ratio_thresh ;
 	int    integration_type ;
 	int    nsmall ;
+	int    relabel ;    /* are we relabeling (i.e. using MAP label, or just max prior label) */
+	int    relabel_avgs ; /* what level to start relabeling at */
 } GCA_MORPH_PARMS, GMP ;
 
 GCA_MORPH *GCAMalloc(int width, int height, int depth) ;
