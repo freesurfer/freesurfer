@@ -26,9 +26,9 @@ void xVoxl_Delete ( xVoxelRef* ioppVoxel ) {
 void xVoxl_Copy ( xVoxelRef ipVoxDest, xVoxelRef ipVoxSrc ) {
 
   xVoxl_SetFloat ( ipVoxDest, 
-       xVoxl_GetFloatX ( ipVoxSrc ),
-       xVoxl_GetFloatY ( ipVoxSrc ),
-       xVoxl_GetFloatZ ( ipVoxSrc ) );
+		   xVoxl_GetFloatX ( ipVoxSrc ),
+		   xVoxl_GetFloatY ( ipVoxSrc ),
+		   xVoxl_GetFloatZ ( ipVoxSrc ) );
 }
 
 char xVoxl_IsEqualInt ( xVoxelRef ipVox1, xVoxelRef ipVox2 ) {
@@ -193,7 +193,7 @@ tBoolean xVoxl_IncrementUntilLimit ( xVoxelRef this, float inLimit ) {
 }
 
 tBoolean xVoxl_IncrementUntilLimits ( xVoxelRef this, float inXLimit, 
-              float inYLimit, float inZLimit ) {
+				      float inYLimit, float inZLimit ) {
 
   if( this->mfX < inXLimit ) {
     this->mfX += 1.0;
@@ -205,6 +205,29 @@ tBoolean xVoxl_IncrementUntilLimits ( xVoxelRef this, float inXLimit,
   } else if( this->mfZ < inZLimit ) {
     this->mfX = 0;
     this->mfY = 0;
+    this->mfZ += 1.0;
+    return TRUE;
+  } else {
+    return FALSE;
+  }
+}
+
+tBoolean xVoxl_IncrementWithMinsUntilLimits ( xVoxelRef this,
+					      float     inXMin, 
+					      float     inYMin,
+					      float     inXLimit, 
+					      float     inYLimit,
+					     float     inZLimit ) {
+  if( this->mfX < inXLimit ) {
+    this->mfX += 1.0;
+    return TRUE;
+  } else if( this->mfY < inYLimit ) {
+    this->mfX = inXMin;
+    this->mfY += 1.0;
+    return TRUE;
+  } else if( this->mfZ < inZLimit ) {
+    this->mfX = inXMin;
+    this->mfY = inYMin;
     this->mfZ += 1.0;
     return TRUE;
   } else {
