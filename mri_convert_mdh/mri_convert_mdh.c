@@ -13,7 +13,7 @@
 #include "version.h"
 
 #ifndef lint
-static char vcid[] = "$Id: mri_convert_mdh.c,v 1.10 2003/09/22 04:49:16 greve Exp $";
+static char vcid[] = "$Id: mri_convert_mdh.c,v 1.11 2003/10/29 22:31:59 greve Exp $";
 #endif /* lint */
 
 #define MDH_SIZE    128        //Number of bytes in the miniheader
@@ -105,7 +105,7 @@ int main(int argc, char **argv)
   int nargs;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_convert_mdh.c,v 1.10 2003/09/22 04:49:16 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_convert_mdh.c,v 1.11 2003/10/29 22:31:59 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -242,7 +242,7 @@ int main(int argc, char **argv)
   fseek(fp,offset,SEEK_SET);
 
   /*---------------------------------------------------------------*/
-  nHitTotExp = (long)nSlices*nFrames*(long)nEchos*(nPELs+nPCNs);
+  nHitTotExp = (long)nSlices*nFrames*((long)nEchos*nPELs+nPCNs);
   printf("Loading  (lines to load = %ld)\n",nHitTotExp);
   nHitPCN = 0;
   nthpcn = 0;
@@ -256,8 +256,16 @@ int main(int argc, char **argv)
     if(feof(fp)) break;
     fread(adc,sizeof(float), 2*nPerLine, fp);
     if(feof(fp)){
-      printf("WARNING: hit eof during data read\n");
+      //printf("WARNING: hit eof during data read\n");
       break;
+    }
+    if(mdh->Rep >= nFrames){
+      printf("ERROR: frame = %d >= nFrames = %d\n",mdh->Rep,nFrames);
+      exit(1);
+    }
+    if(mdh->Slice >= nSlices){
+      printf("ERROR: slice = %d >= nSlices = %d\n",mdh->Slice,nSlices);
+      exit(1);
     }
     d = mdh->Slice + nSlices * mdh->Rep;
     if(mdh->IsPCN){
@@ -282,9 +290,15 @@ int main(int argc, char **argv)
     }
     nHitTot ++;
   }
-  printf("nHitTot = %ld, nHitPCN = %ld, nHit = %ld\n",nHitTot,nHitPCN,nHit);
+  printf("Loaded %ld lines, nHitPCN = %ld, nHit = %ld\n",nHitTot,nHitPCN,nHit);
+  if(nHitTotExp != nHitTot){
+    printf("\nWARNING: number of lines loaded does "
+	   "not equal the number expected\n\n");
+  }
 
-
+  /* copy the meas.asc to the output directory */
+  sprintf(fname,"cp %s/meas.asc %s/meas.asc",srcdir,outdir);
+  system(fname);
 
 
 #if 0
