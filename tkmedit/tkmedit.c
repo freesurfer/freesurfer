@@ -4,9 +4,9 @@
 
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2003/09/09 18:58:59 $
-// Revision       : $Revision: 1.176 $
-char *VERSION = "$Revision: 1.176 $";
+// Revision Date  : $Date: 2003/09/18 21:50:24 $
+// Revision       : $Revision: 1.177 $
+char *VERSION = "$Revision: 1.177 $";
 
 #define TCL
 #define TKMEDIT 
@@ -263,8 +263,8 @@ tkm_tErr LoadSurfaceVertexSet ( tkm_tSurfaceType iType,
 void   UnloadSurface          ( tkm_tSurfaceType iType );
 
 
-tkm_tErr LoadSurfaceAnnoation ( tkm_tSurfaceType iType, 
-				char*            isName );
+tkm_tErr LoadSurfaceAnnotation ( tkm_tSurfaceType iType, 
+				 char*            isName );
 
 void   WriteSurfaceValues     ( tkm_tSurfaceType iType, 
 				char*            isFileName );
@@ -1027,7 +1027,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
      shorten our argc and argv count. If those are the only args we
      had, exit. */
   /* rkt: check for and handle version tag */
-  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.176 2003/09/09 18:58:59 kteich Exp $", "$Name:  $");
+  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.177 2003/09/18 21:50:24 kteich Exp $", "$Name:  $");
   if (nNumProcessedVersionArgs && argc - nNumProcessedVersionArgs == 1)
     exit (0);
   argc -= nNumProcessedVersionArgs;
@@ -3054,13 +3054,13 @@ void WriteSurfaceValues ( tkm_tSurfaceType iType,
   DebugExitFunction;
 }
 
-tkm_tErr LoadSurfaceAnnoation ( tkm_tSurfaceType iType,
-				char*            isName ) {
+tkm_tErr LoadSurfaceAnnotation ( tkm_tSurfaceType iType,
+				 char*            isName ) {
   
   tkm_tErr      eResult  = tkm_tErr_NoErr;
   Surf_tErr     eSurface = Surf_tErr_NoErr;
   
-  DebugEnterFunction( ("LoadSurfaceAnnoation( iType=%d, isName=%s )", 
+  DebugEnterFunction( ("LoadSurfaceAnnotation( iType=%d, isName=%s )", 
 		       (int)iType, isName) );
   
   DebugAssertThrowX( (NULL != isName),
@@ -4065,14 +4065,14 @@ int TclLoadSurfaceAnnotation ( ClientData inClientData, Tcl_Interp* inInterp,
   tkm_tSurfaceType type = tkm_tSurfaceType_Main;
 
   if ( argc != 3 ) {
-    Tcl_SetResult ( inInterp, "wrong # args: LoadSurfaceAnnoation "
+    Tcl_SetResult ( inInterp, "wrong # args: LoadSurfaceAnnotation "
 		    "0=main,1=aux file_name:string", TCL_VOLATILE );
     return TCL_ERROR;
   }
   
   if( gbAcceptingTclCommands ) {
     type = atoi( argv[1] );
-    LoadSurfaceAnnoation( type, argv[2] );
+    LoadSurfaceAnnotation( type, argv[2] );
   }  
   
   return TCL_OK;
@@ -6986,11 +6986,6 @@ tkm_tErr LoadVolume ( tkm_tVolumeType iType,
   gnAnatomicalDimensionZ = 256 ;
 #endif
 
-  /*  if (Gdiag & DIAG_SHOW)
-  printf("setting anatomical dimensions to %d, %d, %d\n",
-   gnAnatomicalDimensionX, gnAnatomicalDimensionY, gnAnatomicalDimensionZ  );
-  */
-
   /* Set the default color scale. Get the value min and max from the
      volume and use that. Use default brightness and contrast. */
   Volm_GetValueMinMax( gAnatomicalVolume[iType], 
@@ -7648,31 +7643,24 @@ void EditAnatomicalVolumeInRangeArray ( tkm_tVolumeType iVolume,
   
   int          nVoxel   = 0;
   float        value    = 0;
-  Volm_tValue  newValue = 0;
 
   if( NULL == gAnatomicalVolume[iVolume] ) {
     return;
   }
-  
+
   /* for each voxel we got... */
   for( nVoxel = 0; nVoxel < inCount; nVoxel++ ) {
 
     /* get the value at this point. */
     Volm_GetValueAtMRIIdx( gAnatomicalVolume[iVolume], 
 			   &(iaMRIIdx[nVoxel]), &value );
-    newValue = (Volm_tValue)value;
-  
-    /* if it's in the range... */
-    if( value >= inLow && value <= inHigh ) {
+
+    /* if it's in the range and it's a different value... */
+    if( value >= inLow && value <= inHigh &&
+	value != inNewValue ) {
       
-      /* set a new value */
-      newValue = inNewValue;
-    }
-    
-    /* if values are different, set and add to undo list. */
-    if( value != newValue ) {
       Volm_SetValueAtMRIIdx( gAnatomicalVolume[iVolume], 
-			     &(iaMRIIdx[nVoxel]), newValue );
+			     &(iaMRIIdx[nVoxel]), inNewValue );
       
       switch( iVolume ) {
       case tkm_tVolumeType_Main:
