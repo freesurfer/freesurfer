@@ -43,9 +43,13 @@ MATRIX *MRIgetConformMatrix(MRI *mri)
   templ->z_r =  0.0;      templ->z_a =  1.0;      templ->z_s =  0.0;
   templ->c_r = mri->c_r;  templ->c_a = mri->c_a;  templ->c_s = mri->c_s;
   templ->slice_direction = MRI_CORONAL;
+  templ->tr = mri->tr ; templ->te = mri->te ; 
+  templ->flip_angle = mri->flip_angle ; templ->ti = mri->ti ; 
 
 
   m_resample = MRIgetResampleMatrix(mri, templ);
+
+  MRIfree(&templ) ;
 
   return(m_resample);
 }
@@ -78,6 +82,8 @@ MRI *MRIconform(MRI *mri)
   templ->z_r =  0.0;      templ->z_a =  1.0;      templ->z_s =  0.0;
   templ->c_r = res->c_r;  templ->c_a = res->c_a;  templ->c_s = res->c_s;
   templ->slice_direction = MRI_CORONAL;
+  templ->tr = mri->tr ; templ->te = mri->te ; 
+  templ->flip_angle = mri->flip_angle ; templ->ti = mri->ti ; 
 
   /* ----- change type if necessary ----- */
   if(res->type != templ->type)
