@@ -104,8 +104,13 @@ fwrite1(int v,FILE *fp)
 int
 fwrite2(int v, FILE *fp)
 {
-  short s = (short)v;
+  short s ;
 
+  if (v > 0x7fff)    /* don't let it overflow */
+    v = 0x7fff ;
+  else if (v < -0x7fff)
+    v = -0x7fff ;
+  s = (short)v;
 #ifdef Linux
   s = swapShort(s) ;
 #endif
