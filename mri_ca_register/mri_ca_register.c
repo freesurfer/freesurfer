@@ -103,6 +103,7 @@ main(int argc, char *argv[])
   parms.niterations = 100 ;
   parms.levels = 4 ;
 	parms.relabel_avgs = 1 ;  /* relabel when navgs=1 */
+	parms.reset_avgs = 0 ;  /* reset metric properties when navgs=0 */
   parms.dt = 0.05 ;  /* was 5e-6 */
 	parms.momentum = 0.9 ;
   parms.tol = .1 ;  /* at least 1% decrease in sse */
@@ -622,6 +623,12 @@ get_option(int argc, char *argv[])
     nargs = 1 ;
     printf("relabeling nodes with MAP estimates at avgs=%d\n", parms.relabel_avgs) ;
   }
+  else if (!stricmp(option, "RESET_AVGS"))
+  {
+    parms.reset_avgs = atoi(argv[2]) ;
+    nargs = 1 ;
+    printf("resetting metric properties at avgs=%d\n", parms.relabel_avgs) ;
+  }
   else if (!stricmp(option, "RESET"))
   {
 		reset = 1 ;
@@ -832,10 +839,11 @@ get_option(int argc, char *argv[])
     nargs = 1 ;
     fprintf(stderr, "applying mean filter %d times to conditional densities...\n", avgs) ;
   }
-  else if (!stricmp(option, "cross-sequence"))
+  else if (!stricmp(option, "cross-sequence") || !stricmp(option, "cross_sequence"))
   {
     regularize = .5 ;
 		avgs = 2 ;
+		renormalize = 1 ;
     printf("registering sequences, equivalent to:\n") ;
 		printf("\t-renormalize\n\t-avgs %d\n\t-regularize %2.3f\n",avgs, regularize) ;
   } 
