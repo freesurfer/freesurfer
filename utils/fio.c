@@ -4,6 +4,7 @@
 #include "fio.h"
 #include "machine.h"
 #include "proto.h"
+#include "error.h"
 
 FILE *MGHopen_file(char *fname, char *rwmode)
 {
@@ -149,6 +150,8 @@ freadFloat(FILE *fp)
 #ifdef Linux
   f = swapFloat(f) ;
 #endif
+  if (ret != 1)
+    ErrorPrintf(ERROR_BADFILE, "freadFloat: fread failed") ;
   return(f) ;
 }
 double
@@ -161,6 +164,8 @@ freadDouble(FILE *fp)
 #ifdef Linux
   d = swapDouble(d) ;
 #endif
+  if (ret != 1)
+    ErrorPrintf(ERROR_BADFILE, "freadDouble: fread failed") ;
   return(d) ;
 }
 
@@ -186,6 +191,8 @@ freadShort(FILE *fp)
 #ifdef Linux
   s = swapShort(s) ;
 #endif
+  if (nread != 1)
+    ErrorPrintf(ERROR_BADFILE, "freadShort: fread failed") ;
   return(s) ;
 }
 
