@@ -10,7 +10,7 @@ if { $err } {
     load [file dirname [info script]]/libscuba[info sharedlibextension] scuba
 }
 
-DebugOutput "\$Id: scuba.tcl,v 1.90 2005/03/03 19:41:01 kteich Exp $"
+DebugOutput "\$Id: scuba.tcl,v 1.91 2005/03/15 21:33:16 kteich Exp $"
 
 # gTool
 #   current - current selected tool (nav,)
@@ -860,8 +860,7 @@ proc ScubaMouseMotionCallback { inX inY iState iButton } {
     global gaWidget
 
     # state 257 = mouse 1 + shift. Change the brightness or contrast.
-    if { $gaTool($gaFrame([GetMainFrameID],toolID),mode) == "navigation" &&
-	 $iState == 257 } {
+    if { $iState == 257 } {
 
 	set deltaX [expr $inX - $gaChangeBC(mouseDown,x)]
 	set deltaY [expr $inY - $gaChangeBC(mouseDown,y)]
@@ -921,10 +920,9 @@ proc ScubaMouseDownCallback { inX inY iState iButton } {
     global gaFrame
     global gaLayer
 
-    # If navigation and if shift is down, set up the change brightness
+    # If button 1 and if shift is down, set up the change brightness
     # contrast tool.
-    if { $gaTool($gaFrame([GetMainFrameID],toolID),mode) == "navigation" &&
-	 $iState == 1} {
+    if { $iButton == 1 && $iState == 1 } {
 
 	set gaChangeBC(viewID) \
 	    [GetViewIDAtFrameLocation [GetMainFrameID] $inX $inY] 
@@ -4769,7 +4767,7 @@ proc SaveSceneScript { ifnScene } {
     set f [open $ifnScene w]
 
     puts $f "\# Scene file generated "
-    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.90 2005/03/03 19:41:01 kteich Exp $"
+    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.91 2005/03/15 21:33:16 kteich Exp $"
     puts $f ""
 
     # Find all the data collections.
