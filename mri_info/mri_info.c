@@ -3,11 +3,11 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2004/01/15 20:18:22 $
-// Revision       : $Revision: 1.27 $
+// Revision Date  : $Date: 2004/07/07 21:56:02 $
+// Revision       : $Revision: 1.28 $
 //
 ////////////////////////////////////////////////////////////////////
-char *MRI_INFO_VERSION = "$Revision: 1.27 $";
+char *MRI_INFO_VERSION = "$Revision: 1.28 $";
 #include <stdio.h>
 #include <sys/stat.h>
 #include <unistd.h>
@@ -25,6 +25,7 @@ char *MRI_INFO_VERSION = "$Revision: 1.27 $";
 #include "error.h"
 #include "diag.h"
 #include "version.h"
+#include "mghendian.h"
 
 struct ge_header {
   int magic;
@@ -84,7 +85,7 @@ int main(int argc, char *argv[])
   int nargs;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_info.c,v 1.27 2004/01/15 20:18:22 tosa Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_info.c,v 1.28 2004/07/07 21:56:02 tosa Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -907,7 +908,7 @@ static void read_analyze_file(char *fname, struct stat stat_buf)
       printf("unknown\n");
       return;
     }
-#ifdef Linux
+#if (BYTE_ORDER == LITTLE_ENDIAN)
     printf("big-endian\n");
 #else
     printf("little-endian\n");
@@ -915,7 +916,7 @@ static void read_analyze_file(char *fname, struct stat stat_buf)
   }
   else
   {
-#ifdef Linux
+#if (BYTE_ORDER == LITTLE_ENDIAN)
     printf("little-endian\n");
 #else
     printf("big-endian\n");

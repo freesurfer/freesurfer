@@ -1,6 +1,8 @@
 #ifndef MACHINE_H
 #define MACHINE_H
 
+#include "mghendian.h"
+
 /* this is the unix version */
 #define huge
 #define far
@@ -20,7 +22,7 @@ int ByteSwap2(void *buf2, long int nitems);
 int ByteSwap4(void *buf4, long int nitems);
 int ByteSwap8(void *buf8, long int nitems);
 
-#ifdef Linux
+#if (BYTE_ORDER == LITTLE_ENDIAN)
 
 #define orderIntBytes(i)     swapInt(i)
 #define orderShortBytes(i)   swapShort(i)
