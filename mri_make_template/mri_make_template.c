@@ -30,6 +30,7 @@ static MRI *MRIcomputePriors(MRI *mri_priors, int ndof, MRI *mri_char_priors);
 
 static char *transform_fname = NULL ;
 static char *T1_name = "T1" ;
+static char *var_fname = NULL ;
 static char *binary_name = NULL ;
 
 /* just for T1 volume */
@@ -42,14 +43,23 @@ static int first_transform = 0 ;
 #define ON_STATS                 1
 #define OFF_STATS                2
 
+
+#define NPARMS  12
+static MATRIX *m_xforms[NPARMS] ;
+static MATRIX *m_xform_mean = NULL ;
+static MATRIX *m_xform_covariance = NULL ;
+static char *xform_mean_fname = NULL ;
+static char *xform_covariance_fname = NULL ;
+static int stats_only = 0 ;
+
 int
 main(int argc, char *argv[])
 {
-  char   **av, subjects_dir[100], *cp ;
-  int    ac, nargs, i, dof, no_transform, which ;
+  char   **av, subjects_dir[STRLEN], *cp ;
+  int    ac, nargs, i, dof, no_transform, which, sno = 0, nsubjects = 0 ;
   MRI    *mri, *mri_mean = NULL, *mri_std, *mri_T1,*mri_binary,*mri_dof=NULL,
          *mri_priors = NULL ;
-  char   *subject_name, *out_fname, fname[100] ;
+  char   *subject_name, *out_fname, fname[STRLEN] ;
 
   Progname = argv[0] ;
   ErrorInit(NULL, NULL, NULL) ;
@@ -229,6 +239,11 @@ main(int argc, char *argv[])
   else
   {
     /* for each subject specified on cmd line */
+    if (xform_mean_fname)
+    {
+      m_xform_mean = MatrixAlloc(4,4,MATRIX_REAL) ;
+      /*      m_xform_covariance = MatrixAlloc(12,12,MATRIX_REAL) ;*/
+    }
     for (dof = 0, i = 1 ; i < argc-1 ; i++) 
     {
       if (*argv[i] == '-')   /* don't do transform for next subject */
@@ -255,11 +270,24 @@ main(int argc, char *argv[])
         switch (type)
         {
         default:
+        case MNI_TRANSFORM_TYPE:
         case TRANSFORM_ARRAY_TYPE:
           lta = LTAread(fname) ;
           if (!lta)
             ErrorExit(ERROR_NOFILE, "%s: could not open transform file %s\n",
                       Progname, fname) ;
+          if (xform_mean_fname)
+          {
+            MATRIX *m_ras ;
+
+            m_ras = MRIvoxelXformToRasXform(mri_T1,mri_T1,lta->xforms[0].m_L,
+                                            NULL);
+            m_xforms[sno] = m_ras ;
+            MatrixAdd(m_xform_mean, m_xforms[sno], m_xform_mean) ;
+            sno++ ;
+          }
+          if (stats_only)
+            continue ;
           mri_tmp = LTAtransform(mri_T1, NULL, lta) ;
           LTAfree(&lta) ;
           break ;
@@ -286,11 +314,55 @@ main(int argc, char *argv[])
           ErrorExit(ERROR_NOMEMORY, "%s: could not allocate templates.\n",
                     Progname) ;
       }
-    
-      fprintf(stderr, "updating mean and variance estimates...\n") ;
-      MRIaccumulateMeansAndVariances(mri_T1, mri_mean, mri_std) ;
+
       MRIfree(&mri_T1) ;
     }
+
+    if (xform_mean_fname)
+    {
+      FILE   *fp ;
+      VECTOR *v = NULL, *vT = NULL ;
+      MATRIX *m_vvT = NULL ;
+      int    rows, cols ;
+
+      nsubjects = sno ;
+
+      fp = fopen(xform_covariance_fname, "w") ;
+      if (!fp)
+        ErrorExit(ERROR_NOFILE, "%s: could not open covariance file %s",
+                  Progname, xform_covariance_fname) ;
+      fprintf(fp, "nsubjects=%d\n", nsubjects) ;
+
+      MatrixScalarMul(m_xform_mean, 1.0/(double)nsubjects, m_xform_mean) ;
+      printf("means:\n") ;
+      MatrixPrint(stdout, m_xform_mean) ;
+      MatrixAsciiWrite(xform_mean_fname, m_xform_mean) ;
+
+      /* subtract the mean from each transform */
+      rows = m_xform_mean->rows ; cols = m_xform_mean->cols ; 
+      for (sno = 0 ; sno < nsubjects ; sno++)
+      {
+        MatrixSubtract(m_xforms[sno], m_xform_mean, m_xforms[sno]) ;
+        v = MatrixReshape(m_xforms[sno], v, rows*cols, 1) ;
+        vT = MatrixTranspose(v, vT) ;
+        m_vvT = MatrixMultiply(v, vT, m_vvT) ;
+        if (!m_xform_covariance)
+          m_xform_covariance = 
+            MatrixAlloc(m_vvT->rows, m_vvT->cols,MATRIX_REAL) ;
+        MatrixAdd(m_vvT, m_xform_covariance, m_xform_covariance) ;
+        MatrixAsciiWriteInto(fp, m_xforms[sno]) ;
+      }
+
+      MatrixScalarMul(m_xform_covariance, 1.0/(double)nsubjects, 
+                      m_xform_covariance) ;
+      printf("covariance:\n") ;
+      MatrixPrint(stdout, m_xform_covariance) ;
+      MatrixAsciiWriteInto(fp, m_xform_covariance) ;
+      fclose(fp) ;
+      if (stats_only)
+        exit(0) ;
+    }
+
     MRIcomputeMeansAndStds(mri_mean, mri_std, dof) ;
 
     mri_mean->dof = dof ;
@@ -304,8 +376,12 @@ main(int argc, char *argv[])
     mri = MRIfloatToChar(mri_std, NULL) ;
     if (dof <= 1) /* can't calulate variances - set them to reasonable val */
       MRIreplaceValues(mri, mri, 0, 1) ;
-    MRIappend(mri, out_fname) ;
+    if (!var_fname)
+      MRIappend(mri, out_fname) ;
+    else
+      MRIwrite(mri, var_fname) ;
     MRIfree(&mri_std) ; MRIfree(&mri) ;
+
   }
 
   exit(0) ;
@@ -329,8 +405,24 @@ get_option(int argc, char *argv[])
     fprintf(stderr,"reading T1 volume from directory '%s'\n",T1_name) ;
     nargs = 1 ;
   }
+  else if (!stricmp(option, "statsonly"))
+  {
+    stats_only = 1 ;
+  }
   else switch (toupper(*option))
   {
+  case 'X':
+    xform_mean_fname = argv[2] ;
+    xform_covariance_fname = argv[3] ;
+    printf("writing means (%s) and covariances (%s) of xforms\n",
+           xform_mean_fname, xform_covariance_fname) ;
+    nargs = 2 ;
+    break ;
+  case 'V':
+    var_fname = argv[2] ;
+    nargs = 1 ;
+    fprintf(stderr, "writing variances to %s...\n", var_fname) ;
+    break ;
   case 'B':
     binary_name = argv[2] ;
     fprintf(stderr, "generating binary template from %s volume\n", 
