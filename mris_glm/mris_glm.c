@@ -4,7 +4,7 @@
   email:   analysis-bugs@nmr.mgh.harvard.edu
   Date:    2/27/02
   Purpose: Computes glm inferences on the surface.
-  $Id: mris_glm.c,v 1.27 2004/08/02 22:08:10 greve Exp $
+  $Id: mris_glm.c,v 1.28 2004/08/24 23:04:35 greve Exp $
 
 Things to do:
   0. Documentation.
@@ -73,7 +73,7 @@ static char *getstem(char *bfilename);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mris_glm.c,v 1.27 2004/08/02 22:08:10 greve Exp $";
+static char vcid[] = "$Id: mris_glm.c,v 1.28 2004/08/24 23:04:35 greve Exp $";
 char *Progname = NULL;
 
 char *hemi        = NULL;
@@ -196,7 +196,7 @@ int main(int argc, char **argv)
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option (argc, argv, 
-      "$Id: mris_glm.c,v 1.27 2004/08/02 22:08:10 greve Exp $", "$Name:  $");
+      "$Id: mris_glm.c,v 1.28 2004/08/24 23:04:35 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -662,7 +662,7 @@ static int parse_commandline(int argc, char **argv)
       if(nargc < 2) argnerr(option,2);
       nargsused = 0;
       while( nth_is_arg(nargc, pargv, nargsused) ){
-	inputlist[nargsused] = pargv[nargsused];
+	inputlist[ninputs] = pargv[nargsused];
 	nargsused ++;
 	ninputs++;
       }
@@ -940,7 +940,8 @@ static void print_usage(void)
   printf("   --mcsim nsim fname nithr ithrlo ithrhi ithrsign nsthr sthrlo sthrhi: "
 	 "MC Simulation.\n");
   printf("\n");
-  printf("   --force              : force processing with badly cond X\n");
+  printf("   --allowsubjrep : allow subject name to be replicated\n");
+  printf("   --force : force processing with badly cond X\n");
   printf("   --sd    subjectsdir : default is env SUBJECTS_DIR\n");
   printf("\n");
   printf("   --version : print version and exit\n");
@@ -1239,8 +1240,8 @@ static void print_help(void)
 "\n"
 "--allowsubjrep\n"
 "\n"
-"Allow repetitions in the subject name in the fsgdf file. This is\n"
-"only usefull for testing purposes.\n"
+"Allow repetitions in the subject name in the fsgdf file. This can\n"
+"be usefull when the input is specified with --i.\n"
 "\n"
 "\n"
 "OUTPUT FORMATS:\n"
