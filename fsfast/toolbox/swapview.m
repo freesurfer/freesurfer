@@ -1,7 +1,7 @@
 function r = swapview(varargin)
 % r = swapview(varargin)
 
-version = '$Id: swapview.m,v 1.9 2004/01/25 19:49:02 greve Exp $';
+version = '$Id: swapview.m,v 1.10 2004/05/18 21:40:02 greve Exp $';
 r = 1;
 
 %% Print usage if there are no arguments %%
@@ -11,6 +11,7 @@ if(nargin == 0)
 end
 
 hcurrentfig = get(0,'CurrentFigure');
+
 %--------------- Initialize if needed -----------------%
 init = 0;
 flag = deblank(varargin{1});
@@ -164,8 +165,6 @@ if(~isempty(strmatch(flag,'-init')) | isempty(hcurrentfig))
   % force an event to get things rolling %
   swapview('r');
   
-
-  
   return;
 end
 %---------------------------------------------------------%
@@ -174,6 +173,7 @@ end
 
 %----------- Parse the call-back function ----------%
 s = get(gcf,'UserData');
+if(~isfield(s,'swapview')) return; end
 figure(s.hfig);
 redraw = 0;
 switch(flag)
@@ -484,6 +484,7 @@ return
 %--------------------------------------------------%
 %% Default data structure
 function s = main_struct
+  s.swapview       = 1;
   s.MarkerOn       = 1;
   s.hMarker        = [];
   s.vol1           = [];
