@@ -31,23 +31,10 @@ MRI *MRIconform(MRI *mri)
   /* conform voxel sizes if needed */
   if(!(mri->xsize == 1 && mri->ysize == 1 && mri->zsize == 1))
   {
-
     temp = conform_voxels(mri);
     MRIfree(&mri);
     mri = temp;
     copied_flag = 1;
-
-/*
-    temp = MRIallocSequence(mri->width, mri->height, mri->depth, mri->type, 1);
-    MRIcopyHeader(mri, temp);
-    temp->width = temp->height = temp->depth = 256;
-    temp->xsize = temp->ysize = temp->zsize = 1;
-    MRIinterpolate(mri, temp);
-    MRIfree(&mri);
-    mri = temp;
-    copied_flag = 1;
-*/
-
   }
 
   /* conform volume size if needed (256x256x256) */
@@ -356,6 +343,8 @@ MRI *conform_size(MRI *mri)
 {
 
   MRI *mri2;
+  int pre_x, pre_y, pre_z;
+  int i, j;
 
   if(mri->slices == NULL)
   {
@@ -366,7 +355,18 @@ MRI *conform_size(MRI *mri)
   else
     mri2 = MRIalloc(256, 256, 256, mri->type);
 
-  
+  pre_x = (int)((256 - mri->width) / 2);
+  pre_y = (int)((256 - mri->height) / 2);
+  pre_z = (int)((256 - mri->depth) / 2);
+
+  for(i = 0;i < 256;i++)
+    for(j = 0;j < 256;j++)
+      bzero(mri2->slices[i][j], 256);
+
+ 
+ for(i = 0;i < mri->depth;i++)
+    for(j = 0;j < mri->height;j++)
+      memcpy(&(mri2->slices[i+pre_z][j+pre_y][pre_x]), &(mri->slices[i][j][0]), mri->width);
 
   return(mri2);
 
