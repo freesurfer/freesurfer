@@ -1,6 +1,6 @@
 /*----------------------------------------------------------
   Name: mri_annotation2label.c
-  $Id: mri_annotation2label.c,v 1.6 2002/12/11 21:01:40 greve Exp $
+  $Id: mri_annotation2label.c,v 1.7 2003/04/15 17:40:10 kteich Exp $
   Author: Douglas Greve
   Purpose: Converts an annotation to a labels.
 
@@ -17,6 +17,7 @@
 #include "mrisurf.h"
 #include "label.h"
 #include "annotation.h"
+#include "version.h"
 
 static int  parse_commandline(int argc, char **argv);
 static void check_options(void);
@@ -30,7 +31,7 @@ static int  singledash(char *flag);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_annotation2label.c,v 1.6 2002/12/11 21:01:40 greve Exp $";
+static char vcid[] = "$Id: mri_annotation2label.c,v 1.7 2003/04/15 17:40:10 kteich Exp $";
 char *Progname = NULL;
 
 char  *subject   = NULL;
@@ -63,6 +64,13 @@ int main(int argc, char **argv)
   VERTEX *vtx;
   int nthpoint,err,vtxno,ano,ani,vtxani,animax;
   int annotnum;
+  int nargs;
+
+  /* rkt: check for and handle version tag */
+  nargs = handle_version_option (argc, argv, "$Id: mri_annotation2label.c,v 1.7 2003/04/15 17:40:10 kteich Exp $");
+  if (nargs && argc - nargs == 1)
+    exit (0);
+  argc -= nargs;
 
   annotation_table_file = NULL; /* defined in annoation.h */
 

@@ -10,6 +10,7 @@
 #include "proto.h"
 #include "mrinorm.h"
 #include "mriclass.h"
+#include "version.h"
 
 int main(int argc, char *argv[]) ;
 static int get_option(int argc, char *argv[]) ;
@@ -29,6 +30,12 @@ main(int argc, char *argv[])
   FILE   *fp ;
   int    fno, nfiles ;
   MRI    *mri_src, *mri_target, *mri_wm, *mri_priors = NULL ;
+
+  /* rkt: check for and handle version tag */
+  nargs = handle_version_option (argc, argv, "$Id: mri_build_priors.c,v 1.5 2003/04/15 17:42:27 kteich Exp $");
+  if (nargs && argc - nargs == 1)
+    exit (0);
+  argc -= nargs;
 
   Progname = argv[0] ;
   ErrorInit(NULL, NULL, NULL) ;

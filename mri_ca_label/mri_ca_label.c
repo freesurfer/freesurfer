@@ -16,6 +16,7 @@
 #include "cma.h"
 #include "histo.h"
 #include "mrinorm.h"
+#include "version.h"
 
 static char *example_T1 = NULL ;
 static char *example_segmentation = NULL ;
@@ -105,6 +106,12 @@ main(int argc, char *argv[])
   struct timeb start ;
   GCA          *gca ;
   TRANSFORM     *transform ;
+
+  /* rkt: check for and handle version tag */
+  nargs = handle_version_option (argc, argv, "$Id: mri_ca_label.c,v 1.36 2003/04/15 17:43:04 kteich Exp $");
+  if (nargs && argc - nargs == 1)
+    exit (0);
+  argc -= nargs;
 
   setRandomSeed(-1L) ;
   Progname = argv[0] ;
