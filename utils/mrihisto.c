@@ -727,6 +727,72 @@ MRIhistogram(MRI *mri, int nbins)
   }
   return(histo) ;
 }
+HISTOGRAM  *
+MRIhistogramLabelRegion(MRI *mri, MRI *mri_labeled, MRI_REGION *region, int label, int nbins)
+{
+  int        width, height, depth, x, y, z, bin_no, x0, x1, y0, y1, z0, z1 ;
+  HISTOGRAM  *histo ;
+  float      fmin, fmax, bin_size ;
+  BUFTYPE    *psrc ;
+  int        val, bmin, bmax ;
+  float      fval;
+
+  MRIvalRangeRegion(mri, &fmin, &fmax, region) ;
+  bmin = (int)fmin ; bmax = (int)fmax ;
+  if (!nbins)
+    nbins = nint(fmax - fmin + 1.5) ;
+
+  histo = HISTOalloc(nbins) ;
+
+  bin_size = (fmax - fmin + 1) / (float)nbins ;
+  width = mri->width ;
+  height = mri->height ;
+  depth = mri->depth ;
+
+  for (bin_no = 0 ; bin_no < nbins ; bin_no++)
+    histo->bins[bin_no] = (bin_no+1)*bin_size+fmin ;
+	x0 = MAX(0, region->x) ; y0 = MAX(0, region->y) ; z0 = MAX(0, region->z) ;
+	x1 = MIN(width, region->x+region->dx) ;
+	y1 = MIN(height, region->y+region->dy) ;
+	z1 = MIN(depth, region->z+region->dz) ;
+  for (z = z0 ; z < z1 ; z++)
+  {
+    for (y = y0 ; y < y1 ; y++)
+    {
+      for (x = x0 ; x < x1 ; x++)
+      {
+        if (MRIvox(mri_labeled, x, y, z) != label)
+          continue ;
+        switch (mri->type)
+        {
+        case MRI_UCHAR:
+          /* 0 -> x */
+          psrc = &MRIvox(mri, x, y, z) ;
+          val = *psrc++ ;  
+          bin_no = (int)((float)(val - bmin) / (float)bin_size) ;
+          histo->counts[bin_no]++ ;
+          break ;
+        case MRI_SHORT:
+          val = MRISvox(mri, x, y, z) ;
+          bin_no = (int)((float)(val - bmin) / (float)bin_size) ;
+          histo->counts[bin_no]++ ;
+          break ;
+        case MRI_FLOAT:
+          fval = MRIFvox(mri, x, y, z);
+          bin_no = (int)((fval - fmin) / (float)bin_size);
+          histo->counts[bin_no]++;
+          break;
+          
+        default:
+          ErrorReturn(NULL, (ERROR_UNSUPPORTED,
+                             "MRIhistogramLabelRegion: unsupported type %d",mri->type));
+          break ;
+        }
+      }
+    }
+  }
+  return(histo) ;
+}
 /*-----------------------------------------------------
         Parameters:
 

@@ -2,7 +2,7 @@
    DICOM 3.0 reading functions
    Author: Sebastien Gicquel and Douglas Greve
    Date: 06/04/2001
-   $Id: DICOMRead.c,v 1.53 2004/04/26 16:32:05 tosa Exp $
+   $Id: DICOMRead.c,v 1.54 2004/05/06 18:01:24 fischl Exp $
 *******************************************************/
 
 #include <stdio.h>
@@ -1420,7 +1420,7 @@ int DumpSDCMFileInfo(FILE *fp, SDCMFILEINFO *sdcmfi)
   fprintf(fp,"\tProtocol          %s\n",sdcmfi->ProtocolName);
   fprintf(fp,"\tPhEncDir          %s\n",sdcmfi->PhEncDir);
   fprintf(fp,"\tEchoNo            %d\n",sdcmfi->EchoNo);
-  fprintf(fp,"\tFlipAngle         %g\n",sdcmfi->FlipAngle);
+  fprintf(fp,"\tFlipAngle         %g\n",DEGREES(sdcmfi->FlipAngle));
   fprintf(fp,"\tEchoTime          %g\n",sdcmfi->EchoTime);
   fprintf(fp,"\tInversionTime     %g\n",sdcmfi->InversionTime);
   fprintf(fp,"\tRepetitionTime    %g\n",sdcmfi->RepetitionTime);

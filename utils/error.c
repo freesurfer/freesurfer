@@ -113,7 +113,10 @@ ErrorExit(int ecode, char *fmt, ...)
   if (hipserrno)
     perr(ecode, "Hips error:") ;
 
-  (*error_exit)(ecode) ;
+	if (error_exit)
+		(*error_exit)(ecode) ;
+	else
+		exit(ecode) ;
 }
 
 /*-----------------------------------------------------
