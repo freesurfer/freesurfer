@@ -136,7 +136,7 @@ MWin_tErr MWin_SetHeadPointList         ( tkmMeditWindowRef this,
 MWin_tErr MWin_SetGCA           ( tkmMeditWindowRef this,
      int       inDispIndex,
      GCA*       iVolume,
-     LTA*       iTransform );
+     TRANSFORM* iTransform );
 MWin_tErr MWin_SetVLIs            ( tkmMeditWindowRef this,
      int       inDispIndex,
      VLI*       iVLI1,

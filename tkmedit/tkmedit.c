@@ -16,6 +16,7 @@
 #include "diag.h"
 #include "utils.h"
 #include "const.h"
+#include "transform.h"
 
 #include "tkmedit.h"
 
@@ -571,7 +572,7 @@ void AlignSelectedHeadPointToAnaIdx ( xVoxelRef iAnaIdx );
 #include "gca.h"
 
 GCA* gGCAVolume    = NULL;
-LTA* gGCATransform = NULL;
+TRANSFORM* gGCATransform = NULL;
 int gDisplayIntermediateResults = True ;
 
 tkm_tErr SaveGCA   ( char* isGCAFileName);
@@ -2928,7 +2929,7 @@ int TclUnloadGCA ( ClientData inClientData,
     if (gGCAVolume)
       GCAfree(&gGCAVolume) ;
     if (gGCATransform)
-      LTAfree(&gGCATransform) ;
+      TransformFree(&gGCATransform) ;
   }
 
   return TCL_OK;
@@ -8255,7 +8256,7 @@ tkm_tErr LoadGCA ( char* isGCAFileName, char* isTransformFileName ) {
   char      sGCAFileName[tkm_knPathLen]         = "";
   char      sTransformFileName[tkm_knPathLen]   = "";
   GCA*      gca                                 = NULL;
-  LTA*      lta                                 = NULL;
+  TRANSFORM*trans                                 = NULL;
   char      sError[tkm_knErrStringLen]          = "";
 
   DebugEnterFunction( ("LoadGCA( isGCAFileName=%s, isTransformFileName=%s )",
@@ -8275,15 +8276,16 @@ tkm_tErr LoadGCA ( char* isGCAFileName, char* isTransformFileName ) {
   DebugAssertThrowX( (NULL != gca), eResult, tkm_tErr_CouldntLoadGCA );
 
   /* load transform */
-  DebugNote( ("Loading LTA with LTAread") );
-  lta = LTAread( sTransformFileName );
-  DebugAssertThrowX( (NULL != lta), eResult, tkm_tErr_CouldntLoadTransform );
+  DebugNote( ("Loading TRANSFORM with TransformRead") );
+  trans = TransformRead( sTransformFileName );
+  DebugAssertThrowX( (NULL != trans), eResult, tkm_tErr_CouldntLoadTransform );
+  TransformInvert(trans, gAnatomicalVolume[tkm_tVolumeType_Main]->mpMriValues) ;
 
   /* set globals */
   gGCAVolume    = gca;
-  gGCATransform = lta;
+  gGCATransform = trans;
   gca           = NULL;
-  lta           = NULL;
+  trans         = NULL;
 
   /* set in window */
   MWin_SetGCA( gMeditWindow, -1, gGCAVolume, gGCATransform );
@@ -8361,7 +8363,7 @@ tkm_tErr DeleteGCA () {
   if( NULL != gGCAVolume )
     GCAfree( &gGCAVolume );
   if( NULL != gGCATransform )
-    LTAfree( &gGCATransform );
+    TransformFree( &gGCATransform );
 
   DebugExitFunction;
   

@@ -16,7 +16,7 @@
 #include <math.h>
 #include <string.h>
 
-#include "mrimorph.h"
+#include "gcamorph.h"
 #include "mri.h"
 #include "mrinorm.h"
 #include "diag.h"
@@ -66,6 +66,11 @@ LTAalloc(int nxforms, MRI *mri)
   if (!lta->xforms)
     ErrorExit(ERROR_NOMEMORY, "LTAalloc(%d): could not allocate xforms",
               nxforms);
+  lta->inv_xforms = (LINEAR_TRANSFORM *)calloc(nxforms, sizeof(LT)) ;
+  if (!lta->inv_xforms)
+    ErrorExit(ERROR_NOMEMORY, 
+              "LTAalloc(%d): could not allocate inverse xforms",
+              nxforms);
   for (i = 0 ; i < nxforms ; i++)
   {
     lta->xforms[i].x0 = x0 ; 
@@ -75,6 +80,14 @@ LTAalloc(int nxforms, MRI *mri)
     lta->xforms[i].m_L = MatrixIdentity(4, NULL) ;
     lta->xforms[i].m_dL = MatrixAlloc(4, 4, MATRIX_REAL) ;
     lta->xforms[i].m_last_dL = MatrixAlloc(4, 4, MATRIX_REAL) ;
+
+    lta->inv_xforms[i].x0 = x0 ; 
+    lta->inv_xforms[i].y0 = y0 ; 
+    lta->inv_xforms[i].z0 = z0 ;
+    lta->inv_xforms[i].sigma = 10000.0f ;
+    lta->inv_xforms[i].m_L = MatrixIdentity(4, NULL) ;
+    lta->inv_xforms[i].m_dL = MatrixAlloc(4, 4, MATRIX_REAL) ;
+    lta->inv_xforms[i].m_last_dL = MatrixAlloc(4, 4, MATRIX_REAL) ;
   }
   return(lta) ;
 }
@@ -232,6 +245,10 @@ LTAfree(LTA **plta)
     MatrixFree(&lta->xforms[i].m_L) ;
     MatrixFree(&lta->xforms[i].m_dL) ;
     MatrixFree(&lta->xforms[i].m_last_dL) ;
+
+    MatrixFree(&lta->inv_xforms[i].m_L) ;
+    MatrixFree(&lta->inv_xforms[i].m_dL) ;
+    MatrixFree(&lta->inv_xforms[i].m_last_dL) ;
   }
   free(lta->xforms) ;
   free(lta) ;
@@ -927,4 +944,222 @@ int FixMNITal(float  xmni, float  ymni, float  zmni,
   MatrixFree(&xyzTal);
 
   return(0);
+}
+TRANSFORM *
+TransformRead(char *fname)
+{
+  TRANSFORM *trans ;
+  GCA_MORPH *gcam ;
+
+  trans = (TRANSFORM *)calloc(1, sizeof(TRANSFORM)) ;
+
+  trans->type = TransformFileNameType(fname) ;
+  switch (trans->type)
+  {
+  case MNI_TRANSFORM_TYPE:
+  case LINEAR_VOX_TO_VOX:
+  case LINEAR_RAS_TO_RAS:
+  case TRANSFORM_ARRAY_TYPE:
+  default:
+    trans->xform = (void *)LTAread(fname) ;
+    break ;
+  case MORPH_3D_TYPE:
+    gcam = GCAMread(fname) ;
+    if (!gcam)
+    {
+      free(trans) ;
+      return(NULL) ;
+    }
+    trans->xform = (void *)gcam ;
+    break ;
+  }
+  return(trans) ;
+}
+
+
+int
+TransformFree(TRANSFORM **ptrans)
+{
+  TRANSFORM *trans ;
+  
+  trans = *ptrans ; *ptrans = NULL ;
+
+  switch (trans->type)
+  {
+  default:
+    LTAfree((LTA **)(&trans->xform)) ;
+    break ;
+  case MORPH_3D_TYPE:
+    GCAMfree((GCA_MORPH **)(&trans->xform)) ;
+    break ;
+  }
+  free(trans) ;
+    
+  return(NO_ERROR) ;
+}
+
+/*
+  take a voxel in MRI space and find the voxel in the gca/gcamorph space to which
+  it maps. Note that the caller will scale this down depending on the spacing of
+  the gca/gcamorph.
+*/
+int
+TransformSample(TRANSFORM *transform, int xv, int yv, int zv, float *px, float *py, float *pz)
+{
+  static VECTOR   *v_input, *v_canon = NULL ;
+  float           xt, yt, zt ;
+  LTA             *lta ;
+  GCA_MORPH       *gcam ;
+
+  *px = *py = *pz = 0 ;
+  if (transform->type == MORPH_3D_TYPE)
+  {
+    gcam = (GCA_MORPH *)transform->xform ;
+    if (!gcam->mri_xind)
+      ErrorReturn(ERROR_UNSUPPORTED, 
+                  (ERROR_UNSUPPORTED, "TransformSample: gcam has not been inverted!")) ;
+    if (xv < 0)
+      xv = 0 ;
+    if (xv >= gcam->mri_xind->width)
+      xv = gcam->mri_xind->width-1 ;
+    if (yv < 0)
+      yv = 0 ;
+    if (yv >= gcam->mri_yind->height)
+      yv = gcam->mri_yind->height-1 ;
+    if (zv < 0)
+      zv = 0 ;
+    if (zv >= gcam->mri_zind->depth)
+      zv = gcam->mri_zind->depth-1 ;
+    xt = (int)MRISvox(gcam->mri_xind, xv, yv, zv)*gcam->spacing ;
+    yt = (int)MRISvox(gcam->mri_yind, xv, yv, zv)*gcam->spacing ;
+    zt = (int)MRISvox(gcam->mri_zind, xv, yv, zv)*gcam->spacing ;
+  }
+  else
+  {
+    lta = (LTA *)transform->xform ;
+    if (!v_canon)
+    {
+      v_input = VectorAlloc(4, MATRIX_REAL) ;
+      v_canon = VectorAlloc(4, MATRIX_REAL) ;
+      *MATRIX_RELT(v_input, 4, 1) = 1.0 ;
+      *MATRIX_RELT(v_canon, 4, 1) = 1.0 ;
+    }
+    
+    V3_X(v_input) = (float)xv;
+    V3_Y(v_input) = (float)yv;
+    V3_Z(v_input) = (float)zv;
+    MatrixMultiply(lta->xforms[0].m_L, v_input, v_canon) ;
+    xt = V3_X(v_canon) ; yt = V3_Y(v_canon) ; zt = V3_Z(v_canon) ; 
+  }
+  *px = xt ; *py = yt ; *pz = zt ;
+  return(NO_ERROR) ;
+}
+/*
+  take a voxel in gca/gcamorph space and find the MRI voxel to which
+  it maps
+*/
+int
+TransformSampleInverse(TRANSFORM *transform, int xv, int yv, int zv, float *px, float *py, float *pz)
+{
+  static VECTOR  *v_input, *v_canon = NULL ;
+  static MATRIX  *m_L_inv ;
+  float          xt, yt, zt ;
+  int            xn, yn, zn ;
+  LTA            *lta ;
+  GCA_MORPH      *gcam ;
+  GCA_MORPH_NODE *gcamn ;
+
+  if (transform->type == MORPH_3D_TYPE)
+  {
+    gcam = (GCA_MORPH *)transform->xform ;
+    xn = nint(xv/gcam->spacing) ; yn = nint(yv/gcam->spacing) ; zn = nint(zv/gcam->spacing) ;
+    gcamn = &gcam->nodes[xn][yn][zn] ;
+    xt = gcamn->x ; yt = gcamn->y ; zt = gcamn->z ; 
+  }
+  else
+  {
+    lta = (LTA *)transform->xform ;
+    if (!v_canon)
+    {
+      v_input = VectorAlloc(4, MATRIX_REAL) ;
+      v_canon = VectorAlloc(4, MATRIX_REAL) ;
+      *MATRIX_RELT(v_input, 4, 1) = 1.0 ;
+      *MATRIX_RELT(v_canon, 4, 1) = 1.0 ;
+      m_L_inv = MatrixAlloc(4, 4, MATRIX_REAL) ;
+    }
+    
+    V3_X(v_canon) = (float)xv; V3_Y(v_canon) = (float)yv; V3_Z(v_canon) = (float)zv;
+#if 0
+    MatrixInverse(lta->xforms[0].m_L, m_L_inv) ;
+    MatrixMultiply(m_L_inv, v_canon, v_input) ;
+#else
+    MatrixMultiply(lta->inv_xforms[0].m_L, v_canon, v_input) ;
+#endif
+    xt = V3_X(v_input) ; yt = V3_Y(v_input) ; zt = V3_Z(v_input) ; 
+  }
+  *px = xt ; *py = yt ; *pz = zt ;
+  return(NO_ERROR) ;
+}
+int
+TransformSampleInverseVoxel(TRANSFORM *transform, int width, int height, int depth,
+                            int xv, int yv, int zv, 
+                            int *px, int *py, int *pz)
+{
+  float   xf, yf, zf ;
+
+  TransformSampleInverse(transform, xv, yv, zv, &xf, &yf, &zf) ;
+  xv = nint(xf) ; yv = nint(yf); zv = nint(zf);
+  if (xv < 0) xv = 0 ;
+  if (xv >= width) xv = width-1 ;
+  if (yv < 0) yv = 0 ;
+  if (yv >= height) yv = height-1 ;
+  if (zv < 0) zv = 0 ;
+  if (zv >= depth) zv = depth-1 ;
+  *px = xv ; *py = yv ; *pz = zv ;
+  return(NO_ERROR) ;
+}
+
+
+TRANSFORM *
+TransformAlloc(int type, MRI *mri)
+{
+  TRANSFORM *transform ;
+
+  
+  switch (type)
+  {
+  default:
+    transform = (TRANSFORM *)calloc(1, sizeof(TRANSFORM)) ;
+    transform->type = type ;
+    transform->xform = (void *)LTAalloc(1, mri) ;
+    break ;
+  case MORPH_3D_TYPE:
+    ErrorReturn(NULL, (ERROR_UNSUPPORTED,
+                       "TransformAlloc(MORPH_3D_TYPE): unsupported")) ;
+    break ;
+  }
+  return(transform) ;
+}
+
+int
+TransformInvert(TRANSFORM *transform, MRI *mri)
+{
+  LTA       *lta ;
+  GCA_MORPH *gcam ;
+
+  switch (transform->type)
+  {
+  default:
+    lta = (LTA *)transform->xform ;
+    if (MatrixInverse(lta->xforms[0].m_L, lta->inv_xforms[0].m_L) == NULL)
+      ErrorExit(ERROR_BADPARM, "TransformInvert: xform noninvertible") ;
+    break ;
+  case MORPH_3D_TYPE:
+    if (!mri)
+      return(NO_ERROR) ;
+    gcam = (GCA_MORPH *)transform->xform ;
+    GCAMinvert(gcam, mri) ;
+    break ;
+  }
+  return(NO_ERROR) ;
 }

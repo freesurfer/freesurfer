@@ -62,6 +62,7 @@ typedef struct
   float      factor ;               /* for stabilizing integration */
   GCAS       *gcas ;
   int        nsamples ;
+  TRANSFORM  *transform ;
 } MORPH_PARMS, MP ;
 
 

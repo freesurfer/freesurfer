@@ -1029,7 +1029,7 @@ MWin_tErr MWin_SetVLIs                        ( tkmMeditWindowRef this,
 MWin_tErr MWin_SetGCA ( tkmMeditWindowRef   this, 
       int                 inDispIndex,
       GCA*                iVolume,
-      LTA*                iTransform ) {
+      TRANSFORM*          iTransform ) {
 
   MWin_tErr eResult     = MWin_tErr_NoErr;
   DspA_tErr eDispResult = DspA_tErr_NoErr;

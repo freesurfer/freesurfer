@@ -4308,7 +4308,7 @@ mriWriteImageView(MRI *mri, char *base_name, int target_size, int view,
     {
     default:
     case MRI_CORONAL:    slice = mri->depth/2; break ;
-    case MRI_SAGITTAL:   slice = mri->width/3 ; break ;
+    case MRI_SAGITTAL:   slice = 6*mri->width/10 ; break ;
     case MRI_HORIZONTAL: slice = mri->height/2 ; break ;
     }
   }
@@ -7314,6 +7314,7 @@ computeEMAlignmentGradient(float *p, float *g)
   MP     *parms ;
   GCA    *gca ;
   GCA_SAMPLE *gcas ;
+  TRANSFORM *transform ;
 
   gca = g_gca ; parms = g_parms ; mri_in = g_mri_in ;
   gcas = parms->gcas ;
@@ -7341,16 +7342,19 @@ computeEMAlignmentGradient(float *p, float *g)
   v_dI = VectorAlloc(4, MATRIX_REAL) ;   /* gradient of target image */
 
 
+  transform = TransformAlloc(LINEAR_VOX_TO_VOX, NULL) ;
+  MatrixCopy(m_L, ((LTA *)(transform->xform))->xforms[0].m_L) ;
+  TransformInvert(transform, NULL) ;
   for (i = 0 ; i < parms->nsamples ; i++)
   {
     xn = gcas[i].xn ; yn = gcas[i].yn ; zn = gcas[i].zn ; 
-    GCAnodeToSourceVoxel(gca, mri_in, m_L, xn, yn, zn, &xv, &yv, &zv) ;
+    GCAnodeToSourceVoxel(gca, mri_in, transform, xn, yn, zn, &xv, &yv, &zv) ;
     
     V3_X(v_X) = xv ; V3_Y(v_X) = yv ; V3_Z(v_X) = zv ;
     in_val = MRIvox(mri_in, xv, yv, zv) ; 
     ref_val = gcas[i].mean ; std = sqrt(gcas[i].var) ;
     MatrixTranspose(v_X, v_X_T) ;
-    
+
     if (DZERO(std))
       std = 1 ;
     MRIsampleVolumeGradient(mri_in, xv, yv, zv, &dx, &dy, &dz) ;
@@ -7387,7 +7391,7 @@ static float
 computeEMAlignmentErrorFunctional(float *p)
 {
   float   log_p ;
-  LTA     *lta ;
+  LTA     *lta, *old_lta ;
   MATRIX  *m_L ;
   int     row, col, i ;
   GCA     *gca ;
@@ -7409,8 +7413,11 @@ computeEMAlignmentErrorFunctional(float *p)
   }
   m_L->rptr[4][1] = m_L->rptr[4][2] = m_L->rptr[4][3] = 0 ;
   m_L->rptr[4][4] = 1.0 ;
+  old_lta = (LTA *)parms->transform->xform ;
+  parms->transform->xform = (void *)lta ;
   log_p = GCAcomputeLogSampleProbability(gca,parms->gcas,g_mri_in,
-                                         m_L,parms->nsamples);
+                                         parms->transform,parms->nsamples);
+  parms->transform->xform = (void *)old_lta ;
   LTAfree(&lta) ;
   return(-log_p) ;
 }
@@ -7616,11 +7623,18 @@ MRIemAlign(MRI *mri_in, GCA *gca, MORPH_PARMS *parms, MATRIX *m_L)
   char   base_name[STRLEN] ;
   float  pcurrent, pold ;
 
-  if (!parms->lta)
-    parms->lta = LTAalloc(1, NULL) ;
+  if (!parms->transform)
+  {
+    parms->transform = TransformAlloc(LINEAR_VOX_TO_VOX, NULL) ;
+    parms->lta = (LTA *)parms->transform->xform ;
+  }
 
   if (m_L)
+  {
     parms->lta->xforms[0].m_L = MatrixCopy(m_L, parms->lta->xforms[0].m_L);
+    parms->transform->xform = (void *)parms->lta ;
+  }
+
   if (DZERO(parms->dt))
     parms->dt = 1e-6 ;
 
@@ -7653,7 +7667,7 @@ MRIemAlign(MRI *mri_in, GCA *gca, MORPH_PARMS *parms, MATRIX *m_L)
     /* E step */
   pcurrent = 
     -GCAcomputeLogSampleProbability(gca,parms->gcas,mri_in,
-                                   parms->lta->xforms[0].m_L,parms->nsamples);
+                                    parms->transform,parms->nsamples);
 
 #if 0
   printf("%03d: p = %2.1f\n", 0, pcurrent) ;
@@ -7668,7 +7682,7 @@ MRIemAlign(MRI *mri_in, GCA *gca, MORPH_PARMS *parms, MATRIX *m_L)
 
     pcurrent = 
       -GCAcomputeLogSampleProbability(gca,parms->gcas,mri_in,
-                                   parms->lta->xforms[0].m_L,parms->nsamples);
+                                      parms->transform,parms->nsamples);
     printf("%03d: -log(p) = %2.1f\n",++i, pcurrent) ;
   } while(((pcurrent - pold) / (pold)) > parms->tol) ;
 

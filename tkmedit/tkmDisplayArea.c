@@ -914,7 +914,7 @@ DspA_tErr DspA_SetVLIs                        ( tkmDisplayAreaRef this,
   if( DspA_tErr_NoErr != eResult )
     goto error;
 
-  /* save the VLIs and LTA */
+  /* save the VLIs and TRANSFORM */
   this->mVLI1    = iVLI1;
   this->mVLI2    = iVLI2;
   strcpy(this->isVLI1_name, isVLI1_name) ;
@@ -938,7 +938,7 @@ DspA_tErr DspA_SetVLIs                        ( tkmDisplayAreaRef this,
 
 DspA_tErr DspA_SetGCA ( tkmDisplayAreaRef   this, 
       GCA*                iVolume,
-      LTA*                iTransform ) {
+      TRANSFORM*          iTransform ) {
 
   DspA_tErr eResult            = DspA_tErr_NoErr;
 

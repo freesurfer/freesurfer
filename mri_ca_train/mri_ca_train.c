@@ -18,9 +18,14 @@ int main(int argc, char *argv[]) ;
 static int get_option(int argc, char *argv[]) ;
 static int replaceLabels(MRI *mri_seg) ;
 
+static int gca_flags = GCA_NO_FLAGS ;
+
 char *Progname ;
 static void usage_exit(int code) ;
 static char *mask_fname = NULL ;
+static char *insert_fname = NULL ;
+static int  insert_label = 0 ;
+static char *histo_fname = NULL ;
 
 static GCA_PARMS parms ;
 static char *seg_dir = "seg" ;
@@ -44,7 +49,7 @@ main(int argc, char *argv[])
   struct timeb start ;
   GCA          *gca, *gca_prune = NULL ;
   MRI          *mri_seg, *mri_T1, *mri_eq = NULL ;
-  LTA          *lta ;
+  TRANSFORM    *transform ;
 
   Progname = argv[0] ;
   ErrorInit(NULL, NULL, NULL) ;
@@ -102,7 +107,7 @@ main(int argc, char *argv[])
   do
   {
     gca = GCAalloc(ninputs, parms.spacing, DEFAULT_VOLUME_SIZE, 
-                   DEFAULT_VOLUME_SIZE,DEFAULT_VOLUME_SIZE);
+                   DEFAULT_VOLUME_SIZE,DEFAULT_VOLUME_SIZE, gca_flags);
 
     for (nargs = i = 0 ; i < nsubjects+options ; i++)
     {
@@ -128,6 +133,21 @@ main(int argc, char *argv[])
       if (!mri_seg)
         ErrorExit(ERROR_NOFILE, "%s: could not read segmentation file %s",
                   Progname, fname) ;
+      if (insert_fname)
+      {
+        MRI *mri_insert ;
+
+        sprintf(fname, "%s/%s/mri/%s", subjects_dir, subject_name, insert_fname) ;
+        mri_insert = MRIread(fname) ;
+        if (mri_insert == NULL)
+          ErrorExit(ERROR_NOFILE, "%s: could not read volume from %s for insertion",
+                    Progname, insert_fname) ;
+
+        MRIbinarize(mri_insert, mri_insert, 1, 0, insert_label) ;
+        MRIcopyLabel(mri_insert, mri_seg, insert_label) ;
+        MRIfree(&mri_insert) ;
+      }
+        
       replaceLabels(mri_seg) ;
       MRIeraseBorderPlanes(mri_seg) ;
       
@@ -165,16 +185,17 @@ main(int argc, char *argv[])
                 subjects_dir, subject_name, xform_name) ;
         if (DIAG_VERBOSE_ON)
           printf("reading transform from %s...\n", fname) ;
-        lta = LTAread(fname) ;
-        if (!lta)
+        transform = TransformRead(fname) ;
+        if (!transform)
           ErrorExit(ERROR_NOFILE, "%s: could not read transform from file %s",
                     Progname, fname) ;
+        TransformInvert(transform, mri_T1) ;
       }
       else
-        lta = LTAalloc(1, NULL) ;
+        transform = TransformAlloc(LINEAR_VOXEL_TO_VOXEL, NULL) ;
       
-      GCAtrain(gca, mri_T1, mri_seg, lta, gca_prune, noint) ;
-      MRIfree(&mri_seg) ; MRIfree(&mri_T1) ; LTAfree(&lta) ;
+      GCAtrain(gca, mri_T1, mri_seg, transform, gca_prune, noint) ;
+      MRIfree(&mri_seg) ; MRIfree(&mri_T1) ; TransformFree(&transform) ;
     }
     GCAcompleteTraining(gca) ;
     if (gca_prune)
@@ -195,6 +216,43 @@ main(int argc, char *argv[])
 
   printf("writing trained GCA to %s...\n", out_fname) ;
   GCAwrite(gca, out_fname) ;
+
+  if (histo_fname)
+  {
+    FILE *fp ;
+    int   histo_counts[10000], xn, yn, zn, max_count ;
+    GCA_NODE  *gcan ;
+
+    memset(histo_counts, 0, sizeof(histo_counts)) ;
+    fp = fopen(histo_fname, "w") ;
+    if (!fp)
+      ErrorExit(ERROR_BADFILE, "%s: could not open histo file %s",
+                Progname, histo_fname) ;
+
+    max_count = 0 ;
+    for (xn = 0 ; xn < gca->width;  xn++)
+    {
+      for (yn = 0 ; yn < gca->height ; yn++)
+      {
+        for (zn = 0 ; zn < gca->depth ; zn++)
+        {
+          gcan = &gca->nodes[xn][yn][zn] ;
+          if (gcan->nlabels < 1)
+            continue ;
+          if (gcan->nlabels == 1 && IS_UNKNOWN(gcan->labels[0]))
+            continue ;
+          histo_counts[gcan->nlabels]++ ;
+          if (gcan->nlabels > max_count)
+            max_count = gcan->nlabels ;
+        }
+      }
+    }
+    max_count = 20 ;
+    for (xn = 1 ; xn < max_count ;  xn++)
+      fprintf(fp, "%d %d\n", xn, histo_counts[xn]) ;
+    fclose(fp) ;
+  }
+
   GCAfree(&gca) ;
   msec = TimerStop(&start) ;
   seconds = nint((float)msec/1000.0f) ;
@@ -228,6 +286,11 @@ get_option(int argc, char *argv[])
     nargs = 1 ;
     printf("spacing nodes every %2.1f mm\n", parms.spacing) ;
   }
+  else if (!stricmp(option, "NOMRF"))
+  {
+    gca_flags |= GCA_NO_MRF ;
+    printf("not computing MRF statistics...\n") ;
+  }
   else if (!stricmp(option, "MASK"))
   {
     mask_fname = argv[2] ;
@@ -247,6 +310,13 @@ get_option(int argc, char *argv[])
     Ggca_label = atoi(argv[2]) ;
     nargs = 1 ;
     printf("debugging label %d\n", Ggca_label) ;
+  }
+  else if (!stricmp(option, "INSERT"))
+  {
+    insert_fname = argv[2] ;
+    insert_label = atoi(argv[3]) ;
+    nargs = 2 ;
+    printf("inserting non-zero vals from %s as label %d...\n", insert_fname,insert_label);
   }
   else if (!stricmp(option, "PRUNE"))
   {
@@ -309,6 +379,11 @@ get_option(int argc, char *argv[])
     printf("applying %d mean filters to classifiers after training\n",navgs);
     nargs = 1 ;
     break ;
+  case 'H':
+    histo_fname = argv[2] ;
+    nargs = 1 ;
+    printf("writing histogram of classes/voxel to %s\n", histo_fname) ;
+    break; 
   case '?':
   case 'U':
     usage_exit(0) ;

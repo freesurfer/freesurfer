@@ -226,7 +226,7 @@ struct tkmDisplayArea {
   x3DListRef             mpSelection;
   mriHeadPointListRef    mHeadPoints;
   GCA*                   mGCAVolume;
-  LTA*                   mGCATransform;
+  TRANSFORM*             mGCATransform;
   VLI*                   mVLI1 ;
   VLI*                   mVLI2 ;
   char                   isVLI1_name[STRLEN] ;
@@ -295,7 +295,7 @@ DspA_tErr DspA_SetHeadPointList              ( tkmDisplayAreaRef this,
                  mriHeadPointListRef iList );
 DspA_tErr DspA_SetGCA                        ( tkmDisplayAreaRef this,
                  GCA*              iVolume,
-                 LTA*              iTransform );
+                 TRANSFORM*        iTransform );
 DspA_tErr DspA_SetVLIs                        ( tkmDisplayAreaRef this,
                  VLI*              iVLI1,
                  VLI*              iVLI2,

@@ -2343,7 +2343,7 @@ static MRI *
 mriSoapBubbleShort(MRI *mri_src, MRI *mri_ctrl, MRI *mri_dst,int niter)
 {
   int     width, height, depth, x, y, z, xk, yk, zk, xi, yi, zi, i,
-          *pxi, *pyi, *pzi ;
+          *pxi, *pyi, *pzi, num ;
   BUFTYPE *pctrl, ctrl ;
   short   *ptmp ;
   int     mean ;
@@ -2356,6 +2356,40 @@ mriSoapBubbleShort(MRI *mri_src, MRI *mri_ctrl, MRI *mri_dst,int niter)
   pxi = mri_src->xi ; pyi = mri_src->yi ; pzi = mri_src->zi ;
 
   mri_tmp = MRIcopy(mri_dst, NULL) ;
+  
+  for ( z = 0 ; z < depth ; z++)
+  {
+    for (y = 0 ; y < height ; y++)
+    {
+      pctrl = &MRIvox(mri_ctrl, 0, y, z) ;
+      ptmp = &MRISvox(mri_tmp, 0, y, z) ;
+      for (x = 0 ; x < width ; x++)
+      {
+        ctrl = *pctrl++ ;
+        if (ctrl == CONTROL_MARKED)
+          continue ;
+        num = mean = 0 ;
+        for (zk = -1 ; zk <= 1 ; zk++)
+        {
+          zi = pzi[z+zk] ;
+          for (yk = -1 ; yk <= 1 ; yk++)
+          {
+            yi = pyi[y+yk] ;
+            for (xk = -1 ; xk <= 1 ; xk++)
+            {
+              xi = pxi[x+xk] ;
+              if (MRIvox(mri_ctrl, xi, yi, zi) != CONTROL_MARKED)
+                continue ;
+              mean += (int)MRISvox(mri_dst, xi, yi, zi) ;
+              num++ ;
+            }
+          }
+        }
+        if (num > 0)
+          MRISvox(mri_dst, x, y, z) = (short)nint((float)mean / (float)num) ;
+      }
+    }
+  }
 
   /* now propagate values outwards */
   for (i = 0 ; i < niter ; i++)
