@@ -51,7 +51,7 @@ case "${host}" in
  ;;
  x86_64-*)
  OS=Linux
- OS_CPPFLAGS="-Wall -fwritable-strings -m64 -mno-red-zone"
+ OS_CPPFLAGS="-Wall -fwritable-strings -m64"
  OS_LDFLAGS="-all-static"
  LDFLAGS="-L/usr/lib64 $LDFLAGSA"
  DYNAMIC_LIB_EXT=".so"
