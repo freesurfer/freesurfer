@@ -9,9 +9,9 @@
 */
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2003/11/18 21:42:29 $
-// Revision       : $Revision: 1.247 $
-char *MRI_C_VERSION = "$Revision: 1.247 $";
+// Revision Date  : $Date: 2003/11/18 21:42:59 $
+// Revision       : $Revision: 1.248 $
+char *MRI_C_VERSION = "$Revision: 1.248 $";
 
 /*-----------------------------------------------------
                     INCLUDE FILES
@@ -5453,7 +5453,7 @@ MRI *
 ImageToMRI(IMAGE *I)
 {
   MRI *mri;
-  int  width, height, depth, nframes, y, yp, x ;
+  int  width, height, depth, type, nframes, y, yp, x ;
   int frames;
   
   type = MRI_UCHAR; // to make compiler happy
