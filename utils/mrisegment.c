@@ -68,7 +68,7 @@ MRIsegment(MRI *mri, float low_val, float hi_val)
                     val, border_labels[NBR_VOX], nlabels, label, nvox ;
   MRI               *mri_labeled ;
   float             voxel_size ;
-
+  int max;
   voxel_size = mri->xsize * mri->ysize * mri->zsize ;
   width = mri->width ; height = mri->height ; depth = mri->depth ;
   mriseg = MRIsegmentAlloc(MAX_SEGMENTS, MAX_VOXELS) ;
@@ -194,9 +194,13 @@ MRIsegment(MRI *mri, float low_val, float hi_val)
           /* add it to the existing list */
           if (mseg->nvoxels >= mseg->max_voxels)
           {
-            if (mriSegmentReallocateVoxels(mriseg, label, 
-                                           nint(mseg->max_voxels*VOX_INCREASE))
-                != NO_ERROR)
+	    // this max could be the same as mseg->max_voxels
+	    // this is taken care in mriSegmentReallocateVoxels()
+	    max = nint(mseg->max_voxels*VOX_INCREASE);
+            // if (mriSegmentReallocateVoxels(mriseg, label, 
+            //                                nint(mseg->max_voxels*VOX_INCREASE))
+            //    != NO_ERROR)
+            if (mriSegmentReallocateVoxels(mriseg, label, max) != NO_ERROR)
             {
               MRIsegmentFree(&mriseg) ;
               return(NULL) ;
@@ -345,6 +349,11 @@ mriSegmentReallocateVoxels(MRI_SEGMENTATION *mriseg, int sno,
   
   // fprintf(stderr, "ReallocVoxels:%8d -> %8d\n", mseg->max_voxels, max_voxels);
   // mseg->voxels = (MSV *)calloc(max_voxels, sizeof(MSV)) ;
+
+  // if it is the same, then increase by 10
+  if (mseg->max_voxels == max_voxels)
+    max_voxels = mseg->max_voxels + 10;
+
   new_voxels = (MSV *)realloc(mseg->voxels, max_voxels*sizeof(MSV)) ;
   if (!new_voxels)
   // if (!mseg->voxels)
