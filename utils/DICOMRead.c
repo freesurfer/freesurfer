@@ -2,7 +2,7 @@
    DICOM 3.0 reading functions
    Author: Sebastien Gicquel and Douglas Greve
    Date: 06/04/2001
-   $Id: DICOMRead.c,v 1.35 2003/08/12 21:39:13 tosa Exp $
+   $Id: DICOMRead.c,v 1.36 2003/08/14 15:50:55 tosa Exp $
 *******************************************************/
 
 #include <stdio.h>
@@ -660,7 +660,10 @@ int dcmGetVolRes(char *dcmfile, float *ColRes, float *RowRes, float *SliceRes)
     // FreeElementData(e);  // freed here
     // free(e);
   }
-  FreeElementData(e); free(e);
+  if (e)
+  {
+    FreeElementData(e); free(e);
+  }
   if (tag_not_found) //so either no tag or tag was zero
   {
     e = GetElementFromFile(dcmfile, 0x18, 0x50);
