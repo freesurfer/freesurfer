@@ -122,20 +122,21 @@ int    LogMapInverse(LOGMAP_INFO *mi, IMAGE *inImage, IMAGE *outImage);
 int    LogMapGradient(LOGMAP_INFO *mi, IMAGE *inImage, 
                       IMAGE *gradImage, int doweight) ;
 double LogMapDiffuse(LOGMAP_INFO *mi, IMAGE *inImage, IMAGE *outImage, 
-                     double k, int niter, int doweight, int which) ;
+                     double k, int niter, int doweight, int which,
+                     int time_type) ;
 double LogMapDiffusePerona(LOGMAP_INFO *lmi, IMAGE *inImage, 
                            IMAGE *outImage, double k, int niterations, 
-                           int doweight) ;
+                           int doweightint time_type) ;
 double LogMapDiffuseCurvature(LOGMAP_INFO *lmi, IMAGE *inImage, 
                               IMAGE *outImage, double A, int niterations, 
-                              int doweight) ;
+                              int doweight, int time_type) ;
 
 int   LogMapCurvature(LOGMAP_INFO *lmi, IMAGE *inImage, 
                       IMAGE *gradImage, float A, int doweight) ;
 
 void  LogMapPatchHoles(LOGMAP_INFO *lmi, IMAGE *logImage) ;
-IMAGE *LogMapNormalize(LOGMAP_INFO *lmi, IMAGE *Isrc, IMAGE *Idst, float low,
-                       float hi) ;
+IMAGE *LogMapNormalize(LOGMAP_INFO *lmi, IMAGE *Isrc, IMAGE *Idst, 
+                       float low, float hi) ;
 
 #if 0
 #define for_each_neighbor(lmi, ptr, i, j, r, s) \
@@ -163,5 +164,9 @@ IMAGE *LogMapNormalize(LOGMAP_INFO *lmi, IMAGE *Isrc, IMAGE *Idst, float low,
 
 #define UNDEFINED       255
 #define DEFINED(r, s)   ((r != UNDEFINED) && (s != UNDEFINED))
+
+#define DIFFUSION_TIME_LOG         0
+#define DIFFUSION_TIME_CARTESIAN   1
+#define DIFFUSION_TIME_VARIABLE    2
 
 #endif
