@@ -2627,17 +2627,14 @@ MRISremoveNegativeVertices(MRI_SURFACE *mris, INTEGRATION_PARMS *parms,
   if (min_neg_pct < 0.0f)
     min_neg_pct = 0.0f ;
 
-  if (Gdiag & DIAG_SHOW)
+  if (Gdiag & DIAG_WRITE && parms->fp == NULL)
   {
     char fname[200] ;
 
     sprintf(fname, "%s.%s.out", 
             mris->hemisphere == RIGHT_HEMISPHERE ? "rh":"lh",parms->base_name);
-    if (Gdiag & DIAG_WRITE)
-    {
-      parms->fp = fopen(fname, "w") ;
-      mrisLogIntegrationParms(parms->fp, mris, parms) ;
-    }
+    parms->fp = fopen(fname, "w") ;
+    mrisLogIntegrationParms(parms->fp, mris, parms) ;
   }
   if (Gdiag & DIAG_SHOW)
     mrisLogIntegrationParms(stderr, mris, parms) ;
@@ -3033,32 +3030,32 @@ MRISunfold(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int max_passes)
     nbrs[i] = parms->max_nbrs ;
 #endif
   
-  if (Gdiag & DIAG_SHOW)
+  if (Gdiag & DIAG_WRITE)
   {
     char fname[200] ;
-
+    
+    sprintf(fname, "%s.%s.out", 
+            mris->hemisphere == RIGHT_HEMISPHERE ? "rh" : "lh",
+            parms->base_name);
+    if (!parms->start_t)
+    {
+      parms->fp = fopen(fname, "w") ;
+      if (!parms->fp)
+        ErrorExit(ERROR_NOFILE, "MRISunfold: could not open log file %s\n",
+                  fname) ;
+    }
+    mrisLogIntegrationParms(parms->fp, mris,parms) ;
+    for (i = mris->nsize+1 ; i <= parms->nbhd_size ; i++)
+      if (nbrs[i])
+        fprintf(parms->fp, "%d: %d | ", i, nbrs[i]) ;
+    fprintf(parms->fp, "\n") ;
+  }
+  if (Gdiag & DIAG_SHOW)
+  {
     for (i = mris->nsize+1 ; i <= parms->nbhd_size ; i++)
       if (nbrs[i])
         fprintf(stderr, "%d: %d | ", i, nbrs[i]) ;
     fprintf(stderr, "\n") ;
-    if (Gdiag & DIAG_WRITE)
-    {
-      sprintf(fname, "%s.%s.out", 
-              mris->hemisphere == RIGHT_HEMISPHERE ? "rh" : "lh",
-              parms->base_name);
-      if (!parms->start_t)
-      {
-        parms->fp = fopen(fname, "w") ;
-        if (!parms->fp)
-          ErrorExit(ERROR_NOFILE, "MRISunfold: could not open log file %s\n",
-                    fname) ;
-      }
-      mrisLogIntegrationParms(parms->fp, mris,parms) ;
-      for (i = mris->nsize+1 ; i <= parms->nbhd_size ; i++)
-        if (nbrs[i])
-          fprintf(parms->fp, "%d: %d | ", i, nbrs[i]) ;
-      fprintf(parms->fp, "\n") ;
-    }
   }
   if (Gdiag & DIAG_SHOW)
     mrisLogIntegrationParms(stderr, mris, parms) ;
@@ -3181,6 +3178,7 @@ MRISunfold(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int max_passes)
     ending_sse = mrisComputeSSE(mris, parms) ;
     if (Gdiag & DIAG_SHOW)
     {
+#if 0
       fprintf(stderr, "pass %d: start=%2.1f, end=%2.1f, ratio=%2.3f\n",
               passno+1, starting_sse, ending_sse, 
               (starting_sse-ending_sse)/starting_sse) ;
@@ -3188,6 +3186,7 @@ MRISunfold(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int max_passes)
         fprintf(parms->fp, "pass %d: start=%2.4f, end=%2.4f, ratio=%2.4f\n",
                 passno+1, starting_sse, ending_sse, 
                 (starting_sse-ending_sse)/starting_sse) ;
+#endif
     }
   } while (
            !FZERO(ending_sse) && 
@@ -3279,25 +3278,25 @@ MRISunfoldOnSphere(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int max_passes)
   for (i = mris->nsize+1 ; i <= parms->nbhd_size ; i++)
     nbrs[i] = parms->max_nbrs ;
   
-  if (Gdiag & DIAG_SHOW)
+  if (Gdiag & DIAG_WRITE)
   {
     char fname[200] ;
-
+    
+    sprintf(fname, "%s.out", parms->base_name) ;
+    if (!parms->start_t)
+      parms->fp = fopen(fname, "w") ;
+    mrisLogIntegrationParms(parms->fp, mris,parms) ;
+    for (i = mris->nsize+1 ; i <= parms->nbhd_size ; i++)
+      if (nbrs[i])
+        fprintf(parms->fp, "%d: %d | ", i, nbrs[i]) ;
+    fprintf(parms->fp, "\n") ;
+  }
+  if (Gdiag & DIAG_SHOW)
+  {
     for (i = mris->nsize+1 ; i <= parms->nbhd_size ; i++)
       if (nbrs[i])
         fprintf(stderr, "%d: %d | ", i, nbrs[i]) ;
     fprintf(stderr, "\n") ;
-    if (Gdiag & DIAG_WRITE)
-    {
-      sprintf(fname, "%s.out", parms->base_name) ;
-      if (!parms->start_t)
-        parms->fp = fopen(fname, "w") ;
-      mrisLogIntegrationParms(parms->fp, mris,parms) ;
-      for (i = mris->nsize+1 ; i <= parms->nbhd_size ; i++)
-        if (nbrs[i])
-          fprintf(parms->fp, "%d: %d | ", i, nbrs[i]) ;
-      fprintf(parms->fp, "\n") ;
-    }
   }
   if (Gdiag & DIAG_SHOW)
     mrisLogIntegrationParms(stderr, mris, parms) ;
@@ -3353,6 +3352,7 @@ MRISunfoldOnSphere(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int max_passes)
     ending_sse = mrisComputeSSE(mris, parms) ;
     if (Gdiag & DIAG_SHOW)
     {
+#if 0
       fprintf(stderr, "pass %d: start=%2.1f, end=%2.1f, ratio=%2.3f\n",
               passno, starting_sse, ending_sse, 
               (starting_sse-ending_sse)/ending_sse) ;
@@ -3360,6 +3360,7 @@ MRISunfoldOnSphere(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int max_passes)
         fprintf(parms->fp, "pass %d: start=%2.4f, end=%2.4f, ratio=%2.4f\n",
                 passno, starting_sse, ending_sse, 
                 (starting_sse-ending_sse)/starting_sse) ;
+#endif
     }
     msec = TimerStop(&start) ;
     if (Gdiag & DIAG_SHOW)
@@ -3423,6 +3424,15 @@ mrisRemoveNegativeArea(MRI_SURFACE *mris, INTEGRATION_PARMS *parms,
   float  l_area, l_parea, l_corr, l_spring, l_dist, *pnum, *pdenom, cmod ;
   double tol ;
   
+  if (Gdiag & DIAG_WRITE && parms->fp == NULL)
+  {
+    char fname[200] ;
+
+    sprintf(fname, "%s.%s.out", 
+            mris->hemisphere == RIGHT_HEMISPHERE ? "rh":"lh",parms->base_name);
+    parms->fp = fopen(fname, "w") ;
+    mrisLogIntegrationParms(parms->fp, mris, parms) ;
+  }
   pct_neg = 100.0*mris->neg_area/(mris->neg_area+mris->total_area) ;
   if (pct_neg <= min_area_pct)
     return(0) ;   /* no steps */
