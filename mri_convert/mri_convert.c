@@ -88,6 +88,8 @@ int main(int argc, char *argv[])
   int in_n_i_flag, in_n_j_flag, in_n_k_flag;
   int fill_parcellation_flag;
   int read_parcellation_volume_flag;
+  int zero_outlines_flag;
+  int read_otl_flags;
   int color_file_flag;
   char color_file_name[STRLEN];
   int no_scale_flag;
@@ -169,6 +171,7 @@ int main(int argc, char *argv[])
   in_like_flag = FALSE;
   in_n_i_flag = in_n_j_flag = in_n_k_flag = FALSE;
   fill_parcellation_flag = FALSE;
+  zero_outlines_flag = FALSE;
   color_file_flag = FALSE;
   no_scale_flag = FALSE;
   roi_flag = FALSE;
@@ -503,6 +506,10 @@ int main(int argc, char *argv[])
     else if(strcmp(argv[i], "-fp") == 0 || strcmp(argv[i], "--fill_parcellation") == 0)
     {
       fill_parcellation_flag = TRUE;
+    }
+    else if(strcmp(argv[i], "-zo") == 0 || strcmp(argv[i], "--zero_outlines") == 0)
+    {
+      zero_outlines_flag = TRUE;
     }
     else if(strcmp(argv[i], "-sp") == 0 || strcmp(argv[i], "--smooth_parcellation") == 0)
     {
@@ -891,10 +898,24 @@ int main(int argc, char *argv[])
     if(read_only_flag && in_info_flag && !in_stats_flag)
       read_parcellation_volume_flag = FALSE;
 
+    read_otl_flags = 0x00;
+
+    if(read_parcellation_volume_flag)
+      read_otl_flags |= READ_OTL_READ_VOLUME_FLAG;
+
+    if(fill_parcellation_flag)
+      read_otl_flags |= READ_OTL_FILL_FLAG;
+
+    if(translate_labels_flag)
+      read_otl_flags |= READ_OTL_TRANSLATE_LABELS_FLAG;
+
+    if(zero_outlines_flag)
+      read_otl_flags |= READ_OTL_ZERO_OUTLINES_FLAG;
+
     if(in_like_flag)
-      mri = MRIreadOtl(in_name, mri_in_like->width, mri_in_like->height, mri_in_like->depth, color_file_name, read_parcellation_volume_flag, fill_parcellation_flag, translate_labels_flag);
+      mri = MRIreadOtl(in_name, mri_in_like->width, mri_in_like->height, mri_in_like->depth, color_file_name, read_otl_flags);
     else
-      mri = MRIreadOtl(in_name, 0, 0, in_n_k, color_file_name, read_parcellation_volume_flag, fill_parcellation_flag, translate_labels_flag);
+      mri = MRIreadOtl(in_name, 0, 0, in_n_k, color_file_name, read_otl_flags);
 
     if(mri == NULL)
     {
@@ -1718,6 +1739,7 @@ void usage(FILE *stream)
   printf("  -roi\n");
   printf("  -fp, --fill_parcellation\n");
   printf("  -sp, --smooth_parcellation\n");
+  printf("  -zo, --zero_outlines\n");
   printf("  -cf, --color_file\n");
   printf("  -nt, --no_translate\n");
   printf("  --status (status file for DICOM conversion)\n");
