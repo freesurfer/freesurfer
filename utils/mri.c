@@ -9,9 +9,9 @@
 */
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2003/03/28 22:08:21 $
-// Revision       : $Revision: 1.219 $
-char *MRI_C_VERSION = "$Revision: 1.219 $";
+// Revision Date  : $Date: 2003/04/02 16:25:53 $
+// Revision       : $Revision: 1.220 $
+char *MRI_C_VERSION = "$Revision: 1.220 $";
 
 /*-----------------------------------------------------
                     INCLUDE FILES
@@ -2016,7 +2016,19 @@ MRIvoxelToWorld(MRI *mri, Real xv, Real yv, Real zv,
                 Real *pxw, Real *pyw, Real *pzw)
 {
   VECTOR *vw, *vv;
-  MATRIX *RfromI = extract_i_to_r(mri);
+  MATRIX *RfromI;
+  int save;
+  if (mri->slice_direction==MRI_CORONAL)
+  {
+    save = mri->ras_good_flag ;
+    // temporarily change the value
+    mri->ras_good_flag = 0;
+    RfromI = extract_i_to_r(mri);
+    mri->ras_good_flag = save;
+  }
+  else
+    RfromI = extract_i_to_r(mri);
+
   vv = VectorAlloc(4, MATRIX_REAL) ;
   V4_LOAD(vv, xv, yv, zv, 1.) ;    
   vw = MatrixMultiply(RfromI, vv, NULL) ;
@@ -2076,7 +2088,20 @@ MRIworldToVoxel(MRI *mri, Real xw, Real yw, Real zw,
                 Real *pxv, Real *pyv, Real *pzv)
 {
   VECTOR *vv, *vw;
-  MATRIX *IfromR = extract_r_to_i(mri);
+  MATRIX *IfromR;
+  int save;
+  if (mri->slice_direction==MRI_CORONAL)
+  {
+    save = mri->ras_good_flag ;
+    // temporarily change the value
+    mri->ras_good_flag = 0;
+    IfromR = extract_r_to_i(mri);
+    // restore 
+    mri->ras_good_flag = save;
+  }
+  else
+    IfromR = extract_r_to_i(mri);
+
   vw = VectorAlloc(4, MATRIX_REAL) ;
   V4_LOAD(vw, xw, yw, zw, 1.) ;    
   vv = MatrixMultiply(IfromR, vw, NULL) ;
