@@ -5,7 +5,7 @@ function [rimg, dgbeta, ncsub] = tdr_recon_rows(kimg,Rrow,PERev)
 %
 % See also tdr_recon_cols.
 % 
-% $Id: tdr_recon_rows.m,v 1.4 2003/12/19 22:25:23 greve Exp $
+% $Id: tdr_recon_rows.m,v 1.5 2004/01/22 00:53:27 greve Exp $
 
 rimg = [];
 dgbeta = [];
@@ -26,6 +26,7 @@ for frame = 1:nframes
   for slice = 1:nslices
     kslice = kimg(:,:,slice,frame);
     kslice(evenrows,:) = fliplr(kslice(evenrows,:));
+    %if(perev) kepi = flipud(kepi);  end 
     [rimg(:,:,slice,frame) dgbeta(:,slice,frame)] = ...
 	tdr_deghost(kslice,Rrow,PERev);
   end
