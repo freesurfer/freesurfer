@@ -560,8 +560,18 @@ MRI *MRIread(char *fname)
 {
   char  buf[STRLEN] ;
   MRI *mri = NULL;
+  FILE *fp;
 
   chklc() ;
+
+  /* first check whether file exists or not */
+  fp = fopen(fname,"rb");
+  if (fp == NULL)
+  {
+    errno = 0;
+    ErrorReturn(NULL, (ERROR_BADPARM, "Could not open file '%s'\n", fname));
+  } 
+  fclose(fp);
 
   FileNameFromWildcard(fname, buf) ; fname = buf ;
   mri = mri_read(fname, MRI_VOLUME_TYPE_UNKNOWN, TRUE, -1, -1);
