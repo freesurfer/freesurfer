@@ -459,6 +459,170 @@ else
     exit_gracefully 1
   fi
   echo "done"
+#-------------------- store tr, te, ti, flip angle ----------------------#
+###### hey, sh script
+  ################# initialize
+  trlist=
+  telist=
+  tilist=
+  falist=
+
+  ##### create lists for tr, te, flip_angle
+  ################ TR
+  for input in $infile
+  do
+    tr=`awk '{ if ($1 == "tr") print $2}' $input/COR-.info`
+    if [ "$tr" ] 
+    then 
+      echo $input " TR vlaue is " $tr >&2
+      trlist=$trlist" $tr"
+    else
+      echo $input " TR not found" >&2
+    fi
+  ################# TE
+    te=`awk '{ if ($1 == "te") print $2}' $input/COR-.info`  
+    if [ "$te" ] 
+    then
+      echo $input " TE vlaue is " $te >&2
+      telist=$telist" $te"
+    else
+      echo $input " TE not found" >&2
+    fi
+  ################# TI
+    ti=`awk '{ if ($1 == "ti") print $2}' $input/COR-.info`  
+    if [ "$ti" ] 
+    then
+      echo $input " TI vlaue is " $ti >&2
+      tilist=$tilist" $te"
+    else
+      echo $input " TI not found" >&2
+    fi
+  ################# Flip angle
+    fa=`awk '{ if ($1 == "flip") if ($2 == "angle") print $3}' $input/COR-.info` 
+    if [ "$fa" ] 
+    then
+      echo $input " Flip angle is " $fa >&2
+      falist=$falist" $fa"
+    else
+      echo $input " Flip angle not found" >&2
+    fi
+  done
+
+  ##### check the uniqueness ######
+  ################################# TR
+  mycount=0
+  tr1=0
+  for elem in $trlist
+  do
+    mycount=`expr ${mycount} + 1`
+    if [ $mycount = 1 ] 
+    then
+      tr1=$elem
+    elif [ $tr1 != $elem ] 
+    then
+      tr1=0
+    fi
+  done
+
+  echo "TR is set to " $tr1 >&2
+
+  ################################# TE
+  mycount=0
+  te1=0
+  for elem in $telist
+  do
+    mycount=`expr ${mycount} + 1`
+    if [ $mycount = 1 ] 
+    then
+      te1=$elem
+    elif [ $te1 != $elem ] 
+    then
+      te1=0
+    fi
+  done
+
+  echo "TE is set to " $te1 >&2
+
+  ################################# TI
+  mycount=0
+  ti1=0
+  for elem in $tilist
+  do
+    mycount=`expr ${mycount} + 1`
+    if [ $mycount = 1 ] 
+    then
+      ti1=$elem
+    elif [ $ti1 != $elem ] 
+    then
+      ti1=0
+    fi
+  done
+
+  echo "TI is set to " $ti1 >&2
+
+
+  ################################# Flip angle
+  mycount=0
+  fa1=0
+  for elem in $falist
+  do
+    mycount=`expr ${mycount} + 1`
+    if [ $mycount = 1 ] 
+    then
+      fa1=$elem
+    elif [ $fa1 != $elem ] 
+    then
+      fa1=0
+    fi
+  done
+
+  echo "Flip angle is set to " $fa1 >&2
+
+  ################################ write tr, te, ti, fa
+  cp $outfile/COR-.info $outfile/tmp
+  # check whether tr is present
+  echo "Writing TR value " $tr1
+  tr=`awk '{ if ($1 == "tr") print $2}' $outfile/COR-.info`
+  if [ "$tr" ] 
+  then 
+    echo "found tr field"
+    awk -v trval=$tr1 '{ if ($1 == "tr") print $1, trval; else print }' $outfile/tmp > $outfile/tmp2
+  else
+    echo "tr " $tr1 >> $outfile/COR-.info
+  fi 
+
+  echo "Writing TE value " $te1
+  te=`awk '{ if ($1 == "te") print $2}' $outfile/COR-.info` 
+  if [ "$te" ] 
+  then
+    echo "found te field"
+    awk -v teval=$te1 '{ if ($1 == "te") print $1, teval; else print }' $outfile/tmp2 > $outfile/tmp3
+  else
+    echo "te " $te1 >> $outfile/COR-.info
+  fi
+
+  echo "Writing TI value " $ti1
+  ti=`awk '{ if ($1 == "ti") print $2}' $outfile/COR-.info`  
+  if [ "$ti" ] 
+  then
+    echo "found ti field"
+    awk -v tival=$ti1 '{ if ($1 == "ti") print $1, tival; else print }' $outfile/tmp3 > $outfile/tmp4
+  else  
+    echo "ti " $ti1 >> $outfile/COR-.info
+  fi
+
+  echo "Writing Flip angle (degrees) " $fa1
+  fa=`awk '{ if ($1 == "flip") if ($2=="angle") print $3}' $outfile/COR-.info` 
+  if [ "$fa" ] 
+  then
+    echo "found flip angle field"
+    awk -v faval=$fa1 '{ if ($1 == "flip") print "flip angle", faval; else print }' $outfile/tmp4 > $outfile/tmp5
+  else
+    echo "flip angle " $fa1 >> $outfile/COR-.info
+  fi
+
+  mv $outfile/tmp5 $outfile/COR-.info
+  rm -f $outfile/tmp?
 
 fi
 
