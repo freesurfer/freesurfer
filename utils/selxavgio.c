@@ -1,6 +1,6 @@
 /***************************************************************
   Name:    selxavgio.c
-  $Id: selxavgio.c,v 1.1 2001/02/06 18:13:11 greve Exp $
+  $Id: selxavgio.c,v 1.2 2002/11/16 00:31:15 greve Exp $
   Author:  Douglas Greve
   Purpose: Routines for handling header files for data created by
   selxavg or selavg (selectively averaged).
@@ -164,6 +164,8 @@ SXADAT * ld_sxadat(char *sxadatfile)
   for(n=0; n < sxa->Nc; n++)
     fscanf(fp,"%d",&sxa->CondIdMap[n]);
 
+  fclose(fp);
+
   return(sxa);
 }
 
@@ -241,6 +243,7 @@ int sv_sxadat(  SXADAT *sxa, char *sxadatfile )
     fprintf(fp,"%d ",sxa->CondIdMap[n]);
   fprintf(fp,"\n");
 
+  fclose(fp);
   return(0);
 }
 
