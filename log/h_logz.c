@@ -246,7 +246,7 @@ LogMapSample(LOGMAP_INFO *lmi, IMAGE *Isrc, IMAGE *Idst)
         break ;
       default:
         ErrorReturn(Idst, (ERROR_UNSUPPORTED, 
-                         "LogMapForward: unsupported pixel format %d",
+                         "LogMapSample: unsupported pixel format %d",
                          Iout->pixel_format)) ;
         break ;
       }
@@ -275,9 +275,11 @@ LogMapForward(LOGMAP_INFO *lmi, IMAGE *tvImage, IMAGE *logImage)
   char  *runl ;
   UCHAR *tvEndRowPtr, *tvPtr ;
   IMAGE *Itmp, *Itmp2, *Iltmp, *Ilsave = NULL ;
+  float min_val, max_val ;
 
   if (tvImage->pixel_format != PFBYTE)
   {
+    ImageValRange(tvImage, &min_val, &max_val) ;
     Itmp2 = ImageAlloc(tvImage->rows, tvImage->cols, PFFLOAT, 1) ;
     Itmp = ImageAlloc(tvImage->rows, tvImage->cols, PFBYTE, 1) ;
     ImageScale(tvImage, Itmp2, 0.0f, 255.0f) ;
@@ -347,21 +349,18 @@ LogMapForward(LOGMAP_INFO *lmi, IMAGE *tvImage, IMAGE *logImage)
       {
         /* normailze by area */
         *IMAGEFpix(logImage, ringno, spokeno) /= (float)area;  
-
-#if 0
-        /* an attempt to solve the colormap bug */
-        if (*IMAGEIpix(logImage, ringno, spokeno) < 16) 
-          *IMAGEIpix(logImage, ringno, spokeno) = 16;
-        if (*IMAGEIpix(logImage, ringno, spokeno) >= 240) 
-          *IMAGEIpix(logImage, ringno, spokeno) = 240;
-#endif
       }
     }
 
   LogMapPatchHoles(lmi, tvImage, logImage) ;
 
   if (Itmp)            /* input image was not in proper format */
+  {
     ImageFree(&Itmp) ;
+
+    /* scale back to same range as the input image */
+    ImageScale(logImage, logImage, min_val, max_val) ; 
+  }
 
   if (Iltmp)   /* output image was not in proper format */
   {
@@ -2883,12 +2882,8 @@ LogMapForwardFilter(LOGMAP_INFO *lmi, IMAGE *Isrc, IMAGE *Idst)
         lpix = cp->logpix[i] ;
         ring = lpix->ring ;
         spoke = lpix->spoke ;
+
         *IMAGEFpix(Iout, ring, spoke) += *spix ;
-#if 0
-        if (ring == 1 && spoke == 0)
-          fprintf(stderr, "(1,0) += (%d, %d) %2.3f = %2.3f\n",
-                  col, row, *spix, *IMAGEFpix(Iout, ring, spoke)) ;
-#endif
       }
     }
   }
@@ -3157,6 +3152,7 @@ LogMapOffsetMagnitude(LOGMAP_INFO *lmi,IMAGE *Isrc,IMAGE *Idst,int maxsteps)
       sy = SGN(dy) ;
 
       pix = LOG_PIX(lmi, x1, y1) ;
+
       if (ax > ay)  /* x dominant, move sx in x each time step, check for y */
       {
         d = ay - (ax >> 1) ;
