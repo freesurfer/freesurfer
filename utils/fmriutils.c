@@ -1,6 +1,6 @@
 /* 
    fmriutils.c 
-   $Id: fmriutils.c,v 1.4 2003/09/21 21:12:47 greve Exp $
+   $Id: fmriutils.c,v 1.5 2004/03/08 22:05:29 greve Exp $
 */
 #include <stdio.h>
 #include <stdlib.h>
@@ -223,7 +223,7 @@ MRI *fMRIcomputeT(MRI *ces, MATRIX *X, MATRIX *C, MRI *var, MRI *t)
   Ct      = MatrixTranspose(C,NULL);
   CiXtXCt = MatrixMultiply(CiXtX,Ct,NULL);
   srf = sqrt(CiXtXCt->rptr[1][1]);
-  printf("fMRIcomputeT: srf = %g\n",srf);
+  //printf("fMRIcomputeT: srf = %g\n",srf);
 
   for(c=0; c < ces->width; c++){
     for(r=0; r < ces->height; r++){
