@@ -13,6 +13,7 @@
 #include "proto.h"
 #include  "rgb_image.h"
 #include "machine.h"
+#include "mghendian.h"
 
 RGB_IMAGE *imgopen(int, char *, char *,unsigned int, unsigned int,
     unsigned int, unsigned int, unsigned int);
@@ -242,10 +243,11 @@ i_seterror(void (*func)(char *))
 {
   i_errfunc = func;
 }
+
 void
 swapImage(RGB_IMAGE *image)
 {
-#ifdef Linux
+#if (BYTE_ORDER == LITTLE_ENDIAN)
   image->imagic = swapShort(image->imagic) ;
   image->type = swapShort(image->type) ;
   image->dim = swapShort(image->dim) ;

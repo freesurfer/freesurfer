@@ -5,15 +5,14 @@
 #include "const.h"
 #include "error.h"
 #include "version.h"
+#include "mghendian.h"
 
 #define OLD_APPEND  ".orig"
 #define HEADER_LENGTH  6144
 
 char *Progname;
 
-#ifdef Linux
-void swab(const void *from, void *to, size_t n);
-#endif
+extern void swab(const void *from, void *to, size_t n);
 
 int repair_file(char *fname);
 
@@ -32,7 +31,7 @@ int main(int argc, char *argv[])
   int nargs;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: repair_siemens_file.c,v 1.4 2003/09/05 04:45:46 kteich Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: repair_siemens_file.c,v 1.5 2004/07/07 22:06:51 tosa Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -83,7 +82,7 @@ int repair_file(char *fname)
   fseek(fp, 5024, SEEK_SET);
   fread(&bits_per_voxel, sizeof(short), 1, fp);
 
-#ifdef Linux
+#if (BYTE_ORDER == LITTLE_ENDIAN)
   swab(&rows, &rows, 2);
   swab(&cols, &cols, 2);
   swab(&bits_per_voxel, &bits_per_voxel, 2);
