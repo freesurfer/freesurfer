@@ -7,6 +7,7 @@
 #include "utils.h"
 #include "mri.h"
 #include "matrix.h"
+#include "matfile.h"
 
 #define IN_OUT_NAMES  100
 
@@ -98,12 +99,7 @@ int main(int argc, char *argv[])
   }
 
   in_mat = MatrixAlloc(4, 4, MATRIX_REAL);
-  result = MatrixAlloc(4, 4, MATRIX_REAL);
-
-  *MATRIX_RELT(result, 1, 1) = 1;  *MATRIX_RELT(result, 1, 2) = 0;  *MATRIX_RELT(result, 1, 3) = 0;  *MATRIX_RELT(result, 1, 4) = 0;
-  *MATRIX_RELT(result, 2, 1) = 0;  *MATRIX_RELT(result, 2, 2) = 1;  *MATRIX_RELT(result, 2, 3) = 0;  *MATRIX_RELT(result, 2, 4) = 0;
-  *MATRIX_RELT(result, 3, 1) = 0;  *MATRIX_RELT(result, 3, 2) = 0;  *MATRIX_RELT(result, 3, 3) = 1;  *MATRIX_RELT(result, 3, 4) = 0;
-  *MATRIX_RELT(result, 4, 1) = 0;  *MATRIX_RELT(result, 4, 2) = 0;  *MATRIX_RELT(result, 4, 3) = 0;  *MATRIX_RELT(result, 4, 4) = 1;
+  result = MatrixIdentity(4,NULL);
 
   /* ----- read input files and keep a running product ----- */
   for(i = 0;i < n_in;i++)
@@ -145,6 +141,7 @@ int read_mat(int argc, char *argv[], int i, MATRIX *in_mat)
 
   FILE *fin;
   char line[STR_LEN];
+  MATRIX *tmpmat;
 
   line[0] = '\0';
 
@@ -203,8 +200,19 @@ int read_mat(int argc, char *argv[], int i, MATRIX *in_mat)
   }
   else
   {
-    fprintf(stderr, "%s: unknown input matrix file type for file %s\n", prog_name, argv[i]);
-    return(-1);
+    /* try reading as a matlab file */
+    tmpmat = MatlabRead(argv[i]);
+    if(tmpmat == NULL){
+      printf("%s: unknown input matrix file type for file %s\n", 
+       prog_name, argv[i]);
+      return(-1);
+    }
+    if(verbose_flag){
+      printf("---------- %s ------------\n",argv[i]);
+      MatrixPrint(stdout,tmpmat);
+    }
+    MatrixCopy(tmpmat,in_mat);
+    MatrixFree(&tmpmat);
   }
 
   return(0);
