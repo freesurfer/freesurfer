@@ -168,6 +168,8 @@ MRIread(char *fpref)
     break ;
   case MRI_ANALYZE_FILE:
     mri = analyzeRead(fname, 1, frame) ;
+    if (!mri)
+      return(NULL) ;
     break ;
   default:   /* coronal slice data */
     mri = MRIreadInfo(fpref) ;
@@ -1196,6 +1198,19 @@ analyzeRead(char *fname, int read_volume, int frame)
     mri_dst = mri ;
 #endif
   }
+  if (mri_dst->width < 256)
+  {
+    int  x, y, z ;
+
+    x = (256 - mri_dst->width) / 2 ;
+    y = (256 - mri_dst->height) / 2 ;
+    z = (256 - mri_dst->depth) / 2 ;
+    mri = MRIalloc(256, 256, 256, MRI_UCHAR) ;
+    MRIextractInto(mri_dst, mri, 0, 0, 0, width, height, depth, x, y, z) ;
+    MRIfree(&mri_dst) ;
+    mri_dst = mri ;
+  }
+
   return(mri_dst) ;
 #else
   return(mri) ;
