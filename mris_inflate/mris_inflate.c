@@ -14,7 +14,7 @@
 #include "mri.h"
 #include "macros.h"
 
-static char vcid[] = "$Id: mris_inflate.c,v 1.23 1999/10/12 18:37:10 fischl Exp $";
+static char vcid[] = "$Id: mris_inflate.c,v 1.24 2000/04/24 17:23:07 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -65,7 +65,7 @@ main(int argc, char *argv[])
   parms.l_spring_norm = 1.0 ;
   parms.l_curv = 0.0 ;
   parms.niterations = 10 ;   /* per # of averages */
-  parms.write_iterations = 50 /*WRITE_ITERATIONS */;
+  parms.write_iterations = 0 /*WRITE_ITERATIONS */;
   parms.a = parms.b = parms.c = 0.0f ;  /* ellipsoid parameters */
   parms.integration_type = INTEGRATE_MOMENTUM ;
   parms.momentum = 0.9 ;
