@@ -5,8 +5,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2004/01/20 21:02:13 $
-// Revision       : $Revision: 1.24 $
+// Revision Date  : $Date: 2004/01/21 15:16:16 $
+// Revision       : $Revision: 1.25 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -52,9 +52,11 @@ static void usage_exit(int code) ;
 
 static MRI *mri_faf = NULL ;
 
+#if 0
 static int nfaf = 0 ;        /* # of coefficients in fourier series approximation to flip angle field */
 static float *faf_coefs[3][2] ;  /* coefficients (3 spatial dimensions, and one sin and one cos */
 static LABEL *faf_label ;
+#endif
 static int niter=10 ;
 static float thresh = 25 ;
 static int conform = 0 ;
@@ -70,15 +72,20 @@ static char *residual_name = NULL ;
 static double FLASHforwardModel(double flip_angle, double TR, double PD, 
                                 double T1) ;
 
+#if 0
 static double faf_coefs_to_scale(double x, double y,  double z,  double w0x, double w0y, double w0z, float *faf_coefs[3][2], 
 																 int nfaf)  ;
 static double compute_fa_rms(double T1_wm, double PD_wm, MRI **mri_flash, int nvolumes, 
 															float *faf_coefs[3][2],  int nfaf, LABEL *faf_label,  MRI *mri_T1, MRI *mri_PD)  ;
 static int estimate_flip_angle_field(MRI *mri_T1,  MRI *mri_PD, MRI **mri_flash, int nvolumes, int nfaf, 
 																		 float *faf_coefs[3][2], LABEL *faf_label, MRI *mri_faf)  ;
+#endif
 static double estimate_ms_params(MRI **mri_flash, MRI **mri_flash_synth, int nvolumes, MRI *mri_T1, MRI *mri_PD, MRI *mri_sse, MATRIX **M_reg);
 static double estimate_ms_params_with_faf(MRI **mri_flash, MRI **mri_flash_synth, int nvolumes, MRI *mri_T1, MRI *mri_PD, MRI *mri_sse, MATRIX **M_reg,MRI*mri_faf);
+#if 0
 static double estimate_ms_params_in_label(MRI **mri_flash, MRI **mri_flash_synth, int nvolumes, MRI *mri_T1, MRI *mri_PD, MRI *mri_sse, MATRIX **M_reg,MRI*mri_faf, LABEL *area);
+#endif
+
 #if 0
 static double estimate_ms_params_with_kalpha(MRI **mri_flash, MRI **mri_flash_synth, int nvolumes, MRI *mri_T1, MRI *mri_PD, MRI *mri_fa, MRI *mri_sse, MATRIX **M_reg);
 #endif
@@ -113,7 +120,7 @@ main(int argc, char *argv[])
   int    modified;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_ms_fitparms.c,v 1.24 2004/01/20 21:02:13 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_ms_fitparms.c,v 1.25 2004/01/21 15:16:16 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -968,6 +975,7 @@ estimate_ms_params_with_faf(MRI **mri_flash, MRI **mri_flash_synth, int nvolumes
   return(total_sse) ;
 }
 
+#if 0
 static double
 estimate_ms_params_in_label(MRI **mri_flash, MRI **mri_flash_synth, int nvolumes, MRI *mri_T1, MRI *mri_PD, MRI *mri_sse, 
 														MATRIX **M_reg, MRI *mri_faf, LABEL *area)
@@ -1116,7 +1124,7 @@ estimate_ms_params_in_label(MRI **mri_flash, MRI **mri_flash_synth, int nvolumes
   total_sse = sqrt(total_sse / (double)(area->n_points*nvolumes)) ;
   return(total_sse) ;
 }
-
+#endif
 #if 0
 #define UNITY_FAk_INDEX  nint((1 - FAk_MIN) * (nvalues-1) / (FAk_MAX - FAk_MIN))
 static double
@@ -1823,6 +1831,7 @@ compute_T2star_map(MRI **mri_flash, int nvolumes, int *scan_types)
 }
 
 
+#if 0
 static int
 estimate_flip_angle_field(MRI *mri_T1,  MRI *mri_PD, MRI **mri_flash, int nvolumes, int nfaf, 
 			  float *faf_coefs[3][2], LABEL *faf_label, MRI *mri_faf)
@@ -2102,6 +2111,7 @@ faf_coefs_to_scale(double x, double y, double z,  double w0x, double w0y, double
   return(xb*yb*zb) ;
 
 }
+#endif
 
 static int findUniqueTETRFA(MRI *mri[], int numvolumes, float *ptr, float *pte, double *pfa)
 {
