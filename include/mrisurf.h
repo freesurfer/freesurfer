@@ -441,6 +441,7 @@ int          MRISwrite(MRI_SURFACE *mris, char *fname) ;
 int          MRISwriteAscii(MRI_SURFACE *mris, char *fname) ;
 int          MRISwriteVTK(MRI_SURFACE *mris, char *fname);
 int          MRISwriteGeo(MRI_SURFACE *mris, char *fname) ;
+int          MRISwriteICO(MRI_SURFACE *mris, char *fname) ;
 int          MRISwritePatchAscii(MRI_SURFACE *mris, char *fname) ;
 int          MRISwriteDists(MRI_SURFACE *mris, char *fname) ;
 int          MRISwriteCurvature(MRI_SURFACE *mris, char *fname) ;

@@ -1040,8 +1040,12 @@ MRISwrite(MRI_SURFACE *mris, char *name)
     return(MRISwriteVTK(mris, fname)) ;
   else if (type == MRIS_GEO_TRIANGLE_FILE)
     return(MRISwriteGeo(mris, fname)) ;
+  else if (type == MRIS_ICO_FILE)
+    return MRISwriteICO(mris, fname);
+
   if (mris->type == MRIS_TRIANGULAR_SURFACE)
     return(MRISwriteTriangularSurface(mris, fname)) ;
+
   fp = fopen(fname,"w");
   if (fp==NULL) 
     ErrorReturn(ERROR_BADFILE,
@@ -14454,6 +14458,62 @@ MRISwriteGeo(MRI_SURFACE *mris, char *fname)
   fclose(fp) ;
   return(NO_ERROR) ;
 }
+
+/*-----------------------------------------------------
+        Parameters: MRI_SURFACE *mris, char *fname
+
+        Returns value: int
+
+        Description: write ascii icosahedron data (vertices and face vertices info)
+------------------------------------------------------*/
+/* note that .tri or .ico file.  numbering is 1-based output.*/
+int
+MRISwriteICO(MRI_SURFACE *mris, char *fname)
+{
+  int     vno, fno, nfaces, nvertices;
+  int     actual_fno, actual_vno;
+  VERTEX  *v ;
+  FACE    *face ;
+  FILE    *fp ;
+  // get the valid faces and vertices numbers
+  nfaces = mrisValidFaces(mris) ;
+  nvertices = mrisValidVertices(mris) ;
+
+  fp = fopen(fname, "w") ;
+  if (!fp)
+    ErrorReturn(ERROR_NOFILE, 
+              (ERROR_NOFILE, "MRISwriteICO: could not open file %s",fname));
+  
+  // write number of vertices
+  fprintf(fp, "%8d\n", nvertices);
+  // go over all vertices and ignoring bad ones
+  actual_vno = 1; // count from 1 (1-based output)
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    if (v->ripflag)
+      continue ;
+    fprintf(fp, "%8d %8.4f %8.4f %8.4f\n", actual_vno, v->x, v->y, v->z) ;
+    actual_vno++;
+  }
+  // write number of faces
+  fprintf(fp, "%8d\n", nfaces);
+  // go over all faces and ignoring bad ones
+  actual_fno = 1; // count from 1 (1-based)
+  for (fno = 0 ; fno < mris->nfaces ; fno++)
+  {
+    face = &mris->faces[fno] ;
+    if (face->ripflag)
+      continue ;
+    // make the vertex number 1 based
+    // the vertex ordering flipped to clockwise (see icosahedron.c)
+    fprintf(fp, "%8d %8d %8d %8d\n", actual_fno,face->v[0]+1,face->v[2]+1,face->v[1]+1);
+    actual_fno++;
+  }
+  fclose(fp) ;
+  return(NO_ERROR) ;
+}
+
 /*-----------------------------------------------------
         Parameters:
 
