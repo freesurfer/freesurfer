@@ -6,11 +6,11 @@
 //  
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2003/04/22 18:22:49 $
-// Revision       : $Revision: 1.13 $
+// Revision Date  : $Date: 2003/04/22 21:31:00 $
+// Revision       : $Revision: 1.14 $
 //
 ////////////////////////////////////////////////////////////////////
-char *MRIFLOOD_VERSION = "$Revision: 1.13 $";
+char *MRIFLOOD_VERSION = "$Revision: 1.14 $";
 
 #include <math.h>
 #include <stdlib.h>
@@ -539,6 +539,7 @@ MRI *MRIbitwiseand(MRI *mri1, MRI *mri2, MRI *mri_dst)
 MRI *MRISpartialfloodoutside(MRI *mri_src,MRI *mri_dst)
 {
   int newfilled,width,height,depth,i,j,k,is,js,ks,isub,jsub,ksub;
+  unsigned char val;
 
   /* Set MRI size */
   width=mri_src->width;
@@ -601,6 +602,27 @@ MRI *MRISpartialfloodoutside(MRI *mri_src,MRI *mri_dst)
     }
     printf("    (filled %d voxels)\n",newfilled);
   }
+  // so far we have touched the faces of the volume partially.
+  // we fill them with 255 (there are 6 faces)
+  val = MRIvox(mri_dst, 1,1,1);
+  for (is = 0; is < width; ++is)
+    for (js = 0; js < height; ++js)
+    {
+      MRIvox(mri_dst, is, js, 0) = val;
+      MRIvox(mri_dst, is, js, depth-1) = val;
+    }
+  for (is = 0; is < width; ++is)
+    for (ks = 0; ks < depth; ++ks)
+    {
+      MRIvox(mri_dst, is, 0,        ks) = val;
+      MRIvox(mri_dst, is, height-1, ks) = val;
+    }
+  for (ks = 0; ks < depth; ++ks)
+    for (js = 0; js < height; ++js)
+    {
+      MRIvox(mri_dst, 0,       js, ks) = val;
+      MRIvox(mri_dst, width-1, js, ks) = val;
+    }
 
   return mri_dst;
 }
@@ -1118,8 +1140,8 @@ int IllegalCorticalNeighbour(MRI *mri_masked, MRI *mri_white, int i,int j,int k)
               nvox = MRIvox(mri_masked, ii,jj,kk);
               if ((nvox == Left_Cerebral_White_Matter) || (nvox == Right_Cerebral_White_Matter))
               {
-                printf("A WM (%d,%d,%d) between (%d,%d,%d) ventrivle and (%d,%d,%d) cortical\n",
-                       ii,jj,kk, x,y,z, i, j, k);
+                // printf("A WM (%d,%d,%d) between (%d,%d,%d) ventricle and (%d,%d,%d) cortical\n",
+                //       ii,jj,kk, x,y,z, i, j, k);
                 continue;
               }
               else if (nvox == Unknown) // CMA labelled as unknown, then check if it is in white volume
