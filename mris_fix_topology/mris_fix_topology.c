@@ -1,4 +1,3 @@
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -17,7 +16,7 @@
 #include "mrishash.h"
 #include "version.h"
 
-static char vcid[] = "$Id: mris_fix_topology.c,v 1.20 2004/07/19 20:23:12 greve Exp $";
+static char vcid[] = "$Id: mris_fix_topology.c,v 1.21 2004/10/26 17:42:05 segonne Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -26,6 +25,7 @@ static void usage_exit(void) ;
 static void print_usage(void) ;
 static void print_help(void) ;
 static void print_version(void) ;
+static void print_parameters(void);
 
 char *Progname ;
 
@@ -58,7 +58,7 @@ main(int argc, char *argv[])
   struct timeb  then ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_fix_topology.c,v 1.20 2004/07/19 20:23:12 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_fix_topology.c,v 1.21 2004/10/26 17:42:05 segonne Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -67,9 +67,33 @@ main(int argc, char *argv[])
 	parms.max_unchanged = 10 ;
 	parms.l_mri = 1 ;
 	parms.l_curv = 1 ;
+	parms.l_qcurv = 1;
 	parms.l_unmri = 1 ;
+	// default is greedy retessellation
+	parms.search_mode=GREEDY_SEARCH;
+	// default is to use all vertices
+	parms.retessellation_mode=0;
+	// default is not to kill vertices 
+	parms.vertex_eliminate=0;
+	//select an initial population of chromosomes
+	parms.initial_selection=0;
+	//stopping the algo after niters (if niters>0)
 	parms.niters=-1;
-	parms.genetic=0;
+	//volume resolution for the lodunlikelihood
+	parms.volume_resolution=-1;
+	//keep all vertices or not
+	parms.keep=0;
+	//smooth every patch
+	parms.smooth=0;
+	//match patch onto surface using local intensities
+	parms.match=0;
+	//don't save
+	parms.save_fname=NULL;
+	parms.defect_number=-1;
+	//verbose mode
+	parms.verbose=0;
+	//movie mode
+	parms.movie=0;
 
   Gdiag |= DIAG_WRITE ;
   Progname = argv[0] ;
@@ -88,6 +112,8 @@ main(int argc, char *argv[])
   if (argc < 2)
     usage_exit() ;
  
+	print_parameters();
+
   TimerStart(&then) ;
   sname = argv[1] ;
   hemi = argv[2] ;
@@ -176,7 +202,6 @@ main(int argc, char *argv[])
   MRISmarkOrientationChanges(mris_corrected);
   
 
-
 #if 0
   MRISrestoreVertexPositions(mris_corrected, CANONICAL_VERTICES) ;
   sprintf(fname, "%s/%s/surf/%s.sphere%s", sdir, sname, hemi, suffix);
@@ -233,6 +258,18 @@ get_option(int argc, char *argv[])
     fprintf(stderr,"reading inflated coordinates from '%s'\n",inflated_name);
     nargs = 1 ;
   }
+	else if (!stricmp(option, "verbose"))
+  {
+    parms.verbose=1;
+    fprintf(stderr,"verbose mode on\n");
+    nargs = 0 ;
+  }
+	else if (!stricmp(option, "movie"))
+  {
+    parms.movie=1;
+    fprintf(stderr,"movie mode on\n");
+    nargs = 0 ;
+  }
   else if (!stricmp(option, "mri"))
   {
     parms.l_mri = atof(argv[2]) ;
@@ -245,10 +282,27 @@ get_option(int argc, char *argv[])
     fprintf(stderr,"setting l_curv = %2.2f\n", parms.l_curv) ;
     nargs = 1 ;
   }
+	else if (!stricmp(option, "qcurv"))
+  {
+    parms.l_qcurv = atof(argv[2]) ;
+    fprintf(stderr,"setting l_qcurv = %2.2f\n", parms.l_qcurv) ;
+    nargs = 1 ;
+  }
   else if (!stricmp(option, "unmri"))
   {
     parms.l_unmri = atof(argv[2]) ;
     fprintf(stderr,"setting l_unmri = %2.2f\n", parms.l_unmri) ;
+		if(parms.volume_resolution<1)
+			parms.volume_resolution = 2;
+    nargs = 1 ;
+  }
+	else if (!stricmp(option, "vol"))
+  {
+		if(atoi(argv[2])<1)
+			parms.volume_resolution = 2;
+		else
+			parms.volume_resolution = atoi(argv[2]) ;
+    fprintf(stderr,"setting the volume resolution to %d\n", parms.volume_resolution) ;
     nargs = 1 ;
   }
   else if (!stricmp(option, "patches"))
@@ -269,12 +323,82 @@ get_option(int argc, char *argv[])
     fprintf(stderr,"stopping genetic algorithm after %d iterations\n", parms.niters) ;
     nargs = 1 ;
   }
+	else if (!stricmp(option, "optimize"))
+  {
+		parms.search_mode=GENETIC_SEARCH;
+		parms.keep=0;
+		parms.vertex_eliminate=1;
+		parms.retessellation_mode=0;
+		parms.initial_selection=1;
+		parms.smooth=1;
+		parms.match=1;
+		parms.volume_resolution=2;
+		nsmooth=0;
+		add=0;
+    fprintf(stderr,"using optimized parameters\n");
+    nargs = 0 ;
+  }
+	else if (!stricmp(option, "match"))
+  {
+    parms.match=1;
+    fprintf(stderr,"match patch onto surface using local intensities\n") ;
+    nargs = 0 ;
+  }
+	else if (!stricmp(option, "smooth"))
+  {
+    parms.smooth=1;
+    fprintf(stderr,"smooth patch\n") ;
+    nargs = 0 ;
+  }
+	else if (!stricmp(option, "select"))
+  {
+    parms.initial_selection=1;
+    fprintf(stderr,"using qsphere to infer potential solutions\n") ;
+    nargs = 0 ;
+  }
+	else if (!stricmp(option, "save"))
+  {
+    parms.save_fname=argv[2]; //name of the folder
+		parms.defect_number=atoi(argv[3]);
+		if(parms.defect_number>=0)
+			fprintf(stderr,"save results in folder %s for the patch %d\n",parms.save_fname,parms.defect_number) ;
+		else
+			fprintf(stderr,"save results in folder %s for all patches\n",parms.save_fname) ;
+    nargs = 2 ;
+  }
   else if (!stricmp(option, "genetic"))
   {
-    parms.genetic=1;
+    parms.search_mode=GENETIC_SEARCH;
     fprintf(stderr,"using genetic algorithm\n") ;
     nargs = 0 ;
   }
+	else if (!stricmp(option, "random"))
+  {
+    parms.search_mode=RANDOM_SEARCH;
+    parms.niters=atoi(argv[2]);
+    fprintf(stderr,"using random search with %d iterations to retessellate\n",
+	    parms.niters); 
+    nargs = 1 ;
+  }
+	else if (!stricmp(option, "variable"))
+  {
+    parms.retessellation_mode=1;
+    fprintf(stderr,"ordering dependant final number of vertices\n"); 
+    nargs = 0 ;
+  }
+	else if (!stricmp(option, "eliminate"))
+  {
+    parms.vertex_eliminate=1;
+    fprintf(stderr,"eliminate the less used vertices during search\n"); 
+    nargs = 0 ;
+  }
+	else if (!stricmp(option, "keep"))
+  {
+    parms.keep=1;
+    fprintf(stderr,"keep every vertex in the defect before search\n"); 
+    nargs = 0 ;
+  }
+	
   else if (!stricmp(option, "diag"))
   {
     printf("saving diagnostic information....\n") ;
@@ -387,6 +511,38 @@ print_version(void)
 {
   fprintf(stderr, "%s\n", vcid) ;
   exit(1) ;
+}
+
+static void print_parameters(void){
+	fprintf(stderr,"\n*************************************************************\n");
+	fprintf(stderr,"Topology Correction Parameters\n");
+	switch(parms.search_mode){
+	case GREEDY_SEARCH:
+		fprintf(stderr,"retessellation mode :          greedy search\n");
+		break;
+	case RANDOM_SEARCH:
+		fprintf(stderr,"retessellation mode :          random search\n");
+		break;
+	case GENETIC_SEARCH:
+		fprintf(stderr,"retessellation mode:           genetic search\n");
+		fprintf(stderr,"number of patches/generation : %d\n",parms.max_patches);
+		fprintf(stderr,"number of generations :        %d\n",parms.max_unchanged);
+		fprintf(stderr,"selection initial vertices :   %d\n",parms.keep);
+		if(parms.niters>0)
+			fprintf(stderr,"stopping after %d iterations\n",parms.niters);
+		fprintf(stderr,"surface mri loglikelihood coefficient :         %1.1f\n",(float)parms.l_mri);
+		fprintf(stderr,"volume mri loglikelihood coefficient :          %1.1f\n",(float)parms.l_unmri);
+		fprintf(stderr,"normal dot loglikelihood coefficient :          %1.1f\n",(float)parms.l_curv);
+		fprintf(stderr,"quadratic curvature loglikelihood coefficient : %1.1f\n",(float)parms.l_qcurv);
+		fprintf(stderr,"volume resolution :                             %d\n",parms.volume_resolution);
+		break;
+	}
+	fprintf(stderr,"ordering dependant retessellation: %d\n",parms.retessellation_mode);
+	fprintf(stderr,"initial selection :                %d\n",parms.initial_selection);
+	fprintf(stderr,"smooth retessellated patch :       %d\n",parms.smooth);
+	fprintf(stderr,"match retessellated patch :        %d\n",parms.match);
+	fprintf(stderr,"verbose mode :                     %d\n",parms.verbose);
+	fprintf(stderr,"\n*************************************************************\n");
 }
 
 
