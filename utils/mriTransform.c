@@ -724,6 +724,7 @@ Trns_tErr Trns_Translate ( mriTransformRef this,
   case tAxis_Z:
     *MATRIX_RELT( mTransform, 3, 4 ) = ifAmount;
     break;
+  default:
   }
 
   /* compose the new matrix with the old one */
@@ -786,6 +787,7 @@ Trns_tErr Trns_Rotate ( mriTransformRef this,
   case tAxis_Z:
     mTransform = MatrixAllocRotation( 4, fRadians, Z_ROTATION );
     break;
+  default:
   }
 
   /* compose the new matrix with the old one */
@@ -840,6 +842,7 @@ Trns_tErr Trns_Scale ( mriTransformRef this,
   case tAxis_Z:
     *MATRIX_RELT( mTransform, 3, 3 ) = ifFactor;
     break;
+  default:
   }
 
   /* compose the new matrix with the old one */
