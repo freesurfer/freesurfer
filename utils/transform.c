@@ -540,8 +540,10 @@ LTAtransform(MRI *mri_src, MRI *mri_dst, LTA *lta)
   if (lta->num_xforms == 1)
   {
     if (!mri_dst) 
+    {
       mri_dst = MRIclone(mri_src, NULL);
-
+      fprintf(stderr, "INFO: Copied c_(r,a,s) from the src\n");
+    }
     if (tran->dst.valid == 1) // transform dst is valid
     {
       // modify dst c_(r,a,s) using the transform dst value
@@ -554,7 +556,7 @@ LTAtransform(MRI *mri_src, MRI *mri_dst, LTA *lta)
     }
     else if(getenv("USE_AVERAGE305"))
     {
-      fprintf(stderr, "INFO: environmental variable USE_AVERAGE305 set\n");
+      fprintf(stderr, "INFO: Environmental variable USE_AVERAGE305 set\n");
       fprintf(stderr, "INFO: Modifying dst c_(r,a,s), using average_305 values\n");
       mri_dst->c_r = -0.0950;
       mri_dst->c_a = -16.5100;
