@@ -69,6 +69,7 @@ ErrorInit(char *fname,
     error_vprintf = vprint ;
 
   unlink(error_fname) ; /* start with a fresh log file */
+  errno = 0 ;
 
   /* probably should be some info into log file like date/user etc... */
   return(NO_ERROR) ;
