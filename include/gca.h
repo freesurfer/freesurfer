@@ -177,6 +177,8 @@ int        GCAwriteSamples(GCA *gca, MRI *mri, GCA_SAMPLE *gcas, int nsamples,
                            char *fname) ;
 int        GCAtransformAndWriteSamples(GCA *gca, MRI *mri, GCA_SAMPLE *gcas, 
                                        int nsamples,char *fname,TRANSFORM *transform) ;
+int        GCAcomputeSampleCoords(GCA *gca, MRI *mri, GCA_SAMPLE *gcas, 
+                                  int nsamples,TRANSFORM *transform) ;
 MRI        *GCAmri(GCA *gca, MRI *mri) ;
 MRI        *GCAlabelMri(GCA *gca, MRI *mri, int label, TRANSFORM *transform) ;
 MRI        *GCAbuildMostLikelyVolume(GCA *gca, MRI *mri) ;
