@@ -1,8 +1,8 @@
 #!/bin/csh -f
 # evfunc-jk-sess
 #
-# $Id: evfunc-jk-sess,v 1.1 2003/03/04 21:22:08 greve Exp $
-set VERSION = '$Id: evfunc-jk-sess,v 1.1 2003/03/04 21:22:08 greve Exp $';
+# $Id: evfunc-jk-sess,v 1.2 2004/04/09 21:40:18 greve Exp $
+set VERSION = '$Id: evfunc-jk-sess,v 1.2 2004/04/09 21:40:18 greve Exp $';
 set FASTVER = `cat $FSFAST_HOME/docs/version`;
 
 set inputargs = ($argv);
@@ -63,7 +63,7 @@ if($#designtype == 0) then
   set designtype = `cat $infofile | awk '{if($1 == "avgtype") print $2}'`;
 endif
 
-if($designtype != "event-related" && $designtype != "blocked") then
+if($designtype != "event-related" && $designtype != "blocked" && 0) then
   echo "ERROR: the design type of this analysis is $designtype"
   echo "  evfunc-jk-sess can only be used to analyse event-related and blocked"
   exit 1;
