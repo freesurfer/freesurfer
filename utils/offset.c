@@ -1,8 +1,8 @@
 /*
  *       FILE NAME:   offset.c
  *
- *       DESCRIPTION: routines for generating displacement vector fields. Split from
- *                    image.c
+ *       DESCRIPTION: routines for generating displacement vector fields. 
+ *                    Split from image.c
  *
  *       AUTHOR:      Bruce Fischl
  *       DATE:        7/1/96
@@ -1124,6 +1124,97 @@ ImageOffsetDirection(IMAGE *Ix, IMAGE *Iy, int wsize, IMAGE *Iorient,
             Parameters:
 
            Description:
+----------------------------------------------------------------------*/
+IMAGE *
+ImageOffsetDirectionMap(IMAGE *Ix, IMAGE *Iy, int wsize, IMAGE *Iorient, 
+                     IMAGE *Idir, IMAGE *Ioffset)
+{
+  int    x0, y0, rows, cols, x, y, whalf, xc, yc, yoff, off ;
+  float  *xpix, *ypix, dx, dy, *or_xpix,*or_ypix, *oxpix, *oypix, dir, ox, oy,
+         dot ;
+
+  rows = Ix->rows ;
+  cols = Ix->cols ;
+
+  if (!Ioffset)
+    Ioffset = ImageAlloc(rows, cols, PFFLOAT, 2) ;
+
+  if (!ImageCheckSize(Ix, Ioffset, 0, 0, 2))
+  {
+    ImageFree(&Ioffset) ;
+    Ioffset = ImageAlloc(rows, cols, PFFLOAT, 2) ;
+  }
+
+  whalf = (wsize-1)/2 ;
+  xpix = IMAGEFpix(Ix, 0, 0) ;
+  ypix = IMAGEFpix(Iy, 0, 0) ;
+  or_xpix = IMAGEFpix(Iorient, 0, 0) ;
+  or_ypix = IMAGEFseq_pix(Iorient, 0, 0, 1) ;
+  oxpix = IMAGEFpix(Ioffset, 0, 0) ;
+  oypix = IMAGEFseq_pix(Ioffset, 0, 0, 1) ;
+  for (y0 = 0 ; y0 < rows ; y0++)
+  {
+    for (x0 = 0 ; x0 < cols ; x0++, xpix++, ypix++)
+    {
+/*
+  Now calculate the direction for this point by averaging local gradient
+  orientation within the specified window.
+
+  x and y are in window coordinates, while xc and yc are in image
+  coordinates.
+*/
+      /* calculate orientation vector */
+      ox = *or_xpix++ ;
+      oy = *or_ypix++ ;
+      dir = 0.0f ;
+      for (y = -whalf ; y <= whalf ; y++)
+      {
+        /* reflect across the boundary */
+        yc = y + y0 ;
+        if ((yc < 0) || (yc >= rows))
+          continue ;
+        
+        yoff = y*cols ;
+        for (x = -whalf ; x <= whalf ; x++)
+        {
+          xc = x0 + x ;
+          if ((xc < 0) || (xc >= cols))
+            continue ;
+
+          off = yoff + x ;
+          dx = *(xpix+off) ;
+          dy = *(ypix+off) ;
+          dot = dx*ox + dy*oy ;
+          if (dot < 0.0f)
+            dot = 0.0f ;
+          dir += (x*ox + y*oy) * dot ;
+        }
+      }
+
+      if (ISTINY(dir))
+        *IMAGEFpix(Idir, x0, y0) = 0.0f ;
+      else if (dir > 0.0f)
+        *IMAGEFpix(Idir, x0, y0) = -1.0f ;
+      else
+        *IMAGEFpix(Idir, x0, y0) = 1.0f ;
+        
+      if (ISSMALL(dir))
+        ox = oy = 0.0f ;
+      else if (dir > 0.0f)   /* flip by 180 */
+      {
+        ox = -ox ;
+        oy = -oy ;
+      }
+      *oxpix++ = ox ;
+      *oypix++ = oy ;
+    }
+  }
+  return(Ioffset) ;
+}
+/*----------------------------------------------------------------------
+            Parameters:
+
+           Description:
              use a Bresenham line drawing algorithm to do search
 ----------------------------------------------------------------------*/
 #define FSCALE  100.0f
@@ -1930,3 +2021,65 @@ ImageSmoothOffsets(IMAGE *Isrc, IMAGE *Idst, int wsize)
 }
 
 #endif
+
+/*----------------------------------------------------------------------
+            Parameters:
+
+           Description:
+              apply an offset vector to a filtered image.
+----------------------------------------------------------------------*/
+IMAGE *
+ImageFilterMinMax(IMAGE *Imin, IMAGE *Imax, IMAGE *Idir, IMAGE *Ioffset, 
+                  IMAGE *Idst)
+{
+  int    x, y, rows, cols, dx, dy, dir ;
+  float  *dst, src, *dx_pix, *dy_pix, *dir_pix ;
+  IMAGE  *Iout ;
+
+  rows = Imin->rows ;
+  cols = Imin->cols ;
+
+  if (!Idst)
+    Idst = ImageAlloc(rows, cols, PFFLOAT, 1) ;
+
+  if (Idst->pixel_format != PFFLOAT)
+    Iout = ImageAlloc(rows, cols, PFFLOAT, 1) ;
+  else
+
+    Iout = Idst ;
+  if (!ImageCheckSize(Imin, Idst, 0, 0, 0))
+    ErrorReturn(NULL, (ERROR_SIZE, "ImageApplyOffset: dst not big enough")) ;
+
+  dst = IMAGEFpix(Iout, 0, 0) ;
+  dir_pix = IMAGEFpix(Idir, 0, 0) ;
+  dx_pix = IMAGEFpix(Ioffset, 0, 0) ;
+  dy_pix = IMAGEFseq_pix(Ioffset, 0, 0, 1) ;
+
+  for (y = 0 ; y < rows ; y++)
+  {
+    for (x = 0 ; x < cols ; x++)
+    {
+if (x == 7 && y == 50)
+  DiagBreak() ;
+
+      dir = (int)*dir_pix++ ;
+      dx = (int)*dx_pix++ ;
+      dy = (int)*dy_pix++ ;
+      if (dir > 0)   /* moving in gradient direction */
+        src = *IMAGEFpix(Imax, x+dx, y+dy) ;
+      else if (dir < 0)
+        src = *IMAGEFpix(Imin, x+dx, y+dy) ;
+      else
+        src = (*IMAGEFpix(Imin, x+dx, y+dy) + *IMAGEFpix(Imax, x+dx, y+dy))/2;
+      *dst++ = src ;
+    }
+  }
+
+  if (Iout != Idst)
+  {
+    ImageCopy(Iout, Idst) ;
+    ImageFree(&Iout) ;
+  }
+  return(Idst) ;
+}
+
