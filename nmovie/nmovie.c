@@ -16,7 +16,9 @@
 #include <sys/shm.h>
 #include <X11/extensions/XShm.h>
 
+#ifdef Linux
 #include <X11/extensions/xf86dga.h>
+#endif 
 
 #define NONE  0
 #define LOOP  1
@@ -67,7 +69,10 @@ typedef struct {
 /* -------- Global Variables ------- */
 Widget frame,toplevel,quit_bt,canvas,buttons,stop_bt,loop_bt,swing_bt;
 Widget fast_bt,slow_bt;
-int shmext,dgaext,nframes;
+int shmext,nframes;
+#ifdef Linux
+int dga;
+#endif 
 XImage *ximg;
 byte *imgdata;
 XCRUFT xi;
@@ -263,6 +268,7 @@ static void XInit(int *argc, char ***argv)
   shmext = XShmQueryExtension(xi.disp);
   xi.screenno = DefaultScreen(xi.disp);
 
+#ifdef Linux
   if (XF86DGAQueryExtension(xi.disp,&ebase,&errbase))
     {
       XF86DGAQueryDirectVideo(xi.disp, xi.screenno, &flags);
@@ -270,7 +276,7 @@ static void XInit(int *argc, char ***argv)
     }
   else
     dgaext = 0;
-
+#endif 
 }
 
 static void XSetupDisplay(int nframes)
