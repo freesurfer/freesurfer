@@ -2509,7 +2509,7 @@ MRI3Dmorph(MRI *mri_in, MRI *mri_ref, MORPH_PARMS *parms)
         if ((Gdiag & DIAG_WRITE) && parms->log_fp)
           fprintf(parms->log_fp,
                   "unfolding lattice, dt=%2.2f, l_int=%2.2f, tol=%2.2f.\n",
-                  parms->dt, sigma, parms->l_intensity, parms->tol);
+                  parms->dt, parms->l_intensity, parms->tol);
         parms->sigma = 0 ;
         m3dAlignPyramidLevel(mri_in_pyramid[i], mri_ref_pyramid[i], 
                              mri_ref_pyramid[i], parms, m3d) ;
