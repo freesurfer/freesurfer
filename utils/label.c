@@ -15,6 +15,7 @@
 static Transform *labelLoadTransform(char *subject_name, char *sdir,
                                      General_transform *transform) ;
 
+
 /*-----------------------------------------------------
         Parameters:
 
@@ -26,7 +27,7 @@ LABEL *
 LabelRead(char *subject_name, char *label_name)
 {
   LABEL  *area ;
-  char   fname[200], *cp, line[200], subjects_dir[100] ;
+  char   fname[100], *cp, line[200], subjects_dir[100] ;
   FILE   *fp ;
   int    vno, nlines ;
   float  x, y, z ;
@@ -85,13 +86,10 @@ LabelRead(char *subject_name, char *label_name)
   fclose(fp) ;
   if (!nlines)
     ErrorExit(ERROR_BADFILE, "%s: no data in label file %s", Progname, fname);
-  if (subject_name)
-  {
-    area->linear_transform = 
-      labelLoadTransform(subject_name, subjects_dir, &area->transform) ;
-    area->inverse_linear_transform = 
-      get_inverse_linear_transform_ptr(&area->transform) ;
-  }
+  area->linear_transform = 
+    labelLoadTransform(subject_name, subjects_dir, &area->transform) ;
+  area->inverse_linear_transform = 
+    get_inverse_linear_transform_ptr(&area->transform) ;
   return(area) ;
 }
 /*-----------------------------------------------------
@@ -226,7 +224,7 @@ LabelWrite(LABEL *area, char *label_name)
 {
   FILE  *fp ;
   int  n, num ;
-  char   fname[200], *cp, subjects_dir[100] ;
+  char   fname[100], *cp, subjects_dir[100] ;
 
   if (strlen(area->subject_name) > 0)
   {
@@ -417,7 +415,7 @@ LabelCurvFill(LABEL *area, int *vertex_list, int nvertices,
         if (vn->ripflag || vn->marked)
           continue ;
         if (((curv_thresh > 0) && (vn->curv > curv_thresh)) ||
-            ((curv_thresh < 0) && (vn->curv < curv_thresh)))
+             ((curv_thresh < 0) && (vn->curv < curv_thresh)))
         {
           vn->marked = 1 ;
           lvn = &area->lv[area->n_points+nfilled] ;
@@ -428,8 +426,6 @@ LabelCurvFill(LABEL *area, int *vertex_list, int nvertices,
         if (area->n_points+nfilled >= area->max_points)
           break ;
       }
-      if (area->n_points+nfilled >= area->max_points)
-        break ;
     }
     fprintf(stderr, "%d vertices added.\n", nfilled) ;
     area->n_points += nfilled ;
@@ -438,7 +434,6 @@ LabelCurvFill(LABEL *area, int *vertex_list, int nvertices,
   fprintf(stderr, "%d vertices in label %s\n",area->n_points, area->name);
   return(NO_ERROR) ;
 }
-
 /*-----------------------------------------------------
         Parameters:
 
@@ -449,7 +444,7 @@ LabelCurvFill(LABEL *area, int *vertex_list, int nvertices,
 static Transform *
 labelLoadTransform(char *subject_name, char *sdir,General_transform *transform)
 {
-  char xform_fname[200] ;
+  char xform_fname[100] ;
 
   sprintf(xform_fname, "%s/%s/mri/transforms/talairach.xfm",
           sdir, subject_name) ;
@@ -587,3 +582,4 @@ LabelCopy(LABEL *asrc, LABEL *adst)
   memmove(adst->lv, asrc->lv, asrc->n_points*sizeof(LABEL_VERTEX)) ;
   return(adst) ;
 }
+
