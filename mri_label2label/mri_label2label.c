@@ -1,6 +1,6 @@
 /*----------------------------------------------------------
   Name: mri_label2label.c
-  $Id: mri_label2label.c,v 1.6 2001/05/17 20:42:54 greve Exp $
+  $Id: mri_label2label.c,v 1.7 2002/05/14 21:59:43 greve Exp $
   Author: Douglas Greve
   Purpose: Converts a label in one subject's space to a label
   in another subject's space using either talairach or spherical
@@ -40,8 +40,9 @@
 #include "mrisurf.h"
 #include "mri.h"
 #include "label.h"
-
 #include "registerio.h"
+#include "mri.h"
+#include "mri2.h"
 
 static int  parse_commandline(int argc, char **argv);
 static void check_options(void);
@@ -52,14 +53,17 @@ static void print_version(void) ;
 static void argnerr(char *option, int n);
 static void dump_options(FILE *fp);
 static int  singledash(char *flag);
+static int  isflag(char *flag);
+static int  nth_is_arg(int nargc, char **argv, int nth);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_label2label.c,v 1.6 2001/05/17 20:42:54 greve Exp $";
+static char vcid[] = "$Id: mri_label2label.c,v 1.7 2002/05/14 21:59:43 greve Exp $";
 char *Progname = NULL;
 
 char  *srclabelfile = NULL;
 LABEL *srclabel     = NULL;
+LABEL *tmplabel     = NULL;
 char  *srcsubject   = NULL;
 char  *trglabelfile = NULL;
 LABEL *trglabel     = NULL;
@@ -92,6 +96,11 @@ char *MRI_DIR = NULL;
 FILE *fp;
 
 char tmpstr[2000];
+
+char *srcmaskfile, *srcmaskfmt, *srcmasksign = "abs";
+int srcmaskframe = 0;
+float srcmaskthresh = 0.0;
+MRI *SrcMask;
 
 /*-------------------------------------------------*/
 int main(int argc, char **argv)
@@ -284,6 +293,29 @@ int main(int argc, char **argv)
       TrgHash = MHTfillVertexTableRes(TrgSurfReg, NULL,
               CURRENT_VERTICES,hashres);
     }
+
+    /* handle source mask */
+    if(srcmaskfile != NULL){
+      printf("INFO: masking label\n");
+      //SrcMask = MRIloadSurfVals(srcmaskfile, srcmaskfmt, NULL,
+      //      srcsubject, hemi, NULL);
+
+      SrcMask = MRISloadSurfVals(srcmaskfile, srcmaskfmt, SrcSurfReg,
+        NULL,NULL,NULL);
+      if(SrcMask == NULL) exit(1);
+      tmplabel = MaskSurfLabel(srclabel, SrcMask, 
+             srcmaskthresh, srcmasksign, srcmaskframe);
+      if(tmplabel == NULL) exit(1);
+      LabelFree(&srclabel) ;
+      srclabel = tmplabel;
+      printf("Found %d points in source label after masking.\n",
+       srclabel->n_points);
+      if(srclabel->n_points == 0){
+  printf("ERROR: no overlap between mask and label\n");
+  exit(1);
+      }
+      trglabel->n_points = srclabel->n_points;
+    }
     
     /* Loop through each source label and map its xyz to target */
     allzero = 1;
@@ -298,10 +330,10 @@ int main(int argc, char **argv)
       }
       
       if(srcvtxno != 0) allzero = 0;
-
+      
       /* source vertex */
       srcvtx = &(SrcSurfReg->vertices[srcvtxno]);
-
+      
       /* closest target vertex number */
       if(usehash){
   trgvtxno = MHTfindClosestVertexNo(TrgHash,TrgSurfReg,srcvtx,&dmin);
@@ -389,6 +421,23 @@ static int parse_commandline(int argc, char **argv)
       sscanf(pargv[0],"%d",&srcicoorder);
       nargsused = 1;
     }
+    else if (!strcmp(option, "--srcmask")){
+      if(nargc < 2) argnerr(option,2);
+      srcmaskfile = pargv[0];
+      sscanf(pargv[1],"%f",&srcmaskthresh); 
+      nargsused = 2;
+      if(nth_is_arg(nargc, pargv, 2)){
+  srcmaskfmt = pargv[2]; nargsused ++;
+      }
+    }
+    else if (!strcmp(option, "--srcmaskframe")){
+      if(nargc < 1) argnerr(option,1);
+      sscanf(pargv[0],"%d",&srcmaskframe);  nargsused = 1;
+    }
+    else if (!strcmp(option, "--srcmasksign")){
+      if(nargc < 1) argnerr(option,1);
+      srcmasksign = pargv[1]; nargsused = 1;
+    }
     /* -------- target inputs ------ */
     else if (!strcmp(option, "--trgsubject")){
       if(nargc < 1) argnerr(option,1);
@@ -467,28 +516,10 @@ static void print_usage(void)
   fprintf(stdout, "   --trgsurf     get xyz from this surface (white)\n");
   fprintf(stdout, "   --surfreg     surface registration (sphere.reg)  \n");
   fprintf(stdout, "\n");
-}
-/* --------------------------------------------- */
-static void dump_options(FILE *fp)
-{
-  fprintf(fp,"srclabel = %s\n",  srclabelfile);
-  fprintf(fp,"srcsubject = %s\n",srcsubject);
-  fprintf(fp,"trgsubject = %s\n",trgsubject);
-  fprintf(fp,"trglabel = %s\n",  trglabelfile);
-  fprintf(fp,"regmethod = %s\n",regmethod);
-  fprintf(fp,"\n");
-  if(!strcmp(regmethod,"surface")){
-    fprintf(fp,"hemi = %s\n",hemi);
-    fprintf(fp,"trgsurface = %s\n",trgsurface);
-    fprintf(fp,"surfreg = %s\n",surfreg);
-  }
-  if(!strcmp(srcsubject,"ico")) fprintf(fp,"srcicoorder = %d\n",srcicoorder);
-  if(!strcmp(trgsubject,"ico")) fprintf(fp,"trgicoorder = %d\n",trgicoorder);
-  fprintf(fp,"usehash = %d\n",usehash);
-
-  fprintf(fp,"\n");
-
-  return;
+  fprintf(stdout, "   --srcmask     surfvalfile thresh <format>\n");
+  fprintf(stdout, "   --srcmasksign sign (<abs>,pos,neg)\n");
+  fprintf(stdout, "   --srcmaskframe 0-based frame number <0>\n");
+  fprintf(stdout, "\n");
 }
 /* --------------------------------------------- */
 static void print_help(void)
@@ -499,6 +530,12 @@ static void print_help(void)
 "  Purpose: Converts a label in one subject's space to a label\n"
 "  in another subject's space using either talairach or spherical\n"
 "  as an intermediate registration space. \n"
+"\n"
+"  If a source mask is used, then the input label must have been\n"
+"  created from a surface (ie, the vertex numbers are valid). The \n"
+"  format can be anything supported by mri_convert or curv or paint.\n"
+"  Vertices in the source label that do not meet threshold in the\n"
+"  mask will be removed from the label. See Example 2.\n"
 "\n"
 "  Example 1: If you have a label from subject fred called\n"
 "    broca-fred.label defined on fred's left hemispherical \n"
@@ -511,7 +548,20 @@ static void print_help(void)
 "    This will map from fred to sally using sphere.reg. The registration\n"
 "    surface can be changed with --surfreg.\n"
 "\n"
-"  Example 2: You could also do the same mapping using talairach \n"
+"  Example 2: Same as Example 1 but with a mask\n"
+"\n"
+"    mri_label2label --srclabel broca-fred.label  --srcsubject fred \n"
+"                    --trglabel broca-sally.label --trgsubject sally\n"
+"                    --regmethod surface --hemi lh\n"
+"                    --srcmask  fred-omnibus-sig 2 bfloat\n"
+"\n"
+"    This will load the bfloat data from fred-omnibus-sig and create\n"
+"    a mask by thresholding the first frame absolute values at 2.\n"
+"    To change it to only the positive values of the 3rd frame, add\n"
+"         --srcmasksign pos --srcmaskframe 2   \n"
+"\n"
+"\n"
+"  Example 3: You could also do the same mapping using talairach \n"
 "    space as an intermediate:\n"
 "\n"
 "    mri_label2label --srclabel broca-fred.label  --srcsubject fred \n"
@@ -546,6 +596,35 @@ static void print_help(void)
   exit(1) ;
 }
 /* --------------------------------------------- */
+static void dump_options(FILE *fp)
+{
+  fprintf(fp,"srclabel = %s\n",  srclabelfile);
+  fprintf(fp,"srcsubject = %s\n",srcsubject);
+  fprintf(fp,"trgsubject = %s\n",trgsubject);
+  fprintf(fp,"trglabel = %s\n",  trglabelfile);
+  fprintf(fp,"regmethod = %s\n",regmethod);
+  fprintf(fp,"\n");
+  if(!strcmp(regmethod,"surface")){
+    fprintf(fp,"hemi = %s\n",hemi);
+    fprintf(fp,"trgsurface = %s\n",trgsurface);
+    fprintf(fp,"surfreg = %s\n",surfreg);
+  }
+  if(!strcmp(srcsubject,"ico")) fprintf(fp,"srcicoorder = %d\n",srcicoorder);
+  if(!strcmp(trgsubject,"ico")) fprintf(fp,"trgicoorder = %d\n",trgicoorder);
+  fprintf(fp,"usehash = %d\n",usehash);
+
+  if(srcmaskfile != NULL){
+    fprintf(fp,"srcmask %s, %s \n",srcmaskfile, srcmaskfmt);
+    fprintf(fp,"srcmaskthresh %g %s\n",srcmaskthresh, srcmasksign);
+    fprintf(fp,"srcmaskframe %d\n",srcmaskframe);
+  }
+
+
+  fprintf(fp,"\n");
+
+  return;
+}
+/* --------------------------------------------- */
 static void print_version(void)
 {
   fprintf(stderr, "%s\n", vcid) ;
@@ -559,6 +638,30 @@ static void argnerr(char *option, int n)
   else
     fprintf(stderr,"ERROR: %s flag needs %d arguments\n",option,n);
   exit(-1);
+}
+/*---------------------------------------------------------------*/
+static int isflag(char *flag)
+{
+  int len;
+  len = strlen(flag);
+  if(len < 2) return(0);
+
+  if(flag[0] == '-' && flag[1] == '-') return(1);
+  return(0);
+}
+/*---------------------------------------------------------------*/
+static int nth_is_arg(int nargc, char **argv, int nth)
+{
+  /* Checks that nth arg exists and is not a flag */
+  /* nth is 0-based */
+
+  /* check that there are enough args for nth to exist */
+  if(nargc <= nth) return(0); 
+
+  /* check whether the nth arg is a flag */
+  if(isflag(argv[nth])) return(0);
+
+  return(1);
 }
 /* --------------------------------------------- */
 static void check_options(void)
@@ -633,27 +736,4 @@ static int singledash(char *flag)
   return(0);
 }
 
-#if 0
-/* Replaced by MRISscaleBrain(SrcSurfReg, SrcSurfReg, Scale);*/
-/* 5/17/01 */
-/*---------------------------------------------------------------*/
-static float SurfRescale(MRI_SURFACE *surf, float radius)
-{
-  int n;
-  VERTEX *v;
-  float d, dsum, davg;
 
-  dsum = 0;
-  for(n=0; n < surf->nvertices; n++){
-    v = &(surf->vertices[n]);
-    d = sqrt( (v->x*v->x) + (v->y*v->y) + (v->z*v->z) );
-    v->x *= radius/d;
-    v->y *= radius/d;
-    v->z *= radius/d;
-    dsum = dsum + d;
-  }
-
-  davg = dsum/surf->nvertices;
-  return(davg);
-}
-#endif
