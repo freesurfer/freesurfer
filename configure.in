@@ -208,13 +208,13 @@ fi
 # now set the flag
 case "$CPUTYPE" in 
   pentium3) 
-     CPUFLAGS="-march=pentium3"
+     CPUFLAGS="-march=pentium3 -msse -mfpmath=sse"
      ;;
   pentium4)
-     CPUFLAGS="-march=pentium4 -msse2"
+     CPUFLAGS="-march=pentium4 -msse2 -mfpmath=sse"
      ;;
   athlonxp)
-     CPUFLGAS="-march=athlon-xp"
+     CPUFLGAS="-march=athlon-xp -msse -mfpmath=sse"
      ;;	
   opteron)
      CPUFLAGS="-march=x86-64 -msse2"
