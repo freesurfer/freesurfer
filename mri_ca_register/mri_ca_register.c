@@ -48,7 +48,7 @@ static char *transformed_sample_fname = NULL ;
 static char *normalized_transformed_sample_fname = NULL ;
 static char *ctl_point_fname = NULL ;
 static int novar = 1 ;
-static int relabel = 0 ;
+static int relabel = 1 ;
 
 static int use_contrast = 0 ;
 static float min_prior = MIN_PRIOR ;
@@ -360,7 +360,10 @@ main(int argc, char *argv[])
 	{
 		gcam->gca = gca ;
 		GCAMcomputeOriginalProperties(gcam) ;
-		GCAMcomputeMaxPriorLabels(gcam) ;
+		if (relabel)
+			GCAMcomputeLabels(mri_in, gcam) ;
+		else
+			GCAMcomputeMaxPriorLabels(gcam) ;
 	}
   if (parms.write_iterations != 0)
   {
