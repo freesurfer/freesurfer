@@ -5,6 +5,7 @@
 #include "mri.h"
 #include "volume_io.h"
 #include "image.h"
+#include "matrix.h"
 
 #define TALAIRACH_COORDS     0
 #define SPHERICAL_COORDS     1
@@ -44,6 +45,8 @@ typedef struct vertex_type_
   float curv;            /* curr curvature */
   float val;             /* scalar data value (file: rh.val, sig2-rh.w) */
   int   cx, cy, cz ;     /* coordinates in canonical coordinate system */
+  float e1x, e1y, e1z ;  /* 1st basis vector for the local tangent plane */
+  float e2x, e2y, e2z ;  /* 2nd basis vector for the local tangent plane */
 #if 0
   float mx,my,mz;        /* last movement */
   float dipx,dipy,dipz;  /* dipole position */
@@ -67,8 +70,8 @@ typedef struct vertex_type_
   int *n;                /* [0-3, num long] */
   int vnum;              /* number neighboring vertices */
   int *v;                /* array neighboring vertex numbers, vnum long */
-  float bnx,bny,obnx,obny;                       /* boundary normal */
 #if 0
+  float bnx,bny,obnx,obny;                       /* boundary normal */
   float *fnx ;           /* face normal - x component */
   float *fny ;           /* face normal - y component */
   float *fnz ;           /* face normal - z component */
@@ -76,8 +79,6 @@ typedef struct vertex_type_
   float *orig_tri_area ;     /* array of original triangle areas - num long */
   float *tri_angle ;     /* angles of each triangle this vertex belongs to */
   float *orig_tri_angle ;/* original values of above */
-#endif
-#if 0
   int   annotation;      /* area label (defunct--now from label file name!) */
   float stress;          /* explosion */
   float logarat,ologarat,sqrtarat; /* for area term */
@@ -157,6 +158,7 @@ typedef struct
   float   l_angle ;           /* coefficient of angle term */
   float   l_area ;            /* coefficient of area term */
   float   l_corr ;            /* coefficient of correlation term */
+  float   l_curv ;            /* coefficient of curvature term */
   int     n_averages ;        /* # of averages */
   int     write_iterations ;  /* # of iterations between saving movies */
   char    base_name[100] ;    /* base name of movie files */
@@ -279,6 +281,12 @@ int          MRISsampleStatVolume(MRI_SURFACE *mris, STAT_VOLUME *sv,int time,
                                   int use_talairach_xform);
 
 int          MRISflattenPatch(MRI_SURFACE *mris, char *dir) ;
+int          MRIScomputeMeanCurvature(MRI_SURFACE *mris) ;
+
+int          MRIScomputeEulerNumber(MRI_SURFACE *mris, int *pnvertices, 
+                                    int *pnfaces, int *pnedges) ;
+int          MRIStopologicalDefectIndex(MRI_SURFACE *mris) ;
+int          MRISremoveTopologicalDefects(MRI_SURFACE *mris,float curv_thresh);
 
 /* constants for vertex->tethered */
 #define TETHERED_NONE           0

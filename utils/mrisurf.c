@@ -30,9 +30,12 @@ static int   mrisNormalFace(MRIS *mris, int fac,int n,float norm[]) ;
 static int   mrisReadTransform(MRIS *mris, char *mris_fname) ;
 static int   mrisReadBinaryAreas(MRI_SURFACE *mris, char *mris_fname) ;
 /*static int   mrisReadFieldsign(MRI_SURFACE *mris, char *fname) ;*/
-static double mrisComputeSSE(MRI_SURFACE *mris, float l_area,float l_angle);
-static double mrisComputeError(MRI_SURFACE *mris, float l_area,float l_angle,
+static double mrisComputeSSE(MRI_SURFACE *mris, float l_area,float l_angle,
+                             float l_curv);
+static double mrisComputeError(MRI_SURFACE *mris, 
+                               float l_area,float l_angle, float l_curv,
                                 double *parea_error, double *pangle_error,
+                               double *pcurv_error,
                                int *pn);
 static int   mrisScaleEllipsoidArea(MRI_SURFACE *mris) ;
 static int   mrisCountNegativeTriangles(MRI_SURFACE *mris) ;
@@ -49,11 +52,22 @@ static int   mrisComputeEllipsoidProperties(MRI_SURFACE *mris) ;
 #if AVERAGE_AREAS
 static int   mrisAverageAreas(MRI_SURFACE *mris, int num_avgs, int which) ;
 #endif
+#if 0
 static int   mrisComputeBoundaryNormals(MRI_SURFACE *mris) ;
 static int   mrisSmoothBoundaryNormals(MRI_SURFACE *mris, int niter) ;
+#endif
 static int   mrisRipFaces(MRI_SURFACE *mris) ;
 static int   transform(float *xptr, float *yptr, float *zptr, 
                        float nx, float ny, float nz, float d) ;
+
+static int   mrisComputeTangentPlanes(MRI_SURFACE *mris) ;
+static int   mrisComputeCurvatureTerm(MRI_SURFACE *mris, 
+                                      INTEGRATION_PARMS *parms) ;
+static int   mrisUpdateSurface(MRI_SURFACE *mris) ;
+static int   mrisRemoveLink(MRI_SURFACE *mris, int vno1, int vno2) ;
+static int   mrisRemoveEdge(MRI_SURFACE *mris, int vno1, int vno2) ;
+static int   mrisRemoveFace(MRI_SURFACE *mris, int fno) ;
+static int   mrisCountValidLinks(MRI_SURFACE *mris, int vno1, int vno2) ;
 
 /*--------------------------------------------------------------------*/
 
@@ -264,6 +278,7 @@ MRISread(char *fname)
   mrisFindNeighbors(mris);
   mrisComputeNormals(mris);
   mrisReadTransform(mris, fname) ;
+/*  mrisComputeTangentPlanes(mris) ;*/
   if (MRISreadBinaryCurvature(mris, fname) != NO_ERROR)
     return(NULL) ;
 
@@ -1372,6 +1387,7 @@ MRISunfold(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
     mrisOrientPlane(mris) ;
     break ;
   default:
+    mrisUpdateSurface(mris) ;
     break ;
   }
   return(mris) ;
@@ -1413,7 +1429,7 @@ mrisIntegrate(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
   VECTOR  *v_a, *v_b, *v_c, *v_d, *v_a_x_n, *v_b_x_n, *v_c_x_n, *v_d_x_n,
           *v_n0, *v_n, *v_n1, *v_tmp, *v_sum ;
   FACE    *face ;
-  double  sse, old_sse, angle_sse, area_sse ;
+  double  sse, old_sse, angle_sse, area_sse, curv_sse ;
   float   delta_t, orig_area0, area0, orig_area1, area1, 
           delta0, delta1, l_area, l_corr, l_angle, delta, len ;
 
@@ -1449,6 +1465,7 @@ mrisIntegrate(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
     mrisOrientPlane(mris) ;
     break ;
   default:
+    mrisUpdateSurface(mris) ;
     break ;
   }
 
@@ -1458,7 +1475,8 @@ mrisIntegrate(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
 #endif
 
   sse = old_sse = mrisComputeError(mris, parms->l_area, parms->l_angle,
-                                   &area_sse,&angle_sse, &num);
+                                   parms->l_curv,
+                                   &area_sse,&angle_sse, &curv_sse, &num);
   imin = -1 ;
   delta_t = 0.0f ;
   niterations += parms->start_t ;
@@ -1467,18 +1485,18 @@ mrisIntegrate(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
     char fname[100] ;
 
     negative = mrisCountNegativeTriangles(mris) ;
-    printf("%d: dt: %2.3f, rms: %2.4f (%2.3f, %2.1f), neg: %d (%2.1f)"
+    printf("%d: dt: %2.3f, rms: %2.4f (%2.3f, %2.1f, %2.1f), neg: %d (%2.1f)"
            ", avgs: %d\n", parms->start_t, delta_t, 
            sqrt(sse/(float)num), sqrt(area_sse/(float)num), 
-           DEGREES(sqrt(angle_sse/(float)(num*3))), 
+           DEGREES(sqrt(angle_sse/(float)(num*3))), curv_sse,
            negative, mris->neg_area, n_averages);
     if (Gdiag & DIAG_SHOW)
     {
       if (Gdiag & DIAG_SHOW)
-        fprintf(parms->fp, "%d: dt: %2.3f, rms: %2.4f (%2.3f, %2.1f), "
+        fprintf(parms->fp, "%d: dt: %2.3f, rms: %2.4f (%2.3f, %2.1f, %2.1f), "
                 "neg: %d (%2.1f) avgs: %d\n", parms->start_t, 
                 delta_t, sqrt(sse/(float)num), sqrt(area_sse/(float)num), 
-                DEGREES(sqrt(angle_sse/(float)(num*3))), 
+                DEGREES(sqrt(angle_sse/(float)(num*3))), curv_sse,
                 negative, mris->neg_area, 
                 n_averages);
       fflush(parms->fp) ;
@@ -1521,6 +1539,9 @@ mrisIntegrate(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
 #if AVERAGE_AREAS
     mrisAverageAreas(mris, parms->n_averages, CURRENT_AREAS) ;
 #endif
+
+    if (!FZERO(parms->l_curv))
+      MRIScomputeMeanCurvature(mris) ;
 
     /* clear old deltas */
     for (vno = 0 ; vno < mris->nvertices ; vno++)
@@ -1629,38 +1650,46 @@ mrisIntegrate(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
       }
     }    /* done with all faces */
 
+    if (!FZERO(parms->l_curv))
+      mrisComputeCurvatureTerm(mris, parms) ;
 #if !AVERAGE_AREAS
     mrisAverageGradients(mris, n_averages) ;
 #endif
     parms->t = t ;
     delta_t = mrisLineMinimize(mris, parms) ;
 
+for (vno = 0 ; vno < mris->nvertices ; vno++)
+{
+  v0 = &mris->vertices[vno] ;
+  if (v0->y < -100 || v0->y > 100 || v0->z < -100 || v0->z > 100)
+    DiagBreak() ;
+}
     if (delta_t < parms->tol)   /* reached the minimum */
       break ;
 
     /* only print stuff out if we actually took a step */
-    sse = mrisComputeError(mris,parms->l_area,parms->l_angle,&area_sse,
-                           &angle_sse, &num);
+    sse = mrisComputeError(mris,parms->l_area,parms->l_angle, parms->l_curv,
+                           &area_sse, &angle_sse, &curv_sse, &num);
     if (FZERO(sse) || (fabs((sse-old_sse)/(old_sse)) < parms->tol))
       break ;
 
     old_sse = sse ;
     negative = mrisCountNegativeTriangles(mris) ;
-    printf("%d: dt: %2.3f, rms: %2.4f (%2.3f, %2.1f), neg: %d (%2.1f), "
+    printf("%d: dt: %2.3f, rms: %2.4f (%2.3f, %2.1f, %2.1f), neg: %d (%2.1f), "
            "avgs: %d\n", t+1,   delta_t, 
            (float)sqrt(sse/(float)num), 
            (float)sqrt(area_sse/(float)num), 
-           (float)DEGREES(sqrt(angle_sse/(float)(num*3))), 
+           (float)DEGREES(sqrt(angle_sse/(float)(num*3))), curv_sse, 
            negative, mris->neg_area, n_averages) ;
     fflush(stdout) ;
     if (Gdiag & DIAG_SHOW)
     {
       fprintf(parms->fp, 
-              "%d: dt: %2.3f, rms: %2.4f (%2.3f, %2.1f), neg: %d (%2.1f)"
+             "%d: dt: %2.3f, rms: %2.4f (%2.3f, %2.1f, %2.1f), neg: %d (%2.1f)"
               ", avgs: %d\n", t+1, delta_t, 
               (float)sqrt(sse/(float)num), 
               (float)sqrt(area_sse/(float)num), 
-              (float)DEGREES(sqrt(angle_sse/(float)(num*3))), 
+              (float)DEGREES(sqrt(angle_sse/(float)(num*3))),curv_sse, 
               negative,mris->neg_area, n_averages) ;
       fflush(parms->fp) ;
     }
@@ -1703,6 +1732,7 @@ mrisIntegrate(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
     mrisOrientPlane(mris) ;
     break ;
   default:
+    mrisUpdateSurface(mris) ;
     break ;
   }
 
@@ -1725,17 +1755,20 @@ mrisIntegrate(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
 /*-----------------------------------------------------
         Parameters:
 
+
         Returns value:
 
         Description
 ------------------------------------------------------*/
 static double
-mrisComputeError(MRI_SURFACE *mris, float l_area,float l_angle,
-                  double *parea_error, double *pangle_error, int *pn)
+mrisComputeError(MRI_SURFACE *mris, float l_area,float l_angle,float l_curv,
+                  double *parea_error, double *pangle_error, 
+                 double *pcurv_error, int *pn)
 {
-  double  sse, sse_area, sse_angle, delta ;
-  int     ano, fno, tno, n ;
+  double  sse, sse_area, sse_angle, sse_curv, delta ;
+  int     ano, fno, tno, n, vno, n1 ;
   FACE    *face ;
+  VERTEX  *v ;
 
   sse_angle = sse_area = 0.0 ;
   for (n = fno = 0 ; fno < mris->nfaces ; fno++)
@@ -1758,10 +1791,21 @@ mrisComputeError(MRI_SURFACE *mris, float l_area,float l_angle,
     }
   }
 
+  sse_curv = 0.0 ;
+  for (n1 = vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    if (v->ripflag)
+      continue ;
+    n1++ ;
+    sse_curv += v->curv * v->curv ;
+  }
+
   *pn = n ;
+  *pcurv_error = sse_curv/(float)n1 ;
   *parea_error = sse_area ;
   *pangle_error = sse_angle ;
-  sse = l_area * sse_area + l_angle * sse_angle ;
+  sse = l_area * sse_area + l_angle * sse_angle + l_curv * sse_curv ; ;
   return(sse) ;
 }
 /*-----------------------------------------------------
@@ -1772,11 +1816,12 @@ mrisComputeError(MRI_SURFACE *mris, float l_area,float l_angle,
         Description
 ------------------------------------------------------*/
 double
-mrisComputeSSE(MRI_SURFACE *mris, float l_area, float l_angle)
+mrisComputeSSE(MRI_SURFACE *mris, float l_area, float l_angle, float l_curv)
 {
-  double  sse, sse_area, sse_angle, delta ;
-  int     ano, tno, fno ;
+  double  sse, sse_area, sse_angle, delta, sse_curv ;
+  int     ano, tno, fno, vno ;
   FACE    *face ;
+  VERTEX  *v ;
 
   sse_angle = sse_area = 0.0 ;
   for (fno = 0 ; fno < mris->nfaces ; fno++)
@@ -1798,7 +1843,16 @@ mrisComputeSSE(MRI_SURFACE *mris, float l_area, float l_angle)
     }
   }
 
-  sse = l_area * sse_area + l_angle * sse_angle ;
+  sse_curv = 0.0 ;
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    if (v->ripflag)
+      continue ;
+    sse_curv += v->curv * v->curv ;
+  }
+
+  sse = l_area * sse_area + l_angle * sse_angle + l_curv * sse_curv ;
   return(sse) ;
 }
 /*-----------------------------------------------------
@@ -2472,6 +2526,64 @@ MRIScomputeTriangleProperties(MRI_SURFACE *mris)
 #define MAX_MM    MAX_DIM/10.0f
 #define MAX_DT    1000000.0f
 
+#if 0
+#define MOMENTUM  0.85
+
+static float
+mrisLineMinimize(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
+{
+  float   delta_t ;
+  int     vno ;
+  VERTEX  *vertex ;
+
+  delta_t = 1024.0f*parms->tol ;
+  delta_t = 16.0f*parms->tol ;
+
+  switch (parms->projection)
+  {
+  case ELLIPSOID_PROJECTION:
+    MRISprojectOntoEllipsoid(mris, mris, 0.0f, 0.0f, 0.0f);
+    break ;
+  case PROJECT_PLANE:
+    mrisOrientPlane(mris) ;
+    break ;
+  default:
+    mrisUpdateSurface(mris) ;
+    break ;
+  }
+
+  /* pick starting step size */
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    vertex = &mris->vertices[vno] ;
+    if (vertex->ripflag)
+      continue ;
+    vertex->ox = vertex->x ; vertex->oy = vertex->y ; vertex->oz = vertex->z;
+    vertex->odx = (1.0-MOMENTUM)*delta_t * vertex->dx + MOMENTUM*vertex->odx ;
+    vertex->ody = (1.0-MOMENTUM)*delta_t * vertex->dy + MOMENTUM*vertex->ody ;
+    vertex->odz = (1.0-MOMENTUM)*delta_t * vertex->dz + MOMENTUM*vertex->odz ;
+    vertex->x += vertex->odx ;
+    vertex->y += vertex->ody ;
+    vertex->z += vertex->odz ;
+    if (!finite(vertex->x) || !finite(vertex->y) || !finite(vertex->z))
+      DiagBreak() ;
+  }
+  switch (parms->projection)
+  {
+  case ELLIPSOID_PROJECTION:
+    MRISprojectOntoEllipsoid(mris, mris, 0.0f, 0.0f, 0.0f);
+    break ;
+  case PROJECT_PLANE:
+    mrisOrientPlane(mris) ;
+    break ;
+  default:
+    mrisUpdateSurface(mris);
+    break ;
+  }
+
+  return(delta_t) ;
+}
+#else
 static float
 mrisLineMinimize(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
 {
@@ -2501,9 +2613,11 @@ mrisLineMinimize(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
     mrisOrientPlane(mris) ;
     break ;
   default:
+    mrisUpdateSurface(mris) ;
     break ;
   }
-  min_sse = starting_sse = mrisComputeSSE(mris, parms->l_area, parms->l_angle);
+  min_sse = starting_sse = 
+    mrisComputeSSE(mris, parms->l_area, parms->l_angle, parms->l_curv);
 
   max_delta = 0.0f ;
   grad = 0.0f ;
@@ -2524,6 +2638,9 @@ mrisLineMinimize(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
   {
   case PROJECT_ELLIPSOID:
     max_dt = MAX_MM / max_delta ;
+    break ;
+  case NO_PROJECTION:
+    max_dt = 100.0*MAX_MM / max_delta ;  /* allow at most only 2mm steps */
     break ;
   default:
   case PROJECT_PLANE:
@@ -2564,10 +2681,11 @@ mrisLineMinimize(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
         mrisOrientPlane(mris) ;
         break ;
       default:
+        mrisUpdateSurface(mris) ;
         break ;
       }
         
-      sse = mrisComputeSSE(mris, parms->l_area, parms->l_angle) ;
+      sse = mrisComputeSSE(mris, parms->l_area, parms->l_angle,parms->l_curv) ;
       fprintf(fp2, "%f  %f  %f\n", delta_t, sse, predicted_sse) ;
       switch (parms->projection)
       {
@@ -2579,9 +2697,10 @@ mrisLineMinimize(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
         mrisOrientPlane(mris) ;
         break ;
       default:
+        mrisUpdateSurface(mris);
         break ;
       }
-      sse = mrisComputeSSE(mris, parms->l_area, parms->l_angle) ;
+      sse = mrisComputeSSE(mris, parms->l_area, parms->l_angle,parms->l_curv) ;
       fprintf(fp, "%f  %f  %f\n", delta_t, sse, predicted_sse) ;
       fflush(fp) ;
       for (vno = 0 ; vno < mris->nvertices ; vno++)  
@@ -2600,6 +2719,7 @@ mrisLineMinimize(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
         mrisOrientPlane(mris) ;
         break ;
       default:
+        mrisUpdateSurface(mris);
         break ;
       }
     }
@@ -2637,9 +2757,10 @@ mrisLineMinimize(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
       mrisOrientPlane(mris) ;
       break ;
     default:
+      mrisUpdateSurface(mris);
       break ;
     }
-    sse = mrisComputeSSE(mris, parms->l_area, parms->l_angle) ;
+    sse = mrisComputeSSE(mris, parms->l_area, parms->l_angle,parms->l_curv) ;
     if (sse <= min_sse)   /* new minimum found */
     {
       min_sse = sse ;
@@ -2665,6 +2786,7 @@ mrisLineMinimize(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
       mrisOrientPlane(mris) ;
       break ;
     default:
+      mrisUpdateSurface(mris);
       break ;
     }
   }
@@ -2700,9 +2822,10 @@ mrisLineMinimize(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
       mrisOrientPlane(mris) ;
       break ;
     default:
+      mrisUpdateSurface(mris);
       break ;
     }
-    sse = mrisComputeSSE(mris, parms->l_area, parms->l_angle) ;
+    sse = mrisComputeSSE(mris, parms->l_area, parms->l_angle, parms->l_curv) ;
 #if 0
     if (Gdiag & DIAG_WRITE)
       fprintf(fp, "%2.8f   %2.8f\n", total_delta+delta_t, sse) ;
@@ -2739,6 +2862,7 @@ mrisLineMinimize(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
         mrisOrientPlane(mris) ;
         break ;
       default:
+        mrisUpdateSurface(mris);
         break ;
       }
     }
@@ -2757,6 +2881,7 @@ mrisLineMinimize(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
 
   return(total_delta) ;
 }
+#endif
 /*-----------------------------------------------------
         Parameters:
 
@@ -3975,7 +4100,7 @@ MRISreadCanonicalCoordinates(MRI_SURFACE *mris, char *sname)
   sprintf(fname, "%s/%s", path, sname) ;
   fp = fopen(fname, "rb") ;
   if (!fp)
-    ErrorReturn(NULL,(ERROR_NOFILE,
+    ErrorReturn(ERROR_NOFILE,(ERROR_NOFILE,
                       "MRISreadCanonicalCoordinates(%s): could not open file",
                       fname));
 
@@ -4079,9 +4204,9 @@ MRISreadPatch(MRI_SURFACE *mris, char *pname)
   fclose(fp);
   mrisRipFaces(mris);
   mrisComputeNormals(mris);
+#if 0
   mrisComputeBoundaryNormals(mris);
   mrisSmoothBoundaryNormals(mris,10);
-#if 0
   computed_shear_flag = FALSE;
   for (k=0;k<mris->nvertices;k++)
     mris->vertices[k].origripflag = mris->vertices[k].ripflag;
@@ -4167,6 +4292,7 @@ MRISwritePatch(MRI_SURFACE *mris, char *fname)
   fclose(fp);
   return(NO_ERROR) ;
 }
+#if 0
 /*-----------------------------------------------------
         Parameters:
 
@@ -4285,6 +4411,7 @@ mrisComputeBoundaryNormals(MRI_SURFACE *mris)
   }
   return(NO_ERROR) ;
 }
+#endif
 /*-----------------------------------------------------
         Parameters:
 
@@ -4378,8 +4505,14 @@ MRISflattenPatch(MRI_SURFACE *mris, char *dir)
   mrisOrientPlane(mris) ;
   return(NO_ERROR) ;
 }
+/*-----------------------------------------------------
+        Parameters:
 
-/* 2 vects ortho to summed normal */
+        Returns value:
+
+        Description
+          2 vects ortho to summed normal 
+------------------------------------------------------*/
 static int
 transform(float *xptr, float *yptr, float *zptr, 
           float nx, float ny, float nz, float d)  
@@ -4395,3 +4528,513 @@ transform(float *xptr, float *yptr, float *zptr,
 */
   return(NO_ERROR) ;
 }
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
+static int
+mrisComputeTangentPlanes(MRI_SURFACE *mris)
+{
+  VECTOR  *v_n, *v_e1, *v_e2, *v ;
+  int     vno ;
+  VERTEX  *vertex ;
+
+  v_n = VectorAlloc(3, MATRIX_REAL) ;
+  v_e1 = VectorAlloc(3, MATRIX_REAL) ;
+  v_e2 = VectorAlloc(3, MATRIX_REAL) ;
+  v = VectorAlloc(3, MATRIX_REAL) ;
+
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    vertex = &mris->vertices[vno] ;
+    if (vno == 4013)
+      DiagBreak() ;
+    VECTOR_LOAD(v_n, vertex->nx, vertex->ny, vertex->nz) ;
+    /* now find some other non-parallel vector */
+#if 0
+    if (!FZERO(vertex->nx) || !FZERO(vertex->ny))
+    {VECTOR_LOAD(v, 0.0, 0.0, 1.0) ; }
+    else
+    {VECTOR_LOAD(v, 0.0, 1.0, 0.0) ; }
+#else
+    VECTOR_LOAD(v, vertex->ny, vertex->nz, vertex->nx) ;
+#endif
+    V3_CROSS_PRODUCT(v_n, v, v_e1) ;
+    V3_CROSS_PRODUCT(v_n, v_e1, v_e2) ;
+    V3_NORMALIZE(v_e1, v_e1) ;
+    V3_NORMALIZE(v_e2, v_e2) ;
+    vertex->e1x = V3_X(v_e1) ; vertex->e2x = V3_X(v_e2) ;
+    vertex->e1y = V3_Y(v_e1) ; vertex->e2y = V3_Y(v_e2) ;
+    vertex->e1z = V3_Z(v_e1) ; vertex->e2z = V3_Z(v_e2) ;
+  }
+
+  VectorFree(&v) ;
+  VectorFree(&v_n) ;
+  VectorFree(&v_e1) ;
+  VectorFree(&v_e2) ;
+  return(NO_ERROR) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
+int
+MRIScomputeMeanCurvature(MRI_SURFACE *mris)
+{
+  VECTOR  *v_n, *v_e1, *v_e2, *v_i ;
+  int     vno, i, N ;
+  VERTEX  *vertex, *vnb ;
+  float   rsq, z, H, u, v, Hmin, Hmax ;
+
+  mrisComputeTangentPlanes(mris) ;
+  v_n = VectorAlloc(3, MATRIX_REAL) ;
+  v_e1 = VectorAlloc(3, MATRIX_REAL) ;
+  v_e2 = VectorAlloc(3, MATRIX_REAL) ;
+  v_i = VectorAlloc(3, MATRIX_REAL) ;
+
+  Hmin = 10000.0f ; Hmax = -Hmin ;
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    vertex = &mris->vertices[vno] ;
+    if (vertex->ripflag)
+      continue ;
+    VECTOR_LOAD(v_n, vertex->nx, vertex->ny, vertex->nz) ;
+    VECTOR_LOAD(v_e1, vertex->e1x, vertex->e1y, vertex->e1z) ;
+    VECTOR_LOAD(v_e2, vertex->e2x, vertex->e2y, vertex->e2z) ;
+
+    if (vno == 4013)
+      DiagBreak() ;
+    H = 0.0 ; N = 0 ;
+    for (i = 0 ; i < vertex->vnum ; i++)  /* for each neighbor */
+    {
+      vnb = &mris->vertices[vertex->v[i]] ;
+      if (vnb->ripflag)
+        continue ;
+      VECTOR_LOAD(v_i, vnb->x-vertex->x, vnb->y-vertex->y, vnb->z-vertex->z) ;
+      
+      /* calculate projection onto tangent plane */
+      u = V3_DOT(v_i, v_e1) ; v = V3_DOT(v_i, v_e2) ;
+      rsq = u*u + v*v ;
+      z = V3_DOT(v_i, v_n) ;   /* height above tangent plane */
+      if (!FZERO(rsq))
+      {
+        H += z / rsq ;
+        N++ ;
+        if (fabs(z/rsq) > 1.0)
+          fprintf(stderr, "%d --> %d: curvaure = %2.1f\n", vno, vertex->v[i],
+                  z/rsq) ;
+      }
+    }
+    if (N > 0)
+      vertex->curv = 0.5f * H / (float)N ;
+    else
+      vertex->curv = 0 ;
+    if (vertex->curv > Hmax)
+      Hmax = vertex->curv ;
+    if (vertex->curv < Hmin)
+      Hmin = vertex->curv ;
+  }
+  
+  mris->min_curv = Hmin ; mris->max_curv = Hmax ;
+
+  if (Gdiag & DIAG_SHOW)
+    fprintf(stderr, "mean curvature range [%2.3f --> %2.3f]\n",Hmin, Hmax) ;
+  VectorFree(&v_i) ;
+  VectorFree(&v_n) ;
+  VectorFree(&v_e1) ;
+  VectorFree(&v_e2) ;
+  return(NO_ERROR) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
+static int
+mrisComputeCurvatureTerm(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
+{
+  VECTOR  *v_n, *v_e1, *v_e2, *v_i, *v_delta, *v_tmp ;
+  int     vno, i, N ;
+  VERTEX  *vertex, *vnb ;
+  float   rsq, z, u, v, l_curv ;
+
+  l_curv = parms->l_curv ;
+  v_n = VectorAlloc(3, MATRIX_REAL) ;
+  v_e1 = VectorAlloc(3, MATRIX_REAL) ;
+  v_e2 = VectorAlloc(3, MATRIX_REAL) ;
+  v_i = VectorAlloc(3, MATRIX_REAL) ;
+  v_delta = VectorAlloc(3, MATRIX_REAL) ;
+  v_tmp = VectorAlloc(3, MATRIX_REAL) ;
+
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    vertex = &mris->vertices[vno] ;
+    if (vertex->ripflag)
+      continue ;
+    VECTOR_LOAD(v_n, vertex->nx, vertex->ny, vertex->nz) ;
+    VECTOR_LOAD(v_e1, vertex->e1x, vertex->e1y, vertex->e1z) ;
+    VECTOR_LOAD(v_e2, vertex->e2x, vertex->e2y, vertex->e2z) ;
+    V3_CLEAR(v_delta) ;
+    N = 0 ;
+    if (vno == 4013)
+      DiagBreak() ;
+    for (i = 0 ; i < vertex->vnum ; i++)  /* for each neighbor */
+    {
+      vnb = &mris->vertices[vertex->v[i]] ;
+      if (vnb->ripflag)
+        continue ;
+      VECTOR_LOAD(v_i, vnb->x-vertex->x, vnb->y-vertex->y, vnb->z-vertex->z) ;
+      
+      /* calculate projection onto tangent plane */
+      u = V3_DOT(v_i, v_e1) ; v = V3_DOT(v_i, v_e2) ;
+      rsq = u*u + v*v ;
+      z = V3_DOT(v_i, v_n) ;   /* height above tangent plane */
+      if (!FZERO(rsq))
+      {
+        N++ ;
+        V3_SCALAR_MUL(v_n, -1.0f/rsq, v_tmp) ;
+        V3_ADD(v_tmp, v_delta, v_delta) ;    /* -n/ri */
+#if 1
+        V3_SCALAR_MUL(v_e1, -2*u*z/(rsq*rsq), v_tmp) ;
+        V3_ADD(v_tmp, v_delta, v_delta) ;    /* zi/ri^2 * (-2(vi.e1)e1) */
+        V3_SCALAR_MUL(v_e2, -2*v*z/(rsq*rsq), v_tmp) ;
+        V3_ADD(v_tmp, v_delta, v_delta) ;    /* zi/ri^2 * (-2(vi.e2)e2) */
+#endif
+      }
+    }
+    if (N > 0)
+    {
+      V3_SCALAR_MUL(v_delta, 1.0/N, v_delta) ;
+/*
+  note that the curvature is positive for convex regions (for compatibility
+  with old A&M code, so we must invert the sign here.
+*/
+      vertex->dx += l_curv * -vertex->curv * V3_X(v_delta) ; 
+      vertex->dy += l_curv * -vertex->curv * V3_Y(v_delta) ; 
+      vertex->dz += l_curv * -vertex->curv * V3_Z(v_delta) ;
+    }
+  }
+  
+  VectorFree(&v_tmp) ;
+  VectorFree(&v_delta) ;
+  VectorFree(&v_i) ;
+  VectorFree(&v_n) ;
+  VectorFree(&v_e1) ;
+  VectorFree(&v_e2) ;
+  return(NO_ERROR) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
+static int
+mrisUpdateSurface(MRI_SURFACE *mris)
+{
+  mrisComputeNormals(mris);
+  MRIScomputeMeanCurvature(mris) ;
+  return(NO_ERROR) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
+int
+MRIScomputeEulerNumber(MRI_SURFACE *mris, int *pnvertices, 
+                                    int *pnfaces, int *pnedges)
+{
+  int     eno, nfaces, nedges, nvertices, vno, fno, vnb, i ;
+  VERTEX  *v1 ;
+
+  /*  mrisRipFaces(mris) ;*/
+  for (nfaces = fno = 0 ; fno < mris->nfaces ; fno++)
+    if (!mris->faces[fno].ripflag)
+      nfaces++ ;
+
+  for (nvertices = vno = 0 ; vno < mris->nvertices ; vno++)
+    if (!mris->vertices[vno].ripflag)
+      nvertices++ ;
+
+  for (nedges = vno = 0 ; vno < mris->nvertices ; vno++)
+    if (!mris->vertices[vno].ripflag)
+    {
+      v1 = &mris->vertices[vno] ;
+      for (i = 0 ; i < v1->vnum ; i++)
+      {
+        vnb = v1->v[i] ;
+        /* already counted */
+        if ((vnb > vno) && !mris->vertices[vnb].ripflag)
+          nedges++ ;
+      }
+    }
+
+  *pnfaces = 2*nfaces ;       /* two triangular faces per face */
+  *pnvertices = nvertices ;
+  *pnedges = nedges+nfaces ;  /* one additional edge added for each triangle */
+  eno = nvertices - nedges + nfaces ;
+  return(eno) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
+int
+MRIStopologicalDefectIndex(MRI_SURFACE *mris)
+{
+  int     eno, nfaces, nedges, nvertices, vno, fno, vnb, i, dno ;
+  VERTEX  *v1 ;
+
+#if 0
+  mris->vertices[414].ripflag = 1 ;
+  mris->vertices[3293].ripflag = 1 ;
+  mris->vertices[3298].ripflag = 1 ;
+  mris->vertices[5025].ripflag = 1 ;
+  mris->vertices[8463].ripflag = 1 ;
+  mris->vertices[17830].ripflag = 1 ;
+  mris->vertices[21865].ripflag = 1 ;
+  mris->vertices[25909].ripflag = 1 ;
+  mris->vertices[28263].ripflag = 1 ;
+  mris->vertices[34104].ripflag = 1 ;
+  mris->vertices[102960].ripflag = 1 ;
+  mris->vertices[4013].ripflag = 1 ;
+  mrisRipFaces(mris) ;
+#endif
+  for (nfaces = fno = 0 ; fno < mris->nfaces ; fno++)
+    if (!mris->faces[fno].ripflag)
+      nfaces++ ;
+
+  for (nvertices = vno = 0 ; vno < mris->nvertices ; vno++)
+    if (!mris->vertices[vno].ripflag)
+      nvertices++ ;
+
+  for (nedges = vno = 0 ; vno < mris->nvertices ; vno++)
+    if (!mris->vertices[vno].ripflag)
+    {
+      v1 = &mris->vertices[vno] ;
+      for (i = 0 ; i < v1->vnum ; i++)
+      {
+        vnb = v1->v[i] ;
+        /* already counted */
+        if ((vnb > vno) && !mris->vertices[vnb].ripflag)
+          nedges++ ;
+      }
+    }
+
+  nedges += nfaces ;        /* one additional edge added for each triangle */
+  nfaces *= 2 ;             /* two triangular faces per face */
+  eno = nvertices - nedges + nfaces ;
+
+  dno = abs(2-eno) + abs(2*nedges-3*nfaces) ;
+  return(dno) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
+int
+MRISremoveTopologicalDefects(MRI_SURFACE *mris,float curv_thresh)
+{
+  VECTOR  *v_n, *v_e1, *v_e2, *v_i ;
+  int     vno, i ;
+  VERTEX  *vertex, *vnb ;
+  float   rsq, z, u, v ;
+
+  mrisComputeTangentPlanes(mris) ;
+  v_n = VectorAlloc(3, MATRIX_REAL) ;
+  v_e1 = VectorAlloc(3, MATRIX_REAL) ;
+  v_e2 = VectorAlloc(3, MATRIX_REAL) ;
+  v_i = VectorAlloc(3, MATRIX_REAL) ;
+
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    vertex = &mris->vertices[vno] ;
+    if (vertex->ripflag)
+      continue ;
+    VECTOR_LOAD(v_n, vertex->nx, vertex->ny, vertex->nz) ;
+    VECTOR_LOAD(v_e1, vertex->e1x, vertex->e1y, vertex->e1z) ;
+    VECTOR_LOAD(v_e2, vertex->e2x, vertex->e2y, vertex->e2z) ;
+
+    if (vno == 4013)
+      DiagBreak() ;
+    if (vno == 3427)
+      DiagBreak() ;
+    for (i = 0 ; i < vertex->vnum ; i++)  /* for each neighbor */
+    {
+      vnb = &mris->vertices[vertex->v[i]] ;
+      if (vnb->ripflag)
+        continue ;
+      VECTOR_LOAD(v_i, vnb->x-vertex->x, vnb->y-vertex->y, vnb->z-vertex->z) ;
+      
+      /* calculate projection onto tangent plane */
+      u = V3_DOT(v_i, v_e1) ; v = V3_DOT(v_i, v_e2) ;
+      rsq = u*u + v*v ;
+      z = V3_DOT(v_i, v_n) ;   /* height above tangent plane */
+      if (!FZERO(rsq))
+      {
+        if (fabs(z/rsq) > curv_thresh)
+          mrisRemoveLink(mris, vno, vertex->v[i--]) ;
+      }
+    }
+  }
+  
+
+  /*  mrisRipFaces(mris) ;*/
+  VectorFree(&v_i) ;
+  VectorFree(&v_n) ;
+  VectorFree(&v_e1) ;
+  VectorFree(&v_e2) ;
+  return(NO_ERROR) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
+static int
+mrisRemoveLink(MRI_SURFACE *mris, int vno1, int vno2)
+{
+  FACE    *face ;
+  int     vno, fno, nvalid ;
+  VERTEX  *v1, *v2 ;
+
+  v1 = &mris->vertices[vno1] ; v2 = &mris->vertices[vno2] ;
+  mrisRemoveEdge(mris, vno1, vno2) ;
+  mrisRemoveEdge(mris, vno2, vno1) ;
+
+  /* now remove all the faces which contain both edges */
+  for (fno = 0 ; fno < v1->num ; fno++)
+  {
+    face = &mris->faces[v1->f[fno]] ;
+    for (vno = 0 ; vno < VERTICES_PER_FACE ; vno++)
+      if (face->v[vno] == vno2)   /* found a face with both vertices */
+        face->ripflag = 1 ;
+    if (face->ripflag)
+      mrisRemoveFace(mris, v1->f[fno]) ;
+  }
+
+  /* make sure vno1 and vno2 are still part of at least 1 valid face */
+  for (nvalid = fno = 0 ; fno < v1->num ; fno++)
+    if (!mris->faces[v1->f[fno]].ripflag)
+      nvalid++ ;
+  if (nvalid <= 0)
+    v1->ripflag = 1 ;
+
+  for (nvalid = fno = 0 ; fno < v2->num ; fno++)
+    if (!mris->faces[v2->f[fno]].ripflag)
+      nvalid++ ;
+  if (nvalid <= 0)
+    v2->ripflag = 1 ;
+
+  return(NO_ERROR) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
+static int
+mrisRemoveEdge(MRI_SURFACE *mris, int vno1, int vno2)
+{
+  int     i ;
+  VERTEX  *v1, *v2 ;
+
+  v1 = &mris->vertices[vno1] ; v2 = &mris->vertices[vno2] ;
+  for (i = 0 ; i < v1->vnum ; i++)
+    if (v1->v[i] == vno2)
+    {
+      v1->vnum-- ;
+      if (i < v1->vnum)  /* not the (previous) last index */
+        memmove(&v1->v[i], &v1->v[i+1], (v1->vnum-i)*sizeof(v1->v[0])) ;
+      return(NO_ERROR) ;
+    }
+  return(ERROR_BADPARM) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+          remove this face, as well as the link two vertices if
+          they only exist through this face.
+------------------------------------------------------*/
+static int
+mrisRemoveFace(MRI_SURFACE *mris, int fno)
+{
+  int   vno1, vno2, vno ;
+  FACE  *face ;
+  
+  face = &mris->faces[fno] ;
+  face->ripflag = 1 ;
+  for (vno = 0 ; vno < VERTICES_PER_FACE ; vno++)
+  {
+    vno1 = face->v[vno] ; 
+    vno2 = face->v[vno < VERTICES_PER_FACE-1 ? vno+1 : 0] ;
+    if (!mrisCountValidLinks(mris, vno1, vno2))
+    {
+      mrisRemoveEdge(mris, vno1, vno2) ;
+      mrisRemoveEdge(mris, vno2, vno1) ;
+    }
+  }
+
+  return(NO_ERROR) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+           Go through all the (valid) faces in vno1 and see how man
+           valid links to vno2 exists.
+------------------------------------------------------*/
+static int
+mrisCountValidLinks(MRI_SURFACE *mris, int vno1, int vno2)
+{
+  int    nvalid, fno, vno ;
+  FACE   *face ;
+  VERTEX *v ;
+
+  v = &mris->vertices[vno1] ;
+  for (nvalid = fno = 0 ; fno < v->num ; fno++)
+  {
+    face = &mris->faces[v->f[fno]] ;
+    if (face->ripflag)
+      continue ;
+    for (vno = 0 ; vno < VERTICES_PER_FACE ; vno++)
+      if (face->v[vno] == vno1)
+      {
+        if ((vno == VERTICES_PER_FACE-1) && (face->v[0] == vno2))
+          nvalid++ ;
+        else
+          if (face->v[vno+1] == vno2)
+            nvalid++ ;
+      }
+    
+  }
+  return(nvalid) ;
+}
+
