@@ -15,9 +15,12 @@
 #include "mrimorph.h"
 #include "utils.h"
 #include "gca.h"
+#include "cma.h"
 
 char         *Progname ;
 static MORPH_PARMS  parms ;
+
+static char *norm_fname = NULL ;
 
 static char *sample_fname = NULL ;
 static char *transformed_sample_fname = NULL ;
@@ -172,7 +175,6 @@ main(int argc, char *argv[])
 
   if (sample_fname)
   {
-    fprintf(stderr, "writing samples to %s...\n", sample_fname) ;
     GCAwriteSamples(gca, mri_in, parms.gcas, nsamples, sample_fname) ;
     fprintf(stderr, "samples written\n") ;
   }
@@ -271,6 +273,74 @@ main(int argc, char *argv[])
                                 transformed_sample_fname, parms.lta) ;
     fprintf(stderr, "samples written\n") ;
   }
+
+  if (norm_fname)
+  {
+    int  *ordered_indices, i, label, nused ;
+    MRI   *mri_norm ;
+
+    /* make "unknowns" the bottom of the list */
+    for (nused = i = 0 ; i < nsamples ; i++)
+    {
+      label = parms.gcas[i].label ;
+      if (label == Unknown || 
+          ((label != Left_Cerebral_White_Matter ) &&
+           (label != Right_Cerebral_White_Matter ) &&
+           (label != Left_Cerebellum_White_Matter ) &&
+           (label != Right_Cerebellum_White_Matter )))
+        parms.gcas[i].log_p = -100000 ;
+      else
+        nused++ ;
+    }
+
+    /* rank samples by log probability */
+    ordered_indices = (int *)calloc(nsamples, sizeof(int)) ;
+    GCArankSamples(gca, parms.gcas, nsamples, ordered_indices) ;
+
+#if 0
+    for (i = 0 ; i < nsamples ; i++)
+    {
+      float pct ;
+
+      pct = 100.0f*(float)(nsamples-i)/nsamples;
+      if (pct < 50)
+        parms.gcas[ordered_indices[i]].label = 0 ;
+    }
+#else
+
+    /* remove the least likely samples */
+    printf("sorting %d white matter points by likelihood\n", nused) ;
+    for (i = nused/10 ; i < nsamples ; i++)
+      parms.gcas[ordered_indices[i]].label = 0 ;
+#endif
+
+#if 0
+    GCAtransformAndWriteSamples(gca, mri_in, parms.gcas, nsamples, 
+                                transformed_sample_fname, parms.lta) ;
+#endif
+
+#if 0
+    /* replace sample label with pct rank so that we can write it out easily
+       for diagnostic purposes (a bit of a hack) */
+    for (i = 0 ; i < nsamples ; i++)
+    {
+      float pct ;
+
+      pct = 100.0f*(float)(nsamples-i)/nsamples;
+      parms.gcas[ordered_indices[i]].label = pct ;
+    }
+    GCAtransformAndWriteSamples(gca, mri_in, parms.gcas, nsamples, 
+                                norm_fname, parms.lta) ;
+#endif
+
+    if (nused/10 > 0)
+      mri_norm = GCAnormalizeSamples(mri_in, gca, parms.gcas, nsamples,
+                                     parms.lta) ;
+    printf("writing normalized volume to %s...\n", norm_fname) ;
+    MRIwrite(mri_norm, norm_fname) ;
+    MRIfree(&mri_norm) ;
+  }
+
 
   fprintf(stderr, "writing output transformation to %s...\n", out_fname) ;
 #if 0
@@ -824,6 +894,12 @@ get_option(int argc, char *argv[])
     nsamples = atoi(argv[2]) ;
     nargs = 1 ;
     fprintf(stderr, "using %d samples of GCA...\n", nsamples) ;
+  }
+  else if (!stricmp(option, "norm"))
+  {
+    norm_fname = argv[2] ;
+    nargs = 1 ;
+    fprintf(stderr, "intensity normalizing and writing to %s...\n",norm_fname);
   }
   else if (!stricmp(option, "steps"))
   {
