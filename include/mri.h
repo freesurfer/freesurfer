@@ -1,3 +1,7 @@
+#ifndef STATS_INCLUDED
+#define STATS_INCLUDED
+#include "stats.h"
+#endif
 #ifndef MRI_H
 #define MRI_H
 

@@ -1,3 +1,7 @@
+#ifndef STATS_INCLUDED
+#define STATS_INCLUDED
+#include "stats.h"
+#endif
 #ifndef LABEL_H
 #define LABEL_H
 

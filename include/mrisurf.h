@@ -6,6 +6,11 @@
 #include "label.h"
 #endif
 
+#ifndef STATS_INCLUDED
+#define STATS_INCLUDED
+#include "stats.h"
+#endif
+
 
 #ifndef MRISURF_H
 #define MRISURF_H
