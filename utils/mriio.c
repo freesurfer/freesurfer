@@ -532,9 +532,14 @@ MRIreadInfo(char *fpref)
           }
         }
         else
+        {
+          mri->linear_transform = NULL ;
+#if 0
           ErrorPrintf(ERROR_NO_MEMORY, 
                       "MRIreadInfo: could not read xform file '%s'\n", 
                       mri->transform_fname) ;
+#endif
+        }
       }
       else
         mri->linear_transform = NULL ;
