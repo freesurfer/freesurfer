@@ -29,6 +29,8 @@
 #include <time.h>
 #include <errno.h>
 
+#include <fcntl.h>
+
 #include "utils.h"
 #include "error.h"
 #include "proto.h"
@@ -8282,6 +8284,9 @@ local_buffer_to_image(BUFTYPE *buf, MRI *mri, int slice, int frame)
 
 #define MGH_VERSION       1
 
+// declare function pointer
+int (*myclose)(FILE *stream);
+
 static MRI *
 mghRead(char *fname, int read_volume, int frame)
 {
@@ -8296,6 +8301,41 @@ mghRead(char *fname, int read_volume, int frame)
   short  sval ;
   long tag_data_begin, tag_data_end;
   size_t tag_data_size;
+  char *ext;
+  int gzipped=0;
+  char command[1024];
+
+  ext = strrchr(fname, '.') ;
+  if (ext)
+  {
+    ++ext;
+    // if mgz, then it is compressed
+    if (!stricmp(ext, "mgz") || strstr(fname, "mgh.gz"))
+    {
+      gzipped = 1;
+      myclose = pclose;  // assign function pointer for closing
+      strcpy(command,"zcat ");
+      strcat(command, fname);
+      fp = popen(command, "r");
+      if (!fp)
+      {
+	errno = 0;
+	ErrorReturn(NULL, (ERROR_BADPARM,"mghRead(%s, %d): could not open gzipped file",
+			   fname, frame)) ;
+      }
+    }
+    else if (!stricmp(ext, "mgh"))
+    {
+      myclose = fclose; // assign function pointer for closing
+      fp = fopen(fname, "rb") ;
+      if (!fp)
+      {
+	errno = 0;
+	ErrorReturn(NULL, (ERROR_BADPARM,"mghRead(%s, %d): could not open file",
+			   fname, frame)) ;
+      }
+    }
+  }
 
   /* keep the compiler quiet */
   xsize = ysize = zsize = 0;
@@ -8304,13 +8344,6 @@ mghRead(char *fname, int read_volume, int frame)
   z_r = z_a = z_s = 0;
   c_r = c_a = c_s = 0;
 
-  fp = fopen(fname, "rb") ;
-  if (!fp)
-  {
-    errno = 0;
-    ErrorReturn(NULL, (ERROR_BADPARM,"mghRead(%s, %d): could not open file",
-                       fname, frame)) ;
-  }
   version = freadInt(fp) ;
   width = freadInt(fp) ;
   height = freadInt(fp) ;
@@ -8364,30 +8397,32 @@ mghRead(char *fname, int read_volume, int frame)
     }
     else
     {  /* hack - # of frames < -1 means to only read in that
-					many frames. Otherwise I would have had to change the whole
-					MRIread interface and that was too much of a pain. Sorry.
+	  many frames. Otherwise I would have had to change the whole
+	  MRIread interface and that was too much of a pain. Sorry.
        */
-      if (frame < -1)  
-      { nframes = frame*-1 ; } 
+      if (frame <= -1)  
+        nframes = frame*-1 ; 
+ 
       start_frame = 0 ; end_frame = nframes-1 ;
     }
-		buf = (BUFTYPE *)calloc(bytes, sizeof(BUFTYPE)) ;
+    buf = (BUFTYPE *)calloc(bytes, sizeof(BUFTYPE)) ;
     mri = MRIallocSequence(width, height, depth, type, nframes) ;
     mri->dof = dof ;
     for (frame = start_frame ; frame <= end_frame ; frame++)
     {
       for (z = 0 ; z < depth ; z++)
       {
-				if (fread(buf, sizeof(char), bytes, fp) != bytes)
-				{
-					fclose(fp) ;
-					free(buf) ;
-					ErrorReturn(NULL, (ERROR_BADFILE, "mghRead(%s): could not read %d bytes at slice %d",
-														 fname, bytes, z)) ;
-				}
+	if (fread(buf, sizeof(char), bytes, fp) != bytes)
+	{
+	  // fclose(fp) ;
+	  myclose(fp); 
+	  free(buf) ;
+	  ErrorReturn(NULL, (ERROR_BADFILE, "mghRead(%s): could not read %d bytes at slice %d",
+			     fname, bytes, z)) ;
+	}
         switch (type)
         {
-				case MRI_INT:
+	case MRI_INT:
           for (i = y = 0 ; y < height ; y++)
           {
             for (x = 0 ; x < width ; x++, i++)
@@ -8397,7 +8432,7 @@ mghRead(char *fname, int read_volume, int frame)
             }
           }
           break ;
-				case MRI_SHORT:
+	case MRI_SHORT:
           for (i = y = 0 ; y < height ; y++)
           {
             for (x = 0 ; x < width ; x++, i++)
@@ -8407,8 +8442,8 @@ mghRead(char *fname, int read_volume, int frame)
             }
           }
           break ;
-				case MRI_TENSOR:
-				case MRI_FLOAT:
+	case MRI_TENSOR:
+	case MRI_FLOAT:
           for (i = y = 0 ; y < height ; y++)
           {
             for (x = 0 ; x < width ; x++, i++)
@@ -8461,13 +8496,13 @@ mghRead(char *fname, int read_volume, int frame)
   else
   {
     fprintf(stderr,
-						"-----------------------------------------------------------------\n"
-						"Could not find the direction cosine information.\n"
-						"Will use the CORONAL orientation.\n"
-						"If not suitable, please provide the information in %s.\n"
-						"-----------------------------------------------------------------\n",
-						fname  
-						);
+	    "-----------------------------------------------------------------\n"
+	    "Could not find the direction cosine information.\n"
+	    "Will use the CORONAL orientation.\n"
+	    "If not suitable, please provide the information in %s.\n"
+	    "-----------------------------------------------------------------\n",
+	    fname  
+	    );
     setDirectionCosine(mri, MRI_CORONAL);
   }
 #if 0
@@ -8509,7 +8544,8 @@ mghRead(char *fname, int read_volume, int frame)
     }
   }
 
-  fclose(fp) ;
+  // fclose(fp) ;
+  myclose(fp);
 
   // xstart, xend, ystart, yend, zstart, zend are not stored
   mri->xstart = - mri->width/2.*mri->xsize;
@@ -8525,28 +8561,59 @@ mghRead(char *fname, int read_volume, int frame)
 static int
 mghWrite(MRI *mri, char *fname, int frame)
 {
-  FILE  *fp ;
+  FILE  *fp =0;
   int   ival, start_frame, end_frame, x, y, z, width, height, depth, 
         unused_space_size ;
   char  buf[UNUSED_SPACE_SIZE+1] ;
   float fval ;
   short sval ;
-
+  int gzipped = 0;
+  char *ext;
+ 
   if (frame >= 0)
     start_frame = end_frame = frame ;
   else
   {
     start_frame = 0 ; end_frame = mri->nframes-1 ;
   }
-  fp = fopen(fname, "wb") ;
-  if (!fp)
+  ////////////////////////////////////////////////////////////
+  ext = strrchr(fname, '.') ;
+  if (ext)
   {
-    errno = 0;
-    ErrorReturn(ERROR_BADPARM, 
-                (ERROR_BADPARM,"mghWrite(%s, %d): could not open file",
-                 fname, frame)) ;
+    char command[1024];
+    ++ext;
+    // if mgz, then it is compressed
+    if (!stricmp(ext, "mgz"))
+    {
+      // route stdout to a file
+      gzipped = 1;
+      myclose = pclose; // assign function pointer for closing
+      // pipe writeto "gzip" open
+      // pipe can executed under shell and thus understands >
+      strcpy(command, "gzip -f -c > ");
+      strcat(command, fname);
+      fp = popen(command, "w");
+      if (!fp)
+      {
+	errno = 0;
+	ErrorReturn(ERROR_BADPARM, 
+		    (ERROR_BADPARM,"mghWrite(%s, %d): could not open file",
+		     fname, frame)) ;
+      }
+    }
+    else if (!stricmp(ext, "mgh"))
+    {
+      fp = fopen(fname, "wb") ;
+      myclose = fclose; // assign function pointer for closing
+      if (!fp)
+      {
+	errno = 0;
+	ErrorReturn(ERROR_BADPARM, 
+		    (ERROR_BADPARM,"mghWrite(%s, %d): could not open file",
+		     fname, frame)) ;
+      }
+    }
   }
-
   /* WARNING - adding or removing anything before nframes will
      cause mghAppend to fail.
   */
@@ -8654,9 +8721,9 @@ mghWrite(MRI *mri, char *fname, int frame)
   if( NULL != mri->tag_data ) {
     fwrite( mri->tag_data, mri->tag_data_size, 1, fp );
   }
+  // fclose(fp) ;
+  myclose(fp);
 
-
-  fclose(fp) ;
   return(NO_ERROR) ;
 }
 
