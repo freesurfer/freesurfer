@@ -4,8 +4,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2004/01/30 21:37:56 $
-// Revision       : $Revision: 1.82 $
+// Revision Date  : $Date: 2004/02/09 21:00:13 $
+// Revision       : $Revision: 1.83 $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -19,6 +19,7 @@
 #include "utils.h"
 #include "transform.h"
 #include "mrimorph.h"
+#include "gcamorph.h"
 #include "DICOMRead.h"
 #include "unwarpGradientNonlinearity.h"
 #include "version.h"
@@ -97,7 +98,6 @@ int main(int argc, char *argv[])
   char transform_fname[STRLEN];
   int transform_flag, invert_transform_flag;
   LTA *lta_transform;
-  M3D *m3d_transform;
   MRI *mri_transformed = NULL;
   int transform_type;
   MATRIX *inverse_transform_matrix;
@@ -217,7 +217,7 @@ int main(int argc, char *argv[])
   nskip = 0;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_convert.c,v 1.82 2004/01/30 21:37:56 tosa Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_convert.c,v 1.83 2004/02/09 21:00:13 tosa Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -1417,31 +1417,19 @@ int main(int argc, char *argv[])
       mri = mri_transformed;
     }
     else if(transform_type == MORPH_3D_TYPE)
+      // this is a non-linear vox-to-vox transform
     {
-      
-      if((m3d_transform = MRI3DreadSmall(transform_fname)) == NULL)
+      TRANSFORM *tran = TransformRead(transform_fname);
+      if (invert_transform_flag == 0)
+	mri_transformed = GCAMmorphToAtlas(mri, (GCA_MORPH *)tran->xform, NULL) ;
+      else // invert 
       {
-        fprintf(stderr, "error reading transform from file %s\n", 
-                transform_fname);
-        exit(1);
+	mri_transformed = MRIclone(mri, NULL);
+	mri_transformed = GCAMmorphFromAtlas(mri, (GCA_MORPH *)tran->xform, mri_transformed);
       }
-      
-      if(invert_transform_flag)
-        mri_transformed = MRIapplyInverse3DMorph(mri, m3d_transform, NULL);
-      else
-        mri_transformed = MRIapply3DMorph(mri, m3d_transform, NULL);
-
-      if(mri_transformed == NULL)
-      {
-        fprintf(stderr, "error applying transform\n");
-        exit(1);
-      }
-
-      MRI3DmorphFree(&m3d_transform);
-
+      TransformFree(&tran);
       MRIfree(&mri);
       mri = mri_transformed;
-
     }
     else
     {
