@@ -2617,7 +2617,8 @@ static int mincWrite(MRI *mri, char *fname)
 
   /* get the position from (vi[di_x], vi[di_y], vi[di_z]) orig position     */
   /*      put the value to (vi[0], vi[1], vi[2]) minc volume                */
-  /* 
+  /* this will keep the orientation of axes the same as the original        */
+
   /* vi[n] gives the index of the variable along minc axis x */
   /* vi[di_x] gives the index of the variable along minc axis di_x, or along mri axis x */
   for(vi[3] = 0;vi[3] < mri->nframes;vi[3]++) {           /* frames */
