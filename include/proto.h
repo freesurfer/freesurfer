@@ -67,6 +67,8 @@ int stricmp(char *str1, char *str2) ;
 int getw(FILE *stream);
 int putw(int w, FILE *stream);
 
+void swab(const void *from, void *to, size_t n);
+
 #endif   /* Linux */
 
 /*----------- IRIX (SGI) -------------------*/
