@@ -1,5 +1,5 @@
-function [kimg2, beta] = tdr_deghost(kimg,Rrow,perev)
-% kimg2 = tdr_deghost(kimg,Rrow,<perev>)
+function [kimg2, beta] = tdr_deghost(kimg,Rrow,perev,synth)
+% kimg2 = tdr_deghost(kimg,Rrow,<perev>,<synth>)
 %
 % Recons the rows of kimg with deghosting.
 %
@@ -11,7 +11,13 @@ function [kimg2, beta] = tdr_deghost(kimg,Rrow,perev)
 %  (perev=0) or even lines (perev=1) will be used as 
 %  reference. If perev is not passed, perev=0 is assumed.
 %
-% $Id: tdr_deghost.m,v 1.6 2004/01/11 19:05:04 greve Exp $
+% synth ~= 0 replaces the values in kimg with complex white noise with
+% std=1 after the ghosting correction has been computed but before it
+% has been applied, and before the final recon of the rows.
+%   kimg = (100+randn(size(kimg))) + i*(100+randn(size(kimg)));
+% Offset by 100 so that it stays gaussian after recon.
+%
+% $Id: tdr_deghost.m,v 1.7 2004/05/01 20:31:34 greve Exp $
 %
 
 rsubdel = 3; % region around center
@@ -75,6 +81,12 @@ phsynth = (X2*beta)';
 % Split phase diff between ref and mov
 vref = exp(-i*phsynth/2);
 vmov = exp(+i*phsynth/2);
+
+% Replace with white noise if desired. Offset by 100 so as to keep
+% it gaussian after recon.
+if(synth)
+  kimg = (100+randn(size(kimg))) + i*(100+randn(size(kimg)));
+end
 
 % Recon rows of all lines
 kimg2 = kimg*Rrow;
