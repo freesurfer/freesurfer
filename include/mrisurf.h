@@ -535,6 +535,12 @@ MRI_SURFACE  *MRISnormalizeFromParameterization(MRI_SP *mrisp,
 MRI_SP       *MRISgradientToParameterization(MRI_SURFACE *mris, MRI_SP *mrisp, 
                                      float scale) ;
 MRI_SURFACE  *MRISgradientFromParameterization(MRI_SP*mrisp,MRI_SURFACE *mris);
+
+MRI_SP       *MRIScoordsToParameterization(MRI_SURFACE *mris, MRI_SP *mrisp, 
+                                     float scale) ;
+MRI_SURFACE  *MRIScoordsFromParameterization(MRI_SP *mrisp, MRI_SURFACE *mris);
+
+
 MRI_SP       *MRISPblur(MRI_SP *mrisp_src, MRI_SP *mrisp_dst, float sigma,
                         int fno) ;
 MRI_SP       *MRISPconvolveGaussian(MRI_SP *mrisp_src, MRI_SP *mrisp_dst, 
