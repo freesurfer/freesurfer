@@ -13,7 +13,7 @@
 #include "transform.h"
 #include "mrinorm.h"
 
-static char vcid[] = "$Id: mri_synthesize.c,v 1.3 2002/07/19 15:24:22 fischl Exp $";
+static char vcid[] = "$Id: mri_synthesize.c,v 1.4 2002/10/31 18:03:43 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -197,9 +197,11 @@ usage_exit(void)
 static void
 print_usage(void)
 {
-  fprintf(stderr, 
-          "usage: %s [options] <TR> <alpha (deg)> <TE> <T1 volume> <PD volume> <output volume>\n",
-          Progname) ;
+  printf("usage: %s [options] <TR> <alpha (deg)> <TE> <T1 volume> <PD volume> <output volume>\n",
+				 Progname) ;
+	printf("The -w switch will use a fixed weighting in order to generate an output volume with\n"
+				 "optimal gray/white contrast\n") ;
+	
 }
 
 static void
