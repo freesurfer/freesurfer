@@ -80,7 +80,7 @@
 
 
 
-#define IS_UNKNOWN(label)  (((label) == Unknown) || (label < 0) || (label == Bright_Uknown) || (label == Dark_Unknown))
+#define IS_UNKNOWN(label)  (((label) == Unknown) || (label < 0) || (label == Bright_Unknown) || (label == Dark_Unknown))
 
 #define MAX_CMA_LABEL 83
 
