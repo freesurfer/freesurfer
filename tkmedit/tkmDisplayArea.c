@@ -3,8 +3,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2003/09/10 22:30:15 $
-// Revision       : $Revision: 1.85 $
+// Revision Date  : $Date: 2003/09/18 21:50:38 $
+// Revision       : $Revision: 1.86 $
 
 #include "tkmDisplayArea.h"
 #include "tkmMeditWindow.h"
@@ -3851,18 +3851,25 @@ void DspA_BrushVoxelsInThreshold_ ( xVoxelRef ipaVoxel, int inCount,
 					  sBrush.mInfo[brush].mHigh,
 					  sBrush.mInfo[brush].mNewValue );
     break;
-    case DspA_tBrushTarget_MainAux:
-      tkm_EditAnatomicalVolumeInRangeArray( tkm_tVolumeType_Main,
-					    ipaVoxel, inCount,
-					    sBrush.mInfo[brush].mLow,
-					    sBrush.mInfo[brush].mHigh,
-					    sBrush.mInfo[brush].mNewValue );
-      tkm_EditAnatomicalVolumeInRangeArray( tkm_tVolumeType_Aux,
-					    ipaVoxel, inCount,
-					    sBrush.mInfo[brush].mLow,
-					    sBrush.mInfo[brush].mHigh,
-					    sBrush.mInfo[brush].mNewValue );
-      break;
+  case DspA_tBrushTarget_Aux:
+    tkm_EditAnatomicalVolumeInRangeArray( tkm_tVolumeType_Aux, 
+					  ipaVoxel, inCount,
+					  sBrush.mInfo[brush].mLow,
+					  sBrush.mInfo[brush].mHigh,
+					  sBrush.mInfo[brush].mNewValue );
+    break;
+  case DspA_tBrushTarget_MainAux:
+    tkm_EditAnatomicalVolumeInRangeArray( tkm_tVolumeType_Main,
+					  ipaVoxel, inCount,
+					  sBrush.mInfo[brush].mLow,
+					  sBrush.mInfo[brush].mHigh,
+					  sBrush.mInfo[brush].mNewValue );
+    tkm_EditAnatomicalVolumeInRangeArray( tkm_tVolumeType_Aux,
+					  ipaVoxel, inCount,
+					  sBrush.mInfo[brush].mLow,
+					  sBrush.mInfo[brush].mHigh,
+					  sBrush.mInfo[brush].mNewValue );
+    break;
   default:
     break;
   }

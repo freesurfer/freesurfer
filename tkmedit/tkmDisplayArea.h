@@ -111,6 +111,7 @@ typedef struct {
 typedef enum {
   DspA_tBrushTarget_None = -1,
   DspA_tBrushTarget_Main,
+  DspA_tBrushTarget_Aux,
   DspA_tBrushTarget_MainAux,
   DspA_knNumBrushTargets
 } DspA_tBrushTarget;
