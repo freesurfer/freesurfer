@@ -1,6 +1,6 @@
 /*---------------------------------------------------------------
   Name: resample.c
-  $Id: resample.c,v 1.2 2001/10/22 19:56:05 greve Exp $
+  $Id: resample.c,v 1.3 2002/03/10 21:53:35 greve Exp $
   Author: Douglas N. Greve
   Purpose: code to perform resapling from one space to another, 
   including: volume-to-volume, volume-to-surface, and surface-to-surface.
@@ -464,6 +464,7 @@ MRI *label2mask_linear(MRI *SrcVol,
     }
 
     /* ok, now set the mask value to 1 */
+    /* or should we just keep count and then binarize? */
     MRIFseq_vox(FinalMskVol,icol_src,irow_src,islc_src,0) = 1;
 
     /* increment the number of hits */
@@ -482,6 +483,138 @@ MRI *label2mask_linear(MRI *SrcVol,
 
   return(FinalMskVol);  
 }
+
+/*-----------------------------------------------------------------------
+  label2mask_linear2() - does the same thing as label2mask_linear(),
+  but a voxel must be filled at least half way with label points
+  before a 1 is placed in the mask.
+  ------------------------------------------------------------------------*/
+MRI *label2mask_linear2(MRI *SrcVol, 
+           MATRIX *Qsrc, MATRIX *Fsrc, MATRIX *Wsrc, MATRIX *Dsrc, 
+           MRI *SrcMskVol, MATRIX *Msrc2lbl, LABEL *Label, 
+           int float2int, int *nlabelhits, int *nfinalhits)
+{
+  MATRIX *QFWDsrc;
+  MATRIX *Lxyz2Scrs;
+  MATRIX *Scrs, *Lxyz, *Mlbl2src;
+  MRI *FinalMskVol;
+  int   irow_src, icol_src, islc_src; /* integer row, col, slc in source */
+  float mskval, voxsize;
+  int vlbl;
+  int c,r,s,nfinalmask;
+    
+  /* compute the transforms */
+  QFWDsrc = ComputeQFWD(Qsrc,Fsrc,Wsrc,Dsrc,NULL);
+  if(Msrc2lbl != NULL) Mlbl2src = MatrixInverse(Msrc2lbl,NULL);
+  else                 Mlbl2src = NULL;
+  if(Mlbl2src != NULL) Lxyz2Scrs = MatrixMultiply(QFWDsrc,Mlbl2src,NULL);    
+  else                 Lxyz2Scrs = MatrixCopy(QFWDsrc,NULL);
+
+  printf("\n");
+  printf("Lxyz2Scrs:\n");
+  MatrixPrint(stdout,Lxyz2Scrs);
+  printf("\n");
+
+  /* preallocate the row-col-slc vectors */
+  Lxyz = MatrixAlloc(4,1,MATRIX_REAL);
+  Lxyz->rptr[3+1][0+1] = 1.0;
+  Scrs = MatrixAlloc(4,1,MATRIX_REAL);
+
+  /* allocate an output volume -- same size as source*/
+  FinalMskVol = MRIallocSequence(SrcVol->width,SrcVol->height,SrcVol->depth,
+         MRI_FLOAT,1);
+  if(FinalMskVol == NULL) return(NULL);
+  
+  *nlabelhits = 0;
+  *nfinalhits = 0;
+  
+  /* Go through each point in the label */
+  for(vlbl = 0; vlbl < Label->n_points; vlbl++){
+    
+    /* load the label xyz into a vector */
+    Lxyz->rptr[0+1][0+1] = Label->lv[vlbl].x;
+    Lxyz->rptr[1+1][0+1] = Label->lv[vlbl].y;
+    Lxyz->rptr[2+1][0+1] = Label->lv[vlbl].z;
+    
+    /* compute the corresponding col, row, and slice in the source vol */
+    MatrixMultiply(Lxyz2Scrs,Lxyz,Scrs);
+    
+    /* Convert the analog col, row, and slice to integer */
+    switch(float2int){
+    case FLT2INT_ROUND:
+      icol_src = (int)rint(Scrs->rptr[0+1][0+1]);
+      irow_src = (int)rint(Scrs->rptr[1+1][0+1]);
+      islc_src = (int)rint(Scrs->rptr[2+1][0+1]);
+      break;
+    case FLT2INT_FLOOR:
+      icol_src = (int)floor(Scrs->rptr[0+1][0+1]);
+      irow_src = (int)floor(Scrs->rptr[1+1][0+1]);
+      islc_src = (int)floor(Scrs->rptr[2+1][0+1]);
+      break;
+    case FLT2INT_TKREG:
+      icol_src = (int)floor(Scrs->rptr[0+1][0+1]);
+      irow_src = (int) ceil(Scrs->rptr[1+1][0+1]);
+      islc_src = (int)floor(Scrs->rptr[2+1][0+1]);
+      break;
+    default:
+      fprintf(stderr,"label2mask_linear(): unrecoginized float2int code %d\n",
+        float2int);
+      MRIfree(&FinalMskVol);
+      return(NULL);
+      break;
+    }
+    
+    /* check that the point is within the source volume */
+    if(irow_src < 0 || irow_src >= SrcVol->height ||
+       icol_src < 0 || icol_src >= SrcVol->width  ||
+       islc_src < 0 || islc_src >= SrcVol->depth ) continue;
+    (*nlabelhits)++;
+
+    /* check that the point is within the input mask */
+    if(SrcMskVol != NULL){
+      mskval = MRIFseq_vox(SrcMskVol,icol_src,irow_src,islc_src,0);
+      if(mskval < 0.5) continue;
+    }
+
+    /* keep count and then binarize */
+    MRIFseq_vox(FinalMskVol,icol_src,irow_src,islc_src,0) ++;
+
+    /* increment the number of hits */
+    (*nfinalhits)++;
+  }
+
+  printf("INFO: label2mask2: there were %d label hits\n", *nfinalhits);
+
+  nfinalmask = 0;
+  voxsize = SrcVol->xsize * SrcVol->ysize * SrcVol->zsize;
+  printf("voxsize = %g\n",voxsize);
+  for(c=0; c < FinalMskVol->width; c++){
+    for(r=0; r < FinalMskVol->height; r++){
+      for(s=0; s < FinalMskVol->depth;  s++){
+  mskval = MRIFseq_vox(FinalMskVol,c,r,s,0);
+  if(mskval < voxsize/2.0)
+    MRIFseq_vox(FinalMskVol,c,r,s,0) = 0;
+  else{
+    MRIFseq_vox(FinalMskVol,c,r,s,0) = 1;
+    nfinalmask ++;
+  }
+      }
+    }
+  }
+
+  printf("INFO: label2mask2: there were %d hits in final mask\n", nfinalmask);
+
+  MatrixFree(&QFWDsrc);
+  MatrixFree(&Lxyz2Scrs);
+  MatrixFree(&Scrs);
+  MatrixFree(&Lxyz);
+  if(Mlbl2src != NULL) MatrixFree(&Mlbl2src);
+
+  printf("label2mask_linear: done\n");
+
+  return(FinalMskVol);  
+}
+
 /*-----------------------------------------------------------------------
   vol2maskavg() -- averages all the voxels within a mask.  SrcVol and
   SrcMskVol must be the same size.  Searchs SrcMskVol for voxels whose
