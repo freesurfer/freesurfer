@@ -9,9 +9,9 @@
 
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2005/01/04 00:06:01 $
-// Revision       : $Revision: 1.235 $
-char *VERSION = "$Revision: 1.235 $";
+// Revision Date  : $Date: 2005/01/05 19:57:54 $
+// Revision       : $Revision: 1.236 $
+char *VERSION = "$Revision: 1.236 $";
 
 #define TCL
 #define TKMEDIT 
@@ -1076,7 +1076,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
      shorten our argc and argv count. If those are the only args we
      had, exit. */
   /* rkt: check for and handle version tag */
-  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.235 2005/01/04 00:06:01 kteich Exp $", "$Name:  $");
+  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.236 2005/01/05 19:57:54 kteich Exp $", "$Name:  $");
   if (nNumProcessedVersionArgs && argc - nNumProcessedVersionArgs == 1)
     exit (0);
   argc -= nNumProcessedVersionArgs;
@@ -3045,11 +3045,14 @@ tkm_tErr LoadSurface ( tkm_tSurfaceType iType,
 		       char*    isName ) {
   
   tkm_tErr  eResult           = tkm_tErr_NoErr;
-  Surf_tErr eSurface           = Surf_tErr_NoErr;
+  Surf_tErr eSurface          = Surf_tErr_NoErr;
+  Volm_tErr eVolume           = Volm_tErr_NoErr;
   tBoolean  bLoaded           = FALSE;
   char      sName[tkm_knPathLen]       = "";
   char      sError[tkm_knErrStringLen] = "";
   tBoolean  bUseRealRAS;
+  VOL_GEOM  surfaceGeometry;
+  VOL_GEOM  volumeGeometry;
 
   DebugEnterFunction( ("LoadSurface( iType=%d, isName=%s )", 
            (int)iType, isName) );
@@ -3097,6 +3100,35 @@ tkm_tErr LoadSurface ( tkm_tSurfaceType iType,
     tkm_SendTclCommand( tkm_tTclCommand_DoResolveUseRealRASDlog, "" );
   }
 
+
+  /* We might need to adjust the surface coordinates if volume
+     geomoetry information is present and it doesn't match the current
+     volume. */
+  DebugNote( ("Getting volume geometry information") );
+  eVolume = 
+    Volm_CopyGeometryInformation( gAnatomicalVolume[tkm_tVolumeType_Main],
+				  &volumeGeometry );
+  DebugAssertThrowX( (Volm_tErr_NoErr == eVolume),
+		     eResult, tkm_tErr_ErrorAccessingVolume );
+  
+  DebugNote( ("Getting surface geometry information") );
+  eSurface = 
+    Surf_CopyGeometryInformation( gSurface[iType], &surfaceGeometry );
+  DebugAssertThrowX( (Surf_tErr_NoErr == eSurface),
+		     eResult, tkm_tErr_ErrorAccessingSurface );
+
+  if( surfaceGeometry.valid ) {
+    if( !vg_isEqual( &volumeGeometry, &surfaceGeometry ) ) {
+      printf( "Transforming surface to match volume geometry.\n" );
+      DebugNote( ("Transforming surface to match volume geometry") );
+      eSurface = 
+	Surf_TransformToVolumeGeometry( gSurface[iType], &volumeGeometry );
+      DebugAssertThrowX( (Surf_tErr_NoErr == eSurface),
+			 eResult, tkm_tErr_ErrorAccessingSurface );
+    }
+  }
+
+
   /* turn on the loading and viewing options for surfaces in our interface.
      also turn the surface display onn in the window. turn on the 
      interpolated vertex display. */
@@ -3135,8 +3167,8 @@ tkm_tErr LoadSurface ( tkm_tSurfaceType iType,
 }
 
 tkm_tErr LoadSurfaceVertexSet ( tkm_tSurfaceType iType,
-        Surf_tVertexSet   iSet,
-        char*     isName ) {
+				Surf_tVertexSet   iSet,
+				char*     isName ) {
   
   tkm_tErr      eResult  = tkm_tErr_NoErr;
   Surf_tErr      eSurface = Surf_tErr_NoErr;
@@ -3188,7 +3220,7 @@ tkm_tErr LoadSurfaceVertexSet ( tkm_tSurfaceType iType,
   /* set the surface in the window to purge the cache */
   DebugNote( ("Setting surface in window") );
   MWin_SetSurface( gMeditWindow, -1, tkm_tSurfaceType_Main, 
-       gSurface[tkm_tSurfaceType_Main] );
+		   gSurface[tkm_tSurfaceType_Main] );
   
   DebugCatch;
   DebugCatchError( eResult, tkm_tErr_NoErr, tkm_GetErrorString );
@@ -5173,7 +5205,7 @@ int main ( int argc, char** argv ) {
     DebugPrint( ( "%s ", argv[nArg] ) );
   }
   DebugPrint( ( "\n\n" ) );
-  DebugPrint( ( "$Id: tkmedit.c,v 1.235 2005/01/04 00:06:01 kteich Exp $ $Name:  $\n" ) );
+  DebugPrint( ( "$Id: tkmedit.c,v 1.236 2005/01/05 19:57:54 kteich Exp $ $Name:  $\n" ) );
 
   
   /* init glut */
