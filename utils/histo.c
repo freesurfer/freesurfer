@@ -817,7 +817,7 @@ HISTOplot(HISTOGRAM *histo, char *fname)
   fp = fopen(fname, "w") ;
 
   for (bin_no = 0 ; bin_no < histo->nbins ; bin_no++)
-    fprintf(fp, "%d  %d\n", bin_no, histo->counts[bin_no]) ;
+    fprintf(fp, "%d  %d\n", histo->bins[bin_no], histo->counts[bin_no]) ;
   fclose(fp) ;
   return(NO_ERROR) ;
 }
