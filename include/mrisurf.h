@@ -348,6 +348,7 @@ int          MRISreadTriangleProperties(MRI_SURFACE *mris, char *mris_fname) ;
 int          MRISreadBinaryCurvature(MRI_SURFACE *mris, char *mris_fname) ;
 int          MRISreadCurvatureFile(MRI_SURFACE *mris, char *fname) ;
 int          MRISreadValues(MRI_SURFACE *mris, char *fname) ;
+int          MRISreadValuesScale(MRI_SURFACE *mris, char *fname) ;
 int          MRISreadImagValues(MRI_SURFACE *mris, char *fname) ;
 int          MRIScopyValuesToImagValues(MRI_SURFACE *mris) ;
 

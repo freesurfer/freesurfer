@@ -6524,6 +6524,45 @@ MRISreadValues(MRI_SURFACE *mris, char *fname)
         Description
 ------------------------------------------------------*/
 int
+MRISreadValuesScale(MRI_SURFACE *mris, char *fname)
+{
+  int i,k,num,ilat;
+  float f;
+  float lat;
+  FILE *fp;
+
+  fp = fopen(fname,"r");
+  if (fp==NULL)
+    ErrorReturn(ERROR_NOFILE, (ERROR_NOFILE,
+                               "MRISreadValuesScale: File %s not found\n",fname));
+  fread2(&ilat,fp);
+  lat = ilat/10.0;
+
+  for (k=0;k<mris->nvertices;k++)
+    mris->vertices[k].val=0;
+  fread3(&num,fp);
+  for (i=0;i<num;i++)
+    {
+    fread3(&k,fp);
+    f = freadFloat(fp) ;
+    if (k>=mris->nvertices||k<0)
+      printf("MRISreadValuesScale: vertex index out of range: %d f=%f\n",k,f);
+    else
+      {
+      mris->vertices[k].val *= f;
+      }
+    }
+  fclose(fp);
+  return(NO_ERROR) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
+int
 MRISreadImagValues(MRI_SURFACE *mris, char *fname)
 {
   int i,k,num,ilat;
