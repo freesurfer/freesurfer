@@ -108,7 +108,7 @@ main(int argc, char *argv[])
   TRANSFORM     *transform ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_ca_label.c,v 1.45 2004/02/27 21:47:37 tosa Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_ca_label.c,v 1.46 2004/04/05 14:58:02 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -137,7 +137,7 @@ main(int argc, char *argv[])
     gca = GCAread(argv[1]) ;
     if (!gca)
       ErrorExit(ERROR_NOFILE, "%s: could not read classifier array from %s",
-		Progname, argv[1]) ;
+								Progname, argv[1]) ;
 
 
     if (gca->flags & GCA_NO_MRF)
@@ -182,9 +182,9 @@ main(int argc, char *argv[])
   if (gca->flags & GCA_ZGRAD)
     extra += ninputs ;
   
-  if (gca->ninputs != (ninputs+extra) && !map_to_flash && gca->type != GCA_FLASH)
+  if (gca->ninputs != (ninputs+extra) && !map_to_flash && gca->type != GCA_FLASH && gca->type != GCA_PARAM)
     ErrorExit(ERROR_BADPARM, "%s: gca requires %d inputs, %d specified on command line",
-	      Progname, gca->ninputs, ninputs) ;
+							Progname, gca->ninputs, ninputs) ;
   
   if (avgs)
     GCAmeanFilterConditionalDensities(gca, avgs) ;
@@ -197,7 +197,7 @@ main(int argc, char *argv[])
     mri_tmp = MRIread(in_fname) ;
     if (!mri_tmp)
       ErrorExit(ERROR_NOFILE, "%s: could not read input MR volume from %s",
-		Progname, in_fname) ;
+								Progname, in_fname) ;
     
     if (alpha > 0)
       mri_tmp->flip_angle = alpha ;
@@ -220,12 +220,12 @@ main(int argc, char *argv[])
     if (input == 0)
     {
       mri_inputs = 
-	MRIallocSequence(mri_tmp->width, mri_tmp->height, mri_tmp->depth,
-			 mri_tmp->type, ninputs+extra) ;
+				MRIallocSequence(mri_tmp->width, mri_tmp->height, mri_tmp->depth,
+												 mri_tmp->type, ninputs+extra) ;
       if (!mri_inputs)
-	ErrorExit(ERROR_NOMEMORY, 
-		  "%s: could not allocate input volume %dx%dx%dx%d",
-		  mri_tmp->width, mri_tmp->height, mri_tmp->depth,ninputs) ;
+				ErrorExit(ERROR_NOMEMORY, 
+									"%s: could not allocate input volume %dx%dx%dx%d",
+									mri_tmp->width, mri_tmp->height, mri_tmp->depth,ninputs) ;
       MRIcopyHeader(mri_tmp, mri_inputs) ;
     }
     
@@ -331,14 +331,14 @@ main(int argc, char *argv[])
     GCAhistoScaleImageIntensities(gca, mri_inputs) ;
   }
   // -flash option
-  if (map_to_flash)
+  if (map_to_flash || gca->type == GCA_PARAM)
   {
     GCA *gca_tmp ;
     
     if (novar)
       GCAunifyVariance(gca) ;
     
-    gca_tmp = GCAcreateFlashGCAfromParameterGCA(gca, TRs, fas, TEs, mri_inputs->nframes, 100) ;
+    gca_tmp = GCAcreateFlashGCAfromParameterGCA(gca, TRs, fas, TEs, mri_inputs->nframes, GCA_DEFAULT_NOISE_PARAMETER) ;
     GCAfree(&gca) ;
     gca = gca_tmp ;
     GCAhistoScaleImageIntensities(gca, mri_inputs) ;
@@ -365,9 +365,9 @@ main(int argc, char *argv[])
     {
       for (i = 0 ; i < ninputs ; i++)
       {
-	mri_grad = MRIxSobel(mri_smooth, NULL, i) ;
-	MRIcopyFrame(mri_grad, mri_inputs, 0, start+i) ;
-	MRIfree(&mri_grad) ;
+				mri_grad = MRIxSobel(mri_smooth, NULL, i) ;
+				MRIcopyFrame(mri_grad, mri_inputs, 0, start+i) ;
+				MRIfree(&mri_grad) ;
       }
       start += ninputs ;
     }
@@ -375,9 +375,9 @@ main(int argc, char *argv[])
     {
       for (i = 0 ; i < ninputs ; i++)
       {
-	mri_grad = MRIySobel(mri_smooth, NULL, i) ;
-	MRIcopyFrame(mri_grad, mri_inputs, 0, start+i) ;
-	MRIfree(&mri_grad) ;
+				mri_grad = MRIySobel(mri_smooth, NULL, i) ;
+				MRIcopyFrame(mri_grad, mri_inputs, 0, start+i) ;
+				MRIfree(&mri_grad) ;
       }
       start += ninputs ;
     }
@@ -385,9 +385,9 @@ main(int argc, char *argv[])
     {
       for (i = 0 ; i < ninputs ; i++)
       {
-	mri_grad = MRIzSobel(mri_smooth, NULL, i) ;
-	MRIcopyFrame(mri_grad, mri_inputs, 0, start+i) ;
-	MRIfree(&mri_grad) ;
+				mri_grad = MRIzSobel(mri_smooth, NULL, i) ;
+				MRIcopyFrame(mri_grad, mri_inputs, 0, start+i) ;
+				MRIfree(&mri_grad) ;
       }
       start += ninputs ;
     }
@@ -567,7 +567,7 @@ main(int argc, char *argv[])
   minutes = seconds / 60 ;
   seconds = seconds % 60 ;
   printf("auto-labeling took %d minutes and %d seconds.\n", 
-	 minutes, seconds) ;
+				 minutes, seconds) ;
   exit(0) ;
   return(0) ;
 }
