@@ -1,6 +1,6 @@
 #!/bin/csh -f
 
-set STRUCTVITS_VER = '$Id: mri-structvits,v 1.1 1999/10/26 15:08:57 greve Exp $';
+set STRUCTVITS_VER = '$Id: mri-structvits,v 1.2 2000/03/27 17:46:26 greve Exp $';
 
 set subject  = ();
 set icosize  = 10242;
@@ -9,7 +9,7 @@ set vitdir   = ();
 set dist     = 2;
 set origsurfname = orig
 set sphsurfname  = sphere
-set cansurfname  = sphere.dist_new
+set cansurfname  = sphere.reg # was sphere.dist_new, changed 3/27/00 by dng
 set noforce  = 0;
 set mailuser = ()
 set ErrorMsg = "";
@@ -96,10 +96,11 @@ foreach hemi ($hemilist)
      echo "$hemi.$origsurfname-fill.vit already exists, skipping"
   else
     echo "------- $hemi.$origsurfname-fill.vit `date` ---------"
-    vss-surf2vit -subject $subject -hemi $hemi -surface $origsurfname \
-                 -vit $hemi.$origsurfname-fill.vit
+    set cmd = "vss-surf2vit -subject $subject -hemi $hemi -surface $origsurfname -vit $hemi.$origsurfname-fill.vit"
+    $cmd
     if($status) then
-      set ErrorMsg = "ERROR: vss-surf2vit"
+      echo  "-------- ERROR: vss-surf2vit ----------------"
+      echo $cmd
       goto error_exit;
     endif
   endif
@@ -122,9 +123,11 @@ foreach hemi ($hemilist)
      echo "$ico_sc already exists, skipping"
   else
     echo "-------- $ico_sc `date` -----------------"
-    vss-resample -s $sphsurf -f surf -vit $s2iccvit -t $ico_sc
+    set cmd = "vss-resample -s $sphsurf -f surf -vit $s2iccvit -t $ico_sc"
+    $cmd
     if($status) then
-      set ErrorMsg = "ERROR: vss-resample"
+      echo "--------- ERROR: vss-resample -------------"
+      echo $cmd
       goto error_exit;
     endif
   endif
