@@ -342,6 +342,10 @@ typedef struct
 #define MATLAB_IMAGE   1
 #define TIFF_IMAGE     2
 #define TIF_IMAGE      TIFF_IMAGE
+#define JPEG_IMAGE     3
+#define PGM_IMAGE      4 
+#define PPM_IMAGE      5 /* Write not yet implemented */
+#define PBM_IMAGE      6 /* Write not yet implemented */
 
 #define IMAGE_REFLECT_AROUND_X_AXIS   0
 #define IMAGE_REFLECT_AROUND_Y_AXIS   1
