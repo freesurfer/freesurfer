@@ -467,6 +467,8 @@ MRI        *MRIfill(MRI *mri_src, MRI *mri_dst, int seed_x, int seed_y,
                     int seed_z, int threshold, int fill_val, int max_count) ;
 MRI        *MRIfillFG(MRI *mri_src, MRI *mri_dst, int seed_x, int seed_y, 
                     int seed_z, int threshold, int fill_val, int *npix) ;
+MRI        *MRIfillBG(MRI *mri_src, MRI *mri_dst, int seed_x, int seed_y, 
+                    int seed_z, int threshold, int fill_val, int *npix) ;
                     
 
 int   MRIneighborsOn(MRI *mri, int x0, int y0, int z0, int min_val) ;
