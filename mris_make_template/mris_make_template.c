@@ -13,7 +13,7 @@
 #include "macros.h"
 #include "version.h"
 
-static char vcid[] = "$Id: mris_make_template.c,v 1.13 2005/02/11 19:34:18 segonne Exp $";
+static char vcid[] = "$Id: mris_make_template.c,v 1.14 2005/02/11 23:55:42 segonne Exp $";
  
 int main(int argc, char *argv[]) ;
 
@@ -61,7 +61,7 @@ main(int argc, char *argv[])
 {
   char         **av, surf_fname[STRLEN], *template_fname, *hemi, *sphere_name,
                *cp, *subject, fname[STRLEN] ;
-  int          ac, nargs, ino, sno, nbad = 0, failed, n,ncorrs;
+  int          ac, nargs, ino, sno, nbad = 0, failed, n,nfields;
   VERTEX *v;
   VALS_VP *vp;
   MRI_SURFACE  *mris ;
@@ -69,7 +69,7 @@ main(int argc, char *argv[])
   INTEGRATION_PARMS parms ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_make_template.c,v 1.13 2005/02/11 19:34:18 segonne Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_make_template.c,v 1.14 2005/02/11 23:55:42 segonne Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -181,21 +181,21 @@ main(int argc, char *argv[])
 		
 		/* multiframe registration */
 		if(multiframes){
-			ncorrs=parms.ncorrs;
+			nfields=parms.nfields;
 			/* allocate the VALS_VP structure */
 			for( n = 0; n < mris->nvertices ; n++){
 				v=&mris->vertices[n];
 				vp=calloc(1,sizeof(VALS_VP));
-				vp->nvals=ncorrs;
-				vp->orig_vals=(float*)malloc(ncorrs*sizeof(float)); /* before blurring */
-				vp->vals=(float*)malloc(ncorrs*sizeof(float));     /* values used by MRISintegrate */
+				vp->nvals=nfields;
+				vp->orig_vals=(float*)malloc(nfields*sizeof(float)); /* before blurring */
+				vp->vals=(float*)malloc(nfields*sizeof(float));     /* values used by MRISintegrate */
 				v->vp=(void*)vp;
 			}
-			
+
 			/* load the different fields */
-			for(n = 0 ; n < parms.ncorrs ; n++){
-				if (ReturnFieldName(parms.corrfields[n])){  /* read in precomputed curvature file */
-					sprintf(surf_fname, "%s/%s/surf/%s.%s", subjects_dir, subject, hemi, ReturnFieldName(parms.corrfields[n])) ;
+			for(n = 0 ; n < parms.nfields ; n++){
+				if (ReturnFieldName(parms.fields[n].field)){  /* read in precomputed curvature file */
+					sprintf(surf_fname, "%s/%s/surf/%s.%s", subjects_dir, subject, hemi, ReturnFieldName(parms.fields[n].field)) ;
 					if (MRISreadCurvatureFile(mris, surf_fname) != NO_ERROR){
 						fprintf(stderr,"\n\nXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX\n");
 						fprintf(stderr, "%s: could not read curvature file '%s'\n",Progname, surf_fname) ;
@@ -203,8 +203,8 @@ main(int argc, char *argv[])
 						break;
 					}
 				}else{                       /* compute curvature of surface */
-					sprintf(surf_fname, "%s/%s/surf/%s.%s", subjects_dir, subject, hemi, surface_names[parms.corrfields[n]]) ;
-					/*					if(parms.corrfields[n]==0)
+					sprintf(surf_fname, "%s/%s/surf/%s.%s", subjects_dir, subject, hemi, surface_names[parms.fields[n].field]) ;
+					/*					if(parms.fields[n].field==0)
 											sprintf(fname, "inflated") ;
 											else
 											sprintf(fname, "smoothwm") ;*/
@@ -215,7 +215,7 @@ main(int argc, char *argv[])
 						ErrorPrintf(ERROR_NOFILE, "%s: could not read surface file %s",
 												Progname, surf_fname) ;
 						fprintf(stderr,"setting up correlation coefficient to zero\n");
-						parms.l_corrs[n]=parms.l_pcorrs[n]=0.0;
+						parms.fields[n].l_corr=parms.fields[n].l_pcorr=0.0;
 						failed=1;
 						break;
 					}
@@ -226,7 +226,7 @@ main(int argc, char *argv[])
 					MRISresetNeighborhoodSize(mris,1);/*only use nearest neighbor distances*/
 					MRISrestoreVertexPositions(mris, TMP_VERTICES) ;
 				}
-				MRISnormalizeField(mris,parms.types[n]); /* normalize values */
+				MRISnormalizeField(mris,parms.fields[n].type); /* normalize values */
 				MRISsetCurvaturesToOrigValues(mris,n);
 				MRISsetCurvaturesToValues(mris,n);
 			}
@@ -288,11 +288,11 @@ main(int argc, char *argv[])
 		}
 
 		if(multiframes){
-			for (n = 0; n < parms.ncorrs ; n++)
+			for (n = 0; n < parms.nfields ; n++)
 			{
 				MRISsetOrigValuesToCurvatures(mris,n);
 				mrisp = MRIStoParameterization(mris, NULL, scale, 0) ;
-				MRISPcombine(mrisp, mrisp_template, parms.frames[n]*IMAGES_PER_SURFACE) ;
+				MRISPcombine(mrisp, mrisp_template, parms.fields[n].frame * IMAGES_PER_SURFACE) ;
 				MRISPfree(&mrisp) ;
 			}
 			/* free the VALS_VP structure */
@@ -513,14 +513,9 @@ get_option(int argc, char *argv[],INTEGRATION_PARMS *parms)
   {
 		base_default=0;
 		atlas_size = 0;
-		parms->ncorrs=0;
-		for(n=0;n<3;n++){
-			parms->frames[n]=0;
-			parms->types[n]=0;
-			parms->corrfields[n]=0;
-			parms->l_corrs[n]=0.0f;
-			parms->l_pcorrs[n]=0.0f;
-		}
+		parms->nfields=0;
+		for(n=0;n<3;n++)
+			InitFieldLabel(&parms->fields[n]);
 	}
 	else if (!stricmp(option, "size"))
 	{
@@ -545,14 +540,13 @@ get_option(int argc, char *argv[],INTEGRATION_PARMS *parms)
 	}
  	else if (!stricmp(option, "addframe"))
   {
- 		int which_field,where_in_atlas,field_type;
+ 		int which_field,where_in_atlas;
 		
 		if(multiframes==0) /* activate multiframes mode */
 			multiframes = 1;
 
 		which_field=atoi(argv[2]);
 		where_in_atlas=atoi(argv[3]);
-		field_type=IsDistanceField(which_field);
 
 		fprintf(stderr, "adding field %d into average atlas at location %d\n",which_field,where_in_atlas) ;
 		if( base_default && (where_in_atlas<3) ){
@@ -565,19 +559,17 @@ get_option(int argc, char *argv[],INTEGRATION_PARMS *parms)
 			exit(1);
 		}
 		/* check if this field exist or not */
-		for(n = 0 ; n < parms->ncorrs ; n++){
-			if(parms->corrfields[n]==which_field){
+		for(n = 0 ; n < parms->nfields ; n++){
+			if(parms->fields[n].field==which_field){
 				fprintf(stderr,"ERROR: field already exists\n");
 				exit(1);
 			}
 		}
 		/* adding field into parms */
-		n=parms->ncorrs++;
-		parms->corrfields[n]=which_field;
-		parms->frames[n]=where_in_atlas;
-		parms->types[n]=field_type;
-		if(where_in_atlas > atlas_size) {
-			atlas_size = where_in_atlas;
+		n=parms->nfields++;
+		SetFieldLabel(&parms->fields[n],which_field,where_in_atlas,0.0,0.0);
+		if(where_in_atlas >= atlas_size) {
+			atlas_size = where_in_atlas+1;
 			fprintf(stderr,"Atlas size increased to contain at least %d frames\n",atlas_size);
 		}
 		nargs = 2 ;
@@ -650,18 +642,10 @@ print_version(void)
 /* set the correct set of vectorial parameters */
 static void setParms(INTEGRATION_PARMS *parms){
 	/* default template fields*/
-	parms->ncorrs=3;
+	parms->nfields=3;
 		
-	parms->corrfields[0]=INFLATED_CURV_CORR_FRAME ; 
-	parms->frames[0]=0;
-	parms->l_corrs[0]=0.0f;parms->l_pcorrs[0]=0.0f;
-	
+	SetFieldLabel(&parms->fields[0],INFLATED_CURV_CORR_FRAME,0,0.0,0.0);
 	/* only use sulc for rigid registration */
-	parms->corrfields[1]=SULC_CORR_FRAME;
-	parms->frames[1]=1;
-	parms->l_corrs[1]=1.0f;parms->l_pcorrs[1]=0.0f;
-	
-	parms->corrfields[2]=CURVATURE_CORR_FRAME;
-	parms->frames[2]=2;
-	parms->l_corrs[2]=0.0f;parms->l_pcorrs[2]=0.0f;
+	SetFieldLabel(&parms->fields[1],SULC_CORR_FRAME,1,1.0,0.0);
+	SetFieldLabel(&parms->fields[2],CURVATURE_CORR_FRAME,2,0.0,0.0);
 }

@@ -109,4 +109,20 @@ int IsDistanceField(int which_field){
 		break;
 	}
 	return 0;
-} 
+}
+
+int InitFieldLabel(FIELD_LABEL *label){
+	memset(label,0,sizeof(FIELD_LABEL));	
+	return NO_ERROR;
+}
+
+int SetFieldLabel(FIELD_LABEL *label,int field,int frame,float l_corr,float l_pcorr){
+	label->field=field;
+	label->frame=frame;
+	label->type=IsDistanceField(field);
+	label->l_corr=MAX_OF_TWO(0.0,l_corr);
+	label->l_pcorr=MAX_OF_TWO(0.0,l_pcorr);
+	label->sse=0.0f;
+	return NO_ERROR;
+}
+

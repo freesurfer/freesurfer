@@ -4,8 +4,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: segonne $
-// Revision Date  : $Date: 2005/02/11 19:27:54 $
-// Revision       : $Revision: 1.330 $
+// Revision Date  : $Date: 2005/02/11 23:54:58 $
+// Revision       : $Revision: 1.331 $
 //////////////////////////////////////////////////////////////////
 #include <stdio.h>
 #include <string.h>
@@ -4544,34 +4544,35 @@ int MRISvectorRegister(MRI_SURFACE *mris, MRI_SP *mrisp_template,
     mrisLogIntegrationParms(stderr, mris,parms) ;
 	
 
-/* 	for ( nframes = n = 0 ; n < parms->ncorrs ; n++){ */
-/* 		parms->l_corrs[n]=0.0f; */
-/* 		parms->l_pcorrs[n]=0.0f; */
+/* 	for ( nframes = n = 0 ; n < parms->nfields ; n++){ */
+/* 		parms->fields[n].l_corr=0.0f; */
+/* 		parms->fields[n].l_pcorr=0.0f; */
 /* 	} */
 /* 	parms->l_corrs[5]=1.0f; // only one structure at a time */
 
-	for ( nframes = n = 0 ; n < parms->ncorrs ; n++){
-		l_corr = parms->l_corrs[n]+parms->l_pcorrs[n] ;
+	/* excluding frames with zero correlation coefficients */
+	for ( nframes = n = 0 ; n < parms->nfields ; n++){
+		l_corr = parms->fields[n].l_corr+parms->fields[n].l_pcorr ;
 		if (FZERO(l_corr)) continue;
 		nframes++;
-	}
+	} 
 	if(!nframes) return NO_ERROR;
 
 	fprintf(stderr,"MRISvectorRegister will use %d fields\n",nframes);
 
 	indices =(int*)malloc(nframes*sizeof(int));
   frames=(int*)malloc(2*nframes*sizeof(int));
-	for ( nf = n = 0 ; n < parms->ncorrs ; n++ ) {
-		l_corr = parms->l_corrs[n]+parms->l_pcorrs[n] ;
+	for ( nf = n = 0 ; n < parms->nfields ; n++ ) {
+		l_corr = parms->fields[n].l_corr+parms->fields[n].l_pcorr ;
 		if (FZERO(l_corr)) continue;
-		fno = parms->frames[n] * IMAGES_PER_SURFACE;
+		fno = parms->fields[n].frame * IMAGES_PER_SURFACE;
 		frames[nf]= fno; /* mean */
 		frames[nf+nframes]= fno+1 ; /* variance */
 		indices[nf]=n;
 		nf++;
 	}
 
-	ncorrs=parms->ncorrs;
+	ncorrs=parms->nfields;
  	/* allocate the VALS_VP structure */
 	for( n = 0; n < mris->nvertices ; n++){
 		v=&mris->vertices[n];
@@ -4584,23 +4585,23 @@ int MRISvectorRegister(MRI_SURFACE *mris, MRI_SP *mrisp_template,
 
 	/* load the fields into vertex->vp */
 	for(n = 0 ; n < ncorrs ; n++){
-		l_corr = parms->l_corrs[n]+parms->l_pcorrs[n] ;
+		l_corr = parms->fields[n].l_corr+parms->fields[n].l_pcorr ;
 		if (FZERO(l_corr)) continue; /* don't load useless fields */
 
-		fprintf(stderr,"  -loading field %d with correlation coefficiens ( %2.1f , %2.1f )...\n",n,parms->l_corrs[n],parms->l_pcorrs[n]);
-		if (FRAME_FIELD_NAMES[parms->corrfields[n]]){  /* read in precomputed curvature file */
+		fprintf(stderr,"  -loading field %d with correlation coefficiens ( %2.1f , %2.1f )...\n",n,parms->fields[n].l_corr,parms->fields[n].l_pcorr);
+		if (FRAME_FIELD_NAMES[parms->fields[n].field]){  /* read in precomputed curvature file */
 			sprintf(fname, "%s.%s", 
 							mris->hemisphere == RIGHT_HEMISPHERE ? "rh":"lh", 
-							FRAME_FIELD_NAMES[parms->corrfields[n]]) ;
+							FRAME_FIELD_NAMES[parms->fields[n].field]) ;
 			if (MRISreadCurvatureFile(mris, fname) != NO_ERROR){
 				fprintf(stderr, "%s: could not read curvature file '%s'\n","MRISvectorRegister", fname) ;
 				fprintf(stderr,"setting up correlation coefficient to zero\n");
-				parms->l_corrs[n]=parms->l_pcorrs[n]=0.0;
+				parms->fields[n].l_corr=parms->fields[n].l_pcorr=0.0;
 				continue;
 			}
 		}else{                       /* compute curvature of surface */
-			sprintf(fname, "%s", surface_names[parms->corrfields[n]]) ;
-/* 			if(parms->corrfields[n]==0) */
+			sprintf(fname, "%s", surface_names[parms->fields[n].field]) ;
+/* 			if(parms->fields[n].field==0) */
 /* 				sprintf(fname, "inflated") ; */
 /* 			else */
 /* 				sprintf(fname, "smoothwm") ; */
@@ -4609,7 +4610,7 @@ int MRISvectorRegister(MRI_SURFACE *mris, MRI_SP *mrisp_template,
 				ErrorPrintf(ERROR_NOFILE, "%s: could not read surface file %s",
 									"MRISvectorRegister", fname) ;
 				fprintf(stderr,"setting up correlation coefficient to zero\n");
-				parms->l_corrs[n]=parms->l_pcorrs[n]=0.0;
+				parms->fields[n].l_corr=parms->fields[n].l_pcorr=0.0;
 				continue;
 			}
 			MRISsetNeighborhoodSize(mris, -1) ;  /* back to max */
@@ -4619,7 +4620,7 @@ int MRISvectorRegister(MRI_SURFACE *mris, MRI_SP *mrisp_template,
 			MRISresetNeighborhoodSize(mris,1);/*only use nearest neighbor distances*/
 			MRISrestoreVertexPositions(mris, TMP_VERTICES) ;
 		}
-		MRISnormalizeField(mris,parms->types[n]);
+		MRISnormalizeField(mris,parms->fields[n].type);
 		MRISsetCurvaturesToOrigValues(mris,n);
 	}
 
@@ -4637,11 +4638,7 @@ int MRISvectorRegister(MRI_SURFACE *mris, MRI_SP *mrisp_template,
 		first=0;
 #endif
 		
-		//i = NSIGMAS-1;  // XXX XXX DEBUGGIN TIME !
-		first = 0 ;
-
-		//		if (i==0) i=1;;   // XXX 
-		//	first=0;
+		first = 0 ; 
 
 		parms->sigma = sigma = sigmas[i] ;
 		parms->dt = base_dt ;
@@ -4677,9 +4674,9 @@ int MRISvectorRegister(MRI_SURFACE *mris, MRI_SP *mrisp_template,
 		/* normalize mean (only) intensities for target */
 		MRISfromParameterizations(parms->mrisp_template, mris, frames,indices , nframes);
 		for( n = 0 ; n < nframes ; n++){
-			fprintf(stderr,"normalized target field %d (frame = %d - field %d)...\n",n,indices[n],parms->corrfields[indices[n]]);
+			fprintf(stderr,"normalized target field %d (frame = %d - field %d)...\n",n,indices[n],parms->fields[indices[n]].field);
 			MRISsetValuesToCurvatures(mris,indices[n]);
-			MRISnormalizeField(mris,parms->types[indices[n]]) ;
+			MRISnormalizeField(mris,parms->fields[indices[n]].type) ;
 			MRISsetCurvaturesToValues(mris,indices[n]);
 
 #if 0
@@ -4691,10 +4688,8 @@ int MRISvectorRegister(MRI_SURFACE *mris, MRI_SP *mrisp_template,
 		MRIStoParameterizations(mris, parms->mrisp_template, 1, frames,indices,nframes) ;
 
 	
-		for( n = 0 ; n < nframes ; n++){
-			//			fprintf(stderr,"frame %d with indice %d (%d)",frames[n],indices[n],n);
+		for( n = 0 ; n < nframes ; n++)
 			MRISsetOrigValuesToValues(mris,indices[n]);
-		}
 
 		mrisp = MRISPclone(mrisp_template);
 	  MRIStoParameterizations(mris, mrisp  , 1 , frames, indices, nframes);  
@@ -4710,9 +4705,9 @@ int MRISvectorRegister(MRI_SURFACE *mris, MRI_SP *mrisp_template,
 		/* normalize mean intensities for source */
 		MRISfromParameterizations(parms->mrisp, mris, frames,indices,nframes);
 		for( n = 0 ; n < nframes ; n++){
-			fprintf(stderr,"normalized source field %d (frame = %d - field %d)...\n",n,indices[n],parms->corrfields[indices[n]]);
+			fprintf(stderr,"normalized source field %d (frame = %d - field %d)...\n",n,indices[n],parms->fields[indices[n]].field);
 			MRISsetValuesToCurvatures(mris,indices[n]);
-			MRISnormalizeField(mris,parms->types[indices[n]]) ;
+			MRISnormalizeField(mris,parms->fields[indices[n]].type) ;
 			MRISsetCurvaturesToValues(mris,indices[n]);
 #if 0
 			sprintf(fname, "%s.source_%d_%d", mris->hemisphere == RIGHT_HEMISPHERE ? "rh":"lh",n,(int)(2*sigma));
@@ -4735,8 +4730,8 @@ int MRISvectorRegister(MRI_SURFACE *mris, MRI_SP *mrisp_template,
 		    parms->tol *= 2.0f ;
 		    
 		    for( n = 0 ; n < nframes ; n++){
-		      parms->l_corrs[indices[n]] /= 20.0f; /* should be more adaptive */
-		      parms->l_pcorrs[indices[n]] /= 20.0f; /* should be more adaptive */
+		      parms->fields[indices[n]].l_corr /= 20.0f; /* should be more adaptive */
+		      parms->fields[indices[n]].l_pcorr /= 20.0f; /* should be more adaptive */
 		    }
 		  }
 		}
@@ -4755,29 +4750,29 @@ int MRISvectorRegister(MRI_SURFACE *mris, MRI_SP *mrisp_template,
 				n_c=-1;l_c_corr=l_c_pcorr=0.0;
 				if (*IMAGEFseq_pix(mrisp_template->Ip, 0, 0, 2) <= 1.0){ /* first time only */
 					for( n = 0 ; n < nframes ; n++)
-						if(parms->corrfields[indices[n]]==GRAYMID_CORR_FRAME){
+						if(parms->fields[indices[n]].field==GRAYMID_CORR_FRAME){
 							n_mg=indices[n];
-							l_mg_corr=parms->l_corrs[n_mg];
-							l_mg_pcorr=parms->l_pcorrs[n_mg];
-							parms->l_corrs[n_mg]=parms->l_pcorrs[n_mg]=0.0;
+							l_mg_corr=parms->fields[n_mg].l_corr;
+							l_mg_pcorr=parms->fields[n_mg].l_pcorr;
+							parms->fields[n_mg].l_corr=parms->fields[n_mg].l_pcorr=0.0;
 						}
-					if(parms->corrfields[indices[n]]==CURVATURE_CORR_FRAME){
+					if(parms->fields[indices[n]].field==CURVATURE_CORR_FRAME){
 							n_c=indices[n];
-							l_c_corr=parms->l_corrs[n_c];
-							l_c_pcorr=parms->l_pcorrs[n_c];
-							parms->l_corrs[n_c]=parms->l_pcorrs[n_c]=0.0;
+							l_c_corr=parms->fields[n_c].l_corr;
+							l_c_pcorr=parms->fields[n_c].l_pcorr;
+							parms->fields[n_c].l_corr=parms->fields[n_c].l_pcorr=0.0;
 						}
 				}
 				MRISrigidBodyAlignVectorGlobal(mris, parms, min_degrees, max_degrees, nangles) ;
 				if (Gdiag & DIAG_WRITE && parms->write_iterations != 0)
 				  MRISwrite(mris, "rotated") ;
 				if(n_mg>=0){
-					parms->l_corrs[n_mg]=l_mg_corr;
-					parms->l_pcorrs[n_mg]=l_mg_pcorr;
+					parms->fields[n_mg].l_corr=l_mg_corr;
+					parms->fields[n_mg].l_pcorr=l_mg_pcorr;
 				}
 				if(n_c>=0){
-					parms->l_corrs[n_c]=l_c_corr;
-					parms->l_pcorrs[n_c]=l_c_pcorr;
+					parms->fields[n_c].l_corr=l_c_corr;
+					parms->fields[n_c].l_pcorr=l_c_pcorr;
 				}
 			}
 		}
@@ -14986,10 +14981,9 @@ mrisLogStatus(MRI_SURFACE *mris,INTEGRATION_PARMS *parms,FILE *fp, float dt)
 							100.0*mris->neg_area/(mris->neg_area+mris->total_area),
 							100.0*mris->neg_orig_area/(mris->orig_area),
 							parms->n_averages);
-			for ( n = 0 ; n < parms->ncorrs ; n++ ){
-				if(FZERO(parms->l_corrs[n]+parms->l_pcorrs[n])) continue;
-				fprintf(stderr,"  (%d: %2.3f : %2.3f)",n,parms->sses[n],sqrt(parms->sses[n]/nv));
-				//if((n%6)==5) fprintf(stderr,"\n");
+			for ( n = 0 ; n < parms->nfields ; n++ ){
+				if(FZERO(parms->fields[n].l_corr+parms->fields[n].l_pcorr)) continue;
+				fprintf(stderr,"  (%d: %2.3f : %2.3f)",n,parms->fields[n].sse,sqrt(parms->fields[n].sse/nv));
 			}
 			fprintf(stderr,"\n");
 		}else
@@ -16168,8 +16162,8 @@ mrisComputeVectorCorrelationError(MRI_SURFACE *mris, INTEGRATION_PARMS *parms,in
 	double *vals,*corrs,*sses;
 	int nframes,*frames,*ind;
 
-	for ( nframes = n = 0 ; n < parms->ncorrs ; n++ ) {
-		l_corr = parms->l_corrs[n]+parms->l_pcorrs[n] ;
+	for ( nframes = n = 0 ; n < parms->nfields ; n++ ) {
+		l_corr = parms->fields[n].l_corr+parms->fields[n].l_pcorr ;
 		if (FZERO(l_corr)) continue;
 		nframes++;
 	}
@@ -16181,10 +16175,10 @@ mrisComputeVectorCorrelationError(MRI_SURFACE *mris, INTEGRATION_PARMS *parms,in
 
 	vals=(double*)malloc(2*nframes*sizeof(double)); /* include the variances */
   frames=(int*)malloc(2*nframes*sizeof(int));
-	for ( nframes = n = 0 ; n < parms->ncorrs ; n++ ) {
-		l_corr = parms->l_corrs[n]+parms->l_pcorrs[n] ;
+	for ( nframes = n = 0 ; n < parms->nfields ; n++ ) {
+		l_corr = parms->fields[n].l_corr+parms->fields[n].l_pcorr ;
 		if (FZERO(l_corr)) continue;
-		fno = parms->frames[n] * IMAGES_PER_SURFACE;
+		fno = parms->fields[n].frame * IMAGES_PER_SURFACE;
 		frames[2*nframes]= fno;
 		frames[2*nframes+1]= fno+1;
 		ind[nframes]=n;
@@ -16219,7 +16213,7 @@ mrisComputeVectorCorrelationError(MRI_SURFACE *mris, INTEGRATION_PARMS *parms,in
 			if (!use_stds)
 				std = 1.0f ;
 			
-			if(parms->types[ind[n]])
+			if(parms->fields[ind[n]].type)
 				std=MAX(0.01,std);
 
 			delta = (src - target) / std ;
@@ -16233,7 +16227,7 @@ mrisComputeVectorCorrelationError(MRI_SURFACE *mris, INTEGRATION_PARMS *parms,in
 	sse=0.0f;
 	for(n = 0 ; n < nframes ; n++){
 		//fprintf(stderr,"(%d,%f,%f -> %f)\n",n,corrs[n],sses[n],corrs[n]*sses[n]);
-		parms->sses[ind[n]] = sses[n];
+		parms->fields[ind[n]].sse = sses[n];
 		sse += 	corrs[n] * sses[n];
 	}
 
@@ -16243,13 +16237,13 @@ mrisComputeVectorCorrelationError(MRI_SURFACE *mris, INTEGRATION_PARMS *parms,in
 
 #if 0
 	sse=0.0f; /* compiler warnings */
-	for(n=0 ; n < parms->ncorrs ; n++){
+	for(n=0 ; n < parms->nfields ; n++){
 
-		l_corr = parms->l_corrs[n]+parms->l_pcorrs[n] ;
+		l_corr = parms->fields[n].l_corr+parms->fields[n].l_pcorr ;
 
 		if (FZERO(l_corr)) continue;
 		
-		fno = parms->frames[n] * IMAGES_PER_SURFACE;
+		fno = parms->fields[n].frame * IMAGES_PER_SURFACE;
 
 		for (vno = 0 ; vno < mris->nvertices ; vno++)
 		{
@@ -16400,8 +16394,8 @@ static int mrisComputeVectorCorrelationTerm(MRI_SURFACE *mris, INTEGRATION_PARMS
 	double *vals,*upvals,*umvals,*vpvals,*vmvals,*corrs;
 	int nframes,*frames,*wv_frames,*ind;
 
-	for ( nframes = n = 0 ; n < parms->ncorrs ; n++ ) {
-		l_corr = parms->l_corrs[n] ;
+	for ( nframes = n = 0 ; n < parms->nfields ; n++ ) {
+		l_corr = parms->fields[n].l_corr ;
 		if (FZERO(l_corr)) continue;
 		nframes++;
 	}
@@ -16418,10 +16412,10 @@ static int mrisComputeVectorCorrelationTerm(MRI_SURFACE *mris, INTEGRATION_PARMS
 	vmvals=(double*)malloc(nframes*sizeof(double)); 
 	wv_frames=(int*)malloc(nframes*sizeof(int));
     
-	for ( nframes = n = 0 ; n < parms->ncorrs ; n++ ) {
-		l_corr = parms->l_corrs[n] ;
+	for ( nframes = n = 0 ; n < parms->nfields ; n++ ) {
+		l_corr = parms->fields[n].l_corr ;
 		if (FZERO(l_corr)) continue;
-		fno = parms->frames[n] * IMAGES_PER_SURFACE;
+		fno = parms->fields[n].frame * IMAGES_PER_SURFACE;
 		frames[2*nframes]= fno;     /* mean field */
 		frames[2*nframes+1]= fno+1; /* variance field */
 		wv_frames[nframes] = fno;
@@ -16504,13 +16498,13 @@ static int mrisComputeVectorCorrelationTerm(MRI_SURFACE *mris, INTEGRATION_PARMS
 #if 0
 	mrisComputeTangentPlanes(mris) ;
 	max_mag = 0.0f ;
-	for(n=0 ; n < parms->ncorrs ; n++){
+	for(n=0 ; n < parms->nfields ; n++){
 
-		l_corr = parms->l_corrs[n] ;
+		l_corr = parms->fields[n].l_corr ;
 
 		if (FZERO(l_corr)) continue;
 		
-		fno = parms->frames[n] * IMAGES_PER_SURFACE;
+		fno = parms->fields[n].frame * IMAGES_PER_SURFACE;
 
 		max_mag = 0.0f ;
 		
@@ -16713,8 +16707,8 @@ mrisComputePolarVectorCorrelationTerm(MRI_SURFACE *mris, INTEGRATION_PARMS *parm
 	double *vals,*dalpha,*dbeta,*dgamma,*apvals,*amvals,*bpvals,*bmvals,*gpvals,*gmvals,*corrs;
 	int nframes,*frames,*wv_frames,*ind;
 
-	for ( nframes = n = 0 ; n < parms->ncorrs ; n++ ) {
-		l_pcorr = parms->l_pcorrs[n] ;
+	for ( nframes = n = 0 ; n < parms->nfields ; n++ ) {
+		l_pcorr = parms->fields[n].l_pcorr ;
 		if (FZERO(l_pcorr)) continue;
 		nframes++;
 	}
@@ -16736,10 +16730,10 @@ mrisComputePolarVectorCorrelationTerm(MRI_SURFACE *mris, INTEGRATION_PARMS *parm
 	gmvals=(double*)malloc(nframes*sizeof(double)); 
 	wv_frames=(int*)malloc(nframes*sizeof(int));
 
-	for( nframes = n = 0 ; n < parms->ncorrs ; n++ ){
-		l_pcorr = parms->l_pcorrs[n] ;
+	for( nframes = n = 0 ; n < parms->nfields ; n++ ){
+		l_pcorr = parms->fields[n].l_pcorr ;
 		if(FZERO(l_pcorr)) continue;
-		fno = parms->frames[n] * IMAGES_PER_SURFACE;
+		fno = parms->fields[n].frame * IMAGES_PER_SURFACE;
 		frames[2*nframes]= fno;     /* mean field */
 		frames[2*nframes+1]= fno+1; /* variance field */
 		wv_frames[nframes]=fno;
@@ -16843,12 +16837,12 @@ mrisComputePolarVectorCorrelationTerm(MRI_SURFACE *mris, INTEGRATION_PARMS *parm
 
 #if 0
 	
-	for(n=0 ; n < parms->ncorrs ; n++){
+	for(n=0 ; n < parms->nfields ; n++){
 
-		l_pcorr = parms->l_pcorrs[n] ;
+		l_pcorr = parms->fields[n].l_pcorr ;
 		if (FZERO(l_pcorr)) continue;
 		
-		fno = parms->frames[n] * IMAGES_PER_SURFACE ;
+		fno = parms->fields[n].frame * IMAGES_PER_SURFACE ;
 	
 		mris->gamma = mris->beta = mris->alpha = 0 ;
 		for (vno = 0 ; vno < mris->nvertices ; vno++){
@@ -17935,7 +17929,7 @@ MRISrigidBodyAlignLocal(MRI_SURFACE *mris, INTEGRATION_PARMS *old_parms)
 int
 MRISrigidBodyAlignVectorLocal(MRI_SURFACE *mris, INTEGRATION_PARMS *old_parms)
 {
-  int                old_status, steps ;
+  int                n,old_status, steps ;
   INTEGRATION_PARMS  parms ;
 
   /* dx,dy,dz interpreted as rotations in applyGradient when status is rigid */
@@ -17952,13 +17946,11 @@ MRISrigidBodyAlignVectorLocal(MRI_SURFACE *mris, INTEGRATION_PARMS *old_parms)
   parms.mrisp = old_parms->mrisp ;
   parms.tol = old_parms->tol ;
 	
-	parms.ncorrs = old_parms->ncorrs;
+	parms.nfields = old_parms->nfields;
 	parms.flags &= IP_USE_MULTIFRAMES;
-	memcpy(parms.frames,old_parms->frames,MNOFIV*sizeof(int));
-	memcpy(parms.corrfields,old_parms->corrfields,MNOFIV*sizeof(int));
-	memcpy(parms.l_corrs,old_parms->l_corrs,MNOFIV*sizeof(float));
-	memcpy(parms.l_pcorrs,old_parms->l_pcorrs,MNOFIV*sizeof(float));
-  
+	for(n=0;n < MNOFIV ;n++)
+		memcpy(&parms.fields[n],&old_parms->fields[n],sizeof(FIELD_LABEL));
+																	
 	parms.l_pcorr = parms.l_corr = 0.0f ;
   parms.dt = old_parms->dt ;
   /*  parms.integration_type = old_parms->integration_type ;*/

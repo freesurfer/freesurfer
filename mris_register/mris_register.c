@@ -10,11 +10,11 @@
 #include "proto.h"
 #include "mrisurf.h"
 #include "mri.h"
-#include "macros.h"
+#include "macros.h" 
 #include "version.h"
 #include "gcsa.h"
 
-static char vcid[] = "$Id: mris_register.c,v 1.26 2005/02/11 19:54:29 segonne Exp $";
+static char vcid[] = "$Id: mris_register.c,v 1.27 2005/02/11 23:56:15 segonne Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -53,12 +53,9 @@ static int   label_indices[MAX_LABELS] ;
 
 /* multiframe registration */
 static int multiframes = 0;
-#define NUMBER_OF_FIELDS_IN_VECTORIAL_REGISTRATION 11
-#define NUMBER_OF_FRAMES NUMBER_OF_FIELDS_IN_VECTORIAL_REGISTRATION
-#define PARAM_FRAMES  (IMAGES_PER_SURFACE*NUMBER_OF_FRAMES)
+static int use_initial_registration = 0;
 
 static void initParms(void);
-static void setParms(void);
 
 static int use_defaults = 1 ;
 
@@ -73,7 +70,7 @@ main(int argc, char *argv[])
   MRI_SP       *mrisp_template ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_register.c,v 1.26 2005/02/11 19:54:29 segonne Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_register.c,v 1.27 2005/02/11 23:56:15 segonne Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -170,17 +167,6 @@ main(int argc, char *argv[])
     {
       parms.l_dist = 0.1 ; parms.l_corr = 1.0 ; parms.l_parea = 0.2 ;
     }
-		if(multiframes) parms.l_corr=0.0f;
-#if 0
-		// test XXXX
-		parms.l_dist = 0.0 ; parms.l_corr = 0.0 ; parms.l_parea = 0.0 ;
-		parms.l_area = 0.0 ;
-		parms.l_parea = 0.0f ;
-		parms.l_dist = 0.0 ;
-		parms.l_corr = 0.0f ;
-		parms.l_nlarea = 0.0f ;
-		parms.l_pcorr = 0.0f ;
-#endif
   }
 
   if (nbrs > 1)
@@ -200,9 +186,17 @@ main(int argc, char *argv[])
   /*  MRISsetOriginalFileName(mris, orig_name) ;*/
   MRISreadOriginalProperties(mris, orig_name) ;
 
-	if(multiframes)
+	if(multiframes){
+		if(use_initial_registration)
+			MRISvectorRegister(mris, mrisp_template, &parms, max_passes, min_degrees, max_degrees, nangles) ;
+	  parms.l_corr=parms.l_pcorr=0.0f;
+#if 0
+		parms.l_dist = 0.0 ; parms.l_corr = 0.0 ; parms.l_parea = 0.0 ;
+		parms.l_area = 0.0 ; parms.l_parea = 0.0f ; parms.l_dist = 0.0 ;
+		parms.l_corr = 0.0f ; parms.l_nlarea = 0.0f ; parms.l_pcorr = 0.0f ;
+#endif
 		MRISvectorRegister(mris, mrisp_template, &parms, max_passes, min_degrees, max_degrees, nangles) ;
-	else
+	}else
 		MRISregister(mris, mrisp_template, &parms, max_passes, min_degrees, max_degrees, nangles) ;
 
   fprintf(stderr, "writing registered surface to %s...\n", out_fname) ;
@@ -232,7 +226,7 @@ main(int argc, char *argv[])
 static int
 get_option(int argc, char *argv[])
 {
-  int    nargs = 0 ;
+  int    n,nargs = 0 ;
   char   *option ;
   float  f ;
   
@@ -243,50 +237,60 @@ get_option(int argc, char *argv[])
     print_version() ;
 	else if (!stricmp(option, "vector"))
   {
-    multiframes = 1 ;
-		setParms();
-    fprintf(stderr, "using vectorial registration \n") ;
-  }
-	else if (!stricmp(option, "hippocampus"))
+    fprintf(stderr,"\nMultiframe Mode:\n");
+		fprintf(stderr,"Use -addframe option to add extra-fields into average atlas\n");
+		fprintf(stderr,"field code:\n");
+	 	for(n=0 ; n < NUMBER_OF_VECTORIAL_FIELDS ; n++)
+		 	fprintf(stderr,"     field %d is '%s' (type = %d)\n",n,ReturnFieldName(n),IsDistanceField(n));
+		exit(1);
+	}
+	else if (!stricmp(option, "init"))
   {
-		if(multiframes==0){
-			multiframes = 1 ;
-			initParms();
-		}
-		parms.l_corrs[5]=atof(argv[2]);
-    fprintf(stderr, "using hippocampus distance map\n") ;
-		nargs=1;
+		use_initial_registration=1;
+    fprintf(stderr,"use initial registration\n");
   }
-	else if (!stricmp(option, "curvature"))
+	else if (!stricmp(option, "addframe"))
   {
-		if(multiframes==0){
-			multiframes = 1 ;
+ 		int which_field,where_in_atlas;
+		float l_corr,l_pcorr;
+
+		if(multiframes==0){ /* activate multiframes mode */
 			initParms();
+			multiframes = 1;
 		}
-		parms.l_corrs[2]=atof(argv[2]);
-    fprintf(stderr, "using curvature map \n") ;
-		nargs=1;
-  }
-	else if (!stricmp(option, "sulcus"))
-  {
-		if(multiframes==0){
-			multiframes = 1 ;
-			initParms();
+
+		which_field=atoi(argv[2]);
+		where_in_atlas=atoi(argv[3]);
+		l_corr=atof(argv[4]);
+		l_pcorr=atof(argv[5]);
+
+		fprintf(stderr, "adding field %d with location %d in the atlas\n",which_field,where_in_atlas) ;
+		/* check if this field exist or not */
+		for(n = 0 ; n < parms.nfields ; n++){
+			if(parms.fields[n].field==which_field){
+				fprintf(stderr,"ERROR: field already exists\n");
+				exit(1);
+			}
 		}
-		parms.l_corrs[1]=atof(argv[2]);
-    fprintf(stderr, "using sulcal depth map \n") ;
-		nargs=1;
-  }
-	else if (!stricmp(option, "amygdala"))
-  {
-		if(multiframes==0){
-			multiframes = 1 ;
-			initParms();
-		}
-		parms.l_corrs[4]=atof(argv[2]);
-    fprintf(stderr, "using amygdala distance map \n") ;
-		nargs=1;
-  }
+		/* adding field into parms */
+		n=parms.nfields++;
+		SetFieldLabel(&parms.fields[n],which_field,where_in_atlas,l_corr,l_pcorr);
+		nargs = 4 ;
+	}
+	/* else if (!stricmp(option, "hippocampus")) */
+/*   { */
+/* 		if(multiframes==0){ */
+/* 			multiframes = 1 ; */
+/* 			initParms(); */
+/* 		} */
+/* 		where=atoi(argv[2]); */
+/* 		parms.l_corrs[]=atof(argv[3]); */
+/* 		parms.l_pcorrs[]=atof(argv[4]); */
+/* 		parms.frames[]=; */
+/* 		parms. */
+/*     fprintf(stderr, "using hippocampus distance map\n") ; */
+/* 		nargs=3; */
+/*   } */
 	else if (!stricmp(option, "topology"))
   {
 		parms.flags |= IPFLAG_PRESERVE_SPHERICAL_POSITIVE_AREA;
@@ -572,6 +576,7 @@ print_help(void)
   fprintf(stderr, "\nvalid options are:\n\n") ;
 	fprintf(stderr, "\n\t-l <label file> <atlas (*.gcs)> <label name>\n"
 					"\tthis option will specify a manual label to align with atlas label <label name>\n");
+	fprintf(stderr,"\t-addframe which_field where_in_atlas l_corr l_pcorr\n");
   exit(1) ;
 }
 
@@ -646,43 +651,11 @@ gcsaSSE(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
 
 void initParms(void){
 	int n;
-	parms.l_corr=parms.l_pcorr=0.0f; 
 	parms.flags |= IP_USE_MULTIFRAMES; 
-	parms.ncorrs=NUMBER_OF_FRAMES;
-	parms.corrfields[0]=INFLATED_CURV_CORR_FRAME ; parms.frames[0]=0;
-	parms.corrfields[1]=SULC_CORR_FRAME;parms.frames[1]=1;
-	parms.corrfields[2]=CURVATURE_CORR_FRAME;parms.frames[2]=2;
-	parms.corrfields[3]=GRAYMID_CORR_FRAME;parms.frames[3]=3;
-	parms.corrfields[4]=AMYGDALA_CORR_FRAME;parms.frames[4]=4;
-	parms.corrfields[5]=HIPPOCAMPUS_CORR_FRAME;parms.frames[5]=5;
-	parms.corrfields[6]=PALLIDUM_CORR_FRAME;parms.frames[6]=6;
-	parms.corrfields[7]=PUTAMEN_CORR_FRAME;parms.frames[7]=7;
-	parms.corrfields[8]=CAUDATE_CORR_FRAME;parms.frames[8]=8;
-	parms.corrfields[9]=LAT_VENTRICLE_CORR_FRAME;parms.frames[9]=9;
-	parms.corrfields[10]=INF_LAT_VENTRICLE_CORR_FRAME;parms.frames[10]=10;
-	for(n = 0 ; n < NUMBER_OF_FRAMES;n++){
-		parms.frames[n]=n;
-		parms.l_corrs[n]=parms.l_pcorrs[n]=0.0f;
-		parms.types[n]=IsDistanceField(parms.corrfields[n]);
+	parms.nfields=0;	
+	for(n = 0 ; n < MNOFIV ; n++){
+		InitFieldLabel(&parms.fields[n]);
 	}
 } 
 
-void setParms(void){
-  int n;
-	parms.l_corr=parms.l_pcorr=0.0f; 
-	parms.flags |= IP_USE_MULTIFRAMES; 
-	parms.ncorrs=NUMBER_OF_FRAMES;
-	parms.corrfields[0]=INFLATED_CURV_CORR_FRAME ; parms.frames[0]=0;parms.l_corrs[0]=0.0f;parms.l_pcorrs[0]=0.0f;
-		parms.corrfields[1]=SULC_CORR_FRAME;parms.frames[1]=1;parms.l_corrs[1]=1.0f;parms.l_pcorrs[1]=0.0f;
-		parms.corrfields[2]=CURVATURE_CORR_FRAME;parms.frames[2]=2;parms.l_corrs[2]=1.0f;parms.l_pcorrs[2]=0.0f;
-		parms.corrfields[3]=GRAYMID_CORR_FRAME;parms.frames[3]=3;parms.l_corrs[3]=1.0f;parms.l_pcorrs[3]=0.0f;
-		parms.corrfields[4]=AMYGDALA_CORR_FRAME;parms.frames[4]=4;parms.l_corrs[4]=10.0f;parms.l_pcorrs[4]=0.0f;    /* amygdala */
-		parms.corrfields[5]=HIPPOCAMPUS_CORR_FRAME;parms.frames[5]=5;parms.l_corrs[5]=10.0f;parms.l_pcorrs[5]=0.0f; /* hippocampus */
-		parms.corrfields[6]=PALLIDUM_CORR_FRAME;parms.frames[6]=6;parms.l_corrs[6]=1.0f;parms.l_pcorrs[6]=0.0f;
-		parms.corrfields[7]=PUTAMEN_CORR_FRAME;parms.frames[7]=7;parms.l_corrs[7]=10.0f;parms.l_pcorrs[7]=0.0f;    /* putamen */
-		parms.corrfields[8]=CAUDATE_CORR_FRAME;parms.frames[8]=8;parms.l_corrs[8]=10.0f;parms.l_pcorrs[8]=0.0f;    /* caudate */
-		parms.corrfields[9]=LAT_VENTRICLE_CORR_FRAME;parms.frames[9]=9;parms.l_corrs[9]=1.0f;parms.l_pcorrs[9]=0.0f;
-		parms.corrfields[10]=INF_LAT_VENTRICLE_CORR_FRAME;parms.frames[10]=10;parms.l_corrs[10]=1.0f;parms.l_pcorrs[10]=0.0f;
-		for(n = 0 ; n < NUMBER_OF_FRAMES;n++)
-			parms.types[n]=IsDistanceField(parms.corrfields[n]);
-}
+
