@@ -14,6 +14,9 @@ SurfaceCollection::SurfaceCollection () :
   commandMgr.AddCommand( *this, "SetSurfaceCollectionFileName", 2, 
 			 "collectionID fileName", 
 			 "Sets the file name for a given surface collection.");
+  commandMgr.AddCommand( *this, "GetSurfaceCollectionFileName", 1, 
+			 "collectionID", 
+			 "Gets the file name for a given surface collection.");
 }
 
 SurfaceCollection::~SurfaceCollection() {
@@ -78,6 +81,26 @@ SurfaceCollection::DoListenToTclCommand ( char* isCommand,
     }
   }
   
+  // GetSurfaceCollectionFileName <collectionID>
+  if( 0 == strcmp( isCommand, "GetSurfaceCollectionFileName" ) ) {
+    int collectionID = strtol(iasArgv[1], (char**)NULL, 10);
+    if( ERANGE == errno ) {
+      sResult = "bad collection ID";
+      return error;
+    }
+    
+    if( mID == collectionID ) {
+      
+      sReturnFormat = "s";
+      sReturnValues = mfnMRIS;
+    }
+  }
+  
   return DataCollection::DoListenToTclCommand( isCommand, iArgc, iasArgv );
 }
 
+ScubaROI*
+SurfaceCollection::DoNewROI () {
+
+  return NULL;
+}

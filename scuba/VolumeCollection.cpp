@@ -16,6 +16,9 @@ VolumeCollection::VolumeCollection () :
   commandMgr.AddCommand( *this, "SetVolumeCollectionFileName", 2, 
 			 "collectionID fileName", 
 			 "Sets the file name for a given volume collection.");
+  commandMgr.AddCommand( *this, "GetVolumeCollectionFileName", 1, 
+			 "collectionID", 
+			 "Gets the file name for a given volume collection.");
 }
 
 VolumeCollection::~VolumeCollection() {
@@ -67,6 +70,18 @@ VolumeCollection::GetMRI() {
 
     mWorldToIndexMatrix = extract_r_to_i( mMRI );
     UpdateMRIValueRange();
+
+    // Size all the rois we may have.
+    int bounds[3];
+    bounds[0] = mMRI->width;
+    bounds[1] = mMRI->height;
+    bounds[2] = mMRI->depth;
+    map<int,ScubaROI*>::iterator tIDROI;
+    for( tIDROI = mROIMap.begin();
+	 tIDROI != mROIMap.end(); ++tIDROI ) {
+	ScubaROIVolume* roi = (ScubaROIVolume*)(*tIDROI).second;
+	roi->SetROIBounds( bounds );
+    }
   }
 
   return mMRI; 
@@ -205,6 +220,75 @@ VolumeCollection::DoListenToTclCommand ( char* isCommand, int iArgc, char** iasA
     }
   }
   
+  // GetVolumeCollectionFileName <collectionID>
+  if( 0 == strcmp( isCommand, "GetVolumeCollectionFileName" ) ) {
+    int collectionID = strtol(iasArgv[1], (char**)NULL, 10);
+    if( ERANGE == errno ) {
+      sResult = "bad collection ID";
+      return error;
+    }
+    
+    if( mID == collectionID ) {
+      
+      sReturnFormat = "s";
+      sReturnValues = mfnMRI;
+    }
+  }
+  
   return DataCollection::DoListenToTclCommand( isCommand, iArgc, iasArgv );
+}
+
+ScubaROI*
+VolumeCollection::DoNewROI () {
+
+  ScubaROIVolume* roi = new ScubaROIVolume();
+
+  if( NULL != mMRI ) {
+    int bounds[3];
+    bounds[0] = mMRI->width;
+    bounds[1] = mMRI->height;
+    bounds[2] = mMRI->depth;
+    roi->SetROIBounds( bounds );
+  }
+  
+  return roi;
+}
+
+void 
+VolumeCollection::SelectRAS ( float iRAS[3] ) {
+
+  if( mSelectedROIID >= 0 ) {
+    int index[3];
+    RASToMRIIndex( iRAS, index );
+    ScubaROIVolume* roi = 
+      dynamic_cast<ScubaROIVolume*>(&ScubaROI::FindByID( mSelectedROIID ));
+    roi->SelectVoxel( index );
+  }
+}
+
+void 
+VolumeCollection::UnselectRAS ( float iRAS[3] ) {
+  
+  if( mSelectedROIID >= 0 ) {
+    int index[3];
+    RASToMRIIndex( iRAS, index );
+    ScubaROIVolume* roi = 
+      dynamic_cast<ScubaROIVolume*>(&ScubaROI::FindByID( mSelectedROIID ));
+    roi->UnselectVoxel( index );
+  }
+}
+
+bool 
+VolumeCollection::IsRASSelected ( float iRAS[3] ) {
+
+  if( mSelectedROIID >= 0 ) {
+    int index[3];
+    RASToMRIIndex( iRAS, index );
+    ScubaROIVolume* roi = 
+      dynamic_cast<ScubaROIVolume*>(&ScubaROI::FindByID( mSelectedROIID ));
+    return roi->IsVoxelSelected( index );
+  } else {
+    return false;
+  }
 }
 

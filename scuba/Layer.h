@@ -14,6 +14,7 @@
 
 class LayerStaticTclListener : public DebugReporter, public TclCommandListener {
   public :
+    LayerStaticTclListener ();
     ~LayerStaticTclListener ();
 
     virtual TclCommandResult
@@ -86,7 +87,6 @@ class Layer : public DebugReporter, public IDTracker<Layer>, public TclCommandLi
   
   float mOpacity;
 
-  static bool mbRegisteredStaticListener;
   static LayerStaticTclListener mStaticListener;
 
   // Redisplay requested flag.

@@ -376,7 +376,7 @@ proc MakeMenuBar { ifwTop } {
     tkuMakeMenu -menu $gaMenu(file) -label "File" -items {
 	{command "Load Volume..." { DoLoadVolumeDlog } }
 	{separator}
-	{command "Quit" { Quit } }
+	{command "Quit:Alt Q" { Quit } }
     }
 
     pack $gaMenu(file) -side left
@@ -672,11 +672,15 @@ proc MakePropertiesPanel { ifwTop } {
     
     tixNoteBook $fwTop
     
+    $fwTop add collectionPanel -label "Data Collections"
     $fwTop add layerPanel -label Layers
     $fwTop add viewPanel -label Views
     $fwTop add subjectsLoader -label Subjects
     $fwTop add transformPanel -label Transforms
+    $fwTop add lutPanel -label "Color LUTs"
 
+    set gaWidget(collectionProperties) \
+	[MakeDataCollectionsPropertiesPanel [$fwTop subwidget collectionPanel]]
     set gaWidget(layerProperties) \
 	[MakeLayerPropertiesPanel [$fwTop subwidget layerPanel]]
     set gaWidget(viewProperties) \
@@ -685,14 +689,89 @@ proc MakePropertiesPanel { ifwTop } {
 	[MakeSubjectsLoaderPanel [$fwTop subwidget subjectsLoader]]
     set gaWidget(transformProperties) \
 	[MakeTransformsPanel [$fwTop subwidget transformPanel]]
+    set gaWidget(lutProperties) \
+	[MakeLUTsPanel [$fwTop subwidget lutPanel]]
 
+    pack $gaWidget(collectionProperties)
     pack $gaWidget(layerProperties)
     pack $gaWidget(viewProperties)
     pack $gaWidget(subjectsLoader)
     pack $gaWidget(transformProperties)
+    pack $gaWidget(lutProperties)
 
     return $fwTop
 }
+
+proc MakeDataCollectionsPropertiesPanel { ifwTop } {
+    global gaWidget
+    global gaCollection
+    global glShortcutDirs
+
+    set fwTop        $ifwTop.fwLayerProps
+    set fwMenu       $fwTop.fwMenu
+    set fwProps      $fwTop.fwProps
+
+    frame $fwTop
+
+    frame $fwMenu
+    tixOptionMenu $fwMenu.menu \
+	-label "Data Collection:" \
+	-variable gaCollection(current,menuIndex) \
+	-command { CollectionPropertiesMenuCallback }
+    set gaWidget(collectionProperties,menu) $fwMenu.menu
+    pack $fwMenu.menu
+
+    frame $fwProps
+    set fwPropsCommon  $fwProps.fwPropsCommon
+    set fwPropsVolume  $fwProps.fwPropsVolume
+    set fwPropsSurface $fwProps.fwPropsSurface
+
+    frame $fwPropsCommon
+    tkuMakeActiveLabel $fwPropsCommon.ewID \
+	-variable gaCollection(current,id) -width 2
+    tkuMakeActiveLabel $fwPropsCommon.ewType \
+	-variable gaCollection(current,type) -width 5
+    tkuMakeEntry $fwPropsCommon.ewLabel \
+	-variable gaCollection(current,label) \
+	-command {SetCollectionLabel $gaCollection(current,id) $gaCollection(current,label); UpdateCollectionList} \
+	-notify 1
+    set gaWidget(collectionProperties,labelEntry) $fwPropsCommon.ewLabel
+
+    grid $fwPropsCommon.ewID      -column 0 -row 0               -sticky nw
+    grid $fwPropsCommon.ewType    -column 1 -row 0               -sticky new
+    grid $fwPropsCommon.ewLabel   -column 0 -row 1 -columnspan 2 -sticky we
+
+
+    frame $fwPropsVolume
+    tkuMakeFileSelector $fwPropsVolume.fwVolume \
+	-variable gaCollection(current,fileName) \
+	-text "Volume file name:" \
+	-shortcutdirs [list $glShortcutDirs] \
+	-command {SetVolumeCollectionFileName $gaCollection(current,id) $gaCollection(current,fileName); RedrawFrame [GetMainFrameID]}
+    
+    grid $fwPropsVolume.fwVolume -column 0 -row 0 -sticky ew
+    set gaWidget(collectionProperties,volume) $fwPropsVolume
+
+
+    frame $fwPropsSurface
+    tkuMakeFileSelector $fwPropsSurface.fwSurface \
+	-variable gaCollection(current,fileName) \
+	-text "Surface file name:" \
+	-shortcutdirs [list $glShortcutDirs] \
+	-command {SetSurfaceCollectionFileName $gaCollection(current,id) $gaCollection(current,fileName); RedrawFrame [GetMainFrameID]}
+    
+    grid $fwPropsSurface.fwSurface -column 0 -row 0 -sticky ew
+    set gaWidget(collectionProperties,surface) $fwPropsSurface
+
+
+    grid $fwPropsCommon -column 0 -row 0 -sticky news
+
+    grid $fwMenu -column 0 -row 0 -sticky new
+    grid $fwProps -column 0 -row 1 -sticky news
+
+    return $fwTop
+}
+
 
 proc MakeLayerPropertiesPanel { ifwTop } {
     global gaWidget
@@ -750,12 +829,13 @@ proc MakeLayerPropertiesPanel { ifwTop } {
 	    {-type text -name heatScale -label "Heat scale"}
 	    {-type text -name lut -label "LUT"}
 	}
-    tkuMakeFileSelector $fwProps2DMRI.fwLUT \
-	-text "LUT" \
-	-variable gaLayer(current,fileName) \
-	-shortcutdirs [list $glShortcutDirs] \
-	-defaultdir [GetDefaultFileLocation LUT] \
-	-command {Set2DMRILayerFileLUTFileName $gaLayer(current,id) $gaLayer(current,fileName); RedrawFrame [GetMainFrameID]}
+
+    tixOptionMenu $fwProps2DMRI.mwLUT \
+	-label "LUT:" \
+	-command "LayerPropertiesLUTMenuCallback"
+    set gaWidget(layerProperties,lutMenu) \
+	$fwProps2DMRI.mwLUT
+
     tkuMakeToolbar $fwProps2DMRI.tbwSampleMethod \
 	-allowzero 0 -radio 1 \
 	-variable gaLayer(current,sampleMethod) \
@@ -791,7 +871,7 @@ proc MakeLayerPropertiesPanel { ifwTop } {
     set gaWidget(layerProperties,minMaxSliders) $fwProps2DMRI.swMinMax
 
     grid $fwProps2DMRI.tbwColorMapMethod -column 0 -row 0 -sticky ew
-    grid $fwProps2DMRI.fwLUT             -column 0 -row 1 -sticky ew
+    grid $fwProps2DMRI.mwLUT             -column 0 -row 1 -sticky ew
     grid $fwProps2DMRI.cbwClearZero      -column 0 -row 2 -sticky ew
     grid $fwProps2DMRI.tbwSampleMethod   -column 0 -row 3 -sticky ew
     grid $fwProps2DMRI.swBC              -column 0 -row 4 -sticky ew
@@ -958,11 +1038,136 @@ proc MakeTransformsPanel { ifwTop } {
     return $fwTop
 }
 
+proc MakeLUTsPanel { ifwTop } {
+    global gaWidget
+    global gaLUT
+    global glShortcutDirs
+
+    set fwTop      $ifwTop.fwSubjects
+    set fwMenu     $fwTop.fwMenu
+    set fwProps    $fwTop.fwProps
+    set fwCommands $fwTop.fwCommands
+ 
+    frame $fwTop
+
+    frame $fwMenu
+    tixOptionMenu $fwMenu.menu \
+	-label "LUT:" \
+	-variable gaLUT(current,menuIndex) \
+	-command { LUTPropertiesMenuCallback }
+    set gaWidget(lutProperties,menu) $fwMenu.menu
+    pack $fwMenu.menu
+
+    frame $fwProps
+    tkuMakeEntry $fwProps.ewLabel \
+	-variable gaLUT(current,label) \
+	-notify 1 \
+	-command {SetColorLUTLabel $gaLUT(current,id) $gaLUT(current,label); UpdateLUTList} 
+    set gaWidget(lutProperties,labelEntry) $fwProps.ewLabel
+
+    tkuMakeFileSelector $fwProps.fwLUT \
+	-variable gaLUT(current,fileName) \
+	-text "File name:" \
+	-shortcutdirs [list $glShortcutDirs] \
+	-command {SetColorLUTFileName $gaLUT(current,id) $gaLUT(current,fileName); UpdateLUTList; RedrawFrame [GetMainFrameID]}
+    
+    grid $fwProps.ewLabel -column 0 -row 0 -sticky ew
+    grid $fwProps.fwLUT   -column 0 -row 1 -sticky ew
+
+    frame $fwCommands
+    button $fwCommands.bwMakeLUT -text "Make New LUT" \
+	-command { set lutID [MakeNewColorLUT]; SetColorLUTLabel $lutID "New LUT"; UpdateLUTList; SelectLUTInLUTProperties $lutID }
+
+    pack $fwCommands.bwMakeLUT -expand yes -fill x
+
+    pack $fwMenu $fwProps $fwCommands -side top -expand yes -fill x
+
+    return $fwTop
+}
+
+
+# DATA COLLECTION PROPERTIES FUNCTIONS =====================================
+
+proc CollectionPropertiesMenuCallback { iColID } {
+    SelectCollectionInCollectionProperties $iColID
+}
+
+proc SelectCollectionInCollectionProperties { iColID } {
+    global gaWidget
+    global gaCollection
+
+    # Unpack the type-specific panels.
+    grid forget $gaWidget(collectionProperties,volume)
+    grid forget $gaWidget(collectionProperties,surface)
+
+    # Get the general collection properties from the collection and
+    # load them into the 'current' slots.
+    set gaCollection(current,id) $iColID
+    set gaCollection(current,type) [GetCollectionType $iColID]
+    set gaCollection(current,label) [GetCollectionLabel $iColID]
+    tkuRefreshEntryNotify $gaWidget(collectionProperties,labelEntry)
+
+    # Make sure that this is the item selected in the menu. Disale the
+    # callback and set the value of the menu to collection ID. Then
+    # reenable the callback.
+    $gaWidget(collectionProperties,menu) config -disablecallback 1
+    $gaWidget(collectionProperties,menu) config -value $iColID
+    $gaWidget(collectionProperties,menu) config -disablecallback 0
+    
+    # Do the type specific stuff.
+    switch $gaCollection(current,type) {
+	Volume { 
+	    # Pack the type panel.
+	    grid $gaWidget(collectionProperties,volume) \
+		-column 0 -row 1 -sticky news
+
+	    # Get the type specific properties.
+	    set gaCollection(current,fileName) \
+		[GetVolumeCollectionFileName $iColID]
+	}
+	Surface {
+	    # Pack the type panel.
+	    grid $gaWidget(collectionProperties,surface) \
+		-column 0 -row 1 -sticky news
+
+	    # Get the type specific properties.
+	    set gaCollection(current,fileName)\
+		[GetSurfaceCollectionFileName $iColID]
+	}
+    }
+}
+
+# This builds the data collection ID list and populates the menu that
+# selects the current collection in the collection props panel.  It
+# should be called whenever a collection is created or deleted.
+proc UpdateCollectionList {} {
+    global gaWidget
+    global gaCollection
+
+    # Get the layer ID list and build the menu.
+    set gaCollection(idList) [GetDataCollectionIDList]
+    FillMenuFromList $gaWidget(collectionProperties,menu) \
+	$gaCollection(idList) "GetCollectionLabel %s" {} false
+
+    # Reselect the current collection.
+    if { [info exists gaCollection(current,id)] && 
+	 $gaCollection(current,id) >= 0 } {
+	SelectCollectionInCollectionProperties $gaCollection(current,id)
+    }
+}
 
 # LAYER PROPERTIES FUNCTIONS ===========================================
 
 proc LayerPropertiesMenuCallback { iLayerID } {
     SelectLayerInLayerProperties $iLayerID
+}
+
+proc LayerPropertiesLUTMenuCallback { iLUTID } {
+    global gaLayer
+    
+    # Set the LUT in this layer and redraw.
+    Set2DMRILayerColorLUT $gaLayer(current,id) $iLUTID
+    RedrawFrame [GetMainFrameID]
 }
 
 proc SelectLayerInLayerProperties { iLayerID } {
@@ -982,8 +1187,8 @@ proc SelectLayerInLayerProperties { iLayerID } {
     tkuRefreshEntryNotify $gaWidget(layerProperties,labelEntry)
 
     # Make sure that this is the item selected in the menu. Disale the
-    # callback and set the value of the menu to the index of this
-    # layer ID in the layer ID list. Then reenable the callback.
+    # callback and set the value of the menu to the layer ID. Then
+    # reenable the callback.
     $gaWidget(layerProperties,menu) config -disablecallback 1
     $gaWidget(layerProperties,menu) config -value $iLayerID
     $gaWidget(layerProperties,menu) config -disablecallback 0
@@ -1009,12 +1214,17 @@ proc SelectLayerInLayerProperties { iLayerID } {
 		[Get2DMRILayerSampleMethod $iLayerID]
 	    set gaLayer(current,brightness) [Get2DMRILayerBrightness $iLayerID]
 	    set gaLayer(current,contrast) [Get2DMRILayerContrast $iLayerID]
-	    set gaLayer(current,fileName) \
-		[Get2DMRILayerFileLUTFileName $iLayerID]
+	    set gaLayer(current,lutID) [Get2DMRILayerColorLUT $iLayerID]
 	    set gaLayer(current,minVisibleValue) \
 		[Get2DMRILayerMinVisibleValue $iLayerID]
 	    set gaLayer(current,maxVisibleValue) \
 		[Get2DMRILayerMaxVisibleValue $iLayerID]
+
+	    # Set the LUT menu.
+	    $gaWidget(layerProperties,lutMenu) config -disablecallback 1
+	    $gaWidget(layerProperties,lutMenu) config \
+		-value $gaLayer(current,lutID)
+	    $gaWidget(layerProperties,lutMenu) config -disablecallback 0    
 	}
 	2DMRIS {
 	    # Pack the type panel.
@@ -1048,27 +1258,10 @@ proc UpdateLayerList {} {
     # to populate all the level-layer menus in the view props
     # panel. First do the layer props.
 
-    # Get the layer ID list.
-    set err [catch { set gaLayer(idList) [GetLayerIDList] } sResult]
-    if { $err } { 
-	set gaLayer(idList) {} 
-    }
-
-    # Disable the menu callback.
-    $gaWidget(layerProperties,menu) config -disablecallback 1
-
-    # Get all the entries, delete them, then add commands for all the
-    # IDs in the layer ID list.
-    set lEntries [$gaWidget(layerProperties,menu) entries]
-    foreach entry $lEntries { 
-	$gaWidget(layerProperties,menu) delete $entry
-    }
-    foreach id $gaLayer(idList) {
-	$gaWidget(layerProperties,menu) add command $id \
-	    -label "$id: [GetLayerLabel $id]"
-    }
-    # Renable the menu.
-    $gaWidget(layerProperties,menu) config -disablecallback 0
+    # Get the layer ID list and build the menu.
+    set gaLayer(idList) [GetLayerIDList]
+    FillMenuFromList $gaWidget(layerProperties,menu) $gaLayer(idList) \
+	"GetLayerLabel %s" {} false
 
     # Reselect the current layer.
     if { [info exists gaLayer(current,id)] && 
@@ -1080,26 +1273,8 @@ proc UpdateLayerList {} {
     # Populate the menus in the view props draw level menus.
     for { set nLevel 0 } { $nLevel < 10 } { incr nLevel } {
 
-	# Disable callback.
-	$gaWidget(viewProperties,drawLevelMenu$nLevel) \
-	    config -disablecallback 1
-
-	# Delete all the entries and add ones for all the IDs in the
-	# ID list. Also add a command for 'none' with index of -1.
-	set lEntries [$gaWidget(viewProperties,drawLevelMenu$nLevel) entries]
-	foreach entry $lEntries { 
-	    $gaWidget(viewProperties,drawLevelMenu$nLevel) delete $entry
-	}
-	$gaWidget(viewProperties,drawLevelMenu$nLevel) \
-	    add command -1 -label "None"
-	foreach id $gaLayer(idList) {
-	    $gaWidget(viewProperties,drawLevelMenu$nLevel) add command $id \
-		-label "$id: [GetLayerLabel $id]"
-	}
-
-	# Renable the callback.
-	$gaWidget(viewProperties,drawLevelMenu$nLevel) \
-	    config -disablecallback 0
+	FillMenuFromList $gaWidget(viewProperties,drawLevelMenu$nLevel) \
+	    $gaLayer(idList) "GetLayerLabel %s" {} true
     }
 
     # Make sure the right layers are selected in the view draw level
@@ -1113,19 +1288,12 @@ proc ViewPropertiesMenuCallback { iViewID } {
     SelectViewInViewProperties $iViewID
 }
 
-proc ViewPropertiesDrawLevelMenuCallback { iLevel inLayer } {
+proc ViewPropertiesDrawLevelMenuCallback { iLevel iLayerID } {
     global gaView
     global gaLayer
     
-    # If we didn't get -1, find the layer ID from the list of
-    # indices. Otherwise we'll set it to ID -1.
-    set layerID -1
-    if { $inLayer > -1 } {
-	set layerID [lindex $gaLayer(idList) [expr $inLayer]]
-    }
-
     # Set the layer in this view and redraw.
-    SetLayerInViewAtLevel $gaView(current,id) $layerID $iLevel
+    SetLayerInViewAtLevel $gaView(current,id) $iLayerID $iLevel
     RedrawFrame [GetMainFrameID]
 }
 
@@ -1159,8 +1327,8 @@ proc SelectViewInViewProperties { iViewID } {
     }
     
     # Make sure that this is the item selected in the menu. Disale the
-    # callback and set the value of the menu to the index of this
-    # view ID in the view ID list. Then reenable the callback.
+    # callback and set the value of the menu to the view ID. Then
+    # reenable the callback.
     $gaWidget(viewProperties,menu) config -disablecallback 1
     $gaWidget(viewProperties,menu) config -value $iViewID
     $gaWidget(viewProperties,menu) config -disablecallback 0
@@ -1211,10 +1379,8 @@ proc UpdateViewList {} {
     global gaWidget
 
     set gaView(idList) {}
-
-    # Disable the menu.
-    $gaWidget(viewProperties,menu) config -disablecallback 1
-
+    set gaView(labelList) {}
+    
     # Build the ID list.
     set err [catch { set cRows [GetNumberOfRowsInFrame [GetMainFrameID]] } sResult]
     if { 0 != $err } { tkuErrorDlog "$sResult"; return }
@@ -1233,23 +1399,13 @@ proc UpdateViewList {} {
 	    if { 0 != $err } { tkuErrorDlog $sResult; return }
 
 	    lappend gaView(idList) $viewID
+
+	    lappend gaView(labelList) "[GetColumnOfViewInFrame [GetMainFrameID] $viewID], [GetRowOfViewInFrame [GetMainFrameID] $viewID]"
 	}
     }
 
-    # Empty the current view list.
-    set lEntries [$gaWidget(viewProperties,menu) entries]
-    foreach entry $lEntries { 
-	$gaWidget(viewProperties,menu) delete $entry
-    }
-    
-    # Add the entries from the view ID list to the menu.
-    foreach id $gaView(idList) {
-	set sLabel "[GetColumnOfViewInFrame [GetMainFrameID] $id], [GetRowOfViewInFrame [GetMainFrameID] $id]"
-	$gaWidget(viewProperties,menu) add command $id -label $sLabel
-    }
-
-    # Reenable the menu.
-    $gaWidget(viewProperties,menu) config -disablecallback 0
+    FillMenuFromList $gaWidget(viewProperties,menu) $gaView(idList) \
+	"" $gaView(labelList) false
 }
 
 # SUBJECTS LOADER FUNCTIONS =============================================
@@ -1379,12 +1535,8 @@ proc UpdateSubjectList {} {
 
 # TRANSFORM PROPERTIES FUNCTIONS =========================================
 
-proc TransformPropertiesMenuCallback { inTransform } {
-    global gaTransform
-
-    # Get the ID at this index in the idList, then select that transform.
-    set transformID [lindex $gaTransform(idList) $inTransform]
-    SelectTransformInTransformProperties $transformID
+proc TransformPropertiesMenuCallback { iTransformID } {
+    SelectTransformInTransformProperties $iTransformID
 }
 
 proc SelectTransformInTransformProperties { iTransformID } {
@@ -1411,8 +1563,8 @@ proc SelectTransformInTransformProperties { iTransformID } {
 
      
     # Make sure that this is the item selected in the menu. Disale the
-    # callback and set the value of the menu to the index of this
-    # transform ID in the transform ID list. Then reenable the callback.
+    # callback and set the value of the menu to the transform ID. Then
+    # reenable the callback.
     $gaWidget(transformProperties,menu) config -disablecallback 1
     $gaWidget(transformProperties,menu) config -value $iTransformID
     $gaWidget(transformProperties,menu) config -disablecallback 0
@@ -1429,28 +1581,11 @@ proc UpdateTransformList {} {
     global gaView
 
     # Get the transform ID list.
-    set err [catch { set gaTransform(idList) [GetTransformIDList] } sResult]
-    if { $err } { 
-	set gaTransform(idList) {} 
-    }
+    set gaTransform(idList) [GetTransformIDList]
 
     # First rebuild the transform list in the transform props panel.
-
-    # Disable the menu callback.
-    $gaWidget(transformProperties,menu) config -disablecallback 1
-
-    # Get all the entries, delete them, then add commands for all the
-    # IDs in the transform ID list.
-    set lEntries [$gaWidget(transformProperties,menu) entries]
-    foreach entry $lEntries { 
-	$gaWidget(transformProperties,menu) delete $entry
-    }
-    foreach id $gaTransform(idList) {
-	$gaWidget(transformProperties,menu) add command $id \
-	    -label "$id: [GetTransformLabel $id]"
-    }
-    # Renable the menu.
-    $gaWidget(transformProperties,menu) config -disablecallback 0
+    FillMenuFromList $gaWidget(transformProperties,menu) $gaTransform(idList) \
+	"GetTransformLabel %s" {} false
 
     # Reselect the current transformProperties.
     if { [info exists gaTransform(current,id)] && 
@@ -1459,25 +1594,8 @@ proc UpdateTransformList {} {
     }
 
     # Now rebuild the transform list in the view props panel.
-
-    # Disable callback.
-    $gaWidget(viewProperties,transformMenu) \
-	config -disablecallback 1
-    
-    # Delete all the entries and add ones for all the IDs in the
-    # ID list.
-    set lEntries [$gaWidget(viewProperties,transformMenu) entries]
-    foreach entry $lEntries { 
-	$gaWidget(viewProperties,transformMenu) delete $entry
-    }
-    foreach id $gaTransform(idList) {
-	$gaWidget(viewProperties,transformMenu) add command $id \
-	    -label "$id: [GetTransformLabel $id]"
-    }
-    
-    # Renable the callback.
-    $gaWidget(viewProperties,transformMenu) \
-	    config -disablecallback 0
+    FillMenuFromList $gaWidget(viewProperties,transformMenu) \
+	$gaTransform(idList) "GetTransformLabel %s" {} false
 }
 
 proc UpdateCurrentTransformValueList {} {
@@ -1502,6 +1620,57 @@ proc ClearSetTransformValuesButton {} {
 
     # Change the set button to normal.
     $gaWidget(transformProperties,setValuesButton) config -fg black
+}
+
+# COLOR LUT PROPERTIES FUNCTIONS =========================================
+
+proc LUTPropertiesMenuCallback { iLUTID } {
+    SelectLUTInLUTProperties $iLUTID
+}
+
+proc SelectLUTInLUTProperties { iLUTID } {
+    global gaWidget
+    global gaLUT
+
+    # Get the lut properties and load them into the 'current' slots.
+    set gaLUT(current,id) $iLUTID
+    set gaLUT(current,label) [GetColorLUTLabel $iLUTID]
+    tkuRefreshEntryNotify $gaWidget(lutProperties,labelEntry)
+    set gaLUT(current,fileName) [GetColorLUTFileName $iLUTID]
+
+     
+    # Make sure that this is the item selected in the menu. Disale the
+    # callback and set the value of the menu to the lut ID. Then
+    # reenable the callback.
+    $gaWidget(lutProperties,menu) config -disablecallback 1
+    $gaWidget(lutProperties,menu) config -value $iLUTID
+    $gaWidget(lutProperties,menu) config -disablecallback 0
+}
+
+
+# This builds the lut ID list and populates the menu that selects
+# the current lut in the lut props panel, and the menu in the
+# layer props panel. It should be called whenever a transform is created or
+# deleted.
+proc UpdateLUTList {} {
+    global gaLUT
+    global gaWidget
+
+    # Get the lut ID list.
+    set gaLUT(idList) [GetColorLUTIDList] 
+
+    # First rebuild the lut list in the lut props panel.
+    FillMenuFromList $gaWidget(lutProperties,menu) $gaLUT(idList) \
+	"GetColorLUTLabel %s" {} false
+
+    # Reselect the current lutProperties.
+    if { [info exists gaLUT(current,id)] && $gaLUT(current,id) >= 0 } {
+	SelectLUTInLUTProperties $gaLUT(current,id)
+    }
+
+    # Now rebuild the lut list in the layer props panel.
+    FillMenuFromList $gaWidget(layerProperties,lutMenu) $gaLUT(idList) \
+	"GetColorLUTLabel %s" {} false
 }
 
 # LABEL AREA FUNCTIONS ==================================================
@@ -1601,6 +1770,42 @@ proc SetLayerInAllViewsInFrame { iFrameID iLayerID } {
     UpdateLayerList
 }
 
+proc FillMenuFromList { imw ilEntries iLabelFunction ilLabels ibNone  } {
+
+    # Disable callback.
+    $imw config -disablecallback 1
+    
+    # Delete all the entries and add ones for all the IDs in the
+    # ID list. Also add a command for 'none' with index of -1.
+    set lEntries [$imw entries]
+    foreach entry $lEntries { 
+	$imw delete $entry
+    }
+
+    if { $ibNone } {
+	$imw add command -1 -label "None"
+    }
+
+    set nEntry 0
+    foreach entry $ilEntries {
+
+	if { $iLabelFunction != "" } {
+	    regsub -all %s $iLabelFunction $entry sCommand
+	    set sLabel [eval $sCommand]
+	}
+
+	if { $ilLabels != {} } {
+	    set sLabel [lindex $ilLabels $nEntry]
+	}
+
+	$imw add command $entry -label $sLabel
+	incr nEntry
+    }
+    
+    # Renable the callback.
+    $imw config -disablecallback 0
+}
+
 # DATA LOADING =====================================================
 
 proc MakeVolumeCollection { ifnVolume } {
@@ -1684,6 +1889,8 @@ proc LoadVolume { ifnVolume ibCreateLayer iFrameIDToAdd } {
 	    SetLayerInAllViewsInFrame $iFrameIDToAdd $layerID
 	}
 
+	UpdateCollectionList
+	SelectCollectionInCollectionProperties $colID
 	SelectLayerInLayerProperties $layerID
     }
 
@@ -1712,6 +1919,8 @@ proc LoadSurface { ifnSurface ibCreateLayer iFrameIDToAdd } {
 	    SetLayerInAllViewsInFrame $iFrameIDToAdd $layerID
 	}
 
+	UpdateCollectionList
+	SelectCollectionInCollectionProperties $colID
 	SelectLayerInLayerProperties $layerID
     }
 
@@ -1847,15 +2056,33 @@ wm withdraw .
 # Let tkUtils finish up.
 tkuFinish
 
+# Make the default color LUTs.
+foreach fnLUT {tkmeditColorsCMA tkmeditParcColorsCMA surface_labels.txt Simple_surface_labels2002.txt} {
+    if { [file exists $env(FREESURFER_HOME)/$fnLUT] } {
+	set lutID [MakeNewColorLUT]
+	SetColorLUTLabel $lutID "$fnLUT"
+	SetColorLUTFileName $lutID [file join $env(FREESURFER_HOME) $fnLUT]
+    }
+}
+
+
+# Make the default transform.
+set transformID [MakeNewTransform]
+SetTransformLabel $transformID "Identity"
+
+
 # Set default view configuration and update/initialize the
 # menus. Select the view to set everything up.
 SetFrameViewConfiguration [GetMainFrameID] c1
+UpdateCollectionList
 UpdateLayerList
 UpdateViewList
 UpdateSubjectList
 UpdateTransformList
+UpdateLUTList
 SelectViewInViewProperties 0
 SelectTransformInTransformProperties 0
+SelectLUTInLUTProperties 0
 
 MakeScubaFrameBindings [GetMainFrameID]
 
@@ -1865,3 +2092,6 @@ foreach command $lCommands {
 }
 
 
+
+
+bind $gaWidget(window) <Alt-Key-q> "Quit"

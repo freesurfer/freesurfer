@@ -30,10 +30,13 @@ ToglManager::CreateCallback ( struct Togl* iTogl ) {
 void
 ToglManager::DestroyCallback ( struct Togl* iTogl ) {
 
-  ToglFrame::ID id = atoi( Togl_Ident( iTogl ));
-  ToglFrame* frame = mFrames[id];
-  delete frame;
-  mFrames[id] = NULL;
+  char* sIdent = Togl_Ident( iTogl ); // sometimes this is null?
+  if( NULL != sIdent ) {
+    ToglFrame::ID id = atoi( Togl_Ident( iTogl ));
+    ToglFrame* frame = mFrames[id];
+    delete frame;
+    mFrames[id] = NULL;
+  }
 }
 
 void

@@ -15,6 +15,8 @@ ScubaDataCollectionFactory::GetFactory() {
 
     mbAddedTclCommands = true;
     TclCommandManager& commandMgr = TclCommandManager::GetManager();
+    commandMgr.AddCommand( sFactory, "GetDataCollectionIDList", 0, "", 
+			   "Return a list of all collectionIDs." );
     commandMgr.AddCommand( sFactory, "MakeDataCollection", 1, "collectionType",
 			   "Make a new data collection of the given type "
 			   "and return the collectionID." );
@@ -26,6 +28,25 @@ ScubaDataCollectionFactory::GetFactory() {
 
 TclCommandListener::TclCommandResult
 ScubaDataCollectionFactory::DoListenToTclCommand( char* isCommand, int iArgc, char** iasArgv ) {
+
+  // GetDataCollectionIDList
+  if( 0 == strcmp( isCommand, "GetDataCollectionIDList" ) ) {
+    list<int> idList;
+    DataCollection::GetIDList( idList );
+    stringstream ssFormat;
+    stringstream ssResult;
+    ssFormat << "L";
+    list<int>::iterator tID;
+    for( tID = idList.begin(); tID != idList.end(); ++tID ) {
+      int id = *tID;
+      ssFormat << "i";
+      ssResult << id << " ";
+    }
+    ssFormat << "l";
+    
+    sReturnFormat = ssFormat.str();
+    sReturnValues = ssResult.str();
+  }
 
   // MakeDataCollection <collectionType>   -- returns collection ID
   if( 0 == strcmp( isCommand, "MakeDataCollection" ) ) {

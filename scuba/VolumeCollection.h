@@ -3,6 +3,7 @@
 
 #include <string>
 #include "DataCollection.h"
+#include "ScubaROIVolume.h"
 extern "C" {
 #include "mri.h"
 }
@@ -38,6 +39,12 @@ class VolumeCollection : public DataCollection {
   
   virtual TclCommandResult
     DoListenToTclCommand ( char* isCommand, int iArgc, char** iasArgv );
+
+  virtual ScubaROI* DoNewROI ();
+
+  void SelectRAS ( float iRAS[3] );
+  void UnselectRAS ( float iRAS[3] );
+  bool IsRASSelected ( float iRAS[3] );
 
 protected:
   std::string mfnMRI;

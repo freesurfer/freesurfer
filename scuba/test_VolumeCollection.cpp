@@ -76,6 +76,17 @@ VolumeCollectionTester::Test ( Tcl_Interp* iInterp ) {
     MRIfree( &mriComp );
 
 
+    // Make an ROI and make sure it's a volume ROI.
+    try {
+      int roiID = vol.NewROI();
+      ScubaROIVolume* roi = 
+	dynamic_cast<ScubaROIVolume*>(&ScubaROI::FindByID( roiID ));
+    }
+    catch(...) {
+      throw( runtime_error("typecast failed for NewROI") );
+    }
+
+
     // Check the tcl commands.
     char sCommand[1024];
     int rTcl;

@@ -231,7 +231,6 @@ x error dialogs
 x frame->view config
 x make label/value display panel
 x fix overlay drawing bugs
-set view state dlog
 
 x b/c, LUT color map support
 x opacity
@@ -318,39 +317,57 @@ x  - ScubaView gets R/L flip bool from here
 x ScubaView needs to use TranslateWindowToRAS when drawing coords on side of window
 
 
-ScubaLUT
- - ScubaLUT with normal GetIDList, etc, wrapper for colortab.c
-   - index<->color functions
- - File menu option for loading LUT
- - change 2DMRILayer to take LUT id instead of filename
+x ScubaLUT
+x  - ScubaLUT with normal GetIDList, etc, wrapper for colortab.c
+x  - index<->color functions
+x  - change 2DMRILayer to take LUT id instead of filename
+x  - button for loading LUT
 
-LUT panel
- - For now, just lists loaded LUTs, settable label, and a text field with their contents
+x LUT panel
+x  - settable label
+x  - filename
+ - text field with their contents
 
-ScubaROI
- - normal GetROIIdList interface, etc
- - list of RAS coords
- - type: structure or free
- - int structure
- - int lutID
- - int color[3]
+x Collection panel
+x  - ID and type
+x  - editable label
+ - cb for selectable
+x  - type specific frame for filenames
 
-ScubaLayer2DMRI gets lutID instead of filename
+x ScubaROI
+x  - normal GetROIIdList interface, etc
+x  - type: structure or free
+x  - int structure
+x  - int lutID
+x  - int color[3]
+
+x ScubaROIVolume
+x  - SetROIBounds( iBounds[3] );
+x    - ROI allocates array
+x  - Select/Unselect
+
+x DataCollection
+x  - int NewROI(), calls DoNewROI, adds to map, returns ID
+x  - virtual DoNewROI makes, sets up, returns 
+x  - SelectROI(roiID) - checks if ID is in map, selects it
+x  - Tcl NewCollectionROI
+x  - Tcl SelectCollectionROI
+x  - Tcl GetROIIDListForCollection
+
+x VolumeDataCollection
+x  - bool IsRASSelected()
+x  - Un/SelectRAS functions called by Layer
+
 
 Collection panel
- - ID and type
- - editable label
- - cb for selectable
- - type specific frame for filenames
  - ROI pane
-   - list of collection's ROIs   - calls SelectCollectionsROI <roiID>
-   - free/structure rb
+   - list of collection's ROIs - SelectCollectionROI colID roiID
+   - free/structure rb - SetROIType roiID strucutre|free
    - LUT pdm
-   - structure pdm
-   - color picker
-   - New button
+   - structure pdm - SetROIType roiID structure, SetROIStructure roiID strctr
+   - color picker - SetROIType roiID free, SetROIColor roiID red green blue
+   - New button - MakeNewROI colID, select it
 
- - File Load ROI: Volume collection pdm, file name 
 
 
 
@@ -454,6 +471,8 @@ Frame Info
 
 
 BUGS:::
+- when number of labelvalues decreases, old one is left behind with old value
+- save tkcon history when quit?
 
 
 future ideas:

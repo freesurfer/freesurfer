@@ -3,6 +3,7 @@
 
 #include "Layer.h"
 #include "VolumeCollection.h"
+#include "ScubaColorLUT.h"
 
 class ScubaLayer2DMRI : public Layer {
 
@@ -44,15 +45,13 @@ class ScubaLayer2DMRI : public Layer {
     mSampleMethod = iSampleMethod; }
   SampleMethod GetSampleMethod () { return mSampleMethod; }
 
+  void SetColorLUT ( int iLUTID );
+
   static int const cGrayscaleLUTEntries;
   static int const kMaxPixelComponentValue;  
   void BuildGrayscaleLUT ();
   void SetBrightness ( float iBrightness ) { mBrightness = iBrightness; }
   void SetContrast ( float iContrast ) { mContrast = iContrast; }
-
-  static int const cDefaultFileLUTEntries;  
-  void BuildLUTFromFile ();
-  void SetLUTFileName ( std::string ifn ) { mfnLUT = ifn; }
 
   void SetMinVisibleValue ( float iValue ) { mMinVisibleValue = iValue; }
   float GetMinVisibleValue () { return mMinVisibleValue; }
@@ -68,11 +67,8 @@ class ScubaLayer2DMRI : public Layer {
   float mBrightness, mContrast;
   std::map<int,float> mGrayscaleLUT; // 0-255
 
-  std::string mfnLUT;
-  int mcFileLUTEntries;
-  struct LUTEntry { std::string msLabel; float r; float g; float b; };
-  std::map<int,LUTEntry> mFileLUT; 
-
+  ScubaColorLUT* mColorLUT;
+  
   bool mbClearZero;
   float mMinVisibleValue, mMaxVisibleValue;
 };

@@ -6,7 +6,6 @@ using namespace std;
 
 DeclareIDTracker(Layer);
 
-bool Layer::mbRegisteredStaticListener = false;
 LayerStaticTclListener Layer::mStaticListener;
 
 Layer::Layer() {
@@ -26,11 +25,7 @@ Layer::Layer() {
   commandMgr.AddCommand( *this, "SetLayerOpacity", 2, "layerID opacity",
 			 "Set the opacity for this layer. opacity should be "
 			 "a float from 0 to 1." );
-  if( !mbRegisteredStaticListener ) {
-    commandMgr.AddCommand( mStaticListener, "GetLayerIDList", 0, "", 
-			   "Return a list of all layerIDs." );
-    mbRegisteredStaticListener = true;
-  }
+
 }
 
 Layer::~Layer() {
@@ -329,6 +324,15 @@ Layer::DrawLineIntoBuffer ( GLubyte* iBuffer, int iWidth, int iHeight,
   }
 }
 
+LayerStaticTclListener::LayerStaticTclListener () {
+
+  TclCommandManager& commandMgr = TclCommandManager::GetManager();
+  commandMgr.AddCommand( *this, "GetLayerIDList", 0, "", 
+			 "Return a list of all layerIDs." );
+}
+
+LayerStaticTclListener::~LayerStaticTclListener () {
+}
 
 TclCommandListener::TclCommandResult
 LayerStaticTclListener::DoListenToTclCommand ( char* isCommand, 
@@ -356,6 +360,5 @@ LayerStaticTclListener::DoListenToTclCommand ( char* isCommand,
   return ok;
 }
 
-LayerStaticTclListener::~LayerStaticTclListener () {
-}
+
 

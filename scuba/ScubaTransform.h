@@ -13,6 +13,7 @@ extern "C" {
 class ScubaTransformStaticTclListener : public DebugReporter, public TclCommandListener {
 
  public:
+  ScubaTransformStaticTclListener ();
   ~ScubaTransformStaticTclListener ();
   
   virtual TclCommandResult
@@ -69,7 +70,6 @@ class ScubaTransform : public DebugReporter, public IDTracker<ScubaTransform>, p
 
   void CalculateInverse ();
 
-  static bool mbRegisteredStaticListener;
   static ScubaTransformStaticTclListener mStaticListener;
 
   std::string msLabel;

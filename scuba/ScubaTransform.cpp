@@ -4,7 +4,6 @@ using namespace std;
 
 DeclareIDTracker(ScubaTransform);
 
-bool ScubaTransform::mbRegisteredStaticListener = false;
 ScubaTransformStaticTclListener ScubaTransform::mStaticListener;
 
 ScubaTransform::ScubaTransform() {
@@ -26,13 +25,6 @@ ScubaTransform::ScubaTransform() {
   commandMgr.AddCommand( *this, "GetTransformValues", 1, "transformID",
 			 "Returns a list of transform values in "
 			 "column order." );
-  if( !mbRegisteredStaticListener ) {
-    commandMgr.AddCommand( mStaticListener, "GetTransformIDList", 0, "", 
-			   "Return a list of all transformIDs." );
-    commandMgr.AddCommand( mStaticListener, "MakeNewTransform", 0, "", 
-			   "Creates a new transform and returns its id." );
-    mbRegisteredStaticListener = true;
-  }
 }
 
 ScubaTransform::~ScubaTransform() {
@@ -187,6 +179,20 @@ ScubaTransform::CalculateInverse () {
   }
 }
 
+
+
+ScubaTransformStaticTclListener::ScubaTransformStaticTclListener () {
+
+  TclCommandManager& commandMgr = TclCommandManager::GetManager();
+  commandMgr.AddCommand( *this, "GetTransformIDList", 0, "", 
+			 "Return a list of all transformIDs." );
+  commandMgr.AddCommand( *this, "MakeNewTransform", 0, "", 
+			 "Creates a new transform and returns its id." );
+}
+
+ScubaTransformStaticTclListener::~ScubaTransformStaticTclListener () {
+}
+
 TclCommandListener::TclCommandResult
 ScubaTransformStaticTclListener::DoListenToTclCommand ( char* isCommand, 
 					       int iArgc, char** iasArgv ) {
@@ -222,7 +228,3 @@ ScubaTransformStaticTclListener::DoListenToTclCommand ( char* isCommand,
 
   return ok;
 }
-
-ScubaTransformStaticTclListener::~ScubaTransformStaticTclListener () {
-}
-

@@ -8,8 +8,11 @@
 #include "DebugReporter.h"
 #include "IDTracker.h"
 #include "TclCommandManager.h"
+#include "ScubaROI.h"
 
 class DataCollection : public DebugReporter, public IDTracker<DataCollection>, public TclCommandListener {
+
+  friend class DataCollectionTester;
 
  public:
 
@@ -28,9 +31,16 @@ class DataCollection : public DebugReporter, public IDTracker<DataCollection>, p
   
   virtual TclCommandResult
     DoListenToTclCommand ( char* isCommand, int iArgc, char** iasArgv );
+
+  int NewROI ();
+  void SelectROI ( int iROIID );
+  virtual ScubaROI* DoNewROI ();
+
 protected:
   std::string msLabel;
 
+  int mSelectedROIID;
+  std::map<int,ScubaROI*> mROIMap;
 };
 
 

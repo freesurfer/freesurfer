@@ -23,6 +23,9 @@ class SurfaceCollection : public DataCollection {
   virtual TclCommandResult
     DoListenToTclCommand ( char* isCommand, int iArgc, char** iasArgv );
 
+  virtual ScubaROI* DoNewROI ();
+
+
  protected:
   std::string mfnMRIS;
   MRIS* mMRIS;

@@ -7,7 +7,6 @@ using namespace std;
 
 int const ScubaLayer2DMRI::cGrayscaleLUTEntries = 256;
 int const ScubaLayer2DMRI::kMaxPixelComponentValue = 255;
-int const ScubaLayer2DMRI::cDefaultFileLUTEntries = 500;
 
 ScubaLayer2DMRI::ScubaLayer2DMRI () {
 
@@ -18,8 +17,24 @@ ScubaLayer2DMRI::ScubaLayer2DMRI () {
   mColorMapMethod = grayscale;
   mBrightness = 0.25;
   mContrast = 12.0;
-  mfnLUT = "";
-  mcFileLUTEntries = cDefaultFileLUTEntries;
+
+  // Try setting our initial color LUT to the default LUT with
+  // id 0. If it's not there, create it.
+  try { 
+    mColorLUT = &(ScubaColorLUT::FindByID( 0 ));
+  }
+  catch(...) {
+
+    ScubaColorLUT* lut = new ScubaColorLUT();
+    lut->SetLabel( "Default" );
+    
+    try {
+      mColorLUT = &(ScubaColorLUT::FindByID( 0 ));
+    }
+    catch(...) {
+      DebugOutput( << "Couldn't make default lut!" );
+    }
+  }
 
   TclCommandManager& commandMgr = TclCommandManager::GetManager();
   commandMgr.AddCommand( *this, "Set2DMRILayerVolumeCollection", 2, 
@@ -45,11 +60,10 @@ ScubaLayer2DMRI::ScubaLayer2DMRI () {
 			 "Sets the contrast for this layer." );
   commandMgr.AddCommand( *this, "Get2DMRILayerContrast", 1, "layerID",
 			 "Returns the contrast for this layer." );
-  commandMgr.AddCommand( *this, "Set2DMRILayerFileLUTFileName", 2, 
-			 "layerID fileName",
-			 "Sets the LUT file name for this layer." );
-  commandMgr.AddCommand( *this, "Get2DMRILayerFileLUTFileName", 1, "layerID",
-			 "Returns the LUT file name for this layer." );
+  commandMgr.AddCommand( *this, "Set2DMRILayerColorLUT", 2, "layerID lutID",
+			 "Sets the LUT  for this layer." );
+  commandMgr.AddCommand( *this, "Get2DMRILayerColorLUT", 1, "layerID",
+			 "Returns the LUT id for this layer." );
   commandMgr.AddCommand( *this, "Set2DMRILayerDrawZeroClear", 2, 
 			 "layerID drawClear", "Sets property for drawing"
 			 "values of zero clear." );
@@ -82,7 +96,6 @@ ScubaLayer2DMRI::SetVolumeCollection ( VolumeCollection& iVolume ) {
 
   mVolume = &iVolume;
   BuildGrayscaleLUT();
-  BuildLUTFromFile();
 
   mMinVisibleValue = mVolume->GetMRIMinValue();
   mMaxVisibleValue = mVolume->GetMRIMaxValue();
@@ -117,7 +130,7 @@ ScubaLayer2DMRI::DrawIntoBuffer ( GLubyte* iBuffer, int iWidth, int iHeight,
       iTranslator.TranslateWindowToRAS( window, RAS );
 
       // Make sure this is within the bounds. If it is...
-      GLubyte anaColor[3];
+      int color[3];
       if( mVolume->IsRASInMRIBounds( RAS ) ) {
 	
 	float value;
@@ -144,8 +157,8 @@ ScubaLayer2DMRI::DrawIntoBuffer ( GLubyte* iBuffer, int iWidth, int iHeight,
 				     (mMaxVisibleValue - mMinVisibleValue)) );
 	    if( nLUT < 0 ) nLUT = 0;
 	    if( nLUT > cGrayscaleLUTEntries ) nLUT = cGrayscaleLUTEntries-1;
-	    anaColor[0] = (GLubyte) mGrayscaleLUT[nLUT];
-	    anaColor[1] = anaColor[2] = anaColor[0];
+	    color[0] = (int) mGrayscaleLUT[nLUT];
+	    color[1] = color[2] = color[0];
 	  }
 	    break;
 	  case heatScale:
@@ -190,26 +203,18 @@ ScubaLayer2DMRI::DrawIntoBuffer ( GLubyte* iBuffer, int iWidth, int iHeight,
 	      if( green > 1.0 ) green = 1.0;
 	      if( blue > 1.0 )  blue = 1.0;
 	      
-	      anaColor[0] = (GLubyte)
-		(red * (float)kMaxPixelComponentValue);
-	      anaColor[1] = (GLubyte) 
-		(green * (float)kMaxPixelComponentValue);
-	      anaColor[2] = (GLubyte) 
-		(blue * (float)kMaxPixelComponentValue);
+	      color[0] = (int) (red * (float)kMaxPixelComponentValue);
+	      color[1] = (int) (green * (float)kMaxPixelComponentValue);
+	      color[2] = (int) (blue * (float)kMaxPixelComponentValue);
 	    } else {
-	      anaColor[0] = dest[0];
-	      anaColor[1] = dest[1];
-	      anaColor[2] = dest[2];
+	      color[0] = (int) dest[0];
+	      color[1] = (int) dest[1];
+	      color[2] = (int) dest[2];
 	    }
 	    break;
 	  case LUT:
-	    if( value > 0 && value < mcFileLUTEntries ) {
-	      int nLUT = (int)value;
-	      anaColor[0] = (GLubyte) mFileLUT[nLUT].r;
-	      anaColor[1] = (GLubyte) mFileLUT[nLUT].g;
-	      anaColor[2] = (GLubyte) mFileLUT[nLUT].b;
-	    } else  {
-	      anaColor[0] = anaColor[1] = anaColor[2] = 0;
+	    if( NULL != mColorLUT ) {
+	      mColorLUT->GetColorAtIndex( (int)value, color );
 	    }
 	    break;
 	  }
@@ -217,11 +222,11 @@ ScubaLayer2DMRI::DrawIntoBuffer ( GLubyte* iBuffer, int iWidth, int iHeight,
 	  // Write the RGB value to the buffer. Write a 255 in the
 	  // alpha byte.
 	  dest[0] = (GLubyte) (((float)dest[0] * (1.0 - mOpacity)) +
-			       ((float)anaColor[0] * mOpacity));
+			       ((float)color[0] * mOpacity));
 	  dest[1] = (GLubyte) (((float)dest[1] * (1.0 - mOpacity)) +
-			       ((float)anaColor[1] * mOpacity));
+			       ((float)color[1] * mOpacity));
 	  dest[2] = (GLubyte) (((float)dest[2] * (1.0 - mOpacity)) +
-			       ((float)anaColor[2] * mOpacity));
+			       ((float)color[2] * mOpacity));
 	  dest[3] = (GLubyte)255;
 	}
       }
@@ -251,8 +256,8 @@ ScubaLayer2DMRI::GetInfoAtRAS ( float iRAS[3],
     // If this is a LUT volume, use the label from the lookup file,
     // otherwise just display the value.
     stringstream ssValue;
-    if( mColorMapMethod == LUT ) {
-      ssValue << mFileLUT[(int)value].msLabel;
+    if( mColorMapMethod == LUT && NULL != mColorLUT ) {
+      ssValue << mColorLUT->GetLabelAtIndex((int)value);
     } else {
       ssValue << value;
     }
@@ -326,9 +331,6 @@ ScubaLayer2DMRI::DoListenToTclCommand ( char* isCommand, int iArgc, char** iasAr
       }
 
       SetColorMapMethod( method );
-      if( LUT == mColorMapMethod ) {
-	BuildLUTFromFile();
-      }
     }
   }
 
@@ -485,8 +487,8 @@ ScubaLayer2DMRI::DoListenToTclCommand ( char* isCommand, int iArgc, char** iasAr
     }
   }
 
-  // Set2DMRIFileLUTFileName <layerID> <fileName>
-  if( 0 == strcmp( isCommand, "Set2DMRILayerFileLUTFileName" ) ) {
+  // Set2DMRILayerColorLUT <layerID> <lutID>
+  if( 0 == strcmp( isCommand, "Set2DMRILayerColorLUT" ) ) {
     int layerID = strtol(iasArgv[1], (char**)NULL, 10);
     if( ERANGE == errno ) {
       sResult = "bad layer ID";
@@ -495,13 +497,18 @@ ScubaLayer2DMRI::DoListenToTclCommand ( char* isCommand, int iArgc, char** iasAr
     
     if( mID == layerID ) {
       
-      SetLUTFileName( iasArgv[2] );
-      BuildLUTFromFile();
+      int lutID = strtol(iasArgv[2], (char**)NULL, 10);
+      if( ERANGE == errno ) {
+	sResult = "bad lut ID";
+	return error;
+      }
+    
+      SetColorLUT( lutID );
     }
   }
 
-  // Get2DMRIFileLUTFileName <layerID>
-  if( 0 == strcmp( isCommand, "Get2DMRILayerFileLUTFileName" ) ) {
+  // Get2DMRILayerColorLUT <layerID>
+  if( 0 == strcmp( isCommand, "Get2DMRILayerColorLUT" ) ) {
     int layerID = strtol(iasArgv[1], (char**)NULL, 10);
     if( ERANGE == errno ) {
       sResult = "bad layer ID";
@@ -511,9 +518,14 @@ ScubaLayer2DMRI::DoListenToTclCommand ( char* isCommand, int iArgc, char** iasAr
     if( mID == layerID ) {
       
       stringstream ssReturnValues;
-      ssReturnValues << "\"" << mfnLUT << "\"";
+      if( NULL != mColorLUT ) {
+	ssReturnValues << mColorLUT->GetID();
+      } else {
+	ssReturnValues << -1;
+      }
       sReturnValues = ssReturnValues.str();
-      sReturnFormat = "s";
+      sReturnFormat = "i";
+
     }
   }
 
@@ -682,6 +694,18 @@ ScubaLayer2DMRI::HandleTool ( float iRAS[3],
 
 }
 
+void
+ScubaLayer2DMRI::SetColorLUT ( int iLUTID ) {
+
+  try {
+    mColorLUT = &(ScubaColorLUT::FindByID( iLUTID ));
+  }
+  catch(...) {
+    DebugOutput( << "Couldn't find color LUT " << iLUTID );
+  }
+  
+}
+
 
 void
 ScubaLayer2DMRI::BuildGrayscaleLUT () {
@@ -704,49 +728,5 @@ ScubaLayer2DMRI::BuildGrayscaleLUT () {
 
     // Assign in table.
     mGrayscaleLUT[(int)nEntry] = normValue;
-  }
-}
-
-void
-ScubaLayer2DMRI::BuildLUTFromFile () {
-
-  ifstream fLUT( mfnLUT.c_str() );
-  if( fLUT.is_open() ) {
-
-    int nLine = 0;
-    while( !fLUT.eof() ) {
-
-      string sLine;
-      getline( fLUT, sLine );
-      
-      int nEntry;
-      char sLabel[1024];
-      int red, green, blue;
-      int eRead = sscanf( sLine.c_str(), "%d %s %d %d %d %*s",
-			  &nEntry, sLabel, &red, &green, &blue );
-      if( 5 != eRead &&
-	  -1 != eRead ) {
-	DebugOutput(  "Error parsing " << mfnLUT << ": Malformed line " 
-		      << nLine );
-	continue;
-      }
-
-      mFileLUT[nEntry].r  = red;
-      mFileLUT[nEntry].g  = green;
-      mFileLUT[nEntry].b  = blue;
-      mFileLUT[nEntry].msLabel = sLabel;
-    
-      nLine++;
-    }
-
-  } else {
-
-    for( int nEntry = 0; nEntry < mcFileLUTEntries; nEntry+=1 ) {
-      // Assign random colors.
-      mFileLUT[nEntry].r = rand() % kMaxPixelComponentValue;
-      mFileLUT[nEntry].g = rand() % kMaxPixelComponentValue;
-      mFileLUT[nEntry].b = rand() % kMaxPixelComponentValue;
-      mFileLUT[nEntry].msLabel = "";
-    }
   }
 }
