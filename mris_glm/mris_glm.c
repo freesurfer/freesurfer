@@ -4,7 +4,7 @@
   email:   analysis-bugs@nmr.mgh.harvard.edu
   Date:    2/27/02
   Purpose: Computes glm inferences on the surface.
-  $Id: mris_glm.c,v 1.26 2004/07/02 18:34:16 greve Exp $
+  $Id: mris_glm.c,v 1.27 2004/08/02 22:08:10 greve Exp $
 
 Things to do:
   0. Documentation.
@@ -73,7 +73,7 @@ static char *getstem(char *bfilename);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mris_glm.c,v 1.26 2004/07/02 18:34:16 greve Exp $";
+static char vcid[] = "$Id: mris_glm.c,v 1.27 2004/08/02 22:08:10 greve Exp $";
 char *Progname = NULL;
 
 char *hemi        = NULL;
@@ -196,7 +196,7 @@ int main(int argc, char **argv)
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option (argc, argv, 
-      "$Id: mris_glm.c,v 1.26 2004/07/02 18:34:16 greve Exp $", "$Name:  $");
+      "$Id: mris_glm.c,v 1.27 2004/08/02 22:08:10 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -1688,33 +1688,6 @@ MATRIX *ReadAsciiMatrix(char *asciimtxfname)
 
   fclose(fp);
   return(C);
-}
-/*--------------------------------------------------------------------*/
-MRIS *MRISloadSurfSubject(char *subj, char *hemi, char *surfid, 
-			  char *SUBJECTS_DIR)
-{
-  MRIS *Surf;
-  char fname[2000];
-
-  if(SUBJECTS_DIR == NULL){
-    SUBJECTS_DIR = getenv("SUBJECTS_DIR");
-    if(SUBJECTS_DIR==NULL){
-      printf("ERROR: SUBJECTS_DIR not defined in environment\n");
-      return(NULL);
-    }
-  }
-
-  sprintf(fname,"%s/%s/surf/%s.%s",SUBJECTS_DIR,subj,hemi,surfid);
-  printf("  INFO: loading surface  %s\n",fname);
-  fflush(stdout);
-  Surf = MRISread(fname) ;
-  if(Surf == NULL){
-    printf("ERROR: could not load registration surface\n");
-    exit(1);
-  }
-  printf("nvertices = %d\n",Surf->nvertices);fflush(stdout);
-
-  return(Surf);
 }
 /*-----------------------------------------------*/
 int CheckDesignMatrix(MATRIX *X)
