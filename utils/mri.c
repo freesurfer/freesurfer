@@ -9,9 +9,9 @@
  */
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2005/02/17 19:06:51 $
-// Revision       : $Revision: 1.296 $
-char *MRI_C_VERSION = "$Revision: 1.296 $";
+// Revision Date  : $Date: 2005/02/24 20:01:49 $
+// Revision       : $Revision: 1.297 $
+char *MRI_C_VERSION = "$Revision: 1.297 $";
 
 /*-----------------------------------------------------
   INCLUDE FILES
@@ -11933,3 +11933,14 @@ MRIcropBoundingBox(MRI *mri, 	MRI_REGION  *box)
 	return(NO_ERROR) ;
 }
 
+MATRIX *
+MRIgetVoxelToVoxelXform(MRI *mri_src, MRI *mri_dst)
+{
+	MATRIX *m_ras2vox_dst, *m_vox2ras_src, *m_vox2vox ;
+
+	m_vox2ras_src = MRIgetVoxelToRasXform(mri_src) ;
+	m_ras2vox_dst = MRIgetRasToVoxelXform(mri_dst) ;
+	m_vox2vox = MatrixMultiply(m_ras2vox_dst, m_vox2ras_src, NULL) ;
+	MatrixFree(&m_vox2ras_src) ; MatrixFree(&m_ras2vox_dst) ;
+	return(m_vox2vox) ;
+}
