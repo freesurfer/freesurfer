@@ -33,8 +33,7 @@
 #define FILTER_DILATE            17
 #define FILTER_OPEN              18
 #define FILTER_CLOSE             19
-#define FILTER_DIRECTION         20
-
+#define FILTER_MINMAX            20
 #define FILTER_OFFSET            0x0100
 
 #define FILTER_MEDIAN_OFFSET     (FILTER_MEDIAN | FILTER_OFFSET)
@@ -49,5 +48,7 @@
 
 IMAGE    *ImageNitShiFilter(IMAGE *Isrc, IMAGE *Ix, IMAGE *Iy, int wsize, 
                            double sigma, IMAGE *Idst) ;
+IMAGE    *ImageGreyErode(IMAGE *Isrc, IMAGE *Idst) ;
+IMAGE    *ImageGreyDilate(IMAGE *Isrc, IMAGE *Idst) ;
 
 #endif
