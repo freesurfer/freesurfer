@@ -36,12 +36,19 @@ static LTA  *ltaReadRegisterDat(char *fname) ;
 static LTA  *ltaMNIread(char *fname) ;
 static int  ltaMNIwrite(LTA *lta, char *fname) ;
 static LTA  *ltaReadFile(char *fname) ;
-static void mincGetCRASfromTarget(char *xfmfile, double *r, double *a, double *s);
+
+static LTA *ltaMNIreadEx(const char *fname);
+static LTA *ltaReadFileEx(const char *fname);
+
+void initVolGeom(VOL_GEOM *vg);
+void writeVolGeom(FILE *fp, const VOL_GEOM *vg);
+void readVolGeom(FILE *fp, VOL_GEOM *vg);
 
 // what should be the initialized value?
 // I guess make it the same as COR standard.
 void initVolGeom(VOL_GEOM *vg)
 {
+  vg->valid = 0;
   vg->width = 256;
   vg->height = 256;
   vg->depth = 256;
@@ -54,6 +61,100 @@ void initVolGeom(VOL_GEOM *vg)
   vg->c_r =  0.; vg->c_a = 0.; vg->c_s =  0.;
 }
 
+void writeVolGeom(FILE *fp, const VOL_GEOM *vg)
+{
+  if (vg->valid==0)
+    fprintf(fp, "valid = %d  # volume info invalid\n", vg->valid);
+  else
+    fprintf(fp, "valid = %d  # volume info valid\n", vg->valid);
+  fprintf(fp, "volume = %d %d %d\n", vg->width, vg->height, vg->depth);
+  fprintf(fp, "voxelsize = %.4f %.4f %.4f\n", vg->xsize, vg->ysize, vg->zsize);
+  fprintf(fp, "xras   = %.4f %.4f %.4f\n", vg->x_r, vg->x_a, vg->x_s);
+  fprintf(fp, "yras   = %.4f %.4f %.4f\n", vg->y_r, vg->y_a, vg->y_s);
+  fprintf(fp, "zras   = %.4f %.4f %.4f\n", vg->z_r, vg->z_a, vg->z_s);
+  fprintf(fp, "cras   = %.4f %.4f %.4f\n", vg->c_r, vg->c_a, vg->c_s);
+}
+
+void readVolGeom(FILE *fp, VOL_GEOM *vg)
+{
+  char line[256];
+  char param[64];
+  char eq[2];
+
+  
+  if (fgets(line, sizeof(line), fp))
+  {
+    sscanf(line, "%s %s %d \n", param, eq, &vg->valid);
+    if (strcmp(param, "valid")!=0)
+    {
+      fprintf(stderr, "INFO: parameter was %s. should be 'valid'\n", param);
+      initVolGeom(vg);
+      return;
+    }
+    if (fgets(line, sizeof(line), fp))
+    {
+      sscanf(line, "%s %s %d %d %d\n", param, eq, &vg->width, &vg->height, &vg->depth);
+      if (strcmp(param, "volume")!=0)
+      {
+	fprintf(stderr, "INFO: parameter was %s. should be 'volume'\n", param);
+	initVolGeom(vg);
+	return;
+      }
+    }
+    if (fgets(line, sizeof(line), fp))  
+    {
+      sscanf(line, "%s %s %f %f %f\n", param, eq, &vg->xsize, &vg->ysize, &vg->zsize);
+      if (strcmp(param, "voxelsize")!=0)
+      {
+	fprintf(stderr, "INFO: parameter was %s. should be 'voxelsize'\n", param);
+	initVolGeom(vg);
+	return;
+      }
+    }
+    if (fgets(line, sizeof(line), fp))  
+    {
+      sscanf(line, "%s %s %f %f %f\n", param, eq, &vg->x_r, &vg->x_a, &vg->x_s);
+      if (strcmp(param, "xras")!=0)
+      {
+	fprintf(stderr, "INFO: parameter was %s. should be 'xras'\n", param);
+	initVolGeom(vg);
+	return;
+      }
+    }
+    if (fgets(line, sizeof(line), fp))  
+    {
+      sscanf(line, "%s %s %f %f %f\n", param, eq,  &vg->y_r, &vg->y_a, &vg->y_s);
+      if (strcmp(param, "yras")!=0)
+      {
+	fprintf(stderr, "INFO: parameter was %s. should be 'yras'\n", param);
+	initVolGeom(vg);
+	return;
+      }
+    }
+    if (fgets(line, sizeof(line), fp))  
+    {
+      sscanf(line, "%s %s %f %f %f\n", param, eq, &vg->z_r, &vg->z_a, &vg->z_s);
+      if (strcmp(param, "zras")!=0)
+      {
+	fprintf(stderr, "INFO: parameter was %s. should be 'zras\n", param);
+	initVolGeom(vg);
+	return;
+      }
+    }
+    if (fgets(line, sizeof(line), fp))  
+    {
+      sscanf(line, "%s %s %f %f %f\n", param, eq, &vg->c_r, &vg->c_a, &vg->c_s);
+      if (strcmp(param, "cras")!=0)
+      {
+	fprintf(stderr, "INFO: parameter was %s. should be 'cras'\n", param);
+	initVolGeom(vg);
+	return;
+      }
+    }
+  }
+  else
+    fprintf(stderr, "INFO: no volume info stored\n");
+}
 /*-----------------------------------------------------
         Parameters:
 
@@ -163,7 +264,15 @@ LTAwrite(LTA *lta, char *fname)
   fclose(fp) ;
   return(NO_ERROR) ;
 }
-/*-----------------------------------------------------*/
+
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
+
 LTA *
 LTAread(char *fname)
 {
@@ -177,6 +286,7 @@ LTAread(char *fname)
   case REGISTER_DAT:
     lta = ltaReadRegisterDat(fname) ;
     if (!lta) return(NULL) ;
+
     V = MatrixAlloc(4, 4, MATRIX_REAL) ;  /* world to voxel transform */
     W = MatrixAlloc(4, 4, MATRIX_REAL) ;  /* voxel to world transform */
     *MATRIX_RELT(V, 1, 1) = -1 ; *MATRIX_RELT(V, 1, 4) = 128 ;
@@ -229,7 +339,6 @@ LTAread(char *fname)
     lta = ltaReadFile(fname) ;
     break ;
   }
-
   return(lta) ;
 }
 /*-----------------------------------------------------
@@ -1339,45 +1448,61 @@ ltaReadRegisterDat(char *fname)
 }
 
 
-// find volume which created the transform.
+// find volumes which created the transform.
 // if buffer == NULL, then it will allocate memory
-char *mincFindVolume(char *line, char *buffer)
+int mincFindVolume(const char *line, char **srcVol, char **dstVol)
 {
   struct stat stat_buf;
   int ret;
   static int count = 0;
   char buf[1000];
-  char *pch = strtok(line, " ");
+  char *pch = strtok((char *) line, " ");
   while (pch != NULL)
   {
     strcpy(buf, pch);
     if (strstr(buf, ".mnc")) // first src mnc volume
     {
-      if (count == 1) // this is the second one must be dest volume
+      if (count ==0) // src
       {
-	if (buffer == NULL)
-	  buffer = (char *) malloc(strlen(pch)+1);
-	strcpy(buffer, pch);
+	count++;
+	*srcVol = (char *) malloc(strlen(pch)+1);
+	strcpy(*srcVol, pch);
 	// check the existence of the file
-	ret = stat(buffer, &stat_buf);
+	ret = stat(*srcVol, &stat_buf);
 	if (ret != 0)
 	{
-	  fprintf(stderr, "File %s cannot be stat. Return NULL.\n", buffer);
-	  return NULL;
+	  fprintf(stderr, "INFO: Src volume %s cannot be found. No problem.\n",*srcVol);
+	  free(*srcVol);
+	  *srcVol = 0;
 	}
 	else
-	  fprintf(stdout, "Target file\n\t%s\nwas used to create this xfm\n", buffer);
-	return buffer;
+	  fprintf(stdout, "INFO: Src volume %s\n", *srcVol);
+      }	
+      else if (count == 1) // this is the second one must be dest volume
+      {
+	*dstVol = (char *) malloc(strlen(pch)+1);
+	strcpy(*dstVol, pch);
+	// check the existence of the file
+	ret = stat(*dstVol, &stat_buf);
+	if (ret != 0)
+	{
+	  fprintf(stderr, "INFO: Target volume %s cannot be found.\n", *dstVol);
+	  free(*dstVol);
+	  *dstVol = 0;
+	  return 0;
+	}
+	else
+	  fprintf(stdout, "INFO: Target volume %s\n", *dstVol);
+	return 1;
       }
-      else
-	count = 1;
     }
     pch = strtok(NULL, " ");
   }
-  return NULL;
+  return 0;
 }
 
-void mincGetCRASfromTarget(char *xfmfile, double *r, double *a, double *s)
+// find the volume and get the information
+void mincGetVolumeInfo(const char *srcVol, VOL_GEOM *vgSrc)
 {
   Volume vol;
   Status status;
@@ -1386,95 +1511,199 @@ void mincGetCRASfromTarget(char *xfmfile, double *r, double *a, double *s)
   int ndims;
   volume_input_struct input_info;
   Real voxel[4];
+  Real separations[4];
+  Real worldr, worlda, worlds;
+
+  dim_names[0] = MIxspace;
+  dim_names[1] = MIyspace;
+  dim_names[2] = MIzspace;
+  dim_names[3] = MItime;
+
+  if (srcVol != 0)
+  {
+    status = start_volume_input((char *)srcVol, 0, dim_names, NC_UNSPECIFIED, 0, 0, 0, 
+				TRUE, &vol, NULL, &input_info);
+    if(status != OK)
+    {
+      // now check whether it is average_305
+      if (strstr(srcVol, "average_305"))
+      {
+	printf("INFO: The transform was made with average_305.mnc.\n");
+	// average_305 value
+	vgSrc->width = 172; vgSrc->height = 220; vgSrc->depth = 156;
+	vgSrc->xsize = 1; vgSrc->ysize = 1; vgSrc->zsize = 1;
+	vgSrc->x_r = 1; vgSrc->x_a = 0; vgSrc->x_s = 0;
+	vgSrc->y_r = 0; vgSrc->y_a = 1; vgSrc->y_s = 0;
+	vgSrc->z_r = 0; vgSrc->z_a = 0; vgSrc->z_s = 1;      
+	vgSrc->c_r = -0.0950;
+	vgSrc->c_a = -16.5100;
+	vgSrc->c_s = 9.7500;
+	vgSrc->valid = 1;
+      }
+      else
+      {
+	printf("INFO: Could not find the original src volume %s\n", srcVol);
+	printf("INFO: Set the src volume to the standard cor file.\n");
+	initVolGeom(vgSrc);
+      }
+      return;
+    }
+    ndims = get_volume_n_dimensions(vol);
+    if(ndims != 3 && ndims != 4)
+      ErrorExit(ERROR_BADFILE, "ERROR:Dimension expecting 3 or 4 but got %d", ndims);
+    
+    /* ----- get the dimension sizes ----- */
+    get_volume_sizes(vol, dim_sizes);
+    
+    /* --- one time point if there are only three dimensions in the file --- */
+    if(ndims == 3) 
+      dim_sizes[3] = 1;
+    
+    vgSrc->width = dim_sizes[0];
+    vgSrc->height = dim_sizes[1];
+    vgSrc->depth = dim_sizes[2];
+    
+    get_volume_separations(vol, separations);
+    vgSrc->xsize = fabs(separations[0]);
+    vgSrc->ysize = fabs(separations[1]);
+    vgSrc->zsize = fabs(separations[2]);
+
+    vgSrc->x_r = vol->direction_cosines[0][0];  
+    vgSrc->x_a = vol->direction_cosines[0][1];  
+    vgSrc->x_s = vol->direction_cosines[0][2];
+    
+    vgSrc->y_r = vol->direction_cosines[1][0];  
+    vgSrc->y_a = vol->direction_cosines[1][1];  
+    vgSrc->y_s = vol->direction_cosines[1][2];
+    
+    vgSrc->z_r = vol->direction_cosines[2][0];  
+    vgSrc->z_a = vol->direction_cosines[2][1];  
+    vgSrc->z_s = vol->direction_cosines[2][2];
+
+    if(separations[0] < 0)
+    {
+      vgSrc->x_r = -vgSrc->x_r;  vgSrc->x_a = -vgSrc->x_a;  vgSrc->x_s = -vgSrc->x_s;
+    }
+    if(separations[1] < 0)
+    {
+      vgSrc->y_r = -vgSrc->y_r;  vgSrc->y_a = -vgSrc->y_a;  vgSrc->y_s = -vgSrc->y_s;
+    }
+    if(separations[2] < 0)
+    {
+      vgSrc->z_r = -vgSrc->z_r;  vgSrc->z_a = -vgSrc->z_a;  vgSrc->z_s = -vgSrc->z_s;
+    }
+    // get our definition of c_(r,a,s)
+    voxel[0] = dim_sizes[0] / 2.0;
+    voxel[1] = dim_sizes[1] / 2.0;
+    voxel[2] = dim_sizes[2] / 2.0;
+    voxel[3] = 0.0;
+    convert_voxel_to_world(vol, voxel, &worldr, &worlda, &worlds);
+    vgSrc->c_r = worldr; vgSrc->c_a = worlda; vgSrc->c_s = worlds;
+
+    vgSrc->valid = 1;
+  }
+  else
+  {
+    printf("INFO: Set the src volume to the standard cor file.\n");
+    initVolGeom(vgSrc);
+  }
+  return;
+}
+
+void mincGetVolInfo(const char *xfmfile, VOL_GEOM *vgSrc, VOL_GEOM *vgDst)
+{
+  char *psrcVol=0;
+  char *pdstVol=0;
   char line[1000];
-  char *origVolume;
+  int retVal;
 
   FILE *fp = fopen(xfmfile, "r");
   if (!fp)
   {
     ErrorExit(ERROR_BADPARM, "Could not open xform") ;    
   }
+  // skip one line at the header
   fgetl(line, 900, fp);
   fgetl(line, 900, fp);
-  origVolume = mincFindVolume(line, NULL);
-  dim_names[0] = MIxspace;
-  dim_names[1] = MIyspace;
-  dim_names[2] = MIzspace;
-  dim_names[3] = MItime;
-
-  if (origVolume != NULL)
-  {
-    if (FileExists(origVolume))
-    {
-      status = start_volume_input(origVolume, 0, dim_names, NC_UNSPECIFIED, 0, 0, 0, 
-				TRUE, &vol, NULL, &input_info);
-      if(status != OK)
-	ErrorExit(ERROR_BADFILE, "Could not read MINC volume from file", origVolume);
-      
-      ndims = get_volume_n_dimensions(vol);
-      if(ndims != 3 && ndims != 4)
-	ErrorExit(ERROR_BADFILE, "Dimension expecting 3 or 4 but got %d", ndims);
-      
-      /* ----- get the dimension sizes ----- */
-      get_volume_sizes(vol, dim_sizes);
-      
-      /* --- one time point if there are only three dimensions in the file --- */
-      if(ndims == 3) dim_sizes[3] = 1;
-      
-    // get our definition of c_(r,a,s)
-      voxel[0] = dim_sizes[0] / 2.0;
-      voxel[1] = dim_sizes[1] / 2.0;
-      voxel[2] = dim_sizes[2] / 2.0;
-      voxel[3] = 0.0;
-      convert_voxel_to_world(vol, voxel, r, a, s);
-    }
-    else
-    {
-      printf("Could not open the original target volume %s", origVolume);
-      // now check whether it is average_305
-      if (strstr(origVolume, "average_305"))
-      {
-	printf("The transform was made with average_305.mnc. We will use the values of average_305.mnc.\n");
-	// average_305 value
-	*r = -0.0950;
-	*a = -16.5100;
-	*s = 9.7500;
-      }
-      else
-      {
-	printf("No information on the original target stored in xfm file.\n");
-	*r = 0.;
-	*a = 0.;
-	*s = 0.;
-      }
-    }
-    free(origVolume);
-  }
-  else
-  {
-    printf("No information on the original target stored in xfm file.\n");
-    *r = 0.;
-    *a = 0.;
-    *s = 0.;
-  }
+  retVal = mincFindVolume(line, &psrcVol, &pdstVol);
+  mincGetVolumeInfo(psrcVol, vgSrc); // src may not be found
+  mincGetVolumeInfo(pdstVol, vgDst); // dst can be found
+  free(psrcVol);
+  free(pdstVol);
 }
 
-// takes care of MNI type reading
+LTA *ltaMNIreadEx(const char *fname)
+{
+  LTA *lta = 0;
+  lta = ltaMNIread((char *) fname);
+  if (!lta)
+    return NULL;
+  // add original src and dst information
+  mincGetVolInfo(fname, &lta->xforms[0].src, &lta->xforms[0].dst);   
+  lta->type = LINEAR_RAS_TO_RAS;
+  return lta;
+}
+
+LTA *ltaReadFileEx(const char *fname)
+{
+  FILE             *fp;
+  LINEAR_TRANSFORM *lt ;
+  int              i, nxforms, type ;
+  char             line[STRLEN], *cp ;
+  LTA              *lta ;
+
+  fp = fopen(fname,"r");
+  if (fp==NULL) 
+    ErrorReturn(NULL,
+                (ERROR_BADFILE, "ltaReadFile(%s): can't open file",fname));
+  cp = fgetl(line, 199, fp) ; 
+  if (cp == NULL)
+  {
+    fclose(fp) ;
+    ErrorReturn(NULL, (ERROR_BADFILE, "ltaReadFile(%s): can't read data",fname));
+  }
+  sscanf(cp, "type      = %d\n", &type) ;
+  cp = fgetl(line, 199, fp) ; sscanf(cp, "nxforms   = %d\n", &nxforms) ;
+  lta = LTAalloc(nxforms, NULL) ;
+  lta->type = type ;
+  for (i = 0 ; i < lta->num_xforms ; i++)
+  {
+    lt = &lta->xforms[i] ;
+    fscanf(fp, "mean      = %f %f %f\n", &lt->x0, &lt->y0, &lt->z0) ;
+    fscanf(fp, "sigma     = %f\n", &lt->sigma) ;
+    MatrixAsciiReadFrom(fp, lt->m_L) ;
+  }
+  // oh, well this is the added part
+  for (i=0; i < lta->num_xforms; i++)
+  {
+    if (fgets(line, 199, fp))
+    {
+      if (strncmp(line, "src volume info", 15)==0)
+	readVolGeom(fp, &lta->xforms[i].src);
+      fgets(line, 199, fp);
+      if (strncmp(line, "dst volume info", 15)==0)
+	readVolGeom(fp, &lta->xforms[i].dst);
+    }
+  }
+  fclose(fp) ;
+  return(lta) ;
+}
+
+
 LTA *
-LTAreadEx(char *fname, MRI *mriSrc, MRI *mriDst)
+LTAreadEx(const char *fname)
 {
   int       type ;
   LTA       *lta=0 ;
-  MATRIX    *V, *W, *m_tmp, *Xm;
-  double ci, cj, ck;
-  double r, a, s;
+  MATRIX *V, *W, *m_tmp;
 
-  type = TransformFileNameType(fname) ;
+  type = TransformFileNameType((char *) fname) ;
   switch (type)
   {
   case REGISTER_DAT:
-    printf("This REGISTER_DAT transform is valid only for volumes between "
+    printf("INFO: This REGISTER_DAT transform is valid only for volumes between "
 	   " COR types with c_(r,a,s) = 0.");
+    lta = ltaReadRegisterDat((char *) fname);
     if (!lta)
       return(NULL) ;
 
@@ -1497,55 +1726,82 @@ LTAreadEx(char *fname, MRI *mriSrc, MRI *mriDst)
     break ;
 
   case MNI_TRANSFORM_TYPE:
-    // first get the target volume c_(r,a,s) information
-    mincGetCRASfromTarget(fname, &r, &a, &s);
-    lta = ltaMNIread(fname) ;
-    if (!lta)
-      return(NULL) ;
-    
-    /* by default convert MNI files to voxel coords.*/
-    /* convert to voxel coords */
-    // transform is to get 
-    //    orig -(W)-> RAS -(ltaxform)-> Talairach-(V)->voxel
-    W = extract_i_to_r(mriSrc);
-
-    // talvoxel --> talairach coords
-    Xm = extract_i_to_r(mriDst);
-
-    // change the c_(r,a,s) value so that it agrees with average_305.mnc
-    ci = mriDst->width/2.0;
-    cj = mriDst->height/2.0;
-    ck = mriDst->depth/2.0;
-
-   
-    *MATRIX_RELT(Xm,1,4) 
-      = r // average_305.mnc c_r
-        - ((*MATRIX_RELT(Xm,1,1)) * ci + (*MATRIX_RELT(Xm,1,2)) *cj + (*MATRIX_RELT(Xm,1,3)) * ck);
-    *MATRIX_RELT(Xm,2,4)
-      = a // average_305.mnc c_a
-        - ((*MATRIX_RELT(Xm,2,1)) * ci + (*MATRIX_RELT(Xm,2,2)) *cj + (*MATRIX_RELT(Xm,2,3)) * ck);
-    *MATRIX_RELT(Xm,3,4)
-      = s  // average_305.mnc c_s
-      - ((*MATRIX_RELT(Xm,3,1)) * ci + (*MATRIX_RELT(Xm,3,2)) *cj + (*MATRIX_RELT(Xm,3,3)) *ck);
-
-    // talcoordinates -> talvoxel
-    V = MatrixInverse(Xm, NULL);
-
-    m_tmp = MatrixMultiply(lta->xforms[0].m_L, W, NULL) ;
-    MatrixMultiply(V, m_tmp, lta->xforms[0].m_L) ;
-    printf("vox-to-vox transform\n");
-    MatrixPrint(stdout, lta->xforms[0].m_L);
-    MatrixFree(&V) ; MatrixFree(&W) ; MatrixFree(&m_tmp) ; MatrixFree(&Xm);
-    lta->type = LINEAR_VOX_TO_VOX ;
+    // this routine collect info on original src and dst volume
+    // so that you can use the information to modify c_(r,a,s)
+    // we no longer convert the transform to vox-to-vox
+    // the transform is ras-to-ras
+    lta = ltaMNIreadEx(fname) ;
     break ;
 
   case LINEAR_VOX_TO_VOX:
   case LINEAR_RAS_TO_RAS:
   case TRANSFORM_ARRAY_TYPE:
   default:
-    lta = ltaReadFile(fname) ;
+    // get the original src and dst information
+    lta = ltaReadFileEx(fname);
     break ;
   }
   return(lta) ;
 }
 
+// write out the information on src and dst volume 
+// in addition to the transform
+int LTAprint(FILE *fp, const LTA *lta)
+{
+  int i;
+  LT *lt;
+
+  fprintf(fp, "type      = %d\n", lta->type) ;
+  fprintf(fp, "nxforms   = %d\n", lta->num_xforms) ;
+  for (i = 0 ; i < lta->num_xforms ; i++)
+  {
+    lt = &lta->xforms[i] ;
+    fprintf(fp, "mean      = %2.3f %2.3f %2.3f\n", lt->x0, lt->y0, lt->z0) ;
+    fprintf(fp, "sigma     = %2.3f\n", lt->sigma) ;
+    MatrixAsciiWriteInto(fp, lt->m_L) ;
+  }
+  // write out src and dst volume info if there is one
+  // note that this info may or may not be valid depending on vg->valid value
+  // oh, well this is the addition
+  for (i = 0; i < lta->num_xforms; ++i)
+  {
+    fprintf(fp, "src volume info\n");
+    writeVolGeom(fp, &lta->xforms[i].src);
+    fprintf(fp, "dst volume info\n");
+    writeVolGeom(fp, &lta->xforms[i].dst);
+  }
+  return 1;
+}
+
+int
+LTAwriteEx(const LTA *lta, const char *fname)
+{
+  FILE             *fp;
+  time_t           tt ;
+  char             *user, *time_str ;
+  char             ext[STRLEN] ;
+
+  if (!stricmp(FileNameExtension((char *) fname, ext), "XFM"))
+  {
+    fprintf(stderr, "ERROR: XFM format no longer supported as output.  Please use lta extension");
+    return 0;
+  }
+
+  fp = fopen(fname,"w");
+  if (fp==NULL) 
+    ErrorReturn(ERROR_BADFILE,
+                (ERROR_BADFILE, "LTAwrite(%s): can't create file",fname));
+  user = getenv("USER") ;
+  if (!user)
+    user = getenv("LOGNAME") ;
+  if (!user)
+    user = "UNKNOWN" ;
+  tt = time(&tt) ;
+  time_str = ctime(&tt) ;
+  fprintf(fp, "# transform file %s\n# created by %s on %s\n",
+          fname, user, time_str) ;
+  LTAprint(fp, lta);
+  fclose(fp) ;
+
+  return 1;
+}

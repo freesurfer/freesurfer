@@ -2,9 +2,9 @@
 /* transform.h                                                         */
 /*                                                                     */
 /* Warning: Do not edit the following four lines.  CVS maintains them. */
-/* Revision Author: $Author: greve $                                           */
-/* Revision Date  : $Date: 2003/08/24 22:01:53 $                                             */
-/* Revision       : $Revision: 1.20 $                                         */
+/* Revision Author: $Author: tosa $                                           */
+/* Revision Date  : $Date: 2003/09/05 19:34:21 $                                             */
+/* Revision       : $Revision: 1.21 $                                         */
 /*                                                                     */
 /***********************************************************************/
 
@@ -17,6 +17,7 @@ typedef enum { MINC, TKREG, GENERIC, UNKNOWN=-1 } TransformType;
 
 typedef struct
 {
+  int           valid;   // whether this is a valid info or not (1 valid, 0 not valid)
   int           width ;
   int           height ;
   int           depth ;     
@@ -38,9 +39,9 @@ typedef struct
   MATRIX     *m_L ;          /* transform matrix */
   MATRIX     *m_dL ;         /* gradient of fuctional wrt transform matrix */
   MATRIX     *m_last_dL ;    /* last time step for momentum */
+  TransformType type;        /* record transform type       */
   VOL_GEOM   src;            /* src for the transform       */
   VOL_GEOM   dst;            /* dst for the transform       */
-  TransformType type;        /* record transform type       */
 } LINEAR_TRANSFORM, LT ;
 
 typedef struct
@@ -64,7 +65,6 @@ typedef struct
 int      LTAfree(LTA **plta) ;
 LTA      *LTAreadInVoxelCoords(char *fname, MRI *mri) ;
 LTA      *LTAread(char *fname) ;
-LTA      *LTAreadEx(char *fname, MRI *src, MRI *dst); // transform from src to dst
 LTA      *LTAreadTal(char *fname) ;
 int      LTAwrite(LTA *lta, char *fname) ;
 LTA      *LTAalloc(int nxforms, MRI *mri) ;
@@ -83,6 +83,11 @@ MATRIX   *LTAinverseTransformAtPoint(LTA *lta, float x, float y, float z,
 MATRIX   *LTAworldTransformAtPoint(LTA *lta, float x, float y,float z,
                                    MATRIX *m_L);
 int      LTAtoVoxelCoords(LTA *lta, MRI *mri) ;
+
+// new routines to retrieve src and dst volume info for transform
+LTA      *LTAreadEx(const char *fname);
+int      LTAwriteEx(const LTA *lta, const char *fname); 
+int      LTAprint(FILE *fp, const LTA *lta); 
 
 #define LINEAR_VOX_TO_VOX       0
 #define LINEAR_VOXEL_TO_VOXEL   LINEAR_VOX_TO_VOX
