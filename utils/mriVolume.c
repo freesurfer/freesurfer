@@ -1397,6 +1397,40 @@ Volm_tErr Volm_ConvertIdxToScanner ( mriVolumeRef this,
   return eResult;
 }
 
+Volm_tErr Volm_ConvertIdxToMRIIdx ( mriVolumeRef this,
+				    xVoxelRef    iIdx,
+				    xVoxelRef    oMRIIdx ) {
+  
+  Volm_tErr eResult = Volm_tErr_NoErr;
+  
+  DebugEnterFunction( ("Volm_ConvertIdxToMRIIdx( this=%p, iIdx=%p, "
+		       "oMRIIdx=%p )", this, iIdx, oMRIIdx) );
+  
+  DebugNote( ("Verifying volume") );
+  eResult = Volm_Verify( this );
+  DebugAssertThrow( (eResult == Volm_tErr_NoErr) );
+  
+#if 0  
+  DebugNote( ("Checking parameters") );
+  DebugAssertThrowX( (iIdx != NULL && oMRIIdx != NULL), 
+		     eResult, Volm_tErr_InvalidParamater );
+  eResult = Volm_VerifyIdx_( this, iIdx );
+  DebugAssertThrow( (eResult == Volm_tErr_NoErr) );
+#endif
+  
+  /* Convert the incoming screen idx to our local MRI idx. */
+  DebugNote( ("Converting screen idx to MRI idx") );
+  Volm_ConvertScreenIdxToMRIIdx_( this, iIdx, oMRIIdx );
+
+  DebugCatch;
+  DebugCatchError( eResult, Volm_tErr_NoErr, Volm_GetErrorString );
+  EndDebugCatch;
+  
+  DebugExitFunction;
+  
+  return eResult;
+}
+
 Volm_tErr Volm_GetIdxToRASTransform ( mriVolumeRef     this,
 				      mriTransformRef* opTransform ) {
   
