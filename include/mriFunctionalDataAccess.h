@@ -51,6 +51,10 @@ typedef enum {
   FunD_tConversionMethod_FCF      /* floor, ceil, floor */
 } FunD_tConversionMethod;
 
+#define ksConversionMethod_FFF "floor"
+#define ksConversionMethod_Round "round"
+#define ksConversionMethod_FCF "tkregister"
+
 /* the volume struct. */
 typedef struct {
   
