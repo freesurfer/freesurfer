@@ -828,6 +828,8 @@ MRI *MRIrandn(int ncols, int nrows, int nslices, int nframes,
 	      float avg, float stddev, MRI *mri);
 MRI *MRIdrand48(int ncols, int nrows, int nslices, int nframes,
 		float min, float max, MRI *mri);
+MRI *MRIconst(int ncols, int nrows, int nslices, int nframes,
+	      float val, MRI *mri);
 int MRInormalizeSequence(MRI *mri, float target) ;
 
 int setDirectionCosine(MRI *mri, int orientation);
