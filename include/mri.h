@@ -417,6 +417,7 @@ int   MRIeraseTalairachPlaneNew(MRI *mri, MRI *mri_mask, int orientation,
                              int x, int y, int z,int size,int fill_val);
 
 MRI   *MRIextractPlane(MRI *mri_src, MRI *mri_dst, int orientation,int where);
+MRI   *MRIfillPlane(MRI *mri_mask, MRI *mri_dst, int orientation, int where, int fillval);
 int   MRIerasePlane(MRI *mri, float x0, float y0, float z0,
                     float dx, float dy, float dz, int fill_val);
 
