@@ -10,34 +10,34 @@
 
 typedef struct
 {
-  Real   origx ;
+  Real   origx ;      //  (origx,origy,origz) saved
   Real   origy ;
   Real   origz ;
-  Real   x ;
+  Real   x ;          //  (x,y,z) saved
   Real   y ;
   Real   z ;
-	Real   xs ;
-	Real   ys ;
-	Real   zs ;
+  Real   xs ;         //  not saved
+  Real   ys ;
+  Real   zs ;
   int    xn ;         /* node coordinates */
-  int    yn ;
+  int    yn ;         // (xn, yn, zn) saved
   int    zn ;
-  int    label ;
+  int    label ;      
   int    n ;          /* index in gcan structure */
   float  prior ;
-	GC1D   *gc ;
+  GC1D   *gc ;
   float  log_p ;         /* current log probability of this sample */
   float  dx, dy, dz;     /* current gradient */
   float  odx, ody, odz ; /* previous gradient */
   float  area ;
   float  orig_area ;
-	int    status ;       /* ignore likelihood term */
+  int    status ;       /* ignore likelihood term */
 } GCA_MORPH_NODE, GMN ;
 
 typedef struct
 {
   int  width, height ,depth ;
-  GCA  *gca ;
+  GCA  *gca ;          // using a separate GCA data (not saved)
   GMN  ***nodes ;
   int  neg ;
   double exp_k ;
@@ -45,6 +45,8 @@ typedef struct
   MRI  *mri_xind ;    /* MRI->gca transform */
   MRI  *mri_yind ;
   MRI  *mri_zind ;
+  VOL_GEOM   src;            /* src for the transform       */
+  VOL_GEOM   dst;            /* dst for the transform       */
 } GCA_MORPH, GCAM ;
 
 typedef struct
@@ -60,8 +62,8 @@ typedef struct
   double l_jacobian ;
   double l_smoothness ;
   double l_distance ;
-	double l_label ;
-	double l_map ;
+  double l_label ;
+  double l_map ;
   double tol ;
   int    levels ;
   FILE   *log_fp ;
@@ -70,15 +72,15 @@ typedef struct
   float  max_grad ;
   double exp_k ;
   double sigma ;
-	int    navgs ;
-	double label_dist ;
-	int    noneg ;
-	double ratio_thresh ;
-	int    integration_type ;
-	int    nsmall ;
-	int    relabel ;    /* are we relabeling (i.e. using MAP label, or just max prior label) */
-	int    relabel_avgs ; /* what level to start relabeling at */
-	int    reset_avgs ;   /* what level to reset metric properties at */
+  int    navgs ;
+  double label_dist ;
+  int    noneg ;
+  double ratio_thresh ;
+  int    integration_type ;
+  int    nsmall ;
+  int    relabel ;    /* are we relabeling (i.e. using MAP label, or just max prior label) */
+  int    relabel_avgs ; /* what level to start relabeling at */
+  int    reset_avgs ;   /* what level to reset metric properties at */
 } GCA_MORPH_PARMS, GMP ;
 
 GCA_MORPH *GCAMalloc(int width, int height, int depth) ;
