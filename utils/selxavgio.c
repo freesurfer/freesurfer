@@ -1,12 +1,10 @@
 /***************************************************************
   Name:    selxavgio.c
-  $Id: selxavgio.c,v 1.3 2002/12/16 22:21:00 greve Exp $
+  $Id: selxavgio.c,v 1.4 2004/05/26 16:40:52 greve Exp $
   Author:  Douglas Greve
   Purpose: Routines for handling header files for data created by
   selxavg or selavg (selectively averaged).
  ****************************************************************/
-
-
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -130,8 +128,12 @@ SXADAT * ld_sxadat(char *sxadatfile)
   fscanf(fp,"%*s %d",&sxa->BrainAirSeg);
   fscanf(fp,"%*s %d",&sxa->GammaFit);
   if(sxa->GammaFit){
-    fscanf(fp,"%*s %f",&sxa->gfDelta);
-    fscanf(fp,"%*s %f",&sxa->gfTau);
+    fscanf(fp,"%*s");
+    for(n=0;n<sxa->GammaFit;n++)
+      fscanf(fp,"%f",&sxa->gfDelta[n]);
+    fscanf(fp,"%*s");
+    for(n=0;n<sxa->GammaFit;n++)
+      fscanf(fp,"%f",&sxa->gfTau[n]);
   }
   fscanf(fp,"%*s %d",&sxa->NullCondId);
 
@@ -211,8 +213,14 @@ int sv_sxadat(  SXADAT *sxa, char *sxadatfile )
   fprintf(fp,"BrainAirSeg %d\n",sxa->BrainAirSeg);
   fprintf(fp,"GammaFit %d\n",sxa->GammaFit);
   if(sxa->GammaFit){
-    fprintf(fp,"gfDelta %f\n",sxa->gfDelta);
-    fprintf(fp,"gfTau   %f\n",sxa->gfTau);
+    fprintf(fp,"gfDelta ");
+    for(n=0;n<sxa->GammaFit;n++)
+      fprintf(fp,"%f ",sxa->gfDelta[n]);
+    fprintf(fp,"\n");
+    fprintf(fp,"gfTau ");
+    for(n=0;n<sxa->GammaFit;n++)
+      fprintf(fp,"%f ",sxa->gfTau[n]);
+    fprintf(fp,"\n");
   }
   fprintf(fp,"NullCondId %d\n",sxa->NullCondId);
 

@@ -1,6 +1,6 @@
 /***************************************************************
   Name:    selxavgio.h
-  $Id: selxavgio.h,v 1.2 2002/12/16 22:20:21 greve Exp $
+  $Id: selxavgio.h,v 1.3 2004/05/26 16:40:52 greve Exp $
   Author:  Douglas Greve
   Purpose: Routines for handling header files for data created by
   selxavg or selavg (selectively averaged).
@@ -28,8 +28,8 @@ typedef struct{
   float HanningRadius;
   int   BrainAirSeg;
   int   GammaFit;
-  float gfDelta;
-  float gfTau;
+  float gfDelta[10];
+  float gfTau[10];
   int   NullCondId;
   float *SumXtX;
   float *hCovMtx;
