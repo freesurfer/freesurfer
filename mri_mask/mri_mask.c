@@ -14,7 +14,7 @@
 #include "fio.h"
 #include "version.h"
 
-static char vcid[] = "$Id: mri_mask.c,v 1.5 2005/03/04 20:24:56 xhan Exp $";
+static char vcid[] = "$Id: mri_mask.c,v 1.6 2005/03/17 14:59:12 xhan Exp $";
 
 void usage(int exit_val);
 
@@ -31,16 +31,20 @@ MRI          *lta_dst = 0;
 static int invert = 0 ;
 static char *xform_fname = NULL;
 
+static float threshold = -1e10;
+
 int main(int argc, char *argv[])
 {
   char **av;
   MRI *mri_src, *mri_mask, *mri_dst ;
   int nargs, ac;
+  int x, y, z;
+  float value;
 
   LTA          *lta = 0;
   int          transform_type;
 
-  nargs = handle_version_option (argc, argv, "$Id: mri_mask.c,v 1.5 2005/03/04 20:24:56 xhan Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_mask.c,v 1.6 2005/03/17 14:59:12 xhan Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs ;
@@ -171,14 +175,25 @@ int main(int argc, char *argv[])
       LTAfree(&lta);
   }   /* if (xform_fname != NULL) */
   
-
+  for (z = 0 ; z <mri_mask->depth ; z++)
+    
+    for (y = 0 ; y < mri_mask->height ; y++)
+      
+      for (x = 0 ; x < mri_mask->width ; x++){
+	value = MRIgetVoxVal(mri_mask, x, y, z, 0);
+	
+	if(value <= threshold)
+	  MRIsetVoxVal(mri_mask,x,y,z,0,0);
+	
+      }
+  
   mri_dst = MRImask(mri_src, mri_mask, NULL, 0, 0) ;
   if (!mri_dst)
     ErrorExit(Gerror, "%s: stripping failed", Progname) ;
   
   printf("writing masked volume to %s...\n", argv[3]) ;
   MRIwrite(mri_dst, argv[3]);
-
+  
   MRIfree(&mri_src);
   MRIfree(&mri_mask);
   MRIfree(&mri_dst);
@@ -202,6 +217,7 @@ void usage(int exit_val)
   fprintf(fout, "   -invert  reversely apply -xform \n");
   fprintf(fout, "   -lta_src %%s  source volume for -xform (if not available from the xform file) \n");
   fprintf(fout, "   -lta_dst %%s  target volume for -xform (if not available from the xform file) \n");
+  fprintf(fout, "   -T #  threshold mask volume at # (i.e., all values <= T is considered as zero) \n");
 
   fprintf(fout, "\n");
 
@@ -232,6 +248,13 @@ get_option(int argc, char *argv[])
     xform_fname = argv[2];
     nargs = 1;
     fprintf(stderr, "transform file name is %s\n", xform_fname);
+  }
+  else if (!stricmp(option, "T")
+	   || !stricmp(option, "threshold")
+	   ){
+    threshold = (float)atof(argv[2]);
+    nargs = 1;
+    fprintf(stderr, "threshold mask volume at %g\n", threshold);
   }
   else if (!stricmp(option, "invert")){
     invert = 1;
