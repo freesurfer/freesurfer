@@ -1517,4 +1517,192 @@ ImageSigmaFilter(IMAGE *Isrc, int wsize, float nsigma, IMAGE *Ioffset,
 
   return(Idst) ;
 }
+/*----------------------------------------------------------------------
+            Parameters:
+
+           Description:
+----------------------------------------------------------------------*/
+static int imageMeanFilter3x3(IMAGE *Isrc, IMAGE *Idst) ;
+IMAGE *
+ImageMeanFilter(IMAGE *Isrc, int wsize, IMAGE *Idst)
+{
+  IMAGE  *Iout ;
+  int    rows, cols ;
+
+  rows = Isrc->rows ;
+  cols = Isrc->cols ;
+
+  if (!Idst)
+    Idst = ImageAlloc(rows, cols, PFFLOAT, 1) ;
+
+  if (Idst->pixel_format != PFFLOAT)
+    Iout = ImageAlloc(rows, cols, PFFLOAT, 1) ;
+  else
+    Iout = Idst ;
+
+  if (wsize == 3)
+    imageMeanFilter3x3(Isrc, Idst) ;
+  else
+  {
+  }
+
+  if (Iout != Idst)
+  {
+    ImageCopy(Iout, Idst) ;
+    ImageFree(&Iout) ;
+  }
+  return(Idst) ;
+}
+/*----------------------------------------------------------------------
+            Parameters:
+
+           Description:
+----------------------------------------------------------------------*/
+static int
+imageMeanFilter3x3(IMAGE *Isrc, IMAGE *Idst)
+{
+  float  left, middle, right, *top, *center, *bottom, *out ;
+  int    rows, cols, row, col, cols_minus_1, rows_minus_1 ;
+  
+  rows = Isrc->rows ;
+  cols = Isrc->cols ;
+
+  /* do 4 corner points separately and 1st 4 rows separately */
+
+  /* top right corner */
+  left = *IMAGEFpix(Isrc, cols-2, 0) + *IMAGEFpix(Isrc, cols-2, 1) ; 
+  middle = *IMAGEFpix(Isrc, cols-1, 0) + *IMAGEFpix(Isrc, cols-1, 1) ;
+  *IMAGEFpix(Idst, cols-1, 0) = (left + middle) / 4.0f ;
+
+  /* bottom right corner */
+  left = *IMAGEFpix(Isrc, cols-2, rows-2) + *IMAGEFpix(Isrc, cols-2, rows-2) ; 
+  middle = *IMAGEFpix(Isrc, cols-1, rows-1) + *IMAGEFpix(Isrc, cols-1, rows-1);
+  *IMAGEFpix(Idst, cols-1, rows-1) = (left + middle) / 4.0f ;
+
+
+  /* top left corner, also initializes for first row */
+  left = *IMAGEFpix(Isrc, 0, 0) + *IMAGEFpix(Isrc, 0, 1) ; 
+  middle = *IMAGEFpix(Isrc, 1, 0) + *IMAGEFpix(Isrc, 1, 1) ;
+  *IMAGEFpix(Idst, 0, 0) = (left + middle) / 4.0f ;
+
+  /* skip 1st and last elements */
+  cols_minus_1 = cols - 1 ;
+  rows_minus_1 = rows - 1 ;
+
+  /* first do top row */
+  out = IMAGEFpix(Idst, 1, 0) ;
+  center = IMAGEFpix(Isrc, 2, 0) ;
+  bottom = IMAGEFpix(Isrc, 2, 1) ;
+
+  for (col = 1 ; col < cols_minus_1 ; col++)
+  {
+    right = *center++ + *bottom++ ;
+    *out++ = (left + middle + right) / 6.0f ;
+    left = middle ;
+    middle = right ;
+  }
+
+  /* bottom left corner and initialize for bottom row */
+  left = *IMAGEFpix(Isrc, 0, rows-2) + *IMAGEFpix(Isrc, 0, rows-2) ; 
+  middle = *IMAGEFpix(Isrc, 1, rows-1) + *IMAGEFpix(Isrc, 1, rows-1);
+  *IMAGEFpix(Idst, 0, rows-1) = (left + middle) / 4.0f ;
+
+  /* do bottom row */
+  out = IMAGEFpix(Idst, 1, rows-1) ;
+  center = IMAGEFpix(Isrc, 2, rows-1) ;
+  top = IMAGEFpix(Isrc, 2, rows-2) ;
+
+  for (col = 1 ; col < cols_minus_1 ; col++)
+  {
+    right = *center++ + *top++ ;
+    *out++ = (left + middle + right) / 6.0f ;
+    left = middle ;
+    middle = right ;
+  }
+
+
+  /* do 1st column */
+  left = 
+    *IMAGEFpix(Isrc, 0, 0) + 
+    *IMAGEFpix(Isrc, 1, 0) ; 
+  middle = 
+    *IMAGEFpix(Isrc, 0, 1) + 
+    *IMAGEFpix(Isrc, 1, 1) ;
+  out = IMAGEFpix(Idst, 0, 1) ;
+  center = IMAGEFpix(Isrc, 0, 2) ;
+  bottom = IMAGEFpix(Isrc, 1, 2) ;
+
+  for (row = 1 ; row < rows_minus_1 ; row++)
+  {
+    right = *center + *bottom ;
+    *out = (left + middle + right) / 6.0f ;
+    out += cols ;
+    center += cols ;
+    bottom += cols ;
+    left = middle ;
+    middle = right ;
+  }
+
+/* 
+   the naming conventions are messed up for the first and last
+   column. Everything is basically transposed with left referring to top,
+   etc... Sorry.
+ */
+  /* do last column */
+  left = 
+    *IMAGEFpix(Isrc, cols-2, 0) + 
+    *IMAGEFpix(Isrc, cols-1, 0) ; 
+  middle = 
+    *IMAGEFpix(Isrc, cols-2, 1) + 
+    *IMAGEFpix(Isrc, cols-1, 1) ;
+
+  center = IMAGEFpix(Isrc, cols-1, 2) ;
+  bottom = IMAGEFpix(Isrc, cols-2, 2) ;
+
+  out = IMAGEFpix(Idst, cols-1, 1) ;
+
+  for (row = 1 ; row < rows_minus_1 ; row++)
+  {
+    right = *center + *bottom ;
+    *out = (left + middle + right) / 6.0f ;
+    out += cols ;
+    center += cols ;
+    bottom += cols ;
+    left = middle ;
+    middle = right ;
+  }
+
+  /* now do the image */
+  out = IMAGEFpix(Idst, 1, 1) ;
+  top =    IMAGEFpix(Isrc, 2, 0) ;
+  center = IMAGEFpix(Isrc, 2, 1) ;
+  bottom = IMAGEFpix(Isrc, 2, 2) ;
+
+  for (row = 1 ; row < rows_minus_1 ; row++)
+  {
+    left = 
+      *IMAGEFpix(Isrc, 0, row-1) + 
+      *IMAGEFpix(Isrc, 0, row) + 
+      *IMAGEFpix(Isrc, 0, row+1) ; 
+    middle = 
+      *IMAGEFpix(Isrc, 1, row-1) + 
+      *IMAGEFpix(Isrc, 1, row) + 
+      *IMAGEFpix(Isrc, 1, row+1) ; 
+
+    for (col = 1 ; col < cols_minus_1 ; col++)
+    {
+      right = *top++ + *center++ + *bottom++ ;
+      *out++ = (left + middle + right) / 9.0f ;
+      left = middle ;
+      middle = right ;
+    }
+    top += 2 ;
+    bottom += 2 ;
+    center += 2 ;
+    out += 2 ;
+  }
+
+  return(0) ;
+}
+
 
