@@ -738,11 +738,8 @@ StatAccumulateTalairachVolume(SV *sv_tal, SV *sv)
   MATRIX *Tfunc, *Ttal;
   MATRIX *Mcor2tal, *Mtal2cor, *Vtal2func;
   MATRIX *Vtal, *Vfunc;
-  MATRIX *TorigCor, *TorigScanner, *invTorigScanner, *Mfix;
   float xf2, yf2, zf2;
-  char origdir[1000], *sd;
-  MRI *mriorig;
-  extern int  stats_fixxfm;
+  extern int  stats_fixxfm, statnorm_float2int;
 
   if(!sv){
     fprintf(stderr,"ERROR: %s: StatAccumulateTalairachVolume():\n",Progname);
@@ -786,33 +783,11 @@ StatAccumulateTalairachVolume(SV *sv_tal, SV *sv)
   Tfunc = MRIxfmCRS2XYZtkreg(sv->mri_avgs[0]);
   Ttal  = MRIxfmCRS2XYZ(sv_tal->mri_avgs[0],0);
   Mcor2tal = StatLoadTalairachXFM(sv->reg->name, stats_talxfm);
-  Mtal2cor = MatrixInverse(Mcor2tal,NULL);
-
   if(stats_fixxfm){
-    printf("INFO: fixing talairach.xfm\n");
-    /* accounts for center offset in in orig volume */
-    sd = getenv("SUBJECTS_DIR") ;
-    if(sd==NULL){
-      printf("ERROR: SUBJECTS_DIR not defined\n");
-      exit(1);
-    }
-    sprintf(origdir,"%s/%s/mri/orig",sd,sv->reg->name);
-    mriorig = MRIreadHeader(origdir,MRI_CORONAL_SLICE_DIRECTORY);
-    if(mriorig == NULL){
-      printf("ERROR: could not read header for %s\n",origdir);
-      exit(1);
-    }
-    TorigCor     = MRIxfmCRS2XYZtkreg(mriorig);
-    TorigScanner = MRIxfmCRS2XYZ(mriorig,0);
-    invTorigScanner = MatrixInverse(TorigScanner,NULL);
-    Mfix = MatrixMultiply(TorigCor,invTorigScanner,NULL);
-    MatrixMultiply(Mfix,Mtal2cor,Mtal2cor);
-    MatrixFree(&Mfix);
-    MatrixFree(&TorigCor);
-    MatrixFree(&TorigScanner);
-    MRIfree(&mriorig);
+    printf("INFO: devolving talairach.xfm\n");
+    DevolveXFM(sv->reg->name,Mcor2tal);
   }
-
+  Mtal2cor  = MatrixInverse(Mcor2tal,NULL);
   Vtal2func = MatrixInverse(Tfunc,NULL);
   MatrixMultiply(Vtal2func,sv->reg->mri2fmri,Vtal2func);
   MatrixMultiply(Vtal2func,Mtal2cor,Vtal2func);
@@ -828,132 +803,86 @@ StatAccumulateTalairachVolume(SV *sv_tal, SV *sv)
   printf("TalVox2FuncVox ---------------------------------------------\n");
   MatrixPrint(stdout,Vtal2func);
   printf("---------------------------------------------\n");
+
   Vtal = MatrixAlloc(4,1,MATRIX_REAL);
   Vtal->rptr[4][1] = 1;
   Vfunc = MatrixAlloc(4,1,MATRIX_REAL);
   Vfunc->rptr[4][1] = 1;
   /*---------------------------------------------------------------*/
 
-  printf("Resampling - nframes = %d\n",sv_tal->nevents);
+  printf("Resampling - nevents = %d, nperevent = %d\n",
+	 sv_tal->nevents,sv_tal->time_per_event);
   for (event = 0 ; event < sv_tal->nevents ; event++)
   {
-    printf("%2d ",event); fflush(stdout);
+    printf("Event: %2d\n",event); fflush(stdout);
     sv_tal->mean_dofs[event] += sv->mean_dofs[event] ;
     sv_tal->std_dofs[event] += sv->std_dofs[event] ;
-    if (Gdiag & DIAG_SHOW)
-      fprintf(stderr, "\rprocessing event %d of %d....", 
-              event+1, sv_tal->nevents) ;
     mri_avg = sv_tal->mri_avgs[event] ;
     mri_std = sv_tal->mri_stds[event] ;
     mri_avg->linear_transform = sv->mri_avgs[event]->linear_transform;
     mri_avg->inverse_linear_transform = 
       sv->mri_avgs[event]->inverse_linear_transform;
 
-    for (t = 0 ; t < sv_tal->time_per_event ; t++){
-      /* Go through each col, row, and slice in the tal volume */
-      for (z = 0 ; z < depth ; z++){
-        for (y = 0 ; y < height ; y++){
-          for (x = 0 ; x < width ; x++){
+    /* Go through each col, row, and slice in the tal volume */
+    for (z = 0 ; z < depth ; z++){
+      for (y = 0 ; y < height ; y++){
+	for (x = 0 ; x < width ; x++){
+	  
+	  Vtal->rptr[1][1] = x;
+	  Vtal->rptr[2][1] = y;
+	  Vtal->rptr[3][1] = z;
+	  MatrixMultiply(Vtal2func,Vtal,Vfunc);
+	  xf2 = Vfunc->rptr[1][1];
+	  yf2 = Vfunc->rptr[2][1];
+	  zf2 = Vfunc->rptr[3][1];
+	  
+	  /* convert from float 2 int */
+	  switch(statnorm_float2int){
+	  case FLT2INT_ROUND:
+	    xv = nint(xf2) ; yv = nint(yf2) ; zv = nint(zf2) ;
+	    break;
+	  case FLT2INT_TKREG:
+	    xv = (int)(xf2) ; yv = (int)ceil(yf2) ; zv = (int)(zf2) ;
+	    break;
+	  case FLT2INT_FLOOR:
+	    xv = (int)(xf2) ; yv = (int)(yf2) ; zv = (int)(zf2) ;
+	    break;
+	  default:
+	    printf("ERROR: float2int code %d unrecognized\n",
+		   statnorm_float2int);
+	    exit(1);
+	    break;
+	  }
+	    
+	  if (xv >= 0 && xv < swidth && yv >= 0 && yv < sheight &&
+	      zv >= 0 && zv < sdepth){
 
-#if 0
-            /* Convert TalCRS to AnatXYZ, subject's anat coords (in mm) */
-      /* AnatXYZ = inv(X) * TalXYZ = inv(X) * Ttal * TalCRS */
-      /* (x,  y,  z)  = TalCRS */
-      /* (xf, yf, zf) = AnatXYZ */
-            MRItalairachVoxelToWorld(mri_avg, (Real)x, (Real)y, (Real)z, 
-                                     &xf, &yf, &zf) ;
-      printf("TalCRS = %d %d %d\n",x,y,z);
-      printf("AnatXYZ = %g %g %g\n",xf,yf,zf);
+	    for (t = 0 ; t < sv_tal->time_per_event ; t++){
 
-            /* Convert AnatXYZ to FuncXYZ */
-      /* FuncXYZ = R * AnatXYZ */
-      /* (xf, yf, zf) = AnatXYZ (v_struct) */
-      /* v_func       = FuncXYZ */
-            VECTOR3_LOAD(v_struct, xf, yf, zf) ;
-            MatrixMultiply(sv->reg->mri2fmri, v_struct, v_func) ;
-      printf("FuncXYZ = %g %g %g\n",(Real)V3_X(v_func), 
-       (Real)V3_Y(v_func), (Real)V3_Z(v_func)); 
-
-            /* Convert FuncXYZ to FuncCRS */
-      /* FuncCRS = inv(Tfunc) * FuncXYZ */
-      /* v_func       = FuncXYZ */
-      /* (xf, yf, zf) = FuncCRS */
-            MRIworldToVoxel(sv->mri_avgs[event], (Real)V3_X(v_func), 
-                            (Real)V3_Y(v_func), (Real)V3_Z(v_func), 
-                            &xf, &yf, &zf) ;
-      printf("slicedir = %d (Undef=%d)\n",
-       getSliceDirectin(sv->mri_avgs[event]),MRI_UNDEFINED);
-      printf("xbounds: %g %g\n",sv->mri_avgs[event]->xstart,
-       sv->mri_avgs[event]->xend);
-      printf("ybounds: %g %g\n",sv->mri_avgs[event]->ystart,
-       sv->mri_avgs[event]->yend);
-      printf("zbounds: %g %g\n",sv->mri_avgs[event]->zstart,
-       sv->mri_avgs[event]->zend);
-      printf("center: %g %g %g\n",sv->mri_avgs[event]->c_r,
-       sv->mri_avgs[event]->c_a,sv->mri_avgs[event]->c_s);
-      printf("FuncCRS = %g %g %g\n",xf,yf,zf);
-            //xv = nint(xf) ; yv = nint(yf) ; zv = nint(zf) ;
-#endif
-
-      /* This is the "new" way to convert talairach CRS
-         to function CRS. It should be the close to the
-         original as long as stats_talxfm = talairach.xfm.
-         The new way should be more accurate. */
-      Vtal->rptr[1][1] = x;
-      Vtal->rptr[2][1] = y;
-      Vtal->rptr[3][1] = z;
-      MatrixMultiply(Vtal2func,Vtal,Vfunc);
-      xf2 = Vfunc->rptr[1][1];
-      yf2 = Vfunc->rptr[2][1];
-      zf2 = Vfunc->rptr[3][1];
-
-      /* convert from float 2 int */
-      switch(statnorm_float2int){
-      case FLT2INT_ROUND:
-        xv = nint(xf2) ; yv = nint(yf2) ; zv = nint(zf2) ;
-        break;
-      case FLT2INT_TKREG:
-        xv = (int)(xf2) ; yv = (int)ceil(yf2) ; zv = (int)(zf2) ;
-        break;
-      case FLT2INT_FLOOR:
-        xv = (int)(xf2) ; yv = (int)(yf2) ; zv = (int)(zf2) ;
-        break;
-      default:
-        printf("ERROR: float2int code %d unrecognized\n",
-             statnorm_float2int);
-        exit(1);
-        break;
-      }
-
-      if (xv >= 0 && xv < swidth && yv >= 0 && yv < sheight &&
-    zv >= 0 && zv < sdepth){
-
-        if (xv == 30 && yv == 51 && zv == 2 && t == 2) DiagBreak() ;
-    
-        /* update means */
-        tal_mean = MRIFseq_vox(sv_tal->mri_avgs[event], x, y, z, t) ;
-        mean = MRIFseq_vox(sv->mri_avgs[event], xv, yv, zv, t) ;
-        dof = sv->mean_dofs[event] ;
-        tal_dof = MRIFseq_vox(sv_tal->mri_avg_dofs[event], x, y, z, t) ;
-        tal_mean = (tal_mean * tal_dof + mean * dof) / (tal_dof + dof) ;
-        tal_dof += dof ;
-        MRIFseq_vox(sv_tal->mri_avg_dofs[event], x, y, z, t) = tal_dof ;
-        MRIFseq_vox(sv_tal->mri_avgs[event], x, y, z, t) = tal_mean ;
-        
-        if(sv->voltype != 0) {
-    tal_std = MRIFseq_vox(sv_tal->mri_stds[event], x, y, z, t) ;
-    std = MRIFseq_vox(sv->mri_stds[event], xv, yv, zv, t) ;
-    dof = sv->std_dofs[event] ;
-    tal_dof = MRIFseq_vox(sv_tal->mri_std_dofs[event], x, y, z, t) ;
-    
-    /* work with variances so things are linear */
-    tal_std *= tal_std ; std *= std ;
-    tal_std = sqrt((tal_std*tal_dof + std*dof)/(tal_dof + dof));
-    tal_dof += dof ;
-    MRIFseq_vox(sv_tal->mri_std_dofs[event],x,y,z,t) = tal_dof ;
-    MRIFseq_vox(sv_tal->mri_stds[event], x, y, z, t) = tal_std ;
-        }
-        
+	      /* update means */
+	      tal_mean = MRIFseq_vox(sv_tal->mri_avgs[event], x, y, z, t) ;
+	      mean = MRIFseq_vox(sv->mri_avgs[event], xv, yv, zv, t) ;
+	      dof = sv->mean_dofs[event] ;
+	      tal_dof = MRIFseq_vox(sv_tal->mri_avg_dofs[event], x, y, z, t) ;
+	      tal_mean = (tal_mean * tal_dof + mean * dof) / (tal_dof + dof) ;
+	      tal_dof += dof ;
+	      MRIFseq_vox(sv_tal->mri_avg_dofs[event], x, y, z, t) = tal_dof ;
+	      MRIFseq_vox(sv_tal->mri_avgs[event], x, y, z, t) = tal_mean ;
+	      
+	      if(sv->voltype != 0) {
+		tal_std = MRIFseq_vox(sv_tal->mri_stds[event], x, y, z, t) ;
+		std = MRIFseq_vox(sv->mri_stds[event], xv, yv, zv, t) ;
+		dof = sv->std_dofs[event] ;
+		tal_dof = MRIFseq_vox(sv_tal->mri_std_dofs[event], x, y, z, t);
+		
+		/* work with variances so things are linear */
+		tal_std *= tal_std ; std *= std ;
+		tal_std = sqrt((tal_std*tal_dof + std*dof)/(tal_dof + dof));
+		tal_dof += dof ;
+		MRIFseq_vox(sv_tal->mri_std_dofs[event],x,y,z,t) = tal_dof ;
+		MRIFseq_vox(sv_tal->mri_stds[event], x, y, z, t) = tal_std ;
+	      }
+	      
             }
           }
         }
