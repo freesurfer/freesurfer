@@ -329,6 +329,32 @@ ImageReadHeader(char *fname)
         Returns value:
 
         Description
+          read an image from file and convert it to the specified
+          format.
+------------------------------------------------------*/
+IMAGE *
+ImageReadType(char *fname, int pixel_format)
+{
+  IMAGE *Itmp, *I ;
+
+  Itmp = ImageRead(fname) ;
+  if (Itmp->pixel_format != pixel_format)
+  {
+    I = ImageAlloc(Itmp->rows, Itmp->cols, pixel_format, Itmp->num_frame) ;
+    ImageCopy(Itmp, I) ;
+    ImageFree(&Itmp) ;
+  }
+  else
+    I = Itmp ;
+
+  return(I) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
 ------------------------------------------------------*/
 IMAGE *
 ImageRead(char *fname)
@@ -921,13 +947,18 @@ ImageNormalizePix(IMAGE *Isrc, IMAGE *Idst)
   }
 
   if (ecode != HIPS_OK)
-    ErrorExit(ecode, "ImageNormalize: h_minmax failed (%d)\n", ecode) ;
+    ErrorReturn(NULL, (ecode,"ImageNormalize: h_minmax failed (%d)\n", ecode));
+
+  if (FEQUAL(fmax, fmin))
+    ErrorReturn(NULL, (ERROR_BADPARM, "ImageNormalize: constant image")) ;
 
   scale = 1.0f / (fmax - fmin) ;
   fmin = -fmin * scale ;
+
   ecode = h_linscale(Isrc, Idst, scale, fmin) ;
   if (ecode != HIPS_OK)
-    ErrorExit(ecode, "ImageNormalize: h_linscale failed (%d)\n", ecode) ;
+    ErrorReturn(NULL, 
+                (ecode, "ImageNormalize: h_linscale failed (%d)\n", ecode)) ;
 
   return(Idst) ;
 }
@@ -1229,9 +1260,13 @@ ImageScale(IMAGE *Isrc, IMAGE *Idst, float new_min, float new_max)
       ErrorExit(ecode, "ImageScale: h_minmax failed (%d)\n", ecode) ;
     
     scale = (new_max - new_min) / (old_max - old_min) ;
+    if (FEQUAL(old_max, old_min))
+      ErrorReturn(NULL, (ERROR_BADPARM, "ImageScale: constant image")) ;
+
+
     ecode = h_linscale(Isrc, Iout, scale, new_min - old_min * scale) ;
     if (ecode != HIPS_OK)
-      ErrorExit(ecode, "ImageScale: h_linscale failed (%d)\n", ecode) ;
+      ErrorReturn(NULL, (ecode,"ImageScale: h_linscale failed (%d)\n",ecode));
 
     Isrc->firstpix += Isrc->sizeimage ;
     Isrc->image += Isrc->sizeimage ;
