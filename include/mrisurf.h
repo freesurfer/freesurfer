@@ -290,6 +290,7 @@ typedef struct
   float   l_spring_norm ;     /* coefficient of normalize spring term */
   float   l_tspring ;         /* coefficient of tangential spring term */
   float   l_nspring ;         /* coefficient of normal spring term */
+  float   l_repulse ;         /* repulsize force on tessellation */
   float   l_boundary ;        /* coefficient of boundary term */
   float   l_dist ;            /* coefficient of distance term */
   float   l_neg ;
