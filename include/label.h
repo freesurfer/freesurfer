@@ -47,6 +47,9 @@ MATRIX  *LabelCovarianceMatrix(LABEL *area, MATRIX *mat) ;
 LABEL   *LabelCombine(LABEL *area, LABEL *area_dst) ;
 LABEL   *LabelCopy(LABEL *asrc, LABEL *adst) ;
 LABEL   *LabelCombine(LABEL *area, LABEL *adst) ;
+double  LabelArea(LABEL *area, MRI_SURFACE *mris) ;
+double  LabelVariance(LABEL *area, double ux, double uy, double uz) ;
+int     LabelMean(LABEL *area, double *px, double *py, double *pz) ;
 
 #define LabelClone(a)  LabelAlloc(a->max_points,a->subject_name,a->name)
 
