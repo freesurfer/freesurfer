@@ -539,8 +539,9 @@ XVshowImage(XV_FRAME *xvf, int which, IMAGE *image, int frame)
     dimage->oSourceImage = image ;
     if (dimage->zoomImage != dimage->sourceImage)
       ImageFree(&dimage->zoomImage) ;
-    dimage->sourceImage = dimage->zoomImage = 
-      ImageCopy(image, dimage->sourceImage) ;
+    if (dimage->sourceImage != image)
+      dimage->sourceImage = ImageCopy(image, dimage->sourceImage) ;
+    dimage->zoomImage = dimage->sourceImage ;
   }
   else   /* image from here on in refers to the zoomed image */
   {
@@ -1021,6 +1022,8 @@ xv_dimage_event_handler(Xv_Window xv_window, Event *event)
       case '8':
         if (xvf->get_next_image)
         {
+          IMAGE *Itmp ;
+
           if (dimage->sync)
           {
             int    which2 ;
@@ -1030,16 +1033,24 @@ xv_dimage_event_handler(Xv_Window xv_window, Event *event)
               dimage2 = XVgetDimage(xvf, which2, DIMAGE_IMAGE) ;
               if (dimage2 /* && (dimage2->sync == dimage->sync)*/)
               {
-                dimage2->sourceImage = 
-                  (*xvf->get_next_image)(dimage2->sourceImage, which2, 1) ;
+                Itmp = (*xvf->get_next_image)(dimage2->sourceImage, which2, 1);
+                if (Itmp != dimage2->sourceImage)
+                {
+                  dimage2->sourceImage = ImageCopy(Itmp,dimage2->sourceImage) ;
+                  /*                  ImageFree(&Itmp) ;*/
+                }
                 XVshowImage(xvf, which2, dimage2->sourceImage, dimage2->frame);
               }
             }
           }
           else
           {
-            dimage->sourceImage = 
-              (*xvf->get_next_image)(dimage->sourceImage, which, 1) ;
+            Itmp = (*xvf->get_next_image)(dimage->sourceImage, which, 1) ;
+            if (dimage->sourceImage != Itmp)
+            {
+              dimage->sourceImage = ImageCopy(Itmp, dimage->sourceImage) ;
+              /*              ImageFree(&Itmp) ;*/
+            }
             XVshowImage(xvf, which, dimage->sourceImage, dimage->frame) ;
           }
         }
@@ -1057,8 +1068,14 @@ xv_dimage_event_handler(Xv_Window xv_window, Event *event)
             for (which2 = 0 ; which2 < xvf->rows*xvf->cols ; which2++)
             {
               dimage2 = XVgetDimage(xvf, which2, DIMAGE_IMAGE) ;
-              if (dimage2 && (dimage2->sync == dimage->sync))
+              if (dimage2 /* && (dimage2->sync == dimage->sync) */)
               {
+                Itmp = (*xvf->get_next_image)(dimage2->sourceImage, which2,-1);
+                if (Itmp != dimage2->sourceImage)
+                {
+                  dimage2->sourceImage = ImageCopy(Itmp,dimage2->sourceImage) ;
+                  /*                  ImageFree(&Itmp) ;*/
+                }
                 XVshowImage(xvf, which2, dimage2->sourceImage, dimage2->frame);
               }
             }
@@ -1066,10 +1083,13 @@ xv_dimage_event_handler(Xv_Window xv_window, Event *event)
           else
           {
             Itmp = (*xvf->get_next_image)(dimage->sourceImage, which, -1) ;
-            dimage->sourceImage = ImageCopy(Itmp, dimage->sourceImage) ;
+            if (Itmp != dimage->sourceImage)
+            {
+              dimage->sourceImage = ImageCopy(Itmp, dimage->sourceImage) ;
+              /*              ImageFree(&Itmp) ;*/
+            }
             XVshowImage(xvf, which, dimage->sourceImage, dimage->frame) ;
           }
-          ImageFree(&Itmp) ;
         }
         break ;
       case 'r':
