@@ -8,6 +8,9 @@
 #define GE_COMPRESSION_COMPRESSED            3
 #define GE_COMPRESSION_COMPRESSED_AND_PACKED 4
 
+int mri_identify(char *fname);
+
+int is_cor(char *fname);
 int is_genesis(char *fname);
 int is_ge_lx(char *fname);
 int is_mgh(char *fname);

@@ -10,6 +10,47 @@
 #include "machine.h"
 #include "fio.h"
 
+int mri_identify(char *fname)
+{
+
+  if(is_cor(fname))
+    return(MRI_CORONAL_SLICE_DIRECTORY);
+  else if(is_genesis(fname))
+    return(GENESIS_FILE);
+  else if(is_ge_lx(fname))
+    return(GE_LX_FILE);
+  else if(is_mgh(fname))
+    return(MRI_MGH_FILE);
+  else if(is_mnc(fname))
+    return(MRI_MINC_FILE);
+  else if(is_analyze(fname))
+    return(MRI_ANALYZE_FILE);
+  else if(is_siemens(fname))
+    return(SIEMENS_FILE);
+  else if(is_brik(fname))
+    return(BRIK_FILE);
+  else if(is_bshort(fname))
+    return(BSHORT_FILE);
+  else
+    return(-1);
+
+}  /*  end mri_identify()  */
+
+int is_cor(char *fname)
+{
+
+  struct stat stat_buf;
+
+  if(stat(fname, &stat_buf) < 0)
+    return(0);
+
+  if(S_ISDIR(stat_buf.st_mode))
+    return(1);
+
+  return(0);
+
+}  /*  end is_cor()  */
+
 int is_brik(char *fname)
 {
 
