@@ -135,6 +135,8 @@ static int   mrisFindNeighbors(MRI_SURFACE *mris) ;
 static void  mrisNormalize(float v[3]) ;
 static float mrisTriangleArea(MRIS *mris, int fac, int n) ;
 static int   mrisNormalFace(MRIS *mris, int fac,int n,float norm[]) ;
+static int   mrisComputeOrigNormal(MRIS *mris, int vno, float norm[]) ;
+static int   mrisOrigNormalFace(MRIS *mris, int fac,int n,float norm[]) ;
 static int   mrisReadTransform(MRIS *mris, char *mris_fname) ;
 static MRI_SURFACE *mrisReadAsciiFile(char *fname) ;
 static MRI_SURFACE *mrisReadGeoFile(char *fname) ;
@@ -151,9 +153,11 @@ static double mrisComputeSpringEnergy(MRI_SURFACE *mris) ;
 static double mrisComputeThicknessSmoothnessEnergy(MRI_SURFACE *mris,
                                          double l_repulse) ;
 static double mrisComputeRepulsiveEnergy(MRI_SURFACE *mris,
-                                         double l_repulse) ;
+                                         double l_repulse, MHT *mht_v) ;
 static int    mrisComputeRepulsiveTerm(MRI_SURFACE *mris,
-                                         double l_repulse) ;
+                                         double l_repulse, MHT *mht_v) ;
+static int    mrisComputeSurfaceRepulsionTerm(MRI_SURFACE *mris, 
+                                              double l_repulse, MHT *mht);
 static int    mrisComputeThicknessSmoothnessTerm(MRI_SURFACE *mris,
                                          double l_tsmooth) ;
 static double mrisComputeTangentialSpringEnergy(MRI_SURFACE *mris) ;
@@ -2484,6 +2488,74 @@ mrisTriangleArea(MRIS *mris, int fac, int n)
   d2 = v1[0]*v0[2] - v0[0]*v1[2];
   d3 = -v1[0]*v0[1] + v0[0]*v1[1];
   return sqrt(d1*d1+d2*d2+d3*d3)/2;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
+static int
+mrisComputeOrigNormal(MRIS *mris, int vno, float norm[])
+{
+  float snorm[3] ;
+  VERTEX *v ;
+  int    n, num ;
+
+  v = &mris->vertices[vno] ;
+
+  norm[0]=norm[1]=norm[2]=0.0;
+  for (num = n=0;n<v->num;n++) if (!mris->faces[v->f[n]].ripflag)
+  {
+    num++ ;
+    mrisOrigNormalFace(mris, v->f[n], (int)v->n[n],snorm);
+    norm[0] += snorm[0];
+    norm[1] += snorm[1];
+    norm[2] += snorm[2];
+
+  }
+  if (!num)
+    return(ERROR_BADPARM) ;
+  mrisNormalize(norm);
+  return(NO_ERROR) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
+static int
+mrisOrigNormalFace(MRIS *mris, int fac,int n,float norm[])
+{
+  int     n0,n1, *pv ;
+  FACE    *f;
+  float   v0[3],v1[3];
+  register VERTEX  *v, *vn0, *vn1 ;
+
+  n0 = (n == 0)                   ? VERTICES_PER_FACE-1 : n-1;
+  n1 = (n == VERTICES_PER_FACE-1) ? 0                   : n+1;
+  f = &mris->faces[fac];
+  pv = f->v ;
+  vn0 = &mris->vertices[pv[n0]] ;
+  vn1 = &mris->vertices[pv[n1]] ;
+  v =  &mris->vertices[pv[n]] ;
+  v0[0] = v->origx - vn0->origx; v0[1] = v->origy - vn0->origy; 
+  v0[2] = v->origz - vn0->origz;
+  v1[0] = vn1->origx - v->origx; v1[1] = vn1->origy - v->origy; 
+  v1[2] = vn1->origz - v->origz;
+  mrisNormalize(v0);
+  mrisNormalize(v1);
+  norm[0] = -v1[1]*v0[2] + v0[1]*v1[2];
+  norm[1] = v1[0]*v0[2] - v0[0]*v1[2];
+  norm[2] = -v1[0]*v0[1] + v0[0]*v1[1];
+/*
+  printf("[%5.2f,%5.2f,%5.2f] x [%5.2f,%5.2f,%5.2f] = [%5.2f,%5.2f,%5.2f]\n",
+         v0[0],v0[1],v0[2],v1[0],v1[1],v1[2],norm[0],norm[1],norm[2]);
+*/
+  return(NO_ERROR) ;
 }
 /*-----------------------------------------------------
         Parameters:
@@ -4937,7 +5009,7 @@ mrisComputeSSE(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
         ErrorExit(ERROR_BADPARM, "sse not finite at face %d!\n",fno);
     }
   }
-  sse_repulse = mrisComputeRepulsiveEnergy(mris, parms->l_repulse) ;
+  sse_repulse = mrisComputeRepulsiveEnergy(mris, parms->l_repulse, NULL) ;
   sse_tsmooth = mrisComputeThicknessSmoothnessEnergy(mris, parms->l_tsmooth) ;
   if (!FZERO(parms->l_nlarea))
     sse_nl_area = mrisComputeNonlinearAreaSSE(mris) ;
@@ -5401,9 +5473,12 @@ mrisAverageGradients(MRI_SURFACE *mris, int num_avgs)
   }
   if (Gdiag_no >= 0)
   {
+    float dot ;
     v = &mris->vertices[Gdiag_no] ;
-    fprintf(stderr, " after dot = %2.2f\n",
-            v->tdx*v->nx+v->tdy*v->ny+v->tdz*v->nz) ;
+    dot = v->nx*v->dx + v->ny*v->dy + v->nz*v->dz ;
+    fprintf(stderr, " after dot = %2.2f\n",dot) ;
+    if (fabs(dot) > 50)
+      DiagBreak() ;
   }
   return(NO_ERROR) ;
 }
@@ -11489,6 +11564,8 @@ mrisLogIntegrationParms(FILE *fp, MRI_SURFACE *mris,INTEGRATION_PARMS *parms)
     fprintf(fp, ", l_angle=%2.3f", parms->l_angle) ;
   if (!FZERO(parms->l_repulse))
     fprintf(fp, ", l_repulse=%2.3f", parms->l_repulse) ;
+  if (!FZERO(parms->l_surf_repulse))
+    fprintf(fp, ", l_surf_repulse=%2.3f", parms->l_surf_repulse) ;
   if (!FZERO(parms->l_corr))
     fprintf(fp, ", l_corr=%2.3f", parms->l_corr) ;
   if (!FZERO(parms->l_spring))
@@ -11786,7 +11863,7 @@ mrisComputeThicknessSmoothnessEnergy(MRI_SURFACE *mris, double l_tsmooth)
 #define REPULSE_E   0.1
 
 static double
-mrisComputeRepulsiveEnergy(MRI_SURFACE *mris, double l_repulse)
+mrisComputeRepulsiveEnergy(MRI_SURFACE *mris, double l_repulse, MHT *mht_v)
 {
   int     vno, n ;
   double  sse_repulse, v_sse, dist, dx, dy, dz, x, y, z ;
@@ -11876,12 +11953,14 @@ mrisComputeThicknessSmoothnessTerm(MRI_SURFACE *mris, double l_tsmooth)
         Description
 ------------------------------------------------------*/
 static int
-mrisComputeRepulsiveTerm(MRI_SURFACE *mris, double l_repulse)
+mrisComputeRepulsiveTerm(MRI_SURFACE *mris, double l_repulse, MHT *mht)
 {
-  int     vno, n, num, min_vno ;
+  int     vno, num, min_vno, i ;
   float   dist, dx, dy, dz, x, y, z, sx, sy, sz, min_d, min_scale ;
   double  scale ;
   VERTEX  *v, *vn ;
+  MHBT    *bucket ;
+  MHB     *bin ;
 
   if (FZERO(l_repulse))
     return(NO_ERROR) ;
@@ -11893,10 +11972,15 @@ mrisComputeRepulsiveTerm(MRI_SURFACE *mris, double l_repulse)
     if (v->ripflag)
       continue ;
     x = v->x ; y = v->y ; z = v->z ; 
+    bucket = MHTgetBucket(mht, x, y, z) ;
+    if (!bucket)
+      continue ;
     sx = sy = sz = 0.0 ;
-    for (num = n = 0 ; n < v->vnum ; n++)
+    for (bin = bucket->bins, num = i = 0 ; i < bucket->nused ; i++, bin++)
     {
-      vn = &mris->vertices[v->v[n]] ;
+      if (bin->fno == vno)
+        continue ;  /* don't be repelled by myself */
+      vn = &mris->vertices[bin->fno] ;
       if (!vn->ripflag)
       {
         dx = vn->x - x ; dy = vn->y - y ; dz = vn->z - z ; 
@@ -11906,7 +11990,7 @@ mrisComputeRepulsiveTerm(MRI_SURFACE *mris, double l_repulse)
         {
           if (dist-REPULSE_E < min_d)
           {
-            min_vno = v->v[n] ;
+            min_vno = bin->fno ;
             min_d = dist-REPULSE_E ;
             min_scale = scale ;
           }
@@ -11920,12 +12004,10 @@ mrisComputeRepulsiveTerm(MRI_SURFACE *mris, double l_repulse)
       scale = l_repulse / (double)num ;
       sx *= scale ; sy *= scale ; sz *= scale ;
     }
-    v->dx += sx ;
-    v->dy += sy ;
-    v->dz += sz ;
+    v->dx += sx ; v->dy += sy ; v->dz += sz ;
     if (vno == Gdiag_no)
     {
-      vn = &mris->vertices[v->v[n]] ;
+      vn = &mris->vertices[min_vno] ;
       dx = x - vn->x ; dy = y - vn->y ; dz = z - vn->z ; 
 
       fprintf(stderr, "v %d repulse term:        (%2.3f, %2.3f, %2.3f)\n",
@@ -12304,6 +12386,85 @@ mrisComputeNonlinearAreaTerm(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
 
         Description
 ------------------------------------------------------*/
+static int
+mrisComputeSurfaceRepulsionTerm(MRI_SURFACE *mris, double l_repulse, MHT *mht)
+{
+  int     vno, max_vno, i ;
+  float   dx, dy, dz, x, y, z, sx, sy, sz,norm[3],dot;
+  float   max_scale, max_dot ;
+  double  scale ;
+  VERTEX  *v, *vn ;
+  MHBT    *bucket ;
+  MHB     *bin ;
+
+  if (FZERO(l_repulse))
+    return(NO_ERROR) ;
+
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    if (v->ripflag)
+      continue ;
+    if (vno == Gdiag_no)
+      DiagBreak() ;
+    x = v->x ; y = v->y ; z = v->z ; 
+    bucket = MHTgetBucket(mht, x, y, z) ;
+    if (!bucket)
+      continue ;
+    bin = bucket->bins ;
+    sx = sy = sz = 0.0 ;
+    max_dot = max_scale = 0.0 ; max_vno = 0 ;
+    for (i = 0 ; i < bucket->nused ; i++, bin++)
+    {
+      vn = &mris->vertices[bin->fno] ;
+      if (bin->fno == Gdiag_no)
+        DiagBreak() ;
+      if (vn->ripflag)
+        continue ;
+      dx = x - vn->origx ; dy = y - vn->origy ; dz = z - vn->origz ; 
+      mrisComputeOrigNormal(mris, bin->fno, norm) ;
+      dot = dx*norm[0] + dy*norm[1] + dz*norm[2] ;
+      if (dot < 0 && vno == Gdiag_no)
+        DiagBreak() ;
+      if (dot > MAX_NEG_RATIO)
+        dot = MAX_NEG_RATIO ;
+      else if (dot < -MAX_NEG_RATIO)
+        dot = -MAX_NEG_RATIO ;
+      scale = l_repulse / (1.0+exp(NEG_AREA_K*dot)) ;
+      if (scale > max_scale)
+      {
+        max_scale = scale ;
+        max_vno = bin->fno ;
+        max_dot = dot ;
+      }
+#if 0
+      sx += (scale*norm[0]) ; sy += (scale*norm[1]) ; sz += (scale*norm[2]) ;
+#else
+      sx += (scale*v->nx) ; sy += (scale*v->ny) ; sz += (scale*v->nz) ;
+#endif
+    }
+    
+    v->dx += sx ; v->dy += sy ; v->dz += sz ;
+    if (vno == Gdiag_no)
+    {
+      vn = &mris->vertices[max_vno] ;
+      dx = x - vn->x ; dy = y - vn->y ; dz = z - vn->z ; 
+
+      fprintf(stderr, "v %d repulse term:        (%2.3f, %2.3f, %2.3f)\n",
+              vno, sx, sy, sz) ;
+      fprintf(stderr, "max_scale @ %d = %2.2f, max dot = %2.2f\n", 
+              max_vno, max_scale, max_dot) ;
+    }
+  }
+  return(NO_ERROR) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
 #if 0
 static double
 mrisComputeAverageHeight(MRI_SURFACE *mris)
@@ -12454,18 +12615,12 @@ MRISreadVertexPositions(MRI_SURFACE *mris, char *name)
   VERTEX  *vertex ;
   FILE    *fp ;
 
-  type = mrisFileNameType(fname) ;
+  type = mrisFileNameType(name) ;
   MRISbuildFileName(mris, name, fname) ;
   if (type == MRIS_GEO_FILE)
     return(mrisReadGeoFilePositions(mris, fname)) ;
   else if (type == MRIS_ICO_FILE)
-#if 1
-    ErrorReturn(ERROR_UNSUPPORTED, 
-                (ERROR_UNSUPPORTED,
-                 "%s: reading ico file positions unsupported")) ;
-#else
-    return(mrisReadIcoFilePositions(mris, fname)) ;
-#endif
+    return(ICOreadVertexPositions(mris, fname, CURRENT_VERTICES)) ;
   fp = fopen(fname, "rb") ;
   if (!fp)
     ErrorReturn(ERROR_NOFILE,
@@ -13883,6 +14038,51 @@ MRISaverageCurvatures(MRI_SURFACE *mris, int navgs)
         Description
 ------------------------------------------------------*/
 int
+MRISaverageMarkedVals(MRI_SURFACE *mris, int navgs)
+{
+  int    i, vno, vnb, *pnb, vnum ;
+  float  val, num ;
+  VERTEX *v, *vn ;
+
+  for (i = 0 ; i < navgs ; i++)
+  {
+    for (vno = 0 ; vno < mris->nvertices ; vno++)
+    {
+      v = &mris->vertices[vno] ;
+      if (v->ripflag || v->marked == 0)
+        continue ;
+      val = v->val ;
+      pnb = v->v ;
+      vnum = v->vnum ;
+      for (num = 0.0f, vnb = 0 ; vnb < vnum ; vnb++)
+      {
+        vn = &mris->vertices[*pnb++] ;    /* neighboring vertex pointer */
+        if (vn->ripflag || vn->marked == 0)
+          continue ;
+        num++ ;
+        val += vn->val ;
+      }
+      num++ ;  /*  account for central vertex */
+      v->tdx = val / num ;
+    }
+    for (vno = 0 ; vno < mris->nvertices ; vno++)
+    {
+      v = &mris->vertices[vno] ;
+      if (v->ripflag || v->marked == 0)
+        continue ;
+      v->val = v->tdx ;
+    }
+  }
+  return(NO_ERROR) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
+int
 MRISaverageVals(MRI_SURFACE *mris, int navgs)
 {
   int    i, vno, vnb, *pnb, vnum ;
@@ -14792,9 +14992,12 @@ MRISpositionSurface(MRI_SURFACE *mris, MRI *mri_brain, MRI *mri_smooth,
   /*  char   *cp ;*/
   int    avgs, niterations, n, write_iterations, nreductions = 0, done ;
   double sse, delta_t = 0.0, rms, dt, l_intensity, base_dt, last_sse,last_rms;
-  MHT    *mht = NULL ;
+  MHT    *mht = NULL, *mht_v_orig = NULL, *mht_v_current = NULL ;
   struct timeb  then ; int msec ;
 
+  if (!FZERO(parms->l_surf_repulse))
+    mht_v_orig = MHTfillVertexTable(mris, NULL, ORIGINAL_VERTICES) ;
+    
   base_dt = parms->dt ;
   if (IS_QUADRANGULAR(mris))
     MRISremoveTriangleLinks(mris) ;
@@ -14864,18 +15067,21 @@ MRISpositionSurface(MRI_SURFACE *mris, MRI *mri_brain, MRI *mri_smooth,
       /*      l_intensity = 0.0f ;*/
     }
 #endif
+    if (!FZERO(parms->l_repulse))
+      mht_v_current = MHTfillVertexTable(mris, mht_v_current,CURRENT_VERTICES);
     if (!(parms->flags & IPFLAG_NO_SELF_INT_TEST))
       mht = MHTfillTable(mris, mht) ;
     mrisClearGradient(mris) ;
     mrisComputeIntensityTerm(mris, l_intensity, mri_brain, mri_smooth,
                              parms->sigma);
     mrisComputeIntensityGradientTerm(mris, parms->l_grad,mri_brain,mri_smooth);
+    mrisComputeSurfaceRepulsionTerm(mris, parms->l_surf_repulse, mht_v_orig);
     mrisAverageGradients(mris, avgs) ;
 
     /* smoothness terms */
     mrisComputeSpringTerm(mris, parms->l_spring) ;
     mrisComputeNormalizedSpringTerm(mris, parms->l_spring_norm) ;
-    mrisComputeRepulsiveTerm(mris, parms->l_repulse) ;
+    mrisComputeRepulsiveTerm(mris, parms->l_repulse, mht_v_current) ;
     mrisComputeThicknessSmoothnessTerm(mris, parms->l_repulse) ;
     mrisComputeNormalSpringTerm(mris, parms->l_nspring) ;
     mrisComputeQuadraticCurvatureTerm(mris, parms->l_curv) ;
@@ -14979,6 +15185,10 @@ MRISpositionSurface(MRI_SURFACE *mris, MRI *mri_brain, MRI *mri_smooth,
   /*  MHTcheckSurface(mris, mht) ;*/
   if (!(parms->flags & IPFLAG_NO_SELF_INT_TEST))
     MHTfree(&mht) ;
+  if (mht_v_current)
+    MHTfree(&mht_v_current) ;
+  if (mht_v_orig)
+    MHTfree(&mht_v_orig) ;
   return(NO_ERROR) ;
 }
 int
@@ -16867,7 +17077,8 @@ MRIScomputeBorderValues(MRI_SURFACE *mris,MRI *mri_brain,
           if no local max has been found, or this one has a greater magnitude,
           and it is in the right intensity range....
           */
-        if ((!local_max_found || (fabs(mag) > max_mag)) && 
+        if (
+            /*            (!local_max_found || (fabs(mag) > max_mag)) && */
             (fabs(mag) > fabs(previous_mag)) &&
             (fabs(mag) > fabs(next_mag)) &&
             (val <= border_hi) && (val >= border_low)
@@ -16878,7 +17089,14 @@ MRIScomputeBorderValues(MRI_SURFACE *mris,MRI *mri_brain,
           z = v->z + v->nz*(dist+1) ;
           MRIworldToVoxel(mri_brain, x, y, z, &xw, &yw, &zw) ;
           MRIsampleVolume(mri_brain, xw, yw, zw, &next_val) ;
-          if (next_val >= outside_low && next_val <= border_hi)
+          /*
+            if next val is in the right range, and the intensity at
+            this local max is less than the one at the previous local
+            max, assume it is the correct one.
+          */
+          if ((next_val >= outside_low) && 
+              (next_val <= border_hi) &&
+              (!local_max_found || (val < max_mag_val)))
           {          
             local_max_found = 1 ;
             max_mag_dist = dist ;
@@ -16971,8 +17189,13 @@ MRIScomputeBorderValues(MRI_SURFACE *mris,MRI *mri_brain,
         if (v->val < 0)
         {
           nalways_missing++ ;
+#if 0
           v->val = (border_low+border_hi)/2 ;
+#endif
+          v->marked = 0 ;
         }
+        else
+          v->marked = 1 ;
         nmissing++ ;
       }
     }
@@ -17002,7 +17225,6 @@ MRIScomputeBorderValues(MRI_SURFACE *mris,MRI *mri_brain,
 #if 0
   MRISsoapBubbleVals(mris, 100) ; 
 #endif
-  MRISclearMarks(mris) ;
 
   /*  MRISaverageVals(mris, 3) ;*/
   fprintf(stdout, 
@@ -17011,8 +17233,8 @@ MRIScomputeBorderValues(MRI_SURFACE *mris,MRI *mri_brain,
           mean_border, nmissing, nalways_missing, mean_dist, 
           mean_in, 100.0f*(float)nin/(float)nfound, 
           mean_out, 100.0f*(float)nout/(float)nfound) ;
-  fprintf(stdout, "%2.2f%% local maxima, %2.2f%% large gradients "
-          "and %2.2f%% min vals\n",
+  fprintf(stdout, "%%%2.2f local maxima, %%%2.2f large gradients "
+          "and %%%2.2f min vals\n",
           100.0f*(float)ngrad_max/(float)mris->nvertices,
           100.0f*(float)ngrad/(float)mris->nvertices,
           100.0f*(float)nmin/(float)mris->nvertices) ;
@@ -17024,8 +17246,8 @@ MRIScomputeBorderValues(MRI_SURFACE *mris,MRI *mri_brain,
             mean_border, nmissing, nalways_missing, mean_dist, 
             mean_in, 100.0f*(float)nin/(float)nfound, 
             mean_out, 100.0f*(float)nout/(float)nfound) ;
-    fprintf(log_fp, "%2.2f%% local maxima, %2.2f%% large gradients "
-            "and %2.2f%% min vals\n",
+    fprintf(log_fp, "%%%2.2f local maxima, %%%2.2f large gradients "
+            "and %%%2.2f min vals\n",
             100.0f*(float)ngrad_max/(float)mris->nvertices,
             100.0f*(float)ngrad/(float)mris->nvertices,
             100.0f*(float)nmin/(float)mris->nvertices) ;
