@@ -156,7 +156,10 @@ typedef struct vertex_type_
   float mean ;
   float mean_imag ;    /* imaginary part of complex statistic */
   float std_error ;
+	unsigned long flags ;
 } vertex_type, VERTEX ;
+
+#define VERTEX_SULCAL  0x00000001L
 
 typedef struct 
 {
@@ -904,6 +907,8 @@ int   MRISnormalize(MRI_SURFACE *mris, int dof, int which) ;
 int  MRIScopyMRI(MRIS *Surf, MRI *Src, int Frame, char *Field);
 MRI *MRIcopyMRIS(MRI *mri, MRIS *surf, int Frame, char *Field);
 MRI *MRISsmoothMRI(MRIS *Surf, MRI *Src, int nSmoothSteps, MRI *Targ);
+int  MRISclearFlags(MRI_SURFACE *mris, int flags) ;
+int  MRISsetFlags(MRI_SURFACE *mris, int flags) ;
 
 #endif
 

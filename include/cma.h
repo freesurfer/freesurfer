@@ -74,17 +74,31 @@
 #define   Right_Porg  70/*                            74  155   60     0   */
 #define   Right_Aorg  71/*                          122  135   50     0*/
 #define   Fifth_Ventricle 72                        156   25  250    0 */
-#define   Right_Temporal_Cerebral_White_Matter  73      /*  240  240  240     0 */
-#define   Left_Temporal_Cerebral_White_Matter  74       /* 240  240  240     0 */
-#define   Bone        80 /*  100 100 100 0 */                         
-#define   Fat         81 /*  255 255 255 0 */
-#define   Bright_Unknown  82   /* 100 240 240 0 */
-#define   Dark_Unknown    83   /* 20  100  100     0  */
-#define   Corpus_Callosum 84   /* 255 255 255 */
+#define   Left_Interior 73  /*                       122  135   50    0*/
+#define   Right_Interior 74  /*                      122  135   50    0*/
+#define   Left_Lateral_Ventricles 75  /*             120   18  134    0*/
+#define   Right_Lateral_Ventricles 76  /*            120   18  134    0*/
+#define   WM_hypointensities 77  /*                  124  140  178    0*/
+#define   Left_WM_hypointensities 78  /*             124  140  178    0*/
+#define   Right_WM_hypointensities 79  /*            124  140  178    0*/
+#define   non_WM_hypointensities 80  /*              164  108  226    0*/
+#define   Left_non_WM_hypointensities 81  /*         164  108  226    0*/
+#define   Right_non_WM_hypointensities 82  /*        164  108  226    0*/
+#define   Left_F1 83  /*                             255  218  185    0*/
+#define   Right_F1 84  /*                            255  218  185    0*/
+#define   Optic_Chiasm 85  /*                        234  169   30    0*/
+
+#define   Right_Temporal_Cerebral_White_Matter  186      /*  240  240  240     0 */
+#define   Left_Temporal_Cerebral_White_Matter  187       /* 240  240  240     0 */
+#define   Bone        188 /*  100 100 100 0 */                         
+#define   Fat         189 /*  255 255 255 0 */
+#define   Bright_Unknown  190   /* 100 240 240 0 */
+#define   Dark_Unknown    191   /* 20  100  100     0  */
+#define   Corpus_Callosum 192   /* 255 255 255 */
+#define   Not_Set         255
 
 
-
-#define IS_UNKNOWN(label)  (((label) == Unknown) || (label < 0) || (label == Bright_Unknown) || (label == Dark_Unknown))
+#define IS_UNKNOWN(label)  (((label) == Unknown) || (label == 255) || (label == Bright_Unknown) || (label == Dark_Unknown))
 
 #define IS_BRAIN(label)  (!IS_UNKNOWN(label) && (label != Fat) && (label != Bone))
 

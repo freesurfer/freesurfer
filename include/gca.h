@@ -47,7 +47,7 @@ typedef struct
   float   mean ;
   float   var ;
   float   **label_priors ;
-  char    **labels ;
+  unsigned char    **labels ;
   short   *nlabels;
   short   n_just_priors ;
   int     ntraining ;
@@ -57,7 +57,7 @@ typedef struct
 {
   short nlabels ;
   short max_labels ;
-  char  *labels ;
+  unsigned char  *labels ;
   float *priors ;
   int   total_training ;
 } GCA_PRIOR ;
@@ -66,7 +66,7 @@ typedef struct
 {
   int  nlabels ;
   int  max_labels ;   /* amount allocated */
-  char *labels ;
+  unsigned char *labels ;
   GC1D *gcs ;
   int  total_training ;  /* total # of times this node was was accessed */
 } GCA_NODE ;
@@ -186,8 +186,10 @@ MRI  *GCAlabelProbabilities(MRI *mri_inputs, GCA *gca, MRI *mri_dst, TRANSFORM *
 MRI  *GCAcomputeProbabilities(MRI *mri_inputs, GCA *gca, MRI *mri_labels, 
                               MRI *mri_dst, TRANSFORM *transform);
 
-int   GCAcomputeMAPlabelAtLocation(GCA *gca, int x, int y, int z, float val, int *pmax_n,
-                                   float *plog_p);
+int
+GCAcomputeMAPlabelAtLocation(GCA *gca, int xp, int yp, int zp, float val, 
+                             int *pmax_n, float *plog_p) ;
+int   GCAcomputeMLElabelAtLocation(GCA *gca, int x, int y, int z, float val, int *pmax_n,float *plog_p);
 MRI   *GCAconstrainLabelTopology(GCA *gca, MRI *mri_inputs, MRI *mri_src, 
                                  MRI *mri_dst, TRANSFORM *transform) ;
 MRI   *GCAexpandLabelIntoWM(GCA *gca, MRI *mri_inputs, MRI *mri_src,
@@ -244,6 +246,7 @@ int  GCApriorToSourceVoxelFloat(GCA *gca, MRI *mri, TRANSFORM *transform,
                                 int xp, int yp, int zp, 
                                 float *pxv, float *pyv, float *pzv) ;
 int GCArenormalizeFromAtlas(GCA *gca, GCA *gca_template) ;
+GC1D *GCAfindGC(GCA *gca, int x, int y, int z,int label) ;
 
 
 #define MIN_PRIOR  0.5
