@@ -747,6 +747,7 @@ histo_compute_joint_density/Makefile histo_register_block/Makefile scripts/Makef
 distribution/Makefile distribution/lib/Makefile distribution/lib/bem/Makefile distribution/average/Makefile \
 distribution/docs/Makefile mri_modify/Makefile \
 utils/test/Makefile \
+dummy/Makefile
  ) 
 
 

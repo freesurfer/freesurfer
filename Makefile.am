@@ -47,7 +47,7 @@ MISCDIRS=histo_compute_joint_density histo_register_block regdat2xfm brik2bfloat
 paint scripts images distribution
 
 SUBDIRS=unix dicom hipsstubs rgb utils log fsgdf $(MRISUBDIRS) $(MRISSUBDIRS) $(GLSUBDIRS) $(FSGDF) $(FSLUTILS) $(STATSDIRS) \
-$(MISCDIRS) scuba
+$(MISCDIRS) dummy scuba
 
 .PHONY: release uninstall-release
 
