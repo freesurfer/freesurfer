@@ -4,9 +4,9 @@
 
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2003/09/18 21:50:24 $
-// Revision       : $Revision: 1.177 $
-char *VERSION = "$Revision: 1.177 $";
+// Revision Date  : $Date: 2003/09/24 18:06:55 $
+// Revision       : $Revision: 1.178 $
+char *VERSION = "$Revision: 1.178 $";
 
 #define TCL
 #define TKMEDIT 
@@ -1027,7 +1027,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
      shorten our argc and argv count. If those are the only args we
      had, exit. */
   /* rkt: check for and handle version tag */
-  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.177 2003/09/18 21:50:24 kteich Exp $", "$Name:  $");
+  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.178 2003/09/24 18:06:55 kteich Exp $", "$Name:  $");
   if (nNumProcessedVersionArgs && argc - nNumProcessedVersionArgs == 1)
     exit (0);
   argc -= nNumProcessedVersionArgs;
@@ -2594,8 +2594,8 @@ void WriteVoxelToControlFile ( xVoxelRef iAnaIdx ) {
   DebugAssertThrowX( (NULL != file), eResult, tkm_tErr_ErrorAccessingFile );
   
   /* convert idx to ras */
-  eVolume = Volm_ConvertIdxToRAS( gAnatomicalVolume[tkm_tVolumeType_Main],
-          iAnaIdx, &ras );
+  eVolume = Volm_ConvertMRIIdxToRAS( gAnatomicalVolume[tkm_tVolumeType_Main],
+				     iAnaIdx, &ras );
   DebugAssertThrowX( (Volm_tErr_NoErr == eVolume), 
          eResult, tkm_tErr_ErrorAccessingVolume );
   
