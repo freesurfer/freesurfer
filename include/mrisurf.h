@@ -421,6 +421,8 @@ MRI_SP       *MRIStoParameterization(MRI_SURFACE *mris, MRI_SP *mrisp,
                                      float scale, int fno) ;
 MRI_SURFACE  *MRISfromParameterization(MRI_SP *mrisp, MRI_SURFACE *mris,
                                        int fno) ;
+MRI_SURFACE  *MRISnormalizeFromParameterization(MRI_SP *mrisp, 
+                                                MRI_SURFACE *mris, int fno) ;
 MRI_SP       *MRISgradientToParameterization(MRI_SURFACE *mris, MRI_SP *mrisp, 
                                      float scale) ;
 MRI_SURFACE  *MRISgradientFromParameterization(MRI_SP*mrisp,MRI_SURFACE *mris);
