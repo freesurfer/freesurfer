@@ -1,7 +1,7 @@
 #!/bin/csh -f
 # glmfourier
 
-set VERSION = '$Id: glmfourier,v 1.5 2004/10/06 20:42:43 greve Exp $'
+set VERSION = '$Id: glmfourier,v 1.6 2004/10/22 23:29:26 greve Exp $'
 set inputargs = ($argv);
 set ystem = ();
 set period = ();
@@ -103,7 +103,7 @@ if(synth)
   if(isempty(synthmatfile))
     fprintf('  synth ar1 = %g\n',synthar1);
     nacfsynth = synthar1.^[0:nf-1]';
-    Fn = chol(toeplitz(nacfsynth)');
+    Fn = chol(toeplitz(nacfsynth));
     y = Fn*randn(nf,nv);
   else
     fprintf('  synth mat  = %s\n',synthmatfile);
@@ -112,7 +112,7 @@ if(synth)
     for nthbin = 1:synthmat.nbins
       nacfsynth = synthmat.racfbinest(:,nthbin);
       %nacfsynth = rand.^[0:nf-1]';
-      Fn = chol(toeplitz(nacfsynth)');
+      Fn = chol(toeplitz(nacfsynth));
       indbin = find(synthmat.binmap==nthbin);
       nbin = length(indbin);
       if(isempty(indbin)) continue; end
