@@ -3139,7 +3139,7 @@ ImageExtract(IMAGE *Isrc, IMAGE *Idst, int x0, int y0,int dx, int dy)
                  dx, dy)) ;
 
   if (!Idst)
-    Idst = ImageAlloc(dy, dy, Isrc->pixel_format, Isrc->num_frame) ;
+    Idst = ImageAlloc(dy, dx, Isrc->pixel_format, Isrc->num_frame) ;
 
   x1 = x0 + dx ;
   y1 = y0 + dy ;
