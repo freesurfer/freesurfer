@@ -84,23 +84,19 @@ main(int argc, char *argv[])
   fprintf(stderr, "logging results to %s.log\n", parms.base_name) ;
 
   TimerStart(&start) ;
-  fprintf(stderr, "reading '%s'...", ref_fname) ;
+  fprintf(stderr, "reading '%s'...\n", ref_fname) ;
   fflush(stderr) ;
   mri_ref = MRIread(ref_fname) ;
   if (!mri_ref)
     ErrorExit(ERROR_NOFILE, "%s: could not open reference volume %s.\n",
               Progname, ref_fname) ;
-  fprintf(stderr, "done.\n") ;
-  fflush(stderr) ;
 
-  fprintf(stderr, "reading '%s'...", in_fname) ;
+  fprintf(stderr, "reading '%s'...\n", in_fname) ;
   fflush(stderr) ;
   mri_in = MRIread(in_fname) ;
   if (!mri_in)
     ErrorExit(ERROR_NOFILE, "%s: could not open input volume %s.\n",
               Progname, in_fname) ;
-  fprintf(stderr, "done.\n") ;
-  fflush(stderr) ;
   if (!transform_loaded)   /* wasn't preloaded */
     parms.lta = LTAalloc(1, mri_in) ;
 
