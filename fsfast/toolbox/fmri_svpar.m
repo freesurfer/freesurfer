@@ -7,7 +7,7 @@ function ok = fmri_svpar(par,parfile,label,trun)
 % on each row.  This name is looked up and appended to each
 % row of the paradigm file. trun is the duration of the run.
 %
-% $Id: fmri_svpar.m,v 1.1 2003/03/04 20:47:40 greve Exp $
+% $Id: fmri_svpar.m,v 1.2 2003/04/18 22:07:42 greve Exp $
 
 ok = 0;
 
@@ -39,9 +39,9 @@ for n = 1:nTP
     fprintf(fid,'%6.2f   %2d    %7.4f\n',t,c,dt);
   else
     if(c+1 <= size(label,1))
-      fprintf(fid,'%6.2f   %2d     %7.4f   %s\n',t,c,dt,label(c+1,:));
+      fprintf(fid,'%7.3f   %2d     %7.4f   %s\n',t,c,dt,label(c+1,:));
     else
-      fprintf(fid,'%6.2f   %2d     %7.4f   %s\n',t,c,dt,'unknown');
+      fprintf(fid,'%7.3f   %2d     %7.4f   %s\n',t,c,dt,'unknown');
     end
   end
 end
