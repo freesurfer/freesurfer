@@ -776,7 +776,7 @@ MRInormFindControlPoints(MRI *mri_src, int wm_target, float intensity_above,
                          float intensity_below, MRI *mri_ctrl, int which)
 {
   int     width, height, depth, x, y, z, xk, yk, zk, xi, yi, zi, *pxi, *pyi, 
-          *pzi, ctrl, nctrl, nfilled, too_low, total_filled, val0, val, n ;
+		*pzi, ctrl, nctrl, nfilled, too_low, total_filled, val0, val, n, whalf ;
   BUFTYPE low_thresh, hi_thresh ;
 	float   wm_val, gm_val, csf_val, mean_val, min_val, max_val, int_below_adaptive ;
 #if 0
@@ -800,6 +800,8 @@ MRInormFindControlPoints(MRI *mri_src, int wm_target, float intensity_above,
     homogenous regions.
   */
 #if 1
+  nctrl += MRInormAddFileControlPoints(mri_ctrl, 255) ;
+
 	MRInormFindControlPointsInWindow(mri_src, wm_target, 
 																	 1.5*intensity_above, 1.5*intensity_below, 
 																	 mri_ctrl, 3.0, "", &nctrl) ;
@@ -862,14 +864,15 @@ MRInormFindControlPoints(MRI *mri_src, int wm_target, float intensity_above,
 #endif
 #define WSIZE   7
 #define WHALF  ((WSIZE-1)/2)
+					whalf = ceil(WHALF / mri_src->xsize) ;
           ctrl = 128 ;
-          for (zk = -WHALF ; ctrl && zk <= WHALF ; zk++)
+          for (zk = -whalf ; ctrl && zk <= whalf ; zk++)
           {
             zi = pzi[z+zk] ;
-            for (yk = -WHALF ; ctrl && yk <= WHALF ; yk++)
+            for (yk = -whalf ; ctrl && yk <= whalf ; yk++)
             {
               yi = pyi[y+yk] ;
-              for (xk = -WHALF ; ctrl && xk <= WHALF ; xk++)
+              for (xk = -whalf ; ctrl && xk <= whalf ; xk++)
               {
                 xi = pxi[x+xk] ;
                 switch (mri_src->type)
@@ -928,14 +931,15 @@ MRInormFindControlPoints(MRI *mri_src, int wm_target, float intensity_above,
 #endif
 #define WSIZE   5
 #define WHALF  ((WSIZE-1)/2)
+					whalf = ceil(WHALF / mri_src->xsize) ;
           ctrl = 128 ;
-          for (zk = -WHALF ; ctrl && zk <= WHALF ; zk++)
+          for (zk = -whalf ; ctrl && zk <= whalf ; zk++)
           {
             zi = pzi[z+zk] ;
-            for (yk = -WHALF ; ctrl && yk <= WHALF ; yk++)
+            for (yk = -whalf ; ctrl && yk <= whalf ; yk++)
             {
               yi = pyi[y+yk] ;
-              for (xk = -WHALF ; ctrl && xk <= WHALF ; xk++)
+              for (xk = -whalf ; ctrl && xk <= whalf ; xk++)
               {
                 xi = pxi[x+xk] ;
                 switch (mri_src->type)
@@ -961,13 +965,30 @@ MRInormFindControlPoints(MRI *mri_src, int wm_target, float intensity_above,
   if (Gdiag & DIAG_SHOW)
     fprintf(stderr, "%d 5x5x5 control points found\n", nctrl) ;
 #endif
-
+	
   /*  add all voxels that neighbor a control point and are in a 3x3x3
       neighborhood that has unambiguous intensities 
       (should push things out close to the border).
   */
-  total_filled = 0 ;
-  do
+  total_filled = 0 ; 
+#ifdef WSIZE
+#undef WSIZE
+#endif
+#ifdef WHALF
+#undef WHALF
+#endif
+#define WSIZE   3
+#define WHALF  ((WSIZE-1)/2)
+	whalf = ceil(WHALF / mri_src->xsize) ;
+#if 0
+	if (mri_src->xsize < 0.9) // be more conservative for hires volumes
+	{
+		low_thresh = wm_target-intensity_below/2; 
+		hi_thresh =  wm_target+intensity_above/2;
+	}
+#endif
+
+	do
   {
 		if (which < 1)
 			break ;
@@ -991,13 +1012,13 @@ MRInormFindControlPoints(MRI *mri_src, int wm_target, float intensity_above,
 						n = 0 ; mean_val = min_val = max_val = 0.0 ;
             if (x == Gx && y == Gy && z == Gz)
               DiagBreak() ;
-            for (zk = -1 ; zk <= 1 && !too_low ; zk++)
+            for (zk = -whalf ; zk <= whalf && !too_low ; zk++)
             {
               zi = pzi[z+zk] ;
-              for (yk = -1 ; yk <= 1 && !too_low ; yk++)
+              for (yk = -whalf ; yk <= whalf && !too_low ; yk++)
               {
                 yi = pyi[y+yk] ;
-                for (xk = -1 ; xk <= 1 && !too_low ; xk++)
+                for (xk = -whalf ; xk <= whalf && !too_low ; xk++)
                 {
                   /*
                     check for any 27-connected neighbor that is a control
@@ -1013,7 +1034,7 @@ MRInormFindControlPoints(MRI *mri_src, int wm_target, float intensity_above,
                   }
                   if (val >= hi_thresh || val <= low_thresh)
                   {
-                    too_low = 1 ; ctrl = 0 ;
+                    too_low = 1 ; ctrl = 0 ; break ;
                   }
                   if ((abs(xk) + abs(yk) + abs(zk)) > 1)
                     continue ;  /* only allow 4 (6 in 3-d) connectivity */
@@ -1061,7 +1082,7 @@ MRInormFindControlPoints(MRI *mri_src, int wm_target, float intensity_above,
   } while (nfilled > 0) ;
   nctrl += total_filled ;
   if (Gdiag & DIAG_SHOW)
-    fprintf(stderr,"%d contiguous 3x3x3 control points added above %d\n",total_filled, low_thresh);
+    fprintf(stderr,"%d contiguous %dx%dx%d control points added above %d\n",total_filled, 2*whalf+1, 2*whalf+1, 2*whalf+1, low_thresh);
 	if (Gx >= 0)
 		printf("after 3x3x3 - (%d, %d, %d) is %sa control point\n", Gx, Gy, Gz, MRIvox(mri_ctrl, Gx, Gy,Gz) ? "" : "NOT ") ;
 
@@ -1076,7 +1097,9 @@ MRInormFindControlPoints(MRI *mri_src, int wm_target, float intensity_above,
 #endif
   total_filled = 0 ;
 	low_thresh = MAX(low_thresh, wm_target-intensity_below) ;
-  do
+
+	/* doesn't make sense to look for 6-connected nbrs if the voxel size is less than 1mm */
+	if (mri_src->xsize > 0.9)	do
   {
 		if (which  < 2)
 			break ;
@@ -1100,13 +1123,13 @@ MRInormFindControlPoints(MRI *mri_src, int wm_target, float intensity_above,
             if (x == Gx && y == Gy && z == Gz)
               DiagBreak() ;
             n = 0 ; mean_val = min_val = max_val = 0.0 ;
-            for (zk = -1 ; zk <= 1 && !too_low ; zk++)
+            for (zk = -whalf ; zk <= whalf && !too_low ; zk++)
             {
               zi = pzi[z+zk] ;
-              for (yk = -1 ; yk <= 1 && !too_low ; yk++)
+              for (yk = -whalf ; yk <= whalf && !too_low ; yk++)
               {
                 yi = pyi[y+yk] ;
-                for (xk = -1 ; xk <= 1 && !too_low ; xk++)
+                for (xk = -whalf ; xk <= whalf && !too_low ; xk++)
                 {
                   /*
                     check for any 27-connected neighbor that is a control
@@ -1120,7 +1143,7 @@ MRInormFindControlPoints(MRI *mri_src, int wm_target, float intensity_above,
                   case MRI_UCHAR: val = MRIvox(mri_src, xi, yi, zi) ; break ;
                   case MRI_SHORT: val = MRISvox(mri_src, xi, yi, zi) ; break ;
                   }
-                  if (MRIvox(mri_ctrl, xi, yi, zi))
+                  if (MRIvox(mri_ctrl, xi, yi, zi) && (abs(xk)<=1) && (abs(yk)<=1) && (abs(zk)<=1))
 									{
                     n++ ;   /* count # of 27-connected control points */
 										mean_val += val ;
@@ -1146,7 +1169,7 @@ MRInormFindControlPoints(MRI *mri_src, int wm_target, float intensity_above,
 							mean_val /= n ;
 							if ((val0 >= wm_target) || (mean_val-val0 < int_below_adaptive/2))
 							{
-/*								if (val0 >= wm_target || (max_val-min_val<int_below_adaptive))*/
+								/*								if (val0 >= wm_target || (max_val-min_val<int_below_adaptive))*/
 								{
 									ctrl = 1 ;
 									MRIvox(mri_ctrl, x, y, z) = 128 ;
@@ -1184,14 +1207,15 @@ MRInormFindControlPoints(MRI *mri_src, int wm_target, float intensity_above,
 #undef WSIZE
 #define WSIZE   9
 #define WHALF  ((WSIZE-1)/2)
+					whalf = ceil(WHALF / mri_src->xsize) ;
           ctrl = 128 ;
-          for (zk = -WHALF ; ctrl && zk <= WHALF ; zk++)
+          for (zk = -whalf ; ctrl && zk <= whalf ; zk++)
           {
             zi = pzi[z+zk] ;
-            for (yk = -WHALF ; ctrl && yk <= WHALF ; yk++)
+            for (yk = -whalf ; ctrl && yk <= whalf ; yk++)
             {
               yi = pyi[y+yk] ;
-              for (xk = -WHALF ; ctrl && xk <= WHALF ; xk++)
+              for (xk = -whalf ; ctrl && xk <= whalf ; xk++)
               {
                 xi = pxi[x+xk] ;
                 val = MRIgetVoxVal(mri_src, xi, yi, zi, 0) ;
@@ -1313,14 +1337,15 @@ MRInormFindControlPoints(MRI *mri_src, int wm_target, float intensity_above,
 #endif
 #define WSIZE   5
 #define WHALF  ((WSIZE-1)/2)
+				whalf = ceil(WHALF / mri_src->xsize) ;
 				ctrl = 128 ;
-				for (zk = -WHALF ; ctrl && zk <= WHALF ; zk++)
+				for (zk = -whalf ; ctrl && zk <= whalf ; zk++)
 				{
 					zi = pzi[z+zk] ;
-					for (yk = -WHALF ; ctrl && yk <= WHALF ; yk++)
+					for (yk = -whalf ; ctrl && yk <= whalf ; yk++)
 					{
 						yi = pyi[y+yk] ;
-						for (xk = -WHALF ; ctrl && xk <= WHALF ; xk++)
+						for (xk = -whalf ; ctrl && xk <= whalf ; xk++)
 						{
 							xi = pxi[x+xk] ;
 							val = MRIgetVoxVal(mri_src, xi, yi, zi, 0) ;
@@ -1370,7 +1395,7 @@ MRInormGentlyFindControlPoints(MRI *mri_src, int wm_target,
                                float intensity_below, MRI *mri_ctrl)
 {
   int     width, height, depth, x, y, z, xk, yk, zk, xi, yi, zi, *pxi, *pyi, 
-          *pzi, ctrl, nctrl, val0, val;
+          *pzi, ctrl, nctrl, val0, val, whalf = 0 ;
   BUFTYPE low_thresh, hi_thresh ;
 
   if (!wm_target)
@@ -1414,14 +1439,15 @@ MRInormGentlyFindControlPoints(MRI *mri_src, int wm_target,
 #endif
 #define WSIZE   7
 #define WHALF  ((WSIZE-1)/2)
+					whalf = ceil(WHALF / mri_src->xsize) ;
           ctrl = 128 ;
-          for (zk = -WHALF ; ctrl && zk <= WHALF ; zk++)
+          for (zk = -whalf ; ctrl && zk <= whalf ; zk++)
           {
             zi = pzi[z+zk] ;
-            for (yk = -WHALF ; ctrl && yk <= WHALF ; yk++)
+            for (yk = -whalf ; ctrl && yk <= whalf ; yk++)
             {
               yi = pyi[y+yk] ;
-              for (xk = -WHALF ; ctrl && xk <= WHALF ; xk++)
+              for (xk = -whalf ; ctrl && xk <= whalf ; xk++)
               {
                 xi = pxi[x+xk] ;
                 switch (mri_src->type)
@@ -1445,7 +1471,7 @@ MRInormGentlyFindControlPoints(MRI *mri_src, int wm_target,
     }
   }
   if (Gdiag & DIAG_SHOW)
-    fprintf(stderr, "%d 7x7x7 control points found\n", nctrl) ;
+    fprintf(stderr, "%d %dx%dx%d control points found\n", nctrl, 2*whalf+1, 2*whalf+1, 2*whalf+1) ;
 
   /*
     find points which are close to wm_target, and in x5x5x5 relatively
@@ -1481,14 +1507,15 @@ MRInormGentlyFindControlPoints(MRI *mri_src, int wm_target,
 #undef WSIZE
 #define WSIZE   5
 #define WHALF  ((WSIZE-1)/2)
+					whalf = ceil(WHALF / mri_src->xsize) ;
           ctrl = 128 ;
-          for (zk = -WHALF ; ctrl && zk <= WHALF ; zk++)
+          for (zk = -whalf ; ctrl && zk <= whalf ; zk++)
           {
             zi = pzi[z+zk] ;
-            for (yk = -WHALF ; ctrl && yk <= WHALF ; yk++)
+            for (yk = -whalf ; ctrl && yk <= whalf ; yk++)
             {
               yi = pyi[y+yk] ;
-              for (xk = -WHALF ; ctrl && xk <= WHALF ; xk++)
+              for (xk = -whalf ; ctrl && xk <= whalf ; xk++)
               {
                 xi = pxi[x+xk] ;
                 switch (mri_src->type)
@@ -1512,7 +1539,7 @@ MRInormGentlyFindControlPoints(MRI *mri_src, int wm_target,
     }
   }
   if (Gdiag & DIAG_SHOW)
-    fprintf(stderr, "%d 5x5x5 control points found above %d\n", nctrl, low_thresh) ;
+    fprintf(stderr, "%d %dx%dx%d control points found above %d\n", nctrl, 2*whalf+1, 2*whalf+1, 2*whalf+1, low_thresh) ;
 
 
 #undef WSIZE
@@ -1658,14 +1685,17 @@ MRIbuildBiasImage(MRI *mri_src, MRI *mri_ctrl, MRI *mri_bias, float sigma)
   fprintf(stderr, "performing soap bubble smoothing...\n") ;
 #if 1	
 	MRIconvolveGaussian(mri_bias, mri_bias, mri_kernel) ;
-	for (x = 0 ; x < mri_src->width ; x++)
+	if (mri_src->xsize > 0.9) /* replace smoothed bias with exact one for control points*/
 	{
-		for (y = 0 ; y < mri_src->height ; y++)
+		for (x = 0 ; x < mri_src->width ; x++)
 		{
-			for (z = 0 ; z < mri_src->depth ; z++)
+			for (y = 0 ; y < mri_src->height ; y++)
 			{
-				if (MRIvox(mri_ctrl,x,y,z) > 0)
-					MRIsetVoxVal(mri_bias,x,y,z, 0, MRIgetVoxVal(mri_src,x,y,z,0)) ;
+				for (z = 0 ; z < mri_src->depth ; z++)
+				{
+					if (MRIvox(mri_ctrl,x,y,z) > 0)
+						MRIsetVoxVal(mri_bias,x,y,z, 0, MRIgetVoxVal(mri_src,x,y,z,0)) ;
+				}
 			}
 		}
 	}
@@ -3411,8 +3441,9 @@ MRInormAddFileControlPoints(MRI *mri_ctrl, int value)
   {
     /*    if (!MRIvox(mri_ctrl, xctrl[i], yctrl[i], zctrl[i]))*/
     {
+			if (MRIvox(mri_ctrl, xctrl[i], yctrl[i], zctrl[i]) == 0)
+				nctrl++ ;
       MRIvox(mri_ctrl, xctrl[i], yctrl[i], zctrl[i]) = value ;
-      nctrl++ ;
     }
   }
   return(nctrl) ;
@@ -3421,7 +3452,7 @@ MRInormAddFileControlPoints(MRI *mri_ctrl, int value)
 static int
 remove_extreme_control_points(MRI *mri_orig, MRI *mri_ctrl, float low_thresh, float hi_thresh, float target_val, double wm_std)
 {
-	int       x, y, z, peak, nremoved, bin, xi, yi, zi, xk, yk, zk, remove, ncontrol ;
+	int       x, y, z, peak, nremoved, bin, xi, yi, zi, xk, yk, zk, remove, ncontrol, whalf, wsize ;
 	float     val, min_val, max_val, dist, max_nbr_val, intensity_below, val0, intensity_above, max_delta_above, max_delta_below,
             val_above, val_below, max_ctrl_val, min_ctrl_val ;
 	HISTOGRAM *h, *hsmooth ;
@@ -3429,13 +3460,15 @@ remove_extreme_control_points(MRI *mri_orig, MRI *mri_ctrl, float low_thresh, fl
 
 #define WSIZE 7
 #define WHALF ((WSIZE-1)/2)
+	wsize = ceil(WSIZE / mri_orig->xsize) ;
+	whalf = (wsize-1)/2 ;
 
 	intensity_below = target_val - low_thresh ;
 	intensity_above = hi_thresh - target_val ;
 	low_thresh = MIN(low_thresh, target_val - 4*wm_std) ;
 	printf("checking for control points more than %2.1f below nbrs, low=%2.1f\n",
 				 MAX(2*wm_std, intensity_below/2), low_thresh) ;
-	reg.dx = reg.dy = reg.dz = WSIZE ;
+	reg.dx = reg.dy = reg.dz = wsize ;
 	nremoved = 0 ;
 	max_delta_above = MAX(2*wm_std, intensity_above/2) ;
 	max_delta_below = MAX(2*wm_std, intensity_below/2) ;
@@ -3454,7 +3487,7 @@ remove_extreme_control_points(MRI *mri_orig, MRI *mri_ctrl, float low_thresh, fl
 					}
 					val = MRIgetVoxVal(mri_orig, x, y, z, 0) ;
 
-					reg.x = x-WHALF ; reg.y = y-WHALF ; reg.z = z-WHALF ;
+					reg.x = x-whalf ; reg.y = y-whalf ; reg.z = z-whalf ;
 					h = MRIhistogramLabelRegion(mri_orig, mri_ctrl, &reg, CONTROL_MARKED, 0) ;
 					hsmooth = HISTOsmooth(h, NULL, 2) ;
 					peak = HISTOfindHighestPeakInRegion(hsmooth, 0, hsmooth->nbins) ;
@@ -3525,15 +3558,16 @@ remove_extreme_control_points(MRI *mri_orig, MRI *mri_ctrl, float low_thresh, fl
 
 #define WSIZE 7
 #define WHALF ((WSIZE-1)/2)
+						whalf = ceil(WHALF / mri_orig->xsize) ;
 						if (remove == 0)
 						{
-							for (xk = -WHALF ; xk <= WHALF ; xk++)
+							for (xk = -whalf ; xk <= whalf ; xk++)
 							{
 								xi = mri_ctrl->xi[x+xk] ;
-								for (yk = -WHALF ; yk <= WHALF ; yk++)
+								for (yk = -whalf ; yk <= whalf ; yk++)
 								{
 									yi = mri_ctrl->yi[y+yk] ;
-									for (zk = -WHALF ; zk <= WHALF ; zk++)
+									for (zk = -whalf ; zk <= whalf ; zk++)
 									{
 										zi = mri_ctrl->zi[z+zk] ;
 										if (xi == Gx && yi == Gy && zi == Gz)
@@ -3608,11 +3642,12 @@ remove_extreme_control_points(MRI *mri_orig, MRI *mri_ctrl, float low_thresh, fl
 static double
 mriNormComputeWMStandardDeviation(MRI *mri_orig, MRI *mri_ctrl)
 {
-	int       x, y, z, xi, yi, zi, xk, yk, zk, num ;
+	int       x, y, z, xi, yi, zi, xk, yk, zk, num, whalf ;
 	double    wm_std, val0, val ;
 
 #define WSIZE 7
 #define WHALF ((WSIZE-1)/2)
+	whalf = ceil(WHALF / mri_orig->xsize) ;
 	for (num = x = 0, wm_std = 0.0 ; x < mri_orig->width ; x++)
 	{
 		for (y = 0 ; y < mri_orig->height ; y++)
@@ -3627,13 +3662,13 @@ mriNormComputeWMStandardDeviation(MRI *mri_orig, MRI *mri_ctrl)
 						DiagBreak() ;
 					}
 					val0 = MRIgetVoxVal(mri_orig, x, y, z, 0) ;
-					for (xk = -WHALF ; xk <= WHALF ; xk++)
+					for (xk = -whalf ; xk <= whalf ; xk++)
 					{
 						xi = mri_ctrl->xi[x+xk] ;
-						for (yk = -WHALF ; yk <= WHALF ; yk++)
+						for (yk = -whalf ; yk <= whalf ; yk++)
 						{
 							yi = mri_ctrl->yi[y+yk] ;
-							for (zk = -WHALF ; zk <= WHALF ; zk++)
+							for (zk = -whalf ; zk <= whalf ; zk++)
 							{
 								zi = mri_ctrl->zi[z+zk] ;
 								if (xi == Gx && yi == Gy && zi == Gz)
@@ -3667,7 +3702,7 @@ remove_gray_matter_control_points(MRI *mri_ctrl, MRI *mri_src, float wm_target, 
 {
 	MRI    *mri_ctrl_outside, *mri_ctrl_inside, *mri_tmp = NULL ;
 	int    n, x, y, z, xi, yi, zi, xk, yk, zk, nremoved, removed, num, nretained,
-		     nclose_to_csf = 0 ;
+		     nclose_to_csf = 0, whalf ;
 	double delta_mean, delta_std ;
 	float  val0, val, hi_thresh, csf_val, wm_val, gm_val, low_thresh ;
 	static int ncalls = 0 ;
@@ -3711,6 +3746,7 @@ remove_gray_matter_control_points(MRI *mri_ctrl, MRI *mri_src, float wm_target, 
 #endif
 #define WSIZE 9
 #define WHALF ((WSIZE-1)/2)
+	whalf = ceil(WHALF / mri_src->xsize) ;
 
 	if ((Gdiag & DIAG_WRITE) && DIAG_VERBOSE_ON)
 	{
@@ -3744,13 +3780,13 @@ remove_gray_matter_control_points(MRI *mri_ctrl, MRI *mri_src, float wm_target, 
 				if (MRIvox(mri_ctrl_inside,x,y,z)) /* check to make sure not in gm */
 				{
 					val0 = MRIgetVoxVal(mri_src, x, y, z, 0) ;
-					for (xk = -WHALF ; xk <= WHALF ; xk++)
+					for (xk = -whalf ; xk <= whalf ; xk++)
 					{
 						xi = mri_src->xi[x+xk] ;
-						for (yk = -WHALF ; yk <= WHALF ; yk++)
+						for (yk = -whalf ; yk <= whalf ; yk++)
 						{
 							yi = mri_src->yi[y+yk] ;
-							for (zk = -WHALF ; zk <= WHALF ; zk++)
+							for (zk = -whalf ; zk <= whalf ; zk++)
 							{
 								zi = mri_src->zi[z+zk] ;
 								if (MRIvox(mri_ctrl_inside, xi, yi, zi))
@@ -3800,13 +3836,13 @@ remove_gray_matter_control_points(MRI *mri_ctrl, MRI *mri_src, float wm_target, 
 						n = removed = 0 ;
 					if (val0 > low_thresh)  /* pretty certain it's wm regardless */
 						continue ;
-					if (!removed) for (xk = -WHALF ; xk <= WHALF ; xk++)
+					if (!removed) for (xk = -whalf ; xk <= whalf ; xk++)
 					{
 						xi = mri_src->xi[x+xk] ;
-						for (yk = -WHALF ; yk <= WHALF ; yk++)
+						for (yk = -whalf ; yk <= whalf ; yk++)
 						{
 							yi = mri_src->yi[y+yk] ;
-							for (zk = -WHALF ; zk <= WHALF ; zk++)
+							for (zk = -whalf ; zk <= whalf ; zk++)
 							{
 								zi = mri_src->zi[z+zk] ;
 								if (MRIvox(mri_ctrl, xi, yi, zi))
@@ -3880,7 +3916,7 @@ csf_in_window(MRI *mri, int x0, int y0, int z0, float max_dist, float csf)
 	int   xi, yi, zi, xk, yk, zk, whalf ;
 	float val, dx, dy, dz, dist ;
 
-	whalf = nint(max_dist) ;
+	whalf = nint(max_dist/mri->xsize) ;
 	if (x0 == Gx && y0 == Gy && z0 == Gz)
 		DiagBreak() ;
 	if (mri->type == MRI_UCHAR)
