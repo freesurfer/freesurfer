@@ -575,7 +575,9 @@ if ((total_d > 10000.0) || (vertex->curv > 1000.0))
     }
     mrisp->Ip = Itmp ;
     ImageFree(&Ip) ;
-    npasses++ ;
+    if (npasses++ > 1000)
+      ErrorExit(ERROR_BADFILE, "MRISPtoParameterization: could not fill "
+                "parameterization") ;
   } while (unfilled > 0) ;
   if ((Gdiag & DIAG_SHOW) && DIAG_VERBOSE_ON)
     fprintf(stderr, "filling %d elements took %d passes\n",
