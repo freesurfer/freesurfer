@@ -53,7 +53,7 @@ main(int argc, char *argv[])
   struct timeb start ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_edit_segmentation.c,v 1.6 2003/04/15 20:47:29 kteich Exp $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_edit_segmentation.c,v 1.7 2003/06/13 15:27:55 fischl Exp $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -94,7 +94,7 @@ main(int argc, char *argv[])
   mri_out_labeled = edit_hippocampus(mri_in_labeled, mri_T1, NULL);
   edit_amygdala(mri_out_labeled, mri_T1, mri_out_labeled);
   edit_caudate(mri_out_labeled, mri_T1, mri_out_labeled);
-  edit_lateral_ventricles(mri_out_labeled, mri_T1, mri_out_labeled);
+  edit_lateral_ventricles(mri_out_labeled, mri_T1, mri_out_labeled);  /* must be after hippo */
   edit_cortical_gray_matter(mri_out_labeled, mri_T1, mri_out_labeled);
 
   printf("writing output volume to %s...\n", out_fname) ;
@@ -179,15 +179,39 @@ static MRI *
 edit_hippocampus(MRI *mri_in_labeled, MRI *mri_T1, MRI *mri_out_labeled)
 {
   int   width, height, depth, x, y, z, nchanged, dleft, label,  
-        dright, dpos, dant, dup, ddown, i, left, dgray, dhippo, dwhite ;
+        dright, dpos, dant, dup, ddown, i, left, dgray, dhippo, dwhite, olabel ;
   MRI   *mri_tmp ;
 
   nchanged = 0 ;
 
-  mri_out_labeled = MRIcopy(mri_in_labeled, mri_out_labeled) ;
-  mri_tmp = MRIcopy(mri_out_labeled, NULL) ;
-
   width = mri_T1->width ; height = mri_T1->height ; depth = mri_T1->depth ;
+
+  mri_out_labeled = MRIcopy(mri_in_labeled, mri_out_labeled) ;
+
+	/* change all gm within 2 mm of ventricle to wm */
+	for (z = 0 ; z < depth ; z++)
+	{
+		for (y = 0 ; y < height ; y++)
+		{
+			for (x = 0 ; x < width ; x++)
+			{
+				if (x == Gx && y == Gy && z == Gz)  
+					DiagBreak() ;
+				label = MRIvox(mri_out_labeled, x, y, z) ;
+				if (IS_GM(label) == 0)
+					continue ;
+				left = label == Left_Cerebral_Cortex ;
+				olabel = left ? Left_Lateral_Ventricle : Right_Lateral_Ventricle;
+				if (MRIneighborsInWindow(mri_out_labeled, x, y, z, 5, olabel) >= 1)
+				{
+					nchanged++ ;
+					MRIvox(mri_out_labeled, x, y, z) = left ? Left_Cerebral_White_Matter : Right_Cerebral_White_Matter;
+				}
+			}
+		}
+	}
+
+  mri_tmp = MRIcopy(mri_out_labeled, NULL) ;
 
   /* change gray to hippocampus based on wm */
   for (i = 0 ; i < 3 ; i++)
@@ -489,6 +513,71 @@ edit_hippocampus(MRI *mri_in_labeled, MRI *mri_T1, MRI *mri_out_labeled)
     }
     MRIcopy(mri_tmp, mri_out_labeled) ;
   }
+
+	/* make gray matter that is superior to hippocampus into hippocampus */
+	for (z = 0 ; z < depth ; z++)
+	{
+		for (y = 0 ; y < height ; y++)
+		{
+			for (x = 0 ; x < width ; x++)
+			{
+				int yi ;
+
+				if (x == Gx && y == Gy && z == Gz)
+					DiagBreak() ;
+				label = MRIvox(mri_out_labeled, x, y, z) ;
+				if (!IS_HIPPO(label))
+					continue ;
+				left = label == Left_Hippocampus ;
+
+				/* search for first non-hippocampal voxel */
+				for (yi = y-1 ; yi >= 0 ; yi--)
+				{
+					label = MRIvox(mri_out_labeled, x, yi, z) ;
+					if (!IS_HIPPO(label))
+						break ;
+				}
+				i = 0 ;
+				while (IS_GM(label) && yi >= 0)
+				{
+					nchanged++ ;
+					MRIvox(mri_out_labeled, x, yi, z) = left ? Left_Hippocampus : Right_Hippocampus;
+					yi-- ;
+					label = MRIvox(mri_out_labeled, x, yi, z) ;
+					if (++i >= 4)
+						break ;  /* don't let it go too far */
+				}
+
+			}
+		}
+	}
+
+
+	/* go through and change wm labels that have hippo both above and below them to hippo */
+	for (z = 0 ; z < depth ; z++)
+	{
+		for (y = 0 ; y < height ; y++)
+		{
+			for (x = 0 ; x < width ; x++)
+			{
+				if (x == Gx && y == Gy && z == Gz)  
+					DiagBreak() ;
+				label = MRIvox(mri_tmp, x, y, z) ;
+				if (x == 160 && y == 127 && z == 118)
+					DiagBreak() ;
+				
+				if (!IS_WM(label))
+					continue ;
+				left = label == Left_Cerebral_White_Matter ;
+				if (IS_HIPPO(MRIvox(mri_out_labeled, x, mri_out_labeled->yi[y-1], z)) &&
+						IS_HIPPO(MRIvox(mri_out_labeled, x, mri_out_labeled->yi[y+1], z)))
+				{
+					nchanged++ ;
+					MRIvox(mri_out_labeled, x, y, z) = left ? Left_Hippocampus : Right_Hippocampus;
+				}
+			}
+		}
+	}
 
   MRIfree(&mri_tmp) ;
   printf("%d hippocampal voxels changed.\n", nchanged) ;
@@ -804,7 +893,7 @@ static MRI *
 edit_lateral_ventricles(MRI *mri_in_labeled, MRI *mri_T1, MRI *mri_out_labeled)
 {
   int   width, height, depth, x, y, z, nchanged, label, total_changed, 
-        left, niter, change, dvent, dwhite ;
+        left, niter, change, dvent, dwhite, olabel ;
   MRI   *mri_tmp ;
 
   mri_out_labeled = MRIcopy(mri_in_labeled, mri_out_labeled) ;
@@ -875,6 +964,30 @@ edit_lateral_ventricles(MRI *mri_in_labeled, MRI *mri_T1, MRI *mri_out_labeled)
     total_changed += nchanged ;
   } while ((nchanged > 0) && (++niter < 1)) ;
 
+	/* change all gm within 2 mm of ventricle to wm */
+	for (z = 0 ; z < depth ; z++)
+	{
+		for (y = 0 ; y < height ; y++)
+		{
+			for (x = 0 ; x < width ; x++)
+			{
+				if (x == Gx && y == Gy && z == Gz)  
+					DiagBreak() ;
+				label = MRIvox(mri_out_labeled, x, y, z) ;
+				if (IS_GM(label) == 0)
+					continue ;
+				left = label == Left_Cerebral_Cortex ;
+				olabel = left ? Left_Lateral_Ventricle : Right_Lateral_Ventricle;
+				if (MRIneighborsInWindow(mri_out_labeled, x, y, z, 5, olabel) >= 1)
+				{
+					total_changed++ ;
+					MRIvox(mri_out_labeled, x, y, z) = left ? Left_Cerebral_White_Matter : Right_Cerebral_White_Matter;
+				}
+			}
+		}
+	}
+
+          
   MRIfree(&mri_tmp) ;
   printf("%d unknown voxels bordering ventricles changed to wm.\n", 
          total_changed) ;
