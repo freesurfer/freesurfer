@@ -420,9 +420,6 @@ MRIpolvMedianRegion(MRI *mri_src, MRI *mri_dst,MRI *mri_polv,int wsize,
       pptr = &MRIvox(mri_polv, x0, y, z) ;      /* ptr to normal vectors */
       for (x = x0 ; x < width ; x++)
       {
-if (DEBUG_POINT(x,y,z))
-  DiagBreak() ;
-
         vertex = *pptr++ ;
         e1_x = e1_x_v[vertex] ;  /* basis vectors for plane */
         e1_y = e1_y_v[vertex] ;
