@@ -3,9 +3,9 @@
 // original: written by Bruce Fischl (Apr 16, 1997)
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2004/02/26 19:03:02 $
-// Revision       : $Revision: 1.85 $
+// Revision Author: $Author: tosa $
+// Revision Date  : $Date: 2004/03/08 23:12:20 $
+// Revision       : $Revision: 1.86 $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -219,7 +219,7 @@ int main(int argc, char *argv[])
   nskip = 0;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_convert.c,v 1.85 2004/02/26 19:03:02 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_convert.c,v 1.86 2004/03/08 23:12:20 tosa Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -1386,6 +1386,38 @@ int main(int argc, char *argv[])
 	// in LTAtransform()
 	// question is what to do when transform src info is invalid.
 	lt = &lta_transform->xforms[0];
+	if (lt->src.valid==0)
+	{
+	  char buf[512];
+	  char *p;
+	  MRI *mriOrig;
+
+	  fprintf(stderr, "INFO: Trying to get the source volume information from the transform name\n");
+	  // copy transform filename
+	  strcpy(buf, transform_fname);
+	  // reverse look for the first '/' 
+	  p = strrchr(buf, '/');
+	  if (p != 0)
+	  {
+	    p++;
+	    *p = '\0'; // set the terminator. i.e.  ".... mri/transforms" from "..../mri/transforms/talairach.xfm"
+	  }
+	  else // no / present means only a filename is given
+	  {
+	    strcpy(buf, "./");
+	  }  
+	  strcat(buf, "../orig"); // go to mri/orig from mri/transforms/
+	  // check whether we can read header info or not
+	  mriOrig = MRIreadHeader(buf, MRI_VOLUME_TYPE_UNKNOWN);
+	  if (mriOrig)
+	  {
+	    getVolGeom(mriOrig, &lt->src);
+	  }
+	  else
+	    fprintf(stderr, "INFO: failed to find %s as a source volume. The inverse c_(ras) may not be valid.\n",
+		    buf);
+
+	}
 	copyVolGeom(&lt->dst, &vgtmp);
 	copyVolGeom(&lt->src, &lt->dst);
 	copyVolGeom(&vgtmp, &lt->src);
