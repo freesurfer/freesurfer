@@ -17,6 +17,7 @@
 #define sparc 1
 #include <stdarg.h>
 #include <stdlib.h>
+#include <string.h>
 #include <math.h>
 
 #include "xwin.h"
