@@ -12,7 +12,7 @@
 #include "mri.h"
 #include "macros.h"
 
-static char vcid[] = "$Id: mris_make_template.c,v 1.3 1998/03/18 16:22:58 fischl Exp $";
+static char vcid[] = "$Id: mris_make_template.c,v 1.4 2000/04/04 16:37:17 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -294,7 +294,7 @@ get_option(int argc, char *argv[])
   {
   case 'W':
     Gdiag |= DIAG_WRITE ;
-    if (isdigit(*argv[2]))
+    if (isdigit((int)*argv[2]))
       nargs = 1 ;
     break ;
   case 'S':
