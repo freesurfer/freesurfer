@@ -38,21 +38,25 @@ typedef struct {
   MRI *data;
 } GROUPDESCRIPTOR, FSGD;
 
-FSGD *gdfAlloc(int version);
-int   gdfFree(FSGD **ppgd);
-FSGD *gdfRead(char *gdfname, int LoadData);
-int   gdfPrintHeader(FILE *fp, FSGD *gd);
+FSGD   *gdfAlloc(int version);
+int     gdfFree(FSGD **ppgd);
+FSGD   *gdfRead(char *gdfname, int LoadData);
+int     gdfPrintHeader(FILE *fp, FSGD *gd);
 int     gdfCheckMatrixMethod(char *gd2mtx_method);
-int   gdfPrint(FILE *fp, FSGD *gd);
-int   gdfPrintStdout(FSGD *gd);
-int gdfCheckMatrixMethod(char *gd2mtx_method);
+int     gdfPrint(FILE *fp, FSGD *gd);
+int     gdfPrintStdout(FSGD *gd);
+int     gdfCheckMatrixMethod(char *gd2mtx_method);
 MATRIX *gdfMatrixDOSS(FSGD *gd, MATRIX *X);
 MATRIX *gdfMatrixDODS(FSGD *gd, MATRIX *X);
+MATRIX *gdfContrastDODS(FSGD *fsgd, float *wClass, float *wCovar);
 MATRIX *gdfMatrix(FSGD *gd, char *gd2mtx_method, MATRIX *X);
-int gdfOffsetSlope(FSGD *gd, int classno, int varno, 
+int     gdfOffsetSlope(FSGD *gd, int classno, int varno, 
 		   int c, int r, int s, float *offset, float *slope);
 int gdfCountItemsOnLine(FILE *fp);
 int gdfCountItemsInString(char *str);
+int gdfClassNo(FSGD *gd, char *class);
+int gdfGetVarLabelNo(FSGD *gd, char *LabelName);
+int gdfStringIndex(char *str, char **list, int nlist);
 
 int gdfGetTitle(FSGD *gd, char *title);
 int gdfGetMeasurementName(FSGD *gd, char *name);
@@ -73,6 +77,10 @@ int gdfGetNthSubjectNthValue(FSGD *gd, int nsubject,
 			     int nvariable, float *value);
 int gdfGetNthSubjectMeasurement(FSGD *gd, int nsubject, 
 				int x, int y, int z, float *value);
+
+FSGD *gdfSubSet(FSGD *infsgd, int nClasses, char **ClassList,
+		int nVars, char **VarList);
+char **gdfCopySubjIdppc(FSGD *fsgd);
 
 #endif //#ifndef FSGDF_INC
 
