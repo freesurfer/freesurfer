@@ -336,7 +336,7 @@ puts "Douglas N. Greve, Ph.D., MGH-NMR Center"
 puts ""
 puts "VERSION"
 puts ""
-puts {$Id: unpacksdcmdir,v 1.9 2003/04/14 23:14:18 greve Exp $}
+puts {$Id: unpacksdcmdir,v 1.10 2003/05/31 01:52:23 greve Exp $}
 
 exit 1;
 
@@ -803,7 +803,7 @@ if [catch {open $LogFile w} LF] {
 }
 puts "INFO: Logfile is $LogFile"
 puts $LF "Log file created by unpacksdcmdir"
-puts $LF {$Id: unpacksdcmdir,v 1.9 2003/04/14 23:14:18 greve Exp $};
+puts $LF {$Id: unpacksdcmdir,v 1.10 2003/05/31 01:52:23 greve Exp $};
 puts $LF "$LogFile"
 puts $LF [pwd];
 puts $LF [exec date];
@@ -1160,14 +1160,14 @@ foreach runcfg $unpackcfg {
 
     puts $LF "------- mri_convert -------------"
     set cnvcmd [list $mriconvert $DCMSource $OutFile --sdcmlist $flf \
-                  -ot $Fmt --nspmzeropad $nspmzeropad];
+               -ot $Fmt --nspmzeropad $nspmzeropad --in_type siemens_dicom];
     puts $LF $cnvcmd
     puts $LF "-----------------------"
 
     if { ! $noexec } {
       set err [catch {exec -keepnewline \
           $mriconvert $DCMSource $OutFile --sdcmlist $flf -ot $Fmt \
-                      --nspmzeropad $nspmzeropad \
+                      --nspmzeropad $nspmzeropad --in_type siemens_dicom\
                        >&@ $LF } mriconvlog];
       puts $LF $mriconvlog;
       if { $err } {
