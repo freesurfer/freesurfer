@@ -618,6 +618,202 @@ MRIboundingBoxNbhd(MRI *mri, int thresh, int wsize,MRI_REGION *box)
 
         Description
 ------------------------------------------------------*/
+#define MIN_DARK 10
+
+int
+MRIfindApproximateSkullBoundingBox(MRI *mri, int thresh,MRI_REGION *box)
+{
+  int      width, height, depth, x, y, z, x1, y1, z1, ndark, max_dark, start ;
+  double   means[3] ;
+
+  width = mri->width ; height = mri->height ; depth = mri->depth ;
+
+  MRIcenterOfMass(mri, means, thresh) ;
+
+
+  /* search for left edge */
+  ndark = max_dark = 0 ; 
+  y = nint(means[1]) ; z = nint(means[2]) ;
+  for (start = x1 = x = nint(means[0]) ; x >= 0 ; x--)
+  {
+    if (MRIvox(mri, x, y, z) < thresh)
+    {
+      if (!ndark)
+        start = x ;
+      ndark++ ;
+    }
+    else
+    {
+      ndark = 0 ;
+      if (ndark > max_dark)
+      {
+        max_dark = ndark ; x1 = start ;
+      }
+    }
+  }
+  if (ndark > max_dark)
+  {
+    max_dark = ndark ;
+    x1 = start ;
+  }
+  if (max_dark < MIN_DARK)
+    x1 = 0 ;
+  box->x = x1 ;
+
+  /* search for right edge */
+  ndark = max_dark = 0 ; 
+  y = nint(means[1]) ; z = nint(means[2]) ;
+  for (start = x1 = x = nint(means[0]) ; x < width ; x++)
+  {
+    if (MRIvox(mri, x, y, z) < thresh)
+    {
+      if (!ndark)
+        start = x ;
+      ndark++ ;
+    }
+    else
+    {
+      ndark = 0 ;
+      if (ndark >= max_dark)
+      {
+        max_dark = ndark ; x1 = start ;
+      }
+    }
+  }
+  if (ndark > max_dark)
+  {
+    max_dark = ndark ;
+    x1 = start ;
+  }
+  if (max_dark < MIN_DARK)
+    x1 = mri->width-1 ;
+  box->dx = x1 - box->x + 1 ;
+
+  /* search for inferior edge */
+  ndark = max_dark = 0 ; 
+  x = nint(means[0]) ; z = nint(means[2]) ;
+  for (start = y1 = y = nint(means[1]) ; y >= 0 ; y--)
+  {
+    if (MRIvox(mri, x, y, z) < thresh)
+    {
+      if (!ndark)
+        start = y ;
+      ndark++ ;
+    }
+    else
+    {
+      ndark = 0 ;
+      if (ndark >= max_dark)
+      {
+        max_dark = ndark ; y1 = start ;
+      }
+    }
+  }
+  if (ndark > max_dark)
+  {
+    max_dark = ndark ;
+    y1 = start ;
+  }
+  if (max_dark < MIN_DARK)
+    y1 = 0 ;
+  box->y = y1 ;
+
+  /* search for superior edge */
+  ndark = max_dark = 0 ; 
+  x = nint(means[0]) ; z = nint(means[2]) ;
+  for (start = y = y1 = nint(means[1]) ; y < height ; y++)
+  {
+    if (MRIvox(mri, x, y, z) < thresh)
+    {
+      if (!ndark)
+        start = y ;
+      ndark++ ;
+    }
+    else
+    {
+      ndark = 0 ;
+      if (ndark >= max_dark)
+      {
+        max_dark = ndark ; y1 = start ;
+      }
+    }
+  }
+  if (ndark > max_dark)
+  {
+    max_dark = ndark ;
+    y1 = start ;
+  }
+  if (max_dark < MIN_DARK)
+    y1 = mri->height-1 ;
+  box->dy = y1 - box->y + 1 ;
+
+  /* search for posterior edge */
+  ndark = max_dark = 0 ; 
+  x = nint(means[0]) ; y = nint(means[1]) ;
+  for (z1 = start = z = nint(means[2]) ; z >= 0 ; z--)
+  {
+    if (MRIvox(mri, x, y, z) < thresh)
+    {
+      if (!ndark)
+        start = z ;
+      ndark++ ;
+    }
+    else
+    {
+      ndark = 0 ;
+      if (ndark >= max_dark)
+      {
+        max_dark = ndark ; z1 = start ;
+      }
+    }
+  }
+  if (ndark > max_dark)
+  {
+    max_dark = ndark ;
+    z1 = start ;
+  }
+  if (max_dark < MIN_DARK)
+    z1 = 0 ;
+  box->z = z1 ;
+
+  /* search for anterior edge */
+  ndark = max_dark = 0 ; 
+  x = nint(means[0]) ; y = nint(means[1]) ;
+  for (start = z = nint(means[2]) ; z < depth ; z++)
+  {
+    if (MRIvox(mri, x, y, z) < thresh)
+    {
+      if (!ndark)
+        start = z ;
+      ndark++ ;
+    }
+    else
+    {
+      ndark = 0 ;
+      if (ndark >= max_dark)
+      {
+        max_dark = ndark ; z1 = start ;
+      }
+    }
+  }
+  if (ndark > max_dark)
+  {
+    max_dark = ndark ;
+    z1 = start ;
+  }
+  if (max_dark < MIN_DARK)
+    z1 = mri->depth-1 ;
+  box->dz = z1 - box->z + 1 ;
+
+  return(NO_ERROR) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
 int
 MRIboundingBox(MRI *mri, int thresh, MRI_REGION *box)
 {
