@@ -24,11 +24,12 @@ char *Surf_ksaVertexSets [Surf_knNumVertexSets] = {
 static xVoxel sTmpVertex;
 
 Surf_tErr Surf_New ( mriSurfaceRef*  opSurface,
-		     char*           isFileName,
-		     mriTransformRef iTransform ) {
+		     char*           isFileName ) {
   
-  mriSurfaceRef this    = NULL;
-  Surf_tErr     eResult = Surf_tErr_NoErr;
+  mriSurfaceRef   this     = NULL;
+  Surf_tErr       eResult  = Surf_tErr_NoErr;
+  mriTransformRef transform = NULL;
+  MATRIX*         identity = NULL;
   
   /* allocate us */
   this = (mriSurfaceRef) malloc( sizeof( mriSurface ) );
@@ -50,9 +51,6 @@ Surf_tErr Surf_New ( mriSurfaceRef*  opSurface,
   /* set longest face to nothing */
   this->mfLongestEdge = 0;
   
-  /* copy the transformation */
-  Trns_DeepClone( iTransform, &this->mTransform );
-  
   /* set the loaded flags */
   this->mabVertexSetLoaded[ Surf_tVertexSet_Main ]     = TRUE; 
   this->mabVertexSetLoaded[ Surf_tVertexSet_Original ] = FALSE;
@@ -70,12 +68,17 @@ Surf_tErr Surf_New ( mriSurfaceRef*  opSurface,
     goto error;
   }
   
-  /* convert our surface */
-  Surf_ConvertSurfaceToClientSpace_( this, Surf_tVertexSet_Main );
-  
   /* save the file name. */
   this->msFileName = strdup( isFileName );
-  
+
+  /* Start with identity transform. */
+  identity = MatrixIdentity( 4, NULL );
+  Trns_New( &transform );
+  Trns_CopyAtoRAS( transform, identity );
+  Trns_CopyBtoRAS( transform, identity );
+  Trns_CopyARAStoBRAS( transform, identity );
+  Surf_SetTransform( this, transform );
+
   /* return us. */
   *opSurface = this;
   
@@ -93,8 +96,11 @@ Surf_tErr Surf_New ( mriSurfaceRef*  opSurface,
     DebugPrint( ("Error %d in Surf_New: %s\n",
 		 eResult, Surf_GetErrorString( eResult ) ) );
   }
-  
+
  cleanup:
+  
+  if( NULL != transform )
+    Trns_Delete( &transform );
   
   return eResult;
 }
@@ -139,6 +145,35 @@ Surf_tErr Surf_Delete ( mriSurfaceRef* iopSurface ) {
   
   if( Surf_tErr_NoErr != eResult ) {
     DebugPrint( ("Error %d in Surf_Delete: %s\n",
+		 eResult, Surf_GetErrorString( eResult ) ) );
+  }
+  
+ cleanup:
+  
+  return eResult;
+}
+
+Surf_tErr Surf_SetTransform ( mriSurfaceRef this,
+			      mriTransformRef iTransform ) {
+
+  Surf_tErr eResult = Surf_tErr_NoErr;
+  
+  eResult = Surf_Verify( this );
+  if( Surf_tErr_NoErr != eResult ) 
+    goto error;
+
+  /* copy the transformation */
+  Trns_DeepClone( iTransform, &this->mTransform );
+  
+  /* convert our surface */
+  Surf_ConvertSurfaceToClientSpace_( this, Surf_tVertexSet_Main );
+  
+  goto cleanup;
+  
+ error:
+  
+  if( Surf_tErr_NoErr != eResult ) {
+    DebugPrint( ("Error %d in Surf_SetTransform: %s\n",
 		 eResult, Surf_GetErrorString( eResult ) ) );
   }
   
@@ -937,6 +972,32 @@ Surf_tErr Surf_GetSurfaceSetName ( Surf_tVertexSet iSet,
 		 eResult, Surf_GetErrorString( eResult ) ) );
   }
   
+ cleanup:
+  
+  return eResult;
+}
+
+
+Surf_tErr Surf_UsesRealRAS ( mriSurfaceRef this,
+			     tBoolean*     obUseRealRAS ) {
+
+  Surf_tErr eResult = Surf_tErr_NoErr;
+
+  eResult = Surf_Verify( this );
+  if( Surf_tErr_NoErr != eResult ) 
+    goto error;
+
+  /* Return the useRealRAS flag. */
+  *obUseRealRAS = this->mSurface->useRealRAS;
+
+  goto cleanup;
+  
+ error:
+  
+  if( Surf_tErr_NoErr != eResult ) {
+    DebugPrint( ("Error %d in Surf_UsesRealRAS: %s\n",
+		 eResult, Surf_GetErrorString( eResult ) ) );
+  }
  cleanup:
   
   return eResult;
