@@ -12,7 +12,7 @@
 #include "mrimorph.h"
 #include "timer.h"
 
-static char vcid[] = "$Id: mri_fill.c,v 1.31 1999/08/13 23:10:20 fischl Exp $";
+static char vcid[] = "$Id: mri_fill.c,v 1.32 1999/08/16 19:17:19 fischl Exp $";
 
 /*-------------------------------------------------------------------
                                 CONSTANTS
@@ -1336,6 +1336,9 @@ find_pons(MRI *mri, Real *p_ponsx, Real *p_ponsy, Real *p_ponsz, int x_cc)
     y-- ; bheight++ ;
     for (x = width-1 ; !MRIvox(mri_filled,x,y,0) && (x >= 0) ; x--)
     {}
+
+    if (x < 0)   /* sometimes pons is disconnected at cleft */
+      x = (xstart-thickness) / 2 ;
 
     if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
       fprintf(stderr, "slice %d, xstart %d\n", y, x) ;
