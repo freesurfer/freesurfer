@@ -93,16 +93,16 @@ float betai(float a, float b, float x)
 
 /* End from numrec_c */
 
+#ifdef MGH_GSL
 double sigt(double t,int df)
 {
   double sig;
   // Use 2* for two-tailed test, compatible with old version of sigt().
   sig = 2*gsl_cdf_tdist_Q(t,(double)df) ;
-  //printf("t = %g, df=%d, sig = %g\n",t,df,sig);
+  printf("t = %g, df=%d, sig = %g\n",t,df,sig);
   return(sig);
 }
-
-#if 0
+#else
 #define MAXT    30.0
 #define MAXDOF 200
 /* note, everything here is Doug's fault */
