@@ -348,6 +348,10 @@ int   MRItalairachToVoxel(MRI *mri, Real xt, Real yt, Real zt,
 
 int   MRItransformRegion(MRI *mri_src, MRI *mri_dst, MRI_REGION *src_region,
                                  MRI_REGION *dst_region) ;
+MRI  *MRIextractArbitraryPlane(MRI *mri_src, MRI *mri_dst, 
+                               Real e1_x, Real e1_y, Real e1_z, 
+                               Real e2_x, Real e2_y, Real e2_z, 
+                               int x, int y, int z, int wsize);
 MRI   *MRIextractTalairachPlane(MRI *mri_src, MRI *mri_dst, int orientation, 
                                 int x, int y, int z, int size) ;
 int   MRIeraseTalairachPlane(MRI *mri, MRI *mri_mask, int orientation, 
@@ -502,7 +506,7 @@ MRI   *MRImask(MRI *mri_src, MRI *mri_mask, MRI *mri_dst, BUFTYPE mask,
 #define OFFSET_ZERO                           2
 
 /* anything below this is not white matter */
-#define WM_MIN_VAL                       2 
+#define WM_MIN_VAL                       5 
 #define WM_EDITED_ON_VAL                 255
 #define WM_EDITED_OFF_VAL                1
 
@@ -643,6 +647,9 @@ int  MRIcomputeClassStatistics(MRI *mri_T1, MRI *mri_labeled,
 #define TRI_LOW_STATS            4
 #define TRI_OFF_STATS            6
 
+
+#define REMOVE_1D          2
+#define REMOVE_WRONG_DIR   3
 
 #define BASAL_GANGLIA_FILL   50
 #define THICKEN_FILL         200
