@@ -2,7 +2,7 @@
    DICOM 3.0 reading functions
    Author: Sebastien Gicquel and Douglas Greve
    Date: 06/04/2001
-   $Id: DICOMRead.c,v 1.68 2004/09/30 20:36:55 tosa Exp $
+   $Id: DICOMRead.c,v 1.69 2004/10/01 16:24:54 tosa Exp $
 *******************************************************/
 
 #include <stdio.h>
@@ -364,7 +364,7 @@ MRI * sdcmLoadVolume(char *dcmfile, int LoadVolume, int nthonly)
 ---------------------------------------------------------------*/
 DCM_ELEMENT *GetElementFromFile(char *dicomfile, long grpid, long elid)
 {
-  DCM_OBJECT *object;
+  DCM_OBJECT *object=0;
   CONDITION cond;
   DCM_ELEMENT *element;
   DCM_TAG tag;
@@ -406,7 +406,7 @@ DCM_ELEMENT *GetElementFromFile(char *dicomfile, long grpid, long elid)
 DCM_OBJECT *GetObjectFromFile(char *fname, unsigned long options)
 {
   CONDITION cond;
-  DCM_OBJECT *object;
+  DCM_OBJECT *object=0;
   int ok;
   
   //printf("     GetObjectFromFile(): %s %ld\n",fname,options);
@@ -1265,7 +1265,7 @@ int sdcmIsMosaic(char *dcmfile, int *pNcols, int *pNrows, int *pNslices, int *pN
   ----------------------------------------------------------------*/
 SDCMFILEINFO *GetSDCMFileInfo(char *dcmfile)
 {
-  DCM_OBJECT *object;
+  DCM_OBJECT *object=0;
   SDCMFILEINFO *sdcmfi;
   CONDITION cond;
   DCM_TAG tag;
