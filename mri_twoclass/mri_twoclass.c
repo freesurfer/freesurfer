@@ -17,18 +17,13 @@
 #include "sig.h"
 #include "label.h"
 #include "cma.h"
+#include "vlabels.h"
 
-static char vcid[] = "$Id: mri_twoclass.c,v 1.2 2001/06/19 17:46:40 fischl Exp $";
+static char vcid[] = "$Id: mri_twoclass.c,v 1.3 2001/06/22 18:40:01 fischl Exp $";
 
 
 /*-------------------------------- STRUCTURES ----------------------------*/
 
-typedef struct 
-{
-  unsigned short nlabels ;
-  unsigned char *labels ;
-  unsigned short *counts ;
-} VOXEL_LABELS, VL ;
 
 /*-------------------------------- CONSTANTS -----------------------------*/
 
@@ -38,6 +33,8 @@ typedef struct
 
 /*-------------------------------- PROTOTYPES ----------------------------*/
 
+static char *read_fname1 = NULL ;
+static char *read_fname2 = NULL ;
 static int Gxv = -1 ;
 static int Gyv = -1 ;
 static int Gzv = -1 ;
@@ -78,7 +75,8 @@ static char *read_dir = NULL ;
 static char *test_subject = NULL ;
 static char *label_name = NULL ;
 static char *prefix = "" ;
-
+static char *vl1_name = NULL, *vl2_name = NULL ;
+static int output_bfloats = 1 ;
 static int bonferroni = 0 ;
 static char subjects_dir[STRLEN] ;
 
@@ -92,13 +90,14 @@ main(int argc, char *argv[])
                *cp, *subject_name, *out_fname,
                **c1_subjects, **c2_subjects, *output_subject ;
   int          ac, nargs, n, num_class1, num_class2, i, width, height, depth, 
-               x, y, awidth, aheight, adepth ;
+               awidth, aheight, adepth ;
   LABEL        *area ;
   struct timeb start ;
   int          msec, minutes, seconds ;
   VL           ***voxel_labels_class1 = NULL, ***voxel_labels_class2=NULL, 
                ***vls ;
   LTA          *lta ;
+  VLI          *vli1 = NULL, *vli2 = NULL ;
   
 
   Progname = argv[0] ;
@@ -221,26 +220,13 @@ main(int argc, char *argv[])
         awidth = width/resolution ;
         aheight = height/resolution ;
         adepth = depth/resolution ;
-        voxel_labels_class1 = (VL ***)calloc(awidth, sizeof(VL **)) ;
-        voxel_labels_class2 = (VL ***)calloc(awidth, sizeof(VL **)) ;
-        if (!voxel_labels_class1 || !voxel_labels_class2)
+        vli1 = VLalloc(awidth, aheight, adepth, resolution) ;
+        vli2 = VLalloc(awidth, aheight, adepth, resolution) ;
+        if (!vli1 || !vli2)
           ErrorExit(ERROR_NOMEMORY, "%s: could not allocate VL ***", Progname);
-        for (x = 0 ; x < awidth ; x++)
-        {
-          voxel_labels_class1[x] = (VL **)calloc(aheight, sizeof(VL *)) ;
-          voxel_labels_class2[x] = (VL **)calloc(aheight, sizeof(VL *)) ;
-          if (!voxel_labels_class1[x] || !voxel_labels_class2[x])
-            ErrorExit(ERROR_NOMEMORY, "%s: could not allocate  VL ** %d", 
-                      Progname,x) ;
-          for (y = 0 ; y < aheight ; y++)
-          {
-            voxel_labels_class1[x][y] = (VL *)calloc(adepth, sizeof(VL)) ;
-            voxel_labels_class2[x][y] = (VL *)calloc(adepth, sizeof(VL)) ;
-            if (!voxel_labels_class1[x][y] || !voxel_labels_class2[x][y])
-              ErrorExit(ERROR_NOMEMORY,"%s: could not allocate  VL * %d,%d",
-                        Progname,x,y);
-          }
-        }
+        
+        voxel_labels_class1 = vli1->vl ;
+        voxel_labels_class2 = vli2->vl ;
       }
 
       vls = n < num_class1 ? voxel_labels_class1 : voxel_labels_class2 ;
@@ -255,13 +241,24 @@ main(int argc, char *argv[])
                              awidth, aheight, adepth, resolution,
                              num_class1, num_class2, NULL) ;
   sprintf(fname, "%s/%s/mri/%s", subjects_dir,output_subject,out_fname);
-#if 0
   printf("writing stats to %s...\n", fname) ;
-  MRIwrite(mri_stats, fname) ;
-#else
-  printf("writing stats to %s...\n", fname) ;
-  write_bfloats(mri_stats, fname, output_subject) ;
-#endif
+
+  if (!output_bfloats)
+    MRIwrite(mri_stats, fname) ;
+  else
+    write_bfloats(mri_stats, fname, output_subject) ;
+
+  if (vl1_name && stricmp(vl1_name, "none"))
+  {
+    printf("writing voxel labels for group 1 to %s...\n", vl1_name) ;
+    VLwrite(vli1, vl1_name) ;
+  }
+  if (vl2_name && stricmp(vl2_name, "none"))
+  {
+    printf("writing voxel labels for group 1 to %s...\n", vl1_name) ;
+    VLwrite(vli2, vl2_name) ;
+  }
+
   msec = TimerStop(&start) ;
   seconds = nint((float)msec/1000.0f) ;
   minutes = seconds / 60 ;
@@ -310,11 +307,26 @@ get_option(int argc, char *argv[])
     nargs = 3 ;
     printf("debugging voxel (%d, %d, %d)\n", Gxn,Gyn,Gzn) ;
   }
+  else if (!stricmp(option, "WRITE_LABELS"))
+  {
+    vl1_name = argv[2] ;
+    vl2_name = argv[3] ;
+    nargs = 2 ;
+    printf("writing voxel labels to %s and %s\n", vl1_name, vl2_name) ;
+  }
   else if (!stricmp(option, "sdir"))
   {
     strcpy(subjects_dir, argv[2]) ;
     fprintf(stderr, "using subjects_dir %s\n", subjects_dir) ; 
     nargs = 1 ;
+  }
+  else if (!stricmp(option, "read"))
+  {
+    read_fname1 = argv[2] ;
+    read_fname2 = argv[3] ;
+    printf("reading precomputed voxel labels from %s and %s\n",
+           read_fname1, read_fname2) ;
+    nargs = 2 ;
   }
   else switch (toupper(*option))
   {
@@ -633,8 +645,8 @@ compute_voxel_statistics(VL ***voxel_labels_class1, VL ***voxel_labels_class2,
         p = sigchisq(chisq, dof-1) ;
         if (DZERO(p) || p < 0)
         {
-          p = 1e-15 ;
-          MRIFvox(mri_stats, x, y, z) = 15 ;
+          p = 1e-20 ;
+          MRIFvox(mri_stats, x, y, z) = 20 ;
         }
         else
         {
