@@ -3,7 +3,7 @@
 #
 
 AM_CPPFLAGS=$(GLUT_CFLAGS) $(TCL_CFLAGS) $(tcl_includes) -I$(top_srcdir)/include -I$(top_srcdir)/dicom
-AM_LDFLAGS=-L$(top_srcdir)/lib
+AM_LDFLAGS=-L$(top_srcdir)/lib $(LDFLAGS_TCL)
 
 UTILITIES_SRCS=Volume3.cpp \
 	Point2.cpp \
