@@ -1,6 +1,6 @@
 #!/bin/tcsh
 #
-# $Id: mkfsdistall,v 1.2 2003/07/23 22:23:45 kteich Exp $
+# $Id: mkfsdistall,v 1.3 2003/07/25 18:14:01 kteich Exp $
 
 
 if ( $#argv < 2 ) then
@@ -155,7 +155,7 @@ tar czf $DISTRO_DIR/freesurfer-$DATE-$OS-Update.tar.gz freesurfer-$DATE
 
 
 pushd $DISTRO_DIR/$OS/full
-$MKFSDIST $DISTRO_DIR/freesurfer $DISTRO_DIR/$OS/update/freesurfer-$DATE $OS
+$MKFSDIST $DISTRO_DIR/freesurfer $DISTRO_DIR/$OS/full/freesurfer-$DATE $OS
 tar czf $DISTRO_DIR/freesurfer-$DATE-$OS.tar.gz freesurfer-$DATE
 
 end
