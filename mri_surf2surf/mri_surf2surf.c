@@ -1,6 +1,6 @@
 /*----------------------------------------------------------
   Name: mri_vol2surf.c
-  $Id: mri_surf2surf.c,v 1.1 2001/02/06 17:58:53 greve Exp $
+  $Id: mri_surf2surf.c,v 1.2 2001/02/07 21:55:57 greve Exp $
   Author: Douglas Greve
   Purpose: Resamples data from one surface onto another. If
   both the source and target subjects are the same, this is
@@ -43,7 +43,7 @@ int GetNVtxsFromValFile(char *filename, char *fmt);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_surf2surf.c,v 1.1 2001/02/06 17:58:53 greve Exp $";
+static char vcid[] = "$Id: mri_surf2surf.c,v 1.2 2001/02/07 21:55:57 greve Exp $";
 char *Progname = NULL;
 
 char *surfreg = "sphere.reg";
@@ -144,10 +144,10 @@ int main(int argc, char **argv)
     for(vtx = 0; vtx < SrcSurfReg->nvertices; vtx++){
       MRIFseq_vox(SrcVals,vtx,0,0,0) = SrcSurfReg->vertices[vtx].curv;
       if(vtx == cavtx){
-	printf("vtx = %d, curv = %g, val = %g\n",vtx,
-	       SrcSurfReg->vertices[vtx].curv,
-	       MRIFseq_vox(SrcVals,vtx,0,0,0));
-	DiagBreak();
+  printf("vtx = %d, curv = %g, val = %g\n",vtx,
+         SrcSurfReg->vertices[vtx].curv,
+         MRIFseq_vox(SrcVals,vtx,0,0,0));
+  DiagBreak();
       }
     }
   }
@@ -162,7 +162,7 @@ int main(int argc, char **argv)
     if(SrcVals->width != SrcSurfReg->nvertices){
       fprintf(stderr,"ERROR: dimesion inconsitency in source data\n");
       fprintf(stderr,"       Number of surface vertices = %d\n",
-	      SrcSurfReg->nvertices);
+        SrcSurfReg->nvertices);
       fprintf(stderr,"       Number of value vertices = %d\n",SrcVals->width);
       exit(1);
     }
@@ -172,9 +172,9 @@ int main(int argc, char **argv)
       if(sxa == NULL) exit(1);
       framepower = sxa_framepower(sxa,&f);
       if(f != SrcVals->nframes){
-	fprintf(stderr," number of frames is incorrect (%d,%d)\n",
-		f,SrcVals->nframes);
-	exit(1);
+  fprintf(stderr," number of frames is incorrect (%d,%d)\n",
+    f,SrcVals->nframes);
+  exit(1);
       }
       printf("INFO: Adjusting Frame Power\n");  fflush(stdout);
       mri_framepower(SrcVals,framepower);
@@ -208,8 +208,8 @@ int main(int argc, char **argv)
     /* Map the values from the surface to surface */
     printf("Mapping Source Volume onto Source Subject Surface\n");
     TrgVals = surf2surf_nnfr(SrcVals, SrcSurfReg,TrgSurfReg,
-			     &SrcHits,&SrcDist,&TrgHits,&TrgDist,
-			     ReverseMapFlag,UseHash);
+           &SrcHits,&SrcDist,&TrgHits,&TrgDist,
+           ReverseMapFlag,UseHash);
     
     
     /* Compute some stats on the mapping number of srcvtx mapping to a target vtx*/
@@ -224,7 +224,7 @@ int main(int argc, char **argv)
     if(nTrgMulti > 0) MnTrgMultiHits = (MnTrgMultiHits/nTrgMulti);
     else              MnTrgMultiHits = 0;
     printf("nTrg121 = %5d, nTrgMulti = %5d, MnTrgMultiHits = %g\n",
-	   nTrg121,nTrgMulti,MnTrgMultiHits);
+     nTrg121,nTrgMulti,MnTrgMultiHits);
     
     /* Compute some stats on the mapping number of trgvtxs mapped from a source vtx*/
     nSrc121 = 0;
@@ -241,34 +241,34 @@ int main(int argc, char **argv)
     else              MnSrcMultiHits = 0;
     
     printf("nSrc121 = %5d, nSrcLost = %5d, nSrcMulti = %5d, MnSrcMultiHits = %g\n",
-	   nSrc121,nSrcLost,nSrcMulti,MnSrcMultiHits);
+     nSrc121,nSrcLost,nSrcMulti,MnSrcMultiHits);
     
     /* save the Source Hits into a .w file */
     if(SrcHitFile != NULL){
       printf("INFO: saving source hits to %s\n",SrcHitFile);
       for(vtx = 0; vtx < SrcSurfReg->nvertices; vtx++)
-	SrcSurfReg->vertices[vtx].val = MRIFseq_vox(SrcHits,vtx,0,0,0) ;
+  SrcSurfReg->vertices[vtx].val = MRIFseq_vox(SrcHits,vtx,0,0,0) ;
       MRISwriteValues(SrcSurfReg, SrcHitFile) ;
     }
     /* save the Source Distance into a .w file */
     if(SrcDistFile != NULL){
       printf("INFO: saving source distance to %s\n",SrcDistFile);
       for(vtx = 0; vtx < SrcSurfReg->nvertices; vtx++)
-	SrcSurfReg->vertices[vtx].val = MRIFseq_vox(SrcDist,vtx,0,0,0) ;
+  SrcSurfReg->vertices[vtx].val = MRIFseq_vox(SrcDist,vtx,0,0,0) ;
       MRISwriteValues(SrcSurfReg, SrcDistFile) ;
     }
     /* save the Target Hits into a .w file */
     if(TrgHitFile != NULL){
       printf("INFO: saving target hits to %s\n",TrgHitFile);
       for(vtx = 0; vtx < TrgSurfReg->nvertices; vtx++)
-	TrgSurfReg->vertices[vtx].val = MRIFseq_vox(TrgHits,vtx,0,0,0) ;
+  TrgSurfReg->vertices[vtx].val = MRIFseq_vox(TrgHits,vtx,0,0,0) ;
       MRISwriteValues(TrgSurfReg, TrgHitFile) ;
     }
     /* save the Target Hits into a .w file */
     if(TrgDistFile != NULL){
       printf("INFO: saving target distance to %s\n",TrgDistFile);
       for(vtx = 0; vtx < TrgSurfReg->nvertices; vtx++)
-	TrgSurfReg->vertices[vtx].val = MRIFseq_vox(TrgDist,vtx,0,0,0) ;
+  TrgSurfReg->vertices[vtx].val = MRIFseq_vox(TrgDist,vtx,0,0,0) ;
       MRISwriteValues(TrgSurfReg, TrgDistFile) ;
     }
   }
@@ -367,8 +367,8 @@ static int parse_commandline(int argc, char **argv)
       if(nargc < 1) argnerr(option,1);
       trgfmt = pargv[0];
       if(!strcmp(trgfmt,"curv")){
-	fprintf(stderr,"ERROR: Cannot select curv as target format\n");
-	exit(1);
+  fprintf(stderr,"ERROR: Cannot select curv as target format\n");
+  exit(1);
       }
       nargsused = 1;
     }
@@ -393,8 +393,8 @@ static int parse_commandline(int argc, char **argv)
       if(nargc < 1) argnerr(option,1);
       mapmethod = pargv[0];
       if(strcmp(mapmethod,"nnfr") && strcmp(mapmethod,"nnf")){
-	fprintf(stderr,"ERROR: mapmethod must be nnfr or nnf\n");
-	exit(1);
+  fprintf(stderr,"ERROR: mapmethod must be nnfr or nnf\n");
+  exit(1);
       }
       nargsused = 1;
     }
@@ -421,7 +421,7 @@ static int parse_commandline(int argc, char **argv)
     else{
       fprintf(stderr,"ERROR: Option %s unknown\n",option);
       if(singledash(option))
-	fprintf(stderr,"       Did you really mean -%s ?\n",option);
+  fprintf(stderr,"       Did you really mean -%s ?\n",option);
       exit(-1);
     }
     nargc -= nargsused;
@@ -602,7 +602,7 @@ int GetNVtxsFromValFile(char *filename, char *fmt)
   if(!strcmp(fmt,"bvolume") || !strcmp(fmt,"bfloat") ||
      !strcmp(fmt,"bshort")  || !strcmp(fmt,"bfile")){
     err = bf_getvoldim(filename,&nrows,&ncols,
-		       &nslcs,&nfrms,&endian,&type);
+           &nslcs,&nfrms,&endian,&type);
     if(err) exit(1);
     if(nrows != 1 || nslcs != 1){
       fprintf(stderr,"ERROR: bvolume %s not a surface value file\n",filename);
@@ -623,7 +623,7 @@ int GetICOOrderFromValFile(char *filename, char *fmt)
   IcoOrder = IcoOrderFromNVtxs(nIcoVtxs);
   if(IcoOrder < 0){
     fprintf(stderr,"ERROR: number of vertices = %d, does not mach ico\n",
-	    nIcoVtxs);
+      nIcoVtxs);
     exit(1);
 
   }
