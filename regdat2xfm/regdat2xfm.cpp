@@ -31,9 +31,9 @@ MATRIX *getRAS2RegRAS(MRI *mri)
   // stupid one
   *MATRIX_RELT(i2regRAS, 1, 1) = -mri->xsize ; 
   *MATRIX_RELT(i2regRAS, 1, 4) = (mri->xsize)*(mri->width)/2.;
-  *MATRIX_RELT(i2regRAS, 2, 3) = -mri->ysize ; 
+  *MATRIX_RELT(i2regRAS, 2, 3) =  mri->ysize ; 
   *MATRIX_RELT(i2regRAS, 2, 4) = -(mri->zsize)*(mri->depth)/2;
-  *MATRIX_RELT(i2regRAS, 3, 2) = mri->zsize ;  
+  *MATRIX_RELT(i2regRAS, 3, 2) = -mri->zsize ;  
   *MATRIX_RELT(i2regRAS, 3, 4) = (mri->zsize)*(mri->height)/2;
   *MATRIX_RELT(i2regRAS, 4, 4) = 1 ;
 
@@ -55,13 +55,35 @@ int main(int argc, char *argv[])
   MRI *src = MRIread(argv[1]);
   MRI *dst = MRIread(argv[2]);
   // get the mri2frmi
-  MATRIX *regSrc2Dest = 0;
+  MATRIX *regSrc2Dest = MatrixAlloc(4,4, MATRIX_REAL);
   int type = TransformFileNameType(argv[3]);
   if (type == REGISTER_DAT)
   {
-    fMRI_REG *reg = StatReadRegistration(argv[3]);
-    MatrixCopy(reg->mri2fmri, regSrc2Dest);
-    StatFreeRegistration(&reg);
+    FILE *fp = fopen(argv[3], "r");
+    float r1,r2,r3,r4;
+    char *cp;
+    char line[STRLEN];
+    cp = fgetl(line, 199, fp);
+    cp = fgetl(line, 199, fp);
+    cp = fgetl(line, 199, fp);
+    cp = fgetl(line, 199, fp);
+    cp = fgetl(line, 199, fp);
+    sscanf(cp, "%f %f %f %f", &r1, &r2, &r3, &r4);
+    *MATRIX_RELT(regSrc2Dest,1,1) = r1; *MATRIX_RELT(regSrc2Dest,1,2) = r2; 
+    *MATRIX_RELT(regSrc2Dest,1,3) = r3; *MATRIX_RELT(regSrc2Dest,1,4) = r4;
+    cp = fgetl(line, 199, fp);
+    sscanf(cp, "%f %f %f %f", &r1, &r2, &r3, &r4);
+    *MATRIX_RELT(regSrc2Dest,2,1) = r1; *MATRIX_RELT(regSrc2Dest,2,2) = r2; 
+    *MATRIX_RELT(regSrc2Dest,2,3) = r3; *MATRIX_RELT(regSrc2Dest,2,4) = r4;
+    cp = fgetl(line, 199, fp);
+    sscanf(cp, "%f %f %f %f", &r1, &r2, &r3, &r4);
+    *MATRIX_RELT(regSrc2Dest,3,1) = r1; *MATRIX_RELT(regSrc2Dest,3,2) = r2; 
+    *MATRIX_RELT(regSrc2Dest,3,3) = r3; *MATRIX_RELT(regSrc2Dest,3,4) = r4;
+    cp = fgetl(line, 199, fp);
+    sscanf(cp, "%f %f %f %f", &r1, &r2, &r3, &r4);
+    *MATRIX_RELT(regSrc2Dest,4,1) = r1; *MATRIX_RELT(regSrc2Dest,4,2) = r2; 
+    *MATRIX_RELT(regSrc2Dest,4,3) = r3; *MATRIX_RELT(regSrc2Dest,4,4) = r4;
+    fclose(fp);
   }
   // get ras2RegRAS
   MATRIX *ras2RegRAS = getRAS2RegRAS(src);
