@@ -9,9 +9,9 @@
 */
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: ch $
-// Revision Date  : $Date: 2003/09/09 21:44:34 $
-// Revision       : $Revision: 1.240 $
-char *MRI_C_VERSION = "$Revision: 1.240 $";
+// Revision Date  : $Date: 2003/09/09 23:03:05 $
+// Revision       : $Revision: 1.241 $
+char *MRI_C_VERSION = "$Revision: 1.241 $";
 
 /*-----------------------------------------------------
                     INCLUDE FILES
@@ -9050,7 +9050,10 @@ MRI *MRIresample(MRI *src, MRI *template_vol, int resample_type)
 #if 0
         if(di % 20 == 0 && dj == di && dk == dj)
         {
-          printf("MRIresample() sample points: %d %d %d: %g %g %g\n", di, dj, dk, si_ff, sj_ff, sk_ff);
+          printf("MRIresample() sample point: %3d %3d %3d: %f (%3d + %f) %f (%3d + %f) %f (%3d + %f)\n", di, dj, dk, 
+                                                                                                         si_ff, si, si_f, 
+                                                                                                         sj_ff, sj, sj_f, 
+                                                                                                         sk_ff, sk, sk_f);
         }
 #endif
 
