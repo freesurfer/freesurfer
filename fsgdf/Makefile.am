@@ -4,8 +4,14 @@
 # Makefile.am specify i addtion to the standard
 AM_CPPFLAGS=-I$(top_srcdir)/include
 AM_LDFLAGS=
-lib_LIBRARIES= libfsgdf.a
+
+noinst_LIBRARIES= libfsgdf.a
 libfsgdf_a_SOURCES = fsgdf.c
+
+foodir=$(prefix)/lib
+foo_DATA=libtclfsgdf$(DYNAMIC_LIB_EXT)
+
+all: tcl libfsgdf.a
 
 tcl: fsgdf_wrap.c fsgdf.c
 	$(COMPILE) $(SHARED_CFLAGS) -c -o fsgdf_wrap.o fsgdf_wrap.c
