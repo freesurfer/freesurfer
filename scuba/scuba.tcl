@@ -3103,7 +3103,7 @@ foreach sSourceFileName { tkUtils.tcl tkcon.tcl } {
 	lappend lPath "$env(DEV)/scripts"
     }
     if { [info exists env(FREESURFER_HOME)] } {
-	lappend lPath "$env(MRI_DIR)/lib/tcl"
+	lappend lPath "$env(FREESURFER_HOME)/lib/tcl"
     }
     set bFound 0
     foreach sPath $lPath {
