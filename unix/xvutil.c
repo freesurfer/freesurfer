@@ -470,17 +470,34 @@ XVshowImage(XV_FRAME *xvf, int which, IMAGE *image, int frame)
     return ;
   dimage->used = 1 ;
   dimage->frame = frame ;
-  if ((image != dimage->sourceImage) || (dimage->dx == 0))
+
+/* 
+   dimage->oSourceImage is controlled by the user, and hence we cannot
+   be assured that it is still valid memory. Therefore, we must make a
+   copy of it for internal use. Since this is the case, the 'image' being
+   passed in may in fact be dimage->sourceImage from an internal call. If 
+   that is the case, we of course cannot free dimage->sourceImage as it
+   will be the same as dimage->oSourceImage (I know, I know, it's getting
+   too complicated).
+ */
+  /* if it's a new image, or we are not zooming... */
+  if (((image != dimage->sourceImage) && (image != dimage->oSourceImage)) || 
+      (dimage->dx == 0))
   {
+    dimage->oSourceImage = image ;
     if (dimage->zoomImage != dimage->sourceImage)
       ImageFree(&dimage->zoomImage) ;
-    dimage->sourceImage = dimage->zoomImage = image ;
+    dimage->sourceImage = dimage->zoomImage = 
+      ImageCopy(image, dimage->sourceImage) ;
   }
   else   /* image from here on in refers to the zoomed image */
   {
+    dimage->oSourceImage = image ;
     dimage->zoomImage = 
       ImageExtract(image, NULL, dimage->x0, dimage->y0, dimage->dx,dimage->dy);
-    dimage->sourceImage = image ;
+    if (dimage->sourceImage && dimage->sourceImage != dimage->oSourceImage)
+      ImageFree(&dimage->sourceImage) ;
+    dimage->sourceImage = ImageCopy(image, NULL) ;
     image = dimage->zoomImage ;
   }
 
@@ -2100,13 +2117,13 @@ XVshowAllSyncedImages(XV_FRAME *xvf, int which)
   dimage = xvGetDimage(xvf, which, 0) ;
   if (!dimage)
     return(ERROR_BADPARM) ;
-  XVshowImage(xvf, which, dimage->sourceImage, dimage->frame) ;
+  XVshowImage(xvf, which, dimage->oSourceImage, dimage->frame) ;
 
   for (which2 = 0 ; which2 < xvf->rows*xvf->cols ; which2++)
   {
     dimage2 = xvGetDimage(xvf, which2, 0) ;
     if (dimage2 && (dimage2->sync == dimage->sync))
-      XVshowImage(xvf, which2, dimage2->sourceImage, dimage2->frame) ;
+      XVshowImage(xvf, which2, dimage2->oSourceImage, dimage2->frame) ;
   }
   return(NO_ERROR) ;
 }
