@@ -6,11 +6,11 @@
 //  
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2003/04/22 15:34:05 $
-// Revision       : $Revision: 1.11 $
+// Revision Date  : $Date: 2003/04/22 15:37:40 $
+// Revision       : $Revision: 1.12 $
 //
 ////////////////////////////////////////////////////////////////////
-char *MRIFLOOD_VERSION = "$Revision: 1.11 $";
+char *MRIFLOOD_VERSION = "$Revision: 1.12 $";
 
 #include <math.h>
 #include <stdlib.h>
@@ -83,7 +83,7 @@ static void likelinessHistogram(MRI *mri, char *msg)
 }
 
 #ifndef __OPTIMIZE__
-static void DebugVoxel(char *msg, MRI *mri, int x, int y, int z)
+void DebugVoxel(char *msg, MRI *mri, int x, int y, int z)
 {
   printf("=======================================================================\n");
   printf("%s (%d,%d,%d) = %d\n", msg, x, y, z, MRIvox(mri, x,y,z));
@@ -717,7 +717,7 @@ MRI *MRISpartialribbon(MRI_SURFACE *inner_mris_lh,MRI_SURFACE *outer_mris_lh,MRI
   {
     printf("Illegality check on cortex voxels...\n");
     MRIerodecerebralcortex(mri_inter1,mri_mask,mri_inter2,mri_inter3);
-    // DebugVoxel("after erode", mri_inter1, checkx, checky, checkz);
+    //DebugVoxel("after erode", mri_inter1, checkx, checky, checkz);
   }
   printf("Illegality check on cortex voxels near hippocampus...\n");
   MRIcorrecthippocampus(mri_inter1,mri_dst);
