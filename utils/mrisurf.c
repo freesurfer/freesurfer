@@ -11241,22 +11241,22 @@ MRISrigidBodyAlignGlobal(MRI_SURFACE *mris, INTEGRATION_PARMS *parms,
           sse = mrisComputeCorrelationError(mris, parms, 0) ;
           if (sse < min_sse)
           {
-#if 0
-            if (Gdiag & DIAG_SHOW)
-              fprintf(stderr, 
-                      "\nrotating brain by (%+2.2f, %+2.2f, %+2.2f), "
-                      "sse: %2.2f\n",
-                      (float)DEGREES(alpha), (float)DEGREES(beta), 
-                      (float)DEGREES(gamma), (float)sse) ;
-#endif
             mina = alpha ; minb = beta ; ming = gamma ;
             min_sse = sse ;
+            if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
+              fprintf(stderr, "\r(%+2.2f, %+2.2f, %+2.2f), "
+                      "min @ (%2.2f, %2.2f, %2.2f) = %2.1f   ",
+                      (float)DEGREES(alpha), (float)DEGREES(beta), (float)
+                      DEGREES(gamma), (float)DEGREES(mina), 
+                      (float)DEGREES(minb), (float)DEGREES(ming),
+                      (float)min_sse);
+
 #if 0
             if (Gdiag & DIAG_SHOW)
               fprintf(stderr, " *** ") ;
 #endif
           }
-          if (Gdiag & DIAG_SHOW)
+          if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
             fprintf(stderr, "\r(%+2.2f, %+2.2f, %+2.2f), "
                     "min @ (%2.2f, %2.2f, %2.2f) = %2.1f   ",
                     (float)DEGREES(alpha), (float)DEGREES(beta), (float)
