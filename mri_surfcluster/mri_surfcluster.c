@@ -4,7 +4,7 @@
   email:   analysis-bugs@nmr.mgh.harvard.edu
   Date:    2/27/02
   Purpose: Finds clusters on the surface.
-  $Id: mri_surfcluster.c,v 1.9 2003/09/12 20:16:27 greve Exp $
+  $Id: mri_surfcluster.c,v 1.10 2003/09/12 20:17:41 greve Exp $
 */
 
 #include <stdio.h>
@@ -41,11 +41,10 @@ static int  isflag(char *flag);
 static int  nth_is_arg(int nargc, char **argv, int nth);
 static int  singledash(char *flag);
 static int  stringmatch(char *str1, char *str2);
-static MATRIX *LoadxfmMatrix(char *xfmfile);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_surfcluster.c,v 1.9 2003/09/12 20:16:27 greve Exp $";
+static char vcid[] = "$Id: mri_surfcluster.c,v 1.10 2003/09/12 20:17:41 greve Exp $";
 char *Progname = NULL;
 
 char *subjectdir = NULL;
@@ -112,7 +111,7 @@ int main(int argc, char **argv)
   int nargs;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_surfcluster.c,v 1.9 2003/09/12 20:16:27 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_surfcluster.c,v 1.10 2003/09/12 20:17:41 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -691,7 +690,7 @@ static void print_help(void)
 "summary file is shown below.\n"
 "\n"
 "Cluster Growing Summary (mri_surfcluster)\n"
-"$Id: mri_surfcluster.c,v 1.9 2003/09/12 20:16:27 greve Exp $\n"
+"$Id: mri_surfcluster.c,v 1.10 2003/09/12 20:17:41 greve Exp $\n"
 "Input :      minsig-0-lh.w\n"
 "Frame Number:      0\n"
 "Minimum Threshold: 5\n"
@@ -904,25 +903,3 @@ static void argnerr(char *option, int n)
   exit(-1);
 }
 
-/* --------------------------------------------- */
-static MATRIX *LoadxfmMatrix(char *xfmfile)
-{
-  MATRIX *Mcor2tal;
-  LTA    *lta;
-  FILE *fp;
-
-  fp = fopen(xfmfile,"r");
-  if(fp == NULL){
-    printf("ERROR: could not open %s for reading \n",xfmfile);
-    exit(1);
-  }
-
-  lta = LTAread(xfmfile);
-  if(lta->type == LINEAR_VOX_TO_VOX){
-    printf("INFO: converting LTA to RAS\n");
-    LTAvoxelTransformToCoronalRasTransform(lta);
-  }
-  Mcor2tal = lta->xforms[0].m_L;
-
-  return(Mcor2tal);
-}
