@@ -279,7 +279,7 @@ MRI   *MRIreduce2D(MRI *mri_src, MRI *mri_dst) ;
 MRI   *MRIreduceSlice(MRI *mri_src, MRI *mri_dst, float *k, int len, int axis) ;
 MRI   *MRIreduceByte(MRI *mri_src, MRI *mri_dst) ;
 MRI *MRIconvolve1dFloat(MRI *mri_src, MRI *mri_dst, float *k, int len, int axis,
-												int src_frame, int dst_frame);
+			int src_frame, int dst_frame);
 MRI   *MRIconvolve1dShort(MRI *mri_src, MRI *mri_dst, float *k, int len, 
                           int axis, int src_frame, int dst_frame) ;
 MRI   *MRIconvolve1dByte(MRI *mri_src, MRI *mri_dst, float *k, int len, 
@@ -297,6 +297,7 @@ MRI   *MRIdiffusePerona(MRI *mri_src, MRI *mri_dst,
                              double k, int niter,double slope);
 MRI   *MRIdirectionMap(MRI *mri_grad, MRI *mri_direction, int wsize);
 MRI   *MRIdirectionMapUchar(MRI *mri_grad, MRI *mri_direction, int wsize);
+void calCRASforSampleVolume(MRI *src, MRI *sampled, Real *pr, Real *pa, Real *ps);
 
 /* offset stuff */
 MRI   *MRIoffsetDirection(MRI *mri_grad, int wsize, MRI *mri_direction,
@@ -404,6 +405,7 @@ int   MRIcheckSize(MRI *mri_src, MRI *mri_check, int width, int height,
 MRI   *MRIreadRaw(FILE *fp, int width, int height, int depth, int type) ;
 */
 int   MRIinitHeader(MRI *mri) ;
+int   MRIreInitCache(MRI *mri); // when header is modified, you must call this function to update cached info
 int   MRIvoxelToWorld(MRI *mri, Real xv, Real yv, Real zv, 
                       Real *xw, Real *yw, Real *zw) ;
 int   MRIworldToVoxel(MRI *mri, Real xw, Real yw, Real zw,

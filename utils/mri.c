@@ -9,9 +9,9 @@
  */
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2004/11/30 16:03:46 $
-// Revision       : $Revision: 1.281 $
-char *MRI_C_VERSION = "$Revision: 1.281 $";
+// Revision Date  : $Date: 2005/01/26 16:32:00 $
+// Revision       : $Revision: 1.282 $
+char *MRI_C_VERSION = "$Revision: 1.282 $";
 
 /*-----------------------------------------------------
   INCLUDE FILES
@@ -2487,6 +2487,32 @@ MRIinitHeader(MRI *mri)
 
   return(NO_ERROR) ;
 }
+
+/** 
+ * MRIreInitCache
+ * 
+ * @param mri MRI* whose header information was modified
+ * 
+ * @return NO_ERROR
+ */
+int MRIreInitCache(MRI *mri)
+{
+  if (mri->i_to_r__)
+  {
+    MatrixFree(&mri->i_to_r__);
+    mri->i_to_r__ = 0;
+  }
+  if (mri->r_to_i__)
+  {
+    MatrixFree(&mri->r_to_i__);
+    mri->r_to_i__ = 0;
+  }
+  mri->i_to_r__ = extract_i_to_r(mri);
+  mri->r_to_i__ = extract_r_to_i(mri);
+
+  return (NO_ERROR);
+}
+
 /*-----------------------------------------------------
   Parameters:
 
