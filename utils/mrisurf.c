@@ -3,9 +3,9 @@
 // written by Bruce Fischl
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2005/01/21 22:21:00 $
-// Revision       : $Revision: 1.319 $
+// Revision Author: $Author: xhan $
+// Revision Date  : $Date: 2005/01/31 18:55:20 $
+// Revision       : $Revision: 1.320 $
 //////////////////////////////////////////////////////////////////
 #include <stdio.h>
 #include <string.h>
@@ -24131,31 +24131,29 @@ MRIStransform(MRI_SURFACE *mris, MRI *mri, LTA *lta, MRI *mri_dst)
     ErrorExit(ERROR_BADPARM, "we cannot handle multiple transforms\n");
   if (lta->num_xforms == 0)
     ErrorExit(ERROR_BADPARM, "transform does not have transform ;-) \n");
-
+  
   // if volumes are not given, then try to get them from transform
   lt = &lta->xforms[0];
-
+  
   // check the c_ras values
-  if (lta->type == LINEAR_RAS_TO_RAS)
-  {
-    if (mri && lt->src.valid == 1)
-    {
+  if (lta->type == LINEAR_RAS_TO_RAS){
+    if (mri && lt->src.valid == 1){
+      // the following if- has bug, it will always be true -xh
       if (!FZERO(lt->src.c_r - lt->src.c_r) 
 	  || !FZERO(lt->src.c_a - lt->src.c_a) 
 	  || !FZERO(lt->src.c_s - lt->src.c_s))
-      {
-	fprintf(stderr, "WARNING:*********************************************************\n");
-	fprintf(stderr, "WARNING: c_(ras) values are not equal for the input volume and the transform src.\n");
-	fprintf(stderr, "WARNING: The transformed surface position may be shifted.\n");
-	fprintf(stderr, "WARNING:*********************************************************\n");
-      }
+	{
+	  fprintf(stderr, "WARNING:*********************************************************\n");
+	  fprintf(stderr, "WARNING: c_(ras) values are not equal for the input volume and the transform src.\n");
+	  fprintf(stderr, "WARNING: The transformed surface position may be shifted.\n");
+	  fprintf(stderr, "WARNING:*********************************************************\n");
+	}
     }
-    if (mri && mris->vg.valid == 1)
-    {
+    if (mri && mris->vg.valid == 1){
+      // the following if- has bug, it will always be true -xh
       if (!FZERO(mris->vg.c_r - mris->vg.c_r) 
 	  || !FZERO(mris->vg.c_a - mris->vg.c_a) 
-	  || !FZERO(mris->vg.c_s - mris->vg.c_s))
-      {
+	  || !FZERO(mris->vg.c_s - mris->vg.c_s)){
 	fprintf(stderr, "WARNING:*********************************************************\n");
 	fprintf(stderr, "WARNING: c_(ras) values are not equal for the input volume and the surface stored volume.\n");
 	fprintf(stderr, "WARNING: The transformed surface position may be shifted.\n");
@@ -24163,9 +24161,9 @@ MRIStransform(MRI_SURFACE *mris, MRI *mri, LTA *lta, MRI *mri_dst)
       }
     }
   }
+
   // if mri is not given, then use the one stored in the transform
-  if (!mri && lt->src.valid == 1)
-  {
+  if (!mri && lt->src.valid == 1){
     srcPresent = 0;
     fprintf(stderr, "INFO:try to get src info from transform.\n");
     mri = MRIallocHeader(lt->src.width, lt->src.height, lt->src.depth, MRI_UCHAR);
@@ -24176,8 +24174,7 @@ MRIStransform(MRI_SURFACE *mris, MRI *mri, LTA *lta, MRI *mri_dst)
     mri->ras_good_flag = 1;
   }
   // if mri is not given, get it from the surface 
-  else if (!mri && mris->vg.valid == 1)
-  {
+  else if (!mri && mris->vg.valid == 1){
     fprintf(stderr, "INFO:try to get src info from the surface.\n");
     mri = MRIallocHeader(mris->vg.width, mris->vg.height, mris->vg.depth, MRI_UCHAR);
     mri->x_r = mris->vg.x_r; mri->y_r = mris->vg.y_r; mri->z_r = mris->vg.z_r; mri->c_r = mris->vg.c_r;
@@ -24186,16 +24183,14 @@ MRIStransform(MRI_SURFACE *mris, MRI *mri, LTA *lta, MRI *mri_dst)
     mri->xsize = mris->vg.xsize; mri->ysize = mris->vg.ysize; mri->zsize = mris->vg.zsize;
     mri->ras_good_flag = 1;
   }
-  else if (!mri)
-  {
+  else if (!mri){
     error = 1;
     strcpy(errMsg, "When mri == NULL, the transform must have the valid src info.\n");
     goto mristransform_cleanup;
   }
   // mri_dst side
   // Note: if mri_dst is not given, override the one stored in the transform
-  if (!mri_dst && lt->dst.valid == 1)
-  {
+  if (!mri_dst && lt->dst.valid == 1){
     dstPresent = 0;
     fprintf(stderr, "INFO:try to get dst info from transform.\n");
     lt = &lta->xforms[0];
@@ -24209,8 +24204,7 @@ MRIStransform(MRI_SURFACE *mris, MRI *mri, LTA *lta, MRI *mri_dst)
     mri_dst->xsize = lt->dst.xsize; mri_dst->ysize = lt->dst.ysize; mri_dst->zsize = lt->dst.zsize;
     mri_dst->ras_good_flag = 1;
   }
-  else if (!mri_dst)
-  {
+  else if (!mri_dst){
     fprintf(stderr, "WARNING:*********************************************************\n");
     fprintf(stderr, "WARNING: transform does not have valid destination volume.       \n");
     fprintf(stderr, "WARNING: The standard CORONAL volume with c_(ras) = 0 is assumed.\n");
@@ -24225,6 +24219,11 @@ MRIStransform(MRI_SURFACE *mris, MRI *mri, LTA *lta, MRI *mri_dst)
     mri_dst->xsize = 1; mri_dst->ysize = 1; mri_dst->zsize = 1;
     mri_dst->ras_good_flag = 1;
   }
+  // you must reinitialise cache
+  MRIreInitCache(mri_dst);
+
+  //  MatrixPrint(stderr, mri_dst->i_to_r__);
+ 
   /////////////////////////////////////////////////////////////////////////////
   // Now we can calculate
   if (lta->type == LINEAR_RAS_TO_RAS)
@@ -24249,6 +24248,7 @@ MRIStransform(MRI_SURFACE *mris, MRI *mri, LTA *lta, MRI *mri_dst)
     }
     voxelFromSurfaceRAS = voxelFromSurfaceRAS_(mri);
     surfaceRASFromVoxel = surfaceRASFromVoxel_(mri_dst);
+    //    MatrixPrint(stderr,  surfaceRASFromVoxel);
     m = MatrixMultiply(lta->xforms[0].m_L, voxelFromSurfaceRAS, NULL);
     surfaceRASFromSurfaceRAS = MatrixMultiply(surfaceRASFromVoxel, m, NULL);
   }
