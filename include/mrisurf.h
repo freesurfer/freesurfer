@@ -130,6 +130,11 @@ typedef struct
   int               free_transform ;
   float        a, b, c ;          /* ellipsoid parameters */
   char         fname[100] ;       /* file it was originally loaded from */
+  float        Hmin ;             /* min mean curvature */
+  float        Hmax ;             /* max mean curvature */
+  float        Kmin ;             /* min Gaussian curvature */
+  float        Kmax ;             /* max Gaussian curvature */
+  double       Ktotal ;           /* total Gaussian curvature */
 } MRI_SURFACE, MRIS ;
 
 
@@ -272,7 +277,10 @@ int          MRISremoveTopologicalDefects(MRI_SURFACE *mris,float curv_thresh);
 int          MRIScomputeSecondFundamentalForm(MRI_SURFACE *mris) ;
 int          MRISuseGaussianCurvature(MRI_SURFACE *mris) ;
 int          MRISuseMeanCurvature(MRI_SURFACE *mris) ;
+int          MRIScomputeCurvatureIndices(MRI_SURFACE *mris, 
+                                         double *pici, double *pfi) ;
 
+int          MRISprojectOntoCylinder(MRI_SURFACE *mris, float radius) ;
 
 /* constants for vertex->tethered */
 #define TETHERED_NONE           0
@@ -285,5 +293,17 @@ int          MRISuseMeanCurvature(MRI_SURFACE *mris) ;
 /* constants for mris->hemisphere */
 #define LEFT_HEMISPHERE         0
 #define RIGHT_HEMISPHERE        1
+
+#if 0
+#define DEFAULT_A  44.0f
+#define DEFAULT_B  122.0f
+#define DEFAULT_C  70.0f
+#else
+#define DEFAULT_A  122.0f
+#define DEFAULT_B  122.0f
+#define DEFAULT_C  122.0f
+#endif
+
+#define MAX_DIM    DEFAULT_B
 
 #endif
