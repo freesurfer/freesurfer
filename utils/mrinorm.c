@@ -28,6 +28,7 @@
 #include "region.h"
 #include "nr.h"
 #include "mrinorm.h"
+#include "talairachex.h"
 
 /*-----------------------------------------------------
                     MACROS AND CONSTANTS
@@ -368,6 +369,13 @@ MRInormInit(MRI *mri, MNI *mni, int windows_above_t0,int windows_below_t0,
   float       size_mod ;
   Real        x0, y0, z0 ;
 
+  LTA         *lta = 0;
+  LT          *lt;
+  MATRIX      *m_L;
+  VOL_GEOM *dst = 0;
+  VOL_GEOM *src =0;
+  int row;
+
   if (wsize <= 0)
     wsize = DEFAULT_WINDOW_SIZE ;
 
@@ -380,13 +388,51 @@ MRInormInit(MRI *mri, MNI *mni, int windows_above_t0,int windows_below_t0,
     smooth_sigma = mni->smooth_sigma = DEFAULT_SMOOTH_SIGMA ;
   else
     mni->smooth_sigma = smooth_sigma ;
+  // look for talairach.xfm
   if (mri->inverse_linear_transform)
   {
-    if (MRItalairachToVoxel(mri, 0.0, 0.0, 0.0, &x0, &y0, &z0) != NO_ERROR)
+    lta = LTAalloc(1, NULL) ;
+    lt = &lta->xforms[0] ;
+    lt->sigma = 1.0f ;
+    lt->x0 = lt->y0 = lt->z0 = 0 ;
+    m_L = lt->m_L = MatrixIdentity(4, NULL);
+    lta->type = LINEAR_RAS_TO_RAS;
+    // try getting from mri
+    // transform is MNI transform (only COR volume reads transform) 
+    if (mri->linear_transform)
+    {
+      // linear_transform is zero based column-major array
+      for (row = 1 ; row <= 3 ; row++)
+      {
+	*MATRIX_RELT(m_L,row,1) = mri->linear_transform->m[0][row-1];
+	*MATRIX_RELT(m_L,row,2) = mri->linear_transform->m[1][row-1];
+	*MATRIX_RELT(m_L,row,3) = mri->linear_transform->m[2][row-1];
+	*MATRIX_RELT(m_L,row,4) = mri->linear_transform->m[3][row-1];
+      }
+      fprintf(stderr, "talairach transform\n");
+      MatrixPrint(stderr, m_L);
+      dst = &lt->dst;
+      src = &lt->src;
+      getVolGeom(mri, src);
+      getVolGeom(mri, dst);
+      if (getenv("NO_AVERAGE305")) // if this is set
+	fprintf(stderr, "INFO: tal dst c_(r,a,s) not modified\n");
+      else
+      {
+	fprintf(stderr, "INFO: Modifying talairach volume c_(r,a,s) based on average_305\n");
+	dst->valid = 1;
+	// use average_305 value
+	dst->c_r = -0.095;
+	dst->c_a = -16.51;
+	dst->c_s =   9.75;
+      }
+    }
+    if (MRItalairachToVoxelEx(mri, 0.0, 0.0, 0.0, &x0, &y0, &z0, lta) != NO_ERROR)
       ErrorReturn(Gerror, 
                   (Gerror, 
                    "MRInormComputeWindows: could not find Talairach origin"));
     x0_tal = nint(x0) ; y0_tal = nint(y0) ; z0_tal = nint(z0) ;
+    LTAfree(&lta);
   }
   else  /* no Talairach information available */
   {
@@ -3041,6 +3087,7 @@ MRI3dUseFileControlPoints(MRI *mri, char *fname)
   int  i = 0 ;
   float xw, yw, zw ;
   int   xv, yv, zv ;
+  Real xr, yr, zr;
 
   if (Gdiag & DIAG_SHOW)
     fprintf(stderr, "reading control points from %s...\n", fname) ;
@@ -3071,9 +3118,21 @@ MRI3dUseFileControlPoints(MRI *mri, char *fname)
   rewind(fp) ;
   for (i = 0 ; i < num_control_points ; i++)
   {
+    xr = yr = zr = 0;
     cp = fgetl(line, 199, fp) ;
     sscanf(cp, "%f %f %f", &xw, &yw, &zw) ;
-    MRIworldToVoxelIndex(mri, xw, yw, zw, &xv, &yv, &zv) ;
+    // default control points are surfaceRAS
+    // switch(flag)
+    // {
+    //   case scannerRAS:
+    //     MRIworldToVoxelIndex(mri, xw, yw, zw, &xv, &yv, &zv) ;
+    //     break;
+    //   case surfaceRAS:
+    //
+           MRIsurfaceRASToVoxel(mri, xw, yw, zw, &xr, &yr, &zr);
+           xv = (int) xr; yv = (int)yr; zv = (int) zr;
+    //     break;
+    // }
     xctrl[i] = xv ; yctrl[i] = yv ; zctrl[i] = zv ;
   }
   fclose(fp) ;
