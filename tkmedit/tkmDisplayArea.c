@@ -166,11 +166,13 @@ DspA_tErr DspA_New ( tkmDisplayAreaRef* oppWindow,
   MRIFseq_vox(this->mTensor, x,y,z,col*row+row) ;
 #endif
   this->mTensor                 = NULL;
-  this->mpSurface               = NULL;
+  for( nSurface = 0; nSurface < tkm_knNumSurfaceTypes; nSurface++ ) {
+    this->mpSurface[nSurface]       = NULL;
+    this->maSurfaceLists[nSurface]  = NULL;
+  }
   this->mpFunctionalVolume      = NULL;
   this->mpControlPoints         = NULL;
   this->mpSelection             = NULL;
-  this->maSurfaceLists          = NULL;
   this->mHeadPoints             = NULL;
   this->mGCAVolume              = NULL;
   this->mGCATransform           = NULL;
@@ -682,6 +684,7 @@ DspA_tErr DspA_SetTensor ( tkmDisplayAreaRef this,
 }
 
 DspA_tErr DspA_SetSurface ( tkmDisplayAreaRef this, 
+          tkm_tSurfaceType  iType,
           mriSurfaceRef     ipSurface ) {
 
   DspA_tErr        eResult = DspA_tErr_NoErr;
@@ -692,7 +695,7 @@ DspA_tErr DspA_SetSurface ( tkmDisplayAreaRef this,
     goto error;
 
   /* save the surface */
-  this->mpSurface = ipSurface;
+  this->mpSurface[iType] = ipSurface;
 
   /* purge all the surface lists. */
   DspA_PurgeSurfaceLists_( this );
@@ -706,7 +709,7 @@ DspA_tErr DspA_SetSurface ( tkmDisplayAreaRef this,
  error:
 
   /* set surface to null */
-  this->mpSurface = NULL;
+  this->mpSurface[iType] = NULL;
 
   /* print error message */
   if( DspA_tErr_NoErr != eResult ) {
@@ -1512,7 +1515,7 @@ DspA_tErr DspA_SetDisplayFlag ( tkmDisplayAreaRef this,
   case DspA_tDisplayFlag_DisplaySurfaceVertices:
 
     /* if no surface, set to false. */
-    if( NULL == this->mpSurface ) 
+    if( NULL == this->mpSurface[tkm_tSurfaceType_Main] ) 
       bNewValue = FALSE;
 
     /* if the flag is different, set dirty flag */
@@ -1524,7 +1527,7 @@ DspA_tErr DspA_SetDisplayFlag ( tkmDisplayAreaRef this,
   case DspA_tDisplayFlag_InterpolateSurfaceVertices:
 
     /* if no surface, set to false. */
-    if( NULL == this->mpSurface ) 
+    if( NULL == this->mpSurface[tkm_tSurfaceType_Main] ) 
       bNewValue = FALSE;
 
     /* if the flag is different, purge lists and set dirty flag */
@@ -3682,6 +3685,7 @@ DspA_tErr DspA_DrawFrameBuffer_ ( tkmDisplayAreaRef this ) {
 DspA_tErr DspA_DrawSurface_ ( tkmDisplayAreaRef this ) {
 
   DspA_tErr         eResult    = DspA_tErr_NoErr;
+  int               nSurface   = 0;
   Surf_tVertexSet   surface    = Surf_tVertexSet_Main;
   xGrowableArrayRef list       = NULL;
   float             faColor[3] = {0, 0, 0};
@@ -3695,84 +3699,89 @@ DspA_tErr DspA_DrawSurface_ ( tkmDisplayAreaRef this ) {
   goto cleanup;
 #endif
 
-  /* only recalculate the draw list of the plane and orientation has
-     changed. */
-  if ( NULL != this->mpSurface ) {
+  for( nSurface = 0; nSurface < tkm_knNumSurfaceTypes; nSurface++ ) {
     
-    /* if the orienation or slice has changed... */
-    if( this->mbSliceChanged ) {
+    /* only recalculate the draw list of the plane and orientation has
+       changed. */
+    if ( NULL != this->mpSurface[nSurface] ) {
       
-      /* rebuild the draw lists. */
-      eResult = DspA_BuildSurfaceDrawLists_( this );
-
-      /* if we got an out of memory error.. */
-      if ( DspA_tErr_OutOfMemory == eResult ) {
+      /* if the orienation or slice has changed... */
+      if( this->mbSliceChanged ) {
   
-        /* delete draw lists and try again. */
-        DspA_PurgeSurfaceLists_( this );
-        eResult = DspA_BuildSurfaceDrawLists_ ( this );
-        
-        /* still got an error, return it. */
-        if ( DspA_tErr_NoErr != eResult )
-          goto error;
-        
-      } else if ( DspA_tErr_NoErr != eResult ) {
-        goto error;
+  /* rebuild the draw lists. */
+  eResult = DspA_BuildSurfaceDrawLists_( this, nSurface );
+  
+  /* if we got an out of memory error.. */
+  if ( DspA_tErr_OutOfMemory == eResult ) {
+    
+    /* delete draw lists and try again. */
+    DspA_PurgeSurfaceLists_( this );
+    eResult = DspA_BuildSurfaceDrawLists_ ( this, nSurface );
+    
+    /* still got an error, return it. */
+    if ( DspA_tErr_NoErr != eResult )
+      goto error;
+    
+  } else if ( DspA_tErr_NoErr != eResult ) {
+    goto error;
+  }
       }
+      
+      /* set up opengl */
+      DspA_SetUpOpenGLPort_( this );
+      
+      /* for each surface type... */
+      for ( surface = Surf_tVertexSet_Main;
+      surface < Surf_knNumVertexSets; surface++ ) {
+  
+  /* if this surface is visible... */
+  if( this->mabDisplayFlags[surface + DspA_tDisplayFlag_MainSurface] ) {
+
+    /* get the list. */
+    list = DspA_GetSurfaceList_( this, nSurface, 
+               this->mOrientation, surface,
+               DspA_GetCurrentSliceNumber_(this) );
+    if( NULL == list ) {
+      eResult = DspA_tErr_ErrorAccessingSurfaceList;
+      goto error;
     }
     
-    /* set up opengl */
-    DspA_SetUpOpenGLPort_( this );
-
-    /* for each surface type... */
-    for ( surface = Surf_tVertexSet_Main;
-    surface < Surf_knNumVertexSets; surface++ ) {
+    /* set the color */
+    xColr_PackFloatArray( &(this->maSurfaceLineColor[surface]), 
+        faColor );
+    glColor3fv( faColor );
+    
+    /* draw the points. */
+    glLineWidth(  this->manSurfaceLineWidth[surface] );
+    DspA_ParsePointList_( this, GL_LINES, list );
+    
+    /* if vertices are visible... */
+    if( this->mabDisplayFlags[DspA_tDisplayFlag_DisplaySurfaceVertices] ) {
       
-      /* if this surface is visible... */
-      if( this->mabDisplayFlags[surface + DspA_tDisplayFlag_MainSurface] ) {
-        
-        /* get the list. */
-        list = DspA_GetSurfaceList_( this, this->mOrientation, surface,
-                                     DspA_GetCurrentSliceNumber_(this) );
-        if( NULL == list ) {
-          eResult = DspA_tErr_ErrorAccessingSurfaceList;
-          goto error;
-        }
-        
-        /* set the color */
-        xColr_PackFloatArray( &(this->maSurfaceLineColor[surface]), faColor );
-        glColor3fv( faColor );
-        
-        /* draw the points. */
-        glLineWidth(  this->manSurfaceLineWidth[surface] );
-        DspA_ParsePointList_( this, GL_LINES, list );
-        
-        /* if vertices are visible... */
-        if( this->mabDisplayFlags[DspA_tDisplayFlag_DisplaySurfaceVertices] ) {
-          
-          /* invert color */
-          faColor[0] = 1.0 - faColor[0];
-          faColor[1] = 1.0 - faColor[1];
-          faColor[2] = 1.0 - faColor[2];
-          glColor3fv( faColor );
-          
-          /* set point size. */
-          glPointSize( DspA_knSurfaceVertexSize );
-          
-          /* draw the vertices. */
-          DspA_ParsePointList_( this, GL_POINTS, list );
-        }
-        
-        /* if we have a hilited vertex for this surface... */
-        if( surface == this->mHilitedSurface
-            && -1 != this->mnHilitedVertexIndex  ) {
-          
-          /* ?? */
-        }
+      /* invert color */
+      faColor[0] = 1.0 - faColor[0];
+      faColor[1] = 1.0 - faColor[1];
+      faColor[2] = 1.0 - faColor[2];
+      glColor3fv( faColor );
+      
+      /* set point size. */
+      glPointSize( DspA_knSurfaceVertexSize );
+      
+      /* draw the vertices. */
+      DspA_ParsePointList_( this, GL_POINTS, list );
+    }
+    
+    /* if we have a hilited vertex for this surface... */
+    if( surface == this->mHilitedSurface
+        && -1 != this->mnHilitedVertexIndex  ) {
+      
+      /* ?? */
+    }
+  }
       }
     }
   }
-  
+
   goto cleanup;
 
  error:
@@ -4699,7 +4708,8 @@ DspA_tErr DspA_DrawHeadPoints_ ( tkmDisplayAreaRef this ) {
   return eResult;
 }
 
-DspA_tErr DspA_BuildSurfaceDrawLists_ ( tkmDisplayAreaRef this ) {
+DspA_tErr DspA_BuildSurfaceDrawLists_ ( tkmDisplayAreaRef this,
+          tkm_tSurfaceType  iType) {
 
   DspA_tErr           eResult           = DspA_tErr_NoErr;
   Surf_tErr           eSurface          = Surf_tErr_NoErr;
@@ -4724,7 +4734,7 @@ DspA_tErr DspA_BuildSurfaceDrawLists_ ( tkmDisplayAreaRef this ) {
   /* set up for gl drawing */
   DspA_SetUpOpenGLPort_( this );
 
-  /* for each surface type... */
+  /* for each vertex type... */
   for ( surface = Surf_tVertexSet_Main;
   surface < Surf_knNumVertexSets; surface++ ) {
     
@@ -4732,114 +4742,114 @@ DspA_tErr DspA_BuildSurfaceDrawLists_ ( tkmDisplayAreaRef this ) {
     if( !this->mabDisplayFlags[surface + DspA_tDisplayFlag_MainSurface] ) {
       continue;
     }
-
+    
     /* check to see if we already have this list. if so, don't build it. */
-    list = DspA_GetSurfaceList_( this, this->mOrientation, surface,
+    list = DspA_GetSurfaceList_( this, iType, this->mOrientation, surface,
          DspA_GetCurrentSliceNumber_(this) );
     if( NULL != list ) {
       continue;
     }
     
     /* make a new list. */
-    DspA_NewSurfaceList_( this, this->mOrientation, surface, 
+    DspA_NewSurfaceList_( this, iType, this->mOrientation, surface, 
         DspA_GetCurrentSliceNumber_(this) );
     
     /* get the list. */
-    list = DspA_GetSurfaceList_( this, this->mOrientation, surface,
+    list = DspA_GetSurfaceList_( this, iType, this->mOrientation, surface,
          DspA_GetCurrentSliceNumber_(this) );
     if( NULL == list ) {
       eResult = DspA_tErr_ErrorAccessingSurfaceList;
       goto error;
     }
-
+    
     //    xUtil_StartTimer ();
-
+    
     /* make a voxel with our current slice in it and
        set the iterator to our view */
     DspA_ConvertPlaneToVolume_ ( this, &zeroPoint, nSlice, this->mOrientation,
-         curPlane );
-    eSurface = Surf_SetIteratorPosition( this->mpSurface, curPlane );
+         curPlane ); 
+    eSurface = Surf_SetIteratorPosition( this->mpSurface[iType], curPlane );
     if( Surf_tErr_NoErr != eSurface )
       goto error;
-
+    
     bPointsOnThisFace = FALSE;
-
+    
     /* while we have vertices to check.. */
-    while( (eSurface = Surf_GetNextAndNeighborVertex( this->mpSurface,
+    while( (eSurface = Surf_GetNextAndNeighborVertex( this->mpSurface[iType],
                   surface,
                   anaVertex, 
                   anaNeighborVertex ))
      != Surf_tErr_LastFace ) {
-
+      
       /* convert coords to that z is the current plane */
       switch( this->mOrientation ) {
       case mri_tOrientation_Horizontal:
-        xVoxl_SetFloat( anaVertex, 
-                        xVoxl_GetFloatX(anaVertex), 
-                        xVoxl_GetFloatZ(anaVertex),
-                        xVoxl_GetFloatY(anaVertex) );
-        xVoxl_SetFloat( anaNeighborVertex,
-                        xVoxl_GetFloatX(anaNeighborVertex),
-                        xVoxl_GetFloatZ(anaNeighborVertex), 
-                        xVoxl_GetFloatY(anaNeighborVertex) );
-        break;
+  xVoxl_SetFloat( anaVertex, 
+      xVoxl_GetFloatX(anaVertex), 
+      xVoxl_GetFloatZ(anaVertex),
+      xVoxl_GetFloatY(anaVertex) );
+  xVoxl_SetFloat( anaNeighborVertex,
+      xVoxl_GetFloatX(anaNeighborVertex),
+      xVoxl_GetFloatZ(anaNeighborVertex), 
+      xVoxl_GetFloatY(anaNeighborVertex) );
+  break;
       case mri_tOrientation_Coronal:
-        xVoxl_SetFloat( anaVertex, 
-                        xVoxl_GetFloatX(anaVertex),
-                        xVoxl_GetFloatY(anaVertex),
-                        xVoxl_GetFloatZ(anaVertex) );
-        xVoxl_SetFloat( anaNeighborVertex, 
-                        xVoxl_GetFloatX(anaNeighborVertex), 
-                        xVoxl_GetFloatY(anaNeighborVertex),
-                        xVoxl_GetFloatZ(anaNeighborVertex) );
-        break;
+  xVoxl_SetFloat( anaVertex, 
+      xVoxl_GetFloatX(anaVertex),
+      xVoxl_GetFloatY(anaVertex),
+      xVoxl_GetFloatZ(anaVertex) );
+  xVoxl_SetFloat( anaNeighborVertex, 
+      xVoxl_GetFloatX(anaNeighborVertex), 
+      xVoxl_GetFloatY(anaNeighborVertex),
+      xVoxl_GetFloatZ(anaNeighborVertex) );
+  break;
       case mri_tOrientation_Sagittal:
-        xVoxl_SetFloat( anaVertex,
-                        xVoxl_GetFloatZ(anaVertex),
-                        xVoxl_GetFloatY(anaVertex),
-                        xVoxl_GetFloatX(anaVertex) );
-        xVoxl_SetFloat( anaNeighborVertex, 
-                        xVoxl_GetFloatZ(anaNeighborVertex),
-                        xVoxl_GetFloatY(anaNeighborVertex), 
-                        xVoxl_GetFloatX(anaNeighborVertex) );
-        break;
+  xVoxl_SetFloat( anaVertex,
+      xVoxl_GetFloatZ(anaVertex),
+      xVoxl_GetFloatY(anaVertex),
+      xVoxl_GetFloatX(anaVertex) );
+  xVoxl_SetFloat( anaNeighborVertex, 
+      xVoxl_GetFloatZ(anaNeighborVertex),
+      xVoxl_GetFloatY(anaNeighborVertex), 
+      xVoxl_GetFloatX(anaNeighborVertex) );
+  break;
       default:
-        break;
+  break;
       }
       
       /* if the line between these two points intersects the
-         current plane... */
+   current plane... */
       if ( xUtil_LineIntersectsPlane( anaVertex, anaNeighborVertex, nSlice, 
-                                      this->mabDisplayFlags[DspA_tDisplayFlag_InterpolateSurfaceVertices],
-                                      &intersectionPt ) ) {
-        /* add this point */
-        eList = xGArr_Add( list, &intersectionPt );
-        if( xGArr_tErr_NoErr != eList ) {
-          DebugPrint( ("xGArr error %d in DspA_BuildSurfaceDrawLists_: %s\n",
-                       eList, xGArr_GetErrorString( eList ) ) );
-          eResult = DspA_tErr_ErrorAccessingSurfaceList;
-          goto error;
-        }
-        
-        bPointsOnThisFace = TRUE;
+              this->mabDisplayFlags[DspA_tDisplayFlag_InterpolateSurfaceVertices],
+              &intersectionPt ) ) {
+  /* add this point */
+  eList = xGArr_Add( list, &intersectionPt );
+  if( xGArr_tErr_NoErr != eList ) {
+    DebugPrint( ("xGArr error %d in DspA_BuildSurfaceDrawLists_: %s\n",
+           eList, xGArr_GetErrorString( eList ) ) );
+    eResult = DspA_tErr_ErrorAccessingSurfaceList;
+    goto error;
+  }
+  
+  bPointsOnThisFace = TRUE;
       }
       
       /* if we have a last vertex, and we drew points on this
-         face add a face marker. */
+   face add a face marker. */
       if( eSurface == Surf_tErr_LastVertex
-          && bPointsOnThisFace ) {
-        
-        intersectionPt.mfX = -1;
-        intersectionPt.mfY = -1;
-        eList = xGArr_Add( list, &intersectionPt );
-        if( xGArr_tErr_NoErr != eList ) {
-          DebugPrint( ("xGArr error %d in DspA_BuildSurfaceDrawLists_: %s\n",
-                       eList, xGArr_GetErrorString( eList ) ) );
-          eResult = DspA_tErr_ErrorAccessingSurfaceList;
-          goto error;
-        }
-        
-        bPointsOnThisFace = FALSE;
+    && bPointsOnThisFace ) {
+  
+  intersectionPt.mfX = -1;
+  intersectionPt.mfY = -1;
+  eList = xGArr_Add( list, &intersectionPt );
+  if( xGArr_tErr_NoErr != eList ) {
+    DebugPrint( ("xGArr error %d in DspA_BuildSurfaceDrawLists_: %s\n",
+           eList, xGArr_GetErrorString( eList ) ) );
+    eResult = DspA_tErr_ErrorAccessingSurfaceList;
+    goto error;
+  }
+  
+  bPointsOnThisFace = FALSE;
       }
       
     }
@@ -4866,7 +4876,7 @@ DspA_tErr DspA_BuildSurfaceDrawLists_ ( tkmDisplayAreaRef this ) {
   /* print error message */
   if ( DspA_tErr_NoErr != eResult ) {
     DebugPrint( ("Error %d in DspA_BuildSurfaceDrawLists_: %s\n",
-                 eResult, DspA_GetErrorString(eResult) ) );
+     eResult, DspA_GetErrorString(eResult) ) );
   }
   
  cleanup:
@@ -5097,15 +5107,20 @@ DspA_tErr DspA_InitSurfaceLists_( tkmDisplayAreaRef this,
           int               inNumLists ) {
 
   DspA_tErr           eResult    = DspA_tErr_NoErr;
+  int                 nSurface   = 0;
   int                 nDrawList  = 0;
 
-  /* allocate surface point lists. */
-  this->maSurfaceLists = (xGrowableArrayRef*) 
-    malloc (sizeof(xGrowableArrayRef) * inNumLists );
+  /* for each surface type */
+  for ( nSurface = 0; nSurface < tkm_knNumSurfaceTypes; nSurface++ ) {
 
-  /* set all lists to null */
-  for( nDrawList = inNumLists - 1; nDrawList >= 0; nDrawList-- ) {
-    this->maSurfaceLists[nDrawList] = NULL;
+    /* allocate surface point lists. */
+    this->maSurfaceLists[nSurface] = (xGrowableArrayRef*) 
+      malloc (sizeof(xGrowableArrayRef) * inNumLists );
+    
+    /* set all lists to null */
+    for( nDrawList = inNumLists - 1; nDrawList >= 0; nDrawList-- ) {
+      this->maSurfaceLists[nSurface][nDrawList] = NULL;
+    }
   }
 
   goto cleanup;
@@ -5128,21 +5143,24 @@ DspA_tErr DspA_InitSurfaceLists_( tkmDisplayAreaRef this,
 DspA_tErr DspA_PurgeSurfaceLists_ ( tkmDisplayAreaRef this ) {
 
   DspA_tErr           eResult    = DspA_tErr_NoErr;
+  int                 nSurface   = 0;
   int                 nDrawList  = 0;
   xGArr_tErr          eList      = xGArr_tErr_NoErr;
 
-  for( nDrawList = DspA_GetNumSurfaceLists_( this ) - 1; 
-       nDrawList >= 0;
-       nDrawList-- ) {
-
-    /* if this is a list... */
-    if( NULL != this->maSurfaceLists[nDrawList] ) {
+  for( nSurface = 0; nSurface < tkm_knNumSurfaceTypes; nSurface++ ) {
+    
+    for( nDrawList = DspA_GetNumSurfaceLists_( this ) - 1; 
+   nDrawList >= 0; nDrawList-- ) {
       
-      /* delete the list. */
-      eList = xGArr_Delete( &this->maSurfaceLists[nDrawList] );
-      if( xGArr_tErr_NoErr != eList ) {
-  eResult = DspA_tErr_ErrorAccessingSurfaceList;
-  goto error;
+      /* if this is a list... */
+      if( NULL != this->maSurfaceLists[nSurface][nDrawList] ) {
+  
+  /* delete the list. */
+  eList = xGArr_Delete( &this->maSurfaceLists[nSurface][nDrawList] );
+  if( xGArr_tErr_NoErr != eList ) {
+    eResult = DspA_tErr_ErrorAccessingSurfaceList;
+    goto error;
+  }
       }
     }
   }
@@ -5163,8 +5181,9 @@ DspA_tErr DspA_PurgeSurfaceLists_ ( tkmDisplayAreaRef this ) {
 }
 
 DspA_tErr DspA_NewSurfaceList_ ( tkmDisplayAreaRef this,
+         tkm_tSurfaceType  iType,
          mri_tOrientation  iOrientation,
-         Surf_tVertexSet  iSurface,
+         Surf_tVertexSet   iSurface,
          int               inSlice ) {
   
   DspA_tErr   eResult   = DspA_tErr_NoErr;
@@ -5176,7 +5195,7 @@ DspA_tErr DspA_NewSurfaceList_ ( tkmDisplayAreaRef this,
            iSurface, inSlice );
 
   /* allocate a list. */
-  xGArr_New( &this->maSurfaceLists[nDrawList],
+  xGArr_New( &this->maSurfaceLists[iType][nDrawList],
        sizeof( xPoint2f ), 512 );
   if( xGArr_tErr_NoErr != eList ) {
     eResult = DspA_tErr_ErrorAccessingSurfaceList;
@@ -5199,6 +5218,7 @@ DspA_tErr DspA_NewSurfaceList_ ( tkmDisplayAreaRef this,
 }
 
 xGrowableArrayRef DspA_GetSurfaceList_ ( tkmDisplayAreaRef this,
+           tkm_tSurfaceType  iType,
            mri_tOrientation  iOrientation,
            Surf_tVertexSet  iSurface,
            int               inSlice ) {
@@ -5206,7 +5226,7 @@ xGrowableArrayRef DspA_GetSurfaceList_ ( tkmDisplayAreaRef this,
   xGrowableArrayRef pList = NULL;
 
   if( NULL != this->maSurfaceLists ) {
-    pList = this->maSurfaceLists 
+    pList = this->maSurfaceLists [iType]
      [ DspA_GetSurfaceListIndex_( this, iOrientation, iSurface, inSlice ) ];
   }
 
@@ -5214,17 +5234,19 @@ xGrowableArrayRef DspA_GetSurfaceList_ ( tkmDisplayAreaRef this,
 }
 
 int DspA_GetNumSurfaceLists_ ( tkmDisplayAreaRef this ) {
-
-  return this->mnVolumeSizeX * Surf_knNumVertexSets * mri_knNumOrientations;  /* wrong (BRF) */
+  
+  /* may be incorrect, assumes dimensions are all equal */
+  return this->mnVolumeSizeZ * Surf_knNumVertexSets * mri_knNumOrientations;
 }
 
 int DspA_GetSurfaceListIndex_ ( tkmDisplayAreaRef this,
         mri_tOrientation  iOrientation,
         Surf_tVertexSet  iSurface,
         int               inSlice ) {
-
-  return ((int)iOrientation * Surf_knNumVertexSets * this->mnVolumeSizeX) +  /* wrong (BRF) */
-   ((int)iSurface * this->mnVolumeSizeX) + inSlice;
+  
+  /* may be incorrect, assumes dimensions are all equal */
+  return ((int)iOrientation * Surf_knNumVertexSets * this->mnVolumeSizeZ) +
+    ((int)iSurface * this->mnVolumeSizeX) + inSlice;
 }
 
 
@@ -5986,14 +6008,14 @@ DspA_tErr DspA_SendPointInformationToTcl_ ( tkmDisplayAreaRef this,
      cursor, find the distance from the last cursor and print that. if
      this is the mouseover, print the distance from the current
      cursor.  */
-  if( NULL != this->mpSurface ) { 
+  if( NULL != this->mpSurface[tkm_tSurfaceType_Main] ) { 
 
     if( DspA_tDisplaySet_Cursor == iSet ) {
-      Surf_GetDistance( this->mpSurface, iAnaIdx, this->mpLastCursor,
-      &fDistance );
+      Surf_GetDistance( this->mpSurface[tkm_tSurfaceType_Main], 
+      iAnaIdx, this->mpLastCursor, &fDistance );
     } else {
-      Surf_GetDistance( this->mpSurface, iAnaIdx, this->mpCursor,
-      &fDistance );
+      Surf_GetDistance( this->mpSurface[tkm_tSurfaceType_Main], 
+      iAnaIdx, this->mpCursor, &fDistance );
     }
 
     /* send the update */
@@ -6081,11 +6103,11 @@ DspA_tErr DspA_SetSurfaceDistanceAtCursor ( tkmDisplayAreaRef this ) {
     goto error;
 
   /* make sure we have a surface. */
-  if( NULL != this->mpSurface ) {
+  if( NULL != this->mpSurface[tkm_tSurfaceType_Main] ) {
 
     /* calc our distance. */
-    Surf_GetDistance( this->mpSurface, this->mpCursor, this->mpLastCursor,
-          &fDistance );
+    Surf_GetDistance( this->mpSurface[tkm_tSurfaceType_Main], 
+          this->mpCursor, this->mpLastCursor, &fDistance );
 
     /* set the distance for this ana idx */
     tkm_SetSurfaceDistance( this->mpCursor, fDistance );
@@ -6561,7 +6583,7 @@ DspA_tErr DspA_ParsePointList_( tkmDisplayAreaRef this,
       /* convert to zoomed coords. */
       drawPoint.mfX = ((float)this->mnZoomLevel * (drawPoint.mfX - xVoxl_GetFloatX(this->mpZoomCenter))) + (float)(this->mnVolumeSizeX/2.0);
       drawPoint.mfY = ((float)this->mnZoomLevel * (drawPoint.mfY - xVoxl_GetFloatY(this->mpZoomCenter))) + (float)(this->mnVolumeSizeY/2.0);
-    
+      
       /* y flip */
       drawPoint.mfY = GLDRAW_Y_FLIP(drawPoint.mfY);
       
