@@ -92,7 +92,7 @@ main(int argc, char *argv[])
   /*
      check to make sure output directory exists, and, if not, create it.
      */
-  fprintf(stderr, "reading '%s'...", ref_fname) ;
+  fprintf(stderr, "reading '%s'...\n", ref_fname) ;
   fflush(stderr) ;
   mri_ref = MRIread(ref_fname) ;
   if (!mri_ref)
@@ -104,17 +104,13 @@ main(int argc, char *argv[])
   if (mri_ref->nframes > 2)
     MRIfreeFrames(mri_ref, 2) ;
 #endif
-  fprintf(stderr, "done.\n") ;
-  fflush(stderr) ;
 
-  fprintf(stderr, "reading '%s'...", in_fname) ;
+  fprintf(stderr, "reading '%s'...\n", in_fname) ;
   fflush(stderr) ;
   mri_in = MRIread(in_fname) ;
   if (!mri_in)
     ErrorExit(ERROR_NOFILE, "%s: could not open input volume %s.\n",
               Progname, in_fname) ;
-  fprintf(stderr, "done.\n") ;
-  fflush(stderr) ;
 
   if (linear || !parms.lta)    /* find optimal linear transformation */
   {
