@@ -78,6 +78,7 @@ int             *MHTgetAllVerticesWithinDistance(MRIS_HASH_TABLE *mht,
                                                 int *pvnum);
 int MHTfindClosestVertexNo(MRIS_HASH_TABLE *mht, MRI_SURFACE *mris, 
          VERTEX *v, float *min_dist);
+VERTEX *MHTfindClosestVertexInTable(MRIS_HASH_TABLE *mht, MRI_SURFACE *mris, float x, float y, float z) ;
 
 
 #endif
