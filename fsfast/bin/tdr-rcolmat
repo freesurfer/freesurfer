@@ -1,17 +1,17 @@
 #!/bin/tcsh -f
 # tdr-rcolmat
 
-set VERSION = '$Id: tdr-rcolmat,v 1.4 2004/02/10 22:33:56 greve Exp $';
+set VERSION = '$Id: tdr-rcolmat,v 1.5 2005/03/19 00:35:54 greve Exp $';
 
 set inputargs = ($argv);
 
 set fidmatlist = ();
 set rcolmat    = ();
 set dnorm      = 1;
-set rsegthresh = 0.2;
+set rsegthresh = 0.05;
 set regmethod  = "svdpct";
 set svdregpct  = 90;
-set tikregfact = 0.5;
+set tikregfact = 0.1;
 set boldweight = 0;
 set monly = 0;
 
@@ -223,10 +223,10 @@ usage_exit:
   echo "  --rcol    rcolmat"
   echo "  --nodnorm"
   echo "  --bold"
-  echo "  --rsegthresh rthresh <0.2>"
+  echo "  --rsegthresh rthresh <$rsegthresh>"
   echo "  --reg  method : <svdpct> tikhonov"
   echo "  --svdpct svdregpct <90>"
-  echo "  --tik    tikregfact <0.5>"
+  echo "  --tik    tikregfact <$tikregfact>"
 
   if(! $PrintHelp) exit 1;
 
