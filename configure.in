@@ -65,7 +65,7 @@ case "${target}" in
  ;; 
  powerpc64-*)
  # not to define Linux
- OS=BIGENDIAN
+ OS=Linux
  OS_CPPFLAGS="-Wall -fwritable-strings"
  OS_LDFLAGS="-all-static"
  LDFLAGS="-L/usr/lib64 $LDFLAGSA"
@@ -129,7 +129,7 @@ if test "$CPUTYPE" = "NO"; then
       esac
     ;;
   Linux)
-    case "${host}" in
+    case "${target}" in
     i*86-*-linux-gnu*)	
       cpu386=`./x86cpucaps/cpucaps -m | sed 's/ //g'`
       case "$cpu386" in
@@ -155,7 +155,7 @@ if test "$CPUTYPE" = "NO"; then
         ;;
       esac
       ;;
-    powerpc-*)
+    powerpc64-*)
       CPUTYPE=power4
       ;;
     esac
