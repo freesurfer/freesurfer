@@ -6,8 +6,8 @@
 // 
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2004/11/15 19:18:30 $
-// Revision       : $Revision: 1.44 $
+// Revision Date  : $Date: 2004/12/01 21:38:35 $
+// Revision       : $Revision: 1.45 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -139,7 +139,7 @@ main(int argc, char *argv[])
   float        old_log_p, log_p ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_em_register.c,v 1.44 2004/11/15 19:18:30 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_em_register.c,v 1.45 2004/12/01 21:38:35 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -368,7 +368,7 @@ main(int argc, char *argv[])
     GCAbuildMostLikelyVolume(gca, mri_gca) ;
     sprintf(fname, "%s_target", parms.base_name) ;
     MRIwriteImageViews(mri_gca, fname, IMAGE_SIZE) ;
-    sprintf(fname, "%s_target.mgh", parms.base_name) ;
+    sprintf(fname, "%s_target.mgz", parms.base_name) ;
     printf("writing target volume to %s...\n", fname) ;
     MRIwrite(mri_gca, fname) ; MRIfree(&mri_gca) ;
   }
@@ -903,7 +903,7 @@ find_optimal_transform(MRI *mri, GCA *gca, GCA_SAMPLE *gcas, int nsamples,
       
       Glta->xforms[0].m_L = m_L ;
       mri_aligned = MRIlinearTransform(mri, NULL, m_L) ;
-      sprintf(fname, "%s_after_intensity.mgh", parms.base_name) ;
+      sprintf(fname, "%s_after_intensity.mgz", parms.base_name) ;
       printf("writing snapshot to %s...\n", fname) ;
       MRIwrite(mri_aligned, fname) ;
       MRIwriteImageViews(mri_aligned, fname, IMAGE_SIZE) ;
@@ -917,7 +917,7 @@ find_optimal_transform(MRI *mri, GCA *gca, GCA_SAMPLE *gcas, int nsamples,
     {
       char fname[STRLEN] ;
       
-      sprintf(fname, "%s_before_intensity.mgh", parms.base_name) ;
+      sprintf(fname, "%s_before_intensity.mgz", parms.base_name) ;
       printf("writing snapshot to %s...\n", fname) ;
       MRIwrite(mri, fname) ;
       /*    MRIwriteImageViews(mri, "before_intensity", IMAGE_SIZE) ;*/
@@ -933,7 +933,7 @@ find_optimal_transform(MRI *mri, GCA *gca, GCA_SAMPLE *gcas, int nsamples,
       char fname[STRLEN] ;
       
       Glta->xforms[0].m_L = m_L ;
-      sprintf(fname, "%s_after_intensity.mgh", parms.base_name) ;
+      sprintf(fname, "%s_after_intensity.mgz", parms.base_name) ;
       printf("writing snapshot to %s...\n", fname) ;
       MRIwrite(mri, fname) ;
       sprintf(fname, "%s_centering0", parms.base_name) ;
