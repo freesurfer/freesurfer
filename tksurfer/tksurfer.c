@@ -21880,8 +21880,18 @@ int labl_initialize () {
 int labl_load_color_table (char* fname)
 {
   CLUT_tErr clut_err = CLUT_tErr_NoErr;
+  mriColorLookupTableRef table = NULL;
   int label;
   xColor3n color;
+  
+  /* create a new table. */
+  clut_err = CLUT_New (&table, fname);
+  if (CLUT_tErr_NoErr != clut_err)
+    {
+      fprintf (stderr, "labl_load_color_table %s: CLUT_New returned "
+	       "%d: %s\n", fname, clut_err, CLUT_GetErrorString (clut_err) );
+      return (ERROR_CLUT);
+    }
   
   /* if a table exists, delete it. */
   if (NULL != labl_table) 
@@ -21890,23 +21900,17 @@ int labl_load_color_table (char* fname)
       if (CLUT_tErr_NoErr != clut_err)
 	{
 	  fprintf (stderr, "labl_load_color_table: CLUT_Delete returned "
-		   "%d: %s\n", clut_err, CLUT_GetErrorString (clut_err) );
+		   "%d: %s\n",  clut_err, CLUT_GetErrorString (clut_err) );
 	  labl_table = NULL;
 	}
     }
-  
-  /* create a new table. */
-  clut_err = CLUT_New (&labl_table, fname);
-  if (CLUT_tErr_NoErr != clut_err)
-    {
-      fprintf (stderr, "labl_load_color_table: CLUT_New returned "
-	       "%d: %s\n", clut_err, CLUT_GetErrorString (clut_err) );
-      return (ERROR_CLUT);
-    }
+
+  /* save the new table. */
+  labl_table = table;
   
   /* get the number of entries. */
   CLUT_GetNumEntries (labl_table, &labl_num_structures);
-  printf ("found %d structures\n", labl_num_structures);
+  printf ("Read %s, found %d structures\n", fname, labl_num_structures);
   
   /* for each label, if the structure index is > the number of entries
      we have now, set it to 0 and the corresponding color. */
