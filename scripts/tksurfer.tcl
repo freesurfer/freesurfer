@@ -59,7 +59,7 @@ set surfcolor 1
 #set fthresh 0.1
 set shrinksteps 5
 set smoothsteps 5
-set smoothtype curv
+set smoothtype val
 
 ### source standard widget wrapper code
 source $env(CSURF_DIR)/lib/tcl/wrappers.tcl
@@ -539,7 +539,7 @@ proc mini { } {
   .shrink.cut.aREGION.bu config -text "CUTAREA"
   .shrink.cut.aPLANE.bu config -text "CUTPLANE"
   .shrink.cut.aLINE.bu config -text "CUTLINE"
-  .shrink.cut.aROI.bu config -text "FILL ROI"
+  .shrink.cut.aROI.bu config -text "FILL"
   .shrink.cut.aUNDO.bu config -text "UNDO CUT"
   .shrink.cut.aINIT.bu config -text "RECONNECTALL"
   .shrink.smooth.steps.la config -text "" -width 0
@@ -560,6 +560,94 @@ proc mini { } {
   after 500 { wm deiconify . }
   set tksurferinterface mini
 }
+
+proc csurf { } {
+  global tksurferinterface
+  move_window 658 32
+  set smoothtype val
+  puts "using csurf interface"
+  wm withdraw .
+  set winlist {.subhead.hemisurf .subhead.script .files.outsurf \
+               .files.fsmask .files.dipoles .files.decimated .files.val \
+               .files.session(*) .draw.valswitch .files.val.aPUSH \
+               .draw.curvswitch .draw.switch2d .draw.mesh.sb .draw.main.acurv \
+               .draw.main.aFRAME .draw.main.aFRAME.bu .display.ri \
+               .draw.valswitch.aw2 .draw.valswitch.abi .draw.valswitch.aGR \
+               .draw.curvswitch.aarea .draw.curvswitch.ashear \
+               .shrink.smooth .shrink.head .shrink.main .shrink.cut.aFLAT \
+               .shrink.smooth.steps.asparse .compute .files.fieldsign \
+               .display.le.acomplexval.ck .display.le.arevphase.ck \
+               .draw.mesh
+               .shrink.smooth.steps.acurv.ra .shrink.smooth.steps.aval.ra}
+  foreach win $winlist { pack forget $win }
+  if {0} { ;# surface stuff
+    pack .subhead.hemisurf
+    pack .subhead.hemisurf.home -side left
+    pack .subhead.hemisurf.hemisurf -side left
+    .subhead.hemisurf.home.e config -width 16
+    .subhead.hemisurf.hemisurf.e config -width 18
+    .subhead.hemisurf.home.e xview end
+    .subhead.hemisurf.hemisurf.e xview end
+  } else { ;# script stuff
+    pack forget .subhead.hemisurf
+#    pack .subhead.script
+#    pack .subhead.script.script -side right
+#    pack forget .subhead.script.aLS
+#    .subhead.script.script.e config -width 17
+  }
+  # TODO: rm/putback -bd, change scripts entry to all-tcl combobox
+
+#  pack .files.fieldsign  -after .files.label
+#  pack .files.val        -after .files.label
+  ## rearrange
+  pack .mright -before .subhead -side right
+  .draw config -bd 2 -relief groove
+  pack .draw -in .mright 
+  pack .draw.curvswitch
+#  pack .draw.valswitch -after .draw.curvswitch
+#  pack .draw.mesh -after .draw.valswitch
+#  pack .draw.mesh.me    -after .draw.mesh.b
+  pack .draw.mesh.me.aMESH.acm
+  pack .display -after .draw
+  pack .shrink -after .display 
+  pack .shrink.smooth -anchor w
+  pack .shrink.cut.mini -before .shrink.cut.aREGION -side bottom -anchor w
+  raise .draw
+  raise .display
+  raise .shrink
+  pack .shrink.cut.aROI .shrink.cut.aUNDO .shrink.cut.aINIT \
+     -in .shrink.cut.mini -side left  -anchor w
+  ## squish
+  {.draw.main.aSEND PNT.bu} config -text "SAVE PT"
+  {.draw.main.aGOTO PNT.bu} config -text "GOTO PT"
+#  .draw.valswitch.aw1.la config -text ColScl -width 6
+  .draw.curvswitch.anone.la config -text BackgroundColor -width 15
+  #.shrink.cut.aREGION.bu config -text "CUT REGION"
+  .shrink.cut.aREGION.bu config -text "CUTAREA"
+  .shrink.cut.aPLANE.bu config -text "CUTPLANE"
+  .shrink.cut.aLINE.bu config -text "CUTLINE"
+  .shrink.cut.aROI.bu config -text "FILL STATS"
+  .shrink.cut.aUNDO.bu config -text "UNDO CUT"
+  .shrink.cut.aINIT.bu config -text "RECONNECTALL"
+  .shrink.smooth.steps.la config -text "" -width 0
+  ## auto do fsmask--reads fieldsign suffix but assumes fsmask suffix is .fm
+#  .files.fieldsign.br config -command { setfile fs [.files.fieldsign.e get];\
+#                                                      read_fieldsign; \
+#                     setfile fm [string range [.files.fieldsign.e get] 0 \
+#                    [expr [string length [.files.fieldsign.e get]] - 4]].fm; \
+#                                                      read_fsmask }
+#  .files.fieldsign.bw config -command { setfile fs [.files.fieldsign.e get]; \
+#                     setfile fm [string range [.files.fieldsign.e get] 0 \
+#                    [expr [string length [.files.fieldsign.e get]] - 4]].fm; \
+#                                   testreplace $fm  write_fsmask; \
+#                                   testreplace $fs  write_fieldsign }
+#  pack .files.val.aPUSH -before .files.val.la -side left
+#  .files.val.la config -width 4
+  wm geometry . +658+664
+  after 500 { wm deiconify . }
+  set tksurferinterface csurf
+}
+
 
 proc micro { } {
   global tksurferinterface
@@ -739,18 +827,49 @@ bind $f.script.e <Return> "$f.aRUN.bu invoke"
 
 ### editable file list region
 set f .files
-#edlabval $f "insurf"     default  r  10 20
-edlabval $f "outsurf"    default   w 10 20
-edlabval $f "curv"       default  rw 10 20
-edlabval $f "patch"      default  rw 10 20
-edlabval $f "label"      default  rw 10 20
-edlabval $f "dipoles"    default   w 10 20
-edlabval $f "decimated"  default   w 10 19
-edlabval $f "fieldsign"  default  rw 10 20
-edlabval $f "fsmask"     default  rw 10 20
-edlabval $f "val"        default  rw 10 20
-edlabval $f "session(*)" $session  s 13 27
-edlabval $f "rgb"        default   w  4 34
+if [info exists env(tksurferinterface)] {
+    if {$env(tksurferinterface) == "csurf"} {
+        #edlabval $f "insurf"     default  r  6 20
+        edlabval $f "outsurf"    default   w 6 20
+        edlabval $f "curv"       default  rw 6 20
+        edlabval $f "patch"      default  rw 6 20
+        edlabval $f "label"      default  rw 6 20
+        edlabval $f "dipoles"    default   w 6 20
+        edlabval $f "decimated"  default   w 6 19
+        edlabval $f "fieldsign"  default  rw 6 20
+        edlabval $f "fsmask"     default  rw 6 20
+        edlabval $f "val"        default  rw 6 20
+        edlabval $f "session(*)" $session  s 13 27
+        edlabval $f "rgb"        default   w 6 27
+    } else {
+        #edlabval $f "insurf"     default  r  10 20
+        edlabval $f "outsurf"    default   w 10 20
+        edlabval $f "curv"       default  rw 10 20
+        edlabval $f "patch"      default  rw 10 20
+        edlabval $f "label"      default  rw 10 20
+        edlabval $f "dipoles"    default   w 10 20
+        edlabval $f "decimated"  default   w 10 19
+        edlabval $f "fieldsign"  default  rw 10 20
+        edlabval $f "fsmask"     default  rw 10 20
+        edlabval $f "val"        default  rw 10 20
+        edlabval $f "session(*)" $session  s 13 27
+        edlabval $f "rgb"        default   w 10 27
+    }
+} else {
+    #edlabval $f "insurf"     default  r  10 20
+    edlabval $f "outsurf"    default   w 10 20
+    edlabval $f "curv"       default  rw 10 20
+    edlabval $f "patch"      default  rw 10 20
+    edlabval $f "label"      default  rw 10 20
+    edlabval $f "dipoles"    default   w 10 20
+    edlabval $f "decimated"  default   w 10 19
+    edlabval $f "fieldsign"  default  rw 10 20
+    edlabval $f "fsmask"     default  rw 10 20
+    edlabval $f "val"        default  rw 10 20
+    edlabval $f "session(*)" $session  s 13 27
+    edlabval $f "rgb"        default   w 10 27
+}
+
 ### setfile creates abbrev var from abs var set by surfer at startup
 setfile insurf $insurf
 setfile outsurf $outsurf
@@ -856,7 +975,7 @@ $f.rgb.bw config -command { setfile rgb [.files.rgb.e get]; \
 ### main buttons
 set f .draw.main
 buttons $f REDRAW { redrawbutton } row 0 4
-$f.aREDRAW.bu config -font $ffontbb
+#$f.aREDRAW.bu config -font $ffontbb
 buttons $f RESTORE { restore } row 2 4
 buttons $f "FRAME" { save_rgb_cmp_frame } row 2 4
 #buttons $f "SAVE NUMRGB" { save_rgb_num } row    ;# works too
@@ -1016,29 +1135,58 @@ buttons $f "CVAVG" { set cmid $dipavg } row 1
 
 ### display panel left
 set f .display.le
-checks $f "" "truncphase" truncphaseflag col
+checks $f "" "truncate stats" truncphaseflag col
+checks $f "" "invert stats" invphaseflag col
 checks $f "" "revphase" revphaseflag col
-checks $f "" "invphase" invphaseflag col
+if [info exists env(tksurferinterface)] {
+    if {$env(tksurferinterface) == "csurf"} {
+    checks $f "" "scale bar" scalebarflag col
+    checks $f "" "color bar" colscalebarflag col
+    }
+} else {
+  checks $f "" "scale bar" scalebarflag col
+  checks $f "" "color bar" colscalebarflag col
+}
+
+
 checks $f "" "overlay" overlayflag col
 checks $f "" "complexval" complexvalflag col
-edlabval $f "fthresh" $fthresh n 8 4
-$f.fthresh.e config -textvariable fthresh
+if [info exists env(tksurferinterface)] {
+    if {$env(tksurferinterface) != "csurf"} {
+        edlabval $f "fthresh" $fthresh n 8 4
+        $f.fthresh.e config -textvariable fthresh
+    }
+}
 ### display panel middle
 set f .display.mi
-edlabval $f "fslope"  $fslope  n 12 4
+if [info exists env(tksurferinterface)] {
+    if {$env(tksurferinterface) == "csurf"} {
+        edlabval $f "fthresh" $fthresh n 12 4
+        $f.fthresh.e config -textvariable fthresh
+    }
+} else {
+    edlabval $f "fthresh" $fthresh n 12 4
+    $f.fthresh.e config -textvariable fthresh
+}
+
 #edlabval $f "fcurv"   $fcurv   n 12 4
 edlabval $f "fmid"    $fmid    n 12 4
+edlabval $f "fslope"  $fslope  n 12 4
 edlabval $f "cslope"  $cslope  n 12 4
 edlabval $f "cmid"    $cmid    n 12 4
-edlabval $f "anglecycles" $angle_cycles n 12 4
-edlabval $f "angleoffset" $angle_offset n 12 4
+if [info exists env(tksurferinterface)] {
+    if {$env(tksurferinterface) != "csurf"} {
+        edlabval $f "anglecycles" $angle_cycles n 12 4
+        edlabval $f "angleoffset" $angle_offset n 12 4
+        $f.anglecycles.e config -textvariable angle_cycles
+        $f.angleoffset.e config -textvariable angle_offset
+    }
+}
 $f.fslope.e config -textvariable fslope 
 #$f.fcurv.e config -textvariable fcurv
 $f.fmid.e config -textvariable fmid
 $f.cslope.e config -textvariable cslope 
 $f.cmid.e config -textvariable cmid
-$f.anglecycles.e config -textvariable angle_cycles
-$f.angleoffset.e config -textvariable angle_offset
 ### display panel right
 set f .display.ri
 edlabval $f "light0" $light0 n 9 4
@@ -1058,7 +1206,7 @@ $f.blufact.e config -textvariable blufact
 set f .shrink.cut
 buttons $f "ROI" { floodfill_marked_patch 1; redrawbutton } row 1 2
 buttons $f "REGION" { cut_line 1; redrawbutton } row 1 2
-buttons $f "FILL" { floodfill_marked_patch 0; redrawbutton } row 1 2
+buttons $f "FILLAREA" { floodfill_marked_patch 0; redrawbutton } row 1 2
 buttons $f "PLANE" { cut_plane; redrawbutton } row 1 2
 buttons $f "LINE" { cut_line 0; redrawbutton } row 1 2
 buttons $f "UNDO" { restore_ripflags 1; redrawbutton } row 1 2
@@ -1209,6 +1357,7 @@ bind . <Control-F1> { micro }
 bind . <Control-F2> { mini  }
 bind . <Control-F3> { mini+ }
 bind . <Control-F4> { macro }
+bind . <Control-F5> { csurf }
 
 ############################################################################
 ### right-click help
@@ -1218,14 +1367,14 @@ bind .files.decimated.sp.e  <ButtonRelease-3> { helpwin dip_spacing }
 bind ".draw.main.aSEND PNT.bu" <ButtonRelease-3> { helpwin save_pnt }
 bind ".draw.main.aGOTO PNT.bu" <ButtonRelease-3> { helpwin goto_pnt }
 bind .display.le.arevphase.ck <ButtonRelease-3> { helpwin revphase }
-bind .display.le.ainvphase.ck <ButtonRelease-3> { helpwin invphase }
-bind .display.le.atruncphase.ck <ButtonRelease-3> { helpwin truncphase }
+bind ".display.le.ainvert stats.ck" <ButtonRelease-3> { helpwin invphase }
+bind ".display.le.atruncate stats.ck" <ButtonRelease-3> { helpwin truncphase }
 bind .display.ri.light0.e <ButtonRelease-3> { helpwin light0 }
 bind .display.ri.light1.e <ButtonRelease-3> { helpwin light1 }
 bind .display.ri.light2.e <ButtonRelease-3> { helpwin light2 }
 bind .display.ri.light3.e <ButtonRelease-3> { helpwin light3 }
 bind .shrink.cut.aREGION.bu <ButtonRelease-3> { helpwin cutregion }
-bind .shrink.cut.aFILL.bu <ButtonRelease-3> { helpwin fill }
+bind .shrink.cut.aFILLAREA.bu <ButtonRelease-3> { helpwin fill }
 bind .shrink.cut.aPLANE.bu <ButtonRelease-3> { helpwin cutplane }
 bind .shrink.cut.aLINE.bu <ButtonRelease-3> { helpwin cutline }
 bind .shrink.cut.aFLAT.bu <ButtonRelease-3> { helpwin flatten }
@@ -1295,14 +1444,29 @@ bind .draw.switch2d.amove.ck <ButtonRelease-3> { helpwin 2d_move }
 bind .draw.switch2d.aCVAVG.bu <ButtonRelease-3> { helpwin cvavg }
 bind .display.le.aoverlay.ck <ButtonRelease-3> { helpwin overlay }
 bind .display.le.acomplexval.ck <ButtonRelease-3> { helpwin complexval }
-bind .display.le.fthresh.e <ButtonRelease-3> { helpwin fthresh }
+
+if [info exists env(tksurferinterface)] {
+    if {$env(tksurferinterface) != "csurf"} {
+        bind .display.le.fthresh.e <ButtonRelease-3> { helpwin fthresh }
+    } else {
+        bind .display.mi.fthresh.e <ButtonRelease-3> { helpwin fthresh }
+    }
+} else {
+    bind .display.mi.fthresh.e <ButtonRelease-3> { helpwin fthresh }
+}
+
+
 bind .display.mi.fslope.e <ButtonRelease-3> { helpwin fslope }
 bind .display.mi.fmid.e <ButtonRelease-3> { helpwin fmid }
 bind .display.mi.cslope.e <ButtonRelease-3> { helpwin cslope }
 bind .display.mi.cmid.e <ButtonRelease-3> { helpwin cmid }
-bind .display.mi.anglecycles.e <ButtonRelease-3> { helpwin anglecycles }
-bind .display.mi.angleoffset.e <ButtonRelease-3> { helpwin angleoffset }
-bind .display.mi.angleoffset.e <ButtonRelease-3> { helpwin angleoffset }
+if [info exists env(tksurferinterface)] {
+    if {$env(tksurferinterface) != "csurf"} {
+      bind .display.mi.anglecycles.e <ButtonRelease-3> { helpwin anglecycles }
+      bind .display.mi.angleoffset.e <ButtonRelease-3> { helpwin angleoffset }
+      bind .display.mi.angleoffset.e <ButtonRelease-3> { helpwin angleoffset }
+  }
+}
 bind .display.ri.offset.e <ButtonRelease-3> { helpwin offset }
 bind .display.ri.blufact.e <ButtonRelease-3> { helpwin blufact }
 bind .shrink.smooth.aSMOOTH.bu <ButtonRelease-3> { helpwin smooth }
@@ -1353,10 +1517,11 @@ if [info exists env(tksurferinterface)] {
   if {$env(tksurferinterface) == "mini+"} { mini+; update }
   if {$env(tksurferinterface) == "mini"}  { mini;  update }
   if {$env(tksurferinterface) == "micro"} { micro; update }
+  if {$env(tksurferinterface) == "csurf"} { csurf; update }
 } else {
-  mini
-  puts "tksurfer.tcl: default micro interface (change: macro,mini+,mini,micro)"
-  puts "tksurfer.tcl: or: setenv tksurferinterface {macro,mini+,mini,micro}"
+  csurf
+  puts "tksurfer.tcl: default csurf interface (change: csurf,macro,mini+,mini,micro)"
+  puts "tksurfer.tcl: or: setenv tksurferinterface {csurf,macro,mini+,mini,micro}"
 }
 
 ### extras: fonts tested
