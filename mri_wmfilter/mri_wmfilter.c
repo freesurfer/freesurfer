@@ -9,7 +9,7 @@
 #include "matrix.h"
 #include "proto.h"
 
-static char vcid[] = "$Id: mri_wmfilter.c,v 1.4 1998/06/16 22:05:48 fischl Exp $";
+static char vcid[] = "$Id: mri_wmfilter.c,v 1.5 1999/06/06 01:36:05 fischl Exp $";
 
 /*-------------------------------------------------------------------
                                 CONSTANTS
@@ -141,7 +141,8 @@ main(int argc,char *argv[])
     printf("File %s not found - using defaults.\n",fname);
   printf("white_hilim = %f, white_lolim = %f, gray_hilim = %f\n",
          white_hilim,white_lolim,gray_hilim);
-  
+  fflush(stdout) ;
+
   sprintf(fname,"%s/lib/bem/%s",mri_dir,DIR_FILE);
   fptr = fopen(fname,"r");
   if (fptr==NULL) {printf("File %s not found.\n",fname);exit(0);}
@@ -158,6 +159,7 @@ main(int argc,char *argv[])
   L1:;
   }
   printf("%d unique orientations\n",ncor);
+  fflush(stdout) ;
   plane_filter(option);
   write_images(pfname);
   exit(0) ;
@@ -242,7 +244,8 @@ plane_filter(int niter)
   if (k==106)
 */
   {
-    printf("%d\n",k+1);
+    printf("processing slice %d\n",k+1);
+    fflush(stdout) ;
     for (i=ws2;i<IMGSIZE-1-ws2;i++)
     for (j=ws2;j<IMGSIZE-1-ws2;j++)
     {
