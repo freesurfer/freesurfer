@@ -18220,7 +18220,7 @@ int main(int argc, char *argv[])   /* new main */
   /* end rkt */
   
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: tksurfer.c,v 1.76 2004/09/16 14:59:32 tosa Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: tksurfer.c,v 1.77 2004/09/23 21:15:37 kteich Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -18422,6 +18422,10 @@ int main(int argc, char *argv[])   /* new main */
     fprintf(stderr, "Tix_Init failed: %s\n", interp->result); }
   if (Blt_Init(interp) == TCL_ERROR) {
     fprintf(stderr, "Blt_Init failed: %s\n", interp->result); }
+
+  /* Initialize our Fsgdf functions. This is in fsgdf_wrap.c */
+  if (Fsgdf_Init(interp) == TCL_ERROR) {
+    fprintf(stderr, "Fsgdf_Init failed: %s\n", interp->result); }
   
   Tcl_StaticPackage( interp, "BLT", Blt_Init, Blt_SafeInit );
   Tcl_StaticPackage( interp, "Tix", Tix_Init, Tix_SafeInit );
@@ -18951,6 +18955,9 @@ int main(int argc, char *argv[])   /* new main */
   Tcl_CreateCommand(interp, "get_marked_vnos",
                     (Tcl_CmdProc*) W_get_marked_vnos, REND);
   
+
+
+
   /* end rkt */
   /*=======================================================================*/
   /***** link global surfer BOOLEAN variables to tcl equivalents */
