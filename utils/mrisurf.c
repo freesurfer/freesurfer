@@ -2307,11 +2307,14 @@ MRISremoveRipped(MRI_SURFACE *mris)
   do
   {
     nripped = 0 ;
+    // go through all vertices
     for (vno = 0 ; vno < mris->nvertices ; vno++)
     {
       v = &mris->vertices[vno] ;
+      // if rip flag set
       if (v->ripflag)
       {
+	// remove it
         if (v->dist)
           free(v->dist) ;
         if (v->dist_orig)
@@ -2371,8 +2374,6 @@ MRISremoveRipped(MRI_SURFACE *mris)
       continue ;
     mris->orig_area += face->orig_area ;
   }
-
-
   return(NO_ERROR) ;
 }
 /*-----------------------------------------------------
@@ -7946,10 +7947,13 @@ MRISreadCanonicalCoordinates(MRI_SURFACE *mris, char *sname)
 int
 MRISreadPatchNoRemove(MRI_SURFACE *mris, char *pname)
 {
-
   int         ix, iy, iz, k, i, j, npts ;
+  double        rx, ry, rz;
   FILE        *fp ;
   char        fname[STRLEN] ;
+  int         type;
+  char        line[256];
+  char        *cp;
 
 #if 0
   char        path[STRLEN], *cp ;
@@ -7964,59 +7968,156 @@ MRISreadPatchNoRemove(MRI_SURFACE *mris, char *pname)
 #else
   MRISbuildFileName(mris, pname, fname) ;
 #endif
-  fp = fopen(fname, "rb") ;
-  if (!fp)
-    ErrorReturn(ERROR_NOFILE,(ERROR_NOFILE,
-                      "MRISreadPatch(%s): could not open file", fname));
 
-
-  npts = freadInt(fp) ;
-  if (Gdiag & DIAG_SHOW)
-    fprintf(stdout, "reading patch %s with %d vertices (%2.1f%% of total)\n",
-            pname, npts, 100.0f*(float)npts/(float)mris->nvertices) ;
-  for (k=0;k<mris->nvertices;k++)
-    mris->vertices[k].ripflag = TRUE;
-  for (j=0;j<npts;j++)
+  // check whether the patch file is ascii or binary
+  type = MRISfileNameType(fname) ; /* using extension to get type */
+  if (type == MRIS_ASCII_TRIANGLE_FILE)  /* .ASC */
   {
-    i = freadInt(fp) ;
-    if (i<0)
+    fp = fopen(fname, "r");
+    if (!fp)
+      ErrorReturn(ERROR_NOFILE,(ERROR_NOFILE,
+				"MRISreadPatch(%s): could not open file", fname));
+    cp = fgetl(line, 256, fp);  // this would skip # lines
+    sscanf(cp, "%d %*s", &npts);   // get points
+    if (Gdiag & DIAG_SHOW)
+      fprintf(stdout, "reading patch %s with %d vertices (%2.1f%% of total)\n",
+	      pname, npts, 100.0f*(float)npts/(float)mris->nvertices) ;
+
+    // set all vertices ripflag to be true
+    for (k=0;k<mris->nvertices;k++)
+      mris->vertices[k].ripflag = TRUE;
+    
+    // go through points
+    for (j=0;j<npts;j++)
     {
-      k = -i-1;
-      if (k < 0 || k >= mris->nvertices)
-        ErrorExit(ERROR_BADFILE, 
-                  "MRISreadPatch: bad vertex # (%d) found in patch file", k) ;
-      mris->vertices[k].border = TRUE;
-    } 
-    else
-    {
-      k = i-1;
-      if (k < 0 || k >= mris->nvertices)
-        ErrorExit(ERROR_BADFILE, 
-                  "MRISreadPatch: bad vertex # (%d) found in patch file", k) ;
-      mris->vertices[k].border = FALSE;
+      // read int 
+      if((cp = fgetl(line, 256, fp)))
+	sscanf(cp, "%d", &i);
+      else
+	ErrorReturn(ERROR_BADPARM,
+		    (ERROR_BADPARM, "MRISreadPatch(%s): could not read line for point %d\n", fname, j));
+
+      // if negative, flip it
+      if (i<0)
+      {
+	k = -i-1; // convert it to zero based number
+	if (k < 0 || k >= mris->nvertices)
+	  ErrorExit(ERROR_BADFILE, 
+		    "MRISreadPatch: bad vertex # (%d) found in patch file", k) ;
+	// negative -> set the border to be true
+	mris->vertices[k].border = TRUE;
+      } 
+      // if positive
+      else
+      {
+	k = i-1; // vertex number is zero based
+	if (k < 0 || k >= mris->nvertices)
+	  ErrorExit(ERROR_BADFILE, 
+		    "MRISreadPatch: bad vertex # (%d) found in patch file", k) ;
+	// positive -> set the border to be false
+	mris->vertices[k].border = FALSE;
+      }
+      // rip flag for this vertex to be false
+      mris->vertices[k].ripflag = FALSE;
+      // read 3 positions
+      if ((cp = fgetl(line, 256, fp)))
+	sscanf(cp, "%lf %lf %lf", &rx, &ry, &rz);
+      else
+	ErrorReturn(ERROR_BADPARM,
+		    (ERROR_BADPARM, 
+		     "MRISreadPatch(%s): could not read 3 floating values line for point %d\n", 
+		     fname, j));
+
+      // convert it to mm, i.e. change the vertex position
+      mris->vertices[k].x = rx;
+      mris->vertices[k].y = ry;
+      mris->vertices[k].z = rz;
+      // change the hi, lo values
+      if (mris->vertices[k].x > mris->xhi) mris->xhi = mris->vertices[k].x;
+      if (mris->vertices[k].x < mris->xlo) mris->xlo = mris->vertices[k].x;
+      if (mris->vertices[k].y > mris->yhi) mris->yhi = mris->vertices[k].y;
+      if (mris->vertices[k].y < mris->ylo) mris->ylo = mris->vertices[k].y;
+      if (mris->vertices[k].z > mris->zhi) mris->zhi = mris->vertices[k].z;
+      if (mris->vertices[k].z < mris->zlo) mris->zlo = mris->vertices[k].z;
+      if (k == Gdiag_no && Gdiag & DIAG_SHOW)
+	fprintf(stdout, "vertex %d read @ (%2.2f, %2.2f, %2.2f)\n",k,
+		mris->vertices[k].x,mris->vertices[k].y,mris->vertices[k].z) ;
     }
-    mris->vertices[k].ripflag = FALSE;
-    fread2(&ix,fp);
-    fread2(&iy,fp);
-    fread2(&iz,fp);
-    mris->vertices[k].x = ix/100.0;
-    mris->vertices[k].y = iy/100.0;
-    mris->vertices[k].z = iz/100.0;
-    if (mris->vertices[k].x > mris->xhi) mris->xhi = mris->vertices[k].x;
-    if (mris->vertices[k].x < mris->xlo) mris->xlo = mris->vertices[k].x;
-    if (mris->vertices[k].y > mris->yhi) mris->yhi = mris->vertices[k].y;
-    if (mris->vertices[k].y < mris->ylo) mris->ylo = mris->vertices[k].y;
-    if (mris->vertices[k].z > mris->zhi) mris->zhi = mris->vertices[k].z;
-    if (mris->vertices[k].z < mris->zlo) mris->zlo = mris->vertices[k].z;
-    if (k == Gdiag_no && Gdiag & DIAG_SHOW)
-      fprintf(stdout, "vertex %d read @ (%2.2f, %2.2f, %2.2f)\n",k,
-              mris->vertices[k].x,mris->vertices[k].y,mris->vertices[k].z) ;
+
+  }
+  /////////////////////////////////////////////////////////////////////////
+  // here file was binary
+  /////////////////////////////////////////////////////////////////////////
+  else
+  {
+    fp = fopen(fname, "rb") ;
+    if (!fp)
+      ErrorReturn(ERROR_NOFILE,(ERROR_NOFILE,
+				"MRISreadPatch(%s): could not open file", fname));
+    
+    // read number of vertices
+    npts = freadInt(fp) ;
+    if (Gdiag & DIAG_SHOW)
+      fprintf(stdout, "reading patch %s with %d vertices (%2.1f%% of total)\n",
+	      pname, npts, 100.0f*(float)npts/(float)mris->nvertices) ;
+    // set all vertices ripflag to be true
+    for (k=0;k<mris->nvertices;k++)
+      mris->vertices[k].ripflag = TRUE;
+    
+    // go through points
+    for (j=0;j<npts;j++)
+    {
+      // read int 
+      i = freadInt(fp) ;
+      // if negative, flip it
+      if (i<0)
+      {
+	k = -i-1; // convert it to zero based number
+	if (k < 0 || k >= mris->nvertices)
+	  ErrorExit(ERROR_BADFILE, 
+		    "MRISreadPatch: bad vertex # (%d) found in patch file", k) ;
+	// negative -> set the border to be true
+	mris->vertices[k].border = TRUE;
+      } 
+      // if positive
+      else
+      {
+	k = i-1; // vertex number is zero based
+	if (k < 0 || k >= mris->nvertices)
+	  ErrorExit(ERROR_BADFILE, 
+		    "MRISreadPatch: bad vertex # (%d) found in patch file", k) ;
+	// positive -> set the border to be false
+	mris->vertices[k].border = FALSE;
+      }
+      // rip flag for this vertex to be false
+      mris->vertices[k].ripflag = FALSE;
+      // read 3 positions
+      fread2(&ix,fp);
+      fread2(&iy,fp);
+      fread2(&iz,fp);
+      // convert it to mm, i.e. change the vertex position
+      mris->vertices[k].x = ix/100.0;
+      mris->vertices[k].y = iy/100.0;
+      mris->vertices[k].z = iz/100.0;
+      // change the hi, lo values
+      if (mris->vertices[k].x > mris->xhi) mris->xhi = mris->vertices[k].x;
+      if (mris->vertices[k].x < mris->xlo) mris->xlo = mris->vertices[k].x;
+      if (mris->vertices[k].y > mris->yhi) mris->yhi = mris->vertices[k].y;
+      if (mris->vertices[k].y < mris->ylo) mris->ylo = mris->vertices[k].y;
+      if (mris->vertices[k].z > mris->zhi) mris->zhi = mris->vertices[k].z;
+      if (mris->vertices[k].z < mris->zlo) mris->zlo = mris->vertices[k].z;
+      if (k == Gdiag_no && Gdiag & DIAG_SHOW)
+	fprintf(stdout, "vertex %d read @ (%2.2f, %2.2f, %2.2f)\n",k,
+		mris->vertices[k].x,mris->vertices[k].y,mris->vertices[k].z) ;
+    }
   }
   fclose(fp);
+  // remove ripflag set vertices
   MRISripFaces(mris);
+  // set the patch flag
   mris->patch = 1 ;
   mris->status = MRIS_CUT ;
-
+  // recalculate properties
   mrisComputeBoundaryNormals(mris);
   mrisSmoothBoundaryNormals(mris,10);
   MRISupdateSurface(mris) ;
@@ -8034,10 +8135,13 @@ MRISreadPatch(MRI_SURFACE *mris, char *pname)
 {
   int ret  ;
 
+  // update the vertices in patch file
   ret = MRISreadPatchNoRemove(mris, pname) ;
   if (ret != NO_ERROR)
     return(ret) ;
+  // remove ripflag set vertices
   MRISremoveRipped(mris) ;
+  // recalculate properties
   MRISupdateSurface(mris) ;
 
   return(NO_ERROR) ;
@@ -8119,27 +8223,31 @@ MRISwritePatch(MRI_SURFACE *mris, char *fname)
   FILE   *fp;
 
   type = MRISfileNameType(fname) ;
-  if (type == MRIS_ASCII_TRIANGLE_FILE)
+  if (type == MRIS_ASCII_TRIANGLE_FILE) // extension is ASC
     return(MRISwritePatchAscii(mris, fname)) ;
-  else if (type == MRIS_GEO_TRIANGLE_FILE)
+  else if (type == MRIS_GEO_TRIANGLE_FILE) // extension is GEO
     return(MRISwriteGeo(mris, fname)) ;
 
+  // binary file write
+  // count number of points
   npts = 0;
   for (k=0;k<mris->nvertices;k++)
     if (!mris->vertices[k].ripflag) npts++;
   if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
     fprintf(stdout, "writing surface patch with npts=%d to %s\n",npts,fname);
-  fp = fopen(fname,"w");
+  // binary write
+  fp = fopen(fname,"wb");
   if (fp==NULL) 
     ErrorReturn(ERROR_NOFILE, 
                 (ERROR_NOFILE, 
                  "MRISwritePatch: can't create file %s\n",fname)) ;
-
+  // write num points 
   fwriteInt(npts, fp) ;
+  // go through all points
   for (k=0;k<mris->nvertices;k++)
   if (!mris->vertices[k].ripflag)
   {
-    i = (mris->vertices[k].border)?-(k+1):k+1;
+    i = (mris->vertices[k].border)? (-(k+1)): (k+1);
     fwriteInt(i, fp) ;
     x = mris->vertices[k].x;
     y = mris->vertices[k].y;
