@@ -748,6 +748,7 @@ distribution/Makefile distribution/lib/Makefile distribution/lib/bem/Makefile di
 distribution/docs/Makefile mri_modify/Makefile \
 utils/test/Makefile \
 mri_watershed/brain_volume/Makefile \
+mri_cht2p/Makefile \
 dummy/Makefile
  ) 
 

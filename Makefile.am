@@ -5,7 +5,7 @@ GLSUBDIRS=mris2rgb nmovie mris_show tkmedit tkregister tkregister2 tksurfer mri_
 
 MRISUBDIRS=check_siemens_dir repair_siemens_file mkxsubjreg rbftest rawtocor \
 mri_add_xform_to_header mri_annotation2label mri_auto_fill mri_average mri_build_priors \
-mri_ca_label mri_ca_normalize mri_ca_tissue_parms mri_ca_register mri_ca_train mri_cc \
+mri_ca_label mri_ca_normalize mri_ca_tissue_parms mri_ca_register mri_ca_train mri_cc mri_cht2p \
 mri_cnr mri_compute_overlap mri_convert mri_convert_mdh mri_copy_values mri_cor2label \
 mri_deface \
 mri_edit_segmentation mri_edit_segmentation_with_surfaces mri_em_register mri_estimate_tissue_parms \
