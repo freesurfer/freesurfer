@@ -271,7 +271,8 @@ StatReadVolume(char *prefix)
     sprintf(fname, "%s_%3.3d.hdr", prefix, z) ;
     fp = fopen(fname, "r") ;
     if (!fp)
-      ErrorExit(ERROR_NOFILE, "StatReadVolume: could not open %s",fname) ;
+      ErrorReturn(NULL,
+                  (ERROR_NOFILE, "StatReadVolume: could not open %s",fname)) ;
     fscanf(fp, "%d %d %d", &width, &height, &nframes) ;
     sv->slice_width = width ; sv->slice_height = height ;
     fclose(fp) ;
@@ -279,12 +280,16 @@ StatReadVolume(char *prefix)
     /* now read .bfloat file to parse actual data */
     sprintf(fname, "%s_%3.3d.bfloat", prefix, z) ;
     fp = fopen(fname, "r") ;
-    if (!fp){
+    if (!fp)
+    {
       sprintf(fname, "%s_%3.3d.bshort", prefix, z) ;
       if (!fp)
-  ErrorExit(ERROR_NOFILE, "StatReadVolume: could not open %s",fname) ;
+      {
+        ErrorReturn(NULL,
+                    (ERROR_NOFILE, "StatReadVolume: could not open %s",fname));
+      }
       else
-  fprintf(stderr,"ERROR: %s does not support bshort volumes\n",Progname);
+        fprintf(stderr,"ERROR: %s does not support bshort volumes\n",Progname);
     }
 
     for (event = 0 ; event < sv->nevents ; event++)
@@ -338,7 +343,8 @@ StatReadVolume(char *prefix)
     sprintf(fname, "%s_dof_%3.3d.bfloat", prefix, z) ;
     fp = fopen(fname, "r") ;
     if (!fp)
-      ErrorExit(ERROR_NOFILE, "StatReadVolume: could not open %s",fname) ;
+      ErrorReturn(NULL,
+                  (ERROR_NOFILE, "StatReadVolume: could not open %s",fname)) ;
 
     for (event = 0 ; event < sv->nevents ; event++)
     {
