@@ -41,7 +41,7 @@ static int mriSegmentReallocateSegments(MRI_SEGMENTATION *mriseg,
 static int mriSegmentNew(MRI_SEGMENTATION *mriseg) ;
 static int mriSegmentMerge(MRI_SEGMENTATION *mriseg, int s0, int s1,
                            MRI *mri_labeled) ;
-static int mriCompactSegments(MRI_SEGMENTATION *mriseg) ;
+static int mriComputeSegmentStatistics(MRI_SEGMENTATION *mriseg) ;
 
 /*-----------------------------------------------------
                     GLOBAL FUNCTIONS
@@ -200,9 +200,12 @@ MRIsegment(MRI *mri, float low_val, float hi_val)
       }
     }
   }
-  mriCompactSegments(mriseg) ;
+  MRIcompactSegments(mriseg) ;
 
+  if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+    MRIwrite(mri_labeled, "labeled.mgh") ;
   MRIfree(&mri_labeled) ;
+  mriComputeSegmentStatistics(mriseg) ;
   return(mriseg) ;
 }
 /*-----------------------------------------------------
@@ -423,7 +426,6 @@ mriSegmentNew(MRI_SEGMENTATION *mriseg)
       return(s) ;
   return(s) ;
 }
-
 /*-----------------------------------------------------
         Parameters:
 
@@ -431,8 +433,8 @@ mriSegmentNew(MRI_SEGMENTATION *mriseg)
 
         Description
 ------------------------------------------------------*/
-static int
-mriCompactSegments(MRI_SEGMENTATION *mriseg)
+int
+MRIcompactSegments(MRI_SEGMENTATION *mriseg)
 {
   MRI_SEGMENT *src_segment, *dst_segment ;
   int         s, s2 ;
@@ -467,6 +469,183 @@ mriCompactSegments(MRI_SEGMENTATION *mriseg)
     }
   }
 
+  return(NO_ERROR) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
+int
+MRIsegmentDilate(MRI_SEGMENTATION *mriseg, MRI *mri)
+{
+  int         x, y, z, xk, yk, zk, xi, yi, zi, segno, v, nvox ;
+  MRI_SEGMENT *mseg ;
+  MRI         *mri_segments ;
+  float       voxel_size ;
+
+  voxel_size = mri->xsize * mri->ysize * mri->zsize ;
+
+  mri_segments = MRIclone(mri, NULL) ;
+
+  /* build image of all other segments to prevent dilation from
+     expanding into other segments */
+  for (segno = 0 ; segno < mriseg->nsegments ; segno++)
+    MRIsegmentToImage(mri, mri_segments, mriseg, segno) ;
+
+  for (segno = 0 ; segno < mriseg->nsegments ; segno++)
+  {
+    mseg = &mriseg->segments[segno] ;
+
+    nvox = mseg->nvoxels ;
+    for (v = 0 ; v < nvox ; v++)
+    {
+      x = mseg->voxels[v].x ; y = mseg->voxels[v].y ; z = mseg->voxels[v].z ;
+
+      for (xk = -1 ; xk <= 1 ; xk++)
+      {
+        xi = mri->xi[x+xk] ;
+        for (yk = -1 ; yk <= 1 ; yk++)
+        {
+          yi = mri->yi[y+yk] ;
+          for (zk = -1 ; zk <= 1 ; zk++)
+          {
+            if ((fabs(xk) + fabs(yk) + fabs(zk)) != 1)
+              continue ;
+            zi = mri->zi[z+zk] ;
+            if (MRIvox(mri, xi, yi, zi) && !MRIvox(mri_segments,xi,yi,zi))
+            {
+              if (mseg->nvoxels >= mseg->max_voxels)
+                mriSegmentReallocateVoxels(mriseg, segno, mseg->max_voxels*2);
+              mseg->voxels[mseg->nvoxels].x = xi ;
+              mseg->voxels[mseg->nvoxels].y = yi ;
+              mseg->voxels[mseg->nvoxels].z = zi ;
+              MRIvox(mri_segments,xi,yi,zi) = MRIvox(mri, xi, yi, zi) ;
+              mseg->nvoxels++ ;
+              mseg->area += voxel_size ;
+            }
+          }
+        }
+      }
+    }
+  }
+  MRIfree(&mri_segments) ;
+  return(NO_ERROR) ;
+}
+
+int
+MRIremoveSmallSegments(MRI_SEGMENTATION *mriseg, int min_voxels)
+{
+  int         s ;
+
+  if (DIAG_VERBOSE_ON)
+    fprintf(stderr, "compacting segments...\n") ;
+
+  for (s = 0 ; s < mriseg->max_segments ; s++)
+    if (mriseg->segments[s].nvoxels < min_voxels)
+      mriseg->segments[s].nvoxels = 0 ;
+  return(MRIcompactSegments(mriseg)) ;
+}
+static int
+mriComputeSegmentStatistics(MRI_SEGMENTATION *mriseg)
+{
+  int         segno ;
+  MRI_SEGMENT *mseg ;
+  int         v, x, y, z ;
+
+  for (segno = 0 ; segno < mriseg->nsegments ; segno++)
+  {
+    mseg = &mriseg->segments[segno] ;
+    mseg->x0 = mseg->y0 = mseg->z0 = 10000 ;
+    mseg->x1 = mseg->y1 = mseg->z1 = -10000 ;
+    mseg->cx = mseg->cy = mseg->cz = 0.0 ;
+    if (!mseg->nvoxels)
+      continue ;
+    for (v = 0 ; v < mseg->nvoxels ; v++)
+    {
+      x = mseg->voxels[v].x ; y = mseg->voxels[v].y ; z = mseg->voxels[v].z ;
+      mseg->cx += x ; mseg->cy += y ; mseg->cz += z ; 
+      if (x < mseg->x0)
+        mseg->x0 = x ;
+      if (y < mseg->y0)
+        mseg->y0 = y ;
+      if (z < mseg->z0)
+        mseg->z0 = z ;
+      if (x > mseg->x1)
+        mseg->x1 = x ;
+      if (y > mseg->y1)
+        mseg->y1 = y ;
+      if (z > mseg->z1)
+        mseg->z1 = z ;
+    }
+    mseg->cx /= (float)mseg->nvoxels ;
+    mseg->cy /= (float)mseg->nvoxels ;
+    mseg->cz /= (float)mseg->nvoxels ;
+  }
+
+  return(NO_ERROR) ;
+}
+
+int
+MRIsegmentDilateThreshold(MRI_SEGMENTATION *mriseg, MRI *mri_binary, 
+                          MRI *mri_thresh, int low_thresh, int hi_thresh)
+{
+  int         x, y, z, xk, yk, zk, xi, yi, zi, segno, v, nvox, val ;
+  MRI_SEGMENT *mseg ;
+  MRI         *mri_segments ;
+  float       voxel_size ;
+
+  voxel_size = mri_binary->xsize * mri_binary->ysize * mri_binary->zsize ;
+
+  mri_segments = MRIclone(mri_binary, NULL) ;
+
+  /* build image of all other segments to prevent dilation from
+     expanding into other segments */
+  for (segno = 0 ; segno < mriseg->nsegments ; segno++)
+    MRIsegmentToImage(mri_binary, mri_segments, mriseg, segno) ;
+
+  for (segno = 0 ; segno < mriseg->nsegments ; segno++)
+  {
+    mseg = &mriseg->segments[segno] ;
+
+    nvox = mseg->nvoxels ;
+    for (v = 0 ; v < nvox ; v++)
+    {
+      x = mseg->voxels[v].x ; y = mseg->voxels[v].y ; z = mseg->voxels[v].z ;
+
+      for (xk = -1 ; xk <= 1 ; xk++)
+      {
+        xi = mri_binary->xi[x+xk] ;
+        for (yk = -1 ; yk <= 1 ; yk++)
+        {
+          yi = mri_binary->yi[y+yk] ;
+          for (zk = -1 ; zk <= 1 ; zk++)
+          {
+            if ((fabs(xk) + fabs(yk) + fabs(zk)) != 1)
+              continue ;
+            zi = mri_binary->zi[z+zk] ;
+            val = MRIvox(mri_thresh, xi, yi, zi) ;
+            if (MRIvox(mri_binary, xi, yi, zi) && 
+                !MRIvox(mri_segments,xi,yi,zi) &&
+                (val >= low_thresh) && (val <= hi_thresh))
+            {
+              if (mseg->nvoxels >= mseg->max_voxels)
+                mriSegmentReallocateVoxels(mriseg, segno, mseg->max_voxels*2);
+              mseg->voxels[mseg->nvoxels].x = xi ;
+              mseg->voxels[mseg->nvoxels].y = yi ;
+              mseg->voxels[mseg->nvoxels].z = zi ;
+              MRIvox(mri_segments,xi,yi,zi) = MRIvox(mri_binary, xi, yi, zi) ;
+              mseg->nvoxels++ ;
+              mseg->area += voxel_size ;
+            }
+          }
+        }
+      }
+    }
+  }
+  MRIfree(&mri_segments) ;
   return(NO_ERROR) ;
 }
 
