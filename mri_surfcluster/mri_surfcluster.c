@@ -4,7 +4,7 @@
   email:   analysis-bugs@nmr.mgh.harvard.edu
   Date:    2/27/02
   Purpose: Finds clusters on the surface.
-  $Id: mri_surfcluster.c,v 1.2 2002/04/09 18:45:53 greve Exp $
+  $Id: mri_surfcluster.c,v 1.3 2002/04/09 23:48:38 greve Exp $
 */
 
 #include <stdio.h>
@@ -44,14 +44,14 @@ static MATRIX *LoadxfmMatrix(char *xfmfile);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_surfcluster.c,v 1.2 2002/04/09 18:45:53 greve Exp $";
+static char vcid[] = "$Id: mri_surfcluster.c,v 1.3 2002/04/09 23:48:38 greve Exp $";
 char *Progname = NULL;
 
 char *subjectdir = NULL;
 char *hemi = NULL;
 
 char *srcid = NULL;
-char *srcfmt  = NULL;
+char *srcfmt  = "paint";
 int   srcfmtid = MRI_VOLUME_TYPE_UNKNOWN;
 char *srcsurfid = "white";
 char *srcsubjid = NULL;
@@ -78,10 +78,10 @@ char *omaskfmt = "paint";
 char *omasksubjid = NULL;
 
 char *outid = NULL;
-char *outfmt = NULL;
+char *outfmt = "paint";
 int   outfmtid = MRI_VOLUME_TYPE_UNKNOWN;
 char *ocnid = NULL;
-char *ocnfmt = NULL;
+char *ocnfmt = "paint";
 int   ocnfmtid = MRI_VOLUME_TYPE_UNKNOWN;
 char *sumfile  = NULL;
 
@@ -188,6 +188,13 @@ int main(int argc, char **argv)
       fprintf(stderr,"       Number of value vertices = %d\n",srcval->width);
       exit(1);
     }
+
+    if(srcval->nframes <= srcframe){
+      printf("ERROR: desired frame (%d) exceeds number available (%d)\n",
+       srcframe,srcval->nframes);
+      exit(1);
+    }
+
     for(vtx = 0; vtx < srcsurf->nvertices; vtx++)
       srcsurf->vertices[vtx].val = MRIFseq_vox(srcval,vtx,0,0,srcframe);
     MRIfree(&srcval);
@@ -668,7 +675,7 @@ static void print_help(void)
 "summary file is shown below.\n"
 "\n"
 "Cluster Growing Summary (mri_surfcluster)\n"
-"$Id: mri_surfcluster.c,v 1.2 2002/04/09 18:45:53 greve Exp $\n"
+"$Id: mri_surfcluster.c,v 1.3 2002/04/09 23:48:38 greve Exp $\n"
 "Input :      minsig-0-lh.w\n"
 "Frame Number:      0\n"
 "Minimum Threshold: 5\n"
@@ -774,6 +781,12 @@ static void check_options(void)
       exit(1);
     }
   }
+
+  if(stringmatch(srcfmt,"paint") && srcframe != 0){
+    printf("ERROR: for source format = paint, frame must be 0\n");
+    exit(1);
+  }
+
 
   return;
 }
