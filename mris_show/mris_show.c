@@ -15,7 +15,7 @@
 #include "macros.h"
 #include "oglutil.h"
 
-static char vcid[] = "$Id: mris_show.c,v 1.17 1997/12/15 20:41:17 fischl Exp $";
+static char vcid[] = "$Id: mris_show.c,v 1.18 1997/12/19 20:28:53 fischl Exp $";
 
 
 /*-------------------------------- CONSTANTS -----------------------------*/
@@ -448,7 +448,7 @@ display_handler(void)
 static void
 keyboard_handler(unsigned char key, int x, int y)
 {
-  int   redraw = 1, niter = 1 ;
+  int   redraw = 1 ;
   char  wname[100] ;
   float angle ;
 
@@ -582,6 +582,7 @@ keyboard_handler(unsigned char key, int x, int y)
       angle = LEFT_HEMISPHERE_ANGLE ;
     glRotatef(angle, 0.0f, 1.0f, 0.0f) ;
     break ;
+#if 0
   case 'u':
     niter = parms.niterations ;
   case 'U':
@@ -594,6 +595,7 @@ keyboard_handler(unsigned char key, int x, int y)
     glEndList() ;
 #endif
     break ;
+#endif
   default:
     fprintf(stderr, "unknown normal key=%d\n", key) ;
     redraw = 0 ;
