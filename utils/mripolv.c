@@ -1763,19 +1763,18 @@ MRIthickenThinWMStrands(MRI *mri_src, MRI *mri_dst, int thickness, int nvoxels)
 
         Description
 ------------------------------------------------------*/
-#define MAX_LABELS   10000
-#define FILLED_VAL           240
-#define NBHD_FILLED_VAL      200
-#define THICKENED_FILL_VAL   210
+#define MAX_LABELS           10000
+#define FILLED_VAL           225
+#define NBHD_FILLED_VAL      175
 #define TOO_THIN             2
 MRI *
 MRIthickenThinWMStrands(MRI *mri_src, MRI *mri_dst, int thickness, int nvoxels)
 {
-  int      width, height, depth, x, y, z, thin, i, dont_fill,
-           total_filled, nfilled, nseg, nx, ny, nz, xv, yv, zv, v ;
+  int      width, height, depth, x, y, z, thin, i, dont_fill, up_added,
+           down_added, total_filled, nfilled, nseg, nx, ny, nz, xv, yv, zv, v ;
   float    nd ;
   BUFTYPE  *psrc, *pthin ;
-  Real     val, xf, yf, zf, max_dist, up_dist, down_dist, xt, yt, zt ;
+  Real     val, xf, yf, zf, max_dist, up_dist, down_dist /*, xt, yt, zt*/ ;
   MRI_SEGMENTATION *mriseg ;
   MRI              *mri_thin, *mri_tmp ;
 
@@ -1791,6 +1790,7 @@ MRIthickenThinWMStrands(MRI *mri_src, MRI *mri_dst, int thickness, int nvoxels)
   mri_tmp = MRIremoveIslands(mri_src, NULL, 3, 27-3) ;
   MRIclose(mri_tmp, mri_tmp) ;
 
+#if 0
   /* erase regions we know are not thin temporal strand */
   for (z = 0 ; z < depth ; z++)
   {
@@ -1806,6 +1806,7 @@ MRIthickenThinWMStrands(MRI *mri_src, MRI *mri_dst, int thickness, int nvoxels)
       }
     }
   }
+#endif
 
   if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
     MRIwrite(mri_tmp, "closed.mgh") ;
@@ -1932,21 +1933,23 @@ MRIthickenThinWMStrands(MRI *mri_src, MRI *mri_dst, int thickness, int nvoxels)
     MRIfree(&mri_tmp) ;
   }
 
-  for (nseg = i = 0 ; i < mriseg->max_segments ; i++)
+#define NSEGMENTS    20
+
+  for (nseg = 0 ; nseg < NSEGMENTS ; nseg++)
   {
     MRI_SEGMENT *mseg ;
     /*    int         v, xd, yd, zd ;*/
     
+    i = MRIsegmentMax(mriseg) ;  /* find largest remaining segment */
+    if (i < 0)
+      break ;   /* no more segments to process */
     mseg = &mriseg->segments[i] ;
-    if (mseg->nvoxels < nvoxels)
-    {
-      mseg->nvoxels = 0 ;
-      continue ;
-    }
-    nseg++ ;
     MRIclear(mri_thin) ;   /* mri_thin will now contain the segment */
-    MRIsegmentToImage(mri_tmp, mri_thin, mriseg, i) ;
-    for (v = 0 ; v < mseg->nvoxels ; v++)
+    MRIsegmentToImage(mri_tmp, mri_thin, mriseg, i) ; /* build image of seg */
+
+    nfilled = 0 ;
+
+    for (v = 0 ; v < mseg->nvoxels ; v++)  /* for each voxel in segment */
     {
       x = mseg->voxels[v].x ; y = mseg->voxels[v].y ; z = mseg->voxels[v].z;
       if (x == 96 && y == 134 && z == 97)
@@ -1998,8 +2001,9 @@ MRIthickenThinWMStrands(MRI *mri_src, MRI *mri_dst, int thickness, int nvoxels)
               }
             }
             thin =  ((up_dist+down_dist) <= TOO_THIN) ;
-            if (thin)
+            while (thin > 0)
             {
+              down_added = up_added = 0 ;
               if (up_dist <= down_dist)
               {
                 xv = nint((Real)x + (up_dist+1.5)*nx) ;
@@ -2007,6 +2011,7 @@ MRIthickenThinWMStrands(MRI *mri_src, MRI *mri_dst, int thickness, int nvoxels)
                 zv = nint((Real)z + (up_dist+1.5)*nz) ;
                 if (!MRIvox(mri_dst, xv, yv, zv))
                 {
+                  up_added = 1 ;
                   xv = nint((Real)x + (up_dist+.5)*nx) ;
                   yv = nint((Real)y + (up_dist+.5)*ny) ;
                   zv = nint((Real)z + (up_dist+.5)*nz) ;
@@ -2014,7 +2019,7 @@ MRIthickenThinWMStrands(MRI *mri_src, MRI *mri_dst, int thickness, int nvoxels)
                   MRIvox(mri_thin, xv, yv, zv) = FILLED_VAL ;
                   if (xv == 144 && yv == 137 && zv == 120)
                     DiagBreak() ;
-                  total_filled++ ;
+                  nfilled++ ;
                 }
               }
               if (up_dist >= down_dist)
@@ -2024,6 +2029,7 @@ MRIthickenThinWMStrands(MRI *mri_src, MRI *mri_dst, int thickness, int nvoxels)
                 zv = nint((Real)z - (down_dist+1.5)*nz) ;
                 if (!MRIvox(mri_dst, xv, yv, zv))
                 {
+                  down_added = 1 ;
                   xv = nint((Real)x - (down_dist+.5)*nx) ;
                   yv = nint((Real)y - (down_dist+.5)*ny) ;
                   zv = nint((Real)z - (down_dist+.5)*nz) ;
@@ -2031,22 +2037,31 @@ MRIthickenThinWMStrands(MRI *mri_src, MRI *mri_dst, int thickness, int nvoxels)
                   MRIvox(mri_thin, xv, yv, zv) = FILLED_VAL ;
                   if (xv == 144 && yv == 137 && zv == 120)
                     DiagBreak() ;
-                  total_filled++ ;
+                  nfilled++ ;
                 }
               }
+              if (up_added)
+                up_dist += 1.0f ;
+              if (down_added)
+                down_dist += 1.0f ;
+              thin =  ((up_dist+down_dist) <= TOO_THIN) ;
+              if (!up_added && !down_added)
+                break ;
             }
           }
         }
       }
     }
-    fprintf(stderr, "segment %d, %d voxels, filled = %d\n",
-            i, mseg->nvoxels, total_filled) ;
+
+    total_filled += nfilled ;
+    fprintf(stderr, "%d: segment %d, %d voxels, filled = %d, total = %d\n",
+            nseg, i, mseg->nvoxels, nfilled, total_filled) ;
+
+    mseg->nvoxels = 0 ;   /* so it won't be max next time through */
 
     /* now that the strand has been thickened some apply a neighborhood
        filter to try to fill some holes.
     */
-    if (i == 557)
-      MRIwrite(mri_thin, "seg557.mgh") ;
     do
     {
       nfilled = 0 ;
@@ -4256,14 +4271,13 @@ MRI *
 MRIcpolvMedianCurveSegment(MRI *mri, MRI *mri_labeled, MRI *mri_dst, 
                            int wsize,float len)
 {
-  int   x, y, z, width, height, depth, label, nlabeled, nchanged ;
-  
+  int   x, y, z, width, height, depth, label, nlabeled, non, noff ;
 
   if (!mri_dst)
     mri_dst = MRIcopy(mri_labeled, NULL) ;
 
   width = mri->width ; height = mri->height ; depth = mri->depth ;
-  for (nchanged = nlabeled = z = 0 ; z < depth ; z++)
+  for (non = noff = nlabeled = z = 0 ; z < depth ; z++)
   {
     DiagHeartbeat((float)z / (float)(depth-1)) ;
     for (y = 0 ; y < height ; y++)
@@ -4277,8 +4291,10 @@ MRIcpolvMedianCurveSegment(MRI *mri, MRI *mri_labeled, MRI *mri_dst,
           continue ;
         nlabeled++ ;
         label = MRIcpolvMedianCurveVoxel(mri, mri_labeled, x, y, z,wsize,len);
-        if (label != MRI_AMBIGUOUS)
-          nchanged++ ;
+        if (label == MRI_WHITE)
+          non++ ;
+        else
+          noff++ ;
         MRIvox(mri_dst, x, y, z) = label ;
       }
     }
@@ -4288,8 +4304,10 @@ MRIcpolvMedianCurveSegment(MRI *mri, MRI *mri_labeled, MRI *mri_dst,
   {
     fprintf(stderr, "              %8d voxels processed (%2.2f%%)\n",
             nlabeled, 100.0f*(float)nlabeled/ (float)(width*height*depth));
-    fprintf(stderr, "              %8d voxels changed (%2.2f%%)\n",
-            nchanged, 100.0f*(float)nchanged/ (float)(width*height*depth));
+    fprintf(stderr, "              %8d voxels white (%2.2f%%)\n",
+            non, 100.0f*(float)non/ (float)(width*height*depth));
+    fprintf(stderr, "              %8d voxels non-white (%2.2f%%)\n",
+            noff, 100.0f*(float)noff/ (float)(width*height*depth));
   }
   return(mri_dst) ;
 }
