@@ -14,7 +14,7 @@
 #include "macros.h"
 #include "fio.h"
 
-static char vcid[] = "$Id: mris_anatomical_stats.c,v 1.8 2002/05/20 16:45:15 fischl Exp $";
+static char vcid[] = "$Id: mris_anatomical_stats.c,v 1.9 2003/03/26 17:40:16 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -47,7 +47,7 @@ static char *thickness_name = "thickness" ;
 static int histo_flag = 0 ;
 static char *gray_histo_name ;
 static char *mri_name = "T1" ;
-
+static int noheader = 0 ;
 static char *log_file_name = NULL ;
 
 int
@@ -280,7 +280,8 @@ main(int argc, char *argv[])
   }
   if (log_fp)
   {
-    fprintf(log_fp, "%% %s: <wm vol> <surf area> <gray vol> <thick mean> <thick var> <integ rect. mean curv> <integ rect. Gauss curv> <fold index> <intr curv ind>\n",sname) ;
+		if (!noheader)
+			fprintf(log_fp, "%% %s: <wm vol> <surf area> <gray vol> <thick mean> <thick var> <integ rect. mean curv> <integ rect. Gauss curv> <fold index> <intr curv ind>\n",sname) ;
     fprintf(log_fp, "%2.0f\t%2.0f\t%2.0f\t%2.3f\t%2.3f\t%2.3f\t%2.3f\t%2.3f\t%2.3f\n", 
             wm_volume,
             mris->total_area,
@@ -326,6 +327,11 @@ get_option(int argc, char *argv[])
     log_file_name = argv[2] ;
     nargs = 1 ;
     fprintf(stderr, "outputting results to %s...\n", log_file_name) ;
+  }
+  else if (!stricmp(option, "noheader"))
+  {
+		noheader = 1 ;
+    printf("supressing printing of headers to log file\n") ;
   }
   else switch (toupper(*option))
   {
