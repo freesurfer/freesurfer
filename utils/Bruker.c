@@ -4,8 +4,8 @@
 /* date       :8/27/2003                  */
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2003/09/04 16:51:42 $
-// Revision       : $Revision: 1.6 $
+// Revision Date  : $Date: 2003/09/04 17:13:04 $
+// Revision       : $Revision: 1.7 $
 
 // there are many files present in Bruker directory
 //
@@ -112,7 +112,7 @@
 
 /* Martin Hoerrmann. */
 
-char *BRUCKER_C_VERSION= "$Revision: 1.6 $";
+char *BRUCKER_C_VERSION= "$Revision: 1.7 $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -338,7 +338,7 @@ int readBrukerD3proc(char *d3procFile, int *px, int *py, int *pz, int *ptype, in
 	return 0;
       }
     }
-    else if ( !strcmp( Parameter, "DATTYPE") )
+    else if ( !strcmp( Parameter, "$DATTYPE") )
     {
       if (strcmp(Value, "ip_short")==0)
 	*ptype = MRI_SHORT;
