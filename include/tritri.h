@@ -21,6 +21,11 @@ int triangle_ray_intersect(double orig_pt[3], double dir[3], double U0[3],
             dest[1]=v1[1]-v2[1]; \
             dest[2]=v1[2]-v2[2]; 
 
+#define ADD(dest,v1,v2)          \
+            dest[0]=v1[0]+v2[0]; \
+            dest[1]=v1[1]+v2[1]; \
+            dest[2]=v1[2]+v2[2]; 
+
 #define SCALAR_MUL(dest, s, v) \
             dest[0]=v[0]*s; \
             dest[1]=v[1]*s; \
