@@ -15,7 +15,7 @@
 #include "utils.h"
 #include "timer.h"
 
-static char vcid[]="$Id: mris_sphere.c,v 1.12 1999/03/01 00:00:35 fischl Exp $";
+static char vcid[]="$Id: mris_sphere.c,v 1.13 1999/03/23 23:27:27 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -36,9 +36,16 @@ static int inflate = 0 ;
 static double disturb = 0 ;
 static int   max_passes = 1 ;
 static int   randomly_project = 0 ;
+static int   talairach = 1 ;
 static float scale = 1.0 ;
 static int mrisDisturbVertices(MRI_SURFACE *mris, double amount) ;
 static int quick = 0 ;
+static int load = 0 ;
+static float inflate_area  = 0.0f ;
+static float inflate_tol  = 1.0f ;
+static int   inflate_avgs = 0 ;
+static float inflate_nlarea  = 0.0f ;
+static int   inflate_iterations = 200 ;
 
 int
 main(int argc, char *argv[])
@@ -123,19 +130,24 @@ main(int argc, char *argv[])
   MRISreadOriginalProperties(mris, "smoothwm") ;
   
   fprintf(stderr, "unfolding cortex into spherical form...\n");
-  MRIStalairachTransform(mris, mris) ;
+  if (talairach)
+    MRIStalairachTransform(mris, mris) ;
 
-  if (quick)
+  if (!load && inflate)
   {
     INTEGRATION_PARMS inflation_parms ;
 
     memset(&inflation_parms, 0, sizeof(INTEGRATION_PARMS)) ;
+    strcpy(inflation_parms.base_name, parms.base_name) ;
     inflation_parms.write_iterations = parms.write_iterations ;
-    inflation_parms.niterations = 200 ;
+    inflation_parms.niterations = inflate_iterations ;
     inflation_parms.l_spring_norm = 1.0 ;
+    inflation_parms.l_nlarea = inflate_nlarea ;
+    inflation_parms.l_area = inflate_area ;
+    inflation_parms.n_averages = inflate_avgs ;
     inflation_parms.l_sphere = .25 ;
     inflation_parms.a = DEFAULT_RADIUS ;
-    inflation_parms.tol = 1 ;
+    inflation_parms.tol = inflate_tol ;
     inflation_parms.integration_type = INTEGRATE_MOMENTUM ;
     inflation_parms.momentum = 0.9 ;
     inflation_parms.dt = 0.9 ;
@@ -143,12 +155,21 @@ main(int argc, char *argv[])
     MRISinflateToSphere(mris, &inflation_parms) ;
     parms.start_t = inflation_parms.start_t ;
   }
+
   MRISprojectOntoSphere(mris, mris, DEFAULT_RADIUS) ;
   fprintf(stderr,"surface projected - minimizing metric distortion...\n");
   MRISsetNeighborhoodSize(mris, nbrs) ;
   if (quick)
   {
-#if 1
+    if (!load)
+    {
+      parms.n_averages = 32 ; parms.tol = .1 ;
+      MRISprintTessellationStats(mris, stderr) ;
+      parms.l_parea = parms.l_dist = 0.0 ; parms.l_nlarea = 1 ; 
+      MRISquickSphere(mris, &parms, max_passes) ;  
+    }
+#if 0
+    MRISripDefectiveFaces(mris) ;
     MRISprintTessellationStats(mris, stderr) ;
     parms.nbhd_size = 1 ; parms.max_nbrs = 8 ;
     parms.l_parea = 1 ; parms.l_nlarea = 0 ; parms.l_dist = 1 ;
@@ -157,16 +178,19 @@ main(int argc, char *argv[])
     MRISquickSphere(mris, &parms, max_passes) ;  
     MRISresetNeighborhoodSize(mris, 1) ;
     parms.n_averages = 32 ; parms.tol = 1 ;
-#endif
     MRISprintTessellationStats(mris, stderr) ;
     parms.l_parea = 0.01 ; parms.l_nlarea = 1 ; parms.l_dist = 0.01 ;
     MRISquickSphere(mris, &parms, max_passes) ;  
     MRISprintTessellationStats(mris, stderr) ;
+#endif
   }
   else
     MRISunfold(mris, &parms, max_passes) ;  
-  fprintf(stderr, "writing spherical brain to %s\n", out_fname) ;
-  MRISwrite(mris, out_fname) ;
+  if (!load)
+  {
+    fprintf(stderr, "writing spherical brain to %s\n", out_fname) ;
+    MRISwrite(mris, out_fname) ;
+  }
 
   msec = TimerStop(&then) ;
   fprintf(stderr, "spherical transformation took %2.2f hours\n",
@@ -203,6 +227,11 @@ get_option(int argc, char *argv[])
     parms.integration_type = INTEGRATE_LINE_MINIMIZE ;
     fprintf(stderr, "integrating with line minimization\n") ;
   }
+  else if (!stricmp(option, "talairach"))
+  {
+    talairach = 1 ;
+    fprintf(stderr, "transforming surface into Talairach space.\n") ;
+  }
   else if (!stricmp(option, "dt"))
   {
     parms.dt = atof(argv[2]) ;
@@ -221,6 +250,36 @@ get_option(int argc, char *argv[])
     sscanf(argv[2], "%f", &parms.l_area) ;
     nargs = 1 ;
     fprintf(stderr, "using l_area = %2.3f\n", parms.l_area) ;
+  }
+  else if (!stricmp(option, "iarea"))
+  {
+    inflate_area = atof(argv[2]) ;
+    nargs = 1 ;
+    fprintf(stderr, "inflation l_area = %2.3f\n", inflate_area) ;
+  }
+  else if (!stricmp(option, "itol"))
+  {
+    inflate_tol = atof(argv[2]) ;
+    nargs = 1 ;
+    fprintf(stderr, "inflation tol = %2.3f\n", inflate_tol) ;
+  }
+  else if (!stricmp(option, "in"))
+  {
+    inflate_iterations = atoi(argv[2]) ;
+    nargs = 1 ;
+    fprintf(stderr, "inflation iterations = %d\n", inflate_iterations) ;
+  }
+  else if (!stricmp(option, "iavgs"))
+  {
+    inflate_avgs = atoi(argv[2]) ;
+    nargs = 1 ;
+    fprintf(stderr, "inflation averages = %d\n", inflate_avgs) ;
+  }
+  else if (!stricmp(option, "inlarea"))
+  {
+    inflate_nlarea = atof(argv[2]) ;
+    nargs = 1 ;
+    fprintf(stderr, "inflation l_nlarea = %2.3f\n", inflate_nlarea) ;
   }
   else if (!stricmp(option, "adaptive"))
   {
@@ -328,6 +387,9 @@ get_option(int argc, char *argv[])
     parms.nbhd_size = 7 ; parms.max_nbrs = 8 ;
     parms.n_averages = 1024 ;
     /*    parms.tol = 10.0f / (sqrt(33.0/1024.0)) ;*/
+    break ;
+  case 'L':
+    load = 1 ;
     break ;
   case 'B':
     base_dt_scale = atof(argv[2]) ;
