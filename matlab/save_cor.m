@@ -1,19 +1,35 @@
 function err = save_cor(corvol,stemdir,dir)
 %
-% err = save_cor(corvol,stemdir,dir)
+% err = save_cor(corvol,<stemdir>,<dir>)
 %
+% Saves in stemdir/dir. If stemdir and dir are not 
+% specified, saves in the current directory.
+%
+% See also load_cor.
+%
+% $Id: save_cor.m,v 1.2 2003/08/21 20:00:51 greve Exp $
 
-if(nargin ~= 3)
-  msg = 'USAGE: err = save_cor(corvol,stemdir,dir)';
+err = 1;
+
+if(nargin < 1 | nargin > 3)
+  msg = 'USAGE: err = save_cor(corvol,<stemdir>,<dir>)';
   qoe(msg);error(msg);
 end
 
-cordir = sprintf('%s/%s',stemdir,dir);
-
-status = mkdir(stemdir,dir);
+if(exist('stemdir') ~= 1 & exist('dir') ~= 1)
+  cordir = '.';
+else
+  cordir = sprintf('%s/%s',stemdir,dir);
+  status = mkdir(stemdir,dir);
+end
 
 fname = sprintf('%s/COR-.info',cordir);
 fid = fopen(fname,'w');
+if(fid == -1)
+  fprintf('ERROR: opening %s for writing\n',fname);
+  return;
+end
+
 fprintf(fid,'imnr0 %d\n',1);
 fprintf(fid,'imnr1 %d\n',size(corvol,3));
 fprintf(fid,'ptype %d\n',2);
@@ -57,5 +73,7 @@ for s=1:ns
     err = 0;
   end
 end
+
+err = 0;
 
 return;
