@@ -51,7 +51,7 @@ main(int argc, char *argv[])
 	double  vox_volume, brain_volume ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_label_volume.c,v 1.18 2005/02/04 18:46:19 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_label_volume.c,v 1.19 2005/04/06 17:40:20 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -151,14 +151,30 @@ main(int argc, char *argv[])
 
   for (i = 2 ; i < argc ; i++)
   {
-    label = atoi(argv[i]) ;
-    printf("processing label %d...\n", label) ;
-
-
-		if (partial_volume)
-			volume = MRIvoxelsInLabelWithPartialVolumeEffects(mri, mri_vals, label) ;
+		if (stricmp(argv[i], "brain") == 0)
+		{
+			volume = 0 ;
+			for (label = 0 ; label <= MAX_CMA_LABEL ; label++)
+			{
+				if (!IS_BRAIN(label))
+					continue ;
+				if (partial_volume)
+					volume += MRIvoxelsInLabelWithPartialVolumeEffects(mri, mri_vals, label) ;
+				else
+					volume += MRIvoxelsInLabel(mri, label) ;
+			}
+			label = -1 ;
+		}
 		else
-			volume = MRIvoxelsInLabel(mri, label) ;
+		{
+			label = atoi(argv[i]) ;
+			printf("processing label %d...\n", label) ;
+
+			if (partial_volume)
+				volume = MRIvoxelsInLabelWithPartialVolumeEffects(mri, mri_vals, label) ;
+			else
+				volume = MRIvoxelsInLabel(mri, label) ;
+		}
     if (log_fname)
     {
       char fname[STRLEN] ;
