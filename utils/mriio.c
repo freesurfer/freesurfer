@@ -885,7 +885,6 @@ static MRI *siemensRead(char *fname, int read_volume_flag)
   int mosaic;
   int mos_r, mos_c;
   char pulse_sequence_name[STRLEN], ps2[STRLEN];
-  int files_per_volume;
   int n_t;
   int n_dangling_images, n_full_mosaics, mosaics_per_volume;
   int br, bc;
@@ -991,7 +990,6 @@ static MRI *siemensRead(char *fname, int read_volume_flag)
   /* --- structural --- */
   if(n_slices == 1)
   {
-    files_per_volume = n_files;
     n_slices = n_files;
     n_t = 1;
     if(base_raw_matrix_size != rows || base_raw_matrix_size != cols)
@@ -1008,7 +1006,7 @@ static MRI *siemensRead(char *fname, int read_volume_flag)
     {
       ErrorReturn(NULL, (ERROR_BADPARM, "siemensRead(): file rows (%hd) not divisible by image rows (%d)", rows, base_raw_matrix_size));
     }
-    if(rows % base_raw_matrix_size != 0)
+    if(cols % base_raw_matrix_size != 0)
     {
       ErrorReturn(NULL, (ERROR_BADPARM, "siemensRead(): file cols (%hd) not divisible by image cols (%d)", cols, base_raw_matrix_size));
     }
@@ -1027,8 +1025,7 @@ static MRI *siemensRead(char *fname, int read_volume_flag)
       ErrorReturn(NULL, (ERROR_BADPARM, "siemensRead(): files in volume (%d) not divisible by mosaics per volume (%d)", n_files, mosaics_per_volume));
     }
 
-    files_per_volume = mosaics_per_volume;
-    n_t = n_files / files_per_volume;
+    n_t = n_files / mosaics_per_volume;
 
   }
 
