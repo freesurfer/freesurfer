@@ -42,6 +42,7 @@ char *type_to_string(int type)
   case BRIK_FILE:   tmpstr = "brik"; break;
   case BSHORT_FILE: tmpstr = "bshort"; break;
   case BFLOAT_FILE: tmpstr = "bfloat"; break;
+  case BHDR:        tmpstr = "bhdr"; break;
   case SDT_FILE:    tmpstr = "varian"; break;
   case OTL_FILE:    tmpstr = "outline"; break;
   case GDF_FILE:    tmpstr = "gdf"; break;
@@ -96,6 +97,8 @@ int string_to_type(char *string)
     type = BSHORT_FILE;
   if(strcmp(ls, "bfloat") == 0)
     type = BFLOAT_FILE;
+  if(strcmp(ls, "bhdr") == 0)
+    type = BHDR;
   if(strcmp(ls, "siemens") == 0 || strcmp(ls, "ima") == 0)
     type = SIEMENS_FILE;
   if(strcmp(ls, "dicom") == 0)
@@ -184,6 +187,9 @@ int mri_identify(char *fname_passed)
 	case MRI_CORONAL_SLICE_DIRECTORY:
 	  if (is_cor(fname))
 	    return type;
+	  break;
+	case BHDR:
+	  return type;
 	  break;
 	case BSHORT_FILE:
 	  if (is_bshort(fname))
@@ -620,41 +626,156 @@ int is_mgh(char *fname)
   return(1);
 
 }  /*  end is_mgh()  */
-
+/*--------------------------------------*/
 int is_bshort(char *fname)
 {
-
   char *dot;
-
   dot = strrchr(fname, '.');
-  if(dot)
-  {
+  if(dot){
     dot++;
-    if(!strcmp(dot, "bshort"))
-      return(1);
+    if(!strcmp(dot, "bshort")) return(1);
   }
-
   return(0);
 
 }  /*  end is_bshort()  */
-
-int is_bfloat(char *fname)
-{
-
+/*--------------------------------------*/
+int is_bfloat(char *fname){
   char *dot;
-
   dot = strrchr(fname, '.');
-  if(dot)
-  {
+  if(dot){
     dot++;
-    if(!strcmp(dot, "bfloat"))
-      return(1);
+    if(!strcmp(dot, "bfloat")) return(1);
+  }
+  return(0);
+}  /*  end is_bfloat()  */
+/*--------------------------------------*/
+int is_bhdr(char *fname)
+{
+  char *dot;
+  dot = strrchr(fname, '.');
+  if(dot){
+    dot++;
+    if(!strcmp(dot, "bhdr"))return(1);
+  }
+  return(0);
+}  /*  end is_bhdr()  */
+/*--------------------------------------
+  bhdr_stem(). Given fname = stem.bhdr,
+  returns stem.
+--------------------------------------*/
+char * bhdr_stem(char *fname)
+{
+  char *stem;
+  int i,len;
+
+  if(! is_bhdr(fname)) return(NULL);
+  len = strlen(fname);
+  stem = (char *) calloc(len+1,sizeof(char));
+  memcpy(stem,fname,len);
+  i = len-1;
+  while(stem[i] != '.') {
+    stem[i] = '\0'; 
+    i--;
+  }
+  stem[i] = '\0'; 
+
+  return(stem);
+}
+/*------------------------------------------------
+  bhdr_firstslicefname(). Given fname = stem.bhdr,
+  finds and returns stem_000.precision on disk, 
+  where precision is either bfloat or bshort.
+  This can then be used as input to MRIread().
+  --------------------------------------------*/
+char * bhdr_firstslicefname(char *fname)
+{
+  char *stem, *firstslicefname;
+  int len;
+
+  if(! is_bhdr(fname)) return(NULL);
+  stem = bhdr_stem(fname);
+
+  len = strlen(stem) + 12;
+  firstslicefname = (char *) calloc(len,sizeof(char));
+
+  sprintf(firstslicefname,"%s_000.bfloat",stem);
+  if(fio_FileExistsReadable(firstslicefname)){
+    free(stem);
+    return(firstslicefname);
   }
 
-  return(0);
+  sprintf(firstslicefname,"%s_000.bshort",stem);
+  if(fio_FileExistsReadable(firstslicefname)){
+    free(stem);
+    return(firstslicefname);
+  }
 
-}  /*  end is_bfloat()  */
+  free(stem);
+  return(NULL);
+}
+/*-------------------------------------------------------------
+  bhdr_precisionstring(). Given fname = stem.bhdr, finds
+  stem_000.precision on disk, where precision is either bfloat or
+  bshort.  
+  --------------------------------------------------------------*/
+char * bhdr_precisionstring(char *fname)
+{
+  char *stem, *precision;
+  char tmpstr[2000];
 
+  if(! is_bhdr(fname)) return(NULL);
+  stem = bhdr_stem(fname);
+
+  precision = (char *) calloc(7,sizeof(char));
+
+  sprintf(precision,"bfloat");
+  sprintf(tmpstr,"%s_000.%s",stem,precision);
+  if(fio_FileExistsReadable(tmpstr)){
+    free(stem);
+    return(precision);
+  }
+
+  sprintf(precision,"bshort");
+  sprintf(tmpstr,"%s_000.%s",stem,precision);
+  if(fio_FileExistsReadable(tmpstr)){
+    free(stem);
+    return(precision);
+  }
+
+  free(stem);
+  return(NULL);
+}
+
+/*----------------------------------------------------------------------
+  bhdr_precision(). Given fname = stem.bhdr, finds stem_000.precision
+  on disk, where precision is either bfloat or bshort. If bfloat, then
+  returns MRI_FLOAT. If bshort, then returns  MRI_SHORT. 
+  ---------------------------------------------------------------------*/
+int bhdr_precision(char *fname)
+{
+  char *stem;
+  char tmpstr[2000];
+
+  if(! is_bhdr(fname)) return(NULL);
+  stem = bhdr_stem(fname);
+
+  sprintf(tmpstr,"%s_000.bfloat",stem);
+  if(fio_FileExistsReadable(tmpstr)){
+    free(stem);
+    return(MRI_FLOAT);
+  }
+
+  sprintf(tmpstr,"%s_000.bshort",stem);
+  if(fio_FileExistsReadable(tmpstr)){
+    free(stem);
+    return(MRI_SHORT);
+  }
+
+  free(stem);
+  return(MRI_VOLUME_TYPE_UNKNOWN);
+}
+
+/*--------------------------------------*/
 int is_sdt(char *fname)
 {
 

@@ -21,6 +21,7 @@ int is_mnc(char *fname);
 int is_analyze(char *fname);
 int is_siemens(char *fname);
 int is_brik(char *fname);
+int is_bhdr(char *fname);
 int is_bshort(char *fname);
 int is_bfloat(char *fname);
 int is_sdt(char *fname);
@@ -28,5 +29,9 @@ int is_gdf(char *fname);
 int is_otl(char *fname);
 int is_ximg(char *fname);
 int is_nifti1(char *fname);
+char * bhdr_stem(char *fname);
+char * bhdr_precisionstring(char *fname);
+int bhdr_precision(char *fname);
+char * bhdr_firstslicefname(char *fname);
 
 /* EOF */

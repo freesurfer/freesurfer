@@ -320,6 +320,7 @@ static MRI *mri_read(char *fname, int type, int volume_flag, int start_frame, in
   MRI *mri, *mri2;
   IMAGE *I;
   char fname_copy[STRLEN]; 
+  char *ptmpstr;
   char *at, *pound, *colon;
   char *ep;
   int i, j, k, t;
@@ -445,6 +446,13 @@ static MRI *mri_read(char *fname, int type, int volume_flag, int start_frame, in
   else if (type == MRI_GCA_FILE)
   {
     mri = readGCA(fname_copy) ;
+  }
+  else if(type == BHDR)
+  {
+    ptmpstr = bhdr_firstslicefname(fname_copy);
+    t = bhdr_precision(fname_copy);
+    mri = bvolumeRead(ptmpstr, volume_flag, t);
+    free(ptmpstr);
   }
   else if(type == BSHORT_FILE)
   {
@@ -804,6 +812,8 @@ int MRIwriteType(MRI *mri, char *fname, int type)
 {
 
   int error;
+  char *fstem;
+  char tmpstr[STRLEN];
 
   if(type == MRI_CORONAL_SLICE_DIRECTORY)
   {
@@ -811,17 +821,27 @@ int MRIwriteType(MRI *mri, char *fname, int type)
   }
   else if(type == MRI_MINC_FILE)
   {
-    //error = mincWrite2(mri, fname);
     error = mincWrite(mri, fname);
+  }
+  else if(type == BHDR)
+  {
+    fstem = bhdr_stem(fname);
+    if(mri->type == MRI_SHORT){
+      sprintf(tmpstr,"%s_000.bshort",fstem);
+      error = bvolumeWrite(mri, tmpstr, MRI_SHORT);
+    }
+    else{
+      sprintf(tmpstr,"%s_000.bfloat",fstem);
+      error = bvolumeWrite(mri, tmpstr, MRI_FLOAT);
+    }
+    free(fstem);
   }
   else if(type == BSHORT_FILE)
   {
-    //error = bshortWrite(mri, fname);
     error = bvolumeWrite(mri, fname, MRI_SHORT);
   }
   else if(type == BFLOAT_FILE)
   {
-    //error = bfloatWrite(mri, fname);
     error = bvolumeWrite(mri, fname, MRI_FLOAT);
   }
   else if(type == MRI_ANALYZE_FILE)
