@@ -52,9 +52,7 @@ AC_SUBST(OS_LDFLAGS)
 ##############################################################
 # cpu optimization
 ##############################################################
-GMP_GCC_VERSION_GE(${CC},3)
 if test "${CC}" = "gcc"; then 
-if test $gmp_compare_ge = yes; then
 AC_MSG_NOTICE(Setting CPU optimization ...)
 CPUFLAGS=""
 AC_MSG_CHECKING(checking for CPU ...)
@@ -96,10 +94,6 @@ found=$CPUFLAGS
 # set the value
 CFLAGS="$CPUFLAGS $CFLAGS"
 AC_MSG_RESULT($found)
-else
-  AC_MSG_WARN(CPU optimization flag is usable only for gcc3.x or greater)
-# if gcc > gcc3
-fi 
 # if gcc
 fi
 ##############################################################
