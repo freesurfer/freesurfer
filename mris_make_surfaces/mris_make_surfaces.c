@@ -16,7 +16,7 @@
 #include "mrimorph.h"
 #include "mrinorm.h"
 
-static char vcid[] = "$Id: mris_make_surfaces.c,v 1.37 2000/08/02 15:04:29 fischl Exp $";
+static char vcid[] = "$Id: mris_make_surfaces.c,v 1.38 2001/06/01 21:06:36 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -103,6 +103,21 @@ static float max_thickness = 5.0 ;
 #define MAX_GRAY_AT_CSF_BORDER    75
 #define MIN_CSF                10
 
+static  int   max_border_white_set = 0,
+  min_border_white_set = 0,
+  min_gray_at_white_border_set = 0,
+  max_gray_set = 0,
+  max_gray_at_csf_border_set = 0,
+  min_gray_at_csf_border_set = 0,
+  min_csf_set = 0 ;
+
+static  float   max_border_white = MAX_BORDER_WHITE,
+                min_border_white = MIN_BORDER_WHITE,
+                min_gray_at_white_border = MIN_GRAY_AT_WHITE_BORDER,
+                max_gray = MAX_GRAY,
+                max_gray_at_csf_border = MAX_GRAY_AT_CSF_BORDER,
+                min_gray_at_csf_border = MIN_GRAY_AT_CSF_BORDER,
+                min_csf = MIN_CSF ;
 int
 main(int argc, char *argv[])
 {
@@ -114,13 +129,6 @@ main(int argc, char *argv[])
   float         max_len ;
   float         white_mean, white_std, gray_mean, gray_std ;
   double        l_intensity, current_sigma ;
-  float         max_border_white = MAX_BORDER_WHITE,
-                min_border_white = MIN_BORDER_WHITE,
-                min_gray_at_white_border = MIN_GRAY_AT_WHITE_BORDER,
-                max_gray = MAX_GRAY,
-                max_gray_at_csf_border = MAX_GRAY_AT_CSF_BORDER,
-                min_gray_at_csf_border = MIN_GRAY_AT_CSF_BORDER,
-                min_csf = MIN_CSF ;
   struct timeb  then ;
   M3D           *m3d ;
 
@@ -279,9 +287,12 @@ main(int argc, char *argv[])
     MRIcomputeClassStatistics(mri_T1, mri_tmp, 30, WHITE_MATTER_MEAN,
                               &white_mean, &white_std, &gray_mean,
                               &gray_std) ;
-    min_gray_at_white_border = gray_mean-gray_std ;
-    max_border_white = white_mean+white_std ;
-    min_border_white = gray_mean ;
+    if (!min_gray_at_white_border_set)
+      min_gray_at_white_border = gray_mean-gray_std ;
+    if (!max_border_white_set)
+      max_border_white = white_mean+white_std ;
+    if (!min_border_white_set)
+      min_border_white = gray_mean ;
     fprintf(stderr, "setting MIN_GRAY_AT_WHITE_BORDER to %2.1f (was %d)\n",
             min_gray_at_white_border, MIN_GRAY_AT_WHITE_BORDER) ;
     fprintf(stderr, "setting MAX_BORDER_WHITE to %2.1f (was %d)\n",
@@ -289,9 +300,12 @@ main(int argc, char *argv[])
     fprintf(stderr, "setting MIN_BORDER_WHITE to %2.1f (was %d)\n",
             min_border_white, MIN_BORDER_WHITE) ;
 
-    max_gray = white_mean-white_std ;
-    max_gray_at_csf_border = gray_mean-0.5*gray_std ;
-    min_gray_at_csf_border = gray_mean - 3*gray_std ;
+    if (!max_gray_set)
+      max_gray = white_mean-white_std ;
+    if (!max_gray_at_csf_border_set)
+      max_gray_at_csf_border = gray_mean-0.5*gray_std ;
+    if (!min_gray_at_csf_border_set)
+      min_gray_at_csf_border = gray_mean - 3*gray_std ;
     fprintf(stderr, "setting MAX_GRAY to %2.1f (was %d)\n",
             max_gray, MAX_GRAY) ;
     fprintf(stderr, "setting MAX_GRAY_AT_CSF_BORDER to %2.1f (was %d)\n",
@@ -702,6 +716,48 @@ get_option(int argc, char *argv[])
   else if (!stricmp(option, "median"))
   {
     apply_median_filter = 1 ;
+  }
+  else if (!stricmp(option, "max_border_white"))
+  {
+    max_border_white_set = 1 ;
+    max_border_white = atof(argv[2]) ;
+    nargs = 1 ;
+  }
+  else if (!stricmp(option, "min_border_white"))
+  {
+    min_border_white_set = 1 ;
+    min_border_white = atof(argv[2]) ;
+    nargs = 1 ;
+  }
+  else if (!stricmp(option, "min_gray_at_white_border"))
+  {
+    min_gray_at_white_border_set = 1 ;
+    min_gray_at_white_border = atof(argv[2]) ;
+    nargs = 1 ;
+  }
+  else if (!stricmp(option, "max_gray"))
+  {
+    max_gray_set = 1 ;
+    max_gray = atof(argv[2]) ;
+    nargs = 1 ;
+  }
+  else if (!stricmp(option, "max_gray_at_csf_border"))
+  {
+    max_gray_at_csf_border_set = 1 ;
+    max_gray_at_csf_border = atof(argv[2]) ;
+    nargs = 1 ;
+  }
+  else if (!stricmp(option, "min_gray_at_csf_border"))
+  {
+    min_gray_at_csf_border_set = 1 ;
+    min_gray_at_csf_border = atof(argv[2]) ;
+    nargs = 1 ;
+  }
+  else if (!stricmp(option, "min_csf"))
+  {
+    min_csf_set = 1 ;
+    min_csf = atof(argv[2]) ;
+    nargs = 1 ;
   }
   else if (!stricmp(option, "noauto"))
   {
