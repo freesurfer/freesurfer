@@ -15,7 +15,7 @@
 #include "annotation.h"
 #include "version.h"
 
-static char vcid[] = "$Id: mris_sample_parc.c,v 1.10 2003/09/16 18:46:14 tosa Exp $";
+static char vcid[] = "$Id: mris_sample_parc.c,v 1.11 2004/03/16 20:57:39 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -53,7 +53,7 @@ main(int argc, char *argv[])
   Real          x, y, z, xw, yw, zw ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_sample_parc.c,v 1.10 2003/09/16 18:46:14 tosa Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_sample_parc.c,v 1.11 2004/03/16 20:57:39 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -207,7 +207,7 @@ main(int argc, char *argv[])
   sprintf(fname, "%s.%s.annot", hemi, annot_name) ;
   printf("writing annotation to %s...\n", fname) ;
   MRISwriteAnnotation(mris, fname) ; 
-  MRISreadAnnotation(mris, fname) ;
+	/*  MRISreadAnnotation(mris, fname) ;*/
   exit(0) ;
   return(0) ;  /* for ansi */
 }
