@@ -10,7 +10,7 @@ if { $err } {
     load [file dirname [info script]]/libscuba[info sharedlibextension] scuba
 }
 
-DebugOutput "\$Id: scuba.tcl,v 1.63 2004/10/20 21:07:00 kteich Exp $"
+DebugOutput "\$Id: scuba.tcl,v 1.64 2004/10/27 20:57:33 kteich Exp $"
 
 # gTool
 #   current - current selected tool (nav,)
@@ -1615,6 +1615,17 @@ proc MakeToolsPanel { ifwTop } {
 	-command "VoxelEditingLUTMenuCallback"
     set gaWidget(toolProperties,voxelLutMenu) $fwPropsVoxelEditingSub.mwLUT
 
+    tkuMakeEntry $fwPropsVoxelEditingSub.ewEraseValue \
+	-label "Erase Value" \
+	-width 5 \
+	-font [tkuNormalFont] \
+	-variable gaTool(current,eraseVoxelValue) \
+	-command { SetToolEraseVoxelValue $gaTool(current,id) $gaTool(current,eraseVoxelValue) } \
+	-notify 1
+    set gaWidget(toolProperties,eraseVoxelValueEntry) \
+	$fwPropsVoxelEditingSub.ewEraseValue
+
+
 
     tixScrolledListBox $fwPropsVoxelEditingSub.lbStructure \
 	-scrollbar auto \
@@ -1624,9 +1635,10 @@ proc MakeToolsPanel { ifwTop } {
     set gaWidget(toolProperties,voxelStructureListBox) \
 	$fwPropsVoxelEditingSub.lbStructure
     
-    grid $fwPropsVoxelEditingSub.ewNewValue  -column 0 -row 0 -sticky ew
-    grid $fwPropsVoxelEditingSub.mwLUT       -column 0 -row 1 -sticky ew
-    grid $fwPropsVoxelEditingSub.lbStructure -column 0 -row 2 -sticky ew
+    grid $fwPropsVoxelEditingSub.ewNewValue    -column 0 -row 0 -sticky ew
+    grid $fwPropsVoxelEditingSub.mwLUT         -column 0 -row 1 -sticky ew
+    grid $fwPropsVoxelEditingSub.lbStructure   -column 0 -row 2 -sticky ew
+    grid $fwPropsVoxelEditingSub.ewEraseValue  -column 0 -row 3 -sticky ew
 
     set gaWidget(toolProperties,voxelEditing) $fwPropsVoxelEditing
 
@@ -2808,6 +2820,11 @@ proc SelectToolInToolProperties { iTool } {
 		    [GetToolNewVoxelValue $gaTool(current,id)]
 		tkuRefreshEntryNotify \
 		    $gaWidget(toolProperties,newVoxelValueEntry)
+
+		set gaTool(current,eraseVoxelValue) \
+		    [GetToolEraseVoxelValue $gaTool(current,id)]
+		tkuRefreshEntryNotify \
+		    $gaWidget(toolProperties,eraseVoxelValueEntry)
 	    }
 	}
 	marker { 
@@ -4281,7 +4298,7 @@ proc SaveSceneScript { ifnScene } {
     set f [open $ifnScene w]
 
     puts $f "\# Scene file generated "
-    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.63 2004/10/20 21:07:00 kteich Exp $"
+    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.64 2004/10/27 20:57:33 kteich Exp $"
     puts $f ""
 
     # Find all the data collections.
@@ -4417,6 +4434,7 @@ proc SaveSceneScript { ifnScene } {
     set flood3D [GetToolFlood3D $toolID]
     set floodOnlyZero [GetToolOnlyFloodZero $toolID]
     set newValue [GetToolNewVoxelValue $toolID]
+    set eraseValue [GetToolEraseVoxelValue $toolID]
     set edgeBias [GetToolEdgePathEdgeBias $toolID]
     puts $f "\# Tool $toolID"
     puts $f "SetToolLayerTarget $toolID $target"
@@ -4432,6 +4450,7 @@ proc SaveSceneScript { ifnScene } {
     puts $f "SetToolFlood3D $toolID $flood3D"
     puts $f "SetToolOnlyFloodZero $toolID $floodOnlyZero"
     puts $f "SetToolNewVoxelValue $toolID $newValue"
+    puts $f "SetToolEraseVoxelValue $toolID $eraseValue"
     puts $f "SetToolEdgePathEdgeBias $toolID $edgeBias"
     puts $f ""
 
