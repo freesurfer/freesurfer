@@ -201,7 +201,7 @@ byte *halloc(),*hmalloc();
 hsize_t hsizepix();
 struct extpar *findparam(),*grepparam();
 FILE *hfopenr(),*ffopen(),*ffreopen();
-h_boolean getline(),swallownl(),hfgets();
+/* h_boolean getline(),swallownl(),hfgets(); */
 
 /*
  * avoid hassles of including string.h or strings.h
