@@ -4904,9 +4904,9 @@ static MRI *analyzeRead(char *fname, int read_volume)
     mri->ras_good_flag = 1;
     fprintf(stderr,
             "-----------------------------------------------------------------\n"
-	    "could not find %s file.                                          \n"
-            "follow Analyze 7.5 voxel order from hdr->hist.orient value: %d, %s.\n"
-            "if not valid, please provide the information in %s file\n"
+	    "INFO: could not find %s file for direction cosine info.\n"
+            "INFO: use Analyze 7.5 hdr->hist.orient value: %d, %s.\n"
+            "INFO: if not valid, please provide the information in %s file\n"
             "-----------------------------------------------------------------\n",
 	    matfile, hdr->hist.orient, direction, matfile
 	    );
