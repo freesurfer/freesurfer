@@ -82,7 +82,7 @@ main(int argc, char *argv[])
       dof++ ;
       subject_name = argv[i] ;
       sprintf(fname, "%s/%s/mri/%s", subjects_dir, subject_name, volume_name) ;
-      fprintf(stderr, "%d of %d: reading %s...", fname, i, argc-1) ;
+      fprintf(stderr, "%d of %d: reading %s...", i, argc-2, fname) ;
       mri = MRIread(fname) ;
       if (!mri)
         ErrorExit(ERROR_NOFILE, "%s: could not open volume %s",Progname,fname);
@@ -107,7 +107,7 @@ main(int argc, char *argv[])
         sprintf(fname, "%s/%s/mri/transforms/%s", 
                 subjects_dir, subject_name, transform_fname) ;
 
-        fprintf(stderr, "reading and applying transform %s...", fname) ;
+        fprintf(stderr, "reading transform %s...", fname) ;
         type = TransformFileNameType(fname) ;
         switch (type)
         {
@@ -125,6 +125,7 @@ main(int argc, char *argv[])
           if (!m3d)
             ErrorExit(ERROR_NOFILE, "%s: could not open transform file %s\n",
                       Progname, transform_fname) ;
+          fprintf(stderr, "done.\napplying transform...") ;
           mri_tmp = MRIapply3DMorph(mri, m3d, NULL) ;
           MRI3DmorphFree(&m3d) ;
           break ;
