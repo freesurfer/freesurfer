@@ -2043,7 +2043,7 @@ MRISremoveRipped(MRI_SURFACE *mris)
   FACE    *face ;
 
   if (Gdiag & DIAG_SHOW)
-    fprintf(stderr, "removing ripped vertices and faces...") ;
+    fprintf(stderr, "removing ripped vertices and faces...\n") ;
   do
   {
     nripped = 0 ;
@@ -2101,9 +2101,6 @@ MRISremoveRipped(MRI_SURFACE *mris)
       }
     }
   } while (nripped > 0) ;
-
-  if (Gdiag & DIAG_SHOW)
-    fprintf(stderr, "done.\n") ;
 
   /* now recompute total original area for scaling */
   mris->orig_area = 0.0f ;
@@ -3755,7 +3752,7 @@ MRISunfold(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int max_passes)
         MRISstoreAnalyticDistances(mris, MRIS_PLANE) ;
     }
 
-    if (!passno /*&& mris->status != MRIS_SPHERE*/)
+    if (!passno && ((parms->flags & IPFLAG_QUICK) == 0))
     {
       double tol = parms->tol ;
       parms->tol = 0.5 ;
@@ -3962,7 +3959,8 @@ MRISquickSphere(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int max_passes)
   base_averages = parms->n_averages ;
   niter = parms->niterations ;
   passno = 0 ;
-  /*  parms->tol = parms->tol * 1024 / (sqrt((double)base_averages+1)) ;*/
+  if ((parms->flags & IPFLAG_QUICK) == 0)
+    parms->tol = parms->tol * 1024 / (sqrt((double)base_averages+1)) ;
   do
   {
     mrisIntegrationEpoch(mris, parms, base_averages) ;
@@ -4389,7 +4387,11 @@ MRISintegrate(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int n_averages)
   l_area = parms->l_area ;
   write_iterations = parms->write_iterations ;
   niterations = parms->niterations ;
+#if 0
   tol = parms->tol * sqrt(((double)n_averages + 1.0) / 1024.0);
+#else
+  tol = parms->tol ;
+#endif
   sse_thresh = tol ;
   if (Gdiag & DIAG_SHOW)
     fprintf(stderr,"integrating with navgs=%d and tol=%2.3e\n",n_averages,tol);
