@@ -21,7 +21,9 @@ static int  add_to_ptable(MRI_SURFACE *mris, int *ptable, int nparcs) ;
 static int *ptable = NULL ;
 static int nbrs = 2 ;
 static int navgs = 5 ;
-static int normalize_flag = 0 ;
+static int normalize1_flag = 0 ;
+static int normalize2_flag = 0 ;
+static int normalize3_flag = 0 ;
 static int nparcs = 0 ;
 static char *ptable_fname = NULL ;
 
@@ -52,7 +54,8 @@ main(int argc, char *argv[])
   char         **av, fname[STRLEN], *out_fname, *subject_name, *cp,*hemi,
                *canon_surf_name, *annot_name ;
   int          ac, nargs, i, train_type ;
-  int          msec, minutes, seconds, nsubjects, input_flags ;
+  int          msec, minutes, seconds, nsubjects, input1_flags,
+               input2_flags, input3_flags ;
   struct timeb start ;
   MRI_SURFACE  *mris ;
   GCSA         *gcsa ;
@@ -88,23 +91,27 @@ main(int argc, char *argv[])
   nsubjects = argc-5 ;
 
   gcsa = GCSAalloc(ninputs, icno_priors, icno_classifiers) ;
-  input_flags = 0 ;
-  if (normalize_flag)
-    input_flags |= GCSA_NORMALIZE ;
+  input1_flags = input2_flags = input3_flags = 0 ;
+  if (normalize1_flag)
+    input1_flags |= GCSA_NORMALIZE ;
+  if (normalize2_flag)
+    input2_flags |= GCSA_NORMALIZE ;
+  if (normalize3_flag)
+    input3_flags |= GCSA_NORMALIZE ;
 
   if (sulconly)
   {
-    GCSAputInputType(gcsa, GCSA_INPUT_CURV_FILE, sulc_name, 0, 0, input_flags);
+    GCSAputInputType(gcsa, GCSA_INPUT_CURV_FILE, sulc_name, 0, 0,input1_flags);
   }
   else
   {
     GCSAputInputType(gcsa, GCSA_INPUT_CURVATURE, "mean_curvature", 
-                     navgs, 0, input_flags) ;
+                     navgs, input1_flags, 0) ;
     if (ninputs > 1)
-      GCSAputInputType(gcsa, GCSA_INPUT_CURV_FILE, sulc_name, 0,1,input_flags);
+      GCSAputInputType(gcsa, GCSA_INPUT_CURV_FILE, sulc_name,0,input2_flags,1);
     if (ninputs > 2)
-      GCSAputInputType(gcsa, GCSA_INPUT_CURV_FILE, thickness_name, 0, 2,
-                       input_flags);
+      GCSAputInputType(gcsa, GCSA_INPUT_CURV_FILE, thickness_name, 0, 
+                       input3_flags, 2);
   }
 
   for (train_type = 0 ; train_type <= 1 ; train_type++)
@@ -141,7 +148,7 @@ main(int argc, char *argv[])
         if (MRISreadCurvature(mris, thickness_name) != NO_ERROR)
           ErrorExit(ERROR_NOFILE, "%s: could not read curv file %s for %s",
                     Progname, thickness_name, subject_name) ;
-        if (normalize_flag)
+        if (normalize3_flag)
           MRISnormalizeCurvature(mris) ;
         MRIScopyCurvatureToImagValues(mris) ;
       }
@@ -150,7 +157,7 @@ main(int argc, char *argv[])
         if (MRISreadCurvature(mris, sulc_name) != NO_ERROR)
           ErrorExit(ERROR_NOFILE, "%s: could not read curv file %s for %s",
                     Progname, sulc_name, subject_name) ;
-        if (normalize_flag)
+        if (normalize2_flag || (sulconly && normalize1_flag))
           MRISnormalizeCurvature(mris) ;
         MRIScopyCurvatureToValues(mris) ;
         MRIScopyValToVal2(mris) ;
@@ -164,7 +171,7 @@ main(int argc, char *argv[])
 #else
         MRISuseMeanCurvature(mris) ;
         MRISaverageCurvatures(mris, navgs) ;
-        if (normalize_flag)
+        if (normalize1_flag)
           MRISnormalizeCurvature(mris) ;
 #endif
         MRIScopyCurvatureToValues(mris) ;
@@ -229,10 +236,20 @@ get_option(int argc, char *argv[])
     nargs = 1 ;
     printf("using %s as original surface\n", orig_name) ;
   }
-  else if (!stricmp(option, "NORM"))
+  else if (!stricmp(option, "NORM1"))
   {
-    printf("normalizing sulc after reading...\n") ;
-    normalize_flag = 1 ;
+    printf("normalizing input #1 after reading...\n") ;
+    normalize1_flag = 1 ;
+  }
+  else if (!stricmp(option, "NORM2"))
+  {
+    printf("normalizing input #2 after reading...\n") ;
+    normalize2_flag = 1 ;
+  }
+  else if (!stricmp(option, "NORM3"))
+  {
+    printf("normalizing input #3 after reading...\n") ;
+    normalize3_flag = 1 ;
   }
   else if (!stricmp(option, "IC"))
   {
