@@ -1,7 +1,7 @@
 /*
   fsgdf.c
   Utilities for reading freesurfer group descriptor file format 
-  $Id: fsgdf.c,v 1.11 2002/11/15 22:48:28 kteich Exp $
+  $Id: fsgdf.c,v 1.12 2002/11/15 23:02:19 greve Exp $
 
   See:   http://surfer.nmr.mgh.harvard.edu/docs/fsgdf.txt
 
@@ -51,6 +51,8 @@
 #include <ctype.h>
 #include "fsgdf.h"
 #include "mri2.h"
+#include "fio.h"
+#include "matfile.h"
 
 /* This should be in ctype.h, but the compiler complains */
 #ifndef Darwin
@@ -134,6 +136,8 @@ static int gdfPrintV1(FILE *fp, FSGD *gd)
     fprintf(fp,"RegistrationSubject %s\n",gd->regsubj);
   if(strlen(gd->datafile) > 0)
     fprintf(fp,"PlotFile %s\n",gd->datafile);
+  if(strlen(gd->DesignMatFile) > 0)
+    fprintf(fp,"DesignMatFile %s %s\n",gd->DesignMatFile,gd->DesignMatMethod);
   if(strlen(gd->defvarlabel) > 0)
     fprintf(fp,"DefaultVariable %s\n",gd->defvarlabel);
   if(gd->nclasses > 0){
@@ -181,6 +185,7 @@ FSGD *gdfRead(char *gdfname, int LoadData)
   MRI *mritmp;
   char *dirname;
   char datafilename[1000];
+  MATRIX *Xt,*XtX,*iXtX;
 
   printf("gdfReadHeader: reading %s\n",gdfname);
 
@@ -206,22 +211,48 @@ FSGD *gdfRead(char *gdfname, int LoadData)
     return(NULL);
   }
 
+  /* Extract the path from the gdf file. */
+  dirname = (char*)fio_dirname(gdfname);
+  if(NULL == dirname)
+    printf("WARNING: Couldn't extract dirname from GDF header name %s.\n",
+	   gdfname);
+
+  /* Load the design matrix, if there */
+  if(strlen(gd->DesignMatFile) != 0) {
+    if(NULL != dirname)
+      sprintf(datafilename,"%s/%s",dirname,gd->DesignMatFile);
+    else
+      strcpy(datafilename,gd->DesignMatFile);
+    gd->X = ReadMatlabFileVariable(datafilename,"X");
+    if(gd->X == NULL){
+      printf("ERROR: could not read variable X from %s\n",gd->DesignMatFile);
+      return(NULL);
+    }
+    Xt = MatrixTranspose(gd->X,NULL);
+    XtX = MatrixMultiply(Xt,gd->X,NULL);  // X'*X 
+    iXtX = MatrixInverse(XtX,NULL);       // inv(X'*X)
+    gd->T = MatrixMultiply(iXtX,Xt,NULL); // T = inv(X'*X)*X'
+    MatrixFree(&Xt);
+    MatrixFree(&XtX);
+    MatrixFree(&iXtX);
+
+    if(strcmp(gd->DesignMatMethod,"none") == 0){
+      printf("\n WARNING: the creation method of the design matrix is unknown.\n"
+	     " This is OK, however, you will not be able to view regresssion\n"
+	     " lines in the scatter plot viewer of tksurfer/tkmedit.\n\n");
+    }
+  }
+
   /* load the MRI containing our raw data. */
   if(LoadData && strlen(gd->datafile) > 0){
 
-    /* start with the datafile name  we got. extract the path from the
-       file name of the gdf we  got, then prepend that to the datafile
-       name. */
-    dirname = (char*)fio_dirname(gdfname);
+    /* Construct the path of the data file by concat the
+       path from the GDF file and the data file name */
     if(NULL != dirname)
-      {
-	sprintf(datafilename,"%s/%s",dirname,gd->datafile);
-      }
+      sprintf(datafilename,"%s/%s",dirname,gd->datafile);
     else
-      {
-	printf("ERROR: Couldn't extract dirname from GDF header name.\n");
-	strcpy(datafilename,gd->datafile);
-      }
+      strcpy(datafilename,gd->datafile);
+
 
     gd->data = MRIread(datafilename);
     if(NULL == gd->data){
@@ -237,6 +268,8 @@ FSGD *gdfRead(char *gdfname, int LoadData)
       gd->data = mritmp;
     }
   }
+
+  if(NULL != dirname) free(dirname);
 
   return(gd);
 }
@@ -303,6 +336,12 @@ static FSGD *gdfReadV1(char *gdfname)
 
     if(!strcasecmp(tag,"PlotFile")){
       r = fscanf(fp,"%s",gd->datafile);
+      if(r==EOF) goto formaterror;
+      continue;
+    }
+
+    if(!strcasecmp(tag,"DesignMatFile")){
+      r = fscanf(fp,"%s %s",gd->DesignMatFile,gd->DesignMatMethod);
       if(r==EOF) goto formaterror;
       continue;
     }
@@ -647,8 +686,91 @@ MATRIX *gdfMatrix(FSGD *gd, char *gd2mtx_method, MATRIX *X)
   if(strcmp(gd2mtx_method,"dods") == 0)
     X = gdfMatrixDODS(gd,X);
 
+  gd->X = X;
+
   return(X);
 }
+/*------------------------------------------------------------
+  gdfOffsetSlope() - computes the offset and slope regression 
+  parameters for the given class and variable numbers of
+  the given voxel/vertex. The class and variable numbers
+  are zero-based. Returns 0 if successfull, 1 otherwise.
+
+  Note: this was desgined to be
+  used with tksurfer/tkmedit on a point-and-click basis.
+  It will be very slow if you try to compute the regression
+  parameters for an entire volume/surface.
+  ------------------------------------------------------------*/
+int gdfOffsetSlope(FSGD *gd, int classno, int varno, 
+		   int c, int r, int s, 
+		   float *offset, float *slope)
+{
+  MATRIX *y, *b;
+  int n,nf;
+  int nslope=0;
+
+  if(strlen(gd->DesignMatMethod) == 0 ||
+     strcmp(gd->DesignMatMethod,"none") == 0){
+    printf("ERROR: cannot determine the offset and slope for the \n"
+	   "given group descriptor because the design matrix \n"
+	   "creation method is unknown\n");
+    return(1);
+  }
+
+  if(classno >= gd->nclasses){
+    printf("ERROR: class number %d exceeds max %d\n",
+	   classno,gd->nclasses);
+    return(1);
+  }
+  if(varno >= gd->nvariables){
+    printf("ERROR: variable number %d exceeds max %d\n",
+	   varno,gd->nvariables);
+    return(1);
+  }
+  if(c < 0 || c >= gd->data->width ||
+     r < 0 || r >= gd->data->height ||
+     s < 0 || s >= gd->data->depth){
+    printf("ERROR: index exceeds data matrix dimension\n");
+    return(1);
+  }
+  if(gd->T->cols != gd->data->nframes){
+    printf("ERROR: dimension mismatch.\n");
+    return(1);
+  }
+  nf = gd->T->cols;
+
+  y = MatrixAlloc(nf,1,MATRIX_REAL);
+  for(n=0; n<nf; n++) y->rptr[n+1][1] = MRIFseq_vox(gd->data,c,r,s,n);
+
+  b = MatrixMultiply(gd->T,y,NULL);
+  printf("c=%d, r=%d, s=%d\n",c,r,s);
+  printf("b =========================\n");
+  MatrixPrint(stdout,b);
+  printf("=========================\n");
+
+  *offset = b->rptr[classno+1][1];
+
+  if(strcmp(gd->DesignMatMethod,"doss") == 0)
+    nslope = gd->nclasses + varno;
+  if(strcmp(gd->DesignMatMethod,"dods") == 0)
+    nslope = classno + ((varno+1) * gd->nclasses);
+
+  printf("nc = %d, nv = %d, method = %s, classno=%d, varno = %d, n=%d\n",
+	 gd->nclasses, gd->nvariables, gd->DesignMatMethod,
+	 classno,varno,nslope);
+
+  *slope = b->rptr[nslope+1][1];
+
+  printf("offset = %g, slope = %g\n",*offset,*slope);
+
+
+  MatrixFree(&y);
+  MatrixFree(&b);
+
+  return(0);
+}
+
+
 
 /*------------------------------------------------------------
   gdfGetTitle() - copies the title into the output argument.
