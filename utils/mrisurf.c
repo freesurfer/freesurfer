@@ -68,9 +68,11 @@ typedef struct
 static int mrisDumpDefectiveEdge(MRI_SURFACE *mris, int vno1, int vno2) ;
 static int mrisMarkBadEdgeVertices(MRI_SURFACE *mris, int mark) ;
 static int mrisCheckSurface(MRI_SURFACE *mris) ;
+#if 0
 static int mrisComputeCanonicalBasis(MRI_SURFACE *mris, int fno,
                                      double origin[3],double e0[3],
                                      double e1[3]);
+#endif
 static int mrisSetVertexFaceIndex(MRI_SURFACE *mris, int vno, int fno) ;
 static int isFace(MRI_SURFACE *mris, int vno0, int vno1, int vno2) ;
 static int findFace(MRI_SURFACE *mris, int vno0, int vno1, int vno2) ;
@@ -301,7 +303,9 @@ static int mrisRemoveVertexLink(MRI_SURFACE *mris, int vno1, int vno2) ;
 static int mrisStoreVtotalInV3num(MRI_SURFACE *mris) ;
 static int  mrisFindAllOverlappingFaces(MRI_SURFACE *mris, MHT *mht,int fno, 
                                         int *flist) ;
+#if 0
 static int   mrisAddVertices(MRI_SURFACE *mris, double max_len) ;
+#endif
 static int mrisDivideEdge(MRI_SURFACE *mris, int vno1, int vno2) ;
 static int mrisDivideFace(MRI_SURFACE *mris, int fno, int vno1, int vno2, 
                           int vnew_no) ;
@@ -18209,6 +18213,7 @@ MRISdivideLongEdges(MRI_SURFACE *mris, double thresh)
   }
   return(nadded) ;
 }
+#if 0
 /*-----------------------------------------------------
         Parameters:
 
@@ -18262,6 +18267,7 @@ mrisAddVertices(MRI_SURFACE *mris, double thresh)
   }
   return(nadded) ;
 }
+#endif
 /*-----------------------------------------------------
         Parameters:
 
@@ -20625,13 +20631,12 @@ MRIScorrectTopology(MRI_SURFACE *mris, MRI_SURFACE *mris_corrected)
   MHT                *mht ;
   VERTEX             *v, *vdst ;
   FACE               *f, *fdst ;
+#if 0
   float              max_len ;
+#endif
 
   /*  mrisCheckSurface(mris) ;*/
   fdl = MRISmarkAmbiguousVertices(mris, MARK_AMBIGUOUS) ;
-#if 0
-  mrisDilateAmbiguousVertices(mris, MARK_AMBIGUOUS,1) ;  /* what about fdl?? */
-#endif
   if (Gdiag & DIAG_SHOW)
     fprintf(stderr, "segmenting defects...\n") ;
   dl = MRISsegmentDefects(mris, MARK_AMBIGUOUS, MARK_SEGMENTED) ;
@@ -20655,13 +20660,13 @@ MRIScorrectTopology(MRI_SURFACE *mris, MRI_SURFACE *mris_corrected)
     defect = &dl->defects[i] ;
     if (i == 47)
       DiagBreak() ;
-    mrisFindDefectConvexHull(mris, defect) ;
     if (Gdiag & DIAG_SHOW)
       fprintf(stderr, "\rdefect %d (area %2.3f): marking %s.      ", 
               i, defect->area,
               defect->area > AREA_THRESHOLD ? "outside" : "inside") ;
     mrisMarkRetainedPartOfDefect(mris, defect, fdl, AREA_THRESHOLD,
                                  MARK_RETAIN, MARK_DISCARD, mht) ;
+    mrisFindDefectConvexHull(mris, defect) ;
   }
   for (i = 0 ; i < dl->ndefects ; i++)
   {
@@ -20930,6 +20935,7 @@ MRIScorrectTopology(MRI_SURFACE *mris, MRI_SURFACE *mris_corrected)
   }
   mrisAddAllDefectFaces(mris_corrected, dl, vertex_trans) ;
   mrisCheckSurface(mris_corrected) ;
+#if 0
   for (i = 0 ; i < dl->ndefects ; i++)
   {
     defect = &dl->defects[i] ;
@@ -20951,6 +20957,7 @@ MRIScorrectTopology(MRI_SURFACE *mris, MRI_SURFACE *mris_corrected)
   }
   if (Gdiag & DIAG_SHOW)
     fprintf(stderr, "\n") ;
+#endif
   for (vno = 0 ; vno < mris_corrected->nvertices ; vno++)
     mris_corrected->vertices[vno].vtotal = mris_corrected->vertices[vno].vnum ;
 
@@ -20961,37 +20968,45 @@ MRIScorrectTopology(MRI_SURFACE *mris, MRI_SURFACE *mris_corrected)
   mrisOrientRetessellatedSurface(mris_corrected, dl, vertex_trans) ;
 #endif
 
+  fprintf(stderr, "computing original vertex metric properties...\n") ;
   MRISrestoreVertexPositions(mris_corrected, ORIGINAL_VERTICES) ;
   MRIScomputeMetricProperties(mris_corrected) ;
-  MRISstoreMetricProperties(mris_corrected) ;
+  fprintf(stderr, "storing new metric properties...\n") ;
+  /*  MRISstoreMetricProperties(mris_corrected) ;*/
+  fprintf(stderr, "computing tessellation statistics...\n") ;
   MRISprintTessellationStats(mris_corrected, stderr) ;
   MRISrestoreVertexPositions(mris_corrected, CANONICAL_VERTICES) ;
+#if 0
   for (max_len = 20 ; max_len > 1 ; max_len *= .75)
   {
-    mrisAddVertices(mris_corrected, max_len) ;
     MRISrestoreVertexPositions(mris_corrected, ORIGINAL_VERTICES) ;
+    MRISdivideLongEdges(mris_corrected, max_len) ;
     MRIScomputeMetricProperties(mris_corrected) ;
     MRISprintTessellationStats(mris_corrected, stderr) ;
     MRISrestoreVertexPositions(mris_corrected, CANONICAL_VERTICES) ;
     MRIScomputeMetricProperties(mris_corrected) ;
   }
-  MRISrestoreVertexPositions(mris_corrected, ORIGINAL_VERTICES) ;
+#endif
 
-  /*  if (getenv("TOPOLOGY_SMOOTH"))*/
   {
     char *cp = getenv("TOPOLOGY_SMOOTH") ;
-    int  nsmooth = atoi(cp) ;
-
+    int  nsmooth ;
+    
     if (cp)
       nsmooth = atoi(cp) ;
     else
       nsmooth = 200 ;
 
+    MRISrestoreVertexPositions(mris_corrected, ORIGINAL_VERTICES) ;
+    MRISclearMarks(mris_corrected) ;
+    for (vno = 0 ; vno < kept_vertices ; vno++)
+      mris_corrected->vertices[vno].marked = 1 ;
     fprintf(stderr, 
-            "performing soap bubble on retessellated vertices for %d "
-            "iterations...\n", nsmooth) ;
+      "performing soap bubble on retessellated vertices for %d "
+      "iterations...\n", nsmooth) ;
     MRISsoapBubbleVertexPositions(mris_corrected, nsmooth) ;
     MRISsaveVertexPositions(mris_corrected, ORIGINAL_VERTICES) ;
+    MRISclearMarks(mris_corrected) ;
   }
   MRISprintTessellationStats(mris_corrected, stderr) ;
   MRISrestoreVertexPositions(mris_corrected, TMP_VERTICES) ;
@@ -21053,7 +21068,7 @@ MRISmarkAmbiguousVertices(MRI_SURFACE *mris, int mark)
   if (!fdl->faces)
     ErrorExit(ERROR_NO_MEMORY, 
               "MRISmarkAmbiguousFaces: could allocate face defect list") ;
-  if (Gdiag & DIAG_WRITE)
+  if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
   {
     char fname[STRLEN] ;
     sprintf(fname, "%s.%s.topology.log", 
@@ -21110,7 +21125,7 @@ MRISmarkAmbiguousVertices(MRI_SURFACE *mris, int mark)
         }
         fprintf(stderr, "\n") ;
       }
-      if (Gdiag & DIAG_WRITE && fp != NULL)
+      if (Gdiag & DIAG_WRITE && fp != NULL && DIAG_VERBOSE_ON)
       {
         fprintf(fp, "%d faces @ fno %d\n", nfaces, fno) ;
         for (i = 0 ; i < nfaces ; i++)
@@ -21165,7 +21180,7 @@ MRISmarkAmbiguousVertices(MRI_SURFACE *mris, int mark)
 
   if (Gdiag & DIAG_SHOW)
     fprintf(stderr, "\n") ;
-  if (Gdiag & DIAG_WRITE)
+  if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON && fp)
     fclose(fp) ;
   MRISscaleBrain(mris, mris, r/100.0) ;
   fprintf(stderr, " %d ambiguous faces found in tessellation\n", nmarked) ;
@@ -21225,7 +21240,7 @@ MRISsegmentDefects(MRI_SURFACE *mris, int mark_ambiguous, int mark_segmented)
               defect->area, defect->cx, defect->cy, defect->cz) ;
 #endif
     }
-    if (Gdiag & DIAG_WRITE)
+    if (Gdiag & DIAG_WRITE && fp)
     {
       int n ;
       DEFECT *defect = &dl->defects[dl->ndefects-1] ;
@@ -21239,7 +21254,7 @@ MRISsegmentDefects(MRI_SURFACE *mris, int mark_ambiguous, int mark_segmented)
   }
   if (Gdiag & DIAG_SHOW)
     fprintf(stderr, "\n") ;
-  if (Gdiag & DIAG_WRITE)
+  if (Gdiag & DIAG_WRITE && fp)
     fclose(fp) ;
   return(dl) ;
 }
@@ -22535,7 +22550,7 @@ mrisAddFace(MRI_SURFACE *mris, int vno0, int vno1, int vno2)
     memcpy(v->f, ilist, v->num*sizeof(int)) ;
 
     memcpy(ulist, v->n, (v->num-1)*sizeof(uchar)) ;
-    ulist[v->num] = n ;
+    ulist[v->num-1] = n ;
     if (v->n)
       free(v->n) ;
     v->n = (uchar *)calloc(v->num, sizeof(uchar)) ;
@@ -23637,6 +23652,7 @@ mrisOrientRetessellatedSurface(MRI_SURFACE *mris, DEFECT_LIST *dl,int *vtrans)
 #endif
 }
 #endif
+#if 0
 /*-----------------------------------------------------
         Parameters:
 
@@ -23680,6 +23696,7 @@ mrisComputeCanonicalBasis(MRI_SURFACE *mris, int fno, double origin[3],
   }
   return(NO_ERROR) ;
 }
+#endif
 /*-----------------------------------------------------
         Parameters:
 
@@ -23738,11 +23755,26 @@ mrisFindDefectConvexHull(MRI_SURFACE *mris, DEFECT *defect)
   int    chull[200000], nfound, n, i, vno ;
 
   /* find max radius of defect+border */
+#if 0
   cx = defect->cx ; cy = defect->cy ; cz = defect->cz ; 
+#else
+  cx = cy = cz = 0.0 ;
+  for (i = 0 ; i < defect->nborder ; i++)
+  {
+    vno = defect->border[i] ; v = &mris->vertices[vno] ;
+    cx += v->cx ; cy += v->cy ; cz += v->cz ;
+  }
+  r = (float)defect->nborder ;
+  cx /= (float)r ; cy /= (float)r ; cz /= (float)r ; 
+#endif
   for (max_radius = 0.0f, i = 0 ; i < defect->nvertices+defect->nborder ; i++)
   {
     if (i < defect->nvertices)
+    {
       vno = defect->vertices[i] ; 
+      if (defect->status[i] == DISCARD_VERTEX)
+        continue ;
+    }
     else
       vno = defect->border[i-defect->nvertices] ; 
     v = &mris->vertices[vno] ;
@@ -23965,6 +23997,7 @@ mrisDilateAmbiguousVertices(MRI_SURFACE *mris, int mark, int ndil)
 static int
 mrisDumpDefectiveEdge(MRI_SURFACE *mris, int vno1, int vno2)
 {
+#if 0
   FILE   *fp ;
   char   fname[STRLEN] ;
   int    n, m, fno, first = 1 ;
@@ -24016,6 +24049,7 @@ mrisDumpDefectiveEdge(MRI_SURFACE *mris, int vno1, int vno2)
   x = cx*e0[0] + cy*e0[1] + cz*e0[2] ; y = cx*e1[0] + cy*e1[1] + cz*e1[2] ;
   fprintf(fp, "%f %f\n", x, y) ;
   fclose(fp) ;
+#endif
   return(NO_ERROR) ;
 }
 #if 0
