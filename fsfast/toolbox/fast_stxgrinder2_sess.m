@@ -1,5 +1,5 @@
 % fast_stxgrinder2_sess
-% $Id: fast_stxgrinder2_sess.m,v 1.3 2003/08/11 22:48:03 greve Exp $
+% $Id: fast_stxgrinder2_sess.m,v 1.4 2003/11/19 19:14:56 greve Exp $
 
 % These variables must be defined previously
 % SessList = splitstring('$SessList');
@@ -13,6 +13,7 @@
 % DoFTest = $DoFTest;
 % tTestSave = $tTestSave;
 % IsGroup = [$IsGroupList];
+% UseBetaVol = 1;
 
 tic;
 nsess = size(SessList,1);
@@ -75,19 +76,37 @@ for nthsess = 1:nsess
 	if(rem(slice,21)==20) fprintf('\n           '); end
 
         % Load beta %
-        hAvgFile = sprintf('%s_%03d.bfloat',hstem,slice);
-        [beta rvar hd] = fast_ldsxabfile(hAvgFile);
-        if(isempty(beta))
-          fprintf('ERROR: loading %s\n',hAvgFile);
-          return;
-        end
-        Ch = hd.hCovMtx;
-
+	if(~UseBetaVol)
+	  hAvgFile = sprintf('%s_%03d.bfloat',hstem,slice);
+	  [beta rvar hd] = fast_ldsxabfile(hAvgFile);
+	  if(isempty(beta))
+	    fprintf('ERROR: loading %s\n',hAvgFile);
+	    return;
+	  end
+	  Ch = hd.hCovMtx;
+	  DOF = hd.DOF;
+	else
+	  betastem = sprintf('%s/beta%s',sessanadir,hemicode);
+	  betavarstem = sprintf('%s/beta-var%s',sessanadir,hemicode);
+	  beta = fast_ldbslice(betastem,slice);
+	  if(isempty(beta))
+	    fprintf('ERROR: loading %s\n',betastem);
+	    return;
+	  end
+	  rvar = fast_ldbslice(betavarstem,slice);
+	  xmatfile = sprintf('%s/X.mat',sessanadir);
+	  XX = load(xmatfile);
+	  X = XX.Xfinal;
+	  Ch = inv(X'*X);
+	  DOF = size(X,1) - size(X,2);
+	end
+	  
         [nrows ncols nbeta] = size(beta);
         nv = nrows*ncols;
         beta = reshape(beta,[nv nbeta])';
         rvar = reshape(rvar,[nv 1])';
-        ind = find(rvar == 0);
+        
+	ind = find(rvar == 0);
         rvar(ind) = 10e10;
 
         % Load mean offset %
@@ -122,7 +141,7 @@ for nthsess = 1:nsess
           cesrow = Crow*beta;
           cesvarrow = rvar * (Crow * Ch * Crow');
           trow = cesrow./sqrt(cesvarrow);
-          prow = sign(trow).*tTest(hd.DOF,abs(trow),tTestDOFMax);
+          prow = sign(trow).*tTest(DOF,abs(trow),tTestDOFMax);
           ces(k,:)    = cesrow;
           cesvar(k,:) = cesvarrow;
           t(k,:)      = trow;
@@ -179,7 +198,7 @@ for nthsess = 1:nsess
           if(J>1) F = (sum(ces .* (cescvm*ces))./rvar)/J;
           else    F = t.^2;
           end
-          Fsig = FTest(J, hd.DOF, F, FTestDOFMax);
+          Fsig = FTest(J, DOF, F, FTestDOFMax);
 
           Fstem = sprintf('%s/f%s',condir,hemicode);
           tmp = reshape(F', [nrows ncols 1]);
