@@ -4,6 +4,7 @@
 #include <string.h>
 #include <ctype.h>
 #include <time.h>
+#include "const.h"
 #include "machine.h"
 #include "fio.h"
 #include "utils.h"
@@ -89,8 +90,10 @@ static void do_file(char *fname)
   struct stat stat_buf;
   int type;
   char *at;
-  char fname2[200];
+  char fname2[STRLEN];
   int i;
+	MRI *mri ;
+	MATRIX *m ;
 
   strcpy(fname2, fname) ;
   at = strrchr(fname2, '@');
@@ -218,7 +221,34 @@ static void do_file(char *fname)
       break;
   }
 
+	mri = MRIreadHeader(fname, MRI_VOLUME_TYPE_UNKNOWN) ;
 
+	printf("dimensions:  %d x %d x %d\n", mri->width, mri->height, mri->depth) ;
+	printf("voxel sizes: %2.1f, %2.1f, %2.1f\n", mri->xsize, mri->ysize, mri->zsize) ;
+	printf("type = %s (%d)\n",
+				 mri->type == MRI_UCHAR   ? "UCHAR" :
+				 mri->type == MRI_SHORT   ? "SHORT" :
+				 mri->type == MRI_INT     ?   "INT" :
+				 mri->type == MRI_LONG    ? "LONG" :
+				 mri->type == MRI_BITMAP  ? "BITMAP" :
+				 mri->type == MRI_TENSOR  ? "TENSOR" :
+				 mri->type == MRI_FLOAT   ? "FLOAT" : "UNKNOWN", mri->type) ;
+	printf("slice directon = %s (%d)\n",
+				 mri->slice_direction == MRI_CORONAL    ? "CORONAL" :
+				 mri->slice_direction == MRI_SAGITTAL   ? "SAGITTAL" :
+				 mri->slice_direction == MRI_HORIZONTAL ? "HORIZONTAL" : "UNKNOWN",
+				 mri->slice_direction) ;
+	printf("fov = %2.3f\n", mri->fov) ;
+	printf("xstart = %2.1f, xend = %2.1f\n", mri->xstart, mri->xend) ;
+	printf("ystart = %2.1f, yend = %2.1f\n", mri->ystart, mri->yend) ;
+	printf("zstart = %2.1f, zend = %2.1f\n", mri->zstart, mri->zend) ;
+	printf("TR=%2.2f msec, TE=%2.2f msec, TI=%2.2f msec, flip angle=%2.2f degrees\n",
+				 mri->tr, mri->te, mri->ti, DEGREES(mri->flip_angle)) ;
+	printf("nframes = %d\n", mri->nframes) ;
+	printf("ras xform %spresent\n", mri->ras_good_flag ? "" : "not ") ;
+	m = MRIgetVoxelToRasXform(mri) ;
+	printf("voxel to ras transform:\n") ; MatrixPrint(stdout, m) ;
+	MRIfree(&mri) ; MatrixFree(&m) ;
 } /* end do_file */
 
 static void read_short(FILE *fp, int offset, short *val)
@@ -979,7 +1009,7 @@ static void read_sdt_file(char *fname, struct stat stat_buf)
 static void read_cor(char *fname)
 {
 
-  char header_fname[200];
+  char header_fname[STRLEN];
   struct stat stat_buf;
   FILE *fp;
   int i, i2;
