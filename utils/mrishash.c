@@ -1499,23 +1499,40 @@ VERTEX *
 MHTfindClosestVertex(MRIS_HASH_TABLE *mht, MRI_SURFACE *mris, VERTEX *v)
 {
   VERTEX    *vmin, *vdst ;
-  int       i ;
+  int       i, xk, yk, zk ;
   double    dist, min_dist ;
   MHB       *bin ;
   MHBT      *bucket ;
+  float     x, y, z ;
 
-  bucket = MHTgetBucket(mht, v->x, v->y, v->z) ;
-  if (!bucket)
-    return(NULL) ;
-  bin = bucket->bins ; min_dist = 10000000 ; vmin = NULL ;
-  for (i = 0 ; i < bucket->nused ; i++, bin++)
+  min_dist = 10000000 ; vmin = NULL ;
+  for (zk = -1 ; zk <= 1 ; zk++)
   {
-    vdst = &mris->vertices[bin->fno] ;
-    dist = sqrt(SQR(vdst->x-v->x)+SQR(vdst->y-v->y)+SQR(vdst->z-v->z)) ;
-    if (dist < min_dist)
+    for (yk = -1 ; yk <= 1 ; yk++)
     {
-      min_dist = dist ;
-      vmin = vdst ;
+      for (xk = -1 ; xk <= 1 ; xk++)
+      {      
+        x = VOXEL_TO_WORLD(mht, WORLD_TO_VOLUME(mht, v->x)+xk) ;
+        y = VOXEL_TO_WORLD(mht, WORLD_TO_VOLUME(mht, v->y)+yk) ;
+        z = VOXEL_TO_WORLD(mht, WORLD_TO_VOLUME(mht, v->z)+zk) ;
+        bucket = MHTgetBucket(mht, x, y, z) ;
+        if (!bucket)
+          continue ;
+        bin = bucket->bins ; 
+        for (i = 0 ; i < bucket->nused ; i++, bin++)
+        {
+          vdst = &mris->vertices[bin->fno] ;
+
+          if (bin->fno == Gdiag_no)
+            DiagBreak() ;
+          dist = sqrt(SQR(vdst->x-v->x)+SQR(vdst->y-v->y)+SQR(vdst->z-v->z)) ;
+          if (dist < min_dist)
+          {
+            min_dist = dist ;
+            vmin = vdst ;
+          }
+        }
+      }
     }
   }
 
