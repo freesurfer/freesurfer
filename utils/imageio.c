@@ -1057,8 +1057,8 @@ static IMAGE *
 TiffReadHeader(char *fname, IMAGE *I)
 {
   TIFF  *tif = TIFFOpen(fname, "r");
-  int   ret, width, height, nsamples, type, bits_per_sample ;
-
+  int   ret, width, height, nsamples, bits_per_sample ;
+  int type = PFBYTE; // just make compiler happy
   if (!tif)
     return(NULL) ;
 
