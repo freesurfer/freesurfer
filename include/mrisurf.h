@@ -205,6 +205,7 @@ typedef struct
   int          max_vertices ;     /* may be bigger than nvertices */
   int          max_faces ;        /* may be bigger than nfaces */
   char         subject_name[STRLEN] ;/* name of the subject */
+  float        canon_area ;
 } MRI_SURFACE, MRIS ;
 
 
@@ -490,6 +491,9 @@ int          MRIScomputeEulerNumber(MRI_SURFACE *mris, int *pnvertices,
 int          MRIStopologicalDefectIndex(MRI_SURFACE *mris) ;
 int          MRISremoveTopologicalDefects(MRI_SURFACE *mris,float curv_thresh);
 
+int          MRIScomputeSecondFundamentalFormAtVertex(MRI_SURFACE *mris,
+                                                      int vno, int *vertices,
+                                                      int vnum) ;
 int          MRIScomputeSecondFundamentalForm(MRI_SURFACE *mris) ;
 int          MRISuseCurvatureDifference(MRI_SURFACE *mris) ;
 int          MRISuseCurvatureStretch(MRI_SURFACE *mris) ;
@@ -499,6 +503,7 @@ int          MRISuseNegCurvature(MRI_SURFACE *mris) ;
 int          MRISuseAreaErrors(MRI_SURFACE *mris) ;
 int          MRISuseGaussianCurvature(MRI_SURFACE *mris) ;
 int          MRISclearCurvature(MRI_SURFACE *mris) ;
+int          MRISusePrincipalCurvature(MRI_SURFACE *mris) ;
 int          MRISuseMeanCurvature(MRI_SURFACE *mris) ;
 int          MRIScomputeCurvatureIndices(MRI_SURFACE *mris, 
                                          double *pici, double *pfi) ;
