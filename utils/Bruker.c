@@ -4,8 +4,8 @@
 /* date       :8/27/2003                  */
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2003/09/02 16:01:14 $
-// Revision       : $Revision: 1.2 $
+// Revision Date  : $Date: 2003/09/03 21:03:53 $
+// Revision       : $Revision: 1.3 $
 
 // there are many files present in Bruker directory
 //
@@ -19,12 +19,100 @@
 //   |
 //   |-> 1   
 //       |-> 2dseq  ... bshort image                                   <-- used
-//           reco   ... created after reconstruction
+//           reco   ... created after reconstruction                   <-- used
 //           d3proc ... reconstruted image info (width, height, depth) <-- used
 //           procs  ... ???
 //           roi    ... ???
 //
-char *BRUCKER_C_VERSION= "$Revision: 1.2 $";
+/**********************************************/
+/* email from Maritin Horrman <mah@bruker.de> */
+/* on how to reconstruct voxelToRAS transform */
+/**********************************************/
+/* Dear Dr. Tosa, */
+
+/* here I deliver you a suggestion, to get the transformation matrix: */
+
+/* I think, this should work, if you have a single 3D slab or */
+/* a 2D data set with 1 slice package and 1 image per slice. */
+
+/* If you have data sets with several 3D slabs or 2D image files with */
+/* several slice packages or several images per slice, it is not that easy */
+/* to make the correct conversion. */
+
+/* Start with the reconstructed image. */
+/* Transpose as per RECO_transposition: eg is RECO_transposition is 1 start with */
+
+/* 0 1 0 0 */
+/* 1 0 0 0 */
+/* 0 0 1 0 */
+/* 0 0 0 1 */
+
+/* or is RECO_transposition = 0 start with a 4x4 identity matrix. */
+
+/* Then convert to coordinates from the centre of the ft'ed image, in mm; with */
+/* first voxel or coordinates 0,0,0, this gives a vox -> mm matrix: */
+
+/* vox(dim)  = RECO_fov(dim) * 10 / RECO_size(dim) */
+/* off(dim) = -vox(dim) * (RECO_ft_size(dim)-1)/2; */
+/* (for 2d data sets, vox(3) = ACQ_slice_sepn, */
+/*                          off(3)  = -vox(3) * (NSLICES-1)/2) */
+
+/* vox(1)   0 0 off(1) */
+/* 0 vox(2) 0 0 off(2) */
+/* 0 0   vox(3) off(3) */
+/* 0 0 0 1 */
+
+/* swapping matrix to express reversal of x and y is given by */
+
+/* -1  0  0 0 */
+/*  0 -1  0 0 */
+/*  0  0  1 0   (may be -1 in case of 3d) */
+/*  0  0  0 1 */
+
+/* translation matrix is given by */
+
+/* 1 0 0 ACQ_read_offset; */
+/* 0 1 0 ACQ_phase1_offset; */
+/* 0 0 1 ACQ_slice_offset; */
+/* 0 0 0 1 */
+/* ( for 2D image with 1 slice package use ACQ_slice_offset of the middle slice */
+/*   = IMND_slicepack_position[0] or PVM_SPackArrSliceOffset[0].) */
+
+/* rotation matrix is given by */
+
+/* gm = ACQ_grad_matrix for slice / echo, assuming this is the same for all */
+/* slices */
+
+/* gm(1) gm(4)  gm(7) 0 */
+/* gm(2) gm(5)  gm(8) 0 */
+/* gm(3) gm(6)  gm(9) 0 */
+/* 0     0      0     1 */
+
+/* If RAS means the following coordinate system: */
+/* R->L, A->P, H->F */
+/* you must also apply the ras matrix. */
+
+/* The ras matrix is given by */
+
+/* -1 0 0 0 */
+/* 0 -1 0 0 */
+/* 0  0 1 0 */
+/* 0  0 0 1 */
+
+/* The ParaVision patient coordinate system is: */
+/* L->R, */
+
+/* The whole 4x4 matrix to give mm coordinates in terms of isocentre, from voxel */
+/* coordinates, is */
+
+/* [ras matrix *] rotation matrix * translation matrix * swap matrix * vox->mm */
+/* matrix * transposition matrix */
+
+/* I hope, this helps you a little bit, with best regards */
+
+/* Martin Hoerrmann. */
+
+char *BRUCKER_C_VERSION= "$Revision: 1.3 $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -33,7 +121,11 @@ char *BRUCKER_C_VERSION= "$Revision: 1.2 $";
 #include <unistd.h> 
 #include <math.h>
 #include "mri.h"
+#include "matrix.h"
 #include "Bruker.h"
+
+#define V4_LOAD(v, x, y, z, r)  (VECTOR_ELT(v,1)=x, VECTOR_ELT(v,2)=y, \
+                                  VECTOR_ELT(v,3)=z, VECTOR_ELT(v,4)=r) ;
 
 MRI *brukerRead(char *fname, int read_volume)
 {
@@ -41,29 +133,47 @@ MRI *brukerRead(char *fname, int read_volume)
   char acqpFile[1024];
   char dataFile[1024];
   char d3procFile[1024];
+  char recoFile[1024];
+  BrukerTransform bTran;
+  double TR, TE, TI, flip_angle;
 
   int succeed = 0;
   MRI *mri = 0;
 
-  // first make sure that method, acqp, fid exist
+  int width, height, depth;
+  int nframes;
+  int type;
+
   // use stat to do this.
-  if ((succeed = checkBrukerFiles(fname, methodFile, acqpFile, dataFile, d3procFile,1))==0)
+  if ((succeed = checkBrukerFiles(fname, methodFile, acqpFile, dataFile, d3procFile, recoFile, 1))==0)
     return (MRI*) 0;
- 
-  // next read method to get TE, TR, volume size, pixel size
-  if ((mri = readBrukerMethod(methodFile, d3procFile))==0)
-  {
-    if (mri)
-      MRIfree(&mri);
+
+  ///////////////////////////////////////////////////////////////////////////
+  // Bruker pdata/1/reco
+  //        pdata/1/d3proc 
+  // contain the 2dseq bshort or bfloat data information
+  ///////////////////////////////////////////////////////////////////////////
+  // read reco to get reconstruction info
+  if ((succeed = readBrukerReco(recoFile, &bTran))==0)
     return (MRI *) 0;
-  }
-  // next read acqp to get missing info like direction cosine
-  if ((succeed = readBrukerAcqp(mri, acqpFile))==0)
-  {
-    if (mri)
-      MRIfree(&mri);
+  // read reco width, height depth, type, and nframes
+  if ((succeed = readBrukerD3proc(d3procFile, &width, &height, &depth, &type, &nframes))==0) 
     return (MRI *) 0;
-  }
+
+  // read acqp to get actual acquisition information
+  if ((succeed = readBrukerAcqp(acqpFile, &TR, &TE, &TI, &flip_angle, &bTran))==0)
+    return (MRI *) 0;
+
+  // now allocate MRI
+  mri = MRIalloc(width, height, depth, type);
+  mri->tr = TR;
+  mri->te = TE;
+  mri->ti = TI;
+  mri->flip_angle = flip_angle;
+
+  // create voxToRas transform
+  buildVoxToRASTransform(mri, &bTran);
+
   // now ready to read volume
   if (read_volume)
   {
@@ -77,7 +187,8 @@ MRI *brukerRead(char *fname, int read_volume)
   return mri;
 }
 
-int checkBrukerFiles(char *fname, char *methodFile, char *acqpFile, char *dataFile, char *d3procFile, int flag)
+int checkBrukerFiles(char *fname, char *methodFile, char *acqpFile, char *dataFile, char *d3procFile, 
+		     char *recoFile, int flag)
 {
   struct stat stat_buf;
   
@@ -133,7 +244,7 @@ int checkBrukerFiles(char *fname, char *methodFile, char *acqpFile, char *dataFi
   // build up d3proc file
   strcpy(d3procFile, fname);
   strcat(d3procFile, "/pdata/1/d3proc");
-  if (stat(dataFile, &stat_buf) < 0)
+  if (stat(d3procFile, &stat_buf) < 0)
   {
     if (flag)
       fprintf(stderr, "ERROR: could not stat %s.\n", d3procFile);
@@ -141,6 +252,18 @@ int checkBrukerFiles(char *fname, char *methodFile, char *acqpFile, char *dataFi
   }
   if (flag)
     printf("INFO:    d3proc %s \n", d3procFile);
+  // build up reco file
+  strcpy(recoFile, fname);
+  strcat(recoFile, "/pdata/1/reco");
+  if (stat(recoFile, &stat_buf) < 0)
+  {
+    if (flag)
+      fprintf(stderr, "ERROR: could not stat %s.\n", recoFile);
+    return 0;
+  }
+  if (flag)
+    printf("INFO:    d3proc %s \n", recoFile);
+
   return 1;
 }
 
@@ -221,126 +344,144 @@ int readBrukerD3proc(char *d3procFile, int *px, int *py, int *pz, int *ptype, in
   return 1;
 }
 
-MRI* readBrukerMethod(char *methodFile, char *d3procFile)
+int buildVoxToRASTransform(MRI *mri, BrukerTransform *pTran)
 {
-  MRI *mri = 0;
-  FILE *fp = 0;
-  char line[512];
-  char Parameter[256];
-  char Value[128];
-  int ignore;
-  int width=0;
-  int height=0;
-  int depth=0;
-  double xsize, ysize, zsize;
-  double TE=0;
-  double TR=0;
-  int type = MRI_SHORT;
-  int nframes=0;
-  int lDim=0;
-  int lRead=0;
-  int width2, height2, depth2;
+  MATRIX *transposMatrix;
+  MATRIX *voxmmMatrix;
+  MATRIX *swapMatrix;
+  MATRIX *translationMatrix;
+  MATRIX *rotationMatrix;
+  MATRIX *tmp;
+  MATRIX *rottranMatrix;
+  MATRIX *voxInvMatrix;
+  VECTOR *rcs, *ctr;
 
-  if (!readBrukerD3proc(d3procFile, &width, &height, &depth, &type, &nframes))
-    return (MRI *) 0;
+  transposMatrix = MatrixAlloc(4,4, MATRIX_REAL);
+  voxmmMatrix = MatrixAlloc(4,4, MATRIX_REAL);
+  swapMatrix = MatrixAlloc(4,4, MATRIX_REAL);
+  translationMatrix = MatrixAlloc(4,4, MATRIX_REAL);
+  rotationMatrix = MatrixAlloc(4,4, MATRIX_REAL);
+  voxInvMatrix = MatrixAlloc(4,4,MATRIX_REAL);
+  // 
+  if (pTran->transposition)
+    stuff_four_by_four(transposMatrix, 
+		       0, 1, 0, 0,
+		       1, 0, 0, 0,
+		       0, 0, 1, 0,
+		       0, 0, 0, 1);
+  else
+    stuff_four_by_four(transposMatrix, 
+		       1, 0, 0, 0,
+		       0, 1, 0, 0,
+		       0, 0, 1, 0,
+		       0, 0, 0, 1);
+  //
+  stuff_four_by_four (voxmmMatrix,
+		      pTran->vox_size[0], 0, 0, pTran->offset[0],
+		      0, pTran->vox_size[1], 0, pTran->offset[1],
+		      0, 0, pTran->vox_size[2], pTran->offset[2],
+		      0, 0, 0, 1);
+  // 
+  stuff_four_by_four (swapMatrix,
+		      -1, 0, 0, 0,
+		       0, -1, 0, 0,
+		       0, 0, 1, 0,
+		       0, 0, 0, 1);
+  //
+  stuff_four_by_four(translationMatrix,
+		     1, 0, 0, pTran->read_offset,
+		     0, 1, 0, pTran->phase1_offset,
+		     0, 0, 1, pTran->slice_offset,
+		     0, 0, 0, 1);
+  //
+  stuff_four_by_four(rotationMatrix,
+		     pTran->grad_matrix[0], pTran->grad_matrix[3], pTran->grad_matrix[6], 0,
+		     pTran->grad_matrix[1], pTran->grad_matrix[4], pTran->grad_matrix[7], 0,
+		     pTran->grad_matrix[2], pTran->grad_matrix[5], pTran->grad_matrix[8], 0,
+		     0, 0, 0, 1);
 
-  fp = fopen(methodFile, "r");
-  if (fp ==0)
+  tmp = MatrixMultiply(voxmmMatrix, transposMatrix, NULL);
+  MatrixMultiply(swapMatrix, tmp, tmp);
+  MatrixMultiply(translationMatrix, tmp, tmp);
+  MatrixMultiply(rotationMatrix, tmp, tmp);
+  //
+  ctr = VectorAlloc(4, MATRIX_REAL);
+  V4_LOAD(ctr, mri->width/2, mri->height/2, mri->depth/2, 1.);
+  rcs = MatrixMultiply(tmp, ctr, NULL);
+  
+  mri->c_r = V3_X(rcs);
+  mri->c_a = V3_Y(rcs);
+  mri->c_s = V3_Z(rcs);
+
+  //
+  if (pTran->transposition)
+    stuff_four_by_four(voxInvMatrix,
+		       1./pTran->vox_size[1], 0, 0, 0,
+		       0, 1./pTran->vox_size[0], 0, 0, 
+		       0, 0, 1./pTran->vox_size[2], 0,
+		       0, 0, 0, 1);
+  else
+    stuff_four_by_four(voxInvMatrix,
+		       1./pTran->vox_size[0], 0, 0, 0,
+		       0, 1./pTran->vox_size[1], 0, 0, 
+		       0, 0, 1./pTran->vox_size[2], 0,
+		       0, 0, 0, 1);
+
+  // now obtain only the rotation and the translation part in MGH way
+  rottranMatrix = MatrixMultiply(voxInvMatrix, tmp, NULL);
+  if (pTran->dim == 3)
   {
-    fprintf(stderr, "ERROR: could not open methodFile %s", methodFile);
-    return 0;
+    mri->x_r = *MATRIX_RELT(rottranMatrix, 1,1);
+    mri->x_a = *MATRIX_RELT(rottranMatrix, 2,1);
+    mri->x_s = *MATRIX_RELT(rottranMatrix, 3,1);
+    
+    mri->y_r = *MATRIX_RELT(rottranMatrix, 1,2);
+    mri->y_a = *MATRIX_RELT(rottranMatrix, 2,2);
+    mri->y_s = *MATRIX_RELT(rottranMatrix, 3,2);
+    
+    mri->z_r = *MATRIX_RELT(rottranMatrix, 1,3);
+    mri->z_a = *MATRIX_RELT(rottranMatrix, 2,3);
+    mri->z_s = *MATRIX_RELT(rottranMatrix, 3,3);
   }
-  while (fgets(line, sizeof(line), fp))
+  else // 2d case just fake
   {
-    if ((ignore = separate_parameter_and_value(line, Parameter, Value)))
-      continue;
-
-    // now gets the values
-    if ( !strcmp(Parameter,"END") )
-      break;
-
-    // get volume size
-    else if ( !strcmp( Parameter,"$PVM_Matrix") )
-    {
-      lRead = sscanf( Value,"%d",&lDim);
-      if ( lDim != 3 )
-      {
-	printf("INFO: Matrix is not 3 but %d.  The image is not of a volume image\n", lDim);
-      }
-      if (!fgets(line, sizeof(line), fp))
-      {
-	printf("Error: dimensions should always follow $PVM_Matrix.\n");
-	fclose(fp);
-	return 0;
-      }
-      if (lDim == 3)
-	lRead = sscanf(line,"%d %d %d", &height2, &width2, &depth2);
-      else if (lDim == 2)
-      {
-	lRead = sscanf(line,"%d %d", &height2, &width2);
-	depth = 3;
-      }
-    }
-    else if ( !strcmp(Parameter,"$PVM_Fov") )
-    {
-      lRead = sscanf(Value,"%d",&lDim);
-      if ( lDim != 3 )
-      {
-	printf("INFO: Fov is not 3 but %d.  The image is not of a volume image\n", lDim);
-      }
-      if (!fgets(line, sizeof(line), fp))
-      {
-	fprintf(stderr, "Error: FOV should always follow $PVM_Fov.\n");
-	fclose(fp);
-	return 0;
-      }
-      // note y, x, z order! 
-      if (lDim == 3)
-	lRead = sscanf(line,"%lf %lf %lf", &ysize, &xsize, &zsize);
-      else if (lDim == 2)
-      {
-	lRead = sscanf(line,"%lf %lf", &ysize, &xsize);
-	zsize = xsize; // fake
-      }
-    }
-    else if ( !strcmp(Parameter,"$PVM_EchoTime") )
-    {
-      lRead = sscanf(Value,"%lf",&TE);
-    }
-    else if ( !strcmp(Parameter,"$PVM_RepetitionTime") )
-    {
-      lRead = sscanf(Value,"%lf",&TR);
-    }
+    mri->x_r = -1; mri->x_a = 0; mri->x_s = 0;
+    mri->y_r = 0; mri->y_a = 0; mri->y_s = -1;
+    mri->z_r = 0; mri->z_a = 1; mri->z_s = 0;
   }
-  fclose(fp);
 
-  if (width > 0 && height > 0 && depth > 0)
+  if (pTran->transposition == 1)
   {
-    if (width != width2 || height != height2 || depth != depth2)
-      fprintf(stderr, "d3proc and method size differed: d3proc (%d,%d,%d) while method (%d,%d,%d)\n",
-	      width, height, depth, width2, height2, depth2);
-
-    mri = MRIalloc(width, height, depth, type);
-
-    // get real sizes
-    xsize /= (double) width;
-    ysize /= (double) height;
-    zsize /= (double) depth; // in mm
-
-    // TR, TE, flip angle overridden by acqp
-    mri->tr = TR;
-    mri->te = TE;
-    mri->nframes = nframes;
-    mri->xsize = xsize;
-    mri->ysize = ysize;
-    mri->zsize = zsize;
-    return mri;
+    mri->xsize = pTran->vox_size[1];
+    mri->ysize = pTran->vox_size[0];
+    mri->zsize = pTran->vox_size[2];
   }
   else
-    return 0;
+  {
+    mri->xsize = pTran->vox_size[0];
+    mri->ysize = pTran->vox_size[1];
+    mri->zsize = pTran->vox_size[2];
+  }
+
+  mri->ras_good_flag = 1;
+
+  MatrixFree(&transposMatrix);
+  MatrixFree(&voxmmMatrix);
+  MatrixFree(&swapMatrix);
+  MatrixFree(&translationMatrix);
+  MatrixFree(&rotationMatrix);
+  MatrixFree(&tmp);
+  MatrixFree(&rottranMatrix);
+  MatrixFree(&voxInvMatrix);
+  VectorFree(&rcs);
+  VectorFree(&ctr);
+
+  return 1;
 }
 
-int readBrukerAcqp(MRI *mri, char *acqpFile)
+int readBrukerAcqp(char *acqpFile, 
+		   double *pTR, double *pTE, double *pTI, double *pflip_angle, 
+		   BrukerTransform *bTran)
 {
   FILE *fp = 0;
   char line[512];
@@ -349,25 +490,6 @@ int readBrukerAcqp(MRI *mri, char *acqpFile)
   int ignore=0;
   int lRead=0;
   int dim=0;
-  double flip_angle=0;
-  double TI=0;
-  double TR=0;
-  double TE=0;
-  double x_r, x_a, x_s;
-  double y_r, y_a, y_s;
-  double z_r, z_a, z_s;
-  double c_r, c_a, c_s;
-
-  x_r = x_a = x_s = 0;
-  y_r = y_a = y_s = 0;
-  z_r = z_a = z_s = 0;
-
-
-  if (!mri)
-  {
-    fprintf(stderr, "ERROR: readBrukerMethod() must be called before readBrukerAcqp");
-    return 0;
-  }
 
   fp = fopen(acqpFile, "r");
   if (fp ==0)
@@ -397,29 +519,16 @@ int readBrukerAcqp(MRI *mri, char *acqpFile)
       if (dim != 3)
       {
 	printf("INFO: acqp tells the dimension is not 3 but %d\n", dim);
+	printf("INFO: usually the volume has multiple 2d slices\n");
+	printf("INFO: direction cosine info is meaningless.\n");
       }
-    }
-    // grad_matrix
-    else if ( !strcmp( Parameter,"$ACQ_grad_matrix") )
-    {
-      if (!fgets(line, sizeof(line), fp))
-      {
-	fprintf(stderr, "ERROR: float value must follow ACQ_grad_matrix");
-	fclose(fp);
-	return 0;
-      }
-      // at this time I don't know the relation between grad-matrix and direction cosines
-      sscanf(line, "%lf %lf %lf %lf %lf %lf %lf %lf %lf", 
-	     &x_r, &x_a, &x_s,
-	     &y_r, &y_a, &y_s,
-	     &z_r, &z_a, &z_s);
     }
     // flip angle
     else if ( !strcmp( Parameter, "$ACQ_flip_angle") )
     {
-      lRead=sscanf(Value,"%lf", &flip_angle);
+      lRead=sscanf(Value,"%lf", pflip_angle);
       // convert into radians
-      flip_angle = flip_angle*3.141592653589793/180.;
+      *pflip_angle = *pflip_angle*3.141592653589793/180.;
     }
     // TR
     else if ( !strcmp( Parameter, "$ACQ_repetition_time") )
@@ -430,7 +539,7 @@ int readBrukerAcqp(MRI *mri, char *acqpFile)
 	fclose(fp);
 	return 0;
       }
-      sscanf(line, "%lf", &TR);
+      sscanf(line, "%lf", pTR);
     }
     // TE
     else if ( !strcmp( Parameter, "$ACQ_echo_time") )
@@ -441,7 +550,7 @@ int readBrukerAcqp(MRI *mri, char *acqpFile)
 	fclose(fp);
 	return 0;
       }
-      sscanf(line, "%lf", &TE);
+      sscanf(line, "%lf", pTE);
     }
     // TI
     else if ( !strcmp( Parameter, "$ACQ_inversion_time") )
@@ -452,27 +561,175 @@ int readBrukerAcqp(MRI *mri, char *acqpFile)
 	fclose(fp);
 	return 0;
       }
-      sscanf(line, "%lf", &TI);
+      sscanf(line, "%lf", pTI);
     }
+    // ACQ_read_offset
+    else if ( !strcmp( Parameter, "$ACQ_read_offset") )
+    {
+      if (!fgets(line, sizeof(line), fp))
+      {
+	fprintf(stderr, "ERROR: float value must follow ACQ_read_offset");
+	fclose(fp);
+	return 0;
+      }
+      sscanf(line, "%lf", &bTran->read_offset);
+    }
+    else if ( !strcmp( Parameter, "$ACQ_phase1_offset") )
+    {
+      if (!fgets(line, sizeof(line), fp))
+      {
+	fprintf(stderr, "ERROR: float value must follow ACQ_phase1_offset");
+	fclose(fp);
+	return 0;
+      }
+      sscanf(line, "%lf", &bTran->phase1_offset);
+    }
+    else if ( !strcmp( Parameter, "$ACQ_slice_offset") )
+    {
+      if (!fgets(line, sizeof(line), fp))
+      {
+	fprintf(stderr, "ERROR: float value must follow ACQ_slice_offset");
+	fclose(fp);
+	return 0;
+      }
+      sscanf(line, "%lf", &bTran->slice_offset);
+    }
+    else if ( !strcmp( Parameter, "$ACQ_grad_matrix") )
+    {
+      if (!fgets(line, sizeof(line), fp))
+      {
+	fprintf(stderr, "ERROR: float value must follow ACQ_slice_offset");
+	fclose(fp);
+	return 0;
+      }
+      // for 2d image it may contain many 9 element arrays
+      // for 3d image it is just one.
+      sscanf(line, "%lf %lf %lf %lf %lf %lf %lf %lf %lf ", 
+	     &bTran->grad_matrix[0],&bTran->grad_matrix[1],&bTran->grad_matrix[2],
+	     &bTran->grad_matrix[3],&bTran->grad_matrix[4],&bTran->grad_matrix[5],
+	     &bTran->grad_matrix[6],&bTran->grad_matrix[7],&bTran->grad_matrix[8]);
+    }
+    
   }
   fclose(fp);
-  // override method values
-  mri->flip_angle = flip_angle;
-  mri->ti = TI;
-  mri->te = TE;
-  mri->tr = TR;
-  // at this time I don't know the relation between grad_matrix and direction cosines
-  // use information from George Dai
-  // that is, 
-  //   grad_matrix         corresponds to 
-  //    0 0 1 1 0 0 0 1 0      his real world  x -> -R, y->S, z -> A           
-  //                           image produced  x -> -R, y -> -S, z -> A
-  c_r = c_a = c_s = 0;
-  mri->x_r = -1; mri->x_a = 0, mri->x_s = 0;
-  mri->y_r =  0; mri->y_a = 0, mri->y_s = -1;
-  mri->z_r =  0; mri->z_a = 1, mri->z_s = 0;
-  mri->c_r = c_r; mri->c_a = c_a, mri->c_s = c_s;
-  mri->ras_good_flag = 1;
+
+  return 1;
+}
+
+int readBrukerReco(char *recoFile, BrukerTransform *pTran)
+{
+  FILE *fp = 0;
+  char line[512];
+  char Parameter[256];
+  char Value[128];
+  int ignore=0;
+  int lRead=0;
+  int dim = 0;
+  int i;
+
+  fp = fopen(recoFile, "r");
+  if (fp ==0)
+  {
+    fprintf(stderr, "ERROR: could not open recoFile %s", recoFile);
+    return 0;
+  }
+  while (fgets(line, sizeof(line), fp))
+  {
+    if ((ignore = separate_parameter_and_value(line, Parameter, Value)))
+      continue;
+
+    // now gets the values
+    if ( !strcmp(Parameter,"END") )
+      break;
+
+    // get volume size
+    else if ( !strcmp( Parameter,"$RECO_transposition") )
+    {
+      if (!fgets(line, sizeof(line), fp))
+      {
+	fprintf(stderr, "ERROR: value must follow RECO_transposition");
+	fclose(fp);
+	return 0;
+      }
+      sscanf(line, "%d", &pTran->transposition);
+    }
+    else if ( !strcmp( Parameter,"$RECO_fov") )
+    {
+      lRead = sscanf( Value, "%d", &dim);
+      if (dim != 3)
+      {
+	fprintf(stderr, "INFO: fov dimension is %d. The data is not a 3D volume.\n", dim);
+	pTran->dim = dim;
+      }
+      if (!fgets(line, sizeof(line), fp))
+      {
+	fprintf(stderr, "ERROR: value must follow RECO_fov");
+	fclose(fp);
+	return 0;
+      }
+      if (dim == 3)
+	lRead = sscanf(line, "%lf %lf %lf", &pTran->fov[0], &pTran->fov[1], &pTran->fov[2]);
+      else if (dim == 2)
+      {
+	lRead = sscanf(line, "%lf %lf", &pTran->fov[0], &pTran->fov[1]);
+	pTran->fov[2] = pTran->fov[0];
+      }
+    }
+    else if ( !strcmp( Parameter, "$RECO_size") )
+    {
+      lRead = sscanf( Value, "%d", &dim);
+      if (dim != 3)
+	fprintf(stderr, "INFO: size dimension is %d. The data is not a 3D volume.\n", dim);
+      
+      if (!fgets(line, sizeof(line), fp))
+      {
+	fprintf(stderr, "ERROR: value must follow RECO_size");
+	fclose(fp);
+	return 0;
+      }
+      if (dim == 3)
+	lRead = sscanf(line, "%d %d %d", &pTran->size[0], &pTran->size[1], &pTran->size[2]);
+      else if (dim == 2)
+      {
+	lRead = sscanf(line, "%d %d", &pTran->size[0], &pTran->size[1]);
+	pTran->size[2] = pTran->size[0]; // just fake
+      }
+    }
+    else if ( !strcmp( Parameter, "$RECO_ft_size") )
+    {
+      lRead = sscanf( Value, "%d", &dim);
+      if (dim != 3)
+	fprintf(stderr, "INFO: ft_size dimension is %d. The data is not a 3D volume.\n", dim);
+      
+      if (!fgets(line, sizeof(line), fp))
+      {
+	fprintf(stderr, "ERROR: value must follow RECO_size");
+	fclose(fp);
+	return 0;
+      }
+      if (dim == 3)
+	lRead = sscanf(line, "%d %d %d", &pTran->ft_size[0], &pTran->ft_size[1], &pTran->ft_size[2]);
+      else if (dim == 2)
+      {
+	lRead = sscanf(line, "%d %d", &pTran->ft_size[0], &pTran->ft_size[1]);
+	pTran->ft_size[2] = pTran->ft_size[0]; // just fake 
+      }
+    }
+    else if ( !strcmp( Parameter, "$RECO_mode"))
+    {
+      printf("INFO: reconstruction mode was %s\n", Value);
+    }
+    else if ( !strcmp( Parameter, "ORIGIN"))
+    {
+      printf("INFO: software by %s\n", Value);
+    }
+  }
+  // calculate vox_size and offset
+  for (i=0; i < 3; ++i)
+  {
+    pTran->vox_size[i] = pTran->fov[i]*10./pTran->size[i];
+    pTran->offset[i] = -pTran->vox_size[i]*(pTran->ft_size[i] -1)/2.;
+  }
   return 1;
 }
 
@@ -522,5 +779,23 @@ int readBrukerVolume(MRI *mri, char *dataFile)
   return 1;
 }
 
+int is_bruker(char *fname)
+{
+  struct stat stat_buf;
+  char methodFile[512];
+  char acqpFile[512];
+  char dataFile[512];
+  char d3procFile[512];
+  char recoFile[512];
+
+  if(stat(fname, &stat_buf) < 0)
+    return(0);
+
+  /* if it's a directory, it's a COR dir. */
+  if(!S_ISDIR(stat_buf.st_mode))
+    return 0;
+  // must check all these files exist or not
+  return checkBrukerFiles(fname, methodFile, acqpFile, dataFile, d3procFile, recoFile, 0);
+}
 
 
