@@ -4,8 +4,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2004/06/14 16:01:43 $
-// Revision       : $Revision: 1.287 $
+// Revision Date  : $Date: 2004/06/14 17:31:41 $
+// Revision       : $Revision: 1.288 $
 //////////////////////////////////////////////////////////////////
 #include <stdio.h>
 #include <string.h>
@@ -2757,6 +2757,7 @@ mrisReadTransform(MRIS *mris, char *mris_fname)
 {
   char transform_fname[STRLEN], fpref[300] ;
   LT *lt = 0;
+  MRI *orig = 0;
 
   // here it is assumed that subjects is set
   FileNamePath(mris_fname, fpref) ;
@@ -2784,10 +2785,12 @@ mrisReadTransform(MRIS *mris, char *mris_fname)
   {
     // first try to get it from mri/orig
     sprintf(transform_fname, "%s/../mri/orig", fpref) ; // reuse of the buffer
-    MRI *orig = MRIreadHeader(transform_fname, -1);
+    orig = MRIreadHeader(transform_fname, -1);
     if (orig)
     {
       getVolGeom(orig, &lt->src);
+      MRIfree(&orig);
+      orig = 0;
     }
     else
     {
