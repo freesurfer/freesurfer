@@ -1,6 +1,6 @@
 /*----------------------------------------------------------
   Name: mri_label2label.c
-  $Id: mri_label2label.c,v 1.20 2004/01/22 19:32:23 greve Exp $
+  $Id: mri_label2label.c,v 1.21 2004/11/16 00:35:37 greve Exp $
   Author: Douglas Greve
   Purpose: Converts a label in one subject's space to a label
   in another subject's space using either talairach or spherical
@@ -59,7 +59,7 @@ static int  nth_is_arg(int nargc, char **argv, int nth);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_label2label.c,v 1.20 2004/01/22 19:32:23 greve Exp $";
+static char vcid[] = "$Id: mri_label2label.c,v 1.21 2004/11/16 00:35:37 greve Exp $";
 char *Progname = NULL;
 
 char  *srclabelfile = NULL;
@@ -125,7 +125,7 @@ int main(int argc, char **argv)
   int nargs;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_label2label.c,v 1.20 2004/01/22 19:32:23 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_label2label.c,v 1.21 2004/11/16 00:35:37 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -576,7 +576,8 @@ static int parse_commandline(int argc, char **argv)
       trglabelfile = pargv[0];
       nargsused = 1;
     }
-    else if (!strcmp(option, "--trgsurface")){
+    else if(!strcmp(option, "--trgsurface") || 
+	    !strcmp(option, "--trgsurf")){
       if(nargc < 1) argnerr(option,1);
       trgsurface = pargv[0];
       nargsused = 1;
