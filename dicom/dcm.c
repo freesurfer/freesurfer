@@ -86,13 +86,13 @@
 **	and convert the object to and from its "stream" representation.
 **	In addition, the package can parse a file which contains a stream
 **	and create its internal object.
-** Last Update:		$Author: tosa $, $Date: 2004/06/18 18:56:04 $
+** Last Update:		$Author: tosa $, $Date: 2004/06/18 19:39:40 $
 ** Source File:		$RCSfile: dcm.c,v $
-** Revision:		$Revision: 1.10 $
+** Revision:		$Revision: 1.11 $
 ** Status:		$State: Exp $
 */
 
-static char rcsid[] = "$Revision: 1.10 $ $RCSfile: dcm.c,v $";
+static char rcsid[] = "$Revision: 1.11 $ $RCSfile: dcm.c,v $";
 
 
 #include <sys/fcntl.h>
@@ -124,7 +124,7 @@ static char rcsid[] = "$Revision: 1.10 $ $RCSfile: dcm.c,v $";
 static CTNBOOLEAN debug = FALSE;/* Flag for debugging messages to stdout */
 
 // undeclared ones 
-extern void swab(const void *from, void *to, ssize_t n);
+extern void swab(const void *from, void *to, size_t n);
 
 /* Prototypes for internal functions
 */
