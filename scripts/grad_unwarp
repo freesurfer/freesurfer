@@ -1,13 +1,14 @@
 #!/bin/csh -f
 # grad_unwarp - convert, unwarp, and resample dicom files
 #
-# $Id: grad_unwarp,v 1.7 2004/01/18 21:58:56 ebeth Exp $
-set VERSION = '$Id: grad_unwarp,v 1.7 2004/01/18 21:58:56 ebeth Exp $';
+# $Id: grad_unwarp,v 1.8 2004/11/03 17:00:02 greve Exp $
+set VERSION = '$Id: grad_unwarp,v 1.8 2004/11/03 17:00:02 greve Exp $';
 
 set inputargs = ($argv);
 
 #set matlab = "/usr/pubsw/bin/matlab6.5"
-set matlab = "/space/lyon/6/pubsw/common/matlab/6.5/bin/matlab"
+#set matlab = "/space/lyon/6/pubsw/common/matlab/6.5/bin/matlab"
+set matlab = matlab
 
 set infile = ();
 set seriesno = 0;
