@@ -18,7 +18,7 @@ function [Fsig, F, betamn] = flacffx(flac,conname,saveresults,jknthrun)
 %
 % If saveresults, 
 %
-% $Id: flacffx.m,v 1.2 2005/01/11 19:56:21 greve Exp $
+% $Id: flacffx.m,v 1.3 2005/01/11 19:57:22 greve Exp $
 %
 
 Fsig = [];
@@ -75,7 +75,7 @@ for nthrun = 1:nruns
   jthrun = jthrun + 1;
 
   % Customize the flac
-  fprintf('nthrun = %d/%d\n',nthrun,nruns);
+  fprintf('  nthrun = %d/%d\n',nthrun,nruns);
   flac.nthrun = nthrun;
   flac = flac_customize(flac);
   %flac = flac_desmat(flac);
@@ -203,7 +203,7 @@ for nthcon = conind
 
 end % con
 
-fprintf('flacffx done\n');
+fprintf('  flacffx done\n');
 
 
 
