@@ -1450,7 +1450,7 @@ ImageSigmaFilter(IMAGE *Isrc, int wsize, float nsigma, IMAGE *Ioffset,
           val *= val ;
           sigma += val ;
         }
-        sigma = sqrt(sigma / wsq) ;
+        sigma = sqrt(sigma) / wsq ;
 
         /* calculate average of all pixels within nsigma std of mean */
         sigma_thresh = nsigma * sigma ;
