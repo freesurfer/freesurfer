@@ -28,6 +28,7 @@ typedef struct
   float  prior ;
   float  var ;
   float  mean ;
+  float  log_p ;      /* current log probability of this sample */
 } GCA_SAMPLE, GCAS ;
 
 #define GIBBS_NEIGHBORHOOD   6
@@ -84,6 +85,8 @@ float GCAcomputeLogImageProbability(GCA *gca, MRI *mri_inputs, MRI *mri_labels,
 float  GCAcomputeLogSampleProbability(GCA *gca, GCA_SAMPLE *gcas, 
                                       MRI *mri_inputs,
                                       MATRIX *m_L,int nsamples);
+int   GCArankSamples(GCA *gca, GCA_SAMPLE *gcas, int nsamples, 
+                     int *ordered_indices) ;
 MRI  *GCAanneal(MRI *mri_inputs, GCA *gca, MRI *mri_dst,LTA *lta, 
                 int max_iter);
 int    GCAsourceVoxelToNodePoint(GCA *gca, MRI *mri, LTA *lta,
