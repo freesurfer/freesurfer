@@ -2338,7 +2338,7 @@ ImageCmp(IMAGE *Isrc, IMAGE *Idst)
   int      ret, ecode ;
   IMAGE    *Idiv ;
   Pixelval pmin, pmax ;
-  float    fmin, fmax ;
+  float    fmin = 0.0f, fmax = 0.0f ;
 
   Idiv = ImageAlloc(Isrc->rows, Isrc->cols, Isrc->pixel_format, 1) ;
 
@@ -2425,7 +2425,7 @@ int
 ImageAppend(IMAGE *I, char *fname)
 {
   FILE   *fp ;
-  int    ecode, frame, nframes ;
+  int    ecode, frame = 0, nframes ;
   IMAGE  Iheader, *Iframe ;
   char   tmpname[200] ;
 
@@ -2745,12 +2745,13 @@ ImageExponentialFilter(IMAGE *inImage, IMAGE *gradImage,
   float  fpix, *g, norm, val, *filterPix, *filter, *outPix ;
   static float w, *gaussian ;
 
+  xc = yc = 0 ;   /* eliminate compiler warning */
   filter = (float *)calloc(wsize*wsize, sizeof(float)) ;
   if (!filter)
-  {
-    fprintf(stderr,"ImageExponentialFilter: could not allocate filter space\n");
-    return(-1) ;
-  }
+    ErrorReturn(ERROR_NO_MEMORY, 
+                (ERROR_NO_MEMORY,
+                 "ImageExponentialFilter: could not allocate filter")) ;
+
 
   rows = gradImage->rows ;
   cols = gradImage->cols ;
@@ -2902,7 +2903,7 @@ ImageCalculateOffset(IMAGE *Ix, IMAGE *Iy, int wsize, float mu,
          sxneg, sxpos, syneg, sypos, *xpix, *ypix ;
   static float *gaussian = NULL ;
   static int   w = 0 ;
-  FILE         *xfp = NULL, *yfp = NULL, *ofp ;
+  FILE         *xfp = NULL, *yfp = NULL, *ofp = NULL ;
 
   rows = Ix->rows ;
   cols = Ix->cols ;
@@ -3280,7 +3281,7 @@ ImageSobel(IMAGE *inImage, IMAGE *gradImage,
 {
   static IMAGE *xImage = NULL, *yImage = NULL ;
   int          x, y, rows, cols ;
-  float        *xpix, *ypix, *gradpix, xval, yval, gval ;
+  float        *xpix, *ypix, *gradpix = NULL, xval, yval, gval ;
 
   rows = inImage->rows ;
   cols = inImage->cols ;

@@ -105,7 +105,7 @@ ImageDiffuseCurvature(IMAGE *inImage,IMAGE *outImage, double A,
   int     x, y, i, rows, cols, *xE, *yN, *xW, *yS, ys, yn, xe, xw, ci ;
   float   c[9], fvals[9], dst_val ;
   FILE    *fp ;
-  KIMAGE  *ksrc;
+  KIMAGE  *ksrc = NULL;
   static  IMAGE *tmpImage = NULL, *gradImage = NULL ;
 
   rows = inImage->rows ;
@@ -317,7 +317,7 @@ ImageDiffuseHV(IMAGE *inImage, IMAGE *outImage, double k, int niter,
   int     x, y, i, rows, cols, *xE, *yN, *xW, *yS, ys, yn, xe, xw, ci ;
   float   c[9], fvals[9], dst_val ;
   FILE    *fp ;
-  KIMAGE  *ksrc;
+  KIMAGE  *ksrc = NULL ;
   static IMAGE *xImage = NULL, *yImage = NULL, *tmpImage ;
   IMAGE   xKernelImage, yKernelImage ;
 
@@ -566,7 +566,7 @@ ImageDiffusePerona(IMAGE *inImage, IMAGE *outImage, double k, int niter,
   int     x, y, i, rows, cols, *xE, *yN, *xW, *yS, ys, yn, xe, xw, ci ;
   float   c[9], fvals[9], dst_val ;
   FILE    *fp ;
-  KIMAGE  *ksrc;
+  KIMAGE  *ksrc = NULL ;
   static  IMAGE *tmpImage = NULL, *gradImage = NULL ;
 
   rows = inImage->rows ;
