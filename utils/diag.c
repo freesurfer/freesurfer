@@ -16,7 +16,7 @@
 
 #include "image.h"
 #include "diag.h"
-#include "window.h"
+#include "windiag.h"
 #include "proto.h"
 
 /*-----------------------------------------------------
