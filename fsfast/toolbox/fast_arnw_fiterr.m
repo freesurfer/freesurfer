@@ -27,7 +27,7 @@ function [err, racfexp] = fast_arnw_fiterr(p,racf,R,w,modeltype)
 % 
 % See also: fast_arnw_acf
 %
-% $Id: fast_arnw_fiterr.m,v 1.2 2004/05/27 01:40:06 greve Exp $
+% $Id: fast_arnw_fiterr.m,v 1.3 2004/05/27 04:37:48 greve Exp $
 %
 % (c) Douglas N. Greve, 2004
 %
@@ -75,8 +75,9 @@ if(exist('R','var') & ~isempty(R))
 else
   racfexp = nacf;
 end
+
 % Error is L1 difference between actual and expected
-if(exist('w','var'))
+if(exist('w','var') & ~isempty(w))
   err = mean( abs(racf-racfexp).*w );
 else
   err = mean( abs(racf-racfexp) );
