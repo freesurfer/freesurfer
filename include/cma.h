@@ -80,6 +80,7 @@
 #define   Fat         81 /*  255 255 255 0 */
 #define   Bright_Unknown  82   /* 100 240 240 0 */
 #define   Dark_Unknown    83   /* 20  100  100     0  */
+#define   Corpus_Callosum 84   /* 255 255 255 */
 
 
 
