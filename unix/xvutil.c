@@ -459,7 +459,23 @@ XVshowImage(XV_FRAME *xvf, int which, IMAGE *image, int frame)
     return ;
   dimage->used = 1 ;
   dimage->frame = frame ;
-  dimage->sourceImage = image ;
+  if (dimage->zoom == 1.0f)
+  {
+    if (dimage->zoomImage != dimage->sourceImage)
+      ImageFree(&dimage->zoomImage) ;
+    dimage->sourceImage = dimage->zoomImage = image ;
+  }
+  else   /* image from here on in refers to the zoomed image */
+  {
+    int dx, dy ;
+
+    dx = nint((float)image->cols/dimage->zoom) ;
+    dy = nint((float)image->rows/dimage->zoom) ;
+    dimage->zoomImage = 
+      ImageExtract(image, NULL, dimage->x0, dimage->y0, dx, dy) ;
+    dimage->sourceImage = image ;
+    image = dimage->zoomImage ;
+  }
 
   scols = dimage->dispImage->cols ;
   srows = dimage->dispImage->rows ;
@@ -618,6 +634,7 @@ xv_dimage_event_handler(Xv_Window xv_window, Event *event)
   int    row, col, which = -1 ;
   DIMAGE *dimage ;
   char   *str, fmt[50] ;
+  static int first = 1 ;
 
   window = event_window(event) ;
 
@@ -649,7 +666,10 @@ xv_dimage_event_handler(Xv_Window xv_window, Event *event)
   y = (int)((float)y / dimage->yscale) ;
 
   /* convert y to hips coordinate sysem */
-  y = (dimage->sourceImage->rows-1) - y ;  
+  y = (dimage->zoomImage->rows-1) - y ;  
+
+  x += dimage->x0 ;
+  y += dimage->y0 ;
 
   /* do boundary checking */
   if (y < 0) y = 0 ;
@@ -657,7 +677,46 @@ xv_dimage_event_handler(Xv_Window xv_window, Event *event)
   if (y >= dimage->sourceImage->rows) y = dimage->sourceImage->rows - 1 ;
   if (x >= dimage->sourceImage->cols) x = dimage->sourceImage->cols - 1 ;
 
-  switch (event_id(event)) 
+  if (event_ctrl_is_down(event)) switch (event_id(event)) 
+  {
+  case MS_RIGHT:
+    if (first)
+    {
+      fprintf(stderr, "setting origin to (%d, %d)\n", x, y) ;
+      dimage->x0 = x ;
+      dimage->y0 = y ;
+    }
+    XVzoom(xvf, which, 0.9f) ;
+    break ;
+  case MS_LEFT:
+    if (first)
+    {
+      fprintf(stderr, "setting origin to (%d, %d)\n", x, y) ;
+      dimage->x0 = x ;
+      dimage->y0 = y ;
+    }
+    XVzoom(xvf, which, 1.1f) ;
+    break ;
+  case LOC_DRAG:
+    if (event_left_is_down(event))
+      XVzoom(xvf, which, 1.1f) ;
+    else if (event_right_is_down(event))
+      XVzoom(xvf, which, 0.9f) ;
+    break ;
+  default:
+    if (event_is_up(event))
+    {
+      switch ((char)event->ie_code)
+      {
+      case '\n':
+      case '\r':
+        XVzoom(xvf, which, 1.0f / dimage->zoom) ;
+        break ;
+      }
+    }
+    break ;
+  }
+  else switch (event_id(event)) 
   {
 #ifdef Linux
   case MS_MIDDLE:
@@ -681,14 +740,13 @@ xv_dimage_event_handler(Xv_Window xv_window, Event *event)
     break ;
 #endif
   case MS_LEFT:
-  case LOC_DRAG:
     switch (dimage->sourceImage->pixel_format)
     {
     case PFDOUBLE:
       val = *IMAGEDseq_pix(dimage->sourceImage, x, y, dimage->frame) ;
       break ;
     case PFFLOAT:
-      val = (double)*IMAGEFseq_pix(dimage->sourceImage, x, y, dimage->frame) ;
+      val = (double)*IMAGEFseq_pix(dimage->sourceImage, x, y, dimage->frame);
       break ;
     case PFBYTE:
       val = (double)*IMAGEseq_pix(dimage->sourceImage, x, y, dimage->frame) ;
@@ -696,22 +754,18 @@ xv_dimage_event_handler(Xv_Window xv_window, Event *event)
     }
     for (str = dimage->title_string ; *str && isspace(*str) ; str++)
     {}
-
+    
     sprintf(fmt, "%%10.10s: (%%3d, %%3d) --> %%2.%dlf\n", xvf->precision) ;
     XVprintf(xvf, 0, fmt, str, x, y, val) ;
-
+    
     /* extract this location as center of new template */
     if (event_id(event) == LOC_DRAG || event_is_down(event))
     {
     }
-    else
-      if (event_is_up(event))
-      {
-      }
-    break ;
+    else if (event_is_up(event))
+    {
+    }
   default:
-    if (!event_is_ascii(event))
-      return ;
     if (event_is_up(event))
     {
       switch ((char)event->ie_code)
@@ -739,8 +793,8 @@ xv_dimage_event_handler(Xv_Window xv_window, Event *event)
         break ;
       }
       }
+      break ;
     }
-    break ;
   }
   if (XVevent_handler)
   {
@@ -748,6 +802,10 @@ xv_dimage_event_handler(Xv_Window xv_window, Event *event)
     event_y(event) = y ;
     (*XVevent_handler)(event, dimage) ;
   }
+  if (!event_ctrl_is_down(event))
+    first = 1 ;
+  else
+    first = 0 ;
 }
 /*----------------------------------------------------------------------
             Parameters:
@@ -1330,7 +1388,7 @@ XVsetImageSize(XV_FRAME *xvf, int which, int rows, int cols)
   xv_set(canvas_paint_window(dimage->canvas),
          WIN_EVENT_PROC, xv_dimage_event_handler,
          WIN_CONSUME_EVENTS,  MS_LEFT, LOC_DRAG, MS_RIGHT, MS_MIDDLE, 
-         WIN_ASCII_EVENTS, NULL,
+         WIN_ASCII_EVENTS, WIN_META_EVENTS, WIN_LEFT_KEYS, WIN_RIGHT_KEYS,NULL,
          NULL);
   dimage->window = 
     (Window)xv_get(canvas_paint_window(dimage->canvas),XV_XID);
@@ -1463,6 +1521,7 @@ xvCreateImage(XV_FRAME *xvf, DIMAGE *dimage, int x, int y, int which)
   for (i = 0 ; i < MAX_COLORS ; i++)
     dimage->gamma[i] = (float)i ;
 
+  dimage->zoom = 1.0f ;
   dimage->which = which ;
   dimage->x = x ;
   dimage->y = y ;
@@ -1574,7 +1633,6 @@ XVgamma(XV_FRAME *xvf, int which, float beta)
   int           i ;
   DIMAGE        *dimage ;
   double        dval ;
-FILE *fp ;
 
   dimage = xvGetDimage(which, 0) ;
   if (!dimage)
@@ -1591,25 +1649,6 @@ FILE *fp ;
   else
     gamma = 1 / (1+beta) ;
 
-{
-  fp = fopen("lut.dat", "w") ;
-  for (i = 0 ; i < MAX_COLORS ; i++)
-    fprintf(fp, "[%d]:  %2.1f\n", i, dimage->gamma[i]) ;
-  fprintf(fp, "\n\n") ;
-}
-
-  /* use current colormap */
-#if 0
-  min_val = max_val = dimage->lut[0] ;
-  for (i=1;i<MAX_COLORS;i++)
-  {
-    if (max_val < dimage->lut[i])
-      max_val = dimage->lut[i] ;
-    if (min_val > dimage->lut[i])
-      min_val = dimage->lut[i] ;
-  }
-#endif
-    
   for (i=0;i<MAX_COLORS;i++)
   {
     dval = dimage->gamma[i] / (float)MAX_GRAY ;
@@ -1617,14 +1656,32 @@ FILE *fp ;
     dimage->gamma[i] = dval * (float)MAX_GRAY ;
   }
 
-{
-  for (i = 0 ; i < MAX_COLORS ; i++)
-    fprintf(fp, "[%d]:  %2.1f\n", i, dimage->gamma[i]) ;
-  fclose(fp) ;
-}
-
   XVshowImage(xvf, which, dimage->sourceImage, dimage->frame) ;
 
+  return(NO_ERROR) ;
+}
+
+int
+XVzoom(XV_FRAME *xvf, int which, float zoom)
+{
+  float   max_dim ;
+  DIMAGE  *dimage ;
+
+  dimage = xvGetDimage(which, 0) ;
+  if (!dimage)
+    return(NO_ERROR) ;
+
+  max_dim = (float)
+    MIN(dimage->sourceImage->cols, dimage->sourceImage->rows) ;
+  dimage->zoom *= zoom ;
+  if (dimage->zoom > max_dim)
+    dimage->zoom = max_dim ;
+  if (dimage->zoom < 1.0f)
+    dimage->zoom = 1.0f ;
+
+/*  fprintf(stderr, "zoom = %2.3f\n", dimage->zoom) ;*/
+
+  XVshowImage(xvf, which, dimage->sourceImage, 0) ;
   return(NO_ERROR) ;
 }
 
