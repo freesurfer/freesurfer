@@ -3,8 +3,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2004/06/10 23:15:05 $
-// Revision       : $Revision: 1.7 $
+// Revision Date  : $Date: 2005/03/22 19:23:27 $
+// Revision       : $Revision: 1.8 $
 
 #ifndef DataManager_h
 #define DataManager_h
@@ -107,6 +107,8 @@ class DataManager : public DebugReporter {
 };
 
 
+template <typename T> std::list<T> DataLoader<T>::mlData;
+template <typename T> std::map<T,int> DataLoader<T>::mRefs;
 
 
 #endif
