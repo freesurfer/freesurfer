@@ -780,6 +780,8 @@ MRI *MRIreadInfo(char *fname);
 MRI *MRIreadHeader(char *fname, int type);
 int MRIwrite(MRI *mri, char *fname);
 int MRIwriteType(MRI *mri, char *fname, int type);
+int MRIwriteAnyFormat(MRI *mri, char *fileid, char *fmt, 
+		      int mriframe, MRIS *surf);
 MRI *MRIreadRaw(FILE *fp, int width, int height, int depth, int type);
 MRI *MRIreorder(MRI *mri_src, MRI *mri_dst, int xdim, int ydim, int zdim);
 MRI *MRIsmoothParcellation(MRI *mri, int smooth_parcellation_count);
@@ -807,6 +809,10 @@ int MRIsincSampleVolume(MRI *mri, Real x, Real y, Real z, int hw, Real *pval);
 MRI *MRIsincTransform(MRI *mri_src, MRI *mri_dst, MATRIX *mA, int hw);
 int MRIlabelOverlap(MRI *mri1, MRI *mri2, int label) ;
 int MRIeraseBorderPlanes(MRI *mri) ;
+
+MRI *MRIlog10(MRI *inmri, MRI *outmri, int negflag);
+MRI *MRIrandn(int ncols, int nrows, int nslices, int nframes,
+	      float avg, float stddev, MRI *mri);
 
 /* Zero-padding for 3d analyze (ie, spm) format */
 #ifdef _MRIIO_SRC
