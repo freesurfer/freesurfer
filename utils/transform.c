@@ -1345,6 +1345,7 @@ ltaReadRegisterDat(char *fname)
 // if buffer == NULL, then it will allocate memory
 char *mincFindVolume(char *line, char *buffer)
 {
+  struct stat stat_buf;
   int ret;
   static int count = 0;
   char buf[1000];
@@ -1360,7 +1361,6 @@ char *mincFindVolume(char *line, char *buffer)
 	  buffer = (char *) malloc(strlen(pch)+1);
 	strcpy(buffer, pch);
 	// check the existence of the file
-	struct stat stat_buf;
 	ret = stat(buffer, &stat_buf);
 	if (ret != 0)
 	{
