@@ -678,7 +678,7 @@ int  MRIcomputeClassStatistics(MRI *mri_T1, MRI *mri_labeled,
 #define DIAGONAL_FILL        230
 #define DEGENERATE_FILL      240
 
-MRI *MRIchangeType(MRI *src, int dest_type, float f_low, float f_high);
+MRI *MRIchangeType(MRI *src, int dest_type, float f_low, float f_high, int no_scale_option_flag);
 MRI *MRIresample(MRI *src, MRI *template_vol, int resample_type);
 int MRIlimits(MRI *mri, float *min, float *max);
 int MRIprintStats(MRI *mri, FILE *stream);
@@ -700,6 +700,8 @@ int MRIwrite(MRI *mri, char *fname);
 int MRIwriteType(MRI *mri, char *fname, int type);
 MRI *MRIreadRaw(FILE *fp, int width, int height, int depth, int type);
 MRI *MRIreorder(MRI *mri_src, MRI *mri_dst, int xdim, int ydim, int zdim);
+MRI *MRIsmoothParcellation(MRI *mri, int smooth_parcellation_count);
+MRI *MRIreadOtl(char *fname, int width, int height, int slices, char *color_file_name, int read_volume_flag, int fill_flag);
 
 MATRIX *extract_i_to_r(MRI *mri);
 int apply_i_to_r(MRI *mri, MATRIX *m);
