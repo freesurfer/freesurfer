@@ -20,7 +20,8 @@ static int find_parc_index(int parc, int *ptable, int nparcs) ;
 static int  add_to_ptable(MRI_SURFACE *mris, int *ptable, int nparcs) ;
 static int *ptable = NULL ;
 static int nbrs = 2 ;
-static int navgs = 25 ;
+static int navgs = 5 ;
+static int normalize_flag = 0 ;
 static int nparcs = 0 ;
 static char *ptable_fname = NULL ;
 
@@ -33,11 +34,15 @@ static void usage_exit(int code) ;
 static char *orig_name = "smoothwm" ;
 
 static int ninputs = 1 ;  /* curv and sulc */
-static int icno = 7 ;
+static int icno_priors = 7 ;
+static int icno_classifiers = 4 ;
 
+#if 0
 static char *curv_name = "curv" ;
+#endif
 static char *thickness_name = "thickness" ;
 static char *sulc_name = "sulc" ;
+static int sulconly = 0 ;
 
 static char subjects_dir[STRLEN] ;
 
@@ -47,7 +52,7 @@ main(int argc, char *argv[])
   char         **av, fname[STRLEN], *out_fname, *subject_name, *cp,*hemi,
                *canon_surf_name, *annot_name ;
   int          ac, nargs, i, train_type ;
-  int          msec, minutes, seconds, nsubjects ;
+  int          msec, minutes, seconds, nsubjects, input_flags ;
   struct timeb start ;
   MRI_SURFACE  *mris ;
   GCSA         *gcsa ;
@@ -82,7 +87,25 @@ main(int argc, char *argv[])
   out_fname = argv[argc-1] ;
   nsubjects = argc-5 ;
 
-  gcsa = GCSAalloc(ninputs, icno) ;
+  gcsa = GCSAalloc(ninputs, icno_priors, icno_classifiers) ;
+  input_flags = 0 ;
+  if (normalize_flag)
+    input_flags |= GCSA_NORMALIZE ;
+
+  if (sulconly)
+  {
+    GCSAputInputType(gcsa, GCSA_INPUT_CURV_FILE, sulc_name, 0, 0, input_flags);
+  }
+  else
+  {
+    GCSAputInputType(gcsa, GCSA_INPUT_CURVATURE, "mean_curvature", 
+                     navgs, 0, input_flags) ;
+    if (ninputs > 1)
+      GCSAputInputType(gcsa, GCSA_INPUT_CURV_FILE, sulc_name, 0,1,input_flags);
+    if (ninputs > 2)
+      GCSAputInputType(gcsa, GCSA_INPUT_CURV_FILE, thickness_name, 0, 2,
+                       input_flags);
+  }
 
   for (train_type = 0 ; train_type <= 1 ; train_type++)
   {
@@ -118,25 +141,34 @@ main(int argc, char *argv[])
         if (MRISreadCurvature(mris, thickness_name) != NO_ERROR)
           ErrorExit(ERROR_NOFILE, "%s: could not read curv file %s for %s",
                     Progname, thickness_name, subject_name) ;
+        if (normalize_flag)
+          MRISnormalizeCurvature(mris) ;
         MRIScopyCurvatureToImagValues(mris) ;
       }
-      if (ninputs > 1)
+      if (ninputs > 1 || sulconly)
       {
         if (MRISreadCurvature(mris, sulc_name) != NO_ERROR)
           ErrorExit(ERROR_NOFILE, "%s: could not read curv file %s for %s",
                     Progname, sulc_name, subject_name) ;
+        if (normalize_flag)
+          MRISnormalizeCurvature(mris) ;
         MRIScopyCurvatureToValues(mris) ;
         MRIScopyValToVal2(mris) ;
       }
+      if (!sulconly)
+      {
 #if 0
-      if (MRISreadCurvature(mris, curv_name) != NO_ERROR)
-        ErrorExit(ERROR_NOFILE, "%s: could not read curv file %s for %s",
-                  Progname, curv_name, subject_name) ;
+        if (MRISreadCurvature(mris, curv_name) != NO_ERROR)
+          ErrorExit(ERROR_NOFILE, "%s: could not read curv file %s for %s",
+                    Progname, curv_name, subject_name) ;
 #else
-      MRISuseMeanCurvature(mris) ;
-      MRISaverageCurvatures(mris, navgs) ;
+        MRISuseMeanCurvature(mris) ;
+        MRISaverageCurvatures(mris, navgs) ;
+        if (normalize_flag)
+          MRISnormalizeCurvature(mris) ;
 #endif
-      MRIScopyCurvatureToValues(mris) ;
+        MRIScopyCurvatureToValues(mris) ;
+      }
 
       MRISrestoreVertexPositions(mris, CANONICAL_VERTICES) ;
       MRISprojectOntoSphere(mris, mris, DEFAULT_RADIUS) ;
@@ -197,11 +229,23 @@ get_option(int argc, char *argv[])
     nargs = 1 ;
     printf("using %s as original surface\n", orig_name) ;
   }
+  else if (!stricmp(option, "NORM"))
+  {
+    printf("normalizing sulc after reading...\n") ;
+    normalize_flag = 1 ;
+  }
   else if (!stricmp(option, "IC"))
   {
-    icno = atoi(argv[2]) ;
-    nargs = 1 ;
-    printf("using ico # %d for classifier array\n", icno) ;
+    icno_priors = atoi(argv[2]) ;
+    icno_classifiers = atoi(argv[3]) ;
+    nargs = 2 ;
+    printf("using ico # %d for classifier array, and %d for priors\n", 
+           icno_classifiers, icno_priors) ;
+  }
+  else if (!stricmp(option, "SULC") || !stricmp(option, "SULCONLY"))
+  {
+    printf("using sulc as only input...\n") ;
+    sulconly = 1 ;
   }
   else switch (toupper(*option))
   {
