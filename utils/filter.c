@@ -723,6 +723,46 @@ ImageConvolveGaussian(IMAGE *Isrc,IMAGE *gImage, IMAGE *Iout, int dst_frameno)
            Description:
 ----------------------------------------------------------------------*/
 IMAGE *
+ImageCircularConvolveGaussian(IMAGE *Isrc,IMAGE *gImage, IMAGE *Iout, 
+                              int dst_frameno)
+{
+  static IMAGE     *Itmp = NULL ;
+  int              ksize ;
+  float            *kernel, *buf ;
+
+  if (Isrc->pixel_format != PFFLOAT)
+    ErrorReturn(NULL, 
+                (ERROR_UNSUPPORTED, "ImageCircularConvolveGaussian: type %d"
+                 "not supported", Isrc->pixel_format)) ;
+
+  if (!ImageCheckSize(Isrc, Itmp, 0, 0, 0))
+  {
+    if (Itmp)
+      ImageFree(&Itmp) ;
+    Itmp = ImageAlloc(Isrc->rows, Isrc->cols, PFFLOAT, 1) ;
+  }
+  if (!Iout)
+    Iout = ImageAlloc(Isrc->rows, Isrc->cols, PFFLOAT, 1) ;
+
+  ImageSetSize(Itmp, Isrc->rows, Isrc->cols) ;
+
+  kernel = IMAGEFpix(gImage, 0, 0) ;
+  ksize = gImage->cols ;
+  ImageCircularConvolve1d(Isrc, Itmp, kernel, ksize, IMAGE_VERTICAL) ;
+
+  buf = IMAGEFpix(Iout, 0, 0) ;
+  Iout->image = (byte *)IMAGEFseq_pix(Iout, 0, 0, dst_frameno) ;
+  ImageCircularConvolve1d(Itmp, Iout, kernel, ksize, IMAGE_HORIZONTAL) ;
+
+  Iout->image = (byte *)buf ;
+  return(Iout) ;
+}
+/*----------------------------------------------------------------------
+            Parameters:
+
+           Description:
+----------------------------------------------------------------------*/
+IMAGE *
 ImageConvolveGaussianFrames(IMAGE *Isrc,IMAGE *gImage, IMAGE *Idst)
 {
   int              frame, src_frames, dst_frames ;
@@ -840,6 +880,73 @@ ImageConvolve1d(IMAGE *I, IMAGE *J, float k[], int len, int axis)
 
         for (ki = k, i = 0 ; i < len ; i++)
           total += *ki++ * *(inBase + yi_LUT[y+i-halflen]*width) ;
+
+        *outPix++ = total ;
+      }
+    }
+  }
+}
+/*----------------------------------------------------------------------
+            Parameters:
+
+           Description:
+----------------------------------------------------------------------*/
+void
+ImageCircularConvolve1d(IMAGE *I, IMAGE *J, float k[], int len, int axis)
+{
+  int           x, y, width, height, halflen, xi, yi ;
+  register int  i ;
+  float         *outPix ;
+  register float *ki, total, *inBase ;
+
+  width = I->cols ;
+  height = I->rows ;
+
+  halflen = len/2 ;
+
+
+  outPix = IMAGEFpix(J, 0, 0) ;
+  if (axis == IMAGE_HORIZONTAL)
+  {
+    for (y = 0 ; y < height ; y++)
+    {
+      inBase = IMAGEFpix(I, 0, y) ;
+      for (x = 0 ; x < width ; x++)
+      {
+        total = 0.0f ;
+
+        for (ki = k, i = 0 ; i < len ; i++)
+        {
+          xi = x+i-halflen ;
+          if (xi < 0)        /* use circular topology */
+            xi += width ;
+          if (xi >= width)
+            xi -= width ;
+          total += *ki++ * *(inBase + xi) ;
+        }
+
+        *outPix++ = total ;
+      }
+    }
+  }
+  else
+  {
+    for (y = 0 ; y < height ; y++)
+    {
+      for (x = 0 ; x < width ; x++)
+      {
+        inBase = IMAGEFpix(I, x, 0) ;
+        total = 0.0f ;
+
+        for (ki = k, i = 0 ; i < len ; i++)
+        {
+          yi = y+i-halflen ;
+          if (yi < 0)        /* use circular topology */
+            yi += height ;
+          if (yi >= height)
+            yi -= height ;
+          total += *ki++ * *(inBase + yi*width) ;
+        }
 
         *outPix++ = total ;
       }
@@ -2234,7 +2341,7 @@ ImageGreyErode(IMAGE *Isrc, IMAGE *Idst)
 IMAGE   *
 ImageCorrelate(IMAGE *Itemplate, IMAGE *Isrc, int zeropad, IMAGE *Icorr)
 {
-  IMAGE *Iconj, *Ifcorr, *Ifsrc, *Ireal, *Iimag ;
+  IMAGE *Iconj, *Ifcorr, *Ifsrc, *Ireal, *Iimag, *Iftmp ;
   int   ecode ;
 
 #if 0
@@ -2246,8 +2353,14 @@ ImageCorrelate(IMAGE *Itemplate, IMAGE *Isrc, int zeropad, IMAGE *Icorr)
     Isrc = ImageZeroPad(Isrc, NULL) ;
 #endif
 
-  /* assumes the template as already been FTed */
-  Iconj = ImageConjugate(Itemplate, NULL) ;
+  /* check to see if the template as already been FTed */
+  if (Itemplate->pixel_format != PFCOMPLEX &&
+      Itemplate->pixel_format != PFDBLCOM)
+    Iftmp = ImageDFT(Itemplate, NULL) ;
+  else
+    Iftmp = Itemplate ;
+
+  Iconj = ImageConjugate(Iftmp, NULL) ;
   Ifsrc = ImageDFT(Isrc, NULL) ;
   Ifcorr = ImageMul(Iconj, Ifsrc, NULL) ;
   Icorr = ImageInverseDFT(Ifcorr, Icorr) ;
@@ -2275,15 +2388,9 @@ ImageCorrelate(IMAGE *Itemplate, IMAGE *Isrc, int zeropad, IMAGE *Icorr)
       ErrorExit(ecode, "ImageCorrelate: h_flipquad failed (%d)\n", ecode) ;
   }
 
-#if 0
-ImageWrite(Itemplate, "Itemplate.hipl") ;
-ImageWrite(Isrc, "Isrc.hipl") ;
-ImageWrite(Ifsrc, "Ifsrc.hipl") ;
-ImageWrite(Iconj, "Iconj.hipl") ;
-ImageWrite(Ifcorr, "Ifcorr.hipl") ;
-ImageWrite(Icorr, "Iflip.hipl") ;
-#endif
 
+  if (Iftmp != Itemplate)   /* allocated an image for fft */
+    ImageFree(&Iftmp) ;
   ImageFree(&Iconj) ;
   ImageFree(&Ifcorr) ;
   ImageFree(&Ifsrc) ;
