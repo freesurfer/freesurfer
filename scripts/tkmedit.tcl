@@ -46,7 +46,9 @@ set glDisplayFlag { \
   flag_ControlPoints \
   flag_Selection \
   flag_FunctionalOverlay \
+  flag_FunctionalColorScaleBar \
   flag_MaskToFunctionalOverlay \
+  flag_HistogramPercentChange \
   flag_ROIGroupOverlay \
   flag_ROIVolumeCount \
   flag_FocusFrame \
@@ -540,8 +542,8 @@ set tDlogSpecs(LoadAuxVolumeDisplayTransform) [list \
   -prompt1 "Load Transform File:" \
   -note1 "The .lta or .xfm file containing the transform to load" \
   -default1 [list GetDefaultLocation LoadAuxVolumeDisplayTransform] \
-  -okCmd {LoadVolumeDisplayTransform 1 %s; \
-  SetDefaultLocation LoadAuxVolumeDisplayTransform %s11} ]
+  -okCmd {LoadVolumeDisplayTransform 1 %s1; \
+  SetDefaultLocation LoadAuxVolumeDisplayTransform %s1} ]
 set tDlogSpecs(SaveLabelAs) [list \
   -title "Save Label As" \
   -prompt1 "Save Label:" \
@@ -2265,10 +2267,22 @@ proc CreateMenuBar { ifwMenuBar } {
       tMenuGroup_OverlayOptions } \
       \
       { check \
+      "Functional Color Scale Bar" \
+      "SendDisplayFlagValue flag_FunctionalColorScaleBar" \
+      gbDisplayFlag(flag_FunctionalColorScaleBar)  \
+      tMenuGroup_OverlayOptions } \
+      \
+      { check \
       "Mask to Functional Overlay" \
       "SendDisplayFlagValue flag_MaskToFunctionalOverlay" \
       gbDisplayFlag(flag_MaskToFunctionalOverlay)  \
       tMenuGroup_OverlayOptions } \
+      \
+      { check \
+      "Show Histogram Percent Change" \
+      "SendDisplayFlagValue flag_HistogramPercentChange" \
+      gbDisplayFlag(flag_HistogramPercentChange)  \
+      tMenuGroup_VLIOptions } \
       \
       { check \
       "Segmentation Overlay" \
@@ -2830,6 +2844,107 @@ proc SetZoomLevelWrapper { inLevel } {
     global gnZoomLevel
     set gnZoomLevel $inLevel
     SetZoomLevel $gnZoomLevel
+}
+
+
+# ================================================================== BAR CHART
+
+
+# works just by passing it the following arguments:
+#   -title <string> : the title of the window and graph
+#   -xAxisTitle <string> : the title of the x axis
+#   -yAxisTitle <string> : the title of the x axis
+#   -label1 <string> : the label in the legend for the first element
+#   -label2 <string> : the label in the legend for the second element
+#   -values1 <list> : list of values for the first element
+#   -values2 <list> : list of values for the second element
+#   -xAxisLabels <list> : the list of labels for the x axis
+# note that the number of elements in -values1, -values2, and -xAxisLabels
+# should be the same.
+proc BarChart_Draw { args } {
+
+    global glsXAxisLabels
+    global kNormalFont
+
+    # default values
+    set tArgs(-title) ""
+    set tArgs(-xAxisTitle) ""
+    set tArgs(-yAxisTitle) ""
+    set tArgs(-xAxisLabels) ""
+    set tArgs(-label1) ""
+    set tArgs(-label2) ""
+    set tArgs(-values1) ""
+    set tArgs(-values2) ""
+
+    # get the params
+    array set tArgs $args
+
+    # find an unused window name.
+    set nSuffix 0
+    set wwChartWindow .bcw0
+#    while { [winfo exists $wwChartWindow] } {
+#  incr nSuffix
+#  set wwChartWindow .bcw$nSuffix
+#    }
+
+
+    # if the window doesn't exist already, make it.
+    set bcw $wwChartWindow.bcw
+    if { [winfo exists $wwChartWindow] == 0 } {
+
+  # create window and set its size.
+  toplevel $wwChartWindow
+  wm geometry $wwChartWindow 600x800
+
+  # create the chart. configure the x axis to call BarChart_GetXLabel
+  # to get its labels. create two empty elements.
+  blt::barchart $bcw -barmode aligned
+  pack $bcw -expand true -fill both
+  $bcw axis configure x \
+    -command { BarChart_GetXLabel } \
+    -rotate 90 \
+    -tickfont $kNormalFont
+  $bcw element create V1
+  $bcw element create V2
+    }
+
+    # set the window and chart title.
+    wm title $wwChartWindow $tArgs(-title)
+    $bcw config -title $tArgs(-title)
+
+    # set the x axis labels.
+    set glsXAxisLabels($bcw) $tArgs(-xAxisLabels)
+
+    # set the label titles.
+    $bcw axis config x -title $tArgs(-xAxisTitle)
+    $bcw axis config y -title $tArgs(-yAxisTitle)
+
+    # create a vector of indices for the elements. these are used
+    # as indices into the x axis labels list.
+    blt::vector vX
+    vX seq 1 [llength $glsXAxisLabels($bcw)]
+
+    # set the data in the two elements.
+    $bcw element config V1 -label $tArgs(-label1) \
+      -ydata $tArgs(-values1) -xdata vX -fg blue -bg blue
+    $bcw element config V2 -label $tArgs(-label2) \
+      -ydata $tArgs(-values2) -xdata vX -fg red -bg red
+}
+
+
+proc BarChart_GetXLabel { iwwTop ifValue } {
+
+    global glsXAxisLabels
+
+    if { [info exists glsXAxisLabels($iwwTop)] == 0 } {
+  puts "error: labels for $iwwTop don't exist"
+  return $ifValue
+    }
+
+    set nIndex [expr round($ifValue)]
+    incr nIndex -1
+    set sName [lindex $glsXAxisLabels($iwwTop) $nIndex]
+    return $sName
 }
 
 # ================================================================== FUNCTIONS
