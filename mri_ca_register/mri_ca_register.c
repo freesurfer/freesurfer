@@ -118,12 +118,12 @@ main(int argc, char *argv[])
   parms.max_grad = 0.3 ;
   parms.sigma = 2.0f ;
   parms.exp_k = 5 ;
-	parms.navgs = 64 ;
-	parms.noneg = True ;
-	parms.ratio_thresh = 0.125 ;
-	parms.nsmall = 1 ;
-	parms.integration_type = GCAM_INTEGRATE_BOTH ;
-
+  parms.navgs = 64 ;
+  parms.noneg = True ;
+  parms.ratio_thresh = 0.125 ;
+  parms.nsmall = 1 ;
+  parms.integration_type = GCAM_INTEGRATE_BOTH ;
+  
   Progname = argv[0] ;
   setRandomSeed(-1L) ;
 
@@ -144,8 +144,8 @@ main(int argc, char *argv[])
               "usage: %s <in brain> <template> <output file name>\n",
               Progname) ;
 
-	ninputs = argc-3 ;
-	printf("reading %d input volumes...\n", ninputs) ;
+  ninputs = argc-3 ;
+  printf("reading %d input volumes...\n", ninputs) ;
   in_fname = argv[1] ;
   gca_fname = argv[ninputs+1] ;
   out_fname = argv[ninputs+2] ;
@@ -162,90 +162,87 @@ main(int argc, char *argv[])
   if (gca == NULL)
     ErrorExit(ERROR_NOFILE, "%s: could not open GCA %s.\n",
               Progname, gca_fname) ;
-	if (map_to_flash)
-	{
-		GCA *gca_tmp ;
-
-		printf("mapping GCA into %d-dimensional FLASH space...\n", mri_inputs->nframes) ;
-		gca_tmp = GCAcreateFlashGCAfromParameterGCA(gca, TRs, fas, TEs, mri_inputs->nframes) ;
-		GCAfree(&gca) ;
-		gca = gca_tmp ;
-		if (ninputs != gca->ninputs)
-			ErrorExit(ERROR_BADPARM, "%s: must specify %d inputs, not %d for this atlas\n",
-								Progname, gca->ninputs, ninputs) ;
-		GCAhistoScaleImageIntensities(gca, mri_inputs) ;
-		if (novar)
-			GCAunifyVariance(gca) ;
-	}
-	if (gca->type == GCA_FLASH)
-	{
-		GCA *gca_tmp ;
-
-		gca_tmp = GCAcreateFlashGCAfromFlashGCA(gca, TRs, fas, TEs, mri_inputs->nframes) ;
-		GCAfree(&gca) ;
-		gca = gca_tmp ;
-	}
-	if (gca->flags & GCA_XGRAD)
-		extra += ninputs ;
-	if (gca->flags & GCA_YGRAD)
-		extra += ninputs ;
-	if (gca->flags & GCA_ZGRAD)
-		extra += ninputs ;
-
-	if ((ninputs+extra) != gca->ninputs)
-		ErrorExit(ERROR_BADPARM, "%s: must specify %d inputs, not %d for this atlas\n",
-			Progname, gca->ninputs, ninputs) ;
-
+  if (map_to_flash)
+  {
+    GCA *gca_tmp ;
+    
+    printf("mapping GCA into %d-dimensional FLASH space...\n", mri_inputs->nframes) ;
+    gca_tmp = GCAcreateFlashGCAfromParameterGCA(gca, TRs, fas, TEs, mri_inputs->nframes) ;
+    GCAfree(&gca) ;
+    gca = gca_tmp ;
+    if (ninputs != gca->ninputs)
+      ErrorExit(ERROR_BADPARM, "%s: must specify %d inputs, not %d for this atlas\n",
+		Progname, gca->ninputs, ninputs) ;
+    GCAhistoScaleImageIntensities(gca, mri_inputs) ;
+    if (novar)
+      GCAunifyVariance(gca) ;
+  }
+  if (gca->type == GCA_FLASH)
+  {
+    GCA *gca_tmp ;
+    
+    gca_tmp = GCAcreateFlashGCAfromFlashGCA(gca, TRs, fas, TEs, mri_inputs->nframes) ;
+    GCAfree(&gca) ;
+    gca = gca_tmp ;
+  }
+  if (gca->flags & GCA_XGRAD)
+    extra += ninputs ;
+  if (gca->flags & GCA_YGRAD)
+    extra += ninputs ;
+  if (gca->flags & GCA_ZGRAD)
+    extra += ninputs ;
+  
+  if ((ninputs+extra) != gca->ninputs)
+    ErrorExit(ERROR_BADPARM, "%s: must specify %d inputs, not %d for this atlas\n",
+	      Progname, gca->ninputs, ninputs) ;
+  
   printf("freeing gibbs priors...") ;
   GCAfreeGibbs(gca) ;
   printf("done.\n") ;
 
-	
-	for (input = 0 ; input < ninputs ; input++)
-	{
-		in_fname = argv[1+input] ;
-		printf("reading input volume '%s'...\n", in_fname) ;
-		fflush(stdout) ;
-		mri_tmp = MRIread(in_fname) ;
-		if (!mri_tmp)
+  
+  for (input = 0 ; input < ninputs ; input++)
+  {
+    in_fname = argv[1+input] ;
+    printf("reading input volume '%s'...\n", in_fname) ;
+    fflush(stdout) ;
+    mri_tmp = MRIread(in_fname) ;
+    if (!mri_tmp)
     ErrorExit(ERROR_NOFILE, "%s: could not open input volume %s.\n",
               Progname, in_fname) ;
-
-		TRs[input] = mri_tmp->tr ;
-		fas[input] = mri_tmp->flip_angle ;
-		TEs[input] = mri_tmp->te ;
-
-		if (mask_fname)
-		{
-			MRI *mri_mask ;
-			
-			mri_mask = MRIread(mask_fname) ;
-			if (!mri_mask)
-				ErrorExit(ERROR_NOFILE, "%s: could not open mask volume %s.\n",
-									Progname, mask_fname) ;
-			
-			MRImask(mri_tmp, mri_mask, mri_tmp, 0, 0) ;
-			MRIfree(&mri_mask) ;
-		}
-		
     
-
-		if (alpha > 0)
-			mri_tmp->flip_angle = alpha ;
-		if (TR > 0)
-			mri_tmp->tr = TR ;
-		if (TE > 0)
-			mri_tmp->te = TE ;
-		if (input == 0)
-		{
-			mri_inputs = MRIallocSequence(mri_tmp->width, mri_tmp->height, mri_tmp->depth,
-																mri_tmp->type, ninputs+extra) ;
-			MRIcopyHeader(mri_tmp, mri_inputs) ;
-		}
-		MRIcopyFrame(mri_tmp, mri_inputs, 0, input) ;
-		MRIfree(&mri_tmp) ;
-	}
-
+    TRs[input] = mri_tmp->tr ;
+    fas[input] = mri_tmp->flip_angle ;
+    TEs[input] = mri_tmp->te ;
+    
+    if (mask_fname)
+    {
+      MRI *mri_mask ;
+      
+      mri_mask = MRIread(mask_fname) ;
+      if (!mri_mask)
+	ErrorExit(ERROR_NOFILE, "%s: could not open mask volume %s.\n",
+		  Progname, mask_fname) ;
+      // if mask == 0, then set dst as 0
+      MRImask(mri_tmp, mri_mask, mri_tmp, 0, 0) ;
+      MRIfree(&mri_mask) ;
+    }
+    if (alpha > 0)
+      mri_tmp->flip_angle = alpha ;
+    if (TR > 0)
+      mri_tmp->tr = TR ;
+    if (TE > 0)
+      mri_tmp->te = TE ;
+    if (input == 0)
+    {
+      mri_inputs = MRIallocSequence(mri_tmp->width, mri_tmp->height, mri_tmp->depth,
+				    mri_tmp->type, ninputs+extra) ;
+      MRIcopyHeader(mri_tmp, mri_inputs) ;
+    }
+    MRIcopyFrame(mri_tmp, mri_inputs, 0, input) ;
+    MRIfree(&mri_tmp) ;
+  }
+  
   if (renormalization_fname)
   {
     FILE   *fp ;
@@ -304,61 +301,63 @@ main(int argc, char *argv[])
   if (tissue_parms_fname)   /* use FLASH forward model */
     GCArenormalizeToFlash(gca, tissue_parms_fname, mri_inputs) ;
 
+  // transform is loaded at get_opt() with -T using TransformRead()
+  // assumed to be vox-to-vox
   if (!transform_loaded)   /* wasn't preloaded */
     transform = TransformAlloc(LINEAR_VOX_TO_VOX, NULL) ;
 
   if (novar)
     GCAunifyVariance(gca) ;
-	if (gca->flags & GCA_GRAD)
-	{
-		int i, start = ninputs ;
-		MRI *mri_kernel, *mri_smooth, *mri_grad, *mri_tmp ;
-
-		mri_kernel = MRIgaussian1d(1.0, 30) ;
-		mri_smooth = MRIconvolveGaussian(mri_inputs, NULL, mri_kernel) ;
-				
-		if (mri_inputs->type != MRI_FLOAT)
-		{
-			mri_tmp = MRISeqchangeType(mri_inputs, MRI_FLOAT, 0, 0, 1) ;
-			MRIfree(&mri_inputs) ; mri_inputs = mri_tmp ;
-		}
-		start = ninputs ;
-		if (gca->flags & GCA_XGRAD)
-		{
-			for (i = 0 ; i < ninputs ; i++)
-			{
-				mri_grad = MRIxSobel(mri_smooth, NULL, i) ;
-				MRIcopyFrame(mri_grad, mri_inputs, 0, start+i) ;
-				MRIfree(&mri_grad) ;
-			}
-			start += ninputs ;
-		}
-		if (gca->flags & GCA_YGRAD)
-		{
-			for (i = 0 ; i < ninputs ; i++)
-			{
-				mri_grad = MRIySobel(mri_smooth, NULL, i) ;
-				MRIcopyFrame(mri_grad, mri_inputs, 0, start+i) ;
-				MRIfree(&mri_grad) ;
-			}
-			start += ninputs ;
-		}
-		if (gca->flags & GCA_ZGRAD)
-		{
-			for (i = 0 ; i < ninputs ; i++)
-			{
-				mri_grad = MRIzSobel(mri_smooth, NULL, i) ;
-				MRIcopyFrame(mri_grad, mri_inputs, 0, start+i) ;
-				MRIfree(&mri_grad) ;
-			}
-			start += ninputs ;
-		}
-		
-		MRIfree(&mri_kernel) ; MRIfree(&mri_smooth) ; 
-	}
-
-	if (remove_bright)
-		remove_bright_stuff(mri_inputs, gca, transform) ;
+  if (gca->flags & GCA_GRAD)
+  {
+    int i, start = ninputs ;
+    MRI *mri_kernel, *mri_smooth, *mri_grad, *mri_tmp ;
+    
+    mri_kernel = MRIgaussian1d(1.0, 30) ;
+    mri_smooth = MRIconvolveGaussian(mri_inputs, NULL, mri_kernel) ;
+    
+    if (mri_inputs->type != MRI_FLOAT)
+    {
+      mri_tmp = MRISeqchangeType(mri_inputs, MRI_FLOAT, 0, 0, 1) ;
+      MRIfree(&mri_inputs) ; mri_inputs = mri_tmp ;
+    }
+    start = ninputs ;
+    if (gca->flags & GCA_XGRAD)
+    {
+      for (i = 0 ; i < ninputs ; i++)
+      {
+	mri_grad = MRIxSobel(mri_smooth, NULL, i) ;
+	MRIcopyFrame(mri_grad, mri_inputs, 0, start+i) ;
+	MRIfree(&mri_grad) ;
+      }
+      start += ninputs ;
+    }
+    if (gca->flags & GCA_YGRAD)
+    {
+      for (i = 0 ; i < ninputs ; i++)
+      {
+	mri_grad = MRIySobel(mri_smooth, NULL, i) ;
+	MRIcopyFrame(mri_grad, mri_inputs, 0, start+i) ;
+	MRIfree(&mri_grad) ;
+      }
+      start += ninputs ;
+    }
+    if (gca->flags & GCA_ZGRAD)
+    {
+      for (i = 0 ; i < ninputs ; i++)
+      {
+	mri_grad = MRIzSobel(mri_smooth, NULL, i) ;
+	MRIcopyFrame(mri_grad, mri_inputs, 0, start+i) ;
+	MRIfree(&mri_grad) ;
+      }
+      start += ninputs ;
+    }
+    
+    MRIfree(&mri_kernel) ; MRIfree(&mri_smooth) ; 
+  }
+  
+  if (remove_bright)
+    remove_bright_stuff(mri_inputs, gca, transform) ;
   if (!FZERO(blur_sigma))
   {
     MRI *mri_tmp, *mri_kernel ;
@@ -369,64 +368,64 @@ main(int argc, char *argv[])
   }
 
 
-	if (transform && Gvx > 0)
-	{
-		float xf, yf, zf ;
-
-		TransformSample(transform, Gvx, Gvy, Gvz, &xf, &yf, &zf) ;
-		Gsx = nint(xf) ; Gsy = nint(yf) ; Gsz = nint(zf) ;
-		printf("mapping (%d, %d, %d) --> (%d, %d, %d) for rgb writing\n",
-					 Gvx, Gvy, Gvz, Gsx, Gsy, Gsz) ;
-	}
-
-	if (regularize > 0)
-		GCAregularizeCovariance(gca, regularize) ;
-	if (xform_name)
-	{
-		gcam = GCAMread(xform_name) ;
-		if (!gcam)
-			ErrorExit(ERROR_NOFILE, "%s: could not read transform from %s", Progname, xform_name) ;
-	}
-	else
-		gcam = GCAMalloc(gca->prior_width, gca->prior_height, gca->prior_depth) ;
-	if (tl_fname)
-	{
-		GCA *gca_tl ;
-
-		gca_tl = GCAread(tl_fname) ;
-		if (!gca_tl)
-			ErrorExit(ERROR_NOFILE, "%s: could not temporal lobe gca %s",
-								Progname, tl_fname) ;
-		GCAMinit(gcam, mri_inputs, gca_tl, transform, 0) ;
-		if (parms.write_iterations != 0)
-		{
-			char fname[STRLEN] ;
-			MRI  *mri_gca ;
-			mri_gca = MRIclone(mri_inputs, NULL) ;
-			GCAMbuildMostLikelyVolume(gcam, mri_gca) ;
-			sprintf(fname, "%s_target", parms.base_name) ;
-			MRIwriteImageViews(mri_gca, fname, IMAGE_SIZE) ;
-			sprintf(fname, "%s_target.mgh", parms.base_name) ;
-			printf("writing target volume to %s...\n", fname) ;
-			MRIwrite(mri_gca, fname) ;
-			MRIfree(&mri_gca) ;
-		}
-		GCAMregister(gcam, mri_inputs, &parms) ;
-		printf("temporal lobe registration complete - registering whole brain...\n") ;
-		GCAfree(&gca_tl) ;
-	}
-
-	if (!xform_name)  /* only if the transform wasn't previously created */
-		GCAMinit(gcam, mri_inputs, gca, transform, parms.relabel_avgs >= parms.navgs) ;
-	else
-	{
-		gcam->gca = gca ;
-		GCAMcomputeOriginalProperties(gcam) ;
-		if (parms.relabel_avgs >= parms.navgs)
-			GCAMcomputeLabels(mri_inputs, gcam) ;
-		else
-			GCAMcomputeMaxPriorLabels(gcam) ;
-	}
+  if (transform && Gvx > 0)
+  {
+    float xf, yf, zf ;
+    
+    TransformSample(transform, Gvx, Gvy, Gvz, &xf, &yf, &zf) ;
+    Gsx = nint(xf) ; Gsy = nint(yf) ; Gsz = nint(zf) ;
+    printf("mapping (%d, %d, %d) --> (%d, %d, %d) for rgb writing\n",
+	   Gvx, Gvy, Gvz, Gsx, Gsy, Gsz) ;
+  }
+  
+  if (regularize > 0)
+    GCAregularizeCovariance(gca, regularize) ;
+  if (xform_name)
+  {
+    gcam = GCAMread(xform_name) ;
+    if (!gcam)
+      ErrorExit(ERROR_NOFILE, "%s: could not read transform from %s", Progname, xform_name) ;
+  }
+  else
+    gcam = GCAMalloc(gca->prior_width, gca->prior_height, gca->prior_depth) ;
+  if (tl_fname)
+  {
+    GCA *gca_tl ;
+    
+    gca_tl = GCAread(tl_fname) ;
+    if (!gca_tl)
+      ErrorExit(ERROR_NOFILE, "%s: could not temporal lobe gca %s",
+		Progname, tl_fname) ;
+    GCAMinit(gcam, mri_inputs, gca_tl, transform, 0) ;
+    if (parms.write_iterations != 0)
+    {
+      char fname[STRLEN] ;
+      MRI  *mri_gca ;
+      mri_gca = MRIclone(mri_inputs, NULL) ;
+      GCAMbuildMostLikelyVolume(gcam, mri_gca) ;
+      sprintf(fname, "%s_target", parms.base_name) ;
+      MRIwriteImageViews(mri_gca, fname, IMAGE_SIZE) ;
+      sprintf(fname, "%s_target.mgh", parms.base_name) ;
+      printf("writing target volume to %s...\n", fname) ;
+      MRIwrite(mri_gca, fname) ;
+      MRIfree(&mri_gca) ;
+    }
+    GCAMregister(gcam, mri_inputs, &parms) ;
+    printf("temporal lobe registration complete - registering whole brain...\n") ;
+    GCAfree(&gca_tl) ;
+  }
+  
+  if (!xform_name)  /* only if the transform wasn't previously created */
+    GCAMinit(gcam, mri_inputs, gca, transform, parms.relabel_avgs >= parms.navgs) ;
+  else
+  {
+    gcam->gca = gca ;
+    GCAMcomputeOriginalProperties(gcam) ;
+    if (parms.relabel_avgs >= parms.navgs)
+      GCAMcomputeLabels(mri_inputs, gcam) ;
+    else
+      GCAMcomputeMaxPriorLabels(gcam) ;
+  }
 #if 0
   {
     GCA_SAMPLE *gcas ;
@@ -439,21 +438,21 @@ main(int argc, char *argv[])
   }
 #endif
 
-	if (tl_fname == NULL && register_wm_flag)
-	{
-		GCAMsetStatus(gcam, GCAM_IGNORE_LIKELIHOOD) ; /* disable everything */
-		GCAMsetLabelStatus(gcam, Left_Cerebral_White_Matter, GCAM_USE_LIKELIHOOD) ;
-		GCAMsetLabelStatus(gcam, Right_Cerebral_White_Matter, GCAM_USE_LIKELIHOOD) ;
-		GCAMsetLabelStatus(gcam, Left_Cerebellum_White_Matter, GCAM_USE_LIKELIHOOD) ;
-		GCAMsetLabelStatus(gcam, Right_Cerebellum_White_Matter, GCAM_USE_LIKELIHOOD) ;
-
-		printf("initial white matter registration...\n") ;
-		GCAMregister(gcam, mri_inputs, &parms) ;
-		GCAMsetStatus(gcam, GCAM_USE_LIKELIHOOD) ; /* disable everything */
-		printf("initial white matter registration complete - full registration...\n") ;
-	}
-	if (renormalize)
-		GCAmapRenormalize(gcam->gca, mri_inputs, transform) ;
+  if (tl_fname == NULL && register_wm_flag)
+  {
+    GCAMsetStatus(gcam, GCAM_IGNORE_LIKELIHOOD) ; /* disable everything */
+    GCAMsetLabelStatus(gcam, Left_Cerebral_White_Matter, GCAM_USE_LIKELIHOOD) ;
+    GCAMsetLabelStatus(gcam, Right_Cerebral_White_Matter, GCAM_USE_LIKELIHOOD) ;
+    GCAMsetLabelStatus(gcam, Left_Cerebellum_White_Matter, GCAM_USE_LIKELIHOOD) ;
+    GCAMsetLabelStatus(gcam, Right_Cerebellum_White_Matter, GCAM_USE_LIKELIHOOD) ;
+    
+    printf("initial white matter registration...\n") ;
+    GCAMregister(gcam, mri_inputs, &parms) ;
+    GCAMsetStatus(gcam, GCAM_USE_LIKELIHOOD) ; /* disable everything */
+    printf("initial white matter registration complete - full registration...\n") ;
+  }
+  if (renormalize)
+    GCAmapRenormalize(gcam->gca, mri_inputs, transform) ;
 
   if (parms.write_iterations != 0)
   {
@@ -469,29 +468,29 @@ main(int argc, char *argv[])
     MRIfree(&mri_gca) ;
   }
 
-	if (reset)
-	{
-		GCAMcopyNodePositions(gcam, CURRENT_POSITIONS, ORIGINAL_POSITIONS) ;
-		GCAMstoreMetricProperties(gcam) ;
-	}
+  if (reset)
+  {
+    GCAMcopyNodePositions(gcam, CURRENT_POSITIONS, ORIGINAL_POSITIONS) ;
+    GCAMstoreMetricProperties(gcam) ;
+  }
   GCAMregister(gcam, mri_inputs, &parms) ;
-
+  
 #if 0
-	for (iter = 0 ; iter < 3 ; iter++)
-	{
-		parms.relabel_avgs = 1 ;
-		GCAMcopyNodePositions(gcam, CURRENT_POSITIONS, ORIGINAL_POSITIONS) ;
-		GCAMstoreMetricProperties(gcam) ;
-		parms.levels = 2 ;
-		parms.navgs = 1 ;
-		GCAMregister(gcam, mri_inputs, &parms) ;
-	}
+  for (iter = 0 ; iter < 3 ; iter++)
+  {
+    parms.relabel_avgs = 1 ;
+    GCAMcopyNodePositions(gcam, CURRENT_POSITIONS, ORIGINAL_POSITIONS) ;
+    GCAMstoreMetricProperties(gcam) ;
+    parms.levels = 2 ;
+    parms.navgs = 1 ;
+    GCAMregister(gcam, mri_inputs, &parms) ;
+  }
 #endif
 
 #if 0
-	parms.l_distance = 0 ;
-	parms.relabel = 1 ;
-	GCAMcomputeLabels(mri_inputs, gcam) ;
+  parms.l_distance = 0 ;
+  parms.relabel = 1 ;
+  GCAMcomputeLabels(mri_inputs, gcam) ;
   GCAMregister(gcam, mri_inputs, &parms) ;
 #endif
 
@@ -601,7 +600,7 @@ get_option(int argc, char *argv[])
   }
   else if (!stricmp(option, "WM"))
   {
-		register_wm_flag = 1 ;
+    register_wm_flag = 1 ;
     printf("registering white matter in initial pass...\n") ;
   }
   else if (!stricmp(option, "TL"))
@@ -892,6 +891,9 @@ get_option(int argc, char *argv[])
     if (!transform)
       ErrorExit(ERROR_BADFILE, "%s: could not read transform file %s",
                 Progname, argv[2]) ;
+    if (transform->type != LINEAR_VOX_TO_VOX)
+      ErrorExit(ERROR_BADPARM, "%s: does not have VOX_TO_VOX transform %s\n",
+		Progname, argv[2]);
     nargs = 1 ;
     printf("using previously computed transform %s\n", argv[2]) ;
     transform_loaded = 1 ;
@@ -980,159 +982,159 @@ write_vector_field(MRI *mri, GCA_MORPH *gcam, char *vf_fname)
 static int
 remove_bright_stuff(MRI *mri, GCA *gca, TRANSFORM *transform)
 {
-	HISTO            *h, *hs ;
-	int              peak, num, end, x, y, z, xi, yi, zi, xk, yk, zk, i, n, erase, five_mm ;
-	float            thresh ;
-	Real             val, new_val ;
-	MRI              *mri_tmp, *mri_nonbrain, *mri_tmp2 ;
-	GCA_PRIOR        *gcap ;
-	MRI_SEGMENTATION *mriseg ;
-	MRI_SEGMENT      *mseg ;
-	MSV              *msv ;
-
-
-	if (gca->ninputs > 1)
-		return(NO_ERROR) ;
-
-	mri_tmp = MRIalloc(mri->width, mri->height, mri->depth, MRI_UCHAR) ;
-	mri_nonbrain = MRIalloc(mri->width, mri->height, mri->depth, MRI_UCHAR) ;
-	for (x = 0 ; x < mri->width ; x++)
+  HISTO            *h, *hs ;
+  int              peak, num, end, x, y, z, xi, yi, zi, xk, yk, zk, i, n, erase, five_mm ;
+  float            thresh ;
+  Real             val, new_val ;
+  MRI              *mri_tmp, *mri_nonbrain, *mri_tmp2 ;
+  GCA_PRIOR        *gcap ;
+  MRI_SEGMENTATION *mriseg ;
+  MRI_SEGMENT      *mseg ;
+  MSV              *msv ;
+  
+  
+  if (gca->ninputs > 1)
+    return(NO_ERROR) ;
+  
+  mri_tmp = MRIalloc(mri->width, mri->height, mri->depth, MRI_UCHAR) ;
+  mri_nonbrain = MRIalloc(mri->width, mri->height, mri->depth, MRI_UCHAR) ;
+  for (x = 0 ; x < mri->width ; x++)
+  {
+    for (y = 0 ; y < mri->height ; y++)
+    {
+      for (z = 0 ; z < mri->depth ; z++)
+      {
+	gcap = getGCAP(gca, mri, transform, x, y, z) ;
+	if (gcap->nlabels == 0 || (gcap->nlabels == 1 && IS_UNKNOWN(gcap->labels[0])))
+	  MRIvox(mri_nonbrain, x, y, z) = 1 ;
+	else
 	{
-		for (y = 0 ; y < mri->height ; y++)
-		{
-			for (z = 0 ; z < mri->depth ; z++)
-			{
-				gcap = getGCAP(gca, mri, transform, x, y, z) ;
-				if (gcap->nlabels == 0 || (gcap->nlabels == 1 && IS_UNKNOWN(gcap->labels[0])))
-					MRIvox(mri_nonbrain, x, y, z) = 1 ;
-				else
-				{
-					MRIsampleVolume(mri, x, y, z, &val) ;
-					if (FZERO(val))
-						MRIvox(mri_nonbrain, x, y, z) = 128 ;
-				}
-			}
-		}
+	  MRIsampleVolume(mri, x, y, z, &val) ;
+	  if (FZERO(val))
+	    MRIvox(mri_nonbrain, x, y, z) = 128 ;
 	}
-	/* dilate it by 0.5 cm */
-	five_mm = nint(5.0*pow(mri->xsize*mri->ysize*mri->zsize, 1.0f/3.0f)) ;
-	for (i = 0 ; i < five_mm ; i++)
+      }
+    }
+  }
+  /* dilate it by 0.5 cm */
+  five_mm = nint(5.0*pow(mri->xsize*mri->ysize*mri->zsize, 1.0f/3.0f)) ;
+  for (i = 0 ; i < five_mm ; i++)
+  {
+    MRIdilate(mri_nonbrain, mri_tmp) ;
+    MRIcopy(mri_tmp, mri_nonbrain) ;
+  }
+  
+  MRIclear(mri_tmp) ;
+  h = MRIhistogram(mri, 0) ;
+  h->counts[0] = 0 ;
+  hs = HISTOsmooth(h, NULL, 2) ;
+  
+  peak = HISTOfindLastPeak(hs, 5, 0.1) ;
+  end = HISTOfindEndOfPeak(hs, peak, 0.01) ;
+  thresh = hs->bins[end] ;
+  new_val = 0 ;
+  
+  printf("removing voxels brighter than %2.1f\n", thresh) ;
+  
+  for (num = x = 0 ; x < mri->width ; x++)
+  {
+    for (y = 0 ; y < mri->height ; y++)
+    {
+      for (z = 0 ; z < mri->depth ; z++)
+      {
+	if (x == Gvx && y == Gvy && z == Gvz)
+	  DiagBreak() ;
+	MRIsampleVolume(mri, x, y, z, &val) ;
+	if (val > thresh)
 	{
-		MRIdilate(mri_nonbrain, mri_tmp) ;
-		MRIcopy(mri_tmp, mri_nonbrain) ;
+	  num++ ;
+	  MRIvox(mri_tmp, x, y, z) = 128 ;
+	  /*					MRIsetVoxVal(mri, x, y, z, 0, (float)new_val) ;*/
 	}
-
-	MRIclear(mri_tmp) ;
-	h = MRIhistogram(mri, 0) ;
-	h->counts[0] = 0 ;
-	hs = HISTOsmooth(h, NULL, 2) ;
-
-	peak = HISTOfindLastPeak(hs, 5, 0.1) ;
-	end = HISTOfindEndOfPeak(hs, peak, 0.01) ;
-	thresh = hs->bins[end] ;
-	new_val = 0 ;
-
-	printf("removing voxels brighter than %2.1f\n", thresh) ;
-	
-	for (num = x = 0 ; x < mri->width ; x++)
+      }
+    }
+  }
+  
+  
+  /* relax threshold somewhat, and reduce voxels that are above this thresh
+     and nbrs of one above the more stringent one.
+  */
+  end = HISTOfindStartOfPeak(hs, peak, 0.1) ;
+  thresh = hs->bins[end] ;
+  mri_tmp2 = MRIcopy(mri_tmp, NULL) ;
+  for (x = 0 ; x < mri->width ; x++)
+  {
+    for (y = 0 ; y < mri->height ; y++)
+    {
+      for (z = 0 ; z < mri->depth ; z++)
+      {
+	if (MRIvox(mri_tmp2, x, y, z) == 0)
+	  continue ;
+	for (xk = -1 ; xk <= 1 ; xk++)
 	{
-		for (y = 0 ; y < mri->height ; y++)
-		{
-			for (z = 0 ; z < mri->depth ; z++)
-			{
-				if (x == Gvx && y == Gvy && z == Gvz)
-					DiagBreak() ;
-				MRIsampleVolume(mri, x, y, z, &val) ;
-				if (val > thresh)
-				{
-					num++ ;
-					MRIvox(mri_tmp, x, y, z) = 128 ;
-					/*					MRIsetVoxVal(mri, x, y, z, 0, (float)new_val) ;*/
-				}
-			}
-		}
+	  xi = mri_tmp->xi[x+xk] ;
+	  for (yk = -1 ; yk <= 1 ; yk++)
+	  {
+	    yi = mri_tmp->yi[y+yk] ;
+	    for (zk = -1 ; zk <= 1 ; zk++)
+	    {
+	      zi = mri_tmp->zi[z+zk] ;
+	      if (xi == Gvx && yi == Gvy && zi == Gvz)
+		DiagBreak() ;
+	      MRIsampleVolume(mri, xi, yi, zi, &val) ;
+	      if (val > thresh)
+	      {
+		num++ ;
+		MRIvox(mri_tmp, xi, yi, zi) = 128 ;
+		/*								MRIsetVoxVal(mri, xi, yi, zi, 0, (float)new_val) ;*/
+	      }
+	    }
+	  }
 	}
-
-	
-	/* relax threshold somewhat, and reduce voxels that are above this thresh
-		 and nbrs of one above the more stringent one.
-	*/
-	end = HISTOfindStartOfPeak(hs, peak, 0.1) ;
-	thresh = hs->bins[end] ;
-	mri_tmp2 = MRIcopy(mri_tmp, NULL) ;
-	for (x = 0 ; x < mri->width ; x++)
-	{
-		for (y = 0 ; y < mri->height ; y++)
-		{
-			for (z = 0 ; z < mri->depth ; z++)
-			{
-				if (MRIvox(mri_tmp2, x, y, z) == 0)
-					continue ;
-				for (xk = -1 ; xk <= 1 ; xk++)
-				{
-					xi = mri_tmp->xi[x+xk] ;
-					for (yk = -1 ; yk <= 1 ; yk++)
-					{
-						yi = mri_tmp->yi[y+yk] ;
-						for (zk = -1 ; zk <= 1 ; zk++)
-						{
-							zi = mri_tmp->zi[z+zk] ;
-							if (xi == Gvx && yi == Gvy && zi == Gvz)
-								DiagBreak() ;
-							MRIsampleVolume(mri, xi, yi, zi, &val) ;
-							if (val > thresh)
-							{
-								num++ ;
-								MRIvox(mri_tmp, xi, yi, zi) = 128 ;
-								/*								MRIsetVoxVal(mri, xi, yi, zi, 0, (float)new_val) ;*/
-							}
-						}
-					}
-				}
-			}
-		}
-	}
-
-	MRIfree(&mri_tmp2) ;
-	mriseg = MRIsegment(mri_tmp, 1, 255) ;
-	printf("%d bright voxels found - %d segments\n", num, mriseg->nsegments) ;
-
-
-	for (num = i = 0 ; i < mriseg->nsegments ; i++)
-	{
-		/* check to see that at least one voxel in segment is in nonbrain mask (i.e. it is within 1cm of
-			 nonbrain */
-		mseg = &mriseg->segments[i] ;
-		for (erase = 0, n = 0 ; n < mseg->nvoxels ; n++)
-		{
-			msv = &mseg->voxels[n] ;
-			if (msv->x == Gvx && msv->y == Gvy && msv->z == Gvz)
-				DiagBreak() ;
-			if (MRIvox(mri_nonbrain, msv->x, msv->y, msv->z) > 0)
-			{
-				erase = 1 ;
-				break ;
-			}
-		}
-		if (erase)
-		{
-			if (DIAG_VERBOSE_ON)
-				printf("erasing segment %d (%d voxels) with centroid at (%2.0f, %2.0f, %2.0f)\n",
-							 i, mseg->nvoxels, mseg->cx, mseg->cy, mseg->cz) ;
-			for (n = 0 ; n < mseg->nvoxels ; n++)
-			{
-				msv = &mseg->voxels[n] ;
-				if (msv->x == Gx && msv->y == Gy && msv->z == Gz)
-					DiagBreak() ;
-				MRIsetVoxVal(mri, msv->x, msv->y, msv->z, 0, 0.0f) ;
-				num++ ;
-			}
-		}
-	}
-
-	printf("%d bright voxels erased\n", num) ;
-	HISTOfree(&h) ; HISTOfree(&hs) ; MRIfree(&mri_tmp) ; MRIfree(&mri_nonbrain) ;
-	MRIsegmentFree(&mriseg) ;
-	return(NO_ERROR) ;
+      }
+    }
+  }
+  
+  MRIfree(&mri_tmp2) ;
+  mriseg = MRIsegment(mri_tmp, 1, 255) ;
+  printf("%d bright voxels found - %d segments\n", num, mriseg->nsegments) ;
+  
+  
+  for (num = i = 0 ; i < mriseg->nsegments ; i++)
+  {
+    /* check to see that at least one voxel in segment is in nonbrain mask (i.e. it is within 1cm of
+       nonbrain */
+    mseg = &mriseg->segments[i] ;
+    for (erase = 0, n = 0 ; n < mseg->nvoxels ; n++)
+    {
+      msv = &mseg->voxels[n] ;
+      if (msv->x == Gvx && msv->y == Gvy && msv->z == Gvz)
+	DiagBreak() ;
+      if (MRIvox(mri_nonbrain, msv->x, msv->y, msv->z) > 0)
+      {
+	erase = 1 ;
+	break ;
+      }
+    }
+    if (erase)
+    {
+      if (DIAG_VERBOSE_ON)
+	printf("erasing segment %d (%d voxels) with centroid at (%2.0f, %2.0f, %2.0f)\n",
+	       i, mseg->nvoxels, mseg->cx, mseg->cy, mseg->cz) ;
+      for (n = 0 ; n < mseg->nvoxels ; n++)
+      {
+	msv = &mseg->voxels[n] ;
+	if (msv->x == Gx && msv->y == Gy && msv->z == Gz)
+	  DiagBreak() ;
+	MRIsetVoxVal(mri, msv->x, msv->y, msv->z, 0, 0.0f) ;
+	num++ ;
+      }
+    }
+  }
+  
+  printf("%d bright voxels erased\n", num) ;
+  HISTOfree(&h) ; HISTOfree(&hs) ; MRIfree(&mri_tmp) ; MRIfree(&mri_nonbrain) ;
+  MRIsegmentFree(&mriseg) ;
+  return(NO_ERROR) ;
 }
 
