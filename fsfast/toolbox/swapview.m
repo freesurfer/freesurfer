@@ -1,7 +1,7 @@
 function r = swapview(varargin)
 % r = swapview(varargin)
 
-version = '$Id: swapview.m,v 1.7 2003/09/26 18:17:43 greve Exp $';
+version = '$Id: swapview.m,v 1.8 2003/09/28 21:47:16 greve Exp $';
 r = 1;
 
 %% Print usage if there are no arguments %%
@@ -97,7 +97,7 @@ if(~isempty(strmatch(flag,'-init')) | isempty(hcurrentfig))
   s.viewmenu = uimenu('Label','View');
   uimenu(s.viewmenu,'Label','Mosaic','Callback','swapview(''mosaic'');');
   uimenu(s.viewmenu,'Label','Slice', 'Callback','swapview(''slice'');');
-  hc = get(s.viewmenu,'children')
+  hc = get(s.viewmenu,'children');
   set(hc(1),'checked','on');
    
   % Set up a menus %
@@ -124,7 +124,7 @@ if(~isempty(strmatch(flag,'-init')) | isempty(hcurrentfig))
 
   nslices = size(s.vol1,3)
   if(nslices > 1) 
-    d = 1/(nslices-1)
+    d = 1/(nslices-1);
     s.sliceslider = uicontrol('Style','slider','Min',1,'Max',nslices,...
 			      'SliderStep',[d 3*d],...
 			      'value',s.curvox(3),...
@@ -134,15 +134,25 @@ if(~isempty(strmatch(flag,'-init')) | isempty(hcurrentfig))
     s.sliceslider = [];
   end
   
+  s.uicontour = ...
+      uicontrol('Style', 'checkbox', ...
+		'String', 'Contour',...
+		'Position', [60 1 75 25], ...
+		'Callback', 'swapview(''contour_cb'');',...
+		'tooltipstring','Toggle display of contour.',...
+		'value',s.contour);
+  
   fprintf('\n');
   fprintf(' ----------------------------------\n');
   fprintf(' For help press "h"\n');
-  fprintf(' ------------ Help ----------------\n');
-  printhelp;
-  fprintf('\n');
-  fprintf(' ------ Current State -------------\n');
-  printstate(s);
-  fprintf('\n');
+  if(s.verbose)
+    fprintf(' ------------ Help ----------------\n');
+    printhelp;
+    fprintf('\n');
+    fprintf(' ------ Current State -------------\n');
+    printstate(s);
+    fprintf('\n');
+  end
 
   if(~isempty(s.twfstemlist))
     s.htwf = rawplot;
@@ -247,6 +257,23 @@ switch(flag)
   s.curvox(3) = v;
   set(gcf,'UserData',s);
   swapview('setslice');
+  return;
+   
+ case {'contour_cb'}
+  s.contour = ~s.contour;
+  if(~s.contour & ishandle(s.hcontour)) 
+    delete(s.hcontour); 
+    s.hcontour = -1;
+    set(gcf,'UserData',s);
+    return;
+  elseif(~s.mosview)
+    hold on;
+    if(ishandle(s.hcontour)) delete(s.hcontour); end
+    [cm s.hcontour] = contour(s.vol1(:,:,s.curvox(3)),'r');
+    hold off;
+  end
+  set(gcf,'UserData',s);
+  drawnow;
   return;
    
  case{'state'}
@@ -411,6 +438,13 @@ if(redraw > 0)
     %ud.hMarkerCol = plot(1,ud.CurPixel(1),'g>');
     hold off;
   end
+  if(~s.mosview & s.contour)
+    hold on;
+    if(ishandle(s.hcontour)) delete(s.hcontour); end
+    [cm s.hcontour] = contour(s.vol1(:,:,s.curvox(3)),'r');
+    hold off;
+  end
+
   drawnow;
 end
 
@@ -462,6 +496,8 @@ function s = main_struct
   s.displayimg     = [];
   s.displayimg1    = [];
   s.displayimg2    = [];
+  s.contour        = 1;
+  s.hcontour       = [];
   s.curpoint       = [1 1]; % current point in the display img
   s.curvox         = [1 1 1 1]; % current vox index [r c s f]
   s.prevvox        = [1 1 1 1]; % prev vox index [r c s f]
@@ -607,6 +643,7 @@ function printstate(s)
   if(~isempty(s.sliceslider))
     fprintf('SliceSlider: %g\n',get(s.sliceslider,'value'));
   end
+  fprintf('Contour: %d\n',s.contour);
 return;
 
 %--------------------------------------------------%
