@@ -1330,6 +1330,181 @@ compare_sort_probabilities(const void *plp1, const void *plp2)
   return(0) ;
 }
 
+int
+GCAremoveOutlyingSamples(GCA *gca, GCA_SAMPLE *gcas, MRI *mri_inputs,
+                         MATRIX *m_L,int nsamples, float nsigma)
+{
+  int        x, y, z, xt, yt, zt, width, height, depth, val,
+             xn, yn, zn, i, n, nremoved ;
+  MATRIX     *m_L_inv ;
+  VECTOR     *v_input, *v_canon ;
+  GCA_NODE   *gcan ;
+  GC1D       *gc ;
+  double     dist ;
+
+  m_L_inv = MatrixInverse(m_L, NULL) ;
+  if (!m_L_inv)
+  {
+    MatrixPrint(stderr, m_L) ;
+    ErrorExit(ERROR_BADPARM, 
+              "GCAremoveOutlyingSamples: matrix is not invertible") ;
+  }
+  v_input = VectorAlloc(4, MATRIX_REAL) ;
+  v_canon = VectorAlloc(4, MATRIX_REAL) ;
+  *MATRIX_RELT(v_input, 4, 1) = 1.0 ; *MATRIX_RELT(v_canon, 4, 1) = 1.0 ;
+
+  /* go through each GC in the sample and compute the probability of
+     the image at that point.
+  */
+  width = mri_inputs->width ; height = mri_inputs->height; 
+  depth = mri_inputs->depth ;
+  for (nremoved = i = 0 ; i < nsamples ; i++)
+  {
+    if (i == Gdiag_no)
+      DiagBreak() ;
+    if (Gdiag_no == gcas[i].label)
+      DiagBreak() ;
+    if (gcas[i].label <= 0)
+      continue ;
+
+    xn = gcas[i].xn ; yn = gcas[i].yn ; zn = gcas[i].zn ; 
+    GCAnodeToVoxel(gca, mri_inputs, xn, yn, zn, &xt, &yt, &zt) ;
+    V3_X(v_canon) = (float)xt ;
+    V3_Y(v_canon) = (float)yt ;
+    V3_Z(v_canon) = (float)zt ;
+    MatrixMultiply(m_L_inv, v_canon, v_input) ;
+    x = nint(V3_X(v_input)); y = nint(V3_Y(v_input)); z = nint(V3_Z(v_input));
+    if (x < 0) x = 0 ;
+    if (y < 0) y = 0 ;
+    if (z < 0) z = 0 ;
+    if (x >= width)  x = width-1 ;
+    if (y >= height) y = height-1 ;
+    if (z >= depth)  z = depth-1 ;
+    val = MRIvox(mri_inputs, x, y, z) ;
+
+    gcan = &gca->nodes[xn][yn][zn] ;
+    if (xn == Ggca_x && yn == Ggca_y && zn == Ggca_z)
+      DiagBreak() ;
+
+    gc = &gcan->gcs[gcas[i].n] ;
+    n = gcas[i].n ; gc = &gcan->gcs[n] ;
+    dist = fabs(val - gc->mean) ;
+    if (nsigma * dist >= sqrt(gc->var))
+    {
+      nremoved++ ;
+      gcas[i].log_p = BIG_AND_NEGATIVE ;
+      gcas[i].label = 0 ;
+    }
+
+  }
+
+  printf("%d outlying samples removed...\n", nremoved) ;
+
+  MatrixFree(&m_L_inv) ; MatrixFree(&v_canon) ; MatrixFree(&v_input) ;
+  return(NO_ERROR) ;
+}
+float
+GCAnormalizedLogSampleProbability(GCA *gca, GCA_SAMPLE *gcas, 
+                               MRI *mri_inputs, MATRIX *m_L, int nsamples)
+{
+  int        x, y, z, xt, yt, zt, width, height, depth, val,
+             xn, yn, zn, i, n ;
+  MATRIX     *m_L_inv ;
+  VECTOR     *v_input, *v_canon ;
+  GCA_NODE   *gcan ;
+  GC1D       *gc ;
+  double     total_log_p, log_p, norm_log_p ;
+
+  m_L_inv = MatrixInverse(m_L, NULL) ;
+  if (!m_L_inv)
+  {
+    MatrixPrint(stderr, m_L) ;
+    ErrorExit(ERROR_BADPARM, 
+              "GCAcomputeLogSampleProbability: matrix is not invertible") ;
+  }
+  v_input = VectorAlloc(4, MATRIX_REAL) ;
+  v_canon = VectorAlloc(4, MATRIX_REAL) ;
+  *MATRIX_RELT(v_input, 4, 1) = 1.0 ; *MATRIX_RELT(v_canon, 4, 1) = 1.0 ;
+
+  /* go through each GC in the sample and compute the probability of
+     the image at that point.
+  */
+  width = mri_inputs->width ; height = mri_inputs->height; 
+  depth = mri_inputs->depth ;
+  for (total_log_p = 0.0, i = 0 ; i < nsamples ; i++)
+  {
+    if (i == Gdiag_no)
+      DiagBreak() ;
+    if (Gdiag_no == gcas[i].label)
+      DiagBreak() ;
+
+    xn = gcas[i].xn ; yn = gcas[i].yn ; zn = gcas[i].zn ; 
+    GCAnodeToVoxel(gca, mri_inputs, xn, yn, zn, &xt, &yt, &zt) ;
+    V3_X(v_canon) = (float)xt ;
+    V3_Y(v_canon) = (float)yt ;
+    V3_Z(v_canon) = (float)zt ;
+    MatrixMultiply(m_L_inv, v_canon, v_input) ;
+    x = nint(V3_X(v_input)); y = nint(V3_Y(v_input)); z = nint(V3_Z(v_input));
+    if (x < 0) x = 0 ;
+    if (y < 0) y = 0 ;
+    if (z < 0) z = 0 ;
+    if (x >= width)  x = width-1 ;
+    if (y >= height) y = height-1 ;
+    if (z >= depth)  z = depth-1 ;
+    val = MRIvox(mri_inputs, x, y, z) ;
+
+    gcan = &gca->nodes[xn][yn][zn] ;
+    if (xn == Ggca_x && yn == Ggca_y && zn == Ggca_z)
+      DiagBreak() ;
+
+    for (norm_log_p = 0.0f, n = 0 ; n < gcan->nlabels ; n++)
+    {
+      gc = &gcan->gcs[n] ;
+      norm_log_p += gcaComputeConditionalDensity(gc, val, gcan->labels[n]) ;
+    }
+    norm_log_p = log(norm_log_p) ;
+    gc = &gcan->gcs[gcas[i].n] ;
+#define TRIM_DISTANCES 0
+#if TRIM_DISTANCES
+         
+    dist = (val-gc->mean) ;
+#define TRIM_DIST 20
+    if (abs(dist) > TRIM_DIST)
+      dist = TRIM_DIST ;
+    log_p =
+      -log(sqrt(gc->var)) - 
+      0.5 * (dist*dist/gc->var) +
+      log(gc->prior) ;
+#else
+#if 0
+    dist = (val-gcas[i].mean) ;
+    log_p =
+      -log(sqrt(gcas[i].var)) - 
+      0.5 * (dist*dist/gcas[i].var) +
+      log(gcas[i].prior) ;
+#else
+    n = gcas[i].n ;
+    log_p = gcaComputeConditionalDensity(&gcan->gcs[n], val, gcan->labels[n]) ;
+    log_p = log(log_p) + log(gcas[i].prior) ;
+#endif
+#endif
+    log_p -= norm_log_p ;
+    total_log_p += log_p ;
+    gcas[i].log_p = log_p ;
+
+    if (!finite(total_log_p))
+    {
+      DiagBreak() ;
+      fprintf(stderr, 
+              "total log p not finite at (%d, %d, %d) n = %d, "
+              "var=%2.2f\n", x, y, z, gcas[i].n, gc->var) ;
+    }
+  }
+
+  MatrixFree(&m_L_inv) ; MatrixFree(&v_canon) ; MatrixFree(&v_input) ;
+  return((float)total_log_p) ;
+}
+
 float
 GCAcomputeLogSampleProbability(GCA *gca, GCA_SAMPLE *gcas, 
                                MRI *mri_inputs, MATRIX *m_L, int nsamples)
@@ -4816,10 +4991,10 @@ GCArankSamples(GCA *gca, GCA_SAMPLE *gcas, int nsamples, int *ordered_indices)
 #include "mrinorm.h"
 MRI *
 GCAnormalizeSamples(MRI *mri_in, GCA *gca, GCA_SAMPLE *gcas, int nsamples, 
-                    LTA *lta)
+                    LTA *lta, char *ctl_point_fname)
 {
   MRI    *mri_dst, *mri_ctrl, *mri_bias ;
-  int    xv, yv, zv, n, x, y, z, width, height, depth, out_val ;
+  int    xv, yv, zv, n, x, y, z, width, height, depth, out_val, xn, yn, zn ;
   MATRIX *m_L_inv ;
   VECTOR *v_input, *v_canon ;
   float   bias ;
@@ -4837,12 +5012,19 @@ GCAnormalizeSamples(MRI *mri_in, GCA *gca, GCA_SAMPLE *gcas, int nsamples,
   v_canon = VectorAlloc(4, MATRIX_REAL) ;
   *MATRIX_RELT(v_input, 4, 1) = 1.0 ; *MATRIX_RELT(v_canon, 4, 1) = 1.0 ;
   mri_bias = MRIalloc(mri_in->width,mri_in->height,mri_in->depth,MRI_SHORT);
-  if (!mri_bias)
-    ErrorExit(ERROR_NOMEMORY, 
+  if (!mri_bias)    ErrorExit(ERROR_NOMEMORY, 
               "GCAnormalize: could not allocate (%d,%d,%d,2) bias image",
               mri_in->width,mri_in->height,mri_in->depth) ;
               
 
+#define MAX_BIAS 1250
+#define MIN_BIAS  750
+
+  if (ctl_point_fname)
+  {
+    MRI3dUseFileControlPoints(mri_ctrl, ctl_point_fname) ;
+    MRInormAddFileControlPoints(mri_ctrl, CONTROL_MARKED) ;
+  }
   width = mri_in->width ; height = mri_in->height ; depth = mri_in->depth ;
   for (z = 0 ; z < depth ; z++)
   {
@@ -4850,12 +5032,54 @@ GCAnormalizeSamples(MRI *mri_in, GCA *gca, GCA_SAMPLE *gcas, int nsamples,
     {
       for (x = 0 ; x < width ; x++)
       {
-        MRISvox(mri_bias, x,y,z) = 1000 ;
+        MRISvox(mri_bias, x,y,z) = 1000 ;  /* by default */
+        if (MRIvox(mri_ctrl, x, y, z) == CONTROL_MARKED)  /* read from file */
+        {
+          int      n, max_n ;
+          GC1D     *gc ;
+          GCA_NODE *gcan ;
+          double   max_p ;
+
+          GCAsourceVoxelToNode(gca, mri_dst, lta,  x, y, z, 
+                               &xn, &yn, &zn) ;
+          gcan = &gca->nodes[xn][yn][zn] ;
+          max_p = 0 ;
+          for (max_n = -1, n = 0 ; n < gcan->nlabels ; n++)
+          {
+            if ((0 == IS_WM(gcan->labels[n])) &&
+                (0 == IS_CEREBELLAR_WM(gcan->labels[n])))
+              continue ;
+            gc = &gcan->gcs[n] ;
+            if (gc->prior >= max_p)
+            {
+              max_p = gc->prior ;
+              max_n = n ;
+            }
+          }
+          if (max_n < 0)  /* couldn't find any valid label at this location */
+            continue ;
+          gc = &gcan->gcs[max_n] ;
+
+          bias = 1000.0f*((float)gc->mean/MRIvox(mri_in, x, y, z)) ;
+          if (bias < 100 || bias > 5000)
+            DiagBreak() ;
+          if (bias < MIN_BIAS)
+            bias = MIN_BIAS ;
+          if (bias > MAX_BIAS)
+            bias = MAX_BIAS ;
+          
+          MRISvox(mri_bias, x, y, z) = (short)nint(bias) ;
+        }
       }
     }
   }
+  
+
   for (n = 0 ; n < nsamples ; n++)
   {
+    if (gcas[n].xn == Ggca_x && gcas[n].yn == Ggca_y && gcas[n].zn == Ggca_z)
+      DiagBreak() ;
+
     GCAnodeToVoxel(gca, mri_dst, gcas[n].xn, gcas[n].yn, gcas[n].zn, 
                    &xv, &yv, &zv) ;
     V3_X(v_canon) = (float)xv ; V3_Y(v_canon) = (float)yv ;
@@ -4871,7 +5095,7 @@ GCAnormalizeSamples(MRI *mri_in, GCA *gca, GCA_SAMPLE *gcas, int nsamples,
 
     if (xv == 181 && yv == 146 && zv == 128)
       DiagBreak() ;
-    if (xv == 181 && yv == 135 && zv == 121)
+    if (xv == Ggca_x && yv == Ggca_y && zv == Ggca_z)
       DiagBreak() ;
     if (gcas[n].label == 29 || gcas[n].label == 61)
     {
@@ -4882,10 +5106,13 @@ GCAnormalizeSamples(MRI *mri_in, GCA *gca, GCA_SAMPLE *gcas, int nsamples,
     {
       MRIvox(mri_ctrl, xv, yv, zv) = CONTROL_MARKED ;
       bias = 1000.0f*((float)gcas[n].mean/MRIvox(mri_in, xv, yv, zv)) ;
-      if (bias < 900)
-        bias = 900 ;
-      if (bias > 1100)
-        bias = 1100 ;
+      if (bias < 100 || bias > 5000)
+        DiagBreak() ;
+      if (bias < MIN_BIAS)
+        bias = MIN_BIAS ;
+      if (bias > MAX_BIAS)
+        bias = MAX_BIAS ;
+
       MRISvox(mri_bias, xv, yv, zv) = (short)nint(bias) ;
     }
     else
@@ -4916,6 +5143,8 @@ GCAnormalizeSamples(MRI *mri_in, GCA *gca, GCA_SAMPLE *gcas, int nsamples,
       for (x = 0 ; x < width ; x++)
       {
         bias = MRISvox(mri_bias, x, y, z)/1000.0f ;
+        if (bias < 0)
+          DiagBreak() ;
         out_val = nint((float)MRIvox(mri_in, x, y, z)*bias) ;
         if (out_val < 0)
           out_val = 0 ;
