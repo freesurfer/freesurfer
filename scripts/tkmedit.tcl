@@ -278,7 +278,7 @@ proc unzoomcoords { } {  ;# update nice (stop loop)
 }
 
 # kt - this calls c code to save and restore the cursor before and after 
-# setting the new plane. replaced all code that set the plan variable directly
+# setting the new plane. replaced all code that set the plane variable directly
 # to use this function.
 proc SetPlane { inNewPlane } {
 
@@ -289,18 +289,12 @@ proc SetPlane { inNewPlane } {
 #  return;
 #    }
 
-    puts "SetPlane: on enter, j/i/im = ($jc,$ic,$imc)"
     SaveCursorInVoxel;
-    puts "          after saving cursor j/i/im = ($jc,$ic,$imc)"
     set plane $inNewPlane;
-    puts "          set plane to $inNewPlane"
     SetCursorToSavedVoxel;
-    puts "          after restoring cursor, j/i/im = ($jc,$ic,$imc)"
     redraw;
     update idletasks;
-    puts "          after updating idletasks, j/i/im = ($jc,$ic,$imc)"
     sendupdate;
-    puts "          on exit, j/i/im = ($jc,$ic,$imc)"
 }    
 
 # kt - this does a similar thing except with switching between all3 view.
