@@ -227,7 +227,7 @@ LogMapSample(LOGMAP_INFO *lmi, IMAGE *Isrc, IMAGE *Idst)
   if (!Idst)
     Idst = ImageAlloc(lmi->nspokes,lmi->nrings, Isrc->pixel_format,1);
   else
-    ImageClearArea(Idst, 0, 0, Idst->rows, Idst->cols, 0.0f) ;
+    ImageClearArea(Idst, 0, 0, Idst->rows, Idst->cols, 0.0f,-1) ;
 
   if (Idst->pixel_format != Isrc->pixel_format)
     Iout = ImageAlloc(lmi->nspokes, lmi->nrings, Isrc->pixel_format,1);
@@ -282,7 +282,7 @@ LogMapInverseSample(LOGMAP_INFO *lmi, IMAGE *Isrc, IMAGE *Idst)
   if (!Idst)
     Idst = ImageAlloc(lmi->nrows,lmi->ncols, Isrc->pixel_format,1);
   else
-    ImageClearArea(Idst, 0, 0, Idst->rows, Idst->cols, 0.0f) ;
+    ImageClearArea(Idst, 0, 0, Idst->rows, Idst->cols, 0.0f, -1) ;
 
   if (Idst->pixel_format != Isrc->pixel_format)
     Iout = ImageAlloc(Idst->rows, Idst->cols, Isrc->pixel_format,1);
@@ -2611,7 +2611,7 @@ LogMapNonlocal(LOGMAP_INFO *lmi, IMAGE *Isrc, IMAGE *Ismooth, IMAGE *Idst)
   if (!Idst)
     Idst = ImageAlloc(lmi->nspokes,lmi->nrings, Isrc->pixel_format,1);
   else
-    ImageClearArea(Idst, 0, 0, Idst->rows, Idst->cols, 0.0f) ;
+    ImageClearArea(Idst, 0, 0, Idst->rows, Idst->cols, 0.0f, -1) ;
 
   if (Idst->pixel_format != Isrc->pixel_format)
     Iout = ImageAlloc(lmi->nspokes, lmi->nrings, Isrc->pixel_format,1);
@@ -3004,7 +3004,7 @@ LogMapInverseBilinear(LOGMAP_INFO *lmi, IMAGE *Isrc, IMAGE *Idst)
   if (!Idst)
     Idst = ImageAlloc(lmi->nrows,lmi->ncols, PFFLOAT, 1);
   else
-    ImageClearArea(Idst, 0, 0, lmi->nspokes, lmi->nrings, 0.0f) ;
+    ImageClearArea(Idst, 0, 0, lmi->nspokes, lmi->nrings, 0.0f, -1) ;
 
 
   if (Idst->pixel_format != PFFLOAT)
@@ -3104,7 +3104,7 @@ LogMapInverseFilterGaussian(LOGMAP_INFO *lmi, IMAGE *Isrc, IMAGE *Idst)
   if (!Idst)
     Idst = ImageAlloc(lmi->nrows,lmi->ncols, PFFLOAT, 1);
   else
-    ImageClearArea(Idst, 0, 0, lmi->nspokes, lmi->nrings, 0.0f) ;
+    ImageClearArea(Idst, 0, 0, lmi->nspokes, lmi->nrings, 0.0f, -1) ;
 
 
   if (Idst->pixel_format != PFFLOAT)
@@ -3218,7 +3218,7 @@ LogMapInverseFilter(LOGMAP_INFO *lmi, IMAGE *Isrc, IMAGE *Idst)
   if (!Idst)
     Idst = ImageAlloc(lmi->nrows,lmi->ncols, PFFLOAT, 1);
   else
-    ImageClearArea(Idst, 0, 0, lmi->nspokes, lmi->nrings, 0.0f) ;
+    ImageClearArea(Idst, 0, 0, lmi->nspokes, lmi->nrings, 0.0f, -1) ;
 
 
   if (Idst->pixel_format != PFFLOAT)
@@ -3312,7 +3312,7 @@ LogMapForwardFilter(LOGMAP_INFO *lmi, IMAGE *Isrc, IMAGE *Idst)
   if (!Idst)
     Idst = ImageAlloc(lmi->nspokes,lmi->nrings, PFFLOAT, 1);
   else
-    ImageClearArea(Idst, 0, 0, Idst->rows, Idst->cols, 0.0f) ;
+    ImageClearArea(Idst, 0, 0, Idst->rows, Idst->cols, 0.0f, -1) ;
 
 
   if (Idst->pixel_format != PFFLOAT)
@@ -3406,7 +3406,7 @@ LogMapFilter(LOGMAP_INFO *lmi, int which, int wsize, IMAGE *Isrc, IMAGE *Idst)
   if (!Idst)
     Idst = ImageAlloc(lmi->nspokes,lmi->nrings, Isrc->pixel_format,1);
   else
-    ImageClearArea(Idst, 0, 0, Idst->rows, Idst->cols, 0.0f) ;
+    ImageClearArea(Idst, 0, 0, Idst->rows, Idst->cols, 0.0f, -1) ;
 
   if (Idst->pixel_format != Isrc->pixel_format)
     Iout = ImageAlloc(lmi->nspokes, lmi->nrings, Isrc->pixel_format,1);
@@ -3504,7 +3504,7 @@ struct timeb then ;
   if (!Iorient)
     Iorient = ImageAlloc(lmi->nspokes,lmi->nrings, PFFLOAT,2);
   else
-    ImageClearArea(Iorient, 0, 0, Iorient->rows, Iorient->cols, 0.0f) ;
+    ImageClearArea(Iorient, 0, 0, Iorient->rows, Iorient->cols, 0.0f,-1) ;
 
   if (Iorient->pixel_format != Isrc->pixel_format)
     Iout = ImageAlloc(lmi->nspokes, lmi->nrings, Isrc->pixel_format,2);
@@ -3561,7 +3561,7 @@ LogMapOffsetDirection(LOGMAP_INFO *lmi, IMAGE *Iorient, IMAGE *Ioffset)
   if (!Ioffset)
     Ioffset = ImageAlloc(rows, cols, Iorient->pixel_format, 2) ;
   else
-    ImageClearArea(Ioffset, 0, 0, rows, cols, 0.0f) ;
+    ImageClearArea(Ioffset, 0, 0, rows, cols, 0.0f, -1) ;
 
   if (Ioffset->pixel_format != Iorient->pixel_format)
     Iout = ImageAlloc(rows, cols, Iorient->pixel_format, 2) ;
@@ -3655,7 +3655,7 @@ LogMapOffsetDirection(LOGMAP_INFO *lmi, IMAGE *Iorient, IMAGE *Ioffset)
   if (!Ioffset)
     Ioffset = ImageAlloc(rows, cols, Iorient->pixel_format, 2) ;
   else
-    ImageClearArea(Ioffset, 0, 0, rows, cols, 0.0f) ;
+    ImageClearArea(Ioffset, 0, 0, rows, cols, 0.0f, -1) ;
 
   if (Ioffset->pixel_format != Iorient->pixel_format)
     Iout = ImageAlloc(rows, cols, Iorient->pixel_format, 2) ;
@@ -4096,7 +4096,7 @@ LogMapGaussianFilter(LOGMAP_INFO *lmi, IMAGE *Isrc,
   else
   {
     ImageSetSize(Idst, rows, cols) ;
-    ImageClearArea(Idst, 0, 0, Idst->rows, Idst->cols, 0.0f) ;
+    ImageClearArea(Idst, 0, 0, Idst->rows, Idst->cols, 0.0f, -1) ;
   }
 
   if (Idst->pixel_format != Isrc->pixel_format)
