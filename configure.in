@@ -123,7 +123,7 @@ if test "$CPUTYPE" = "NO"; then
       CPUTYPE=pentium4
       ;;
       AMDAthlonXP*)
-      CPUTYPE=athlon-xp
+      CPUTYPE=athlonxp
       ;;
       AMDAthlon64)
       CPUTYPE=athlon64
@@ -135,7 +135,6 @@ if test "$CPUTYPE" = "NO"; then
       ;;
     esac
     ;; 
-  *)
   ;;
   esac
 fi
@@ -148,7 +147,7 @@ case "$CPUTYPE" in
   pentium4)
      CPUFLAGS="-march=pentium4 -mfpmath=sse -msse2"
      ;;
-  athlon-xp)
+  athlonxp)
      CPUFLGAS="-march=athlon-xp -mfpmath=sse"
      ;;	
   opteron)
@@ -161,10 +160,10 @@ case "$CPUTYPE" in
      CPUFLAGS="-march=x86-64 -mfpmath=sse -msse2"
      ;;
   G4)
-     CPUFLAGS="-mtune=G4"
+     CPUFLAGS="-mtune=G4 -mcpu=G4"
      ;;
   G5)
-     CPUFLAGS="-mtune=G5"
+     CPUFLAGS="-mtune=G5 -mcpu=G5"
      ;;
   *)
      echo "cpu optimization not set"
