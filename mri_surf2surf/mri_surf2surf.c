@@ -1,6 +1,6 @@
 /*----------------------------------------------------------
   Name: mri_surf2surf.c
-  $Id: mri_surf2surf.c,v 1.6 2002/04/19 21:25:45 greve Exp $
+  $Id: mri_surf2surf.c,v 1.7 2002/07/01 21:48:25 greve Exp $
   Author: Douglas Greve
   Purpose: Resamples data from one surface onto another. If
   both the source and target subjects are the same, this is
@@ -44,7 +44,7 @@ int GetNVtxsFromValFile(char *filename, char *fmt);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_surf2surf.c,v 1.6 2002/04/19 21:25:45 greve Exp $";
+static char vcid[] = "$Id: mri_surf2surf.c,v 1.7 2002/07/01 21:48:25 greve Exp $";
 char *Progname = NULL;
 
 char *surfreg = "sphere.reg";
@@ -97,12 +97,12 @@ int cavtx = 0; /* command-line vertex -- for debugging */
 
 int main(int argc, char **argv)
 {
-  int f,vtx,tvtx,svtx,n;
+  int f,tvtx,svtx,n;
   float *framepower = NULL;
   char fname[2000];
   int nTrg121,nSrc121,nSrcLost;
   int nTrgMulti,nSrcMulti;
-  float MnTrgMultiHits,MnSrcMultiHits, val;
+  float MnTrgMultiHits,MnSrcMultiHits;
 
   Progname = argv[0] ;
   argc --;
@@ -149,25 +149,13 @@ int main(int argc, char **argv)
     sprintf(fname,"%s/%s/surf/%s.%s",SUBJECTS_DIR,srcsubject,hemi,srcvalfile);
     printf("Reading curvature file %s\n",fname);
     MRISreadCurvatureFile(SrcSurfReg, fname);
-    SrcVals = MRIallocSequence(SrcSurfReg->nvertices, 1, 1,MRI_FLOAT,1);
-    for(vtx = 0; vtx < SrcSurfReg->nvertices; vtx++){
-      MRIFseq_vox(SrcVals,vtx,0,0,0) = SrcSurfReg->vertices[vtx].curv;
-      if(vtx == cavtx){
-  printf("vtx = %d, curv = %g, val = %g\n",vtx,
-         SrcSurfReg->vertices[vtx].curv,
-         MRIFseq_vox(SrcVals,vtx,0,0,0));
-  DiagBreak();
-      }
-    }
+    SrcVals = MRIcopyMRIS(NULL, SrcSurfReg, 0, "curv");
   }
   else if(!strcmp(srctypestring,"paint") || !strcmp(srctypestring,"w")){
     MRISreadValues(SrcSurfReg,srcvalfile);
-    SrcVals = MRIallocSequence(SrcSurfReg->nvertices, 1, 1,MRI_FLOAT,1);
-    for(vtx = 0; vtx < SrcSurfReg->nvertices; vtx++)
-      MRIFseq_vox(SrcVals,vtx,0,0,0) = SrcSurfReg->vertices[vtx].val;
+    SrcVals = MRIcopyMRIS(NULL, SrcSurfReg, 0, "val");
   }
   else { /* Use MRIreadType */
-    //SrcVals = mri_load_bvolume(srcvalfile); 
     SrcVals =  MRIreadType(srcvalfile,srctype);
     if(SrcVals == NULL){
       printf("ERROR: could not read %s as type %d\n",srcvalfile,srctype);
@@ -261,7 +249,7 @@ int main(int argc, char **argv)
     MnSrcMultiHits = 0.0;
     for(svtx = 0; svtx < SrcSurfReg->nvertices; svtx++){
       n = MRIFseq_vox(SrcHits,svtx,0,0,0);
-      if(n == 1) nSrc121++;
+      if(n == 1)      nSrc121++;
       else if(n == 0) nSrcLost++;
       else MnSrcMultiHits += n;
     }
@@ -269,36 +257,41 @@ int main(int argc, char **argv)
     if(nSrcMulti > 0) MnSrcMultiHits = (MnSrcMultiHits/nSrcMulti);
     else              MnSrcMultiHits = 0;
     
-    printf("nSrc121 = %5d, nSrcLost = %5d, nSrcMulti = %5d, MnSrcMultiHits = %g\n",
-     nSrc121,nSrcLost,nSrcMulti,MnSrcMultiHits);
+    printf("nSrc121 = %5d, nSrcLost = %5d, nSrcMulti = %5d, "
+     "MnSrcMultiHits = %g\n", nSrc121,nSrcLost,nSrcMulti,
+     MnSrcMultiHits);
     
     /* save the Source Hits into a .w file */
     if(SrcHitFile != NULL){
       printf("INFO: saving source hits to %s\n",SrcHitFile);
-      for(vtx = 0; vtx < SrcSurfReg->nvertices; vtx++)
-  SrcSurfReg->vertices[vtx].val = MRIFseq_vox(SrcHits,vtx,0,0,0) ;
+      MRIScopyMRI(SrcSurfReg, SrcHits, 0, "val");
+      //for(vtx = 0; vtx < SrcSurfReg->nvertices; vtx++)
+      //SrcSurfReg->vertices[vtx].val = MRIFseq_vox(SrcHits,vtx,0,0,0) ;
       MRISwriteValues(SrcSurfReg, SrcHitFile) ;
     }
     /* save the Source Distance into a .w file */
     if(SrcDistFile != NULL){
       printf("INFO: saving source distance to %s\n",SrcDistFile);
-      for(vtx = 0; vtx < SrcSurfReg->nvertices; vtx++)
-  SrcSurfReg->vertices[vtx].val = MRIFseq_vox(SrcDist,vtx,0,0,0) ;
+      MRIScopyMRI(SrcSurfReg, SrcDist, 0, "val");
       MRISwriteValues(SrcSurfReg, SrcDistFile) ;
+      //for(vtx = 0; vtx < SrcSurfReg->nvertices; vtx++)
+      //SrcSurfReg->vertices[vtx].val = MRIFseq_vox(SrcDist,vtx,0,0,0) ;
     }
     /* save the Target Hits into a .w file */
     if(TrgHitFile != NULL){
       printf("INFO: saving target hits to %s\n",TrgHitFile);
-      for(vtx = 0; vtx < TrgSurfReg->nvertices; vtx++)
-  TrgSurfReg->vertices[vtx].val = MRIFseq_vox(TrgHits,vtx,0,0,0) ;
+      MRIScopyMRI(TrgSurfReg, TrgHits, 0, "val");
       MRISwriteValues(TrgSurfReg, TrgHitFile) ;
+      //for(vtx = 0; vtx < TrgSurfReg->nvertices; vtx++)
+      //TrgSurfReg->vertices[vtx].val = MRIFseq_vox(TrgHits,vtx,0,0,0) ;
     }
     /* save the Target Hits into a .w file */
     if(TrgDistFile != NULL){
       printf("INFO: saving target distance to %s\n",TrgDistFile);
-      for(vtx = 0; vtx < TrgSurfReg->nvertices; vtx++)
-  TrgSurfReg->vertices[vtx].val = MRIFseq_vox(TrgDist,vtx,0,0,0) ;
+      MRIScopyMRI(TrgSurfReg, TrgDist, 0, "val");
       MRISwriteValues(TrgSurfReg, TrgDistFile) ;
+      //for(vtx = 0; vtx < TrgSurfReg->nvertices; vtx++)
+      //TrgSurfReg->vertices[vtx].val = MRIFseq_vox(TrgDist,vtx,0,0,0) ;
     }
   }
   else{
@@ -309,32 +302,8 @@ int main(int argc, char **argv)
   }
        
   /* Smooth if desired */
-  if(nSmoothSteps > 0){
-    nnbrs = TrgSurfReg->vertices[0].vnum;
-    printf("INFO: Smoothing, NSteps = %d, NNbrs = %d\n",nSmoothSteps,nnbrs);
-
-    TrgValsSmth = MRIcopy(TrgVals,NULL);
-
-    for(nthstep = 0; nthstep < nSmoothSteps; nthstep ++){
-      printf("Step = %d\n",nthstep);
-      fflush(stdout);
-      for(vtx = 0; vtx < TrgSurfReg->nvertices; vtx++){
-  nnbrs = TrgSurfReg->vertices[vtx].vnum;
-  //if(nnbrs != 5) printf("%4d %d\n",vtx,nnbrs);
-  for(frame = 0; frame < TrgVals->nframes; frame ++){
-    val = MRIFseq_vox(TrgVals,vtx,0,0,frame);
-    for(nthnbr = 0; nthnbr < nnbrs; nthnbr++){
-      nbrvtx = TrgSurfReg->vertices[vtx].v[nthnbr];
-      val += MRIFseq_vox(TrgVals,nbrvtx,0,0,frame) ;
-    }/* end loop over neighbor */
-    MRIFseq_vox(TrgValsSmth,vtx,0,0,frame) = (val/(nnbrs+1));
-  }/* end loop over frame */
-      } /* end loop over vertex */
-      MRIcopy(TrgValsSmth,TrgVals);
-    }/* end loop over smooth step */
-    MRIfree(&TrgValsSmth);
-  }
-
+  if(nSmoothSteps > 0)
+    MRISsmoothMRI(TrgSurfReg, TrgVals, nSmoothSteps, TrgVals);
 
   /* readjust frame power if necessary */
   if(is_sxa_volume(srcvalfile)){
@@ -348,16 +317,14 @@ int main(int argc, char **argv)
   /* ------------ save the target data -----------------------------*/
   printf("Saving target data\n");
   if(!strcmp(trgtypestring,"paint") || !strcmp(trgtypestring,"w")){
-    for(vtx = 0; vtx < TrgSurfReg->nvertices; vtx++)
-      TrgSurfReg->vertices[vtx].val = MRIFseq_vox(TrgVals,vtx,0,0,framesave);
+    MRIScopyMRI(TrgSurfReg, TrgVals, framesave, "val");
     MRISwriteValues(TrgSurfReg,trgvalfile);
   }
   else {
-    /*mri_save_as_bvolume(TrgVals,trgvalfile,0,BF_FLOAT); */
     if(reshape){
       if(reshapefactor == 0) 
   reshapefactor = GetClosestPrimeFactor(TrgVals->width,6);
-
+      
       printf("Reshaping %d (nvertices = %d)\n",reshapefactor,TrgVals->width);
       mritmp = mri_reshape(TrgVals, TrgVals->width / reshapefactor, 
          1, reshapefactor,TrgVals->nframes);
@@ -874,6 +841,9 @@ int GetICOOrderFromValFile(char *filename, char *fmt)
   
   return(IcoOrder);
 }
+
+
+
 #if 0
 /* --------------------------------------------- */
 int check_format(char *trgfmt)
