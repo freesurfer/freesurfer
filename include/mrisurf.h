@@ -824,6 +824,7 @@ int  MRISreadDecimation(MRI_SURFACE *mris, char *fname) ;
 #define VERTEX_AREA      2
 #define VERTEX_CURV      3
 #define VERTEX_CURVATURE VERTEX_CURV
+#define VERTEX_LABEL     4
 
 int MRISclearOrigArea(MRI_SURFACE *mris) ;
 int MRIScombine(MRI_SURFACE *mris_src, MRI_SURFACE *mris_total, 
