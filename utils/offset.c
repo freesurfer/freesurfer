@@ -1020,7 +1020,8 @@ compare_sort_array(const void *pf1, const void *pf2)
 IMAGE *
 ImageOffsetOrientation(IMAGE *Ix, IMAGE *Iy, int wsize, IMAGE *Iorient)
 {
-  Iorient = ImageAlloc(Ix->rows, Ix->cols, PFFLOAT, 2) ;
+  if (!Iorient)
+    Iorient = ImageAlloc(Ix->rows, Ix->cols, PFFLOAT, 2) ;
   Iorient->num_frame = 1 ;
   ImageMeanFilter(Ix, 3, Iorient) ;
   Iorient->image += Iorient->sizeimage ;
