@@ -5,7 +5,7 @@
 # editing.
 #
 # mkfsdist
-# $Id: mkfsdist,v 1.7 2002/04/30 15:14:11 greve Exp $
+# $Id: mkfsdist,v 1.8 2002/05/10 22:55:24 greve Exp $
 #
 # Usage: mkfsdist targetdir
 #
@@ -22,6 +22,7 @@
 #  bert.001.tar.gz -- anatomical tutorial data, run 1
 #  bert.002.tar.gz -- anatomical tutorial data, run 2
 #  bert.003.tar.gz -- anatomical tutorial data, run 3
+#  average7.tar.gz -- contains average labels for checking spherical morph
 #
 # Symbolic Links in freesurfer_alpha:
 # 
@@ -46,10 +47,10 @@
 #  put only one name on each line and make sure there are no trailing
 #  white spaces. This name will be exluded where ever it is found in the 
 #  tree, either as a file or as a directory.  It will also exclude the
-#  files found in freesurfer_alpha/tar-exclude-more.
+#  files found in tar-exclude-more and tar-exclude-gca.
 #
 # 
-set VERSION = '$Id: mkfsdist,v 1.7 2002/04/30 15:14:11 greve Exp $';
+set VERSION = '$Id: mkfsdist,v 1.8 2002/05/10 22:55:24 greve Exp $';
 
 # To include the autoseg in the distribution set environment varible
 # KEEPAUTOSEG to 1 before running mkfsdist (ie, setenv KEEPAUTOSEG 1)
@@ -66,7 +67,8 @@ set FSA_DIR = ~inverse/freesurfer_alpha;
 # This is where the 3 runs of the test subject live #
 set BERT_ANAT_DIR = $SUBJECTS_DIR/bert
 set BERT_ORIG_DIR = $BERT_ANAT_DIR/mri/orig
-#/space/neo/5/recon/evelina/bert2001
+
+set AVERAGE7_DIR = $SUBJECTS_DIR/average7
 
 # Bert's functional data
 set BERT_FUNC_DIR = /space/sake/5/tutorial/JUL01/bert-functional
@@ -99,6 +101,12 @@ end
 
 if(! -e $BERT_FUNC_DIR) then
   echo "ERROR: cannot find $BERT_FUNC_DIR"
+  exit 1;
+endif
+
+# Check that the average7 is there #
+if(! -e $AVERAGE7_DIR) then
+  echo "ERROR: cannot find $AVERAGE7_DIR"
   exit 1;
 endif
 
@@ -151,6 +159,31 @@ echo $VERSION  >> $LF
 echo "$0"    >> $LF
 echo "$argv" >> $LF
 date >> $LF
+
+#----- Tar up average7 --------#
+echo "--------------------------------------------" | tee -a $LF
+date | tee -a $LF  
+pushd $AVERAGE7_DIR > /dev/null
+cd ..
+echo "Tarring average7 data" | tee -a $LF
+set TF = $TARGET_DIR/average7.tar.gz
+rm -f $TF
+tar cvz -f $TF \
+  ./average7/mri \
+  ./average7/label/??-avg_*.label \
+  ./average7/surf/?h.avg_curv \
+  ./average7/surf/?h.avg_sulc \
+  ./average7/surf/?h.curv \
+  ./average7/surf/?h.inflated \
+  ./average7/surf/?h.orig \
+  ./average7/surf/?h.pial \
+  ./average7/surf/?h.smoothwm \
+  ./average7/surf/?h.sphere \
+  ./average7/surf/?h.sphere.reg \
+  ./average7/surf/lh.rh.sphere.reg \
+  ./average7/surf/?h.sulc >> $LF
+date | tee -a $LF  
+exit 
 
 # ---- Tar up freesurfer_alpha ------- #
 cd $FSA_DIR
@@ -320,7 +353,6 @@ rm -f $TF
 tar cvz -f $TF ./bert >> $LF
 
 #----- Tar up Bert's functional data --------#
-#here:
 echo "--------------------------------------------" | tee -a $LF
 date | tee -a $LF  
 pushd $BERT_FUNC_DIR > /dev/null
