@@ -1,0 +1,26 @@
+#!/bin/tcsh
+pushd $SUBJECTS_DIR/$1/
+touch NOTES
+echo " " >> NOTES
+echo $0 $* >> NOTES
+whoami >> NOTES
+date >> NOTES
+hostname >> NOTES
+popd
+
+
+# specify -tiff to write out tiff files intead of rgbs
+ 
+setenv DISPLAY :0.0
+if (-e $SUBJECTS_DIR/$1/rgb == 0) \
+   mkdir $SUBJECTS_DIR/$1/rgb
+endif
+mris2rgb -o $1.reg -both -c $SUBJECTS_DIR/$1/surf/lh.sulc \
+         -canon $SUBJECTS_DIR/$1/surf/lh.sphere.reg \
+         $SUBJECTS_DIR/$1/surf/lh.sphere.reg \
+         $SUBJECTS_DIR/$1/rgb
+
+#mris2rgb -o $1.dist_new -both -c $SUBJECTS_DIR/$1/surf/lh.sulc \
+#         -canon $SUBJECTS_DIR/$1/surf/lh.sphere.dist_new \
+#         $SUBJECTS_DIR/$1/surf/lh.sphere.dist_new \
+#         $SUBJECTS_DIR/$1/rgb
