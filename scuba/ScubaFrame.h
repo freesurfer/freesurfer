@@ -82,6 +82,7 @@ protected:
 
   // Our tool.
   ScubaToolState mTool;
+
 };
 
 // The factory passed to ToglManager so that this type of Frame is

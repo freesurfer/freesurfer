@@ -21,7 +21,6 @@ ScubaLayer2DMRI::ScubaLayer2DMRI () {
   mBrightness = 0.25;
   mContrast = 12.0;
   mCurrentLine = NULL;
-  mCurrentSnakeLine = NULL;
   mROIOpacity = 0.7;
 
   // Try setting our initial color LUT to the default LUT with
@@ -299,36 +298,22 @@ ScubaLayer2DMRI::DrawIntoBuffer ( GLubyte* iBuffer, int iWidth, int iHeight,
   case 2: range = mVolume->GetVoxelZSize() / 2.0; break;
   }
 
-  // Drawing straight lines.
+  // Drawing lines.
+  int lineColor[3];
   if( mCurrentLine ) {
-    DrawStraightLineIntoBuffer( iBuffer, iWidth, iHeight, iViewState,
-				iTranslator, mCurrentLine );
+    lineColor[0] = 0; lineColor[1] = 255; lineColor[2] = 0;
+    DrawRASPointListIntoBuffer( iBuffer, iWidth, iHeight, lineColor, 
+				iViewState, iTranslator, *mCurrentLine );
   }
-  std::list<Line*>::iterator tLine;
+  std::list<PointList3<float>*>::iterator tLine;
   for( tLine = mLines.begin(); tLine != mLines.end(); ++tLine ) {
-    Line* line = *tLine;
-    if( iViewState.IsRASVisibleInPlane( line->mBeginRAS, range ) &&
-	iViewState.IsRASVisibleInPlane( line->mEndRAS, range ) ) {
-      DrawStraightLineIntoBuffer( iBuffer, iWidth, iHeight, iViewState,
-				  iTranslator, line );
-    }
-  }
-
-
-  // Drawing snake lines.
-  if( mCurrentSnakeLine ) {
-    DrawSnakeLineIntoBuffer( iBuffer, iWidth, iHeight, iViewState,
-			     iTranslator, mCurrentSnakeLine );
-  }
-  std::list<SnakeLine*>::iterator tSnakeLine;
-  for( tSnakeLine = mSnakeLines.begin(); 
-       tSnakeLine != mSnakeLines.end();
-       ++tSnakeLine ) {
-    SnakeLine* line = *tSnakeLine;
-    if( iViewState.IsRASVisibleInPlane( line->mBeginRAS.xyz(), range ) &&
-	iViewState.IsRASVisibleInPlane( line->mEndRAS.xyz(), range ) ) {
-      DrawSnakeLineIntoBuffer( iBuffer, iWidth, iHeight, iViewState,
-			       iTranslator, line );
+    PointList3<float>* line = *tLine;
+    Point3<float>& beginRAS = line->GetPointAtIndex( 0 );
+    if( mCurrentLine != line &&
+	iViewState.IsRASVisibleInPlane( beginRAS.xyz(), range ) ) {
+      lineColor[0] = 255; lineColor[1] = 0; lineColor[2] = 0;
+      DrawRASPointListIntoBuffer( iBuffer, iWidth, iHeight, lineColor,
+				  iViewState, iTranslator, *line );
     }
   }
 
@@ -960,15 +945,37 @@ ScubaLayer2DMRI::HandleTool ( float iRAS[3], ViewState& iViewState,
       // it's dragging, just streatch the line. If the button is not
       // down, it's a mouse up, and we'll end the line.
       if( iInput.IsButtonDownEvent() ) {
-	StartLine( iRAS );
+	mFirstLineRAS.Set( iRAS );
+	mCurrentLine = NewLine();
       } else if( iInput.IsButtonDragEvent() ) {
-	StretchCurrentLine( iRAS );
+	StretchLineStraight( *mCurrentLine, mFirstLineRAS.xyz(), iRAS );
       } else if( iInput.IsButtonUpEvent() ) {
-	EndLine( iRAS, iTranslator );
+	EndLine( *mCurrentLine, iTranslator );
+	mCurrentLine = NULL;
       }
 
       RequestRedisplay();
       break;
+    case 2:
+ 
+      // Find a line, and move it.
+      if( iInput.IsButtonDownEvent() ) {
+	mCurrentLine = FindClosestLine( iRAS, iViewState );
+	mLastLineMoveRAS.Set( iRAS );
+      } else if( iInput.IsButtonDragEvent() ) {
+	if( NULL != mCurrentLine ) { 
+	  Point3<float> deltaRAS( iRAS[0] - mLastLineMoveRAS.x(),
+				  iRAS[1] - mLastLineMoveRAS.y(),
+				  iRAS[2] - mLastLineMoveRAS.z() );
+	  mCurrentLine->Move( deltaRAS );
+	  mLastLineMoveRAS.Set( iRAS );
+	}
+      } else if( iInput.IsButtonUpEvent() ) {
+	mCurrentLine = NULL;
+      }
+
+      RequestRedisplay();
+     break;
     }
     break;
 
@@ -977,24 +984,47 @@ ScubaLayer2DMRI::HandleTool ( float iRAS[3], ViewState& iViewState,
     switch( iInput.Button() ) {
     case 1: 
 
-      // If our button is down, if it's a new click, start a line. If
-      // it's dragging, just streatch the line. If the button is not
-      // down, it's a mouse up, and we'll end the line.
+      // Start, stretch, or end the current line.
       if( iInput.IsButtonDownEvent() ) {
-	StartEdgeLine( iRAS );
+	mFirstLineRAS.Set( iRAS );
+	mCurrentLine = NewLine();
       } else if( iInput.IsButtonDragEvent() ) {
-	StretchCurrentEdgeLine( iRAS, iViewState, iTranslator );
+	StretchLineAsEdge( *mCurrentLine, mFirstLineRAS.xyz(), 
+			   iRAS, iViewState, iTranslator );
       } else if( iInput.IsButtonUpEvent() ) {
-	EndEdgeLine( iRAS, iTranslator );
+	EndLine( *mCurrentLine, iTranslator );
+	mCurrentLine = NULL;
       }
 
       RequestRedisplay();
       break;
+
+    case 2:
+ 
+      // Find a line, and move it.
+      if( iInput.IsButtonDownEvent() ) {
+	mCurrentLine = FindClosestLine( iRAS, iViewState );
+	mLastLineMoveRAS.Set( iRAS );
+      } else if( iInput.IsButtonDragEvent() ) {
+	if( NULL != mCurrentLine ) { 
+	  Point3<float> deltaRAS( iRAS[0] - mLastLineMoveRAS.x(),
+				  iRAS[1] - mLastLineMoveRAS.y(),
+				  iRAS[2] - mLastLineMoveRAS.z() );
+	  mCurrentLine->Move( deltaRAS );
+	  mLastLineMoveRAS.Set( iRAS );
+	}
+      } else if( iInput.IsButtonUpEvent() ) {
+	mCurrentLine = NULL;
+      }
+
+      RequestRedisplay();
+     break;
     }
+    
     break;
-    default:
-      break;
-    }
+  default:
+    break;
+  }
 }
 
 void
@@ -1031,130 +1061,169 @@ ScubaLayer2DMRI::BuildGrayscaleLUT () {
   }
 }
 
-void 
-ScubaLayer2DMRI::StartLine( float iRAS[3] ) {
+// LINES===== ============================================================
 
-  // Create a new line and set its beginning and ending to this point.
-  mCurrentLine = new Line();
-  mCurrentLine->mEndRAS[0] = mCurrentLine->mBeginRAS[0] = iRAS[0];
-  mCurrentLine->mEndRAS[1] = mCurrentLine->mBeginRAS[1] = iRAS[1];
-  mCurrentLine->mEndRAS[2] = mCurrentLine->mBeginRAS[2] = iRAS[2];
+PointList3<float>*
+ScubaLayer2DMRI::NewLine() {
+
+  // Create a new line. Add it to our line list.
+  PointList3<float>* line = new PointList3<float>();
+  mLines.push_back( line );
+  return line;
 }
 
 void 
-ScubaLayer2DMRI::StretchCurrentLine( float iRAS[3] ) {
+ScubaLayer2DMRI::StretchLineStraight ( PointList3<float>& iLine,
+				       float iRASBegin[3],
+				       float iRASEnd[3] ) {
+  
+  // Just clear the line and add the begin and end point.
+  iLine.Clear ();
+  Point3<float> begin( iRASBegin );
+  Point3<float> end( iRASEnd );
+  iLine.Add( begin );
+  iLine.Add( end );
+}
 
-  // Just update the current line endings.
-  if( mCurrentLine ) {
-    mCurrentLine->mEndRAS[0] = iRAS[0];
-    mCurrentLine->mEndRAS[1] = iRAS[1];
-    mCurrentLine->mEndRAS[2] = iRAS[2];
+
+void 
+ScubaLayer2DMRI::StretchLineAsEdge ( PointList3<float>& iLine,
+				     float iRASBegin[3],
+				     float iRASEnd[3],
+				     ViewState& iViewState,
+				     ScubaWindowToRASTranslator& iTranslator ){
+
+  // Make an edge path finder.
+  EdgePathFinder finder( iViewState.mBufferWidth, iViewState.mBufferHeight,
+			 (int)mVolume->GetMRIMagnitudeMaxValue(),
+			 &iTranslator, mVolume );
+
+  // Get the first point from the line and the last point as passed
+  // in. Convert to window points. Then find the path between them.
+  Point3<float> beginRAS( iRASBegin );
+  Point3<float> endRAS( iRASEnd );
+
+  Point2<int> beginWindow;
+  Point2<int> endWindow;
+  iTranslator.TranslateRASToWindow( beginRAS.xyz(), beginWindow.xy() );
+  iTranslator.TranslateRASToWindow( endRAS.xyz(), endWindow.xy() );
+  list<Point2<int> > windowPoints;
+  
+  finder.FindPath( beginWindow, endWindow, windowPoints );
+
+  // Clear the line points and add the points we got from the path,
+  // converting them to RAS one the way.
+  iLine.Clear();
+  list<Point2<int> >::iterator tWindowPoint;
+  for( tWindowPoint = windowPoints.begin();
+       tWindowPoint != windowPoints.end();
+       ++tWindowPoint ) {
+    Point3<float> currentRAS;
+    iTranslator.TranslateWindowToRAS( (*tWindowPoint).xy(), currentRAS.xyz() );
+    iLine.Add( currentRAS );
   }
 }
 
+
 void 
-ScubaLayer2DMRI::EndLine( float iRAS[3], 
+ScubaLayer2DMRI::EndLine( PointList3<float>& iLine,
 			  ScubaWindowToRASTranslator& iTranslator ) {
 
-  if( mCurrentLine ) {
+  // For every two RAS points on our line, translate them to window
+  // points, find all the points on the line, convert them back to
+  // RAS, and tell the volume to mark these as edge point.
+  int cPoints = iLine.GetNumPoints();
+  int nCurPoint = 1;
+  for( nCurPoint = 1; nCurPoint < cPoints; nCurPoint++ ) {
 
-    // Set the line ending.
-    mCurrentLine->mEndRAS[0] = iRAS[0];
-    mCurrentLine->mEndRAS[1] = iRAS[1];
-    mCurrentLine->mEndRAS[2] = iRAS[2];
+    int nBackPoint = nCurPoint - 1;
 
-    // Push this onto our list of lines.
-    mLines.push_back( mCurrentLine );
-    
+    Point3<float>& curPoint  = iLine.GetPointAtIndex( nCurPoint );
+    Point3<float>& backPoint = iLine.GetPointAtIndex( nBackPoint );
 
-    // Get window coords for our line beginning and ending. Get a list
-    // of window points between those two points. For each one,
-    // translate it back to an RAS and then tell the volume to mark it
-    // as an edge.
-    int fromWindow[2];
-    int toWindow[2];
-    iTranslator.TranslateRASToWindow( mCurrentLine->mBeginRAS, fromWindow );
-    iTranslator.TranslateRASToWindow( mCurrentLine->mEndRAS, toWindow );
-    
-    list<Point2<int> > points;
-    Utilities::FindPointsOnLine2d( fromWindow, toWindow, 1, points );
-    
-    list<Point2<int> >::iterator tPoints;
-    for( tPoints = points.begin(); tPoints != points.end(); ++tPoints ) {
-      
-      Point2<int>& point = *tPoints;
-      int index[2];
-      index[0] = point.x();
-      index[1] = point.y();
-      float ras[3];
-      iTranslator.TranslateWindowToRAS( index, ras );
-      mVolume->MarkRASEdge( ras );
-    }
+    int curWindow[2], backWindow[2];
+    iTranslator.TranslateRASToWindow( curPoint.xyz(), curWindow );
+    iTranslator.TranslateRASToWindow( backPoint.xyz(), backWindow );
 
-    // Clear the current line.
-    mCurrentLine = NULL;
-  }
-}
-
-
-void 
-ScubaLayer2DMRI::StartEdgeLine( float iRAS[3] ) {
-
-  // Create a new line and set its beginning and ending to this point.
-  mCurrentSnakeLine = new SnakeLine( iRAS );
-}
-
-void 
-ScubaLayer2DMRI::StretchCurrentEdgeLine( float iRAS[3], 
-					 ViewState& iViewState,
-				  ScubaWindowToRASTranslator& iTranslator ) {
-
-  if( mCurrentSnakeLine ) {
-
-    
-    EdgePathFinder finder( iViewState.mBufferWidth, iViewState.mBufferHeight,
-			   (int)mVolume->GetMRIMagnitudeMaxValue(),
-			   &iTranslator, mVolume );
-    //    finder.SetOutputStreamToCerr();
-
-    Point3<float> beginRAS( mCurrentSnakeLine->mBeginRAS );
-    Point3<float> endRAS( iRAS );
-    Point2<int> beginWindow;
-    Point2<int> endWindow;
-    iTranslator.TranslateRASToWindow( beginRAS.xyz(), beginWindow.xy() );
-    iTranslator.TranslateRASToWindow( endRAS.xyz(), endWindow.xy() );
     list<Point2<int> > windowPoints;
-
-    finder.FindPath( beginWindow, endWindow, windowPoints );
-
-    mCurrentSnakeLine->mPointsRAS.clear();
+    Utilities::FindPointsOnLine2d( backWindow, curWindow, 1, windowPoints );
 
     list<Point2<int> >::iterator tWindowPoint;
     for( tWindowPoint = windowPoints.begin();
 	 tWindowPoint != windowPoints.end();
 	 ++tWindowPoint ) {
-
-      Point3<float> currentRAS;
-      iTranslator.TranslateWindowToRAS( (*tWindowPoint).xy(), 
-					currentRAS.xyz() );
-      mCurrentSnakeLine->mPointsRAS.push_back( currentRAS );
+     
+      Point2<int>& window = *tWindowPoint;
+      float RAS[3];
+      iTranslator.TranslateWindowToRAS( window.xy(), RAS );
+      mVolume->MarkRASEdge( RAS );
     }
   }
 }
 
-void 
-ScubaLayer2DMRI::EndEdgeLine( float iRAS[3], 
-			  ScubaWindowToRASTranslator& iTranslator ) {
+PointList3<float>*
+ScubaLayer2DMRI::FindClosestLine ( float iRAS[3],
+				   ViewState& iViewState ) {
 
-  if( mCurrentSnakeLine ) {
-    
-    // Add this line.
-    mSnakeLines.push_back( mCurrentSnakeLine );
+  float minDistance = mWidth * mHeight;
+  PointList3<float>* closestLine = NULL;
+  Point3<float> whereRAS( iRAS );
 
-    // Clear the current line.
-    mCurrentSnakeLine = NULL;
+  float range = 0;
+  switch( iViewState.mInPlane ) {
+  case 0: range = mVolume->GetVoxelXSize() / 2.0; break;
+  case 1: range = mVolume->GetVoxelYSize() / 2.0; break;
+  case 2: range = mVolume->GetVoxelZSize() / 2.0; break;
+  }
+
+  std::list<PointList3<float>*>::iterator tLine;
+  for( tLine = mLines.begin(); tLine != mLines.end(); ++tLine ) {
+    PointList3<float>* line = *tLine;
+    Point3<float>& beginRAS = line->GetPointAtIndex( 0 );
+    if( iViewState.IsRASVisibleInPlane( beginRAS.xyz(), range ) ) {
+      float distance = 
+	line->GetSquaredDistanceOfClosestPoint( minDistance, whereRAS );
+      if( distance < minDistance ) {
+	minDistance = distance;
+	closestLine = line;
+      }
+    }
+  }
+
+  return closestLine;
+}
+
+
+void
+ScubaLayer2DMRI::DrawRASPointListIntoBuffer ( GLubyte* iBuffer, 
+					      int iWidth, int iHeight,
+					      int iColor[3],
+					      ViewState& iViewState,
+				    ScubaWindowToRASTranslator& iTranslator,
+					      PointList3<float>& iLine ) {
+
+
+  // For every two RAS points on our line, translate them to window
+  // points, and draw the line.
+  int cPoints = iLine.GetNumPoints();
+  for( int nCurPoint = 1; nCurPoint < cPoints; nCurPoint++ ) {
+
+    int nBackPoint = nCurPoint - 1;
+
+    Point3<float>& curPoint  = iLine.GetPointAtIndex( nCurPoint );
+    Point3<float>& backPoint = iLine.GetPointAtIndex( nBackPoint );
+
+    int curWindow[2], backWindow[2];
+    iTranslator.TranslateRASToWindow( curPoint.xyz(), curWindow );
+    iTranslator.TranslateRASToWindow( backPoint.xyz(), backWindow );
+
+    DrawLineIntoBuffer( iBuffer, iWidth, iHeight, backWindow, curWindow,
+			iColor, 1, 1 );
   }
 }
+
+
+// ======================================================================
 
 void
 ScubaLayer2DMRI::GetPreferredInPlaneIncrements ( float oIncrements[3] ) {
@@ -1162,54 +1231,6 @@ ScubaLayer2DMRI::GetPreferredInPlaneIncrements ( float oIncrements[3] ) {
   oIncrements[0] = mVolume->GetVoxelXSize();
   oIncrements[1] = mVolume->GetVoxelYSize();
   oIncrements[2] = mVolume->GetVoxelZSize();
-}
-
-void
-ScubaLayer2DMRI::DrawStraightLineIntoBuffer ( GLubyte* iBuffer, 
-					      int iWidth, int iHeight,
-					      ViewState& iViewState,
-				       ScubaWindowToRASTranslator& iTranslator,
-					      Line* iLine ) {
-  
-  int lineBegin[2];
-  int lineEnd[2];
-  int color[3];
-  color[0] = 0; color[1] = 0; color[2] = 255;
-  iTranslator.TranslateRASToWindow( iLine->mBeginRAS, lineBegin );
-  iTranslator.TranslateRASToWindow( iLine->mEndRAS, lineEnd );
-  DrawLineIntoBuffer( iBuffer, iWidth, iHeight, lineBegin, lineEnd,
-		      color, 1, 1 );
-}
-
-void
-ScubaLayer2DMRI::DrawSnakeLineIntoBuffer ( GLubyte* iBuffer, 
-					   int iWidth, int iHeight,
-					   ViewState& iViewState,
-				      ScubaWindowToRASTranslator& iTranslator,
-					   SnakeLine* iLine ) {
-
-  bool bFirstPoint = true;
-  Point3<float>* pointRASA = NULL;
-  Point3<float>* pointRASB = NULL;
-  int windowA[2], windowB[2];
-  int color[3] = {255, 0, 0};
-  
-  list<Point3<float> >::iterator tPoint;
-  for( tPoint = iLine->mPointsRAS.begin();
-       tPoint != iLine->mPointsRAS.end();
-       ++tPoint ) {
-    if( bFirstPoint ) {
-      pointRASA = &(*tPoint);
-      bFirstPoint = false;
-    } else {
-      pointRASB = &(*tPoint);
-      iTranslator.TranslateRASToWindow( pointRASA->xyz(), windowA );
-      iTranslator.TranslateRASToWindow( pointRASB->xyz(), windowB );
-      DrawLineIntoBuffer( iBuffer, iWidth, iHeight, windowA, windowB,
-			  color, 1, 1 );
-      pointRASA = pointRASB;
-    }
-  }
 }
 
 

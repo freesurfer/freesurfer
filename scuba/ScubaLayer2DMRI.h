@@ -7,6 +7,7 @@
 #include "UndoManager.h"
 #include "Timer.h"
 #include "ShortestPathFinder.h"
+#include "PointList3.h"
 
 class ScubaLayer2DMRI : public Layer {
 
@@ -65,17 +66,33 @@ class ScubaLayer2DMRI : public Layer {
   float GetROIOpacity () { return mROIOpacity; }
   void SetROIOpacity ( float iOpacity ) { mROIOpacity = iOpacity; }
 
-  void StartLine( float iRAS[3] );
-  void StretchCurrentLine( float iRAS[3] );
-  void EndLine( float iRAS[3], ScubaWindowToRASTranslator& iTranslator );
-  
-  void StartEdgeLine( float iRAS[3] );
-  void StretchCurrentEdgeLine( float iRAS[3], ViewState& iViewState,
-			       ScubaWindowToRASTranslator& iTranslator );
-  void EndEdgeLine( float iRAS[3], ScubaWindowToRASTranslator& iTranslator );
+  // Creates a new line, adds it to the list of lines, and returns it.
+  PointList3<float>* NewLine ();
 
+  // Stretch a line from its beginning to the end RAS point.
+  void StretchLineStraight  ( PointList3<float>& iLine,
+			      float iRASBegin[3], float iRASEnd[3] );
+  void StretchLineAsEdge    ( PointList3<float>& iLine,
+			      float iRASBegin[3], float iRASEnd[3],
+			      ViewState& iViewState,
+			      ScubaWindowToRASTranslator& iTranslator );
+
+  // Ends a line. Adds points to volume's edge volume.
+  void EndLine              ( PointList3<float>& iLine,
+			      ScubaWindowToRASTranslator& iTranslator );
+
+  // Returns the line closest to the RAS point.
+  PointList3<float>*
+    FindClosestLine         ( float iRAS[3],
+			      ViewState& iViewState );
+
+  void DrawRASPointListIntoBuffer ( GLubyte* iBuffer, int iWidth, int iHeight,
+				    int iColor[3], ViewState& iViewState,
+				    ScubaWindowToRASTranslator& iTranslator,
+				    PointList3<float>& iRASList );
+				 
   virtual void GetPreferredInPlaneIncrements ( float oIncrements[3] );
-
+ 
  protected:
 
   VolumeCollection* mVolume;
@@ -93,35 +110,13 @@ class ScubaLayer2DMRI : public Layer {
   float mMinVisibleValue, mMaxVisibleValue;
 
   float mROIOpacity;
-  
-  // For the straight lines.
-  struct Line {
-    float mBeginRAS[3];
-    float mEndRAS[3];
-  };
-  Line* mCurrentLine;
-  std::list<Line*> mLines;
 
-  void DrawStraightLineIntoBuffer ( GLubyte* iBuffer, int iWidth, int iHeight,
-				    ViewState& iViewState,
-				    ScubaWindowToRASTranslator& iTranslator,
-				    Line* iLine );
+  // For lines.
+  std::list<PointList3<float>* > mLines;
+  PointList3<float>*             mCurrentLine;
+  Point3<float>                  mFirstLineRAS;
+  Point3<float>                  mLastLineMoveRAS;
 
-  // For snake lines.
-  class SnakeLine {
-  public:
-    SnakeLine( float iRAS[3] ) { mBeginRAS.Set( iRAS ); mEndRAS.Set( iRAS ); }
-    Point3<float> mBeginRAS;
-    Point3<float> mEndRAS;
-    std::list<Point3<float> > mPointsRAS;
-  };
-  SnakeLine* mCurrentSnakeLine;
-  std::list<SnakeLine*> mSnakeLines;
-
-  void DrawSnakeLineIntoBuffer ( GLubyte* iBuffer, int iWidth, int iHeight,
-				 ViewState& iViewState,
-				 ScubaWindowToRASTranslator& iTranslator,
-				 SnakeLine* iLine );
 };
 
 

@@ -10,6 +10,8 @@ class Point2 {
   Point2 () {}
   Point2 ( T iX, T iY ) { m[0] = iX; m[1] = iY; }
   void Set ( T iX, T iY ) { m[0] = iX; m[1] = iY; }
+  void Set ( T iXY[2] ) { m[0] = iXY[0]; m[1] = iXY[1]; }
+  void Set ( Point2<T>& i ) { m[0] = i.x(); m[1] = i.y(); }
   T* xy() { return m; }
   T x () { return m[0]; }
   T y () { return m[1]; }

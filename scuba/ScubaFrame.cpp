@@ -526,6 +526,7 @@ ScubaFrame::TranslateWindowToView ( int iWindow[2], int inCol, int inRow,
 void
 ScubaFrame::SizeViewsToConfiguration() {
 
+
   for( int nRow = 0; nRow < mcRows; nRow++ ) {
     int cCols = mcCols[nRow];
     for( int nCol = 0; nCol < cCols; nCol++ ) {
@@ -556,16 +557,6 @@ ScubaFrame::DoDraw() {
       glOrtho( 0, mWidth/cCols-1, 0, mHeight/mcRows-1, -1.0, 1.0 );
       glMatrixMode( GL_MODELVIEW );
       
-#if 0
-      // Flip left/right.
-      float m[16];
-      m[0] = -1;  m[4] =  0;   m[8] = 0;  m[12] = 0;
-      m[1] =  0;  m[5] =  0;   m[9] = 1;  m[13] = 0;
-      m[2] =  0;  m[6] =  1;  m[10] = 0;  m[14] = 0;
-      m[3] =  0;  m[7] =  0;  m[11] = 0;  m[15] = 1;
-      glLoadMatrixf( m );
-#endif
-
       // We change the y position so that the 0,0 view is in the top
       // left corner and the cCols-1,mcRows-1 view is in the bottom
       // right, even tho the GL port's 0,0 is in the lower left
@@ -724,33 +715,60 @@ ScubaFrame::SetViewConfiguration( ScubaFrame::ViewConfiguration iConfig ) {
 
   mViewConfiguration = iConfig;
 
+  int cNewRows;
+  map<int,int> cNewCols;
+
   switch( mViewConfiguration ) {
     case c1:
-      mcRows = 1;
-      mcCols[0] = 1;
+      cNewRows = 1;
+      cNewCols[0] = 1;
       break;
     case c22:
-      mcRows = 2;
-      mcCols[0] = mcCols[1] = 2;
+      cNewRows = 2;
+      cNewCols[0] = cNewCols[1] = 2;
       break;
     case c44:
-      mcRows = 4;
-      mcCols[0] = mcCols[1] = mcCols[2] = mcCols[3] = 4;
+      cNewRows = 4;
+      cNewCols[0] = cNewCols[1] = cNewCols[2] = cNewCols[3] = 4;
       break;
     case c13:
-      mcRows = 2;
-      mcCols[0] = 1;
-      mcCols[1] = 3;
+      cNewRows = 2;
+      cNewCols[0] = 1;
+      cNewCols[1] = 3;
       break;
+  default:
+    cNewRows = 0;
   }
 
+  // First disable existing views that won't be in the new
+  // configuration.
+  if( cNewRows < mcRows ) {
+    for( int nRow = cNewRows-1; nRow < mcRows; nRow++ ) {
+      int cCols = mcCols[nRow];
+      if( cNewCols[nRow] < cCols ) {
+	for( int nCol = cNewCols[nRow]-1; nCol < cCols; nCol++ ) {
+	  View* view;
+	  try {
+	    view = GetViewAtColRow( nCol, nRow );
+	    view->SetVisibleInFrame( false );
+	  } 
+	  catch(...) {}
+	}
+      }
+    }
+  }
+
+  // Now make sure all the new views are made, saving the new
+  // configuration in the process.
+  mcRows = cNewRows;
   for( int nRow = 0; nRow < mcRows; nRow++ ) {
-    int cCols = mcCols[nRow];
+    int cCols = mcCols[nRow] = cNewCols[nRow];
     for( int nCol = 0; nCol < cCols; nCol++ ) {
       
       View* view;
       try {
 	view = GetViewAtColRow( nCol, nRow );
+	view->SetVisibleInFrame( true );
       } 
       catch(...) {
 	if( NULL != mFactory ) {
@@ -762,6 +780,8 @@ ScubaFrame::SetViewConfiguration( ScubaFrame::ViewConfiguration iConfig ) {
 	  sID << nCol << ", " << nRow;
 	  view->SetLabel( sID.str() );
 	  
+	  view->SetVisibleInFrame( true );
+	
 	} else {
 	  DebugOutput( << "Couldn't create new view because factory "
 		       << "has not been set" );

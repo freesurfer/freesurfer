@@ -10,6 +10,13 @@ int const ScubaView::kBytesPerPixel = 4;
 map<int,bool> ScubaView::mViewIDLinkedList;
 int ScubaView::mCurrentBroadcaster = -1;
 
+int const ScubaView::kcInPlaneMarkerColors = 12;
+float kInPlaneMarkerColors[ScubaView::kcInPlaneMarkerColors][3] = {
+  { 1, 0, 0 }, { 0, 1, 0 }, { 0, 0, 1 },
+  { 1, 1, 0 }, { 1, 0, 1 }, { 0, 1, 1 }, 
+  { 0.25, 0.75, 0 }, { 0.25, 0, 0.75 }, { 0, 0.25, 0.75 }, 
+  { 0.75, 0.25, 0 }, { 0.75, 0, 0.25 }, { 0, 0.75, 0.25 } };
+
 ScubaView::ScubaView() {
   mBuffer = NULL;
   mbPostRedisplay = false;
@@ -19,11 +26,19 @@ ScubaView::ScubaView() {
   mInPlaneMovementIncrements[0] = 1.0;
   mInPlaneMovementIncrements[1] = 1.0;
   mInPlaneMovementIncrements[2] = 1.0;
+  int nMarkerColor = GetID() % kcInPlaneMarkerColors;
+  mInPlaneMarkerColor[0] = kInPlaneMarkerColors[nMarkerColor][0];
+  mInPlaneMarkerColor[1] = kInPlaneMarkerColors[nMarkerColor][1];
+  mInPlaneMarkerColor[2] = kInPlaneMarkerColors[nMarkerColor][2];
+  mbVisibleInFrame = false;
+
 
   ScubaGlobalPreferences& globalPrefs =
     ScubaGlobalPreferences::GetPreferences();
-
   globalPrefs.AddListener( this );
+
+  ScubaViewBroadcaster& broadcaster = ScubaViewBroadcaster::GetBroadcaster();
+  broadcaster.AddListener( this );
 
   mbFlipLeftRightInYZ = 
     globalPrefs.GetPrefAsBool( ScubaGlobalPreferences::ViewFlipLeftRight );
@@ -128,38 +143,16 @@ ScubaView::~ScubaView() {
 }
 
 void
-ScubaView::Set2DRASCenter ( float iRASCenter[] ) {
+ScubaView::Set2DRASCenter ( float iRASCenter[3] ) {
 
   mViewState.mCenterRAS[0] = iRASCenter[0];
   mViewState.mCenterRAS[1] = iRASCenter[1];
   mViewState.mCenterRAS[2] = iRASCenter[2];
 
-  // If we're linked, set the center in other linked views.
-  if( mViewIDLinkedList[GetID()] && mCurrentBroadcaster == -1 ) {
+  // Broadcast this change.
+  ScubaViewBroadcaster& broadcaster = ScubaViewBroadcaster::GetBroadcaster();
+  broadcaster.SendBroadcast( "2DRASCenterChanged", (void*)&mID );
 
-    mCurrentBroadcaster = GetID();
-    map<int,bool>::iterator tIDLinked;
-    for( tIDLinked = mViewIDLinkedList.begin();
-	 tIDLinked != mViewIDLinkedList.end(); ++tIDLinked ) {
-      int viewID = (*tIDLinked).first;
-      bool bLinked = (*tIDLinked).second;
-      if( bLinked && GetID() != viewID ) {
-	try { 
-	  View& view = View::FindByID( viewID );
-	  // ScubaView& scubaView = dynamic_cast<ScubaView&>(view);
-	  ScubaView& scubaView = (ScubaView&)view;
-	  scubaView.Set2DRASCenter( iRASCenter );
-	  scubaView.RebuildOverlayDrawList();
-	  scubaView.RequestRedisplay();
-	}
-	catch(...) {
-	  DebugOutput( << "Couldn't find view " << viewID );
-	}
-      }
-    }
-    mCurrentBroadcaster = -1;
-  }
-  
   // Changed our view center, so we need to rebuild the overlay.
   RebuildOverlayDrawList();
   RequestRedisplay();
@@ -170,32 +163,10 @@ ScubaView::Set2DZoomLevel ( float iZoomLevel ) {
 
   mViewState.mZoomLevel = iZoomLevel;
 
-  // If we're linked, set the center in other linked views.
-  if( mViewIDLinkedList[GetID()] && mCurrentBroadcaster == -1 ) {
+  // Broadcast this change.
+  ScubaViewBroadcaster& broadcaster = ScubaViewBroadcaster::GetBroadcaster();
+  broadcaster.SendBroadcast( "2DZoomLevelChanged", (void*)&mID );
 
-    mCurrentBroadcaster = GetID();
-    map<int,bool>::iterator tIDLinked;
-    for( tIDLinked = mViewIDLinkedList.begin();
-	 tIDLinked != mViewIDLinkedList.end(); ++tIDLinked ) {
-      int viewID = (*tIDLinked).first;
-      bool bLinked = (*tIDLinked).second;
-      if( bLinked && GetID() != viewID ) {
-	try { 
-	  View& view = View::FindByID( viewID );
-	  // ScubaView& scubaView = dynamic_cast<ScubaView&>(view);
-	  ScubaView& scubaView = (ScubaView&)view;
-	  scubaView.Set2DZoomLevel( iZoomLevel );
-	  scubaView.RebuildOverlayDrawList();
-	  scubaView.RequestRedisplay();
-	}
-	catch(...) {
-	  DebugOutput( << "Couldn't find view " << viewID );
-	}
-      }
-    }
-    mCurrentBroadcaster = -1;
-  }
-  
   // Changed zoom, so we need to rebuild the overlay.
   RebuildOverlayDrawList();
   RequestRedisplay();
@@ -205,7 +176,36 @@ void
 ScubaView::Set2DInPlane ( ViewState::Plane iPlane ) {
 
   mViewState.mInPlane = iPlane;
+
+  // Broadcast this change.
+  ScubaViewBroadcaster& broadcaster = ScubaViewBroadcaster::GetBroadcaster();
+  broadcaster.SendBroadcast( "2DInPlaneChanged", (void*)&mID );
+
+  // Changed in plane, so we need to rebuild the overlay.
+  RebuildOverlayDrawList();
+  RequestRedisplay();
 }
+
+void
+ScubaView::Get2DRASCenter ( float oRASCenter[3] ) {
+
+  oRASCenter[0] = mViewState.mCenterRAS[0];
+  oRASCenter[1] = mViewState.mCenterRAS[1];
+  oRASCenter[2] = mViewState.mCenterRAS[2];
+}
+
+float
+ScubaView::Get2DZoomLevel () {
+  
+  return mViewState.mZoomLevel;
+}
+
+ViewState::Plane
+ScubaView::Get2DInPlane () {
+
+  return mViewState.mInPlane;
+}
+
 
 void 
 ScubaView::SetLayerAtLevel ( int iLayerID, int iLevel ) {
@@ -774,6 +774,35 @@ ScubaView::DoListenToMessage ( string isCommand, void* iData ) {
       isCommand == "DrawCenterCrosshairOverlay" ) {
     RebuildOverlayDrawList(); // our overlay will be different
     RequestRedisplay();
+  }
+
+  // If we're linked, we need to change our view.
+  if( isCommand == "2DRASCenterChanged" ||
+      isCommand == "2DZoomLevelChanged" ||
+      isCommand == "2DInPlaneChanged" ) {
+    int viewID = *(int*)iData;
+    if( mViewIDLinkedList[GetID()] && mViewIDLinkedList[viewID] ) {
+      View& view = View::FindByID( viewID );
+      // ScubaView& scubaView = dynamic_cast<ScubaView&>(view);
+      ScubaView& scubaView = (ScubaView&)view;
+
+      // Change center or zoom level if linked. Don't link the in plane.
+      if( isCommand == "2DRASCenterChanged" ) {
+	float RASCenter[3];
+	scubaView.Get2DRASCenter( RASCenter );
+	Set2DRASCenter( RASCenter );
+      } else if ( isCommand == "2DZoomLevelChanged" ) {
+	float zoomLevel;
+	zoomLevel = scubaView.Get2DZoomLevel();
+	Set2DZoomLevel( zoomLevel );
+      }
+    }
+
+    // If we're visible request redisplays.
+    if( IsVisibleInFrame() ) {
+      RebuildOverlayDrawList();
+      RequestRedisplay();
+    }
   }
 
   // We cache these values but down have to act on them right away.
@@ -1366,8 +1395,8 @@ ScubaView::BuildOverlay () {
       sZLabel = 'r';
       window[0] = 0;       TranslateWindowToRAS( window, ras ); left  = ras[1];
       window[0] = mWidth;  TranslateWindowToRAS( window, ras ); right = ras[1];
-      window[1] = 0;       TranslateWindowToRAS( window, ras ); top   = ras[2];
-      window[1] = mHeight; TranslateWindowToRAS( window, ras ); bottom= ras[2];
+      window[1] = 0;       TranslateWindowToRAS( window, ras ); bottom= ras[2];
+      window[1] = mHeight; TranslateWindowToRAS( window, ras ); top   = ras[2];
       plane = ras[0];
       break;
     case ViewState::Y: 
@@ -1376,8 +1405,8 @@ ScubaView::BuildOverlay () {
       sZLabel = 'a';
       window[0] = 0;       TranslateWindowToRAS( window, ras ); left  = ras[0];
       window[0] = mWidth;  TranslateWindowToRAS( window, ras ); right = ras[0];
-      window[1] = 0;       TranslateWindowToRAS( window, ras ); top   = ras[2];
-      window[1] = mHeight; TranslateWindowToRAS( window, ras ); bottom= ras[2];
+      window[1] = 0;       TranslateWindowToRAS( window, ras ); bottom= ras[2];
+      window[1] = mHeight; TranslateWindowToRAS( window, ras ); top   = ras[2];
       plane = ras[1];
       break;
     case ViewState::Z: 
@@ -1387,8 +1416,8 @@ ScubaView::BuildOverlay () {
       sZLabel = 's';
       window[0] = 0;       TranslateWindowToRAS( window, ras ); left  = ras[0];
       window[0] = mWidth;  TranslateWindowToRAS( window, ras ); right = ras[0];
-      window[1] = 0;       TranslateWindowToRAS( window, ras ); top   = ras[1];
-      window[1] = mHeight; TranslateWindowToRAS( window, ras ); bottom= ras[1];
+      window[1] = 0;       TranslateWindowToRAS( window, ras ); bottom= ras[1];
+      window[1] = mHeight; TranslateWindowToRAS( window, ras ); top   = ras[1];
       plane = ras[2];
       break;
     }
@@ -1433,22 +1462,103 @@ ScubaView::BuildOverlay () {
 
   if( prefs.GetPrefAsBool( ScubaGlobalPreferences::DrawCenterCrosshairOverlay )) {
 
-    glColor3f( 1, 0, 0 );
-
-    glBegin( GL_LINES );
-    glVertex2d( 0, mHeight/2 );
-    glVertex2d( mWidth-1, mHeight/2 );
+    // Draw our marker color around us.
+    glColor3f( mInPlaneMarkerColor[0], 
+	       mInPlaneMarkerColor[1], mInPlaneMarkerColor[2] );
+    glBegin( GL_LINE_STRIP );
+    glVertex2d( 2, 2 );
+    glVertex2d( mWidth-3, 2 );
+    glVertex2d( mWidth-3, mHeight-3 );
+    glVertex2d( 2, mHeight-3 );
+    glVertex2d( 2, 2 );
     glEnd();
+    
 
-    glBegin( GL_LINES );
-    glVertex2d( mWidth/2, 0 );
-    glVertex2d( mWidth/2, mHeight-1 );
-    glEnd();
+    // For each other visible view...
+    list<int> viewIDs;
+    GetIDList( viewIDs );
+    list<int>::iterator tViewID;
+    for( tViewID = viewIDs.begin(); tViewID != viewIDs.end(); ++tViewID ) {
+
+      int viewID = *tViewID;
+      
+      if( viewID != GetID () ) {
+
+	try {
+	  View& view = View::FindByID( viewID );
+	  // ScubaView& scubaView = dynamic_cast<ScubaView&>(view);
+	  ScubaView& scubaView = (ScubaView&)view;
+	  
+	  if( scubaView.IsVisibleInFrame() ) {
+	    
+	    // If its inplane is not ours..
+	    if( scubaView.Get2DInPlane() != Get2DInPlane() ) {
+	      
+	      // Get its marker color and middle coordinate draw an
+	      // appropriate line.
+	      float color[3];
+	      float viewCenterRAS[3];
+	      int viewCenterWindow[2];
+	      scubaView.GetInPlaneMarkerColor( color );
+	      scubaView.Get2DRASCenter( viewCenterRAS );
+	      
+	      TranslateRASToWindow( viewCenterRAS, viewCenterWindow );
+	      
+	      glColor3f( color[0], color[1], color[2] );	    
+	      glBegin( GL_LINES );
+	      
+	      switch( Get2DInPlane() ) { 
+	      case ViewState::X: 
+		if( scubaView.Get2DInPlane() == ViewState::Y ) {
+		  glVertex2d( viewCenterWindow[0], 0 ); 
+		  glVertex2d( viewCenterWindow[0], mHeight-1 );
+		} else if( scubaView.Get2DInPlane() == ViewState::Z ){
+		  glVertex2d( 0, viewCenterWindow[1] ); 
+		  glVertex2d( mWidth-1, viewCenterWindow[1] );
+		}
+		break;
+	      case ViewState::Y:
+		if( scubaView.Get2DInPlane() == ViewState::X ) {
+		  glVertex2d( viewCenterWindow[0], 0 ); 
+		  glVertex2d( viewCenterWindow[0], mHeight-1 );
+		} else if( scubaView.Get2DInPlane() == ViewState::Z ) {
+		  glVertex2d( 0, viewCenterWindow[1] ); 
+		  glVertex2d( mWidth-1, viewCenterWindow[1] );
+		}
+		break;
+	      case ViewState::Z:
+		if( scubaView.Get2DInPlane() == ViewState::X ) {
+		  glVertex2d( viewCenterWindow[0], 0 ); 
+		  glVertex2d( viewCenterWindow[0], mHeight-1 );
+		} else if( scubaView.Get2DInPlane() == ViewState::Y ) {
+		  glVertex2d( 0, viewCenterWindow[1] ); 
+		  glVertex2d( mWidth-1, viewCenterWindow[1] );
+		}
+		break;
+	      }
+	      
+	      glEnd();
+	    }
+	  }
+	}
+	catch(...) {
+	  
+	}
+      }
+    }
   }
 
   glEndList();
 
   mbRebuildOverlayDrawList = false;
+}
+
+void
+ScubaView::GetInPlaneMarkerColor ( float oColor[3] ) {
+
+  oColor[0] = mInPlaneMarkerColor[0];
+  oColor[1] = mInPlaneMarkerColor[1];
+  oColor[2] = mInPlaneMarkerColor[2];
 }
 
 void
@@ -1458,4 +1568,13 @@ ScubaView::DrawOverlay () {
     BuildOverlay();
 
   glCallList( kOverlayDrawListID + mID );
+}
+
+ScubaViewBroadcaster&
+ScubaViewBroadcaster::GetBroadcaster () {
+  static ScubaViewBroadcaster* sBroadcaster = NULL;
+  if( NULL == sBroadcaster ) {
+    sBroadcaster = new ScubaViewBroadcaster();
+  }
+  return *sBroadcaster;
 }

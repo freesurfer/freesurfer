@@ -164,7 +164,7 @@ x    - try rubber band updating
 x  - keep list of line objects
 x  - draw line with voxel line drawing
 x  - function to determine if RAS coordinate is in plane with granularity
-  - mouse 2 to select 
+x  - mouse 2 to select 
     - can hit delete to erase line
 
 x lines
@@ -243,13 +243,23 @@ x  - add 'snake line' parallel to mCurrentLine and begin/end points
 x  - edgeline just makes straight line
 x  - code to draw snake line
 x  - connects first and last points on redraw
+ - add edge line to edge volume
 
-- live reslicing
- - each view gets a color
- - in each view, display a color for intersection of other views
+x - live reslicing
+x  - each view gets a color
+x  - in each view, display a color for intersection of other views
+ - inplane tool
+  - on click, compare to inplane values of other views, find closest
+  - on drag, change in plane center ras value
  - change inplane value to an actual plane description
- - in each view, a line represents the in plane in the other views
  - can click and drag on those lines to move in plane or rotate
+
+
+- status bar area
+  - change TclDlogManager to TclProgressDisplayManager
+    - functions to NewTask, UpdateTask, CheckForTaskButtons
+  - change scuba.tcl functions
+    - display text, progress, have buttons on right
 
 
 BRUCE'S LIST:::
@@ -260,11 +270,12 @@ BRUCE'S LIST:::
 BUGS:::
 - fix radius in brush, it's really ugly
 - tabbing when in console switches frame, disable?
-- dlog box on fill still not create
+- dlog box on fill 
   - way to suspend the redraw in the middle of the fill?
   - way to have a progress bar without a percent?
-- when switch inplane, rebuild overlay
 - brings up tkcon window briefly when booting
+- ctrl-click to zoom in while in line tool draws line - handleTool should check to see if ctrl is down
+
 
 
 FUTURE IDEAS:::

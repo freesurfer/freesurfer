@@ -44,6 +44,10 @@ public:
   bool WantRedisplay() const { return mbPostRedisplay; }
   void RedisplayPosted() { mbPostRedisplay = false; }
 
+  // Set the frame visiblity flag.
+  void SetVisibleInFrame ( bool ibVisible ) { mbVisibleInFrame = ibVisible; }
+  bool IsVisibleInFrame () { return mbVisibleInFrame; }
+
  protected:
   virtual void DoDraw();
   virtual void DoReshape( int iWidth, int iHeight );
@@ -66,6 +70,10 @@ public:
 
   // Redisplay requested flag.
   bool mbPostRedisplay;
+
+  // A flag set by the Frame to tell the view whether it's visible or
+  // not.
+  bool mbVisibleInFrame;
 };
 
 

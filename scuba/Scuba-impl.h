@@ -3,8 +3,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2004/04/12 19:21:21 $
-// Revision       : $Revision: 1.2 $
+// Revision Date  : $Date: 2004/04/18 21:11:31 $
+// Revision       : $Revision: 1.3 $
 
 // This file is necessary for creating the instantiations for template
 // classes. Note that we actually include the .cpp files here.  Then
@@ -18,6 +18,7 @@
 #include "Point2.cpp"
 #include "Point3.cpp"
 #include "Array2.cpp"
+#include "PointList3.cpp"
 #include "ShortestPathFinder.h"
 
 using namespace std;
@@ -35,3 +36,4 @@ template Array2<float>;
 template Array2<int>;
 template Array2<bool>;
 template Array2<listElement>;
+template PointList3<float>;

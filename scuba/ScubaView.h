@@ -22,14 +22,19 @@ class ScubaView : public View, public ScubaWindowToRASTranslator, public Listene
   ScubaView();
   virtual ~ScubaView();
 
-  static int const kBytesPerPixel;
+  static int const kBytesPerPixel;         // for buffer size
+  static int const kcInPlaneMarkerColors;  // number of preset colors
 
   // Sets the view. Used by something that wants to explicitly set up
   // the view area, such as a linked view broadcasting its position or
   // a script.
-  void Set2DRASCenter ( float iRASCenter[] );
+  void Set2DRASCenter ( float iRASCenter[3] );
   void Set2DZoomLevel ( float iZoom );
   void Set2DInPlane ( ViewState::Plane iPlane );
+
+  void Get2DRASCenter ( float oRASCenter[3] );
+  float Get2DZoomLevel ();
+  ViewState::Plane Get2DInPlane ();
 
   // Add and remove layers that this view at a specific level. Note
   // that only one layer can be at a specific level, and adding a
@@ -47,9 +52,11 @@ class ScubaView : public View, public ScubaWindowToRASTranslator, public Listene
   void SetWorldToViewTransform ( int iTransformID );
   int GetWorldToViewTransform ();
 
+  // Handle Tcl commands.
   virtual TclCommandResult
     DoListenToTclCommand ( char* isCommand, int iArgc, char** iasArgv );
 
+  // Handle broadcast messages.
   virtual void
     DoListenToMessage ( std::string isCommand, void* iData );
 
@@ -57,12 +64,18 @@ class ScubaView : public View, public ScubaWindowToRASTranslator, public Listene
   void TranslateWindowToRAS ( int iWindow[2], float oRAS[3] );
   void TranslateRASToWindow ( float iRAS[3], int oWindow[2] );
 
+  // Get the first draw level with no layer assigned to it.
   int GetFirstUnusedDrawLevel ();
 
+  // Set the flag to rebuild the draw overlay.
   void RebuildOverlayDrawList () { mbRebuildOverlayDrawList = true; }
 
+  // Access the left/right flip flag.
   void SetFlipLeftRightYZ ( bool iFlip );
   bool GetFlipLeftRightYZ () { return mbFlipLeftRightInYZ; }
+
+  // Get the inplane marker color.
+  void GetInPlaneMarkerColor ( float oColor[3] );
 
 protected:
 
@@ -157,9 +170,16 @@ protected:
   static int mCurrentBroadcaster;
   static std::map<int,bool> mViewIDLinkedList;
 
+  // The world to view transform, or the 'view transform.' Applied to
+  // all world coordinates before getting to the view.
   ScubaTransform* mWorldToView;
 
+  // Whether to flip the right/left coordinates.
   bool mbFlipLeftRightInYZ;
+
+  // The color to use when drawing this view's inplane on another view.
+  float mInPlaneMarkerColor[3];
+
 };  
 
 class ScubaViewFactory : public ViewFactory {
@@ -169,7 +189,10 @@ class ScubaViewFactory : public ViewFactory {
   }
 };
 
-
+class ScubaViewBroadcaster : public Broadcaster {
+ public:
+  static ScubaViewBroadcaster& GetBroadcaster ();
+};
 
 
 
