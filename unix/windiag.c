@@ -19,7 +19,7 @@
 
 #include <xview/notify.h>
 
-#include "window.h"
+#include "windiag.h"
 #include "error.h"
 #include "proto.h"
 #include "xwin.h"
