@@ -20,15 +20,16 @@ char *Progname ;
 static char *log_fname = NULL ;
 static void usage_exit(int code) ;
 
+static int all_flag = 0 ;
 
 int
 main(int argc, char *argv[])
 {
   char   **av ;
-  int    ac, nargs ;
+  int    ac, nargs, lno, nshared, nvox1, nvox2 ;
   int          msec, minutes, seconds, wrong, total, correct ;
   struct timeb start ;
-  MRI    *mri1, *mri2, *mri_diff ;
+  MRI    *mri1, *mri2 ;
   FILE   *log_fp ;
 
   Progname = argv[0] ;
@@ -68,27 +69,82 @@ main(int argc, char *argv[])
   }
   else
     log_fp = NULL ;
-  mri_diff = MRIabsdiff(mri1, mri2, NULL) ;
-  MRIbinarize(mri_diff, mri_diff, 1, 0, 1) ;
-  wrong = MRIvoxelsInLabel(mri_diff, 1) ;
-#if 0
-  MRIbinarize(mri1, mri1, 1, 0, 1) ;
-  total = MRIvoxelsInLabel(mri1, 1) ;
-  MRIbinarize(mri2, mri2, 1, 0, 1) ;
-  total += MRIvoxelsInLabel(mri1, 1) ;
-  total /= 2 ;
-#else
-  total = mri1->width*mri1->height*mri1->depth ;
-#endif
 
-  correct = total-wrong ;
-  printf("%d of %d voxels correctly labeled - %2.2f%%\n",
-         correct, total, 100.0f*(float)correct/(float)total) ;
-  if (log_fp)
+  if (all_flag)
   {
-    fprintf(log_fp,"%d  %d  %2.4f\n", correct, total, 
-            100.0f*(float)correct/(float)total) ;
-    fclose(log_fp) ;
+    MRI *mri1_label = NULL, *mri2_label = NULL ;
+
+    mri1_label = MRIclone(mri1, NULL) ;
+    mri2_label = MRIclone(mri2, NULL) ;
+    for (lno = 0 ; lno < 1000 ; lno++)
+    {
+#if 1
+      nvox1 = MRIvoxelsInLabel(mri1, lno) ;
+      nvox2 = MRIvoxelsInLabel(mri2, lno) ;
+      if (!nvox1 && !nvox2)
+        continue ;
+      nshared = MRIlabelOverlap(mri1, mri2, lno) ;
+      
+      printf("volume diff = |(%d - %d)| / %d = %2.2f\n",
+             nvox1, nvox2, nvox1, 100.0f*(float)abs(nvox1-nvox2)/nvox1) ;
+      printf("volume overlap = %d / %d = %2.2f\n",
+             nshared, nvox1, 100.0f*(float)nshared/nvox1) ;
+      if (log_fp)
+      {
+        fprintf(log_fp, "%d  %2.2f  %2.2f\n", lno,
+                100.0f*(float)abs(nvox1-nvox2)/nvox1,
+                100.0f*(float)nshared/nvox1) ;
+      }
+#else
+      nvox1 = MRIcopyLabel(mri1, mri1_label, lno) ;
+      nvox2 = MRIcopyLabel(mri2, mri1_label, lno) ;
+      if (!nvox1 && !nvox2)
+        continue ;
+      correct = MRIlabelOverlap(mri1, mri2, lno) ;
+      total = (nvox1+nvox2)/2 ;
+      wrong = total-correct ;
+      printf("label %03d: %d of %d voxels correctly labeled - %2.2f%%\n",
+             lno, correct, total, 100.0f*(float)correct/(float)total) ;
+      if (log_fp)
+      {
+        fprintf(log_fp,"%d  %d  %d  %2.4f\n", lno, correct, total, 
+                100.0f*(float)correct/(float)total) ;
+        fclose(log_fp) ;
+      }
+#endif
+    }
+    if (log_fp)
+      fclose(log_fp) ;
+  }
+  else
+  {
+    lno = atoi(argv[3]) ;
+    nvox1 = MRIvoxelsInLabel(mri1, lno) ;
+    nvox2 = MRIvoxelsInLabel(mri2, lno) ;
+    nshared = MRIlabelOverlap(mri1, mri2, lno) ;
+
+    printf("label %d: volume diff = |(%d - %d)| / %d = %2.2f\n",
+           lno,nvox1, nvox2, nvox1, 100.0f*(float)abs(nvox1-nvox2)/nvox1) ;
+    printf("label %d: volume overlap = %d / %d = %2.2f\n",
+           lno, nshared, nvox1, 100.0f*(float)nshared/nvox1) ;
+    if (log_fp)
+    {
+      fprintf(log_fp, "%2.2f  %2.2f\n", 
+              100.0f*(float)abs(nvox1-nvox2)/nvox1,
+              100.0f*(float)nshared/nvox1) ;
+      fclose(log_fp) ;
+    }
+#if 0
+    correct = total-wrong ;
+    printf("%d of %d voxels correctly labeled - %2.2f%%\n",
+           correct, total, 100.0f*(float)correct/(float)total) ;
+    if (log_fp)
+    {
+      fprintf(log_fp,"%d  %d  %2.4f\n", correct, total, 
+              100.0f*(float)correct/(float)total) ;
+      fclose(log_fp) ;
+    }
+#endif
   }
 
   msec = TimerStop(&start) ;
@@ -117,6 +173,9 @@ get_option(int argc, char *argv[])
   option = argv[1] + 1 ;            /* past '-' */
   switch (toupper(*option))
   {
+  case 'A':
+    all_flag = 1 ;
+    break ;
   case 'L':
     log_fname = argv[2] ;
     nargs = 1 ;
@@ -142,10 +201,9 @@ get_option(int argc, char *argv[])
 static void
 usage_exit(int code)
 {
-  printf("usage: %s [options] <volume 1> <volume 2>",
-         Progname) ;
+  printf("usage: %s [options] <volume 1> <volume 2>\n", Progname) ;
   printf(
-         "\tf <f low> <f hi> - apply specified filter (not implemented yet)\n"
+         "\ta           - compute overlap of all lables\n"
          );
   exit(code) ;
 }
