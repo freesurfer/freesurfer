@@ -12,7 +12,7 @@
 #include "mri.h"
 #include "macros.h"
 
-static char vcid[] = "$Id: mris_register.c,v 1.14 2002/05/21 15:57:15 fischl Exp $";
+static char vcid[] = "$Id: mris_register.c,v 1.15 2002/06/14 03:01:26 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -81,8 +81,8 @@ main(int argc, char *argv[])
   parms.dt = 0.9 ;
   parms.momentum = 0.95 ;
   parms.desired_rms_height = -1.0 ;
-  parms.nbhd_size = 7 ;
-  parms.max_nbrs = 8 ;
+  parms.nbhd_size = 0 ;
+  parms.max_nbrs = 0 ;
 
   ac = argc ;
   av = argv ;
@@ -196,6 +196,14 @@ get_option(int argc, char *argv[])
     print_help() ;
   else if (!stricmp(option, "-version"))
     print_version() ;
+  else if (!stricmp(option, "vnum") || !stricmp(option, "distances"))
+  {
+    parms.nbhd_size = atof(argv[2]) ;
+    parms.max_nbrs = atof(argv[3]) ;
+    nargs = 2 ;
+    fprintf(stderr, "nbr size = %d, max neighbors = %d\n",
+            parms.nbhd_size, parms.max_nbrs) ;
+  }
   else if (!stricmp(option, "rotate"))
   {
     dalpha = atof(argv[2]) ;
