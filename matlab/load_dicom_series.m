@@ -16,7 +16,7 @@ function [vol, M, tmpdcminfo, mr_parms] = load_dicom_series(seriesno,dcmdir,dcmf
 %
 % Bugs: will not load multiple frames or mosaics properly.
 %
-% $Id: load_dicom_series.m,v 1.3 2003/07/21 16:12:44 ebeth Exp $
+% $Id: load_dicom_series.m,v 1.4 2003/08/20 19:42:44 ebeth Exp $
 
 if(nargin < 1 | nargin > 3)
   fprintf('[vol, M, dcminfo] = load_dicom_series(seriesno,<dcmdir>,<dcmfile>)\n');
@@ -69,7 +69,7 @@ for n = 1:nfiles
   end
 end
 if(nth==1)
-  fprintf('ERROR: could not find any dicom files in %s\n',dcmdir);
+  fprintf('ERROR: could not find any dicom files in %s or none in series %d\n',dcmdir,seriesno);
   return;
 end
 dcminfo = dcminfo0;
