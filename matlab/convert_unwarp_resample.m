@@ -1,4 +1,4 @@
-% $Id: convert_unwarp_resample.m,v 1.5 2004/01/17 05:21:48 ebeth Exp $
+% $Id: convert_unwarp_resample.m,v 1.6 2004/01/18 20:50:40 ebeth Exp $
 %
 %% convert_unwarp_resample.m contains: 
 % convert_unwarp_resample()
@@ -7,12 +7,12 @@
 % header2map(), type2map(), map2manuf() refer to TABLE = GRADWARPPATH/table.mat
 %
 %% convert_unwarp_resample() also calls:
-% unwarp_init_globals() (GRADWARPPATH, TABLE, QuitOnError)
-% unwarp_resample.m, load_mgh, save_mgh, etc.
+% unwarp_init_globals.m (initializes GRADWARPPATH, TABLE, QuitOnError)
+% unwarp_resample.m, load_mgh.m, save_mgh.m, load_dicom_series.m, etc.
 %
 %% also relevant:
-% unwarp_scanners_table.m makes GRADWARPPATH/table.mat
-%  - to change table.mat, add extra structure to unwarp_scanners_table.m and rerun
+% unwarp_scanners_table.m creates GRADWARPPATH/table.mat
+%  - to change table.mat, edit unwarp_scanners_table.m structure and rerun it
 % $DEV/scripts/grad_unwarp
 %   - invokes convert_unwarp_resample()
 % 
@@ -28,14 +28,17 @@ function convert_unwarp_resample(infile,series,outfile,corfovflag,unwarpflag,jac
 
 % Add stuff to path if necessary %
 devdir = getenv('DEV');
-% d = sprintf('%s/matlab',devdir);
-% if(isempty(strfind(path,d))) path(path,d); end
 d = sprintf('%s/fsfast/toolbox',devdir); % for qoe()
 if(isempty(strfind(path,d))) path(path,d); end
 
-global QuitOnError;
 global GRADWARPPATH;
 global TABLE;
+global QuitOnError;
+% QuitOnError is for: if you're running matlab interactively instead
+% of calling this from a script and there's an error, it fails
+% gracefully (matlab quits).  unwarp_init_globals sets global
+% QuitOnError based on value of called_by_script.
+% convert_unwarp_resample.m is usually called by script grad_unwarp.
 if (~exist('called_by_script') | isempty(called_by_script))
   called_by_script=1; % default
 end
@@ -46,8 +49,6 @@ fprintf('TABLE=%s\n',TABLE);
 fprintf('QuitOnError=%d\n',QuitOnError);
 
 tic;
-% For if you're running matlab interactively instead of calling this
-% from a script.
 
 %%% check arguments %%%
 if(nargin > 9 | nargin < 3)
@@ -64,6 +65,7 @@ end
 if (~exist('interp_method') | isempty(interp_method))
   interp_method='';
 else
+  % Other names for 'linear' sampling:
   if (strcmp(interp_method,'trilinear')|strcmp(interp_method,'interpolate')) interp_method ='linear'; end
   fprintf('Interp method is %s\n',interp_method);
 end
@@ -76,7 +78,7 @@ end
 
 %% load file, dicom or mgh %% 
 if((exist(infile,'file')) & (strcmp(infile(end-3:end),'.mgh')))
-  % Good enough test for mgh file, mildly cheesy
+  % Mildly cheesy test for mgh file, good enough.
   fprintf('INFO: loading mgh-format infile %s\n',infile);
   % So now we know it's an mgh file - dewarping an mgh file requires
   % user-supplied gradwarpfile or gradwarptype - don't bother loading
@@ -86,7 +88,7 @@ if((exist(infile,'file')) & (strcmp(infile(end-3:end),'.mgh')))
     error('convert_unwarp_resample(infile,serno,outfile,corfovflag,unwarpflag,jacflag,interp_method,gradwarpfile,called_by_script) - for unwarping an mgh file, user must supply gradwarpfilename or type');
   end
   fprintf('INFO: loading mgh volume %s\n',infile);
-  [vol, M0, mr_parms, Mdc] = load_mgh(infile);
+  [vol, M0, mr_parms, Mdc, c_ras] = load_mgh(infile);
   if(isempty(vol))
     qoe('error loading mgh file.');
     error('error loading mgh file.');
@@ -94,7 +96,7 @@ if((exist(infile,'file')) & (strcmp(infile(end-3:end),'.mgh')))
 elseif (isdicomfile(infile) | isdir(infile))
   % dicom file or dicom directory
   fprintf('INFO: loading dicom volume at %s\n',infile);
-  [vol, M0, mr_parms, Mdc, gradwarpfile] = load_dicom_plus(series,infile);
+  [vol, M0, mr_parms, Mdc, c_ras, gradwarpfile] = load_dicom_plus(series,infile);
   if(isempty(vol))
     qoe('error loading dicom file.');
     error('error loading dicom file.');
@@ -121,16 +123,20 @@ if(unwarpflag)
     error('convert_unwarp_resample(infile,serno,outfile,corfovflag,unwarpflag,jacflag,interp_method,gradwarpfile,called_by_script) - no gradwarpfile found - user must supply gradwarpfile or type');
   end
 
-  % if unwarping, have to figure out whether inplane or thruplane or not
-  % no matter where the gradwarpfile came from
-  % (user-supplied filename, user-supplied type, dicom headers)
-  % - so look it up in table.mat
+  % If unwarping, have to figure out whether inplane or thruplane or
+  % not (no matter where the gradwarpfile came from (user-supplied
+  % filename, user-supplied type, dicom headers)) - so look the
+  % filename up in table.mat.  Match gradwarpfile to the right data
+  % struct, find the manufacturer, and, from the manufacturer,
+  % conclude whether volume has already been inplane-dewarped (like
+  % GE).
   [manuf_dontcare,inflag,thruflag]=map2manuf(gradwarpfile);
 else
   inflag=0; thruflag=0; gradwarpfile='';
 end
 
-% If there wasn't much to do (e.g. just converting dicom to mgh):
+% If there wasn't much to do (e.g. just converting dicom to mgh, no
+% unwarp or resample):
 if(~corfovflag & ~unwarpflag)
   fprintf('Writing MGH output file %s\n',outfile);
   save_mgh(vol,outfile,M0,mr_parms);
@@ -140,30 +146,40 @@ end
 % Convert M to 1-based because that is what anders code expects
 M = vox2ras_0to1(M0);
 
-% Setup the output geometry %
+% Set up the output geometry %
 if(corfovflag)
   %%%%%
   % Q: This might need to be modified so as to center the volume
   % A: Yeah, this centers it on c_ras = 0,0,0 - scanner isocenter!
   %%%%%
-  % Q: Maybe I messed up Anders's code to the point where this no
-  % longer ensures cor orientation - but it surely does not.  However,
+  % Q: Maybe before I messed up Anders's code, this matrix ensured
+  % cor orientation - but at this point it surely does not.  However,
   % if you want COR format, you're probably mri_converting anyway, and
   % you can start with this matrix and mri_convert will take care of
   % it with no interpolation, no problem.
-  Mout = [0    -1     0   129;...
-          0     0     1  -129;...
-         -1     0     0   129;...
-          0     0     0     1];
+  %   Mout = [0    -1     0   129;...
+  %           0     0     1  -129;...
+  %          -1     0     0   129;...
+  %           0     0     0     1];
+  %%%%%
+  
+  Mout0 = [-1     0     0   128+c_ras(1) ;...
+            0     0     1  -128+c_ras(2) ;...
+            0    -1     0   128+c_ras(3) ;...
+            0     0     0     1];
+  %% WORKS!
+  % Convert Mout to 1-based because that is what anders code expects
+  Mout = vox2ras_0to1(Mout0);
   size_out = [256 256 256];
 else 
-   Mout = M;
+  Mout = M; % Already converted from M0 to 1-based
   size_out = size(vol);
 end
 
 % Do unwarping and/or resampling %
 fprintf('Beginning unwarping and/or resampling \n');
 
+% but unwarp_resample does not alter Mout
 [volout, Mout] = unwarp_resample(vol,M,size_out,Mout,Mdc,unwarpflag,jacflag,0,interp_method,inflag,thruflag,gradwarpfile);
 
 % Convert Mout back to 0-based %
@@ -179,7 +195,7 @@ return
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-function [vol, M, mr_parms, Mdc, gradfilename] = load_dicom_plus(seriesno,dcm)
+function [vol, M, mr_parms, Mdc, c_ras, gradfilename] = load_dicom_plus(seriesno,dcm)
 
 % Reads in a dicom series given:
 %  1. The series number and directory, or
@@ -196,12 +212,11 @@ function [vol, M, mr_parms, Mdc, gradfilename] = load_dicom_plus(seriesno,dcm)
 %
 % Bugs: will not load multiple frames or mosaics properly.
 
-% Add stuff to path if necessary
-
 global QuitOnError;
 
+% Add stuff to path if necessary
 devdir = getenv('DEV');
-d = sprintf('%s/fsfast/toolbox',devdir);
+d = sprintf('%s/fsfast/toolbox',devdir); % for qoe
 if(isempty(findstr(d,path))) path(path,d); end
 
 if(nargin < 1 | nargin > 3)
@@ -220,6 +235,10 @@ end;
 
 if(isempty(vol)) return; end
 
+% Figure out what the appropriate gradwarp file is for this machine,
+% based on ScannerSerialNo or DeviceSerialNumber, InstitutionName, and
+% StationName.
+
 if (isfield(dcminfo(1),'ScannerSerialNo') & ~isempty(dcminfo(1).ScannerSerialNo))
   SSN = dcminfo(1).ScannerSerialNo;
 elseif (isfield(dcminfo(1),'DeviceSerialNumber') & ~isempty(dcminfo(1).DeviceSerialNumber))
@@ -236,21 +255,53 @@ else SN = ''; end
 
 gradfilename = header2map(dcminfo(1).Manufacturer,dcminfo(1).ManufacturersModelName,SSN,IN,SN);
 fprintf('load_dicom_plus: INFO: gradwarpfile is %s\n',gradfilename); %EDEBUG%
-Mdc = mdc(dcminfo);
+
+% Also return other geometry information - Mdc for throughplane
+% projection, c_ras for centering cor volume.
+
+[Mdc, c_ras] = mdc(dcminfo);
 
 return;
   
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-function Mdc = mdc(dcminfo)
-% Matrix of direction cosines
+function [Mdc, c_ras] = mdc(dcminfo)
+% Matrix of direction cosines, used for finding the throughplane direction
+% and coordinates of center, used for centering corfov.
+% Follows RASFromOrientation() in DICOMRead.c
 
 Mdc = zeros(3,3);
 Mdc(:,1) = dcminfo(1).ImageOrientationPatient(1:3);
 Mdc(:,2) = dcminfo(1).ImageOrientationPatient(4:6);
 sdc = dcminfo(2).ImagePositionPatient-dcminfo(1).ImagePositionPatient;
 Mdc(:,3) = sdc / sqrt(sum(sdc.^2));
+% RAS->LPS: Change sign of first two ROWS, xyz_r and xyz_a
+% Was wrong before, but the only thing that uses this (projecting) didn't care.
+Mdc = diag([-1 -1 1]) * Mdc;
+
+n(1) = dcminfo(1).Columns-1;
+n(2) = dcminfo(1).Rows-1;
+n(3) = length(dcminfo)-1;
+% Kludge, but it reproduces mri_convert and load_dicom_fl results:
+if(strcmpi(dcminfo(1).Manufacturer,'siemens')), n=n+1; end 
+
+Delta = diag([dcminfo(1).PixelSpacing(1), dcminfo(1).PixelSpacing(2), dcminfo(1).SliceThickness]);
+% RAS->LPS: Change sign of first two ROWS, c_r and c_a
+c_ras = (Mdc * Delta) * n'/2 + diag([-1 -1 1])*dcminfo(1).ImagePositionPatient;
+
+% Lines below correct for the Z-offset in GE machines - ebeth %
+% We're told ge machines recenter along superior/inferior axis but
+% don't update c_ras - but now c_s should be zero.
+%
+% load_dicom_series.m also makes this correction, so it might be
+% tidier to get c_ras from that or from the M it returns.  But it's
+% not straightforward to get c_ras from dicom format like it is from
+% mgh format.  Mdc is an intermediat step, though.
+if(strcmpi(dcminfo(1).Manufacturer,'ge medical systems'))
+  c_ras(3)=0;
+end
+
 return
 
 
@@ -323,10 +374,14 @@ manuf = ''; inflag = []; thruflag = [];
 gfn = gradfilename(max(strfind(gradfilename,'/'))+1:end);  % i.e. after last "/"
 
 for ii=[1:length(m)]
+  % Changed this: m.filenames now have no path.
   % testgfn = m(ii).filename(max(strfind(gradfilename,'/'))+1:end);
   testgfn = m(ii).filename;
+  % Find the entry with the same gradfilename %
   if (strcmpi(testgfn,gfn))
     manuf = lower(m(ii).Manufacturer);
+    % Determine dewarp projection from manufacturer - assume GE is
+    % always already in-plane dewarped and that Siemens is not.
     if strcmpi(manuf,'siemens')
       inflag=0; thruflag=0; % volume to be full-3D dewarped.
     elseif strcmpi(manuf,'ge medical systems');
