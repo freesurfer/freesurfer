@@ -59,6 +59,7 @@ int      LTAtoVoxelCoords(LTA *lta, MRI *mri) ;
 int      TransformFileNameType(char *fname) ;
 int      LTAvoxelToRasXform(LTA *lta, MRI *mri_src, MRI *mri_dst) ;
 int      LTAvoxelToRasXform(LTA *lta, MRI *mri_src, MRI *mri_dst) ;
+int      LTAvoxelTransformToCoronalRasTransform(LTA *lta) ;
 
 
 #endif

@@ -853,3 +853,27 @@ LTArasToVoxelXform(LTA *lta, MRI *mri_src, MRI *mri_dst)
   lta->type = LINEAR_VOX_TO_VOX ;
   return(NO_ERROR) ;
 }
+int
+LTAvoxelTransformToCoronalRasTransform(LTA *lta)
+{
+  MATRIX   *V, *W, *m_tmp ;
+
+  V = MatrixAlloc(4, 4, MATRIX_REAL) ;  /* world to voxel transform */
+  W = MatrixAlloc(4, 4, MATRIX_REAL) ;  /* voxel to world transform */
+  *MATRIX_RELT(V, 1, 1) = -1 ; *MATRIX_RELT(V, 1, 4) = 128 ;
+  *MATRIX_RELT(V, 2, 3) = -1 ; *MATRIX_RELT(V, 2, 4) = 128 ;
+  *MATRIX_RELT(V, 3, 2) = 1 ;  *MATRIX_RELT(V, 3, 4) = 128 ;
+  *MATRIX_RELT(V, 4, 4) = 1 ;
+  
+  *MATRIX_RELT(W, 1, 1) = -1 ; *MATRIX_RELT(W, 1, 4) = 128 ;
+  *MATRIX_RELT(W, 2, 3) = 1 ; *MATRIX_RELT(W, 2, 4) = -128 ;
+  *MATRIX_RELT(W, 3, 2) = -1 ;  *MATRIX_RELT(W, 3, 4) = 128 ;
+  *MATRIX_RELT(W, 4, 4) = 1 ;
+
+  m_tmp = MatrixMultiply(lta->xforms[0].m_L, V, NULL) ;
+  MatrixMultiply(W, m_tmp, lta->xforms[0].m_L) ;
+  MatrixFree(&V) ; MatrixFree(&W) ; MatrixFree(&m_tmp) ;
+  lta->type = LINEAR_RAS_TO_RAS ;
+
+  return(NO_ERROR) ;
+}
