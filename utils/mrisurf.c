@@ -1569,12 +1569,14 @@ mrisIntegrate(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
         {
           if (tno == 0) switch (ano)   /* vertices for triangle 1 */
           {
+          default:
           case 0: vo = v0 ; va = v3 ; vb = v1 ; break ;
           case 1: vo = v1 ; va = v0 ; vb = v3 ; break ;
           case 2: vo = v3 ; va = v1 ; vb = v0 ; break ;
           }
           else switch (ano)             /* vertices for triangle 2 */
           {
+          default:
           case 0: vo = v1 ; va = v3 ; vb = v2 ; break ;
           case 1: vo = v2 ; va = v1 ; vb = v3 ; break ;
           case 2: vo = v3 ; va = v2 ; vb = v1 ; break ;
@@ -2299,12 +2301,14 @@ MRIScomputeTriangleProperties(MRI_SURFACE *mris)
       {
         if (tno == 0) switch (ano)   /* vertices for triangle 1 */
         {
+        default:
         case 0: vo = v0 ; va = v3 ; vb = v1 ; break ;
         case 1: vo = v1 ; va = v0 ; vb = v3 ; break ;
         case 2: vo = v3 ; va = v1 ; vb = v0 ; break ;
         }
         else switch (ano)             /* vertices for triangle 2 */
         {
+        default:
         case 0: vo = v1 ; va = v3 ; vb = v2 ; break ;
         case 1: vo = v2 ; va = v1 ; vb = v3 ; break ;
         case 2: vo = v3 ; va = v2 ; vb = v1 ; break ;
@@ -3491,7 +3495,7 @@ MRISwriteAreaError(MRI_SURFACE *mris, char *fname)
 int
 MRISwriteAngleError(MRI_SURFACE *mris, char *fname)
 {
-  int    vno, fno, tno, ano, i, n ;
+  int    vno, fno, tno, ano, i ;
   float  error ;
   FILE   *fp;
   FACE   *face ;
