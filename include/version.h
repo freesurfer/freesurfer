@@ -7,7 +7,7 @@
 #ifndef VERSION_H
 #define VERSION_H
 
-/* This function looks for the -v, --version, or -version tag in the
+/* This function looks for the --version, or -version tag in the
    argv and if found, prints out version information. This can be used
    in any binary. It will return the number of options processed and
    copy the remaining items in argv back, so the caller can shorten

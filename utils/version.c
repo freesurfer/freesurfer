@@ -7,7 +7,7 @@
 // char version[] = "version 1.0, Wed Apr 26 11:11:26 EDT 2000" ;
 
 
-/* This function looks for the -v, --version, or -version tag in the
+/* This function looks for the --version, or -version tag in the
    argv and if found, prints out version information. This can be used
    in any binary. It will return the number of options processed and
    copy the remaining items in argv back, so the caller can shorten
@@ -67,14 +67,13 @@ handle_version_option (int argc, char** argv, char* id_string)
   int num_processed_args = 0;
   char *option = NULL;
 
-  /* Go through each option looking for -v, --version, or -version */
+  /* Go through each option looking for --version, or -version */
   for (narg = 1; narg < argc; narg++) 
     {
       option = argv[narg];
       
       if (!strncmp(option,"--version",9) ||
-	  !strncmp(option,"-version",8) ||
-	  !strncmp(option,"-v",2)) 
+	  !strncmp(option,"-version",8))
 	{
 
 	  /* Print out the entire command line. */
