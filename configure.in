@@ -518,7 +518,7 @@ LIBDIRS_MGH="utils rgb unix dicom hipsstubs"
 AC_SUBST(LIBDIRS_MGH)
 
 # stupid circular dependency on iopen swapInt etc.
-LIBS_MGH="utils/libutils.a rgb/librgb.a unix/libunix.a dicom/libdicom.a hipsstubs/libhipsstubs.a"
+LIBS_MGH="utils/libutils.a rgb/librgb.a unix/libunix.a dicom/libdicom.a hipsstubs/libhipsstubs.a log/liblog.a"
 AC_SUBST(LIBS_MGH)
 
 #####################################################
@@ -669,7 +669,7 @@ export DEV
 
 AC_OUTPUT(\
 Makefile \
-unix/Makefile dicom/Makefile rgb/Makefile utils/Makefile hipsstubs/Makefile \
+unix/Makefile dicom/Makefile rgb/Makefile utils/Makefile hipsstubs/Makefile log/Makefile \
 mris2rgb/Makefile nmovie/Makefile mris_show/Makefile tkmedit/Makefile tkregister/Makefile \
 tkregister2/Makefile tksurfer/Makefile \
 check_siemens_dir/Makefile repair_siemens_file/Makefile mkxsubjreg/Makefile \
