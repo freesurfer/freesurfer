@@ -23,7 +23,7 @@ static int gentle_flag = 0 ;
 static char *mask_fname ;
 char *Progname ;
 
-static int prune = 0 ;
+static int prune = 0 ;  /* off by default */
 static MRI_NORM_INFO  mni ;
 static int verbose = 1 ;
 static int num_3d_iter = 2 ;
@@ -38,6 +38,7 @@ static char *bias_volume_fname = NULL ;
 static int read_flag = 0 ;
 
 static int no1d = 0 ;
+static int file_only = 0 ;
 
 int
 main(int argc, char *argv[])
@@ -46,11 +47,11 @@ main(int argc, char *argv[])
   int    ac, nargs, n ;
   MRI    *mri_src, *mri_dst = NULL, *mri_bias, *mri_orig ;
   char   *in_fname, *out_fname ;
-  int          msec, minutes, seconds, file_only ;
+  int          msec, minutes, seconds ;
   struct timeb start ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_normalize.c,v 1.29 2004/07/16 21:31:58 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_normalize.c,v 1.30 2004/07/22 17:46:51 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -158,7 +159,8 @@ main(int argc, char *argv[])
     MRI3dWriteControlPoints(control_volume_fname) ;
 
 	/* first do a gentle normalization to get things in the right intensity range */
-	file_only = control_point_fname != NULL && no1d;
+	if (!file_only)
+		file_only = control_point_fname != NULL && no1d;
 	MRI3dGentleNormalize(mri_dst, NULL, DEFAULT_DESIRED_WHITE_MATTER_VALUE,
 											 mri_dst,
 											 intensity_above, intensity_below/2,
@@ -175,9 +177,18 @@ main(int argc, char *argv[])
                            intensity_above/2, intensity_below/2,
                            control_point_fname != NULL && !n && no1d);
     else
-      MRI3dNormalize(mri_orig, mri_dst, DEFAULT_DESIRED_WHITE_MATTER_VALUE,mri_dst,
-                     intensity_above, intensity_below,
-                     control_point_fname != NULL && !n && no1d, prune);
+		{
+			if (file_only)
+				MRI3dNormalize(mri_orig, mri_dst, DEFAULT_DESIRED_WHITE_MATTER_VALUE,
+											 mri_dst,
+											 intensity_above, intensity_below,
+											 file_only, prune);
+			else
+				MRI3dNormalize(mri_orig, mri_dst, DEFAULT_DESIRED_WHITE_MATTER_VALUE,
+											 mri_dst,
+											 intensity_above, intensity_below,
+											 control_point_fname != NULL && !n && no1d, prune);
+		}
   }
 
   if (bias_volume_fname)
@@ -228,6 +239,12 @@ get_option(int argc, char *argv[])
     nargs = 1 ;
     printf("using MR volume %s to mask input volume...\n", mask_fname) ;
   }
+  else if (!stricmp(option, "monkey"))
+  {
+		no1d = 1 ;
+    num_3d_iter = 1 ;
+    printf("disabling 1D normalization and setting niter=1, make sure to use -f to specify control points\n") ;
+  }
   else if (!stricmp(option, "conform"))
   {
     conform = 1 ;
@@ -237,6 +254,15 @@ get_option(int argc, char *argv[])
   {
     gentle_flag = 1 ;
     fprintf(stderr, "performing kinder gentler normalization...\n") ;
+  }
+  else if (!stricmp(option, "file_only") || !stricmp(option, "fileonly"))
+  {
+    file_only = 1 ;
+    control_point_fname = argv[2] ;
+    nargs = 1 ;
+    fprintf(stderr, "using control points from file %s...\n", 
+           control_point_fname) ;
+    fprintf(stderr, "only using file control points...\n") ;
   }
   else switch (toupper(*option))
   {
@@ -257,7 +283,9 @@ get_option(int argc, char *argv[])
 	case 'P':
 		prune = atoi(argv[2]) ;
 		nargs = 1 ;
-		printf("turning control point pruning %s\n", prune ? "on" : "off") ;
+		printf("turning control point pruning %s\n", prune > 0 ? "on" : "off") ;
+		if (prune == 0)
+			prune = -1 ;
 		break ;
 	case 'R':
 		read_flag = 1 ;
@@ -333,6 +361,7 @@ usage_exit(int code)
 	printf("\t-v                 verbose\n");
 	printf("\t-n <int n>         use n 3d normalization iterations (default=%d)\n", num_3d_iter);
 	printf("\t-u                 print usage\n");
+	printf("-prune <boolean>     turn pruning of control points on/off (default=off). Useful if white is expanding into gm\n") ;
 	exit(code);
 }
 
