@@ -7,12 +7,13 @@
 //  Things to do:
 //  1. use correct Gauss-Seidel iteration when performing ICM iteration of MRF
 //  2. Is it more robust if I ignore correlation terms in covariance matrix?
+//  3. Should I incorporae PVE model as mmfast?
 // 1-31-05: added regularization for covariance matrix according to
 // C. Archambeau et al Flexible and Robust Bayesian Classification by Finite Mixture Models, ESANN'2004
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: xhan $
-// Revision Date  : $Date: 2005/02/08 16:26:18 $
-// Revision       : $Revision: 1.1 $
+// Revision Date  : $Date: 2005/02/11 22:09:45 $
+// Revision       : $Revision: 1.2 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -53,7 +54,7 @@ static int zoff[6] = {0,  0, 0,  0, 1, -1};
 /* For fair comparison, need to generate a hard segmentation! */
 
 static int fix_class_size = 1;
-static double kappa = 0.001; /* 0.01 is too big */
+static double kappa = 0.0000001; /* 0.01 is too big */
 
 static int debug_flag = 0;
 
@@ -102,7 +103,7 @@ static double mybeta = 0.5; /*weight for MRF */
 
 /* eps and lambda are used for covariance regularization */
 static double eps = 1e-20;
-static double lambda = 0.2;
+static double lambda = 0.1;
 static int regularize = 0;
 
 /* Clustering is performed only within ROI */
@@ -179,9 +180,10 @@ main(int argc, char *argv[])
   /* Used for sorting using Numerical recipe */
   float NRarray[MAX_CLASSES+1];
   unsigned long NRindex[MAX_CLASSES+1];
+  int indexmap[MAX_CLASSES + 1];
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_ms_EM.c,v 1.1 2005/02/08 16:26:18 xhan Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_ms_EM.c,v 1.2 2005/02/11 22:09:45 xhan Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -231,21 +233,19 @@ main(int argc, char *argv[])
     /* conform will convert all data to UCHAR, which will reduce data resolution*/
     printf("%s read in. \n", in_fname) ;
     if (conform){
-      MRI *mri_tmp ;
-      
       printf("embedding and interpolating volume\n") ;
       mri_tmp = MRIconform(mri_flash[nvolumes]) ;
-      mri_flash[nvolumes] = mri_tmp ;
+      MRIfree(&mri_flash[nvolumes]);
+      mri_flash[nvolumes] = mri_tmp ; mri_tmp = 0;
     }
 
     /* Change all volumes to float type for convenience */
     if(mri_flash[nvolumes]->type != MRI_FLOAT){
       printf("Volume %d type is %d\n", nvolumes+1, mri_flash[nvolumes]->type);
-      MRI *mri_tmp;
       printf("Change data to float type \n");
       mri_tmp = MRIchangeType(mri_flash[nvolumes], MRI_FLOAT, 0, 1.0, 1);
       MRIfree(&mri_flash[nvolumes]);
-      mri_flash[nvolumes] = mri_tmp; //swap
+      mri_flash[nvolumes] = mri_tmp; mri_tmp = 0; //swap
     }
 
     nvolumes++ ;
@@ -511,7 +511,7 @@ main(int argc, char *argv[])
 	for(x=0; x < width; x++) {
 	  if(MRIvox(mri_mask, x, y, z) == 0) continue;	  
 	  
-	  sum_of_distance = 1e-20;
+	  sum_of_distance = 0;
 	  /* Compute distance */
 	  for(c=0; c < num_classes; c++){
 	    /* record old membership values */
@@ -546,9 +546,10 @@ main(int argc, char *argv[])
 	    sum_of_distance += distance2;
 	  }
 
-	  if(sum_of_distance <= 0.0){
-	    printf("(x,y,z) = (%d,%d,%d), sum_of_distance = %g\n",x,y,z, sum_of_distance);
-	    ErrorExit(ERROR_BADPARM, "%s: overflow in computing membership function.\n", Progname);		    
+	  if(sum_of_distance <= 1e20){ /* Outlier */
+	    sum_of_distance = 1.0;
+	    //	    printf("(x,y,z) = (%d,%d,%d), sum_of_distance = %g\n",x,y,z, sum_of_distance);
+	    // ErrorExit(ERROR_BADPARM, "%s: overflow in computing membership function.\n", Progname);		    
 	  }
 
 	  for(c=0; c < num_classes; c++){
@@ -609,10 +610,26 @@ main(int argc, char *argv[])
   
   for(i=0; i < num_classes; i++){
     NRarray[i+1] = centroids1D[i]; 
+    printf("centroids1D[%d] = %g\n",i, centroids1D[i]);
   }
   
   /* NR sort in ascending order */
   indexx(num_classes, NRarray, NRindex);
+
+  printf("Sorted centroids\n");
+  for(i=1; i <= num_classes; i++){
+    printf("NRindex[%d] = %ld\n", i, NRindex[i]);
+    indexmap[NRindex[i]-1] = i;
+  }
+  for(i=0; i < num_classes; i++){
+    printf("indexmap[%d] = %d\n", i, indexmap[i]);
+  }
+
+  if(num_classes == 4){
+    /* compute the size of class 1 and class 2, and assign the one with smaller size to class 1 (dura) */
+    printf("Is this meaningful?\n");
+    
+  }
 
   if(hard_segmentation){
     MRI *mri_seg = NULL;
@@ -633,7 +650,7 @@ main(int argc, char *argv[])
 	      }		
 	    }
 	    
-	    MRIvox(mri_seg, x, y, z) = NRindex[i + 1];
+	    MRIvox(mri_seg, x, y, z) = indexmap[i];
 	    
 	  }
     
@@ -792,17 +809,37 @@ main(int argc, char *argv[])
   }
   
   if(SYNTH_ONLY == 0){
+
     /* output membership functions */
+    printf("Convert membership function to BYTE and write out\n");
+    mri_tmp = MRIclone(mri_mask, NULL);
+
     for(c=0; c < num_classes; c++){
-      MRI *mri_tmp;
-      
+            
+      /*
       printf("Output membership volume for class %d\n",c) ;
       mri_tmp = MRIconform(mri_mem[c]) ;
-      
-      sprintf(fname,"%sEM_mem%d.mgz", out_prefx, c+1);
+      */
+      for(z=0; z < depth; z++)
+	for(y=0; y< height; y++)
+	  for(x=0; x < width; x++){
+	    if(MRIvox(mri_mask, x, y, z) == 0){
+	      MRIvox(mri_tmp,x,y,z) = 0;
+	      continue;
+	    }
+	    value =  255.0*MRIFvox(mri_mem[c], x, y, z) + 0.5;
+	    if(value > 255.0) value = 255;
+	    if(value < 0.0) value = 0;
+	    
+	    MRIvox(mri_tmp,x,y,z) = (unsigned char)value;
+	  }
+
+      sprintf(fname,"%sEM_mem%d.mgz", out_prefx, indexmap[c]);
       MRIwrite(mri_tmp, fname);
-      MRIfree(&mri_tmp);
+
     }
+
+    MRIfree(&mri_tmp);
   }
   
   msec = TimerStop(&start) ;

@@ -6,10 +6,15 @@
 // intended for gca guided 
 // 1.Find xn, yn, zn for each voxel once and store them, instead of have to constantly do the transform
 //
+// Thinsg to do:
+// 1. Need to postprocessing with fixed class stats but ignoring atlas prior, since atlas is really way-off at some places (or should I ignore voxel-wise prior from the beginning, just fix class-prior from atlas??
+// 2. May need MRF prior to make sure segmentation is smooth
+// 3. PVE model may be needed; better try on mri_ms_EM first
+// 
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: xhan $
-// Revision Date  : $Date: 2005/02/09 15:32:10 $
-// Revision       : $Revision: 1.2 $
+// Revision Date  : $Date: 2005/02/11 22:09:45 $
+// Revision       : $Revision: 1.3 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -69,7 +74,7 @@ static int max_iters = 100; /* defualt maximal iteration number */
 
 static int hard_segmentation = 0;                            
 
-static char *label_fname = NULL; /* filename for segmentation */
+static char *label_fname = NULL; /* filename for initial segmentation */
 
 static char *gca_fname = NULL; /* filename for GCA */
 
@@ -113,7 +118,7 @@ static int fix_class_size = 1;
 static double kappa = 0.001; /* 0.01 is too big */
 
 /* eps and lambda are used for covariance regularization */
-static double eps = 1e-20;
+static double eps = 1e-30;
 static double lambda = 0.2;
 static int regularize = 0;
 
@@ -125,8 +130,7 @@ main(int argc, char *argv[])
   char   **av, *in_fname, fname[100];
   int    ac, nargs, i, j,  x, y, z, width, height, depth, iter, c;
   int num_classes = 0;
-  MRI    *mri_flash[MAX_IMAGES], *mri_mem[MAX_CLASSES], *mri_mask, *mri_label;
-  MRI *mri_tmp = NULL;
+  MRI    *mri_flash[MAX_IMAGES], *mri_mem[MAX_CLASSES], *mri_mask, *mri_label, *mri_tmp;
   char   *out_prefx ;
   int    msec, minutes, seconds, nvolumes, nvolumes_total, label ;
   struct timeb start ;
@@ -150,7 +154,7 @@ main(int argc, char *argv[])
   double max_prior;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_ms_gca_EM.c,v 1.2 2005/02/09 15:32:10 xhan Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_ms_gca_EM.c,v 1.3 2005/02/11 22:09:45 xhan Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -217,17 +221,15 @@ main(int argc, char *argv[])
     /* conform will convert all data to UCHAR, which will reduce data resolution*/
     printf("%s read in. \n", in_fname) ;
     if (conform){
-      MRI *mri_tmp ;
-      
       printf("embedding and interpolating volume\n") ;
       mri_tmp = MRIconform(mri_flash[nvolumes]) ;
+      MRIfree(&mri_flash[nvolumes]);
       mri_flash[nvolumes] = mri_tmp ;
     }
 
     /* Change all volumes to float type for convenience */
     if(mri_flash[nvolumes]->type != MRI_FLOAT){
       printf("Volume %d type is %d\n", nvolumes+1, mri_flash[nvolumes]->type);
-      MRI *mri_tmp;
       printf("Change data to float type \n");
       mri_tmp = MRIchangeType(mri_flash[nvolumes], MRI_FLOAT, 0, 1.0, 1);
       MRIfree(&mri_flash[nvolumes]);
@@ -271,7 +273,7 @@ main(int argc, char *argv[])
 
   if(label_fname == NULL){
     printf("use GCA prior to generate initial segmentation\n");
-    mri_label = MRIalloc(mri_flash[0]->width, mri_flash[0]->height, mri_flash[0]->depth, MRI_UCHAR);
+    mri_label = MRIalloc(mri_flash[0]->width, mri_flash[0]->height, mri_flash[0]->depth, MRI_SHORT);
     for(z=0; z < depth; z++)
       for(y=0; y< height; y++)
 	for(x=0; x < width; x++){
@@ -309,7 +311,7 @@ main(int argc, char *argv[])
 	  
 	}
     
-    //    MRIwrite(mri_label, "testGCA.mgz");
+    MRIwrite(mri_label, "testGCA.mgz");
 
     // MRIfree(&mri_label);
     
@@ -321,6 +323,7 @@ main(int argc, char *argv[])
   }
   
   if(label_fname != NULL){
+    printf("Read in initial segmentation...\n");
     mri_label = MRIread(label_fname);
     if(!mri_label)
       ErrorExit(ERROR_NOFILE, "%s: could not read input volume %s\n",
@@ -358,7 +361,7 @@ main(int argc, char *argv[])
 	  {
 	    MRIvox(mri_mask, x, y,z) = 1;
 	  }
-
+#if 0
     if(label_fname != NULL){
       mri_tmp = MRIclone(mri_mask, NULL);
       printf("Use label volume to define regions to be segmented. \n");
@@ -378,7 +381,7 @@ main(int argc, char *argv[])
       mri_mask = MRIdilateLabelUchar(mri_tmp, mri_mask, 1, 2);
       MRIfree(&mri_tmp);
     }
-    
+#endif    
     /* Compute the mask from the first input volume */
     for(z=0; z < depth; z++)
       for(y=0; y< height; y++)
@@ -386,13 +389,6 @@ main(int argc, char *argv[])
 	  {
 	    if(MRIFvox(mri_flash[0], x, y, z) < (float) noise_threshold)
 	      MRIvox(mri_mask, x, y,z) = 0;
-
-	    if(mask_subcortical == 1 && label_fname != NULL){
-	      label = (int)MRIgetVoxVal(mri_label, x, y,z,0);
-	      /* if((label >= 9 && label <= 12) || (label >= 48 && label <= 51) || label ==4 || label == 5 || label == 43 || label == 44 ) */
-	      if((label >= 9 && label <= 12) || (label >= 48 && label <= 51) )
-		MRIvox(mri_mask, x, y,z) = 0; 
-	    }
 	  }
     
   }
@@ -413,8 +409,10 @@ main(int argc, char *argv[])
 	    continue;
 	  
 	  for(i=0; i < 6; i++){
-	    xn = x + xoff[6];  yn = y + yoff[6]; zn = z = zoff[6];
+	    xn = x + xoff[6];  yn = y + yoff[6]; zn = z + zoff[6];
 	    label = (int)MRIgetVoxVal(mri_label, xn, yn, zn,0);
+	    if(label <= 0) continue;
+	    if(label_of_interest == 13 && label == 3) continue;
 	    if(label_to_index[label] < 0){
 	      label_to_index[label] = total_label;
 	      index_to_label[total_label] = label;
@@ -424,7 +422,11 @@ main(int argc, char *argv[])
 	}
 
   num_classes = total_label;
-  printf("total of classes involved = %d\n", num_classes);
+  printf("total of classes involved = %d, they are: \n", num_classes);
+
+  for(c=0; c < num_classes; c++)
+    printf("%d ", index_to_label[c]);
+  printf("\n");
 
   //  printf("find the region of interest, so as to reduce volume sizes\n");
   printf("Be careful in later use of GCA if truncating input volumes to smaller size here\n");
@@ -540,8 +542,8 @@ main(int argc, char *argv[])
 
     }
 
-    //    for(c=0; c < num_classes; c++)
-    //  printf("classSize[%d] = %g, DetF[%d] = %g\n", c, classSize[c], c, detF[c]);
+     for(c=0; c < num_classes; c++)
+      printf("classSize[%d] = %g, DetF[%d] = %g\n", c, classSize[c], c, detF[c]);
     
     /* Update membership function */
     for(z=0; z < depth; z++)
@@ -557,21 +559,25 @@ main(int argc, char *argv[])
 	  
 	  if(debug_flag && x == Gx && y == Gy && z == Gz){
 	    for(c=0; c < num_classes; c++){
-	      printf("Prior for label %d = %g\n", c, getPrior(gcap, c));
+	      printf("Prior for label %d = %g\n", index_to_label[c], getPrior(gcap, index_to_label[c]));
 	    }
 	  }
 	  
-	  sum_of_distance = 1e-20;
+	  sum_of_distance = 0;
 	  /* Compute distance */
 	  for(c=0; c < num_classes; c++){
 	    /* record old membership values */
 	    oldMems[c] = MRIFvox(mri_mem[c], x, y, z);
 	    distance2 = distancems(mri_flash, centroids[c], F[c], detF[c], x, y, z);
 	    
-	    /* detF is already the inverse */
-	    distance2 = exp(-0.5*distance2)*getPrior(gcap, c)*sqrt(detF[c]); 
 	    if(debug_flag && x == Gx && y == Gy && z == Gz){
 	      printf("distance2 =%g \n",distance2);
+	    }
+	    
+	    /* detF is already the inverse */
+	    distance2 = exp(-0.5*distance2)*getPrior(gcap, index_to_label[c])*sqrt(detF[c]); 
+	    if(debug_flag && x == Gx && y == Gy && z == Gz){
+	      printf("prob =%g \n",distance2);
 	    }
 	    
 	    /* printf("distance2 = %g\n", distance2); */
@@ -579,9 +585,13 @@ main(int argc, char *argv[])
 	    sum_of_distance += distance2;
 	  }
 	  
-	  if(sum_of_distance <= 0.0){
-	    printf("(x,y,z) = (%d,%d,%d), sum_of_distance = %g\n",x,y,z, sum_of_distance);
-	    ErrorExit(ERROR_BADPARM, "%s: overflow in computing membership function.\n", Progname);		    
+	  if(sum_of_distance <= 1e-10){ /* Outlier */
+	    if(iter > 15) 
+	      MRIvox(mri_mask, x, y, z) = 0;	  
+	    
+	    sum_of_distance = 1.0;
+	    //printf("(x,y,z) = (%d,%d,%d), sum_of_distance = %g\n",x,y,z, sum_of_distance);
+	    //ErrorExit(ERROR_BADPARM, "%s: overflow in computing membership function.\n", Progname);		    
 	  }
 	  
 	  for(c=0; c < num_classes; c++){
@@ -607,6 +617,8 @@ main(int argc, char *argv[])
     
   } /* end of while-loop */
   
+  TransformFree(&transform) ;
+  GCAfree(&gca); 
   
   
   if(hard_segmentation){
@@ -639,16 +651,35 @@ main(int argc, char *argv[])
   
   if(HARD_ONLY == 0){
     /* output membership functions */
+    printf("Convert membership function to BYTE and write out\n");
+    mri_tmp = MRIclone(mri_mask, NULL);
+    
     for(c=0; c < num_classes; c++){
-      MRI *mri_tmp;
       
-      printf("Output membership volume for class %d\n",c) ;
-      mri_tmp = MRIconform(mri_mem[c]) ;
+      /*
+	printf("Output membership volume for class %d\n",c) ;
+	mri_tmp = MRIconform(mri_mem[c]) ;
+      */
+      for(z=0; z < depth; z++)
+	for(y=0; y< height; y++)
+	  for(x=0; x < width; x++){
+	    if(MRIvox(mri_mask, x, y, z) == 0){
+	      MRIvox(mri_tmp,x,y,z) = 0;
+	      continue;
+	    }
+	    value =  255.0*MRIFvox(mri_mem[c], x, y, z) + 0.5;
+	    if(value > 255.0) value = 255;
+	    if(value < 0.0) value = 0;
+	    
+	    MRIvox(mri_tmp,x,y,z) = (unsigned char)value;
+	  }
       
       sprintf(fname,"%sEM_mem%d.mgz", out_prefx, c+1);
       MRIwrite(mri_tmp, fname);
-      MRIfree(&mri_tmp);
+      
     }
+    
+    MRIfree(&mri_tmp);
   }
   
   msec = TimerStop(&start) ;
@@ -657,14 +688,10 @@ main(int argc, char *argv[])
   seconds = seconds % 60 ;
   printf("parameter estimation took %d minutes and %d seconds.\n", minutes, seconds) ;
 
-  TransformFree(&transform) ;
-  GCAfree(&gca); 
   MRIfree(&mri_mask);
 
-  if(label_fname != NULL){
-    MRIfree(&mri_label);
-  }      
-
+  MRIfree(&mri_label);
+  
   for(i=0; i < num_classes; i++){
     MRIfree(&mri_mem[i]);
     free(centroids[i]);
@@ -703,7 +730,7 @@ get_option(int argc, char *argv[])
       conform = 1 ;
       printf("interpolating volume to be isotropic 1mm^3\n") ;
     }
-  else if(!stricmp(option, "label")){
+  else if(!stricmp(option, "tissue")){
     label_of_interest = atoi(argv[2]);
     nargs = 1;
     printf("refine the segmentation of structure with label %d\n",label_of_interest);
@@ -833,7 +860,9 @@ get_option(int argc, char *argv[])
   else if(!stricmp(option, "regularize"))
     {
       regularize = 1;
-      printf("Regularize the covariance matrix\n");
+      lambda = atof(argv[2]);
+      nargs = 1;
+      printf("Regularize the covariance matrix with lambda = %g\n", lambda);
     }
   else switch (toupper(*option))
     {
@@ -890,9 +919,12 @@ usage_exit(int code)
   printf("\t -E # to set the convergence tolerance \n");
   printf("\t -R # to set the max number of iterations \n");
   printf("\t -T # to set the threshold for background \n");
+  printf("\t -regularize # to set covariance matrix regularization parameter\n"); 
   printf("\t -norm to normalize input volumes before clustering \n");
   printf("\t -conform to conform input volumes (brain mask typically already conformed) \n");
   printf("\t -noconform to prevent conforming to COR \n");
+  printf("\t -tissue #: tissue to be refined \n");
+  printf("\t -label aseg_file: initial aseg segmentation \n");
   printf("\t -gca $GCA the atlas to be used \n");
   printf("\t -xform xfm.m3z xform for mapping to GCA \n");
   printf("\t -synthonly to prevent output membership functions \n");
@@ -901,8 +933,6 @@ usage_exit(int code)
 }
 
 void update_centroids(MRI **mri_flash, MRI **mri_mem, MRI **mri_lihood, MRI *mri_mask, float **centroids, int nvolumes_total, int num_classes){
-  /* This step stays the same as FCM, just that the membership function is now the probability function. No, not the same! No more power of membership
-   */
   int m, c, x, y, z, depth, height, width;
   double numer, denom;
   double mem, data;
@@ -926,10 +956,11 @@ void update_centroids(MRI **mri_flash, MRI **mri_mem, MRI **mri_lihood, MRI *mri
 	  for(x=0; x < width; x++)
 	    {
 	      if(MRIvox(mri_mask, x, y, z) > 0){
-		if(mri_lihood != NULL){
-		  scale =  MRIFvox(mri_lihood[c], x, y, z);
-		  scale = scale/(scale + kappa);
-		}else scale = 1;
+		// if(mri_lihood != NULL){
+		//  scale =  MRIFvox(mri_lihood[c], x, y, z);
+		// scale = scale/(scale + kappa);
+		// }else 
+		scale = 1;
 		mem = MRIFvox(mri_mem[c], x, y, z)*scale;
 		data = MRIFvox(mri_flash[m], x, y, z);
 		numer += mem*data;
@@ -965,13 +996,13 @@ double distancems(MRI **mri_flash, float *centroids, MATRIX *F, double detF, int
     for(j=0; j< rows; j++){
       data2 =  MRIFvox(mri_flash[j], x, y, z) - centroids[j];
       if(debug_flag && x == Gx && y == Gy && z == Gz)
-	printf("(mri_flash[%d] = %g, centroid[%d] = %g\n", i, MRIFvox(mri_flash[i], x, y, z), i, centroids[i]);
+      	printf("(mri_flash[%d] = %g, centroid[%d] = %g\n", i, MRIFvox(mri_flash[i], x, y, z), i, centroids[i]);
       if(debug_flag && x == Gx && y == Gy && z == Gz)
-	printf("data1 = %g, data2 = %g, F[%d][%d] = %g\n", data1, data2, i,j, F->rptr[i+1][j+1]);
+      	printf("data1 = %g, data2 = %g, F[%d][%d] = %g\n", data1, data2, i,j, F->rptr[i+1][j+1]);
       
       mydistance += data1*data2*F->rptr[i+1][j+1];
     }
-
+    
   }
   
   /* No multiply by detF in the EM algorithm*/
@@ -1006,10 +1037,11 @@ void update_F(MATRIX **F, MRI **mri_flash, MRI **mri_mem, MRI **mri_lihood, MRI 
       for(y=0; y< height; y++)
 	for(x=0; x < width; x++){
 	  if(MRIvox(mri_mask, x, y, z) == 0) continue;
-	  if(mri_lihood != NULL){
-	    scale =  MRIFvox(mri_lihood[c], x, y, z);
-	    scale = scale/(scale + kappa);
-	  }else scale = 1;
+	  //	  if(mri_lihood != NULL){
+	  //scale =  MRIFvox(mri_lihood[c], x, y, z);
+	  //  scale = scale/(scale + kappa);
+	  //}else
+	  scale = 1;
 	  mem = MRIFvox(mri_mem[c], x, y, z)*scale;
 	  /* mem = mem*mem; */ /* here differs from FCM */
 	  denom +=  mem;

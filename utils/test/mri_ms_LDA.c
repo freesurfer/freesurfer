@@ -5,8 +5,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: xhan $
-// Revision Date  : $Date: 2005/02/09 15:32:10 $
-// Revision       : $Revision: 1.2 $
+// Revision Date  : $Date: 2005/02/11 22:09:45 $
+// Revision       : $Revision: 1.3 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -89,6 +89,11 @@ void computeLDAweights(float *weights, MRI **mri_flash, MRI *mri_label, MRI *mri
 static int class1 = 0; /* to be used for LDA */ 
 static int class2 = 0; /* to be used for LDA */ 
 
+/* eps and lambda are used for covariance regularization */
+static double eps = 1e-20;
+static double lambda = 0.1;
+static int regularize = 0;
+
 #define MAX_IMAGES 200
 
 int
@@ -96,7 +101,7 @@ main(int argc, char *argv[])
 {
   char   **av, *in_fname;
   int    ac, nargs, i, j,  x, y, z, width, height, depth;
-  MRI    *mri_flash[MAX_IMAGES], *mri_label, *mri_mask;
+  MRI    *mri_flash[MAX_IMAGES], *mri_label, *mri_mask, *mri_tmp;
   int    msec, minutes, seconds, nvolumes, nvolumes_total ;
   struct timeb start ;
   float max_val, min_val, value;
@@ -106,7 +111,7 @@ main(int argc, char *argv[])
   int count_white, count_gray;
   
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_ms_LDA.c,v 1.2 2005/02/09 15:32:10 xhan Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_ms_LDA.c,v 1.3 2005/02/11 22:09:45 xhan Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -165,17 +170,15 @@ main(int argc, char *argv[])
     /* conform will convert all data to UCHAR, which will reduce data resolution*/
     printf("%s read in. \n", in_fname) ;
     if (conform){
-      MRI *mri_tmp ;
-      
       printf("embedding and interpolating volume\n") ;
       mri_tmp = MRIconform(mri_flash[nvolumes]) ;
+      MRIfree(&mri_flash[nvolumes]);
       mri_flash[nvolumes] = mri_tmp ;
     }
 
     /* Change all volumes to float type for convenience */
     if(mri_flash[nvolumes]->type != MRI_FLOAT){
       printf("Volume %d type is %d\n", nvolumes+1, mri_flash[nvolumes]->type);
-      MRI *mri_tmp;
       printf("Change data to float type \n");
       mri_tmp = MRIchangeType(mri_flash[nvolumes], MRI_FLOAT, 0, 1.0, 1);
       MRIfree(&mri_flash[nvolumes]);
@@ -542,6 +545,13 @@ get_option(int argc, char *argv[])
       just_test = 1 ;
       printf("Test: set Sw to identity matrix.\n") ;
     }
+   else if (!stricmp(option, "regularize"))
+    {
+      regularize = 1 ;
+      lambda = atof(argv[2]);
+      nargs = 1;
+      printf("regularization for covarinace matrix, lambda = %g\n", lambda) ;
+    }
    else if (!stricmp(option, "distance"))
     {
       compute_m_distance = 1 ;
@@ -729,6 +739,31 @@ void computeLDAweights(float *weights, MRI **mri_flash, MRI *mri_label, MRI *mri
 	SW1->rptr[m2][m1] = SW1->rptr[m1][m2];
       }
     } /* for m1, m2 */
+
+    if(regularize){
+      printf("regularization of the covariance estimate\n");
+      for(m1=1; m1 <= nvolumes_total; m1++)
+	SW1->rptr[m1][m1] += eps;  /* prevent SW1 to be singular */
+      
+      /* Borrow SW2 to store its inverse */
+      SW2 = MatrixInverse(SW1, SW2);
+      if(SW2 == NULL){
+	printf("Inverse matrix is NULL. Exit. \n");
+	exit(1);
+      }
+      
+      /* (1-lambda)* inv(SW + eps I) + labmda*I */ 
+      for(m1=1; m1 <= nvolumes_total; m1++){
+	for(m2=m1; m2 <= nvolumes_total; m2++){
+	  SW2->rptr[m1][m2] = (1.0 - lambda)*SW2->rptr[m1][m2];
+	  SW2->rptr[m2][m1] = SW2->rptr[m1][m2];
+	}
+	SW2->rptr[m1][m1] += lambda; 
+      }
+
+      SW1 = MatrixInverse(SW2, SW1); // this inverse is quite redundant, since it will be inverted back again later
+    
+    }
   }
  
   if(0){
