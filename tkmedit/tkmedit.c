@@ -7095,7 +7095,7 @@ char **argv;
  printf("\tShift+button 2 to add a point to selection, Ctrl+button 2 to remove\n");
  printf("\tCtrl-d to delete selected control points\n");
  printf("\tCtrl-n to unselect all points\n");
- printf("\tCtrl-s to save selected points to file\n");
+ printf("\tCtrl-s to save control points to file\n");
  printf("\nNew zooming commands:\n");
  printf("\tCtrl+button 1 to zoom in, Ctrl+button 3 to zoom out\n");
  printf("\tButton 3 to recenter when zoomed in\n");
