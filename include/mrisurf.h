@@ -876,13 +876,14 @@ int  MRISwriteDecimation(MRI_SURFACE *mris, char *fname) ;
 int  MRISreadDecimation(MRI_SURFACE *mris, char *fname) ;
 
 
-#define VERTEX_COORDS    0
-#define VERTEX_VALS      1
-#define VERTEX_VAL       VERTEX_VALS
-#define VERTEX_AREA      2
-#define VERTEX_CURV      3
-#define VERTEX_CURVATURE VERTEX_CURV
-#define VERTEX_LABEL     4
+#define VERTEX_COORDS      0
+#define VERTEX_VALS        1
+#define VERTEX_VAL         VERTEX_VALS
+#define VERTEX_AREA        2
+#define VERTEX_CURV        3
+#define VERTEX_CURVATURE   VERTEX_CURV
+#define VERTEX_LABEL       4
+#define VERTEX_ANNOTATION  5
 
 int MRISclearOrigArea(MRI_SURFACE *mris) ;
 int MRIScombine(MRI_SURFACE *mris_src, MRI_SURFACE *mris_total, 
