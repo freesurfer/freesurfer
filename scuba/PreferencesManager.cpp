@@ -258,13 +258,17 @@ PreferencesManager::WriteFile() {
     throw logic_error("Can't open prefs file");
   }
 
+  time_t curTime;
+  time( &curTime );
   fPrefs << "begin-version" << endl;
   fPrefs << mVersion << endl;
   fPrefs << "end-version" << endl << endl;
 
   fPrefs << "begin-header" << endl;
+  fPrefs << "# Scuba preferences file written " << ctime(&curTime);
+  fPrefs << "# $Id: PreferencesManager.cpp,v 1.11 2004/10/18 03:10:23 kteich Exp $" << endl;
   fPrefs << msHeader << endl << endl;
-  fPrefs << "end-header" << endl;
+  fPrefs << "end-header" << endl << endl;
 
   PreferenceValueMap::iterator tPref;
   for( tPref = mPrefValues.begin(); tPref != mPrefValues.end(); ++tPref ) {

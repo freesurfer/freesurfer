@@ -24,6 +24,13 @@ ScubaLayer2DMRIS::ScubaLayer2DMRIS () {
   commandMgr.AddCommand( *this, "Get2DMRISLayerLineColor", 1, "layerID",
 			 "Returns the line color for this layer as a list "
 			 " of red, green, and blue integers from 0-255." );
+  commandMgr.AddCommand( *this, "Set2DMRISLayerVertexColor", 4, 
+			 "layerID red green blue",
+			 "Sets the vertex color for this layer. red, green, "
+			 "and blue should be 0-255 integers." );
+  commandMgr.AddCommand( *this, "Get2DMRISLayerVertexColor", 1, "layerID",
+			 "Returns the vertex color for this layer as a list "
+			 " of red, green, and blue integers from 0-255." );
 
 
 }
@@ -277,6 +284,59 @@ ScubaLayer2DMRIS::DoListenToTclCommand ( char* isCommand,
       stringstream ssReturnValues;
       ssReturnValues << maLineColor[0] << " " << maLineColor[1] << " "
 		     << maLineColor[2];
+      sReturnValues = ssReturnValues.str();
+    }
+  }
+
+  // Set2DMRISLayerVertexColor <layerID> <red> <green> <blue>
+  if( 0 == strcmp( isCommand, "Set2DMRISLayerVertexColor" ) ) {
+    int layerID = strtol(iasArgv[1], (char**)NULL, 10);
+    if( ERANGE == errno ) {
+      sResult = "bad layer ID";
+      return error;
+    }
+    
+    if( mID == layerID ) {
+      
+      int red = strtol( iasArgv[2], (char**)NULL, 10);
+      if( ERANGE == errno ) {
+	sResult = "bad red";
+	return error;
+      }
+      
+      int green = strtol( iasArgv[3], (char**)NULL, 10);
+      if( ERANGE == errno ) {
+	sResult = "bad green";
+	return error;
+      }
+      
+      int blue = strtol( iasArgv[4], (char**)NULL, 10);
+      if( ERANGE == errno ) {
+	sResult = "bad blue";
+	return error;
+      }
+      
+      int color[3];
+      color[0] = red;
+      color[1] = green;
+      color[2] = blue;
+      SetVertexColor3d( color );
+    }
+  }
+
+  // Get2DMRISLayerVertexColor <layerID>
+  if( 0 == strcmp( isCommand, "Get2DMRISLayerVertexColor" ) ) {
+    int layerID = strtol(iasArgv[1], (char**)NULL, 10);
+    if( ERANGE == errno ) {
+      sResult = "bad layer ID";
+      return error;
+    }
+    
+    if( mID == layerID ) {
+      sReturnFormat = "Liiil";
+      stringstream ssReturnValues;
+      ssReturnValues << maVertexColor[0] << " " << maVertexColor[1] << " "
+		     << maVertexColor[2];
       sReturnValues = ssReturnValues.str();
     }
   }

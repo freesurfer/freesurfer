@@ -99,3 +99,32 @@ Path<T>::PathVertexAdded () {
   SendBroadcast( "pathVertexAdded", (void*)&mID );
 }
 
+template <typename T>
+void
+Path<T>::ReadFromStream ( istream& iStream ) {
+
+  int cVertices;
+  iStream >> cVertices;
+
+  for( int nVertex = 0; nVertex < cVertices; nVertex++ ) {
+    T x, y, z;
+    iStream >> x >> y >> z;
+    Point3<T> point( x, y, z );
+    AddVertex( point );
+  }
+
+  MarkEndOfSegment();
+}
+
+template <typename T>
+void
+Path<T>::WriteToStream ( ostream& ioStream ) {
+
+  ioStream << mVertices.size() << endl;
+
+  typename vector<Point3<T> >::iterator tPoint;
+  for( tPoint = mVertices.begin(); tPoint != mVertices.end(); ++tPoint ) {
+    Point3<float>& point = (*tPoint);
+    ioStream << point.x() << " " << point.y() << " " << point.z() << endl;
+  }
+}

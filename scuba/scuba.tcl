@@ -10,7 +10,7 @@ if { $err } {
     load [file dirname [info script]]/libscuba[info sharedlibextension] scuba
 }
 
-DebugOutput "\$Id: scuba.tcl,v 1.61 2004/10/11 02:08:59 kteich Exp $"
+DebugOutput "\$Id: scuba.tcl,v 1.62 2004/10/18 03:10:23 kteich Exp $"
 
 # gTool
 #   current - current selected tool (nav,)
@@ -200,7 +200,7 @@ proc GetDefaultFileLocation { iType } {
 	    }
 	    default { 
 		if { [info exists env(SUBJECTS_DIR)] } {
-		    set gsaDefaultLocation($iType) $env(SUBJECTS_DIR)
+		    set gsaDefaultLocation($iType) $gSubject(homeDir)
 		} else {
 		    set gsaDefaultLocation($iType) [exec pwd]
 		}	       
@@ -449,6 +449,9 @@ proc MakeMenuBar { ifwTop } {
 	{command "Save Label..." { DoSaveLabelDlog } }
 	{command "Export ROIs as Segmenation..." { DoExportROIsDlog } }
 	{separator}
+	{command "Load Paths..." { DoLoadPathsDlog } }
+	{command "Save Paths..." { DoSavePathsDlog } }
+	{separator}
 	{command "Load Transform..." { DoLoadTransformDlog } }
 	{separator}
 	{command "Import Markers from Control Points..."
@@ -482,13 +485,15 @@ proc MakeMenuBar { ifwTop } {
 	{check "Plane Intersections" { SetPreferencesValue DrawPlaneIntersections $gaView(planeIntersections); RedrawFrame [GetMainFrameID] } gaView(planeIntersections) }
 	{check "Show Console:Alt N" { ShowHideConsole $gaView(tkcon,visible) } gaView(tkcon,visible) }
 	{check "Auto-Configure" {} gaView(autoConfigure) }
+	{check "Show FPS" { SetPreferencesValue ShowFPS $gaView(showFPS) } gaView(showFPS) }
     }
 
     set gaView(flipLeftRight) [GetPreferencesValue ViewFlipLeftRight]
     set gaView(tkcon,visible) [GetPreferencesValue ShowConsole]
     set gaView(coordOverlay)  [GetPreferencesValue DrawCoordinateOverlay]
     set gaView(planeIntersections) [GetPreferencesValue DrawPlaneIntersections]
-    set gaView(autoConfigure)  [GetPreferencesValue AutoConfigureView]
+    set gaView(autoConfigure) [GetPreferencesValue AutoConfigureView]
+    set gaView(showFPS)       [GetPreferencesValue ShowFPS]
 
     pack $gaMenu(view) -side left
 
@@ -584,7 +589,11 @@ proc MakeToolBar { ifwTop } {
 
     set gaView(current,inPlane) x
 
+    button $fwToolBar.bwZoomOut  -image icon_zoom_out -command { ZoomViewOut }
+    button $fwToolBar.bwZoomIn   -image icon_zoom_in -command { ZoomViewIn }
+
     pack $fwToolBar.fwTool $fwToolBar.fwView $fwToolBar.fwInPlane \
+	$fwToolBar.bwZoomOut $fwToolBar.bwZoomIn \
 	-side left
 
     return $fwToolBar
@@ -722,7 +731,7 @@ proc MakeScubaFrame { ifwTop } {
     set fwScuba $ifwTop.fwScuba
     
     set frameID [GetNewFrameID]
-    togl $fwScuba -width 512 -height 512 -rgba true -ident $frameID -time 1
+    togl $fwScuba -width 512 -height 512 -rgba true -ident $frameID
 
     bind $fwScuba <Motion> \
 	"%W MouseMotionCallback %x %y %b; ScubaMouseMotionCallback %x %y %s %b"
@@ -997,8 +1006,11 @@ proc Quit {} {
     SetPreferencesValue DrawCoordinateOverlay $gaView(coordOverlay)
     SetPreferencesValue DrawPlaneIntersections $gaView(planeIntersections)
     SetPreferencesValue AutoConfigureView $gaView(autoConfigure)
+    SetPreferencesValue ShowFPS $gaView(showFPS)
     SetPreferences
     SaveGlobalPreferences
+
+    destroy $gaWidget(window)
 
     exit
 }
@@ -1780,16 +1792,32 @@ proc MakeLayerPropertiesPanel { ifwTop } {
     set gaLayer(current,blueLineColor) 0
 
     frame $fwProps2DMRIS
-    tkuMakeColorPickers $fwProps2DMRIS.cpColors \
+    tkuMakeColorPickers $fwProps2DMRIS.cpLineColors \
 	-pickers {
 	    {-label "Line Color" -redVariable gaLayer(current,redLineColor) 
 		-greenVariable gaLayer(current,greenLineColor)
 		-blueVariable gaLayer(current,blueLineColor)
 		-command {Set2DMRISLayerLineColor $gaLayer(current,id) $gaLayer(current,redLineColor) $gaLayer(current,greenLineColor) $gaLayer(current,blueLineColor); RedrawFrame [GetMainFrameID]}}
 	}
-    set gaWidget(layerProperties,lineColorPickers) $fwProps2DMRIS.cpColors
+    set gaWidget(layerProperties,lineColorPickers) \
+	$fwProps2DMRIS.cpLineColors
 
-    grid $fwProps2DMRIS.cpColors        -column 0 -row 1 -sticky ew
+    set gaLayer(current,redVertexColor) 0
+    set gaLayer(current,greenVertexColor) 0
+    set gaLayer(current,blueVertexColor) 0
+    tkuMakeColorPickers $fwProps2DMRIS.cpVertexColors \
+	-pickers {
+	    {-label "Vertex Color" 
+		-redVariable gaLayer(current,redVertexColor) 
+		-greenVariable gaLayer(current,greenVertexColor)
+		-blueVariable gaLayer(current,blueVertexColor)
+		-command {Set2DMRISLayerVertexColor $gaLayer(current,id) $gaLayer(current,redVertexColor) $gaLayer(current,greenVertexColor) $gaLayer(current,blueVertexColor); RedrawFrame [GetMainFrameID]}}
+	}
+    set gaWidget(layerProperties,vertexColorPickers) \
+	$fwProps2DMRIS.cpVertexColors
+
+    grid $fwProps2DMRIS.cpLineColors     -column 0 -row 1 -sticky ew
+    grid $fwProps2DMRIS.cpVertexColors   -column 0 -row 2 -sticky ew
     set gaWidget(layerProperties,2DMRIS) $fwProps2DMRIS
 
 
@@ -2461,9 +2489,16 @@ proc SelectLayerInLayerProperties { iLayerID } {
 	    set gaLayer(current,greenLineColor) [lindex $lColor 1]
 	    set gaLayer(current,blueLineColor) [lindex $lColor 2]
 
+	    set lColor [Get2DMRISLayerVertexColor $iLayerID]
+	    set gaLayer(current,redVertexColor) [lindex $lColor 0]
+	    set gaLayer(current,greenVertexColor) [lindex $lColor 1]
+	    set gaLayer(current,blueVertexColor) [lindex $lColor 2]
+
 	    # Configure color selector.
 	    tkuUpdateColorPickerValues \
 		$gaWidget(layerProperties,lineColorPickers)
+	    tkuUpdateColorPickerValues \
+		$gaWidget(layerProperties,vertexColorPickers)
 	}
     }
 }
@@ -3607,6 +3642,20 @@ proc ShowHideConsole { ibShow } {
     set gaView(tkcon,visible) $ibShow
 }
 
+proc ZoomViewIn { } {
+    global gaView
+    
+    set zoomLevel [GetViewZoomLevel $gaView(current,id)]
+    SetViewZoomLevel $gaView(current,id) [expr $zoomLevel * 2]
+}
+
+proc ZoomViewOut { } {
+    global gaView
+    
+    set zoomLevel [GetViewZoomLevel $gaView(current,id)]
+    SetViewZoomLevel $gaView(current,id) [expr $zoomLevel / 2]
+}
+
 # DATA LOADING =====================================================
 
 proc MakeVolumeCollectionUsingTemplate { iColID } {
@@ -4079,6 +4128,39 @@ proc DoLoadLabelDlog {} {
 
 }
 
+proc DoLoadPathsDlog {} {
+    dputs "DoLoadPathsDlog  "
+
+    global glShortcutDirs
+
+    tkuDoFileDlog -title "Load Paths" \
+	-prompt1 "Load Paths: " \
+	-defaultdir1 [GetDefaultFileLocation Paths] \
+	-defaultvalue1 [GetDefaultFileLocation Paths] \
+	-shortcutdirs [list $glShortcutDirs] \
+	-okCmd { 
+	    ReadPathFile %s1
+	    RedrawFrame [GetMainFrameID]
+	    SetStatusBarText "Loaded paths from %s1"
+	}
+}
+
+proc DoSavePathsDlog {} {
+    dputs "DoSavePathsDlog  "
+
+    global glShortcutDirs
+
+    tkuDoFileDlog -title "Save Paths" \
+	-prompt1 "Save Paths: " \
+	-defaultdir1 [GetDefaultFileLocation Paths] \
+	-defaultvalue1 [GetDefaultFileLocation Paths] \
+	-shortcutdirs [list $glShortcutDirs] \
+	-okCmd { 
+	    WritePathFile %s1
+	    SetStatusBarText "Wrote paths to %s1"
+	}
+}
+
 proc DoLoadTransformDlog {} {
     dputs "DoLoadTransformDlog  "
 
@@ -4199,7 +4281,7 @@ proc SaveSceneScript { ifnScene } {
     set f [open $ifnScene w]
 
     puts $f "\# Scene file generated "
-    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.61 2004/10/11 02:08:59 kteich Exp $"
+    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.62 2004/10/18 03:10:23 kteich Exp $"
     puts $f ""
 
     # Find all the data collections.

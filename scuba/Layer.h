@@ -79,6 +79,9 @@ class Layer : public DebugReporter,
 			    ScubaWindowToRASTranslator& iTranslator,
 			    ScubaToolState& iTool, InputState& iInput );
 
+  // Timer function.
+  void Timer ();
+
   // Redisplay posters.
   void RequestRedisplay() { mbPostRedisplay = true; }
   bool WantRedisplay() const { return mbPostRedisplay; }
@@ -103,6 +106,9 @@ class Layer : public DebugReporter,
   virtual float GetPreferredBrushRadiusIncrement ();
   
  protected:
+
+  // Overridable timer behavior.
+  virtual void DoTimer ();
 
   int mWidth;
   int mHeight;

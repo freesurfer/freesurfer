@@ -2,6 +2,8 @@
 #include <errno.h>
 #include <stdexcept>
 #include <vector>
+#include <sys/types.h>
+#include <sys/stat.h>
 extern "C" {
 #include "error.h"
 #include "ctrpoints.h"
@@ -21,6 +23,8 @@ VolumeCollection::VolumeCollection () :
   mMRI = NULL;
   mMagnitudeMRI = NULL;
   mSelectedVoxels = NULL;
+  mbAutosaveDirty = false;
+  mfnAutosave = "";
   mVoxelSize[0] = mVoxelSize[1] = mVoxelSize[2] = 0;
   mbUseDataToIndexTransform = true;
 
@@ -71,7 +75,6 @@ VolumeCollection::~VolumeCollection() {
   catch(...) {
     cerr << "Couldn't release data"  << endl;
   }
-
 }
 
 DataLocation&
@@ -85,7 +88,9 @@ void
 VolumeCollection::SetFileName ( string& ifnMRI ) {
 
   mfnMRI = ifnMRI;
+  mfnAutosave = MakeAutosaveFileName( mfnMRI );
 }
+
 
 void
 VolumeCollection::MakeUsingTemplate ( int iCollectionID ) {
@@ -121,6 +126,10 @@ VolumeCollection::MakeUsingTemplate ( int iCollectionID ) {
   
   // Initialize from it.
   InitializeFromMRI();
+
+  // Set a temporary filename.
+  string fn = "New_Volume.mgh";
+  SetFileName( fn );
 }
 
 MRI*
@@ -1307,6 +1316,58 @@ VolumeCollection::MakeHistogram ( list<Point3<float> >& iRASPoints,
 
   oMinBinValue = low;
   oBinIncrement = binIncrement;
+}
+
+void
+VolumeCollection::DataChanged () {
+
+  mbAutosaveDirty = true;
+  DataCollection::DataChanged();
+}
+
+string
+VolumeCollection::MakeAutosaveFileName ( string& ifn ) {
+
+  // Generate an autosave name.
+  string fnAutosave = ifn;
+  if ( fnAutosave == "" ) {
+    fnAutosave = "newvolume";
+  }
+  string::size_type c = fnAutosave.find( '/' );
+  while( c != string::npos ) {
+    fnAutosave[c] = '.';
+    c = fnAutosave.find( '/' );
+  }
+  fnAutosave = "/tmp/" + fnAutosave + ".mgz";
+
+  return fnAutosave;
+}
+
+void
+VolumeCollection::DeleteAutosave () {
+
+  char* fnAutosave = strdup( mfnAutosave.c_str() );
+
+  struct stat info;
+  int rStat = stat( fnAutosave, &info );
+
+  if( 0 == rStat ) {
+    if( S_ISREG(info.st_mode) ) {
+      remove( fnAutosave );
+    }
+  }
+
+  free( fnAutosave );
+}
+
+void
+VolumeCollection::AutosaveIfDirty () {
+
+  if( mbAutosaveDirty ) {
+    cerr << "saving " << mfnAutosave << endl;
+    Save( mfnAutosave );
+    mbAutosaveDirty = false;
+  }
 }
 
 

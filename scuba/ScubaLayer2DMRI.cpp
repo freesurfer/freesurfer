@@ -13,6 +13,7 @@ using namespace std;
 int const ScubaLayer2DMRI::cGrayscaleLUTEntries = 256;
 int const ScubaLayer2DMRI::kMaxPixelComponentValue = 255;
 float const ScubaLayer2DMRI::kMaxPixelComponentValueFloat = 255.0;
+int const ScubaLayer2DMRI::kcTimersBetweenAutosaves = 60000;
 
 ScubaLayer2DMRI::ScubaLayer2DMRI () {
 
@@ -27,6 +28,7 @@ ScubaLayer2DMRI::ScubaLayer2DMRI () {
   mROIOpacity = 0.7;
   mbEditableROI = true;
   mbClearZero = false;
+  mTimersSinceLastAutosave = 0;
 
   // Try setting our initial color LUT to the default LUT with
   // id 0. If it's not there, create it.
@@ -45,6 +47,9 @@ ScubaLayer2DMRI::ScubaLayer2DMRI () {
       DebugOutput( << "Couldn't make default lut!" );
     }
   }
+
+  PathManager& pathMgr = PathManager::GetManager();
+  pathMgr.AddListener( this );
 
   TclCommandManager& commandMgr = TclCommandManager::GetManager();
   commandMgr.AddCommand( *this, "Set2DMRILayerVolumeCollection", 2, 
@@ -895,6 +900,14 @@ ScubaLayer2DMRI::DoListenToTclCommand ( char* isCommand, int iArgc, char** iasAr
 }
 
 void
+ScubaLayer2DMRI::DoListenToMessage ( string isMessage, void* iData ) {
+
+  if( isMessage == "pathChanged" ) {
+    RequestRedisplay();
+  }
+}
+
+void
 ScubaLayer2DMRI::DataChanged () {
 
   float newMinValue, newMaxValue;
@@ -902,10 +915,6 @@ ScubaLayer2DMRI::DataChanged () {
   newMaxValue = mVolume->GetMRIMaxValue();
   if ( newMinValue < mMinVisibleValue ||
        newMaxValue > mMaxVisibleValue ) {
-
-    cerr << "ScubaLayer2DMRI: "
-	 << "old min max " << mMinVisibleValue << " " << mMaxVisibleValue
-	 << "new min max " << newMinValue << " " << newMaxValue << endl;
 
     SetMinVisibleValue( mVolume->GetMRIMinValue() );
     SetMaxVisibleValue( mVolume->GetMRIMaxValue() );
@@ -1502,6 +1511,24 @@ ScubaLayer2DMRI::GetPreferredBrushRadiusIncrement () {
   return (smallestVoxelSize / 2.0);
 }
 
+void
+ScubaLayer2DMRI::DoTimer () {
+
+  mTimersSinceLastAutosave++;
+  if( mTimersSinceLastAutosave > kcTimersBetweenAutosaves ) {
+
+    if( mVolume->IsAutosaveDirty() ) {
+      
+      TclCommandManager& mgr = TclCommandManager::GetManager();
+      mgr.SendCommand( "SetStatusBarText \"Autosaving...\"" );
+    
+      mVolume->AutosaveIfDirty();
+      
+      mgr.SendCommand( "SetStatusBarText \"Autosaving... done.\"" );
+    }
+    mTimersSinceLastAutosave = 0;
+  }
+}
 
 // ======================================================================
 

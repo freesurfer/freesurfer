@@ -40,6 +40,9 @@ class Path : public IDTracker<Path<T> >,
   // Broadcasts a pathVertexAdded message when a vert is added.
   void PathVertexAdded ();
 
+  void ReadFromStream ( std::istream& iStream );
+  void WriteToStream  ( std::ostream& ioStream );
+
  protected:
   std::vector<Point3<T> > mVertices;
   int mIndexOfSegmentEnd;

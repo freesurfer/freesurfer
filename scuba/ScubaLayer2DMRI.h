@@ -44,6 +44,9 @@ class ScubaLayer2DMRI : public Layer {
   virtual TclCommandResult
     DoListenToTclCommand ( char* isCommand, int iArgc, char** iArgv );
 
+  virtual void
+    DoListenToMessage ( std::string isMessage, void* iData );
+
   // Override to change min/max range on new value.
   virtual void DataChanged();
 
@@ -103,7 +106,11 @@ class ScubaLayer2DMRI : public Layer {
 
  
  protected:
-  
+
+  virtual void DoTimer ();
+  int mTimersSinceLastAutosave;
+  static int const kcTimersBetweenAutosaves;
+
   // The volume data set.
   VolumeCollection* mVolume;
 

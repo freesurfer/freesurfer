@@ -197,6 +197,10 @@ Layer::HandleTool ( float iRAS[3], ViewState& iViewState,
 
 }
 
+void 
+Layer::Timer () {
+  this->DoTimer ();
+}
 
 void 
 Layer::DrawPixelIntoBuffer ( GLubyte* iBuffer, int iWidth, int iHeight,
@@ -368,6 +372,10 @@ Layer::GetPreferredBrushRadiusIncrement () {
   return 1.0;
 }
 
+void
+Layer::DoTimer () {
+
+}
 
 
 LayerStaticTclListener::LayerStaticTclListener () {

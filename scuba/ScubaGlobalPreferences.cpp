@@ -67,7 +67,8 @@ ScubaGlobalPreferences::DoListenToTclCommand ( char* isCommand, int iArgc,
 	sKey == GetStringForKey( KeyMoveViewIn ) ||
 	sKey == GetStringForKey( KeyMoveViewOut ) ||
 	sKey == GetStringForKey( KeyZoomViewIn ) ||
-	sKey == GetStringForKey( KeyZoomViewOut ) ) {
+	sKey == GetStringForKey( KeyZoomViewOut ) ||
+	sKey == GetStringForKey( ShowFPS ) ) {
       
       PreferencesManager& prefsMgr = PreferencesManager::GetManager();
       string sValue = prefsMgr.GetValue( sKey );
@@ -91,7 +92,8 @@ ScubaGlobalPreferences::DoListenToTclCommand ( char* isCommand, int iArgc,
 	sKey == GetStringForKey( ShowConsole ) ||
 	sKey == GetStringForKey( AutoConfigureView ) ||
 	sKey == GetStringForKey( DrawCoordinateOverlay ) ||
-	sKey == GetStringForKey( DrawPlaneIntersections ) ) {
+	sKey == GetStringForKey( DrawPlaneIntersections ) ||
+	sKey == GetStringForKey( ShowFPS ) ) {
 
       bool bValue;
 
@@ -143,7 +145,8 @@ ScubaGlobalPreferences::GetPrefAsBool ( PrefKey iKey ) {
       iKey == ShowConsole ||
       iKey == AutoConfigureView ||
       iKey == DrawCoordinateOverlay ||
-      iKey == DrawPlaneIntersections ) {
+      iKey == DrawPlaneIntersections ||
+      iKey == ShowFPS ) {
   
     PreferencesManager& prefsMgr = PreferencesManager::GetManager();
     string sValue = prefsMgr.GetValue( GetStringForKey( iKey ) );
@@ -212,6 +215,7 @@ ScubaGlobalPreferences::GetStringForKey ( PrefKey iKey ) {
   case KeyMoveViewOut:             return "KeyMoveViewOut";              break;
   case KeyZoomViewIn:              return "KeyZoomViewIn";               break;
   case KeyZoomViewOut:             return "KeyZoomViewOut";              break;
+  case ShowFPS:                    return "ShowFPS";                     break;
   default:
     throw runtime_error( "Invalid key" );
   }
@@ -323,6 +327,11 @@ ScubaGlobalPreferences::ReadPreferences () {
   prefsMgr.RegisterValue( "KeyZoomViewOut", 
 			  "Key to zoom the view out in plane.",
 			  zoomViewOut );
+
+  PreferencesManager::IntPrefValue showFPS( false );
+  prefsMgr.RegisterValue( "ShowFPS", 
+			  "Show the FPS (frames per second) for draws.",
+			  showFPS );
 
 }
 

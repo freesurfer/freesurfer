@@ -344,8 +344,6 @@ x undo
   x make sure works for ROI editing
   x multiple levels of undo
 
-======== HERE
-
 x fix brush radius
   x set radius increment based on voxel size
   x set to single voxel
@@ -354,19 +352,32 @@ x fill tool
   x gradient option, cacls fuzziness per voxel instead of only on seed
   x faster (remove updates)
 
+======== HERE
+
 - histo tool
   - redesign so that it can be left open
     - specify ROI on the fly, click to rehisto
     - preview function
     - zoom
   - Cancel OK -> Close Fill
+  - if dest seg volume doesn't exist, offer to create one
+
+x option to turn surface vertices off or change color
 
 - autosave volume
+  x Autosave() to write to /tmp
+  x on quit, delete autosave
+    x VolumeCollection::DeleteAutosave()
+  - on startup, check for autosave volume in /tmp
+    - VolumeCollection::IsAutoavePresent()
+    - if present, option to reload, 
+      - VolumeCollection::LoadAutosave()
+  - wait to do this for qt
 
-- save and reload lines
-  - save line to a file 
-  - load from file
-  - auto-save to current working lines file so can restore on crash
+x save and reload lines
+  x save line to a file 
+  x load from file
+  x auto-save to current working lines file so can restore on crash
   
 - autosave labels
 

@@ -171,6 +171,12 @@ class VolumeCollection : public DataCollection {
 		       float& oMinBinValue, float& oBinIncrement,
 		       std::map<int,int>& oBinCounts );
 
+  virtual void DataChanged ();
+
+  // For autosaving.
+  bool IsAutosaveDirty () { return mbAutosaveDirty; }
+  void AutosaveIfDirty ();
+
 protected:
 
   // Gets information from the MRI structure.
@@ -205,6 +211,12 @@ protected:
   Transform44 mWorldToIndexTransform;
 
   bool mbUseDataToIndexTransform;
+
+  // For the autosave volume.
+  std::string MakeAutosaveFileName ( std::string& ifn );
+  void DeleteAutosave();
+  bool mbAutosaveDirty;
+  std::string mfnAutosave;
 
   // Voxel sizes.
   float mVoxelSize[3];

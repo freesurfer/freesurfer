@@ -8,6 +8,7 @@ extern "C" {
 #include "ScubaGlobalPreferences.h"
 #include "PreferencesManager.h"
 #include "ToglManager.h"
+#include "PathManager.h"
 #include "ScubaFrame.h"
 #include "ScubaView.h"
 #include "ScubaLayerFactory.h"
@@ -35,6 +36,8 @@ int Scuba_Init ( Tcl_Interp* iInterp ) {
     ScubaLayerFactory::GetFactory();
     
     ScubaDataCollectionFactory::GetFactory();
+
+    PathManager::GetManager();
 
     PreferencesManager& prefsMgr = PreferencesManager::GetManager();
     prefsMgr.UseFile( ".scuba" );
@@ -100,6 +103,8 @@ int main ( int argc, char** argv ) {
     ScubaLayerFactory::GetFactory();
     
     ScubaDataCollectionFactory::GetFactory();
+
+    PathManager::GetManager();
 
     PreferencesManager& prefsMgr = PreferencesManager::GetManager();
     prefsMgr.UseFile( ".scuba" );

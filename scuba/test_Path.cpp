@@ -1,3 +1,4 @@
+#include <fstream>
 #include <sstream>
 #include "Path.h"
 #include "Scuba-impl.h"
@@ -154,6 +155,42 @@ PathTester::Test () {
 	      "Vertices not moved correctly." );
     }
 
+    // Test stream r/writing.
+    ofstream sw( "/tmp/path.test", ios::out );
+    int const cPaths = 10;
+    int const cVerts = 100;
+    Path<float> pw[cPaths];
+    Path<float> pr[cPaths];
+    for( int nPath = 0; nPath < cPaths; nPath++ ) {
+      for( int nVertex = 0; nVertex < cVerts; nVertex++ ) {
+	Point3<float> v( nPath, nVertex, nPath*nVertex );
+	pw[nPath].AddVertex( v );
+      }
+      
+      pw[nPath].WriteToStream( sw );
+    }
+    sw.close();
+
+    ifstream sr( "/tmp/path.test", ios::in );
+    for( int nPath = 0; nPath < cPaths; nPath++ ) {
+      pr[nPath].ReadFromStream( sr );
+      if( (pr[nPath].GetNumVertices() != pw[nPath].GetNumVertices()) ) {
+	stringstream ssErr;
+	ssErr << "Path didn't read correct num verts from stream: "
+	      << "wrote " << pw[nPath].GetNumVertices() 
+	      << " read " << pr[nPath].GetNumVertices();
+	Assert( 0, ssErr.str() );
+      }
+	  
+
+      for( int nVertex = 0; nVertex < cVerts; nVertex++ ) {
+	Point3<float> vr = pr[nPath].GetVertexAtIndex( nVertex );
+	Point3<float> vw = pw[nPath].GetVertexAtIndex( nVertex );
+	Assert( (vr[0] == vw[0] && vr[1] == vw[1] && vr[2] == vw[2]),
+		"Vertices read from stream didn't match vertices written." );
+      }
+    }
+    sr.close();
     
   }
   catch( runtime_error e ) {

@@ -662,6 +662,7 @@ ScubaFrame::DoTimer() {
       View* view;
       try {
 	view = GetViewAtColRow( nCol, nRow );
+	view->Timer();
 	if( view->WantRedisplay() ) {
 	  RequestRedisplay();
 	  view->RedisplayPosted();

@@ -64,9 +64,6 @@ ScubaView::ScubaView() {
   ScubaViewBroadcaster& broadcaster = ScubaViewBroadcaster::GetBroadcaster();
   broadcaster.AddListener( this );
 
-  mbFlipLeftRightInYZ = 
-    globalPrefs.GetPrefAsBool( ScubaGlobalPreferences::ViewFlipLeftRight );
-
   // Try setting our initial transform to the default transform with
   // id 0. If it's not there, create it.
   try { 
@@ -187,7 +184,8 @@ ScubaView::ScubaView() {
     prefs.GetPrefAsString( ScubaGlobalPreferences::KeyZoomViewIn );
   msZoomViewOut = 
     prefs.GetPrefAsString( ScubaGlobalPreferences::KeyZoomViewOut );
-  
+  mbFlipLeftRightInYZ = 
+    prefs.GetPrefAsBool( ScubaGlobalPreferences::ViewFlipLeftRight );
 
   map<string,string> labelValueMap;
   mLabelValueMaps["mouse"] = labelValueMap;
@@ -1346,26 +1344,25 @@ ScubaView::DoListenToMessage ( string isMessage, void* iData ) {
 void
 ScubaView::DoDraw() {
 
-#define SHOW_FPS 1
-#ifdef SHOW_FPS
+  ScubaGlobalPreferences& prefs = ScubaGlobalPreferences::GetPreferences();
   ::Timer timer;
   timer.Start();
-#endif
 
   BuildFrameBuffer();
   DrawFrameBuffer();
   DrawOverlay();
 
-#ifdef SHOW_FPS
   int msec = timer.TimeNow();
-  float fps = 1.0 / ((float)msec/1000.0);
 
-  stringstream ssCommand;
-  ssCommand << "SetStatusBarText \"" << fps << " fps\"";
-
-  TclCommandManager& mgr = TclCommandManager::GetManager();
-  mgr.SendCommand( ssCommand.str() );
-#endif
+  if( prefs.GetPrefAsBool( ScubaGlobalPreferences::ShowFPS )) {
+    float fps = 1.0 / ((float)msec/1000.0);
+    
+    stringstream ssCommand;
+    ssCommand << "SetStatusBarText \"" << fps << " fps\"";
+    
+    TclCommandManager& mgr = TclCommandManager::GetManager();
+    mgr.SendCommand( ssCommand.str() );
+  }
 }
 
 void
@@ -1424,6 +1421,22 @@ ScubaView::DoReshape( int iWidth, int iHeight ) {
 void
 ScubaView::DoTimer() {
 
+  map<int,int>::iterator tLevelLayerID;
+  for( tLevelLayerID = mLevelLayerIDMap.begin(); 
+       tLevelLayerID != mLevelLayerIDMap.end(); ++tLevelLayerID ) {
+    int layerID = (*tLevelLayerID).second;
+    try {
+      Layer& layer = Layer::FindByID( layerID );
+      layer.Timer();
+      if( layer.WantRedisplay() ) {
+	RequestRedisplay();
+	layer.RedisplayPosted();
+      }
+    }
+    catch(...) {
+      DebugOutput( << "Couldn't find layer " << layerID );
+    }
+  }
 }
   
 void

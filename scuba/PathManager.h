@@ -32,6 +32,9 @@ class PathManager : public TclCommandListener,
   // On pathChange, passes to listeners.
   virtual void DoListenToMessage ( std::string iMessage, void* iData );
 
+  void ReadPathFile  ( std::string ifnPaths );
+  void WritePathFile ( std::string ifnPaths );
+
   void EnableUpdates ();
   void DisableUpdates ();
 
