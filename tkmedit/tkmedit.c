@@ -8,10 +8,10 @@
 #undef VERSION
 
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2004/12/22 15:15:04 $
-// Revision       : $Revision: 1.233 $
-char *VERSION = "$Revision: 1.233 $";
+// Revision Author: $Author: kteich $
+// Revision Date  : $Date: 2004/12/30 19:58:07 $
+// Revision       : $Revision: 1.234 $
+char *VERSION = "$Revision: 1.234 $";
 
 #define TCL
 #define TKMEDIT 
@@ -1076,7 +1076,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
      shorten our argc and argv count. If those are the only args we
      had, exit. */
   /* rkt: check for and handle version tag */
-  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.233 2004/12/22 15:15:04 tosa Exp $", "$Name:  $");
+  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.234 2004/12/30 19:58:07 kteich Exp $", "$Name:  $");
   if (nNumProcessedVersionArgs && argc - nNumProcessedVersionArgs == 1)
     exit (0);
   argc -= nNumProcessedVersionArgs;
@@ -5173,7 +5173,7 @@ int main ( int argc, char** argv ) {
     DebugPrint( ( "%s ", argv[nArg] ) );
   }
   DebugPrint( ( "\n\n" ) );
-  DebugPrint( ( "$Id: tkmedit.c,v 1.233 2004/12/22 15:15:04 tosa Exp $ $Name:  $\n" ) );
+  DebugPrint( ( "$Id: tkmedit.c,v 1.234 2004/12/30 19:58:07 kteich Exp $ $Name:  $\n" ) );
 
   
   /* init glut */
@@ -11971,6 +11971,21 @@ void tkm_SetSurfaceDistance    ( xVoxelRef iAnaIdx,
   Surf_SetVertexValue( gSurface[tkm_tSurfaceType_Main], 
 		       Surf_tVertexSet_Main, Surf_tValueSet_Val,
 		       iAnaIdx, ifDistance );
+}
+
+void tkm_SetMRIValueInSurface ( xVoxelRef        iAnaIdx,
+				Surf_tVertexSet  iVertexSet,
+				float            ifValue ) {
+  
+  if( NULL == gSurface[tkm_tSurfaceType_Main] ) {
+    return;
+  }
+
+  /* This is right to be using ana idx instead of MRI idx because the
+     client space for the surface is ana idx (screen space). */
+  Surf_SetVertexValue( gSurface[tkm_tSurfaceType_Main], 
+		       iVertexSet, Surf_tValueSet_Val,
+		       iAnaIdx, ifValue );
 }
 
 void tkm_ShowNearestSurfaceVertex ( Surf_tVertexSet iVertexSet ) {

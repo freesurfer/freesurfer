@@ -1,6 +1,6 @@
 #! /usr/bin/tixwish
 
-# $Id: tkmedit.tcl,v 1.82 2004/12/20 02:05:58 kteich Exp $
+# $Id: tkmedit.tcl,v 1.83 2004/12/30 20:01:02 kteich Exp $
 
 
 source $env(FREESURFER_HOME)/lib/tcl/tkm_common.tcl
@@ -4097,6 +4097,20 @@ proc CreateMenuBar { ifwMenuBar } {
 		"Set Vertex Distance at Cursor"
 		{ SetSurfaceDistanceAtCursor }
 		tMenuGroup_SurfaceLoading }
+	    { cascade "Set MRI Value in Surface..." {
+		{ command
+		    "Set MRI Value in Surface at Main Vertex Set"
+		    { SetMRIValueAtCursorInSurface $Surf_tVertexSet(main)}
+		    tMenuGroup_SurfaceLoading }
+		{ command
+		    "Set MRI Value in Surface at Original Vertex Set"
+		    { SetMRIValueAtCursorInSurface $Surf_tVertexSet(original)}
+		    tMenuGroup_SurfaceLoading }
+		{ command
+		    "Set MRI Value in Surface at Pial Vertex Set"
+		    { SetMRIValueAtCursorInSurface $Surf_tVertexSet(pial)}
+		    tMenuGroup_SurfaceLoading }
+	    }}
 	    { command
 		"Average Vertex Positions..."
 		{ DoAverageSurfaceVertexPositionsDlog }

@@ -373,6 +373,11 @@ void tkm_ReadCursorFromEditFile  ();
 void tkm_SetSurfaceDistance    ( xVoxelRef iAnaIdx,
 				 float     ifDistance );
 
+/* Write an anatomical value to the surface. */
+void tkm_SetMRIValueInSurface ( xVoxelRef        iAnaIdx,
+				Surf_tVertexSet  iVertexSet,
+				float            ifValue );
+
 /* show nearest verts */
 void tkm_ShowNearestSurfaceVertex ( Surf_tVertexSet iVertexSet );
 

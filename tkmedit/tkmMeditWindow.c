@@ -2983,6 +2983,9 @@ MWin_tErr MWin_RegisterTclCommands ( tkmMeditWindowRef this,
   Tcl_CreateCommand ( ipInterp, "SetSurfaceDistanceAtCursor",
 		      (Tcl_CmdProc*) MWin_TclSetSurfaceDistanceAtCursor,
 		      (ClientData) this, (Tcl_CmdDeleteProc*) NULL );
+  Tcl_CreateCommand ( ipInterp, "SetMRIValueAtCursorInSurface",
+		      (Tcl_CmdProc*) MWin_TclSetMRIValueAtCursorInSurface,
+		      (ClientData) this, (Tcl_CmdDeleteProc*) NULL );
   Tcl_CreateCommand ( ipInterp, "SetCursorToCenterOfSelection",
 		      (Tcl_CmdProc*)MWin_TclSetCursorToCenterOfSelectionVolume,
 		      (ClientData) this, (Tcl_CmdDeleteProc*) NULL );
@@ -4554,6 +4557,74 @@ int MWin_TclSetSurfaceDistanceAtCursor ( ClientData  iClientData,
   if ( MWin_tErr_NoErr != eResult ) {
 
     sprintf ( sError, "Error %d in MWin_TclSetSurfaceDistanceAtCursor: %s\n",
+	      eResult, MWin_GetErrorString(eResult) );
+
+    DebugPrint( (sError ) );
+
+    /* set tcl result, volatile so tcl will make a copy of it. */
+    Tcl_SetResult( ipInterp, MWin_GetErrorString(eResult), TCL_VOLATILE );
+  }
+
+  eTclResult = TCL_ERROR;
+
+ cleanup:
+
+  return eTclResult;
+}
+
+int MWin_TclSetMRIValueAtCursorInSurface ( ClientData  iClientData, 
+					   Tcl_Interp* ipInterp,
+					   int         argc,
+					   char*       argv[] ) {
+  
+  tkmMeditWindowRef this         = NULL;
+  int               eTclResult   = TCL_OK;
+  MWin_tErr         eResult      = MWin_tErr_NoErr;
+  DspA_tErr         eDispResult  = DspA_tErr_NoErr;
+  char              sError[256]  = "";       
+  Surf_tVertexSet   vertexSet   = Surf_tVertexSet_Main;
+
+  /* grab us from the client data ptr */
+  this = (tkmMeditWindowRef) iClientData;
+
+  /* verify us. */
+  eResult = MWin_Verify ( this );
+  if ( MWin_tErr_NoErr != eResult )
+    goto error;
+
+  /* if not accepting commands yet, return. */
+  if( !this->mbAcceptingTclCommands )
+    goto cleanup;
+
+  /* verify the last clicked display area index. */
+  eResult = MWin_VerifyDisplayIndex ( this, this->mnLastClickedArea );
+  if ( MWin_tErr_NoErr != eResult )
+    goto error;
+
+  /* verify the number of arguments. */
+  if ( argc != 2 ) {
+    eResult = MWin_tErr_WrongNumberArgs;
+    goto error;
+  }
+
+  /* Parse the vertex set. */
+  vertexSet = (Surf_tVertexSet) atoi( argv[1] );
+
+  /* pass on to the last clicked display. */
+  eDispResult = DspA_SetMRIValueAtCursorInSurface
+    ( this->mapDisplays[this->mnLastClickedArea], vertexSet );
+  if ( DspA_tErr_NoErr != eDispResult ) {
+    eResult = MWin_tErr_ErrorAccessingDisplay;
+    goto error;
+  }
+  goto cleanup;
+
+ error:
+
+  /* print error message */
+  if ( MWin_tErr_NoErr != eResult ) {
+
+    sprintf ( sError, "Error %d in MWin_TclSetMRIValueAtCursorInSurface: %s\n",
 	      eResult, MWin_GetErrorString(eResult) );
 
     DebugPrint( (sError ) );

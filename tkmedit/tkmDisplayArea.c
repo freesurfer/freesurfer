@@ -3,8 +3,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2004/12/20 02:07:57 $
-// Revision       : $Revision: 1.110 $
+// Revision Date  : $Date: 2004/12/30 19:58:07 $
+// Revision       : $Revision: 1.111 $
 
 #include "tkmDisplayArea.h"
 #include "tkmMeditWindow.h"
@@ -8015,6 +8015,39 @@ DspA_tErr DspA_SetSurfaceDistanceAtCursor ( tkmDisplayAreaRef this ) {
   }
   
  cleanup:
+  
+  return eResult;
+}
+
+DspA_tErr DspA_SetMRIValueAtCursorInSurface ( tkmDisplayAreaRef this,
+					      Surf_tVertexSet   iVertexSet) {
+  
+  DspA_tErr eResult  = DspA_tErr_NoErr;
+  float     anaValue = 0;
+  
+  DebugEnterFunction( ("DspA_SetMRIValueAtCursorInSurface( this=%p, "
+		       "iVertexSet=%d )", this, (int)iVertexSet) );
+
+  /* verify us. */
+  eResult = DspA_Verify ( this );
+  DebugAssertThrow( (eResult == DspA_tErr_NoErr) );
+
+  /* make sure we have a surface. */
+  if( NULL != this->mpSurface[tkm_tSurfaceType_Main] ) {
+    
+    /* Get the MRI value here. */
+    Volm_GetValueAtIdx( this->mpVolume[tkm_tVolumeType_Main],
+			this->mpCursor, &anaValue );
+
+    /* set the distance for this ana idx */
+    tkm_SetMRIValueInSurface( this->mpCursor, iVertexSet, anaValue );
+  }
+  
+  DebugCatch;
+  DebugCatchError( eResult, DspA_tErr_NoErr, DspA_GetErrorString );
+  EndDebugCatch;
+  
+  DebugExitFunction;
   
   return eResult;
 }

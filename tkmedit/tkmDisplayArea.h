@@ -635,6 +635,10 @@ DspA_tErr DspA_DrawHistogram ( tkmDisplayAreaRef        this,
 /* write the current distance to the vertex closest to the cursor */
 DspA_tErr DspA_SetSurfaceDistanceAtCursor ( tkmDisplayAreaRef this );
 
+/* write the current MRI value at the cursor to the surface  */
+DspA_tErr DspA_SetMRIValueAtCursorInSurface ( tkmDisplayAreaRef this,
+					      Surf_tVertexSet   iVertexSet );
+
 /* looks at which volume edge the cursor is nearest and then 'cuts' the
    region from that edge to the same plane at the cursor by setting
    those values to 0.*/
