@@ -7719,7 +7719,11 @@ ic2562_make_surface(int max_vertices, int max_faces)
     }
   }
 
+#if 0
   mris = MRISoverAlloc(max_vertices, max_faces, ICO_NVERTICES, ICO_NFACES) ;
+#else
+  mris = MRISalloc(ICO_NVERTICES, ICO_NFACES) ;
+#endif
 
   /* position vertices */
   for (vno = 0 ; vno < ICO_NVERTICES ; vno++)
@@ -7792,6 +7796,7 @@ ic2562_make_surface(int max_vertices, int max_faces)
   for (vno = 0 ; vno < ICO_NVERTICES ; vno++)
   {
     v = &mris->vertices[vno] ;
+    v->vtotal = v->vnum ;
     v->f = (int *)calloc(v->num, sizeof(int)) ;
     if (!v->f)
       ErrorExit(ERROR_NO_MEMORY,"ic2562: could not allocate %d faces",v->num);
@@ -7805,11 +7810,10 @@ ic2562_make_surface(int max_vertices, int max_faces)
                 "ic2562: could not allocate list of %d "
                 "dists at v=%d", v->vnum, vno) ;
     v->dist_orig = (float *)calloc(v->vnum, sizeof(float)) ;
-    if (!v->dist_orig)
-      ErrorExit(ERROR_NOMEMORY,
-                "ic2562: could not allocate list of %d "
-                "dists at v=%d", v->vnum, vno) ;
-    v->nsize = 1 ; v->vtotal = v->vnum ;
+      if (!v->dist_orig)
+        ErrorExit(ERROR_NOMEMORY,
+                  "ic2562: could not allocate list of %d "
+                  "dists at v=%d", v->vnum, vno) ;
   }
 
   /* fill in face indices in vertex structures */
