@@ -33,6 +33,7 @@ typedef struct
   float  orig_area ;
   int    status ;       /* ignore likelihood term */
   char   invalid;       /* if invalid = 1, then don't use this structure */
+	float  label_dist ;   /* for computing label dist */
 } GCA_MORPH_NODE, GMN ;
 
 typedef struct
