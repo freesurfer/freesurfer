@@ -1,13 +1,14 @@
 #!/bin/csh -f
 # groupreg-sess
 #
-set VERSION = '$Id: groupreg-sess,v 1.1 2003/12/19 22:31:48 greve Exp $';
+set VERSION = '$Id: groupreg-sess,v 1.2 2003/12/20 00:46:50 greve Exp $';
 
 set inputargs = ($argv);
 
 set groupid   = ();
 set analysis  = ();
 set contrast  = ();
+set xmat      = ();
 set gconmat   = ();
 set gconname  = ();
 set monly     = 0;
@@ -47,25 +48,10 @@ parse_args_return:
 goto check_params;
 check_params_return:
 
-set nxsess = `wc -l $xmat | awk '{print $1}'`;
-if($nxsess != $#SessList) then
-  echo "ERROR: the number of lines in $xmat ($nxsess) does not equal"
-  echo "       the number of sessions ($#SessList)";
-  exit 1;
-endif
-
 set nclines = `wc -l $gconmat | awk '{print $1}'`;
 if($nclines != 1) then
   echo "ERROR: the number of lines in $gconmat is $nclines."
   echo "       There can only be one line."
-  exit 1;
-endif
-
-set nxbeta = `cat $xmat    | head -n 1 | wc -w | awk '{print $1}'`;
-set ncbeta = `cat $gconmat | head -n 1 | wc -w | awk '{print $1}'`;
-if($nxbeta != $ncbeta) then
-  echo "ERROR: the number of columns in $xmat ($nxbeta) does"
-  echo "       not match that of $gconmat ($ncbeta)."
   exit 1;
 endif
 
@@ -143,15 +129,21 @@ foreach sess ($SessList)
     echo "ERROR: $fname does not exist"
     exit 1;
   endif
-set InstemList = ($InstemList $instem);
+  set tmp = `cat $fname`;
+  set nf = $tmp[3];
+  if($nf > 1) then
+    echo "ERROR: contrast $contrast has multiple frames."
+    exit 1;
+  endif
+  set InstemList = ($InstemList $instem);
 end
 
 
-if(! $monly) set MLF = /tmp/extract-roi-$$.m
+if(! $monly) set MLF = /tmp/groupreg-sess-$$.m
 rm -f $MLF 
 echo "MLF is $MLF" |& tee -a $LF
 
-set okfile = /tmp/extract-roi-$$.ok
+set okfile = /tmp/groupreg-sess-$$.ok
 rm -f $okfile
 
 #--------------------------------------------#
@@ -163,17 +155,31 @@ InstemList = splitstring('$InstemList');
 ninputs = size(InstemList,1);
 outdir = '$outdir';
 okfile = '$okfile';
+xmatfile = '$xmat';
+QuitOnError = ~[$monly];
 
-X = load('$xmat','-ascii');
+% X = load('$xmat','-ascii');
+[X, rowid, colid] = fast_ldtable(xmatfile);
 if(isempty(X))
-  fprintf('ERROR: loading %s\n','$xmat');
+  fprintf('ERROR: loading %s\n',xmatfile);
   return;
 end
 [nxf nbeta] = size(X);
 
+XtX = X'*X;
+c = cond(XtX);
+fprintf('Design matrix condition %g\n',c);
+if(c > 1000)
+  fprintf('ERROR: design matrix is ill-conditioned.\n');
+  fprintf('  Run groupreg-sess -help for more info.\n');
+  if(QuitOnError) exit; end
+  return;
+end
+
 C = load('$gconmat','-ascii');
 if(isempty(C))
   fprintf('ERROR: loading %s\n','$gconmat');
+  if(QuitOnError) exit; end
   return;
 end
 ncbeta = size(C,2);
@@ -181,12 +187,14 @@ ncbeta = size(C,2);
 if(nbeta ~= ncbeta)
   fprintf('ERROR: number of columns in X (%d) does not equal\n');
   fprintf('  the number of columns in C (%d)\n',nbeta,ncbeta);
+  if(QuitOnError) exit; end
   return;
 end
 
 if(nxf ~= ninputs)
   fprintf('ERROR: number of rows in X (%d) does not equal\n');
   fprintf('  the number of input (%d)\n',nxf,ninputs);
+  if(QuitOnError) exit; end
   return;
 end
 
@@ -198,6 +206,7 @@ if(isempty(ns))
 end
 if(nf > 1)
   fprintf('ERROR: first-level contrast has more than one plane\n');
+  if(QuitOnError) exit; end
   return;
 end
 
@@ -206,6 +215,7 @@ nvslice = nr*nc;
 mristruct = fast_ldbhdr(instem);
 if(isempty(mristruct))
   fprintf('ERROR: could not load bhdr for %s\n',instem);
+  if(QuitOnError) exit; end
   return;
 end
 
@@ -219,6 +229,7 @@ for slice = 1:ns
     yn = fast_ldbslice(instem,slice-1);
     if(isempty(yn))
       fprintf('ERROR: loading %s\n',instem);
+      if(QuitOnError) exit; end
       return;
     end
 
@@ -259,21 +270,24 @@ fprintf('matlab groupreg-sess done (%g)\n',toc);
 
 return;
 
-
 EOF
 #--------------------------------------------#
 
 if(! $monly) then
-  cat $MLF | matlab -display iconic
+  cat $MLF | matlab -display iconic |& tee -a $LF
+  cp $MLF $outdir
   rm -f $MLF
   if(! -e $okfile) then
-    echo "ERROR: during matlab execution"
+    echo "ERROR: during matlab execution" |& tee -a $LF
+    cp $LF $outdir
     exit 1; 
   endif
+  echo "INFO: Output is saved to $outdir" |& tee -a $LF
 endif
 
 date | tee -a $LF
 echo "groupreg-sess completed" | tee -a $LF
+cp $LF $outdir
 echo " "
 echo " "
 
@@ -301,7 +315,7 @@ while( $#argv != 0 )
       set contrast = $argv[1]; shift;
       breaksw
 
-    case "-x"
+    case "-gxf":
       if ( $#argv == 0) goto arg1err;
       set xmat = $argv[1]; shift;
       if(! -e $xmat) then
@@ -374,6 +388,13 @@ while( $#argv != 0 )
     case "-g":
     case "-s":
     case "-sf":
+      echo "ERROR: cannot use flag $flag with this program."
+      exit 1;
+      breaksw
+
+    case "-g":
+    case "-s":
+    case "-sf":
     case "-df":
     case "-d":
       # ignore getsesspath arguments 
@@ -416,7 +437,7 @@ check_params:
   endif
 
   if($#xmat == 0) then
-    echo "ERROR: no design matrix specified "
+    echo "ERROR: no group design matrix specified "
     exit 1
   endif
 
@@ -461,20 +482,20 @@ usage_exit:
   echo "   -group    groupid"
   echo "   -analysis aname : analysis"
   echo "   -contrast cname : contrast"
-  echo "   -x xmat : design matrix file"
+  echo "   -gxf      gxfile  : group design matrix"
+  echo ""
+  echo "   -space spacename : tal or sph"
+  echo "   -spacedir spacedir"
+  echo "   -hemi hemi : lh or rh (only with sph)"
+  echo ""
   echo "   -gconmat cmat : group contrast mat file"
   echo "   -gconname name : group contrast name"
-  echo "   -space spacename"
-  echo "   -spacedir spacedir"
-  echo "   -hemi hemi : lh or rh"
   echo ""
   echo "Optional:";
   echo ""
   echo "   -vol  stem : use stem instead of ces"
   echo ""
-  echo "   -sf sessidfile  ..."
   echo "   -df srchdirfile ..."
-  echo "   -s  sessid      ..."
   echo "   -d  srchdir     ..."
   echo ""
   echo "   -help"
@@ -494,4 +515,171 @@ exit 1;
 
 #---- Everything below here is printed out as part of help -----#
 BEGINHELP
+
+SUMMARY
+
+This program performs per-voxel regression for group and inter-group
+random effects analysis.  The user constructs a design matrix and
+contrast vector.  The sessions to be used in the analysis are specfied
+in the design matrix file (see GXFILE below) instead of using the
+traditional -s and -sf FSFAST flags.
+
+The input to the regression is derived from a contrast of the
+session-level analysis resampled into a common-space, usually the
+ces volume. Eg, sessid/fsd/analysis/contrast/ces.
+
+The output will be stored in
+groupid/fsd/analysis/spacedir-rfx/gconname and can be accessed with
+all the tools used to access any random effects analysis.
+
+
+ARGUMENTS
+
+-group groupid
+
+groupid is the name of the group. This dictates where the output will 
+be stored. In future commands, use -s groupid to access the data.
+
+-analysis analysis (short-cut: -a)
+
+Specifies the session-level (ie, first-level) analysis from which
+the input data will come from.
+
+-contrast cname
+
+Specifies the session-level (ie, first-level) contrast from which
+the input data will come from. NOTE: this is different than the
+group contrast (see -gconname). Currently only supports contrasts
+with one frame.
+
+-gxf gxfile
+
+This is a specially formated file with the sessions to use in the
+regression analysis as well as the design matrix. See GXFILE below.
+The covariance of the design matrix must have a condition of
+greater than 1000 to be considered not ill-conditioned. See 
+ILL-CONDITIONED DESIGN MATRIX below.
+
+-space spacename
+
+Get input data from the analysis resampled into space
+spacename. spacename can be tal (talairach) or sph (spherical).
+If sph, then you must supply a hemisphere. See func2tal-sess
+and func2sph-sess.
+
+-spacedir spacedir
+
+By default the spacedir is spacename. Under some circumstances the
+actual name of the directory where the resampled data resides
+will be different than spacename (eg, when the spherical data is
+smoothed with sphsmooth-sess). 
+
+-hemi hemisphere
+
+Hemisphere to analyze (with -space sph only). Legal values are lh and
+rh.  Only one is allowed.
+
+-gconmat cmat
+
+This is a text file with the group contrast vector. It should be a
+single line with contrast weights. The number of weights must equal to
+the number of columns in the design matrix. Note that the group-level
+contrast is different than the session-level contrast.
+
+-gconname name
+
+This is the name that will be assigned to the group contrast. This
+determines the subdirectory where the output will be stored.  Note
+that the group-level contrast is different than the session-level
+contrast. This is the contrast name to be used when access the 
+data at later stages (eg, viewing).
+
+-vol volstem
+
+Input volume. By default, ces (the contrast effect size) from the 
+session-level contrast will be used. This volume is created by
+stxgrinder-sess. Other volumes that can be used are pctces (the
+percent CES) are t (the t-ratio).
+
+GROUP DESIGN MATRIX (GXFILE)
+
+The input sessions and design matrix are specified by the group desgin
+matrix file (gxfile -- passed with the -gxf flag). This is a specially
+formatted text file. The design matrix is a matrix with the number of
+rows equal to the number of sessions, and the number of columns equal 
+to the number of regressors. The regressors code such information as
+the group/class membership, age, IQ, etc. 
+
+All lines that begin with # are ignored (this allows for comments
+inside the file). All blank lines are ignored. The non-blank,
+non-comment lines are referred to as "data lines". With the exception
+of the first data line, the first column of the data line holds the
+session name. The remaining columns are the regression components for
+that session (eg, group membership, age, IQ, etc).  The first data
+line must be a list of labels of the regressors in the design matrix,
+with the first column being arbitrary.
+
+EXAMPLE
+
+Group Design Matrix File (x.mat):
+------cuthere---------
+# my group study
+xxx     subj1 subj2  age
+mgh-101.1   1     0   25
+mgh-101.2   1     0   25
+
+mgh-103.1   0     1   35
+mgh-103.2   0     1   35
+------cuthere---------
+
+The first line is a comment. The next line is the first data line
+and so holds the label. "xxx" is just a place-holder string. It
+can be anything; it just has to be there. "subj1", "subj2", and "age"
+are the labels for the regressors. There are four sessions (the
+blank line is ignored). The design matrix itself is 4x3.
+
+Group Contrast Vector File (c.mat):
+------cuthere---------
+1 -1 0
+------cuthere---------
+This is a single line with 3 values, one for each regressor in 
+the design matrix. This particular contrast will test the difference
+between subj1 and subj2 (after removing the effects of age).
+
+Command-line:
+
+  groupreg-sess -a sm-sm5 -c allvres -df sessdir \
+       -space tal -gxf x.mat -gconmat c.mat  \
+       -group group-tst -gconname g.allvres
+
+This will use the ces volume from session-level analysis sm-sm5 and
+contrast allvres as resampled into talairach space. The sessions to
+use are found in x.mat as explained above. The output will be stored
+in group-tst/bold/sm-sm5/tal-rfx/g.allvres. The output volumes are:
+
+  beta - regression coefficients
+  beta-var - variance of the residual error of the regression
+  ces - the group-level contrast effect size
+  f - F-ratio of the group-level contrast
+  fsig - significnace of the F-ratio (ie, F-test).
+
+To view the significance using tkmedit-sess:
+
+  tkmedit-sess -s group-tst -a sm-sm5 -c g.allvres -map fsig\
+      -space tal -isxavg random
+  
+
+ILL-CONDITIONED DESIGN MATRIX
+
+Setting up a design matrix can be tricky. If you do not do it
+correctly, it can become "ill-conditioned" or "singular". This means
+that one of the regressor columns is equal to another column (which is
+easy to find) or is equal to some weighted combination of other
+columns (which is almost impossible to find). When the condition
+number of the design matrix exceeds 1000, it is considered
+ill-conditioned. If you cannot determine what is wrong with it, see a
+statistician or someone else who knows about design matrices.
+
+
+
 
