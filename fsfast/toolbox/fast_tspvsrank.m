@@ -19,7 +19,7 @@ function [indbest, cpvs] = fast_tspvsrank(dt,ds,nbest)
 % Eg, if indbest(1) = 5 and cpvs(1) = 10.2, then the 5th column of
 % ds will span 10.2% of the variance in dt.
 %
-% $Id: fast_tspvsrank.m,v 1.1 2005/01/13 04:10:56 greve Exp $
+% $Id: fast_tspvsrank.m,v 1.2 2005/01/23 17:10:44 greve Exp $
 
 indbest = [];
 cpvs = [];
@@ -47,12 +47,12 @@ if(size(dt,1) < size(dt,2))
 end
 
 % Rescale dt so that var is 100
-dt = 10*dt/sqrt(mean(dt(:).^2));
+%dt = 10*dt/sqrt(mean(dt(:).^2));
+dt = 10*dt/sqrt(mean(var(dt)));
 
-tic
 indbest = [];
 for nthbest = 1:nbest
-  fprintf('nthbest = %d, %g\n',nthbest,toc);
+  %fprintf('    nthbest = %d (%g)\n',nthbest,toc);
 
   % Go through each col of source data
   for nthds = 1:nds 
@@ -65,7 +65,8 @@ for nthbest = 1:nbest
     % Orthog dt wrt c
     rt = dt - c*((inv(c'*c)*c')*dt); 
     % Compute residual variance
-    rtvarmn(nthds) = mean(rt(:).^2);
+    %rtvarmn(nthds) = mean(rt(:).^2);
+    rtvarmn(nthds) = mean(var(rt));
   end
 
   % Find source column that reduce var the most
