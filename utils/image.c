@@ -1718,9 +1718,9 @@ ImageCopyFrames(IMAGE *inImage, IMAGE *outImage,int start, int nframes,
       break ;
     case PFBYTE:
       if (outImage->pixel_format == PFBYTE)
-        hmemcpy(IMAGEseq_pix(inImage,0,0,frameno),
-               IMAGEseq_pix(outImage, 0, 0,frameno),
-               pix_per_frame * sizeof(char)) ;
+        hmemcpy(IMAGEseq_pix(outImage, 0, 0,frameno+dst_frame-start),
+                IMAGEseq_pix(inImage,0,0,frameno),
+                pix_per_frame * sizeof(char)) ;
       else
       {
         size = inImage->rows * inImage->cols ;
@@ -1748,9 +1748,8 @@ ImageCopyFrames(IMAGE *inImage, IMAGE *outImage,int start, int nframes,
                     , inImage->pixel_format, outImage->pixel_format) ;
           break ;
         }
-        break ;
       }
-    
+      break ;
     case PFINT:
       iIn = IMAGEIpix(inImage, 0, 0) + pix_per_frame * frameno ;
       switch (outImage->pixel_format)
