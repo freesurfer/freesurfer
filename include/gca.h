@@ -30,6 +30,9 @@ typedef struct
   float  var ;
   float  mean ;
   float  log_p ;      /* current log probability of this sample */
+  int    x ;          /* image coordinates */
+  int    y ;
+  int    z ;   
 } GCA_SAMPLE, GCAS ;
 
 #define GIBBS_NEIGHBORHOOD   6
@@ -78,6 +81,7 @@ typedef struct
 } GAUSSIAN_CLASSIFIER_ARRAY, GCA ;
 
 
+int  GCAunifyVariance(GCA *gca) ;
 int  GCAvoxelToNode(GCA *gca, MRI *mri,
                     int xv, int yv, int zv, int *pxn,int *pyn,int *pzn);
 GCA  *GCAalloc(int ninputs, float spacing, int width, int height, int depth) ;
@@ -133,6 +137,7 @@ int        GCAwriteSamples(GCA *gca, MRI *mri, GCA_SAMPLE *gcas, int nsamples,
 int        GCAtransformAndWriteSamples(GCA *gca, MRI *mri, GCA_SAMPLE *gcas, 
                                        int nsamples,char *fname,LTA *lta) ;
 MRI        *GCAmri(GCA *gca, MRI *mri) ;
+MRI        *GCAlabelMri(GCA *gca, MRI *mri, int label, LTA *lta) ;
 MRI        *GCAbuildMostLikelyVolume(GCA *gca, MRI *mri) ;
 MRI  *GCAlabelProbabilities(MRI *mri_inputs, GCA *gca, MRI *mri_dst, LTA *lta);
 MRI  *GCAcomputeProbabilities(MRI *mri_inputs, GCA *gca, MRI *mri_labels, 
@@ -156,11 +161,16 @@ int   GCAaccumumateTissueStatistics(GCA *gca, MRI *mri_T1, MRI *mri_PD,
                                     MRI *mri_parc, LTA *lta) ;
 int   GCAnormalizeTissueStatistics(GCA *gca) ;
 char *cma_label_to_name(int label) ;
+int  GCArenormalizeLabels(MRI *mri_in, MRI *mri_labeled, GCA *gca, LTA *lta) ;
 MRI   *GCArelabel_cortical_gray_and_white(GCA *gca, MRI *mri_inputs, 
                                           MRI *mri_src, MRI *mri_dst,LTA *lta);
 
 int GCAdump(GCA *gca, MRI *mri, int x, int y, int z, LTA *lta, FILE *fp, 
             int verbose) ;
+int GCArenormalizeIntensities(GCA *gca, int *labels, float *intensities, 
+                              int num) ;
+double  GCAlabelMean(GCA *gca, int label) ;
+
 
 #define MIN_PRIOR  0.5
 
