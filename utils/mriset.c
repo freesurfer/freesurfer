@@ -661,14 +661,12 @@ MRIcomputeResidual(MRI *mri1, MRI *mri2, MRI *mri_dst, int t1, int t2)
   }
   return(mri_dst) ;
 }
-
 /*-----------------------------------------------------
         Parameters:
 
         Returns value:
 
         Description
-          Cross-correlate to MRIs
 ------------------------------------------------------*/
 MRI *
 MRIminmax(MRI *mri_src, MRI *mri_dst, MRI *mri_dir, int wsize)
@@ -726,6 +724,83 @@ MRIminmax(MRI *mri_src, MRI *mri_dst, MRI *mri_dir, int wsize)
           break ;
         }
         *pdst++ = val ;
+      }
+    }
+  }
+  return(mri_dst) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
+MRI *
+MRIreplaceValues(MRI *mri_src, MRI *mri_dst, BUFTYPE in_val, BUFTYPE out_val)
+{
+  int     width, height, depth, x, y, z;
+  BUFTYPE *pdst, *psrc, val ;
+
+  width = mri_src->width ;
+  height = mri_src->height ;
+  depth = mri_src->depth ;
+
+  if (!mri_dst)
+    mri_dst = MRIclone(mri_src, NULL) ;
+
+  for (z = 0 ; z < depth ; z++)
+  {
+    for (y = 0 ; y < height ; y++)
+    {
+      pdst = &MRIvox(mri_dst, 0, y, z) ;
+      psrc = &MRIvox(mri_src, 0, y, z) ;
+      for (x = 0 ; x < width ; x++)
+      {
+        val = *psrc++ ;
+        if (val == in_val)
+          val = out_val ;
+        *pdst++ = val ;
+      }
+    }
+  }
+  return(mri_dst) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
+MRI *
+MRImask(MRI *mri_src, MRI *mri_mask, MRI *mri_dst, BUFTYPE mask)
+{
+  int     width, height, depth, x, y, z;
+  BUFTYPE *pdst, *psrc, *pmask, val, mask_val ;
+
+  width = mri_src->width ;
+  height = mri_src->height ;
+  depth = mri_src->depth ;
+
+  if (!mri_dst)
+    mri_dst = MRIclone(mri_src, NULL) ;
+
+  for (z = 0 ; z < depth ; z++)
+  {
+    for (y = 0 ; y < height ; y++)
+    {
+      pdst = &MRIvox(mri_dst, 0, y, z) ;
+      psrc = &MRIvox(mri_src, 0, y, z) ;
+      pmask = &MRIvox(mri_mask, 0, y, z) ;
+      for (x = 0 ; x < width ; x++)
+      {
+        val = *psrc++ ;
+        mask_val = *pmask++ ;
+        if (mask_val == mask)
+          *pdst++ = 0 ;
+        else
+          *pdst++ = val ;
       }
     }
   }
