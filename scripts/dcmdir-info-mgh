@@ -1,8 +1,8 @@
 #!/bin/csh -f
 # dcmdir-info-mgh
-# '$Id: dcmdir-info-mgh,v 1.1 2004/05/12 18:50:05 greve Exp $'
+# '$Id: dcmdir-info-mgh,v 1.2 2004/05/18 17:37:26 greve Exp $'
 
-set VERSION = '$Id: dcmdir-info-mgh,v 1.1 2004/05/12 18:50:05 greve Exp $';
+set VERSION = '$Id: dcmdir-info-mgh,v 1.2 2004/05/18 17:37:26 greve Exp $';
 
 if($#argv != 1) then
   echo "dcmdir-info-mgh dicomdir"
@@ -32,9 +32,9 @@ if("$argv[1]" == "-help") then
   echo "the -scanonly option, but it does require that the files be named"
   echo "appropriately."
   echo ""
-  echo "The output is a list of series/runs with the pulse sequence and "
-  echo "protocol used. The Patient Name, Study Date, and Study Time are"
-  echo "also printed out."
+  echo "The output is a list of series/runs with the pulse sequence, "
+  echo "protocol, and file name from the series. The Patient Name, Study Date,"
+  echo "and Study Time are echo also printed out."
   echo ""
   exit 1;
 endif
@@ -68,7 +68,7 @@ foreach series ($serlist)
 
   set PulSeq   = `mri_probedicom --i $dcm | grep PulseSequence | awk '{print $2}'`;
   set Protocol = `mri_probedicom --i $dcm | grep ProtocolName | awk '{print $3}'`;
-  echo "$series $PulSeq $Protocol"
+  echo "$series $PulSeq $Protocol `basename $dcm`"
 
 end
 
