@@ -53,6 +53,9 @@ int Scuba_Init ( Tcl_Interp* iInterp ) {
 }
 
 
+
+
+
 int main ( int argc, char** argv ) {
 
   try {
@@ -88,6 +91,7 @@ int main ( int argc, char** argv ) {
     TclCommandManager& commandMgr = TclCommandManager::GetManager();
     commandMgr.SetOutputStreamToCerr();
     commandMgr.Start( interp );
+    commandMgr.SetCommandLineParameters( argc, argv );
 
     ToglManager& toglMgr = ToglManager::GetManager();
     toglMgr.InitializeTogl( interp );
