@@ -668,11 +668,11 @@ ltaMNIread(char *fname)
   lt->sigma = 1.0f ;
   lt->x0 = lt->y0 = lt->z0 = 0 ;
 
+  fgetl(line, 900, fp) ;   /* MNI Transform File */
+  fgetl(line, 900, fp) ;   /* Transform_type = Linear; */
+  while (line[0] == '%')
+    fgetl(line, 900, fp) ; /* variable # of comments */
   fgetl(line, 900, fp) ;
-  fgetl(line, 900, fp) ;
-  fgetl(line, 900, fp) ;
-  fgetl(line, 900, fp) ;
-  /*  fgetl(line, 900, fp) ;*/
 
   m_L = lt->m_L ;
   for (row = 1 ; row <= 3 ; row++)
