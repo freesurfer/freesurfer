@@ -357,10 +357,11 @@ typedef struct
   void    *user_parms ;       /* arbitrary spot for user to put stuff */
 } INTEGRATION_PARMS ;
 
-extern int (*gMRISexternalGradient)(MRI_SURFACE *mris, INTEGRATION_PARMS *parms) ;
+extern double (*gMRISexternalGradient)(MRI_SURFACE *mris, INTEGRATION_PARMS *parms) ;
 extern double (*gMRISexternalSSE)(MRI_SURFACE *mris, INTEGRATION_PARMS *parms) ;
 extern double (*gMRISexternalRMS)(MRI_SURFACE *mris, INTEGRATION_PARMS *parms) ;
 extern int (*gMRISexternalTimestep)(MRI_SURFACE *mris, INTEGRATION_PARMS *parms) ;
+extern int (*gMRISexternalRipVertices)(MRI_SURFACE *mris, INTEGRATION_PARMS *parms);
 
 #define IP_USE_CURVATURE      0x0001
 #define IP_NO_RIGID_ALIGN     0x0002
@@ -376,6 +377,8 @@ int MRISfindClosestOriginalVertex(MRI_SURFACE *mris, float x, float y,
                                     float z) ;
 int MRISfindClosestVertex(MRI_SURFACE *mris, float x, float y, float z) ;
 double MRIScomputeSSE(MRI_SURFACE *mris, INTEGRATION_PARMS *parms) ;
+double MRIScomputeSSEExternal(MRI_SURFACE *mris, INTEGRATION_PARMS *parms,
+                              double *ext_sse) ;
 double       MRIScomputeCorrelationError(MRI_SURFACE *mris, 
                                          MRI_SP *mrisp_template, int fno) ;
 int          MRISallocExtraGradients(MRI_SURFACE *mris) ;
@@ -871,6 +874,7 @@ int MRIScombine(MRI_SURFACE *mris_src, MRI_SURFACE *mris_total,
 int MRISsphericalCopy(MRI_SURFACE *mris_src, MRI_SURFACE *mris_total, 
                 MRIS_HASH_TABLE *mht, int which) ;
 int   MRISorigAreaToCurv(MRI_SURFACE *mris) ;
+int   MRISareaToCurv(MRI_SURFACE *mris) ;
 int   MRISclear(MRI_SURFACE *mris, int which) ;
 int   MRISnormalize(MRI_SURFACE *mris, int dof, int which) ;
 
