@@ -998,7 +998,7 @@ MRISprojectOntoEllipsoid(MRI_SURFACE *mris_src, MRI_SURFACE *mris_dst,
   VERTEX  *v;
   int     k;
   float   x,y,z,x2,y2,z2,dx,dy,dz,a2,b2,c2,a4,b4,c4,a6,b6,c6;
-  float   f,g,h,d,dist,avgdist=0.0f, xscale, yscale, zscale, scale ;
+  float   f,g,h,d,dist,avgdist=0.0f ;
 
   if (FZERO(a))
   {
@@ -1328,6 +1328,7 @@ MRIScenter(MRI_SURFACE *mris_src, MRI_SURFACE *mris_dst)
   if (!mris_dst)
     mris_dst = MRISclone(mris_src) ;
 
+  x = y = z = 0 ;   /* silly compiler warning */
   xhi=yhi=zhi= -10000;
   xlo=ylo=zlo= 10000;
   for (vno = 0 ; vno < mris_src->nvertices ; vno++)
@@ -2472,6 +2473,7 @@ deltaAngle(float angle1, float angle2)
 
   return(delta) ;
 }
+#if 0
 /*-----------------------------------------------------
         Parameters:
 
@@ -2496,3 +2498,4 @@ MRISscaleBrain(MRI_SURFACE *mris_src, MRI_SURFACE *mris_dst, float scale)
   return(mris_dst) ;
 }
 
+#endif
