@@ -44,7 +44,6 @@ LAYER_SRCS=ScubaLayerFactory.cpp \
 
 GUI_SRCS= \
 	WindowFrame.cpp \
-	ToglManager.cpp \
 	ScubaFrame.cpp \
 	View.cpp \
 	ScubaView.cpp \
@@ -54,14 +53,55 @@ GUI_SRCS= \
 	ViewState.cpp \
 	ScubaToolState.cpp \
 	ScubaGlobalPreferences.cpp \
-	ProgressDisplayManager.cpp \
+	ProgressDisplayManager.cpp
+
+SCUBA1_SRCS= \
+	ToglManager.cpp \
 	TclProgressDisplayManager.cpp \
 	togl.c
 
-bin_PROGRAMS = scuba
-scuba_SOURCES=$(UTILITIES_SRCS) $(BASIC_SRCS) $(FSDATA_SRCS) $(GUI_SRCS) $(LAYER_SRCS) scuba.cpp 
-LDADD= $(addprefix $(top_srcdir)/,$(LIBS_MGH)) $(LIBS_TCL_OPENGL)
+SCUBA2_SRCS= \
+	QTScubaWidget.cpp \
+	QtProgressDisplayManager.cpp \
+	QtScubaUtilities.cpp \
+	QtVolumeHistogram.cpp
+FORMS = mainwindow.ui \
+		viewlayersdlog.ui \
+		toolsettingsdlog.ui \
+		roisettingsdlog.ui
+UICDECLS = .ui/mainwindow.h \
+		.ui/viewlayersdlog.h \
+		.ui/toolsettingsdlog.h \
+		.ui/roisettingsdlog.h
+UICIMPLS = .ui/mainwindow.cpp \
+		.ui/viewlayersdlog.cpp \
+		.ui/toolsettingsdlog.cpp \
+		.ui/roisettingsdlog.cpp
+SRCMOC   = .moc/moc_QtVolumeHistogram.cpp \
+		.moc/moc_QTScubaWidget.cpp \
+		.moc/moc_mainwindow.cpp \
+		.moc/moc_viewlayersdlog.cpp \
+		.moc/moc_toolsettingsdlog.cpp \
+		.moc/moc_roisettingsdlog.cpp
+OBJMOC = .obj/moc_QtVolumeHistogram.o \
+		.obj/moc_QTScubaWidget.o \
+		.obj/moc_mainwindow.o \
+		.obj/moc_viewlayersdlog.o \
+		.obj/moc_toolsettingsdlog.o \
+		.obj/moc_roisettingsdlog.o
+
+MOC      = $(QTDIR)/bin/moc
+UIC      = $(QTDIR)/bin/uic
+
+
+bin_PROGRAMS = scuba scuba2
+scuba_SOURCES=$(UTILITIES_SRCS) $(BASIC_SRCS) $(FSDATA_SRCS) $(GUI_SRCS) $(LAYER_SRCS) $(SCUBA1_SRCS) scuba.cpp 
+LDADD= $(addprefix $(top_srcdir)/,$(LIBS_MGH)) $(LIBS_TCL_OPENGL) 
 scuba_LDFLAGS=
+
+scuba2_SOURCES=$(UTILITIES_SRCS) $(BASIC_SRCS) $(FSDATA_SRCS) $(GUI_SRCS) $(LAYER_SRCS) $(MOC_SRCS) $(SCUBA2_SRCS) $(FORMS) $(UICDECLS) $(UICIMPLS) $(SRCMOC) $(OBJMOC) main.cpp
+scuba2_LDFLAGS=-L/$(QTDIR)/lib -lqt-mt
+scuba2_CXXFLAGS=-DQT_SHARED -DQT_NO_DEBUG -DQT_THREAD_SUPPORT -I$(QTDIR)/include -I.ui/ 
 
 foodir=$(prefix)/lib/tcl
 foo_SCRIPTS=scuba.tcl tkcon.tcl histolabel.tcl
@@ -155,3 +195,63 @@ testScubaROIVolume_SOURCES=test_ScubaROIVolume.cpp \
 # testVolumeHistogram_CXXFLAGS=-I${QTDIR}/include -DQT_THREAD_SUPPORT -DQT_SHARED
 # testVolumeHistogram_LDFLAGS=-L${QTDIR}/lib -lqt-mt
 #endif
+
+
+# All the scuba2 stuff.
+.ui/mainwindow.h: mainwindow.ui
+	$(UIC) mainwindow.ui -o .ui/mainwindow.h
+.ui/mainwindow.cpp: .ui/mainwindow.h mainwindow.ui
+	$(UIC) mainwindow.ui -i mainwindow.h -o .ui/mainwindow.cpp
+.obj/mainwindow.o: .ui/mainwindow.cpp mainwindow.ui.h .ui/mainwindow.h
+	$(CXX) $(CXXFLAGS) -o .obj/mainwindow.o .ui/mainwindow.cpp
+
+.ui/toolsettingsdlog.h: toolsettingsdlog.ui
+	$(UIC) toolsettingsdlog.ui -o .ui/toolsettingsdlog.h
+.ui/toolsettingsdlog.cpp: .ui/toolsettingsdlog.h toolsettingsdlog.ui
+	$(UIC) toolsettingsdlog.ui -i toolsettingsdlog.h -o .ui/toolsettingsdlog.cpp
+.obj/toolsettingsdlog.o: .ui/toolsettingsdlog.cpp toolsettingsdlog.ui.h .ui/toolsettingsdlog.h
+	$(CXX) $(CXXFLAGS) -o .obj/toolsettingsdlog.o .ui/toolsettingsdlog.cpp
+
+.ui/viewlayersdlog.h: viewlayersdlog.ui
+	$(UIC) viewlayersdlog.ui -o .ui/viewlayersdlog.h
+.ui/viewlayersdlog.cpp: .ui/viewlayersdlog.h viewlayersdlog.ui
+	$(UIC) viewlayersdlog.ui -i viewlayersdlog.h -o .ui/viewlayersdlog.cpp
+.obj/viewlayersdlog.o: .ui/viewlayersdlog.cpp viewlayersdlog.ui.h .ui/viewlayersdlog.h
+	$(CXX) $(CXXFLAGS) -o .obj/viewlayersdlog.o .ui/viewlayersdlog.cpp
+
+.ui/roisettingsdlog.h: roisettingsdlog.ui
+	$(UIC) roisettingsdlog.ui -o .ui/roisettingsdlog.h
+.ui/roisettingsdlog.cpp: .ui/roisettingsdlog.h roisettingsdlog.ui
+	$(UIC) roisettingsdlog.ui -i roisettingsdlog.h -o .ui/roisettingsdlog.cpp
+.obj/roisettingsdlog.o: .ui/roisettingsdlog.cpp roisettingsdlog.ui.h .ui/roisettingsdlog.h
+	$(CXX) $(CXXFLAGS) -o .obj/roisettingsdlog.o .ui/roisettingsdlog.cpp
+
+.obj/moc_QtVolumeHistogram.o: .moc/moc_QtVolumeHistogram.cpp
+	$(CXX) $(CXXFLAGS) -o .obj/moc_QtVolumeHistogram.o
+.moc/moc_QtVolumeHistogram.cpp: QtVolumeHistogram.h
+	$(MOC) QtVolumeHistogram.h -o .moc/moc_QtVolumeHistogram.cpp
+
+.obj/moc_QTScubaWidget.o: .moc/moc_QTScubaWidget.cpp
+	$(CXX) $(CXXFLAGS) -o .obj/moc_QTScubaWidget.o
+.moc/moc_QTScubaWidget.cpp: QTScubaWidget.h
+	$(MOC) QTScubaWidget.h -o .moc/moc_QTScubaWidget.cpp
+
+.obj/moc_mainwindow.o: .moc/moc_mainwindow.cpp
+	$(CXX) $(CXXFLAGS) -o .obj/moc_mainwindow.o
+.moc/mainwindow_QtVolumeHistogram.mainwindow: QtVolumeHistogram.h
+	$(mainwindow) QtVolumeHistogram.h -o .moc/mainwindow_QtVolumeHistogram.cpp
+
+.obj/moc_viewlayersdlog.o: .moc/moc_viewlayersdlog.cpp
+	$(CXX) $(CXXFLAGS) -o .obj/moc_viewlayersdlog.o
+.moc/moc_viewlayersdlog.cpp: .ui/viewlayersdlog.h
+	$(MOC) .ui/viewlayersdlog.h -o .moc/moc_viewlayersdlog.cpp
+
+.obj/moc_toolsettingsdlog.o: .moc/moc_toolsettingsdlog.cpp
+	$(CXX) $(CXXFLAGS) -o .obj/moc_toolsettingsdlog.o
+.moc/moc_toolsettingsdlog.cpp: .ui/toolsettingsdlog.h
+	$(MOC) .ui/toolsettingsdlog.h -o .moc/moc_toolsettingsdlog.cpp
+
+.obj/moc_roisettingsdlog.o: .moc/moc_roisettingsdlog.cpp
+	$(CXX) $(CXXFLAGS) -o .obj/moc_roisettingsdlog.o
+.moc/moc_roisettingsdlog.cpp: .ui/roisettingsdlog.h
+	$(MOC) .ui/roisettingsdlog.h -o .moc/moc_roisettingsdlog.cpp
