@@ -13,7 +13,7 @@
 #include "version.h"
 
 #ifndef lint
-static char vcid[] = "$Id: mri_convert_mdh.c,v 1.8 2003/09/11 19:48:21 greve Exp $";
+static char vcid[] = "$Id: mri_convert_mdh.c,v 1.9 2003/09/15 21:12:01 greve Exp $";
 #endif /* lint */
 
 #define MDH_SIZE    128        //Number of bytes in the miniheader
@@ -28,8 +28,9 @@ static char vcid[] = "$Id: mri_convert_mdh.c,v 1.8 2003/09/11 19:48:21 greve Exp
 typedef struct tagMDH {
   unsigned long ulTimeStamp, BitMask1, ScanCounter;
   unsigned short Ncols, UsedChannels, Slice, Partition, Echo, Rep,LoopCounterLine;
+  unsigned short KSpaceCenterCol,KSpaceCenterLine, CutOffDataPre, CutOffDataPost ;
   float SlicePosSag,SlicePosCor,SlicePosTra;
-  float TimeStamp, PED;
+  float TimeStamp, PED, ReadoutOffCenter;
   int IsPCN;
 } MDH;
 
@@ -104,7 +105,7 @@ int main(int argc, char **argv)
   int nargs;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_convert_mdh.c,v 1.8 2003/09/11 19:48:21 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_convert_mdh.c,v 1.9 2003/09/15 21:12:01 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -750,16 +751,16 @@ MDH *ReadMiniHeader15(FILE *fp, MDH *mdh)
   fread(&ustmp,sizeof(short),1, fp);          //Set ??
   fread(&ustmp,sizeof(short),1, fp);          //Seg ??
   fread(&ustmp,sizeof(short),1, fp); //LoopCounterFree (VA15)
-  fread(&ustmp,sizeof(short),1, fp); //CutOffData.Pre
-  fread(&ustmp,sizeof(short),1, fp); //CutOffData.Post
-  fread(&ustmp,sizeof(short),1, fp); //KSpaceCenterColumn
+  fread(&mdh->CutOffDataPre, sizeof(short),1, fp); //CutOffData.Pre
+  fread(&mdh->CutOffDataPost,sizeof(short),1, fp); //CutOffData.Post
+  fread(&mdh->KSpaceCenterCol,sizeof(short),1, fp); //KSpaceCenterColumn
   fread(&ustmp,sizeof(short),1, fp); //Dummy
 
-  fread(&ftmp,sizeof(float),1, fp); //ReadOutOffCenter
+  fread(&mdh->ReadoutOffCenter,sizeof(float),1, fp); //ReadOutOffCenter
   fread(&ultmp,sizeof(long),1, fp); //TimeSinceLastRF
   mdh->PED = ultmp * 2.5; // convert to ms
   
-  fread(&ustmp,sizeof(short),1, fp); //KSpaceCentreLineNo
+  fread(&mdh->KSpaceCenterLine,sizeof(short),1, fp); //KSpaceCentreLineNo
   fread(&ustmp,sizeof(short),1, fp); //KSpaceCentrePartitionNo
   fseek(fp,14*sizeof(short),SEEK_CUR); // FreePara (VA15)
 
@@ -851,13 +852,18 @@ MDH *ReadMiniHeader21(FILE *fp, MDH *mdh)
 int PrintMiniHeader(FILE *fp, MDH *mdh)
 {
   int n;
-  fprintf(fp,"TimeStamp    %f, PED = %f\n",mdh->TimeStamp,mdh->PED);
-  fprintf(fp,"IsPCN        %d\n",mdh->IsPCN);
-  fprintf(fp,"ScanCounter  %ld\n",mdh->ScanCounter);
-  fprintf(fp,"Line         %d\n",mdh->LoopCounterLine);
-  fprintf(fp,"Echo         %d\n",mdh->Echo);
-  fprintf(fp,"Slice        %d\n",mdh->Slice);
-  fprintf(fp,"Rep          %d\n",mdh->Rep);
+  fprintf(fp,"TimeStamp      %f, PED = %f\n",mdh->TimeStamp,mdh->PED);
+  fprintf(fp,"IsPCN          %d\n",mdh->IsPCN);
+  fprintf(fp,"ScanCounter    %ld\n",mdh->ScanCounter);
+  fprintf(fp,"Line           %d\n",mdh->LoopCounterLine);
+  fprintf(fp,"Echo           %d\n",mdh->Echo);
+  fprintf(fp,"Slice          %d\n",mdh->Slice);
+  fprintf(fp,"Rep            %d\n",mdh->Rep);
+  fprintf(fp,"KSCenterCol    %d\n",mdh->KSpaceCenterCol);  
+  fprintf(fp,"KSCenterLine   %d\n",mdh->KSpaceCenterLine);  
+  fprintf(fp,"CutOffDataPre  %d\n",mdh->CutOffDataPre);  
+  fprintf(fp,"CutOffDataPost %d\n",mdh->CutOffDataPost);  
+  fprintf(fp,"ROOffCenter    %f\n",mdh->ReadoutOffCenter);  
   fprintf(fp,"SP  %7.2f %7.2f %7.2f \n",
 	  mdh->SlicePosSag,mdh->SlicePosCor,mdh->SlicePosTra);
   fprintf(fp,"Ncols        %d\n",mdh->Ncols);
