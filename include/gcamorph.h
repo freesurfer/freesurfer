@@ -78,6 +78,7 @@ typedef struct
 	int    nsmall ;
 	int    relabel ;    /* are we relabeling (i.e. using MAP label, or just max prior label) */
 	int    relabel_avgs ; /* what level to start relabeling at */
+	int    reset_avgs ;   /* what level to reset metric properties at */
 } GCA_MORPH_PARMS, GMP ;
 
 GCA_MORPH *GCAMalloc(int width, int height, int depth) ;
