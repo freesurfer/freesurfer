@@ -2,7 +2,7 @@
 # epidewarp.fsl
 #
 
-set VERSION = '$Id: epidewarp.fsl,v 1.5 2004/11/23 22:20:43 greve Exp $'
+set VERSION = '$Id: epidewarp.fsl,v 1.6 2004/11/29 21:20:37 greve Exp $'
 set inputargs = ($argv);
 
 set dph = ();
@@ -169,7 +169,7 @@ set vsmmag = $tmpdir/vsmmag.img
 set magdw = $tmpdir/magdw.img # To be thrown away
 set cmd = (fugue -i $mag -u $magdw -p $ph2 \
     --dwell=$esp --asym=$tediff --mask=$brain --saveshift=$vsmmag);
-if($#sigmamm) set cmd = ($cmd --smooth2=$sigmamm);
+if($#sigmamm && $sigmamm > 0) set cmd = ($cmd --smooth2=$sigmamm);
 echo $cmd |& tee -a $LF
 $cmd |& tee -a $LF
 if($status) exit 1;
