@@ -1,9 +1,9 @@
 #!/bin/csh -f
 # rocview
 #
-# $Id: rocview,v 1.9 2005/01/24 20:33:40 greve Exp $
+# $Id: rocview,v 1.10 2005/01/24 20:34:37 greve Exp $
 
-set VERSION = '$Id: rocview,v 1.9 2005/01/24 20:33:40 greve Exp $';
+set VERSION = '$Id: rocview,v 1.10 2005/01/24 20:34:37 greve Exp $';
 set inputargs = ($argv);
 
 set fprvolid = ();
@@ -461,6 +461,7 @@ usage_exit:
   echo "   -tpr tprvolid"
   echo "   -frame frameno (zero-based)"
   echo "   -mask maskvolid <-mask maskvolid>"
+  echo "   -maskthresh thresh : default 0.5"
   echo "   -ubermask ubermaskvolid"
   echo "   -roi slc1 row1 col1 slc2 row2 col2"
   echo "   -inout"
