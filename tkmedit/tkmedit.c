@@ -140,6 +140,9 @@ int            tk_NumMainWindows = 0;
 #define MOTIF_YFUDGE  32
 #define CVIDBUF 25
 
+// kt - default zoom factor
+#define kDefaultZoomFactor 2
+
 int selectedpixval = 0;
 int secondpixval = 0 ;
 int updatepixval = TRUE;
@@ -373,6 +376,23 @@ void TclCtrlPtSpace_PrintDebug ( CtrlPtSpace * inSpace );
 
 
 
+                                       /* a voxel data struct */
+typedef struct {
+  int mX, mY, mZ;
+} Voxel;
+
+                                       /* silly accessor methods for max
+                                          object orientedness */
+inline
+void Voxel_Set ( Voxel * inVoxel,
+                 int x, int y, int z );
+
+inline int Voxel_GetX ( Voxel * inVoxel );
+inline int Voxel_GetY ( Voxel * inVoxel );
+inline int Voxel_GetZ ( Voxel * inVoxel );
+
+
+
                                        /* managers for the list of selected
                                           control pts. really just an array
                                           and some accessor methods. each
@@ -391,11 +411,6 @@ char kVList_ErrString [6][256] = {
   "Voxel not found in list.",
   "Index is out of bounds (either < 0 or > list size).",
   "Invalid list (failed basic sanity check, probably garbage memory)." };
-
-                                       /* a voxel data struct */
-typedef struct {
-  int mX, mY, mZ;
-} Voxel;
 
                                        /* voxel list is just an array. each
                                           addition to the list is actually
@@ -458,6 +473,77 @@ void TclVList_PrintDebug ( VoxelList * inList );
                                          you an error string ptr */
 char * VList_GetErrorString ( int inErr );
 
+
+                                       /* VoxelSpace, a 3-plane list of voxels
+                                          optimized for searching for voxels 
+                                          in 3 dimensions */
+#define kVSpace_NumListsInPlane                        256
+
+typedef struct {
+  VoxelList mXPlane[kVSpace_NumListsInPlane], 
+    mYPlane[kVSpace_NumListsInPlane], 
+    mZPlane[kVSpace_NumListsInPlane];
+} VoxelSpace;
+
+#define kVSpaceErr_NoErr                                0
+#define kVSpaceErr_InvalidPtr                           1
+#define kVSpaceErr_XPlaneFull                           2
+#define kVSpaceErr_YPlaneFull                           3
+#define kVSpaceErr_ZPlaneFull                           4
+#define kVSpaceErr_VoxelNotInSpace                      5
+#define kVSpaceErr_InvalidSpace                         6
+#define kVSpaceErr_InvalidVoxel                         7
+#define kVSpaceErr_InvalidPlaneNumber                   8
+
+char kVSpace_ErrString [9][256] = {
+  "No error.",
+  "Invalid space ptr.",
+  "List for that particular X-plane is full.",
+  "List for that particular Y-plane is full.",
+  "List for that particular Z-plane is full.",
+  "Voxel not found in space.",
+  "Invalid space (probably not initialized).",
+  "Invalid voxel (location is out of bounds of the space).",
+  "Invalid plane number, out of range." };
+
+                                       /* init the space */
+char VSpace_Init ( VoxelSpace * inSpace );
+
+                                       /* delete the space */
+char VSpace_Delete ( VoxelSpace * inSpace );
+
+                                       /* add a voxel to the space */
+char VSpace_AddVoxel ( VoxelSpace * inSpace, 
+                       Voxel * inVoxel );
+
+                                       /* remove a voxel from the space */
+char VSpace_RemoveVoxel ( VoxelSpace * inSpace,
+                          Voxel * inVoxel );
+
+                                       /* determine whether or not a voxel 
+                                          is in the space */
+char VSpace_IsInList ( VoxelSpace * inSpace,
+                       Voxel * inVoxel,
+                       char * outIsInList );
+
+                                       /* return a pointer to a list of 
+                                          voxels in a particular plane. */
+char VSpace_GetVoxelsInXPlane ( VoxelSpace * inSpace,
+                                int inXPlane,
+                                VoxelList ** outVoxelList );
+char VSpace_GetVoxelsInYPlane ( VoxelSpace * inSpace,
+                                int inYPlane,
+                                VoxelList ** outVoxelList );
+char VSpace_GetVoxelsInZPlane ( VoxelSpace * inSpace,
+                                int inZPlane,
+                                VoxelList ** outVoxelList );
+
+                                       /* print out all voxels in space */
+char VSpace_PrintDebug ( VoxelSpace * inSpace );
+void TclVSpace_PrintDebug ( VoxelSpace * inSpace );
+
+                                       /* return an error string */
+char * VSpace_GetErrorString ( int inErrorNum );
 
                                        /* draw control point. switches on 
                                           the current display style of the 
@@ -548,6 +634,7 @@ void SetCompositePixelInBuffer ( char * inBuffer, int inIndex,
 
                                        /* global storage for ctrl space. */
 CtrlPtSpace gCtrlPtSpace;
+VoxelSpace gCtrlPtList;
 
                                        /* global storage for selected ctrl 
                                           pts. */
@@ -1614,16 +1701,20 @@ main(int argc,char *argv[])
     char *cwd; 
     char *word;
     char path[MAX_DIR_DEPTH][NAME_LENGTH];
+    int theZoomFactor;
+
+    // kt - added zoom factor switch
 
     if (argc<2) {
 printf("\n");
-printf("Usage: %s name imagedir [surfname] [-] [-tcl script]\n",argv[0]);
+printf("Usage: %s name imagedir [surfname] [-] [-tcl script] [-z zoom_factor]\n",argv[0]);
 printf("       %s local [-] [-tcl script]\n",argv[0]);
 printf("\n");
 printf("       name:  subjectdir name              (relative to $SUBJECTS_DIR)\n");
 printf("   imagedir:  orig,T1,brain,wm,filled      (relative to $subject/mri)\n");
 printf("   surfname:  ?h.orig,?h.smoothwm,?h.plump (relative to $subject/surf)\n");
 printf("  lone dash:  disable editing\n");
+printf("zoom_factor:  set zoom factor. 1 is min, 2 is default, 4 is recommended max.\n");
 #ifdef OPENGL
 printf("                                         [vers: 272134--OpenGL]\n");
 #else
@@ -1632,7 +1723,35 @@ printf("                                         [vers: 272134--GL]\n");
 printf("\n");
 exit(1);
     }
-    zf = ozf = 2;
+
+    // kt - look for zoom factor switch
+    if ( MATCH ( argv[argc-2], "-z" ) ) {
+
+      // read in their zoom factor.
+      theZoomFactor = atoi ( argv[argc-1] );
+
+      // check bounds
+      if ( theZoomFactor < 1 ) {
+        printf ( "medit: zoom factor to small, using 1\n" );
+        theZoomFactor = 1;
+      }
+        
+      printf ( "medit: setting zoom factor to %d\n", theZoomFactor );
+
+      // we're done with this arg. (this is not the best way to do this)
+      argc -= 2;
+
+    } else {
+
+      // no switch, use default.
+      theZoomFactor = kDefaultZoomFactor;
+    }
+
+    // set the zoom factor
+    zf = ozf = theZoomFactor;
+
+    // end_kt
+
     fsf = (float)zf;
     surflinewidth = zf;
 
@@ -3056,6 +3175,8 @@ write_point(char *dir)
   float xpt,ypt,zpt;
   Real  x, y, z, x_tal, y_tal, z_tal ;
   int theVoxX, theVoxY, theVoxZ;
+  char theResult;
+  Voxel theVoxel;
 
   if (control_points) {
 
@@ -3086,9 +3207,14 @@ write_point(char *dir)
     // get vox coords
     ScreenToVoxel ( jc, ic, imc, &theVoxX, &theVoxY, &theVoxZ );
     
-    // add voxel space pt to CtrlPtSpace
-    CtrlPtSpace_SetValue ( &gCtrlPtSpace, theVoxX, theVoxY, theVoxZ, 1 );
-    fprintf ( stdout, "Added control point (%d,%d,%d).\n",
+    // add voxel space pt to list of ctrl pts
+    Voxel_Set ( &theVoxel, theVoxX, theVoxY, theVoxZ );
+    theResult = VSpace_AddVoxel ( &gCtrlPtList, &theVoxel );
+    if ( theResult != kVSpaceErr_NoErr )
+      fprintf ( stderr, "write_point(): Error in VSpace_AddVoxel: %s\n",
+                VSpace_GetErrorString ( theResult ) );
+
+    fprintf ( stdout, "Made control point (%d,%d,%d).\n",
               theVoxX, theVoxY, theVoxZ ); PR;
   }  
 
@@ -3888,6 +4014,7 @@ select_pixel( short sx, short sy, int printflag)
   Real  x, y, z, x_tal, y_tal, z_tal ;
   int   xi,yi, zi ;
   char theResult, theValue;
+  Voxel theVoxel;
 
   x = y = z = 0.0;
   getorigin(&ox,&oy);
@@ -3989,11 +4116,11 @@ select_pixel( short sx, short sy, int printflag)
     }
 
     // get the value for this voxel
-    theResult = CtrlPtSpace_GetValue ( &gCtrlPtSpace,
-                                       xi, yi, zi, &theValue );
-    if ( theResult != kCtrlPtSpaceErr_NoErr ) {
-      fprintf ( stderr, "Error in CtrlPtSpace_GetValue: %s\n",
-                CtrlPtSpace_GetErrorString ( theResult ) );
+    Voxel_Set ( &theVoxel, xi, yi, zi );
+    theResult = VSpace_IsInList ( &gCtrlPtList, &theVoxel, &theValue );
+    if ( theResult != kVSpaceErr_NoErr ) {
+      fprintf ( stderr, "select_pixel(): Error in VSpace_IsInList: %s\n",
+                VSpace_GetErrorString ( theResult ) );
       theValue = 0;
     }
 
@@ -4031,8 +4158,11 @@ void draw_image(int imc,int ic,int jc)
   int hax,hay,curs;
   int theVoxX, theVoxY, theVoxZ;
   int theScreenX, theScreenY, theScreenZ;
-  char theCtrlPtValue, theErr, isSelected;
+  char isSelected;
   Voxel theVoxel;
+  VoxelList * theList;
+  int theListCount, theListIndex;
+  char theResult;
   long theColor;
   /*  Colorindex v; */
   GLubyte v;
@@ -4144,90 +4274,83 @@ void draw_image(int imc,int ic,int jc)
 
         // end drawing image
 
-
-        // kt - added code to draw ctrl pts
-
-                                        /* the CtrlPtSpace structure contains
-                                           the locations of all the ctrl pts.
-                                           to find them, we search the space
-                                           in two dimensions, the third
-                                           dimension fixed according to the
-                                           slice displayed, which is a 
-                                           different coordinate for each
-                                           orientation.
-
-                                           when we find a pt, we have the 
-                                           coords of the pt in voxel space.
-                                           we covert them back to screen
-                                           space and then use the other two
-                                           coords to draw the pt on the
-                                           screen. */
-
         // only draw if we're supposed to.
         if ( gIsDisplayCtrlPts ) {
 
-          // run the same loop as before...
-          theScreenZ = imc;
+          // find our vox z coords TODO: probably need a single dimension
+          // conversion function, like ScreenZToVoxelZ
+          theVoxZ = imc / zf;
           
-          // walk through the entire plane in the coord space...
-          for ( theScreenY = 0; theScreenY < ydim; theScreenY++ ) {
-            for ( theScreenX = 0; theScreenX < xdim; theScreenX++ ) {
-              
-              // get our voxel coords
-              ScreenToVoxel ( theScreenX, theScreenY, theScreenZ,
-                              &theVoxX, &theVoxY, &theVoxZ );
+          // get the list of points in this plane.
+          theResult = VSpace_GetVoxelsInZPlane ( &gCtrlPtList,
+                                                 theVoxZ,
+                                                 &theList ); 
+          if ( theResult != kVSpaceErr_NoErr ) {
+            fprintf ( stderr, "draw_image(): Error in VSpace_GetVoxelsInZPlane: %s\n", 
+                      VSpace_GetErrorString ( theResult ) );
+            theList = NULL;
+          }
 
-              // see if we have a point
-              theErr = CtrlPtSpace_GetValue ( &gCtrlPtSpace, 
-                                              theVoxX, theVoxY, theVoxZ,
-                                              &theCtrlPtValue );            
-              
-              if ( theErr != kCtrlPtSpaceErr_NoErr ) {
-                fprintf ( stderr, "Error in CtrlPtSpace_GetValue: %s\n",
-                          CtrlPtSpace_GetErrorString(theErr) );
-                theCtrlPtValue = 0;
+          // if we have a list..
+          if ( theList != NULL ) {
+
+            // get its count
+            theResult = VList_GetCount ( theList, &theListCount );
+            if ( theResult != kVListErr_NoErr ) {
+              fprintf ( stderr, "draw_image(): Error in VList_GetCount: %s\n",
+                        VList_GetErrorString ( theResult ) );
+              theListCount = 0;
+            }
+
+            // get each voxel...
+            for ( theListIndex = 0; 
+                  theListIndex < theListCount; 
+                  theListIndex++ ) {
+
+              theResult = VList_GetNthVoxel ( theList, theListIndex, 
+                                              &theVoxel );
+              if ( theResult != kVListErr_NoErr ) {
+                fprintf ( stderr, "WriteCtrlPtFile(): Error in VList_GetNthVoxel: %s\n",
+                          VList_GetErrorString ( theResult ) );
+                continue;
+              }
+
+              // see if it's selected. 
+              theResult = VList_IsInList ( &gSelectionList, &theVoxel,
+                                        &isSelected );
+              if ( theResult != kVListErr_NoErr ) {
+                fprintf ( stderr, "Error in VList_IsInList: %s\n",
+                          VList_GetErrorString(theResult) );
+                isSelected = FALSE;
               }
               
-              // if we have a point...
-              if ( theCtrlPtValue ) {
+              // if it's selected, draw in one color, else use another
+              // color
+              if ( isSelected )
+                theColor = kRGBAColor_Yellow;
+              else
+                theColor = kRGBAColor_Green;
+              
+              // go to screen points
+              VoxelToScreen ( Voxel_GetX(&theVoxel), Voxel_GetY(&theVoxel),
+                              Voxel_GetZ(&theVoxel), &theScreenX, 
+                              &theScreenY, &theScreenZ );
+
+              // draw the point.
+              if ( !all3flag ) {
                 
-                // build a voxel from it.
-                theVoxel.mX = theVoxX;
-                theVoxel.mY = theVoxY;
-                theVoxel.mZ = theVoxZ;
-
-                // see if it's selected. 
-                theErr = VList_IsInList ( &gSelectionList, &theVoxel,
-                                          &isSelected );
-                if ( theErr != kVListErr_NoErr ) {
-                  fprintf ( stderr, "Error in VList_IsInList: %s\n",
-                            VList_GetErrorString(theErr) );
-                  isSelected = FALSE;
-                }
-
-                // if it's selected, draw in one color, else use another
-                // color
-                if ( isSelected )
-                  theColor = kRGBAColor_Yellow;
-                else
-                  theColor = kRGBAColor_Green;
+                DrawCtrlPt ( vidbuf, theScreenX, theScreenY, theColor );
                 
-                // draw the point.
-                if ( !all3flag ) {
-
-                  DrawCtrlPt ( vidbuf, theScreenX, theScreenY, theColor );
-                  
-                } else {
-
-                  // halve our coords in the all3 view. since our final copy is
-                  // actually y-flipped, our draw into the upper left corner
-                  // is actually a draw into the lower left corner. to make
-                  // sure the cursor shows up in the right place, we have to
-                  // add hay to the y coord here.
-                  DrawCtrlPt ( vidbuf, 
-                               theScreenX/2, hay + theScreenY/2, theColor );
-                  
-                }
+              } else {
+                
+                // halve our coords in the all3 view. since our final copy is
+                // actually y-flipped, our draw into the upper left corner
+                // is actually a draw into the lower left corner. to make
+                // sure the cursor shows up in the right place, we have to
+                // add hay to the y coord here.
+                DrawCtrlPt ( vidbuf, 
+                             theScreenX/2, hay + theScreenY/2, theColor );
+                
               }
             }
           }
@@ -4322,69 +4445,74 @@ void draw_image(int imc,int ic,int jc)
         
         if ( gIsDisplayCtrlPts ) {
 
-          theScreenY = ic;
-          
-          for ( theScreenZ = 0; theScreenZ < ydim; theScreenZ++ ) {
-            for ( theScreenX = 0; theScreenX < xdim; theScreenX++ ) {
-              
-              ScreenToVoxel ( theScreenX, theScreenY, theScreenZ,
-                              &theVoxX, &theVoxY, &theVoxZ );
+          theVoxY = (ydim-1 - ic) / zf;
 
-              theErr = CtrlPtSpace_GetValue ( &gCtrlPtSpace, 
-                                              theVoxX, theVoxY, theVoxZ,
-                                              &theCtrlPtValue );            
-              
-              if ( theErr != kCtrlPtSpaceErr_NoErr ) {
-                fprintf ( stderr, "Error in CtrlPtSpace_GetValue: %s\n",
-                          CtrlPtSpace_GetErrorString(theErr) );
-                theCtrlPtValue = 0;
+          theResult = VSpace_GetVoxelsInYPlane ( &gCtrlPtList,
+                                                 theVoxY,
+                                                 &theList ); 
+          if ( theResult != kVSpaceErr_NoErr ) {
+            fprintf ( stderr, "draw_image(): Error in VSpace_GetVoxelsInZPlane: %s\n", 
+                      VSpace_GetErrorString ( theResult ) );
+            theList = NULL;
+          }
+
+          if ( theList != NULL ) {
+
+            theResult = VList_GetCount ( theList, &theListCount );
+            if ( theResult != kVListErr_NoErr ) {
+              fprintf ( stderr, "draw_image(): Error in VList_GetCount: %s\n",
+                        VList_GetErrorString ( theResult ) );
+              theListCount = 0;
+            }
+
+            for ( theListIndex = 0; 
+                  theListIndex < theListCount; 
+                  theListIndex++ ) {
+
+              theResult = VList_GetNthVoxel ( theList, theListIndex, 
+                                              &theVoxel );
+              if ( theResult != kVListErr_NoErr ) {
+                fprintf ( stderr, "WriteCtrlPtFile(): Error in VList_GetNthVoxel: %s\n",
+                          VList_GetErrorString ( theResult ) );
+                continue;
               }
-              
-              if ( theCtrlPtValue ) {
 
-                theVoxel.mX = theVoxX;
-                theVoxel.mY = theVoxY;
-                theVoxel.mZ = theVoxZ;
-
-                theErr = VList_IsInList ( &gSelectionList, &theVoxel,
-                                          &isSelected );
-                if ( theErr != kVListErr_NoErr ) {
-                  fprintf ( stderr, "Error in VList_IsInList: %s\n",
-                            VList_GetErrorString(theErr) );
-                  isSelected = FALSE;
-                }
-
-                if ( isSelected )
-                  theColor = kRGBAColor_Yellow;
-                else
-                  theColor = kRGBAColor_Green;
-
-                if ( !all3flag ) {
-                  
-                  DrawCtrlPt ( vidbuf, theScreenX, theScreenZ, theColor );
-
-                } else {
-                  
-                  DrawCtrlPt ( vidbuf, 
-                               theScreenX/2, theScreenZ/2, theColor );
-                                                              
-                }
+              theResult = VList_IsInList ( &gSelectionList, &theVoxel,
+                                        &isSelected );
+              if ( theResult != kVListErr_NoErr ) {
+                fprintf ( stderr, "Error in VList_IsInList: %s\n",
+                          VList_GetErrorString(theResult) );
+                isSelected = FALSE;
               }
+
+              if ( isSelected )
+                theColor = kRGBAColor_Yellow;
+              else
+                theColor = kRGBAColor_Green;
+              
+              VoxelToScreen ( Voxel_GetX(&theVoxel), Voxel_GetY(&theVoxel),
+                              Voxel_GetZ(&theVoxel), &theScreenX, 
+                              &theScreenY, &theScreenZ );
+              
+              if ( !all3flag )
+                DrawCtrlPt ( vidbuf, theScreenX, theScreenZ, theColor );
+              else
+                DrawCtrlPt ( vidbuf, theScreenX/2, theScreenZ/2, theColor );
             }
           }
         } // end display control points
-
-      if ( !all3flag ) {
+        
+        if ( !all3flag ) {
           
           DrawCrosshairInBuffer ( vidbuf, jc, imc, 
-                                    kCursorCrosshairRadius, 
-                                    kRGBAColor_Red );
+                                  kCursorCrosshairRadius, 
+                                  kRGBAColor_Red );
           
         } else {
           
           DrawCrosshairInBuffer ( vidbuf, jc/2, imc/2, 
-                                    kCursorCrosshairRadius, 
-                                    kRGBAColor_Red );
+                                  kCursorCrosshairRadius, 
+                                  kRGBAColor_Red );
           
         }
         
@@ -4443,58 +4571,64 @@ void draw_image(int imc,int ic,int jc)
 
           }
         }
-
-        if ( gIsDisplayCtrlPts ) {
         
-          theScreenX = jc;
+        if ( gIsDisplayCtrlPts ) {
           
-          for ( theScreenY = 0; theScreenY < ydim; theScreenY++ ) {
-            for ( theScreenZ = 0; theScreenZ < xdim; theScreenZ++ ) {
-              
-              ScreenToVoxel ( theScreenX, theScreenY, theScreenZ,
-                              &theVoxX, &theVoxY, &theVoxZ );
+          theVoxX = jc / zf;
+          
+          theResult = VSpace_GetVoxelsInXPlane ( &gCtrlPtList,
+                                                 theVoxX,
+                                                 &theList ); 
+          if ( theResult != kVSpaceErr_NoErr ) {
+            fprintf ( stderr, "draw_image(): Error in VSpace_GetVoxelsInZPlane: %s\n", 
+                      VSpace_GetErrorString ( theResult ) );
+            theList = NULL;
+          }
+          
+          if ( theList != NULL ) {
 
-              theErr = CtrlPtSpace_GetValue ( &gCtrlPtSpace, 
-                                              theVoxX, theVoxY, theVoxZ,
-                                              &theCtrlPtValue );            
+            theResult = VList_GetCount ( theList, &theListCount );
+            if ( theResult != kVListErr_NoErr ) {
+              fprintf ( stderr, "draw_image(): Error in VList_GetCount: %s\n",
+                        VList_GetErrorString ( theResult ) );
+              theListCount = 0;
+            }
+
+            for ( theListIndex = 0; 
+                  theListIndex < theListCount; 
+                  theListIndex++ ) {
               
-              if ( theErr != kCtrlPtSpaceErr_NoErr ) {
-                fprintf ( stderr, "Error in CtrlPtSpace_GetValue: %s\n",
-                          CtrlPtSpace_GetErrorString(theErr) );
-                theCtrlPtValue = 0;
+              theResult = VList_GetNthVoxel ( theList, theListIndex, 
+                                              &theVoxel );
+              if ( theResult != kVListErr_NoErr ) {
+                fprintf ( stderr, "WriteCtrlPtFile(): Error in VList_GetNthVoxel: %s\n",
+                          VList_GetErrorString ( theResult ) );
+                continue;
               }
               
-              if ( theCtrlPtValue ) {
-                
-                theVoxel.mX = theVoxX;
-                theVoxel.mY = theVoxY;
-                theVoxel.mZ = theVoxZ;
-
-                theErr = VList_IsInList ( &gSelectionList, &theVoxel,
-                                          &isSelected );
-                if ( theErr != kVListErr_NoErr ) {
-                  fprintf ( stderr, "Error in VList_IsInList: %s\n",
-                            VList_GetErrorString(theErr) );
-                  isSelected = FALSE;
-                }
-
-                if ( isSelected )
-                  theColor = kRGBAColor_Yellow;
-                else
-                  theColor = kRGBAColor_Green;
-
-                if ( !all3flag ) {
-                  
-                  DrawCtrlPt ( vidbuf, theScreenZ, theScreenY, theColor );
-                  
-                } else {
-                  
-                  DrawCtrlPt ( vidbuf, 
-                               hax + theScreenZ/2, hay + theScreenY/2, 
-                               theColor );
-                  
-                }
+              theResult = VList_IsInList ( &gSelectionList, &theVoxel,
+                                        &isSelected );
+              if ( theResult != kVListErr_NoErr ) {
+                fprintf ( stderr, "Error in VList_IsInList: %s\n",
+                          VList_GetErrorString(theResult) );
+                isSelected = FALSE;
               }
+              
+              if ( isSelected )
+                theColor = kRGBAColor_Yellow;
+              else
+                theColor = kRGBAColor_Green;
+              
+              VoxelToScreen ( Voxel_GetX(&theVoxel), Voxel_GetY(&theVoxel),
+                              Voxel_GetZ(&theVoxel), &theScreenX, 
+                              &theScreenY, &theScreenZ );
+              
+              if ( !all3flag )
+                DrawCtrlPt ( vidbuf, theScreenZ, theScreenY, theColor );
+              else
+                DrawCtrlPt ( vidbuf, 
+                             hax + theScreenZ/2, hay + theScreenY/2, 
+                             theColor );
             }
           }
         } // end dray ctrl pnts          
@@ -4526,148 +4660,6 @@ void draw_image(int imc,int ic,int jc)
         }
       }
     }
-
-#if 0
-
-    if (plane==HORIZONTAL || all3flag) 
-    {
-
-      k = 0;
-      zic = (ydim-1-ic)/zf;                  // switch ( plane ) theScreenZ = 
-      if (zic>=0&&zic<ynum) {
-        for (imnr=0;imnr<ydim;imnr++)        // for theScreenY = 0..ydim
-          for (j=0;j<xdim;j++) {             // for theScreenX = 0..xdim
-            if (all3flag && (imnr%2 || j%2)) continue;
-
-            theVoxX = j / zf;                // switch ( plane ) {
-            theVoxY = (ydim-1-ic) / zf;      //   theVoxX = ...
-            theVoxZ = imnr / zf;
-
-            v = im[imnr/zf][zic][j/zf]+MAPOFFSET;
-
-            if (truncflag)
-              if (v<white_lolim+MAPOFFSET || v>white_hilim+MAPOFFSET)
-                v=MAPOFFSET;
-
-            if ((imnr==imc&&abs(j-jc)<=curs)||
-                (j==jc&&abs(imnr-imc)<=curs)) 
-              v=0 /*NUMVALS+MAPOFFSET*/;
-
-            if (all3flag) 
-            {
-              
-              /* idx_buf = 4*((xdim*hay) + hax + k + ((imnr/2)*hax)) ; */
-              idx_buf = 4* ( k + ((imnr/2)*hax) );
-              vidbuf[idx_buf] = vidbuf[idx_buf+1] = vidbuf[idx_buf + 2] = hacked_map[v];
-              vidbuf[idx_buf + 3]=255;
-              k++;
-
-            } else {
-
-              vidbuf[k] = vidbuf[k+1] = vidbuf[k+2]= hacked_map[v]; 
-              vidbuf[k+3]=255;
-              k+=4;
-            }
-            
-          }
-        for (imnr=imc-curs;imnr<=imc+curs;imnr++) {
-
-          if (all3flag) 
-
-            /* k = 4*(xdim*hay+hax + imnr/2*xdim/2+jc/2 + imnr/2*hax); */
-            k = 4*( imnr/2*xdim/2 + jc/2 + imnr/2*hax );
-          
-           else          
-
-            k = 4*( imnr*xdim + jc);
-
-          vidbuf[k]   = 0; 
-          vidbuf[k+1] = 255;
-          vidbuf[k+2] = 0;
-          vidbuf[k+3] = 255;
-        }
-
-        for (j=jc-curs;j<=jc+curs;j++) {
-
-          if (all3flag) 
-
-            /*k = 4*(xdim*hay + hax + imc/2*xdim/2+j/2 + imc/2*hax); */
-            k = 4*(imc/2*xdim/2+j/2 + imc/2*hax);
-
-          else 
-
-            k = 4*(imc*xdim+j);
-
-          vidbuf[k]   = 0; 
-          vidbuf[k+1] = 255;
-          vidbuf[k+2] = 0;
-          vidbuf[k+3] = 255;
-        }
-      }
-      else {
-        for (imnr=0;imnr<ydim;imnr++)
-          for (j=0;j<xdim;j++) {
-            if (all3flag && (imnr%2 || j%2)) continue;
-            vidbuf[k++] = MAPOFFSET;
-          }
-      }
-    }
-    if (plane==SAGITTAL || all3flag) {
-
-      k = 0;
-      zjc = jc/zf;
-      if (zjc>=0&&zjc<xnum) {
-        /*for (i=ydim-1;i>=0;i--)*//* TODO:4% faster, but 25% l.t. COR/HOR */
-        for (i=0;i<ydim;i++)
-          for (imnr=0;imnr<xdim;imnr++) {
-            if (all3flag && (i%2 || imnr%2)) continue;
-            /*v = im[imnr/zf][i/zf][zjc]+MAPOFFSET;*/
-
-            v = im[imnr/zf][(ydim-1-i)/zf][zjc]+MAPOFFSET;
-
-            if (truncflag)
-              if (v<white_lolim+MAPOFFSET || v>white_hilim+MAPOFFSET)
-                v=MAPOFFSET;
-            if (all3flag) 
-            {
-              /*idx_buf = 4*(k + ((i/2)*hax));*/
-        idx_buf = 4*((xdim*hay) + hax + k + ((i/2)*hax)) ;
-              vidbuf[idx_buf] = vidbuf[idx_buf+1] = vidbuf[idx_buf + 2] = hacked_map[v];
-              vidbuf[idx_buf + 3]=255;
-              k++;
-            }
-            else
-            {
-              vidbuf[k] = vidbuf[k+1] = vidbuf[k+2]= hacked_map[v]; 
-              vidbuf[k+3]=255;
-              k+=4;
-            }
-          }
-        for (i=ic-curs;i<=ic+curs;i++) {
-          if (all3flag) /* k = 4*(i/2*xdim/2+imc/2 + i/2*hax);*/
-      k = 4*(xdim*hay+hax + i/2*xdim/2+imc/2 + i/2*hax);
-          else          k = 4*(i*xdim+imc);
-          vidbuf[k] = 255 ; vidbuf[k+1] = vidbuf[k+2] = 0;
-          vidbuf[k+3]=255;
-        }
-        for (imnr=imc-curs;imnr<=imc+curs;imnr++) {
-          if (all3flag) /*k = 4*(ic/2*xdim/2+imnr/2 + ic/2*hax);*/
-      k = 4*(xdim*hay + hax + ic/2*xdim/2+imnr/2 + ic/2*hax);
-          else          k = 4*(ic*xdim+imnr);
-          vidbuf[k] = 255 ; vidbuf[k+1] = vidbuf[k+2] = 0;
-          vidbuf[k+3]=255;
-        }
-      }
-      else {
-        for (i=0;i<ydim;i++) {
-          for (imnr=0;imnr<xdim;imnr++)
-            if (all3flag && (i%2 || imnr%2)) continue;
-          vidbuf[k++] = MAPOFFSET;
-        }
-      }
-    }
-
-#endif
     
     // copy a bunch of stuff from sim. this is the lower right hand corner
     // of the all3 view.
@@ -6557,6 +6549,12 @@ int W_TclVList_PrintDebug WBEGIN
      TclVList_PrintDebug ( &gSelectionList );
      WEND
 
+int W_TclVSpace_PrintDebug WBEGIN
+     ERR ( 1, "Wrong # args: TclVSpace_PrintDebug" )
+     TclVSpace_PrintDebug ( &gCtrlPtList );
+     WEND
+
+
 
   // end_kt
 
@@ -6586,23 +6584,23 @@ char **argv;
   char script_tcl[NAME_LENGTH];
   char *envptr;
   FILE *fp ;
-   char theErr;
+  char theErr;
 
   // kt
-
-  // init the control pt space
-  theErr = CtrlPtSpace_Init ( &gCtrlPtSpace, NUMVALS, 0 );
-  if ( theErr ) {
-    fprintf ( stderr, "Error in CtrlPtSpace_Init: %s\n", 
-              CtrlPtSpace_GetErrorString (theErr) );
-    exit (1);
-  }
 
   // init the selection list 
   theErr = VList_Init ( &gSelectionList );
   if ( theErr ) {
     fprintf ( stderr, "Error in VList_Init: %s\n",  
               VList_GetErrorString(theErr) );
+    exit (1);
+  }
+
+  // init our control pt list
+  theErr = VSpace_Init ( &gCtrlPtList );
+  if ( theErr != kVSpaceErr_NoErr ) {
+    fprintf ( stderr, "Error in VSpace_Init: %s\n",
+              VSpace_GetErrorString ( theErr ) );
     exit (1);
   }
 
@@ -6764,6 +6762,8 @@ char **argv;
                       W_TclCtrlPtSpace_SetValue, REND );
   Tcl_CreateCommand ( interp, "TclVList_PrintDebug", 
                       W_TclVList_PrintDebug, REND );
+  Tcl_CreateCommand ( interp, "TclVSpace_PrintDebug", 
+                      W_TclVSpace_PrintDebug, REND );
   // end_kt
 
   /*=======================================================================*/
@@ -6908,15 +6908,15 @@ char **argv;
 
   // kt - delete the structs we inited before
 
-  theErr = CtrlPtSpace_Delete ( &gCtrlPtSpace );
-  if ( theErr )
-    fprintf ( stderr, "Error in CtrlPtSpace_Delete: %s\n",
-              CtrlPtSpace_GetErrorString(theErr) );
-
   theErr = VList_Delete ( &gSelectionList );
   if ( theErr )
     fprintf ( stderr, "Error in VList_Delete: %s\n",  
               VList_GetErrorString(theErr) );
+
+  theErr = VSpace_Delete ( &gCtrlPtList );
+  if ( theErr != kVSpaceErr_NoErr )
+    fprintf ( stderr, "Error in VSpace_Delete: %s\n",
+              VSpace_GetErrorString(theErr) );
 
   // end_kt
 
@@ -7227,6 +7227,36 @@ void TclCtrlPtSpace_SetValue ( CtrlPtSpace * inSpace,
 }
 
 
+                                       /* silly accessor methods for max
+                                          object orientedness */
+inline
+void Voxel_Set ( Voxel * inVoxel,
+                 int x, int y, int z ) {
+  
+  inVoxel->mX = x;
+  inVoxel->mY = y;
+  inVoxel->mZ = z;
+}
+
+inline
+int Voxel_GetX ( Voxel * inVoxel ) {
+
+  return inVoxel->mX;
+}
+
+inline
+int Voxel_GetY ( Voxel * inVoxel ) {
+
+  return inVoxel->mY;
+}
+
+inline
+int Voxel_GetZ ( Voxel * inVoxel ) {
+
+  return inVoxel->mZ;
+}
+
+
                                        /* init the voxel list. */
 char VList_Init ( VoxelList * inList ) {
 
@@ -7440,8 +7470,6 @@ char VList_PrintDebug ( VoxelList * inList ) {
   if ( theResult != kVListErr_NoErr )
     return theResult;
 
-  fprintf ( stderr, "Printing out voxel list...\n" );
-
   for ( theIndex = 0; theIndex < theCount; theIndex++ ) {
 
     theResult = VList_GetNthVoxel ( inList, theIndex, &theVoxel );
@@ -7452,27 +7480,308 @@ char VList_PrintDebug ( VoxelList * inList ) {
               theVoxel.mX, theVoxel.mY, theVoxel.mZ );
   }
 
-  fprintf ( stderr, "\tDone.\n\n" );
-  PR;
-  
   return kVListErr_NoErr;
 }
 
 void TclVList_PrintDebug ( VoxelList * inList ) {
 
   char theErr;
+
+  fprintf ( stderr, "Printing out voxel list...\n" );
+
   theErr = VList_PrintDebug ( inList );
+
   if ( theErr != kVListErr_NoErr )
     fprintf ( stderr, "TclVList_PrintDebug: Error %s\n", 
               VList_GetErrorString(theErr) );
-  else
-    fprintf ( stderr, "TclVList_PrintDebug: Done.\n" );
+
+  fprintf ( stderr, "\tDone.\n\n" );
+  PR;
 }
 
 char * VList_GetErrorString ( int inErr ) {
 
   return (char*)(kVList_ErrString[inErr]);
 }
+
+                                       /* init the space */
+char VSpace_Init ( VoxelSpace * inSpace ) {
+
+  int theIndex;
+  char theResult;
+
+  if ( NULL == inSpace )
+    return kVSpaceErr_InvalidPtr;
+
+  // initialize every list we have.
+  for ( theIndex = 0; theIndex < kVSpace_NumListsInPlane; theIndex++ ) {
+    
+    theResult = VList_Init ( &(inSpace->mXPlane[theIndex]) );
+    if ( theResult != kVListErr_NoErr )
+      // this shouldn't fail.
+      ;
+
+    theResult = VList_Init ( &(inSpace->mYPlane[theIndex]) );
+    if ( theResult != kVListErr_NoErr )
+      // this shouldn't fail.
+      ;
+
+    theResult = VList_Init ( &(inSpace->mZPlane[theIndex]) );
+    if ( theResult != kVListErr_NoErr )
+      // this shouldn't fail.
+      ;
+  }
+
+  return kVSpaceErr_NoErr;
+}
+
+
+                                       /* delete the space */
+char VSpace_Delete ( VoxelSpace * inSpace ) {
+
+  int theIndex;
+  char theResult;
+
+  if ( NULL == inSpace )
+    return kVSpaceErr_InvalidPtr;
+
+  // initialize every list we have.
+  for ( theIndex = 0; theIndex < kVSpace_NumListsInPlane; theIndex++ ) {
+    
+    theResult = VList_Delete ( &(inSpace->mXPlane[theIndex]) );
+    if ( theResult != kVListErr_NoErr )
+      return kVSpaceErr_InvalidSpace;
+
+    theResult = VList_Delete ( &(inSpace->mYPlane[theIndex]) );
+    if ( theResult != kVListErr_NoErr )
+      return kVSpaceErr_InvalidSpace;
+
+    theResult = VList_Delete ( &(inSpace->mZPlane[theIndex]) );
+    if ( theResult != kVListErr_NoErr )
+      return kVSpaceErr_InvalidSpace;
+  }
+
+  return kVSpaceErr_NoErr;
+}
+  
+
+                                       /* add a voxel to the space */
+char VSpace_AddVoxel ( VoxelSpace * inSpace, 
+                       Voxel * inVoxel ) {
+
+  char theResult;
+  
+  if ( NULL == inSpace )
+    return kVSpaceErr_InvalidPtr;
+
+  // check the bounds on the voxel.
+  if ( inVoxel->mX < 0 || inVoxel->mY < 0 || inVoxel->mZ < 0 ||
+       inVoxel->mX >= kVSpace_NumListsInPlane ||
+       inVoxel->mY >= kVSpace_NumListsInPlane ||
+       inVoxel->mZ >= kVSpace_NumListsInPlane )
+    return kVSpaceErr_InvalidVoxel;
+
+  // add it to the x plane of the x coord, the y plane of the y coord,
+  // and the z plane of the z coord.
+  theResult = VList_AddVoxel ( &(inSpace->mXPlane[inVoxel->mX]), inVoxel );
+  if ( theResult != kVListErr_NoErr )
+    if ( theResult == kVListErr_ListFull )
+      return kVSpaceErr_XPlaneFull;
+    else
+      return kVSpaceErr_InvalidSpace;
+
+  theResult = VList_AddVoxel ( &(inSpace->mYPlane[inVoxel->mY]), inVoxel );
+  if ( theResult != kVListErr_NoErr )
+    if ( theResult == kVListErr_ListFull )
+      return kVSpaceErr_YPlaneFull;
+    else
+      return kVSpaceErr_InvalidSpace;
+
+  theResult = VList_AddVoxel ( &(inSpace->mZPlane[inVoxel->mZ]), inVoxel );
+  if ( theResult != kVListErr_NoErr )
+    if ( theResult == kVListErr_ListFull )
+      return kVSpaceErr_ZPlaneFull;
+    else
+      return kVSpaceErr_InvalidSpace;
+
+  return kVSpaceErr_NoErr;
+}
+
+                                       /* remove a voxel from the space */
+char VSpace_RemoveVoxel ( VoxelSpace * inSpace,
+                          Voxel * inVoxel ) {
+
+  char theResult;
+  
+  if ( NULL == inSpace )
+    return kVSpaceErr_InvalidPtr;
+
+  // check the bounds on the voxel.
+  if ( inVoxel->mX < 0 || inVoxel->mY < 0 || inVoxel->mZ < 0 ||
+       inVoxel->mX >= kVSpace_NumListsInPlane ||
+       inVoxel->mY >= kVSpace_NumListsInPlane ||
+       inVoxel->mZ >= kVSpace_NumListsInPlane )
+    return kVSpaceErr_InvalidVoxel;
+
+  // remove from all three planes
+  theResult = VList_RemoveVoxel ( &(inSpace->mXPlane[inVoxel->mX]), inVoxel );
+  if ( theResult != kVListErr_NoErr )
+    if ( theResult == kVListErr_VoxelNotInList )
+      return kVSpaceErr_VoxelNotInSpace;
+    else
+      return kVSpaceErr_InvalidSpace;
+
+  theResult = VList_RemoveVoxel ( &(inSpace->mYPlane[inVoxel->mY]), inVoxel );
+  if ( theResult != kVListErr_NoErr )
+    if ( theResult == kVListErr_VoxelNotInList )
+      return kVSpaceErr_VoxelNotInSpace;
+    else
+      return kVSpaceErr_InvalidSpace;
+
+  theResult = VList_RemoveVoxel ( &(inSpace->mZPlane[inVoxel->mZ]), inVoxel );
+  if ( theResult != kVListErr_NoErr )
+    if ( theResult == kVListErr_VoxelNotInList )
+      return kVSpaceErr_VoxelNotInSpace;
+    else
+      return kVSpaceErr_InvalidSpace;
+
+  return kVSpaceErr_NoErr;
+}
+                                       /* determine whether or not a voxel 
+                                          is in the space */
+char VSpace_IsInList ( VoxelSpace * inSpace,
+                       Voxel * inVoxel,
+                       char * outIsInList ) {
+
+  char theResult;
+  
+  if ( NULL == inSpace )
+    return kVSpaceErr_InvalidPtr;
+
+  // check the bounds on the voxel.
+  if ( inVoxel->mX < 0 || inVoxel->mY < 0 || inVoxel->mZ < 0 ||
+       inVoxel->mX >= kVSpace_NumListsInPlane ||
+       inVoxel->mY >= kVSpace_NumListsInPlane ||
+       inVoxel->mZ >= kVSpace_NumListsInPlane )
+    return kVSpaceErr_InvalidVoxel;
+
+  // only need to check in one plane since all planes are redundant.
+  theResult = VList_IsInList ( &(inSpace->mXPlane[inVoxel->mX]), inVoxel,
+                               outIsInList );
+  if ( theResult != kVListErr_NoErr )
+    return kVSpaceErr_InvalidSpace;
+
+  return kVListErr_NoErr;
+}
+  
+                                       /* return a pointer to a list of 
+                                          voxels in a particular plane. */
+char VSpace_GetVoxelsInXPlane ( VoxelSpace * inSpace,
+                                int inXPlane,
+                                VoxelList ** outVoxelList ) {
+
+  if ( NULL == inSpace )
+    return kVSpaceErr_InvalidPtr; 
+
+  if ( inXPlane < 0 || inXPlane >= kVSpace_NumListsInPlane )
+    return kVSpaceErr_InvalidPlaneNumber;
+
+  // we just return the list of voxels that has x values that they
+  // specify. this is the same as the other two functions, just in a
+  // different plane.
+  *outVoxelList = &(inSpace->mXPlane[inXPlane]);
+
+  return kVSpaceErr_NoErr;
+
+}
+
+char VSpace_GetVoxelsInYPlane ( VoxelSpace * inSpace,
+                                int inYPlane,
+                                VoxelList ** outVoxelList ) {
+
+  if ( NULL == inSpace )
+    return kVSpaceErr_InvalidPtr; 
+
+  if ( inYPlane < 0 || inYPlane >= kVSpace_NumListsInPlane )
+    return kVSpaceErr_InvalidPlaneNumber;
+
+  *outVoxelList = &(inSpace->mYPlane[inYPlane]);
+
+  return kVSpaceErr_NoErr;
+}
+
+char VSpace_GetVoxelsInZPlane ( VoxelSpace * inSpace,
+                                int inZPlane,
+                                VoxelList ** outVoxelList ) {
+
+  if ( NULL == inSpace )
+    return kVSpaceErr_InvalidPtr; 
+
+  if ( inZPlane < 0 || inZPlane >= kVSpace_NumListsInPlane )
+    return kVSpaceErr_InvalidPlaneNumber;
+
+  *outVoxelList = &(inSpace->mZPlane[inZPlane]);
+
+  return kVSpaceErr_NoErr;
+}
+
+char VSpace_PrintDebug ( VoxelSpace * inSpace ) {
+  
+  char theResult;
+  int theIndex;
+
+  if ( NULL == inSpace )
+    return kVSpaceErr_InvalidPtr; 
+
+  // tell all of our lists to print...
+  fprintf ( stderr, "Printing X-plane...\n" );
+  for ( theIndex = 0; theIndex < kVSpace_NumListsInPlane; theIndex++ ) {
+
+    theResult = VList_PrintDebug ( &(inSpace->mXPlane[theIndex]) );
+    if ( theResult != kVSpaceErr_NoErr )
+      fprintf ( stderr, "VSpace_PrintDebug(): Error printing list: %s\n",
+                VSpace_GetErrorString ( theResult ) );
+  }
+
+  fprintf ( stderr, "\nPrinting Y-plane...\n" );
+  for ( theIndex = 0; theIndex < kVSpace_NumListsInPlane; theIndex++ ) {
+
+    theResult = VList_PrintDebug ( &(inSpace->mYPlane[theIndex]) );
+    if ( theResult != kVSpaceErr_NoErr )
+      fprintf ( stderr, "VSpace_PrintDebug(): Error printing list: %s\n",
+                VSpace_GetErrorString ( theResult ) );
+  }
+
+  fprintf ( stderr, "\nPrinting Z-plane...\n" );
+  for ( theIndex = 0; theIndex < kVSpace_NumListsInPlane; theIndex++ ) {
+
+    theResult = VList_PrintDebug ( &(inSpace->mZPlane[theIndex]) );
+    if ( theResult != kVSpaceErr_NoErr )
+      fprintf ( stderr, "VSpace_PrintDebug(): Error printing list: %s\n",
+                VSpace_GetErrorString ( theResult ) );
+  }
+
+  return kVSpaceErr_NoErr;
+}
+
+void TclVSpace_PrintDebug ( VoxelSpace * inSpace ) {
+
+  char theResult;
+
+  theResult = VSpace_PrintDebug ( inSpace );
+  if ( theResult != kVSpaceErr_NoErr )
+    fprintf (stderr,"TclVSpace_PrintDebug(): Error in VSpace_PrintDebug: %s\n",
+             VSpace_GetErrorString ( theResult ) );
+}
+              
+
+                                       /* return an error string */
+char * VSpace_GetErrorString ( int inErrorNum ) {
+
+  return (char*)(kVSpace_ErrString[inErrorNum]);
+}
+
+
 
                                        /* reads the control.dat file, 
                                           transforms all pts from RAS space 
@@ -7485,7 +7794,9 @@ void ProcessCtrlPtFile ( char * inDir ) {
   float theTempX, theTempY, theTempZ;
   Real theRASX, theRASY, theRASZ;
   int theVoxX, theVoxY, theVoxZ;
-  int theResult;
+  int theNumPtsRead;
+  char theResult;
+  Voxel theVoxel;
 
   // don't parse the file if we already have.
   if ( TRUE == gParsedCtrlPtFile )
@@ -7519,11 +7830,11 @@ void ProcessCtrlPtFile ( char * inDir ) {
   while ( !feof(theFile) ) {
     
     // read in some numbers
-    theResult = fscanf ( theFile, "%f %f %f", &theTempX, &theTempY, &theTempZ );
+    theNumPtsRead = fscanf ( theFile, "%f %f %f", &theTempX, &theTempY, &theTempZ );
 
     // if not successful, file is wierd. print error, close file, and return.
-    if ( theResult < 3 &&
-         theResult != EOF ) {
+    if ( theNumPtsRead < 3 &&
+         theNumPtsRead != EOF ) {
 
       fprintf ( stderr, "ProcessCtrlPtFile: Error parsing file, expected three float values but didn't get them.\n" );
       fclose ( theFile );
@@ -7531,7 +7842,7 @@ void ProcessCtrlPtFile ( char * inDir ) {
     }
 
     // if we got 3 pts, we got a point.
-    if ( 3 == theResult ) {
+    if ( 3 == theNumPtsRead ) {
 
       // cast to reals
       theRASX = (Real) theTempX;
@@ -7547,7 +7858,11 @@ void ProcessCtrlPtFile ( char * inDir ) {
                 (short)theVoxX, (short)theVoxY, (short)theVoxZ );
       
       // add it to our cntrl points space
-      CtrlPtSpace_SetValue ( &gCtrlPtSpace, theVoxX, theVoxY, theVoxZ, 1 );
+      Voxel_Set ( &theVoxel, theVoxX, theVoxY, theVoxZ );
+      theResult = VSpace_AddVoxel ( &gCtrlPtList, &theVoxel );
+      if ( theResult != kVSpaceErr_NoErr )
+        fprintf ( stderr, "ProcessCtrlPtFile(): Error in VSpace_AddVoxel: %s\n", 
+                  VSpace_GetErrorString ( theResult ) );
     }
   }
 
@@ -7568,8 +7883,11 @@ void WriteCtrlPtFile ( char * inDir ) {
   FILE * theFile;
   int theVoxX, theVoxY, theVoxZ;
   Real theRASX, theRASY, theRASZ;
-  char theResult, theValue;
-  int theIndexSize;
+  char theResult;
+  int theIndex;
+  int theListCount, theListIndex;
+  VoxelList * theList;
+  Voxel theVoxel;
   
   // create the filename.
   sprintf ( theFilename, "%s/control.dat", inDir );
@@ -7584,52 +7902,56 @@ void WriteCtrlPtFile ( char * inDir ) {
     return;
   }
 
-
-  // find the size of our ctrl pt space.
-  theResult = CtrlPtSpace_IndexSize ( &gCtrlPtSpace, &theIndexSize );
-  if ( theResult != kCtrlPtSpaceErr_NoErr ) {
-    fprintf ( stderr, "WriteCtrlPtFile: Error reading CtrlPtSpace: %s\n", 
-              CtrlPtSpace_GetErrorString(theResult) );
-    return;
-  }
-  
   fprintf ( stderr, "WriteCtrlPtFile: Writing control points to %s...\n",
             theFilename );
 
-  // go through our voxel space, looking for points.
-  for ( theVoxZ = 0; theVoxZ < theIndexSize; theVoxZ++ ) {
-    for ( theVoxY = 0; theVoxY < theIndexSize; theVoxY++ ) {
-      for ( theVoxX = 0; theVoxX < theIndexSize; theVoxX++ ) {
-        
-        // get the value for this point.
-        theResult = CtrlPtSpace_GetValue ( &gCtrlPtSpace, 
-                                           theVoxX, theVoxY, theVoxZ, 
-                                           &theValue );
-        if ( theResult != kCtrlPtSpaceErr_NoErr ) {
-          fprintf ( stderr, "WriteCtrlPtFile: Error reading CtrlPtSpace(%d,%d,%d): %s\n", 
-                    theVoxX, theVoxY, theVoxZ, 
-                    CtrlPtSpace_GetErrorString(theResult) );
-          return;
-        }
+  // get the ctrl pts in the list...
+  for ( theIndex = 0; theIndex < kVSpace_NumListsInPlane; theIndex++ ) {
 
-        // if it's a pt, write it to the file.
-        if ( theValue != 0 ) {
-
-          // transform to ras space first.
-          VoxelToRAS ( theVoxX, theVoxY, theVoxZ,
-                       &theRASX, &theRASY, &theRASZ );
-
-          // write to the file
-          fprintf ( theFile, "%f %f %f\n", theRASX, theRASY, theRASZ );
-
-          fprintf ( stderr, "%d %d %d -> %f %f %f\n", 
-                    theVoxX, theVoxY, theVoxZ,
-                    theRASX, theRASY, theRASZ );
-
-        }
-
-      }
+    // get the list for this x value.
+    theResult = VSpace_GetVoxelsInXPlane ( &gCtrlPtList, theIndex, &theList );
+    if ( theResult != kVSpaceErr_NoErr ) {
+      fprintf ( stderr, "WriteCtrlPtFile(): Error in VSpace_GetVoxelsInXPlane: %s\n",
+                VSpace_GetErrorString ( theResult ) );
+      continue;
     }
+
+    // get the number of voxels in the list.
+    theResult = VList_GetCount ( theList, &theListCount );
+    if ( theResult != kVListErr_NoErr ) {
+      fprintf ( stderr, "WriteCtrlPtFile(): Error in VList_GetCount: %s\n",
+                VList_GetErrorString ( theResult ) );
+      continue;
+    }
+
+    // get each voxel...
+    for ( theListIndex = 0; theListIndex < theListCount; theListIndex++ ) {
+
+      theResult = VList_GetNthVoxel ( theList, theListIndex, &theVoxel );
+      if ( theResult != kVListErr_NoErr ) {
+        fprintf ( stderr, "WriteCtrlPtFile(): Error in VList_GetNthVoxel: %s\n",
+                  VList_GetErrorString ( theResult ) );
+        continue;
+      }
+      
+      // unpack it.
+      theVoxX = Voxel_GetX ( &theVoxel );
+      theVoxY = Voxel_GetY ( &theVoxel );
+      theVoxZ = Voxel_GetZ ( &theVoxel );
+
+      // transform to ras space.
+      VoxelToRAS ( theVoxX, theVoxY, theVoxZ,
+                   &theRASX, &theRASY, &theRASZ );
+      
+      // write to the file
+      fprintf ( theFile, "%f %f %f\n", theRASX, theRASY, theRASZ );
+      
+      fprintf ( stderr, "\t%d %d %d -> %f %f %f\n", 
+                theVoxX, theVoxY, theVoxZ,
+                theRASX, theRASY, theRASZ );
+      
+    }
+    
   }
 
   // close file
@@ -7765,6 +8087,10 @@ void DrawCrosshairInBuffer ( char * inBuffer,       // the buffer
   // go across the x line..
   for ( x = inX - inSize; x <= inX + inSize; x++ ) {
 
+    // stay in good pixel space.
+    if ( x < 0 || x >= xdim )
+      continue;
+
     // 4 bytes per pixel, cols * y down, x across
     theBufIndex = 4 * ( inY*xdim + x );
 
@@ -7774,7 +8100,9 @@ void DrawCrosshairInBuffer ( char * inBuffer,       // the buffer
 
   // same thing down the y line...
   for ( y = inY - inSize; y <= inY + inSize; y++ ) {
-    theBufIndex = 4 * ( y*xdim + inX );
+    if ( y < 0 || x >= ydim ) 
+      continue;
+    theBufIndex = 4 * ( y*xdim +inX );
     SetCompositePixelInBuffer ( inBuffer, theBufIndex, inColor );
   }
 }
@@ -7796,6 +8124,10 @@ void FillBoxInBuffer ( char * inBuffer,       // the buffer
   // our whole image is yflipped.
   for ( y = inY - inSize + 1; y <= inY; y++ ) {
     for ( x = inX; x < inX + inSize; x++ ) {
+
+      // don't write out of bounds.
+      if ( x < 0 || y < 0 || x >= xdim || y >= ydim )
+        continue;
 
       // 4 bytes per pixel, cols * y down, x across
       theBufIndex = 4 * ( y*xdim + x );
@@ -7874,30 +8206,24 @@ void DrawCtrlPt ( char * inBuffer,  // video buffer to draw into
 void SelectCtrlPt () {
 
   int theVoxX, theVoxY, theVoxZ;
-  char theValue, theResult;
+  char isCtrlPt, theResult;
   Voxel theVoxel;
   
   // find the voxel they selected
   ScreenToVoxel ( jc, ic, imc, &theVoxX, &theVoxY, &theVoxZ );
 
-  // is this a ctrl pt?
-  theResult = CtrlPtSpace_GetValue ( &gCtrlPtSpace,
-                                     theVoxX, theVoxY, theVoxZ, &theValue );
+  // make a voxel.
+  Voxel_Set ( &theVoxel, theVoxX, theVoxY, theVoxZ );
 
-  if ( theResult != kCtrlPtSpaceErr_NoErr ) {
-    fprintf ( stderr, "SelectCtrlPt: Error reading CtrlPtSpace(%d,%d,%d): %s\n", 
-              theVoxX, theVoxY, theVoxZ, 
-              CtrlPtSpace_GetErrorString(theResult) );
+  // is this a ctrl pt?
+  theResult = VSpace_IsInList ( &gCtrlPtList, &theVoxel, &isCtrlPt );
+  if ( theResult != kVSpaceErr_NoErr ) {
+    fprintf ( stderr, "SelectCtrlPt(): Error in VSpace_IsInSpace: %s\n", 
+              VSpace_GetErrorString(theResult) );
     return;
   }
 
- 
-  if ( theValue ) {
-
-    // make a voxel
-    theVoxel.mX = theVoxX;
-    theVoxel.mY = theVoxY;
-    theVoxel.mZ = theVoxZ;
+  if ( isCtrlPt ) {
 
     // if shift key is down
     if ( shiftkeypressed ) {
@@ -7981,11 +8307,10 @@ void DeleteSelectedCtrlPts () {
     }
     
     // set its value in the space to 0
-    theResult = CtrlPtSpace_SetValue ( &gCtrlPtSpace, theCtrlPt.mX, 
-                                       theCtrlPt.mY, theCtrlPt.mZ, 0 );
-    if ( theResult != kCtrlPtSpaceErr_NoErr ) {
-      fprintf ( stderr, "Error in CtrlPtSpace_SetValue: %s\n",
-                CtrlPtSpace_GetErrorString ( theResult ) );
+    theResult = VSpace_RemoveVoxel ( &gCtrlPtList, &theCtrlPt );
+    if ( theResult != kVSpaceErr_NoErr ) {
+      fprintf ( stderr, "DeleteSelectedCtrlPts(): Error in VSpace_RemoveVoxel: %s\n",
+                VSpace_GetErrorString ( theResult ) );
       continue;
     }        
   }
