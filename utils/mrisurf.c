@@ -7503,7 +7503,7 @@ MRISreadAnnotation(MRI_SURFACE *mris, char *sname)
     if (vno == Gdiag_no)
       DiagBreak() ;
     if (vno>=mris->nvertices||vno<0)
-      printf("MRISreadAnnotation: vertex index out of range: %d i=%d\n",vno,i);
+      fprintf(stderr, "MRISreadAnnotation: vertex index out of range: %d i=%d\n",vno,i);
     else
       mris->vertices[vno].annotation = i;
   }
@@ -7516,9 +7516,9 @@ MRISreadAnnotation(MRI_SURFACE *mris, char *sname)
 		switch (tag)
 		{
 		case TAG_COLORTABLE:
-			printf("reading colortable from annotation file...\n") ;
+			fprintf(stderr, "reading colortable from annotation file...\n") ;
 			mris->ct = CTABreadFrom(fp) ;
-			printf("colortable with %d entries read (originally %s)\n", mris->ct->nbins, mris->ct->fname) ;
+			fprintf(stderr, "colortable with %d entries read (originally %s)\n", mris->ct->nbins, mris->ct->fname) ;
 			break ;
 		default:
 			break ;
