@@ -5,8 +5,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2004/05/06 15:41:26 $
-// Revision       : $Revision: 1.30 $
+// Revision Date  : $Date: 2004/05/10 14:55:44 $
+// Revision       : $Revision: 1.31 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -120,7 +120,7 @@ main(int argc, char *argv[])
   int    modified;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_ms_fitparms.c,v 1.30 2004/05/06 15:41:26 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_ms_fitparms.c,v 1.31 2004/05/10 14:55:44 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -236,8 +236,7 @@ main(int argc, char *argv[])
       {
 				if ((mri_flash[i]->width != mri_flash[j]->width) ||
 						(mri_flash[i]->height != mri_flash[j]->height) ||
-						(mri_flash[i]->depth != mri_flash[j]->depth) ||
-						(mri_flash[i]->type != mri_flash[j]->type))
+						(mri_flash[i]->depth != mri_flash[j]->depth))
 					ErrorExit(ERROR_BADPARM, "%s:\nvolumes %d (type %d) and %d (type %d) don't match (%d x %d x %d) vs (%d x %d x %d)\n",
 										Progname, i, mri_flash[i]->type, j, mri_flash[j]->type, mri_flash[i]->width, 
 										mri_flash[i]->height, mri_flash[i]->depth, 
