@@ -1182,7 +1182,7 @@ Volm_tErr Volm_ConvertRASToIdx ( mriVolumeRef this,
 
   /* Then convert from local MRI idx to screen idx. */
   DebugNote( ("Converting MRI idx to screen idx") );
-  Volm_ConvertScreenIdxToMRIIdx_( this, &mriIdx, oIdx );
+  Volm_ConvertMRIIdxToScreenIdx_( this, &mriIdx, oIdx );
 
   DebugCatch;
   DebugCatchError( eResult, Volm_tErr_NoErr, Volm_GetErrorString );
