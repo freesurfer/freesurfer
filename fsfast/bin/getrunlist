@@ -1,38 +1,72 @@
 #!/bin/csh -f
-# getrunlist - finds all the subdirectories with name 
-# of the form %03d in the given directory.
 #
-# $Id: getrunlist,v 1.1 2003/03/04 21:22:08 greve Exp $
+# getrunlist - can be run in two ways:
+#
+# (1) without runlistfile - finds all the subdirectories 
+#     of dir with name of the form %03d and echos them 
+#     to stdout. If dir does not exist or there are no
+#     runs, exits with status 1. Algorithm: starts at
+#     run=1 and increments run, checking each time whether
+#     the run exists. Stops checking when 100 runs consecutive
+#     runs have been checked without a hit.
+#
+# (2) with runlistfile - opens the run list file, reads
+#     the runs, and checks that all runs exist in dir.
+#     If dir does not exist or all the runs do not exist,
+#     exits with status 1.
+# 
+# $Id: getrunlist,v 1.2 2003/03/20 22:33:48 greve Exp $
 
-if($#argv == 0) then
-  echo "USAGE: getrunlist dir"
+if($#argv != 1 && $#argv != 2) then
+  echo "USAGE: getrunlist dir <runlistfile>"
   exit 1;
 endif
 
-set dir = $1;
+set dir = $argv[1];
 if(! -d $dir) then
   echo "ERROR: $dir does not exist"
   exit 1;
 endif
 
-set RunList = ();
-set run = 1;
-set nohit = 0;
-while($nohit < 100)
-  set runid = `printf %03d $run`;
-  if( -d $dir/$runid ) then
-    set RunList = ($RunList $runid);
-  else
-    @ nohit = $nohit + 1;
-  endif
-  @ run = $run + 1;
-end
+if($#argv != 2) then
+  set RunList = ();
+  set run = 1;
+  @ nohit = 0;
+  while($nohit < 100)
+    set runid = `printf %03d $run`;
+    if( -d $dir/$runid ) then
+      set RunList = ($RunList $runid);
+      @ nohit = 0;
+    else
+      @ nohit = $nohit + 1;
+    endif
+    @ run = $run + 1;
+  end
 
-if($#RunList == 0) then
-  echo "ERROR: no run directories found"
+  if($#RunList == 0) then
+    echo "ERROR: no run directories found"
+    exit 1;
+  endif
+
+  echo $RunList;
+  exit 0
+endif
+
+# Only gets here if a runlistfile was specified
+
+set rlf = $dir/$argv[2];
+if(! -e $rlf) then
+  echo "ERROR: $rlf does not exist"
   exit 1;
 endif
 
+set RunList = `cat $rlf`;
+foreach run ($RunList)
+  if(! -e $dir/$run) then
+    echo "ERROR: run $run from $rlf does not exist"
+    exit 1;
+  endif
+end
 echo $RunList;
 
 exit 0;
