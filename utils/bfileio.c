@@ -4,7 +4,7 @@ Purpose: Routines for handling bfile (bshort and bfloat) I/O.
 Author:  Douglas Greve
 Date:    11/22/00
 
-$Id: bfileio.c,v 1.4 2001/10/17 15:38:47 greve Exp $
+$Id: bfileio.c,v 1.5 2001/11/19 20:01:32 fischl Exp $
 
 Bfile names are assumed to have the following format:
   stem_%03d.bext 
@@ -26,6 +26,7 @@ errors and non-0 if there were errors.
 #define BFILEIO_SRC
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <math.h>
 #include <errno.h>
 #include <strings.h>
