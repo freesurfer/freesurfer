@@ -286,6 +286,10 @@ MRIvoxelDirection(MRI *mri, int x0, int y0, int z0, int wsize)
   zmax = MIN(depth-1, z0+whalf) ;
   ymax = MIN(height-1, y0+whalf) ;
   xmax = MIN(width-1, x0+whalf) ;
+
+  zmin = MAX(0, z0-whalf) ;
+  ymin = MAX(0, y0-whalf) ;
+  xmin = MAX(0, x0-whalf) ;
   npix = (zmax - zmin + 1) * (ymax - ymin + 1) * (xmax - xmin + 1) ;
 
   /* should do something smarter than this about border conditions */
@@ -328,6 +332,83 @@ MRIvoxelDirection(MRI *mri, int x0, int y0, int z0, int wsize)
   }
 #define FSCALE 1000.0f
   return(dir*(1.0f / (FSCALE*27.0f))) ;
+}
+
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
+float
+MRIvoxelGradientDir2ndDerivative(MRI *mri, int x0, int y0, int z0, int wsize)
+{
+  int     whalf, width, height, depth, x, y, z, npix, total, xmin, xmax,
+          ymin, ymax, zmin, zmax ;
+  float   odx, ody, odz, e1_x, e1_y, e1_z, e2_x, e2_y, e2_z, len,
+          d2I_dg2, xf, yf, zf ;
+  Real    val ;
+
+  whalf = wsize/2 ;
+  width = mri->width ; height = mri->height ; depth = mri->depth ;
+
+  total = 0 ;
+  zmax = MIN(depth-1, z0+whalf) ;
+  ymax = MIN(height-1, y0+whalf) ;
+  xmax = MIN(width-1, x0+whalf) ;
+
+  zmin = MAX(0, z0-whalf) ;
+  ymin = MAX(0, y0-whalf) ;
+  xmin = MAX(0, x0-whalf) ;
+  npix = (zmax - zmin + 1) * (ymax - ymin + 1) * (xmax - xmin + 1) ;
+
+  odx = MRIvoxelDx(mri, x0, y0, z0) ;
+  ody = MRIvoxelDy(mri, x0, y0, z0) ;
+  odz = MRIvoxelDz(mri, x0, y0, z0) ;
+  len = sqrt(odx*odx + ody*ody + odz*odz) ;
+  if (FZERO(len))
+    return(0.0f) ;
+  odx /= len ; ody /= len ; odz /= len ;
+
+  /* pick some linearly independent unit vector and take cross-product */
+  do
+  {
+    xf = randomNumber(0,1); yf = randomNumber(0,1); zf = randomNumber(0,1);
+    e1_x = yf*odz - zf*ody ;
+    e1_y = zf*odx - xf*odz ;
+    e1_z = xf*ody - yf*odx ;
+    len = sqrt(e1_x*e1_x+e1_y*e1_y+e1_z*e1_z) ;
+  } while (FZERO(len)) ;
+  e1_x /= len ; e1_y /= len ; e1_z /= len ;
+
+  e2_x = e1_y*odz - e1_z*ody ;  
+  e2_y = e1_z*odx - e1_x*odz ;
+  e2_z = e1_x*ody - e1_y*odx ;
+  len = sqrt(e2_x*e2_x+e2_y*e2_y+e2_z*e2_z) ;
+  e2_x /= len ; e2_y /= len ; e2_z /= len ;
+
+
+  d2I_dg2 = 0.0 ; /* second derivative of intensity in gradient direction */
+  for (z = -whalf ; z <= whalf ; z += whalf)
+  {
+    for (y = -whalf ; y <= whalf ; y += whalf)
+    {
+      for (x = -whalf ; x <= whalf ; x += whalf)
+      {
+        xf = x0 + z*odx + x * e1_x + y * e2_x ;
+        yf = y0 + z*ody + x * e1_y + y * e2_y ;
+        zf = z0 + z*odz + x * e1_z + y * e2_z ;
+        MRIsampleVolume(mri, xf, yf, zf, &val) ;
+        if (FZERO(z))
+          d2I_dg2 += 2*val ;
+        else
+          d2I_dg2 -= val ;
+      }
+    }
+  }
+
+  return(d2I_dg2) ;
 }
 
 float
