@@ -17,6 +17,44 @@ extern int errno;
 int stricmp(char *str1, char *str2) ;
 #endif
 
+int string_to_type(char *string)
+{
+
+  int type = MRI_VOLUME_TYPE_UNKNOWN;
+  char ls[STRLEN];
+
+  strcpy(ls, string);
+  StrLower(ls);
+
+  if(strcmp(ls, "cor") == 0)
+    type = MRI_CORONAL_SLICE_DIRECTORY;
+  if(strcmp(ls, "minc") == 0 || strcmp(ls, "mnc") == 0)
+    type = MRI_MINC_FILE;
+  if(strcmp(ls, "spm") == 0 || strcmp(ls, "analyze") == 0)
+    type = MRI_ANALYZE_FILE;
+  if(strcmp(ls, "mgh") == 0)
+    type = MRI_MGH_FILE;
+  if(strcmp(ls, "ge") == 0 || strcmp(ls, "genesis") == 0)
+    type = GENESIS_FILE;
+  if(strcmp(ls, "gelx") == 0 || strcmp(ls, "lx") == 0)
+    type = GE_LX_FILE;
+  if(strcmp(ls, "siemens") == 0 || strcmp(ls, "ima") == 0)
+    type = SIEMENS_FILE;
+  if(strcmp(ls, "brik") == 0 || strcmp(ls, "afni") == 0)
+    type = BRIK_FILE;
+  if(strcmp(ls, "bshort") == 0)
+    type = BSHORT_FILE;
+  if(strcmp(ls, "bfloat") == 0)
+    type = BFLOAT_FILE;
+  if(strcmp(ls, "sdt") == 0 || strcmp(ls, "varian") == 0)
+    type = SDT_FILE;
+  if(strcmp(ls, "otl") == 0 || strcmp(ls, "outline") == 0)
+    type = OTL_FILE;
+
+  return(type);
+
+} /* end string_to_type() */
+
 int mri_identify(char *fname)
 {
 
@@ -41,7 +79,7 @@ int mri_identify(char *fname)
   else if(is_bshort(fname))
     return(BSHORT_FILE);
   else
-    return(-1);
+    return(MRI_VOLUME_TYPE_UNKNOWN);
 
 }  /*  end mri_identify()  */
 
