@@ -6882,23 +6882,23 @@ tkm_tErr LoadSegmentationVolume ( char* isVolumeDirWithPrefix,
   DebugNote( ("Creating segmentation overlay") );
   eVolume = Volm_New( &gSegmentationVolume );
   DebugAssertThrowX( (Volm_tErr_NoErr == eVolume),
-         eResult, tkm_tErr_ErrorAccessingSegmentationVolume );
+		     eResult, tkm_tErr_ErrorAccessingSegmentationVolume );
   
   
   DebugNote( ("Importing segmentation into roi group") );
   eVolume = Volm_ImportData( gSegmentationVolume, sSegmentationFileName );
   DebugAssertThrowX( (Volm_tErr_NoErr == eVolume),
-         eResult, tkm_tErr_CouldntLoadSegmentation );
+		     eResult, tkm_tErr_CouldntLoadSegmentation );
   
   /* allocate flat volume */
   DebugNote( ("Creating segmentation flag volume") );
   eVolume = Volm_New( &gSegmentationChangedVolume );
   DebugAssertThrowX( (Volm_tErr_NoErr == eVolume),
-         eResult, tkm_tErr_ErrorAccessingSegmentationVolume );
+		     eResult, tkm_tErr_ErrorAccessingSegmentationVolume );
   gSegmentationChangedVolume->mpMriValues = 
     MRIclone(gSegmentationVolume->mpMriValues,NULL);
   DebugAssertThrowX( (NULL != gSegmentationChangedVolume->mpMriValues ),
-         eResult, tkm_tErr_ErrorAccessingSegmentationVolume );
+		     eResult, tkm_tErr_ErrorAccessingSegmentationVolume );
   
   
   /* build the color table for the interface. go through the entries
@@ -6936,14 +6936,14 @@ tkm_tErr LoadSegmentationVolume ( char* isVolumeDirWithPrefix,
   DebugCatchError( eResult, tkm_tErr_NoErr, tkm_GetErrorString );
   
   xUtil_snprintf( sError, sizeof(sError),
-      "Loading Segmentation %s", isVolumeDirWithPrefix );
+		  "Loading Segmentation %s", isVolumeDirWithPrefix );
   tkm_DisplayError( sError,
-        tkm_GetErrorString(eResult),
-        "Tkmedit couldn't read the segmentation you "
-        "specified. This could be because the segmentation "
-        "volume wasn't a valid COR volume directory or "
-        "because the color file wasn't valid or wasn't "
-        "found." );
+		    tkm_GetErrorString(eResult),
+		    "Tkmedit couldn't read the segmentation you "
+		    "specified. This could be because the segmentation "
+		    "volume wasn't a valid COR volume directory or "
+		    "because the color file wasn't valid or wasn't "
+		    "found." );
   EndDebugCatch;
   
   DebugExitFunction;
