@@ -7,8 +7,7 @@
 #include "rec.h"
 
 REC *
-RecRead(fname)
-char *fname;
+RecRead(char *fname, int iop_neeg, int iop_nmeg)
 {
   int   i,j,tnchan;
   float f;
@@ -65,14 +64,14 @@ char *fname;
     for (i=0;i<rec->neeg_channels;i++)
     {
       fscanf(fp,"%f",&f);
-      if (rec->neeg_channels>0)
+      if (iop_neeg > 0)
         *MATRIX_RELT(rec->m_data,i+1,j+1) = f;
     }
     for (i=0;i<rec->nmeg_channels;i++)
     {
       fscanf(fp,"%f",&f);
-      if (rec->nmeg_channels>0)
-        *MATRIX_RELT(rec->m_data,i+rec->neeg_channels+1,j+1) = f;
+      if (iop_nmeg > 0)
+        *MATRIX_RELT(rec->m_data,i+iop_neeg+1,j+1) = f;
     }
   }
   fclose(fp);

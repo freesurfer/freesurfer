@@ -14,6 +14,7 @@ typedef struct
 } REC ;
 
 
-REC *RecRead(char *fname) ;  /* each column is a time course (except 1st)*/
+/* each column is a time course (except 1st)*/
+REC *RecRead(char *fname, int iop_neeg, int iop_nmeg) ;  
 
 #endif
