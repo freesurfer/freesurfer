@@ -67,7 +67,7 @@ Trns_tErr Trns_NewFromLTA ( mriTransformRef* opTransform,
 
   Trns_tErr       eResult     = Trns_tErr_NoErr;
   mriTransformRef this        = NULL;
-  LTA*            LTATansform = NULL;
+  LTA*            LTATransform = NULL;
   MATRIX*         identity    = NULL;
 
   /* allocate us */
@@ -92,12 +92,14 @@ Trns_tErr Trns_NewFromLTA ( mriTransformRef* opTransform,
 
   /* try to read a transform and make sure we got it */
   DebugNote( ("Trying to read transform file %s", isLTAFileName) );
-  LTATansform = LTAread( isLTAFileName );
-  DebugAssertThrowX( (NULL != LTATansform),
+  LTATransform = LTAread( isLTAFileName );
+  DebugAssertThrowX( (NULL != LTATransform),
          eResult, Trns_tErr_LTAImportFailed );
 
+  this->type = LTATransform->type ;  /* if RAS will be converted to voxel later */
+
   /* copy the matrix out of it */
-  Trns_CopyARAStoBRAS( this, LTATansform->xforms[0].m_L );
+  Trns_CopyARAStoBRAS( this, LTATransform->xforms[0].m_L );
 
   /* copy identities for the rest */
   identity = MatrixIdentity( 4, NULL );
@@ -122,8 +124,8 @@ Trns_tErr Trns_NewFromLTA ( mriTransformRef* opTransform,
 
  cleanup:
 
-  if( NULL != LTATansform )
-    LTAfree( &LTATansform );
+  if( NULL != LTATransform )
+    LTAfree( &LTATransform );
 
   if( NULL != identity ) 
     MatrixFree( &identity );
@@ -397,6 +399,56 @@ Trns_tErr Trns_GetARAStoBRAS ( mriTransformRef this,
 
   if( Trns_tErr_NoErr != eResult ) {
     DebugPrint( ("Error %d in Trns_GetARAStoBRAS: %s\n",
+      eResult, Trns_GetErrorString( eResult ) ) );
+  }
+
+ cleanup:
+
+  return eResult;
+}
+Trns_tErr Trns_GetAtoB ( mriTransformRef this,
+             MATRIX**        opMatrix ) {
+
+  Trns_tErr eResult = Trns_tErr_NoErr;
+
+  eResult = Trns_Verify( this );
+  if( Trns_tErr_NoErr != eResult )
+    goto error;
+
+  /* return the matrix */
+  *opMatrix = this->mAtoB;
+
+  goto cleanup;
+
+ error:
+
+  if( Trns_tErr_NoErr != eResult ) {
+    DebugPrint( ("Error %d in Trns_GetAtoB: %s\n",
+      eResult, Trns_GetErrorString( eResult ) ) );
+  }
+
+ cleanup:
+
+  return eResult;
+}
+Trns_tErr Trns_GetBtoA ( mriTransformRef this,
+             MATRIX**        opMatrix ) {
+
+  Trns_tErr eResult = Trns_tErr_NoErr;
+
+  eResult = Trns_Verify( this );
+  if( Trns_tErr_NoErr != eResult )
+    goto error;
+
+  /* return the matrix */
+  *opMatrix = this->mBtoA;
+
+  goto cleanup;
+
+ error:
+
+  if( Trns_tErr_NoErr != eResult ) {
+    DebugPrint( ("Error %d in Trns_GetBtoA: %s\n",
       eResult, Trns_GetErrorString( eResult ) ) );
   }
 
@@ -1236,4 +1288,63 @@ void Trns_DebugPrint_ ( mriTransformRef this ) {
     DebugPrint( ("A to B:\n" ) );
     MatrixPrint( stderr, this->mAtoB );
   }
+}
+Trns_tErr Trns_GetType     ( mriTransformRef this, int *ptype)  {
+
+  Trns_tErr eResult = Trns_tErr_NoErr;
+
+  eResult = Trns_Verify( this );
+  if( Trns_tErr_NoErr != eResult )
+    goto error;
+
+  /* return the type */
+  *ptype = this->type;
+
+  goto cleanup;
+
+ error:
+
+  if( Trns_tErr_NoErr != eResult ) {
+    DebugPrint( ("Error %d in Trns_GetType: %s\n",
+      eResult, Trns_GetErrorString( eResult ) ) );
+  }
+
+ cleanup:
+
+  return eResult;
+}
+
+Trns_tErr Trns_CopyAtoB ( mriTransformRef this,
+        MATRIX*         iAtoB ) {
+
+  Trns_tErr eResult = Trns_tErr_NoErr;
+
+  eResult = Trns_Verify( this );
+  if( Trns_tErr_NoErr != eResult )
+    goto error;
+
+  if (NULL != this->mAtoB)
+    MatrixFree(&this->mAtoB) ;
+  if (NULL != this->mBtoA)
+    MatrixFree(&this->mBtoA) ;
+
+  /* create a copy of this matrix */
+  this->mAtoB = MatrixCopy( iAtoB, NULL );
+  this->mBtoA = MatrixInverse( iAtoB, NULL );
+
+  DebugAssertThrowX( (NULL != this->mBtoA),
+                     eResult, Trns_tErr_LTAImportFailed );
+
+  goto cleanup;
+
+ error:
+
+  if( Trns_tErr_NoErr != eResult ) {
+    DebugPrint( ("Error %d in Trns_CopyARAStoBRAS: %s\n",
+      eResult, Trns_GetErrorString( eResult ) ) );
+  }
+
+ cleanup:
+
+  return eResult;
 }
