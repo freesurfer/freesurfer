@@ -77,35 +77,11 @@ MRI *conform_type(MRI *mri)
         
       }
 
-  scale = 256.0 / (max - min);
+  scale = 255.0 / (max - min);
 
   mri2 = MRIallocSequence(mri->width, mri->height, mri->depth, MRI_UCHAR, 1);
   MRIcopyHeader(mri, mri2);
 
-  if(scale < 0.5)
-  {
-  for(x = 0;x < mri->width;x++)
-    for(y = 0;y < mri->height;y++)
-      for(z = 0;z < mri->depth;z++)
-      {
-      if(mri->type == MRI_UCHAR)
-        this = (float)MRIvox(mri, x, y, z);
-      if(mri->type == MRI_INT)
-        this = (float)MRIIvox(mri, x, y, z);
-      if(mri->type == MRI_LONG)
-        this = (float)MRILvox(mri, x, y, z);
-      if(mri->type == MRI_FLOAT)
-        this = (float)MRIFvox(mri, x, y, z);
-      if(mri->type == MRI_SHORT)
-        this = (float)MRISvox(mri, x, y, z);
-
-      MRIvox(mri2, x, y, z) = (unsigned char)(this > 255. ? 255. : this);
-
-      }
-
-  }
-  else
-  {
   for(x = 0;x < mri->width;x++)
     for(y = 0;y < mri->height;y++)
       for(z = 0;z < mri->depth;z++)
@@ -124,8 +100,6 @@ MRI *conform_type(MRI *mri)
       MRIvox(mri2, x, y, z) = (unsigned char)(scale * (this - min));
 
       }
-
-  }
 
   return(mri2);
 
