@@ -1,5 +1,5 @@
-function edge = fast_histeq(y,nbins,r)
-% edge = fast_histeq(y,nbins,<r>)
+function [edge, bincenter, binmap] = fast_histeq(y,nbins,r)
+% [edge, bincenter, binmap] = fast_histeq(y,nbins,<r>)
 %
 % computes the bin edges that will result in an equal number of
 % samples of y in each bin. The first step in the algorithm is to
@@ -18,7 +18,7 @@ function edge = fast_histeq(y,nbins,r)
 % plot(nk(1:end-1));
 % plot should have approx 1000 = 10000/nbins at each entry
 %
-% $Id: fast_histeq.m,v 1.2 2003/05/23 22:38:26 greve Exp $
+% $Id: fast_histeq.m,v 1.3 2004/06/11 17:21:24 greve Exp $
 
 edge = [];
 
@@ -51,6 +51,25 @@ for n = 1:nbins-1
   [m i] = min(abs(cp-pedge));
   edge(n+1) = bincenter(i) + binwidth/2;
 end
+
+if(nargout < 2) return; end
+bincenter = (edge(1:end-1)+edge(2:end))/2;
+
+if(nargout < 3) return; end
+
+binmap = zeros(size(y));
+for n = 1:nbins
+  if(n == 1)
+    ind = find(y <= edge(n+1) );
+  elseif(n==nbins)
+    ind = find(edge(n) < y);
+  else
+    ind = find(edge(n) < y & y <= edge(n+1) );
+  end
+  binmap(ind) = n;
+end
+
+
 
 %nk = histc(y,edge);
 %plot(nk(1:end-1));
