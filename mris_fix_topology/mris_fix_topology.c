@@ -16,7 +16,7 @@
 #include "icosahedron.h"
 #include "mrishash.h"
 
-static char vcid[] = "$Id: mris_fix_topology.c,v 1.6 1999/08/16 16:57:44 fischl Exp $";
+static char vcid[] = "$Id: mris_fix_topology.c,v 1.7 1999/08/23 18:46:25 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -30,6 +30,7 @@ char *Progname ;
 
 
 static char *sphere_name = "qsphere" ;
+static char *inflated_name = "inflated" ;
 static char *orig_name = "orig" ;
 static char suffix[STRLEN] = "" ;
 static int  add = 1 ;
@@ -85,7 +86,13 @@ main(int argc, char *argv[])
           " g=%d)\n", eno, nvert, nfaces, nedges, (2-eno)/2) ;
   MRISprojectOntoSphere(mris, mris, 100.0f) ;
   MRISsaveVertexPositions(mris, CANONICAL_VERTICES) ;
+
+  MRISreadVertexPositions(mris, inflated_name) ;
+  MRISsaveVertexPositions(mris, TMP_VERTICES) ;
+
+  MRISrestoreVertexPositions(mris, CANONICAL_VERTICES) ;
   MRIScomputeMetricProperties(mris) ;
+
   MRISreadOriginalProperties(mris, orig_name) ;
 
   fprintf(stderr, "using quasi-homeomorphic spherical map to tessellate "
@@ -108,7 +115,7 @@ main(int argc, char *argv[])
 
 #if 0
   MRISrestoreVertexPositions(mris_corrected, TMP_VERTICES) ;
-  sprintf(fname, "%s/%s/surf/%s.inflated%s", sdir, sname, hemi, suffix);
+  sprintf(fname, "%s/%s/surf/%s.%s%s", sdir, sname, hemi,inflated_name,suffix);
   fprintf(stderr, "writing corrected surface to %s...\n", fname) ;
   MRISwrite(mris_corrected, fname) ;
 #endif
@@ -162,10 +169,16 @@ get_option(int argc, char *argv[])
     print_help() ;
   else if (!stricmp(option, "-version"))
     print_version() ;
-  else if (!stricmp(option, "name"))
+  else if (!stricmp(option, "name") || !stricmp(option, "sphere"))
   {
     sphere_name = argv[2] ;
     fprintf(stderr,"reading spherical homeomorphism from '%s'\n",sphere_name);
+    nargs = 1 ;
+  }
+  else if (!stricmp(option, "inflated"))
+  {
+    inflated_name = argv[2] ;
+    fprintf(stderr,"reading inflated coordinates from '%s'\n",inflated_name);
     nargs = 1 ;
   }
   else if (!stricmp(option, "suffix"))
