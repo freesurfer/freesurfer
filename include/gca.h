@@ -159,6 +159,9 @@ char *cma_label_to_name(int label) ;
 MRI   *GCArelabel_cortical_gray_and_white(GCA *gca, MRI *mri_inputs, 
                                           MRI *mri_src, MRI *mri_dst,LTA *lta);
 
+int GCAdump(GCA *gca, MRI *mri, int x, int y, int z, LTA *lta, FILE *fp, 
+            int verbose) ;
+
 #define MIN_PRIOR  0.5
 
 #endif
