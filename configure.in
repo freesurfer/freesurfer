@@ -37,13 +37,20 @@ if test ! "$HAS_GZIP" = "1"; then
   AC_MSG_ERROR("FATAL: gzip is required in creating mgz etc. Put it in the path.")
 fi	
 
+##################################################################
 # allow user to specify tixwish
 AC_ARG_WITH(tixwish,
   [  --with-tixwish=TIXWISH  where you specify the file for tixwish],
   [TIXWISH=$withval],[])
 # if TIXWISH has been set, then it does not do anything
-# I have seen only tixwish8.1.8.3
-AC_CHECK_PROG([TIXWISH],[tixwish8.1.8.3],[tixwish8.1.8.3],[])
+AC_CHECK_PROG([TIXWISH],[tixwish],[tixwish],[])
+if test "x$TIXWISH" = "x"; then
+  AC_CHECK_PROG([TIXWISH],[tixwish8.1.8.3],[tixwish8.1.8.3],[])
+  if test "x$TIXWISH" = "x"; then
+    AC_CHECK_PROG([TIXWISH],[tixwish8.1.8.4],[tixwish8.1.8.4],[])
+  fi
+fi
+# well check
 if test "x$TIXWISH" = "x"; then
   AC_MSG_ERROR("FATAL: tixwish needed for csurf not found.  Use --with-tixwish=... to specify")
 fi
