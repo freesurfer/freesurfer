@@ -15686,6 +15686,54 @@ MRISmedianFilterVals(MRI_SURFACE *mris, int nmedians)
         Description
 ------------------------------------------------------*/
 int
+MRISmedianFilterCurvature(MRI_SURFACE *mris, int nmedians)
+{
+  int    i, vno, vnb, *pnb, vnum, num ;
+  float  val_list[MAX_NEIGHBORS] ;
+  VERTEX *v, *vn ;
+
+  for (i = 0 ; i < nmedians ; i++)
+  {
+    for (vno = 0 ; vno < mris->nvertices ; vno++)
+    {
+      v = &mris->vertices[vno] ;
+      if (v->ripflag)
+        continue ;
+      pnb = v->v ;
+      vnum = v->vnum ;
+			val_list[0] = v->curv ;
+      for (num = 1, vnb = 0 ; vnb < vnum ; vnb++)
+      {
+        vn = &mris->vertices[*pnb++] ;    /* neighboring vertex pointer */
+        if (vn->ripflag)
+          continue ;
+
+				val_list[num++] = vn->curv ;
+      }
+			qsort(val_list, num, sizeof(val_list[0]), compare_sort_vals) ;
+			if (ISODD(num))
+				v->tdx = val_list[(num-1)/2] ;
+			else
+				v->tdx = (val_list[num/2] + val_list[num/2-1])/2 ;
+    }
+    for (vno = 0 ; vno < mris->nvertices ; vno++)
+    {
+      v = &mris->vertices[vno] ;
+      if (v->ripflag)
+        continue ;
+      v->curv = v->tdx ;
+    }
+  }
+  return(NO_ERROR) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
+int
 MRISmedianFilterVal2s(MRI_SURFACE *mris, int nmedians)
 {
   int    i, vno, vnb, *pnb, vnum, num ;
