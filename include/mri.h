@@ -722,4 +722,8 @@ MATRIX *MRIvoxelXformToRasXform(MRI *mri_src, MRI *mri_dst,
 MATRIX *MRIrasXformToVoxelXform(MRI *mri_src, MRI *mri_dst,
                                 MATRIX *m_ras_xform, MATRIX *m_voxel_xform);
 
+
+int MRIsincSampleVolume(MRI *mri, Real x, Real y, Real z, int hw, Real *pval);
+MRI *
+MRIsincTransform(MRI *mri_src, MRI *mri_dst, MATRIX *mA, int hw);
 #endif
