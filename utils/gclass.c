@@ -19,6 +19,7 @@
 #include "matrix.h"
 #include "diag.h"
 #include "error.h"
+#include "const.h"
 #include "gclass.h"
 
 /*-----------------------------------------------------
@@ -116,48 +117,36 @@ GCtrain(GCLASSIFY *gc, int class, MATRIX *m_inputs)
   gcl->nobs = m_inputs->rows ;
   MatrixCovariance(m_inputs, gcl->m_covariance, gcl->m_u) ;
 
+  m_sigma_inverse = MatrixInverse(gcl->m_covariance, NULL) ;
+  m_uT = MatrixTranspose(gcl->m_u, NULL) ;
+  det = MatrixDeterminant(gcl->m_covariance) ;
+  gcl->m_W = MatrixScalarMul(m_sigma_inverse, -0.5f, NULL) ;
+  m_tmp = MatrixMultiply(m_sigma_inverse, gcl->m_u, NULL) ;
+  gcl->m_wT = MatrixTranspose(m_tmp, NULL) ;
+  MatrixFree(&m_tmp) ;
+  m_tmp = MatrixMultiply(m_sigma_inverse, gcl->m_u, NULL) ;
+  m_tmp2 = MatrixMultiply(m_uT, m_tmp, NULL) ;
+  det = MatrixDeterminant(m_sigma_inverse) ;
+  gcl->w0 = -0.5*(gc->nvars * log(2*PI) + m_tmp2->rptr[1][1] + log(det)) ;
+
 #if 0
 fprintf(stdout, "\nclass %d:\n", class) ;
 MatrixPrint(stdout, gcl->m_covariance) ;
-#endif
-  m_sigma_inverse = MatrixInverse(gcl->m_covariance, NULL) ;
-#if 0
 MatrixPrint(stdout, m_sigma_inverse) ;
 fprintf(stdout, "means: \n") ;
 MatrixPrint(stdout, gcl->m_u) ;
-#endif
-  m_uT = MatrixTranspose(gcl->m_u, NULL) ;
-  det = MatrixDeterminant(m_sigma_inverse) ;
-#if 0
 fprintf(stdout, "det = %2.3f\n", det) ;
-#endif
-  gcl->m_W = MatrixScalarMul(m_sigma_inverse, -0.5f, NULL) ;
-#if 0
 fprintf(stdout, "Wi = \n") ;
 MatrixPrint(stdout, gcl->m_W) ;
-#endif
-  m_tmp = MatrixMultiply(m_sigma_inverse, gcl->m_u, NULL) ;
-  gcl->m_wT = MatrixTranspose(m_tmp, NULL) ;
-#if 0
 fprintf(stdout, "w = \n") ;
 MatrixPrint(stdout, gcl->m_wT) ;
-#endif
-  MatrixFree(&m_tmp) ;
-  m_tmp = MatrixMultiply(m_sigma_inverse, gcl->m_u, NULL) ;
-#if 0
 fprintf(stdout, "m_tmp:\n") ;
 MatrixPrint(stdout, m_tmp) ;
-#endif
-  m_tmp2 = MatrixMultiply(m_uT, m_tmp, NULL) ;
-#if 0
 fprintf(stdout, "m_tmp2:\n") ;
 MatrixPrint(stdout, m_tmp2) ;
-#endif
-  det = MatrixDeterminant(m_sigma_inverse) ;
-  gcl->w0 = -0.5f * m_tmp2->rptr[1][1] - 0.5f * log(det) ; /* + priors */
-#if 0
 fprintf(stdout, "w0: %2.3f\n", gcl->w0) ;
 #endif
+
   MatrixFree(&m_sigma_inverse) ;
   MatrixFree(&m_uT) ;
   MatrixFree(&m_tmp) ;
@@ -248,6 +237,9 @@ fprintf(stdout, "class %d: log(p) = %2.3f + %2.3f + %2.3f = %2.3f\n",
       class = cno ;
     }
   }
+
+  if (prisk)
+    *prisk = exp(max_p) ;
 
   MatrixFree(&m_xT) ;
   MatrixFree(&m_tmp) ;
