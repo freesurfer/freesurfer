@@ -5,6 +5,7 @@
 #include "mri.h"
 #include "volume_io.h"
 #include "image.h"
+#include "stats.h"
 
 #define VERTICES_PER_FACE    4
 #define TRIANGLES_PER_FACE   2
@@ -38,13 +39,13 @@ typedef struct vertex_type_
   float odx, ody, odz ; 
   float ox,oy,oz;        /* last position */
   float curv;            /* curr curvature */
+  float val;             /* scalar data value (file: rh.val, sig2-rh.w) */
 #if 0
   float mx,my,mz;        /* last movement */
   float dipx,dipy,dipz;  /* dipole position */
   float dipnx,dipny,dipnz; /* dipole orientation */
   float nc;              /* curr length normal comp */
   float onc;             /* last length normal comp */
-  float val;             /* scalar data value (file: rh.val, sig2-rh.w) */
   float val2;            /* complex comp data value (file: sig3-rh.w) */
   float valbak;          /* scalar data stack */
   float val2bak;         /* complex comp data stack */
@@ -257,6 +258,8 @@ int          MRISreadTriangleProperties(MRI_SURFACE *mris, char *mris_fname) ;
 int          MRIScomputeTriangleProperties(MRI_SURFACE *mris) ;
 int          MRISreadBinaryCurvature(MRI_SURFACE *mris, char *mris_fname) ;
 int          MRISreadCurvatureFile(MRI_SURFACE *mris, char *fname) ;
+int          MRISsampleStatVolume(MRI_SURFACE *mris, STAT_VOLUME *sv,int time);
+int          MRISwriteValues(MRI_SURFACE *mris, char *fname) ;
 
 /* constants for vertex->tethered */
 #define TETHERED_NONE           0
