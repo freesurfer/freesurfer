@@ -2337,6 +2337,7 @@ int
 ImageValRange(IMAGE *image, float *pfmin, float *pfmax)
 {
   float  fmax, fmin, *fpix ;
+  double dmax, dmin, *dpix ;
   unsigned int    size, imax, imin, *ipix ; /* "unsiged" added dng */
   byte   bmin, bmax, *bpix ;
 
@@ -2347,6 +2348,25 @@ ImageValRange(IMAGE *image, float *pfmin, float *pfmax)
   case PFDBLCOM:
     *pfmin = 0.0f ;
     *pfmax = 1.0f ;
+    break ;
+  case PFDOUBLE:
+    dpix = IMAGEDpix(image, 0, 0) ;
+    if (!isnan(*dpix))
+      dmax = dmin = *dpix ;
+    else
+      dmax = dmin = 0.0f ;
+    while (size--)
+    {
+      if (isnan(*dpix))
+        continue ;
+      if (*dpix > dmax)
+        dmax = *dpix ;
+      if (*dpix < dmin)
+        dmin = *dpix ;
+      dpix++ ;
+    }
+    *pfmax = (double)dmax ;
+    *pfmin = (double)dmin ;
     break ;
   case PFFLOAT:
     fpix = IMAGEFpix(image, 0, 0) ;
