@@ -256,6 +256,7 @@ main(int argc, char *argv[])
     GCAhistoScaleImageIntensities(gca, mri_in) ;
   if (stricmp(xform_fname, "none"))
   {
+    printf("reading transform from %s...\n", xform_fname) ;
     transform = TransformRead(xform_fname) ;
     if (!transform)
       ErrorExit(ERROR_NOFILE, "%s: could not open transform", xform_fname) ;
@@ -320,6 +321,13 @@ main(int argc, char *argv[])
       printf("writing snapshot to %s...\n", fname) ;
       MRIwrite(mri_labeled, fname) ;
     }
+    while (renormalize_iter--)  /* update gca values  and relabel */
+    {
+      preprocess(mri_in, mri_labeled, gca, transform, mri_fixed) ;
+      printf("renormalizing GCA to initial labeling...\n") ;
+      GCArenormalizeAdaptive(mri_in, mri_labeled, gca, transform, renormalize_wsize) ;
+      GCAlabel(mri_in, gca, mri_labeled, transform) ;
+    }
     preprocess(mri_in, mri_labeled, gca, transform, mri_fixed) ;
     if (fixed_flag == 0)
       MRIfree(&mri_fixed) ;
@@ -330,15 +338,6 @@ main(int argc, char *argv[])
       else
         GCAreclassifyUsingGibbsPriors(mri_in, gca, mri_labeled, transform, max_iter,
                                       mri_fixed, 0, NULL);
-    }
-    while (renormalize_iter--)  /* update gca values  and relabel */
-    {
-      printf("renormalizing GCA to initial labeling...\n") ;
-      GCArenormalizeAdaptive(mri_in, mri_labeled, gca, transform, renormalize_wsize) ;
-      mri_labeled = GCAlabel(mri_in, gca, NULL, transform) ;
-      preprocess(mri_in, mri_labeled, gca, transform, mri_fixed) ;
-      GCAreclassifyUsingGibbsPriors(mri_in, gca, mri_labeled, transform, max_iter,
-                                    mri_fixed, 0, NULL);
     }
   }
   GCAmaxLikelihoodBorders(gca, mri_in, mri_labeled, mri_labeled,transform,mle_niter,
@@ -393,7 +392,8 @@ main(int argc, char *argv[])
 #endif
 
   printf("writing labeled volume to %s...\n", out_fname) ;
-  MRIwrite(mri_labeled, out_fname) ;
+  if (MRIwrite(mri_labeled, out_fname) != NO_ERROR)
+    ErrorExit(Gerror, "%s: MRIwrite(%s) failed", Progname, out_fname) ;
 
   msec = TimerStop(&start) ;
   seconds = nint((float)msec/1000.0f) ;
