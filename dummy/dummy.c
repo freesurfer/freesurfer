@@ -12,4 +12,5 @@
 int main(int argc, char *argv[])
 {
   printf("Just a dummy.\n");
+  return 0;
 }
