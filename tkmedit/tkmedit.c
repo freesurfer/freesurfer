@@ -4,9 +4,9 @@
 
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2003/02/10 20:31:13 $
-// Revision       : $Revision: 1.126 $
-char *VERSION = "$Revision: 1.126 $";
+// Revision Date  : $Date: 2003/02/27 20:41:36 $
+// Revision       : $Revision: 1.127 $
+char *VERSION = "$Revision: 1.127 $";
 
 #define TCL
 #define TKMEDIT 
@@ -107,6 +107,7 @@ char *tkm_ksaErrorStrings [tkm_knNumErrorCodes] = {
   "Functional overlay is not loaded.",
   "GCA volume is not loaded.",
   "Segmentation data is not loaded.",
+  "The FA and EV volumes are different sizes.",
   "Couldn't cache the script name.",
   "gettimeofday failed.",
   "Unrecoverable error from an inner function."
@@ -8752,6 +8753,7 @@ tkm_tErr LoadDTIVolume ( char*              isNameEV,
   char         sNameWithHint[tkm_knPathLen] = "";
   mriVolumeRef EVVolume = NULL;
   mriVolumeRef FAVolume = NULL;
+  xVoxel       screenIdx;
   xVoxel       EVIdx;
   xVoxel       FAIdx;
   int          zEVX;
@@ -8834,31 +8836,43 @@ tkm_tErr LoadDTIVolume ( char*              isNameEV,
   
   DebugAssertThrowX( (Volm_tErr_NoErr == eVolm), 
 		     eResult, tkm_tErr_CouldntLoadDTIVolume );
-  
-  /* Now go through the EV volume and assign the processed color value
-     scaled by the FA value. (r,g,b) = min(FA,1) * (evx,evy,evz) */
-  xVoxl_Set( &EVIdx, 0, 0, 0 );
-  xVoxl_Set( &FAIdx, 0, 0, 0 );
+
+  /* Make sure the dimensions are the same. */
   Volm_GetDimensions( EVVolume, &zEVX, &zEVY, &zEVZ );
   Volm_GetDimensions( FAVolume, &zFAX, &zFAY, &zFAZ );
+  DebugAssertThrowX( ((zEVX == zFAX) && (zEVY == zFAY) && (zEVZ == zFAZ)),
+		     eResult, tkm_tErr_DTIVolumesDifferentSize );
+
+  /* Now go through the EV volume and assign the processed color value
+     scaled by the FA value. (r,g,b) = min(FA,1) * (evx,evy,evz) */
+  //  xVoxl_Set( &FAIdx, 0, 0, 0 );
+  xVoxl_Set( &EVIdx, 0, 0, 0 );
   do {
-    Volm_GetValueAtIdxUnsafe( FAVolume, &FAIdx, &FAValue );
-    FAValue = sqrt( FAValue );
+
+    /* We're going by the MRI index of the FA volume because it's most
+       likely smaller than the screen bounds (256^3) and will be much
+       quicker. But we have to convert from MRI idx to screen idx
+       before using the index function. Yeah, this is kind of
+       backwards. */
+    Volm_ConvertMRIIdxToScreenIdx_( EVVolume, &EVIdx, &screenIdx );
+
+    Volm_GetValueAtIdxUnsafe( FAVolume, &screenIdx, &FAValue );
 
     for( nFrame = 0; nFrame < 3; nFrame++ ) {
-      Volm_GetValueAtIdxFrameUnsafe( EVVolume, &EVIdx, nFrame, &EVValue );
-      Volm_SetValueAtIdxFrame( EVVolume, &EVIdx, nFrame, 
+      Volm_GetValueAtIdxFrameUnsafe( EVVolume, &screenIdx, nFrame, &EVValue );
+      Volm_SetValueAtIdxFrame( EVVolume, &screenIdx, nFrame, 
 			       EVValue * MIN( 1, FAValue) );
     }
     
-    xVoxl_IncrementUntilLimits( &FAIdx, zFAX, zFAY, zFAZ );
+    /* Increment the FA index too */
+    //    xVoxl_IncrementUntilLimits( &FAIdx, zFAX, zFAY, zFAZ );
     
     if( xVoxl_GetY( &EVIdx ) == 0 ) {
-      fprintf( stdout, "\rProcessing DTI volumes: %.2f%% done", 
-	       (xVoxl_GetFloatZ( &EVIdx ) / (float)zEVZ) * 100.0 );
+            fprintf( stdout, "\rProcessing DTI volumes: %.2f%% done", 
+      	       (xVoxl_GetFloatZ( &EVIdx ) / (float)zEVZ) * 100.0 );
     }
 
-  } while( xVoxl_IncrementUntilLimits( &EVIdx, zEVX, zEVY, zEVZ ) );
+    } while( xVoxl_IncrementUntilLimits( &EVIdx, zEVX, zEVY, zEVZ ) );
     
   fprintf( stdout, "\rProcessing DTI volumes: 100%% dane.         " );
 
@@ -8915,9 +8929,21 @@ void GetDTIColorAtVoxel ( xVoxelRef        iAnaIdx,
   xColr_tComponent comp;
   xColor3f  color;
   
+  if( xVoxl_GetX(iAnaIdx) >= 128 &&
+      xVoxl_GetZ(iAnaIdx) >= 128 &&
+      xVoxl_GetY(iAnaIdx) >= 128 ) {
+    ;
+  }
+
   /* Make sure this voxel is in the bounds of the DTI volume */
   eVolm = Volm_VerifyIdxInMRIBounds( gDTIVolume, iAnaIdx );
   if( Volm_tErr_NoErr != eVolm ) {
+    *oColor = *iBaseColor;
+    return;
+  }
+
+  /* Check our 0 alpha special case. */
+  if( 0 == gfDTIAlpha ) {
     *oColor = *iBaseColor;
     return;
   }
@@ -8941,14 +8967,24 @@ void GetDTIColorAtVoxel ( xVoxelRef        iAnaIdx,
       }
     }
   
-    /* Blend with the destination color. */
-    oColor->mfRed   = MIN( 1, (gfDTIAlpha * color.mfRed) + 
-			   (float)((1.0-gfDTIAlpha) * iBaseColor->mfRed));
-    oColor->mfGreen = MIN( 1, (gfDTIAlpha * color.mfGreen) + 
+    /* If alpha is 1, just set the color. */
+    if( 1 == gfDTIAlpha ) {
+
+      oColor->mfRed = color.mfRed;
+      oColor->mfGreen = color.mfGreen;
+      oColor->mfBlue = color.mfBlue;
+
+    } else {
+      
+      /* Blend with the destination color. */
+      oColor->mfRed   = MIN( 1, (gfDTIAlpha * color.mfRed) + 
+			     (float)((1.0-gfDTIAlpha) * iBaseColor->mfRed));
+      oColor->mfGreen = MIN( 1, (gfDTIAlpha * color.mfGreen) + 
 			   (float)((1.0-gfDTIAlpha) * iBaseColor->mfGreen));
-    oColor->mfBlue  = MIN( 1, (gfDTIAlpha * color.mfBlue) + 
-			   (float)((1.0-gfDTIAlpha) * iBaseColor->mfBlue));
-    
+      oColor->mfBlue  = MIN( 1, (gfDTIAlpha * color.mfBlue) + 
+			     (float)((1.0-gfDTIAlpha) * iBaseColor->mfBlue));
+    }
+
   } else {
     *oColor = *iBaseColor;
   }

@@ -68,6 +68,7 @@ typedef enum {
   tkm_tErr_OverlayNotLoaded,
   tkm_tErr_GCANotLoaded,
   tkm_tErr_SegmentationNotLoaded,
+  tkm_tErr_DTIVolumesDifferentSize,
   tkm_tErr_CouldntCacheScriptName,
   tkm_tErr_InvalidScriptName,
   tkm_tErr_GetTimeOfDayFailed,
