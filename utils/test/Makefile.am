@@ -5,12 +5,13 @@ AM_CFLAGS=-I$(top_srcdir)/include -I$(top_srcdir)/include/dicom
 AM_CXXFLAGS=-I$(top_srcdir)/include -I$(top_srcdir)/include/dicom
 AM_LDFLAGS=-L$(top_srcdir)/lib
 
-check_PROGRAMS=mnitest i2rtest icotest surftest extest mghxform inftest difftool  mri_ms_fcm mri_compute_stats mri_ms_LDA mri_fslmat_to_lta mri_concatenate_lta checkWfile mri_transform_to_COR  mri_compute_all_CNR mri_ms_compute_CNR  mris_diff mris_compute_thickness mri_apply_INU mri_ms_EM mri_edit_wm mri_apply_EM_mask mri_extract mri_ms_gca_EM mris_indirect_morph mris_average mri_ms_compute_T2star mri_ms_optimize_seq refine_aseg seg_pallidum mri_compute_seg_overlap aseg_for_one mri_count_seg_vols
+check_PROGRAMS=mnitest i2rtest icotest surftest extest mghxform inftest difftool  mri_ms_fcm mri_compute_stats mri_ms_LDA mri_fslmat_to_lta mri_concatenate_lta checkWfile mri_transform_to_COR  mri_compute_all_CNR mri_ms_compute_CNR  mris_diff mris_compute_thickness mri_apply_INU mri_ms_EM mri_edit_wm mri_apply_EM_mask mri_extract mri_ms_gca_EM mris_indirect_morph mris_average mri_ms_compute_T2star mri_ms_optimize_seq refine_aseg seg_pallidum mri_compute_seg_overlap aseg_for_one mri_count_seg_vols mri_unmask
 
 TESTS=mnitest i2rtest icotest extest mghxform inftest checkanalyze
 
 aseg_for_one_SOURCES=aseg_for_one.c
 mri_ms_fcm_SOURCE=mri_ms_fcm.c
+mri_unmask_SOURCE=mri_unmask.c
 mri_edit_wm_SOURCE=mri_edit_wm.c
 mri_apply_EM_mask_SOURCE=mri_apply_EM_mask.c
 mri_ms_EM_SOURCE=mri_ms_EM.c

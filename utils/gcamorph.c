@@ -3,8 +3,8 @@
 //
 // 
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Date  : $Date: 2005/03/06 13:20:13 $
-// Revision       : $Revision: 1.64 $
+// Revision Date  : $Date: 2005/04/01 15:05:45 $
+// Revision       : $Revision: 1.65 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -289,6 +289,8 @@ GCAMregister(GCA_MORPH *gcam, MRI *mri, GCA_MORPH_PARMS *parms)
   MRI    *mri_smooth = NULL, *mri_kernel ;
   double base_sigma, pct_change, rms, last_rms, orig_dt,l_smooth ;
 
+  printf("nframes = %d\n", mri->nframes);
+
 	// debugging
 	{
 		MATRIX *m_vox2ras ;
@@ -432,10 +434,11 @@ GCAMregister(GCA_MORPH *gcam, MRI *mri, GCA_MORPH_PARMS *parms)
             MRI  *mri_gca, *mri_tmp ;
             mri_gca = MRIclone(mri, NULL) ;
             GCAMbuildMostLikelyVolume(gcam, mri_gca) ;
+	    printf("nframes = %d\n", mri_gca->nframes);
 	    if (mri_gca->nframes > 1)
 	    {
-	      printf("gcamorph: extracting %dth frame\n", mri_gca->nframes-1) ;
-	      mri_tmp = MRIcopyFrame(mri_gca, NULL, mri_gca->nframes-1, 0) ;
+	      printf("gcamorph: extracting %dth frame\n", 0) ;
+	      mri_tmp = MRIcopyFrame(mri_gca, NULL, 0, 0) ;
 	      MRIfree(&mri_gca) ; mri_gca = mri_tmp ;
 	    }
             sprintf(fname, "%s_target%d", parms->base_name, level) ;
@@ -2408,6 +2411,8 @@ GCAMregisterLevel(GCA_MORPH *gcam, MRI *mri, MRI *mri_smooth, GCA_MORPH_PARMS *p
   double          rms, last_rms, pct_change, orig_dt, min_dt, orig_j, tol, last_pct_change ;
   GCA_MORPH_PARMS jacobian_parms ;
 
+  printf("mri->nframes = %d\n", mri->nframes);
+
   max_small = parms->nsmall ;
   gcamClearMomentum(gcam) ;
   jacobian_parms = *parms ; 
@@ -2663,9 +2668,9 @@ write_snapshot(GCA_MORPH *gcam, MRI *mri, GCA_MORPH_PARMS *parms, int iter)
   static         int write_samples = -1, write_labels = -1 ;
 
 	if (!FZERO(parms->l_binary))  /* hack to do things differently for hires->lowres registration */
-		mri_morphed = GCAquickMorphFromAtlas(gcam, parms->mri, parms->mri->nframes-1) ;
+		mri_morphed = GCAquickMorphFromAtlas(gcam, parms->mri, 0) ;
 	else
-		mri_morphed = GCAMmorphToAtlas(parms->mri, gcam, NULL, parms->mri->nframes-1) ;
+		mri_morphed = GCAMmorphToAtlas(parms->mri, gcam, NULL, 0) ;
   sprintf(base_name, "%s_%3.3d", parms->base_name, iter) ;
   sprintf(fname, "%s.mgz", base_name) ;
   printf("writing snapshot to %s\n", fname) ;
