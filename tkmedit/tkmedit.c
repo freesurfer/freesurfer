@@ -4,9 +4,9 @@
 
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2003/05/06 21:10:08 $
-// Revision       : $Revision: 1.144 $
-char *VERSION = "$Revision: 1.144 $";
+// Revision Date  : $Date: 2003/05/07 17:35:55 $
+// Revision       : $Revision: 1.145 $
+char *VERSION = "$Revision: 1.145 $";
 
 #define TCL
 #define TKMEDIT 
@@ -998,7 +998,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
      shorten our argc and argv count. If those are the only args we
      had, exit. */
   /* rkt: check for and handle version tag */
-  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.144 2003/05/06 21:10:08 kteich Exp $");
+  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.145 2003/05/07 17:35:55 kteich Exp $");
   if (nNumProcessedVersionArgs && argc - nNumProcessedVersionArgs == 1)
     exit (0);
   argc -= nNumProcessedVersionArgs;
@@ -2694,7 +2694,9 @@ tkm_tErr LoadSurface ( tkm_tSurfaceType iType,
   char      sName[tkm_knPathLen]       = "";
   char      sError[tkm_knErrStringLen] = "";
   mriTransformRef surfaceTransform = NULL;
+#if 0
   MATRIX *tmp1, *tmp2;
+#endif
 
   DebugEnterFunction( ("LoadSurface( iType=%d, isName=%s )", 
            (int)iType, isName) );
@@ -2728,6 +2730,10 @@ tkm_tErr LoadSurface ( tkm_tSurfaceType iType,
   *MATRIX_RELT(surfaceTransform->mBtoRAS, 1, 4) = 128;
   *MATRIX_RELT(surfaceTransform->mBtoRAS, 2, 4) = -128;
   *MATRIX_RELT(surfaceTransform->mBtoRAS, 3, 4) = 128;
+
+  /* RKT: We don't need to do this any more because mriSurface only
+     uses BtoRAS and BRAStoB. I don't know why this stuff was being
+     done anyway. */
 
   // modify surfaceTransform->mARAStoBRAS
 #if 0
