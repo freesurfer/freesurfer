@@ -4,7 +4,7 @@
   email:   analysis-bugs@nmr.mgh.harvard.edu
   Date:    2/27/02
   Purpose: Computes glm inferences on the surface.
-  $Id: mris_glm.c,v 1.32 2004/11/12 21:18:49 greve Exp $
+  $Id: mris_glm.c,v 1.33 2004/11/12 21:25:03 greve Exp $
 
 Things to do:
   0. Documentation.
@@ -73,7 +73,7 @@ static char *getstem(char *bfilename);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mris_glm.c,v 1.32 2004/11/12 21:18:49 greve Exp $";
+static char vcid[] = "$Id: mris_glm.c,v 1.33 2004/11/12 21:25:03 greve Exp $";
 char *Progname = NULL;
 
 char *hemi        = NULL;
@@ -196,7 +196,7 @@ int main(int argc, char **argv)
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option (argc, argv, 
-      "$Id: mris_glm.c,v 1.32 2004/11/12 21:18:49 greve Exp $", "$Name:  $");
+      "$Id: mris_glm.c,v 1.33 2004/11/12 21:25:03 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -436,7 +436,10 @@ int main(int argc, char **argv)
   /* ------- Start simulation loop -- only one pass for non-sim runs -------- */
   for(nthsim = 0; nthsim < nsim; nthsim++){
 
-    if(MCSim) printf("%d/%d\n",nthsim,nsim);
+    if(MCSim){
+      printf("%d/%d\n",nthsim,nsim);
+      fflush(stdout);
+    }
 
     /* ------ Synthesize data ------ */
     if(beta_in_id == NULL && SynthPDF != 0){
@@ -529,6 +532,7 @@ int main(int argc, char **argv)
       if(tmaxfile != NULL){
 	tmax = fabs(MRIFseq_vox(t,0,0,0,0));
 	for(vtx = 0; vtx < t->width; vtx++){
+	  if(IcoSurf->vertices[vtx].ripflag) continue;
 	  if(tmax < fabs(MRIFseq_vox(t,vtx,0,0,0)) )
 	    tmax = fabs(MRIFseq_vox(t,vtx,0,0,0));
 	}
@@ -540,7 +544,7 @@ int main(int argc, char **argv)
 
     /* Compute significance of t-ratio  */
     if(sigid != NULL || SynthPDF != 0){
-      if(nthsim == 1) printf("INFO: computing t significance \n");fflush(stdout);
+      if(nthsim == 1) printf("INFO: computing t significance \n");
       if(C->rows == 1)
 	sig = fMRIsigT(t, DOF, sig);
       else
@@ -1213,7 +1217,8 @@ static void print_help(void)
 "--tmax filename\n"
 "\n"
 "Append the maximum t value and corresponding -log10(p) in text file \n"
-"filename. Good for simulations. Best when used with --guassian.\n"
+"filename. Good for simulations. Best when used with --guassian. Vertices\n"
+"with the ripflag set are ignored.\n"
 "\n"
 "--sigt name <fmt>\n"
 "\n"
