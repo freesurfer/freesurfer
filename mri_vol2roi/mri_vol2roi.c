@@ -6,7 +6,7 @@
   Purpose: averages the voxels within an ROI. The ROI
            can be constrained structurally (with a label file)
            and/or functionally (with a volumetric mask)
-  $Id: mri_vol2roi.c,v 1.15 2003/09/05 04:45:39 kteich Exp $
+  $Id: mri_vol2roi.c,v 1.16 2003/09/05 16:52:57 greve Exp $
 */
 
 #include <stdio.h>
@@ -29,6 +29,7 @@
 #include "corio.h"
 #include "selxavgio.h"
 #include "mri2.h"
+#include "fio.h"
 #include "version.h"
 
 LABEL   *LabelReadFile(char *labelfile);
@@ -45,15 +46,15 @@ static int  singledash(char *flag);
 static int  check_format(char *fmt);
 /*static int  isoptionflag(char *flag);*/
 
-int CompleteResFOVDim(float **trgres, float **trgfov, int **trgdim);
 int CountLabelHits(MRI *SrcVol, MATRIX *Qsrc, MATRIX *Fsrc, 
        MATRIX *Wsrc, MATRIX *Dsrc, 
        MATRIX *Msrc2lbl, LABEL *Label, float labelfillthresh,
        int float2int);
+int BTypeFromStem(char *stem);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_vol2roi.c,v 1.15 2003/09/05 04:45:39 kteich Exp $";
+static char vcid[] = "$Id: mri_vol2roi.c,v 1.16 2003/09/05 16:52:57 greve Exp $";
 char *Progname = NULL;
 
 char *roifile    = NULL;
@@ -111,6 +112,8 @@ int fixxfm = 0;
 int labeltal  = 0;
 char *talxfm = "talairach.xfm";
 
+int bfiletype;
+
 int main(int argc, char **argv)
 {
   int n,err, f, nhits, r,c,s;
@@ -125,7 +128,7 @@ int main(int argc, char **argv)
   int nargs;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_vol2roi.c,v 1.15 2003/09/05 04:45:39 kteich Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_vol2roi.c,v 1.16 2003/09/05 16:52:57 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -287,7 +290,8 @@ int main(int argc, char **argv)
   //mSrcVol->xsize = colres_src;
   //mSrcVol->ysize = rowres_src;
   //mSrcVol->zsize = slcres_src;
-  mSrcVol = MRIreadType(srcvolid,BFLOAT_FILE);
+  bfiletype = BTypeFromStem(srcvolid);
+  mSrcVol = MRIreadType(srcvolid,bfiletype);
   
   if(mSrcVol == NULL) exit(1);
   printf("done\n");
@@ -961,4 +965,22 @@ int CountLabelHits(MRI *SrcVol, MATRIX *Qsrc, MATRIX *Fsrc,
   }    
   MRIfree(&LabelMskVol);
   return(nlabelhits);
+}
+
+/*-------------------------------------------------------------
+  BTypeFromStem() - determines whether stem is a bshort or bfloat.
+  -------------------------------------------------------------*/
+int BTypeFromStem(char *stem)
+{
+  char tmpstr[2000];
+
+  sprintf(tmpstr,"%s_000.bfloat",stem);
+  if(fio_FileExistsReadable(tmpstr)) return(BFLOAT_FILE);
+
+  sprintf(tmpstr,"%s_000.bshort",stem);
+  if(fio_FileExistsReadable(tmpstr)) return(BSHORT_FILE);
+
+  printf("WARNING: cannot find file for bstem %s\n",stem);
+
+  return(MRI_VOLUME_TYPE_UNKNOWN);
 }
