@@ -1996,7 +1996,7 @@ other possibles:
       errno = 0;
       ErrorReturn(ERROR_BADFILE, (ERROR_BADFILE, "bshortWrite(): can't open file %s", fname));
     }
-    fprintf(fp, "%d %d %d %d\n", mri->width, mri->height, mri->nframes, 0);
+    fprintf(fp, "%d %d %d %d\n", mri->height, mri->width, mri->nframes, 0);
     fclose(fp);
 
     /* ----- write the data file ----- */
@@ -2438,7 +2438,7 @@ static int bfloatWrite(MRI *mri, char *stem)
       errno = 0;
       ErrorReturn(ERROR_BADFILE, (ERROR_BADFILE, "bfloatWrite(): can't open file %s", fname));
     }
-    fprintf(fp, "%d %d %d %d\n", mri->width, mri->height, mri->nframes, 0);
+    fprintf(fp, "%d %d %d %d\n", mri->height, mri->width, mri->nframes, 0);
     fclose(fp);
 
     /* ----- write the data file ----- */
