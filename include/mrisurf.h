@@ -713,6 +713,11 @@ int    MRISexpandSurface(MRI_SURFACE *mris, float distance) ;
 
 #endif
                              
+/* cortical ribbon */
+MRI   *MRISribbon(MRI_SURFACE *inner_mris,MRI_SURFACE *outer_mris,MRI *mri_src,MRI *mri_dst);
+MRI   *MRISaccentuate(MRI *mri_src,MRI *mri_dst,int lo_thresh,int hi_thresh);
+MRI   *MRISshell(MRI *mri_src,MRI_SURFACE *mris,MRI *mri_dst);
+MRI   *MRISfloodoutside(MRI *mri_src,MRI *mri_dst);
 
 #define MRIS_BINARY_QUADRANGLE_FILE    0    /* homegrown */
 #define MRIS_ASCII_QUADRANGLE_FILE     1    /* homegrown */
