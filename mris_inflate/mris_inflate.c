@@ -13,7 +13,7 @@
 #include "mri.h"
 #include "macros.h"
 
-static char vcid[] = "$Id: mris_inflate.c,v 1.12 1998/02/08 20:08:45 fischl Exp $";
+static char vcid[] = "$Id: mris_inflate.c,v 1.13 1998/02/13 23:13:22 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -47,19 +47,18 @@ main(int argc, char *argv[])
 
   parms.base_name[0] = 0 ;
   parms.projection = NO_PROJECTION ;
-  parms.fi_desired = 25 ;
-  parms.ici_desired = 3.5 ;
+  parms.desired_rms_height = 0.02 ;
   parms.tol = 1e-4 ;
   parms.epsilon = EPSILON ;
   parms.dt = 0.35 ;
   parms.base_dt = BASE_DT_SCALE*parms.dt ;
   parms.n_averages = 32 ; /*N_AVERAGES*/ ;
   parms.l_angle = 0.0 /* L_ANGLE */ ;
-  parms.l_dist = .1 ;
+  parms.l_dist = .5 ;
   parms.l_area = 0.0 /* L_AREA */ ;
   parms.l_spring = 1.0 ;
   parms.l_curv = 0.0 ;
-  parms.niterations = 80 ;   
+  parms.niterations = 55 ;   
   parms.write_iterations = 50 /*WRITE_ITERATIONS */;
   parms.a = parms.b = parms.c = 0.0f ;  /* ellipsoid parameters */
   parms.integration_type = INTEGRATE_MOMENTUM ;
@@ -216,8 +215,8 @@ get_option(int argc, char *argv[])
   {
     parms.scale = atof(argv[2]) ;
     nargs = 1 ;
-    parms.fi_desired = -1.0 ;
-    fprintf(stderr, "setting desired FI to %2.2f of original\n",parms.scale);
+    parms.desired_rms_height = -1.0 ;
+    fprintf(stderr, "setting desired RMS to %2.2f of original\n",parms.scale);
   }
   else if (!stricmp(option, "dt_inc"))
   {
@@ -249,8 +248,8 @@ get_option(int argc, char *argv[])
     fprintf(stderr, "momentum = %2.2f\n", parms.momentum) ;
     break ;
   case 'F':
-    parms.fi_desired = atof(argv[2]) ;
-    fprintf(stderr, "desired fi=%2.2f\n", parms.fi_desired) ;
+    parms.desired_rms_height = atof(argv[2]) ;
+    fprintf(stderr, "desired rmso height=%2.2f\n", parms.desired_rms_height) ;
     nargs = 1 ;
     break ;
   case 'B':
