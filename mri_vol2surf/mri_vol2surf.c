@@ -1,6 +1,6 @@
 /*----------------------------------------------------------
   Name: vol2surf.c
-  $Id: mri_vol2surf.c,v 1.10 2002/08/01 21:31:10 greve Exp $
+  $Id: mri_vol2surf.c,v 1.11 2002/10/23 15:57:16 fischl Exp $
   Author: Douglas Greve
   Purpose: Resamples a volume onto a surface. The surface
   may be that of a subject other than the source subject.
@@ -31,7 +31,7 @@
 
 #include "icosahedron.h"
 
-#include "MRIio.h"
+#include "MRIio_old.h"
 #include "error.h"
 #include "diag.h"
 #include "mrisurf.h"
@@ -56,7 +56,7 @@ static void dump_options(FILE *fp);
 static int  singledash(char *flag);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_vol2surf.c,v 1.10 2002/08/01 21:31:10 greve Exp $";
+static char vcid[] = "$Id: mri_vol2surf.c,v 1.11 2002/10/23 15:57:16 fischl Exp $";
 char *Progname = NULL;
 
 char *defaulttypestring;
