@@ -622,3 +622,21 @@ stricmp(char *str1, char *str2)
   return(strcmp(buf1, buf2)) ;
 }
 #endif
+/*------------------------------------------------------------------------
+       Parameters:
+
+      Description:
+         calculate the distance between 2 angles.
+
+    Return Values:
+       remove leading spaces from a string
+------------------------------------------------------------------------*/
+char *
+StrRemoveSpaces(char *str)
+{
+  while (isspace(*str))
+    str++ ;
+
+  return(str) ;
+}
+
