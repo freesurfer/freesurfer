@@ -3,7 +3,7 @@
 
 #include <map>
 #include <sstream>
-
+#include <stdexcept>
 
 
 // A template class that can be used by subclasses so they can be
