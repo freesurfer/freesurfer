@@ -13,7 +13,7 @@ static void   matFree(double **matrix, int nrows, int ncols) ;
 static int    readMatFile(FILE *fp, MATFILE *mf, double **real_matrix, 
                                      double **imag_matrix) ;
 
-#ifndef SunOS
+#ifdef Linux
 static void   swapBytes(MATFILE *mf) ;
 static short  swapShort(short s) ;
 static long   swapLong(long l) ;
@@ -197,17 +197,18 @@ MatFileWrite(const char *fname, float *data, int rows, int cols, char *name)
   mf.mrows = (long)rows ;
   mf.ncols = (long)cols ;
   mf.imagf = 0L ;
-#ifdef SunOS
-  mtype = MATFILE_SPARC ;
-#else
+#ifdef Linux
   mtype = MATFILE_PC ;
+#else
+  mtype = MATFILE_SPARC ;
 #endif
   mf.type = mtype + MATFILE_DOUBLE + MATFILE_FULL ;
 
   fp = fopen(fname, "wb") ;
   if (!fp)
   {
-    /*ErrorPrintf(ERROR_BADFILE, "MatFileWrite(%s): could not open file\n", fname) ;
+    /*ErrorPrintf(ERROR_BADFILE, "MatFileWrite(%s): could not open file\n", 
+      fname) ;
     perror(NULL) ;*/
     return(-1) ;
   }
@@ -216,7 +217,8 @@ MatFileWrite(const char *fname, float *data, int rows, int cols, char *name)
   if (nitems != sizeof(MATHD))
   {
     fclose(fp) ;
-    /*ErrorPrintf(ERROR_BADFILE, "MatFileWrite(%s): could not write header\n", fname) ;
+    /*ErrorPrintf(ERROR_BADFILE, "MatFileWrite(%s): could not write header\n", 
+      fname) ;
     perror(NULL) ;*/
     return(-2) ;
   }
@@ -225,7 +227,8 @@ MatFileWrite(const char *fname, float *data, int rows, int cols, char *name)
   if (nitems != (int)mf.namlen)
   {
     fclose(fp) ;
-    /*ErrorPrintf(ERROR_BADFILE, "MatFileWrite(%s): could not write name\n", fname) ;
+    /*ErrorPrintf(ERROR_BADFILE, "MatFileWrite(%s): could not write name\n", 
+      fname) ;
     perror(NULL) ;*/
     return(-3) ;
   }
@@ -241,7 +244,8 @@ MatFileWrite(const char *fname, float *data, int rows, int cols, char *name)
       if (nitems != sizeof(double))
       {
         fclose(fp) ;
-        /*ErrorPrintf(ERROR_BADFILE, "MatFileWrite(%s): could not write (%d,%d)\n",
+        /*ErrorPrintf(ERROR_BADFILE, 
+          "MatFileWrite(%s): could not write (%d,%d)\n",
           fname, row, col) ;
         perror(NULL) ;*/
         return(-2) ;
@@ -357,7 +361,7 @@ readMatFile(FILE *fp, MATFILE *mf, double **real_matrix, double **imag_matrix)
                       MatProgname, row, col) ;
           /*exit(4)*/return(-1) ;
         }
-#ifndef SunOS
+#ifdef Linux
         if (mf->type >= MATFILE_SPARC)
           sval = swapShort(sval) ;
 #endif
@@ -373,7 +377,7 @@ readMatFile(FILE *fp, MATFILE *mf, double **real_matrix, double **imag_matrix)
           /*exit(4)*/return(-1) ;
         }
 
-#ifndef SunOS
+#ifdef Linux
         if (mf->type >= MATFILE_SPARC)
           lval = swapLong(lval) ;
 #endif
@@ -388,7 +392,7 @@ readMatFile(FILE *fp, MATFILE *mf, double **real_matrix, double **imag_matrix)
                       MatProgname, row, col) ;
           /*exit(4)*/return(-1) ;
         }
-#ifndef SunOS
+#ifdef Linux
         if (mf->type >= MATFILE_SPARC)
           fval = (float)swapLong((long)fval) ;
 #endif
@@ -403,7 +407,7 @@ readMatFile(FILE *fp, MATFILE *mf, double **real_matrix, double **imag_matrix)
                       MatProgname, row, col) ;
           /*exit(4)*/return(-1) ;
         }
-#ifndef SunOS
+#ifdef Linux
         if (mf->type >= MATFILE_SPARC)
           dval = swapDouble(dval) ;
 #endif
@@ -434,7 +438,7 @@ readMatFile(FILE *fp, MATFILE *mf, double **real_matrix, double **imag_matrix)
       default:
         break ;
       }
-#ifndef SunOS
+#ifdef Linux
       if (mf->type >= MATFILE_SPARC)
         dval = swapDouble(dval) ;
 #endif
@@ -461,7 +465,7 @@ DiagPrintf(DIAG_WRITE, "MatReadHeader: fp=%lx, mf=%lx\n",fp,mf);
       /*exit(1) ;*/
       return(NULL);
     }
-#ifndef SunOS
+#ifdef Linux
     DiagPrintf(DIAG_WRITE, "type = %ld\n", mf->type) ;
     if (mf->type >= MATFILE_SPARC || mf->type < 0)
     {
@@ -499,7 +503,7 @@ DiagPrintf(DIAG_WRITE, "MatReadHeader: fp=%lx, mf=%lx\n",fp,mf);
     return(name) ;
 }
 
-#ifndef SunOS
+#ifdef Linux
 static void
 swapBytes(MATFILE *mf)
 {
