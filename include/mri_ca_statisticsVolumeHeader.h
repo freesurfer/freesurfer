@@ -158,7 +158,7 @@ class CStatisticsVolumeHeader
 	{
           // Ripped this stuff out of mriio,c in corRead. Its ugly but dont know how else to get MRIworldToVoxel to work. Dont want to have dummy 
           // COR-.info file lying around by itself confusing things on disk.
-          pTalairachMRI->slice_direction=MRI_CORONAL;
+          // pTalairachMRI->slice_direction=MRI_CORONAL;
 
 	  pTalairachMRI->xstart=fStartX * 1000;
 	  pTalairachMRI->xend=fEndX * 1000;
