@@ -20,7 +20,7 @@ tic;
 % targflacfile = '~/links/sg1/xval/flac/rest.flac';
 % 
 
-fast_swfflac_nbhd_sess_ver = '$Id';
+fast_swfflac_nbhd_sess_ver = '$Id: fast_swfflac_nbhd_sess.m,v 1.2 2005/01/11 19:58:55 greve Exp $';
 
 SynthSeed = round(sum(100*clock)); 
 randn('state',SynthSeed); 
