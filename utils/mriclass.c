@@ -1190,6 +1190,50 @@ MRICfeatureName(MRIC *mric, int round, int feature_number)
         Returns value:
 
         Description
+
+------------------------------------------------------*/
+int
+MRICfeatureNumberCode(int feature_number)
+{
+  int f, fno ;
+
+  /* first ninputs-1 correspond to inputs #s, rest to frames in priors */
+
+  /* find bit which corresponds to this # */
+  for (f = 0x001, fno = 0 ; f <= MAX_FEATURE ; f<<=1)
+    if (fno++ == feature_number)
+      break ;
+
+  return(f) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+
+------------------------------------------------------*/
+int
+MRICfeatureCode(MRIC *mric, int round, int feature_number)
+{
+  int f, fno ;
+
+  /* first ninputs-1 correspond to inputs #s, rest to frames in priors */
+
+  /* find bit which corresponds to this # */
+  for (f = 0x001, fno = 0 ; f <= MAX_FEATURE ; f<<=1)
+    if ((f & mric->features[round]) && (fno++ == feature_number))
+      break ;
+
+  return(f) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
           compute the statistics (means and covariances) for a
           Gaussian classifier.
 ------------------------------------------------------*/
@@ -1358,6 +1402,7 @@ mricGetClassifierInput(VECTOR *v_inputs, int no, void *parm,
       return(ERROR_NO_FILE) ;
     mri_src = MRIread(source_fname) ;
     mri_wm = MRIread(wm_fname) ;
+#if 0
 MRIvox(mri_src, 60, 63, 63) = 200 ;
 MRIvox(mri_src, 61, 63, 63) = 201 ;
 MRIvox(mri_src, 62, 63, 63) = 199 ;
@@ -1366,6 +1411,7 @@ MRIvox(mri_wm, 60, 63, 63) = 0 ;
 MRIvox(mri_wm, 61, 63, 63) = 0 ;
 MRIvox(mri_wm, 62, 63, 63) = 0 ;
 MRIvox(mri_wm, 63, 63, 63) = 0 ;
+#endif
     mri_target = MRICbuildTargetImage(mri_src, mri_target, mri_wm, 0, 0) ;
     MRIfree(&mri_wm) ;
   }
@@ -1443,10 +1489,10 @@ int
 MRICbuildScatterPlot(MRIC *mric, int class, MATRIX *m_scatter,
                  char *training_file_name)
 {
-  static int       first = 0 ;
   int              obs_no = 0, i, x, y, nbins, half_bins, bin_offset ;
   VECTOR           *v_obs ;
 #if 0
+  static int       first = 0 ;
   float            *means, *stds, mean, std ;
 #endif
   float            v, z[2], *mins, *maxs,mn,mx ;
@@ -1457,6 +1503,7 @@ MRICbuildScatterPlot(MRIC *mric, int class, MATRIX *m_scatter,
   nbins = m_scatter->rows ;
   half_bins = (nbins-1)/2 ;
   bin_offset = half_bins ;
+#if 0
   if (!first)
   {
     first = 1 ;
@@ -1466,6 +1513,7 @@ MRICbuildScatterPlot(MRIC *mric, int class, MATRIX *m_scatter,
     if (Gdiag & DIAG_SHOW)
       fprintf(stderr, "done.\n") ;
   }
+#endif
 
   fp = fopen(training_file_name, "r") ;
   if (!fp)
