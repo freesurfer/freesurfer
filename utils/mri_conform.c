@@ -123,10 +123,13 @@ MRI *conform_voxels(MRI *mri)
   fovy = mri->height * mri->ysize;
   fovz = mri->depth * mri->zsize;
 
+  min_size = 1;
+  max_fov = 256.;
+/*
   max_fov = (fovx > fovy ? fovx : fovy);
   max_fov = (fovz > max_fov ? fovx : max_fov);
   min_size = max_fov / 256.0;
-
+*/
   if(mri->slices == NULL)
   {
     mri2 = MRIcopy(mri, NULL);
