@@ -136,6 +136,7 @@ MRI   *MRIrotateZ(MRI *mri_src, MRI *mri_dst, float z_angle) ;
 MRI   *MRIrotate(MRI *mri_src, MRI *mri_dst, MATRIX *mR, MATRIX *mO) ;
 MRI   *MRIscale(MRI *mri_src, MRI *mri_dst, float sx, float sy, float sz) ;
 MRI   *MRIaffine(MRI *mri_src, MRI *mri_dst, MATRIX *mA, MATRIX *mB) ;
+MRI   *MRIinverseLinearTransform(MRI *mri_src, MRI *mri_dst, MATRIX *mA) ;
 MRI   *MRIlinearTransform(MRI *mri_src, MRI *mri_dst, MATRIX *mA) ;
 MRI   *MRIinterpolate(MRI *mri_src, MRI *mri_dst) ;
 MRI   *MRIconfThresh(MRI *mri_src, MRI *mri_probs, MRI *mri_classes, 
