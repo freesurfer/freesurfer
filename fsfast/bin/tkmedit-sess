@@ -1,7 +1,7 @@
 #!/bin/csh -f
 # tkmedit-sess
 #
-set VERSION = '$Id: tkmedit-sess,v 1.3 2003/07/22 18:19:11 greve Exp $';
+set VERSION = '$Id: tkmedit-sess,v 1.4 2003/08/21 23:36:45 greve Exp $';
 set inputargs = ($argv);
 
 which pawd > /dev/null
@@ -53,9 +53,8 @@ set spacedir = ();
 set segmentation = ();
 set segcolor = ();
 set segopacity = .3;
-
+set mriread = "";
 set nolog = 0;
-set olddev = 0;
 
 set n = `echo $argv | grep version | wc -l` 
 if($n != 0) then
@@ -137,21 +136,6 @@ else
   if($#mapfsd == 0) set mapfsd = bold;
   set nohdr = 1;
   set nosig = 1;
-endif
-
-## Prepare the script, if need be --- not used yet ##
-if(0) then
-mkdir -p scripts
-if(! -e scripts) then
-  echo "ERROR: could not create directory scripts" |& tee -a $LF
-  exit 1;
-endif
-set scriptfile = scripts/run-tkmedit-sess
-rm -f $scriptfile
-touch $scriptfile
-echo "#\!/bin/csh -f" >> $scriptfile
-echo "cd .." >> $scriptfile
-chmod a+x $scriptfile
 endif
 
 #----------------------------------------------------#
@@ -257,9 +241,9 @@ if(! $nohdr ) then
   set tmp = `grep Nh $hdrdat`;
   @ Nh = $tmp[2];
   if($Nh != 1 && ! $nohdr) then
-    set hdroption  = (-timecourse $hdrdir/h )
+    set hdroption  = (-timecourse $hdrdir/h$mriread )
     set hdroption  = ($hdroption -timecourse-reg $hdrregfile)
-    set offsetoption = (-timecourse-offset $hdrdir/h-offset)
+    set offsetoption = (-timecourse-offset $hdrdir/h-offset$mriread)
   endif
 endif
 
@@ -268,7 +252,7 @@ if($#mapdir != 0) then
   pushd $mapdir > /dev/null
   set mapdir = `$PWDCMD`;
   popd  > /dev/null
-  set mapoption = (-overlay $mapdir/$map )
+  set mapoption = (-overlay $mapdir/$map$mriread )
   set mapoption = ($mapoption -overlay-reg $mapregfile)
 else
   set mapoption = ""
@@ -344,15 +328,7 @@ else
   set segoption = ();
 endif
 
-
-#set TKMEDIT = ~fischl/build/tkmedit/tkmedit
-if($olddev) then
-  set TKMEDIT = /space/lyon/1/fsdev/freesurfer_dev/bin/Linux/tkmedit.oldfunc
-  echo "INFO: using old dev"
-else
-  set TKMEDIT = tkmedit
-endif
-
+set TKMEDIT = tkmedit
 set cmd = ($TKMEDIT $anatoption $mapoption $hdroption $offsetoption)
 set cmd = ($cmd -fthresh $fthresh -fmid $fmid -fslope $fslope )
 set cmd = ($cmd $segoption);
@@ -595,8 +571,8 @@ while( $#argv != 0 )
       set sessanat = 1;
       breaksw
 
-    case "-olddev":
-      set olddev = 1;
+    case "-mriread":
+      set mriread = "_000.bfloat";
       breaksw
 
     case "-nohdr":
