@@ -4,8 +4,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: segonne $
-// Revision Date  : $Date: 2005/02/07 01:43:27 $
-// Revision       : $Revision: 1.328 $
+// Revision Date  : $Date: 2005/02/11 16:12:07 $
+// Revision       : $Revision: 1.329 $
 //////////////////////////////////////////////////////////////////
 #include <stdio.h>
 #include <string.h>
@@ -114,11 +114,12 @@ typedef struct
 #define MERGE_NEIGHBORING_DEFECTS 1
 /* limit the convex hull to the strict minimum set of first neighbors*/
 #define SMALL_CONVEX_HULL 1
-/* find the optimum quasi-homeomorphism */
+/* */
 #define OPTIMAL_HOMEOMORPHISM 0
-#if OPTIMAL_HOMEOMORPHISM
-int mrisApplyTopologyPreservingGradient(MRI_SURFACE *mris, double dt);
-#endif
+
+
+int mrisApplyTopologyPreservingGradient(MRI_SURFACE *mris, double dt, int which_gradient);
+
 
 
 #ifndef SQR
@@ -2564,8 +2565,13 @@ MRIScomputeNormals(MRI_SURFACE *mris)
       if (i++ > 5)
         continue ;
 
-      if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
+			if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
         fprintf(stderr, "vertex %d: degenerate normal\n", k) ;
+
+			if(mris->status == MRIS_SPHERICAL_PATCH || 
+				 mris->status == MRIS_PARAMETERIZED_SPHERE ||
+				 mris->status == MRIS_SPHERE)
+				fprintf(stderr, "vertex %d: degenerate normal\n", k) ;
 
       v->x += (float)randomNumber(-RAN, RAN) ;
       v->y += (float)randomNumber(-RAN, RAN) ;
@@ -5117,8 +5123,12 @@ MRISquickSphere(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int max_passes)
 
   TimerStart(&start) ;
 
+	
+	
+
   if (IS_QUADRANGULAR(mris))
     MRISremoveTriangleLinks(mris) ;
+
 
   use_dists = (!FZERO(parms->l_dist) || !FZERO(parms->l_nldist)) &&
     (parms->nbhd_size > mris->nsize) ;
@@ -5646,6 +5656,7 @@ MRISintegrate(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int n_averages)
     /*, scale, last_neg_area */ ;
   MHT     *mht_v_current = NULL ;
 
+
   if (Gdiag & DIAG_WRITE && parms->fp == NULL)
   {
     char fname[STRLEN] ;
@@ -5671,11 +5682,15 @@ MRISintegrate(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int n_averages)
   else
     tol = parms->tol ;
   sse_thresh = tol ;
-  if (Gdiag & DIAG_SHOW)
+	if (Gdiag & DIAG_SHOW)
     fprintf(stdout,"integrating with navgs=%d and tol=%2.3e\n",n_averages,tol);
     
+
+
   mrisProjectSurface(mris) ;
   MRIScomputeMetricProperties(mris) ;
+
+
 
 #if AVERAGE_AREAS
   MRISreadTriangleProperties(mris, mris->fname) ;
@@ -5725,6 +5740,8 @@ MRISintegrate(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int n_averages)
     if (!FZERO(parms->l_curv))
       MRIScomputeSecondFundamentalForm(mris) ;
 
+
+
     MRISclearGradient(mris) ;      /* clear old deltas */
     mrisComputeDistanceTerm(mris, parms) ;
     mrisComputeAngleAreaTerms(mris, parms) ;
@@ -5736,6 +5753,9 @@ MRISintegrate(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int n_averages)
 			mrisComputeVectorCorrelationTerm(mris, parms);
 			mrisComputePolarVectorCorrelationTerm(mris,parms);
 		}
+
+
+
 #if 0
     mrisComputeCurvatureTerm(mris, parms) ;
     mrisComputeNegTerm(mris, parms) ;
@@ -5747,6 +5767,7 @@ MRISintegrate(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int n_averages)
     mrisComputeSpringTerm(mris, parms->l_spring) ;
     mrisComputeTangentialSpringTerm(mris, parms->l_tspring) ;
     mrisComputeQuadraticCurvatureTerm(mris, parms->l_curv) ;
+
     switch (parms->integration_type)
     {
     case INTEGRATE_LM_SEARCH:
@@ -7168,8 +7189,29 @@ MRISmomentumTimeStep(MRI_SURFACE *mris, float momentum, float dt, float tol,
     mris->dg = delta_t * mris->gamma + momentum * mris->dg ;
     MRISrotate(mris, mris, mris->da, mris->db, mris->dg) ;
   }
-  else for (vno = 0 ; vno < mris->nvertices ; vno++)
-  {
+  else if(mris->status == MRIS_SPHERICAL_PATCH){
+		for (vno = 0 ; vno < mris->nvertices ; vno++){
+			v = &mris->vertices[vno] ;
+			if (v->ripflag)
+				continue ;
+			if (vno == Gdiag_no)
+				DiagBreak() ;
+			v->odx = delta_t * v->dx + momentum*v->odx ;
+			v->ody = delta_t * v->dy + momentum*v->ody ;
+			v->odz = delta_t * v->dz + momentum*v->odz ;
+			mag = 
+				sqrt(v->odx*v->odx + 
+						 v->ody*v->ody +
+						 v->odz*v->odz) ;
+			if (mag > MAX_MOMENTUM_MM) /* don't let step get too big */
+			{
+				mag = MAX_MOMENTUM_MM / mag ;
+				v->odx *= mag ; v->ody *= mag ; v->odz *= mag ;
+			}
+		}
+		mrisApplyTopologyPreservingGradient(mris,0,1);
+	}else for (vno = 0 ; vno < mris->nvertices ; vno++)
+	{
     v = &mris->vertices[vno] ;
     if (v->ripflag)
       continue ;
@@ -7205,8 +7247,9 @@ MRISmomentumTimeStep(MRI_SURFACE *mris, float momentum, float dt, float tol,
     v->y += v->ody ;
     v->z += v->odz ;
   }
+	if(mris->status != MRIS_SPHERICAL_PATCH)
+		mrisProjectSurface(mris) ;
 
-  mrisProjectSurface(mris) ;
   return(delta_t) ;
 }
 
@@ -7247,7 +7290,9 @@ mrisLineMinimize(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
     fp = fopen(fname, "w") ;
   }
 
+
   min_sse = starting_sse = MRIScomputeSSE(mris, parms) ;
+
 
   /* compute the magnitude of the gradient, and the max delta */
   max_delta = grad = mean_delta = 0.0f ;
@@ -7290,6 +7335,7 @@ mrisLineMinimize(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
   }
   min_dt = MIN_MM / mean_delta ;
 
+
   /* write out some data on supposed quadratic form */
   if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
   {
@@ -7322,10 +7368,14 @@ mrisLineMinimize(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
   min_delta = 0.0f ; /* to get rid of compiler warning */
   for (delta_t = min_dt ; delta_t < max_dt ; delta_t *= 10.0)
   {
+	
+
     MRISapplyGradient(mris, delta_t) ;
     mrisProjectSurface(mris) ;
     MRIScomputeMetricProperties(mris) ;
     sse = MRIScomputeSSE(mris, parms) ;
+		
+
     if (sse <= min_sse)   /* new minimum found */
     {
       min_sse = sse ;
@@ -7345,6 +7395,7 @@ mrisLineMinimize(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
     min_sse = MRIScomputeSSE(mris, parms) ;
     MRISrestoreOldPositions(mris) ;
   }
+
 
   delta_t = min_delta ;
 
@@ -7400,6 +7451,7 @@ mrisLineMinimize(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
     MatrixFree(&mX) ; MatrixFree(&mP) ; VectorFree(&vY) ;
     MatrixFree(&m_xT) ; MatrixFree(&m_xTx) ; MatrixFree(&m_xTx_inv) ;
     MatrixFree(&m_xTy) ;
+
     
     dt_in[N] = 0 ;
     sse_out[N++] = starting_sse ;
@@ -7440,14 +7492,14 @@ mrisLineMinimize(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
       mini = i ;
     }
   }
+
+
   if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
     fprintf(stdout, "min %d (%2.3f)\n", mini, dt_in[mini]) ;
-#if OPTIMAL_HOMEOMORPHISM
-	if(parms->flags & IPFLAG_PRESERVE_TOPOLOGY)
-		mrisApplyTopologyPreservingGradient(mris,dt_in[mini]);
-	else
-#endif		
-	if(parms->flags & IPFLAG_PRESERVE_SPHERICAL_POSITIVE_AREA)
+
+	if(mris->status==MRIS_SPHERICAL_PATCH && parms->flags & IPFLAG_PRESERVE_TOPOLOGY_CONVEXHULL)
+		mrisApplyTopologyPreservingGradient(mris,dt_in[mini],0);
+	else if(parms->flags & IPFLAG_PRESERVE_SPHERICAL_POSITIVE_AREA)
 		mrisApplyGradientPositiveAreaPreserving(mris, dt_in[mini]) ;
 	else if (parms->flags & IPFLAG_MAXIMIZE_SPHERICAL_POSITIVE_AREA)
 		mrisApplyGradientPositiveAreaMaximizing(mris, dt_in[mini]) ;
@@ -11385,10 +11437,18 @@ MRISinflateToSphere(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
 
 /* project onto the sphere of radius DEFAULT_RADIUS */
 static void sphericalProjection(float xs, float ys , float zs, float *xd,float *yd,float *zd){
-	float dist,lambda;
-
-	dist=sqrt(SQR(xs)+SQR(ys)+SQR(zs));
+	double dist,lambda;
 	
+	dist=sqrt(SQR(xs)+SQR(ys)+SQR(zs));
+	lambda=DEFAULT_RADIUS/dist;
+
+	/* making sure things are stable : double projection */
+	*xd = xs * lambda;
+	*yd = ys * lambda;
+	*zd = zs * lambda;
+
+	xs = *xd ; ys = *yd; zs = *zd;
+	dist=sqrt(SQR(xs)+SQR(ys)+SQR(zs));
 	lambda=DEFAULT_RADIUS/dist;
 	
 	*xd = xs * lambda;
@@ -11399,11 +11459,32 @@ static void sphericalProjection(float xs, float ys , float zs, float *xd,float *
 static int mrisSphericalProjection(MRIS *mris){
 	int n;
 	VERTEX *v;
-	fprintf(stderr,"spherical projection\n");
+	//	fprintf(stderr,"spherical projection\n");
 	for ( n = 0 ; n < mris->nvertices ; n++){
 		v=&mris->vertices[n];
 		if(v->ripflag) continue;
+
+		/*
+		if(n == 88 ) fprintf(stderr,"bf sp: vertex %d (%f,%f,%f)\n",n,v->x,v->y,v->z);
+		if(n == 89 ) fprintf(stderr,"bf sp: vertex %d (%f,%f,%f)\n",n,v->x,v->y,v->z);
+		if(n == 209 ) fprintf(stderr,"bf sp: nvertex %d (%f,%f,%f)\n",n,v->x,v->y,v->z);
+		*/
+
 		sphericalProjection(v->x,v->y,v->z,&v->x,&v->y,&v->z);
+		v->cx = v->x; v->cy = v->y ; v->cz = v->z;
+
+		/*
+		if(n == 88 ) fprintf(stderr,"af sp: vertex %d (%f,%f,%f)\n",n,v->x,v->y,v->z);
+		if(n == 89 ) fprintf(stderr,"af sp: vertex %d (%f,%f,%f)\n",n,v->x,v->y,v->z);
+		if(n == 209 ) fprintf(stderr,"af sp: nvertex %d (%f,%f,%f)\n",n,v->x,v->y,v->z);
+
+		sphericalProjection(v->x,v->y,v->z,&v->x,&v->y,&v->z);
+
+		if(n == 88 ) fprintf(stderr,"af 2 sp: vertex %d (%f,%f,%f)\n",n,v->x,v->y,v->z);
+		if(n == 89 ) fprintf(stderr,"af 2 sp: vertex %d (%f,%f,%f)\n",n,v->x,v->y,v->z);
+		if(n == 209 ) fprintf(stderr,"af 2 sp: nvertex %d (%f,%f,%f)\n",n,v->x,v->y,v->z);
+		*/
+
 	}
 	return NO_ERROR;
 }
@@ -11505,9 +11586,6 @@ int mrisApplyGradientPositiveAreaPreserving(MRI_SURFACE *mris, double dt)
 			}
 		}
 		
-		/* apply gradient */
-		//	if(step!=0) fprintf(stderr,"%d",step);
-		//if(step!=0) step=5;
 		eps=epsilon[step];
 		sphericalProjection(x+eps*dx,y+eps*dy,z+eps*dz,&v->x,&v->y,&v->z);
 	}
@@ -11758,6 +11836,8 @@ MRISrestoreOldPositions(MRI_SURFACE *mris)
       continue ;
     v->x = v->ox ; v->y = v->oy ; v->z = v->oz ;
   }
+
+
   return(NO_ERROR) ;
 #endif
 }
@@ -14844,6 +14924,7 @@ mrisOrientSurface(MRI_SURFACE *mris)
   case MRIS_PARAMETERIZED_SPHERE:
   case MRIS_SPHERE:
   case MRIS_ELLIPSOID:
+	case MRIS_SPHERICAL_PATCH:
     MRISupdateEllipsoidSurface(mris) ;
     break ;
   case MRIS_PLANE:
@@ -14884,6 +14965,8 @@ mrisLogStatus(MRI_SURFACE *mris,INTEGRATION_PARMS *parms,FILE *fp, float dt)
   sse /= (float)mrisValidVertices(mris) ;
   sse = sqrt(sse) ;
 #endif
+
+	if(mris->status==MRIS_SPHERICAL_PATCH) return NO_ERROR;
 
 	if (FZERO(parms->l_corr) && FZERO(parms->l_pcorr) && ((parms->flags & IP_USE_MULTIFRAMES) == 0 ))
     fprintf(fp, "%3.3d: dt: %2.2f, sse: %2.1f (%2.3f, %2.1f, %2.3f), "
@@ -15353,6 +15436,40 @@ MRISrestoreVertexPositions(MRI_SURFACE *mris, int which)
       break ;
     }
   }
+	if(mris->status == MRIS_SPHERICAL_PATCH){
+		for (vno = 0 ; vno < nvertices ; vno++)
+		{
+			v = &mris->vertices[vno] ;
+			if (v->ripflag)
+				continue ;
+			switch (which)
+			{
+			case WHITE_VERTICES:
+				v->cx = v->whitex ; v->cy = v->whitey ; v->cz = v->whitez ;
+				break ;
+			case PIAL_VERTICES:
+				v->cx = v->pialx ; v->cy = v->pialy ; v->cz = v->pialz ;
+				break ;
+			case INFLATED_VERTICES:
+				v->cx = v->infx ; v->cy = v->infy ; v->cz = v->infz ;
+				break ;
+			case FLATTENED_VERTICES:
+				v->cx = v->fx ; v->cy = v->fy ; v->cz = v->fz ;
+      break ;
+			case CANONICAL_VERTICES:
+				v->cx = v->cx ; v->cy = v->cy ; v->cz = v->cz ;
+				break ;
+			case ORIGINAL_VERTICES:
+				v->cx = v->origx ; v->cy = v->origy ; v->cz = v->origz ;
+				break ;
+			default:
+			case TMP_VERTICES:
+				v->cx = v->tx ; v->cy = v->ty ; v->cz = v->tz ;
+				break ;
+    }
+		
+		}
+	}
   mrisComputeSurfaceDimensions(mris) ;
   return(NO_ERROR) ;
 }
@@ -27288,6 +27405,7 @@ mrisFindAllOverlappingFaces(MRI_SURFACE *mris, MHT *mht,int fno, int *flist)
     f1 = &mris->faces[flist[i]] ;
     f1->ripflag = 0 ;
   }
+
   return(total_found) ;
 }
 /*-----------------------------------------------------
@@ -27496,6 +27614,13 @@ typedef struct{
   int *nused;
   float *vertex_fitness;
 }RANDOM_PATCH, RP ;
+
+/* structure which encodes the information for the optimal mapping */
+typedef struct{
+	MRIS *mris;
+	int *vertex_trans;
+	int *face_trans;
+} OPTIMAL_DEFECT_MAPPING  ;
 
 // -------------------- Declaration of Maccros ------- ---------------------- //
 
@@ -27708,9 +27833,8 @@ static int    mrisComputeRandomRetessellation(MRI_SURFACE *mris, MRI_SURFACE *mr
 					       HISTOGRAM *h_grad, 
 					       MRI *mri_gray_white,
 					       HISTOGRAM *h_dot, TOPOLOGY_PARMS *parms) ;
-#if OPTIMAL_HOMEOMORPHISM
-static int mrisFindOptimalDefectMapping(MRIS *mris, DEFECT *defect);
-#endif
+static OPTIMAL_DEFECT_MAPPING* mrisFindOptimalDefectMapping(MRIS *mris, DEFECT *defect);
+
 #if 0
 //old functions
 static int mrisComputeDefectVertexNormal(MRI_SURFACE *mris, int vno, 
@@ -31112,11 +31236,16 @@ int MRIScenterSphere(MRI_SURFACE *mris)
     vertex->z=cz+scale*(vertex->z-z);
   }
  
-	//scaling onto sphere with the exact right radius 
+	//scaling onto sphere with the exact right radius DEFAULT_RADIUS
 	for (n = 0 ; n < mris->nvertices ; n++){
     vertex = &mris->vertices[n] ;
 		R2=SQR(vertex->x)+SQR(vertex->y)+SQR(vertex->z);
-		scale=radius/sqrt(R2);
+		scale=DEFAULT_RADIUS/sqrt(R2);
+		vertex->x *= scale;
+		vertex->y *= scale;
+		vertex->z *= scale;
+		R2=SQR(vertex->x)+SQR(vertex->y)+SQR(vertex->z);
+		scale=DEFAULT_RADIUS/sqrt(R2);
 		vertex->x *= scale;
 		vertex->y *= scale;
 		vertex->z *= scale;
@@ -31143,7 +31272,6 @@ int MRIScenterSphere(MRI_SURFACE *mris)
 	(check mrisFindOptimalDefectMapping)
 
   ------------------------------------------------------*/
-#if OPTIMAL_HOMEOMORPHISM
 
 #define VERTEX_INTERIOR 1
 #define VERTEX_BORDER 2
@@ -31175,28 +31303,40 @@ static float computeAngleSign(MRIS *mris, int v,int v2, int v3){
 typedef struct{
 	EDGE *inside_edges,*border_edges;
 	int n_inside_edges,n_border_edges;
-} EDGE_LIST_INFO, E_L_I;
+} EDGE_LIST_INFO;
 
-int mrisApplyTopologyPreservingGradient(MRI_SURFACE *mris, double dt)
+#define DEBUG_PRESERVING_GRADIENT 0
+#if DEBUG_PRESERVING_GRADIENT 
+/* for debugging purposes */
+static int ver1=-1,ver2=-1,ver3=-1,ver4=-1;
+#endif
+
+int mrisApplyTopologyPreservingGradient(MRI_SURFACE *mris, double dt,int which_gradient)
 {
   int     vno, nvertices , n , m ;
   VERTEX  *v , *vn ;//,*vm;
 	EDGE e1,*e2;
 	FACE *face;
-
-	float x,y,z,dx,dy,dz;
+#if DEBUG_PRESERVING_GRADIENT 
+	EDGE e3,e4;
+#endif
+	double x,y,z,dx,dy,dz;
 	float orig_area,area;
-	//	float angle,orig_angle;
-	//	int v1,v2,v3;
+	int v1,v2,v3;
 
+#if 1
 	int last_step = 5;
-	float epsilon[6]={1.0,0.8,0.6,0.4,0.2,0.0};	
+	double epsilon[6]={1.0,0.8,0.6,0.4,0.2,0.0};	 
+#else
+	int last_step = 2;
+	double epsilon[3]={1.0,0.5,0.0}; 	
+#endif
 	int step ;
 
-	int intersect,invert,ninside,nborder;
+	int intersect,ninside,nborder;
 	EDGE *inside,*border;
 
-	E_L_I* eli=(E_L_I*)mris->vp;
+	EDGE_LIST_INFO* eli=(EDGE_LIST_INFO*)mris->vp;
 	ninside=eli->n_inside_edges;
 	inside=eli->inside_edges;
 	nborder=eli->n_border_edges;
@@ -31205,6 +31345,14 @@ int mrisApplyTopologyPreservingGradient(MRI_SURFACE *mris, double dt)
 	nvertices = mris->nvertices ;
   MRISstoreCurrentPositions(mris) ;
 
+	/* just making sure */
+	for (vno = 0 ; vno < nvertices ; vno++)
+	{
+		v = &mris->vertices[vno] ;
+		if (v->ripflag) continue ;
+		v->cx=v->x;v->cy=v->y;v->cz=v->z;
+	}
+		
 	for (vno = 0 ; vno < nvertices ; vno++)
 	{
 		v = &mris->vertices[vno] ;
@@ -31212,42 +31360,117 @@ int mrisApplyTopologyPreservingGradient(MRI_SURFACE *mris, double dt)
 		
 		if (!finite(v->x) || !finite(v->y) || !finite(v->z))
 			ErrorPrintf(ERROR_BADPARM, "vertex %d position is not finite!\n",vno) ;
-		if (!finite(v->dx) || !finite(v->dy) || !finite(v->dz))
+		
+		x = v->x;   y = v->y;   z = v->z; 
+
+		if(which_gradient){
+			if (!finite(v->odx) || !finite(v->ody) || !finite(v->odz))
 			ErrorPrintf(ERROR_BADPARM, "vertex %d position is not finite!\n",vno) ;
 
-		dx = dt*v->dx; dy = dt*v->dy; dz = dt*v->dz;
-		x = v->x;   y = v->y;   z = v->z; 
-		
-		if(vno ==7 )
-			fprintf(stderr,"vertex %d (%f,%f,%f)=(%f,%f,%f)\n",vno,x,y,z);
+			dx = v->odx; dy = v->ody; dz = v->odz;
 
+		}else{
+			if (!finite(v->dx) || !finite(v->dy) || !finite(v->dz))
+			ErrorPrintf(ERROR_BADPARM, "vertex %d position is not finite!\n",vno) ;
+
+			dx = dt*v->dx; dy = dt*v->dy; dz = dt*v->dz;
+		}
+
+		
+#if DEBUG_PRESERVING_GRADIENT 
+		if(vno == ver1 || vno == ver2 || vno == ver3 || vno == ver4){
+			fprintf(stderr,"\nbf %d : %f %f %f - %f %f %f  ",vno,v->x,v->y,v->z,v->cx,v->cy,v->cz);
+			
+	 		/* test */
+			e3.vno1=ver1;e3.vno2=ver2;e4.vno1=ver3;e4.vno2=ver4;
+			if(edgesIntersect(mris, &e3, &e4)){
+				fprintf(stderr,"\nXXX intersection %d !\n",vno);
+			}
+			/* test */
+			e3.vno1=ver1;e3.vno2=ver2;e4.vno2=ver3;e4.vno1=ver4;
+			if(edgesIntersect(mris, &e3, &e4)){
+				fprintf(stderr,"YYY intersection %d !\n",vno);
+			}
+			/* test */
+			e3.vno2=ver1;e3.vno1=ver2;e4.vno2=ver3;e4.vno1=ver4;
+			if(edgesIntersect(mris, &e3, &e4)){
+				fprintf(stderr,"ZZZ intersection %d !\n",vno);
+			}
+			/* test */
+			e3.vno2=ver1;e3.vno1=ver2;e4.vno1=ver3;e4.vno2=ver4;
+			if(edgesIntersect(mris, &e3, &e4)){
+				fprintf(stderr,"UUU intersection %d !\n",vno);
+			}
+			/* test */
+			e4.vno1=ver1;e4.vno2=ver2;e3.vno1=ver3;e3.vno2=ver4;
+			if(edgesIntersect(mris, &e3, &e4)){
+				fprintf(stderr,"AAA intersection %d !\n",vno);
+			}
+			/* test */
+			e4.vno1=ver1;e4.vno2=ver2;e3.vno2=ver3;e3.vno1=ver4;
+			if(edgesIntersect(mris, &e3, &e4)){
+				fprintf(stderr,"BBB intersection %d !\n",vno);
+			}
+			/* test */
+			e4.vno2=ver1;e4.vno1=ver2;e3.vno2=ver3;e3.vno1=ver4;
+			if(edgesIntersect(mris, &e3, &e4)){
+				fprintf(stderr,"CCC intersection %d !\n",vno);
+			}
+			/* test */
+			e4.vno2=ver1;e4.vno1=ver2;e3.vno1=ver3;e3.vno2=ver4;
+			if(edgesIntersect(mris, &e3, &e4)){
+				fprintf(stderr,"DDD intersection %d !\n",vno);
+			}
+		}
+#endif
+		
 		switch(v->flags){
 		case VERTEX_CHULL: 
 			step = 0 ;
 			/* preserve triangle area */
 			for ( n = 0 ; n < v->num && step < last_step ; n++){
 				sphericalProjection(x,y,z,&v->x,&v->y,&v->z);
+				v->cx=v->x; v->cy=v->y;v->cz=v->z;
 				orig_area = computeArea(mris,v->f[n],(int)v->n[n]);
 				if(orig_area <= 0) {
-					fprintf(stderr,"negative area : this should not happen!\n");
-					fprintf(stderr,"face %d at vertex %d (%f,%f,%f)=(%f,%f,%f)\n",v->f[n],n,x,y,z,v->x,v->y,v->z);
+					fprintf(stderr,"negative area : this should never happen!\n");
+					fprintf(stderr,"face %d (%d,%d,%d) at vertex %d\n",v->f[n],mris->faces[v->f[n]].v[0],mris->faces[v->f[n]].v[1],mris->faces[v->f[n]].v[2],vno);
+					v1=mris->faces[v->f[n]].v[0];
+					v2=mris->faces[v->f[n]].v[1];
+					v3=mris->faces[v->f[n]].v[2];
+					fprintf(stderr,"cur: vertex %d (%f,%f,%f)\n",
+									v1,mris->vertices[v1].x,mris->vertices[v1].y
+									,mris->vertices[v1].z);
+					fprintf(stderr,"cur: vertex %d (%f,%f,%f)\n",
+									v2,mris->vertices[v2].x,mris->vertices[v2].y
+									,mris->vertices[v2].z);
+					fprintf(stderr,"cur: vertex %d (%f,%f,%f)\n",
+									v3,mris->vertices[v3].x,mris->vertices[v3].y
+									,mris->vertices[v3].z);
 					exit(-1);
 				}
 				while(step<last_step){
 					sphericalProjection(x+epsilon[step]*dx,y+epsilon[step]*dy,z+epsilon[step]*dz,&v->x,&v->y,&v->z);
+					v->cx=v->x; v->cy=v->y;v->cz=v->z;
 					area = computeArea(mris,v->f[n],(int)v->n[n]);
 					if(area > 0) break; /* we can stop here */
 					step++;
 				}
 			}
+
 			/* apply gradient */
-			if(step!=0) fprintf(stderr,"%d+",step);
+#if DEBUG_PRESERVING_GRADIENT 
+			//step=5;
+			if(step!=0 && step!=5) fprintf(stderr,"%d+",step);
 			else fprintf(stderr,".");
+#endif
 			sphericalProjection(x+epsilon[step]*dx,y+epsilon[step]*dy,z+epsilon[step]*dz,&v->x,&v->y,&v->z);
+			v->cx=v->x; v->cy=v->y;v->cz=v->z;
 			break;
+
+
 		case VERTEX_BORDER: 
 			step=0;
-			
 			/* preserve triangle area for border/chull vertices */
 			for ( n = 0 ; n < v->num && step < last_step ; n++){
 				face=&mris->faces[v->f[n]];
@@ -31255,121 +31478,230 @@ int mrisApplyTopologyPreservingGradient(MRI_SURFACE *mris, double dt)
 					 mris->vertices[face->v[1]].flags==VERTEX_INTERIOR ||
 					 mris->vertices[face->v[2]].flags==VERTEX_INTERIOR)
 					continue;
+				/* test : could be removed */
 				sphericalProjection(x,y,z,&v->x,&v->y,&v->z);
+				v->cx=v->x; v->cy=v->y;v->cz=v->z;
 				orig_area = computeArea(mris,v->f[n],(int)v->n[n]);
 				if(orig_area <= 0) {
 					fprintf(stderr,"negative area : should not happen!\n");
-					fprintf(stderr,"face %d at vertex %d (%f,%f,%f)=(%f,%f,%f)\n",v->f[n],n,x,y,z,v->x,v->y,v->z);
+					fprintf(stderr,"face %d (%d,%d,%d) at vertex %d\n",v->f[n],mris->faces[v->f[n]].v[0],mris->faces[v->f[n]].v[1],mris->faces[v->f[n]].v[2],vno);
+					v1=mris->faces[v->f[n]].v[0];
+					v2=mris->faces[v->f[n]].v[1];
+					v3=mris->faces[v->f[n]].v[2];
+					fprintf(stderr,"cur: vertex %d (%f,%f,%f)\n",
+									v1,mris->vertices[v1].x,mris->vertices[v1].y
+									,mris->vertices[v1].z);
+					fprintf(stderr,"cur: vertex %d (%f,%f,%f)\n",
+									v2,mris->vertices[v2].x,mris->vertices[v2].y
+									,mris->vertices[v2].z);
+					fprintf(stderr,"cur: vertex %d (%f,%f,%f)\n",
+									v3,mris->vertices[v3].x,mris->vertices[v3].y
+									,mris->vertices[v3].z);
 					exit(-1);
 				}
-
+				/* end of test */
 				while(step<last_step){
 					sphericalProjection(x+epsilon[step]*dx,y+epsilon[step]*dy,z+epsilon[step]*dz,&v->x,&v->y,&v->z);
+					v->cx=v->x; v->cy=v->y;v->cz=v->z;
 					area = computeArea(mris,v->f[n],(int)v->n[n]);
 					if(area > 0) break; /* we can stop here */
 					step++;
 				}
 			}
-#if 0
-			/* preserve edge-edge intersection */
-			for ( n = 0 ; n < v->num && step < last_step ; n++){
+			
+			/* check intersection/inversion with all the border edges 
+				 For EVERY time step, all edges should not intersect anything 
+				 This is because the border does not have to be convex!! 
+			*/
+			/* test : could be removed */
+			for (n = 0 ; n < v->vnum ; n++){
 				vn=&mris->vertices[v->v[n]];
-				if(vn->flags!=VERTEX_BORDER) continue;
-				e1.vno1=n;e1.vno2=v->v[n];
-				
-				/* check intersection with all the interior edges */
-				while(step<last_step){
-					intersect=0;
-					invert=0;
+#if DEBUG_PRESERVING_GRADIENT
+				//if(vno==412)
+				//fprintf(stderr,"\n%d(%d) and %d(%d)\n",vno,v->flags,v->v[n],vn->flags);
+#endif
+				if(vn->flags != VERTEX_BORDER) continue;
+				e1.vno1=vno;e1.vno2=v->v[n];
+				sphericalProjection(x,y,z,&v->x,&v->y,&v->z);
+				v->cx=v->x; v->cy=v->y;v->cz=v->z;
+				for ( m = 0 ; m < ninside ; m++){
+					e2=&inside[m];
+					/* intersection */
+					if(edgesIntersect(mris, &e1, e2)){
+						{
+							fprintf(stderr,"edge intersection : should not happen\n");
+							fprintf(stderr,"edge %d-%d with edge %d %d \n",e1.vno1,e1.vno2,e2->vno1,e2->vno2);
+							vno=e1.vno1;
+							v=&mris->vertices[vno];
+							fprintf(stderr,"%d : %f %f %f  - %f %f %f \n",vno,v->x,v->y,v->z,v->cx,v->cy,v->cz);
+							vno=e1.vno2;
+							v=&mris->vertices[vno];
+							fprintf(stderr,"%d : %f %f %f - %f %f %f \n",vno,v->x,v->y,v->z,v->cx,v->cy,v->cz);
+							vno=e2->vno1;
+							v=&mris->vertices[vno];
+							fprintf(stderr,"%d : %f %f %f - %f %f %f \n",vno,v->x,v->y,v->z,v->cx,v->cy,v->cz);
+							vno=e2->vno2;
+							v=&mris->vertices[vno];
+							fprintf(stderr,"%d : %f %f %f - %f %f %f \n",vno,v->x,v->y,v->z,v->cx,v->cy,v->cz);
+							exit(-1);
+						}
+						break;
+					}
+				}
+			}
+			/* end of test */
+			while(step < last_step){
+				intersect=0;
+				/* new coordinates */
 					sphericalProjection(x+epsilon[step]*dx,y+epsilon[step]*dy,z+epsilon[step]*dz,&v->x,&v->y,&v->z);
+					v->cx=v->x; v->cy=v->y;v->cz=v->z;
+
+				/* check for all edges */
+				for ( n = 0 ; (n < v->vnum) && (!intersect) ; n++){
+					vn=&mris->vertices[v->v[n]];
+					if(vn->flags != VERTEX_BORDER) continue;
+					e1.vno1=vno;e1.vno2=v->v[n];
+					
 					for ( m = 0 ; m < ninside ; m++){
-						e2=&inside[m];
+						e2=&inside[m]; 
 						/* intersection */
 						if(edgesIntersect(mris, &e1, e2)){
 							intersect=1;
 							break;
 						}
 					}
-					if(!intersect) break;
-					step++;	 
 				}
-			}
-#endif
-#if 0
-			/* preserve angle-angle inversion */
-			for ( n = 0 ; n < v->num && step < last_step ; n++){
-				vn=&mris->vertices[v->v[n]];
-				if(vn->flags!=VERTEX_INTERIOR) continue;
-				/* to be implemented */
-				
-				for ( m = 0 ; m < v->num ; m++){
-					vm = &mris->vertices[v->v[m]];
-					sphericalProjection(x,y,z,&v->x,&v->y,&v->z);
-					
+				if(!intersect) break;
+				step++;	 
 			}
 
-						/* check for inversion only if common vertex */
-						if(       n==e2->vno1 ||      n==e2->vno2 || 
-								v->v[n]==e2->vno1 || v->v[n]==e2->vno2){
-							if(n==e2->vno1){ 
-								v1=n; v2=v->v[n]; v3=e2->vno2;}
-							else if(n==e2->vno2){ 
-								v1=n; v2=v->v[n]; v3=e2->vno1;}
-							else if(v->v[n]==e2->vno1){ 
-								v1=v->v[n]; v2=n; v3=e2->vno2;}
-							else{ 
-								v1=v->v[n]; v2=n; v3=e2->vno1;}
-							sphericalProjection(x,y,z,&v->x,&v->y,&v->z);
-							orig_angle=computeAngleSign(mris,v1,v2,v3);
-							sphericalProjection(x+epsilon[step]*dx,y+epsilon[step]*dy,z+epsilon[step]*dz,&v->x,&v->y,&v->z);
-							angle=computeAngleSign(mris,v1,v2,v3);
-							if(angle*orig_angle<=0){
-								invert=1;
-								break;
-							}
-						}
-#endif
-					
-			if(step!=0) fprintf(stderr,"%d_",step);
-			else fprintf(stderr,":");
 			/* apply gradient */
+#if DEBUG_PRESERVING_GRADIENT
+			//step=5;
+			if(step!=0 && step!=5) fprintf(stderr,"%d_",step);
+			else fprintf(stderr,":");
+#endif
 			sphericalProjection(x+epsilon[step]*dx,y+epsilon[step]*dy,z+epsilon[step]*dz,&v->x,&v->y,&v->z);
+			v->cx=v->x; v->cy=v->y;v->cz=v->z;
 			break;
 
 		case VERTEX_INTERIOR: /* preserve edge-edge intersection and angle inversion */
 			step=0;
-			for ( n = 0 ; n < v->num && step < last_step ; n++){
+			/* check intersection/inversion with all the border edges 
+				 For EVERY time step, all edges should not intersect anything 
+				 This is because the border does not have to be convex!! 
+			*/
+			/* test : could be removed */
+			for ( n = 0 ; n < v->vnum  ; n++){
 				vn=&mris->vertices[v->v[n]];
-				e1.vno1=n;e1.vno2=v->v[n];
-				/* check intersection/inversion with all the border edges */
-				while(step<last_step){
-					intersect=0;
-					invert=0;
-					sphericalProjection(x+epsilon[step]*dx,y+epsilon[step]*dy,z+epsilon[step]*dz,&v->x,&v->y,&v->z);
+#if DEBUG_PRESERVING_GRADIENT
+				//if(vno==412)
+				//fprintf(stderr,"\n%d(%d) and %d(%d)\n",vno,v->flags,v->v[n],vn->flags);
+#endif
+				if(vn->flags != VERTEX_INTERIOR) continue;
+				e1.vno1=vno;e1.vno2=v->v[n];
+				sphericalProjection(x,y,z,&v->x,&v->y,&v->z);
+				v->cx=v->x; v->cy=v->y;v->cz=v->z;
+				for ( m = 0 ; m < nborder ; m++){
+					e2=&border[m];
+					/* intersection */
+					if(edgesIntersect(mris, &e1, e2)){
+						{
+							fprintf(stderr,"Error; edge intersection : should not happen\n");
+							fprintf(stderr,"edge %d-%d with edge %d %d \n",e1.vno1,e1.vno2,e2->vno1,e2->vno2);
+							exit(-1);
+						}
+						break;
+					}
+				}
+			}
+			/* end of test */
+			
+			while(step < last_step){
+				intersect=0;
+				/* new coordinates */
+				sphericalProjection(x+epsilon[step]*dx,y+epsilon[step]*dy,z+epsilon[step]*dz,&v->x,&v->y,&v->z);
+				v->cx=v->x; v->cy=v->y;v->cz=v->z;
+
+				/* check for all edges */
+				for ( n = 0 ; n < v->vnum && (!intersect) ; n++){
+					vn=&mris->vertices[v->v[n]];
+					if(vn->flags != VERTEX_INTERIOR) continue;
+					e1.vno1=vno;e1.vno2=v->v[n];
+					
 					for ( m = 0 ; m < nborder ; m++){
-						e2=&border[m];
+						e2=&border[m]; 
 						/* intersection */
 						if(edgesIntersect(mris, &e1, e2)){
 							intersect=1;
 							break;
 						}
 					}
-					if(!intersect) break;
-					step++;	 
 				}
+				if(!intersect) break;
+				step++;	 
 			}
-			if(step!=0) fprintf(stderr,"%d-",step);
-			else fprintf(stderr,",");
+			
 			/* apply gradient */
+#if DEBUG_PRESERVING_GRADIENT 
+			//step=5;
+			if(step!=0 && step!=5) fprintf(stderr,"%d-",step);
+			else fprintf(stderr,",");
+#endif
 			sphericalProjection(x+epsilon[step]*dx,y+epsilon[step]*dy,z+epsilon[step]*dz,&v->x,&v->y,&v->z);
+			v->cx=v->x; v->cy=v->y;v->cz=v->z;
 			break;
 		}
+#if DEBUG_PRESERVING_GRADIENT 
+		if(vno == ver1 || vno == ver2 || vno == ver3 || vno == ver4){
+			fprintf(stderr,"\naf %d : %f %f %f - %f %f %f  ",vno,v->x,v->y,v->z,v->cx,v->cy,v->cz);
+
+			/* test */
+			e4.vno1=ver1;e4.vno2=ver2;e3.vno1=ver3;e3.vno2=ver4;
+			if(edgesIntersect(mris, &e3, &e4)){
+				fprintf(stderr,"\nAAA intersection %d !\n",vno);
+			}
+			/* test */
+			e4.vno1=ver1;e4.vno2=ver2;e3.vno2=ver3;e3.vno1=ver4;
+			if(edgesIntersect(mris, &e3, &e4)){
+				fprintf(stderr,"BBB intersection %d !\n",vno);
+			}
+			/* test */
+			e4.vno2=ver1;e4.vno1=ver2;e3.vno2=ver3;e3.vno1=ver4;
+			if(edgesIntersect(mris, &e3, &e4)){
+				fprintf(stderr,"CCC intersection %d !\n",vno);
+			}
+			/* test */
+			e4.vno2=ver1;e4.vno1=ver2;e3.vno1=ver3;e3.vno2=ver4;
+			if(edgesIntersect(mris, &e3, &e4)){
+				fprintf(stderr,"DDD intersection %d !\n",vno);
+			}
+			/* test */
+			e3.vno1=ver1;e3.vno2=ver2;e4.vno1=ver3;e4.vno2=ver4;
+			if(edgesIntersect(mris, &e3, &e4)){
+				fprintf(stderr,"XXX intersection %d !\n",vno);
+			}
+			/* test */
+			e3.vno1=ver1;e3.vno2=ver2;e4.vno2=ver3;e4.vno1=ver4;
+			if(edgesIntersect(mris, &e3, &e4)){
+				fprintf(stderr,"YYY intersection %d !\n",vno);
+			}
+			/* test */
+			e3.vno2=ver1;e3.vno1=ver2;e4.vno2=ver3;e4.vno1=ver4;
+			if(edgesIntersect(mris, &e3, &e4)){
+				fprintf(stderr,"ZZZ intersection %d !\n",vno);
+			}
+			/* test */
+			e3.vno2=ver1;e3.vno1=ver2;e4.vno1=ver3;e4.vno2=ver4;
+			if(edgesIntersect(mris, &e3, &e4)){
+				fprintf(stderr,"UUU intersection %d !\n",vno);
+			}
+		}
+#endif
 	}
-  
+	//	fprintf(stderr,"\n\n\n");
 	return(NO_ERROR) ;
 }
-
-#endif
 
 
 
@@ -31692,7 +32024,9 @@ MRIScorrectTopology(MRI_SURFACE *mris, MRI_SURFACE *mris_corrected, MRI *mri, MR
 #if 0
   float              max_len ;
 #endif
-    
+
+	OPTIMAL_DEFECT_MAPPING *o_d_m;
+
 	fprintf(stdout,"\nCorrection of the Topology\n");
 
 #if MATRIX_ALLOCATION
@@ -31705,7 +32039,11 @@ MRIScorrectTopology(MRI_SURFACE *mris, MRI_SURFACE *mris_corrected, MRI *mri, MR
   MRIScenterSphere(mris);
   /* saving into CANONICAL_VERTICES */
   MRISsaveVertexPositions(mris, CANONICAL_VERTICES) ;
-  /* for now on, should avoid reprojecting vertices onto the sphere */
+  /* XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+		 for now on, should avoid reprojecting vertices onto the sphere 
+		 and even more recentering the canonical sphere
+		 XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+	*/
 
   /*  mrisCheckSurface(mris) ;*/
   fdl = MRISmarkAmbiguousVertices(mris, MARK_AMBIGUOUS) ;
@@ -31750,11 +32088,11 @@ MRIScorrectTopology(MRI_SURFACE *mris, MRI_SURFACE *mris_corrected, MRI *mri, MR
 #endif
 
   mht = MHTfillTable(mris, NULL) ;
+
   for (i = 0 ; i < dl->ndefects ; i++)
   {
     defect = &dl->defects[i] ;
-    if (i == 47)
-      DiagBreak() ;
+		defect->defect_number=i;
 
 #if 0
     if (Gdiag & DIAG_SHOW)
@@ -31762,13 +32100,62 @@ MRIScorrectTopology(MRI_SURFACE *mris, MRI_SURFACE *mris_corrected, MRI *mri, MR
               i, defect->area) ;
 #endif
 
-		// To be updated
+		/* Remove close vertices only - keep negative area */
     mrisMarkRetainedPartOfDefect(mris, defect, fdl, AREA_THRESHOLD,
                                  MARK_RETAIN, MARK_DISCARD, mht , parms->keep) ;
-
-		/* the convex hull is now constituted of the first neighbors only */
+		/* The convex hull is now constituted of the first neighbors only */
     mrisFindDefectConvexHull(mris, defect) ;
-  }
+	}
+
+
+#if 0
+	for (i = 0 ; i < dl->ndefects ; i++)
+  {
+    defect = &dl->defects[i] ;
+		{
+			int m,p,q,vn1;
+			EDGE e1,e2;
+			VERTEX *vm,*vp,*vq;
+			
+			mrisMarkDefectBorder(mris,defect,1);
+			/* check intersecting edges */
+			for ( n = 0 ; n < defect->nborder ; n++){
+				vno=defect->border[n];
+				v=&mris->vertices[vno];
+
+				e1.vno1=vno;
+
+				for(m=0 ; m < v->vnum ; m++){
+					vm=&mris->vertices[v->v[m]];
+					if(vm->marked==0) continue;
+					
+					e1.vno2=v->v[m];
+					
+					for (p = 0 ; p < defect->nvertices ; p++){
+						vn1=defect->vertices[p];
+						vp=&mris->vertices[vn1];
+						e2.vno1=vn1;
+						
+						for(q=0 ; q < vp->vnum ; q++){
+							
+							vq=&mris->vertices[vp->v[q]];
+							if(vq->marked) continue;
+							e2.vno2=vp->v[q];
+
+							if(edgesIntersect(mris,&e1,&e2)){
+								fprintf(stderr,"defect %d : edge (%d,%d) intersect edge (%d,%d)\n",
+												defect->defect_number,e1.vno1,e1.vno2,e2.vno1,e2.vno2);
+								
+							}
+						}
+					}
+				}
+			}
+			mrisMarkDefectBorder(mris,defect,0);
+		}
+	}
+#endif
+  
 	
   for (i = 0 ; i < dl->ndefects ; i++)
   {
@@ -31843,7 +32230,7 @@ MRIScorrectTopology(MRI_SURFACE *mris, MRI_SURFACE *mris_corrected, MRI *mri, MR
      using the spherical space for topology (i.e. edge intersection),
      and the original space for geometry (i.e. edge length).
   */
-  MRISrestoreVertexPositions(mris, TMP_VERTICES) ;  /* bring inflated back */
+  MRISrestoreVertexPositions(mris, TMP_VERTICES) ; 
 
 #if 0
   MRIScopyValuesToCurvature(mris) ; 
@@ -32006,7 +32393,7 @@ MRIScorrectTopology(MRI_SURFACE *mris, MRI_SURFACE *mris_corrected, MRI *mri, MR
     vdst->curv = v->curv ;  vdst->curvbak = v->curvbak ; vdst->stat = v->stat ;
     vdst->mean = v->mean ; vdst->mean_imag = v->mean_imag ; vdst->std_error = v->std_error;
     vdst->H = v->H ; vdst->K = v->K ; vdst->k1 = v->k1 ; vdst->k2 = v->k2 ; 
-		vdst->border=0; //TO BE CHECKED
+		vdst->border=0; 
     vertex_trans[vno] = mris_corrected->nvertices++ ;
   }
   /* now add all the retained vertices in the defects */
@@ -32093,7 +32480,7 @@ MRIScorrectTopology(MRI_SURFACE *mris, MRI_SURFACE *mris_corrected, MRI *mri, MR
       continue ;
     vdst = &mris_corrected->vertices[vertex_trans[vno]] ;
     
-    /* count # of good trangles attached to this vertex */
+    /* count # of good triangles attached to this vertex */
     for (vdst->num = n = 0 ; n < v->num ; n++)
       if (triangleMarked(mris, v->f[n]) == 0)
         vdst->num++ ;
@@ -32105,6 +32492,7 @@ MRIScorrectTopology(MRI_SURFACE *mris, MRI_SURFACE *mris_corrected, MRI *mri, MR
         continue ;
       vdst->n[i] = v->n[n] ; vdst->f[i] = face_trans[v->f[n]] ; i++ ;
     }
+
     /* count # of valid neighbors */
     for (n = vdst->vnum = 0 ; n < v->vnum ; n++)
       if (mris->vertices[v->v[n]].marked == 0)
@@ -32138,10 +32526,9 @@ MRIScorrectTopology(MRI_SURFACE *mris, MRI_SURFACE *mris_corrected, MRI *mri, MR
 	
   mrisMarkAllDefects(mris, dl, 0) ;
   for (i = 0 ; i < dl->ndefects ; i++){	
-#if OPTIMAL_HOMEOMORPHISM	
-		if(i<63) continue;
-#endif
- 
+
+		//		if(i!=63) continue;
+
 		defect = &dl->defects[i] ;
     if (i == Gdiag_no)
       DiagBreak() ;
@@ -32153,14 +32540,46 @@ MRIScorrectTopology(MRI_SURFACE *mris, MRI_SURFACE *mris_corrected, MRI *mri, MR
     mrisMarkAllDefects(mris, dl, 1) ;
     mrisComputeGrayWhiteBorderDistributions(mris, mri, defect, h_white,h_gray, h_border, h_grad) ;
     mrisMarkAllDefects(mris, dl, 0) ;
+		
 
-#if OPTIMAL_HOMEOMORPHISM	
-		if(i==63)
-			mrisFindOptimalDefectMapping(mris , defect);
-#endif
-		// main part of the routine: retessellation of the defect
-    mrisTessellateDefect(mris, mris_corrected, defect, vertex_trans, mri,
+		if(OPTIMAL_HOMEOMORPHISM){	
+			o_d_m=mrisFindOptimalDefectMapping(mris, defect);
+			/* use new coordinates */
+			for( n = 0 ; n < defect->nchull ; n++){
+				v=&o_d_m->mris->vertices[o_d_m->vertex_trans[defect->chull[n]]];
+				vdst=&mris_corrected->vertices[vertex_trans[defect->chull[n]]];
+				vdst->cx=v->cx;vdst->cy=v->cy;vdst->cz=v->cz;
+			}
+			for( n = 0 ; n < defect->nvertices ; n++){
+				v=&o_d_m->mris->vertices[o_d_m->vertex_trans[defect->vertices[n]]];
+				vdst=&mris_corrected->vertices[vertex_trans[defect->vertices[n]]];
+				vdst->cx=v->cx;vdst->cy=v->cy;vdst->cz=v->cz;
+			}
+			// main part of the routine: retessellation of the defect
+			mrisTessellateDefect(mris, mris_corrected, defect, vertex_trans, mri,
 												 h_k1,h_k2,mri_k1_k2,h_white,h_gray, h_border, h_grad, mri_gray_white, h_dot, parms) ;
+			
+			/* set back old coordinates for next defect */
+			/* use new coordinates */
+			for( n = 0 ; n < defect->nchull ; n++){
+				v=&mris->vertices[defect->chull[n]];
+				vdst=&mris_corrected->vertices[vertex_trans[defect->chull[n]]];
+				vdst->cx=v->cx;vdst->cy=v->cy;vdst->cz=v->cz;
+			}
+			for( n = 0 ; n < defect->nvertices ; n++){
+				v=&mris->vertices[defect->vertices[n]];
+				vdst=&mris_corrected->vertices[vertex_trans[defect->vertices[n]]];
+				vdst->cx=v->cx;vdst->cy=v->cy;vdst->cz=v->cz;
+			}
+			MRISfree(&o_d_m->mris);
+			free(o_d_m->vertex_trans);
+			free(o_d_m->face_trans);
+			free(o_d_m);
+		}else{
+			// main part of the routine: retessellation of the defect
+			mrisTessellateDefect(mris, mris_corrected, defect, vertex_trans, mri,
+													 h_k1,h_k2,mri_k1_k2,h_white,h_gray, h_border, h_grad, mri_gray_white, h_dot, parms) ;
+		}
 
 /* compute Euler number of surface */
 		if(parms->search_mode!=GREEDY_SEARCH){
@@ -32176,8 +32595,10 @@ MRIScorrectTopology(MRI_SURFACE *mris, MRI_SURFACE *mris_corrected, MRI *mri, MR
 			ne/=2;
 			fprintf(stdout,"After retessellation of defect %d, we have euler=%d (%d,%d,%d)\n\n",i,nv+nf-ne,nv,ne,nf);
 		}
+		exit(-1);
   }
 	
+
 	HISTOfree(&h_white) ; 
 	HISTOfree(&h_gray) ;
 	HISTOfree(&h_border) ; 
@@ -32427,16 +32848,21 @@ MRISmarkAmbiguousVertices(MRI_SURFACE *mris, int mark)
   MRISclearCurvature(mris) ;
   mrisMarkBadEdgeVertices(mris, mark) ;
 
-  /* should not reproject vertices on to sphere */
+  /* 
+		 should not reproject vertices on to sphere 
+		 should not recenter the canonical sphere !
+	*/
 #if 0  
   r = MRISaverageRadius(mris) ;
   MRISscaleBrain(mris, mris, 100.0/r) ;
 #endif
+
   mht = MHTfillTable(mris, NULL) ;
 
   area_scale = mris->orig_area / mris->total_area ;
-  //if (Gdiag & DIAG_SHOW)  //FLO
-    fprintf(stdout, "marking ambiguous vertices...\n") ;
+  //if (Gdiag & DIAG_SHOW)  
+	fprintf(stdout, "marking ambiguous vertices...\n") ;
+
   for (nmarked = fno = 0 ; fno < mris->nfaces ; fno++)
   {
     if (Gdiag & DIAG_SHOW && !(fno % 25000) && fno)
@@ -32447,6 +32873,8 @@ MRISmarkAmbiguousVertices(MRI_SURFACE *mris, int mark)
       DiagBreak() ;
     if (f->ripflag)
       continue ;
+
+		/* to be updated : only edge intersection so far !! */
     nfaces = mrisFindAllOverlappingFaces(mris, mht, fno, flist) ;
 
     /* make sure fno is in list, and add it if it isn't (it should be) */
@@ -32588,6 +33016,7 @@ MRISsegmentDefects(MRI_SURFACE *mris, int mark_ambiguous, int mark_segmented)
       continue ;
     if (dl->ndefects == Gdiag_no)
       DiagBreak() ;
+
     mrisSegmentDefect(mris, vno, &dl->defects[dl->ndefects++], 
                       mark_ambiguous, mark_segmented) ;
 #if 0
@@ -35445,14 +35874,6 @@ mrisComputeDefectQuadraticCurvatureEnergy(MRI_SURFACE *mris, DEFECT *defect, int
 #endif
 
 
-#if OPTIMAL_HOMEOMORPHISM
-
-typedef struct{
-	MRIS *mris;
-	int *vertex_trans;
-	int *face_trans;
-} OptimalDefectMap , OMP ;
-
 static int writeOverlap(MRIS *mris,int nclusters){
 	int n,m,found;
 	float diameter,dist,curv;
@@ -35550,17 +35971,19 @@ static int generateMovie(MRIS *mris_src){
 }
 #endif
 
-static int mrisFindOptimalDefectMapping(MRIS *mris_src , DEFECT *defect){
+
+static OPTIMAL_DEFECT_MAPPING* mrisFindOptimalDefectMapping(MRIS *mris_src , DEFECT *defect){
 	int nvertices , nfaces ,nchull;
 	int *vertex_trans,*face_trans,*vertex_list;
 	int n,m,i ;
 	int old_status;
 	FACE *face,*face_dst;
-	VERTEX *v_dst,*v_src,*v,*vn;
+	VERTEX *v_dst,*v_src,*v,*vm;
 	MRIS *mris_dst;
 	INTEGRATION_PARMS *parms; /* for the integration routine */
-	E_L_I e_l_i;
-	
+	EDGE_LIST_INFO e_l_i;
+	OPTIMAL_DEFECT_MAPPING *o_d_m;
+
 	fprintf(stderr,"optimal defect mapping -nsize = %d -> ",mris_src->nsize );
 	MRISsetNeighborhoodSize(mris_src, 1) ; // XXX to be checked
 	fprintf(stderr,"%d \n",mris_src->nsize );
@@ -35592,6 +36015,7 @@ static int mrisFindOptimalDefectMapping(MRIS *mris_src , DEFECT *defect){
 	}
 
 	fprintf(stderr,"marking vertices\n");
+	
 
 	/* mark vertices */
 	mrisMarkDefectConvexHull(mris_src, defect, 1) ;
@@ -35618,6 +36042,7 @@ static int mrisFindOptimalDefectMapping(MRIS *mris_src , DEFECT *defect){
 
 	fprintf(stderr,"copying faces - nsize = %d\n",mris_dst->nsize);
 
+
 	/* copy faces */
 	for(n = 0 ; n < mris_src->nfaces ; n++){
 		if(face_trans[n] < 0) continue;
@@ -35635,7 +36060,11 @@ static int mrisFindOptimalDefectMapping(MRIS *mris_src , DEFECT *defect){
 		v_dst=&mris_dst->vertices[n];
 		v_src=&mris_src->vertices[vertex_list[n]];
 
-    v_dst->x  = v_src->x ;  v_dst->y  = v_src->y ;  v_dst->z  = v_src->z ; 
+		/* making sure the vertices are in canonical space */
+    v_dst->x  = v_src->cx ;  v_dst->y  = v_src->cy ;  v_dst->z  = v_src->cz ; 
+		
+		/* making sure the vertices are in canonical space */
+    v_dst->x  = v_src->x ;  v_dst->y  = v_src->y ;  v_dst->z  = v_src->z ;
     v_dst->tx = v_src->tx ; v_dst->ty = v_src->ty ; v_dst->tz = v_src->tz ; 
     v_dst->nx = v_src->nx ; v_dst->ny = v_src->ny ; v_dst->nz = v_src->nz ; 
     v_dst->cx = v_src->cx ; v_dst->cy = v_src->cy ; v_dst->cz = v_src->cz ; 
@@ -35703,7 +36132,7 @@ static int mrisFindOptimalDefectMapping(MRIS *mris_src , DEFECT *defect){
 			v_dst->f = (int*)calloc(v_dst->num, sizeof(int)) ;
 			v_dst->n = (uchar *)calloc(v_dst->num, sizeof(uchar)) ;
 			for (m = 0 ; m < v_src->num ; m++){
-				v_dst->n[m] = v_src->n[m] ; v_dst->f[m] = face_trans[v_src->f[m]] ; i++ ;
+				v_dst->n[m] = v_src->n[m] ; v_dst->f[m] = face_trans[v_src->f[m]] ;
 			}
 		}
 	}
@@ -35712,6 +36141,8 @@ static int mrisFindOptimalDefectMapping(MRIS *mris_src , DEFECT *defect){
 	mrisMarkDefectConvexHull(mris_src, defect, 0) ;
   mrisMarkDefect(mris_src, defect, 0) ;
 
+	MRISwrite(mris_dst,"test0");
+	MRISwrite(mris_dst,"test0.asc");
 	MRISwrite(mris_dst,"./test0.asc");
 	MRISrestoreVertexPositions(mris_dst,CANONICAL_VERTICES);
 
@@ -35725,10 +36156,10 @@ static int mrisFindOptimalDefectMapping(MRIS *mris_src , DEFECT *defect){
 		if(v->flags==VERTEX_CHULL) continue;
 		for( m = 0 ; m < v->vnum ; m++){
 			if(v->v[m]<=n) continue; 
-			vn = &mris_dst->vertices[v->v[m]];
-			if(v->flags==VERTEX_BORDER && vn->flags==VERTEX_BORDER)
+			vm = &mris_dst->vertices[v->v[m]];
+			if(v->flags==VERTEX_BORDER && vm->flags==VERTEX_BORDER)
 				e_l_i.n_border_edges++;
-			if(v->flags==VERTEX_INTERIOR && vn->flags==VERTEX_INTERIOR)
+			if(v->flags==VERTEX_INTERIOR && vm->flags==VERTEX_INTERIOR)
 				e_l_i.n_inside_edges++;
 		}
 	}
@@ -35741,13 +36172,13 @@ static int mrisFindOptimalDefectMapping(MRIS *mris_src , DEFECT *defect){
 		if(v->flags==VERTEX_CHULL) continue;
 		for( m = 0 ; m < v->vnum ; m++){
 			if(v->v[m]<=n) continue; 
-			vn = &mris_dst->vertices[v->v[m]];
-			if(v->flags==VERTEX_BORDER && vn->flags==VERTEX_BORDER){
+			vm = &mris_dst->vertices[v->v[m]];
+			if(v->flags==VERTEX_BORDER && vm->flags==VERTEX_BORDER){
 				e_l_i.border_edges[e_l_i.n_border_edges].vno1=n;
 				e_l_i.border_edges[e_l_i.n_border_edges].vno2=v->v[m];
 				e_l_i.n_border_edges++;
 			}
-			if(v->flags==VERTEX_INTERIOR && vn->flags==VERTEX_INTERIOR){
+			if(v->flags==VERTEX_INTERIOR && vm->flags==VERTEX_INTERIOR){
 				e_l_i.inside_edges[e_l_i.n_inside_edges].vno1=n;
 				e_l_i.inside_edges[e_l_i.n_inside_edges].vno2=v->v[m];
 				e_l_i.n_inside_edges++;
@@ -35788,10 +36219,10 @@ static int mrisFindOptimalDefectMapping(MRIS *mris_src , DEFECT *defect){
 	parms->l_nlarea = 1.0 ;
 	parms->tol = 1e-1 ;
 	parms->n_averages = 32 ;
-	parms->flags |= IPFLAG_PRESERVE_TOPOLOGY ; /* preserve the topology of the triangulation */
  
 	old_status = mris_dst->status ; /* MRIS_SPHERE */
   mris_dst->status = MRIS_PATCH ;  /* so no orientating will be done */
+
 	fprintf(stderr,"restoring original vertices\n");
 	MRISsaveVertexPositions(mris_dst,TMP_VERTICES);
 	MRISrestoreVertexPositions(mris_dst, ORIGINAL_VERTICES) ;
@@ -35803,6 +36234,7 @@ static int mrisFindOptimalDefectMapping(MRIS *mris_src , DEFECT *defect){
   MRISstoreMetricProperties(mris_dst) ;
   mris_dst->status = old_status ;
 
+
 	fprintf(stderr,"restoring canonical vertices\n");
   MRISrestoreVertexPositions(mris_dst, TMP_VERTICES) ;
 	fprintf(stderr,"computing metric properties\n");
@@ -35813,15 +36245,22 @@ static int mrisFindOptimalDefectMapping(MRIS *mris_src , DEFECT *defect){
   mrisOrientSurface(mris_dst) ;
   mris_dst->orig_area = mris_dst->total_area ;
 	
-	mris_dst->status = MRIS_SPHERICAL_PATCH;
 
+#if 1 /* if 0 - no topology constraint */
+	mris_dst->status = MRIS_SPHERICAL_PATCH;
+	parms->flags |= IPFLAG_PRESERVE_TOPOLOGY_CONVEXHULL ; /* preserve the topology of the triangulation */
+#else
+	mris_dst->status = MRIS_PARAMETERIZED_SPHERE ;
+#endif
 
 	fprintf(stderr,"setting neighborhood size\n");
 	MRISsetNeighborhoodSize(mris_dst, 1) ;
 
-
 	////////////////////////////////////////////////////////////////
+	MRISwrite(mris_dst,"test1");
+	MRISwrite(mris_dst,"test1.asc");
 	MRISwrite(mris_dst,"./test1.asc");
+	MRISsaveVertexPositions(mris_dst,INFLATED_VERTICES);
 	/* curvature information for diagnostic purposes... */
 	for(n = 0 ; n < mris_dst->nvertices ; n++)
 		mris_dst->vertices[n].curv=0.0;
@@ -35843,13 +36282,140 @@ static int mrisFindOptimalDefectMapping(MRIS *mris_src , DEFECT *defect){
 	//	generateMovie(mris_dst);
 	///////////////////////////////////////////////////////////////////
 
+	
 	MRISprintTessellationStats(mris_dst, stderr) ;
 	/* integration routine */
+	mris_dst->type=MRIS_TRIANGULAR_SURFACE ;
 	MRISquickSphere(mris_dst, parms, 3) ;
+	MRISwrite(mris_dst,"test2");
+	MRISwrite(mris_dst,"test2.asc");
+	MRISwrite(mris_dst,"./test2.asc");
+	
+	fprintf(stderr,"\n\n\n");
+/* set up vertices to zero */
+	{
+		int vlist[7];
+		vlist[0]=508;
+		vlist[1]=509;
+		vlist[2]=538;
+		vlist[3]=539;
+		vlist[4]=540;
+		vlist[5]=541;
+		vlist[6]=569;
+		for(n=0;n<7;n++)
+			mris_dst->vertices[vlist[n]].ripflag=1;
+		
+		for(n=0;n<mris_dst->nfaces ; n++){
+			int test=0;
+			face=&mris_dst->faces[n];
+			for(i=0;i<7;i++){
+				for(m=0;m<3;m++)
+					if(face->v[m]==vlist[i]){
+						test=1;
+						i++;
+						break;
+					}
+				if(test==1) break;
+			}
+			if(test==1)
+				for(;i<7;i++){
+					for(m=0;m<3;m++)
+						if(face->v[m]==vlist[i]){
+							test=2;
+							i++;
+							break;
+						}
+					if(test==2) break;
+				}
+			if(test==2)
+				for(;i<7;i++){
+					for(m=0;m<3;m++)
+					if(face->v[m]==vlist[i]){
+						test=3;
+						i++;
+						break;
+					}
+					if(test==3) break;
+				}
+			if(test==3){
+				face->ripflag=1;
+				fprintf(stderr,"ripping face %d %d,%d,%d)\n",n,face->v[0],face->v[1],face->v[2]);
+			}
+		}
+	}
+	MRISrestoreVertexPositions(mris_dst,INFLATED_VERTICES);
+	MRISsaveVertexPositions(mris_dst,CANONICAL_VERTICES);
+
+	//	MRISsaveVertexPositions(mris_dst,ORIGINAL_VERTICES);
+
+	old_status = mris_dst->status ; /* MRIS_SPHERE */
+  mris_dst->status = MRIS_PATCH ;  /* so no orientating will be done */
+	fprintf(stderr,"restoring original vertices\n");
+	MRISsaveVertexPositions(mris_dst,TMP_VERTICES);
+	MRISrestoreVertexPositions(mris_dst, ORIGINAL_VERTICES) ;
+	fprintf(stderr,"computing metric properties\n");
+  MRIScomputeMetricProperties(mris_dst) ;
+	fprintf(stderr,"computing triangle properties\n");
+  MRIScomputeTriangleProperties(mris_dst) ;
+	fprintf(stderr,"storing metric properties\n");
+  MRISstoreMetricProperties(mris_dst) ;
+  mris_dst->status = old_status ;
+
+
+
+	fprintf(stderr,"restoring canonical vertices\n");
+  MRISrestoreVertexPositions(mris_dst, TMP_VERTICES) ;
+	fprintf(stderr,"computing metric properties\n");
+	MRIScomputeMetricProperties(mris_dst) ;
+	fprintf(stderr,"restoring triangle properties\n");
+  MRIScomputeTriangleProperties(mris_dst) ;
+	fprintf(stderr,"orienting surface\n");
+  mrisOrientSurface(mris_dst) ;
+  mris_dst->orig_area = mris_dst->total_area ;
 	
 
+	MRISquickSphere(mris_dst, parms, 3) ;
+
+	/* unrip defect */
+	{
+		for(i=0;i<10;i++){
+			float x,y,z,nb;
+			for(n=0;n<mris_dst->nvertices ; n++){
+				v=&mris_dst->vertices[n];
+				if(!v->ripflag) continue;
+				x=y=z=nb=0.0;
+				for( m=0 ; m < v->vnum ; m++){
+					
+					vm=&mris_dst->vertices[v->v[m]];
+					if(vm->ripflag) continue;
+					x += vm->x;
+					y += vm->y;
+					z += vm->z;
+					nb += 1.0f;
+				}
+				if(nb){
+					x /= nb;
+					y /= nb;
+					z /= nb;
+					v->x =x;
+					v->y = y;
+					v->z = z;
+				}
+			}
+		}
+		for(n=0;n<mris_dst->nvertices ; n++)
+			mris_dst->vertices[n].ripflag=0;
+
+		for(n=0;n<mris_dst->nfaces ; n++)
+			mris_dst->faces[n].ripflag=0;
+	}
+
+	MRISwrite(mris_dst,"test3");
+	MRISwrite(mris_dst,"test3.asc");
+	MRISwrite(mris_dst,"./test3.asc");
+
 	////////////////////////////////////////////////////////////////////
-	MRISwrite(mris_dst,"./test2.asc");
+	//	MRISwrite(mris_dst,"test2");
 	/* curvature information for diagnostic purposes... */
 	for(n = 0 ; n < mris_dst->nvertices ; n++)
 		mris_dst->vertices[n].curv=0.0;
@@ -35875,11 +36441,13 @@ static int mrisFindOptimalDefectMapping(MRIS *mris_src , DEFECT *defect){
 	free(e_l_i.inside_edges);
 	free(vertex_list);
 
-	exit(-1);
-
-	return NO_ERROR;
+	o_d_m=(OPTIMAL_DEFECT_MAPPING*)calloc(1,sizeof(OPTIMAL_DEFECT_MAPPING));
+	o_d_m->mris=mris_dst;
+	o_d_m->vertex_trans=vertex_trans;
+	o_d_m->face_trans=face_trans;
+	
+	return o_d_m;
 }
-#endif
 
 
 static int
@@ -36662,15 +37230,13 @@ mrisComputeOptimalRetessellation(MRI_SURFACE *mris, MRI_SURFACE *mris_corrected,
     return(NO_ERROR) ;
   }
 
-#if OPTIMAL_HOMEOMORPHISM	
-	if(defect->defect_number!=63){
+#if 1	
 		dno++ ;  /* for debugging */
     //mrisRetessellateDefect(mris, mris_corrected, defect, vertex_trans, et, nedges, NULL, NULL) ;
 		
 		tessellatePatch(mri,mris, mris_corrected, defect,vertex_trans, et, nedges, NULL, NULL,parms);
 
     return(NO_ERROR) ;
-	}
 #endif
   
   dno++ ;  /* for debugging */
