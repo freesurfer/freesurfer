@@ -3,11 +3,10 @@
 #  Copyright (c) 1996 Martin Sereno and Anders Dale
 ############################################################################
 set program tkregister
-set ffont -b&h-lucidatypewriter-medium-r-normal-sans-12-120-75-75-m-70-iso8859-1
-set ffontb -b&h-lucidatypewriter-bold-r-normal-sans-12-120-75-75-m-70-iso8859-1
-set ffontbb -*-helvetica-bold-*-*-*-15-*-*-*-*-*-*-*
-set sfont -b&h-lucidatypewriter-medium-*-*-*-10-*-*-*-*-*-*-*
 
+### fonts from wrappers.tcl
+
+### slider sizing
 set sclenx 140
 set scleny 120
 
@@ -229,10 +228,16 @@ proc showvisible { } {
   }
 }
 
+proc findsendto { } {
+  global fulltksurfer
+  set fulltksurfer ""
+  catch { set fulltksurfer [lrange [exec ps -af | grep /tksurfer] 7 7] }
+}
+
 proc testclose { } {
   global editedmatrix env registerdat
   if {$editedmatrix} {
-    set resp [okclose $env(PWD)/$registerdat]
+    set resp [okclose $registerdat]
     if {$resp > 1} {write_reg}
     if {$resp > 0} {exit}
   } else {
@@ -240,9 +245,90 @@ proc testclose { } {
   }
 }
 
+proc macro { } {  ;# restore old default
+  global tkregisterinterface
+  pack .head -before .view
+  pack .view.main -before .view.cor -fill x
+  pack .view.vals.left -before .view.vals.right -side left
+  pack .mid -before .xform -side left
+  pack .mid.buff.top -before .mid.buff.mid
+  pack forget ".mid.buff.bot.aSAVE REG" .xform.tran.bot.la.ext
+  pack forget .view.vals.bus
+  .mid.buff.bot.aCOMPARE.bu config -pady 4 -padx 11
+  pack .mid.buff.bot.aALIGN
+  pack .mid.rgb -before .mid.buff
+  pack .mid.scal -before .mid.rgb
+  pack .xform.bot -after .xform.rot
+  pack .xform.rot.bot -after .xform.rot.top
+  set tkregisterinterface macro
+}
+
+proc mini { } {
+  global tkregisterinterface ffontbb
+  pack .view.vals.left -before .view.vals.right -side left
+  pack .mid -before .xform -side left
+  pack .mid.buff.top -before .mid.buff.mid
+  pack .mid.scal -before .mid.buff -fill x
+  pack .xform.tran.bot.la.ext
+  pack forget .head .view.main .mid.rgb .xform.bot .mid.buff.top .xform.rot.bot
+  pack forget .mid.buff.bot.aALIGN
+  pack forget .view.vals.bus
+  .mid.buff.bot.aCOMPARE.bu config -pady 3 -padx 4
+  pack ".mid.buff.bot.aSAVE REG" -after .mid.buff.bot.aCOMPARE
+  set tkregisterinterface mini
+}
+
+proc micro { } {
+  global tkregisterinterface ffontbb
+  pack forget .head .view.main .mid .xform.bot .mid.buff.top .xform.rot.bot
+  pack forget .mid.scal .view.vals.left .xform.tran.bot.la.ext
+  .mid.buff.bot.aCOMPARE.bu config -pady 3 -padx 4
+  pack .view.vals.bus
+  pack .xform.rot.bot -after .xform.rot.top
+  set tkregisterinterface micro
+}
+
+proc mkalternates { } {
+  global ffontbb ffontb sfont
+  ### for mini
+  set f .mid.buff.bot
+  buttons $f "SAVE REG" {testreplace $registerdat write_reg} row 3 3
+  "$f.aSAVE REG.bu" config -font $ffontbb
+  pack forget ".mid.buff.bot.aSAVE REG"
+  set f [frame .xform.tran.bot.la.ext]
+  pack $f -side top
+  frame $f.sp -height 55
+  pack $f.sp -side top
+  edlabval $f "zrot" 0 n 5 5 
+  $f.zrot.e config -textvariable zrot -font $sfont
+  $f.zrot.la config -font $sfont
+  ### for micro
+  set f [frame .view.vals.bus]
+  pack $f -side left
+  buttons $f "SAVE REG" {testreplace $registerdat write_reg} col 2 6
+  "$f.aSAVE REG.bu" config -font $ffontb
+  buttons $f "COMPARE" { } col 3 12
+  $f.aCOMPARE.bu config -font $ffontbb
+  bind $f.aCOMPARE.bu <ButtonPress-1> { comparebutton; set blinkflag TRUE }
+  bind $f.aCOMPARE.bu <ButtonRelease-1> \
+    { set blinkflag FALSE; set blinkdelay $initdelay; showvisible }
+  bind $f.aCOMPARE.bu <ButtonRelease-3> { helpwin compare }
+  pack forget .view.vals.bus
+}
+
+proc putaboveglwin { glwinx glwiny } {
+  set geo [wm geometry .]
+  set beg [expr [string first x $geo] + 1]
+  set end [expr [string first + $geo] - 1]
+  set intysize [string range $geo $beg $end]
+  set intx $glwinx
+  set inty [expr $glwiny - $intysize]
+  wm geometry . +${intx}+${inty}
+}
+
 ############################################################################
 wm title . "tkregister ($subject--[file tail [exec pwd]])"
-wm geometry . 504x350+117+0
+wm geometry . +608+133    ;# +122+762 504x350+122+762
 wm protocol . WM_DELETE_WINDOW testclose
 wm resizable . 0 0
 
@@ -345,7 +431,7 @@ buttons $f READENV { source $env(MRI_DIR)/lib/tcl/readenv.tcl; redraw } col 0 5
 ## main save panel
 # save,read reg
 set f .view.main.reg
-buttons $f "SAVE REG" { testreplace $env(PWD)/$registerdat write_reg } row 4 5
+buttons $f "SAVE REG" { testreplace $registerdat write_reg } row 4 5
 "$f.aSAVE REG.bu" config -font $ffontbb
 buttons $f "READ REG" { read_reg; \
      set overlay_mode $target; set updateflag TRUE; \
@@ -353,8 +439,8 @@ buttons $f "READ REG" { read_reg; \
 # goto, save point
 set f .view.main.pnt
 #buttons $f "SEND PNT" { write_point } row 2 5
-buttons $f "SEND PNT" { write_point; \
-                catch { send tksurfer select_orig_vertex_coordinates } } row 2 5
+buttons $f "SEND PNT" { write_point; findsendto; \
+         catch { send $fulltksurfer select_orig_vertex_coordinates } } row 2 5
 buttons $f "GOTO PNT" { \
                 goto_point; set updateflag TRUE; unzoomcoords $plane } row 2 5
 
@@ -418,12 +504,12 @@ trace variable newjc w zoomcoords
 ### misc entries
 # left
 set f .view.vals.left
-edlabval $f "fsquash" 0 n 8 4
-$f.fsquash.e config -textvariable fsquash
-bind $f.fsquash.e <Return> { set_scale }
-edlabval $f "fthresh" 0 n 8 4
-$f.fthresh.e config -textvariable fthresh
-bind $f.fthresh.e <Return> { set_scale }
+edlabval $f "contrast" 0 n 9 4
+$f.contrast.e config -textvariable fsquash
+bind $f.contrast.e <Return> { set_scale }
+edlabval $f "midpoint" 0 n 9 4
+$f.midpoint.e config -textvariable fthresh
+bind $f.midpoint.e <Return> { set_scale }
 # right
 set f .view.vals.right
 edlabval $f "fmov" 0 n 5 4
@@ -548,7 +634,7 @@ bind $f.z <ButtonRelease-1> { rotepi $zrot; resettransform; \
                               set overlay_mode $moveable; set updateflag TRUE }
 # entry
 set f .xform.rot.bot
-edlabval $f "zrot" 0 n 5 4
+edlabval $f "zrot" 0 n 5 5
 $f.zrot.e config -textvariable zrot -font $sfont
 $f.zrot.la config -font $sfont
 bind $f.zrot.e <Return> { rotepi $zrot; resettransform; \
@@ -565,6 +651,9 @@ buttons $f "BLUR" { if { [exec uname] == "IRIX"} { blur 2.0 } } row
 set f .xform.bot.b
 edlabval $f "blinktime" 0 n 12 3
 $f.blinktime.e config -textvariable blinktime
+
+### for mini,micro
+mkalternates
 
 ### update slice num's, etc
 unzoomcoords $cor
@@ -634,6 +723,11 @@ bind . <Alt-KP_Up>    {scaleepi 102 y;   set overlay_mode $moveable; \
                                                            set updateflag TRUE}
 bind . <Alt-KP_Down>  {scaleepi 98.04 y; set overlay_mode $moveable; \
                                                            set updateflag TRUE}
+# interface size
+bind . <Control-F1> { micro }
+bind . <Control-F2> { mini }
+bind . <Control-F3> { macro }
+
 ############################################################################
 ### right-click help
 bind .mid.buff.bot.aALIGN.bu <ButtonRelease-3> { helpwin align }
@@ -644,4 +738,14 @@ bind .head.title.scan.e <ButtonRelease-3> { \
 
 ############################################################################
 puts "tkregister.tcl: startup done"
+
+fixcolors
+if [info exists env(tkregisterinterface)] {
+  if {$env(tkregisterinterface) == "macro"} { macro }
+  if {$env(tkregisterinterface) == "mini"}  { mini }
+} else {
+  mini
+  puts "tkregister.tcl: default mini interface (to change: macro,mini,micro)"
+  puts "tkregister.tcl: or: setenv tkregisterinterface {macro,mini,micro}"
+}
 
