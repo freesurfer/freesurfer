@@ -8,7 +8,7 @@ function [F, Fsig, ces, edof] = fast_fratio(beta,X,rvar,C,Sn,dof2max)
 %
 % See also: fast_glmfit.m
 %
-% $Id: fast_fratio.m,v 1.5 2003/05/02 03:43:47 greve Exp $
+% $Id: fast_fratio.m,v 1.6 2003/08/02 00:55:01 greve Exp $
 
 if(nargin < 4 | nargin > 6)
   fprintf('[F, Fsig, ces, edof] = fast_fratio(beta,X,rvar,C,<Sn>,<dof2max>)\n');
@@ -68,7 +68,10 @@ if(~isempty(indz))
     Fsig0 = ones(1,nv);
     Fsig0(indnz) = Fsig;
     Fsig = Fsig0;
-    clear Fsig0;
+    ces0 = zeros(J,nv);
+    ces0(:,indnz) = ces;
+    ces = ces0;
+    clear Fsig0 ces0;
   end
 end
 
