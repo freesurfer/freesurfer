@@ -29,7 +29,7 @@
    The binary may also want to exit if there are no other options to
    handle, i.e.
 
-    if (1 == argc)
+    if (nargs && argc - nargs == 1)
       exit (0);
 */
 
