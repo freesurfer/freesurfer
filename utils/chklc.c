@@ -60,19 +60,19 @@ void chklc(void)
     printf("-----------------------------------------------------\n");
     printf("FreeSurfer license file %s not found.\n",lfilename);
     printf("  If you are outside the NMR-Martinos center,\n"
-	   "  go to http://surfer.nmr.mgh.harvard.edu to \n" 
-	   "  to get a valid license file (it's free).\n");
+	   "    go to http://surfer.nmr.mgh.harvard.edu to \n" 
+	   "    get a valid license file (it's free).\n");
     printf("  If you are inside the NMR-Martinos center,\n"
-	   "  make sure to source the standard environment.\n");
+	   "    make sure to source the standard environment.\n");
     fprintf(stderr,"-----------------------------------------------------\n");
     fprintf(stderr,"FreeSurfer license file %s not found.\n",lfilename);
     fprintf(stderr,
 	    "  If you are outside the NMR-Martinos center,\n"
-	    "  go to http://surfer.nmr.mgh.harvard.edu to \n" 
-	    "  to get a valid license file (it's free).\n");
+	    "    go to http://surfer.nmr.mgh.harvard.edu to \n" 
+	    "    get a valid license file (it's free).\n");
     fprintf(stderr,
 	    "  If you are inside the NMR-Martinos center,\n"
-	    "  make sure to source the standard environment.\n");
+	    "    make sure to source the standard environment.\n");
     exit(-1);
   }
 
