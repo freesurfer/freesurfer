@@ -87,6 +87,8 @@ MATRIX *MatrixFinalCovariance(MATRIX *mInputs, MATRIX *mCov, VECTOR *mNobs);
 /* misc. I/O functions */
 int    MatrixAsciiWriteInto(FILE *fp, MATRIX *m) ;
 MATRIX *MatrixAsciiReadFrom(FILE *fp, MATRIX *m) ;
+int    MatrixAsciiWrite(char *fname, MATRIX *m) ;
+MATRIX *MatrixAsciiRead(char *fname, MATRIX *m) ;
 
 #define VectorAlloc(n, type)       MatrixAlloc(n, 1, type)
 #define RVectorAlloc(n, type)      MatrixAlloc(1, n, type)
@@ -105,6 +107,7 @@ MATRIX *MatrixAsciiReadFrom(FILE *fp, MATRIX *m) ;
 #define VECTOR3_LOAD(v,x,y,z)    (VECTOR_ELT(v,1)=x, VECTOR_ELT(v,2)=y, \
                                   VECTOR_ELT(v,3)=z) ;
 #define VECTOR_LOAD   VECTOR3_LOAD
+#define V3_LOAD       VECTOR3_LOAD
 
 
 float  Vector3Angle(VECTOR *v1, VECTOR *v2) ;
@@ -122,6 +125,9 @@ VECTOR *VectorNormalize(VECTOR *vin, VECTOR *vout) ;
 
 
 /* these are macro versions that work on 3-d vectors */
+#define RV3_X(v)     (RVECTOR_ELT(v,1))
+#define RV3_Y(v)     (RVECTOR_ELT(v,2))
+#define RV3_Z(v)     (RVECTOR_ELT(v,3))
 #define V3_X(v)      (VECTOR_ELT(v,1))
 #define V3_Y(v)      (VECTOR_ELT(v,2))
 #define V3_Z(v)      (VECTOR_ELT(v,3))
