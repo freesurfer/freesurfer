@@ -9,9 +9,9 @@
 */
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: ebeth $
-// Revision Date  : $Date: 2003/07/08 19:29:01 $
-// Revision       : $Revision: 1.233 $
-char *MRI_C_VERSION = "$Revision: 1.233 $";
+// Revision Date  : $Date: 2003/07/08 20:52:48 $
+// Revision       : $Revision: 1.234 $
+char *MRI_C_VERSION = "$Revision: 1.234 $";
 
 /*-----------------------------------------------------
                     INCLUDE FILES
@@ -7221,16 +7221,17 @@ MRIcubicSampleVolume(MRI *mri, Real x, Real y, Real z, Real *pval)
   width = mri->width ; height = mri->height ; depth = mri->depth ; 
 
   /*E* I suppose these are for "ambiguously out of bounds" - within .5vox */
-  /*E* I think this needs an edit - x is Real, whatever that is, so
-       any x>= width-1 should be set to width-1.
+
+  /*E* I think this needs an edit - x is Real, whatever that is, not
+       int, so any x>= width-1 should be set to width-1.
     if (x >= width)    x = width - 1.0 ;
     if (y >= height)   y = height - 1.0 ;
     if (z >= depth)    z = depth - 1.0 ;
   */
 
-  if (x >= width-1.0)    x = width - 1.0 ;
-  if (y >= height-1.0)   y = height - 1.0 ;
-  if (z >= depth-1.0)    z = depth - 1.0 ;
+  if (x > width-1.0)    x = width - 1.0 ;
+  if (y > height-1.0)   y = height - 1.0 ;
+  if (z > depth-1.0)    z = depth - 1.0 ;
   if (x < 0.0)       x = 0.0 ;
   if (y < 0.0)       y = 0.0 ;
   if (z < 0.0)       z = 0.0 ;
@@ -7240,11 +7241,11 @@ MRIcubicSampleVolume(MRI *mri, Real x, Real y, Real z, Real *pval)
     xx = x - ix_low;
   else
     {
-      ix_low--; /*E* Now that's not really "low" anymore, is it =/ */
+      ix_low--;
       xx = 1;
     }
   iy_low = floor((double)y);
-  if ((iy_low = floor((double)y)) < width-1)
+  if ((iy_low = floor((double)y)) < height-1)
     yy = y - iy_low;
   else
     {
@@ -7252,7 +7253,7 @@ MRIcubicSampleVolume(MRI *mri, Real x, Real y, Real z, Real *pval)
       yy = 1;
     }
   iz_low = floor((double)z);
-  if ((iz_low = floor((double)z)) < width-1)
+  if ((iz_low = floor((double)z)) < depth-1)
     zz = z - iz_low;
   else
     {
@@ -7261,18 +7262,7 @@ MRIcubicSampleVolume(MRI *mri, Real x, Real y, Real z, Real *pval)
     }
     
   /*E* build a little box of the local points plus boundary stuff -
-    for this rev accept zeroes for border expansion */
-
-  /*E* in next rev,  incorporate the vv bounds in the for limits */
-
-  /*E*
-  for(iz=0; iz<4; iz++)
-    {
-      for(iy=0; iy<4; iy++)
-	{
-	  for(ix=0; ix<4; ix++)
-	    {
-  */
+    for this rev accept zeroes for the border expansion */
 
   for(iz= MAX(0,1-iz_low); iz<MIN(4,depth+1-iz_low); iz++)
     {
@@ -7329,7 +7319,7 @@ MRIcubicSampleVolume(MRI *mri, Real x, Real y, Real z, Real *pval)
 	}
     }
 
-  *pval = val/8.; // <<3?
+  *pval = val/8.;
 
   return(NO_ERROR);
 }
