@@ -11,6 +11,7 @@
 #define MRI_INT     1
 #define MRI_LONG    2
 #define MRI_FLOAT   3
+#define MRI_SHORT   4
 
 typedef struct
 {
@@ -53,6 +54,7 @@ typedef struct
   Transform         *linear_transform ;
   Transform         *inverse_linear_transform ;
   int           free_transform ;   /* are we responsible for freeing it? */
+  int           nframes ;          /* # of concatenated images */
 } MRI_IMAGE, MRI ;
 
 /* I/O functions */
@@ -158,6 +160,7 @@ IMAGE *MRItoImageView(MRI *mri, IMAGE *I, int slice, int view) ;
 
 
 
+#define MRISvox(mri,x,y,z)  (((short *)mri->slices[z][y])[x])
 #define MRIFvox(mri,x,y,z)  (((float *)mri->slices[z][y])[x])
 #define MRIvox(mri,x,y,z)   (((BUFTYPE *)mri->slices[z][y])[x])
 #define MRIIvox(mri,x,y,z)  (((int *)mri->slices[z][y])[x])
