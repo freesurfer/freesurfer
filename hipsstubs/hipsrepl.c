@@ -55,6 +55,15 @@ init_header(IMAGE *I,char *onm,char *snm,int nfr,char *odt,int rw,int cl,int pfm
   case PFSHORT:
     I->sizepix = sizeof(short) ;
     break ;
+	case PFRGB:
+	case PFBGR:	I->sizepix = 3*sizeof(byte); break;
+	case PFRGBZ:
+	case PFZRGB:
+	case PFBGRZ:
+	case PFZBGR:	I->sizepix = 4*sizeof(byte); break;
+	case PFSTEREO:	I->sizepix = sizeof(byte); break;
+	case PFINTPYR:	I->sizepix = sizeof(int); break;
+	case PFFLOATPYR:I->sizepix = sizeof(float); break;
   }
   bytes *= I->sizepix ;
   I->numpix = I->rows * I->cols ;

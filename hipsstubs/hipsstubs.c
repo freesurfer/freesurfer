@@ -92,6 +92,8 @@ int h_entropycnt(void) {ErrorExit(ERROR_UNSUPPORTED, "HIPS unsupported") ; retur
 int h_entropy(void) ;
 int h_entropy(void) {ErrorExit(ERROR_UNSUPPORTED, "HIPS unsupported") ; return(-1);}
 #if 0
+unsigned char *hmalloc(unsigned long i)
+{ ErrorExit(ERROR_UNSUPPORTED, "HIPS unsupported") ; return(0) ; }
 int WinShowImage(void) ;
 int WinShowImage(void) {ErrorExit(ERROR_UNSUPPORTED, "HIPS unsupported") ; return(-1);}
 int WinSetName(void) ;
@@ -148,6 +150,4 @@ int h_applylut(void *hdi,void *hdo,int count,unsigned char *lut)
 
 
 
-unsigned char *hmalloc(unsigned long i)
-{ ErrorExit(ERROR_UNSUPPORTED, "HIPS unsupported") ; return(0) ; }
 
