@@ -202,9 +202,11 @@ MATRIX *MRIxfmCRS2XYZtkreg(MRI *mri)
   a typical application, ref is the anatomical volume and mov is the
   functional volume. The purpose of this function is to be able to use
   registration matrices computed by (or compatible with) tkregister
-  without losing the geometries native to the volumes.
+  without losing the geometries native to the volumes. If R is null,
+  it is assumed to be the identity. R: MovXYZ = R*RefXYZ. Typically,
+  Ref is the Anatomical Reference, and Mov is the functional.
 
-  See also: MRIxfmCRS2XYZtkreg, MRIxfmCRS2XYZ
+  See also: MRItkRegMtx, MRIxfmCRS2XYZtkreg, MRIxfmCRS2XYZ
   -------------------------------------------------------------------*/
 MATRIX *MRIfixTkReg(MRI *ref, MRI *mov, MATRIX *R)
 {
@@ -223,7 +225,7 @@ MATRIX *MRIfixTkReg(MRI *ref, MRI *mov, MATRIX *R)
   invTref = MatrixInverse(Tref,NULL);
 
   D = MatrixMultiply(Tmov,invKmov,NULL);
-  MatrixMultiply(D,R,D);
+  if(R!=NULL) MatrixMultiply(D,R,D);
   MatrixMultiply(D,Kref,D);
   MatrixMultiply(D,invTref,D);
 
@@ -235,6 +237,43 @@ MATRIX *MRIfixTkReg(MRI *ref, MRI *mov, MATRIX *R)
   MatrixFree(&invTref);
 
   return(D);
+}
+/*----------------------------------------------------------------
+  MRItkRegMtx() - creates a tkregsiter-compatible matrix from the
+  matrix that aligns the two volumes assuming the native geometry.
+  This is the counterpart to MRIfixTkReg(). If D is null, it is
+  assumed to be the identity. R: MovXYZ = R*RefXYZ. Typically,
+  Ref is the Anatomical Reference, and Mov is the functional.
+  ---------------------------------------------------------------*/
+MATRIX *MRItkRegMtx(MRI *ref, MRI *mov, MATRIX *D)
+{
+  MATRIX *Kref, *Kmov;
+  MATRIX *Tref, *Tmov, *R;
+  MATRIX *invTmov, *invKref;
+
+  Tref = MRIxfmCRS2XYZ(ref,0);
+  Tmov = MRIxfmCRS2XYZ(mov,0);
+
+  Kref = MRIxfmCRS2XYZtkreg(ref);
+  Kmov = MRIxfmCRS2XYZtkreg(mov);
+
+  /* R = Kmov * inv(Tmov) * D * Tref *inv(Kref) */
+  invTmov = MatrixInverse(Tmov,NULL);
+  invKref = MatrixInverse(Kref,NULL);
+
+  R = MatrixMultiply(Kmov,invTmov,NULL);
+  if(D != NULL) MatrixMultiply(R,D,R);
+  MatrixMultiply(R,Tref,R);
+  MatrixMultiply(R,invKref,R);
+
+  MatrixFree(&Kref);
+  MatrixFree(&Tref);
+  MatrixFree(&Kmov);
+  MatrixFree(&Tmov);
+  MatrixFree(&invTmov);
+  MatrixFree(&invKref);
+
+  return(R);
 }
 /*-------------------------------------------------------------------
   MRIgetVoxVal() - returns voxel value as a float regardless of
@@ -268,6 +307,75 @@ int MRIsetVoxVal(MRI *mri, int c, int r, int s, int f, float voxval)
   default: return(1); break;
   }
   return(0);
+}
+
+/*------------------------------------------------------------------
+  MRIinterpCode() - returns the numeric interpolation code given the
+  name of the interpolation method.
+  -----------------------------------------------------------------*/
+int MRIinterpCode(char *InterpString)
+{
+  if(!strncasecmp(InterpString,"nearest",3)) 
+    return(SAMPLE_NEAREST);
+  if(!strncasecmp(InterpString,"trilinear",3)) 
+    return(SAMPLE_TRILINEAR);
+  if(!strncasecmp(InterpString,"sinc",3)) 
+    return(SAMPLE_SINC);
+
+  return(-1);
+}
+
+/*------------------------------------------------------------------
+  MRIinterpString() - returns the the name of the interpolation method
+  given numeric interpolation code
+  -----------------------------------------------------------------*/
+char * MRIinterpString(int InterpCode)
+{
+  switch (InterpCode)
+  {
+  case SAMPLE_NEAREST:   return("nearest"); break ;
+  case SAMPLE_TRILINEAR: return("trilinear"); break ;
+  case SAMPLE_SINC:      return("sinc"); break ;
+  }
+  return(NULL);
+}
+/*------------------------------------------------------------------
+  MRIprecisionCode() - returns the numeric code given the
+  name of the precision. This corresponds to the value of the type
+  field in the MRI structure.
+  -----------------------------------------------------------------*/
+int MRIprecisionCode(char *PrecisionString)
+{
+  if(!strcasecmp(PrecisionString,"uchar")) 
+    return(MRI_UCHAR);
+  if(!strcasecmp(PrecisionString,"short")) 
+    return(MRI_SHORT);
+  if(!strcasecmp(PrecisionString,"int")) 
+    return(MRI_INT);
+  if(!strcasecmp(PrecisionString,"long")) 
+    return(MRI_LONG);
+  if(!strcasecmp(PrecisionString,"float")) 
+    return(MRI_FLOAT);
+
+  return(-1);
+}
+
+/*------------------------------------------------------------------
+  MRIprecisionString() - returns the the name of the precision given
+  numeric precision code. The code corresponds to the value of the
+  type field in the MRI structure.
+  -----------------------------------------------------------------*/
+char * MRIprecisionString(int PrecisionCode)
+{
+  switch (PrecisionCode)
+  {
+  case MRI_UCHAR: return("uchar"); break ;
+  case MRI_SHORT: return("short"); break ;
+  case MRI_INT:   return("int"); break ;
+  case MRI_LONG:  return("long"); break ;
+  case MRI_FLOAT: return("float"); break ;
+  }
+  return(NULL);
 }
 
 /*-----------------------------------------------------
@@ -6051,13 +6159,11 @@ MRIsampleVolumeType(MRI *mri, Real x, Real y, Real z, Real *pval, int type)
   }
   return(NO_ERROR) ;
 }
-/*-----------------------------------------------------
-        Parameters:
-
-        Returns value:
-
-        Description
-------------------------------------------------------*/
+/*-------------------------------------------------------------------
+  MRIsampleVolume() - performs trilinear interpolation on a
+  single-frame volume. See MRIsampleSeqVolume() for sampling
+  multi-frame.
+  -------------------------------------------------------------------*/
 int
 MRIsampleVolume(MRI *mri, Real x, Real y, Real z, Real *pval)
 {
@@ -6074,18 +6180,12 @@ MRIsampleVolume(MRI *mri, Real x, Real y, Real z, Real *pval)
 
   width = mri->width ; height = mri->height ; depth = mri->depth ; 
 
-  if (x >= width)
-    x = width - 1.0 ;
-  if (y >= height)
-    y = height - 1.0 ;
-  if (z >= depth)
-    z = depth - 1.0 ;
-  if (x < 0.0)
-    x = 0.0 ;
-  if (y < 0.0)
-    y = 0.0 ;
-  if (z < 0.0)
-    z = 0.0 ;
+  if (x >= width)    x = width - 1.0 ;
+  if (y >= height)   y = height - 1.0 ;
+  if (z >= depth)    z = depth - 1.0 ;
+  if (x < 0.0)       x = 0.0 ;
+  if (y < 0.0)       y = 0.0 ;
+  if (z < 0.0)       z = 0.0 ;
 
   xm = MAX((int)x, 0) ;
   xp = MIN(width-1, xm+1) ;
@@ -6167,6 +6267,119 @@ MRIsampleVolume(MRI *mri, Real x, Real y, Real z, Real *pval)
   return(NO_ERROR) ;
 }
 
+/*------------------------------------------------------------------
+  MRIsampleSeqVolume() - performs trilinear interpolation on a
+  multi-frame volume. valvect is a vector of length nframes. No error
+  checking for first and last frame. The caller is able to specify
+  first frame and last frame so that all frames do not have to be
+  sampled at the same time (this can be important in time-sensative
+  applications).
+  -------------------------------------------------------------------*/
+int MRIsampleSeqVolume(MRI *mri, Real x, Real y, Real z, float *valvect,
+           int firstframe, int lastframe)
+{
+  int  OutOfBounds;
+  int  f,xm, xp, ym, yp, zm, zp, width, height, depth ;
+  Real xmd, ymd, zmd, xpd, ypd, zpd ;  /* d's are distances */
+
+  OutOfBounds = MRIindexNotInVolume(mri, x, y, z);
+  if(OutOfBounds == 1){
+    /* unambiguoulsy out of bounds */
+    for(f=firstframe; f <= lastframe; f++) valvect[f] = 0.0;
+    return(NO_ERROR) ;
+  }
+
+  width = mri->width ; height = mri->height ; depth = mri->depth ; 
+
+  if (x >= width)    x = width - 1.0 ;
+  if (y >= height)   y = height - 1.0 ;
+  if (z >= depth)    z = depth - 1.0 ;
+  if (x < 0.0)       x = 0.0 ;
+  if (y < 0.0)       y = 0.0 ;
+  if (z < 0.0)       z = 0.0 ;
+
+  xm = MAX((int)x, 0) ;
+  xp = MIN(width-1, xm+1) ;
+  ym = MAX((int)y, 0) ;
+  yp = MIN(height-1, ym+1) ;
+  zm = MAX((int)z, 0) ;
+  zp = MIN(depth-1, zm+1) ;
+
+  xmd = x - (float)xm ;
+  ymd = y - (float)ym ;
+  zmd = z - (float)zm ;
+  xpd = (1.0f - xmd) ;
+  ypd = (1.0f - ymd) ;
+  zpd = (1.0f - zmd) ;
+
+  for(f = firstframe; f <= lastframe; f++){
+    switch (mri->type) {
+    case MRI_UCHAR:
+      valvect[f] = 
+  xpd * ypd * zpd * (Real)MRIseq_vox(mri, xm, ym, zm, f) +
+  xpd * ypd * zmd * (Real)MRIseq_vox(mri, xm, ym, zp, f) +
+  xpd * ymd * zpd * (Real)MRIseq_vox(mri, xm, yp, zm, f) +
+  xpd * ymd * zmd * (Real)MRIseq_vox(mri, xm, yp, zp, f) +
+  xmd * ypd * zpd * (Real)MRIseq_vox(mri, xp, ym, zm, f) +
+  xmd * ypd * zmd * (Real)MRIseq_vox(mri, xp, ym, zp, f) +
+  xmd * ymd * zpd * (Real)MRIseq_vox(mri, xp, yp, zm, f) +
+  xmd * ymd * zmd * (Real)MRIseq_vox(mri, xp, yp, zp, f) ;
+      break ;
+    case MRI_FLOAT:
+      valvect[f] =  
+  xpd * ypd * zpd * (Real)MRIFseq_vox(mri, xm, ym, zm, f) +
+  xpd * ypd * zmd * (Real)MRIFseq_vox(mri, xm, ym, zp, f) +
+  xpd * ymd * zpd * (Real)MRIFseq_vox(mri, xm, yp, zm, f) +
+  xpd * ymd * zmd * (Real)MRIFseq_vox(mri, xm, yp, zp, f) +
+  xmd * ypd * zpd * (Real)MRIFseq_vox(mri, xp, ym, zm, f) +
+  xmd * ypd * zmd * (Real)MRIFseq_vox(mri, xp, ym, zp, f) +
+  xmd * ymd * zpd * (Real)MRIFseq_vox(mri, xp, yp, zm, f) +
+  xmd * ymd * zmd * (Real)MRIFseq_vox(mri, xp, yp, zp, f) ;
+      break ;
+    case MRI_SHORT:
+      valvect[f] =  
+  xpd * ypd * zpd * (Real)MRISseq_vox(mri, xm, ym, zm, f) +
+  xpd * ypd * zmd * (Real)MRISseq_vox(mri, xm, ym, zp, f) +
+  xpd * ymd * zpd * (Real)MRISseq_vox(mri, xm, yp, zm, f) +
+  xpd * ymd * zmd * (Real)MRISseq_vox(mri, xm, yp, zp, f) +
+  xmd * ypd * zpd * (Real)MRISseq_vox(mri, xp, ym, zm, f) +
+  xmd * ypd * zmd * (Real)MRISseq_vox(mri, xp, ym, zp, f) +
+  xmd * ymd * zpd * (Real)MRISseq_vox(mri, xp, yp, zm, f) +
+  xmd * ymd * zmd * (Real)MRISseq_vox(mri, xp, yp, zp, f) ;
+      break ;
+    case MRI_INT:
+      valvect[f] =  
+  xpd * ypd * zpd * (Real)MRIIseq_vox(mri, xm, ym, zm, f) +
+  xpd * ypd * zmd * (Real)MRIIseq_vox(mri, xm, ym, zp, f) +
+  xpd * ymd * zpd * (Real)MRIIseq_vox(mri, xm, yp, zm, f) +
+  xpd * ymd * zmd * (Real)MRIIseq_vox(mri, xm, yp, zp, f) +
+  xmd * ypd * zpd * (Real)MRIIseq_vox(mri, xp, ym, zm, f) +
+  xmd * ypd * zmd * (Real)MRIIseq_vox(mri, xp, ym, zp, f) +
+  xmd * ymd * zpd * (Real)MRIIseq_vox(mri, xp, yp, zm, f) +
+  xmd * ymd * zmd * (Real)MRIIseq_vox(mri, xp, yp, zp, f) ;
+      break ;
+    case MRI_LONG:
+      valvect[f] =  
+  xpd * ypd * zpd * (Real)MRILseq_vox(mri, xm, ym, zm, f) +
+  xpd * ypd * zmd * (Real)MRILseq_vox(mri, xm, ym, zp, f) +
+  xpd * ymd * zpd * (Real)MRILseq_vox(mri, xm, yp, zm, f) +
+  xpd * ymd * zmd * (Real)MRILseq_vox(mri, xm, yp, zp, f) +
+  xmd * ypd * zpd * (Real)MRILseq_vox(mri, xp, ym, zm, f) +
+  xmd * ypd * zmd * (Real)MRILseq_vox(mri, xp, ym, zp, f) +
+  xmd * ymd * zpd * (Real)MRILseq_vox(mri, xp, yp, zm, f) +
+  xmd * ymd * zmd * (Real)MRILseq_vox(mri, xp, yp, zp, f) ;
+      break ;
+    default:
+      ErrorReturn(ERROR_UNSUPPORTED, 
+      (ERROR_UNSUPPORTED, 
+       "MRIsampleSeqVolume: unsupported type %d", mri->type)) ;
+      break ;
+    }
+  }/* end loop over frames */
+
+  return(NO_ERROR) ;
+}
+
 /*-----------------------------------------------------
         Parameters:
 
@@ -6208,21 +6421,15 @@ MRIsincSampleVolume(MRI *mri, Real x, Real y, Real z, int hw, Real *pval)
     *pval = 0.0;
     return(NO_ERROR) ;
   }
-
+  
   xsize = mri->xsize; ysize=mri->ysize; zsize=mri->zsize;
   width = mri->width ; height = mri->height ; depth = mri->depth ; 
-  if (x >= width)
-    x = width - 1.0 ;
-  if (y >= height)
-    y = height - 1.0 ;
-  if (z >= depth)
-    z = depth - 1.0 ;
-  if (x < 0.0)
-    x = 0.0 ;
-  if (y < 0.0)
-    y = 0.0 ;
-  if (z < 0.0)
-    z = 0.0 ;
+  if (x >= width)    x = width - 1.0 ;
+  if (y >= height)   y = height - 1.0 ;
+  if (z >= depth)    z = depth - 1.0 ;
+  if (x < 0.0)       x = 0.0 ;
+  if (y < 0.0)       y = 0.0 ;
+  if (z < 0.0)       z = 0.0 ;
 
   nwidth = hw;
   ix_low = floor((double)x);
@@ -6270,14 +6477,22 @@ MRIsincSampleVolume(MRI *mri, Real x, Real y, Real z, int hw, Real *pval)
         sum_x += (coeff_x[jx_rel]/coeff_x_sum) 
     * (double)MRIvox(mri,jx1,jy1,jz1);
         break;
-      case MRI_FLOAT:
-        sum_x += (coeff_x[jx_rel]/coeff_x_sum) 
-    * (double)MRIFvox(mri,jx1,jy1,jz1);
-        break; 
       case MRI_SHORT:
         sum_x += (coeff_x[jx_rel]/coeff_x_sum) 
     * (double)MRISvox(mri,jx1,jy1,jz1);
         break;
+      case MRI_INT:
+        sum_x += (coeff_x[jx_rel]/coeff_x_sum) 
+    * (double)MRIIvox(mri,jx1,jy1,jz1);
+        break;
+      case MRI_LONG:
+        sum_x += (coeff_x[jx_rel]/coeff_x_sum) 
+    * (double)MRILvox(mri,jx1,jy1,jz1);
+        break;
+      case MRI_FLOAT:
+        sum_x += (coeff_x[jx_rel]/coeff_x_sum) 
+    * (double)MRIFvox(mri,jx1,jy1,jz1);
+        break; 
       default:
         ErrorReturn(ERROR_UNSUPPORTED, 
         (ERROR_UNSUPPORTED, 
