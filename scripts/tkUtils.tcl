@@ -1,6 +1,6 @@
 # tkUtils.tcl (tku)
 
-# $Id: tkUtils.tcl,v 1.10 2004/10/04 01:51:42 kteich Exp $
+# $Id: tkUtils.tcl,v 1.11 2004/10/15 16:19:07 kteich Exp $
 
 # tkuMakeMenu isMenuButton "Menu Name" {item...}
 # item = { command   "Item Name" command                [group_name] }
@@ -622,32 +622,35 @@ proc tkuMakeSliders { ifwTop args } {
 
 # Based on new min and max, will change -from and -to of all sliders
 # in this group and recalculate a decent resolution.
-proc tkuUpdateSlidersRange { ifwTop iMin iMax } {
+proc tkuUpdateSlidersRange { ifwTop iMin iMax {iIncrement -1} } {
 
     # See what our value range is and set a good resolution.
-    set diff [expr $iMax - $iMin]
-    if { $diff > 1000 } {
-	set newResolution 10
-    } elseif { $diff > 100 } {
-	set newResolution 1
-    } elseif { $diff > 10 } {
-	set newResolution .1
-    } elseif { $diff > 1 } {
-	set newResolution .001
-    } elseif { $diff > 0.1 } {
-	set newResolution .0001
-    } elseif { $diff > 0.01 } {
-	set newResolution .00001
-    } elseif { $diff > 0.001 } {
-	set newResolution .000001
-    } elseif { $diff > 0.0001 } {
-	set newResolution .0000001
-    } elseif { $diff > 0.00001 } {
-	set newResolution .00000001
-    } elseif { $diff > 0.000001 } {
-	set newResolution .000000001
-    } else {
-	set newResolution .0000000001
+    set newResolution $iIncrement
+    if { $newResolution == -1 } {
+	set diff [expr $iMax - $iMin]
+	if { $diff > 1000 } {
+	    set newResolution 10
+	} elseif { $diff > 100 } {
+	    set newResolution 1
+	} elseif { $diff > 10 } {
+	    set newResolution .1
+	} elseif { $diff > 1 } {
+	    set newResolution .001
+	} elseif { $diff > 0.1 } {
+	    set newResolution .0001
+	} elseif { $diff > 0.01 } {
+	    set newResolution .00001
+	} elseif { $diff > 0.001 } {
+	    set newResolution .000001
+	} elseif { $diff > 0.0001 } {
+	    set newResolution .0000001
+	} elseif { $diff > 0.00001 } {
+	    set newResolution .00000001
+	} elseif { $diff > 0.000001 } {
+	    set newResolution .000000001
+	} else {
+	    set newResolution .0000000001
+	}
     }
 
     set nSlider 0
