@@ -1779,6 +1779,53 @@ MWin_tErr MWin_GetSelectedHeadPt ( tkmMeditWindowRef   this,
   return eResult;
 }
 
+MWin_tErr MWin_GetClosestInterpSurfVoxel ( tkmMeditWindowRef this,
+					   tkm_tSurfaceType  iType,
+					   Surf_tVertexSet   iSet,
+					   xVoxelRef         iAnaIdx,
+					   xVoxelRef         oOrigAnaIdx,
+					   xVoxelRef         oInterpAnaIdx,
+					   char*             osDescription ) {
+
+  MWin_tErr          eResult      = MWin_tErr_NoErr;
+  DspA_tErr          eDispResult  = DspA_tErr_NoErr;
+
+  /* verify us. */
+  eResult = MWin_Verify ( this );
+  if ( MWin_tErr_NoErr != eResult )
+    goto error;
+  
+  /* verify the last clicked display area index. */
+  eResult = MWin_VerifyDisplayIndex ( this, this->mnLastClickedArea );
+  if ( MWin_tErr_NoErr != eResult )
+    goto error;
+  
+  /* Pass the function to the last clicked display. */
+  eDispResult = 
+    DspA_GetClosestInterpSurfVoxel( this->mapDisplays[this->mnLastClickedArea],
+				    iType, iSet, iAnaIdx, 
+				    oOrigAnaIdx, oInterpAnaIdx,
+				    osDescription);
+  if ( DspA_tErr_NoErr != eDispResult ) {
+    eResult = MWin_tErr_ErrorAccessingDisplay;
+    goto error;
+  }
+  
+  goto cleanup;
+  
+ error:
+  
+  /* print error message */
+  if ( MWin_tErr_NoErr != eResult ) {
+    DebugPrint( ("Error %d in MWin_GetClosestInterpSurfVoxel: %s\n",
+      eResult, MWin_GetErrorString(eResult) ) );
+  }
+  
+ cleanup:
+  
+  return eResult;
+}
+
 MWin_tErr MWin_AdjustSurfaceAnaIdx ( tkmMeditWindowRef   this,
              xVoxelRef           iAnaIdx ) {
 

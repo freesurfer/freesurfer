@@ -1,4 +1,3 @@
-/*test*/
 /*============================================================================
   Copyright (c) 1996 Martin Sereno and Anders Dale
   =============================================================================*/
@@ -212,12 +211,12 @@ tBoolean gEnableFileNameGuessing = TRUE;
 /* returns distance to nearest control point on the same plane. returns
    0 if there isn't one. */
 float FindNearestControlPoint ( xVoxelRef   iAnaIdx, 
-        mri_tOrientation iPlane,
-        xVoxelRef*   opCtrlPt );
+				mri_tOrientation iPlane,
+				xVoxelRef*   opCtrlPt );
 
 /* makes a copy of the ctrl pt and puts it in the ctrl pt list */
 void NewControlPoint         ( xVoxelRef iCtrlPt,
-         tBoolean  ibWriteToFile );
+			       tBoolean  ibWriteToFile );
 
 /* removes ctrl pt from the list and deletes it */
 void DeleteControlPoint         ( xVoxelRef ipCtrlPt );
@@ -2036,7 +2035,7 @@ void GotoSurfaceVertex ( Surf_tVertexSet iSurface, int inVertex ) {
   return;
 }
 
-void FindNearestSurfaceVertex ( Surf_tVertexSet iSurface ) {
+void FindNearestSurfaceVertex ( Surf_tVertexSet iSet ) {
   
   Surf_tErr eSurface = Surf_tErr_NoErr;
   MWin_tErr eWindow  = MWin_tErr_NoErr;
@@ -2057,13 +2056,13 @@ void FindNearestSurfaceVertex ( Surf_tVertexSet iSurface ) {
   
   /* get the vertex */
   eSurface = Surf_GetClosestVertexVoxel( gSurface[tkm_tSurfaceType_Main],
-           iSurface, &cursor, &anaIdx,
-           sDescription);
+					 iSet, &cursor, &anaIdx,
+					 sDescription);
   if( Surf_tErr_NoErr != eSurface ) 
     goto error;
   
   /* print the result string */
-  Surf_GetSurfaceSetName( iSurface, sSetName );
+  Surf_GetSurfaceSetName( iSet, sSetName );
   OutputPrint "Nearest %s vertex to %d, %d, %d:\n\t%s\n",
     sSetName, xVoxl_ExpandInt( &cursor ), sDescription EndOutputPrint;
   
@@ -2082,7 +2081,61 @@ void FindNearestSurfaceVertex ( Surf_tVertexSet iSurface ) {
  error:
   
   DebugPrint( ( "Error in FindNearestSurfaceVertex( %d )\n",
-    (int)iSurface ) );
+    (int)iSet ) );
+  
+ cleanup:
+  return;
+}
+
+void FindNearestInterpolatedSurfaceVertex ( Surf_tVertexSet iSet ) {
+  
+  MWin_tErr eWindow  = MWin_tErr_NoErr;
+  xVoxel    cursor;
+  xVoxel    origAnaIdx;
+  xVoxel    interpAnaIdx;
+  char      sDescription[STRLEN];
+  char      sSetName[STRLEN];
+  
+  /* get the cursor */
+  eWindow = MWin_GetCursor ( gMeditWindow, &cursor );
+  if( MWin_tErr_NoErr != eWindow )
+    goto error;
+  
+  /* first unadjust the point. */
+  eWindow = MWin_UnadjustSurfaceAnaIdx( gMeditWindow, &cursor );
+  if( MWin_tErr_NoErr != eWindow )
+    goto error;
+  
+  /* get the verteices */
+  eWindow = MWin_GetClosestInterpSurfVoxel( gMeditWindow,
+					    tkm_tSurfaceType_Main,
+					    iSet, &cursor, 
+					    &origAnaIdx, &interpAnaIdx,
+					    sDescription);
+  if( MWin_tErr_NoErr != eWindow ) 
+    goto error;
+  
+  /* print the result string */
+  Surf_GetSurfaceSetName( iSet, sSetName );
+  OutputPrint "Nearest %s vertex to %d, %d, %d:\n\t%s\n",
+    sSetName, xVoxl_ExpandInt( &cursor ), sDescription EndOutputPrint;
+  
+  /* adjust it so it aligns to the surface. */
+  eWindow = MWin_AdjustSurfaceAnaIdx( gMeditWindow, &interpAnaIdx );
+  if( MWin_tErr_NoErr != eWindow )
+    goto error;
+  
+  /* tell the window to go there. */
+  eWindow = MWin_SetCursor ( gMeditWindow, -1, &interpAnaIdx );
+  if( MWin_tErr_NoErr != eWindow )
+    goto error;
+  
+  goto cleanup;
+  
+ error:
+  
+  DebugPrint( ( "Error in FindNearestInterpolatedSurfaceVertex( %d )\n",
+		(int)iSet ) );
   
  cleanup:
   return;
@@ -3495,6 +3548,61 @@ int TclShowNearestCanonicalVertex ( ClientData inClientData,
 }
 
 
+int TclShowNearestInterpolatedMainVertex ( ClientData inClientData,
+					   Tcl_Interp* inInterp,
+					   int argc, char* argv[] ) {
+  
+  if ( argc != 1 ) {
+    Tcl_SetResult ( inInterp,
+        "wrong # args: ShowNearestInterpolatedMainVertex",
+        TCL_VOLATILE );
+    return TCL_ERROR;
+  }
+  
+  if( gbAcceptingTclCommands ) {
+    FindNearestInterpolatedSurfaceVertex ( Surf_tVertexSet_Main );
+  }  
+  
+  return TCL_OK;
+}
+
+int TclShowNearestInterpolatedOriginalVertex ( ClientData inClientData, 
+					       Tcl_Interp* inInterp,
+					       int argc, char* argv[] ) {
+  
+  if ( argc != 1 ) {
+    Tcl_SetResult ( inInterp,
+        "wrong # args: ShowNearestInterpolatedOriginalVertex",
+        TCL_VOLATILE );
+    return TCL_ERROR;
+  }
+  
+  if( gbAcceptingTclCommands ) {
+    FindNearestInterpolatedSurfaceVertex ( Surf_tVertexSet_Original );
+  }  
+  
+  return TCL_OK;
+}
+
+int TclShowNearestInterpolatedCanonicalVertex ( ClientData inClientData, 
+						Tcl_Interp* inInterp,
+						int argc, char* argv[] ) {
+  
+  if ( argc != 1 ) {
+    Tcl_SetResult ( inInterp,
+        "wrong # args: ShowNearestInterpolatedCanonicalVertex",
+        TCL_VOLATILE );
+    return TCL_ERROR;
+  }
+  
+  if( gbAcceptingTclCommands ) {
+    FindNearestInterpolatedSurfaceVertex ( Surf_tVertexSet_Pial );
+  }  
+  
+  return TCL_OK;
+}
+
+
 int TclLoadSegmentationVolume ( ClientData inClientData, 
         Tcl_Interp* inInterp,
         int argc, char* argv[] ) {
@@ -4595,6 +4703,18 @@ int main ( int argc, char** argv ) {
   Tcl_CreateCommand ( interp, "ShowNearestCanonicalVertex",
           TclShowNearestCanonicalVertex,
           (ClientData) NULL, (Tcl_CmdDeleteProc*) NULL );
+  
+  Tcl_CreateCommand ( interp, "ShowNearestInterpolatedMainVertex",
+		      TclShowNearestInterpolatedMainVertex,
+		      (ClientData) NULL, (Tcl_CmdDeleteProc*) NULL );
+  
+  Tcl_CreateCommand ( interp, "ShowNearestInterpolatedOriginalVertex",
+		      TclShowNearestInterpolatedOriginalVertex,
+		      (ClientData) NULL, (Tcl_CmdDeleteProc*) NULL );
+  
+  Tcl_CreateCommand ( interp, "ShowNearestInterpolatedCanonicalVertex",
+		      TclShowNearestInterpolatedCanonicalVertex,
+		      (ClientData) NULL, (Tcl_CmdDeleteProc*) NULL );
   
   Tcl_CreateCommand ( interp, "LoadSegmentationVolume",
           TclLoadSegmentationVolume,
