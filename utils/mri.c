@@ -8,10 +8,10 @@
  *
 */
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2003/08/27 19:30:43 $
-// Revision       : $Revision: 1.238 $
-char *MRI_C_VERSION = "$Revision: 1.238 $";
+// Revision Author: $Author: ch $
+// Revision Date  : $Date: 2003/09/05 20:29:43 $
+// Revision       : $Revision: 1.239 $
+char *MRI_C_VERSION = "$Revision: 1.239 $";
 
 /*-----------------------------------------------------
                     INCLUDE FILES
@@ -4386,6 +4386,7 @@ MRIdump(MRI *mri, FILE *fp)
   fprintf(fp, "%6.6s = %f %f %f\n", "y ras", mri->y_r, mri->y_a, mri->y_s);
   fprintf(fp, "%6.6s = %f %f %f\n", "z ras", mri->z_r, mri->z_a, mri->z_s);
   fprintf(fp, "%6.6s = %f %f %f\n", "c ras", mri->c_r, mri->c_a, mri->c_s);
+  fprintf(fp, "%s = %f\n", "det(xyz_ras)", MRIvolumeDeterminant(mri));
   fprintf(fp, "%s = %d\n", "ras_good_flag", mri->ras_good_flag);
   fprintf(fp, "%s = %d\n", "brightness", mri->brightness);
   fprintf(fp, "%s = %s\n", "subject_name", mri->subject_name);
@@ -4396,7 +4397,6 @@ MRIdump(MRI *mri, FILE *fp)
     fprintf(fp, "%s = \n", "register_mat");
     MatrixPrint(fp, mri->register_mat);
   }
-
   return(NO_ERROR) ;
 }
 /*-----------------------------------------------------
