@@ -4,7 +4,7 @@
   email:   analysis-bugs@nmr.mgh.harvard.edu
   Date:    2/27/02
   Purpose: Computes glm inferences on the surface.
-  $Id: mris_glm.c,v 1.34 2004/12/07 18:49:23 greve Exp $
+  $Id: mris_glm.c,v 1.35 2004/12/31 23:49:14 greve Exp $
 
 Things to do:
   0. Documentation.
@@ -73,7 +73,7 @@ static char *getstem(char *bfilename);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mris_glm.c,v 1.34 2004/12/07 18:49:23 greve Exp $";
+static char vcid[] = "$Id: mris_glm.c,v 1.35 2004/12/31 23:49:14 greve Exp $";
 char *Progname = NULL;
 
 char *hemi        = NULL;
@@ -192,11 +192,11 @@ int main(int argc, char **argv)
   char *subject;
   char *inputfname;
   FILE *fp;
-  int  nargs;
+  int  nargs,n;
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option (argc, argv, 
-      "$Id: mris_glm.c,v 1.34 2004/12/07 18:49:23 greve Exp $", "$Name:  $");
+      "$Id: mris_glm.c,v 1.35 2004/12/31 23:49:14 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -212,12 +212,15 @@ int main(int argc, char **argv)
 
   parse_commandline(argc, argv);
   check_options();
-
+  if(ParseOnly) exit(1);
   dump_options(stdout);
 
   printf("%s\n",vcid);
-
-  if(ParseOnly) exit(1);
+  printf("setenv SUBJECTS_DIR %s\n",SUBJECTS_DIR);
+  printf("%s\n",getenv("PWD"));
+  printf("%s ",Progname);
+  for(n=1;n<argc;n++) printf("%s ",argv[n]);
+  printf("\n");
 
   if(xmatfile != NULL) MatlabWrite(X,xmatfile,"X");
 
@@ -360,14 +363,14 @@ int main(int argc, char **argv)
 	 check the subject name, load white surface, load thickness
 	 for projection, resample to the white surface, save in tmpmri */
       
-      printf("  INFO: loading input %s \n",inputfname);
+      printf("  INFO: loading input %s as %s\n",inputfname,inputfmt);
       if(stringmatch(inputfmt,"curv"))
 	tmpmri = MRISloadSurfVals(inputfname,"curv",SurfReg,
 				  subject,hemi,SUBJECTS_DIR);
       else if(stringmatch(inputfmt,"paint") || stringmatch(inputfmt,"w") ||
 	      stringmatch(inputfmt,"wfile")){
-	if(MRISreadValues(SurfReg,tmpstr)){
-	  printf("ERROR: reading input\n");
+	if(MRISreadValues(SurfReg,inputfname)){
+	  printf("ERROR: reading input %s\n",inputfname);
 	  exit(1);
 	}
 	tmpmri = MRIcopyMRIS(NULL, SurfReg, 0, "val");
@@ -1456,7 +1459,6 @@ static void check_options(void)
       exit(1);
     }
   }
-  printf("setenv SUBJECTS_DIR %s",SUBJECTS_DIR);
 
   if(beta_in_id == NULL){
     if(hemi == NULL){
