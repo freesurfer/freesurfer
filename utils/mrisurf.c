@@ -2271,7 +2271,7 @@ MRISunfold(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
   parms->l_angle = ANGLE_AREA_SCALE * area_coefs[0] ;
   parms->niterations = niter ;
   if (Gdiag & DIAG_SHOW)
-    fprintf(stderr, "removing remaining folds...") ;
+    fprintf(stderr, "removing remaining folds...\n") ;
   mrisIntegrationEpoch(mris, parms, base_averages) ;
   if (Gdiag & DIAG_SHOW)
     mrisLogStatus(mris, parms, stderr, 0) ;
@@ -2279,7 +2279,11 @@ MRISunfold(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
     mrisLogStatus(mris, parms, parms->fp, 0) ;
 
   if (Gdiag & DIAG_SHOW)
+  {
+    fprintf(stderr, "flattening complete.\n") ;
     fclose(parms->fp) ;
+  }
+
 
   mrisProjectSurface(mris) ;
   return(mris) ;
