@@ -57,7 +57,7 @@ static int corWrite(MRI *mri, char *fname);
 static MRI *siemensRead(char *fname, int read_volume);
 static MRI *mincRead(char *fname, int read_volume);
 static int mincWrite(MRI *mri, char *fname);
-static int bshortWrite(MRI *mri, char *stem);
+static int bshortWrite(MRI *mri, char *fname_passed);
 static int bfloatWrite(MRI *mri, char *stem);
 static int write_bhdr(MRI *mri, FILE *fp);
 static int read_bhdr(MRI *mri, FILE *fp);
@@ -93,6 +93,7 @@ static int mghAppend(MRI *mri, char *fname, int frame) ;
 extern char *Progname;
 
 static char *command_line;
+static char *subject_name;
 
 static float afni_orientations[][3] = { { -1.0,  0.0,  0.0 }, 
                                         {  1.0,  0.0,  0.0 }, 
@@ -130,59 +131,74 @@ int mriio_command_line(int argc, char *argv[])
 
 } /* end mriio_command_line() */
 
-MRI *MRIread(char *fname)
+int mriio_set_subject_name(char *name)
 {
 
-  MRI *mri = NULL;
-  int int_type;
-  int i, j, k;
+  if(subject_name == NULL)
+    subject_name = (char *)malloc(STRLEN);
 
-  if((int_type = mri_identify(fname)) < 0)
+  if(subject_name == NULL)
+    ErrorReturn(ERROR_NO_MEMORY, (ERROR_NO_MEMORY, "mriio_set_subject_name(): could't allocate %d bytes...!", STRLEN));
+
+  if(name == NULL)
+    strcpy(subject_name, name);
+  else
   {
-    ErrorReturn(NULL, (ERROR_BADFILE, "unknown file type for file (%s)", fname));
+    free(subject_name);
+    subject_name = NULL;
   }
 
-  if(int_type == MRI_CORONAL_SLICE_DIRECTORY)
+  return(NO_ERROR);
+
+} /* end mriio_set_subject_name() */
+
+MRI *MRIreadType(char *fname, int type)
+{
+
+  MRI *mri;
+  int i, j, k;
+
+  if(type == MRI_CORONAL_SLICE_DIRECTORY)
   {
     mri = corRead(fname, 1);
   }
-  else if(int_type == SIEMENS_FILE)
+  else if(type == SIEMENS_FILE)
   {
     mri = siemensRead(fname, 1);
   }
-  else if(int_type == BSHORT_FILE)
+  else if(type == BSHORT_FILE)
   {
     mri = bshortRead(fname, 1);
   }
-  else if(int_type == BFLOAT_FILE)
+  else if(type == BFLOAT_FILE)
   {
     mri = bfloatRead(fname, 1);
   }
-  else if(int_type == GENESIS_FILE)
+  else if(type == GENESIS_FILE)
   {
     mri = genesisRead(fname, 1);
   }
-  else if(int_type == GE_LX_FILE)
+  else if(type == GE_LX_FILE)
   {
     mri = gelxRead(fname, 1);
   }
-  else if(int_type == MRI_ANALYZE_FILE)
+  else if(type == MRI_ANALYZE_FILE)
   {
     mri = analyzeRead(fname, 1);
   }
-  else if(int_type == BRIK_FILE)
+  else if(type == BRIK_FILE)
   {
     mri = afniRead(fname, 1);
   }
-  else if(int_type == MRI_MINC_FILE)
+  else if(type == MRI_MINC_FILE)
   {
     mri = mincRead(fname, 1);
   }
-  else if(int_type == SDT_FILE)
+  else if(type == SDT_FILE)
   {
     mri = sdtRead(fname, 1);
   }
-  else if(int_type == MRI_MGH_FILE)
+  else if(type == MRI_MGH_FILE)
   {
     mri = mghRead(fname, 1, 0);
   }
@@ -216,6 +232,23 @@ MRI *MRIread(char *fname)
             }
           }
   }
+
+  return(mri);
+
+} /* end MRIreadType() */
+
+MRI *MRIread(char *fname)
+{
+
+  MRI *mri = NULL;
+  int int_type;
+
+  if((int_type = mri_identify(fname)) < 0)
+  {
+    ErrorReturn(NULL, (ERROR_BADFILE, "unknown file type for file (%s)", fname));
+  }
+
+  mri = MRIreadType(fname, int_type);
 
   return(mri);
 
@@ -278,12 +311,54 @@ MRI *MRIreadInfo(char *fname)
   }
   else
   {
-    ErrorReturn(NULL, (ERROR_BADPARM, "MRIreadType(): code inconsistency (file type recognized but not caught)"));
+    ErrorReturn(NULL, (ERROR_BADPARM, "MRIreadInfo(): code inconsistency (file type recognized but not caught)"));
   }
 
   return(mri);
 
 } /* end MRIreadInfo() */
+
+int MRIwriteType(MRI *mri, char *fname, int type)
+{
+
+  int error;
+
+  if(type == MRI_CORONAL_SLICE_DIRECTORY)
+  {
+    error = corWrite(mri, fname);
+  }
+  else if(type == MRI_MINC_FILE)
+  {
+    error = mincWrite(mri, fname);
+  }
+  else if(type == BSHORT_FILE)
+  {
+    error = bshortWrite(mri, fname);
+  }
+  else if(type == BFLOAT_FILE)
+  {
+    error = bfloatWrite(mri, fname);
+  }
+  else if(type == MRI_ANALYZE_FILE)
+  {
+    error = analyzeWrite(mri, fname);
+  }
+  else if(type == BRIK_FILE)
+  {
+    error = afniWrite(mri, fname);
+  }
+  else if(type == MRI_MGH_FILE)
+  {
+    error = mghWrite(mri, fname, 0);
+  }
+  else
+  {
+    ErrorReturn(ERROR_BADPARM, (ERROR_BADPARM, "MRIwriteType(): code inconsistency (file type recognized but not caught)"));
+  }
+
+  return(error);
+
+} /* end MRIwriteType() */
 
 int MRIwrite(MRI *mri, char *fname)
 {
@@ -296,38 +371,7 @@ int MRIwrite(MRI *mri, char *fname)
     ErrorReturn(ERROR_BADPARM, (ERROR_BADPARM, "unknown file type for file (%s)", fname));
   }
 
-  if(int_type == MRI_CORONAL_SLICE_DIRECTORY)
-  {
-    error = corWrite(mri, fname);
-  }
-  else if(int_type == MRI_MINC_FILE)
-  {
-    error = mincWrite(mri, fname);
-  }
-  else if(int_type == BSHORT_FILE)
-  {
-    error = bshortWrite(mri, fname);
-  }
-  else if(int_type == BFLOAT_FILE)
-  {
-    error = bfloatWrite(mri, fname);
-  }
-  else if(int_type == MRI_ANALYZE_FILE)
-  {
-    error = analyzeWrite(mri, fname);
-  }
-  else if(int_type == BRIK_FILE)
-  {
-    error = afniWrite(mri, fname);
-  }
-  else if(int_type == MRI_MGH_FILE)
-  {
-    error = mghWrite(mri, fname, 0);
-  }
-  else
-  {
-    ErrorReturn(ERROR_BADPARM, (ERROR_BADPARM, "MRIwriteType(): code inconsistency (file type recognized but not caught)"));
-  }
+  error = MRIwriteType(mri, fname, int_type);
 
   return(error);
 
@@ -1505,6 +1549,7 @@ static int mincWrite(MRI *mri, char *fname)
       {
         for(vi[di_z] = 0;vi[di_z] < mri->depth;vi[di_z]++)
         {
+
           if(mri->type == MRI_UCHAR)
             set_volume_voxel_value(minc_volume, vi[0], vi[1], vi[2], vi[3], 0, (Real)MRIseq_vox(mri, vi[di_x], vi[di_y], vi[di_z], vi[3]));
           if(mri->type == MRI_SHORT)
@@ -1515,19 +1560,21 @@ static int mincWrite(MRI *mri, char *fname)
             set_volume_voxel_value(minc_volume, vi[0], vi[1], vi[2], vi[3], 0, (Real)MRILseq_vox(mri, vi[di_x], vi[di_y], vi[di_z], vi[3]));
           if(mri->type == MRI_FLOAT)
             set_volume_voxel_value(minc_volume, vi[0], vi[1], vi[2], vi[3], 0, (Real)MRIFseq_vox(mri, vi[di_x], vi[di_y], vi[di_z], vi[3]));
+
         }
       }
     }
   }
 
   output_volume((STRING)fname, nc_data_type, signed_flag, min, max, minc_volume, (STRING)"", NULL);
+
   delete_volume(minc_volume);
 
   return(NO_ERROR);
 
 } /* end mincWrite() */
 
-static int bshortWrite(MRI *mri, char *stem)
+static int bshortWrite(MRI *mri, char *fname_passed)
 {
 
   int i, j, t;
@@ -1535,11 +1582,92 @@ static int bshortWrite(MRI *mri, char *stem)
   short *buf;
   FILE *fp;
   int result;
+  MRI *subject_info = NULL;
+  char subject_volume_dir[STRLEN];
+  char *subjects_dir;
+  char *sn;
+  char analyse_fname[STRLEN], register_fname[STRLEN];
+  char output_dir[STRLEN];
+  char *c;
+  int od_length;
+  char t1_path[STRLEN];
+  MATRIX *cf, *bf, *ibf, *af, *iaf, *as, *bs, *cs, *ics, *r;
+  MATRIX *r1, *r2, *r3, *r4;
+  float det;
+  int bad_flag;
+  int l;
+  char stem[STRLEN];
+  char *c1, *c2, *c3;
+  struct stat stat_buf;
+  char subject_dir[STRLEN];
 
   if(mri->type != MRI_SHORT)
   {
     ErrorReturn(ERROR_UNSUPPORTED, (ERROR_UNSUPPORTED, "bshortWrite(): data type %d unsupported", mri->type));
   }
+
+  /* ----- get the stem from the passed file name ----- */
+
+/*
+
+  four options:
+
+    1. stem_xxx.bshort
+       ^^^^
+
+    2. stem.bshort
+       ^^^^
+
+    3. stem_xxx
+       ^^^^
+
+    4. stem
+       ^^^^
+
+other possibles:
+
+    stem_.bshort
+
+*/
+
+  l = strlen(fname_passed);
+
+  c1 = fname_passed + l - 11;
+  c2 = fname_passed + l - 7;
+  c3 = fname_passed + l - 4;
+
+  strcpy(stem, fname_passed);
+
+  if(c1 > fname_passed)
+  {
+    if(*c1 == '_' && strcmp(c1+4, ".bshort") == 0)
+      stem[(int)(c1-fname_passed)] = '\0';
+  }
+  if(c2 > fname_passed)
+  {
+    if(strcmp(c2, ".bshort") == 0)
+      stem[(int)(c2-fname_passed)] = '\0';
+  }
+  if(c3 > fname_passed)
+  {
+    if(*c3 == '_')
+      stem[(int)(c3-fname_passed)] = '\0';
+  }
+
+  c = strrchr(stem, '/');
+  if(c == NULL)
+    output_dir[0] = '\0';
+  else
+  {
+    od_length = (int)(c - stem);
+    strncpy(output_dir, stem, od_length);
+    /* -- leaving the trailing '/' on a directory is not my usual convention, but here it's a load easier if there's no directory in stem... -ch -- */
+    output_dir[od_length] = '/';
+    output_dir[od_length+1] = '\0';
+  }
+
+  sprintf(analyse_fname, "%s%s", output_dir, "analyse.dat");
+  sprintf(register_fname, "%s%s", output_dir, "register.dat");
 
   buf = (short *)malloc(mri->width * mri->height * sizeof(short));
 
@@ -1587,18 +1715,354 @@ static int bshortWrite(MRI *mri, char *stem)
 
   free(buf);
 
-  /* ----- write the bhdr file ----- */
-  sprintf(fname, "%s.bhdr", stem);
-  if((fp = fopen(fname, "w")) == NULL)
+  sn = subject_name;
+  if(mri->subject_name[0] != '\0')
+    sn = mri->subject_name;
+
+  if(sn != NULL)
   {
-    ErrorReturn(ERROR_BADFILE, (ERROR_BADFILE, "bshortWrite(): can't open file %s", fname));
+    if((subjects_dir = getenv("SUBJECTS_DIR")) == NULL)
+    {
+      ErrorPrintf(ERROR_BADPARM, "bshortWrite(): environment variable SUBJECTS_DIR unset");
+    }
+    else
+    {
+
+      sprintf(subject_dir, "%s/%s", subjects_dir, sn);
+      if(stat(subject_dir, &stat_buf) < 0)
+      {
+        fprintf(stderr, "can't stat %s; writing to bhdr instead\n", subject_dir);
+      }
+      else
+      {
+        if(!S_ISDIR(stat_buf.st_mode))
+        {
+          fprintf(stderr, "%s is not a directory; writing to bhdr instead\n", subject_dir);
+        }
+        else
+        {
+          sprintf(subject_volume_dir, "%s/mri/T1", subject_dir);
+          subject_info = MRIreadInfo(subject_volume_dir);
+          if(subject_info == NULL)
+          {
+            sprintf(subject_volume_dir, "%s/mri/orig", subject_dir);
+            subject_info = MRIreadInfo(subject_volume_dir);
+            if(subject_info == NULL)
+              fprintf(stderr, "can't read the subject's orig or T1 volumes; writing to bhdr instead\n");
+          }
+        }
+      }
+
+    }
+
   }
 
-  result = write_bhdr(mri, fp);
+  if(subject_info != NULL)
+  {
+    if(subject_info->ras_good_flag == 0)
+    {
+      subject_info->x_r = -1.0;  subject_info->x_a = 0.0;  subject_info->x_s =  0.0;
+      subject_info->y_r =  0.0;  subject_info->y_a = 0.0;  subject_info->y_s = -1.0;
+      subject_info->z_r =  0.0;  subject_info->z_a = 1.0;  subject_info->z_s =  0.0;
+      subject_info->c_r =  0.0;  subject_info->c_a = 0.0;  subject_info->c_s =  0.0;
+    }
+  }
 
-  fclose(fp);
+  cf = bf = ibf = af = iaf = as = bs = cs = ics = r = NULL;
+  r1 = r2 = r3 = r4;
 
-  return(result);
+  /* ----- write the register.dat and analyse.dat  or bhdr files ----- */
+  if(subject_info != NULL)
+  {
+
+    bad_flag = FALSE;
+
+    if((as = MatrixAlloc(4, 4, MATRIX_REAL)) == NULL)
+    {
+      ErrorPrintf(ERROR_BADPARM, "bshortWrite(): error creating matrix");
+      bad_flag = TRUE;
+    }
+    stuff_four_by_four(as, subject_info->x_r, subject_info->y_r, subject_info->z_r, subject_info->c_r,
+                           subject_info->y_r, subject_info->y_r, subject_info->y_r, subject_info->c_r,
+                           subject_info->z_r, subject_info->z_r, subject_info->z_r, subject_info->c_r,
+                                         0.0,               0.0,               0.0,               1.0);
+
+    if((af = MatrixAlloc(4, 4, MATRIX_REAL)) == NULL)
+    {
+      ErrorPrintf(ERROR_BADPARM, "bshortWrite(): error creating matrix");
+      bad_flag = TRUE;
+    }
+    stuff_four_by_four(af, mri->x_r, mri->y_r, mri->z_r, mri->c_r,
+                           mri->y_r, mri->y_r, mri->y_r, mri->c_r,
+                           mri->z_r, mri->z_r, mri->z_r, mri->c_r,
+                                0.0,      0.0,      0.0,      1.0);
+
+    if((bs = MatrixAlloc(4, 4, MATRIX_REAL)) == NULL)
+    {
+      ErrorPrintf(ERROR_BADPARM, "bshortWrite(): error creating matrix");
+      bad_flag = TRUE;
+    }
+    stuff_four_by_four(bs, 1, 0, 0, (subject_info->width  - 1) / 2.0, 
+                           0, 1, 0, (subject_info->height - 1) / 2.0, 
+                           0, 0, 1, (subject_info->depth  - 1) / 2.0, 
+                           0, 0, 0,                              1.0);
+
+    if((bf = MatrixAlloc(4, 4, MATRIX_REAL)) == NULL)
+    {
+      ErrorPrintf(ERROR_BADPARM, "bshortWrite(): error creating matrix");
+      bad_flag = TRUE;
+    }
+    stuff_four_by_four(bf, 1, 0, 0, (mri->width  - 1) / 2.0, 
+                           0, 1, 0, (mri->height - 1) / 2.0, 
+                           0, 0, 1, (mri->depth  - 1) / 2.0, 
+                           0, 0, 0,                     1.0);
+
+    if((cs = MatrixAlloc(4, 4, MATRIX_REAL)) == NULL)
+    {
+      ErrorPrintf(ERROR_BADPARM, "bshortWrite(): error creating matrix");
+      bad_flag = TRUE;
+    }
+    stuff_four_by_four(cs, -subject_info->xsize,                    0,                   0,  (subject_info->width  * mri->xsize) / 2.0,
+                                              0,                    0, subject_info->zsize, -(subject_info->depth  * mri->zsize) / 2.0,
+                                              0, -subject_info->ysize,                   0,  (subject_info->height * mri->ysize) / 2.0,
+                                              0,                    0,                   0,                                          1);
+
+    if((cf = MatrixAlloc(4, 4, MATRIX_REAL)) == NULL)
+    {
+      ErrorPrintf(ERROR_BADPARM, "bshortWrite(): error creating matrix");
+      bad_flag = TRUE;
+    }
+    stuff_four_by_four(cf, -mri->xsize,           0,          0,  (mri->width  * mri->xsize) / 2.0,
+                                     0,           0, mri->zsize, -(mri->depth  * mri->zsize) / 2.0,
+                                     0, -mri->ysize,          0,  (mri->height * mri->ysize) / 2.0,
+                                     0,           0,          0,                                 1);
+
+    if(bad_flag)
+    {
+      ErrorPrintf(ERROR_BADPARM, "bshortWrite(): error creating one or more matrices; aborting register.dat write and writing bhdr instead");
+      MRIfree(&subject_info);
+    }
+
+  }
+
+  if(subject_info != NULL)
+  {
+
+    bad_flag = FALSE;
+
+    if((det = MatrixDeterminant(as)) == 0.0)
+    {
+      ErrorPrintf(ERROR_BADPARM, "bshortWrite(): bad determinant in matrix (check structural volume)");
+      bad_flag = TRUE;
+    }
+    if((det = MatrixDeterminant(bs)) == 0.0)
+    {
+      ErrorPrintf(ERROR_BADPARM, "bshortWrite(): bad determinant in matrix (check structural volume)");
+      bad_flag = TRUE;
+    }
+    if((det = MatrixDeterminant(cs)) == 0.0)
+    {
+      ErrorPrintf(ERROR_BADPARM, "bshortWrite(): bad determinant in matrix (check structural volume)");
+      bad_flag = TRUE;
+    }
+
+    if((det = MatrixDeterminant(af)) == 0.0)
+    {
+      ErrorPrintf(ERROR_BADPARM, "bshortWrite(): bad determinant in matrix (check functional volume)");
+      bad_flag = TRUE;
+    }
+    if((det = MatrixDeterminant(bf)) == 0.0)
+    {
+      ErrorPrintf(ERROR_BADPARM, "bshortWrite(): bad determinant in matrix (check functional volume)");
+      bad_flag = TRUE;
+    }
+    if((det = MatrixDeterminant(cf)) == 0.0)
+    {
+      ErrorPrintf(ERROR_BADPARM, "bshortWrite(): bad determinant in matrix (check functional volume)");
+      bad_flag = TRUE;
+    }
+
+    if(bad_flag)
+    {
+      ErrorPrintf(ERROR_BADPARM, "bshortWrite(): one or more zero determinants; aborting register.dat write and writing bhdr instead");
+      MRIfree(&subject_info);
+    }
+
+  }
+
+  if(subject_info != NULL)
+  {
+
+    bad_flag = FALSE;
+
+    if((iaf = MatrixInverse(af, NULL)) == NULL)
+    {
+      ErrorPrintf(ERROR_BADPARM, "bshortWrite(): error inverting matrix");
+      bad_flag = TRUE;
+    }
+    if((ibf = MatrixInverse(bf, NULL)) == NULL)
+    {
+      ErrorPrintf(ERROR_BADPARM, "bshortWrite(): error inverting matrix");
+      bad_flag = TRUE;
+    }
+    if((ics = MatrixInverse(cs, NULL)) == NULL)
+    {
+      ErrorPrintf(ERROR_BADPARM, "bshortWrite(): error inverting matrix");
+      bad_flag = TRUE;
+    }
+
+    if(bad_flag)
+    {
+      ErrorPrintf(ERROR_BADPARM, "bshortWrite(): one or more zero determinants; aborting register.dat write and writing bhdr instead");
+      MRIfree(&subject_info);
+    }
+
+  }
+
+  bad_flag = FALSE;
+
+  if(subject_info != NULL)
+  {
+
+    if((r1 = MatrixMultiply(bs, ics, NULL)) == NULL)
+    {
+      bad_flag = TRUE;
+      MRIfree(&subject_info);
+    }
+
+  }
+
+  if(subject_info != NULL)
+  {
+
+    if((r2 = MatrixMultiply(as, r1, NULL)) == NULL)
+    {
+      bad_flag = TRUE;
+      MRIfree(&subject_info);
+    }
+
+  }
+
+  if(subject_info != NULL)
+  {
+
+    if((r3 = MatrixMultiply(iaf, r2, NULL)) == NULL)
+    {
+      bad_flag = TRUE;
+      MRIfree(&subject_info);
+    }
+
+  }
+
+  if(subject_info != NULL)
+  {
+
+    if((r4 = MatrixMultiply(ibf, r3, NULL)) == NULL)
+    {
+      bad_flag = TRUE;
+      MRIfree(&subject_info);
+    }
+
+  }
+
+  if(subject_info != NULL)
+  {
+
+    if((r = MatrixMultiply(cf, r4, NULL)) == NULL)
+    {
+      bad_flag = TRUE;
+      MRIfree(&subject_info);
+    }
+
+  }
+
+  if(bad_flag)
+  {
+    ErrorPrintf(ERROR_BADPARM, "bshortWrite(): error during matrix multiplications; aborting register.dat write and writing bhdr instead");
+  }
+
+  if( as != NULL)  MatrixFree( &as);
+  if( bs != NULL)  MatrixFree( &bs);
+  if( cs != NULL)  MatrixFree( &cs);
+  if( af != NULL)  MatrixFree( &af);
+  if( bf != NULL)  MatrixFree( &bf);
+  if( cf != NULL)  MatrixFree( &cf);
+  if(iaf != NULL)  MatrixFree(&iaf);
+  if(ibf != NULL)  MatrixFree(&ibf);
+  if(ics != NULL)  MatrixFree(&ics);
+  if( r1 != NULL)  MatrixFree( &r1);
+  if( r2 != NULL)  MatrixFree( &r2);
+  if( r3 != NULL)  MatrixFree( &r3);
+  if( r4 != NULL)  MatrixFree( &r4);
+
+  if(subject_info != NULL)
+  {
+
+    if(mri->path_to_t1[0] == '\0')
+      sprintf(t1_path, ".");
+    else
+      strcpy(t1_path, mri->path_to_t1);
+
+    if(FileExists(analyse_fname))
+      fprintf(stderr, "warning: overwriting file %s\n", analyse_fname);
+
+    if((fp = fopen(analyse_fname, "w")) == NULL)
+    {
+      MRIfree(&subject_info);
+      ErrorReturn(ERROR_BADFILE, (ERROR_BADFILE, "bshortWrite(): couldn't open file %s for writing", analyse_fname));
+    }
+
+    fprintf(fp, "%s\n", t1_path);
+    fprintf(fp, "%s_%%03d.bshort\n", stem);
+    fprintf(fp, "%d %d\n", mri->depth, mri->nframes);
+    fprintf(fp, "%d %d\n", mri->width, mri->height);
+
+    fclose(fp);
+
+    if(FileExists(analyse_fname))
+      fprintf(stderr, "warning: overwriting file %s\n", register_fname);
+
+    if((fp = fopen(register_fname, "w")) == NULL)
+    {
+      MRIfree(&subject_info);
+      ErrorReturn(ERROR_BADFILE, (ERROR_BADFILE, "bshortWrite(): couldn't open file %s for writing", register_fname));
+    }
+
+    fprintf(fp, "%s\n", sn);
+    fprintf(fp, "%g\n", mri->xsize);
+    fprintf(fp, "%g\n", mri->zsize);
+    fprintf(fp, "%g\n", 1.0);
+    fprintf(fp, "%g %g %g %g\n", *MATRIX_RELT(r, 1, 1), *MATRIX_RELT(r, 1, 2), *MATRIX_RELT(r, 1, 3), *MATRIX_RELT(r, 1, 4));
+    fprintf(fp, "%g %g %g %g\n", *MATRIX_RELT(r, 2, 1), *MATRIX_RELT(r, 2, 2), *MATRIX_RELT(r, 2, 3), *MATRIX_RELT(r, 2, 4));
+    fprintf(fp, "%g %g %g %g\n", *MATRIX_RELT(r, 3, 1), *MATRIX_RELT(r, 3, 2), *MATRIX_RELT(r, 3, 3), *MATRIX_RELT(r, 3, 4));
+    fprintf(fp, "%g %g %g %g\n", *MATRIX_RELT(r, 4, 1), *MATRIX_RELT(r, 4, 2), *MATRIX_RELT(r, 4, 3), *MATRIX_RELT(r, 4, 4));
+
+    fclose(fp);
+
+    MatrixFree(&r);
+
+  }
+
+  if(subject_info == NULL)
+  {
+    sprintf(fname, "%s.bhdr", stem);
+    if((fp = fopen(fname, "w")) == NULL)
+    {
+      ErrorReturn(ERROR_BADFILE, (ERROR_BADFILE, "bshortWrite(): can't open file %s", fname));
+    }
+
+    result = write_bhdr(mri, fp);
+
+    fclose(fp);
+
+    if(result != NO_ERROR)
+      return(result);
+
+  }
+  else
+    MRIfree(&subject_info);
+
+  return(NO_ERROR);
 
 } /* end bshortWrite() */
 
@@ -3555,9 +4019,9 @@ static int afniWrite(MRI *mri, char *fname)
   fprintf(fp, "name = BYTEORDER_STRING\n");
   fprintf(fp, "count = 10\n");
 #ifdef Linux
-  fprintf(fp, " `LSB_FIRST~\n");
+  fprintf(fp, " LSB_FIRST~\n");
 #else
-  fprintf(fp, " `MSB_FIRST~\n");
+  fprintf(fp, " MSB_FIRST~\n");
 #endif
 
   fclose(fp);
