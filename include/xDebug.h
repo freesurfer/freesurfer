@@ -1,10 +1,8 @@
-#ifdef xDebug_H
-#define GLOBAL extern
-#else
-#define GLOBAL
-#endif
+#ifndef xDebug_H
+#define xDebug_H
 
-GLOBAL char gDebuggingOn;
+
+extern char gDebuggingOn;
 
 #undef GLOBAL
 
@@ -30,7 +28,6 @@ GLOBAL char gDebuggingOn;
    and DeleteDebugging to take it down. */
 #ifdef kDebugging
 
-char gDebuggingOn;
 // regular cerr debugging output.
 #define InitDebugging           if (getenv("XDEBUG")) gDebuggingOn = TRUE;
 #define DeleteDebugging
@@ -55,6 +52,8 @@ char gDebuggingOn;
 #define DebugPrint              /*
 #define EndDebugPrint           */
 #define Here(n)
+#endif
+
 #endif
 
 #endif
