@@ -162,6 +162,8 @@ static short cma_field[512][512];
 static char unknown_labels[MAX_UNKNOWN_LABELS][STRLEN];
 static int n_unknown_labels;
 
+#define isOne(a)  FZERO(fabs(a)-1)
+
 // here I take the narrow view of slice_direction being
 // defined only when c_(r,a,s) = 0
 int decideSliceDirection(MRI *mri)
@@ -169,11 +171,11 @@ int decideSliceDirection(MRI *mri)
   int direction = MRI_UNDEFINED;
   if (mri->c_r == 0 && mri->c_a == 0 && mri->c_s == 0)
   {
-    if (mri->x_r == -1 && mri->y_s == -1 && mri->z_a == 1)
+    if (isOne(mri->x_r) && isOne(mri->y_s) && isOne(mri->z_a))
       direction = MRI_CORONAL;
-    else if (mri->x_a == 1  && mri->y_s == -1 && mri->z_r == 1)
+    else if (isOne(mri->x_a) && isOne(mri->y_s) && isOne(mri->z_r))
       direction = MRI_SAGITTAL;
-    else if (mri->x_r == -1 && mri->y_a == -1 && mri->z_s == 1)
+    else if (isOne(mri->x_r) && isOne(mri->y_a) && isOne( mri->z_s))
       direction = MRI_HORIZONTAL;
   }
   if (mri->slice_direction == MRI_UNDEFINED)
@@ -8675,6 +8677,8 @@ mghWrite(MRI *mri, char *fname, int frame)
 MRI *
 MRIreorder(MRI *mri_src, MRI *mri_dst, int xdim, int ydim, int zdim)
 {
+  // note that allowed xdim, ydim, zdim values are only +/- 1,2,3 only
+  // xdim tells the original x-axis goes to which axis of the new, etc.
   int  width, height, depth, xs, ys, zs, xd, yd, zd, x, y, z, f ;
   float ras_sign;
 
@@ -8692,6 +8696,8 @@ MRIreorder(MRI *mri_src, MRI *mri_dst, int xdim, int ydim, int zdim)
   xd = yd = zd = 0 ;
 
   ras_sign = (xdim < 0 ? -1.0 : 1.0);
+  // check xdim direction size (XDIM=1, YDIM=2, ZDIM=3)
+  // xdim tells original x-axis goes to where
   switch (abs(xdim))
   {
   default:
@@ -8718,6 +8724,8 @@ MRIreorder(MRI *mri_src, MRI *mri_dst, int xdim, int ydim, int zdim)
     break ;
   }
   ras_sign = (ydim < 0 ? -1.0 : 1.0);
+  // check ydim
+  // ydim tells original y-axis goes to where
   switch (abs(ydim))
   {
   default:
@@ -8744,6 +8752,8 @@ MRIreorder(MRI *mri_src, MRI *mri_dst, int xdim, int ydim, int zdim)
     break ;
   }
   ras_sign = (zdim < 0 ? -1.0 : 1.0);
+  // check zdim
+  // zdim tells original z-axis goes to where
   switch (abs(zdim))
   {
   default:
