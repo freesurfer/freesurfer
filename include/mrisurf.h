@@ -241,6 +241,7 @@ typedef struct
   int          useRealRAS;        /* if 0, vertex position is a conformed volume RAS with c_(r,a,s)=0 */
                                   /* if 1, verteix position is a real RAS (volume stored RAS)         */
                                   /* The default is 0.                                                */
+  VOL_GEOM     vg;                /* volume information from which this surface is created. check validity by vg.valid = 1 or not */
 } MRI_SURFACE, MRIS ;
 
 
