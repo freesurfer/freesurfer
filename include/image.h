@@ -353,7 +353,7 @@ typedef struct
 #define TIF_IMAGE      TIFF_IMAGE
 #define JPEG_IMAGE     3
 #define PGM_IMAGE      4 
-#define PPM_IMAGE      5 /* Write not yet implemented */
+#define PPM_IMAGE      5 
 #define PBM_IMAGE      6 /* Write not yet implemented */
 #define RGBI_IMAGE     7 
 
