@@ -2231,4 +2231,37 @@ ImageCmp(IMAGE *Isrc, IMAGE *Idst)
 
   return(ret);
 }
+/*----------------------------------------------------------------------
+            Parameters:
 
+           Description:
+              return the number of frames stored in the file 'fname'
+----------------------------------------------------------------------*/
+int
+ImageNumFrames(char *fname)
+{
+  IMAGE  I ;
+  FILE   *fp ;
+  int    frame, type, ecode ;
+  char   buf[100] ;
+
+  ImageUnpackFileName(fname, &frame, &type, buf) ;
+  fname = buf ;
+  if ((frame >= 0) || (type != HIPS_IMAGE))
+    return(1) ;
+
+  fp = fopen(fname, "rb") ;
+  if (!fp)
+    ErrorReturn(ERROR_NO_FILE, 
+                (ERROR_NO_FILE, "ImageNumFrame(%s) could not open file\n", 
+                 fname)) ;
+
+  ecode = fread_header(fp, &I, fname) ;
+  if (ecode != HIPS_OK)
+    ErrorReturn(ERROR_NO_FILE,
+                (ERROR_NO_FILE, 
+                 "ImageNumFrame: fread_header failed (%d)\n",ecode));
+
+  fclose(fp) ;
+  return(I.num_frame) ;
+}
