@@ -13,10 +13,10 @@
 #include "gcarray.h"
 
 #define SCALE     16
-#define NINPUTS   2
 
 static int scale = SCALE ;
-static int ninputs = NINPUTS ;
+static int features = FEATURE_INTENSITY | FEATURE_ZSCORE3 | FEATURE_MEAN3 | FEATURE_DIRECTION ;
+
 static int extract = 0 ;
 static int classifier = CLASSIFIER_GAUSSIAN ;
 static char priors_fname[100] = "priors.mnc" ;
@@ -51,7 +51,7 @@ main(int argc, char *argv[])
   training_file_name = argv[1] ;
   output_file_name = argv[2] ;
 
-  mric = MRICalloc(classifier, ninputs, NULL) ;
+  mric = MRICalloc(classifier, features, NULL) ;
   MRICtrain(mric, training_file_name, priors_fname) ;
   MRICwrite(mric, output_file_name) ;
   MRICfree(&mric) ;
@@ -72,7 +72,14 @@ get_option(int argc, char *argv[])
   switch (toupper(*option))
   {
   case 'V':
-    verbose = 1 ;
+    verbose = !verbose ;
+    break ;
+  case 'F':
+    if (sscanf(argv[2], "0x%x", &features) != 1)
+      ErrorExit(ERROR_BADPARM, "%s: could not scan option from '%s'",
+                Progname, argv[2]) ;
+    nargs = 1 ;
+    fprintf(stderr, "using features 0x%x\n", features) ;
     break ;
   case 'P':
     strcpy(priors_fname, argv[2]) ;
@@ -93,10 +100,12 @@ get_option(int argc, char *argv[])
     nargs = 1 ;
     break ;
   case 'N':
+#if 0
     if (sscanf(argv[2], "%d", &ninputs) != 1)
       ErrorExit(ERROR_BADPARM, "%s: could not scan option from '%s'",
                 Progname, argv[2]) ;
     nargs = 1 ;
+#endif
     break ;
   case '?':
   case 'U':
