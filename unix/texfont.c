@@ -60,6 +60,10 @@ int useLuminanceAlpha = 0;
 #define GL_INTENSITY4 GL_INTENSITY4_EXT
 #endif
 
+#ifndef GL_INTENSITY4_EXT
+#define GL_INTENSITY4_EXT GL_INTENSITY4
+#endif
+
 static TexGlyphVertexInfo *
 getTCVI(TexFont * txf, int c)
 {
