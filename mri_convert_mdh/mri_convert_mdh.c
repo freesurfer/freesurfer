@@ -12,7 +12,7 @@
 #include "fio.h"
 
 #ifndef lint
-static char vcid[] = "$Id: mri_convert_mdh.c,v 1.4 2003/06/02 06:40:08 greve Exp $";
+static char vcid[] = "$Id: mri_convert_mdh.c,v 1.5 2003/06/23 22:27:38 greve Exp $";
 #endif /* lint */
 
 #define MDH_SIZE    128        //Number of bytes in the miniheader
@@ -78,6 +78,7 @@ int DimSpeced=0;
 int nPerLine, nPCNs, nEchos, nPELs, nSlices, nFrames, FastestDim=0;
 float Thickness, DistFact=0.0, dcSag, dcCor, dcTra, TR=0.0, TE[500];
 float PhaseEncodeFOV, ReadoutFOV, FlipAngle;
+int nthpcn;
 
 /*------------------------------------------------------------------*/
 int main(int argc, char **argv)
@@ -229,23 +230,29 @@ int main(int argc, char **argv)
   nHitTotExp = (long)nSlices*nFrames*(long)nEchos*(nPELs+nPCNs);
   printf("Loading  (lines to load = %ld)\n",nHitTotExp);
   nHitPCN = 0;
+  nthpcn = 0;
   nHit = 0;
   nHitTot = 0;
   nHit10pct = nHitTotExp/10;
   while(1){
     if(nHitTot % nHit10pct == 0) printf("%6.1f%%\n",100*(float)nHitTot/nHitTotExp);
+
     mdh = ReadMiniHeader(fp,mdh,mdhversion);
     if(feof(fp)) break;
     fread(adc,sizeof(float), 2*nPerLine, fp);
     if(feof(fp)){
-      printf("WARNING: hit eof at data read\n");
+      printf("WARNING: hit eof during data read\n");
       break;
     }
     d = mdh->Slice + nSlices * mdh->Rep;
     if(mdh->IsPCN){
       /* Note: Echo becomes Line for PCNs */
-      rptr = (float*) pcnr->slices[d][mdh->Echo];
-      iptr = (float*) pcni->slices[d][mdh->Echo];
+      //rptr = (float*) pcnr->slices[d][mdh->Echo];
+      //iptr = (float*) pcni->slices[d][mdh->Echo];
+      rptr = (float*) pcnr->slices[d][nthpcn];
+      iptr = (float*) pcni->slices[d][nthpcn];
+      nthpcn ++;
+      if(nthpcn == nPCNs) nthpcn = 0;
       nHitPCN ++;
     }
     else{
