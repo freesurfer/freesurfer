@@ -11,6 +11,14 @@
               INCLUDE FILES
 -----------------------------------------------------------------*/
 
+int not_used_000(void)
+{
+  int i;
+  i=0;
+  return(i);
+}
+
+#if 0 /* not used (dng)*/
  
 #include <stdio.h>
 #include <stdlib.h>
@@ -148,7 +156,7 @@ HandleOk(PTR_HANDLE handle)
 {
   HandleInfo  *handleInfo ;
 
-  if ((handle <= 0) || (handle > nhandles)) return(0) ;
+  if ((handle <= (PTR_HANDLE)0) || (handle > nhandles)) return(0) ;
 
   handleInfo = handleTable + (handle - 1) ;
   if (handleInfo->status == HANDLE_FREE) return(-1) ;
@@ -188,3 +196,7 @@ growHandleTable(void)
   maxHandles = newMaxHandles ;
   handleTable = newTable ;
 }
+
+#endif
+
+
