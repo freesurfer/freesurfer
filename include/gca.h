@@ -166,9 +166,9 @@ MRI  *GCAannealUnlikelyVoxels(MRI *mri_inputs, GCA *gca, MRI *mri_dst,
                               TRANSFORM *transform, int max_iter, MRI *mri_fixed) ;
 GCA_SAMPLE *GCAfindContrastSamples(GCA *gca, int *pnsamples, int min_spacing,
                                  float min_prior) ;
-GCA_SAMPLE *GCAfindAllSamples(GCA *gca, int *pnsamples) ;
+GCA_SAMPLE *GCAfindAllSamples(GCA *gca, int *pnsamples, int *exclude_list) ;
 GCA_SAMPLE *GCAfindStableSamples(GCA *gca, int *pnsamples, int min_spacing,
-                                 float min_prior) ;
+                                 float min_prior, int *exclude_list) ;
 GCA_SAMPLE *GCAfindStableSamplesByLabel(GCA *gca, int nsamples, 
                                         float min_prior) ;
 int       GCAtransformSamples(GCA *gca_src, GCA *gca_dst, GCA_SAMPLE *gcas, 
@@ -247,6 +247,7 @@ int  GCApriorToSourceVoxelFloat(GCA *gca, MRI *mri, TRANSFORM *transform,
                                 float *pxv, float *pyv, float *pzv) ;
 int GCArenormalizeFromAtlas(GCA *gca, GCA *gca_template) ;
 GC1D *GCAfindGC(GCA *gca, int x, int y, int z,int label) ;
+double GCAlabelVar(GCA *gca, int label) ;
 
 
 #define MIN_PRIOR  0.5
