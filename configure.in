@@ -98,7 +98,7 @@ if test "${CC}" = "gcc"; then
 AC_MSG_NOTICE(Setting CPU optimization ...)
 CPUFLAGS=""
 CPUTYPE="NO"
-AC_MSG_CHECKING(checking for CPU ...)
+AC_MSG_CHECKING(CPU optimization ...)
 #### 
 #### cpu type: we support 
 ####     pentium3, pentium4,  
@@ -198,10 +198,62 @@ esac
 found=$CPUFLAGS 
 # set the value
 
-CFLAGS="$CPUFLAGS $CFLAGS"
-CXXFLAGS="$CPUFLAGS $CXXFLAGS"
-
 AC_MSG_RESULT($found)
+# verify the flag work (need to make this as macro)
+###############################################################
+CFLAGS="$CPUFLAGS $CFLAGS"
+echo "$as_me:$LINENO: checking whether $CC accepts $CPUFLAGS" >&5
+echo $ECHO_N "checking whether $CC accepts $CPUFLAGS... $ECHO_C" >&6
+if test "${ac_cv_prog_cc_cpuflags+set}" = set; then
+  echo $ECHO_N "(cached) $ECHO_C" >&6
+else
+  cat >conftest.$ac_ext <<_ACEOF
+#line $LINENO "configure"
+/* confdefs.h.  */
+_ACEOF
+cat confdefs.h >>conftest.$ac_ext
+cat >>conftest.$ac_ext <<_ACEOF
+/* end confdefs.h.  */
+
+int
+main ()
+{
+
+  ;
+  return 0;
+}
+_ACEOF
+rm -f conftest.$ac_objext
+if { (eval echo "$as_me:$LINENO: \"$ac_compile\"") >&5
+  (eval $ac_compile) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); } &&
+         { ac_try='test -s conftest.$ac_objext'
+  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
+  (eval $ac_try) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); }; }; then
+  ac_cv_prog_cc_cpuflags=yes
+else
+  echo "$as_me: failed program was:" >&5
+sed 's/^/| /' conftest.$ac_ext >&5
+
+ac_cv_prog_cc_cpuflags=no
+fi
+rm -f conftest.$ac_objext conftest.$ac_ext
+fi
+echo "$as_me:$LINENO: result: $ac_cv_prog_cc_cpuflags" >&5
+echo "${ECHO_T}$ac_cv_prog_cc_cpuflags" >&6
+
+if test $ac_cv_prog_cc_cpuflags = yes; then
+CFLAGS = "$CPUFLAGS $CFLAGS"
+CXXFLAGS = "$CPUFLAGS $CFLAGS"
+else
+AC_MSG_NOTICE([this gcc cannot accept $CPUFLAGSD])
+fi 
+
 #####
 else
   AC_MSG_NOTICE([cpu optimization not done. you must use gcc.])
