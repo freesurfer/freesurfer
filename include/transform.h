@@ -2,9 +2,9 @@
 /* transform.h                                                         */
 /*                                                                     */
 /* Warning: Do not edit the following four lines.  CVS maintains them. */
-/* Revision Author: $Author: kteich $                                           */
-/* Revision Date  : $Date: 2003/10/31 20:20:14 $                                             */
-/* Revision       : $Revision: 1.24 $                                         */
+/* Revision Author: $Author: tosa $                                           */
+/* Revision Date  : $Date: 2004/02/05 18:57:00 $                                             */
+/* Revision       : $Revision: 1.25 $                                         */
 /*                                                                     */
 /***********************************************************************/
 
@@ -132,6 +132,7 @@ void copyVolGeom(const VOL_GEOM *src, VOL_GEOM *dst);
 void writeVolGeom(FILE *fp, const VOL_GEOM *vg);
 void readVolGeom(FILE *fp, VOL_GEOM *vg);
 void getVolGeom(const MRI *src, VOL_GEOM *vg);
+void useVolGeomToMRI(const VOL_GEOM *src, MRI *dst);
 
 int LTAvoxelXformToRASXform(const MRI *src, const MRI *dst, LT *voxTran, LT *rasTran);
 #endif
