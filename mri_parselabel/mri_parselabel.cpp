@@ -70,7 +70,7 @@ int main(int argc, char *argv[])
   int nargs;
   Progname=argv[0];
 
-  nargs = handle_version_option (argc, argv, "$Id: mri_parselabel.cpp,v 1.3 2004/06/02 21:08:26 tosa Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_parselabel.cpp,v 1.4 2004/06/02 21:30:51 tosa Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -132,7 +132,7 @@ int main(int argc, char *argv[])
   cout << "FileInfo: " << buf << endl;
   int numvertices;
   flabel >> numvertices;
-  cout << "number of vertices are: " << numvertices << endl;
+  cout << "number of vertices : " << numvertices << endl;
   while (flabel.good())
   {
     int num;
