@@ -505,7 +505,10 @@ HISTOsmooth(HISTOGRAM *histo_src, HISTOGRAM *histo_dst,float sigma)
 
   nbins = histo_src->nbins ;
   if (!histo_dst)
+	{
     histo_dst = HISTOalloc(nbins) ;
+		histo_dst->bin_size = histo_src->bin_size ;
+	}
   else
   {
     if (histo_dst->nbins < histo_src->nbins)
@@ -1022,8 +1025,8 @@ HISTOaddSample(HISTOGRAM *histo, float val, float bmin, float bmax)
 int
 HISTOfindPreviousValley(HISTOGRAM *h, int b0)
 {
-  int  b ;
-  float prev_val, val ;
+  int    b ;
+  float  prev_val, val ;
 
   prev_val = h->counts[b0] ;
   if (b0 <= 0)
@@ -1055,6 +1058,50 @@ HISTOfindNextValley(HISTOGRAM *h, int b0)
     prev_val = val ;
   }
   return(-1) ;
+}
+
+int
+HISTOfindNextPeak(HISTOGRAM *h, int b0)
+{
+  int  b ;
+  float prev_val, val, next_val ;
+
+  if (b0 > (h->nbins-2))
+    return(b0) ;
+  prev_val = h->counts[b0] ;
+	next_val = h->counts[b0+2] ;
+  for (b = b0+1 ; b < h->nbins-1 ; b++)
+  {
+    val = h->counts[b] ;
+		next_val = h->counts[b+1] ;
+    if (val > prev_val && val > next_val)
+      return(b) ;
+    prev_val = val ;
+  }
+  return(-1) ;
+}
+
+int
+HISTOfindPreviousPeak(HISTOGRAM *h, int b0, int whalf)
+{
+  int   b, bk, peak = 0 ;
+  float val ;
+
+  if (b0 > (h->nbins-2))
+    return(b0) ;
+  for (b = b0-1 ; b >= whalf ; b--)
+  {
+    val = h->counts[b] ;
+		for (peak = 1, bk = b-whalf ; bk <= b+whalf ; bk++)
+			if (h->counts[bk] > val)
+			{
+				peak = 0 ;
+				break ;
+			}
+		if (peak)
+			break ;
+  }
+  return(b) ;
 }
 
 int
@@ -1248,3 +1295,25 @@ HISTOfindBin(HISTOGRAM *h, float val)
 
 	return(0) ;
 }
+HISTO *
+HISTOclearBG(HISTOGRAM *hsrc, HISTOGRAM *hdst, int *pbg_end)
+{
+	int   b0, nv ;
+	float min_count ;
+
+	hdst = HISTOcopy(hsrc, hdst) ;
+	min_count = hsrc->counts[0]*0.1 ;
+	for (b0 = 1 ; b0 < hsrc->nbins ; b0++)
+		if (hdst->counts[b0] < min_count)
+			break ;
+
+	/* ignore any valleys that are still part of bg noise, by waiting
+	 until amplitude has fallen below threshold */
+	nv = HISTOfindNextValley(hsrc, b0 == 0 ? 0 : b0-1) ;
+	printf("clearing  bg bins 0->%d (%d)\n", nv, b0) ;
+	HISTOclearBins(hsrc, hdst, 0, nv) ;
+	*pbg_end = nv ;
+	return(hdst) ;
+}
+
+

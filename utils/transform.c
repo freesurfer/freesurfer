@@ -992,7 +992,7 @@ ltaMNIread(char *fname)
   fp = fopen(fname, "r") ;
   if (!fp)
     ErrorReturn(NULL, 
-                (ERROR_NOFILE, "ltMNIread: could not open file %s",fname));
+                (ERROR_NOFILE, "ltaMNIread: could not open file %s",fname));
 
   lta = LTAalloc(1, NULL) ;
   lt = &lta->xforms[0] ;
@@ -1013,8 +1013,8 @@ ltaMNIread(char *fname)
     {
       LTAfree(&lta) ;
       ErrorReturn(NULL,
-                  (ERROR_BADFILE, "ltMNIread: could not read row %d from %s",
-                   row, fname)) ;
+                  (ERROR_BADFILE, "ltaMNIread: could not read row %d from %s (%s)",
+                   row, fname, line)) ;
     }
     sscanf(cp, "%f %f %f %f",
            MATRIX_RELT(m_L,row,1), MATRIX_RELT(m_L,row,2), 
@@ -1915,7 +1915,7 @@ LTA *ltaMNIreadEx(const char *fname)
   fp = fopen(fname, "r") ;
   if (!fp)
     ErrorReturn(NULL, 
-                (ERROR_NOFILE, "ltMNIread: could not open file %s",fname));
+                (ERROR_NOFILE, "ltMNIreadEx: could not open file %s",fname));
 
   lta = LTAalloc(1, NULL) ;
   lt = &lta->xforms[0] ;
@@ -1939,8 +1939,8 @@ LTA *ltaMNIreadEx(const char *fname)
     {
       LTAfree(&lta) ;
       ErrorReturn(NULL,
-                  (ERROR_BADFILE, "ltMNIread: could not read row %d from %s",
-                   row, fname)) ;
+                  (ERROR_BADFILE, "ltMNIreadEx: could not read row %d from %s (%s)",
+                   row, fname, line)) ;
     }
     sscanf(cp, "%f %f %f %f",
            MATRIX_RELT(m_L,row,1), MATRIX_RELT(m_L,row,2), 

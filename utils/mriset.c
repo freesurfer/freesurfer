@@ -6,11 +6,11 @@
  *       AUTHOR:      Bruce Fischl
  *       DATE:        1/8/97
  *
- */
+*/
 
 /*-----------------------------------------------------
-  INCLUDE FILES
-  -------------------------------------------------------*/
+                    INCLUDE FILES
+-------------------------------------------------------*/
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
@@ -29,28 +29,28 @@
 #include "nr.h"
 
 /*-----------------------------------------------------
-  MACROS AND CONSTANTS
-  -------------------------------------------------------*/
+                    MACROS AND CONSTANTS
+-------------------------------------------------------*/
 
 #define DEBUG_POINT(x,y,z)  (((x==72) && (y==142)) &&((z)==127))
 
 /*-----------------------------------------------------
-  STATIC DATA
-  -------------------------------------------------------*/
+                    STATIC DATA
+-------------------------------------------------------*/
 
 /*-----------------------------------------------------
-  STATIC PROTOTYPES
-  -------------------------------------------------------*/
+                    STATIC PROTOTYPES
+-------------------------------------------------------*/
 /*-----------------------------------------------------
-  GLOBAL FUNCTIONS
-  -------------------------------------------------------*/
+                    GLOBAL FUNCTIONS
+-------------------------------------------------------*/
 /*-----------------------------------------------------
-  Parameters:
+        Parameters:
 
-  Returns value:
+        Returns value:
 
-  Description
-  ------------------------------------------------------*/
+        Description
+------------------------------------------------------*/
 MRI *
 MRIunion(MRI *mri1, MRI *mri2, MRI *mri_dst)
 {
@@ -82,12 +82,12 @@ MRIunion(MRI *mri1, MRI *mri2, MRI *mri_dst)
   return(mri_dst) ;
 }
 /*-----------------------------------------------------
-  Parameters:
+        Parameters:
 
-  Returns value:
+        Returns value:
 
-  Description
-  ------------------------------------------------------*/
+        Description
+------------------------------------------------------*/
 MRI *
 MRIintersect(MRI *mri1, MRI *mri2, MRI *mri_dst)
 {
@@ -119,12 +119,12 @@ MRIintersect(MRI *mri1, MRI *mri2, MRI *mri_dst)
   return(mri_dst) ;
 }
 /*-----------------------------------------------------
-  Parameters:
+        Parameters:
 
-  Returns value:
+        Returns value:
 
-  Description
-  ------------------------------------------------------*/
+        Description
+------------------------------------------------------*/
 MRI *
 MRIcomplement(MRI *mri_src, MRI *mri_dst)
 {
@@ -157,17 +157,17 @@ MRIcomplement(MRI *mri_src, MRI *mri_dst)
   return(mri_dst) ;
 }
 /*-----------------------------------------------------
-  Parameters:
+        Parameters:
 
-  Returns value:
+        Returns value:
 
-  Description
-  ------------------------------------------------------*/
+        Description
+------------------------------------------------------*/
 MRI *
 MRIand(MRI *mri1, MRI *mri2, MRI *mri_dst, int thresh)
 {
   int     width, height, depth, x, y, z, f ;
-  Real    val1, val2 ;
+	Real    val1, val2 ;
 
 
   width = mri1->width ;
@@ -177,34 +177,34 @@ MRIand(MRI *mri1, MRI *mri2, MRI *mri_dst, int thresh)
   if (!mri_dst)
     mri_dst = MRIclone(mri1, NULL) ;
 
-  for (f = 0 ; f < mri1->nframes ; f++)
-  {
-    for (z = 0 ; z < depth ; z++)
-    {
-      for (y = 0 ; y < height ; y++)
-      {
-	for (x = 0 ; x < width ; x++)
+	for (f = 0 ; f < mri1->nframes ; f++)
 	{
-	  MRIsampleVolumeFrame(mri1, x, y, z, f, &val1) ;
-	  if (val1 < thresh)
-	    val1 = 0 ;
-	  MRIsampleVolumeFrame(mri2, x, y, z, f, &val2) ;
-	  if (val2 < thresh)
-	    val2 = 0 ;
-	  MRIsetVoxVal(mri_dst, x, y, z, f, val1 && val2) ;
-	}
+		for (z = 0 ; z < depth ; z++)
+		{
+			for (y = 0 ; y < height ; y++)
+			{
+				for (x = 0 ; x < width ; x++)
+				{
+					MRIsampleVolumeFrame(mri1, x, y, z, f, &val1) ;
+					if (val1 < thresh)
+						val1 = 0 ;
+					MRIsampleVolumeFrame(mri2, x, y, z, f, &val2) ;
+					if (val2 < thresh)
+						val2 = 0 ;
+					MRIsetVoxVal(mri_dst, x, y, z, f, val1 && val2) ;
+				}
       }
     }
   }
   return(mri_dst) ;
 }
 /*-----------------------------------------------------
-  Parameters:
+        Parameters:
 
-  Returns value:
+        Returns value:
 
-  Description
-  ------------------------------------------------------*/
+        Description
+------------------------------------------------------*/
 MRI *
 MRIxor(MRI *mri1, MRI *mri2, MRI *mri_dst, int t1, int t2)
 {
@@ -246,12 +246,12 @@ MRIxor(MRI *mri1, MRI *mri2, MRI *mri_dst, int t1, int t2)
   return(mri_dst) ;
 }
 /*-----------------------------------------------------
-  Parameters:
+        Parameters:
 
-  Returns value:
+        Returns value:
 
-  Description
-  ------------------------------------------------------*/
+        Description
+------------------------------------------------------*/
 #define KLEN 3
 MRI *
 MRImorph(MRI *mri_src, MRI *mri_dst, int which)
@@ -278,12 +278,12 @@ MRImorph(MRI *mri_src, MRI *mri_dst, int which)
   return(mri_dst) ;
 }
 /*-----------------------------------------------------
-  Parameters:
+        Parameters:
 
-  Returns value:
+        Returns value:
 
-  Description
-  ------------------------------------------------------*/
+        Description
+------------------------------------------------------*/
 MRI *
 MRIerode(MRI *mri_src, MRI *mri_dst)
 {
@@ -341,18 +341,18 @@ MRIerode(MRI *mri_src, MRI *mri_dst)
   return(mri_dst) ;
 }
 /*-----------------------------------------------------
-  Parameters:
+        Parameters:
 
-  Returns value:
+        Returns value:
 
-  Description
-  ------------------------------------------------------*/
+        Description
+------------------------------------------------------*/
 MRI *
 MRIdilateThreshLabel(MRI *mri_src, MRI *mri_val, MRI *mri_dst, int label, 
                      int niter, int thresh)
 {
   int     width, height, depth, x, y, z, x0, y0, z0, xi, yi, zi,
-    xmin, xmax, ymin, ymax, zmin, zmax, i, nadded ;
+          xmin, xmax, ymin, ymax, zmin, zmax, i, nadded ;
   BUFTYPE *psrc, out_val, val ;
   MRI     *mri_tmp = NULL ;
 
@@ -452,18 +452,18 @@ MRIdilateThreshLabel(MRI *mri_src, MRI *mri_val, MRI *mri_dst, int label,
   return(mri_dst) ;
 }
 /*-----------------------------------------------------
-  Parameters:
+        Parameters:
 
-  Returns value:
+        Returns value:
 
-  Description
-  ------------------------------------------------------*/
+        Description
+------------------------------------------------------*/
 MRI *
 MRIdilateInvThreshLabel(MRI *mri_src, MRI *mri_val, MRI *mri_dst, int label, 
-			int niter, int thresh)
+												int niter, int thresh)
 {
   int     width, height, depth, x, y, z, x0, y0, z0, xi, yi, zi,
-    xmin, xmax, ymin, ymax, zmin, zmax, i, nadded ;
+          xmin, xmax, ymin, ymax, zmin, zmax, i, nadded ;
   BUFTYPE *psrc, out_val, val ;
   MRI     *mri_tmp = NULL ;
 
@@ -563,17 +563,17 @@ MRIdilateInvThreshLabel(MRI *mri_src, MRI *mri_val, MRI *mri_dst, int label,
   return(mri_dst) ;
 }
 /*-----------------------------------------------------
-  Parameters:
+        Parameters:
 
-  Returns value:
+        Returns value:
 
-  Description
-  ------------------------------------------------------*/
+        Description
+------------------------------------------------------*/
 MRI *
 MRIdilateLabelUchar(MRI *mri_src, MRI *mri_dst, int label, int niter)
 {
   int     width, height, depth, x, y, z, x0, y0, z0, xi, yi, zi,
-    xmin, xmax, ymin, ymax, zmin, zmax, i;
+          xmin, xmax, ymin, ymax, zmin, zmax, i;
   BUFTYPE *psrc, out_val, val ;
   MRI     *mri_tmp = NULL ;
 
@@ -627,18 +627,18 @@ MRIdilateLabelUchar(MRI *mri_src, MRI *mri_dst, int label, int niter)
           out_val = MRIvox(mri_tmp, x, y, z) ;
           for (z0 = -1 ; z0 <= 1 ; z0++)
           {
-	    if (out_val == label)
-	      break ;
+						if (out_val == label)
+							break ;
             zi = mri_tmp->zi[z+z0] ;
             for (y0 = -1 ; y0 <= 1 ; y0++)
             {
-	      if (out_val == label)
-		break ;
+							if (out_val == label)
+								break ;
               yi = mri_tmp->yi[y+y0] ;
               for (x0 = -1 ; x0 <= 1 ; x0++)
               {
-		if (out_val == label)
-		  break ;
+								if (out_val == label)
+									break ;
                 xi = mri_tmp->xi[x+x0] ;
                 val = MRIvox(mri_tmp, xi,yi,zi) ;
                 if (val == label)
@@ -656,22 +656,22 @@ MRIdilateLabelUchar(MRI *mri_src, MRI *mri_dst, int label, int niter)
   return(mri_dst) ;
 }
 /*-----------------------------------------------------
-  Parameters:
+        Parameters:
 
-  Returns value:
+        Returns value:
 
-  Description
-  ------------------------------------------------------*/
+        Description
+------------------------------------------------------*/
 MRI *
 MRIdilateLabel(MRI *mri_src, MRI *mri_dst, int label, int niter)
 {
   int     width, height, depth, x, y, z, x0, y0, z0, xi, yi, zi,
-    xmin, xmax, ymin, ymax, zmin, zmax, i, f ;
+          xmin, xmax, ymin, ymax, zmin, zmax, i, f ;
   MRI     *mri_tmp = NULL ;
-  Real    out_val, val ;
+	Real    out_val, val ;
 
-  if (mri_src->type == MRI_UCHAR)
-    return(MRIdilateLabelUchar(mri_src, mri_dst, label, niter)) ;
+	if (mri_src->type == MRI_UCHAR)
+		return(MRIdilateLabelUchar(mri_src, mri_dst, label, niter)) ;
 
   width = mri_src->width ;
   height = mri_src->height ;
@@ -686,30 +686,30 @@ MRIdilateLabel(MRI *mri_src, MRI *mri_dst, int label, int niter)
     xmax = 0 ; xmin = width-1 ;
     ymax = 0 ; ymin = height-1 ;
     zmax = 0 ; zmin = depth-1 ;
-    for (f = 0 ; f < mri_src->nframes ; f++)
-    {
-      for (z = 0 ; z < depth ; z++)
-      {
-	for (y = 0 ; y < height ; y++)
-	{
-	  for (x = 0 ; x < width ; x++)
-	  {
-	    MRIsampleVolumeFrameType(mri_src, x, y, z, f, SAMPLE_NEAREST, &val) ;
-	    if (val == label)
-	    {
-	      if (x-1 < xmin)
-		xmin = x-1 ;
-	      if (x+1 > xmax)
-		xmax = x+1 ;
-	      if (y-1 < ymin)
-		ymin = y-1 ;
-	      if (y+1 > ymax)
-		ymax = y+1 ;
-	      if (z-1 < zmin)
-		zmin = z-1 ;
-	      if (z+1 > zmax)
-		zmax = z+1 ;
-	    }
+		for (f = 0 ; f < mri_src->nframes ; f++)
+		{
+			for (z = 0 ; z < depth ; z++)
+			{
+				for (y = 0 ; y < height ; y++)
+				{
+					for (x = 0 ; x < width ; x++)
+					{
+						MRIsampleVolumeFrameType(mri_src, x, y, z, f, SAMPLE_NEAREST, &val) ;
+						if (val == label)
+						{
+							if (x-1 < xmin)
+								xmin = x-1 ;
+							if (x+1 > xmax)
+								xmax = x+1 ;
+							if (y-1 < ymin)
+								ymin = y-1 ;
+							if (y+1 > ymax)
+								ymax = y+1 ;
+							if (z-1 < zmin)
+								zmin = z-1 ;
+							if (z+1 > zmax)
+								zmax = z+1 ;
+						}
           }
         }
       }
@@ -717,41 +717,41 @@ MRIdilateLabel(MRI *mri_src, MRI *mri_dst, int label, int niter)
     xmin = MAX(0, xmin) ; xmax = MIN(width-1, xmax) ;
     ymin = MAX(0, ymin) ; ymax = MIN(height-1, ymax) ;
     zmin = MAX(0, zmin) ; zmax = MIN(depth-1, zmax) ;
-    for (f = 0 ; f < mri_src->nframes ; f++)
-    {
-      for (z = zmin ; z <= zmax ; z++)
-      {
-	for (y = ymin ; y <= ymax ; y++)
-	{
-	  for (x = xmin ; x <= xmax ; x++)
-	  {
-	    MRIsampleVolumeFrameType(mri_src, x, y, z, f, SAMPLE_NEAREST, &out_val) ;
-	    for (z0 = -1 ; z0 <= 1 ; z0++)
-	    {
-	      if (out_val == label)
-		break ;
-	      zi = mri_tmp->zi[z+z0] ;
-	      for (y0 = -1 ; y0 <= 1 ; y0++)
-	      {
-		if (out_val == label)
-		  break ;
-		yi = mri_tmp->yi[y+y0] ;
-		for (x0 = -1 ; x0 <= 1 ; x0++)
+		for (f = 0 ; f < mri_src->nframes ; f++)
 		{
-		  if (out_val == label)
-		    break ;
-		  xi = mri_tmp->xi[x+x0] ;
-		  MRIsampleVolumeFrameType(mri_src, x, y, z, f, SAMPLE_NEAREST, &val) ;
-		  if (val == label)
-		  {
-		    break ;
-		    out_val = label ;
-		  }
-		}
-	      }
+			for (z = zmin ; z <= zmax ; z++)
+			{
+				for (y = ymin ; y <= ymax ; y++)
+				{
+					for (x = xmin ; x <= xmax ; x++)
+					{
+						MRIsampleVolumeFrameType(mri_src, x, y, z, f, SAMPLE_NEAREST, &out_val) ;
+						for (z0 = -1 ; z0 <= 1 ; z0++)
+						{
+							if (out_val == label)
+								break ;
+							zi = mri_tmp->zi[z+z0] ;
+							for (y0 = -1 ; y0 <= 1 ; y0++)
+							{
+								if (out_val == label)
+									break ;
+								yi = mri_tmp->yi[y+y0] ;
+								for (x0 = -1 ; x0 <= 1 ; x0++)
+								{
+									if (out_val == label)
+										break ;
+									xi = mri_tmp->xi[x+x0] ;
+									MRIsampleVolumeFrameType(mri_src, x, y, z, f, SAMPLE_NEAREST, &val) ;
+									if (val == label)
+									{
+										break ;
+										out_val = label ;
+									}
+								}
+							}
             }
           }
-	  MRIsetVoxVal(mri_dst, x, y, z, f, out_val) ;
+					MRIsetVoxVal(mri_dst, x, y, z, f, out_val) ;
         }
       }
     }
@@ -761,17 +761,17 @@ MRIdilateLabel(MRI *mri_src, MRI *mri_dst, int label, int niter)
   return(mri_dst) ;
 }
 /*-----------------------------------------------------
-  Parameters:
+        Parameters:
 
-  Returns value:
+        Returns value:
 
-  Description
-  ------------------------------------------------------*/
+        Description
+------------------------------------------------------*/
 MRI *
 MRIdilateUchar(MRI *mri_src, MRI *mri_dst)
 {
   int     width, height, depth, x, y, z, x0, y0, z0, xi, yi, zi, same,
-    xmin, xmax, ymin, ymax, zmin, zmax;
+          xmin, xmax, ymin, ymax, zmin, zmax;
   BUFTYPE *psrc, max_val, val ;
 
   width = mri_src->width ;
@@ -855,21 +855,21 @@ MRIdilateUchar(MRI *mri_src, MRI *mri_dst)
   return(mri_dst) ;
 }
 /*-----------------------------------------------------
-  Parameters:
+        Parameters:
 
-  Returns value:
+        Returns value:
 
-  Description
-  ------------------------------------------------------*/
+        Description
+------------------------------------------------------*/
 MRI *
 MRIdilate(MRI *mri_src, MRI *mri_dst)
 {
   int     width, height, depth, x, y, z, x0, y0, z0, xi, yi, zi, same,
-    xmin, xmax, ymin, ymax, zmin, zmax, f;
-  Real    val, max_val ;
+          xmin, xmax, ymin, ymax, zmin, zmax, f;
+	Real    val, max_val ;
 
-  if (mri_src->type == MRI_UCHAR)
-    return(MRIdilateUchar(mri_src, mri_dst)) ;
+	if (mri_src->type == MRI_UCHAR)
+		return(MRIdilateUchar(mri_src, mri_dst)) ;
 
   width = mri_src->width ;
   height = mri_src->height ;
@@ -890,34 +890,34 @@ MRIdilate(MRI *mri_src, MRI *mri_dst)
   xmax = 0 ; xmin = width-1 ;
   ymax = 0 ; ymin = height-1 ;
   zmax = 0 ; zmin = depth-1 ;
-  for (f = 0 ; f < mri_src->nframes ; f++)
-  {
-    for (z = 0 ; z < depth ; z++)
-    {
-      for (y = 0 ; y < height ; y++)
-      {
-	for (x = 0 ; x < width ; x++)
+	for (f = 0 ; f < mri_src->nframes ; f++)
 	{
-	  MRIsampleVolumeFrameType(mri_src, x, y, z, f, SAMPLE_NEAREST, &val) ;
-	  if (val > 0)
-	  {
-	    if (x-1 < xmin)
-	      xmin = x-1 ;
-	    if (x+1 > xmax)
-	      xmax = x+1 ;
-	    if (y-1 < ymin)
-	      ymin = y-1 ;
-	    if (y+1 > ymax)
-	      ymax = y+1 ;
-	    if (z-1 < zmin)
-	      zmin = z-1 ;
-	    if (z+1 > zmax)
-	      zmax = z+1 ;
-	  }
+		for (z = 0 ; z < depth ; z++)
+		{
+			for (y = 0 ; y < height ; y++)
+			{
+				for (x = 0 ; x < width ; x++)
+				{
+					MRIsampleVolumeFrameType(mri_src, x, y, z, f, SAMPLE_NEAREST, &val) ;
+					if (val > 0)
+					{
+						if (x-1 < xmin)
+							xmin = x-1 ;
+						if (x+1 > xmax)
+							xmax = x+1 ;
+						if (y-1 < ymin)
+							ymin = y-1 ;
+						if (y+1 > ymax)
+							ymax = y+1 ;
+						if (z-1 < zmin)
+							zmin = z-1 ;
+						if (z+1 > zmax)
+							zmax = z+1 ;
+					}
+				}
+			}
+		}
 	}
-      }
-    }
-  }
   xmin = MAX(0, xmin) ; xmax = MIN(width-1, xmax) ;
   ymin = MAX(0, ymin) ; ymax = MIN(height-1, ymax) ;
   zmin = MAX(0, zmin) ; zmax = MIN(depth-1, zmax) ;
@@ -926,32 +926,32 @@ MRIdilate(MRI *mri_src, MRI *mri_dst)
   ymin = 0 ; ymax = height-1 ;
   zmin = 0 ; zmax = depth-1 ;
 #endif
-  for (f = 0 ; f < mri_src->nframes ; f++)
-  {
-    for (z = zmin ; z <= zmax ; z++)
-    {
-      for (y = ymin ; y <= ymax ; y++)
-      {
-	for (x = xmin ; x <= xmax ; x++)
+	for (f = 0 ; f < mri_src->nframes ; f++)
 	{
-	  max_val = 0 ;
-	  for (z0 = -1 ; z0 <= 1 ; z0++)
-	  {
-	    zi = mri_src->zi[z+z0] ;
-	    for (y0 = -1 ; y0 <= 1 ; y0++)
-	    {
-	      yi = mri_src->yi[y+y0] ;
-	      for (x0 = -1 ; x0 <= 1 ; x0++)
-	      {
-		xi = mri_src->xi[x+x0] ;
-		MRIsampleVolumeFrameType(mri_src, xi, yi, zi, f, SAMPLE_NEAREST, &val)  ;
-		if (val > max_val)
-		  max_val = val ;
-	      }
-	    }
-	  }
-	  MRIsetVoxVal(mri_dst, x,y,z, f, max_val) ;
-	}
+		for (z = zmin ; z <= zmax ; z++)
+		{
+			for (y = ymin ; y <= ymax ; y++)
+			{
+				for (x = xmin ; x <= xmax ; x++)
+				{
+					max_val = 0 ;
+					for (z0 = -1 ; z0 <= 1 ; z0++)
+					{
+						zi = mri_src->zi[z+z0] ;
+						for (y0 = -1 ; y0 <= 1 ; y0++)
+						{
+							yi = mri_src->yi[y+y0] ;
+							for (x0 = -1 ; x0 <= 1 ; x0++)
+							{
+								xi = mri_src->xi[x+x0] ;
+								MRIsampleVolumeFrameType(mri_src, xi, yi, zi, f, SAMPLE_NEAREST, &val)  ;
+								if (val > max_val)
+									max_val = val ;
+							}
+						}
+					}
+					MRIsetVoxVal(mri_dst, x,y,z, f, max_val) ;
+				}
       }
     }
   }
@@ -964,12 +964,12 @@ MRIdilate(MRI *mri_src, MRI *mri_dst)
   return(mri_dst) ;
 }
 /*-----------------------------------------------------
-  Parameters:
+        Parameters:
 
-  Returns value:
+        Returns value:
 
-  Description
-  ------------------------------------------------------*/
+        Description
+------------------------------------------------------*/
 MRI *
 MRIopen(MRI *mri_src, MRI *mri_dst)
 {
@@ -981,12 +981,12 @@ MRIopen(MRI *mri_src, MRI *mri_dst)
   return(mri_dst) ;
 }
 /*-----------------------------------------------------
-  Parameters:
+        Parameters:
 
-  Returns value:
+        Returns value:
 
-  Description
-  ------------------------------------------------------*/
+        Description
+------------------------------------------------------*/
 MRI *
 MRIclose(MRI *mri_src, MRI *mri_dst)
 {
@@ -998,12 +998,12 @@ MRIclose(MRI *mri_src, MRI *mri_dst)
   return(mri_dst) ;
 }
 /*-----------------------------------------------------
-  Parameters:
+        Parameters:
 
-  Returns value:
+        Returns value:
 
-  Description
-  ------------------------------------------------------*/
+        Description
+------------------------------------------------------*/
 MRI *
 MRIerode6(MRI *mri_src, MRI *mri_dst)
 {
@@ -1061,12 +1061,12 @@ MRIerode6(MRI *mri_src, MRI *mri_dst)
   return(mri_dst) ;
 }
 /*-----------------------------------------------------
-  Parameters:
+        Parameters:
 
-  Returns value:
+        Returns value:
 
-  Description
-  ------------------------------------------------------*/
+        Description
+------------------------------------------------------*/
 MRI *
 MRIdilate6(MRI *mri_src, MRI *mri_dst)
 {
@@ -1124,12 +1124,12 @@ MRIdilate6(MRI *mri_src, MRI *mri_dst)
   return(mri_dst) ;
 }
 /*-----------------------------------------------------
-  Parameters:
+        Parameters:
 
-  Returns value:
+        Returns value:
 
-  Description
-  ------------------------------------------------------*/
+        Description
+------------------------------------------------------*/
 MRI *
 MRIopen6(MRI *mri_src, MRI *mri_dst)
 {
@@ -1141,12 +1141,12 @@ MRIopen6(MRI *mri_src, MRI *mri_dst)
   return(mri_dst) ;
 }
 /*-----------------------------------------------------
-  Parameters:
+        Parameters:
 
-  Returns value:
+        Returns value:
 
-  Description
-  ------------------------------------------------------*/
+        Description
+------------------------------------------------------*/
 MRI *
 MRIclose6(MRI *mri_src, MRI *mri_dst)
 {
@@ -1158,17 +1158,17 @@ MRIclose6(MRI *mri_src, MRI *mri_dst)
   return(mri_dst) ;
 }
 /*-----------------------------------------------------
-  Parameters:
+        Parameters:
 
-  Returns value:
+        Returns value:
 
-  Description
-  ------------------------------------------------------*/
+        Description
+------------------------------------------------------*/
 MRI *
 MRIerodeRegion(MRI *mri_src, MRI *mri_dst, int wsize, MRI_REGION *region)
 {
   int     width, height, depth, x, y, z, whalf, x0, y0, z0, val,
-    xk, yk, zk, xi, yi, zi, min_val ;
+          xk, yk, zk, xi, yi, zi, min_val ;
   BUFTYPE *pdst ;
 
   whalf = wsize/2 ;
@@ -1238,12 +1238,12 @@ MRIerodeRegion(MRI *mri_src, MRI *mri_dst, int wsize, MRI_REGION *region)
   return(mri_dst) ;
 }
 /*-----------------------------------------------------
-  Parameters:
+        Parameters:
 
-  Returns value:
+        Returns value:
 
-  Description
-  ------------------------------------------------------*/
+        Description
+------------------------------------------------------*/
 MRI *
 MRIcomputeResidual(MRI *mri1, MRI *mri2, MRI *mri_dst, int t1, int t2)
 {
@@ -1292,12 +1292,12 @@ MRIcomputeResidual(MRI *mri1, MRI *mri2, MRI *mri_dst, int t1, int t2)
   return(mri_dst) ;
 }
 /*-----------------------------------------------------
-  Parameters:
+        Parameters:
 
-  Returns value:
+        Returns value:
 
-  Description
-  ------------------------------------------------------*/
+        Description
+------------------------------------------------------*/
 MRI *
 MRIminmax(MRI *mri_src, MRI *mri_dst, MRI *mri_dir, int wsize)
 {
@@ -1360,28 +1360,27 @@ MRIminmax(MRI *mri_src, MRI *mri_dst, MRI *mri_dir, int wsize)
   return(mri_dst) ;
 }
 /*-----------------------------------------------------
-  Parameters:
+        Parameters:
 
-  Returns value:
+        Returns value:
 
-  Description
-  ------------------------------------------------------*/
+        Description
+------------------------------------------------------*/
 MRI *
 MRIreplaceValues(MRI *mri_src, MRI *mri_dst, float in_val, float out_val)
 {
   int     width, height, depth, x, y, z;
-  float   val ;
-
-  if (!mri_dst)
-    mri_dst = MRIclone(mri_src, NULL) ;
-
-  if (mri_src->type == MRI_UCHAR && mri_dst->type == MRI_UCHAR)
-    return(MRIreplaceValuesUchar(mri_src, mri_dst, in_val, out_val)) ;
+	float   val ;
 
   width = mri_src->width ;
   height = mri_src->height ;
   depth = mri_src->depth ;
 
+  if (!mri_dst)
+    mri_dst = MRIclone(mri_src, NULL) ;
+
+	if (mri_src->type == MRI_UCHAR && mri_dst->type == MRI_UCHAR)
+		return(MRIreplaceValuesUchar(mri_src, mri_dst, (BUFTYPE)nint(in_val), (BUFTYPE)nint(out_val))) ;
   for (z = 0 ; z < depth ; z++)
   {
     for (y = 0 ; y < height ; y++)
@@ -1391,67 +1390,60 @@ MRIreplaceValues(MRI *mri_src, MRI *mri_dst, float in_val, float out_val)
         val = MRIgetVoxVal(mri_src, x, y, z, 0) ;
         if (FEQUAL(val, in_val))
           val = out_val ;
-	MRIsetVoxVal(mri_dst, x, y, z, 0, val) ;
+				MRIsetVoxVal(mri_dst, x, y, z, 0, val) ;
       }
     }
   }
   return(mri_dst) ;
 }
 /*-----------------------------------------------------
-  Parameters:
+        Parameters:
 
-  Returns value:
+        Returns value:
 
-  Description
-  ------------------------------------------------------*/
+        Description
+------------------------------------------------------*/
 MRI *
-MRIreplaceValuesUchar(MRI *mri_src, MRI *mri_dst, float in_val, float out_val)
+MRIreplaceValuesUchar(MRI *mri_src, MRI *mri_dst, BUFTYPE in_val, BUFTYPE out_val)
 {
   int     width, height, depth, x, y, z;
-  BUFTYPE  val ;
-  BUFTYPE *psrc, *pdst ;
-  BUFTYPE uinval, uoutval;
-
-  if (!mri_dst)
-    mri_dst = MRIclone(mri_src, NULL) ;
-
-  if (mri_src->type != MRI_UCHAR || mri_dst->type != MRI_UCHAR)
-    return(MRIreplaceValues(mri_src, mri_dst, in_val, out_val)) ;
+	BUFTYPE  val ;
+	BUFTYPE *psrc, *pdst ;
 
   width = mri_src->width ;
   height = mri_src->height ;
   depth = mri_src->depth ;
 
-  // don't do cast too many times.  do it once
-  uinval = (BUFTYPE) in_val;
-  uoutval = (BUFTYPE) out_val;
+  if (!mri_dst)
+    mri_dst = MRIclone(mri_src, NULL) ;
+
+	if (mri_src->type != MRI_UCHAR || mri_dst->type != MRI_UCHAR)
+		return(MRIreplaceValues(mri_src, mri_dst, (float)in_val, (float)out_val)) ;
 
   for (z = 0 ; z < depth ; z++)
   {
     for (y = 0 ; y < height ; y++)
     {
-      psrc = &MRIvox(mri_src, 0, y, z) ;
-      pdst = &MRIvox(mri_dst, 0, y, z) ;
+			psrc = &MRIvox(mri_src, 0, y, z) ;
+			pdst = &MRIvox(mri_dst, 0, y, z) ;
       for (x = 0 ; x < width ; x++)
       {
         val = *psrc++ ;
-        // if (FEQUAL(val, in_val))
-	if (val == uinval)
-          // val = out_val ;
-	  val = uoutval;
-	*pdst++ = val ;
+        if (val == in_val)
+          val = out_val ;
+				*pdst++ = val ;
       }
     }
   }
   return(mri_dst) ;
 }
 /*-----------------------------------------------------
-  Parameters:
+        Parameters:
 
-  Returns value:
+        Returns value:
 
-  Description
-  ------------------------------------------------------*/
+        Description
+------------------------------------------------------*/
 MRI *
 MRImeanMask(MRI *mri_src, MRI *mri_mask, MRI *mri_dst,int mask, int wsize)
 {
@@ -1477,34 +1469,38 @@ MRImeanMask(MRI *mri_src, MRI *mri_mask, MRI *mri_dst,int mask, int wsize)
       pmask = &MRIvox(mri_mask, 0, y, z) ;
       for (x = 0 ; x < width ; x++)
       {
-	if (x == Gx && y == Gy && z == Gz)
-	  DiagBreak() ;
-	mask_val = MRIgetVoxVal(mri_mask, x, y, z, 0) ;
-	val = MRIgetVoxVal(mri_src, x, y, z, 0) ;
+				if (x == Gx && y == Gy && z == Gz)
+					DiagBreak() ;
+				mask_val = MRIgetVoxVal(mri_mask, x, y, z, 0) ;
+				val = MRIgetVoxVal(mri_src, x, y, z, 0) ;
 					
-	if (mask_val == mask)
-	{
-	  val = MRIvoxelMean(mri_src, x, y, z, wsize) ;
-	}
-	MRIsetVoxVal(mri_dst, x, y, z, 0, val) ;
+				if (mask_val == mask)
+				{
+					val = MRIvoxelMean(mri_src, x, y, z, wsize) ;
+				}
+				MRIsetVoxVal(mri_dst, x, y, z, 0, val) ;
       }
     }
   }
   return(mri_dst) ;
 }
 /*-----------------------------------------------------
-  Parameters:
+        Parameters:
 
-  Returns value:
+        Returns value:
 
-  Description
-  ------------------------------------------------------*/
+        Description
+------------------------------------------------------*/
 MRI *
 MRImask(MRI *mri_src, MRI *mri_mask, MRI *mri_dst,int mask,float out_val)
 {
   int     width, height, depth, x, y, z, mask_val;
   BUFTYPE *pmask ;
   float   val ;
+
+  width = mri_src->width ;
+  height = mri_src->height ;
+  depth = mri_src->depth ;
 
   if (!mri_dst)
     mri_dst = MRIclone(mri_src, NULL) ;
@@ -1513,10 +1509,6 @@ MRImask(MRI *mri_src, MRI *mri_mask, MRI *mri_dst,int mask,float out_val)
     ErrorReturn(NULL,
                 (ERROR_UNSUPPORTED, "MRImask: src and dst must be same type")) ;
 
-  width = mri_src->width ;
-  height = mri_src->height ;
-  depth = mri_src->depth ;
-
   for (z = 0 ; z < depth ; z++)
   {
     for (y = 0 ; y < height ; y++)
@@ -1524,26 +1516,26 @@ MRImask(MRI *mri_src, MRI *mri_mask, MRI *mri_dst,int mask,float out_val)
       pmask = &MRIvox(mri_mask, 0, y, z) ;
       for (x = 0 ; x < width ; x++)
       {
-	if (x == Gx && y == Gy && z == Gz)
-	  DiagBreak() ;
-	mask_val = MRIgetVoxVal(mri_mask, x, y, z, 0) ;
-	val = MRIgetVoxVal(mri_src, x, y, z, 0) ;
+				if (x == Gx && y == Gy && z == Gz)
+					DiagBreak() ;
+				mask_val = MRIgetVoxVal(mri_mask, x, y, z, 0) ;
+				val = MRIgetVoxVal(mri_src, x, y, z, 0) ;
 					
-	if (mask_val == mask)
-	  val = out_val ;
-	MRIsetVoxVal(mri_dst, x, y, z, 0, val) ;
+				if (mask_val == mask)
+					val = out_val ;
+				MRIsetVoxVal(mri_dst, x, y, z, 0, val) ;
       }
     }
   }
   return(mri_dst) ;
 }
 /*-----------------------------------------------------
-  Parameters:
+        Parameters:
 
-  Returns value:
+        Returns value:
 
-  Description
-  ------------------------------------------------------*/
+        Description
+------------------------------------------------------*/
 MRI *
 MRIthresholdMask(MRI *mri_src, MRI *mri_mask, MRI *mri_dst,
                  BUFTYPE mask_threshold,BUFTYPE out_val)
@@ -1551,12 +1543,12 @@ MRIthresholdMask(MRI *mri_src, MRI *mri_mask, MRI *mri_dst,
   int     width, height, depth, x, y, z;
   BUFTYPE *pdst, *psrc, *pmask, val, mask_val ;
 
-  if (!mri_dst)
-    mri_dst = MRIclone(mri_src, NULL) ;
-
   width = mri_src->width ;
   height = mri_src->height ;
   depth = mri_src->depth ;
+
+  if (!mri_dst)
+    mri_dst = MRIclone(mri_src, NULL) ;
 
   for (z = 0 ; z < depth ; z++)
   {
@@ -1579,10 +1571,10 @@ MRIthresholdMask(MRI *mri_src, MRI *mri_mask, MRI *mri_dst,
   return(mri_dst) ;
 }
 /*----------------------------------------------------------------------
-  Parameters:
+            Parameters:
 
-  Description:
-  ----------------------------------------------------------------------*/
+           Description:
+----------------------------------------------------------------------*/
 MRI *
 MRImaskThreshold(MRI *mri_src, MRI *mri_mask, MRI *mri_dst, float threshold,
                  int out_label)
@@ -1601,7 +1593,7 @@ MRImaskThreshold(MRI *mri_src, MRI *mri_mask, MRI *mri_dst, float threshold,
   width = mri_src->width ; height = mri_src->height ; depth = mri_src->depth ; 
   /* now apply the inverse morph to build an average wm representation
      of the input volume 
-  */
+     */
 
 
   noff = non = nchanged = 0 ;
@@ -1648,15 +1640,15 @@ MRImaskThreshold(MRI *mri_src, MRI *mri_mask, MRI *mri_dst, float threshold,
   return(mri_dst) ;
 }
 /*----------------------------------------------------------------------
-  Parameters:
+            Parameters:
 
-  Description:
-  ----------------------------------------------------------------------*/
+           Description:
+----------------------------------------------------------------------*/
 int
 MRIgrowLabel(MRI *mri, MRI *mri_filled, int in_label, int out_label)
 {
   int      x, y, z, width, height, depth, xi, yi, zi, xk, yk, zk, nfilled,
-    total_filled, xmin, xmax, ymin, ymax, zmin, zmax ;
+           total_filled, xmin, xmax, ymin, ymax, zmin, zmax ;
 
   width = mri->width ; height = mri->height ; depth = mri->depth ;
   total_filled = 0 ;
@@ -1784,10 +1776,10 @@ MRIgrowLabel(MRI *mri, MRI *mri_filled, int in_label, int out_label)
   return(NO_ERROR) ;
 }
 /*----------------------------------------------------------------------
-  Parameters:
+            Parameters:
 
-  Description:
-  ----------------------------------------------------------------------*/
+           Description:
+----------------------------------------------------------------------*/
 int
 MRIturnOnFG(MRI *mri, MRI *mri_fg, MRI *mri_bg)
 {
@@ -1833,7 +1825,7 @@ static BUFTYPE
 findLabel(MRI *mri, int x, int y, int z)
 {
   int   xi, yi, zi, xk, yk, zk, label, width, height, depth, counts[256],
-    max_label, max_count, whalf = 1 ;
+        max_label, max_count, whalf = 1 ;
 
   if (x == 148 && y == 104 && z == 136)
     DiagBreak() ;
@@ -1879,11 +1871,11 @@ findLabel(MRI *mri, int x, int y, int z)
   return(max_label) ;
 }
 /*----------------------------------------------------------------------
-  Parameters:
+            Parameters:
 
-  Description:
-  turn off all voxels which are set in the bg image 
-  ----------------------------------------------------------------------*/
+           Description:
+             turn off all voxels which are set in the bg image 
+----------------------------------------------------------------------*/
 int
 MRIturnOffBG(MRI *mri, MRI *mri_bg)
 {
@@ -1926,7 +1918,7 @@ static BUFTYPE
 findLabel(MRI *mri, int x, int y, int z)
 {
   int   xi, yi, zi, xk, yk, zk, left_count, right_count, label,
-    width, height, depth ;
+        width, height, depth ;
 
   width = mri->width ; height = mri->height ; depth = mri->depth ;
   left_count = right_count = 0 ;
@@ -1959,13 +1951,13 @@ findLabel(MRI *mri, int x, int y, int z)
 }
 #endif
 /*-----------------------------------------------------
-  Parameters:
+        Parameters:
 
-  Returns value:
+        Returns value:
 
-  Description
-  Set an MRI intensity values to 0
-  ------------------------------------------------------*/
+        Description
+          Set an MRI intensity values to 0
+------------------------------------------------------*/
 int
 MRIsetValues(MRI *mri, float val)
 {
@@ -1977,34 +1969,34 @@ MRIsetValues(MRI *mri, float val)
   nframes = mri->nframes ;
 
   for (frame = 0 ; frame < nframes ; frame++)
-  {
-    for (x = 0 ; x < width  ; x++)
-    {
-      for (y = 0 ; y < height ; y++)
-      {
-	for (z = 0 ; z < depth ; z++)
 	{
-	  MRIsetVoxVal(mri, x, y, z, frame, val) ;
-	}
-      }
+		for (x = 0 ; x < width  ; x++)
+		{
+			for (y = 0 ; y < height ; y++)
+			{
+				for (z = 0 ; z < depth ; z++)
+				{
+					MRIsetVoxVal(mri, x, y, z, frame, val) ;
+				}
+			}
     }
   }
   
   return(NO_ERROR) ;
 }
 /*-----------------------------------------------------
-  Parameters:
+        Parameters:
 
-  Returns value:
+        Returns value:
 
-  Description
-  ------------------------------------------------------*/
+        Description
+------------------------------------------------------*/
 MRI *
 MRIsoapBubbleLabel(MRI *mri_src, MRI *mri_label, MRI *mri_dst, int label, 
                    int niter)
 {
   int     width, height, depth, x, y, z, x0, y0, z0, xi, yi, zi,
-    xmin, xmax, ymin, ymax, zmin, zmax, i, n;
+          xmin, xmax, ymin, ymax, zmin, zmax, i, n;
   BUFTYPE *plabel ;
   MRI     *mri_tmp = NULL ;
   float   mean ;
@@ -2088,13 +2080,13 @@ MRIsoapBubbleLabel(MRI *mri_src, MRI *mri_label, MRI *mri_dst, int label,
   return(mri_dst) ;
 }
 /*-----------------------------------------------------
-  Parameters:
+        Parameters:
 
-  Returns value:
+        Returns value:
 
-  Description
-  Copy the label from one volume to another
-  ------------------------------------------------------*/
+        Description
+           Copy the label from one volume to another
+------------------------------------------------------*/
 int
 MRIcopyLabel(MRI *mri_src, MRI *mri_dst, int label) 
 {
@@ -2171,13 +2163,13 @@ MRItotalVoxelsOn(MRI *mri, int thresh)
   return(nvox) ;
 }
 /*-----------------------------------------------------
-  Parameters:
+        Parameters:
 
-  Returns value:
+        Returns value:
 
-  Description
-  Count and return the # of voxels with a given label.
-  ------------------------------------------------------*/
+        Description
+           Count and return the # of voxels with a given label.
+------------------------------------------------------*/
 int
 MRIvoxelsInLabel(MRI *mri, int label)
 {

@@ -113,7 +113,7 @@ MRIhistogramRegion(MRI *mri, int nbins, HISTOGRAM *histo, MRI_REGION *region)
   MRIvalRangeRegion(mri, &fmin, &fmax, region) ;
   bmin = (BUFTYPE)fmin ; bmax = (BUFTYPE)fmax ;
   if (!nbins)
-    nbins = nint(fmax - fmin + 1.5) ;
+    nbins = nint(fmax - fmin + 1.0) ;
 
   if (!histo)
     histo = HISTOalloc(nbins) ;
@@ -190,7 +190,7 @@ MRIhistogramLabelStruct(MRI *mri, int nbins, HISTOGRAM *histo, LABEL *label)
 
   MRIvalRange(mri, &fmin, &fmax) ;
   if (!nbins)
-    nbins = nint((fmax - fmin) + 1.5) ;
+    nbins = nint((fmax - fmin) + 1.0) ;
 
   if (!histo)
     histo = HISTOalloc(nbins) ;
@@ -203,7 +203,7 @@ MRIhistogramLabelStruct(MRI *mri, int nbins, HISTOGRAM *histo, LABEL *label)
       histo->nbins = nbins;
   }
   HISTOclear(histo, histo) ;
-  bin_size = (fmax - fmin + 1) / (float)nbins ;
+  histo->bin_size = bin_size = (fmax - fmin + 1) / (float)nbins ;
 
 
   mriHistogramLabel(mri, nbins, histo, label) ;
@@ -227,7 +227,7 @@ mriHistogramLabel(MRI *mri, int nbins, HISTOGRAM *histo, LABEL *label)
     MRIvalRange(mri, &fmin, &fmax) ;
 
   if (!nbins)
-    nbins = nint(fmax - fmin + 1.5) ;
+    nbins = nint(fmax - fmin + 1.0) ;
 
   if (!histo)
     histo = HISTOalloc(nbins) ;
@@ -241,13 +241,13 @@ mriHistogramLabel(MRI *mri, int nbins, HISTOGRAM *histo, LABEL *label)
   }
   HISTOclear(histo, histo) ;
 
-  bin_size = (fmax - fmin + 1) / (float)nbins ;
+  bin_size = histo->bin_size = (fmax - fmin + 1) / (float)nbins ;
   width = mri->width ;
   height = mri->height ;
   depth = mri->depth ;
 
   for (bin_no = 0 ; bin_no < nbins ; bin_no++)
-    histo->bins[bin_no] = (bin_no+1)*bin_size+fmin ;
+    histo->bins[bin_no] = (bin_no)*bin_size+fmin ;
 
   switch (mri->type)
   {
@@ -260,7 +260,7 @@ mriHistogramLabel(MRI *mri, int nbins, HISTOGRAM *histo, LABEL *label)
 			   &xv, &yv, &zv) ;
       x = nint(xv) ; y = nint(yv) ; z = nint(zv) ;
       val = (float)MRIvox(mri, x, y, z) ;
-      bin_no = (int)((float)(val - fmin) / (float)bin_size) ;
+      bin_no = nint((float)(val - fmin) / (float)bin_size) ;
       histo->counts[bin_no]++ ;
     }
     break ;
@@ -273,7 +273,7 @@ mriHistogramLabel(MRI *mri, int nbins, HISTOGRAM *histo, LABEL *label)
 			   &xv, &yv, &zv) ;
       x = nint(xv) ; y = nint(yv) ; z = nint(zv) ;
       val = (float)MRISvox(mri, x, y, z) ;
-      bin_no = (int)((float)(val - fmin) / (float)bin_size) ;
+      bin_no = nint((float)(val - fmin) / (float)bin_size) ;
       histo->counts[bin_no]++ ;
     }
     break ;
@@ -286,7 +286,7 @@ mriHistogramLabel(MRI *mri, int nbins, HISTOGRAM *histo, LABEL *label)
 			   &xv, &yv, &zv) ;
       x = nint(xv) ; y = nint(yv) ; z = nint(zv) ;
       val = (float)MRIFvox(mri, x, y, z) ;
-      bin_no = (int)((float)(val - fmin) / (float)bin_size) ;
+      bin_no = nint((float)(val - fmin) / (float)bin_size) ;
       histo->counts[bin_no]++ ;
     }
     break ;
@@ -331,7 +331,7 @@ mriHistogramRegion(MRI *mri, int nbins, HISTOGRAM *histo, MRI_REGION *region)
     MRIvalRangeRegion(mri, &fmin, &fmax, region) ;
   bmin = (BUFTYPE)fmin ; bmax = (BUFTYPE)fmax ;
   if (!nbins)
-    nbins = nint(fmax - fmin + 1.5) ;
+    nbins = nint(fmax - fmin + 1.0) ;
 
   if (!histo)
     histo = HISTOalloc(nbins) ;
@@ -369,7 +369,7 @@ mriHistogramRegion(MRI *mri, int nbins, HISTOGRAM *histo, MRI_REGION *region)
     z0 = 0 ;
 
   for (bin_no = 0 ; bin_no < nbins ; bin_no++)
-    histo->bins[bin_no] = (bin_no+1)*bin_size+fmin ;
+    histo->bins[bin_no] = (bin_no)*bin_size+fmin ;
 
   switch (mri->type)
   {
@@ -382,7 +382,7 @@ mriHistogramRegion(MRI *mri, int nbins, HISTOGRAM *histo, MRI_REGION *region)
         for (x = x0 ; x < width ; x++)
         {
           val = *psrc++ ;
-          bin_no = (int)((float)(val - bmin) / (float)bin_size) ;
+          bin_no = nint((float)(val - bmin) / (float)bin_size) ;
           histo->counts[bin_no]++ ;
         }
       }
@@ -396,7 +396,7 @@ mriHistogramRegion(MRI *mri, int nbins, HISTOGRAM *histo, MRI_REGION *region)
         spsrc = &MRISvox(mri, x0, y, z) ;
         for (x = x0 ; x < width ; x++)
         {
-          bin_no = (int)((float)(*spsrc++ - fmin) / (float)bin_size) ;
+          bin_no = nint((float)(*spsrc++ - fmin) / (float)bin_size) ;
 	  if (bin_no < 0)
 	    bin_no = 0 ;
 	  if (bin_no >= histo->nbins)
@@ -414,7 +414,7 @@ mriHistogramRegion(MRI *mri, int nbins, HISTOGRAM *histo, MRI_REGION *region)
         fpsrc = &MRIFvox(mri, x0, y, z) ;
         for (x = x0 ; x < width ; x++)
         {
-          bin_no = (int)((float)(*fpsrc++ - fmin) / (float)bin_size) ;
+          bin_no = nint((float)(*fpsrc++ - fmin) / (float)bin_size) ;
 	  if (bin_no < 0)
 	    bin_no = 0 ;
 	  if (bin_no >= histo->nbins)
@@ -726,17 +726,16 @@ MRIhistogram(MRI *mri, int nbins)
 
   MRIvalRange(mri, &fmin, &fmax) ; // fmin = is wrong!
   if (!nbins)
-    nbins = nint(fmax - fmin + 1.5) ;
+    nbins = nint(fmax - fmin + 1.0) ;
 
   histo = HISTOalloc(nbins) ;
-  bin_size = (fmax - fmin + 1) / (float)nbins ;
-  histo->bin_size = bin_size ;
+  histo->bin_size = bin_size = (fmax - fmin + 1) / (float)nbins ;
   width = mri->width ;
   height = mri->height ;
   depth = mri->depth ;
 
   for (bin_no = 0 ; bin_no < nbins ; bin_no++)
-    histo->bins[bin_no] = (bin_no+1)*bin_size+fmin ;
+    histo->bins[bin_no] = (bin_no)*bin_size+fmin ;
   for (z = 0 ; z < depth ; z++)
   {
     for (y = 0 ; y < height ; y++)
@@ -744,7 +743,7 @@ MRIhistogram(MRI *mri, int nbins)
       for (x = 0 ; x < width ; x++)
       {
         MRIsampleVolumeType(mri, x, y, z, &val, SAMPLE_NEAREST) ;
-        bin_no = (int)((float)(val - fmin) / (float)bin_size) ;
+        bin_no = nint((float)(val - fmin) / (float)bin_size) ;
         histo->counts[bin_no]++ ;
       }
     }
@@ -764,7 +763,7 @@ MRIhistogramLabelRegion(MRI *mri, MRI *mri_labeled, MRI_REGION *region, int labe
   MRIvalRangeRegion(mri, &fmin, &fmax, region) ;
   bmin = (int)fmin ; bmax = (int)fmax ;
   if (!nbins)
-    nbins = nint(fmax - fmin + 1.5) ;
+    nbins = nint(fmax - fmin + 1.0) ;
 
   histo = HISTOalloc(nbins) ;
 
@@ -774,7 +773,7 @@ MRIhistogramLabelRegion(MRI *mri, MRI *mri_labeled, MRI_REGION *region, int labe
   depth = mri->depth ;
 
   for (bin_no = 0 ; bin_no < nbins ; bin_no++)
-    histo->bins[bin_no] = (bin_no+1)*bin_size+fmin ;
+    histo->bins[bin_no] = (bin_no)*bin_size+fmin ;
   x0 = MAX(0, region->x) ; y0 = MAX(0, region->y) ; z0 = MAX(0, region->z) ;
   x1 = MIN(width, region->x+region->dx) ;
   y1 = MIN(height, region->y+region->dy) ;
@@ -793,17 +792,17 @@ MRIhistogramLabelRegion(MRI *mri, MRI *mri_labeled, MRI_REGION *region, int labe
           /* 0 -> x */
           psrc = &MRIvox(mri, x, y, z) ;
           val = *psrc++ ;  
-          bin_no = (int)((float)(val - bmin) / (float)bin_size) ;
+          bin_no = nint((float)(val - bmin) / (float)bin_size) ;
           histo->counts[bin_no]++ ;
           break ;
         case MRI_SHORT:
           val = MRISvox(mri, x, y, z) ;
-          bin_no = (int)((float)(val - bmin) / (float)bin_size) ;
+          bin_no = nint((float)(val - bmin) / (float)bin_size) ;
           histo->counts[bin_no]++ ;
           break ;
         case MRI_FLOAT:
           fval = MRIFvox(mri, x, y, z);
-          bin_no = (int)((fval - fmin) / (float)bin_size);
+          bin_no = nint((fval - fmin) / (float)bin_size);
           histo->counts[bin_no]++;
           break;
           
@@ -830,24 +829,23 @@ MRIhistogramLabel(MRI *mri, MRI *mri_labeled, int label, int nbins)
   int        width, height, depth, x, y, z, bin_no ;
   HISTOGRAM  *histo ;
   float      fmin, fmax, bin_size ;
-  BUFTYPE    *psrc ;
   int        val, bmin, bmax ;
   float      fval;
 
   MRIvalRange(mri, &fmin, &fmax) ;
   bmin = (int)fmin ; bmax = (int)fmax ;
-  if (!nbins)
-    nbins = nint(fmax - fmin + 1.5) ;
+  if (nbins <= 0)
+    nbins = nint(fmax - fmin + 1.0) ;
 
   histo = HISTOalloc(nbins) ;
 
-  bin_size = (fmax - fmin + 1) / (float)nbins ;
+  histo->bin_size = bin_size = (fmax - fmin + 1) / (float)nbins ;
   width = mri->width ;
   height = mri->height ;
   depth = mri->depth ;
 
   for (bin_no = 0 ; bin_no < nbins ; bin_no++)
-    histo->bins[bin_no] = (bin_no+1)*bin_size+fmin ;
+    histo->bins[bin_no] = (bin_no)*bin_size+fmin ;
   for (z = 0 ; z < depth ; z++)
   {
     for (y = 0 ; y < height ; y++)
@@ -860,19 +858,20 @@ MRIhistogramLabel(MRI *mri, MRI *mri_labeled, int label, int nbins)
         {
         case MRI_UCHAR:
           /* 0 -> x */
-          psrc = &MRIvox(mri, x, y, z) ;
-          val = *psrc++ ;  
-          bin_no = (int)((float)(val - bmin) / (float)bin_size) ;
+          val = MRIvox(mri, x, y, z) ;
+          bin_no = nint((float)(val - bmin) / (float)bin_size) ;
+					if (bin_no == 0)
+						DiagBreak() ;
           histo->counts[bin_no]++ ;
           break ;
         case MRI_SHORT:
           val = MRISvox(mri, x, y, z) ;
-          bin_no = (int)((float)(val - bmin) / (float)bin_size) ;
+          bin_no = nint((float)(val - bmin) / (float)bin_size) ;
           histo->counts[bin_no]++ ;
           break ;
         case MRI_FLOAT:
           fval = MRIFvox(mri, x, y, z);
-          bin_no = (int)((fval - fmin) / (float)bin_size);
+          bin_no = nint((fval - fmin) / (float)bin_size);
           histo->counts[bin_no]++;
           break;
           
