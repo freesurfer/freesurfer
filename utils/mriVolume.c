@@ -6,6 +6,12 @@
 #include "mri_conform.h"
 #include "mriTransform.h"
 
+/*E* to fix tkmedit transform displacement problem - substitute these
+  for extract_i_to_r: */
+MATRIX *Volm_MRIgetRasToVoxelXform(MRI *mri);
+MATRIX *Volm_MRIgetVoxelToRasXform(MRI *mri);
+/*E*/
+
 char Volm_ksaErrorStrings[Volm_knNumErrorCodes][Volm_knErrStringLen] = {
   "No error.",
   "Invalid signature.",
@@ -17,7 +23,7 @@ char Volm_ksaErrorStrings[Volm_knNumErrorCodes][Volm_knErrStringLen] = {
   "Couldn't copy transform.",
   "Couldn't normalize volume.",
   "Couldn't export volume to COR format.",
-  "Normalized values not present.",
+  "Normalized values not< present.",
   "Scanner transform not present.",
   "Index to RAS transform not present."
 };
@@ -429,6 +435,8 @@ Volm_tErr Volm_ExportNormToCOR ( mriVolumeRef this,
   return eResult;
 }
 
+#define _VLDTDEBUG
+
 Volm_tErr Volm_LoadDisplayTransform ( mriVolumeRef this,
               char*        isFileName ) {
 
@@ -473,11 +481,40 @@ Volm_tErr Volm_LoadDisplayTransform ( mriVolumeRef this,
       MATRIX *m_ras2ras, *m_ras2ras_inverse, *m_tmp, *m_ras2vox ;
 
       Trns_GetARAStoBRAS(this->mDisplayTransform, &m_ras2ras) ;
-      m_ras2vox = MRIgetRasToVoxelXform(this->mpMriValues) ;
+
+      m_ras2vox = Volm_MRIgetRasToVoxelXform(this->mpMriValues);
+      /*E*  In the previous rev, that line was:
+	m_ras2vox = MRIgetRasToVoxelXform(this->mpMriValues) ;
+
+	MRIgetRasToVoxelXform() is pound-defined in mri.h as
+        mri.c's extract_r_to_i() , and refers to mri->x/y/zsize and
+        mri->w/h/depth
+
+	This is where the 05aug02 displacement trouble appears to come
+	from.  If I write a new function that doesn't displace by
+	c_ras, the problem goes away.  So I did.	
+
+      *E*/
 
       m_ras2ras_inverse = MatrixInverse(m_ras2ras, NULL) ;
+     /*E* the value of gm_screen2ras is hardcoded in tkmedit.c */
       m_tmp = MatrixMultiply(m_ras2ras_inverse, gm_screen2ras, NULL) ;
       MatrixMultiply(m_ras2vox, m_tmp, this->m_resample) ;
+
+#ifdef _VLDTDEBUG
+       fprintf(stderr, "Volm_LoadDisplayTransform: case LINEAR_RAS_TO_RAS or fell through\n");
+       fprintf(stderr, "m_ras2ras = \n");
+       MatrixPrint(stderr, m_ras2ras) ;
+       fprintf(stderr, "m_ras2vox = \n");
+       MatrixPrint(stderr, m_ras2vox) ;
+       fprintf(stderr, "m_ras2ras_inverse = \n");
+       MatrixPrint(stderr, m_ras2ras_inverse ) ;
+       fprintf(stderr, "gm_screen2ras = \n");
+       MatrixPrint(stderr, gm_screen2ras) ;
+       fprintf(stderr, "m_tmp = m_ras2ras_inverse * gm_screen2ras = \n");
+       MatrixPrint(stderr, m_tmp) ;
+       fprintf(stderr, "this->m_resample = m_ras2vox * m_ras2ras_inverse * gm_screen2ras = ");
+#endif
 
       printf("resample matrix is:\n") ;
       MatrixPrint(stdout, this->m_resample) ;
@@ -497,6 +534,111 @@ Volm_tErr Volm_LoadDisplayTransform ( mriVolumeRef this,
 
   return eResult;
 }
+
+
+/*E* See note above.  MRIgetRasToVoxelXform which is extract_r_to_i
+  was giving an extra displacement by c_ras.  Other things call it,
+  where that's probably the _right thing.  So this is a rewritten
+  version just for _this case to do. */
+MATRIX *Volm_MRIgetRasToVoxelXform(MRI *mri)
+{
+  MATRIX *m_ras_to_voxel, *m_voxel_to_ras ;
+
+  m_voxel_to_ras = Volm_MRIgetVoxelToRasXform(mri) ;
+  m_ras_to_voxel = MatrixInverse(m_voxel_to_ras, NULL) ;
+  MatrixFree(&m_voxel_to_ras) ;
+  return(m_ras_to_voxel) ;
+} /* end Volm_MRIgetRasToVoxelXform() */
+
+MATRIX *Volm_MRIgetVoxelToRasXform(MRI *mri)
+{
+  MATRIX *m;
+  float m11, m12, m13, m14;
+  float m21, m22, m23, m24;
+  float m31, m32, m33, m34;
+  float ci, cj, ck;
+
+#ifdef _VLDTDEBUG
+  /*E*/ fprintf(stderr, "Volm_MRIgetVoxelToRasXform(): mri = \n");
+  /*E*/ MRIdump(mri, stderr);
+#endif
+
+  m = MatrixAlloc(4, 4, MATRIX_REAL);
+  if(m == NULL)
+  {
+    ErrorReturn(NULL, (ERROR_BADPARM, "Volm_MRIgetVoxelToRasXform(): error allocating matrix"));
+  }
+
+  if(mri->ras_good_flag)
+  {
+#ifdef _VLDTDEBUG
+    /*E*/ fprintf(stderr, "Volm_MRIgetVoxelToRasXform(): in ras_good_flag\n");
+#endif
+
+    m11 = mri->xsize * mri->x_r;  m12 = mri->ysize * mri->y_r;  m13 = mri->zsize * mri->z_r;
+    m21 = mri->xsize * mri->x_a;  m22 = mri->ysize * mri->y_a;  m23 = mri->zsize * mri->z_a;
+    m31 = mri->xsize * mri->x_s;  m32 = mri->ysize * mri->y_s;  m33 = mri->zsize * mri->z_s;
+
+    ci = mri->width;
+    cj = mri->height;
+    ck = mri->depth;
+    
+    m14 = - (m11 * ci + m12 * cj + m13 * ck)/2.0;
+    m24 = - (m21 * ci + m22 * cj + m23 * ck)/2.0;
+    m34 = - (m31 * ci + m32 * cj + m33 * ck)/2.0;
+  
+    /*E* mri.c's extract_i_to_r() had these lines instead:
+      ci = (mri->width - 1.0) / 2.0;
+      cj = (mri->height - 1.0) / 2.0;
+      ck = (mri->depth - 1.0) / 2.0;
+      
+      m14 = mri->c_r - (m11 * ci + m12 * cj + m13 * ck);
+      m24 = mri->c_a - (m21 * ci + m22 * cj + m23 * ck);
+      m34 = mri->c_s - (m31 * ci + m32 * cj + m33 * ck);
+      which don't seem to be the right thing, here. */
+
+  }
+  else if(mri->slice_direction == MRI_CORONAL)
+  {
+    m11 = -mri->xsize;  m12 =  0.0;         m13 = 0.0;         m14 =  mri->xsize * mri->width / 2.0;
+    m21 =  0.0;         m22 =  0.0;         m23 = mri->zsize;  m24 = -mri->zsize * mri->depth / 2.0;
+    m31 =  0.0;         m32 = -mri->ysize;  m33 = 0.0;         m34 =  mri->ysize * mri->height / 2.0;
+  }
+  else if(mri->slice_direction == MRI_SAGITTAL)
+  {
+    m11 =  0.0;         m12 =  0.0;         m13 = mri->zsize;  m14 = -mri->zsize * mri->depth / 2.0;
+    m21 =  mri->xsize;  m22 =  0.0;         m23 = 0.0;         m24 = -mri->xsize * mri->width / 2.0;
+    m31 =  0.0;         m32 = -mri->ysize;  m33 = 0.0;         m34 =  mri->ysize * mri->height / 2.0;
+  }
+  else if(mri->slice_direction == MRI_HORIZONTAL)
+  {
+    m11 = -mri->xsize;  m12 =  0.0;         m13 = 0.0;         m14 =  mri->xsize * mri->width / 2.0;
+    m21 =  0.0;         m22 = -mri->ysize;  m23 = 0.0;         m24 =  mri->ysize * mri->height / 2.0;
+    m31 =  0.0;         m32 =  0.0;         m33 = mri->zsize;  m34 = -mri->zsize * mri->depth / 2.0;
+  }
+  else
+  {
+    m11 = -mri->xsize;  m12 =  0.0;         m13 = 0.0;         
+    m14 =  mri->xsize * mri->width / 2.0;
+    m21 =  0.0;         m22 = -mri->ysize;  m23 = 0.0;         
+    m24 =  mri->ysize * mri->height / 2.0;
+    m31 =  0.0;         m32 =  0.0;         m33 = mri->zsize;  
+    m34 = -mri->zsize * mri->depth / 2.0;
+  }
+  
+  stuff_four_by_four(m, m11, m12, m13, m14, 
+                        m21, m22, m23, m24, 
+                        m31, m32, m33, m34, 
+                        0.0, 0.0, 0.0, 1.0);
+#ifdef _VLDTDEBUG
+  /*E*/  fprintf(stderr, "Volm_MRIgetVoxelToRasXform(): m = \n");
+  /*E*/  MatrixPrint(stderr, m) ;
+#endif
+
+  return(m);
+
+} /* end Volm_MRIgetVoxelToRasXform() */
+
 
 Volm_tErr Volm_UnloadDisplayTransform ( mriVolumeRef this ) {
 
