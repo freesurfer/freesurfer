@@ -1,8 +1,9 @@
 #ifndef HIPSH_H
 #define HIPSH_H
 
+#include "hips.h"
+
 /**************** hipsh.h *********************/ 
-#include "hipl_format.h"
 /******************* seqord.c ***********************/ 
 int h_seqord(struct header *hdi,struct header *hdo);
 int h_seqord_i(struct header *hdi,struct header *hdo);
