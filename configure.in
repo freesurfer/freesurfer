@@ -184,10 +184,10 @@ case "$CPUTYPE" in
      CPUFLAGS="-march=x86-64 -mfpmath=sse -msse2"
      ;;
   G4)
-     CPUFLAGS="-mtune=G4 -mcpu=G4"
+     CPUFLAGS="-mtune=G4 -mcpu=G4 -faltivec"
      ;;
   G5)
-     CPUFLAGS="-mtune=G5 -mcpu=G5"
+     CPUFLAGS="-mtune=G5 -mcpu=G5 -faltivec"
      ;;
   power4)
      CPUFLAGS="-mtune=power4 -mcpu=power4"
