@@ -16,7 +16,7 @@
 //E/ should be in transform.h if it isn't already
 
 double MRIcomputeLinearTransformLabelDist(MRI *mri_src, MATRIX *mA, int label) ;
-static char vcid[] = "$Id: mri_transform.c,v 1.8 2004/11/19 16:22:48 fischl Exp $";
+static char vcid[] = "$Id: mri_transform.c,v 1.9 2004/11/22 21:16:08 fischl Exp $";
 
 //E/ For transformations: for case LINEAR_RAS_TO_RAS, we convert to
 //vox2vox with MRIrasXformToVoxelXform() in mri.c; for case
@@ -61,7 +61,7 @@ main(int argc, char *argv[])
   VECTOR *c;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_transform.c,v 1.8 2004/11/19 16:22:48 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_transform.c,v 1.9 2004/11/22 21:16:08 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -104,8 +104,10 @@ main(int argc, char *argv[])
 		//dst->ras_good_flag to zero!  and the x/y/zsize and stuff seems
 		//to go away during e.g. mghWrite.  recopy later?
 	}
-  else
+  else  /* assume output should be like input */
 	{
+		mri_out = MRIclone(mri_in, NULL) ;
+#if 0
 		mri_out = MRIalloc(256, 256, 256, mri_in->type) ;
 		//E/ set xyzc_ras to coronal ones.. - these'll get zorched
 		//by MRIlinearTransformInterp() - copy again later - is there
@@ -117,6 +119,7 @@ main(int argc, char *argv[])
 		mri_out->x_a = 0; mri_out->y_a = 0; mri_out->z_a = 1; mri_out->c_a =0;
 		mri_out->x_s = 0; mri_out->y_s =-1; mri_out->z_s = 0; mri_out->c_s =0;
 		mri_out->ras_good_flag=1;
+#endif
 	}
   MRIcopyPulseParameters(mri_in, mri_out) ;
   m_total = MatrixIdentity(4, NULL) ;
@@ -216,7 +219,11 @@ main(int argc, char *argv[])
 			exit(0) ;
 		}
 		else
+		{
+			printf("applying voxel transform:\n") ;
+			MatrixPrint(stdout, m_total) ;
 			MRIlinearTransformInterp(mri_in, mri_out, m_total, resample_type) ;
+		}
 	}
 	else
 	{
@@ -242,6 +249,8 @@ main(int argc, char *argv[])
 	}
   else
 	{
+		/* assume out_like the input volume */
+#if 0
 		//E/ set xyzc_ras to coronal 256/1mm^3 isotropic ones.. - they
 		//got zorched by MRIlinearTransformInterp() - so copy again here
 
@@ -249,6 +258,7 @@ main(int argc, char *argv[])
 		mri_out->x_a = 0; mri_out->y_a = 0; mri_out->z_a = 1; mri_out->c_a =0;
 		mri_out->x_s = 0; mri_out->y_s =-1; mri_out->z_s = 0; mri_out->c_s =0;
 		mri_out->ras_good_flag=1;
+#endif
 	}
   //E/  
 
