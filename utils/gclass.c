@@ -137,8 +137,6 @@ int
 GCtrain(GCLASSIFY *gc, int class, MATRIX *m_inputs)
 {
   GCLASS  *gcl ;
-  MATRIX  *m_sigma_inverse, *m_uT, *m_tmp, *m_tmp2 ;
-  float   det ;
 
   gcl = &gc->classes[class] ;
   gcl->nobs = m_inputs->rows ;
@@ -153,57 +151,7 @@ GCtrain(GCLASSIFY *gc, int class, MATRIX *m_inputs)
 #endif
   else
     MatrixCovariance(m_inputs, gcl->m_covariance, gcl->m_u) ;
-  if (gcl->nobs <= gc->nvars)  /* not enough training data */
-    MatrixMakeDiagonal(gcl->m_covariance, gcl->m_covariance) ;
-
-  det = MatrixDeterminant(gcl->m_covariance);
-  if (FZERO(det))  /* matrix is singular or ill-conditioned */
-  {
-    gcl->ill_cond = 1 ;
-    return(NO_ERROR) ;
-  }
-
-  m_sigma_inverse = MatrixInverse(gcl->m_covariance, NULL) ;
-  if (!m_sigma_inverse)   /* don't really know what to do.... */
-  {
-    m_sigma_inverse = MatrixIdentity(gc->nvars, NULL) ;
-    gcl->ill_cond = 1 ;
-  }
-  m_uT = MatrixTranspose(gcl->m_u, NULL) ;
-  det = MatrixDeterminant(gcl->m_covariance) ;
-  gcl->m_W = MatrixScalarMul(m_sigma_inverse, -0.5f, gcl->m_W) ;
-  m_tmp = MatrixMultiply(m_sigma_inverse, gcl->m_u, NULL) ;
-  gcl->m_wT = MatrixTranspose(m_tmp, gcl->m_wT) ;
-  MatrixFree(&m_tmp) ;
-  m_tmp = MatrixMultiply(m_sigma_inverse, gcl->m_u, NULL) ;
-  m_tmp2 = MatrixMultiply(m_uT, m_tmp, NULL) ;
-  det = MatrixDeterminant(m_sigma_inverse) ;
-  gcl->w0 = -0.5*(gc->nvars * log(2*M_PI) + m_tmp2->rptr[1][1] + log(det)) ;
-
-#if 0
-fprintf(stdout, "\nclass %d:\n", class) ;
-MatrixPrint(stdout, gcl->m_covariance) ;
-MatrixPrint(stdout, m_sigma_inverse) ;
-fprintf(stdout, "means: \n") ;
-MatrixPrint(stdout, gcl->m_u) ;
-fprintf(stdout, "det = %2.3f\n", det) ;
-fprintf(stdout, "Wi = \n") ;
-MatrixPrint(stdout, gcl->m_W) ;
-fprintf(stdout, "w = \n") ;
-MatrixPrint(stdout, gcl->m_wT) ;
-fprintf(stdout, "m_tmp:\n") ;
-MatrixPrint(stdout, m_tmp) ;
-fprintf(stdout, "m_tmp2:\n") ;
-MatrixPrint(stdout, m_tmp2) ;
-fprintf(stdout, "w0: %2.3f\n", gcl->w0) ;
-#endif
-
-  MatrixFree(&m_sigma_inverse) ;
-  MatrixFree(&m_uT) ;
-  MatrixFree(&m_tmp) ;
-  MatrixFree(&m_tmp2) ;
-
-  return(NO_ERROR) ;
+  return(GCinit(gc, class)) ;
 }
 /*-----------------------------------------------------
         Parameters:
@@ -422,5 +370,74 @@ GCasciiReadClassFrom(FILE *fp, GCLASS *gcl)
   gcl->m_W = MatrixAsciiReadFrom(fp, gcl->m_W) ;
   gcl->m_wT = MatrixAsciiReadFrom(fp, gcl->m_wT) ;
   return(gcl) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+           training is finished for this class, compute it's
+           static components. After this call, the classifier
+           should be ready for use.
+------------------------------------------------------*/
+int
+GCinit(GCLASSIFY *gc, int class)
+{
+  GCLASS  *gcl ;
+  MATRIX  *m_sigma_inverse, *m_uT, *m_tmp, *m_tmp2 ;
+  float   det ;
+
+  gcl = &gc->classes[class] ;
+  if (gcl->nobs <= gc->nvars)  /* not enough training data */
+    MatrixMakeDiagonal(gcl->m_covariance, gcl->m_covariance) ;
+
+  det = MatrixDeterminant(gcl->m_covariance);
+  if (FZERO(det))  /* matrix is singular or ill-conditioned */
+  {
+    gcl->ill_cond = 1 ;
+    return(NO_ERROR) ;
+  }
+
+  m_sigma_inverse = MatrixInverse(gcl->m_covariance, NULL) ;
+  if (!m_sigma_inverse)   /* don't really know what to do.... */
+  {
+    m_sigma_inverse = MatrixIdentity(gc->nvars, NULL) ;
+    gcl->ill_cond = 1 ;
+  }
+  m_uT = MatrixTranspose(gcl->m_u, NULL) ;
+  det = MatrixDeterminant(gcl->m_covariance) ;
+  gcl->m_W = MatrixScalarMul(m_sigma_inverse, -0.5f, gcl->m_W) ;
+  m_tmp = MatrixMultiply(m_sigma_inverse, gcl->m_u, NULL) ;
+  gcl->m_wT = MatrixTranspose(m_tmp, gcl->m_wT) ;
+  MatrixFree(&m_tmp) ;
+  m_tmp = MatrixMultiply(m_sigma_inverse, gcl->m_u, NULL) ;
+  m_tmp2 = MatrixMultiply(m_uT, m_tmp, NULL) ;
+  det = MatrixDeterminant(m_sigma_inverse) ;
+  gcl->w0 = -0.5*(gc->nvars * log(2*M_PI) + m_tmp2->rptr[1][1] + log(det)) ;
+
+#if 0
+fprintf(stdout, "\nclass %d:\n", class) ;
+MatrixPrint(stdout, gcl->m_covariance) ;
+MatrixPrint(stdout, m_sigma_inverse) ;
+fprintf(stdout, "means: \n") ;
+MatrixPrint(stdout, gcl->m_u) ;
+fprintf(stdout, "det = %2.3f\n", det) ;
+fprintf(stdout, "Wi = \n") ;
+MatrixPrint(stdout, gcl->m_W) ;
+fprintf(stdout, "w = \n") ;
+MatrixPrint(stdout, gcl->m_wT) ;
+fprintf(stdout, "m_tmp:\n") ;
+MatrixPrint(stdout, m_tmp) ;
+fprintf(stdout, "m_tmp2:\n") ;
+MatrixPrint(stdout, m_tmp2) ;
+fprintf(stdout, "w0: %2.3f\n", gcl->w0) ;
+#endif
+
+  MatrixFree(&m_sigma_inverse) ;
+  MatrixFree(&m_uT) ;
+  MatrixFree(&m_tmp) ;
+  MatrixFree(&m_tmp2) ;
+  return(NO_ERROR) ;
 }
 
