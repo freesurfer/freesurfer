@@ -3,8 +3,8 @@
 //
 // 
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Date  : $Date: 2004/06/01 14:37:44 $
-// Revision       : $Revision: 1.46 $
+// Revision Date  : $Date: 2004/06/03 18:15:13 $
+// Revision       : $Revision: 1.47 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -1013,9 +1013,9 @@ gcamDistanceTerm(GCA_MORPH *gcam, MRI *mri, double l_distance)
                 norm = 1 ;
               dx /= norm ; dy /= norm ; dz /= norm ; 
               error = d-d0 ;
-              xdelta += error*dx ; 
-              ydelta += error*dy; 
-              zdelta += error*dz ; 
+              xdelta -= error*dx ; 
+              ydelta -= error*dy; 
+              zdelta -= error*dz ; 
               num++ ;
             }
           }
@@ -2657,7 +2657,7 @@ gcamLimitGradientMagnitude(GCA_MORPH *gcam, GCA_MORPH_PARMS *parms, MRI *mri)
         if (x == Gx && y == Gy && z == Gz)
           DiagBreak() ;
 
-	// dt*length of gradient
+				// dt*length of gradient
         norm = dt*sqrt(gcamn->dx*gcamn->dx+gcamn->dy*gcamn->dy+gcamn->dz*gcamn->dz) ;
 #if 0
         if (norm > 3*parms->max_grad)
@@ -2671,7 +2671,7 @@ gcamLimitGradientMagnitude(GCA_MORPH *gcam, GCA_MORPH_PARMS *parms, MRI *mri)
           norm = dt*sqrt(gcamn->dx*gcamn->dx+gcamn->dy*gcamn->dy+gcamn->dz*gcamn->dz) ;
         }
 #endif
-	// get max norm and its position
+				// get max norm and its position
         if (norm > max_norm)
         {
           max_norm = norm ;
@@ -2681,7 +2681,9 @@ gcamLimitGradientMagnitude(GCA_MORPH *gcam, GCA_MORPH_PARMS *parms, MRI *mri)
   {
     float vals[MAX_GCA_INPUTS] ;
     int   r ;
+#if 0
     int memoryUsed = 0;
+#endif
     gcamn = &gcam->nodes[xmax][ymax][zmax] ;
     // print the info at this position
     load_vals(mri, gcamn->x, gcamn->y, gcamn->z, vals, gcam->gca->ninputs) ;
