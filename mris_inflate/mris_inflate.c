@@ -13,7 +13,7 @@
 #include "mri.h"
 #include "macros.h"
 
-static char vcid[] = "$Id: mris_inflate.c,v 1.10 1998/02/01 00:56:28 fischl Exp $";
+static char vcid[] = "$Id: mris_inflate.c,v 1.11 1998/02/07 18:31:04 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -67,6 +67,7 @@ main(int argc, char *argv[])
   parms.dt_increase = 1.0 /* DT_INCREASE */;
   parms.dt_decrease = 1.0 /* DT_DECREASE*/ ;
   parms.error_ratio = 50.0 /*ERROR_RATIO */;
+  parms.scale = 0 ;
   /*  parms.integration_type = INTEGRATE_LINE_MINIMIZE ;*/
 
   ac = argc ;
@@ -112,9 +113,7 @@ main(int argc, char *argv[])
   MRIScomputeSecondFundamentalForm(mris) ;
   MRISinflateBrain(mris, &parms) ;
   fprintf(stderr, "writing inflated surface to %s\n", out_fname) ;
-  radius = MRISaverageRadius(mris) ;
-  scale = DESIRED_RADIUS/radius ;
-  MRISscaleBrain(mris, mris, scale) ;
+  MRISscaleBrainArea(mris) ;
   MRISwrite(mris, out_fname) ;
   FileNamePath(out_fname, path) ;
   sprintf(fname, "%s/%s.sulc", path, 
@@ -213,6 +212,10 @@ get_option(int argc, char *argv[])
     nargs = 1 ;
     fprintf(stderr, "error_ratio=%2.3f\n", parms.error_ratio) ;
   }
+  else if (!stricmp(option, "scale"))
+  {
+    parms.fi_desired = -1.0 ;
+  }
   else if (!stricmp(option, "dt_inc"))
   {
     parms.dt_increase = atof(argv[2]) ;
@@ -229,7 +232,7 @@ get_option(int argc, char *argv[])
   {
   case 'T':
     talairach_flag = 1 ;
-    fprintf(stderr, "applying talairach transform to brain before inflation\n") ;
+    fprintf(stderr,"applying talairach transform to brain before inflation\n");
     break ;
   case 'S':
     parms.l_spring = atof(argv[2]) ;
