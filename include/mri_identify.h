@@ -8,12 +8,13 @@
 #define GE_COMPRESSION_COMPRESSED            3
 #define GE_COMPRESSION_COMPRESSED_AND_PACKED 4
 
-int is_ge(char *fname);
-int is_new_ge(char *fname);
+int is_genesis(char *fname);
+int is_ge_lx(char *fname);
 int is_mgh(char *fname);
 int is_mnc(char *fname);
 int is_analyze(char *fname);
 int is_siemens(char *fname);
 int is_brik(char *fname);
+int is_bshort(char *fname);
 
 /* EOF */

@@ -13,26 +13,17 @@
 int is_brik(char *fname)
 {
 
-  FILE *fp;
-  char header_name[STRLEN];
   char *dot;
 
-  strcpy(header_name, fname);
-  if((dot = strrchr(header_name, '.')) == NULL)
-    return(0);
+  dot = strrchr(fname, '.');
+  if(dot)
+  {
+    dot++;
+    if(!strcmp(dot, "BRIK"))
+      return(1);
+  }
 
-  dot++;
-  if(strcmp(dot, "BRIK"))
-    return(0);
-
-  sprintf(dot, "HEAD");
-
-  if((fp = fopen(fname, "r")) == NULL)
-    return(0);
-
-  fclose(fp);
-
-  return(1);
+  return(0);
 
 } /* end is_brik() */
 
@@ -41,6 +32,14 @@ int is_siemens(char *fname)
 
   FILE *fp;
   char string[4];
+  char *dot;
+
+  dot = strrchr(fname, '.');
+  if(dot)
+  {
+    if(!strcmp(dot+1, "ima"))
+      return(1);
+  }
 
   if((fp = fopen(fname, "r")) == NULL)
     return(0);
@@ -70,18 +69,28 @@ int is_siemens(char *fname)
     return(0);
     }
 
-
   fclose(fp);
 
   return(1);
 
 } /* end is_siemens() */
 
-int is_ge(char *fname)
+int is_genesis(char *fname)
 {
 
   FILE *fp;
   long magic;
+  char *dot;
+
+  if(!strncmp(fname, "I.", 2))
+    return(1);
+
+  dot = strrchr(fname, '.');
+  if(dot)
+  {
+    if(!strcmp(dot+1, "MR"))
+      return(1);
+  }
 
   if((fp = fopen(fname, "r")) == NULL)
     return(0);
@@ -96,9 +105,9 @@ int is_ge(char *fname)
 
   return(0);
 
-}  /*  end is_ge()  */
+}  /*  end is_genesis()  */
 
-int is_new_ge(char *fname)
+int is_ge_lx(char *fname)
 {
 
   FILE *fp;
@@ -118,7 +127,7 @@ int is_new_ge(char *fname)
 
   return(0);
 
-}  /*  end is_new_ge()  */
+}  /*  end is_ge_lx()  */
 
 int is_analyze(char *fname)
 {
@@ -129,9 +138,16 @@ int is_analyze(char *fname)
   long hdr_length;
 
   strcpy(hfname, fname);
-  if((dot = strrchr(hfname, '.')) != NULL)
-    *dot = '\0';
 
+  dot = strrchr(fname, '.') ;
+  if (dot)
+  {
+    if (!stricmp(dot+1, "img"))
+      return(1) ;
+    return(0);
+  }
+
+  dot = '\0';
   sprintf(hfname, "%s.hdr", hfname);
 
   if((fp = fopen(hfname, "r")) == NULL)
@@ -163,6 +179,14 @@ int is_mnc(char *fname)
 
   char buf[3];
   FILE *fp;
+  char *dot;
+
+  dot = strrchr(fname, '.') ;
+  if (dot)
+  {
+    if (!stricmp(dot+1, "mnc"))
+      return(1) ;
+  }
 
   if((fp = fopen(fname, "r")) == NULL)
     return(0);
@@ -184,14 +208,14 @@ int is_mgh(char *fname)
   int version, width, height, depth, nframes, type, dof;
   char *dot ;
 
-  dot = strchr(fname, '.') ;
+  dot = strrchr(fname, '.') ;
   if (dot)
   {
     if (!stricmp(dot+1, "mgh"))
       return(1) ;
   }
 
-  if((fp = fopen(fname, "rb")) == NULL)
+  if((fp = fopen(fname, "r")) == NULL)
     return(0);
 
   version = freadInt(fp) ;
@@ -205,15 +229,32 @@ int is_mgh(char *fname)
   fclose(fp);
 
 /* my estimates (ch) */
-  if(width < 10 || height < 10 || width >= 1024 || height >= 1024)
+  if(width < 64 || height < 64 || width > 1024 || height > 1024)
     return(0);
-  if(depth > 20000)
+  if(depth > 2000)
     return(0);
-  if(nframes > 10000)
+  if(nframes > 2000)
     return(0);
 
   return(1);
 
 }  /*  end is_mgh()  */
+
+int is_bshort(char *fname)
+{
+
+  char *dot;
+
+  dot = strrchr(fname, '.');
+  if(dot)
+  {
+    dot++;
+    if(!strcmp(dot, "bshort"))
+      return(1);
+  }
+
+  return(0);
+
+}  /*  end is_bshort()  */
 
 /* EOF */
