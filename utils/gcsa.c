@@ -778,6 +778,23 @@ GCSAlabel(GCSA *gcsa, MRI_SURFACE *mris)
     cpn = &gcsa->cp_nodes[vno_prior] ;
     label = GCSANclassify(gcsan, cpn, v_inputs, gcsa->ninputs, &p) ;
     v->annotation = label ;
+    if (vno == Gdiag_no)
+		{
+			int  n ;
+			CP     *cp ;
+			GCS    *gcs ;
+
+			if (gcsa->ninputs == 2)
+				printf("v %d: inputs (%2.2f, %2.2f), label=%s (%d, %d)\n",
+							 vno, v->val, v->val2, annotation_to_name(label, NULL), annotation_to_index(label), label) ;
+			for (n = 0 ; n < cpn->nlabels ; n++)
+			{
+				cp = &cpn->cps[n] ;
+				gcs = getGC(gcsan, cpn->labels[n], NULL) ;
+				printf("label %s (%d) [%d], means:\n", annotation_to_name(cpn->labels[n], NULL), n, cpn->labels[n]) ;
+				MatrixPrint(stdout, gcs->v_means) ;
+			}
+		}
   }
   return(NO_ERROR) ;
 }
@@ -1123,19 +1140,28 @@ GCSAreclassifyUsingGibbsPriors(GCSA *gcsa, MRI_SURFACE *mris)
         DiagBreak() ;
 
       best_label = old_label = v->annotation ; 
+			if (vno == Gdiag_no)
+				printf("reclassifying vertex %d...\n", vno) ;
       max_ll =gcsaNbhdGibbsLogLikelihood(gcsa,mris,v_inputs,vno,1.0,old_label);
       for (n = 0 ; n < cpn->nlabels ; n++)
       {
         label = cpn->labels[n] ;
         ll = gcsaNbhdGibbsLogLikelihood(gcsa, mris, v_inputs, vno, 1.0,label) ;
+				if (vno == Gdiag_no)
+					printf("\tlabel %s (%d, %d): ll=%2.3f\n", annotation_to_name(label, NULL), label, annotation_to_index(label), ll) ;
         if (ll > max_ll)
         {
           max_ll = ll ;
           best_label = label ;
+					if (vno == Gdiag_no)
+						printf("\tlabel %s NEW MAX\n", annotation_to_name(label, NULL)) ;
         }
       }
       if (best_label != old_label)
       {
+				if (vno == Gdiag_no)
+					printf("v %d: label changed from %s (%d) to %s (%d)\n",
+								 vno, annotation_to_name(old_label, NULL), old_label, annotation_to_name(best_label, NULL), best_label) ;
         v->marked = 1 ;
         nchanged++ ; v->annotation = best_label ;
       }

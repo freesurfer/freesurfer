@@ -30,7 +30,7 @@
 #include "box.h"
 #include "region.h"
 #include "nr.h"
-#include "mritransform.h"
+#include "mri_transform.h"
 #include "utils.h"
 #include "matrix.h"
 #include "pdf.h"
