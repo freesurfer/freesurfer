@@ -822,9 +822,9 @@ GCAlabel(MRI *mri_inputs, GCA *gca, MRI *mri_dst, LTA *lta)
         }
         if (x == Ggca_x && y == Ggca_y && z == Ggca_z)
         {
-          printf("(%d, %d, %d): T1=%d, label %s (%d), p=%2.2e\n",
+          printf("(%d, %d, %d): T1=%d, label %s (%d), p=%2.2e, node (%d, %d, %d)\n",
                  x, y, z, MRIvox(mri_inputs,x,y,z), 
-                 cma_label_to_name(label), label, max_p) ;
+                 cma_label_to_name(label), label, max_p, xn, yn, zn) ;
           dump_gcan(gcan, stdout, 0) ;
         }
         MRIvox(mri_dst, x, y, z) = label ;
@@ -3871,7 +3871,7 @@ GCAreclassifyUsingGibbsPriors(MRI *mri_inputs, GCA *gca, MRI *mri_dst,LTA *lta,
       }
     }
 #endif
-#define MIN_CHANGED 2000
+#define MIN_CHANGED 5000
     min_changed = restart ? 0 : MIN_CHANGED ;
     if (nchanged <= MIN_CHANGED)
     {
@@ -5570,6 +5570,12 @@ GCArelabel_cortical_gray_and_white(GCA *gca, MRI *mri_inputs,
               left ? Left_Cerebral_White_Matter : Right_Cerebral_White_Matter ;
           if (label != MRIvox(mri_dst, x, y, z))
           {
+            if (x == Ggca_x && y == Ggca_y && z == Ggca_z && 
+                (label == Ggca_label || Ggca_label < 0))
+              printf("voxel(%d,%d,%d), T1=%d, gray mean=%d, white mean=%d, label=%s (%d)\n",
+                     x, y, z, nint(val), nint(gray_mean), nint(wm_mean), 
+                     cma_label_to_name(label),label);
+
             if (label == Left_Cerebral_Cortex ||label == Right_Cerebral_Cortex)
               new_gray++ ;
             else
@@ -5946,6 +5952,7 @@ GCArenormalizeIntensities(GCA *gca, int *labels, float *intensities, int num)
     ErrorReturn(ERROR_BADPARM, 
                 (ERROR_BADPARM, "GCArenormalizeIntensities: "
                  "could not find white matter in intensity table")) ;
+  scale_factor = 1 ;
   printf("mean wm intensity = %2.1f, scaling gray to %2.2f (from %2.2f)\n", 
          wm_mean, scale_factor*gray_mean, gray_mean) ;
 
