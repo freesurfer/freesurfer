@@ -1,14 +1,15 @@
 #!/bin/csh -f
 # rocview
 #
-# $Id: rocview,v 1.7 2004/11/11 00:03:01 greve Exp $
+# $Id: rocview,v 1.8 2004/12/07 23:57:20 greve Exp $
 
-set VERSION = '$Id: rocview,v 1.7 2004/11/11 00:03:01 greve Exp $';
+set VERSION = '$Id: rocview,v 1.8 2004/12/07 23:57:20 greve Exp $';
 set inputargs = ($argv);
 
 set fprvolid = ();
 set tprvolid = ();
 set maskvolid = ();
+set ubermaskvolid = ();
 set roi = ();
 set frame = ();
 set mfile = ();
@@ -77,6 +78,7 @@ tee -a > /dev/null $MLF  <<EOF
 fprvolid = splitstring('$fprvolid');
 tprvolid = '$tprvolid';
 maskvolid = splitstring('$maskvolid');
+ubermaskvolid = '$ubermaskvolid';
 frame = [$frame];
 outfile = '$outfile';
 inout = $inout;
@@ -93,6 +95,18 @@ polarity = $polarity;
 log10p = $log10p;
 zstat  = $zstat;
 fmtimg = $fmtimg;
+
+if(~isempty(ubermaskvolid))
+  fprintf('Loading %s\n',ubermaskvolid);
+  if(fmtimg==1) 
+    ubermaskvol = fast_ldanalyze(ubermaskvolid);
+  elseif(fmtimg==2) 
+    ubermaskvol = MRIread(ubermaskvolid);
+    ubermaskvol = ubermaskvol.vol;
+  else          
+    ubermaskvol = fmri_ldbvolume(ubermaskvolid);
+  end
+end
 
 if(size(maskvolid,1)==1)
   fprintf('Loading %s\n',maskvolid);
@@ -113,11 +127,15 @@ if(size(maskvolid,1)==1)
     maskvol(1,:,:) = 0;
     maskvol(size(maskvol,1),:,:) = 0;
   end
+  if(~isempty(ubermaskvolid))
+    maskvol = maskvol & ubermaskvol;
+  end
   indmask = find(maskvol == 1);
   fprintf('nmask = %d\n',length(indmask));
 else
   indmask = [];
 end
+
 
 if(~isempty(fprvolid))
   fprvol = 0;
@@ -156,6 +174,9 @@ if(~isempty(fprvolid))
         fprintf('Cutting ends\n');
         maskvol(1,:,:) = 0;
         maskvol(size(maskvol,1),:,:) = 0;
+      end
+      if(~isempty(ubermaskvolid))
+        maskvol = maskvol & ubermaskvol;
       end
       indmask = find(maskvol == 1);
       fprintf('   %d %s   %d\n',nth,nthmaskvolid,length(indmask));
@@ -273,6 +294,11 @@ while( $#argv != 0 )
     case "-mask":
       if ( $#argv == 0) goto arg1err;
       set maskvolid = ($maskvolid $argv[1]); shift;
+      breaksw
+
+    case "-ubermask":
+      if ( $#argv == 0) goto arg1err;
+      set ubermaskvolid = $argv[1]; shift;
       breaksw
 
     case "-roi":
@@ -426,7 +452,8 @@ usage_exit:
   echo "   -fpr fprvolid"
   echo "   -tpr tprvolid"
   echo "   -frame frameno (zero-based)"
-  echo "   -mask maskvolid"
+  echo "   -mask maskvolid <-mask maskvolid>"
+  echo "   -ubermask ubermaskvolid"
   echo "   -roi slc1 row1 col1 slc2 row2 col2"
   echo "   -inout"
   echo "   -noview"
