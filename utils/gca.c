@@ -6589,7 +6589,7 @@ gcaExtractLabelAsSamples(GCA *gca, MRI *mri_labeled, TRANSFORM *transform,
   return(gcas) ;
 }
 
-#define MIN_SAMPLES      10
+#define MIN_MEAN_SAMPLES      10
 #define SAMPLE_PCT       0.20
 
 int
@@ -6681,7 +6681,7 @@ GCArenormalize(MRI *mri_in, MRI *mri_labeled, GCA *gca, TRANSFORM *transform)
     gcas = gcaExtractLabelAsSamples(gca, mri_labeled,transform,&nsamples,label);
     if (!nsamples)
       continue ;
-    if (nsamples < MIN_SAMPLES)  /* not enough sample to estimate mean */
+    if (nsamples < MIN_MEAN_SAMPLES)  /* not enough sample to estimate mean */
     {
       free(gcas) ;
       continue ;
@@ -6690,8 +6690,8 @@ GCArenormalize(MRI *mri_in, MRI *mri_labeled, GCA *gca, TRANSFORM *transform)
     GCAcomputeLogSampleProbability(gca, gcas, mri_in, transform, nsamples) ;
     GCArankSamples(gca, gcas, nsamples, ordered_indices) ;
 
-    if (nint(nsamples*SAMPLE_PCT) < MIN_SAMPLES)
-      nsamples = MIN_SAMPLES ;
+    if (nint(nsamples*SAMPLE_PCT) < MIN_MEAN_SAMPLES)
+      nsamples = MIN_MEAN_SAMPLES ;
     else
       nsamples = nint(SAMPLE_PCT * (float)nsamples) ;
     
