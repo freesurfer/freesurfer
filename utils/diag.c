@@ -32,6 +32,7 @@ unsigned long  Gdiag = 0 ;
 /*-----------------------------------------------------
                      STATIC DATA
 -------------------------------------------------------*/
+
 static char diag_fname[100] = "diag.log" ;
 static int (*diag_vprintf)(const char *fmt, va_list args) = vprintf ;
 static int (*diag_vfprintf)(FILE *fp, const char *fmt, va_list args) =vfprintf;
@@ -184,7 +185,34 @@ DiagCreateWindow(unsigned long diag_bits, int wrows, int wcols,
 #endif
   return(win) ;
 }
+/*-----------------------------------------------------
+        Parameters:
 
+        Returns value:
+
+        Description
+------------------------------------------------------*/
+int
+DiagFprintf(unsigned long diag_bits, char *fmt, ...)
+{
+  static int first = 1 ;
+  va_list args ;
+  FILE    *fp ;
+  int     len ;
+  
+  if (diag_bits && !(diag_bits & Gdiag))
+    return(-1) ;
+
+  if (first)
+    fp = fopen(diag_fname, "w") ;
+  else
+    fp = fopen(diag_fname, "a+") ;
+  first = 0 ;
+  va_start(args, fmt) ;
+  len = vfprintf(fp, fmt, args) ;
+  fclose(fp) ;
+  return(len) ;
+}
 /*-----------------------------------------------------
         Parameters:
 
