@@ -1,7 +1,7 @@
 #
 # Makefile.am for scripts
 #
-bin_SCRIPTS = \
+dist_bin_SCRIPTS = \
 archive_pull \
 browse-minc-header.tcl \
 browse-sessions \
