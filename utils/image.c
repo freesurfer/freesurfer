@@ -3295,22 +3295,31 @@ ImageSobel(IMAGE *inImage, IMAGE *gradImage,
     }
   }
 
-  gradImage->cols = dxImage->cols = dyImage->cols = cols ;
-  gradImage->rows = dxImage->rows = dyImage->rows = rows ;
+  
+  dxImage->cols = dyImage->cols = cols ;
+  dxImage->rows = dyImage->rows = rows ;
   ImageConvolve3x3(inImage, sx, dxImage) ;
   ImageConvolve3x3(inImage, sy, dyImage) ;
+  if (gradImage)
+  {
+    gradImage->cols = cols ;
+    gradImage->rows = rows ;
+    gradpix = IMAGEFpix(gradImage, 0, 0) ;
+  }
 
   xpix = IMAGEFpix(dxImage, 0, 0) ;
   ypix = IMAGEFpix(dyImage, 0, 0) ;
-  gradpix = IMAGEFpix(gradImage, 0, 0) ;
   for (y = 0 ; y < rows ; y++)
   {
     for (x = 0 ; x < cols ; x++)
     {
       xval = *xpix++ ;
       yval = *ypix++ ;
-      gval = sqrt(xval * xval + yval * yval) ;
-      *gradpix++ = gval ;
+      if (gradImage)
+      {
+        gval = sqrt(xval * xval + yval * yval) ;
+        *gradpix++ = gval ;
+      }
     }
   }
 
