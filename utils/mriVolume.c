@@ -1695,6 +1695,9 @@ Volm_tErr Volm_ConvertIdxToScanner ( mriVolumeRef this,
   
   Volm_tErr eResult = Volm_tErr_NoErr;
   xVoxel    mriIdx;
+  Real      rasX    = 0;
+  Real      rasY    = 0;
+  Real      rasZ    = 0;
   
   DebugEnterFunction( ("Volm_ConvertIdxToScanner( this=%p, iIdx=%p, "
 		       "oScanner=%p )", this, iIdx, oScanner) );
@@ -1719,10 +1722,28 @@ Volm_tErr Volm_ConvertIdxToScanner ( mriVolumeRef this,
   DebugNote( ("Converting screen idx to MRI idx") );
   Volm_ConvertScreenIdxToMRIIdx_( this, iIdx, &mriIdx );
 
+#if 1
+  /* Convert MRI idx to surface RAS. This is actually what should be
+     scanner coordinates, or RAS where the c_ras = 0. */
+  DebugNote( ("Converting idx to surface RAS with MRIvoxelToSurfaceRAS") );
+  MRIvoxelToSurfaceRAS( this->mpMriValues, xVoxl_ExpandFloat( &mriIdx ),
+			&rasX, &rasY, &rasZ );
+
+  xVoxl_SetFloat( oScanner, rasX, rasY, rasZ );
+
+#else
+  /* RKT: This was the old way of doing it. */
   /* convert idx to scanner */
   DebugNote( ("Converting idx (%.2f, %.2f, %.2f) to scanner", 
 	      xVoxl_ExpandFloat( &mriIdx )) );
   Trns_ConvertAtoB( this->mScannerTransform, &mriIdx, oScanner );
+
+  /* convert idx to scanner */
+  DebugNote( ("Converting idx (%.2f, %.2f, %.2f) to scanner", 
+	      xVoxl_ExpandFloat( &mriIdx )) );
+  Trns_ConvertAtoB( this->mScannerTransform, &mriIdx, oScanner );
+#endif
+
   
   DebugCatch;
   DebugCatchError( eResult, Volm_tErr_NoErr, Volm_GetErrorString );
