@@ -66,6 +66,12 @@ LabelRead(char *subject_name, char *label_name)
       strcpy(subjects_dir, ".") ;
     else
       strcpy(subjects_dir, cp) ;
+    strcpy(lname, label_name) ;
+    cp = strstr(lname, ".label") ;
+    if (cp == NULL)
+      sprintf(fname, "%s.label", lname);
+    else
+      strcpy(fname, label_name) ;
   }
 
   strcpy(area->name, label_name) ;
@@ -920,6 +926,7 @@ LabelRemoveDuplicates(LABEL *area)
       {
         deleted++ ;
         lv2->deleted = 1 ;
+        lv1->stat++ ;
       }
     }
   }
@@ -1197,5 +1204,118 @@ LabelFillUnassignedVertices(MRI_SURFACE *mris, LABEL *area)
   LabelRemoveDuplicates(area) ;
   MHTfree(&mht) ;
   return(NO_ERROR) ;
+}
+
+LABEL *
+LabelSphericalCombine(MRI_SURFACE *mris, LABEL *asrc, MRIS_HASH_TABLE *mht,
+                      MRI_SURFACE *mris_dst, LABEL *adst)
+{
+  int              vno, n, nfilled, m ;
+  VERTEX           *v, *vdst, *vn, *vsrc ;
+  LABEL_VERTEX     *lv_dst ;
+  MRIS_HASH_TABLE  *mht_src ;
+  double           max_len ;
+
+  if (!adst)
+    adst = LabelClone(asrc) ;
+
+  if (adst->max_points < asrc->n_points+adst->n_points)/* won't fit - expand */
+  {
+    LABEL   *atmp ;
+
+    atmp = LabelAlloc(2*(asrc->n_points+adst->n_points),
+                      asrc->subject_name, asrc->name) ;
+    LabelCopy(adst, atmp) ;
+    LabelFree(&adst) ;
+    adst = atmp ;
+  }
+
+  for (n = 0 ; n < asrc->n_points ; n++)
+  {
+    vno = asrc->lv[n].vno ;
+    v = &mris->vertices[vno] ;
+    if (v->ripflag)
+      continue ;
+    vdst = MHTfindClosestVertex(mht, mris_dst, v) ;
+    if (!vdst)
+    {
+      ErrorPrintf(ERROR_BADPARM, "MRIScombine: cannot map vno %d", vno) ;
+      continue ;
+    }
+    if (vdst-mris_dst->vertices == Gdiag_no)
+      DiagBreak() ;
+    lv_dst = &adst->lv[adst->n_points++] ;
+    lv_dst->vno = vdst-mris_dst->vertices ;
+    if (lv_dst->vno == 60008)
+      DiagBreak() ;
+    if (lv_dst->vno == 85592)
+      DiagBreak() ;
+    if (lv_dst->vno == Gdiag_no)
+      DiagBreak() ;
+    lv_dst->x = asrc->lv[n].x ;
+    lv_dst->y = asrc->lv[n].y ;
+    lv_dst->z = asrc->lv[n].z ;
+    lv_dst->stat = 1 ;
+  }
+
+  MRIScomputeVertexSpacingStats(mris, NULL, NULL, &max_len, NULL,NULL);
+  mht_src = 
+    MHTfillVertexTableRes(mris, NULL, CURRENT_VERTICES, 2*max_len);
+
+  MRISclearMarks(mris_dst) ;
+  MRISclearMarks(mris) ;
+  LabelMark(asrc, mris) ; LabelMark(adst, mris_dst) ;
+  do
+  {
+    /* map the nbr of every point in the label back to src, and if in
+       label add it
+    */
+    nfilled = 0 ;
+    for (n = 0 ; n < adst->n_points ; n++)
+    {
+      v = &mris_dst->vertices[adst->lv[n].vno] ;
+      for (m = 0 ; m < v->vnum ; m++)
+      {
+        vn = &mris_dst->vertices[v->v[m]] ;
+        if (vn->marked)
+          continue ;   /* already in label */
+        vsrc = MHTfindClosestVertex(mht_src, mris, vn) ;
+        if (vsrc == NULL)
+          DiagBreak() ;
+        if (vsrc - mris->vertices == 62644)
+          DiagBreak() ;
+        if (vsrc - mris->vertices == Gdiag_no)
+          DiagBreak() ;
+        if (vsrc->marked)
+        {
+          if (adst->n_points >= adst->max_points-1)
+          {
+            LABEL *atmp ;
+            
+            atmp = LabelAlloc(2*adst->n_points,adst->subject_name,adst->name);
+            LabelCopy(adst, atmp) ;
+            LabelFree(&adst) ;
+            adst = atmp ;
+          }
+
+          vn->marked = 1 ;
+          lv_dst = &adst->lv[adst->n_points++] ;
+          lv_dst->x = adst->lv[n].x ;
+          lv_dst->y = adst->lv[n].y ;
+          lv_dst->z = adst->lv[n].z ;
+          lv_dst->vno = v->v[m] ;
+          lv_dst->stat = 1 ;
+          if (lv_dst->vno == Gdiag_no)
+            DiagBreak() ;
+          if (lv_dst->vno == 55185)
+            DiagBreak() ;
+          if (lv_dst->vno == 85592)
+            DiagBreak() ;
+          nfilled++ ;
+        }
+      }
+    }
+  } while (nfilled != 0) ;
+  return(adst) ;
 }
 

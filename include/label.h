@@ -62,6 +62,11 @@ LABEL   *LabelFromMarkedSurfaces(MRI_SURFACE *mris) ;
 int     LabelUnmark(LABEL *area, MRI_SURFACE *mris) ;
 LABEL   *LabelFromMarkedSurface(MRI_SURFACE *mris) ;
 
+#include "mrishash.h"
+LABEL   *LabelSphericalCombine(MRI_SURFACE *mris, LABEL *area, 
+                               MRIS_HASH_TABLE *mht,
+                               MRI_SURFACE *mris_dst, LABEL *area_dst);
+
 #define LabelClone(a)  LabelAlloc(a->max_points,a->subject_name,a->name)
 
 #endif
