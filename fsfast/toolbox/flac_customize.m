@@ -8,7 +8,7 @@ function flacnew = flac_customize(flac)
 %
 % See flac_desmtx for how the design matrices are built.
 %
-% $Id: flac_customize.m,v 1.5 2005/01/23 17:01:44 greve Exp $
+% $Id: flac_customize.m,v 1.6 2005/03/19 00:17:02 greve Exp $
 
 flacnew = [];
 if(nargin ~= 1)
@@ -25,8 +25,8 @@ if(isempty(flacnew.runlist))
   flacnew = [];
   return; 
 end
-  
-flacnew.nruns = length(flacnew.runlist);
+
+flacnew.nruns = size(flacnew.runlist,1);
 if(flacnew.nruns < flac.nthrun)
   fprintf(['ERROR: requested nth run %d is greater than the number of' ...
 	   ' runs %d\n'],flacnew.nthrun,flacnew.nruns);
@@ -130,7 +130,6 @@ for nthcon = 1:ncon
 	      flacnew.runlist(flacnew.nthrun,:),flacnew.con(nthcon).name);
   
 end
-
 
 
 return;
