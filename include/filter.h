@@ -28,6 +28,7 @@
 #define FILTER_OFFSET_SCALE  12
 #define FILTER_SIGMA         13
 #define FILTER_DIFFUSE_HV    14
+#define FILTER_MEAN          15
 #define FILTER_OFFSET        0x0100
 
 #include "image.h"
