@@ -738,7 +738,11 @@ StatAccumulateTalairachVolume(SV *sv_tal, SV *sv)
   MATRIX *Tfunc, *Ttal;
   MATRIX *Mcor2tal, *Mtal2cor, *Vtal2func;
   MATRIX *Vtal, *Vfunc;
+  MATRIX *TorigCor, *TorigScanner, *invTorigScanner, *Mfix;
   float xf2, yf2, zf2;
+  char origdir[1000], *sd;
+  MRI *mriorig;
+  extern int  stats_fixxfm;
 
   if(!sv){
     fprintf(stderr,"ERROR: %s: StatAccumulateTalairachVolume():\n",Progname);
@@ -779,10 +783,35 @@ StatAccumulateTalairachVolume(SV *sv_tal, SV *sv)
   /* This section was added to circumvent MRItalairachVoxelToWorld
      and other functions. Instead, it allows loading of the file
      pointed to by stats_talxfm.*/
-  Tfunc = MRIxfmCRS2XYZ(sv->mri_avgs[0],0);
+  Tfunc = MRIxfmCRS2XYZtkreg(sv->mri_avgs[0]);
   Ttal  = MRIxfmCRS2XYZ(sv_tal->mri_avgs[0],0);
   Mcor2tal = StatLoadTalairachXFM(sv->reg->name, stats_talxfm);
   Mtal2cor = MatrixInverse(Mcor2tal,NULL);
+
+  if(stats_fixxfm){
+    printf("INFO: fixing talairach.xfm\n");
+    /* accounts for center offset in in orig volume */
+    sd = getenv("SUBJECTS_DIR") ;
+    if(sd==NULL){
+      printf("ERROR: SUBJECTS_DIR not defined\n");
+      exit(1);
+    }
+    sprintf(origdir,"%s/%s/mri/orig",sd,sv->reg->name);
+    mriorig = MRIreadHeader(origdir,MRI_CORONAL_SLICE_DIRECTORY);
+    if(mriorig == NULL){
+      printf("ERROR: could not read header for %s\n",origdir);
+      exit(1);
+    }
+    TorigCor     = MRIxfmCRS2XYZtkreg(mriorig);
+    TorigScanner = MRIxfmCRS2XYZ(mriorig,0);
+    invTorigScanner = MatrixInverse(TorigScanner,NULL);
+    Mfix = MatrixMultiply(TorigCor,invTorigScanner,NULL);
+    MatrixMultiply(Mfix,Mtal2cor,Mtal2cor);
+    MatrixFree(&Mfix);
+    MatrixFree(&TorigCor);
+    MatrixFree(&TorigScanner);
+    MRIfree(&mriorig);
+  }
 
   Vtal2func = MatrixInverse(Tfunc,NULL);
   MatrixMultiply(Vtal2func,sv->reg->mri2fmri,Vtal2func);
@@ -1153,13 +1182,16 @@ StatWriteRegistration(fMRI_REG *reg, char *fname)
 int
 StatReadTransform(STAT_VOLUME *sv, char *name)
 {
-  char  *cp, subjects[STRLEN], fname[STRLEN] ;
+  char  *sd, subjects[STRLEN], fname[STRLEN] ;
   int   event ;
 
   /* read in the Talairach transform file */
-  cp = getenv("SUBJECTS_DIR") ;
-  if (cp)    strcpy(subjects, cp) ;
-  else       strcpy(subjects, "~inverse/subjects") ;
+  sd = getenv("SUBJECTS_DIR") ;
+  if(sd==NULL){
+    printf("ERROR: SUBJECTS_DIR not defined\n");
+    exit(1);
+  }
+  strcpy(subjects, sd) ;
   sprintf(fname,"%s/%s/mri/transforms/talairach.xfm",subjects, name);
   
   if (input_transform_file(fname, &sv->transform) != OK)
