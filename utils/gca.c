@@ -3,8 +3,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2004/07/19 20:03:30 $
-// Revision       : $Revision: 1.150 $
+// Revision Date  : $Date: 2004/07/20 15:47:57 $
+// Revision       : $Revision: 1.151 $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -26,7 +26,7 @@
 #include "talairachex.h"
 
 #ifdef DMALLOC
-#include "/usr/pubsw/packages/dmalloc/5.3.0/include/dmalloc.h"
+#include <dmalloc.h>
 #endif
 
 int Ggca_label = -1 ;
