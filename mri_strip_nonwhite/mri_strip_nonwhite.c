@@ -10,11 +10,13 @@
 #include "proto.h"
 #include "mrimorph.h"
 #include "transform.h"
+#include "timer.h"
 
 int main(int argc, char *argv[]) ;
 static int get_option(int argc, char *argv[]) ;
-static MRI *MRImaskThreshold(MRI *mri_src, MRI *mri_mask, MRI *mri_dst, 
-                             float threshold) ;
+static MRI *MRImaskThresholdNeighborhood(MRI *mri_src, MRI *mri_mask, 
+                                         MRI *mri_dst, 
+                                         float threshold, int nsize) ;
 
 char *Progname ;
 
@@ -26,17 +28,22 @@ static void usage_exit(int code) ;
 #define EDIT_VOLUME   3
 #define MAX_VOLUMES   4
 
-static float threshold = 1.0f ;
+static float pct = 0.05f ;
 
 
 int
 main(int argc, char *argv[])
 {
   char   **av ;
-  int    ac, nargs, i ;
+  int    ac, nargs, i, nsize ;
   MRI    *mri, *mri_template, *mri_inverse_template ;
   char   *in_fname, *template_fname, *out_fname, *xform_fname, fname[100] ;
   M3D    *m3d ;
+  float  threshold ;
+  struct  timeb start ;
+  int     msec ;
+
+  TimerStart(&start) ;
 
   Progname = argv[0] ;
   ErrorInit(NULL, NULL, NULL) ;
@@ -63,7 +70,7 @@ main(int argc, char *argv[])
               Progname, in_fname) ;
 
   if (strchr(template_fname, '#') == NULL)
-    sprintf(fname, "%s#%d", template_fname, WM_VOLUME*2) ; /* means and stds */
+    sprintf(fname, "%s#%d", template_fname, WM_VOLUME*2); /* means and stds */
   else
     strcpy(fname, template_fname) ;
   mri_template = MRIread(fname) ;
@@ -77,20 +84,29 @@ main(int argc, char *argv[])
   if (!m3d)
     ErrorExit(ERROR_NOFILE, "%s: could not open transform file %s\n",
               Progname, xform_fname) ;
-  fprintf(stderr, "done.\napplying inverse transform...") ;
+  fprintf(stderr, "done.\n") ;
+  fprintf(stderr, 
+          "template has %d degrees of freedom - setting thresh = %2.1f\n",
+          mri_template->dof, threshold) ;
+  fprintf(stderr, "applying inverse transform...") ;
   mri_inverse_template = MRIapplyInverse3DMorph(mri_template, m3d, NULL) ;
+  threshold = pct * (float)mri_template->dof ;
   MRIfree(&mri_template) ;
   MRIwrite(mri_inverse_template, "inverse.mgh") ;
+  nsize = nint(m3d->node_spacing)+1 ;/* don't erase anything close to white */
   MRI3DmorphFree(&m3d) ;
-  fprintf(stderr, "done.\nthresholding inverse image...") ;
-  MRImaskThreshold(mri, mri_inverse_template, mri, threshold) ;
+  fprintf(stderr, "done.\nthresholding inverse image (spacing=%d)...",nsize) ;
+  MRImaskThresholdNeighborhood(mri, mri_inverse_template, mri, threshold,
+                               nsize) ;
   fprintf(stderr, "done.\n") ;
 
   if (MRIwrite(mri, out_fname) != NO_ERROR)
     ErrorExit(ERROR_NOFILE, "%s: could not write output volume to %s.\n",
               Progname, out_fname) ;
 
-  fprintf(stderr, "done.\n") ;
+  msec = TimerStop(&start) ;
+  fprintf(stderr, "skull stripping took %2.2f minutes\n",
+          (float)msec/(1000.0f*60.0f));
   exit(0) ;
   return(0) ;
 }
@@ -109,9 +125,10 @@ get_option(int argc, char *argv[])
   switch (toupper(*option))
   {
   case 'T':
-    threshold = atof(argv[2]) ;
+  case 'P':
+    pct = atof(argv[2]) / 100.0f ;  /* make it percent */
     nargs = 1 ;
-    fprintf(stderr, "using threshold %2.1f\n", threshold) ;
+    fprintf(stderr, "using threshold = %2.1f%%\n", pct*100.0f) ;
     break ;
   case '?':
   case 'U':
@@ -143,10 +160,12 @@ usage_exit(int code)
            Description:
 ----------------------------------------------------------------------*/
 static MRI *
-MRImaskThreshold(MRI *mri_src, MRI *mri_mask, MRI *mri_dst, float threshold)
+MRImaskThresholdNeighborhood(MRI *mri_src, MRI *mri_mask, MRI *mri_dst, 
+                             float threshold, int nsize)
 {
-  BUFTYPE   *psrc, *pdst, *pmask ;
-  int       width, height, depth, x, y, z ;
+  BUFTYPE   *pmask, out_val ;
+  int       width, height, depth, x, y, z, x1, y1, z1, xi, yi, zi,
+            xmin, xmax, ymin, ymax, zmin, zmax ;
 
   if (mri_mask->type != MRI_UCHAR)
     ErrorReturn(NULL, (ERROR_UNSUPPORTED, 
@@ -162,22 +181,87 @@ MRImaskThreshold(MRI *mri_src, MRI *mri_mask, MRI *mri_dst, float threshold)
      of the input volume 
      */
 
+  xmin = width ; ymin = height ; zmin = depth ; xmax = ymax = zmax = 0 ;
   for (z = 0 ; z < depth ; z++)
   {
     for (y = 0 ; y < height ; y++)
     {
-      pdst = &MRIvox(mri_dst, 0, y, z) ;
-      psrc = &MRIvox(mri_src, 0, y, z) ;
       pmask = &MRIvox(mri_mask, 0, y, z) ;
       for (x = 0 ; x < width ; x++)
       {
         if (*pmask++ > threshold)
-          *pdst++ = *psrc++ ;
-        else
         {
-          *pdst++ = 0 ;
-          psrc++ ;
+          if (x < xmin)
+            xmin = x ;
+          if (x > xmax)
+            xmax = x ;
+          if (y < ymin)
+            ymin = y ;
+          if (y > ymax)
+            ymax = y ;
+          if (z < zmin)
+            zmin = z ;
+          if (z > zmax)
+            zmax = z ;
         }
+      }
+    }
+  }
+  xmin = MAX(xmin-nsize, 0) ; 
+  ymin = MAX(ymin-nsize, 0) ;
+  zmin = MAX(zmin-nsize, 0) ;
+  xmax = MIN(xmax+nsize, width-1) ;
+  ymax = MIN(ymax+nsize, height-1) ;
+  zmax = MIN(zmax+nsize, depth-1) ;
+
+  if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
+    fprintf(stderr, "bounding box = (%d:%d, %d:%d, %d:%d).\n",
+            xmin, xmax, ymin, ymax, zmin, zmax) ;
+
+  /* remove stuff outside bounding box */
+  for (z = 0 ; z < depth ; z++)
+  {
+    for (y = 0 ; y < height ; y++)
+    {
+      for (x = 0 ; x < width ; x++)
+      {
+        if ((x < xmin || x > xmax) ||
+            (y < ymin || y > ymax) ||
+            (z < zmin || z > zmax))
+          MRIvox(mri_dst, x, y, z) = 0 ;
+      }
+    }
+  }
+
+  for (z = zmin ; z <= zmax ; z++)
+  {
+    for (y = ymin ; y <= ymax ; y++)
+    {
+      for (x = xmin ; x <= xmax ; x++)
+      {
+        out_val = 0 ;
+        for (z1 = -nsize ; z1 <= nsize ; z1++)
+        {
+          zi = mri_src->zi[z+z1] ;
+          for (y1 = -nsize ; y1 <= nsize ; y1++)
+          {
+            yi = mri_src->yi[y+y1] ;
+            for (x1 = -nsize ; x1 <= nsize ; x1++)
+            {
+              xi = mri_src->xi[x+x1] ;
+              if (MRIvox(mri_mask, xi, yi, zi) > threshold)
+              {
+                out_val = MRIvox(mri_src, x, y, z) ;
+                break ;
+              }
+            }
+            if (out_val > 0)
+              break ;
+          }
+          if (out_val > 0)
+            break ;
+        }
+        MRIvox(mri_dst, x, y, z) = out_val ;
       }
     }
   }
