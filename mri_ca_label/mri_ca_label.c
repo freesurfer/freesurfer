@@ -21,6 +21,7 @@ static char *example_segmentation = NULL ;
 
 static int avgs = 0 ;
 
+static int is_possible(GCA *gca, MRI *mri, TRANSFORM *transform, int x, int y, int z, int label) ;
 static int insert_thin_temporal_white_matter(MRI *mri_in, 
                                              MRI *mri_labeled, 
                                              GCA *gca, 
@@ -1423,7 +1424,7 @@ insert_thin_temporal_white_matter(MRI *mri_in, MRI *mri_labeled,
                                   GCA *gca, TRANSFORM *transform, GCA *gca_all)
 {
   MRI       *mri_tmp, *mri_probs, *mri_tmp_labels ;
-  int       width, height, depth, x, y, z, xn, yn, zn, n, nsamples, i, xp, yp, zp ;
+  int       width, height, depth, x, y, z, n, nsamples, i, xp, yp, zp ;
   int       xmin, xmax, ymin, ymax, zmin, zmax,yi,zi, yimax, ximax, zimax,
             **added, nchanged, label ;
   GCA_PRIOR *gcap ;
@@ -1496,7 +1497,7 @@ insert_thin_temporal_white_matter(MRI *mri_in, MRI *mri_labeled,
             gcas[i].x = x ; gcas[i].y = y ; gcas[i].z = z ;
             gcas[i].xp = xp ; gcas[i].yp = yp ; gcas[i].zp = zp ;
             gcas[i].label = gcap->labels[n] ;
-            gcas[i].prior = gcap->priors[n] ;
+            gcas[i].prior = getPrior(gcap, gcap->labels[n]) ;
             gcas[i].mean = gc->mean ;
             gcas[i].var = gc->var ;
             i++ ;
@@ -1957,8 +1958,8 @@ insert_thin_temporal_white_matter(MRI *mri_in, MRI *mri_labeled,
             MRIvox(mri_labeled, x, yi, z) = label ;
           }
 #else
-          GCAsourceVoxelToPrior(gca_all, mri_in, transform, x, yi, z, &xn, &yn, &zn) ;
-          gcap = &gca_all->priors[xn][yn][zn] ;
+          GCAsourceVoxelToPrior(gca_all, mri_in, transform, x, yi, z, &xp, &yp, &zp) ;
+          gcap = &gca_all->priors[xp][yp][zp] ;
           if (label == Left_Cerebral_Cortex || label == Right_Cerebral_Cortex)
           {
             int left ;
@@ -1993,30 +1994,33 @@ insert_thin_temporal_white_matter(MRI *mri_in, MRI *mri_labeled,
               (label == Left_Lateral_Ventricle) ||
               (label == Left_Inf_Lat_Vent) ;
             label = left ? Left_Cerebral_Cortex : Right_Cerebral_Cortex ;
-            if (x == Ggca_x && yi == Ggca_y && z == Ggca_z)  
+            if (is_possible(gca, mri_labeled, transform, x, yi, z, label))
             {
-              printf("(%d, %d, %d) %s changed to %s in insert tl\n",
-                     x, yi, z, cma_label_to_name(MRIvox(mri_labeled,x,yi, z)),
-                     cma_label_to_name(label)) ;
+              if (x == Ggca_x && yi == Ggca_y && z == Ggca_z)  
+              {
+                printf("(%d, %d, %d) %s changed to %s in insert tl\n",
+                       x, yi, z, cma_label_to_name(MRIvox(mri_labeled,x,yi, z)),
+                       cma_label_to_name(label)) ;
+              }
+              MRIvox(mri_labeled, x, yi, z) = label ;
             }
-            MRIvox(mri_labeled, x, yi, z) = label ;
           }
         }
       }
     }
   }
-    
+  
 #if 0
   MRIclose((mri_tmp, mri_tmp) ; MRIdilate6(mri_tmp, mri_tmp) ;
 #endif
-
+  
   if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
   {
     printf("writing temporal lobe volume...") ;
     MRIwrite(mri_tmp, "temp.mgh") ;
     MRIwrite(mri_probs, "probs.mgh") ;
   }
-
+  
   for (i = 0 ; i < nsamples ; i++)
   {
     x = gcas[i].x ; y = gcas[i].y ; z = gcas[i].z ; 
@@ -2027,13 +2031,25 @@ insert_thin_temporal_white_matter(MRI *mri_in, MRI *mri_labeled,
       MRIvox(mri_labeled, x, y, z) = gcas[i].label ;
     }
   }
-
+  
   free(gcas) ;
-
+  
   MRIfree(&mri_tmp) ; MRIfree(&mri_probs) ; MRIfree(&mri_tmp_labels) ;
   for (x = 0 ; x < width ; x++)
-    free(added[x]) ;
+  free(added[x]) ;
   free(added) ;
   return(NO_ERROR) ;
-}
+  }
 
+static int
+is_possible(GCA *gca, MRI *mri, TRANSFORM *transform, int x, int y, int z, int label)
+{
+  GCA_PRIOR  *gcap ;
+  int        n ;
+
+  gcap = getGCAP(gca, mri, transform, x, y, z) ;
+  for (n = 0 ; n < gcap->nlabels ; n++)
+    if (gcap->labels[n] == label)
+      return(1) ;
+  return(0) ;
+}
