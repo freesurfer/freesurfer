@@ -1,7 +1,7 @@
 #!/bin/csh -f
 # groupreg-sess
 #
-set VERSION = '$Id: groupreg-sess,v 1.4 2004/12/01 21:04:31 greve Exp $';
+set VERSION = '$Id: groupreg-sess,v 1.5 2004/12/01 21:40:48 greve Exp $';
 
 set inputargs = ($argv);
 
@@ -450,12 +450,12 @@ ARGUMENTS
 groupid is the name of the group. This dictates where the output will 
 be stored. In future commands, use -s groupid to access the data.
 
--analysis analysis (short-cut: -a)
+-analysis analysis (shortcut: -a)
 
 Specifies the session-level (ie, first-level) analysis from which
 the input data will come from.
 
--contrast cname
+-contrast cname (shortcut: -c)
 
 Specifies the session-level (ie, first-level) contrast from which
 the input data will come from. NOTE: this is different than the
@@ -501,8 +501,8 @@ contrast is different than the session-level contrast.
 This is the name that will be assigned to the group contrast. This
 determines the subdirectory where the output will be stored.  Note
 that the group-level contrast is different than the session-level
-contrast. This is the contrast name to be used when access the 
-data at later stages (eg, viewing).
+contrast (specified with -contrast). This is the gconname name to be
+used when access the data at later stages (eg, viewing).
 
 -vol volstem
 
@@ -554,7 +554,7 @@ Group Contrast Vector File (c.mat):
 ------cuthere---------
 This is a single line with 3 values, one for each regressor in 
 the design matrix. This particular contrast will test the difference
-between subj1 and subj2 (after removing the effects of age).
+between subj1 and subj2 (after accounting for the effects of age).
 
 Command-line:
 
@@ -589,7 +589,4 @@ columns (which is almost impossible to find). When the condition
 number of the design matrix exceeds 1000, it is considered
 ill-conditioned. If you cannot determine what is wrong with it, see a
 statistician or someone else who knows about design matrices.
-
-
-
 
