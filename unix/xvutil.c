@@ -637,13 +637,14 @@ xvGetDimage(int which, int alloc)
 static void
 xv_dimage_event_handler(Xv_Window xv_window, Event *event)
 {
-  int    x, y ;
-  double val = 0.0 ;
-  Window window ;
-  int    row, col, which = -1 ;
-  DIMAGE *dimage ;
-  char   *str, fmt[50] ;
+  int        x, y, i ;
+  double     val = 0.0 ;
+  Window     window ;
+  int        row, col, which = -1, rows, cols ;
+  DIMAGE     *dimage ;
+  char       *str, fmt[150], buf[100] ;
   static int first = 1 ;
+  float      aspect = 1.0f ;
 
   window = event_window(event) ;
 
@@ -693,9 +694,20 @@ xv_dimage_event_handler(Xv_Window xv_window, Event *event)
     case MS_RIGHT:
       if (event_is_up(event))
       {
+        rows = xvf->display_rows ;
+        cols = xvf->display_cols ;
+        aspect = 
+          (float)dimage->sourceImage->rows / (float)dimage->sourceImage->cols ;
+        if (rows > cols)
+          XVsetImageSize(xvf, which, rows, nint((float)rows / aspect)) ;
+        else
+          XVsetImageSize(xvf, which, nint((float)cols * aspect), cols) ;
+
         dimage->dx1 = dimage->dy1 = dimage->dx = dimage->dy = 
           dimage->x0 = dimage->y0 = dimage->x1 = dimage->y1 = 0 ;
         XVshowImage(xvf, which, dimage->sourceImage, 0) ;
+        if (dimage->sync)
+          XVdoSync(xvf, which) ;
       }
       break ;
     case MS_LEFT:
@@ -725,9 +737,18 @@ xv_dimage_event_handler(Xv_Window xv_window, Event *event)
 
         if ((dimage->dx1 >= 2) || (dimage->dy1 >= 2))
         {
+          rows = xvf->display_rows ;
+          cols = xvf->display_cols ;
+          aspect = (float)dimage->dy1 / (float)dimage->dx1 ;
+          if (aspect > 1.0f)
+            XVsetImageSize(xvf, which, rows, nint((float)rows / aspect)) ;
+          else
+            XVsetImageSize(xvf, which, nint((float)cols * aspect),cols) ;
           dimage->dx = dimage->dx1 ;
           dimage->dy = dimage->dy1 ;
           XVshowImage(xvf, which, dimage->sourceImage, 0) ;
+          if (dimage->sync)
+            XVdoSync(xvf, which) ;
         }
           
         dimage->x1 = dimage->y1 = 0 ;  /* no longer drawing */
@@ -737,10 +758,6 @@ xv_dimage_event_handler(Xv_Window xv_window, Event *event)
     case LOC_DRAG:
       if (event_left_is_down(event))  /* draw rubber band box */
       {
-        float aspect ;
-
-        aspect = 
-          (float)dimage->sourceImage->cols / (float)dimage->sourceImage->rows;
         if (dimage->x1)   /* erase old box */
           XVdrawBox(xvf, which, dimage->x1, dimage->y1, dimage->dx1,
                     dimage->dy1, XXOR) ;
@@ -748,7 +765,11 @@ xv_dimage_event_handler(Xv_Window xv_window, Event *event)
         dimage->dy1 = y - dimage->y1 ;
 
         /* enforce appropriate aspect ratio */
+#if 0
+        aspect = 
+          (float)dimage->sourceImage->cols / (float)dimage->sourceImage->rows;
         dimage->dx1 = ISIGN(dimage->dx1) * abs(nint(aspect * dimage->dy1)) ;
+#endif
         XVdrawBox(xvf, which, dimage->x1, dimage->y1, dimage->dx1,
                   dimage->dy1, XXOR) ;
       }
@@ -800,8 +821,40 @@ xv_dimage_event_handler(Xv_Window xv_window, Event *event)
     {}
     
     sprintf(fmt, "%%10.10s: (%%3d, %%3d) --> %%2.%dlf\n", xvf->precision) ;
+
+    if (dimage->sync)
+    {
+      DIMAGE *odimage ;
+
+      for (i = 0 ; i < xvf->rows*xvf->cols ; i++)
+      {
+        odimage = xvGetDimage(i, 0) ;
+        if (odimage && (odimage->sync == dimage->sync))
+        {
+          switch (odimage->sourceImage->pixel_format)
+          {
+          case PFDOUBLE:
+            val = *IMAGEDseq_pix(odimage->sourceImage, x, y, odimage->frame) ;
+            sprintf(buf, " (%d: %2.2f)", i, val) ;
+            break ;
+          case PFFLOAT:
+            val = (double)*IMAGEFseq_pix(odimage->sourceImage, x, y, 
+                                         odimage->frame);
+            sprintf(buf, " (%d: %2.2f)", i, val) ;
+            break ;
+          case PFBYTE:
+            val = (double)*IMAGEseq_pix(odimage->sourceImage, x, y, 
+                                        odimage->frame) ;
+            sprintf(buf, " (%d: %d)", i, (int)val) ;
+            break ;
+          }
+          strcat(fmt, buf) ;
+        }
+      }
+    }
     XVprintf(xvf, 0, fmt, str, x, y, val) ;
-    
+
+
     /* extract this location as center of new template */
     if (event_id(event) == LOC_DRAG || event_is_down(event))
     {
@@ -1737,6 +1790,62 @@ XVzoom(XV_FRAME *xvf, int which, float zoom)
 /*  fprintf(stderr, "zoom = %2.3f\n", dimage->zoom) ;*/
 
   XVshowImage(xvf, which, dimage->sourceImage, 0) ;
+  return(NO_ERROR) ;
+}
+
+int
+XVsync(XV_FRAME *xvf, int which, int sync)
+{
+  DIMAGE  *dimage ;
+
+  dimage = xvGetDimage(which, 0) ;
+  if (!dimage)
+    return(ERROR_BAD_PARM) ;
+
+  dimage->sync = sync ;
+  return(NO_ERROR) ;
+}
+int
+XVdoSync(XV_FRAME *xvf, int which)
+{
+  DIMAGE  *dimage, *odimage ;
+  int     i, rows, cols ;
+  float   aspect ;
+
+  dimage = xvGetDimage(which, 0) ;
+  if (!dimage)
+    return(ERROR_BAD_PARM) ;
+
+  for (i = 0 ; i < xvf->rows*xvf->cols ; i++)
+  {
+    if (i == which)
+      continue ;
+    odimage = xvGetDimage(i, 0) ;
+    if (odimage && (odimage->sync == dimage->sync))
+    {
+      odimage->dx = dimage->dx ;
+      odimage->dy = dimage->dy ;
+      odimage->x0 = dimage->x0 ;
+      odimage->y0 = dimage->y0 ;
+      odimage->x1 = dimage->x1 ;
+      odimage->y1 = dimage->y1 ;
+      odimage->dx1 = dimage->dx1 ;
+      odimage->dy1 = dimage->dy1 ;
+      rows = xvf->display_rows ;
+      cols = xvf->display_cols ;
+      if (dimage->dx)
+        aspect = (float)dimage->dy / (float)dimage->dx ;
+      else
+        aspect = 
+          (float)dimage->sourceImage->rows / (float)dimage->sourceImage->cols ;
+
+      if (aspect > 1.0f)
+        XVsetImageSize(xvf, i, rows, nint((float)rows / aspect)) ;
+      else
+        XVsetImageSize(xvf, i, nint((float)cols * aspect),cols) ;
+      XVshowImage(xvf, i, odimage->sourceImage, 0) ;
+    }
+  }
   return(NO_ERROR) ;
 }
 

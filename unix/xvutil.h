@@ -79,6 +79,7 @@ typedef struct
   int         dy1 ;         /* height of zoomed image */
 
   IMAGE       *zoomImage ;  /* zoomed image */
+  int         sync ;        /* sync zooming and stuff with other images */
 } DISPLAY_IMAGE, DIMAGE ;
 
 typedef struct
@@ -142,6 +143,8 @@ int XVsetPrecision(XV_FRAME *xvf, int precision) ;
 int XVbrighten(XV_FRAME *xvf, int which, int offset) ;
 int XVgamma(XV_FRAME *xvf, int which, float beta) ;
 int XVzoom(XV_FRAME *xvf, int which, float zoom) ;
+int XVsync(XV_FRAME *xvf, int which, int sync) ;
+int XVdoSync(XV_FRAME *xvf, int which) ;
 
 #define WINDOW_PAD          3
 
