@@ -95,6 +95,7 @@ main(int argc, char *argv[])
     ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s for %s",
               Progname, fname, subject_name) ;
   MRISsetNeighborhoodSize(mris, nbrs) ;
+	mris->ct = gcsa->ct ; /* hack so that color table will get written into annot file */
   MRIScomputeSecondFundamentalForm(mris) ;
   MRISsaveVertexPositions(mris, ORIGINAL_VERTICES) ;
   if (MRISreadCanonicalCoordinates(mris, canon_surf_name) != NO_ERROR)
