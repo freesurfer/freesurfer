@@ -9,9 +9,9 @@
 */
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2003/05/14 22:41:34 $
-// Revision       : $Revision: 1.225 $
-char *MRI_C_VERSION = "$Revision: 1.225 $";
+// Revision Date  : $Date: 2003/05/16 18:40:30 $
+// Revision       : $Revision: 1.226 $
+char *MRI_C_VERSION = "$Revision: 1.226 $";
 
 /*-----------------------------------------------------
                     INCLUDE FILES
@@ -4140,7 +4140,7 @@ MRIallocHeader(int width, int height, int depth, int type)
   mri->subject_name[0] = '\0';
   mri->path_to_t1[0] = '\0';
   mri->fname_format[0] = '\0';
-  mri->slice_direction = MRI_UNDEFINED;
+  mri->slice_direction = MRI_CORONAL;
   return(mri) ;
 }
 /*-----------------------------------------------------
