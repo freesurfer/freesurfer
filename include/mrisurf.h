@@ -822,10 +822,16 @@ typedef struct
 {
 	int     max_patches ;
 	int     max_unchanged ;
+	int     niters;  /* stop the genetic algorithm after n iterations */
+	int     genetic; /* to use the genetic algorithm */ 
 	double  l_mri ;
 	double  l_curv ;
 	double  l_unmri ;
 } TOPOLOGY_PARMS ;
+
+int MRIScenterSphere(MRI_SURFACE *mris);
+int MRISmarkOrientationChanges(MRI_SURFACE *mris);
+
 MRI_SURFACE *MRIScorrectTopology(MRI_SURFACE *mris, 
                                  MRI_SURFACE *mris_corrected, MRI *mri, MRI *mri_wm,
                                  int nsmooth,TOPOLOGY_PARMS *parms) ;
