@@ -64,46 +64,76 @@ end
 
 
 % --------------------------------------------------------------------
-function varargout = quit_pb_Callback(h, eventdata, handles, varargin)
+function varargout = quit_pb_Callback(h, eventdata, gd, varargin)
 
 
 
 
 % --------------------------------------------------------------------
-function varargout = reset_pb_Callback(h, eventdata, handles, varargin)
+function varargout = reset_pb_Callback(h, eventdata, gd, varargin)
 
 % --------------------------------------------------------------------
 function varargout = synth_pb_Callback(h, eventdata, gd, varargin)
 gd = Synth(gd);
-gd = Plot(gd);
+gd = PlotRaw(gd);
 guidata(gd.hunivarlab,gd);
 %univarlab('PlotRaw',gd);
 %guidata(gd.hunivarlab,gd);
 return;
 
 % --------------------------------------------------------------------
-function varargout = GamDeltaSynth_Callback(h, eventdata, handles, varargin)
-
-
-
-
-% --------------------------------------------------------------------
-function varargout = GamTauSynth_Callback(h, eventdata, handles, varargin)
-
-
-
-
-% --------------------------------------------------------------------
-function varargout = C1AmpSynth_Callback(h, eventdata, handles, varargin)
-
-
-
+function varargout = GamDeltaSynth_Callback(h, eventdata, gd, varargin)
+val = sscanf(get(h,'string'),'%f');
+if(val < gd.GamDeltaSynth(2) | val > gd.GamDeltaSynth(3))
+  set(h,'string',sprintf('%g',gd.GamDeltaSynth(1)));
+  return;
+end
+gd.GamDeltaSynth(1) = val;
+gd = MakeFirstLevelAnalysis(gd);
+gd = Synth(gd);
+gd = PlotRaw(gd);
+guidata(gd.hunivarlab,gd);
+return;
 
 % --------------------------------------------------------------------
-function varargout = C2AmpSynth_Callback(h, eventdata, handles, varargin)
+function varargout = GamTauSynth_Callback(h, eventdata, gd, varargin)
+val = sscanf(get(h,'string'),'%f');
+if(val < gd.GamTauSynth(2) | val > gd.GamTauSynth(3))
+  set(h,'string',sprintf('%g',gd.GamTauSynth(1)));
+  return;
+end
+gd.GamTauSynth(1) = val;
+gd = MakeFirstLevelAnalysis(gd);
+gd = Synth(gd);
+gd = PlotRaw(gd);
+guidata(gd.hunivarlab,gd);
+return;
 
+% --------------------------------------------------------------------
+function varargout = C1AmpSynth_Callback(h, eventdata, gd, varargin)
+val = sscanf(get(h,'string'),'%f');
+if(val < gd.C1AmpSynth(2) | val > gd.C1AmpSynth(3))
+  set(h,'string',sprintf('%g',gd.C1AmpSynth(1)));
+  return;
+end
+gd.C1AmpSynth(1) = val;
+gd = Synth(gd);
+gd = PlotRaw(gd);
+guidata(gd.hunivarlab,gd);
+return;
 
-
+% --------------------------------------------------------------------
+function varargout = C2AmpSynth_Callback(h, eventdata, gd, varargin)
+val = sscanf(get(h,'string'),'%f');
+if(val < gd.C2AmpSynth(2) | val > gd.C2AmpSynth(3))
+  set(h,'string',sprintf('%g',gd.C2AmpSynth(1)));
+  return;
+end
+gd.C2AmpSynth(1) = val;
+gd = Synth(gd);
+gd = PlotRaw(gd);
+guidata(gd.hunivarlab,gd);
+return;
 
 % --------------------------------------------------------------------
 function varargout = NoiseStd_Callback(h, eventdata, gd, varargin)
@@ -119,49 +149,49 @@ guidata(gd.hunivarlab,gd);
 return;
 
 % --------------------------------------------------------------------
-function varargout = NoiseAR1_Callback(h, eventdata, handles, varargin)
+function varargout = NoiseAR1_Callback(h, eventdata, gd, varargin)
 
 
 
 
 % --------------------------------------------------------------------
-function varargout = FIRPreWin_Callback(h, eventdata, handles, varargin)
+function varargout = FIRPreWin_Callback(h, eventdata, gd, varargin)
 
 
 
 
 % --------------------------------------------------------------------
-function varargout = FIRPostWin_Callback(h, eventdata, handles, varargin)
+function varargout = FIRPostWin_Callback(h, eventdata, gd, varargin)
 
 
 
 
 % --------------------------------------------------------------------
-function varargout = GamDeltaEst_Callback(h, eventdata, handles, varargin)
+function varargout = GamDeltaEst_Callback(h, eventdata, gd, varargin)
 
 
 
 
 % --------------------------------------------------------------------
-function varargout = GamTauEst_Callback(h, eventdata, handles, varargin)
+function varargout = GamTauEst_Callback(h, eventdata, gd, varargin)
 
 
 
 
 % --------------------------------------------------------------------
-function varargout = C1AmpMan_Callback(h, eventdata, handles, varargin)
+function varargout = C1AmpMan_Callback(h, eventdata, gd, varargin)
 
 
 
 
 % --------------------------------------------------------------------
-function varargout = C2AmpMan_Callback(h, eventdata, handles, varargin)
+function varargout = C2AmpMan_Callback(h, eventdata, gd, varargin)
 
 
 
 
 % --------------------------------------------------------------------
-function varargout = Whiten_cb_Callback(h, eventdata, handles, varargin)
+function varargout = Whiten_cb_Callback(h, eventdata, gd, varargin)
 
 % --------------------------------------------------------------------
 function varargout = ViewFIRDesign_Callback(h, eventdata, gd, varargin)
