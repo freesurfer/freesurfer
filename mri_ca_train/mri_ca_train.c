@@ -3,9 +3,9 @@
 /* by Bruce Fischl                                                     */
 /*                                                                     */
 /* Warning: Do not edit the following four lines.  CVS maintains them. */
-/* Revision Author: $Author: tosa $                                           */
-/* Revision Date  : $Date: 2004/03/18 14:52:49 $                                             */
-/* Revision       : $Revision: 1.29 $                                         */
+/* Revision Author: $Author: fischl $                                           */
+/* Revision Date  : $Date: 2004/04/02 22:07:17 $                                             */
+/* Revision       : $Revision: 1.30 $                                         */
 /***********************************************************************/
 
 #include <stdio.h>
@@ -223,9 +223,9 @@ main(int argc, char *argv[])
       // subjects loop index i
       if (i != 0)  /* not the first image read - reorder it to be in the same order as 1st */
       {
-	// initialize the flag array
-	for (input =0; input < ninputs; input++)
-	  used[input] = 0;
+				// initialize the flag array
+				for (input =0; input < ninputs; input++)
+					used[input] = 0;
 
         for (input = 0 ; input < ninputs ; input++)
         { 
@@ -236,23 +236,23 @@ main(int argc, char *argv[])
           for (o = 0 ; o < ninputs ; o++)
             if (FEQUAL(TRs[o],mri_tmp->tr) && FEQUAL(FAs[o],mri_tmp->flip_angle) && FEQUAL(TEs[o], mri_tmp->te))
             {
-	      // if this o is not used, then use it
-	      if (used[o] == 0)
-	      {
-		ordering[input] = o ;
-		used[o] = 1;
-		break;
-	      }
-	    }
+							// if this o is not used, then use it
+							if (used[o] == 0)
+							{
+								ordering[input] = o ;
+								used[o] = 1;
+								break;
+							}
+						}
           MRIfree(&mri_tmp) ;
         }
-	// verify whether it has input values are used
-	counts = 0;
-	for (input = 0; input < ninputs; input++)
-	  if (used[input] == 1) counts++;
-	if (counts != ninputs)
-	  ErrorExit(ERROR_BADPARM,
-		    "Input TR, TE, FlipAngle for each subjects must match.\n");
+				// verify whether it has input values are used
+				counts = 0;
+				for (input = 0; input < ninputs; input++)
+					if (used[input] == 1) counts++;
+				if (counts != ninputs)
+					ErrorExit(ERROR_BADPARM,
+										"Input TR, TE, FlipAngle for each subjects must match.\n");
       }
       else
         for (o = 0 ; o < ninputs ; o++)
@@ -267,53 +267,59 @@ main(int argc, char *argv[])
         printf("\n") ;
       }
 
+			if (flash)
+				gca->type = GCA_FLASH ;
+			else 
+			{
+				if (ninputs==2) // T1 and PD?
+				{
+					if ((strstr(input_names[ordering[0]], "T1") && strstr(input_names[ordering[1]], "PD")) ||
+							(strstr(input_names[ordering[1]], "T1") && strstr(input_names[ordering[0]], "PD")))
+					{
+						gca->type=GCA_PARAM;
+					}
+			}
+				else if (ninputs==1) // single input 
+					gca->type=GCA_NORMAL; 
+				else 
+					gca->type=GCA_UNKNOWN;
+			}
+			printf("gca->type = %d\n", gca->type) ;
+
       ////////////////////////////////////////////////////////////////////////////
       fprintf(stderr, "Gather all input volumes for the subject %s.\n", subject_name);
       // inputs must be coregistered
       // note that inputs are T1, PD, ... per subject (same TE, TR, FA)
       for (input = 0 ; input < ninputs ; input++)
       {      
-	//////////// set the gca type ///////////////////////////////////////////
-	// is this T1/PD training?
-	if (ninputs==2) // T1 and PD?
-	{
-	  if (!strstr(input_names[ordering[input]], "T1") 
-	      && !strstr(input_names[ordering[input]], "PD"))
-	    ErrorExit(ERROR_BADPARM, 
-		      "Need T1 and PD images. Make sure that the filename contains \"T1\" or \"PD\"\n");
-	  gca->type=GCA_PARAM;
-	      
-	}
-	else if (ninputs==1) // single input 
-	  gca->type=GCA_NORMAL; 
-	else 
-	  gca->type=GCA_UNKNOWN;
-	// how can we allow flash data training ???????
-	// currently checks the TE, TR, FA to be the same for all inputs
-	// thus we cannot allow flash data training.
-	///////////////////////////////////////////////////////////////////////////
+				//////////// set the gca type ///////////////////////////////////////////
+				// is this T1/PD training?
+				// how can we allow flash data training ???????
+				// currently checks the TE, TR, FA to be the same for all inputs
+				// thus we cannot allow flash data training.
+				///////////////////////////////////////////////////////////////////////////
 
         sprintf(fname, "%s/%s/mri/%s", subjects_dir, subject_name,input_names[ordering[input]]);
         if (DIAG_VERBOSE_ON)
           printf("reading co-registered input from %s...\n", fname) ;
-	fprintf(stderr, "   reading input %d: %s\n", input, fname);
+				fprintf(stderr, "   reading input %d: %s\n", input, fname);
         mri_tmp = MRIread(fname) ;
         if (!mri_tmp)
           ErrorExit(ERROR_NOFILE, "%s: could not read image from file %s", Progname, fname) ;
-	// input check 1
-	if (getSliceDirection(mri_tmp) != MRI_CORONAL)
-	{
-	  ErrorExit(ERROR_BADPARM,"%s: must be in coronal direction, but it is not\n", 
-		    fname);
-	}
-	// input check 2
-	if (mri_tmp->xsize != 1 || mri_tmp->ysize != 1 || mri_tmp->zsize != 1)
-	{
-	  ErrorExit(ERROR_BADPARM,"%s: must have 1mm voxel size, but have (%f, %f, %f)\n", 
-		    fname, mri_tmp->xsize, mri_tmp->ysize, mri_tmp->ysize);
-	}
-	// input check 3 is removed.  now we can handle c_(ras) != 0 case
-	// input check 4
+				// input check 1
+				if (getSliceDirection(mri_tmp) != MRI_CORONAL)
+				{
+					ErrorExit(ERROR_BADPARM,"%s: must be in coronal direction, but it is not\n", 
+										fname);
+				}
+				// input check 2
+				if (mri_tmp->xsize != 1 || mri_tmp->ysize != 1 || mri_tmp->zsize != 1)
+				{
+					ErrorExit(ERROR_BADPARM,"%s: must have 1mm voxel size, but have (%f, %f, %f)\n", 
+										fname, mri_tmp->xsize, mri_tmp->ysize, mri_tmp->ysize);
+				}
+				// input check 3 is removed.  now we can handle c_(ras) != 0 case
+				// input check 4
         if (i == 0)
         {
           TRs[input] = mri_tmp->tr ;
@@ -338,7 +344,7 @@ main(int argc, char *argv[])
             nframes += ninputs ;
           if (gca_flags & GCA_ZGRAD)
             nframes += ninputs ;
-	  /////////////////////////////////////////////////////////////////////////
+					/////////////////////////////////////////////////////////////////////////
           mri_inputs = 
             MRIallocSequence(mri_tmp->width, mri_tmp->height, mri_tmp->depth,
                              mri_tmp->type, nframes) ;
@@ -392,31 +398,31 @@ main(int argc, char *argv[])
       ////////////////////////////////////////////////////////////////////////////////
       if (xform_name)
       {
-	// we read talairach.xfm which is a RAS-to-RAS
+				// we read talairach.xfm which is a RAS-to-RAS
         sprintf(fname, "%s/%s/mri/transforms/%s", 
                 subjects_dir, subject_name, xform_name) ;
-	printf("INFO: reading transform file %s...\n", fname);
-	if(!FileExists(fname))
-	{
-	  fprintf(stderr,"ERROR: cannot find transform file %s\n",fname);
-	  exit(1);
-	}
+				printf("INFO: reading transform file %s...\n", fname);
+				if(!FileExists(fname))
+				{
+					fprintf(stderr,"ERROR: cannot find transform file %s\n",fname);
+					exit(1);
+				}
         transform = TransformRead(fname);
         if (!transform)
           ErrorExit(ERROR_NOFILE, "%s: could not read transform from file %s",
                     Progname, fname);
-	// change the transform to vox-to-vox
-	if (transform->type == LINEAR_RAS_TO_RAS)
-	{
-	  // takes care of average_305 or transform dst c_(ras) value.
-	  modify_transform(transform, mri_inputs, gca);
-	  // we modified GCA global mri_node_ and mri_prior_ c_(ras) values
-	  // after this  transform->type = LINEAR_VOX_TO_VOX
-	}
-	// modify transform to store inverse also
-	TransformInvert(transform, mri_inputs) ;
-	// verify inverse
-	lta = (LTA *) transform->xform;
+				// change the transform to vox-to-vox
+				if (transform->type == LINEAR_RAS_TO_RAS)
+				{
+					// takes care of average_305 or transform dst c_(ras) value.
+					modify_transform(transform, mri_inputs, gca);
+					// we modified GCA global mri_node_ and mri_prior_ c_(ras) values
+					// after this  transform->type = LINEAR_VOX_TO_VOX
+				}
+				// modify transform to store inverse also
+				TransformInvert(transform, mri_inputs) ;
+				// verify inverse
+				lta = (LTA *) transform->xform;
       }
       else
         transform = TransformAlloc(LINEAR_VOXEL_TO_VOXEL, NULL) ;
@@ -555,19 +561,19 @@ main(int argc, char *argv[])
           ErrorExit(ERROR_NOFILE, "%s: could not read T1 data from file %s",
                     Progname, fname) ;
         
-	// input check 1
-	if (getSliceDirection(mri_tmp) != MRI_CORONAL)
-	{
-	  ErrorExit(ERROR_BADPARM,"%s: must be in coronal direction, but it is not\n", 
-		    fname);
-	}
-	// input check 2
-	if (mri_tmp->xsize != 1 || mri_tmp->ysize != 1 || mri_tmp->zsize != 1)
-	{
-	  ErrorExit(ERROR_BADPARM,"%s: must have 1mm voxel size, but have (%f, %f, %f)\n", 
-		    fname, mri_tmp->xsize, mri_tmp->ysize, mri_tmp->ysize);
-	}
-	// input check 3 is removed c_(ras) != 0 can be handled
+				// input check 1
+				if (getSliceDirection(mri_tmp) != MRI_CORONAL)
+				{
+					ErrorExit(ERROR_BADPARM,"%s: must be in coronal direction, but it is not\n", 
+										fname);
+				}
+				// input check 2
+				if (mri_tmp->xsize != 1 || mri_tmp->ysize != 1 || mri_tmp->zsize != 1)
+				{
+					ErrorExit(ERROR_BADPARM,"%s: must have 1mm voxel size, but have (%f, %f, %f)\n", 
+										fname, mri_tmp->xsize, mri_tmp->ysize, mri_tmp->ysize);
+				}
+				// input check 3 is removed c_(ras) != 0 can be handled
         if (input == 0)
         {
           int nframes = ninputs ;
@@ -627,25 +633,25 @@ main(int argc, char *argv[])
         if (!transform)
           ErrorExit(ERROR_NOFILE, "%s: could not read transform from file %s",
                     Progname, fname);
-	// change the transform to vox-to-vox
-	if (transform->type == LINEAR_RAS_TO_RAS)
-	{
-	  // takes care of average_305 or transform dst c_(ras) value.
-	  modify_transform(transform, mri_inputs, gca);
-	  // we modified GCA global mri_node_ and mri_prior_ c_(ras) values
-	  // after this  transform->type = LINEAR_VOX_TO_VOX
-	}
+				// change the transform to vox-to-vox
+				if (transform->type == LINEAR_RAS_TO_RAS)
+				{
+					// takes care of average_305 or transform dst c_(ras) value.
+					modify_transform(transform, mri_inputs, gca);
+					// we modified GCA global mri_node_ and mri_prior_ c_(ras) values
+					// after this  transform->type = LINEAR_VOX_TO_VOX
+				}
         TransformInvert(transform, mri_inputs) ;
-	// verify inverse
-	lta = (LTA *) transform->xform;
-	{
-	  MATRIX *go = lta->xforms[0].m_L;
-	  MATRIX *back = lta->inv_xforms[0].m_L;
-	  MATRIX *seki = MatrixMultiply(back, go, NULL);
-	  fprintf(stderr, "You should see the unit matrix to verify the inverse.\n");
-	  MatrixPrint(stderr, seki);
-	  MatrixFree(&seki);
-	}
+				// verify inverse
+				lta = (LTA *) transform->xform;
+				{
+					MATRIX *go = lta->xforms[0].m_L;
+					MATRIX *back = lta->inv_xforms[0].m_L;
+					MATRIX *seki = MatrixMultiply(back, go, NULL);
+					fprintf(stderr, "You should see the unit matrix to verify the inverse.\n");
+					MatrixPrint(stderr, seki);
+					MatrixFree(&seki);
+				}
       }
       else
         transform = TransformAlloc(LINEAR_VOXEL_TO_VOXEL, NULL) ;
@@ -734,6 +740,14 @@ main(int argc, char *argv[])
   if (GCAwrite(gca, out_fname) != NO_ERROR)
     ErrorExit(ERROR_BADFILE, "%s: could not write gca to %s", Progname, out_fname) ;
 
+	{
+		MRI *mri ;
+
+		mri = GCAbuildMostLikelyVolume(gca, NULL) ;
+		MRIwrite(mri, "m.mgh") ;
+		MRIfree(&mri) ;
+	}
+
   if (histo_fname)
   {
     FILE *fp ;
@@ -776,7 +790,7 @@ main(int argc, char *argv[])
   minutes = seconds / 60 ;
   seconds = seconds % 60 ;
   printf("classifier array training took %d minutes"
-          " and %d seconds.\n", minutes, seconds) ;
+				 " and %d seconds.\n", minutes, seconds) ;
   exit(0) ;
   return(0) ;
 }
@@ -822,7 +836,7 @@ get_option(int argc, char *argv[])
   else if (!stricmp(option, "FLASH"))
   {
 #if 1
-    flash = 0 ;
+    flash = 1 ;
     printf("setting gca->type to FLASH\n") ;
 #else
     int i ;
