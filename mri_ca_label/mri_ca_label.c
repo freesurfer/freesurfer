@@ -1758,6 +1758,10 @@ insert_thin_temporal_white_matter(MRI *mri_in, MRI *mri_labeled,
             DiagBreak() ;
           if (MRIvox(mri_tmp, x, y, z))
             continue ;
+          if (z == 0 || z>= depth)
+            DiagBreak() ;
+          if (x <= 0 || x >= width || z <= 0 || z >= depth)
+            continue ;
           if ((MRIvox(mri_tmp, x+1, y, z) && MRIvox(mri_tmp, x-1,y,z)) ||
               (MRIvox(mri_tmp, x, y, z-1) && MRIvox(mri_tmp, x,y,z+1)))
           {
