@@ -19,6 +19,7 @@ extern double oglu_fov ;
 #define TP_FLAG      0x0002   /* show tangent plane and principal directions */
                               /*  of marked vertices */
 #define MESH_FLAG    0x0004
+#define COORD_FLAG   0x0008   /* draw canonical coordinate system */
 
 #define LIGHT_OFFSET  0.25
 
