@@ -10,7 +10,7 @@ if { $err } {
     load [file dirname [info script]]/libscuba[info sharedlibextension] scuba
 }
 
-DebugOutput "\$Id: scuba.tcl,v 1.75 2005/02/04 22:24:38 kteich Exp $"
+DebugOutput "\$Id: scuba.tcl,v 1.76 2005/02/07 15:30:15 kteich Exp $"
 
 # gTool
 #   current - current selected tool (nav,)
@@ -3153,7 +3153,6 @@ proc SelectSubjectInSubjectsLoader { isSubject } {
     # Make sure we know this subject.
     set nSubject [lsearch $gaSubject(nameList) $isSubject]
     if { $nSubject == -1 } {
-	tkuErrorDlog "Subject $isSubject doesn't exist."
 	return
     }
 
@@ -3561,11 +3560,11 @@ proc DrawLabelArea {} {
 		
 		frame $fw
 		
-		tkuMakeNormalLabel $ewLabel -label $label -width 20
+		tkuMakeNormalLabel $ewLabel -label $label -width 14
 		entry $ewValue \
 		    -textvariable glLabelValues($nLabel,value) \
 		    -font [tkuNormalFont] \
-		    -width 20 \
+		    -width 18 \
 		    -state disabled \
 		    -relief flat \
 		    -background [tix option get disabled_bg]
@@ -4516,7 +4515,7 @@ proc SaveSceneScript { ifnScene } {
     set f [open $ifnScene w]
 
     puts $f "\# Scene file generated "
-    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.75 2005/02/04 22:24:38 kteich Exp $"
+    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.76 2005/02/07 15:30:15 kteich Exp $"
     puts $f ""
 
     # Find all the data collections.
