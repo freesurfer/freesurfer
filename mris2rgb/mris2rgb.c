@@ -21,7 +21,7 @@
 #ifndef APIENTRY
 #define APIENTRY
 #endif
-#include "GL/osmesa.h"
+//include "GL/osmesa.h"
 #endif
 
 #include "rgb_image.h"
@@ -37,7 +37,7 @@
 #include "label.h"
 #include "macros.h"
 
-static char vcid[] = "$Id: mris2rgb.c,v 1.29 2003/01/23 19:02:17 tosa Exp $";
+static char vcid[] = "$Id: mris2rgb.c,v 1.30 2003/04/08 20:51:21 tosa Exp $";
 
 /*-------------------------------- CONSTANTS -----------------------------*/
 
