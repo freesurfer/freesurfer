@@ -4869,7 +4869,7 @@ float
 ImageRMSDifference(IMAGE *I1_in, IMAGE *I2_in)
 {
   float dif, rms, *pix1, *pix2 ;
-  int   width, height, x, y ;
+  int   width, height, x, y, frame ;
   IMAGE *I1, *I2 ;
 
   width = I1_in->cols ;
@@ -4891,14 +4891,17 @@ ImageRMSDifference(IMAGE *I1_in, IMAGE *I2_in)
     I2 = I2_in ;
 
   rms = 0.0f ;
-  pix1 = IMAGEFpix(I1, 0, 0) ;
-  pix2 = IMAGEFpix(I2, 0, 0) ;
-  for (y = 0 ; y < height ; y++)
+  for (frame = 0 ; frame < I1->num_frame ; frame++)
   {
-    for (x = 0 ; x < width ; x++)
+    pix1 = IMAGEFseq_pix(I1, 0, 0, frame) ;
+    pix2 = IMAGEFseq_pix(I2, 0, 0, frame) ;
+    for (y = 0 ; y < height ; y++)
     {
-      dif = (*pix1++ - *pix2++) ;
-      rms += (dif * dif) ;
+      for (x = 0 ; x < width ; x++)
+      {
+        dif = (*pix1++ - *pix2++) ;
+        rms += (dif * dif) ;
+      }
     }
   }
 
