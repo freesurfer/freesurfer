@@ -6,6 +6,7 @@
 
 /* the volume that the classifiers are distributed within */
 #define DEFAULT_VOLUME_SIZE   256
+#define MAX_GCA_LABELS        1000
 
 typedef struct
 {
@@ -55,12 +56,25 @@ typedef struct
 
 typedef struct
 {
+  double   T1_mean ;
+  double   PD_mean ;
+  double   T2_mean ;
+  double   T1_var ;
+  double   PD_var ;
+  double   T2_var ;
+  int      label ;
+  int      total_training ;
+} GCA_TISSUE_PARMS ;
+
+typedef struct
+{
   float     spacing ;    /* inter-node spacing */
   int       width ;
   int       height ;
   int       depth ;
   GCA_NODE  ***nodes ;
   int       ninputs ;
+  GCA_TISSUE_PARMS tissue_parms[MAX_GCA_LABELS] ;
 } GAUSSIAN_CLASSIFIER_ARRAY, GCA ;
 
 
@@ -138,6 +152,12 @@ float GCAlabelProbability(MRI *mri_src, GCA *gca, LTA *lta,
 MRI   *GCAmaxLikelihoodBorders(GCA *gca, MRI *mri_inputs, MRI *mri_src,
                                MRI *mri_dst, LTA *lta, int max_iter,
                                float min_ratio) ;
+int   GCAaccumumateTissueStatistics(GCA *gca, MRI *mri_T1, MRI *mri_PD, 
+                                    MRI *mri_parc, LTA *lta) ;
+int   GCAnormalizeTissueStatistics(GCA *gca) ;
+char *cma_label_to_name(int label) ;
+MRI   *GCArelabel_cortical_gray_and_white(GCA *gca, MRI *mri_inputs, 
+                                          MRI *mri_src, MRI *mri_dst,LTA *lta);
 
 #define MIN_PRIOR  0.5
 
