@@ -10,6 +10,7 @@ typedef struct
   float  *x ;
   float  *y ;
   float  *z ;
+  unsigned char  *deleted ;
 } LABEL ;
 
 
@@ -20,5 +21,7 @@ int LabelWrite(LABEL *area, char *fname) ;
 int LabelToCanonical(LABEL *area, MRI_SURFACE *mris) ;
 int LabelFromCanonical(LABEL *area, MRI_SURFACE *mris) ;
 int LabelToFlat(LABEL *area, MRI_SURFACE *mris) ;
+int LabelRipRestOfSurface(LABEL *area, MRI_SURFACE *mris) ;
+int LabelRemoveOverlap(LABEL *area1, LABEL *area2) ;
 
 #endif

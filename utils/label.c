@@ -77,6 +77,11 @@ LabelRead(char *subject_name, char *label_name)
     ErrorExit(ERROR_NOMEMORY, 
               "%s: LabelRead(%s) could not allocate %d-sized vector",
               Progname, label_name, area->n_points) ;
+  area->deleted = (unsigned char *)calloc(area->n_points, sizeof(float)) ;
+  if (!area->deleted)
+    ErrorExit(ERROR_NOMEMORY, 
+              "%s: LabelRead(%s) could not allocate %d-sized vector",
+              Progname, label_name, area->n_points) ;
   area->vno = (int *)calloc(area->n_points, sizeof(int)) ;
   if (!area->vno)
     ErrorExit(ERROR_NOMEMORY, 
@@ -134,6 +139,7 @@ LabelFree(LABEL **parea)
   area = *parea ;
   *parea = NULL ;
   free(area->x) ; free(area->y) ; free(area->z) ; free(area->vno) ;
+  free(area->deleted) ;
   free(area) ;
   return(NO_ERROR) ;
 }
@@ -231,7 +237,12 @@ int
 LabelWrite(LABEL *area, char *fname)
 {
   FILE  *fp ;
-  int  n ;
+  int  n, num ;
+
+  
+  for (num = n = 0 ; n < area->n_points ; n++)
+    if (!area->deleted[n])
+      num++ ;
 
   fp = fopen(fname, "w") ;
   if (!fp)
@@ -242,8 +253,63 @@ LabelWrite(LABEL *area, char *fname)
   fprintf(fp, "# label %s, from subject %s\n", area->name, area->subject_name);
 #endif
   for (n = 0 ; n < area->n_points ; n++)
-    fprintf(fp, "%d  %2.3f  %2.3f  %2.3f\n", area->vno[n], area->x[n], 
-            area->y[n], area->z[n]) ;
+    if (!area->deleted[n])
+      fprintf(fp, "%d  %2.3f  %2.3f  %2.3f\n", area->vno[n], area->x[n], 
+              area->y[n], area->z[n]) ;
   fclose(fp) ;
+  return(NO_ERROR) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
+int
+LabelRipRestOfSurface(LABEL *area, MRI_SURFACE *mris)
+{
+  int    vno, n ;
+  VERTEX *v ;
+
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    v->ripflag = 1 ;
+  }
+
+  for (n = 0 ; n < area->n_points ; n++)
+  {
+    vno = area->vno[n] ;
+    v = &mris->vertices[vno] ;
+    v->ripflag = 0 ;
+  }
+  return(NO_ERROR) ;
+}
+
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
+int
+LabelRemoveOverlap(LABEL *area1, LABEL *area2)
+{
+  int   n1, n2, vno ;
+
+  for (n1 = 0 ; n1 < area1->n_points ; n1++)
+  {
+    vno = area1->vno[n1] ;
+    for (n2 = 0 ; n2 < area2->n_points ; n2++)
+    {
+      if (vno == area2->vno[n2])
+      {
+        area1->deleted[n1] = 1 ;
+        break ;
+      }
+    }
+  }
   return(NO_ERROR) ;
 }
