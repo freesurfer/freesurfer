@@ -176,7 +176,8 @@ MRI   *MRIdiffusePerona(MRI *mri_src, MRI *mri_dst,
 MRI   *MRIdirectionMap(MRI *mri_grad, MRI *mri_direction, int wsize);
 
 /* offset stuff */
-MRI   *MRIoffsetDirection(MRI *mri_grad, int wsize, MRI *mri_direction);
+MRI   *MRIoffsetDirection(MRI *mri_grad, int wsize, MRI *mri_direction,
+                          MRI *mri_dir);
 MRI   *MRIoffsetMagnitude(MRI *mri_src, MRI *mri_dst, int maxsteps) ;
 MRI   *MRIapplyOffset(MRI *mri_src, MRI *mri_dst, MRI *mri_offset) ;
 
@@ -199,6 +200,8 @@ MRI   *MRIextract(MRI *mri_src, MRI *mri_dst, int x0, int y0, int z0,
                   int dx, int dy, int dz) ;
 MRI   *MRIextractInto(MRI *mri_src, MRI *mri_dst, int x0, int y0, int z0,
                   int dx, int dy, int dz, int x1, int y1, int z1) ;
+MRI   *MRIextractIntoRegion(MRI *mri_src, MRI *mri_dst, int x0, int y0, int z0,
+                            MRI_REGION *region) ;
 
 MRI   *MRIextractRegion(MRI *mri_src, MRI *mri_dst, MRI_REGION *region) ;
 MRI   *MRIextractPlane(MRI *mri_src, MRI *mri_dst, MRI *mri_polv, int wsize,
@@ -229,6 +232,7 @@ MRI   *MRIxor(MRI *mri1, MRI *mri2, MRI *mri_dst, int t1, int t2) ;
 MRI   *MRIcomputeResidual(MRI *mri1, MRI *mri2, MRI *mri_dst, int t1, int t2) ;
 
 /* filtering operations */
+MRI   *MRIminmax(MRI *mri_src, MRI *mri_dst, MRI *mri_dir, int wsize) ;
 MRI   *MRIgaussian1d(float sigma, int max_len) ;
 MRI   *MRIconvolveGaussian(MRI *mri_src, MRI *mri_dst, MRI *mri_gaussian) ;
 MRI   *MRImedian(MRI *mri_src, MRI *mri_dst, int wsize) ;
@@ -348,5 +352,11 @@ Volume     MRItoVolume(MRI *mri) ;
 MRI        *MRIfromVolume(Volume volume, int start_frame, int end_frame) ;
 int        MRIisValid(MRI *mri) ;
 MRI        *MRIflipByteOrder(MRI *mri_src, MRI *mri_dst) ;
+
+
+/* constants used in mri_dir of MRIoffsetDirection and for MRIminmax filter */
+#define OFFSET_NEGATIVE_GRADIENT_DIRECTION    0
+#define OFFSET_GRADIENT_DIRECTION             1
+#define OFFSET_ZERO                           2
 
 #endif
