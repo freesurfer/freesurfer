@@ -2,7 +2,7 @@
 # func2roi-sess-mrun - just a front end to run func2roi-sess for
 # multiple runs (ie, on the output of a jackknife or perrun selxavg)
 
-set VERSION = '$Id: func2roi-sess-mrun,v 1.1 2003/03/04 21:22:08 greve Exp $';
+set VERSION = '$Id: func2roi-sess-mrun,v 1.2 2003/03/20 02:04:53 greve Exp $';
 set FASTVER = `cat $FMRI_ANALYSIS_DIR/docs/version`;
 
 set inputargs = ($argv);
@@ -121,7 +121,7 @@ foreach sess ($SessList)
     set cmd = (func2roi-sess -anapend $anapend $func2roiargs)
     set cmd = ($cmd -s $sessid -d $sessparent)
     echo "--------------------------------------------" |& tee -a $LF
-    $PWD |& tee -a $LF
+    echo $PWD |& tee -a $LF
     echo $cmd |& tee -a $LF
     echo "--------------------------------------------" |& tee -a $LF
     $cmd |& tee -a $LF
