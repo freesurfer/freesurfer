@@ -48,7 +48,13 @@ static MRI *mriSoapBubbleFloat(MRI *mri_src, MRI *mri_ctrl, MRI *mri_dst,
                                int niter) ;
 static MRI *mriSoapBubbleExpandFloat(MRI *mri_src, MRI *mri_ctrl, MRI *mri_dst,
                                int niter) ;
-static MRI *mriBuildVoronoiDiagramFloat(MRI *mri_src, MRI *mri_ctrl,MRI *mri_dst);
+static MRI *mriBuildVoronoiDiagramFloat(MRI *mri_src, MRI *mri_ctrl,
+                                        MRI *mri_dst);
+
+static int num_control_points = 0 ;
+static int *xctrl ;
+static int *yctrl ;
+static int *zctrl ;
 
 /*-----------------------------------------------------
                     GLOBAL FUNCTIONS
@@ -604,7 +610,7 @@ MRInormFindControlPoints(MRI *mri_src, int wm_target, float intensity_above,
                          float intensity_below, MRI *mri_ctrl)
 {
   int     width, height, depth, x, y, z, xk, yk, zk, xi, yi, zi, *pxi, *pyi, 
-          *pzi, ctrl, nctrl, nfilled, too_low, total_filled ;
+          *pzi, ctrl, nctrl, nfilled, too_low, total_filled,i;
   BUFTYPE val0, val, low_thresh, hi_thresh ;
 
   if (!wm_target)
@@ -689,8 +695,9 @@ MRInormFindControlPoints(MRI *mri_src, int wm_target, float intensity_above,
                 for (xk = -1 ; xk <= 1 && !too_low ; xk++)
                 {
                   /*
-                    check for any 27-connected neighbor that is not
-                    in the right intensity range.
+                    check for any 27-connected neighbor that is a control
+                    point and has a small intensity difference with the
+                    current point.
                   */
                   xi = pxi[x+xk] ;
                   val = MRIvox(mri_src, xi, yi, zi) ;
@@ -722,8 +729,137 @@ MRInormFindControlPoints(MRI *mri_src, int wm_target, float intensity_above,
   if (Gdiag & DIAG_SHOW)
     fprintf(stderr,"%d contiguous 3x3x3 control points added\n",total_filled);
 
+#if 0
+  low_thresh = wm_target-(2*intensity_below); 
+  hi_thresh =  wm_target+intensity_above;
+  total_filled = 0 ;
+  for (z = 0 ; z < depth ; z++)
+  {
+    for (y = 0 ; y < height ; y++)
+    {
+      for (x = 0 ; x < width ; x++)
+      {
+        val0 = MRIvox(mri_src, x, y, z) ;
+        if (val0 >= low_thresh && val0 <= hi_thresh)
+        {
+#undef WHALF
+#undef WSIZE
+#define WSIZE   9
+#define WHALF  ((WSIZE-1)/2)
+          ctrl = 1 ;
+          for (zk = -WHALF ; ctrl && zk <= WHALF ; zk++)
+          {
+            zi = pzi[z+zk] ;
+            for (yk = -WHALF ; ctrl && yk <= WHALF ; yk++)
+            {
+              yi = pyi[y+yk] ;
+              for (xk = -WHALF ; ctrl && xk <= WHALF ; xk++)
+              {
+                xi = pxi[x+xk] ;
+                val = MRIvox(mri_src, xi, yi, zi) ;
+                if (val > hi_thresh || val < low_thresh)
+                  ctrl = 0 ;   /* not homogeneous enough */
+              }
+            }
+          }
+        }
+        else
+          ctrl = 0 ;
+        if (ctrl)
+          total_filled++ ;
+        MRIvox(mri_ctrl, x, y, z) = ctrl ;
+      }
+    }
+  }
+  if (Gdiag & DIAG_SHOW)
+    fprintf(stderr, "%d %d mm homogenous control points found\n",
+            total_filled,WSIZE);
+  nctrl += total_filled ;
+#endif
+
+#if 0
+  total_filled = 0 ;
+  do
+  {
+    int   low_gradients ;
+    float dist ;
+
+    nfilled = 0 ;
+    for (z = 0 ; z < depth ; z++)
+    {
+      for (y = 0 ; y < height ; y++)
+      {
+        for (x = 0 ; x < width ; x++)
+        {
+          val0 = MRIvox(mri_src, x, y, z) ;
+          ctrl = MRIvox(mri_ctrl, x, y, z) ;
+          low_gradients = 0 ;
+          if (val0 >= low_thresh && val0 <= hi_thresh && !ctrl)
+          {
+            if (x == 167 && y == 127 && z == 126)
+              DiagBreak() ;
+            for (zk = -1 ; zk <= 1 ; zk++)
+            {
+              zi = pzi[z+zk] ;
+              for (yk = -1 ; yk <= 1 ; yk++)
+              {
+                yi = pyi[y+yk] ;
+                for (xk = -1 ; xk <= 1 ; xk++)
+                {
+                  if (!xk && !yk && !zk)
+                    continue ;
+
+                  /*
+                    check for any 27-connected neighbor that is not
+                    in the right intensity range.
+                  */
+                  xi = pxi[x+xk] ;
+                  if (MRIvox(mri_ctrl, xi, yi, zi)) /* neighboring ctrl pt */
+                  {
+                    val = MRIvox(mri_src, xi, yi, zi) ;
+                    dist = sqrt(xk*xk+yk*yk+zk*zk) ;
+                    if (FZERO(dist))
+                      dist = 1.0 ;
+#define MIN_GRAD 1.0
+                    if (fabs(val-val0)/dist < MIN_GRAD)
+                      low_gradients++ ;
+                  }
+                  if ((abs(xk) + abs(yk) + abs(zk)) > 1)
+                    continue ;  /* only allow 4 (6 in 3-d) connectivity */
+                }
+              }
+            }
+            if (low_gradients >= 9)
+            {
+              MRIvox(mri_ctrl, x, y, z) = 1 ;
+              nfilled++ ;
+            }
+          }
+        }
+      }
+    }
+    total_filled += nfilled ;
+  } while (nfilled > 0) ;
+  nctrl += total_filled ;
+  if (Gdiag & DIAG_SHOW)
+    fprintf(stderr,"%d contiguous low gradient control points added\n",
+            total_filled);
+#endif
+
+#undef WSIZE
 #undef WHALF
   mriRemoveOutliers(mri_ctrl, 2) ;
+
+  /* read in control points from a file (if specified) */
+  for (i = 0 ; i < num_control_points ; i++)
+  {
+    if (!MRIvox(mri_ctrl, xctrl[i], yctrl[i], zctrl[i]))
+    {
+      MRIvox(mri_ctrl, xctrl[i], yctrl[i], zctrl[i]) = 1 ;
+      nctrl++ ;
+    }
+  }
+
   if (Gdiag & DIAG_SHOW)
     fprintf(stderr, "%d control points found.\n", nctrl) ;
   return(mri_ctrl) ;
@@ -770,7 +906,7 @@ MRIbuildBiasImage(MRI *mri_src, MRI *mri_ctrl, MRI *mri_bias)
   fprintf(stderr, "building Voronoi diagram...\n") ;
   MRIbuildVoronoiDiagram(mri_src, mri_ctrl, mri_bias) ;
   fprintf(stderr, "performing soap bubble smoothing...\n") ;
-  MRIsoapBubble(mri_bias, mri_ctrl, mri_bias, 3) ;
+  MRIsoapBubble(mri_bias, mri_ctrl, mri_bias, 10) ;
   return(mri_bias) ;
 }
 #endif
@@ -1628,3 +1764,51 @@ mriDownsampleCtrl2(MRI *mri_src, MRI *mri_dst)
   return(mri_dst) ;
 }
 #endif
+
+int
+MRI3dUseFileControlPoints(MRI *mri, char *fname)
+{
+  FILE *fp ;
+  char *cp, line[STRLEN] ;
+  int  i ;
+  float xw, yw, zw ;
+  Real xv, yv, zv ;
+
+  if (Gdiag & DIAG_SHOW)
+    fprintf(stderr, "reading control points from %s...\n", fname) ;
+  fp = fopen(fname, "r") ;
+  if (!fp)
+    ErrorReturn(ERROR_BADPARM, 
+                (ERROR_BADPARM, "MRI3dUseFileControlPoints(%s): could not"
+                 " open file", fname)) ;
+
+  num_control_points = -1 ;
+  do
+  {
+    cp = fgetl(line, 199, fp) ;
+    num_control_points++ ;
+    if (cp)
+      i = sscanf(cp, "%f %f %f", &xw, &yw, &zw) ;
+  } while (cp && i == 3) ;
+
+  fprintf(stderr, "reading %d control points...\n", num_control_points) ;
+  xctrl = (int *)calloc(num_control_points, sizeof(int)) ;
+  yctrl = (int *)calloc(num_control_points, sizeof(int)) ;
+  zctrl = (int *)calloc(num_control_points, sizeof(int)) ;
+  if (!xctrl || !yctrl || !zctrl)
+    ErrorExit(ERROR_NOMEMORY, 
+              "MRI3dUseFileControlPoints: could not allocate %d-sized table",
+              num_control_points) ;
+
+  rewind(fp) ;
+  for (i = 0 ; i < num_control_points ; i++)
+  {
+    cp = fgetl(line, 199, fp) ;
+    sscanf(cp, "%f %f %f", &xw, &yw, &zw) ;
+    MRIworldToVoxel(mri, xw, yw, zw, &xv, &yv, &zv) ;
+    xctrl[i] = nint(xv) ; yctrl[i] = nint(yv) ; zctrl[i] = nint(zv) ;
+  }
+  fclose(fp) ;
+  return(NO_ERROR) ;
+}
+
