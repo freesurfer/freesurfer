@@ -251,9 +251,17 @@ set gfVolumeColorScaleSquash($tkm_tVolumeType_Main) 0
 set gfVolumeColorScaleThresh($tkm_tVolumeType_Aux) 0
 set gfVolumeColorScaleSquash($tkm_tVolumeType_Aux) 0
 
-# home directory
-set gsHomeDirectory "/"
-
+# initialize global vars
+set gsSubjectDirectory "/"
+set gsSegmentationColorTable ""
+set gsTestDataDirectory ""
+if { [info exists env(FSDEV_TEST_DATA)] } {
+    set gsTestDataDirectory $env(FSDEV_TEST_DATA)
+}
+set gsUserDataDirectory ""
+if { [info exists env(FREESURFER_DATA)] } {
+    set gsUserDataDirectory $env(FREESURFER_DATA)
+}
 set gbVolumeDirty 0
 set gbAuxVolumeDirty 0
 set gbTalTransformPresent 0
@@ -496,9 +504,14 @@ proc UpdateAuxVolumeDirty { ibDirty } {
     set gbAuxVolumeDirty $ibDirty
 }
 
-proc UpdateHomeDirectory { isHomeDir } {
-    global gsHomeDirectory
-    set gsHomeDirectory $isHomeDir
+proc UpdateSubjectDirectory { isSubjectDir } {
+    global gsSubjectDirectory
+    set gsSubjectDirectory $isSubjectDir
+}
+
+proc UpdateSegmentationColorTable { isColorTable } {
+    global gsSegmentationColorTable
+    set gsSegmentationColorTable $isColorTable
 }
 
 proc SendDisplayFlagValue { iFlag } {
@@ -526,12 +539,46 @@ proc SendCursorConfiguration {} {
 # =============================================================== DIALOG BOXES
 
 proc GetDefaultLocation { iType } {
-    global gsaDefaultLocation gsHomeDirectory
+    global gsaDnefaultLocation 
+    global gsSubjectDirectory gsSegmentationColorTable env
     if { [info exists gsaDefaultLocation($iType)] == 0 } {
 	switch $iType {
-	    LoadHeadPts_Points { set gsaDefaultLocation($iType) [exec pwd] }
-	    LoadHeadPts_Transform { set gsaDefaultLocation($iType) [exec pwd] }
-	    default { set gsaDefaultLocation($iType) $gsHomeDirectory }
+	    LoadVolume - LoadAuxVolume - SaveVolumeAs - SaveAuxVolumeAs -
+	    LoadSegmentation - LoadAuxSegmentation - SaveSegmentationAs -
+	    SaveAuxSegmentationAs - ExportChangedSegmentationVolume -
+	    ExportAuxChangedSegmentationVolume {
+		set gsaDefaultLocation($iType) $gsSubjectDirectory/mri
+	    }
+	    LoadVolumeDisplayTransform - LoadAuxVolumeDisplayTransform  { 
+		set gsaDefaultLocation($iType) $gsSubjectDirectory/transforms
+	    }
+	    SaveLabelAs - LoadLabel - ImportSurfaceAnnotation { 
+		set gsaDefaultLocation($iType) $gsSubjectDirectory/label
+	    }
+	    LoadMainSurface - LoadOriginalSurface - LoadPialSurface -
+	    LoadCanonicalSurface - LoadMainAuxSurface - 
+	    LoadOriginalAuxSurface - LoadPialAuxSurface -
+	    WriteSurfaceValues { 
+		set gsaDefaultLocation($iType) $gsSubjectDirectory/surf
+	    }
+	    LoadHeadPts_Points { 
+		set gsaDefaultLocation($iType) [exec pwd] 
+	    }
+	    LoadHeadPts_Transform { 
+		set gsaDefaultLocation($iType) [exec pwd] 
+	    }
+	    Segmentation_ColorTable { 
+		if { $gsSegmentationColorTable != "" } {
+		    set gsaDefaultLocation($iType) $gsSegmentationColorTable
+		} elseif { [info exists env(CSURF_DIR)] } {
+		    set gsaDefaultLocation($iType) $env(CSURF_DIR)/
+		} else {
+		    set gsaDefaultLocation($iType) $gsSubjectDirectory 
+		}
+	    }
+	    default { 
+		set gsaDefaultLocation($iType) $gsSubjectDirectory 
+	    }
 	}
     }
     return $gsaDefaultLocation($iType)
@@ -546,22 +593,30 @@ set tDlogSpecs(LoadVolume) [list \
   -title "Load Volume" \
   -prompt1 "Load COR Volume:" \
   -note1 "The volume file (or COR-.info for COR volumes)" \
+  -entry1 [list GetDefaultLocation LoadVolume] \
   -default1 [list GetDefaultLocation LoadVolume] \
+  -presets1 [list $env(MRI_DIR) $env(PWD) $gsUserDataDirectory $gsTestDataDirectory] \
   -okCmd {LoadVolume %s1; SetDefaultLocation LoadVolume %s1} ]
 set tDlogSpecs(LoadAuxVolume) [list \
   -title "Load Aux Volume" \
   -prompt1 "Load COR Volume:" \
   -note1 "The volume file (or COR-.info for COR volumes)" \
+  -entry1 [list GetDefaultLocation LoadAuxVolume] \
   -default1 [list GetDefaultLocation LoadAuxVolume] \
+  -presets1 [list $env(MRI_DIR) $env(PWD) $gsUserDataDirectory $gsTestDataDirectory] \
   -okCmd {LoadAuxVolume %s1; SetDefaultLocation LoadAuxVolume %s1} ]
 set tDlogSpecs(LoadGCA) [list \
   -title "Load GCA" \
   -prompt1 "Load Classifier Array:" \
   -note1 "The GCA file (*.gca)" \
+  -entry1 [list GetDefaultLocation LoadGCA_Volume] \
   -default1 [list GetDefaultLocation LoadGCA_Volume] \
+  -presets1 [list $env(MRI_DIR) $env(PWD) $gsUserDataDirectory $gsTestDataDirectory] \
   -prompt2 "Load Transform:" \
   -note2 "The file containing the transform to the atlas space" \
+  -entry2 [list GetDefaultLocation LoadGCA_Transform] \
   -default2 [list GetDefaultLocation LoadGCA_Transform] \
+  -presets2 [list $env(MRI_DIR) $env(PWD) $gsUserDataDirectory $gsTestDataDirectory] \
   -okCmd {LoadGCA %s1 %s2; \
   SetDefaultLocation LoadGCA_Volume %s1; \
   SetDefaultLocation LoadGCA_Transform %s2} ]
@@ -569,104 +624,135 @@ set tDlogSpecs(SaveGCA) [list \
   -title "Save GCA" \
   -prompt1 "Save Classifier Array:" \
   -note1 "The GCA file (*.gca)" \
+  -entry1 [list GetDefaultLocation SaveGCA] \
   -default1 [list GetDefaultLocation SaveGCA] \
+  -presets1 [list $env(MRI_DIR) $env(PWD) $gsUserDataDirectory $gsTestDataDirectory] \
   -okCmd {SaveGCA %s1; SetDefaultLocation SaveGCA %s1} ]
 set tDlogSpecs(SaveVolumeAs) [list \
   -title "Save Main Volume As" \
   -prompt1 "Save COR Volume:" \
   -type1 dir \
   -note1 "The directory in which to write the COR volume files" \
+  -entry1 [list GetDefaultLocation SaveVolumeAs] \
   -default1 [list GetDefaultLocation SaveVolumeAs] \
+  -presets1 [list $env(MRI_DIR) $env(PWD) $gsUserDataDirectory $gsTestDataDirectory] \
   -okCmd {SaveVolumeAs 0 %s1; SetDefaultLocation SaveVolumeAs %s1} ]
 set tDlogSpecs(SaveAuxVolumeAs) [list \
   -title "Save Aux Volume As" \
   -prompt1 "Save COR Volume:" \
   -type1 dir \
   -note1 "The directory in which to write the COR volume files" \
+  -entry1 [list GetDefaultLocation SaveVolumeAs] \
   -default1 [list GetDefaultLocation SaveVolumeAs] \
+  -presets1 [list $env(MRI_DIR) $env(PWD) $gsUserDataDirectory $gsTestDataDirectory] \
   -okCmd {SaveVolumeAs 1 %s1; SetDefaultLocation SaveVolumeAs %s1} ]
 set tDlogSpecs(LoadVolumeDisplayTransform) [list \
   -title "Load Transform" \
   -prompt1 "Load Transform File:" \
   -note1 "The .lta or .xfm file containing the transform to load" \
+  -entry1 [list GetDefaultLocation LoadVolumeDisplayTransform] \
   -default1 [list GetDefaultLocation LoadVolumeDisplayTransform] \
+  -presets1 [list $env(MRI_DIR) $env(PWD) $gsUserDataDirectory $gsTestDataDirectory] \
   -okCmd {LoadVolumeDisplayTransform 0 %s1; \
   SetDefaultLocation  LoadVolumeDisplayTransform %s1} ]
 set tDlogSpecs(LoadAuxVolumeDisplayTransform) [list \
   -title "Load Aux Transform" \
   -prompt1 "Load Transform File:" \
   -note1 "The .lta or .xfm file containing the transform to load" \
+  -entry1 [list GetDefaultLocation LoadAuxVolumeDisplayTransform] \
   -default1 [list GetDefaultLocation LoadAuxVolumeDisplayTransform] \
+  -presets1 [list $env(MRI_DIR) $env(PWD) $gsUserDataDirectory $gsTestDataDirectory] \
   -okCmd {LoadVolumeDisplayTransform 1 %s1; \
   SetDefaultLocation LoadAuxVolumeDisplayTransform %s1} ]
 set tDlogSpecs(SaveLabelAs) [list \
   -title "Save Label As" \
   -prompt1 "Save Label:" \
   -note1 "The file name of the label to save" \
+  -entry1 [list GetDefaultLocation SaveLabelAs] \
   -default1 [list GetDefaultLocation SaveLabelAs] \
+  -presets1 [list $env(MRI_DIR) $env(PWD) $gsUserDataDirectory $gsTestDataDirectory] \
   -okCmd {SaveLabel %s1; SetDefaultLocation SaveLabelAs %s1} ]
 set tDlogSpecs(LoadLabel) [list \
   -title "Load Label" \
   -prompt1 "Load Label:" \
   -note1 "The file name of the label to load" \
+  -entry1 [list GetDefaultLocation LoadLabel] \
   -default1 [list GetDefaultLocation LoadLabel] \
+  -presets1 [list $env(MRI_DIR) $env(PWD) $gsUserDataDirectory $gsTestDataDirectory] \
   -okCmd {LoadLabel %s1; SetDefaultLocation LoadLabel %s1} ]
 set tDlogSpecs(LoadMainSurface) [list \
   -title "Load Main Surface" \
   -prompt1 "Load Surface:" \
   -note1 "The file name of the surface to load" \
+  -entry1 [list GetDefaultLocation LoadMainSurface] \
   -default1 [list GetDefaultLocation LoadMainSurface] \
+  -presets1 [list $env(MRI_DIR) $env(PWD) $gsUserDataDirectory $gsTestDataDirectory] \
   -okCmd {LoadMainSurface %s1; SetDefaultLocation LoadMainSurface %s1} ]
 set tDlogSpecs(LoadOriginalSurface) [list \
   -title "Load Original Surface" \
   -prompt1 "Load Surface:" \
   -note1 "The file name of the surface to load" \
+  -entry1 [list GetDefaultLocation LoadOriginalSurface] \
   -default1 [list GetDefaultLocation LoadOriginalSurface] \
+  -presets1 [list $env(MRI_DIR) $env(PWD) $gsUserDataDirectory $gsTestDataDirectory] \
   -okCmd {LoadOriginalSurface %s1; \
   SetDefaultLocation LoadOriginalSurface %s1} ]
 set tDlogSpecs(LoadPialSurface) [list \
   -title "Load Pial Surface" \
   -prompt1 "Load Surface:" \
   -note1 "The file name of the surface to load" \
+  -entry1 [list GetDefaultLocation LoadPialSurface] \
   -default1 [list GetDefaultLocation LoadPialSurface] \
+  -presets1 [list $env(MRI_DIR) $env(PWD) $gsUserDataDirectory $gsTestDataDirectory] \
   -okCmd {LoadCanonicalSurface %s1; \
   SetDefaultLocation LoadPialSurface %s1} ]
 set tDlogSpecs(LoadMainAuxSurface) [list \
   -title "Load Aux Main Surface" \
   -prompt1 "Load Surface:" \
   -note1 "The file name of the surface to load" \
+  -entry1 [list GetDefaultLocation LoadMainAuxSurface] \
   -default1 [list GetDefaultLocation LoadMainAuxSurface] \
+  -presets1 [list $env(MRI_DIR) $env(PWD) $gsUserDataDirectory $gsTestDataDirectory] \
   -okCmd {LoadMainSurface 1 %s1; SetDefaultLocation LoadMainAuxSurface %s1} ]
 set tDlogSpecs(LoadOriginalAuxSurface) [list \
   -title "Load Aux Original Surface" \
   -prompt1 "Load Surface:" \
   -note1 "The file name of the surface to load" \
+  -entry1 [list GetDefaultLocation LoadOriginalAuxSurface] \
   -default1 [list GetDefaultLocation LoadOriginalAuxSurface] \
+  -presets1 [list $env(MRI_DIR) $env(PWD) $gsUserDataDirectory $gsTestDataDirectory] \
   -okCmd {LoadOriginalSurface 1 %s1; \
   SetDefaultLocation LoadOriginalAuxSurface %s1} ]
 set tDlogSpecs(LoadPialAuxSurface) [list \
   -title "Load Aux Pial Surface" \
   -prompt1 "Load Surface:" \
   -note1 "The file name of the surface to load" \
+  -entry1 [list GetDefaultLocation LoadPialAuxSurface] \
   -default1 [list GetDefaultLocation LoadPialAuxSurface] \
+  -presets1 [list $env(MRI_DIR) $env(PWD) $gsUserDataDirectory $gsTestDataDirectory] \
   -okCmd {LoadCanonicalSurface 1 %s1; \
   SetDefaultLocation LoadPialAuxSurface %s1} ]
 set tDlogSpecs(WriteSurfaceValues) [list \
   -title "Write Surface Values" \
   -prompt1 "Save Values As:" \
   -note1 "The file name of the values file to write" \
+  -entry1 [list GetDefaultLocation WriteSurfaceValues] \
   -default1 [list GetDefaultLocation WriteSurfaceValues] \
+  -presets1 [list $env(MRI_DIR) $env(PWD) $gsUserDataDirectory $gsTestDataDirectory] \
   -okCmd {WriteSurfaceValues %s1; \
   SetDefaultLocation WriteSurfaceValues %s1} ]
 set tDlogSpecs(ImportSurfaceAnnotation) [list \
   -title "Import Surface Annotation" \
   -prompt1 "Load Annotation File:" \
   -note1 "A .annot file containing the annotation data" \
+  -entry1 [list GetDefaultLocation ImportSurfaceAnnotation] \
   -default1 [list GetDefaultLocation ImportSurfaceAnnotation] \
+  -presets1 [list $env(MRI_DIR) $env(PWD) $gsUserDataDirectory $gsTestDataDirectory] \
   -prompt2 "Load Color Table:" \
   -note2 "The file containing the colors and ROI definitions" \
+  -entry2 [list GetDefaultLocation Segmentation_ColorTable] \
   -default2 [list GetDefaultLocation Segmentation_ColorTable] \
-  -presets2 [list $env(MRI_DIR)] \
+  -presets2 [list $env(MRI_DIR) $env(PWD) $gsUserDataDirectory $gsTestDataDirectory] \
   -okCmd {ImportSurfaceAnnotationToSegmentation 0 %s1 %s2; \
   SetDefaultLocation ImportSegmentation_Volume %s1; \
   SetDefaultLocation Segmentation_ColorTable %s2} ]
@@ -675,13 +761,17 @@ set tDlogSpecs(LoadFunctionalOverlay) [list \
   -prompt1 "Load Volume:" \
   -type1 dir \
   -note1 "The directory containing the binary volume to load" \
+  -entry1 [list GetDefaultLocation LoadFunctionalOverlay_Volume] \
   -default1 [list GetDefaultLocation LoadFunctionalOverlay_Volume] \
+  -presets1 [list $env(MRI_DIR) $env(PWD) $gsUserDataDirectory $gsTestDataDirectory] \
   -prompt2 "Stem:" \
   -type2 text \
   -note2 "The stem of the binary volume" \
   -prompt3 "Registration File:" \
   -note3 "The file name of the registration file to load. Leave blank to use register.dat in the same directory." \
+  -entry3 [list GetDefaultLocation LoadFunctionalOverlay_Registration]\
   -default3 [list GetDefaultLocation LoadFunctionalOverlay_Registration]\
+  -presets3 [list $env(MRI_DIR) $env(PWD) $gsUserDataDirectory $gsTestDataDirectory] \
   -okCmd {LoadFunctionalOverlay %s1 %s2 %s3; \
   SetDefaultLocation LoadFunctionalOverlay_Volume %s1; \
   SetDefaultLocation LoadFunctionalOverlay_Registration %s3} ]
@@ -690,13 +780,17 @@ set tDlogSpecs(LoadFunctionalTimeCourse) [list \
   -prompt1 "Load Volume:" \
   -type1 dir \
   -note1 "The directory containing the binary volume to load" \
+  -entry1 [list GetDefaultLocation LoadFunctionalTimeCourse_Volume] \
   -default1 [list GetDefaultLocation LoadFunctionalTimeCourse_Volume] \
+  -presets1 [list $env(MRI_DIR) $env(PWD) $gsUserDataDirectory $gsTestDataDirectory] \
   -prompt2 "Stem:" \
   -type2 text \
   -note2 "The stem of the binary volume" \
   -prompt3 "Registration File:" \
   -note3 "The file name of the registration file to load. Leave blank to use register.dat in the same directory." \
+  -entry3 [list GetDefaultLocation LoadFunctionalTimeCourse_Registration] \
   -default3 [list GetDefaultLocation LoadFunctionalTimeCourse_Registration] \
+  -presets3 [list $env(MRI_DIR) $env(PWD) $gsUserDataDirectory $gsTestDataDirectory] \
   -okCmd {LoadFunctionalTimeCourse %s1 %s2 %s3; \
   SetDefaultLocation LoadFunctionalTimeCourse_Volume %s1; \
   SetDefaultLocation LoadFunctionalTimeCourse_Registration %s3} ]
@@ -704,41 +798,50 @@ set tDlogSpecs(PrintTimeCourse) [list \
   -title "Print Time Course" \
   -prompt1 "Save Summary As:" \
   -note1 "The file name of the text summary to create" \
+  -entry1 [list GetDefaultLocation PrintTimeCourse] \
   -default1 [list GetDefaultLocation PrintTimeCourse] \
+  -presets1 [list $env(MRI_DIR) $env(PWD) $gsUserDataDirectory $gsTestDataDirectory] \
   -okCmd {TimeCourse_PrintSelectionRangeToFile %s1; \
   SetDefaultLocation PrintTimeCourse %s1} ]
 set tDlogSpecs(SaveTimeCourseToPS) [list \
   -title "Save Time Course" \
   -prompt1 "Save Time Course As:" \
   -note1 "The file name of the PostScript file to create" \
+  -entry1 [list GetDefaultLocation SaveTimeCourseToPS] \
   -default1 [list GetDefaultLocation SaveTimeCourseToPS] \
+  -presets1 [list $env(MRI_DIR) $env(PWD) $gsUserDataDirectory $gsTestDataDirectory] \
   -okCmd {TimeCourse_SaveGraphToPS %s1; \
   SetDefaultLocation SaveTimeCourseToPS %s1} ]
 set tDlogSpecs(NewSegmentation) [list \
   -title "New Segmentation" \
   -prompt1 "Load Color Table:" \
   -note1 "The file containing the colors and ROI definitions" \
+  -entry1 [list GetDefaultLocation Segmentation_ColorTable] \
   -default1 [list GetDefaultLocation Segmentation_ColorTable] \
-  -presets1 [list $env(MRI_DIR)] \
+  -presets1 [list $env(MRI_DIR) $env(PWD) $gsUserDataDirectory $gsTestDataDirectory] \
   -okCmd {NewSegmentationVolume 0 0 %s1; \
   SetDefaultLocation Segmentation_ColorTable %s1} ]
 set tDlogSpecs(NewAuxSegmentation) [list \
   -title "New Aux Segmentation" \
   -prompt1 "Load Color Table:" \
   -note1 "The file containing the colors and ROI definitions" \
+  -entry1 [list GetDefaultLocation Segmentation_ColorTable] \
   -default1 [list GetDefaultLocation Segmentation_ColorTable] \
-  -presets1 [list $env(MRI_DIR)] \
+  -presets1 [list $env(MRI_DIR) $env(PWD) $gsUserDataDirectory $gsTestDataDirectory] \
   -okCmd {NewSegmentationVolume 1 1 %s1; \
   SetDefaultLocation Segmentation_ColorTable %s1} ]
 set tDlogSpecs(LoadSegmentation) [list \
   -title "Load Segmentation" \
   -prompt1 "Load COR Volume:" \
   -note1 "The volume file (or COR-.info for COR volumes)" \
+  -entry1 [list GetDefaultLocation ImportSegmentation_Volume] \
   -default1 [list GetDefaultLocation ImportSegmentation_Volume] \
+  -presets1 [list $env(MRI_DIR) $env(PWD) $gsUserDataDirectory $gsTestDataDirectory] \
   -prompt2 "Load Color Table:" \
   -note2 "The file containing the colors and ROI definitions" \
+  -entry2 [list GetDefaultLocation Segmentation_ColorTable] \
   -default2 [list GetDefaultLocation Segmentation_ColorTable] \
-  -presets2 [list $env(MRI_DIR)] \
+  -presets2 [list $env(MRI_DIR) $env(PWD) $gsUserDataDirectory $gsTestDataDirectory] \
   -okCmd {LoadSegmentationVolume 0 %s1 %s2; \
   SetDefaultLocation ImportSegmentation_Volume %s1; \
   SetDefaultLocation Segmentation_ColorTable %s2} ]
@@ -746,11 +849,14 @@ set tDlogSpecs(LoadAuxSegmentation) [list \
   -title "Load Aux Segmentation" \
   -prompt1 "Load COR Volume:" \
   -note1 "The volume file (or COR-.info for COR volumes)" \
+  -entry1 [list GetDefaultLocation ImportSegmentation_Volume] \
   -default1 [list GetDefaultLocation ImportSegmentation_Volume] \
+  -presets1 [list $env(MRI_DIR) $env(PWD) $gsUserDataDirectory $gsTestDataDirectory] \
   -prompt2 "Load Color Table:" \
   -note2 "The file containing the colors and ROI definitions" \
+  -entry2 [list GetDefaultLocation Segmentation_ColorTable] \
   -default2 [list GetDefaultLocation Segmentation_ColorTable] \
-  -presets2 [list $env(MRI_DIR)] \
+  -presets2 [list $env(MRI_DIR) $env(PWD) $gsUserDataDirectory $gsTestDataDirectory] \
   -okCmd {LoadSegmentationVolume 1 %s1 %s2; \
   SetDefaultLocation ImportSegmentation_Volume %s1; \
   SetDefaultLocation Segmentation_ColorTable %s2} ]
@@ -759,7 +865,9 @@ set tDlogSpecs(SaveSegmentationAs) [list \
   -prompt1 "Save COR Volume:" \
   -type1 dir \
   -note1 "The directory in which to write the COR volume files" \
+  -entry1 [list GetDefaultLocation SaveSegmentationAs] \
   -default1 [list GetDefaultLocation SaveSegmentationAs] \
+  -presets1 [list $env(MRI_DIR) $env(PWD) $gsUserDataDirectory $gsTestDataDirectory] \
   -okCmd {SaveSegmentation 0 %s1; \
   SetDefaultLocation SaveSegmentationAs %s1} ]
 set tDlogSpecs(SaveAuxSegmentationAs) [list \
@@ -767,7 +875,9 @@ set tDlogSpecs(SaveAuxSegmentationAs) [list \
   -prompt1 "Save COR Volume:" \
   -type1 dir \
   -note1 "The directory in which to write the COR volume files" \
+  -entry1 [list GetDefaultLocation SaveSegmentationAs] \
   -default1 [list GetDefaultLocation SaveSegmentationAs] \
+  -presets1 [list $env(MRI_DIR) $env(PWD) $gsUserDataDirectory $gsTestDataDirectory] \
   -okCmd {SaveSegmentation 1 %s1; \
   SetDefaultLocation SaveSegmentationAs %s1} ]
 set tDlogSpecs(ExportChangedSegmentationVolume) [list \
@@ -775,7 +885,9 @@ set tDlogSpecs(ExportChangedSegmentationVolume) [list \
   -prompt1 "Save COR Volume:" \
   -type1 dir \
   -note1 "The directory in which to write the COR volume files" \
+  -entry1 [list GetDefaultLocation SaveSegmentationAs] \
   -default1 [list GetDefaultLocation SaveSegmentationAs] \
+  -presets1 [list $env(MRI_DIR) $env(PWD) $gsUserDataDirectory $gsTestDataDirectory] \
   -okCmd {ExportChangedSegmentationVolume 0 %s1; \
   SetDefaultLocation ExportChangedSegmentationVolume %s1} ]
 set tDlogSpecs(ExportAuxChangedSegmentationVolume) [list \
@@ -783,17 +895,23 @@ set tDlogSpecs(ExportAuxChangedSegmentationVolume) [list \
   -prompt1 "Save COR Volume:" \
   -type1 dir \
   -note1 "The directory in which to write the COR volume files" \
+  -entry1 [list GetDefaultLocation SaveSegmentationAs] \
   -default1 [list GetDefaultLocation SaveSegmentationAs] \
+  -presets1 [list $env(MRI_DIR) $env(PWD) $gsUserDataDirectory $gsTestDataDirectory] \
   -okCmd {ExportChangedSegmentationVolume 1 %s1; \
   SetDefaultLocation ExportChangedSegmentationVolume %s1} ]
 set tDlogSpecs(LoadHeadPts) [list \
   -title "Load Head Points" \
   -prompt1 "Load Head Points:" \
   -note1 "The file name of the .hpts head points file" \
+  -entry1 [list GetDefaultLocation LoadHeadPts_Points] \
   -default1 [list GetDefaultLocation LoadHeadPts_Points] \
+  -presets1 [list $env(MRI_DIR) $env(PWD) $gsUserDataDirectory $gsTestDataDirectory] \
   -prompt2 "Load Transform File:" \
   -note2 "The file name of the .trans transform file" \
+  -entry2 [list GetDefaultLocation LoadHeadPts_Transform] \
   -default2 [list GetDefaultLocation LoadHeadPts_Transform] \
+  -presets2 [list $env(MRI_DIR) $env(PWD) $gsUserDataDirectory $gsTestDataDirectory] \
   -okCmd {LoadHeadPts %s1 %s2; \
   SetDefaultLocation LoadHeadPts_Points %s1; \
   SetDefaultLocation LoadHeadPts_Transform %s2} ]
@@ -801,10 +919,10 @@ set tDlogSpecs(SaveRGB) [list \
   -title "Save RGB" \
   -prompt1 "Save RGB File:" \
   -note1 "The file name of the RGB picture to create" \
+  -entry1 [list GetDefaultLocation SaveRGB] \
   -default1 [list GetDefaultLocation SaveRGB] \
+  -presets1 [list $env(MRI_DIR) $env(PWD) $gsUserDataDirectory $gsTestDataDirectory] \
   -okCmd {SaveRGB %s1; SetDefaultLocation SaveRGB %s1} ]
-
-
 
 proc DoFileDlog { which } {
     global tDlogSpecs

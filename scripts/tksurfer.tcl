@@ -36,6 +36,15 @@ foreach sSourceFileName { tkm_wrappers.tcl fsgdfPlot.tcl } {
 set ksWindowName "TkSurfer Tools"
 set ksImageDir   "$env(MRI_DIR)/lib/images/"
 
+set test_data ""
+if { [info exists env(FSDEV_TEST_DATA)] } {
+    set test_data $env(FSDEV_TEST_DATA)
+}
+set user_data ""
+if { [info exists env(FREESURFER_DATA)] } {
+    set user_data $env(FREESURFER_DATA)
+}
+
 # ===================================================== DEFAULT FILE LOCATIONS
 
 #set home /home/kteich/subjects
@@ -1323,8 +1332,8 @@ proc DoLoadOverlayDlog {} {
 
     global gDialog gaLinkedVars
     global gaScalarValueID gsaLabelContents
-    global env
-
+    global env test_data user_data
+ 
     set wwDialog .wwLoadOverlayDlog
 
     set knWidth 400
@@ -1340,8 +1349,8 @@ proc DoLoadOverlayDlog {} {
 	
 	set sFileName ""
 	tkm_MakeFileSelector $fwFile "Load Overlay:" sFileName \
-	    [list ExpandFileName "" kFileName_Surface] [list $env(PWD)] \
-
+	    [list ExpandFileName "" kFileName_Surface] \
+	    [list $env(MRI_DIR) $env(PWD) $user_data $test_data]
 	
 	tkm_MakeSmallLabel $fwFileNote "The file name of the values" 400
 	
@@ -1422,7 +1431,8 @@ proc DoSpecifyStemAndRegistration { inField } {
 
   tkm_MakeSmallLabel $fwStemNote "The stem of the volume" 400
 
-  tkm_MakeFileSelector $fwReg "Registration file:" sRegistration
+  tkm_MakeFileSelector $fwReg "Registration file:" sRegistration {} \
+      [list $env(MRI_DIR) $env(PWD) $user_data $test_data]
 
   tkm_MakeSmallLabel $fwRegNote "The file name of the registration file to load. Leave blank to use register.dat in the same directory." 
 
@@ -1464,7 +1474,8 @@ proc DoSaveValuesAsDlog {} {
 	set fwButtons          $wwDialog.fwButtons
 	
 	set sFileName ""
-	tkm_MakeFileSelector $fwFile "Save Values:" sFileName {}
+	tkm_MakeFileSelector $fwFile "Save Values:" sFileName {} \
+	    [list $env(MRI_DIR) $env(PWD) $user_data $test_data]
 	
 	tkm_MakeSmallLabel $fwFileNote "The file name of the values file to create" 400
 	
@@ -1527,7 +1538,9 @@ proc GDF_LoadDlog {} {
 	
 	set sFileName ""
 	tkm_MakeFileSelector $fwFile "Load Group Descriptor File:" sFileName \
-	    [list ExpandFileName "" kFileName_Surface] [list $env(PWD)] \
+	    [list ExpandFileName "" kFileName_Surface] \
+	    [list $env(MRI_DIR) $env(PWD) $user_data $test_data]
+
 
 	
 	tkm_MakeSmallLabel $fwFileNote "The GDF file to load" 400
@@ -1730,7 +1743,9 @@ proc DoDecimationDlog {} {
   # make file name selector
   set sFileName ""
   tkm_MakeFileSelector $fwFileName \
-    "Write Decimation File:" sFileName
+      "Write Decimation File:" sFileName {} \
+      [list $env(MRI_DIR) $env(PWD) $user_data $test_data]
+
 
   # field for spacing
   tkm_MakeEntry $fwSpacing "Spacing: " fSpacing 6 
@@ -4396,12 +4411,16 @@ set tDlogSpecs(LoadSurface) [list \
   -title "Load Surface" \
   -prompt1 "Load Surface:" \
   -default1 [list ExpandFileName "" kFileName_Surface] \
+  -entry1 [list ExpandFileName "" kFileName_Surface] \
+  -presets1 [list $env(MRI_DIR) $env(PWD) $user_data $test_data] \
   -note1 "The file name of the surface" \
   -okCmd {LoadSurface %s1} ]
 set tDlogSpecs(SaveSurfaceAs) [list \
   -title "Save Surface As" \
   -prompt1 "Save Surface:" \
   -default1 [list ExpandFileName "" kFileName_Surface] \
+  -entry1 [list ExpandFileName "" kFileName_Surface] \
+  -presets1 [list $env(MRI_DIR) $env(PWD) $user_data $test_data] \
   -note1 "The file name of the surface to save" \
   -okCmd {set outsurf [ExpandFileName %s1 kFileName_Surface]; \
         CheckFileAndDoCmd $outsurf write_binary_surface;} ]
@@ -4410,6 +4429,8 @@ set tDlogSpecs(LoadMainSurface) [list \
   -title "Load Main Vertices" \
   -prompt1 "Load Main Vertices:" \
   -default1 [list ExpandFileName "" kFileName_Surface] \
+  -entry1 [list ExpandFileName "" kFileName_Surface] \
+  -presets1 [list $env(MRI_DIR) $env(PWD) $user_data $test_data] \
   -note1 "The file name of the surface to load into main vertices" \
   -okCmd {set filename [ExpandFileName %s1 kFileName_Surface]; \
   read_surface_vertex_set 0 $filename} ]
@@ -4417,6 +4438,8 @@ set tDlogSpecs(LoadInflatedSurface) [list \
   -title "Load Inflated Vertices" \
   -prompt1 "Load Inflated Vertices:" \
   -default1 [list ExpandFileName "" kFileName_Surface] \
+  -entry1 [list ExpandFileName "" kFileName_Surface] \
+  -presets1 [list $env(MRI_DIR) $env(PWD) $user_data $test_data] \
   -note1 "The file name of the surface to load into inflated vertices" \
   -okCmd {set filename [ExpandFileName %s1 kFileName_Surface]; \
   read_surface_vertex_set 1 $filename} ]
@@ -4424,6 +4447,8 @@ set tDlogSpecs(LoadWhiteSurface) [list \
   -title "Load White Vertices" \
   -prompt1 "Load White Vertices:" \
   -default1 [list ExpandFileName "" kFileName_Surface] \
+  -entry1 [list ExpandFileName "" kFileName_Surface] \
+  -presets1 [list $env(MRI_DIR) $env(PWD) $user_data $test_data] \
   -note1 "The file name of the surface to load into white vertices" \
   -okCmd {set filename [ExpandFileName %s1 kFileName_Surface]; \
   read_surface_vertex_set 2 $filename} ]
@@ -4431,6 +4456,8 @@ set tDlogSpecs(LoadPialSurface) [list \
   -title "Load Pial Vertices" \
   -prompt1 "Load Pial Vertices:" \
   -default1 [list ExpandFileName "" kFileName_Surface] \
+  -entry1 [list ExpandFileName "" kFileName_Surface] \
+  -presets1 [list $env(MRI_DIR) $env(PWD) $user_data $test_data] \
   -note1 "The file name of the surface to load into pial vertices" \
   -okCmd {set filename [ExpandFileName %s1 kFileName_Surface]; \
   read_surface_vertex_set 3 $filename} ]
@@ -4438,6 +4465,8 @@ set tDlogSpecs(LoadOriginalSurface) [list \
   -title "Load Original Vertices" \
   -prompt1 "Load Original Vertices:" \
   -default1 [list ExpandFileName "" kFileName_Surface] \
+  -entry1 [list ExpandFileName "" kFileName_Surface] \
+  -presets1 [list $env(MRI_DIR) $env(PWD) $user_data $test_data] \
   -note1 "The file name of the surface to load into original vertices" \
   -okCmd {set filename [ExpandFileName %s1 kFileName_Surface]; \
   read_surface_vertex_set 4 $filename} ]
@@ -4449,6 +4478,8 @@ set tDlogSpecs(LoadTimeCourse) [list \
   -presets1 [list $env(PWD)] \
   -note1 "The directory containing the binary volume to load" \
   -default1 [list ExpandFileName "" kFileName_Surface] \
+  -entry1 [list ExpandFileName "" kFileName_Surface] \
+  -presets1 [list $env(MRI_DIR) $env(PWD) $user_data $test_data] \
   -prompt2 "Stem:" \
   -type2 text \
   -presets2 [list $env(PWD)] \
@@ -4457,12 +4488,16 @@ set tDlogSpecs(LoadTimeCourse) [list \
   -presets3 [list $env(PWD)] \
   -note3 "The file name of the registration file to load. Leave blank to use register.dat in the same directory." \
   -default3 [list ExpandFileName "" kFileName_Surface] \
+  -entry3 [list ExpandFileName "" kFileName_Surface] \
+  -presets3 [list $env(MRI_DIR) $env(PWD) $user_data $test_data] \
   -okCmd {func_load_timecourse %s1 %s2 %s3;}]
 
 set tDlogSpecs(LoadCurvature) [list \
   -title "Load Curvature" \
   -prompt1 "Load Curvature:" \
   -default1 [list ExpandFileName "" kFileName_Surface] \
+  -entry1 [list ExpandFileName "" kFileName_Surface] \
+  -presets1 [list $env(MRI_DIR) $env(PWD) $user_data $test_data] \
   -note1 "The file name of the curvature data" \
   -okCmd {set curv [ExpandFileName %s1 kFileName_Surface]; \
   read_binary_curv; UpdateAndRedraw; } ]
@@ -4470,6 +4505,8 @@ set tDlogSpecs(SaveCurvatureAs) [list \
   -title "Save Curvature As" \
   -prompt1 "Save Curvature:" \
   -default1 [list ExpandFileName "" kFileName_Surface] \
+  -entry1 [list ExpandFileName "" kFileName_Surface] \
+  -presets1 [list $env(MRI_DIR) $env(PWD) $user_data $test_data] \
   -note1 "The file name of the curvature data to save" \
   -okCmd {set curv [ExpandFileName %s1 kFileName_Surface]; \
   CheckFileAndDoCmd $curv write_binary_curv} ]
@@ -4478,6 +4515,8 @@ set tDlogSpecs(LoadPatch) [list \
   -title "Load Patch" \
   -prompt1 "Load Patch:" \
   -default1 [list ExpandFileName "" kFileName_Surface] \
+  -entry1 [list ExpandFileName "" kFileName_Surface] \
+  -presets1 [list $env(MRI_DIR) $env(PWD) $user_data $test_data] \
   -note1 "The file name of the patch data" \
   -okCmd {set patch [ExpandFileName %s1 kFileName_Surface]; \
   read_binary_patch; RestoreView; UpdateAndRedraw; } ]
@@ -4485,6 +4524,8 @@ set tDlogSpecs(SavePatchAs) [list \
   -title "Save Patch As" \
   -prompt1 "Save Patch:" \
   -default1 [list ExpandFileName "" kFileName_Surface] \
+  -entry1 [list ExpandFileName "" kFileName_Surface] \
+  -presets1 [list $env(MRI_DIR) $env(PWD) $user_data $test_data] \
   -note1 "The file name of the patch data to save" \
   -okCmd {set patch [ExpandFileName %s1 kFileName_Surface]; \
   CheckFileAndDoCmd $patch write_binary_patch} ]
@@ -4493,6 +4534,8 @@ set tDlogSpecs(LoadColorTable) [list \
   -title "Load Color Table" \
   -prompt1 "Load Color Table:" \
   -default1 [list ExpandFileName "" kFileName_CSURF] \
+  -entry1 [list ExpandFileName "" kFileName_CSURF] \
+  -presets1 [list $env(MRI_DIR) $env(PWD) $user_data $test_data] \
   -note1 "The file name of the color table" \
   -okCmd {labl_load_color_table [ExpandFileName %s1 kFileName_CSURF]; \
   UpdateLinkedVarGroup label} ]
@@ -4500,21 +4543,24 @@ set tDlogSpecs(LoadLabel) [list \
   -title "Load Label" \
   -prompt1 "Load Label:" \
   -default1 [list ExpandFileName "" kFileName_Label] \
-  -presets1 [list $env(PWD)] \
+  -entry1 [list ExpandFileName "" kFileName_Label] \
+  -presets1 [list $env(MRI_DIR) $env(PWD) $user_data $test_data] \
   -note1 "The file name of the label data" \
   -okCmd {labl_load [ExpandFileName %s1 kFileName_Label]; UpdateAndRedraw;  }]
 set tDlogSpecs(SaveLabelAs) [list \
   -title "Save Selected Label" \
   -prompt1 "Save Selected Label:" \
   -default1 [list ExpandFileName "" kFileName_Label] \
-  -presets1 [list $env(PWD)] \
+  -entry1 [list ExpandFileName "" kFileName_Label] \
+  -presets1 [list $env(MRI_DIR) $env(PWD) $user_data $test_data] \
   -note1 "The file name of the label data to save" \
   -okCmd {labl_save $gnSelectedLabel [ExpandFileName %s1 kFileName_Label] }]
 set tDlogSpecs(ImportAnnotation) [list \
   -title "Import Annotaion" \
   -prompt1 "Import Annotation:" \
   -default1 [list ExpandFileName "" kFileName_Label] \
-  -presets1 [list $env(PWD)] \
+  -entry1 [list ExpandFileName "" kFileName_Label] \
+  -presets1 [list $env(MRI_DIR) $env(PWD) $user_data $test_data] \
   -note1 "The file name of the annotaion" \
   -okCmd {labl_import_annotation [ExpandFileName %s1 kFileName_Label]; \
   UpdateAndRedraw;} ]
@@ -4522,7 +4568,8 @@ set tDlogSpecs(ExportAnnotation) [list \
   -title "Export Annotaion" \
   -prompt1 "Export Annotation:" \
   -default1 [list ExpandFileName "" kFileName_Label] \
-  -presets1 [list $env(PWD)] \
+  -entry1 [list ExpandFileName "" kFileName_Label] \
+  -presets1 [list $env(MRI_DIR) $env(PWD) $user_data $test_data] \
   -note1 "The file name of the annotaion to save" \
   -okCmd {labl_export_annotation [ExpandFileName %s1 kFileName_Label]} ]
 
@@ -4531,6 +4578,8 @@ set tDlogSpecs(SaveDipolesAs) [list \
   -title "Save Dipoles As" \
   -prompt1 "Save Dipoles As:" \
   -default1 [list ExpandFileName "" kFileName_BEM] \
+  -entry1 [list ExpandFileName "" kFileName_BEM] \
+  -presets1 [list $env(MRI_DIR) $env(PWD) $user_data $test_data] \
   -note1 "The file name of the dipoles data to save" \
   -okCmd {set dip [ExpandFileName %s1 kFileName_BEM]; \
   CheckFileAndDoCmd $dip write_binary_dipoles;} ]
@@ -4539,7 +4588,8 @@ set tDlogSpecs(LoadFieldSign) [list \
   -title "Load Field Sign" \
   -prompt1 "Load Field Sign:" \
   -default1 [list ExpandFileName "" kFileName_FMRI] \
-  -presets1 [list $env(PWD)] \
+  -entry1 [list ExpandFileName "" kFileName_FMRI] \
+  -presets1 [list $env(MRI_DIR) $env(PWD) $user_data $test_data] \
   -note1 "The file name of the field sign data" \
   -okCmd {set fs [ExpandFileName %s1 kFileName_FMRI]; \
   read_fieldsign; RestoreView;} ]
@@ -4547,7 +4597,8 @@ set tDlogSpecs(SaveFieldSignAs) [list \
   -title "Save Field Sign As" \
   -prompt1 "Save Field Sign:" \
   -default1 [list ExpandFileName "" kFileName_FMRI] \
-  -presets1 [list $env(PWD)] \
+  -entry1 [list ExpandFileName "" kFileName_FMRI] \
+  -presets1 [list $env(MRI_DIR) $env(PWD) $user_data $test_data] \
   -note1 "The file name of the field sign data to save" \
   -okCmd {set fs [ExpandFileName %s1 kFileName_FMRI]; \
   CheckFileAndDoCmd $fs write_fieldsign} ]
@@ -4556,7 +4607,8 @@ set tDlogSpecs(LoadFieldMask) [list \
   -title "Load Field Mask" \
   -prompt1 "Load Field Mask:" \
   -default1 [list ExpandFileName "" kFileName_FMRI] \
-  -presets1 [list $env(PWD)] \
+  -entry1 [list ExpandFileName "" kFileName_FMRI] \
+  -presets1 [list $env(MRI_DIR) $env(PWD) $user_data $test_data] \
   -note1 "The file name of the field mask data" \
   -okCmd {set fm [ExpandFileName %s1 kFileName_FMRI]; \
   read_fsmask; RestoreView;} ]
@@ -4564,7 +4616,8 @@ set tDlogSpecs(SaveFieldMaskAs) [list \
   -title "Save Field Mask As" \
   -prompt1 "Save Field Mask:" \
   -default1 [list ExpandFileName "" kFileName_FMRI] \
-  -presets1 [list $env(PWD)] \
+  -entry1 [list ExpandFileName "" kFileName_FMRI] \
+  -presets1 [list $env(MRI_DIR) $env(PWD) $user_data $test_data] \
   -note1 "The file name of the field mask data to save" \
   -okCmd {set fm [ExpandFileName %s1 kFileName_FMRI]; \
   CheckFileAndDoCmd $fm write_fsmask} ]
@@ -4573,6 +4626,8 @@ set tDlogSpecs(RunScript) [list \
   -title "Run Script" \
   -prompt1 "Run Script:" \
   -default1 [list ExpandFileName "" kFileName_Script] \
+  -entry1 [list ExpandFileName "" kFileName_Script] \
+  -presets1 [list $env(MRI_DIR) $env(PWD) $user_data $test_data] \
   -note1 "The file name of the TCL script to run" \
   -okCmd {source [ExpandFileName %s1 kFileName_Script]} ]
 
@@ -4581,13 +4636,16 @@ set tDlogSpecs(SaveGraphToPS) [list \
   -prompt1 "Save Time Course As:" \
   -note1 "The file name of the PostScript file to create" \
   -default1 [list ExpandFileName "" kFileName_Home] \
+  -entry1 [list ExpandFileName "" kFileName_Home] \
+  -presets1 [list $env(MRI_DIR) $env(PWD) $user_data $test_data] \
   -okCmd {Graph_SaveToPS [ExpandFileName %s1 kFileName_Home]} ]
 
 set tDlogSpecs(SaveRGBAs) [list \
   -title "Save RGB" \
   -prompt1 "Save RGB As:" \
   -default1 [list ExpandFileName "" kFileName_RGB] \
-  -presets1 [list $env(PWD)] \
+  -entry1 [list ExpandFileName "" kFileName_RGB] \
+  -presets1 [list $env(MRI_DIR) $env(PWD) $user_data $test_data] \
   -note1 "The file name of the RGB file to save" \
   -okCmd {set rgb [ExpandFileName %s1 kFileName_RGB]; save_rgb} ]
 
@@ -4595,6 +4653,8 @@ set tDlogSpecs(WriteMarkedVerticesTCSummary) [list \
   -title "Save Marked Vertices Summary" \
   -prompt1 "Save Summary As:" \
   -default1 [list ExpandFileName "" kFileName_Home] \
+  -entry1 [list ExpandFileName "" kFileName_Home] \
+  -presets1 [list $env(MRI_DIR) $env(PWD) $user_data $test_data] \
   -note1 "The file name of the summary text file to create" \
   -okCmd { func_select_marked_vertices; \
      func_print_timecourse_selection [ExpandFileName %s1 kFileName_Home] } ]
@@ -4602,6 +4662,8 @@ set tDlogSpecs(WriteLabelTCSummary) [list \
   -title "Save Label Summary" \
   -prompt1 "Save Summary As:" \
   -default1 [list ExpandFileName "" kFileName_Home] \
+  -entry1 [list ExpandFileName "" kFileName_Home] \
+  -presets1 [list $env(MRI_DIR) $env(PWD) $user_data $test_data] \
   -note1 "The file name of the summary text file to create" \
    -okCmd { clear_all_vertex_marks; \
     labl_mark_vertices $gnSelectedLabel; \
@@ -4613,12 +4675,16 @@ set tDlogSpecs(SaveGDFPlotToPS) [list \
   -prompt1 "Save Plot As:" \
   -note1 "The file name of the PostScript file to create" \
   -default1 [list ExpandFileName "" kFileName_Home] \
+  -entry1 [list ExpandFileName "" kFileName_Home] \
+  -presets1 [list $env(MRI_DIR) $env(PWD) $user_data $test_data] \
   -okCmd {FsgdfPlot_SaveToPostscript $gGDFID(overlay,$gaLinkedVars(currentvaluefield)) [ExpandFileName %s1 kFileName_Home]} ]
 set tDlogSpecs(SaveGDFPlotToTable) [list \
   -title "Save Group Data" \
   -prompt1 "Save Plot As:" \
   -note1 "The file name of the table to create" \
   -default1 [list ExpandFileName "" kFileName_Home] \
+  -entry1 [list ExpandFileName "" kFileName_Home] \
+  -presets1 [list $env(MRI_DIR) $env(PWD) $user_data $test_data] \
   -okCmd {FsgdfPlot_SaveToTable $gGDFID(overlay,$gaLinkedVars(currentvaluefield)) [ExpandFileName %s1 kFileName_Home]} ]
 
 
