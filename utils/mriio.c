@@ -136,15 +136,6 @@ MRIunpackFileName(char *inFname, int *pframe, int *ptype, char *outFname)
 
     *ptype = -1;
 
-    if(stat(outFname, &stat_buf) < 0)
-    {
-      ErrorExit(ERROR_BAD_FILE, "can't stat file %s", outFname);
-    }
-
-    if(S_ISDIR(stat_buf.st_mode))
-      *ptype = MRI_CORONAL_SLICE_DIRECTORY;
-    else
-    {
 
     if(is_ge(outFname))
       *ptype = GE_5X_FILE;
@@ -160,6 +151,14 @@ MRIunpackFileName(char *inFname, int *pframe, int *ptype, char *outFname)
       *ptype = MRI_MGH_FILE;
     else if(is_mnc(outFname))
       *ptype = MRI_MINC_FILE;
+    else 
+    {
+      if(stat(outFname, &stat_buf) < 0)
+      {
+        ErrorReturn(ERROR_BADFILE, (ERROR_BAD_FILE, "can't stat file %s", outFname));
+      }
+      if(S_ISDIR(stat_buf.st_mode))
+        *ptype = MRI_CORONAL_SLICE_DIRECTORY;
     }
 
     if(*ptype == -1)
