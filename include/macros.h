@@ -44,8 +44,11 @@
 #define DEGREES(rad) ((360.0 * (double)(rad)) / (2.0 * PI))
 #define NDEGREES(rad) (DEGREES(normAngle(rad)))
 
+#define ISSMALL(f)   (fabs(f) < 0.000001f)
+#define ISTINY(f)    (fabs(f) < 0.00000001f)
+
 #ifndef SPARC
-#define FZERO(f)     (fabs(f) < 0.000001F)
+#define FZERO(f)     (fabs(f) < 0.0000001F)
 #define iszero(f)   (FZERO(f))
 #else
 #define FZERO(f)     (iszero(f))
