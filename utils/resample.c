@@ -1,6 +1,6 @@
 /*---------------------------------------------------------------
   Name: resample.c
-  $Id: resample.c,v 1.7 2002/06/21 22:08:07 greve Exp $
+  $Id: resample.c,v 1.8 2002/08/01 17:41:59 greve Exp $
   Author: Douglas N. Greve
   Purpose: code to perform resapling from one space to another, 
   including: volume-to-volume, volume-to-surface, and surface-to-surface.
@@ -1018,20 +1018,27 @@ int MRIsurf2Vol(MRI *surfvals, MRI *vol, MRI *map)
   voxel, its value is set to -1. 
 
   Qa2v is a matrix that maps XYZ in anatomical/surface space to CRS in
-  volume space. It must be compatible with the native geometry of vol.
-  Typically, Qa2v = inv(Tvol)*Ma2v, where Tvol maps from CRS of the
-  vol to XYZ of the volume (see MRIxfmCRS2XYZ), and Ma2v maps from XYZ
-  of the reference anatomical to XYZ of the volume. If Ma2v is the
-  tkregister registration matrix, then it must have been fixed with
-  MRIfixTkReg.
+  volume space. This matrix can be computed as follows: 
+
+          Qa2v = inv(Tvol)*Ma2v, 
+
+  where Tvol maps from CRS of the vol to XYZ of the volume, and Ma2v
+  maps from XYZ of the reference anatomical to XYZ of the volume.
+
+  If Ma2v is a tkregister-compatible matrix, then 
+
+          Tvol = MRIxfmCRS2XYZtkreg(vol);
+
+  If Ma2v maps between the native (ie, scanner) coordinates , then 
+
+          Tvol = MRIxfmCRS2XYZ(vol,0);
 
   If projfrac is non-zero, the XYZ of a vertex is computed based on
   its native XYZ offset in the direction of the surface normal by
   projfrac fraction of the thickness at that point. Obviously, the
   thickness must have been loaded into the surface at this point.
   ------------------------------------------------------------------*/
-MRI *MRImapSurf2VolClosest(MRIS *surf, MRI *vol, 
-         MATRIX *Qa2v, float projfrac)
+MRI *MRImapSurf2VolClosest(MRIS *surf, MRI *vol, MATRIX *Qa2v, float projfrac)
 {
   MRI *map, *dist2;
   int vtx, vtxmin, c, r, s;
