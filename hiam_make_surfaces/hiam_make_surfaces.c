@@ -6,9 +6,9 @@
 // date: 01/27/04
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: pengyu $
-// Revision Date  : $Date: 2005/03/31 22:31:03 $
-// Revision       : $Revision: 1.4 $
+// Revision Author: $Author: kteich $
+// Revision Date  : $Date: 2005/04/04 19:28:34 $
+// Revision       : $Revision: 1.5 $
 ////////////////////////////////////////////
 
 #include <stdio.h>
@@ -267,8 +267,8 @@ main(int argc, char *argv[])
 			energy_Gspring = mrisComputeGaussianCurvatureSpringEnergy(mris, gaussian_norm);				
 			
 			//****** Total Energy  ****//
-			//energy_new = weight_quadcur*energy_quadcur + weight_label*energy_label + energy_repulse\
-        //                + weight_Nspring*energy_Nspring + weight_Tspring*energy_Tspring;//
+			//energy_new = weight_quadcur*energy_quadcur + weight_label*energy_label + energy_repulse
+        //                + weight_Nspring*energy_Nspring + weight_Tspring*energy_Tspring;
 
 				energy_new = weight_quadcur*energy_quadcur + weight_label*energy_label \
 					+ weight_repulse*energy_repulse +  weight_Nspring*energy_Nspring \
