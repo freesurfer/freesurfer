@@ -1,5 +1,5 @@
 % fast_stxgrinder2_sess
-% $Id: fast_stxgrinder2_sess.m,v 1.1 2003/08/02 00:59:09 greve Exp $
+% $Id: fast_stxgrinder2_sess.m,v 1.2 2003/08/04 00:03:44 greve Exp $
 
 % These variables must be defined previously
 % SessList = splitstring('$SessList');
@@ -42,7 +42,7 @@ for nthsess = 1:nsess
       sessanadir = sprintf('%s/%s/%s/%s',sessdir,fsd,analysis,spacedir);
     end
     hstem = sprintf('%s/h%s',sessanadir,hemicode);
-    h0stem = sprintf('%s/h-offset%s',sessanadir,hemicode);
+    h0stem = sprintf('%s/h%s-offset',sessanadir,hemicode);
 
     % get the dim
     [nrows ncols nframes fs nslices endian bext] = fmri_bfiledim(hstem);
