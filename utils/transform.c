@@ -142,6 +142,28 @@ LTAread(char *fname)
   {
   case MNI_TRANSFORM_TYPE:
     lta = ltaMNIread(fname) ;
+    
+    /* by default convert MNI files to voxel coords.
+       Sorry, I know this shouldn't be done here, particularly since we
+       don't know enough to convert to scanner RAS coords, but I don't want 
+       to risk breaking the Talairach code by mucking around with it (BRF).
+    */
+    /* convert to voxel coords */
+    V = MatrixAlloc(4, 4, MATRIX_REAL) ;  /* world to voxel transform */
+    W = MatrixAlloc(4, 4, MATRIX_REAL) ;  /* voxel to world transform */
+    *MATRIX_RELT(V, 1, 1) = -1 ; *MATRIX_RELT(V, 1, 4) = 128 ;
+    *MATRIX_RELT(V, 2, 3) = -1 ; *MATRIX_RELT(V, 2, 4) = 128 ;
+    *MATRIX_RELT(V, 3, 2) = 1 ;  *MATRIX_RELT(V, 3, 4) = 128 ;
+    *MATRIX_RELT(V, 4, 4) = 1 ;
+    
+    *MATRIX_RELT(W, 1, 1) = -1 ; *MATRIX_RELT(W, 1, 4) = 128 ;
+    *MATRIX_RELT(W, 2, 3) = 1 ; *MATRIX_RELT(W, 2, 4) = -128 ;
+    *MATRIX_RELT(W, 3, 2) = -1 ;  *MATRIX_RELT(W, 3, 4) = 128 ;
+    *MATRIX_RELT(W, 4, 4) = 1 ;
+    
+    m_tmp = MatrixMultiply(lta->xforms[0].m_L, W, NULL) ;
+    MatrixMultiply(V, m_tmp, lta->xforms[0].m_L) ;
+    MatrixFree(&V) ; MatrixFree(&W) ; MatrixFree(&m_tmp) ;
     break ;
   case TRANSFORM_ARRAY_TYPE:
   default:
@@ -149,22 +171,6 @@ LTAread(char *fname)
     break ;
   }
 
-  /* convert to voxel coords */
-  V = MatrixAlloc(4, 4, MATRIX_REAL) ;  /* world to voxel transform */
-  W = MatrixAlloc(4, 4, MATRIX_REAL) ;  /* voxel to world transform */
-  *MATRIX_RELT(V, 1, 1) = -1 ; *MATRIX_RELT(V, 1, 4) = 128 ;
-  *MATRIX_RELT(V, 2, 3) = -1 ; *MATRIX_RELT(V, 2, 4) = 128 ;
-  *MATRIX_RELT(V, 3, 2) = 1 ;  *MATRIX_RELT(V, 3, 4) = 128 ;
-  *MATRIX_RELT(V, 4, 4) = 1 ;
-
-  *MATRIX_RELT(W, 1, 1) = -1 ; *MATRIX_RELT(W, 1, 4) = 128 ;
-  *MATRIX_RELT(W, 2, 3) = 1 ; *MATRIX_RELT(W, 2, 4) = -128 ;
-  *MATRIX_RELT(W, 3, 2) = -1 ;  *MATRIX_RELT(W, 3, 4) = 128 ;
-  *MATRIX_RELT(W, 4, 4) = 1 ;
-
-  m_tmp = MatrixMultiply(lta->xforms[0].m_L, W, NULL) ;
-  MatrixMultiply(V, m_tmp, lta->xforms[0].m_L) ;
-  MatrixFree(&V) ; MatrixFree(&W) ; MatrixFree(&m_tmp) ;
   return(lta) ;
 }
 /*-----------------------------------------------------
