@@ -1353,3 +1353,135 @@ ImageLaplacian(IMAGE *Isrc, IMAGE *outImage)
 
   return(outImage) ;
 }
+/*----------------------------------------------------------------------
+            Parameters:
+
+           Description:
+----------------------------------------------------------------------*/
+IMAGE *
+ImageSigmaFilter(IMAGE *Isrc, int wsize, float nsigma, IMAGE *Ioffset, 
+                 IMAGE *Idst)
+{
+  float  *sort_array ;
+  int    x0, y0, rows, cols, x, y, whalf, yc, dx, dy, frame, wsq, w, npix ;
+  float  *sptr, *outPix, min_val, max_val, *inPix, val,mean,sigma,sigma_thresh,
+         filter_val ;
+  IMAGE  *Iout, *Iin ;
+  register int xc ;
+
+  if (nsigma <= 0.0f)
+    nsigma = 2.0f ;
+  rows = Isrc->rows ;
+  cols = Isrc->cols ;
+  if (Isrc->pixel_format != PFFLOAT)
+  {
+    Iin = ImageAlloc(rows, cols, PFFLOAT, 1) ;
+    ImageCopy(Isrc, Iin) ;
+    ImageValRange(Isrc, &min_val, &max_val) ;
+  }
+  else
+    Iin = Isrc ;
+
+  if (!Idst)
+    Idst = ImageAlloc(rows, cols, PFFLOAT, 1) ;
+
+  if (Idst->pixel_format != PFFLOAT)
+    Iout = ImageAlloc(rows, cols, PFFLOAT, 1) ;
+  else
+    Iout = Idst ;
+
+
+  wsq = wsize*wsize ;
+  whalf = (wsize-1)/2 ;
+
+  /* create a static array for sorting pixels in */
+  sort_array = (float *)calloc(wsq, sizeof(float)) ;
+
+  for (frame = 0 ; frame < Iin->num_frame ; frame++)
+  {
+    outPix = IMAGEFseq_pix(Iout, 0, 0, frame) ;
+    for (y0 = 0 ; y0 < rows ; y0++)
+    {
+      for (x0 = 0 ; x0 < cols ; x0++)
+      {
+/*
+         x and y are in window coordinates, while xc and yc are in image
+         coordinates.
+ */
+        if (Ioffset)
+        {
+          dx = nint(*IMAGEFpix(Ioffset, x0, y0)) ;
+          dy = nint(*IMAGEFseq_pix(Ioffset, x0, y0, 1)) ;
+        }
+        else
+          dx = dy = 0 ;
+        
+        for (sptr = sort_array, y = -whalf ; y <= whalf ; y++)
+        {
+          /* reflect across the boundary */
+          yc = y + y0 + dy ;
+          if (yc < 0)
+            yc = 0 ;
+          else if (yc >= rows)
+            yc = rows - 1 ;
+
+          inPix = IMAGEFseq_pix(Iin, 0, yc, frame) ;
+          for (x = -whalf ; x <= whalf ; x++)
+          {
+            xc = x0 + x + dx ;
+            if (xc < 0)
+              xc = 0 ;
+            else if (xc >= cols)
+              xc = cols - 1 ;
+
+            *sptr++ = *(inPix + xc) ;
+          }
+        }
+        
+        /* calculate mean and standard deviation in window */
+        mean = sigma = 0.0f ;
+        for (w = 0, sptr = sort_array ; w < wsq ; w++)
+          mean += *sptr++ ;
+        mean /= wsq ;
+        for (w = 0, sptr = sort_array ; w < wsq ; w++)
+        {
+          val = *sptr++ ;
+          val = (val - mean) ;
+          val *= val ;
+          sigma += val ;
+        }
+        sigma = sqrt(sigma / wsq) ;
+
+        /* calculate average of all pixels within nsigma std of mean */
+        sigma_thresh = nsigma * sigma ;
+        filter_val = 0.0f ;
+        npix = 0 ;
+        for (w = 0, sptr = sort_array ; w < wsq ; w++)
+        {
+          val = *sptr++ ;
+          if (fabs(val - mean) <= sigma_thresh) /* include in filter */
+          {
+            filter_val += val ;
+            npix++ ;
+          }
+        }
+        if (npix)
+          *outPix++ = filter_val / npix ;
+        else
+          *outPix++ = sort_array[(int)(wsq/2.0f)] ;
+      }
+    }
+  }
+
+  free(sort_array) ;
+  if (Idst != Iout)
+  {
+    ImageCopy(Iout, Idst) ;
+    ImageFree(&Iout) ;
+  }
+  if (Isrc != Iin)
+    ImageFree(&Iin) ;
+
+  return(Idst) ;
+}
+
