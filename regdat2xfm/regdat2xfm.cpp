@@ -56,6 +56,8 @@ int main(int argc, char *argv[])
   MRI *dst = MRIread(argv[2]);
   // get the mri2frmi
   MATRIX *regSrc2Dest = 0;
+  int type = TransformFileNameType(argv[3]);
+  if (type == REGISTER_DAT)
   {
     fMRI_REG *reg = StatReadRegistration(argv[3]);
     MatrixCopy(reg->mri2fmri, regSrc2Dest);
