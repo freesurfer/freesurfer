@@ -3,9 +3,9 @@
 // written by Bruce Fischl
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: segonne $
-// Revision Date  : $Date: 2004/11/23 19:33:50 $
-// Revision       : $Revision: 1.309 $
+// Revision Author: $Author: tosa $
+// Revision Date  : $Date: 2004/12/01 16:07:43 $
+// Revision       : $Revision: 1.310 $
 //////////////////////////////////////////////////////////////////
 #include <stdio.h>
 #include <string.h>
@@ -2839,7 +2839,7 @@ mrisReadTransform(MRIS *mris, char *mris_fname)
     // first try to get it from surface itself
     if (mris->vg.valid)
     {
-      fprintf(stderr, "INFO: found the orig volume info in the surface data.\n");
+      fprintf(stderr, "INFO: found the orig volume info on %s in the surface data.\n", mris->vg.fname);
       lt->src.c_r = mris->vg.c_r;
       lt->src.c_a = mris->vg.c_a;
       lt->src.c_s = mris->vg.c_s;
@@ -2852,9 +2852,11 @@ mrisReadTransform(MRIS *mris, char *mris_fname)
       if (orig)
       {
 	getVolGeom(orig, &lt->src);
+	getVolGeom(orig, &mris->vg); // add orig volume info in the surface
 	MRIfree(&orig);
 	orig = 0;
 	fprintf(stderr, "INFO: found the orig volume (mri/orig) to get c_(ras) information for src\n");
+	fprintf(stderr, "INFO: added info to the surface.\n");
       }
       else
       {
@@ -23889,7 +23891,7 @@ MRIStransform(MRI_SURFACE *mris, MRI *mri, LTA *lta, MRI *mri_dst)
     goto mristransform_cleanup;
   }
   // mri_dst side
-  // Note: if mri_dst is given, override the one stored in the transform
+  // Note: if mri_dst is not given, override the one stored in the transform
   if (!mri_dst && lt->dst.valid == 1)
   {
     dstPresent = 0;
