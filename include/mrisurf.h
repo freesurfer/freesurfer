@@ -649,8 +649,8 @@ int   MRIScomputeAverageCircularPhaseGradient(MRI_SURFACE *mris, LABEL *area,
                                             float *pdx,float *pdy,float *pdz);
 
 int   MRIScomputeBorderValues(MRI_SURFACE *mris,MRI *mri_brain,
-                              MRI *mri_smooth, Real inside_hi, 
-                              Real inside_low, Real outside_low) ;
+                              MRI *mri_smooth, Real inside_hi, Real border_hi,
+                              Real border_low, Real outside_low) ;
 int  MRIScomputeWhiteSurfaceValues(MRI_SURFACE *mris, MRI *mri_brain, 
                                    MRI *mri_smooth);
 int  MRIScomputeGraySurfaceValues(MRI_SURFACE *mris, MRI *mri_brain, 
