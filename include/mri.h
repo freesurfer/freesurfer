@@ -442,6 +442,7 @@ int   MRIerasePlane(MRI *mri, float x0, float y0, float z0,
 int   MRIeraseBorders(MRI *mri, int width) ;
 int   MRIindexNotInVolume(MRI *mri, Real col, Real row, Real slice) ;
 int   MRIsampleVolume(MRI *mri, Real x, Real y, Real z, Real *pval) ;
+int   MRIsampleVolumeSlice(MRI *mri, Real x, Real y, Real z, Real *pval, int slice_direction) ;
 
 int   MRIsampleSeqVolume(MRI *mri, Real x, Real y, Real z, float *valvect,
        int firstframe, int lastframe);
