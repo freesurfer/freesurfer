@@ -63,7 +63,7 @@ typedef struct
   short   *nlabels;
   short   n_just_priors ;
   int     ntraining ;
-	char    regularized ;
+  char    regularized ;
 } GC1D, GAUSSIAN_CLASSIFIER_1D ;
 
 typedef struct
@@ -312,6 +312,7 @@ int    GCAreplaceLabels(GCA *gca, int in_label, int out_label) ;
 void GCAsetup(GCA *gca);
 void GCAreinit(MRI *mri, GCA *gca); // reinit gca with mri values
 void GCAcleanup();
+void GCAcopyDCToMRI(GCA *gca, MRI *mri); // copy direction cosine info to MRI
 
 extern int Ggca_x, Ggca_y, Ggca_z, Ggca_label ;
 
