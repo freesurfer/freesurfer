@@ -117,5 +117,12 @@
 
 
 #define MAX_CMA_LABEL (Corpus_Callosum+1)
+#define LABEL_WITH_NO_TOPOLOGY_CONSTRAINT(l) (\
+   ((l) == Right_non_WM_hypointensities) || \
+   ((l) == Left_non_WM_hypointensities) || \
+   ((l) == Left_WM_hypointensities) || \
+   ((l) == Right_WM_hypointensities) || \
+   ((l) == WM_hypointensities) || \
+   ((l) == non_WM_hypointensities))
 
 #endif
