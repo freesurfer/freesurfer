@@ -3,8 +3,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2004/01/13 21:45:30 $
-// Revision       : $Revision: 1.86 $
+// Revision Date  : $Date: 2004/01/14 16:37:31 $
+// Revision       : $Revision: 1.87 $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -300,10 +300,10 @@ GCA_PRIOR *
 getGCAP(GCA *gca, MRI *mri, TRANSFORM *transform, int xv, int yv, int zv)
 {
   int       xp, yp, zp ;
-  GCA_PRIOR *gcap ;
+  GCA_PRIOR *gcap=NULL;
 
-  GCAsourceVoxelToPrior(gca, mri, transform, xv, yv, zv, &xp, &yp, &zp) ;
-  gcap = &gca->priors[xp][yp][zp] ;
+  if (!GCAsourceVoxelToPrior(gca, mri, transform, xv, yv, zv, &xp, &yp, &zp))
+    gcap = &gca->priors[xp][yp][zp] ;
   return(gcap) ;
 }
 
@@ -329,7 +329,7 @@ int
 GCAisPossible(GCA *gca, MRI *mri, int label, TRANSFORM *transform, int x, int y, int z) 
 {
   int       n ;
-  GCA_PRIOR *gcap ;
+  GCA_PRIOR *gcap = NULL;
 
   gcap = getGCAP(gca, mri, transform, x, y, z) ;
   if (gcap == NULL)
@@ -7443,14 +7443,12 @@ static GCA_NODE *
 findSourceGCAN(GCA *gca, MRI *mri_src, TRANSFORM *transform, int x, int y, int z)
 {
   int      xn, yn, zn ;
-  GCA_NODE *gcan ;
+  GCA_NODE *gcan=NULL;
 
   if (!GCAsourceVoxelToNode(gca, mri_src, transform, x, y, z, &xn, &yn, &zn))
   {
     gcan = &gca->nodes[xn][yn][zn] ;
   }
-  else 
-    gcan = NULL;
   return(gcan) ;
 }
 #if 0
@@ -8241,23 +8239,25 @@ gcaExtractRegionLabelAsSamples(GCA *gca, MRI *mri_labeled, TRANSFORM *transform,
           DiagBreak() ;
 
         gcap = getGCAP(gca, mri_labeled, transform, xi, yi, zi) ;
-        GCAsourceVoxelToPrior(gca, mri_labeled, transform, xi, yi, zi, &xp, &yp, &zp) ;
-        gc = GCAfindPriorGC(gca, xp, yp, zp, label) ;
-        if (!gc || !gcap)
-        {
-          nsamples-- ;   /* shouldn't happen */
-          continue ;
-        }
-
-        gcas[i].label = label ;
-        gcas[i].xp = xp ; gcas[i].yp = yp ; gcas[i].zp = zp ; 
-        gcas[i].x = xi ;   gcas[i].y = yi ;   gcas[i].z = zi ; 
-        gcas[i].var = gc->var ;
-        gcas[i].mean = gc->mean ;
-        gcas[i].prior = getPrior(gcap, label) ;
-        if (FZERO(gcas[i].prior))
-          DiagBreak() ;
-        i++ ;
+        if (!GCAsourceVoxelToPrior(gca, mri_labeled, transform, xi, yi, zi, &xp, &yp, &zp))
+	{
+	  gc = GCAfindPriorGC(gca, xp, yp, zp, label) ;
+	  if (!gc || !gcap)
+	  {
+	    nsamples-- ;   /* shouldn't happen */
+	    continue ;
+	  }
+	  
+	  gcas[i].label = label ;
+	  gcas[i].xp = xp ; gcas[i].yp = yp ; gcas[i].zp = zp ; 
+	  gcas[i].x = xi ;   gcas[i].y = yi ;   gcas[i].z = zi ; 
+	  gcas[i].var = gc->var ;
+	  gcas[i].mean = gc->mean ;
+	  gcas[i].prior = getPrior(gcap, label) ;
+	  if (FZERO(gcas[i].prior))
+	    DiagBreak() ;
+	  i++ ;
+	}// !GCAsourceVoxel
       }
     }
   }
@@ -8333,8 +8333,7 @@ gcaExtractThresholdedRegionLabelAsSamples(GCA *gca, MRI *mri_labeled,
           DiagBreak() ;
 
         gcap = getGCAP(gca, mri_labeled, transform, xi, yi, zi) ;
-        if (GCAsourceVoxelToPrior(gca, mri_labeled, transform, xi, yi, zi, &xp, &yp, &zp)
-	    == NO_ERROR)
+        if (!GCAsourceVoxelToPrior(gca, mri_labeled, transform, xi, yi, zi, &xp, &yp, &zp))
 	{
 	  gc = GCAfindPriorGC(gca, xp, yp, zp, label) ;
 	  if (gcap)
@@ -8416,33 +8415,35 @@ gcaExtractLabelAsSamples(GCA *gca, MRI *mri_labeled, TRANSFORM *transform,
         if (MRIvox(mri_labeled, x, y, z) != label)
           continue ;
 
-        GCAsourceVoxelToPrior(gca, mri_labeled, transform, x, y, z, &xp, &yp, &zp) ;
-        gcap = &gca->priors[xp][yp][zp] ;
-        for (n = 0 ; n < gcap->nlabels ; n++)
-        {
-          if (gcap->labels[n] == label)
-            break ;
-        }
-
-        gc = GCAfindPriorGC(gca, xp, yp, zp, label) ;
-        if (n >= gcap->nlabels || !gc)
-        {
-          nsamples-- ;   /* doesn't exist at this location */
-          continue ;   /* ?? */
-        }
-        gcas[i].label = label ;
-        gcas[i].xp = xp ; gcas[i].yp = yp ; gcas[i].zp = zp ; 
-        gcas[i].x = x ;   gcas[i].y = y ;   gcas[i].z = z ; 
-	for (r = v = 0 ; r < gca->ninputs ; r++)
+        if (!GCAsourceVoxelToPrior(gca, mri_labeled, transform, x, y, z, &xp, &yp, &zp))
 	{
-	  gcas[i].means[r] = gc->means[r] ;
-	  for (c = r ; c < gca->ninputs ; c++)
-	    gcas[i].covars[v] = gc->covars[v] ;
-	}
-        gcas[i].prior = getPrior(gcap, label) ;
-        if (FZERO(gcas[i].prior))
-          DiagBreak() ;
-        i++ ;
+	  gcap = &gca->priors[xp][yp][zp] ;
+	  for (n = 0 ; n < gcap->nlabels ; n++)
+	  {
+	    if (gcap->labels[n] == label)
+	      break ;
+	  }
+
+	  gc = GCAfindPriorGC(gca, xp, yp, zp, label) ;
+	  if (n >= gcap->nlabels || !gc)
+	  {
+	    nsamples-- ;   /* doesn't exist at this location */
+	    continue ;   /* ?? */
+	  }
+	  gcas[i].label = label ;
+	  gcas[i].xp = xp ; gcas[i].yp = yp ; gcas[i].zp = zp ; 
+	  gcas[i].x = x ;   gcas[i].y = y ;   gcas[i].z = z ; 
+	  for (r = v = 0 ; r < gca->ninputs ; r++)
+	  {
+	    gcas[i].means[r] = gc->means[r] ;
+	    for (c = r ; c < gca->ninputs ; c++)
+	      gcas[i].covars[v] = gc->covars[v] ;
+	  }
+	  gcas[i].prior = getPrior(gcap, label) ;
+	  if (FZERO(gcas[i].prior))
+	    DiagBreak() ;
+	  i++ ;                            // this i is never used??????
+	} // !GCAsourceVoxelToPrior
       }
     }
   }
