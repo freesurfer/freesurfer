@@ -13,7 +13,7 @@
 #include "transform.h"
 #include "version.h"
 
-static char vcid[] = "$Id: mris_transform.c,v 1.4 2004/01/28 17:12:25 tosa Exp $";
+static char vcid[] = "$Id: mris_transform.c,v 1.5 2004/01/29 14:54:51 tosa Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -35,11 +35,11 @@ main(int argc, char *argv[])
 {
   char         **av, *in_fname, *out_fname, *xform_fname ;
   int          ac, nargs ;
-  LTA          *lta ;
+  LTA          *lta=0 ;
   int          transform_type;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_transform.c,v 1.4 2004/01/28 17:12:25 tosa Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_transform.c,v 1.5 2004/01/29 14:54:51 tosa Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
