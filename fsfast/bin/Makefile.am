@@ -13,6 +13,17 @@ install-exec-local:
 	    $(INSTALL_SCRIPT) $$p $$d$$p; \
 	fi; \
 	done
+
+uninstall-local:
+	$(mkinstalldirs) $(DESTDIR)$(prefix)/fsfast/bin; \
+	d="$(DESTDIR)$(prefix)/fsfast/bin/"; \
+	for p in *; do \
+	val=`file $$p | grep script`;\
+	if test "$$val" != "" ; then \
+	  echo " rm -f $$d$$p"; \
+	  rm -f $$d$$p; \
+	fi; \
+	done
  
 include exclude_files.sh
 
