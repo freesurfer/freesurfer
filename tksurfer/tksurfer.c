@@ -18332,7 +18332,7 @@ int main(int argc, char *argv[])   /* new main */
   /* end rkt */
   
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: tksurfer.c,v 1.90 2004/12/30 19:41:57 kteich Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: tksurfer.c,v 1.91 2004/12/30 19:43:21 kteich Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -20286,7 +20286,7 @@ update_labels(int label_set, int vno, float dmin)
   sprintf(command, "UpdateLabel %d %d %f", label_set, LABEL_DISTANCE, dmin);
   Tcl_Eval(g_interp, command);
   sprintf(command,"UpdateLabel %d %d \"(%.2f  %.2f  %.2f)\"", 
-	  label_set, LABEL_COORDS, v->origx, v->origy, v->origz);
+	  label_set, LABEL_COORDS_RAS, v->origx, v->origy, v->origz);
   Tcl_Eval(g_interp, command);
   if (MRIflag && MRIloaded) 
     {
