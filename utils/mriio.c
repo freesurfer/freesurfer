@@ -82,6 +82,13 @@ static float *get_afni_float(FILE *fp, int count, char *name);
 static int decompose_b_fname(char *fname_passed, char *directory, char *stem);
 static int orient_with_register(MRI *mri);
 static int nan_inf_check(MRI *mri);
+#ifdef VC_TO_CV
+static int voxel_center_to_center_voxel(MRI *mri, float *x, float *y, float *z);
+#endif
+static int center_voxel_to_voxel_center(MRI *mri, float x, float y, float z);
+static int bad_ras_fill(MRI *mri);
+static MRI *gdfRead(char *fname, int read_volume);
+static int gdfWrite(MRI *mri, char *fname);
 
 /********************************************/
 
@@ -315,6 +322,10 @@ static MRI *mri_read(char *fname, int type, int volume_flag, int start_frame, in
   {
     mri = mghRead(fname_copy, volume_flag, -1);
   }
+  else if(type == GDF_FILE)
+  {
+    mri = gdfRead(fname_copy, volume_flag);
+  }
   else
   {
     ErrorReturn(NULL, (ERROR_BADPARM, "mri_read(): code inconsistency (file type recognized but not caught)"));
@@ -457,6 +468,8 @@ MRI *MRIreadType(char *fname, int type)
 
   MRI *mri;
 
+  chklc();
+
   mri = mri_read(fname, type, TRUE, -1, -1);
 
   return(mri);
@@ -519,6 +532,10 @@ int MRIwriteType(MRI *mri, char *fname, int type)
   else if(type == MRI_MGH_FILE)
   {
     error = mghWrite(mri, fname, 0);
+  }
+  else if(type == GDF_FILE)
+  {
+    error = gdfWrite(mri, fname);
   }
   else
   {
@@ -3000,6 +3017,7 @@ static MRI *genesisRead(char *fname, int read_volume)
   int i, y;
   MRI *header;
   float xfov, yfov, zfov;
+  float nlength;
 
   /* ----- check the first (passed) file ----- */
   if(!FileExists(fname))
@@ -3120,6 +3138,11 @@ static MRI *genesisRead(char *fname, int read_volume)
   fread(&br_r, 4, 1, fp);  br_r = orderFloatBytes(br_r);
   fread(&br_a, 4, 1, fp);  br_a = orderFloatBytes(br_a);
   fread(&br_s, 4, 1, fp);  br_s = orderFloatBytes(br_s);
+
+  nlength = sqrt(n_r*n_r + n_a*n_a + n_s*n_s);
+  n_r = n_r / nlength;
+  n_a = n_a / nlength;
+  n_s = n_s / nlength;
 
   header->x_r = (tr_r - tl_r);  header->x_a = (tr_a - tl_a);  header->x_s = (tr_s - tl_s);
   header->y_r = (br_r - tr_r);  header->y_a = (br_a - tr_a);  header->y_s = (br_s - tr_s);
@@ -4676,6 +4699,496 @@ static void nflip(unsigned char *buf, int b, int n)
 
 } /* end nflip() */
 
+static int bad_ras_fill(MRI *mri)
+{
+
+  if(mri->slice_direction == MRI_CORONAL)
+  {
+    mri->x_r = -1.0;  mri->y_r =  0.0;  mri->z_r =  0.0;
+    mri->x_a =  0.0;  mri->y_a =  0.0;  mri->z_a =  1.0;
+    mri->x_s =  0.0;  mri->y_s = -1.0;  mri->z_s =  0.0;
+    mri->c_r = 0.0;  mri->c_a = 0.0;  mri->c_s = 0.0;
+  }
+  else if(mri->slice_direction == MRI_SAGITTAL)
+  {
+    mri->x_r =  0.0;  mri->y_r =  0.0;  mri->z_r = -1.0;
+    mri->x_a =  1.0;  mri->y_a =  0.0;  mri->z_a =  0.0;
+    mri->x_s =  0.0;  mri->y_s =  1.0;  mri->z_s =  0.0;
+    mri->c_r = 0.0;  mri->c_a = 0.0;  mri->c_s = 0.0;
+  }
+  else if(mri->slice_direction == MRI_HORIZONTAL)
+  {
+    mri->x_r =  1.0;  mri->y_r =  0.0;  mri->z_r =  0.0;
+    mri->x_a =  0.0;  mri->y_a = -1.0;  mri->z_a =  0.0;
+    mri->x_s =  0.0;  mri->y_s =  0.0;  mri->z_s =  1.0;
+    mri->c_r = 0.0;  mri->c_a = 0.0;  mri->c_s = 0.0;
+  }
+  else
+  {
+    ErrorReturn(ERROR_BADPARM, (ERROR_BADPARM, "bad_ras_fill(): unknown slice direction"));
+  }
+
+  return(NO_ERROR);
+
+} /* end bad_ras_fill() */
+
+#ifdef VT_TO_CV
+
+static int voxel_center_to_center_voxel(MRI *mri, float *x, float *y, float *z)
+{
+
+  int result;
+  MATRIX *m, *i, *r, *mi;
+
+  if(!mri->ras_good_flag)
+    if((result = bad_ras_fill(mri)) != NO_ERROR)
+      return(result);
+
+  if((m = extract_i_to_r(mri)) == NULL)
+    return(ERROR_BADPARM);
+
+  mi = MatrixInverse(m, NULL);
+  if(mi == NULL)
+  {
+    MatrixFree(&m);
+    ErrorReturn(ERROR_BADPARM, (ERROR_BADPARM, "voxel_center_to_center_voxel(): error inverting matrix"));
+  }
+
+  r = MatrixAlloc(4, 1, MATRIX_REAL);
+  if(r == NULL)
+  {
+    MatrixFree(&m);
+    MatrixFree(&mi);
+    ErrorReturn(ERROR_NOMEMORY, (ERROR_NOMEMORY, "voxel_center_to_center_voxel(): couldn't allocate matrix"));
+  }
+
+  *MATRIX_RELT(r, 1, 1) = 0.0;
+  *MATRIX_RELT(r, 2, 1) = 0.0;
+  *MATRIX_RELT(r, 3, 1) = 0.0;
+  *MATRIX_RELT(r, 4, 1) = 1.0;
+
+  i = MatrixMultiply(mi, r, NULL);
+  if(i == NULL)
+  {
+    MatrixFree(&m);
+    MatrixFree(&mi);
+    MatrixFree(&r);
+    ErrorReturn(ERROR_BADPARM, (ERROR_BADPARM, "voxel_center_to_center_voxel(): error in matrix multiplication"));
+  }
+
+  *x = *MATRIX_RELT(i, 1, 1);
+  *y = *MATRIX_RELT(i, 2, 1);
+  *z = *MATRIX_RELT(i, 3, 1);
+
+  MatrixFree(&m);
+  MatrixFree(&mi);
+  MatrixFree(&i);
+  MatrixFree(&r);
+
+  return(NO_ERROR);
+
+} /* end voxel_center_to_center_voxel() */
+
+#endif
+
+static int center_voxel_to_voxel_center(MRI *mri, float x, float y, float z)
+{
+
+  int result;
+  MATRIX *m;
+
+  if(!mri->ras_good_flag)
+    if((result = bad_ras_fill(mri)) != NO_ERROR)
+      return(result);
+
+  if((m = extract_i_to_r(mri)) == NULL)
+    return(ERROR_BADPARM);
+
+  *MATRIX_RELT(m, 1, 4) = 0 - (*MATRIX_RELT(m, 1, 1) * x + *MATRIX_RELT(m, 1, 2) * y + *MATRIX_RELT(m, 1, 3) * z);
+  *MATRIX_RELT(m, 2, 4) = 0 - (*MATRIX_RELT(m, 2, 1) * x + *MATRIX_RELT(m, 2, 2) * y + *MATRIX_RELT(m, 2, 3) * z);
+  *MATRIX_RELT(m, 3, 4) = 0 - (*MATRIX_RELT(m, 3, 1) * x + *MATRIX_RELT(m, 3, 2) * y + *MATRIX_RELT(m, 3, 3) * z);
+
+  apply_i_to_r(mri, m);
+
+  MatrixFree(&m);
+
+  return(NO_ERROR);
+
+} /* end center_voxel_to_voxel_center() */
+
+static MRI *gdfRead(char *fname, int read_volume)
+{
+
+  MRI *mri;
+  FILE *fp;
+  char line[STRLEN];
+  char *c;
+  char file_path[STRLEN];
+  float ipr[2];
+  float st;
+  float center[3];
+  char units_string[STRLEN], orientation_string[STRLEN], data_type_string[STRLEN];
+  int size[2];
+  int path_d, ipr_d, st_d, u_d, dt_d, o_d, s_d, c_d;
+  int data_type;
+  int orientation;
+  char *or;
+  char os_orig[STRLEN];
+  float units_factor;
+  char file_path_1[STRLEN], file_path_2[STRLEN];
+  char gdf_path[STRLEN];
+  int i, j, k;
+  short *sbuf = NULL;
+  float *fbuf = NULL;
+  unsigned char *ucbuf = NULL;
+  int n_files;
+  char fname_use[STRLEN];
+
+  if((fp = fopen(fname, "r")) == NULL)
+  {
+    ErrorReturn(NULL, (ERROR_BADFILE, "gdfRead(): error opening file %s", fname));
+  }
+
+  /* --- defined flags --- */
+  path_d = ipr_d = st_d = u_d = dt_d = o_d = s_d = c_d = FALSE;
+
+  while(fgets(line, STRLEN, fp) != NULL)
+  {
+
+    /* --- strip the newline --- */
+    if((c = strrchr(line, '\n')) != NULL)
+      *c = '\0';
+
+    if(strncmp(line, "IMAGE_FILE_PATH", 15) == 0)
+    {
+      sscanf(line, "%*s %s", file_path);
+      path_d = TRUE;
+    }
+    else if(strncmp(line, "IP_RES", 6) == 0)
+    {
+      sscanf(line, "%*s %f %f", &ipr[0], &ipr[1]);
+      ipr_d = TRUE;
+    }
+    else if(strncmp(line, "SL_THICK", 8) == 0)
+    {
+      sscanf(line, "%*s %f", &st);
+      st_d = TRUE;
+    }
+    else if(strncmp(line, "UNITS", 5) == 0)
+    {
+      sscanf(line, "%*s %s", units_string);
+      u_d = TRUE;
+    }
+    else if(strncmp(line, "SIZE", 4) == 0)
+    {
+      sscanf(line, "%*s %d %d", &size[0], &size[1]);
+      s_d = TRUE;
+    }
+    else if(strncmp(line, "DATA_TYPE", 9) == 0)
+    {
+      sscanf(line, "%*s %s", data_type_string);
+      dt_d = TRUE;
+    }
+    else if(strncmp(line, "ORIENTATION", 11) == 0)
+    {
+      sscanf(line, "%*s %s", orientation_string);
+      strcpy(os_orig, orientation_string);
+      o_d = TRUE;
+    }
+    else if(strncmp(line, "DISPLAY_CENTER", 14) == 0)
+    {
+      sscanf(line, "%*s %f %f %f", &center[0], &center[1], &center[2]);
+      c_d = TRUE;
+    }
+    else
+    {
+    }
+
+  }
+
+  fclose(fp);
+
+  if(!(path_d && ipr_d && st_d && s_d && o_d))
+  {
+    ErrorPrintf(ERROR_BADPARM, "gdfRead(): missing field(s) from %s:", fname);
+    if(!path_d)
+      ErrorPrintf(ERROR_BADPARM, "  IMAGE_FILE_PATH\n");
+    if(!ipr_d)
+      ErrorPrintf(ERROR_BADPARM, "  IP_RES\n");
+    if(!st_d)
+      ErrorPrintf(ERROR_BADPARM, "  SL_THICK\n");
+    if(!s_d)
+      ErrorPrintf(ERROR_BADPARM, "  SIZE\n");
+    if(!o_d)
+      ErrorPrintf(ERROR_BADPARM, "  ORIENTATION\n");
+    return(NULL);
+  }
+
+  if(!(dt_d))
+  {
+    printf("missing field DATA_TYPE in file %s; assuming 'short'\n", fname);
+    sprintf(data_type_string, "short");
+  }
+
+  if(!(c_d))
+  {
+    printf("missing field DISPLAY_CENTER in file %s; assuming center of volume is origin'\n", fname);
+    center[0] = center[1] = center[2] = -1.0;
+  }
+
+  if(!(u_d))
+  {
+    printf("missing field UNITS in file %s; assuming 'mm'\n", fname);
+    sprintf(data_type_string, "mm");
+  }
+
+  StrLower(data_type_string);
+  StrLower(orientation_string);
+  StrLower(units_string);
+
+  /* --- data type --- */
+  if(strcmp(data_type_string, "short") == 0)
+    data_type = MRI_SHORT;
+  else if(strcmp(data_type_string, "float") == 0)
+    data_type = MRI_FLOAT;
+  else if(strcmp(data_type_string, "unsigned char") == 0)
+    data_type = MRI_UCHAR;
+  else
+  {
+    ErrorReturn(NULL, (ERROR_BADPARM, "gdfRead(): unknown data type '%s'", data_type_string));
+  }
+
+  /* --- orientation --- */
+  or = strrchr(orientation_string, ' ');
+  or = (or == NULL ? orientation_string : or+1);
+  if(strncmp(or, "cor", 3) == 0)
+    orientation = MRI_CORONAL;
+  else if(strncmp(or, "sag", 3) == 0)
+    orientation = MRI_SAGITTAL;
+  else if(strncmp(or, "ax", 2) == 0 || strncmp(or, "hor", 3) == 0)
+    orientation = MRI_HORIZONTAL;
+  else
+  {
+    ErrorReturn(NULL, (ERROR_BADPARM, "gdfRead(): can't determine orientation from string '%s'", os_orig));
+  }
+
+  if(strcmp(units_string, "mm") == 0)
+    units_factor = 1.0;
+  else if(strcmp(units_string, "cm") == 0)
+    units_factor = 1.0;
+  else if(strcmp(units_string, "m") == 0)
+    units_factor = 100.0;
+  else
+  {
+    ErrorReturn(NULL, (ERROR_BADPARM, "gdfRead(): unknown units '%s'", units_string));
+  }
+
+  ipr[0] /= units_factor;
+  ipr[1] /= units_factor;
+  st /= units_factor;
+
+  strcpy(file_path_1, file_path);
+  c = strrchr(file_path_1, '*');
+  if(c == NULL)
+  {
+    ErrorReturn(NULL, (ERROR_BADPARM, "gdfRead(): file path %s does not contain '*'\n", file_path));
+  }
+
+  *c = '\0';
+  c++;
+  strcpy(file_path_2, c);
+
+  /* ----- relative path -- go from directory with the .gdf file ----- */
+  if(file_path_1[0] != '/')
+  {
+    if(fname[0] == '/')
+      sprintf(gdf_path, "%s", fname);
+    else
+      sprintf(gdf_path, "./%s", fname);
+
+    c = strrchr(gdf_path, '/');
+    c[1] = '\0';
+
+    strcat(gdf_path, file_path_1);
+    strcpy(file_path_1, gdf_path);
+    
+  }
+
+  n_files = 0;
+  do
+  {
+    n_files++;
+    sprintf(fname_use, "%s%d%s", file_path_1, n_files, file_path_2);
+  } while(FileExists(fname_use));
+
+  if(n_files == 1)
+  {
+    ErrorReturn(NULL, (ERROR_BADFILE, "gdfRead(): can't find file %s\n", fname_use));
+  }
+
+  n_files--;
+
+  if(read_volume)
+    mri = MRIallocSequence(size[0], size[1], n_files, data_type, 1);
+  else
+    mri = MRIallocHeader(size[0], size[1], n_files, data_type);
+
+  mri->xsize = ipr[0];
+  mri->ysize = ipr[1];
+  mri->zsize = st;
+
+  mri->xend = mri->width  * mri->xsize / 2.0;
+  mri->xstart = -mri->xend;
+  mri->yend = mri->height * mri->ysize / 2.0;
+  mri->ystart = -mri->yend;
+  mri->zend = mri->depth  * mri->zsize / 2.0;
+  mri->zstart = -mri->zend;
+  
+  strcpy(mri->fname, fname);
+
+  mri->slice_direction = orientation;
+  if(bad_ras_fill(mri) != NO_ERROR)
+    return(NULL);
+
+  /* ----- hack ----- */
+  center[0] = (mri->width  - 1.0) / 2.0;
+  center[1] = (mri->height - 1.0) / 2.0;
+  center[2] = (mri->depth  - 1.0) / 2.0;
+  center_voxel_to_voxel_center(mri, center[0], center[1], center[2]);
+
+  printf("warning: gdf volume may be incorrectly oriented or centered\n");
+
+  if(!read_volume)
+    return(mri);
+
+  if(mri->type == MRI_UCHAR)
+  {
+    ucbuf = (unsigned char *)malloc(mri->width);
+    if(ucbuf == NULL)
+    {
+      MRIfree(&mri);
+      ErrorReturn(NULL, (ERROR_NOMEMORY, "gdfRead(): error allocating %d bytes for read buffer", mri->width));
+    }
+  }
+  else if(mri->type == MRI_SHORT)
+  {
+    sbuf = (short *)malloc(mri->width * sizeof(short));
+    if(sbuf == NULL)
+    {
+      MRIfree(&mri);
+      ErrorReturn(NULL, (ERROR_NOMEMORY, "gdfRead(): error allocating %d bytes for read buffer", mri->width * sizeof(short)));
+    }
+  }
+  else if(mri->type == MRI_FLOAT)
+  {
+    fbuf = (float *)malloc(mri->width * sizeof(float));
+    if(fbuf == NULL)
+    {
+      MRIfree(&mri);
+      ErrorReturn(NULL, (ERROR_NOMEMORY, "gdfRead(): error allocating %d bytes for read buffer", mri->width * sizeof(float)));
+    }
+  }
+  else
+  {
+    MRIfree(&mri);
+    ErrorReturn(NULL, (ERROR_BADPARM, "gdfRead(): internal error; data type %d accepted but not supported in read", mri->type));
+  }
+
+  for(i = 1;i <= n_files;i++)
+  {
+
+    sprintf(fname_use, "%s%d%s", file_path_1, i, file_path_2);
+
+    fp = fopen(fname_use, "r");
+    if(fp == NULL)
+    {
+      MRIfree(&mri);
+      if(mri->type == MRI_UCHAR)
+        free(ucbuf);
+      if(mri->type == MRI_SHORT)
+        free(sbuf);
+      if(mri->type == MRI_FLOAT)
+        free(fbuf);
+      ErrorReturn(NULL, (ERROR_BADFILE, "gdfRead(): error opening file %s", fname_use));
+    }
+
+    if(mri->type == MRI_UCHAR)
+    {
+      for(j = 0;j < mri->height;j++)
+      {
+        if(fread(ucbuf, 1, mri->width, fp) != mri->width)
+        {
+          free(ucbuf);
+          MRIfree(&mri);
+          ErrorReturn(NULL, (ERROR_BADFILE, "gdfRead(): error reading from file %s", fname_use));
+        }
+        for(k = 0;k < mri->width;k++)
+          MRIvox(mri, k, j, i-1) = ucbuf[k];
+      }
+    }
+
+    if(mri->type == MRI_SHORT)
+    {
+      for(j = 0;j < mri->height;j++)
+      {
+        if(fread(sbuf, sizeof(short), mri->width, fp) != mri->width)
+        {
+          free(sbuf);
+          MRIfree(&mri);
+          ErrorReturn(NULL, (ERROR_BADFILE, "gdfRead(): error reading from file %s", fname_use));
+        }
+#ifdef Linux
+        for(k = 0;k < mri->width;k++)
+          MRISvox(mri, k, j, i-1) = orderShortBytes(sbuf[k]);
+#else
+        for(k = 0;k < mri->width;k++)
+          MRISvox(mri, k, j, i-1) = sbuf[k];
+#endif
+      }
+    }
+
+    if(mri->type == MRI_FLOAT)
+    {
+      for(j = 0;j < mri->height;j++)
+      {
+        if(fread(fbuf, sizeof(float), mri->width, fp) != mri->width)
+        {
+          free(fbuf);
+          MRIfree(&mri);
+          ErrorReturn(NULL, (ERROR_BADFILE, "gdfRead(): error reading from file %s", fname_use));
+        }
+#ifdef Linux
+        for(k = 0;k < mri->width;k++)
+          MRIFvox(mri, k, j, i-1) = orderFloatBytes(fbuf[k]);
+#else
+        for(k = 0;k < mri->width;k++)
+          MRIFvox(mri, k, j, i-1) = fbuf[k];
+#endif
+      }
+    }
+
+    fclose(fp);
+
+  }
+
+  if(mri->type == MRI_UCHAR)
+    free(ucbuf);
+  if(mri->type == MRI_SHORT)
+    free(sbuf);
+  if(mri->type == MRI_FLOAT)
+    free(fbuf);
+
+  return(mri);
+
+} /* end gdfRead() */
+
+static int gdfWrite(MRI *mri, char *fname)
+{
+
+  ErrorReturn(ERROR_UNSUPPORTED, (ERROR_UNSUPPORTED, "GDF read unsupported"));
+
+}
+
 /*******************************************************************/
 /*******************************************************************/
 /*******************************************************************/
@@ -5453,32 +5966,38 @@ MRIreorder(MRI *mri_src, MRI *mri_dst, int xdim, int ydim, int zdim)
   case XDIM: 
     if (mri_dst->width != width)
       ErrorReturn(NULL,(ERROR_BADPARM, "MRIreorder: incorrect dst width"));
+/*
     if(mri_dst->ras_good_flag)
     {
       mri_dst->x_r = mri_src->x_r * ras_sign;
       mri_dst->x_a = mri_src->x_a * ras_sign;
       mri_dst->x_s = mri_src->x_s * ras_sign;
     }
+*/
     break ;
   case YDIM: 
     if (mri_dst->height != width)
       ErrorReturn(NULL,(ERROR_BADPARM, "MRIreorder: incorrect dst width"));
+/*
     if(mri_dst->ras_good_flag)
     {
       mri_dst->y_r = mri_src->x_r * ras_sign;
       mri_dst->y_a = mri_src->x_a * ras_sign;
       mri_dst->y_s = mri_src->x_s * ras_sign;
     }
+*/
     break ;
   case ZDIM: 
     if (mri_dst->depth != width)
       ErrorReturn(NULL,(ERROR_BADPARM, "MRIreorder: incorrect dst width"));
+/*
     if(mri_dst->ras_good_flag)
     {
       mri_dst->z_r = mri_src->x_r * ras_sign;
       mri_dst->z_a = mri_src->x_a * ras_sign;
       mri_dst->z_s = mri_src->x_s * ras_sign;
     }
+*/
     break ;
   }
   ras_sign = (ydim < 0 ? -1.0 : 1.0);
@@ -5488,32 +6007,38 @@ MRIreorder(MRI *mri_src, MRI *mri_dst, int xdim, int ydim, int zdim)
   case XDIM: 
     if (mri_dst->width != height)
       ErrorReturn(NULL,(ERROR_BADPARM, "MRIreorder: incorrect dst height"));
+/*
     if(mri_dst->ras_good_flag)
     {
       mri_dst->x_r = mri_src->y_r * ras_sign;
       mri_dst->x_a = mri_src->y_a * ras_sign;
       mri_dst->x_s = mri_src->y_s * ras_sign;
     }
+*/
     break ;
   case YDIM: 
     if (mri_dst->height != height)
       ErrorReturn(NULL,(ERROR_BADPARM, "MRIreorder: incorrect dst height"));
+/*
     if(mri_dst->ras_good_flag)
     {
       mri_dst->y_r = mri_src->y_r * ras_sign;
       mri_dst->y_a = mri_src->y_a * ras_sign;
       mri_dst->y_s = mri_src->y_s * ras_sign;
     }
+*/
     break ;
   case ZDIM: 
     if (mri_dst->depth != height)
       ErrorReturn(NULL,(ERROR_BADPARM, "MRIreorder: incorrect dst height"));
+/*
     if(mri_dst->ras_good_flag)
     {
       mri_dst->z_r = mri_src->y_r * ras_sign;
       mri_dst->z_a = mri_src->y_a * ras_sign;
       mri_dst->z_s = mri_src->y_s * ras_sign;
     }
+*/
     break ;
   }
   ras_sign = (zdim < 0 ? -1.0 : 1.0);
@@ -5523,32 +6048,38 @@ MRIreorder(MRI *mri_src, MRI *mri_dst, int xdim, int ydim, int zdim)
   case XDIM: 
     if (mri_dst->width != depth)
       ErrorReturn(NULL,(ERROR_BADPARM, "MRIreorder: incorrect dst depth"));
+/*
     if(mri_dst->ras_good_flag)
     {
       mri_dst->x_r = mri_src->z_r * ras_sign;
       mri_dst->x_a = mri_src->z_a * ras_sign;
       mri_dst->x_s = mri_src->z_s * ras_sign;
     }
+*/
     break ;
   case YDIM: 
     if (mri_dst->height != depth)
       ErrorReturn(NULL,(ERROR_BADPARM, "MRIreorder: incorrect dst depth"));
+/*
     if(mri_dst->ras_good_flag)
     {
       mri_dst->y_r = mri_src->z_r * ras_sign;
       mri_dst->y_a = mri_src->z_a * ras_sign;
       mri_dst->y_s = mri_src->z_s * ras_sign;
     }
+*/
     break ;
   case ZDIM: 
     if (mri_dst->depth != depth)
       ErrorReturn(NULL,(ERROR_BADPARM, "MRIreorder: incorrect dst depth"));
+/*
     if(mri_dst->ras_good_flag)
     {
       mri_dst->z_r = mri_src->z_r * ras_sign;
       mri_dst->z_a = mri_src->z_a * ras_sign;
       mri_dst->z_s = mri_src->z_s * ras_sign;
     }
+*/
     break ;
   }
 
