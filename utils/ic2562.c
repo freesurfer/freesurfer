@@ -7800,7 +7800,7 @@ ic2562_make_surface(int max_vertices, int max_faces)
     v->f = (int *)calloc(v->num, sizeof(int)) ;
     if (!v->f)
       ErrorExit(ERROR_NO_MEMORY,"ic2562: could not allocate %d faces",v->num);
-    v->n = (int *)calloc(v->num,sizeof(int));
+    v->n = (unsigned char *)calloc(v->num,sizeof(unsigned char));
     if (!v->n)
       ErrorExit(ERROR_NO_MEMORY, "ic2562: could not allocate %d nbrs", v->n);
     v->num = 0 ;   /* for use as counter in next section */
