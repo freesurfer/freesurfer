@@ -1,9 +1,9 @@
 #!/bin/csh -f
 # flacproc-sess
 #
-# $Id: flacproc-sess,v 1.9 2004/12/10 00:35:23 greve Exp $
+# $Id: flacproc-sess,v 1.10 2005/01/23 17:14:58 greve Exp $
 
-set VERSION = '$Id: flacproc-sess,v 1.9 2004/12/10 00:35:23 greve Exp $';
+set VERSION = '$Id: flacproc-sess,v 1.10 2005/01/23 17:14:58 greve Exp $';
 
 set cmdargs = ($argv);
 
@@ -124,11 +124,6 @@ for nthrun = 1:nruns
     if(~monly) quit;  end
     return; 
   end
-  flac = flac_desmat(flac);
-  if(isempty(flac)) 
-    if(~monly) quit;  end
-    return; 
-  end
 
   % Check condition of design matrix after normalizing columns
   Xtmp = flac.X./repmat(sqrt(sum(flac.X.^2)),[flac.ntp 1]);
@@ -175,6 +170,7 @@ for nthrun = 1:nruns
   % Residual forming matrix 
   R = eye(flac.ntp) - flac.X*inv(flac.X'*flac.X)*flac.X';
   nn = [1:flac.ntp]';
+  clear racfseg nacfseg;
   for nthseg = 1:nacfsegs
     %indseg = find(acfseg.vol(indacfmask)==nthseg);
     indseg = find(acfseg.vol==nthseg);
@@ -205,7 +201,11 @@ for nthrun = 1:nruns
   mkdirp(outdir);
 
   flacmat = sprintf('%s/flac.mat',outdir);  
-  save(flacmat,'flac','racfseg','ar1','nacfseg','acfseg','Synth','SynthAR1');
+  if(str2num(version('-release')) < 14)
+    save(flacmat,'flac','racfseg','ar1','nacfseg','acfseg','Synth','SynthAR1');
+  else
+    save(flacmat,'flac','racfseg','ar1','nacfseg','acfseg','Synth','SynthAR1','-v6');
+  end
 
   stem = sprintf('%s/beta%s',outdir,flac.formatext);
   tmp = y;
@@ -298,8 +298,13 @@ for nthrun = 1:nruns
 
 end % runs
 
+fprintf('Computing FFX\n');
+flacffx(flac,'',1);
+
 fprintf(' -------------   (%6.1f)\n',toc);
-if(~monly) clear all; end
+if(~monly) 
+  clear all; 
+end
 
 EOF
 #--------------------------#
