@@ -113,6 +113,8 @@ int    MRICfeatureNumber(MRIC *mric, int round, int feature_code) ;
 int    MRICexamineTrainingSet(MRIC *mric, char *file_name, int round) ;
 int    MRICbuildScatterPlot(MRIC *mric, int class, MATRIX *m_scatter,
                  char *training_file_name) ;
+int    MRICsetRegionSize(MRIC *mric, int rsize) ;
+int    MRICresetRegionSize(MRIC *mric) ;
 
 extern char *class_names[] ;
 
