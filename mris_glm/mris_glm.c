@@ -4,7 +4,7 @@
   email:   analysis-bugs@nmr.mgh.harvard.edu
   Date:    2/27/02
   Purpose: Computes glm inferences on the surface.
-  $Id: mris_glm.c,v 1.3 2002/10/24 17:26:27 greve Exp $
+  $Id: mris_glm.c,v 1.4 2002/10/25 19:50:59 greve Exp $
 
 Things to do:
   0. Documentation.
@@ -28,7 +28,7 @@ Things to do:
 #include "matrix.h"
 #include "matfile.h"
 #include "mri.h"
-#include "MRIio.h"
+#include "MRIio_old.h"
 #include "mri_identify.h"
 #include "sig.h"
 
@@ -66,7 +66,7 @@ MATRIX *ReadAsciiMatrix(char *asciimtxfname);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mris_glm.c,v 1.3 2002/10/24 17:26:27 greve Exp $";
+static char vcid[] = "$Id: mris_glm.c,v 1.4 2002/10/25 19:50:59 greve Exp $";
 char *Progname = NULL;
 
 char *hemi        = NULL;
@@ -154,7 +154,6 @@ int main(int argc, char **argv)
   int vtx,nthsubj;
   char *subject;
   char *inputfname;
-  float Xcondition;
 
   Progname = argv[0] ;
   argc --;
@@ -172,15 +171,6 @@ int main(int argc, char **argv)
   printf("%s\n",vcid);
 
   if(xmatfile != NULL) MatlabWrite(X,xmatfile,"X");
-
-  Xcondition = MatrixConditionNumber(X);
-  printf("INFO: Design Matrix Condition Number is %g\n",Xcondition);
-  if(Xcondition > 100000){
-    printf("\nERROR: Design matrix is badly conditioned, check for linear \n"
-	   "dependency  between columns (ie, two or more columns that add up \n"
-	   "to another column).\n\n");
-    exit(1);
-  }
 
   /* X is the design matrix */
   Xt = MatrixTranspose(X,NULL);
@@ -438,10 +428,12 @@ int main(int argc, char **argv)
 /* ------------------------------------------------------------------ */
 static int parse_commandline(int argc, char **argv)
 {
+  extern MATRIX *X;
   int  nargc , nargsused;
   char **pargv, *option ;
   int m;
   float fvtmp[1000];
+  float Xcondition;
 
   if(argc < 1) usage_exit();
 
@@ -513,6 +505,16 @@ static int parse_commandline(int argc, char **argv)
       desmtxfname = pargv[0];
       nargsused = 1;
       ReadDesignMatrix(desmtxfname);
+      Xcondition = MatrixNSConditionNumber(X);
+      printf("INFO: Design Matrix Condition Number is %g\n",Xcondition);
+      if(Xcondition > 100000){
+	printf("ERROR: Design matrix is badly conditioned, check for linear\n"
+	       "dependency  between columns (ie, two or more columns \n"
+	       "that add up to another column).\n\n");
+	exit(1);
+  }
+
+
     }
     else if ( !strcmp(option, "--xmat") ){
       if(nargc < 1) argnerr(option,1);
