@@ -18,13 +18,26 @@
 
 #include <X11/extensions/xf86dga.h>
 
+#define NONE  0
+#define LOOP  1
+#define SWING 2
+
+#define FORWARD 0
+#define REVERSE 1
+
 /* -------- Prototypes -------- */
 void useage(void);
 void quit_proc(Widget w, XEvent *event, String *pars, Cardinal *npars);
 void repaint_proc(Widget w, XEvent *event, String *pars, Cardinal *npars);
+void loop_proc(Widget w, XEvent *event, String *pars, Cardinal *npars);
+void stop_proc(Widget w, XEvent *event, String *pars, Cardinal *npars);
+void timer_proc(Widget w, XEvent *event, String *pars, Cardinal *npars);
+void swing_proc(Widget w, XEvent *event, String *pars, Cardinal *npars);
 static void XInit(int *argc, char ***argv);
 static int highbit(unsigned long ul);
 static void XSetupDisplay(int nframes);
+void rgb2xcol(IMAGE *I, byte *ximgdata, int fnum);
+void ConvertImages(int nframes, char **argv);
 /* -------- End Prototypes -------- */
 
 /* -------- Typedefs -------- */
@@ -45,16 +58,23 @@ typedef struct {
 /* -------- End Typedefs -------- */
   
 /* -------- Global Variables ------- */
-Widget frame,toplevel,quit_bt,canvas,buttons,stop_bt;
+Widget frame,toplevel,quit_bt,canvas,buttons,stop_bt,loop_bt,swing_bt;
+Widget fast_bt,slow_bt;
 int shmext,dgaext,nframes;
 XImage *ximg;
 byte *imgdata;
 XCRUFT xi;
 int pfmt=0,rows=0,cols=0;
+int running = 0;
+int direction = FORWARD;
+int curframe=0;
 /* -------- End Global Variables ------- */
 
 /* -------- Static Variables -------- */
 static XtActionsRec actions[] = {
+  {"Loop", loop_proc},
+  {"Swing", swing_proc},
+  {"Stop", stop_proc},
   {"Refresh", repaint_proc},
   {"Quit", quit_proc}
 };
@@ -69,12 +89,21 @@ static char *fallback_resources[] = {
   "*Buttons.borderWidth:   0",
   "*Buttons.hSpace:        0",
   "*Canvas.fromVert:       Buttons",
+  "*Loop.Translations:     #override <Btn1Down>,<Btn1Up>:Loop()",
+  "*Swing.fromHoriz:       Loop",
+  "*Swing.Translations:    #override <Btn1Down>,<Btn1Up>:Swing()",
+  "*Stop.fromHoriz:        Slower",
+  "*Stop.Translations:     #override <Btn1Down>,<Btn1Up>:Stop()",
+  "*Faster.fromHoriz:      Swing",
+  "*Slower.fromHoriz:      Faster",
   "*Quit.Translations:     #replace <Btn1Down>,<Btn1Up>:Quit() notify()",
   "*Quit.sensitive:        True",
   "*Quit.fromHoriz:        Stop",
   "*Canvas.Translations:   #override <Expose>:Refresh()",
   NULL
 };
+
+static XtIntervalId timer;
 /* -------- End Static Variables -------- */
 
 void useage(void)
@@ -83,13 +112,81 @@ void useage(void)
   exit(1);
 }
 
+void start_timer(void)
+{
+  unsigned long interval = 33; /* 1s */
+
+  XFlush(xi.disp);
+  timer = XtAppAddTimeOut(xi.context, interval, timer_proc, NULL);
+}
+
+void timer_proc(Widget w, XEvent *event, String *pars, Cardinal *npars)
+{
+  switch (running)
+    {
+    case LOOP:
+      curframe++;
+      if (curframe == nframes)
+	curframe = 0;
+      break;
+    case SWING:
+      switch (direction)
+	{
+	case FORWARD:
+	  curframe++;
+	  if (curframe==nframes)
+	    {
+	      curframe = nframes-1;
+	      direction = REVERSE;
+	    }
+	  break;
+	case REVERSE:
+	  curframe--;
+	  if (curframe<0)
+	    {
+	      curframe=0;
+	      direction=FORWARD;
+	    }
+	  break;
+	}
+      break;
+    default:
+    case NONE:
+      break;
+    }
+
+  repaint_proc(canvas,NULL,NULL,NULL);
+  start_timer();
+}
+
+void swing_proc(Widget w, XEvent *event, String *pars, Cardinal *npars)
+{
+  running = SWING;
+  start_timer();
+}
+
+void loop_proc(Widget w, XEvent *event, String *pars, Cardinal *npars)
+{
+  running = LOOP;
+  start_timer();
+}
+
+void stop_proc(Widget w, XEvent *event, String *pars, Cardinal *npars)
+{
+  if (timer)
+    {
+      running = 0;
+      XtRemoveTimeOut(timer);
+      timer=0;
+    }
+}
+
 void repaint_proc(Widget w, XEvent *event, String *pars, Cardinal *npars)
 {
+  ximg->data = imgdata + (curframe*rows*ximg->bytes_per_line);
+
   if (w == canvas)
-    {
-      XPutImage(xi.disp, xi.canvas, xi.theGC, ximg, 0, 0, 0, 0, cols, rows);
-      fprintf(stderr,"Expose event for canvas\n");
-    }
+    XPutImage(xi.disp, xi.canvas, xi.theGC, ximg, 0, 0, 0, 0, cols, rows);
 }
 
 void quit_proc(Widget w, XEvent *event, String *pars, Cardinal *npars)
@@ -158,6 +255,14 @@ static void XSetupDisplay(int nframes)
 
   frame = XtVaCreateManagedWidget("Frame", formWidgetClass, toplevel, NULL);
   buttons = XtVaCreateManagedWidget("Buttons", formWidgetClass, frame, NULL );
+  loop_bt = XtVaCreateManagedWidget("Loop", commandWidgetClass, 
+				    buttons, NULL); 
+  swing_bt = XtVaCreateManagedWidget("Swing", commandWidgetClass, 
+				     buttons, NULL); 
+  fast_bt = XtVaCreateManagedWidget("Faster", commandWidgetClass, 
+				    buttons, NULL); 
+  slow_bt = XtVaCreateManagedWidget("Slower", commandWidgetClass, 
+				    buttons, NULL); 
   stop_bt = XtVaCreateManagedWidget("Stop", commandWidgetClass, 
 				    buttons, NULL); 
   quit_bt = XtVaCreateManagedWidget("Quit", commandWidgetClass, 
@@ -197,8 +302,8 @@ void rgb2xcol(IMAGE *I, byte *ximgdata, int fnum)
   byte *bptr, *xptr, *ip;
 
   bptr = I->image; 
-  xptr = ximgdata+fnum*rows*ximg->bytes_per_line;
-  for(i=0;i<rows;i++,xptr += ximg->bytes_per_line)
+  xptr = ximgdata+(fnum+1)*rows*ximg->bytes_per_line-ximg->bytes_per_line;
+  for(i=0;i<rows;i++,xptr -= ximg->bytes_per_line)
     for(j=0, ip = xptr; j<cols; j++)
       {
 	r = *bptr++; g = *bptr++; b = *bptr++;
@@ -221,7 +326,58 @@ void rgb2xcol(IMAGE *I, byte *ximgdata, int fnum)
 	b = b & xi.bmask; 
 
 	xcol = r | g | b;
-	*ip++ = xcol & 0xff;
+
+	switch(ximg->bits_per_pixel)
+	  {
+	  case 32:
+	    switch(ximg->byte_order)
+	      {
+	      case MSBFirst:
+		*ip++ = (xcol>>24) & 0xff;
+		*ip++ = (xcol>>16) & 0xff;
+		*ip++ = (xcol>>8)  & 0xff;
+		*ip++ =  xcol      & 0xff;
+		break;
+	      case LSBFirst:
+		*ip++ =  xcol      & 0xff;
+		*ip++ = (xcol>>8)  & 0xff;
+		*ip++ = (xcol>>16) & 0xff;
+		*ip++ = (xcol>>24) & 0xff;
+		break;
+	      }
+	    break;
+	  case 24:
+	    switch(ximg->byte_order)
+	      {
+	      case MSBFirst:
+		*ip++ = (xcol>>16) & 0xff;
+		*ip++ = (xcol>>8)  & 0xff;
+		*ip++ =  xcol      & 0xff;
+		break;
+	      case LSBFirst:
+		*ip++ =  xcol      & 0xff;
+		*ip++ = (xcol>>8)  & 0xff;
+		*ip++ = (xcol>>16) & 0xff;
+		break;
+	      }
+	    break;
+	  case 16:
+	    switch(ximg->byte_order)
+	      {
+	      case MSBFirst:
+		*ip++ = (xcol>>8) & 0xff;
+		*ip++ =  xcol     & 0xff;
+		break;
+	      case LSBFirst:
+		*ip++ =  xcol     & 0xff;
+		*ip++ = (xcol>>8) & 0xff;
+		break;
+	      }
+	    break;
+	  case 8:
+	    *ip++ = xcol & 0xff;
+	    break;
+	  }
       }
 }
 
