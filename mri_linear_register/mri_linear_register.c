@@ -52,7 +52,7 @@ main(int argc, char *argv[])
   parms.dt = 5e-6 ;  /* was 5e-6 */
   parms.tol = 1e-3 ;
   parms.momentum = 0.8 ;
-  parms.niterations = 15 ;
+  parms.niterations = 25 ;
   Progname = argv[0] ;
 
   DiagInit(NULL, NULL, NULL) ;
@@ -244,7 +244,6 @@ register_mri(MRI *mri_in, MRI *mri_ref, MORPH_PARMS *parms)
 {
   MRI  *mri_in_red, *mri_ref_red ;
 
-  parms->mri_ref = mri_ref ; parms->mri_in = mri_in ;  /* for diagnostics */
   mri_in_red = MRIreduceByte(mri_in, NULL) ;
   mri_ref_red = MRIreduceMeanAndStdByte(mri_ref,NULL);
 
@@ -253,15 +252,27 @@ register_mri(MRI *mri_in, MRI *mri_ref, MORPH_PARMS *parms)
     parms->niterations = 1000 ;
   if (transform_loaded)  /* don't recompute rotation based on neck */
   {
-    MRIremoveNeck(mri_ref_red, mri_ref_red, thresh_low, thresh_hi, NULL, 1) ; 
-    MRIremoveNeck(mri_in_red, mri_in_red, thresh_low, thresh_hi, NULL, -1) ; 
+    if (MRIfindNeck(mri_in_red, mri_in_red, thresh_low, thresh_hi, NULL, 
+                    -1,NULL) == NULL)
+      ErrorExit(Gerror, "%s: could not find subject neck.\n", Progname) ;
+    if (MRIfindNeck(mri_ref_red, mri_ref_red, thresh_low, thresh_hi, NULL,1,
+                    NULL) == NULL)
+      ErrorExit(Gerror, "%s: could not find neck in reference volume.\n", 
+                Progname) ;
   }
   else
   {
-    MRIremoveNeck(mri_ref_red, mri_ref_red, thresh_low, thresh_hi, parms, 1) ; 
-    MRIremoveNeck(mri_in_red, mri_in_red, thresh_low, thresh_hi, parms, -1) ; 
+    if (MRIfindNeck(mri_in_red, mri_in_red, thresh_low, thresh_hi, parms, -1,
+                &parms->in_np) == NULL)
+      ErrorExit(Gerror, "%s: could not find subject neck.\n", Progname) ;
+    if (MRIfindNeck(mri_ref_red, mri_ref_red, thresh_low, thresh_hi, parms, 1,
+                &parms->ref_np) == NULL)
+      ErrorExit(Gerror, "%s: could not find neck in reference volume.\n", 
+                Progname) ;
   }
 
+  parms->mri_ref = mri_ref_red ; 
+  parms->mri_in = mri_in_red ;  /* for diagnostics */
   while (parms->lta->num_xforms < num_xforms)
     LTAdivide(parms->lta, mri_in_red) ;
   fprintf(stderr,"computing %d linear transformation%s...\n",
