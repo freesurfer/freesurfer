@@ -519,9 +519,6 @@ ImageSmoothOffsets(IMAGE *Isrc, IMAGE *Idst, int wsize)
       /* fill the offset vector array */
       dx = *src_xpix ;
       dy = *src_ypix ;
-      if (x0 == 30 && y0 == 40 && 0)
-        fprintf(stderr, "input (%d, %d) = (%2.1f, %2.1f)\n",
-                x0, y0, dx, dy) ;
 
       /* calculate orthogonal slope = -dx/dy */
       f = dx ;
@@ -604,9 +601,6 @@ ImageSmoothOffsets(IMAGE *Isrc, IMAGE *Idst, int wsize)
       }
       *dst_xpix = wdx[j] ;
       *dst_ypix = wdy[j] ;
-      if (x0 == 30 && y0 == 40 && 0)
-        fprintf(stderr, "output (%d, %d) @ %d = (%2.1f, %2.1f)\n",
-                x0, y0, j, wdx[j], wdy[j]) ;
 
     }
   }
@@ -1100,7 +1094,11 @@ ImageWrite(Ioffset2, "offset2.hipl") ;
             xc = 0 ;
           else if (xc >= scols)
             xc = scols - 1 ;
+#if 0            
+          *sptr++ = *IMAGEFseq_pix(inImage, xc, yc, frame) ;
+#else
           *sptr++ = *(spix + xc) ;
+#endif
         }
       }
       qsort(sort_array, 3*3, sizeof(float), compare_sort_array) ;
@@ -1281,7 +1279,93 @@ ImageOffsetDirection(IMAGE *Ix, IMAGE *Iy, int wsize, IMAGE *Iorient,
           dir += (x*ox + y*oy) * fabs(dx*ox + dy*oy) ;
         }
       }
-      if (dir > 0.0f)   /* flip by 180 */
+
+      if (FZERO(dir))
+        ox = oy = 0.0f ;
+      else if (dir > 0.0f)   /* flip by 180 */
+        {
+        ox = -ox ;
+        oy = -oy ;
+        }
+      *oxpix++ = ox ;
+      *oypix++ = oy ;
+    }
+  }
+  return(Ioffset) ;
+}
+
+IMAGE *
+ImageNitshiOffsetDirection(IMAGE *Ix,IMAGE *Iy,int wsize,IMAGE *Iorient,
+                               IMAGE *Ioffset)
+{
+  int    x0, y0, rows, cols, x, y, whalf, xc, yc, yoff, off ;
+  float  *xpix, *ypix, dx, dy, *or_xpix,*or_ypix, *oxpix, *oypix, dir, dot,
+         ox, oy, dirx, diry ;
+
+  rows = Ix->rows ;
+  cols = Ix->cols ;
+
+  if (!Ioffset)
+    Ioffset = ImageAlloc(rows, cols, PFFLOAT, 2) ;
+
+  if (!ImageCheckSize(Ix, Ioffset, 0, 0, 2))
+    {
+      ImageFree(&Ioffset) ;
+      Ioffset = ImageAlloc(rows, cols, PFFLOAT, 2) ;
+    }
+
+  whalf = (wsize-1)/2 ;
+  xpix = IMAGEFpix(Ix, 0, 0) ;
+  ypix = IMAGEFpix(Iy, 0, 0) ;
+  or_xpix = IMAGEFpix(Iorient, 0, 0) ;
+  or_ypix = IMAGEFseq_pix(Iorient, 0, 0, 1) ;
+  oxpix = IMAGEFpix(Ioffset, 0, 0) ;
+  oypix = IMAGEFseq_pix(Ioffset, 0, 0, 1) ;
+  for (y0 = 0 ; y0 < rows ; y0++)
+  {
+    for (x0 = 0 ; x0 < cols ; x0++, xpix++, ypix++)
+    {
+      
+/*
+  Now calculate the orientation for this point by averaging local gradient
+  orientation within the specified window.
+
+  x and y are in window coordinates, while xc and yc are in image
+  coordinates.
+*/
+      /* calculate orientation vector */
+      ox = *or_xpix++ ;
+      oy = *or_ypix++ ;
+
+      dirx = diry = dir = 0.0f ;
+      
+      for (y = -whalf ; y <= whalf ; y++)
+      {
+        /* reflect across the boundary */
+        yc = y + y0 ;
+        if ((yc < 0) || (yc >= rows))
+          continue ;
+        
+        yoff = y*cols ;
+        for (x = -whalf ; x <= whalf ; x++)
+        {
+          xc = x0 + x ;
+          if ((xc < 0) || (xc >= cols))
+            continue ;
+
+          off = yoff + x ;
+          dx = *(xpix+off) ;
+          dy = *(ypix+off) ;
+          dot = (x*dx + y*dy) ;
+          dirx += dot * dx ;
+          diry += dot *dy ;
+        }
+      }
+      dir = dirx * ox + diry * oy ;
+
+      if (FZERO(dir))
+        ox = oy = 0.0f ;
+      else if (dir > 0.0f)   /* flip by 180 */
         {
         ox = -ox ;
         oy = -oy ;
