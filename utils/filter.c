@@ -1134,13 +1134,9 @@ ImageSobel(IMAGE *Isrc, IMAGE *gradImage,
   
   ImageSetSize(dxImage, rows, cols) ;
   ImageSetSize(dyImage, rows, cols) ;
-#if 0
-  ImageConvolve3x3(Isrc, sx, dxImage) ;
-  ImageConvolve3x3(Isrc, sy, dyImage) ;
-#else
-  ImageSobelX(Isrc, dxImage) ;
   ImageSobelY(Isrc, dyImage) ;
-#endif
+  ImageSobelX(Isrc, dxImage) ;
+
   if (gradImage)
   {
     ImageSetSize(gradImage, rows, cols) ;
@@ -1175,6 +1171,8 @@ ImageSobel(IMAGE *Isrc, IMAGE *gradImage,
    -0.50    0    0.50
    -0.25    0    0.25
 */
+#define FAST_SOBEL 1
+#if !FAST_SOBEL
 int
 ImageSobelX(IMAGE *Isrc, IMAGE *xImage)
 {
@@ -1213,16 +1211,61 @@ ImageSobelX(IMAGE *Isrc, IMAGE *xImage)
 
   return(0) ;
 }
-/*
-   -0.25   -.50   -0.25
-    0       0      0
-    0.25    .50    0.25
-*/
+#else
 /*----------------------------------------------------------------------
             Parameters:
 
            Description:
+             use overlapping windows to speed up sobel calculation
+
+   -0.25    0    0.25
+   -0.50    0    0.50
+   -0.25    0    0.25
 ----------------------------------------------------------------------*/
+int
+ImageSobelX(IMAGE *Isrc, IMAGE *xImage)
+{
+  register float *tr_pix, *mr_pix, *br_pix, *outPtr, left, middle, right ;
+  int            rows, cols, row, col ;
+
+  rows = Isrc->rows ;
+  cols = Isrc->cols ;
+  outPtr = IMAGEFpix(xImage, 1, 1) ;
+
+  tr_pix = IMAGEFpix(Isrc, 0, 0) ;
+  mr_pix = IMAGEFpix(Isrc, 0, 1) ;
+  br_pix = IMAGEFpix(Isrc, 0, 2) ;
+
+  /* don't apply sobel to outer ring to pixels to avoid border effects */
+  rows-- ;
+  cols-- ;
+  for (row = 1 ; row < rows ; row++)
+  {
+    left =    *tr_pix++ + 2.0f * *mr_pix++ + *br_pix++ ;
+    middle =  *tr_pix++ + 2.0f * *mr_pix++ + *br_pix++ ;
+
+    for (col = 1 ; col < cols ; col++)
+    {
+      right = *tr_pix++ + 2.0f * *mr_pix++ + *br_pix++ ;
+      *outPtr++ = (right - left) * .125f ;
+      left = middle ;
+      middle = right ;
+    }
+    outPtr += 2 ;
+  }
+
+  return(0) ;
+}
+#endif
+/*----------------------------------------------------------------------
+            Parameters:
+
+           Description:
+   -0.25   -.50   -0.25
+    0       0      0
+    0.25    .50    0.25
+----------------------------------------------------------------------*/
+#if !FAST_SOBEL
 int
 ImageSobelY(IMAGE *Isrc, IMAGE *yImage)
 {
@@ -1261,6 +1304,51 @@ ImageSobelY(IMAGE *Isrc, IMAGE *yImage)
 
   return(0) ;
 }
+#else
+/*----------------------------------------------------------------------
+            Parameters:
+
+           Description:
+             use overlapping windows to speed up sobel calculation
+
+   -0.25   -.50   -0.25
+    0       0      0
+    0.25    .50    0.25
+----------------------------------------------------------------------*/
+int
+ImageSobelY(IMAGE *Isrc, IMAGE *yImage)
+{
+  register float *tr_pix, *br_pix, *outPtr, left, middle, right ;
+  int     rows, cols, row, col ;
+
+  rows = Isrc->rows ;
+  cols = Isrc->cols ;
+  outPtr = IMAGEFpix(yImage, 1, 1) ;
+
+  tr_pix = IMAGEFpix(Isrc, 0, 0) ;
+  br_pix = IMAGEFpix(Isrc, 0, 2) ;
+
+  /* don't apply sobel to outer ring of pixels to avoid border effects */
+  rows-- ;
+  cols-- ;
+  for (row = 1 ; row < rows ; row++)
+  {
+    left = *br_pix++ - *tr_pix++ ; 
+    middle = *br_pix++ - *tr_pix++ ;
+
+    for (col = 1 ; col < cols ; col++)
+    {
+      right = *br_pix++ - *tr_pix++ ;
+      *outPtr++ = (right + 2.0f * middle + left) * .125f ;
+      left = middle ;
+      middle = right ;
+    }
+    outPtr += 2 ;
+  }
+
+  return(0) ;
+}
+#endif
 /*----------------------------------------------------------------------
             Parameters:
 
@@ -1734,3 +1822,57 @@ imageMeanFilter3x3(IMAGE *Isrc, IMAGE *Idst)
 }
 
 
+#if 0
+  register float *bl_pix, *bm_pix, *br_pix, *outPtr, top, middle, bottom;
+  int     rows, cols, row, col ;
+
+  rows = Isrc->rows ;
+  cols = Isrc->cols ;
+  outPtr = IMAGEFpix(yImage, 1, 1) ;
+
+  bl_pix = IMAGEFpix(Isrc, 0, 2) ;
+  bm_pix = IMAGEFpix(Isrc, 1, 2) ;
+  br_pix = IMAGEFpix(Isrc, 2, 2) ;
+
+  /* don't apply sobel to outer ring to pixels to avoid border effects */
+  rows-- ;
+  cols-- ;
+  for (row = 1 ; row < rows ; row++)
+  {
+    top = 
+             *IMAGEFpix(Isrc, 0, row-1) +
+      2.0f * *IMAGEFpix(Isrc, 1, row-1) +
+             *IMAGEFpix(Isrc, 2, row-1) ;
+
+    middle = 
+             *IMAGEFpix(Isrc, 0, row) +
+      2.0f * *IMAGEFpix(Isrc, 1, row) +
+             *IMAGEFpix(Isrc, 2, row) ;
+
+    for (col = 1 ; col < cols ; col++)
+    {
+if (0 && (row == 4 && col == 4))
+{
+  ImageWrite(Isrc, "s.hipl") ;
+  bottom = *bl_pix + 2.0f * *bm_pix + *br_pix ;
+  fprintf(stderr, "Y(%d,%d): top %2.3f, bottom %2.3f, out %2.3f\n",
+          col,row, bottom, top, (bottom - top) * .125f) ;
+  fprintf(stderr, "bottom = %2.3f + 2 * %2.3f + %2.3f\n",
+          *bl_pix, *bm_pix, *br_pix) ;
+  fprintf(stderr, "top = %2.3f + 2 * %2.3f + %2.3f\n",
+          *IMAGEFpix(Isrc, col-1, row-1), *IMAGEFpix(Isrc, col, row-1), 
+          *IMAGEFpix(Isrc, col+1, row-1)) ;
+}
+      bottom = *bl_pix++ + 2.0f * *bm_pix++ + *br_pix++ ;
+      *outPtr++ = (bottom - top) * .125f ;
+      top = middle ;
+      middle = bottom ;
+    }
+    outPtr += 2 ;
+    bl_pix += 2 ;
+    bm_pix += 2 ;
+    br_pix += 2;
+  }
+
+  return(0) ;
+#endif
