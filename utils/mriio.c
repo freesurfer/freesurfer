@@ -436,15 +436,15 @@ static int nan_inf_check(MRI *mri)
             {
               if(devIsinf((MRIFseq_vox(mri, i, j, k, t))) != 0)
               {
-                ErrorReturn(ERROR_BADPARM, (ERROR_BADPARM, "MRIreadType(): Inf at voxel %d, %d, %d, %d", i, j, k, t));
+                ErrorReturn(ERROR_BADPARM, (ERROR_BADPARM, "nan_inf_check(): Inf at voxel %d, %d, %d, %d", i, j, k, t));
               }
               else if(devIsnan((MRIFseq_vox(mri, i, j, k, t))))
               {
-                ErrorReturn(ERROR_BADPARM, (ERROR_BADPARM, "MRIreadType(): NaN at voxel %d, %d, %d, %d", i, j, k, t));
+                ErrorReturn(ERROR_BADPARM, (ERROR_BADPARM, "nan_inf_check(): NaN at voxel %d, %d, %d, %d", i, j, k, t));
               }
               else
               {
-                ErrorReturn(ERROR_BADPARM, (ERROR_BADPARM, "MRIreadType(): bizarre value (not Inf, not NaN, but not finite) at %d, %d, %d, %d", i, j, k, t));
+                ErrorReturn(ERROR_BADPARM, (ERROR_BADPARM, "nan_inf_check(): bizarre value (not Inf, not NaN, but not finite) at %d, %d, %d, %d", i, j, k, t));
               }
           }
 
