@@ -1,7 +1,7 @@
 function flac = fast_ldflac(flacfile,flac)
 % flac = fast_ldflac(flacfile,<flac>)
 %
-% $Id: fast_ldflac.m,v 1.10 2004/12/14 22:09:34 greve Exp $
+% $Id: fast_ldflac.m,v 1.11 2005/02/01 19:21:59 greve Exp $
 
 if(nargin < 0 | nargin > 2)
   fprintf('flac = fast_ldflac(flacfile,<flac>)\n');
@@ -165,6 +165,8 @@ for nthcon = 1:ncon
 	      flacfile,flac.con(nthcon).name);
       fprintf('Contrast EV %s is not in the model\n',...
 	      flac.con(nthcon).ev(nthev).name);
+      flac = [];
+      return;
     end
   end
   
