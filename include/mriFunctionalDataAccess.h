@@ -293,11 +293,14 @@ tBoolean FunD_IsErrorDataPresent ( mriFunctionalDataRef this );
                                    /* convertxs between anatomical and 
               functional voxel coordinates. */
 void FunD_ConvertAnaIdxToFuncIdx ( mriFunctionalDataRef this,
-           xVoxelRef             inAnatomicalIdx,
-           xVoxelRef             outFunctionalIdx );
+                                   xVoxelRef             inAnatomicalIdx,
+                                   xVoxelRef             outFunctionalIdx );
 void FunD_ConvertFuncIdxToAnaIdx ( mriFunctionalDataRef this,
-           xVoxelRef             inFunctionalIdx,
-           xVoxelRef             outAnatomicalIdx );
+                                   xVoxelRef             inFunctionalIdx,
+                                   xVoxelRef             outAnatomicalIdx );
+void FunD_ConvertAnaIdxToFuncRAS ( mriFunctionalDataRef this,
+                                   xVoxelRef             inAnatomicalIdx,
+                                   xVoxelRef             outFunctionalRAS );
 
                                    /* convert between ras and func idx
               coords */

@@ -1742,6 +1742,37 @@ void FunD_ConvertAnaIdxToFuncIdx ( mriFunctionalDataRef this,
   }
 }
 
+
+void FunD_ConvertAnaIdxToFuncRAS ( mriFunctionalDataRef this,
+           xVoxelRef inAnaIdx,
+           xVoxelRef outFuncRAS ) {
+  
+  Trns_tErr eTransform = Trns_tErr_NoErr;
+  
+  xVoxl_SetFloat( &sCoord1, xVoxl_ExpandFloat(inAnaIdx) );
+  
+  eTransform = Trns_ConvertAtoB( this->mIdxToIdxTransform, 
+         &sCoord1, &sCoord2 );
+  if( Trns_tErr_NoErr != eTransform ) {
+    xVoxl_Set( outFuncRAS, -1, -1, -1 );
+    return;
+  }
+
+  eTransform = Trns_ConvertBtoRAS( this->mIdxToIdxTransform, 
+           &sCoord2, &sCoord1 );
+  if( Trns_tErr_NoErr != eTransform ) {
+    xVoxl_Set( outFuncRAS, -1, -1, -1 );
+    return;
+  }
+
+  
+  xVoxl_SetFloat( outFuncRAS, 
+      xVoxl_GetFloatX(&sCoord1),
+      xVoxl_GetFloatY(&sCoord1),
+      xVoxl_GetFloatZ(&sCoord1) );
+}
+
+
 void FunD_ConvertFuncIdxToAnaIdx ( mriFunctionalDataRef this,
            xVoxelRef inFuncIdx,
            xVoxelRef outAnaIdx ) {
