@@ -121,9 +121,12 @@ ErrorPrintf(int ecode, char *fmt, ...)
     perr(ecode, "Hips error:") ;
 
   fp = fopen(ERROR_FNAME, "a") ;
-  (*error_vfprintf)(fp, fmt, args) ;
-  (*error_vfprintf)(fp, "\n", NULL) ;
-  fclose(fp) ;     /* close file to flush changes */
+  if (fp)
+  {
+    (*error_vfprintf)(fp, fmt, args) ;
+    (*error_vfprintf)(fp, "\n", NULL) ;
+    fclose(fp) ;     /* close file to flush changes */
+  }
   
   return(ecode) ;
 }
