@@ -302,6 +302,15 @@ get_option(int argc, char *argv[])
     raw_flag = 1;
     nargs = 4;
   }
+  else if (!stricmp(option, "version"))
+  {
+    printf("%s: volume orienting for GE\n", Progname);
+    exit(0);
+  }
+  else if (!stricmp(option, "version2"))
+  {
+    exit(97);
+  }
   else switch (toupper(*option))
   {
   case 'T':
