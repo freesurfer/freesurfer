@@ -1,4 +1,4 @@
-/* $Id: togl.c,v 1.1 2003/11/02 20:01:57 kteich Exp $ */
+/* $Id: togl.c,v 1.2 2004/04/14 18:42:54 kteich Exp $ */
 
 /*
  * Togl - a Tk OpenGL widget
@@ -1253,7 +1253,7 @@ static int Togl_Cmd(ClientData clientData, Tcl_Interp *interp,
                     int argc, char **argv)
 {
    char *name;
-   Tk_Window main = (Tk_Window)clientData;
+   Tk_Window mainWin = (Tk_Window)clientData;
    Tk_Window tkwin;
    struct Togl *togl;
 
@@ -1263,7 +1263,7 @@ static int Togl_Cmd(ClientData clientData, Tcl_Interp *interp,
 
    /* Create the window. */
    name = argv[1];
-   tkwin = Tk_CreateWindowFromPath(interp, main, name, (char *) NULL);
+   tkwin = Tk_CreateWindowFromPath(interp, mainWin, name, (char *) NULL);
    if (tkwin == NULL) {
       return TCL_ERROR;
    }
@@ -1605,7 +1605,10 @@ static Window Togl_CreateWindow(Tk_Window tkwin,
   struct Togl *togl = (struct Togl*) instanceData;
   XVisualInfo *visinfo = NULL;
   Display *dpy;
-  Tk_Window *winPtr = (Tk_Window *) togl->TkWin;  Colormap cmap;
+#if defined(macintosh) || defined(WIN32)
+  Tk_Window *winPtr = (Tk_Window *) togl->TkWin;  
+#endif
+  Colormap cmap;
   int scrnum;
   int directCtx = GL_TRUE;
   Window window;
