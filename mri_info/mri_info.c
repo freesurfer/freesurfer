@@ -1,3 +1,13 @@
+////////////////////////////////////////////////////////////////////
+// mri_info.c
+//
+// Warning: Do not edit the following four lines.  CVS maintains them.
+// Revision Author: $Author: tosa $
+// Revision Date  : $Date: 2003/05/27 21:28:14 $
+// Revision       : $Revision: 1.19 $
+//
+////////////////////////////////////////////////////////////////////
+char *MRI_INFO_VERSION = "$Revision: 1.19 $";
 #include <stdio.h>
 #include <sys/stat.h>
 #include <unistd.h>
@@ -28,6 +38,7 @@ struct ge_header {
 };
 
 static void do_file(char *fname);
+#if 0
 static void read_ge_5x_file(char *fname, struct stat stat_buf);
 static void read_ge_8x_file(char *fname, struct stat stat_buf);
 static void read_siemens_file(char *fname, struct stat stat_buf);
@@ -46,6 +57,7 @@ static void read_analyze_header(char *fname, dsr *bufptr);
 static void read_ge_header(FILE *fp, int offset, struct ge_header *header);
 static void flip_analyze_header(dsr *header);
 
+
 static char *month[] = {
   "Month Zero",
   "January", "February", "March", "April", "May", "June", 
@@ -53,6 +65,7 @@ static char *month[] = {
 };
 
 static char *type_text[] = { "unsigned char", "int", "long", "float", "short", "bitmap" };
+#endif
 
 char *Progname ;
 
@@ -71,7 +84,7 @@ int main(int argc, char *argv[])
   int nargs;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_info.c,v 1.18 2003/05/05 16:45:36 kteich Exp $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_info.c,v 1.19 2003/05/27 21:28:14 tosa Exp $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -95,17 +108,56 @@ int main(int argc, char *argv[])
 
 static void do_file(char *fname)
 {
-
+#if 0
   struct stat stat_buf;
   int type;
   char *at;
   char fname2[STRLEN];
-#if 0
   int i;
 #endif
-	MRI *mri ;
-	MATRIX *m ;
+  MRI *mri ;
+  MATRIX *m ;
 
+  mri = MRIreadHeader(fname, MRI_VOLUME_TYPE_UNKNOWN) ;
+  
+  printf("Volume information for %s\n", fname);
+  printf("    dimensions: %d x %d x %d\n", mri->width, mri->height, mri->depth) ;
+  printf("   voxel sizes: %2.1f, %2.1f, %2.1f\n", mri->xsize, mri->ysize, mri->zsize) ;
+  printf("          type: %s (%d)\n",
+	 mri->type == MRI_UCHAR   ? "UCHAR" :
+	 mri->type == MRI_SHORT   ? "SHORT" :
+	 mri->type == MRI_INT     ? "INT" :
+	 mri->type == MRI_LONG    ? "LONG" :
+	 mri->type == MRI_BITMAP  ? "BITMAP" :
+	 mri->type == MRI_TENSOR  ? "TENSOR" :
+	 mri->type == MRI_FLOAT   ? "FLOAT" : "UNKNOWN", mri->type) ;
+  printf("slice directon: %s (%d)\n",
+	 mri->slice_direction == MRI_CORONAL    ? "CORONAL" :
+	 mri->slice_direction == MRI_SAGITTAL   ? "SAGITTAL" :
+	 mri->slice_direction == MRI_HORIZONTAL ? "HORIZONTAL" : "UNKNOWN",
+	 mri->slice_direction) ;
+  printf("           fov: %2.3f\n", mri->fov) ;
+  printf("        xstart: %2.1f, xend: %2.1f\n", mri->xstart, mri->xend) ;
+  printf("        ystart: %2.1f, yend: %2.1f\n", mri->ystart, mri->yend) ;
+  printf("        zstart: %2.1f, zend: %2.1f\n", mri->zstart, mri->zend) ;
+  printf("            TR: %2.2f msec, TE: %2.2f msec, TI: %2.2f msec, flip angle: %2.2f degrees\n",
+	 mri->tr, mri->te, mri->ti, DEGREES(mri->flip_angle)) ;
+  printf("       nframes: %d\n", mri->nframes) ;
+  printf("ras xform %spresent\n", mri->ras_good_flag ? "" : "not ") ;
+  printf("    xform info: x_r = %8.4f, y_r = %8.4f, z_r = %8.4f, c_r = %8.4f\n",
+	 mri->x_r, mri->y_r, mri->z_r, mri->c_r);
+  printf("              : x_a = %8.4f, y_a = %8.4f, z_a = %8.4f, c_a = %8.4f\n",
+	 mri->x_a, mri->y_a, mri->z_a, mri->c_a);
+  printf("              : x_s = %8.4f, y_s = %8.4f, z_s = %8.4f, c_s = %8.4f\n",
+	 mri->x_s, mri->y_s, mri->z_s, mri->c_s);
+
+  m = MRIgetVoxelToRasXform(mri) ; // extract_i_to_r(mri) (just macto)
+  printf("voxel to ras transform:\n") ; MatrixPrint(stdout, m) ;
+  MRIfree(&mri) ; MatrixFree(&m) ;
+
+  return;
+
+#if 0 
   strcpy(fname2, fname) ;
   at = strrchr(fname2, '@');
 
@@ -118,7 +170,7 @@ static void do_file(char *fname)
   if (at)
   {
 #if 1
-	type  = string_to_type(at) ;
+    type  = string_to_type(at) ;
 #else
     for(i = 0;at[i] != '\0';i++)
       at[i] = (at[i] >= 'a' && at[i] <= 'z' ? at[i] += 'A' - 'a' : at[i]);
@@ -165,31 +217,31 @@ static void do_file(char *fname)
     else
     {
 
-    if(is_genesis(fname2))
-      type = GENESIS_FILE;
-    else if(is_ge_lx(fname2))
-      type = GE_LX_FILE;
-    else if(is_brik(fname2))
-      type = BRIK_FILE;
-    else if(is_siemens(fname2))
-      type = SIEMENS_FILE;
-    else if(is_sdt(fname2))
-      type = SDT_FILE;
-    else if(is_analyze(fname2))
-      type = MRI_ANALYZE_FILE;
-    else if(is_brik(fname2))
-      type = BRIK_FILE;
-    else if(is_mgh(fname2))
-      type = MRI_MGH_FILE;
-    else if(is_mnc(fname2))
-      type = MRI_MINC_FILE;
+      if(is_genesis(fname2))
+	type = GENESIS_FILE;
+      else if(is_ge_lx(fname2))
+	type = GE_LX_FILE;
+      else if(is_brik(fname2))
+	type = BRIK_FILE;
+      else if(is_siemens(fname2))
+	type = SIEMENS_FILE;
+      else if(is_sdt(fname2))
+	type = SDT_FILE;
+      else if(is_analyze(fname2))
+	type = MRI_ANALYZE_FILE;
+      else if(is_brik(fname2))
+	type = BRIK_FILE;
+      else if(is_mgh(fname2))
+	type = MRI_MGH_FILE;
+      else if(is_mnc(fname2))
+	type = MRI_MINC_FILE;
     }
 
     if(type == -1)
-      {
-        fprintf(stderr, "unrecognized file type for file %s\n", fname2);
-        return;
-      }
+    {
+      fprintf(stderr, "unrecognized file type for file %s\n", fname2);
+      return;
+    }
 
   }
 
@@ -234,37 +286,10 @@ static void do_file(char *fname)
     default:
       break;
   }
-
-	mri = MRIreadHeader(fname, MRI_VOLUME_TYPE_UNKNOWN) ;
-
-	printf("dimensions:  %d x %d x %d\n", mri->width, mri->height, mri->depth) ;
-	printf("voxel sizes: %2.1f, %2.1f, %2.1f\n", mri->xsize, mri->ysize, mri->zsize) ;
-	printf("type = %s (%d)\n",
-				 mri->type == MRI_UCHAR   ? "UCHAR" :
-				 mri->type == MRI_SHORT   ? "SHORT" :
-				 mri->type == MRI_INT     ?   "INT" :
-				 mri->type == MRI_LONG    ? "LONG" :
-				 mri->type == MRI_BITMAP  ? "BITMAP" :
-				 mri->type == MRI_TENSOR  ? "TENSOR" :
-				 mri->type == MRI_FLOAT   ? "FLOAT" : "UNKNOWN", mri->type) ;
-	printf("slice directon = %s (%d)\n",
-				 mri->slice_direction == MRI_CORONAL    ? "CORONAL" :
-				 mri->slice_direction == MRI_SAGITTAL   ? "SAGITTAL" :
-				 mri->slice_direction == MRI_HORIZONTAL ? "HORIZONTAL" : "UNKNOWN",
-				 mri->slice_direction) ;
-	printf("fov = %2.3f\n", mri->fov) ;
-	printf("xstart = %2.1f, xend = %2.1f\n", mri->xstart, mri->xend) ;
-	printf("ystart = %2.1f, yend = %2.1f\n", mri->ystart, mri->yend) ;
-	printf("zstart = %2.1f, zend = %2.1f\n", mri->zstart, mri->zend) ;
-	printf("TR=%2.2f msec, TE=%2.2f msec, TI=%2.2f msec, flip angle=%2.2f degrees\n",
-				 mri->tr, mri->te, mri->ti, DEGREES(mri->flip_angle)) ;
-	printf("nframes = %d\n", mri->nframes) ;
-	printf("ras xform %spresent\n", mri->ras_good_flag ? "" : "not ") ;
-	m = MRIgetVoxelToRasXform(mri) ;
-	printf("voxel to ras transform:\n") ; MatrixPrint(stdout, m) ;
-	MRIfree(&mri) ; MatrixFree(&m) ;
+#endif
 } /* end do_file */
 
+#if 0 
 static void read_short(FILE *fp, int offset, short *val)
 {
 
@@ -1209,3 +1234,4 @@ static void flip_analyze_header(dsr *header)
 }  /*  end flip_analyze_header()  */
 
 /* EOF */
+#endif
