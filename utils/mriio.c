@@ -712,7 +712,7 @@ MRItoVolume(MRI *mri)
             y1 = y ;
           for (x = 0 ; x < width ; x++)
           {
-            GET_MULTIDIM_TYPE_4D(volume->array, float, x, z, y, frame) =
+            GET_MULTIDIM_TYPE_4D(volume->array, float, z, y, x, frame) =
               MRIFseq_vox(mri, x, y1, z, frame) ;
           }
         }
