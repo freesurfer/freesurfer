@@ -18,7 +18,7 @@
 #include "sig.h"
 #include "label.h"
 
-static char vcid[] = "$Id: mris_twoclass.c,v 1.3 2000/12/22 20:10:29 fischl Exp $";
+static char vcid[] = "$Id: mris_twoclass.c,v 1.4 2001/09/28 15:56:58 fischl Exp $";
 
 
 /*-------------------------------- CONSTANTS -----------------------------*/
@@ -118,6 +118,10 @@ static int   cvector_track_best_snr(float *vsnr, float *vbest_snr,
                                     float *c1_best_mean, float *c2_best_mean,
                                     float *c1_var, float *c2_var,
                                     float *c1_best_var, float *c2_best_var,
+                                    float **c1_avg_thickness,
+                                    float **c2_avg_thickness,
+                                    float **c1_best_thicknesses, int nc1,
+                                    float **c2_best_thicknesses, int nc2,
                                     int avgs, int num, 
                                     float fthresh, int *pnum_found) ;
 
@@ -127,6 +131,10 @@ static int   cvector_track_best_stats(float *vsnr, float *vbest_snr,
                                       float *c1_best_mean, float *c2_best_mean,
                                       float *c1_var, float *c2_var,
                                       float *c1_best_var, float *c2_best_var,
+                                      float **c1_avg_thickness,
+                                      float **c2_avg_thickness,
+                                      float **c1_best_thicknesses, int nc1,
+                                      float **c2_best_thicknesses, int nc2,
                                       int avgs, int num, 
                                       float fthresh, int *pnum_found) ;
 
@@ -163,6 +171,7 @@ static int min_labels = MIN_LABELS ;
 static int bonferroni = 0 ;
 static FILE *labels_fp = NULL ;
 static char *out_label_fname = NULL ;
+static int normalize_flag = 0 ;
 
 /*-------------------------------- FUNCTIONS ----------------------------*/
 
@@ -385,6 +394,8 @@ main(int argc, char *argv[])
         if (MRISreadCurvatureFile(mris, fname) != NO_ERROR)
           ErrorExit(Gerror,"%s: could no read curvature file %s",
                     Progname,fname);
+        if (normalize_flag)
+          MRISnormalizeCurvature(mris) ;
       }
       mrisp = MRIStoParameterization(mris, NULL, 1, 0) ;
       MRISfree(&mris) ;
@@ -460,6 +471,9 @@ main(int argc, char *argv[])
         cvector_track_best_stats(vsnr, vbest_snr, vbest_avgs, 
                                  c1_mean, c2_mean, c1_best_mean, c2_best_mean,
                                  c1_var, c2_var, c1_best_var, c2_best_var,
+                                 c1_thickness, c2_thickness,
+                                 c1_thickness, num_class1,
+                                 c2_thickness, num_class2,
                                  0, nvertices, 
                                  fthresh, 
                                  &num_found) ;
@@ -474,6 +488,9 @@ main(int argc, char *argv[])
         cvector_track_best_snr(vsnr, vbest_snr, vbest_avgs, 
                                c1_mean, c2_mean, c1_best_mean, c2_best_mean,
                                c1_var, c2_var, c1_best_var, c2_best_var,
+                               c1_thickness, c2_thickness,
+                               c1_thickness, num_class1,
+                               c2_thickness, num_class2,
                                0, nvertices, 
                                fthresh/((float)(num_class1+num_class2)/2), 
                                &num_found) ;
@@ -540,6 +557,9 @@ main(int argc, char *argv[])
           cvector_track_best_stats(vsnr, vbest_snr, vbest_avgs, 
                                    c1_mean, c2_mean, c1_best_mean,c2_best_mean,
                                    c1_var, c2_var, c1_best_var, c2_best_var,
+                                   c1_avg_thickness, c2_avg_thickness,
+                                   c1_thickness, num_class1,
+                                   c2_thickness, num_class2,
                                    avgs, nvertices, 
                                    fthresh, 
                                    &num_found) ;
@@ -552,6 +572,9 @@ main(int argc, char *argv[])
           cvector_track_best_snr(vsnr, vbest_snr, vbest_avgs, 
                                  c1_mean, c2_mean, c1_best_mean, c2_best_mean,
                                  c1_var, c2_var, c1_best_var, c2_best_var,
+                                 c1_avg_thickness, c2_avg_thickness,
+                                 c1_thickness, num_class1,
+                                 c2_thickness, num_class2,
                                  avgs, nvertices, 
                                  fthresh/((float)(num_class1+num_class2)/2), 
                                  &num_found) ;
@@ -649,6 +672,7 @@ main(int argc, char *argv[])
       MRISextractCurvatureVector(mris, c1_avg_thickness[n]) ;
       cvector_accumulate(c1_avg_thickness[n], c1_best_mean, nvertices) ;
       cvector_accumulate_square(c1_avg_thickness[n], c1_best_var, nvertices) ;
+      cvector_copy(c1_avg_thickness[n], c1_thickness[n], nvertices) ;
     }
     for (n = 0 ; n < num_class2 ; n++)
     {
@@ -657,6 +681,7 @@ main(int argc, char *argv[])
       MRISextractCurvatureVector(mris, c2_avg_thickness[n]) ;
       cvector_accumulate(c2_avg_thickness[n], c2_best_mean, nvertices) ;
       cvector_accumulate_square(c2_avg_thickness[n], c2_best_var, nvertices) ;
+      cvector_copy(c2_avg_thickness[n], c2_thickness[n], nvertices) ;
     }
     cvector_normalize(c1_best_mean, num_class1, nvertices) ;
     cvector_normalize(c2_best_mean, num_class2, nvertices) ;
@@ -709,6 +734,7 @@ main(int argc, char *argv[])
     int    i ;
     double mean, var, thick ;
 
+    printf("writing label report to %s...\n", out_label_fname) ;
     out_fp = fopen(out_label_fname, "w") ;
     if (!out_fp)
       ErrorExit(ERROR_BADFILE, "%s: could not open label report file %s",
@@ -716,6 +742,7 @@ main(int argc, char *argv[])
 
     while (fgetl(line, STRLEN, labels_fp))
     {
+      printf("reading label %s...\n", line) ;
       area = LabelRead(output_subject, line) ;
       if (!area)
       {
@@ -1034,6 +1061,9 @@ main(int argc, char *argv[])
               subjects_dir,test_subject,hemi,curv_name);
     if (MRISreadCurvatureFile(mris, fname) != NO_ERROR)
       ErrorExit(Gerror,"%s: could no read curvature file %s",Progname,fname);
+    if (normalize_flag)
+      MRISnormalizeCurvature(mris) ;
+
     mrisp = MRIStoParameterization(mris, NULL, 1, 0) ;
     MRISfree(&mris) ;
     
@@ -1205,6 +1235,11 @@ get_option(int argc, char *argv[])
     nargs = 1 ;
     fprintf(stderr,"reading optimal thickness vectors from directory %s\n",
            read_dir) ;
+  }
+  else if (!stricmp(option, "normalize"))
+  {
+    normalize_flag = 1 ;
+    fprintf(stderr, "normalizing inputs\n") ;
   }
   else if (!stricmp(option, "max"))
   {
@@ -1643,9 +1678,12 @@ cvector_track_best_snr(float *vsnr, float *vbest_snr, float *vbest_avgs,
                        float *c1_best_mean, float *c2_best_mean,
                        float *c1_var, float *c2_var, 
                        float *c1_best_var, float *c2_best_var,
+                       float **c1_avg_thickness, float **c2_avg_thickness,
+                       float **c1_best_thicknesses, int nc1,
+                       float **c2_best_thicknesses, int nc2,
                        int avgs, int num, float fthresh, int *pnum_found)
 {
-  int    i ;
+  int    i, n ;
 
   *pnum_found = 0 ;
   for (i = 0 ; i < num ; i++)
@@ -1660,6 +1698,10 @@ cvector_track_best_snr(float *vsnr, float *vbest_snr, float *vbest_avgs,
       c2_best_var[i] = c2_var[i] ;
       if (vsnr[i] >= fthresh)
         *pnum_found += 1 ;
+      for (n = 0 ; n < nc1 ; n++)
+        c1_best_thicknesses[n][i] = c1_avg_thickness[n][i] ;
+      for (n = 0 ; n < nc2 ; n++)
+        c2_best_thicknesses[n][i] = c2_avg_thickness[n][i] ;
     }
   }
 
@@ -1671,9 +1713,12 @@ cvector_track_best_stats(float *vpvals, float *vbest_pvals, float *vbest_avgs,
                          float *c1_best_mean, float *c2_best_mean,
                          float *c1_var, float *c2_var, 
                          float *c1_best_var, float *c2_best_var,
+                         float **c1_avg_thickness, float **c2_avg_thickness,
+                         float **c1_best_thicknesses, int nc1,
+                         float **c2_best_thicknesses, int nc2,
                          int avgs, int num, float fthresh, int *pnum_found)
 {
-  int    i ;
+  int    i, n ;
 
   *pnum_found = 0 ;
   for (i = 0 ; i < num ; i++)
@@ -1688,6 +1733,10 @@ cvector_track_best_stats(float *vpvals, float *vbest_pvals, float *vbest_avgs,
       c2_best_var[i] = c2_var[i] ;
       if (fabs(vpvals[i]) >= fthresh)
         *pnum_found += 1 ;
+      for (n = 0 ; n < nc1 ; n++)
+        c1_best_thicknesses[n][i] = c1_avg_thickness[n][i] ;
+      for (n = 0 ; n < nc2 ; n++)
+        c2_best_thicknesses[n][i] = c2_avg_thickness[n][i] ;
     }
   }
 
