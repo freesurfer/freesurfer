@@ -4,26 +4,27 @@
 
 #include "error.h"
 #include "diag.h"
+#include "mri.h"
 #include "matrix.h"
-#include "stats.h"
 #include "const.h"
 #include "proto.h"
 #include "utils.h"
 #include "machine.h"
 #include "mrinorm.h"
+#include "transform.h"
+
+#define _STATS_SRC
+#include "stats.h"
+#undef _STATS_SRC
+
 
 #define REG_ROWS      4
 #define REG_COLS      4
 #define STRUCT_DIM    256
 
+MATRIX *StatLoadTalairachXFM(char *subjid, char *xfmfile);
 
 /*------------------------------------------------------------------------
-       Parameters:
-
-      Description:
-  
-    Return Values:
-        nothing.
 ------------------------------------------------------------------------*/
 fMRI_REG *
 StatReadRegistration(char *fname)
@@ -79,12 +80,6 @@ StatReadRegistration(char *fname)
 }
 
 /*------------------------------------------------------------------------
-       Parameters:
-
-      Description:
-  
-    Return Values:
-        nothing.
 ------------------------------------------------------------------------*/
 int
 StatFreeRegistration(fMRI_REG **preg)
@@ -99,12 +94,6 @@ StatFreeRegistration(fMRI_REG **preg)
 }
 
 /*------------------------------------------------------------------------
-       Parameters:
-
-      Description:
-  
-    Return Values:
-        nothing.
 ------------------------------------------------------------------------*/
 SV *
 StatReadVolume(char *prefix)
@@ -130,8 +119,7 @@ StatReadVolume(char *prefix)
   else                 sprintf(fname, "%s/register.dat", path) ;
 
   sv->reg = StatReadRegistration(fname) ;
-  if (!sv->reg)
-    return(NULL) ;
+  if (!sv->reg)  return(NULL) ;
 
   /* read the selavg/selxavg dat file, if it exists */
   sprintf(fname, "%s.dat", prefix) ;
@@ -246,17 +234,6 @@ StatReadVolume(char *prefix)
   StatAllocVolume(sv, sv->nevents, width,height,nslices,sv->time_per_event,
                   which_alloc);
 
-#if 0
-  for(w=0;w<width;w++){
-    for(h=0;h<height;h++){
-      for(s=0;s<nslices;s++){
-  for(t=0;t<sn->time_per_event;t++){
-
-  }
-      }
-    }
-  }
-#endif
 
   /* read it after nevents */
   if (stricmp(sv->reg->name, "talairach") && 
@@ -388,16 +365,20 @@ StatReadVolume(char *prefix)
     }
 
     fclose(fp) ;
-
-
   }
+
   for (event = 0 ; event < sv->nevents ; event++)
   {
     MRIsetResolution(sv->mri_avgs[event], sv->reg->in_plane_res, 
                      sv->reg->in_plane_res, sv->reg->slice_thickness) ;
-    if (sv->mri_stds[event])
+
+    if (sv->mri_stds[event]){
       MRIsetResolution(sv->mri_stds[event], sv->reg->in_plane_res, 
                        sv->reg->in_plane_res, sv->reg->slice_thickness) ;
+    }
+    sv->mri_avgs[event]->c_r = +0.5*sv->reg->in_plane_res;
+    sv->mri_avgs[event]->c_a = -0.5*sv->reg->slice_thickness;
+    sv->mri_avgs[event]->c_s = +0.5*sv->reg->in_plane_res;
       
   }
 
@@ -406,12 +387,6 @@ StatReadVolume(char *prefix)
 }
 
 /*------------------------------------------------------------------------
-       Parameters:
-
-      Description:
-  
-    Return Values:
-        nothing.
 ------------------------------------------------------------------------*/
 int
 StatFree(SV **psv)
@@ -441,12 +416,6 @@ StatFree(SV **psv)
   return(NO_ERROR) ;
 }
 /*------------------------------------------------------------------------
-       Parameters:
-
-      Description:
-  
-    Return Values:
-        nothing.
 ------------------------------------------------------------------------*/
 #if 0
 MRI *
@@ -464,12 +433,6 @@ StatVolumeToTalairach(SV *sv, MRI *mri, int resolution)
 }
 #endif
 /*------------------------------------------------------------------------
-       Parameters:
-
-      Description:
-  
-    Return Values:
-        nothing.
 ------------------------------------------------------------------------*/
 STAT_VOLUME *
 StatAllocVolume(SV *sv, int nevents, int width, int height, 
@@ -498,6 +461,10 @@ StatAllocVolume(SV *sv, int nevents, int width, int height,
       MRIallocSequence(width, height, nslices, MRI_FLOAT, time_points) ;
     if (!sv->mri_avgs[event])
       ErrorExit(ERROR_NO_MEMORY, "StatAllocVolume: could not allocate volume");
+    sv->mri_avgs[event]->x_r = -1.0;
+    sv->mri_avgs[event]->y_s = -1.0;
+    sv->mri_avgs[event]->z_a = +1.0;
+
     if (which_alloc & ALLOC_STDS)
     {
       sv->mri_stds[event] = 
@@ -523,12 +490,6 @@ StatAllocVolume(SV *sv, int nevents, int width, int height,
   return(sv) ;
 }
 /*------------------------------------------------------------------------
-       Parameters:
-
-      Description:
-  
-    Return Values:
-        nothing.
 ------------------------------------------------------------------------*/
 SV *
 StatAllocStructuralVolume(SV *sv, float fov, float resolution, char *name)
@@ -556,6 +517,9 @@ StatAllocStructuralVolume(SV *sv, float fov, float resolution, char *name)
                      resolution,resolution,resolution);
     MRIsetResolution(sv_tal->mri_std_dofs[event],
                      resolution,resolution,resolution);
+    sv_tal->mri_avgs[event]->c_r = +0.5*resolution;
+    sv_tal->mri_avgs[event]->c_a = -0.5*resolution;
+    sv_tal->mri_avgs[event]->c_s = +0.5*resolution;
   }
 
   sv_tal->timewindow = sv->timewindow ;
@@ -565,12 +529,6 @@ StatAllocStructuralVolume(SV *sv, float fov, float resolution, char *name)
   return(sv_tal) ;
 }
 /*------------------------------------------------------------------------
-       Parameters:
-
-      Description:
-  
-    Return Values:
-        nothing.
 ------------------------------------------------------------------------*/
 int
 StatAccumulateSurfaceVolume(SV *sv_surf, SV *sv, MRI_SURFACE *mris)
@@ -765,12 +723,6 @@ StatAccumulateSurfaceVolume(SV *sv_surf, SV *sv, MRI_SURFACE *mris)
   return(NO_ERROR) ;
 }
 /*------------------------------------------------------------------------
-       Parameters:
-
-      Description:
-  
-    Return Values:
-        nothing.
 ------------------------------------------------------------------------*/
 int
 StatAccumulateTalairachVolume(SV *sv_tal, SV *sv)
@@ -782,6 +734,10 @@ StatAccumulateTalairachVolume(SV *sv_tal, SV *sv)
          syoff, szoff ;
   VECTOR *v_struct, *v_func ;
   MRI    *mri_avg, *mri_std ;
+  MATRIX *Tfunc, *Ttal;
+  MATRIX *Mcor2tal, *Mtal2cor, *Vtal2func;
+  MATRIX *Vtal, *Vfunc;
+  float xf2, yf2, zf2;
 
   if(!sv){
     fprintf(stderr,"ERROR: %s: StatAccumulateTalairachVolume():\n",Progname);
@@ -815,6 +771,36 @@ StatAccumulateTalairachVolume(SV *sv_tal, SV *sv)
                 (ERROR_BADPARM, 
                  "StatAccumulateTalairachVolume: inconsistent # of events "
                  "(%d vs %d)", sv_tal->nevents, sv->nevents)) ;
+
+  /*---------------------------------------------------------------*/
+  /* This section was added to circumvent MRItalairachVoxelToWorld
+     and other functions. Instead, it allows loading of the file
+     pointed to by stats_talxfm.*/
+  Tfunc = MRIxfmCRS2XYZ(sv->mri_avgs[0],0);
+  Ttal  = MRIxfmCRS2XYZ(sv_tal->mri_avgs[0],0);
+  Mcor2tal = StatLoadTalairachXFM(sv->reg->name, stats_talxfm);
+  Mtal2cor = MatrixInverse(Mcor2tal,NULL);
+
+  Vtal2func = MatrixInverse(Tfunc,NULL);
+  MatrixMultiply(Vtal2func,sv->reg->mri2fmri,Vtal2func);
+  MatrixMultiply(Vtal2func,Mtal2cor,Vtal2func);
+  MatrixMultiply(Vtal2func,Ttal,Vtal2func);
+
+  printf("Tfunc %g %g %g ----------------------\n",sv->mri_avgs[0]->xsize,
+   sv->mri_avgs[0]->ysize,sv->mri_avgs[0]->zsize);
+  MatrixPrint(stdout,Tfunc);
+  printf("Ttal ---------------------------------------------\n");
+  MatrixPrint(stdout,Ttal);
+  printf("TalXFM ---------------------------------------------\n");
+  MatrixPrint(stdout,Mcor2tal);
+  printf("TalVox2FuncVox ---------------------------------------------\n");
+  MatrixPrint(stdout,Vtal2func);
+  printf("---------------------------------------------\n");
+  Vtal = MatrixAlloc(4,1,MATRIX_REAL);
+  Vtal->rptr[4][1] = 1;
+  Vfunc = MatrixAlloc(4,1,MATRIX_REAL);
+  Vfunc->rptr[4][1] = 1;
+  /*---------------------------------------------------------------*/
 
   for (event = 0 ; event < sv_tal->nevents ; event++)
   {
@@ -852,8 +838,30 @@ StatAccumulateTalairachVolume(SV *sv_tal, SV *sv)
             MRIworldToVoxel(sv->mri_avgs[event], (Real)V3_X(v_func), 
                             (Real)V3_Y(v_func), (Real)V3_Z(v_func), 
                             &xf, &yf, &zf) ;
+            //xv = nint(xf) ; yv = nint(yf) ; zv = nint(zf) ;
 
-            xv = nint(xf) ; yv = nint(yf) ; zv = nint(zf) ;
+      /* This is the "new" way to convert talairach CRS
+         to function CRS. It should be the same as the
+         original as long as stats_talxfm = talairach.xfm */
+      Vtal->rptr[1][1] = x;
+      Vtal->rptr[2][1] = y;
+      Vtal->rptr[3][1] = z;
+      MatrixMultiply(Vtal2func,Vtal,Vfunc);
+      xf2 = Vfunc->rptr[1][1];
+      yf2 = Vfunc->rptr[2][1];
+      zf2 = Vfunc->rptr[3][1];
+      /* Check to make sure */
+      if(strcmp(stats_talxfm,"talairach.xfm")==0){
+        if(fabs(xf-xf2) > .001 || fabs(yf-yf2) > .001 ||
+     fabs(zf-zf2) > .001){
+    printf("WARNING: talairach CRS differs for old and new\n");
+    printf("%d %d %d   %6.4f %6.4f %6.4f %6.4f %6.4f %6.4f\n",
+           x,y,z, xf,yf,zf, xf2,yf2,zf2);
+        }
+      }
+            xv = nint(xf2) ; yv = nint(yf2) ; zv = nint(zf2) ;
+
+
             if (xv >= 0 && xv < swidth &&
                 yv >= 0 && yv < sheight &&
                 zv >= 0 && zv < sdepth)
@@ -898,14 +906,8 @@ StatAccumulateTalairachVolume(SV *sv_tal, SV *sv)
   VectorFree(&v_struct) ;
   return(NO_ERROR) ;
 }
-/*------------------------------------------------------------------------
-       Parameters:
-
-      Description:
-  
-    Return Values:
-        nothing.
-------------------------------------------------------------------------*/
+/*--------------------------------------------------------------
+  ----------------------------------------------------------------*/
 int
 StatWriteVolume(SV *sv, char *prefix)
 {
@@ -1088,14 +1090,8 @@ StatWriteVolume(SV *sv, char *prefix)
   return(NO_ERROR) ;
 
 }
-/*------------------------------------------------------------------------
-       Parameters:
-
-      Description:
-  
-    Return Values:
-        nothing.
-------------------------------------------------------------------------*/
+/*------------------------------------------------------------------
+  -------------------------------------------------------------------*/
 int
 StatWriteRegistration(fMRI_REG *reg, char *fname)
 {
@@ -1120,14 +1116,8 @@ StatWriteRegistration(fMRI_REG *reg, char *fname)
   fclose(fp) ;
   return(NO_ERROR) ;
 }
-/*------------------------------------------------------------------------
-       Parameters:
-
-      Description:
-  
-    Return Values:
-        nothing.
-------------------------------------------------------------------------*/
+/*-------------------------------------------------------------------
+  -------------------------------------------------------------------*/
 int
 StatReadTransform(STAT_VOLUME *sv, char *name)
 {
@@ -1136,10 +1126,8 @@ StatReadTransform(STAT_VOLUME *sv, char *name)
 
   /* read in the Talairach transform file */
   cp = getenv("SUBJECTS_DIR") ;
-  if (cp)
-    strcpy(subjects, cp) ;
-  else
-    strcpy(subjects, "~inverse/subjects") ;
+  if (cp)    strcpy(subjects, cp) ;
+  else       strcpy(subjects, "~inverse/subjects") ;
   sprintf(fname,"%s/%s/mri/transforms/talairach.xfm",subjects, name);
   
   if (input_transform_file(fname, &sv->transform) != OK)
@@ -1158,12 +1146,6 @@ StatReadTransform(STAT_VOLUME *sv, char *name)
   return(NO_ERROR) ;
 }
 /*------------------------------------------------------------------------
-       Parameters:
-
-      Description:
-  
-    Return Values:
-        nothing.
 ------------------------------------------------------------------------*/
 int       
 StatVolumeExists(char *prefix)
@@ -1177,4 +1159,37 @@ StatVolumeExists(char *prefix)
     return(0) ;
   fclose(fp) ;
   return(1) ;
+}
+/*------------------------------------------------------------------------
+  StatLoadTalairachXFM() - loads the matrix from the given xfm file.
+  If the transform is Vox2Vox, converts it to RAS2RAS. The file is
+  assumed to exist in SUBJECTS_DIR/subjid/mri/transforms/xfmfile.
+  ------------------------------------------------------------------------*/
+MATRIX *StatLoadTalairachXFM(char *subjid, char *xfmfile)
+{
+  char subjects[STRLEN], fname[STRLEN] ;
+  MATRIX *Mcor2tal;
+  LTA    *lta;
+  char *cp;
+  FILE *fp;
+
+  cp = getenv("SUBJECTS_DIR") ;
+  if (cp)    strcpy(subjects, cp) ;
+  else       strcpy(subjects, "~inverse/subjects") ;
+  sprintf(fname,"%s/%s/mri/transforms/%s",subjects, subjid, xfmfile);
+
+  fp = fopen(fname,"r");
+  if(fp == NULL){
+    printf("ERROR: could not open %s for reading \n",fname);
+    exit(1);
+  }
+
+  lta = LTAread(fname);
+  if(lta->type == LINEAR_VOX_TO_VOX){
+    printf("INFO: converting LTA to RAS\n");
+    LTAvoxelTransformToCoronalRasTransform(lta);
+  }
+  Mcor2tal = lta->xforms[0].m_L;
+
+  return(Mcor2tal);
 }
