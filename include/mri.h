@@ -4,6 +4,7 @@
 #include "const.h"
 #include "matrix.h"
 #include "volume_io.h"
+#include "box.h"
 
 #define BUFTYPE  unsigned char
 
@@ -57,6 +58,17 @@ typedef struct
   int           nframes ;          /* # of concatenated images */
 } MRI_IMAGE, MRI ;
 
+/* single pixel filtering */
+float MRIvoxelMean(MRI *mri, int x, int y, int z, int wsize) ;
+float MRIvoxelStd(MRI *mri, int x, int y, int z, float mean, int wsize) ;
+float MRIvoxelZscore(MRI *mri, int x, int y, int z, int wsize) ;
+float MRIvoxelDx(MRI *mri, int x, int y, int z) ;
+float MRIvoxelDy(MRI *mri, int x, int y, int z) ;
+float MRIvoxelDz(MRI *mri, int x, int y, int z) ;
+float MRIvoxelGradient(MRI *mri, int x, int y, int z, float *pdx, float *pdy, 
+                       float *pdz) ;
+float MRIvoxelDirection(MRI *mri, int x, int y, int z, int wsize) ;
+
 /* I/O functions */
 int    MRIwrite(MRI *mri, char *fpref) ;
 int    MRIwriteInfo(MRI *mri, char *fpref) ;
@@ -81,6 +93,7 @@ int   MRIpeak(MRI *mri, int *px, int *py, int *pz) ;
 int   MRIcopyHeader(MRI *mri_src, MRI *mri_dst) ;
 MRI   *MRIcopy(MRI *mri_src, MRI *mri_dst) ;
 MRI   *MRIreslice(MRI *mri_src, MRI *mri_dst, int slice_direction) ;
+int   MRIboundingBox(MRI *mri, int thresh, BOX *box) ;
 
 /* coordinate transforms */
 MRI   *MRItranslate(MRI *mri_src, MRI *mri_dst, int dx, int dy, int dz) ;
@@ -118,7 +131,8 @@ MRI   *MRIdiffuseCurvature(MRI *mri_src, MRI *mri_dst,
                             double A,int niter, double slope) ;
 MRI   *MRIdiffusePerona(MRI *mri_src, MRI *mri_dst, 
                              double k, int niter,double slope);
-
+MRI   *MRIdirectionMap(MRI *mri_x, MRI *mri_y, MRI *mri_z, 
+                          MRI *mri_direction, int wsize);
 
 /* offset stuff */
 MRI   *MRIoffsetDirection(MRI *mri_x, MRI *mri_y, MRI *mri_z, int wsize, 
@@ -145,6 +159,12 @@ MRI   *MRIextract(MRI *mri_src, MRI *mri_dst, int x0, int y0, int z0,
 MRI   *MRIextractInto(MRI *mri_src, MRI *mri_dst, int x0, int y0, int z0,
                   int dx, int dy, int dz, int x1, int y1, int z1) ;
 
+/* morphology */
+MRI   *MRImorph(MRI *mri_src, MRI *mri_dst, int which) ;
+MRI   *MRIerode(MRI *mri_src, MRI *mri_dst) ;
+MRI   *MRIdilate(MRI *mri_src, MRI *mri_dst) ;
+MRI   *MRIopen(MRI *mri_src, MRI *mri_dst) ;
+MRI   *MRIclose(MRI *mri_src, MRI *mri_dst) ;
 
 /* filtering operations */
 MRI   *MRIgaussian1d(float sigma, int max_len) ;
