@@ -106,6 +106,8 @@ MRI   *MRIrotateZ(MRI *mri_src, MRI *mri_dst, float z_angle) ;
 MRI   *MRIrotate(MRI *mri_src, MRI *mri_dst, MATRIX *mR, MATRIX *mO) ;
 MRI   *MRIscale(MRI *mri_src, MRI *mri_dst, float sx, float sy, float sz) ;
 MRI   *MRIaffine(MRI *mri_src, MRI *mri_dst, MATRIX *mA, MATRIX *mB) ;
+MRI   *MRIconfThresh(MRI *mri_probs, MRI *mri_classes, MRI *mri_dst, 
+                     float thresh, int target) ;
 
 /* debugging */
 int   MRIdump(MRI *mri, FILE *fp) ;
@@ -176,7 +178,7 @@ MRI   *MRIclose6(MRI *mri_src, MRI *mri_dst) ;
 MRI   *MRIunion(MRI *mri1, MRI *mri2, MRI *mri_dst) ;
 MRI   *MRIintersect(MRI *mri1, MRI *mri2, MRI *mri_dst) ;
 MRI   *MRIcomplement(MRI *mri_src, MRI *mri_dst) ;
-MRI   *MRIxor(MRI *mri1, MRI *mri2, MRI *mri_dst) ;
+MRI   *MRIxor(MRI *mri1, MRI *mri2, MRI *mri_dst, int t1, int t2) ;
 
 /* filtering operations */
 MRI   *MRIgaussian1d(float sigma, int max_len) ;
