@@ -4868,8 +4868,11 @@ DspA_tErr DspA_BuildSurfaceDrawLists_ ( tkmDisplayAreaRef this,
 	drawListNode.mIntersectionPoint = intersectionPt;
 	drawListNode.mInterpIntersectionPoint = interpIntersectionPt;
 
-	/* the original vertex is just the anatomical vertex. */
-	xVoxl_Copy( &drawListNode.mOriginalVertex, anaVertex );
+	/* the original vertex is just the (unnormalized) anatomical
+	   vertex. */
+	DspA_UnnormalizeVoxel_( anaVertex,
+				this->mOrientation,
+				&drawListNode.mOriginalVertex );
 
 	/* the interp vertex is a normalized point with x/y coords of
 	   the intersection point and the z coord of the cur slice,
@@ -5244,6 +5247,8 @@ DspA_tErr DspA_GetClosestInterpSurfVoxel ( tkmDisplayAreaRef this,
   int                   nClosestIndex   = 0;
   xVoxel                closestAnaIdx;
   xVoxel                closestInterpAnaIdx;
+  xVoxel                closestRAS;
+  xVoxel                closestInterpRAS;
 
   
   /* verify us. */
@@ -5273,10 +5278,6 @@ DspA_tErr DspA_GetClosestInterpSurfVoxel ( tkmDisplayAreaRef this,
 				 this->mOrientation, iSet, nSlice );
     if( NULL == list ) {
       continue;
-#if 0
-      eResult = DspA_tErr_ErrorAccessingSurfaceList;
-      goto error;
-#endif
     }
     
     /* walk through the list. */
@@ -5326,12 +5327,19 @@ DspA_tErr DspA_GetClosestInterpSurfVoxel ( tkmDisplayAreaRef this,
 
   /* If the want one, make a string of info. */
   if( NULL != osDescription ) {
+    
+    /* convert the ana idx coords to RAS. */
+    Volm_ConvertIdxToRAS( this->mpVolume, 
+			  &closestAnaIdx, &closestRAS );
+    Volm_ConvertIdxToRAS( this->mpVolume, 
+			  &closestInterpAnaIdx, &closestInterpRAS );
+
     sprintf( osDescription, "Index: %d Distance: %.2f\n"
 	     "\t    Original vertex RAS Coords: %.2f %.2f %.2f\n"
 	     "\tInterpolated vertex RAS Coords: %.2f %.2f %.2f", 
 	     nClosestIndex, fLowestDistance, 
-	     xVoxl_ExpandFloat( &closestAnaIdx ),
-	     xVoxl_ExpandFloat( &closestInterpAnaIdx ) );
+	     xVoxl_ExpandFloat( &closestRAS ),
+	     xVoxl_ExpandFloat( &closestInterpRAS ) );
   }
   
   goto cleanup;
