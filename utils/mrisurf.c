@@ -60,7 +60,6 @@
 #define MAX_NBHD_SIZE       200
 #define MAX_NEG_AREA_PCT    0.005f
 
-#define MRIS_BINARY_FILE    0
 /* this definition should come from mrisurf.h 
  * #define MRIS_ASCII_FILE     1
 */
@@ -2737,7 +2736,7 @@ MRISreadCurvatureFile(MRI_SURFACE *mris, char *sname)
 
 
 	type = MRISfileNameType(fname) ;
-	if (type == MRIS_ASCII_FILE)
+	if (type == MRIS_ASCII_TRIANGLE_FILE)
 		return(mrisReadAsciiCurvatureFile(mris, fname)) ;
 
   if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON) 
@@ -14296,7 +14295,7 @@ MRISfileNameType(char *fname)
   }
   StrUpper(ext) ;
   if (!strcmp(ext, "ASC"))
-    type = MRIS_ASCII_FILE ;
+    type = MRIS_ASCII_TRIANGLE_FILE ;
   else if (!strcmp(ext, "GEO"))
     type = MRIS_GEO_TRIANGLE_FILE ;
   else if (!strcmp(ext, "TRI") || !strcmp(ext, "ICO"))
@@ -14304,7 +14303,7 @@ MRISfileNameType(char *fname)
   else if (!strcmp(ext, "VTK"))
     type = MRIS_VTK_FILE ;
   else
-    type = MRIS_BINARY_FILE ;
+    type = MRIS_BINARY_QUADRANGLE_FILE ;
 
   return(type) ;
 }
