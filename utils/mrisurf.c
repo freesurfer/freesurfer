@@ -1297,8 +1297,9 @@ mrisFindNeighbors(MRI_SURFACE *mris)
       v = &mris->vertices[f->v[m]];
       for (i=0;i<v->num && k!=v->f[i];i++);
       if (i==v->num)   /* face has vertex, but vertex doesn't have face */
-        printf("face[%d].v[%d] = %d, but face %d not in vertex %d face list\n",
-               k,m,f->v[m], k, f->v[m]);
+        ErrorExit(ERROR_BADPARM,
+                  "%s: face[%d].v[%d] = %d, but face %d not in vertex %d "
+                  "face list\n", mris->fname,k,m,f->v[m], k, f->v[m]);
     }
   }
 
