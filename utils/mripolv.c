@@ -1808,8 +1808,10 @@ MRIthickenThinWMStrands(MRI *mri_src, MRI *mri_dst,int thickness,int nsegments)
   }
 #endif
 
+#if 0
   if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
     MRIwrite(mri_tmp, "closed.mgh") ;
+#endif
 
   MRIcopy(mri_src, mri_dst) ;
   for (z = 0 ; z < depth ; z++)
@@ -2054,8 +2056,9 @@ MRIthickenThinWMStrands(MRI *mri_src, MRI *mri_dst,int thickness,int nsegments)
     }
 
     total_filled += nfilled ;
-    fprintf(stderr, "%d: segment %d, %d voxels, filled = %d, total = %d\n",
-            nseg, i, mseg->nvoxels, nfilled, total_filled) ;
+    if (Gdiag & DIAG_SHOW)
+      fprintf(stderr, "%d: segment %d, %d voxels, filled = %d, total = %d\n",
+              nseg, i, mseg->nvoxels, nfilled, total_filled) ;
 
     mseg->ignore = 1 ;
 
@@ -4273,7 +4276,7 @@ MRIcentralPlaneOfLeastVarianceNormalVoxel(MRI *mri_src, int wsize,
 ------------------------------------------------------*/
 MRI *
 MRIcpolvMedianCurveSegment(MRI *mri, MRI *mri_labeled, MRI *mri_dst, 
-                           int wsize,float len)
+                           int wsize,float len, float gray_hi, float wm_low)
 {
   int   x, y, z, width, height, depth, label, nlabeled, non, noff ;
 
@@ -4288,13 +4291,14 @@ MRIcpolvMedianCurveSegment(MRI *mri, MRI *mri_labeled, MRI *mri_dst,
     {
       for (x = 0 ; x < width ; x++)
       {
-        if (x == 157 && y == 154 && z == 127)
+        if (x == 148 && y == 143 && z == 159)
           DiagBreak() ;
         label = MRIvox(mri_labeled, x, y, z) ;
         if (label != MRI_AMBIGUOUS)
           continue ;
         nlabeled++ ;
-        label = MRIcpolvMedianCurveVoxel(mri, mri_labeled, x, y, z,wsize,len);
+        label = MRIcpolvMedianCurveVoxel(mri, mri_labeled, x, y, z,wsize,len,
+                                         gray_hi, wm_low);
         if (label == MRI_WHITE)
           non++ ;
         else
@@ -4324,12 +4328,13 @@ MRIcpolvMedianCurveSegment(MRI *mri, MRI *mri_labeled, MRI *mri_dst,
 ------------------------------------------------------*/
 int
 MRIcpolvMedianCurveVoxel(MRI *mri, MRI *mri_labeled, int x0, int y0, int z0, 
-                         int wsize,float len)
+                         int wsize,float len, float gray_hi, float wm_low)
 {
   int  vertex, what, i, maxi ;
   FILE *fp = NULL ;
   float dist, x, y, z, median, nx, ny, nz, white_dist, gray_dist, gray_val, 
-        white_val, val, white_grad, gray_grad ;
+        white_val, val, white_grad, gray_grad, max_val, min_val, max_val_dist,
+        min_val_dist ;
   float medians[200], dists[200] ;
 
 
@@ -4345,31 +4350,43 @@ MRIcpolvMedianCurveVoxel(MRI *mri, MRI *mri_labeled, int x0, int y0, int z0,
   nx /= dist ; ny /= dist ; nz /= dist ;
 
   white_dist = gray_dist = 1000.0f ; what = MRI_AMBIGUOUS ;
-  gray_val = white_val = val = 0.0 ;
+  gray_val = white_val = val = -1.0 ; min_val_dist = max_val_dist = 0.0 ;
+  max_val = 0.0 ; min_val = 1000.0 ;
   for (i = 0, dist = -len ; dist <= len ; dist += 0.25f, i++)
   {
     x = x0 + nx*dist ; y = y0 + ny*dist ; z = z0 + nz*dist ;
     median = MRIcpolvMedianAtVoxel(mri, vertex, x, y, z, wsize) ;
     medians[i] = median ; dists[i] = dist ;
-    if ((median >= 100.0f) && (fabs(dist) < white_dist))
+    if ((median >= gray_hi) && (fabs(dist) < white_dist))
     {
       white_val = median ;
       white_dist = fabs(dist) ;
     }
-    else if ((median <= 90.0f) && (fabs(dist) < gray_dist))
+    else if ((median <= wm_low) && (fabs(dist) < gray_dist))
     {
       gray_val = median ;
       gray_dist = fabs(dist) ;
     }
+    if (median > max_val)
+    {
+      max_val_dist = fabs(dist) ;
+      max_val = median ;
+    }
+    if (median < min_val)
+    {
+      min_val_dist = fabs(dist) ;
+      min_val = median ;
+    }
+
     if (FZERO(dist)) /* central vertex */
     {
       val = median ;
-      if (median >= 100.0f)
+      if (median >= gray_hi)
       {
         /*        fprintf(stderr, "median=%2.2f --> WHITE\n", median) ;*/
         what = MRI_WHITE ;
       }
-      else if (median <= 90.0f)
+      else if (median <= wm_low)
       {
         what = MRI_NOT_WHITE ;
         /*        fprintf(stderr, "median=%2.2f --> NOT WHITE\n", median) ;*/
@@ -4378,12 +4395,25 @@ MRIcpolvMedianCurveVoxel(MRI *mri, MRI *mri_labeled, int x0, int y0, int z0,
         return(what) ;
     }
   }
+#if 0
+  if (white_val < 0)
+  {
+    white_dist  = max_val_dist ;
+    white_val = max_val ;
+  }
+  if (gray_val < 0)
+  {
+    gray_dist = min_val_dist ;
+    gray_val = min_val ;
+  }
+#endif
+
   if ((Gdiag & DIAG_WRITE) && DIAG_VERBOSE_ON)
   {
     fp = fopen("med.plt", "w") ;
     maxi = i ;
     for (i = 0 ; i < maxi ; i++)
-    fprintf(fp, "%2.2f  %2.3f\n", dists[i], medians[i]) ;
+      fprintf(fp, "%2.2f  %2.3f\n", dists[i], medians[i]) ;
     fclose(fp) ;
   }
 
@@ -4392,7 +4422,7 @@ MRIcpolvMedianCurveVoxel(MRI *mri, MRI *mri_labeled, int x0, int y0, int z0,
     maxi = i ;
     for (i = 0 ; i < maxi ; i++)
     {
-      if ((medians[i] > white_val) && (medians[i] > 95))
+      if ((medians[i] > white_val) && (medians[i] > wm_low))
       {
         white_val = medians[i] ;
         white_dist = fabs(dists[i]) ;
@@ -4407,7 +4437,7 @@ MRIcpolvMedianCurveVoxel(MRI *mri, MRI *mri_labeled, int x0, int y0, int z0,
     maxi = i ; gray_val = 10000 ;
     for (i = 0 ; i < maxi ; i++)
     {
-      if ((medians[i] < gray_val) && (medians[i] < 95))
+      if ((medians[i] < gray_val) && (medians[i] < gray_hi))
       {
         gray_val = medians[i] ;
         gray_dist = fabs(dists[i]) ;
@@ -4682,7 +4712,8 @@ MRIfillPlanarHoles(MRI *mri_src, MRI *mri_segment, MRI *mri_dst,
     total_filled += nfilled ;
   } while (nfilled > 0) ;
 
-  fprintf(stderr, "%d planar holes filled\n", total_filled) ;
+  if (Gdiag & DIAG_SHOW)
+    fprintf(stderr, "%d planar holes filled\n", total_filled) ;
   MRIfree(&mri_binary_strand) ; MRIfree(&mri_strand_border) ;
   return(mri_dst) ;
 }
