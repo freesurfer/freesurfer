@@ -1622,7 +1622,7 @@ MRI3dNormalize(MRI *mri_orig, MRI *mri_src, int wm_target, MRI *mri_norm,
 			MRIwrite(mri_ctrl, control_volume_fname) ;
 		}
 		MRIbinarize(mri_ctrl, mri_ctrl, 1, CONTROL_NONE, CONTROL_MARKED) ;
-		if (prune)
+		if (prune && !only_file)
 			remove_gray_matter_control_points(mri_ctrl, mri_orig, wm_target, intensity_above, intensity_below) ;
 
 #if 0
