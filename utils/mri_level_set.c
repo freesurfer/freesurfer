@@ -40,14 +40,14 @@
 #define DT           0.5
 #define E_DIFFUSION  0.001 /* increasing this gives a smoother solution */
 #define E_CURV       0.05  /* increasing this gives less curvature to front */
-#define MAG_SCALE    50.0  /* increasing this increases the effect of grad */
-#define WRITE_ITER   50
+#define MAG_SCALE    100.0  /* increasing this increases the effect of grad */
+#define WRITE_ITER   1000
 #define MIN_DIST     2.0
 
 /* solve ut + f |grad(u)| = e uxx */
 
 MRI *
-MRIfill(MRI *mri_src, MRI *mri_distance, int x0, int y0, int z0, int niter)
+MRIfill(MRI *mri_src, MRI *mri_distance, float x0, float y0,float z0,int niter)
 {
   int     width, height, depth, t, x, y, z, xp1, xm1, yp1, ym1, zp1, zm1,
           write_iter;
@@ -55,11 +55,11 @@ MRIfill(MRI *mri_src, MRI *mri_distance, int x0, int y0, int z0, int niter)
           dist_yp1, dist_ym1, dist_zp1, dist_zm1, dist, km, denom, mag,
           dist_xp1yp1, dist_xp1zp1, dist_yp1zp1, grad, F, laplacian,
           dx_f, dx_b, dy_f, dy_b, dz_f, dz_b, sdx, sdy, sdz ;
-  float   mag_scale, dt, e_diffusion, e_curv ;
+  double  mag_scale, dt, e_diffusion, e_curv ;
+  float   f ;
   BUFTYPE src, src_xp1, src_xm1, src_yp1, src_ym1, src_zp1, src_zm1 ;
+  char    *cp ;
 
-{
-  char *cp ;
   cp = getenv("WRITE_ITER") ;
   write_iter = WRITE_ITER ;
   if (cp)
@@ -67,49 +67,46 @@ MRIfill(MRI *mri_src, MRI *mri_distance, int x0, int y0, int z0, int niter)
   cp = getenv("MAG_SCALE") ;
   mag_scale = MAG_SCALE ;
   if (cp)
-    sscanf(cp, "%f", &mag_scale) ;
+    sscanf(cp, "%lf", &mag_scale) ;
   cp = getenv("E_DIFFUSION") ;
   e_diffusion = E_DIFFUSION ;
   if (cp)
-    sscanf(cp, "%f", &e_diffusion) ;
+    sscanf(cp, "%lf", &e_diffusion) ;
   cp = getenv("E_CURV") ;
   e_curv = E_CURV ;
   if (cp)
-    sscanf(cp, "%f", &e_curv) ;
+    sscanf(cp, "%lf", &e_curv) ;
   cp = getenv("DT") ;
   dt = DT ;
   if (cp)
-    sscanf(cp, "%f", &dt) ;
-}
+    sscanf(cp, "%lf", &dt) ;
 
-fprintf(stderr, "mag_scale = %2.1f, e_curv = %2.4f, e_diffusion = %2.4f, "
-        "dt=%2.2f\n", mag_scale, e_curv, e_diffusion, dt) ;
+  fprintf(stderr, "mag_scale = %2.1f, e_curv = %2.4f, e_diffusion = %2.4f, "
+          "dt=%2.2f\n", mag_scale, e_curv, e_diffusion, dt) ;
   width = mri_src->width ;
   height = mri_src->height ;
   depth = mri_src->depth ;
 
-  if (x0 < 0)
-    x0 = (width-1)/2 ;
-  if (y0 < 0)
-    y0 = (height-1)/2 ;
-  if (z0 < 0)
-    z0 = (depth-1)/2 ;
+  if (x0 < 0.0f)
+    x0 = (float)(width-1)/2.0f ;
+  if (y0 < 0.0f)
+    y0 = (float)(height-1)/2.0f ;
+  if (z0 < 0.0f)
+    z0 = (float)(depth-1)/2.0f ;
 
   if (!mri_distance)
-    mri_distance = MRIbuildDistanceMap(mri_src, NULL, x0, y0, z0) ;
+    mri_distance = MRIbuildDistanceMap(mri_src, NULL, x0, y0, z0, 2.0f) ;
   
   for (t = 0 ; t < niter ; t++)
   {
     fprintf(stderr, "\r%4.4d     ", t) ;
-    if (!(t % write_iter))
+    if (!(t % write_iter) && (Gdiag & DIAG_WRITE))
     {
       char fname[100] ;
       MRI  *mri_interior ;
 
-#if 0     
       sprintf(fname, "dist%d.mnc", t/write_iter) ;
       MRIwrite(mri_distance, fname) ;
-#endif
       sprintf(fname, "front%d.mnc", t/write_iter) ;
       mri_interior = MRIextractInterior(mri_src, mri_distance, NULL) ;
       MRIwrite(mri_interior, fname) ;
@@ -123,15 +120,10 @@ fprintf(stderr, "mag_scale = %2.1f, e_curv = %2.4f, e_diffusion = %2.4f, "
       {
         yp1 = mri_src->yi[y+1] ;
         ym1 = mri_src->yi[y-1] ;
-#if 0
-        pmag = &MRIFvox(mri_mag, 0, y, z) ;
-#endif
         for (x = 0 ; x < width ; x++)
         {
-          dist = (double)MRIFvox(mri_distance, x, y, z) ;
-#if 0
-          mag = (double)*pmag++ ;
-#endif
+          f = MRIFvox(mri_distance, x, y, z) ;
+          dist = (double)f ;
           if (dist > MIN_DIST)
             continue ;
 
@@ -182,20 +174,20 @@ fprintf(stderr, "mag_scale = %2.1f, e_curv = %2.4f, e_diffusion = %2.4f, "
           
           denom = dx*dx + dy*dy + dz*dz ;
           grad = sqrt(denom) ;
-          denom = pow(denom, 3.0f/2.0f) ;
-          if (denom==0.0f)
-            km = 0.0f ;
+          denom = pow(denom, 3.0/2.0) ;
+          if (DZERO(denom))
+            km = 0.0 ;
           else
             km = 
               ((dyy+dzz)*SQR(dx) +
                (dxx+dzz)*SQR(dy) +
                (dxx+dyy)*SQR(dz) -
-               2.0f * (dx*dy*dxy + dx*dz*dxz + dy*dz*dyz)) / denom ;
+               2.0 * (dx*dy*dxy + dx*dz*dxz + dy*dz*dyz)) / denom ;
           if (!finite(km))
-            km = 0.0f ;
+            km = 0.0 ;
 
           /* speed function F based on normal and curvature */
-          F = 1.0f - km*(double)e_curv ;   
+          F = 1.0 - km * e_curv ;   
 
           /* modify it by gradient magnitude in source image */
           src = MRIvox(mri_src, x, y, z) ;
@@ -221,28 +213,40 @@ fprintf(stderr, "mag_scale = %2.1f, e_curv = %2.4f, e_diffusion = %2.4f, "
    the derivatives using information from the direction of the front,
    not away from it.
 */
-          if (dx > 0.0f)
+          if (dx > 0.0)
             sdx = dx_b ;
           else
             sdx = dx_f ;
-          if (dy > 0.0f)
+          if (dy > 0.0)
             sdy = dy_b ;
           else
             sdy = dy_f ;
-          if (dz > 0.0f)   /* information coming from behind us */
+          if (dz > 0.0)   /* information coming from behind us */
             sdz = dz_b ;
           else             /* information coming from in front of us */
             sdz = dz_f ;
           mag = sqrt(sdx*sdx+sdy*sdy+sdz*sdz) ;
-          F *= 1.0f / (1.0f + (double)mag_scale*mag) ; 
-          dist += (double)dt * ((double)e_diffusion*laplacian-F*grad) ;
-          MRIFvox(mri_distance, x, y, z) = dist ;
+          F *= 1.0 / (1.0 + mag_scale*mag) ; 
+          dist += dt * (e_diffusion * laplacian - F * grad) ;
+          MRIFvox(mri_distance, x, y, z) = (float)dist ;
         }
       }
     }
     MRIupdateDistanceMap(mri_distance) ;
   }
 
+  if (Gdiag & DIAG_WRITE)
+  {
+    char fname[100] ;
+    MRI  *mri_interior ;
+    
+    sprintf(fname, "dist%d.mnc", t/write_iter) ;
+    MRIwrite(mri_distance, fname) ;
+    sprintf(fname, "front%d.mnc", t/write_iter) ;
+    mri_interior = MRIextractInterior(mri_src, mri_distance, NULL) ;
+    MRIwrite(mri_interior, fname) ;
+    MRIfree(&mri_interior) ;
+  }
   fprintf(stderr, "\n") ;
   return(mri_distance) ;
 }
@@ -252,10 +256,11 @@ fprintf(stderr, "mag_scale = %2.1f, e_curv = %2.4f, e_diffusion = %2.4f, "
            Description:
 ----------------------------------------------------------------------*/
 MRI *
-MRIbuildDistanceMap(MRI *mri_src, MRI *mri_distance, int x0, int y0, int z0)
+MRIbuildDistanceMap(MRI *mri_src, MRI *mri_distance, float x0, float y0, 
+                    float z0, float r)
 {
   int   width, height, depth, x, y, z ;
-  float dist, xdist, ydist, zdist ;
+  float dist, xdist, ydist, zdist, norm ;
 
   width = mri_src->width ;
   height = mri_src->height ;
@@ -269,39 +274,17 @@ MRIbuildDistanceMap(MRI *mri_src, MRI *mri_distance, int x0, int y0, int z0)
     {
       for (x = 0 ; x < width ; x++)
       {
-        if (x < x0)
-          xdist = (float)(x-(x0-1)) ;
+        xdist = (float)x-x0 ; ydist = (float)y-y0 ; zdist = (float)z-z0 ;
+        norm = sqrt(xdist*xdist + ydist*ydist + zdist*zdist) ;
+        if (FZERO(norm))
+          dist = -r ;
         else
-          xdist = (float)(x-(x0+1)) ;
-        if (y < y0)
-          ydist = (float)(y-(y0-1)) ;
-        else
-          ydist = (float)(y-(y0+1)) ;
-        if (z < z0)
-          zdist = (float)(z-(z0-1)) ;
-        else
-          zdist = (float)(z-(z0+1)) ;
-/*
-        xdist = (float)(x-x0) ; ydist = (float)(y-y0) ; zdist = (float)(z-z0) ;
-*/
-        dist = sqrt(xdist*xdist + ydist*ydist + zdist*zdist) ;
+          dist = 1.0f - r / norm ;
         MRIFvox(mri_distance, x, y, z) = dist ;
       }
     }
   }
 
-  MRIFvox(mri_distance, x0, y0, z0) = -1.0f ;
-  for (z = -1 ; z <= 1 ; z++)
-  {
-    for (y = -1 ; y <= 1 ; y++)
-    {
-      for (x = -1 ; x <= 1 ; x++)
-      {
-        if (x || y || z)
-          MRIFvox(mri_distance, x0+x, y0+y, z0+z) = 0.0f ;
-      }
-    }
-  }
   return(mri_distance) ;
 }
 /*----------------------------------------------------------------------
