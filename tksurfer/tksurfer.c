@@ -182,6 +182,12 @@ int Blt_SafeInit ( Tcl_Interp* interp );
 #ifndef Tix_SafeInit
 int Tix_SafeInit ( Tcl_Interp* interp );
 #endif 
+
+/* We have to do this for gcc 2.96 because this function is defined
+   (in fsgdf_wrap.c) using a #define macro. */
+#ifndef Fsgdf_Init
+int Fsgdf_Init ( Tcl_Interp* interp );
+#endif 
 /* end rkt */
 
 #ifndef TCL
@@ -18220,7 +18226,7 @@ int main(int argc, char *argv[])   /* new main */
   /* end rkt */
   
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: tksurfer.c,v 1.77 2004/09/23 21:15:37 kteich Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: tksurfer.c,v 1.78 2004/09/24 14:56:59 kteich Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
