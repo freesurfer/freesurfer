@@ -202,6 +202,7 @@ static int   mrisComputeIntensityGradientTerm(MRI_SURFACE*mris,
                                               MRI *mri_brain, MRI *mri_smooth);
 static int   mrisComputeSphereTerm(MRI_SURFACE *mris, double l_sphere, 
                                    float radius) ;
+static int   mrisComputeConvexityTerm(MRI_SURFACE *mris, double l_convex) ;
 static int   mrisComputeExpansionTerm(MRI_SURFACE *mris, double l_expand) ;
 static int   mrisComputeDistanceTerm(MRI_SURFACE *mris, 
                                               INTEGRATION_PARMS *parms) ;
@@ -4097,7 +4098,7 @@ MRISunfold(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int max_passes)
 MRI_SURFACE *
 MRISquickSphere(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int max_passes)
 {
-  int     base_averages, niter, passno, msec, nbrs[MAX_NBHD_SIZE],i,use_dists;
+  int     niter, passno, msec, nbrs[MAX_NBHD_SIZE],i,use_dists, base_averages ;
   double  pct_error ;
   struct  timeb start ;
   
@@ -4168,6 +4169,7 @@ MRISquickSphere(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int max_passes)
    the error has asymptoted.
 */
   base_averages = parms->n_averages ;
+  parms->flags |= IP_RETRY_INTEGRATION ;
   niter = parms->niterations ;
   passno = 0 ;
 #if 1
@@ -4555,9 +4557,27 @@ mrisIntegrationEpoch(MRI_SURFACE *mris, INTEGRATION_PARMS *parms,int base_averag
   {
     parms->n_averages = n_averages ;
     steps = MRISintegrate(mris, parms, n_averages) ;
+    if (n_averages > 0 && parms->flags & IP_RETRY_INTEGRATION && 
+        ((parms->integration_type == INTEGRATE_LINE_MINIMIZE) ||
+        (parms->integration_type == INTEGRATE_LM_SEARCH)))
+    {
+      int niter = parms->niterations ;
+      int integration_type = parms->integration_type ;
+
+      fprintf(stderr, "probing for local minimum found - taking momentum steps...\n") ;
+      parms->integration_type = INTEGRATE_MOMENTUM ; parms->niterations = 10 ;
+      parms->start_t += steps ;
+      total_steps += steps ;
+      steps = MRISintegrate(mris, parms, n_averages) ;
+      parms->integration_type = integration_type ;
+      parms->niterations = niter ;
+      parms->start_t += steps ;
+      total_steps += steps ;
+      steps = MRISintegrate(mris, parms, n_averages) ;
+    }
     parms->start_t += steps ;
     total_steps += steps ;
-    done = n_averages == 0 ;    /* finished integrating at smallest scale */
+    done = n_averages == parms->min_averages ;
     if (mris->status == MRIS_SPHERE)
     {
       if (Gdiag & DIAG_SHOW)
@@ -9254,8 +9274,8 @@ MRISinflateBrain(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
 int
 MRISinflateToSphere(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
 {
-  int     n_averages, n, write_iterations, niterations ;
-  double  delta_t = 0.0, rms_radial_error, sse ;
+  int     n_averages, n, write_iterations, niterations, base_averages ;
+  double  delta_t = 0.0, rms_radial_error, sse, base_dt ;
 
   if (IS_QUADRANGULAR(mris))
     MRISremoveTriangleLinks(mris) ;
@@ -9333,60 +9353,69 @@ MRISinflateToSphere(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
     MRISclearCurvature(mris) ;   /* curvature will be used to calculate sulc */
   }
 
-  for (n = parms->start_t ; n < parms->start_t+niterations ; n++)
+  base_averages = parms->n_averages ; base_dt = parms->dt ;
+  for (n_averages = base_averages ; n_averages >= 0 ; n_averages /= 4)
   {
-    mrisClearGradient(mris) ;
-    mrisComputeDistanceTerm(mris, parms) ;
-    mrisComputeSphereTerm(mris, parms->l_sphere, parms->a) ;
-    mrisComputeExpansionTerm(mris, parms->l_expand) ;
-    
-    mrisAverageGradients(mris, n_averages) ;
-    mrisComputeSpringTerm(mris, parms->l_spring) ;
-    mrisComputeNormalizedSpringTerm(mris, parms->l_spring_norm) ;
-    switch (parms->integration_type)
+    parms->n_averages = n_averages ;
+    /*    parms->dt = (sqrt((float)n_averages)+1)*base_dt ;*/
+    for (n = parms->start_t ; n < parms->start_t+niterations ; n++)
     {
-    case INTEGRATE_LM_SEARCH:
-      delta_t = mrisLineMinimizeSearch(mris, parms) ;
-      break ;
-    default:
-    case INTEGRATE_LINE_MINIMIZE:
-      delta_t = mrisLineMinimize(mris, parms) ;
-      break ;
-    case INTEGRATE_MOMENTUM:
-      delta_t = mrisMomentumTimeStep(mris, parms->momentum, parms->dt, 
-                                     parms->tol, 0/*parms->n_averages*/) ;
-      break ;
-    case INTEGRATE_ADAPTIVE:
-      mrisAdaptiveTimeStep(mris, parms);
-      break ;
-    }
-    mrisTrackTotalDistance(mris) ;  /* update sulc */
-    MRIScomputeMetricProperties(mris) ; 
-    sse = mrisComputeSSE(mris, parms) ;
-    rms_radial_error = 
-      sqrt(mrisComputeSphereError(mris, 1.0, parms->a)/mris->nvertices);
-    if (!((n+1) % 5))     /* print some diagnostics */
-    {
-      fprintf(stderr, 
-              "%3.3d: dt: %2.4f, rms radial error=%2.3f, avgs=%d\n", 
-              n+1,(float)delta_t, (float)rms_radial_error, n_averages);
-      if (Gdiag & DIAG_WRITE)
+      mrisClearGradient(mris) ;
+      mrisComputeDistanceTerm(mris, parms) ;
+      mrisComputeSphereTerm(mris, parms->l_sphere, parms->a) ;
+      mrisComputeExpansionTerm(mris, parms->l_expand) ;
+      
+      mrisAverageGradients(mris, n_averages) ;
+      mrisComputeSpringTerm(mris, parms->l_spring) ;
+      mrisComputeNormalizedSpringTerm(mris, parms->l_spring_norm) ;
+      mrisComputeConvexityTerm(mris, parms->l_convex) ;
+      switch (parms->integration_type)
       {
-        fprintf(parms->fp, 
+      case INTEGRATE_LM_SEARCH:
+        delta_t = mrisLineMinimizeSearch(mris, parms) ;
+        break ;
+      default:
+      case INTEGRATE_LINE_MINIMIZE:
+        delta_t = mrisLineMinimize(mris, parms) ;
+        break ;
+      case INTEGRATE_MOMENTUM:
+        delta_t = mrisMomentumTimeStep(mris, parms->momentum, parms->dt, 
+                                       parms->tol, 0/*parms->n_averages*/) ;
+        break ;
+      case INTEGRATE_ADAPTIVE:
+        mrisAdaptiveTimeStep(mris, parms);
+        break ;
+      }
+      mrisTrackTotalDistance(mris) ;  /* update sulc */
+      MRIScomputeMetricProperties(mris) ; 
+      sse = mrisComputeSSE(mris, parms) ;
+      rms_radial_error = 
+        sqrt(mrisComputeSphereError(mris, 1.0, parms->a)/mris->nvertices);
+      if (!((n+1) % 5))     /* print some diagnostics */
+      {
+        fprintf(stderr, 
                 "%3.3d: dt: %2.4f, rms radial error=%2.3f, avgs=%d\n", 
                 n+1,(float)delta_t, (float)rms_radial_error, n_averages);
-        fflush(parms->fp) ;
+        if (Gdiag & DIAG_WRITE)
+        {
+          fprintf(parms->fp, 
+                  "%3.3d: dt: %2.4f, rms radial error=%2.3f, avgs=%d\n", 
+                  n+1,(float)delta_t, (float)rms_radial_error, n_averages);
+          fflush(parms->fp) ;
+        }
       }
+      
+      if ((parms->write_iterations > 0) &&
+          !((n+1)%write_iterations)&&(Gdiag&DIAG_WRITE))
+        mrisWriteSnapshot(mris, parms, n+1) ;
+      if (100.0*rms_radial_error/parms->a < parms->tol)
+        break ;
     }
-
-    if ((parms->write_iterations > 0) &&
-        !((n+1)%write_iterations)&&(Gdiag&DIAG_WRITE))
-      mrisWriteSnapshot(mris, parms, n+1) ;
-    if (100.0*rms_radial_error/parms->a < parms->tol)
+    parms->start_t = n ;
+    if (!n_averages || (100.0*rms_radial_error/parms->a < parms->tol))
       break ;
   }
 
-  parms->start_t = n ;
   fprintf(stderr, "\nspherical inflation complete.\n") ;
   if (Gdiag & DIAG_WRITE)
   {
@@ -10209,6 +10238,73 @@ mrisComputeCurvatureTerm(MRI_SURFACE *mris, double l_curv)
   return(NO_ERROR) ;
 }
 #endif
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+        File Format is:
+
+        name x y z
+------------------------------------------------------*/
+static int
+mrisComputeConvexityTerm(MRI_SURFACE *mris, double l_convex)
+{
+  int     vno, n, m ;
+  VERTEX  *vertex, *vn ;
+  float   sx, sy, sz, nx, ny, nz, nc, x, y, z ;
+
+  if (FZERO(l_convex))
+    return(NO_ERROR) ;
+
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    vertex = &mris->vertices[vno] ;
+    if (vertex->ripflag)
+      continue ;
+    if (vno == Gdiag_no)
+      DiagBreak() ;
+
+    nx = vertex->nx ; ny = vertex->ny ; nz = vertex->nz ;
+    x = vertex->x ;    y = vertex->y ;   z = vertex->z ;
+
+    sx = sy = sz = 0.0 ;
+    n=0;
+    for (m = 0 ; m < vertex->vnum ; m++)
+    {
+      vn = &mris->vertices[vertex->v[m]] ;
+      if (!vn->ripflag)
+      {
+        sx += vn->x - x;
+        sy += vn->y - y;
+        sz += vn->z - z;
+        n++;
+      }
+    }
+    if (n>0)
+    {
+      sx = sx/n;
+      sy = sy/n;
+      sz = sz/n;
+    }
+    nc = sx*nx+sy*ny+sz*nz;   /* projection onto normal */
+    if (nc < 0)
+      nc = 0 ;
+    sx = nc*nx ;              /* move in normal direction */
+    sy = nc*ny ;
+    sz = nc*nz;
+    
+    vertex->dx += l_convex * sx ;
+    vertex->dy += l_convex * sy ;
+    vertex->dz += l_convex * sz ;
+    if (vno == Gdiag_no)
+      fprintf(stderr, "v %d convexity term: (%2.3f, %2.3f, %2.3f)\n",
+              vno, vertex->dx, vertex->dy, vertex->dz) ;
+  }
+
+  return(NO_ERROR) ;
+}
 /*-----------------------------------------------------
         Parameters:
 
@@ -11283,6 +11379,8 @@ mrisLogIntegrationParms(FILE *fp, MRI_SURFACE *mris,INTEGRATION_PARMS *parms)
     fprintf(fp, ", l_expand=%2.4f", parms->l_expand) ;
   if (!FZERO(parms->l_curv))
     fprintf(fp, ", l_curv=%2.4f", parms->l_curv) ;
+  if (!FZERO(parms->l_convex))
+    fprintf(fp, ", l_convex=%2.4f", parms->l_convex) ;
   if (!FZERO(parms->l_boundary))
     fprintf(fp, ", l_boundary=%2.4f", parms->l_boundary) ;
   if (!FZERO(parms->l_neg))
@@ -18003,9 +18101,11 @@ mrisComputeSphereError(MRI_SURFACE *mris, double l_sphere, double r0)
     
     del = r0 - r ;
     sse += (del * del) ;
+#if 0
     if (vno == Gdiag_no)
       fprintf(stderr, "v %d sphere term: (%2.3f, %2.3f, %2.3f)\n",
               vno, v->dx, v->dy, v->dz) ;
+#endif
   }
   
   return(l_sphere * sse) ;
@@ -18376,8 +18476,9 @@ mrisReadTriangleFilePositions(MRI_SURFACE *mris, char *fname)
   nfaces = freadInt(fp);  
 
   if (nvertices != mris->nvertices || nfaces != mris->nfaces)
-    ErrorExit(ERROR_BADPARM, "mrisReadTriangleFile(%s): surface doesn't match %s\n",
-              fname, mris->fname) ;
+    ErrorReturn(ERROR_BADPARM, 
+                (ERROR_BADPARM, "mrisReadTriangleFile(%s): surface doesn't match %s\n",
+                 fname, mris->fname)) ;
 
   if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
     fprintf(stderr,"surface %s: %d vertices and %d faces.\n",
