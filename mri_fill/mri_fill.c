@@ -22,7 +22,7 @@
 #include "transform.h"
 #include "talairachex.h"
 
-static char vcid[] = "$Id: mri_fill.c,v 1.79 2004/07/29 15:07:24 tosa Exp $";
+static char vcid[] = "$Id: mri_fill.c,v 1.80 2004/07/29 15:57:39 tosa Exp $";
 
 
 /*-------------------------------------------------------------------
@@ -308,7 +308,7 @@ main(int argc, char *argv[])
   // Gdiag = 0xFFFFFFFF;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_fill.c,v 1.79 2004/07/29 15:07:24 tosa Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_fill.c,v 1.80 2004/07/29 15:57:39 tosa Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -1087,6 +1087,7 @@ main(int argc, char *argv[])
       MRIfree(&mri_talheader);
 
       fprintf(stderr, "badRH = %d/%d, badLH=%d/%d\n", badRH, totRH, badLH, totLH);
+      errno = 0; // otherwise it will print standard error
       ErrorExit(ERROR_BADPARM, "Please check filled volume.  Cerebellum may be included.\n");
     }
   }
