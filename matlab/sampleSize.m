@@ -29,7 +29,7 @@ if nargin < 5,
     alternative = 'two-sided';
 end;
     
-if strcmp(alternative, 'one_sided'),
+if strcmp(alternative, 'one-sided'),
     disp('assuming one-sided t-test');
     alpha = alpha;
 else,
