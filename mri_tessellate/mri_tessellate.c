@@ -2,9 +2,9 @@
 // mri_tessellate.c
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2003/01/31 17:46:08 $
-// Revision       : $Revision: 1.14 $
+// Revision Author: $Author: kteich $
+// Revision Date  : $Date: 2003/04/16 18:00:49 $
+// Revision       : $Revision: 1.15 $
 //
 //
 // How it works.
@@ -54,7 +54,7 @@
 //    for xx1 = (width/2)*ps , yy0 = - (depth/2)*st, zz1 = (height/2)*ps.
 //
 //  
-char *MRI_TESSELLATE_VERSION = "$Revision: 1.14 $";
+char *MRI_TESSELLATE_VERSION = "$Revision: 1.15 $";
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -67,6 +67,7 @@ char *MRI_TESSELLATE_VERSION = "$Revision: 1.14 $";
 #include "macros.h"
 #include "error.h"
 #include "MRIio_old.h"
+#include "version.h"
 
 #define SQR(x) ((x)*(x))
 #define IMGSIZE     256
@@ -136,6 +137,12 @@ main(int argc, char *argv[])
 {
   char ifpref[STRLEN],ofpref[STRLEN] /*,*data_dir*/;
   int  nargs ;
+
+  /* rkt: check for and handle version tag */
+  nargs = handle_version_option (argc, argv, "$Id: mri_tessellate.c,v 1.15 2003/04/16 18:00:49 kteich Exp $");
+  if (nargs && argc - nargs == 1)
+    exit (0);
+  argc -= nargs;
 
   DiagInit(NULL, NULL, NULL) ;
   ErrorInit(NULL, NULL, NULL) ;

@@ -11,6 +11,7 @@
 #include "proto.h"
 #include "classify.h"
 #include "gcarray.h"
+#include "version.h"
 
 static int features = FEATURE_INTENSITY | FEATURE_MEAN3 | FEATURE_DIRECTION |
                         FEATURE_CPOLV_MEDIAN5 ;
@@ -41,6 +42,12 @@ main(int argc, char *argv[])
   MRIC    *mric ;
   char    *training_file_name, *output_file_name ;
   int     nargs, error, i ;
+
+  /* rkt: check for and handle version tag */
+  nargs = handle_version_option (argc, argv, "$Id: mri_train.c,v 1.17 2003/04/16 18:01:32 kteich Exp $");
+  if (nargs && argc - nargs == 1)
+    exit (0);
+  argc -= nargs;
 
   Progname = argv[0] ;
   DiagInit(NULL, NULL, NULL) ;

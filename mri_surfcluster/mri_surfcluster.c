@@ -4,7 +4,7 @@
   email:   analysis-bugs@nmr.mgh.harvard.edu
   Date:    2/27/02
   Purpose: Finds clusters on the surface.
-  $Id: mri_surfcluster.c,v 1.6 2002/10/23 15:56:56 fischl Exp $
+  $Id: mri_surfcluster.c,v 1.7 2003/04/16 17:58:52 kteich Exp $
 */
 
 #include <stdio.h>
@@ -27,6 +27,7 @@
 #include "volcluster.h"
 #include "surfcluster.h"
 #include "transform.h"
+#include "version.h"
 
 static int  parse_commandline(int argc, char **argv);
 static void check_options(void);
@@ -44,7 +45,7 @@ static MATRIX *LoadxfmMatrix(char *xfmfile);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_surfcluster.c,v 1.6 2002/10/23 15:56:56 fischl Exp $";
+static char vcid[] = "$Id: mri_surfcluster.c,v 1.7 2003/04/16 17:58:52 kteich Exp $";
 char *Progname = NULL;
 
 char *subjectdir = NULL;
@@ -108,6 +109,13 @@ int main(int argc, char **argv)
   int  n,NClusters,vtx;
   FILE *fp;
   float totarea;
+  int nargs;
+
+  /* rkt: check for and handle version tag */
+  nargs = handle_version_option (argc, argv, "$Id: mri_surfcluster.c,v 1.7 2003/04/16 17:58:52 kteich Exp $");
+  if (nargs && argc - nargs == 1)
+    exit (0);
+  argc -= nargs;
 
   Progname = argv[0] ;
   argc --;
@@ -681,7 +689,7 @@ static void print_help(void)
 "summary file is shown below.\n"
 "\n"
 "Cluster Growing Summary (mri_surfcluster)\n"
-"$Id: mri_surfcluster.c,v 1.6 2002/10/23 15:56:56 fischl Exp $\n"
+"$Id: mri_surfcluster.c,v 1.7 2003/04/16 17:58:52 kteich Exp $\n"
 "Input :      minsig-0-lh.w\n"
 "Frame Number:      0\n"
 "Minimum Threshold: 5\n"

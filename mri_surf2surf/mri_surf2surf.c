@@ -1,6 +1,6 @@
 /*----------------------------------------------------------
   Name: mri_surf2surf.c
-  $Id: mri_surf2surf.c,v 1.10 2002/10/23 15:56:48 fischl Exp $
+  $Id: mri_surf2surf.c,v 1.11 2003/04/16 17:57:22 kteich Exp $
   Author: Douglas Greve
   Purpose: Resamples data from one surface onto another. If
   both the source and target subjects are the same, this is
@@ -30,6 +30,7 @@
 #include "resample.h"
 #include "selxavgio.h"
 #include "prime.h"
+#include "version.h"
 
 static int  parse_commandline(int argc, char **argv);
 static void check_options(void);
@@ -46,7 +47,7 @@ int GetNVtxsFromValFile(char *filename, char *fmt);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_surf2surf.c,v 1.10 2002/10/23 15:56:48 fischl Exp $";
+static char vcid[] = "$Id: mri_surf2surf.c,v 1.11 2003/04/16 17:57:22 kteich Exp $";
 char *Progname = NULL;
 
 char *surfreg = "sphere.reg";
@@ -105,6 +106,13 @@ int main(int argc, char **argv)
   int nTrg121,nSrc121,nSrcLost;
   int nTrgMulti,nSrcMulti;
   float MnTrgMultiHits,MnSrcMultiHits;
+  int nargs;
+
+  /* rkt: check for and handle version tag */
+  nargs = handle_version_option (argc, argv, "$Id: mri_surf2surf.c,v 1.11 2003/04/16 17:57:22 kteich Exp $");
+  if (nargs && argc - nargs == 1)
+    exit (0);
+  argc -= nargs;
 
   Progname = argv[0] ;
   argc --;

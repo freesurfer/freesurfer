@@ -4,7 +4,7 @@
   email:   analysis-bugs@nmr.mgh.harvard.edu
   Date:    2/27/02
   Purpose: converts values on a surface to a volume
-  $Id: mri_surf2vol.c,v 1.4 2002/10/23 15:56:52 fischl Exp $
+  $Id: mri_surf2vol.c,v 1.5 2003/04/16 17:58:06 kteich Exp $
 */
 
 #include <stdio.h>
@@ -25,6 +25,7 @@
 #include "MRIio_old.h"
 #include "registerio.h"
 #include "resample.h"
+#include "version.h"
 
 static int  parse_commandline(int argc, char **argv);
 static void check_options(void);
@@ -41,7 +42,7 @@ static int istringnmatch(char *str1, char *str2, int n);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_surf2vol.c,v 1.4 2002/10/23 15:56:52 fischl Exp $";
+static char vcid[] = "$Id: mri_surf2vol.c,v 1.5 2003/04/16 17:58:06 kteich Exp $";
 char *Progname = NULL;
 
 int debug = 0, gdiagno = -1;
@@ -92,6 +93,13 @@ int main(int argc, char **argv)
   float ipr, bpr, intensity;
   int float2int, err, vtx;
   char fname[2000];
+  int nargs;
+
+  /* rkt: check for and handle version tag */
+  nargs = handle_version_option (argc, argv, "$Id: mri_surf2vol.c,v 1.5 2003/04/16 17:58:06 kteich Exp $");
+  if (nargs && argc - nargs == 1)
+    exit (0);
+  argc -= nargs;
 
   Progname = argv[0] ;
   argc --;
