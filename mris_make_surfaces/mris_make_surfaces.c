@@ -17,7 +17,7 @@
 #include "version.h"
 #include "label.h"
 
-static char vcid[] = "$Id: mris_make_surfaces.c,v 1.54 2004/11/15 19:18:59 fischl Exp $";
+static char vcid[] = "$Id: mris_make_surfaces.c,v 1.55 2005/01/05 14:51:35 tosa Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -150,7 +150,7 @@ main(int argc, char *argv[])
   M3D           *m3d ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_make_surfaces.c,v 1.54 2004/11/15 19:18:59 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_make_surfaces.c,v 1.55 2005/01/05 14:51:35 tosa Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -233,9 +233,7 @@ main(int argc, char *argv[])
   sprintf(fname, "%s/%s/mri/%s", sdir, sname, T1_name) ;
   if(MGZ) sprintf(fname, "%s.mgz",fname);
   fprintf(stderr, "reading volume %s...\n", fname) ;
-  // mri_T1 = mri_T1_pial = MRIread(fname) ; 
-  mri_T1 = MRIread(fname);
-  mri_T1_pial = MRIread(fname); // cached volume
+  mri_T1 = mri_T1_pial = MRIread(fname) ; 
 
   if (!mri_T1)
     ErrorExit(ERROR_NOFILE, "%s: could not read input volume %s",
@@ -404,15 +402,15 @@ main(int argc, char *argv[])
     ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s",
               Progname, fname) ;
 
-	inverted_contrast = (check_contrast_direction(mris,mri_T1) < 0) ;
-	if (inverted_contrast)
-	{
-		printf("inverted contrast detected....\n") ;
-	}
-	if (highres_label)
-	{
-		LabelRipRestOfSurface(highres_label, mris) ;
-	}
+  inverted_contrast = (check_contrast_direction(mris,mri_T1) < 0) ;
+  if (inverted_contrast)
+  {
+    printf("inverted contrast detected....\n") ;
+  }
+  if (highres_label)
+  {
+    LabelRipRestOfSurface(highres_label, mris) ;
+  }
   if (smooth && !nowhite)
   {
     printf("smoothing surface for %d iterations...\n", smooth) ;
@@ -535,7 +533,8 @@ main(int argc, char *argv[])
     if (write_vals)
     {
       sprintf(fname, "./%s-white%2.2f.w", hemi, current_sigma) ;
-      MRISwriteValues(mris, fname) ;
+      //MRISwriteValues(mris, fname) ;
+      MRISwrite(mris, fname);
     }
     MRISpositionSurface(mris, mri_T1, mri_smooth,&parms);
     if (add)
@@ -606,6 +605,9 @@ main(int argc, char *argv[])
     exit(0) ;
   }
 
+  //////////////////////////////////////////////////////////////////////////////
+  // pial surface
+  /////////////////////////////////////////////////////////////////////////////
   parms.t = parms.start_t = 0 ;
   sprintf(parms.base_name, "%s%s%s", pial_name, output_suffix, suffix) ;
   parms.niterations = ngray ;
@@ -629,8 +631,7 @@ main(int argc, char *argv[])
       ErrorExit(Gerror, "reading orig pial positions failed") ;
   }
   /*    parms.l_convex = 1000 ;*/
-  MRIfree(&mri_T1);
-  mri_T1 = mri_T1_pial ; // swap
+  mri_T1 = mri_T1_pial ; 
   for (j = 0 ; j <= 0 ; parms.l_intensity *= 2, j++)  /* only once for now */
   {
     current_sigma = pial_sigma ;
