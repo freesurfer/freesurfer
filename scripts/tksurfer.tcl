@@ -1037,7 +1037,7 @@ proc DoSendToSubjectDlog {} {
   tkm_MakeEntry $fwSubject "Subject: " sSubject 20
 
   # buttons.
-  tkm_MakeCancelOKButtons $fwButtons $wwDialog \
+  tkm_MakeApplyCloseButtons $fwButtons $wwDialog \
     { send_to_subject $sSubject } {}
 
   pack $fwMain $fwSubject $fwButtons \
