@@ -3,9 +3,9 @@
 // original: written by Bruce Fischl (Apr 16, 1997)
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2004/04/26 16:31:24 $
-// Revision       : $Revision: 1.89 $
+// Revision Author: $Author: greve $
+// Revision Date  : $Date: 2004/05/18 22:01:17 $
+// Revision       : $Revision: 1.90 $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -220,7 +220,7 @@ int main(int argc, char *argv[])
   nskip = 0;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_convert.c,v 1.89 2004/04/26 16:31:24 tosa Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_convert.c,v 1.90 2004/05/18 22:01:17 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -1643,9 +1643,9 @@ int main(int argc, char *argv[])
   {
     printf("changing data type from %d to %d (noscale = %d)...\n",
            mri->type,template->type,no_scale_flag);
-    mri2 = MRIchangeType(mri, template->type, 0.0, 0.999, no_scale_flag);
+    mri2 = MRISeqchangeType(mri, template->type, 0.0, 0.999, no_scale_flag);
     if(mri2 == NULL) {
-      printf("ERROR: MRIchangeType\n");
+      printf("ERROR: MRISeqchangeType\n");
       exit(1);
     }
     MRIfree(&mri);
