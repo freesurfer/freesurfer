@@ -37,8 +37,6 @@
 /*-----------------------------------------------------
                     STATIC PROTOTYPES
 -------------------------------------------------------*/
-static  void break_here(void) ;
-static  void break_here(void){}
 
 /*----------------------------------------------------------------------
             Parameters:
@@ -1011,19 +1009,8 @@ ImageWrite(Iy, "iy.hipl") ;
       ox = *xpix ;   /* initial offset direction */
       oy = *ypix ;
 
-#if 0
-      if (xs == 29 && ys == 27)
-      {
-        fprintf(stderr, "initial offset: (%2.5f, %2.5f)\n", ox, oy) ;
-        break_here() ;
-      }
-#endif
       dx = *IMAGEFpix(Ix, x0, y0) ;  /* starting gradient values */
       dy = *IMAGEFpix(Iy, x0, y0) ;
-#if 0
-      if (xs == 29 && ys == 27)
-        fprintf(stderr, "initial gradient is (%2.5f, %2.5f)\n", dx, dy) ;
-#endif
 
 #if 0
       if (FZERO(ox) && (FZERO(oy)))
@@ -1075,8 +1062,6 @@ ImageWrite(Iy, "iy.hipl") ;
         x = nint(xf - slope) ;
       }
 
-      if (((x - x0) > maxsteps+1) || ((y-y0) > maxsteps+1))
-        break_here() ;
       *xpix = x - x0 ;
       *ypix = y - y0 ;
     }
@@ -1115,11 +1100,7 @@ ImageWrite(Ioffset2, "offset2.hipl") ;
             xc = 0 ;
           else if (xc >= scols)
             xc = scols - 1 ;
-#if 0            
-          *sptr++ = *IMAGEFseq_pix(inImage, xc, yc, frame) ;
-#else
           *sptr++ = *(spix + xc) ;
-#endif
         }
       }
       qsort(sort_array, 3*3, sizeof(float), compare_sort_array) ;
