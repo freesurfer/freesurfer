@@ -15,7 +15,7 @@
 #include "macros.h"
 #include "oglutil.h"
 
-static char vcid[] = "$Id: mris_show.c,v 1.14 1997/11/01 22:42:28 fischl Exp $";
+static char vcid[] = "$Id: mris_show.c,v 1.15 1997/11/01 23:58:55 fischl Exp $";
 
 
 /*-------------------------------- CONSTANTS -----------------------------*/
@@ -136,7 +136,8 @@ main(int argc, char *argv[])
   if (patch_flag)   /* read in orig surface before reading in patch */
   {
     FileNamePath(surf_fname, path) ;
-    cp = strchr(surf_fname, '.') ;
+    FileNameOnly(surf_fname, name) ;
+    cp = strchr(name, '.') ;
     if (cp)
     {
       strncpy(hemi, cp-2, 2) ;
