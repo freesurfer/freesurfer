@@ -17,7 +17,7 @@
 #include "mrimorph.h"
 #include "mrinorm.h"
 
-static char vcid[] = "$Id: mris_make_surfaces.c,v 1.21 1999/09/17 15:46:35 fischl Exp $";
+static char vcid[] = "$Id: mris_make_surfaces.c,v 1.22 1999/09/28 19:32:59 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -40,6 +40,8 @@ static int smoothwm = 0 ;
 static float sigma = 0.5f ;  /* should be around 1 */
 static int white_only = 0 ;
 static int overlay = 0 ;
+
+static int nbhd_size = 20 ;
 
 static INTEGRATION_PARMS  parms ;
 #define BASE_DT_SCALE    1.0
@@ -405,7 +407,7 @@ main(int argc, char *argv[])
   /*  if (!(parms.flags & IPFLAG_NO_SELF_INT_TEST))*/
   {
     fprintf(stderr, "measuring cortical thickness...\n") ;
-    MRISmeasureCorticalThickness(mris) ;
+    MRISmeasureCorticalThickness(mris, nbhd_size) ;
     fprintf(stderr, 
             "writing cortical thickness estimate to 'thickness' file.\n") ;
     sprintf(fname, "thickness%s", suffix) ;
@@ -455,6 +457,13 @@ get_option(int argc, char *argv[])
     rh_label = atoi(argv[2]) ;
     nargs = 1 ;
     fprintf(stderr,"using %d as fill val for right hemisphere.\n", rh_label);
+  }
+  else if (!strcmp(option, "nbhd_size"))
+  {
+    nbhd_size = atoi(argv[2]) ;
+    nargs = 1 ;
+    fprintf(stderr,"using %d size nbhd for thickness calculation.\n", 
+            nbhd_size);
   }
   else if (!strcmp(option, "lval"))
   {
