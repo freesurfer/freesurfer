@@ -1,11 +1,13 @@
 #ifndef _DICOMRead_H
 #define _DICOMRead_H
 
+
 #include "dicom.h"
 #include "lst.h"
 #include "dicom_objects.h"
 #include "condition.h"
 
+#define Solaris
 
 #define NUMBEROFTAGS 22
 #define SHORTSIZE 16
@@ -168,7 +170,6 @@ char *SiemensAsciiTag(char *dcmfile, char *TagString);
 int dcmGetNCols(char *dcmfile);
 int dcmGetNRows(char *dcmfile);
 int dcmGetVolRes(char *dcmfile, float *ColRes, float *RowRes, float *SliceRes);
-float sdcmMosaicSliceRes(char *dcmfile);
 int dcmImageDirCos(char *dcmfile, 
        float *Vcx, float *Vcy, float *Vcz,
        float *Vrx, float *Vry, float *Vrz);
