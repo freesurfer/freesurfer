@@ -29,7 +29,7 @@
 #include "tiffio.h"
 #include "label.h"
 
-static char vcid[] = "$Id: mris2rgb.c,v 1.21 1998/11/09 21:31:14 fischl Exp $";
+static char vcid[] = "$Id: mris2rgb.c,v 1.22 1999/02/05 17:06:37 fischl Exp $";
 
 /*-------------------------------- CONSTANTS -----------------------------*/
 
@@ -1121,7 +1121,7 @@ save_rgb(char *fname, int width, int height, unsigned short *red,
 #ifdef IRIX
   image = iopen(fname,"w",RLE(1), 3, width, height, 3);
 #else
-  image = iopen(fname,"w",VERBATIM(1), 3, width, height, 3);
+  image = iopen(fname,"w",UNCOMPRESSED(1), 3, width, height, 3);
 #endif
   for(y = 0 ; y < height; y++) 
   {
