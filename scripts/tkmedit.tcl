@@ -1,31 +1,42 @@
 #! /usr/bin/tixwish
 
-# $Id: tkmedit.tcl,v 1.62 2003/08/20 16:22:11 kteich Exp $
+# $Id: tkmedit.tcl,v 1.63 2003/09/03 18:09:36 kteich Exp $
 
 
 source $env(FREESURFER_HOME)/lib/tcl/tkm_common.tcl
 
-foreach sSourceFileName { tkm_wrappers.tcl } {
-
-    set lPath [list "." "../scripts" "$env(FREESURFER_HOME)/lib/tcl"]
-    set bFound 0
-
-    foreach sPath $lPath {
-	
-	if { $bFound == 0 } {
-	    set sFullFileName [ file join $sPath $sSourceFileName ]
-	    set nErr [catch { source $sFullFileName } sResult]
-	    if { $nErr == 0 } {
-		dputs "Reading $sFullFileName"
-		set bFound 1;
-	    }
+# This function finds a file from a list of directories.
+proc FindFile { ifnFile ilDirs } {
+    foreach sPath $ilDirs {
+	set sFullFileName [ file join $sPath $ifnFile ]
+	if { [file readable $sFullFileName] } {
+	    puts "Reading $sFullFileName"
+	    return $sFullFileName
 	}
     }
-    
-    if { $bFound == 0 } {
-	dputs "Couldn't load $sSourceFileName: Not found in $lPath"
-    }
+    puts "Couldn't find $ifnFile: Not in $ilDirs"
+    return ""
 }
+
+# Try to get some default script locations from environment variables.
+set sDefaultScriptsDir ""
+catch { set sDefaultScriptsDir "$env(FREESURFER_HOME)/lib/tcl" }
+set sTkmeditScriptsDir ""
+catch { set sTkmeditScriptsDir "$env(TKMEDIT_SCRIPTS_DIR)" }
+
+# Source the tkm_common.tcl and tkm_wrappers.tcl
+set fnCommon \
+    [FindFile tkm_common.tcl \
+	 [list $sTkmeditScriptsDir "." "../scripts" $sDefaultScriptsDir]]
+if { [string compare $fnCommon ""] == 0 } { exit }
+source $fnCommon
+
+set fnWrappers \
+    [FindFile tkm_wrappers.tcl \
+	 [list $sTkmeditScriptsDir "." "../scripts" $sDefaultScriptsDir]]
+if { [string compare $fnWrappers ""] == 0 } { exit }
+source $fnWrappers
+
 
 # constants
 set ksWindowName "TkMedit Tools"

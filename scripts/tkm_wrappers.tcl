@@ -1,6 +1,6 @@
 #! /usr/bin/tixwish
 
-# $Id: tkm_wrappers.tcl,v 1.25 2003/06/12 01:02:28 kteich Exp $
+# $Id: tkm_wrappers.tcl,v 1.26 2003/09/03 18:09:36 kteich Exp $
 
 # tkm_MakeBigLabel fwFrame "Label Text"
 # tkm_MakeSmallLabel fwFrame "Label Text"
@@ -1618,3 +1618,6 @@ proc ColorPicker_CreateWindow { iID iCallbuckFunction } {
     pack .wwColorPicker.lwInstructions .wwColorPicker.cpwColor \
 	-side top
 }
+
+
+

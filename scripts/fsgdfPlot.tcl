@@ -1,6 +1,6 @@
 #! /usr/bin/tixwish
 
-# $Id: fsgdfPlot.tcl,v 1.7 2003/08/05 19:19:21 kteich Exp $
+# $Id: fsgdfPlot.tcl,v 1.8 2003/09/03 18:09:36 kteich Exp $
 
 package require Tix;
 package require BLT;
@@ -29,30 +29,38 @@ foreach sPath $lPath {
 	puts "Using $fnLibrary"
 	set gbLibLoaded 1
 	break
-    }
+    } 
 }
 if { !$gbLibLoaded } {
     puts "Couldn't load $fnLib."
 }
 
-# Also look for tkUtils.tcl.
-foreach sSourceFileName { tkUtils.tcl } {
-    set lPath [list "." "$env(FREESURFER_HOME)/lib/tcl"]
-    set bFound 0
-    foreach sPath $lPath {
-       if { $bFound == 0 } {
-	    set sFullFileName [ file join $sPath $sSourceFileName ]
-	    set nErr [catch { source $sFullFileName } sResult]
-	    if { $nErr == 0 } {
-		puts "Reading $sFullFileName"
-		set bFound 1;
-	    }
+# This function finds a file from a list of directories.
+proc FindFile { ifnFile ilDirs } {
+    foreach sPath $ilDirs {
+	set sFullFileName [ file join $sPath $ifnFile ]
+	if { [file readable $sFullFileName] } {
+	    puts "Reading $sFullFileName"
+	    return $sFullFileName
 	}
-    }    
-    if { $bFound == 0 } {
-	puts "Couldn't load $sSourceFileName: Not found in $lPath"
     }
+    puts "Couldn't find $ifnFile: Not in $ilDirs"
+    return ""
 }
+
+
+# Also look for tkUtils.tcl.
+set sDefaultScriptsDir ""
+catch { set sDefaultScriptsDir "$env(FREESURFER_HOME)/lib/tcl" }
+set sUtilsDir ""
+catch { set sUtilsDir "$env(TKUTILS_SCRIPTS_DIR)" }
+
+set fnUtils \
+    [FindFile tkUtils.tcl \
+	 [list $sUtilsDir "." "../scripts" $sDefaultScriptsDir]]
+if { [string compare $fnUtils ""] == 0 } { exit }
+source $fnUtils
+
 
 # This is a description of the data arrays used throughout this code.
 # gGDF - information gleaned from the header file.

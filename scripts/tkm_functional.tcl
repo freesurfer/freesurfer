@@ -1,32 +1,8 @@
 #! /usr/bin/tixwish
 
-# $Id: tkm_functional.tcl,v 1.20 2003/08/27 21:33:57 kteich Exp $
+# $Id: tkm_functional.tcl,v 1.21 2003/09/03 18:09:36 kteich Exp $
 
 package require BLT;
-
-source $env(FREESURFER_HOME)/lib/tcl/tkm_common.tcl
-
-foreach sSourceFileName { tkm_wrappers.tcl } {
-
-    set lPath [list "." "../scripts" "$env(FREESURFER_HOME)/lib/tcl"]
-    set bFound 0
-    
-    foreach sPath $lPath {
-  
-  if { $bFound == 0 } {
-      set sFullFileName [ file join $sPath $sSourceFileName ]
-      set nErr [catch { source $sFullFileName } sResult]
-      if { $nErr == 0 } {
-    dputs "Reading $sFullFileName"
-    set bFound 1;
-      }
-  }
-    }
-    
-    if { $bFound == 0 } {
-  dputs "Couldn't load $sSourceFileName: Not found in $lPath"
-    }
-}
 
 # constants
 set ksWindowName "Time Course"
@@ -291,7 +267,7 @@ proc TimeCourse_DrawCurrentTimePoint {} {
     
     # delete the old one
     catch {$gwGraph marker delete currentTimePoint}
-    
+
     # draw a dashed line at current time point
     $gwGraph marker create line \
       -coords [list $gnTimeSecond -Inf $gnTimeSecond Inf] \
@@ -367,6 +343,8 @@ proc Graph_HandleClick { iwGraph inX inY } {
     # get the x coord of the graph and send it to the c code.
     set nSecond [$iwGraph axis invtransform x $inX]
     set nTimePoint [expr [expr $nSecond / $gnTimeResolution] + $gnPreStimPoints]
+
+    puts "sec = $nSecond timeres = $gnTimeResolution prestim $gnPreStimPoints tp = $nTimePoint"
 
     Overlay_SetTimePoint $nTimePoint
 

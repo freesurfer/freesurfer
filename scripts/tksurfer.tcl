@@ -1,37 +1,50 @@
 #! /usr/bin/tixwish
 
-# $Id: tksurfer.tcl,v 1.52 2003/08/25 22:40:28 kteich Exp $
+# $Id: tksurfer.tcl,v 1.53 2003/09/03 18:09:36 kteich Exp $
 
 package require BLT;
 
-source $env(FREESURFER_HOME)/lib/tcl/tkm_common.tcl
-
-foreach sSourceFileName { tkm_wrappers.tcl fsgdfPlot.tcl } {
-
-    set sScriptsDir ""
-    catch { set sScriptsDir "$env(TKSURFER_SCRIPTS_DIR)" }
-    set sMRIDir ""
-    catch { set sMRIDir "$env(FREESURFER_HOME)/lib/tcl" }
-
-    set lPath [list "." $sScriptsDir "../scripts" $sMRIDir]
-    set bFound 0
-
-    foreach sPath $lPath {
-  
-	if { $bFound == 0 } {
-	    set sFullFileName [ file join $sPath $sSourceFileName ]
-	    set nErr [catch { source $sFullFileName } sResult]
-	    if { $nErr == 0 } {
-		dputs "Reading $sFullFileName"
-		set bFound 1;
-	    }
+# This function finds a file from a list of directories.
+proc FindFile { ifnFile ilDirs } {
+    foreach sPath $ilDirs {
+	set sFullFileName [ file join $sPath $ifnFile ]
+	if { [file readable $sFullFileName] } {
+	    puts "Reading $sFullFileName"
+	    return $sFullFileName
 	}
     }
-    
-    if { $bFound == 0 } {
-	dputs "Couldn't load $sSourceFileName: Not found in $lPath"
-    }
+    puts "Couldn't find $ifnFile: Not in $ilDirs"
+    return ""
 }
+
+# Try to get some default script locations from environment variables.
+set sDefaultScriptsDir ""
+catch { set sDefaultScriptsDir "$env(FREESURFER_HOME)/lib/tcl" }
+set sTksurferScriptsDir ""
+catch { set sTksurferScriptsDir "$env(TKSURFER_SCRIPTS_DIR)" }
+set sFsgdfDir ""
+catch { set sFsgdfDir "$env(FSGDF_DIR)" }
+
+# Find the right file names and source them.
+set fnCommon \
+    [FindFile tkm_common.tcl \
+	 [list $sTksurferScriptsDir "." "../scripts" $sDefaultScriptsDir]]
+if { [string compare $fnCommon ""] == 0 } { exit }
+source $fnCommon
+
+set fnWrappers \
+    [FindFile tkm_wrappers.tcl \
+	 [list $sTksurferScriptsDir "." "../scripts" $sDefaultScriptsDir]]
+if { [string compare $fnWrappers ""] == 0 } { exit }
+source $fnWrappers
+
+set fnFsgdf \
+    [FindFile fsgdfPlot.tcl \
+	 [list $sFsgdfDir "." "../scripts" $sDefaultScriptsDir]]
+if { [string compare $fnFsgdf ""] == 0 } { exit }
+source $fnFsgdf
+
+
 
 # ================================================================== CONSTANTS
 
@@ -39,10 +52,6 @@ set ksWindowName "TkSurfer Tools"
 set ksImageDir   "$env(FREESURFER_HOME)/lib/images/"
 
 # ===================================================== DEFAULT FILE LOCATIONS
-
-#set home /home/kteich/subjects
-#set session ./
-#set subject anders
 
 # subject/surf : surface, vertices
 # subject/surf + pwd : overlay, time course, curvature, path
@@ -4999,6 +5008,7 @@ MoveToolWindow 0 0
 catch {
     labl_load_color_table $env(FREESURFER_HOME)/surface_labels.txt
 }
+
 
 # Init the fsgdf code.
 set gbGDFLoaded 0
