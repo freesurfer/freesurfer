@@ -170,6 +170,10 @@ typedef struct
   int          nsize ;            /* size of neighborhoods */
   float        avg_nbrs ;         /* mean # of vertex neighbors */
   void         *vp ;              /* for misc. use */
+  float        alpha ;            /* rotation around z-axis */
+  float        beta ;             /* rotation around y-axis */
+  float        gamma ;            /* rotation around x-axis */
+  float        da, db, dg ;       /* old deltas */
 } MRI_SURFACE, MRIS ;
 
 
@@ -187,6 +191,7 @@ typedef struct
 #define MRIS_ELLIPSOID             3
 #define MRIS_SPHERE                4
 #define MRIS_PARAMETERIZED_SPHERE  5
+#define MRIS_RIGID_BODY            6
 
 
 /*
@@ -255,6 +260,7 @@ typedef struct
   float   l_area ;            /* coefficient of (negative) area term */
   float   l_parea ;           /* coefficient of (all) area term */
   float   l_corr ;            /* coefficient of correlation term */
+  float   l_pcorr ;           /* polar correlation for rigid body */
   float   l_curv ;            /* coefficient of curvature term */
   float   l_spring ;          /* coefficient of spring term */
   float   l_boundary ;        /* coefficient of boundary term */
@@ -284,8 +290,7 @@ typedef struct
   double  dt_decrease ;       /* rate at which time step decreases */
   double  error_ratio ;       /* ratio at which to undo step */
   double  epsilon ;           /* constant in Sethian inflation */
-  double  fi_desired ;        /* desired folding index */
-  double  ici_desired ;       /* desired intrinsic curvature index */
+  double  desired_rms_height; /* desired height above tangent plane */
   double  starting_sse ;
   double  ending_sse ;
   double  scale ;             /* scale current distances to mimic spring */
@@ -347,6 +352,8 @@ MRI_SURFACE  *MRISunfold(MRI_SURFACE *mris, INTEGRATION_PARMS *parms,
                          int max_passes) ;
 int          MRISregister(MRI_SURFACE *mris, MRI_SP *mrisp_template, 
                            INTEGRATION_PARMS *parms, int max_passes) ;
+int          MRISrigidBodyAlign(MRI_SURFACE *mris, MRI_SP *mrisp_template,
+                                INTEGRATION_PARMS *parms) ;
 MRI_SURFACE  *MRISunfoldOnSphere(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, 
                                  int max_passes);
 MRI_SURFACE  *MRISflatten(MRI_SURFACE *mris, INTEGRATION_PARMS *parms) ;
@@ -389,6 +396,7 @@ double       MRIScomputeFolding(MRI_SURFACE *mris) ;
 int          MRISprojectOntoCylinder(MRI_SURFACE *mris, float radius) ;
 double       MRISaverageRadius(MRI_SURFACE *mris) ;
 int          MRISinflateBrain(MRI_SURFACE *mris, INTEGRATION_PARMS *parms) ;
+double       MRISrmsTPHeight(MRI_SURFACE *mris) ;
 double       MRIStotalVariation(MRI_SURFACE *mris) ;
 double       MRIStotalVariationDifference(MRI_SURFACE *mris) ;
 double       MRIScurvatureError(MRI_SURFACE *mris, double Kd) ;
