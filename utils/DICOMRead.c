@@ -2,7 +2,7 @@
    DICOM 3.0 reading functions
    Author: Sebastien Gicquel and Douglas Greve
    Date: 06/04/2001
-   $Id: DICOMRead.c,v 1.38 2003/08/18 17:30:06 tosa Exp $
+   $Id: DICOMRead.c,v 1.39 2003/08/20 18:32:06 tosa Exp $
 *******************************************************/
 
 #include <stdio.h>
@@ -81,7 +81,9 @@ MRI * sdcmLoadVolume(char *dcmfile, int LoadVolume)
   char **SeriesList;
   char *tmpstring;
   int Maj, Min, MinMin;
-
+  double xs,ys,zs,xe,ye,ze;
+  double sign;
+  xs=ys=zs=xe=ye=ze=sign=0.; /* to avoid compiler warnings */
   slice = 0; frame = 0; /* to avoid compiler warnings */
 
   if(SDCMListFile != NULL)
@@ -107,6 +109,23 @@ MRI * sdcmLoadVolume(char *dcmfile, int LoadVolume)
 
   /* First File in the Run */
   sdfi = sdfi_list[0];
+  /* decide the sign ambiguity here by comparing two files   */
+  /* there are some Siemens files don't have the slice dircos */
+  {
+    xs = sdfi_list[0]->ImgPos[0]; ys = sdfi_list[0]->ImgPos[1]; zs = sdfi_list[0]->ImgPos[2];
+    xe = sdfi_list[nlist-1]->ImgPos[0]; ys = sdfi_list[nlist-1]->ImgPos[1]; zs = sdfi_list[nlist-1]->ImgPos[2];
+    /* check sign. inner product of what we have so far with the vector we found */
+    /* using two slices.  They should be parallel and thus we can use the sign.  */
+    /* no need to normalize the vector, since we are interested in only sign.    */
+    sign = sdfi->Vs[0]*(xe-xs) + sdfi->Vs[1]*(ye-ys) + sdfi->Vs[2]*(ze-zs);
+    if (sign < 0)
+    {
+      sdfi->Vs[0] *= -1;
+      sdfi->Vs[1] *= -1;
+      sdfi->Vs[2] *= -1;
+    }
+  }
+
   sdfiFixImagePosition(sdfi);
   sdfiVolCenter(sdfi);
 
@@ -803,7 +822,7 @@ int dcmImageDirCos(char *dcmfile,
 /*-----------------------------------------------------------------------
   dcmImagePosition - Gets the RAS position of the center of the CRS=0
     voxel based on DICOM tag (20,32). Note that only the z component 
-    is valid for mosaics. See also sdcmFixImagePosition().
+    is valid for mosaics. See also sdfiFixImagePosition().
   Returns 1 if error.
   Author: Douglas N. Greve, 9/10/2001
   -----------------------------------------------------------------------*/
@@ -999,6 +1018,9 @@ SDCMFILEINFO *GetSDCMFileInfo(char *dcmfile)
   unsigned short ustmp;
   double dtmp;
   char *strtmp;
+  int retval;
+  double xr,xa,xs,yr,ya,ys, zr,za,zs;
+  static int warn=0; // warn user once about slice dir not stored
 
   if(! IsSiemensDICOM(dcmfile) ) return(NULL);
 
@@ -1122,9 +1144,32 @@ SDCMFILEINFO *GetSDCMFileInfo(char *dcmfile)
 
   dcmImageDirCos(dcmfile,&(sdcmfi->Vc[0]),&(sdcmfi->Vc[1]),&(sdcmfi->Vc[2]),
              &(sdcmfi->Vr[0]),&(sdcmfi->Vr[1]),&(sdcmfi->Vr[2]));
-  sdcmSliceDirCos(dcmfile,&(sdcmfi->Vs[0]),&(sdcmfi->Vs[1]),&(sdcmfi->Vs[2]));
-
+ 
+  /* the following may return 1 (Vs[i] = 0 for all i) */
+  /* we have to fix  */
+  retval = sdcmSliceDirCos(dcmfile,&(sdcmfi->Vs[0]),&(sdcmfi->Vs[1]),&(sdcmfi->Vs[2]));
+  
   sdcmfi->IsMosaic = sdcmIsMosaic(dcmfile, NULL, NULL, NULL, NULL);
+
+  // if could not get sliceDirCos, then we calculate
+  if (retval == 1 && sdcmfi->IsMosaic == 0)
+  {
+    if (warn == 0)
+    {
+      fprintf(stderr, "INFO: slice direction info could not be found. reconstructed.\n");
+      warn = 1;
+    }
+    /* we have x_(r,a,s) and y_(r,a,s).  z_(r,a,s) must be orthogonal to these */
+    /* get the cross product of x_(r,a,s) and y_(r,a,s) is in proportion to z_(r,a,s) */
+    /* also x_(r,a,s) and y_(r,a,s) are normalized and thus cross product is also normalized */
+    /* the only thing needed is to decide the direction ambiguity */
+    xr = sdcmfi->Vc[0]; xa = sdcmfi->Vc[1]; xs = sdcmfi->Vc[2]; 
+    yr = sdcmfi->Vr[0]; ya = sdcmfi->Vr[1]; ys = sdcmfi->Vr[2];
+    zr = xa*ys - xs*ya; za = xs*yr - xr*ys; zs = xr*ya - xa*yr;
+    /* we have sign ambiguity here at this point */
+    /* need to look at at least two files later  */
+    sdcmfi->Vs[0] = zr; sdcmfi->Vs[1] = za; sdcmfi->Vs[2] = zs;
+  }
 
   dcmGetVolRes(dcmfile,&(sdcmfi->VolRes[0]),&(sdcmfi->VolRes[1]),
          &(sdcmfi->VolRes[2]));
@@ -2393,6 +2438,10 @@ int sdfiVolCenter(SDCMFILEINFO *sdfi)
   /* Note: for true center use (sdfi->VolDim[r]-1) */
   for(r=0;r<3;r++) FoV[r] = sdfi->VolRes[r] * sdfi->VolDim[r];
 
+  /* sdfi->Volcenter[] is actually the RAS value of the corner voxel */
+  /* (0,0,z).  Thus, if you use the first slice, then the value is   */
+  /* the same as the translation part                                */
+  /* Thus, you just add the Mdc*fov + translation gives c_(r,a,s)    */
   for(r=0;r<3;r++){
     sdfi->VolCenter[r] = sdfi->ImgPos[r];
     for(c=0;c<3;c++){
@@ -3470,6 +3519,17 @@ int IsDICOM(char *fname)
   FILE *fp;
   CONDITION cond;
   DCM_OBJECT *object;
+  static int yes = 0;          // statically initialized
+  static char file[1024] = ""; // statically initialized
+  
+  // use the cached value if the fname is the same as privious one
+  if (!strcmp(fname, file)) // used before
+    return yes;
+  else
+  {
+    yes = 0;                // initialize
+    strcpy(file, fname);    // save the current filename
+  }
 
   d = 0;
 
@@ -3525,6 +3585,13 @@ int IsDICOM(char *fname)
   if(d) printf("Leaving IsDICOM (%s)\n",fname);
 
   COND_PopCondition(1); /* Clears the Condition Stack */
+
+  // cache the current value
+  if (cond==DCM_NORMAL)
+    yes = 1;
+  else
+    yes = 0;
+
   return(cond == DCM_NORMAL);
 }
 /*---------------------------------------------------------------*/
