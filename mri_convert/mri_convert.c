@@ -99,6 +99,7 @@ int main(int argc, char *argv[])
   int j,translate_labels_flag;
   int force_ras_good = FALSE;
   char gdf_image_stem[STRLEN];
+  int in_matrix_flag, out_matrix_flag;
 
   for(i=0;i<argc;i++) printf("%s ",argv[i]);
   printf("\n");
@@ -177,6 +178,8 @@ int main(int argc, char *argv[])
   roi_flag = FALSE;
   translate_labels_flag = TRUE;
   gdf_image_stem[0] = '\0';
+  in_matrix_flag = FALSE;
+  out_matrix_flag = FALSE;
 
   for(i = 1;i < argc;i++)
   {
@@ -212,6 +215,10 @@ int main(int argc, char *argv[])
       read_only_flag = TRUE;
     else if(strcmp(argv[i], "-nw") == 0 || strcmp(argv[i], "--no_write") == 0)
       no_write_flag = TRUE;
+    else if(strcmp(argv[i], "-im") == 0 || strcmp(argv[i], "--in_matrix") == 0)
+      in_matrix_flag = TRUE;
+    else if(strcmp(argv[i], "-om") == 0 || strcmp(argv[i], "--out_matrix") == 0)
+      out_matrix_flag = TRUE;
     else if(strcmp(argv[i], "--force_ras_good") == 0) force_ras_good = TRUE;
     else if(strcmp(argv[i], "-at") == 0 || strcmp(argv[i], "--apply_transform") == 0 || strcmp(argv[i], "-T") == 0)
     {
@@ -783,7 +790,7 @@ int main(int argc, char *argv[])
   /* ----- warn if read only is desired and an output volume is specified or the output info flag is set ----- */
   if(read_only_flag && out_name[0] != '\0')
     fprintf(stderr, "%s: warning: read only flag is set; nothing will be written to %s\n", Progname, out_name);
-  if(read_only_flag && out_info_flag)
+  if(read_only_flag && (out_info_flag || out_matrix_flag))
     fprintf(stderr, "%s: warning: read only flag is set; no output information will be printed\n", Progname);
 
   /* ----- catch the parse-only flag ----- */
@@ -797,6 +804,8 @@ int main(int argc, char *argv[])
     printf("conform_flag = %d\n", conform_flag);
     printf("in_info_flag = %d\n", in_info_flag);
     printf("out_info_flag = %d\n", out_info_flag);
+    printf("in_matrix_flag = %d\n", in_matrix_flag);
+    printf("out_matrix_flag = %d\n", out_matrix_flag);
 
     if(force_in_type_flag)
       printf("input type is %d\n", forced_in_type);
@@ -895,7 +904,7 @@ int main(int argc, char *argv[])
     }
 
     read_parcellation_volume_flag = TRUE;
-    if(read_only_flag && in_info_flag && !in_stats_flag)
+    if(read_only_flag && (in_info_flag || in_matrix_flag) && !in_stats_flag)
       read_parcellation_volume_flag = FALSE;
 
     read_otl_flags = 0x00;
@@ -974,7 +983,7 @@ int main(int argc, char *argv[])
   else
   {
 
-    if(read_only_flag && in_info_flag && !in_stats_flag)
+    if(read_only_flag && (in_info_flag || in_matrix_flag) && !in_stats_flag)
       mri = MRIreadInfo(in_name);
     else
     {
@@ -1139,6 +1148,20 @@ int main(int argc, char *argv[])
   {
     printf("input structure:\n");
     MRIdump(mri, stdout);
+  }
+
+  if(in_matrix_flag)
+  {
+    MATRIX *i_to_r;
+    i_to_r = extract_i_to_r(mri);
+    if(i_to_r != NULL)
+    {
+      printf("input ijk -> ras:\n");
+      MatrixPrint(stdout, i_to_r);
+      MatrixFree(&i_to_r);
+    }
+    else
+      printf("error getting input matrix\n");
   }
 
   /* ----- catch the in stats flag ----- */
@@ -1478,6 +1501,21 @@ int main(int argc, char *argv[])
   if(out_info_flag){
     printf("output structure:\n");
     MRIdump(mri, stdout);
+  }
+
+  /* ----- catch the out matrix flag ----- */
+  if(out_matrix_flag)
+  {
+    MATRIX *i_to_r;
+    i_to_r = extract_i_to_r(mri);
+    if(i_to_r != NULL)
+    {
+      printf("output ijk -> ras:\n");
+      MatrixPrint(stdout, i_to_r);
+      MatrixFree(&i_to_r);
+    }
+    else
+      printf("error getting output matrix\n");
   }
 
   /* ----- catch the out stats flag ----- */
