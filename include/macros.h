@@ -17,6 +17,7 @@
 
 #include "const.h"
 #include "utils.h"
+#include "proto.h"
 #include "math.h"
 
 #ifdef _MSDOS
