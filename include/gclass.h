@@ -32,7 +32,8 @@ typedef struct
 GCLASSIFY *GCalloc(int nclass, int nvars, char *class_names[]) ;
 int       GCtrain(GCLASSIFY *gc, int class, MATRIX *m_inputs) ;
 int       GCfree(GCLASSIFY **pgc) ;
-int       GCclassify(GCLASSIFY *gc, MATRIX *m_input, float *prisk) ;
+int       GCclassify(GCLASSIFY *gc, MATRIX *m_input, MATRIX *m_priors,
+                     float *prisk) ;
 int       GCasciiWriteInto(FILE *fp, GCLASSIFY *gc) ;
 GCLASSIFY *GCasciiReadFrom(FILE *fp, GCLASSIFY *gc) ;
 int       GCasciiWriteClassInto(FILE *fp, GCLASS *gcl) ;

@@ -201,12 +201,12 @@ GCfree(GCLASSIFY **pgc)
         Description
 ------------------------------------------------------*/
 int
-GCclassify(GCLASSIFY *gc, MATRIX *m_x, float *prisk)
+GCclassify(GCLASSIFY *gc, MATRIX *m_x, MATRIX *m_priors, float *prisk)
 {
   int     cno, class = -1 ;
   GCLASS  *gcl ;
   MATRIX  *m_xT, *m_tmp, *m_tmp2, *m_tmp3 ;
-  float   log_p, max_p, sum_p ;
+  float   log_p, max_p, sum_p, prior ;
 
   if (m_x->cols != 1 || m_x->rows != gc->nvars)
     ErrorReturn(ERROR_BADPARM,
@@ -240,7 +240,11 @@ fprintf(stdout, "GCclassify(%2.3f)\n", m_x->rptr[1][1]) ;
     m_tmp = MatrixMultiply(gcl->m_W, m_x, m_tmp) ;
     m_tmp2 = MatrixMultiply(m_xT, m_tmp, m_tmp2) ;
     m_tmp3 = MatrixMultiply(gcl->m_wT, m_x, m_tmp3) ;
-    log_p = gcl->w0 + m_tmp2->rptr[1][1] + m_tmp3->rptr[1][1] ;
+    if (m_priors)
+      prior = m_priors->rptr[cno+1][1] ;
+    else
+      prior = 1.0f ;
+    log_p = log(prior) + gcl->w0 + m_tmp2->rptr[1][1] + m_tmp3->rptr[1][1] ;
 #if 0
 fprintf(stdout, "class %d: log(p) = %2.3f + %2.3f + %2.3f = %2.3f\n",
         cno, gcl->w0, m_tmp2->rptr[1][1], m_tmp3->rptr[1][1], log_p) ;
@@ -415,7 +419,7 @@ GCinit(GCLASSIFY *gc, int class)
   m_tmp2 = MatrixMultiply(m_uT, m_tmp, NULL) ;
   gcl->w0 = -0.5*(gc->nvars * log(2*M_PI) + m_tmp2->rptr[1][1] + log(det)) ;
 
-/* log of prior can be added to gcl->w0 */
+  /* log of prior can be added to gcl->w0 */
 
 #if 0
 fprintf(stdout, "\nclass %d:\n", class) ;
