@@ -226,26 +226,30 @@ MRIclassTrainAll(MRIC *mric, char *training_file_name, int scale, int ninputs)
     if (!fno && !mric)   /* allocate the MRIC */
       mric = MRIclassAlloc(mri_src, scale, ninputs) ;
 
+    mri_mean = MRImean(mri_src, NULL, 3) ;
+    mri_std = MRIstd(mri_src, NULL, mri_mean, 3) ;
+    mri_zscore = MRInorm(mri_src, NULL, mri_mean, mri_std) ;
+
+    mris[0] = mri_src ;
+    mris[1] = mri_zscore ;
+
+    MRIfree(&mri_mean) ;
+    MRIfree(&mri_std) ;
+
     mri_target = MRIread(target_fname) ;
     if (!mri_target)
     {
       fprintf(stderr, "could not read MR image %s\n", target_fname) ;
       MRIfree(&mri_src) ;
+      MRIfree(&mri_zscore) ;
       continue ;
     }
 
-    mri_mean = MRImean(mri_src, NULL, 3) ;
-    mri_std = MRIstd(mri_src, NULL, mri_mean, 3) ;
-    mri_zscore = MRInorm(mri_src, NULL, mri_mean, mri_std) ;
-    mris[0] = mri_src ;
-    mris[1] = mri_zscore ;
     MRIclassUpdateMeans(mric, mris, mri_target, 2) ;
 
     MRIfree(&mri_src) ;
     MRIfree(&mri_target) ;
     MRIfree(&mri_zscore) ;
-    MRIfree(&mri_std) ;
-    MRIfree(&mri_mean) ;
     fno++ ;
   }
 
@@ -265,26 +269,29 @@ MRIclassTrainAll(MRIC *mric, char *training_file_name, int scale, int ninputs)
       fprintf(stderr, "could not read MR image %s\n", source_fname) ;
       continue ;
     }
-    mri_target = MRIread(target_fname) ;
-    if (!mri_target)
-    {
-      fprintf(stderr, "could not read MR image %s\n", target_fname) ;
-      MRIfree(&mri_src) ;
-      continue ;
-    }
 
     mri_mean = MRImean(mri_src, NULL, 3) ;
     mri_std = MRIstd(mri_src, NULL, mri_mean, 3) ;
     mri_zscore = MRInorm(mri_src, NULL, mri_mean, mri_std) ;
     mris[0] = mri_src ;
     mris[1] = mri_zscore ;
+    MRIfree(&mri_mean) ;
+    MRIfree(&mri_std) ;
+
+    mri_target = MRIread(target_fname) ;
+    if (!mri_target)
+    {
+      fprintf(stderr, "could not read MR image %s\n", target_fname) ;
+      MRIfree(&mri_zscore) ;
+      MRIfree(&mri_src) ;
+      continue ;
+    }
+
     MRIclassUpdateCovariances(mric, mris, mri_target, 2) ;
 
     MRIfree(&mri_src) ;
     MRIfree(&mri_target) ;
     MRIfree(&mri_zscore) ;
-    MRIfree(&mri_std) ;
-    MRIfree(&mri_mean) ;
     fno++ ;
   }
 
@@ -794,28 +801,35 @@ MRIclassThreshold(MRIC *mric, MRI *mri_probs, MRI *mri_classes,
 
 ------------------------------------------------------*/
 GCLASSIFY *
-MRIgetClassifier(MRIC *mric, MRI *mri, int xv, int yv, int zv)
+MRIgetClassifier(MRIC *mric, MRI *mri, int x, int y, int z)
 {
   GCLASSIFY  *gc ;
   Real       xt, yt, zt ;
-  int        width, depth, height, scale, xc, yc, zc ;
+  int        width, depth, height, scale, xc, yc, zc, xv, yv, zv ;
 
   width = mric->width ;
   height = mric->height ;
   depth = mric->depth ;
   scale = mric->scale ;
-  MRIvoxelToTalairachVoxel(mri, (Real)xv, (Real)yv, (Real)zv, &xt, &yt, &zt) ;
-  xc = (int)((xt - scale/2) / scale) ;
+
+  /* find the appropriate classifier for this location */
+  MRIvoxelToTalairach(mri, (Real)x, (Real)y, (Real)z, &xt, &yt, &zt);
+
+  /* convert from Talairach axes to natural axes of coronal slice data */
+  xv = (xt - (Real)mric->xstart) ;
+  zv = (yt - (Real)mric->ystart) ;
+  yv = (-zt + (Real)mric->zstart);
+  xc = nint(((xv) - scale/2) / scale) ;
   if (xc < 0)
     xc = 0 ;
   else if (xc >= width)
     xc = width - 1 ;
-  yc = (int)((yt - scale/2) / scale) ;
+  yc = nint(((yv) - scale/2) / scale) ;
   if (yc < 0)
     yc = 0 ;
   else if (yc >= height)
     yc = height-1 ;
-  zc = (int)((zt - scale/2) / scale) ;
+  zc = nint(((zv) - scale/2) / scale) ;
   if (zc < 0)
     zc = 0 ;
   else if (zc >= depth)
