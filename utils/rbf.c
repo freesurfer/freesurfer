@@ -163,15 +163,14 @@ RBFinit(int ninputs, int noutputs, int max_clusters[], char *names[])
   }
 
   
-  rbf->v_biases = RVectorAlloc(noutputs, MATRIX_REAL) ;
-  if (!rbf->v_biases)
-    ErrorExit(ERROR_NO_MEMORY, "RBFinit: could not allocate v_biases") ;
-  rbf->m_wij = MatrixAlloc(rbf->nhidden, noutputs, MATRIX_REAL) ;
+  rbf->m_wij = MatrixAlloc(rbf->nhidden+1, noutputs, MATRIX_REAL) ;
   if (!rbf->m_wij)
     ErrorExit(ERROR_NO_MEMORY, "RBFinit: could not allocate m_wij") ;
-  rbf->v_hidden = RVectorAlloc(rbf->nhidden, MATRIX_REAL) ;
+  rbf->v_hidden = RVectorAlloc(rbf->nhidden+1, MATRIX_REAL) ;
   if (!rbf->v_hidden)
     ErrorExit(ERROR_NO_MEMORY, "RBFinit: could not allocate v_hidden") ;
+  RVECTOR_ELT(rbf->v_hidden,rbf->nhidden+1) = 1.0f ;  /* bias input */
+
   rbf->v_z = (VECTOR **)calloc(rbf->nhidden, sizeof(VECTOR *)) ;
   if (!rbf->v_z)
     ErrorExit(ERROR_NO_MEMORY, "RBFinit: could not allocate v_z") ;
@@ -237,10 +236,7 @@ RBFtrain(RBF *rbf, int (*get_observation_func)
       ErrorExit(ERROR_NO_MEMORY,"RBFtrain: could not allocate m_pi %d", i) ;
   }
 
-  rbf->v_delta_biases = RVectorAlloc(rbf->noutputs, MATRIX_REAL) ;
-  if (!rbf->v_delta_biases)
-    ErrorExit(ERROR_NO_MEMORY, "RBFtrain: could not allocate v_delta_biases");
-  rbf->m_delta_wij = MatrixAlloc(rbf->nhidden, rbf->noutputs, MATRIX_REAL) ;
+  rbf->m_delta_wij = MatrixAlloc(rbf->nhidden+1, rbf->noutputs, MATRIX_REAL) ;
   if (!rbf->m_delta_wij)
     ErrorExit(ERROR_NO_MEMORY, "RBFtrain: could not allocate m_delta_wij") ;
 
@@ -301,7 +297,6 @@ RBFfree(RBF **prbf)
   MatrixFree(&rbf->m_wij) ;
   VectorFree(&rbf->v_outputs) ;
   VectorFree(&rbf->v_hidden) ;
-  VectorFree(&rbf->v_biases) ;
   
   free(rbf->clusters) ;
   if (rbf->m_delta_sigma_inv)  /* free training-specific stuff */
@@ -310,8 +305,6 @@ RBFfree(RBF **prbf)
       free(rbf->observed) ;
     if (rbf->m_delta_wij)
       MatrixFree(&rbf->m_delta_wij) ;
-    if (rbf->v_delta_biases)
-      VectorFree(&rbf->v_delta_biases) ;
     for (i = 0 ; i < rbf->nhidden ; i++)
     {
       if (rbf->m_delta_sigma_inv[i])
@@ -440,8 +433,6 @@ rbfExamineTrainingSet(rbf, get_observation_func, parm) ;
 
 #if 0
 rbf->nhidden = 1 ;
-RVECTOR_ELT(rbf->v_biases,1) = 0.0f ;
-RVECTOR_ELT(rbf->v_biases,2) = 1.0f ;
 rbf->m_wij->rptr[1][1] = 1.0f ;
 rbf->m_wij->rptr[1][2] = -1.0f ;
 VECTOR_ELT(rbf->clusters[0]->v_means,1) = 0.2f ;
@@ -617,23 +608,14 @@ static int
 rbfAdjustOutputWeights(RBF *rbf, VECTOR *v_error)
 {
   int    i, j ;
-  float  dE_dwi, Gi, delta_wij, delta_bias, one_minus_momentum, trate,
+  float  dE_dwi, Gi, delta_wij, one_minus_momentum, trate,
          momentum ;
 
   momentum = rbf->momentum ;
   trate = rbf->trate ;
   one_minus_momentum = trate * (1.0f - rbf->momentum) ;
 
-  /* i refers to the hidden unit, while j is the output unit */
-  for (j = 1 ; j <= rbf->noutputs ; j++)
-  {
-    delta_bias = VECTOR_ELT(v_error,j) * one_minus_momentum + 
-      momentum * RVECTOR_ELT(rbf->v_delta_biases,j) ;
-    RVECTOR_ELT(rbf->v_delta_biases,j) = delta_bias ;
-    RVECTOR_ELT(rbf->v_biases,j) += delta_bias ;
-  }
-
-  for (i = 1 ; i <= rbf->nhidden ; i++)
+  for (i = 1 ; i <= rbf->nhidden+1 ; i++)
   {
     dE_dwi = 0.0f ;  /* gradient for this weight */
     Gi = RVECTOR_ELT(rbf->v_hidden, i) ;
@@ -812,7 +794,6 @@ rbfComputeOutputs(RBF *rbf)
 #endif
 
   MatrixMultiply(rbf->v_hidden, rbf->m_wij, rbf->v_outputs) ;
-  VectorAdd(rbf->v_biases, rbf->v_outputs, rbf->v_outputs) ;
 
 #if 0
   /* normalize the outputs to sum to 1 and be in [0,1] */
@@ -1014,8 +995,6 @@ RBFwrite(RBF *rbf, char *fname)
 
   fprintf(fp, "# weights:\n") ;
   MatrixAsciiWriteInto(fp, rbf->m_wij) ;
-  fprintf(fp, "# biases:\n") ;
-  MatrixAsciiWriteInto(fp, rbf->v_biases) ;
   for (i = 0 ; i < rbf->noutputs ; i++)
   {
     fprintf(fp, "CLASS: %s\n", rbf->class_names[i]) ;
@@ -1065,7 +1044,6 @@ RBFread(char *fname)
     free(names[i]) ;
 
   MatrixAsciiReadFrom(fp, rbf->m_wij) ;
-  MatrixAsciiReadFrom(fp, rbf->v_biases) ;
   for (i = 0 ; i < rbf->noutputs ; i++)
   {
     fgetl(line, 199, fp) ;   /* skip class name */
@@ -1181,10 +1159,7 @@ RBFcopyWeights(RBF *rbf_src, RBF *rbf_dst)
 
   /* save output weights */
   MatrixCopy(rbf_src->m_wij, rbf_dst->m_wij) ;
-  VectorCopy(rbf_src->v_biases, rbf_dst->v_biases) ;
   rbf_dst->m_delta_wij = MatrixCopy(rbf_src->m_delta_wij,rbf_dst->m_delta_wij);
-  rbf_dst->v_delta_biases = 
-    VectorCopy(rbf_src->v_delta_biases, rbf_dst->v_delta_biases) ;
 
   /* save hidden layer weights */
   for (i = 0 ; i < rbf_src->nhidden ; i++)
