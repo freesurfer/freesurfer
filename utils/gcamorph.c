@@ -3,9 +3,9 @@
 //
 // 
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2004/05/20 15:56:21 $
-// Revision       : $Revision: 1.30 $
+// Revision Author: $Author: tosa $
+// Revision Date  : $Date: 2004/05/20 17:40:19 $
+// Revision       : $Revision: 1.31 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -194,18 +194,32 @@ void GCAMreadGeom(GCA_MORPH *gcam, FILE *fp)
   fread(gcam->dst.fname, sizeof(char), 512, fp);
 }
 
+// declare function pointer
+int (*myclose)(FILE *stream);
+
 int
 GCAMwrite(GCA_MORPH *gcam, char *fname)
 {
-  FILE            *fp ;
+  FILE            *fp=0 ;
   int             x, y, z ;
   GCA_MORPH_NODE  *gcamn ;
 
-  fp = fopen(fname, "wb") ;
+  if (strstr(fname, ".m3z"))
+  {
+    char command[64];
+    // write gzipped file
+    myclose=pclose;
+    strcpy(command, "gzip -f -c > " );
+    strcat(command, fname);
+    fp = popen(command, "w");
+  }
+  else
+  {
+    fp = fopen(fname, "wb") ;
+  }
   if (!fp)
     ErrorReturn(ERROR_BADPARM, (ERROR_BADPARM, "GCAMwrite(%s): could not open file",
-                                fname)) ;
-
+				  fname)) ;
   fwriteFloat(GCAM_VERSION, fp) ;
   fwriteInt(gcam->width, fp) ;
   fwriteInt(gcam->height, fp) ;
@@ -237,7 +251,9 @@ GCAMwrite(GCA_MORPH *gcam, char *fname)
   fwriteInt(TAG_GCAMORPH_GEOM, fp);
   GCAMwriteGeom(gcam, fp);
 
-  fclose(fp) ;
+  // fclose(fp) ;
+  myclose(fp);
+
   return(NO_ERROR) ;
 }
 
@@ -273,6 +289,8 @@ GCAMregister(GCA_MORPH *gcam, MRI *mri, GCA_MORPH_PARMS *parms)
 
   base_sigma = parms->sigma ;
 
+  // GCAMinit() did this at the end
+  // make node to have the max_prior label values
   if (parms->relabel_avgs >= parms->navgs)
     GCAMcomputeLabels(mri, gcam) ;
   else
@@ -378,7 +396,19 @@ GCAMread(char *fname)
   float           version ;
   int             tag;
 
-  fp = fopen(fname, "rb") ;
+  if (strstr(fname, ".m3z"))
+  {
+    char command[512];
+    strcpy(command, "zcat ");
+    strcat(command, fname);
+    myclose=pclose;
+    fp = popen(command, "r");
+  }
+  else
+  {
+    myclose=fclose;
+    fp = fopen(fname, "rb") ;
+  }
   if (!fp)
     ErrorReturn(NULL, (ERROR_BADPARM, "GCAMread(%s): could not open file",
                                 fname)) ;
@@ -386,7 +416,8 @@ GCAMread(char *fname)
   version = freadFloat(fp) ;
   if (version != GCAM_VERSION)
   {
-    fclose(fp) ;
+    // fclose(fp) ;
+    myclose(fp);
     ErrorReturn(NULL, 
                 (ERROR_BADFILE, "GCAMread(%s): invalid version # %2.3f\n", fname, version)) ;
   }
@@ -443,7 +474,8 @@ GCAMread(char *fname)
       gcam->dst.valid = 0; // makd dst invalid
     }
   }
-  fclose(fp) ;
+  // fclose(fp) ;
+  myclose(fp);
 
   return(gcam) ;
 }
