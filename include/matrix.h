@@ -46,6 +46,7 @@ MATRIX  *MatrixRead(char *fname) ;
 int     MatrixWrite(MATRIX *mIn, char *fname, char *name) ;
 MATRIX  *MatrixIdentity(int n, MATRIX *mI) ;
 int     MatrixPrint(FILE *fp, MATRIX *mat) ;
+int     MatrixPrintTranspose(FILE *fp, MATRIX *mat) ;
 MATRIX  *MatrixTranspose(MATRIX *mIn, MATRIX *mOut) ;
 MATRIX  *MatrixAdd(MATRIX *m1, MATRIX *m2, MATRIX *mOut) ;
 MATRIX  *MatrixSubtract(MATRIX *m1, MATRIX *m2, MATRIX *mOut) ;
@@ -83,6 +84,17 @@ MATRIX *MatrixAsciiReadFrom(FILE *fp, MATRIX *m) ;
 
 #define VectorAlloc(n, type)       MatrixAlloc(n, 1, type)
 #define VectorFree(pm)             MatrixFree(pm)
+#define VectorAdd(v1, v2, v3)      MatrixAdd(v1, v2, v3)
+#define VectorScalarMul(v1,val,v2) MatrixScalarMul(v1, val, v2)
+#define VectorCopy(v1, v2)         MatrixCopy(v1, v2)
+#define VectorClear(v)             MatrixClear(v)
+#define VECTOR_ELT(v,i)            ((v)->rptr[i][1])
+
+float  VectorLen(VECTOR *v) ;
+float  VectorDot(VECTOR *v1, VECTOR *v2) ;
+float  VectorNormalizedDot(VECTOR *v1, VECTOR *v2) ;
+float  VectorDistance(VECTOR *v1, VECTOR *v2) ;
+VECTOR *MatrixColumn(MATRIX *m, VECTOR *v, int col) ;
 
 #define X_ROTATION   0
 #define Y_ROTATION   1
@@ -90,6 +102,8 @@ MATRIX *MatrixAsciiReadFrom(FILE *fp, MATRIX *m) ;
 
 MATRIX *MatrixAllocRotation(int n, float angle, int which) ;
 #define MatrixClone(mat)   MatrixCopy(mat, NULL)
+
+
 
 #endif
 
