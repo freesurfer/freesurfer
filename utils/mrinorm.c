@@ -370,11 +370,11 @@ MRInormInit(MRI *mri, MNI *mni, int windows_above_t0,int windows_below_t0,
   float       size_mod ;
   Real        x0, y0, z0 ;
 
-  LTA         *lta = 0;
-  LT          *lt;
-  MATRIX      *m_L;
-  VOL_GEOM *dst = 0;
-  VOL_GEOM *src =0;
+  LTA         *lta = 0; // need to be freeed
+  LT          *lt;   // just a reference pointer (no need to free)
+  MATRIX      *m_L;  // just a reference pointer (no need to free)
+  VOL_GEOM *dst = 0; // just a reference pointer (no need to free)
+  VOL_GEOM *src =0;  // just a reference pointer (no need to free)
   int row;
 
   if (wsize <= 0)
@@ -392,17 +392,21 @@ MRInormInit(MRI *mri, MNI *mni, int windows_above_t0,int windows_below_t0,
   // look for talairach.xfm
   if (mri->inverse_linear_transform)
   {
+    // create lta
     lta = LTAalloc(1, NULL) ;
+    // this will allocate lta->xforms[0].m_L = MatrixIdentity(4, NULL)
     lt = &lta->xforms[0] ;
     lt->sigma = 1.0f ;
     lt->x0 = lt->y0 = lt->z0 = 0 ;
-    m_L = lt->m_L = MatrixIdentity(4, NULL);
+    // m_L points to lt->m_L
+    m_L = lt->m_L;
     lta->type = LINEAR_RAS_TO_RAS;
     // try getting from mri
     // transform is MNI transform (only COR volume reads transform) 
     if (mri->linear_transform)
     {
       // linear_transform is zero based column-major array
+      // sets lt->m_L
       for (row = 1 ; row <= 3 ; row++)
       {
 	*MATRIX_RELT(m_L,row,1) = mri->linear_transform->m[0][row-1];
@@ -412,10 +416,13 @@ MRInormInit(MRI *mri, MNI *mni, int windows_above_t0,int windows_below_t0,
       }
       fprintf(stderr, "talairach transform\n");
       MatrixPrint(stderr, m_L);
+      // set lt->dst and lt->src
       dst = &lt->dst;
       src = &lt->src;
+      // copy mri values
       getVolGeom(mri, src);
       getVolGeom(mri, dst);
+      // dst is unknown, since transform is ras-to-ras
       if (getenv("NO_AVERAGE305")) // if this is set
 	fprintf(stderr, "INFO: tal dst c_(r,a,s) not modified\n");
       else
@@ -427,6 +434,7 @@ MRInormInit(MRI *mri, MNI *mni, int windows_above_t0,int windows_below_t0,
 	dst->c_a = -16.51;
 	dst->c_s =   9.75;
       }
+      // now we finished setting up lta
     }
     if (MRItalairachToVoxelEx(mri, 0.0, 0.0, 0.0, &x0, &y0, &z0, lta) != NO_ERROR)
       ErrorReturn(Gerror, 
