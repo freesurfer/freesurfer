@@ -11854,9 +11854,12 @@ MRISreadVertexPositions(MRI_SURFACE *mris, char *name)
       fprintf(stderr, "reading %d vertices and %d faces.\n",nvertices,nfaces);
     
     if (nvertices != mris->nvertices || nfaces != mris->nfaces)
-      ErrorExit(ERROR_BADFILE, 
+    {
+      fclose(fp) ;
+      ErrorReturn(ERROR_BADFILE, (ERROR_BADFILE, 
                 "MRISreadVertexPositions(%s): surfaces differ.\n",
-                fname) ;
+                fname)) ;
+    }
 
     for (vno = 0 ; vno < nvertices ; vno++)
     {
