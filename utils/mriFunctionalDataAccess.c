@@ -22,8 +22,8 @@
 
 #define KEEP_NULL_CONDITION 1
 
-#define FunD_ksStemHeaderSuffix                   "dat"
-#define FunD_ksRegisterFileName                           "register.dat"
+#define FunD_ksStemHeaderSuffix  "dat"
+#define FunD_ksRegisterFileName  "register.dat"
 
 
 char *FunD_ksaErrorString [FunD_tErr_knNumErrorCodes] = {
@@ -131,6 +131,9 @@ FunD_tErr FunD_New ( mriFunctionalDataRef* opVolume,
   DebugNote( ("Copying client transform") );
   Trns_DeepClone( iTransform, &this->mClientTransform );
 
+  /* Copy the tkreg matrix. */
+  this->mTkregMatrix = MatrixCopy( iTkregMat, NULL );
+
   /* Load the data.*/
   this->mpData = MRIread( this->msFileName );
   DebugAssertThrowX( (NULL != this->mpData),
@@ -147,7 +150,7 @@ FunD_tErr FunD_New ( mriFunctionalDataRef* opVolume,
   
   /* parse the registration file */
   DebugNote( ("Parsing registration file") );
-  eResult = FunD_ParseRegistrationAndInitMatricies_( this , iTkregMat);
+  eResult = FunD_ParseRegistrationAndInitMatricies_( this );
   DebugAssertThrow( (FunD_tErr_NoError == eResult) );
   
 #if 0
@@ -496,8 +499,7 @@ FunD_tErr FunD_GuessMetaInformation_ ( mriFunctionalDataRef this ) {
   return eResult;
 }
 
-FunD_tErr FunD_ParseRegistrationAndInitMatricies_ ( mriFunctionalDataRef this,
-						    MATRIX*       iTkregMat ) {
+FunD_tErr FunD_ParseRegistrationAndInitMatricies_ ( mriFunctionalDataRef this ) {
   FunD_tErr    eResult          = FunD_tErr_NoError;
   char         sBasePath[1024]  = "";
   char         sFileName[1024]  = "";
@@ -520,12 +522,11 @@ FunD_tErr FunD_ParseRegistrationAndInitMatricies_ ( mriFunctionalDataRef this,
   tBoolean     bGood            = FALSE;
   FunD_tConversionMethod convMethod = FunD_tConversionMethod_FCF;
 
-  DebugEnterFunction( ("FunD_ParseRegistrationAndInitMatricies_( this=%p, "
-		       "iTkregMat=%p )", this, iTkregMat) );
+  DebugEnterFunction( ("FunD_ParseRegistrationAndInitMatricies_( this=%p )", 
+		       this) );
 
   DebugNote( ("Checking parameters") );
-  DebugAssertThrowX( (NULL != this && NULL != iTkregMat),
-		     eResult, FunD_tErr_InvalidParameter );
+  DebugAssertThrowX( (NULL != this), eResult, FunD_tErr_InvalidParameter );
   
   /* If our registration file name is empty, try and make one by
      combining the data file name base path and the registration file
@@ -629,8 +630,8 @@ FunD_tErr FunD_ParseRegistrationAndInitMatricies_ ( mriFunctionalDataRef this,
   // Note that mClientTransform keeps track of src(A) and conformed volume(B).  Thus
   Trns_CopyAtoRAS(this->mIdxToIdxTransform, this->mClientTransform->mBtoRAS);
   // create RAS to fRAS transform
-  rasTotkregRAS = MatrixMultiply( iTkregMat, this->mClientTransform->mRAStoA,
-				  NULL);
+  rasTotkregRAS = MatrixMultiply( this->mTkregMatrix, 
+				  this->mClientTransform->mRAStoA, NULL);
   rasTofRAS     = MatrixMultiply( theRegInfo->mri2fmri, rasTotkregRAS, 
 				  NULL);
   MatrixFree(&rasTotkregRAS);
@@ -654,7 +655,7 @@ FunD_tErr FunD_ParseRegistrationAndInitMatricies_ ( mriFunctionalDataRef this,
   MatrixFree( &mTmp );
   // we finished constructing this->mIdxToIdxTransform
   ////////////////////////////////////////////////////////////////////////////////////
-  
+
   /* get rid of the registration info. */
   StatFreeRegistration ( &theRegInfo );
   
@@ -1732,7 +1733,10 @@ FunD_tErr FunD_SaveRegistration ( mriFunctionalDataRef this ) {
   
   FunD_tErr eResult = FunD_tErr_NoError;
   fMRI_REG* regInfo = NULL;
-  MATRIX*   mRegistration;
+  MATRIX*   inverseTkregMatrix = NULL;
+  MATRIX*   inverseRAStoA = NULL;
+  MATRIX*   tmp = NULL;
+  MATRIX*   tkregRASToRAS = NULL;
   char      sFileName[256];
   char      sBackupFileName[256];
   char      sConversionMethod[256];
@@ -1766,13 +1770,26 @@ FunD_tErr FunD_SaveRegistration ( mriFunctionalDataRef this ) {
   DebugNote( ("Copying subject name") );
   strcpy( regInfo->name, this->msSubjectName );
   
-  /* allocate matrices and copy */
-  DebugNote( ("Getting matrix from registration transform") );
-  Trns_GetARAStoBRAS( this->mIdxToIdxTransform, &mRegistration );
+  /* First get the inverse of the tkreg and client RAS to A matrices. */
+  DebugNote( ("Calcing inveres of mTkregMatrix") );
+  inverseTkregMatrix = MatrixInverse( this->mTkregMatrix, NULL );
+  DebugNote( ("Calcing inveres of ClientTransform->mRAStoA") );
+  inverseRAStoA = MatrixInverse( this->mClientTransform->mRAStoA, NULL );
+
+  /* Do the inverse of the multiplications we did when parsing the
+     registration file to get the unmodified registration matrix in
+     tkreg space. */
+  DebugPrint( ("Calcing tmp") );
+  tmp = MatrixMultiply( this->mIdxToIdxTransform->mARAStoBRAS, 
+			inverseRAStoA, NULL );
+  DebugPrint( ("Calcing registration") );
+  tkregRASToRAS = MatrixMultiply( tmp, inverseTkregMatrix, NULL );
+
+  /* Copy it into the regInfo structure. */
   DebugNote( ("Copying registration matrix into registration info") );
-  regInfo->fmri2mri = MatrixCopy( mRegistration, NULL );
+  regInfo->mri2fmri = MatrixCopy( tkregRASToRAS, NULL );
   DebugNote( ("Inversing registration matrix into registration info") );
-  regInfo->mri2fmri = MatrixInverse( regInfo->fmri2mri, NULL );
+  regInfo->fmri2mri = MatrixInverse( regInfo->mri2fmri, NULL );
   
   /* if a registration already exists... */
   sprintf( sFileName, "%s", this->msRegistrationFileName );
@@ -1850,6 +1867,19 @@ FunD_tErr FunD_SaveRegistration ( mriFunctionalDataRef this ) {
   DebugCatch;
   DebugCatchError( eResult, FunD_tErr_NoError, FunD_GetErrorString );
   EndDebugCatch;
+
+  if( NULL != inverseTkregMatrix ) {
+    MatrixFree( &inverseTkregMatrix );
+  }
+  if( NULL != inverseRAStoA ) {
+    MatrixFree( &inverseRAStoA );
+  }
+  if( NULL != tmp ) {
+    MatrixFree( &tmp );
+  }
+  if( NULL != tkregRASToRAS ) {
+    MatrixFree( &tkregRASToRAS );
+  }
 
   DebugExitFunction;
 
@@ -1960,7 +1990,7 @@ FunD_tErr FunD_TranslateRegistration ( mriFunctionalDataRef this,
   eTransform = Trns_Translate( this->mIdxToIdxTransform, -ifDistance, iAxis );
   DebugAssertThrowX( (Trns_tErr_NoErr == eTransform ),
 		     eResult, FunD_tErr_ErrorAccessingTransform );
-  
+
   DebugCatch;
   DebugCatchError( eResult, FunD_tErr_NoError, FunD_GetErrorString );
   EndDebugCatch;
