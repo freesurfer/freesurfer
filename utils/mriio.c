@@ -775,7 +775,7 @@ mncWrite(MRI *mri, char *fname)
   case MRI_UCHAR: type = NC_BYTE ;  sgned = 0 ; break ;
   case MRI_FLOAT: type = NC_FLOAT ; sgned = 1 ; break ;
   default:
-    ErrorReturn(NULL, 
+    ErrorReturn(ERROR_UNSUPPORTED, 
                 (ERROR_UNSUPPORTED, "mncWrite: unsupported MRI type %d",
                  mri->type)) ;
     break ;
