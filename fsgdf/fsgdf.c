@@ -1,7 +1,7 @@
 /*
   fsgdf.c
   Utilities for reading freesurfer group descriptor file format 
-  $Id: fsgdf.c,v 1.17 2003/04/05 01:14:10 greve Exp $
+  $Id: fsgdf.c,v 1.18 2003/04/09 22:24:33 greve Exp $
 
   See:   http://surfer.nmr.mgh.harvard.edu/docs/fsgdf.txt
 
@@ -61,10 +61,10 @@ int isblank (int c);
 #endif
 #endif
 
+//static int gdfClassNo(FSGD *gd, char *class);
 
 static FSGD *gdfReadV1(char *gdfname);
 static int gdfPrintV1(FILE *fp, FSGD *gd);
-static int gdfClassNo(FSGD *gd, char *class);
 static int gdfCheckVarRep(FSGD *gd);
 static int gdfCheckClassRep(FSGD *gd);
 static int gdfCheckAllClassesUsed(FSGD *gd);
@@ -108,7 +108,6 @@ int gdfPrintHeader(FILE *fp, FSGD *gd)
   }
   return(r);
 }
-
 /*--------------------------------------------------*/
 int gdfPrintStdout(FSGD *gd)
 {
@@ -468,7 +467,7 @@ static FSGD *gdfReadV1(char *gdfname)
   gdfClassNo() - returns the zero-based class number 
   associated with a class label.
   --------------------------------------------------*/
-static int gdfClassNo(FSGD *gd, char *class)
+int gdfClassNo(FSGD *gd, char *class)
 {
   int code;
   for(code=0; code < gd->nclasses; code++)
@@ -604,6 +603,22 @@ static int gdfGetDefVarLabelNo(FSGD *gd)
 	return(n);
   return(-1);
 }
+/*--------------------------------------------------
+  gdfGetVarLabelNo() - returns the label number of the given
+  variable. If there is no match, -1 is returned. Otherwise, 
+  returns the index.
+  --------------------------------------------------*/
+int gdfGetVarLabelNo(FSGD *gd, char *LabelName)
+{
+  int n;
+
+  for(n=0; n < gd->nvariables; n++)
+    if(strcmp(gd->varlabel[n],LabelName)==0)
+	return(n);
+  return(-1);
+}
+
+
 /*--------------------------------------------------------
   gdfMatrixDOSS() - creates a design matrix that models each
   class as having a Different Offset, but models having the 
@@ -1104,4 +1119,149 @@ int gdfGetNthSubjectMeasurement(FSGD *gd, int nsubject,
     }
 
   return(0);
+}
+/*-------------------------------------------------------
+  gdfSubSet() - creates a new FSGD with only the Classes
+  and Variables listed. If nClasses == -1, all classes
+  are included. If nVars == -1, all variables are included.
+  -------------------------------------------------------*/
+FSGD *gdfSubSet(FSGD *infsgd, int nClasses, char **ClassList,
+		int nVars, char **VarList)
+{
+  FSGD *fsgd;
+  int n, nCUse, nVUse, c, ic, v, iv, ninputs, ok;
+
+  if(nClasses > 0){
+    nCUse = nClasses;
+    for(n=0; n < nClasses; n++){
+      if(gdfClassNo(infsgd,ClassList[n]) == -1){
+	printf("ERROR: gdfSubSet: class %s not found\n",ClassList[n]);
+	return(NULL);
+      }
+    }
+  }
+  else nCUse = infsgd->nclasses;
+  if(nVars > 0){
+    nVUse = nVars;
+    for(n=0; n < nVars; n++){
+      if(gdfGetVarLabelNo(infsgd,VarList[n]) == -1){
+	printf("ERROR: gdfSubSet: var %s not found\n",VarList[n]);
+	return(NULL);
+      }
+    }
+  }
+  else nVUse = infsgd->nvariables;
+
+  fsgd = gdfAlloc(1);
+
+  for(c = 0; c < nCUse; c++){
+    if(nClasses > 0) ic = gdfClassNo(infsgd,ClassList[c]);
+    else             ic = c;
+    strcpy(fsgd->classlabel[c], infsgd->classlabel[ic]);
+    strcpy(fsgd->classmarker[c],infsgd->classmarker[ic]);
+    strcpy(fsgd->classcolor[c], infsgd->classcolor[ic]);
+    //printf("c = %d, ic = %d   %s  %s\n",
+    //   c,ic,fsgd->classlabel[c], infsgd->classlabel[ic]);
+  }
+
+  fsgd->nclasses = nCUse;
+  for(v = 0; v < nVUse; v++){
+    if(nVars > 0) iv = gdfGetVarLabelNo(infsgd,VarList[v]);
+    else          iv = v;
+    strcpy(fsgd->varlabel[v],infsgd->varlabel[iv]);
+    //printf("v = %d, iv = %d   %s  %s\n",
+    //   v,iv,fsgd->varlabel[v], infsgd->varlabel[iv]);
+  }
+  fsgd->nvariables = nVUse;
+
+  ninputs = 0;
+  for(n = 0; n < infsgd->ninputs; n++){
+
+    ic = infsgd->subjclassno[n];
+    ok = gdfClassNo(fsgd,infsgd->classlabel[ic]);
+    if(ok == -1) continue;
+
+    strcpy(fsgd->subjid[ninputs],infsgd->subjid[n]);
+    fsgd->subjclassno[ninputs] = gdfClassNo(fsgd,infsgd->classlabel[ic]);
+
+    v = 0;
+    for(iv = 0; iv < infsgd->nvariables; iv++){
+      ok = gdfGetVarLabelNo(fsgd,infsgd->varlabel[iv]);
+      if(ok == -1) continue;
+      fsgd->varvals[ninputs][v] = infsgd->varvals[n][iv];
+      v++;
+    }
+    ninputs ++;
+  }
+  fsgd->ninputs = ninputs;
+
+  strcpy(fsgd->title,infsgd->title);
+  strcpy(fsgd->measname,infsgd->measname);
+  strcpy(fsgd->tessellation,infsgd->tessellation);
+  strcpy(fsgd->regsubj,infsgd->regsubj);
+  strcpy(fsgd->datafile,infsgd->datafile);
+  //strcpy(fsgd->defvarlabel,infsgd->defvarlabel); //need check here
+  return(fsgd);
+}
+
+/*---------------------------------------------------------
+  gdfStringIndex() - gets the 0-based index number of the
+  string in the list. If the string is not found, returns -1.
+  ---------------------------------------------------------*/
+int gdfStringIndex(char *str, char **list, int nlist)
+{
+  int index;
+
+  for(index = 0; index < nlist; index++)
+    if(strcmp(str,list[index]) == 0) return(index);
+  return(-1);
+}
+/*---------------------------------------------------------
+  gdfCopySubjIdppc - Copy subjid to a pointer to a pointer
+  to a char.
+  ---------------------------------------------------------*/
+char **gdfCopySubjIdppc(FSGD *fsgd)
+{
+  char **ppc;
+  int n,len;
+
+  ppc = (char **) calloc(sizeof(char *),fsgd->ninputs);
+  for(n=0; n < fsgd->ninputs; n++){
+    len = strlen(fsgd->subjid[n]);
+    ppc[n] = (char *) calloc(sizeof(char),len+1);
+    memcpy(ppc[n],fsgd->subjid[n],len);
+    //printf("n=%d, %s\n",n,ppc[n]);
+  }
+
+  return(ppc);
+}
+/*-------------------------------------------------------------
+  gdfContrastDODS() - creates a contrast matrix for the DODS design
+  matrix. wClass are the weights for each class; if NULL, then all
+  ones are assumed. wCovar are the weights for each covariate
+  (including offset); if NULL, then all ones are assumed. Note:
+  wCovar must have nvariables+1 items where the first one 
+  corresponds to the offset.
+  -------------------------------------------------------------*/
+MATRIX *gdfContrastDODS(FSGD *fsgd, float *wClass, float *wCovar)
+{
+  MATRIX *C;
+  float w;
+  int c, v, n;
+  
+  /* Contrast matrix (+1 for offsets) */
+  C = MatrixAlloc(1, (fsgd->nvariables+1) * fsgd->nclasses, MATRIX_REAL);
+
+  n = 0;
+  for(v=0; v < fsgd->nvariables+1; v++){
+    for(c=0; c < fsgd->nclasses; c++){
+      w = 1;
+      if(wClass != NULL) w *= wClass[c];
+      if(wCovar != NULL) w *= wCovar[v];
+      C->rptr[1][n+1] = w;
+      n++;
+    }
+  }
+
+  return(C);
 }
