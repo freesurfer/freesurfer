@@ -149,6 +149,11 @@ int    LogMapInverse(LOGMAP_INFO *mi, IMAGE *inImage, IMAGE *outImage);
 int    LogMapGradient(LOGMAP_INFO *mi, IMAGE *inImage, 
                       IMAGE *gradImage, int doweight, 
                       int start_ring, int end_ring) ;
+int    LogMapSobel(LOGMAP_INFO *lmi, IMAGE *inImage, IMAGE *gradImage, 
+                   IMAGE *Ix, IMAGE *Iy, int doweight, int start_ring, 
+                   int end_ring) ;
+IMAGE  *LogMapFilter(LOGMAP_INFO *lmi, int which, int window_size, 
+                     IMAGE *Isrc, IMAGE *Idst) ;
 IMAGE  *LogMapSmooth(LOGMAP_INFO *lmi, IMAGE *Isrc, IMAGE *Idst) ;
 double LogMapDiffuse(LOGMAP_INFO *mi, IMAGE *inImage, IMAGE *outImage, 
                      double k, int niter, int doweight, int which,
@@ -168,6 +173,20 @@ IMAGE *LogMapNormalize(LOGMAP_INFO *lmi, IMAGE *Isrc, IMAGE *Idst,
                        float low, float hi) ;
 int   LogMapInitForwardFilter(LOGMAP_INFO *lmi, int which) ;
 IMAGE *LogMapForwardFilter(LOGMAP_INFO *lmi, IMAGE *Isrc, IMAGE *Idst) ;
+
+
+IMAGE *
+LogMapMedianFilter(LOGMAP_INFO *lmi, IMAGE *Isrc, int wsize, IMAGE *Ioffset, 
+                   IMAGE *Idst) ;
+
+/* offset filtering in the log plane */
+IMAGE *LogMapOffsetOrientation(LOGMAP_INFO *lmi, int wsize, IMAGE *Isrc, 
+                         IMAGE *Iorient) ;
+IMAGE *LogMapOffsetDirection(LOGMAP_INFO *lmi, IMAGE *Iorient, IMAGE *Ioffset);
+IMAGE *LogMapOffsetMagnitude(LOGMAP_INFO *lmi, IMAGE *Isrc, IMAGE *Idst, 
+                             int maxsteps) ;
+IMAGE *LogMapApplyOffset(LOGMAP_INFO *lmi, IMAGE *Isrc, IMAGE *Ioffset, 
+                         IMAGE *Idst) ;
 
 
 #if 0
