@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
+#include <unistd.h>
 #include "fio.h"
 #include "machine.h"
 #include "proto.h"
@@ -346,4 +347,29 @@ char *fio_extension(char *pathname)
   memcpy(ext,&(pathname[n+1]),lext);
 
   return(ext);
+}
+/* -----------------------------------------------------
+  fio_DirIsWritable(char *dirname, int fname) -- tests
+  whether the given directory is writable by creating
+  and deleting a junk file there. If fname != 0, then
+  dirname is treated as path to a filename. It will
+  return 0 if the directory does not exist.
+  ----------------------------------------------------- */
+int fio_DirIsWritable(char *dirname, int fname)
+{
+  FILE *fp;
+  char tmpstr[2000];
+
+  if(fname != 0)
+    sprintf(tmpstr,"%s.junk.54_-_sdfklj",dirname);
+  else
+    sprintf(tmpstr,"%s/.junk.54_-_sdfklj",dirname);
+  
+  fp = fopen(tmpstr,"w");
+  if(fp == NULL) return(0);
+
+  fclose(fp);
+  unlink(tmpstr);
+
+  return(1);
 }
