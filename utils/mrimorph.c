@@ -3030,7 +3030,7 @@ mri3DAlignPyramidLevel(MRI *mri_in, MRI *mri_ref, MRI *mri_ref_blur,
   mri_ref->mean = MRImeanFrame(mri_ref, 1) ;
   if (DZERO(mri_ref->mean))
   {
-    ErrorPrintf(ERROR_BADPARM, "AlignPyramidLevel: mean std is 0!!") ;
+    /*    ErrorPrintf(ERROR_BADPARM, "AlignPyramidLevel: mean std is 0!!") ;*/
     mri_ref->mean = 1.0 ;
   }
 
@@ -4143,6 +4143,8 @@ mriNormalizeStds(MRI *mri)
     return(NO_ERROR) ;
 
   mean_std = MRImeanFrame(mri, 1) ;
+  if (FZERO(mean_std))
+    mean_std = 1.0 ;
   width = mri->width ; height = mri->height ; depth = mri->depth ;
   for (z = 0 ; z < depth ; z++)
   {
