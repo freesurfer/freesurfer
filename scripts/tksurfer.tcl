@@ -1,6 +1,6 @@
 #! /usr/bin/tixwish
 
-# $Id: tksurfer.tcl,v 1.50 2003/08/06 17:31:53 kteich Exp $
+# $Id: tksurfer.tcl,v 1.51 2003/08/20 17:24:19 kteich Exp $
 
 package require BLT;
 
@@ -191,7 +191,7 @@ array set gaLinkedVarGroups {
     phase { angle_offset angle_cycles }
     inflate { sulcflag }
     view { curvflag flagsurfcolor vertexset overlayflag scalebarflag \
-  colscalebarflag verticesflag currentvaluefield }
+	       colscalebarflag verticesflag currentvaluefield drawcursorflag }
     cvavg { cmid dipavg }
     mouseover { mouseoverflag }
     all { light0 light1 light2 light3 offset colscale truncphaseflag invphaseflag revphaseflag complexvalflag fthresh foffset fmid fslope cslope cmid angle_offset angle_cycles sulcflag surfcolor vertexset overlayflag scalebarflag colscalebarflag verticesflag cmid dipavg mouseoverflag colortablename }
@@ -2446,6 +2446,11 @@ proc CreateMenuBar { ifwMenuBar } {
 	    { SendLinkedVarGroup view
 		UpdateAndRedraw }
 	    gaLinkedVars(verticesflag) }
+	{ check 
+	    "Cursor"
+	    { SendLinkedVarGroup view
+		UpdateAndRedraw }
+	    gaLinkedVars(drawcursorflag) }
     }
 
     
