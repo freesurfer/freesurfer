@@ -27647,8 +27647,8 @@ mrisTessellateDefect(MRI_SURFACE *mris, MRI_SURFACE *mris_corrected, DEFECT *def
           fprintf(stdout, "excluding existing edge %d <--> %d\n",
                   vlist[i],vlist[j]) ;
       }
-#if 0
-			if (!edgeExists(mris, vlist[i], vlist[j]))
+#if 1
+			if (!edgeExists(mris, vlist[i], vlist[j]))  /* prioritize edges in original tessellation */
 				et[n].len += 100 ;
 #endif
     }

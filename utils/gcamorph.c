@@ -147,7 +147,10 @@ GCAMregister(GCA_MORPH *gcam, MRI *mri, GCA_MORPH_PARMS *parms)
     parms->log_fp = NULL ;
 
   sigma = parms->sigma ;
-  GCAMcomputeMaxPriorLabels(gcam) ;
+	if (gcam->relabel)
+		GCAMcomputeLabels(mri, gcam) ;
+	else
+		GCAMcomputeMaxPriorLabels(gcam) ;
   for (level = parms->levels-1 ; level >= 0 ; level--)
   {
 	  sigma = parms->sigma ;
@@ -168,7 +171,22 @@ GCAMregister(GCA_MORPH *gcam, MRI *mri, GCA_MORPH_PARMS *parms)
 	    do
   	  {
     	  if (((level != (parms->levels-1)) || (i > 0)) && gcam->relabel)
+				{
       	  GCAMcomputeLabels(mri, gcam) ;
+					if (parms->write_iterations != 0)
+					{
+						char fname[STRLEN] ;
+						MRI  *mri_gca ;
+						mri_gca = MRIclone(mri, NULL) ;
+						GCAMbuildMostLikelyVolume(gcam, mri_gca) ;
+						sprintf(fname, "%s_target%d", parms->base_name, level) ;
+						MRIwriteImageViews(mri_gca, fname, IMAGE_SIZE) ;
+						sprintf(fname, "%s_target%d.mgh", parms->base_name, level) ;
+						printf("writing target volume to %s...\n", fname) ;
+						MRIwrite(mri_gca, fname) ;
+						MRIfree(&mri_gca) ;
+					}
+				}
 	      last_rms = gcamComputeRMS(gcam, mri, parms) ;
   	    level_steps = parms->start_t ;
     	  GCAMregisterLevel(gcam, mri, mri_smooth, parms) ;
@@ -1730,12 +1748,14 @@ GCAMregisterLevel(GCA_MORPH *gcam, MRI *mri, MRI *mri_smooth, GCA_MORPH_PARMS *p
 			done = 0 ;    /* for integration type == BOTH, apply both types again */
 			nsmall = 0 ;  /* start counting small steps again */
 		}
+#if 0
 		if (gcam->relabel)
 		{
 			GCAMcomputeLabels(mri, gcam) ;
 			last_rms = gcamComputeRMS(gcam, mri, parms) ;
 		}
 		else
+#endif
 			last_rms = rms ;
 		/*		parms->label_dist -= 0.5 ;*/
 		if (parms->label_dist < 0)
@@ -2256,7 +2276,6 @@ GCAMcomputeLabels(MRI *mri, GCA_MORPH *gcam)
   GCA_PRIOR      *gcap ;
   GC1D           *gc ;
 
-	/*  return(GCAMcomputeMaxPriorLabels(gcam)) ;*/
   width = gcam->width  ; height = gcam->height ; depth = gcam->depth ; 
   for (x = 0 ; x < width ; x++)
     for (y = 0 ; y < height ; y++)
@@ -2354,6 +2373,56 @@ GCAMcomputeMaxPriorLabels(GCA_MORPH *gcam)
 }
 MRI *
 GCAMbuildMostLikelyVolume(GCA_MORPH *gcam, MRI *mri)
+{
+  int            x,  y, z, xn, yn, zn, width, depth, height, n ;
+  GCA_MORPH_NODE *gcamn ;
+	float          val ;
+
+  width = mri->width ; depth = mri->depth ; height = mri->height ;
+
+  for (z = 0 ; z < depth ; z++)
+  {
+    for (y = 0 ; y < height ; y++)
+    {
+      for (x = 0 ; x < width ; x++)
+      {
+        if (x == Gx && y == Gy && z == Gz)
+          DiagBreak() ;
+        GCAvoxelToPrior(gcam->gca, mri, x, y, z, &xn, &yn, &zn) ;
+        gcamn = &gcam->nodes[xn][yn][zn] ;
+				for (n = 0 ; n < gcam->gca->ninputs ; n++)
+				{
+					if (gcamn->gc)
+						val = gcamn->gc->means[n] ;
+					else
+						val = 0 ;
+
+					switch (mri->type)
+					{
+					default:
+						ErrorReturn(NULL,
+												(ERROR_UNSUPPORTED, 
+												 "GCAMbuildMostLikelyVolume: unsupported image type %d", mri->type)) ;
+						break ;
+					case MRI_SHORT:
+						MRISseq_vox(mri, x, y, z, n) = nint(val) ;
+						break ;
+					case MRI_UCHAR:
+						MRIseq_vox(mri, x, y, z, n) = nint(val) ;
+						break ;
+					case MRI_FLOAT:
+						MRIFseq_vox(mri, x, y, z, n) = val ;
+						break ;
+					}
+        }
+      }
+    }
+  }
+
+  return(mri) ;
+}
+MRI *
+GCAMbuildVolume(GCA_MORPH *gcam, MRI *mri)
 {
   int            x,  y, z, xn, yn, zn, width, depth, height, n ;
   GCA_MORPH_NODE *gcamn ;
@@ -2923,6 +2992,8 @@ gcamLabelEnergy(GCA_MORPH *gcam, MRI *mri, double label_dist)
 				else
 					wm_label = Right_Cerebral_White_Matter ;
 				wm_gc = GCAfindPriorGC(gcam->gca, x, y, z, wm_label) ;
+				if (wm_gc == NULL)
+					continue ;
 
 				min_wm_dist = IS_WM(gcamn->label) ? -.5 : -.5 ;
 				max_dist = 0 ; max_log_p = -1e20;

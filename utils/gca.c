@@ -8564,7 +8564,7 @@ GCAhistoScaleImageIntensities(GCA *gca, MRI *mri)
 
 		h_mri = MRIhistogramRegion(mri_frame, 0, NULL, &box) ; 
 		if (gca->ninputs == 1)
-			HISTOclearBins(h_mri, h_mri, 0, nint(min_real_bin / h_mri->bin_size)) ;
+			HISTOclearBins(h_mri, h_mri, 0, min_real_val) ;
 		if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
 			HISTOplot(h_mri, "mri.histo") ;
 		if (gca->ninputs == 1)   /* assume it is T1-weighted */
