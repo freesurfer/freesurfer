@@ -49,7 +49,6 @@
 #include "diag.h"
 #include "chklc.h"
 #include "mriColorLookupTable.h"
-#include "dicom.h"
 #include "DICOMRead.h"
 #include "imautils.h"
 

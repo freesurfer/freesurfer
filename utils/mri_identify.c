@@ -11,7 +11,6 @@
 #include "machine.h"
 #include "signa.h"
 #include "fio.h"
-#include "dicom.h"
 #include "DICOMRead.h"
 
 extern int errno;
