@@ -931,13 +931,41 @@ XVMRIsetView(XV_FRAME *xvf, int which, int view)
     break ;
   }
 
+  dimage = XVgetDimage(xvf, which, DIMAGE_IMAGE) ;
+
+  /* check to see if showing a zoomed image, if so, change region */
+  if (/*(view != mri_views[which]) && */(dimage->dx > 0))
+  {
+    switch (view)
+    {
+    default:
+    case MRI_CORONAL:
+      slice = z_click + mri->imnr0 ;
+      dimage->x0 = x_click - dimage->dx/2 ;
+      dimage->y0 = mri->height - (y_click + dimage->dy/2) ;
+      menu_str = "CORONAL" ;
+      break ;
+    case MRI_SAGITAL:
+      slice = x_click ;
+      menu_str = "SAGITAL" ;
+      dimage->x0 = z_click - dimage->dx/2 ;
+      dimage->y0 = mri->height - (y_click + dimage->dy/2) ;
+      break ;
+    case MRI_HORIZONTAL:
+      dimage->x0 = x_click - dimage->dx/2 ;
+      dimage->y0 = mri->depth - (z_click + dimage->dy/2) ;
+      slice = y_click ;
+      menu_str = "HORIZONTAL" ;
+      break ;
+    }
+  }
+
   if (which == which_click)
   {
     sprintf(view_str, "view: %s", menu_str) ;
     xv_set(view_panel, PANEL_LABEL_STRING, view_str, NULL) ;
   }
 
-  dimage = XVgetDimage(xvf, which, DIMAGE_IMAGE) ;
   sync = dimage->sync ;
   if (sync)
   {
@@ -967,7 +995,8 @@ XVMRIsetView(XV_FRAME *xvf, int which, int view)
         default:
           slice2 = slice ;
         }
-/*        XVMRIsetView(xvf, which2, view) ;*/
+        dimage2->dx = dimage->dx ; dimage2->dy = dimage->dy ;
+        dimage2->x0 = dimage->x0 ; dimage2->y0 = dimage->y0 ;
         if (view == mri_views[which2])
           XVMRIredisplayFrame(xvf, mri2, which2, slice2, mri_frames[which2]) ;
         else
