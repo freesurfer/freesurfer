@@ -45,5 +45,6 @@ int    MRICcomputeInputs(MRI *mri, int x,int y,int z,float *obs, int ninputs) ;
 MRI    *MRICbuildTargetImage(MRI *mri_src, MRI *mri_target, MRI *mri_wm,
                              int lo_lim, int hi_lim) ;
 MRI    *MRICupdatePriors(MRI *mri_target, MRI *mri_priors, int scale) ;
+int    MRInormalizePriors(MRI *mri_priors) ;
 
 #endif
