@@ -7412,10 +7412,9 @@ MRISwriteValues(MRI_SURFACE *mris, char *sname)
     printf("num = %d\n",num);
   fwrite2(0,fp);
   fwrite3(num,fp);
-  for (k=0;k<mris->nvertices;k++)
-  {
-    if (mris->vertices[k].val!=0)
-    {
+
+  for(k=0;k<mris->nvertices;k++){
+    if(mris->vertices[k].val != 0){
       fwrite3(k,fp);
       f = mris->vertices[k].val;
       if (!finite(f))
@@ -7431,21 +7430,19 @@ MRISwriteValues(MRI_SURFACE *mris, char *sname)
     }
   }
   fclose(fp);
-  if (num > 0)
-  {
+
+  if(num > 0){
     sum /= num;
     sum2 = (sum2/num-sum*sum);
+    if(sum2 > 0) sum2 = sqrt(sum2) ;
+    else          sum2 = 0 ;
+    printf("avg = %2.3f, stdev = %2.3f, min = %2.3f, max = %2.3f\n",
+            sum,sum2,min,max);
   }
   else
-    sum = sum2 = 0.0 ;
+    printf("Warning: all vertex values are zero\n");
+    
 
-  if (sum2 > 0)
-    sum2 = sqrt(sum2) ;
-  else
-    sum2 = 0 ;
-  if (Gdiag & DIAG_SHOW)
-    fprintf(stdout, "avg = %2.3f, stdev = %2.3f, min = %2.3f, max = %2.3f\n",
-            sum,sum2,min,max);
   return(NO_ERROR) ;
 }
 /*-----------------------------------------------------
