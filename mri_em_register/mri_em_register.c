@@ -157,7 +157,7 @@ main(int argc, char *argv[])
   float        old_log_p, log_p ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_em_register.c,v 1.30 2003/09/18 17:26:23 tosa Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_em_register.c,v 1.31 2003/09/19 15:10:49 tosa Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -201,11 +201,6 @@ main(int argc, char *argv[])
   printf("reading %d input volumes...\n", ninputs) ;
   gca_fname = argv[ninputs+1] ;
   out_fname = argv[ninputs+2] ;
-  if (!stricmp(out_fname+strlen(out_fname)-3, "XFM"))
-  {
-    fprintf(stderr, "INFO: XFM output of a transform no longer supported. Please use .lta\n");
-    exit(1);
-  }
   FileNameOnly(out_fname, fname) ;
   FileNameRemoveExtension(fname, fname) ;
   strcpy(parms.base_name, fname) ;
@@ -281,7 +276,6 @@ main(int argc, char *argv[])
       if (!mri_mask)
 	ErrorExit(ERROR_NOFILE, "%s: could not open mask volume %s.\n",
       	          Progname, mask_fname) ;
-      
       MRImask(mri_tmp, mri_mask, mri_tmp, 0, 0) ;
       MRIfree(&mri_mask) ;
     }
@@ -294,8 +288,7 @@ main(int argc, char *argv[])
     MRIcopyFrame(mri_tmp, mri_in, 0, i) ;
     MRIfree(&mri_tmp) ;
   }
-  
-  
+
   if (alpha > 0)
     mri_in->flip_angle = alpha ;
   if (TR > 0)
@@ -497,12 +490,11 @@ main(int argc, char *argv[])
     GCAfreeSamples(&parms.gcas, nsamples) ;
     parms.tol *= 10 ; i++ ;
   } 
-  
   parms.gcas = GCAfindAllSamples(gca, &nsamples, NULL) ;
   parms.nsamples = nsamples ;
   
   printf("computing final MAP estimate of linear transform using %d samples...\n", nsamples) ;
-  
+	
   parms.mri_in = mri_in ;  /* for diagnostics */
   if ((Gdiag & DIAG_WRITE) && (parms.write_iterations != 0))
   {
@@ -529,7 +521,7 @@ main(int argc, char *argv[])
   printf("final EM transform:\n") ;
   MatrixPrint(stdout, parms.lta->xforms[0].m_L) ;
   printf("\n") ;
-	
+  
 #define DELTA_SCALE 0.01
   update_optimal_transform(mri_in, gca, parms.gcas, nsamples,
 			   parms.lta->xforms[0].m_L, DELTA_SCALE, parms.write_iterations, 3,
@@ -547,7 +539,6 @@ main(int argc, char *argv[])
     MRI *mri_aligned ;
     
     mri_in->nframes = 1 ;
-    // this is a vox-to-vox transform
     mri_aligned = 
       MRIlinearTransform(mri_in, NULL, parms.lta->xforms[0].m_L) ;
     mri_in->nframes = gca->ninputs ;
@@ -561,26 +552,26 @@ main(int argc, char *argv[])
   MRIvoxelXformToRasXform(mri_in, mri_in, 
                           parms.lta->xforms[0].m_L, parms.lta->xforms[0].m_L) ;
 #endif
+  // writing transform section here
   if (!stricmp(out_fname+strlen(out_fname)-3, "XFM"))
   {
-    fprintf(stderr, "INFO: XFM output of a transform no longer supported. Please use .lta\n");
-/*     printf("converting xform to RAS...\n") ; */
-/*     printf("initial:\n") ; */
-/*     MatrixPrint(stdout, parms.lta->xforms[0].m_L) ; */
-/*     MRIvoxelXformToRasXform(mri_in, mri_in,  */
-/*                             parms.lta->xforms[0].m_L, parms.lta->xforms[0].m_L) ; */
-/*     printf("final:\n") ; */
-/*     MatrixPrint(stdout, parms.lta->xforms[0].m_L) ; */
-/*     parms.lta->type = LINEAR_RAS_TO_RAS ; */
-    exit(1);
+    printf("converting xform to RAS...\n") ; 
+    printf("initial:\n") ;
+    MatrixPrint(stdout, parms.lta->xforms[0].m_L) ;
+    MRIvoxelXformToRasXform(mri_in, mri_in, 
+                            parms.lta->xforms[0].m_L, parms.lta->xforms[0].m_L) ;
+    printf("final:\n") ;
+    MatrixPrint(stdout, parms.lta->xforms[0].m_L) ;
+    parms.lta->type = LINEAR_RAS_TO_RAS ;
   }
   else
     parms.lta->type = LINEAR_VOX_TO_VOX ;
+
   // add src and dst info
   getVolGeom(mri_in, &parms.lta->xforms[0].src);
-  getVolGeom(mri_in, &parms.lta->xforms[1].dst);
+  getVolGeom(mri_in, &parms.lta->xforms[0].dst);
   LTAwriteEx(parms.lta, out_fname) ;
-
+  ///////////////////////////////////////////// end of writing transform
   if (parms.lta->type == LINEAR_RAS_TO_RAS)  /* convert back to voxel */
   {
     printf("converting xform back to voxel...\n") ;
@@ -1874,6 +1865,9 @@ get_option(int argc, char *argv[])
     if (!parms.lta)
       ErrorExit(ERROR_BADFILE, "%s: could not read transform file %s",
                 Progname, argv[2]) ;
+    if (parms.lta->type!=LINEAR_VOX_TO_VOX)
+      ErrorExit(ERROR_BADFILE, "%s: must be LINEAR_VOX_TO_VOX (=0), but %d",
+                Progname, argv[2], parms.lta->type) ;
     nargs = 1 ;
     printf("using previously computed transform %s\n", argv[2]) ;
     if (parms.lta->type != LINEAR_VOX_TO_VOX)
