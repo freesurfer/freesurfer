@@ -1421,8 +1421,8 @@ GCAMmorphFromAtlas(MRI *mri_in, GCA_MORPH *gcam, MRI *mri_morphed)
         xp1 = xm1 + 1 ; yp1 = ym1 + 1 ; zp1 = zm1 + 1 ;
 
         /* make sure they are within bounds */
-        xm1 = mri_in->xi[xm1] ; ym1 = mri_in->xi[ym1] ; zm1 = mri_in->xi[zm1] ;
-        xp1 = mri_in->xi[xp1] ; yp1 = mri_in->xi[yp1] ; zp1 = mri_in->xi[zp1] ;
+        xm1 = mri_in->xi[xm1] ; ym1 = mri_in->yi[ym1] ; zm1 = mri_in->zi[zm1] ;
+        xp1 = mri_in->xi[xp1] ; yp1 = mri_in->yi[yp1] ; zp1 = mri_in->zi[zp1] ;
 
         dx = xd - xm1 ; dy = yd - ym1 ; dz = zd - zm1 ;
 

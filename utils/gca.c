@@ -1441,31 +1441,31 @@ GCAread(char *fname)
     {
       while (!feof(fp))
       {
-	/* all tags are format: <int: tag> <int: num> <parm> <parm> .... */
-	tag = freadInt(fp) ;
-	switch (tag)
-	{
-	case TAG_GCA_TYPE:
-	  freadInt(fp) ;   /* skip num=1 */
-	  gca->type = freadInt(fp) ;   
-	  printf("setting gca type = %d\n", gca->type) ;
-	  break ;
-	case TAG_PARAMETERS:
-	  nparms = freadInt(fp) ;   /* how many MR parameters are stored */
-	  printf("reading %d MR parameters out of GCA header...\n", nparms) ;
-	  for (n = 0 ; n < gca->ninputs ; n++)
-	  {
-	    gca->TRs[n] = freadFloat(fp) ;
-	    gca->FAs[n] = freadFloat(fp) ;
-	    gca->TEs[n] = freadFloat(fp) ;
-	    printf("input %d: TR=%2.1f msec, FA=%2.1f deg, TE=%2.1f msec\n",
-		   n, gca->TRs[n], DEGREES(gca->FAs[n]), gca->TEs[n]) ;
-	  }
-	  break ;
-	default:
-	  ErrorPrintf(ERROR_BADFILE, "GCAread(%s): unknown tag %x\n", fname, tag) ;
-	  break ;
-	}
+				/* all tags are format: <int: tag> <int: num> <parm> <parm> .... */
+				tag = freadInt(fp) ;
+				switch (tag)
+				{
+				case TAG_GCA_TYPE:
+					freadInt(fp) ;   /* skip num=1 */
+					gca->type = freadInt(fp) ;   
+					printf("setting gca type = %d\n", gca->type) ;
+					break ;
+				case TAG_PARAMETERS:
+					nparms = freadInt(fp) ;   /* how many MR parameters are stored */
+					printf("reading %d MR parameters out of GCA header...\n", nparms) ;
+					for (n = 0 ; n < gca->ninputs ; n++)
+					{
+						gca->TRs[n] = freadFloat(fp) ;
+						gca->FAs[n] = freadFloat(fp) ;
+						gca->TEs[n] = freadFloat(fp) ;
+						printf("input %d: TR=%2.1f msec, FA=%2.1f deg, TE=%2.1f msec\n",
+									 n, gca->TRs[n], DEGREES(gca->FAs[n]), gca->TEs[n]) ;
+					}
+					break ;
+				default:
+					ErrorPrintf(ERROR_BADFILE, "GCAread(%s): unknown tag %x\n", fname, tag) ;
+					break ;
+				}
       }
     }
   }
