@@ -1,6 +1,6 @@
 /* 
    fmriutils.c 
-   $Id: fmriutils.c,v 1.2 2002/10/30 01:07:03 greve Exp $
+   $Id: fmriutils.c,v 1.3 2002/10/31 18:26:48 greve Exp $
 */
 #include <stdio.h>
 #include <stdlib.h>
@@ -21,6 +21,9 @@ MRI *fMRImatrixMultiply(MRI *inmri, MATRIX *M, MRI *outmri)
   int c, r, s, fin, fout;
   int nframesout;
   float val;
+  int nin, nout;
+  int nin0, nout0;
+  float *pin=NULL, *pout=NULL;
 
   if(inmri->nframes != M->cols){
     printf("ERROR: fMRImatrixMultiply: input dimension mismatch\n");
@@ -51,15 +54,20 @@ MRI *fMRImatrixMultiply(MRI *inmri, MATRIX *M, MRI *outmri)
     }
   }
 
-  for(c=0; c < outmri->width; c++){
-    for(r=0; r < outmri->height; r++){
+  MRIclear(outmri);
+  for(fout=0; fout < outmri->nframes; fout++){
+    nout0 = fout*outmri->depth;
+    for(fin=0; fin < inmri->nframes; fin++){
+      val = M->rptr[fout+1][fin+1];
+      nin0 = fin*inmri->depth;
       for(s=0; s < outmri->depth; s++){
-	for(fout=0; fout < outmri->nframes; fout++){
-	  val = 0;
-	  for(fin=0; fin < inmri->nframes; fin++){
-	    val += (M->rptr[fout+1][fin+1])*MRIgetVoxVal(inmri, c, r, s, fin);
-	  }
-	  MRIFseq_vox(outmri,c,r,s,fout) = val;
+	nin  = s + nin0;
+	nout = s + nout0;
+	for(r=0; r < outmri->height; r++){
+	  pin = (float*)inmri->slices[nin][r];
+	  pout = (float*)outmri->slices[nout][r];
+	  for(c=0; c < outmri->width; c++)
+	    (*pout++) += val*(*pin++);
 	}
       }
     }
@@ -124,8 +132,9 @@ MRI *fMRIvariance(MRI *fmri, float DOF, int RmMean, MRI *var)
   --------------------------------------------------------*/
 MRI *fMRIsumSquare(MRI *fmri, int Update, MRI *sumsqr)
 {
-  int c, r, s, f;
-  float val,sumsqval;
+  int c, r, s, f, n;
+  float v;
+  float *pfmri=NULL, *psumsqr = NULL;
 
   if(sumsqr==NULL){
     sumsqr = MRIallocSequence(fmri->width, fmri->height, fmri->depth, 
@@ -149,17 +158,19 @@ MRI *fMRIsumSquare(MRI *fmri, int Update, MRI *sumsqr)
     }
   }
 
-  for(c=0; c < fmri->width; c++){
-    for(r=0; r < fmri->height; r++){
-      for(s=0; s < fmri->depth; s++){
-	sumsqval = 0;
-	for(f=0; f < fmri->nframes; f++){
-	  val = MRIgetVoxVal(fmri, c, r, s, f);
-	  sumsqval += (val*val);
+  if(Update) MRIclear(sumsqr);
+  n = 0;
+  for(f=0; f < fmri->nframes; f++){
+    for(s=0; s < fmri->depth; s++){
+      for(r=0; r < fmri->height; r++){
+	pfmri   = (float *)   fmri->slices[n][r];
+	psumsqr = (float *) sumsqr->slices[s][r];
+	for(c=0; c < fmri->width; c++){
+	  v = (*pfmri++);
+	  (*psumsqr++) += (v*v);
 	}
-	if(Update) MRIFseq_vox(sumsqr,c,r,s,0) += sumsqval;
-	else       MRIFseq_vox(sumsqr,c,r,s,0)  = sumsqval;
       }
+      n++;
     }
   }
 
