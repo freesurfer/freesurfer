@@ -1099,9 +1099,12 @@ xv_dimage_event_handler(Xv_Window xv_window, Event *event)
   else switch (event_id(event))   /* ctrl is not down */
   {
   case MS_MIDDLE:    /* put up frame for issuing shell command */
-    xvf_hips = xvf ;
-    xv_set(hips_cmd_frame, FRAME_CMD_PUSHPIN_IN, TRUE, XV_SHOW, TRUE, NULL) ;
-    hips_cmd_source = which ;
+    if (!event_shift_is_down(event))
+    {
+      xvf_hips = xvf ;
+      xv_set(hips_cmd_frame, FRAME_CMD_PUSHPIN_IN, TRUE, XV_SHOW, TRUE, NULL) ;
+      hips_cmd_source = which ;
+    }
     break ;
   case MS_RIGHT:
     break ;
