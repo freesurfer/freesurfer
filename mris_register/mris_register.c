@@ -13,7 +13,7 @@
 #include "macros.h"
 #include "version.h"
 
-static char vcid[] = "$Id: mris_register.c,v 1.18 2004/01/27 21:07:49 fischl Exp $";
+static char vcid[] = "$Id: mris_register.c,v 1.19 2004/04/26 18:58:16 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -26,7 +26,7 @@ static int  compute_area_ratios(MRI_SURFACE *mris) ;
 
 static int max_passes = 4 ;
 static float min_degrees = 0.5 ;
-static float max_degrees = 8.0 ;
+static float max_degrees = 32.0 ;
 static int   nangles = 8 ;
 static int nbrs = 1 ;
 static float scale = 1.0f ;
@@ -55,7 +55,7 @@ main(int argc, char *argv[])
   MRI_SP       *mrisp_template ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_register.c,v 1.18 2004/01/27 21:07:49 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_register.c,v 1.19 2004/04/26 18:58:16 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
