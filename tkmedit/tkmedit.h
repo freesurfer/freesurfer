@@ -53,6 +53,7 @@ typedef enum {
   tkm_tErr_CouldntLoadTimeCourse,
   tkm_tErr_CouldntLoadTransform,
   tkm_tErr_CouldntLoadGCA,
+  tkm_tErr_CouldntLoadVLI,
   tkm_tErr_ErrorAccessingFile,
   tkm_tErr_ErrorAccessingVolume,
   tkm_tErr_ErrorAccessingROIGroup,
