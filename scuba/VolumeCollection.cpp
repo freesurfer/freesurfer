@@ -74,6 +74,13 @@ VolumeCollection::~VolumeCollection() {
 
 }
 
+DataLocation&
+VolumeCollection::MakeLocationFromRAS ( float const iRAS[3] ) {
+  
+  VolumeLocation* loc = new VolumeLocation( *this, iRAS );
+  return *loc;
+}
+
 void
 VolumeCollection::SetFileName ( string& ifnMRI ) {
 
@@ -227,6 +234,91 @@ VolumeCollection::GetMRIMagnitudeMinValue () {
   return mMRIMagMinValue; 
 }
 
+float 
+VolumeCollection::GetMRINearestValueAtLocation ( VolumeLocation& iLoc ) {
+
+  Real value = 0;
+  if( NULL != mMRI ) {
+
+    if( iLoc.mIdx[0] >= 0 && iLoc.mIdx[0] < mMRI->width &&
+	iLoc.mIdx[1] >= 0 && iLoc.mIdx[1] < mMRI->height &&
+	iLoc.mIdx[2] >= 0 && iLoc.mIdx[2] < mMRI->depth ) {
+      
+      switch( mMRI->type ) {
+      case MRI_UCHAR:
+	value = (float)MRIvox(mMRI, iLoc.mIdx[0], iLoc.mIdx[1], iLoc.mIdx[2] );
+	break ;
+      case MRI_SHORT:
+      value = (float)MRISvox(mMRI, iLoc.mIdx[0], iLoc.mIdx[1], iLoc.mIdx[2] );
+      break ;
+      case MRI_INT:
+	value = (float)MRIIvox(mMRI, iLoc.mIdx[0], iLoc.mIdx[1], iLoc.mIdx[2] );
+	break ;
+      case MRI_FLOAT:
+	value = MRIFvox(mMRI, iLoc.mIdx[0], iLoc.mIdx[1], iLoc.mIdx[2] );
+	break ;
+      default:
+	value = 0;
+      }
+    }
+  }
+  
+  return (float)value;
+  
+}
+
+bool 
+VolumeCollection::IsLocationInBounds ( VolumeLocation& iLoc ) {
+
+  return IsMRIIndexInMRIBounds( iLoc.mIdx );
+}
+
+bool 
+VolumeCollection::IsLocationSelected ( VolumeLocation& iLoc, int oColor[3] ) {
+
+  // Check the selection volume cache first.
+  if( !(mSelectedVoxels->Get_Unsafe( iLoc.mIdx[0], iLoc.mIdx[1], iLoc.mIdx[2] )) )
+    return false;
+
+  try {
+    
+    bool bSelected = false;
+    bool bFirstColor = true;
+    
+    map<int,ScubaROI*>::iterator tIDROI;
+    for( tIDROI = mROIMap.begin();
+	 tIDROI != mROIMap.end(); ++tIDROI ) {
+      int roiID = (*tIDROI).first;
+      
+      ScubaROI* roi = &ScubaROI::FindByID( roiID );
+      //    ScubaROIVolume* volumeROI = dynamic_cast<ScubaROIVolume*>(roi);
+      ScubaROIVolume* volumeROI = (ScubaROIVolume*)roi;
+      if( volumeROI->IsVoxelSelected( iLoc.mIdx ) ) {
+	bSelected = true;
+	int color[3];
+	volumeROI->GetDrawColor( color );
+	if( bFirstColor ) {
+	  oColor[0] = color[0];
+	  oColor[1] = color[1];
+	  oColor[2] = color[2];
+	  bFirstColor = false;
+	} else {
+	  oColor[0] = (int) (((float)color[0] * 0.5) + ((float)oColor[0]*0.5));
+	  oColor[1] = (int) (((float)color[1] * 0.5) + ((float)oColor[1]*0.5));
+	  oColor[2] = (int) (((float)color[2] * 0.5) + ((float)oColor[2]*0.5));
+	}
+      }
+    }
+    
+    return bSelected;
+  }
+  catch(...) {
+    return false;
+  }
+  
+}
+
+
 void
 VolumeCollection::GetRASRange ( float oRASRange[6] ) {
 
@@ -260,7 +352,7 @@ VolumeCollection::GetMRIMagnitudeMaxValue () {
 
 
 void
-VolumeCollection::RASToMRIIndex ( float iRAS[3], int oIndex[3] ) {
+VolumeCollection::RASToMRIIndex ( float const iRAS[3], int oIndex[3] ) {
   
 
 #if 0
@@ -279,31 +371,31 @@ VolumeCollection::RASToMRIIndex ( float iRAS[3], int oIndex[3] ) {
 }
 
 void
-VolumeCollection::RASToMRIIndex ( float iRAS[3], float oIndex[3] ) {
+VolumeCollection::RASToMRIIndex ( float const iRAS[3], float oIndex[3] ) {
 
   mWorldToIndexTransform.MultiplyVector3( iRAS, oIndex );
 }
 
 void
-VolumeCollection::MRIIndexToRAS ( int iIndex[3], float oRAS[3] ) {
+VolumeCollection::MRIIndexToRAS ( int const iIndex[3], float oRAS[3] ) {
   
   mWorldToIndexTransform.InvMultiplyVector3( iIndex, oRAS );
 }
 
 void
-VolumeCollection::MRIIndexToRAS ( float iIndex[3], float oRAS[3] ) {
+VolumeCollection::MRIIndexToRAS ( float const iIndex[3], float oRAS[3] ) {
   
   mWorldToIndexTransform.InvMultiplyVector3( iIndex, oRAS );
 }
 
 void
-VolumeCollection::RASToDataRAS ( float iRAS[3], float oDataRAS[3] ) {
+VolumeCollection::RASToDataRAS ( float const iRAS[3], float oDataRAS[3] ) {
   
   mDataToWorldTransform->InvMultiplyVector3( iRAS, oDataRAS );
 }
 
 bool 
-VolumeCollection::IsRASInMRIBounds ( float iRAS[3] ) {
+VolumeCollection::IsRASInMRIBounds ( float const iRAS[3] ) {
 
   int index[3];
   RASToMRIIndex( iRAS, index );
@@ -312,7 +404,7 @@ VolumeCollection::IsRASInMRIBounds ( float iRAS[3] ) {
 }
 
 bool 
-VolumeCollection::IsMRIIndexInMRIBounds ( int iIndex[3] ) {
+VolumeCollection::IsMRIIndexInMRIBounds ( int const iIndex[3] ) {
 
   if( NULL != mMRI ) {
       return ( iIndex[0] >= 0 && iIndex[0] < mMRI->width &&
@@ -1144,8 +1236,9 @@ VolumeCollection::CalcWorldToIndexTransform () {
   if( mbUseDataToIndexTransform ) {
 
     // Just mult our transforms together.
-    mWorldToIndexTransform =
-      mDataToIndexTransform * mDataToWorldTransform->Inverse();
+    Transform44 worldToData = mDataToWorldTransform->Inverse();
+    Transform44 tmp = mDataToIndexTransform * worldToData;
+    mWorldToIndexTransform = tmp;
 
   } else {
 
@@ -1154,9 +1247,12 @@ VolumeCollection::CalcWorldToIndexTransform () {
 			     0, 1, 0, mMRI->height/2,
 			     0, 0, 1, mMRI->depth/2,
 			     0, 0, 0, 1 );
+    
+    Transform44 worldToData = mDataToWorldTransform->Inverse();
+    Transform44 tmp = center * worldToData;
+    mWorldToIndexTransform = tmp;
+      
 
-    mWorldToIndexTransform = 
-      center * mDataToWorldTransform->Inverse();
   }
 
 #if 0
@@ -1559,4 +1655,10 @@ VolumeCollectionFlooder::Flood ( VolumeCollection& iVolume,
   mParams = NULL;
 
   this->DoEnd();
+}
+
+VolumeLocation::VolumeLocation ( VolumeCollection& iVolume,
+				 float const iRAS[3] )
+  : DataLocation( iRAS ), mVolume( iVolume ) {
+  mVolume.RASToMRIIndex( iRAS, mIdx );
 }

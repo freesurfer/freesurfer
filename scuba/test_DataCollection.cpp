@@ -55,8 +55,8 @@ public:
     SetLabel( isLabel );
   }
   
-  virtual void GetInfoAtRAS( float const iX, float const iY, float const iZ,
-			     std::map<std::string,std::string>& iLabelValues ) {
+  virtual void GetInfo( DataLocation& iLoc,
+			std::map<std::string,std::string>& iLabelValues ) {
     return;
   }
 
@@ -94,6 +94,16 @@ DataCollectionTester::Test ( Tcl_Interp* iInterp ) {
 	    "Didn't get correct collection" );
     Assert( (col4->GetLabel() == col4comp.GetLabel()), 
 	    "Didn't get correct label" );
+
+    // Test the locator.
+    float ras[3];
+    ras[0] = 1; ras[1] = 2; ras[2] = 3;
+    DataLocation& loc = col1.MakeLocationFromRAS( ras );
+    Assert( (loc.mRAS[0] == ras[0] && 
+	     loc.mRAS[1] == ras[1] && 
+	     loc.mRAS[2] == ras[2]),
+	    "RAS in location wasn't set correctly." );
+    
 
     delete col4;
     try {

@@ -24,6 +24,19 @@ extern "C" {
 #include "ScubaTransform.h"
 #include "Broadcaster.h"
 
+class VolumeCollection;
+
+class VolumeLocation : public DataLocation {
+  friend class VolumeCollectionTester;
+  friend class VolumeCollection;
+ public:
+  VolumeLocation ( VolumeCollection& iVolume, float const iRAS[3] );
+  ~VolumeLocation () {}
+ protected:
+  VolumeCollection& mVolume;
+  int mIdx[3];
+};
+
 class VolumeCollection : public DataCollection {
 
   friend class VolumeCollectionTester;
@@ -32,6 +45,8 @@ class VolumeCollection : public DataCollection {
  public:
   VolumeCollection ();
   virtual ~VolumeCollection ();
+
+  virtual DataLocation& MakeLocationFromRAS ( float const iRAS[3] );
 
   // Should return a type description unique to the subclass.
   virtual std::string GetTypeDescription() { return "Volume"; }
@@ -68,20 +83,22 @@ class VolumeCollection : public DataCollection {
   void GetMRIIndexRange ( int oMRIIndexRange[3] );
 
   // Coordinate conversion.
-  void RASToMRIIndex ( float iRAS[3], int oIndex[3] );
-  void RASToMRIIndex ( float iRAS[3], float oIndex[3] );
-  void MRIIndexToRAS ( int iIndex[3], float oRAS[3] );
-  void MRIIndexToRAS ( float iIndex[3], float oRAS[3] );
-  void RASToDataRAS  ( float iRAS[3], float oDataRAS[3] );
+  void RASToMRIIndex ( float const iRAS[3], int oIndex[3] );
+  void RASToMRIIndex ( float const iRAS[3], float oIndex[3] );
+  void MRIIndexToRAS ( int const iIndex[3], float oRAS[3] );
+  void MRIIndexToRAS ( float const iIndex[3], float oRAS[3] );
+  void RASToDataRAS  ( float const iRAS[3], float oDataRAS[3] );
 
   // Bounds testing.
-  bool IsRASInMRIBounds ( float iRAS[3] );
-  bool IsMRIIndexInMRIBounds ( int iIndex[3] );
+  bool IsRASInMRIBounds ( float const iRAS[3] );
+  bool IsMRIIndexInMRIBounds ( int const iIndex[3] );
+  bool IsLocationInBounds ( VolumeLocation& iLoc );
 
   // Calculates values.
-  float GetMRINearestValueAtRAS ( float iRAS[3] );
+  float GetMRINearestValueAtRAS ( float  iRAS[3] );
+  float GetMRINearestValueAtLocation ( VolumeLocation& iLoc );
   float GetMRITrilinearValueAtRAS ( float iRAS[3] );
-  float GetMRISincValueAtRAS ( float iRAS[3] );
+  float GetMRISincValueAtRAS ( float  iRAS[3] );
   float GetMRIMagnitudeValueAtRAS ( float iRAS[3] );
   
   // Sets value.
@@ -105,6 +122,7 @@ class VolumeCollection : public DataCollection {
   // Return whether or not an ROI is at this point, and if so, returns
   // the color. If multiple ROIs are present, blends the color.
   bool IsRASSelected ( float iRAS[3], int oColor[3] );
+  bool IsLocationSelected ( VolumeLocation& iLoc, int oColor[3] );
 
   // Return whether or not an ROI is present other than the one passed
   // in.

@@ -57,7 +57,7 @@ GUI_SRCS= \
 	TclProgressDisplayManager.cpp \
 	togl.c
 
-bin_PROGRAMS = scuba wxscuba
+bin_PROGRAMS = scuba wxscuba qtscuba
 scuba_SOURCES=$(UTILITIES_SRCS) $(BASIC_SRCS) $(FSDATA_SRCS) $(GUI_SRCS) $(LAYER_SRCS) scuba.cpp 
 LDADD= $(addprefix $(top_srcdir)/,$(LIBS_MGH)) $(LIBS_TCL_OPENGL)
 scuba_LDFLAGS=
@@ -65,6 +65,10 @@ scuba_LDFLAGS=
 wxscuba_SOURCES=$(UTILITIES_SRCS) $(BASIC_SRCS) $(FSDATA_SRCS) $(GUI_SRCS) $(LAYER_SRCS) wxScubaFrame.cpp wxscuba.cpp 
 wxscuba_CXXFLAGS=`wx-config --cxxflags`
 wxscuba_LDFLAGS=`wx-config --libs` -lwx_gtk_gl-2.4
+
+qtscuba_SOURCES=$(UTILITIES_SRCS) $(BASIC_SRCS) $(FSDATA_SRCS) $(GUI_SRCS) $(LAYER_SRCS) QTScubaWidget.cpp qtscuba.cpp
+qtscuba_CXXFLAGS=-I/usr/local/qt/include
+qtscuba_LDFLAGS=-L/usr/local/qt/lib -lqt-mt
 
 foodir=$(prefix)/lib/tcl
 foo_SCRIPTS=scuba.tcl tkcon.tcl

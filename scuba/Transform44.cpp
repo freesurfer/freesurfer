@@ -9,11 +9,37 @@ extern "C" {
 
 using namespace std;
 
+
 Transform44::Transform44() {
+  mTmp = MatrixIdentity( 4, NULL );
+}
+
+Transform44::Transform44 ( float i0j0,float i1j0,float i2j0,float i3j0,
+			   float i0j1,float i1j1,float i2j1,float i3j1,
+			   float i0j2,float i1j2,float i2j2,float i3j2,
+			   float i0j3,float i1j3,float i2j3,float i3j3){
+  mTmp = MatrixIdentity( 4, NULL );
+  m.SetMatrix( i0j0, i1j0, i2j0, i3j0,
+	       i0j1, i1j1, i2j1, i3j1,
+	       i0j2, i1j2, i2j2, i3j2,
+	       i0j3, i1j3, i2j3, i3j3 );
+  CalculateInverse();
+}
+
+Transform44::Transform44 ( MATRIX* iMatrix ) {
+  mTmp = MatrixIdentity( 4, NULL );
+  m.SetMatrix( iMatrix );
+  CalculateInverse();
+}
+
+Transform44::Transform44 ( Matrix44& iMatrix ) {
+  mTmp = MatrixIdentity( 4, NULL );
+  m.SetMatrix( iMatrix );
+  CalculateInverse();
 }
 
 Transform44::~Transform44() {
-
+  MatrixFree( &mTmp );
 }
 
 void
@@ -180,31 +206,27 @@ Transform44::ValuesChanged () {
 
 void
 Transform44::CalculateInverse () {
-
-  mInv = m.Inverse();
+  Matrix44 inverse = m.Inverse();
+  mInv.SetMatrix( inverse );
 }
 
-Transform44&
+Transform44
 Transform44::Inverse() {
 
   // Make a new transform and set its main transform to _our_ inverse
   // transform.
-  MATRIX* inverseM = MatrixInverse( m.GetMatrix(), NULL );
-  Transform44* inverse = new Transform44();
-  inverse->SetMainTransform( inverseM );
-  MatrixFree( &inverseM );
-  return *inverse;
+  mTmp = MatrixInverse( m.GetMatrix(), mTmp );
+  return Transform44( mTmp );
 }
 
-Transform44& operator*( Transform44& m1, Transform44& m2 ) {
+Transform44 operator*( Transform44& t1,
+		       Transform44& t2 ) {
 
-  Matrix44 mult = m1.GetMainMatrix() * m2.GetMainMatrix();
-
-  Transform44* result = new Transform44();
-  result->SetMainTransform( mult );
-  return *result;
-};
-
+  Matrix44& m1 = t1.GetMainMatrix();
+  Matrix44& m2 = t2.GetMainMatrix();
+  Matrix44 mult = m1 * m2;
+  return Transform44( mult );
+}
 
 ostream& 
 operator <<  ( ostream& os, Transform44& iTransform ) { 

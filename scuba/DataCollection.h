@@ -11,6 +11,25 @@
 #include "ScubaROI.h"
 #include "ScubaTransform.h"
 
+
+// This class is used by clients to reference a sample point. It is a
+// way of avoiding access functions for multiple data types (i.e. one
+// for RAS, one for index, etc) and allowing the DataCollection to
+// cache coordinate conversions.
+class DataLocation {
+  friend class DataCollectionTester;
+  friend class DataCollection;
+ public:
+  DataLocation ( float const iRAS[3] ) {
+    mRAS[0] = iRAS[0]; 
+    mRAS[1] = iRAS[1]; 
+    mRAS[2] = iRAS[2]; 
+  }
+  ~DataLocation () {}
+ protected:
+  float mRAS[3];
+};
+
 class DataCollection : public DebugReporter,
 		       public IDTracker<DataCollection>, 
 		       public TclCommandListener, 
@@ -25,9 +44,11 @@ class DataCollection : public DebugReporter,
   DataCollection();
   virtual ~DataCollection(); 
 
+  virtual DataLocation& MakeLocationFromRAS ( float const iRAS[3] );
+
   // Used to poll for any displayable data at the given point.
-  virtual void GetInfoAtRAS( float const iX, float const iY, float const iZ,
-			     std::map<std::string,std::string>& iLabelValues );
+  virtual void GetInfo( DataLocation& iLoc,
+			std::map<std::string,std::string>& iLabelValues );
 
   // Should return a type description unique to the subclass.
   virtual std::string GetTypeDescription() { return "BaseCollection"; }

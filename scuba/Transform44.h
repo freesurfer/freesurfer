@@ -19,6 +19,12 @@ class Transform44 : public DebugReporter {
  public:
 
   Transform44();
+  Transform44 ( float i0j0, float i1j0, float i2j0, float i3j0,
+		float i0j1, float i1j1, float i2j1, float i3j1,
+		float i0j2, float i1j2, float i2j2, float i3j2,
+		float i0j3, float i1j3, float i2j3, float i3j3 );
+  Transform44 ( MATRIX* iMatrix );
+  Transform44 ( Matrix44& iMatrix );
   virtual ~Transform44();
 
   void SetMainTransform ( float i0j0, float i1j0, float i2j0, float i3j0,
@@ -59,7 +65,7 @@ class Transform44 : public DebugReporter {
 
   Matrix44& GetMainMatrix () { return m; }
 
-  Transform44& Inverse ();
+  Transform44 Inverse ();
   
  protected:
 
@@ -69,13 +75,15 @@ class Transform44 : public DebugReporter {
 
   Matrix44 m;
   Matrix44 mInv;
+
+  MATRIX* mTmp;
 };
 
 // C = A * B
 // Transform44 a;
 // Transform44 b;
 // Transform44 c = a * b;
-Transform44& operator*(Transform44& m1, Transform44& m2);
+Transform44 operator*(Transform44& m1, Transform44& m2);
 
 std::ostream& operator << ( std::ostream&, Transform44& iTransform  );
 

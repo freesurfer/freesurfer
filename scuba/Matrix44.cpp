@@ -17,17 +17,39 @@ using namespace std;
 
 Matrix44::Matrix44() {
   m = MatrixIdentity( 4, NULL );
+  mTmp = MatrixIdentity( 4, NULL );
+}
+
+Matrix44::Matrix44 ( float i0j0, float i1j0, float i2j0, float i3j0,
+		     float i0j1, float i1j1, float i2j1, float i3j1,
+		     float i0j2, float i1j2, float i2j2, float i3j2,
+		     float i0j3, float i1j3, float i2j3, float i3j3 ) {
+
+  m = MatrixIdentity( 4, NULL );
+  mTmp = MatrixIdentity( 4, NULL );
+  SetCR(0,0,i0j0);  SetCR(1,0,i1j0);  SetCR(2,0,i2j0);  SetCR(3,0,i3j0);
+  SetCR(0,1,i0j1);  SetCR(1,1,i1j1);  SetCR(2,1,i2j1);  SetCR(3,1,i3j1);
+  SetCR(0,2,i0j2);  SetCR(1,2,i1j2);  SetCR(2,2,i2j2);  SetCR(3,2,i3j2);
+  SetCR(0,3,i0j3);  SetCR(1,3,i1j3);  SetCR(2,3,i2j3);  SetCR(3,3,i3j3);
+}
+
+Matrix44::Matrix44 ( MATRIX* iMatrix ) {
+  
+  m = MatrixIdentity( 4, NULL );
+  mTmp = MatrixIdentity( 4, NULL );
+  MatrixCopy( iMatrix, m );
 }
 
 Matrix44::~Matrix44() {
   MatrixFree( &m );
+  MatrixFree( &mTmp );
 }
 
 void
 Matrix44::SetMatrix ( float i0j0, float i1j0, float i2j0, float i3j0,
-			  float i0j1, float i1j1, float i2j1, float i3j1,
-			  float i0j2, float i1j2, float i2j2, float i3j2,
-			  float i0j3, float i1j3, float i2j3, float i3j3 ) {
+		      float i0j1, float i1j1, float i2j1, float i3j1,
+		      float i0j2, float i1j2, float i2j2, float i3j2,
+		      float i0j3, float i1j3, float i2j3, float i3j3 ) {
 
   SetCR(0,0,i0j0);  SetCR(1,0,i1j0);  SetCR(2,0,i2j0);  SetCR(3,0,i3j0);
   SetCR(0,1,i0j1);  SetCR(1,1,i1j1);  SetCR(2,1,i2j1);  SetCR(3,1,i3j1);
@@ -96,17 +118,13 @@ Matrix44::MakeRotation ( float iCenterPoint[3],
 			  0, 0, 1, -p[2],
 		       0, 0, 0, 1 );
 
-  /*  Matrix44 final( transInv * 
-		  yRotationInv * zRotationInv * 
-		  rotation * 
-		  zRotation * yRotation *
-		  trans ); */
-  Matrix44 final( trans * 
-		  yRotation * zRotation * 
-		  rotation * 
-		  zRotationInv * yRotationInv *
-		  transInv );
-
+  Matrix44 tmp = trans * yRotation;
+  Matrix44 tmp2 = tmp * zRotation;
+  Matrix44 tmp3 = tmp2 * rotation;
+  Matrix44 tmp4 = tmp3 * zRotationInv;
+  Matrix44 tmp5 = tmp4 * yRotationInv;
+  Matrix44 final = tmp5 * transInv;
+  
   SetMatrix( final.GetMatrix() );
 }
 
@@ -155,18 +173,16 @@ Matrix44::MakeInverseZRotation ( float iRadians ) {
   MakeZRotation( -iRadians );
 }
 
-Matrix44& 
+Matrix44
 Matrix44::ExtractTranslation () {
 
-  Matrix44* translation = new Matrix44();
-  translation->SetMatrix( 1, 0, 0, GetCR(3,0),
-			  0, 1, 0, GetCR(3,1),
-			  0, 0, 1, GetCR(3,2),
-			  0, 0, 0, 1 );
-  return *translation;
+  return Matrix44( 1, 0, 0, GetCR(3,0),
+		   0, 1, 0, GetCR(3,1),
+		   0, 0, 1, GetCR(3,2),
+		   0, 0, 0, 1 );
 }
 
-Matrix44&
+Matrix44
 Matrix44::ExtractScale () {
 
   // Create a matrix identital to this one but without the translation.
@@ -193,16 +209,14 @@ Matrix44::ExtractScale () {
   float zFactor = VectorOps::Length( w );
   
   // Now build the result.
-  Matrix44* scale = new Matrix44();
-  scale->SetMatrix( xFactor, 0, 0, 0,
-		    0, yFactor, 0, 0,
-		    0, 0, zFactor, 0,
-		    0, 0, 0, 1 );
-  return *scale;
+  return Matrix44( xFactor, 0, 0, 0,
+		   0, yFactor, 0, 0,
+		   0, 0, zFactor, 0,
+		   0, 0, 0, 1 );
 }
 
 
-Matrix44&
+Matrix44
 Matrix44::ExtractRotation () {
 
   // Create a matrix identital to this one but without the translation.
@@ -228,9 +242,7 @@ Matrix44::ExtractRotation () {
 
   // Our rotation matrix is thisWithoutTranslateOrScale composed with
   // thisWithoutTranslate.
-  Matrix44& rotation = thisWithoutTranslate * thisWithoutTranslateOrScale;
-
-  return rotation;
+  return thisWithoutTranslate * thisWithoutTranslateOrScale;
 }
 
 
@@ -342,10 +354,12 @@ Matrix44::ApplyTransformMatrix ( Matrix44& iTransform ) {
   //  cerr << "----------------------------------------" << endl;
 
   // The new translation is composed with the rotation and inverse rotation.
-  Matrix44 translateNew = rotate * translateApply * rotateInv;
+  Matrix44 tmp1 = rotate * translateApply;
+  Matrix44 translateNew = tmp1 * rotateInv;
 
   // Same with the rotation.
-  Matrix44 rotateNew = rotate * rotateApply * rotateInv;
+  Matrix44 tmp2 = rotate * rotateApply;
+  Matrix44 rotateNew = tmp2 * rotateInv;
 
 #if 0
   cerr << "this " << *this << endl;
@@ -362,7 +376,12 @@ Matrix44::ApplyTransformMatrix ( Matrix44& iTransform ) {
 #endif
 
   // Now compose everything together.
-  Matrix44 t = translateNew * translate * scaleApply * scale * rotateNew * rotate;
+  Matrix44 tmp3 = translateNew * translate;
+  Matrix44 tmp4 = tmp3 * scaleApply;
+  Matrix44 tmp5 = tmp4 * scale;
+  Matrix44 tmp6 = tmp5 * rotateNew;
+  Matrix44 t = tmp5 * rotate;
+  //  Matrix44 t = translateNew * translate * scaleApply * scale * rotateNew * rotate;
 
 #if 0
   cerr << "rotate";
@@ -423,8 +442,8 @@ Matrix44::MultiplyVector3 ( float const iVector[3], int oVector[3] ) {
   oVector[2] = (int) vectorF[2];
 }
 
-inline Matrix44& operator*( Matrix44& m2, 
-			    Matrix44& m1 ) {
+inline Matrix44 operator*( Matrix44& m2, 
+			   Matrix44& m1 ) {
 
 
   float m00 = 
@@ -512,39 +531,30 @@ inline Matrix44& operator*( Matrix44& m2,
     m1(3,3) * m2(3,3);
 
   //  MATRIX* mult = MatrixMultiply( m1.GetMatrix(), m2.GetMatrix(), NULL );
-  Matrix44* result = new Matrix44();
-  //  result->SetMatrix( mult );
-  //  MatrixFree( &mult );
-  result->SetMatrix( m00, m10, m20, m30,
-		     m01, m11, m21, m31,
-		     m02, m12, m22, m32,
-		     m03, m13, m23, m33 );
-  return *result;
+  return Matrix44( m00, m10, m20, m30,
+		   m01, m11, m21, m31,
+		   m02, m12, m22, m32,
+		   m03, m13, m23, m33 );
 };
 
-Matrix44&
+Matrix44
 Matrix44::Inverse() {
 
-  Matrix44* inverse = new Matrix44();
-  MATRIX* inv = MatrixInverse( m, NULL );
-  if( NULL == inv ) { 
+  mTmp = MatrixInverse( m, mTmp );
+  if( NULL == mTmp ) { 
     cerr << "Couldn't invert matrix: " << endl << *this << endl;
     throw runtime_error("Couldn't invert matrix"); 
   }
-  inverse->SetMatrix( inv );
-  MatrixFree( &inv );
-  return *inverse;
+  return Matrix44( mTmp );
 }
 
 // This works for Point3<float>s as vectors or points.
-inline Point3<float>& operator*(Matrix44& m,
+inline Point3<float> operator*(Matrix44& m,
 				Point3<float>& p) {
 
-  Point3<float>* result = 
-    new Point3<float> ( m(0,0)*p[0] + m(0,1)*p[1] + m(0,2)*p[2] + m(0,3),
-			m(1,0)*p[0] + m(1,1)*p[1] + m(1,2)*p[2] + m(1,3),
-			m(2,0)*p[0] + m(2,1)*p[1] + m(2,2)*p[2] + m(2,3) );
-  return *result;
+  return Point3<float> ( m(0,0)*p[0] + m(0,1)*p[1] + m(0,2)*p[2] + m(0,3),
+			 m(1,0)*p[0] + m(1,1)*p[1] + m(1,2)*p[2] + m(1,3),
+			 m(2,0)*p[0] + m(2,1)*p[1] + m(2,2)*p[2] + m(2,3) );
 };
 
 

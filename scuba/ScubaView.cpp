@@ -1342,6 +1342,7 @@ ScubaView::DoListenToMessage ( string isMessage, void* iData ) {
 void
 ScubaView::DoDraw() {
 
+#define SHOW_FPS 1
 #ifdef SHOW_FPS
   ::Timer timer;
   timer.Start();
@@ -1606,7 +1607,7 @@ ScubaView::DoMouseMoved( int iWindow[2],
 }
 
 void
-  ScubaView::DoMouseUp( int iWindow[2],
+ScubaView::DoMouseUp( int iWindow[2],
 		      InputState& iInput, ScubaToolState& iTool ) {
 
   // No matter what tool we're on, look for ctrl-b{1,2,3} and do some
@@ -1914,7 +1915,6 @@ ScubaView::CalcViewToWindowTransform () {
   }
   D = VectorOps::Normalize( D );
 
-
   double rads = VectorOps::RadsBetweenVectors( N, D );
   if( mViewState.mInPlane == ViewState::X ) {
     rads = -rads;
@@ -1922,8 +1922,7 @@ ScubaView::CalcViewToWindowTransform () {
 
   Point3<float> axis = VectorOps::Cross( N, D );
   mViewToWindow.MakeRotation( mViewState.mCenterRAS,
-			      axis.xyz(), rads );
-
+  			      axis.xyz(), rads );
 
   CalcWorldToWindowTransform();
 }
@@ -1931,9 +1930,9 @@ ScubaView::CalcViewToWindowTransform () {
 void 
 ScubaView::CalcWorldToWindowTransform () {
 
-  mWorldToWindow = 
-    mViewToWindow * mWorldToView->Inverse();
-
+  Transform44 viewToWorld = mWorldToView->Inverse();
+  Transform44 tmp = mViewToWindow * viewToWorld;
+  mWorldToWindow = tmp;
 }
 
 void
@@ -2470,7 +2469,7 @@ ScubaView::DrawFrameBuffer () {
 
 void
 ScubaView::DrawBuffer () {
-
+  
   glRasterPos2i( 0, 0 );
   glDrawPixels( mWidth, mHeight, GL_RGBA, GL_UNSIGNED_BYTE, mBuffer );
 }

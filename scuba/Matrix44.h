@@ -22,16 +22,21 @@ class Matrix44 : public DebugReporter {
  public:
 
   Matrix44();
+  Matrix44( float i0j0, float i1j0, float i2j0, float i3j0,
+	    float i0j1, float i1j1, float i2j1, float i3j1,
+	    float i0j2, float i1j2, float i2j2, float i3j2,
+	    float i0j3, float i1j3, float i2j3, float i3j3 );
+  Matrix44 ( MATRIX* iMatrix );
   virtual ~Matrix44();
 
   void SetMatrix ( float i0j0, float i1j0, float i2j0, float i3j0,
-		      float i0j1, float i1j1, float i2j1, float i3j1,
-		      float i0j2, float i1j2, float i2j2, float i3j2,
-		      float i0j3, float i1j3, float i2j3, float i3j3 );
+		   float i0j1, float i1j1, float i2j1, float i3j1,
+		   float i0j2, float i1j2, float i2j2, float i3j2,
+		   float i0j3, float i1j3, float i2j3, float i3j3 );
 
   void SetMatrix ( MATRIX* iMatrix );
 
-  void SetMatrix ( Matrix44&  iMatrix );
+  void SetMatrix ( Matrix44& iMatrix );
 
   void MakeIdentity ();
 
@@ -47,9 +52,9 @@ class Matrix44 : public DebugReporter {
   void MakeInverseZRotation ( float iRadians );
 
   
-  Matrix44& ExtractRotation ();
-  Matrix44& ExtractScale ();
-  Matrix44& ExtractTranslation ();
+  Matrix44 ExtractRotation ();
+  Matrix44 ExtractScale ();
+  Matrix44 ExtractTranslation ();
 
 
   void ApplyTransformMatrix ( Matrix44& iMatrix );
@@ -69,7 +74,7 @@ class Matrix44 : public DebugReporter {
     return *this;
   }
 
-  Matrix44& Inverse ();
+  Matrix44 Inverse ();
 
   inline void SetCR ( int iCol, int iRow, float iValue ) {
     *MATRIX_RELT(m,(iRow+1),(iCol+1)) = iValue;
@@ -80,18 +85,16 @@ class Matrix44 : public DebugReporter {
   }
  protected:
 
-
   MATRIX* m;
+  MATRIX* mTmp;
 };
 
 // C = A * B
 // Matrix44 a;
 // Matrix44 b;
 // Matrix44 c = a * b;
-inline Matrix44& operator*(Matrix44& m1, 
-				 Matrix44& m2);
-inline Point3<float>& operator*(Matrix44& m,
-				Point3<float>& p);
+inline Matrix44 operator*(Matrix44& m1, Matrix44& m2);
+inline Point3<float> operator*(Matrix44& m, Point3<float>& p);
 
 std::ostream& operator << ( std::ostream&, Matrix44& iMatrix   );
 

@@ -93,7 +93,6 @@ int main ( int argc, char** argv ) {
 
     Transform44Tester tester0;
     tester0.Test();
-
  
   }
   catch( runtime_error e ) {

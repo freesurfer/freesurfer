@@ -302,9 +302,10 @@ SurfaceCollection::GetNthVertexInFace_Unsafe ( int inFace, int inVertex,
 
 void
 SurfaceCollection::CalcWorldToSurfaceTransform () {
-
-  mWorldToSurfaceTransform =
-    mDataToSurfaceTransform * mDataToWorldTransform->Inverse();
+  
+  Transform44 worldToData = mDataToWorldTransform->Inverse();
+  Transform44 tmp = mDataToSurfaceTransform * worldToData;
+  mWorldToSurfaceTransform = tmp;
 
   DataChanged();
 }

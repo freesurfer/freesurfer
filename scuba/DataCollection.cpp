@@ -57,9 +57,15 @@ DataCollection::DataCollection() {
 DataCollection::~DataCollection() {
 }
 
+DataLocation&
+DataCollection::MakeLocationFromRAS ( float const iRAS[3] ) {
+  DataLocation* loc = new DataLocation( iRAS );
+  return *loc;
+}
+
 void
-DataCollection::GetInfoAtRAS( float const iX, float const iY, float const iZ,
-			      std::map<std::string,std::string>& iLabelValues ) {
+DataCollection::GetInfo( DataLocation& iLoc,
+			 std::map<std::string,std::string>& iLabelValues ) {
 
   return;
 }

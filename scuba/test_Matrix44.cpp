@@ -284,7 +284,6 @@ int main ( int argc, char** argv ) {
 
     Matrix44Tester tester0;
     tester0.Test();
- 
   }
   catch( runtime_error e ) {
     cerr << "failed with exception: " << e.what() << endl;

@@ -138,9 +138,6 @@ ScubaLayer2DMRI::DrawIntoBuffer ( GLubyte* iBuffer, int iWidth, int iHeight,
     return;
   }
 
-  // Buffer for window -> RAS coords.
-  Array2<Point3<float> > windowToRAS( iWidth, iHeight );
-
   // Precalc our color * opacity.
   GLubyte aColorTimesOpacity[256];
   GLubyte aColorTimesOneMinusOpacity[256];
@@ -154,52 +151,40 @@ ScubaLayer2DMRI::DrawIntoBuffer ( GLubyte* iBuffer, int iWidth, int iHeight,
   float RAS[3];
   float value = 0;
   int color[3];
-  
 
   for( window[1] = 0; window[1] < iHeight; window[1]++ ) {
     for( window[0] = 0; window[0] < iWidth; window[0]++ ) {
 
       // Translate the window coord to an RAS and put it in our cache.
       iTranslator.TranslateWindowToRAS( window, RAS );
-      windowToRAS.Set( window[0], window[1], Point3<float>( RAS ) );
 
-      
-      switch( mSampleMethod ) {
-      case nearest:  value = mVolume->GetMRINearestValueAtRAS( RAS );  break;
-      case trilinear:value = mVolume->GetMRITrilinearValueAtRAS( RAS );break;
-      case sinc:     value = mVolume->GetMRISincValueAtRAS( RAS );     break;
-      case magnitude:value = mVolume->GetMRIMagnitudeValueAtRAS( RAS );break;
-      }
-      
-      switch( mColorMapMethod ) { 
-      case grayscale: GetGrayscaleColorForValue( value, dest, color );break;
-      case heatScale: GetHeatscaleColorForValue( value, dest, color );break;
-      case LUT:       GetColorLUTColorForValue( value, dest, color ); break;
-      }
-      
-      dest[0] = aColorTimesOneMinusOpacity[dest[0]] + 
-	aColorTimesOpacity[color[0]];
-      dest[1] = aColorTimesOneMinusOpacity[dest[1]] + 
-	aColorTimesOpacity[color[1]];
-      dest[2] = aColorTimesOneMinusOpacity[dest[2]] + 
-	aColorTimesOpacity[color[2]];
-      
-      dest += mBytesPerPixel;
-    }
-  }
-
-
-  dest = iBuffer;
-  for( window[1] = 0; window[1] < iHeight; window[1]++ ) {
-    for( window[0] = 0; window[0] < iWidth; window[0]++ ) {
-      
-      // Use our buffer to get an RAS point.
-      Point3<float> RAS = windowToRAS.Get( window[0], window[1] );
+      VolumeLocation& loc = (VolumeLocation&) 
+	mVolume->MakeLocationFromRAS( RAS );
       
       int selectColor[3];
-      if( mVolume->IsRASInMRIBounds( RAS.xyz() ) ) {
-	if( mVolume->IsRASSelected( RAS.xyz(), selectColor ) ) {
+      if( mVolume->IsLocationInBounds( loc ) ) {
 
+	switch( mSampleMethod ) {
+	case nearest: value = mVolume->GetMRINearestValueAtLocation(loc);break;
+	case trilinear:value = mVolume->GetMRITrilinearValueAtRAS( RAS );break;
+	case sinc:     value = mVolume->GetMRISincValueAtRAS( RAS );     break;
+	case magnitude:value = mVolume->GetMRIMagnitudeValueAtRAS( RAS );break;
+	}
+	
+	switch( mColorMapMethod ) { 
+	case grayscale: GetGrayscaleColorForValue( value, dest, color );break;
+	case heatScale: GetHeatscaleColorForValue( value, dest, color );break;
+	case LUT:       GetColorLUTColorForValue( value, dest, color ); break;
+	}
+	
+	dest[0] = aColorTimesOneMinusOpacity[dest[0]] + 
+	  aColorTimesOpacity[color[0]];
+	dest[1] = aColorTimesOneMinusOpacity[dest[1]] + 
+	  aColorTimesOpacity[color[1]];
+	dest[2] = aColorTimesOneMinusOpacity[dest[2]] + 
+	  aColorTimesOpacity[color[2]];
+	
+	if( mVolume->IsLocationSelected( loc, selectColor ) ) {
 	  // Write the RGB value to the buffer. Write a 255 in the
 	  // alpha byte.
 	  dest[0] = (GLubyte) (((float)dest[0] * (1.0 - mROIOpacity)) +
@@ -210,13 +195,11 @@ ScubaLayer2DMRI::DrawIntoBuffer ( GLubyte* iBuffer, int iWidth, int iHeight,
 			       ((float)selectColor[2] * mROIOpacity));
 	}
       }
-      
-      // Advance our pixel buffer pointer.
+
+      delete &loc;
       dest += mBytesPerPixel;
-      
     }
   }
-
 
   // Line range.
   float range = 0;
@@ -248,6 +231,8 @@ ScubaLayer2DMRI::DrawIntoBuffer ( GLubyte* iBuffer, int iWidth, int iHeight,
       }
     }
   }
+
+
 }
 
 void

@@ -10,7 +10,7 @@ if { $err } {
     load [file dirname [info script]]/libscuba[info sharedlibextension] scuba
 }
 
-DebugOutput "\$Id: scuba.tcl,v 1.57 2004/10/04 01:49:34 kteich Exp $"
+DebugOutput "\$Id: scuba.tcl,v 1.58 2004/10/08 17:22:04 kteich Exp $"
 
 # gTool
 #   current - current selected tool (nav,)
@@ -4154,7 +4154,7 @@ proc SaveSceneScript { ifnScene } {
     set f [open $ifnScene w]
 
     puts $f "\# Scene file generated "
-    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.57 2004/10/04 01:49:34 kteich Exp $"
+    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.58 2004/10/08 17:22:04 kteich Exp $"
     puts $f ""
 
     # Find all the data collections.
@@ -4404,6 +4404,7 @@ foreach sSourceFileName { tkUtils.tcl tkcon.tcl histolabel.tcl } {
 		if { $nErr != 0 } {
 		    puts "Error sourcing $sFullFileName: $sResult"
 		} else {
+		    puts "Using $sFullFileName"
 		    set bFound 1
 		}
 	    }
@@ -4423,6 +4424,7 @@ LoadImages
 # Make the main window.
 set gaWidget(window) .main
 toplevel $gaWidget(window)
+wm title $gaWidget(window) "scuba"
 
 # Make the tkcon panel. This must be done at this scope because the
 # tkcon.tcl script needs access to some global vars.
@@ -4609,7 +4611,7 @@ proc MakeHistogramFillWindow {} {
     
     if { [llength $lDestLayers] == 0 } {
 	tkuFormattedErrorDlog "Couldn't Make Histogram" \
-	    "No segmentation volume layer available as a source." \
+	    "No segmentation volume layer available as a destination." \
 	    "To use the histogram fill window, you need a layer with an anatomical (grayscale) volume as the source and a layer with a segmentation volume as the destination."
 	return
     }
