@@ -92,8 +92,12 @@ main(int argc, char *argv[])
     mri_priors = MRICupdatePriors(mri_target, mri_priors, PRIOR_SCALE) ;
     MRIfree(&mri_target) ;
   }
+#if 0
   if (fno > 0)
     MRIscalarMul(mri_priors, mri_priors, 1.0f / (float)fno) ;
+#else
+  MRInormalizePriors(mri_priors) ;
+#endif
   MRIwrite(mri_priors, output_file_name) ;
   fclose(fp) ;
   exit(0) ;
