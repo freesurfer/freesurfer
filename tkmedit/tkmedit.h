@@ -56,12 +56,12 @@ typedef enum {
   tkm_tErr_CouldntLoadVLI,
   tkm_tErr_CouldntLoadDTIVolume,
   tkm_tErr_CouldntLoadVectorField,
-  tkm_tErr_CouldntLoadVolume,
   tkm_tErr_ErrorAccessingFile,
   tkm_tErr_ErrorAccessingVolume,
   tkm_tErr_ErrorAccessingSegmentationVolume,
   tkm_tErr_ErrorAccessingFunctionalVolume,
   tkm_tErr_ErrorAccessingList,
+  tkm_tErr_ErrorAccessingSurface,
   tkm_tErr_CouldntWriteFile,
   tkm_tErr_CouldntAllocate,
   tkm_tErr_SurfaceNotLoaded,
@@ -234,7 +234,7 @@ void tkm_GraphCurrentROIAvg   ( int inIndex );
 
 /* get the volume of an roi */
 void tkm_CalcROIVolume ( xVoxelRef iAnaIdx,
-       int*      onVolume );
+			 int*      onVolume );
 
 /* editing the parcellation */
 void tkm_EditSegmentation      ( xVoxelRef       iAnaIdx,

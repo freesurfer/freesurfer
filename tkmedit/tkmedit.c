@@ -93,6 +93,7 @@ char tkm_ksaErrorStrings [tkm_knNumErrorCodes][tkm_knErrStringLen] = {
   "Error accessing the segmentation.",
   "Error accessing the functional volume.",
   "Error accessing the list.",
+  "Error accessing surface.",
   "Couldnt write a file.",
   "A memory allocation failed.",
   "Tried to call a function on an unloaded surface.",
@@ -308,16 +309,15 @@ void SelectVoxelsByFuncValue ( FunV_tFindStatsComp iCompare );
 #include "mriVolume.h"
 
 /* we declare tkm_knNumVolumeTypes, but we only use the main and aux */
-static mriVolumeRef    gAnatomicalVolume[tkm_knNumVolumeTypes];
-static int         gnAnatomicalDimensionX = 0;
-static int         gnAnatomicalDimensionY = 0;
-static int         gnAnatomicalDimensionZ = 0;
-static mriTransformRef gIdxToRASTransform    = NULL;
+static mriVolumeRef     gAnatomicalVolume[tkm_knNumVolumeTypes];
+static int              gnAnatomicalDimensionX = 0;
+static int              gnAnatomicalDimensionY = 0;
+static int              gnAnatomicalDimensionZ = 0;
+static mriTransformRef  gIdxToRASTransform    = NULL;
 static tBoolean         gbAnatomicalVolumeDirty[tkm_knNumVolumeTypes];
 
 tkm_tErr LoadVolume    ( tkm_tVolumeType iType,
-       char*     isFileName );
-
+			 char*     isFileName );
 
 /* saves the anatomical volume. if isPath is null, saves over the original. */
 tkm_tErr SaveVolume    ( char*     isPath );
@@ -393,41 +393,46 @@ static mriColorLookupTableRef gColorTable  = NULL;
 static float          gfROIAlpha   = kfDefaultROIGroupAlpha;
 
 void RecomputeSegmentation(mriVolumeRef inVol, 
-         mriVolumeRef inSegVol, mriVolumeRef inSegChanged, 
-         mriVolumeRef outVol) ;
+			   mriVolumeRef inSegVol, mriVolumeRef inSegChanged, 
+			   mriVolumeRef outVol) ;
 
 tkm_tErr LoadSegmentationVolume ( char* inVolumeDirWithPrefix,
-          char* inColorFileName );
+				  char* inColorFileName );
 void SaveSegmentationVolume ( char* inVolumeDirWithPrefix );
+
+tkm_tErr ImportSurfaceAnnotationToSegmentation ( char* inAnnotationFileName,
+						 char* inColorFileName );
+
+tkm_tErr LoadSegmentationColorTable ( char* inColorFileName );
 
 void SetROIGroupAlpha       ( float     ifAlpha );
 void GetROIColorAtVoxel       ( xVoxelRef   inVoxel,
-             xColor3fRef iBaseColor,
-             xColor3fRef oColor );
+				xColor3fRef iBaseColor,
+				xColor3fRef oColor );
 void GetROILabel       ( xVoxelRef   ipVoxel, 
-             int*   onIndex,
-             char*   osLabel );
+			 int*   onIndex,
+			 char*   osLabel );
 tkm_tErr SelectROI       ( int     inIndex );
 tkm_tErr GraphROI       ( int     inIndex );
 
 Volm_tVisitCommand AddSimilarVoxelToSelection ( xVoxelRef iAnaIdx,
-            float     iValue,
-            void*     ipnTarget );
+						float     iValue,
+						void*     ipnTarget );
 Volm_tVisitCommand AddSimilarVoxelToGraohAvg  ( xVoxelRef iAnaIdx,
-            float     iValue,
-            void*     ipnTarget );
+						float     iValue,
+						void*     ipnTarget );
 
 /* a callback to an undo entry */
 int  EditSegmentation       ( xVoxelRef   iAnaIdx,
-             int   inIndex );
+			      int   inIndex );
 
 /* for calcing the volume of an roi */
 void CalcROIVolume    ( xVoxelRef ipVoxel,
-          int*    onVolume );
+			int*    onVolume );
 void IterateCalcROIVolume ( xVoxelRef iAnaIdx, 
-          int      inIndex, 
-          tBoolean* iVisited, 
-          int*      onVolume );
+			    int      inIndex, 
+			    tBoolean* iVisited, 
+			    int*      onVolume );
 
 typedef struct {
   int      mnTargetValue;      /* the value to look for */
@@ -445,17 +450,17 @@ typedef struct {
 
 /* use to set the segmentation value. also adds to the undo list */
 void SetSegmentationValue    ( xVoxelRef   iAnaIdx,
-             int   inIndex );
+			       int   inIndex );
 void FloodFillSegmentation   ( xVoxelRef       iAnaIdx,
-             tkm_tParcFloodFillParamsRef iParams );
+			       tkm_tParcFloodFillParamsRef iParams );
 void IterateFloodFillSegmentation ( xVoxelRef      iAnaIdx,
-            tkm_tParcFloodFillParamsRef iParams,
-            tBoolean*      iVisited );
+				    tkm_tParcFloodFillParamsRef iParams,
+				    tBoolean*      iVisited );
 
 #define knMaxFloodFillIteration 10000
 
 void SwapROIGroupAndVolume ( mriVolumeRef   iGroup,
-           mriVolumeRef    iVolume );
+			     mriVolumeRef    iVolume );
 
 // ===========================================================================
 
@@ -3778,6 +3783,25 @@ int TclRecomputeSegmentation ( ClientData inClientData,
   
   return TCL_OK;
 }
+
+int TclImportSurfaceAnnotationToSegmentation ( ClientData inClientData, 
+					       Tcl_Interp* inInterp,
+					       int argc, char* argv[] ) {
+  
+  if ( argc != 3 ) {
+    Tcl_SetResult ( inInterp,
+        "wrong # args: ImportSurfaceAnnotationToSegmentation annotation:string color_file:string",
+        TCL_VOLATILE );
+    return TCL_ERROR;
+  }
+  
+  if( gbAcceptingTclCommands ) {
+    ImportSurfaceAnnotationToSegmentation ( argv[1], argv[2] );
+  }  
+  
+  return TCL_OK;
+}
+
 int TclSetGCADisplayStatus ( ClientData inClientData, 
            Tcl_Interp* inInterp,
            int argc, char* argv[] ) {
@@ -4848,6 +4872,10 @@ int main ( int argc, char** argv ) {
   
   Tcl_CreateCommand ( interp, "SaveSegmentationVolume",
           TclSaveSegmentationVolume,
+          (ClientData) NULL, (Tcl_CmdDeleteProc*) NULL );
+  
+  Tcl_CreateCommand ( interp, "ImportSurfaceAnnotationToSegmentation",
+          TclImportSurfaceAnnotationToSegmentation,
           (ClientData) NULL, (Tcl_CmdDeleteProc*) NULL );
   
   Tcl_CreateCommand ( interp, "SwapROIGroupAndAuxVolume",
@@ -6103,7 +6131,7 @@ void SendCachedTclCommands () {
 
 
 tkm_tErr LoadVolume ( tkm_tVolumeType iType,
-          char*      isName ) {
+		      char*      isName ) {
   
   tkm_tErr eResult        = tkm_tErr_NoErr;
   char     sPath[tkm_knPathLen]      = "";
@@ -6120,8 +6148,7 @@ tkm_tErr LoadVolume ( tkm_tVolumeType iType,
   DebugNote( ("Making filename from %s", isName) );
   MakeFileName( isName, tkm_tFileName_Volume, sPath, sizeof(sPath) );
   
-  /* if there is a /COR- at the end, take it off and pass
-     the rest to ReadVolumeWithMRIRead */
+  /* if there is a /COR- at the end, take it off. */
   DebugNote( ("Looking for COR- at end of file name") );
   pEnd = strstr( sPath, "/COR-" );
   if( NULL != pEnd )
@@ -6149,14 +6176,14 @@ tkm_tErr LoadVolume ( tkm_tVolumeType iType,
     {
       DebugNote( ("Showing Tal coords") );
       tkm_SendTclCommand( tkm_tTclCommand_ShowTalCoords, "1" );
-      DebugNote( ("Showing coords") );
+      DebugNote( ("Hiding RAS coords") );
       tkm_SendTclCommand( tkm_tTclCommand_ShowRASCoords, "0" );
     }
   else
     {
-      DebugNote( ("Showing RAS coords") );
+      DebugNote( ("Hiding Tal coords") );
       tkm_SendTclCommand( tkm_tTclCommand_ShowTalCoords, "0" );
-      DebugNote( ("Showing coords") );
+      DebugNote( ("Showing RAS coords") );
       tkm_SendTclCommand( tkm_tTclCommand_ShowRASCoords, "1" );
     }
   
@@ -7103,15 +7130,9 @@ tkm_tErr LoadSegmentationVolume ( char* isVolumeDirWithPrefix,
   
   tkm_tErr  eResult         = tkm_tErr_NoErr;
   char      sSegmentationFileName[tkm_knPathLen] = "";
-  char      sColorFileName[tkm_knPathLen]   = "";
-  CLUT_tErr eColorTable         = CLUT_tErr_NoErr;
   Volm_tErr eVolume         = Volm_tErr_NoErr;
-  int      nNumEntries         = 0;
-  int      nEntry         = 0;
-  char      sLabel[CLUT_knLabelLen]     = "";
-  char      sTclArguments[tkm_knTclCmdLen]   = "";
   char      sError[tkm_knErrStringLen]     = "";
-  
+
   DebugEnterFunction( ("LoadSegmentationVolume( isVolumeDirWithPrefix=%s, "
            "isColorFileName=%s )", isVolumeDirWithPrefix,
            isColorFileName) );
@@ -7125,16 +7146,7 @@ tkm_tErr LoadSegmentationVolume ( char* isVolumeDirWithPrefix,
   DebugNote( ("Making file name from %s", isVolumeDirWithPrefix) );
   MakeFileName( isVolumeDirWithPrefix, tkm_tFileName_Segmentation, 
     sSegmentationFileName, sizeof(sSegmentationFileName) );
-  DebugNote( ("Making file name from %s", isColorFileName) );
-  MakeFileName( isColorFileName, tkm_tFileName_Segmentation, 
-    sColorFileName, sizeof(sColorFileName) );
-  
-  /* try to load color table */
-  DebugNote( ("Loading color table") );
-  eColorTable = CLUT_New( &gColorTable, isColorFileName );
-  DebugAssertThrowX( (CLUT_tErr_NoErr == eColorTable),
-         eResult, tkm_tErr_CouldntLoadColorTable );
-  
+    
   /* free existing roi group if present. */
   if( NULL != gSegmentationVolume ) {
     DebugNote( ("Deleting existing roi group") );
@@ -7153,14 +7165,20 @@ tkm_tErr LoadSegmentationVolume ( char* isVolumeDirWithPrefix,
   eVolume = Volm_New( &gSegmentationVolume );
   DebugAssertThrowX( (Volm_tErr_NoErr == eVolume),
 		     eResult, tkm_tErr_ErrorAccessingSegmentationVolume );
-  
-  
+
   DebugNote( ("Importing segmentation into roi group") );
   eVolume = Volm_ImportData( gSegmentationVolume, sSegmentationFileName );
   DebugAssertThrowX( (Volm_tErr_NoErr == eVolume),
 		     eResult, tkm_tErr_CouldntLoadSegmentation );
   
-  /* allocate flat volume */
+  /* Try to load the color table. */
+  DebugNote( ("Loading color table.") );
+  eResult = LoadSegmentationColorTable( isColorFileName );
+  DebugAssertThrowX( (Volm_tErr_NoErr == eVolume),
+		     eResult, tkm_tErr_ErrorAccessingSegmentationVolume );
+
+  
+  /* allocate flag volume */
   DebugNote( ("Creating segmentation flag volume") );
   eVolume = Volm_New( &gSegmentationChangedVolume );
   DebugAssertThrowX( (Volm_tErr_NoErr == eVolume),
@@ -7169,28 +7187,6 @@ tkm_tErr LoadSegmentationVolume ( char* isVolumeDirWithPrefix,
     MRIclone(gSegmentationVolume->mpMriValues,NULL);
   DebugAssertThrowX( (NULL != gSegmentationChangedVolume->mpMriValues ),
 		     eResult, tkm_tErr_ErrorAccessingSegmentationVolume );
-  
-  
-  /* build the color table for the interface. go through the entries
-     and for each one, make a string of its number and its label, and send
-     that as a new entry. */
-  DebugNote( ("Clearing color table in interface") );
-  tkm_SendTclCommand( tkm_tTclCommand_ClearParcColorTable, "" );
-  DebugNote( ("Getting number of color table entries") );
-  CLUT_GetNumEntries( gColorTable, &nNumEntries );
-  for( nEntry = 0; nEntry < nNumEntries; nEntry++ ) {
-    DebugNote( ("Getting label for entry %d/%d", nEntry, nNumEntries) );
-    eColorTable = CLUT_GetLabel( gColorTable, nEntry, sLabel );
-    DebugAssertThrowX( (CLUT_tErr_NoErr == eColorTable),
-           eResult, tkm_tErr_Unrecoverable );
-    if( strcmp( sLabel, "" ) == 0 )
-      xUtil_strncpy( sLabel, "None", sizeof(sLabel) );
-    DebugNote( ("Making tcl command") );
-    xUtil_snprintf( sTclArguments, sizeof(sTclArguments),
-        "%d \"%s\"", nEntry, sLabel );
-    tkm_SendTclCommand( tkm_tTclCommand_AddParcColorTableEntry,
-      sTclArguments );
-  }
   
   /* enable our segmentation options */
   DebugNote( ("Enabling segmentation options in interface") );
@@ -7203,17 +7199,19 @@ tkm_tErr LoadSegmentationVolume ( char* isVolumeDirWithPrefix,
   }
   
   DebugCatch;
-  DebugCatchError( eResult, tkm_tErr_NoErr, tkm_GetErrorString );
+  DebugCatchError( eResult, tkm_tErr_NoErr || tkm_tErr_CouldntLoadColorTable,
+		   tkm_GetErrorString );
   
-  xUtil_snprintf( sError, sizeof(sError),
-		  "Loading Segmentation %s", isVolumeDirWithPrefix );
-  tkm_DisplayError( sError,
-		    tkm_GetErrorString(eResult),
-		    "Tkmedit couldn't read the segmentation you "
-		    "specified. This could be because the segmentation "
-		    "volume wasn't a valid COR volume directory or "
-		    "because the color file wasn't valid or wasn't "
-		    "found." );
+  if( eResult != tkm_tErr_CouldntLoadColorTable ) {
+    xUtil_snprintf( sError, sizeof(sError),
+		    "Loading Segmentation %s", isVolumeDirWithPrefix );
+    tkm_DisplayError( sError,
+		      tkm_GetErrorString(eResult),
+		      "Tkmedit couldn't read the segmentation you "
+		      "specified. This could be because the segmentation "
+		      "volume wasn't a valid COR volume directory." );
+  }
+
   EndDebugCatch;
   
   DebugExitFunction;
@@ -7245,6 +7243,241 @@ void SaveSegmentationVolume ( char* isVolumeDirWithPrefix ) {
   }
   
 }
+
+tkm_tErr ImportSurfaceAnnotationToSegmentation ( char* isAnnotationFileName,
+						 char* isColorFileName ) { 
+
+  tkm_tErr  eResult         = tkm_tErr_NoErr;
+  Surf_tErr eSurface        = Surf_tErr_NoErr;
+  Volm_tErr eVolume         = Volm_tErr_NoErr;
+  char      sDirName[tkm_knPathLen] = "";
+  MRIS*     mris            = NULL;
+  int       nVertex         = 0;
+  VERTEX*   pVertex         = 0;
+  xColor3n  color;
+  int       nStructure      = 0;
+  xVoxel    surfRAS;
+  xVoxel    anaIdx;
+  float     dx              = 0;
+  float     dy              = 0;
+  float     dz              = 0;
+  float     len             = 0;
+  float     d               = 0;
+  char      sError[tkm_knErrStringLen] = "";
+
+  /* Make sure we have a surface loaded. */
+  DebugAssertThrowX( (NULL != gSurface[tkm_tSurfaceType_Main]),
+		     eResult, tkm_tErr_SurfaceNotLoaded );
+  
+  /* Try to load the color table. */
+  DebugNote( ("Loading color table.") );
+  eResult = LoadSegmentationColorTable( isColorFileName );
+  DebugAssertThrowX( (Volm_tErr_NoErr == eResult),
+		     eResult, tkm_tErr_CouldntLoadColorTable );
+
+
+  /* Read the annotation into the surface. */
+  DebugNote( ("Reading annotation.") );
+  eSurface = Surf_LoadAnnotation( gSurface[tkm_tSurfaceType_Main],
+				  isAnnotationFileName );
+  DebugAssertThrowX( (Surf_tErr_NoErr == eSurface),
+		     eResult, tkm_tErr_ErrorAccessingSurface );
+
+  /* free existing roi group if present. */
+  if( NULL != gSegmentationVolume ) {
+    DebugNote( ("Deleting existing roi group") );
+    eVolume = Volm_Delete( &gSegmentationVolume );
+    DebugAssertThrowX( (Volm_tErr_NoErr == eVolume),
+           eResult, tkm_tErr_ErrorAccessingSegmentationVolume );
+    
+    DebugNote( ("Deleting existing flag volume") );
+    eVolume = Volm_Delete( &gSegmentationChangedVolume );
+    DebugAssertThrowX( (Volm_tErr_NoErr == eVolume),
+           eResult, tkm_tErr_ErrorAccessingSegmentationVolume );
+  }
+  
+  /* Get the original source dir of the anatomical volume. */
+  DebugNote( ("Copying original source dir of anatomical") );
+  eVolume = Volm_CopySourceDir( gAnatomicalVolume[tkm_tVolumeType_Main],
+				sDirName, sizeof(sDirName) );
+  DebugAssertThrowX( (Volm_tErr_NoErr == eVolume),
+		     eResult, tkm_tErr_ErrorAccessingVolume );
+
+  /* Create a new volume and import the same data as the
+     anatomical. */
+  DebugNote( ("Creating segmentation overlay") );
+  eVolume = Volm_New ( &gSegmentationVolume );
+  DebugAssertThrowX( (Volm_tErr_NoErr == eVolume),
+		     eResult, tkm_tErr_ErrorAccessingSegmentationVolume );
+  DebugNote( ("Importing data") );
+  eVolume = Volm_ImportData ( gSegmentationVolume, sDirName );
+  DebugAssertThrowX( (Volm_tErr_NoErr == eVolume),
+		     eResult, tkm_tErr_ErrorAccessingSegmentationVolume );
+  
+  /* Get a direct pointer to the surface. */
+  DebugNote( ("Getting MRIS") );
+  eSurface = Surf_GetMRIS( gSurface[tkm_tSurfaceType_Main], &mris );
+  DebugAssertThrowX( (Surf_tErr_NoErr == eSurface),
+		     eResult, tkm_tErr_ErrorAccessingSurface );
+
+  /* Clear the volume. */
+  MRIclear( gSegmentationVolume->mpMriValues );
+
+  /* For every vertex in the surface, get the annot value. Unpack it
+     to an RGB value. Look in the LUT to get the corresponding
+     index. Get the orig coords from the vertex and set the
+     segmentation value at those coords to the index we got. */
+  fprintf( stdout, "Converting annotation..." );
+  for( nVertex = 0; nVertex < mris->nvertices; nVertex++ ) {
+    pVertex = &mris->vertices[nVertex];
+    
+    /* Get the color and then the index. */
+    if ( 0 != pVertex->annotation ) {
+      MRISAnnotToRGB( pVertex->annotation, 
+		      color.mnRed, color.mnGreen, color.mnBlue );
+      CLUT_GetIndex( gColorTable, &color, &nStructure );
+    }
+
+    /* Set all the voxels between the white (current) vertex and the
+       pial vertex coords. Find the direction from the pial to the
+       normal vertex positions. Then step from the normal outward in
+       that direction in 0.1 increments to a distance of 1, convert
+       the coord to ana idx, and set the voxel in the seg volume to
+       the structure index we found above. */
+    dx = pVertex->cx - pVertex->x;
+    dy = pVertex->cy - pVertex->y;
+    dz = pVertex->cz - pVertex->z;
+    
+    len = sqrt(dx*dx + dy*dy + dz*dz) ;
+    dx /= len; 
+    dy /= len; 
+    dz /= len;
+    
+    for( d = 0 ; d <= len; d = d+0.1 ) {
+      xVoxl_SetFloat( &surfRAS, 
+		      pVertex->x + (d * dx),
+		      pVertex->y + (d * dy),
+		      pVertex->z + (d * dz) );
+      Volm_ConvertRASToIdx( gSegmentationVolume, &surfRAS, &anaIdx );
+      Volm_SetValueAtIdx( gSegmentationVolume, &anaIdx, (float)nStructure );
+    }
+    if( !(nVertex % 1000) ) {
+      fprintf( stdout, "\rConverting annotation... %.2f%% done",
+	       ((float)nVertex / (float)mris->nvertices) * 100.0 );
+      fflush( stdout );
+    }
+  }
+  fprintf( stdout, "\rConverting annotation... 100%% done       \n" );
+
+  /* allocate flag volume */
+  DebugNote( ("Creating segmentation flag volume") );
+  eVolume = Volm_New( &gSegmentationChangedVolume );
+  DebugAssertThrowX( (Volm_tErr_NoErr == eVolume),
+		     eResult, tkm_tErr_ErrorAccessingSegmentationVolume );
+  gSegmentationChangedVolume->mpMriValues = 
+    MRIclone(gSegmentationVolume->mpMriValues,NULL);
+  DebugAssertThrowX( (NULL != gSegmentationChangedVolume->mpMriValues ),
+		     eResult, tkm_tErr_ErrorAccessingSegmentationVolume );
+  
+  /* enable our segmentation options */
+  DebugNote( ("Enabling segmentation options in interface") );
+  tkm_SendTclCommand( tkm_tTclCommand_ShowSegmentationOptions, "1" );
+  
+  /* set segmentation volume in window */
+  if( gMeditWindow ) {
+    DebugNote( ("Setting roi group in main window") );
+    MWin_SetROIGroup( gMeditWindow, -1, gSegmentationVolume );
+  }
+  
+  DebugCatch;
+  DebugCatchError( eResult, tkm_tErr_NoErr || tkm_tErr_CouldntLoadColorTable,
+		   tkm_GetErrorString );
+  
+  if( eResult != tkm_tErr_CouldntLoadColorTable ) {
+  
+    xUtil_snprintf( sError, sizeof(sError),
+		    "Loading Annotation %s", isAnnotationFileName );
+    tkm_DisplayError( sError,
+		      tkm_GetErrorString(eResult),
+		      "Tkmedit couldn't read the annotation you "
+		      "specified. This could be because the annotation "
+		      "volume wasn't valid or couldn't be found." );
+  }
+  EndDebugCatch;
+  
+  DebugExitFunction;
+  
+  return eResult;
+
+
+}
+
+tkm_tErr LoadSegmentationColorTable ( char* isColorFileName ) {
+
+  tkm_tErr  eResult         = tkm_tErr_NoErr;
+  char      sColorFileName[tkm_knPathLen]   = "";
+  CLUT_tErr eColorTable         = CLUT_tErr_NoErr;
+  int      nNumEntries         = 0;
+  int      nEntry         = 0;
+  char      sLabel[CLUT_knLabelLen]     = "";
+  char      sTclArguments[tkm_knTclCmdLen]   = "";
+  char      sError[tkm_knErrStringLen]     = "";
+  
+  DebugEnterFunction( ("LoadSegmentationColorTable( isColorFileName=%s )", 
+		       isColorFileName) );
+  
+  DebugAssertThrowX( (NULL != isColorFileName),
+         eResult, tkm_tErr_InvalidParameter );
+  
+  /* make a file name */
+  DebugNote( ("Making file name from %s", isColorFileName) );
+  MakeFileName( isColorFileName, tkm_tFileName_Segmentation, 
+    sColorFileName, sizeof(sColorFileName) );
+  
+  /* try to load color table */
+  DebugNote( ("Loading color table") );
+  eColorTable = CLUT_New( &gColorTable, isColorFileName );
+  DebugAssertThrowX( (CLUT_tErr_NoErr == eColorTable),
+         eResult, tkm_tErr_CouldntLoadColorTable );
+  
+  /* build the color table for the interface. go through the entries
+     and for each one, make a string of its number and its label, and send
+     that as a new entry. */
+  DebugNote( ("Clearing color table in interface") );
+  tkm_SendTclCommand( tkm_tTclCommand_ClearParcColorTable, "" );
+  DebugNote( ("Getting number of color table entries") );
+  CLUT_GetNumEntries( gColorTable, &nNumEntries );
+  for( nEntry = 0; nEntry < nNumEntries; nEntry++ ) {
+    DebugNote( ("Getting label for entry %d/%d", nEntry, nNumEntries) );
+    eColorTable = CLUT_GetLabel( gColorTable, nEntry, sLabel );
+    DebugAssertThrowX( (CLUT_tErr_NoErr == eColorTable),
+		       eResult, tkm_tErr_Unrecoverable );
+    if( strcmp( sLabel, "" ) == 0 )
+      xUtil_strncpy( sLabel, "None", sizeof(sLabel) );
+    DebugNote( ("Making tcl command") );
+    xUtil_snprintf( sTclArguments, sizeof(sTclArguments),
+        "%d \"%s\"", nEntry, sLabel );
+    tkm_SendTclCommand( tkm_tTclCommand_AddParcColorTableEntry,
+      sTclArguments );
+  }
+  
+  DebugCatch;
+  DebugCatchError( eResult, tkm_tErr_NoErr, tkm_GetErrorString );
+  
+  xUtil_snprintf( sError, sizeof(sError),
+		  "Loading Color Table %s", isColorFileName );
+  tkm_DisplayError( sError,
+		    tkm_GetErrorString(eResult),
+		    "Tkmedit couldn't read the color table you "
+		    "specified. This could be because the file wasn't"
+		    "valid or wasn't found." );
+  EndDebugCatch;
+  
+  DebugExitFunction;
+  
+  return eResult;
+}
+
 
 void SetROIGroupAlpha ( float ifAlpha ) {
   
@@ -7637,12 +7870,12 @@ void IterateCalcROIVolume ( xVoxelRef iAnaIdx,
   for( nZ = nBeginZ; nZ <= nEndZ; nZ++ ) {
     for( nY = nBeginY; nY <= nEndY; nY++ ) {
       for( nX = nBeginX; nX <= nEndX; nX++ ) {
-  xVoxl_Set( &anaIdx, nX, nY, nZ );
-  eVolume = Volm_VerifyIdx( gAnatomicalVolume[tkm_tVolumeType_Main], 
-          &anaIdx );
-  if( Volm_tErr_NoErr == eVolume ) {
-    IterateCalcROIVolume( &anaIdx, inIndex, iVisited, onVolume );
-  }
+	xVoxl_Set( &anaIdx, nX, nY, nZ );
+	eVolume = Volm_VerifyIdx( gAnatomicalVolume[tkm_tVolumeType_Main], 
+				  &anaIdx );
+	if( Volm_tErr_NoErr == eVolume ) {
+	  IterateCalcROIVolume( &anaIdx, inIndex, iVisited, onVolume );
+	}
       }
     }
   }
@@ -7827,7 +8060,7 @@ void IterateFloodFillSegmentation ( xVoxelRef      iAnaIdx,
 void SwapROIGroupAndVolume ( mriVolumeRef   iGroup,
            mriVolumeRef    iVolume ) {
   
-  printf( "UNSUPPORTED!!!!!!!!!!!!" );
+  printf( "UNSUPPORTED\n" );
 }
 
 // =============================================================== DTI VOLUMES
