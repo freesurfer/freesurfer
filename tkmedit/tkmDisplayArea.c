@@ -1,3 +1,11 @@
+//
+// tkmDisplayArea.c
+//
+// Warning: Do not edit the following four lines.  CVS maintains them.
+// Revision Author: $Author: tosa $
+// Revision Date  : $Date: 2003/01/14 15:53:57 $
+// Revision       : $Revision: 1.44 $
+
 #include "tkmDisplayArea.h"
 #include "tkmMeditWindow.h"
 #include "tkmFunctionalVolume.h"
@@ -6808,23 +6816,8 @@ tBoolean xUtil_LineIntersectsPlane ( xVoxelRef         ipAnaIdxA,
 DspA_tErr DspA_AdjustSurfaceDrawPoint_( tkmDisplayAreaRef this,
 					xPoint2fRef       ipPoint ) {
   
-  switch( this->mOrientation ) {
-  case mri_tOrientation_Horizontal:
-    ipPoint->mfX += 0.5;
-    ipPoint->mfY += 0.5;
-    break;
-  case mri_tOrientation_Coronal:
-    ipPoint->mfX += 0.5;
-    ipPoint->mfY += 0.5;
-    break;
-  case mri_tOrientation_Sagittal:
-    ipPoint->mfX += 0.5;
-    ipPoint->mfY += 0.5;
-    break;
-  default:
-    break;
-  }
-  
+  /* used to do artificial addtion of .5 pixels here */
+  /* it is no longer necessary                       */
   return DspA_tErr_NoErr;
 }
 
