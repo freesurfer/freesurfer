@@ -168,19 +168,19 @@ get_option(int argc, char *argv[])
     nargs = 1 ;
     fprintf(stderr, "using curvature nslope = %2.2f\n", nslope) ;
   }
-  else if (!stricmp(option, "ghi"))
+  else if (!stricmp(option, "ghi") || !stricmp(option, "gray_hi"))
   {
     gray_hi = atof(argv[2]) ;
     nargs = 1 ;
     fprintf(stderr, "using gray hilim = %2.1f\n", gray_hi) ;
   }
-  else if (!stricmp(option, "ghi"))
+  else if (!stricmp(option, "wlo") || !stricmp(option, "wm_low"))
   {
     wm_low = atof(argv[2]) ;
     nargs = 1 ;
     fprintf(stderr, "using white lolim = %2.1f\n", wm_low) ;
   }
-  else if (!stricmp(option, "ghi"))
+  else if (!stricmp(option, "whi") || !stricmp(option, "wm_hi"))
   {
     wm_hi = atof(argv[2]) ;
     nargs = 1 ;
