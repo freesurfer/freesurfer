@@ -319,15 +319,16 @@ MRIhistoNormalizeRegion(MRI *mri_src, MRI *mri_norm, MRI *mri_template,
         Description
 ------------------------------------------------------*/
 MRI *
-MRIhistoNormalize(MRI *mri_src, MRI *mri_norm, MRI *mri_template, int low)
+MRIhistoNormalize(MRI *mri_src, MRI *mri_norm, MRI *mri_template, int low,
+                  int high)
 {
   HISTOGRAM  h_fwd_eq, h_template_eq, h_norm ;
 
   HISTOclear(&h_fwd_eq, &h_fwd_eq) ;
   HISTOclear(&h_template_eq, &h_template_eq) ;
   HISTOclear(&h_norm, &h_norm) ;
-  MRIgetEqualizeHisto(mri_src, &h_fwd_eq, low, 0) ;
-  MRIgetEqualizeHisto(mri_template, &h_template_eq, low, 0) ;
+  MRIgetEqualizeHisto(mri_src, &h_fwd_eq, low, high, 0) ;
+  MRIgetEqualizeHisto(mri_template, &h_template_eq, low, high, 0) ;
   HISTOcomposeInvert(&h_fwd_eq, &h_template_eq, &h_norm) ;
   mri_norm = MRIapplyHistogram(mri_src, mri_norm, &h_norm) ;
 
