@@ -76,7 +76,8 @@ EVSCH *EVScb1Optimize(int nEvTypes, int *nEvReps, int nSearch);
 char  *EVScostString(int CostId);
 int    EVScostId(char *CostString);
 
-int EVSdesignMtxStats(MATRIX *Xtask, MATRIX *Xnuis, EVSCH *EvSch, MATRIX *C);
+int EVSdesignMtxStats(MATRIX *Xtask, MATRIX *Xnuis, EVSCH *EvSch, 
+		      MATRIX *C, MATRIX *W);
 float EVScost(EVSCH *EvSch, int CostId, float *params);
 
 int *RandPerm(int N, int *v);
@@ -86,6 +87,7 @@ int RandPermListLimit0(int N, int *v, int lim, int nitersmax);
 MATRIX *EVSfirXtXIdeal(int nEvTypes, int *nEvReps, float *EvDur, 
 		       float TR, int Ntp, 
 		       float PSDMin, float PSDMax, float dPSD);
+int EVSrefractory(EVSCH *sch, double alpha, double T, double dtmin);
 
 #endif //#ifndef EVSCHUTILS_H
 
