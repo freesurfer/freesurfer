@@ -1,8 +1,8 @@
 function r = fast_selxavg(varargin)
 % r = fast_selxavg(varargin)
-% '$Id: fast_selxavg.m,v 1.17 2004/09/13 19:10:07 greve Exp $'
+% '$Id: fast_selxavg.m,v 1.18 2004/12/14 22:04:23 greve Exp $'
 
-version = '$Id: fast_selxavg.m,v 1.17 2004/09/13 19:10:07 greve Exp $';
+version = '$Id: fast_selxavg.m,v 1.18 2004/12/14 22:04:23 greve Exp $';
 fprintf(1,'%s\n',version);
 r = 1;
 
@@ -704,7 +704,7 @@ end % Loop over slices
 %------------------------------------------------------------%
 
 
-outvolpath = dirname(deblank(s.hvol));
+outvolpath = fast_dirname(deblank(s.hvol));
 xfile = sprintf('%s/X.mat',outvolpath);
 pfOrder = s.PFOrder;
 nExtReg = 0; if(s.nextreg > 0) nExtReg = s.nextreg; end
@@ -1386,7 +1386,7 @@ function s = check_params(s)
 
   if( ~isempty(s.parname) ) 
     for n = 1:s.nruns
-      involpath = dirname(deblank(s.invollist(n,:)));
+      involpath = fast_dirname(deblank(s.invollist(n,:)));
       par = sprintf('%s/%s',involpath,s.parname);
       s.parlist = strvcat(s.parlist,par);
     end
@@ -1407,7 +1407,7 @@ function s = check_params(s)
 
   if(~isempty(s.extregfile) ) 
     for n = 1:s.nruns
-      involpath = dirname(deblank(s.invollist(n,:)));
+      involpath = fast_dirname(deblank(s.invollist(n,:)));
       extregtmp = sprintf('%s/%s',involpath,s.extregfile);
       s.extreglist = strvcat(s.extreglist,extregtmp);
     end
@@ -1585,7 +1585,7 @@ function runlist = getrunlist(invollist)
   runlist = [];
   for run = 1:nruns
     invol = deblank(invollist(run,:));
-    tmp = dirname(invol);
+    tmp = fast_dirname(invol);
     runid = basename(tmp);
     runno = sscanf(runid,'%d');
     runlist = [runlist runno];
