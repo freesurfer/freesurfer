@@ -92,6 +92,7 @@ typedef struct
   MRI_REGION    roi ;
   int           dof ;
   double        mean ;   
+  double        flip_angle ;  /* in radians */
 } MRI_IMAGE, MRI ;
 
 /* single pixel filtering */
