@@ -3,10 +3,10 @@
   ===========================================================================*/
 
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2004/08/12 21:29:40 $
-// Revision       : $Revision: 1.220 $
-char *VERSION = "$Revision: 1.220 $";
+// Revision Author: $Author: tosa $
+// Revision Date  : $Date: 2004/09/14 20:35:00 $
+// Revision       : $Revision: 1.221 $
+char *VERSION = "$Revision: 1.221 $";
 
 #define TCL
 #define TKMEDIT 
@@ -34,6 +34,7 @@ char *VERSION = "$Revision: 1.220 $";
 #include <tcl.h>
 // #include <tclDecls.h>
 #include <tk.h>
+#include <itcl.h>
 #include <tix.h>
 #include <blt.h>
 
@@ -1052,7 +1053,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
      shorten our argc and argv count. If those are the only args we
      had, exit. */
   /* rkt: check for and handle version tag */
-  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.220 2004/08/12 21:29:40 kteich Exp $", "$Name:  $");
+  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.221 2004/09/14 20:35:00 tosa Exp $", "$Name:  $");
   if (nNumProcessedVersionArgs && argc - nNumProcessedVersionArgs == 1)
     exit (0);
   argc -= nNumProcessedVersionArgs;
@@ -5010,7 +5011,7 @@ int main ( int argc, char** argv ) {
     DebugPrint( ( "%s ", argv[nArg] ) );
   }
   DebugPrint( ( "\n\n" ) );
-  DebugPrint( ( "$Id: tkmedit.c,v 1.220 2004/08/12 21:29:40 kteich Exp $ $Name:  $\n" ) );
+  DebugPrint( ( "$Id: tkmedit.c,v 1.221 2004/09/14 20:35:00 tosa Exp $ $Name:  $\n" ) );
 
   
   /* init glut */
@@ -5315,6 +5316,14 @@ int main ( int argc, char** argv ) {
           "incorrectly, or the TK_LIBRARY environment variable "
           "not being set or being set incorrectly." );
     DebugAssertThrowX( (TCL_OK == eTcl), eResult, tkm_tErr_CouldntInitTk );
+  }
+  eTcl = Itcl_Init(interp);
+  if( TCL_OK != eTcl ) {
+    DebugPrint( ("Itlc_Init returned %d: %s\n", (int)eTcl, interp->result) );
+  }
+  eTcl = Itk_Init(interp);
+  if( TCL_OK != eTcl ) {
+    DebugPrint( ("Itk_Init returned %d: %s\n", (int)eTcl, interp->result) );
   }
   eTcl = Tix_Init( interp );
   if( TCL_OK != eTcl ) {
