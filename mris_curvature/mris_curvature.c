@@ -13,7 +13,7 @@
 #include "mri.h"
 #include "macros.h"
 
-static char vcid[] = "$Id: mris_curvature.c,v 1.10 1998/03/13 22:08:17 fischl Exp $";
+static char vcid[] = "$Id: mris_curvature.c,v 1.11 1998/03/18 16:18:46 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -67,6 +67,7 @@ main(int argc, char *argv[])
   if (patch_flag)  /* read the orig surface, then the patch file */
   {
     FileNamePath(in_fname, path) ;
+    FileNameOnly(in_fname, name) ;
     cp = strchr(name, '.') ;
     if (cp)
     {
@@ -129,13 +130,15 @@ main(int argc, char *argv[])
     fprintf(stderr, "total integrated curvature = %2.3f*4pi (%2.3f) --> "
             "%d handles\n", (float)mris->Ktotal/(4.0f*M_PI), 
             (float)mris->Ktotal, nhandles) ;
-    
+
+#if 0   
     fprintf(stderr, "0: k1 = %2.3f, k2 = %2.3f, H = %2.3f, K = %2.3f\n",
             mris->vertices[0].k1, mris->vertices[0].k2, 
             mris->vertices[0].H, mris->vertices[0].K) ;
     fprintf(stderr, "0: vnum = %d, v2num = %d, total=%d, area=%2.3f\n",
             mris->vertices[0].vnum, mris->vertices[0].v2num,
             mris->vertices[0].vtotal,mris->vertices[0].area) ;
+#endif
     MRIScomputeCurvatureIndices(mris, &ici, &fi);
     var = MRIStotalVariation(mris) ;
     fprintf(stderr,"ICI = %2.1f, FI = %2.1f, variation=%2.3f\n", ici, fi, var);
@@ -159,9 +162,11 @@ main(int argc, char *argv[])
     }
     if (neg_flag)
     {
+      int neg ;
       if (mris->patch)
         mris->status = MRIS_PLANE ;
       MRIScomputeMetricProperties(mris) ;
+      neg = MRIScountNegativeTriangles(mris) ;
       FileNamePath(in_fname, path) ;
       FileNameOnly(in_fname, name) ;
       cp = strchr(name, '.') ;
@@ -173,9 +178,31 @@ main(int argc, char *argv[])
       MRISuseNegCurvature(mris) ;
       MRISaverageCurvatures(mris, navgs) ;
       sprintf(fname, "%s/%s.neg", path,name) ; 
-      fprintf(stderr, "writing negative vertex curvature  to %s...", fname) ;
+      fprintf(stderr, "writing negative vertex curvature to %s...", fname) ;
       MRISwriteCurvature(mris, fname) ;
+      fprintf(stderr, "%d negative triangles\n", neg) ;
       fprintf(stderr, "done.\n") ;
+      {
+        int    vno, fno, tno ;
+        VERTEX *v ;
+        FACE   *f ;
+        for (vno = 0 ; vno < mris->nvertices ; vno++)
+        {
+          v = &mris->vertices[vno] ;
+          if (v->ripflag) 
+            continue ;
+          neg = 0 ;
+          for (fno = 0 ; fno < v->num ; fno++)
+          {
+            f = &mris->faces[v->f[fno]] ;
+            for (tno = 0 ; tno < TRIANGLES_PER_FACE ; tno++)
+              if (f->area[tno] < 0.0f)
+                neg = 1 ;
+          }
+          if (neg)
+            fprintf(stdout, "%d\n", vno) ;
+        }
+      }
     }
 
     if (max_flag)
