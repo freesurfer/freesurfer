@@ -11,8 +11,7 @@
 #ifndef FILTER_H
 #define FILTER_H
 
-#include "image.h"
-
+/* filter constants must be defined before inclusion of image.h */
 #define FILTER_NONE          0
 #define FILTER_MEDIAN        1
 #define FILTER_MEDIAN_OFFSET 2
@@ -28,7 +27,10 @@
 #define FILTER_DIFFUSE_GRAD  FILTER_DIFFUSE
 #define FILTER_OFFSET_SCALE  12
 #define FILTER_SIGMA         13
+#define FILTER_DIFFUSE_HV    14
 #define FILTER_OFFSET        0x0100
+
+#include "image.h"
 
 IMAGE    *ImageNitShiFilter(IMAGE *Isrc, IMAGE *Ix, IMAGE *Iy, int wsize, 
                            double sigma, IMAGE *Idst) ;
