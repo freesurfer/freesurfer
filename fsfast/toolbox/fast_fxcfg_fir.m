@@ -19,10 +19,10 @@ function rt = fast_fxcfg_fir(DoWhat,thing)
 %  3. dPSD
 %  4. PSDMax
 %
-% $Id: fast_fxcfg_fir.m,v 1.2 2003/03/18 06:16:07 greve Exp $
+% $Id: fast_fxcfg_fir.m,v 1.3 2003/03/19 07:04:13 greve Exp $
 
 % Things to do:
-% Handle tpx
+% Handle tpx, nskip
 
 
 rt = [];
@@ -87,7 +87,7 @@ switch(DoWhat)
   rt = createline(flacfg);
  
  otherwise
-  fprintf('ERROR: fast_erm_fir: getwhat = %s, unrecognized\n',getwhat);
+  fprintf('ERROR: fast_fxcfg_fir: getwhat = %s, unrecognized\n',getwhat);
 
 end
 
