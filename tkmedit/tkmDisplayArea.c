@@ -3,8 +3,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2003/05/20 20:05:35 $
-// Revision       : $Revision: 1.69 $
+// Revision Date  : $Date: 2003/05/21 22:28:52 $
+// Revision       : $Revision: 1.70 $
 
 #include "tkmDisplayArea.h"
 #include "tkmMeditWindow.h"
@@ -201,11 +201,13 @@ DspA_tErr DspA_New ( tkmDisplayAreaRef* oppWindow,
   DspA_SetBrushInfoToDefault( this, DspA_tBrush_EditTwo );
   
   /* default seg brush info */
-  sSegBrush.mNewValue  = 0;
-  sSegBrush.mb3D       = FALSE;
-  sSegBrush.mSrc       = tkm_tVolumeTarget_MainAna;
-  sSegBrush.mnFuzzy    = 0;
-  sSegBrush.mnDistance = 0;
+  sSegBrush.mNewValue    = 0;
+  sSegBrush.mb3D         = FALSE;
+  sSegBrush.mSrc         = tkm_tVolumeTarget_MainAna;
+  sSegBrush.mnFuzzy      = 0;
+  sSegBrush.mnDistance   = 0;
+  sSegBrush.mnPaintValue = 0;
+  sSegBrush.mnEraseValue = 0;
   
   /* default flood select info */
   sFloodSelectSettings.mb3D       = FALSE;
@@ -2247,7 +2249,7 @@ DspA_tErr DspA_SetSegBrushInfo ( tkmDisplayAreaRef        this,
     
     /* send the tcl update. */
     sprintf( sTclArguments, "%d %d %d %d %d", 
-	     sSegBrush.mNewValue, sSegBrush.mb3D,
+	     sSegBrush.mnPaintValue, sSegBrush.mb3D,
 	     sSegBrush.mSrc, sSegBrush.mnFuzzy, sSegBrush.mnDistance );
     tkm_SendTclCommand( tkm_tTclCommand_UpdateSegBrushInfo, sTclArguments );
   }
@@ -2741,9 +2743,10 @@ DspA_tErr DspA_HandleMouseUp_ ( tkmDisplayAreaRef this,
   DspA_tErr    eResult     = DspA_tErr_NoErr;
   xPoint2n     bufferPt    = {0,0};
   xVoxelRef    pVolumeVox  = NULL;
-  int          nSegIndex  = 0;
+  int          nSegIndex   = 0;
   tkm_tSegType segType     = tkm_tSegType_Main;
   DspA_tSegBrushSettings segBrush;
+  tBoolean     bSelect     = FALSE;
   
   xVoxl_New( &pVolumeVox );
   
@@ -2761,58 +2764,186 @@ DspA_tErr DspA_HandleMouseUp_ ( tkmDisplayAreaRef this,
 	       xVoxl_ExpandFloat( pVolumeVox ) ) );
 #endif  
 
-  /* if nav tool and not ctrl... */
-  if( DspA_tTool_Navigate == sTool &&
-      !ipEvent->mbCtrlKey ) {
+  switch( sTool ) {
+  
+  case DspA_tTool_Navigate:
+
+    if( !ipEvent->mbCtrlKey ) {
     
-    /* if there was little delta... */
-    if( this->mTotalDelta.mfX > -1.0 && this->mTotalDelta.mfX < 1.0 &&
-	this->mTotalDelta.mfY > -1.0 && this->mTotalDelta.mfY < 1.0 ) {
+      /* if there was little delta... */
+      if( this->mTotalDelta.mfX > -1.0 && this->mTotalDelta.mfX < 1.0 &&
+	  this->mTotalDelta.mfY > -1.0 && this->mTotalDelta.mfY < 1.0 ) {
+	
+	/* do a single slice up or down or zoom in or out depending on what
+	   vertical side of the screen we clicked on */
+	switch( ipEvent->mButton ) {
+	case 2:
+	  if( GLDRAW_Y_FLIP(bufferPt.mnY) > 128 ) {
+	    DspA_SetSlice( this,this->mnOriginalSlice - 1 );
+	  } else {
+	    DspA_SetSlice( this,this->mnOriginalSlice + 1 );
+	  }
+	  break;
+	case 3:
+	  if( GLDRAW_Y_FLIP(bufferPt.mnY) > 128 ) {
+	    DspA_SetZoomLevel( this,this->mnOriginalZoomLevel - 1 );
+	  } else {
+	    DspA_SetZoomLevel( this,this->mnOriginalZoomLevel + 1 );
+	  }
+	  break;
+	}
+      }
+    }
+    break;
+  
+
+  case DspA_tTool_SelectVoxels:
+    
+    /* If select tool and shift key, do a flood select. If button 2,
+       select, and if button 3, unselect. */
+    if( ipEvent->mbShiftKey ) {
+      if( 2 == ipEvent->mButton ) {
+	bSelect = TRUE;
+      } else if ( 3 == ipEvent->mButton ) {
+	bSelect = FALSE;
+      }
       
-      /* do a single slice up or down or zoom in or out depending on what
-	 vertical side of the screen we clicked on */
+      tkm_FloodSelect( pVolumeVox, 
+		       sFloodSelectSettings.mb3D,
+		       sFloodSelectSettings.mSrc, 
+		       sFloodSelectSettings.mnFuzzy,
+		       sFloodSelectSettings.mnDistance,
+		       bSelect );
+      this->mbSliceChanged = TRUE;
+    }
+    break;
+  
+
+  case DspA_tTool_EditVoxels:
+    
+    /* If Shift-edit, restore-undo around the clicked point. */
+    if( ipEvent->mbShiftKey ) {
+      tkm_RestoreUndoVolumeAroundAnaIdx( pVolumeVox );
+    }
+    break;
+
+
+  case DspA_tTool_EditSegmentation:
+
+    if( this->mabDisplayFlags[DspA_tDisplayFlag_AuxSegmentationVolume] ) {
+      segType = tkm_tSegType_Aux;
+    } else {
+      segType = tkm_tSegType_Main;
+    }
+
+    /* No modifications, its a normal edit. */
+    if( !ipEvent->mbShiftKey
+	&& !ipEvent->mbCtrlKey
+	&& !ipEvent->mbAltKey ) {
+
       switch( ipEvent->mButton ) {
       case 2:
-	if( GLDRAW_Y_FLIP(bufferPt.mnY) > 128 ) {
-	  DspA_SetSlice( this,this->mnOriginalSlice - 1 );
-	} else {
-	  DspA_SetSlice( this,this->mnOriginalSlice + 1 );
-	}
-	break;
       case 3:
-	if( GLDRAW_Y_FLIP(bufferPt.mnY) > 128 ) {
-	  DspA_SetZoomLevel( this,this->mnOriginalZoomLevel - 1 );
-	} else {
-	  DspA_SetZoomLevel( this,this->mnOriginalZoomLevel + 1 );
+	/* button determines whether we're using paint or erase value */
+	if( 2 == ipEvent->mButton ) {
+	  sSegBrush.mNewValue = sSegBrush.mnPaintValue;
+	} else if ( 3 == ipEvent->mButton ) {
+	  sSegBrush.mNewValue = sSegBrush.mnEraseValue;
 	}
+	
+	/* edit the seg volume */
+	sSegBrush.mDest = segType;
+	eResult = DspA_BrushVoxels_( this, pVolumeVox, 
+				     NULL, DspA_EditSegmentationVoxels_ );
+	if( DspA_tErr_NoErr != eResult )
+	  goto error;
+	
+	/* editing requires us to rebuild buffer. */
+	this->mbSliceChanged = TRUE;
+	DspA_Redraw_( this );
+      }
+    }
+
+    /* shift-ctrl-2 sucks the color */
+    if( ipEvent->mbShiftKey &&
+	ipEvent->mbCtrlKey &&
+	!ipEvent->mbAltKey &&
+	ipEvent->mButton == 2 ) {
+      
+	/* get the color and set our brush info with the same settings
+	   except for the new color */
+	tkm_GetSegLabel( segType, pVolumeVox, &nSegIndex, NULL );
+	segBrush = sSegBrush;
+	segBrush.mnPaintValue = nSegIndex;
+	segBrush.mDest = segType;
+	DspA_SetSegBrushInfo( this, &segBrush );
+    }
+      
+    /* Shift-2 or Shift-3 does a fill. */
+    if( ipEvent->mbShiftKey &&
+	!ipEvent->mbCtrlKey &&
+	!ipEvent->mbAltKey ) {
+
+      switch( ipEvent->mButton ) {
+      case 2:
+      case 3:
+	/* button determines whether we're using paint or erase value */
+	if( 2 == ipEvent->mButton ) {
+	  sSegBrush.mNewValue = sSegBrush.mnPaintValue;
+	} else if ( 3 == ipEvent->mButton ) {
+	  sSegBrush.mNewValue = sSegBrush.mnEraseValue;
+	}
+
+	tkm_FloodFillSegmentation( segType, pVolumeVox, 
+				   sSegBrush.mNewValue, 
+				   sSegBrush.mb3D, sSegBrush.mSrc, 
+				   sSegBrush.mnFuzzy, sSegBrush.mnDistance );
+	this->mbSliceChanged = TRUE;
+	DspA_Redraw_( this );
 	break;
       }
     }
-  }
-  
-#if 0
-  /* allow the functional display to respond. */
-  if( NULL != this->mpFunctionalVolume ) {
-    eFunctional = FunV_AnatomicalVoxelClicked( this->mpFunctionalVolume,
-					       pVolumeVox );
-    if( FunV_tErr_NoError != eFunctional ) {
-      DebugPrint( ("DspA_HandleMouseUp_(): Error while passing clicked voxel to functional volume.\n" ) );
-    }
-  }
-#endif   
-  
-  /* if this isn't the nav tool or is but ctrl is down... */
-  if( !(DspA_tTool_Navigate == sTool &&
-	!ipEvent->mbCtrlKey) ) {
     
+    /* send the cursor info again to update the new seg label volume
+       after editing. */
+    eResult = DspA_SendPointInformationToTcl_( this, DspA_tDisplaySet_Cursor,
+					       pVolumeVox );
+    if ( DspA_tErr_NoErr != eResult )
+      goto error;
+    break;
+
+
+  case DspA_tTool_EditCtrlPts:
+
+    if( !ipEvent->mbCtrlKey &&
+	!ipEvent->mbAltKey ) {
+      
+      /* if button 2, make a new point here. */
+      if ( 2 == ipEvent->mButton ) {
+	
+	tkm_MakeControlPoint( pVolumeVox );
+	
+	/* if button 3, delete the nearest point. */
+      } else if ( 3 == ipEvent->mButton ) {
+	
+	tkm_RemoveControlPointWithinDist( pVolumeVox, this->mOrientation, 3 );
+      }
+    }
+    break;
+
+  default:
+  }
+
+
+
+  /* if ctrl (only) was down... */
+  if ( ipEvent->mbCtrlKey &&
+       !ipEvent->mbShiftKey ) {
+
     /* set the cursor. */
     eResult = DspA_SetCursor( this, pVolumeVox );
     if ( DspA_tErr_NoErr != eResult )
       goto error;
-  }
-  
-  /* if ctrl was down... */
-  if ( ipEvent->mbCtrlKey ) {
     
     /* set zoom center to cursor */
     eResult = DspA_SetZoomCenterToCursor( this );
@@ -2836,111 +2967,9 @@ DspA_tErr DspA_HandleMouseUp_ ( tkmDisplayAreaRef this,
     }
   }
   
-  /* if edit seg tool... */
-  if( this->mabDisplayFlags[DspA_tDisplayFlag_AuxSegmentationVolume] ) {
-    segType = tkm_tSegType_Aux;
-  } else {
-    segType = tkm_tSegType_Main;
-  }
-  if( DspA_tTool_EditSegmentation == sTool
-      && NULL != this->mSegmentationVolume[segType]
-      && !ipEvent->mbCtrlKey) {
-    
-    switch( ipEvent->mButton ) {
-      
-      /* button two edits or color-sucks */
-    case 2:
-      
-      /* shift-2 sucks the color */
-      if( ipEvent->mbShiftKey ) {
-	
-	/* get the color and set our brush info with the same settings
-	   except for the new color */
-	tkm_GetSegLabel( segType, pVolumeVox, &nSegIndex, NULL );
-	segBrush = sSegBrush;
-	segBrush.mNewValue = nSegIndex;
-	segBrush.mDest = segType;
-	DspA_SetSegBrushInfo( this, &segBrush );
-	
-      } else {
+  
 
-	DebugNote( ("Calling DspA_BrushVoxels_ from mouse up") );
-	segBrush.mDest = segType;
-	eResult = DspA_BrushVoxels_( this, pVolumeVox,  
-				     NULL, DspA_EditSegmentationVoxels_ );
-	if( DspA_tErr_NoErr != eResult )
-	  goto error;
-	this->mbSliceChanged = TRUE;
-      }
-      
-      break;
-      
-      /* button three does a flood fill */
-    case 3:
-      tkm_FloodFillSegmentation( segType, pVolumeVox, sSegBrush.mNewValue, 
-				 sSegBrush.mb3D, sSegBrush.mSrc, 
-				 sSegBrush.mnFuzzy, sSegBrush.mnDistance );
-      this->mbSliceChanged = TRUE;
-      break;
-    }
-    
-    /* send the cursor info again to update the new seg label volume
-       after editing. */
-    eResult = DspA_SendPointInformationToTcl_( this, DspA_tDisplaySet_Cursor,
-					       pVolumeVox );
-    if ( DspA_tErr_NoErr != eResult )
-      goto error;
-    
-  }
-  
-  /* if select tool and button 3, does a flood select. */
-  if( DspA_tTool_SelectVoxels == sTool 
-      && TRUE == ipEvent->mbShiftKey ) {
-    
-    if( 3 == ipEvent->mButton ) {
-      tkm_FloodSelect( pVolumeVox, 
-		       sFloodSelectSettings.mb3D,
-		       sFloodSelectSettings.mSrc, 
-		       sFloodSelectSettings.mnFuzzy,
-		       sFloodSelectSettings.mnDistance,
-		       FALSE );
-    } else if( 2 == ipEvent->mButton ) {
-      tkm_FloodSelect( pVolumeVox, 
-		       sFloodSelectSettings.mb3D,
-		       sFloodSelectSettings.mSrc, 
-		       sFloodSelectSettings.mnFuzzy,
-		       sFloodSelectSettings.mnDistance,
-		       TRUE );
-    }
-    this->mbSliceChanged = TRUE;
-  }
-
-  /* if edit tool and shift */
-  if( DspA_tTool_EditVoxels == sTool 
-      && ipEvent->mbShiftKey ) {
-    
-    /* undo this voxel */
-    tkm_RestoreUndoVolumeAroundAnaIdx( pVolumeVox );
-  }
-  
-  /* if we're in control point selection mode... */
-  if( DspA_tTool_EditCtrlPts == sTool 
-      && !ipEvent->mbCtrlKey
-      && !ipEvent->mbAltKey ) {
-    
-    /* if button 2, make a new point here. */
-    if ( 2 == ipEvent->mButton ) {
-      
-      tkm_MakeControlPoint( pVolumeVox );
-      
-      /* if button 3, delete the nearest point. */
-    } else if ( 3 == ipEvent->mButton ) {
-      
-      tkm_RemoveControlPointWithinDist( pVolumeVox, this->mOrientation, 3 );
-    }
-  }
-  
-  /* most things want a mouse up after we're done, so schedule one and 
+  /* Most things want a mouse up after we're done, so schedule one and 
      let the draw function figure out if we don't need it. */
   DspA_Redraw_( this );
   
@@ -2986,8 +3015,10 @@ DspA_tErr DspA_HandleMouseDown_ ( tkmDisplayAreaRef this,
 	       xVoxl_ExpandInt( pVolumeVox ) ) );
 #endif
   
-  /* if nav tool... */
-  if( DspA_tTool_Navigate == sTool ) {
+
+  switch( sTool ) {
+
+  case DspA_tTool_Navigate:
     
     this->mLastClick = ipEvent->mWhere;
     this->mTotalDelta.mfX = 0;
@@ -2995,72 +3026,93 @@ DspA_tErr DspA_HandleMouseDown_ ( tkmDisplayAreaRef this,
     xVoxl_Copy( this->mpOriginalZoomCenter, this->mpZoomCenter );
     this->mnOriginalSlice = DspA_GetCurrentSliceNumber_( this );
     this->mnOriginalZoomLevel = this->mnZoomLevel;
-  }
+    break;
+
   
-  /* button 2 or 3 edit tool with no modifiers: */
-  if( ( 2 == ipEvent->mButton
-	|| 3 == ipEvent->mButton )
-      && DspA_tTool_EditVoxels == sTool 
-      && !ipEvent->mbShiftKey
-      && !ipEvent->mbCtrlKey
-      && !ipEvent->mbAltKey ) {
-    
-    /* clear the undo list. */
-    tkm_ClearUndoList();
-    
-    /* button determines the brush action */
-    if( 2 == ipEvent->mButton ) {
-      brushAction = DspA_tBrush_EditOne;
-    } else if ( 3 == ipEvent->mButton ) {
-      brushAction = DspA_tBrush_EditTwo;
+  case DspA_tTool_SelectVoxels:
+
+    switch( ipEvent->mButton ) {
+      /* button 2 or 3 select tool with no modifiers: */
+    case 2:
+    case 3:
+      if( !ipEvent->mbShiftKey
+	  && !ipEvent->mbCtrlKey
+	  && !ipEvent->mbAltKey ) {
+
+	/* button determines the select action */
+	if( 2 == ipEvent->mButton ) {
+	  selectAction = DspA_tSelectAction_Select;
+	} else if ( 3 == ipEvent->mButton ) {
+	  selectAction = DspA_tSelectAction_Deselect;
+	}
+	
+	/* brush the voxels */
+	eResult = DspA_BrushVoxels_( this, pVolumeVox, (void*)&selectAction,
+				     DspA_SelectVoxels_ );
+	if( DspA_tErr_NoErr != eResult )
+	  goto error;
+	
+	/* selecting requires us to rebuild buffer. */
+	this->mbSliceChanged = TRUE;
+	DspA_Redraw_( this );
+      }
+      break;
     }
-    
-    /* brush the voxels */
-    eResult = DspA_BrushVoxels_( this, pVolumeVox, (void*)&brushAction,
-				 DspA_BrushVoxelsInThreshold_ );
-    if( DspA_tErr_NoErr != eResult )
-      goto error;
-    
-    /* editing requires us to rebuild buffer. */
-    this->mbSliceChanged = TRUE;
-    DspA_Redraw_( this );
-    
-  }
+    break;
   
-  /* select mode with no modfiers */
-  if( ( 2 == ipEvent->mButton
-	|| 3 == ipEvent->mButton )
-      && DspA_tTool_SelectVoxels == sTool
-      && !ipEvent->mbShiftKey
-      && !ipEvent->mbCtrlKey
-      && !ipEvent->mbAltKey ) {
     
-    /* button determines the select action */
-    if( 2 == ipEvent->mButton ) {
-      selectAction = DspA_tSelectAction_Select;
-    } else if ( 3 == ipEvent->mButton ) {
-      selectAction = DspA_tSelectAction_Deselect;
+  case DspA_tTool_EditVoxels:
+
+    switch( ipEvent->mButton ) {
+      /* button 2 or 3 edit tool with no modifiers: */
+    case 2:
+    case 3:
+      if( !ipEvent->mbShiftKey
+	  && !ipEvent->mbCtrlKey
+	  && !ipEvent->mbAltKey ) {
+	
+	/* clear the undo list. */
+	tkm_ClearUndoList();
+	
+	/* button determines the brush action */
+	if( 2 == ipEvent->mButton ) {
+	  brushAction = DspA_tBrush_EditOne;
+	} else if ( 3 == ipEvent->mButton ) {
+	  brushAction = DspA_tBrush_EditTwo;
+	}
+	
+	/* brush the voxels */
+	eResult = DspA_BrushVoxels_( this, pVolumeVox, (void*)&brushAction,
+				     DspA_BrushVoxelsInThreshold_ );
+	if( DspA_tErr_NoErr != eResult )
+	  goto error;
+	
+	/* editing requires us to rebuild buffer. */
+	this->mbSliceChanged = TRUE;
+	DspA_Redraw_( this );
+      }
+      break;
     }
-    
-    /* brush the voxels */
-    eResult = DspA_BrushVoxels_( this, pVolumeVox, (void*)&selectAction,
-				 DspA_SelectVoxels_ );
-    if( DspA_tErr_NoErr != eResult )
-      goto error;
-    
-    /* selecting requires us to rebuild buffer. */
-    this->mbSliceChanged = TRUE;
-    DspA_Redraw_( this );
-    
-  }
+    break;
   
-  /* if edit seg tool with button 1 or 3, clear the undo list */
-  if( ( 1 == ipEvent->mButton
-	|| 3 == ipEvent->mButton )
-      && DspA_tTool_EditSegmentation == sTool 
-      && !ipEvent->mbCtrlKey
-      && !ipEvent->mbAltKey ) {
-    tkm_ClearUndoList();
+
+  case DspA_tTool_EditSegmentation:
+
+    switch( ipEvent->mButton ) {
+      /* button 2 or 3 edit seg tool with no modifiers: */
+    case 2:
+    case 3:
+      if( !ipEvent->mbShiftKey
+	  && !ipEvent->mbCtrlKey
+	  && !ipEvent->mbAltKey ) {
+	
+	tkm_ClearUndoList();
+      }
+      break;
+    }
+    break;
+
+  default:
   }
   
   goto cleanup;
@@ -3119,6 +3171,8 @@ DspA_tErr DspA_HandleMouseMoved_ ( tkmDisplayAreaRef this,
 	      xVoxl_ExpandInt( &anaIdx ) ) );
 #endif
   
+  /* Check if this is a valid voxel. If so, send the information about
+     this point to Tcl for the mouseover info pane. */
   eResult = DspA_VerifyVolumeVoxel_( this, &anaIdx );
   if ( DspA_tErr_NoErr == eResult ) {
     DspA_SendPointInformationToTcl_( this, DspA_tDisplaySet_Mouseover, 
@@ -3135,138 +3189,170 @@ DspA_tErr DspA_HandleMouseMoved_ ( tkmDisplayAreaRef this,
   if( ipEvent->mButton == 0 )
     goto cleanup;
   
-  /* if nav tool and no ctrl key... */
-  if( DspA_tTool_Navigate == sTool &&
-      !ipEvent->mbCtrlKey ) {
+  switch( sTool ) {
+  
+  case DspA_tTool_Navigate:
+
+    if( !ipEvent->mbCtrlKey ) {
     
-    /* figure out how much we've moved */
-    delta.mfX = (float)(this->mLastClick.mnX - ipEvent->mWhere.mnX) / (float)this->mnZoomLevel / 2.0;
-    delta.mfY = (float)(this->mLastClick.mnY - ipEvent->mWhere.mnY) / (float)this->mnZoomLevel / 2.0;
+      /* figure out how much we've moved */
+      delta.mfX = (float)(this->mLastClick.mnX - ipEvent->mWhere.mnX) / (float)this->mnZoomLevel / 2.0;
+      delta.mfY = (float)(this->mLastClick.mnY - ipEvent->mWhere.mnY) / (float)this->mnZoomLevel / 2.0;
+      
+      /* flip y if horizontal cuz our freaking screen is upside down */
+      if( this->mOrientation == mri_tOrientation_Horizontal )
+	delta.mfY = -delta.mfY;
+      
+      /* add to the total delta */
+      this->mTotalDelta.mfX += delta.mfX;
+      this->mTotalDelta.mfY += delta.mfY;
+      
+      /* save this mouse position */
+      this->mLastClick = ipEvent->mWhere;
+      
+      switch( ipEvent->mButton ) {
+	
+	/* button one is 'drag' the volume view. add the rounded delta
+	   to the original center and set the center */
+      case 1:
+	newCenterPt.mfX = this->mTotalDelta.mfX +
+	  xVoxl_GetX( this->mpOriginalZoomCenter );
+	newCenterPt.mfY = this->mTotalDelta.mfY +
+	  xVoxl_GetY( this->mpOriginalZoomCenter );
+	DspA_ConvertPlaneToVolume_( this, &newCenterPt, 0,
+				    this->mOrientation, &newCenterIdx );
+	DspA_SetZoomCenter( this, &newCenterIdx );
+	break;
+	
+	/* button 2 is move the slice. add the rounded y delta to the 
+	   slice */
+      case 2:
+	nNewSlice = this->mnOriginalSlice + rint(this->mTotalDelta.mfY);
+	if( nNewSlice >= 0 && nNewSlice < this->mnVolumeSizeZ ) {
+	  DspA_SetSlice( this, nNewSlice );
+	}
+	break;
+	
+	/* button 3 is zoom. add the rounded delta to the zoom level */
+      case 3:
+	nNewZoomLevel = this->mnOriginalZoomLevel +rint(this->mTotalDelta.mfY);
+	if ( nNewZoomLevel >= DspA_knMinZoomLevel 
+	     && nNewZoomLevel <= DspA_knMaxZoomLevel ) {
+	  DspA_SetZoomLevel( this, nNewZoomLevel );
+	}
+	break;
+      }
+    }
+    break;
     
-    /* flip y if horizontal cuz our freaking screen is upside down */
-    if( this->mOrientation == mri_tOrientation_Horizontal )
-      delta.mfY = -delta.mfY;
     
-    /* add to the total delta */
-    this->mTotalDelta.mfX += delta.mfX;
-    this->mTotalDelta.mfY += delta.mfY;
+  case DspA_tTool_SelectVoxels:
     
-    /* save this mouse position */
-    this->mLastClick = ipEvent->mWhere;
-    
-    /* what button? */
     switch( ipEvent->mButton ) {
-      
-      /* button one is 'drag' the volume view. add the rounded delta
-	 to the original center and set the center */
-    case 1:
-      newCenterPt.mfX = this->mTotalDelta.mfX +
-	xVoxl_GetX( this->mpOriginalZoomCenter );
-      newCenterPt.mfY = this->mTotalDelta.mfY +
-	xVoxl_GetY( this->mpOriginalZoomCenter );
-      DspA_ConvertPlaneToVolume_( this, &newCenterPt, 0,
-				  this->mOrientation, &newCenterIdx );
-      DspA_SetZoomCenter( this, &newCenterIdx );
-      break;
-      
-      /* button 2 is move the slice. add the rounded y delta to the 
-	 slice */
+      /* button 2 or 3 select tool with no modifiers: */
     case 2:
-      nNewSlice = this->mnOriginalSlice + rint(this->mTotalDelta.mfY);
-      if( nNewSlice >= 0 && nNewSlice < this->mnVolumeSizeZ ) {
-	DspA_SetSlice( this, nNewSlice );
-      }
-      break;
-      
-      /* button 3 is zoom. add the rounded delta to the zoom level */
     case 3:
-      nNewZoomLevel = this->mnOriginalZoomLevel + rint(this->mTotalDelta.mfY);
-      if ( nNewZoomLevel >= DspA_knMinZoomLevel 
-	   && nNewZoomLevel <= DspA_knMaxZoomLevel ) {
-	DspA_SetZoomLevel( this, nNewZoomLevel );
+      if( !ipEvent->mbShiftKey
+	  && !ipEvent->mbCtrlKey
+	  && !ipEvent->mbAltKey ) {
+
+	/* button determines the select action */
+	if( 2 == ipEvent->mButton ) {
+	  selectAction = DspA_tSelectAction_Select;
+	} else if ( 3 == ipEvent->mButton ) {
+	  selectAction = DspA_tSelectAction_Deselect;
+	}
+	
+	/* brush the voxels */
+	eResult = DspA_BrushVoxels_( this, &anaIdx, (void*)&selectAction, 
+				     DspA_SelectVoxels_ );
+	if( DspA_tErr_NoErr != eResult )
+	  goto error;
+	
+	/* selecting requires us to rebuild buffer. */
+	this->mbSliceChanged = TRUE;
+	DspA_Redraw_( this );
       }
       break;
     }
-    
-  }
-  
-  /* button 2 or 3 edit tool with no modifiers: */
-  if( ( 2 == ipEvent->mButton
-	|| 3 == ipEvent->mButton )
-      && DspA_tTool_EditVoxels == sTool 
-      && !ipEvent->mbCtrlKey
-      && !ipEvent->mbAltKey ) {
-    
-    /* button determines the brush action */
-    if( 2 == ipEvent->mButton ) {
-      brushAction = DspA_tBrush_EditOne;
-    } else if ( 3 == ipEvent->mButton ) {
-      brushAction = DspA_tBrush_EditTwo;
-    }
-    
-    /* brush the voxels */
-    eResult = DspA_BrushVoxels_( this, &anaIdx, (void*)&brushAction,
+    break;
+
+
+  case DspA_tTool_EditVoxels:
+
+    switch( ipEvent->mButton ) {
+      /* button 2 or 3 edit tool with no modifiers: */
+    case 2:
+    case 3:
+      if( !ipEvent->mbShiftKey
+	  && !ipEvent->mbCtrlKey
+	  && !ipEvent->mbAltKey ) {
+
+	/* button determines the brush action */
+	if( 2 == ipEvent->mButton ) {
+	  brushAction = DspA_tBrush_EditOne;
+	} else if ( 3 == ipEvent->mButton ) {
+	  brushAction = DspA_tBrush_EditTwo;
+	}
+	
+	/* brush the voxels */
+	eResult = DspA_BrushVoxels_( this, &anaIdx, (void*)&brushAction,
 				 DspA_BrushVoxelsInThreshold_ );
-    if( DspA_tErr_NoErr != eResult )
-      goto error;
-    
-    /* editing requires us to rebuild buffer. */
-    this->mbSliceChanged = TRUE;
-    DspA_Redraw_( this );
-    
-  }
-  
-  /* if edit seg tool button 1... */
-  if( this->mabDisplayFlags[DspA_tDisplayFlag_AuxSegmentationVolume] ) {
-    segType = tkm_tSegType_Aux;
-  } else {
-    segType = tkm_tSegType_Main;
-  }
-  if( DspA_tTool_EditSegmentation == sTool
-      && NULL != this->mSegmentationVolume[segType]
-      && ipEvent->mButton == 2
-      && !(ipEvent->mbAltKey)) {
-    
-    /* edit the seg volume */
-    DebugNote( ("Calling DspA_BrushVoxels_ from mouse moved") );
-    sSegBrush.mDest = segType;
-    eResult = DspA_BrushVoxels_( this, &anaIdx, 
-				 NULL, DspA_EditSegmentationVoxels_ );
-    if( DspA_tErr_NoErr != eResult )
-      goto error;
-    
-    /* editing requires us to rebuild buffer. */
-    this->mbSliceChanged = TRUE;
-    DspA_Redraw_( this );
-  }
-  
-  /* select mode with no modfiers */
-  if( ( 2 == ipEvent->mButton
-	|| 3 == ipEvent->mButton )
-      && DspA_tTool_SelectVoxels == sTool
-      && !ipEvent->mbShiftKey
-      && !ipEvent->mbCtrlKey
-      && !ipEvent->mbAltKey ) {
-    
-    /* button determines the select action */
-    if( 2 == ipEvent->mButton ) {
-      selectAction = DspA_tSelectAction_Select;
-    } else if ( 3 == ipEvent->mButton ) {
-      selectAction = DspA_tSelectAction_Deselect;
+	if( DspA_tErr_NoErr != eResult )
+	  goto error;
+	
+	/* editing requires us to rebuild buffer. */
+	this->mbSliceChanged = TRUE;
+	DspA_Redraw_( this );
+      }
+      break;
     }
-    
-    /* brush the voxels */
-    eResult = DspA_BrushVoxels_( this, &anaIdx,
-				 (void*)&selectAction, DspA_SelectVoxels_ );
-    if( DspA_tErr_NoErr != eResult )
-      goto error;
-    
-    /* selecting requires us to rebuild buffer. */
-    this->mbSliceChanged = TRUE;
-    DspA_Redraw_( this );
-    
+    break;
+  
+
+  case DspA_tTool_EditSegmentation:
+
+    switch( ipEvent->mButton ) {
+      /* button 2 or 3 edit seg tool with no modifiers: */
+    case 2:
+    case 3:
+      if( !ipEvent->mbShiftKey
+	  && !ipEvent->mbCtrlKey
+	  && !ipEvent->mbAltKey ) {
+
+	if( this->mabDisplayFlags[DspA_tDisplayFlag_AuxSegmentationVolume] ) {
+	  segType = tkm_tSegType_Aux;
+	} else {
+	  segType = tkm_tSegType_Main;
+	}
+
+	/* button determines whether we're using paint or erase value */
+	if( 2 == ipEvent->mButton ) {
+	  sSegBrush.mNewValue = sSegBrush.mnPaintValue;
+	} else if ( 3 == ipEvent->mButton ) {
+	  sSegBrush.mNewValue = sSegBrush.mnEraseValue;
+	}
+
+	/* edit the seg volume */
+	sSegBrush.mDest = segType;
+	eResult = DspA_BrushVoxels_( this, &anaIdx, 
+				     NULL, DspA_EditSegmentationVoxels_ );
+	if( DspA_tErr_NoErr != eResult )
+	  goto error;
+	
+	/* editing requires us to rebuild buffer. */
+	this->mbSliceChanged = TRUE;
+	DspA_Redraw_( this );
+      }
+      break;
+    }
+    break;
+
+  default:
   }
   
+  
+  /* Clear the error flag. */
   eResult = DspA_tErr_NoErr;
   
   goto cleanup;

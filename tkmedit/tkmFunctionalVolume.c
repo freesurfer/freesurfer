@@ -2504,7 +2504,9 @@ FunV_tErr FunV_EndSelectionRange ( tkmFunctionalVolumeRef this ) {
     /* find out how many selected voxels we have and set the location
        name in the time course window accordingly. */
     xList_GetCount( this->mpSelectedVoxels, &nNumValues );
-    if( nNumValues <= 1 ) {
+    if( 0 == nNumValues ) {
+      /* Keep last update */
+    } else if( 1 == nNumValues ) {
       eList = xList_GetFirstItem( this->mpSelectedVoxels, (void**)&pVoxel );
       if( NULL != pVoxel ) {
 	FunD_ConvertAnaIdxToFuncIdx( this->mpTimeCourseVolume,

@@ -4,9 +4,9 @@
 
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2003/05/20 20:05:35 $
-// Revision       : $Revision: 1.151 $
-char *VERSION = "$Revision: 1.151 $";
+// Revision Date  : $Date: 2003/05/21 22:28:53 $
+// Revision       : $Revision: 1.152 $
+char *VERSION = "$Revision: 1.152 $";
 
 #define TCL
 #define TKMEDIT 
@@ -1020,7 +1020,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
      shorten our argc and argv count. If those are the only args we
      had, exit. */
   /* rkt: check for and handle version tag */
-  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.151 2003/05/20 20:05:35 kteich Exp $");
+  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.152 2003/05/21 22:28:53 kteich Exp $");
   if (nNumProcessedVersionArgs && argc - nNumProcessedVersionArgs == 1)
     exit (0);
   argc -= nNumProcessedVersionArgs;
@@ -9207,7 +9207,6 @@ void SetSegmentationValues ( tkm_tSegType iVolume,
 		       inCount, inIndex) );
 
   for( nVoxel = 0; nVoxel < inCount; nVoxel++ ) {
-    DebugNote( ("EditSegmentation on voxel index %d", inIndex) );
     EditSegmentation( iVolume, &(iaAnaIdx[nVoxel]), inIndex );
   }
 

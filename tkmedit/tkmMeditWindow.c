@@ -4249,11 +4249,11 @@ int MWin_TclSetSegBrushInfo ( ClientData  ipClientData,
   }
 
   /* parse the args and get a color and 3d */
-  settings.mNewValue   = (int) atoi( argv[1] );
-  settings.mb3D        = (int) atoi( argv[2] );
-  settings.mSrc        = (tkm_tVolumeTarget) atoi( argv[3] );
-  settings.mnFuzzy     = (int) atoi( argv[4] );
-  settings.mnDistance  = (int) atoi( argv[5] );
+  settings.mnPaintValue = (int) atoi( argv[1] );
+  settings.mb3D         = (int) atoi( argv[2] );
+  settings.mSrc         = (tkm_tVolumeTarget) atoi( argv[3] );
+  settings.mnFuzzy      = (int) atoi( argv[4] );
+  settings.mnDistance   = (int) atoi( argv[5] );
 
   /* call on the last clicked display. */
   eDispResult = 

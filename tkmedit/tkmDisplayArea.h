@@ -134,13 +134,16 @@ typedef struct {
 
 /* segmentation brush settings. */
 typedef struct {
-  int               mNewValue;
+  int               mNewValue;  /* The value that will be set */
   tBoolean          mb3D;
   tkm_tVolumeTarget mSrc;       /* Volume to use as source voxels. */
   int               mnFuzzy;
   int               mnDistance;
   tkm_tSegType      mDest;      /* The volume to affect; determined by which
 				   seg volume is active. */
+
+  int               mnPaintValue; /* Allows the brush to have two 'colors' */
+  int               mnEraseValue; /* depending on which button is used. */
 
 } DspA_tSegBrushSettings;
 
