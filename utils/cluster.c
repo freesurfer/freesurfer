@@ -247,7 +247,9 @@ CSnewObservation(CLUSTER_SET *cs, VECTOR *v_obs)
   for (c = 1 ; c < cs->nclusters ; c++)
   {
     dist = clusterDistance(cs->clusters+c, v_obs) ;
-    if (dist < min_dist)
+    if ((dist < min_dist) || 
+        ((FEQUAL(dist,min_dist) && 
+          cs->clusters[c].nobs < cs->clusters[min_cluster].nobs)))
     {
       min_dist = dist ;
       min_cluster = c ;
@@ -268,23 +270,41 @@ CSnewObservation(CLUSTER_SET *cs, VECTOR *v_obs)
 int
 CSdivide(CLUSTER_SET *cs)
 {
-  int    c, max_cluster ;
+  int    c, max_cluster, nobs, max_obs ;
   float  max_variance, variance ;
 
   if (cs->nclusters >= cs->max_clusters)
     return(CS_DONE) ;
 
-  max_cluster = 0 ;
-  max_variance = clusterVariance(cs->clusters+0) ;
-  for (c = 1 ; c < cs->nclusters ; c++)
+  max_cluster = -1 ;
+  max_variance = 0.0f ;
+  for (c = 0 ; c < cs->nclusters ; c++)
   {
     variance = clusterVariance(cs->clusters+c) ;
-    if (variance > max_variance)
+    if ((variance > max_variance) && !cs->clusters[c].ill_conditioned)
     {
       max_variance = variance ;
       max_cluster = c ;
     }
   }
+
+  if (max_cluster < 0)  /* divide the cluster with the largest # of obs. */
+  {
+    max_obs = 0 ;
+    max_cluster = -1 ;
+    for (c = 0 ; c < cs->nclusters ; c++)
+    {
+      nobs = cs->clusters[c].nobs ;
+      if (nobs > max_obs)
+      {
+        max_obs = nobs ;
+        max_cluster = c ;
+      }
+    }
+    if (max_obs < 2)
+      ErrorExit(ERROR_BADPARM, "CSdivide: all clusters have < 2 members") ;
+  }
+
   fprintf(stderr, "dividing cluster %d\n", max_cluster) ;
   clusterDivide(cs->clusters+max_cluster, cs->clusters+cs->nclusters++) ;
   return(cs->nclusters < cs->max_clusters ? CS_CONTINUE : CS_DONE) ;
@@ -373,16 +393,32 @@ clusterComputeStatistics(CLUSTER *cluster)
       }
     }
     cluster->det = MatrixDeterminant(cluster->m_scatter) ;
-    if (FZERO(cluster->det*100.0f))
-      ErrorReturn(ERROR_BADPARM, 
-                  (ERROR_BADPARM, "clusterComputeStatistics: cluster %d: "
-                   "scatter matrix is singular", cluster->cno)) ;
+    if (FZERO(cluster->det/100) || cluster->det < 0.0f)
+    {
+      cluster->ill_conditioned = 1 ;
+      MatrixRegularize(cluster->m_scatter, cluster->m_scatter) ;
+      cluster->det = MatrixDeterminant(cluster->m_scatter) ;
+    }
+    else
+      cluster->ill_conditioned = 0 ;
+
+#if 0
+    ErrorReturn(ERROR_BADPARM, 
+                (ERROR_BADPARM, "clusterComputeStatistics: cluster %d: "
+                 "scatter matrix is singular", cluster->cno)) ;
+#endif
     cluster->m_inverse = MatrixInverse(cluster->m_scatter, cluster->m_inverse);
-    cluster->det = MatrixDeterminant(cluster->m_inverse) ;
-    if (FZERO(cluster->det*100.0f))
+    if (!cluster->m_inverse)
       ErrorReturn(ERROR_BADPARM, 
                   (ERROR_BADPARM, "clusterComputeStatistics: cluster %d "
                    "singular inverse scatter matrix", cluster->cno)) ;
+    cluster->det = MatrixDeterminant(cluster->m_inverse) ;
+#if 1
+    if (FZERO(cluster->det/100) || cluster->det < 0.0f)
+      ErrorReturn(ERROR_BADPARM, 
+                  (ERROR_BADPARM, "clusterComputeStatistics: cluster %d "
+                   "singular inverse scatter matrix", cluster->cno)) ;
+#endif
 #if 0
     fprintf(stderr, "scatter matrix:\n") ;
     MatrixPrint(stderr, cluster->m_scatter) ;
@@ -390,6 +426,10 @@ clusterComputeStatistics(CLUSTER *cluster)
     MatrixPrint(stderr, cluster->m_inverse) ;
 #endif
   }
+  else
+    ErrorReturn(ERROR_BADPARM, 
+                (ERROR_BADPARM, "clusterComputeStatistics: cluster %d "
+                 "has no observations", cluster->cno)) ;
 
   cluster->m_evectors = 
     MatrixEigenSystem(cluster->m_scatter, cluster->evalues, 
@@ -463,7 +503,7 @@ clusterVariance(CLUSTER *cluster)
 static CLUSTER *
 clusterDivide(CLUSTER *csrc, CLUSTER *cdst)
 {
-  VECTOR  *v_e, *v_mT ;
+  VECTOR  *v_e ;
   float   len ;
 
   fprintf(stderr, "initial cluster centroid at: ") ;
@@ -481,7 +521,7 @@ clusterDivide(CLUSTER *csrc, CLUSTER *cdst)
     a little, we keep the other clusters relatively intact.
     */
   len = sqrt(csrc->evalues[0]) ;
-  VectorScalarMul(v_e, .1f*len, v_e) ;
+  VectorScalarMul(v_e, .0001f*len, v_e) ;
   VectorAdd(csrc->v_means, v_e, cdst->v_seed) ;
   VectorScalarMul(v_e, -1.0f, v_e) ;
   VectorAdd(csrc->v_means, v_e, csrc->v_seed) ;
@@ -489,13 +529,9 @@ clusterDivide(CLUSTER *csrc, CLUSTER *cdst)
 
   fprintf(stderr, "cluster %d split into two:\n", csrc->cno) ;
   fprintf(stderr, "mean 1: ") ;
-  v_mT = MatrixTranspose(csrc->v_seed, NULL) ;
-  MatrixPrint(stderr, v_mT) ;
-  MatrixFree(&v_mT) ;
+  MatrixPrintTranspose(stderr, csrc->v_seed) ;
   fprintf(stderr, "mean 2: ") ;
-  v_mT = MatrixTranspose(cdst->v_seed, NULL) ;
-  MatrixPrint(stderr, v_mT) ;
-  MatrixFree(&v_mT) ;
+  MatrixPrintTranspose(stderr, cdst->v_seed) ;
   
 #if 0
   clusterPrint(csrc, stderr) ;
