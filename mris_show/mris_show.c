@@ -14,7 +14,7 @@
 #include "mrisurf.h"
 #include "macros.h"
 
-static char vcid[] = "$Id: mris_show.c,v 1.7 1997/09/12 21:49:03 fischl Exp $";
+static char vcid[] = "$Id: mris_show.c,v 1.8 1997/09/15 17:11:16 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -48,6 +48,11 @@ static long frame_ydim = 600;
 
 static int show_temporal_region_flag = 0 ;
 static int talairach_flag = 0 ;
+static int ellipsoid_flag = 0 ;
+
+static float x_angle = 0.0f ;
+static float y_angle = 0.0f ;
+static float z_angle = 0.0f ;
 
 #define DELTA_ANGLE  18.0f
 static float delta_angle = 2*DELTA_ANGLE ;
@@ -64,6 +69,10 @@ static int current_list = ORIG_SURFACE_LIST ;
 #define FOV            (256.0f*SCALE_FACTOR)
 
 static INTEGRATION_PARMS  parms ;
+
+#ifndef GLUT_ESCAPE_KEY
+#define GLUT_ESCAPE_KEY  27
+#endif
 
 int
 main(int argc, char *argv[])
@@ -103,7 +112,8 @@ main(int argc, char *argv[])
   if (!mris)
     ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s",
               Progname, in_fname) ;
-MRISupdateEllipsoidSurface(mris) ;
+  if (ellipsoid_flag)
+    MRISupdateEllipsoidSurface(mris) ;
   if (talairach_flag)
     MRIStalairachTransform(mris_orig, mris_orig) ;
   MRIScenter(mris_orig, mris_orig) ;
@@ -133,6 +143,7 @@ MRISupdateEllipsoidSurface(mris) ;
     angle = RIGHT_HEMISPHERE_ANGLE ;
   else
     angle = LEFT_HEMISPHERE_ANGLE ;
+  glMatrixMode(GL_MODELVIEW);
   glRotatef(angle, 0.0f, 1.0f, 0.0f) ;
 
   /* handle reshaping, keyboard and mouse events */
@@ -152,6 +163,11 @@ MRISupdateEllipsoidSurface(mris) ;
 #endif
 
   glutShowWindow() ;
+
+  glRotatef(x_angle, 1.0f, 0.0f, 0.0f) ;
+  glRotatef(y_angle, 0.0f, 1.0f, 0.0f) ;
+  glRotatef(z_angle, 0.0f, 0.0f, 1.0f) ;
+  glutPostRedisplay() ;
 
   glutMainLoop() ;               /* enter event handling loop */
   MRISfree(&mris) ;
@@ -181,6 +197,25 @@ get_option(int argc, char *argv[])
   case 'V':
     sscanf(argv[2], "%d", &marked_vertex) ;
     nargs = 1 ;
+    break ;
+  case 'X':
+    sscanf(argv[2], "%f", &x_angle) ;
+    x_angle = RADIANS(x_angle) ;
+    nargs = 1 ;
+    break ;
+  case 'Y':
+    sscanf(argv[2], "%f", &y_angle) ;
+    y_angle = RADIANS(y_angle) ;
+    nargs = 1 ;
+    break ;
+  case 'Z':
+    sscanf(argv[2], "%f", &z_angle) ;
+    z_angle = RADIANS(z_angle) ;
+    nargs = 1 ;
+    break ;
+  case 'E':
+  case 'S':
+    ellipsoid_flag = 1 ;
     break ;
   case 'T':
     talairach_flag = 1 ;
@@ -303,6 +338,7 @@ MRISGLcompile(MRI_SURFACE *mris)
       }
       if (k == marked_vertex)
         glColor3ub(0,0,240) ;      /* paint the marked vertex blue */
+#if 0
       else if (ytal < MAX_TALAIRACH_Y)
         glColor3ub(0,0,meshb) ;      /* paint the temporal pole blue */
       else if (td < POLE_DISTANCE)
@@ -311,6 +347,7 @@ MRISGLcompile(MRI_SURFACE *mris)
         glColor3ub(255,255,0);         /* paint the frontal pole yellow */
       else if (od < POLE_DISTANCE)
         glColor3ub(255,255,255);       /* paint the occipital pole white */
+#endif
       else   /* color it depending on curvature */
       {
 #define MIN_GRAY  25
@@ -484,6 +521,7 @@ keyboard_handler(unsigned char key, int x, int y)
     delta_angle *= 0.5f ;
     redraw = 0 ;
     break ;
+  case GLUT_ESCAPE_KEY:
   case 'q':
     exit(0) ;
     break ;
@@ -561,6 +599,7 @@ keyboard_handler(unsigned char key, int x, int y)
 #endif
     break ;
   default:
+    fprintf(stderr, "unknown normal key=%d\n", key) ;
     redraw = 0 ;
     break ;
   }
@@ -781,6 +820,7 @@ special_key_handler(int key, int x, int y)
     break ;
 #endif
   default:
+    fprintf(stderr, "unknown special key=%d\n", key) ;
     redraw = 0 ;
     break ;
   }
