@@ -26,7 +26,7 @@ int fct_rows, fct_cols, fct_slices;
 
 char *Progname;
 
-void usage(void);
+void usage(int exit_val);
 void read_functional_header(char *fct_stem);
 MATRIX *make_register_matrix(MRI *high_res_vol, MRI *fct_run_vol);
 void set_matrix(MATRIX *m, float e11, float e12, float e13, float e14, 
@@ -34,10 +34,16 @@ void set_matrix(MATRIX *m, float e11, float e12, float e13, float e14,
                            float e31, float e32, float e33, float e34,
                            float e41, float e42, float e43, float e44);
 
-void usage(void)
+void usage(int exit_val)
 {
 
-  fprintf(stderr, "usage: %s <subject name> <fct stem> [<structural dir>]\n", Progname);
+  fprintf(stderr, "usage: %s [options] <subject name> <fct stem> [<structural dir>]\n", Progname);
+  fprintf(stderr, "       options are:\n");
+  fprintf(stderr, "         -r register_fname  defaults to register.dat in the functional directory\n");
+  fprintf(stderr, "         -a analyse_fname   defaults to analyse.dat in the functional directory\n");
+  fprintf(stderr, "       use '-r -' or '-a -' to suppress writing of register or analyse files\n");
+
+  exit(exit_val);
 
 } /* end usage() */
 
@@ -47,57 +53,93 @@ int main(int argc, char *argv[])
   MRI *high_res_vol = NULL, *fct_run_vol = NULL;
   char *subjects_dir;
   MATRIX *register_matrix;
-  char *subject_name, *fct_stem;
+  char *subject_name, *fct_stem, structural_dir[STRLEN];
   char file_name[STRLEN];
   FILE *fp;
   char *s;
   int n_time_points;
+  char register_name[STRLEN];
+  char analyse_name[STRLEN];
+  int i;
 
   Progname = strrchr(argv[0], '/');
   Progname = (Progname == NULL ? argv[0] : Progname + 1);
 
-  if(argc == 3 || argc == 4)
+  register_name[0] = '\0';
+  analyse_name[0] = '\0';
+  subject_name = fct_stem = NULL;
+  structural_dir[0] = '\0';
+
+  for(i = 1;i < argc;i++)
   {
-    fct_stem = argv[2];
-    read_functional_header(fct_stem);
-    subject_name = argv[1];
-    if(argc == 3)
+    if(strcmp(argv[i], "-a") == 0)
     {
-      if((subjects_dir = getenv("SUBJECTS_DIR")) == NULL)
-        ErrorExit(ERROR_BAD_PARM, "%s: can't get environment variable SUBJECTS_DIR", Progname);
-      sprintf(file_name, "%s/%s/mri/T1", subjects_dir, subject_name);
-      if((high_res_vol = MRIreadInfo(file_name)) == NULL)
-        ErrorExit(ERROR_NO_FILE, "%s: couldn't open volume %s", Progname, file_name);
+      if(argc == i+1)
+        usage(1);
+      strcpy(analyse_name, argv[i+1]);
+      i++;
     }
+    else if(strcmp(argv[i], "-r") == 0)
+    {
+      if(argc == i+1)
+        usage(1);
+      strcpy(register_name, argv[i+1]);
+      i++;
+    }
+    else if(subject_name == NULL)
+      subject_name = argv[i];
+    else if(fct_stem == NULL)
+      fct_stem = argv[i];
+    else if(strlen(structural_dir) == 0)
+      strcpy(structural_dir, argv[i]);
     else
-    {
-      if((high_res_vol = MRIreadInfo(argv[3])) == NULL)
-        ErrorExit(ERROR_NO_FILE, "%s: couldn't open volume %s", Progname, file_name);
-    }
+      usage(1);
   }
-  else
+
+  if(fct_stem == NULL)
+    usage(1);
+
+  s = strrchr(fct_stem, '/');
+  if(s == NULL)
+    s = fct_stem;
+  if(analyse_name[0] == '\0')
   {
-    usage();
-    exit(1);
+    strncpy(analyse_name, fct_stem, s-fct_stem);
+    strcat(analyse_name, "/analyse.dat");
   }
+  if(register_name[0] == '\0')
+  {
+    strncpy(register_name, fct_stem, s-fct_stem);
+    strcat(register_name, "/register.dat");
+  }
+
+  if(strlen(structural_dir) == 0)
+  {
+    if((subjects_dir = getenv("SUBJECTS_DIR")) == NULL)
+      ErrorExit(ERROR_BAD_PARM, "can't get environment variable SUBJECTS_DIR", Progname);
+    sprintf(structural_dir, "%s/%s/mri/T1", subjects_dir, subject_name);
+  }
+
+  read_functional_header(fct_stem);
+  if((high_res_vol = MRIreadInfo(structural_dir)) == NULL)
+    ErrorExit(ERROR_BAD_FILE, "error reading volume %s", structural_dir);
 
   register_matrix = make_register_matrix(high_res_vol, fct_run_vol);
 
-  strcpy(file_name, fct_stem);
-  s = strrchr(file_name, '/');
-  s = (s == NULL ? file_name : s+1);
-  sprintf(s, "register.dat");
-  if((fp = fopen(file_name, "w")) == NULL)
-    ErrorExit(ERROR_BAD_FILE, "%s: couldn't open file %s for writing", Progname, file_name);
-  fprintf(fp, "%s\n", subject_name);
-  fprintf(fp, "%g\n", fct_in_plane_resolution);
-  fprintf(fp, "%g\n", fct_slice_thickness);
-  fprintf(fp, "%g\n", 0.1);
-  fprintf(fp, "%10.5g %10.5g %10.5g %10.5g\n", *MATRIX_RELT(register_matrix, 1, 1), *MATRIX_RELT(register_matrix, 1, 2), *MATRIX_RELT(register_matrix, 1, 3), *MATRIX_RELT(register_matrix, 1, 4));
-  fprintf(fp, "%10.5g %10.5g %10.5g %10.5g\n", *MATRIX_RELT(register_matrix, 2, 1), *MATRIX_RELT(register_matrix, 2, 2), *MATRIX_RELT(register_matrix, 2, 3), *MATRIX_RELT(register_matrix, 2, 4));
-  fprintf(fp, "%10.5g %10.5g %10.5g %10.5g\n", *MATRIX_RELT(register_matrix, 3, 1), *MATRIX_RELT(register_matrix, 3, 2), *MATRIX_RELT(register_matrix, 3, 3), *MATRIX_RELT(register_matrix, 3, 4));
-  fprintf(fp, "%10.5g %10.5g %10.5g %10.5g\n", *MATRIX_RELT(register_matrix, 4, 1), *MATRIX_RELT(register_matrix, 4, 2), *MATRIX_RELT(register_matrix, 4, 3), *MATRIX_RELT(register_matrix, 4, 4));
-  fclose(fp);
+  if(strcmp(register_name, "-") != 0)
+  {
+    if((fp = fopen(register_name, "w")) == NULL)
+      ErrorExit(ERROR_BAD_FILE, "%s: couldn't open file %s for writing", Progname, register_name);
+    fprintf(fp, "%s\n", subject_name);
+    fprintf(fp, "%g\n", fct_in_plane_resolution);
+    fprintf(fp, "%g\n", fct_slice_thickness);
+    fprintf(fp, "%g\n", 0.1);
+    fprintf(fp, "%10.5g %10.5g %10.5g %10.5g\n", *MATRIX_RELT(register_matrix, 1, 1), *MATRIX_RELT(register_matrix, 1, 2), *MATRIX_RELT(register_matrix, 1, 3), *MATRIX_RELT(register_matrix, 1, 4));
+    fprintf(fp, "%10.5g %10.5g %10.5g %10.5g\n", *MATRIX_RELT(register_matrix, 2, 1), *MATRIX_RELT(register_matrix, 2, 2), *MATRIX_RELT(register_matrix, 2, 3), *MATRIX_RELT(register_matrix, 2, 4));
+    fprintf(fp, "%10.5g %10.5g %10.5g %10.5g\n", *MATRIX_RELT(register_matrix, 3, 1), *MATRIX_RELT(register_matrix, 3, 2), *MATRIX_RELT(register_matrix, 3, 3), *MATRIX_RELT(register_matrix, 3, 4));
+    fprintf(fp, "%10.5g %10.5g %10.5g %10.5g\n", *MATRIX_RELT(register_matrix, 4, 1), *MATRIX_RELT(register_matrix, 4, 2), *MATRIX_RELT(register_matrix, 4, 3), *MATRIX_RELT(register_matrix, 4, 4));
+    fclose(fp);
+  }
 
   sprintf(file_name, "%s_000.hdr", fct_stem);
   if((fp = fopen(file_name, "r")) == NULL)
@@ -105,19 +147,18 @@ int main(int argc, char *argv[])
   fscanf(fp, "%*d %*d %d %*d", &n_time_points);
   fclose(fp);
 
-  strcpy(file_name, fct_stem);
-  s = strrchr(file_name, '/');
-  s = (s == NULL ? file_name : s+1);
-  sprintf(s, "analyse.dat");
-  if((fp = fopen(file_name, "w")) == NULL)
-    ErrorExit(ERROR_BAD_FILE, "%s: couldn't open file %s for writing", Progname, file_name);
-  fprintf(fp, ".\n");
-  s = strrchr(fct_stem, '/');
-  s = (s == NULL ? fct_stem : s + 1);
-  fprintf(fp, "%s_%%03d.bshort\n", s);
-  fprintf(fp, "%d %d\n", fct_slices, n_time_points);
-  fprintf(fp, "%d %d\n", fct_cols, fct_rows);
-  fclose(fp);
+  if(strcmp(analyse_name, "-") != 0)
+  {
+    if((fp = fopen(analyse_name, "w")) == NULL)
+      ErrorExit(ERROR_BAD_FILE, "%s: couldn't open file %s for writing", Progname, analyse_name);
+    fprintf(fp, ".\n");
+    s = strrchr(fct_stem, '/');
+    s = (s == NULL ? fct_stem : s + 1);
+    fprintf(fp, "%s_%%03d.bshort\n", s);
+    fprintf(fp, "%d %d\n", fct_slices, n_time_points);
+    fprintf(fp, "%d %d\n", fct_cols, fct_rows);
+    fclose(fp);
+  }
 
   exit(0);
 
@@ -140,7 +181,7 @@ void read_functional_header(char *fct_stem)
     {
     sprintf(aws_header_name, "%s.ras", fct_stem);
     if((fp = fopen(aws_header_name, "r")) == NULL)
-      ErrorExit(ERROR_NO_FILE, "%s: couldn't open file header file", Progname);
+      ErrorExit(ERROR_NO_FILE, "%s: couldn't open header file to functional set %s", Progname, fct_stem);
     }
   }
 
@@ -250,9 +291,6 @@ void read_functional_header(char *fct_stem)
   fct_c_r = fct_tl_r + (fct_br_r - fct_tl_r) / 2 + fct_slice_thickness * fct_n_r * (fct_slices - 1) / 2;
   fct_c_a = fct_tl_a + (fct_br_a - fct_tl_a) / 2 + fct_slice_thickness * fct_n_a * (fct_slices - 1) / 2;
   fct_c_s = fct_tl_s + (fct_br_s - fct_tl_s) / 2 + fct_slice_thickness * fct_n_s * (fct_slices - 1) / 2;
-
-printf("%g %g %g\n", fct_n_r, fct_n_a, fct_n_s);
-printf("%g %g %g\n", fct_c_r, fct_c_a, fct_c_s);
 
   fct_in_plane_resolution = sqrt((fct_tl_r - fct_tr_r) * (fct_tl_r - fct_tr_r) +
                                  (fct_tl_a - fct_tr_a) * (fct_tl_a - fct_tr_a) +
