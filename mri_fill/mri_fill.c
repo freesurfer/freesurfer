@@ -12,7 +12,7 @@
 #include "mrimorph.h"
 #include "timer.h"
 
-static char vcid[] = "$Id: mri_fill.c,v 1.44 2000/08/21 21:36:08 fischl Exp $";
+static char vcid[] = "$Id: mri_fill.c,v 1.45 2000/09/20 16:19:55 fischl Exp $";
 
 /*-------------------------------------------------------------------
                                 CONSTANTS
@@ -964,10 +964,10 @@ print_help(void)
           "\t-T <threshold> - specify fill_holes threshold (default=%d)\n",
           DEFAULT_NEIGHBOR_THRESHOLD) ;
   fprintf(stderr, 
-          "\t-L <x> <y> <z> - the Talairach coords of the white matter seed\n"
+          "\t-lh <x> <y> <z> - the Talairach coords of the white matter seed\n"
           "\t                 for the left hemisphere\n") ;
   fprintf(stderr, 
-          "\t-R <x> <y> <z> - the Talairach coords of the white matter seed\n"
+          "\t-rh <x> <y> <z> - the Talairach coords of the white matter seed\n"
           "\t                 for the right hemisphere\n") ;
   fprintf(stderr, 
           "\t-P <x> <y> <z> - the Talairach coords of the seed for the "
