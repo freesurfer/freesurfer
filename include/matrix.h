@@ -176,7 +176,8 @@ MATRIX *MatrixAllocTranslation(int n, double *trans) ;
 #define VectorClone        MatrixClone
 
 float MatrixTrace(MATRIX *M);
-
+MATRIX *MatrixVertCat(MATRIX *m1, MATRIX *m2, MATRIX *mcat);
+MATRIX *MatrixHorCat(MATRIX *m1, MATRIX *m2, MATRIX *mcat);
 
 #endif
 
