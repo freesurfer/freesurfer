@@ -1,5 +1,5 @@
 #!/bin/csh -f
-# $Id: cat-bvolume,v 1.1 2003/03/04 21:22:08 greve Exp $
+# $Id: cat-bvolume,v 1.2 2004/11/30 18:00:03 greve Exp $
 # Name: cat-bvolume
 # Purpose: concatenates multiple bvolumes into one bvolume. The
 # source bvolumes must have the same spatial dimension but can
@@ -8,7 +8,7 @@
 # values are in the output header files.
 
 set inputargs = ($argv);
-set VERSION = '$Id: cat-bvolume,v 1.1 2003/03/04 21:22:08 greve Exp $';
+set VERSION = '$Id: cat-bvolume,v 1.2 2004/11/30 18:00:03 greve Exp $';
 
 ## Set up defaults ##
 set instemlist  = ();
@@ -85,6 +85,8 @@ pushd $outdir > /dev/null
 set outdir = `$PWDCMD`;
 popd > /dev/null
 
+set bhdr = ();
+
 # Create the output volume 
 set outhdrvals = ($nr $nc $nframes $endian);
 @ slice = 0;
@@ -99,11 +101,14 @@ while($slice < $ns)
     set inbase = `printf %s_%03d $instem $slice`;
     set infile = $inbase.$bext
     cat $infile >> $outfile    
+    if(-e $instem.bhdr) set bhdr = $instem.bhdr;
   end
 
   echo $outhdrvals > $outhdr
   @ slice = $slice + 1;
 end
+
+if($#bhdr) cp $bhdr $outstem.bhdr
 
 echo " "
 echo " "
