@@ -649,10 +649,15 @@ FunD_ParseRegistrationAndInitMatricies_ ( mriFunctionalDataRef this,
     
   } else {
 
+    /* Make sure they gave us an anatomical volume from which to build
+       a default transform */
+    DebugAssertThrowX( (NULL != iAnatomicalVolume ), 
+		       eResult, FunD_tErr_CouldntReadRegisterFile );
+    
     /* Couldn't find a valid registration file, so crate our own. */
     rasTofRAS = MRItkRegMtx( iAnatomicalVolume->mpMriValues,
 			     this->mpData, NULL );
-
+    
     /* Get our stats as floats  */
     ps     = this->mpData->xsize;
     st     = this->mpData->zsize;
@@ -665,7 +670,7 @@ FunD_ParseRegistrationAndInitMatricies_ ( mriFunctionalDataRef this,
     strcpy( this->msSubjectName, "" );
     convMethod = FunD_tConversionMethod_FCF;
   }
-
+  
 
 
   // create transform for conformed volume vs. functional volume
