@@ -16,6 +16,8 @@
 #include "utils.h"
 #include "cma.h"
 #include "icosahedron.h"
+#include "colortab.h"
+#include "tags.h"
 
 #define BIG_AND_NEGATIVE            -10000000.0
 
@@ -620,6 +622,17 @@ GCSAwrite(GCSA *gcsa, char *fname)
     }
   }
 
+	if (gcsa->ptable_fname)
+	{
+		COLOR_TABLE *ct ;
+		ct = CTABread(gcsa->ptable_fname) ;
+		if (ct)
+		{
+			fwriteInt(TAG_COLORTABLE, fp) ;
+			CTABwriteInto(fp, ct) ;
+			CTABfree(&ct) ;
+		}
+	}
   fclose(fp) ;
   return(NO_ERROR) ;
 }
@@ -741,6 +754,22 @@ GCSAread(char *fname)
       }
     }
   }
+
+	while (!feof(fp))
+	{
+		int tag ;
+
+		tag = freadInt(fp) ;
+		switch (tag)
+		{
+		case TAG_COLORTABLE:
+			printf("reading color table from GCSA file....\n") ;
+			gcsa->ct = CTABreadFrom(fp) ;
+			break ;
+		default:
+			break ;
+		}
+	}
 
   fclose(fp) ;
   return(gcsa) ;

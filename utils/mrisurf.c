@@ -25,6 +25,8 @@
 #include "timer.h"
 #include "chklc.h"
 #include "mri_identify.h"
+#include "colortab.h"
+#include "tags.h"
 #include "selxavgio.h"
 
 /*---------------------------- STRUCTURES -------------------------*/
@@ -7508,6 +7510,24 @@ MRISreadAnnotation(MRI_SURFACE *mris, char *sname)
     else
       mris->vertices[vno].annotation = i;
   }
+
+	while (!feof(fp))
+	{
+		int tag ;
+
+		tag = freadInt(fp) ;
+		switch (tag)
+		{
+		case TAG_COLORTABLE:
+			printf("reading colortable from annotation file...\n") ;
+			mris->ct = CTABreadFrom(fp) ;
+			printf("colortable with %d entries read (originally %s)\n", mris->ct->nbins, mris->ct->fname) ;
+			break ;
+		default:
+			break ;
+		}
+	}
+
   fclose(fp);
 
 #if 0
@@ -7619,6 +7639,13 @@ MRISwriteAnnotation(MRI_SURFACE *mris, char *sname)
     i = mris->vertices[vno].annotation ;
     fwriteInt(vno,fp) ; i = fwriteInt(i,fp) ;
   }
+
+	if (mris->ct)   /* also write annotation in */
+	{
+		fwriteInt(TAG_COLORTABLE, fp) ;
+		CTABwriteInto(fp, mris->ct);
+	}
+
   fclose(fp);
 
   return(NO_ERROR) ;
@@ -21881,8 +21908,7 @@ MRISmodeFilterAnnotations(MRI_SURFACE *mris, int niter)
     if (nchanged == 0)
       break ;
   }
-  printf("%d filter required complete (%d requested, %d changed)\n",
-         ino, niter, nchanged) ;
+  printf("%d filter iterations complete (%d requested, %d changed)\n", ino, niter, nchanged) ;
   return(NO_ERROR) ;
 }
 /*-----------------------------------------------------
