@@ -15,9 +15,11 @@
 ------------------------------------------------------------------------*/
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <math.h>
 
 #include "thread.h"
+#include "mthread.h"
 #include "queue.h"
 #include "error.h"
 #include "mailbox.h"
@@ -75,7 +77,7 @@ int
 ThreadInit(int mid, int iMaxThr, int stacksize, int npriorities)
 {
   THREAD *thread ;
-  int    iTid, iError ;
+  int    iError ;
   
   iMaxThreads = iMaxThr + 1 ;
   pthrTable = (THREAD *)calloc(iMaxThreads, sizeof(THREAD)) ;
