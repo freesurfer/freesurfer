@@ -213,6 +213,13 @@ fi
 ##############################################################
 # get the path for X includes and X libraries
 AC_PATH_X
+##### Apple is really tricky
+##### compiles <X11/Intrinsic.h> without the need for X_CFLAGS
+##### However, GL/gl.h in /usr/X11R6/include/GL/gl.h is not automaticlaly found
+if test -z "$x_includes"; then
+  AC_MSG_ERROR(x_includes not set. Specify using --x-includes=)
+fi
+
 ACX_PTHREAD
 
 AC_MSG_NOTICE(Checking directory for MNI, BLT, Tiff and Jpeg)
