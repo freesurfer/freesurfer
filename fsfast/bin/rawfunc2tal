@@ -1,14 +1,15 @@
 #!/bin/csh -f
 # rawfunc2tal
 #
-# $Id: rawfunc2tal,v 1.1 2003/03/04 21:22:09 greve Exp $
-set VERSION = '$Id: rawfunc2tal,v 1.1 2003/03/04 21:22:09 greve Exp $'
+# $Id: rawfunc2tal,v 1.2 2004/07/23 15:44:31 greve Exp $
+set VERSION = '$Id: rawfunc2tal,v 1.2 2004/07/23 15:44:31 greve Exp $'
 set FASTVER = `cat $FMRI_ANALYSIS_DIR/docs/version`;
 
 #------ Defaults --------#
 set instem   = ();
 set outstem  = ();
 set voxsize  = ();
+set dim      = ();
 set fov      = ();
 set reg      = ();
 set talxfm   = ();
@@ -40,15 +41,16 @@ date
 set outdir = `dirname $outstem`;
 mkdir -p $outdir
 
-set cmd = ( mri_vol2vol --srcvol $instem --srcreg $reg)
-set cmd = ( $cmd --trgvol $outstem );
-set cmd = ( $cmd --trgres $voxsize);
-set cmd = ( $cmd --trgfov $fov);
-if($#talxfm != 0) then
-  set cmd = ( $cmd --src2trg $talxfm --trgsubject talairach);
-else
-  set cmd = ( $cmd --fstalairach);
-endif
+set inbext = `getbext $instem`;
+set infile = $instem"_000."$inbext
+set outfile = $outstem"_000.bfloat"
+
+set cmd = ($DEV/mri_vol2vol/mri_vol2vol --in $infile)
+set cmd = ( $cmd --out $outfile );
+set cmd = ( $cmd --temp $SUBJECTS_DIR/talairach/mri/orig COR)
+set cmd = ( $cmd --voxres $voxsize);
+set cmd = ( $cmd --xfm $reg --fstal);
+if($#dim) set cmd = ( $cmd --voxdim $dim);
 
 echo "---------------------------------------------" 
 pwd        
@@ -114,6 +116,15 @@ while( $#argv != 0 )
       shift; shift; shift;
       breaksw
 
+    case "-dim":
+      if( $#argv < 3) then
+        echo "ERROR: $flag requires 3 arguments"
+        exit 1;
+      endif
+      set dim = ($argv[1] $argv[2] $argv[3]);
+      shift; shift; shift;
+      breaksw
+
     case "-umask":
       if ( $#argv == 0) goto arg1err;
       umask $argv[1]; shift;
@@ -172,8 +183,8 @@ check_params:
     exit 1;
   endif
 
-  if($#fov == 0) then
-    echo "ERROR: need to specify output FOV"
+  if($#dim == 0) then
+    echo "ERROR: need to specify output dimension"
     exit 1;
   endif
 
@@ -196,7 +207,8 @@ usage_exit:
   echo " -o outstem : output stem"
   echo " -r regfile : register.dat file"
   echo " -voxsize colsize rowsize slicesize : size in mm"
-  echo " -fov     colfov  rowfov  slicefov  : field of view in mm"
+  echo " -dim     ncols  nrows  nslice  : dimension of the output vol"
+  #echo " -fov     colfov  rowfov  slicefov  : field of view in mm"
   echo ""
   echo "Other Arguments"
   echo " -t talxfm      : talairach.xfm file"
