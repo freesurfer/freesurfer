@@ -5,11 +5,11 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2003/04/09 13:55:32 $
-// Revision       : $Revision: 1.10 $
+// Revision Date  : $Date: 2003/04/09 14:07:59 $
+// Revision       : $Revision: 1.11 $
 //
 ////////////////////////////////////////////////////////////////////
-char *MRI_WATERSHED_VERSION = "$Revision: 1.10 $";
+char *MRI_WATERSHED_VERSION = "$Revision: 1.11 $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -56,10 +56,10 @@ extern "C" {
 #define CURV_MODE 2
 
 /////////////////////////////// debug
+// ascii histogram on console
 #define DEBUG_CURVE 0
-#define OUTPUT 0
+// write histogram on "curves.out"
 #define OUTPUT_CURVES 0
-#define OUTPUT_SURFACES 0
 
 #define VERBOSE_MODE 0
 
@@ -149,10 +149,6 @@ typedef struct
   int GM_MIN, GM_intensity,TRANSITION_intensity; // hard to read with capital INTENSITY
 
   unsigned long gmnumber[256];
-
-#if OUTPUT_SURFACES 
-  FILE *fsvout,*fsfout;
-#endif
 
   Bound *Bound1,*Bound2;
 
@@ -323,142 +319,9 @@ void usageHelp()
 }
 
 /*-----------------------------------------------------
-        Parameters:message error
-
-        Returns value:void
-
-        Description: Error routine - stop the prog
-------------------------------------------------------*/
-static void Error(char *string)
-{
-  fprintf(stderr, "\nError %s\n",string) ;
-  exit(1) ;
-}
-
-int main(int argc, char *argv[])
-{
-  char  *in_fname, *out_fname;
-  int nargs;
-  MRI *mri_with_skull, *mri_without_skull=NULL, *mri_mask;
-
-  STRIP_PARMS *parms;
-
-  Progname=argv[0];
-
-  parms=init_parms();
-
-  /************* Command line****************/
-
-  nargs = handle_version_option (argc, argv, "$Id: mri_watershed.cpp,v 1.10 2003/04/09 13:55:32 tosa Exp $");
-  argc -= nargs ;
-  if (1 == argc)
-    exit (0);
-
-  fprintf(stderr,"\n");
-
-  for ( ; argc > 1 && ISOPTION(*argv[1]) ; argc--, argv++)
-  {
-    nargs = get_option(argc, argv,parms) ;
-    argc -= nargs ;
-    argv += nargs ;
-  }
-
-  if(argc<3)
-  {
-    usageHelp();
-    exit(1);
-  };
-
-  in_fname = argv[argc-2];  
-  out_fname = argv[argc-1];
-
-  fprintf(stderr,"\n************************************************************"
-          "\nThe input file is %s"
-          "\nThe output file is %s"
-          "\nIf this is incorrect, please exit quickly the program (Ctl-C)\n\n",in_fname,out_fname);
-
-  
-  /*************** PROG *********************/
-
-  /* initialisation */
-  // readin input volume
-  mri_with_skull = MRIread(in_fname) ;
-  if (!mri_with_skull)
-    Error("read failed\n");
-
-  if (mri_with_skull->type!=MRI_UCHAR)
-  {
-    MRI *mri_tmp ;
-    
-    type_changed = 1 ; old_type = mri_with_skull->type ;
-    printf("changing type of input volume to 8 bits/voxel...\n") ;
-    mri_tmp = MRIchangeType(mri_with_skull, MRI_UCHAR, 0.0, 0.999, FALSE) ;
-    MRIfree(&mri_with_skull) ; 
-    mri_with_skull = mri_tmp ;
-  }
-  else
-    type_changed = 0 ;
-  
-  /* Main routine *********************/
-  // mri_with_skull is UCHAR volume, mri_without_skull = NULL at this time
-  mri_without_skull=MRIstripSkull(mri_with_skull, mri_without_skull,parms);
-  if (mri_without_skull == NULL)
-  {
-    printf("\n**************************************************************\n");
-    printf("         MRIstipSkull failed.\n");
-    printf("**************************************************************\n");
-    free(parms);
-    return -1;
-  }
-  if (type_changed)  /* make output volume the same type as input volume */
-  {
-    mri_with_skull = MRIread(in_fname) ;
-    if (!mri_with_skull)
-      Error("read failed\n");
-    mri_mask = mri_without_skull ;
-    mri_without_skull = MRImask(mri_with_skull, mri_mask, NULL, 0, 0) ;
-  }
-  else
-    mri_mask = mri_without_skull ;
-
-
-  fprintf(stderr,"\n\n******************************\nSave...");
-
-  MRIwrite(mri_without_skull,out_fname);
-  MRIfree(&mri_with_skull) ;
-     
-  fprintf(stderr,"done\n");
-  
-  if (nmask_volumes > 0)
-  {
-    int i ;
-    
-    for (i = 0 ; i < nmask_volumes ; i++)
-    {
-      mri_with_skull = MRIread(mask_in_fnames[i]) ;
-      if (!mri_with_skull)
-        ErrorExit(ERROR_NOFILE, "%s: could not read volume %s", Progname, mask_in_fnames[i]) ;
-      mri_without_skull = MRImask(mri_with_skull, mri_mask, NULL, 0, 0) ;
-      printf("writing skull stripped volume to %s...\n", mask_out_fnames[i]) ;
-      MRIwrite(mri_without_skull, mask_out_fnames[i]) ;
-      MRIfree(&mri_with_skull) ; 
-      MRIfree(&mri_without_skull) ;
-    }
-  }
-  
-  MRIfree(&mri_mask) ;
-
-  free(parms);
-
-  return 0;
-}
-
-/*-----------------------------------------------------
-        Parameters:
-
-        Returns value:number of options read
-
-        Description: read the different options of the command line
+        Parameters:   argc, char *argv[], STRIP_PARMS *parms
+        Returns   :   number of options read
+        Description:  read the different options of the command line
 ------------------------------------------------------*/
 
 static int
@@ -655,6 +518,139 @@ get_option(int argc, char *argv[],STRIP_PARMS *parms)
 } 
 
 /*-----------------------------------------------------
+        Parameters:message error
+        Returns value:void
+        Description: Error routine - stop the prog
+------------------------------------------------------*/
+static void Error(char *string)
+{
+  fprintf(stderr, "\nError %s\n",string) ;
+  exit(1) ;
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////////
+// main
+/////////////////////////////////////////////////////////////////////////////////////////////
+int main(int argc, char *argv[])
+{
+  char  *in_fname, *out_fname;
+  int nargs;
+  MRI *mri_with_skull, *mri_without_skull=NULL, *mri_mask;
+
+  STRIP_PARMS *parms;
+
+  Progname=argv[0];
+
+  parms=init_parms();
+
+  /************* Command line****************/
+
+  nargs = handle_version_option (argc, argv, "$Id: mri_watershed.cpp,v 1.11 2003/04/09 14:07:59 tosa Exp $");
+  argc -= nargs ;
+  if (1 == argc)
+    exit (0);
+
+  fprintf(stderr,"\n");
+
+  for ( ; argc > 1 && ISOPTION(*argv[1]) ; argc--, argv++)
+  {
+    nargs = get_option(argc, argv,parms) ;
+    argc -= nargs ;
+    argv += nargs ;
+  }
+
+  if(argc<3)
+  {
+    usageHelp();
+    exit(1);
+  };
+
+  in_fname = argv[argc-2];  
+  out_fname = argv[argc-1];
+
+  fprintf(stderr,"\n************************************************************"
+          "\nThe input file is %s"
+          "\nThe output file is %s"
+          "\nIf this is incorrect, please exit quickly the program (Ctl-C)\n\n",in_fname,out_fname);
+
+  
+  /*************** PROG *********************/
+
+  /* initialisation */
+  // readin input volume
+  mri_with_skull = MRIread(in_fname) ;
+  if (!mri_with_skull)
+    Error("read failed\n");
+
+  if (mri_with_skull->type!=MRI_UCHAR)
+  {
+    MRI *mri_tmp ;
+    
+    type_changed = 1 ; old_type = mri_with_skull->type ;
+    printf("changing type of input volume to 8 bits/voxel...\n") ;
+    mri_tmp = MRIchangeType(mri_with_skull, MRI_UCHAR, 0.0, 0.999, FALSE) ;
+    MRIfree(&mri_with_skull) ; 
+    mri_with_skull = mri_tmp ;
+  }
+  else
+    type_changed = 0 ;
+  
+  /* Main routine *********************/
+  // mri_with_skull is UCHAR volume, mri_without_skull = NULL at this time
+  mri_without_skull=MRIstripSkull(mri_with_skull, mri_without_skull,parms);
+  if (mri_without_skull == NULL)
+  {
+    printf("\n**************************************************************\n");
+    printf("         MRIstipSkull failed.\n");
+    printf("**************************************************************\n");
+    free(parms);
+    return -1;
+  }
+  if (type_changed)  /* make output volume the same type as input volume */
+  {
+    mri_with_skull = MRIread(in_fname) ;
+    if (!mri_with_skull)
+      Error("read failed\n");
+    mri_mask = mri_without_skull ;
+    mri_without_skull = MRImask(mri_with_skull, mri_mask, NULL, 0, 0) ;
+  }
+  else
+    mri_mask = mri_without_skull ;
+
+
+  fprintf(stderr,"\n\n******************************\nSave...");
+
+  MRIwrite(mri_without_skull,out_fname);
+  MRIfree(&mri_with_skull) ;
+     
+  fprintf(stderr,"done\n");
+  
+  if (nmask_volumes > 0)
+  {
+    int i ;
+    
+    for (i = 0 ; i < nmask_volumes ; i++)
+    {
+      mri_with_skull = MRIread(mask_in_fnames[i]) ;
+      if (!mri_with_skull)
+        ErrorExit(ERROR_NOFILE, "%s: could not read volume %s", Progname, mask_in_fnames[i]) ;
+      mri_without_skull = MRImask(mri_with_skull, mri_mask, NULL, 0, 0) ;
+      printf("writing skull stripped volume to %s...\n", mask_out_fnames[i]) ;
+      MRIwrite(mri_without_skull, mask_out_fnames[i]) ;
+      MRIfree(&mri_with_skull) ; 
+      MRIfree(&mri_without_skull) ;
+    }
+  }
+  
+  MRIfree(&mri_mask) ;
+
+  free(parms);
+
+  return 0;
+}
+
+
+/*-----------------------------------------------------
         Parameters:void
 
         Returns value:STRIP_PARMS*
@@ -784,10 +780,6 @@ MRI *MRIstripSkull(MRI *mri_with_skull, MRI *mri_without_skull,
   MRI *mri_tp;
   double vol_elt;
 
-#if OUTPUT_SURFACES
-  char filename[512];
-#endif
-
   if(mri_with_skull==NULL)
     Error("\nNULL input volume !\n");
   if(mri_with_skull->type!=0)
@@ -837,7 +829,6 @@ MRI *MRIstripSkull(MRI *mri_with_skull, MRI *mri_without_skull,
       MRI_var->mri_dst=MRIclone(mri_with_skull,NULL);
       MRI_var->mri_dst=MRIcopy(mri_with_skull,NULL);
     }
-
     ///////////////////////////////////////////////////////////////////////////
     // gaussian step 
     // MRI *gkernel = MRIgaussian1d(16.f, 50);
@@ -848,7 +839,7 @@ MRI *MRIstripSkull(MRI *mri_with_skull, MRI *mri_without_skull,
    /*template process*/
     ////////////////////////////////////////////////////////////////////////////
     Template_Deformation(parms,MRI_var); 
-    MRIfree(&smooth);
+    // MRIfree(&smooth);
 
     /*in case the src volume was modified (scaling of the intensity)*/
     // free(mri_tp);
@@ -880,23 +871,6 @@ MRI *MRIstripSkull(MRI *mri_with_skull, MRI *mri_without_skull,
       strcat(fname,"_brain_surface");
       MRISwrite(MRI_var->mris,fname);
     }
-    
-
-    
-#if OUTPUT_SURFACES
-
-    sprintf(filename, "brain");
-    
-    OpenFile(MRI_var,filename);    
-    
-    writevertices(MRI_var);
-    writefaces(MRI_var);
-    
-    fclose(MRI_var->fsvout);
-    fclose(MRI_var->fsfout);
-#endif
-  
-
   }
  
  /*find and write out the surfaces of the inner skull, scalp and outer skull*/
@@ -934,19 +908,6 @@ MRI *MRIstripSkull(MRI *mri_with_skull, MRI *mri_without_skull,
     sprintf(fname,parms->surfname);
     strcat(fname,"_outer_skin_surface");
     MRISwrite(MRI_var->mris,fname);
-
-#if OUTPUT_SURFACES
-
-    sprintf(filename, "skin");
-
-    OpenFile(MRI_var,filename);    
-
-    writevertices(MRI_var);
-    writefaces(MRI_var);
-  
-    fclose(MRI_var->fsvout);
-    fclose(MRI_var->fsfout);
-#endif
 
     //outer skull
     MRISsmooth_surface(MRI_var->mris,3);
