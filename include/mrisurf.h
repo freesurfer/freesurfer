@@ -86,8 +86,6 @@ typedef struct vertex_type_
   int v2num ;            /* number of 2-connected neighbors */
   int v3num ;            /* number of 3-connected neighbors */
   int vtotal ;          /* total # of neighbors, will be same as one of above*/
-  int *vdist ;           /* randomly sampled vertices */
-  int vdist_num ;        /* # of randomly sampled vertices */
   float d ;              /* for distance calculations */
   int nsize ;            /* size of neighborhood (e.g. 1, 2, 3) */
   float bnx,bny,obnx,obny;                       /* boundary normal */
@@ -307,8 +305,7 @@ MRI_SURFACE  *MRISprojectOntoEllipsoid(MRI_SURFACE *mris_src,
                                        MRI_SURFACE *mris_dst, 
                                        float a, float b, float c) ;
 int          MRISsetNeighborhoodSize(MRI_SURFACE *mris, int nsize) ;
-int          MRISsampleDistances(MRI_SURFACE *mris, int *nbr_count, 
-                                 int n_nbrs, int max_nbrs);
+int          MRISsampleDistances(MRI_SURFACE *mris, int *nbr_count, int n_nbrs);
 MRI_SURFACE  *MRISradialProjectOntoEllipsoid(MRI_SURFACE *mris_src, 
                                              MRI_SURFACE *mris_dst, 
                                              float a, float b, float c);
@@ -339,7 +336,7 @@ MRI_SP       *MRISPtranslate(MRI_SP *mrisp_src, MRI_SP *mrisp_dst, int du,
 MRI_SP       *MRISPclone(MRI_SP *mrisp_src) ;
 MRI_SP       *MRISPalloc(MRI_SURFACE *mris, float scale) ;
 int          MRISPfree(MRI_SP **pmrisp) ;
-int          MRIScomputeTriangleProperties(MRI_SURFACE *mris) ;
+int          MRIScomputeTriangleProperties(MRI_SURFACE *mris, int no_angles) ;
 int          MRISsampleStatVolume(MRI_SURFACE *mris, STAT_VOLUME *sv,int time,
                                   int use_talairach_xform);
 
@@ -378,6 +375,7 @@ int          MRISstoreCurrentPositions(MRI_SURFACE *mris) ;
 int          MRISupdateSurface(MRI_SURFACE *mris) ;
 
 #define ORIGINAL_VERTICES   0
+#define ORIG_VERTICES       ORIGINAL_VERTICES
 #define GOOD_VERTICES       1
 #define TMP_VERTICES        2
 
