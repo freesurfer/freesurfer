@@ -8,10 +8,10 @@
  *
 */
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2003/01/27 20:16:48 $
-// Revision       : $Revision: 1.211 $
-char *MRI_C_VERSION = "$Revision: 1.211 $";
+// Revision Author: $Author: tosa $
+// Revision Date  : $Date: 2003/02/11 15:39:49 $
+// Revision       : $Revision: 1.212 $
+char *MRI_C_VERSION = "$Revision: 1.212 $";
 
 /*-----------------------------------------------------
                     INCLUDE FILES
@@ -9628,9 +9628,9 @@ MATRIX *extract_i_to_r(MRI *mri)
     m21 = mri->xsize * mri->x_a;  m22 = mri->ysize * mri->y_a;  m23 = mri->zsize * mri->z_a;
     m31 = mri->xsize * mri->x_s;  m32 = mri->ysize * mri->y_s;  m33 = mri->zsize * mri->z_s;
 
-    ci = (mri->width - 1.0) / 2.0;
-    cj = (mri->height - 1.0) / 2.0;
-    ck = (mri->depth - 1.0) / 2.0;
+    ci = (mri->width) / 2.0;
+    cj = (mri->height) / 2.0;
+    ck = (mri->depth) / 2.0;
 
     m14 = mri->c_r - (m11 * ci + m12 * cj + m13 * ck);
     m24 = mri->c_a - (m21 * ci + m22 * cj + m23 * ck);
