@@ -45,6 +45,7 @@ static double alpha = -1 ;
 static double TE = -1 ;
 static char *tissue_parms_fname = NULL ;
 static char *mask_volume_fname = NULL ;
+static int histo_norm = 0 ;
 
 char *Progname ;
 static void usage_exit(int code) ;
@@ -249,7 +250,8 @@ main(int argc, char *argv[])
     GCArenormalizeIntensities(gca, labels, intensities, nlines) ;
     free(labels) ; free(intensities) ;
   }
-  GCAhistoScaleImageIntensities(gca, mri_in) ;
+  if (histo_norm)
+    GCAhistoScaleImageIntensities(gca, mri_in) ;
   if (stricmp(xform_fname, "none"))
   {
     lta = LTAread(xform_fname) ;
@@ -523,6 +525,10 @@ get_option(int argc, char *argv[])
     read_flag = 1 ;
     read_fname = argv[2] ;
     nargs = 1 ;
+    break ;
+  case 'H':
+    histo_norm = 1 ;
+    printf("using GCA to histogram normalize input image...\n") ;
     break ;
   case 'A':
     avgs = atoi(argv[2]) ;
