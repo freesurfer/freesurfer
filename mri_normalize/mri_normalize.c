@@ -44,11 +44,11 @@ main(int argc, char *argv[])
   int    ac, nargs, n ;
   MRI    *mri_src, *mri_dst = NULL, *mri_bias, *mri_orig ;
   char   *in_fname, *out_fname ;
-  int          msec, minutes, seconds ;
+  int          msec, minutes, seconds, file_only ;
   struct timeb start ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_normalize.c,v 1.27 2004/05/06 16:13:45 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_normalize.c,v 1.28 2004/06/01 21:07:58 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -145,13 +145,16 @@ main(int argc, char *argv[])
     MRI3dWriteControlPoints(control_volume_fname) ;
 
 	/* first do a gentle normalization to get things in the right intensity range */
+	file_only = control_point_fname != NULL && no1d;
 	MRI3dGentleNormalize(mri_dst, NULL, DEFAULT_DESIRED_WHITE_MATTER_VALUE,
 											 mri_dst,
 											 intensity_above, intensity_below/2,
-											 control_point_fname != NULL && no1d);
+											 file_only);
 	mri_orig = MRIcopy(mri_dst, NULL) ;
   for (n = 0 ; n < num_3d_iter ; n++)
   {
+		if (file_only)
+			break ;
     fprintf(stderr, "3d normalization pass %d of %d\n", n+1, num_3d_iter) ;
     if (gentle_flag)
       MRI3dGentleNormalize(mri_dst, NULL, DEFAULT_DESIRED_WHITE_MATTER_VALUE,
