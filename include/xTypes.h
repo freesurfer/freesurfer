@@ -9,6 +9,9 @@
 #define TRUE 1
 #endif
 
+#ifndef NULL
+#define NULL 0
+#endif
 
 typedef unsigned char tBoolean;
 typedef long          tSignature;
@@ -34,5 +37,24 @@ typedef enum {
   tAxis_Y,
   tAxis_Z
 } tAxis;
+
+typedef enum {
+  xColr_tComponent_None = 0,
+  xColr_tComponent_Red,
+  xColr_tComponent_Green,
+  xColr_tComponent_Blue,
+  xColr_knNumComponents
+} xColr_tComponent;
+
+void xColr_Set ( xColor3fRef iColor, 
+     float ifRed, float ifGreen, float ifBlue );
+
+void xColr_PackFloatArray ( xColor3fRef iColor,
+          float*      iafColor );
+
+void xColr_HilightComponent ( xColor3fRef      iColor,
+            xColr_tComponent iComponent );
+
+#define xColr_ExpandFloat(iColor) (iColor)->mfRed,(iColor)->mfGreen,(iColor)->mfBlue
 
 #endif

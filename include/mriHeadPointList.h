@@ -99,10 +99,23 @@ HPtL_tErr HPtL_FindNearestPoint ( mriHeadPointListRef  this,
           float                ifPlaneRange,
           xVoxelRef            iWhere,
           HPtL_tHeadPointRef*  opPoint );
+HPtL_tErr HPtL_FindFlattenedNearestPoint ( mriHeadPointListRef  this,
+             HPtL_tIterationPlane iPlane,
+             xVoxelRef            iWhere,
+             HPtL_tHeadPointRef*  opPoint );
 
 HPtL_tErr HPtL_RestoreTransform ( mriHeadPointListRef this );
 HPtL_tErr HPtL_ApplyTransform   ( mriHeadPointListRef this,
           MATRIX*             iTransform );
+HPtL_tErr HPtL_Translate ( mriHeadPointListRef this,
+         float               ifDistance,
+         tAxis               iAxis );
+HPtL_tErr HPtL_Rotate    ( mriHeadPointListRef this,
+         float               ifDegrees,
+         tAxis               iAxis );
+HPtL_tErr HPtL_Scale      ( mriHeadPointListRef this,
+          float               ifFactor,
+          tAxis               iAxis );
 
 HPtL_tErr HPtL_AlignPointToClientVoxel ( mriHeadPointListRef this,
            HPtL_tHeadPointRef  iPoint,

@@ -2,16 +2,10 @@
 #define mriTransform_h
 
 #include "matrix.h"
+#include "mri.h"    /* transform.h requires mri.h */
+#include "transform.h"
 #include "xDebug.h"
 #include "xVoxel.h"
-
-/*
-  future:
-
-    Trns_TranslateA( transform, transVector );
-    Trns_RotateB( transform, rotationVector, degrees );
-    Trns_ScaleA( transform, scaleVector );
-*/
 
 typedef enum {
 
@@ -21,6 +15,7 @@ typedef enum {
   Trns_tErr_InvalidParameter,
   Trns_tErr_AllocationFailed,
   Trns_tErr_TransformationMatrixNotInited,
+  Trns_tErr_LTAImportFailed,
   Trns_tErr_InvalidErrorCode,
   Trns_knNumErrorCodes
 
@@ -50,8 +45,12 @@ typedef struct {
 
 #define Trns_kSignature 0x09876543
 
-Trns_tErr Trns_New    ( mriTransformRef* opTransform );
-Trns_tErr Trns_Delete ( mriTransformRef* iopTransform );
+Trns_tErr Trns_New        ( mriTransformRef* opTransform );
+Trns_tErr Trns_NewFromLTA ( mriTransformRef* opTransform,
+          char*            isLTAFileName );
+Trns_tErr Trns_Delete     ( mriTransformRef* iopTransform );
+Trns_tErr Trns_DeepClone  ( mriTransformRef  this,
+          mriTransformRef* opTransform );
 
 /* these are the minimum that should be set in a normal situation */
 Trns_tErr Trns_CopyAtoRAS     ( mriTransformRef this,

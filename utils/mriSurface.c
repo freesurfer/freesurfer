@@ -86,8 +86,8 @@ Surf_tErr Surf_New ( mriSurfaceRef*  opSurface,
     free( this );
 
   if( Surf_tErr_NoErr != eResult ) {
-    DebugPrint "Error %d in Surf_New: %s\n",
-      eResult, Surf_GetErrorString( eResult ) EndDebugPrint;
+    DebugPrint( ("Error %d in Surf_New: %s\n",
+      eResult, Surf_GetErrorString( eResult ) ) );
   }
 
  cleanup:
@@ -128,8 +128,8 @@ Surf_tErr Surf_Delete ( mriSurfaceRef* iopSurface ) {
  error:
 
   if( Surf_tErr_NoErr != eResult ) {
-    DebugPrint "Error %d in Surf_Delete: %s\n",
-      eResult, Surf_GetErrorString( eResult ) EndDebugPrint;
+    DebugPrint( ("Error %d in Surf_Delete: %s\n",
+      eResult, Surf_GetErrorString( eResult ) ) );
   }
 
  cleanup:
@@ -194,8 +194,8 @@ Surf_tErr Surf_LoadVertexSet ( mriSurfaceRef   this,
  error:
 
    if( Surf_tErr_NoErr != eResult ) {
-    DebugPrint "Error %d in Surf_LoadVertexSet: %s\n",
-      eResult, Surf_GetErrorString( eResult ) EndDebugPrint;
+    DebugPrint( ("Error %d in Surf_LoadVertexSet: %s\n",
+      eResult, Surf_GetErrorString( eResult ) ) );
    }
 
  cleanup:
@@ -221,8 +221,8 @@ Surf_tErr Surf_IsVertexSetLoaded ( mriSurfaceRef   this,
  error:
 
    if( Surf_tErr_NoErr != eResult ) {
-    DebugPrint "Error %d in Surf_IsVertexSetLoaded: %s\n",
-      eResult, Surf_GetErrorString( eResult ) EndDebugPrint;
+    DebugPrint( ("Error %d in Surf_IsVertexSetLoaded: %s\n",
+      eResult, Surf_GetErrorString( eResult ) ) );
   }
 
  cleanup:
@@ -291,8 +291,8 @@ Surf_tErr Surf_ConvertSurfaceToClientSpace_ ( mriSurfaceRef   this,
  error:
 
    if( Surf_tErr_NoErr != eResult ) {
-    DebugPrint "Error %d in Surf_ConvertSurfaceToClientSpace_: %s\n",
-      eResult, Surf_GetErrorString( eResult ) EndDebugPrint;
+    DebugPrint( ("Error %d in Surf_ConvertSurfaceToClientSpace_: %s\n",
+      eResult, Surf_GetErrorString( eResult ) ) );
   }
 
  cleanup:
@@ -331,8 +331,8 @@ Surf_tErr Surf_SetIteratorPosition ( mriSurfaceRef    this,
  error:
 
    if( Surf_tErr_NoErr != eResult ) {
-    DebugPrint "Error %d in Surf_SetIteratorPosition: %s\n",
-      eResult, Surf_GetErrorString( eResult ) EndDebugPrint;
+    DebugPrint( ("Error %d in Surf_SetIteratorPosition: %s\n",
+      eResult, Surf_GetErrorString( eResult ) ) );
   }
 
  cleanup:
@@ -405,11 +405,6 @@ Surf_tErr Surf_GetNextAndNeighborVertex ( mriSurfaceRef    this,
       goto cleanup;
     }
 
-    /*
-      DebugPrint "Looking at face %d, %.2f,%.2f,%.2f\n",
-      this->mnCurFace, xVoxl_ExpandFloat( vertex ) EndDebugPrint;
-    */
-
     /* now we have a face to check. set the vertex to 0. */
     this->mnCurVertex = 0;
   }
@@ -444,8 +439,8 @@ Surf_tErr Surf_GetNextAndNeighborVertex ( mriSurfaceRef    this,
  error:
 
    if( Surf_tErr_NoErr != eResult ) {
-    DebugPrint "Error %d in Surf_GetNextAndNeighborVertex: %s\n",
-      eResult, Surf_GetErrorString( eResult ) EndDebugPrint;
+    DebugPrint( ("Error %d in Surf_GetNextAndNeighborVertex: %s\n",
+      eResult, Surf_GetErrorString( eResult ) ) );
   }
 
  cleanup:
@@ -490,8 +485,8 @@ Surf_tErr Surf_GetNthVertex ( mriSurfaceRef   this,
  error:
 
    if( Surf_tErr_NoErr != eResult ) {
-    DebugPrint "Error %d in Surf_GetNthVertex: %s\n",
-      eResult, Surf_GetErrorString( eResult ) EndDebugPrint;
+    DebugPrint( ("Error %d in Surf_GetNthVertex: %s\n",
+      eResult, Surf_GetErrorString( eResult ) ) );
   }
 
  cleanup:
@@ -570,8 +565,8 @@ Surf_tErr Surf_GetClosestVertex ( mriSurfaceRef   this,
  error:
 
    if( Surf_tErr_NoErr != eResult ) {
-    DebugPrint "Error %d in Surf_GetClosestVertex: %s\n",
-      eResult, Surf_GetErrorString( eResult ) EndDebugPrint;
+    DebugPrint( ("Error %d in Surf_GetClosestVertex: %s\n",
+      eResult, Surf_GetErrorString( eResult ) ) );
   }
 
  cleanup:
@@ -652,8 +647,8 @@ Surf_tErr Surf_GetSurfaceSetName ( Surf_tVertexSet iSet,
  error:
 
    if( Surf_tErr_NoErr != eResult ) {
-    DebugPrint "Error %d in Surf_GetSurfaceSetName: %s\n",
-      eResult, Surf_GetErrorString( eResult ) EndDebugPrint;
+    DebugPrint( ("Error %d in Surf_GetSurfaceSetName: %s\n",
+      eResult, Surf_GetErrorString( eResult ) ) );
   }
 
  cleanup:

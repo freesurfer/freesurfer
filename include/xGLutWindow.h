@@ -96,13 +96,16 @@ xGWin_tErr xGWin_Delete ( xGLutWindowRef* ioppWindow );
 xGWin_tErr xGWin_SetWindowTitle ( xGLutWindowRef ipWindow,
           char*          isTitle );
 
-  /* set the event handler for this window. */
+/* set the event handler for this window. */
 xGWin_tErr xGWin_SetEventHandlerFunc ( xGLutWindowRef          this,
                xGWin_tEventHandlerFunc ipFunc, 
                void*                   ipData );
 
-  /* activate idle events for this window */
+/* activate idle events for this window */
 xGWin_tErr xGWin_ActivateIdleEvents ( xGLutWindowRef  this );
+
+/* activate passive motion events for this window */
+xGWin_tErr xGWin_ActivatePassiveMotionEvents ( xGLutWindowRef  this );
 
 
 xGWin_tErr xGWin_Verify ( xGLutWindowRef this );
@@ -138,22 +141,24 @@ void xGWin_PassEventToAllWindows    ( xGWin_tEventRef ipEvent );
      is pretty barebones, and each callback has a different signature, we
      stuff each event into a custom structure and pass it to a single event
      handler on the window side. */
-void xGWin_GLutKeyboardCallback ( unsigned char icKey, 
-          int           inX, 
-          int           inY );
-void xGWin_GLutSpecialCallback  ( int           inKey,
-          int           inX, 
-          int           inY );
-void xGWin_GLutMouseCallback    ( int           inButton,
-          int           inState,
-          int           inX,
-          int           inY );
-void xGWin_GLutMotionCallback   ( int           inX,
-          int           inY );
-void xGWin_GLutResizeCallback   ( int           inWidth, 
-          int           inHeight );
-void xGWin_GLutDrawCallback     ();
-void xGWin_GLutIdleCallback     ();
+void xGWin_GLutKeyboardCallback        ( unsigned char icKey, 
+                 int           inX, 
+                 int           inY );
+void xGWin_GLutSpecialCallback         ( int           inKey,
+           int           inX, 
+           int           inY );
+void xGWin_GLutMouseCallback           ( int           inButton,
+           int           inState,
+           int           inX,
+           int           inY );
+void xGWin_GLutMotionCallback          ( int           inX,
+           int           inY );
+void xGWin_GLutPassiveMotionCallback   ( int           inX,
+           int           inY );
+void xGWin_GLutResizeCallback          ( int           inWidth, 
+           int           inHeight );
+void xGWin_GLutDrawCallback            ();
+void xGWin_GLutIdleCallback            ();
 
   /* posts a redisplay for all windows. note that the redisplays go into the
      normal glut event queue. */

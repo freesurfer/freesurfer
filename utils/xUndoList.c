@@ -162,8 +162,8 @@ xUndL_tErr xUndL_DeleteList_ ( xUndoListRef ipUndoList,
 
   DebugCode
     if ( xList_tErr_NoErr != eListResult ) {
-     DebugPrint "xUndL_DeleteInternalList(): Error in xList function %d: %s\n",
-      eListResult, xList_GetErrorString ( eListResult ) EndDebugPrint;
+     DebugPrint( ("xUndL_DeleteInternalList(): Error in xList function %d: %s\n",
+      eListResult, xList_GetErrorString ( eListResult ) ) );
     }
   EndDebugCode;     
 
@@ -229,8 +229,8 @@ xUndL_tErr xUndL_AddEntry ( xUndoListRef    ipList,
 
   DebugCode
     if ( xList_tErr_NoErr != eListResult ) {
-     DebugPrint "xUndL_AddEntry(): Error in xList function %d: %s\n",
-      eListResult, xList_GetErrorString ( eListResult ) EndDebugPrint;
+     DebugPrint( ("xUndL_AddEntry(): Error in xList function %d: %s\n",
+      eListResult, xList_GetErrorString ( eListResult ) ) );
     }
   EndDebugCode;     
 
@@ -313,8 +313,8 @@ xUndL_tErr xUndL_Restore ( xUndoListRef ipList ) {
 
   DebugCode
     if ( xList_tErr_NoErr != eListResult ) {
-     DebugPrint "xUndL_RestoreList(): Error in xList function %d: %s\n",
-      eListResult, xList_GetErrorString ( eListResult ) EndDebugPrint;
+     DebugPrint( ("xUndL_RestoreList(): Error in xList function %d: %s\n",
+      eListResult, xList_GetErrorString ( eListResult ) ) );
     }
   EndDebugCode;     
 
@@ -345,7 +345,7 @@ xUndL_tErr xUndL_Print ( xUndoListRef this ) {
   xUndL_tErr      eResult     = xUndL_tErr_NoErr;
   xList_tErr      eListResult = xList_tErr_NoErr;
   xUndL_tEntryPtr pItem       = NULL;
-  size_t          nCount      = 0;
+  int             nCount      = 0;
   
   // verify ourself.
   eResult = xUndL_Verify ( this );
@@ -358,7 +358,7 @@ xUndL_tErr xUndL_Print ( xUndoListRef this ) {
     goto cleanup;
   }
 
-  DebugPrint "Printing undo list....\n" EndDebugPrint;
+  DebugPrint( ("Printing undo list....\n" ) );
 
   // get the count
   eListResult = xList_GetCount ( this->mpList, &nCount );
@@ -367,7 +367,7 @@ xUndL_tErr xUndL_Print ( xUndoListRef this ) {
     goto cleanup;
   }
 
-  DebugPrint "\nNum items = %d\n", nCount EndDebugPrint;
+  DebugPrint( ("\nNum items = %d\n", nCount ) );
 
   // start at the beginning.
   eListResult = xList_ResetPosition ( this->mpList );
@@ -391,19 +391,19 @@ xUndL_tErr xUndL_Print ( xUndoListRef this ) {
 
     // if we got an item, print it.
     if ( pItem ) {
-      DebugPrint "\t" EndDebugPrint;
+      DebugPrint( ("\t" ) );
       this->mpPrintFunction ( pItem );
     }
   }
 
-  DebugPrint "\tDone.\n\n" EndDebugPrint;
+  DebugPrint( ("\tDone.\n\n" ) );
 
  cleanup:
 
   DebugCode
     if ( xList_tErr_NoErr != eListResult ) {
-     DebugPrint "xUndL_PrintList(): Error in xList function %d: %s\n",
-      eListResult, xList_GetErrorString ( eListResult ) EndDebugPrint;
+     DebugPrint( ("xUndL_PrintList(): Error in xList function %d: %s\n",
+      eListResult, xList_GetErrorString ( eListResult ) ) );
     }
   EndDebugCode;     
 

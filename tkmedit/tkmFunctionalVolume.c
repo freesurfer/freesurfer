@@ -4,11 +4,6 @@
 #include "mritransform.h"
 #include "xUtilities.h"
 
-#define InitOutput
-#define DeleteOutput
-#define OutputPrint            fprintf ( stdout,
-#define EndOutputPrint         ); fflush ( stdout );
-
                                    /* about the script */
 #define ksEnvVariable_UseLocalDirectoryForScript "DONT_USE_LOCAL_TKMFUNCTIONAL_TCL"
 #define ksFileName_InterfaceScript "tkm_functional.tcl"
@@ -159,8 +154,8 @@ FunV_tErr FunV_New ( tkmFunctionalVolumeRef* oppVolume,
 
   /* print error message */
   if( FunV_tErr_NoError != eResult ) {
-    DebugPrint "Error %d in FunV_New: %s\n",
-      eResult, FunV_GetErrorString(eResult) EndDebugPrint;
+    DebugPrint( ("Error %d in FunV_New: %s\n",
+     eResult, FunV_GetErrorString(eResult) ) );
   }
 
   /* if we allocated us, delete us. */
@@ -190,15 +185,33 @@ FunV_tErr FunV_Delete ( tkmFunctionalVolumeRef* ioppVolume ) {
     goto error;
 
   /* delete the volumes that exist. */
-  eVolume = FunD_Delete( &(this->mpOverlayVolume) );
-  if( FunD_tErr_NoError != eVolume ) {
-    eResult = FunV_tErr_DeletionFailed;
-    goto error;
+  if( NULL != this->mpOverlayVolume ) {
+    eVolume = FunD_Delete( &(this->mpOverlayVolume) );
+    if( FunD_tErr_NoError != eVolume ) {
+      eResult = FunV_tErr_DeletionFailed;
+      goto error;
+    }
   }
-  eVolume = FunD_Delete( &(this->mpTimeCourseVolume) );
-  if( FunD_tErr_NoError != eVolume ) {
-    eResult = FunV_tErr_DeletionFailed;
-    goto error;
+  if( NULL != this->mpTimeCourseVolume ) {
+    eVolume = FunD_Delete( &(this->mpTimeCourseVolume) );
+    if( FunD_tErr_NoError != eVolume ) {
+      eResult = FunV_tErr_DeletionFailed;
+      goto error;
+    }
+  }
+  if( NULL != this->mpOverlayOffsetVolume ) {
+    eVolume = FunD_Delete( &(this->mpOverlayOffsetVolume) );
+    if( FunD_tErr_NoError != eVolume ) {
+      eResult = FunV_tErr_DeletionFailed;
+      goto error;
+    }
+  }
+  if( NULL != this->mpTimeCourseOffsetVolume ) {
+    eVolume = FunD_Delete( &(this->mpTimeCourseOffsetVolume) );
+    if( FunD_tErr_NoError != eVolume ) {
+      eResult = FunV_tErr_DeletionFailed;
+      goto error;
+    }
   }
 
   /* clear the list */
@@ -221,8 +234,8 @@ FunV_tErr FunV_Delete ( tkmFunctionalVolumeRef* ioppVolume ) {
 
   /* print error message */
   if( FunV_tErr_NoError != eResult ) {
-    DebugPrint "Error %d in FunV_Delete: %s\n",
-      eResult, FunV_GetErrorString(eResult) EndDebugPrint;
+    DebugPrint( ("Error %d in FunV_Delete: %s\n",
+      eResult, FunV_GetErrorString(eResult) ) );
   }
 
  cleanup:
@@ -231,14 +244,19 @@ FunV_tErr FunV_Delete ( tkmFunctionalVolumeRef* ioppVolume ) {
 }
 
 FunV_tErr FunV_LoadOverlay ( tkmFunctionalVolumeRef this,
-           char*                  isPathAndStem ) {
+           char*                  isPathAndStem,
+           char*                  isOffsetPathAndStem,
+           char*                  isRegistration ) {
 
-  FunV_tErr   eResult            = FunV_tErr_NoError;
-  char        sPath[256]         = "";
-  char        sStem[256]         = "";
-  char        sOffsetStem[256]   = "";
-  xUtil_tErr  eUtil              = xUtil_tErr_NoError;
-  int         nNumConditions     = 0;
+  FunV_tErr   eResult                           = FunV_tErr_NoError;
+  char        sPathAndStem[tkm_knPathLen]       = "";
+  char        sPath[tkm_knPathLen]              = "";
+  char        sStem[tkm_knPathLen]              = "";
+  char        sOffsetPathAndStem[tkm_knPathLen] = "";
+  char        sOffsetPath[tkm_knPathLen]        = "";
+  char        sOffsetStem[tkm_knPathLen]        = "";
+  xUtil_tErr  eUtil                             = xUtil_tErr_NoError;
+  int         nNumConditions                    = 0;
 
   /* verify us */
   eResult = FunV_Verify( this );
@@ -246,7 +264,8 @@ FunV_tErr FunV_LoadOverlay ( tkmFunctionalVolumeRef this,
     goto error;
 
   /* seperate pathandstem into path and stem */
-  eUtil = xUtil_BreakStringIntoPathAndStem( isPathAndStem, sPath, sStem );
+  strcpy( sPathAndStem, isPathAndStem );
+  eUtil = xUtil_BreakStringIntoPathAndStem( sPathAndStem, sPath, sStem );
   if( xUtil_tErr_NoError != eUtil ) {
     eResult = FunV_tErr_ErrorParsingPathAndStem;
     goto error;
@@ -254,7 +273,8 @@ FunV_tErr FunV_LoadOverlay ( tkmFunctionalVolumeRef this,
 
   /* attempt to load the volume */
   eResult = FunV_LoadFunctionalVolume_( this, &(this->mpOverlayVolume), 
-          sPath, sStem, NULL, NULL, TRUE );
+          sPath, sStem, NULL, isRegistration, 
+          TRUE );
   if( FunV_tErr_NoError != eResult ) {
     goto error;
   }
@@ -265,16 +285,26 @@ FunV_tErr FunV_LoadOverlay ( tkmFunctionalVolumeRef this,
     this->mnCondition = 1;
   }
 
-  /* make offset header */
-  sprintf( sOffsetStem, "%s-offset", sStem );
-  
-  /* attempt to load offset volume, if there is one */
-  eResult = FunV_LoadFunctionalVolume_( this, &(this->mpOverlayOffsetVolume),
-          sPath, sOffsetStem, sOffsetStem, NULL,
-          FALSE);
-  if( FunV_tErr_NoError != eResult ) {
-    /* no offset, that's fine. */
-    this->mpOverlayOffsetVolume = NULL;
+  /* if we have an offset path... */
+  if( NULL != isOffsetPathAndStem ) {
+
+    /* seperate pathandstem into path and stem */
+    strcpy( sOffsetPathAndStem, isOffsetPathAndStem );
+    eUtil = xUtil_BreakStringIntoPathAndStem( sOffsetPathAndStem, 
+                sOffsetPath, sOffsetStem );
+    if( xUtil_tErr_NoError != eUtil ) {
+      eResult = FunV_tErr_ErrorParsingPathAndStem;
+      goto error;
+    }
+
+    /* attempt to load offset volume, if there is one */
+    eResult = FunV_LoadFunctionalVolume_( this, &(this->mpOverlayOffsetVolume),
+            sOffsetPath, sOffsetStem, 
+            sOffsetStem, isRegistration, FALSE );
+    if( FunV_tErr_NoError != eResult ) {
+      /* no offset, that's fine. */
+      this->mpOverlayOffsetVolume = NULL;
+    }
   }
 
   /* initialize that overlay cache */
@@ -337,8 +367,8 @@ FunV_tErr FunV_LoadOverlay ( tkmFunctionalVolumeRef this,
 
   /* print error message */
   if( FunV_tErr_NoError != eResult ) {
-    DebugPrint "Error %d in FunV_LoadOverlay: %s\n",
-      eResult, FunV_GetErrorString(eResult) EndDebugPrint;
+    DebugPrint( ("Error %d in FunV_LoadOverlay: %s\n",
+      eResult, FunV_GetErrorString(eResult) ) );
   }
 
  cleanup:
@@ -347,13 +377,18 @@ FunV_tErr FunV_LoadOverlay ( tkmFunctionalVolumeRef this,
 }
 
 FunV_tErr FunV_LoadTimeCourse ( tkmFunctionalVolumeRef this,
-        char*                  isPathAndStem ) {
+        char*                  isPathAndStem,
+        char*                  isOffsetPathAndStem,
+        char*                  isRegistration) {
 
-  FunV_tErr   eResult            = FunV_tErr_NoError;
-  char        sPath[256]         = "";
-  char        sStem[256]         = "";
-  char        sOffsetStem[256]   = "";
-  xUtil_tErr  eUtil              = xUtil_tErr_NoError;
+  FunV_tErr   eResult                           = FunV_tErr_NoError;
+  char        sPathAndStem[tkm_knPathLen]       = "";
+  char        sPath[tkm_knPathLen]              = "";
+  char        sStem[tkm_knPathLen]              = "";
+  char        sOffsetPathAndStem[tkm_knPathLen] = "";
+  char        sOffsetPath[tkm_knPathLen]        = "";
+  char        sOffsetStem[tkm_knPathLen]        = "";
+  xUtil_tErr  eUtil                             = xUtil_tErr_NoError;
 
   /* verify us */
   eResult = FunV_Verify( this );
@@ -361,7 +396,8 @@ FunV_tErr FunV_LoadTimeCourse ( tkmFunctionalVolumeRef this,
     goto error;
 
   /* seperate pathandstem into path and stem */
-  eUtil = xUtil_BreakStringIntoPathAndStem( isPathAndStem, sPath, sStem );
+  strcpy( sPathAndStem, isPathAndStem );
+  eUtil = xUtil_BreakStringIntoPathAndStem( sPathAndStem, sPath, sStem );
   if( xUtil_tErr_NoError != eUtil ) {
     eResult = FunV_tErr_ErrorParsingPathAndStem;
     goto error;
@@ -370,20 +406,32 @@ FunV_tErr FunV_LoadTimeCourse ( tkmFunctionalVolumeRef this,
   /* attempt to load the volume */
   eResult = FunV_LoadFunctionalVolume_( this, 
           &(this->mpTimeCourseVolume), 
-          sPath, sStem, NULL, NULL, TRUE );
+          sPath, sStem, NULL, isRegistration, 
+          TRUE );
   if( FunV_tErr_NoError != eResult )
     goto error;
 
-  /* make offset header */
-  sprintf( sOffsetStem, "%s-offset", sStem );
-  
-  /* attempt to load offset volume, if there is one */
-  eResult = FunV_LoadFunctionalVolume_( this,&(this->mpTimeCourseOffsetVolume),
-          sPath, sOffsetStem, sOffsetStem, NULL,
-          FALSE );
-  if( FunV_tErr_NoError != eResult ) {
-    /* no offset, that's fine. */
-    this->mpTimeCourseOffsetVolume = NULL;
+  /* if we have an offset path... */
+  if( NULL != isOffsetPathAndStem ) {
+
+    /* seperate pathandstem into path and stem */
+    strcpy( sOffsetPathAndStem, isOffsetPathAndStem );
+    eUtil = xUtil_BreakStringIntoPathAndStem( sOffsetPathAndStem, 
+                sOffsetPath, sOffsetStem );
+    if( xUtil_tErr_NoError != eUtil ) {
+      eResult = FunV_tErr_ErrorParsingPathAndStem;
+      goto error;
+    }
+    
+    /* attempt to load offset volume, if there is one */
+    eResult = FunV_LoadFunctionalVolume_( this,
+            &(this->mpTimeCourseOffsetVolume),
+            sOffsetPath, sOffsetStem,
+            sOffsetStem, isRegistration, FALSE );
+    if( FunV_tErr_NoError != eResult ) {
+      /* no offset, that's fine. */
+      this->mpTimeCourseOffsetVolume = NULL;
+    }
   }
 
   /* show the graph window */
@@ -417,8 +465,8 @@ FunV_tErr FunV_LoadTimeCourse ( tkmFunctionalVolumeRef this,
 
   /* print error message */
   if( FunV_tErr_NoError != eResult ) {
-    DebugPrint "Error %d in FunV_LoadTimeCourse: %s\n",
-      eResult, FunV_GetErrorString(eResult) EndDebugPrint;
+    DebugPrint( ("Error %d in FunV_LoadTimeCourse: %s\n",
+      eResult, FunV_GetErrorString(eResult) ) );
   }
 
  cleanup:
@@ -431,7 +479,7 @@ FunV_tErr FunV_LoadFunctionalVolume_ ( tkmFunctionalVolumeRef this,
                char*                  isPath,
                char*                  isStem,
                char*                  isHeaderStem,
-               char*                  isRegPath,
+               char*                  isRegistration,
                tBoolean               ibReportErrors ) {
 
   FunV_tErr            eResult            = FunV_tErr_NoError;
@@ -454,7 +502,7 @@ FunV_tErr FunV_LoadFunctionalVolume_ ( tkmFunctionalVolumeRef this,
   }
 
   /* load the volume */
-  eVolume = FunD_New( &pVolume, isPath, isStem, isHeaderStem, isRegPath );
+  eVolume = FunD_New( &pVolume, isPath, isStem, isHeaderStem, isRegistration );
   if( FunD_tErr_NoError != eVolume ) {
     eResult = FunV_tErr_ErrorLoadingVolume;
     goto error;
@@ -479,8 +527,8 @@ FunV_tErr FunV_LoadFunctionalVolume_ ( tkmFunctionalVolumeRef this,
   /* print error message */
   if( FunV_tErr_NoError != eResult
       && ibReportErrors ) {
-    DebugPrint "Error %d in FunV_LoadFunctionalVolume_: %s\n",
-      eResult, FunV_GetErrorString(eResult) EndDebugPrint;
+    DebugPrint( ("Error %d in FunV_LoadFunctionalVolume_: %s\n",
+      eResult, FunV_GetErrorString(eResult) ) );
   }
 
  cleanup:
@@ -504,6 +552,7 @@ FunV_tErr FunV_InitOverlayCache_ ( tkmFunctionalVolumeRef this ) {
   int                   nZ         = 0;
   FunV_tFunctionalValue funcValue  = 0;
   int                   nIndex     = 0;
+  xDbg_tDebuggingState  debugState;
 
   xVoxl_New( &pVoxel );
   xVoxl_New( &pMin );
@@ -517,7 +566,7 @@ FunV_tErr FunV_InitOverlayCache_ ( tkmFunctionalVolumeRef this ) {
   /* if we already have this time point and condition cached, exit */
   if( this->mnCachedCondition == this->mnCondition
       && this->mnCachedTimePoint == this->mnTimePoint ) {
-    DebugPrint "\texiting\n" EndDebugPrint;
+    DebugPrint( ("\texiting\n" ) );
     goto cleanup;
   }
 
@@ -555,6 +604,7 @@ FunV_tErr FunV_InitOverlayCache_ ( tkmFunctionalVolumeRef this ) {
      them out of our freshly bzeroed cache. */
   FunV_UseOverlayCache( this, FALSE );
 
+  GetDebuggingState( &debugState );
   DisableDebuggingOutput;
 
   /* get our initial index */
@@ -563,10 +613,8 @@ FunV_tErr FunV_InitOverlayCache_ ( tkmFunctionalVolumeRef this ) {
   /* for every voxel from one corner to the other... */
   for( nZ = 0; nZ < this->manCacheDimensions[2]; nZ++ ) {
 
-    EnableDebuggingOutput;
     OutputPrint "\rBuilding cache... %.2f%%", 
       ( (float)nZ / (float)this->manCacheDimensions[2] * 100.0 ) EndOutputPrint;
-    DisableDebuggingOutput;
       
     for( nY = 0; nY < this->manCacheDimensions[1]; nY++ ) {
       for( nX = 0; nX < this->manCacheDimensions[0]; nX++ ) {
@@ -596,7 +644,7 @@ FunV_tErr FunV_InitOverlayCache_ ( tkmFunctionalVolumeRef this ) {
      cached tp and cond, it will exit right away. */
   FunV_UseOverlayCache( this, TRUE );
 
-  EnableDebuggingOutput;
+  SetDebuggingState( debugState );
 
   OutputPrint " done!\n" EndOutputPrint;
 
@@ -606,8 +654,8 @@ FunV_tErr FunV_InitOverlayCache_ ( tkmFunctionalVolumeRef this ) {
 
   /* print error message */
   if( FunV_tErr_NoError != eResult ) {
-    DebugPrint "Error %d in FunV_InitOverlayCache_: %s\n",
-      eResult, FunV_GetErrorString(eResult) EndDebugPrint;
+    DebugPrint( ("Error %d in FunV_InitOverlayCache_: %s\n",
+      eResult, FunV_GetErrorString(eResult) ) );
   }
 
  cleanup:
@@ -642,8 +690,8 @@ FunV_tErr FunV_SetOverlayCacheValue_ ( tkmFunctionalVolumeRef this,
 
   /* print error message */
   if( FunV_tErr_NoError != eResult ) {
-    DebugPrint "Error %d in FunV_SetOverlayCacheValue_: %s\n",
-      eResult, FunV_GetErrorString(eResult) EndDebugPrint;
+    DebugPrint( ("Error %d in FunV_SetOverlayCacheValue_: %s\n",
+      eResult, FunV_GetErrorString(eResult) ) );
   }
 
  cleanup:
@@ -688,8 +736,8 @@ FunV_tErr FunV_GetOverlayCacheValue_ ( tkmFunctionalVolumeRef this,
 
   /* print error message */
   if( FunV_tErr_NoError != eResult ) {
-    DebugPrint "Error %d in FunV_GetOverlayCacheValue_: %s\n",
-      eResult, FunV_GetErrorString(eResult) EndDebugPrint;
+    DebugPrint( ("Error %d in FunV_GetOverlayCacheValue_: %s\n",
+      eResult, FunV_GetErrorString(eResult) ) );
   }
 
  cleanup:
@@ -729,8 +777,8 @@ FunV_tErr FunV_UseOverlayCache ( tkmFunctionalVolumeRef this,
 
   /* print error message */
   if( FunV_tErr_NoError != eResult ) {
-    DebugPrint "Error %d in FunV_UseOverlayCache: %s\n",
-      eResult, FunV_GetErrorString(eResult) EndDebugPrint;
+    DebugPrint( ("Error %d in FunV_UseOverlayCache: %s\n",
+      eResult, FunV_GetErrorString(eResult) ) );
   }
 
  cleanup:
@@ -764,8 +812,8 @@ FunV_tErr FunV_IsOverlayPresent    ( tkmFunctionalVolumeRef this,
 
   /* print error message */
   if( FunV_tErr_NoError != eResult ) {
-    DebugPrint "Error %d in FunV_IsOverlayPresent: %s\n",
-      eResult, FunV_GetErrorString(eResult) EndDebugPrint;
+    DebugPrint( ("Error %d in FunV_IsOverlayPresent: %s\n",
+      eResult, FunV_GetErrorString(eResult) ) );
   }
 
  cleanup:
@@ -798,8 +846,8 @@ FunV_tErr FunV_IsTimeCoursePresent ( tkmFunctionalVolumeRef this,
 
   /* print error message */
   if( FunV_tErr_NoError != eResult ) {
-    DebugPrint "Error %d in FunV_IsTimeCoursePresent: %s\n",
-      eResult, FunV_GetErrorString(eResult) EndDebugPrint;
+    DebugPrint( ("Error %d in FunV_IsTimeCoursePresent: %s\n",
+      eResult, FunV_GetErrorString(eResult) ) );
   }
 
  cleanup:
@@ -861,8 +909,8 @@ FunV_tErr FunV_SetTimeResolution ( tkmFunctionalVolumeRef this,
 
   /* print error message */
   if( FunV_tErr_NoError != eResult ) {
-    DebugPrint "Error %d in FunV_SetTimeResolution: %s\n",
-      eResult, FunV_GetErrorString(eResult) EndDebugPrint;
+    DebugPrint( ("Error %d in FunV_SetTimeResolution: %s\n",
+      eResult, FunV_GetErrorString(eResult) ) );
   }
 
  cleanup:
@@ -928,8 +976,8 @@ FunV_tErr FunV_SetNumPreStimPoints ( tkmFunctionalVolumeRef this,
 
   /* print error message */
   if( FunV_tErr_NoError != eResult ) {
-    DebugPrint "Error %d in FunV_SetNumPreStimPoints: %s\n",
-      eResult, FunV_GetErrorString(eResult) EndDebugPrint;
+    DebugPrint( ("Error %d in FunV_SetNumPreStimPoints: %s\n",
+      eResult, FunV_GetErrorString(eResult) ) );
   }
 
  cleanup:
@@ -948,6 +996,10 @@ FunV_tErr FunV_SetTimeSecond ( tkmFunctionalVolumeRef this,
   eResult = FunV_Verify( this );
   if( FunV_tErr_NoError != eResult )
     goto error;
+
+  /* don't do anything if we don't have overlay data. */
+  if( NULL == this->mpOverlayVolume )
+    goto cleanup;
 
   /* convert to time point. */
   eVolume = FunD_ConvertSecondToTimePoint( this->mpOverlayVolume,
@@ -968,8 +1020,8 @@ FunV_tErr FunV_SetTimeSecond ( tkmFunctionalVolumeRef this,
 
   /* print error message */
   if( FunV_tErr_NoError != eResult ) {
-    DebugPrint "Error %d in FunV_SetTimeSecond: %s\n",
-      eResult, FunV_GetErrorString(eResult) EndDebugPrint;
+    DebugPrint( ("Error %d in FunV_SetTimeSecond: %s\n",
+      eResult, FunV_GetErrorString(eResult) ) );
   }
 
  cleanup:
@@ -990,6 +1042,10 @@ FunV_tErr FunV_SetTimePoint ( tkmFunctionalVolumeRef this,
   eResult = FunV_Verify( this );
   if( FunV_tErr_NoError != eResult )
     goto error;
+
+  /* don't do anything if we don't have overlay data. */
+  if( NULL == this->mpOverlayVolume )
+    goto cleanup;
 
   /* if it's valid, set it */
   if ( FunD_IsTimePointValid( this->mpOverlayVolume, inTimePoint )) {
@@ -1040,8 +1096,8 @@ FunV_tErr FunV_SetTimePoint ( tkmFunctionalVolumeRef this,
 
   /* print error message */
   if( FunV_tErr_NoError != eResult ) {
-    DebugPrint "Error %d in FunV_SetTimePoint: %s\n",
-      eResult, FunV_GetErrorString(eResult) EndDebugPrint;
+    DebugPrint( ("Error %d in FunV_SetTimePoint: %s\n",
+      eResult, FunV_GetErrorString(eResult) ) );
   }
 
  cleanup:
@@ -1060,6 +1116,10 @@ FunV_tErr FunV_SetCondition ( tkmFunctionalVolumeRef this,
   eResult = FunV_Verify( this );
   if( FunV_tErr_NoError != eResult )
     goto error;
+
+  /* don't do anything if we don't have overlay data. */
+  if( NULL == this->mpOverlayVolume )
+    goto cleanup;
 
   /* if valid.. */
   if ( FunD_IsConditionIndexValid( this->mpOverlayVolume, inCondition )) {
@@ -1116,8 +1176,8 @@ FunV_tErr FunV_SetCondition ( tkmFunctionalVolumeRef this,
 
   /* print error message */
   if( FunV_tErr_NoError != eResult ) {
-    DebugPrint "Error %d in FunV_SetCondition: %s\n",
-      eResult, FunV_GetErrorString(eResult) EndDebugPrint;
+    DebugPrint( ("Error %d in FunV_SetCondition: %s\n",
+      eResult, FunV_GetErrorString(eResult) ) );
   }
 
  cleanup:
@@ -1181,8 +1241,8 @@ FunV_tErr FunV_SetThreshold ( tkmFunctionalVolumeRef this,
 
   /* print error message */
   if( FunV_tErr_NoError != eResult ) {
-    DebugPrint "Error %d in FunV_SetCondition: %s\n",
-      eResult, FunV_GetErrorString(eResult) EndDebugPrint;
+    DebugPrint( ("Error %d in FunV_SetCondition: %s\n",
+      eResult, FunV_GetErrorString(eResult) ) );
   }
 
  cleanup:
@@ -1237,6 +1297,7 @@ FunV_tErr FunV_SetDisplayFlag ( tkmFunctionalVolumeRef this,
   case FunV_tDisplayFlag_Ol_ReversePhase:
   case FunV_tDisplayFlag_Ol_IgnoreThreshold:
   case FunV_tDisplayFlag_Ol_Grayscale:
+  case FunV_tDisplayFlag_Ol_Opaque:
 
     /* if no overlay data, set to false */
     if( NULL == this->mpOverlayVolume ) {
@@ -1326,8 +1387,8 @@ FunV_tErr FunV_SetDisplayFlag ( tkmFunctionalVolumeRef this,
 
   /* print error message */
   if( FunV_tErr_NoError != eResult ) {
-    DebugPrint "Error %d in FunV_SetDisplayFlag: %s\n",
-      eResult, FunV_GetErrorString(eResult) EndDebugPrint;
+    DebugPrint( ("Error %d in FunV_SetDisplayFlag: %s\n",
+      eResult, FunV_GetErrorString(eResult) ) );
   }
 
  cleanup:
@@ -1361,8 +1422,8 @@ FunV_tErr FunV_EnableRegistration  ( tkmFunctionalVolumeRef this,
 
   /* print error message */
   if( FunV_tErr_NoError != eResult ) {
-    DebugPrint "Error %d in FunV_EnableRegistration: %s\n",
-      eResult, FunV_GetErrorString(eResult) EndDebugPrint;
+    DebugPrint( ("Error %d in FunV_EnableRegistration: %s\n",
+      eResult, FunV_GetErrorString(eResult) ) );
   }
 
  cleanup:
@@ -1382,6 +1443,10 @@ FunV_tErr FunV_ChangeTimePointBy ( tkmFunctionalVolumeRef this,
   eResult = FunV_Verify( this );
   if( FunV_tErr_NoError != eResult )
     goto error;
+
+  /* don't do anything if we don't have overlay data. */
+  if( NULL == this->mpOverlayVolume )
+    goto cleanup;
 
   /* get the time point */
   nTimePoint = this->mnTimePoint;
@@ -1413,8 +1478,8 @@ FunV_tErr FunV_ChangeTimePointBy ( tkmFunctionalVolumeRef this,
 
   /* print error message */
   if( FunV_tErr_NoError != eResult ) {
-    DebugPrint "Error %d in FunV_ChangeTimePointBy: %s\n",
-      eResult, FunV_GetErrorString(eResult) EndDebugPrint;
+    DebugPrint( ("Error %d in FunV_ChangeTimePointBy: %s\n",
+      eResult, FunV_GetErrorString(eResult) ) );
   }
 
  cleanup:
@@ -1423,7 +1488,7 @@ FunV_tErr FunV_ChangeTimePointBy ( tkmFunctionalVolumeRef this,
 }
 
 FunV_tErr FunV_AnatomicalVoxelClicked ( tkmFunctionalVolumeRef this,
-        xVoxelRef         ipAnatomicalVoxel ) {
+          xVoxelRef         ipAnatomicalVoxel ) {
 
   FunV_tErr eResult = FunV_tErr_NoError;
 
@@ -1431,6 +1496,11 @@ FunV_tErr FunV_AnatomicalVoxelClicked ( tkmFunctionalVolumeRef this,
   eResult = FunV_Verify( this );
   if( FunV_tErr_NoError != eResult )
     goto error;
+
+  if( NULL == ipAnatomicalVoxel ) {
+    eResult = FunV_tErr_InvalidParameter;
+    goto error;
+  }
 
   /* if we have no data, return */
   if( NULL == this->mpOverlayVolume
@@ -1457,8 +1527,8 @@ FunV_tErr FunV_AnatomicalVoxelClicked ( tkmFunctionalVolumeRef this,
 
   /* print error message */
   if( FunV_tErr_NoError != eResult ) {
-    DebugPrint "Error %d in FunV_AnatomicalVoxelClicked: %s\n",
-      eResult, FunV_GetErrorString(eResult) EndDebugPrint;
+    DebugPrint( ("Error %d in FunV_AnatomicalVoxelClicked: %s\n",
+      eResult, FunV_GetErrorString(eResult) ) );
   }
 
  cleanup:
@@ -1501,8 +1571,8 @@ FunV_tErr FunV_ApplyTransformToOverlay ( tkmFunctionalVolumeRef this,
 
   /* print error message */
   if( FunV_tErr_NoError != eResult ) {
-    DebugPrint "Error %d in FunV_ApplyTransformToOverlay: %s\n",
-      eResult, FunV_GetErrorString(eResult) EndDebugPrint;
+    DebugPrint( ("Error %d in FunV_ApplyTransformToOverlay: %s\n",
+      eResult, FunV_GetErrorString(eResult) ) );
   }
 
  cleanup:
@@ -1541,8 +1611,8 @@ FunV_tErr FunV_TranslateOverlayRegistration ( tkmFunctionalVolumeRef this,
 
   /* print error message */
   if( FunV_tErr_NoError != eResult ) {
-    DebugPrint "Error %d in FunV_TranslateOverlayRegistration: %s\n",
-      eResult, FunV_GetErrorString(eResult) EndDebugPrint;
+    DebugPrint( ("Error %d in FunV_TranslateOverlayRegistration: %s\n",
+      eResult, FunV_GetErrorString(eResult) ) );
   }
 
  cleanup:
@@ -1552,10 +1622,12 @@ FunV_tErr FunV_TranslateOverlayRegistration ( tkmFunctionalVolumeRef this,
 
 FunV_tErr FunV_RotateOverlayRegistration ( tkmFunctionalVolumeRef this,
              float                  ifDegrees,
-             tAxis                  iAxis ) {
+             tAxis                  iAxis,
+             xVoxelRef         iCenterAnaIdx ) {
 
   FunV_tErr eResult = FunV_tErr_NoError;
   FunD_tErr eVolume = FunD_tErr_NoError;
+  xVoxel    centerFuncRAS;
 
   /* verify us */
   eResult = FunV_Verify( this );
@@ -1567,9 +1639,13 @@ FunV_tErr FunV_RotateOverlayRegistration ( tkmFunctionalVolumeRef this,
     goto cleanup;
   }
 
+  /* convert ana idx center to func idx */
+  FunV_ConvertAnaIdxToFuncRAS( this, iCenterAnaIdx, &centerFuncRAS );
+
   /* rotate the overlay registration */
   eVolume = FunD_RotateRegistration( this->mpOverlayVolume, 
-             ifDegrees, iAxis );
+             ifDegrees, iAxis, &centerFuncRAS );
+
   if( FunV_tErr_NoError != eVolume ) {
     eResult = FunV_tErr_ErrorAccessingInternalVolume;
     goto error;
@@ -1581,8 +1657,8 @@ FunV_tErr FunV_RotateOverlayRegistration ( tkmFunctionalVolumeRef this,
 
   /* print error message */
   if( FunV_tErr_NoError != eResult ) {
-    DebugPrint "Error %d in FunV_RotateOverlayRegistration: %s\n",
-      eResult, FunV_GetErrorString(eResult) EndDebugPrint;
+    DebugPrint( ("Error %d in FunV_RotateOverlayRegistration: %s\n",
+      eResult, FunV_GetErrorString(eResult) ) );
   }
 
  cleanup:
@@ -1621,8 +1697,8 @@ FunV_tErr FunV_ScaleOverlayRegistration ( tkmFunctionalVolumeRef this,
 
   /* print error message */
   if( FunV_tErr_NoError != eResult ) {
-    DebugPrint "Error %d in FunV_ScaleOverlayRegistration: %s\n",
-      eResult, FunV_GetErrorString(eResult) EndDebugPrint;
+    DebugPrint( ("Error %d in FunV_ScaleOverlayRegistration: %s\n",
+      eResult, FunV_GetErrorString(eResult) ) );
   }
 
  cleanup:
@@ -1685,8 +1761,8 @@ FunV_tErr FunV_GetValueAtAnaIdx ( tkmFunctionalVolumeRef this,
    get a percent */
       fValue = (fValue / fOffset) * 100.0;
     } else {
-      DebugPrint "FunV_GetValueAtAnatomicalVoxel: %d,%d,%d: %s\n",
-  xVoxl_ExpandInt(ipVoxel), FunD_GetErrorString(eVolume) EndDebugPrint;
+      DebugPrint( ("FunV_GetValueAtAnatomicalVoxel: %d,%d,%d: %s\n",
+  xVoxl_ExpandInt(ipVoxel), FunD_GetErrorString(eVolume) ) );
     }
   }
 
@@ -1699,8 +1775,8 @@ FunV_tErr FunV_GetValueAtAnaIdx ( tkmFunctionalVolumeRef this,
 
   /* print error message */
   if( FunV_tErr_NoError != eResult ) {
-    DebugPrint "Error %d in FunV_GetValueAtAnaIdx: %s\n",
-      eResult, FunV_GetErrorString(eResult) EndDebugPrint;
+    DebugPrint( ("Error %d in FunV_GetValueAtAnaIdx: %s\n",
+      eResult, FunV_GetErrorString(eResult) ) );
   }
 
  cleanup:
@@ -1758,8 +1834,8 @@ FunV_tErr FunV_InitColorCache_ ( tkmFunctionalVolumeRef this ) {
 
   /* print error message */
   if( FunV_tErr_NoError != eResult ) {
-    DebugPrint "Error %d in FunV_InitColorCache_: %s\n",
-      eResult, FunV_GetErrorString(eResult) EndDebugPrint;
+    DebugPrint( ("Error %d in FunV_InitColorCache_: %s\n",
+      eResult, FunV_GetErrorString(eResult) ) );
   }
 
  cleanup:
@@ -1794,6 +1870,13 @@ FunV_tErr FunV_GetColorForValue ( tkmFunctionalVolumeRef this,
   br = iBaseColor->mfRed;
   bg = iBaseColor->mfGreen;
   bb = iBaseColor->mfBlue;
+
+  /* if we're opaque, use no background color */
+  if( this->mabDisplayFlags[FunV_tDisplayFlag_Ol_Opaque] ) {
+    br = 0;
+    bg = 0;
+    bb = 0;
+  }
 
   /*
   if( this->mabDisplayFlags[FunV_tDisplayFlag_Ol_IgnoreThreshold] ) {
@@ -1899,6 +1982,198 @@ FunV_tErr FunV_GetColorForValue ( tkmFunctionalVolumeRef this,
   return eResult;
 }
 
+FunV_tErr FunV_GetAvgFunctionalValue ( tkmFunctionalVolumeRef this,
+               FunV_tFunctionalValue* oValue,
+               xVoxelRef              oFuncIdx,
+               xVoxelRef              oFuncRAS,
+               tBoolean*              obIsSelection ) {
+
+  FunV_tErr             eResult            = FunV_tErr_NoError;
+  xList_tErr            eList              = xList_tErr_NoErr;
+  xVoxelRef             pVoxel             = NULL;
+  FunV_tFunctionalValue value              = 0;
+  FunV_tFunctionalValue sum                = 0;
+  int                   nNumValues         = 0;
+  FunV_tFunctionalValue average            = 0;
+  xVoxel                funcIdx;
+  xVoxel                funcRAS;
+
+  /* verify us */
+  eResult = FunV_Verify( this );
+  if( FunV_tErr_NoError != eResult )
+    goto error;
+
+  /* make sure we have overlay data.. */
+  if( NULL == this->mpOverlayVolume ) {
+    eResult =  FunV_tErr_OverlayNotLoaded;
+    goto error;
+  }
+  
+  /* for every voxel in our selection... */
+  sum = 0;
+  xList_ResetPosition( this->mpSelectedVoxels );
+  eList = xList_tErr_NoErr;
+  while ( xList_tErr_NoErr == eList ) {
+    
+    /* try to get a voxel */
+    eList = xList_GetNextItemFromPosition( this->mpSelectedVoxels, 
+             (void**)&pVoxel );
+    
+    /* if we got one */
+    if( NULL != pVoxel ) {
+      
+      /* get the value to create an average. it's okay if this call 
+   fails, that just means one of the selected voxels are out 
+   of bounds. */
+      eResult = FunV_GetValueAtAnaIdx( this, pVoxel, &value );
+      if( FunV_tErr_NoError == eResult ) {
+  
+  /* add value to sum and inc count */
+  sum += value;
+  nNumValues++;
+      } else {
+  /* don't use this value, but clear the error flag. */
+  eResult = FunV_tErr_NoError;
+      }
+    }
+  }
+  
+  /* if we got something, divide sum by count */
+  if( nNumValues > 0 ) {
+    average = sum / (FunV_tFunctionalValue)nNumValues;
+  } else {
+    average = 0;
+  }
+
+  /* return the value */
+  *oValue = average;
+  
+  /* if they want the voxel location... */
+  if( NULL != oFuncIdx ||
+      NULL != oFuncRAS ) {
+    
+    /* get the first voxel in the selection */
+    eList = xList_GetFirstItem( this->mpSelectedVoxels, (void**)&pVoxel );
+    if( NULL != pVoxel ) {
+      
+      /* convert to functional index */
+      FunD_ConvertAnaIdxToFuncIdx( this->mpOverlayVolume,
+           pVoxel, &funcIdx );
+      
+      /* if valid, return it. */
+      if ( FunD_IsFunctionalVoxelValid( this->mpOverlayVolume, &funcIdx) ) {
+  
+  if( NULL != oFuncIdx ) {
+    xVoxl_Copy( oFuncIdx, &funcIdx );
+  }  
+
+  /* if they want the ras too, convert and return it. */
+  if( NULL != oFuncRAS ) {
+    FunD_ConvertFuncIdxToFuncRAS( this->mpOverlayVolume, 
+          &funcIdx, &funcRAS );
+    xVoxl_Copy( oFuncRAS, &funcRAS );
+  }
+
+      } else {
+
+  /* not valid, return -1s for voxels they wanted. */
+  if( NULL != oFuncIdx ) {
+    xVoxl_Set( oFuncIdx, -1, -1, -1 );
+  }  
+  if( NULL != oFuncRAS ) {
+    xVoxl_Set( oFuncRAS, -1, -1, -1 );
+  }  
+      }
+    }
+  }
+
+  goto cleanup;
+
+ error:
+
+  /* print error message */
+  if( FunV_tErr_NoError != eResult ) {
+    DebugPrint( ("Error %d in FunV_GetAvgFunctionalValue: %s\n",
+      eResult, FunV_GetErrorString(eResult) ) );
+  }
+
+ cleanup:
+
+  return eResult;
+}
+
+FunV_tErr FunV_ConvertAnaIdxToFuncIdx ( tkmFunctionalVolumeRef this,
+          xVoxelRef              iAnaIdx,
+          xVoxelRef              oFuncIdx ) {
+
+  FunV_tErr eResult = FunV_tErr_NoError;
+
+  /* verify us */
+  eResult = FunV_Verify( this );
+  if( FunV_tErr_NoError != eResult )
+    goto error;
+
+  /* make sure we have overlay data */
+  if( NULL == this->mpOverlayVolume ) {
+    eResult = FunV_tErr_OverlayNotLoaded;
+    goto error;
+  }
+
+  /* do the conversion */
+  FunD_ConvertAnaIdxToFuncIdx( this->mpOverlayVolume, iAnaIdx, oFuncIdx );
+
+  goto cleanup;
+
+ error:
+
+  /* print error message */
+  if( FunV_tErr_NoError != eResult ) {
+    DebugPrint( ("Error %d in FunV_ConvertAnaIdxToFuncIdx: %s\n",
+      eResult, FunV_GetErrorString(eResult) ) );
+  }
+
+ cleanup:
+
+  return eResult;
+}
+
+FunV_tErr FunV_ConvertAnaIdxToFuncRAS ( tkmFunctionalVolumeRef this,
+          xVoxelRef              iAnaIdx,
+          xVoxelRef              oFuncRAS ) {
+
+  FunV_tErr eResult = FunV_tErr_NoError;
+  xVoxel    temp;
+
+  /* verify us */
+  eResult = FunV_Verify( this );
+  if( FunV_tErr_NoError != eResult )
+    goto error;
+
+  /* make sure we have overlay data */
+  if( NULL == this->mpOverlayVolume ) {
+    eResult = FunV_tErr_OverlayNotLoaded;
+    goto error;
+  }
+  
+  /* do the conversion */
+  FunD_ConvertAnaIdxToFuncIdx( this->mpOverlayVolume, iAnaIdx, &temp );
+  FunD_ConvertFuncIdxToFuncRAS( this->mpOverlayVolume, &temp, oFuncRAS );
+
+  goto cleanup;
+
+ error:
+
+  /* print error message */
+  if( FunV_tErr_NoError != eResult ) {
+    DebugPrint( ("Error %d in FunV_ConvertAnaIdxToFuncRAS: %s\n",
+      eResult, FunV_GetErrorString(eResult) ) );
+  }
+
+ cleanup:
+
+  return eResult;
+}
+
 FunV_tErr FunV_InitGraphWindow ( tkmFunctionalVolumeRef this,
          Tcl_Interp*            pInterp ) {
 
@@ -1948,7 +2223,7 @@ FunV_tErr FunV_InitGraphWindow ( tkmFunctionalVolumeRef this,
   /* attempt to source the file. */
   eTcl = Tcl_EvalFile( pInterp, sFileName );
   if( TCL_OK != eTcl ) {
-    DebugPrint "FunV_InitGraphWindow: error parsing %s file, result was:\n%s\n", sFileName, pInterp->result EndDebugPrint;
+    DebugPrint( ("FunV_InitGraphWindow: error parsing %s file, result was:\n%s\n", sFileName, pInterp->result ) );
     eResult = FunV_tErr_ErrorParsingScriptTclFile;
     goto error;
   }
@@ -1962,8 +2237,8 @@ FunV_tErr FunV_InitGraphWindow ( tkmFunctionalVolumeRef this,
 
   /* print error message */
   if( FunV_tErr_NoError != eResult ) {
-    DebugPrint "Error %d in FunV_InitGraphWindow: %s\n",
-      eResult, FunV_GetErrorString(eResult) EndDebugPrint;
+    DebugPrint( ("Error %d in FunV_InitGraphWindow: %s\n",
+      eResult, FunV_GetErrorString(eResult) ) );
   }
 
  cleanup:
@@ -2012,8 +2287,8 @@ FunV_tErr FunV_BeginSelectionRange ( tkmFunctionalVolumeRef this ) {
 
   /* print error message */
   if( FunV_tErr_NoError != eResult ) {
-    DebugPrint "Error %d in FunV_BeginSelectionRange: %s\n",
-      eResult, FunV_GetErrorString(eResult) EndDebugPrint;
+    DebugPrint( ("Error %d in FunV_BeginSelectionRange: %s\n",
+      eResult, FunV_GetErrorString(eResult) ) );
   }
 
  cleanup:
@@ -2022,7 +2297,7 @@ FunV_tErr FunV_BeginSelectionRange ( tkmFunctionalVolumeRef this ) {
 }
 
 FunV_tErr FunV_AddAnatomicalVoxelToSelectionRange 
-                                   ( tkmFunctionalVolumeRef this,
+                                  ( tkmFunctionalVolumeRef this,
             xVoxelRef               ipVoxel ) {
 
   FunV_tErr  eResult = FunV_tErr_NoError;
@@ -2051,8 +2326,8 @@ FunV_tErr FunV_AddAnatomicalVoxelToSelectionRange
 
   /* print error message */
   if( FunV_tErr_NoError != eResult ) {
-    DebugPrint "Error %d in FunV_AddAnatomicalVoxelToSelectionRange: %s\n",
-      eResult, FunV_GetErrorString(eResult) EndDebugPrint;
+    DebugPrint( ("Error %d in FunV_AddAnatomicalVoxelToSelectionRange: %s\n",
+      eResult, FunV_GetErrorString(eResult) ) );
   }
 
  cleanup:
@@ -2062,108 +2337,45 @@ FunV_tErr FunV_AddAnatomicalVoxelToSelectionRange
 
 FunV_tErr FunV_EndSelectionRange ( tkmFunctionalVolumeRef this ) {
 
-  FunV_tErr             eResult            = FunV_tErr_NoError;
-  xList_tErr            eList              = xList_tErr_NoErr;
- xVoxelRef              pVoxel             = NULL;
- xVoxelRef              pFuncVoxel         = NULL;
-  FunV_tFunctionalValue value              = 0;
-  FunV_tFunctionalValue sum                = 0;
-  int                   nNumValues         = 0;
-  FunV_tFunctionalValue average            = 0;
-  char                  sTclArguments[256] = "";
-
-  xVoxl_New( &pFuncVoxel );
+  FunV_tErr  eResult            = FunV_tErr_NoError;
+  xList_tErr eList             = xList_tErr_NoErr;
+  int        nNumValues         = 0;
+  char       sTclArguments[256] = "";
+  xVoxelRef  pVoxel             = NULL;
+  xVoxel     funcIdx;
+  xVoxel     funcRAS;
 
   /* verify us */
   eResult = FunV_Verify( this );
   if( FunV_tErr_NoError != eResult )
     goto error;
 
-  /* if we have overlay data.. */
-  if( NULL != this->mpOverlayVolume ) {
-
-    /* get the average value and send it to tcl as the overlay value */
-    sum = 0;
-    xList_ResetPosition( this->mpSelectedVoxels );
-    eList = xList_tErr_NoErr;
-    while ( xList_tErr_NoErr == eList ) {
-      
-      /* try to get a voxel */
-      eList = xList_GetNextItemFromPosition( this->mpSelectedVoxels, 
-               (void**)&pVoxel );
-      
-      /* if we got one */
-      if( NULL != pVoxel ) {
-  
-  /* get the value to create an average. it's okay if this call 
-     fails, that just means one of the selected voxels are out 
-     of bounds. */
-  eResult = FunV_GetValueAtAnaIdx( this, pVoxel, &value );
-  if( FunV_tErr_NoError == eResult ) {
+  if( NULL != this->mpTimeCourseVolume ) {
     
-    /* add value to sum and inc count */
-    sum += value;
-    nNumValues++;
-  } else {
-    /* don't use this value, but clear the error flag. */
-    eResult = FunV_tErr_NoError;
+    /* find out how many selected voxels we have and set the location
+       name in the time course window accordingly. */
+    xList_GetCount( this->mpSelectedVoxels, &nNumValues );
+    if( nNumValues <= 1 ) {
+      eList = xList_GetFirstItem( this->mpSelectedVoxels, (void**)&pVoxel );
+      if( NULL != pVoxel ) {
+  FunD_ConvertAnaIdxToFuncIdx( this->mpTimeCourseVolume,
+             pVoxel, &funcIdx );
+  if ( FunD_IsFunctionalVoxelValid( this->mpTimeCourseVolume, 
+            &funcIdx) ) {
+    FunD_ConvertFuncIdxToFuncRAS( this->mpTimeCourseVolume, 
+          &funcIdx, &funcRAS );
+    sprintf( sTclArguments, "\"%.2f, %.2f, %.2f\"",
+       xVoxl_ExpandFloat( &funcRAS ) );
   }
       }
-    }
-    
-    /* if we got something, divide sum by count */
-    if( nNumValues > 0 ) {
-      average = sum / (FunV_tFunctionalValue)nNumValues;
     } else {
-      average = 0;
+      strcpy( sTclArguments, "Selection" );
     }
-    
-    /* send average to tcl */
-    sprintf( sTclArguments, "%f", average );
-    FunV_SendTkmeditTclCommand_( this, tkm_tTclCommand_UpdateFunctionalValue,
-         sTclArguments ); 
-  }    
-
-  /* find out how many selected voxels we have and set the location
-     name accordingly. */
-  if( nNumValues <= 1 ) {
-    strcpy( sTclArguments, "\"Single voxel\"" );
-  } else {
-    strcpy( sTclArguments, "Selection" );
-  }
-  FunV_SendTclCommand_( this, FunV_tTclCommand_TC_UpdateLocationName,
+    FunV_SendTclCommand_( this, FunV_tTclCommand_TC_UpdateLocationName,
         sTclArguments );    
   
-
-  /* update the func coords label. first get the first voxel. */
-  if( NULL != this->mpOverlayVolume ) {
     
-    eList = xList_GetFirstItem( this->mpSelectedVoxels, (void**)&pVoxel );
-    if( NULL != pVoxel ) {
-
-      /* convert to functional index */
-      FunD_ConvertAnaIdxToFuncIdx( this->mpOverlayVolume,
-          pVoxel, pFuncVoxel );
-      
-      /* if valid, sprint it to the tcl argument */
-      if ( FunD_IsFunctionalVoxelValid( this->mpOverlayVolume,pFuncVoxel) ) {
-  sprintf( sTclArguments, "%d %d %d",
-     xVoxl_ExpandInt( pFuncVoxel ) );
-      } else {
-  strcpy( sTclArguments, "-1 -1 -1" );
-      }
-      
-    } else {
-      strcpy( sTclArguments, "-1 -1 -1" );
-    }
-    
-    /* send to tcl */
-    FunV_SendTkmeditTclCommand_( this, tkm_tTclCommand_UpdateFunctionalCoords,
-         sTclArguments );
-  }
-
-  /* redraw the graph if we have time course data */
-  if( NULL != this->mpTimeCourseVolume ) {
+    /* redraw the graph if we have time course data */
     eResult = FunV_DrawGraph( this );
     if( FunV_tErr_NoError != eResult )
       goto error;
@@ -2175,13 +2387,11 @@ FunV_tErr FunV_EndSelectionRange ( tkmFunctionalVolumeRef this ) {
 
   /* print error message */
   if( FunV_tErr_NoError != eResult ) {
-    DebugPrint "Error %d in FunV_EndSelectionRange: %s\n",
-      eResult, FunV_GetErrorString(eResult) EndDebugPrint;
+    DebugPrint( ("Error %d in FunV_EndSelectionRange: %s\n",
+      eResult, FunV_GetErrorString(eResult) ) );
   }
 
  cleanup:
-
-  xVoxl_Delete( &pFuncVoxel );
 
   return eResult;
 }
@@ -2280,8 +2490,8 @@ goto cleanup;
 
   /* print error message */
   if( FunV_tErr_NoError != eResult ) {
-    DebugPrint "Error %d in FunV_DrawGraph: %s\n",
-      eResult, FunV_GetErrorString(eResult) EndDebugPrint;
+    DebugPrint( ("Error %d in FunV_DrawGraph: %s\n",
+      eResult, FunV_GetErrorString(eResult) ) );
   }
 
  cleanup:
@@ -2349,8 +2559,8 @@ FunV_tErr FunV_SendGraphData_ ( tkmFunctionalVolumeRef this,
 
   /* print error message */
   if( FunV_tErr_NoError != eResult ) {
-    DebugPrint "Error %d in FunV_SendGraphData_: %s\n",
-      eResult, FunV_GetErrorString(eResult) EndDebugPrint;
+    DebugPrint( ("Error %d in FunV_SendGraphData_: %s\n",
+      eResult, FunV_GetErrorString(eResult) ) );
   }
 
  cleanup:
@@ -2404,8 +2614,8 @@ FunV_tErr FunV_SendGraphErrorBars_ ( tkmFunctionalVolumeRef this,
 
   /* print error message */
   if( FunV_tErr_NoError != eResult ) {
-    DebugPrint "Error %d in FunV_SendGraphErrorBars_: %s\n",
-      eResult, FunV_GetErrorString(eResult) EndDebugPrint;
+    DebugPrint( ("Error %d in FunV_SendGraphErrorBars_: %s\n",
+      eResult, FunV_GetErrorString(eResult) ) );
   }
 
  cleanup:
@@ -2584,6 +2794,12 @@ FunV_tErr FunV_CalcTimeCourseAverages_ ( tkmFunctionalVolumeRef this,
   oafDeviations[nValue] = (oafDeviations[nValue] / fOffset) * 100.0;
       }
     }
+  } else {
+
+    /* fill deviations with 0s */
+    for( nValue = 0; nValue < nNumTimePoints; nValue++ ) {
+      oafDeviations[nValue] = 0;
+    }
   }
   
   /* return the number of values */
@@ -2595,8 +2811,8 @@ FunV_tErr FunV_CalcTimeCourseAverages_ ( tkmFunctionalVolumeRef this,
 
   /* print error message */
   if( FunV_tErr_NoError != eResult ) {
-    DebugPrint "Error %d in FunV_CalcTimeCourseAverages_: %s\n",
-      eResult, FunV_GetErrorString(eResult) EndDebugPrint;
+    DebugPrint( ("Error %d in FunV_CalcTimeCourseAverages_: %s\n",
+      eResult, FunV_GetErrorString(eResult) ) );
   }
 
  cleanup:
@@ -2710,8 +2926,8 @@ FunV_tErr FunV_PrintSelectionRangeToFile ( tkmFunctionalVolumeRef this,
 
   /* print error message */
   if( FunV_tErr_NoError != eResult ) {
-    DebugPrint "Error %d in FunV_PrintSelectionRangeToFile: %s\n",
-      eResult, FunV_GetErrorString(eResult) EndDebugPrint;
+    DebugPrint( ("Error %d in FunV_PrintSelectionRangeToFile: %s\n",
+      eResult, FunV_GetErrorString(eResult) ) );
   }
 
  cleanup:
@@ -2729,64 +2945,175 @@ FunV_tErr FunV_PrintSelectionRangeToFile ( tkmFunctionalVolumeRef this,
 
 }
 
-int FunV_TclOlLoadData ( ClientData iClientData, 
-       Tcl_Interp *ipInterp, int argc, char *argv[] ){
+FunV_tErr FunV_SelectAnaVoxelsByFuncValue ( tkmFunctionalVolumeRef this,
+              xVoxelRef              iAnaIdx,
+              FunV_tFindStatsComp    iCompare ) {
   
-  tkmFunctionalVolumeRef this         = NULL;
-  FunV_tErr              eResult      = FunV_tErr_NoError;
-  char                   sPath[256]   = "";
-  char                   sStem[256]   = "";
-  char                   sPathAndStem[256] = "";
-  int                    eTclResult   = TCL_OK;
-  char                   sError[256]  = "";       
-
-  /* grab us from the client data ptr */
-  this = (tkmFunctionalVolumeRef) iClientData;
-
-  /* verify us. */
+  FunV_tErr             eResult    = FunV_tErr_NoError;
+  tBoolean*             visited    = NULL;
+  FunV_tFindStatsParams params;
+  int                   nDimension =  0;
+#ifdef Solaris
+  int                  i           = 0;
+  int                  nSize       = 0;
+#endif
+  
+  DebugEnterFunction( ("FunV_SelectAnaVoxelsByFuncValue( this=%p, "
+           "iAnaIdx=%d,%d,%d )", this,xVoxl_ExpandInt( iAnaIdx )));
+          
+  /* verify us */
   eResult = FunV_Verify( this );
-  if ( FunV_tErr_NoError != eResult )
-    goto error;
-   
-  /* verify the number of arguments. */
-  if ( argc < 2 ) {
-    eResult = FunV_tErr_WrongNumberArgs;
-    goto error;
+  DebugAssertThrow( FunV_tErr_NoError == eResult );
+  
+  DebugAssertThrowX( (NULL != iAnaIdx), eResult, FunV_tErr_InvalidParameter );
+  DebugAssertThrowX( ( iCompare > FunV_tFindStatsComp_Invalid &&
+           iCompare < FunV_knNumFindStatsComp ), 
+         eResult, FunV_tErr_InvalidParameter );
+
+  /* init a volume to keep track of visited voxels */
+  DebugNote( ("Allocating visited tracker volume") );
+  tkm_GetAnaDimension( tkm_tVolumeType_Main, &nDimension );
+  visited = (tBoolean*) malloc( sizeof(tBoolean) * pow( nDimension, 3 ) );
+  DebugAssertThrowX( (NULL != visited), eResult, FunV_tErr_AllocationFailed );
+  
+  /* zero it. solaris doesn't like bzero here... ??? */
+#ifdef Solaris
+  DebugNote( ("Zeroing visited volume iteratively") );
+  nSize = pow( nDimension, 3 );
+  for( i = 0; i < nSize; i++ )
+    visited[i] = FALSE;
+#else
+  DebugNote( ("Zeroing visted volume with bzero") );
+  bzero( visited, pow( nDimension, 3 ) * sizeof( tBoolean ) );
+#endif
+  
+  /* get the min value */
+  DebugNote( ("Getting starting functional value") );
+  eResult = FunV_GetValueAtAnaIdx( this, iAnaIdx, &(params.mStartValue) );
+  if( FunV_tErr_NoError != eResult ) {
+    DebugGotoCleanup;
   }
 
-  /* parse args */
-  strcpy( sPath, argv[1] );
-  strcpy( sStem, argv[2] );
-  sprintf( sPathAndStem, "%s/%s", sPath, sStem );
-  eResult = FunV_LoadOverlay( this, sPathAndStem );
-  if( FunV_tErr_NoError != eResult )
-    goto error;
-
-  goto cleanup;
+  /* copy the starting place */
+  DebugNote( ("Setting starting anatomical index") );
+  xVoxl_SetFloat( &(params.mStart), 
+      floor( xVoxl_GetFloatX(iAnaIdx) ),
+      floor( xVoxl_GetFloatY(iAnaIdx) ),
+      floor( xVoxl_GetFloatZ(iAnaIdx) ) );
   
- error:
-  
-  /* print error message */
-  if ( FunV_tErr_NoError != eResult ) {
-    
-    if( IsDebugging ) {
-      sprintf ( sError, "Error %d in FunV_TclOlLoadData: %s\n",
-    eResult, FunV_GetErrorString(eResult) );
-      DebugPrint sError EndDebugPrint;
-    } else {
-      sprintf( sError, "Error %d while loading overlay data: %s\n",
-    eResult, FunV_GetErrorString(eResult) );
-    }         
+  /* initialize params */
+  params.mnIterationCount = 0;
+  params.mnTotalSelected  = 0;
+  params.compareType      = iCompare;
 
-    /* set tcl result, volatile so tcl will make a copy of it. */
-    Tcl_SetResult( ipInterp, sError, TCL_VOLATILE );
+  /* recursivly iterate with these values */
+  DebugNote( ("Starting iteration") );
+  FunV_SelectAnaVoxelsByFuncValueIter_( this, &(params.mStart), 
+          &params, visited );
+  
+  /* update the overlay */
+  eResult = FunV_OverlayChanged_( this );
+  DebugAssertThrow( FunV_tErr_NoError == eResult );
+
+  DebugCatch;
+  DebugCatchError( eResult, FunV_tErr_NoError, FunV_GetErrorString );
+  EndDebugCatch;
+
+  DebugNote( ("Freeing visited volume") );
+  if( NULL != visited )
+    free( visited );
+  
+  DebugExitFunction;
+
+  return eResult;
+}
+
+void FunV_SelectAnaVoxelsByFuncValueIter_ ( tkmFunctionalVolumeRef this,
+              xVoxelRef              iAnaIdx,
+              FunV_tFindStatsParams* iParams,
+              tBoolean*              iVisited ) {
+
+  FunV_tErr              eFunctional = FunV_tErr_NoError;
+  int                    nDimension  = 0;
+  int                    nZ          = 0;
+  int                    nY          = 0;
+  int                    nX          = 0;
+  xVoxel                 anaIdx;
+  FunV_tFunctionalValue  value       = 0;
+  float                  fDistance   = 0;
+  tBoolean               bGood       = FALSE;
+#if 0
+  FunV_tFunctionalValue  average     = 0;
+  int                    nSamples    = 0;
+  xVoxel                 s;
+#endif
+
+  if( iParams->mnIterationCount >= FunV_knMaxFindStatsSteps )
+    return;
+
+  iParams->mnIterationCount++;
+
+  /* if we've already been here, exit */
+  tkm_GetAnaDimension( tkm_tVolumeType_Main, &nDimension );
+  if( iVisited[ xVoxl_ExpandToIndex( iAnaIdx,nDimension ) ] == 1 ) {
+    goto cleanup;
   }
+
+  /* make this voxel as visited */
+  iVisited[ xVoxl_ExpandToIndex( iAnaIdx,nDimension ) ] = 1;
+
+  /* get the value at the starting voxel */
+  DisableDebuggingOutput;
+  xVoxl_Copy( &anaIdx, iAnaIdx );
+  eFunctional = FunV_GetValueAtAnaIdx( this, &anaIdx, &value );
+  if( FunV_tErr_NoError != eFunctional )
+    goto cleanup;
+  EnableDebuggingOutput;
+
+  /* if it doesn't make the cut, exit */
+  switch( iParams->compareType ) {
+  case FunV_tFindStatsComp_GTE:
+    bGood = (value >= iParams->mStartValue);
+    break;
+  case FunV_tFindStatsComp_EQ:
+    bGood = (value == iParams->mStartValue);
+    break;
+  default:
+    bGood = FALSE;
+  }
+  if( !bGood )
+    goto cleanup;
   
-  eTclResult = TCL_ERROR;
-  
+  /* check the distance */
+  fDistance = sqrt(((xVoxl_GetX(iAnaIdx) - xVoxl_GetX(&(iParams->mStart))) * 
+        (xVoxl_GetX(iAnaIdx) - xVoxl_GetX(&(iParams->mStart)))) +
+       ((xVoxl_GetY(iAnaIdx) - xVoxl_GetY(&(iParams->mStart))) * 
+        (xVoxl_GetY(iAnaIdx) - xVoxl_GetY(&(iParams->mStart)))) +
+       ((xVoxl_GetZ(iAnaIdx) - xVoxl_GetZ(&(iParams->mStart))) * 
+        (xVoxl_GetZ(iAnaIdx) - xVoxl_GetZ(&(iParams->mStart)))) );
+  if( fDistance > FunV_knMaxFindStatsDistance )
+    goto cleanup;
+
+  /* if so, select this voxel. */
+  tkm_SelectVoxel( iAnaIdx );
+  iParams->mnTotalSelected++;
+
+  /* check the surrounding voxels */
+  for( nZ = xVoxl_GetZ(iAnaIdx)-1; nZ <= xVoxl_GetZ(iAnaIdx)+1; nZ++ ) {
+    for( nY = xVoxl_GetY(iAnaIdx)-1; nY <= xVoxl_GetY(iAnaIdx)+1; nY++ ) {
+      for( nX = xVoxl_GetX(iAnaIdx)-1; nX <= xVoxl_GetX(iAnaIdx)+1; nX++ ) {
+  xVoxl_Set( &anaIdx, nX, nY, nZ );
+  if( tkm_IsValidAnaIdx( tkm_tVolumeType_Main, &anaIdx ) ) {
+    FunV_SelectAnaVoxelsByFuncValueIter_( this, &anaIdx, 
+            iParams, iVisited );
+  }
+      }
+    }
+  }
+
  cleanup:
 
-  return eTclResult;
+  iParams->mnIterationCount--;
 }
 
 int FunV_TclOlSaveRegistration ( ClientData iClientData, 
@@ -2829,7 +3156,7 @@ int FunV_TclOlSaveRegistration ( ClientData iClientData,
     if( IsDebugging ) {
       sprintf ( sError, "Error %d in FunV_TclOlSaveRegistration: %s\n",
     eResult, FunV_GetErrorString(eResult) );
-      DebugPrint sError EndDebugPrint;
+      DebugPrint( (sError ) );
     } else {
       sprintf( sError, "Error %d while saving registration: %s\n",
     eResult, FunV_GetErrorString(eResult) );
@@ -2892,7 +3219,7 @@ int FunV_TclOlRestoreRegistration ( ClientData iClientData,
     if( IsDebugging ) {
       sprintf ( sError, "Error %d in FunV_TclOlRestoreRegistration: %s\n",
     eResult, FunV_GetErrorString(eResult) );
-      DebugPrint sError EndDebugPrint;
+      DebugPrint( (sError ) );
     } else {
       sprintf( sError, "Error %d while restoring registration: %s\n",
     eResult, FunV_GetErrorString(eResult) );
@@ -2954,7 +3281,7 @@ int FunV_TclOlSetRegistrationToIdentity ( ClientData iClientData,
     if( IsDebugging ) {
       sprintf ( sError, "Error %d in FunV_TclOlRestoreRegistration: %s\n",
     eResult, FunV_GetErrorString(eResult) );
-      DebugPrint sError EndDebugPrint;
+      DebugPrint( (sError ) );
     } else {
       sprintf( sError, "Error %d while restoring registration: %s\n",
     eResult, FunV_GetErrorString(eResult) );
@@ -2995,7 +3322,7 @@ int FunV_TclOlSetTimePoint ( ClientData iClientData,
   }
 
   /* parse args */
-  nTimePoint = atoi( argv[1] );
+  nTimePoint = rint( atof( argv[1] ) );
   eResult = FunV_SetTimePoint( this, nTimePoint );
   if( FunV_tErr_NoError != eResult )
     goto error;
@@ -3010,7 +3337,7 @@ int FunV_TclOlSetTimePoint ( ClientData iClientData,
     
     sprintf ( sError, "Error %d in FunV_TclOlSetTimePoint: %s\n",
         eResult, FunV_GetErrorString(eResult) );
-    DebugPrint sError EndDebugPrint;
+    DebugPrint( (sError ) );
     
     /* set tcl result, volatile so tcl will make a copy of it. */
     Tcl_SetResult( ipInterp, sError, TCL_VOLATILE );
@@ -3063,7 +3390,7 @@ int FunV_TclOlSetCondition ( ClientData iClientData,
     sprintf ( sError, "Error %d in FunV_TclOlSetCondition: %s\n",
         eResult, FunV_GetErrorString(eResult) );
     
-    DebugPrint sError EndDebugPrint;
+    DebugPrint( (sError ) );
     
     /* set tcl result, volatile so tcl will make a copy of it. */
     Tcl_SetResult( ipInterp, sError, TCL_VOLATILE );
@@ -3121,7 +3448,7 @@ int FunV_TclOlSetDisplayFlag ( ClientData iClientData,
     sprintf ( sError, "Error %d in FunV_TclOlSetDisplayFlag: %s\n",
         eResult, FunV_GetErrorString(eResult) );
 
-    DebugPrint sError EndDebugPrint;
+    DebugPrint( (sError ) );
     
     /* set tcl result, volatile so tcl will make a copy of it. */
     Tcl_SetResult( ipInterp, sError, TCL_VOLATILE );
@@ -3180,7 +3507,7 @@ int FunV_TclOlSetThreshold ( ClientData iClientData,
     sprintf ( sError, "Error %d in FunV_TclOlSetThreshold: %s\n",
         eResult, FunV_GetErrorString(eResult) );
 
-    DebugPrint sError EndDebugPrint;
+    DebugPrint( (sError ) );
     
     /* set tcl result, volatile so tcl will make a copy of it. */
     Tcl_SetResult( ipInterp, sError, TCL_VOLATILE );
@@ -3188,66 +3515,6 @@ int FunV_TclOlSetThreshold ( ClientData iClientData,
     eTclResult = TCL_ERROR;
   }
 
- cleanup:
-
-  return eTclResult;
-}
-
-int FunV_TclTCLoadData ( ClientData iClientData, 
-       Tcl_Interp *ipInterp, int argc, char *argv[] ){
-  
-  tkmFunctionalVolumeRef this         = NULL;
-  FunV_tErr              eResult      = FunV_tErr_NoError;
-  char                   sPath[256]   = "";
-  char                   sStem[256]   = "";
-  char                   sPathAndStem[256] = "";
-  int                    eTclResult   = TCL_OK;
-  char                   sError[256]  = "";       
-
-  /* grab us from the client data ptr */
-  this = (tkmFunctionalVolumeRef) iClientData;
-
-  /* verify us. */
-  eResult = FunV_Verify( this );
-  if ( FunV_tErr_NoError != eResult )
-    goto error;
-   
-  /* verify the number of arguments. */
-  if ( argc < 2 ) {
-    eResult = FunV_tErr_WrongNumberArgs;
-    goto error;
-  }
-
-  /* parse args */
-  strcpy( sPath, argv[1] );
-  strcpy( sStem, argv[2] );
-  sprintf( sPathAndStem, "%s/%s", sPath, sStem );
-  eResult = FunV_LoadTimeCourse( this, sPathAndStem );
-  if( FunV_tErr_NoError != eResult )
-    goto error;
-
-  goto cleanup;
-  
- error:
-  
-  /* print error message */
-  if ( FunV_tErr_NoError != eResult ) {
-    
-    if( IsDebugging ) {
-      sprintf ( sError, "Error %d in FunV_TclOlLoadData: %s\n",
-    eResult, FunV_GetErrorString(eResult) );
-      DebugPrint sError EndDebugPrint;
-    } else {
-      sprintf( sError, "Error %d while loading time course data: %s\n",
-         eResult, FunV_GetErrorString(eResult) );
-    }      
-
-    /* set tcl result, volatile so tcl will make a copy of it. */
-    Tcl_SetResult( ipInterp, sError, TCL_VOLATILE );
-  }
-  
-  eTclResult = TCL_ERROR;
-  
  cleanup:
 
   return eTclResult;
@@ -3294,7 +3561,7 @@ int FunV_TclTCSetNumPreStimPoints ( ClientData iClientData,
     sprintf ( sError, "Error %d in FunV_TclTCSetNumPreStimPoints: %s\n",
         eResult, FunV_GetErrorString(eResult) );
     
-    DebugPrint sError EndDebugPrint;
+    DebugPrint( (sError ) );
     
     /* set tcl result, volatile so tcl will make a copy of it. */
     Tcl_SetResult( ipInterp, sError, TCL_VOLATILE );
@@ -3348,7 +3615,7 @@ int FunV_TclTCSetTimeResolution ( ClientData iClientData,
     sprintf ( sError, "Error %d in FunV_TclTCSetTimeResolution: %s\n",
         eResult, FunV_GetErrorString(eResult) );
 
-    DebugPrint sError EndDebugPrint;
+    DebugPrint( (sError ) );
     
     /* set tcl result, volatile so tcl will make a copy of it. */
     Tcl_SetResult( ipInterp, sError, TCL_VOLATILE );
@@ -3384,7 +3651,7 @@ int FunV_TclTCSetDisplayFlag ( ClientData iClientData,
     sprintf ( sError, "Error %d in FunV_TclTCSetDisplayFlag: %s\n",
         eResult, FunV_GetErrorString(eResult) );
 
-    DebugPrint sError EndDebugPrint;
+    DebugPrint( (sError ) );
     
     /* set tcl result, volatile so tcl will make a copy of it. */
     Tcl_SetResult( ipInterp, sError, TCL_VOLATILE );
@@ -3440,7 +3707,7 @@ int FunV_TclTCPrintSelectionRangeToFile ( ClientData iClientData,
     sprintf ( sError, "Error %d in FunV_TclTCPrintSelectionRangeToFile: %s\n",
         eResult, FunV_GetErrorString(eResult) );
 
-    DebugPrint sError EndDebugPrint;
+    DebugPrint( (sError ) );
     
     /* set tcl result, volatile so tcl will make a copy of it. */
     Tcl_SetResult( ipInterp, sError, TCL_VOLATILE );
@@ -3453,19 +3720,21 @@ int FunV_TclTCPrintSelectionRangeToFile ( ClientData iClientData,
   return eTclResult;
 }
 
-
-
 FunV_tErr FunV_SendViewStateToTcl ( tkmFunctionalVolumeRef this ) {
 
-  FunV_tErr eResult            = FunV_tErr_NoError;
-  int       nValue             = 0;
-  int       nFlag              = 0;
-  char      sValue[256]        = "";
-  char      sValue2[256]       = "";
-  char      sTclArguments[256] = "";
-  float     fMin               = 0;
-  float     fMax               = 0;
-
+  FunV_tErr  eResult            = FunV_tErr_NoError;
+  xList_tErr eList             = xList_tErr_NoErr;
+  int        nValue             = 0;
+  int        nFlag              = 0;
+  char       sValue[256]        = "";
+  char       sValue2[256]       = "";
+  char       sTclArguments[256] = "";
+  float      fMin               = 0;
+  float      fMax               = 0;
+  xVoxelRef  pVoxel             = NULL;
+  xVoxel     funcIdx;
+  xVoxel     funcRAS;
+  
   /* verify us */
   eResult = FunV_Verify( this );
   if( FunV_tErr_NoError != eResult )
@@ -3571,7 +3840,18 @@ FunV_tErr FunV_SendViewStateToTcl ( tkmFunctionalVolumeRef this ) {
        name accordingly. */
     xList_GetCount( this->mpSelectedVoxels, &nValue );
     if( nValue <= 1 ) {
-      strcpy( sTclArguments, "\"Single voxel\"" );
+      eList = xList_GetFirstItem( this->mpSelectedVoxels, (void**)&pVoxel );
+      if( NULL != pVoxel ) {
+  FunD_ConvertAnaIdxToFuncIdx( this->mpTimeCourseVolume,
+             pVoxel, &funcIdx );
+  if ( FunD_IsFunctionalVoxelValid( this->mpTimeCourseVolume, 
+            &funcIdx) ) {
+    FunD_ConvertFuncIdxToFuncRAS( this->mpTimeCourseVolume, 
+          &funcIdx, &funcRAS );
+    sprintf( sTclArguments, "\"%.2f, %.2f, %.2f\"",
+       xVoxl_ExpandFloat( &funcRAS ) );
+  }
+      }
     } else {
       strcpy( sTclArguments, "Selection" );
     }
@@ -3586,8 +3866,8 @@ FunV_tErr FunV_SendViewStateToTcl ( tkmFunctionalVolumeRef this ) {
 
   /* print error message */
   if( FunV_tErr_NoError != eResult ) {
-    DebugPrint "Error %d in FunV_SendViewStateToTcl: %s\n",
-      eResult, FunV_GetErrorString(eResult) EndDebugPrint;
+    DebugPrint( ("Error %d in FunV_SendViewStateToTcl: %s\n",
+      eResult, FunV_GetErrorString(eResult) ) );
   }
 
  cleanup:
@@ -3606,9 +3886,6 @@ FunV_tErr FunV_RegisterTclCommands ( tkmFunctionalVolumeRef this,
     goto error;
 
   /* register all our commands. */
-  Tcl_CreateCommand( pInterp, "Overlay_LoadData",
-         FunV_TclOlLoadData,
-         (ClientData) this, (Tcl_CmdDeleteProc *) NULL );
   Tcl_CreateCommand( pInterp, "Overlay_SaveRegistration",
          FunV_TclOlSaveRegistration,
          (ClientData) this, (Tcl_CmdDeleteProc *) NULL );
@@ -3633,9 +3910,6 @@ FunV_tErr FunV_RegisterTclCommands ( tkmFunctionalVolumeRef this,
   Tcl_CreateCommand( pInterp, "TimeCourse_SetNumPreStimPoints",
          FunV_TclTCSetNumPreStimPoints,
          (ClientData) this, (Tcl_CmdDeleteProc *) NULL );
-  Tcl_CreateCommand( pInterp, "TimeCourse_LoadData",
-         FunV_TclTCLoadData,
-         (ClientData) this, (Tcl_CmdDeleteProc *) NULL );
   Tcl_CreateCommand( pInterp, "TimeCourse_SetTimeResolution",
          FunV_TclTCSetTimeResolution,
          (ClientData) this, (Tcl_CmdDeleteProc *) NULL );
@@ -3657,8 +3931,8 @@ FunV_tErr FunV_RegisterTclCommands ( tkmFunctionalVolumeRef this,
 
   /* print error message */
   if( FunV_tErr_NoError != eResult ) {
-    DebugPrint "Error %d in FunV_RegisterTclCommands: %s\n",
-      eResult, FunV_GetErrorString(eResult) EndDebugPrint;
+    DebugPrint( ("Error %d in FunV_RegisterTclCommands: %s\n",
+      eResult, FunV_GetErrorString(eResult) ) );
   }
 
  cleanup:
@@ -3693,8 +3967,8 @@ FunV_tErr FunV_GetThresholdMax ( tkmFunctionalVolumeRef this,
 
   /* print error message */
   if( FunV_tErr_NoError != eResult ) {
-    DebugPrint "Error %d in FunV_: %s\n",
-      eResult, FunV_GetErrorString(eResult) EndDebugPrint;
+    DebugPrint( ("Error %d in FunV_: %s\n",
+      eResult, FunV_GetErrorString(eResult) ) );
   }
 
  cleanup:
@@ -3725,8 +3999,8 @@ FunV_tErr FunV_GetThreshold ( tkmFunctionalVolumeRef this,
 
   /* print error message */
   if( FunV_tErr_NoError != eResult ) {
-    DebugPrint "Error %d in FunV_GetThreshold: %s\n",
-      eResult, FunV_GetErrorString(eResult) EndDebugPrint;
+    DebugPrint( ("Error %d in FunV_GetThreshold: %s\n",
+      eResult, FunV_GetErrorString(eResult) ) );
   }
 
  cleanup:
@@ -3754,7 +4028,7 @@ FunV_tErr FunV_OverlayChanged_ ( tkmFunctionalVolumeRef this ) {
     if( FunV_tErr_NoError == eValueResult ) {
     
       /* if we got one, send it to the tcl window */
-      sprintf( sTclArguments, "%f", (float)value );
+      sprintf( sTclArguments, "cursor %f", (float)value );
       tkm_SendTclCommand( tkm_tTclCommand_UpdateFunctionalValue, 
         sTclArguments );
     }
@@ -3774,8 +4048,8 @@ FunV_tErr FunV_OverlayChanged_ ( tkmFunctionalVolumeRef this ) {
 
   /* print error message */
   if( FunV_tErr_NoError != eResult ) {
-    DebugPrint "Error %d in FunV_OverlayChanged_: %s\n",
-      eResult, FunV_GetErrorString(eResult) EndDebugPrint;
+    DebugPrint( ("Error %d in FunV_OverlayChanged_: %s\n",
+      eResult, FunV_GetErrorString(eResult) ) );
   }
 
  cleanup:
@@ -3803,8 +4077,8 @@ FunV_tErr FunV_SendTkmeditTclCommand_ ( tkmFunctionalVolumeRef this,
 
   /* print error message */
   if( FunV_tErr_NoError != eResult ) {
-    DebugPrint "Error %d in FunV_SendTkmeditTclCommand_: %s\n",
-      eResult, FunV_GetErrorString(eResult) EndDebugPrint;
+    DebugPrint( ("Error %d in FunV_SendTkmeditTclCommand_: %s\n",
+      eResult, FunV_GetErrorString(eResult) ) );
   }
 
  cleanup:
@@ -3841,8 +4115,8 @@ FunV_tErr FunV_SendTclCommand_ ( tkmFunctionalVolumeRef this,
 
   /* print error message */
   if( FunV_tErr_NoError != eResult ) {
-    DebugPrint "Error %d in FunV_SendTclCommand_: %s\n",
-      eResult, FunV_GetErrorString(eResult) EndDebugPrint;
+    DebugPrint( ("Error %d in FunV_SendTclCommand_: %s\n",
+      eResult, FunV_GetErrorString(eResult) ) );
   }
 
  cleanup:
@@ -3875,8 +4149,8 @@ FunV_tErr FunV_Verify ( tkmFunctionalVolumeRef this ) {
 
 void FunV_Signal ( char* isFuncName, int inLineNum, FunV_tErr ieCode ) {
 
-  DebugPrint "Signal in %s, line %d: %d, %s\n", 
-    isFuncName, inLineNum, ieCode, FunV_GetErrorString(ieCode) EndDebugPrint;
+  DebugPrint( ("Signal in %s, line %d: %d, %s\n", 
+    isFuncName, inLineNum, ieCode, FunV_GetErrorString(ieCode) ) );
 }
 
 char* FunV_GetErrorString ( FunV_tErr ieCode ) {

@@ -72,8 +72,8 @@ xGWin_tErr xGWin_New ( xGLutWindowRef* oppWindow,
     free ( this );
   }
 
-  DebugPrint "Error %d in xGWin_New: %s", 
-    eResult, xGWin_GetErrorString ( eResult ) EndDebugPrint;
+  DebugPrint( ("Error %d in xGWin_New: %s", 
+    eResult, xGWin_GetErrorString ( eResult ) ) );
 
  cleanup:
   
@@ -110,8 +110,8 @@ xGWin_tErr xGWin_Delete ( xGLutWindowRef* ioppWindow ) {
 
  error:
 
-  DebugPrint "Error %d in xGWin_Delete: %s", 
-    eResult, xGWin_GetErrorString ( eResult ) EndDebugPrint;
+  DebugPrint( ("Error %d in xGWin_Delete: %s", 
+    eResult, xGWin_GetErrorString ( eResult ) ) );
 
  cleanup:
   
@@ -136,8 +136,8 @@ xGWin_tErr xGWin_SetWindowTitle ( xGLutWindowRef this,
 
  error:
 
-  DebugPrint "Error %d in xGWin_SetWindowTitle: %s", 
-    eResult, xGWin_GetErrorString ( eResult ) EndDebugPrint;
+  DebugPrint( ("Error %d in xGWin_SetWindowTitle: %s", 
+    eResult, xGWin_GetErrorString ( eResult ) ) );
 
  cleanup:
   
@@ -165,8 +165,8 @@ xGWin_tErr xGWin_SetEventHandlerFunc ( xGLutWindowRef          this,
 
  error:
 
-  DebugPrint "Error %d in xGWin_SetEventHandlerFunc: %s", 
-    eResult, xGWin_GetErrorString ( eResult ) EndDebugPrint;
+  DebugPrint( ("Error %d in xGWin_SetEventHandlerFunc: %s", 
+    eResult, xGWin_GetErrorString ( eResult ) ) );
 
  cleanup:
   
@@ -198,8 +198,41 @@ xGWin_tErr xGWin_ActivateIdleEvents ( xGLutWindowRef  this ) {
 
  error:
 
-  DebugPrint "Error %d in xGWin_ActivateIdleEvents: %s", 
-    eResult, xGWin_GetErrorString ( eResult ) EndDebugPrint;
+  DebugPrint( ("Error %d in xGWin_ActivateIdleEvents: %s", 
+    eResult, xGWin_GetErrorString ( eResult ) ) );
+
+ cleanup:
+  
+  return eResult;
+}
+
+xGWin_tErr xGWin_ActivatePassiveMotionEvents ( xGLutWindowRef  this ) {
+
+  xGWin_tErr eResult       = xGWin_tErr_NoErr;
+  int        nSaveWindowID = 0;
+
+  // verify it.
+  eResult = xGWin_Verify ( this );
+  if ( xGWin_tErr_NoErr != eResult ) {
+    goto error;
+  }
+
+  // save the current window and set the window to this window.
+  nSaveWindowID = glutGetWindow ();
+  glutSetWindow ( this->mnGLutWindowID );
+
+  // register our passive motion callback.
+  glutPassiveMotionFunc ( xGWin_GLutPassiveMotionCallback );
+
+  // restore the window.
+  glutSetWindow ( nSaveWindowID );
+
+  goto cleanup;
+
+ error:
+
+  DebugPrint( ("Error %d in xGWin_ActivatePassiveMotionEvents: %s", 
+    eResult, xGWin_GetErrorString ( eResult ) ) );
 
  cleanup:
   
@@ -249,8 +282,8 @@ void xGWin_AddWindowIDToLookupList ( int            inWindowID,
   // check the bounds.
   if ( inWindowID < 0 
        || inWindowID >= xGWin_knMaxNumWindows ) {
-    DebugPrint "xGWin_AddWindowIDToLookupList: invalid ID: %d\n",
-      inWindowID EndDebugPrint;
+    DebugPrint( ("xGWin_AddWindowIDToLookupList: invalid ID: %d\n",
+      inWindowID ) );
     return;
   }
 
@@ -264,8 +297,8 @@ void xGWin_GetWindowFromID ( int             inWindowID,
   // check the bounds.
   if ( inWindowID < 0 
        || inWindowID >= xGWin_knMaxNumWindows ) {
-    DebugPrint "xGWin_AddWindowIDToLookupList: invalid ID: %d\n",
-      inWindowID EndDebugPrint;
+    DebugPrint( ("xGWin_AddWindowIDToLookupList: invalid ID: %d\n",
+      inWindowID ) );
     return;
   }
 
@@ -278,8 +311,8 @@ void xGWin_RemoveWindowIDFromLookupList ( int inWindowID ) {
   // check the bounds.
   if ( inWindowID < 0 
        || inWindowID >= xGWin_knMaxNumWindows ) {
-    DebugPrint "xGWin_AddWindowIDToLookupList: invalid ID: %d\n",
-      inWindowID EndDebugPrint;
+    DebugPrint( ("xGWin_AddWindowIDToLookupList: invalid ID: %d\n",
+      inWindowID ) );
     return;
   }
 
@@ -306,8 +339,8 @@ void xGWin_PassEventToCurrentWindow ( xGWin_tEventRef ipEvent ) {
 
   } else {
 
-    DebugPrint "xGWin_PassEventToCurrentWindow: Couldn't find current"
-      "window, id is %d", nWindowID EndDebugPrint;
+    DebugPrint( ("xGWin_PassEventToCurrentWindow: Couldn't find current"
+      "window, id is %d", nWindowID ) );
   }
 }
 
@@ -524,6 +557,30 @@ void xGWin_GLutMotionCallback ( int inX,
   xGWin_PassEventToCurrentWindow ( pEvent );
 }
 
+void xGWin_GLutPassiveMotionCallback ( int inX,
+               int inY ) {
+  
+  xGWin_tEventRef pEvent = NULL;
+
+  xGWin_NewEvent ( &pEvent );
+
+  pEvent->mType = xGWin_tEventType_MouseMoved;
+
+  /* no mouse down.*/
+  pEvent->mButton = 0;
+
+  /* set location */
+  pEvent->mWhere.mnX = inX;
+  pEvent->mWhere.mnY = inY;
+
+  /* no modifiers */
+  pEvent->mbShiftKey = FALSE;
+  pEvent->mbCtrlKey  = FALSE;
+  pEvent->mbAltKey   = FALSE;
+
+  xGWin_PassEventToCurrentWindow ( pEvent );
+}
+
 void xGWin_GLutResizeCallback ( int inWidth, 
         int inHeight ) {
 
@@ -626,37 +683,37 @@ void xGWin_DeleteEvent ( xGWin_tEventRef* ioppEvent ) {
 
 void xGWin_DebugPrintEvent ( xGWin_tEventRef this ) {
 
-  DebugPrint "XGWin_tEvent:\n" EndDebugPrint;
+  DebugPrint( ("XGWin_tEvent:\n" ) );
 
   switch ( this->mType ) {
   case xGWin_tEventType_Draw:
-    DebugPrint "\tType: Draw\n" EndDebugPrint;
+    DebugPrint( ("\tType: Draw\n" ) );
     break;
   case xGWin_tEventType_KeyDown:
-    DebugPrint "\tType: KeyDown\n" EndDebugPrint;
+    DebugPrint( ("\tType: KeyDown\n" ) );
     break;
   case xGWin_tEventType_MouseDown:
-    DebugPrint "\tType: MouseDown\n" EndDebugPrint;
+    DebugPrint( ("\tType: MouseDown\n" ) );
     break;
   case xGWin_tEventType_MouseUp:
-    DebugPrint "\tType: MouseUp\n" EndDebugPrint;
+    DebugPrint( ("\tType: MouseUp\n" ) );
     break;
   case xGWin_tEventType_MouseMoved:
-    DebugPrint "\tType: MouseMoved\n" EndDebugPrint;
+    DebugPrint( ("\tType: MouseMoved\n" ) );
     break;
   case xGWin_tEventType_Resize:
-    DebugPrint "\tType: Resize\n" EndDebugPrint;
+    DebugPrint( ("\tType: Resize\n" ) );
     break;
   default:
     break;
   }
 
-  DebugPrint "\tWhere: %d %d\n", this->mWhere.mnX, this->mWhere.mnY
-    EndDebugPrint;
-  DebugPrint "\tButton: %d\n", this->mButton EndDebugPrint;
-  DebugPrint "\tKey: %c (%d)\n", this->mKey, (int)this->mKey EndDebugPrint;
-  DebugPrint "\tModifiers: ctrl %d alt %d shift %d\n",
+  DebugPrint( ("\tWhere: %d %d\n", this->mWhere.mnX, this->mWhere.mnY
+    ) );
+  DebugPrint( ("\tButton: %d\n", this->mButton ) );
+  DebugPrint( ("\tKey: %c (%d)\n", this->mKey, (int)this->mKey ) );
+  DebugPrint( ("\tModifiers: ctrl %d alt %d shift %d\n",
     (int)(this->mbCtrlKey), (int)(this->mbAltKey), (int)(this->mbShiftKey)
-    EndDebugPrint;
-  DebugPrint "\n" EndDebugPrint;
+    ) );
+  DebugPrint( ("\n" ) );
 }

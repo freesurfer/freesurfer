@@ -66,8 +66,8 @@ x3Lst_tErr x3Lst_New ( x3DListRef* op3DList,
   
  error:
 
-  DebugPrint "Error %d in x3Lst_New: %s\n",
-    eResult, x3Lst_GetErrorString( eResult ) EndDebugPrint;
+  DebugPrint( ("Error %d in x3Lst_New: %s\n",
+    eResult, x3Lst_GetErrorString( eResult ) ) );
 
  cleanup:
 
@@ -122,8 +122,8 @@ x3Lst_tErr x3Lst_Delete ( x3DListRef* iop3DList ) {
   
  error:
 
-  DebugPrint "Error %d in x3Lst_: %s\n",
-    eResult, x3Lst_GetErrorString( eResult ) EndDebugPrint;
+  DebugPrint( ("Error %d in x3Lst_: %s\n",
+    eResult, x3Lst_GetErrorString( eResult ) ) );
 
  cleanup:
 
@@ -172,8 +172,8 @@ x3Lst_tErr x3Lst_AddItem ( x3DListRef this,
   
  error:
 
-  DebugPrint "Error %d in x3Lst_AddItem: %s\n",
-    eResult, x3Lst_GetErrorString( eResult ) EndDebugPrint;
+  DebugPrint( ("Error %d in x3Lst_AddItem: %s\n",
+    eResult, x3Lst_GetErrorString( eResult ) ) );
 
  cleanup:
 
@@ -231,10 +231,10 @@ x3Lst_tErr x3Lst_RemoveItem ( x3DListRef this,
     }
   }
 
-  if( x3Lst_tErr_NoErr != eList
-      && x3Lst_tErr_ItemNotInSpace != eList ) {
-    DebugPrint "Error %d in x3Lst_RemoveItem: %s\n",
-      eResult, x3Lst_GetErrorString( eResult ) EndDebugPrint;
+  if( x3Lst_tErr_NoErr != eResult
+      && x3Lst_tErr_ItemNotInSpace != eResult ) {
+    DebugPrint( ("Error %d in x3Lst_RemoveItem: %s\n",
+      eResult, x3Lst_GetErrorString( eResult ) ) );
   }
 
  cleanup:
@@ -272,8 +272,8 @@ x3Lst_tErr x3Lst_Clear ( x3DListRef this ) {
   
  error:
 
-  DebugPrint "Error %d in x3Lst_Clear: %s\n",
-    eResult, x3Lst_GetErrorString( eResult ) EndDebugPrint;
+  DebugPrint( ("Error %d in x3Lst_Clear: %s\n",
+    eResult, x3Lst_GetErrorString( eResult ) ) );
 
  cleanup:
 
@@ -320,8 +320,8 @@ x3Lst_tErr x3Lst_IsInList ( x3DListRef this,
   
  error:
 
-  DebugPrint "Error %d in x3Lst_IsInList: %s\n",
-    eResult, x3Lst_GetErrorString( eResult ) EndDebugPrint;
+  DebugPrint( ("Error %d in x3Lst_IsInList: %s\n",
+    eResult, x3Lst_GetErrorString( eResult ) ) );
 
  cleanup:
 
@@ -348,8 +348,8 @@ x3Lst_tErr x3Lst_GetItemsInXPlane ( x3DListRef this,
   
  error:
 
-  DebugPrint "Error %d in x3Lst_GetItemsInXPlane: %s\n",
-    eResult, x3Lst_GetErrorString( eResult ) EndDebugPrint;
+  DebugPrint( ("Error %d in x3Lst_GetItemsInXPlane: %s\n",
+    eResult, x3Lst_GetErrorString( eResult ) ) );
 
  cleanup:
 
@@ -376,8 +376,8 @@ x3Lst_tErr x3Lst_GetItemsInYPlane ( x3DListRef this,
   
  error:
 
-  DebugPrint "Error %d in x3Lst_GetItemsInYPlane: %s\n",
-    eResult, x3Lst_GetErrorString( eResult ) EndDebugPrint;
+  DebugPrint( ("Error %d in x3Lst_GetItemsInYPlane: %s\n",
+    eResult, x3Lst_GetErrorString( eResult ) ) );
 
  cleanup:
 
@@ -404,8 +404,8 @@ x3Lst_tErr x3Lst_GetItemsInZPlane ( x3DListRef this,
   
  error:
 
-  DebugPrint "Error %d in x3Lst_GetItemsInZPlane: %s\n",
-    eResult, x3Lst_GetErrorString( eResult ) EndDebugPrint;
+  DebugPrint( ("Error %d in x3Lst_GetItemsInZPlane: %s\n",
+    eResult, x3Lst_GetErrorString( eResult ) ) );
 
  cleanup:
 
@@ -434,8 +434,8 @@ x3Lst_tErr x3Lst_GetItemsInPlane_ ( x3DListRef   this,
   
  error:
 
-  DebugPrint "Error %d in x3Lst_GetItemsInPlane_: %s\n",
-    eResult, x3Lst_GetErrorString( eResult ) EndDebugPrint;
+  DebugPrint( ("Error %d in x3Lst_GetItemsInPlane_: %s\n",
+    eResult, x3Lst_GetErrorString( eResult ) ) );
 
  cleanup:
 
@@ -473,8 +473,8 @@ x3Lst_tErr x3Lst_SetComparator ( x3DListRef this,
   if( xList_tErr_NoErr != eList )
     eResult = x3Lst_tErr_ErrorAccessingList;
 
-  DebugPrint "Error %d in x3Lst_: %s\n",
-    eResult, x3Lst_GetErrorString( eResult ) EndDebugPrint;
+  DebugPrint( ("Error %d in x3Lst_: %s\n",
+    eResult, x3Lst_GetErrorString( eResult ) ) );
 
  cleanup:
 

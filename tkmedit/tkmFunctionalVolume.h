@@ -47,6 +47,7 @@ typedef enum {
   FunV_tDisplayFlag_Ol_OffsetValues,
   FunV_tDisplayFlag_Ol_IgnoreThreshold,
   FunV_tDisplayFlag_Ol_Grayscale,
+  FunV_tDisplayFlag_Ol_Opaque,
   FunV_tDisplayFlag_TC_GraphWindowOpen,
   FunV_tDisplayFlag_TC_OffsetValues,
   FunV_tDisplayFlag_TC_PreStimOffset,
@@ -90,7 +91,8 @@ typedef float FunV_tFunctionalValue;
 typedef float* FunV_tOverlayCache;
 
 #define FunV_knColorCacheSize 1000
-
+#define FunV_knMaxFindStatsSteps    10000
+#define FunV_knMaxFindStatsDistance 20
 
 /* main class structure */
 struct tkmFunctionalVolume {
@@ -136,6 +138,21 @@ struct tkmFunctionalVolume {
 typedef struct tkmFunctionalVolume tkmFunctionalVolume;
 typedef tkmFunctionalVolume *tkmFunctionalVolumeRef;
 
+typedef enum {
+  FunV_tFindStatsComp_Invalid = -1,
+  FunV_tFindStatsComp_GTE = 0,
+  FunV_tFindStatsComp_EQ,
+  FunV_knNumFindStatsComp
+} FunV_tFindStatsComp;
+
+typedef struct {
+  FunV_tFunctionalValue mStartValue;
+  xVoxel                mStart;
+  int                   mnIterationCount;
+  int                   mnTotalSelected;
+  FunV_tFindStatsComp   compareType;
+} FunV_tFindStatsParams;
+
 #define FunV_kSignature 0x00666000
 
 /* allocator an destructor */
@@ -147,13 +164,17 @@ FunV_tErr FunV_Delete ( tkmFunctionalVolumeRef* ioppVolume );
 
 /* loads the data volumes */
 FunV_tErr FunV_LoadOverlay    ( tkmFunctionalVolumeRef this,
-        char*                  isPathAndStem );
+        char*                  isPathAndStem,
+        char*                  isOffsetPath,
+        char*                  isRegistration );
 FunV_tErr FunV_LoadTimeCourse ( tkmFunctionalVolumeRef this,
-        char*                  isPathAndStem );
+        char*                  isPathAndStem,
+        char*                  isOffsetPath,
+        char*                  isRegistration );
 
 /* this loads a specific volume. will delete one if it already exists. */
 FunV_tErr FunV_LoadFunctionalVolume_ ( tkmFunctionalVolumeRef this,
-              mriFunctionalDataRef*   ioppVolume,
+               mriFunctionalDataRef*  ioppVolume,
                char*                  isPath,
                char*                  isStem,
                char*                  isHeaderStem,
@@ -164,10 +185,10 @@ FunV_tErr FunV_LoadFunctionalVolume_ ( tkmFunctionalVolumeRef this,
    space volume, so it can be indexed with anatomical coords. */
 FunV_tErr FunV_InitOverlayCache_ ( tkmFunctionalVolumeRef this );
 FunV_tErr FunV_SetOverlayCacheValue_ ( tkmFunctionalVolumeRef this,
-              xVoxelRef               ipAnaIdx,
+               xVoxelRef              ipAnaIdx,
                FunV_tFunctionalValue  iValue );
 FunV_tErr FunV_GetOverlayCacheValue_ ( tkmFunctionalVolumeRef this,
-              xVoxelRef               ipAnaIdx,
+               xVoxelRef              ipAnaIdx,
                FunV_tFunctionalValue* oValue );
 FunV_tErr FunV_UseOverlayCache ( tkmFunctionalVolumeRef this,
          tBoolean               ibUseCache );
@@ -224,7 +245,8 @@ FunV_tErr FunV_TranslateOverlayRegistration ( tkmFunctionalVolumeRef this,
                 tAxis                  iAxis );
 FunV_tErr FunV_RotateOverlayRegistration    ( tkmFunctionalVolumeRef this,
                 float                  ifDegrees,
-                tAxis                  iAxis );
+                tAxis                  iAxis,
+                xVoxelRef        iCenterAnaIdx );
 FunV_tErr FunV_ScaleOverlayRegistration     ( tkmFunctionalVolumeRef this,
                 float                  ifFactor,
                 tAxis                  iAxis );
@@ -242,6 +264,23 @@ FunV_tErr FunV_GetColorForValue ( tkmFunctionalVolumeRef this,
           xColor3fRef            iBaseColor,
           xColor3fRef            oColor );
 
+/* returns the average value of the voxels in the overlay selection range.
+   also returns the func idx and ras coords of that value if voxels are
+   passed in. */
+FunV_tErr FunV_GetAvgFunctionalValue ( tkmFunctionalVolumeRef this,
+               FunV_tFunctionalValue* oValue,
+               xVoxelRef              oFuncIdx,
+               xVoxelRef              oFuncRAS,
+               tBoolean*              obIsSelection );
+
+/* converts an anatomical index to a functional overlay index or RAS */
+FunV_tErr FunV_ConvertAnaIdxToFuncIdx ( tkmFunctionalVolumeRef this,
+          xVoxelRef              iAnaIdx,
+          xVoxelRef              oFuncIdx );
+
+FunV_tErr FunV_ConvertAnaIdxToFuncRAS ( tkmFunctionalVolumeRef this,
+          xVoxelRef              iAnaIdx,
+          xVoxelRef              oFuncRAS );
 
 /* time course graph access */
 
@@ -280,10 +319,18 @@ FunV_tErr FunV_SendGraphErrorBars_ ( tkmFunctionalVolumeRef this,
              int                    inNumValues,
              float*                 iafBars );
 
+/* gets value at a point and then selects all voxels around it with a
+   value >= to the starting value. */
+FunV_tErr FunV_SelectAnaVoxelsByFuncValue ( tkmFunctionalVolumeRef this,
+              xVoxelRef              iAnaIdx,
+              FunV_tFindStatsComp    iCompare );
+void FunV_SelectAnaVoxelsByFuncValueIter_ ( tkmFunctionalVolumeRef this,
+              xVoxelRef              iAnaIdx,
+              FunV_tFindStatsParams* iParams,
+              tBoolean*              iVisited );
+
+
 /* tcl commands */
-int FunV_TclOlLoadData            ( ClientData iClientData, 
-            Tcl_Interp *ipInterp, 
-            int argc, char *argv[] );
 int FunV_TclOlSaveRegistration    ( ClientData iClientData, 
             Tcl_Interp *ipInterp, 
             int argc, char *argv[] );
@@ -303,9 +350,6 @@ int FunV_TclOlSetDisplayFlag      ( ClientData iClientData,
             Tcl_Interp *ipInterp, 
             int argc, char *argv[] );
 int FunV_TclOlSetThreshold        ( ClientData inClientData, 
-            Tcl_Interp *ipInterp, 
-            int argc, char *argv[] );
-int FunV_TclTCLoadData            ( ClientData iClientData, 
             Tcl_Interp *ipInterp, 
             int argc, char *argv[] );
 int FunV_TclTCSetNumPreStimPoints ( ClientData iClientData, 

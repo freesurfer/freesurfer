@@ -1,4 +1,5 @@
 #include <stdlib.h>
+#include <math.h>
 #include "xDebug.h"
 #include "xVoxel.h"
 
@@ -77,6 +78,24 @@ int xVoxl_GetZ ( xVoxelRef this ) {
   return this->mfZ;
 }
 
+inline
+int xVoxl_GetRoundX ( xVoxelRef this ) {
+
+  return rint( this->mfX );
+}
+
+inline
+int xVoxl_GetRoundY ( xVoxelRef this ) {
+
+  return rint( this->mfY );
+}
+
+inline
+int xVoxl_GetRoundZ ( xVoxelRef this ) {
+
+  return rint( this->mfZ );
+}
+
 inline 
 int xVoxl_GetI ( xVoxelRef this ) {
   return xVoxl_GetX ( this );
@@ -148,9 +167,54 @@ float xVoxl_GetFloatZ ( xVoxelRef this ) {
   return this->mfZ;
 }
 
+tBoolean xVoxl_IncrementUntilLimit ( xVoxelRef this, int inLimit ) {
+
+  if( this->mfX < inLimit ) {
+    this->mfX += 1;
+    return TRUE;
+  } else if( this->mfY < inLimit ) {
+    this->mfX = 0;
+    this->mfY += 1;
+    return TRUE;
+  } else if( this->mfZ < inLimit ) {
+    this->mfX = 0;
+    this->mfY = 0;
+    this->mfZ += 1;
+    return TRUE;
+  } else {
+    return FALSE;
+  }
+}
+
+tBoolean xVoxl_IncrementUntilLimits ( xVoxelRef this, int inXLimit, 
+              int inYLimit, int inZLimit ) {
+
+  if( this->mfX < inXLimit ) {
+    this->mfX += 1;
+    return TRUE;
+  } else if( this->mfY < inYLimit ) {
+    this->mfX = 0;
+    this->mfY += 1;
+    return TRUE;
+  } else if( this->mfZ < inZLimit ) {
+    this->mfX = 0;
+    this->mfY = 0;
+    this->mfZ += 1;
+    return TRUE;
+  } else {
+    return FALSE;
+  }
+}
+
+int xVoxl_ExpandToIndex ( xVoxelRef this, int inDimension ) {
+
+  return ( this->mfZ * pow( inDimension, 2 ) ) +
+    ( this->mfY * inDimension  ) + this->mfX;
+}
+
 void
 xVoxl_PrintDebug ( xVoxelRef this ) {
 
-  DebugPrint "Voxel: %d, %d, %d\n", 
-    xVoxl_GetX(this), xVoxl_GetY(this), xVoxl_GetZ(this) EndDebugPrint;
+  DebugPrint( ("Voxel: %d, %d, %d\n", 
+    xVoxl_GetX(this), xVoxl_GetY(this), xVoxl_GetZ(this) ) );
 }

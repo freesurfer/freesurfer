@@ -1,3 +1,4 @@
+
 #ifndef tkmFunctionalDataAccess_H
 #define tkmFunctionalDataAccess_H
 
@@ -26,6 +27,7 @@ typedef enum {
   FunD_tErr_CouldntReadRegisterFile,
   FunD_tErr_CouldntCalculateDeviations,
   FunD_tErr_ErrorAccessingTransform,
+  FunD_tErr_InvalidParameter,
   FunD_tErr_InvalidTimeResolution,
   FunD_tErr_InvalidNumPreStimTimePoints,
   FunD_tErr_InvalidFunctionalVoxel,
@@ -84,7 +86,7 @@ typedef struct {
   char mIsErrorDataPresent;
   float * mDeviations;  // deviations in [condition][timepoint]
   float * mCovMtx;      // Ch in [condtions*timepts][conditions*timepts]
-  float mSigma;         // used in error calc
+  float * mSigma;         // used in error calc
 
   // temp storage in conversions
  xVoxelRef mpAnaRAS;
@@ -162,7 +164,8 @@ FunD_tErr FunD_TranslateRegistration        ( mriFunctionalDataRef this,
                 tAxis                iAxis );
 FunD_tErr FunD_RotateRegistration           ( mriFunctionalDataRef this,
                 float                ifDegrees,
-                tAxis                iAxis );
+                tAxis                iAxis,
+                xVoxelRef   iCenterFuncRAS );
 FunD_tErr FunD_ScaleRegistration            ( mriFunctionalDataRef this,
                 float                ifFactor,
                 tAxis                iAxis );
@@ -275,6 +278,9 @@ void FunD_ConvertFuncIdxToAnaIdx ( mriFunctionalDataRef this,
 void FunD_ConvertRASToFuncIdx    ( mriFunctionalDataRef this,
           xVoxelRef             inRAS,
           xVoxelRef             outFunctionalIdx );
+void FunD_ConvertFuncIdxToFuncRAS ( mriFunctionalDataRef this,
+            xVoxelRef            iFuncIdx,
+            xVoxelRef            oFuncRAS );
 
                                    /* convert between functional voxel 
               coordinates and an index into the

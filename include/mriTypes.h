@@ -1,6 +1,9 @@
 #ifndef mriTypes_h
 #define mriTypes_h
 
+#define mri_knSubjectNameLen 256
+#define mri_knPathLen 1024
+
 typedef enum { 
   mri_tOrientation_None = -1,
   mri_tOrientation_Coronal = 0,
@@ -16,6 +19,5 @@ typedef enum {
   mri_tCoordSpace_Talairach,
   mri_knNumCoordSpaces
 } mri_tCoordSpace;
-
 
 #endif

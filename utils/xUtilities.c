@@ -3,6 +3,7 @@
 #include <string.h>
 #include <sys/time.h>
 #include <unistd.h>
+#include <stdarg.h>
 #include "xUtilities.h"
 
 char xUtil_ksaErrorString [xUtil_tErr_knNumErrorCodes][256] = {
@@ -54,8 +55,8 @@ xUtil_tErr xUtil_BreakStringIntoPathAndStem ( char* isPathAndStem,
  error:
 
   if( xUtil_tErr_NoError != eResult ) {
-    DebugPrint "Error %d in xUtil_BreakStringIntoPathAndStem: %s\n",
-      eResult, xUtil_GetErrorString(eResult) EndDebugPrint;
+    DebugPrint( ("Error %d in xUtil_BreakStringIntoPathAndStem: %s\n",
+      eResult, xUtil_GetErrorString(eResult) ) );
   }
 
  cleanup:
@@ -87,12 +88,69 @@ void xUtil_StopTimer ( char* isMessage ) {
 
   gettimeofday( &sEndTime, NULL );
 
-  DebugPrint "%s: %lu usec\n", isMessage,
-    (sEndTime.tv_sec*1000000 + sEndTime.tv_usec) -
-    (sStartTime.tv_sec*1000000 + sStartTime.tv_usec)
-    EndDebugPrint;
+  if( NULL != isMessage ) {
+    DebugPrint( ("%s: %lu usec\n", isMessage,
+     (sEndTime.tv_sec*1000000 + sEndTime.tv_usec) -
+     (sStartTime.tv_sec*1000000 + sStartTime.tv_usec) ) );
+  } else {
+    DebugPrint( ("Timer stopped: %lu usec\n", 
+     (sEndTime.tv_sec*1000000 + sEndTime.tv_usec) -
+     (sStartTime.tv_sec*1000000 + sStartTime.tv_usec) ) );
+  }
 }
 
 
+
+
+void xUtil_strcpy ( char* ipDest, char* ipSrc ) {
+
+  strcpy( ipDest, ipSrc );
+}
+
+void xUtil_strncpy ( char* ipDest, char* ipSrc, int inSize ) {
+
+  strncpy( ipDest, ipSrc, inSize );
+
+  if( ipDest[inSize-1] != '\0' ) {
+    
+    ipDest[inSize-1] = '\0';
+
+    DebugPrint( ("xUtil_strncpy: Buffer overflow\n") );
+    xDbg_PrintStack();
+  }
+}
+
+void xUtil_sprintf ( char* ipDest, char* isFormat, ... ) {
+
+  va_list args;
+
+  va_start( args, isFormat );
+  vsprintf( ipDest, isFormat, args );
+  va_end( args );
+}
+
+void xUtil_snprintf ( char* ipDest, int inSize, char* isFormat, ... ) {
+
+  va_list args;
+
+  bzero( ipDest, inSize );
+
+  va_start( args, isFormat );
+#ifdef IRIX
+  vsprintf( ipDest, isFormat, args );
+#else
+  vsnprintf( ipDest, inSize, isFormat, args );
+#endif
+  va_end( args );
+  
+  if( ipDest[inSize-1] != '\0' ) {
+    
+    ipDest[inSize-1] = '\0';
+
+    DebugPrint( ("xUtil_snprintf: Buffer overflow while %s (inSize=%d)\n",
+    DebugGetNote, inSize) );
+    DebugPrintStack;
+  }
+}
 
 

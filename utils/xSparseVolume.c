@@ -60,8 +60,8 @@ xSVol_tErr xSVol_New( xSparseVolumeRef* opVolume,
 
  error:
 
-  DebugPrint "Error %d in xSVol_New: %s\n",
-    eResult, xSVol_GetErrorString( eResult ) EndDebugPrint;
+  DebugPrint( ("Error %d in xSVol_New: %s\n",
+    eResult, xSVol_GetErrorString( eResult ) ) );
 
  cleanup:
 
@@ -102,8 +102,8 @@ xSVol_tErr xSVol_Delete ( xSparseVolumeRef*         iopVolume,
 
  error:
 
-  DebugPrint "Error %d in xSVol_Delete: %s\n",
-    eResult, xSVol_GetErrorString( eResult ) EndDebugPrint;
+  DebugPrint( ("Error %d in xSVol_Delete: %s\n",
+    eResult, xSVol_GetErrorString( eResult ) ) );
 
  cleanup:
 
@@ -133,6 +133,7 @@ xSVol_tErr xSVol_Get ( xSparseVolumeRef this,
   /* if it's not allocated, item is null. */
   if( xSVol_tErr_IndexNotAllocated == eResult ) {
     pItem = NULL;
+    eResult = xSVol_tErr_NoErr;
 
   } else if( xSVol_tErr_NoErr != eResult ) {
     goto error;
@@ -152,8 +153,8 @@ xSVol_tErr xSVol_Get ( xSparseVolumeRef this,
 
  error:
 
-  DebugPrint "Error %d in xSVol_Get: %s\n",
-    eResult, xSVol_GetErrorString( eResult ) EndDebugPrint;
+  DebugPrint( ("Error %d in xSVol_Get: %s\n",
+    eResult, xSVol_GetErrorString( eResult ) ) );
 
  cleanup:
 
@@ -215,8 +216,8 @@ xSVol_tErr xSVol_Set ( xSparseVolumeRef this,
 
  error:
 
-  DebugPrint "Error %d in xSVol_Set: %s\n",
-    eResult, xSVol_GetErrorString( eResult ) EndDebugPrint;
+  DebugPrint( ("Error %d in xSVol_Set: %s\n",
+    eResult, xSVol_GetErrorString( eResult ) ) );
 
  cleanup:
 
@@ -257,8 +258,8 @@ xSVol_tErr xSVol_Purge ( xSparseVolumeRef          this,
 
  error:
 
-  DebugPrint "Error %d in xSVol_Purge: %s\n",
-    eResult, xSVol_GetErrorString( eResult ) EndDebugPrint;
+  DebugPrint( ("Error %d in xSVol_Purge: %s\n",
+    eResult, xSVol_GetErrorString( eResult ) ) );
 
  cleanup:
 
@@ -315,8 +316,8 @@ xSVol_tErr xSVol_VisitAll ( xSparseVolumeRef this,
 
  error:
 
-  DebugPrint "Error %d in xSVol_: %s\n",
-    eResult, xSVol_GetErrorString( eResult ) EndDebugPrint;
+  DebugPrint( ("Error %d in xSVol_: %s\n",
+    eResult, xSVol_GetErrorString( eResult ) ) );
 
  cleanup:
 
