@@ -3918,6 +3918,7 @@ static int write_bhdr(MRI *mri, FILE *fp)
   fprintf(fp, "      image_te: %f\n", mri->te);
   fprintf(fp, "      image_tr: %f\n", mri->tr);
   fprintf(fp, "      image_ti: %f\n", mri->ti);
+  fprintf(fp, "    flip_angle: %f\n", mri->flip_angle);
 
   return(NO_ERROR);
 
@@ -3934,7 +3935,7 @@ int read_bhdr(MRI *mri, FILE *fp)
   float brr, bra, brs; /* bottom right coordinates */
   float xr, xa, xs;
   float yr, ya, ys;
-  MATRIX *T, *CRSCenter, *RASCenter;
+  MATRIX *T, *CRSCenter, *RASCenter, *v;
 
   while(!feof(fp)){
 
@@ -3966,6 +3967,8 @@ int read_bhdr(MRI *mri, FILE *fp)
         sscanf(l, "%*s %f", &mri->tr);
       else if(strncmp(l, "image_ti: ", 10) == 0)
         sscanf(l, "%*s %f", &mri->ti);
+      else if(strncmp(l, "flip_angle: ", 10) == 0)
+        sscanf(l, "%*s %lf", &mri->flip_angle);
       else if(strncmp(l, "top_left_r: ", 12) == 0)
         sscanf(l, "%*s %g", &tlr);
       else if(strncmp(l, "top_left_a: ", 12) == 0)
@@ -4011,9 +4014,11 @@ int read_bhdr(MRI *mri, FILE *fp)
   mri->y_s = ys / mri->ysize;
 
   T = MRIxfmCRS2XYZ(mri,0);
+
   T->rptr[1][4] = tlr;
   T->rptr[2][4] = tla;
   T->rptr[3][4] = tls;
+
   //printf("------- read_bhdr: T ---------\n");
   //MatrixPrint(stdout,T);
   //printf("------------------------------\n");
