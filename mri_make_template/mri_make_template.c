@@ -98,15 +98,15 @@ main(int argc, char *argv[])
                 subjects_dir, subject_name, transform_fname) ;
 
         fprintf(stderr, "reading and applying transform %s...", fname) ;
-        type = TransformFileNameType(transform_fname) ;
+        type = TransformFileNameType(fname) ;
         switch (type)
         {
         default:
         case TRANSFORM_ARRAY_TYPE:
-          lta = LTAread(transform_fname) ;
+          lta = LTAread(fname) ;
           if (!lta)
             ErrorExit(ERROR_NOFILE, "%s: could not open transform file %s\n",
-                      Progname, transform_fname) ;
+                      Progname, fname) ;
           mri_tmp = LTAtransform(mri, NULL, lta) ;
           LTAfree(&lta) ;
           break ;
