@@ -16,7 +16,7 @@
 #include "mrishash.h"
 #include "version.h"
 
-static char vcid[] = "$Id: mris_fix_topology.c,v 1.24 2005/02/28 22:58:39 segonne Exp $";
+static char vcid[] = "$Id: mris_fix_topology.c,v 1.25 2005/03/16 01:05:35 segonne Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -58,7 +58,7 @@ main(int argc, char *argv[])
   struct timeb  then ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_fix_topology.c,v 1.24 2005/02/28 22:58:39 segonne Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_fix_topology.c,v 1.25 2005/03/16 01:05:35 segonne Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -82,7 +82,7 @@ main(int argc, char *argv[])
 	//volume resolution for the lodunlikelihood
 	parms.volume_resolution=-1;
 	//keep all vertices or not
-	parms.keep=1;
+	parms.keep=0;
 	//smooth every patch
 	parms.smooth=0;
 	//match patch onto surface using local intensities

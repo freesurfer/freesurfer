@@ -3,9 +3,9 @@
 // written by Bruce Fischl
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2005/02/28 17:16:11 $
-// Revision       : $Revision: 1.337 $
+// Revision Author: $Author: segonne $
+// Revision Date  : $Date: 2005/03/16 01:05:58 $
+// Revision       : $Revision: 1.338 $
 //////////////////////////////////////////////////////////////////
 #include <stdio.h>
 #include <string.h>
@@ -32086,7 +32086,7 @@ static DEFECT_LIST *mrisMergeNeighboringDefects(MRIS *mris,DEFECT_LIST *dl){
 			v=&mris->vertices[defect->border[n]];
 			for(m=0;m<v->vnum;m++){
 				nv=&mris->vertices[v->v[m]];
-				if(nv->marked && nv->marked!=i+1)
+				if(nv->marked && nv->marked!=i+1) // belong to another defect
 					nd[nv->marked]++;
 			}
 		}
@@ -32178,6 +32178,8 @@ static DEFECT_LIST *mrisMergeNeighboringDefects(MRIS *mris,DEFECT_LIST *dl){
 			for(n=0;n<defect->nborder;n++){
 				mris->vertices[defect->border[n]].marked=0;;
 			}
+			//if merged, we evaluate the defect again...
+			i--;
 		}
 	}
 
