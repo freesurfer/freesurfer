@@ -63,8 +63,8 @@ LDADD= $(addprefix $(top_srcdir)/,$(LIBS_MGH)) $(LIBS_TCL_OPENGL)
 scuba_LDFLAGS=
 
 qtscuba_SOURCES=$(UTILITIES_SRCS) $(BASIC_SRCS) $(FSDATA_SRCS) $(GUI_SRCS) $(LAYER_SRCS) QTScubaWidget.cpp qtscuba.cpp
-qtscuba_CXXFLAGS=-I/usr/local/qt/include
-qtscuba_LDFLAGS=-L/usr/local/qt/lib -lqt-mt
+qtscuba_CXXFLAGS=-I${QTDIR}/include
+qtscuba_LDFLAGS=-L${QTDIR}/lib -lqt-mt
 
 foodir=$(prefix)/lib/tcl
 foo_SCRIPTS=scuba.tcl tkcon.tcl
