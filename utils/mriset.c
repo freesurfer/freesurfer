@@ -1592,6 +1592,42 @@ MRIsoapBubbleLabel(MRI *mri_src, MRI *mri_label, MRI *mri_dst, int label,
         Returns value:
 
         Description
+           Copy the label from one volume to another
+------------------------------------------------------*/
+int
+MRIcopyLabel(MRI *mri_src, MRI *mri_dst, int label) 
+{
+  int     width, height, depth, x, y, z, nvox ;
+  BUFTYPE *psrc, *pdst ;
+
+  width = mri_src->width ;
+  height = mri_src->height ;
+  depth = mri_src->depth ;
+
+  for (nvox = z = 0 ; z < depth ; z++)
+  {
+    for (y = 0 ; y < height ; y++)
+    {
+      psrc = &MRIvox(mri_src, 0, y, z) ;
+      pdst = &MRIvox(mri_dst, 0, y, z) ;
+      for (x = 0 ; x < width ; x++, pdst++)
+      {
+        if (*psrc++ == label)
+        {
+          *pdst = label ;
+          nvox++ ;
+        }
+      }
+    }
+  }
+  return(nvox) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
            Count and return the # of voxels with a given label.
 ------------------------------------------------------*/
 int

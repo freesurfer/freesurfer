@@ -531,6 +531,7 @@ MRI *MRIintensitySegmentation(MRI *mri_src, MRI *mri_labeled,
                               float wm_low, float wm_hi, float gray_hi) ;
 MRI *MRImeanLabel(MRI *mri_src, MRI *mri_label, MRI*mri_dst, int wsize) ;
 int MRIvoxelsInLabel(MRI *mri, int label) ;
+int MRIcopyLabel(MRI *mri_src, MRI *mri_dst, int val) ;
 MRI *MRIcpolvVote(MRI *mri_src, MRI *mri_labeled, MRI *mri_dst, int wsize, 
                   int niter, int use_all) ;
 MRI *MRIcpolvThreshold(MRI *mri_src, MRI *mri_labeled, MRI *mri_dst,
