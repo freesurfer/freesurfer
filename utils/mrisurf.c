@@ -29158,6 +29158,9 @@ MRIScombine(MRI_SURFACE *mris_src, MRI_SURFACE *mris_total,
     vdst->marked++ ;
     switch (which)
     {
+    case VERTEX_ANNOTATION:  /* will sample from dst back to source later */
+      vdst->marked = 0 ;
+      break ;
     case VERTEX_AREA:
       vdst->d += v->origarea ;
       break ;
@@ -29221,6 +29224,9 @@ MRIScombine(MRI_SURFACE *mris_src, MRI_SURFACE *mris_total,
     vdst->marked++ ;
     switch (which)
     {
+    case VERTEX_ANNOTATION:
+      vdst->annotation = v->annotation ;
+      break ;
     case VERTEX_AREA:
       vdst->origarea += v->origarea ;
       vdst->val2 += (v->origarea*v->origarea) ;
@@ -29283,6 +29289,9 @@ MRISsphericalCopy(MRI_SURFACE *mris_src, MRI_SURFACE *mris_dst,
     vdst->val2 = v->val2 ;
     switch (which)
     {
+    case VERTEX_ANNOTATION:
+      vdst->annotation = v->annotation ;
+      break ;
     case VERTEX_AREA:
       vdst->origarea = v->origarea ;
       break ;

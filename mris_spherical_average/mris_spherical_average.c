@@ -16,7 +16,7 @@
 #include "icosahedron.h"
 #include "label.h"
 
-static char vcid[] = "$Id: mris_spherical_average.c,v 1.4 2001/04/02 16:13:27 fischl Exp $";
+static char vcid[] = "$Id: mris_spherical_average.c,v 1.5 2002/05/21 17:00:54 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -89,6 +89,8 @@ main(int argc, char *argv[])
     which = VERTEX_CURV ;
   else if (!stricmp(argv[1], "label"))
     which = VERTEX_LABEL ;
+  else if (!stricmp(argv[1], "annotation"))
+    which = VERTEX_ANNOTATION ;
   else
     usage_exit() ;
 
@@ -132,6 +134,10 @@ main(int argc, char *argv[])
 
     switch (which)
     {
+    case VERTEX_ANNOTATION:
+      if (MRISreadAnnotation(mris, data_fname) != NO_ERROR)
+        ErrorExit(ERROR_BADPARM, "%s: could not read annotation from %s", Progname, data_fname) ;
+      break ;
     case VERTEX_LABEL:
       if (i == FIRST_SUBJECT)
         area_avg = LabelAlloc(mris_avg->nvertices, NULL, data_fname) ;
@@ -244,6 +250,10 @@ main(int argc, char *argv[])
       fprintf(stderr,"writing blurred pattern to surface to %s\n",out_fname);
     switch (which)
     {
+    case VERTEX_ANNOTATION:
+      if (MRISwriteAnnotation(mris, out_fname) != NO_ERROR)
+        ErrorExit(ERROR_BADFILE, "%s: writing output annotation to %s failed", Progname,out_fname);
+      break ;
     case VERTEX_LABEL:
       printf("writing label with %d points to %s...\n", area->n_points,
              out_fname) ;
@@ -362,6 +372,7 @@ print_usage(void)
           "\tlabel\n"
           "\tvals\n"
           "\tcurv\n"
+          "\tannotation\n"
           "\tarea\n") ;
 }
 
