@@ -1,7 +1,7 @@
 #!/bin/csh -f
 # tkmedit-sess
 #
-set VERSION = '$Id: tkmedit-sess,v 1.2 2003/07/18 23:17:07 greve Exp $';
+set VERSION = '$Id: tkmedit-sess,v 1.3 2003/07/22 18:19:11 greve Exp $';
 set inputargs = ($argv);
 
 which pawd > /dev/null
@@ -55,6 +55,7 @@ set segcolor = ();
 set segopacity = .3;
 
 set nolog = 0;
+set olddev = 0;
 
 set n = `echo $argv | grep version | wc -l` 
 if($n != 0) then
@@ -345,7 +346,12 @@ endif
 
 
 #set TKMEDIT = ~fischl/build/tkmedit/tkmedit
-set TKMEDIT = tkmedit
+if($olddev) then
+  set TKMEDIT = /space/lyon/1/fsdev/freesurfer_dev/bin/Linux/tkmedit.oldfunc
+  echo "INFO: using old dev"
+else
+  set TKMEDIT = tkmedit
+endif
 
 set cmd = ($TKMEDIT $anatoption $mapoption $hdroption $offsetoption)
 set cmd = ($cmd -fthresh $fthresh -fmid $fmid -fslope $fslope )
@@ -587,6 +593,10 @@ while( $#argv != 0 )
     case "-sessanat":
     case "-samesess":
       set sessanat = 1;
+      breaksw
+
+    case "-olddev":
+      set olddev = 1;
       breaksw
 
     case "-nohdr":
