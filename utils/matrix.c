@@ -2191,8 +2191,7 @@ MatrixSingular(MATRIX *m)
 /*
    calcluate the condition # of a matrix using svd
 */
-float
-MatrixConditionNumber(MATRIX *m)
+float MatrixConditionNumber(MATRIX *m)
 {
   float cond ;
   VECTOR  *v_w ;
@@ -2229,6 +2228,33 @@ MatrixConditionNumber(MATRIX *m)
   MatrixFree(&m_V) ;
   return(cond) ;
 }
+/*-----------------------------------------------------------
+  MatrixNSConditionNumber() - condition of a non-square matrix.
+  Works for square matrices as well.
+-----------------------------------------------------------*/
+float MatrixNSConditionNumber(MATRIX *m)
+{
+  float cond ;
+  MATRIX *mt, *p;
+
+  if(m->rows == m->cols) 
+    return(MatrixConditionNumber(m));
+
+  mt = MatrixTranspose(m,NULL);
+
+  if(m->rows > m->cols)
+    p = MatrixMultiply(mt,m,NULL);
+  else
+    p = MatrixMultiply(m,mt,NULL);
+
+  cond = MatrixConditionNumber(p);
+
+  MatrixFree(&mt);
+  MatrixFree(&p);
+
+  return(cond);
+}
+
 /*
   calculate the cross product of two vectors and return the result
   in vdst, allocating it if necessary.
