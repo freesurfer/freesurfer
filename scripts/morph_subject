@@ -1,4 +1,24 @@
 #!/bin/tcsh -ef
+# Note: please use the check-out/check-in procedures when
+# editing this file.
+#
+# $Id: morph_subject,v 1.2 2002/01/28 17:41:28 greve Exp $
+#
+set version = '$Id: morph_subject,v 1.2 2002/01/28 17:41:28 greve Exp $';
+
+if($#argv != 1) then
+  echo "USAGE: morph_subject subjid"
+  echo $version
+  exit 1;
+endif
+
+set subjdir =  $SUBJECTS_DIR/$1
+if(! -e $subjdir) then
+  echo "ERROR: $subjdir does not exist"
+  exit 1;
+endif
 
 morph_subject-lh $1 
 morph_subject-rh $1
+
+exit 0;
