@@ -4,19 +4,18 @@
 #include <stdlib.h>
 #include <string.h>
 #include "fio.h"
+#include "const.h"
 #include "diag.h"
 #include "proto.h"
 #include "error.h"
 #include "MRIio.h"
 
 #define SQR(x) ((x)*(x))
-#define IMGSIZE 256
-#define NUMVALS 256
-#define MAXIM 256
-#define MAXFACES 400000
+#define IMGSIZE     256
+#define NUMVALS     256
+#define MAXIM       256
+#define MAXFACES    400000
 #define MAXVERTICES 400000
-#define IMAGE_DIR "/usr3/people/dale/MRI/IMAGES"
-#define SURFACE_DIR "/usr3/people/dale/MRI/SURFACES"
 
 typedef struct face_type_
 {
@@ -73,7 +72,7 @@ char *Progname ;
 int
 main(int argc, char *argv[])
 {
-    char ifpref[80],ofpref[80] /*,*data_dir*/;
+    char ifpref[STRLEN],ofpref[STRLEN] /*,*data_dir*/;
     char *getenv();
 
     DiagInit(NULL, NULL, NULL) ;
@@ -124,7 +123,7 @@ read_images(char *fpref)
 {
   int i,j,k;                   /* loop counters */
   FILE *fptr;
-  char fname[100];
+  char fname[STRLEN];
 
   sprintf(fname,"%s.info",fpref);
   fptr = fopen(fname,"r");
