@@ -8,10 +8,10 @@
  *
 */
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2003/01/22 19:26:29 $
-// Revision       : $Revision: 1.208 $
-char *MRI_C_VERSION = "$Revision: 1.208 $";
+// Revision Author: $Author: greve $
+// Revision Date  : $Date: 2003/01/23 19:43:33 $
+// Revision       : $Revision: 1.209 $
+char *MRI_C_VERSION = "$Revision: 1.209 $";
 
 /*-----------------------------------------------------
                     INCLUDE FILES
@@ -8154,8 +8154,8 @@ MRI *MRIchangeType(MRI *src, int dest_type, float f_low,
   }
   else
   {
-
     /* ----- build a histogram ----- */
+    printf("MRIchangeType: Building histogram \n");
 
     bin_size = (src_max - src_min) / (float)N_HIST_BINS;
 
