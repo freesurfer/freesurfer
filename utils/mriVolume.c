@@ -331,37 +331,40 @@ Volm_tErr Volm_ImportData ( mriVolumeRef this,
     Trns_Delete( &(this->mIdxToRASTransform) );
   }
 
-#if 1
-  DebugNote( ("Creating idx to ras transform") );
-  Trns_New( &this->mIdxToRASTransform );
-  DebugNote( ("Getting idx to ras matrix") );
-  idxToRASTransform = MRIgetVoxelToRasXform( mriVolume );
-  DebugAssertThrowX( (NULL != idxToRASTransform),
-         eResult, Volm_tErr_AllocationFailed );
-  DebugNote( ("Copying idx to ras transform matrix into transform") );
-  Trns_CopyAtoRAS( this->mIdxToRASTransform, idxToRASTransform );
-  DebugNote( ("Copying identity matrix into idx to ras transform") );
-  Trns_CopyARAStoBRAS( this->mIdxToRASTransform, identity ); /* no display xform */
-  Trns_CopyBtoRAS( this->mIdxToRASTransform, identity );
-#else
-  idxToRASTransform = MatrixAlloc( 4, 4, MATRIX_REAL );
-  MatrixClear( idxToRASTransform );
-  *MATRIX_RELT(idxToRASTransform,1,1) = -1.0;
-  *MATRIX_RELT(idxToRASTransform,2,3) = 1.0;
-  *MATRIX_RELT(idxToRASTransform,3,2) = -1.0;
-  *MATRIX_RELT(idxToRASTransform,1,4) = 128.5;
-  *MATRIX_RELT(idxToRASTransform,2,4) = -128.5;
-  *MATRIX_RELT(idxToRASTransform,3,4) = 128.5;
-  *MATRIX_RELT(idxToRASTransform,4,4) = 1.0;
+  if (mriVolume->slice_direction != MRI_CORONAL)
+  {
+    DebugNote( ("Creating idx to ras transform") );
+    Trns_New( &this->mIdxToRASTransform );
+    DebugNote( ("Getting idx to ras matrix") );
+    idxToRASTransform = MRIgetVoxelToRasXform( mriVolume );
+    DebugAssertThrowX( (NULL != idxToRASTransform),
+                       eResult, Volm_tErr_AllocationFailed );
+    DebugNote( ("Copying idx to ras transform matrix into transform") );
+    Trns_CopyAtoRAS( this->mIdxToRASTransform, idxToRASTransform );
+    DebugNote( ("Copying identity matrix into idx to ras transform") );
+    Trns_CopyARAStoBRAS( this->mIdxToRASTransform, identity ); /* no display xform */
+    Trns_CopyBtoRAS( this->mIdxToRASTransform, identity );
+  }
+  else
+  {
+    idxToRASTransform = MatrixAlloc( 4, 4, MATRIX_REAL );
+    MatrixClear( idxToRASTransform );
+    *MATRIX_RELT(idxToRASTransform,1,1) = -1.0;
+    *MATRIX_RELT(idxToRASTransform,2,3) = 1.0;
+    *MATRIX_RELT(idxToRASTransform,3,2) = -1.0;
+    *MATRIX_RELT(idxToRASTransform,1,4) = 128;
+    *MATRIX_RELT(idxToRASTransform,2,4) = -128;
+    *MATRIX_RELT(idxToRASTransform,3,4) = 128;
+    *MATRIX_RELT(idxToRASTransform,4,4) = 1.0;
 
-  DebugNote( ("Creating idx to ras transform") );
-  Trns_New( &this->mIdxToRASTransform );
-  DebugNote( ("Copying idx to ras transform matrix into transform") );
-  Trns_CopyARAStoBRAS( this->mIdxToRASTransform, idxToRASTransform );
-  DebugNote( ("Copying identity matrix into idx to ras transform") );
-  Trns_CopyAtoRAS( this->mIdxToRASTransform, identity );
-  Trns_CopyBtoRAS( this->mIdxToRASTransform, identity );
-#endif
+    DebugNote( ("Creating idx to ras transform") );
+    Trns_New( &this->mIdxToRASTransform );
+    DebugNote( ("Copying idx to ras transform matrix into transform") );
+    Trns_CopyARAStoBRAS( this->mIdxToRASTransform, idxToRASTransform );
+    DebugNote( ("Copying identity matrix into idx to ras transform") );
+    Trns_CopyAtoRAS( this->mIdxToRASTransform, identity );
+    Trns_CopyBtoRAS( this->mIdxToRASTransform, identity );
+  }
 
   /* save the volume source */
   DebugNote( ("Copying original path") );
