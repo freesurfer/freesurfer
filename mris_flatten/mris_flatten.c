@@ -14,12 +14,11 @@
 #include "macros.h"
 #include "utils.h"
 
-static char vcid[] = "$Id: mris_flatten.c,v 1.14 1998/04/01 15:54:50 fischl Exp $";
+static char vcid[] = "$Id: mris_flatten.c,v 1.15 1998/05/20 15:15:17 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
 static int  get_option(int argc, char *argv[]) ;
-static void usage_exit(void) ;
 static void print_usage(void) ;
 static void print_help(void) ;
 static void print_version(void) ;
@@ -39,6 +38,9 @@ static int   nospring = 0 ;
 static float scale = 3 ;
 static int   max_passes = 1 ;
 
+static int sphere_flag = 0 ;
+static int plane_flag = 0 ;
+
 #define SMOOTHWM_FNAME  "smoothwm" 
 
 int
@@ -52,10 +54,10 @@ main(int argc, char *argv[])
   Progname = argv[0] ;
   ErrorInit(NULL, NULL, NULL) ;
   DiagInit(NULL, NULL, NULL) ;
-  Gdiag |= DIAG_SHOW ;
+  Gdiag |= (DIAG_SHOW | DIAG_WRITE) ;
   parms.dt = .1 ;
   parms.projection = PROJECT_PLANE ;
-  parms.tol = 1e-1 ;
+  parms.tol = 0.2 ;
   parms.n_averages = 1024 /* 1024 */ ;
   parms.min_averages = 0 ;
   parms.l_angle = 0.0 /* L_ANGLE */ ;
@@ -66,8 +68,8 @@ main(int argc, char *argv[])
   parms.l_area = 1.0 ;
   parms.l_boundary = 0.0 ;
   parms.l_curv = 0.0 ;
-  parms.niterations = 25 ;
-  parms.write_iterations = 1000 ;
+  parms.niterations = 40 ;
+  parms.write_iterations = 0 ;
   parms.a = parms.b = parms.c = 0.0f ;  /* ellipsoid parameters */
   parms.dt_increase = 1.01 /* DT_INCREASE */;
   parms.dt_decrease = 0.98 /* DT_DECREASE*/ ;
@@ -77,9 +79,13 @@ main(int argc, char *argv[])
   parms.desired_rms_height = -1.0 ;
   parms.base_name[0] = 0 ;
   parms.Hdesired = 0.0 ;   /* a flat surface */
+#if 0
   parms.nbhd_size = 4 ;    /* out to 4-connected neighbors */
   parms.max_nbrs = 20 ;    /* 20 at each distance */
-
+#else
+  parms.nbhd_size = 7 ;    /* out to 7-connected neighbors */
+  parms.max_nbrs = 12 ;    /* 12 at each distance */
+#endif
   ac = argc ;
   av = argv ;
   for ( ; argc > 1 && ISOPTION(*argv[1]) ; argc--, argv++)
@@ -122,6 +128,13 @@ main(int argc, char *argv[])
     ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s",
               Progname, in_surf_fname) ;
 
+  if (sphere_flag)
+  {
+    MRIScenter(mris, mris) ;
+    mris->radius = MRISaverageRadius(mris) ;
+    MRISstoreMetricProperties(mris) ;
+    MRISsaveVertexPositions(mris, ORIGINAL_VERTICES) ;
+  }
 
   if (MRISreadPatch(mris, in_patch_fname) != NO_ERROR)
     ErrorExit(ERROR_BADPARM, "%s: could not read patch file %s",
@@ -135,9 +148,9 @@ main(int argc, char *argv[])
       MRISflattenPatchRandomly(mris) ;
     else
       MRISflattenPatch(mris) ;
-    
-    
-    MRISreadOriginalProperties(mris, "smoothwm") ;
+
+    if (!sphere_flag)
+      MRISreadOriginalProperties(mris, "smoothwm") ;
     MRISsetNeighborhoodSize(mris, nbrs) ;
 
     /* optimize metric properties of flat map */
@@ -149,6 +162,27 @@ main(int argc, char *argv[])
     MRISwritePatch(mris, out_patch_fname) ;
   }
 
+  if (plane_flag || sphere_flag)
+  {
+    char fname[100] ;
+    FILE *fp ;
+
+#if 0
+    sprintf(fname, "%s.%s.out", 
+            mris->hemisphere == RIGHT_HEMISPHERE ? "rh" : "lh",
+            parms.base_name);
+#else
+    sprintf(fname, "flatten.log") ;
+#endif
+    fp = fopen(fname, "a") ;
+
+    if (plane_flag)
+      MRIScomputeAnalyticDistanceError(mris, MRIS_PLANE, fp) ;
+    else if (sphere_flag)
+      MRIScomputeAnalyticDistanceError(mris, MRIS_SPHERE, fp) ;
+    fclose(fp) ;
+  }
+    
 #if 0
   sprintf(fname, "%s.area_error", out_fname) ;
   printf("writing area errors to %s\n", fname) ;
@@ -180,6 +214,10 @@ get_option(int argc, char *argv[])
     print_help() ;
   else if (!stricmp(option, "-version"))
     print_version() ;
+  else if (!stricmp(option, "sphere"))
+    sphere_flag = 1 ;
+  else if (!stricmp(option, "plane"))
+    plane_flag = 1 ;
   else if (!stricmp(option, "dist"))
   {
     sscanf(argv[2], "%f", &parms.l_dist) ;
@@ -280,8 +318,8 @@ get_option(int argc, char *argv[])
     parms.nbhd_size = atof(argv[2]) ;
     parms.max_nbrs = atof(argv[3]) ;
     nargs = 2 ;
-    fprintf(stderr, "nbr size = %d, max neighbors = %d\n",
-            parms.nbhd_size, parms.max_nbrs) ;
+    fprintf(stderr, "sampling %d neighbors out to a distance of %d mm\n",
+            parms.max_nbrs, parms.nbhd_size) ;
   }
   else if (!stricmp(option, "dt_dec"))
   {
@@ -354,13 +392,6 @@ get_option(int argc, char *argv[])
   }
 
   return(nargs) ;
-}
-
-static void
-usage_exit(void)
-{
-  print_usage() ;
-  exit(1) ;
 }
 
 static void
