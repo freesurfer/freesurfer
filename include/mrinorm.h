@@ -7,6 +7,10 @@
 
 /* defaults which can be used in MRInormInit call (using 0 will install these)
  */
+#define CONTROL_NONE       0
+#define CONTROL_MARKED     1
+#define CONTROL_TMP        2
+
 #define DEFAULT_DESIRED_WHITE_MATTER_VALUE  110
 #define DEFAULT_SMOOTH_SIGMA                2.0f
 #define DEFAULT_WINDOWS_BELOW_T0            9 /* 4*/
