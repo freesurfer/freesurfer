@@ -13,7 +13,7 @@
 #include "mri.h"
 #include "macros.h"
 
-static char vcid[] = "$Id: mris_curvature.c,v 1.11 1998/03/18 16:18:46 fischl Exp $";
+static char vcid[] = "$Id: mris_curvature.c,v 1.12 1998/04/18 18:07:24 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -128,7 +128,7 @@ main(int argc, char *argv[])
     MRIScomputeSecondFundamentalForm(mris) ;
     nhandles = nint(1.0 - mris->Ktotal / (4.0*M_PI)) ;
     fprintf(stderr, "total integrated curvature = %2.3f*4pi (%2.3f) --> "
-            "%d handles\n", (float)mris->Ktotal/(4.0f*M_PI), 
+            "%d handles\n", (float)(mris->Ktotal/(4.0f*M_PI)), 
             (float)mris->Ktotal, nhandles) ;
 
 #if 0   

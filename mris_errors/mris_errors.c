@@ -12,7 +12,7 @@
 #include "macros.h"
 #include "utils.h"
 
-static char vcid[]="$Id: mris_errors.c,v 1.4 1997/12/11 17:51:15 fischl Exp $";
+static char vcid[]="$Id: mris_errors.c,v 1.5 1998/04/18 18:08:09 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -253,8 +253,9 @@ MRISangleErrors(MRI_SURFACE *mris)
         error = deltaAngle(face->angle[tno][ano], face->orig_angle[tno][ano]);
         pct_error = error / face->orig_angle[tno][ano] * 100.0f ;
         fprintf(fp, "%d %2.3f %2.3f %2.3f %2.1f\n", fno, 
-                DEGREES(face->orig_angle[tno][ano]), 
-                DEGREES(face->angle[tno][ano]), DEGREES(error), pct_error) ;
+                (float)DEGREES(face->orig_angle[tno][ano]), 
+                (float)DEGREES(face->angle[tno][ano]), 
+                (float)DEGREES(error), (float)pct_error) ;
         total_sq_error += (error * error) ;
         ferror += fabs(error) ;
         total_error += error ;
@@ -271,9 +272,9 @@ MRISangleErrors(MRI_SURFACE *mris)
   mean_error = total_error / n ;
   std_error = sqrt(total_sq_error / (float)n - mean_error*mean_error) ;
   fprintf(stderr, "max angle error occurs at %d, error = %2.3f\n",
-          max_f, DEGREES(max_ferror));
+          max_f, (float)DEGREES(max_ferror));
   fprintf(stderr, "mean angle error = %2.3f, std = %2.3f\n", 
-          DEGREES(mean_error), DEGREES(std_error));
+          (float)DEGREES(mean_error), (float)DEGREES(std_error));
   fclose(fp) ;
   return(NO_ERROR) ;
 }
