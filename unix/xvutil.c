@@ -95,7 +95,6 @@ static void xv_dimage_event_handler(Xv_Window window, Event *event) ;
 static XImage *xvCreateXimage(XV_FRAME *xvf, IMAGE *image) ;
 static Panel_setting xvHipsCommand(Panel_item item, Event *event) ;
 static void xvHipsCmdFrameInit(void) ;
-static void buttonQuit(Panel_item item, Event *event) ;
 
 /*----------------------------------------------------------------------
                               GLOBAL DATA
@@ -937,7 +936,7 @@ xvHipsCmdFrameInit(void)
 
            Description:
 ----------------------------------------------------------------------*/
-static void 
+void 
 buttonQuit(Panel_item item, Event *event)
 {
   xv_destroy_safe(xvf->frame);

@@ -116,6 +116,7 @@ void XVrepaintImage(XV_FRAME *xvf, int which) ;
 int XVsetMessagePosition(XV_FRAME *xvf, int which, int col, int row) ;
 int XVsetImageSize(XV_FRAME *xvf, int which, int rows, int cols) ;
 int XVresize(XV_FRAME *xvf) ;
+void buttonQuit(Panel_item item, Event *event) ;
 
 #define WINDOW_PAD          3
 
