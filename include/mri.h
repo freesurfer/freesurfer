@@ -427,7 +427,8 @@ extern float ic_z_vertices[]  ;
 #define SIEMENS_FILE                  6
 #define BRIK_FILE                     7
 #define BSHORT_FILE                   8
-#define SDT_FILE                      9
+#define BFLOAT_FILE                   9
+#define SDT_FILE                      10
 
 int        MRImatch(MRI *mri1, MRI *mri2) ;
 int        MRIvalRange(MRI *mri, float *pmin, float *pmax) ;
