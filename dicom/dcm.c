@@ -86,9 +86,9 @@
 **	and convert the object to and from its "stream" representation.
 **	In addition, the package can parse a file which contains a stream
 **	and create its internal object.
-** Last Update:		$Author: tosa $, $Date: 2004/06/30 20:23:40 $
+** Last Update:		$Author: tosa $, $Date: 2004/08/19 21:50:10 $
 ** Source File:		$RCSfile: dcm.c,v $
-** Revision:		$Revision: 1.13 $
+** Revision:		$Revision: 1.14 $
 ** Status:		$State: Exp $
 */
 
@@ -499,8 +499,8 @@ DCM_CloseObject(DCM_OBJECT ** callerObject)
 			(unsigned int) element->element.tag);
 	    if (element->element.representation == DCM_SQ) {
 		if (debug)
-		    fprintf(stderr, "Sequence List Address: %x\n",
-			(unsigned int) element->element.d.sq);
+		    fprintf(stderr, "Sequence List Address: %lx\n",
+			(unsigned long) element->element.d.sq);
 		if (element->element.d.sq != NULL) {
 		    while ((sequenceItem = LST_Pop(&element->element.d.sq)) != NULL) {
 			(void) DCM_CloseObject(&sequenceItem->object);
@@ -510,8 +510,8 @@ DCM_CloseObject(DCM_OBJECT ** callerObject)
 		}
 	    } else if (element->fragmentFlag) {
 		if (debug)
-		    fprintf(stderr, "Fragment List Address: %x\n",
-			    (unsigned int) element->element.d.fragments);
+		    fprintf(stderr, "Fragment List Address: %lx\n",
+			    (unsigned long) element->element.d.fragments);
 		if (element->element.d.fragments != NULL) {
 		    while ((fragmentItem = LST_Pop(&element->element.d.fragments)) != NULL) {
 			CTN_FREE(fragmentItem);
@@ -520,7 +520,7 @@ DCM_CloseObject(DCM_OBJECT ** callerObject)
 		}
 	    }
 	    if (debug)
-		fprintf(stderr, "DCM_CloseObject: free %8x\n", (unsigned int) element);
+		fprintf(stderr, "DCM_CloseObject: free %8lx\n", (unsigned long) element);
 
 	    CTN_FREE(element);
 	}
@@ -1020,7 +1020,7 @@ DCM_GetElementValue(DCM_OBJECT ** callerObject, DCM_ELEMENT * element,
 		}
 		p += l;
 		*ctx = (void *) p;
-		if ((unsigned) p == elementItem->element.length)
+		if ((U32) p == elementItem->element.length)
 		    return DCM_NORMAL;
 		else
 		    return DCM_GETINCOMPLETE;
@@ -2814,7 +2814,7 @@ newElementItem(DCM_ELEMENT * src, CTNBOOLEAN allocateData,
 
     *dst = (PRV_ELEMENT_ITEM *) CTN_MALLOC(sizeof(PRV_ELEMENT_ITEM) + l);
     if (debug)
-	fprintf(stderr, "%8x\n", (unsigned int) *dst);
+	fprintf(stderr, "%8lx\n", (unsigned long) *dst);
 
     if (*dst == NULL) {
 	return COND_PushCondition(DCM_ELEMENTCREATEFAILED,
@@ -6695,7 +6695,7 @@ copyData(PRIVATE_OBJECT ** object, PRV_ELEMENT_ITEM * from,
 	(void) memcpy(to->d.ot, q, l);
     }
     p += l;
-    if ((unsigned) p == from->element.length)
+    if ((U32) p == from->element.length)
 	return DCM_NORMAL;
     else
 	return DCM_GETINCOMPLETE;
