@@ -34,7 +34,7 @@
 ///////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////
-////                    USEFULL ROUTINES               ////////////
+////                    USEFUL ROUTINES               ////////////
 ///////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////
@@ -189,15 +189,15 @@ MRI* MRISpeelVolume(MRIS *mris,MRI *mri_src,MRI *mri_dst,int type,unsigned char 
         py = py0 + (py1-py0)*u/numu;
         pz = pz0 + (pz1-pz0)*u/numu;
 
-	// MRIworldToVoxel(mri_src,px,py,pz,&tx,&ty,&tz);
-	MRIsurfaceRASToVoxel(mri_src,px,py,pz,&tx,&ty,&tz);
-	imnr=(int)(tz+0.5);
-	j=(int)(ty+0.5);
-	i=(int)(tx+0.5);
+				// MRIworldToVoxel(mri_src,px,py,pz,&tx,&ty,&tz);
+				MRIsurfaceRASToVoxel(mri_src,px,py,pz,&tx,&ty,&tz);
+				imnr=(int)(tz+0.5);
+				j=(int)(ty+0.5);
+				i=(int)(tx+0.5);
 	
 
-	if (i>=0 && i<width && j>=0 && j<height && imnr>=0 && imnr<depth)
-	  MRIvox(mri_buff,i,j,imnr) = 255;
+				if (i>=0 && i<width && j>=0 && j<height && imnr>=0 && imnr<depth)
+					MRIvox(mri_buff,i,j,imnr) = 255;
 
       }  
     }
@@ -224,77 +224,77 @@ MRI* MRISpeelVolume(MRIS *mris,MRI *mri_src,MRI *mri_dst,int type,unsigned char 
           if (MRIvox(mri_buff,i,j,k)==0)
             if (MRIvox(mri_buff,i,j,k+1)==64||MRIvox(mri_buff,i,j+1,k)==64||
                 MRIvox(mri_buff,i+1,j,k)==64)
-        {
-    MRIvox(mri_buff,i,j,k) = 64;
-    newfilled++;
-        }
+						{
+							MRIvox(mri_buff,i,j,k) = 64;
+							newfilled++;
+						}
     totalfilled += newfilled;
   }
 
   size=0;
   switch(type)
-    {
-    case 0:      
-      for (k=1;k<depth-1;k++)
-	for (j=1;j<height-1;j++)
-	  for (i=1;i<width-1;i++)
-	    {
-	      if (MRIvox(mri_buff,i,j,k)==64)
-		MRIvox(mri_dst,i,j,k) = 0 ;
-	      else
-		{
-		  tmpval=MRIvox(mri_src,i,j,k);
-		  MRIvox(mri_dst,i,j,k) = tmpval;
-		  size++;
-		}
-	    }
-      break;
-    case 1:
-      for (k=1;k<depth-1;k++)
-	for (j=1;j<height-1;j++)
-	  for (i=1;i<width-1;i++)
-	    {
-	      if (MRIvox(mri_buff,i,j,k)==64)
-		MRIvox(mri_dst,i,j,k) = 0 ;
-	      else
-		{
-		  MRIvox(mri_dst,i,j,k) = val;
-		  size++;
-		}
-	    }
-      break;
-    case 2:
-      for (k=1;k<depth-1;k++)
-	for (j=1;j<height-1;j++)
-	  for (i=1;i<width-1;i++)
-	    {
-	      if (MRIvox(mri_buff,i,j,k)==64)
-		{
-		  tmpval=MRIvox(mri_src,i,j,k);
-		  MRIvox(mri_dst,i,j,k) =  tmpval ;
-		}
-	      else
-		{
-		  MRIvox(mri_dst,i,j,k) = 0;
-		  size++;
-		}
-	    }
-      break;
-    case 3:
-      for (k=1;k<depth-1;k++)
-	for (j=1;j<height-1;j++)
-	  for (i=1;i<width-1;i++)
-	    {
-	      if (MRIvox(mri_buff,i,j,k)==64)
-		MRIvox(mri_dst,i,j,k) =  val;
-	      else
-		{
-		  MRIvox(mri_dst,i,j,k) = 0;
-		  size++;
-		}
-	    }
-      break;
-    }
+	{
+	case 0:      
+		for (k=1;k<depth-1;k++)
+			for (j=1;j<height-1;j++)
+				for (i=1;i<width-1;i++)
+				{
+					if (MRIvox(mri_buff,i,j,k)==64)
+						MRIvox(mri_dst,i,j,k) = 0 ;
+					else
+					{
+						tmpval=MRIvox(mri_src,i,j,k);
+						MRIvox(mri_dst,i,j,k) = tmpval;
+						size++;
+					}
+				}
+		break;
+	case 1:
+		for (k=1;k<depth-1;k++)
+			for (j=1;j<height-1;j++)
+				for (i=1;i<width-1;i++)
+				{
+					if (MRIvox(mri_buff,i,j,k)==64)
+						MRIvox(mri_dst,i,j,k) = 0 ;
+					else
+					{
+						MRIvox(mri_dst,i,j,k) = val;
+						size++;
+					}
+				}
+		break;
+	case 2:
+		for (k=1;k<depth-1;k++)
+			for (j=1;j<height-1;j++)
+				for (i=1;i<width-1;i++)
+				{
+					if (MRIvox(mri_buff,i,j,k)==64)
+					{
+						tmpval=MRIvox(mri_src,i,j,k);
+						MRIvox(mri_dst,i,j,k) =  tmpval ;
+					}
+					else
+					{
+						MRIvox(mri_dst,i,j,k) = 0;
+						size++;
+					}
+				}
+		break;
+	case 3:
+		for (k=1;k<depth-1;k++)
+			for (j=1;j<height-1;j++)
+				for (i=1;i<width-1;i++)
+				{
+					if (MRIvox(mri_buff,i,j,k)==64)
+						MRIvox(mri_dst,i,j,k) =  val;
+					else
+					{
+						MRIvox(mri_dst,i,j,k) = 0;
+						size++;
+					}
+				}
+		break;
+	}
   if(NbVoxels)
     (*NbVoxels)=size;
   

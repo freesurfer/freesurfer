@@ -475,7 +475,8 @@ LabelRipRestOfSurface(LABEL *area, MRI_SURFACE *mris)
 {
   int    vno, n ;
   VERTEX *v ;
-
+	
+	LabelToFlat(area, mris) ;
   for (vno = 0 ; vno < mris->nvertices ; vno++)
   {
     v = &mris->vertices[vno] ;

@@ -1671,6 +1671,26 @@ TransformAlloc(int type, MRI *mri)
 }
 
 int
+TransformSwapInverse(TRANSFORM *transform)
+{
+	LT    *lt ;
+	LTA   *lta ;
+
+	if (transform->type == MORPH_3D_TYPE)
+	{
+		ErrorReturn(ERROR_UNSUPPORTED, (ERROR_UNSUPPORTED, "TransformSwapInverse: MORPH_3D_TYPE not supported"));
+	}
+	else
+	{
+		lta = (LTA *)(transform->xform) ;
+		lt = lta->xforms ;
+		lta->xforms = lta->inv_xforms ;
+		lta->inv_xforms = lt ;
+	}
+	return(NO_ERROR) ;
+}
+
+int
 TransformInvert(TRANSFORM *transform, MRI *mri)
 {
   LTA       *lta ;
@@ -1682,6 +1702,8 @@ TransformInvert(TRANSFORM *transform, MRI *mri)
     lta = (LTA *)transform->xform ;
     if (MatrixInverse(lta->xforms[0].m_L, lta->inv_xforms[0].m_L) == NULL)
       ErrorExit(ERROR_BADPARM, "TransformInvert: xform noninvertible") ;
+		memmove(&lta->inv_xforms[0].src, &lta->xforms[0].dst, sizeof(lta->xforms[0].dst)) ;
+		memmove(&lta->inv_xforms[0].dst, &lta->xforms[0].src, sizeof(lta->xforms[0].dst)) ;
     break ;
   case MORPH_3D_TYPE:
     if (!mri)
