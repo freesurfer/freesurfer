@@ -590,10 +590,6 @@ MRInormalize(MRI *mri_src, MRI *mri_dst, MNI *mni)
 
         Description
 ------------------------------------------------------*/
-#define CONTROL_NONE       0
-#define CONTROL_MARKED     1
-#define CONTROL_TMP        2
-
 #define SCALE  2
 
 MRI *
