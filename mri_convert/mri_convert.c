@@ -3,9 +3,9 @@
 // original: written by Bruce Fischl (Apr 16, 1997)
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2003/08/20 16:04:31 $
-// Revision       : $Revision: 1.57 $
+// Revision Author: $Author: ebeth $
+// Revision Date  : $Date: 2003/08/25 20:48:59 $
+// Revision       : $Revision: 1.58 $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -114,6 +114,7 @@ int main(int argc, char *argv[])
   char gdf_image_stem[STRLEN];
   int in_matrix_flag, out_matrix_flag;
   float conform_size;
+  int zero_ge_z_offset_flag = FALSE; //E/
 
   for(i=0;i<argc;i++) printf("%s ",argv[i]);
   printf("\n");
@@ -199,7 +200,7 @@ int main(int argc, char *argv[])
   conform_size = 1.0;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_convert.c,v 1.57 2003/08/20 16:04:31 tosa Exp $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_convert.c,v 1.58 2003/08/25 20:48:59 ebeth Exp $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -722,6 +723,12 @@ int main(int argc, char *argv[])
       i++;
       sscanf(argv[i],"%d",&N_Zero_Pad_Input);
     }
+    /*-------------------------------------------------------------*/ //E/
+    else if(strcmp(argv[i], "-zgez") == 0 || strcmp(argv[i], "--zero_ge_z_offset") == 0)
+    {
+      zero_ge_z_offset_flag = TRUE;
+      // fprintf(stderr,"GE dicom volume - zeroing z-offset c_s\n");
+    }
     /*-------------------------------------------------------------*/
     else
     {
@@ -762,6 +769,7 @@ int main(int argc, char *argv[])
     fprintf(stderr, "You cannot use both -nc (--no_conform) and -cm (--conform_min) at the same time.\n");
     exit(1);
   }
+
   /* ----- catch zero or negative voxel dimensions ----- */
 
   sizes_good_flag = TRUE;
@@ -918,6 +926,12 @@ int main(int argc, char *argv[])
     exit(1);
   }
 
+  if (zero_ge_z_offset_flag && in_volume_type != DICOM_FILE) //E/
+    {
+      zero_ge_z_offset_flag = FALSE ;
+      fprintf(stderr, "Not a GE dicom volume: -zgez = --zero_ge_z_offset option ignored.\n");
+    }
+
   printf("reading from %s...\n", in_name_only);
 
   if(in_volume_type == OTL_FILE)
@@ -1052,6 +1066,9 @@ int main(int argc, char *argv[])
     if(in_like_flag) MRIfree(&mri_in_like);
     exit(1);
   }
+
+  if(zero_ge_z_offset_flag) //E/
+    mri->c_s = 0.0;
 
   if(unwarp_flag)
     {
@@ -1848,6 +1865,8 @@ void usage(FILE *stream)
   printf("  --sdcmlist (list of DICOM files for conversion)\n");
   printf("  -ti, --template_info : dump info about template\n");
   printf("  -gis <gdf image file stem>\n");
+  printf("  -zgez, --zero_ge_z_offset\n");
+  printf("            set c_s=0 (appropriate for dicom files from GE machines with isocenter scanning)\n");
   printf("\n");
   printf("Notes: \n");
   printf("\n");
