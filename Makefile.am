@@ -11,7 +11,7 @@ mri_deface \
 mri_edit_segmentation mri_edit_segmentation_with_surfaces mri_em_register mri_estimate_tissue_parms \
 mri_evaluate_morph mri_extract mri_extract_conditions mri_extract_label \
 mri_fill mri_gca_ambiguous mri_head mri_histo_eq mri_info mri_joint_density \
-mri_label_histo mri_label_vals mri_label_volume mri_label2label mri_linear_register \
+mri_label_histo mri_label_vals mri_label_volume mri_label2label mri_label2vol mri_linear_register \
 mri_make_bem_surfaces mri_make_register mri_make_template mri_mark_temporal_lobe mri_mask mri_ms_fitparms \
 mri_matrix_multiply \
 mri_nlfilter mri_normalize mri_partial_ribbon mri_paint mri_parselabel mri_parse_sdcmdir mri_polv mri_probe_ima \
@@ -43,7 +43,8 @@ FSLUTILS=fslutils
 
 STATSDIRS=optseq2 spm2bfloat statcombine stat_normalize
 
-MISCDIRS=regdat2xfm brik2bfloat minc_to_bshort test_window_env paint scripts
+MISCDIRS=histo_compute_joint_density histo_register_block regdat2xfm brik2bfloat minc_to_bshort test_window_env \
+paint scripts images
 
 SUBDIRS=unix dicom hipsstubs rgb utils fsgdf $(MRISUBDIRS) $(MRISSUBDIRS) $(GLSUBDIRS) $(FSGDF) $(FSLUTILS) $(STATSDIRS) \
 $(MISCDIRS) scuba

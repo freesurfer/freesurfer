@@ -260,8 +260,8 @@ if test $ac_cv_prog_cc_cpuflags = no; then
 fi 
 
 CFLAGS=$ac_save_CFLAGS
-CFLAGS="$CPUFLAGS $CFLAGS"
-CXXFLAGS="$CPUFLAGS $CXXFLAGS"
+CFLAGS="-Wall $CPUFLAGS $CFLAGS"
+CXXFLAGS="-Wall $CPUFLAGS $CXXFLAGS"
 
 #####
 else
@@ -681,7 +681,7 @@ mri_edit_segmentation_with_surfaces/Makefile mri_em_register/Makefile mri_estima
 mri_evaluate_morph/Makefile mri_extract/Makefile mri_extract_conditions/Makefile \
 mri_extract_label/Makefile mri_fill/Makefile mri_gca_ambiguous/Makefile mri_gdfglm/Makefile \
 mri_head/Makefile mri_histo_eq/Makefile mri_info/Makefile mri_joint_density/Makefile \
-mri_label_histo/Makefile mri_label_vals/Makefile mri_label_volume/Makefile mri_label2label/Makefile \
+mri_label_histo/Makefile mri_label_vals/Makefile mri_label_volume/Makefile mri_label2label/Makefile mri_label2vol/Makefile \
 mri_linear_register/Makefile mri_make_bem_surfaces/Makefile mri_make_template/Makefile mri_make_register/Makefile \
 mri_mark_temporal_lobe/Makefile mri_mask/Makefile mri_matrix_multiply/Makefile mri_ms_fitparms/Makefile \
 mri_nlfilter/Makefile mri_normalize/Makefile mri_partial_ribbon/Makefile mri_paint/Makefile \
@@ -711,6 +711,7 @@ mris_talairach/Makefile mris_thickness/Makefile mris_thickness_comparison/Makefi
 mris_transform/Makefile mris_translate_annotation/Makefile mris_twoclass/Makefile \
 mris_w_to_curv/Makefile fsgdf/Makefile fslutils/Makefile optseq2/Makefile spm2bfloat/Makefile statcombine/Makefile \
 stat_normalize/Makefile regdat2xfm/Makefile scuba/Makefile test_window_env/Makefile \
-brik2bfloat/Makefile minc_to_bshort/Makefile paint/Makefile scripts/Makefile ) 
+brik2bfloat/Makefile minc_to_bshort/Makefile paint/Makefile \
+histo_compute_joint_density/Makefile histo_register_block/Makefile scripts/Makefile images/Makefile ) 
 
 
