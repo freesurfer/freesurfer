@@ -58,5 +58,6 @@ char *FileTmpName(char *basename) ;
 void FileRename(char *inName, char *outName) ;
 char *FileNameAbsolute(char *fname, char *absFname) ;
 char *FileNamePath(char *fname, char *pathName) ;
+char *AppendString(char *src, char *app);
 
 #endif

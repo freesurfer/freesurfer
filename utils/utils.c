@@ -839,3 +839,40 @@ getwd(char *buf)
 }
 
 #endif
+/* ---------------------------------------------------------
+   Name: AppendString()
+   Author: Douglas Greve, 9/20/99
+   Purpose: Appends a string to a given source string,
+     reallocating the source string in the process.
+   Return:  pointer to the (reallocated) source string.
+   Notes:
+     1. src can be null.
+     2. if app is null, then the function just returns src.
+     3. if src cannot be reallocated, then the function
+        forces an exit.
+ ---------------------------------------------------------*/
+char *AppendString(char *src, char *app)
+{
+  int sz1 = 0, sz2 = 0;
+  char *tmp;
+
+  if(!app) return src;
+
+  if(src) sz1 = strlen(src);
+  sz2 = strlen(app);
+
+  tmp = (char *) realloc(src, sizeof(char)*(sz1+sz2));
+
+  if(!tmp){
+    fprintf(stderr,"ERROR: AppendString: \n");
+    fprintf(stderr,"Could not realloc\n");
+    fprintf(stderr,"%s:%d\n",__FILE__,__LINE__);
+    exit(1);
+  }
+  /* Note: tmp should be equal to src */
+  if(src) sprintf(tmp,"%s%s",src,app);
+  else    sprintf(tmp,"%s",app);
+
+  return(tmp);
+}
+
