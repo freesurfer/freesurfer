@@ -81,6 +81,7 @@
 #define HIPS_CMD_ROWS       30
 #define HIPS_CMD_COLS       400
 
+#define DEFAULT_PRECISION   4
 /*----------------------------------------------------------------------
                               PROTOTYPES
 ----------------------------------------------------------------------*/
@@ -135,6 +136,7 @@ XValloc(int rows, int cols, int button_rows, int display_rows,
   if (!xvf)
     return(NULL) ;
 
+  xvf->precision = DEFAULT_PRECISION ;
   xvf->rows = rows ;
   xvf->cols = cols ;
   xvf->button_rows = button_rows ;
@@ -465,7 +467,7 @@ XVshowImage(XV_FRAME *xvf, int which, IMAGE *image, int frame)
       ImageFree(&GtmpByteImage) ;
     if (GtmpByteImage2)
       ImageFree(&GtmpByteImage2) ;
-    GtmpFloatImage = ImageAlloc(image->rows, image->cols, PFFLOAT, 1) ;
+    GtmpFloatImage = ImageAlloc(image->rows,image->cols, PFFLOAT,1);
     GtmpByteImage = ImageAlloc(image->rows, image->cols, PFBYTE, 1) ;
     GtmpByteImage2 = ImageAlloc(image->rows, image->cols, PFBYTE, 1) ;
   }
@@ -476,7 +478,18 @@ XVshowImage(XV_FRAME *xvf, int which, IMAGE *image, int frame)
     ImageSetSize(GtmpByteImage2, image->rows, image->cols) ;
   }
 
-  ImageCopyFrames(image, GtmpFloatImage, frame, 1, 0) ;
+  if (image->pixel_format == PFDOUBLE)
+  {
+    IMAGE *Itmp ;
+
+    Itmp = ImageAlloc(image->rows, image->cols, PFFLOAT, image->num_frame) ;
+    ImageCopy(image, Itmp) ;
+    ImageCopyFrames(Itmp, GtmpFloatImage, frame, 1, 0) ;
+    ImageFree(&Itmp) ;
+  }
+  else
+    ImageCopyFrames(image, GtmpFloatImage, frame, 1, 0) ;
+
   if (dimage->rescale_range || image->num_frame == 1)
     ImageScale(GtmpFloatImage, GtmpFloatImage, 0, MAX_DISP_VAL) ;
   else   /* use entire sequence to compute display range */
@@ -571,11 +584,11 @@ static void
 xv_dimage_event_handler(Xv_Window xv_window, Event *event)
 {
   int    x, y ;
-  float  val = 0.0f ;
+  double val = 0.0 ;
   Window window ;
   int    row, col, which = -1 ;
   DIMAGE *dimage ;
-  char   *str ;
+  char   *str, fmt[50] ;
 
   window = event_window(event) ;
 
@@ -642,16 +655,21 @@ xv_dimage_event_handler(Xv_Window xv_window, Event *event)
   case LOC_DRAG:
     switch (dimage->sourceImage->pixel_format)
     {
+    case PFDOUBLE:
+      val = *IMAGEDseq_pix(dimage->sourceImage, x, y, dimage->frame) ;
+      break ;
     case PFFLOAT:
-      val = *IMAGEFseq_pix(dimage->sourceImage, x, y, dimage->frame) ;
+      val = (double)*IMAGEFseq_pix(dimage->sourceImage, x, y, dimage->frame) ;
       break ;
     case PFBYTE:
-      val = (float)*IMAGEseq_pix(dimage->sourceImage, x, y, dimage->frame) ;
+      val = (double)*IMAGEseq_pix(dimage->sourceImage, x, y, dimage->frame) ;
       break ;
     }
     for (str = dimage->title_string ; *str && isspace(*str) ; str++)
     {}
-    XVprintf(xvf, 0, "%10.10s: (%3d, %3d) --> %2.4f\n", str, x, y, val) ;
+
+    sprintf(fmt, "%%10.10s: (%%3d, %%3d) --> %%2.%dlf\n", xvf->precision) ;
+    XVprintf(xvf, 0, fmt, str, x, y, val) ;
 
     /* extract this location as center of new template */
     if (event_id(event) == LOC_DRAG || event_is_down(event))
@@ -1246,7 +1264,7 @@ XVsetImageSize(XV_FRAME *xvf, int which, int rows, int cols)
   DIMAGE    *dimage ;
 
   dimage = xvGetDimage(which, 1) ;
-  if (!dimage)
+  if (!dimage || rows <= 0 || cols <= 0)
     return(-1) ;
 
   xv_set(dimage->canvas, CANVAS_WIDTH, cols, CANVAS_HEIGHT, rows, NULL) ;
@@ -1478,5 +1496,12 @@ xvFreeDimage(DIMAGE *dimage)
 
 /*  (*dimage->ximage->destroy_image)(dimage->ximage)*/
   /* lots of other stuff needed here */
+}
+
+int
+XVsetPrecision(XV_FRAME *xvf, int precision)
+{
+  xvf->precision = precision ;
+  return(0) ;
 }
 
