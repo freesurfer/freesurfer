@@ -4,8 +4,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: ch $
-// Revision Date  : $Date: 2003/09/23 21:27:21 $
-// Revision       : $Revision: 1.66 $
+// Revision Date  : $Date: 2003/09/24 18:07:26 $
+// Revision       : $Revision: 1.67 $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -183,6 +183,7 @@ int main(int argc, char *argv[])
   out_n_i_flag = out_n_j_flag = out_n_k_flag = FALSE;
   template_info_flag = FALSE;
   out_volume_type = MRI_CORONAL_SLICE_DIRECTORY;
+/*  out_volume_type = MRI_VOLUME_TYPE_UNKNOWN;*/
   force_in_type_flag = force_out_type_flag = FALSE;
   subject_name[0] = '\0';
   reslice_like_flag = FALSE;
@@ -205,7 +206,7 @@ int main(int argc, char *argv[])
   nskip = 0;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_convert.c,v 1.66 2003/09/23 21:27:21 ch Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_convert.c,v 1.67 2003/09/24 18:07:26 ch Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -848,7 +849,7 @@ int main(int argc, char *argv[])
 
   if(force_out_type_flag && forced_out_type == MRI_VOLUME_TYPE_UNKNOWN)
   {
-    fprintf(stderr, "\n%s: unknown output volume type %s\n", Progname, in_type_string);
+    fprintf(stderr, "\n%s: unknown output volume type %s\n", Progname, out_type_string);
     usage_message(stdout);
     exit(1);
   }
@@ -1001,10 +1002,6 @@ int main(int argc, char *argv[])
 
     if(zero_outlines_flag)
     {
-/*
-      printf("notice: zero outlines currently unimplemented\n");
-      printf("notice: outlines won't be cleared\n");
-*/
       read_otl_flags |= READ_OTL_ZERO_OUTLINES_FLAG;
     }
 
