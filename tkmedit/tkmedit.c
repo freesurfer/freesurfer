@@ -4,9 +4,9 @@
 
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2004/10/22 21:15:25 $
-// Revision       : $Revision: 1.226 $
-char *VERSION = "$Revision: 1.226 $";
+// Revision Date  : $Date: 2004/10/27 18:51:01 $
+// Revision       : $Revision: 1.227 $
+char *VERSION = "$Revision: 1.227 $";
 
 #define TCL
 #define TKMEDIT 
@@ -218,6 +218,9 @@ tBoolean gGuessWarningSent = FALSE;
 // ==========================================================================
 
 // ================================================== SELECTING CONTROL POINTS
+
+/* Inits the control point list to the dimensions of the main anatomical volume. */
+tkm_tErr InitControlPointList ();
 
 /* returns distances to nearest control point on the same plane. returns
    0 if there isn't one. */
@@ -1065,7 +1068,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
      shorten our argc and argv count. If those are the only args we
      had, exit. */
   /* rkt: check for and handle version tag */
-  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.226 2004/10/22 21:15:25 kteich Exp $", "$Name:  $");
+  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.227 2004/10/27 18:51:01 kteich Exp $", "$Name:  $");
   if (nNumProcessedVersionArgs && argc - nNumProcessedVersionArgs == 1)
     exit (0);
   argc -= nNumProcessedVersionArgs;
@@ -5021,7 +5024,7 @@ int main ( int argc, char** argv ) {
     DebugPrint( ( "%s ", argv[nArg] ) );
   }
   DebugPrint( ( "\n\n" ) );
-  DebugPrint( ( "$Id: tkmedit.c,v 1.226 2004/10/22 21:15:25 kteich Exp $ $Name:  $\n" ) );
+  DebugPrint( ( "$Id: tkmedit.c,v 1.227 2004/10/27 18:51:01 kteich Exp $ $Name:  $\n" ) );
 
   
   /* init glut */
@@ -5036,9 +5039,8 @@ int main ( int argc, char** argv ) {
   
   /* init our control pt list */
   DebugNote( ("Initializing control point list") );
-  e3DList = x3Lst_New( &gControlPointList, NUM_UNDOS );
-  DebugAssertThrow( (x3Lst_tErr_NoErr == e3DList) );
-  x3Lst_SetComparator( gControlPointList, CompareVoxels );
+  eResult = InitControlPointList();
+  DebugAssertThrow( (eResult == tkm_tErr_NoErr) );
   
   /* init other things */
   DebugNote( ("Initalizing undo list") );
@@ -6166,6 +6168,43 @@ void WriteControlPointFile ( ) {
   DebugExitFunction;
 }
 
+
+tkm_tErr InitControlPointList () {
+
+  tkm_tErr   eResult   = tkm_tErr_NoErr;
+  x3Lst_tErr e3DList   = xUndL_tErr_NoErr;
+  int nDimX, nDimY, nDimZ;
+  int largestDimension = 0;
+  
+  DebugEnterFunction( ("InitControlPointList") );
+  
+  /* get the largest dimension. */
+  if( NULL == gAnatomicalVolume[tkm_tVolumeType_Main] ) {
+    largestDimension = 256;
+  } else {
+    Volm_GetDimensions( gAnatomicalVolume[tkm_tVolumeType_Main], &nDimX, &nDimY, &nDimZ );
+    largestDimension = MAX( MAX( nDimX, nDimY ), nDimZ );
+  }
+
+  /* free existing list. */
+  if( NULL != gControlPointList ) {
+    x3Lst_Delete( &gControlPointList );
+  }
+
+  /* make the list */
+  e3DList = x3Lst_New( &gControlPointList, largestDimension );
+  DebugAssertThrow( (x3Lst_tErr_NoErr == e3DList) );
+  x3Lst_SetComparator( gControlPointList, CompareVoxels );
+
+  DebugCatch;
+  DebugCatchError( e3DList, x3Lst_tErr_NoErr, x3Lst_GetErrorString );
+  DebugCatchError( eResult, tkm_tErr_NoErr, tkm_GetErrorString );
+  EndDebugCatch;
+
+  DebugExitFunction;
+
+  return eResult;
+}
 
 float FindNearestControlPoint ( xVoxelRef        iMRIIdx, 
 				mri_tOrientation inPlane,
@@ -7304,6 +7343,11 @@ tkm_tErr LoadVolume ( tkm_tVolumeType iType,
   
   /* volume is clean */
   gbAnatomicalVolumeDirty[iType] = FALSE;
+
+  /* Initialize a new control point list. */
+  DebugNote( ("Initializing control point list") );
+  eResult = InitControlPointList();
+  DebugAssertThrow( (eResult == tkm_tErr_NoErr) );
   
   /* set data in window */
   if( NULL != gMeditWindow ) {
@@ -10256,7 +10300,7 @@ tkm_tErr InitUndoList () {
   /* make the list */
   DebugNote( ("Creating undo list") );
   eList = xUndL_New( &gUndoList, 
-         &UndoActionWrapper, &DeleteUndoEntryWrapper );
+		     &UndoActionWrapper, &DeleteUndoEntryWrapper );
   DebugAssertThrowX( (xUndL_tErr_NoErr == eList),
          eResult, tkm_tErr_Unrecoverable );
   
