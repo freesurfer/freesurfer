@@ -10520,11 +10520,7 @@ mrisComputeIntensityTerm(MRI_SURFACE *mris, double l_intensity, MRI *mri_brain,
 
     MRIworldToVoxel(mri_brain, x, y, z, &xw, &yw, &zw) ;
     MRIsampleVolume(mri_brain, xw, yw, zw, &val0) ;
-#if 0
-    if (fabs(v->val2 - v->val) < (val0 - v->val))
-      v->imag_val++ ;
-#endif
-    v->val2 = val0 ;
+    sigma = v->val2 ;
 
     nx = v->nx ; ny = v->ny ; nz = v->nz ;
 
@@ -10595,13 +10591,6 @@ mrisComputeIntensityTerm(MRI_SURFACE *mris, double l_intensity, MRI *mri_brain,
       delI = -1 ;   /* intensities tend to increase inwards */
 #else
     delI = -1 ;  /* ignore gradient and assume that too bright means move out */
-#endif
-#if 0
-    if (v->imag_val >= 5.0 && delI > 0)
-    {
-      fprintf(stderr, "v %d: reversing gradient\n", vno) ;
-      delI = -1 ;
-    }
 #endif
 
     del = l_intensity * delV * delI ;
@@ -16697,6 +16686,7 @@ MRIScomputeBorderValues(MRI_SURFACE *mris,MRI *mri_brain,
   int     total_vertices, vno, nmissing = 0, nout = 0, nin = 0, nfound = 0,
           nalways_missing = 0 ;
   float   mean_border, mean_in, mean_out, dist, nx, ny, nz, mean_dist ;
+  double  current_sigma ;
   VERTEX  *v ;
 
   /* first compute intensity of local gray/white boundary */
@@ -16710,6 +16700,7 @@ MRIScomputeBorderValues(MRI_SURFACE *mris,MRI *mri_brain,
       continue ;
     if (vno == Gdiag_no)
       DiagBreak() ;
+
     x = v->x ; y = v->y ; z = v->z ;
     MRIworldToVoxel(mri_brain, x, y, z, &xw, &yw, &zw) ;
     x = v->x + v->nx ; y = v->y + v->ny ; z = v->z + v->nz ;
@@ -16722,45 +16713,52 @@ MRIScomputeBorderValues(MRI_SURFACE *mris,MRI *mri_brain,
        the surface normal in which the gradient is pointing 'inwards'.
        The border will then be constrained to be within that region.
     */
-    for (dist = 0 ; dist > -max_thickness ; dist -= 0.5)
+    inward_dist = 1.0 ; outward_dist = -1.0 ;
+    for (current_sigma = sigma ; current_sigma <= 10*sigma ; current_sigma *= 2)
     {
-      dx = v->x-v->origx ; dy = v->y-v->origy ; dz = v->z-v->origz ; 
-#if 0
-      orig_dist = sqrt(dx*dx+dy*dy+dz*dz) ;
-#else
-      orig_dist = fabs(dx*v->nx + dy*v->ny + dz*v->nz) ;
-#endif
-      if (fabs(dist)+orig_dist > max_thickness)
-        break ;
-      x = v->x + v->nx*dist ; y = v->y + v->ny*dist ; z = v->z + v->nz*dist ;
-      MRIworldToVoxel(mri_brain, x, y, z, &xw, &yw, &zw) ;
-      MRIsampleVolumeDerivativeScale(mri_brain, xw, yw, zw, nx, ny,nz,&mag,
-                                     sigma);
-      if (mag >= 0.0)
+      for (dist = 0 ; dist > -max_thickness ; dist -= 0.5)
+      {
+        dx = v->x-v->origx ; dy = v->y-v->origy ; dz = v->z-v->origz ; 
+        orig_dist = fabs(dx*v->nx + dy*v->ny + dz*v->nz) ;
+        if (fabs(dist)+orig_dist > max_thickness)
+          break ;
+        x = v->x + v->nx*dist ; y = v->y + v->ny*dist ; z = v->z + v->nz*dist ;
+        MRIworldToVoxel(mri_brain, x, y, z, &xw, &yw, &zw) ;
+        MRIsampleVolumeDerivativeScale(mri_brain, xw, yw, zw, nx, ny,nz,&mag,
+                                       current_sigma);
+        if (mag >= 0.0)
+          break ;
+      }
+      inward_dist = dist+.25 ; 
+      for (dist = 0 ; dist < max_thickness ; dist += 0.5)
+      {
+        dx = v->x-v->origx ; dy = v->y-v->origy ; dz = v->z-v->origz ; 
+        orig_dist = fabs(dx*v->nx + dy*v->ny + dz*v->nz) ;
+        if (fabs(dist)+orig_dist > max_thickness)
+          break ;
+        x = v->x + v->nx*dist ; y = v->y + v->ny*dist ; z = v->z + v->nz*dist ;
+        MRIworldToVoxel(mri_brain, x, y, z, &xw, &yw, &zw) ;
+        MRIsampleVolumeDerivativeScale(mri_brain, xw, yw, zw, nx, ny,nz, &mag,
+                                       current_sigma);
+        if (mag >= 0.0)
+          break ;
+      }
+      outward_dist = dist-.25 ; 
+      if (!finite(outward_dist))
+        DiagBreak() ;
+      if (inward_dist <= 0 || outward_dist >= 0)
         break ;
     }
-    inward_dist = dist+.25 ; 
-    for (dist = 0 ; dist < max_thickness ; dist += 0.5)
-    {
-      dx = v->x-v->origx ; dy = v->y-v->origy ; dz = v->z-v->origz ; 
-#if 0
-      orig_dist = sqrt(dx*dx+dy*dy+dz*dz) ;
-#else
-      orig_dist = fabs(dx*v->nx + dy*v->ny + dz*v->nz) ;
-#endif
-      if (fabs(dist)+orig_dist > max_thickness)
-        break ;
-      x = v->x + v->nx*dist ; y = v->y + v->ny*dist ; z = v->z + v->nz*dist ;
-      MRIworldToVoxel(mri_brain, x, y, z, &xw, &yw, &zw) ;
-      MRIsampleVolumeDerivativeScale(mri_brain, xw, yw, zw, nx, ny,nz, &mag,
-                                     sigma);
-      if (mag >= 0.0)
-        break ;
-    }
-    outward_dist = dist-.25 ; 
-    if (!finite(outward_dist))
-      DiagBreak() ;
     
+    if (inward_dist > 0 && outward_dist < 0)
+      current_sigma = sigma ;  /* couldn't find anything */
+
+    if (vno == Gdiag_no)
+      fprintf(stderr, 
+              "v %d: inward dist %2.2f, outward dist %2.2f, sigma %2.1f\n",
+              vno, inward_dist, outward_dist, current_sigma) ;
+              
+    v->val2 = current_sigma ;
     /*
       search outwards and inwards and find the local gradient maximum
       at a location with a reasonable MR intensity value. This will
