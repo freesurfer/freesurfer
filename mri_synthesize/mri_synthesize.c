@@ -14,7 +14,7 @@
 #include "mrinorm.h"
 #include "version.h"
 
-static char vcid[] = "$Id: mri_synthesize.c,v 1.11 2004/03/23 16:59:34 fischl Exp $";
+static char vcid[] = "$Id: mri_synthesize.c,v 1.12 2004/04/02 22:07:52 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -76,7 +76,7 @@ main(int argc, char *argv[])
   float       TR, TE, alpha ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_synthesize.c,v 1.11 2004/03/23 16:59:34 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_synthesize.c,v 1.12 2004/04/02 22:07:52 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -539,23 +539,27 @@ MRI *
 MRIsynthesizeWeightedVolume(MRI *mri_T1, MRI *mri_PD, float w5, float TR5,
                             float w30, float TR30, float target_wm, float TE)
 {
-  MRI *mri_dst ;
-  MRI_REGION box ;
-  float      x0, y0, z0, min_real_val ;
-  HISTOGRAM *h_mri, *h_smooth ;
-  int        mri_peak, n, min_real_bin, x, y, z, width, height, depth ;
-  MRI       *mri30, *mri5 ;
+  MRI        *mri_dst ;
+  int        x, y, z, width, height, depth ;
+  MRI        *mri30, *mri5 ;
+  Real       val30, val5, val, min_val ;
+#if 0
+	int        mri_peak, n, min_real_bin ;
   double    mean_PD ;
-  Real      val30, val5, val, min_val ;
+  MRI_REGION box ;
+  HISTOGRAM *h_mri, *h_smooth ;
+  float      x0, y0, z0, min_real_val ;
+#endif
 
-  mean_PD = MRImeanFrame(mri_PD, 0) ;
-  /*  MRIscalarMul(mri_PD, mri_PD, 1000.0f/mean_PD) ;*/
-  mri30 = MRIsynthesize(mri_T1, mri_PD, NULL, TR30, RADIANS(30), TE) ;
-  mri5 = MRIsynthesize(mri_T1, mri_PD, NULL, TR5, RADIANS(5), TE) ;
-  width = mri30->width ; height = mri30->height ; depth = mri30->depth ;
-
+  width = mri_T1->width ; height = mri_T1->height ; depth = mri_T1->depth ;
   mri_dst = MRIalloc(width, height, depth, MRI_FLOAT) ;
   MRIcopyHeader(mri_T1, mri_dst) ;
+  mri30 = MRIsynthesize(mri_T1, mri_PD, NULL, TR30, RADIANS(30), TE) ;
+  mri5 = MRIsynthesize(mri_T1, mri_PD, NULL, TR5, RADIANS(5), TE) ;
+#if 0
+  mean_PD = MRImeanFrame(mri_PD, 0) ;
+  /*  MRIscalarMul(mri_PD, mri_PD, 1000.0f/mean_PD) ;*/
+
 
   h_mri = MRIhistogram(mri30, 100) ;
   h_smooth = HISTOsmooth(h_mri, NULL, 2) ;
@@ -592,6 +596,7 @@ MRIsynthesizeWeightedVolume(MRI *mri_T1, MRI *mri_PD, float w5, float TR5,
   mri_peak = h_mri->bins[mri_peak] ;
   printf("after smoothing, mri peak at %d\n", mri_peak) ;
   HISTOfree(&h_smooth) ; HISTOfree(&h_mri) ;
+#endif
 
   min_val = 0 ;
   for (x = 0 ; x < width ; x++)
