@@ -13,4 +13,4 @@ release: recon1.ps recon2.ps FreeSurferManual.pdf
 	$(INSTALL_DATA) recon1.ps recon2.ps FreeSurferManual.pdf $(foodir)
 
 uninstall-release:
-	cd $(prefix)/docs; rm -f recon1.ps recon2.ps FreesurferManual.pdf
+	cd $(prefix)/docs; rm -f recon1.ps recon2.ps FreeSurferManual.pdf
