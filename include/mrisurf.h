@@ -160,8 +160,8 @@ typedef struct vertex_type_
   float mean ;
   float mean_imag ;    /* imaginary part of complex statistic */
   float std_error ;
-	unsigned long flags ;
-	void *vp; /* to store user's information */
+  unsigned int flags ;
+  void *vp; /* to store user's information */
 } vertex_type, VERTEX ;
 
 #define VERTEX_SULCAL  0x00000001L
