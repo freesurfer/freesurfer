@@ -4152,6 +4152,7 @@ draw_surface(void)
             if (v->curv>0.0)  color(NUMVALS+MAPOFFSET+4); /* TODO:colormap */
             else              color(NUMVALS+MAPOFFSET+5);
 #else
+            /* should do interpolation here from red to green! */
             if (v->curv>0.0)  
               glColor3f(1.0, 0.0, 0.0);
             else              
@@ -4805,7 +4806,6 @@ read_binary_curvature(char *fname)
   float curvmin, curvmax, curv;
   int   k;
 
-  fprintf(stderr, "fname=%s\n", fname) ;
   MRISreadCurvatureFile(mris, fname) ;
 
   curvmin= 1000000.0f ; curvmax = -curvmin;
