@@ -9,12 +9,13 @@
 #include <cstdio>
 #include <cstdlib>
 #include <typeinfo>
+#include <values.h>
 
 extern "C" {
 #include "fio.h"
 }
 
-const int MAX = 3;
+const int MAX = 5;
 
 using namespace std;
 
@@ -91,6 +92,7 @@ int main(int argc, char *argv[])
   s[0] = 1, s[1] = 256*256, s[2] = 256*256*256-1;
   f[0] = 1.; f[1] = 1.-0.001; f[2] = 1./3.;
   d[0] = 1.; d[1] = 1.-0.001; d[2] = 1./3.;
+  d[3] = MAXDOUBLE; d[4] = MINDOUBLE;
 
   fwriteInt(i[0], out);
   fwriteShort(s[0], out);
@@ -104,6 +106,8 @@ int main(int argc, char *argv[])
   fwriteFloat(f[2], out);
   fwriteShort(s[2], out);
   fwriteInt(i[2], out);
+  fwriteDouble(d[3], out);
+  fwriteDouble(d[4], out);
 
   fclose(out);
   
@@ -138,36 +142,47 @@ int main(int argc, char *argv[])
     if (!checkOK(f[1], ff[1]))
       goto finalize;
   }
-      if (freadShortEx(&ss[1], in))
+  if (freadShortEx(&ss[1], in))
   {
     if (!checkOK(s[1], ss[1]))
       goto finalize;
   }
-      if (freadIntEx(&ii[1], in))
+  if (freadIntEx(&ii[1], in))
   {
     if (!checkOK(i[1], ii[1]))
       goto finalize;
   }
-      if (freadDoubleEx(&dd[2], in))
+  if (freadDoubleEx(&dd[2], in))
   {
     if (!checkOK(d[2], dd[2]))
       goto finalize;
   }
-      if (freadFloatEx(&ff[2], in))
+  if (freadFloatEx(&ff[2], in))
   {
     if (!checkOK(f[2], ff[2]))
       goto finalize;
   }
-      if (freadShortEx(&ss[2], in))
+  if (freadShortEx(&ss[2], in))
   {
     if (!checkOK(s[2], ss[2]))
       goto finalize;
   }
-      if (freadIntEx(&ii[2], in))
+  if (freadIntEx(&ii[2], in))
   {
     if (!checkOK(i[2], ii[2]))
       goto finalize;
   }
+  if (freadDoubleEx(&dd[3], in))
+  {
+    if (!checkOK(d[3], dd[3]))
+      goto finalize;
+  }
+  if (freadDoubleEx(&dd[4], in))
+  {
+    if (!checkOK(d[4], dd[4]))
+      goto finalize;
+  }
+
   fclose(in);
   cout << "No error" << endl;
   return 0;
