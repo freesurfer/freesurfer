@@ -19,13 +19,13 @@ function rt = fast_fxcfg_gamma(DoWhat,thing)
 %  2. PSDMin
 %  3. dPSD
 %  4. PSDMax
-%  5. AutoPSD
-%  6. BoxCarWidth
+%  5. BoxCarWidth
+%  6. AutoPSD
 %  7. Delta
 %  8. Tau
 %  9. Number of Derivatives to add
 %
-% $Id: fast_fxcfg_gamma.m,v 1.2 2003/03/21 05:31:55 greve Exp $
+% $Id: fast_fxcfg_gamma.m,v 1.3 2003/04/15 03:57:03 greve Exp $
 
 rt = [];
 
@@ -115,8 +115,8 @@ function fxcfg = parseline(line)
 %  2. PSDMin
 %  3. dPSD
 %  4. PSDMax
-%  5. AutoPSD
-%  6. BoxCarWidth
+%  5. BoxCarWidth
+%  6. AutoPSD
 %  7. Delta
 %  8. Tau
 %  9. Number of Derivatives to add
@@ -172,9 +172,9 @@ if(evid < 1)
   return;
 end
 
-autopsdwin = fxcfg.params(5);
+autopsdwin = fxcfg.params(6);
 if(autopsdwin ~= 1)
-  psdwin = [fxcfg.params(2:4) fxcfg.params(6)];
+  psdwin = [fxcfg.params(2:5)];
   if(fast_psdwin(psdwin) ~= 1)
     fxcfg = [];
     return;
@@ -217,7 +217,7 @@ taxis = [];
 fxcfg = fast_fxcfg('getfxcfg',flacfg);
 if(isempty(fxcfg)) return; end
 
-autopsdwin = fxcfg.params(5);
+autopsdwin = fxcfg.params(6);
 if(autopsdwin)
   psdwin = fast_fxcfg('autopsd',flacfg);
   if(isempty(psdwin)) return; end
@@ -229,8 +229,7 @@ else
   dpsd   = fxcfg.params(3);
   psdmax = fxcfg.params(4);
 end
-bcw = fxcfg.params(6);
-
+bcw = fxcfg.params(5);
 
 taxis = fast_psdwin([psdmin dpsd psdmax bcw],axistype);
 
@@ -248,7 +247,7 @@ if(isempty(fxcfg)) return; end
 t = get_taxis(flacfg,'irftaxis');
 if(isempty(t)) return; end
 
-bcw    = fxcfg.params(6);
+bcw    = fxcfg.params(5);
 delta  = fxcfg.params(7);
 tau    = fxcfg.params(8);
 nderiv = fxcfg.params(9);
@@ -290,7 +289,7 @@ end
 
 evid   = fxcfg.params(1);
 
-autopsdwin = fxcfg.params(5);
+autopsdwin = fxcfg.params(6);
 if(autopsdwin)
   psdwin = fast_fxcfg('autopsd',flacfg);
   if(isempty(psdwin)) return; end
@@ -302,7 +301,7 @@ else
   dpsd   = fxcfg.params(3);
   psdmax = fxcfg.params(4);
 end
-bcw = fxcfg.params(6);
+bcw = fxcfg.params(5);
 psd = [psdmin dpsd psdmax bcw];
 if(fast_psdwin(psd) ~= 1) return; end
 

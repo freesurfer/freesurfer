@@ -3,7 +3,7 @@ function rt = fast_fxcfg_fir(DoWhat,thing)
 %
 % DoWhat can be:
 %  iserm  - returns 1 if erm, 0 otherwise. thing not needed.
-%  nparams - returns number of parameters in model (4). thing not needed.
+%  nparams - returns number of parameters in model (5). thing not needed.
 %  nregressors - number of regressors in current X matrix. thing=flacfg
 %  matrix - X matrix. thing=flacfg
 %  amatrix - identity. thing=flacfg
@@ -18,8 +18,9 @@ function rt = fast_fxcfg_fir(DoWhat,thing)
 %  2. PSDMin
 %  3. dPSD
 %  4. PSDMax
+%  5. BCW
 %
-% $Id: fast_fxcfg_fir.m,v 1.4 2003/03/21 05:29:08 greve Exp $
+% $Id: fast_fxcfg_fir.m,v 1.5 2003/04/15 03:56:52 greve Exp $
 
 rt = [];
 
@@ -160,7 +161,7 @@ if(rem(evid,1) ~= 0)
   return;
 end
 
-psdwin = fxcfg.params(2:4);
+psdwin = fxcfg.params(2:5);
 if(fast_psdwin(psdwin) ~= 1)
   fxcfg = [];
   return;
@@ -190,7 +191,7 @@ nr = [];
 fxcfg = fast_fxcfg('getfxcfg',flacfg);
 if(isempty(fxcfg)) return; end
 
-psdwin = fxcfg.params(2:4);
+psdwin = fxcfg.params(2:5);
 nr = fast_psdwin(psdwin,'npsdwin');
 
 return;
@@ -219,7 +220,8 @@ evid   = fxcfg.params(1);
 psdmin = fxcfg.params(2);
 dpsd   = fxcfg.params(3);
 psdmax = fxcfg.params(4);
-psd = [psdmin dpsd psdmax];
+bcw    = fxcfg.params(5);
+psd = [psdmin dpsd psdmax bcw];
 if(fast_psdwin(psd) ~= 1) return; end
 
 indEvId = find(EvIdPres == evid);
@@ -254,8 +256,9 @@ if(isempty(fxcfg)) return; end
 psdmin = fxcfg.params(2);
 dpsd   = fxcfg.params(3);
 psdmax = fxcfg.params(4);
+bcw    = fxcfg.params(5);
 
-taxis = fast_psdwin([psdmin dpsd psdmax],'irftaxis');
+taxis = fast_psdwin([psdmin dpsd psdmax bcw],'irftaxis');
 
 return;
 
