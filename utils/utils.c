@@ -950,3 +950,16 @@ FileNameRemoveExtension(char *in_fname, char *out_fname)
     *dot = 0 ;
   return(out_fname) ;
 }
+char *
+FileNameExtension(char *fname, char *ext)
+{
+  char *dot, buf[STR_LEN] ;
+
+  ext[0] = 0 ;
+  strcpy(buf, fname) ;
+  dot = strrchr(buf, '.') ;
+  if (dot)
+    strcpy(ext, dot+1) ;
+
+  return(ext) ;
+}
