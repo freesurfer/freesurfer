@@ -1,10 +1,10 @@
 /*============================================================================
  Copyright (c) 1996 Martin Sereno and Anders Dale
 =============================================================================*/
-/*   $Id: tkregister2.c,v 1.5 2002/10/25 20:00:20 greve Exp $   */
+/*   $Id: tkregister2.c,v 1.6 2003/02/19 21:58:02 greve Exp $   */
 
 #ifndef lint
-static char vcid[] = "$Id: tkregister2.c,v 1.5 2002/10/25 20:00:20 greve Exp $";
+static char vcid[] = "$Id: tkregister2.c,v 1.6 2003/02/19 21:58:02 greve Exp $";
 #endif /* lint */
 
 #define TCL
@@ -244,7 +244,7 @@ int prad = 0;
 float TM[4][4];
 float tm[4][4];
 MATRIX *RegMat;
-double ps_2,st_2,fscale_2; /* was float */
+double ps_2,st_2,fscale_2=0.0; /* was float */
 int float2int = 0;
 int float2int_use = FLT2INT_ROUND;
 float xx0_2,xx1_2,yy0_2,yy1_2,zz0_2,zz1_2;
@@ -474,7 +474,7 @@ int Register(ClientData clientData,Tcl_Interp *interp, int argc, char *argv[])
     printf("---------------------------------------\n");
     ps_2 = mov_vol->xsize;
     st_2 = mov_vol->zsize;
-    fscale_2 = .15;
+    if(fscale_2 == 0) fscale_2 = .15;
     float2int = FLT2INT_ROUND;
   }
 
@@ -678,6 +678,11 @@ static int parse_commandline(int argc, char **argv)
 	mov_vol_fmt = checkfmt(fmt);
       }
     }
+    else if (!strcmp(option, "--movbright")){
+      if(nargc < 1) argnerr(option,1);
+      sscanf(pargv[0],"%lf",&fscale_2);
+      nargsused = 1;
+    }
     else if (!strcmp(option, "--surf")){
       LoadSurf = 1;
       UseSurf  = 1;
@@ -765,6 +770,7 @@ static void print_usage(void)
   printf("   --targ target volume <fmt>\n");
   printf("   --fstarg : target is relative to subjectid/mri\n");
   printf("   --mov  movable volume  <fmt> \n");
+  printf("   --movbright  f : brightness of movable volume\n");
   printf("   --surf surfname : display surface as an overlay \n");
   printf("   --reg  register.dat : input/output registration file\n");
   printf("   --regheader : compute regstration from headers\n");
@@ -1242,6 +1248,9 @@ void draw_image2(int imc,int ic,int jc)
       icTarg = (int)fcTarg;
       irTarg = (int)frTarg;
       isTarg = (int)fsTarg;
+      //icTarg = nint(fcTarg);
+      //irTarg = nint(frTarg);
+      //isTarg = nint(fsTarg);
 
       if(icTarg < 0 || icTarg >= targ_vol->width || 
 	 irTarg < 0 || irTarg >= targ_vol->height || 
@@ -1276,6 +1285,7 @@ void draw_image2(int imc,int ic,int jc)
 	printf("Anat crs: %g, %g, %g\n",fcTarg,frTarg,fsTarg);
 	printf("Anat crs: %d, %d, %d\n",icTarg,irTarg,isTarg);
 	printf("Func crs: %g, %g, %g\n",fcMov,frMov,fsMov);
+	printf("Func crs: %d, %d, %d\n",icMov,irMov,isMov);
 	fflush(stdout);
       }
 
@@ -2118,7 +2128,7 @@ void  read_reg(char *fname)
 			    &fscale, &RegMat, &float2int);
   ps_2 = ipr;
   st_2 = bpr;
-  fscale_2 = fscale;
+  if(fscale_2 == 0) fscale_2 = fscale;
   strcpy(subjectid,tmpstr);
 
   for (i=0;i<4;i++){
