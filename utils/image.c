@@ -35,6 +35,7 @@
 #include "proto.h"
 #include "diag.h"
 #include "canny.h"
+#include "tiffio.h"
 
 /*-----------------------------------------------------
                     MACROS AND CONSTANTS
@@ -46,6 +47,8 @@
 static int alloc_image_buffer(struct header *hd) ;
 static void break_here(void) ;
 static void break_here(void){ fprintf(stderr, "break point encountered!\n") ;}
+static IMAGE  *TiffReadImage(char *fname)  ;
+static IMAGE  *TiffReadHeader(char *fname, IMAGE *I)  ;
 
 /*-----------------------------------------------------
                     GLOBAL FUNCTIONS
@@ -423,6 +426,9 @@ ImageFReadHeader(FILE *fp, char *fname)
 
   switch (type)
   {
+  case TIFF_IMAGE:
+    TiffReadHeader(fname, I) ;
+    break ;
   case MATLAB_IMAGE:
   {
     MATFILE mf ;
@@ -499,6 +505,9 @@ ImageRead(char *fname)
 
   switch (type)
   {
+  case TIFF_IMAGE:
+    I = TiffReadImage(fname) ;
+    break ;
   case MATLAB_IMAGE:
     DiagPrintf(DIAG_WRITE, 
                "ImageRead: fname=%s, frame=%d, type=%d (M=%d,H=%d)\n",
@@ -3127,6 +3136,8 @@ ImageUnpackFileName(char *inFname, int *pframe, int *ptype, char *outFname)
     dot = StrUpper(strcpy(buf, dot+1)) ;
     if (!strcmp(dot, "MAT"))
       *ptype = MATLAB_IMAGE ;
+    else if (!strcmp(dot, "TIF") || !strcmp(dot, "TIFF"))
+      *ptype = TIFF_IMAGE  ;
     else
       *ptype = HIPS_IMAGE ;
   }
@@ -5033,4 +5044,85 @@ ImageRMSDifference(IMAGE *I1_in, IMAGE *I2_in)
   if (I2 != I2_in)
     ImageFree(&I2) ;
   return(rms) ;
+}
+/*----------------------------------------------------------------------
+            Parameters:
+
+           Description:
+             Read a TIFF image from a file.
+----------------------------------------------------------------------*/
+static IMAGE *
+TiffReadImage(char *fname) 
+{
+  IMAGE    *I ;
+  TIFF     *tif = TIFFOpen(fname, "r");
+  int      width, height, nsamples, type, ret, bits_per_sample ;
+  byte     *iptr ;
+  uint32   *bptr, *buf, npixels, i ;
+
+  if (!tif)
+    return(NULL) ;
+  
+  ret = TIFFGetFieldDefaulted(tif, TIFFTAG_IMAGEWIDTH, &width);
+  ret = TIFFGetFieldDefaulted(tif, TIFFTAG_IMAGELENGTH, &height);
+  ret = TIFFGetFieldDefaulted(tif, TIFFTAG_SAMPLESPERPIXEL, &nsamples);
+  ret = TIFFGetFieldDefaulted(tif, TIFFTAG_BITSPERSAMPLE, &bits_per_sample);
+
+  switch (bits_per_sample)  /* not valid - I don't know why */
+  {
+  default:
+  case 8:
+    type = PFBYTE ;
+    break ;
+  }
+  I = ImageAlloc(height, width, type, 1) ;
+
+  npixels = (uint32)(width * height) ;
+  buf = _TIFFmalloc(npixels * sizeof (uint32)) ;
+  TIFFReadRGBAImage(tif, width, height, buf, 0) ;
+  iptr = I->image ; bptr = buf ;
+  for (i = 0 ; i < npixels ; i++)
+    *iptr++ = (byte)*bptr++ ;
+
+  _TIFFfree(buf);
+  TIFFClose(tif);
+  return(I) ;
+}
+
+
+/* unresolved in libtiff for some reason... */
+void __eprintf(void) ;
+
+void
+__eprintf(void)
+{
+}
+
+static IMAGE *
+TiffReadHeader(char *fname, IMAGE *I)
+{
+  TIFF  *tif = TIFFOpen(fname, "r");
+  int   ret, width, height, nsamples, type, bits_per_sample ;
+
+  if (!tif)
+    return(NULL) ;
+
+  TIFFGetFieldDefaulted(tif, TIFFTAG_IMAGEWIDTH, &width);
+  TIFFGetFieldDefaulted(tif, TIFFTAG_IMAGELENGTH, &height);
+  TIFFGetFieldDefaulted(tif, TIFFTAG_SAMPLESPERPIXEL, &nsamples);
+  ret = TIFFGetFieldDefaulted(tif, TIFFTAG_BITSPERSAMPLE, &bits_per_sample);
+
+  switch (bits_per_sample)
+  {
+  default:
+  case 8:
+    type = PFBYTE ;
+    break ;
+  }
+  if (!I)
+    I = ImageAlloc(height, width, type, 1) ;
+  else
+    init_header(I, "orig", "seq", 1, "today", height,width,type,1, "temp");
+  
+  return(I) ;
 }
