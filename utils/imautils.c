@@ -97,7 +97,7 @@ void MkImaDictionary(void)
   imaSetDictEntry(n++,"G19_Acq4_CM_ParameterFileName",  2944,"string",65);
   imaSetDictEntry(n++,"G19_Acq4_CM_SequenceFileName",   3009,"string",65);
 
-  //imaSetDictEntry(n++,"G20_Rel_Series",                 3204,"long",1);
+  imaSetDictEntry(n++,"G20_Rel_Study",                  3200,"long",1);
   //imaSetDictEntry(n++,"G20_Rel_Acquisition",            3208,"long",1);
   imaSetDictEntry(n++,"G20_Rel_Image",                  3212,"long",1);
   //imaSetDictEntry(n++,"G20_Rel_AcquisitionsInSeries",   3292,"long",1);
@@ -388,6 +388,7 @@ IMAFILEINFO *imaLoadFileInfo(char *imafile)
   short stmp;
   char tmpstr[1000];
   int FirstImageNo;
+  int nVolVoxs, nMosVoxs;
 
   fp = fopen(imafile,"r");
   if(fp == NULL){
@@ -527,7 +528,20 @@ IMAFILEINFO *imaLoadFileInfo(char *imafile)
   imaLoadValFromKey(fp,"G21_Rel1_CM_ImageNormal_Tra",&dtmp);
   ifi->Vs[1] = -dtmp; /* Z,S */
 
-  ifi->ErrorFlag = 0;
+  if(! ifi->IsMosaic) 
+    ifi->NFilesPerFrame = ifi->VolDim[2];
+  else{
+    nVolVoxs = ifi->VolDim[0] * ifi->VolDim[1] * ifi->VolDim[2];
+    nMosVoxs = ifi->NImageRows * ifi->NImageCols;
+    ifi->NFilesPerFrame = (int)(ceil((float)nVolVoxs/nMosVoxs));
+  }
+
+  ifi->NFilesInSeriesExp = ifi->NFilesPerFrame * ifi->NFrames;
+
+  if(ifi->NFilesInSeriesExp != ifi->NFilesInSeries)
+    ifi->ErrorFlag = 1;
+  else
+    ifi->ErrorFlag = 0;
 
   fclose(fp);
 
