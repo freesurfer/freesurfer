@@ -274,7 +274,6 @@ typedef struct
 #define TOL                  1e-6  /* minimum error tolerance for unfolding */
 #define DELTA_T              0.1
 
-
 typedef struct
 {
   double  tol ;               /* tolerance for terminating a step */
@@ -300,6 +299,7 @@ typedef struct
   float   l_grad ;            /* gradient term */
   float   l_convex ;          /* convexity term */
   float   l_tsmooth ;         /* thickness smoothness term */
+  float   l_surf_repulse ;    /* repulsive orig surface (for white->pial) */
   int     n_averages ;        /* # of averages */
   int     min_averages ;
   int     nbhd_size ;
@@ -557,6 +557,7 @@ MRI_SP  *MRISPandLabel(MRI_SP *mrisp, MRI_SURFACE *mris, LABEL *area) ;
 #define GOOD_VERTICES       1
 #define TMP_VERTICES        2
 #define CANONICAL_VERTICES  3
+#define CURRENT_VERTICES    4
 
 
 int          MRISsaveVertexPositions(MRI_SURFACE *mris, int which) ;
@@ -619,6 +620,7 @@ int   MRISmoveSurface(MRI_SURFACE *mris, MRI *mri_brain,
 int   MRISscaleVals(MRI_SURFACE *mris, float scale) ;
 int   MRISsetVals(MRI_SURFACE *mris, float val) ;
 int   MRISaverageVals(MRI_SURFACE *mris, int navgs) ;
+int   MRISaverageMarkedVals(MRI_SURFACE *mris, int navgs) ;
 int   MRISaverageEveryOtherVertexPositions(MRI_SURFACE *mris, int navgs, 
                                            int which) ;
 int   MRISsoapBubbleVertexPositions(MRI_SURFACE *mris, int navgs) ;
