@@ -717,6 +717,7 @@ int  MRISbuildFileName(MRI_SURFACE *mris, char *sname, char *fname) ;
 int  MRISsmoothSurfaceNormals(MRI_SURFACE *mris, int niter) ;
 int  MRISsoapBubbleVals(MRI_SURFACE *mris, int niter) ;
 int  MRISmodeFilterVals(MRI_SURFACE *mris, int niter) ;
+int  MRISmodeFilterAnnotations(MRI_SURFACE *mris, int niter) ;
 int  MRISreadBinaryAreas(MRI_SURFACE *mris, char *mris_fname) ;
 int  MRISwriteAreaErrorToValFile(MRI_SURFACE *mris, char *name) ;
 int  MRIStransform(MRI_SURFACE *mris, MRI *mri, LTA *lta) ;
@@ -748,6 +749,8 @@ int MRISmaskNotLabel(MRI_SURFACE *mris, LABEL *area) ;
 int MRISripLabel(MRI_SURFACE *mris, LABEL *area) ;
 int MRISripNotLabel(MRI_SURFACE *mris, LABEL *area) ;
 int MRISsegmentMarked(MRI_SURFACE *mris, LABEL ***plabel_array, int *pnlabels,
+                      float min_label_area) ;
+int MRISsegmentAnnotated(MRI_SURFACE *mris, LABEL ***plabel_array,int *pnlabels,
                       float min_label_area) ;
 
 /* multi-timepoint (or stc) files */

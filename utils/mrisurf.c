@@ -7117,7 +7117,7 @@ MRISreadAnnotation(MRI_SURFACE *mris, char *sname)
 {
   int   i,j,vno,num, need_hemi ;
   FILE  *fp;
-  char  *cp, fname[STRLEN], path[STRLEN];
+  char  *cp, fname[STRLEN], path[STRLEN], fname_no_path[STRLEN] ;
 #if 0
   int   numannothist;
   float f;
@@ -7127,20 +7127,28 @@ MRISreadAnnotation(MRI_SURFACE *mris, char *sname)
   cp = strchr(sname, '/') ;
   if (!cp)                 /* no path - use same one as mris was read from */
   {
-    FileNameOnly(sname, fname) ;
+    FileNameOnly(sname, fname_no_path) ;
+    cp = strstr(fname_no_path, ".annot") ;
+    if (!cp)
+      strcat(fname_no_path, ".annot") ;
 
     need_hemi = 
       !stricmp(fname, mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh") ;
 
     FileNamePath(mris->fname, path) ;
     if (!need_hemi)
-      sprintf(fname, "%s/../label/%s.annot", path, sname) ;
+      sprintf(fname, "%s/../label/%s", path, fname_no_path) ;
     else   /* no hemisphere specified */
-      sprintf(fname, "%s/../label/%s_%s.annot", path, 
-              mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh", sname) ;
+      sprintf(fname, "%s/../label/%s_%s", path, 
+              mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh",fname_no_path);
   }
   else
+  {
     strcpy(fname, sname) ;  /* full path specified */
+    cp = strstr(fname, ".annot") ;
+    if (!cp)
+      strcat(fname, ".annot") ;
+  }
 
   fp = fopen(fname,"r");
   if (fp==NULL) 
@@ -7225,23 +7233,35 @@ MRISreadAnnotation(MRI_SURFACE *mris, char *sname)
 int
 MRISwriteAnnotation(MRI_SURFACE *mris, char *sname)
 {
-  int   i,vno;
+  int   i,vno, need_hemi ;
   FILE  *fp;
-  char  *cp, fname[STRLEN], path[STRLEN];
+  char  *cp, fname[STRLEN], path[STRLEN], fname_no_path[STRLEN];
 
   cp = strchr(sname, '/') ;
   if (!cp)                 /* no path - use same one as mris was read from */
   {
-    cp = strchr(sname, '.') ;
+    FileNameOnly(sname, fname_no_path) ;
+    cp = strstr(fname_no_path, ".annot") ;
+    if (!cp)
+      strcat(fname_no_path, ".annot") ;
+
+    need_hemi = 
+      !stricmp(fname, mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh") ;
+
     FileNamePath(mris->fname, path) ;
-    if (cp)
-      sprintf(fname, "%s/../label/%s", path, sname) ;
+    if (!need_hemi)
+      sprintf(fname, "%s/../label/%s", path, fname_no_path) ;
     else   /* no hemisphere specified */
-      sprintf(fname, "%s/../label/%s.%s", path, 
-              mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh", sname) ;
+      sprintf(fname, "%s/../label/%s_%s", path, 
+              mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh",fname_no_path);
   }
   else
+  {
     strcpy(fname, sname) ;  /* full path specified */
+    cp = strstr(fname, ".annot") ;
+    if (!cp)
+      strcat(fname, ".annot") ;
+  }
 
   fp = fopen(fname,"wb");
   if (fp==NULL) 
@@ -20094,6 +20114,73 @@ MRISmodeFilterVals(MRI_SURFACE *mris, int niter)
 
         Description
 ------------------------------------------------------*/
+#define MAX_ANNOTATION 1000
+extern int annotation_to_index(int annotation) ;
+int
+MRISmodeFilterAnnotations(MRI_SURFACE *mris, int niter)
+{
+  int    histo[MAX_ANNOTATION], i, n, vno, ino, index, max_histo, 
+         max_annotation, annotations[MAX_ANNOTATION], nchanged = 0 ;
+  VERTEX *v, *vn ;
+
+  for (ino  = 0 ; ino < niter ; ino++)
+  {
+    for (nchanged = vno = 0 ; vno < mris->nvertices ; vno++)
+    {
+      v = &mris->vertices[vno] ;
+      if (v->ripflag)
+        continue ;
+      if (vno == Gdiag_no)
+        DiagBreak() ;
+
+      memset(histo, 0, sizeof(histo)) ;
+      for (n = 0 ; n < v->vnum ; n++)
+      {
+        vn = &mris->vertices[v->v[n]] ;
+        index = annotation_to_index(vn->annotation) ;
+        if (index < 0 || index >= MAX_ANNOTATION)
+          continue ;
+        histo[index]++ ;
+        annotations[index] = vn->annotation ;
+      }
+      index = annotation_to_index(v->annotation) ;
+      max_histo = histo[index] ; max_annotation = v->annotation ;
+      for (i = 1 ; i < MAX_ANNOTATION ; i++)
+      {
+        if (histo[i] > max_histo)
+        {
+          max_histo = histo[i] ;
+          max_annotation = annotations[i] ;
+        }
+      }
+      v->undefval = max_annotation ;
+
+    }
+    for (vno = 0 ; vno < mris->nvertices ; vno++)
+    {
+      v = &mris->vertices[vno] ;
+      if (v->ripflag)
+        continue ;
+      if (vno == Gdiag_no)
+        DiagBreak() ;
+      if (v->annotation != v->undefval)
+        nchanged++ ;
+      v->annotation = v->undefval ;
+    }
+    if (nchanged == 0)
+      break ;
+  }
+  printf("%d filter required complete (%d requested, %d changed)\n",
+         ino, niter, nchanged) ;
+  return(NO_ERROR) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
 int
 MRISsoapBubbleVals(MRI_SURFACE *mris, int navgs)
 {
@@ -27075,6 +27162,71 @@ MRISsegmentMarked(MRI_SURFACE *mris, LABEL ***plabel_array, int *pnlabels,
   }
 
   free(marks) ;
+
+  /* crunch label array down to a reasonable size */
+  tmp = label_array ;
+  label_array = (LABEL **)calloc(mris->nvertices, sizeof(LABEL *)) ;
+  if (!label_array)
+    ErrorExit(ERROR_NOMEMORY, 
+              "%s: MRISsegmentMarked could not allocate tmp storage",
+              Progname) ;
+  for (n = 0 ; n < nlabels ; n++)
+    label_array[n] = tmp[n] ;
+  free(tmp) ;
+  *plabel_array = label_array ;
+  *pnlabels = nlabels ;
+  return(NO_ERROR) ;
+}
+
+int
+MRISsegmentAnnotated(MRI_SURFACE *mris, LABEL ***plabel_array, int *pnlabels,
+                  float min_label_area)
+{
+  int     vno, nfound, n, nlabels ;
+  VERTEX  *v ;
+  LABEL   *area = NULL, **tmp, **label_array ;
+
+  label_array = (LABEL **)calloc(mris->nvertices, sizeof(LABEL *)) ;
+  if (!label_array)
+    ErrorExit(ERROR_NOMEMORY, 
+              "%s: MRISsegmentMarked could not allocate tmp storage",
+              Progname) ;
+
+  MRISclearMarks(mris) ;
+
+  nlabels = 0 ;
+  do
+  {
+    nfound = 0 ;
+
+    /* find an un-marked vertex */
+    for (vno = 0 ; vno < mris->nvertices ; vno++)
+    {
+      v = &mris->vertices[vno] ;
+      if (v->ripflag || v->annotation == 0 || v->marked)
+        continue ;
+      break ;
+    }
+    if (vno < mris->nvertices)
+    {
+      area = LabelAlloc(mris->nvertices, NULL, NULL) ;
+      area->n_points = 1 ;
+      area->lv[0].x = v->x ; area->lv[0].y = v->y ;area->lv[0].z = v->z ;
+      area->lv[0].vno = vno ;
+      LabelFillAnnotated(area, mris) ;
+      if (LabelArea(area, mris) >= min_label_area)
+      {
+        label_array[nlabels++] = LabelCopy(area, NULL) ;
+      }
+      LabelMarkSurface(area, mris) ;
+      LabelFree(&area) ;
+      nfound = 1 ;
+    }
+    else
+      nfound = 0 ;
+
+  } while (nfound > 0) ;
+
 
   /* crunch label array down to a reasonable size */
   tmp = label_array ;
