@@ -15,7 +15,7 @@
 #include "macros.h"
 #include "oglutil.h"
 
-static char vcid[] = "$Id: mris_show.c,v 1.11 1997/10/27 16:43:26 fischl Exp $";
+static char vcid[] = "$Id: mris_show.c,v 1.12 1997/10/30 23:48:12 fischl Exp $";
 
 
 /*-------------------------------- CONSTANTS -----------------------------*/
@@ -50,7 +50,9 @@ static void keyboard_handler(unsigned char key, int x, int y) ;
 static void special_key_handler(int key, int x, int y) ;
 static void reshape_handler(int width, int height) ;
 static void mouse_handler(int button, int state, int x, int y) ;
+#if 0
 static void controlLights(int value) ;
+#endif
 
 static void display_handler(void) ;
 static void home(MRI_SURFACE *mris) ;
@@ -65,7 +67,6 @@ static int marked_vertices[MAX_MARKED] = { -1 } ;
 static long frame_xdim = FRAME_SIZE;
 static long frame_ydim = FRAME_SIZE;
 
-static int show_temporal_region_flag = 0 ;
 static int talairach_flag = 0 ;
 static int ellipsoid_flag = 0 ;
 
@@ -88,6 +89,9 @@ static char curvature_fname[100] = "" ;
 static float cslope = 1.75f ;
 static int patch_flag = 0 ;
 static int compile_flags = 0 ;
+static int mean_curvature_flag = 0 ;
+static int gaussian_curvature_flag = 0 ;
+static int fit_flag = 0 ;
 
 /*-------------------------------- FUNCTIONS ----------------------------*/
 
@@ -157,6 +161,11 @@ main(int argc, char *argv[])
       ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s",
                 Progname, in_fname) ;
   }
+  MRIScomputeSecondFundamentalForm(mris) ;
+  if (mean_curvature_flag)
+    MRISuseMeanCurvature(mris) ;
+  if (gaussian_curvature_flag)
+    MRISuseGaussianCurvature(mris) ;
   if (curvature_fname[0])
     MRISreadCurvatureFile(mris, curvature_fname) ;
   if (ellipsoid_flag)
@@ -188,6 +197,8 @@ main(int argc, char *argv[])
   glutHideWindow() ;
   glutDisplayFunc(display_handler) ; /* specify a drawing callback function */
   OGLUinit(mris, frame_xdim, frame_ydim) ; /* specify lighting and such */
+  if (fit_flag)
+    oglu_fov = 0.0 ;
 
   /* now compile the surface tessellation */
   glNewList(ORIG_SURFACE_LIST, GL_COMPILE) ;
@@ -263,8 +274,16 @@ get_option(int argc, char *argv[])
     nargs = 1 ;
     fprintf(stderr, "using color slope compression = %2.4f\n", cslope) ;
   }
+  else if (!stricmp(option, "tp"))
+    compile_flags |= TP_FLAG ;
   else switch (toupper(*option))
   {
+  case 'M':
+    mean_curvature_flag = 1 ;
+    break ;
+  case 'G':
+    gaussian_curvature_flag = 1 ;
+    break ;
   case 'P':
     patch_flag = 1 ;
     compile_flags |= PATCH_FLAG ;
@@ -286,6 +305,9 @@ get_option(int argc, char *argv[])
     sscanf(argv[2], "%f", &x_angle) ;
     x_angle = RADIANS(x_angle) ;
     nargs = 1 ;
+    break ;
+  case 'F':
+    fit_flag = 1 ;
     break ;
   case 'Y':
     sscanf(argv[2], "%f", &y_angle) ;
