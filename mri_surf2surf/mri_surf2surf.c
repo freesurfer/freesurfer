@@ -1,6 +1,6 @@
 /*----------------------------------------------------------
   Name: mri_surf2surf.c
-  $Id: mri_surf2surf.c,v 1.20 2004/03/17 23:22:49 greve Exp $
+  $Id: mri_surf2surf.c,v 1.21 2004/10/28 19:30:06 greve Exp $
   Author: Douglas Greve
   Purpose: Resamples data from one surface onto another. If
   both the source and target subjects are the same, this is
@@ -66,10 +66,10 @@ int dump_surf(char *fname, MRIS *surf, MRI *mri);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_surf2surf.c,v 1.20 2004/03/17 23:22:49 greve Exp $";
+static char vcid[] = "$Id: mri_surf2surf.c,v 1.21 2004/10/28 19:30:06 greve Exp $";
 char *Progname = NULL;
 
-char *surfreg = "sphere.reg";
+char *surfreg = NULL;
 char *hemi    = NULL;
 
 char *srcsubject = NULL;
@@ -141,7 +141,7 @@ int main(int argc, char **argv)
   double area, a0, a1, a2;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_surf2surf.c,v 1.20 2004/03/17 23:22:49 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_surf2surf.c,v 1.21 2004/10/28 19:30:06 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -589,6 +589,11 @@ static int parse_commandline(int argc, char **argv)
       hemi = pargv[0];
       nargsused = 1;
     }
+    else if (!strcmp(option, "--surfreg")){
+      if(nargc < 1) argnerr(option,1);
+      surfreg = pargv[0];
+      nargsused = 1;
+    }
     else if (!strcmp(option, "--mapmethod")){
       if(nargc < 1) argnerr(option,1);
       mapmethod = pargv[0];
@@ -889,13 +894,16 @@ static void check_options(void)
       strcasecmp(trgtypestring,"curv") != 0 &&
       strcasecmp(trgtypestring,"paint") != 0 ){
     if(trgtype == MRI_VOLUME_TYPE_UNKNOWN) {
-  trgtype = mri_identify(trgvalfile);
-  if(trgtype == MRI_VOLUME_TYPE_UNKNOWN){
-    fprintf(stdout,"ERROR: could not determine type of %s\n",trgvalfile);
-    exit(1);
-  }
+      trgtype = mri_identify(trgvalfile);
+      if(trgtype == MRI_VOLUME_TYPE_UNKNOWN){
+	fprintf(stdout,"ERROR: could not determine type of %s\n",trgvalfile);
+	exit(1);
+      }
     }
   }
+
+  if(surfreg == NULL) surfreg = "sphere.reg";
+  else printf("Registration surface changed to %s\n",surfreg);
 
   if(hemi == NULL){
     fprintf(stdout,"ERROR: no hemifield specified\n");
