@@ -10,7 +10,7 @@ if { $err } {
     load [file dirname [info script]]/libscuba[info sharedlibextension] scuba
 }
 
-DebugOutput "\$Id: scuba.tcl,v 1.74 2005/02/04 22:12:21 kteich Exp $"
+DebugOutput "\$Id: scuba.tcl,v 1.75 2005/02/04 22:24:38 kteich Exp $"
 
 # gTool
 #   current - current selected tool (nav,)
@@ -977,7 +977,6 @@ proc ScubaKeyUpCallback { inX inY iState iKey } {
 		incr nNextLevel
 		if { $nNextLevel > $nHighestLevel } { set nNextLevel 0 }
 		if { $nNextLevel == $nLevel } {
-		    ::tkcon_tcl_puts "ALL LOCKED?"
 		    return
 		}
 	    }
@@ -4517,7 +4516,7 @@ proc SaveSceneScript { ifnScene } {
     set f [open $ifnScene w]
 
     puts $f "\# Scene file generated "
-    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.74 2005/02/04 22:12:21 kteich Exp $"
+    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.75 2005/02/04 22:24:38 kteich Exp $"
     puts $f ""
 
     # Find all the data collections.
