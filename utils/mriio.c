@@ -5322,6 +5322,17 @@ analyzeWriteFrame() - this used to be analyzeWrite() but was modified
 by DNG to be able to save a particular frame so that it could be
 used to write out an entire series.
 ---------------------------------------------------------------*/
+static void printDirCos(MRI *mri)
+{
+  fprintf(stderr, "Direction cosines for %s are:\n", mri->fname);
+  fprintf(stderr, "  x_r = %8.4f, y_r = %8.4f, z_r = %8.4f, c_r = %10.4f\n",
+	  mri->x_r, mri->y_r, mri->z_r, mri->c_r);
+  fprintf(stderr, "  x_a = %8.4f, y_a = %8.4f, z_a = %8.4f, c_a = %10.4f\n",
+	  mri->x_a, mri->y_a, mri->z_a, mri->c_a);
+  fprintf(stderr, "  x_s = %8.4f, y_s = %8.4f, z_s = %8.4f, c_s = %10.4f\n",
+	  mri->x_s, mri->y_s, mri->z_s, mri->c_s);
+}
+
 static int analyzeWriteFrame(MRI *mri, char *fname, int frame)
 {
   dsr hdr;
@@ -5336,7 +5347,11 @@ static int analyzeWriteFrame(MRI *mri, char *fname, int frame)
   int bytes_per_voxel;
   short i1, i2, i3;
   int shortmax;
-
+  char *orientname[7] = 
+    { "transverse unflipped", "coronal unflipped", "sagittal unflipped",
+      "transverse flipped", "coronal flipped", "sagittal flipped",
+      "unknown" };
+    
   if(frame >= mri->nframes){
     fprintf(stderr,"ERROR: analyzeWriteFrame(): frame number (%d) exceeds "
       "number of frames (%d)\n",frame,mri->nframes);
@@ -5473,22 +5488,49 @@ static int analyzeWriteFrame(MRI *mri, char *fname, int frame)
 
   /* Set the hist.orient field -- this is not always correct */
   /* see http://wideman-one.com/gw/brain/analyze/formatdoc.htm  */
-  if(fabs(mri->z_s) > fabs(mri->z_r) && fabs(mri->z_s) > fabs(mri->z_a)){
+  if(fabs(mri->z_s) > fabs(mri->z_r) && fabs(mri->z_s) > fabs(mri->z_a))
+  {
     // Transverse: Superior/Inferior > both Right and Anterior
-    if(mri->y_a > 0) hdr.hist.orient = 0; // transverse unflipped  LAS
-    else             hdr.hist.orient = 3; // transverse flipped    LPS
+    if (mri->x_r < 0 && mri->y_a > 0 && mri->z_s > 0) 
+      hdr.hist.orient = 0; // transverse unflipped  LAS
+    else if (mri->x_r < 0 && mri->y_a <0 && mri->z_s > 0)           
+      hdr.hist.orient = 3; // transverse flipped    LPS
+    else
+    {
+      fprintf(stderr, "No such orientation specified in Analyze7.5. Set orient to 0\n");
+      printDirCos(mri);
+      hdr.hist.orient = 0;
+    }  
   }
-  if(fabs(mri->z_a) > fabs(mri->z_r) && fabs(mri->z_a) > fabs(mri->z_s)){
+  if(fabs(mri->z_a) > fabs(mri->z_r) && fabs(mri->z_a) > fabs(mri->z_s))
+  {
     // Cor: Anterior/Post > both Right and Superior
-    if(mri->y_s > 0) hdr.hist.orient = 1; // cor unflipped   LSA
-    else             hdr.hist.orient = 4; // cor flipped     LIA
+    if(mri->x_r < 0 && mri->y_s > 0 && mri->z_a > 0) 
+      hdr.hist.orient = 1; // cor unflipped   LSA
+    else if (mri->x_r <0 && mri->y_s < 0 && mri->z_a > 0)
+      hdr.hist.orient = 4; // cor flipped     LIA
+    else 
+    {
+      fprintf(stderr, "No such orientation specified in Analyze7.5. Set orient to 0\n");
+      printDirCos(mri);
+      hdr.hist.orient = 0;
+    }
   }
-  if(fabs(mri->z_r) > fabs(mri->z_a) && fabs(mri->z_r) > fabs(mri->z_s)){
+  if(fabs(mri->z_r) > fabs(mri->z_a) && fabs(mri->z_r) > fabs(mri->z_s))
+  {
     // Sag: Righ/Left > both Anterior and Superior
-    if(mri->y_s > 0) hdr.hist.orient = 2; // sag unflipped   ASL
-    else             hdr.hist.orient = 5; // sag flipped     AIL
+    if(mri->x_a > 0 && mri->y_s > 0 && mri->z_r < 0) 
+      hdr.hist.orient = 2; // sag unflipped   ASL
+    else if (mri->x_a > 0 && mri->y_s < 0 && mri->z_r < 0)
+      hdr.hist.orient = 5; // sag flipped     AIL
+    else 
+    {
+      fprintf(stderr, "No such orientation specified in Analyze7.5. Set orient to 0\n");
+      printDirCos(mri);
+      hdr.hist.orient = 0;
+    }
   }
-  printf("INFO: set hdr.hist.orient to %d\n",hdr.hist.orient);
+  printf("INFO: set hdr.hist.orient to '%s'\n",orientname[(int) hdr.hist.orient]);
 
   /* ----- open the header file ----- */
   if((fp = fopen(hdr_fname, "w")) == NULL){
