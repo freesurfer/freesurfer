@@ -1,0 +1,226 @@
+#! /bin/csh -f
+##########################################################
+# Name:    mkmosiac
+# Usage: <csh> mkmosaic instem <outdir> <-heq>"
+#
+# Purpose: Creates an NxM mosaic from slice files. If
+# the slices files have multiple time points, then the
+# mosaic will have multiple time points.  For example,
+# if the slices are of dimension 64x64x10, then the mosiac
+# will be 256x256x10.
+#
+# Notes:
+##########################################################
+
+set MKMOSAIC_VER = '$Id: mkmosaic,v 1.1 2005/04/06 20:57:55 greve Exp $';
+
+if ( $#argv < 1 ) then
+  echo "";
+  echo "USAGE: <csh> mkmosaic instem <-o outstem> <-firstslice n> <-heq>"
+  echo "   instem - stem of the  input slices"
+  echo "   <-e inext> - input extension "
+  echo "   <-o outstem> - stem of mosaic (default is instem)"
+  echo "   <-firstslice int> - first slice number of the  slices (0)"
+  echo "   <-nslices int> - number of slices to process (max)"
+  echo "   <-heq> - implement histogram equalization on each mosaic"
+  echo "            (default is no equalization)"
+  echo "   -ncols - number of tile columns in the mosaic (auto)"
+  echo ""
+  echo "  The mosaic file will be called outstem_mos.bxxxxx"
+  echo "  where xxxxx is either bfloat or bshort depending upon"
+  echo "  the extension of the input slices. If outstem is not"
+  echo "  specified, it is set to instem."
+  echo ""
+  echo "  Note: requires matlab 5.x"
+  echo ""
+  echo "  $MKMOSAIC_VER";
+  echo "  Comments or questions: analysis-bugs@nmr.mgh.harvard.edu";
+  echo "";
+  exit;
+endif
+
+set InStem = $argv[1];
+set BStem = `basename $InStem`;
+set InDir = `dirname  $InStem`;
+set InExt = ();
+set ns = ();
+shift;
+
+if(! -d $InDir ) then
+  echo "ERROR: input directory $InDir does not exist"
+  exit 1;
+endif
+
+set HistEQ = 0;
+set OutStem = ();
+set FirstSlice = 0;
+set nMosCols = 0;
+
+# parse the input options
+while( $#argv != 0 )
+  if( "$argv[1]" == "-heq" ) then
+    set HistEQ = 1;
+  else if( "$argv[1]" == "-debug" ) then
+    set echo = 1;
+    set verbose = 1;
+  else if("$argv[1]" == "-o" ) then
+    shift;
+    set OutStem = `basename $argv[1]`;
+    set OutDir  = `dirname  $argv[1]`;
+  else if("$argv[1]" == "-firstslice" || "$argv[1]" == "-fs" ) then
+    shift;
+    set FirstSlice = $argv[1];
+  else if("$argv[1]" == "-nslices" || "$argv[1]" == "-ns" ) then
+    shift;
+    set ns = $argv[1];
+  else if("$argv[1]" == "-ncols" ) then
+    shift;
+    set nMosCols = $argv[1];
+  else if("$argv[1]" == "-e" ) then
+    shift;
+    set InExt = $argv[1];
+  endif
+
+  if( $#argv != 0 )shift;
+end
+
+if( $#OutStem == 0 ) then
+  set OutStem = $BStem;
+  set OutDir  = $InDir;
+endif
+mkdir -p $OutDir
+
+pushd $OutDir > /dev/null
+set OutDir = `pwd`;
+popd > /dev/null
+
+pushd $InDir > /dev/null
+set InDir = "."
+
+if($HistEQ) then
+  echo Using Histogram Equalization
+else
+  echo NOT Using Histogram Equalization
+endif
+
+# Check that the input directory exists #
+if( ! -d $InDir ) then
+  echo "ERROR: Directory $InDir does not exist"
+  exit 1;
+endif
+
+set MATLAB = `getmatlab`;
+if($status) exit 1;
+
+# Make sure that there are files with the given stem #
+set FirstSliceStem = $InDir/`printf %s_%03d $BStem $FirstSlice`;
+
+if($#InExt == 0) then
+  set Ext = `getbext $BStem`;
+else
+  set Ext = $InExt;
+endif
+
+## Go thru all 16 slices, make sure files exist, and 
+## create a list for matalb.
+@ slc =  $FirstSlice;
+set cmd = "getlastsliceno $BStem";
+#pwd
+#echo $cmd
+if($#ns == 0) @ ns = `$cmd`;
+
+set mSliceFiles = "strvcat(";
+set c = ""
+set shref = $FirstSliceStem".hdr"
+
+while($slc <= $ns)
+
+  # Leading zeros #
+  if($slc < 10) then 
+      set lz = "_00";
+  else if ($slc < 100) then
+      set lz = "_0";
+  else
+      set lz = "_";
+  endif
+
+  # construct slice file name
+  set sf = $BStem$lz$slc"."$Ext;
+  if( ! -r $sf ) then
+    echo ERROR: File $sf does not exist or is unreadable 
+    exit;
+  endif
+
+  # construct slice header file name
+  set sh = $InDir"/"$BStem$lz$slc".hdr"
+  if( ! -r $sh ) then
+    echo ERROR: File $sh does not exist or is unreadable
+    exit;
+  endif
+
+  # construct slice dof file name and copy (if it exists) #
+  set dofInFile = $InDir"/"$BStem$lz$slc".dof"
+  if( -r $dofInFile ) then
+    set dofOutFile = $OutDir/$OutStem"_mos.dof"
+    cp $dofInFile $dofOutFile;
+  endif
+
+  # check that header files are the same
+  @ n = `diff -q $sh $shref | wc -l`;
+  if( $n != 0 ) then
+    echo "ERROR: header files $shref and $sh differ" 
+    exit;
+  endif
+
+  # add slice file name to matlab list #
+  set mSliceFiles = "$mSliceFiles $c '$sf'";
+
+  set c = ",";
+  @ slc =  $slc + 1;
+end
+set mSliceFiles = "$mSliceFiles );";
+
+if( $nMosCols < 1) then
+  set nMosCols = `echo "n = sqrt($slc); if($slc == (n* n)) n else n+1" | bc`;
+  echo "INFO: setting the number of columns to $nMosCols"
+endif
+
+set MosaicFile = $OutDir/$OutStem"_mos."$Ext;
+
+# matlab file #
+set MLF = "/tmp/$OutStem"$$"_mkmosaic.m"
+echo Matlab file is $MLF
+rm -f $MLF
+
+echo "% $MLF " >> $MLF
+echo "% This is a matlab script to run mkmosaic." >> $MLF
+echo "% It is a temporary file and may be deleted." >> $MLF
+echo "% `date`" >> $MLF
+
+echo "global QuitOnError;" >> $MLF
+echo "QuitOnError = 1;" >> $MLF
+echo "HistEQ = $HistEQ;" >> $MLF
+echo "HistEQThr = .99;" >> $MLF
+echo "MosaicCols = $nMosCols;" >> $MLF
+echo "SliceFile = $mSliceFiles;" >> $MLF
+echo "MosaicFile = '$MosaicFile';" >> $MLF
+echo "mkmosaic;" >> $MLF
+echo "quit;" >> $MLF
+
+cat  $MLF | $MATLAB -display iconic 
+
+# construct slice dat file name and copy (if it exists) #
+set datInFile = $InDir/$BStem".dat"
+if( -r $datInFile ) then
+  set datOutFile = $OutDir/$OutStem".dat"
+  echo "  Copying dat file $datInFile to $datOutFile";
+  cp $datInFile $datOutFile;
+endif
+
+# Clean up #
+rm -f $MLF
+
+popd > /dev/null
+
+exit 0;
+##########################################################
