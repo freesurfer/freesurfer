@@ -1181,6 +1181,8 @@ int vset_set_current_set(int set);
 
 MATRIX* conv_mnital_to_tal_m_ltz = NULL;
 MATRIX* conv_mnital_to_tal_m_gtz = NULL;
+MATRIX* conv_tal_to_mnital_m_ltz = NULL;
+MATRIX* conv_tal_to_mnital_m_gtz = NULL;
 MATRIX* conv_tmp1_m = NULL;
 MATRIX* conv_tmp2_m = NULL;
 MATRIX* surfaceRAStoRAS = NULL;
@@ -1188,10 +1190,14 @@ MATRIX* surfaceRAStoRAS = NULL;
 MRI* origMRI = NULL;
 
 int conv_initialize ();
-int conv_ras_to_mnital(float rasx, float rasy, float rasz,
-		       float* talx, float* taly, float* talz);
-int conv_ras_to_tal(float rasx, float rasy, float rasz,
-		    float* talx, float* taly, float* talz);
+int conv_ras_to_mnital (float rasx, float rasy, float rasz,
+			float* talx, float* taly, float* talz);
+int conv_ras_to_tal    (float rasx, float rasy, float rasz,
+			float* talx, float* taly, float* talz);
+int conv_mnital_to_ras (float talx, float taly, float talz,
+			float* rasx, float* rasy, float* rasz);
+int conv_tal_to_ras    (float talx, float taly, float talz,
+			float* rasx, float* rasy, float* rasz);
 
 /* ------------------------------------------------------------------------ */
 
@@ -1200,21 +1206,23 @@ int conv_ras_to_tal(float rasx, float rasy, float rasz,
 #include "xGrowableArray.h"
 
 /* 
- * an undo action (UNDO_ACTION) represents a single logical action that can
- * be undone in user langugage, such as a cut that effected many verices
- * and faces. an action has a type and a list of action nodes. the type
- * represents that type of action that can be undone (i.e. UNDO_CUT), and has
- * an associated node type (i.e. UNDO_CUT_NODE).
+ * an undo action (UNDO_ACTION) represents a single logical action
+ * that can be undone in user langugage, such as a cut that effected
+ * many verices and faces. an action has a type and a list of action
+ * nodes. the type represents that type of action that can be undone
+ * (i.e. UNDO_CUT), and has an associated node type
+ * (i.e. UNDO_CUT_NODE).
  *
  * to start an undoable action, call undo_begin_action to allocate the
  * action. then pass pointers to the action node to undo_copy_action_node,
  * in which it will be copied to the list. when done adding nodes, call
  * undo_finish_action.
  *
- * use the undo_get_action_string to get a human readable description of the
- * action to be undo. call undo_do_first_action to undo the last action. multiple
- * undos can be done, up to NUM_UNDOS. undoing an action removes the action
- * from the undo list - it's not 'redoable'.
+ * use the undo_get_action_string to get a human readable description
+ * of the action to be undo. call undo_do_first_action to undo the
+ * last action. multiple undos can be done, up to NUM_UNDOS. undoing
+ * an action removes the action from the undo list - it's not
+ * 'redoable'.
  */
 
 /* types of undo actions */
@@ -7093,7 +7101,7 @@ find_orig_vertex_coordinates(int vindex)
       z = mris->vertices[vindex].origz ;
     }
   if (transform_loaded) 
-    LTAworldToWorld(lta, x, y, z, &x_tal, &y_tal, &z_tal) ;
+    conv_ras_to_tal(x, y, z, &x_tal, &y_tal, &z_tal) ;
   sprintf(fname,"%s/edit.dat",tfname);
   printf("writing coordinates to file %s\n", fname) ;
   fp = fopen(fname,"w");
@@ -7176,7 +7184,7 @@ select_talairach_point(int *vindex,float x_tal,float y_tal,float z_tal)
       PR return; 
     }
   
-  LTAinverseWorldToWorld(lta, x_tal, y_tal, z_tal, &x, &y, &z) ;
+  conv_tal_to_ras(x_tal, y_tal, z_tal, &x, &y, &z) ;
   
   sprintf(fname,"%s/edit.dat",tfname);
   fp = fopen(fname,"w");
@@ -18334,7 +18342,7 @@ int main(int argc, char *argv[])   /* new main */
   /* end rkt */
   
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: tksurfer.c,v 1.93 2005/01/05 17:10:05 kteich Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: tksurfer.c,v 1.94 2005/01/05 21:28:47 kteich Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -20308,8 +20316,7 @@ update_labels(int label_set, int vno, float dmin)
       sprintf(command, "UpdateLabel %d %d \"(%.2f  %.2f  %.2f)\"", 
 	      label_set, LABEL_COORDS_TAL, x_tal, y_tal, z_tal );
       Tcl_Eval(g_interp, command);
-      
-      
+
       conv_ras_to_mnital( v->origx, v->origy, v->origz, 
 			  &x_mni, &y_mni, &z_mni );
       sprintf(command, "UpdateLabel %d %d \"(%.2f  %.2f  %.2f)\"", 
@@ -20977,6 +20984,10 @@ int conv_initialize()
 		      0.00, -0.0485, 0.9189, 0,
 		      0.00,       0,      0, 1);
   
+  /* calc the inverses. */
+  conv_tal_to_mnital_m_ltz = MatrixInverse (conv_mnital_to_tal_m_ltz, NULL );
+  conv_tal_to_mnital_m_gtz = MatrixInverse (conv_mnital_to_tal_m_gtz, NULL );
+
   /* allocate our temporary matrices. */
   if (NULL != conv_tmp1_m)
     MatrixFree (&conv_tmp1_m);
@@ -21069,6 +21080,69 @@ int conv_ras_to_tal(float srasx, float srasy, float srasz,
   return(NO_ERROR);
 }
 
+int conv_mnital_to_ras(float mnix, float mniy, float mniz,
+		       float* osrasx, float* osrasy, float* osrasz)
+{
+
+  float rasx, rasy, rasz;
+  Real srasx, srasy, srasz;
+
+  /* Run the talairach transformation. */
+  if (transform_loaded && 
+      NULL != lta &&
+      lta->type == LINEAR_RAS_TO_RAS) 
+    {
+      LTAinverseWorldToWorldEx (lta, mnix, mniy, mniz, &rasx, &rasy, &rasz);
+    }
+
+  if (NULL != origMRI && !mris->useRealRAS)
+    {
+      MRIRASToSurfaceRAS (origMRI, rasx, rasy, rasz,
+			  &srasx, &srasy, &srasz);
+    }
+  else
+    {
+      srasx = rasx;
+      srasy = rasy;
+      srasz = rasz;
+    }
+  
+  *osrasx = (float) srasx;
+  *osrasy = (float) srasy;
+  *osrasz = (float) srasz;
+
+  return(NO_ERROR);
+}
+
+int conv_tal_to_ras(float talx, float taly, float talz,
+		    float* srasx, float* srasy, float* srasz)
+{
+
+  float mnix, mniy, mniz;
+
+
+  *MATRIX_RELT(conv_tmp1_m,1,1) = talx;
+  *MATRIX_RELT(conv_tmp1_m,2,1) = taly;
+  *MATRIX_RELT(conv_tmp1_m,3,1) = talz;
+  *MATRIX_RELT(conv_tmp1_m,4,1) = 1.0;
+  
+  if (talz > 0)
+    {
+      MatrixMultiply (conv_tal_to_mnital_m_gtz, conv_tmp1_m, conv_tmp2_m);
+    }
+  else
+    {
+      MatrixMultiply (conv_tal_to_mnital_m_ltz, conv_tmp1_m, conv_tmp2_m);
+    }
+  
+  mnix = *MATRIX_RELT(conv_tmp2_m,1,1);
+  mniy = *MATRIX_RELT(conv_tmp2_m,2,1);
+  mniz = *MATRIX_RELT(conv_tmp2_m,3,1);
+
+  conv_mnital_to_ras (mnix, mniy, mniz, srasx, srasy, srasz);
+
+  return(NO_ERROR);
+}
 
 /* ------------------------------------------------------------------------ */
 
