@@ -1,0 +1,137 @@
+#!/bin/csh -f
+# par2stf
+#
+
+set VERSION = '$Id';
+set cmdargs = ($argv);
+
+set parfile = ();
+set paridlist  = ();
+set durlist = ();
+set wlist   = ();
+set stflist = ();
+set PrintHelp = 0;
+
+if($#argv == 0)  goto usage_exit;
+set n = `echo $argv | grep -e -help | wc -l` 
+if($n != 0) then
+  set PrintHelp = 1;
+  goto usage_exit;
+  exit 1;
+endif
+
+goto parse_args;
+parse_args_return:
+
+goto check_params;
+check_params_return:
+
+if(! -e $parfile) then
+  echo "ERROR: $parfile does not exist"
+  exit 1;
+endif
+
+@ nthid = 1;
+foreach parid ($paridlist)
+  set dur = $durlist[$nthid];
+  set stf = $stflist[$nthid];
+  set w   = $wlist[$nthid];
+  cat $parfile | awk -v parid=$parid -v dur=$dur -v w=$w\
+   '{if($2 == parid) print $1" "dur"  "w}' > $stf
+ @ nthid = $nthid + 1;
+end
+
+exit 0;
+###############################################
+
+
+############--------------##################
+parse_args:
+set cmdline = "$argv";
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "-p":
+      if ( $#argv == 0) goto arg1err;
+      set parfile = $argv[1]; shift;
+      breaksw
+
+    case "-id":
+      if( $#argv < 4) then
+        echo "ERROR: $flag needs 4 args"
+        exit 1;
+      endif
+      set paridlist = ($paridlist $argv[1]); shift;
+      set durlist   = ($durlist   $argv[1]); shift;
+      set wlist     = ($wlist     $argv[1]); shift;
+      set stflist   = ($stflist   $argv[1]); shift;
+      breaksw
+
+    case "-debug":
+      set verbose = 1;
+      set echo = 1;
+      breaksw
+
+    default:
+      echo ERROR: Flag $flag unrecognized. 
+      echo $cmdline
+      exit 1
+      breaksw
+  endsw
+
+end
+
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+
+if($#parfile == 0) then
+  echo "ERROR: need a par file"
+  exit 1;
+endif
+
+if($#paridlist == 0) then
+  echo "ERROR: need at least 1 id"
+  exit 1;
+endif
+
+goto check_params_return;
+############--------------##################
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+
+############--------------##################
+usage_exit:
+  echo ""
+  echo "USAGE: par2stf"
+  echo ""
+  echo "  -p parfile"
+  echo "  -id parid dur weight stf"
+  echo ""
+  echo "   -version        : print version and exit"
+  echo "   -help           : print help and exit"
+  echo ""
+
+  if(! $PrintHelp) exit 1;
+
+  echo $VERSION
+
+  echo "------------------------------------------------------------"
+  cat $0 | awk 'BEGIN{prt=0}{if(prt) print $0; if($1 == "BEGINHELP") prt = 1 }'
+
+  echo "------------------------------------------------------------"
+
+exit 1;
+
+#---- Everything below here is printed out as part of help -----#
+BEGINHELP
+
