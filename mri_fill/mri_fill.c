@@ -10,7 +10,7 @@
 #include "macros.h"
 #include "proto.h"
 
-static char vcid[] = "$Id: mri_fill.c,v 1.18 1999/06/06 22:15:54 fischl Exp $";
+static char vcid[] = "$Id: mri_fill.c,v 1.19 1999/06/07 01:36:49 fischl Exp $";
 
 /*-------------------------------------------------------------------
                                 CONSTANTS
@@ -415,8 +415,8 @@ main(int argc, char *argv[])
   MRIcopy(mri_fill, mri_im) ;
   MRIclear(mri_fill) ;
 
-  MRIvox(mri_fill, wm_rh_x, wm_rh_y, wm_rh_z) = RIGHT_HEMISPHERE_WHITE_MATTER ;
-  MRIvox(mri_fill, wm_lh_x, wm_lh_y, wm_lh_z) = LEFT_HEMISPHERE_WHITE_MATTER ;
+  MRIvox(mri_fill, wm_rh_x, wm_rh_y, wm_rh_z) = rh_fill_val ;
+  MRIvox(mri_fill, wm_lh_x, wm_lh_y, wm_lh_z) = lh_fill_val ;
 
 
   /* fill in background of complement (also sometimes called the foreground) */
@@ -809,7 +809,9 @@ find_cutting_plane(MRI *mri, Real x_tal, Real y_tal,Real z_tal,int orientation,
     if (orientation == MRI_SAGITTAL)/* extend to top and bottom of slice */
       region.dy = SLICE_SIZE - region.y ;
     MRItalairachToVoxel(mri, x_tal, y_tal,  z_tal, &x, &y, &z) ;
-    *pxv = nint(x) ; *pyv = nint(y) ; *pzv = nint(z) ;
+    xv = *pxv = nint(x) ; yv = *pyv = nint(y) ; zv = *pzv = nint(z) ;
+    fprintf(stderr, "using seed (%d, %d, %d), TAL = (%2.1f, %2.1f, %2.1f)\n",
+            *pxv, *pyv, *pzv, x_tal, y_tal, z_tal) ;
     mri_cut = MRIcopy(mri_filled[0], NULL) ;
     for (yv = region.y ; yv < region.y+region.dy ; yv++)
     {
@@ -818,6 +820,7 @@ find_cutting_plane(MRI *mri, Real x_tal, Real y_tal,Real z_tal,int orientation,
         MRIvox(mri_cut, xv, yv, 0) = 1 ;
       }
     }
+    xv = *pxv ; yv = *pyv ; zv = *pzv ;
     if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
     {
       sprintf(fname, "%s_filled.mnc", 
@@ -846,7 +849,7 @@ find_cutting_plane(MRI *mri, Real x_tal, Real y_tal,Real z_tal,int orientation,
   MRIfree(&mri_filled[0]) ;
 
   offset = 0 ;
-  while (!done)
+  if (!seed_set) while (!done)
   {
     offset += SEARCH_STEP ;   /* search at a greater radius */
     if (offset >= MAX_OFFSET)
@@ -916,7 +919,12 @@ find_cutting_plane(MRI *mri, Real x_tal, Real y_tal,Real z_tal,int orientation,
   }
 
   if (Gdiag & DIAG_SHOW)
-    fprintf(stderr, "%s seed point found at (%d, %d, %d)\n", name, xv,yv,zv);
+  {
+    MRIvoxelToTalairach(mri, xv, yv, zv, &x, &y, &z) ;
+    fprintf(stderr, 
+          "%s seed point found at (%d, %d, %d), TAL: (%2.1f, %2.1f, %2.1f)\n", 
+          name, xv,yv,zv, x, y, z);
+  }
 
   if (!seed_set)   /* find slice with smallest cross-section */
   {
@@ -1220,6 +1228,19 @@ find_pons(MRI *mri, Real *p_ponsx, Real *p_ponsy, Real *p_ponsz)
   zr = (Real)(region.z+region.dz/2) ;
   xv = (int)xr ; yv = (int)yr ; zv = (int)zr ;
   MRIvoxelToTalairach(mri, xr, yr, zr, &xr, &yr, &zr);
+
+#if 0
+  fprintf(stderr, "central sagittal slice found at (%2.1f, %2.1f, %2.f1)\n",
+          xr, yr, zr) ;
+  if (xr < -20 || xr > 20)
+  {
+    fprintf(stderr, 
+            "using Talairach to update left-right estimate of center\n") ;
+    MRItalairachToVoxel(mri, 0.0, 0.0, 0.0, &xr, &yr, &zr);
+    xv = nint(xr) ; yv = nint(yr) ; zv = nint(zr) ;
+  }
+#endif
+
   mri_slice = 
     MRIextractTalairachPlane(mri, NULL, MRI_SAGITTAL,xv,yv,zv,SLICE_SIZE) ;
 #endif
