@@ -14,7 +14,7 @@
 #include "macros.h"
 #include "utils.h"
 
-static char vcid[] = "$Id: mris_flatten.c,v 1.11 1998/02/13 23:46:30 fischl Exp $";
+static char vcid[] = "$Id: mris_flatten.c,v 1.12 1998/02/27 18:56:54 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -37,7 +37,7 @@ static int mrisDisturbVertices(MRI_SURFACE *mris, double amount) ;
 static int randomly_flatten = 0 ;
 static int   nospring = 0 ;
 static float scale = 3 ;
-static int   max_passes = 2 ;
+static int   max_passes = 1 ;
 
 #define SMOOTHWM_FNAME  "smoothwm" 
 
@@ -55,7 +55,7 @@ main(int argc, char *argv[])
 
   parms.dt = .1 ;
   parms.projection = PROJECT_PLANE ;
-  parms.tol = 1e-2 ;
+  parms.tol = 1e-1 ;
   parms.n_averages = 1024 /* 1024 */ ;
   parms.min_averages = 0 ;
   parms.l_angle = 0.0 /* L_ANGLE */ ;
@@ -66,7 +66,7 @@ main(int argc, char *argv[])
   parms.l_area = 1.0 ;
   parms.l_boundary = 0.0 ;
   parms.l_curv = 0.0 ;
-  parms.niterations = 1 ;
+  parms.niterations = 25 ;
   parms.write_iterations = 1000 ;
   parms.a = parms.b = parms.c = 0.0f ;  /* ellipsoid parameters */
   parms.dt_increase = 1.01 /* DT_INCREASE */;
@@ -97,8 +97,7 @@ main(int argc, char *argv[])
   out_patch_fname = argv[2] ;
   FileNamePath(in_patch_fname, path) ;
   cp = strrchr(in_patch_fname, '/') ;
-  if (cp)
-    cp = strchr(cp, '.') ;
+  cp = strchr(cp, '.') ;
   if (cp)
   {
     strncpy(hemi, cp-2, 2) ;
