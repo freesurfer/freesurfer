@@ -12,7 +12,7 @@
 #include "mri.h"
 #include "macros.h"
 
-static char vcid[] = "$Id: mris_register.c,v 1.8 1998/11/11 17:37:43 fischl Exp $";
+static char vcid[] = "$Id: mris_register.c,v 1.9 1999/09/23 22:16:05 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -32,6 +32,7 @@ static float dgamma = 0.0f ;
 
 char *Progname ;
 static char curvature_fname[100] = "" ;
+static char *orig_name = "smoothwm" ;
 
 static INTEGRATION_PARMS  parms ;
 
@@ -152,7 +153,8 @@ main(int argc, char *argv[])
   MRISstoreMetricProperties(mris) ;
 #endif
   MRISstoreMeanCurvature(mris) ;  /* use curvature from file */
-  MRISreadOriginalProperties(mris, NULL) ;
+  /*  MRISsetOriginalFileName(mris, orig_name) ;*/
+  MRISreadOriginalProperties(mris, orig_name) ;
   MRISregister(mris, mrisp_template, &parms, max_passes) ;
   fprintf(stderr, "writing registered surface to %s...\n", out_fname) ;
   MRISwrite(mris, out_fname) ;
@@ -223,6 +225,12 @@ get_option(int argc, char *argv[])
     sscanf(argv[2], "%f", &parms.l_parea) ;
     nargs = 1 ;
     fprintf(stderr, "using l_parea = %2.3f\n", parms.l_parea) ;
+  }
+  else if (!stricmp(option, "nlarea"))
+  {
+    sscanf(argv[2], "%f", &parms.l_nlarea) ;
+    nargs = 1 ;
+    fprintf(stderr, "using l_nlarea = %2.3f\n", parms.l_nlarea) ;
   }
   else if (!stricmp(option, "spring"))
   {
@@ -323,6 +331,11 @@ get_option(int argc, char *argv[])
   case 'V':
     Gdiag_no = atoi(argv[2]) ;
     nargs = 1 ;
+    break ;
+  case 'O':
+    orig_name = argv[2] ;
+    nargs = 1 ;
+    fprintf(stderr, "using %s for original properties...\n", orig_name) ;
     break ;
   case 'P':
     max_passes = atoi(argv[2]) ;
