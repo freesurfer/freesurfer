@@ -8587,12 +8587,6 @@ mghRead(char *fname, int read_volume, int frame)
             ;
     }
 
-  // At this point there may be tag data between here and the end of
-  // the file. We don't know what it is, so we'll just copy it into a
-  // buffer in the struct and write it out later in mghWrite.  Get our
-  // current position, then skip the end of the file and get the
-  // position there. Anything in between is tag data. If there is
-  // some, allocate the tag buffer to that size and read in the dat.
   if (freadIntEx(&(tag_data_size), fp))
   {
     mri->tag_data_size = tag_data_size;
