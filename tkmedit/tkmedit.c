@@ -79,6 +79,7 @@ char tkm_ksaErrorStrings [tkm_knNumErrorCodes][tkm_knErrStringLen] = {
   "Couldn't load the color table.",
   "Couldn't load the head points list.",
   "Couldn't import the segmentation volume.",
+  "Couldn't import the tensor volume.",
   "Couldn't load the functional overlay.",
   "Couldn't load the functional time course.",
   "Couldn't load the transform.",
@@ -159,7 +160,7 @@ tkm_tErr FindUserHomeDir          ();
 
 typedef enum {
   tkm_tFileName_Functional = 0,
-  tkm_tFileName_Parcellation,
+  tkm_tFileName_Segmentation,
   tkm_tFileName_HeadPoints,
   tkm_tFileName_Surface,
   tkm_tFileName_Volume,
@@ -289,7 +290,9 @@ void SelectVoxelsByFuncValue ( FunV_tFindStatsComp iCompare );
 
 /* we declare tkm_knNumVolumeTypes, but we only use the main and aux */
 static mriVolumeRef    gAnatomicalVolume[tkm_knNumVolumeTypes];
-static int             gnAnatomicalDimension = 0;
+static int             gnAnatomicalDimensionX = 0;
+static int             gnAnatomicalDimensionY = 0;
+static int             gnAnatomicalDimensionZ = 0;
 static mriTransformRef gIdxToRASTransform    = NULL;
 static tBoolean        gbAnatomicalVolumeDirty[tkm_knNumVolumeTypes];
 
@@ -351,6 +354,7 @@ tkm_tErr LoadFunctionalTimeCourse ( char* isPathAndStem,
             char* isRegistration );
 
 tkm_tErr SmoothOverlayData ( float ifSigma );
+tkm_tErr LoadTensor ( char *fname );
 
 void TranslateOverlayRegisgtration ( float ifDistance, char isDirection );
 void RotateOverlayRegistration     ( float ifDegrees, char isDirection );
@@ -358,19 +362,26 @@ void ScaleOverlayRegisgtration     ( float ifDistance, char isDirection );
 
 // ===========================================================================
 
-// ================================================ PARCELLATION and ROI GROUPS
+// ================================================ SEGMENTATION and ROI GROUPS
 
 #include "mriColorLookupTable.h"
 
 #define kfDefaultROIGroupAlpha 0.3
 
-static mriVolumeRef           gROIGroup    = NULL;
+static mriVolumeRef           gPreviousSegmentationVolume    = NULL;
+static mriVolumeRef           gSegmentationVolume    = NULL;
+static mriVolumeRef           gSegmentationChangedVolume    = NULL;
+static mriVolumeRef           gTensor      = NULL ;
 static mriColorLookupTableRef gColorTable  = NULL;
 static float                  gfROIAlpha   = kfDefaultROIGroupAlpha;
 
-tkm_tErr LoadParcellationVolume ( char* inVolumeDirWithPrefix,
+void RecomputeSegmentation(mriVolumeRef inVol, 
+                           mriVolumeRef inSegVol, mriVolumeRef inSegChanged, 
+                           mriVolumeRef outVol) ;
+
+tkm_tErr LoadSegmentationVolume ( char* inVolumeDirWithPrefix,
           char* inColorFileName );
-void SaveParcellationVolume ( char* inVolumeDirWithPrefix );
+void SaveSegmentationVolume ( char* inVolumeDirWithPrefix );
 
 void SetROIGroupAlpha        ( float       ifAlpha );
 void GetROIColorAtVoxel      ( xVoxelRef   inVoxel,
@@ -390,7 +401,7 @@ Volm_tVisitCommand AddSimilarVoxelToGraohAvg  ( xVoxelRef iAnaIdx,
             void*     ipnTarget );
 
 /* a callback to an undo entry */
-int  EditParcellation        ( xVoxelRef   iAnaIdx,
+int  EditSegmentation        ( xVoxelRef   iAnaIdx,
              int         inIndex );
 
 /* for calcing the volume of an roi */
@@ -415,12 +426,12 @@ typedef struct {
   tBoolean        mbIterationLimitReached; /* whether we were stopped by the limit */
 } tkm_tParcFloodFillParams, *tkm_tParcFloodFillParamsRef;
 
-/* use to set the parcellation value. also adds to the undo list */
-void SetParcellationValue    ( xVoxelRef   iAnaIdx,
+/* use to set the segmentation value. also adds to the undo list */
+void SetSegmentationValue    ( xVoxelRef   iAnaIdx,
              int         inIndex );
-void FloodFillParcellation   ( xVoxelRef                   iAnaIdx,
+void FloodFillSegmentation   ( xVoxelRef                   iAnaIdx,
              tkm_tParcFloodFillParamsRef iParams );
-void IterateFloodFillParcellation ( xVoxelRef                   iAnaIdx,
+void IterateFloodFillSegmentation ( xVoxelRef                   iAnaIdx,
             tkm_tParcFloodFillParamsRef iParams,
             tBoolean*                   iVisited );
 
@@ -559,8 +570,11 @@ void AlignSelectedHeadPointToAnaIdx ( xVoxelRef iAnaIdx );
 
 GCA* gGCAVolume    = NULL;
 LTA* gGCATransform = NULL;
+int gDisplayIntermediateResults = True ;
 
+tkm_tErr SaveGCA   ( char* isGCAFileName);
 tkm_tErr LoadGCA   ( char* isGCAFileName, char* isTransformFileName );
+tkm_tErr LoadGCARenormalization  ( char* isRenormFname );
 tkm_tErr DeleteGCA ();
 
 /* ======================================================================= */
@@ -739,7 +753,9 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
   tBoolean                bLocalImageDir                        = FALSE;
   tBoolean                bNoEdit                               = FALSE;
   tBoolean                bLoadingAuxVolume                     = FALSE;
+  tBoolean                bLoadingTensorData                    = FALSE;
   char                    sAuxVolume[tkm_knPathLen]             = "";
+  char                    sTensorFname[tkm_knPathLen]           = "";
   tBoolean                bLoadingMainTransform                 = FALSE;
   char                    sMainTransform[tkm_knPathLen]         = "";
   tBoolean                bLoadingAuxTransform                  = FALSE;
@@ -757,9 +773,9 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
   char*                   psTimeCourseOffsetPathAndStem         = NULL;
   char*                   psTimeCourseRegistration              = NULL;
   tBoolean                bEnablingRegistration                 = FALSE;
-  tBoolean                bLoadingParcellation                  = FALSE;
-  char                    sParcellationPath[tkm_knPathLen]      = "";
-  char                    sParcellationColorFile[tkm_knPathLen] = "";
+  tBoolean                bLoadingSegmentation                  = FALSE;
+  char                    sSegmentationPath[tkm_knPathLen]      = "";
+  char                    sSegmentationColorFile[tkm_knPathLen] = "";
   tBoolean                bThresh                               = FALSE;
   FunV_tFunctionalValue   min                                   = 0;
   tBoolean                bMid                                  = FALSE;
@@ -1078,7 +1094,7 @@ printf("-interface script    : scecify interface script (default is tkmedit.tcl)
 
   } else if( MATCH( sArg, "-segmentation" ) ||
        MATCH( sArg, "-seg" ) ||
-       MATCH( sArg, "-parcellation" ) ||
+       MATCH( sArg, "-segmentation" ) ||
        MATCH( sArg, "-parc" ) ) {
 
     /* make sure there are enough args */
@@ -1088,11 +1104,11 @@ printf("-interface script    : scecify interface script (default is tkmedit.tcl)
       
       /* copy path and color file */
       DebugNote( ("Parsing -segmentation/seg option") );
-      xUtil_strncpy( sParcellationPath, argv[nCurrentArg+1],
-         sizeof(sParcellationPath) );
-      xUtil_strncpy( sParcellationColorFile, argv[nCurrentArg+2],
-         sizeof(sParcellationColorFile) );
-      bLoadingParcellation = TRUE;
+      xUtil_strncpy( sSegmentationPath, argv[nCurrentArg+1],
+         sizeof(sSegmentationPath) );
+      xUtil_strncpy( sSegmentationColorFile, argv[nCurrentArg+2],
+         sizeof(sSegmentationColorFile) );
+      bLoadingSegmentation = TRUE;
       nCurrentArg += 3;
 
     } else {
@@ -1341,6 +1357,30 @@ printf("-interface script    : scecify interface script (default is tkmedit.tcl)
             "This option needs an argument: the image type, "
             "directory, or file name of the data to load "
             "as the aux volume." );
+      nCurrentArg += 1;
+    }
+
+  } else if( MATCH( sArg, "-tensor" ) ) {
+
+    /* check for the value following the switch */
+    if( argc > nCurrentArg + 1
+        && '-' != argv[nCurrentArg+1][0] ) {
+      
+      /* read in the aux file name */
+      DebugNote( ("Parsing -tensor option") );
+      xUtil_strncpy( sTensorFname, argv[nCurrentArg+1], 
+         sizeof(sTensorFname) );
+      bLoadingTensorData = TRUE;
+      nCurrentArg += 2;
+
+    } else { 
+      
+      /* misuse of that switch */
+      tkm_DisplayError( "Parsing -tensor option",
+            "Expected an argument",
+            "This option needs an argument: the image type, "
+            "directory, or file name of the data to load "
+            "as the tensor volume." );
       nCurrentArg += 1;
     }
 
@@ -1715,6 +1755,11 @@ printf("-interface script    : scecify interface script (default is tkmedit.tcl)
       DebugNote( ("Loading aux volume %s", sAuxVolume) );
       eResult = LoadVolume( tkm_tVolumeType_Aux, sAuxVolume );
     }
+
+    if( bLoadingTensorData ) {
+      DebugNote( ("Loading tensor volume %s", sTensorFname) );
+      eResult = LoadTensor( sTensorFname );
+    }
     
     /* load in the display transforms. */
     if( bLoadingMainTransform ) {
@@ -1732,10 +1777,10 @@ printf("-interface script    : scecify interface script (default is tkmedit.tcl)
       eResult = LoadSurface( sSurface );
     }
 
-    /* load parcellation */
-    if( bLoadingParcellation ) {
-      eResult = LoadParcellationVolume( sParcellationPath, 
-          sParcellationColorFile );
+    /* load segmentation */
+    if( bLoadingSegmentation ) {
+      eResult = LoadSegmentationVolume( sSegmentationPath, 
+          sSegmentationColorFile );
       /* set roi alpha */
       if( bROIGroupAlpha ) {
   SetROIGroupAlpha( fROIGroupAlpha );
@@ -1763,7 +1808,7 @@ printf("-interface script    : scecify interface script (default is tkmedit.tcl)
                psOverlayRegistration );
 
       if( eResult == tkm_tErr_NoErr && bSmooth ) {
-  eResult = SmoothOverlayData( smoothSigma );
+        eResult = SmoothOverlayData( smoothSigma );
       }
     }
 
@@ -2551,6 +2596,36 @@ int TclLoadGCA ( ClientData inClientData, Tcl_Interp* inInterp,
 
   return TCL_OK;
 }
+int TclLoadGCARenormalization ( ClientData inClientData, Tcl_Interp* inInterp,
+         int argc, char* argv[] ) {
+  
+  if ( argc != 2 ) {
+    Tcl_SetResult ( inInterp, "wrong # args: LoadGCARenormalization renorm_file",
+        TCL_VOLATILE );
+    return TCL_ERROR;
+  }
+
+  if( gbAcceptingTclCommands ) {
+    LoadGCARenormalization(argv[1]) ;
+  }
+
+  return TCL_OK;
+}
+int TclSaveGCA ( ClientData inClientData, Tcl_Interp* inInterp,
+         int argc, char* argv[] ) {
+  
+  if ( argc != 2 ) {
+    Tcl_SetResult ( inInterp, "wrong # args: SaveGCA gca_file_name",
+        TCL_VOLATILE );
+    return TCL_ERROR;
+  }
+
+  if( gbAcceptingTclCommands ) {
+    SaveGCA ( argv[1] ); 
+  }
+
+  return TCL_OK;
+}
 
 int TclReadVoxelLabels ( ClientData inClientData, 
        Tcl_Interp* inInterp,
@@ -2779,6 +2854,26 @@ int TclUnloadVolumeDisplayTransform ( ClientData inClientData,
         UnloadDisplayTransform( volume );
       }
     }
+  }
+
+  return TCL_OK;
+}
+int TclUnloadGCA ( ClientData inClientData, 
+              Tcl_Interp* inInterp,
+              int argc, char* argv[] ) {
+
+  if ( argc != 1 ) {
+    Tcl_SetResult ( inInterp, "wrong # args: UnloadGCA "
+        "volume", TCL_VOLATILE );
+    return TCL_ERROR;
+  }
+
+  if( gbAcceptingTclCommands ) {
+
+    if (gGCAVolume)
+      GCAfree(&gGCAVolume) ;
+    if (gGCATransform)
+      LTAfree(&gGCATransform) ;
   }
 
   return TCL_OK;
@@ -3213,31 +3308,159 @@ int TclShowNearestCanonicalVertex ( ClientData inClientData,
 }
 
 
-int TclLoadParcellationVolume ( ClientData inClientData, 
+int TclLoadSegmentationVolume ( ClientData inClientData, 
         Tcl_Interp* inInterp,
         int argc, char* argv[] ) {
 
   if ( argc != 3 ) {
     Tcl_SetResult ( inInterp,
-        "wrong # args: LoadParcellationVolume directory_and_prefix:string color_file:string",
+        "wrong # args: LoadSegmentationVolume directory_and_prefix:string color_file:string",
         TCL_VOLATILE );
     return TCL_ERROR;
   }
 
   if( gbAcceptingTclCommands ) {
-    LoadParcellationVolume ( argv[1], argv[2] );
+    LoadSegmentationVolume ( argv[1], argv[2] );
   }  
 
   return TCL_OK;
 }
 
-int TclSaveParcellationVolume ( ClientData inClientData, 
+static void
+update_segmentation(MRI *mri_seg)
+{
+  MRIcopy(mri_seg, gSegmentationVolume->mpMriValues) ;
+  if( gbAcceptingTclCommands && gDisplayIntermediateResults) {
+    UpdateAndRedraw() ;
+    MWin_ForceRedraw( gMeditWindow ) ;
+  }  
+}
+
+void RecomputeSegmentation(mriVolumeRef inVol, 
+                           mriVolumeRef inSegVol, mriVolumeRef inSegChanged, 
+                           mriVolumeRef outVol)
+{
+  static int first_time = 1 ;
+
+  if (NULL == gGCAVolume || NULL == gGCATransform)
+    return ;
+
+  if (first_time)
+  {
+    GCAmeanFilterConditionalDensities(gGCAVolume, 5) ;
+    GCAhistoScaleImageIntensities(gGCAVolume, inVol->mpMriValues) ;
+    first_time = 0 ;
+  }
+
+  GCAreclassifyUsingGibbsPriors(inVol->mpMriValues, gGCAVolume, 
+                                inSegVol->mpMriValues,
+                                gGCATransform, 10, inSegChanged->mpMriValues,
+                                1, 
+                                update_segmentation);
+  
+}
+
+int TclRecomputeSegmentation ( ClientData inClientData, 
+        Tcl_Interp* inInterp,
+        int argc, char* argv[] ) {
+
+  char     sError[tkm_knErrStringLen]     = "";
+  Volm_tErr eVolume                  = Volm_tErr_NoErr;
+
+  if (NULL == gGCAVolume){
+    Tcl_SetResult ( inInterp,
+        "RecomputeSegmentation: GCA must be loaded first with LoadGCA command",
+        TCL_VOLATILE );
+    return TCL_ERROR;
+  }
+  if ( argc != 1 ) {
+    Tcl_SetResult ( inInterp,
+        "wrong # args: RecomputeSegmentation",
+        TCL_VOLATILE );
+    return TCL_ERROR;
+  }
+
+  if( gbAcceptingTclCommands ) 
+  {
+    if (NULL == gPreviousSegmentationVolume)
+    {
+
+      /* allocate backup volume */
+      DebugNote( ("Creating backup segmentation") );
+      eVolume = Volm_DeepClone( gSegmentationVolume,
+                                &gPreviousSegmentationVolume );
+      DebugAssertThrowX( (Volm_tErr_NoErr == eVolume),
+                         eVolume, tkm_tErr_ErrorAccessingSegmentationVolume );
+    }
+    else
+      gPreviousSegmentationVolume->mpMriValues =
+        MRIcopy(gSegmentationVolume->mpMriValues, 
+                gPreviousSegmentationVolume->mpMriValues) ;
+    RecomputeSegmentation ( gAnatomicalVolume[tkm_tVolumeType_Main],
+                            gSegmentationVolume, gSegmentationChangedVolume,
+                            gSegmentationVolume) ;
+    UpdateAndRedraw() ;
+  }  
+  DebugCatch;
+  DebugCatchError( eVolume, tkm_tErr_NoErr, tkm_GetErrorString );
+  xUtil_snprintf( sError, sizeof(sError), "recomputing segmentation" );
+  tkm_DisplayError( sError,
+        tkm_GetErrorString(eVolume),
+                    "Tkmedit couldn't restore previous segmentation") ;
+
+  EndDebugCatch;
+
+  DebugExitFunction;
+
+  return TCL_OK;
+}
+int TclSetGCADisplayStatus ( ClientData inClientData, 
+        Tcl_Interp* inInterp,
+        int argc, char* argv[] ) {
+
+  DebugEnterFunction( ("TclSetGCADisplayStatus( argc=%d, argv=%s )", 
+           argc, argv[0]) );
+  if ( argc != 2 ) {
+    Tcl_SetResult ( inInterp,
+        "wrong # args: SetGCADisplayStatus %d:new status",
+        TCL_VOLATILE );
+    return TCL_ERROR;
+  }
+
+  if( gbAcceptingTclCommands ) 
+  {
+    gDisplayIntermediateResults = atoi(argv[1]) ;
+  }  
+
+  return TCL_OK;
+}
+int TclRestorePreviousSegmentation ( ClientData inClientData, 
+        Tcl_Interp* inInterp,
+        int argc, char* argv[] ) {
+
+  if ( argc != 1 ) {
+    Tcl_SetResult ( inInterp,
+        "wrong # args: RestorePreviousSegmentation",
+        TCL_VOLATILE );
+    return TCL_ERROR;
+  }
+
+  if( gbAcceptingTclCommands && NULL != gPreviousSegmentationVolume) {
+    MRIcopy(gPreviousSegmentationVolume->mpMriValues, 
+            gSegmentationVolume->mpMriValues);
+    UpdateAndRedraw() ;
+  }  
+
+  return TCL_OK;
+}
+
+int TclSaveSegmentationVolume ( ClientData inClientData, 
         Tcl_Interp* inInterp,
         int argc, char* argv[] ) {
 
   if ( argc > 2 ) {
     Tcl_SetResult ( inInterp,
-        "wrong # args: SaveParcellationVolume [directory:string]",
+        "wrong # args: SaveSegmentationVolume [directory:string]",
         TCL_VOLATILE );
     return TCL_ERROR;
   }
@@ -3245,9 +3468,9 @@ int TclSaveParcellationVolume ( ClientData inClientData,
   if( gbAcceptingTclCommands ) {
     /* if they gave us a filename, use it, else pass null. */
     if( argc == 1 ) {
-      SaveParcellationVolume ( NULL );
+      SaveSegmentationVolume ( NULL );
     } else {
-      SaveParcellationVolume ( argv[1] );
+      SaveSegmentationVolume ( argv[1] );
     }
   }  
 
@@ -3266,7 +3489,7 @@ int TclSwapROIGroupAndAuxVolume ( ClientData inClientData,
   }
 
   if( gbAcceptingTclCommands ) {
-    SwapROIGroupAndVolume( gROIGroup, gAnatomicalVolume[tkm_tVolumeType_Aux] );
+    SwapROIGroupAndVolume( gSegmentationVolume, gAnatomicalVolume[tkm_tVolumeType_Aux] );
   }  
 
   return TCL_OK;
@@ -3371,6 +3594,24 @@ int TclSmoothFunctionalOverlay ( ClientData inClientData,
 
   if( gbAcceptingTclCommands ) {
     SmoothOverlayData( atof(argv[1]) );
+   }  
+
+  return TCL_OK;
+}
+
+int TclLoadTensor ( ClientData inClientData, 
+                        Tcl_Interp* inInterp,
+                        int argc, char* argv[] ) {
+
+  if ( argc != 2 ) {
+    Tcl_SetResult ( inInterp,
+        "wrong # args: LoadTensor fname",
+        TCL_VOLATILE );
+    return TCL_ERROR;
+  }
+
+  if( gbAcceptingTclCommands ) {
+    LoadTensor( argv[1] );
    }  
 
   return TCL_OK;
@@ -3696,7 +3937,8 @@ int main ( int argc, char** argv ) {
   tkm_SendTclCommand( tkm_tTclCommand_ShowHeadPointLabel, "0" );
   tkm_SendTclCommand( tkm_tTclCommand_ShowROIGroupOptions, "0" );
   tkm_SendTclCommand( tkm_tTclCommand_ShowVLIOptions, "0" );
-  tkm_SendTclCommand( tkm_tTclCommand_ShowParcellationOptions, "0" );
+  tkm_SendTclCommand( tkm_tTclCommand_ShowGCAOptions, "0" );
+  tkm_SendTclCommand( tkm_tTclCommand_ShowSegmentationOptions, "0" );
   tkm_SendTclCommand( tkm_tTclCommand_ShowVolumeDirtyOptions, "0" );
   tkm_SendTclCommand( tkm_tTclCommand_ShowMainTransformLoadedOptions, "0" );
   tkm_SendTclCommand( tkm_tTclCommand_ShowAuxTransformLoadedOptions, "0" );
@@ -3948,6 +4190,15 @@ int main ( int argc, char** argv ) {
 
   /* register tcl commands */
   DebugNote( ("Registering tkmedit tcl commands") );
+
+  Tcl_CreateCommand ( interp, "SetGCADisplayStatus", TclSetGCADisplayStatus,
+          (ClientData) NULL, (Tcl_CmdDeleteProc*) NULL );
+  Tcl_CreateCommand ( interp, "RecomputeSegmentation", TclRecomputeSegmentation,
+          (ClientData) NULL, (Tcl_CmdDeleteProc*) NULL );
+  Tcl_CreateCommand ( interp, "RestorePreviousSegmentation", 
+                      TclRestorePreviousSegmentation,
+          (ClientData) NULL, (Tcl_CmdDeleteProc*) NULL );
+
   Tcl_CreateCommand ( interp, "CrashHard", TclCrashHard,
           (ClientData) NULL, (Tcl_CmdDeleteProc*) NULL );
 
@@ -4005,6 +4256,14 @@ int main ( int argc, char** argv ) {
           TclLoadGCA,
           (ClientData) NULL, (Tcl_CmdDeleteProc*) NULL );
   
+  Tcl_CreateCommand ( interp, "LoadGCARenorm",
+          TclLoadGCARenormalization,
+          (ClientData) NULL, (Tcl_CmdDeleteProc*) NULL );
+  
+  Tcl_CreateCommand ( interp, "SaveGCA",
+          TclSaveGCA,
+          (ClientData) NULL, (Tcl_CmdDeleteProc*) NULL );
+  
   Tcl_CreateCommand ( interp, "SaveRGB",
           TclSaveRGB,
           (ClientData) NULL, (Tcl_CmdDeleteProc*) NULL );
@@ -4043,6 +4302,10 @@ int main ( int argc, char** argv ) {
 
   Tcl_CreateCommand ( interp, "UnloadVolumeDisplayTransform",
           TclUnloadVolumeDisplayTransform,
+          (ClientData) NULL, (Tcl_CmdDeleteProc*) NULL );
+
+  Tcl_CreateCommand ( interp, "UnloadGCA",
+          TclUnloadGCA,
           (ClientData) NULL, (Tcl_CmdDeleteProc*) NULL );
 
   Tcl_CreateCommand ( interp, "SnapshotVolume",
@@ -4141,12 +4404,12 @@ int main ( int argc, char** argv ) {
           TclShowNearestCanonicalVertex,
           (ClientData) NULL, (Tcl_CmdDeleteProc*) NULL );
   
-  Tcl_CreateCommand ( interp, "LoadParcellationVolume",
-          TclLoadParcellationVolume,
+  Tcl_CreateCommand ( interp, "LoadSegmentationVolume",
+          TclLoadSegmentationVolume,
           (ClientData) NULL, (Tcl_CmdDeleteProc*) NULL );
 
-  Tcl_CreateCommand ( interp, "SaveParcellationVolume",
-          TclSaveParcellationVolume,
+  Tcl_CreateCommand ( interp, "SaveSegmentationVolume",
+          TclSaveSegmentationVolume,
           (ClientData) NULL, (Tcl_CmdDeleteProc*) NULL );
 
   Tcl_CreateCommand ( interp, "SwapROIGroupAndAuxVolume",
@@ -4167,6 +4430,10 @@ int main ( int argc, char** argv ) {
 
   Tcl_CreateCommand ( interp, "SmoothFunctionalOverlay",
           TclSmoothFunctionalOverlay,
+          (ClientData) NULL, (Tcl_CmdDeleteProc*) NULL );
+
+  Tcl_CreateCommand ( interp, "LoadTensor",
+          TclLoadTensor,
           (ClientData) NULL, (Tcl_CmdDeleteProc*) NULL );
 
   Tcl_CreateCommand ( interp, "SetTimerStatus",
@@ -4235,11 +4502,16 @@ int main ( int argc, char** argv ) {
   DebugNote( ("Setting functional volume in main window") );
   MWin_SetOverlayVolume( gMeditWindow, -1, gFunctionalVolume );
 
+#if 0
   /* show the tal coords and hide the ras coords */
-  DebugNote( ("Showing Tal coords") );
-  tkm_SendTclCommand( tkm_tTclCommand_ShowTalCoords, "1" );
-  DebugNote( ("Showing coords") );
-  tkm_SendTclCommand( tkm_tTclCommand_ShowRASCoords, "0" );
+  if (NULL != gAnatomicalVolume[tkm_tVolumeType_Main]->mpMriValues->linear_transform)
+  {
+    DebugNote( ("Showing Tal coords") );
+    tkm_SendTclCommand( tkm_tTclCommand_ShowTalCoords, "1" );
+    DebugNote( ("Showing coords") );
+    tkm_SendTclCommand( tkm_tTclCommand_ShowRASCoords, "0" );
+  }
+#endif
   
   /* show the volume coords */
   DebugNote( ("Showing volume coords") );
@@ -4512,7 +4784,7 @@ void WriteControlPointFile ( ) {
   DebugAssertThrowX( (NULL != file), eResult, tkm_tErr_ErrorAccessingFile );  
 
   /* get the ctrl pts in the list... */
-  for( nPlane = 0; nPlane < gnAnatomicalDimension; nPlane++ ) {
+  for( nPlane = 0; nPlane < gnAnatomicalDimensionZ; nPlane++ ) {
 
     /* get the list for this x value. */
     e3DList = x3Lst_GetItemsInXPlane( gControlPointList, nPlane, &list );
@@ -4594,7 +4866,8 @@ float FindNearestControlPoint ( xVoxelRef        inVolumeVox,
   if ( NULL != list ) {
 
     /* start with a large distance */
-    fClosestDistance = pow( gnAnatomicalDimension, 2 );
+    fClosestDistance = gnAnatomicalDimensionX * gnAnatomicalDimensionY *
+      gnAnatomicalDimensionZ ;
     bFound = FALSE;
 
     /* traverse the list */
@@ -4832,7 +5105,7 @@ void SaveSelectionToLabelFile ( char * isFileName ) {
 
   /* get the number of selected voxels we have, or the sum of the voxels
      in a particular plane. */
-  for ( nPlane = 0; nPlane < gnAnatomicalDimension; nPlane++ ) {
+  for ( nPlane = 0; nPlane < gnAnatomicalDimensionZ; nPlane++ ) {
 
     DebugNote( ("Getting x items for plane %d", nPlane) );
     e3DList = x3Lst_GetItemsInXPlane( gSelectedVoxels, nPlane, &list );
@@ -4863,7 +5136,7 @@ void SaveSelectionToLabelFile ( char * isFileName ) {
 
   /* for each plane */
   nVoxel = 0;
-  for ( nPlane = 0; nPlane < gnAnatomicalDimension; nPlane++ ) {
+  for ( nPlane = 0; nPlane < gnAnatomicalDimensionZ; nPlane++ ) {
 
     /* get the list for this x value. */
     DebugNote( ("Getting x items for plane %d", nPlane) );
@@ -5015,7 +5288,7 @@ void GraphSelectedRegion () {
     goto error;
 
   // get the ctrl pts in the list...
-  for ( nPlane = 0; nPlane < gnAnatomicalDimension; nPlane++ ) {
+  for ( nPlane = 0; nPlane < gnAnatomicalDimensionZ; nPlane++ ) {
 
     // get the list for this x value.
     e3DList = x3Lst_GetItemsInXPlane( gSelectedVoxels, nPlane, &list );
@@ -5433,11 +5706,29 @@ tkm_tErr LoadVolume ( tkm_tVolumeType iType,
   DebugAssertThrowX( (Volm_tErr_NoErr == eVolume),
          eResult, tkm_tErr_CouldntReadVolume );
 
+  /* show the tal coords and hide the ras coords */
+  if (NULL != gAnatomicalVolume[iType]->mpMriValues->linear_transform)
+  {
+    DebugNote( ("Showing Tal coords") );
+    tkm_SendTclCommand( tkm_tTclCommand_ShowTalCoords, "1" );
+    DebugNote( ("Showing coords") );
+    tkm_SendTclCommand( tkm_tTclCommand_ShowRASCoords, "0" );
+  }
+  else
+  {
+    DebugNote( ("Showing RAS coords") );
+    tkm_SendTclCommand( tkm_tTclCommand_ShowTalCoords, "0" );
+    DebugNote( ("Showing coords") );
+    tkm_SendTclCommand( tkm_tTclCommand_ShowRASCoords, "1" );
+  }
+
   /* save the volume size */
   DebugNote( ("Getting dimension of volume") );
-  Volm_GetDimension( gAnatomicalVolume[iType], 
-         &gnAnatomicalDimension );
+  Volm_GetDimensions( gAnatomicalVolume[iType], 
+         &gnAnatomicalDimensionX, &gnAnatomicalDimensionY, &gnAnatomicalDimensionZ  );
 
+  /* is this right (BRF)? Are they supposed to be screen dimensions? */
+  gnAnatomicalDimensionX = gnAnatomicalDimensionY = gnAnatomicalDimensionZ = 256 ;
   /* set the default color scale */
   SetVolumeBrightnessAndContrast( iType, 
           Volm_kfDefaultBrightness,
@@ -5452,7 +5743,7 @@ tkm_tErr LoadVolume ( tkm_tVolumeType iType,
     switch( iType ) {
     case tkm_tVolumeType_Main:  /* idx to ras xform always comes from main volume */
       MWin_SetVolume( gMeditWindow, -1, gAnatomicalVolume[iType],
-          gnAnatomicalDimension );
+          gnAnatomicalDimensionX, gnAnatomicalDimensionY, gnAnatomicalDimensionZ  );
 
       /* get a ptr to the idx to ras transform */
       DebugNote( ("Getting a pointer to the idx to RAS transform") );
@@ -5461,7 +5752,7 @@ tkm_tErr LoadVolume ( tkm_tVolumeType iType,
       break;
     case tkm_tVolumeType_Aux:
       MWin_SetAuxVolume( gMeditWindow, -1, gAnatomicalVolume[iType],
-       gnAnatomicalDimension );
+                         gnAnatomicalDimensionX, gnAnatomicalDimensionY, gnAnatomicalDimensionZ );
       break;
     default:
       break;
@@ -6103,6 +6394,63 @@ tkm_tErr SmoothOverlayData ( float ifSigma ) {
   return eResult;
 }
 
+tkm_tErr LoadTensor ( char *isTensorFname ) {
+
+  tkm_tErr  eResult                           = tkm_tErr_NoErr;
+  Volm_tErr eVolume                           = Volm_tErr_NoErr;
+  char      sError[tkm_knErrStringLen]        = "";
+
+  DebugEnterFunction( ("LoadTensor( fname=%s )", isTensorFname) );
+
+
+  printf("loading tensor data from %s...\n", isTensorFname) ;
+
+  /* free existing roi group if present. */
+  if( NULL != gTensor ) {
+    DebugNote( ("Deleting existing tensor data") );
+    eVolume = Volm_Delete( &gTensor );
+    DebugAssertThrowX( (Volm_tErr_NoErr == eVolume),
+           eResult, tkm_tErr_ErrorAccessingSegmentationVolume );
+  }
+
+  /* read in segmentation volume */
+  DebugNote( ("Creating tensor overlay") );
+  eVolume = Volm_New( &gTensor );
+  DebugAssertThrowX( (Volm_tErr_NoErr == eVolume),
+         eResult, tkm_tErr_ErrorAccessingSegmentationVolume );
+
+  DebugNote( ("Importing tensor data") );
+  eVolume = Volm_ImportData( gTensor, isTensorFname );
+  DebugAssertThrowX( (Volm_tErr_NoErr == eVolume),
+         eResult, tkm_tErr_CouldntLoadTensor );
+
+
+
+  /* set segmentation volume in window */
+  if( gMeditWindow ) {
+    DebugNote( ("Setting tensor data in main window") );
+    MWin_SetTensor( gMeditWindow, -1, gTensor );
+  }
+
+  DebugCatch;
+  DebugCatchError( eResult, tkm_tErr_NoErr, tkm_GetErrorString );
+
+  xUtil_snprintf( sError, sizeof(sError),
+      "Loading Tensor Data %s", isTensorFname );
+  tkm_DisplayError( sError,
+        tkm_GetErrorString(eResult),
+        "Tkmedit couldn't read the tensor data you "
+        "specified. This could be because the tensor "
+        "volume wasn't a valid MRI volume." );
+  EndDebugCatch;
+  UpdateAndRedraw();
+
+
+  DebugExitFunction;
+  
+  return eResult;
+}
+
 
 void RotateOverlayRegistration ( float ifDegrees, 
          char  isAxis ) {
@@ -6324,13 +6672,13 @@ void ScaleOverlayRegisgtration ( float ifFactor,
 
 
 
-// ================================================= PARCELLATION and ROI GROUP
+// ================================================= SEGMENTATION and ROI GROUP
 
-tkm_tErr LoadParcellationVolume ( char* isVolumeDirWithPrefix,
+tkm_tErr LoadSegmentationVolume ( char* isVolumeDirWithPrefix,
           char* isColorFileName ) {
 
   tkm_tErr  eResult                              = tkm_tErr_NoErr;
-  char      sParcellationFileName[tkm_knPathLen] = "";
+  char      sSegmentationFileName[tkm_knPathLen] = "";
   char      sColorFileName[tkm_knPathLen]        = "";
   CLUT_tErr eColorTable                          = CLUT_tErr_NoErr;
   Volm_tErr eVolume                              = Volm_tErr_NoErr;
@@ -6340,7 +6688,7 @@ tkm_tErr LoadParcellationVolume ( char* isVolumeDirWithPrefix,
   char      sTclArguments[tkm_knTclCmdLen]       = "";
   char      sError[tkm_knErrStringLen]           = "";
 
-  DebugEnterFunction( ("LoadParcellationVolume( isVolumeDirWithPrefix=%s, "
+  DebugEnterFunction( ("LoadSegmentationVolume( isVolumeDirWithPrefix=%s, "
            "isColorFileName=%s )", isVolumeDirWithPrefix,
            isColorFileName) );
 
@@ -6351,10 +6699,10 @@ tkm_tErr LoadParcellationVolume ( char* isVolumeDirWithPrefix,
 
   /* make a file name */
   DebugNote( ("Making file name from %s", isVolumeDirWithPrefix) );
-  MakeFileName( isVolumeDirWithPrefix, tkm_tFileName_Parcellation, 
-    sParcellationFileName, sizeof(sParcellationFileName) );
+  MakeFileName( isVolumeDirWithPrefix, tkm_tFileName_Segmentation, 
+    sSegmentationFileName, sizeof(sSegmentationFileName) );
   DebugNote( ("Making file name from %s", isColorFileName) );
-  MakeFileName( isColorFileName, tkm_tFileName_Parcellation, 
+  MakeFileName( isColorFileName, tkm_tFileName_Segmentation, 
     sColorFileName, sizeof(sColorFileName) );
 
   /* try to load color table */
@@ -6364,23 +6712,40 @@ tkm_tErr LoadParcellationVolume ( char* isVolumeDirWithPrefix,
          eResult, tkm_tErr_CouldntLoadColorTable );
 
   /* free existing roi group if present. */
-  if( NULL != gROIGroup ) {
+  if( NULL != gSegmentationVolume ) {
     DebugNote( ("Deleting existing roi group") );
-    eVolume = Volm_Delete( &gROIGroup );
+    eVolume = Volm_Delete( &gSegmentationVolume );
     DebugAssertThrowX( (Volm_tErr_NoErr == eVolume),
-           eResult, tkm_tErr_ErrorAccessingROIGroup );
+           eResult, tkm_tErr_ErrorAccessingSegmentationVolume );
+
+    DebugNote( ("Deleting existing flag volume") );
+    eVolume = Volm_Delete( &gSegmentationChangedVolume );
+    DebugAssertThrowX( (Volm_tErr_NoErr == eVolume),
+           eResult, tkm_tErr_ErrorAccessingSegmentationVolume );
   }
 
-  /* read in parcellation volume */
-  DebugNote( ("Creating roi group") );
-  eVolume = Volm_New( &gROIGroup );
+  /* read in segmentation volume */
+  DebugNote( ("Creating segmentation overlay") );
+  eVolume = Volm_New( &gSegmentationVolume );
   DebugAssertThrowX( (Volm_tErr_NoErr == eVolume),
-         eResult, tkm_tErr_ErrorAccessingROIGroup );
+         eResult, tkm_tErr_ErrorAccessingSegmentationVolume );
 
-  DebugNote( ("Importing parcellation into roi group") );
-  eVolume = Volm_ImportData( gROIGroup, sParcellationFileName );
+
+  DebugNote( ("Importing segmentation into roi group") );
+  eVolume = Volm_ImportData( gSegmentationVolume, sSegmentationFileName );
   DebugAssertThrowX( (Volm_tErr_NoErr == eVolume),
-         eResult, tkm_tErr_CouldntLoadParcellation );
+         eResult, tkm_tErr_CouldntLoadSegmentation );
+
+  /* allocate flat volume */
+  DebugNote( ("Creating segmentation flag volume") );
+  eVolume = Volm_New( &gSegmentationChangedVolume );
+  DebugAssertThrowX( (Volm_tErr_NoErr == eVolume),
+         eResult, tkm_tErr_ErrorAccessingSegmentationVolume );
+  gSegmentationChangedVolume->mpMriValues = 
+    MRIclone(gSegmentationVolume->mpMriValues,NULL);
+  DebugAssertThrowX( (NULL != gSegmentationChangedVolume->mpMriValues ),
+         eResult, tkm_tErr_ErrorAccessingSegmentationVolume );
+
 
   /* build the color table for the interface. go through the entries
      and for each one, make a string of its number and its label, and send
@@ -6403,25 +6768,25 @@ tkm_tErr LoadParcellationVolume ( char* isVolumeDirWithPrefix,
       sTclArguments );
   }
 
-  /* enable our parcellation options */
-  DebugNote( ("Enabling parcellation options in interface") );
-  tkm_SendTclCommand( tkm_tTclCommand_ShowParcellationOptions, "1" );
+  /* enable our segmentation options */
+  DebugNote( ("Enabling segmentation options in interface") );
+  tkm_SendTclCommand( tkm_tTclCommand_ShowSegmentationOptions, "1" );
  
-  /* set parcellation volume in window */
+  /* set segmentation volume in window */
   if( gMeditWindow ) {
     DebugNote( ("Setting roi group in main window") );
-    MWin_SetROIGroup( gMeditWindow, -1, gROIGroup );
+    MWin_SetROIGroup( gMeditWindow, -1, gSegmentationVolume );
   }
 
   DebugCatch;
   DebugCatchError( eResult, tkm_tErr_NoErr, tkm_GetErrorString );
 
   xUtil_snprintf( sError, sizeof(sError),
-      "Loading Parcellation %s", isVolumeDirWithPrefix );
+      "Loading Segmentation %s", isVolumeDirWithPrefix );
   tkm_DisplayError( sError,
         tkm_GetErrorString(eResult),
-        "Tkmedit couldn't read the parcellation you "
-        "specified. This could be because the parcellation "
+        "Tkmedit couldn't read the segmentation you "
+        "specified. This could be because the segmentation "
         "volume wasn't a valid COR volume directory or "
         "because the color file wasn't valid or wasn't "
         "found." );
@@ -6432,27 +6797,27 @@ tkm_tErr LoadParcellationVolume ( char* isVolumeDirWithPrefix,
   return eResult;
 }
 
-void SaveParcellationVolume ( char* isVolumeDirWithPrefix ) {
+void SaveSegmentationVolume ( char* isVolumeDirWithPrefix ) {
 
   Volm_tErr eVolume                              = Volm_tErr_NoErr;
-  char      sParcellationFileName[tkm_knPathLen] = "";
-  char*     psParcellationFileName               = NULL;
+  char      sSegmentationFileName[tkm_knPathLen] = "";
+  char*     psSegmentationFileName               = NULL;
 
   /* make a file name if they gave us one. */
   if( NULL != isVolumeDirWithPrefix ) {
-    MakeFileName( isVolumeDirWithPrefix, tkm_tFileName_Parcellation, 
-      sParcellationFileName, sizeof(sParcellationFileName) );
-    psParcellationFileName = sParcellationFileName;
+    MakeFileName( isVolumeDirWithPrefix, tkm_tFileName_Segmentation, 
+      sSegmentationFileName, sizeof(sSegmentationFileName) );
+    psSegmentationFileName = sSegmentationFileName;
   } else {
-    psParcellationFileName = NULL;
+    psSegmentationFileName = NULL;
   }
 
-  eVolume = Volm_ExportNormToCOR( gROIGroup, psParcellationFileName );
+  eVolume = Volm_ExportNormToCOR( gSegmentationVolume, psSegmentationFileName );
   
   if( Volm_tErr_NoErr != eVolume ) {
-    DebugPrint( ( "SaveParcellationVolume: Couldn't save %s\n",
-      sParcellationFileName ) );
-    OutputPrint "Error saving parcellation data.\n" EndOutputPrint;
+    DebugPrint( ( "SaveSegmentationVolume: Couldn't save %s\n",
+      sSegmentationFileName ) );
+    OutputPrint "Error saving segmentation data.\n" EndOutputPrint;
   }
 
 }
@@ -6505,7 +6870,7 @@ void GetROIColorAtVoxel ( xVoxelRef   ipVoxel,
 
  error:
 
-  DebugPrint( ( "Error in GetParcellationColor.\n" ) );
+  DebugPrint( ( "Error in GetSegmentationColor.\n" ) );
 
   *oColor = *iBaseColor;
 
@@ -6523,7 +6888,7 @@ void GetROILabel ( xVoxelRef ipVoxel,
   float          fValue       = 0;
 
   /* get the voxel at this location */
-  eVolume = Volm_GetValueAtIdx( gROIGroup, ipVoxel, &fValue );
+  eVolume = Volm_GetValueAtIdx( gSegmentationVolume, ipVoxel, &fValue );
   if( Volm_tErr_NoErr == eVolume ) {
     index = (int)fValue;
   } else {
@@ -6553,7 +6918,7 @@ void GetROILabel ( xVoxelRef ipVoxel,
   goto error;
  error:
 
-  DebugPrint( ( "Error in GetParcellationColor.\n" ) );
+  DebugPrint( ( "Error in GetSegmentationColor.\n" ) );
 
   if( NULL != onIndex )
     *onIndex = -1;
@@ -6584,7 +6949,7 @@ void SelectCurrentROI ( int inIndex ) {
      xVoxl_SetX( &voxel, xVoxl_GetX( &voxel ) + 1 ) ) {
 
   /* get the index. if it's the same, add this voxel to the selection */
-  index = GetVoxelValue( gParcellationVolume, xVoxl_ExpandInt(&voxel) );
+  index = GetVoxelValue( gSegmentationVolume, xVoxl_ExpandInt(&voxel) );
   if( index == inIndex )
     AddVoxelToSelection( &voxel );
       }
@@ -6643,8 +7008,8 @@ tkm_tErr SelectROI ( int inIndex ) {
   
   /* make sure we're loaded */
   DebugNote( ("Checking parameters") );
-  DebugAssertThrowX( (NULL != gROIGroup || NULL != gColorTable),
-         eResult, tkm_tErr_ROIGroupNotLoaded );
+  DebugAssertThrowX( (NULL != gSegmentationVolume || NULL != gColorTable),
+         eResult, tkm_tErr_SegmentationNotLoaded );
 
   /* check entry index */
   DebugNote( ("Getting number of entries") );
@@ -6654,10 +7019,10 @@ tkm_tErr SelectROI ( int inIndex ) {
 
   /* do it */
   OutputPrint "Selecting... " EndOutputPrint;
-  eVolume = Volm_VisitAllVoxels( gROIGroup, &AddSimilarVoxelToSelection,
+  eVolume = Volm_VisitAllVoxels( gSegmentationVolume, &AddSimilarVoxelToSelection,
          (void*)&inIndex );
   DebugAssertThrowX( (Volm_tErr_NoErr == eVolume),
-         eResult, tkm_tErr_ErrorAccessingROIGroup );
+         eResult, tkm_tErr_ErrorAccessingSegmentationVolume );
   OutputPrint "done.\n" EndOutputPrint;
    
   UpdateAndRedraw ();
@@ -6683,8 +7048,8 @@ tkm_tErr GraphROI ( int inIndex ) {
   
   /* make sure we're loaded */
   DebugNote( ("Checking parameters") );
-  DebugAssertThrowX( (NULL != gROIGroup || NULL != gColorTable),
-         eResult, tkm_tErr_ROIGroupNotLoaded );
+  DebugAssertThrowX( (NULL != gSegmentationVolume || NULL != gColorTable),
+         eResult, tkm_tErr_SegmentationNotLoaded );
 
   /* check entry index */
   DebugNote( ("Getting number of entries") );
@@ -6699,10 +7064,10 @@ tkm_tErr GraphROI ( int inIndex ) {
 
   /* do it */
   OutputPrint "Finding voxels... " EndOutputPrint;
-  eVolume = Volm_VisitAllVoxels( gROIGroup, &AddSimilarVoxelToGraohAvg,
+  eVolume = Volm_VisitAllVoxels( gSegmentationVolume, &AddSimilarVoxelToGraohAvg,
          (void*)&inIndex );
   DebugAssertThrowX( (Volm_tErr_NoErr == eVolume),
-         eResult, tkm_tErr_ErrorAccessingROIGroup );
+         eResult, tkm_tErr_ErrorAccessingSegmentationVolume );
   OutputPrint "done.\n" EndOutputPrint;
 
   /* finish the selection */
@@ -6726,14 +7091,15 @@ tkm_tErr GraphROI ( int inIndex ) {
   return eResult;
 }
 
-int EditParcellation ( xVoxelRef   iAnaIdx,
+int EditSegmentation ( xVoxelRef   iAnaIdx,
            int         inIndex ) {
   int         nOldValue = 0;
   Volm_tValue newValue = 0;
 
   GetROILabel( iAnaIdx, &nOldValue, NULL );
   newValue = (Volm_tValue)inIndex;
-  Volm_SetValueAtIdx( gROIGroup, iAnaIdx, newValue );
+  Volm_SetValueAtIdx( gSegmentationVolume, iAnaIdx, newValue );
+  Volm_SetValueAtIdx( gSegmentationChangedVolume, iAnaIdx, 1 );
 
   return nOldValue;
 }
@@ -6744,9 +7110,9 @@ void CalcROIVolume ( xVoxelRef iAnaIdx,
   tkm_tErr  eResult = tkm_tErr_NoErr;
   int       index   = 0;
   tBoolean* visited = NULL;
+  int       nSize      = 0;
 #ifdef Solaris
   int       i          = 0;
-  int       nSize      = 0;
 #endif
 
   DebugEnterFunction( ("CalcROIVolume( iAnaIdx=%p, onVolume=%p )",
@@ -6759,17 +7125,19 @@ void CalcROIVolume ( xVoxelRef iAnaIdx,
   *onVolume = 0;
 
   DebugNote( ("Allocating visited tracker volume") );
-  visited = (tBoolean*) malloc( sizeof(tBoolean) * 
-        pow( gnAnatomicalDimension, 3 ) );
+  nSize = 
+    gnAnatomicalDimensionX * 
+    gnAnatomicalDimensionY * 
+    gnAnatomicalDimensionZ ;
+  visited = (tBoolean*) malloc( sizeof(tBoolean) * nSize) ;
   DebugAssertThrowX( (NULL != visited), eResult, tkm_tErr_CouldntAllocate );
 
   /* zero it. solaris doesn't like bzero here... ??? */
 #ifdef Solaris
-  nSize = pow( gnAnatomicalDimension, 3 );
   for( i = 0; i < nSize; i++ )
     visited[i] = FALSE;
 #else
-  bzero( visited, pow( gnAnatomicalDimension, 3 ) * sizeof( tBoolean ) );
+  bzero( visited, nSize * sizeof( tBoolean ) );
 #endif
 
   DebugNote( ("Getting initial value at %d,%d,%d", 
@@ -6814,12 +7182,12 @@ void IterateCalcROIVolume ( xVoxelRef iAnaIdx,
   int          index     = 0;
 
   /* if we've already been here, exit */
-  if( iVisited[ xVoxl_ExpandToIndex( iAnaIdx,gnAnatomicalDimension ) ] == 1 ) {
+  if( iVisited[ xVoxl_ExpandToIndex( iAnaIdx,gnAnatomicalDimensionX, gnAnatomicalDimensionY ) ] == 1 ) {
     goto cleanup;
   }
 
   /* make this voxel as visited */
-  iVisited[ xVoxl_ExpandToIndex( iAnaIdx,gnAnatomicalDimension ) ] = 1;
+  iVisited[ xVoxl_ExpandToIndex( iAnaIdx,gnAnatomicalDimensionX, gnAnatomicalDimensionY ) ] = 1;
 
   
   /* get index at this point */
@@ -6859,45 +7227,48 @@ void IterateCalcROIVolume ( xVoxelRef iAnaIdx,
   ;
 }
 
-void SetParcellationValue ( xVoxelRef   iAnaIdx,
+void SetSegmentationValue ( xVoxelRef   iAnaIdx,
           int         inIndex ) {
 
 
-  EditParcellation( iAnaIdx, inIndex );
+  EditSegmentation( iAnaIdx, inIndex );
 }
 
 
-void FloodFillParcellation ( xVoxelRef                   iAnaIdx,
+void FloodFillSegmentation ( xVoxelRef                   iAnaIdx,
            tkm_tParcFloodFillParamsRef iParams ) {
     
   tBoolean* visited    = NULL;
   tkm_tErr  eResult    = tkm_tErr_NoErr;
+  int       nSize      = 0;
 #ifdef Solaris
   int       i          = 0;
-  int       nSize      = 0;
 #endif
 
-  DebugEnterFunction( ("FloodFillParcellation( iAnaIdx=%d,%d,%d, iParams=%p )",
+  DebugEnterFunction( ("FloodFillSegmentation( iAnaIdx=%d,%d,%d, iParams=%p )",
            xVoxl_ExpandInt( iAnaIdx ), iParams) );
+
+  nSize =
+    gnAnatomicalDimensionX *
+    gnAnatomicalDimensionY *
+    gnAnatomicalDimensionZ ;
 
   /* init a volume to keep track of visited voxels */
   DebugNote( ("Allocating visited tracker volume") );
-  visited = (tBoolean*) malloc( sizeof(tBoolean) * 
-        pow( gnAnatomicalDimension, 3 ) );
+  visited = (tBoolean*) malloc( sizeof(tBoolean) * nSize) ;
   DebugAssertThrowX( (NULL != visited), eResult, tkm_tErr_CouldntAllocate );
 
   /* zero it. solaris doesn't like bzero here... ??? */
 #ifdef Solaris
-  nSize = pow( gnAnatomicalDimension, 3 );
   for( i = 0; i < nSize; i++ )
     visited[i] = FALSE;
 #else
-  bzero( visited, pow( gnAnatomicalDimension, 3 ) * sizeof( tBoolean ) );
+  bzero( visited, nSize * sizeof( tBoolean ) );
 #endif
 
   /* recursivly iterate with these values */
   DebugNote( ("Starting iteration") );
-  IterateFloodFillParcellation( iAnaIdx, iParams, visited );
+  IterateFloodFillSegmentation( iAnaIdx, iParams, visited );
 
   DebugCatch;
   DebugCatchError( eResult, tkm_tErr_NoErr, tkm_GetErrorString );
@@ -6912,7 +7283,7 @@ void FloodFillParcellation ( xVoxelRef                   iAnaIdx,
   DebugExitFunction;
 }
 
-void IterateFloodFillParcellation ( xVoxelRef                   iAnaIdx,
+void IterateFloodFillSegmentation ( xVoxelRef                   iAnaIdx,
             tkm_tParcFloodFillParamsRef iParams,
             tBoolean*                   iVisited ) {
 
@@ -6939,12 +7310,12 @@ void IterateFloodFillParcellation ( xVoxelRef                   iAnaIdx,
   }
 
   /* if we've already been here, exit */
-  if( iVisited[ xVoxl_ExpandToIndex( iAnaIdx,gnAnatomicalDimension ) ] == 1 ) {
+  if( iVisited[ xVoxl_ExpandToIndex( iAnaIdx,gnAnatomicalDimensionX, gnAnatomicalDimensionY ) ] == 1 ) {
     goto cleanup;
   }
 
   /* make this voxel as visited */
-  iVisited[ xVoxl_ExpandToIndex( iAnaIdx,gnAnatomicalDimension ) ] = 1;
+  iVisited[ xVoxl_ExpandToIndex( iAnaIdx,gnAnatomicalDimensionX, gnAnatomicalDimensionY ) ] = 1;
 
   /* see what src value to get */
   switch( iParams->mSource ) {
@@ -6982,7 +7353,7 @@ void IterateFloodFillParcellation ( xVoxelRef                   iAnaIdx,
   }
 
   /* if so, set this value in the parc */
-  SetParcellationValue( iAnaIdx, iParams->mnNewIndex );
+  SetSegmentationValue( iAnaIdx, iParams->mnNewIndex );
 
   /* calc our bounds */
   nBeginX = xVoxl_GetX(iAnaIdx) - 1;
@@ -7018,7 +7389,7 @@ void IterateFloodFillParcellation ( xVoxelRef                   iAnaIdx,
   eVolume = Volm_VerifyIdx( gAnatomicalVolume[tkm_tVolumeType_Main], 
           &anaIdx );
   if( Volm_tErr_NoErr == eVolume ) {
-    IterateFloodFillParcellation( &anaIdx, iParams, iVisited );
+    IterateFloodFillSegmentation( &anaIdx, iParams, iVisited );
   }
       }
     }
@@ -7804,6 +8175,7 @@ tkm_tErr LoadGCA ( char* isGCAFileName, char* isTransformFileName ) {
 
   /* set in window */
   MWin_SetGCA( gMeditWindow, -1, gGCAVolume, gGCATransform );
+  tkm_SendTclCommand( tkm_tTclCommand_ShowGCAOptions, "1" );
 
   DebugCatch;
   DebugCatchError( eResult, tkm_tErr_NoErr, tkm_GetErrorString );
@@ -7819,6 +8191,45 @@ tkm_tErr LoadGCA ( char* isGCAFileName, char* isTransformFileName ) {
 
   if( NULL != gca )
     GCAfree( &gca );
+
+  DebugExitFunction;
+  
+  return eResult;
+}
+
+tkm_tErr SaveGCA ( char* isGCAFileName ) {
+
+  tkm_tErr  eResult                             = tkm_tErr_NoErr;
+  char      sGCAFileName[tkm_knPathLen]         = "";
+  char      sError[tkm_knErrStringLen]          = "";
+
+  DebugEnterFunction( ("SaveGCA( isGCAFileName=%s )",
+           isGCAFileName) );
+  DebugAssertThrowX( (NULL != gGCAVolume), eResult, tkm_tErr_CouldntLoadGCA );
+
+
+  /* make filenames */
+  DebugNote( ("Making file name from %s", isGCAFileName) );
+  MakeFileName( isGCAFileName, tkm_tFileName_GCA, 
+    sGCAFileName, sizeof(sGCAFileName) );
+
+  /* Save gca */
+  DebugNote( ("Reading GCA with GCAread") );
+  GCAwrite(gGCAVolume, sGCAFileName );
+
+
+
+  DebugCatch;
+  DebugCatchError( eResult, tkm_tErr_NoErr, tkm_GetErrorString );
+
+  xUtil_snprintf( sError, sizeof(sError), "Saving GCA %s", 
+      isGCAFileName );
+  tkm_DisplayError( sError,
+        tkm_GetErrorString(eResult),
+        "Tkmedit couldn't save the GCA you specified "
+        "specified. This could be because the disk was full "
+        "or not writeable." );
+  EndDebugCatch;
 
   DebugExitFunction;
   
@@ -8316,9 +8727,9 @@ void tkm_GetValueAtAnaIdx ( tkm_tVolumeType iVolume,
 }
 
 void tkm_GetAnaDimension  ( tkm_tVolumeType iVolume,
-          int*            onDimension ) {
+          int*            onDimensionX, int* onDimensionY, int *onDimensionZ  ) {
   
-  Volm_GetDimension( gAnatomicalVolume[iVolume], onDimension );
+  Volm_GetDimensions( gAnatomicalVolume[iVolume], onDimensionX, onDimensionY, onDimensionZ );
 }
 
 tBoolean tkm_IsValidAnaIdx ( tkm_tVolumeType iVolume,
@@ -8379,13 +8790,14 @@ void tkm_CalcROIVolume ( xVoxelRef iAnaIdx,
   CalcROIVolume( iAnaIdx, onVolume );
 }
 
-void tkm_EditParcellation ( xVoxelRef   iAnaIdx,
+void tkm_EditSegmentation ( xVoxelRef   iAnaIdx,
           int         inIndex ) {
 
-  SetParcellationValue( iAnaIdx, inIndex );
+  SetSegmentationValue( iAnaIdx, inIndex );
 }
 
-void tkm_FloodFillParcellation ( xVoxelRef       iAnaIdx,
+
+void tkm_FloodFillSegmentation ( xVoxelRef       iAnaIdx,
          int             inIndex,
          tBoolean        ib3D,
          tkm_tVolumeType iSrc,
@@ -8422,7 +8834,7 @@ void tkm_FloodFillParcellation ( xVoxelRef       iAnaIdx,
     params.mnTargetValue = (int)anaValue;
     break;
   case tkm_tVolumeType_Parc:
-    if( NULL == gROIGroup ) {
+    if( NULL == gSegmentationVolume ) {
       strcpy( sTclArguments, 
         "\"Cannot use ROI group as source if it is not loaded.\"" );
       tkm_SendTclCommand( tkm_tTclCommand_ErrorDlog, sTclArguments );
@@ -8430,7 +8842,7 @@ void tkm_FloodFillParcellation ( xVoxelRef       iAnaIdx,
     }
     GetROILabel( iAnaIdx, &params.mnTargetValue, NULL );
 
-    /* no fuzziness if we're using the parcellation */
+    /* no fuzziness if we're using the segmentation */
     params.mnFuzziness = 0;
     break;
   default:
@@ -8439,11 +8851,11 @@ void tkm_FloodFillParcellation ( xVoxelRef       iAnaIdx,
   }
 
   /* do it! */
-  FloodFillParcellation( iAnaIdx, &params );
+  FloodFillSegmentation( iAnaIdx, &params );
 
   /* see if our iteration limit was reached. if so, spit out an error. */
   if( params.mbIterationLimitReached ) {
-    DebugPrint( ( "FloodFillParcellation: Recursion limit reached.\n"
+    DebugPrint( ( "FloodFillSegmentation: Recursion limit reached.\n"
       ) );
     strcpy( sTclArguments, 
       "\"Flood fill recursion limit reached. The region you wished to fill was too big for me to handle. I have filled as much as I can. You should try filling again from another starting point, close to the edge of the part that was filled.\nIf you find this happening a lot, please email the programmer and bug him to change this.\"" );
@@ -8512,8 +8924,9 @@ char kTclCommands [tkm_knNumTclCommands][STRLEN] = {
   "tkm_SetMenuItemGroupStatus tMenuGroup_HeadPoints",
   "tkm_SetMenuItemGroupStatus tMenuGroup_ROIGroupOptions",
   "tkm_SetMenuItemGroupStatus tMenuGroup_VLIOptions",
+  "tkm_SetMenuItemGroupStatus tMenuGroup_GCAOptions",
   "tkm_SetMenuItemGroupStatus tMenuGroup_Registration",
-  "tkm_SetMenuItemGroupStatus tMenuGroup_Parcellation",
+  "tkm_SetMenuItemGroupStatus tMenuGroup_Segmentation",
   "ClearParcColorTable",
   "AddParcColorTableEntry",
 
@@ -8701,3 +9114,42 @@ xList_tCompare CompareVoxels ( void* inVoxelA, void* inVoxelB ) {
   return eResult;
 }
 
+tkm_tErr
+LoadGCARenormalization(char *renormalization_fname)
+{
+  FILE   *fp ;
+  int    *labels, nlines, i ;
+  float  *intensities, f1, f2 ;
+  char   *cp, line[STRLEN] ;
+  
+  if (!gGCAVolume)
+    return(tkm_tErr_NoErr) ;
+  
+  
+  fp = fopen(renormalization_fname, "r") ;
+  if (!fp)
+    ErrorExit(ERROR_NOFILE, "%s: could not read %s",
+              Progname, renormalization_fname) ;
+  
+  cp = fgetl(line, 199, fp) ;
+  nlines = 0 ;
+  while (cp)
+  {
+    nlines++ ;
+    cp = fgetl(line, 199, fp) ;
+  }
+  rewind(fp) ;
+  printf("reading %d labels from %s...\n", nlines,renormalization_fname) ;
+  labels = (int *)calloc(nlines, sizeof(int)) ;
+  intensities = (float *)calloc(nlines, sizeof(float)) ;
+  cp = fgetl(line, 199, fp) ;
+  for (i = 0 ; i < nlines ; i++)
+  {
+    sscanf(cp, "%e  %e", &f1, &f2) ;
+    labels[i] = (int)f1 ; intensities[i] = f2 ;
+    cp = fgetl(line, 199, fp) ;
+  }
+  GCArenormalizeIntensities(gGCAVolume, labels, intensities, nlines) ;
+  free(labels) ; free(intensities) ;
+  return(tkm_tErr_NoErr) ;
+}
