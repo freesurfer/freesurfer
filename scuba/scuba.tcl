@@ -10,33 +10,6 @@ if { $err } {
     load [file dirname [info script]]/libscuba[info sharedlibextension] scuba
 }
 
-# Also look for tkUtils.tcl and tkcon.tcl
-foreach sSourceFileName { tkUtils.tcl tkcon.tcl } {
-
-    set lPath [list "$env(PWD)"]
-    if { [info exists env(DEV)] } {
-	lappend lPath "$env(DEV)/scripts"
-    }
-    if { [info exists env(FREESURFER_HOME)] } {
-	lappend lPath "$env(MRI_DIR)/lib/tcl"
-    }
-
-    set bFound 0
-    foreach sPath $lPath {
-       if { $bFound == 0 } {
-	    set sFullFileName [ file join $sPath $sSourceFileName ]
-	    set nErr [catch { source $sFullFileName } sResult]
-	    if { $nErr == 0 } {
-		puts "Reading $sFullFileName"
-		set bFound 1;
-	    }
-	}
-    }    
-    if { $bFound == 0 } {
-	puts "Couldn't load $sSourceFileName: Not found in $lPath"
-    }
-}
-
 # gTool
 #   current - current selected tool (nav,)
 
@@ -527,6 +500,8 @@ proc MakeToolBar { ifwTop } {
 	    { -type image -name y -image icon_orientation_coronal }
 	    { -type image -name z -image icon_orientation_horizontal }
 	}
+
+    set gaView(current,inPlane) x
 
     pack $fwToolBar.fwTool $fwToolBar.fwView $fwToolBar.fwInPlane \
 	-side left
@@ -1973,8 +1948,12 @@ proc SelectViewInViewProperties { iViewID } {
     tkuRefreshEntryNotify $gaWidget(viewProperties,inPlaneInc)
 
     for { set nLevel 0 } { $nLevel < 10 } { incr nLevel } {
+	$gaWidget(viewProperties,drawLevelMenu$nLevel) \
+	    config -disablecallback 1
 	set gaView(current,draw$nLevel) \
 	    [GetLayerInViewAtLevel $iViewID $nLevel]
+	$gaWidget(viewProperties,drawLevelMenu$nLevel) \
+	    config -disablecallback 0
     }
     
     # Make sure that this is the item selected in the menu. Disale the
@@ -2007,7 +1986,12 @@ proc UpdateCurrentViewProperties {} {
 
 	# Get the current value of this layer.
 	set layerID [GetLayerInViewAtLevel $gaView(current,id) $nLevel]
+
+	$gaWidget(viewProperties,drawLevelMenu$nLevel) \
+	    config -disablecallback 1
 	set gaView(current,draw$nLevel) $layerID
+	$gaWidget(viewProperties,drawLevelMenu$nLevel) \
+	    config -disablecallback 0
 
 	# Disable callback.
 	$gaWidget(viewProperties,drawLevelMenu$nLevel) \
@@ -3021,17 +3005,17 @@ while { $nArg < $argc } {
     set sArg [lindex $argv $nArg]
     set sOption [string range $sArg [expr [string last "-" $sArg]+1] end]
     switch $sOption {
-	m - volume {
+	v - volume {
 	    incr nArg
 	    set fnVolume [lindex $argv $nArg]
 	    lappend lCommands "LoadVolume $fnVolume 1 [GetMainFrameID]"
 	}
-	r - surface {
+	f - surface {
 	    incr nArg
 	    set fnSurface [lindex $argv $nArg]
 	    lappend lCommands "LoadSurface $fnSurface 1 [GetMainFrameID]"
 	}
-	j - subject {
+	s - subject {
 	    incr nArg
 	    set sSubject [lindex $argv $nArg]
 	    lappend lCommands "SetSubjectName $sSubject"
@@ -3040,12 +3024,51 @@ while { $nArg < $argc } {
 	help - default {
 	    if {$sOption != "help"} {puts "Option $sOption not recognized."}
 	    puts ""
-	    puts "scuba"
+	    puts "Usage: scuba \[OPTION\]..."
+	    puts "Data viewer for the FreeSurfer package."
+	    puts ""
+	    puts "Options:"
+	    puts "-s, --subject SUBJECT Set the subject for this session. Environment variable "
+	    puts "                      SUBJECTS_DIR should be set."
+	    puts "-v, --volume FILE     Load a volume file. Can be a file name or a subdir in"
+	    puts "                      the subject's directory specified with -s."
+	    puts "-f, --surface FILE    Load a surface file Can be a file name or a subdir in"
+	    puts "                      the subject's directory specified with -s."
 	    exit
 	}
     }
     incr nArg
 }
+
+
+# Source our support files.
+foreach sSourceFileName { tkUtils.tcl tkcon.tcl } {
+    set lPath [list "$env(PWD)"]
+    if { [info exists env(DEV)] } {
+	lappend lPath "$env(DEV)/scripts"
+    }
+    if { [info exists env(FREESURFER_HOME)] } {
+	lappend lPath "$env(MRI_DIR)/lib/tcl"
+    }
+    set bFound 0
+    foreach sPath $lPath {
+	if { $bFound == 0 } {
+	    set sFullFileName [ file join $sPath $sSourceFileName ]
+	    if { [file exists $sFullFileName] } { 
+		set nErr [catch { source $sFullFileName } sResult]
+		if { $nErr != 0 } {
+		    puts "Error sourcing $sFullFileName: $sResult"
+		} else {
+		    set bFound 1
+		}
+	    }
+	}
+    }    
+    if { $bFound == 0 } {
+	puts "Couldn't load $sSourceFileName: Not found in $lPath"
+    }
+}
+
 
 # Do some startup stuff.
 BuildShortcutDirsList
@@ -3059,7 +3082,7 @@ toplevel $gaWidget(window)
 # Make the tkcon panel. This must be done at this scope because the
 # tkcon.tcl script needs access to some global vars.
 set gaWidget(tkcon) [frame $gaWidget(window).tkcon -height 40]
-::tkcon::Init -root $gaWidget(window).tkcon -showmenu 0 -embed 1
+::tkcon::Init -root $gaWidget(window).tkcon -showmenu 0 -embed 1 -exec ""
 tkcon attach main
 
 
