@@ -1034,6 +1034,24 @@ void bpfilter(FLOATTYPE **data, int nchan, int nsamp,float lo,float hi);
 
 /* begin rkt */
 
+/* -------------------------------------------------- the window and events */
+
+#define USE_XGLUT_WINDOW
+
+#ifdef USE_XGLUT_WINDOW
+
+#include "xGLutWindow.h"
+
+xGLutWindowRef gWindow = NULL;
+
+void wndw_create (int x, int y, int width, int height);
+void wndw_set_title (char* title);
+void wndw_handle_event (void* data, xGWin_tEventRef event);
+
+#endif
+
+/* ------------------------------------------------------------------------ */
+
 /* -------------------------------------------------- ctrl-c cancel support */
 
 int cncl_listening = 0;
@@ -4376,12 +4394,15 @@ resize_window(int pix)
 									       printf("surfer: ### use setsize_window <pix> before open_window\n");PR
 																		     return; }
   
+#ifndef USE_XGLUT_WINDOW
   if (pix>0) {  /* command line (not mouse) resize */
     XResizeWindow(xDisplay, w.wMain, pix, pix);
     if (TKO_HAS_OVERLAY(w.type))
       XResizeWindow(xDisplay, w.wOverlay, pix, pix);
     w.w = w.h = pix;
   }
+#endif /* USE_XGLUT_WINDOW */
+
   frame_xdim = w.w;
   frame_ydim = w.h;
   glViewport(0, 0, frame_xdim, frame_ydim); 
@@ -15814,14 +15835,23 @@ void
 open_window(char *name)
 {
 #ifdef OPENGL
+#ifndef USE_XGLUT_WINDOW
   XSizeHints hin;
   int success;
+#endif /* USE_XGLUT_WINDOW */
 
   if (openglwindowflag) {
     printf("surfer: ### GL window already open: can't open second\n");PR
 									return; }
   xmin=ymin=zmin= -(xmax=ymax=zmax=fov);
   
+#ifdef USE_XGLUT_WINDOW
+
+  wndw_create (MOTIF_XFUDGE + 5, MOTIF_YFUDGE + 5, frame_xdim, frame_ydim);
+  wndw_set_title (name);
+
+#else /* USE_XGLUT_WINDOW */
+
   if (doublebufferflag) {
     tkoInitDisplayMode(TKO_DOUBLE | TKO_RGB | TKO_DEPTH);
     printf("surfer: double buffered window\n");
@@ -15866,6 +15896,7 @@ open_window(char *name)
     hin.flags = PMaxSize|PAspect;
     XSetWMNormalHints(xDisplay, w.wMain, &hin);
   }
+#endif /* USE_XGLUT_WINDOW */
   
   glLoadIdentity();
   glMatrixMode(GL_PROJECTION);
@@ -18078,7 +18109,9 @@ int main(int argc, char *argv[])   /* new main */
   char *envptr;
   FILE *fp;
 #if defined(Linux) || defined(sun) || defined(SunOS) | defined(Darwin)
+#ifndef USE_XGLUT_WINDOW
   struct timeval tv;
+#endif /* USE_XGLUT_WINDOW */
 #endif
   /* begin rkt */
   char tcl_cmd[1024];
@@ -18983,6 +19016,10 @@ int main(int argc, char *argv[])   /* new main */
       sprintf (cmd, "UpdateLinkedVarGroup view");
       Tcl_Eval (g_interp, cmd);
     }
+
+#ifdef USE_XGLUT_WINDOW
+  glutMainLoop(); /* never returns */
+#else /* USE_XGLUT_WINDOW */
   /* dual event loop (interface window made now) */
   while(tk_NumMainWindows > 0) {
     while (Tk_DoOneEvent(TK_ALL_EVENTS|TK_DONT_WAIT)) {
@@ -18996,9 +19033,10 @@ int main(int argc, char *argv[])   /* new main */
     select(0, NULL, NULL, NULL, &tv);
 #else
     sginap((long)1);   /* block for 10 msec */
-#endif 
+#endif
     
   }                                           
+#endif  /* USE_XGLUT_WINDOW */
   
   Tcl_Eval(interp, "exit");
   exit(0);
@@ -20015,6 +20053,252 @@ update_labels(int label_set, int vno, float dmin)
       Tcl_Eval(g_interp, command);
     }
 }
+
+/* ------------------------------------------------------------- the window */
+
+#ifdef USE_XGLUT_WINDOW
+
+void wndw_create (int x, int y, int width, int height)
+{
+  xGWin_New (&gWindow, width, height, "tksurfer");
+  xGWin_SetEventHandlerFunc (gWindow, wndw_handle_event, gWindow);
+  xGWin_ActivateIdleEvents (gWindow);
+  xGWin_ActivatePassiveMotionEvents (gWindow);
+  
+  openglwindowflag = 1;
+}
+
+void wndw_set_title (char* title)
+{
+  xGWin_SetWindowTitle (gWindow, title);
+}
+
+void wndw_handle_event (void* data, xGWin_tEventRef event)
+{
+  char command[STRLEN];
+  int screen_x;
+  int screen_y;
+  int origin_x;
+  int origin_y;
+  int size_x;
+  int size_y;
+  float translate_x;
+  float translate_y;
+  int mvno;
+  float md;
+#if defined(Linux) || defined(sun) || defined(SunOS) | defined(Darwin)
+  struct timeval tv;
+#endif
+
+  switch (event->mType) 
+    {
+    case xGWin_tEventType_KeyDown:
+      switch (event->mKey) 
+	{
+	case 'r':
+	  if (event->mbAltKey && g_interp) 
+	    {
+	      Tcl_Eval(interp,"UpdateAndRedraw"); 
+	    }
+	  break;
+	case xGWin_tKey_UpArrow:
+	  if (event->mbAltKey && g_interp) 
+	    {
+	      Tcl_Eval(interp,"set gNextTransform(rotate,x) "
+		       "[expr $gNextTransform(rotate,x)+18.0]");
+	      Tcl_Eval (interp, command);
+	    }
+	  break;
+	case xGWin_tKey_DownArrow:
+	  if (event->mbAltKey && g_interp) 
+	    {
+	      Tcl_Eval(interp,"set gNextTransform(rotate,x) "
+		       "[expr $gNextTransform(rotate,x)-18.0]");
+	      Tcl_Eval (interp, command);
+	    }
+	  break;
+	case xGWin_tKey_RightArrow:
+	  if (event->mbAltKey && g_interp) 
+	    {
+	      Tcl_Eval(interp,"set gNextTransform(rotate,y) "
+		       "[expr $gNextTransform(rotate,y)-18.0]");
+	      Tcl_Eval (interp, command);
+	    }
+	  break;
+	case xGWin_tKey_LeftArrow:
+	  if (event->mbAltKey && g_interp) 
+	    {
+	      Tcl_Eval(interp,"set gNextTransform(rotate,y) "
+		       "[expr $gNextTransform(rotate,y)+18.0]");
+	      Tcl_Eval (interp, command);
+	    }
+	  break;
+	case xGWin_tKey_Home:
+	  if (g_interp) 
+	    {
+	      sprintf (command,"MoveToolWindow %d %d",
+		       glutGet (GLUT_WINDOW_X), 
+		       glutGet (GLUT_WINDOW_Y) + w.h + MOTIF_YFUDGE);
+	      Tcl_Eval (interp, command);
+	    }
+	  break;
+	}
+      break; /* case xGWin_tEventType_KeyDown */
+      
+    case xGWin_tEventType_MouseDown:
+      screen_x = event->mWhere.mnX + w.x;
+      screen_y = 1024 - w.y - event->mWhere.mnY ;
+      if (1 == event->mButton)
+	{
+	  /* Scale around click */
+	  if (event->mbCtrlKey) 
+	    { 
+	      origin_x = w.x;
+	      origin_y = 1024 - w.y - w.h;
+	      
+	      size_x = w.w;
+	      size_y = w.h;
+	      
+	      translate_x = sf * 
+		(screen_x - origin_x - size_x / 2.0 ) * 2.0 * fov / size_x;
+	      translate_y = sf * 
+		(screen_y - origin_y - size_y / 2.0 ) * 2.0 * fov / size_y;
+	      
+	      translate_brain (-translate_x, -translate_y, 0);
+	      scale_brain (SCALE_UP_MOUSE);
+	      redraw();
+	    }
+	  /* curvim */
+	  else if (event->mbShiftKey) 
+	    {  
+	      select_vertex (screen_x, screen_y);
+	      read_curvim_at_vertex (selection);
+	      draw_cursor (selection, TRUE);
+	    }
+	  else 
+	    {
+	      /* If something is already selected, hilite it (because
+		 it's marked now) and deselect it. */
+	      if (selection>=0)
+		{
+		  draw_vertex_hilite (selection);
+		  draw_cursor (selection, FALSE);
+		}
+	      
+	      /* Select the vertex at this point. If we got one, mark
+		 it and draw the cursor. */
+	      select_vertex (screen_x, screen_y);
+	      if (selection >= 0)
+		{
+		  mark_vertex (selection, TRUE);
+		  draw_cursor (selection, TRUE);
+		}
+	      
+	      /* Draw all the marked verts. */
+	      draw_marked_vertices ();
+	      
+	      if (showorigcoordsflag)
+		find_orig_vertex_coordinates(selection);
+	    }
+   	} /* if button 1 */
+      
+      /* Button 2, just select and mark this vertex. */
+      else if (2 == event->mButton) 
+	{
+	  select_vertex (screen_x, screen_y);
+	  if (selection>=0)
+	    {
+	      mark_vertex (selection, TRUE);
+	      draw_cursor (selection, TRUE);
+	    }
+	}
+      
+      /* Button 3, if ctrl, zoom out, else clear all the selections. */
+      else if (3 == event->mButton)
+	{
+	  if (event->mbCtrlKey) 
+	    { 
+	      origin_x = w.x;
+	      origin_y = 1024 - w.y - w.h;
+	      
+	      size_x = w.w;
+	      size_y = w.h;
+	      
+	      translate_x = sf * 
+		(screen_x - origin_x - size_x / 2.0 ) * 2.0 * fov / size_x;
+	      translate_y = sf * 
+		(screen_y - origin_y - size_y / 2.0 ) * 2.0 * fov / size_y;
+	      
+	      translate_brain (-translate_x, -translate_y, 0);
+	      scale_brain (1.0/SCALE_UP_MOUSE);
+	      redraw();
+	    }
+	  else 
+	    {
+	      clear_all_vertex_marks();
+	      labl_select(-1);
+	      redraw();
+	    }
+	}
+      break;
+      
+    case xGWin_tEventType_MouseUp:
+      break;
+   
+    case xGWin_tEventType_MouseMoved:
+      screen_x = event->mWhere.mnX + w.x;
+      screen_y = 1024 - w.y - event->mWhere.mnY ;
+      find_vertex_at_screen_point (screen_x, screen_y, &mvno, &md);
+      if (mvno >= 0)
+	update_labels (LABELSET_MOUSEOVER, mvno, md);
+      break;
+      
+    case xGWin_tEventType_Resize:
+      /* Get the new dimensions. */
+      w.x = glutGet( GLUT_WINDOW_X );
+      w.y = glutGet( GLUT_WINDOW_Y );
+      w.w = event->mWhere.mnX;
+      w.h = event->mWhere.mnY;
+      curwindowleft = w.x;
+      curwindowbottom = w.y + w.h;
+
+      /* Resize the opengl port. */
+      glutReshapeWindow (w.w, w.h);
+
+      /* Do some other legacy stuff. */
+      resize_window (0);
+
+      /* Move the tool window under us. */
+      sprintf (command,"MoveToolWindow %d %d", w.x, w.y + w.h + MOTIF_YFUDGE);
+      Tcl_Eval (interp,command);
+
+      break;
+      
+    case xGWin_tEventType_Draw:
+      if (redrawlockflag)
+	redraw();
+      break;
+      
+    case xGWin_tEventType_Idle:
+      /* Call the Tk event handling function. */
+      Tk_DoOneEvent (TK_ALL_EVENTS | TK_DONT_WAIT);
+
+#if defined(Linux) || defined(sun) || defined(SunOS) | defined(Darwin)
+      tv.tv_sec = 0;
+      tv.tv_usec = 10000;
+      select(0, NULL, NULL, NULL, &tv);
+#else
+      sginap((long)1);   /* block for 10 msec */
+#endif
+
+      break;
+
+    default:
+      
+    }
+}
+
+#endif /* USE_XGLUT_WINDOW */
 
 /* -------------------------------------------------- ctrl-c cancel support */
 
