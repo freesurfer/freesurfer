@@ -77,23 +77,27 @@ LPAFwriteImageAnswer(LPAF *lpaf, int current)
   char   *fullname, tmpname[100], fname[100] ;
   IMAGE  Iheader, *I ;
   FILE   *infp, *outfp ;
-  int    ecode, frame, nframes, *parms, i, current_frame ;
+  int    ecode, frame, nframes, *parms, i, current_frame, type ;
   LP_BOX *lpb ;
   struct extpar *xp ;
 
   fullname = lpaf->filelist[current] ;
 
-  ImageUnpackFileName(fullname, &current_frame, &ecode, fname) ;
+  ImageUnpackFileName(fullname, &current_frame, &type, fname) ;
+  if (type != HIPS_IMAGE)
+    return(0) ;
+
   infp = fopen(fname, "rb") ;
   if (!infp)
-    ErrorReturn(-1,(ERROR_NO_FILE,"LPAFwriteImageAnswer(%d): could not open %s",
+    ErrorReturn(-1,(ERROR_NO_FILE,
+                    "LPAFwriteImageAnswer(%d): could not open %s",
                      current, fname)) ;
   ecode = fread_header(infp, &Iheader, fname) ;
   if (ecode)
   {
     fclose(infp) ;
     ErrorReturn(-2, (ERROR_BADFILE,
-                   "LPAFwriteImageAnswer(%d): could not read header", current));
+                  "LPAFwriteImageAnswer(%d): could not read header", current));
   }
   fclose(infp) ;
   if (Iheader.numparam == 0)  /* must make room for header in image file */
@@ -138,7 +142,7 @@ LPAFwriteImageAnswer(LPAF *lpaf, int current)
   }
   ImageUpdateHeader(&Iheader, fname) ;
   free_hdrcon(&Iheader) ;
-  return(0) ;
+  return(1) ;
 }
 
 LP_ANSWER_FILE *
@@ -160,12 +164,18 @@ LPAFcreate(char *out_fname, int argc, char *argv[])
   lpaf = (LP_ANSWER_FILE *)calloc(1, sizeof(*lpaf)) ;
   if (!lpaf)
     ErrorExit(ERROR_NO_MEMORY, "LPAFcreate: allocation failed") ;
-  strcpy(lpaf->fname, out_fname) ;
-  unlink(lpaf->fname) ;
-  lpaf->fp = fopen(lpaf->fname, "a+b") ;
-  if (!lpaf->fp)
-    ErrorReturn(NULL,
-                (ERROR_NO_FILE,"LPAFcreate: could not open %s",out_fname));
+  if (out_fname)   /* write output to file as well as into image file */
+  {
+    strcpy(lpaf->fname, out_fname) ;
+    unlink(lpaf->fname) ;
+    lpaf->fp = fopen(lpaf->fname, "a+b") ;
+    if (!lpaf->fp)
+      ErrorReturn(NULL,
+                  (ERROR_NO_FILE,"LPAFcreate: could not open %s",out_fname));
+  }
+  else
+    lpaf->fp = NULL ;
+
   lpaf->nfiles = nfiles ;
   lpaf->last_written = lpaf->current = 0 ;
   lpaf->filelist = (char **)calloc(nfiles, sizeof(char *)) ;
@@ -255,32 +265,36 @@ LPAFwrite(LPAF *lpaf, int current)
 {
   LP_BOX *lpb ;
 
-  lpb = &lpaf->coords[current] ;
-  if (lpb->fpos >= 0L)   /* overwrite previous entry */
-  {
-    if (fseek(lpaf->fp, lpb->fpos, SEEK_SET) < 0)
-      ErrorReturn(-1, (ERROR_BADFILE, "LPAFwrite could not seek to %ld",
-                       lpb->fpos)) ;
-  }
-  else
-    lpb->fpos = ftell(lpaf->fp) ;
-
-  if (current > lpaf->last_written)
-    lpaf->last_written = current ;
-  else   /* write out rest of file */
-  {
-  }
-  
   LPAFwriteImageAnswer(lpaf, current) ;
-  fprintf(lpaf->fp, FILE_FMT,
-          lpaf->filelist[current], lpb->xc, lpb->yc,
-          lpb->xp[0], lpb->yp[0], lpb->xp[1], lpb->yp[1],
-          lpb->xp[2], lpb->yp[2], lpb->xp[3], lpb->yp[3]) ;
 
-  if (lpaf->flush++ >= NFLUSH)
+  if (lpaf->fp)
   {
-    fflush(lpaf->fp) ;
-    lpaf->flush = 0 ;
+    lpb = &lpaf->coords[current] ;
+    if (lpb->fpos >= 0L)   /* overwrite previous entry */
+    {
+      if (fseek(lpaf->fp, lpb->fpos, SEEK_SET) < 0)
+        ErrorReturn(-1, (ERROR_BADFILE, "LPAFwrite could not seek to %ld",
+                         lpb->fpos)) ;
+    }
+    else
+      lpb->fpos = ftell(lpaf->fp) ;
+    
+    if (current > lpaf->last_written)
+      lpaf->last_written = current ;
+    else   /* write out rest of file */
+    {
+    }
+  
+    fprintf(lpaf->fp, FILE_FMT,
+            lpaf->filelist[current], lpb->xc, lpb->yc,
+            lpb->xp[0], lpb->yp[0], lpb->xp[1], lpb->yp[1],
+            lpb->xp[2], lpb->yp[2], lpb->xp[3], lpb->yp[3]) ;
+    
+    if (lpaf->flush++ >= NFLUSH)
+    {
+      fflush(lpaf->fp) ;
+      lpaf->flush = 0 ;
+    }
   }
   return(0) ;
 }
@@ -295,7 +309,7 @@ LPAFread(LPAF *lpaf, int current)
 
   if (LPAFreadImageAnswer(lpaf, current) <= 0)  /* not in image file */
   {
-    if (lpb->fpos < 0)
+    if (!lpaf->fp || (lpb->fpos < 0))
       return(0) ;     /* hasn't been written yet */
     
     if (fseek(lpaf->fp, lpb->fpos, SEEK_SET) < 0)
