@@ -307,6 +307,19 @@ struct tkmDisplayArea {
   char                   isVLI1_name[STRLEN] ;
   char                   isVLI2_name[STRLEN] ;
   mriVolumeRef           mpDTIVolume;
+
+  /* This is the actual volume size, as opposed to mnVolumeSize */
+  int mnVolumeDimensionX;
+  int mnVolumeDimensionY;
+  int mnVolumeDimensionZ;
+
+  /* These are bounds for volume indices in screen space. */
+  int mnMinVolumeIndexX;
+  int mnMinVolumeIndexY;
+  int mnMinVolumeIndexZ;
+  int mnMaxVolumeIndexX;
+  int mnMaxVolumeIndexY;
+  int mnMaxVolumeIndexZ;
 };
 typedef struct tkmDisplayArea tkmDisplayArea;
 typedef tkmDisplayArea *tkmDisplayAreaRef;

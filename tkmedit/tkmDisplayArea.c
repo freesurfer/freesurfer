@@ -3,8 +3,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2003/10/31 20:10:28 $
-// Revision       : $Revision: 1.91 $
+// Revision Date  : $Date: 2003/11/26 17:36:02 $
+// Revision       : $Revision: 1.92 $
 
 #include "tkmDisplayArea.h"
 #include "tkmMeditWindow.h"
@@ -479,6 +479,39 @@ DspA_tErr DspA_SetVolume ( tkmDisplayAreaRef this,
   this->mnVolumeSizeY = inSizeY;
   this->mnVolumeSizeZ = inSizeZ;
   
+  /* Get the real volume dimensions. inSize{X,Y,Z} are actually the
+     screen or window space dimensions. These real dimensions are used
+     for bounds checking.  */
+  Volm_GetDimensions( this->mpVolume[tkm_tVolumeType_Main],
+		      &this->mnVolumeDimensionX, &this->mnVolumeDimensionY, 
+		      &this->mnVolumeDimensionZ );
+  
+
+  /* Calculate the min and max volume index in screen coords. This is
+     the screen space that corresponds to volume voxels. Coordinates
+     outside of thie range are invalid. Used in VerifyVolumeVoxel. */
+  this->mnMinVolumeIndexX = floor((float)inSizeX/2.0) - 
+    floor((float)this->mnVolumeDimensionX/2.0);
+  this->mnMinVolumeIndexY = floor((float)inSizeY/2.0) - 
+    floor((float)this->mnVolumeDimensionY/2.0);
+  this->mnMinVolumeIndexZ = floor((float)inSizeZ/2.0) - 
+    floor((float)this->mnVolumeDimensionZ/2.0);
+
+  this->mnMaxVolumeIndexX = ceil((float)inSizeX/2.0) +
+    ceil((float)this->mnVolumeDimensionX/2.0);
+  this->mnMaxVolumeIndexY = ceil((float)inSizeY/2.0) + 
+    ceil((float)this->mnVolumeDimensionY/2.0);
+  this->mnMaxVolumeIndexZ = ceil((float)inSizeZ/2.0) + 
+    ceil((float)this->mnVolumeDimensionZ/2.0);
+
+  /* This ugly little hack is for single slice images that show up in
+     slice 127 but should probably go into slice 128 as the calculated
+     bounds suggest. Ah well.. */
+  if( 128 == this->mnMinVolumeIndexZ &&
+      129 == this->mnMaxVolumeIndexZ ) {
+    this->mnMinVolumeIndexZ = 127;
+  }
+
   /* if we alreayd have a frame buffer, delete it */
   if( NULL == this->mpFrameBuffer ) {
     free( this->mpFrameBuffer );
@@ -517,8 +550,12 @@ DspA_tErr DspA_SetVolume ( tkmDisplayAreaRef this,
   tkm_SendTclCommand( tkm_tTclCommand_UpdateVolumeName, sTclArguments );
   
   /* get the center of the volume */
+  xVoxl_Set( pCenter, floor(this->mnVolumeDimensionX/2), 
+	     floor(this->mnVolumeDimensionY/2), 
+	     floor(this->mnVolumeDimensionZ/2) );
   xVoxl_Set( pCenter, floor(this->mnVolumeSizeX/2), 
-	     floor(this->mnVolumeSizeY/2), floor(this->mnVolumeSizeZ/2) );
+	     floor(this->mnVolumeSizeY/2), 
+	     floor(this->mnVolumeSizeZ/2) );
   
   /* set cursor and zoom center to middle of volume if not already set */
   if (xVoxl_GetX(this->mpCursor)==0 &&
@@ -553,7 +590,7 @@ DspA_tErr DspA_SetVolume ( tkmDisplayAreaRef this,
   /* set dirty flag and redraw */
   this->mbSliceChanged = TRUE;
   DspA_Redraw_( this );
-  
+
   goto cleanup;
   
  error:
@@ -1389,7 +1426,6 @@ DspA_tErr DspA_SetZoomLevel ( tkmDisplayAreaRef this,
   
   DspA_tErr eResult            = DspA_tErr_NoErr;
   char      sTclArguments[STRLEN] = "";
-  xVoxelRef pCenter            = NULL;
   int       nNewLevel          = 0;
   
   /* verify us. */
@@ -1409,6 +1445,9 @@ DspA_tErr DspA_SetZoomLevel ( tkmDisplayAreaRef this,
   /* set our zoom level. */
   this->mnZoomLevel = nNewLevel;
   
+
+
+#if 0
   /* if this is zoom level one, set our center to the middle of
      this slice. */
   if( 1 == this->mnZoomLevel ) {
@@ -1423,6 +1462,10 @@ DspA_tErr DspA_SetZoomLevel ( tkmDisplayAreaRef this,
     if( DspA_tErr_NoErr != eResult )
       goto error;
   }
+#endif
+
+
+
   
   /* this requires a rebuild of the frame buffer. */
   this->mbSliceChanged = TRUE;
@@ -3261,7 +3304,8 @@ DspA_tErr DspA_HandleMouseMoved_ ( tkmDisplayAreaRef this,
 	  xVoxl_GetX( this->mpOriginalZoomCenter );
 	newCenterPt.mfY = this->mTotalDelta.mfY +
 	  xVoxl_GetY( this->mpOriginalZoomCenter );
-	DspA_ConvertPlaneToVolume_( this, &newCenterPt, 0,
+	DspA_ConvertPlaneToVolume_( this, &newCenterPt, 
+				    DspA_GetCurrentSliceNumber_( this ),
 				    this->mOrientation, &newCenterIdx );
 	DspA_SetZoomCenter( this, &newCenterIdx );
 	break;
@@ -4622,6 +4666,8 @@ DspA_tErr DspA_BuildCurrentFrame_ ( tkmDisplayAreaRef this ) {
   int             yMax     = 0;
   int             yInc     = 0;
   
+
+#if 0
   /* if we're in zoom level one, set zoom center to 128,128,128 */
   if( 1 == this->mnZoomLevel ) {
     
@@ -4633,6 +4679,9 @@ DspA_tErr DspA_BuildCurrentFrame_ ( tkmDisplayAreaRef this ) {
     if( DspA_tErr_NoErr != eResult )
       goto error;
   }
+#endif
+
+
   
   /* get a ptr to the frame buffer. */
   pDest = this->mpFrameBuffer;
@@ -4712,9 +4761,10 @@ DspA_tErr DspA_BuildCurrentFrame_ ( tkmDisplayAreaRef this ) {
 	  eResult = DspA_ConvertBufferToVolume_ ( this, &bufferPt, &anaIdx );
 	  if ( DspA_tErr_NoErr != eResult )
 	    goto error;
-	  
+
 	  Volm_GetIntColorAtIdx( this->mpVolume[volume],
 				 &anaIdx, &color );
+
 
 	  /* set the pixel */
 	  pDest[DspA_knRedPixelCompIndex]   = (GLubyte)color.mnRed;
@@ -7591,12 +7641,12 @@ DspA_tErr DspA_VerifyVolumeVoxel_  ( tkmDisplayAreaRef this,
   DspA_tErr eResult = DspA_tErr_NoErr;
   
   /* make sure voxel is in bounds */
-  if ( xVoxl_GetX( ipVoxel )    < 0
-       || xVoxl_GetY( ipVoxel ) < 0
-       || xVoxl_GetZ( ipVoxel ) < 0
-       || xVoxl_GetX( ipVoxel ) >= this->mnVolumeSizeX
-       || xVoxl_GetY( ipVoxel ) >= this->mnVolumeSizeY
-       || xVoxl_GetZ( ipVoxel ) >= this->mnVolumeSizeZ ) {
+  if ( xVoxl_GetX( ipVoxel )    < this->mnMinVolumeIndexX
+       || xVoxl_GetY( ipVoxel ) < this->mnMinVolumeIndexY
+       || xVoxl_GetZ( ipVoxel ) < this->mnMinVolumeIndexZ
+       || xVoxl_GetX( ipVoxel ) >= this->mnMaxVolumeIndexX
+       || xVoxl_GetY( ipVoxel ) >= this->mnMaxVolumeIndexY
+       || xVoxl_GetZ( ipVoxel ) >= this->mnMaxVolumeIndexZ ) {
     
     eResult = DspA_tErr_InvalidVolumeVoxel;
   }
