@@ -45,6 +45,8 @@ char *type_to_string(int type)
   case OTL_FILE:    tmpstr = "outline"; break;
   case GDF_FILE:    tmpstr = "gdf"; break;
   case BRUKER_FILE: tmpstr = "bruker"; break;
+  case XIMG_FILE:   tmpstr = "ximg"; break;
+  case NIFTI1_FILE: tmpstr = "nifti1"; break;
   default: tmpstr = "unknown"; break;
   }
 
@@ -101,6 +103,10 @@ int string_to_type(char *string)
     type = GDF_FILE;
   if(strcmp(ls, "bruker")==0)
     type = BRUKER_FILE;
+  if(strcmp(ls, "ximg") == 0)
+    type = XIMG_FILE;
+  if(strcmp(ls, "nifti1") == 0)
+    type = NIFTI1_FILE;
   return(type);
 
 } /* end string_to_type() */
@@ -146,6 +152,10 @@ int mri_identify(char *fname_passed)
     return(OTL_FILE);
   else if(is_gdf(fname))
     return(GDF_FILE);
+  else if(is_ximg(fname))
+    return(XIMG_FILE);
+  else if(is_nifti1(fname))
+    return(NIFTI1_FILE);
   else
     return(MRI_VOLUME_TYPE_UNKNOWN);
 
@@ -566,5 +576,19 @@ int is_otl(char *fname)
   return(FALSE);
 
 } /* end is_otl() */
+
+int is_ximg(char *fname)
+{
+
+  return(FALSE);
+
+} /* end is_ximg() */
+
+int is_nifti1(char *fname)
+{
+
+  return(FALSE);
+
+} /* end is_nifti1() */
 
 /* EOF */
