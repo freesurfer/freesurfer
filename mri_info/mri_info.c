@@ -3,11 +3,11 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2003/06/17 15:14:58 $
-// Revision       : $Revision: 1.20 $
+// Revision Date  : $Date: 2003/06/20 19:47:47 $
+// Revision       : $Revision: 1.21 $
 //
 ////////////////////////////////////////////////////////////////////
-char *MRI_INFO_VERSION = "$Revision: 1.20 $";
+char *MRI_INFO_VERSION = "$Revision: 1.21 $";
 #include <stdio.h>
 #include <sys/stat.h>
 #include <unistd.h>
@@ -84,7 +84,7 @@ int main(int argc, char *argv[])
   int nargs;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_info.c,v 1.20 2003/06/17 15:14:58 tosa Exp $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_info.c,v 1.21 2003/06/20 19:47:47 tosa Exp $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -119,6 +119,8 @@ static void do_file(char *fname)
   MATRIX *m ;
 
   mri = MRIreadHeader(fname, MRI_VOLUME_TYPE_UNKNOWN) ;
+  if (!mri)
+    return;
   
   printf("Volume information for %s\n", fname);
   printf("    dimensions: %d x %d x %d\n", mri->width, mri->height, mri->depth) ;
