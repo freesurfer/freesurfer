@@ -1,6 +1,6 @@
 #! /usr/bin/tixwish
 
-# $Id: tkmedit.tcl,v 1.72 2004/01/15 06:59:48 kteich Exp $
+# $Id: tkmedit.tcl,v 1.73 2004/01/22 21:18:41 kteich Exp $
 
 
 source $env(FREESURFER_HOME)/lib/tcl/tkm_common.tcl
@@ -2627,36 +2627,103 @@ proc DoSaveRGBSeriesDlog {} {
     # try to create the dlog...
     if { [Dialog_Create $wwDialog "Save RGB Series" {-borderwidth 10}] } {
 
-  set fwDir     $wwDialog.fwDir
-  set fwPrefix  $wwDialog.fwPrefix
-  set fwDirection $wwDialog.fwDirection
-  set fwBegin   $wwDialog.fwBegin
-  set fwEnd     $wwDialog.fwEnd
-  set fwButtons $wwDialog.fwButtons
+	set fwDir     $wwDialog.fwDir
+	set fwPrefix  $wwDialog.fwPrefix
+	set fwDirection $wwDialog.fwDirection
+	set fwBegin   $wwDialog.fwBegin
+	set fwEnd     $wwDialog.fwEnd
+	set fwButtons $wwDialog.fwButtons
+	
+	# the directory field
+	tkm_MakeDirectorySelector $fwDir \
+	    "Directory to save files in:" sDir
+	
+	# the file prefix
+	tkm_MakeEntry $fwPrefix "Prefix:" sPrefix
+	
+	# begin and end slices
+	tkm_MakeEntryWithIncDecButtons $fwBegin \
+	    "From slice" nBegin {} 1
+	tkm_MakeEntryWithIncDecButtons $fwEnd \
+	    "To slice" nEnd {} 1
+	
+	# ok and cancel buttons.
+	tkm_MakeCancelOKButtons $fwButtons $wwDialog \
+	    "SaveRGBSeries \$sDir/\$sPrefix \$nBegin \$nEnd"
+	
+	pack $fwDir $fwPrefix $fwBegin $fwEnd $fwButtons \
+	    -side top       \
+	    -expand yes     \
+	    -fill x         \
+	    -padx 5         \
+	    -pady 5
+    }
+}
 
-  # the directory field
-  tkm_MakeDirectorySelector $fwDir \
-    "Directory to save files in:" sDir
+proc DoLabelWriterHelperDlog {} {
 
-  # the file prefix
-  tkm_MakeEntry $fwPrefix "Prefix:" sPrefix
+    global gDialog
+    global sDir sPrefix sNumber sSuffix
 
-  # begin and end slices
-  tkm_MakeEntryWithIncDecButtons $fwBegin \
-    "From slice" nBegin {} 1
-  tkm_MakeEntryWithIncDecButtons $fwEnd \
-    "To slice" nEnd {} 1
+    set sDir [GetDefaultLocation SaveLabelAs]
+    set sPrefix "line-"
+    set sNumber 0
+    set sSuffix ".label"
 
-  # ok and cancel buttons.
-  tkm_MakeCancelOKButtons $fwButtons $wwDialog \
-    "SaveRGBSeries \$sDir/\$sPrefix \$nBegin \$nEnd"
+    set wwDialog .wwLabelWriterHelperDlog
 
-  pack $fwDir $fwPrefix $fwBegin $fwEnd $fwButtons \
-    -side top       \
-    -expand yes     \
-    -fill x         \
-    -padx 5         \
-    -pady 5
+    # try to create the dlog...
+    if { [Dialog_Create $wwDialog "Label Writer Helper" {-borderwidth 10}] } {
+
+	set fwDir       $wwDialog.fwDir
+	set fwFileName  $wwDialog.fwFileName
+	set fwPrefix    $fwFileName.fwPrefix
+	set fwNumber    $fwFileName.fwNumber
+	set fwSuffix    $fwFileName.fwSuffix
+	set fwOptions   $wwDialog.fwOptions
+	set fwButtons   $wwDialog.fwButtons
+
+	frame $fwFileName
+	
+	# the directory field
+	tkm_MakeDirectorySelector $fwDir \
+	    "Directory to save files in:" sDir
+	
+	# the file prefix
+	tkm_MakeEntry $fwPrefix "File Name:" sPrefix 10
+	
+	# next number
+	tkm_MakeEntry $fwNumber "" sNumber 4
+
+	# the file suffix
+	tkm_MakeEntry $fwSuffix "" sSuffix 10
+	
+	
+	tkm_MakeCheckboxes $fwOptions y {
+	    { text "Select Line Before Writing" bSelectLine {} }
+	    { text "Clear Label After Writing" bClearLabel {} }
+	    { text "Auto-increment Number After Writing" bAutoIncrement {} }
+	}
+	    
+	# ok and cancel buttons.
+	tkm_MakeApplyCloseButtons $fwButtons $wwDialog {
+	    if { $bSelectLine } { AddLineToSelection }
+	    set fnLabel $sDir/$sPrefix$sNumber$sSuffix
+	    SaveLabel $fnLabel
+	    if { $bClearLabel } { ClearSelection }
+	    if { $bAutoIncrement } { set sNumber [expr $sNumber + 1] }
+	    RedrawAll
+	}
+
+	
+	pack $fwPrefix $fwNumber $fwSuffix -side left
+
+	pack $fwDir $fwFileName $fwOptions $fwButtons \
+	    -side top       \
+	    -expand yes     \
+	    -fill x         \
+	    -padx 5         \
+	    -pady 5
     }
 }
 
@@ -3359,6 +3426,9 @@ proc CreateMenuBar { ifwMenuBar } {
 	{ command
 	    "Clear Selection / Label"
 	    "ClearSelection; RedrawAll" }
+	{ command
+	    "Label Writer Helper..."
+	    "DoLabelWriterHelperDlog" }
 	{ command
 	    "Clear Undo Volume"
 	    ClearUndoVolume } 
@@ -4501,4 +4571,6 @@ foreach fnUserScript [list $env(FREESURFER_HOME)/lib/tcl/tkmedit_init.tcl $env(S
 	}
     }
 }
+
+
 
