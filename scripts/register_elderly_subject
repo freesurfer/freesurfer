@@ -1,7 +1,7 @@
 #!/bin/tcsh -ef
 
-setenv GCA $MRI_DIR/average/n7.gca
-setenv GCA $MRI_DIR/average/mixed.gca
+setenv GCA $FREESURFER_HOME/average/n7.gca
+setenv GCA $FREESURFER_HOME/average/mixed.gca
 setenv LTA talairach.lta
 
 setenv s $1

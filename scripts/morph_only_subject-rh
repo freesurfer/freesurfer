@@ -10,6 +10,6 @@ popd
 
 pushd $SUBJECTS_DIR/$1/scripts
 #mris_sphere -w 0 ../surf/rh.inflated ../surf/rh.sphere
-mris_register -w 0 -curv ../surf/rh.sphere $MRI_DIR/average/rh.average.tif ../surf/rh.sphere.reg
-mris_register -w 0 ../surf/rh.sphere $MRI_DIR/average/rh.average.tif ../surf/rh.sphere.dist_new
+mris_register -w 0 -curv ../surf/rh.sphere $FREESURFER_HOME/average/rh.average.tif ../surf/rh.sphere.reg
+mris_register -w 0 ../surf/rh.sphere $FREESURFER_HOME/average/rh.average.tif ../surf/rh.sphere.dist_new
 popd

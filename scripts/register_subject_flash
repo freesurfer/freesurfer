@@ -1,6 +1,6 @@
 #!/bin/tcsh -ef
 
-setenv GCA $MRI_DIR/average/mixed.gca
+setenv GCA $FREESURFER_HOME/average/mixed.gca
 setenv LTA talairach.lta
 
 setenv s $1
@@ -11,5 +11,5 @@ foreach d (fsamples norm transforms)
 end
 
 
-~fischl/build/mri_em_register/mri_em_register -flash $CSURF_DIR/average/tissue_parms.txt -fsamples $sdir/fsamples -norm $sdir/norm $sdir/orig $GCA $sdir/transforms/$LTA
+~fischl/build/mri_em_register/mri_em_register -flash $FREESURFER_HOME/average/tissue_parms.txt -fsamples $sdir/fsamples -norm $sdir/norm $sdir/orig $GCA $sdir/transforms/$LTA
 

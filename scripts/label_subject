@@ -2,8 +2,8 @@
 
 setenv LTA   talairach.lta
 setenv ASEG  aseg
-setenv GCA $MRI_DIR/average/young_new_b.gca
-setenv GCA_TL $MRI_DIR/average/young_tl_b.gca
+setenv GCA $FREESURFER_HOME/average/young_new_b.gca
+setenv GCA_TL $FREESURFER_HOME/average/young_tl_b.gca
 
 setenv s $1
 

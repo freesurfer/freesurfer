@@ -2,8 +2,8 @@
 
 setenv LTA   talairach.lta
 setenv ASEG  aseg
-setenv GCA $MRI_DIR/average/n7.gca
-setenv GCA $MRI_DIR/average/mixed.gca
+setenv GCA $FREESURFER_HOME/average/n7.gca
+setenv GCA $FREESURFER_HOME/average/mixed.gca
 
 setenv s $1
 
