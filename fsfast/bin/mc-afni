@@ -1,6 +1,6 @@
 #!/bin/csh -f
 
-set VERSION = '$Id: mc-afni,v 1.1 2003/03/04 21:22:09 greve Exp $';
+set VERSION = '$Id: mc-afni,v 1.2 2004/04/05 21:55:40 greve Exp $';
 
 unset verbose ;
 
@@ -15,6 +15,7 @@ set cleanup     = 1;
 set inplaneres  = ();  # in-plane resolution 
 set betplaneres = ();  # between-plane resolution (ie, slice thick)
 set TR          = ();
+set UseBVOL2AFNI = 0;
 
 if($#argv == 0) then
   goto usage_exit;
@@ -62,31 +63,51 @@ echo "Input: Nrows $ny, Ncols $nx, Nslices $nz, Ntp $nt, Endian $endian"
 set inext = `getbext $instem`; # bshort or bfloat
 
 ### Convert input bfile to afni ###
-mkdir -p $afnisession
 set afnistem = $afnisession/$afniprefix
-set cmd = "bfile2afni -i $instem -o $afnistem "
-set cmd = "$cmd -inplaneres $inplaneres -betplaneres $betplaneres"
-set cmd = "$cmd -TR $TR"
-echo "---- Converting Input to AFNI ----------"
-pwd
-echo $cmd
-echo "---------------------------------------"
-$cmd
-if($status) exit 1;
-
-### Convert target bfile to afni ###
-if($#targstem != 0) then
-  set targprefix = targ-$afniprefix
-  set targafnistem = $afnisession/$targprefix
-  set cmd = "bfile2afni -i $targstem -o $targafnistem"
+if(! $UseBVOL2AFNI) then
+  mkdir -p $afnisession
+  set cmd = "bfile2afni -i $instem -o $afnistem "
   set cmd = "$cmd -inplaneres $inplaneres -betplaneres $betplaneres"
   set cmd = "$cmd -TR $TR"
-  echo "---- Converting Target to AFNI ----------"
+  echo "---- Converting Input to AFNI ----------"
   pwd
   echo $cmd
   echo "---------------------------------------"
   $cmd
   if($status) exit 1;
+else
+  echo "---- Converting Input to AFNI ----------"
+  set cmd = "bvol2afni -i $instem -o $afnistem"
+  pwd
+  echo $cmd
+  echo "---------------------------------------"
+  $cmd
+  if($status) exit 1;
+endif
+
+### Convert target bfile to afni ###
+if($#targstem != 0) then
+  set targprefix = targ-$afniprefix
+  set targafnistem = $afnisession/$targprefix
+  if(! $UseBVOL2AFNI) then
+    set cmd = "bfile2afni -i $targstem -o $targafnistem"
+    set cmd = "$cmd -inplaneres $inplaneres -betplaneres $betplaneres"
+    set cmd = "$cmd -TR $TR"
+    echo "---- Converting Target to AFNI ----------"
+    pwd
+    echo $cmd
+    echo "---------------------------------------"
+    $cmd
+    if($status) exit 1;
+  else
+    echo "---- Converting Target to AFNI ----------"
+    set cmd = "bvol2afni -i $targstem -o $targafnistem"
+    pwd
+    echo $cmd
+    echo "---------------------------------------"
+    $cmd
+    if($status) exit 1;
+  endif
 else
   set targprefix = $afniprefix
 endif
@@ -99,14 +120,14 @@ if(-e $afniprefix.volreg+orig.HEAD) rm -f $afniprefix.volreg+orig.HEAD;
 set mcdat = $outdir/$outbase.mcdat 
 pwd
 if($#targstem != 0 && $targstem != $instem) then
-  #set tmp = "'"targ-$afniprefix+orig\[$targoff\]"'"
-  #echo "$tmp"
   set leave_echo_on = 1;
   if(! $?echo ) set leave_echo_on = 0;
   set echo ;
-  3dvolreg -verbose -dfile $mcdat \
-           -prefix $afniprefix.volreg  \
-           -base targ-$afniprefix+orig\[$targoff\] $afniprefix+orig
+  #set VR = /usr/pubsw/packages/AFNI/current/bin/3dvolreg
+  set VR = 3dvolreg
+  $VR -verbose -dfile $mcdat \
+      -prefix $afniprefix.volreg  \
+      -base targ-$afniprefix+orig\[$targoff\] $afniprefix+orig
   set st = $status;
   if($st) then
     echo "ERROR: 3dvolreg existed with status $st"
@@ -252,7 +273,10 @@ while( $#argv != 0 )
       set TR = $argv[1]; shift;
       breaksw
 
-    case "--version":
+    case "-bvol2afni":
+      set UseBVOL2AFNI = 1;
+      breaksw
+
     case "-version":
       echo $VERSION
       exit 0;
