@@ -2720,6 +2720,8 @@ MATRIX *surfaceRASFromSurfaceRAS_(MRI *dst, MRI *src, LTA *lta)
   MATRIX *tmp=0;
   MATRIX *surf2src=0;
   MATRIX *dst2surf=0;
+  LT *lt = 0;
+  int ltaabsent = 0;
   // this is the combined operation
   //          surfaceRAS(src)
   //               |
@@ -2733,7 +2735,14 @@ MATRIX *surfaceRASFromSurfaceRAS_(MRI *dst, MRI *src, LTA *lta)
   //               |     
   //               V
   //           surfaceRAS(dst)
-  LT *lt = &lta->xforms[0];
+  if (lta == 0)
+  {
+    ltaabsent = 1;
+    fprintf(stderr, "INFO: assumes the identity RAS2RAS transform\n");
+    lta = LTAalloc(1, NULL);
+    lta->type = LINEAR_RAS_TO_RAS;
+  }
+  lt = &lta->xforms[0];
   if (lta->type == LINEAR_PHYSVOX_TO_PHYSVOX)
   {
     LTAchangeType(lta, LINEAR_RAS_TO_RAS);
@@ -2754,6 +2763,9 @@ MATRIX *surfaceRASFromSurfaceRAS_(MRI *dst, MRI *src, LTA *lta)
   MatrixFree(&tmp);
   MatrixFree(&surf2src);
   MatrixFree(&dst2surf);
+  //
+  if (ltaabsent==1)
+    LTAfree(&lta);
 
   return res;
 }
