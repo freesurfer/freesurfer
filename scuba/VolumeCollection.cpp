@@ -982,6 +982,11 @@ VolumeCollectionFlooder::Flood ( VolumeCollection& iVolume,
   mVolume = &iVolume;
   mParams = &iParams;
 
+  float voxelSize[3];
+  voxelSize[0] = iVolume.GetVoxelXSize();
+  voxelSize[1] = iVolume.GetVoxelYSize();
+  voxelSize[2] = iVolume.GetVoxelZSize();
+
   this->DoBegin();
 
   Volume3<bool>* bVisited =
@@ -993,39 +998,35 @@ VolumeCollectionFlooder::Flood ( VolumeCollection& iVolume,
   float seedValue = iVolume.GetMRINearestValueAtRAS( iRASSeed );
 
   // Push the seed onto the list. 
-  Point3<int> seed;
-  iVolume.RASToMRIIndex( iRASSeed, seed.xyz() );
-  vector<Point3<int> > points;
-  points.push_back( seed );
-  while( points.size() > 0 &&
+  vector<Point3<float> > RASPoints;
+  RASPoints.push_back( iRASSeed );
+  while( RASPoints.size() > 0 &&
 	 !this->DoStopRequested() ) {
     
-    Point3<int> point = points.back();
-    points.pop_back();
+    Point3<float> ras = RASPoints.back();
+    RASPoints.pop_back();
 
 
-    if( !iVolume.IsMRIIndexInMRIBounds( point.xyz() ) ) {
+    if( !iVolume.IsRASInMRIBounds( ras.xyz() ) ) {
       continue;
     }
 
-    if( bVisited->Get_Unsafe( point.x(), point.y(), point.z() ) ) {
+    Point3<int> index;
+    iVolume.RASToMRIIndex( ras.xyz(), index.xyz() );
+    if( bVisited->Get_Unsafe( index.x(), index.y(), index.z() ) ) {
       continue;
     }
-    bVisited->Set_Unsafe( point.x(), point.y(), point.z(), true );
-
-    // Get RAS.
-    float ras[3];
-    iVolume.MRIIndexToRAS( point.xyz(), ras );
+    bVisited->Set_Unsafe( index.x(), index.y(), index.z(), true );
 
     // Check if this is an edge or an ROI. If so, and our params say
     // not go to here, continue.
     if( iParams.mbStopAtEdges ) {
-      if( iVolume.IsRASEdge( ras ) ) {
+      if( iVolume.IsRASEdge( ras.xyz() ) ) {
 	continue;
       }
     }
     if( iParams.mbStopAtROIs ) {
-      if( iVolume.IsOtherRASSelected( ras, iVolume.GetSelectedROI() ) ) {
+      if( iVolume.IsOtherRASSelected( ras.xyz(), iVolume.GetSelectedROI() ) ) {
 	continue;
       }
     }
@@ -1042,59 +1043,59 @@ VolumeCollectionFlooder::Flood ( VolumeCollection& iVolume,
 
     // Check fuzziness.
     if( iParams.mFuzziness > 0 ) {
-      float value = iVolume.GetMRINearestValueAtRAS( ras );
+      float value = iVolume.GetMRINearestValueAtRAS( ras.xyz() );
       if( fabs( value - seedValue ) > iParams.mFuzziness ) {
 	continue;
       }
     }
 
     // Call the user compare function to give them a chance to bail.
-    if( !this->CompareVoxel( ras ) ) {
+    if( !this->CompareVoxel( ras.xyz() ) ) {
       continue;
     }
     
     // Call the user function.
-    this->DoVoxel( ras );
+    this->DoVoxel( ras.xyz() );
 
     // Add adjacent voxels.
-    int beginX = MAX( point.x() - 1, 0 );
-    int endX   = MIN( point.x() + 1, iVolume.mMRI->width );
-    int beginY = MAX( point.y() - 1, 0 );
-    int endY   = MIN( point.y() + 1, iVolume.mMRI->height );
-    int beginZ = MAX( point.z() - 1, 0 );
-    int endZ   = MIN( point.z() + 1, iVolume.mMRI->depth );
+    float beginX = ras.x() - voxelSize[0];
+    float endX   = ras.x() + voxelSize[0];
+    float beginY = ras.y() - voxelSize[1];
+    float endY   = ras.y() + voxelSize[1];
+    float beginZ = ras.z() - voxelSize[2];
+    float endZ   = ras.z() + voxelSize[2];
     if( !iParams.mb3D && iParams.mbWorkPlaneX ) {
-      beginX = endX = point.x();
+      beginX = endX = ras.x();
     }
     if( !iParams.mb3D && iParams.mbWorkPlaneY ) {
-      beginY = endY = point.y();
+      beginY = endY = ras.y();
     }
     if( !iParams.mb3D && iParams.mbWorkPlaneZ ) {
-      beginZ = endZ = point.z();
+      beginZ = endZ = ras.z();
     }
-    Point3<int> newPoint;
+    Point3<float> newRAS;
     if( iParams.mbDiagonal ) {
-      for( int nZ = beginZ; nZ <= endZ; nZ++ ) {
-	for( int nY = beginY; nY <= endY; nY++ ) {
-	  for( int nX = beginX; nX <= endX; nX++ ) {
-	    newPoint.Set( nX, nY, nZ );
-	    points.push_back( newPoint );
+      for( float nZ = beginZ; nZ <= endZ; nZ += voxelSize[2] ) {
+	for( float nY = beginY; nY <= endY; nY += voxelSize[1] ) {
+	  for( float nX = beginX; nX <= endX; nX += voxelSize[0] ) {
+	    newRAS.Set( nX, nY, nZ );
+	    RASPoints.push_back( newRAS );
 	  }
 	}
       }
     } else {
-      newPoint.Set( beginX, point.y(), point.z() );
-      points.push_back( newPoint );
-      newPoint.Set( endX, point.y(), point.z() );
-      points.push_back( newPoint );
-      newPoint.Set( point.x(), beginY, point.z() );
-      points.push_back( newPoint );
-      newPoint.Set( point.x(), endY, point.z() );
-      points.push_back( newPoint );
-      newPoint.Set( point.x(), point.y(), beginZ );
-      points.push_back( newPoint );
-      newPoint.Set( point.x(), point.y(), endZ );
-      points.push_back( newPoint );
+      newRAS.Set( beginX, ras.y(), ras.z() );
+      RASPoints.push_back( newRAS );
+      newRAS.Set( endX, ras.y(), ras.z() );
+      RASPoints.push_back( newRAS );
+      newRAS.Set( ras.x(), beginY, ras.z() );
+      RASPoints.push_back( newRAS );
+      newRAS.Set( ras.x(), endY, ras.z() );
+      RASPoints.push_back( newRAS );
+      newRAS.Set( ras.x(), ras.y(), beginZ );
+      RASPoints.push_back( newRAS );
+      newRAS.Set( ras.x(), ras.y(), endZ );
+      RASPoints.push_back( newRAS );
     }
 
   }
