@@ -7,7 +7,7 @@ function Xfir = fast_st2fir(st,ntp,TR,psdwin,usew)
 % st = [tonset duration <weight>]
 % ntp = number of time points
 % TR = time between time points
-% psdwin = [psdmin dpsd psdmax];
+% psdwin = [psdmin psdmax dpsd];
 % usew:  0, [], not spec = dont use weight, 1 = use weight
 %
 % Notes:
@@ -19,7 +19,7 @@ function Xfir = fast_st2fir(st,ntp,TR,psdwin,usew)
 %  5. Does not force dpsd to be an integer divisor of TR,
 %     but it is a good idea.
 %
-% $Id: fast_st2fir.m,v 1.2 2004/10/16 05:20:45 greve Exp $
+% $Id: fast_st2fir.m,v 1.3 2004/10/23 01:42:39 greve Exp $
 
 Xfir = [];
 
@@ -51,8 +51,8 @@ end
 
 npres   = size(st,1); % number of presentations
 psdmin  = psdwin(1);  % start of PSD window
-dpsd    = psdwin(2);  % increment of PSD window
-psdmax  = psdwin(3);  % end of PSD window
+psdmax  = psdwin(2);  % end of PSD window
+dpsd    = psdwin(3);  % increment of PSD window
 npsdwin = round((psdmax-psdmin)/dpsd);
 
 % Alloc and set to 0
