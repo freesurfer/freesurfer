@@ -46,6 +46,7 @@ typedef struct
   float   *label_priors[GIBBS_NEIGHBORHOOD] ;
   char    *labels[GIBBS_NEIGHBORHOOD] ;
   short   nlabels[ GIBBS_NEIGHBORHOOD];
+  short   n_just_priors ;
 } GC1D, GAUSSIAN_CLASSIFIER_1D ;
 
 typedef struct
@@ -88,7 +89,7 @@ GCA  *GCAalloc(int ninputs, float spacing, int width, int height, int depth) ;
 int  GCAfree(GCA **pgca) ;
 int  GCANfree(GCA_NODE *gcan) ;
 int  GCAtrain(GCA *gca, MRI *mri_inputs, MRI *mri_labels, LTA *lta, 
-              GCA *gca_prune) ;
+              GCA *gca_prune, int noint) ;
 int  GCAwrite(GCA *gca, char *fname) ;
 GCA  *GCAread(char *fname) ;
 int  GCAcompleteTraining(GCA *gca) ;
@@ -173,6 +174,8 @@ int GCAdump(GCA *gca, MRI *mri, int x, int y, int z, LTA *lta, FILE *fp,
             int verbose) ;
 int GCArenormalizeIntensities(GCA *gca, int *labels, float *intensities, 
                               int num) ;
+int GCArenormalizeIntensitiesAbsolute(GCA *gca, int *labels, 
+                                      float *intensities, int num) ;
 int GCArenormalizeToExample(GCA *gca, MRI *mri_seg, MRI *mri_T1) ;
 
 double  GCAlabelMean(GCA *gca, int label) ;
