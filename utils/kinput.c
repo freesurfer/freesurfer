@@ -115,7 +115,6 @@ KinputInit(KINPUT *kinput, IMAGE *image)
   ImageXDerivative(image, kinput->xInputs) ;
   ImageYDerivative(image, kinput->yInputs) ;
 
-ImageWrite(image, "i.hipl") ;
   /* now compute blurred derivates at different scales */
   for (scale = 1 ; scale < kinput->nscales ; scale++)
   {
@@ -124,8 +123,11 @@ ImageWrite(image, "i.hipl") ;
     ImageConvolveGaussian(kinput->yInputs, kinput->gImages[scale], 
                          kinput->yInputs, scale) ;
   }
+#if 0
+ImageWrite(image, "i.hipl") ;
 ImageWriteFrames(kinput->xInputs, "xin.hipl", 0, kinput->xInputs->num_frame) ;
 ImageWriteFrames(kinput->yInputs, "yin.hipl", 0, kinput->yInputs->num_frame) ;
+#endif
 #endif
   return(0) ;
 }
