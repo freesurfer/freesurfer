@@ -100,6 +100,9 @@ MATRIX *MatrixAsciiReadFrom(FILE *fp, MATRIX *m) ;
 
 #define VECTOR_ELT(v,i)            ((v)->rptr[i][1])
 #define RVECTOR_ELT(v,i)            ((v)->rptr[1][i])
+#define VECTOR3_LOAD(v,x,y,z)    (VECTOR_ELT(v,1)=x, VECTOR_ELT(v,2)=y, \
+                                  VECTOR_ELT(v,3)=z) ;
+#define VECTOR_LOAD   VECTOR3_LOAD
 
 float  VectorLen(VECTOR *v) ;
 float  VectorDot(VECTOR *v1, VECTOR *v2) ;
@@ -107,6 +110,10 @@ float  VectorNormalizedDot(VECTOR *v1, VECTOR *v2) ;
 float  VectorDistance(VECTOR *v1, VECTOR *v2) ;
 VECTOR *MatrixColumn(MATRIX *m, VECTOR *v, int col) ;
 MATRIX *VectorOuterProduct(VECTOR *v1, VECTOR *v2, MATRIX *m) ;
+VECTOR *VectorCrossProduct(VECTOR *v1, VECTOR *v2, VECTOR *vdst) ;
+float  VectorTripleProduct(VECTOR *v1, VECTOR *v2, VECTOR *v3) ;
+VECTOR *VectorNormalize(VECTOR *vin, VECTOR *vout) ;
+
 
 #define X_ROTATION   0
 #define Y_ROTATION   1
@@ -114,6 +121,7 @@ MATRIX *VectorOuterProduct(VECTOR *v1, VECTOR *v2, MATRIX *m) ;
 
 MATRIX *MatrixAllocRotation(int n, float angle, int which) ;
 #define MatrixClone(mat)   MatrixCopy(mat, NULL)
+#define VectorClone        MatrixClone
 
 
 
