@@ -1,0 +1,27 @@
+#
+# NOTE: THIS FILE IS UNDER REVISION CONTROL MAKE SURE TO USE PROPER
+# CHECK-IN/CHECK-OUT PROCEDURES WHEN CHANGING!
+#
+# File: numaris4-protocols.unpackcfg
+# 
+# This is a sequence configuration file for unpacksdcmdir.  It contains
+# a list of Siemens NUMARIS4 protocols along with information for 
+# unpacking them into the FS-FAST directory structure. Each line
+# contains the following information: protocol name, FS-FAST
+# subdirectory, format, name. See unpacksdcmdir -help for more
+# information. 
+#
+# Notes:
+#
+# 1. The protcol name is as found in DICOM tag 0x18, 0x1030 with any
+# white space removed.
+# 
+# $Id: numaris4-protocols.unpackcfg,v 1.1 2002/02/26 01:23:59 greve Exp $
+#
+localizer                scout        bshort f
+SagMPRAGE8Min            3danat       COR    na
+SagMPRAGE4Min            3danat       COR    na
+SagMPR8Minrevroscaled    3danat       COR    na
+T1ep2dHighRes            t1epi        bshort f
+T2TSEAxialHiRes          t2conv       bshort f
+ep2d_mosaic_mgh          bold         bshort f
