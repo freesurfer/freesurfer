@@ -1,8 +1,8 @@
 #!/bin/csh -f
 # grad_unwarp - convert, unwarp, and resample dicom files
 #
-# $Id: grad_unwarp,v 1.8 2004/11/03 17:00:02 greve Exp $
-set VERSION = '$Id: grad_unwarp,v 1.8 2004/11/03 17:00:02 greve Exp $';
+# $Id: grad_unwarp,v 1.9 2004/11/04 18:10:44 greve Exp $
+set VERSION = '$Id: grad_unwarp,v 1.9 2004/11/04 18:10:44 greve Exp $';
 
 set inputargs = ($argv);
 
@@ -293,11 +293,6 @@ check_params:
   mkdir -p $outdir
   if(! -e $outdir) then
     echo "ERROR: could not create $outdir"
-    exit 1;
-  endif
-
-  if(! -x $matlab) then
-    echo "ERROR: matlab $matlab not found or not executable"
     exit 1;
   endif
 
