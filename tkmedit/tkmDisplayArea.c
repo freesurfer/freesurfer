@@ -3,8 +3,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2003/06/11 13:41:55 $
-// Revision       : $Revision: 1.74 $
+// Revision Date  : $Date: 2003/06/12 01:08:09 $
+// Revision       : $Revision: 1.75 $
 
 #include "tkmDisplayArea.h"
 #include "tkmMeditWindow.h"
@@ -113,6 +113,7 @@ DspA_tErr DspA_New ( tkmDisplayAreaRef* oppWindow,
   int               nVolume      = 0;
   int               nSegVolume   = 0;
   int               nSurface     = 0;
+  int               nVertexSet   = 0;
   xColor3f          color;
   
   /* allocate us. */
@@ -158,14 +159,29 @@ DspA_tErr DspA_New ( tkmDisplayAreaRef* oppWindow,
   this->mnVolumeSizeZ           = 0;
   this->mpSelectedHeadPoint     = NULL;
   this->mnSegmentationVolumeIndex        = -1;
-  for( nSurface = 0; nSurface < Surf_knNumVertexSets; nSurface++ )
-    DspA_SetSurfaceLineWidth( this, nSurface, 1 );
+
+  /* Set all line widths to 1. */
+  for( nSurface = 0; nSurface < tkm_knNumSurfaceTypes; nSurface++ )
+    for( nVertexSet = 0; nVertexSet < Surf_knNumVertexSets; nVertexSet++ )
+      DspA_SetSurfaceLineWidth( this, nSurface, nVertexSet, 1 );
+
+  /* Set default colors for surface lines. */
   xColr_SetFloat( &color, 1, 1, 0 );
-  DspA_SetSurfaceLineColor( this, Surf_tVertexSet_Main, &color );
+  DspA_SetSurfaceLineColor( this, tkm_tSurfaceType_Main, 
+			    Surf_tVertexSet_Main, &color );
+  DspA_SetSurfaceLineColor( this, tkm_tSurfaceType_Aux, 
+			    Surf_tVertexSet_Main, &color );
   xColr_SetFloat( &color, 0, 1, 0 );
-  DspA_SetSurfaceLineColor( this, Surf_tVertexSet_Original, &color );
+  DspA_SetSurfaceLineColor( this, tkm_tSurfaceType_Main, 
+			    Surf_tVertexSet_Original, &color );
+  DspA_SetSurfaceLineColor( this, tkm_tSurfaceType_Aux, 
+			    Surf_tVertexSet_Original, &color );
   xColr_SetFloat( &color, 1, 0, 0 );
-  DspA_SetSurfaceLineColor( this, Surf_tVertexSet_Pial, &color );
+  DspA_SetSurfaceLineColor( this, tkm_tSurfaceType_Main, 
+			    Surf_tVertexSet_Pial, &color );
+  DspA_SetSurfaceLineColor( this, tkm_tSurfaceType_Aux, 
+			    Surf_tVertexSet_Pial, &color );
+
   
   
   /* all our display flags start out false. */
@@ -2040,7 +2056,8 @@ DspA_tErr DspA_SetCursorColor ( tkmDisplayAreaRef this,
 }
 
 DspA_tErr DspA_SetSurfaceLineWidth ( tkmDisplayAreaRef this,
-				     Surf_tVertexSet   iSurface,
+				     tkm_tSurfaceType  iSurface,
+				     Surf_tVertexSet   iVertexSet,
 				     int               inWidth ) {
   
   DspA_tErr eResult            = DspA_tErr_NoErr;
@@ -2051,23 +2068,29 @@ DspA_tErr DspA_SetSurfaceLineWidth ( tkmDisplayAreaRef this,
   if ( DspA_tErr_NoErr != eResult )
     goto error;
   
-  if( iSurface <= Surf_tVertexSet_None || 
-      iSurface >= Surf_knNumVertexSets ||
+  if( iSurface < 0 || 
+      iSurface >= tkm_knNumSurfaceTypes ) {
+    eResult = DspA_tErr_InvalidParameter;
+    goto error;
+  }
+
+  if( iVertexSet <= Surf_tVertexSet_None || 
+      iVertexSet >= Surf_knNumVertexSets ||
       inWidth < 0 ) {
     eResult = DspA_tErr_InvalidParameter;
     goto error;
   }
   
   /* set surface width and notify of change */
-  this->manSurfaceLineWidth[iSurface] = inWidth;
+  this->manSurfaceLineWidth[iSurface][iVertexSet] = inWidth;
   DspA_Redraw_( this );
   
   /* if we're the currently focused display... */
   if( sFocusedDisplay == this ) {
     
     /* send the tcl update. */
-    sprintf ( sTclArguments, "%d %d", iSurface,  
-	      this->manSurfaceLineWidth[iSurface] );
+    sprintf ( sTclArguments, "%d %d %d", (int)iSurface, (int)iVertexSet,  
+	      this->manSurfaceLineWidth[iSurface][iVertexSet] );
     tkm_SendTclCommand( tkm_tTclCommand_UpdateSurfaceLineWidth, 
 			sTclArguments );
   }
@@ -2088,7 +2111,8 @@ DspA_tErr DspA_SetSurfaceLineWidth ( tkmDisplayAreaRef this,
 }
 
 DspA_tErr DspA_SetSurfaceLineColor ( tkmDisplayAreaRef this,
-				     Surf_tVertexSet   iSurface,
+				     tkm_tSurfaceType  iSurface,
+				     Surf_tVertexSet   iVertexSet,
 				     xColor3fRef       iColor ) {
   
   DspA_tErr eResult            = DspA_tErr_NoErr;
@@ -2099,23 +2123,29 @@ DspA_tErr DspA_SetSurfaceLineColor ( tkmDisplayAreaRef this,
   if ( DspA_tErr_NoErr != eResult )
     goto error;
   
-  if( iSurface <= Surf_tVertexSet_None || 
-      iSurface >= Surf_knNumVertexSets ||
+  if( iSurface < 0 || 
+      iSurface >= tkm_knNumSurfaceTypes ) {
+    eResult = DspA_tErr_InvalidParameter;
+    goto error;
+  }
+
+  if( iVertexSet <= Surf_tVertexSet_None || 
+      iVertexSet >= Surf_knNumVertexSets ||
       NULL == iColor ) {
     eResult = DspA_tErr_InvalidParameter;
     goto error;
   }
   
   /* set surface color and notify of change */
-  this->maSurfaceLineColor[iSurface] = *iColor;
+  this->maSurfaceLineColor[iSurface][iVertexSet] = *iColor;
   DspA_Redraw_( this );
   
   /* if we're the currently focused display... */
   if( sFocusedDisplay == this ) {
     
     /* send the tcl update. */
-    sprintf ( sTclArguments, "%d %f %f %f", (int)iSurface,
-	      xColr_ExpandFloat( &(this->maSurfaceLineColor[iSurface]) ) );
+    sprintf ( sTclArguments, "%d %d %f %f %f", (int)iSurface, (int)iVertexSet,
+        xColr_ExpandFloat( &(this->maSurfaceLineColor[iSurface][iVertexSet])));
     tkm_SendTclCommand( tkm_tTclCommand_UpdateSurfaceLineColor, 
 			sTclArguments );
   }
@@ -4168,7 +4198,7 @@ DspA_tErr DspA_DrawSurface_ ( tkmDisplayAreaRef this ) {
   
   DspA_tErr         eResult    = DspA_tErr_NoErr;
   int               nSurface   = 0;
-  Surf_tVertexSet   surface    = Surf_tVertexSet_Main;
+  Surf_tVertexSet   vertexSet    = Surf_tVertexSet_Main;
   xGrowableArrayRef list       = NULL;
   float             faColor[3] = {0, 0, 0};
   
@@ -4213,15 +4243,15 @@ DspA_tErr DspA_DrawSurface_ ( tkmDisplayAreaRef this ) {
       DspA_SetUpOpenGLPort_( this );
       
       /* for each surface type... */
-      for ( surface = Surf_tVertexSet_Main;
-	    surface < Surf_knNumVertexSets; surface++ ) {
+      for ( vertexSet = Surf_tVertexSet_Main;
+	    vertexSet < Surf_knNumVertexSets; vertexSet++ ) {
 	
 	/* if this surface is visible... */
-	if( this->mabDisplayFlags[surface + DspA_tDisplayFlag_MainSurface] ) {
+	if( this->mabDisplayFlags[vertexSet + DspA_tDisplayFlag_MainSurface] ) {
 	  
 	  /* get the list. */
 	  list = DspA_GetSurfaceList_( this, nSurface, 
-				       this->mOrientation, surface,
+				       this->mOrientation, vertexSet,
 				       DspA_GetCurrentSliceNumber_(this) );
 	  if( NULL == list ) {
 	    eResult = DspA_tErr_ErrorAccessingSurfaceList;
@@ -4229,12 +4259,12 @@ DspA_tErr DspA_DrawSurface_ ( tkmDisplayAreaRef this ) {
 	  }
 	  
 	  /* set the color */
-	  xColr_PackFloatArray( &(this->maSurfaceLineColor[surface]), 
+       xColr_PackFloatArray(&(this->maSurfaceLineColor[nSurface][vertexSet]), 
 				faColor );
 	  glColor3fv( faColor );
 	  
 	  /* draw the points. */
-	  glLineWidth(  this->manSurfaceLineWidth[surface] );
+	  glLineWidth(  this->manSurfaceLineWidth[nSurface][vertexSet] );
 	  DspA_ParsePointList_( this, GL_LINES, list );
 	  
 	  /* if vertices are visible... */
@@ -4254,7 +4284,7 @@ DspA_tErr DspA_DrawSurface_ ( tkmDisplayAreaRef this ) {
 	  }
 	  
 	  /* if we have a hilited vertex for this surface... */
-	  if( surface == this->mHilitedSurface
+	  if( vertexSet == this->mHilitedSurface
 	      && -1 != this->mnHilitedVertexIndex  ) {
 	    
 	    /* ?? */
@@ -5460,14 +5490,14 @@ DspA_tErr DspA_DrawHeadPoints_ ( tkmDisplayAreaRef this ) {
 }
 
 DspA_tErr DspA_BuildSurfaceDrawLists_ ( tkmDisplayAreaRef this,
-					tkm_tSurfaceType  iType) {
+					tkm_tSurfaceType  iSurface) {
   
   DspA_tErr           eResult              = DspA_tErr_NoErr;
   Surf_tErr           eSurface             = Surf_tErr_NoErr;
   xGArr_tErr          eList                = xGArr_tErr_NoErr;
   xGrowableArrayRef   list                 = NULL;
   int                 nSlice               = 0;
-  Surf_tVertexSet     surface              = Surf_tVertexSet_Main;
+  Surf_tVertexSet     vertexSet              = Surf_tVertexSet_Main;
   xPoint2f            zeroPoint            = {0,0};
   xVoxel              curPlane;
   DspA_tSurfaceListNode drawListNode;
@@ -5492,17 +5522,17 @@ DspA_tErr DspA_BuildSurfaceDrawLists_ ( tkmDisplayAreaRef this,
   DspA_SetUpOpenGLPort_( this );
   
   /* for each vertex type... */
-  for ( surface = Surf_tVertexSet_Main;
-	surface < Surf_knNumVertexSets; surface++ ) {
+  for ( vertexSet = Surf_tVertexSet_Main;
+	vertexSet < Surf_knNumVertexSets; vertexSet++ ) {
     
     /* only build if this surface is being displayed */
-    if( !this->mabDisplayFlags[surface + DspA_tDisplayFlag_MainSurface] ) {
+    if( !this->mabDisplayFlags[vertexSet + DspA_tDisplayFlag_MainSurface] ) {
       continue;
     }
     
     /* check to see if we already have this list. if so, don't build
        it unless the slice changed flag is set.. */
-    list = DspA_GetSurfaceList_( this, iType, this->mOrientation, surface,
+    list = DspA_GetSurfaceList_( this, iSurface, this->mOrientation, vertexSet,
 				 DspA_GetCurrentSliceNumber_(this) );
     if( NULL != list ) {
       // rkt: why was this here? to update draw list when new surface
@@ -5513,11 +5543,11 @@ DspA_tErr DspA_BuildSurfaceDrawLists_ ( tkmDisplayAreaRef this,
     }
     
     /* make a new list. */
-    DspA_NewSurfaceList_( this, iType, this->mOrientation, surface, 
+    DspA_NewSurfaceList_( this, iSurface, this->mOrientation, vertexSet, 
 			  DspA_GetCurrentSliceNumber_(this) );
     
     /* get the list. */
-    list = DspA_GetSurfaceList_( this, iType, this->mOrientation, surface,
+    list = DspA_GetSurfaceList_( this, iSurface, this->mOrientation, vertexSet,
 				 DspA_GetCurrentSliceNumber_(this) );
     if( NULL == list ) {
       eResult = DspA_tErr_ErrorAccessingSurfaceList;
@@ -5530,15 +5560,15 @@ DspA_tErr DspA_BuildSurfaceDrawLists_ ( tkmDisplayAreaRef this,
        set the iterator to our view */
     DspA_ConvertPlaneToVolume_ ( this, &zeroPoint, nSlice, this->mOrientation,
 				 &curPlane ); 
-    eSurface = Surf_SetIteratorPosition( this->mpSurface[iType], &curPlane );
+    eSurface = Surf_SetIteratorPosition( this->mpSurface[iSurface], &curPlane );
     if( Surf_tErr_NoErr != eSurface )
       goto error;
     
     bPointsOnThisFace = FALSE;
     
     /* while we have vertices to check.. */
-    while( (eSurface = Surf_GetNextAndNeighborVertex( this->mpSurface[iType],
-						      surface,
+    while( (eSurface = Surf_GetNextAndNeighborVertex( this->mpSurface[iSurface],
+						      vertexSet,
 						      &anaVertex, 
 						      &nVertexIndex,
 						      &anaNeighborVertex, 
@@ -5566,7 +5596,7 @@ DspA_tErr DspA_BuildSurfaceDrawLists_ ( tkmDisplayAreaRef this,
 	/* Get the annotation value at this vertex. If it's non-zero,
 	   set the override flag to true and put the color of the
 	   annotation into the draw list node. */
-	Surf_GetVertexAnnotationByIndex( this->mpSurface[iType], 
+	Surf_GetVertexAnnotationByIndex( this->mpSurface[iSurface], 
 					 nVertexIndex, &annotation );
 	if( annotation ) {
 	  MRISAnnotToRGB( annotation, 
@@ -5658,7 +5688,7 @@ DspA_tErr DspA_BuildSurfaceDrawLists_ ( tkmDisplayAreaRef this,
 }
 
 DspA_tErr DspA_DrawMarker_ ( tkmDisplayAreaRef this,
-			     DspA_tMarker      iType,
+			     DspA_tMarker      iMarker,
 			     float*            ifaColor,
 			     xPoint2nRef       ipWhere,
 			     int               inSize ) {
@@ -5671,7 +5701,7 @@ DspA_tErr DspA_DrawMarker_ ( tkmDisplayAreaRef this,
   
   glLineWidth( 1 );
   
-  switch( iType ) {
+  switch( iMarker ) {
     
   case DspA_tMarker_Crosshair:
     
@@ -5933,7 +5963,7 @@ DspA_tErr DspA_GetSelectedHeadPt ( tkmDisplayAreaRef   this,
 }
 
 DspA_tErr DspA_GetClosestInterpSurfVoxel ( tkmDisplayAreaRef this,
-					   tkm_tSurfaceType  iType,
+					   tkm_tSurfaceType  iSurface,
 					   Surf_tVertexSet   iSet,
 					   xVoxelRef         iAnaIdx,
 					   xVoxelRef         oOrigAnaIdx,
@@ -5964,7 +5994,7 @@ DspA_tErr DspA_GetClosestInterpSurfVoxel ( tkmDisplayAreaRef this,
   eResult = DspA_Verify ( this );
   if( DspA_tErr_NoErr != eResult )
     goto error;
-  if( iType < 0 || iType >= tkm_knNumSurfaceTypes ) {
+  if( iSurface < 0 || iSurface >= tkm_knNumSurfaceTypes ) {
     eResult = DspA_tErr_InvalidParameter;
     goto error;
   }
@@ -5983,7 +6013,7 @@ DspA_tErr DspA_GetClosestInterpSurfVoxel ( tkmDisplayAreaRef this,
   nClosestIndex = -1;
   for( nSlice = 0; nSlice < 256; nSlice++ ) {
     
-    list = DspA_GetSurfaceList_( this, iType, 
+    list = DspA_GetSurfaceList_( this, iSurface, 
 				 this->mOrientation, iSet, nSlice );
     if( NULL == list ) {
       continue;
@@ -6156,9 +6186,9 @@ DspA_tErr DspA_PurgeSurfaceLists_ ( tkmDisplayAreaRef this ) {
 }
 
 DspA_tErr DspA_NewSurfaceList_ ( tkmDisplayAreaRef this,
-				 tkm_tSurfaceType  iType,
+				 tkm_tSurfaceType  iSurface,
 				 mri_tOrientation  iOrientation,
-				 Surf_tVertexSet   iSurface,
+				 Surf_tVertexSet   iVertexSet,
 				 int               inSlice ) {
   
   DspA_tErr   eResult   = DspA_tErr_NoErr;
@@ -6167,10 +6197,10 @@ DspA_tErr DspA_NewSurfaceList_ ( tkmDisplayAreaRef this,
   
   /* get the list index. */
   nDrawList = DspA_GetSurfaceListIndex_( this, iOrientation, 
-					 iSurface, inSlice );
+					 iVertexSet, inSlice );
   
   /* allocate a list. */
-  xGArr_New( &this->maSurfaceLists[iType][nDrawList],
+  xGArr_New( &this->maSurfaceLists[iSurface][nDrawList],
 	     sizeof( DspA_tSurfaceListNode ), 512 );
   if( xGArr_tErr_NoErr != eList ) {
     eResult = DspA_tErr_ErrorAccessingSurfaceList;
@@ -6193,16 +6223,16 @@ DspA_tErr DspA_NewSurfaceList_ ( tkmDisplayAreaRef this,
 }
 
 xGrowableArrayRef DspA_GetSurfaceList_ ( tkmDisplayAreaRef this,
-					 tkm_tSurfaceType  iType,
+					 tkm_tSurfaceType  iSurface,
 					 mri_tOrientation  iOrientation,
-					 Surf_tVertexSet  iSurface,
+					 Surf_tVertexSet  iVertexSet,
 					 int               inSlice ) {
   
   xGrowableArrayRef pList = NULL;
   
   if( NULL != this->maSurfaceLists ) {
-    pList = this->maSurfaceLists [iType]
-      [ DspA_GetSurfaceListIndex_( this, iOrientation, iSurface, inSlice ) ];
+    pList = this->maSurfaceLists [iSurface]
+      [ DspA_GetSurfaceListIndex_( this, iOrientation, iVertexSet, inSlice ) ];
   }
   
   return pList;
@@ -6216,12 +6246,12 @@ int DspA_GetNumSurfaceLists_ ( tkmDisplayAreaRef this ) {
 
 int DspA_GetSurfaceListIndex_ ( tkmDisplayAreaRef this,
 				mri_tOrientation  iOrientation,
-				Surf_tVertexSet  iSurface,
+				Surf_tVertexSet  iVertexSet,
 				int               inSlice ) {
   
   /* may be incorrect, assumes dimensions are all equal */
   return ((int)iOrientation * Surf_knNumVertexSets * this->mnVolumeSizeZ) +
-    ((int)iSurface * this->mnVolumeSizeX) + inSlice;
+    ((int)iVertexSet * this->mnVolumeSizeX) + inSlice;
 }
 
 
@@ -6561,10 +6591,11 @@ DspA_tErr DspA_SendViewStateToTcl_ ( tkmDisplayAreaRef this ) {
   
   DspA_tErr eResult                    = DspA_tErr_NoErr;
   char      sVolumeName[tkm_knNameLen] = "";
-  char      sTclArguments[STRLEN]         = "";
+  char      sTclArguments[STRLEN]      = "";
   int       nFlag                      = 0;
   int       brush                      = 0;
-  int       surface                    = 0;
+  int       nSurface                   = 0;
+  int       nVertexSet                 = 0;
   
   /* send the point info for our cursor */
   DspA_SendPointInformationToTcl_( this, DspA_tDisplaySet_Cursor,
@@ -6625,15 +6656,17 @@ DspA_tErr DspA_SendViewStateToTcl_ ( tkmDisplayAreaRef this ) {
   tkm_SendTclCommand( tkm_tTclCommand_UpdateCursorColor, sTclArguments );
   
   /* send the surface line info */
-  for( surface = 0; surface < Surf_knNumVertexSets; surface++ ) {
-    sprintf ( sTclArguments, "%d %d", surface,  
-	      this->manSurfaceLineWidth[surface] );
-    tkm_SendTclCommand( tkm_tTclCommand_UpdateSurfaceLineWidth, 
-			sTclArguments );
-    sprintf ( sTclArguments, "%d %f %f %f", surface,
-	      xColr_ExpandFloat( &(this->maSurfaceLineColor[surface]) ) );
-    tkm_SendTclCommand( tkm_tTclCommand_UpdateSurfaceLineColor, 
-			sTclArguments );
+  for( nSurface = 0; nSurface < tkm_knNumSurfaceTypes; nSurface++ ) {
+    for( nVertexSet = 0; nVertexSet < Surf_knNumVertexSets; nVertexSet++ ) {
+      sprintf ( sTclArguments, "%d %d %d", (int)nSurface, (int)nVertexSet,  
+		this->manSurfaceLineWidth[nSurface][nVertexSet] );
+      tkm_SendTclCommand( tkm_tTclCommand_UpdateSurfaceLineWidth, 
+			  sTclArguments );
+      sprintf ( sTclArguments, "%d %d %f %f %f", (int)nSurface,(int)nVertexSet,
+        xColr_ExpandFloat( &(this->maSurfaceLineColor[nSurface][nVertexSet])));
+      tkm_SendTclCommand( tkm_tTclCommand_UpdateSurfaceLineColor, 
+			  sTclArguments );
+    }
   }
   
   return eResult;

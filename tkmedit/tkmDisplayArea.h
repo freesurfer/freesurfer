@@ -259,8 +259,8 @@ struct tkmDisplayArea {
   tBoolean               mbSliceChanged;
   HPtL_tHeadPointRef     mpSelectedHeadPoint;
   int                    mnSegmentationVolumeIndex;
-  int                    manSurfaceLineWidth[Surf_knNumVertexSets];
-  xColor3f               maSurfaceLineColor[Surf_knNumVertexSets];
+  int        manSurfaceLineWidth[tkm_knNumSurfaceTypes][Surf_knNumVertexSets];
+  xColor3f   maSurfaceLineColor[tkm_knNumSurfaceTypes][Surf_knNumVertexSets];
 
   float                  mfSegmentationAlpha;
   tkm_tAxis              maDTIAxisForComponent[xColr_knNumComponents];
@@ -413,9 +413,11 @@ DspA_tErr DspA_SetCursorColor        ( tkmDisplayAreaRef this,
 DspA_tErr DspA_SetCursorShape        ( tkmDisplayAreaRef this,
 				       DspA_tMarker      iShape );
 DspA_tErr DspA_SetSurfaceLineWidth   ( tkmDisplayAreaRef this,
+				       tkm_tSurfaceType  iType,
 				       Surf_tVertexSet   iSurface,
 				       int               inWidth );
 DspA_tErr DspA_SetSurfaceLineColor   ( tkmDisplayAreaRef this,
+				       tkm_tSurfaceType  iType,
 				       Surf_tVertexSet   iSurface,
 				       xColor3fRef       iColor );
 DspA_tErr DspA_SetFloodSelectParams ( tkmDisplayAreaRef this,
