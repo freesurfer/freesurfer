@@ -3,10 +3,10 @@
   ===========================================================================*/
 
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2004/03/12 21:09:37 $
-// Revision       : $Revision: 1.201 $
-char *VERSION = "$Revision: 1.201 $";
+// Revision Author: $Author: fischl $
+// Revision Date  : $Date: 2004/03/16 20:57:55 $
+// Revision       : $Revision: 1.202 $
+char *VERSION = "$Revision: 1.202 $";
 
 #define TCL
 #define TKMEDIT 
@@ -149,6 +149,7 @@ static float fsf;
 
 static int editflag = TRUE;
 static int surflinewidth = 1;
+static int gbScaleUpVolume = FALSE ;
 // int editedimage = FALSE;
 
 
@@ -1034,7 +1035,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
      shorten our argc and argv count. If those are the only args we
      had, exit. */
   /* rkt: check for and handle version tag */
-  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.201 2004/03/12 21:09:37 kteich Exp $", "$Name:  $");
+  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.202 2004/03/16 20:57:55 fischl Exp $", "$Name:  $");
   if (nNumProcessedVersionArgs && argc - nNumProcessedVersionArgs == 1)
     exit (0);
   argc -= nNumProcessedVersionArgs;
@@ -1172,7 +1173,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
 
 	/* set our flag */
 	DebugNote( ("Enabling scaleup.") );
-	bScaleUpVolume = TRUE;
+	gbScaleUpVolume = bScaleUpVolume = TRUE;
 	nCurrentArg ++;
 
       } else if( MATCH( sArg, "-mm-main" ) ) {
@@ -4982,7 +4983,7 @@ int main ( int argc, char** argv ) {
     DebugPrint( ( "%s ", argv[nArg] ) );
   }
   DebugPrint( ( "\n\n" ) );
-  DebugPrint( ( "$Id: tkmedit.c,v 1.201 2004/03/12 21:09:37 kteich Exp $ $Name:  $\n" ) );
+  DebugPrint( ( "$Id: tkmedit.c,v 1.202 2004/03/16 20:57:55 fischl Exp $ $Name:  $\n" ) );
 
   
   /* init glut */
@@ -7121,6 +7122,10 @@ tkm_tErr LoadVolume ( tkm_tVolumeType iType,
   DebugAssertThrowX( (Volm_tErr_NoErr == eVolume),
 		     eResult, tkm_tErr_CouldntReadVolume );
   
+	if( gbScaleUpVolume ) {
+		Volm_SetMinVoxelSizeToOne( newVolume );
+	}
+
   /* if the volume exists, delete it */
   if( NULL != gAnatomicalVolume[iType] ) {
     UnloadDisplayTransform( iType );
@@ -8687,6 +8692,9 @@ tkm_tErr LoadSegmentationVolume ( tkm_tSegType iVolume,
   eVolume = Volm_ImportData( newVolume, sSegmentationFileName );
   DebugAssertThrowX( (Volm_tErr_NoErr == eVolume),
 		     eResult, tkm_tErr_CouldntLoadSegmentation );
+	if( gbScaleUpVolume ) {
+		Volm_SetMinVoxelSizeToOne( newVolume );
+	}
   
   /* Try to load the color table. */
   DebugNote( ("Loading color table.") );
