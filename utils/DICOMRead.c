@@ -2,7 +2,7 @@
    DICOM 3.0 reading functions
    Author: Sebastien Gicquel and Douglas Greve
    Date: 06/04/2001
-   $Id: DICOMRead.c,v 1.60 2004/09/28 22:34:35 tosa Exp $
+   $Id: DICOMRead.c,v 1.61 2004/09/29 14:07:01 tosa Exp $
 *******************************************************/
 
 #include <stdio.h>
@@ -84,6 +84,8 @@ MRI * sdcmLoadVolume(char *dcmfile, int LoadVolume, int nthonly)
   int Maj, Min, MinMin;
   double xs,ys,zs,xe,ye,ze;
   double sign;
+  int nnlist;
+
   xs=ys=zs=xe=ye=ze=sign=0.; /* to avoid compiler warnings */
   slice = 0; frame = 0; /* to avoid compiler warnings */
 
@@ -105,6 +107,12 @@ MRI * sdcmLoadVolume(char *dcmfile, int LoadVolume, int nthonly)
   fprintf(stderr,"INFO: loading series header info.\n");
   sdfi_list = LoadSiemensSeriesInfo(SeriesList, nlist);
 
+  // free memory
+  nnlist = nlist;
+  while (nnlist--)
+    free(SeriesList[nnlist]);
+  free(SeriesList);
+  
   fprintf(stderr,"INFO: sorting.\n");
   SortSDCMFileInfo(sdfi_list,nlist);
   
@@ -1848,6 +1856,7 @@ char **ScanSiemensSeries(char *dcmfile, int *nList)
     free(SeriesList);
     return(NULL);
   }
+  free(PathName);
 
   return( SeriesList );
 }
