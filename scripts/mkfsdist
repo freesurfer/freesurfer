@@ -5,7 +5,7 @@
 # editing.
 #
 # mkfsdist
-# $Id: mkfsdist,v 1.14 2003/04/21 18:57:50 kteich Exp $
+# $Id: mkfsdist,v 1.15 2003/04/23 20:24:59 kteich Exp $
 #
 # Usage: mkfsdist targetdir
 #
@@ -54,7 +54,7 @@
 #  files found in tar-exclude-more and tar-exclude-gca.
 #
 # 
-set VERSION = '$Id: mkfsdist,v 1.14 2003/04/21 18:57:50 kteich Exp $';
+set VERSION = '$Id: mkfsdist,v 1.15 2003/04/23 20:24:59 kteich Exp $';
 
 # To include the autoseg in the distribution set environment varible
 # KEEPAUTOSEG to 1 before running mkfsdist (ie, setenv KEEPAUTOSEG 1)
@@ -92,6 +92,7 @@ if($#argv < 3) then
   echo "     --no-bert-raw, --bert-raw (default yes)"
   echo "     --no-bert-recon, --bert-recon (default yes)"
   echo "     --no-bert-func, --bert-func (default yes)"
+  echo "     --no-data: equivalent to --no-average, --no-minc, --no-talairach, --no-bert-*"
   echo ""
   echo "Ex: mkfsdist ~inverse/freesurfer_alpha ~/work Linux"
   echo ""
@@ -434,69 +435,79 @@ gzip $TF
 
 
 #-- Tar up the minc bin and libs -------#
-echo "--------------------------------------------" | tee -a $LF
-echo "Tarring minc" | tee -a $LF
-date | tee -a $LF
-pushd /space/lyon/9/pubsw > /dev/null
-set TF = `basename $TARGET_DIR`/minc-$PLATFORM.tar
-rm -f $TF
-# Look for the right mni package. If found, tar it.
-set mni_platform = $PLATFORM
-if( "$PLATFORM" == "Linux" ) then
-  set mni_platform = Linux2
+if( $MINC ) then
+    echo "--------------------------------------------" | tee -a $LF
+    echo "Tarring minc" | tee -a $LF
+    date | tee -a $LF
+    pushd /space/lyon/9/pubsw > /dev/null
+    set TF = `basename $TARGET_DIR`/minc-$PLATFORM.tar
+    rm -f $TF
+    # Look for the right mni package. If found, tar it.
+    set mni_platform = $PLATFORM
+    if( "$PLATFORM" == "Linux" ) then
+	set mni_platform = Linux2
+    endif
+    if( "$PLATFORM" == "Darwin" ) then
+	set mni_platform = MacOS10.2
+    endif
+    set mnidir = ./$mni_platform/packages/mni
+    if(! -e $mnidir) then
+	echo "WARNING: cannot find $mnidir" | tee -a $LF
+    else
+	tar rv -f $TF $mnidir >> $LF
+    endif
+    gzip $TF
+    date | tee -a $LF
 endif
-if( "$PLATFORM" == "Darwin" ) then
-  set mni_platform = MacOS10.2
-endif
-set mnidir = ./$mni_platform/packages/mni
-if(! -e $mnidir) then
-  echo "WARNING: cannot find $mnidir" | tee -a $LF
-else
-  tar rv -f $TF $mnidir >> $LF
-endif
-gzip $TF
-date | tee -a $LF
 
 #----- Tar up the talairach (MNI305) subject --------#
-echo "--------------------------------------------" | tee -a $LF
-echo "Tarring talairach subject" | tee -a $LF
-pushd $SUBJECTS_DIR/talairach > /dev/null
-cd ..
-date | tee -a $LF
-set TF = $TARGET_DIR/talairach.tar.gz
-rm -f $TF
-tar cvz -f $TF ./talairach >> $LF
-date | tee -a $LF
+if( $TALAIRACH ) then
+    echo "--------------------------------------------" | tee -a $LF
+    echo "Tarring talairach subject" | tee -a $LF
+    pushd $SUBJECTS_DIR/talairach > /dev/null
+    cd ..
+    date | tee -a $LF
+    set TF = $TARGET_DIR/talairach.tar.gz
+    rm -f $TF
+    tar cvz -f $TF ./talairach >> $LF
+    date | tee -a $LF
+endif
 
 #----- Tar up berts raw anatomicals --------#
-echo "--------------------------------------------" | tee -a $LF
-date | tee -a $LF  
-pushd $BERT_ORIG_DIR > /dev/null
-pawd
-set TF = $TARGET_DIR/bert.raw.tar.gz
-rm -f $TF
-tar cvz -f $TF ./001 ./002 ./003 >> $LF
+if( $BERT_RAW ) then
+    echo "--------------------------------------------" | tee -a $LF
+    date | tee -a $LF  
+    pushd $BERT_ORIG_DIR > /dev/null
+    pawd
+    set TF = $TARGET_DIR/bert.raw.tar.gz
+    rm -f $TF
+    tar cvz -f $TF ./001 ./002 ./003 >> $LF
+endif
 
 #----- Tar up berts reconstructed anatomicals --------#
-echo "--------------------------------------------" | tee -a $LF
-date | tee -a $LF  
-pushd $BERT_ANAT_DIR > /dev/null
-cd ..
-pawd
-set TF = $TARGET_DIR/bert.recon.tar.gz
-rm -f $TF 
-tar cvz -f $TF ./bert >> $LF
+if( $BERT_RECON ) then
+    echo "--------------------------------------------" | tee -a $LF
+    date | tee -a $LF  
+    pushd $BERT_ANAT_DIR > /dev/null
+    cd ..
+    pawd
+    set TF = $TARGET_DIR/bert.recon.tar.gz
+    rm -f $TF 
+    tar cvz -f $TF ./bert >> $LF
+endif
 
 #----- Tar up Bert's functional data --------#
-echo "--------------------------------------------" | tee -a $LF
-date | tee -a $LF  
-pushd $BERT_FUNC_DIR > /dev/null
-cd ..
-echo "Tarring bert functional data" | tee -a $LF
-set TF = $TARGET_DIR/bert.func.tar.gz
-rm -f $TF
-tar cvz -f $TF ./bert-functional >> $LF
-date | tee -a $LF  
+if( $BERT_FUNC ) then
+    echo "--------------------------------------------" | tee -a $LF
+    date | tee -a $LF  
+    pushd $BERT_FUNC_DIR > /dev/null
+    cd ..
+    echo "Tarring bert functional data" | tee -a $LF
+    set TF = $TARGET_DIR/bert.func.tar.gz
+    rm -f $TF
+    tar cvz -f $TF ./bert-functional >> $LF
+    date | tee -a $LF  
+endif
 
 echo "------------------------------------------" | tee -a $LF
 
