@@ -13,11 +13,11 @@
 #include "gcarray.h"
 
 static int features = FEATURE_INTENSITY | FEATURE_MEAN3 | FEATURE_DIRECTION |
-                        FEATURE_POSITION | FEATURE_CPOLV_MEDIAN5 ;
+                        FEATURE_CPOLV_MEDIAN5 ;
 
 static int extract = 0 ;
 static int classifier = CLASSIFIER_RBF ;
-static char priors_fname[100] = "priors.mnc" ;
+static char priors_fname[100] = "none" ;
 static int  verbose = 0 ;
 
 char *Progname ;
@@ -25,13 +25,13 @@ char *Progname ;
 void main(int argc, char *argv[]) ;
 static int get_option(int argc, char *argv[]) ;
 
-#define NCLUSTERS  4
+#define NCLUSTERS  6
 
 static int nclusters = 0 ;
 
 static RBF_PARMS rbf_parms =
 {
-{ 2, NCLUSTERS, NCLUSTERS, 2}
+{ 2, NCLUSTERS, NCLUSTERS, NCLUSTERS, 2}
 } ;
 void 
 main(int argc, char *argv[])
@@ -62,6 +62,7 @@ main(int argc, char *argv[])
   {
     rbf_parms.max_clusters[GRAY_MATTER] = nclusters ;
     rbf_parms.max_clusters[WHITE_MATTER] = nclusters ;
+    rbf_parms.max_clusters[BORDER_MATTER] = nclusters ;
   }
   mric = MRICalloc(1, &classifier, &features, (void *)&rbf_parms) ;
   if ((strlen(priors_fname) > 1) && stricmp(priors_fname, "none"))
