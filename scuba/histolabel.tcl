@@ -3,8 +3,6 @@
 package require Tix
 package require BLT
 
-source /home/kteich/fsdev/trunk/dev/scripts/tkUtils.tcl
-
 # WIDGET BUILDING =========================================================
 
 proc MakeHistogram { ifwTop iwwTop args } {

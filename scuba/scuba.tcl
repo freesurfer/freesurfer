@@ -10,7 +10,7 @@ if { $err } {
     load [file dirname [info script]]/libscuba[info sharedlibextension] scuba
 }
 
-DebugOutput "\$Id: scuba.tcl,v 1.58 2004/10/08 17:22:04 kteich Exp $"
+DebugOutput "\$Id: scuba.tcl,v 1.59 2004/10/08 17:31:48 kteich Exp $"
 
 # gTool
 #   current - current selected tool (nav,)
@@ -4154,7 +4154,7 @@ proc SaveSceneScript { ifnScene } {
     set f [open $ifnScene w]
 
     puts $f "\# Scene file generated "
-    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.58 2004/10/08 17:22:04 kteich Exp $"
+    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.59 2004/10/08 17:31:48 kteich Exp $"
     puts $f ""
 
     # Find all the data collections.
@@ -4387,7 +4387,7 @@ while { $nArg < $argc } {
 
 
 # Source our support files.
-foreach sSourceFileName { tkUtils.tcl tkcon.tcl histolabel.tcl } {
+foreach sSourceFileName { tkUtils.tcl histolabel.tcl tkcon.tcl } {
     set lPath [list "$env(PWD)" ../scripts]
     if { [info exists env(DEV)] } {
 	lappend lPath "$env(DEV)/scripts"
