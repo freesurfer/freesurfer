@@ -1022,6 +1022,10 @@ MRIlinearAlign(MRI *mri_in, MRI *mri_ref, MP *parms)
   {
     if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
     {
+      if (mri_ref->nframes > 1)
+        mri_ref->mean = MRImeanFrame(mri_ref, 1) ;
+      else
+        mri_ref->mean = 1.0 ;
       rms = mriIntensityRMS(mri_in, mri_ref, parms->lta, 1.0f, &parms->in_np);
       fprintf(stderr, "before initial alignment rms = %2.3f\n", rms) ;
     }
