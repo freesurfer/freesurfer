@@ -90,16 +90,6 @@ main(int argc, char *argv[])
     mri->imnr1++ ;
   }
 
-  if (xdim != XDIM || ydim != YDIM || zdim != ZDIM)
-  {
-    MRI  *mri_tmp ;
-
-    fprintf(stderr,"reordering dimensions to (%d, %d, %d)\n",xdim,ydim,zdim);
-    mri_tmp = MRIreorder(mri, NULL, xdim, ydim, zdim) ;
-    MRIfree(&mri) ;
-    mri = mri_tmp ;
-  }
-
   if(override_size_flag)
   {
 
@@ -140,7 +130,6 @@ main(int argc, char *argv[])
   /* nc flag overrides conform */
   if(nc == 1)
     conform = 0;
-
   if (conform)
   {
     if(verbose)
@@ -148,6 +137,16 @@ main(int argc, char *argv[])
     mri2 = MRIconform(mri);
     mri = MRIcopy(mri2, NULL);
     MRIfree(&mri2);
+  }
+
+  if (xdim != XDIM || ydim != YDIM || zdim != ZDIM)
+  {
+    MRI  *mri_tmp ;
+
+    fprintf(stderr,"reordering dimensions to (%d, %d, %d)\n",xdim,ydim,zdim);
+    mri_tmp = MRIreorder(mri, NULL, xdim, ydim, zdim) ;
+    MRIfree(&mri) ;
+    mri = mri_tmp ;
   }
 
   if (transform_fname || inverse_transform_fname)
