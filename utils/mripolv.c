@@ -202,9 +202,8 @@ MRIpolvMedian(MRI *mri_src, MRI *mri_dst, MRI *mri_polv, int wsize)
            through the current origin (x,y,z).
            */
         pvals = plane_vals ;
+
         /* now find the values in this plane */
-if (DEBUG_POINT(x,y,z))
-  DiagBreak() ;
         for (yk = -whalf ; yk <= whalf ; yk++)
         {
           xbase = (float)x + (float)yk * e2_x ;
@@ -224,6 +223,87 @@ if (DEBUG_POINT(x,y,z))
         }
         qsort(plane_vals, n, sizeof(BUFTYPE), compare_sort_array) ;
         *pdst++ = plane_vals[n/2] ;
+      }
+    }
+  }
+
+  return(mri_dst) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
+MRI *
+MRIpolvOrder(MRI *mri_src, MRI *mri_dst, MRI *mri_polv, int wsize, int thresh)
+{
+  int      width, height, depth, x, y, z, whalf, xk, yk, n, vertex,xi,yi,zi,
+           *pxi, *pyi, *pzi, order ;
+  float    e1_x, e1_y, e1_z, e2_x, e2_y, e2_z, xbase, ybase, zbase ;
+  BUFTYPE  *pdst, *pptr, plane_vals[MAXLEN], *pvals ;
+
+  width = mri_src->width ;
+  height = mri_src->height ;
+  depth = mri_src->depth ;
+  whalf = (wsize-1)/2 ;
+
+  init_basis_vectors() ;
+  if (!mri_dst)
+    mri_dst = MRIclone(mri_src, NULL) ;
+
+  pxi = mri_src->xi ; pyi = mri_src->yi ; pzi = mri_src->zi ;
+  n = wsize*wsize ;
+  for (z = 0 ; z < depth ; z++)
+  {
+    DiagHeartbeat((float)z / (float)(depth-1)) ;
+    for (y = 0 ; y < height ; y++)
+    {
+      pdst = &MRIvox(mri_dst, 0, y, z) ;  /* ptr to destination */
+      pptr = &MRIvox(mri_polv, 0, y, z) ; /* ptr to normal vectors */
+      for (x = 0 ; x < width ; x++)
+      {
+        vertex = *pptr++ ;
+        e1_x = e1_x_v[vertex] ;  /* basis vectors for plane */
+        e1_y = e1_y_v[vertex] ;
+        e1_z = e1_z_v[vertex] ;
+        e2_x = e2_x_v[vertex] ;
+        e2_y = e2_y_v[vertex] ;
+        e2_z = e2_z_v[vertex] ;
+
+        /* 
+           calculate the median in the plane orthogonal to (a,b,c), 
+           through the current origin (x,y,z).
+           */
+        pvals = plane_vals ;
+
+        /* now find the values in this plane */
+        for (yk = -whalf ; yk <= whalf ; yk++)
+        {
+          xbase = (float)x + (float)yk * e2_x ;
+          ybase = (float)y + (float)yk * e2_y ;
+          zbase = (float)z + (float)yk * e2_z ;
+          for (xk = -whalf ; xk <= whalf ; xk++)
+          {
+            /* in-plane vect. is linear combination of scaled basis vects */
+            xi = nint(xbase + xk*e1_x) ;
+            xi = pxi[xi] ;
+            yi = nint(ybase + xk*e1_y) ;
+            yi = pyi[yi] ;
+            zi = nint(zbase + xk*e1_z) ;
+            zi = pzi[zi] ;
+            *pvals++ = (float)MRIvox(mri_src, xi, yi, zi) ;
+          }
+        }
+        qsort(plane_vals, n, sizeof(BUFTYPE), compare_sort_array) ;
+
+        /* find the 1st supra-threshold value in the array */
+        pvals = plane_vals ;
+        for (order = 0 ; order < n ; order++)
+          if (*pvals++ > thresh)
+            break ;
+        *pdst++ = (BUFTYPE)order ;
       }
     }
   }
@@ -820,21 +900,39 @@ init_basis_vectors(void)
     e1_x = vy*e3_z - vz*e3_y ;
     e1_y = vz*e3_x - vx*e3_z ;
     e1_z = vx*e3_y - vy*e3_x ;
+
+/* 
+   now we must scale the length of the vector so that it reaches the
+   border of the next voxel. Thus, 'diagonal' vectors must be extended
+   by sqrt(2) relative to those which lie along the cardinal axes.
+*/
+    vx = fabs(e1_x) ; vy = fabs(e1_y) ; vz = fabs(e1_z) ; /* use symmetry */
+    if ((vx > vy) && (vx > vz))  /* scale using x component */
+      len = 1.0f / vx ;
+    else if (vy > vz)            /* scale using y component */
+      len = 1.0f / vy ;
+    else                         /* scale using z component */
+      len = 1.0f / vz ;
+
+    e1_x = *pe1_x++ = e1_x * len ;   
+    e1_y = *pe1_y++ = e1_y * len ;
+    e1_z = *pe1_z++ = e1_z * len ;
     len = sqrt(e1_x*e1_x+e1_y*e1_y+e1_z*e1_z) ;
-    *pe1_x++ = e1_x / len ;   
-    *pe1_y++ = e1_y / len ;
-    *pe1_z++ = e1_z / len ;
-    e1_x /= len ; e1_y /= len ; e1_z /= len ;
 
     e2_x = e1_y*e3_z - e1_z*e3_y ;  
     e2_y = e1_x*e3_z - e1_z*e3_x ;
     e2_z = e1_y*e3_x - e1_x*e3_y ;
-    len = sqrt(e2_x*e2_x+e2_y*e2_y+e2_z*e2_z) ;
-    *pe2_x++ = e2_x / len ;   
-    *pe2_y++ = e2_y / len ;
-    *pe2_z++ = e2_z / len ;
-    e2_x /= len ; e2_y /= len ; e2_z /= len ;
-#if 0
+    vx = fabs(e2_x) ; vy = fabs(e2_y) ; vz = fabs(e2_z) ; /* use symmetry */
+    if ((vx > vy) && (vx > vz))  /* scale using x component */
+      len = 1.0f / vx ;
+    else if (vy > vz)            /* scale using y component */
+      len = 1.0f / vy ;
+    else                         /* scale using z component */
+      len = 1.0f / vz ;
+    e2_x = *pe2_x++ = e2_x * len ;   
+    e2_y = *pe2_y++ = e2_y * len ;
+    e2_z = *pe2_z++ = e2_z * len ;
+#if 1
     DiagFprintf(0L, 
               "vertex %d: (%2.2f, %2.2f, %2.2f) --> (%2.2f, %2.2f, %2.2f) "
               "x (%2.2f, %2.2f, %2.2f)\n",
