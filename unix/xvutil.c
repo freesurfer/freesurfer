@@ -91,7 +91,7 @@ static void xvFreeDimage(DIMAGE *dimage) ;
 /*----------------------------------------------------------------------
                               GLOBAL DATA
 ----------------------------------------------------------------------*/
-
+static int debug_it = 0 ;
 
 static XV_FRAME *xvf ;
 static IMAGE *GtmpFloatImage = NULL, *GtmpByteImage = NULL,
@@ -454,6 +454,9 @@ XVshowImage(XV_FRAME *xvf, int which, IMAGE *image, int frame)
   int           i, rows, cols, srows, scols, c ;
   byte          lut[MAX_COLORS] ;
 
+if (debug_it)
+  ImageWrite(image, "i0.hipl") ;
+
   dimage = xvGetDimage(which, 1) ;
   if (!dimage)
     return ;
@@ -472,6 +475,8 @@ XVshowImage(XV_FRAME *xvf, int which, IMAGE *image, int frame)
     dimage->sourceImage = image ;
     image = dimage->zoomImage ;
   }
+if (debug_it)
+  ImageWrite(dimage->zoomImage, "i1.hipl") ;
 
   scols = dimage->dispImage->cols ;
   srows = dimage->dispImage->rows ;
@@ -539,8 +544,16 @@ XVshowImage(XV_FRAME *xvf, int which, IMAGE *image, int frame)
   else
     ImageRescale(GtmpFloatImage, GtmpScaledFloatImage, scale) ;
 
+if (debug_it)
+{
+  fprintf(stderr, "scale = %2.3f (%2.3f, %2.3f)\n", scale, xscale, yscale) ;
+  ImageWrite(GtmpScaledFloatImage, "i2.hipl") ;
+}
   ImageCopy(GtmpScaledFloatImage, GtmpByteImage) ; /* convert to bytes */
   h_invert(GtmpByteImage, dimage->dispImage) ;
+
+if (debug_it)
+  ImageWrite(GtmpByteImage, "i3.hipl") ;
 
   /* use current colormap */
   substtable = (unsigned long *) xv_get(xvf->cms,CMS_INDEX_TABLE);
@@ -718,11 +731,23 @@ xv_dimage_event_handler(Xv_Window xv_window, Event *event)
     case LOC_DRAG:
       if (event_left_is_down(event))  /* draw rubber band box */
       {
+        float aspect ;
+
+        aspect = 
+          (float)dimage->sourceImage->cols / (float)dimage->sourceImage->rows;
         if (dimage->x1)   /* erase old box */
           XVdrawBox(xvf, which, dimage->x1, dimage->y1, dimage->dx1,
                     dimage->dy1, XXOR) ;
         dimage->dx1 = x - dimage->x1 ;
         dimage->dy1 = y - dimage->y1 ;
+
+#ifdef SIGN
+#undef SIGN
+#endif
+#define SIGN(a)   (a >= 0 ? 1 : -1)
+
+        /* enforce appropriate aspect ratio */
+        dimage->dx1 = SIGN(dimage->dx1) * abs(nint(aspect * dimage->dy1)) ;
         XVdrawBox(xvf, which, dimage->x1, dimage->y1, dimage->dx1,
                   dimage->dy1, XXOR) ;
       }
@@ -823,6 +848,11 @@ xv_dimage_event_handler(Xv_Window xv_window, Event *event)
         break ;
       }
       }
+      break ;
+    case 'D':
+    case 'd':
+      debug_it = 1 ;
+      XVshowImage(xvf, which, dimage->sourceImage, 0) ;
       break ;
     }
   }
