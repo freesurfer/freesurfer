@@ -28,6 +28,9 @@ typedef struct
   CLUSTER_SET  *cs[MAX_OUTPUTS] ; /* one per class */
   MATRIX       *m_wij ;           /* weights for linear part of RBF */
   MATRIX       *m_delta_wij ;     /* delta weights for linear part of RBF */
+  MATRIX       **m_delta_sigma_inv ;/* for use in momentum */
+  VECTOR       **v_delta_means ;   /* for use in momentum */
+  VECTOR       **v_z ;            /* zero-mean vectors */
   VECTOR       *v_biases ;        /* biases of linear classifier */
   VECTOR       *v_delta_biases ;  /* delta biases of linear classifier */
   VECTOR       *v_outputs ;       /* outputs of the RBF */
@@ -38,13 +41,18 @@ typedef struct
   float        momentum ;         /* current value of momentum */
   float        base_momentum ;
   float        trate ;            /* training rate */
+  CLUSTER      **clusters ;       /* pointers to CLUSTER_SET clusters */
 } RBF ;
 
 RBF   *RBFinit(int ninputs, int noutputs, int max_clusters[], char *names[]) ;
 int   RBFtrain(RBF *rbf, int (*get_observation_func)
-               (VECTOR *v_obs, int no, void *parm, int *class), void *parm) ;
+               (VECTOR *v_obs, int no, void *parm, int *class), void *parm,
+               float momentum) ;
 int   RBFfree(RBF **prbf) ;
 int   RBFprint(RBF *rbf, FILE *fp) ;
+int   RBFclassify(RBF *rbf, VECTOR *v_obs) ;
+int   RBFwrite(RBF *rbf, char *fname) ;
+RBF   *RBFread(char *fname) ;
                
 
 #endif
