@@ -9,9 +9,9 @@
 */
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2003/01/15 21:18:30 $
-// Revision       : $Revision: 1.206 $
-char *MRI_C_VERSION = "$Revision: 1.206 $";
+// Revision Date  : $Date: 2003/01/21 22:35:02 $
+// Revision       : $Revision: 1.207 $
+char *MRI_C_VERSION = "$Revision: 1.207 $";
 
 /*-----------------------------------------------------
                     INCLUDE FILES
@@ -1423,6 +1423,7 @@ MRIboundingBox(MRI *mri, int thresh, MRI_REGION *box)
   int      width, height, depth, x, y, z, x1, y1, z1 ;
   BUFTYPE  *psrc ;
   float    *pfsrc ;
+	short    *pssrc ;
 
   box->dx = width = mri->width ;
   box->dy = height = mri->height ;
@@ -1470,6 +1471,33 @@ MRIboundingBox(MRI *mri, int thresh, MRI_REGION *box)
         for (x = 0 ; x < width ; x++)
         {
           if (*pfsrc++ > thresh)
+          {
+            if (x < box->x)
+              box->x = x ;
+            if (y < box->y)
+              box->y = y ;
+            if (z < box->z)
+              box->z = z ;
+            if (x > x1)
+              x1 = x ;
+            if (y > y1)
+              y1 = y ;
+            if (z > z1)
+              z1 = z ;
+          }
+        }
+      }
+    }
+    break ;
+  case MRI_SHORT:
+    for (z = 0 ; z < depth ; z++)
+    {
+      for (y = 0 ; y < height ; y++)
+      {
+        pssrc = &MRISvox(mri, 0, y, z) ;
+        for (x = 0 ; x < width ; x++)
+        {
+          if (*pssrc++ > thresh)
           {
             if (x < box->x)
               box->x = x ;
@@ -4918,10 +4946,10 @@ MRIaffine(MRI *mri_src, MRI *mri_dst, MATRIX *mA, MATRIX *mB)
 IMAGE *
 MRItoImageView(MRI *mri, IMAGE *I, int slice, int view, int frame)
 {
-  int      width, height, depth, x, y, yp, w, h, d, *idst,
+  int      width, height, depth, x, y, yp, w, h, d,
            xm, ym, zm, format ;
-  float    *fdst ;
-  BUFTYPE  *bdst ;
+	float    fmin, fmax ;
+	Real     val ;
 
   d = w = h = xm = ym = zm = 0 ;  /* silly compiler warnings */
   width = mri->width ;
@@ -4968,10 +4996,14 @@ MRItoImageView(MRI *mri, IMAGE *I, int slice, int view, int frame)
   if (slice < 0 || slice >= d)
     ErrorReturn(NULL, (ERROR_BADPARM, "MRItoImageView: bad slice %d\n",slice));
 
+#if 0
   format = (mri->type == MRI_UCHAR) ? PFBYTE :
     mri->type == MRI_INT   ? PFINT :
       mri->type == MRI_FLOAT ? PFFLOAT : 
         mri->type == MRI_SHORT ? PFFLOAT : PFBYTE ; 
+#else
+	format = PFBYTE ;
+#endif
 
   if (I && ((I->rows != h) || (I->cols != w) || (I->pixel_format != format)))
     I = NULL ;  /* must allocate a new one */
@@ -4979,21 +5011,47 @@ MRItoImageView(MRI *mri, IMAGE *I, int slice, int view, int frame)
   if (!I)
     I = ImageAlloc(h, w, format, 1) ;
 
-  switch (mri->type)
+	fmin = 10000000 ; fmax = -fmin ;
+  for (y = 0 ; y < h ; y++)
   {
-  case MRI_SHORT:
-    idst = (int *)IMAGEIpix(I, 0, 0) ;
-    break ;
-  case MRI_INT:
-    idst = (int *)IMAGEIpix(I, 0, 0) ;
-    break ;
-  case MRI_FLOAT:
-    fdst = IMAGEFpix(I, 0, 0) ;
-    break ;
-  case MRI_UCHAR:
-    bdst = IMAGEpix(I, 0, 0) ;
-    break ;
-  }
+    yp = h - (y+1) ;   /* hips coordinate system is inverted */
+    for (x = 0 ; x < w ; x++)
+    {
+      if (view == mri->slice_direction)
+      {
+        xm = x ;
+        ym = y ;
+        zm = slice ;
+      }
+      else switch (view)   /* calculate coordinates in MR structure */
+      {
+      case MRI_CORONAL:
+        xm = x ;
+        ym = y ;
+        zm = slice ;
+        break ;
+      case MRI_SAGITTAL:
+        xm = slice ; ;
+        ym = y ;
+        zm = x ;
+        break ;
+      case MRI_HORIZONTAL:
+        xm = x ;
+        ym = slice ;
+        zm = y ;
+        break ;
+      }
+			MRIsampleVolumeFrame(mri, xm, ym, zm, frame, &val) ;
+			if (val > fmax)
+				fmax = val ;
+			if (val < fmin)
+				fmin = val ;
+		}
+	}
+
+
+	if (FZERO(fmax-fmin))
+		ErrorReturn(I, (ERROR_BADPARM, "MRItoImageView: constant image")) ;
 
   for (y = 0 ; y < h ; y++)
   {
@@ -5025,9 +5083,9 @@ MRItoImageView(MRI *mri, IMAGE *I, int slice, int view, int frame)
         break ;
       }
 
+#if 0
       switch (mri->type)
       {
-#if 1
       case MRI_INT:
         *IMAGEIpix(I, x, yp) = MRIIseq_vox(mri, xm, ym, zm, frame) ;
         break ;
@@ -5038,19 +5096,8 @@ MRItoImageView(MRI *mri, IMAGE *I, int slice, int view, int frame)
         *IMAGEpix(I, x, yp) = MRIseq_vox(mri, xm, ym, zm, frame) ;
         break ;
       case MRI_SHORT:
-        *IMAGEFpix(I, x, yp) = MRISseq_vox(mri, xm, ym, zm, frame) ;
+        *IMAGESpix(I, x, yp) = MRISseq_vox(mri, xm, ym, zm, frame) ;
         break ;
-#else
-      case MRI_INT:
-        *idst++ = MRIIvox(mri, xm, ym, zm) ;
-        break ;
-      case MRI_FLOAT:
-        *fdst++ = MRIFvox(mri, xm, ym, zm) ;
-        break ;
-      case MRI_UCHAR:
-        *bdst++ = MRIvox(mri, xm, ym, zm) ;
-        break ;
-#endif
       default:
       case MRI_LONG:
         ImageFree(&I) ;
@@ -5059,6 +5106,10 @@ MRItoImageView(MRI *mri, IMAGE *I, int slice, int view, int frame)
                      mri->type)) ;
         break ;
       }
+#else
+			MRIsampleVolumeFrame(mri, xm, ym, zm, frame, &val) ;
+			*IMAGEpix(I, x, yp) = (byte)(255.0 * (val - fmin) / (fmax - fmin)) ;
+#endif
     }
   }
 
