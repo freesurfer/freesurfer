@@ -157,6 +157,10 @@ static double mrisComputeRepulsiveEnergy(MRI_SURFACE *mris,
                                          double l_repulse, MHT *mht_v) ;
 static int    mrisComputeRepulsiveTerm(MRI_SURFACE *mris,
                                          double l_repulse, MHT *mht_v) ;
+static double mrisComputeRepulsiveRatioEnergy(MRI_SURFACE *mris,
+                                         double l_repulse, MHT *mht_v) ;
+static int    mrisComputeRepulsiveRatioTerm(MRI_SURFACE *mris,
+                                         double l_repulse, MHT *mht_v) ;
 static int    mrisComputeSurfaceRepulsionTerm(MRI_SURFACE *mris, 
                                               double l_repulse, MHT *mht);
 static int    mrisComputeThicknessSmoothnessTerm(MRI_SURFACE *mris,
@@ -4696,6 +4700,7 @@ MRISintegrate(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int n_averages)
   double  l_dist, l_area, l_spring, sse, old_sse, delta_t, total_small = 0.0, 
           sse_thresh, pct_neg, pct_neg_area, total_vertices, tol
           /*, scale, last_neg_area */ ;
+  MHT     *mht_v_current = NULL ;
 
   if (Gdiag & DIAG_WRITE && parms->fp == NULL)
   {
@@ -4766,6 +4771,10 @@ MRISintegrate(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int n_averages)
   /*  mrisClearMomentum(mris) ;*/
   for (parms->t = t = parms->start_t ; t < niterations ; t++)
   {
+    if (!FZERO(parms->l_repulse_ratio))
+      mht_v_current = 
+        MHTfillVertexTableRes(mris, mht_v_current,CURRENT_VERTICES, 3.0);
+
     if (!FZERO(parms->l_curv))
       MRIScomputeSecondFundamentalForm(mris) ;
 
@@ -4780,6 +4789,7 @@ MRISintegrate(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int n_averages)
     mrisComputeNegTerm(mris, parms) ;
     mrisComputeBoundaryTerm(mris, parms) ;
 #endif
+    mrisComputeRepulsiveRatioTerm(mris, parms->l_repulse_ratio, mht_v_current);
 
     mrisAverageGradients(mris, n_averages) ;
     mrisComputeSpringTerm(mris, parms->l_spring) ;
@@ -4864,6 +4874,9 @@ MRISintegrate(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int n_averages)
     if (FZERO(delta_t))   /* reached the minimum */
       break ;
   }
+
+  if (!FZERO(parms->l_repulse))
+    MHTfree(&mht_v_current) ;
 
   parms->ending_sse = mrisComputeSSE(mris, parms) ;
   /*  mrisProjectSurface(mris) ;*/
@@ -4967,7 +4980,8 @@ mrisComputeSSE(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
 {
   double  sse, sse_area, sse_angle, delta, sse_curv, sse_spring, sse_dist,
           area_scale, sse_corr, sse_neg_area, l_corr, sse_val, sse_sphere,
-          sse_grad, sse_nl_area, sse_tspring, sse_repulse, sse_tsmooth ;
+          sse_grad, sse_nl_area, sse_tspring, sse_repulse, sse_tsmooth,
+          sse_repulsive_ratio;
   int     ano, fno ;
   FACE    *face ;
 
@@ -5011,6 +5025,8 @@ mrisComputeSSE(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
     }
   }
   sse_repulse = mrisComputeRepulsiveEnergy(mris, parms->l_repulse, NULL) ;
+  sse_repulsive_ratio = 
+    mrisComputeRepulsiveRatioEnergy(mris, parms->l_repulse_ratio, NULL) ;
   sse_tsmooth = mrisComputeThicknessSmoothnessEnergy(mris, parms->l_tsmooth) ;
   if (!FZERO(parms->l_nlarea))
     sse_nl_area = mrisComputeNonlinearAreaSSE(mris) ;
@@ -5036,7 +5052,7 @@ mrisComputeSSE(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
 
   sse = 
     (double)parms->l_area      * sse_neg_area + sse_repulse + sse_tsmooth +
-    (double)parms->l_sphere    * sse_sphere + 
+    (double)parms->l_sphere    * sse_sphere + sse_repulsive_ratio +
     (double)parms->l_intensity * sse_val + 
     (double)parms->l_grad      * sse_grad + 
     (double)parms->l_parea     * sse_area + 
@@ -5415,6 +5431,9 @@ mrisAverageGradients(MRI_SURFACE *mris, int num_avgs)
   float  dx, dy, dz, num, sigma ;
   VERTEX *v, *vn ;
   MRI_SP *mrisp, *mrisp_blur ;
+
+  if (num_avgs <= 0)
+    return(NO_ERROR) ;
 
   if (Gdiag_no >= 0)
   {
@@ -5984,7 +6003,7 @@ mrisMomentumTimeStep(MRI_SURFACE *mris, float momentum, float dt, float tol,
 {
   double  delta_t, mag ;
   int     vno ;
-  VERTEX  *vertex ;
+  VERTEX  *v ;
 #if 0
   double  max_delta ;
   float   dx, dy, dz ;
@@ -5998,10 +6017,10 @@ mrisMomentumTimeStep(MRI_SURFACE *mris, float momentum, float dt, float tol,
   max_delta = 0.0 ;
   for (vno = 0 ; vno < mris->nvertices ; vno++)
   {
-    vertex = &mris->vertices[vno] ;
-    if (vertex->ripflag)
+    v = &mris->vertices[vno] ;
+    if (v->ripflag)
       continue ;
-    dx = vertex->dx ; dy = vertex->dy ; dz = vertex->dz ;
+    dx = v->dx ; dy = v->dy ; dz = v->dz ;
     mag = sqrt(dx*dx+dy*dy+dz*dz) ;
     if (mag > max_delta)
       max_delta = mag ;
@@ -6023,31 +6042,40 @@ mrisMomentumTimeStep(MRI_SURFACE *mris, float momentum, float dt, float tol,
   }
   else for (vno = 0 ; vno < mris->nvertices ; vno++)
   {
-    vertex = &mris->vertices[vno] ;
-    if (vertex->ripflag)
+    v = &mris->vertices[vno] ;
+    if (v->ripflag)
       continue ;
     if (vno == Gdiag_no)
       DiagBreak() ;
-    vertex->odx = delta_t * vertex->dx + momentum*vertex->odx ;
-    vertex->ody = delta_t * vertex->dy + momentum*vertex->ody ;
-    vertex->odz = delta_t * vertex->dz + momentum*vertex->odz ;
+    v->odx = delta_t * v->dx + momentum*v->odx ;
+    v->ody = delta_t * v->dy + momentum*v->ody ;
+    v->odz = delta_t * v->dz + momentum*v->odz ;
     mag = 
-      sqrt(vertex->odx*vertex->odx + 
-           vertex->ody*vertex->ody +
-           vertex->odz*vertex->odz) ;
+      sqrt(v->odx*v->odx + 
+           v->ody*v->ody +
+           v->odz*v->odz) ;
     if (mag > MAX_MOMENTUM_MM) /* don't let step get too big */
     {
       mag = MAX_MOMENTUM_MM / mag ;
-      vertex->odx *= mag ; vertex->ody *= mag ; vertex->odz *= mag ;
+      v->odx *= mag ; v->ody *= mag ; v->odz *= mag ;
     }
     if (vno == Gdiag_no)
-      fprintf(stderr, "moving v %d by (%2.3f, %2.3f, %2.3f) --> "
-              "(%2.1f, %2.1f, %2.1f), nz=%2.2f, a=%2.3f\n",
-              vno, vertex->odx, vertex->ody, vertex->odz,
-              vertex->x, vertex->y, vertex->z, vertex->nz,vertex->area) ;
-    vertex->x += vertex->odx ; 
-    vertex->y += vertex->ody ;
-    vertex->z += vertex->odz ;
+    {
+      float dist, dot, dx, dy, dz ;
+
+      dx = v->x - v->origx ; dy = v->y - v->origy ; dz = v->z - v->origz ; 
+      dist = sqrt(dx*dx+dy*dy+dz*dz) ;
+      dot = dx*v->nx + dy*v->ny + dz*v->nz ;
+      fprintf(stderr, "moving v %d by (%2.2f, %2.2f, %2.2f) dot=%2.2f-->"
+              "(%2.1f, %2.1f, %2.1f)\n", vno, v->odx, v->ody, v->odz, 
+              v->odx*v->nx+v->ody*v->ny+v->odz*v->nz,
+              v->x, v->y, v->z) ;
+      fprintf(stderr, "n = (%2.1f,%2.1f,%2.1f), total dist=%2.3f, total dot = %2.3f\n", 
+              v->nx, v->ny, v->nz, dist, dot) ;
+    }
+    v->x += v->odx ; 
+    v->y += v->ody ;
+    v->z += v->odz ;
   }
 
   mrisProjectSurface(mris) ;
@@ -9400,6 +9428,7 @@ MRISinflateToSphere(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
 {
   int     n_averages, n, write_iterations, niterations, base_averages ;
   double  delta_t = 0.0, rms_radial_error, sse, base_dt ;
+  MHT     *mht_v_current = NULL ;
 
   if (IS_QUADRANGULAR(mris))
     MRISremoveTriangleLinks(mris) ;
@@ -9484,15 +9513,19 @@ MRISinflateToSphere(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
     /*    parms->dt = (sqrt((float)n_averages)+1)*base_dt ;*/
     for (n = parms->start_t ; n < parms->start_t+niterations ; n++)
     {
+      if (!FZERO(parms->l_repulse_ratio))
+        mht_v_current =
+          MHTfillVertexTableRes(mris,mht_v_current,CURRENT_VERTICES, 3.0f);
       mrisClearGradient(mris) ;
       mrisComputeDistanceTerm(mris, parms) ;
       mrisComputeSphereTerm(mris, parms->l_sphere, parms->a) ;
       mrisComputeExpansionTerm(mris, parms->l_expand) ;
+      mrisComputeRepulsiveRatioTerm(mris,parms->l_repulse_ratio,mht_v_current);
+      mrisComputeConvexityTerm(mris, parms->l_convex) ;
       
       mrisAverageGradients(mris, n_averages) ;
       mrisComputeSpringTerm(mris, parms->l_spring) ;
       mrisComputeNormalizedSpringTerm(mris, parms->l_spring_norm) ;
-      mrisComputeConvexityTerm(mris, parms->l_convex) ;
       switch (parms->integration_type)
       {
       case INTEGRATE_LM_SEARCH:
@@ -9546,6 +9579,8 @@ MRISinflateToSphere(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
     fclose(parms->fp) ;
     parms->fp = NULL ;
   }
+  if (!FZERO(parms->l_repulse))
+    MHTfree(&mht_v_current) ;
 
   return(NO_ERROR) ;
 }
@@ -10938,11 +10973,14 @@ mrisComputeSphereTerm(MRI_SURFACE *mris, double l_sphere, float radius)
 
     x = v->x-x0 ; y = v->y-y0 ; z = v->z-z0 ;
     r = sqrt(x*x+y*y+z*z) ;
-    x /= r ; y /= r ; z /= r ;
+    x /= r ; y /= r ; z /= r ;  /* normal direction */
     r = (radius - r) / radius ;
     v->dx += r*l_sphere * x ;
     v->dy += r*l_sphere * y ;
     v->dz += r*l_sphere * z ;
+    if (vno == Gdiag_no)
+      fprintf(stderr, "v %d sphere    term: (%2.3f, %2.3f, %2.3f), r=%2.2f\n",
+              vno, v->dx, v->dy, v->dz, r) ;
   }
   
 
@@ -11181,7 +11219,7 @@ mrisComputeNormalizedSpringTerm(MRI_SURFACE *mris, double l_spring)
     v->dy += l_spring * sy ;
     v->dz += l_spring * sz ;
     if (vno == Gdiag_no)
-      fprintf(stderr, "v %d spring norm term: (%2.3f, %2.3f, %2.3f)\n",
+      fprintf(stderr, "v %d spring nm term: (%2.3f, %2.3f, %2.3f)\n",
               vno, v->dx, v->dy, v->dz) ;
   }
   dot_total /= num ;
@@ -11565,6 +11603,8 @@ mrisLogIntegrationParms(FILE *fp, MRI_SURFACE *mris,INTEGRATION_PARMS *parms)
     fprintf(fp, ", l_angle=%2.3f", parms->l_angle) ;
   if (!FZERO(parms->l_repulse))
     fprintf(fp, ", l_repulse=%2.3f", parms->l_repulse) ;
+  if (!FZERO(parms->l_repulse_ratio))
+    fprintf(fp, ", l_repulse_ratio=%2.3f", parms->l_repulse_ratio) ;
   if (!FZERO(parms->l_surf_repulse))
     fprintf(fp, ", l_surf_repulse=%2.3f", parms->l_surf_repulse) ;
   if (!FZERO(parms->l_corr))
@@ -11901,6 +11941,56 @@ mrisComputeRepulsiveEnergy(MRI_SURFACE *mris, double l_repulse, MHT *mht_v)
 
         Description
 ------------------------------------------------------*/
+#define REPULSE_K   0.05
+#define REPULSE_E   0.1
+
+static double
+mrisComputeRepulsiveRatioEnergy(MRI_SURFACE *mris, double l_repulse,MHT *mht_v)
+{
+  int     vno, n ;
+  double  sse_repulse, v_sse, dist, dx, dy, dz, x, y, z, canon_dist,
+          cdx, cdy, cdz ;
+  VERTEX  *v, *vn ;
+
+  if (FZERO(l_repulse))
+    return(0.0) ;
+
+  for (sse_repulse = 0.0, vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    if (v->ripflag)
+      continue ;
+
+    x = v->x ; y = v->y ; z = v->z ; 
+    for (v_sse = 0.0, n = 0 ; n < v->vnum ; n++)
+    {
+      vn = &mris->vertices[v->v[n]] ;
+      if (!vn->ripflag)
+      {
+        dx = x - vn->x ; dy = y - vn->y ; dz = z - vn->z ; 
+        dist = sqrt(dx*dx+dy*dy+dz*dz) ;
+        cdx = vn->cx - v->cx ; cdy = vn->cy - v->cy ; cdz = vn->cz - v->cz ; 
+        canon_dist = sqrt(cdx*cdx+cdy*cdy+cdz*cdz) + REPULSE_E ;
+        dist /= canon_dist ;
+        dist += REPULSE_E ;
+#if 0
+        v_sse += REPULSE_K / (dist*dist*dist*dist) ;
+#else
+        v_sse += REPULSE_K / (dist*dist) ;
+#endif
+      }
+    }
+    sse_repulse += v_sse ;
+  }
+  return(l_repulse * sse_repulse) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
 static int
 mrisComputeThicknessSmoothnessTerm(MRI_SURFACE *mris, double l_tsmooth)
 {
@@ -12010,7 +12100,89 @@ mrisComputeRepulsiveTerm(MRI_SURFACE *mris, double l_repulse, MHT *mht)
     {
       vn = &mris->vertices[min_vno] ;
       dx = x - vn->x ; dy = y - vn->y ; dz = z - vn->z ; 
+      
+      fprintf(stderr, "v %d repulse term:        (%2.3f, %2.3f, %2.3f)\n",
+              vno, sx, sy, sz) ;
+      fprintf(stderr, "min_dist @ %d = %2.2f, scale = %2.1f\n",
+              min_vno, min_d, min_scale) ;
+    }
+  }
+  return(NO_ERROR) ;
+}
+/*-----------------------------------------------------
+        Parameters:
 
+        Returns value:
+
+        Description
+------------------------------------------------------*/
+static int
+mrisComputeRepulsiveRatioTerm(MRI_SURFACE *mris, double l_repulse, MHT *mht)
+{
+  int     vno, num, min_vno, i ;
+  float   dist, dx, dy, dz, x, y, z, sx, sy, sz, min_d, min_scale, canon_dist,
+          cdx, cdy, cdz ;
+  double  scale ;
+  VERTEX  *v, *vn ;
+  MHBT    *bucket ;
+  MHB     *bin ;
+
+  if (FZERO(l_repulse))
+    return(NO_ERROR) ;
+
+  min_d = 1000.0 ; min_scale = 1.0 ; min_vno = 0 ;
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    if (v->ripflag)
+      continue ;
+    x = v->x ; y = v->y ; z = v->z ; 
+    bucket = MHTgetBucket(mht, x, y, z) ;
+    if (!bucket)
+      continue ;
+    sx = sy = sz = 0.0 ;
+    for (bin = bucket->bins, num = i = 0 ; i < bucket->nused ; i++, bin++)
+    {
+      if (bin->fno == vno)
+        continue ;  /* don't be repelled by myself */
+      vn = &mris->vertices[bin->fno] ;
+      if (!vn->ripflag)
+      {
+        dx = vn->x - x ; dy = vn->y - y ; dz = vn->z - z ; 
+        dist = sqrt(dx*dx+dy*dy+dz*dz) ;
+        cdx = vn->cx - v->cx ; cdy = vn->cy - v->cy ; cdz = vn->cz - v->cz ; 
+        canon_dist = sqrt(cdx*cdx+cdy*cdy+cdz*cdz) + REPULSE_E ;
+        dist /= canon_dist ;
+        dist += REPULSE_E ;
+#if 0
+        scale = -4*REPULSE_K / (dist*dist*dist*dist*dist) ;
+#else
+        scale = -4*REPULSE_K / (dist*dist*dist) ;
+#endif
+        if (vno == Gdiag_no)
+        {
+          if (dist-REPULSE_E < min_d)
+          {
+            min_vno = bin->fno ;
+            min_d = dist-REPULSE_E ;
+            min_scale = scale ;
+          }
+        }
+        sx += scale * dx ; sy += scale * dy ; sz += scale*dz ;
+        num++ ;
+      }
+    }
+    if (num)
+    {
+      scale = l_repulse / (double)num ;
+      sx *= scale ; sy *= scale ; sz *= scale ;
+    }
+    v->dx += sx ; v->dy += sy ; v->dz += sz ;
+    if (vno == Gdiag_no)
+    {
+      vn = &mris->vertices[min_vno] ;
+      dx = x - vn->x ; dy = y - vn->y ; dz = z - vn->z ; 
+      
       fprintf(stderr, "v %d repulse term:        (%2.3f, %2.3f, %2.3f)\n",
               vno, sx, sy, sz) ;
       fprintf(stderr, "min_dist @ %d = %2.2f, scale = %2.1f\n",
