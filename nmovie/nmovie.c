@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "error.h"
+#include "proto.h"
 
 #include <X11/Xlib.h>
 #include <X11/Intrinsic.h>
