@@ -35,7 +35,7 @@
 #include "tiffio.h"
 #include "label.h"
 
-static char vcid[] = "$Id: mris2rgb.c,v 1.23 1999/02/05 18:11:06 fischl Exp $";
+static char vcid[] = "$Id: mris2rgb.c,v 1.24 1999/05/20 00:33:29 fischl Exp $";
 
 /*-------------------------------- CONSTANTS -----------------------------*/
 
@@ -370,6 +370,7 @@ main(int argc, char *argv[])
     mark_centroids(mris, centroid_fnames, centroid_colors, centroid_files) ;
     if (mrisp)
     {
+      MRISsaveVertexPositions(mris, TMP_VERTICES) ;
       MRISrestoreVertexPositions(mris, CANONICAL_VERTICES) ;
       if (normalize_param)
       {
@@ -377,7 +378,7 @@ main(int argc, char *argv[])
       }
       else
         MRISfromParameterization(mrisp, mris, 0) ;
-      MRISrestoreVertexPositions(mris, ORIGINAL_VERTICES) ;
+      MRISrestoreVertexPositions(mris, TMP_VERTICES) ;
     }
     if (curvature_fname)
       MRISreadCurvatureFile(mris, curvature_fname) ;
