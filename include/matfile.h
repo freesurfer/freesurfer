@@ -23,6 +23,7 @@ typedef struct
     char  *idata ;
 } MATFILE ;
 
+char    *MatReadHeader(FILE *fp, MATFILE *mf) ;
 MATFILE *MatFileRead(const char *fname, int type) ;
 MATRIX  *MatlabRead(const char *fname) ;
 int     MatlabWrite(MATRIX *mat, const char *fname, char *name) ;

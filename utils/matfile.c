@@ -8,7 +8,6 @@
 #include "diag.h"
 #include "proto.h"
 
-static char   *readMatHeader(FILE *fp, MATFILE *mf) ;
 static double **matAlloc(int rows, int ncols) ;
 static void   matFree(double **matrix, int nrows, int ncols) ;
 static int    readMatFile(FILE *fp, MATFILE *mf, double **real_matrix, 
@@ -58,7 +57,7 @@ MatlabRead(const char *fname)
 
   DiagPrintf(DIAG_WRITE, "MatlabRead: reading header\n");
 
-  name = readMatHeader(fp, &mf) ;
+  name = MatReadHeader(fp, &mf) ;
   if(name==NULL) 
   {
     ErrorPrintf(ERROR_BADFILE, "MatlabRead: readHeader returned NULL\n");
@@ -132,7 +131,7 @@ MatFileRead(const char *fname, int type)
         return(NULL) ;
 
     mf = (MATFILE *)calloc(1, sizeof(MATFILE)) ;      
-    name = readMatHeader(fp, mf) ;
+    name = MatReadHeader(fp, mf) ;
 
     real_matrix = matAlloc((int)mf->mrows, (int)mf->ncols) ;
     if (mf->imagf)
@@ -442,13 +441,13 @@ readMatFile(FILE *fp, MATFILE *mf, double **real_matrix, double **imag_matrix)
   return(type) ;
 }
 
-static char *
-readMatHeader(FILE *fp, MATFILE *mf)
+char *
+MatReadHeader(FILE *fp, MATFILE *mf)
 {
     int   nitems ;
     char  *name ;
 
-DiagPrintf(DIAG_WRITE, "readMatHeader: fp=%lx, mf=%lx\n",fp,mf);    
+DiagPrintf(DIAG_WRITE, "MatReadHeader: fp=%lx, mf=%lx\n",fp,mf);    
 
     nitems = fread(mf, 1, sizeof(MATHD), fp) ; 
     if (nitems != sizeof(MATHD))
@@ -468,7 +467,7 @@ DiagPrintf(DIAG_WRITE, "readMatHeader: fp=%lx, mf=%lx\n",fp,mf);
     DiagPrintf(DIAG_WRITE, "after swap, type = %ld\n", mf->type) ;
 #endif
 
-    DiagPrintf(DIAG_WRITE, "readMatHeader: nitems = %d, namelen=%d\n",
+    DiagPrintf(DIAG_WRITE, "MatReadHeader: nitems = %d, namelen=%d\n",
        nitems,(int)mf->namlen+1);
 
     name = (char *)calloc((int)mf->namlen+1, sizeof(char)) ;
