@@ -6,6 +6,7 @@
 #include "utils.h"
 #include <sys/time.h>
 
+double round(double x);
 
 /*----------------------------------------------------------------
   PDFtodSeed() - generate a random seed based on the time-of-day.
@@ -65,21 +66,25 @@ double PDFerlang(int order)
 /*----------------------------------------------------------------
   PDFsampleCDF() - sample a value from the given CDF. The resulting
   data will be distributed with the PDF that created the CDF.  cdf[n]
-  is the probability that the random number will be <= xcdf[n].  This
-  is a fairly inefficient implementation. See also
-  PDFloadCDF(). 
+  is the probability that the random number will be <= xcdf[n].  See 
+  also PDFloadCDF(). 
   -------------------------------------------------------------------*/
 double PDFsampleCDF(double *xcdf, double *cdf, int ncdf)
 {
-  double u, x=0, d, dmin;
+  double u;
   int n;
 
   u = drand48();
+  n = PDFsearchOrderedTable(u, cdf, ncdf);
+  return(xcdf[n]);
 
+#if 0 
+  // This is the old brute-force method
   // This can be done much more efficiently by searching
   // an ordered table.
-  dmin = 10;
-  for(n=0; n < ncdf; n++){
+  dmin = fabs(u-cdf[0]);
+  x = xcdf[0];
+  for(n=1; n < ncdf; n++){
     d = fabs(u-cdf[n]);
     if(dmin > d){
       dmin = d;
@@ -87,18 +92,48 @@ double PDFsampleCDF(double *xcdf, double *cdf, int ncdf)
     }
   }
   return(x);
+#endif
+
+}
+/*----------------------------------------------------------------
+  PDFsearchOrderedTable() - returns the index in y such that y(index)
+  is closest to u. Assumes that y is sorted from lowest to highest.
+  ----------------------------------------------------------------*/
+int PDFsearchOrderedTable(double u, double *y, int ny)
+{
+  int n1, n2, n3;
+  
+  n1 = 0;
+  n2 = (int) round(ny/2);
+  n3 = ny-1;
+  while( n1 != n2 && n2 != n3 ){
+    //printf("n2 = %d, cdf[n2] = %g\n",n2,y[n2]);
+    if(y[n2] <= u){
+      n1 = n2;
+      n2 = (int)round((n2+n3)/2);
+    }
+    else{
+      n3 = n2;
+      n2 = (int)round((n1+n2)/2);
+    }
+  }
+  //printf("n2 = %d, cdf[n2] = %g\n",n2,y[n2]);
+  if(n2+1 < ny && fabs(y[n2]-u) > fabs(y[n2+1]-u)) n2 = n2+1;
+  //printf("n2 = %d, cdf[n2] = %g\n",n2,y[n2]);
+  return(n2);
 }
 
+
 /*----------------------------------------------------------------
-  PDFloadCDF() - read in a CDF. The file format is that the first
-  line has the number of rows. Each row has two columns. The first
-  column is the x at which the cdf is sampled, the second column
-  is the value of the cdf. See also PDFsampleCDF().
+  PDFloadCDF() - read in a CDF. The file format is that each row has
+  two columns. The first column is the x at which the cdf is sampled,
+  the second column is the value of the cdf. See also PDFsampleCDF(). 
   ----------------------------------------------------------------*/
 int PDFloadCDF(char *fname, double **xcdf, double **cdf, int *ncdf)
 {
   FILE *fp;
   int n;
+  char tmpstring[1000];
 
   fp = fopen(fname,"r");
   if(fp == NULL){
@@ -106,7 +141,11 @@ int PDFloadCDF(char *fname, double **xcdf, double **cdf, int *ncdf)
     return(1);
   }
 
-  fscanf(fp,"%d",ncdf);
+  //Count the number of rows
+  *ncdf = 0;
+  while(fgets(tmpstring,1000,fp) != NULL) (*ncdf)++;
+  fclose(fp);
+  fp = fopen(fname,"r");
   //printf("ncdf = %d\n",*ncdf);
 
   *xcdf = (double *) calloc(*ncdf,sizeof(double));
