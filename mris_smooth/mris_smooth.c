@@ -14,7 +14,7 @@
 #include "macros.h"
 #include "version.h"
 
-static char vcid[] = "$Id: mris_smooth.c,v 1.10 2003/05/15 20:20:48 fischl Exp $";
+static char vcid[] = "$Id: mris_smooth.c,v 1.11 2003/05/29 14:43:38 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -36,6 +36,7 @@ static double gaussian_norm = 0 ;
 static int write_iterations = 0 ;
 static double l_spring = 1.0 ;
 static float momentum = 0.5 ;
+static int no_write = 0 ;
 
 int
 main(int argc, char *argv[])
@@ -45,7 +46,7 @@ main(int argc, char *argv[])
   MRI_SURFACE        *mris ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_smooth.c,v 1.10 2003/05/15 20:20:48 fischl Exp $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_smooth.c,v 1.11 2003/05/29 14:43:38 fischl Exp $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -132,12 +133,15 @@ main(int argc, char *argv[])
     MRISnormalizeCurvature(mris) ;
   sprintf(fname, "%s.%s", mris->hemisphere == LEFT_HEMISPHERE?"lh":"rh",
           curvature_fname);
-  fprintf(stderr, "writing smoothed curvature to %s/%s\n", path,fname) ;
-  MRISwriteCurvature(mris, fname) ;
-  sprintf(fname, "%s.%s", mris->hemisphere == LEFT_HEMISPHERE?"lh":"rh",
-          area_fname);
-  fprintf(stderr, "writing smoothed area to %s/%s\n", path, fname) ;
-  MRISwriteArea(mris, fname) ;
+	if (no_write == 0)
+	{
+		fprintf(stderr, "writing smoothed curvature to %s/%s\n", path,fname) ;
+		MRISwriteCurvature(mris, fname) ;
+		sprintf(fname, "%s.%s", mris->hemisphere == LEFT_HEMISPHERE?"lh":"rh",
+						area_fname);
+		fprintf(stderr, "writing smoothed area to %s/%s\n", path, fname) ;
+		MRISwriteArea(mris, fname) ;
+	}
   
   if (Gdiag & DIAG_SHOW)
     fprintf(stderr, "writing smoothed surface to %s\n", out_fname) ;
@@ -170,6 +174,8 @@ get_option(int argc, char *argv[])
   }
   else if (!stricmp(option, "normalize"))
     normalize_flag = 1 ;
+  else if (!stricmp(option, "nw"))
+    no_write = 1 ;
   else switch (toupper(*option))
   {
 	case 'M':
