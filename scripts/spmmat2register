@@ -1,6 +1,6 @@
 #!/bin/csh -f
 
-set SPMMAT2REGISTER_VER = '$Id: spmmat2register,v 1.7 2000/06/07 21:32:26 greve Exp $';
+set SPMMAT2REGISTER_VER = '$Id: spmmat2register,v 1.8 2000/06/08 20:27:03 greve Exp $';
 
 set OutStream = /dev/null;
 set funcvol   = ();
@@ -50,11 +50,13 @@ rm -f $regfile
 #-----------------------------------------------------------------#
 $TARGET > $OutStream <<EOF
 
-  SlcOrient = '$SlcOrient';
   StructVol = '$structvol.img';
   FuncVol   = '$funcvol.img';
-  CoorDef   = '$CoorDef';
 
+%-----begin ignore ------------------%
+  CoorDef   = '$CoorDef';
+  SlcOrient = '$SlcOrient';
+if(0) 
   % Load in the StructSubscript to Functional mm Matrix (SPM Space) %
   Ma = spm_get_space(StructVol);
 
@@ -73,6 +75,8 @@ $TARGET > $OutStream <<EOF
 
   % Load header of functional volume %
   [DIM VOX SCALE TYPE OFFSET ORIGIN DESCRIP] = spm_hread(FuncVol);
+  fdim = DIM;
+  fvox = abs(VOX);
 
   % Compute the amount that the center of the space must be shifted %
   if(~isempty(find(ORIGIN~=0)))
@@ -110,7 +114,36 @@ $TARGET > $OutStream <<EOF
   end
 
   % Compute the matrix for register.dat %
-  Mreg = Qfp*inv(Qf)*Ma*inv(Qs)*Hmm;
+  % Mreg = Qfp*inv(Qf)*Ma*inv(Qs)*Hmm;
+
+end
+%----- end ignore ---------------%
+
+  % Load header of functional volume %
+  [DIM VOX SCALE TYPE OFFSET ORIGIN DESCRIP] = spm_hread(FuncVol);
+  fdim = DIM;
+  fvox = abs(VOX);
+
+  %% MGH-style Quantization matrix for functional volume  %
+  Qfmgh = [-fvox(1)      0       0     fvox(1)*(fdim(1)-1)/2; ...
+              0          0    fvox(3) -fvox(3)*(fdim(3)-1)/2; ...
+              0      -fvox(2)    0     fvox(2)*(fdim(2)-1)/2; ...
+              0          0       0       1];
+
+  %% MGH-style Quantization matrix for structural volume  %
+  Qcmgh = [-1     0     0   127.5; ...
+            0     0     1  -127.5
+            0    -1     0   127.5
+            0     0     0     1];
+
+  %% SPM-style Quantization matrix for functional volume  %
+  Qfspm = spm_get_space(FuncVol);
+
+  %% SPM-style Quantization matrix for structural volume  %
+  Qcspm = spm_get_space(StructVol);
+
+  Mreg = Qfmgh*inv(Qfspm)*Qcspm*inv(Qcmgh);
+
 
   SubjName = '$subject';
   fid = fopen('$regfile','w');
@@ -120,8 +153,8 @@ $TARGET > $OutStream <<EOF
     quit;
   end
   fprintf(fid,'%s\n',SubjName);
-  fprintf(fid,'%8.4f\n',dvf(1));
-  fprintf(fid,'%8.4f\n',dvf(3));
+  fprintf(fid,'%8.4f\n',fvox(1));
+  fprintf(fid,'%8.4f\n',fvox(3));
   fprintf(fid,'%8.4f\n',$Intensity);
   fprintf(fid,'%8.4f %8.4f %8.4f %8.4f\n',Mreg'); %'
   fclose(fid);
