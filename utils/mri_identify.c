@@ -177,23 +177,6 @@ int is_cor(char *fname)
 
 }  /*  end is_cor()  */
 
-int is_bruker(char *fname)
-{
-  struct stat stat_buf;
-  char methodFile[512];
-  char acqpFile[512];
-  char dataFile[512];
-  char d3procFile[512];
-
-  if(stat(fname, &stat_buf) < 0)
-    return(0);
-
-  /* if it's a directory, it's a COR dir. */
-  if(!S_ISDIR(stat_buf.st_mode))
-    return 0;
-  // must check all these files exist or not
-  return checkBrukerFiles(fname, methodFile, acqpFile, dataFile, d3procFile, 0);
-}
 
 int is_brik(char *fname)
 {
