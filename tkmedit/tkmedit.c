@@ -3,10 +3,10 @@
   ===========================================================================*/
 
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2003/05/16 22:26:56 $
-// Revision       : $Revision: 1.148 $
-char *VERSION = "$Revision: 1.148 $";
+// Revision Author: $Author: kteich $
+// Revision Date  : $Date: 2003/05/19 21:27:44 $
+// Revision       : $Revision: 1.149 $
+char *VERSION = "$Revision: 1.149 $";
 
 #define TCL
 #define TKMEDIT 
@@ -559,28 +559,21 @@ void SetSegmentationValues   ( tkm_tSegType iVolume,
 
 /* Flood fills a segmentation volume with various parameters. */
 typedef struct {
-  int      mnTargetValue;      /* the value to look for */
-  int      mnFuzziness;        /* the range around the target value */
-  int      mnDistance;        /* maximum distance to affect */
-  xVoxel   mAnchor;        /* the anchor of the fill */
-  tBoolean mb3D;          /* whether to go in all directions */
-  mri_tOrientation mOrientation;      /* plane to go in if 2D */
-  tkm_tVolumeTarget mSource;        /* what volume to get the target val */
-  int      mnNewIndex;        /* new value to set in the parc */
-  int      mnIterationDepth;   /* how many iteration levels currently */
-  int      mnIterationLimit;   /* how deep to go */
-  tBoolean mbIterationLimitReached; /* whether we were stopped by the limit */
-} tkm_tParcFloodFillParams, *tkm_tParcFloodFillParamsRef;
+  tkm_tSegType mTargetVolume;
+  int          mnNewSegLabel;
+} tkm_tFloodFillCallbackData;
+tkm_tErr FloodFillSegmentation ( tkm_tSegType      iVolume,
+				 xVoxelRef         iAnaIdx,
+				 int               inIndex,
+				 tBoolean          ib3D,
+				 tkm_tVolumeTarget iSrc,
+				 int               inFuzzy,
+				 int               inDistance );
+/* Callback for the flood. */
+Volm_tVisitCommand FloodFillSegmentationCallback ( xVoxelRef iAnaIdx,
+						   float     iValue,
+						   void*     iData );
 
-void FloodFillSegmentation        ( tkm_tSegType                iVolume,
-				    xVoxelRef                   iAnaIdx,
-				    tkm_tParcFloodFillParamsRef iParams );
-void IterateFloodFillSegmentation ( tkm_tSegType                iVolume, 
-				    xVoxelRef                   iAnaIdx,
-				    tkm_tParcFloodFillParamsRef iParams,
-				    tBoolean*                   iVisited );
-
-#define knMaxFloodFillIteration 10000
 
 // ===========================================================================
 
@@ -1004,7 +997,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
      shorten our argc and argv count. If those are the only args we
      had, exit. */
   /* rkt: check for and handle version tag */
-  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.148 2003/05/16 22:26:56 tosa Exp $");
+  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.149 2003/05/19 21:27:44 kteich Exp $");
   if (nNumProcessedVersionArgs && argc - nNumProcessedVersionArgs == 1)
     exit (0);
   argc -= nNumProcessedVersionArgs;
@@ -8956,6 +8949,120 @@ void SetSegmentationValues ( tkm_tSegType iVolume,
 }
 
 
+tkm_tErr FloodFillSegmentation ( tkm_tSegType    iVolume,
+				 xVoxelRef       iAnaIdx,
+				 int             inIndex,
+				 tBoolean        ib3D,
+				 tkm_tVolumeType iSrc,
+				 int             inFuzzy,
+				 int             inDistance ) {
+  
+  tkm_tErr                    eResult      = tkm_tErr_NoErr;
+  Volm_tFloodParams           params;
+  tkm_tFloodFillCallbackData  callbackData;
+  mriVolumeRef                sourceVolume = NULL;
+  Volm_tErr                   eVolume      = Volm_tErr_NoErr;
+  char                        sTclArguments[tkm_knTclCmdLen] = "";
+
+  DebugEnterFunction( ("FloodFillSegmentation( iVolume=%d, iAnaIdx=%d,%d,%d "
+		       "inIndex=%d, ib3D=%d, iSrc=%d, inFuzzy=%d "
+		       "inDistance=%d", iVolume, xVoxl_ExpandInt(iAnaIdx),
+		       inIndex, ib3D, iSrc, inFuzzy, inDistance) );
+  
+  DebugAssertThrowX( (NULL != iAnaIdx), eResult, tkm_tErr_InvalidParameter );
+  
+  xVoxl_Copy( &params.mSourceIdx, iAnaIdx );
+  params.mfFuzziness             = inFuzzy;
+  params.mComparator             = Volm_tValueComparator_EQ;
+  params.mfMaxDistance           = inDistance;
+  params.mb3D                    = ib3D;
+  MWin_GetOrientation ( gMeditWindow, &params.mOrientation );
+
+  /* Set some local parameters telling us what to do on the
+     callback. */
+  callbackData.mTargetVolume = iVolume;
+  callbackData.mnNewSegLabel = inIndex;
+
+  /* Set the callback function data. Tell it to use the callback data
+     we just initialized. */
+  params.mpFunction     = FloodFillSegmentationCallback;
+  params.mpFunctionData = (void*)&callbackData;
+
+  /* See what source volume to use. For everything other than the main
+     anatomical volume, check to see if it exists first. For the
+     segmentation targets, set the fuzzinees to 0, since it doesn't
+     really apply to label values. */
+  switch( iSrc ) {
+  case tkm_tVolumeTarget_MainAna:
+    sourceVolume = gAnatomicalVolume[tkm_tVolumeType_Main];
+    break;
+  case tkm_tVolumeTarget_AuxAna:
+    if( NULL == gAnatomicalVolume[tkm_tVolumeType_Aux] ) {
+      strcpy( sTclArguments, 
+	      "\"Cannot use aux volume as source if it is not loaded.\"" );
+      tkm_SendTclCommand( tkm_tTclCommand_ErrorDlog, sTclArguments );
+      goto cleanup;
+    }
+    sourceVolume = gAnatomicalVolume[tkm_tVolumeType_Aux];
+    break;
+  case tkm_tVolumeTarget_MainSeg:
+    if( NULL == gSegmentationVolume[tkm_tSegType_Main] ) {
+      strcpy( sTclArguments, 
+	      "\"Cannot use segmentation as source if it is not loaded.\"" );
+      tkm_SendTclCommand( tkm_tTclCommand_ErrorDlog, sTclArguments );
+      goto cleanup;
+    }
+    sourceVolume = gSegmentationVolume[tkm_tSegType_Main];
+    params.mfFuzziness = 0;
+    break;
+  case tkm_tVolumeTarget_AuxSeg:
+    if( NULL == gSegmentationVolume[tkm_tSegType_Aux] ) {
+      strcpy( sTclArguments, 
+	    "\"Cannot use aux segmentation as source if it is not loaded.\"" );
+      tkm_SendTclCommand( tkm_tTclCommand_ErrorDlog, sTclArguments );
+      goto cleanup;
+    }
+    sourceVolume = gSegmentationVolume[tkm_tSegType_Aux];
+    params.mfFuzziness = 0;
+    break;
+  default:
+    DebugThrowX( eResult, tkm_tErr_InvalidParameter );
+    break;
+  }
+
+  /* Now get the source volume value. */
+  Volm_GetValueAtIdx( sourceVolume, iAnaIdx, &params.mfSourceValue );
+
+  /* Do it! */
+  eVolume = Volm_Flood( sourceVolume, &params );
+  
+  UpdateAndRedraw();
+  
+  DebugCatch;
+  DebugCatchError( eResult, tkm_tErr_NoErr, tkm_GetErrorString );
+  EndDebugCatch;
+  
+  DebugExitFunction;
+
+  return eResult;
+}
+
+Volm_tVisitCommand FloodFillSegmentationCallback ( xVoxelRef iAnaIdx,
+						   float     iValue,
+						   void*     iData ) {
+  tkm_tFloodFillCallbackData* callbackData;
+
+  /* Grab our callback data and edit the segmentation. */
+  callbackData = (tkm_tFloodFillCallbackData*)iData;
+  EditSegmentation( callbackData->mTargetVolume, iAnaIdx, 
+		    callbackData->mnNewSegLabel );
+
+  return Volm_tVisitComm_Continue;
+}
+
+
+#ifdef KILLME
+
 void FloodFillSegmentation ( tkm_tSegType                iVolume,
 			     xVoxelRef                   iAnaIdx,
 			     tkm_tParcFloodFillParamsRef iParams ) {
@@ -9136,6 +9243,9 @@ void IterateFloodFillSegmentation ( tkm_tSegType                iVolume,
   
   iParams->mnIterationDepth--;
 }
+
+#endif
+
 
 void SwapSegmentationAndVolume ( mriVolumeRef   iGroup,
 			     mriVolumeRef    iVolume ) {
@@ -10883,99 +10993,21 @@ void tkm_FloodFillSegmentation ( tkm_tSegType    iVolume,
 				 tkm_tVolumeType iSrc,
 				 int             inFuzzy,
 				 int             inDistance ) {
-  
-  tkm_tParcFloodFillParams params;
-  char                     sTclArguments[1024] = "";
-  float                    anaValue;
-  
-  params.mnFuzziness             = inFuzzy;
-  params.mnDistance              = inDistance;
-  xVoxl_Copy( &params.mAnchor, iAnaIdx );
-  params.mb3D                    = ib3D;
-  params.mSource                 = iSrc;
-  params.mnNewIndex              = inIndex;
-  params.mnIterationDepth        = 0;
-  params.mnIterationLimit        = knMaxFloodFillIteration;
-  params.mbIterationLimitReached = FALSE;
-  MWin_GetOrientation ( gMeditWindow, &params.mOrientation );
-  
-  /* see what target value to get. for everything other than the main
-     anatomical volume, check to see if it exists first. for the
-     segmentation targets, set the fuzzinees to 0, since it doesn't
-     really apply to label values. */
-  switch( params.mSource ) {
-  case tkm_tVolumeTarget_MainAna:
-    Volm_GetValueAtIdx( gAnatomicalVolume[tkm_tVolumeType_Main], 
-			iAnaIdx, &anaValue );
-    params.mnTargetValue = (int)anaValue;
-    break;
-  case tkm_tVolumeTarget_AuxAna:
-    if( NULL == gAnatomicalVolume[tkm_tVolumeType_Aux] ) {
-      strcpy( sTclArguments, 
-	      "\"Cannot use aux volume as source if it is not loaded.\"" );
-      tkm_SendTclCommand( tkm_tTclCommand_ErrorDlog, sTclArguments );
-      goto cleanup;
-    }
-    Volm_GetValueAtIdx( gAnatomicalVolume[tkm_tVolumeType_Aux], 
-			iAnaIdx, &anaValue);
-    params.mnTargetValue = (int)anaValue;
-    break;
-  case tkm_tVolumeTarget_MainSeg:
-    if( NULL == gSegmentationVolume[tkm_tSegType_Main] ) {
-      strcpy( sTclArguments, 
-	      "\"Cannot use segmentation as source if it is not loaded.\"" );
-      tkm_SendTclCommand( tkm_tTclCommand_ErrorDlog, sTclArguments );
-      goto cleanup;
-    }
-    GetSegLabel( tkm_tSegType_Main, iAnaIdx, &params.mnTargetValue, NULL );
-    params.mnFuzziness = 0;
-    break;
-  case tkm_tVolumeTarget_AuxSeg:
-    if( NULL == gSegmentationVolume[tkm_tSegType_Aux] ) {
-      strcpy( sTclArguments, 
-	    "\"Cannot use aux segmentation as source if it is not loaded.\"" );
-      tkm_SendTclCommand( tkm_tTclCommand_ErrorDlog, sTclArguments );
-      goto cleanup;
-    }
-    GetSegLabel( tkm_tSegType_Aux, iAnaIdx, &params.mnTargetValue, NULL );
-    params.mnFuzziness = 0;
-    break;
-  default:
-    return;
-    break;
-  }
-  
-  /* do it! */
-  FloodFillSegmentation( iVolume, iAnaIdx, &params );
-  
-  /* see if our iteration limit was reached. if so, spit out an error. */
-  if( params.mbIterationLimitReached ) {
-    DebugPrint( ( "FloodFillSegmentation: Recursion limit reached.\n" ) );
-    strcpy( sTclArguments, 
-      "\"Flood fill recursion limit reached. The region you wished to "
-      "fill was too big for me to handle. I have filled as much as I "
-      "can. You should try filling again from another starting point, "
-      "close to the edge of the part that was filled.\nIf you find this "
-      "happening a lot, please email the programmer and bug him to "
-      "change this.\"" );
-    tkm_SendTclCommand( tkm_tTclCommand_ErrorDlog, sTclArguments );
-    goto cleanup;
-  }
-  
- cleanup:
-  return;
+ 
+  FloodFillSegmentation( iVolume, iAnaIdx, inIndex, ib3D, iSrc,
+			 inFuzzy, inDistance );
 }
 
 void tkm_GetDTIColorAtVoxel ( xVoxelRef        iAnaIdx,
 			      mri_tOrientation iPlane,
 			      xColor3fRef      iBaseColor,
-            xColor3fRef      oColor ) {
+			      xColor3fRef      oColor ) {
   
   GetDTIColorAtVoxel( iAnaIdx, iPlane, iBaseColor, oColor );
 }
             
 void tkm_SetSurfaceDistance    ( xVoxelRef iAnaIdx,
-         float     ifDistance ) {
+				 float     ifDistance ) {
   
   if( NULL == gSurface[tkm_tSurfaceType_Main] ) {
     return;
