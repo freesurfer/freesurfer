@@ -28,7 +28,7 @@
 #include "tiff.h"
 #include "tiffio.h"
 
-static char vcid[] = "$Id: mris2rgb.c,v 1.1 1998/02/09 18:14:56 fischl Exp $";
+static char vcid[] = "$Id: mris2rgb.c,v 1.2 1998/02/09 19:00:58 fischl Exp $";
 
 /*-------------------------------- CONSTANTS -----------------------------*/
 
@@ -327,7 +327,7 @@ main(int argc, char *argv[])
         {
           clear_pixmaps(mris) ;
 #ifdef IRIX
-          glRotatef(-angle, 0.0f, 1.0f, 0.0f) ;
+          /*          glRotatef(-angle, 0.0f, 1.0f, 0.0f) ;*/
 #endif
         }
 
@@ -683,9 +683,9 @@ grabPixels(unsigned int width, unsigned int height, unsigned short *red,
   glPixelStorei(GL_UNPACK_SKIP_PIXELS, 0) ;
   glPixelStorei(GL_UNPACK_ALIGNMENT, 1) ;
 
-  glReadPixels(0, 0, width, height, GL_RED,GL_UNSIGNED_SHORT, (GLvoid *)red);
-  glReadPixels(0, 0, width, height,GL_GREEN,GL_UNSIGNED_SHORT,(GLvoid *)green);
-  glReadPixels(0, 0, width, height, GL_BLUE,GL_UNSIGNED_SHORT, (GLvoid *)blue);
+  glReadPixels(0, 0, width, height,GL_RED,GL_UNSIGNED_SHORT, (GLvoid *)red);
+  glReadPixels(0, 0,width,height,GL_GREEN,GL_UNSIGNED_SHORT,(GLvoid *)green);
+  glReadPixels(0, 0, width, height,GL_BLUE,GL_UNSIGNED_SHORT,(GLvoid *)blue);
 
   glPixelStorei(GL_UNPACK_SWAP_BYTES, swapbytes) ;
   glPixelStorei(GL_UNPACK_LSB_FIRST, lsbfirst) ;
@@ -710,4 +710,5 @@ clear_pixmaps(MRI_SURFACE *mris)
   glClearColor(0.0, 0.0, 0.0, 1.0);
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 #endif
+  glLoadIdentity();
 }
