@@ -23,13 +23,25 @@ PreferencesManager::UseFile( std::string ifnPrefs ) {
   
 }
 
-  void SetHeader( std::string isHeader );
+void 
+PreferencesManager::SetHeader( std::string isHeader ) {
 
-  template <class T> void RegisterValue( std::string isKeyName,
-					 std::string isDescription,
-					 T iDefaultValue );
+}
 
-  template <class T> T GetValue( std::string isKeyName );
+template <class T> void 
+PreferencesManager::RegisterValue( std::string isKeyName,
+				   std::string isDescription,
+				   T iDefaultValue ) {
 
-  template <class T> void SetValue( std::string isKeyName, T iValue );
+}
+
+template <class T> T 
+PreferencesManager::GetValue( std::string isKeyName ) {
+
+}
+
+template <class T> void 
+PreferencesManager::SetValue( std::string isKeyName, T iValue ) {
+
+}
     

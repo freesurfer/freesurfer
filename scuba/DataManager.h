@@ -3,8 +3,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2003/10/09 23:07:15 $
-// Revision       : $Revision: 1.2 $
+// Revision Date  : $Date: 2003/10/13 15:11:21 $
+// Revision       : $Revision: 1.3 $
 
 #ifndef DataManager_h
 #define DataManager_h
@@ -45,15 +45,15 @@ class DataLoader {
 
   // Override this function to load a specfic type of data given a
   // file name. Should throw an error if it's not loadable.
-  virtual T LoadData( std::string& ifnData ) {};
+  virtual T LoadData( std::string& ifnData ) = 0;
 
   // Override this function to free a specific type of data. Should
   // set the ioData parameter to NULL if freed.
-  virtual void FreeData( T* ioData ) {};
+  virtual void FreeData( T* ioData ) = 0;
 
   // Comparison function for determining if a specific data instance
   // matches what would be loaded for this filename.
-  virtual bool DoesFileNameMatchObject( T iData, std::string& ifnData ) {};
+  virtual bool DoesFileNameMatchObject( T iData, std::string& ifnData )  = 0;
 
   // List of data and number of references for each data.
   std::list<T> mlData;
@@ -61,15 +61,18 @@ class DataLoader {
 };
 
 
-
-
 class MRILoader : public DataLoader<MRI*> {
-
  protected:
-
   MRI* LoadData( std::string& ifnData );
   void FreeData( MRI** ioMRI ) ;
   bool DoesFileNameMatchObject( MRI* iData, std::string& ifnData );
+};
+
+class MRISLoader : public DataLoader<MRIS*> {
+ protected:
+  MRIS* LoadData( std::string& ifnData );
+  void FreeData( MRIS** ioMRI ) ;
+  bool DoesFileNameMatchObject( MRIS* iData, std::string& ifnData );
 };
 
 
@@ -80,23 +83,14 @@ class DataManager {
 
   static DataManager& GetManager();
 
-#if 0
-  MRI* GetMRI( char const* ifnMRI );
-  void ReleaseMRI( MRI** ioMRI );
-  int CountLoadedMRIs() const;
-#endif
-
   static MRILoader& GetMRILoader() { return mMRILoader; }
+  static MRISLoader& GetMRISLoader() { return mMRISLoader; }
 
  protected:
   DataManager();
   
-#if 0
-  std::list<MRI*> mlMRI;
-  std::map<MRI*,int> mMRIRefs ;
-#endif
-
   static MRILoader mMRILoader;
+  static MRISLoader mMRISLoader;
 };
 
 
