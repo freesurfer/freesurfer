@@ -2838,7 +2838,7 @@ Volm_tErr Volm_Threshold ( mriVolumeRef this,
 				     this->mnDimensionY-1, 
 				     this->mnDimensionZ-1) ) {
 
-    Volm_GetValueAtIdx_( this, &idx, &value );
+    Volm_GetValueAtMRIIdx_( this, &idx, &value );
     
     /* if we're going above and this value is above the thresh, or if we're
        going below and this value is below the thresh...*/
@@ -2846,7 +2846,7 @@ Volm_tErr Volm_Threshold ( mriVolumeRef this,
 	(!ibAbove && value < iThreshold ) ) {
       
       /* set the value to the new level. */
-      Volm_SetValueAtIdx_( this, &idx, iNewValue );
+      Volm_SetValueAtMRIIdx_( this, &idx, iNewValue );
     }
   }
   
