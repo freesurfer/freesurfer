@@ -5,11 +5,11 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2004/04/05 18:48:11 $
-// Revision       : $Revision: 1.25 $
+// Revision Date  : $Date: 2004/06/09 19:16:44 $
+// Revision       : $Revision: 1.26 $
 //
 ////////////////////////////////////////////////////////////////////
-char *MRI_WATERSHED_VERSION = "$Revision: 1.25 $";
+char *MRI_WATERSHED_VERSION = "$Revision: 1.26 $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -21,6 +21,7 @@ char *MRI_WATERSHED_VERSION = "$Revision: 1.25 $";
 #include <iostream>
 #include <fstream>
 #include <iomanip>
+#include <vector>
 
 extern "C" {
 #include "mri.h"
@@ -107,6 +108,7 @@ typedef struct STRIP_PARMS
 
   /*specify T1 volume*/
   int T1;
+  int noT1analysis;
   /*specify the center fo the brain and its radius*/
   int cx,cy,cz,rb; 
 
@@ -122,7 +124,10 @@ typedef struct STRIP_PARMS
           
   int manual_params;
   int manual_CSF_MAX,manual_TRANSITION_intensity,manual_GM_intensity;
-   
+
+  // whether to use surfaceRAS or not
+  int useSRAS;
+
 } STRIP_PARMS ;
 
 
@@ -290,6 +295,12 @@ static void MRISscaleFields(MRIS *mris_src,MRIS *mris_dst,MRIS *mris_vdst,int wh
 static void MRISgoToClosestDarkestPoint(MRI_variables *MRI_var);
 /*mri->type correction*/
 
+///////////////////////////////////////////////////////////////////////////////////////////
+// declare global function pointers    initialized at init_parms(). reset when -useSRAS is set
+int (*myWorldToVoxel)(MRI *mri, Real xw, Real yw, Real zw, Real *xv, Real *yv, Real *zv);
+int (*myVoxelToWorld)(MRI *mri, Real xv, Real yv, Real zv, Real *xw, Real *yw, Real *zw);
+///////////////////////////////////////////////////////////////////////////////////////////
+
 void usageHelp()
 {
   fprintf(stderr, "\nUsage: %s [options] input_file output_file", Progname);
@@ -299,8 +310,11 @@ void usageHelp()
   fprintf(stderr, "\n-more                : expand the surface");
   fprintf(stderr, "\n-wat                 : use only the watershed algorithm");
   fprintf(stderr, "\n-T1                  : specify T1 input volume");
+  fprintf(stderr, "\n-noT1                : specify no T1 analysis.  Useful when running out of memory");
   fprintf(stderr, "\n-wat+temp            : watershed algo and first template smoothing");
   fprintf(stderr, "\n-first_temp          : use only the first template smoothing + local matching"); 
+  fprintf(stderr, "\n-useSRAS             : use the surface RAS (c_(ras) = 0) for surface vertex position\n");
+  fprintf(stderr, "                       :   The default is to use the scanner RAS coordinate c_(ras) != 0\n");
   fprintf(stderr, "\n-surf_debug          : visualize the surfaces onto the output volume");
   fprintf(stderr, "\n-surf surfname       : save the BEM surfaces");
   fprintf(stderr, "\n-brainsurf surfname  : save the brain surface");
@@ -348,22 +362,38 @@ get_option(int argc, char *argv[],STRIP_PARMS *parms)
     nargs = 0 ;
     fprintf(stderr,"Mode:          T1 normalized volume\n") ;
   }
+  else if (!strcmp(option, "noT1"))
+  {
+    parms->noT1analysis = 1;
+    nargs = 0;
+    fprintf(stderr,"Mode:          no T1-segment-analysis is done\n") ;
+  }
+  else if (!strcmp(option, "useSRAS"))
+  {
+    parms->useSRAS=1;
+    // change the global function ptrs
+    myWorldToVoxel = MRIsurfaceRASToVoxel;
+    myVoxelToWorld = MRIvoxelToSurfaceRAS;
+    //
+    nargs = 0;
+    fprintf(stderr,"Mode:          use surfaceRAS to save surface vertex positions\n");
+  }
   else if (!strcmp(option, "less"))
   {
     parms->skull_type=-1;
     nargs = 0 ;
-    fprintf(stderr,"Mode:          Surface shrunk\n") ;
+    fprintf(stderr,"Mode:          surface shrunk\n") ;
   }
   else if (!strcmp(option, "wat+temp"))
   {
     parms->template_deformation=2;
-    fprintf(stderr,"Mode:          Watershed algorithm + first template smoothing\n") ;
+    fprintf(stderr,"Mode:          watershed algorithm + first template smoothing\n") ;
     nargs = 0 ;
   }
   else if (!strcmp(option, "first_temp"))
   {
     parms->template_deformation=3;
-    fprintf(stderr,"Mode:          Watershed algorithm + first template smoothing + local matching\n") ;
+    fprintf(stderr,"Mode:          watershed algorithm + first template smoothing + local matching\n") ;
     nargs = 0 ;
   }
   else if (!strcmp(option, "mask"))
@@ -521,6 +551,16 @@ static void Error(char *string)
   exit(1) ;
 }
 
+
+void writeSurface(char *fname, MRI_variables *var, STRIP_PARMS *parms)
+{
+  if (parms->useSRAS)
+    var->mris->useRealRAS = 0;
+  else
+    var->mris->useRealRAS = 1;
+  MRISwrite(var->mris, fname);
+}
+
 /////////////////////////////////////////////////////////////////////////////////////////////
 // main
 /////////////////////////////////////////////////////////////////////////////////////////////
@@ -539,7 +579,7 @@ int main(int argc, char *argv[])
   /************* Command line****************/
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_watershed.cpp,v 1.25 2004/04/05 18:48:11 tosa Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_watershed.cpp,v 1.26 2004/06/09 19:16:44 tosa Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -691,10 +731,19 @@ static STRIP_PARMS* init_parms(void)
 
   /*no T1 volume normalization*/
   sp->T1=0;
-  
+  /* don't do T1 analysis */
+  sp->noT1analysis = 0;
+
   /*no input brain parms*/
   sp->cx=-1;
   sp->rb=-1;
+
+  // not to use surface RAS
+  sp->useSRAS = 0;
+
+  // default values
+  myWorldToVoxel = MRIworldToVoxel;
+  myVoxelToWorld = MRIvoxelToWorld; 
 
   return(sp);
 }
@@ -863,8 +912,8 @@ MRI *MRIstripSkull(MRI *mri_with_skull, MRI *mri_without_skull,
       /*writing out the surface*/
       sprintf(fname,parms->surfname);
       strcat(fname,"_brain_surface");
-      MRI_var->mris->useRealRAS = 1; // note that we are not using surfaceRAS
-      MRISwrite(MRI_var->mris,fname);
+      //MRISwrite(MRI_var->mris,fname);
+      writeSurface(fname, MRI_var, parms);
     }
   }
  
@@ -882,8 +931,8 @@ MRI *MRIstripSkull(MRI *mri_with_skull, MRI *mri_without_skull,
     /*writing out the inner skull surface*/
     sprintf(fname,parms->surfname);
     strcat(fname,"_inner_skull_surface");
-    MRI_var->mris->useRealRAS = 1; // note that we are not using surfaceRAS
-    MRISwrite(MRI_var->mris,fname);
+    // MRISwrite(MRI_var->mris,fname);
+    writeSurface(fname, MRI_var, parms);
 
     //scalp  
     MRISfree(&MRI_var->mris);
@@ -902,8 +951,8 @@ MRI *MRIstripSkull(MRI *mri_with_skull, MRI *mri_without_skull,
     /*writing out the surface*/
     sprintf(fname,parms->surfname);
     strcat(fname,"_outer_skin_surface");
-    MRI_var->mris->useRealRAS = 1; // note that we are not using surfaceRAS
-    MRISwrite(MRI_var->mris,fname);
+    // MRISwrite(MRI_var->mris,fname);
+    writeSurface(fname, MRI_var, parms);
 
     //outer skull
     MRISsmooth_surface(MRI_var->mris,3); // smooth 3 times
@@ -916,7 +965,8 @@ MRI *MRIstripSkull(MRI *mri_with_skull, MRI *mri_without_skull,
    /*writing out the outer skull surface*/
      sprintf(fname,parms->surfname);
      strcat(fname,"_outer_skull_surface");
-     MRISwrite(MRI_var->mris,fname);
+     // MRISwrite(MRI_var->mris,fname);
+     writeSurface(fname, MRI_var, parms);
 
      if(parms->label)
        label_voxels(parms,MRI_var,mri_with_skull);
@@ -959,7 +1009,8 @@ static int Watershed(STRIP_PARMS *parms,MRI_variables *MRI_var)
   fprintf(stderr,"\npreflooding height equal to %d percent", parms->hpf) ;
 
   fprintf(stderr,"\nSorting...");
-  AnalyzeT1Volume(parms,MRI_var);
+  if (!parms->noT1analysis)
+    AnalyzeT1Volume(parms,MRI_var);
   Allocation(MRI_var);
   if (Pre_CharSorting(parms,MRI_var)==-1)
     return -1;
@@ -1016,6 +1067,7 @@ static void AnalyzeT1Volume(STRIP_PARMS *parms,MRI_variables *MRI_var)
   if(T1number[10]>5*average)
     parms->T1=1;
     
+  // if T1 is set
   if(parms->T1)
   {
     fprintf(stderr,"\n      T1-weighted MRI image");
@@ -1034,12 +1086,21 @@ static void FindMainWmComponent(MRI_variables *MRI_var)
   MRI_SEGMENT *mri_seg;
   int k,m,max;
   long maxarea;
+  int wmcount = 0;
+  fprintf(stderr,"\n      Count how many 110 voxels are present : ");
+  for (int k=0; k < MRI_var->mri_orig->depth; ++k)
+    for (int j=0; j < MRI_var->mri_orig->height; ++j)
+      for (int i=0; i < MRI_var->mri_orig->width; ++i)
+	if (MRIvox(MRI_var->mri_orig, i, j, k) == WM_CONST)
+	  wmcount++;
+  fprintf(stderr," %d\n", wmcount);
 
   fprintf(stderr,"\n      Find the largest 110-component...");
-  mri_segmentation=MRIsegment(MRI_var->mri_orig,WM_CONST,WM_CONST);
+  mri_segmentation=MRImaxsegment(MRI_var->mri_orig,WM_CONST,WM_CONST);
   fprintf(stderr,"done"
     "\n      And identify it as the main brain basin...");
   
+  // find the region with the largest area
   maxarea=-1;
   max=-1;
   for(k=0;k<mri_segmentation->max_segments;k++)
@@ -1049,7 +1110,7 @@ static void FindMainWmComponent(MRI_variables *MRI_var)
       maxarea=mri_segmentation->segments[k].nvoxels;
     }
 
-
+  // assign to T1table
   mri_seg=&mri_segmentation->segments[max];
   MRI_var->T1Table=(Coord*)calloc(maxarea,sizeof(Coord));
   MRI_var->T1nbr=maxarea;
@@ -3168,7 +3229,7 @@ init_surf_to_image(float rx, float ry, float rz,MRI_variables *MRI_var)
   mris=MRI_var->mris;
   nvertices=mris->nvertices;
   
-  MRIvoxelToWorld(MRI_var->mri_src,MRI_var->xCOG,MRI_var->yCOG,MRI_var->zCOG
+  myVoxelToWorld(MRI_var->mri_src,MRI_var->xCOG,MRI_var->yCOG,MRI_var->zCOG
       ,&x,&y,&z);
   Rx=rx;Ry=rz;Rz=ry;
 
@@ -3225,7 +3286,7 @@ static void write_image(MRI_variables *MRI_var)
         py = py0 + (py1-py0)*u/numu;
         pz = pz0 + (pz1-pz0)*u/numu;
         
-        MRIworldToVoxel(MRI_var->mri_orig,px,py,pz,&tx,&ty,&tz);
+        myWorldToVoxel(MRI_var->mri_orig,px,py,pz,&tx,&ty,&tz);
   
         imnr=(int)(tz+0.5);
         j=(int)(ty+0.5);
@@ -3243,7 +3304,7 @@ static void write_image(MRI_variables *MRI_var)
       py=mris->vertices[k].y;
       pz=mris->vertices[k].z;
       
-      MRIworldToVoxel(MRI_var->mri_orig,px,py,pz,&tx,&ty,&tz);
+      myWorldToVoxel(MRI_var->mri_orig,px,py,pz,&tx,&ty,&tz);
   
       imnr=(int)(tz+0.5);
       j=(int)(ty+0.5);
@@ -3368,7 +3429,7 @@ static void local_params(STRIP_PARMS *parms,MRI_variables *MRI_var)
       py=mris->vertices[kv].y-h*mris->vertices[kv].ny;
       pz=mris->vertices[kv].z-h*mris->vertices[kv].nz;
       // get the voxel coordinates
-      MRIworldToVoxel(MRI_var->mri_src,px,py,pz,&tx,&ty,&tz);
+      myWorldToVoxel(MRI_var->mri_src,px,py,pz,&tx,&ty,&tz);
       i=(int)(tx+0.5);
       j=(int)(ty+0.5);
       k=(int)(tz+0.5);
@@ -3396,7 +3457,7 @@ static void local_params(STRIP_PARMS *parms,MRI_variables *MRI_var)
           py=mris->vertices[kv].y -rp*mris->vertices[kv].ny + a*n1[1]+b*n2[1];
           pz=mris->vertices[kv].z -rp*mris->vertices[kv].nz + a*n1[2]+b*n2[2];
 
-	  MRIworldToVoxel(MRI_var->mri_dst,px,py,pz,&tx,&ty,&tz);
+	  myWorldToVoxel(MRI_var->mri_dst,px,py,pz,&tx,&ty,&tz);
 	  i=(int)(tx+0.5);
 	  j=(int)(ty+0.5);
 	  k=(int)(tz+0.5);
@@ -3442,7 +3503,7 @@ static void local_params(STRIP_PARMS *parms,MRI_variables *MRI_var)
             px=mris->vertices[kv].x-(h+c)*mris->vertices[kv].nx + a*n1[0]+b*n2[0];
             py=mris->vertices[kv].y-(h+c)*mris->vertices[kv].ny + a*n1[1]+b*n2[1];
             pz=mris->vertices[kv].z-(h+c)*mris->vertices[kv].nz + a*n1[2]+b*n2[2];
-	    MRIworldToVoxel(MRI_var->mri_dst,px,py,pz,&tx,&ty,&tz);
+	    myWorldToVoxel(MRI_var->mri_dst,px,py,pz,&tx,&ty,&tz);
 	    i=(int)(tx+0.5);
 	    j=(int)(ty+0.5);
 	    k=(int)(tz+0.5);
@@ -3467,7 +3528,7 @@ static void local_params(STRIP_PARMS *parms,MRI_variables *MRI_var)
         px=mris->vertices[kv].x - h*mris->vertices[kv].nx;
         py=mris->vertices[kv].y - h*mris->vertices[kv].ny;
         pz=mris->vertices[kv].z - h*mris->vertices[kv].nz;
-	MRIworldToVoxel(MRI_var->mri_dst,px,py,pz,&tx,&ty,&tz);
+	myWorldToVoxel(MRI_var->mri_dst,px,py,pz,&tx,&ty,&tz);
 	i=(int)(tx+0.5);
 	j=(int)(ty+0.5);
 	k=(int)(tz+0.5);
@@ -3482,7 +3543,7 @@ static void local_params(STRIP_PARMS *parms,MRI_variables *MRI_var)
 	px=mris->vertices[kv].x - c*mris->vertices[kv].nx;
         py=mris->vertices[kv].y - c*mris->vertices[kv].ny;
         pz=mris->vertices[kv].z - c*mris->vertices[kv].nz;
-	MRIworldToVoxel(MRI_var->mri_dst,px,py,pz,&tx,&ty,&tz);
+	myWorldToVoxel(MRI_var->mri_dst,px,py,pz,&tx,&ty,&tz);
 	i=(int)(tx+0.5);
 	j=(int)(ty+0.5);
 	k=(int)(tz+0.5);   
@@ -3501,7 +3562,7 @@ static void local_params(STRIP_PARMS *parms,MRI_variables *MRI_var)
 	    px=mris->vertices[kv].x - c*mris->vertices[kv].nx + a*n1[0] + b*n2[0];
             py=mris->vertices[kv].y - c*mris->vertices[kv].ny + a*n1[1] + b*n2[1];
             pz=mris->vertices[kv].z - c*mris->vertices[kv].nz + a*n1[2] + b*n2[2];
-	    MRIworldToVoxel(MRI_var->mri_dst,px,py,pz,&tx,&ty,&tz);
+	    myWorldToVoxel(MRI_var->mri_dst,px,py,pz,&tx,&ty,&tz);
 	    i=(int)(tx+0.5);
 	    j=(int)(ty+0.5);
 	    k=(int)(tz+0.5);
@@ -3998,7 +4059,7 @@ static unsigned long MRISpeelBrain(float h,MRI* mri_dst,MRIS *mris,unsigned char
         py = py0 + (py1-py0)*u/numu;
         pz = pz0 + (pz1-pz0)*u/numu;
 
-	MRIworldToVoxel(mri_dst,px,py,pz,&tx,&ty,&tz);
+	myWorldToVoxel(mri_dst,px,py,pz,&tx,&ty,&tz);
 	
 	imnr=(int)(tz+0.5);
 	j=(int)(ty+0.5);
@@ -4163,7 +4224,7 @@ static void shrinkstep(MRI_variables *MRI_var)
     mris->vertices[k].z = rz*mris->vertices[k].z + MRI_var->zsCOG;
   }
   // get the voxel values
-  MRIworldToVoxel(MRI_var->mri_src,MRI_var->xsCOG,MRI_var->ysCOG
+  myWorldToVoxel(MRI_var->mri_src,MRI_var->xsCOG,MRI_var->ysCOG
 		  ,MRI_var->zsCOG,&tx,&ty,&tz);
   // set the center of gravity as voxel indices.
   MRI_var->xCOG=tx;
@@ -4300,7 +4361,7 @@ static void MRIShighlyTesselatedSmoothedSurface(MRI_variables *MRI_var)
  
       // image force
       ////////////////////////////////////////////////
-      MRIworldToVoxel(MRI_var->mri_orig,x,y,z,&tx,&ty,&tz);
+      myWorldToVoxel(MRI_var->mri_orig,x,y,z,&tx,&ty,&tz);
       kt=(int)(tz+0.5);
       jt=(int)(ty+0.5);
       it=(int)(tx+0.5);
@@ -4682,7 +4743,7 @@ static void MRISshrink_Outer_Skin(MRI_variables *MRI_var,MRI* mri_src)
           for (b=-1;b<2;b++)
           {
 	    // get the RAS value
-            MRIworldToVoxel(MRI_var->mri_orig,(x-nx*h+n1[0]*a+n2[0]*b),
+            myWorldToVoxel(MRI_var->mri_orig,(x-nx*h+n1[0]*a+n2[0]*b),
                             (y-ny*h+n1[1]*a+n2[1]*b),
                             (z-nz*h+n1[2]*a+n2[2]*b),&tx,&ty,&tz);
             kt=(int)(tz+0.5);
@@ -6163,9 +6224,9 @@ static void MRISComputeLocalValues(MRI_variables *MRI_var)
     
     /*determine the normal direction in Voxel coordinates*/
     x = v->x ; y = v->y ; z = v->z ;
-    MRIworldToVoxel(mri, x, y, z, &xw, &yw, &zw) ;
+    myWorldToVoxel(mri, x, y, z, &xw, &yw, &zw) ;
     x = v->x + v->nx ; y = v->y + v->ny ; z = v->z + v->nz ;
-    MRIworldToVoxel(mri, x, y, z, &xw1, &yw1, &zw1) ;
+    myWorldToVoxel(mri, x, y, z, &xw1, &yw1, &zw1) ;
     nx = xw1 - xw ; ny = yw1 - yw ; nz = zw1 - zw ; 
 
     /* 
@@ -6190,15 +6251,15 @@ static void MRISComputeLocalValues(MRI_variables *MRI_var)
     {
       /*val at current location*/
       x = v->x + v->nx*dist ; y = v->y + v->ny*dist ; z = v->z + v->nz*dist ; 
-      MRIworldToVoxel(mri, x, y, z, &xw, &yw, &zw) ;
+      myWorldToVoxel(mri, x, y, z, &xw, &yw, &zw) ;
       MRIsampleVolume(mri, xw, yw, zw, &val) ;
       /*value at next location: potential gm intensity*/
       x = v->x + v->nx*(dist-1) ; y = v->y + v->ny*(dist-1) ; z = v->z + v->nz*(dist-1) ; 
-      MRIworldToVoxel(mri, x, y, z, &xw1, &yw1, &zw1) ;
+      myWorldToVoxel(mri, x, y, z, &xw1, &yw1, &zw1) ;
       MRIsampleVolume(mri, xw1, yw1, zw1, &gm_val) ;
       /*value at previous location: potential csf value*/
       x = v->x + v->nx*(dist+1) ; y = v->y + v->ny*(dist+1) ; z = v->z + v->nz*(dist+1) ; 
-      MRIworldToVoxel(mri, x, y, z, &xw2, &yw2, &zw2) ;
+      myWorldToVoxel(mri, x, y, z, &xw2, &yw2, &zw2) ;
       MRIsampleVolume(mri, xw2, yw2, zw2, &csf_val) ;   
 
       if (csf_val< val && val<gm_val && csf_val<BOUNDCSF && gm_val>MRI_var->CSF_intensity)  
@@ -6300,7 +6361,7 @@ static void MRISComputeLocalValues(MRI_variables *MRI_var)
 	if(sse>0)
 	{   
 	  x = v->x ; y = v->y ; z = v->z ; 
-	  MRIworldToVoxel(mri, x, y, z, &xw, &yw, &zw) ;
+	  myWorldToVoxel(mri, x, y, z, &xw, &yw, &zw) ;
 	  MRIsampleVolume(mri, xw, yw, zw, &val) ;    
 	  if(val>mean_csf && val<MRI_var->WM_intensity)/*probably GM intensity*/
 	  {
@@ -6717,7 +6778,7 @@ static void MRISFineSegmentation(MRI_variables *MRI_var)
 	  for (a=-1;a<2;a++)
 	    for (b=-1;b<2;b++)
 	    {
-	      MRIworldToVoxel(MRI_var->mri_orig,(x-nx*h+n1[0]*a+n2[0]*b),
+	      myWorldToVoxel(MRI_var->mri_orig,(x-nx*h+n1[0]*a+n2[0]*b),
 			      (y-ny*h+n1[1]*a+n2[1]*b),
 			      (z-nz*h+n1[2]*a+n2[2]*b),&tx,&ty,&tz);
 	      kt=(int)(tz+0.5);
@@ -6748,7 +6809,7 @@ static void MRISFineSegmentation(MRI_variables *MRI_var)
 	  for(h=1;h<10;h++)
 	  {
 	    prev_val=val;
-	    MRIworldToVoxel(MRI_var->mri_orig,(x-nx*h),(y-ny*h),(z-nz*h),&tx,&ty,&tz);
+	    myWorldToVoxel(MRI_var->mri_orig,(x-nx*h),(y-ny*h),(z-nz*h),&tx,&ty,&tz);
 	    kt=(int)(tz+0.5);
 	    jt=(int)(ty+0.5);
 	    it=(int)(tx+0.5);
@@ -6845,13 +6906,13 @@ static void MRISFineSegmentation(MRI_variables *MRI_var)
       {
 	/*determine the normal direction in Voxel coordinates*/
 	x = v->x ; y = v->y ; z = v->z ;
-	MRIworldToVoxel(mri, x, y, z, &xw, &yw, &zw) ;
+	myWorldToVoxel(mri, x, y, z, &xw, &yw, &zw) ;
 	x = v->x + v->nx ; y = v->y + v->ny ; z = v->z + v->nz ;
-	MRIworldToVoxel(mri, x, y, z, &xw1, &yw1, &zw1) ;
+	myWorldToVoxel(mri, x, y, z, &xw1, &yw1, &zw1) ;
 	nx = xw1 - xw ; ny = yw1 - yw ; nz = zw1 - zw ; 
 	
 	/*calculate local values*/
-	MRIworldToVoxel(mri, x, y, z, &xw, &yw, &zw) ;
+	myWorldToVoxel(mri, x, y, z, &xw, &yw, &zw) ;
 	MRIsampleVolume(mri, xw, yw, zw, &IntVal) ;
 	MRIsampleVolumeDerivativeScale(mri, xw, yw, zw, nx, ny,nz,&GradVal,1.);
 	
@@ -7075,7 +7136,7 @@ static void MRISgoToClosestDarkestPoint(MRI_variables *MRI_var)
 	x=v->x + dist*nx;
 	y=v->y + dist*ny;
 	z=v->z + dist*nz;
-	MRIworldToVoxel(mri, x, y, z, &xw, &yw, &zw) ;
+	myWorldToVoxel(mri, x, y, z, &xw, &yw, &zw) ;
 	// if outside, then
 	if((zw<0||zw>=MRI_var->depth||xw<0||xw>=MRI_var->width||yw<0||yw>=MRI_var->height))
 	  val=1000.0;
@@ -7238,7 +7299,7 @@ static int calcBrainSize(const MRI* mri_src, const MRIS *mris)
 
 	// calculate voxel value of a point in the triangle
 	// C function don't know about const
-	MRIworldToVoxel(const_cast<MRI *> (mri_src),px,py,pz,&tx,&ty,&tz);
+	myWorldToVoxel(const_cast<MRI *> (mri_src),px,py,pz,&tx,&ty,&tz);
 	
 	imnr=(int)(tz+0.5);
 	j=(int)(ty+0.5);
@@ -7335,7 +7396,7 @@ void calcForce1(double &fST, double &fSN, double &fN,
   for (h=-noutside;h<0;h++) // up to 15 voxels inside 
   {
     // look at outside side voxels (h < 0) of the current position
-    MRIworldToVoxel(mri_var->mri_src,(x-nx*h),
+    myWorldToVoxel(mri_var->mri_src,(x-nx*h),
 		    (y-ny*h),(z-nz*h),&tx,&ty,&tz);
     kt=(int)(tz+0.5);
     jt=(int)(ty+0.5);
@@ -7352,7 +7413,7 @@ void calcForce1(double &fST, double &fSN, double &fN,
   for (h=1;h<ninside;h++) // 10 voxels outside
   {
     // look at inside voxes (h > 0) of the current position
-    MRIworldToVoxel(mri_var->mri_src,
+    myWorldToVoxel(mri_var->mri_src,
 		    (x-nx*h),(y-ny*h),(z-nz*h),&tx,&ty,&tz);
     kt=(int)(tz+0.5);
     jt=(int)(ty+0.5);
@@ -7416,7 +7477,7 @@ void calcForce2(double &force0, double &force1, double &force,
     for (a=-1;a<2;a++)
       for (b=-1;b<2;b++)
       {
-	MRIworldToVoxel(MRI_var->mri_orig,(x-nx*h+n1[0]*a+n2[0]*b),
+	myWorldToVoxel(MRI_var->mri_orig,(x-nx*h+n1[0]*a+n2[0]*b),
 			(y-ny*h+n1[1]*a+n2[1]*b),
 			(z-nz*h+n1[2]*a+n2[2]*b),&tx,&ty,&tz);
 	kt=(int)(tz+0.5);
@@ -7913,3 +7974,4 @@ template <typename T> int findHalfMax(const T *tab, int maxIndex)
       break;
   return halfMax;
 }
+
