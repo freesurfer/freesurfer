@@ -1,5 +1,6 @@
 #include "string_fixed.h"
 #include <stdexcept>
+#include <math.h>
 #include "Utilities.h"
 #include "VectorOps.h"
 
