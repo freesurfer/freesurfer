@@ -1,6 +1,6 @@
 /*----------------------------------------------------------
   Name: mri_label2label.c
-  $Id: mri_label2label.c,v 1.5 2001/05/17 20:39:58 greve Exp $
+  $Id: mri_label2label.c,v 1.6 2001/05/17 20:42:54 greve Exp $
   Author: Douglas Greve
   Purpose: Converts a label in one subject's space to a label
   in another subject's space using either talairach or spherical
@@ -55,7 +55,7 @@ static int  singledash(char *flag);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_label2label.c,v 1.5 2001/05/17 20:39:58 greve Exp $";
+static char vcid[] = "$Id: mri_label2label.c,v 1.6 2001/05/17 20:42:54 greve Exp $";
 char *Progname = NULL;
 
 char  *srclabelfile = NULL;
@@ -537,7 +537,7 @@ static void print_help(void)
 "     where Tsrc is the talairach transform in \n"
 "     srcsubject/mri/transforms/talairach.xfm, and where Ttrg is the talairach \n"
 "     transform in trgsubject/mri/transforms/talairach.xfm.\n"
-"  5. The registration surfaces are rescaled to a radiues of 100 (including \n"
+"  5. The registration surfaces are rescaled to a radius of 100 (including \n"
 "     the ico)\n"
 );
 
