@@ -5,11 +5,11 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2003/04/03 21:43:42 $
-// Revision       : $Revision: 1.8 $
+// Revision Date  : $Date: 2003/04/08 20:23:03 $
+// Revision       : $Revision: 1.9 $
 //
 ////////////////////////////////////////////////////////////////////
-char *MRI_WATERSHED_VERSION = "$Revision: 1.8 $";
+char *MRI_WATERSHED_VERSION = "$Revision: 1.9 $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -18,6 +18,9 @@ char *MRI_WATERSHED_VERSION = "$Revision: 1.8 $";
 #include <sys/types.h>
 #include <sys/time.h>
 #include <unistd.h>
+#include <iostream>
+#include <fstream>
+#include <iomanip>
 
 extern "C" {
 #include "mri.h"
@@ -52,6 +55,7 @@ extern "C" {
 #define DIST_MODE 1
 #define CURV_MODE 2
 
+/////////////////////////////// debug
 #define DEBUG_CURVE 0
 #define OUTPUT 0
 #define OUTPUT_CURVES 0
@@ -119,7 +123,7 @@ typedef struct STRIP_PARMS
   unsigned char hpf;  
           
   int manual_params;
-  int manual_CSF_MAX,manual_TRANSITION_INTENSITY,manual_GM_INTENSITY;
+  int manual_CSF_MAX,manual_TRANSITION_intensity,manual_GM_intensity;
    
 } STRIP_PARMS ;
 
@@ -140,16 +144,12 @@ typedef struct
   int width,height,depth;
 
   unsigned char Imax;
-  int WM_INTENSITY,WM_VARIANCE,WM_HALF_MAX,WM_HALF_MIN,WM_MAX,WM_MIN;
+  int WM_intensity,WM_VARIANCE,WM_HALF_MAX,WM_HALF_MIN,WM_MAX,WM_MIN;
   int CSF_intensity,CSF_HALF_MAX,CSF_MAX,CSF_MIN;
-  int GM_MIN, GM_INTENSITY,TRANSITION_INTENSITY;
+  int GM_MIN, GM_intensity,TRANSITION_intensity; // hard to read with capital INTENSITY
 
   unsigned long gmnumber[256];
 
-  /*file saving - not used */
-#if OUTPUT_CURVES
-  FILE *fout;
-#endif
 #if OUTPUT_SURFACES 
   FILE *fsvout,*fsfout;
 #endif
@@ -222,6 +222,12 @@ static int Mediane(int i,int j,int k,int rang);
 static int Ambiguous(Cell* cell);
 #endif
 /*TEMPLATE DEFORMATION FUNCTIONS*/
+// print the int_percent curve on the stderr
+// only when OUTPUT_CURVES or DEBUG_CURVE is set to 1
+template <typename T> void DebugCurve(const T *int_percent, const int max, const char *msg);
+template <typename T> int findMaxIndex(const T *tab);
+template <typename T> int findHalfMax(const T *tab, int maxIndex);
+template <typename T> int findHalfMin(const T *tab, int maxIndex);
 void calcForce1(double &force0, double &force1, double &force, 
 		const double &x, const double &y, const double &z,
 		const double &sx, const double &sy, const double &sz, const double &sd,
@@ -232,6 +238,7 @@ void calcForce2(double &force0, double &force1, double &force,
 		const double &sx, const double &sy, const double &sz, const double &sd,
 		const double &nx, const double &ny, const double &nz,
 		MRI_variables *mri_var);
+// pass a function pointer for force calculation
 static void FitShape(MRI_variables *MRI_var, const int convLimit, const int maxIter,
 		     void (*calcForce)
 		     (double &force0, double &force1, double &force, 
@@ -252,7 +259,7 @@ static void local_params(STRIP_PARMS *parms,MRI_variables *MRI_var);
 static void analyseCSF(unsigned long *CSF_percent,MRI_variables *MRI_var);
 static void analyseGM(unsigned long *CSF_percent,unsigned long *int_percent,MRI_variables *MRI_var);
 static int FindWM(unsigned char tab[4][9],MRI_variables *MRI_var);
-static void lisse(unsigned long *tab);
+static void lisse(unsigned long *tab, const char *msg);
 static unsigned long MRISpeelBrain(float h,MRI *mri_dst,MRIS *mris,unsigned char val);
 static void shrinkstep(MRI_variables *MRI_var);
 static void mean(float tab[4][9],float *moy);
@@ -334,7 +341,6 @@ int main(int argc, char *argv[])
   int nargs;
   MRI *mri_with_skull, *mri_without_skull=NULL, *mri_mask;
 
-
   STRIP_PARMS *parms;
 
   Progname=argv[0];
@@ -343,7 +349,7 @@ int main(int argc, char *argv[])
 
   /************* Command line****************/
 
-  nargs = handle_version_option (argc, argv, "$Id: mri_watershed.cpp,v 1.8 2003/04/03 21:43:42 tosa Exp $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_watershed.cpp,v 1.9 2003/04/08 20:23:03 tosa Exp $");
   argc -= nargs ;
   if (1 == argc)
     exit (0);
@@ -375,6 +381,7 @@ int main(int argc, char *argv[])
   /*************** PROG *********************/
 
   /* initialisation */
+  // readin input volume
   mri_with_skull = MRIread(in_fname) ;
   if (!mri_with_skull)
     Error("read failed\n");
@@ -386,12 +393,14 @@ int main(int argc, char *argv[])
     type_changed = 1 ; old_type = mri_with_skull->type ;
     printf("changing type of input volume to 8 bits/voxel...\n") ;
     mri_tmp = MRIchangeType(mri_with_skull, MRI_UCHAR, 0.0, 0.999, FALSE) ;
-    MRIfree(&mri_with_skull) ; mri_with_skull = mri_tmp ;
+    MRIfree(&mri_with_skull) ; 
+    mri_with_skull = mri_tmp ;
   }
   else
     type_changed = 0 ;
   
   /* Main routine *********************/
+  // mri_with_skull is UCHAR volume, mri_without_skull = NULL at this time
   mri_without_skull=MRIstripSkull(mri_with_skull, mri_without_skull,parms);
   if (mri_without_skull == NULL)
   {
@@ -575,8 +584,8 @@ get_option(int argc, char *argv[],STRIP_PARMS *parms)
     fprintf(stderr,"Mode:          Modification of the local parameters\n") ;
     parms->manual_params=1;
     parms->manual_CSF_MAX=atoi(argv[2]);
-    parms->manual_TRANSITION_INTENSITY=atoi(argv[3]);
-    parms->manual_GM_INTENSITY=atoi(argv[4]);
+    parms->manual_TRANSITION_intensity=atoi(argv[3]);
+    parms->manual_GM_intensity=atoi(argv[4]);
     nargs=3;
   }
   // check one character options -s, -c, -r, -t, -n
@@ -734,6 +743,21 @@ static MRI_variables* init_variables(MRI *mri_with_skull)
   v->T1Table=NULL;
   v->T1nbr=0;
 
+  v->Imax = 0;
+  v->WM_intensity=0;
+  v->WM_VARIANCE=0;
+  v->WM_HALF_MAX = 0;
+  v->WM_HALF_MIN = 0;
+  v->WM_MAX=0;
+  v->WM_MIN=0;
+  v->CSF_intensity=0;
+  v->CSF_HALF_MAX=0;
+  v->CSF_MAX = 0;
+  v->CSF_MIN = 0;
+  v->GM_MIN = 0;
+  v->GM_intensity = 0;
+  v->TRANSITION_intensity=0;
+
   return v;
 
 }
@@ -769,31 +793,36 @@ MRI *MRIstripSkull(MRI *mri_with_skull, MRI *mri_without_skull,
   if(mri_with_skull->type!=0)
     Error("\nThe type of the input file is not 0 : UCHAR\n"); 
 
+  // cache the original input
   mri_tp=MRIclone(mri_with_skull,NULL);
   mri_tp=MRIcopy(mri_with_skull,NULL);
 
   if(!mri_without_skull)
-    mri_without_skull=MRIclone(mri_with_skull,NULL);
+    mri_without_skull=MRIclone(mri_with_skull,NULL); // just copy to output
   else if(mri_without_skull->type!=mri_with_skull->type)
     Error("\ndifferent types of mri structures...\n");
 
+  // mri_orig = mri_with_skull
   MRI_var=init_variables(mri_with_skull);
   MRI_var->verbose_mode=parms->surf_dbg;
 
+  // mri_src = mri_with_skull, mri_dst = mri_with_skull
   MRI_var->mri_src=mri_tp;
   MRI_var->mri_dst=mri_without_skull;
 
   /*watershed process*/
   if (Watershed(parms,MRI_var)==-1)
   {
-    free(mri_tp);
+    // free(mri_tp);
+    MRIfree(&mri_tp);
     return NULL;  
   }
   /*Only the watershed algorithm*/
   if(!parms->template_deformation)
   {
     /*in case the src volume was modified (scaling of the intensity)*/
-    free(mri_tp);
+    // free(mri_tp);
+    MRIfree(&mri_tp);
     mri_tp=MRIclone(mri_with_skull,NULL);
     mri_tp=MRIcopy(mri_with_skull,NULL);
     MRI_var->mri_src = mri_tp ;
@@ -809,12 +838,21 @@ MRI *MRIstripSkull(MRI *mri_with_skull, MRI *mri_without_skull,
       MRI_var->mri_dst=MRIcopy(mri_with_skull,NULL);
     }
 
+    ///////////////////////////////////////////////////////////////////////////
+    // gaussian step 
+    MRI *gkernel = MRIgaussian1d(16.f, 50);
+    MRI *smooth = MRIconvolveGaussian(MRI_var->mri_src, NULL, gkernel);
+    MRI_var->mri_src = smooth;
+    MRIfree(&gkernel);
+    
    /*template process*/
     ////////////////////////////////////////////////////////////////////////////
     Template_Deformation(parms,MRI_var); 
+    MRIfree(&smooth);
 
     /*in case the src volume was modified (scaling of the intensity)*/
-    free(mri_tp);
+    // free(mri_tp);
+    MRIfree(&mri_tp);
     mri_tp=MRIclone(mri_with_skull,NULL);
     mri_tp=MRIcopy(mri_with_skull,NULL);
     MRI_var->mri_src = mri_tp ;
@@ -824,7 +862,7 @@ MRI *MRIstripSkull(MRI *mri_with_skull, MRI *mri_without_skull,
     vol_elt=MRI_var->mri_src->xsize*MRI_var->mri_src->ysize*MRI_var->mri_src->zsize;
     fprintf(stderr,"\n\nBrain Size = %ld voxels, voxel volume = %2.3f mm3\n"
             ,MRI_var->brain_size,(float)vol_elt);
-    fprintf(stderr,"           = %2.0f mmm3 = %2.3f cm3\n"
+    fprintf(stderr,"            = %2.0f mmm3 = %2.3f cm3\n"
       ,MRI_var->brain_size*vol_elt,(float)MRI_var->brain_size/1000.*vol_elt);
 
    /*save the surface of the brain*/
@@ -1147,6 +1185,8 @@ static int calCSFIntensity(MRI_variables *MRI_var)
       }
     }
 
+  DebugCurve(intensity_percent, 256, "\nHistogram of grey values\n");
+
   // accumulate histogram 
   for(k=1;k<256;k++)
   {
@@ -1356,7 +1396,7 @@ static int Pre_CharSorting(STRIP_PARMS *parms,MRI_variables *MRI_var)
   zmin=zmax-2*r;
     
   /*Calculate the mean intensity and the variance (mean = 27 voxels) */
-
+  // within min, max range 
   for(k=0;k<256;k++)
   {
     number[k]=0;
@@ -1407,9 +1447,9 @@ static int Pre_CharSorting(STRIP_PARMS *parms,MRI_variables *MRI_var)
   /*- Find the mean variance (27 voxels) 
     - And find the mean variance for each intensity 
       divided by the number of voxels of the same intensity 
-                          -> estimation of the MRI_var->WM_INTENSITY */ 
+                          -> estimation of the MRI_var->WM_intensity */ 
 
-   r*=2; min=1000;max=0;  
+  r*=2; min=1000;max=0;  
   for(k=0;k<r;k++)
     for(j=0;j<r;j++)
       for(i=0;i<r;i++)
@@ -1439,6 +1479,7 @@ static int Pre_CharSorting(STRIP_PARMS *parms,MRI_variables *MRI_var)
           if (max<mean)
             max=mean;
           number[(int)(mean_val[k][j][i]+0.5)]++;
+	  // accumulate
           intensity_percent[(int)(mean_val[k][j][i]+0.5)]+=var_val[k][j][i];
         }
         mean_var[k][j][i]=mean;
@@ -1461,13 +1502,13 @@ static int Pre_CharSorting(STRIP_PARMS *parms,MRI_variables *MRI_var)
 
   analyseWM(intensity_percent,MRI_var);
 
-  if (MRI_var->WM_INTENSITY < MRI_var->CSF_intensity)
+  if (MRI_var->WM_intensity < MRI_var->CSF_intensity)
   {
     fprintf(stderr, "\n\n\n\n********************************************************\n");
     fprintf(stderr, "********************************************************\n");
     fprintf(stderr, "********************************************************\n");
     fprintf(stderr, "White matter intensity %d is lower than CSF intensity %d.\n",
-            MRI_var->WM_INTENSITY, MRI_var->CSF_intensity);
+            MRI_var->WM_intensity, MRI_var->CSF_intensity);
     fprintf(stderr, "Please examine input images.  Will terminate ...\n");
     fprintf(stderr, "********************************************************\n");
     fprintf(stderr, "********************************************************\n");
@@ -1475,15 +1516,7 @@ static int Pre_CharSorting(STRIP_PARMS *parms,MRI_variables *MRI_var)
     return -1;
   }
 
-#if DEBUG_CURVE
-  for(k=0;k<256;k++)
-  {
-    fprintf(stderr,"\n%d %ld %f",k,number[k],(float)(number[k])/
-            MAX(1,intensity_percent[k]));
-    for(n=0;n<intensity_percent[k]/tmp*50;n++)
-      fprintf(stderr,".");
-      }
-#endif
+  DebugCurve(intensity_percent, 256, "White Matter\n");
 
   m=0;
   MRI_var->WM_VARIANCE=0;
@@ -1504,23 +1537,24 @@ static int Pre_CharSorting(STRIP_PARMS *parms,MRI_variables *MRI_var)
     MRI_var->WM_MIN=MRI_var->WM_HALF_MIN-3*MRI_var->WM_VARIANCE/2;
 
   
-  
+  /////////////////////////////////////////////////////////////////////
+  // if T1 image, the values are fixed
   if(parms->T1)
   {
-    MRI_var->WM_INTENSITY=WM_CONST;
+    MRI_var->WM_intensity=WM_CONST;
     MRI_var->WM_HALF_MAX=MRI_var->WM_HALF_MIN=WM_CONST;
     MRI_var->WM_VARIANCE=5;
     MRI_var->WM_MAX=WM_CONST;
     MRI_var->WM_MIN=WM_CONST;
   }
-  if((fabs(MRI_var->WM_INTENSITY-WM_CONST)<=2) 
+  if((fabs(MRI_var->WM_intensity-WM_CONST)<=2) 
      && (MRI_var->WM_VARIANCE<3))
   {
     if(fabs(MRI_var->WM_HALF_MAX-WM_CONST)<=2)
       {
         MRI_var->WM_MIN=MIN(MRI_var->WM_MIN,WM_CONST);
         MRI_var->WM_HALF_MIN=MIN(MRI_var->WM_HALF_MIN,WM_CONST);
-        MRI_var->WM_INTENSITY=WM_CONST;        
+        MRI_var->WM_intensity=WM_CONST;        
         MRI_var->WM_HALF_MAX=WM_CONST;
         MRI_var->WM_MAX=MAX(MRI_var->WM_MIN,WM_CONST);
       }
@@ -1588,6 +1622,7 @@ static int Pre_CharSorting(STRIP_PARMS *parms,MRI_variables *MRI_var)
       }
       n--;
     }
+    /////////////////////////////////////////////////////
     if(parms->T1)
     {
       /*allocate temp MRI struct and init to zero*/
@@ -1666,7 +1701,7 @@ static int Pre_CharSorting(STRIP_PARMS *parms,MRI_variables *MRI_var)
   
     if (!min && wmint==110 && MRI_var->WM_MAX==110)
     {
-      MRI_var->WM_INTENSITY=110;
+      MRI_var->WM_intensity=110;
       MRI_var->WM_VARIANCE=5;
       MRI_var->WM_MAX=110;
     }
@@ -1676,8 +1711,8 @@ static int Pre_CharSorting(STRIP_PARMS *parms,MRI_variables *MRI_var)
             MRI_var->i_global_min,MRI_var->j_global_min,MRI_var->k_global_min,MRI_var->Imax);
     
     
-    fprintf(stderr,"\n      CSF=%d, WM_INTENSITY=%d, WM_VARIANCE=%d",
-            MRI_var->CSF_intensity,MRI_var->WM_INTENSITY,MRI_var->WM_VARIANCE); 
+    fprintf(stderr,"\n      CSF=%d, WM_intensity=%d, WM_VARIANCE=%d",
+            MRI_var->CSF_intensity,MRI_var->WM_intensity,MRI_var->WM_VARIANCE); 
     fprintf(stderr,"\n      WM_MIN=%d, WM_HALF_MIN=%d,WM_HALF_MAX=%d ,WM_MAX=%d ",
             MRI_var->WM_MIN,MRI_var->WM_HALF_MIN,MRI_var->WM_HALF_MAX,MRI_var->WM_MAX);
 
@@ -1690,8 +1725,8 @@ static int Pre_CharSorting(STRIP_PARMS *parms,MRI_variables *MRI_var)
     if(MRI_var->WM_MIN<=2*MRI_var->CSF_intensity)
     {
       fprintf(stderr,"\n probable pbm with WM_MIN");
-      MRI_var->WM_MIN= (int) MAX(MRI_var->WM_INTENSITY/2,MRI_var->WM_INTENSITY-1.5*MRI_var->WM_VARIANCE);
-      MRI_var->WM_HALF_MIN=MAX(MRI_var->WM_HALF_MIN,MRI_var->WM_INTENSITY-MRI_var->WM_VARIANCE);
+      MRI_var->WM_MIN= (int) MAX(MRI_var->WM_intensity/2,MRI_var->WM_intensity-1.5*MRI_var->WM_VARIANCE);
+      MRI_var->WM_HALF_MIN=MAX(MRI_var->WM_HALF_MIN,MRI_var->WM_intensity-MRI_var->WM_VARIANCE);
     } 
   }
   // end of if(Decision())
@@ -1729,7 +1764,6 @@ static int Pre_CharSorting(STRIP_PARMS *parms,MRI_variables *MRI_var)
 static void analyseWM(double *tab,MRI_variables *MRI_var)
 {
   int k,n;
-  double tmp,buff;
   double mean;
   double a,b,Sxy,Sxx,Sx,Sy;
 
@@ -1738,104 +1772,81 @@ static void analyseWM(double *tab,MRI_variables *MRI_var)
     fprintf(MRI_var->fout, "\n");*/
 
   if(MRI_var->decision)
-  for(k=(int)MIN(MRI_var->WM_MAX*MRI_var->scale,256);k<256;k++)
-    tab[k]=0;
+    for(k=(int)MIN(MRI_var->WM_MAX*MRI_var->scale,256);k<256;k++)
+      tab[k]=0;
 
- /*tmp=0;
-  for(k=0;k<256;k++)
-    if (tab[k]>tmp)
-      tmp=tab[k];
-  
-  for(k=0;k<256;k+=4)
-  {
-    fprintf(stderr,"\n%d %f",k,(float)tab[k]);
-    for(n=0;n<tab[k]*50/tmp;n++)
-      fprintf(stderr,".");
-  }*/
+  DebugCurve(tab, 256, "\nWhiteMatter curve\n");
 
-
-  MRI_var->WM_INTENSITY=0;
-  tmp=0;
-  for(k=0;k<256;k++)
-  {
-
-    buff=tab[k];
-    if (buff>tmp)
-    {
-      tmp=buff;
-      MRI_var->WM_INTENSITY=k;
-    }
-  }
-
-  if(MRI_var->WM_INTENSITY>240)
+  // assume that WM_intensity is the most populous intensity
+  MRI_var->WM_intensity=0; // int
+  // find the max population index
+  MRI_var->WM_intensity=findMaxIndex(tab);
+  if(MRI_var->WM_intensity>240)
     Error("\nw=White Matter =Intensity too high (>240)...valid input ?");
-  
-  k=MRI_var->WM_INTENSITY;
-  for(n=k;n>0;n--)
-    if(tab[n]>=tab[k]/2)
-      MRI_var->WM_HALF_MIN=n;
-    else
-      break;
 
+  // find the half min index
+  MRI_var->WM_HALF_MIN = findHalfMin(tab, MRI_var->WM_intensity);
   if(MRI_var->WM_HALF_MIN==1)
-    Error("\n pbm with WM_HALF_MIN");
+    Error("\n WM_HALF_MIN was too low.(1)");
 
+  // get the mean population value less than half-min
   mean=0;
   for(k=0;k<MRI_var->WM_HALF_MIN;k++)
     mean+=tab[k];
   mean/=MRI_var->WM_HALF_MIN;
 
-
+  // subtract the mean value from the population table to account only the WM
   for(k=0;k<256;k++)
     tab[k]=MAX(0,tab[k]-mean);
 
-  k=MRI_var->WM_INTENSITY;
-  for(n=k;n<255;n++)
-    if(tab[n]>=tab[k]/2)
-      MRI_var->WM_HALF_MAX=n;
-    else
-      break;
-
+  MRI_var->WM_HALF_MAX = findHalfMax(tab, MRI_var->WM_intensity);
   if(MRI_var->WM_HALF_MAX==254)
-    Error("\n pbm with WM_HALF_MAX");
+    Error("\n WM_HALF_MAX was too high (254)");
 
+  // WM_MAX to be the 1/3 of the peak population
   k=MRI_var->WM_HALF_MAX;
   for(n=k;n<255;n++)
-    if(tab[n]>=tab[k]/3)
+    if(tab[n]>=tab[k]/3) 
       MRI_var->WM_MAX=n;
     else
       break;
+  
+  if(MRI_var->WM_MAX==254)
+    Error("\n WM_MAX was too high (254)");
 
-   if(MRI_var->WM_MAX==254)
-  Error("\n pbm with WM_MAX");
+  // WM_HALF_MIN, WM_intensity, WM_HALF_MAX, WM_MAX are set
 
-
+  ///////////////////////////////////////////////////////////
+  // WM_MIN and WM_MAX are estimated by
+  // triangle (linear) around WM_intensity
+  //////////////////////////////////////////////////////////
+  // WM_MAX analysis
+  ///////////////////////////////////////////
   /*least-square distance interpolation*/
-  if(MRI_var->WM_INTENSITY<MRI_var->WM_MAX)
+  if(MRI_var->WM_intensity < MRI_var->WM_MAX)
   {
     MRI_var->WM_MAX+=1;
 
-    n=MRI_var->WM_MAX-MRI_var->WM_INTENSITY+1;
+    n=MRI_var->WM_MAX - MRI_var->WM_intensity + 1;
     Sxy = Sx = Sy = Sxx = 0;
-    for(k=MRI_var->WM_INTENSITY;k<=MRI_var->WM_MAX;k++)
+    for(k=MRI_var->WM_intensity;k<=MRI_var->WM_MAX;k++)
     {
       Sxy+=(float)k*tab[k];
       Sx+=k;
       Sy+=tab[k];
       Sxx+=k*k;
     }
-
     a=(n*Sxy-Sy*Sx)/(n*Sxx-Sx*Sx);
     b=-(a*Sx-Sy)/n;
 
-    if(a==0)
+    if(DZERO(a) || !finite(a))
       Error("\n Interpolation Problem in the white matter curve analysis\n");
 
     MRI_var->WM_MAX=int(-b/a);    
   }
-
-
-  k=MRI_var->WM_INTENSITY;
+  // WM_MIN analysis
+  ///////////////////////////////////////////
+  k=MRI_var->WM_intensity;
   for(n=k;n>1;n--)
     if(tab[n]>=tab[k]/2)
       MRI_var->WM_HALF_MIN=n;
@@ -1855,15 +1866,14 @@ static void analyseWM(double *tab,MRI_variables *MRI_var)
   if(MRI_var->WM_MIN==2)
     Error("\n pbm with WM_MIN");
 
-
   /*least-square distance interpolation*/
-  if(MRI_var->WM_INTENSITY>MRI_var->WM_MIN)
+  if(MRI_var->WM_intensity > MRI_var->WM_MIN)
   {
-    MRI_var->WM_MIN=3*MRI_var->WM_MIN/2-MRI_var->WM_INTENSITY/2;
+    MRI_var->WM_MIN=3*MRI_var->WM_MIN/2-MRI_var->WM_intensity/2;
 
-    n=MRI_var->WM_INTENSITY-MRI_var->WM_MIN+1;
+    n=MRI_var->WM_intensity-MRI_var->WM_MIN+1;
     Sxy = Sx = Sy = Sxx = 0;
-    for(k=MRI_var->WM_MIN;k<=MRI_var->WM_INTENSITY;k++)
+    for(k=MRI_var->WM_MIN;k<=MRI_var->WM_intensity;k++)
     {
       Sxy+=(float)k*tab[k];
       Sx+=k;
@@ -1874,7 +1884,7 @@ static void analyseWM(double *tab,MRI_variables *MRI_var)
     a=(n*Sxy-Sy*Sx)/(n*Sxx-Sx*Sx);
     b=-(a*Sx-Sy)/n;
 
-    if(a==0)
+    if(DZERO(a) || !finite(a))
       Error("\n interpolation pbm in the white matter analysis");
     
     MRI_var->WM_MIN=int(MAX(0.,-b/a));
@@ -1914,7 +1924,7 @@ static int Decision(STRIP_PARMS *parms,  MRI_variables *MRI_var)
 {
   int i,j,k;
   double scale;
-  if (MRI_var->WM_INTENSITY+MRI_var->WM_VARIANCE>=80)
+  if (MRI_var->WM_intensity+MRI_var->WM_VARIANCE>=80)
     return 1;
   else
   {
@@ -2064,7 +2074,7 @@ static int Analyze(STRIP_PARMS *parms,MRI_variables *MRI_var)
   vol_elt=MRI_var->mri_src->xsize*MRI_var->mri_src->ysize*MRI_var->mri_src->zsize;      
   fprintf(stderr,"\n      main basin size=%8ld voxels, voxel volume =%2.3f         ",
           MRI_var->main_basin_size,(float)vol_elt);
-  fprintf(stderr,"\n           = %2.0f mmm3 = %2.3f cm3"
+  fprintf(stderr,"\n                     = %2.0f mmm3 = %2.3f cm3"
           ,MRI_var->main_basin_size*vol_elt,(float)MRI_var->main_basin_size/1000.*vol_elt);
   MRIvox(MRI_var->mri_src,MRI_var->i_global_min,MRI_var->j_global_min,MRI_var->k_global_min)
     =MRI_var->int_global_min;
@@ -2266,7 +2276,6 @@ static int Test(Coord crd,STRIP_PARMS *parms,MRI_variables *MRI_var)
   };
 
   /*Merging*/
-
   if(admax->type==3 && val<=MRI_var->WM_MIN && val>0)
     MRI_var->gmnumber[val]++;
 
@@ -2934,7 +2943,7 @@ static void Template_Deformation(STRIP_PARMS *parms,MRI_variables *MRI_var)
   // using smaller brain radius to expand to the surface
   // MRISshrink1(MRI_var);
   FitShape(MRI_var, 5, 150, calcForce1);
-  MRISwrite(MRI_var->mris, "surface1");
+  // MRISwrite(MRI_var->mris, "surface1");
   brainsize = calcBrainSize(MRI_var->mri_src, MRI_var->mris);
   fprintf(stderr, "\n                  step1 brainsize = %d\n", brainsize);
 
@@ -2947,23 +2956,18 @@ static void Template_Deformation(STRIP_PARMS *parms,MRI_variables *MRI_var)
   {
     init_direction(MRI_var);
 
-#if OUTPUT_CURVES
-    OpenFile(MRI_var,NULL);
-#endif
-
     /*compute some global intensity values*/
     // update the grey scale values for CSF etc.
     local_params(parms,MRI_var);
 
-#if OUTPUT_CURVES
-    fclose(MRI_var->fout);
-#endif
+    DebugCurve((double *) 0,256,"end"); // close fp for debugging output
 
     /*peel the brain to avoid incorrect segmentations*/
     // modifies the mri_src
     MRISpeelBrain(0,MRI_var->mri_src,MRI_var->mris,0);
 
     /*initialize the highly-tesselated surface*/
+    // note that we start from icosahedron again
     shrinkstep(MRI_var);
     fprintf(stderr,"\n      highly tesselated surface with %d vertices"
       ,MRI_var->mris->nvertices);
@@ -2979,34 +2983,33 @@ static void Template_Deformation(STRIP_PARMS *parms,MRI_variables *MRI_var)
       fprintf(stderr,"\n      matching...");
       // MRISshrink2(MRI_var);
       FitShape(MRI_var, 1, 100, calcForce2);
-      MRISwrite(MRI_var->mris, "surface2");
+      // MRISwrite(MRI_var->mris, "surface2");
       brainsize = calcBrainSize(MRI_var->mri_src, MRI_var->mris);
       fprintf(stderr, "\n                  step2 brainsize = %d\n", brainsize);
     }
     fprintf(stderr,"\n\n*************************VALIDATION*************************");
-    if(MRI_var->mri_src->slice_direction!=MRI_CORONAL)
-      fprintf(stderr,"\n      The   Validation   Step  will  Not  Provide"
-                     "\n      Relevant Information: Non MRI_CORONAL slice direction"
-                     "\n      Ignore Information given in this step" 
-                     "\n               If Incorrect Segmentation"
-                     "\n      Tr convert Input Volume to Cor type"); 
     MRI_var->atlas=parms->atlas;
+    // check with the atlas for any errors
     MRI_var->validation=ValidationSurfaceShape(MRI_var);
+    // if too bad, then validation = 0.  Otherwise validation = 1.
+
+    // we built mris_curv, mris_var_curv, mris_dCOG, and mris_var_dCOG in 
+    // ValidationSurfaceShape().
+    // if validation failed and user asked for atlas correction
+    if((!MRI_var->validation) && MRI_var->atlas)
+    {
+      fprintf(stderr,"\nCorrecting the shape of the surface...");
+      // change the surface shape using the atlas force
+      MRISCorrectSurface(MRI_var);
+      //if (parms->surf_dbg)
+      //  write_image(MRI_var);
+    }
     /*scale the fields to the current map*/
+    fprintf(stderr,"\nScaling of atlas fields onto current surface fields");
     MRISsaveVertexPositions(MRI_var->mris, ORIGINAL_VERTICES) ;
     MRISscaleFields(MRI_var->mris,MRI_var->mris_curv,MRI_var->mris_var_curv,CURV_MODE);
     MRISscaleFields(MRI_var->mris,MRI_var->mris_dCOG,MRI_var->mris_var_dCOG,DIST_MODE); 
-    if((!MRI_var->validation) && MRI_var->atlas)
-    {
-      fprintf(stderr,"\nCorrection of the shape of the surface...");
-      MRISCorrectSurface(MRI_var);
-      //      if (parms->surf_dbg)
-      //write_image(MRI_var);
-      fprintf(stderr,"\nScaling of atlas fields onto current surface fields");
-      MRISsaveVertexPositions(MRI_var->mris, ORIGINAL_VERTICES) ;
-      MRISscaleFields(MRI_var->mris,MRI_var->mris_curv,MRI_var->mris_var_curv,CURV_MODE);
-      MRISscaleFields(MRI_var->mris,MRI_var->mris_dCOG,MRI_var->mris_var_dCOG,DIST_MODE); 
-    }
+
     fprintf(stderr,"\n\n************FINAL ITERATIVE TEMPLATE DEFORMATION************");
     /*Compute local intensity values*/
     fprintf(stderr,"\nCompute Local values csf/gray");
@@ -3014,13 +3017,15 @@ static void Template_Deformation(STRIP_PARMS *parms,MRI_variables *MRI_var)
     /*refine the segmentation based on these local values*/
     fprintf(stderr,"\nFine Segmentation...");
 
+    ////////////////////////////////////////////////////////////////////
     MRISFineSegmentation(MRI_var);
-    MRISwrite(MRI_var->mris, "surface3");
+    // MRISwrite(MRI_var->mris, "surface3");
     brainsize = calcBrainSize(MRI_var->mri_src, MRI_var->mris);
     fprintf(stderr, "\n                  step3 brainsize = %d\n", brainsize);
 
+    ////////////////////////////////////////////////////////////////////
     MRISgoToClosestDarkestPoint(MRI_var);
-    MRISwrite(MRI_var->mris, "surface4");
+    // MRISwrite(MRI_var->mris, "surface4");
     brainsize = calcBrainSize(MRI_var->mri_src, MRI_var->mris);
     fprintf(stderr, "\n                  step4 brainsize = %d\n", brainsize);
     if (parms->surf_dbg)
@@ -3034,6 +3039,9 @@ static void read_geometry(int type,MRI_variables *MRI_var,char *surf_fname)
   char fname[100], *mri_dir; 
 
   mri_dir = getenv("MRI_DIR");
+  if (mri_dir==0)
+    Error("\n\nCannot find the environment variable MRI_DIR\n");
+
   switch(type)
   {
   case 0:
@@ -3114,7 +3122,7 @@ static void brain_params(MRI_variables *MRI_var)
 
   if (MRI_var->rad_Brain<30)
   {
-    if (MRI_var->WM_INTENSITY==110 && MRI_var->WM_VARIANCE==5 && MRI_var->WM_MAX==110)
+    if (MRI_var->WM_intensity==110 && MRI_var->WM_VARIANCE==5 && MRI_var->WM_MAX==110)
       Error("\n Watershed Error !\n");
     else
     {
@@ -3142,9 +3150,9 @@ init_surf_to_image(float rx, float ry, float rz,MRI_variables *MRI_var)
 
   for (k=0;k<nvertices;k++)
   {
-    mris->vertices[k].x = Rx*mris->vertices[k].x+x;
-    mris->vertices[k].y = Ry*mris->vertices[k].y+y;    
-    mris->vertices[k].z = Rz*mris->vertices[k].z+z;
+    mris->vertices[k].x = Rx*mris->vertices[k].x + x;
+    mris->vertices[k].y = Ry*mris->vertices[k].y + y;    
+    mris->vertices[k].z = Rz*mris->vertices[k].z + z;
   }
 }
 
@@ -3217,7 +3225,7 @@ static void write_image(MRI_variables *MRI_var)
       i=(int)(tx+0.5);
 
       if (i>=0 && i<MRI_var->width && j>=0 && j<MRI_var->height && imnr>=0 && imnr<MRI_var->depth)
-  MRIvox(MRI_var->mri_dst,i,j,imnr) = 80;
+	MRIvox(MRI_var->mri_dst,i,j,imnr) = 80;
     }
 }
 
@@ -3280,7 +3288,8 @@ static void find_normal(const float nx, const float ny, const float nz,float* n1
 
 }
 
-// analyze CSF, GM, values etc using the surface
+//////////////////////////////////////////////////////////////////////
+// analyze CSF, GM, values etc using the surface obtained so far
 static void local_params(STRIP_PARMS *parms,MRI_variables *MRI_var)
 {
   unsigned long CSF_percent[256];
@@ -3299,8 +3308,10 @@ static void local_params(STRIP_PARMS *parms,MRI_variables *MRI_var)
   MRIS* mris;
 
   mris=MRI_var->mris;
-  /*Determination of CSF_INTENSITY*/
 
+  //////////////////////////////////////////////////////////////////////////////
+  /*Determination of CSF_intensity*/
+  //////////////////////////////////////////////////////////////////////////////
   stop=MRI_var->CSF_intensity*3;
   
   // initialize working tmp
@@ -3326,9 +3337,8 @@ static void local_params(STRIP_PARMS *parms,MRI_variables *MRI_var)
     //
     val=MRI_var->Imax;
     rp=0;
-    for(h=-2;h<2;h++)
+    for(h=-2;h<2;h++)  // near surface area by h=-2, -1, 0, 1
     {
-      // surface shrunk by h (-2, -1, 0, 1)
       px=mris->vertices[kv].x-h*mris->vertices[kv].nx;
       py=mris->vertices[kv].y-h*mris->vertices[kv].ny;
       pz=mris->vertices[kv].z-h*mris->vertices[kv].nz;
@@ -3342,23 +3352,24 @@ static void local_params(STRIP_PARMS *parms,MRI_variables *MRI_var)
       {
 	// get the voxel value
         val_buff=MRIvox(MRI_var->mri_src,i,j,k);
-	// if less than max
+	// find the min with h value
         if(val>val_buff)
         {
-          rp=h;
+          rp=h;              // the height where min occurred.
           val=val_buff;
         }
       }
     }
-    if (val<3*MRI_var->CSF_intensity)
+    //  
+    if (val<3*MRI_var->CSF_intensity)  
     {
       m=0;
-      for(a=-1;a<2;a++)
-        for(b=-1;b<2;b++)
+      for(a=-1;a<2;a++)        // orthogonal to normal direction
+        for(b=-1;b<2;b++)      // orthogonal to normal direction
         {
-          px=mris->vertices[kv].x-rp*mris->vertices[kv].nx + a*n1[0]+b*n2[0];
-          py=mris->vertices[kv].y-rp*mris->vertices[kv].ny + a*n1[1]+b*n2[1];
-          pz=mris->vertices[kv].z-rp*mris->vertices[kv].nz + a*n1[2]+b*n2[2];
+          px=mris->vertices[kv].x -rp*mris->vertices[kv].nx + a*n1[0]+b*n2[0];
+          py=mris->vertices[kv].y -rp*mris->vertices[kv].ny + a*n1[1]+b*n2[1];
+          pz=mris->vertices[kv].z -rp*mris->vertices[kv].nz + a*n1[2]+b*n2[2];
 
 	  MRIworldToVoxel(MRI_var->mri_dst,px,py,pz,&tx,&ty,&tz);
 	  i=(int)(tx+0.5);
@@ -3368,7 +3379,7 @@ static void local_params(STRIP_PARMS *parms,MRI_variables *MRI_var)
           if (!(k<0||k>=MRI_var->depth||i<0||i>=MRI_var->width||j<0||j>=MRI_var->height))
           {
             val=MRIvox(MRI_var->mri_src,i,j,k);
-            CSF_percent[val]++;
+            CSF_percent[val]++; // create histogram
             n++;
           }
         }
@@ -3376,12 +3387,12 @@ static void local_params(STRIP_PARMS *parms,MRI_variables *MRI_var)
   }
   //
   analyseCSF(CSF_percent,MRI_var);  
-
   fprintf(stderr,"\n      CSF_MIN=%d, CSF=%d, CSF_MAX=%d ",
           MRI_var->CSF_MIN, MRI_var->CSF_intensity,MRI_var->CSF_MAX);
-  
 
-  /*Determination of MRI_var->GM_INTENSITY*/
+  /////////////////////////////////////////////////////////////////////////////
+  /*Determination of MRI_var->GM_intensity*/
+  /////////////////////////////////////////////////////////////////////////////
   n = 0;
   for (kv=0;kv<mris->nvertices;kv++)
   {
@@ -3395,72 +3406,80 @@ static void local_params(STRIP_PARMS *parms,MRI_variables *MRI_var)
     n2[2]=mris->vertices[kv].e2z;
 
     m=0;
-    for(h=0;h<ninside-4;h++)
+    // look inside surface normal by 0 to 26 with 3 x 3 x 4 tuple
+    for(h=0;h<ninside-4;h++) // ninside = 30  goes deeper
     {
-      for(c=0;c<4;c++)
-        for (a=-1;a<2;a++)
+      for(c=0;c<4;c++)        // 3 x 3 x 4 
+        for (a=-1;a<2;a++)    // a and b are orthogonal to normal
           for (b=-1;b<2;b++)
           {
-            px=mris->vertices[kv].x-(h+c)*mris->vertices[kv].nx+a*n1[0]+b*n2[0];
-            py=mris->vertices[kv].y-(h+c)*mris->vertices[kv].ny+a*n1[1]+b*n2[1];
-            pz=mris->vertices[kv].z-(h+c)*mris->vertices[kv].nz+a*n1[2]+b*n2[2];
+            px=mris->vertices[kv].x-(h+c)*mris->vertices[kv].nx + a*n1[0]+b*n2[0];
+            py=mris->vertices[kv].y-(h+c)*mris->vertices[kv].ny + a*n1[1]+b*n2[1];
+            pz=mris->vertices[kv].z-(h+c)*mris->vertices[kv].nz + a*n1[2]+b*n2[2];
 	    MRIworldToVoxel(MRI_var->mri_dst,px,py,pz,&tx,&ty,&tz);
 	    i=(int)(tx+0.5);
 	    j=(int)(ty+0.5);
 	    k=(int)(tz+0.5);
      
+	    // if inside the volume region
             if (!(k<0||k>=MRI_var->depth||i<0||i>=MRI_var->width||j<0||j>=MRI_var->height))
               tab[c][4+3*a+b]=MRIvox(MRI_var->mri_src,i,j,k);
             else
               tab[c][4+3*a+b]=0;
-          }                   
+          }
+      // if find White Matter (mean and variation are of white matter), then stop
       if (FindWM(tab,MRI_var))
         break;
     }  
-
-
-
-    if(h<ninside-4)
+    // now we found at certain depth h where white matter is.
+    // if not, then int_percent[] are all zeros.  ... bug
+    if(h<ninside-4)   // h is between 0 and ninside-4
     {
-      for(;h>=0;h--)
+      for(;h>=0;h--) // back out and find the non-white matter region
       {
-        px=mris->vertices[kv].x-c*mris->vertices[kv].nx;
-        py=mris->vertices[kv].y-c*mris->vertices[kv].ny;
-        pz=mris->vertices[kv].z-c*mris->vertices[kv].nz;
+	//             used to be c here (h) <-- bug
+        px=mris->vertices[kv].x - h*mris->vertices[kv].nx;
+        py=mris->vertices[kv].y - h*mris->vertices[kv].ny;
+        pz=mris->vertices[kv].z - h*mris->vertices[kv].nz;
 	MRIworldToVoxel(MRI_var->mri_dst,px,py,pz,&tx,&ty,&tz);
 	i=(int)(tx+0.5);
 	j=(int)(ty+0.5);
 	k=(int)(tz+0.5);
-
+	// if inside and grey value is less than (white matter min - variance/2)
         if (!(k<0||k>=MRI_var->depth||i<0||i>=MRI_var->width||j<0||j>=MRI_var->height))
-          if (MRIvox(MRI_var->mri_src,i,j,k)<MRI_var->WM_MIN-MRI_var->WM_VARIANCE/2)
-            break;
+          if (MRIvox(MRI_var->mri_src,i,j,k) < MRI_var->WM_MIN - MRI_var->WM_VARIANCE/2)
+            break; 
       }
-      for (c=h;c>=0;c--)
+      // use h now
+      for (c=h;c>=0;c--) // find the region of CSF_HALF_MAX
       {
-	px=mris->vertices[kv].x-c*mris->vertices[kv].nx;
-        py=mris->vertices[kv].y-c*mris->vertices[kv].ny;
-        pz=mris->vertices[kv].z-c*mris->vertices[kv].nz;
+	px=mris->vertices[kv].x - c*mris->vertices[kv].nx;
+        py=mris->vertices[kv].y - c*mris->vertices[kv].ny;
+        pz=mris->vertices[kv].z - c*mris->vertices[kv].nz;
 	MRIworldToVoxel(MRI_var->mri_dst,px,py,pz,&tx,&ty,&tz);
 	i=(int)(tx+0.5);
 	j=(int)(ty+0.5);
 	k=(int)(tz+0.5);   
+	// less than CSF_HALF_MAX
         if (!(k<0||k>=MRI_var->depth||i<0||i>=MRI_var->width||j<0||j>=MRI_var->height))
-          if (MRIvox(MRI_var->mri_src,i,j,k)<MRI_var->CSF_HALF_MAX)
+          if (MRIvox(MRI_var->mri_src,i,j,k) < MRI_var->CSF_HALF_MAX)
             break;
       }
+      // use c now
+      // now we find the GM region so create a histogram
       m=0;var=0;tmp=0;
       for(;c<h;c++)
         for(a=-1;a<2;a++)
           for(b=-1;b<2;b++)
           {
-	    px=mris->vertices[kv].x-c*mris->vertices[kv].nx+a*n1[0]+b*n2[0];
-            py=mris->vertices[kv].y-c*mris->vertices[kv].ny+a*n1[1]+b*n2[1];
-            pz=mris->vertices[kv].z-c*mris->vertices[kv].nz+a*n1[2]+b*n2[2];
+	    px=mris->vertices[kv].x - c*mris->vertices[kv].nx + a*n1[0] + b*n2[0];
+            py=mris->vertices[kv].y - c*mris->vertices[kv].ny + a*n1[1] + b*n2[1];
+            pz=mris->vertices[kv].z - c*mris->vertices[kv].nz + a*n1[2] + b*n2[2];
 	    MRIworldToVoxel(MRI_var->mri_dst,px,py,pz,&tx,&ty,&tz);
 	    i=(int)(tx+0.5);
 	    j=(int)(ty+0.5);
 	    k=(int)(tz+0.5);
+	    // if inside the volume
             if (!(k<0||k>=MRI_var->depth||i<0||i>=MRI_var->width||j<0||j>=MRI_var->height))
             {
               val_buff=MRIvox(MRI_var->mri_src,i,j,k);
@@ -3468,95 +3487,112 @@ static void local_params(STRIP_PARMS *parms,MRI_variables *MRI_var)
               var+=SQR(val_buff-val);
               m++;
               /*modification added on January 29th */
-              if(val_buff<MRI_var->WM_MIN-MRI_var->WM_VARIANCE/2 && val_buff>MRI_var->WM_MIN/4)
+              if(val_buff< MRI_var->WM_MIN - MRI_var->WM_VARIANCE/2 && val_buff > MRI_var->WM_MIN/4)
               {
-                int_percent[val_buff]++;
+                int_percent[val_buff]++; // histogramming
                 n++;
               }
             }
           }
     }
   }
+
+  // analyseGM sets the value for GM_intensity, GM_MIN
   analyseGM(CSF_percent,int_percent,MRI_var);
 
-
-
-  MRI_var->TRANSITION_INTENSITY=
+  // set the TRANSITION_intensity to be at the weighted average 
+  // assuming the height of GM_intensity and CSF_intensity are the same
+  MRI_var->TRANSITION_intensity=
     MRI_var->CSF_intensity
-    + (MRI_var->GM_INTENSITY-MRI_var->CSF_intensity)
-    * (MRI_var->CSF_MAX-MRI_var->CSF_intensity)/(MRI_var->CSF_MAX+MRI_var->GM_INTENSITY-MRI_var->GM_MIN-MRI_var->CSF_intensity);
+    + (MRI_var->GM_intensity - MRI_var->CSF_intensity)
+      * (MRI_var->CSF_MAX - MRI_var->CSF_intensity)
+      / (MRI_var->CSF_MAX + MRI_var->GM_intensity - MRI_var->GM_MIN - MRI_var->CSF_intensity);
 
-  fprintf(stderr,"\n      before analyzing : TRANSITION_INTENSITY=%d, GM_MIN=%d, GM=%d",
-          MRI_var->TRANSITION_INTENSITY,MRI_var->GM_MIN,MRI_var->GM_INTENSITY);
+  fprintf(stderr,"\n      before analyzing : TRANSITION_intensity=%d, GM_MIN=%d, GM=%d",
+          MRI_var->TRANSITION_intensity,MRI_var->GM_MIN,MRI_var->GM_intensity);
 
-  MRI_var->CSF_MAX=MIN(MRI_var->TRANSITION_INTENSITY,MRI_var->CSF_MAX);
-
+  ////////////////////////////////////////////////////////////////////////
+  // change CSF_MAX to be smaller of transition intensity or csf max.
+  MRI_var->CSF_MAX = MIN(MRI_var->TRANSITION_intensity,MRI_var->CSF_MAX);
 
   //before the modification
-  //MRI_var->GM_MIN=MAX(MRI_var->TRANSITION_INTENSITY,MRI_var->GM_MIN);
-  
-  MRI_var->GM_MIN=MAX(MAX(MRI_var->TRANSITION_INTENSITY,MRI_var->GM_MIN),MRI_var->WM_MIN/4);
-  MRI_var->GM_INTENSITY=MAX(MRI_var->GM_INTENSITY,MRI_var->GM_MIN);
+  //MRI_var->GM_MIN=MAX(MRI_var->TRANSITION_intensity,MRI_var->GM_MIN);
+  // change GM_MIN to be larger of transition intensity or GM_MIN or WM_MIN/4 
+  MRI_var->GM_MIN = MAX(MAX(MRI_var->TRANSITION_intensity,MRI_var->GM_MIN), MRI_var->WM_MIN/4);
+  // change GM_intensity to be greater of GM_intensity or GM_MIN
+  MRI_var->GM_intensity = MAX(MRI_var->GM_intensity,MRI_var->GM_MIN);
 
-  if (!parms->skull_type)
+  ///////////////////////////////////////////////////////////////////////
+  // further modify transition intensity, csf max, gm intensity
+  if (!parms->skull_type) // default
   {
-    MRI_var->TRANSITION_INTENSITY=(2*MRI_var->GM_MIN+MRI_var->TRANSITION_INTENSITY)/3;
-    MRI_var->CSF_HALF_MAX=MIN(MRI_var->CSF_intensity/2+MIN(MRI_var->CSF_MAX,MRI_var->TRANSITION_INTENSITY)/2
-                     ,MRI_var->CSF_HALF_MAX);
-    if (MRI_var->CSF_MAX==MRI_var->TRANSITION_INTENSITY)
-      MRI_var->CSF_MAX=(MRI_var->CSF_HALF_MAX+MRI_var->TRANSITION_INTENSITY)/2;
-    MRI_var->GM_INTENSITY=(MRI_var->GM_INTENSITY+3*MRI_var->TRANSITION_INTENSITY)/4;
+    // change transition intensity 
+    MRI_var->TRANSITION_intensity=(2*MRI_var->GM_MIN + MRI_var->TRANSITION_intensity)/3;
+    // change CSF_HALF_MAX
+    MRI_var->CSF_HALF_MAX=MIN(MRI_var->CSF_intensity/2 
+			      + MIN(MRI_var->CSF_MAX, MRI_var->TRANSITION_intensity)/2,
+                              MRI_var->CSF_HALF_MAX);
+    // 
+    if (MRI_var->CSF_MAX == MRI_var->TRANSITION_intensity)
+      MRI_var->CSF_MAX=(MRI_var->CSF_HALF_MAX + MRI_var->TRANSITION_intensity)/2;
+    
+    MRI_var->GM_intensity=(MRI_var->GM_intensity + 3*MRI_var->TRANSITION_intensity)/4;
   }
-  else if (parms->skull_type==-1)
+  else if (parms->skull_type==-1) // less
   {
-    if (MRI_var->GM_MIN==MRI_var->TRANSITION_INTENSITY)
+    if (MRI_var->GM_MIN==MRI_var->TRANSITION_intensity)
     {
-      MRI_var->TRANSITION_INTENSITY=(3*MRI_var->GM_MIN+MRI_var->GM_INTENSITY)/4;
-      MRI_var->GM_INTENSITY=(MRI_var->GM_INTENSITY+MRI_var->GM_MIN)/2;
+      MRI_var->TRANSITION_intensity=(3*MRI_var->GM_MIN + MRI_var->GM_intensity)/4;
+      MRI_var->GM_intensity        =(MRI_var->GM_intensity + MRI_var->GM_MIN)/2;
     }
     else
     {
-      MRI_var->TRANSITION_INTENSITY=MRI_var->GM_MIN;
-      MRI_var->GM_INTENSITY=(MRI_var->GM_INTENSITY+2*MRI_var->GM_MIN)/3;
+      MRI_var->TRANSITION_intensity=MRI_var->GM_MIN;
+      // weight GM_MIN
+      MRI_var->GM_intensity        =(MRI_var->GM_intensity+2*MRI_var->GM_MIN)/3;
     };
-    MRI_var->CSF_HALF_MAX=MIN(MRI_var->CSF_intensity/2+MIN(MRI_var->CSF_MAX,MRI_var->TRANSITION_INTENSITY)/2
-                     ,MRI_var->CSF_HALF_MAX);
-    MRI_var->CSF_MAX=(MRI_var->CSF_HALF_MAX+MRI_var->TRANSITION_INTENSITY)/2;
+    MRI_var->CSF_HALF_MAX
+      =MIN(MRI_var->CSF_intensity/2 + MIN(MRI_var->CSF_MAX, MRI_var->TRANSITION_intensity)/2,
+           MRI_var->CSF_HALF_MAX);
+    MRI_var->CSF_MAX=(MRI_var->CSF_HALF_MAX+MRI_var->TRANSITION_intensity)/2;
 
   }
-  else if (parms->skull_type==1) // more option
+  else if (parms->skull_type==1) // more 
   {
-    if (MRI_var->GM_MIN==MRI_var->TRANSITION_INTENSITY)
+    if (MRI_var->GM_MIN==MRI_var->TRANSITION_intensity)
     {
-      MRI_var->TRANSITION_INTENSITY=(MRI_var->CSF_intensity+3*MRI_var->TRANSITION_INTENSITY)/4;
-      MRI_var->GM_INTENSITY=MIN(MRI_var->GM_MIN,(MRI_var->GM_INTENSITY+3*MRI_var->TRANSITION_INTENSITY)/4);
+      MRI_var->TRANSITION_intensity=(MRI_var->CSF_intensity+3*MRI_var->TRANSITION_intensity)/4;
+      MRI_var->GM_intensity        = MIN(MRI_var->GM_MIN,
+					 (MRI_var->GM_intensity+3*MRI_var->TRANSITION_intensity)/4);
     }
     else
     {
-      MRI_var->TRANSITION_INTENSITY=(MRI_var->GM_MIN+MRI_var->TRANSITION_INTENSITY)/2;
-      MRI_var->GM_INTENSITY=(MRI_var->GM_INTENSITY+3*MRI_var->TRANSITION_INTENSITY)/4;
+      MRI_var->TRANSITION_intensity=(MRI_var->GM_MIN + MRI_var->TRANSITION_intensity)/2;
+      // weight toward transition intensity
+      MRI_var->GM_intensity        =(MRI_var->GM_intensity + 3*MRI_var->TRANSITION_intensity)/4;
     }
-    MRI_var->CSF_HALF_MAX=MIN((MRI_var->CSF_intensity+MIN(MRI_var->CSF_MAX,MRI_var->TRANSITION_INTENSITY))/2
+    MRI_var->CSF_HALF_MAX=MIN((MRI_var->CSF_intensity+MIN(MRI_var->CSF_MAX,MRI_var->TRANSITION_intensity))/2
                      ,MRI_var->CSF_HALF_MAX);
-    if (MRI_var->CSF_MAX>=MRI_var->TRANSITION_INTENSITY)
-      MRI_var->CSF_MAX=(MRI_var->CSF_HALF_MAX+MRI_var->TRANSITION_INTENSITY)/2;
+    if (MRI_var->CSF_MAX>=MRI_var->TRANSITION_intensity)
+      MRI_var->CSF_MAX=(MRI_var->CSF_HALF_MAX+MRI_var->TRANSITION_intensity)/2;
   };
 
-   fprintf(stderr,"\n      after  analyzing : CSF_MAX=%d, TRANSITION_INTENSITY=%d, GM=%d",
-          MRI_var->CSF_MAX, MRI_var->TRANSITION_INTENSITY,MRI_var->GM_INTENSITY);
+  fprintf(stderr,"\n      after  analyzing : CSF_MAX=%d, TRANSITION_intensity=%d, GM=%d, GM_MIN=%d",
+          MRI_var->CSF_MAX, MRI_var->TRANSITION_intensity,MRI_var->GM_intensity, MRI_var->GM_MIN);
 
-
-   if(parms->manual_params==1)
-     {
-       fprintf(stderr,"\n      Modification of the parameters");
-       MRI_var->CSF_MAX=parms->manual_CSF_MAX;
-       MRI_var->TRANSITION_INTENSITY=parms->manual_TRANSITION_INTENSITY;
-       MRI_var->GM_INTENSITY=parms->manual_GM_INTENSITY;
-       fprintf(stderr,"\n      after  analyzing : CSF_MAX=%d, TRANSITION_INTENSITY=%d, GM=%d",
-          MRI_var->CSF_MAX, MRI_var->TRANSITION_INTENSITY,MRI_var->GM_INTENSITY);
-     }
+  // if manual options are done, use them
+  if(parms->manual_params==1)
+  {
+    fprintf(stderr,"\n      Modification of the parameters manually");
+    MRI_var->CSF_MAX=parms->manual_CSF_MAX;
+    MRI_var->TRANSITION_intensity=parms->manual_TRANSITION_intensity;
+    MRI_var->GM_intensity=parms->manual_GM_intensity;
+    fprintf(stderr,"\n      after  analyzing : CSF_MAX=%d, TRANSITION_intensity=%d, GM=%d, GM_MIN=%d",
+	    MRI_var->CSF_MAX, MRI_var->TRANSITION_intensity,MRI_var->GM_intensity, MRI_var->GM_MIN);
+  }
 }
 
+// coming in is the histogram of possible CSF values
 static void analyseCSF(unsigned long *CSF_percent,MRI_variables *MRI_var)
 {
   int k,n,csf,tp;
@@ -3565,36 +3601,9 @@ static void analyseCSF(unsigned long *CSF_percent,MRI_variables *MRI_var)
 
   tp=MRI_var->CSF_intensity;
   
-
-#if OUTPUT_CURVES
-  for(k=0;k<256;k++)
-    fprintf(MRI_var->fout, " %ld",CSF_percent[k]);
-    fprintf(MRI_var->fout, "\n");
-#endif
+  lisse(CSF_percent, "CSF_percent");
   
-  lisse(CSF_percent);
-  
-#if OUTPUT_CURVES
-  for(k=0;k<256;k++)
-    fprintf(MRI_var->fout, " %ld",CSF_percent[k]);
-    fprintf(MRI_var->fout, "\n");
-#endif
-  
-  
-#if DEBUG_CURVE
-  tmp=0;
-  for(k=0;k<3*MRI_var->CSF_intensity;k++)
-    if (CSF_percent[k]>tmp)
-      tmp=CSF_percent[k];
-  
-  
-  for(k=0;k<3*MRI_var->CSF_intensity;k++)
-  {
-    fprintf(stderr,"\n%d %ld",k,CSF_percent[k]);
-    for(n=0;n<CSF_percent[k]*50/tmp;n++)
-      fprintf(stderr,".");
-  }
-#endif
+  DebugCurve(CSF_percent, 3*MRI_var->CSF_intensity, "\nCSF_percent\n");
 
   csf=0;    
   tmp=0;
@@ -3607,7 +3616,6 @@ static void analyseCSF(unsigned long *CSF_percent,MRI_variables *MRI_var)
         csf=k;
     }
   }
-
 
   k=csf;
   for(n=k;n<3*MRI_var->CSF_intensity;n++)
@@ -3634,14 +3642,25 @@ static void analyseCSF(unsigned long *CSF_percent,MRI_variables *MRI_var)
     Sy+=CSF_percent[k];
     Sxx+=k*k;
   }
-
+  // Is this a good approximation?
+  // CSF distribution is assumed to be
+  // a triangle shape
+  //
+  // assume linear equation y = b + ax
+  //
+  // a = (n*Sxy  - Sx*Sy)/(n*Sxx - Sx*Sx)
+  // b = (Sxx*Sy - Sx*Sy)/(n*Sxx - Sx*Sx)
+  // crossing point at x = -b/a
+  //
+  // note that n*Sxx - Sx*Sx != 0
   a=(n*Sxy-Sy*Sx)/(n*Sxx-Sx*Sx);
   b=-(a*Sx-Sy)/n;
 
-  if(a==0)
-    Error("\n pbm with the least square interpolation ");
-
-  MRI_var->CSF_MAX=int(-b/a);
+  if(DZERO(a) || !finite(a))
+    fprintf(stderr, "\n pbm with the least square interpolation ");
+  // don't change the value
+  else
+    MRI_var->CSF_MAX=int(-b/a);
   
 
   k=MRI_var->CSF_intensity;
@@ -3662,24 +3681,24 @@ static void analyseCSF(unsigned long *CSF_percent,MRI_variables *MRI_var)
     Sy+=CSF_percent[k];
     Sxx+=k*k;
   }
-
+  // min side
   a=(n*Sxy-Sy*Sx)/(n*Sxx-Sx*Sx);
   b=-(a*Sx-Sy)/n;
 
-  if(a==0)
-  Error("\n pbm with the least square interpolation ");
+  if(DZERO(a) || !finite(a))
+    fprintf(stderr, "\n pbm with the least square interpolation ");
+  else
+    MRI_var->CSF_MIN= int ((MAX(0,-b/a) + MRI_var->CSF_MIN)/2.);
 
-  
-  MRI_var->CSF_MIN= int ((MAX(0,-b/a) + MRI_var->CSF_MIN)/2.);
+  if (MRI_var->CSF_MIN < 0)
+    MRI_var->CSF_MIN=0;
 
-
-  a=1/((float)MRI_var->CSF_MAX-3*tp);
+  a=1/((float)MRI_var->CSF_MAX - 3*tp);
   b=(float)3*tp/(3*tp-MRI_var->CSF_MAX);
   for(k=MRI_var->CSF_MAX;k<=3*tp;k++)
     CSF_percent[k]*= (long unsigned int) (a*k+b);
   for(;k<256;k++)
     CSF_percent[k]=0;
-
 }
 
 static void analyseGM(unsigned long *CSF_percent,unsigned long *int_percent,MRI_variables *MRI_var)
@@ -3689,154 +3708,124 @@ static void analyseGM(unsigned long *CSF_percent,unsigned long *int_percent,MRI_
   double tab[256];
   float a,b,Sxy,Sx,Sy,Sxx;
 
-#if OUTPUT_CURVES
-    for(k=0;k<256;k++)
-    fprintf(MRI_var->fout, " %ld",int_percent[k]); 
-    fprintf(MRI_var->fout, "\n");    
-#endif
-
-  lisse(int_percent);
+  ///////////////////////////////////////////////////////////
+  // tuple analysis GM histogram
+  //////////////////////////////////////////////////////////
+  // smooth the histogram
+  lisse(int_percent, "GM percent");
     
-#if OUTPUT_CURVES
-  for(k=0;k<256;k++)
-    fprintf(MRI_var->fout, " %ld",int_percent[k]); 
-    fprintf(MRI_var->fout, "\n");
-#endif
-
-
+  // get GM population around CSF_intensity area (5 bins)
   tmp=0;
-  for(k=-2;k<3;k++)
+  for(k=-2;k<3;k++) 
     tmp+=(float)int_percent[MRI_var->CSF_intensity+k];
   
+  // get CSF population around CSF_intensity
   buff=0;
   for(k=-2;k<3;k++)
     buff+=CSF_percent[MRI_var->CSF_intensity+k];
   
+  // null the value up to CSF_intensity
   for(k=0;k<MRI_var->CSF_intensity;k++)
     int_percent[k]=0;
+
+  // above CSF_intensity, subtract the CSF contribution
   for(;k<256;k++)
-    int_percent[k]=(long unsigned int) (MAX(0,int_percent[k]-tmp*CSF_percent[k]/buff));
+    int_percent[k]=(long unsigned int) (MAX(0, int_percent[k] - tmp*CSF_percent[k]/buff));
 
-#if OUTPUT_CURVES
-  for(k=0;k<256;k++)
-    fprintf(MRI_var->fout, " %ld",int_percent[k]); 
-    fprintf(MRI_var->fout, "\n");
-#endif
-
-
-#if DEBUG_CURVE
-  fprintf(stderr, " gm curve\n");
-  tmp=0;
-  for(k=0;k<MRI_var->WM_INTENSITY;k++)
-    if (int_percent[k]>tmp)
-      tmp=int_percent[k];
+  DebugCurve(int_percent, MRI_var->WM_intensity, "\nGM curve from tuple analysis\n");
   
-  for(k=0;k<MRI_var->WM_INTENSITY;k++)
-  {
-    fprintf(stderr,"\n%d %ld",k,int_percent[k]);
-    for(n=0;n<int_percent[k]*50/tmp;n++)
-      fprintf(stderr,".");
-      }
+  /////////////////////////////////////////////////////////
+  // using the basin analysis GM histogram
+  /////////////////////////////////////////////////////////
+  // smooth the histogram
+  lisse(MRI_var->gmnumber, "GM number");
 
-#endif
-  
-
-#if OUTPUT_CURVES
-  for(k=0;k<256;k++)
-    fprintf(MRI_var->fout, " %ld",MRI_var->gmnumber[k]); 
-    fprintf(MRI_var->fout, "\n");
-#endif
-
-  lisse(MRI_var->gmnumber);
-
-#if OUTPUT_CURVES
-  for(k=0;k<256;k++)
-    fprintf(MRI_var->fout, " %ld",MRI_var->gmnumber[k]); 
-    fprintf(MRI_var->fout, "\n");
-#endif
-
-
+  // get the GM population around CSF_intensity
   tmp=0;
   for(k=-2;k<3;k++)
     tmp+=(float)MRI_var->gmnumber[MRI_var->CSF_intensity+k];
   
+  // get the CSF population around CSF_intensity
   buff=0;
   for(k=-2;k<3;k++)
     buff+=CSF_percent[MRI_var->CSF_intensity+k];
   
+  // null the population up to CSF_intensity
   for(k=0;k<MRI_var->CSF_intensity;k++)
     MRI_var->gmnumber[k]=0;
+
+  // above CSF intensity, subtract the CSF contribution
   for(;k<256;k++)
     MRI_var->gmnumber[k]=(long unsigned int) (MAX(0,MRI_var->gmnumber[k]-tmp*CSF_percent[k]/buff));
 
-#if DEBUG_CURVE
-  fprintf(stderr, " other gm curve\n");
-  tmp=0;
-  for(k=0;k<MRI_var->WM_INTENSITY;k++)
-    if (MRI_var->gmnumber[k]>tmp)
-      tmp=MRI_var->gmnumber[k];
-  
-  for(k=0;k<MRI_var->WM_INTENSITY;k++)
+  DebugCurve(MRI_var->gmnumber, MRI_var->WM_intensity, "\nGM curve from basin analysis\n");
+
+  /////////////////////////////////////////////////////////
+  // use gmnumber to get the GM values (tosa)
+  // in order to combat the frequent cases of tuple analysis failures
+  /////////////////////////////////////////////////////////
+  MRI_var->GM_intensity= findMaxIndex(MRI_var->gmnumber);
+  int gm_half_min = findHalfMin(MRI_var->gmnumber, MRI_var->GM_intensity);
+  Sxy = Sx = Sy = Sxx = 0;
+  n = 0;
+  for(k=gm_half_min;k<=MRI_var->GM_intensity;k++)
   {
-    fprintf(stderr,"\n%d %ld",k,MRI_var->gmnumber[k]);
-    for(n=0;n<MRI_var->gmnumber[k]*50/tmp;n++)
-      fprintf(stderr,".");
-      }
-#endif
+    Sxy+=(float) k*MRI_var->gmnumber[k];
+    Sx+=k;
+    Sy+=MRI_var->gmnumber[k];
+    Sxx+=k*k;
+    n++;
+  }
+  a=(n*Sxy-Sy*Sx)/(n*Sxx-Sx*Sx);
+  b=-(a*Sx-Sy)/n;
+  if(DZERO(a) || !finite(a))
+    fprintf(stderr, "\n pbm with the least square interpolation in GM_MIN calculation.");
+  else
+    MRI_var->GM_MIN=int(MAX(0,-b/a));
+  fprintf(stderr, "\n      gmnumber lead to GM_intensity = %d, GM_MIN = %d\n", 
+	  MRI_var->GM_intensity, MRI_var->GM_MIN);
+ 
+  // if the original fails, we use these values
 
-#if OUTPUT_CURVES
-  for(k=0;k<256;k++)
-    fprintf(MRI_var->fout, " %ld",MRI_var->gmnumber[k]); 
-    fprintf(MRI_var->fout, "\n");
-#endif
-
+  //////////////////////////////////////////////////////////
+  // original analysis
+  // count the number of voxels in gmnumber[]
   tmp=0;  
   for(k=0;k<256;k++)
     tmp+=MRI_var->gmnumber[k];
   
+  // if less than 100,000 then don't count them on for decision
   if(tmp<100000)
     for(k=0;k<256;k++)
       MRI_var->gmnumber[k]=1;
 
+  // multiply int_percent[] and gmnumber[]
   for(k=0;k<256;k++)
     tab[k]=MRI_var->gmnumber[k]*int_percent[k];
 
+  DebugCurve(tab, MRI_var->WM_intensity, "\nTable for gmnumber * int_percent\n");
 
-#if DEBUG_CURVE
-  fprintf(stderr, " gm curse\n");
-  tmp=0;
-  for(k=0;k<MRI_var->WM_INTENSITY;k++)
-    if (tab[k]>tmp)
-      tmp=tab[k];
-  
-  for(k=0;k<MRI_var->WM_INTENSITY;k++)
-  {
-    fprintf(stderr,"\n%d %f",k,(float)tab[k]);
-    for(n=0;n<tab[k]*50/tmp;n++)
-      fprintf(stderr,".");
-      }
-#endif
-
+  // find the index of the peak population
   tmp=0;
   for(k=0;k<MRI_var->WM_MIN;k++)
     if(tab[k]>tmp)
     {
-      MRI_var->GM_INTENSITY=k;
+      MRI_var->GM_intensity=k;
       tmp=tab[k];
     }
-
-  gm_int=MRI_var->GM_INTENSITY-1;
-  for(k=MRI_var->GM_INTENSITY;k>=0;k--)
-    if(tab[k]>=tab[MRI_var->GM_INTENSITY]/4)
+  gm_int=MRI_var->GM_intensity-1;
+  // find the index for the 1/4 of the peak population
+  for(k=MRI_var->GM_intensity;k>=0;k--)
+    if(tab[k]>=tab[MRI_var->GM_intensity]/4)
       gm_int=k-1;
     else 
       break;
   
-  gm_int=MAX(3*gm_int/2-MRI_var->GM_INTENSITY/2,0);
+  gm_int=MAX(3*gm_int/2 - MRI_var->GM_intensity/2,0);
 
-  n=MRI_var->GM_INTENSITY-gm_int+1;
+  n=MRI_var->GM_intensity - gm_int + 1;
   Sxy = Sx = Sy = Sxx = 0;
-  for(k=gm_int;k<=MRI_var->GM_INTENSITY;k++)
+  for(k=gm_int;k<=MRI_var->GM_intensity;k++)
   {
     Sxy+=(float)k*tab[k];
     Sx+=k;
@@ -3846,26 +3835,29 @@ static void analyseGM(unsigned long *CSF_percent,unsigned long *int_percent,MRI_
 
   a=(n*Sxy-Sy*Sx)/(n*Sxx-Sx*Sx);
   b=-(a*Sx-Sy)/n;
-  if(a==0)
-    Error("\n pbm with the least square interpolation ");
-  MRI_var->GM_MIN=int(MAX(0,-b/a));
-  
+  if(DZERO(a) || !finite(a))
+    fprintf(stderr, "\n pbm with the least square interpolation in GM_MIN calculation.");
+  else
+    MRI_var->GM_MIN=int(MAX(0,-b/a));
 }
 
 /* smooth the 256-tab curve*/
-static void lisse(unsigned long *tab)
+static void lisse(unsigned long *tab, const char *msg)
 {
   int k,n,p;
   unsigned long tmp[3];
   unsigned long buff;
+
+  // DebugCurve(tab, 256, "\nBefore averaging\n");
+
   p=2;
   tmp[0]=0;
   tmp[1]=0;
   for(k=2;k<254;k++)
   {
     buff=0;
-    for(n=-2;n<3;n++)
-      buff+=tab[k+n]/5;
+    for(n=-2;n<3;n++)   // k-2, k-1, k, k+1, k+2
+      buff+=tab[k+n]/5; // average over the 5 values around that point
     tmp[p]=buff;
     p=(p+1)%3;
     tab[k-2]=tmp[p];
@@ -3876,26 +3868,34 @@ static void lisse(unsigned long *tab)
   tab[253]=tmp[p];
   tab[254]=0;
   tab[255]=0;
+
+  // DebugCurve(tab, 256, "\nAfter averaging\n");
 }
 
 static int FindWM(unsigned char tab[4][9],MRI_variables *MRI_var)
 {
   int k,p;
   float mean=0,var=0;
+  // calculate mean value of the tuple
   for(k=0;k<4;k++)
     for(p=0;p<9;p++)
       mean+=tab[k][p];
 
   mean/=36;
 
+  // if mean value is less than WM_MIN or WM_MAX, then no whitematter
   if(mean<MRI_var->WM_MIN || mean>MRI_var->WM_MAX)
     return 0;      
-  
+
+  // calculate the variation 
   for(k=0;k<4;k++)
     for(p=0;p<9;p++)
       var+=SQR(tab[k][p]-mean);
+
   var=sqrt(var/36);
   
+  // if the variance is greater than white matter variance, then no whitematter
+  // is this correct? 
   if(var>MRI_var->WM_VARIANCE)
     return 0;
   else
@@ -4116,7 +4116,7 @@ static void shrinkstep(MRI_variables *MRI_var)
   // get the voxel values
   MRIworldToVoxel(MRI_var->mri_src,MRI_var->xsCOG,MRI_var->ysCOG
 		  ,MRI_var->zsCOG,&tx,&ty,&tz);
-  // set the center of gravity as voxel value.
+  // set the center of gravity as voxel indices.
   MRI_var->xCOG=tx;
   MRI_var->yCOG=ty;
   MRI_var->zCOG=tz;
@@ -4538,7 +4538,7 @@ static void MRISshrink_Outer_Skin(MRI_variables *MRI_var,MRI* mri_src)
   }
   
   /*should give some correct results*/
-  fzero=MIN(MRI_var->WM_INTENSITY/3,MRI_var->CSF_MAX);
+  fzero=MIN(MRI_var->WM_intensity/3,MRI_var->CSF_MAX);
 
   for(k=0;k<mris->nvertices;k++)
     for (m=0;m<4;m++)
@@ -4667,7 +4667,7 @@ static void MRISshrink_Outer_Skin(MRI_variables *MRI_var,MRI* mri_src)
           nb_GTM=0;
           for (h=0;h<4;h++)
           {
-            if (samp_mean[h]>=MRI_var->TRANSITION_INTENSITY)
+            if (samp_mean[h]>=MRI_var->TRANSITION_intensity)
               nb_GM++;
             if (samp_mean[h]<fzero)
               nb_TR++;
@@ -4675,9 +4675,9 @@ static void MRISshrink_Outer_Skin(MRI_variables *MRI_var,MRI* mri_src)
           
           if (nb_TR>=3)
             force=-0.2;
-          else if (nb_GM>=3 && samp_mean[0]>MRI_var->TRANSITION_INTENSITY)
+          else if (nb_GM>=3 && samp_mean[0]>MRI_var->TRANSITION_intensity)
             force=0.7;
-          else if (nb_GM==2 && samp_mean[0]>MRI_var->TRANSITION_INTENSITY)
+          else if (nb_GM==2 && samp_mean[0]>MRI_var->TRANSITION_intensity)
             force=0.5; 
           else if (nb_TR==0)
             force=0.3;
@@ -4689,7 +4689,7 @@ static void MRISshrink_Outer_Skin(MRI_variables *MRI_var,MRI* mri_src)
             {
               for (a=0;a<9;a++)
               {
-                if (test_samp[h][a]>=MRI_var->TRANSITION_INTENSITY)
+                if (test_samp[h][a]>=MRI_var->TRANSITION_intensity)
                   nb_GM++;
                 else if (test_samp[h][a]<fzero)
                   nb_TR++;
@@ -4848,8 +4848,8 @@ static void label_voxels(STRIP_PARMS *parms, MRI_variables *MRI_var,MRI *mri_wit
         unsigned long  volume_skull;
         double vol_elt;
 
-  A=(2*MRI_var->CSF_MAX+MRI_var->TRANSITION_INTENSITY)/3;
-  B=(MRI_var->GM_INTENSITY+MRI_var->WM_MIN)/2;
+  A=(2*MRI_var->CSF_MAX+MRI_var->TRANSITION_intensity)/3;
+  B=(MRI_var->GM_intensity+MRI_var->WM_MIN)/2;
     
   fprintf(stderr,"\n      tissue label process");
 
@@ -5062,13 +5062,13 @@ static int ValidationSurfaceShape(MRI_variables *MRI_var)
   // now mrisphere is the highly tessellated icosahedron
   MRI_var->mrisphere=mrisphere;
 
-  // copy the current surface
+  // copy the current surface 
   mris_curv=MRISclone(MRI_var->mris);
   mris_dCOG=MRISclone(MRI_var->mris);
 
   // calculate curvatures etc.  (defined in this file)
   // mris_curv has curvature info, mris_dCOG has dCOG info in curv member
-  // note that vertex positions are from mrisphere
+  // note that vertex positions are from mrisphere 
   MRISinitSurfaces(mris_curv,mris_dCOG,MRI_var->mrisphere);
   
   // smoothing the surfaces for 10 times
@@ -5113,10 +5113,10 @@ static int ValidationSurfaceShape(MRI_variables *MRI_var)
   //clone the rotated surfaces and the corresponding parameterizations
   MRI_var->mris_curv     =MRISclone(mris_curv);
   MRI_var->mris_var_curv =MRISclone(mris_curv);
-  MRI_var->mris_dCOG     =MRISclone(mris_dCOG);
+  MRI_var->mris_dCOG     =MRISclone(mris_dCOG); 
   MRI_var->mris_var_dCOG =MRISclone(mris_dCOG);
 
-  // modify the values using template
+  // modify the values using template (MRI_var contains the ones from the template)
   MRI_var->mris_curv     =MRISfromParameterization(mrisp_template, MRI_var->mris_curv, 0);  
   MRI_var->mris_var_curv =MRISfromParameterization(mrisp_template, MRI_var->mris_var_curv, 1);  
   MRI_var->mris_dCOG     =MRISfromParameterization(mrisp_template, MRI_var->mris_dCOG, 3);  
@@ -5162,7 +5162,7 @@ static int ValidationSurfaceShape(MRI_variables *MRI_var)
     }
   }
   else
-    fprintf(stderr,"\n      Validation of the shape of the surface");
+    fprintf(stderr,"\n      Validation of the shape of the surface done.");
   
 
   
@@ -5579,10 +5579,11 @@ static int mrisLocalizeErrors(MRIS* mris_curv,MRIS *mris_dCOG,MRI_variables *MRI
     {
       nbWrongVertices2++;
       mrisphere->vertices[k].val=1.;
+      // using dCOG: curv contains the distance from the COG
       if((mris_dCOG->vertices[k].curv - MRI_var->mris_dCOG->vertices[k].curv)>0)
-	wgpospercentage+=1.; 
+	wgpospercentage+=1.; // the current surface is larger
       else
-	wgnegpercentage+=1.;
+	wgnegpercentage+=1.; // the current surfeace is smaller
     }
   }
 
@@ -5601,8 +5602,8 @@ static int mrisLocalizeErrors(MRIS* mris_curv,MRIS *mris_dCOG,MRI_variables *MRI
     wgnegpercentage=100.*wgnegpercentage/(float)nbWrongVertices2;
     wgpospercentage=100.*wgpospercentage/(float)nbWrongVertices2;
     fprintf(stderr,"\n            %2.2f%% of 'positive' inacurate vertices"
-             "\n            %2.2f%% of 'negative' inacurate vertices"
-      ,wgpospercentage,wgnegpercentage);
+                   "\n            %2.2f%% of 'negative' inacurate vertices"
+	    ,wgpospercentage,wgnegpercentage);
     return 0;
   }
   else
@@ -6196,7 +6197,7 @@ static void MRISComputeLocalValues(MRI_variables *MRI_var)
   if(((float)nmissing/nvertices)<0.75)
   {
     MRI_var->CSF_intensity=int((MRI_var->CSF_intensity+mean_csf)/2.);
-    MRI_var->GM_INTENSITY=int((MRI_var->GM_INTENSITY+mean_gray)/2.);
+    MRI_var->GM_intensity=int((MRI_var->GM_intensity+mean_gray)/2.);
   }
   if(VERBOSE_MODE)
     fprintf(stderr,"\n      second pass on the vertices of the tesselation");
@@ -6240,7 +6241,7 @@ static void MRISComputeLocalValues(MRI_variables *MRI_var)
       vsphere->marked=0;
       nmissing++;
       vsphere->x=MRI_var->CSF_intensity;
-      vsphere->z=MRI_var->GM_INTENSITY;
+      vsphere->z=MRI_var->GM_intensity;
       vsphere->mean=0.2;
       /*if Atlas Mode on, we can use the spatial information to infer where the surface is*/
       if(MRI_var->atlas)
@@ -6251,7 +6252,7 @@ static void MRISComputeLocalValues(MRI_variables *MRI_var)
       x = v->x ; y = v->y ; z = v->z ; 
       MRIworldToVoxel(mri, x, y, z, &xw, &yw, &zw) ;
       MRIsampleVolume(mri, xw, yw, zw, &val) ;    
-      if(val>mean_csf && val<MRI_var->WM_INTENSITY)/*probably GM intensity*/
+      if(val>mean_csf && val<MRI_var->WM_intensity)/*probably GM intensity*/
         {
     vsphere->z=(val+vsphere->z)/2.;
     if(SQR(sse)<1.)
@@ -6485,11 +6486,13 @@ static void MRISFineSegmentation(MRI_variables *MRI_var)
 
   dist = (float ***) malloc( mris->nvertices*sizeof(float**) );
 
+  // if the atlas is not used
   if(MRI_var->validation || (MRI_var->atlas==0))
     mri=MRI_var->mri_src;
   else
     mri=MRI_var->mri_orig;
 
+  // if atlas is set
   if((MRI_var->validation==0) && MRI_var->atlas)
   {  
     coeff3=1;
@@ -6500,6 +6503,7 @@ static void MRISFineSegmentation(MRI_variables *MRI_var)
     coeff3=0.25;
     coeff4=0.25;
   }
+  // atlas not set
   else
   {
     coeff3=0.;
@@ -6577,14 +6581,16 @@ static void MRISFineSegmentation(MRI_variables *MRI_var)
       dCOG=sqrt(SQR(mris->vertices[k].tx-xCOG)
                 +SQR(mris->vertices[k].ty-yCOG)+
                 SQR(mris->vertices[k].tz-zCOG));
-  
+
+      // coeff3
       force3=coeff3*0.25*(MRI_var->mris_dCOG->vertices[k].curv-dCOG)/
         MRI_var->mris_var_dCOG->vertices[k].curv;
       
       mris->vertices[k].val=force3;
       
       f3m+=force3;
-      
+
+      // coeff4
       force4 = -coeff4*0.0002*(MRI_var->mris_curv->vertices[k].curv-mris->vertices[k].curv)
 	/MRI_var->mris_var_curv->vertices[k].curv;
       
@@ -6928,6 +6934,7 @@ static void MRISFineSegmentation(MRI_variables *MRI_var)
     if (niter==graditer)
     {
       if(((iter>10)&&(10000*cout<1))||(iter>100))
+	// if(((iter>10)&&(10000*cout<.01))||(iter>100))
       { 
         niter--;
 	MRIGRADIENT=1;
@@ -6935,6 +6942,9 @@ static void MRISFineSegmentation(MRI_variables *MRI_var)
     }
     else
       niter--;
+    // printf("iter = %d, cout = %.6f\n", iter, cout);
+    // if (iter%10==0)
+    //   printf("brainsize = %d\n", calcBrainSize(mri, mris));
   }
   fprintf(stderr,"\n%d iterations",iter);
 
@@ -6959,7 +6969,7 @@ static void MRISgoToClosestDarkestPoint(MRI_variables *MRI_var)
   float d,dx,dy,dz,nx,ny,nz;
   VERTEX *v; 
   int iter,k,m,n;
-  int h,niter=10;
+  int h;
   float decay=0.8,update=0.9;
 
   double val,dist,min_val,distance;
@@ -6985,8 +6995,14 @@ static void MRISgoToClosestDarkestPoint(MRI_variables *MRI_var)
      v->odz = 0;
     }
 
-  for (iter=0;niter;iter++) // niter = 10
+  int niter = 10;
+  for (iter=0;niter;iter++)
   {
+    /////////////////////////////////////////////////////////////////////
+    // go through all the vertices and get the averaged shortest distance
+    // to the darkest point 
+    // compute normal direction
+    double mdist = 0.;
     MRIScomputeNormals(mris);
     for (k=0;k<mris->nvertices;k++)
     {
@@ -6998,33 +7014,45 @@ static void MRISgoToClosestDarkestPoint(MRI_variables *MRI_var)
       ny = v->ny;
       nz = v->nz;
 
-      /*find the minimum value in the normal direction*/
+      /*find the minimum grey value in the normal direction*/
+      // and find the distance to that voxel
       min_val=10000.;
       distance=0;
       for(h=-2;h<3;h++)
+      //for (h=2; h>-3; h--)
       {
-	dist=0.5*(float)h;
-	x=v->x+dist*nx;
-	y=v->y+dist*ny;
-	z=v->z+dist*nz;
+	dist=0.5*(float)h;  // -1.0, -0.5, 0., 0.5, 1.0
+	x=v->x + dist*nx;
+	y=v->y + dist*ny;
+	z=v->z + dist*nz;
 	MRIworldToVoxel(mri, x, y, z, &xw, &yw, &zw) ;
+	// if outside, then
 	if((zw<0||zw>=MRI_var->depth||xw<0||xw>=MRI_var->width||yw<0||yw>=MRI_var->height))
 	  val=1000.0;
-	else
+	else // sample the volume (tri-linear interpolation
 	  MRIsampleVolume(mri, xw, yw, zw, &val) ;
-	if(val<min_val)
+	// the following may have probelms in the following way
+	// if the nearby voxels are uniform grey, then the min_val is set to
+	// that color and distance is -1 (i.e. push-in farther).
+	// can be avoided by going the other way, i.e. h=1 to -1
+	if(val<min_val) 
 	{
 	  min_val=val;
-	  distance=dist;
+	  distance=dist;  
 	}
       }
-      
       if(min_val>=1000.0)
 	distance=0; 
-      v->val=distance;
+      v->val=distance; // save the shortest distance (only vlaues -1 -.5, 0, .5, 1.)
+      mdist += distance;
     }
+    // printf("mean distance to the darkest point = %.4f\n", mdist/mris->nvertices);
+    // if (iter%10==0)
+    //   printf("brainsize = %d\n", calcBrainSize(mri, mris)); 
+
+    // the distance to have the neighboring average (iterated twice)
     MRISaverageVals(mris,2);
-    
+    //////////////////////////////////////////////////////////////////////
     for (k=0;k<mris->nvertices;k++)
     {
       v = &mris->vertices[k];
@@ -7062,16 +7090,18 @@ static void MRISgoToClosestDarkestPoint(MRI_variables *MRI_var)
 
       force1=0.5;
 
-      force=v->val;
-      if(force<0)
-	force=MAX(-0.5,force);
+      force=v->val; // darkest inside < 0, darkest outside > 0
+      // force > 0 push out, force < 0 push in
+      // bias toward push-in
+      if(force<0)  
+	force=MAX(-0.5,force); // this means -1.0 or -.5
       else
-	force=MIN(0.5,force);
+	force=MIN(0.5,force);  // this means 0. or .5
 
       force1=force1;
-      dx = sxt*0.8 + force1*sxn+v->nx*force;
-      dy = syt*0.8 + force1*syn+v->ny*force;
-      dz = szt*0.8 + force1*szn+v->nz*force;
+      dx = sxt*0.8 + sxn * force1 + v->nx*force;
+      dy = syt*0.8 + syn * force1 + v->ny*force;
+      dz = szt*0.8 + szn * force1 + v->nz*force;
       
       dx = decay*v->odx+update*dx;
       dy = decay*v->ody+update*dy;
@@ -7096,7 +7126,7 @@ static void MRISgoToClosestDarkestPoint(MRI_variables *MRI_var)
     }
     niter--;
   }
-
+  // note that this has no criteria of convergence niter=10 only
   MRIScomputeNormals(mris);
 }
 
@@ -7338,14 +7368,14 @@ void calcForce2(double &force0, double &force1, double &force,
     force=-0.25;
   else if (val<=MRI_var->CSF_MAX)
     force=-0.1;
-  else if (val<MRI_var->TRANSITION_INTENSITY)
+  else if (val<MRI_var->TRANSITION_intensity)
     force=0.0;
   else 
   {        
     mean(test_samp,samp_mean);
     
-    if (samp_mean[1]<MRI_var->TRANSITION_INTENSITY && 
-	samp_mean[2]<MRI_var->TRANSITION_INTENSITY)
+    if (samp_mean[1]<MRI_var->TRANSITION_intensity && 
+	samp_mean[2]<MRI_var->TRANSITION_intensity)
     {
       if (samp_mean[0]*100>samp_mean[1]*90)
 	if (samp_mean[1]*100>samp_mean[2]*90)
@@ -7358,17 +7388,17 @@ void calcForce2(double &force0, double &force1, double &force,
       int nb_GTM=0; // none of the above
       for (h=0;h<4;h++)
       {
-	if (samp_mean[h]>=MRI_var->GM_INTENSITY)
+	if (samp_mean[h]>=MRI_var->GM_intensity)
 	  nb_GM++;
-	if (samp_mean[h]<MRI_var->TRANSITION_INTENSITY)
+	if (samp_mean[h]<MRI_var->TRANSITION_intensity)
 	  nb_TR++;
       }
       
       if (nb_TR>=3)
 	force=-0.2;
-      else if (nb_GM>=3 && samp_mean[0]>MRI_var->TRANSITION_INTENSITY)
+      else if (nb_GM>=3 && samp_mean[0]>MRI_var->TRANSITION_intensity)
 	force=0.7;
-      else if (nb_GM==2 && samp_mean[0]>MRI_var->TRANSITION_INTENSITY)
+      else if (nb_GM==2 && samp_mean[0]>MRI_var->TRANSITION_intensity)
 	force=0.5; 
       else if (nb_TR==0)
 	force=0.3;
@@ -7380,9 +7410,9 @@ void calcForce2(double &force0, double &force1, double &force,
 	{
 	  for (a=0;a<9;a++)
 	  {
-	    if (test_samp[h][a]>=MRI_var->GM_INTENSITY)
+	    if (test_samp[h][a]>=MRI_var->GM_intensity)
 	      nb_GM++;
-	    else if (test_samp[h][a]<MRI_var->TRANSITION_INTENSITY)
+	    else if (test_samp[h][a]<MRI_var->TRANSITION_intensity)
 	      nb_TR++;
 	    else
 	      nb_GTM++;
@@ -7602,11 +7632,11 @@ static void FitShape(MRI_variables *MRI_var, const int convLimit, const int maxI
 
       d10m[0] = d10m[1] = d10m[2] = 0;
 
-      for(n=0;n<4;n++)
+      for(n=0;n<4;n++)                 // getting the past 4 average position
       {
-        d10m[0]+=dist[k][n][0]/4;
-        d10m[1]+=dist[k][n][1]/4;
-        d10m[2]+=dist[k][n][2]/4;
+        d10m[0] +=dist[k][n][0]/4;
+        d10m[1] +=dist[k][n][1]/4;
+        d10m[2] +=dist[k][n][2]/4;
       }
     
       dbuff=0;
@@ -7628,8 +7658,8 @@ static void FitShape(MRI_variables *MRI_var, const int convLimit, const int maxI
     dm /=mris->nvertices;
     d10 /=mris->nvertices;
 
-    mean_sd[iter%10]=lm;
-    mean_dist[iter%10]=d10;
+    mean_sd[iter%10]=lm;    
+    mean_dist[iter%10]=d10;  
 
 
     coutbuff=0;
@@ -7701,3 +7731,107 @@ static void FitShape(MRI_variables *MRI_var, const int convLimit, const int maxI
   step++;
 }
 
+template <typename T> void DebugCurve(const T *percent, const int max, const char *msg)
+{
+#if DEBUG_CURVE
+  T tmp = 0;
+  if (percent==0)
+    return;
+  int k;
+  std::cerr << msg;
+  // find the max value
+  tmp=0;
+  for(k=0;k< max;k++)
+    if (percent[k]>tmp)
+      tmp=percent[k];
+  // if no max, then 
+  if (tmp == 0)
+  {
+    std::cerr << "max was 0" << std::endl;
+    return;
+  }
+  // print histogram
+  for(k=0;k< max;k++)
+  {
+    std::cerr << std::setw(5) << k << std::setw(10) << percent[k];
+    std::cerr << std::setw(1) << " " ;
+    int nmax = int(percent[k]*50/tmp);
+    for(int n=0;n < nmax ;n++)
+      std::cerr << ".";
+    std::cerr << std::endl;
+  }
+#endif
+#if OUTPUT_CURVES
+  T tmp1;
+  static int inited = 0;
+  static std::ofstream of;
+  if (!inited)
+  {
+    of.open("./curves.out", std::ios::out);
+    inited = 1;
+  }
+  if (percent==0)
+  {
+    of.close();
+  }
+
+  int m;
+
+  of << msg;
+  // find the max value
+  tmp1=0;
+  for(m=0;m < max;m++)
+    if (percent[m]>tmp1)
+      tmp1=percent[m];
+  // print histogram
+  for(m =0;m < max;m++)
+  {
+    of << std::setw(5) << m << std::setw(10) << percent[m];
+    of << std::setw(1) << " ";
+    int nmax = int(percent[m]*50/tmp1);
+    for(int n=0;n < nmax;n++)
+      of << ".";
+    of << std::endl;
+  }
+#endif
+}
+
+template <typename T> int findMaxIndex(const T *tab)
+{
+  T tmp=0;
+  T buff;
+  int maxIndex=0;
+  for(int k=0;k<256;k++)
+  {
+
+    buff=tab[k];
+    if (buff>tmp)
+    {
+      tmp=buff;
+      maxIndex=k;
+    }
+  }
+  return maxIndex;
+}
+
+template <typename T> int findHalfMin(const T *tab, int maxIndex)
+{
+  int halfMin = 0;
+  for(int n=maxIndex;n>0;n--)
+    if(tab[n]>=tab[maxIndex]/2)
+      halfMin=n;
+    else
+      break;
+  return halfMin;
+}
+
+template <typename T> int findHalfMax(const T *tab, int maxIndex)
+{
+  int halfMax = 0;
+  for(int n=maxIndex;n < 255;n++) // not 256 but 255!
+    if(tab[n]>=tab[maxIndex]/2)
+      halfMax=n;
+    else
+      break;
+  return halfMax;
+}
