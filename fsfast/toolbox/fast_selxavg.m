@@ -1,8 +1,8 @@
 function r = fast_selxavg(varargin)
 % r = fast_selxavg(varargin)
-% '$Id: fast_selxavg.m,v 1.5 2003/04/22 05:36:09 greve Exp $'
+% '$Id: fast_selxavg.m,v 1.6 2003/05/22 19:37:12 greve Exp $'
 
-version = '$Id: fast_selxavg.m,v 1.5 2003/04/22 05:36:09 greve Exp $';
+version = '$Id: fast_selxavg.m,v 1.6 2003/05/22 19:37:12 greve Exp $';
 fprintf(1,'%s\n',version);
 r = 1;
 
@@ -314,12 +314,10 @@ for slice = firstslice:lastslice
           fprintf('ERROR: could not load %s\n',extregstem);
           return;
         end
-        if(size(extreg,3)~=1)
-          extreg = squeeze(extreg)'; %'
-        else
-          extreg = squeeze(extreg);
+        if(size(extreg,3)~=1) extreg = squeeze(extreg)'; %'
+        else                  extreg = squeeze(extreg);
         end
-        if(slice == firstslice & s.nextreg < 0) s.nextreg = size(extreg,2); end
+        if(slice == firstslice & s.nextreg < 0)s.nextreg = size(extreg,2); end
         if(s.nextreg > size(extreg,2))
           fprintf('ERROR: %s does not have enough regressors\n',extregstem);
           return;
@@ -474,7 +472,7 @@ for slice = firstslice:lastslice
   	    indBrain = [1 nvoxs];
           end
           NBrainVoxs = length(indBrain);
-          fprintf(1,'       NBrainVoxs = %d\n',NBrainVoxs);
+          if(run==1) fprintf(1,' NBrainVoxs = %d\n',NBrainVoxs);end
           if(NBrainVoxs > 0)
     	    %fprintf(1,'       Computing Err SS Matrix\n');
             ESSMtx = eres(:,indBrain) * eres(:,indBrain)'; % '
