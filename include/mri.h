@@ -314,6 +314,7 @@ MRI   *MRIgaussian1d(float sigma, int max_len) ;
 MRI   *MRIconvolveGaussian(MRI *mri_src, MRI *mri_dst, MRI *mri_gaussian) ;
 MRI   *MRIconvolveGaussianMeanAndStdByte(MRI *mri_src, MRI *mri_dst,
                                           MRI *mri_gaussian) ;
+MRI *MRIscaleMeanIntensities(MRI *mri_src, MRI *mri_ref, MRI *mri_dst) ;
 MRI   *MRImedian(MRI *mri_src, MRI *mri_dst, int wsize) ;
 MRI   *MRImean(MRI *mri_src, MRI *mri_dst, int wsize) ;
 MRI   *MRImeanByte(MRI *mri_src, MRI *mri_dst, int wsize) ;
