@@ -28,6 +28,7 @@ MRI *MRIconform(MRI *mri)
     copied_flag = 1;
   }
 
+
   /* conform voxel sizes if needed */
   if(!(mri->xsize == 1 && mri->ysize == 1 && mri->zsize == 1))
   {
@@ -247,11 +248,7 @@ MRI *conform_voxels(MRI *mri)
 
   min_size = 1;
   max_fov = 256.;
-/*
-  max_fov = (fovx > fovy ? fovx : fovy);
-  max_fov = (fovz > max_fov ? fovx : max_fov);
-  min_size = max_fov / 256.0;
-*/
+
   if(mri->slices == NULL)
   {
     mri2 = MRIcopy(mri, NULL);
@@ -354,6 +351,8 @@ MRI *conform_size(MRI *mri)
   }
   else
     mri2 = MRIalloc(256, 256, 256, mri->type);
+
+  MRIcopyHeader(mri, mri2);
 
   pre_x = (int)((256 - mri->width) / 2);
   pre_y = (int)((256 - mri->height) / 2);
