@@ -164,34 +164,20 @@ static int n_unknown_labels;
 
 #define isOne(a)  FZERO(fabs(a)-1)
 
-// here I take the narrow view of slice_direction being
-// defined only when c_(r,a,s) = 0
+// here I take the narrow view of slice_direction
 int decideSliceDirection(MRI *mri)
 {
   int direction = MRI_UNDEFINED;
-  if (mri->c_r == 0 && mri->c_a == 0 && mri->c_s == 0)
-  {
-    if (isOne(mri->x_r) && isOne(mri->y_s) && isOne(mri->z_a))
-      direction = MRI_CORONAL;
-    else if (isOne(mri->x_a) && isOne(mri->y_s) && isOne(mri->z_r))
-      direction = MRI_SAGITTAL;
-    else if (isOne(mri->x_r) && isOne(mri->y_a) && isOne( mri->z_s))
-      direction = MRI_HORIZONTAL;
-  }
-  if (mri->slice_direction == MRI_UNDEFINED)
-    return direction;
-  else
-  {
-    // if not undefined but values differ then tell user about it
-    if (mri->slice_direction != direction)
-    {
-      ErrorPrintf(ERROR_BADPARM, "slice_direction is changed to %d, originally %d", 
-		  direction, mri->slice_direction);
-      return direction;
-    }
-    else
-      return direction;
-  }
+  if (isOne(mri->x_r) && isOne(mri->y_s) && isOne(mri->z_a))
+    direction = MRI_CORONAL;
+  else if (isOne(mri->x_a) && isOne(mri->y_s) && isOne(mri->z_r))
+    direction = MRI_SAGITTAL;
+  else if (isOne(mri->x_r) && isOne(mri->y_a) && isOne( mri->z_s))
+    direction = MRI_HORIZONTAL;
+  if (mri->slice_direction != direction)
+    fprintf(stderr, "slice_direciton changed from %d to %d\n",
+	    mri->slice_direction, direction);
+  return direction;
 }
 
 int mriio_command_line(int argc, char *argv[])
