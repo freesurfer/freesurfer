@@ -37,8 +37,8 @@ static char *normalized_transformed_sample_fname = NULL ;
 static char *ctl_point_fname = NULL ;
 static int novar = 0 ;
 
-#define MIN_SPACING   2.0
-static float min_spacing = MIN_SPACING ;
+#define DEFAULT_SPACING   4.0
+static float min_spacing = DEFAULT_SPACING ;
 
 static int use_contrast = 0 ;
 static float min_prior = MIN_PRIOR ;
@@ -76,9 +76,9 @@ static int num_xforms = 1 ;
 static int transform_loaded = 0 ;
 static char *gca_mean_fname = NULL ;
 
+#if 0
 static double find_optimal_3x4(GCA *gca, GCA_SAMPLE *gcas, MRI *mri, int nsamples, 
                                MATRIX *m_L, float scale, int nsteps) ;
-#if 0
 static MATRIX *
 update_optimal_transform(MRI *mri, GCA *gca, GCA_SAMPLE *gcas, int nsamples,
                          MATRIX *m_L, double scale, int write_iterations, int nsteps,
@@ -1293,6 +1293,14 @@ get_option(int argc, char *argv[])
     printf("writing transformed control points to %s...\n", 
             transformed_sample_fname) ;
   }
+  else if (!strcmp(option, "DEBUG_VOXEL"))
+  {
+    Gx = atoi(argv[2]) ;
+    Gy = atoi(argv[3]) ;
+    Gz = atoi(argv[4]) ;
+    nargs = 3 ;
+    printf("debugging voxel (%d, %d, %d)\n", Gx, Gy, Gz) ;
+  }
   else if (!strcmp(option, "NSAMPLES"))
   {
     normalized_transformed_sample_fname = argv[2] ;
@@ -1785,6 +1793,7 @@ update_optimal_transform(MRI *mri, GCA *gca, GCA_SAMPLE *gcas, int nsamples,
   return(m_L) ;
 }
 #else
+#if 0
 static MATRIX *
 update_optimal_transform(MRI *mri, GCA *gca, GCA_SAMPLE *gcas, int nsamples,
                          MATRIX *m_L, double scale, int write_iterations, int nsteps,
@@ -1992,6 +2001,7 @@ find_optimal_3x4(GCA *gca, GCA_SAMPLE *gcas, MRI *mri, int nsamples,
   return(max_log_p) ;
 }
 
+#endif
 #endif
 
 #if 0
