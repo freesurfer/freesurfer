@@ -3288,7 +3288,6 @@ ImageSobel(IMAGE *inImage, IMAGE *gradImage,
 
   if (!dxImage)
   {
-    dxImage = xImage ;
     if (!ImageCheckSize(inImage, xImage, 0, 0, 0))
     {
       if (xImage)
@@ -3300,11 +3299,11 @@ ImageSobel(IMAGE *inImage, IMAGE *gradImage,
       xImage->rows = rows ;
       xImage->cols = cols ;
     }
+    dxImage = xImage ;
   }
 
   if (!dyImage)
   {
-    dyImage = yImage ;
     if (!ImageCheckSize(inImage, yImage, 0, 0, 0))
     {
       if (yImage)
@@ -3316,6 +3315,7 @@ ImageSobel(IMAGE *inImage, IMAGE *gradImage,
       yImage->rows = rows ;
       yImage->cols = cols ;
     }
+    dyImage = yImage ;
   }
 
   
