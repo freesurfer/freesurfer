@@ -20,7 +20,7 @@
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_probe_ima.c,v 1.1 2002/01/30 22:40:37 greve Exp $";
+static char vcid[] = "$Id: mri_probe_ima.c,v 1.2 2002/01/30 22:47:30 greve Exp $";
 char *Progname = NULL;
 
 static int  parse_commandline(int argc, char **argv);
@@ -221,23 +221,23 @@ static int parse_commandline(int argc, char **argv)
       typestring = pargv[1];
       nargsused = 2;
       if(strcmp(typestring,"string") == 0){
-	if(nargc < 3) {
-	  printf("ERROR: type string needs length argument\n");
-	  exit(1);
-	}
-	sscanf(pargv[2],"%d",&stringlen);
-	if(stringlen < 1) {
-	  printf("ERROR: string length = %d, must be >= 1\n",
-		 stringlen);
-	  exit(1);
-	}
-	nargsused = 3;
+  if(nargc < 3) {
+    printf("ERROR: type string needs length argument\n");
+    exit(1);
+  }
+  sscanf(pargv[2],"%d",&stringlen);
+  if(stringlen < 1) {
+    printf("ERROR: string length = %d, must be >= 1\n",
+     stringlen);
+    exit(1);
+  }
+  nargsused = 3;
       }
     }
     else{
       fprintf(stderr,"ERROR: Option %s unknown\n",option);
       if(singledash(option))
-	fprintf(stderr,"       Did you really mean -%s ?\n",option);
+  fprintf(stderr,"       Did you really mean -%s ?\n",option);
       exit(-1);
     }
     nargc -= nargsused;
@@ -269,7 +269,8 @@ static void print_usage(void)
   fprintf(stdout, "   --o file        : dump binary pixel data into file\n");
   fprintf(stdout, "   --ob stem       : dump binary pixel data into bshort\n");
 #endif
-  fprintf(stdout, "   --help            : how to use this program \n");
+  fprintf(stdout, "   --help                : how to use this program \n");
+  fprintf(stdout, "   --version             : print version and exit\n");
 
   fprintf(stdout, "\n");
 }
@@ -378,10 +379,11 @@ static void print_help(void)
 "The G28_Pre_PixelSize_Row and G28_Pre_PixelSize_Column values are incorrect for\n"
 "mosaics. This is actually the way Siemens stores these values and is not an bug in \n"
 "this program.\n"
-"   \n"
+"\n"
+"VERSION\n"
 "\n"
 );
-
+printf("   %s\n\n", vcid) ;
 
 
 
