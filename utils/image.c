@@ -581,8 +581,14 @@ ImageInverseDFT(IMAGE *Isrc, IMAGE *Idst)
   if  (ecode != HIPS_OK)
     ErrorExit(ecode, "ImageInverseDFT: h_invfourtr failed (%d)\n", ecode) ;
 
-  hips_cplxtor = CPLX_REAL ;
-  h_tof(Itmp, Idst) ;
+  if (Idst->pixel_format != PFCOMPLEX)
+  {
+    hips_cplxtor = CPLX_REAL ;
+    h_tof(Itmp, Idst) ;
+  }
+  else
+    ImageCopy(Itmp, Idst) ;
+
 #if 1
   p.v_float = (float)Idst->numpix ;
   ecode = h_divscale(Idst, Idst, &p) ;
@@ -846,12 +852,17 @@ ImageEdgeDetect(IMAGE *Isrc, IMAGE *Idst, float sigma, int wsize,
 IMAGE   *
 ImageCorrelate(IMAGE *Itemplate, IMAGE *Isrc, int zeropad, IMAGE *Icorr)
 {
-  IMAGE *Iconj, *Ifcorr, *Ifsrc ;
+  IMAGE *Iconj, *Ifcorr, *Ifsrc, *Ireal, *Iimag ;
   int   ecode ;
 
+#if 0
   if (zeropad)
     ErrorReturn(NULL, (ERROR_UNSUPPORTED, 
                        "ImageCorrelate: zero padding unsupported")) ;
+#else
+  if (zeropad)
+    Isrc = ImageZeroPad(Isrc, NULL) ;
+#endif
 
   /* assumes the template as already been FTed */
   Iconj = ImageConjugate(Itemplate, NULL) ;
@@ -859,9 +870,28 @@ ImageCorrelate(IMAGE *Itemplate, IMAGE *Isrc, int zeropad, IMAGE *Icorr)
   Ifcorr = ImageMul(Iconj, Ifsrc, NULL) ;
   Icorr = ImageInverseDFT(Ifcorr, Icorr) ;
 
-  ecode = h_flipquad(Icorr, Icorr) ;
-  if (ecode != HIPS_OK)
-    ErrorExit(ecode, "ImageCorrelate: h_flipquad failed (%d)\n", ecode) ;
+  if (Icorr->pixel_format == PFCOMPLEX)
+  {
+    /* flipquad can't handle complex images, do it separately */
+    Ireal = ImageAlloc(Icorr->rows, Icorr->cols, PFFLOAT, 1) ;
+    Iimag = ImageAlloc(Icorr->rows, Icorr->cols, PFFLOAT, 1) ;
+    ImageSplit(Icorr, Ireal, Iimag) ;
+    ecode = h_flipquad(Ireal, Ireal) ;
+    if (ecode != HIPS_OK)
+      ErrorExit(ecode, "ImageCorrelate: h_flipquad failed (%d)\n", ecode) ;
+    ecode = h_flipquad(Iimag, Iimag) ;
+    if (ecode != HIPS_OK)
+      ErrorExit(ecode, "ImageCorrelate: h_flipquad failed (%d)\n", ecode) ;
+    ImageCombine(Ireal, Iimag, Icorr) ;
+    ImageFree(&Ireal) ;
+    ImageFree(&Iimag) ;
+  }
+  else
+  {
+    ecode = h_flipquad(Icorr, Icorr) ;
+    if (ecode != HIPS_OK)
+      ErrorExit(ecode, "ImageCorrelate: h_flipquad failed (%d)\n", ecode) ;
+  }
 
 #if 0
 ImageWrite(Itemplate, "Itemplate.hipl") ;
@@ -877,6 +907,80 @@ ImageWrite(Icorr, "Iflip.hipl") ;
   ImageFree(&Ifsrc) ;
 
   return(Icorr) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+           perform a spatial correlation of Ikernel with Isrc around the
+           region of the point x0,y0. The size of the correlation region is 
+           given by wsize 
+------------------------------------------------------*/
+IMAGE *
+ImageCorrelateRegion(IMAGE *Isrc, IMAGE *Ikernel, IMAGE *Idst, int row0, 
+                     int col0, int wsize)
+{
+  int    col_offset, row_offset, row, col, rows, cols, whalf, krow0, kcol0,
+         rowstart, rowend, colstart, colend, krow, kcol, drow,dcol ;
+  CPIX   *src, *kernel ;
+  float  sreal, simag, kreal, kimag, val, *dst, total ;
+  
+  rows = Isrc->rows ;
+  cols = Isrc->cols ;
+
+  if (!Idst)
+    Idst = ImageAlloc(rows, cols, PFFLOAT, 1) ;
+
+  kcol0 = col0 - Isrc->cols/2 ;
+  krow0 = row0 - Isrc->rows/2 ;
+
+  whalf = (wsize-1)/2 ;
+  rowstart = MAX(row0 - whalf, 0) ;
+  colstart = MAX(col0 - whalf, 0) ;
+  rowend = MIN(rows-1, row0+wsize) ;
+  colend = MIN(cols-1, col0+wsize) ;
+
+  for (row_offset = -whalf ; row_offset <= whalf ; row_offset++)
+  {
+    drow = row0 + row_offset ;
+    if (drow < 0 || drow >= rows)
+      continue ;
+
+    dst = IMAGEFpix(Idst, col0-whalf, drow) ;
+    for (col_offset = -whalf ; col_offset <= whalf ; col_offset++, dst++)
+    {
+      dcol = col0 + col_offset ;
+      if (dcol < 0 || dcol >= cols)
+        continue ;
+      total = 0.0f ;
+      for (row = 0 ; row < rows ; row++)
+      {
+        krow = row + row_offset + krow0 ;
+        if (krow < 0 || krow >= rows)
+          continue ;
+
+        src = IMAGECpix(Isrc, 0, row) ;
+        for (col = 0 ; col < cols ; col++, src++)
+        {
+          kcol = col + col_offset + kcol0 ;
+          if (kcol < 0 || kcol >= cols)
+            continue ;
+          kernel = IMAGECpix(Ikernel, krow, kcol) ;
+          kreal = kernel->real ;
+          kimag = kernel->imag ;
+          sreal = src->real ;
+          simag = src->imag ;
+          val = kreal*sreal + kimag*simag ;  /* real part */
+          total += val ;
+        }
+      }
+      *dst = total ;
+    }
+  }
+
+  return(Idst) ;
 }
 /*-----------------------------------------------------
         Parameters:
@@ -2775,25 +2879,47 @@ ImageAdd(IMAGE *Is1, IMAGE *Is2, IMAGE *Idst)
 
   return(Idst) ;
 }
+/*----------------------------------------------------------------------
+            Parameters:
 
+           Description:
+             Idst = Is1 - Is2
+----------------------------------------------------------------------*/
+IMAGE *
+ImageSubtract(IMAGE *Is1, IMAGE *Is2, IMAGE *Idst)
+{
+  int ecode ;
+
+  if (!Idst)
+    Idst = ImageAlloc(Is1->rows, Is1->cols,Is1->pixel_format, Is1->num_frame);
+
+  ecode = h_diff(Is1, Is2, Idst) ;
+  if (ecode != HIPS_OK)
+    ErrorPrintf(ecode, "ImageSubtract: h_diff failed (%d)", ecode) ;
+
+  return(Idst) ;
+}
 /*----------------------------------------------------------------------
             Parameters:
 
            Description:
 ----------------------------------------------------------------------*/
-int
-ImageExtractInto(IMAGE *Isrc, IMAGE *outImage, int x0, int y0, 
+IMAGE *
+ImageExtractInto(IMAGE *Isrc, IMAGE *Idst, int x0, int y0, 
                      int dx, int dy, int xdst, int ydst)
 {
+  CPIX     *cpsrc, *cpdst ;
   UCHAR    *csrc, *cdst ;
   float    *fsrc, *fdst ;
   int      xin, yin, yout, x1, y1, yend, xend ;
 
-  if (Isrc->pixel_format != outImage->pixel_format)
-  {
-    fprintf(stderr, "ImageExtractInto: out format must match input format\n");
-    return(-1) ;
-  }
+  if (!Idst)
+    Idst = ImageAlloc(dy, dx, Isrc->pixel_format, Isrc->num_frame) ;
+  else
+    if (Isrc->pixel_format != Idst->pixel_format)
+      ErrorReturn(NULL, (ERROR_BADPARM, 
+                         "ImageExtractInto: out format must match"
+                         "input format\n")) ;
 
   x1 = x0 + dx ;
   y1 = y0 + dy ;
@@ -2802,13 +2928,27 @@ ImageExtractInto(IMAGE *Isrc, IMAGE *outImage, int x0, int y0,
 
   switch (Isrc->pixel_format)
   {
+  case PFCOMPLEX:
+    yout = ydst ;
+    for (yin = y0 ; yin < y1 ; yin++, yout++)
+    {
+      cpsrc = IMAGECpix(Isrc, x0, yin) ;
+      cpdst = IMAGECpix(Idst, xdst, yout) ;
+      for (xin = x0 ; xin < x1 ; xin++, cpdst++, cpsrc++)
+      {
+        if (xin < 0 || xin > xend || yin < 0 || yin > yend)
+          cpdst->real = cpdst->imag = 0.0f ;
+        else
+          *cpdst = *cpsrc ;
+      }
+    }
+    break ;
   case PFBYTE:
     yout = ydst ;
-    cdst = IMAGEpix(outImage, xdst, ydst) ;
     for (yin = y0 ; yin < y1 ; yin++, yout++)
     {
       csrc = IMAGEpix(Isrc, x0, yin) ;
-      cdst = IMAGEpix(outImage, xdst, yout) ;
+      cdst = IMAGEpix(Idst, xdst, yout) ;
       for (xin = x0 ; xin < x1 ; xin++, cdst++, csrc++)
       {
         if (xin < 0 || xin > xend || yin < 0 || yin > yend)
@@ -2820,11 +2960,10 @@ ImageExtractInto(IMAGE *Isrc, IMAGE *outImage, int x0, int y0,
     break ;
   case PFFLOAT:
     yout = ydst ;
-    fdst = IMAGEFpix(outImage, xdst, ydst) ;
     for (yin = y0 ; yin < y1 ; yin++, yout++)
     {
       fsrc = IMAGEFpix(Isrc, x0, yin) ;
-      fdst = IMAGEFpix(outImage, xdst, yout) ;
+      fdst = IMAGEFpix(Idst, xdst, yout) ;
       for (xin = x0 ; xin < x1 ; xin++, fdst++, fsrc++)
       {
         if (xin < 0 || xin > xend || yin < 0 || yin > yend)
@@ -2835,24 +2974,28 @@ ImageExtractInto(IMAGE *Isrc, IMAGE *outImage, int x0, int y0,
     }
     break ;
   default:
-    fprintf(stderr,"ImageExtractInto: unsupported image format %d\n", 
-            Isrc->pixel_format) ;
-    return(-1) ;
+    ErrorReturn(Idst, (ERROR_UNSUPPORTED, 
+                       "ImageExtractInto: unsupported image format %d\n", 
+                       Isrc->pixel_format)) ;
+    break ;
   }
 
-  return(0) ;
+  return(Idst) ;
 }
 /*----------------------------------------------------------------------
             Parameters:
 
            Description:
 ----------------------------------------------------------------------*/
-int
-ImageExtract(IMAGE *Isrc, IMAGE *outImage, int x0, int y0,int dx,
-            int dy)
+IMAGE *
+ImageExtract(IMAGE *Isrc, IMAGE *Idst, int x0, int y0,int dx, int dy)
 {
   UCHAR    *csrc, *cdst ;
+  float    *fsrc, *fdst ;
   int      xin, yin, xout, yout, x1, y1, yend, xend ;
+
+  if (!Idst)
+    Idst = ImageAlloc(dy, dy, Isrc->pixel_format, Isrc->num_frame) ;
 
   x1 = x0 + dx ;
   y1 = y0 + dy ;
@@ -2863,11 +3006,11 @@ ImageExtract(IMAGE *Isrc, IMAGE *outImage, int x0, int y0,int dx,
   {
   case PFBYTE:
     yout = xout = 0 ;
-    cdst = IMAGEpix(outImage, 0, 0) ;
+    cdst = IMAGEpix(Idst, 0, 0) ;
     for (yin = y0 ; yin < y1 ; yin++, yout++)
     {
       csrc = IMAGEpix(Isrc, x0, yin) ;
-      cdst = IMAGEpix(outImage, 0, yout) ;
+      cdst = IMAGEpix(Idst, 0, yout) ;
       for (xout = 0, xin = x0 ; xin < x1 ; xin++, xout++, cdst++, csrc++)
       {
         if (xin < 0 || xin > xend || yin < 0 || yin > yend)
@@ -2877,14 +3020,30 @@ ImageExtract(IMAGE *Isrc, IMAGE *outImage, int x0, int y0,int dx,
       }
     }
     break ;
-
+  case PFFLOAT:
+    yout = xout = 0 ;
+    fdst = IMAGEFpix(Idst, 0, 0) ;
+    for (yin = y0 ; yin < y1 ; yin++, yout++)
+    {
+      fsrc = IMAGEFpix(Isrc, x0, yin) ;
+      fdst = IMAGEFpix(Idst, 0, yout) ;
+      for (xout = 0, xin = x0 ; xin < x1 ; xin++, xout++, fdst++, fsrc++)
+      {
+        if (xin < 0 || xin > xend || yin < 0 || yin > yend)
+          *fdst = 0.0f ;
+        else
+          *fdst = *fsrc ;
+      }
+    }
+    break ;
   default:
-    fprintf(stderr,"ImageExtract: unsupported image format %d\n", 
-            Isrc->pixel_format) ;
-    return(-1) ;
+    ErrorReturn(Idst, (ERROR_UNSUPPORTED, 
+                       "ImageExtract: unsupported image format %d\n", 
+                       Isrc->pixel_format)) ;
+    break ;
   }
 
-  return(0) ;
+  return(Idst) ;
 }
 /*----------------------------------------------------------------------
             Parameters:
@@ -2892,28 +3051,28 @@ ImageExtract(IMAGE *Isrc, IMAGE *outImage, int x0, int y0,int dx,
            Description:
 ----------------------------------------------------------------------*/
 IMAGE *
-ImageZeroMean(IMAGE *Isrc, IMAGE *outImage)
+ImageZeroMean(IMAGE *Isrc, IMAGE *Idst)
 {
   int    frameno, rows, cols, row, col, pix_per_frame, nframes ;
   float  ftotal, fmean, *fSrcPtr, *fDstPtr, *fSrcBase, *fDstBase ;
 
   if (Isrc->pixel_format != PFFLOAT || 
-      (outImage && outImage->pixel_format != PFFLOAT))
+      (Idst && Idst->pixel_format != PFFLOAT))
   {
     fprintf(stderr, "ImageZeroMean: unsupported pixel format %d\n",
             Isrc->pixel_format) ;
     return(NULL) ;
   }
 
-  if (!outImage)
-    outImage = ImageClone(Isrc) ;
+  if (!Idst)
+    Idst = ImageClone(Isrc) ;
 
   nframes = Isrc->num_frame ;
   rows = Isrc->rows ;
   cols = Isrc->cols ;
   pix_per_frame = rows * cols ;
   fSrcBase = IMAGEFpix(Isrc, 0, 0) ;
-  fDstBase = IMAGEFpix(outImage, 0, 0) ;
+  fDstBase = IMAGEFpix(Idst, 0, 0) ;
 
   /* mean of each pixel across all frames */
   for (row = 0 ; row < rows ; row++)
@@ -2940,7 +3099,7 @@ ImageZeroMean(IMAGE *Isrc, IMAGE *outImage)
       }
     }
   }
-  return(outImage) ;
+  return(Idst) ;
 }
 /*----------------------------------------------------------------------
             Parameters:
@@ -3342,11 +3501,56 @@ ImageReconstruct(IMAGE *pcImage, IMAGE *coefImage, IMAGE *xrImage,
             Parameters:
 
            Description:
+             normalize the amplitude of a complex image.
+----------------------------------------------------------------------*/
+IMAGE *
+ImageNormalizeComplex(IMAGE *Isrc, IMAGE *Idst, float thresh)
+{
+  int    rows, cols ;
+  long   npix ;
+  CPIX   *src, *dst ;
+  float  real, imag, mag ;
+
+  if (Isrc->pixel_format != PFCOMPLEX)
+    ErrorReturn(NULL,(ERROR_BADPARM,"ImageNormalizeComplex: Isrc not complex"));
+  rows = Isrc->rows ;
+  cols = Isrc->cols ;
+  if (!Idst)
+    Idst = ImageAlloc(rows, cols, PFCOMPLEX, 1) ;
+
+  src = IMAGECpix(Isrc, 0, 0) ;
+  dst = IMAGECpix(Idst, 0, 0) ;
+
+  npix = Isrc->numpix ;
+  if (FZERO(thresh))
+    thresh = 0.00001f ;
+
+  while (npix--)
+  {
+    real = src->real ;
+    imag = src->imag ;
+    src++ ;
+    mag = (float)sqrt((double)real*real + imag*imag) ;
+    if (mag < thresh)
+      dst->real = dst->imag = 0.0f ;
+    else
+    {
+      dst->real = real / mag ;
+      dst->imag = imag / mag ;
+    }
+    dst++ ;
+  }
+  return(Idst) ;
+}
+/*----------------------------------------------------------------------
+            Parameters:
+
+           Description:
               treat each frame in the sequence as a rows x cols dimensional
               vector and normalize it so its length is 1.
 ----------------------------------------------------------------------*/
 int
-ImageNormalizeFrames(IMAGE *Isrc, IMAGE *outImage)
+ImageNormalizeFrames(IMAGE *Isrc, IMAGE *Idst)
 {
   float  flen, *fsrcPtr, *fdstPtr, fval ;
   int    frameno, rows, cols;
@@ -3375,7 +3579,7 @@ ImageNormalizeFrames(IMAGE *Isrc, IMAGE *outImage)
         return(-2) ;
 
       fsrcPtr = IMAGEFpix(Isrc, 0, 0) + frameno * pix_per_frame ;
-      fdstPtr = IMAGEFpix(outImage, 0, 0) + frameno * pix_per_frame ;
+      fdstPtr = IMAGEFpix(Idst, 0, 0) + frameno * pix_per_frame ;
       npix = pix_per_frame ;
 
       while (npix--)
@@ -3686,6 +3890,115 @@ ImageConvertToByte(IMAGE *Isrc, IMAGE *Idst)
   if (ecode != HIPS_OK)
     ErrorReturn(NULL, (ecode, "ImageConvert: h_rescale failed\n")) ;
 
+  return(Idst) ;
+}
+/*----------------------------------------------------------------------
+            Parameters:
+
+           Description:
+              calculate the mean and variance of the intensity in an image.
+----------------------------------------------------------------------*/
+static void break_now(void) ;
+static void break_now(void) {}
+
+int
+ImageStatistics(IMAGE *Isrc, float *pmean, float *pvar)
+{
+  long   npix ;
+  float  *pix, total, dif, mean ;
+  IMAGE  *I ;
+
+  if (Isrc->pixel_format != PFFLOAT)
+  {
+    I = ImageAlloc(I->rows, I->cols, PFFLOAT, 1) ;
+    ImageCopy(Isrc, I) ;
+  }
+  else
+    I = Isrc ;
+
+  npix = I->numpix ;
+  pix = IMAGEFpix(I, 0, 0) ;
+
+  /* compute mean */
+  total = 0.0f ;
+  while (npix--)
+    total += *pix++ ;
+
+  npix = I->numpix ;
+  mean = *pmean = total / (float)npix ;
+  pix = IMAGEFpix(I, 0, 0) ;
+
+  /* compute variance */
+  total = 0.0f ;
+  while (npix--)
+  {
+    dif = *pix++ - mean ;
+    total += dif * dif ;
+  }
+
+  *pvar = total / (float)I->numpix ;
+
+  if (isnan(*pvar) || *pvar < 0.0f)
+  {
+    break_now() ;
+    ImageStatistics(I, pmean, pvar) ;
+  }
+
+  if (I != Isrc)
+    ImageFree(&I) ;
+
+  return(NO_ERROR) ;
+}
+/*----------------------------------------------------------------------
+            Parameters:
+
+           Description:
+              pad an image with zeros out to the next power of 2.
+----------------------------------------------------------------------*/
+IMAGE *
+ImageZeroPad(IMAGE *Isrc, IMAGE *Idst)
+{
+  int  drows, dcols, logrows, logcols, scols, srows, dcol, drow ;
+
+  scols = Isrc->cols ;
+  srows = Isrc->rows ;
+  logcols = (int)log2((double)scols) ;
+  logrows = (int)log2((double)srows) ;
+
+  dcols = (int)exp2((double)(logcols+1)) ;
+  drows = (int)exp2((double)(logrows+1)) ;
+
+  if (!Idst)
+    Idst = ImageAlloc(drows, dcols, Isrc->pixel_format, Isrc->num_frame) ;
+
+  drow = (drows - srows) / 2 ;
+  dcol = (dcols - scols) / 2 ;
+  ImageExtractInto(Isrc, Idst, 0, 0, scols, srows, dcol, drow) ;
+
+  return(Idst) ;
+}
+/*----------------------------------------------------------------------
+            Parameters:
+
+           Description:
+             extract the interior region of a zero-padded image
+----------------------------------------------------------------------*/
+IMAGE *
+ImageUnpad(IMAGE *Isrc, IMAGE *Idst, int rows, int cols)
+{
+  int   row0, col0 ;
+
+  if (!Idst)
+    Idst = ImageAlloc(rows, cols, Isrc->pixel_format, Isrc->num_frame) ;
+
+  if (!rows)
+    rows = Idst->rows ;
+  if (!cols)
+    cols = Idst->cols ;
+
+  row0 = (Isrc->rows - rows) / 2 ;
+  col0 = (Isrc->cols - cols) / 2 ;
+  ImageExtractInto(Isrc, Idst, col0, row0, cols, rows, 0, 0) ;
   return(Idst) ;
 }
 
