@@ -1,8 +1,8 @@
 function r = fast_selxavg(varargin)
 % r = fast_selxavg(varargin)
-% '$Id: fast_selxavg.m,v 1.10 2004/05/13 19:10:19 greve Exp $'
+% '$Id: fast_selxavg.m,v 1.11 2004/05/13 20:44:17 greve Exp $'
 
-version = '$Id: fast_selxavg.m,v 1.10 2004/05/13 19:10:19 greve Exp $';
+version = '$Id: fast_selxavg.m,v 1.11 2004/05/13 20:44:17 greve Exp $';
 fprintf(1,'%s\n',version);
 r = 1;
 
@@ -307,7 +307,9 @@ for slice = firstslice:lastslice
 	Aspmhrf = hspmhrf;
 	dhspmhrf = hspmhrf;
 	for nderiv = 1:s.spmhrf
-	  dhspmhrf = gradient(dhspmhrf);
+	  % Divide by TER for gradient.
+	  % Multiply by 2.6 to bring 1st deriv to amp of 1
+	  dhspmhrf = 2.6*gradient(dhspmhrf)/TER;
 	  Aspmhrf = [Aspmhrf dhspmhrf];
 	end
 	A = [];
