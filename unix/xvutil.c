@@ -346,7 +346,8 @@ xvInitImages(XV_FRAME *xvf)
 
 
       /* last canvas has its own colormap */
-#ifdef LINUX
+/* #ifdef LINUX*/
+#if 1
       dimage->canvas =
         (Canvas)xv_create((Xv_opaque)xvf->frame, CANVAS,
                           XV_X,                  x,
