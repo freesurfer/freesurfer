@@ -5,7 +5,7 @@
 # editing.
 #
 # mkfsdist
-# $Id: mkfsdist,v 1.22 2003/05/15 21:36:42 kteich Exp $
+# $Id: mkfsdist,v 1.23 2003/05/15 21:37:14 kteich Exp $
 #
 # Usage: mkfsdist sourcedir targetdir platform [options]
 #
@@ -71,7 +71,7 @@
 #  files found in tar-exclude-more and tar-exclude-gca.
 #
 # 
-set VERSION = '$Id: mkfsdist,v 1.22 2003/05/15 21:36:42 kteich Exp $';
+set VERSION = '$Id: mkfsdist,v 1.23 2003/05/15 21:37:14 kteich Exp $';
 
 # To include the autoseg in the distribution set environment varible
 # KEEPAUTOSEG to 1 before running mkfsdist (ie, setenv KEEPAUTOSEG 1)
@@ -217,7 +217,7 @@ if( $BERT_RAW ) then
         echo "ERROR: cannot find $rundir"
         exit 1
       endif
-      echo "WARNING: cannot find $rundir, using $BERT_RAW_TARRED"
+      echo "WARNING: cannot find $rundir, using $BERT_ORIG_TARRED"
     endif
   end
 endif
