@@ -1,6 +1,7 @@
 #ifndef MRI_SEGMENT_H
 #define MRI_SEGMENT_H
 
+#include "mri.h"
 
 typedef struct
 {
@@ -15,6 +16,10 @@ typedef struct
   int      max_voxels ;
   int      label ;
   int      found ;      /* for use during segmentation */
+  float    cx, cy, cz ; /* centroid */
+  int      x0, x1 ;
+  int      y0, y1 ;
+  int      z0, z1 ;
 } MRI_SEGMENT ;
 
 typedef struct
@@ -30,6 +35,12 @@ int              MRIsegmentFree(MRI_SEGMENTATION **pmriseg) ;
 MRI_SEGMENTATION *MRIsegmentAlloc(int max_segments, int max_voxels) ;
 MRI              *MRIsegmentToImage(MRI *mri_src, MRI *mri_dst, 
                                     MRI_SEGMENTATION *mriseg, int s) ;
-
+int              MRIsegmentDilate(MRI_SEGMENTATION *mriseg, MRI *mri) ;
+int              MRIsegmentDilateThreshold(MRI_SEGMENTATION *mriseg, 
+                                           MRI *mri_binary, MRI *mri_thresh,
+                                           int low_thresh, int hi_thresh) ;
+int              MRIcompactSegments(MRI_SEGMENTATION *mriseg) ;
+int              MRIremoveSmallSegments(MRI_SEGMENTATION *mriseg,
+                                        int min_voxels) ;
 
 #endif
