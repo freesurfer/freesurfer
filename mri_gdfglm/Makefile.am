@@ -8,6 +8,6 @@ AM_LDFLAGS=-L$(top_srcdir)/lib
 
 bin_PROGRAMS = mri_gdfglm
 mri_gdfglm_SOURCES=mri_gdfglm.c
-mri_gdfglm_LDADD= $(addprefix $(top_srcdir)/, $(LIBS_MGH)) $(top_srcdir)/fsgdf/libtclfsgdf$(DYNAMIC_LIB_EXT)
+mri_gdfglm_LDADD=$(top_srcdir)/fsgdf/libfsgdf.a $(addprefix $(top_srcdir)/, $(LIBS_MGH)) 
 mri_gdfglm_LDFLAGS=$(OS_LDFLAGS)
 
