@@ -1,8 +1,8 @@
 function r = fast_selxavg(varargin)
 % r = fast_selxavg(varargin)
-% '$Id: fast_selxavg.m,v 1.16 2004/08/23 23:40:55 greve Exp $'
+% '$Id: fast_selxavg.m,v 1.17 2004/09/13 19:10:07 greve Exp $'
 
-version = '$Id: fast_selxavg.m,v 1.16 2004/08/23 23:40:55 greve Exp $';
+version = '$Id: fast_selxavg.m,v 1.17 2004/09/13 19:10:07 greve Exp $';
 fprintf(1,'%s\n',version);
 r = 1;
 
@@ -385,7 +385,7 @@ for slice = firstslice:lastslice
       if(SynthSeed == 0)
         % Load the data for this slice %
         [nrows ncols ntp fs ns endian bext] = fmri_bfiledim(instem);
-	if(~isempty(s.TauMaxWhiten))
+	if(~isempty(s.TauMaxWhiten) & s.TauMaxWhiten ~= 0)
 	  if(run == 1) ntprun = ntp;
 	  else
 	    if(ntp ~= ntprun)
