@@ -1647,16 +1647,16 @@ analyzeRead(char *fname, int read_volume, int frame)
                  hdr.dime.datatype)) ;
     break ;
   }
-  width = hdr.dime.dim[3] ; height = hdr.dime.dim[2] ;depth = hdr.dime.dim[1] ;
+  width = hdr.dime.dim[1] ; height = hdr.dime.dim[2] ;depth = hdr.dime.dim[3] ;
 
   if(read_volume)
     mri = MRIallocSequence(width, height, depth, type, hdr.dime.dim[4]);
   else
     mri = MRIallocHeader(width, height, depth, type);
 
-  mri->xsize = hdr.dime.pixdim[3] ;
+  mri->xsize = hdr.dime.pixdim[1] ;
   mri->ysize = hdr.dime.pixdim[2] ;
-  mri->zsize = hdr.dime.pixdim[1] ;
+  mri->zsize = hdr.dime.pixdim[3] ;
 
 #if 1
 
