@@ -125,7 +125,8 @@ int            tk_NumMainWindows = 0;
 #define MOTIF_YFUDGE  32
 #define CVIDBUF 25
 
-
+int selectedpixval = 0;
+int updatepixval = TRUE;
 int plane = CORONAL;
 int xnum=256,ynum=256;
 int ptype;
@@ -768,7 +769,11 @@ do_one_gl_event(Tcl_Interp *interp)   /* tcl */
   int rx, ry;
 
   if (!openglwindowflag) return;
-
+  if (updatepixval) {
+    Tcl_Eval(interp,"pixvaltitle 1 1 1");
+    /*    Tcl_Eval(interp,"set selectedpixval $selectedpixval"); *//*touch for trace*/
+    updatepixval = FALSE;
+  }
   if (XPending(xDisplay)) {  /* do one if queue test */
   
     XNextEvent(xDisplay, &current);   /* blocks here if no event */
@@ -1641,12 +1646,12 @@ void set_cursor(float xpt, float ypt, float zpt)
 
   if (imc/zf>=0 && imc/zf<imnr1) {
     if (drawsecondflag && second_im_allocated) {
-      printf("val=%d ",
-        im2[(int)(imc/zf)][(int)((ydim-1-ic)/zf)][(int)(jc/zf)]);
+      selectedpixval = im2[(int)(imc/zf)][(int)((ydim-1-ic)/zf)][(int)(jc/zf)];
+      printf("val=%d ",selectedpixval);
     }
     else {
-      printf("val=%d ",
-        im[(int)(imc/zf)][(int)((ydim-1-ic)/zf)][(int)(jc/zf)]);
+      selectedpixval = im[(int)(imc/zf)][(int)((ydim-1-ic)/zf)][(int)(jc/zf)];
+      printf("val=%d ",selectedpixval);
     }
   }
   if (ptype==0) /* Horizontal */
@@ -1681,6 +1686,7 @@ void set_cursor(float xpt, float ypt, float zpt)
     printf("TALAIRACH: (%2.1f, %2.1f, %2.1f)\n", x_tal, y_tal, z_tal) ;
     xtalairach = x_tal;  ytalairach = y_tal;  ztalairach = z_tal; 
   }
+  updatepixval = TRUE;
   PR
 }
 
@@ -2230,12 +2236,14 @@ select_pixel( short sx, short sy, int printflag)
   {
     if (imc/zf>=0 && imc/zf<imnr1) {
       if (drawsecondflag && second_im_allocated) {
-        printf("val=%d ",
-          im2[(int)(imc/zf)][(int)((ydim-1-ic)/zf)][(int)(jc/zf)]);
+	selectedpixval =im2[(int)(imc/zf)][(int)((ydim-1-ic)/zf)]
+	  [(int)(jc/zf)];        
+	printf("val=%d ",selectedpixval); 
       }
       else {
-        printf("val=%d ",
-          im[(int)(imc/zf)][(int)((ydim-1-ic)/zf)][(int)(jc/zf)]);
+        selectedpixval = im[(int)(imc/zf)][(int)((ydim-1-ic)/zf)]
+	  [(int)(jc/zf)];        
+	printf("val=%d ",selectedpixval);
       }
     }
     if (ptype==0) /* Horizontal */
@@ -2272,6 +2280,7 @@ select_pixel( short sx, short sy, int printflag)
     }
     PR
   }
+  updatepixval = TRUE;
 }
 
 void draw_image(int imc,int ic,int jc)
@@ -4251,6 +4260,7 @@ char **argv;
   Tcl_LinkVar(interp,"insurf",      (char *)&sfname,TCL_LINK_STRING);
   Tcl_LinkVar(interp,"transform",   (char *)&xffname,TCL_LINK_STRING);
   Tcl_LinkVar(interp,"script",      (char *)&rfname,TCL_LINK_STRING);
+  Tcl_LinkVar(interp,"selectedpixval",(char *)&selectedpixval, TCL_LINK_INT);
   /*=======================================================================*/
 
   strcpy(rfname,script_tcl);  /* save in global (malloc'ed in Program) */
