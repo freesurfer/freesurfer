@@ -142,6 +142,8 @@ LTAread(char *fname)
   {
   case MNI_TRANSFORM_TYPE:
     lta = ltaMNIread(fname) ;
+    if (!lta)
+      return(NULL) ;
     
     /* by default convert MNI files to voxel coords.
        Sorry, I know this shouldn't be done here, particularly since we
