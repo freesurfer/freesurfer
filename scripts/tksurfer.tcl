@@ -1,6 +1,6 @@
 #! /usr/bin/tixwish
 
-# $Id: tksurfer.tcl,v 1.61 2004/11/02 00:51:54 kteich Exp $
+# $Id: tksurfer.tcl,v 1.62 2004/11/03 23:08:28 kteich Exp $
 
 package require BLT;
 
@@ -937,11 +937,13 @@ proc DoConfigOverlayDisplayDlog {} {
 	checkbutton $cbwTruncate \
 	    -variable gaLinkedVars(truncphaseflag) \
 	    -text "Truncate" \
-	    -font [tkm_GetNormalFont]
+	    -font [tkm_GetNormalFont] \
+	    -command {SendLinkedVarGroup overlay}
 	checkbutton $cbwInverse \
 	    -variable gaLinkedVars(invphaseflag) \
 	    -text "Inverse" \
-	    -font [tkm_GetNormalFont]
+	    -font [tkm_GetNormalFont] \
+	    -command {SendLinkedVarGroup overlay}
 	checkbutton $cbwReverse \
 	    -variable gaLinkedVars(revphaseflag) \
 	    -text "Reverse" \
