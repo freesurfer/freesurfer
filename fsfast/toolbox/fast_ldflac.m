@@ -1,7 +1,7 @@
 function flac = fast_ldflac(flacfile)
 % flac = fast_ldflac(flacfile)
 %
-% $Id: fast_ldflac.m,v 1.2 2004/10/17 18:32:18 greve Exp $
+% $Id: fast_ldflac.m,v 1.3 2004/10/18 05:48:29 greve Exp $
 
 flac = [];
 if(nargin > 1)
@@ -84,8 +84,53 @@ end % while (1)
 
 fclose(fp);
 
+if(isempty(flac.fsd)) flac.fsd = 'bold'; end 
+if(isempty(flac.funcstem)) 
+  fprintf('ERROR: no funcstem specified in %s\n',flacfile);
+  flac = [];
+end
+
+nevs = length(flac.ev);
+if(nevs == 0)
+  fprintf('ERROR: no EVs specified in %s\n',flacfile);
+  flac = [];
+end
+
+ncon = length(flac.con);
+if(ncon == 0)
+  fprintf('WARNING: no contrasts in FLAC file %s\n',flacfile);
+  return;
+end
+
+% Check each contrast
+for nthcon = 1:ncon
+
+  % Make sure that each EV in the contrast is an EV in the FLAC
+  for nthev = 1:length(flac.con(nthcon).ev)
+    evindex = flac_evindex(flac,flac.con(nthcon).ev(nthev).name);
+    if(isempty(evindex))
+      fprintf('ERROR: in FLAC file %s, Contrast %s\n',...
+	      flacfile,flac.con(nthcon).name);
+      fprintf('Contrast EV %s is not in the model\n',...
+	      flac.con(nthcon).ev(nthev).name);
+    end
+  end
+  
+  % Compute the contrast matrices
+  flactmp = flac_conmat(flac,nthcon);
+  if(isempty(flactmp))
+    fprintf('ERROR: with contrast %s in %s\n',...
+	    flac.con(nthcon).name,flacfile);
+    flac = [];
+    return;
+  end
+  flac = flactmp;
+end
+
 % Should do some tests here to make sure names are not rep,
 % contrasts, etc
+
+
 
 return;
 
@@ -96,6 +141,9 @@ function flac = load_contrast(fp,flac)
   end
   ncon = ncon + 1;
 
+  flac.con(ncon).sumev    = 0;
+  flac.con(ncon).sumevreg = 0;
+  
   nthev = 1;
   while(1)
     % scroll through any blank lines or comments
@@ -111,10 +159,14 @@ function flac = load_contrast(fp,flac)
       [tmp c] = sscanfitem(tline,2);
       if(c ~= 1) fprintf('FLAC-CON format error\n');flac=[];return;end
       flac.con(ncon).name = tmp;     
-     case 'TYPE'
+     case 'SUMEV'
       [tmp c] = sscanfitem(tline,2);
       if(c ~= 1) fprintf('FLAC-CON format error\n');flac=[];return;end
-      flac.con(ncon).type = tmp;
+      flac.con(ncon).sumev = sscanf(tmp,'%d',1);
+     case 'SUMEVREG'
+      [tmp c] = sscanfitem(tline,2);
+      if(c ~= 1) fprintf('FLAC-CON format error\n');flac=[];return;end
+      flac.con(ncon).sumevreg = sscanf(tmp,'%d',1);
      case 'EV'
       [tmp c] = sscanfitem(tline,2);
       if(c ~= 1) fprintf('FLAC-CON format error\n');flac=[];return;end
@@ -145,6 +197,7 @@ function flac = load_contrast(fp,flac)
 	return;
       end
      case 'CONTRAST-END'
+      if(~isfield(flac.con(ncon),'evrw')) flac.con(ncon).evrw = []; end
       return;
      otherwise
       fprintf('ERROR: key %s in contrast %d not recognized\n',key,ncon);
@@ -152,6 +205,7 @@ function flac = load_contrast(fp,flac)
       return;
     end
   end
+  
 
 return
 
