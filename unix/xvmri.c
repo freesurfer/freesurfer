@@ -47,6 +47,8 @@ int            x_click ;
 int            y_click ;
 int            z_click ;
 
+int            brush = 0 ;
+
 
 /*----------------------------------------------------------------------
                            STATIC DATA
@@ -73,7 +75,9 @@ static void viewMenuItem(Menu menu, Menu_item menu_item) ;
 static IMAGE *get_next_slice(IMAGE *Iold, int which, int dir) ;
 static void repaint_handler(XV_FRAME *xvf, DIMAGE *dimage) ;
 static int mri_write_func(Event *event, DIMAGE *dimage, char *fname) ;
+#if 0
 static int xvmriRepaintValue(XV_FRAME *xvf, int which, int x, int y, int z) ;
+#endif
 
 /*----------------------------------------------------------------------
                               FUNCTIONS
@@ -88,19 +92,21 @@ int
 mri_event_handler(XV_FRAME *xvf, Event *event,DIMAGE *dimage, 
                   int *px, int *py, int *pz)
 {
-  int       x, y, z, which, depth, view, frame ;
+  int       x, y, z, which, depth, view, frame, xi, yi, zi, xk, yk, zk, slice ;
   Real      xr, yr, zr, xt, yt, zt, xv, yv, zv, xtv, ytv, ztv ;
   float     xf, yf, zf, xft, yft, zft ;
   MRI       *mri ;
   char      fname[100] ;
   FILE      *fp ;
   BUFTYPE   val, old_val ;
+  static int repaint_needed = 0 ;
 
   which = dimage->which ;
   mri = mris[which] ;
   depth = mri_depths[which] ;
   frame = mri_frames[which] ;
   view = mri_views[which] ;
+  slice = mri_slices[which] ;
 
   /* click can occur in the middle of other stuff (sort of asynchonous) */
   if (!mri || !mri->slices)  
@@ -159,6 +165,11 @@ mri_event_handler(XV_FRAME *xvf, Event *event,DIMAGE *dimage,
   else if (z >= mri->depth)
     z = mri->depth-1 ;
 
+  if (event_is_up(event) && repaint_needed)
+  {
+    repaint_needed = 0 ;
+    XVMRIredisplayFrame(xvf, mri, which, mri_depths[which], mri_frames[which]);
+  }
   if (talairach)
   {
     MRIvoxelToTalairach(mri, (Real)x, (Real)y, (Real)z, &xt, &yt, &zt) ;
@@ -175,29 +186,40 @@ mri_event_handler(XV_FRAME *xvf, Event *event,DIMAGE *dimage,
 
   if (event_shift_is_down(event) && !event_is_ascii(event))
   {
-    if (event_left_is_down(event))
+    if (event_right_is_down(event))
       val = 255 ;
-    else if (event_right_is_down(event))
+    else if (event_middle_is_down(event))
       val = 1 ;
     else
       val = 0 ;
 
-    if (val) 
+    for (zk = z - brush ; zk <= z+brush ; zk++)
     {
-      switch (mri->type)
+      zi = mri->zi[zk] ;
+      for (yk = y - brush ; yk <= y+brush ; yk++)
       {
-      default:
-      case MRI_UCHAR:
-        old_val = MRIseq_vox(mri, x, y, z, mri_frames[which])  ;
-        MRIseq_vox(mri, x, y, z, mri_frames[which]) = val ;
-        break ;
-      case MRI_FLOAT:
-        old_val = (BUFTYPE)MRIFseq_vox(mri, x, y, z, mri_frames[which]) ;
-        MRIFseq_vox(mri, x, y, z, mri_frames[which]) = (float)val ;
-        break ;
+        yi = mri->yi[yk] ;
+        for (xk = x - brush ; xk <= x+brush ; xk++)
+        {
+          xi = mri->xi[xk] ;
+          if (val) 
+          {
+            repaint_needed = 1 ;
+            switch (mri->type)
+            {
+            default:
+            case MRI_UCHAR:
+              old_val = MRIseq_vox(mri, xi, yi, zi, mri_frames[which])  ;
+              MRIseq_vox(mri, xi, yi, zi, mri_frames[which]) = val ;
+              break ;
+            case MRI_FLOAT:
+              old_val = (BUFTYPE)MRIFseq_vox(mri, xi,yi,zi,mri_frames[which]);
+              MRIFseq_vox(mri, xi, yi, zi, mri_frames[which]) = (float)val ;
+              break ;
+            }
+          }
+        }
       }
-      if (val != old_val)
-        xvmriRepaintValue(xvf, which, x, y, z) ;
     }
   }
   else switch (event_id(event))
@@ -1257,6 +1279,7 @@ XVMRIsetImageName(XV_FRAME *xvf, char *image_name)
            Description:
              Redisplay just the point (x,y,z) 
 ----------------------------------------------------------------------*/
+#if 0
 static int
 xvmriRepaintValue(XV_FRAME *xvf, int which, int x, int y, int z)
 {
@@ -1300,6 +1323,7 @@ xvmriRepaintValue(XV_FRAME *xvf, int which, int x, int y, int z)
   XVshowImageRange(xvf, which, I, 0, fmin, fmax) ;
   return(NO_ERROR) ;
 }
+#endif
 /*----------------------------------------------------------------------
             Parameters:
 
