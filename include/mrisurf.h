@@ -747,6 +747,7 @@ int  MRISsmoothSurfaceNormals(MRI_SURFACE *mris, int niter) ;
 int  MRISsoapBubbleVals(MRI_SURFACE *mris, int niter) ;
 int  MRISmodeFilterVals(MRI_SURFACE *mris, int niter) ;
 int  MRISmodeFilterAnnotations(MRI_SURFACE *mris, int niter) ;
+int  MRISmodeFilterZeroVals(MRI_SURFACE *mris) ;
 int  MRISreadBinaryAreas(MRI_SURFACE *mris, char *mris_fname) ;
 int  MRISwriteAreaErrorToValFile(MRI_SURFACE *mris, char *name) ;
 int  MRIStransform(MRI_SURFACE *mris, MRI *mri, LTA *lta) ;

@@ -28,6 +28,9 @@
 
 /*---------------------------- CONSTANTS -------------------------*/
 
+#define REPULSE_K   1.0
+#define REPULSE_E   0.5
+
 #define NO_NEG_DISTANCE_TERM  0
 #define ONLY_NEG_AREA_TERM    1
 #define ANGLE_AREA_SCALE      0.0
@@ -161,7 +164,7 @@ static double mrisComputeNonlinearDistanceSSE(MRI_SURFACE *mris) ;
 static double mrisComputeSpringEnergy(MRI_SURFACE *mris) ;
 static double mrisComputeThicknessSmoothnessEnergy(MRI_SURFACE *mris,
                                          double l_repulse) ;
-static double mrisComputeRepulsiveEnergy(MRI_SURFACE *mris,double l_repulse) ;
+static double mrisComputeRepulsiveEnergy(MRI_SURFACE *mris,double l_repulse, MHT *mht_v_current) ;
 static int    mrisComputeRepulsiveTerm(MRI_SURFACE *mris,
                                          double l_repulse, MHT *mht_v) ;
 static double mrisComputeRepulsiveRatioEnergy(MRI_SURFACE *mris,
@@ -5087,6 +5090,7 @@ MRIScomputeSSE(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
           sse_repulsive_ratio;
   int     ano, fno ;
   FACE    *face ;
+  MHT     *mht_v_current = NULL ;
 
 #if METRIC_SCALE
   if (mris->patch || mris->noscale)
@@ -5097,8 +5101,11 @@ MRIScomputeSSE(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
   area_scale = 1.0 ;
 #endif
 
-  sse_nl_area = sse_corr = sse_angle = sse_neg_area = sse_val = sse_sphere =
+  sse_repulse = sse_nl_area = sse_corr = sse_angle = sse_neg_area = sse_val = sse_sphere =
     sse_area = sse_spring = sse_curv = sse_dist = sse_tspring = sse_grad = 0.0;
+
+  if (!FZERO(parms->l_repulse))
+    mht_v_current = MHTfillVertexTable(mris, mht_v_current,CURRENT_VERTICES);
 
   if (!FZERO(parms->l_angle)||!FZERO(parms->l_area)||(!FZERO(parms->l_parea)))
   {
@@ -5127,7 +5134,8 @@ MRIScomputeSSE(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
         ErrorExit(ERROR_BADPARM, "sse not finite at face %d!\n",fno);
     }
   }
-  sse_repulse = mrisComputeRepulsiveEnergy(mris, parms->l_repulse) ;
+  if (parms->l_repulse > 0)
+    sse_repulse = mrisComputeRepulsiveEnergy(mris, parms->l_repulse, mht_v_current) ;
   sse_repulsive_ratio = 
     mrisComputeRepulsiveRatioEnergy(mris, parms->l_repulse_ratio) ;
   sse_tsmooth = mrisComputeThicknessSmoothnessEnergy(mris, parms->l_tsmooth) ;
@@ -5171,6 +5179,10 @@ MRIScomputeSSE(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
     (double)parms->l_tspring   * sse_tspring + 
     (double)l_corr             * sse_corr + 
     (double)parms->l_curv      * CURV_SCALE * sse_curv ;
+
+  if (mht_v_current)
+    MHTfree(&mht_v_current) ;
+
   return(sse) ;
 }
 /*-----------------------------------------------------
@@ -7351,6 +7363,7 @@ MRISreadAnnotation(MRI_SURFACE *mris, char *sname)
       strcat(fname, ".annot") ;
   }
 
+  printf("writing annotations to %s\n", fname) ;
   fp = fopen(fname,"r");
   if (fp==NULL) 
     ErrorReturn(ERROR_NOFILE, (ERROR_NOFILE, "could not read annot file %s",
@@ -7360,6 +7373,8 @@ MRISreadAnnotation(MRI_SURFACE *mris, char *sname)
   for (j=0;j<num;j++)
   {
     vno = freadInt(fp) ; i = freadInt(fp) ;
+    if (vno == Gdiag_no)
+      DiagBreak() ;
     if (vno>=mris->nvertices||vno<0)
       printf("MRISreadAnnotation: vertex index out of range: %d i=%d\n",vno,i);
     else
@@ -7471,6 +7486,8 @@ MRISwriteAnnotation(MRI_SURFACE *mris, char *sname)
   fwriteInt(mris->nvertices, fp) ;
   for (vno=0;vno<mris->nvertices;vno++)
   {
+    if (vno == Gdiag_no)
+      DiagBreak() ;
     i = mris->vertices[vno].annotation ;
     fwriteInt(vno,fp) ; i = fwriteInt(i,fp) ;
   }
@@ -12623,9 +12640,7 @@ mrisComputeThicknessSmoothnessEnergy(MRI_SURFACE *mris, double l_tsmooth)
 
         Description
 ------------------------------------------------------*/
-#define REPULSE_K   0.05
-#define REPULSE_E   0.1
-
+#if 0
 static double
 mrisComputeRepulsiveEnergy(MRI_SURFACE *mris, double l_repulse)
 {
@@ -12657,6 +12672,67 @@ mrisComputeRepulsiveEnergy(MRI_SURFACE *mris, double l_repulse)
   }
   return(l_repulse * sse_repulse) ;
 }
+#else
+static double
+mrisComputeRepulsiveEnergy(MRI_SURFACE *mris, double l_repulse, MHT *mht)
+{
+  int     vno, num, min_vno, i, n ;
+  float   dist, dx, dy, dz, x, y, z, min_d ;
+  double  sse_repulse, v_sse ;
+  VERTEX  *v, *vn ;
+  MHBT    *bucket ;
+  MHB     *bin ;
+
+  if (FZERO(l_repulse))
+    return(NO_ERROR) ;
+
+  min_d = 1000.0 ; min_vno = 0 ;
+  for (sse_repulse = vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    if (v->ripflag)
+      continue ;
+    x = v->x ; y = v->y ; z = v->z ; 
+    bucket = MHTgetBucket(mht, x, y, z) ;
+    if (!bucket)
+      continue ;
+    for (v_sse = 0.0, bin = bucket->bins, num = i = 0 ; i < bucket->nused ; i++, bin++)
+    {
+      if (bin->fno == vno)
+        continue ;  /* don't be repelled by myself */
+      for (n = 0 ; n < v->vtotal ; n++)
+        if (v->v[n] == bin->fno)
+          break ;
+      if (n < v->vtotal)   /* don't be repelled by a neighbor */
+        continue ;
+      vn = &mris->vertices[bin->fno] ;
+      if (!vn->ripflag)
+      {
+        dx = vn->x - x ; dy = vn->y - y ; dz = vn->z - z ; 
+        dist = sqrt(dx*dx+dy*dy+dz*dz) + REPULSE_E ;
+        if (vno == Gdiag_no)
+        {
+          if (dist-REPULSE_E < min_d)
+          {
+            min_vno = bin->fno ;
+            min_d = dist-REPULSE_E ;
+          }
+        }
+        dist = dist*dist*dist ; dist *= dist ; /* dist^6 */
+        v_sse += REPULSE_K / dist ;
+      }
+    }
+    sse_repulse += v_sse ;
+
+    if (vno == Gdiag_no)
+    {
+      printf("v %d repulse term:    min_dist=%2.4f, v_sse %2.4f\n", vno, 
+              min_d, v_sse) ;
+    }
+  }
+  return(sse_repulse) ;
+}
+#endif
 /*-----------------------------------------------------
         Parameters:
 
@@ -12664,8 +12740,6 @@ mrisComputeRepulsiveEnergy(MRI_SURFACE *mris, double l_repulse)
 
         Description
 ------------------------------------------------------*/
-#define REPULSE_K   0.05
-#define REPULSE_E   0.1
 
 static double
 mrisComputeRepulsiveRatioEnergy(MRI_SURFACE *mris, double l_repulse)
@@ -12769,8 +12843,8 @@ mrisComputeThicknessSmoothnessTerm(MRI_SURFACE *mris, double l_tsmooth)
 static int
 mrisComputeRepulsiveTerm(MRI_SURFACE *mris, double l_repulse, MHT *mht)
 {
-  int     vno, num, min_vno, i ;
-  float   dist, dx, dy, dz, x, y, z, sx, sy, sz, min_d, min_scale ;
+  int     vno, num, min_vno, i, n ;
+  float   dist, dx, dy, dz, x, y, z, sx, sy, sz, min_d, min_scale, norm ;
   double  scale ;
   VERTEX  *v, *vn ;
   MHBT    *bucket ;
@@ -12794,12 +12868,17 @@ mrisComputeRepulsiveTerm(MRI_SURFACE *mris, double l_repulse, MHT *mht)
     {
       if (bin->fno == vno)
         continue ;  /* don't be repelled by myself */
+      for (n = 0 ; n < v->vtotal ; n++)
+        if (v->v[n] == bin->fno)
+          break ;
+      if (n < v->vtotal)   /* don't be repelled by a neighbor */
+        continue ;
       vn = &mris->vertices[bin->fno] ;
       if (!vn->ripflag)
       {
         dx = vn->x - x ; dy = vn->y - y ; dz = vn->z - z ; 
         dist = sqrt(dx*dx+dy*dy+dz*dz) + REPULSE_E ;
-        scale = -4*REPULSE_K / (dist*dist*dist*dist*dist) ;
+        scale = -4*REPULSE_K / (dist*dist*dist*dist*dist*dist*dist) ;  /* ^-7 */
         if (vno == Gdiag_no)
         {
           if (dist-REPULSE_E < min_d)
@@ -12809,6 +12888,8 @@ mrisComputeRepulsiveTerm(MRI_SURFACE *mris, double l_repulse, MHT *mht)
             min_scale = scale ;
           }
         }
+        norm = sqrt(dx*dx+dy*dy+dz*dz) ; 
+        dx /= norm ; dy /= norm ; dz /= norm ;
         sx += scale * dx ; sy += scale * dy ; sz += scale*dz ;
         num++ ;
       }
@@ -15910,7 +15991,7 @@ MRISpositionSurfaces(MRI_SURFACE *mris, MRI **mri_flash, int nvolumes, INTEGRATI
   /*  char   *cp ;*/
   int    niterations, n, write_iterations, nreductions = 0, done ;
   double pial_sse, sse, wm_sse, delta_t = 0.0, dt, l_intensity, base_dt, last_sse, rms,
-         pct_sse_decrease ;
+         pct_sse_decrease, l_repulse, l_surf_repulse ;
   MHT    *mht = NULL ;
   struct timeb  then ; int msec ;
   MRI    *mri_brain = mri_flash[0] ;
@@ -15979,7 +16060,8 @@ MRISpositionSurfaces(MRI_SURFACE *mris, MRI **mri_flash, int nvolumes, INTEGRATI
     mrisWriteSnapshots(mris, parms, 0) ;
 
   dt = parms->dt ; l_intensity = parms->l_intensity ;
-  mris->noscale = TRUE ; done = 0 ;
+  mris->noscale = TRUE ; done = 0 ; l_repulse = parms->l_repulse ;
+  l_surf_repulse = parms->l_surf_repulse ;
   for (n = parms->start_t ; n < parms->start_t+niterations ; n++)
   {
 
@@ -15990,6 +16072,8 @@ MRISpositionSurfaces(MRI_SURFACE *mris, MRI **mri_flash, int nvolumes, INTEGRATI
     MRIScomputeMetricProperties(mris) ;
     if (gMRISexternalGradient)
       (*gMRISexternalGradient)(mris, parms) ;
+    parms->l_repulse = l_repulse ;  /* use self-repulsion for wm surface */
+    parms->l_surf_repulse = 0    ;  /* don't repel wm surface outwards from itself */
     mrisComputePositioningGradients(mris, parms) ;
     if (!(parms->flags & IPFLAG_NO_SELF_INT_TEST))
       mht = MHTfillTable(mris, mht) ;
@@ -16005,6 +16089,8 @@ MRISpositionSurfaces(MRI_SURFACE *mris, MRI **mri_flash, int nvolumes, INTEGRATI
     MRISsaveVertexPositions(mris, INFLATED_VERTICES) ; /* pial->inflated */
     MRIScomputeMetricProperties(mris) ; 
     MRISrestoreExtraGradients(mris) ;    /* put pial deltas into v->d[xyz] */
+    parms->l_repulse = 0 ;  /* don't use self-repulsion for pial surface */
+    parms->l_surf_repulse = l_surf_repulse ;  /* repel pial surface out from wm */
     mrisComputePositioningGradients(mris, parms) ;
     if (!(parms->flags & IPFLAG_NO_SELF_INT_TEST))
       mht = MHTfillTable(mris, mht) ;
@@ -20792,19 +20878,25 @@ MRISbuildFileName(MRI_SURFACE *mris, char *sname, char *fname)
 int
 MRISmodeFilterVals(MRI_SURFACE *mris, int niter)
 {
-  int    histo[256], i, n, vno, ino, index, max_histo, max_index ;
+  int    histo[256], i, n, vno, ino, index, max_histo, max_index, nchanged, nzero ;
   VERTEX *v, *vn ;
 
+  MRISclearMarks(mris) ;  /* v->marked = 0 means it hasn't converged yet */
   for (ino  = 0 ; ino < niter ; ino++)
   {
+    nzero = nchanged = 0 ;
     for (vno = 0 ; vno < mris->nvertices ; vno++)
     {
       v = &mris->vertices[vno] ;
-      if (v->ripflag)
+      if (vno == Gdiag_no)
+        DiagBreak() ;
+      if (v->ripflag || v->marked)
         continue ;
       if (vno == Gdiag_no)
         DiagBreak() ;
 
+      if (nint(v->val) == 0)
+        nzero++ ;
       memset(histo, 0, sizeof(histo)) ;
       for (n = 0 ; n < v->vnum ; n++)
       {
@@ -20814,7 +20906,7 @@ MRISmodeFilterVals(MRI_SURFACE *mris, int niter)
           continue ;
         histo[index]++ ;
       }
-      max_histo = histo[0] ; max_index = 0 ;
+      max_histo = 0 ; max_index = 0 ;
       for (i = 1 ; i < 256 ; i++)
       {
         if (histo[i] > max_histo)
@@ -20824,7 +20916,6 @@ MRISmodeFilterVals(MRI_SURFACE *mris, int niter)
         }
       }
       v->valbak = max_index ;
-
     }
     for (vno = 0 ; vno < mris->nvertices ; vno++)
     {
@@ -20833,9 +20924,123 @@ MRISmodeFilterVals(MRI_SURFACE *mris, int niter)
         continue ;
       if (vno == Gdiag_no)
         DiagBreak() ;
+      if (v->val != v->valbak)
+      {
+        v->marked = 0 ;  /* process it again */
+        nchanged++ ;
+      }
+      else
+        v->marked = 1 ;  /* didn't change */
       v->val = v->valbak ;
     }
+
+    /* unmark all nbrs of unmarked vertices */
+    for (vno = 0 ; vno < mris->nvertices ; vno++)
+    {
+      v = &mris->vertices[vno] ;
+      if (v->ripflag || v->marked == 1)
+        continue ;
+      if (vno == Gdiag_no)
+        DiagBreak() ;
+      for (n = 0 ; n < v->vnum ; n++)
+      {
+        vn = &mris->vertices[v->v[n]] ;
+        vn->marked = 0 ;   /* process it again */
+      }
+    }
+    printf("iter %d: %d changed, %d zero\n", ino, nchanged, nzero) ;
+    if (!nchanged)
+      break ;
   }
+  MRISclearMarks(mris) ;
+  return(NO_ERROR) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
+int
+MRISmodeFilterZeroVals(MRI_SURFACE *mris)
+{
+  int    histo[256], i, n, vno, ino, index, max_histo, max_index, nchanged, nzero ;
+  VERTEX *v, *vn ;
+
+  MRISclearMarks(mris) ;  /* v->marked = 0 means it hasn't converged yet */
+  ino = 0 ;
+  do
+  {
+    nzero = nchanged = 0 ;
+    for (vno = 0 ; vno < mris->nvertices ; vno++)
+    {
+      v = &mris->vertices[vno] ;
+      if (vno == Gdiag_no)
+        DiagBreak() ;
+      if (v->ripflag || v->marked)
+        continue ;
+      if (vno == Gdiag_no)
+        DiagBreak() ;
+
+      if (nint(v->val) == 0)
+        nzero++ ;
+      memset(histo, 0, sizeof(histo)) ;
+      for (n = 0 ; n < v->vnum ; n++)
+      {
+        vn = &mris->vertices[v->v[n]] ;
+        index = (int)nint(vn->val) ;
+        if (index < 0 || index > 255)
+          continue ;
+        histo[index]++ ;
+      }
+      max_histo = 0 ; max_index = 0 ;
+      for (i = 1 ; i < 256 ; i++)
+      {
+        if (histo[i] > max_histo)
+        {
+          max_histo = histo[i] ;
+          max_index = i ;
+        }
+      }
+      v->valbak = max_index ;
+    }
+    for (vno = 0 ; vno < mris->nvertices ; vno++)
+    {
+      v = &mris->vertices[vno] ;
+      if (v->ripflag)
+        continue ;
+      if (vno == Gdiag_no)
+        DiagBreak() ;
+      if (v->val != v->valbak)
+      {
+        v->marked = 0 ;  /* process it again */
+        nchanged++ ;
+      }
+      else
+        v->marked = 1 ;  /* didn't change */
+      v->val = v->valbak ;
+    }
+
+    /* unmark all nbrs of unmarked vertices */
+    for (vno = 0 ; vno < mris->nvertices ; vno++)
+    {
+      v = &mris->vertices[vno] ;
+      if (v->ripflag || v->marked == 1)
+        continue ;
+      if (vno == Gdiag_no)
+        DiagBreak() ;
+      for (n = 0 ; n < v->vnum ; n++)
+      {
+        vn = &mris->vertices[v->v[n]] ;
+        vn->marked = 0 ;   /* process it again */
+      }
+    }
+    printf("iter %d: %d changed, %d zero\n", ino++, nchanged, nzero) ;
+    if (!nchanged)
+      break ;
+  } while (nchanged > 0 && nzero > 0) ;
+  MRISclearMarks(mris) ;
   return(NO_ERROR) ;
 }
 /*-----------------------------------------------------
@@ -29357,8 +29562,6 @@ mrisComputePositioningGradients(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
     mht_v_orig = MHTfillVertexTable(mris, NULL, ORIGINAL_VERTICES) ;
   if (!FZERO(parms->l_repulse))
     mht_v_current = MHTfillVertexTable(mris, mht_v_current,CURRENT_VERTICES);
-
-
 
   mrisComputeIntensityTerm(mris, parms->l_intensity, mri_brain, mri_brain,
                            parms->sigma);
