@@ -64,6 +64,13 @@ typedef struct
   int           ras_good_flag; /* and accurate for the volume                         */
                                /* these will hopefully replace xdir, ydir, and zdir   */
 
+  /*  for bshorts and bfloats */
+  int           brightness;
+  char          subject_name[STRLEN];
+  MATRIX        *register_mat;
+  char          path_to_t1[STRLEN];
+  char          fname_format[STRLEN];
+
 /* 
   each slice is an array of rows (mri->height of them) each of which is 
   mri->width long.
@@ -429,6 +436,7 @@ extern float ic_z_vertices[]  ;
 #define BSHORT_FILE                   8
 #define BFLOAT_FILE                   9
 #define SDT_FILE                      10
+#define OTL_FILE                      11
 
 int        MRImatch(MRI *mri1, MRI *mri2) ;
 int        MRIvalRange(MRI *mri, float *pmin, float *pmax) ;
