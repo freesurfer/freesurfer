@@ -90,7 +90,7 @@ typedef struct vertex_type_
   float  origx, origy,
          origz ;          /* original coordinates */
   float  pialx, pialy, pialz ;  /* pial surface coordinates */
-  float  whitex, whitey, whitez ;  /* pial surface coordinates */
+  float  whitex, whitey, whitez ;  /* white surface coordinates */
   float  infx, infy, infz; /* inflated coordinates */
   float  fx, fy, fz ;      /* flattened coordinates */
   float e1x, e1y, e1z ;  /* 1st basis vector for the local tangent plane */
@@ -257,7 +257,7 @@ typedef struct
 #define IP_USE_MULTIFRAMES              0x0080
 #define IP_NO_SULC                      0x0100
 /* MRIScorrectTopology : topology preserving patch deformation */
-#define IPFLAG_PRESERVE_TOPOLOGY                  0x1000 /* apply topology preserving gradient */
+#define IPFLAG_PRESERVE_TOPOLOGY_CONVEXHULL                  0x1000 /* apply topology preserving gradient */
 #define IPFLAG_PRESERVE_SPHERICAL_POSITIVE_AREA   0x2000 /* apply gradients that preserve positive areas */
 #define IPFLAG_MAXIMIZE_SPHERICAL_POSITIVE_AREA   0x4000  /* apply  gradients that will maximize the positive areas */
 
