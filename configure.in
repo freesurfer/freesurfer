@@ -707,6 +707,6 @@ mris_sample_parc/Makefile mris_segment_vals/Makefile mris_smooth/Makefile mris_s
 mris_spherical_average/Makefile mris_surface_to_vol_distances/Makefile mrisp_paint/Makefile \
 mris_talairach/Makefile mris_thickness/Makefile mris_thickness_comparison/Makefile \
 mris_transform/Makefile mris_translate_annotation/Makefile mris_twoclass/Makefile \
-mris_w_to_curv/Makefile fsgdf/Makefile fslutils/Makefile) 
+mris_w_to_curv/Makefile fsgdf/Makefile fslutils/Makefile regdat2xfm/Makefile scuba/Makefile) 
 
 

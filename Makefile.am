@@ -38,7 +38,7 @@ mris_w_to_curv
 
 FSGDF=mri_gdfglm mris_glm
 
-FSLUTILS=fsl_label2voxel 
+FSLUTILS=fslutils
 
-SUBDIRS=unix dicom hipsstubs rgb utils fsgdf $(MRISUBDIRS) $(MRISSUBDIRS) $(GLSUBDIRS) $(FSGDF) $(FSLUTILS)
+SUBDIRS=unix dicom hipsstubs rgb utils fsgdf $(MRISUBDIRS) $(MRISSUBDIRS) $(GLSUBDIRS) $(FSGDF) $(FSLUTILS) regdat2xfm scuba
 
