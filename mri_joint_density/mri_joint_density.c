@@ -19,6 +19,7 @@ char *Progname ;
 static void usage_exit(int code) ;
 
 
+static int erode = 0 ;
 static double fmin = 10 ;
 static double fmax = 5000 ;
 static double step = 10 ;
@@ -31,13 +32,13 @@ main(int argc, char *argv[])
   int          ac, nargs, i, j, nbins ;
   int          msec, minutes, seconds, x, y, z, **joint_density ;
   struct timeb start ;
-  MRI          *mri1, *mri2 ;
+  MRI          *mri1, *mri2, *mri_nonbrain, *mri_tmp ;
   FILE         *fp ;
 	float        fmin1, fmax1, fmin2, fmax2 ;
 	Real         val1, val2 ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_joint_density.c,v 1.1 2003/05/08 20:54:49 fischl Exp $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_joint_density.c,v 1.2 2003/05/13 19:33:15 fischl Exp $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -72,6 +73,12 @@ main(int argc, char *argv[])
 	MRIvalRange(mri1, &fmin1, &fmax1) ; MRIvalRange(mri2, &fmin2, &fmax2) ;
 	printf("MR ranges [%2.1f %2.1f], [%2.1f %2.1f]\n", fmin1, fmax1, fmin2, fmax2) ;
 
+	mri_nonbrain = MRIand(mri1, mri2, NULL, 1) ; 
+	MRIbinarize(mri_nonbrain, mri_nonbrain, 1, 128, 0) ;
+	mri_tmp = MRIallocSequence(mri1->width, mri1->height, mri1->depth, MRI_UCHAR, mri1->nframes) ;
+	MRIcopy(mri_nonbrain, mri_tmp) ; MRIfree(&mri_nonbrain) ; mri_nonbrain = mri_tmp ;
+	MRIdilateLabel(mri_nonbrain, mri_nonbrain, 128, erode) ;
+
 	/*	fmin = MIN(fmin1, fmin2) ; fmax = MAX(fmax1, fmax2) ;*/
 
 	nbins = nint(((fmax - fmin + 1) / step)+.99) ;
@@ -93,6 +100,10 @@ main(int argc, char *argv[])
 		{
 			for (z = 0 ; z < mri1->depth ; z++)
 			{
+				MRIsampleVolume(mri_nonbrain, x, y, z, &val1) ;
+				if (FZERO(val1) != 0)
+					continue ;  /* close to border of brain */
+
 				MRIsampleVolume(mri1, x, y, z, &val1) ;
 				if (val1 > fmax || val1 < fmin)
 					continue ;
@@ -154,6 +165,12 @@ get_option(int argc, char *argv[])
 		fmax = atof(argv[2]) ;
 		nargs = 1 ;
 		printf("using max val %2.2f in histogram\n", fmax) ;
+  }
+  else if (!stricmp(option, "erode"))
+  {
+		erode = atoi(argv[2]) ;
+		nargs = 1 ;
+		printf("using %d erosions to prevent alignment of brain with non-brain\n", erode) ;
   }
   else if (!stricmp(option, "min"))
   {
