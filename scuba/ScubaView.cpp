@@ -14,7 +14,7 @@
 
 using namespace std;
 
-int const ScubaView::kBytesPerPixel = 4;
+int const ScubaView::kBytesPerPixel = 3;
 map<int,bool> ScubaView::mViewIDLinkedList;
 Point3<float> ScubaView::mCursor( 0, 0, 0 );
 int ScubaView::mcMarkers = 0;
@@ -1992,7 +1992,7 @@ ScubaView::DrawFrameBuffer () {
 #endif  
 
   glRasterPos2i( 0, 0 );
-  glDrawPixels( mWidth, mHeight, GL_RGBA, GL_UNSIGNED_BYTE, mBuffer );
+  glDrawPixels( mWidth, mHeight, GL_RGB, GL_UNSIGNED_BYTE, mBuffer );
 }
 
 void 
