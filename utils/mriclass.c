@@ -290,15 +290,16 @@ MRIclassTrain(MRIC *mric, MRI *mri_src, MRI *mri_norm, MRI *mri_target)
 #define PRETTY_SURE   .90f
 
 MRI *
-MRIclassify(MRIC *mric, MRI *mri_src, MRI *mri_norm, MRI *mri_dst, float conf)
+MRIclassify(MRIC *mric, MRI *mri_src, MRI *mri_norm, MRI *mri_dst, float conf,
+            MRI *mri_probs, MRI *mri_classes)
 {
   MATRIX     *m_inputs ;
   GCLASSIFY  *gc, **pgc ;
   int        x, y, z, x0, y0, z0, x1, y1, z1, xm, ym, zm, 
              width, depth, height, scale, classno, nclasses,
              swidth, sheight, sdepth ;
-  BUFTYPE    *psrc, src, *pdst ;
-  float      *pnorm, prob ;
+  BUFTYPE    *psrc, src, *pdst, *pclasses ;
+  float      *pnorm, prob, *pprobs = NULL ;
 
   if (mric->swidth != mri_src->width || mric->sheight != mri_src->height ||
       mric->sdepth != mri_src->depth)
@@ -324,7 +325,7 @@ MRIclassify(MRIC *mric, MRI *mri_src, MRI *mri_norm, MRI *mri_dst, float conf)
   scale = mric->scale ;
   nclasses = NCLASSES ;
 
-  /* train each classifier, x,y,z are in classifier space */
+  /* x,y,z are in classifier space */
   for (z = 0 ; z < depth ; z++)
   {
     z0 = MAX(0,z*scale) ;
@@ -347,6 +348,14 @@ MRIclassify(MRIC *mric, MRI *mri_src, MRI *mri_norm, MRI *mri_dst, float conf)
             psrc = &MRIvox(mri_src, x0, ym, zm) ;
             pdst = &MRIvox(mri_dst, x0, ym, zm) ;
             pnorm = &MRIFvox(mri_norm, x0, ym, zm) ;
+            if (mri_probs)
+              pprobs = &MRIFvox(mri_probs, x0, ym, zm) ;
+            else
+              pprobs = NULL ;
+            if (mri_classes)
+              pclasses = &MRIvox(mri_classes, x0, ym, zm) ;
+            else
+              pclasses = NULL ;
             for (xm = x0 ; xm <= x1 ; xm++)
             {
               src = *psrc++ ;
@@ -361,6 +370,10 @@ MRIclassify(MRIC *mric, MRI *mri_src, MRI *mri_norm, MRI *mri_dst, float conf)
 
               /* now classify this observation */
               classno = GCclassify(gc, m_inputs, &prob) ;
+              if (pclasses)
+                *pclasses++ = (BUFTYPE)classno ;
+              if (pprobs)
+                *pprobs++ = prob ;
               if (classno == WHITE_MATTER && prob > conf)
                 *pdst++ = 255 ;
               else
@@ -526,5 +539,43 @@ MRIclassWrite(MRIC *mric, char *fname)
   }
   fclose(fp) ;
   return(NO_ERROR) ;
+}
+
+MRI *
+MRIclassThreshold(MRIC *mric, MRI *mri_probs, MRI *mri_classes,
+                  MRI *mri_dst, float threshold)
+{
+  int      x, y, z, width, height, depth, class ;
+  float    *pprobs, prob ;
+  BUFTYPE  *pclasses, *pdst ;
+
+  if (!mri_dst)
+    mri_dst = MRIclone(mri_classes, NULL) ;
+
+  width = mri_classes->width ;
+  height = mri_classes->height ;
+  depth = mri_classes->depth ;
+
+  for (z = 0 ; z < depth ; z++)
+  {
+    for (y = 0 ; y < height ; y++)
+    {
+      pprobs = &MRIFvox(mri_probs, 0, y, z) ;
+      pclasses = &MRIvox(mri_classes, 0, y, z) ;
+      pdst = &MRIvox(mri_dst, 0, y, z) ;
+      for (x = 0 ; x < width ; x++)
+      {
+        prob = *pprobs++ ;
+        class = (int)*pclasses++ ;
+        if (prob >= threshold && class == WHITE_MATTER)
+          *pdst++ = 255 ;
+        else if (class == WHITE_MATTER)
+          *pdst++ = 128 ;
+        else
+          *pdst++ = 0 ;
+      }
+    }
+  }
+  return(mri_dst) ;
 }
 

@@ -30,13 +30,15 @@ int     MRIclassSetTransform(MRIC *mric, Transform *transform,
 int     MRIclassFree(MRIC **pmric) ;
 int     MRIclassTrain(MRIC *mric, MRI *mri_src,MRI *mri_norm,MRI *mri_target);
 MRI     *MRIclassify(MRIC *mric, MRI *mri_src, MRI *mri_dst, MRI *mri_norm,
-                     float conf) ;
+                     float conf, MRI *mri_probs, MRI *mri_classes) ;
 int     MRIclassToVoxel(MRIC *mric, int xc, int yc, int zc,
                         int *pxv, int *pyv, int *pzv) ;
 int     MRIvoxelToClass(MRIC *mric, int xv, int yv, int zv,
                         int *pxc, int *pyc, int *pzc) ;
 MRIC    *MRIclassRead(char *fname) ;
 int     MRIclassWrite(MRIC *mric, char *fname) ;
+MRI     *MRIclassThreshold(MRIC *mric, MRI *mri_probs, MRI *mri_classes,
+                           MRI *mri_dst, float threshold) ;
 
 
 #endif
