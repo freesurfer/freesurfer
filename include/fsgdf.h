@@ -10,6 +10,15 @@
 #undef X
 #endif
 
+//This is for allowing repeats of subjects in the gdf for testing
+//This will affect gdfCheckSubjRep() in fsgdf.c only.
+#ifdef FSGDF_SRC
+int fsgdf_AllowSubjRep = 0;
+#else
+extern int fsgdf_AllowSubjRep;
+#endif
+
+
 #define FSGDF_NCLASSES_MAX 100
 #define FSGDF_NVARS_MAX    100
 #define FSGDF_NINPUTS_MAX  500
