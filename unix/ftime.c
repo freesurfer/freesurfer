@@ -10,12 +10,18 @@ int
 ftime(struct timeb *t)
 {
   struct tms tm ;
+  struct timeval tv;
+  struct timezone tz;
+  int    msec ;
+  int    sec ;
 
-  t->millitm = (1000/HZ) * times(&tm) ;
-#if 0
-  t->millitm = (1000/HZ) * tm.tms_utime ;
-#endif
-  t->time = 0 ;
+  tz.tz_minuteswest = 0;
+  tz.tz_dsttime = 0;
+  gettimeofday(&tv,&tz);
+  msec = (int)((double)tv.tv_usec * 0.001 + 0.5) ;
+  sec = (int)((double)tv.tv_sec+0.5) ;
+  t->millitm = msec ;
+  t->time = sec ;
   return(time(NULL)) ;
 }
 
