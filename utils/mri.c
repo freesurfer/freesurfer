@@ -5622,6 +5622,7 @@ for(i = 0;i < 8;i++)
 int
 MRIsampleVolumeFrame(MRI *mri,Real x,Real y,Real z,int frame,Real *pval)
 {
+  int  OutOfBounds;
   int  xm, xp, ym, yp, zm, zp, width, height, depth ;
   Real val, xmd, ymd, zmd, xpd, ypd, zpd ;  /* d's are distances */
 
@@ -5630,6 +5631,14 @@ MRIsampleVolumeFrame(MRI *mri,Real x,Real y,Real z,int frame,Real *pval)
     *pval = 1.0 ;
     return(NO_ERROR) ;
   }
+
+  OutOfBounds = MRIindexNotInVolume(mri, x, y, z);
+  if(OutOfBounds == 1){
+    /* unambiguoulsy out of bounds */
+    *pval = 0.0;
+    return(NO_ERROR) ;
+  }
+
   width = mri->width ; height = mri->height ; depth = mri->depth ; 
   if (x >= width)
     x = width - 1.0 ;
@@ -5853,6 +5862,7 @@ int
 MRIsampleVolumeType(MRI *mri, Real x, Real y, Real z, Real *pval, int type)
 {
   int   xv, yv, zv ;
+  int OutOfBounds;
 
   switch (type)
   {
@@ -5863,6 +5873,13 @@ MRIsampleVolumeType(MRI *mri, Real x, Real y, Real z, Real *pval, int type)
     return(MRIsampleVolume(mri, x, y, z, pval)) ;
   case SAMPLE_SINC:
     return(MRIsincSampleVolume(mri, x, y, z, 5, pval)) ;
+  }
+
+  OutOfBounds = MRIindexNotInVolume(mri, x, y, z);
+  if(OutOfBounds == 1){
+    /* unambiguoulsy out of bounds */
+    *pval = 0.0;
+    return(NO_ERROR) ;
   }
 
   xv = nint(x) ; yv = nint(y) ; zv = nint(z) ; 
@@ -5911,10 +5928,19 @@ MRIsampleVolumeType(MRI *mri, Real x, Real y, Real z, Real *pval, int type)
 int
 MRIsampleVolume(MRI *mri, Real x, Real y, Real z, Real *pval)
 {
+  int  OutOfBounds;
   int  xm, xp, ym, yp, zm, zp, width, height, depth ;
   Real val, xmd, ymd, zmd, xpd, ypd, zpd ;  /* d's are distances */
 
+  OutOfBounds = MRIindexNotInVolume(mri, x, y, z);
+  if(OutOfBounds == 1){
+    /* unambiguoulsy out of bounds */
+    *pval = 0.0;
+    return(NO_ERROR) ;
+  }
+
   width = mri->width ; height = mri->height ; depth = mri->depth ; 
+
   if (x >= width)
     x = width - 1.0 ;
   if (y >= height)
@@ -6028,10 +6054,12 @@ double ham_sinc(double x,double fullwidth)
   }
   return ham;
 }
-
+/*-------------------------------------------------------------------------*/
 int
 MRIsincSampleVolume(MRI *mri, Real x, Real y, Real z, int hw, Real *pval)
 {
+
+  int  OutOfBounds;
   int  width, height, depth ;
   int nwidth; 
   int ix_low,ix_high,iy_low,iy_high,iz_low,iz_high;
@@ -6040,6 +6068,13 @@ MRIsincSampleVolume(MRI *mri, Real x, Real y, Real z, int hw, Real *pval)
   double coeff_x_sum,coeff_y_sum,coeff_z_sum;
   double sum_x,sum_y,sum_z;
   double xsize,ysize,zsize;
+
+  OutOfBounds = MRIindexNotInVolume(mri, x, y, z);
+  if(OutOfBounds == 1){
+    /* unambiguoulsy out of bounds */
+    *pval = 0.0;
+    return(NO_ERROR) ;
+  }
 
   xsize = mri->xsize; ysize=mri->ysize; zsize=mri->zsize;
   width = mri->width ; height = mri->height ; depth = mri->depth ; 
@@ -6135,7 +6170,39 @@ MRIsincSampleVolume(MRI *mri, Real x, Real y, Real z, int hw, Real *pval)
   
   return(NO_ERROR);
 }
+/*-----------------------------------------------------------------
+  MRIindexNotInVolume() - determines whether a col, row, slice point is
+  in the mri volume. If it is unambiguously in the volume, then 0
+  is returned. If it is within 0.5 of the edge of the volume, -1
+  is returned. Otherwise 1 is returned. Flagging the case where
+  the point is within 0.5 of the edge can be used for assigning
+  a nearest neighbor when the point is outside but close to the 
+  volume. In this case the index of the nearest neighbor can safely 
+  be computed as the nearest integer to col, row, and slice.
+  -----------------------------------------------------------------*/
+int MRIindexNotInVolume(MRI *mri, Real col, Real row, Real slice) 
+{
+  float nicol, nirow, nislice;
 
+  /* unambiguously in the volume */
+  if(col   >= 0 && col   <= mri->width-1  &&
+     row   >= 0 && row   <= mri->height-1 &&
+     slice >= 0 && slice <= mri->depth-1  ) 
+    return(0);
+
+  /* within 0.5 of the edge of the volume */
+  nicol   = rint(col);
+  nirow   = rint(row);
+  nislice = rint(slice);
+  if(nicol   >= 0 && nicol   < mri->width  &&
+     nirow   >= 0 && nirow   < mri->height &&
+     nislice >= 0 && nislice < mri->depth  ) 
+    return(-1);
+
+  /* unambiguously NOT in the volume */
+  return(1);
+
+}
 /*-----------------------------------------------------
         Parameters:
 
@@ -6514,12 +6581,7 @@ MRIneighborsOn3x3(MRI *mri, int x, int y, int z, int min_val)
   return(nbrs) ;
 }
 /*-----------------------------------------------------
-        Parameters:
-
-        Returns value:
-
-        Description
-------------------------------------------------------*/
+  ------------------------------------------------------*/
 int
 MRIneighborsOff(MRI *mri, int x0, int y0, int z0, int min_val)
 {
@@ -6540,12 +6602,7 @@ MRIneighborsOff(MRI *mri, int x0, int y0, int z0, int min_val)
   return(nbrs) ;
 }
 /*-----------------------------------------------------
-        Parameters:
-
-        Returns value:
-
-        Description
-------------------------------------------------------*/
+  ------------------------------------------------------*/
 int
 MRIneighborsOff3x3(MRI *mri, int x, int y, int z, int min_val)
 {
@@ -6570,13 +6627,8 @@ MRIneighborsOff3x3(MRI *mri, int x, int y, int z, int min_val)
   return(nbrs) ;
 }
 /*-----------------------------------------------------
-        Parameters:
-
-        Returns value:
-
-        Description
-          Perform an linear coordinate transformation x' = Ax on
-          the MRI image mri_src into mri_dst
+  Perform an linear coordinate transformation x' = Ax on
+  the MRI image mri_src into mri_dst
 ------------------------------------------------------*/
 MRI *
 MRIinverseLinearTransform(MRI *mri_src, MRI *mri_dst, MATRIX *mA)
@@ -6592,13 +6644,8 @@ MRIinverseLinearTransform(MRI *mri_src, MRI *mri_dst, MATRIX *mA)
   return(mri_dst) ;
 }
 /*-----------------------------------------------------
-        Parameters:
-
-        Returns value:
-
-        Description
-          Convert a transform from RAS to voxel coordinates, then apply
-          it to an MRI.
+  Convert a transform from RAS to voxel coordinates, then apply
+  it to an MRI.
 ------------------------------------------------------*/
 MRI *
 MRIapplyRASlinearTransform(MRI *mri_src, MRI *mri_dst, MATRIX *m_ras_xform)
@@ -6611,13 +6658,8 @@ MRIapplyRASlinearTransform(MRI *mri_src, MRI *mri_dst, MATRIX *m_ras_xform)
   return(mri_dst) ;
 }
 /*-----------------------------------------------------
-        Parameters:
-
-        Returns value:
-
-        Description
-          Convert a transform from RAS to voxel coordinates, then apply
-          it to an MRI.
+  Convert a transform from RAS to voxel coordinates, then apply
+  it to an MRI.
 ------------------------------------------------------*/
 MRI *
 MRIapplyRASinverseLinearTransform(MRI *mri_src, MRI *mri_dst, 
@@ -6632,13 +6674,8 @@ MRIapplyRASinverseLinearTransform(MRI *mri_src, MRI *mri_dst,
 }
 
 /*-----------------------------------------------------
-        Parameters:
-
-        Returns value:
-
-        Description
-          Perform an linear coordinate transformation x' = Ax on
-          the MRI image mri_src into mri_dst
+  Perform an linear coordinate transformation x' = Ax on
+  the MRI image mri_src into mri_dst using sinc interp.
 ------------------------------------------------------*/
 MRI *
 MRIsincTransform(MRI *mri_src, MRI *mri_dst, MATRIX *mA, int hw)
@@ -6707,23 +6744,37 @@ MRIsincTransform(MRI *mri_src, MRI *mri_dst, MATRIX *mA, int hw)
 
   return(mri_dst) ;
 }
-
-/*-----------------------------------------------------
-        Parameters:
-
-        Returns value:
-
-        Description
-          Perform an linear coordinate transformation x' = Ax on
-          the MRI image mri_src into mri_dst
-------------------------------------------------------*/
+/*-----------------------------------------------------------------
+  MRIlinearTransform() - for historical reasons, this uses trilinear
+  interpolation. This the operations under this function name can
+  now (2/20/02) be found under MRIlinearTransformInterp().
+  -----------------------------------------------------------------*/
 MRI *
 MRIlinearTransform(MRI *mri_src, MRI *mri_dst, MATRIX *mA)
+{
+  MRIlinearTransformInterp(mri_src, mri_dst, mA, SAMPLE_TRILINEAR);
+  return(mri_dst);
+}
+/*-------------------------------------------------------------------
+  MRIlinearTransformInterp() Perform linear coordinate transformation 
+  x' = Ax on the MRI image mri_src into mri_dst using the specified
+  interpolation method. A is a voxel-to-voxel transform.
+  ------------------------------------------------------------------*/
+MRI *
+MRIlinearTransformInterp(MRI *mri_src, MRI *mri_dst, MATRIX *mA,
+       int InterpMethod)
 {
   int    y1, y2, y3, width, height, depth ;
   VECTOR *v_X, *v_Y ;   /* original and transformed coordinate systems */
   MATRIX *mAinv ;     /* inverse of mA */
   Real   val, x1, x2, x3 ;
+
+  if(InterpMethod != SAMPLE_NEAREST &&
+     InterpMethod != SAMPLE_TRILINEAR &&
+     InterpMethod != SAMPLE_SINC ){
+    printf("ERROR: MRIlinearTransformInterp: unrecoginzed interpolation "
+     "method %d\n",InterpMethod);
+  }
 
   mAinv = MatrixInverse(mA, NULL) ;      /* will sample from dst back to src */
   if (!mAinv)
@@ -6765,7 +6816,9 @@ MRIlinearTransform(MRI *mri_src, MRI *mri_dst, MATRIX *mA)
           DiagBreak() ;
         }
 
-        MRIsampleVolume(mri_src, x1, x2, x3, &val);
+        //MRIsampleVolume(mri_src, x1, x2, x3, &val);
+        MRIsampleVolumeType(mri_src, x1, x2, x3, &val, InterpMethod);
+
         switch (mri_dst->type)
         {
         case MRI_UCHAR:
@@ -6839,12 +6892,7 @@ MRIconcatenateFrames(MRI *mri_frame1, MRI *mri_frame2, MRI *mri_dst)
   return(mri_dst) ;
 }
 /*-----------------------------------------------------
-        Parameters:
-
-        Returns value:
-
-        Description
-------------------------------------------------------*/
+  ------------------------------------------------------*/
 MRI *
 MRIcopyFrame(MRI *mri_src, MRI *mri_dst, int src_frame, int dst_frame)
 {
