@@ -2,7 +2,7 @@
   surfcluster.c - routines for growing clusters on the surface
   based on intensity thresholds and area threshold. Note: this
   makes use of the undefval in the MRI_SURFACE structure.
-  $Id: surfcluster.c,v 1.1 2002/04/09 18:38:39 greve Exp $
+  $Id: surfcluster.c,v 1.2 2002/04/09 18:42:40 greve Exp $
   ----------------------------------------------------------------*/
 #include <stdio.h>
 #include <stdlib.h>
@@ -27,8 +27,8 @@ static int sclustCompare(const void *a, const void *b);
    criteria, then undefval is set to the cluster number.
    ------------------------------------------------------------ */
 SCS *sclustMapSurfClusters(MRI_SURFACE *Surf, float thmin, float thmax, 
-			   int thsign, float minarea, int *nClusters,
-			   MATRIX *XFM)
+         int thsign, float minarea, int *nClusters,
+         MATRIX *XFM)
 {
   SCS *scs, *scs_sorted;
   int vtx, vtx_inrange, vtx_clustno, CurrentClusterNo;
@@ -52,11 +52,11 @@ SCS *sclustMapSurfClusters(MRI_SURFACE *Surf, float thmin, float thmax,
     if(vtx_clustno == 0 && vtx_inrange){
       sclustGrowSurfCluster(CurrentClusterNo,vtx,Surf,thmin,thmax,thsign);
       ClusterArea = sclustSurfaceArea(CurrentClusterNo, Surf, 
-				     &nVtxsInCluster) ;
+             &nVtxsInCluster) ;
       if(ClusterArea < minarea){
-	/* If the cluster does not meet the area criteria, delete it */
-	sclustZeroSurfaceClusterNo(CurrentClusterNo, Surf);
-	continue;
+  /* If the cluster does not meet the area criteria, delete it */
+  sclustZeroSurfaceClusterNo(CurrentClusterNo, Surf);
+  continue;
       }
       CurrentClusterNo++;
     }
@@ -88,7 +88,7 @@ SCS *sclustMapSurfClusters(MRI_SURFACE *Surf, float thmin, float thmax,
    The ClustNo cannot be 0.
    ------------------------------------------------------------ */
 int sclustGrowSurfCluster(int ClusterNo, int SeedVtx, MRI_SURFACE *Surf, 
-			  float thmin, float thmax, int thsign)
+        float thmin, float thmax, int thsign)
 {
   int nbr, nbr_vtx, nbr_inrange, nbr_clustno;
   float nbr_val;
@@ -272,11 +272,11 @@ int DumpSurfClusterSum(FILE *fp, SCS *scs, int nClusters)
 
   for(n=0; n < nClusters; n++){
     fprintf(fp,"%4d  %8.4f  %6d    %6.2f  %4d   %5.1f %5.1f %5.1f   "
-	    "%5.1f %5.1f %5.1f\n",n+1,
-	    scs[n].maxval, scs[n].vtxmaxval, 
-	    scs[n].area,scs[n].nmembers,
-	    scs[n].x, scs[n].y, scs[n].z,
-	    scs[n].xxfm, scs[n].yxfm, scs[n].zxfm);
+      "%5.1f %5.1f %5.1f\n",n+1,
+      scs[n].maxval, scs[n].vtxmaxval, 
+      scs[n].area,scs[n].nmembers,
+      scs[n].x, scs[n].y, scs[n].z,
+      scs[n].xxfm, scs[n].yxfm, scs[n].zxfm);
   }
   return(0);
 }
@@ -311,8 +311,8 @@ int sclustReMap(MRI_SURFACE *Surf, int nClusters, SCS *scs_sorted)
     vtx_clusterno = Surf->vertices[vtx].undefval;
     for(c=1; c <= nClusters; c++){
       if(vtx_clusterno == scs_sorted[c].clusterno){
-	Surf->vertices[vtx].undefval = c;
-	break;
+  Surf->vertices[vtx].undefval = c;
+  break;
       }
     }
   }

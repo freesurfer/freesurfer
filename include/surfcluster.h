@@ -18,10 +18,10 @@ typedef struct {
 } SURFCLUSTERSUM, SCS;
 
 SCS *sclustMapSurfClusters(MRI_SURFACE *Surf, float thmin, float thmax, 
-			   int thsign, float minarea, int *nClusters,
-			   MATRIX *XFM);
+         int thsign, float minarea, int *nClusters,
+         MATRIX *XFM);
 int sclustGrowSurfCluster(int ClustNo, int SeedVtx, MRI_SURFACE *Surf, 
-			 float thmin, float thmax, int thsign);
+       float thmin, float thmax, int thsign);
 float sclustSurfaceArea(int ClusterNo, MRI_SURFACE *Surf, int *nvtxs) ;
 float sclustSurfaceMax(int ClusterNo, MRI_SURFACE *Surf, int *vtxmax) ;
 float sclustZeroSurfaceClusterNo(int ClusterNo, MRI_SURFACE *Surf);
