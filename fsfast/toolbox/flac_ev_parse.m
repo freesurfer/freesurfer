@@ -6,7 +6,7 @@ function ev = flac_ev_parse(tline)
 %
 % EV EVName ModelName Type <parameters>
 %
-% $Id: flac_ev_parse.m,v 1.4 2004/10/25 04:53:33 greve Exp $
+% $Id: flac_ev_parse.m,v 1.5 2004/10/25 18:19:09 greve Exp $
 
 ev = [];
 if(nargin > 1)
@@ -105,8 +105,8 @@ switch (ev.model)
   if(c ~= 1) fprintf('Format error\n'); ev=[]; return; end
   ev.params(2) = sscanf(item,'%f',1); % dpsd
   
-  ev.psdwin = [0 ev.params(2) 40];
-  ev.npsd = round((ev.psdwin(3)-ev.psdwin(1))/ev.psdwin(2));
+  ev.psdwin = [0 40 ev.params(2)];
+  ev.npsd = round((ev.psdwin(2)-ev.psdwin(1))/ev.psdwin(3));
   ev.ishrf = 1;    
   ev.nreg = ev.params(1) + 1;
   
