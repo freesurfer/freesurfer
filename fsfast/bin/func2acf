@@ -4,7 +4,7 @@
 ############################################################
 
 set inputargs = ($argv);
-set VERSION = '$Id: func2acf,v 1.1 2003/03/04 21:22:08 greve Exp $';
+set VERSION = '$Id: func2acf,v 1.2 2004/09/30 02:20:52 greve Exp $';
 
 set PrintHelp = 0;
 set instem = ();
@@ -404,6 +404,7 @@ usage_exit:
   echo ""
   echo " -i instem"
   echo " -x matfile"
+  echo " -pf polyorder"
   echo " -xname name : variable name in matfile <Xfinal>"
   echo " -ar N       : compute acf using ar N model"
   echo " -svd        : average acf using svd "
