@@ -13,7 +13,7 @@
 #include "mri.h"
 #include "macros.h"
 
-static char vcid[] = "$Id: mris_curvature.c,v 1.4 1997/11/03 20:06:13 fischl Exp $";
+static char vcid[] = "$Id: mris_curvature.c,v 1.5 1997/11/06 21:18:29 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -33,7 +33,7 @@ main(int argc, char *argv[])
   char         **av, *in_fname, fname[100], hemi[10], path[100], name[100],*cp;
   int          ac, nargs, nhandles ;
   MRI_SURFACE  *mris ;
-  double       ici, fi ;
+  double       ici, fi, var ;
 
   Progname = argv[0] ;
   ErrorInit(NULL, NULL, NULL) ;
@@ -76,7 +76,8 @@ mrisComputeNormals(mris) ;
           (float)mris->Ktotal, nhandles) ;
   
   MRIScomputeCurvatureIndices(mris, &ici, &fi);
-  fprintf(stderr, "ICI = %2.1f, FI = %2.1f\n", ici, fi) ;
+  var = MRISvariation(mris) ;
+  fprintf(stderr, "ICI = %2.1f, FI = %2.1f, variation=%2.3f\n", ici, fi, var) ;
 
   if (write_flag)
   {
