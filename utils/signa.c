@@ -213,6 +213,9 @@ signaRead(char *fname, int read_volume_flag)
   mri->fov = 1000*header.fov ;
   mri->xsize = mri->ysize = mri->ps = 1000*header.psiz;
   mri->zsize = mri->thick = 1000*header.thick;
+  // no orientation info and thus sets to coronal
+  setDirectionCosine(mri, MRI_CORONAL); 
+
   fclose(fp) ;
   if (!read_volume_flag)
     return(mri) ;
