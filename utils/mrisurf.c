@@ -6836,7 +6836,8 @@ MRISreadCanonicalCoordinates(MRI_SURFACE *mris, char *sname)
   float       d, x, y, z, r, theta, phi ;
 #if 1
   MRISsaveVertexPositions(mris, TMP_VERTICES) ;
-  MRISreadVertexPositions(mris, sname) ;
+  if (MRISreadVertexPositions(mris, sname) != NO_ERROR)
+    return(Gerror) ;
   MRISsaveVertexPositions(mris, CANONICAL_VERTICES) ;
 #else
   int         nvertices, magic, version, ix, iy, iz, vno, n, nfaces, crap,type;
@@ -17602,8 +17603,7 @@ MRISbuildFileName(MRI_SURFACE *mris, char *sname, char *fname)
   {
     dot = strchr(sname, '.') ;
     FileNamePath(mris->fname, path) ;
-    if (dot && ((dot-slash) == 3) && (*(dot-1) == 'h') &&
-        (*(dot-2) == 'l' || *(dot-2) == 'r'))
+    if (dot && (*(dot-1) == 'h') && (*(dot-2) == 'l' || *(dot-2) == 'r'))
       sprintf(fname, "%s/%s", path, sname) ;
     else   /* no hemisphere specified */
       sprintf(fname, "%s/%s.%s", path, 
