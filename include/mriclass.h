@@ -72,7 +72,7 @@ MRIC   *MRICquickRead(char *fname) ;
 int    MRICwrite(MRIC *mric, char *fname) ;
 MRI    *MRICclassify(MRIC *mric, MRI *mri_src, 
                      MRI *mri_dst, float conf,MRI *mri_probs,MRI *mri_classes);
-int    MRICcomputeInputs(MRI *mri, int x,int y,int z,float *obs, int features);
+int    MRICcomputeInputs(MRI *mri, int x,int y,int z,VECTOR *v_obs,int features);
 MRI    *MRICbuildTargetImage(MRI *mri_src, MRI *mri_target, MRI *mri_wm,
                              int lo_lim, int hi_lim) ;
 MRI    *MRICupdatePriors(MRI *mri_target, MRI *mri_priors, int scale) ;
