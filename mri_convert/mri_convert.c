@@ -8,7 +8,7 @@
 #include "error.h"
 #include "diag.h"
 #include "proto.h"
-
+#include "fio.h"
 
 int main(int argc, char *argv[]) ;
 static int get_option(int argc, char *argv[]) ;
@@ -17,12 +17,19 @@ char *Progname ;
 
 static int verbose = 0 ;
 static int xdim = XDIM, ydim = YDIM, zdim = ZDIM ;
+
+static int brueker = 0 ;
+static float scale = 1.0 ;
+static float blur_sigma = 0.0f ;
+
+MRI   *MRIreadBrueker(char *fname) ;
+
 int
 main(int argc, char *argv[])
 {
   char   **av ;
   int    ac, nargs ;
-  MRI    *mri ;
+  MRI    *mri, *mri_kernel ;
   char   *in_fname, *out_fname ;
 
   Progname = argv[0] ;
@@ -51,7 +58,11 @@ main(int argc, char *argv[])
 
   if (verbose)
     fprintf(stderr, "reading from %s...", in_fname) ;
-  mri = MRIread(in_fname) ;
+  if (!brueker)
+    mri = MRIread(in_fname) ;
+  else
+    mri = MRIreadBrueker(in_fname) ;
+
   if (!mri)
     ErrorExit(ERROR_NO_FILE, "%s: could not open source file %s", 
               Progname, in_fname) ;
@@ -71,6 +82,17 @@ main(int argc, char *argv[])
     mri = mri_tmp ;
   }
 
+  if (blur_sigma > 0.0f)
+  {
+    MRI *mri_smooth ;
+
+    mri_kernel = MRIgaussian1d(blur_sigma, 100) ;
+    fprintf(stderr, "smoothing volume with sigma = %2.3f\n", blur_sigma) ;
+    mri_smooth = MRIclone(mri, NULL) ;
+    MRIconvolveGaussian(mri, mri_smooth, mri_kernel) ;
+    MRIfree(&mri_kernel) ; MRIfree(&mri) ; 
+    mri = mri_smooth ;
+  }
   if (verbose)
     fprintf(stderr, "done.\nwriting to %s...", out_fname) ;
   MRIwrite(mri, out_fname) ;
@@ -91,10 +113,20 @@ get_option(int argc, char *argv[])
 {
   int  nargs = 0, sign = 1 ;
   char *option, *cp ;
-  
+
   option = argv[1] + 1 ;            /* past '-' */
-  switch (toupper(*option))
+  if (!stricmp(option, "blur"))
   {
+    blur_sigma = atof(argv[2]) ;
+    fprintf(stderr, "applying %2.2f standard deviation Gaussian kernel\n",
+            blur_sigma) ;
+    nargs = 1 ;
+  }
+  else switch (toupper(*option))
+  {
+  case 'B':
+    brueker = 1 ;
+    break ;
   case 'V':
     verbose = !verbose ;
     break ;
@@ -162,6 +194,11 @@ get_option(int argc, char *argv[])
     zdim *= sign ;
     nargs = 1 ;
     break ;
+  case 'S':
+    scale = atof(argv[2]) ;
+    nargs = 1 ;
+    fprintf(stderr, "scaling intensities by %2.2f\n", scale) ;
+    break ;
   case '?':
   case 'U':
     printf("usage: %s [input directory] [output directory]\n", argv[0]) ;
@@ -174,4 +211,65 @@ get_option(int argc, char *argv[])
   }
 
   return(nargs) ;
+}
+MRI *
+MRIreadBrueker(char *fname)
+{
+  MRI   *mri_tmp, *mri_short, *mri ;
+  FILE  *fp ;
+  int   nslices, imgsize = 256 * 256 * 2 ;  /* 16 bits per voxel */
+  int   filesize, x, y, z, vox, pad ;
+  float fmin, fmax, in_val, out_val ;
+
+  if (!(fp = fopen(fname, "rb"))) 
+    ErrorReturn(NULL, 
+                (ERROR_NOFILE, "%s: could not read Brueker image.\n", fname)) ;
+
+  fseek(fp, 0, SEEK_END) ;
+  filesize = ftell(fp) ;
+  fseek(fp, 0, SEEK_SET) ;
+
+  nslices = filesize / imgsize ;
+  fprintf(stderr, "reading %d slices...\n", nslices) ;
+  mri_short = MRIalloc(256, 256, nslices, MRI_SHORT) ;
+
+  for (z = 0 ; z < nslices ; z++)
+  {
+    for (y = 0 ; y < 256 ; y++)
+    {
+      for (x = 0 ; x < 256 ; x++)
+      {
+        fread2(&vox, fp) ;
+        MRISvox(mri_short, x, y, z) = (short)vox ;
+      }
+    }
+  }
+
+  MRIvalRange(mri_short, &fmin, &fmax) ;
+  mri_tmp = MRIalloc(256, 256, nslices, MRI_UCHAR) ;
+  for (z = 0 ; z < nslices ; z++)
+  {
+    for (y = 0 ; y < 256 ; y++)
+    {
+      for (x = 0 ; x < 256 ; x++)
+      {
+        in_val = (float)MRISvox(mri_short, x, y, z) ;
+        out_val = scale * (in_val - fmin) * 255.0 / (fmax-fmin) ;
+        if (out_val > 255.0f)
+          out_val = 255.0f ;
+        MRIvox(mri_tmp, x, y, z) = (BUFTYPE)nint(out_val) ;
+      }
+    }
+  }
+  MRIfree(&mri_short) ;
+
+  mri = MRIalloc(256, 256, 256, MRI_UCHAR) ;
+  if (nslices != 256)
+  {
+    pad = (256-nslices)/2 ;
+    MRIextractInto(mri_tmp, mri, 0, 0, 0, 256, 256, nslices, 0, 0, pad) ;
+  }
+  MRIfree(&mri_tmp) ;    
+  fclose(fp);
+  return(mri) ;
 }
