@@ -768,6 +768,58 @@ Surf_tErr Surf_GetVertexValue ( mriSurfaceRef   this,
   return eResult;
 }
 
+Surf_tErr Surf_GetDistance ( mriSurfaceRef this,
+           xVoxelRef     iClientVoxel1,
+           xVoxelRef     iClientVoxel2,
+           float*        ofDistance ) {
+
+  
+  Surf_tErr eResult = Surf_tErr_NoErr;
+  xVoxel    surfaceVoxel1;
+  xVoxel    surfaceVoxel2;
+  float     fDistanceX  = 0;
+  float     fDistanceY  = 0;
+  float     fDistanceZ  = 0;
+  float     fDistance;
+
+  eResult = Surf_Verify( this );
+  if( Surf_tErr_NoErr != eResult ) 
+    goto error;
+
+  /* Get both voxels in surface space, then calc the distance. */
+  Surf_ConvertVoxelToSurfaceSpace( iClientVoxel1, this->mTransform,
+           &surfaceVoxel1 );
+  Surf_ConvertVoxelToSurfaceSpace( iClientVoxel2, this->mTransform,
+           &surfaceVoxel2 );
+
+  fDistanceX = xVoxl_GetFloatX(&surfaceVoxel1) - 
+    xVoxl_GetFloatX(&surfaceVoxel2);
+  fDistanceY = xVoxl_GetFloatY(&surfaceVoxel1) - 
+    xVoxl_GetFloatY(&surfaceVoxel2);
+  fDistanceZ = xVoxl_GetFloatZ(&surfaceVoxel1) - 
+    xVoxl_GetFloatZ(&surfaceVoxel2);
+
+  fDistance = sqrt( fDistanceX * fDistanceX +
+        fDistanceY * fDistanceY +
+        fDistanceZ * fDistanceZ );
+
+  /* return the distance. */
+  *ofDistance = fDistance;
+
+  goto cleanup;
+
+ error:
+
+   if( Surf_tErr_NoErr != eResult ) {
+    DebugPrint( ("Error %d in Surf_GetVertexValue: %s\n",
+      eResult, Surf_GetErrorString( eResult ) ) );
+  }
+
+ cleanup:
+
+  return eResult;
+}
+
 
 void Surf_GetClosestVertex ( mriSurfaceRef   this,
            Surf_tVertexSet iSet,

@@ -9017,7 +9017,7 @@ char kTclCommands [tkm_knNumTclCommands][STRLEN] = {
   "UpdateFunctionalValue",
   "UpdateROILabel",
   "UpdateHeadPointLabel",
-  "UpdateDistance",
+  "UpdateSurfaceDistance",
   "UpdateZoomLevel",
   "UpdateOrientation",
   "UpdateDisplayFlag",

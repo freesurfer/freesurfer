@@ -158,6 +158,12 @@ Surf_tErr Surf_GetVertexValue ( mriSurfaceRef   this,
         xVoxelRef       iClientVoxel,
         float*          opValue );
 
+/* get distance between two points in surface space. */
+Surf_tErr Surf_GetDistance ( mriSurfaceRef this,
+           xVoxelRef     iClientVoxel1,
+           xVoxelRef     iClientVoxel2,
+           float*        ofDistance );
+
 /* helper functions */
 float Surf_GetVertexCoord ( vertex_type*      iVertex,
           Surf_tVertexSet   iSet,

@@ -5575,9 +5575,6 @@ DspA_tErr DspA_SendPointInformationToTcl_ ( tkmDisplayAreaRef this,
   char                  sLabel[STRLEN]        = "";
   int                   nValue             = 0;
   DspA_tHistogramParams histoParams;
-  float                 fDistanceX         = 0;
-  float                 fDistanceY         = 0;
-  float                 fDistanceZ         = 0;
   float                 fDistance          = 0;
  
 
@@ -5963,37 +5960,24 @@ DspA_tErr DspA_SendPointInformationToTcl_ ( tkmDisplayAreaRef this,
 #endif
 
 
-  /* update the cursor distance. if this is the cursor, find the
-     distance from the last cursor and print that. if this is the
-     mouseover, print the distance from the current cursor.  */
-  if( DspA_tDisplaySet_Cursor == iSet ) {
-    
-     fDistanceX = xVoxl_GetFloatX(iAnaIdx) - 
-       xVoxl_GetFloatX(this->mpLastCursor);
-     fDistanceY = xVoxl_GetFloatY(iAnaIdx) - 
-       xVoxl_GetFloatY(this->mpLastCursor);
-     fDistanceZ = xVoxl_GetFloatZ(iAnaIdx) - 
-       xVoxl_GetFloatZ(this->mpLastCursor);
+  /* if we have a surfaec, update the surface distance. if this is the
+     cursor, find the distance from the last cursor and print that. if
+     this is the mouseover, print the distance from the current
+     cursor.  */
+  if( NULL != this->mpSurface ) { 
 
-     fDistance = sqrt( fDistanceX * fDistanceX +
-           fDistanceY * fDistanceY +
-           fDistanceZ * fDistanceZ );
+    if( DspA_tDisplaySet_Cursor == iSet ) {
+      Surf_GetDistance( this->mpSurface, iAnaIdx, this->mpLastCursor,
+      &fDistance );
+    } else {
+      Surf_GetDistance( this->mpSurface, iAnaIdx, this->mpCursor,
+      &fDistance );
+    }
 
-  } else {
-
-     fDistanceX = xVoxl_GetFloatX(iAnaIdx) - xVoxl_GetFloatX(this->mpCursor);
-     fDistanceY = xVoxl_GetFloatY(iAnaIdx) - xVoxl_GetFloatY(this->mpCursor);
-     fDistanceZ = xVoxl_GetFloatZ(iAnaIdx) - xVoxl_GetFloatZ(this->mpCursor);
-
-     fDistance = sqrt( fDistanceX * fDistanceX +
-           fDistanceY * fDistanceY +
-           fDistanceZ * fDistanceZ );
-     
+    /* send the update */
+    sprintf( sTclArguments, "%s %f", DspA_ksaDisplaySet[iSet], fDistance );
+    tkm_SendTclCommand( tkm_tTclCommand_UpdateDistance, sTclArguments );
   }
-
-  /* send the update */
-  sprintf( sTclArguments, "%s %f", DspA_ksaDisplaySet[iSet], fDistance );
-  tkm_SendTclCommand( tkm_tTclCommand_UpdateDistance, sTclArguments );
 
   return DspA_tErr_NoErr;
 }
@@ -6067,9 +6051,6 @@ DspA_tErr DspA_DrawHistogram ( tkmDisplayAreaRef        this,
 DspA_tErr DspA_SetSurfaceDistanceAtCursor ( tkmDisplayAreaRef this ) {
 
   DspA_tErr eResult     = DspA_tErr_NoErr;
-  float     fDistanceX  = 0;
-  float     fDistanceY  = 0;
-  float     fDistanceZ  = 0;
   float     fDistance   = 0;
 
   /* verify us. */
@@ -6077,20 +6058,17 @@ DspA_tErr DspA_SetSurfaceDistanceAtCursor ( tkmDisplayAreaRef this ) {
   if ( DspA_tErr_NoErr != eResult )
     goto error;
 
-  /* calc the distance from this cursor to the last one. */
-  fDistanceX = xVoxl_GetFloatX(this->mpCursor) - 
-    xVoxl_GetFloatX(this->mpLastCursor);
-  fDistanceY = xVoxl_GetFloatY(this->mpCursor) - 
-    xVoxl_GetFloatY(this->mpLastCursor);
-  fDistanceZ = xVoxl_GetFloatZ(this->mpCursor) - 
-    xVoxl_GetFloatZ(this->mpLastCursor);
+  /* make sure we have a surface. */
+  if( NULL != this->mpSurface ) {
 
-  fDistance = sqrt( fDistanceX * fDistanceX +
-        fDistanceY * fDistanceY +
-        fDistanceZ * fDistanceZ );
+    /* calc our distance. */
+    Surf_GetDistance( this->mpSurface, this->mpCursor, this->mpLastCursor,
+          &fDistance );
 
-  /* set the distance for this ana idx */
-  tkm_SetSurfaceDistance( this->mpCursor, fDistance );
+    /* set the distance for this ana idx */
+    tkm_SetSurfaceDistance( this->mpCursor, fDistance );
+  }
+
 
   goto cleanup;
 

@@ -181,7 +181,7 @@ set glLabel { \
   kLabel_Value_Func \
   kLabel_Label_ROI \
   kLabel_Label_Head \
-  kLabel_Distance }
+  kLabel_SurfaceDistance }
 foreach label $glLabel {
     set gfwaLabel($label,cursor) ""
     set gfwaLabel($label,mouseover) ""
@@ -197,7 +197,7 @@ set gsaLabelContents(kLabel_Coords_Func_RAS,name) "Functional RAS"
 set gsaLabelContents(kLabel_Value_Func,name) "Functional value"
 set gsaLabelContents(kLabel_Label_ROI,name) "Sgmtn label"
 set gsaLabelContents(kLabel_Label_Head,name) "Head Point"
-set gsaLabelContents(kLabel_Distance,name) "Distance"
+set gsaLabelContents(kLabel_SurfaceDistance,name) "Surface Distance"
 
 foreach label $glLabel {
     set gsaLabelContents($label,value,cursor) "none"
@@ -336,9 +336,9 @@ proc UpdateFunctionalRASCoords { iSet inX inY inZ } {
       "($inX, $inY, $inZ)"
 }
 
-proc UpdateDistance { iSet ifDistance } {
+proc UpdateSurfaceDistance { iSet ifDistance } {
     global gsaLabelContents
-    set gsaLabelContents(kLabel_Distance,value,$iSet) $ifDistance
+    set gsaLabelContents(kLabel_SurfaceDistance,value,$iSet) $ifDistance
 }
 
 proc UpdateZoomLevel { inLevel } { 
@@ -2273,9 +2273,9 @@ proc CreateMenuBar { ifwMenuBar } {
       gbShowLabel(kLabel_Label_Head) \
       tMenuGroup_HeadPoints } \
       { check \
-      "Distance" \
-      "ShowLabel kLabel_Distance $gbShowLabel(kLabel_Distance)"\
-      gbShowLabel(kLabel_Distance)  } } } \
+      "Surface Distance" \
+      "ShowLabel kLabel_SurfaceDistance $gbShowLabel(kLabel_SurfaceDistance)"\
+      gbShowLabel(kLabel_SurfaceDistance)  } } } \
       \
       { separator } \
       \
