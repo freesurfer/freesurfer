@@ -1554,6 +1554,7 @@ int mincFindVolume(const char *line, char **srcVol, char **dstVol)
 	  *dstVol = (char *) malloc(strlen(pch)+1);
 	  strcpy(*dstVol, pch);
 	  fprintf(stdout, "INFO: Target volume %s\n", *dstVol);
+	  count = 0; // restore for another case
 	  return 1;
 	}
       }
@@ -1587,6 +1588,7 @@ int mincFindVolume(const char *line, char **srcVol, char **dstVol)
       pch = strtok(NULL, " ");
     }
   }
+
   // neither MNC nor MGH 
   return 0;
 }
@@ -1622,8 +1624,8 @@ void mincGetVolumeInfo(const char *srcVol, VOL_GEOM *vgSrc)
       }
       else
       {
-	printf("INFO: Set Volume %s to the standard COR type.\n", srcVol);
-	initVolGeom(vgSrc);
+	// printf("INFO: Set Volume %s to the standard COR type.\n", srcVol);
+	initVolGeom(vgSrc); // valid = 0; so no need to give info
       }
     }
     else
