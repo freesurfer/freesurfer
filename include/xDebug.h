@@ -45,7 +45,7 @@ extern int                  xDbg_gType;
 extern char*                xDbg_gsRequest;
 extern char                 xDbg_sStackDesc[xDbg_knMaxDescLength];
 extern char                 xDbg_sCurNoteDesc[xDbg_knMaxDescLength];
-
+extern int                  xDbg_gLineNumberOfError;
 
 /* if we're generating debugging code... */
 #if kDebugging
@@ -106,11 +106,18 @@ extern char                 xDbg_sCurNoteDesc[xDbg_knMaxDescLength];
 /* use these only if you are going to catch them with the DebugCatch macros
    below. the first just takes a test. the second will set var to errorCode
    if the test is true. the third throws without a test. */
-#define DebugAssertThrow(test)   if( !(test) ) goto error
+#define DebugAssertThrow(test) \
+                                 do { \
+                                    if( !(test) ) { \
+                                        xDbg_gLineNumberOfError = __LINE__; \
+                                        goto error; \
+                                    } \
+                                 } while(0)
 
 #define DebugAssertThrowX(test,var,errorCode) \
                                  do { \
                                     if( !(test) ) { \
+                                        xDbg_gLineNumberOfError = __LINE__; \
                                         var = errorCode; \
                                         goto error; \
                                     } \
@@ -118,8 +125,17 @@ extern char                 xDbg_sCurNoteDesc[xDbg_knMaxDescLength];
 
 #define DebugThrowX(var,errorCode) \
                                  do { \
+                                    xDbg_gLineNumberOfError = __LINE__; \
                                     var = errorCode; \
                                     goto error; \
+                                 } while(0)
+
+/* Throw without going through the error reporting code. */
+#define DebugAssertQuietThrow(test) \
+                                 do { \
+                                    if( !(test) ) { \
+                                        goto cleanup; \
+                                    } \
                                  } while(0)
 
 /* start and end the 'catch block' */
@@ -133,8 +149,9 @@ extern char                 xDbg_sCurNoteDesc[xDbg_knMaxDescLength];
    errorCode. it should return a char* string with the error message. */
 #define DebugCatchError(errorCode,kNoError,errorStringFunc) \
      do { \
-     DebugPrint( ("Error in %s\n\twhile %s\n", xDbg_GetCurrentFunction(), \
-                                               xDbg_sCurNoteDesc) ); \
+     DebugPrint( ("Error in %s (line %d)\n\twhile %s\n", \
+                  xDbg_GetCurrentFunction(), xDbg_gLineNumberOfError, \
+                  xDbg_sCurNoteDesc) ); \
      if( (errorCode) != (kNoError) ) { \
         if( NULL != errorStringFunc ) { \
            DebugPrint( ("\tError %d: %s\n", \
