@@ -3618,21 +3618,34 @@ mrisAverageAreas(MRI_SURFACE *mris, int num_avgs, int which)
         Description
 ------------------------------------------------------*/
 int
-MRISsampleStatVolume(MRI_SURFACE *mris, STAT_VOLUME *sv, int time_point)
+MRISsampleStatVolume(MRI_SURFACE *mris, STAT_VOLUME *sv,int time_point,int tal)
 {
   VERTEX   *v ;
-  int      vno, xv, yv, zv ;
+  int      vno, xv, yv, zv, width, height, depth ;
   Real     x, y, z, xt, yt, zt ;
 
+  if (time_point >= sv->mri_pvals[0]->nframes)
+    ErrorExit(ERROR_BADPARM, 
+              "MRISsampleStatVolume: time point (%d) out of bounds [%d, %d]\n",
+              time_point, 0, sv->mri_pvals[0]->nframes-1) ;
+  width  = sv->mri_pvals[0]->width ;
+  height  = sv->mri_pvals[0]->height ;
+  depth  = sv->mri_pvals[0]->depth ;
   for (vno = 0 ; vno < mris->nvertices ; vno++)
   {
+    if (vno == 161)
+      DiagBreak() ;
     v = &mris->vertices[vno] ;
     x = (Real)v->x ; y = (Real)v->y ; z = (Real)v->z ;
 
     /* now convert them into talairach space */
-    MRIworldToTalairachVoxel(sv->mri_pvals[0], x, y, z, &xt, &yt, &zt) ;
+    if (tal)
+      MRIworldToTalairachVoxel(sv->mri_pvals[0], x, y, z, &xt, &yt, &zt) ;
+    else
+      MRIworldToVoxel(sv->mri_pvals[0], x, y, z, &xt, &yt, &zt) ;
     xv = nint(xt) ; yv = nint(yt) ; zv = nint(zt) ;
-    v->val = MRIFseq_vox(sv->mri_pvals[0], xv, yv, zv, time_point) ;
+    if (xv >= 0 && xv < width && yv >= 0 && yv <= height && zv >= 0&&zv<=depth)
+      v->val = MRIFseq_vox(sv->mri_pvals[0], xv, yv, zv, time_point) ;
     if (vno == 1446)
       DiagBreak() ;
   }
@@ -3663,7 +3676,8 @@ MRISwriteValues(MRI_SURFACE *mris, char *fname)
 
   for (k=0,num=0;k<mris->nvertices;k++) 
     if (mris->vertices[k].val!=0) num++;
-  printf("num = %d\n",num);
+  if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
+    printf("num = %d\n",num);
   fwrite2(0,fp);
   fwrite3(num,fp);
   for (k=0;k<mris->nvertices;k++)
@@ -3672,6 +3686,11 @@ MRISwriteValues(MRI_SURFACE *mris, char *fname)
     {
       fwrite3(k,fp);
       f = mris->vertices[k].val;
+      if (!finite(f))
+        ErrorPrintf(ERROR_BADPARM, 
+                    "MRISwriteValues(%s): val at vertex %d is not finite",
+                    fname, k) ;
+
       fwrite(&f,1,sizeof(float),fp);
       sum += f;
       sum2 += f*f;
@@ -3731,3 +3750,74 @@ MRISreadValues(MRI_SURFACE *mris, char *fname)
   fclose(fp);
   return(NO_ERROR) ;
 }
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
+int
+MRISreadCanonicalCoordinates(MRI_SURFACE *mris, char *sname)
+{
+  int         nvertices, magic, version, ix, iy, iz, vno, n, nfaces ;
+  FILE        *fp ;
+  VERTEX      *vertex ;
+  char        fname[100], path[100] ;
+
+  FileNamePath(mris->fname, path) ;
+  sprintf(fname, "%s/%s", path, sname) ;
+  fp = fopen(fname, "rb") ;
+  if (!fp)
+    ErrorReturn(NULL,(ERROR_NOFILE,
+                      "MRISreadCanonicalCoordinates(%s): could not open file",
+                      fname));
+
+  fread3(&magic, fp) ;
+  if (magic == NEW_VERSION_MAGIC_NUMBER) 
+  {
+    version = -1;
+    if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
+      fprintf(stderr, "new surface file format\n");
+  }
+  else 
+  {
+    rewind(fp);
+    version = 0;
+    if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
+      printf("surfer: old surface file format\n");
+  }
+  fread3(&nvertices, fp);
+  fread3(&nfaces, fp);
+
+  if ((nvertices != mris->nvertices) || (nfaces != mris->nfaces))
+    ErrorReturn(ERROR_BADPARM, 
+                (ERROR_BADPARM,
+                "MRISreadCanonicalSurface(%s): nfaces %d (%d) or nvertices "
+                "%d (%d) mismatch", nvertices, mris->nvertices,
+                nfaces, mris->nfaces)) ;
+
+  if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
+    fprintf(stderr, "reading %d vertices and %d faces.\n",nvertices,nfaces);
+
+  for (vno = 0 ; vno < nvertices ; vno++)
+  {
+    vertex = &mris->vertices[vno] ;
+    fread2(&ix,fp);
+    fread2(&iy,fp);
+    fread2(&iz,fp);
+    vertex->cx = ix/100.0;
+    vertex->cy = iy/100.0;
+    vertex->cz = iz/100.0;
+    if (version == 0)  /* old surface format */
+    {
+      fread1(&vertex->num,fp);
+      for (n=0;n<vertex->num;n++)   /* skip over face data */
+        fread3(&vertex->f[n],fp);
+    } 
+    else 
+      vertex->num = 0;
+  }
+  return(NO_ERROR) ;
+}
+
