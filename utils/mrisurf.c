@@ -1105,7 +1105,7 @@ MRISsampleDistances(MRI_SURFACE *mris, int *nbrs, int max_nbhd)
             "\nsampling %d dists/vertex (%2.1f at each dist) = %2.1fMB\n",
             vtotal, 
             (float)vtotal/((float)max_nbhd-(float)mris->nsize),
-            (float)vtotal*mris->nvertices*sizeof(float)*3.0f / 
+            (float)vtotal*mrisValidVertices(mris)*sizeof(float)*3.0f / 
             (1024.0f*1024.0f)) ;
 
   for (vno = 0 ; vno < mris->nvertices ; vno++)
@@ -6684,6 +6684,9 @@ MRISreadPatch(MRI_SURFACE *mris, char *pname)
       k = i-1;
       mris->vertices[k].border = FALSE;
     }
+    if (k >= mris->nvertices)
+      ErrorExit(ERROR_BADFILE, 
+                "MRISreadPatch: bad vertex # (%d) found in patch file", k) ;
     mris->vertices[k].ripflag = FALSE;
     fread2(&ix,fp);
     fread2(&iy,fp);
