@@ -242,7 +242,6 @@ main(int argc, char *argv[])
 #if 1
     mri_xformed = MRR_MRIhybrid(mri_in, mri_target, NULL);
     apply_transform(mri_in, mri_target, M_reg, mri_xformed) ;
-		MRIcopyHeader(mri_in, mri_xformed) ;
 #else
     //E/ Someone could work on this when things quiet down - to make
     //this option act more like mri_transform -
@@ -265,7 +264,7 @@ main(int argc, char *argv[])
 #endif
 		
     printf("writing transformed volume to %s...\n", out_fnames[i]) ;
-		MRIcopyHeader(mri_in, mri_xformed) ;
+		MRIcopyPulseParameters(mri_in, mri_xformed) ;
     MRIwrite(mri_xformed, out_fnames[i]) ;
     MRIfree(&mri_xformed) ; MRIfree(&mri_in) ;
   }
@@ -1305,6 +1304,7 @@ apply_transform(MRI *mri_in, MRI *mri_target, MATRIX *M_reg, MRI *mri_xformed)
   MatrixFree(&ras2vox_target) ;
   MatrixFree(&m_tmp) ;
   MatrixFree(&vox_s2vox_t) ;
+	MRIcopyPulseParameters(mri_in, mri_xformed) ;
 
   v_in = MatrixAlloc(4, 1, MATRIX_REAL) ;
   v_target = MatrixAlloc(4, 1, MATRIX_REAL) ;
