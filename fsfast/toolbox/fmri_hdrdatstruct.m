@@ -1,6 +1,6 @@
 function hdrdat = fmri_hdrdatstruct()
 % hdrdat = fmri_hdrdatstruct()
-% $Id: fmri_hdrdatstruct.m,v 1.1 2003/03/04 20:47:39 greve Exp $
+% $Id: fmri_hdrdatstruct.m,v 1.2 2003/03/28 23:52:43 greve Exp $
 
 hdrdat.Version = 3;
 hdrdat.TR = 0;
@@ -16,7 +16,7 @@ hdrdat.Nruns = 0;
 hdrdat.Ntp = 0;
 hdrdat.Nrows = 0;
 hdrdat.Ncols = 0;
-hdrdat.Nksip = 0;
+hdrdat.Nskip = 0;
 hdrdat.DTOrder = 0;
 hdrdat.RescaleFactor = 1;
 hdrdat.HanningRadiues = 0;
