@@ -1,0 +1,145 @@
+---====--- PLAN
+
+featureset 1
+
+- X/GL window embedded in tcl/tk frame
+- multiple volume loading
+- window supports multiple viewpane configs
+- viewing pane supports 
+  - multiple orientations
+   - overlays of loaded volumes
+   - grayscale or LUT
+- output shows values and coordinate systems
+- volume editing
+- selection
+- control points
+
+
+components:
+
+FSUtils::TCLCommandManager
+ - AddListener( RespondToCommandFunc )
+ - AddCommand( commandName, arguments.. )
+ - SendCommand( commandName, arguments... )
+ - keeps list of commands
+ - registers single processing function with TCL
+ - on called, compare command name with stored list, then lookup listeners to that command and broadcast to them
+ - typdef (void)(RespondToCommandFunc)( commandName, arguments... )
+
+FSUtils::DataManager
+ - LoadVolume( name );
+ - LoadSurface( name );
+ - void ReleaseVolume( MRI* );
+ - void ReleaseSurface( MRIS* );
+ - loads data and keeps track of it
+   - if another layer request the data, will just hand them the pointer
+   - does reference counting
+
+FSUtils::PrefsFile
+ - UseFile ( fname )
+   - look in ./fname, ~/fname etc
+ - RegisterPref{Int,Float,String}( keyName, description, defaultValue )
+   - if not found, writes entry in prefs file with description in comments and default value
+ - {Set,Get}PrefAs{Int,Float,String}( keyName )
+   - set or return value from prefs file
+
+FSUtils::DataCollection
+ - Unload()
+ - holds a central data type and then associated data
+
+FSUtils::VolumeDataCollection : DataCollection
+ - MRI*
+ - selection list
+ - transform stuff
+
+FSUtils::SurfaceDataCollection : DataCollection
+ - MRIS*
+ - selection list
+ - scalars
+
+Scuba::ToglManager
+ - all togl stuff
+ - passes to a scbFrame
+
+Scuba::Frame:
+ - 1..n views
+ - manages configuration, passing clicks along, key events, to proper view
+ - other objects can register for idle events
+ - tool modes
+
+Scuba::View
+ - manages 1..n layers
+ - manages clicks, polling data, sending updates to tcl
+ - tells layers to draw into proper GL area
+ - orientation : 2D: plane, zoom, center
+                 3D: camera location, look, up
+ - cursor
+
+Scuba::Layer
+ - opactiy for layer
+ - drawing level : 0 for base, 1 for overlay, or user-settable
+ - modes supported : 2D, 3D, graph, etc,
+ - transform : transform for this layer
+ - SetLayerData() associate a DataCollection
+ - subclasses each have a DataCollection source, cannot be changed once layer is instantiated
+   - override SetLayerData() to see if data type is appropriate for this layer
+   - 2DMRI( VolumeData )
+     - draws slices
+     - color scale : gray, color, or LUT
+     - sample type : nearest, trilinear, sinc
+   - 2DMRIS( SurfaceData )
+     - does intersections
+     - color scale, scalars
+     - interpolation type
+   - 3DMRIS( SurfaceData )
+     - draws mesh
+     - scalar files, color scale for each
+   - Graph( VolumeData )
+     - current time point, condition
+
+on redraw:
+scbToglFrame
+  - for each view, view->Draw( this->Mode )
+scbView::Draw( iMode )
+  - for each drawing level 0..n
+    - for each layer in this level
+      - layer->DrawIntoView( this->ViewInfo, this->Mode, this->Orientation )
+scbLayer::DrawIntoView
+  - 2DMRI
+    - find bounds in volume from view bounds
+    - for each voxel
+      - get value -> color, apply color scale etc
+      - apply with opacity to existing buffer (from ViewInfo)
+  - 2DMRIS
+    - do intersection to find draw list
+    - apply color to vertex etc
+
+
+
+Layer Manager
+  - New{Volume,Surface}DataCollection <data_fn> <label> - returns CollectionID
+  - New{2DMRI,2DMRIS}Layer <CollectionID> - returns LayerID
+  - GetLayerIDList
+  - maintains list of LayerID <-> Layer objects
+
+
+
+volume loading
+ - Menu command: Load Volume...
+ - Tk dlog box for loading volume
+     - Volume FN, optional label
+     - checkbox for Automatically Create Layer, with optional transform FN
+
+     collectionID NewVolumeDataCollection <volume_fn> <label>
+     if bCreateLayer
+       set layerID [New2DMRILayer collectionID]
+       if bTransform       
+         SetLayerTransform layerID <fnTransform>
+
+- layer info manager
+ - use [GetLayerIDList] to get list of layers
+ - scrolling list of panels, for each layer
+   set type [GetLayerType layerID]
+   switch type {
+     make widgets for layer info and settings
+   }
