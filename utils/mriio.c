@@ -26,6 +26,7 @@
 #include "region.h"
 #include "machine.h"
 #include "analyze.h"
+#include "fio.h"
 
 /*-----------------------------------------------------
                     MACROS AND CONSTANTS
@@ -45,9 +46,12 @@ static char MIfspace[] = "frame space" ;
                     STATIC PROTOTYPES
 -------------------------------------------------------*/
 
-static void buffer_to_image(BUFTYPE *buf, MRI *mri, int slice) ;
+static void buffer_to_image(BUFTYPE *buf, MRI *mri, int slice, int frame) ;
 static void image_to_buffer(BUFTYPE *buf, MRI *mri, int slice) ;
 static MRI *mncRead(char *fname, int read_volume, int frame) ;
+static MRI *mghRead(char *fname, int read_volume, int frame) ;
+static int mghWrite(MRI *mri, char *fname, int frame) ;
+static int mghAppend(MRI *mri, char *fname, int frame) ;
 static int mncWrite(MRI *mri, char *fname, int frame) ;
 static MRI *analyzeRead(char *fname, int read_volume, int frame) ;
 static int analyzeWrite(MRI *mri, char *fname, int frame) ;
@@ -92,6 +96,8 @@ MRIunpackFileName(char *inFname, int *pframe, int *ptype, char *outFname)
       *ptype = MRI_MINC_FILE ;
     else if (!strcmp(dot, "MINC"))
       *ptype = MRI_MINC_FILE ;
+    else if (!strcmp(dot, "MGH"))
+      *ptype = MRI_MGH_FILE ;
     else if (!strcmp(dot, "IMG"))
       *ptype = MRI_ANALYZE_FILE ;
     else
@@ -132,7 +138,7 @@ MRIreadRaw(FILE *fp, int width, int height, int depth, int type)
       ErrorReturn(NULL,
                   (ERROR_BADFILE, "%s: could not read %dth slice (%d)",
                    Progname, slice, bytes)) ;
-    buffer_to_image(buf, mri, slice) ;
+    buffer_to_image(buf, mri, slice, 0) ;
   }
 
   MRIinitHeader(mri) ;
@@ -161,6 +167,11 @@ MRIread(char *fpref)
   MRIunpackFileName(fpref, &frame, &type, fname) ;
   switch (type)
   {
+  case MRI_MGH_FILE:
+    mri = mghRead(fname, 1, frame) ;
+    if (!mri)
+      return(NULL) ;
+    break ;
   case MRI_MINC_FILE:
     mri = mncRead(fname, 1, frame) ;
     if (!mri)
@@ -228,7 +239,7 @@ MRIread(char *fpref)
                      fpref, fname)) ;
       }
       fclose(fp) ;
-      buffer_to_image(buf, mri, slice) ;
+      buffer_to_image(buf, mri, slice, 0) ;
     }
     free(buf) ;
     break ;
@@ -260,6 +271,11 @@ MRIreadInfo(char *fpref)
   MRIunpackFileName(fpref, &frame, &type, fname) ;
   switch (type)
   {
+  case MRI_MGH_FILE:
+    mri = mghRead(fname, 0, frame) ;
+    if (!mri)
+      return(NULL) ;
+    break ;
   case MRI_MINC_FILE:
     mri = mncRead(fname, 0, frame) ;
     if (!mri)
@@ -376,6 +392,8 @@ MRIwrite(MRI *mri, char *fpref)
     return(mncWrite(mri, fname, frame)) ;
   else if (type == MRI_ANALYZE_FILE)
     return(analyzeWrite(mri, fname, frame)) ;
+  else if (type == MRI_MGH_FILE)
+    return(mghWrite(mri, fname, frame)) ;
 
   MRIwriteInfo(mri, fpref) ;
   bytes = (long)mri->width * (long)mri->height ;
@@ -405,6 +423,31 @@ MRIwrite(MRI *mri, char *fpref)
   }
 
   free(buf) ;
+  return(NO_ERROR) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+          Write an MRI header and a set of data files to
+          the directory specified by 'fpref'
+------------------------------------------------------*/
+int
+MRIappend(MRI *mri, char *fpref)
+{
+  int      type, frame ;
+  char     fname[100] ;
+
+  MRIunpackFileName(fpref, &frame, &type, fname) ;
+  if (type == MRI_MGH_FILE)
+    return(mghAppend(mri, fname, frame)) ;
+  else
+    ErrorReturn(ERROR_UNSUPPORTED, 
+                (ERROR_UNSUPPORTED, "MRIappend(%s): file type not supported",
+                fname)) ;
+
   return(NO_ERROR) ;
 }
 /*-----------------------------------------------------
@@ -505,6 +548,8 @@ MRIfileType(char *fname)
       return(LIST_FILE) ;
     else if (!strcmp(dot, "MNC"))
       return(MRI_MINC_FILE) ;
+    else if (!strcmp(dot, "MGH"))
+      return(MRI_MGH_FILE) ;
   }
 
   return(file_type) ;
@@ -800,7 +845,7 @@ image_to_buffer(BUFTYPE *buf, MRI *mri, int slice)
            of rows in the MRI data structure (after reading)
 ------------------------------------------------------*/
 static void
-buffer_to_image(BUFTYPE *buf, MRI *mri, int slice)
+buffer_to_image(BUFTYPE *buf, MRI *mri, int slice, int frame)
 {
   int           y, width, height ;
   BUFTYPE       *pslice ;
@@ -809,7 +854,7 @@ buffer_to_image(BUFTYPE *buf, MRI *mri, int slice)
   height = mri->height ;
   for (y = 0 ; y < height ; y++)
   {
-    pslice = mri->slices[slice][y] ;
+    pslice = &MRIseq_vox(mri, 0, y, slice, frame) ;
     memcpy(pslice, buf, width*sizeof(BUFTYPE)) ;
     buf += width ;
   }
@@ -1874,6 +1919,238 @@ MRIreorder(MRI *mri_src, MRI *mri_dst, int xdim, int ydim, int zdim)
   return(mri_dst) ;
 }
 
+#define UNUSED_SPACE_SIZE 256
+#define MGH_VERSION       1
+
+static MRI *
+mghRead(char *fname, int read_volume, int frame)
+{
+  MRI  *mri ;
+  FILE  *fp ;
+  int   start_frame, end_frame, width, height, depth, nframes, type, x, y, z,
+        bpv, dof, bytes, version ;
+  BUFTYPE *buf ;
+  char   unused_buf[UNUSED_SPACE_SIZE+1] ;
+
+  fp = fopen(fname, "rb") ;
+  if (!fp)
+    ErrorReturn(NULL, (ERROR_BADPARM,"mghRead(%s, %d): could not open file",
+                       fname, frame)) ;
+  version = freadInt(fp) ;
+  width = freadInt(fp) ;
+  height = freadInt(fp) ;
+  depth =  freadInt(fp) ;
+  nframes = freadInt(fp) ;
+  type = freadInt(fp) ;
+  dof = freadInt(fp) ;
+
+  /* so stuff can be added to the header in the future */
+  fread(unused_buf, sizeof(char), UNUSED_SPACE_SIZE, fp) ;
+
+  switch (type)
+  {
+  default:
+  case MRI_FLOAT:  bpv = sizeof(float) ; break ;
+  case MRI_UCHAR:  bpv = sizeof(char)  ; break ;
+  }
+  bytes = width * height * bpv ;  /* bytes per slice */
+  if (frame >= 0)
+  {
+    start_frame = end_frame = frame ;
+    fseek(fp, frame*width*height*depth*bpv, SEEK_CUR) ;
+    nframes = 1 ;
+  }
+  else
+  {  /* hack - # of frames < -1 means to only read in that
+        many frames. Otherwise I would have had to change the whole
+        MRIread interface and that was too much of a pain. Sorry.
+     */
+    if (frame < -1)  
+    { nframes = frame*-1 ; } 
+    start_frame = 0 ; end_frame = nframes-1 ;
+  }
+  if (!read_volume)
+    mri = MRIallocHeader(width, height, depth, type) ;
+  else
+  {
+    if (type == MRI_UCHAR)
+      buf = (BUFTYPE *)calloc(bytes, sizeof(BUFTYPE)) ;
+    else
+      buf = NULL ;
+    mri = MRIallocSequence(width, height, depth, type, nframes) ;
+    for (frame = start_frame ; frame <= end_frame ; frame++)
+    {
+      for (z = 0 ; z < depth ; z++)
+      {
+        switch (type)
+        {
+          case MRI_FLOAT:
+          for (y = 0 ; y < height ; y++)
+          {
+            for (x = 0 ; x < width ; x++)
+            {
+              MRIFseq_vox(mri,x,y,z,frame-start_frame) = freadFloat(fp) ;
+            }
+          }
+          break ;
+        case MRI_UCHAR:
+          if (fread(buf, sizeof(BUFTYPE), bytes, fp) != bytes)
+            ErrorReturn(NULL,
+                        (ERROR_BADFILE, "%s: could not read %dth slice (%d)",
+                         Progname, z, bytes)) ;
+          buffer_to_image(buf, mri, z, frame-start_frame) ;
+          break ;
+        default:
+          ErrorReturn(NULL, 
+                      (ERROR_UNSUPPORTED, "mghRead: unsupported type %d",
+                       mri->type)) ;
+          break ;
+        }
+      }
+    }
+    if (buf)
+      free(buf) ;
+  }
+
+  fclose(fp) ;
+  return(mri) ;
+}
+
+static int
+mghWrite(MRI *mri, char *fname, int frame)
+{
+  FILE  *fp ;
+  int   start_frame, end_frame, x, y, z, width, height, depth ;
+  char        buf[UNUSED_SPACE_SIZE+1] ;
+
+  if (frame >= 0)
+    start_frame = end_frame = frame ;
+  else
+  {
+    start_frame = 0 ; end_frame = mri->nframes-1 ;
+  }
+  fp = fopen(fname, "wb") ;
+  if (!fp)
+    ErrorReturn(ERROR_BADPARM, 
+                (ERROR_BADPARM,"mghWrite(%s, %d): could not open file",
+                 fname, frame)) ;
+
+  /* WARNING - adding or removing anything before nframes will
+     cause mghAppend to fail.
+  */
+  width = mri->width ; height = mri->height ; depth = mri->depth ; 
+  fwriteInt(MGH_VERSION, fp) ;
+  fwriteInt(mri->width, fp) ;
+  fwriteInt(mri->height, fp) ;
+  fwriteInt(mri->depth, fp) ;
+  fwriteInt(mri->nframes, fp) ;
+  fwriteInt(mri->type, fp) ;
+  fwriteInt(mri->dof, fp) ;
+
+  /* so stuff can be added to the header in the future */
+  memset(buf, 0, UNUSED_SPACE_SIZE*sizeof(char)) ;
+  fwrite(buf, sizeof(char), UNUSED_SPACE_SIZE, fp) ;
+
+  for (frame = start_frame ; frame <= end_frame ; frame++)
+  {
+    for (z = 0 ; z < depth ; z++)
+    {
+      for (y = 0 ; y < height ; y++)
+      {
+        switch (mri->type)
+        {
+        case MRI_FLOAT:
+          for (x = 0 ; x < width ; x++)
+          {
+            fwriteFloat(MRIFseq_vox(mri,x,y,z,frame), fp) ;
+          }
+          break ;
+        case MRI_UCHAR:
+          if (fwrite(&MRIseq_vox(mri,0,y,z,frame), sizeof(BUFTYPE), width, fp) 
+              != width)
+            ErrorReturn(ERROR_BADFILE, 
+                        (ERROR_BADFILE, 
+                         "mghWrite: could not write %d bytes to %s",
+                         width, fname)) ;
+          break ;
+        default:
+          ErrorReturn(ERROR_UNSUPPORTED, 
+                      (ERROR_UNSUPPORTED, "mghWrite: unsupported type %d",
+                       mri->type)) ;
+          break ;
+        }
+      }
+    }
+  }
+
+  fclose(fp) ;
+  return(NO_ERROR) ;
+}
+static int
+mghAppend(MRI *mri, char *fname, int frame)
+{
+  FILE  *fp ;
+  int   start_frame, end_frame, x, y, z, width, height, depth, nframes ;
+
+  if (frame >= 0)
+    start_frame = end_frame = frame ;
+  else
+  {
+    start_frame = 0 ; end_frame = mri->nframes-1 ;
+  }
+  fp = fopen(fname, "rb") ;
+  if (!fp)   /* doesn't exist */
+    return(mghWrite(mri, fname, frame)) ;
+  fclose(fp) ;
+  fp = fopen(fname, "r+b") ;
+  if (!fp)
+    ErrorReturn(ERROR_BADPARM, 
+                (ERROR_BADPARM,"mghAppend(%s, %d): could not open file",
+                 fname, frame)) ;
+
+  /* WARNING - this is dependent on the order of writing in mghWrite */
+  width = mri->width ; height = mri->height ; depth = mri->depth ;
+  fseek(fp, 4*sizeof(int), SEEK_SET) ;
+  nframes = freadInt(fp) ;
+  fseek(fp, 4*sizeof(int), SEEK_SET) ;
+  fwriteInt(nframes+end_frame-start_frame+1, fp) ;
+  fseek(fp, 0, SEEK_END) ;
+
+  for (frame = start_frame ; frame <= end_frame ; frame++)
+  {
+    for (z = 0 ; z < depth ; z++)
+    {
+      for (y = 0 ; y < height ; y++)
+      {
+        switch (mri->type)
+        {
+        case MRI_FLOAT:
+          for (x = 0 ; x < width ; x++)
+          {
+            fwriteFloat(MRIFseq_vox(mri,x,y,z,frame), fp) ;
+          }
+          break ;
+        case MRI_UCHAR:
+          if (fwrite(&MRIseq_vox(mri,0,y,z,frame), sizeof(BUFTYPE), width, fp) 
+              != width)
+            ErrorReturn(ERROR_BADFILE, 
+                        (ERROR_BADFILE, 
+                         "mghAppend: could not write %d bytes to %s",
+                         width, fname)) ;
+          break ;
+        default:
+          ErrorReturn(ERROR_UNSUPPORTED, 
+                      (ERROR_UNSUPPORTED, "mghAppend: unsupported type %d",
+                       mri->type)) ;
+          break ;
+        }
+      }
+    }
+  }
+
+  fclose(fp) ;
+  return(NO_ERROR) ;
+}
   c = header->hist.originator[8]; header->hist.originator[8] = header->hist.originator[9]; header->hist.originator[9] = c;
 
 }  /*  end flipAnalyzeHeader()  */
