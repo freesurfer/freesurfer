@@ -39,7 +39,7 @@ int            Gdiag_no   = -1 ;
 int Gx = -1 ;
 int Gy = -1 ;
 int Gz = -1 ;
-#define DEFAULT_IMAGE_SIZE       400
+#define DEFAULT_IMAGE_SIZE       512
 int IMAGE_SIZE = DEFAULT_IMAGE_SIZE ;
 
 
