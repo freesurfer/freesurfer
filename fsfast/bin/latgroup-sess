@@ -1,7 +1,7 @@
 #!/bin/csh -f
 # latgrinder-sess
 #
-set VERSION = '$Id: latgroup-sess,v 1.2 2004/06/07 00:23:39 greve Exp $';
+set VERSION = '$Id: latgroup-sess,v 1.3 2004/06/07 00:29:45 greve Exp $';
 
 set inputargs = ($argv);
 
@@ -553,9 +553,30 @@ There are two other files created: outstem-ces-targsubj-?h.log
 and outstem-ces-targsubj-?h.mat. These are just their for
 bookkeeping purposes.
 
-EXAMPLE:
+EXAMPLES:
 
-latgroup-sess -a latency1  -latdir latdir \
+This command will test the differnce between groups of the 
+difference between latencies of conditions 1 and 2.
+
+latgroup-sess -a latency1 -latdir latdir -instem latm\
   -ca 1 -cc 2 \
-  -hemi lh -o latgroup/1v2 \
+  -hemi lh -o latgroup/latm-1v2 \
   -sf controls -sf patients -df dir -gdm gdm.dat
+
+This command will test the differnce between groups of the 
+difference between hemodynamic amplitudes of conditions 1 and 2.
+
+latgroup-sess -a latency1 -latdir latdir -instem h\
+  -ca 1 -cc 2 \
+  -hemi lh -o latgroup/h-1v2 \
+  -sf controls -sf patients -df dir -gdm gdm.dat
+
+This command will test the hemodynamic amplitude averaged
+across of conditions 1 and 3, treating all input sessions
+as a single group.
+
+latgroup-sess -a latency1 -latdir latdir -instem h\
+  -ca 1 -ca 3 \
+  -hemi lh -o latgroup/h-13v0 \
+  -sf controls -sf patients -df dir
+
