@@ -1,7 +1,10 @@
+#include <stdio.h>
+
 #include "mriVolume.h"
 #include "error.h"
 #include "xUtilities.h"
 #include "mri_conform.h"
+#include "mriTransform.h"
 
 char Volm_ksaErrorStrings[Volm_knNumErrorCodes][Volm_knErrStringLen] = {
   "No error.",
@@ -40,8 +43,7 @@ Volm_tErr Volm_New ( mriVolumeRef* opVolume ) {
   DebugNote( ("Setting members to default values") );
   this->mSignature             = Volm_kSignature;
   this->mnDimension            = 0;
-  this->mpNormValues           = NULL;
-  this->mpRawValues            = NULL;
+  this->mpMriValues           = NULL;
   this->mpSnapshot             = NULL;
   this->mpMaxValues            = NULL;
   this->mIdxToRASTransform     = NULL;
@@ -120,11 +122,8 @@ Volm_tErr Volm_Delete ( mriVolumeRef* iopVolume ) {
   DebugAssertThrow( (eResult == Volm_tErr_NoErr) );
   
   /* free member data */
-  if( NULL != this->mpNormValues ) {
-    MRIfree( &(this->mpNormValues) );
-  }
-  if( NULL != this->mpRawValues ) {
-    MRIfree( &(this->mpRawValues) );
+  if( NULL != this->mpMriValues ) {
+    MRIfree( &(this->mpMriValues) );
   }
   if( NULL != this->mpSnapshot ) {
     free( this->mpSnapshot );
@@ -185,16 +184,9 @@ Volm_tErr Volm_DeepClone  ( mriVolumeRef  this,
   
   /* copy mri volumes */
   DebugNote( ("Cloning normalized volume") );
-  clone->mpNormValues = MRIcopy( this->mpNormValues, NULL );
-  DebugAssertThrowX( (NULL != clone->mpNormValues),
+  clone->mpMriValues = MRIcopy( this->mpMriValues, NULL );
+  DebugAssertThrowX( (NULL != clone->mpMriValues),
          eResult, Volm_tErr_CouldntCopyVolume );
-
-  if( NULL != this->mpRawValues ) {
-    DebugNote( ("Cloning raw volume" ) );
-    clone->mpRawValues = MRIcopy( this->mpRawValues, NULL );
-    DebugAssertThrowX( (NULL != clone->mpRawValues),
-           eResult, Volm_tErr_CouldntCopyVolume );
-  }
 
   /* copy the transforms */
   if( NULL != this->mIdxToRASTransform ) {
@@ -271,12 +263,11 @@ Volm_tErr Volm_ImportData ( mriVolumeRef this,
           char*        isSource ) {
 
   Volm_tErr eResult           = Volm_tErr_NoErr;
-  MRI*      rawVolume         = NULL;
-  MRI*      normVolume        = NULL;
-  MRI*      tmpVolume         = NULL;
+  MRI*      mriVolume        = NULL;
   MATRIX*   identity          = NULL;
   MATRIX*   scannerTransform  = NULL;
   MATRIX*   idxToRASTransform = NULL;
+  MATRIX    *m_resample ;
 
   DebugEnterFunction( ("Volm_ImportData( this=%p, isSource=%s )",
            this, isSource ) );
@@ -290,36 +281,24 @@ Volm_tErr Volm_ImportData ( mriVolumeRef this,
 
   /* attempt to read the volume in */
   DebugNote( ("Importing volume with MRIread") );
-  normVolume = MRIread( isSource );
-  DebugAssertThrowX( (NULL != normVolume), 
+  mriVolume = MRIread( isSource );
+  DebugAssertThrowX( (NULL != mriVolume), 
          eResult, Volm_tErr_CouldntReadVolume );
+  MRIvalRange(mriVolume, &this->min_val, &this->max_val) ;
 
-  /* if the element type is not uchar, then we need to make a copy and keep
-     it around to get the raw values, because we're going to conform this
-     one to uchar to get decent color values. */
-  if( MRI_UCHAR != normVolume->type ) {
-    
-    /* make a copy for our raw version */
-    DebugNote( ("Copying volume with MRIcopy") );
-    rawVolume = MRIcopy( normVolume, NULL );
-    DebugAssertThrowX( (NULL != rawVolume), 
-         eResult, Volm_tErr_CouldntCopyVolume );
-  }
-
-  /* conform the volume */
-  DebugNote( ("Normalizing volume with MRIconform") );
-  tmpVolume = MRIconform( normVolume );
-    DebugAssertThrowX( (NULL != tmpVolume), 
-           eResult, Volm_tErr_CouldntNormalizeVolume );
-  MRIfree( &normVolume );
-  normVolume = tmpVolume;
+  /* find the resampling matrix */
+  DebugNote( ("Computing norming matrix ") );
+  m_resample = MRIgetConformMatrix( mriVolume );
+  DebugAssertThrowX( (NULL != m_resample), 
+                     eResult, Volm_tErr_CouldntNormalizeVolume );
 
   /* grab the xsize of the conformed volume as our dimension */
-  this->mnDimension = normVolume->xend - normVolume->xstart;
+  this->mnDimension = mriVolume->xend - mriVolume->xstart;
+  this->m_resample = m_resample ;
+  this->m_resample_orig = MatrixCopy(m_resample, NULL) ;
 
   /* set the volumes in this */
-  this->mpNormValues = normVolume;
-  this->mpRawValues  = rawVolume;
+  this->mpMriValues = mriVolume;
 
   /* grab the scanner transform and copy it into our transform */
   if( NULL != this->mScannerTransform ) {
@@ -329,7 +308,7 @@ Volm_tErr Volm_ImportData ( mriVolumeRef this,
   DebugNote( ("Creating scanner transform") );
   Trns_New( &this->mScannerTransform );
   DebugNote( ("Getting scanner transform matrix") );
-  scannerTransform = MRIgetVoxelToRasXform( normVolume );
+  scannerTransform = MRIgetVoxelToRasXform( mriVolume );
   DebugAssertThrowX( (NULL != scannerTransform),
          eResult, Volm_tErr_AllocationFailed );
   DebugNote( ("Copying scanner transform matrix into transform") );
@@ -346,17 +325,17 @@ Volm_tErr Volm_ImportData ( mriVolumeRef this,
     Trns_Delete( &(this->mIdxToRASTransform) );
   }
 
-#if 0
+#if 1
   DebugNote( ("Creating idx to ras transform") );
   Trns_New( &this->mIdxToRASTransform );
   DebugNote( ("Getting idx to ras matrix") );
-  idxToRASTransform = MRIgetVoxelToRasXform( normVolume );
+  idxToRASTransform = MRIgetVoxelToRasXform( mriVolume );
   DebugAssertThrowX( (NULL != idxToRASTransform),
          eResult, Volm_tErr_AllocationFailed );
   DebugNote( ("Copying idx to ras transform matrix into transform") );
-  Trns_CopyARAStoBRAS( this->mIdxToRASTransform, idxToRASTransform );
+  Trns_CopyAtoRAS( this->mIdxToRASTransform, idxToRASTransform );
   DebugNote( ("Copying identity matrix into idx to ras transform") );
-  Trns_CopyAtoRAS( this->mIdxToRASTransform, identity );
+  Trns_CopyARAStoBRAS( this->mIdxToRASTransform, identity ); /* no display xform */
   Trns_CopyBtoRAS( this->mIdxToRASTransform, identity );
 #else
   idxToRASTransform = MatrixAlloc( 4, 4, MATRIX_REAL );
@@ -364,9 +343,9 @@ Volm_tErr Volm_ImportData ( mriVolumeRef this,
   *MATRIX_RELT(idxToRASTransform,1,1) = -1.0;
   *MATRIX_RELT(idxToRASTransform,2,3) = 1.0;
   *MATRIX_RELT(idxToRASTransform,3,2) = -1.0;
-  *MATRIX_RELT(idxToRASTransform,1,4) = 128.0;
-  *MATRIX_RELT(idxToRASTransform,2,4) = -128.0;
-  *MATRIX_RELT(idxToRASTransform,3,4) = 128.0;
+  *MATRIX_RELT(idxToRASTransform,1,4) = 128.5;
+  *MATRIX_RELT(idxToRASTransform,2,4) = -128.5;
+  *MATRIX_RELT(idxToRASTransform,3,4) = 128.5;
   *MATRIX_RELT(idxToRASTransform,4,4) = 1.0;
 
   DebugNote( ("Creating idx to ras transform") );
@@ -428,7 +407,7 @@ Volm_tErr Volm_ExportNormToCOR ( mriVolumeRef this,
 
   /* write the volume */
   DebugNote( ("Writing volume with MRIwriteType") );
-  eMRI = MRIwriteType( this->mpNormValues, sPath,MRI_CORONAL_SLICE_DIRECTORY );
+  eMRI = MRIwriteType( this->mpMriValues, sPath,MRI_CORONAL_SLICE_DIRECTORY );
   DebugAssertThrowX( (NO_ERROR == eMRI), 
          eResult, Volm_tErr_CouldntExportVolumeToCOR );
 
@@ -464,6 +443,70 @@ Volm_tErr Volm_LoadDisplayTransform ( mriVolumeRef this,
   DebugAssertThrowX( (Trns_tErr_NoErr == eTransform),
          eResult, Volm_tErr_CouldntReadTransform );
 
+  /* convert RAS->RAS transform to screen->voxel coords */
+  switch (this->mDisplayTransform->type)
+  {
+  case LINEAR_RAS_TO_RAS:
+    {
+      extern MATRIX *gm_screen2ras ;
+      MATRIX *m_ras2ras, *m_ras2ras_inverse, *m_tmp, *m_ras2vox ;
+
+      Trns_GetARAStoBRAS(this->mDisplayTransform, &m_ras2ras) ;
+      m_ras2vox = MRIgetRasToVoxelXform(this->mpMriValues) ;
+
+      m_ras2ras_inverse = MatrixInverse(m_ras2ras, NULL) ;
+      m_tmp = MatrixMultiply(m_ras2ras_inverse, gm_screen2ras, NULL) ;
+      MatrixMultiply(m_ras2vox, m_tmp, this->m_resample) ;
+
+      MatrixFree(&m_ras2vox) ; MatrixFree(&m_tmp) ; MatrixFree(&m_ras2ras_inverse) ;
+      break ;
+    }
+  default:   /* don't know what to do yet */
+    break ;
+  }
+#if 0
+  if (this->mpRawValues)
+  {
+    int     type ;
+
+    Trns_GetType( (this->mDisplayTransform), &type) ;
+    if (type == LINEAR_RAS_TO_RAS)    /* convert it to voxel coords */
+    {
+      MATRIX *m_vox_to_vox, *m_ras_to_ras ;
+
+      Trns_GetARAStoBRAS( (this->mDisplayTransform), &m_ras_to_ras) ;
+      m_vox_to_vox = MRIrasXformToVoxelXform(this->mpMriValues, 
+                                             this->mpMriValues, m_ras_to_ras, NULL) ;
+    }
+    else
+    {
+      MATRIX  *m_AtoB, *m_N_vox_to_ras, *m_R_ras_to_vox, *m_tmp, *m_tmp2,
+              *m_resample, *m_resample_inverse ;
+      /* 
+         if the LTA  converts indices in the raw volume to
+         indices in the display volume. Update it, so that it returns
+         indices in the norm volume.
+      */
+      
+      m_N_vox_to_ras  =  MRIgetVoxelToRasXform(this->mpMriValues) ;
+      m_R_ras_to_vox =  MRIgetRasToVoxelXform(this->mpRawValues) ;
+      m_resample = MatrixMultiply(m_R_ras_to_vox, m_N_vox_to_ras, NULL) ;
+      m_resample_inverse = MatrixInverse(m_resample, NULL) ;
+      DebugAssertThrowX( (m_resample_inverse != NULL),
+                         eResult, Volm_tErr_CouldntReadTransform );
+      
+      Trns_GetAtoB((this->mDisplayTransform), &m_AtoB) ;
+      m_tmp2 = MatrixMultiply(m_AtoB, m_resample, NULL) ;
+      m_tmp = MatrixMultiply(m_resample_inverse, m_tmp2, NULL) ;
+      Trns_CopyARAStoBRAS((this->mDisplayTransform), m_tmp) ;
+      MatrixFree(&m_tmp) ; MatrixFree(&m_N_vox_to_ras) ; /* free stuff */
+      MatrixFree(&m_R_ras_to_vox) ; MatrixFree(&m_AtoB) ;  MatrixFree(&m_tmp2) ;
+      MatrixFree(&m_resample) ; MatrixFree(&m_resample_inverse) ;
+    }
+  }
+#endif
+
+
   DebugCatch;
   DebugCatchError( eResult, Volm_tErr_NoErr, Volm_GetErrorString );
   EndDebugCatch;
@@ -487,6 +530,7 @@ Volm_tErr Volm_UnloadDisplayTransform ( mriVolumeRef this ) {
   if( NULL != this->mDisplayTransform )
     Trns_Delete( &(this->mDisplayTransform) );
 
+  MatrixCopy(this->m_resample_orig, this->m_resample) ;
   DebugCatch;
   DebugCatchError( eResult, Volm_tErr_NoErr, Volm_GetErrorString );
   EndDebugCatch;
@@ -507,15 +551,26 @@ void Volm_GetColorAtIdx ( mriVolumeRef this,
   Real rValue = 0;
 
   /* transform idx to display transform */
-  if( NULL != this->mDisplayTransform ) {
+  if( NULL != this->mDisplayTransform && 0) 
+  {
     Volm_ApplyDisplayTransform_( this, iIdx, &disp );
-    if( Volm_VerifyIdx_( this, &disp ) == Volm_tErr_NoErr ) {
+    if( Volm_VerifyIdx_( this, &disp ) == Volm_tErr_NoErr ) 
+    {
       Volm_GetSincNormValueAtIdx_( this, &disp, &rValue );
       value = (Volm_tValue)rValue;
     }
-  } else {
-    if( Volm_VerifyIdx_( this, iIdx ) == Volm_tErr_NoErr )
-      value = Volm_GetNormValueAtIdx_( this, iIdx );
+  } else 
+  {
+    /*    if( Volm_VerifyIdx_( this, iIdx ) == Volm_tErr_NoErr )*/
+    rValue = Volm_GetRawValueAtIdx_( this, iIdx );
+
+#if 0
+    if (rValue<0) value = (Volm_tValue)0; /** HACK: need scaling of floats, shorts */
+    else if (rValue>255) value = (Volm_tValue)255; 
+    else value = (Volm_tValue)rValue;
+#endif
+    value = (Volm_tValue) (255.0 * (rValue - this->min_val) / (this->max_val - this->min_val)) ;
+
   }
   *oColor = this->maColorTable[value];
 }
@@ -611,23 +666,27 @@ Volm_tErr Volm_GetValueAtIdx ( mriVolumeRef this,
   DebugNote( ("Verifying volume") );
   eResult = Volm_Verify( this );
   DebugAssertThrow( (eResult == Volm_tErr_NoErr) );
-  
+
+#if 0  
   DebugNote( ("Checking parameters") );
   DebugAssertThrowX( (iIdx != NULL && oValue != NULL),
          eResult, Volm_tErr_InvalidParamater );
   eResult = Volm_VerifyIdx_( this, iIdx );
   DebugAssertThrow( (eResult == Volm_tErr_NoErr) );
+#endif
 
   /* return the raw value */
   DebugNote( ("Fetching the value at (%d,%d,%d) and return it",
        xVoxl_ExpandInt( iIdx )));
   /* transform idx to display transform */
-  if( NULL != this->mDisplayTransform ) {
-    Volm_ApplyDisplayTransform_( this, iIdx, &disp );
-    if( Volm_VerifyIdx_( this, &disp ) == Volm_tErr_NoErr ) {
+  if( NULL != this->mDisplayTransform  && 0) 
+  {
+    Volm_ApplyDisplayTransform_( this, iIdx, &disp ); /* Trns_ConvertBtoA */
+    /*    if( Volm_VerifyIdx_( this, &disp ) == Volm_tErr_NoErr ) */
+    {
       Volm_GetSincNormValueAtIdx_( this, &disp, &rValue );
     }
-    *oValue = (Volm_tValue)rValue;
+    *oValue = (float)rValue;
   } else {
     *oValue = (float) Volm_GetRawValueAtIdx_( this, iIdx );
   }
@@ -648,12 +707,14 @@ Volm_tErr Volm_GetValueAtIdxUnsafe ( mriVolumeRef this,
   Real rValue = 0;
 
   /* return the raw value. transform idx to display transform */
-  if( NULL != this->mDisplayTransform ) {
+  if( NULL != this->mDisplayTransform && 0) 
+  {
     Volm_ApplyDisplayTransform_( this, iIdx, &disp );
-    if( Volm_VerifyIdx_( this, &disp ) == Volm_tErr_NoErr ) {
+    /*    if( Volm_VerifyIdx_( this, &disp ) == Volm_tErr_NoErr ) */
+    {
       Volm_GetSincNormValueAtIdx_( this, &disp, &rValue );
     }
-    *oValue = (Volm_tValue)rValue;
+    *oValue = (float)rValue;
   } else {
     *oValue = (float) Volm_GetRawValueAtIdx_( this, iIdx );
   }
@@ -673,11 +734,13 @@ Volm_tErr Volm_SetValueAtIdx ( mriVolumeRef this,
   DebugNote( ("Verifying volume") );
   eResult = Volm_Verify( this );
   DebugAssertThrow( (eResult == Volm_tErr_NoErr) );
-  
+
+#if 0  
   DebugNote( ("Checking parameters") );
   DebugAssertThrowX( (iIdx != NULL), eResult, Volm_tErr_InvalidParamater );
   eResult = Volm_VerifyIdx_( this, iIdx );
   DebugAssertThrow( (eResult == Volm_tErr_NoErr) );
+#endif
 
   /* set the norm value */
   DebugNote( ("Setting the norm value") );
@@ -707,17 +770,19 @@ Volm_tErr Volm_ConvertIdxToRAS ( mriVolumeRef this,
   DebugNote( ("Verifying volume") );
   eResult = Volm_Verify( this );
   DebugAssertThrow( (eResult == Volm_tErr_NoErr) );
-  
+
+#if 0  
   DebugNote( ("Checking parameters") );
   DebugAssertThrowX( (iIdx != NULL && oRAS != NULL), 
          eResult, Volm_tErr_InvalidParamater );
   eResult = Volm_VerifyIdx_( this, iIdx );
   DebugAssertThrow( (eResult == Volm_tErr_NoErr) );
+#endif
 
   /* convert idx to ras */
   DebugNote( ("Converting idx (%.2f, %.2f, %.2f) to RAS with MRIvoxelToWorld",
         xVoxl_ExpandFloat( iIdx )) );
-  MRIvoxelToWorld( this->mpNormValues, xVoxl_ExpandFloat( iIdx ),
+  MRIvoxelToWorld( this->mpMriValues, xVoxl_ExpandFloat( iIdx ),
        &rasX, &rasY, &rasZ );
   
   /* stuff results */
@@ -756,7 +821,7 @@ Volm_tErr Volm_ConvertRASToIdx ( mriVolumeRef this,
   /* convert ras to idx */
   DebugNote( ("Converting RAS (%.2f, %.2f, %.2f) to idx with MRIworldToVoxel",
         xVoxl_ExpandFloat( iRAS )) );
-  MRIworldToVoxel( this->mpNormValues, xVoxl_ExpandFloat( iRAS ),
+  MRIworldToVoxel( this->mpMriValues, xVoxl_ExpandFloat( iRAS ),
        &idxX, &idxY, &idxZ );
   
   /* stuff results */
@@ -787,17 +852,19 @@ Volm_tErr Volm_ConvertIdxToMNITal ( mriVolumeRef this,
   DebugNote( ("Verifying volume") );
   eResult = Volm_Verify( this );
   DebugAssertThrow( (eResult == Volm_tErr_NoErr) );
-  
+
+#if 0  
   DebugNote( ("Checking parameters") );
   DebugAssertThrowX( (iIdx != NULL && oMNITal != NULL), 
          eResult, Volm_tErr_InvalidParamater );
   eResult = Volm_VerifyIdx_( this, iIdx );
   DebugAssertThrow( (eResult == Volm_tErr_NoErr) );
+#endif
 
   /* convert idx to tal */
   DebugNote( ("Converting idx (%.2f, %.2f, %.2f) to mni tal with "
         "MRIvoxelToTalairachVoxel", xVoxl_ExpandFloat( iIdx )) );
-  MRIvoxelToTalairach( this->mpNormValues, xVoxl_ExpandFloat( iIdx ),
+  MRIvoxelToTalairach( this->mpMriValues, xVoxl_ExpandFloat( iIdx ),
            &talX, &talY, &talZ );
   
   /* stuff results */
@@ -829,17 +896,19 @@ Volm_tErr Volm_ConvertIdxToTal ( mriVolumeRef this,
   DebugNote( ("Verifying volume") );
   eResult = Volm_Verify( this );
   DebugAssertThrow( (eResult == Volm_tErr_NoErr) );
-  
+
+#if 0  
   DebugNote( ("Checking parameters") );
   DebugAssertThrowX( (iIdx != NULL && oTal != NULL), 
          eResult, Volm_tErr_InvalidParamater );
   eResult = Volm_VerifyIdx_( this, iIdx );
   DebugAssertThrow( (eResult == Volm_tErr_NoErr) );
+#endif
 
   /* convert idx to tal */
   DebugNote( ("Converting idx (%.2f, %.2f, %.2f) to tal with "
         "MRIvoxelToTalairach", xVoxl_ExpandFloat( iIdx )) );
-  MRIvoxelToTalairach( this->mpNormValues, xVoxl_ExpandFloat( iIdx ),
+  MRIvoxelToTalairach( this->mpMriValues, xVoxl_ExpandFloat( iIdx ),
            &talX, &talY, &talZ );
   
   /* stuff results */
@@ -898,7 +967,7 @@ Volm_tErr Volm_ConvertTalToIdx ( mriVolumeRef this,
   /* convert tal to idx */
   DebugNote( ("Converting tal (%.2f, %.2f, %.2f) to idx with "
         "MRItalairachToVoxel", xVoxl_ExpandFloat( &mniTal )) );
-  eMRI = MRItalairachToVoxel( this->mpNormValues, xVoxl_ExpandFloat( &mniTal ),
+  eMRI = MRItalairachToVoxel( this->mpMriValues, xVoxl_ExpandFloat( &mniTal ),
             &idxX, &idxY, &idxZ );
   DebugAssertThrowX( (eMRI == NO_ERROR),eResult, Volm_tErr_CouldntReadVolume );
 
@@ -927,12 +996,14 @@ Volm_tErr Volm_ConvertIdxToScanner ( mriVolumeRef this,
   DebugNote( ("Verifying volume") );
   eResult = Volm_Verify( this );
   DebugAssertThrow( (eResult == Volm_tErr_NoErr) );
-  
+
+#if 0  
   DebugNote( ("Checking parameters") );
   DebugAssertThrowX( (iIdx != NULL && oScanner != NULL), 
          eResult, Volm_tErr_InvalidParamater );
   eResult = Volm_VerifyIdx_( this, iIdx );
   DebugAssertThrow( (eResult == Volm_tErr_NoErr) );
+#endif
 
   /* make sure we have the scanner transform */
   DebugAssertThrowX( (NULL != this->mScannerTransform),
@@ -1067,7 +1138,7 @@ Volm_tErr Volm_FindMaxValues ( mriVolumeRef this ) {
   DebugAssertThrow( (eResult == Volm_tErr_NoErr) );
   
   /* make sure we have our normalized volume */
-  DebugAssertThrowX( (NULL != this->mpNormValues), 
+  DebugAssertThrowX( (NULL != this->mpMriValues), 
          eResult, Volm_tErr_NormValuesNotPresent );
 
   /* we need 3 slices worth of data. if we have some allocated, delete them,
@@ -1220,13 +1291,30 @@ Volm_tErr Volm_SaveToSnapshot ( mriVolumeRef this ) {
     free( this->mpSnapshot );
 
   /* make a buffer the same size as the slices buffer. */
-  nSize = pow( this->mnDimension, 3 );
+  nSize = this->mpMriValues->width * this->mpMriValues->height * this->mpMriValues->depth ;
+  switch (this->mpMriValues->type)
+  {
+  case MRI_SHORT:
+    nSize *= sizeof(short) ;
+    break ;
+  case MRI_FLOAT:
+    nSize *= sizeof(float) ;
+    break ;
+  case MRI_LONG:
+    nSize *= sizeof(long) ;
+    break ;
+  case MRI_INT:
+    nSize *= sizeof(int) ;
+    break ;
+  default:
+    break ;
+  }
   this->mpSnapshot = (BUFTYPE*) malloc( nSize * sizeof(BUFTYPE) );
   DebugAssertThrowX( (NULL != this->mpSnapshot),
          eResult, Volm_tErr_AllocationFailed );
 
   /* copy it in */
-  memcpy( this->mpSnapshot, this->mpNormValues->slices, nSize );
+  memcpy( this->mpSnapshot, this->mpMriValues->slices, nSize );
 
   DebugCatch;
   DebugCatchError( eResult, Volm_tErr_NoErr, Volm_GetErrorString );
@@ -1253,8 +1341,25 @@ Volm_tErr Volm_RestoreFromSnapshot ( mriVolumeRef this ) {
     DebugGotoCleanup;
 
   /* copy the snapshot data into the norm volume buffer data */
-  nSize = pow( this->mnDimension, 3 );
-  memcpy( this->mpNormValues->slices, this->mpSnapshot, nSize );
+  nSize = this->mpMriValues->width * this->mpMriValues->height * this->mpMriValues->depth ;
+  switch (this->mpMriValues->type)
+  {
+  case MRI_SHORT:
+    nSize *= sizeof(short) ;
+    break ;
+  case MRI_FLOAT:
+    nSize *= sizeof(float) ;
+    break ;
+  case MRI_LONG:
+    nSize *= sizeof(long) ;
+    break ;
+  case MRI_INT:
+    nSize *= sizeof(int) ;
+    break ;
+  default:
+    break ;
+  }
+  memcpy( this->mpMriValues->slices, this->mpSnapshot, nSize );
 
   DebugCatch;
   DebugCatchError( eResult, Volm_tErr_NoErr, Volm_GetErrorString );
@@ -1288,15 +1393,15 @@ Volm_tErr Volm_Rotate ( mriVolumeRef     this,
   switch( iAxis ) {
   case mri_tOrientation_Coronal:
     DebugNote( ("Rotating normalized volume with MRIrotateY") );
-    newNorm = MRIrotateY( this->mpNormValues, NULL, fRadians );
+    newNorm = MRIrotateY( this->mpMriValues, NULL, fRadians );
     break;
   case mri_tOrientation_Horizontal:
     DebugNote( ("Rotating normalized volume with MRIrotateZ") );
-    newNorm = MRIrotateZ( this->mpNormValues, NULL, fRadians );
+    newNorm = MRIrotateZ( this->mpMriValues, NULL, fRadians );
     break;
   case mri_tOrientation_Sagittal:
     DebugNote( ("Rotating normalized volume with MRIrotateX") );
-    newNorm = MRIrotateX( this->mpNormValues, NULL, fRadians );
+    newNorm = MRIrotateX( this->mpMriValues, NULL, fRadians );
     break;
   default:
     DebugAssertThrowX( (1), eResult, Volm_tErr_InvalidParamater );
@@ -1305,8 +1410,8 @@ Volm_tErr Volm_Rotate ( mriVolumeRef     this,
 
   /* reassign to the new volume */
   DebugNote( ("Freeing old normalized volume and assigned rotated one") );
-  MRIfree( &this->mpNormValues );
-  this->mpNormValues = newNorm;
+  MRIfree( &this->mpMriValues );
+  this->mpMriValues = newNorm;
 
   DebugCatch;
   DebugCatchError( eResult, Volm_tErr_NoErr, Volm_GetErrorString );
@@ -1826,23 +1931,101 @@ Volm_tValue Volm_GetNormValueAtXYSlice_ ( mriVolumeRef this,
 Volm_tValue Volm_GetNormValueAtIdx_ ( mriVolumeRef this,
               xVoxelRef    iIdx ) {
 
+  VECTOR *idx_screen, *idx_mri ;
+  int i[3];
+
+#if 0
   if( Volm_tErr_NoErr != Volm_VerifyIdx_( this, iIdx ) )
     return 0;
+#endif
 
-  return (Volm_tValue) MRIvox( this->mpNormValues, xVoxl_GetX(iIdx),
-             xVoxl_GetY(iIdx), xVoxl_GetZ(iIdx) );
+  idx_screen = VectorAlloc(4, MATRIX_REAL) ;
+  V3_X(idx_screen) = xVoxl_GetX(iIdx) ;
+  V3_Y(idx_screen) = xVoxl_GetY(iIdx) ;
+  V3_Z(idx_screen) = xVoxl_GetZ(iIdx) ;
+  *MATRIX_RELT(idx_screen,4,1) = 1.0 ;
+  idx_mri = MatrixMultiply(this->m_resample, idx_screen, NULL) ;
+  i[0] = floor(V3_X(idx_mri)) ;
+  i[1] = floor(V3_Y(idx_mri)) ;
+  i[2] = floor(V3_Z(idx_mri)) ;
+  if (i[0] < 0 || i[1] < 0 || i[2] < 0 ||
+      i[0] >= this->mpMriValues->width ||
+      i[1] >= this->mpMriValues->height ||
+      i[2] >= this->mpMriValues->depth
+      )
+    return(0) ;
+
+  switch( this->mpMriValues->type ) {
+    case MRI_UCHAR:
+      return (Volm_tValue)MRIvox( this->mpMriValues, i[0], i[1], i[2]) ;
+      break;
+    case MRI_INT:
+      return (Volm_tValue)MRIIvox( this->mpMriValues, i[0], i[1], i[2]) ;
+      break;
+    case MRI_LONG:
+      return (Volm_tValue)MRILvox( this->mpMriValues, i[0], i[1], i[2]) ;
+      break;
+    case MRI_FLOAT:
+      return (Volm_tValue)MRIFvox( this->mpMriValues, i[0], i[1], i[2]) ;
+      break;
+    case MRI_SHORT:
+      return (Volm_tValue)MRISvox( this->mpMriValues, i[0], i[1], i[2]) ;
+      break;
+    default:
+      return 0;
+    }
+  MatrixFree(&idx_screen) ; MatrixFree(&idx_mri) ;
 }
 
 void Volm_SetNormValueAtIdx_ ( mriVolumeRef     this,
              xVoxelRef        iIdx,
              Volm_tValue      iValue ) {
 
+  VECTOR *idx_screen, *idx_mri ;
+  int i[3];
+#if 0
   if( Volm_tErr_NoErr != Volm_VerifyIdx_( this, iIdx ) )
     return;
+#endif
 
-  MRIvox( this->mpNormValues, xVoxl_GetX(iIdx), 
-    xVoxl_GetY(iIdx), xVoxl_GetZ(iIdx) ) = (BUFTYPE) iValue;
+  idx_screen = VectorAlloc(4, MATRIX_REAL) ;
+  V3_X(idx_screen) = xVoxl_GetX(iIdx) ;
+  V3_Y(idx_screen) = xVoxl_GetY(iIdx) ;
+  V3_Z(idx_screen) = xVoxl_GetZ(iIdx) ;
+  *MATRIX_RELT(idx_screen,4,1) = 1.0 ;
+  idx_mri = MatrixMultiply(this->m_resample, idx_screen, NULL) ;
+  i[0] = floor(V3_X(idx_mri)) ;
+  i[1] = floor(V3_Y(idx_mri)) ;
+  i[2] = floor(V3_Z(idx_mri)) ;
+  if (i[0] < 0 || i[1] < 0 || i[2] < 0 ||
+      i[0] >= this->mpMriValues->width ||
+      i[1] >= this->mpMriValues->height ||
+      i[2] >= this->mpMriValues->depth
+      )
+    return(0) ;
 
+  switch (this->mpMriValues->type)
+  {
+  default:
+    break ;
+  case MRI_UCHAR:
+    MRIvox( this->mpMriValues, i[0], i[1], i[2]) = (BUFTYPE) iValue;
+    break ;
+  case MRI_SHORT:
+    MRISvox( this->mpMriValues, i[0], i[1], i[2]) = (short) iValue;
+    break ;
+  case MRI_FLOAT:
+    MRIFvox( this->mpMriValues, i[0], i[1], i[2]) = (float) iValue;
+    break ;
+  case MRI_LONG:
+    MRILvox( this->mpMriValues, i[0], i[1], i[2]) = (long) iValue;
+    break ;
+  case MRI_INT:
+    MRIIvox( this->mpMriValues, i[0], i[1], i[2]) = (int) iValue;
+    break ;
+  }
+
+  MatrixFree(&idx_screen) ; MatrixFree(&idx_mri) ;
 }
 
 #endif /* VOLM_USE_MACROS */
@@ -1850,72 +2033,56 @@ void Volm_SetNormValueAtIdx_ ( mriVolumeRef     this,
 float Volm_GetRawValueAtIdx_ ( mriVolumeRef     this,
              xVoxelRef        iIdx ) {
   
-  xVoxel rasVox;
-  MATRIX* rasToIdx = NULL;
-  MATRIX* ras = NULL;
-  MATRIX* idx = NULL;
+  /*  xVoxel rasVox;*/
+  VECTOR *idx_screen, *idx_mri ;
   int i[3];
+  float f = 0;
 
+#if 0
   if( Volm_tErr_NoErr != Volm_VerifyIdx_( this, iIdx ) )
     return 0;
+#endif
 
-  if( NULL != this->mpRawValues ) {
-    
-    DebugPrint( ("USING RAW VOLUME\n") );
+  idx_screen = VectorAlloc(4, MATRIX_REAL) ;
+  V3_X(idx_screen) = xVoxl_GetX(iIdx) ;
+  V3_Y(idx_screen) = xVoxl_GetY(iIdx) ;
+  V3_Z(idx_screen) = xVoxl_GetZ(iIdx) ;
+  *MATRIX_RELT(idx_screen,4,1) = 1.0 ;
+  idx_mri = MatrixMultiply(this->m_resample, idx_screen, NULL) ;
+  i[0] = floor(V3_X(idx_mri)) ;
+  i[1] = floor(V3_Y(idx_mri)) ;
+  i[2] = floor(V3_Z(idx_mri)) ;
 
-    /* need to convert from normalized idx to ras space then to the
-       raw index. first convert to ras. */
-    Volm_ConvertIdxToRAS( this, iIdx, &rasVox );
-
-
-    rasToIdx = MRIgetRasToVoxelXform( this->mpRawValues );
-    ras = MatrixAlloc( 4, 1, MATRIX_REAL );
-    idx = MatrixAlloc( 4, 1, MATRIX_REAL );
-
-    *MATRIX_RELT(ras,1,1) = xVoxl_GetFloatX( &rasVox );
-    *MATRIX_RELT(ras,2,1) = xVoxl_GetFloatY( &rasVox );
-    *MATRIX_RELT(ras,3,1) = xVoxl_GetFloatZ( &rasVox );
-    *MATRIX_RELT(ras,4,1) = 1;
-
-    /* then to index */
-    MatrixMultiply( rasToIdx, ras, idx );
-    
-    i[0] = rint( *MATRIX_RELT(idx,1,1) );
-    i[1] = rint( *MATRIX_RELT(idx,2,1) );
-    i[2] = rint( *MATRIX_RELT(idx,3,1) );
-
-    /* check if in bounds */
-    if( i[0] < 0 ||
-  i[0] >= this->mpRawValues->width ||
-  i[1] < 0 ||
-  i[1] >= this->mpRawValues->height ||
-  i[2] < 0 ||
-  i[2] >= this->mpRawValues->depth )
-      return 0;
-
-    switch( this->mpRawValues->type ) {
-    case MRI_UCHAR:
-      return MRIvox( this->mpRawValues, i[0], i[1], i[2] );
-      break;
-    case MRI_INT:
-      return MRIIvox( this->mpRawValues, i[0], i[1], i[2] );
-      break;
-    case MRI_LONG:
-      return MRILvox( this->mpRawValues, i[0], i[1], i[2] );
-      break;
-    case MRI_FLOAT:
-      return MRIFvox( this->mpRawValues, i[0], i[1], i[2] );
-      break;
-    case MRI_SHORT:
-      return MRISvox( this->mpRawValues, i[0], i[1], i[2] );
-      break;
-    default:
-      return 0;
-    }
-  } else {
-     return MRIvox( this->mpNormValues, xVoxl_GetX(iIdx), 
-         xVoxl_GetY(iIdx), xVoxl_GetZ(iIdx) );
+  if (i[0] < 0 || i[1] < 0 || i[2] < 0 ||
+      i[0] >= this->mpMriValues->width ||
+      i[1] >= this->mpMriValues->height ||
+      i[2] >= this->mpMriValues->depth
+      )
+    return(0) ;
+  switch( this->mpMriValues->type ) 
+  {
+  case MRI_UCHAR:
+    f = MRIvox( this->mpMriValues, i[0], i[1], i[2]) ;
+    break;
+  case MRI_INT:
+    f = MRIIvox( this->mpMriValues, i[0], i[1], i[2]) ;
+    break;
+  case MRI_LONG:
+    f = MRILvox( this->mpMriValues, i[1], i[1], i[2]) ;
+    break;
+  case MRI_FLOAT:
+    f = MRIFvox( this->mpMriValues, i[0], i[1], i[2]) ;
+    break;
+  case MRI_SHORT:
+    f = MRISvox( this->mpMriValues, i[0], i[1], i[2]) ;
+    break;
+  default:
+    f = 0;
+    break ;
   }
+
+  MatrixFree(&idx_mri) ; MatrixFree(&idx_screen) ;
+  return f;
 }
 
 #ifndef VOLM_USE_MACROS
@@ -1989,6 +2156,7 @@ Volm_tErr Volm_VerifyIdx_ ( mriVolumeRef this,
 
   Volm_tErr eResult = Volm_tErr_NoErr;
 
+#if 0
   DebugAssertThrowX( (xVoxl_GetX(iIdx) >= 0 &&
           xVoxl_GetRoundX(iIdx) < this->mnDimension &&
           xVoxl_GetY(iIdx) >= 0 &&
@@ -1996,7 +2164,16 @@ Volm_tErr Volm_VerifyIdx_ ( mriVolumeRef this,
           xVoxl_GetZ(iIdx) >= 0 &&
           xVoxl_GetRoundZ(iIdx) < this->mnDimension),
          eResult, Volm_tErr_InvalidIdx );
-  
+#else
+  DebugAssertThrowX( (xVoxl_GetX(iIdx) >= 0 &&
+          xVoxl_GetRoundX(iIdx) < this->mpMriValues->width &&
+          xVoxl_GetY(iIdx) >= 0 &&
+          xVoxl_GetRoundY(iIdx) < this->mpMriValues->height &&
+          xVoxl_GetZ(iIdx) >= 0 &&
+          xVoxl_GetRoundZ(iIdx) < this->mpMriValues->depth),
+         eResult, Volm_tErr_InvalidIdx );
+#endif
+
   DebugCatch;
   EndDebugCatch;
 
