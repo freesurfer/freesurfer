@@ -8,10 +8,10 @@
  *
 */
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: ch $
-// Revision Date  : $Date: 2004/01/23 22:49:28 $
-// Revision       : $Revision: 1.253 $
-char *MRI_C_VERSION = "$Revision: 1.253 $";
+// Revision Author: $Author: fischl $
+// Revision Date  : $Date: 2004/02/09 21:56:06 $
+// Revision       : $Revision: 1.254 $
+char *MRI_C_VERSION = "$Revision: 1.254 $";
 
 /*-----------------------------------------------------
                     INCLUDE FILES
@@ -9294,6 +9294,7 @@ MRI *MRIresample(MRI *src, MRI *template_vol, int resample_type)
     return(NULL);
 
   MRIcopyHeader(template_vol, dest);
+	MRIcopyPulseParameters(src, dest) ;
 
   sp = MatrixAlloc(4, 1, MATRIX_REAL);
   dp = MatrixAlloc(4, 1, MATRIX_REAL);

@@ -282,49 +282,49 @@ GCAMregister(GCA_MORPH *gcam, MRI *mri, GCA_MORPH_PARMS *parms)
     for (l2 = 0 ; l2 < parms->levels ; l2++)
     {
       if (parms->sigma < 0.4)
-	break ;
+				break ;
       if (FZERO(parms->sigma))
-	mri_smooth = MRIcopy(mri, mri_smooth) ;
+				mri_smooth = MRIcopy(mri, mri_smooth) ;
       else
       {
-	printf("blurring input image with Gaussian with sigma=%2.3f...\n", parms->sigma) ;
-	mri_kernel = MRIgaussian1d(parms->sigma, 100) ;
+				printf("blurring input image with Gaussian with sigma=%2.3f...\n", parms->sigma) ;
+				mri_kernel = MRIgaussian1d(parms->sigma, 100) ;
       	mri_smooth = MRIconvolveGaussian(mri, NULL, mri_kernel) ;
-	MRIfree(&mri_kernel) ;
+				MRIfree(&mri_kernel) ;
       }
       i = 0 ;
       do
       {
-	if (((level != (parms->levels-1)) || (i > 0)) && parms->relabel)
-	{
+				if (((level != (parms->levels-1)) || (i > 0)) && parms->relabel)
+				{
       	  GCAMcomputeLabels(mri, gcam) ;
-	  if (parms->write_iterations != 0)
-	  {
-	    char fname[STRLEN] ;
-	    MRI  *mri_gca ;
-	    mri_gca = MRIclone(mri, NULL) ;
-	    GCAMbuildMostLikelyVolume(gcam, mri_gca) ;
-	    sprintf(fname, "%s_target%d", parms->base_name, level) ;
-	    MRIwriteImageViews(mri_gca, fname, IMAGE_SIZE) ;
-	    sprintf(fname, "%s_target%d.mgh", parms->base_name, level) ;
-	    printf("writing target volume to %s...\n", fname) ;
-	    MRIwrite(mri_gca, fname) ;
-	    MRIfree(&mri_gca) ;
-	  }
-	}
-	last_rms = gcamComputeRMS(gcam, mri, parms) ;
-	level_steps = parms->start_t ;
-	GCAMregisterLevel(gcam, mri, mri_smooth, parms) ;
+					if (parms->write_iterations != 0)
+					{
+						char fname[STRLEN] ;
+						MRI  *mri_gca ;
+						mri_gca = MRIclone(mri, NULL) ;
+						GCAMbuildMostLikelyVolume(gcam, mri_gca) ;
+						sprintf(fname, "%s_target%d", parms->base_name, level) ;
+						MRIwriteImageViews(mri_gca, fname, IMAGE_SIZE) ;
+						sprintf(fname, "%s_target%d.mgh", parms->base_name, level) ;
+						printf("writing target volume to %s...\n", fname) ;
+						MRIwrite(mri_gca, fname) ;
+						MRIfree(&mri_gca) ;
+					}
+				}
+				last_rms = gcamComputeRMS(gcam, mri, parms) ;
+				level_steps = parms->start_t ;
+				GCAMregisterLevel(gcam, mri, mri_smooth, parms) ;
       	rms = gcamComputeRMS(gcam, mri, parms) ;
-	level_steps = parms->start_t - level_steps ;   /* # of steps taken in GCAMregisterLevel */
-	if (level_steps == 0)
-	  level_steps = 1 ;
+				level_steps = parms->start_t - level_steps ;   /* # of steps taken in GCAMregisterLevel */
+				if (level_steps == 0)
+					level_steps = 1 ;
       	pct_change = 100.0*(last_rms-rms)/(level_steps*last_rms) ;
 #if 0
-	printf("iter %d: last rms %2.3f, rms %2.3f, pct_change %2.3f/iter\n",
-	       i+1, last_rms, rms, pct_change) ;
+				printf("iter %d: last rms %2.3f, rms %2.3f, pct_change %2.3f/iter\n",
+							 i+1, last_rms, rms, pct_change) ;
 #endif
-	if (i++ >= 0)  /* don't bother iterating */
+				if (i++ >= 0)  /* don't bother iterating */
       	  break ;
       } while (pct_change > parms->tol) ;
       parms->sigma /= 4 ; 

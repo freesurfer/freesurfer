@@ -240,6 +240,7 @@ static int   mrisRemoveFace(MRI_SURFACE *mris, int fno) ;
 static int   mrisCountTotalNeighbors(MRI_SURFACE *mris) ;
 static int   mrisCountValidLinks(MRI_SURFACE *mris, int vno1, int vno2) ;
 static int   mrisComputeSpringTerm(MRI_SURFACE *mris, double l_spring);
+static int   mrisComputeLinkTerm(MRI_SURFACE *mris, double l_spring, int pial);
 static int   mrisComputeNormalizedSpringTerm(MRI_SURFACE *mris, 
                                              double l_spring);
 static int   mrisComputeIntensityTerm(MRI_SURFACE*mris,double l_intensity,
@@ -411,6 +412,8 @@ double (*gMRISexternalSSE)(MRI_SURFACE *mris, INTEGRATION_PARMS *parms) = NULL ;
 double (*gMRISexternalRMS)(MRI_SURFACE *mris, INTEGRATION_PARMS *parms) = NULL ;
 int (*gMRISexternalTimestep)(MRI_SURFACE *mris, INTEGRATION_PARMS *parms) = NULL ;
 int (*gMRISexternalRipVertices)(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)=NULL;
+int (*gMRISexternalClearSSEStatus)(MRI_SURFACE *mris) = NULL ;
+int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris, double pct) = NULL ;
 
 /*-----------------------------------------------------
         Parameters:
@@ -8623,6 +8626,50 @@ transform(float *xptr, float *yptr, float *zptr,
 */
   return(NO_ERROR) ;
 }
+static int
+mrisComputeLinkTerm(MRI_SURFACE *mris, double l_link, int pial)
+{
+  int     vno ;
+  VERTEX  *v ;
+  float   dx, dy, dz, lx, ly, lz, len ;
+
+  if (FZERO(l_link))
+    return(NO_ERROR) ;
+
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    if (v->ripflag)
+      continue ;
+    if (vno == Gdiag_no)
+      DiagBreak() ;
+
+		lx = v->pialx-v->origx ; ly = v->pialy-v->origy ; lz = v->pialz-v->origz ; 
+		len = sqrt(lx*lx + ly*ly + lz*lz) ;
+		if (len < .25)  /* can't accurately estimate vector connecting white and pial */
+			continue ;
+		lx /= len ; ly /= len ; lz /= len ;
+
+		dx = l_link*(v->nx - lx) ;
+		dy = l_link*(v->ny - ly) ;
+		dz = l_link*(v->nz - lz) ;
+
+		if (pial == 0)
+		{
+			dx *= -1 ; dy *= -1 ; dz *= -1 ;
+		}
+		
+    v->dx += dx ;
+    v->dy += dy ;
+    v->dz += dz ;
+    if (vno == Gdiag_no)
+      fprintf(stdout, "v %d link %s term: (%2.3f, %2.3f, %2.3f), Nl=(%2.1f, %2.1f, %2.1f), Ns=(%2.1f, %2.1f, %2.1f), dot=%2.3f\n",
+              vno, pial ? "pial" : "white", dx, dy, dz, lx, ly, lz, v->nx, v->ny, v->nz, lx*v->nx+ly*v->ny+lz*v->nz) ;
+  }
+  
+
+  return(NO_ERROR) ;
+}
 /*-----------------------------------------------------
         Parameters:
 
@@ -14278,6 +14325,9 @@ MRISsaveVertexPositions(MRI_SURFACE *mris, int which)
 #endif
     switch (which)
     {
+		case WHITE_VERTICES:
+      v->whitex = v->x ; v->whitey = v->y ; v->whitez = v->z ;
+			break ;
     case PIAL_VERTICES:
       v->pialx = v->x ; v->pialy = v->y ; v->pialz = v->z ;
       break ;
@@ -14355,6 +14405,9 @@ MRISrestoreVertexPositions(MRI_SURFACE *mris, int which)
 #endif
     switch (which)
     {
+    case WHITE_VERTICES:
+      v->x = v->whitex ; v->y = v->whitey ; v->z = v->whitez ;
+      break ;
     case PIAL_VERTICES:
       v->x = v->pialx ; v->y = v->pialy ; v->z = v->pialz ;
       break ;
@@ -16941,8 +16994,8 @@ MRISpositionSurfaces(MRI_SURFACE *mris, MRI **mri_flash, int nvolumes,
 										 INTEGRATION_PARMS *parms)
 {
   /*  char   *cp ;*/
-  int    niterations, n, write_iterations, nreductions = 0, ripped = 0 ;
-  double pial_sse, sse, wm_sse, delta_t = 0.0, dt, l_intensity, base_dt, last_sse, rms, mle_sse, 
+  int    niterations, n, write_iterations, nreductions = 0, ripped = 0, increased = 0 ;
+  double pial_sse, sse, wm_sse, delta_t = 0.0, dt, l_intensity, base_dt, last_sse, rms, mle_sse, last_mle_sse, 
          pct_sse_decrease, l_repulse, l_surf_repulse, last_wm_sse, last_pial_sse ;
   MHT    *mht = NULL ;
   struct timeb  then ; int msec ;
@@ -16988,7 +17041,7 @@ MRISpositionSurfaces(MRI_SURFACE *mris, MRI **mri_flash, int nvolumes,
   MRISrestoreVertexPositions(mris, PIAL_VERTICES) ;
   MRIScomputeMetricProperties(mris) ;
   pial_sse = MRIScomputeSSE(mris, parms) ;
-  sse = last_sse = wm_sse + pial_sse ;
+  sse = last_sse = wm_sse + pial_sse ; last_mle_sse = mle_sse ;
 #if 0
   rms = (*gMRISexternalRMS)(mris, parms) ;
 #else
@@ -17020,29 +17073,42 @@ MRISpositionSurfaces(MRI_SURFACE *mris, MRI **mri_flash, int nvolumes,
   l_surf_repulse = parms->l_surf_repulse ;
   for (n = parms->start_t ; n < parms->start_t+niterations ; n++)
   {
-
     /* compute and apply wm derivatative */
     MRISclearGradient(mris) ; mrisClearExtraGradient(mris) ;
+		if (!increased)
+		{
+			if (gMRISexternalClearSSEStatus)
+				(*gMRISexternalClearSSEStatus)(mris) ;
+		}
     MRISrestoreVertexPositions(mris, ORIGINAL_VERTICES) ;  /* make wm positions current */
-    MRISsaveVertexPositions(mris, TMP_VERTICES) ;          /* white->tmp */
+    MRISsaveVertexPositions(mris, WHITE_VERTICES) ;          
     MRIScomputeMetricProperties(mris) ;
     if (gMRISexternalGradient)
-      mle_sse = (*gMRISexternalGradient)(mris, parms) ;
-
+      mle_sse = (*gMRISexternalGradient)(mris, parms) ;   /* this computes the external sse for both wm and pial */
+		if (increased && gMRISexternalReduceSSEIncreasedGradients)
+		{
+			printf("decreasing gradient at vertices with delta SSE>0 by %2.2f\n", 0.5/increased) ;
+			(*gMRISexternalReduceSSEIncreasedGradients)(mris, 0.5/increased) ;
+			if (gMRISexternalClearSSEStatus)
+				(*gMRISexternalClearSSEStatus)(mris) ;
+		}
 
     parms->l_repulse = l_repulse ;  /* use self-repulsion for wm surface */
     parms->l_surf_repulse = 0    ;  /* don't repel wm surface outwards from itself */
     mrisComputePositioningGradients(mris, parms) ;
+		if (!FZERO(parms->l_link))
+			mrisComputeLinkTerm(mris, parms->l_link, 0) ;
     if (!(parms->flags & IPFLAG_NO_SELF_INT_TEST))
       mht = MHTfillTable(mris, mht) ;
-    last_wm_sse = MRIScomputeSSE(mris,parms) ;
+    last_wm_sse = MRIScomputeSSEExternal(mris,parms, &last_mle_sse) ;
+
     delta_t = mrisAsynchronousTimeStepNew(mris, 0, dt, mht, MAX_ASYNCH_NEW_MM) ;
     MRISsaveVertexPositions(mris, ORIGINAL_VERTICES) ;
     if (gMRISexternalTimestep)
       (*gMRISexternalTimestep)(mris, parms) ;
-    wm_sse = MRIScomputeSSE(mris, parms) ;  /* needs update orig to compute sse */
+    wm_sse = MRIScomputeSSE(mris, parms) ;  /* needs update orig to compute sse - will compute external sse later */
 
-    /* store current wm positions in TMP vertices, and pial in INFLATED vertices for undo */
+    /* store current wm positions in WHITE vertices, and pial in INFLATED vertices for undo */
     MRISclearGradient(mris) ;
     MRISrestoreVertexPositions(mris, PIAL_VERTICES) ;  /* make pial positions current */
     MRISsaveVertexPositions(mris, INFLATED_VERTICES) ; /* pial->inflated */
@@ -17051,19 +17117,23 @@ MRISpositionSurfaces(MRI_SURFACE *mris, MRI **mri_flash, int nvolumes,
     parms->l_repulse = 0 ;  /* don't use self-repulsion for pial surface */
     parms->l_surf_repulse = l_surf_repulse ;  /* repel pial surface out from wm */
     mrisComputePositioningGradients(mris, parms) ;
+		if (!FZERO(parms->l_link))
+			mrisComputeLinkTerm(mris, parms->l_link, 1) ;
     if (!(parms->flags & IPFLAG_NO_SELF_INT_TEST))
       mht = MHTfillTable(mris, mht) ;
-    last_pial_sse = MRIScomputeSSE(mris,parms) + mle_sse ;
+    last_pial_sse = MRIScomputeSSE(mris,parms) ;
     delta_t += mrisAsynchronousTimeStepNew(mris, 0, dt, mht, MAX_ASYNCH_NEW_MM) ;
     MRISsaveVertexPositions(mris, PIAL_VERTICES) ;
     if (gMRISexternalTimestep)
       (*gMRISexternalTimestep)(mris, parms) ;
     delta_t /= 2 ;
-    pial_sse = MRIScomputeSSEExternal(mris, parms, &mle_sse) ;  /* needs update orig to compute sse */
-    last_sse = last_wm_sse + last_pial_sse ;
-    sse = wm_sse + pial_sse ;
+    pial_sse = MRIScomputeSSEExternal(mris, parms, &mle_sse) ;  /* needs update pial to compute sse. mle_sse includes wm and pial */
+		printf("MLE sse %2.3f --> %2.3f, delta = %2.3f\n", last_mle_sse, mle_sse, mle_sse-last_mle_sse) ;
+    last_sse = last_wm_sse + last_pial_sse + last_mle_sse ;
+    sse = wm_sse + pial_sse ; /* pial sse includes current mle_sse */
 
     pct_sse_decrease = 1 - sse/last_sse ;
+		pct_sse_decrease = 1 - mle_sse / last_mle_sse ;  /* only terminate if surfaces have asymptoted to desired positions */
     if (pct_sse_decrease < parms->tol)  /* error didn't decrease much */
     {
       nreductions++ ;
@@ -17071,16 +17141,17 @@ MRISpositionSurfaces(MRI_SURFACE *mris, MRI **mri_flash, int nvolumes,
 
       if (pct_sse_decrease < 0)  /* error increased - reject time step */
       {
+				increased++ ;
         printf("error increased by %2.3f%% - time step reduction #%d: dt=%2.3f, undoing step...\n",
                -100.0f*pct_sse_decrease, nreductions, dt) ;
-        MRISrestoreVertexPositions(mris, TMP_VERTICES) ;
+        MRISrestoreVertexPositions(mris, WHITE_VERTICES) ;
         MRISsaveVertexPositions(mris, ORIGINAL_VERTICES) ;
         MRISrestoreVertexPositions(mris, INFLATED_VERTICES) ;
         MRISsaveVertexPositions(mris, PIAL_VERTICES) ;
         if (gMRISexternalTimestep)
           (*gMRISexternalTimestep)(mris, parms) ;
-        sse = last_sse ;
-        nreductions = MAX_REDUCTIONS+1 ;
+        sse = last_sse ; mle_sse = last_mle_sse ;
+				/*        nreductions = MAX_REDUCTIONS+1 ;*/
         if (ripped)
           break ;
         n-- ; /* don't count this as a time step */
@@ -17089,6 +17160,7 @@ MRISpositionSurfaces(MRI_SURFACE *mris, MRI **mri_flash, int nvolumes,
       {
         printf("error decreased by %2.4f%% - %dth time step reduction: dt=%2.3f\n",
                100.0f*pct_sse_decrease, nreductions, dt) ;
+				increased = 0 ;
       }
       if ((nreductions > MAX_REDUCTIONS))
       {
@@ -17108,6 +17180,12 @@ MRISpositionSurfaces(MRI_SURFACE *mris, MRI **mri_flash, int nvolumes,
         n++ ; break ;
       }
     }
+		else
+		{
+			last_mle_sse = mle_sse ;
+			increased = 0 ;
+		}
+
 
     if (parms->flags & IPFLAG_ADD_VERTICES)
     {
@@ -17196,6 +17274,7 @@ MRISpositionSurfaces(MRI_SURFACE *mris, MRI **mri_flash, int nvolumes,
     MHTfree(&mht) ;
   return(NO_ERROR) ;
 }
+
 
 int
 MRISpositionSurface(MRI_SURFACE *mris, MRI *mri_brain, MRI *mri_smooth,
@@ -17334,7 +17413,7 @@ MRISpositionSurface(MRI_SURFACE *mris, MRI *mri_brain, MRI *mri_smooth,
 #else
     do
     {
-      MRISsaveVertexPositions(mris, TMP_VERTICES) ;
+      MRISsaveVertexPositions(mris, WHITE_VERTICES) ;
       delta_t = mrisAsynchronousTimeStep(mris, parms->momentum, dt,mht,
                                        MAX_ASYNCH_MM) ;
       if (!(parms->flags & IPFLAG_NO_SELF_INT_TEST))
@@ -17353,7 +17432,7 @@ MRISpositionSurface(MRI_SURFACE *mris, MRI *mri_brain, MRI *mri_smooth,
         mrisClearMomentum(mris) ;
         if (rms > last_rms)  /* error increased - reject step */
         {
-          MRISrestoreVertexPositions(mris, TMP_VERTICES) ;
+          MRISrestoreVertexPositions(mris, WHITE_VERTICES) ;
           MRIScomputeMetricProperties(mris) ; 
 
           /* if error increased and we've only reduced the time
