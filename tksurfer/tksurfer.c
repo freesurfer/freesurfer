@@ -23824,6 +23824,12 @@ int fill_flood_from_seed (int seed_vno, FILL_PARAMETERS* params)
 	      /* check the neighbors... */
 	      v = &mris->vertices[vno];
 	      
+	      /* if this vert is ripped, move on. */
+	      if (v->ripflag)
+		{
+		  continue;
+		}
+
 	      /* if we're not crossing boundaries, check if this is a
 		 boundary. if so, move on. */
 	      if (params->dont_cross_boundary && 
