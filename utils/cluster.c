@@ -536,7 +536,7 @@ clusterVariance(CLUSTER *cluster)
   for (variance = 0.0f, i = 0 ; i < cluster->m_scatter->rows ; i++)
     variance += cluster->evalues[i] ;
 
-  return(i) ;
+  return(variance) ;
 }
 /*-----------------------------------------------------
         Parameters:
