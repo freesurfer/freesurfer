@@ -10,12 +10,11 @@
 // 
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2003/11/13 15:33:36 $
-// Revision       : $Revision: 1.1 $
+// Revision Date  : $Date: 2003/11/13 15:37:18 $
+// Revision       : $Revision: 1.2 $
 
 #include <iostream>
 #include <iomanip>
-#include <string>
 
 extern "C" {
 #include "mri.h"
@@ -168,7 +167,7 @@ void markOutsideVoxels(MRI *mri_filled)
 int main(int argc, char *argv[])
 {
   /* rkt: check for and handle version tag */
-  int nargs = handle_version_option (argc, argv, "$Id: mri_surfacemask.cpp,v 1.1 2003/11/13 15:33:36 tosa Exp $", "$Name:  $");
+  int nargs = handle_version_option (argc, argv, "$Id: mri_surfacemask.cpp,v 1.2 2003/11/13 15:37:18 tosa Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
