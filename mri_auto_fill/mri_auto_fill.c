@@ -529,7 +529,7 @@ MRIfillVolume(MRI *mri)
   MRIgrowLabel(mri, mri_bg, 0, 1) ;
   if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
     MRIwrite(mri_bg, "bg.mgh@mgh") ;
-  MRIturnOnFG(mri, mri_fg) ;
+  MRIturnOnFG(mri, mri_fg, mri_bg) ;
   MRIturnOffBG(mri, mri_bg) ;
   
   MRIfree(&mri_fg) ; MRIfree(&mri_bg) ;
