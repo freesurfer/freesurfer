@@ -86,9 +86,9 @@
 **	and convert the object to and from its "stream" representation.
 **	In addition, the package can parse a file which contains a stream
 **	and create its internal object.
-** Last Update:		$Author: tosa $, $Date: 2004/08/19 21:50:10 $
+** Last Update:		$Author: tosa $, $Date: 2004/09/08 19:32:33 $
 ** Source File:		$RCSfile: dcm.c,v $
-** Revision:		$Revision: 1.14 $
+** Revision:		$Revision: 1.15 $
 ** Status:		$State: Exp $
 */
 
@@ -1083,7 +1083,7 @@ DCM_GetString(DCM_OBJECT** callerObject, DCM_TAG tag)
       strcpy(tmp, "<Unimplemented>");
       break;
     case DCM_SL:
-      sprintf(tmp, "%ld", *e.d.sl);
+      sprintf(tmp, "%d", *e.d.sl);
       break;
     case DCM_SQ:
       strcpy(tmp, "<Unimplemented>");
@@ -1092,7 +1092,7 @@ DCM_GetString(DCM_OBJECT** callerObject, DCM_TAG tag)
       sprintf(tmp, "%d", *e.d.ss);
       break;
     case DCM_UL:
-      sprintf(tmp, "%lu", *e.d.ul);
+      sprintf(tmp, "%u", *e.d.ul);
       break;
     case DCM_UN:
       strcpy(tmp, "<Unimplemented>");
@@ -1650,7 +1650,7 @@ DCM_DumpElements(DCM_OBJECT ** callerObject, long vm)
 	if (elementItem != NULL)
 	    (void) LST_Position(&groupItem->elementList, elementItem);
 	while (elementItem != NULL) {
-	    (void) printf("%04x %04x %8ld ",
+	    (void) printf("%04x %04x %8d ",
 			  DCM_TAG_GROUP(elementItem->element.tag),
 			  DCM_TAG_ELEMENT(elementItem->element.tag),
 			  elementItem->element.length);
@@ -1687,7 +1687,7 @@ DCM_DumpElements(DCM_OBJECT ** callerObject, long vm)
 		    (void) printf("%s\n", scratch);
 		    break;
 		case DCM_SL:
-		    (void) printf("%8lx %ld\n", *elementItem->element.d.sl,
+		    (void) printf("%8x %d\n", *elementItem->element.d.sl,
 				  *elementItem->element.d.sl);
 		    if (vm > 1)
 			dumpBinaryData(elementItem->element.d.ot,
@@ -1729,7 +1729,7 @@ DCM_DumpElements(DCM_OBJECT ** callerObject, long vm)
 		    break;
 		case DCM_AT:
 		case DCM_UL:
-		    (void) printf("%8lx %ld\n", *elementItem->element.d.ul,
+		    (void) printf("%8x %d\n", *elementItem->element.d.ul,
 				  *elementItem->element.d.ul);
 		    if (vm > 1)
 			dumpBinaryData(elementItem->element.d.ot,
@@ -1827,7 +1827,7 @@ DCM_FormatElements(DCM_OBJECT ** callerObject, long vm, const char* prefix)
 	if (elementItem != NULL)
 	    (void) LST_Position(&groupItem->elementList, elementItem);
 	while (elementItem != NULL) {
-	    (void) printf("%s%04x %04x %8ld ",
+	    (void) printf("%s%04x %04x %8d ",
 			  prefix,
 			  DCM_TAG_GROUP(elementItem->element.tag),
 			  DCM_TAG_ELEMENT(elementItem->element.tag),
@@ -1865,7 +1865,7 @@ DCM_FormatElements(DCM_OBJECT ** callerObject, long vm, const char* prefix)
 		    (void) printf("%s\n", scratch);
 		    break;
 		case DCM_SL:
-		    (void) printf("%8x %ld\n", (unsigned int) *elementItem->element.d.sl,
+		    (void) printf("%8x %d\n", (unsigned int) *elementItem->element.d.sl,
 				  *elementItem->element.d.sl);
 		    if (vm > 1)
 			dumpBinaryData(elementItem->element.d.ot,
@@ -1909,7 +1909,7 @@ DCM_FormatElements(DCM_OBJECT ** callerObject, long vm, const char* prefix)
 		    break;
 		case DCM_AT:
 		case DCM_UL:
-		    (void) printf("%8x %lu\n", (unsigned int) *elementItem->element.d.ul,
+		    (void) printf("%8x %u\n", (unsigned int) *elementItem->element.d.ul,
 				  *elementItem->element.d.ul);
 		    if (vm > 1)
 			dumpBinaryData(elementItem->element.d.ot,
@@ -2809,7 +2809,7 @@ newElementItem(DCM_ELEMENT * src, CTNBOOLEAN allocateData,
 	l = 0;
 
     if (debug)
-	fprintf(stderr, "newElementItem: CTN_MALLOC %8ld %8ld ", l,
+	fprintf(stderr, "newElementItem: CTN_MALLOC %8d %8d ", l,
 		sizeof(PRV_ELEMENT_ITEM) + l);
 
     *dst = (PRV_ELEMENT_ITEM *) CTN_MALLOC(sizeof(PRV_ELEMENT_ITEM) + l);
@@ -3716,7 +3716,7 @@ exportData(PRIVATE_OBJECT ** object, PRV_ELEMENT_ITEM * item,
 	}
 	if ((U32) nBytes != length) {
 	    char b[512];
-	    sprintf(b, "byte count: %d %ld, errno: %d", nBytes, length, errno);
+	    sprintf(b, "byte count: %d %d, errno: %d", nBytes, length, errno);
 	    (void) COND_PushCondition(DCM_GENERALWARNING,
 			  DCM_Message(DCM_GENERALWARNING), "exportData", b);
 	    return COND_PushCondition(DCM_FILEACCESSERROR,
@@ -3943,7 +3943,7 @@ exportEncapsulatedPixels(PRIVATE_OBJECT ** object, PRV_ELEMENT_ITEM * item,
     fragmentItem = (DCM_FRAGMENT_ITEM*)LST_Head(&item->element.d.fragments);
     (void)LST_Position(&item->element.d.fragments, fragmentItem);
     while (fragmentItem != NULL) {
-      printf("Fragment size: %6ld\n", fragmentItem->length);
+      printf("Fragment size: %6d\n", fragmentItem->length);
       e.tag = 0xfffee000;
       e.length = fragmentItem->length;
       e.representation = DCM_DLM;
@@ -4019,7 +4019,7 @@ exportPixels(PRIVATE_OBJECT ** object, PRV_ELEMENT_ITEM * item,
 
   while (remainingData > 0) {
     if (debug) {
-      fprintf(stderr, "Export: (%08x) %ld\n", (unsigned int) element->tag, element->length);
+      fprintf(stderr, "Export: (%08x) %d\n", (unsigned int) element->tag, element->length);
     }
 
     if (element->d.ot != NULL) {
@@ -4674,7 +4674,7 @@ exportStream(DCM_OBJECT ** callerObject, unsigned long opt,
 	    } else {
 		while (remainingData > 0) {
 		    if (debug)
-			fprintf(stderr, "Export: (%08x) %ld\n",
+			fprintf(stderr, "Export: (%08x) %d\n",
 				(unsigned int) element.tag, element.length);
 		    if (element.d.ot != NULL)
 			remainingData = element.length -
@@ -5774,7 +5774,7 @@ readVRLength(const char *name, unsigned char **ptr, int fd, U32 * size,
     if (debug) {
 	char localVR[10];
 	mapVRtoASCII(e->representation, localVR);
-	fprintf(stderr, "%2s %6ld %06x %s\n", localVR, e->length, (unsigned int) *fileOffset,
+	fprintf(stderr, "%2s %6d %06x %s\n", localVR, e->length, (unsigned int) *fileOffset,
 		e->description);
     }
     if (((e->length & 1) != 0) && (e->length != DCM_UNSPECIFIEDLENGTH)) {
@@ -5837,7 +5837,7 @@ readSequence(const char *name, unsigned char **ptr, int fd, U32 * size,
 
     while (!sequenceDone) {
 	if (debug)
-	    fprintf(stderr, "Sequence Length: %ld %x\n", localLength,
+	    fprintf(stderr, "Sequence Length: %d %x\n", localLength,
 		    (unsigned int) localLength);
 
 	sequenceLength = 0;
@@ -5867,7 +5867,7 @@ readSequence(const char *name, unsigned char **ptr, int fd, U32 * size,
 
 
 	if (debug)
-	    fprintf(stderr, "Sequence item: %4x %4x %ld (%x)\n",
+	    fprintf(stderr, "Sequence item: %4x %4x %d (%x)\n",
 		    DCM_TAG_GROUP(tagE.tag),
 		    DCM_TAG_ELEMENT(tagE.tag), tagE.length, (unsigned int) tagE.length);
 	if (tagE.tag == DCM_DLMITEM) {
@@ -5962,7 +5962,7 @@ scanCompressedPixels(char *name, unsigned char **ptr, int fd, U32 * size,
 	scannedBytes += sequenceLength;
 
 	if (debug)
-	    fprintf(stderr, "Sequence item: %4x %4x %ld (%x)\n",
+	    fprintf(stderr, "Sequence item: %4x %4x %d (%x)\n",
 		    DCM_TAG_GROUP(tagE.tag),
 		    DCM_TAG_ELEMENT(tagE.tag), tagE.length, (unsigned int) tagE.length);
 	if (tagE.tag == DCM_DLMITEM) {
@@ -5982,7 +5982,7 @@ scanCompressedPixels(char *name, unsigned char **ptr, int fd, U32 * size,
 	    sequenceDone = TRUE;
 
 	if (debug)
-	    fprintf(stderr, "Scanned Bytes: %ld\n", scannedBytes);
+	    fprintf(stderr, "Scanned Bytes: %d\n", scannedBytes);
     }
     if ((scannedBytes & 1) != 0) {
 	lseek(fd, 1, SEEK_CUR);
@@ -6768,7 +6768,7 @@ dumpSL(S32 * sl, long vm)
 {
     long index = 0;
     while (index < vm) {
-	printf("%7ld ", *(sl++));
+	printf("%7d ", *(sl++));
 	if ((++index) % 8 == 0)
 	    printf("\n");
     }
@@ -6791,7 +6791,7 @@ dumpUL(U32 * ul, long vm)
 {
     long index = 0;
     while (index < vm) {
-	printf("%7lu ", *(ul++));
+	printf("%7u ", *(ul++));
 	if ((++index) % 8 == 0)
 	    printf("\n");
     }
