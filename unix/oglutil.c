@@ -17,7 +17,7 @@
 #include "macros.h"
 #include "oglutil.h"
 
-static char vcid[] = "$Id: oglutil.c,v 1.2 1997/10/30 23:48:54 fischl Exp $";
+static char vcid[] = "$Id: oglutil.c,v 1.3 1997/10/31 23:44:00 fischl Exp $";
 
 
 /*-------------------------------- CONSTANTS -----------------------------*/
@@ -175,10 +175,17 @@ OGLUcompile(MRI_SURFACE *mris, int *marked_vertices, int flags, float cslope)
   {
     f = &mris->faces[k];
     marked = 0 ;
+
+#if 0
     for (n=0;n<4;n++)
       for (mv = 0 ; marked_vertices[mv] >= 0 ; mv++)
         if (marked_vertices[mv] == f->v[n])
           marked = 1 ;
+#else
+    for (n=0;n<4;n++)
+      if (mris->vertices[f->v[n]].marked)
+        marked = 1 ;
+#endif
 
     glBegin(GL_QUADS) ;
     for (n=0;n<4;n++)
@@ -247,45 +254,48 @@ OGLUcompile(MRI_SURFACE *mris, int *marked_vertices, int flags, float cslope)
   if (flags & TP_FLAG) for (mv = 0 ; marked_vertices[mv] >= 0 ; mv++)
   {
     float v2[3], v3[3] ;
-#define LINE_LEN  10.0
+#define LINE_LEN  0.1*MAX(MAX(mris->xhi,mris->yhi),mris->zhi)
 
-    v = &mris->vertices[marked_vertices[mv]] ;
-    glLineWidth(2.0f);
-
-    glBegin(GL_LINES);
-    glColor3ub(0,255,255);
-    load_brain_coords(v->e1x,v->e1y,v->e1z,v1);
-    glNormal3fv(v1);
-    load_brain_coords(v->x,v->y,v->z,v2);
-    load_brain_coords(v->x+LINE_LEN*v->nx,v->y+LINE_LEN*v->ny,
-                      v->z+LINE_LEN*v->nz,v3);
-    glVertex3fv(v2);
-    glVertex3fv(v3);
-    glEnd() ;
-
+    if (marked_vertices[mv] < mris->nvertices)
+    {
+      v = &mris->vertices[marked_vertices[mv]] ;
+      glLineWidth(2.0f);
+      
+      glBegin(GL_LINES);
+      glColor3ub(0,255,255);
+      load_brain_coords(v->e1x,v->e1y,v->e1z,v1);
+      glNormal3fv(v1);
+      load_brain_coords(v->x,v->y,v->z,v2);
+      load_brain_coords(v->x+LINE_LEN*v->nx,v->y+LINE_LEN*v->ny,
+                        v->z+LINE_LEN*v->nz,v3);
+      glVertex3fv(v2);
+      glVertex3fv(v3);
+      glEnd() ;
+      
 #if 1
-    glBegin(GL_LINES);
-    glColor3ub(255,255,0);
-    load_brain_coords(v->nx,v->ny,v->nz,v1);
-    glNormal3fv(v1);
-    load_brain_coords(v->x,v->y,v->z,v2);
-    load_brain_coords(v->x+LINE_LEN*v->e1x,v->y+LINE_LEN*v->e1y,
-                      v->z+LINE_LEN*v->e1z,v3);
-    glVertex3fv(v2);
-    glVertex3fv(v3);
-    glEnd() ;
-
-    glBegin(GL_LINES);
-    glColor3ub(255,255,0);
-    load_brain_coords(v->nx,v->ny,v->nz,v1);
-    glNormal3fv(v1);
-    load_brain_coords(v->x,v->y,v->z,v2);
-    load_brain_coords(v->x+LINE_LEN*v->e2x,v->y+LINE_LEN*v->e2y,
-                      v->z+LINE_LEN*v->e2z,v3);
-    glVertex3fv(v2);
-    glVertex3fv(v3);
-    glEnd() ;
+      glBegin(GL_LINES);
+      glColor3ub(255,255,0);
+      load_brain_coords(v->nx,v->ny,v->nz,v1);
+      glNormal3fv(v1);
+      load_brain_coords(v->x,v->y,v->z,v2);
+      load_brain_coords(v->x+LINE_LEN*v->e1x,v->y+LINE_LEN*v->e1y,
+                        v->z+LINE_LEN*v->e1z,v3);
+      glVertex3fv(v2);
+      glVertex3fv(v3);
+      glEnd() ;
+      
+      glBegin(GL_LINES);
+      glColor3ub(255,255,0);
+      load_brain_coords(v->nx,v->ny,v->nz,v1);
+      glNormal3fv(v1);
+      load_brain_coords(v->x,v->y,v->z,v2);
+      load_brain_coords(v->x+LINE_LEN*v->e2x,v->y+LINE_LEN*v->e2y,
+                        v->z+LINE_LEN*v->e2z,v3);
+      glVertex3fv(v2);
+      glVertex3fv(v3);
+      glEnd() ;
 #endif
+    }
   }
 
   if (Gdiag & DIAG_SHOW)
