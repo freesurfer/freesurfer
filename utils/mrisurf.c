@@ -4,8 +4,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2004/06/11 19:50:30 $
-// Revision       : $Revision: 1.285 $
+// Revision Date  : $Date: 2004/06/11 19:51:38 $
+// Revision       : $Revision: 1.286 $
 //////////////////////////////////////////////////////////////////
 #include <stdio.h>
 #include <string.h>
@@ -35899,5 +35899,6 @@ MATRIX *surfaceRASToSurfaceRAS_(MRI *src, MRI *dst, LTA *lta)
   else 
     ErrorExit(ERROR_BADPARM, "%s: xfm passed is neither of RAS-to-RAS type nor Vox-To-Vox type.",
 	      Progname) ;
+  return 0;
 }
 
