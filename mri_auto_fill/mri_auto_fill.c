@@ -15,15 +15,17 @@
 int main(int argc, char *argv[]) ;
 static BUFTYPE findLabel(MRI *mri, int x0, int y0, int z0) ;
 static int get_option(int argc, char *argv[]) ;
-static MRI *MRImaskThreshold(MRI *mri_src, MRI *mri_mask, MRI *mri_dst,
-                             float threshold, int out_label) ;
 static MRI *MRIcombineHemispheres(MRI *mri_lh, MRI *mri_rh, MRI *mri_dst,
                                   MRI *mri_lh_prob, MRI *mri_rh_prob) ;
 
 static int MRIfillVolume(MRI *mri) ;
+#if 0
+static MRI *MRImaskThreshold(MRI *mri_src, MRI *mri_mask, MRI *mri_dst,
+                             float threshold, int out_label) ;
 static int MRIgrowLabel(MRI *mri, MRI *mri_bg, int in_label, int out_label) ;
 static int MRIturnOnFG(MRI *mri, MRI *mri_fg) ;
 static int MRIturnOffBG(MRI *mri, MRI *mri_bg) ;
+#endif
 static MRI *MRIcheckHemisphereOverlap(MRI *mri_lh, MRI *mri_rh, MRI *mri_dst,
                                      MRI *mri_lh_prob, MRI *mri_rh_prob) ;
 
@@ -41,7 +43,7 @@ int
 main(int argc, char *argv[])
 {
   char   **av ;
-  int    ac, nargs ;
+  int    ac, nargs, i ;
   MRI    *mri, *mri_lh_template, *mri_lh_inverse_template, *mri_lh, *mri_rh,
          *mri_rh_template, *mri_rh_inverse_template ;
   char   *in_fname, *template_fname, *out_fname, *xform_fname, fname[100] ;
@@ -187,111 +189,6 @@ usage_exit(int code)
          Progname) ;
   exit(code) ;
 }
-/*----------------------------------------------------------------------
-            Parameters:
-
-           Description:
-----------------------------------------------------------------------*/
-static MRI *
-MRImaskThreshold(MRI *mri_src, MRI *mri_mask, MRI *mri_dst, float threshold,
-                 int out_label)
-{
-  BUFTYPE   *pmask, *pdst, *psrc, out_val, mask, in_val ;
-  int       width, height, depth, x, y, z, nchanged, noff, non ;
-  float     nvox ;
-
-  if (mri_mask->type != MRI_UCHAR)
-    ErrorReturn(NULL, (ERROR_UNSUPPORTED, 
-                       "MRI3Dthreshold: mask must be MRI_FLOAT")) ;
-
-  if (!mri_dst)
-    mri_dst = MRIclone(mri_src, NULL) ;
-
-  width = mri_src->width ; height = mri_src->height ; depth = mri_src->depth ; 
-  /* now apply the inverse morph to build an average wm representation
-     of the input volume 
-     */
-
-
-  noff = non = nchanged = 0 ;
-  for (z = 0 ; z < depth ; z++)
-  {
-    for (y = 0 ; y < height ; y++)
-    {
-      pmask = &MRIvox(mri_mask, 0, y, z) ;
-      psrc = &MRIvox(mri_src, 0, y, z) ;
-      pdst = &MRIvox(mri_dst, 0, y, z) ;
-      for (x = 0 ; x < width ; x++)
-      {
-        if (x == 125 && y == 148 && z == 100)
-          DiagBreak() ;  /* marked as 255, should be 127 */
-        out_val = 0 ;
-        mask = *pmask++ ;   /* value from inverse morphed volume */
-        in_val = *psrc++ ;
-        if (mask < 100-threshold)        /* probably off */
-          out_val = 0 ;
-        else  if (mask > threshold)      /* probably on */
-          out_val = out_label ;
-        else                             /* not sure, use original fill val */
-          out_val = in_val ;
-        if (out_val != in_val)
-        {
-          if (out_val)
-            non++ ;
-          else
-            noff++ ;
-          nchanged++ ;
-        }
-        *pdst++ = out_val ;
-      }
-    }
-  }
-
-  nvox = (float)(width * height * depth) ;
-  fprintf(stderr, "%8d of %8d voxels changed - %2.1f%%.\n",
-          nchanged, (int)nvox, 100.0f*(float)nchanged/nvox) ;
-  fprintf(stderr, "%8d of %8d voxels off     - %2.1f%%.\n",
-          noff, (int)nvox,   100.0f*(float)noff/nvox) ;
-  fprintf(stderr, "%8d of %8d voxels on      - %2.1f%%.\n",
-          nchanged, (int)nvox, 100.0f*(float)non/nvox) ;
-  return(mri_dst) ;
-}
-
-static BUFTYPE
-findLabel(MRI *mri, int x, int y, int z)
-{
-  int   xi, yi, zi, xk, yk, zk, left_count, right_count, label,
-        width, height, depth ;
-
-  width = mri->width ; height = mri->height ; depth = mri->depth ;
-  left_count = right_count = 0 ;
-  for (zk = -1 ; zk <= 1 ; zk++)
-  {
-    zi = z + zk ;
-    if (zi < 0 || zi >= depth)
-      continue ;
-    for (yk = -1 ; yk <= 1 ; yk++)
-    {
-      yi = y + yk ;
-      if (yi < 0 || yi >= height)
-        continue ;
-      for (xk = -1 ; xk <= 1 ; xk++)
-      {
-        xi = x + xk ;
-        if (xi < 0 || xi >= width)
-          continue ;
-        label = MRIvox(mri, xi, yi, zi) ;
-        if (label == MRI_LEFT_HEMISPHERE)
-          left_count++ ;
-        else if (label == MRI_RIGHT_HEMISPHERE)
-          right_count++ ;
-      }
-    }
-  }
-  return ((left_count > right_count) ? 
-          MRI_LEFT_HEMISPHERE : 
-          MRI_RIGHT_HEMISPHERE) ;
-}
 static MRI *
 MRIcombineHemispheres(MRI *mri_lh, MRI *mri_rh, MRI *mri_dst,
                       MRI *mri_lh_prob, MRI *mri_rh_prob)
@@ -340,8 +237,6 @@ MRIcombineHemispheres(MRI *mri_lh, MRI *mri_rh, MRI *mri_dst,
       
   return(mri_dst) ;
 }
-
-
 /* Talairach seed points for white matter in left and right hemispheres */
 #define SEED_SEARCH_SIZE            9
 #define MIN_NEIGHBORS               3
@@ -362,9 +257,9 @@ MRIfillVolume(MRI *mri)
   Real     wm_lh_tal_y = -12.0 ;
   Real     wm_lh_tal_z = 28.0 ;
   int      wm_lh_x, wm_lh_y, wm_lh_z, wm_rh_x, wm_rh_y, wm_rh_z,xi,yi,zi,
-           xlim0, xlim1, ylim0, ylim1, x, y, z, xnew, ynew,znew;
+           xlim0, xlim1, ylim0, ylim1, zlim0, zlim1, x, y, z, xnew, ynew,znew;
   Real     xr, yr, zr, dist, min_dist, xd, yd, zd ;
-  MRI      *mri_fg, *mri_bg ;
+  MRI      *mri_fg, *mri_bg, *mri_filled ;
 
   /* find bounding box for valid data */
   ylim0 = mri->height ; xlim0 = mri->width ;
@@ -586,6 +481,114 @@ neighbors_on(MRI *mri, int x0, int y0, int z0, int label)
     nbrs++ ;
   return(nbrs) ;
 }
+#if 0
+
+/*----------------------------------------------------------------------
+            Parameters:
+
+           Description:
+----------------------------------------------------------------------*/
+static MRI *
+MRImaskThreshold(MRI *mri_src, MRI *mri_mask, MRI *mri_dst, float threshold,
+                 int out_label)
+{
+  BUFTYPE   *pmask, *pdst, *psrc, out_val, mask, in_val ;
+  int       width, height, depth, x, y, z, nchanged, noff, non ;
+  float     nvox ;
+
+  if (mri_mask->type != MRI_UCHAR)
+    ErrorReturn(NULL, (ERROR_UNSUPPORTED, 
+                       "MRI3Dthreshold: mask must be MRI_FLOAT")) ;
+
+  if (!mri_dst)
+    mri_dst = MRIclone(mri_src, NULL) ;
+
+  width = mri_src->width ; height = mri_src->height ; depth = mri_src->depth ; 
+  /* now apply the inverse morph to build an average wm representation
+     of the input volume 
+     */
+
+
+  noff = non = nchanged = 0 ;
+  for (z = 0 ; z < depth ; z++)
+  {
+    for (y = 0 ; y < height ; y++)
+    {
+      pmask = &MRIvox(mri_mask, 0, y, z) ;
+      psrc = &MRIvox(mri_src, 0, y, z) ;
+      pdst = &MRIvox(mri_dst, 0, y, z) ;
+      for (x = 0 ; x < width ; x++)
+      {
+        if (x == 131 && y == 97 && z == 127)
+          DiagBreak() ;  /* marked as 255, should be 127 */
+        out_val = 0 ;
+        mask = *pmask++ ;   /* value from inverse morphed volume */
+        in_val = *psrc++ ;
+        if (mask < 100-threshold)        /* probably off */
+          out_val = 0 ;
+        else  if (mask > threshold)      /* probably on */
+          out_val = out_label ;
+        else                             /* not sure, use original fill val */
+          out_val = in_val ;
+        if (out_val != in_val)
+        {
+          if (out_val)
+            non++ ;
+          else
+            noff++ ;
+          nchanged++ ;
+        }
+        *pdst++ = out_val ;
+      }
+    }
+  }
+
+  nvox = (float)(width * height * depth) ;
+  fprintf(stderr, "%8d of %8d voxels changed - %2.1f%%.\n",
+          nchanged, (int)nvox, 100.0f*(float)nchanged/nvox) ;
+  fprintf(stderr, "%8d of %8d voxels off     - %2.1f%%.\n",
+          noff, (int)nvox,   100.0f*(float)noff/nvox) ;
+  fprintf(stderr, "%8d of %8d voxels on      - %2.1f%%.\n",
+          nchanged, (int)nvox, 100.0f*(float)non/nvox) ;
+  return(mri_dst) ;
+}
+
+static BUFTYPE
+findLabel(MRI *mri, int x, int y, int z)
+{
+  int   xi, yi, zi, xk, yk, zk, left_count, right_count, label,
+        width, height, depth ;
+
+  width = mri->width ; height = mri->height ; depth = mri->depth ;
+  left_count = right_count = 0 ;
+  for (zk = -1 ; zk <= 1 ; zk++)
+  {
+    zi = z + zk ;
+    if (zi < 0 || zi >= depth)
+      continue ;
+    for (yk = -1 ; yk <= 1 ; yk++)
+    {
+      yi = y + yk ;
+      if (yi < 0 || yi >= height)
+        continue ;
+      for (xk = -1 ; xk <= 1 ; xk++)
+      {
+        xi = x + xk ;
+        if (xi < 0 || xi >= width)
+          continue ;
+        label = MRIvox(mri, xi, yi, zi) ;
+        if (label == MRI_LEFT_HEMISPHERE)
+          left_count++ ;
+        else if (label == MRI_RIGHT_HEMISPHERE)
+          right_count++ ;
+      }
+    }
+  }
+  return ((left_count > right_count) ? 
+          MRI_LEFT_HEMISPHERE : 
+          MRI_RIGHT_HEMISPHERE) ;
+}
+
 static int
 MRIgrowLabel(MRI *mri, MRI *mri_filled, int in_label, int out_label)
 {
@@ -603,6 +606,8 @@ MRIgrowLabel(MRI *mri, MRI *mri_filled, int in_label, int out_label)
     {
       for (x = 0 ; x < width ; x++)
       {
+        if (x == 131 && y == 97 && z == 127)
+          DiagBreak() ;
         if (MRIvox(mri, x, y, z) == in_label)
         {
           if (x > xmax)
@@ -630,6 +635,8 @@ MRIgrowLabel(MRI *mri, MRI *mri_filled, int in_label, int out_label)
       {
         for (x = 0 ; x < width ; x++)
         {
+        if (x == 131 && y == 97 && z == 127)
+          DiagBreak() ;
           if (MRIvox(mri, x, y, z))
           {
             if (x > xmax)
@@ -656,6 +663,8 @@ MRIgrowLabel(MRI *mri, MRI *mri_filled, int in_label, int out_label)
       {
         for (x = 0 ; x < width ; x++)
         {
+          if (x == 131 && y == 97 && z == 127)
+            DiagBreak() ;
           if (z <= zmin || z >= zmax || 
               y <= ymin || y >= ymax || 
               x <= xmin || x >= xmax)
@@ -699,6 +708,8 @@ MRIgrowLabel(MRI *mri, MRI *mri_filled, int in_label, int out_label)
                   xi = x+xk ;
                   if (xi < 0 || xi >= width)
                     continue ;
+                  if (xi == 131 && yi == 97 && zi == 127)
+                    DiagBreak() ;
                   if ((MRIvox(mri, xi, yi, zi) == in_label) &&
                       (MRIvox(mri_filled, xi, yi, zi) != out_label))
                   {
@@ -773,7 +784,7 @@ MRIturnOffBG(MRI *mri, MRI *mri_bg)
   }
   return(NO_ERROR) ;
 }
-
+#endif
 static MRI *
 MRIcheckHemisphereOverlap(MRI *mri_lh, MRI *mri_rh, MRI *mri_dst,
                                      MRI *mri_lh_prob, MRI *mri_rh_prob)
