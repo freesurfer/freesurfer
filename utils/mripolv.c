@@ -1636,7 +1636,8 @@ MRI   *MRIfillPlanarHoles(MRI *mri_src, MRI *mri_segment, MRI *mri_dst,
 ------------------------------------------------------*/
 #define MAX_LABELS   10000
 MRI *
-MRIthickenThinWMStrands(MRI *mri_src,MRI *mri_dst,int thickness,int nsegments)
+MRIthickenThinWMStrands(MRI *mri_T1, MRI *mri_src,MRI *mri_dst,int thickness,
+                        int nsegments, float wm_hi)
 {
   int      width, height, depth, x, y, z, vertex, thin, i, total_filled, 
            nfilled, nseg ;
@@ -1692,7 +1693,7 @@ MRIthickenThinWMStrands(MRI *mri_src,MRI *mri_dst,int thickness,int nsegments)
               }
             }
 
-/* now search 'upwards' to see if we can find non-white */
+            /* now search 'upwards' to see if we can find non-white */
             up_dist = thickness+1 ;
             for (nd = 0 ; nd <= thickness+1 ; nd++)
             {
@@ -1736,13 +1737,16 @@ MRIthickenThinWMStrands(MRI *mri_src,MRI *mri_dst,int thickness,int nsegments)
           xd = nint((Real)x + nd*nx) ;
           yd = nint((Real)y + nd*ny) ;
           zd = nint((Real)z + nd*nz) ;
+          if (xd == 110 && yd == 125 && zd == 172)  /* T1=148, wm=THICKEN */
+            DiagBreak() ;
           if (xd == 126 && yd == 69 && zd == 127)
             DiagBreak() ;
-          if ((MRIvox(mri_dst, xd, yd, zd) == 0) && 
+          if ((MRIvox(mri_src, xd, yd, zd) <= wm_hi) &&
+              (MRIvox(mri_dst, xd, yd, zd) == 0) && 
               MRIneighborsOn(mri_dst, xd, yd, zd, WM_MIN_VAL) >= 1)
           {
             nfilled++ ;
-            MRIvox(mri_dst, xd, yd, zd) = 200 ;
+            MRIvox(mri_dst, xd, yd, zd) = THICKEN_FILL ;
           }
         }
       }
@@ -1768,7 +1772,8 @@ MRIthickenThinWMStrands(MRI *mri_src,MRI *mri_dst,int thickness,int nsegments)
 #define MAX_LABELS           10000
 #define TOO_THIN             2
 MRI *
-MRIthickenThinWMStrands(MRI *mri_src, MRI *mri_dst,int thickness,int nsegments)
+MRIthickenThinWMStrands(MRI *mri_T1, MRI *mri_src, MRI *mri_dst,int thickness,
+                        int nsegments, float wm_hi)
 {
   int      width, height, depth, x, y, z, thin, i, dont_fill, up_added,
            down_added, total_filled, nfilled, nseg, nx, ny, nz, xv, yv, zv, v ;
@@ -2017,11 +2022,15 @@ MRIthickenThinWMStrands(MRI *mri_src, MRI *mri_dst,int thickness,int nsegments)
                   xv = nint((Real)x + (up_dist+.5)*nx) ;
                   yv = nint((Real)y + (up_dist+.5)*ny) ;
                   zv = nint((Real)z + (up_dist+.5)*nz) ;
-                  MRIvox(mri_dst, xv, yv, zv) = THICKEN_FILL ;
-                  MRIvox(mri_thin, xv, yv, zv) = THICKEN_FILL ;
-                  if (xv == 144 && yv == 137 && zv == 120)
-                    DiagBreak() ;
-                  nfilled++ ;
+
+                  if (MRIvox(mri_T1, xv, yv, zv) < wm_hi)
+                  {
+                    if (xv == 110 && yv == 125 && zv == 172)  
+                      DiagBreak() ; /* T1=148, wm=THICKEN */
+                    MRIvox(mri_dst, xv, yv, zv) = THICKEN_FILL ;
+                    MRIvox(mri_thin, xv, yv, zv) = THICKEN_FILL ;
+                    nfilled++ ;
+                  }
                 }
               }
               if (up_dist >= down_dist)
@@ -2035,11 +2044,14 @@ MRIthickenThinWMStrands(MRI *mri_src, MRI *mri_dst,int thickness,int nsegments)
                   xv = nint((Real)x - (down_dist+.5)*nx) ;
                   yv = nint((Real)y - (down_dist+.5)*ny) ;
                   zv = nint((Real)z - (down_dist+.5)*nz) ;
-                  MRIvox(mri_dst, xv, yv, zv) = THICKEN_FILL ;
-                  MRIvox(mri_thin, xv, yv, zv) = THICKEN_FILL ;
-                  if (xv == 144 && yv == 137 && zv == 120)
-                    DiagBreak() ;
-                  nfilled++ ;
+                  if (MRIvox(mri_T1, xv, yv, zv) < wm_hi)
+                  {
+                    if (xv == 110 && yv == 125 && zv == 172)  
+                      DiagBreak() ; /* T1=148, wm=THICKEN */
+                    MRIvox(mri_dst, xv, yv, zv) = THICKEN_FILL ;
+                    MRIvox(mri_thin, xv, yv, zv) = THICKEN_FILL ;
+                    nfilled++ ;
+                  }
                 }
               }
               if (up_added)
@@ -2077,7 +2089,9 @@ MRIthickenThinWMStrands(MRI *mri_src, MRI *mri_dst,int thickness,int nsegments)
             if (x == 160 && y == 140 && z == 121)
               DiagBreak() ;
 
-            if (!MRIvox(mri_dst, x, y, z)) /* check if it should be filled */
+            /* check if it should be filled */
+            if (!MRIvox(mri_dst, x, y, z) &&
+                (MRIvox(mri_T1, x, y, z) < wm_hi)) 
             {
               if ((MRIvox(mri_thin,x+1,y,z) && MRIvox(mri_thin, x-1, y, z)) ||
                   (MRIvox(mri_thin,x,y+1,z) && MRIvox(mri_thin, x, y-1, z)) ||
