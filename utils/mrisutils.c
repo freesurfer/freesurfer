@@ -1265,3 +1265,30 @@ void MRISsmoothSurface2(MRI_SURFACE *mris,int niter,float step,int avrg)
       } 
   }
 }
+/*--------------------------------------------------------------------*/
+MRIS *MRISloadSurfSubject(char *subj, char *hemi, char *surfid, 
+			  char *SUBJECTS_DIR)
+{
+  MRIS *Surf;
+  char fname[2000];
+
+  if(SUBJECTS_DIR == NULL){
+    SUBJECTS_DIR = getenv("SUBJECTS_DIR");
+    if(SUBJECTS_DIR==NULL){
+      printf("ERROR: SUBJECTS_DIR not defined in environment.\n");
+      return(NULL);
+    }
+  }
+
+  sprintf(fname,"%s/%s/surf/%s.%s",SUBJECTS_DIR,subj,hemi,surfid);
+  printf("  INFO: loading surface  %s\n",fname);
+  fflush(stdout);
+  Surf = MRISread(fname) ;
+  if(Surf == NULL){
+    printf("ERROR: could not load registration surface\n");
+    exit(1);
+  }
+  printf("nvertices = %d\n",Surf->nvertices);fflush(stdout);
+
+  return(Surf);
+}
