@@ -165,7 +165,13 @@ typedef struct
   double  momentum ;
   double  dt ;                /* current time step (for momentum only) */
   double  base_dt ;           /* base time step (for momentum only) */
+  int     flags ;
+  double  dt_increase ;       /* rate at which time step increases */
+  double  dt_decrease ;       /* rate at which time step decreases */
+  double  error_ratio ;       /* ratio at which to undo step */
 } INTEGRATION_PARMS ;
+
+#define IPFLAG_HVARIABLE           0x0001   /* for parms->flags */
 
 #define INTEGRATE_LINE_MINIMIZE    0
 #define INTEGRATE_MOMENTUM         1
@@ -295,6 +301,13 @@ int          MRIScomputeCurvatureIndices(MRI_SURFACE *mris,
                                          double *pici, double *pfi) ;
 
 int          MRISprojectOntoCylinder(MRI_SURFACE *mris, float radius) ;
+double       MRISaverageRadius(MRI_SURFACE *mris) ;
+int          MRISinflateBrain(MRI_SURFACE *mris, INTEGRATION_PARMS *parms,
+                              double Kmin) ;
+double       MRISvariation(MRI_SURFACE *mris) ;
+double       MRIScurvatureError(MRI_SURFACE *mris, double Kd) ;
+MRI_SURFACE  *MRISscaleBrain(MRI_SURFACE *mris_src, MRI_SURFACE *mris_dst, 
+                             float scale) ;
 
 /* constants for vertex->tethered */
 #define TETHERED_NONE           0
@@ -319,5 +332,15 @@ int          MRISprojectOntoCylinder(MRI_SURFACE *mris, float radius) ;
 #endif
 
 #define MAX_DIM    DEFAULT_B
+
+#if 1
+#define DT_INCREASE  1.03 /* 1.03*/
+#define DT_DECREASE  0.5
+#else
+#define DT_INCREASE  1.0 /* 1.03*/
+#define DT_DECREASE  1.0
+#endif
+#define DT_MIN       0.01
+#define ERROR_RATIO  1.03  /* 1.01 then 1.03 */
 
 #endif
