@@ -1,4 +1,4 @@
-% $Id: convert_unwarp_resample.m,v 1.2 2003/07/24 22:17:46 ebeth Exp $
+% $Id: convert_unwarp_resample.m,v 1.3 2003/07/31 21:51:07 ebeth Exp $
 %
 %% convert_unwarp_resample.m contains: 
 % convert_unwarp_resample()
@@ -51,8 +51,8 @@ tic;
 
 %%% check arguments %%%
 if(nargin > 9 | nargin < 3)
-  qoe('ehhconvert(infile,serno,outfile,corfovflag,unwarpflag,jacflag,interp_method,gradwarpfile) - 3-9 arguments required.');
-  error('ehhconvert(infile,serno,outfile,corfovflag,unwarpflag,jacflag,interp_method,gradwarpfile) - 3-9 arguments required.');
+  qoe('convert_unwarp_resample(infile,serno,outfile,corfovflag,unwarpflag,jacflag,interp_method,gradwarpfile) - 3-9 arguments required.');
+  error('convert_unwarp_resample(infile,serno,outfile,corfovflag,unwarpflag,jacflag,interp_method,gradwarpfile) - 3-9 arguments required.');
 end
 
 if (~exist('corfovflag') | isempty(corfovflag)) corfovflag=0; end
@@ -69,8 +69,8 @@ else
 end
 
 if ((corfovflag | unwarpflag) & strcmp(interp_method,''))
-  qoe('ehhconvert(infile,serno,outfile,corfovflag,unwarpflag,jacflag,interp_method,gradwarpfile) - If unwarping or resampling, must specify interpolation method');
-  error('ehhconvert(infile,serno,outfile,corfovflag,unwarpflag,jacflag,interp_method,gradwarpfile) - If unwarping or resampling, must specify interpolation method');
+  qoe('convert_unwarp_resample(infile,serno,outfile,corfovflag,unwarpflag,jacflag,interp_method,gradwarpfile) - If unwarping or resampling, must specify interpolation method');
+  error('convert_unwarp_resample(infile,serno,outfile,corfovflag,unwarpflag,jacflag,interp_method,gradwarpfile) - If unwarping or resampling, must specify interpolation method');
 end
 
 %%% end check arguments %%%
@@ -87,8 +87,8 @@ else % mgh
   fprintf('INFO: loading mgh-format infile %s\n',infile);
   % So now we know it's an mgh file - don't bother loading if args are wrong:
   if(unwarpflag & strcmp(user_gradwarpfile,''))
-    qoe('ehhconvert(infile,serno,outfile,corfovflag,unwarpflag,jacflag,interp_method,gradwarpfile) - for unwarping an mgh file, user must supply gradwarpfilename or type');
-    error('ehhconvert(infile,serno,outfile,corfovflag,unwarpflag,jacflag,interp_method,gradwarpfile) - for unwarping an mgh file, user must supply gradwarpfilename or type');
+    qoe('convert_unwarp_resample(infile,serno,outfile,corfovflag,unwarpflag,jacflag,interp_method,gradwarpfile) - for unwarping an mgh file, user must supply gradwarpfilename or type');
+    error('convert_unwarp_resample(infile,serno,outfile,corfovflag,unwarpflag,jacflag,interp_method,gradwarpfile) - for unwarping an mgh file, user must supply gradwarpfilename or type');
   end
   [vol, M0, mr_parms, Mdc] = load_mgh(infile);
   if(isempty(vol))
@@ -109,8 +109,8 @@ if(unwarpflag)
       gradwarpfile = user_gradwarpfile;
     end
   elseif (~exist('gradwarpfile') | isempty(gradwarpfile) | strcmp(gradwarpfile,''))
-    qoe('ehhconvert(infile,serno,outfile,corfovflag,unwarpflag,jacflag,interp_method,gradwarpfile) - no gradwarpfile found - user must supply gradwarpfile or type');
-    error('ehhconvert(infile,serno,outfile,corfovflag,unwarpflag,jacflag,interp_method,gradwarpfile) - no gradwarpfile found - user must supply gradwarpfile or type');
+    qoe('convert_unwarp_resample(infile,serno,outfile,corfovflag,unwarpflag,jacflag,interp_method,gradwarpfile) - no gradwarpfile found - user must supply gradwarpfile or type');
+    error('convert_unwarp_resample(infile,serno,outfile,corfovflag,unwarpflag,jacflag,interp_method,gradwarpfile) - no gradwarpfile found - user must supply gradwarpfile or type');
   end
   [placeholder,inflag,thruflag]=map2manuf(gradwarpfile);
 end
@@ -145,10 +145,10 @@ fprintf('Beginning unwarping and/or resampling \n');
 % Convert Mout back to 0-based %
 M0out = vox2ras_1to0(Mout);
 
-fprintf('Writing MGH output file \n');
+fprintf('Writing MGH output file %s\n',outfile);
 save_mgh(volout,outfile,M0out,mr_parms);
 
-fprintf('ehhconvert done (%g)\n',toc);
+fprintf('convert_unwarp_resample done (%g)\n',toc);
 
 return
 
