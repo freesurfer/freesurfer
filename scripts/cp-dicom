@@ -1,6 +1,6 @@
 #!/bin/tcsh -f
 
-set VERSION = '$Id: cp-dicom,v 1.1 2004/08/18 15:42:22 greve Exp $';
+set VERSION = '$Id: cp-dicom,v 1.2 2004/08/19 19:05:06 greve Exp $';
 
 set inputargs = ($argv);
 set dcmdir = ();
@@ -31,9 +31,16 @@ echo "Found $#flist"
 foreach f ($flist)
   set series = `mri_probedicom --i $f --t 20 11`;
   if(! $status) then
+    set protocol = `mri_probedicom --i $f --t 18 1030`;
+    if(! $status) then
+      set protocol = `echo $protocol | sed 's/*//g' | sed 's/ //g'`
+      set seriesdir = $outdir/$protocol-$series
+    else
+      set seriesdir = $outdir/$series
+    endif
     echo "$nthfile/$#flist   $series   $f"
-    mkdir -p $outdir/$series
-    cp $f $outdir/$series
+    mkdir -p $seriesdir
+    cp $f $seriesdir
   endif
   @ nthfile = $nthfile + 1;
 end
@@ -150,11 +157,15 @@ Example:
   cp-dicom -d ./dicomdir -o /space/data/mydicom
 
 All the dicom files should be in ./dicomdir.  The results will be in
-/space/data/mydicom/S, where S is the series number, and there will be
-a separate S directory for each series. The dicom file names will not
-be changed.
+/space/data/mydicom/protocol-S, where "protocol" is the protocol name
+and S is the series number. There will be a separate directory for
+each series. The dicom file names will not be changed. If the protocol
+cannot be found in the dicom header, then only the series number is
+used for the directory name.
 
+The series number is based on DICOM tag 20 11.
+The protocol is based on DICOM tag 18 1030.
 
-
+Note: any spaces or asterices (*) are removed from the protocol name.
 
 
