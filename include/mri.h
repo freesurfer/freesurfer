@@ -109,6 +109,8 @@ MATRIX *MRIxfmCRS2XYZtkreg(MRI *mri);
 MATRIX *MRItkReg2Native(MRI *ref, MRI *mov, MATRIX *R);
 MATRIX *MRItkRegMtx(MRI *ref, MRI *mov, MATRIX *D);
 MATRIX *MRIfixTkReg(MRI *mov, MATRIX *R);
+MATRIX *MRIfsl2TkReg(MRI *ref, MRI *mov, MATRIX *FSLRegMat);
+MATRIX *MRItkreg2FSL(MRI *ref, MRI *mov, MATRIX *tkRegMat);
 
 float MRIgetVoxVal(MRI *mri, int c, int r, int s, int f);
 int   MRIsetVoxVal(MRI *mri, int c, int r, int s, int f, float voxval);
