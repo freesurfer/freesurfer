@@ -4212,7 +4212,7 @@ used to write out an entire series.
 static int analyzeWriteFrame(MRI *mri, char *fname, int frame)
 {
   dsr hdr;
-  float max, min;
+  float max, min, det;
   MATRIX *T, *invT;
   char hdr_fname[STRLEN];
   char mat_fname[STRLEN];
@@ -4306,6 +4306,19 @@ static int analyzeWriteFrame(MRI *mri, char *fname, int frame)
   /* Construct the matrix to convert CRS to XYZ, assuming
      that CRS is 1-based */
   T = MRIxfmCRS2XYZ(mri,1);
+
+  det = MatrixDeterminant(T) ;
+  if(det == 0){
+    printf("WARNING: cannot determine volume orientation, "
+     "assuming identity.\n");
+    T = MatrixIdentity(4, T) ;
+    if(mri->xsize > 0) T->rptr[1][1] = mri->xsize;
+    if(mri->ysize > 0) T->rptr[2][2] = mri->ysize;
+    if(mri->zsize > 0) T->rptr[3][3] = mri->zsize;
+  }
+  printf("Analyze Output Matrix\n");
+  MatrixPrint(stdout,T);
+  printf("--------------------\n");
 
   /* ----- write the matrix to the .mat file ----- */
   error_value = MatlabWrite(T, mat_fname, "M");
@@ -4411,7 +4424,7 @@ analyzeWrite4D() - saves data in analyze 4D format.
 static int analyzeWrite4D(MRI *mri, char *fname)
 {
   dsr hdr;
-  float max, min;
+  float max, min, det;
   MATRIX *T, *invT;
   char hdr_fname[STRLEN];
   char mat_fname[STRLEN];
@@ -4498,9 +4511,20 @@ static int analyzeWrite4D(MRI *mri, char *fname)
   /* Construct the matrix to convert CRS to XYZ, assuming
      that CRS is 1-based */
   T = MRIxfmCRS2XYZ(mri,1);
+
+  det = MatrixDeterminant(T) ;
+  if(det == 0){
+    printf("WARNING: cannot determine volume orientation, "
+     "assuming identity.\n");
+    T = MatrixIdentity(4, T) ;
+    if(mri->xsize > 0) T->rptr[1][1] = mri->xsize;
+    if(mri->ysize > 0) T->rptr[2][2] = mri->ysize;
+    if(mri->zsize > 0) T->rptr[3][3] = mri->zsize;
+  }
   printf("Analyze Output Matrix\n");
   MatrixPrint(stdout,T);
   printf("--------------------\n");
+
 
   /* ----- write T to the  .mat file ----- */
   error_value = MatlabWrite(T, mat_fname, "M");
