@@ -225,7 +225,7 @@ proc UpdateValueLabelName { inValueIndex isName } {
     set gaSwapFieldInfo($label,label) $isName
 
     # view->information menu
-    .w.fwMenuBar.mbwView.mw.cmw2 entryconfigure [expr 8 + $inValueIndex] \
+    .w.fwMenuBar.mbwView.mw.cmw2 entryconfigure [expr 12 + $inValueIndex] \
       -label $isName
     # view->overlay menu
     .w.fwMenuBar.mbwView.mw.cmw7 entryconfigure [expr 1 + $inValueIndex] \
@@ -323,7 +323,7 @@ set gsaLabelContents(kLabel_Val2,name)              "Overlay Layer 2"
 set gsaLabelContents(kLabel_ValBak,name)            "Overlay Layer 3"
 set gsaLabelContents(kLabel_Val2Bak,name)           "Overlay Layer 4"
 set gsaLabelContents(kLabel_ValStat,name)           "Overlay Layer 5"
-set gsaLabelContents(kLabel_ValImag,name)           "Overlay Layer 6"
+set gsaLabelContents(kLabel_ImagVal,name)           "Overlay Layer 6"
 set gsaLabelContents(kLabel_Mean,name)               "Overlay Layer 7"
 set gsaLabelContents(kLabel_MeanImag,name)           "Overlay Layer 8"
 set gsaLabelContents(kLabel_StdError,name)           "Overlay Layer 9"
@@ -374,8 +374,8 @@ set gaScalarValueID(kLabel_Val2Bak,index) 3
 set gaScalarValueID(3,label) kLabel_Val2Bak
 set gaScalarValueID(kLabel_ValStat,index) 4
 set gaScalarValueID(4,label) kLabel_ValStat
-set gaScalarValueID(kLabel_ValImag,index) 5
-set gaScalarValueID(5,label) kLabel_ValImag
+set gaScalarValueID(kLabel_ImagVal,index) 5
+set gaScalarValueID(5,label) kLabel_ImagVal
 set gaScalarValueID(kLabel_Mean,index) 6
 set gaScalarValueID(6,label) kLabel_Mean
 set gaScalarValueID(kLabel_MeanIma,index) 7
@@ -1355,8 +1355,8 @@ proc CreateMenuBar { ifwMenuBar } {
       mg_OverlayLoaded } \
       { check \
       "Overlay Layer 6" \
-      "ShowLabel kLabel_ValImag $gbShowLabel(kLabel_ValImag)"\
-      gbShowLabel(kLabel_ValImag) \
+      "ShowLabel kLabel_ImagVal $gbShowLabel(kLabel_ImagVal)"\
+      gbShowLabel(kLabel_ImagVal) \
       mg_OverlayLoaded } \
       { check \
       "Overlay Layer 7" \
@@ -2136,7 +2136,7 @@ proc CreateLabelFrame { ifwTop iSet } {
     $label == "kLabel_ValBak" ||   \
     $label == "kLabel_Val2Bak" ||  \
     $label == "kLabel_ValStat" ||  \
-    $label == "kLabel_ValImag" ||  \
+    $label == "kLabel_ImagVal" ||  \
     $label == "kLabel_Mean" ||  \
     $label == "kLabel_MeanImag" ||  \
     $label == "kLabel_StdError" } { 
