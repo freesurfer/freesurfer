@@ -94,7 +94,7 @@ main(int argc, char *argv[])
   TRANSFORM    *transform = NULL ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_ca_normalize.c,v 1.20 2004/03/23 20:31:41 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_ca_normalize.c,v 1.21 2004/04/05 14:58:05 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -186,7 +186,7 @@ main(int argc, char *argv[])
     mri_tmp = MRIread(in_fname) ;
     if (!mri_tmp)
       ErrorExit(ERROR_NOFILE, "%s: could not read input MR volume from %s",
-		Progname, in_fname) ;
+								Progname, in_fname) ;
 		
     if (alpha > 0)
       mri_tmp->flip_angle = alpha ;
@@ -202,12 +202,12 @@ main(int argc, char *argv[])
     if (input == 0)
     {
       mri_in = 
-	MRIallocSequence(mri_tmp->width, mri_tmp->height, mri_tmp->depth,
-			 mri_tmp->type, ninputs) ;
+				MRIallocSequence(mri_tmp->width, mri_tmp->height, mri_tmp->depth,
+												 mri_tmp->type, ninputs) ;
       if (!mri_in)
-	ErrorExit(ERROR_NOMEMORY, 
-		  "%s: could not allocate input volume %dx%dx%dx%d",
-		  mri_tmp->width, mri_tmp->height, mri_tmp->depth,ninputs) ;
+				ErrorExit(ERROR_NOMEMORY, 
+									"%s: could not allocate input volume %dx%dx%dx%d",
+									mri_tmp->width, mri_tmp->height, mri_tmp->depth,ninputs) ;
       MRIcopyHeader(mri_tmp, mri_in) ;
     }
 
@@ -218,12 +218,12 @@ main(int argc, char *argv[])
 
       mri_mask = MRIread(mask_fname) ;
       if (!mri_mask)
-	ErrorExit(ERROR_NOFILE, "%s: could not open mask volume %s.\n",
-		  Progname, mask_fname) ;
+				ErrorExit(ERROR_NOFILE, "%s: could not open mask volume %s.\n",
+									Progname, mask_fname) ;
 
 		
       for (i = 1 ; i < WM_MIN_VAL ; i++)
-	MRIreplaceValues(mri_mask, mri_mask, i, 0) ;
+				MRIreplaceValues(mri_mask, mri_mask, i, 0) ;
       MRImask(mri_tmp, mri_mask, mri_tmp, 0, 0) ;
       MRIfree(&mri_mask) ;
     }
@@ -237,7 +237,7 @@ main(int argc, char *argv[])
     
     printf("mapping T1/PD atlas into %d-dimensional FLASH space atlas\n", mri_in->nframes) ;
     // that means gca->ninputs = nframes
-    gca_tmp = GCAcreateFlashGCAfromParameterGCA(gca, TRs, fas, TEs, mri_in->nframes, 100) ;
+    gca_tmp = GCAcreateFlashGCAfromParameterGCA(gca, TRs, fas, TEs, mri_in->nframes, GCA_DEFAULT_NOISE_PARAMETER) ;
     // now the type is set gca->type = GCA_FLASH
     GCAfree(&gca) ;
     gca = gca_tmp ;
@@ -248,7 +248,7 @@ main(int argc, char *argv[])
     GCA *gca_tmp ;
 
     printf("mapping %d-dimensional flash atlas into %d-dimensional input space\n",
-	   gca->ninputs, ninputs) ;
+					 gca->ninputs, ninputs) ;
     if (novar)
       GCAunifyVariance(gca) ;
 
@@ -299,7 +299,7 @@ main(int argc, char *argv[])
                                         normalization_structures[i], mri_in, transform, min_prior,
                                         ctl_point_pct) ;
       discard_unlikely_control_points(gca, gcas_struct, struct_samples, mri_in, transform,
-				      cma_label_to_name(normalization_structures[i])) ;
+																			cma_label_to_name(normalization_structures[i])) ;
       if (i)
       {
         GCA_SAMPLE *gcas_tmp ;
@@ -344,7 +344,7 @@ main(int argc, char *argv[])
     mri_in->tr = TRs[input] ; mri_in->flip_angle = fas[input] ; mri_in->te = TEs[input] ;
     if (MRIwriteFrame(mri_in, out_fname, input)  != NO_ERROR)
       ErrorExit(ERROR_BADFILE, "%s: could not write normalized volume to %s",
-		Progname, out_fname);
+								Progname, out_fname);
   }
   MRIfree(&mri_in) ;
 
@@ -362,7 +362,7 @@ main(int argc, char *argv[])
   minutes = seconds / 60 ;
   seconds = seconds % 60 ;
   printf("normalization took %d minutes and %d seconds.\n", 
-	 minutes, seconds) ;
+				 minutes, seconds) ;
   if (diag_fp)
     fclose(diag_fp) ;
   exit(0) ;
