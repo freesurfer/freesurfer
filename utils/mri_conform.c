@@ -143,8 +143,8 @@ MRI *conform_voxels(MRI *mri)
   mri2->zdir = mri->zdir;
 
   mri2->fov = max_fov;
-  mri2->xstart = mri2->ystart = mri2->zstart = 128 * min_size;
-  mri2->xend = mri2->yend = mri2->zend = -128 * min_size;
+  mri2->xstart = mri2->ystart = mri2->zstart = -128 * min_size;
+  mri2->xend = mri2->yend = mri2->zend = 128 * min_size;
 
   x0 = (int)(mri->width * (-mri->xstart / fovx));
   y0 = (int)(mri->height * (-mri->ystart / fovy));
