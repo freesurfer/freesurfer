@@ -47,6 +47,7 @@ int stricmp(char *str1, char *str2) ;
 #define nint(f)   ((int)(rint((double)f)))
 #define isnan(f)  0
 int stricmp(char *str1, char *str2) ;
+double rint(double x) ;
 #endif
 
 /*----------- MSDOS -----------------------*/
