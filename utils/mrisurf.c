@@ -785,7 +785,7 @@ MRISsampleDistances(MRI_SURFACE *mris, int *nbrs, int max_nbhd)
     }
 
     /* 
-       done building arrays - allocated distance vectors and
+       done building arrays - allocate distance vectors and
        sample from the found neighbors list.
        */
     /* now unmark them all */
@@ -796,6 +796,30 @@ MRISsampleDistances(MRI_SURFACE *mris, int *nbrs, int max_nbhd)
     }
 
     total_nbrs += v->vtotal ;
+  }
+
+  /* now fill in immediate neighborhood(Euclidean) distances */
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    if (vno == Gdiag_no)
+      DiagBreak()  ;
+    if (v->ripflag)
+      continue ;
+    if (v->v3num > 0)
+      vtotal = v->v3num ;
+    else if (v->v2num > 0)
+      vtotal = v->v2num ;
+    else
+      vtotal = v->vnum ;
+    for (n = 0 ; n < vtotal ; n++)
+    {
+      vn = &mris->vertices[v->v[n]] ;
+      if (vn->ripflag)
+        continue ;
+      xd = v->x - vn->x ; yd = v->y - vn->y ; zd = v->z - vn->z ;
+      v->dist_orig[n] = sqrt(xd*xd+yd*yd+zd*zd) ;
+    }
   }
 
   mris->avg_nbrs = (float)total_nbrs / (float)mrisValidVertices(mris) ;
@@ -1147,7 +1171,11 @@ mrisComputeVertexDistances(MRI_SURFACE *mris)
 {
   int     vno, n, vtotal, *pv ;
   VERTEX  *v, *vn ;
-  float   d, xd, yd, zd ;
+  float   d, xd, yd, zd, circumference = 0.0f, angle ;
+  VECTOR  *v1, *v2 ;
+
+  v1 = VectorAlloc(3, MATRIX_REAL) ;
+  v2 = VectorAlloc(3, MATRIX_REAL) ;
 
   for (vno=0;vno<mris->nvertices;vno++)
   {
@@ -1157,18 +1185,41 @@ mrisComputeVertexDistances(MRI_SURFACE *mris)
     if (vno == Gdiag_no)
       DiagBreak() ;
     vtotal = v->vtotal ;
-    for (pv = v->v, n = 0 ; n < vtotal ; n++)
+    switch (mris->status)
     {
-      vn = &mris->vertices[*pv++] ;
-      if (vn->ripflag)
-        continue ;
-      xd = v->x - vn->x ; yd = v->y - vn->y ; zd = v->z - vn->z ;
-      d = xd*xd + yd*yd + zd*zd ;
-      v->dist[n] = sqrt(d) ;
+    default:   /* don't really know what to do in other cases */
+    case MRIS_PLANE:
+      for (pv = v->v, n = 0 ; n < vtotal ; n++)
+      {
+        vn = &mris->vertices[*pv++] ;
+        if (vn->ripflag)
+          continue ;
+        xd = v->x - vn->x ; yd = v->y - vn->y ; zd = v->z - vn->z ;
+        d = xd*xd + yd*yd + zd*zd ;
+        v->dist[n] = sqrt(d) ;
+      }
+      break ;
+    case MRIS_SPHERE:
+      VECTOR_LOAD(v1, v->x, v->y, v->z) ;  /* radius vector */
+      if (FZERO(circumference))   /* only calculate once */
+        circumference = M_PI * 2.0 * V3_LEN(v1) ;
+      for (pv = v->v, n = 0 ; n < vtotal ; n++)
+      {
+        vn = &mris->vertices[*pv++] ;
+        if (vn->ripflag)
+          continue ;
+        VECTOR_LOAD(v2, vn->x, vn->y, vn->z) ;  /* radius vector */
+        angle = fabs(VectorAngle(v1, v2)) ;
+        xd = v->x - vn->x ; yd = v->y - vn->y ; zd = v->z - vn->z ;
+        d = xd*xd + yd*yd + zd*zd ;
+        d = circumference * angle / (2.0 * M_PI) ;
+        v->dist[n] = d ;
+      }
+      break ;
     }
-
   }
   
+  VectorFree(&v1) ; VectorFree(&v2) ;
   return(NO_ERROR) ;
 }
 /*-----------------------------------------------------
@@ -1657,7 +1708,10 @@ MRISprojectOntoEllipsoid(MRI_SURFACE *mris_src, MRI_SURFACE *mris_dst,
     fprintf(stderr, 
             "ellipsoid_project: avgdist = %f\n",avgdist/mris_dst->nvertices);
   MRISupdateEllipsoidSurface(mris_dst) ;
-  mris_dst->status = MRIS_ELLIPSOID ;
+  if (FZERO(a-b) && FZERO(b-c))
+    mris_dst->status = MRIS_SPHERE ;
+  else
+    mris_dst->status = MRIS_ELLIPSOID ;
   return(mris_dst) ;
 }
 
@@ -1754,7 +1808,10 @@ MRISradialProjectOntoEllipsoid(MRI_SURFACE *mris_src, MRI_SURFACE *mris_dst,
 #endif
 
   MRISupdateEllipsoidSurface(mris_dst) ;
-  mris_dst->status = MRIS_ELLIPSOID ;
+  if (FZERO(a-b) && FZERO(b-c))
+    mris_dst->status = MRIS_SPHERE ;
+  else
+    mris_dst->status = MRIS_ELLIPSOID ;
   return(mris_dst) ;
 }
 /*-----------------------------------------------------
@@ -2093,6 +2150,7 @@ MRISremoveNegativeVertices(MRI_SURFACE *mris, INTEGRATION_PARMS *parms,
   mrisProjectSurface(mris) ;
   return(mris) ;
 }
+#if 0
 /*-----------------------------------------------------
         Parameters:
 
@@ -2146,6 +2204,7 @@ MRISflatten(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
   mrisProjectSurface(mris) ;
   return(mris) ;
 }
+#endif
 /*-----------------------------------------------------
         Parameters:
 
@@ -2169,9 +2228,9 @@ static float dist_coefs[] = { 0.001f, 0.01f, 0.1f,  1.0f, 1.0f, 1.0f } ;
 #define NBR_COEF       (M_PI*1.0f)
 
 MRI_SURFACE *
-MRISunfold(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
+MRISunfold(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int max_passes)
 {
-  int     base_averages, i, nbrs[MAX_NBHD_SIZE], niter ;
+  int     base_averages, i, nbrs[MAX_NBHD_SIZE], niter, passno ;
   double  starting_sse, ending_sse, l_area ;
 
   starting_sse = ending_sse = 0.0f ;   /* compiler warning */
@@ -2213,8 +2272,11 @@ MRISunfold(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
   base_averages = parms->n_averages ;
   l_area = parms->l_area ;
   niter = parms->niterations ;
+  passno = 0 ;
   do
   {
+    if (passno++ > max_passes)
+      break ;
     if (mris->nsize < parms->nbhd_size)  /* resample distances on surface */
     {
       if (Gdiag & DIAG_SHOW)
@@ -2265,7 +2327,7 @@ MRISunfold(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
   if (Gdiag & DIAG_SHOW)
     fprintf(stderr, "initial flattening complete - settling to equilibrium...\n") ;
   parms->niterations = 1000 ;
-  mrisIntegrationEpoch(mris, parms, 0) ;  /* let it go to equilibrium */
+  mrisIntegrationEpoch(mris, parms, parms->n_averages = 0) ;  /* let it go to equilibrium */
   parms->l_area = area_coefs[0] ;
   parms->l_dist = dist_coefs[0] ;
   parms->l_angle = ANGLE_AREA_SCALE * area_coefs[0] ;
@@ -2590,7 +2652,7 @@ mrisComputeError(MRI_SURFACE *mris, INTEGRATION_PARMS *parms,
   if (mris->patch)
     area_scale = 1.0 ;
   else
-    area_scale = mris->orig_area / (mris->total_area+mris->neg_area) ;
+    area_scale = mris->orig_area / mris->total_area ;
 
   sse_angle = sse_area = 0.0 ;
   for (ntriangles = fno = 0 ; fno < mris->nfaces ; fno++)
@@ -2661,7 +2723,7 @@ mrisComputeSSE(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
   if (mris->patch)
     area_scale = 1.0 ;
   else
-    area_scale = mris->orig_area / (mris->total_area+mris->neg_area) ;
+    area_scale = mris->orig_area / mris->total_area ;
   sse_angle = sse_area = sse_spring = sse_curv = sse_dist = 0.0 ;
   if (!FZERO(parms->l_angle) || !FZERO(parms->l_area))
   {
@@ -6802,7 +6864,7 @@ mrisComputeDistanceTerm(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
     scale = 1.0f ;
   else
 #endif
-    scale = sqrt((mris->total_area+mris->neg_area) / mris->orig_area);
+    scale = sqrt(mris->total_area / mris->orig_area);
   if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
     fprintf(stderr, "distance scale = %2.3f\n", scale) ;
   for (vno = 0 ; vno < mris->nvertices ; vno++)
@@ -7014,7 +7076,7 @@ mrisComputeDistanceError(MRI_SURFACE *mris)
     dist_scale = 1.0 ;
   else
 #endif
-    dist_scale = sqrt(mris->orig_area / (mris->total_area+mris->neg_area)) ;
+    dist_scale = sqrt(mris->orig_area / mris->total_area) ;
   for (sse_dist = 0.0, nvertices = vno = 0 ; vno < mris->nvertices ; vno++)
   {
     v = &mris->vertices[vno] ;
@@ -7033,8 +7095,12 @@ mrisComputeDistanceError(MRI_SURFACE *mris)
 #endif
       delta = dist_scale*v->dist[n] - v->dist_orig[n] ;
       v_sse += delta*delta ;
+      if (!finite(delta) || !finite(v_sse))
+        DiagBreak() ;
     }
     sse_dist += v_sse ;
+    if (!finite(sse_dist) || !finite(v_sse))
+      DiagBreak() ;
   }
   return(sse_dist) ;
 }
@@ -7309,6 +7375,7 @@ mrisProjectSurface(MRI_SURFACE *mris)
   /*  MRISupdateSurface(mris) ;*/
   switch (mris->status)
   {
+  case MRIS_SPHERE:
   case MRIS_ELLIPSOID:
     MRISprojectOntoEllipsoid(mris, mris, 0.0f, 0.0f, 0.0f);
     break ;
@@ -7332,6 +7399,7 @@ mrisOrientSurface(MRI_SURFACE *mris)
 {
   switch (mris->status)
   {
+  case MRIS_SPHERE:
   case MRIS_ELLIPSOID:
     MRISupdateEllipsoidSurface(mris) ;
     break ;

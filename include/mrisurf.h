@@ -312,7 +312,7 @@ MRI_SURFACE  *MRISclone(MRI_SURFACE *mris_src) ;
 MRI_SURFACE  *MRIScenter(MRI_SURFACE *mris_src, MRI_SURFACE *mris_dst) ;
 MRI_SURFACE  *MRIStalairachTransform(MRI_SURFACE *mris_src, 
                                     MRI_SURFACE *mris_dst);
-MRI_SURFACE  *MRISunfold(MRI_SURFACE *mris, INTEGRATION_PARMS *parms) ;
+MRI_SURFACE  *MRISunfold(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int max_passes) ;
 MRI_SURFACE  *MRISflatten(MRI_SURFACE *mris, INTEGRATION_PARMS *parms) ;
 MRI_SURFACE  *MRISremoveNegativeVertices(MRI_SURFACE *mris, 
                                          INTEGRATION_PARMS *parms,

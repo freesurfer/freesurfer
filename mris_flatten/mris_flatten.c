@@ -14,7 +14,7 @@
 #include "macros.h"
 #include "utils.h"
 
-static char vcid[] = "$Id: mris_flatten.c,v 1.5 1997/12/18 16:27:05 fischl Exp $";
+static char vcid[] = "$Id: mris_flatten.c,v 1.6 1997/12/19 19:39:22 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -36,7 +36,8 @@ static double disturb = 0 ;
 static int mrisDisturbVertices(MRI_SURFACE *mris, double amount) ;
 static int randomly_flatten = 0 ;
 static int   nospring = 0 ;
-static float scale = 2 ;
+static float scale = 3 ;
+static int   max_passes = 3 ;
 
 int
 main(int argc, char *argv[])
@@ -135,7 +136,7 @@ main(int argc, char *argv[])
     /*      MRISscaleUp(mris) ;*/
     MRISscaleBrain(mris, mris, scale) ;
     MRIScomputeMetricProperties(mris) ;
-    MRISunfold(mris, &parms) ;  /* optimize metric properties of flat map */
+    MRISunfold(mris, &parms, max_passes) ;  /* optimize metric properties of flat map */
     if (Gdiag & DIAG_SHOW)
       fprintf(stderr, "writing flattened patch to %s\n", out_patch_fname) ;
     MRISwritePatch(mris, out_patch_fname) ;
@@ -283,6 +284,11 @@ get_option(int argc, char *argv[])
   }
   else switch (toupper(*option))
   {
+  case 'P':
+    max_passes = atoi(argv[2]) ;
+    fprintf(stderr, "limitting unfolding to %d passes\n", max_passes) ;
+    nargs = 1 ;
+    break ;
   case 'B':
     base_dt_scale = atof(argv[2]) ;
     parms.base_dt = base_dt_scale*parms.dt ;
