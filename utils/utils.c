@@ -256,7 +256,8 @@ drand48(void)
 char *
 fgetl(char *s, int n, FILE *fp)
 {
-  char *cp ;
+  char *cp, *cp2 ;
+  int  len ;
 
   do
   {
@@ -269,6 +270,13 @@ fgetl(char *s, int n, FILE *fp)
 
   } while (((*cp) == '#') || ((*cp) == '\n') || ((*cp) == 0)) ;
 
+  for (cp2 = cp ; *cp2 ; cp2++)
+    if (*cp2 == '#')
+      *cp2 = 0 ;
+
+  len = strlen(cp) ;
+  if (cp[len-1] == '\n')  /* strip newline */
+    cp[len-1] = 0 ;
   return(cp) ;
 }
 #endif
