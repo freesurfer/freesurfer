@@ -38,6 +38,7 @@
 #include "tiffio.h"
 #include "jpeglib.h"
 #include "rgb_image.h"
+#include "rgb_utils.h"
 #ifndef IRIX
 #include "pgm.h"
 #include "ppm.h"
