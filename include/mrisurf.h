@@ -516,6 +516,10 @@ int          MRISrestoreVertexPositions(MRI_SURFACE *mris, int which) ;
 #define GRAY_SURFACE  1
 #define GRAY_MID      2
 
+#define REVERSE_X     0
+#define REVERSE_Y     1
+#define REVERSE_Z     2
+
 int   MRISpositionSurface(MRI_SURFACE *mris, MRI *mri_brain, MRI *mri_wm, 
                           float nsigma,int where, float dt);
 int   MRISaverageVals(MRI_SURFACE *mris, int navgs) ;
@@ -531,5 +535,6 @@ int   MRISmeasureCorticalThickness(MRI_SURFACE *mris, MRI *mri_brain,
 int   MRISmarkRandomVertices(MRI_SURFACE *mris, float prob_marked) ;
 int   MRISclearMarks(MRI_SURFACE *mris) ;
 int   MRISsequentialAverageVertexPositions(MRI_SURFACE *mris, int navgs) ;
+int   MRISreverse(MRI_SURFACE *mris, int which) ;
 
 #endif
