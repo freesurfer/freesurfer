@@ -16904,3 +16904,18 @@ mrisComputeCurvatureValues(MRI_SURFACE *mris)
   }
   return(NO_ERROR) ;
 }
+int
+MRISsetVals(MRI_SURFACE *mris, float val)
+{
+  int    vno ;
+  VERTEX *v ;
+
+  for (vno = 1 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    if (v->ripflag)
+      continue ;
+    v->val = val ;
+  }
+  return(NO_ERROR) ;
+}

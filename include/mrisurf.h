@@ -584,6 +584,7 @@ int          MRISrestoreVertexPositions(MRI_SURFACE *mris, int which) ;
 
 int   MRISpositionSurface(MRI_SURFACE *mris, MRI *mri_brain, 
                           MRI *mri_smooth, INTEGRATION_PARMS *parms);
+int   MRISsetVals(MRI_SURFACE *mris, float val) ;
 int   MRISaverageVals(MRI_SURFACE *mris, int navgs) ;
 int   MRISaverageEveryOtherVertexPositions(MRI_SURFACE *mris, int navgs, 
                                            int which) ;
