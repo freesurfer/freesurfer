@@ -282,49 +282,49 @@ GCAMregister(GCA_MORPH *gcam, MRI *mri, GCA_MORPH_PARMS *parms)
     for (l2 = 0 ; l2 < parms->levels ; l2++)
     {
       if (parms->sigma < 0.4)
-				break ;
+	break ;
       if (FZERO(parms->sigma))
-				mri_smooth = MRIcopy(mri, mri_smooth) ;
+	mri_smooth = MRIcopy(mri, mri_smooth) ;
       else
       {
-				printf("blurring input image with Gaussian with sigma=%2.3f...\n", parms->sigma) ;
-				mri_kernel = MRIgaussian1d(parms->sigma, 100) ;
+	printf("blurring input image with Gaussian with sigma=%2.3f...\n", parms->sigma) ;
+	mri_kernel = MRIgaussian1d(parms->sigma, 100) ;
       	mri_smooth = MRIconvolveGaussian(mri, NULL, mri_kernel) ;
-				MRIfree(&mri_kernel) ;
+	MRIfree(&mri_kernel) ;
       }
       i = 0 ;
       do
       {
-				if (((level != (parms->levels-1)) || (i > 0)) && parms->relabel)
-				{
+	if (((level != (parms->levels-1)) || (i > 0)) && parms->relabel)
+	{
       	  GCAMcomputeLabels(mri, gcam) ;
-					if (parms->write_iterations != 0)
-					{
-						char fname[STRLEN] ;
-						MRI  *mri_gca ;
-						mri_gca = MRIclone(mri, NULL) ;
-						GCAMbuildMostLikelyVolume(gcam, mri_gca) ;
-						sprintf(fname, "%s_target%d", parms->base_name, level) ;
-						MRIwriteImageViews(mri_gca, fname, IMAGE_SIZE) ;
-						sprintf(fname, "%s_target%d.mgh", parms->base_name, level) ;
-						printf("writing target volume to %s...\n", fname) ;
-						MRIwrite(mri_gca, fname) ;
-						MRIfree(&mri_gca) ;
-					}
-				}
-				last_rms = gcamComputeRMS(gcam, mri, parms) ;
-				level_steps = parms->start_t ;
-				GCAMregisterLevel(gcam, mri, mri_smooth, parms) ;
+	  if (parms->write_iterations != 0)
+	  {
+	    char fname[STRLEN] ;
+	    MRI  *mri_gca ;
+	    mri_gca = MRIclone(mri, NULL) ;
+	    GCAMbuildMostLikelyVolume(gcam, mri_gca) ;
+	    sprintf(fname, "%s_target%d", parms->base_name, level) ;
+	    MRIwriteImageViews(mri_gca, fname, IMAGE_SIZE) ;
+	    sprintf(fname, "%s_target%d.mgh", parms->base_name, level) ;
+	    printf("writing target volume to %s...\n", fname) ;
+	    MRIwrite(mri_gca, fname) ;
+	    MRIfree(&mri_gca) ;
+	  }
+	}
+	last_rms = gcamComputeRMS(gcam, mri, parms) ;
+	level_steps = parms->start_t ;
+	GCAMregisterLevel(gcam, mri, mri_smooth, parms) ;
       	rms = gcamComputeRMS(gcam, mri, parms) ;
-				level_steps = parms->start_t - level_steps ;   /* # of steps taken in GCAMregisterLevel */
-				if (level_steps == 0)
-					level_steps = 1 ;
+	level_steps = parms->start_t - level_steps ;   /* # of steps taken in GCAMregisterLevel */
+	if (level_steps == 0)
+	  level_steps = 1 ;
       	pct_change = 100.0*(last_rms-rms)/(level_steps*last_rms) ;
 #if 0
-				printf("iter %d: last rms %2.3f, rms %2.3f, pct_change %2.3f/iter\n",
-							 i+1, last_rms, rms, pct_change) ;
+	printf("iter %d: last rms %2.3f, rms %2.3f, pct_change %2.3f/iter\n",
+	       i+1, last_rms, rms, pct_change) ;
 #endif
-				if (i++ >= 0)  /* don't bother iterating */
+	if (i++ >= 0)  /* don't bother iterating */
       	  break ;
       } while (pct_change > parms->tol) ;
       parms->sigma /= 4 ; 
@@ -511,6 +511,7 @@ GCAMinit(GCA_MORPH *gcam, MRI *mri, GCA *gca, TRANSFORM *transform, int relabel)
         if (!GCApriorToSourceVoxelFloat(gca, mri, transform, x, y, z,
 					&ox, &oy, &oz))
 	{
+	  // if inside the volume, then
 	  gcamn->x = gcamn->origx = ox ; 
 	  gcamn->y = gcamn->origy = oy ; 
 	  gcamn->z = gcamn->origz = oz ;
@@ -533,6 +534,17 @@ GCAMinit(GCA_MORPH *gcam, MRI *mri, GCA *gca, TRANSFORM *transform, int relabel)
 #endif
 	  }
 	}// !GCA
+	else // went outside the volume but we must initialize
+	{
+	  gcamn->x = gcamn->origx = 0 ; 
+	  gcamn->y = gcamn->origy = 0 ; 
+	  gcamn->z = gcamn->origz = 0 ;
+	  gcamn->label = max_label ;
+	  gcamn->n = max_n ;
+	  gcamn->prior = max_p ;
+	  gcamn->gc = 0 ;
+	  gcamn->log_p = 0 ;
+	}
       }
     }
   }
@@ -1539,10 +1551,20 @@ GCAMmorphFromAtlas(MRI *mri_in, GCA_MORPH *gcam, MRI *mri_morphed)
   Real       weight, orig_val, val ;
   MRI        *mri_weights, *mri_ctrl, *mri_s_morphed ;
 
+  // GCAM is a non-linear voxel-to-voxel transform
+  // it also assumes that the uniform voxel size
+  if ( (mri_in->xsize != mri_in->ysize)
+       || (mri_in->xsize != mri_in->zsize)
+       || (mri_in->ysize != mri_in->zsize))
+  {
+    ErrorExit(ERROR_BADPARM, "non-uniform volumes cannot be used for GCAMmorphFromAtlas()\n");
+  }
+
   width = mri_in->width ; height = mri_in->height ; depth = mri_in->depth ; 
   thick = mri_in->thick ;
 #define SCALE_FACTOR 25.0f  /* so we can use byte images for float values */
 
+  // uses the input volume size
   mri_weights = MRIalloc(width, height, depth, MRI_UCHAR) ;
   MRIcopyHeader(mri_in, mri_weights);
   mri_s_morphed = MRIalloc(width, height, depth, MRI_SHORT) ;
@@ -1556,59 +1578,61 @@ GCAMmorphFromAtlas(MRI *mri_in, GCA_MORPH *gcam, MRI *mri_morphed)
       for (z = 0 ; z < depth ; z++)
       {
         /* compute voxel coordinates of this morph point */
-        GCAMsampleMorph(gcam, (float)x*thick, (float)y*thick, (float)z*thick, 
-                        &xd, &yd, &zd) ;
-        xd /= thick ; yd /= thick ; zd /= thick ;  /* voxel coords */
+        if (!GCAMsampleMorph(gcam, (float)x*thick, (float)y*thick, (float)z*thick, 
+			     &xd, &yd, &zd))
+	{
+	  xd /= thick ; yd /= thick ; zd /= thick ;  /* voxel coords */
 #if 1
-        MRIsampleVolumeType(mri_in, x, y, z, &orig_val, SAMPLE_NEAREST);
+	  MRIsampleVolumeType(mri_in, x, y, z, &orig_val, SAMPLE_NEAREST);
 #else
-        orig_val = MRIvox(mri_in, x, y, z) ;
+	  orig_val = MRIvox(mri_in, x, y, z) ;
 #endif
-        if (orig_val > 40)
-          DiagBreak() ;
-
-        /* now use trilinear interpolation */
-        xm1 = (int)floor(xd) ; ym1 = (int)floor(yd) ; zm1 = (int)floor(zd) ; 
-        xp1 = xm1 + 1 ; yp1 = ym1 + 1 ; zp1 = zm1 + 1 ;
-
-        /* make sure they are within bounds */
-        xm1 = mri_in->xi[xm1] ; ym1 = mri_in->yi[ym1] ; zm1 = mri_in->zi[zm1] ;
-        xp1 = mri_in->xi[xp1] ; yp1 = mri_in->yi[yp1] ; zp1 = mri_in->zi[zp1] ;
-
-        dx = xd - xm1 ; dy = yd - ym1 ; dz = zd - zm1 ;
-
-        /* now compute contribution to each of 8 nearest voxels */
-        weight = (1-dx) * (1-dy) * (1-dz) ;
-        MRISvox(mri_s_morphed,xm1,ym1,zm1) += weight * orig_val ;
-        MRIvox(mri_weights,xm1,ym1,zm1) += nint(weight * SCALE_FACTOR) ;
-
-        weight = (dx) * (1-dy) * (1-dz) ;
-        MRISvox(mri_s_morphed,xp1,ym1,zm1) += weight * orig_val ;
-        MRIvox(mri_weights,xp1,ym1,zm1) += nint(weight * SCALE_FACTOR) ;
-        
-        weight = (1-dx) * (dy) * (1-dz) ;
-        MRISvox(mri_s_morphed,xm1,yp1,zm1) += weight * orig_val ;
-        MRIvox(mri_weights,xm1,yp1,zm1) += nint(weight * SCALE_FACTOR) ;
-        
-        weight = (1-dx) * (1-dy) * (dz) ;
-        MRISvox(mri_s_morphed,xm1,ym1,zp1) += weight * orig_val ;
-        MRIvox(mri_weights,xm1,ym1,zp1) += nint(weight * SCALE_FACTOR) ;
-        
-        weight = (dx) * (dy) * (1-dz) ;
-        MRISvox(mri_s_morphed,xp1,yp1,zm1) += weight * orig_val ;
-        MRIvox(mri_weights,xp1,yp1,zm1) += nint(weight * SCALE_FACTOR) ;
-        
-        weight = (dx) * (1-dy) * (dz) ;
-        MRISvox(mri_s_morphed,xp1,ym1,zp1) += weight * orig_val ;
-        MRIvox(mri_weights,xp1,ym1,zp1) += nint(weight * SCALE_FACTOR) ;
-        
-        weight = (1-dx) * (dy) * (dz) ;
-        MRISvox(mri_s_morphed,xm1,yp1,zp1) += weight * orig_val ;
-        MRIvox(mri_weights,xm1,yp1,zp1) += nint(weight * SCALE_FACTOR) ;
-        
-        weight = (dx) * (dy) * (dz) ;
-        MRISvox(mri_s_morphed,xp1,yp1,zp1) += weight * orig_val ;
-        MRIvox(mri_weights,xp1,yp1,zp1) += nint(weight * SCALE_FACTOR) ;
+	  if (orig_val > 40)
+	    DiagBreak() ;
+	  
+	  /* now use trilinear interpolation */
+	  xm1 = (int)floor(xd) ; ym1 = (int)floor(yd) ; zm1 = (int)floor(zd) ; 
+	  xp1 = xm1 + 1 ; yp1 = ym1 + 1 ; zp1 = zm1 + 1 ;
+	  
+	  /* make sure they are within bounds */
+	  xm1 = mri_in->xi[xm1] ; ym1 = mri_in->yi[ym1] ; zm1 = mri_in->zi[zm1] ;
+	  xp1 = mri_in->xi[xp1] ; yp1 = mri_in->yi[yp1] ; zp1 = mri_in->zi[zp1] ;
+	  
+	  dx = xd - xm1 ; dy = yd - ym1 ; dz = zd - zm1 ;
+	  
+	  /* now compute contribution to each of 8 nearest voxels */
+	  weight = (1-dx) * (1-dy) * (1-dz) ;
+	  MRISvox(mri_s_morphed,xm1,ym1,zm1) += weight * orig_val ;
+	  MRIvox(mri_weights,xm1,ym1,zm1) += nint(weight * SCALE_FACTOR) ;
+	  
+	  weight = (dx) * (1-dy) * (1-dz) ;
+	  MRISvox(mri_s_morphed,xp1,ym1,zm1) += weight * orig_val ;
+	  MRIvox(mri_weights,xp1,ym1,zm1) += nint(weight * SCALE_FACTOR) ;
+	  
+	  weight = (1-dx) * (dy) * (1-dz) ;
+	  MRISvox(mri_s_morphed,xm1,yp1,zm1) += weight * orig_val ;
+	  MRIvox(mri_weights,xm1,yp1,zm1) += nint(weight * SCALE_FACTOR) ;
+	  
+	  weight = (1-dx) * (1-dy) * (dz) ;
+	  MRISvox(mri_s_morphed,xm1,ym1,zp1) += weight * orig_val ;
+	  MRIvox(mri_weights,xm1,ym1,zp1) += nint(weight * SCALE_FACTOR) ;
+	  
+	  weight = (dx) * (dy) * (1-dz) ;
+	  MRISvox(mri_s_morphed,xp1,yp1,zm1) += weight * orig_val ;
+	  MRIvox(mri_weights,xp1,yp1,zm1) += nint(weight * SCALE_FACTOR) ;
+	  
+	  weight = (dx) * (1-dy) * (dz) ;
+	  MRISvox(mri_s_morphed,xp1,ym1,zp1) += weight * orig_val ;
+	  MRIvox(mri_weights,xp1,ym1,zp1) += nint(weight * SCALE_FACTOR) ;
+	  
+	  weight = (1-dx) * (dy) * (dz) ;
+	  MRISvox(mri_s_morphed,xm1,yp1,zp1) += weight * orig_val ;
+	  MRIvox(mri_weights,xm1,yp1,zp1) += nint(weight * SCALE_FACTOR) ;
+	  
+	  weight = (dx) * (dy) * (dz) ;
+	  MRISvox(mri_s_morphed,xp1,yp1,zp1) += weight * orig_val ;
+	  MRIvox(mri_weights,xp1,yp1,zp1) += nint(weight * SCALE_FACTOR) ;
+	}
       }
     }
   }
@@ -1731,32 +1755,34 @@ GCAMmorphToAtlas(MRI *mri_src, GCA_MORPH *gcam, MRI *mri_morphed)
     {
       for (z = 0 ; z < depth ; z++)
       {
-        GCAMsampleMorph(gcam, (float)x*mri_src->thick, 
+        if (!GCAMsampleMorph(gcam, (float)x*mri_src->thick, 
                         (float)y*mri_src->thick, (float)z*mri_src->thick, 
-                        &xd, &yd, &zd) ;
-        xd /= mri_src->thick ; yd /= mri_src->thick ; zd /= mri_src->thick ; 
-        if (xd > -1 && yd > -1 && zd > 0 &&
-            xd < width && yd < height && zd < depth)
-          MRIsampleVolume(mri_src, xd, yd, zd, &val);
-        else
-          val = 0.0 ;
-        switch (mri_morphed->type)
-        {
-        case MRI_UCHAR:
-          MRIvox(mri_morphed,x,y,z) = val ;
-          break ;
-				case MRI_SHORT:
-          MRISvox(mri_morphed,x,y,z) = val ;
-          break ;
-        case MRI_FLOAT:
-          MRIFvox(mri_morphed,x,y,z) = val ;
-          break ;
-        default:
-          ErrorReturn(NULL, 
-                      (ERROR_UNSUPPORTED, 
-                       "GCAMmorphToAtlas: unsupported volume type %d",
-                       mri_morphed->type)) ;
-          break ;
+			     &xd, &yd, &zd))
+	{
+	  xd /= mri_src->thick ; yd /= mri_src->thick ; zd /= mri_src->thick ; 
+	  if (xd > -1 && yd > -1 && zd > 0 &&
+	      xd < width && yd < height && zd < depth)
+	    MRIsampleVolume(mri_src, xd, yd, zd, &val);
+	  else
+	    val = 0.0 ;
+	  switch (mri_morphed->type)
+	  {
+	  case MRI_UCHAR:
+	    MRIvox(mri_morphed,x,y,z) = val ;
+	    break ;
+	  case MRI_SHORT:
+	    MRISvox(mri_morphed,x,y,z) = val ;
+	    break ;
+	  case MRI_FLOAT:
+	    MRIFvox(mri_morphed,x,y,z) = val ;
+	    break ;
+	  default:
+	    ErrorReturn(NULL, 
+			(ERROR_UNSUPPORTED, 
+			 "GCAMmorphToAtlas: unsupported volume type %d",
+			 mri_morphed->type)) ;
+	    break ;
+	  }
         }
       }
     }
@@ -2003,9 +2029,9 @@ GCAMregisterLevel(GCA_MORPH *gcam, MRI *mri, MRI *mri_smooth, GCA_MORPH_PARMS *p
 
     if (pct_change < tol && !increasing)
     {
-			if (max_small > 1)
-	      printf("pct change < tol %2.3f, nsmall = %d of %d\n",
-  	           tol, nsmall+1, max_small) ;
+      if (max_small > 1)
+	printf("\tpct change < tol %2.3f, nsmall = %d of %d\n",
+	       tol, nsmall+1, max_small) ;
       if ((++nsmall >= max_small) || (pct_change < 0))
       {
 	if (parms->integration_type == GCAM_INTEGRATE_BOTH)
@@ -2154,29 +2180,38 @@ write_snapshot(GCA_MORPH *gcam, MRI *mri, GCA_MORPH_PARMS *parms, int iter)
   return(NO_ERROR) ;
 }
 
+int boundsCheckf(float x, float y, float z, int width, int height, int depth)
+{
+  if (x >= width)
+    return ERROR_BADPARM;
+  else if (y >= height)
+    return ERROR_BADPARM;
+  else if (z >= depth)
+    return ERROR_BADPARM;
+  else if (x < 0)
+    return ERROR_BADPARM;
+  else if (y < 0)
+    return ERROR_BADPARM;
+  else if (z < 0)
+    return ERROR_BADPARM;
+  else
+    return NO_ERROR;
+}
+
 int
 GCAMsampleMorph(GCA_MORPH *gcam, float x, float y, float z, 
                 float *pxd, float *pyd, float *pzd)
 {
   int            xm, xp, ym, yp, zm, zp, width, height, depth ;
   float          xmd, ymd, zmd, xpd, ypd, zpd ;  /* d's are distances */
+  int            errCode = NO_ERROR;
 
   /* x, y, z are in MRI voxel coords */
   x /= gcam->spacing ; y /= gcam->spacing ; z /= gcam->spacing ;
   width = gcam->width ; height = gcam->height ; depth = gcam->depth ;
 
-  if (x >= width)
-    x = width - 1.0 ;
-  if (y >= height)
-    y = height - 1.0 ;
-  if (z >= depth)
-    z = depth - 1.0 ;
-  if (x < 0.0)
-    x = 0.0 ;
-  if (y < 0.0)
-    y = 0.0 ;
-  if (z < 0.0)
-    z = 0.0 ;
+  if ((errCode = boundsCheckf(x, y, z, width, height, depth)) != NO_ERROR)
+    return errCode;
 
   xm = MAX((int)x, 0) ;
   xp = MIN(width-1, xm+1) ;
@@ -2219,6 +2254,7 @@ GCAMsampleMorph(GCA_MORPH *gcam, float x, float y, float z,
     xmd * ypd * zmd * gcam->nodes[xp][ym][zp].z +
     xmd * ymd * zpd * gcam->nodes[xp][yp][zm].z +
     xmd * ymd * zmd * gcam->nodes[xp][yp][zp].z ;
+
   return(NO_ERROR) ;
 }
 
@@ -2266,6 +2302,7 @@ gcamComputeSSE(GCA_MORPH *gcam, MRI *mri, GCA_MORPH_PARMS *parms)
 
   if (Gdiag & DIAG_SHOW)
   {
+    printf("\t");
     if (!FZERO(parms->l_map))
       printf("map_sse = %2.2f ", map_sse/nvox) ;
     if (!FZERO(parms->l_log_likelihood))
@@ -2378,7 +2415,7 @@ gcamLimitGradientMagnitude(GCA_MORPH *gcam, GCA_MORPH_PARMS *parms, MRI *mri)
     int   r ;
     gcamn = &gcam->nodes[xmax][ymax][zmax] ;
     load_vals(mri, gcamn->x, gcamn->y, gcamn->z, vals, gcam->gca->ninputs) ;
-    printf("max gradient %2.3f mm @ (%d, %d, %d), A=%2.1f, R=%2.3f, ", 
+    printf("\tmax gradient %2.3f mm @ (%d, %d, %d), A=%2.1f, R=%2.3f, ", 
 	   max_norm, xmax, ymax, zmax,
 	   gcam->nodes[xmax][ymax][zmax].area,
 	   gcam->nodes[xmax][ymax][zmax].area/gcam->nodes[xmax][ymax][zmax].orig_area) ;
@@ -2619,16 +2656,19 @@ GCAMcomputeLabels(MRI *mri, GCA_MORPH *gcam)
   GCA_PRIOR      *gcap ;
   GC1D           *gc ;
 
+  // gcam usually has prior_width, prior_height, prior_depth
   width = gcam->width  ; height = gcam->height ; depth = gcam->depth ; 
   for (x = 0 ; x < width ; x++)
     for (y = 0 ; y < height ; y++)
       for (z = 0 ; z < depth ; z++)
       {
-        gcamn = &gcam->nodes[x][y][z] ;
-				load_vals(mri, gcamn->x, gcamn->y, gcamn->z, vals, gcam->gca->ninputs) ;
+        gcamn = &gcam->nodes[x][y][z];
+	// get the grey scale values from mri at floating point voxel position
+	load_vals(mri, gcamn->x, gcamn->y, gcamn->z, vals, gcam->gca->ninputs) ;
         label = 
           GCAcomputeMAPlabelAtLocation(gcam->gca, x,y,z,vals,&n,&gcamn->log_p);
-        gcap = &gcam->gca->priors[x][y][z] ;
+	// n is the most probable index in labels array
+	gcap = &gcam->gca->priors[x][y][z] ;
 
         if (n >= 0)
         {
@@ -2651,7 +2691,7 @@ GCAMcomputeLabels(MRI *mri, GCA_MORPH *gcam)
           gcamn->label = label ;
           gcamn->n = 0 ;
           gcamn->prior = 1.0 ;
-					gcamn->gc = NULL ;
+	  gcamn->gc = NULL ;
           if (x == Gx && y == Gy && z == Gz)
             printf("RELABEL: node(%d, %d, %d): label %s (%d), mean %2.1f+-%2.1f, prior %2.1f\n",
                    x, y, z, cma_label_to_name(label), label,
@@ -2701,7 +2741,7 @@ GCAMcomputeMaxPriorLabels(GCA_MORPH *gcam)
           gcamn->label = label = 0 ;
           gcamn->n = 0 ;
           gcamn->prior = 1.0 ;
-					gcamn->gc = NULL ;
+	  gcamn->gc = NULL ;
         }
         if (x == Gx && y == Gy && z == Gz)
           printf("MPRIOR: node(%d, %d, %d): label %s (%d), mean %2.1f+-%2.1f, prior %2.1f\n",
@@ -2843,6 +2883,7 @@ GCAMbuildVolume(GCA_MORPH *gcam, MRI *mri)
 
   return(mri) ;
 }
+
 int
 GCAMinvert(GCA_MORPH *gcam, MRI *mri)
 {
@@ -2853,14 +2894,23 @@ GCAMinvert(GCA_MORPH *gcam, MRI *mri)
   if (gcam->mri_xind)   /* already inverted */
     return(NO_ERROR) ;
 
+  // verify the volume size ////////////////////////////////////////////
+  if (mri->width != gcam->src.width
+      || mri->height != gcam->src.height
+      || mri->depth != gcam->src.depth)
+    ErrorExit(ERROR_BADPARM, "mri passed volume size is different from the one used to create M3D data\n");
+
+  // use mri 
   width = mri->width ; height = mri->height ; depth = mri->depth ;
 
+  // mri_xind, yind, zind
   gcam->mri_xind = MRIalloc(width, height, depth, MRI_SHORT) ;
   MRIcopyHeader(mri, gcam->mri_xind);
   gcam->mri_yind = MRIalloc(width, height, depth, MRI_SHORT) ;
   MRIcopyHeader(mri, gcam->mri_yind);
   gcam->mri_zind = MRIalloc(width, height, depth, MRI_SHORT) ;
   MRIcopyHeader(mri, gcam->mri_zind);
+  // mri_ctrl
   mri_ctrl = MRIalloc(width, height, depth, MRI_UCHAR) ;
   MRIcopyHeader(mri, mri_ctrl);
 
@@ -2868,13 +2918,17 @@ GCAMinvert(GCA_MORPH *gcam, MRI *mri)
     ErrorExit(ERROR_NOMEMORY, "GCAMinvert: could not allocated %dx%dx%d index volumes",
               width, height, depth) ;
 
+  // going through gcam volume (x,y,z)
+  // gcam volume points could be mapped to many points in xind, yind, and zind
   for (z = 0 ; z < gcam->depth ; z++)
   {
     for (y = 0 ; y < gcam->height ; y++)
     {
       for (x = 0 ; x < gcam->width ; x++)
       {
+	// find nodes 
         gcamn = &gcam->nodes[x][y][z] ;
+	// get the source volume position 
         xv = nint(gcamn->x) ; yv = nint(gcamn->y) ; zv = nint(gcamn->z) ;
         if (xv < 0)
           xv = 0 ;
@@ -2888,23 +2942,37 @@ GCAMinvert(GCA_MORPH *gcam, MRI *mri)
           yv = height-1 ;
         if (zv >= depth)
           zv = depth-1 ;
-        MRISvox(gcam->mri_xind, xv, yv, zv) += x ;
+	// cache position
+	// xind[xv][yv][zv] += x
+        MRISvox(gcam->mri_xind, xv, yv, zv) += x ; // src -> gcam volume position 
         MRISvox(gcam->mri_yind, xv, yv, zv) += y ;
         MRISvox(gcam->mri_zind, xv, yv, zv) += z ;
+	// mark counts (how many went in)
         MRIvox(mri_ctrl, xv, yv, zv) += 1 ;
+#ifndef __OPTIMIZE__
+	if (xv == Ggca_x && yv == Ggca_y && zv == Ggca_z)
+	{
+	  if (xv >=0 && yv >= 0 && zv >= 0)
+	    fprintf(stderr, "src (%d, %d, %d) corresponds to gcam (%d, %d, %d)\n",
+		    xv, yv, zv, x, y, z);
+	}
+#endif
       }
     }
   }
 
+  // xind, yind, zind is of size (width, height, depth)
   for (z = 0 ; z < depth ; z++)
   {
     for (y = 0 ; y < height ; y++)
     {
       for (x = 0 ; x < width ; x++)
       {
+	// get count
         num = MRIvox(mri_ctrl, x, y, z) ;
         if (num == 0)
           continue ;   /* nothing there */
+	// give average gcam position for this points
         MRISvox(gcam->mri_xind, x, y, z) = 
           nint((float)MRISvox(gcam->mri_xind, x, y, z)/(float)num) ;
         MRISvox(gcam->mri_yind, x, y, z) = 
@@ -2928,8 +2996,19 @@ GCAMinvert(GCA_MORPH *gcam, MRI *mri)
   MRIbuildVoronoiDiagram(gcam->mri_zind, mri_ctrl, gcam->mri_zind) ;
   MRIsoapBubble(gcam->mri_zind, mri_ctrl, gcam->mri_zind, 5) ;
   MRIfree(&mri_ctrl) ;
+
+#ifndef __OPTIMIZE__
+  xv = Ggca_x; yv = Ggca_y; zv = Ggca_z;
+  if (xv >= 0 && yv >= 0 && zv >= 0)
+    fprintf(stderr, "src (%d, %d, %d) corresponds to gcam (%d, %d, %d)\n",
+	    xv, yv, zv,
+	    MRISvox(gcam->mri_xind, xv, yv, zv),
+	    MRISvox(gcam->mri_yind, xv, yv, zv),
+	    MRISvox(gcam->mri_zind, xv, yv, zv));
+#endif
   return(NO_ERROR) ;
 }
+
 int
 GCAMfreeInverse(GCA_MORPH *gcam)
 {
@@ -3558,7 +3637,7 @@ gcamLabelTerm(GCA_MORPH *gcam, MRI *mri, double l_label, double label_dist)
   
   
   if (Gdiag & DIAG_SHOW)
-    printf("%d nodes for which label term applies\n", num) ;
+    printf("\t%d nodes for which label term applies\n", num) ;
   return(NO_ERROR) ;
 }
 static int
