@@ -2653,13 +2653,13 @@ static int bvolumeWrite(MRI *vol, char *fname_passed, int type)
   }
 
   if(vol->type != type){
-    fprintf(stderr,"INFO: bvolumeWrite: changing type\n");
+    printf("INFO: bvolumeWrite: changing type\n");
     nslices = vol->depth;
     nframes = vol->nframes;
     vol->depth = nslices*nframes;
     vol->nframes = 1;
     MRIlimits(vol,&min,&max);
-    fprintf(stderr,"INFO: bvolumeWrite: range %g %g\n",min,max);
+    printf("INFO: bvolumeWrite: range %g %g\n",min,max);
     mri = MRIchangeType(vol,type,min,max,1);
     if(mri == NULL) {
       fprintf(stderr,"ERROR: bvolumeWrite: MRIchangeType\n");
@@ -2709,7 +2709,7 @@ static int bvolumeWrite(MRI *vol, char *fname_passed, int type)
     if(*c3 == '_')
       stem[(int)(c3-fname_passed)] = '\0';
   }
-  fprintf(stderr,"INFO: bvolumeWrite: stem = %s\n",stem);
+  printf("INFO: bvolumeWrite: stem = %s\n",stem);
 
   c = strrchr(stem, '/');
   if(c == NULL)
@@ -3504,7 +3504,7 @@ static MRI *bvolumeRead(char *fname_passed, int read_volume, int type)
   }
 #endif 
   MRIlimits(mri,&min,&max);
-  fprintf(stderr,"INFO: bvolumeRead: min = %g, max = %g\n",min,max);
+  printf("INFO: bvolumeRead: min = %g, max = %g\n",min,max);
 
   mri->imnr0 = 1;
   mri->imnr1 = mri->depth;
@@ -9307,7 +9307,7 @@ static int bfloatWrite(MRI *vol, char *stem)
   int nslices,nframes;
 
   if(vol->type != MRI_FLOAT){
-    fprintf(stderr,"INFO: bfloatWrite: changing type\n");
+    printf("INFO: bfloatWrite: changing type\n");
     nslices = vol->depth;
     nframes = vol->nframes;
     vol->depth = nslices*nframes;
@@ -9444,13 +9444,13 @@ static int bshortWrite(MRI *vol, char *fname_passed)
   float min,max;
 
   if(vol->type != MRI_SHORT){
-    fprintf(stderr,"INFO: bshortWrite: changing type\n");
+    printf("INFO: bshortWrite: changing type\n");
     nslices = vol->depth;
     nframes = vol->nframes;
     vol->depth = nslices*nframes;
     vol->nframes = 1;
     MRIlimits(vol,&min,&max);
-    fprintf(stderr,"INFO: bshortWrite: range %g %g\n",min,max);
+    printf("INFO: bshortWrite: range %g %g\n",min,max);
     mri = MRIchangeType(vol,MRI_SHORT,min,max,1);
     if(mri == NULL) {
       fprintf(stderr,"ERROR: bshortWrite: MRIchangeType\n");
