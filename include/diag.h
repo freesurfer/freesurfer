@@ -67,6 +67,7 @@ void DiagHeartbeat(float pct_done) ;
 
 
 extern unsigned long Gdiag ;    /* global diagnostic flag */
+extern int Gdiag_no ;           /* misc. int for diagnostics */
 
 #define PT_NONE           0
 #define PT_CIRCLE         1

@@ -27,7 +27,8 @@
                     GLOBAL VARIABLES
 -------------------------------------------------------*/
 
-unsigned long  Gdiag = 0 ;
+unsigned long  Gdiag      = 0 ;
+int            Gdiag_no   = -1 ;
 
 /*-----------------------------------------------------
                      STATIC DATA
@@ -64,6 +65,10 @@ DiagInit(char *fname,
   if (vprint)
     diag_vprintf = vprint ;
 
+  cp = getenv("DIAG_NO") ;
+  if (cp)
+    Gdiag_no = atoi(cp) ;
+  
   cp = getenv("diag") ;
 
   if (!cp) cp = getenv("DIAG") ;
