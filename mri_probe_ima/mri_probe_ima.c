@@ -20,7 +20,7 @@
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_probe_ima.c,v 1.5 2002/03/01 22:40:28 greve Exp $";
+static char vcid[] = "$Id: mri_probe_ima.c,v 1.6 2002/03/06 21:28:20 greve Exp $";
 char *Progname = NULL;
 
 static int  parse_commandline(int argc, char **argv);
@@ -46,6 +46,9 @@ int debug, verbose;
 FILE *fp;
 char *attrname;
 int  getattr = 0;
+char *bstem = "img";
+short *pixeldata;
+int npixels;
 
 #define TMPSTRLEN 10000
 static char tmpstr[TMPSTRLEN];
@@ -151,6 +154,36 @@ int main(int argc, char **argv)
       printf("%d\n",ifi->ErrorFlag);
       return(0); exit(0);
     }
+    if(stringmatch(attrname,"pixeldata")){
+      npixels = ifi->NImageRows * ifi->NImageCols;
+      pixeldata = imaReadPixelData(ifi,NULL);
+      if(pixeldata == NULL){
+  printf("ERROR: could not read pixel data\n");
+  exit(1);
+      }
+
+      sprintf(tmpstr,"%s.bshort",bstem);
+      fp = fopen(tmpstr,"w");
+      if(fp == NULL){
+  printf("ERROR: cannot open %s for writing\n",tmpstr);
+  exit(1);
+      }
+      fwrite(pixeldata, sizeof(short), npixels, fp);
+      fclose(fp);
+
+      sprintf(tmpstr,"%s.hdr",bstem);
+      fp = fopen(tmpstr,"w");
+      if(fp == NULL){
+  printf("ERROR: cannot open %s for writing\n",tmpstr);
+  exit(1);
+      }
+      fprintf(fp,"%d %d 1 %d\n",ifi->NImageRows,ifi->NImageCols,Arch486());
+      fclose(fp);
+
+      return(0); exit(0);
+    }
+
+
     printf("ERROR: attribute %s not recognized\n",attrname);
     return(1); exit(1);
   }
@@ -391,6 +424,7 @@ static void print_help(void)
 "  patname   : patient name \n"
 "  patdob    : patient date of birth (YYYYMMDD)\n"
 "  patgender : patient gender\n"
+"  pixeldata : stores pixel data as a 2D image in img.bshort\n"
 "\n"
 "AUTHOR\n"
 "\n"
