@@ -4,13 +4,13 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 //
-// ID             : $Id: mri_segment.c,v 1.21 2003/04/16 17:37:05 kteich Exp $
-// Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2003/04/16 17:37:05 $
-// Revision       : $Revision: 1.21 $
+// ID             : $Id: mri_segment.c,v 1.22 2003/06/16 18:12:27 fischl Exp $
+// Revision Author: $Author: fischl $
+// Revision Date  : $Date: 2003/06/16 18:12:27 $
+// Revision       : $Revision: 1.22 $
 //
 ////////////////////////////////////////////////////////////////////
-char *MRI_SEGMENT_VERSION = "$Revision: 1.21 $";
+char *MRI_SEGMENT_VERSION = "$Revision: 1.22 $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -56,6 +56,7 @@ static int keep_edits = 0 ;
 
 static int auto_detect_stats =  1 ;
 static int log_stats = 1 ;
+static void  usage_exit(int code) ;
 
 #define BLUR_SIGMA 0.25f
 static float blur_sigma = BLUR_SIGMA ;
@@ -95,7 +96,7 @@ main(int argc, char *argv[])
   float   white_mean, white_sigma, gray_mean, gray_sigma ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_segment.c,v 1.21 2003/04/16 17:37:05 kteich Exp $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_segment.c,v 1.22 2003/06/16 18:12:27 fischl Exp $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -412,10 +413,7 @@ get_option(int argc, char *argv[])
     break ;
   case '?':
   case 'U':
-    fprintf(stderr,
-            "usage: %s <classifier file> <input volume> <output volume>\n",
-            Progname) ;
-    exit(1) ;
+    usage_exit(0) ;
     break ;
   default:
     fprintf(stderr, "unknown option %s\n", argv[1]) ;
@@ -1215,4 +1213,33 @@ MRIfindBrightNonWM(MRI *mri_T1, MRI *mri_wm)
 
   MRIfree(&mri_tmp) ;
   return(mri_labeled) ;
+}
+static void
+usage_exit(int code)
+{
+    printf("usage: %s <classifier file> <input volume> <output volume>\n\n", Progname) ;
+    printf("\t-slope <float s>  set the curvature slope (both n and p)\n");
+    printf("\t-pslope <float p> set the curvature pslope (default=%2.1f)\n", pslope);
+    printf("\t-nslope <float n> set the curvature nslope (default=%2.1f)\n", nslope);
+    printf("\t-debug_voxel <int x y z> set voxel for debugging\n");
+    printf("\t-auto             automatically detect class statistics (default)\n");
+    printf("\t-noauto           don't automatically detect class statistics\n");
+    printf("\t-log              log to ./segment.dat\n");
+    printf("\t-keep             keep wm edits. maintains all values of 0 and 255\n");
+    printf("\t-ghi, -gray_hi <int h> set the gray matter high limit (default=%2.3f)\n", gray_hi);
+    printf("\t-wlo, -wm_low  <int l> set the white matter low limit (default=%2.3f)\n", wm_low);
+    printf("\t-whi, -wm_hi <int h>   set the white matter high limit (default=%2.3f)\n", wm_hi);
+    printf("\t-nseg <int n>      thicken the n largest thin strands (default=%d)\n", nsegments);
+    printf("\t-thicken           toggle thickening step (default=ON)\n");
+    printf("\t-fillbg            toggle filling of the basal ganglia (default=OFF)\n");
+    printf("\t-fillv             toggle filling of the ventricles (default=OFF)\n");
+    printf("\t-b <float s>       set blur sigma (default=%2.2f)\n", blur_sigma);
+    printf("\t-n <int i>         set # iterations of border classification (default=%d)\n", niter);
+    printf("\t-t <int t>         set limit to thin strands in mm (default=%d)\n", thickness);
+    printf("\t-v                 verbose\n");
+    printf("\t-p <float p>       set %% threshold (default=%2.2f)\n", pct);
+    printf("\t-x <filename>      extract options from filename\n");
+    printf("\t-w <int w>         set wsize (default=%d)\n", wsize);
+    printf("\t-u                 usage\n");
+    exit(code);
 }
