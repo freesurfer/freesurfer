@@ -76,7 +76,7 @@ int ghi( char *header, int offset )
 /* Get Header (float) */
 float ghf( char *header, int offset )
 {
-#define signbit 020000000000
+#define sign_bit 020000000000
 #define dmantissa 077777777
 #define dexponent 0177
 #define dmantlen 24
@@ -98,11 +98,11 @@ float ghf( char *header, int offset )
 
 /* convert mv floating point numbers to sun float - from GE's mvtsunf */
   dg_exp = ( thing.ii >> 24 ) & dexponent;
-  dg_sign = thing.ii  & signbit;
+  dg_sign = thing.ii  & sign_bit;
   dg_mantissa = ( thing.ii  & dmantissa ) << 8;
 
   sun_exp = 4 * ( dg_exp - 64 );
-  while ( (k = dg_mantissa & signbit ) == 0 && dg_mantissa != 0) {
+  while ( (k = dg_mantissa & sign_bit ) == 0 && dg_mantissa != 0) {
       sun_exp--;
       dg_mantissa = dg_mantissa << 1;
   }
