@@ -277,12 +277,18 @@ static int   num_control_points = 0 ;
 
                                      /* pixel offsets in bits, used in drawing
                                         loops to composite pixels together */
-
+#ifdef LINUX
 #define kPixelOffset_Alpha                24
 #define kPixelOffset_Green                16
 #define kPixelOffset_Blue                 8
 #define kPixelOffset_Red                  0
-
+#endif
+#ifdef IRIX
+#define kPixelOffset_Alpha                0
+#define kPixelOffset_Green                8
+#define kPixelOffset_Blue                 16
+#define kPixelOffset_Red                  24
+#endif
 
 #define kCtrlPtCrosshairRadius            5
 #define kCursorCrosshairRadius            5
@@ -576,12 +582,18 @@ void SetCompositePixelInBuffer ( char * inBuffer, int inIndex,
                                  long inPixel );
 
                                        /* color values for 
-                                          drawing functions, 
-                                          alpha|b|g|r order (weird endian) */
+                                          drawing functions */
+           
+#ifdef LINUX
 #define kRGBAColor_Red      0xff0000ff
 #define kRGBAColor_Green    0xff00ff00
 #define kRGBAColor_Yellow   0xff00ffff
-
+#endif 
+#ifdef IRIX
+#define kRGBAColor_Red      0xff0000ff
+#define kRGBAColor_Green    0x00ff00ff
+#define kRGBAColor_Yellow   0xffff00ff
+#endif
                                        /* for managing and checking the 
                                           center point */
 void SetCenterVoxel ( int x, int y, int z );
