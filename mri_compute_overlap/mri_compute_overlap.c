@@ -23,6 +23,8 @@ static void usage_exit(int code) ;
 static int quiet = 0 ;
 static int all_flag = 0 ;
 
+static int in_label = -1 ;
+static int out_label = -1 ;
 int
 main(int argc, char *argv[])
 {
@@ -62,6 +64,12 @@ main(int argc, char *argv[])
   if (!mri2)
     ErrorExit(ERROR_NOFILE, "%s: could not read volume from %s",Progname,
               argv[2]) ;
+
+  if (in_label >= 0)
+  {
+    MRIreplaceValues(mri1, mri1, in_label, out_label) ;
+    MRIreplaceValues(mri2, mri2, in_label, out_label) ;
+  }
 
   if (log_fname)
   {
@@ -189,6 +197,12 @@ get_option(int argc, char *argv[])
   option = argv[1] + 1 ;            /* past '-' */
   switch (toupper(*option))
   {
+  case 'T':
+    in_label = atoi(argv[2]) ;
+    out_label = atoi(argv[3]) ;
+    nargs = 2 ;
+    printf("translating label %d to label %d\n", in_label, out_label) ;
+    break ;
   case 'Q':
     quiet = 1 ;
     break ;
