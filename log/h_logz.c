@@ -2355,13 +2355,17 @@ IMAGE *
 LogMapNonlocal(LOGMAP_INFO *lmi, IMAGE *Isrc, IMAGE *Ismooth, IMAGE *Idst)
 {
   int  rows, cols, x, y, ax, ay, sx, sy, x1, y1, dx, dy, odx, ody, d, xn, yn,
-       steps, dir, dot, wsize = 3, maxsteps = 6 ;
+       steps, dir, dot, wsize = 3, maxsteps = 3 ;
   float *src_xpix, *src_ypix, *oxpix, *oypix, fdir ;
   byte  *calculated ;
-  int   ring, spoke, xc, yc ;
+  int   ring, spoke ;
   IMAGE *Iout ;
+#define USE_MEDIAN 0
+#if USE_MEDIAN
+  int    xc, yc ;
   float  sort_farray[WINDOW_SIZE*WINDOW_SIZE], *fptr, *fpix ;
   byte   sort_barray[WINDOW_SIZE*WINDOW_SIZE], *bptr, *bpix ;
+#endif
 
   rows = Isrc->rows ;
   cols = Isrc->cols ;
@@ -2511,54 +2515,41 @@ LogMapNonlocal(LOGMAP_INFO *lmi, IMAGE *Isrc, IMAGE *Ismooth, IMAGE *Idst)
         }
       }
 
-#if 0
-      *IMAGEFpix(Ioffset, x1, y1) = (float)(x-x1) ;
-      *IMAGEFseq_pix(Ioffset, x1, y1, 1) = (float)(y-y1) ;
-#endif
-
       dx = (x - x1) ;
       dy = (y - y1) ;
+      *IMAGEFpix(Ioffset, x1, y1) = (float)dx ;         /* for diagnostics */
+      *IMAGEFseq_pix(Ioffset, x1, y1, 1) = (float)dy ;  /* for diagnostics */
 
       switch (Isrc->pixel_format)
       {
       case PFFLOAT:
+#if USE_MEDIAN
         /* build array of neighboring pixels - x and y are reused */
-#if 0
-        sort_farray[MEDIAN_INDEX] = *IMAGEFpix(Isrc, x1+dx,y1+dy) ;
-#else
         for (fptr = sort_farray, y = -WHALF ; y <= WHALF ; y++)
         {
           /* reflect across the boundary */
           yc = y + y1 + dy ;
-#if 0
-            /* don't need border checking as centroid wont be on border */
-          if (yc < 0)
-            yc = 0 ;
-          else if (yc >= rows)
-            yc = rows - 1 ;
-#endif
+
+          /* don't need border checking as centroid wont be on border */
           
           fpix = IMAGEFpix(Isrc, 0, yc) ;
           for (x = -WHALF ; x <= WHALF ; x++)
           {
             xc = x1 + x + dx ;
-#if 0
             /* don't need border checking as centroid wont be on border */
-            if (xc < 0)
-              xc = 0 ;
-            else if (xc >= cols)
-              xc = cols - 1 ;
-#endif
             
             *fptr++ = *(fpix + xc) ;
           }
         }
         qsort(sort_farray, WSQ, sizeof(float), compare_sort_farray) ;
-#endif
         *IMAGEFpix(Iout, ring, spoke) = sort_farray[MEDIAN_INDEX] ;
+#else
+        *IMAGEFpix(Iout, ring, spoke) = *IMAGEFpix(Ismooth,x1+dx, y1+dy) ;
+#endif
         break ;
       case PFBYTE:
         /* build array of neighboring pixels - x and y are reused */
+#if USE_MEDIAN
         for (bptr = sort_barray, y = -WHALF ; y <= WHALF ; y++)
         {
           /* reflect across the boundary */
@@ -2582,6 +2573,9 @@ LogMapNonlocal(LOGMAP_INFO *lmi, IMAGE *Isrc, IMAGE *Ismooth, IMAGE *Idst)
         }
         qsort(sort_barray, WSQ, sizeof(float), compare_sort_barray) ;
         *IMAGEpix(Iout, ring, spoke) = sort_barray[MEDIAN_INDEX] ; ;
+#else
+        *IMAGEpix(Iout, ring, spoke) = *IMAGEpix(Ismooth,x1+dx, y1+dy) ;
+#endif
         break ;
       default:
         ErrorReturn(Idst, (ERROR_UNSUPPORTED, 
