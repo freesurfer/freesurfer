@@ -1140,11 +1140,11 @@ proc DoVolumeColorScaleInfoDlog { } {
     { {"Brightness"} gfVolumeColorScaleThresh(0) \
     1 0 100 "SendVolumeColorScale" 1 0.01 } \
     { {"Contrast"} gfVolumeColorScaleSquash(0) \
-    0 20 100 "SendVolumeColorScale" 1 } \
+    0 30 100 "SendVolumeColorScale" 1 } \
     { {"Aux Brightness"} gfVolumeColorScaleThresh(1) \
     1 0 100 "SendVolumeColorScale" 1 0.01 } \
     { {"Aux Contrast"} gfVolumeColorScaleSquash(1) \
-    0 20 100 "SendVolumeColorScale" 1 } }
+    0 30 100 "SendVolumeColorScale" 1 } }
   
   # buttons
   tkm_MakeCloseButton $fwButtons $wwDialog
