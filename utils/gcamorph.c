@@ -3,8 +3,8 @@
 //
 // 
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Date  : $Date: 2004/05/28 20:05:13 $
-// Revision       : $Revision: 1.44 $
+// Revision Date  : $Date: 2004/05/28 21:06:19 $
+// Revision       : $Revision: 1.45 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -215,6 +215,9 @@ GCAMwrite(GCA_MORPH *gcam, char *fname)
     // write gzipped file
     myclose=pclose;
     strcpy(command, "gzip -f -c > " );
+		if (strlen(command) + strlen(fname) >= STRLEN-1)
+			ErrorReturn(ERROR_BADPARM, 
+									(ERROR_BADPARM, "%s:GCAMwrite(%s): gzip command line too long (%d)", Progname,fname, STRLEN));
     strcat(command, fname);
     errno=0;
     fp = popen(command, "w");
@@ -4441,6 +4444,7 @@ gcamRemoveNegativeNodes(GCA_MORPH *gcam, MRI *mri, GCA_MORPH_PARMS *parms)
 static int
 check_gcam(GCAM *gcam)
 {
+#if 0
   int  x, y, z ;
   GCA_MORPH_NODE *gcamn ;
   
@@ -4460,6 +4464,8 @@ check_gcam(GCAM *gcam)
       }
     }
   }
+#endif
+
   return(0) ;
 }
 

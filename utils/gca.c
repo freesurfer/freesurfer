@@ -2,9 +2,9 @@
 // originally written by Bruce Fischl
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2004/05/28 20:05:03 $
-// Revision       : $Revision: 1.142 $
+// Revision Author: $Author: fischl $
+// Revision Date  : $Date: 2004/05/28 21:06:19 $
+// Revision       : $Revision: 1.143 $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -1507,7 +1507,6 @@ GCAwrite(GCA *gca, char *fname)
     myclose = pclose;
     strcpy(command, "gzip -f -c > ");
     strcat(command, fname);
-    errno=0;
     fp = popen(command, "w");
     if (errno)
     {
@@ -1666,7 +1665,6 @@ GCAread(char *fname)
     myclose = pclose;
     strcpy(command, "zcat ");
     strcat(command, fname);
-    errno=0;
     fp = popen(command, "r");
     if (errno)
     {
@@ -13004,4 +13002,67 @@ GCA *GCAcompactify(GCA *gca)
   printf("GCAcompactify reduced the memory use by %.f bytes.\n", byteSaved);
 
   return gca;
+}
+MRI *
+GCAreplaceImpossibleLabels(MRI *mri_inputs, GCA *gca, MRI *mri_in_labels, MRI *mri_out_labels, TRANSFORM *transform)
+{
+  int       x, y, z, width, height, depth, label, xn, yn, zn, n, found, nchanged ;
+  GCA_NODE  *gcan ;
+  GCA_PRIOR *gcap ;
+  float      max_p, p, vals[MAX_GCA_INPUTS] ;
+
+	mri_out_labels = MRIcopy(mri_in_labels, mri_out_labels) ;
+
+  width = mri_inputs->width ; height = mri_inputs->height; 
+  depth = mri_inputs->depth ;
+  for (nchanged = x = 0 ; x < width ; x++)
+  {
+    for (y = 0 ; y < height ; y++)
+    {
+      for (z = 0 ; z < depth ; z++)
+      {
+        if (x == Ggca_x && y == Ggca_y && z == Ggca_z)  
+          DiagBreak() ; 
+				label = MRIvox(mri_out_labels, x, y, z) ;
+        if (!GCAsourceVoxelToNode(gca, mri_inputs, transform, x, y, z, &xn, &yn, &zn))
+				{
+					gcan = &gca->nodes[xn][yn][zn] ;
+					gcap = getGCAP(gca, mri_inputs, transform, x, y, z) ;
+					if (gcap==NULL)
+						continue;
+					for (found = n = 0 ; n < gcap->nlabels ; n++)
+					{
+						if (gcap->labels[n] == label)
+						{
+							found = 1 ;
+							break ;
+						}
+					}
+					if (found)
+						continue ;
+					load_vals(mri_inputs, x, y, z, vals, gca->ninputs);
+					nchanged++ ;
+					max_p = GCAcomputePosteriorDensity(gcap, gcan, 0, vals, gca->ninputs) ; 
+					label = gcap->labels[0] ;
+					for (n = 1 ; n < gcap->nlabels ; n++)
+					{
+						p = GCAcomputePosteriorDensity(gcap, gcan, n, vals, gca->ninputs) ; 
+						if (p >= max_p)
+						{
+							max_p = p ;
+							label = gcap->labels[n] ;
+						}
+					}
+					if (x == Ggca_x && y == Ggca_y && z == Ggca_z)
+						printf("changing label at (%d, %d, %d) from %s (%d) to %s (%d)\n",
+									 x, y, z, cma_label_to_name(MRIvox(mri_out_labels,x,y,z)),
+									 MRIvox(mri_out_labels,x,y,z), cma_label_to_name(label), label) ;
+					MRIvox(mri_out_labels, x, y, z) = label ;
+				}
+			}
+		}
+	}
+
+	printf("%d impossible labels replaced...\n", nchanged) ;
+	return(mri_out_labels) ;
 }
