@@ -12,7 +12,7 @@
 #include "mrimorph.h"
 #include "timer.h"
 
-static char vcid[] = "$Id: mri_fill.c,v 1.30 1999/08/06 00:51:31 fischl Exp $";
+static char vcid[] = "$Id: mri_fill.c,v 1.31 1999/08/13 23:10:20 fischl Exp $";
 
 /*-------------------------------------------------------------------
                                 CONSTANTS
@@ -970,11 +970,13 @@ find_cutting_plane(MRI *mri, Real x_tal, Real y_tal,Real z_tal,int orientation,
         MRIfillFG(mri_slices[slice],NULL,xo,yo,0,WM_MIN_VAL,127,&area[slice]);
       MRIboundingBox(mri_filled[slice], 1, &region) ;
       aspects[slice] = (Real)region.dy / (Real)region.dx ;
-      
+
+#if 0      
       /* don't trust slices that extend to the border of the image */
       if (!region.x || !region.y || region.x+region.dx >= SLICE_SIZE-1 ||
           region.y+region.dy >= SLICE_SIZE-1)
         area[slice] = 0 ;
+#endif
       
       if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
         fprintf(stderr, "slice[%d] @ (%d, %d, %d): area = %d\n", 
