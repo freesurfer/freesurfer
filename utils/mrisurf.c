@@ -274,6 +274,8 @@ static int   mrisValidVertices(MRI_SURFACE *mris) ;
 static int   mrisValidFaces(MRI_SURFACE *mris) ;
 static int   mrisLabelVertices(MRI_SURFACE *mris, float cx, float cy, 
                                float cz, int label, float radius) ;
+static int mrisComputeShrinkwrapTerm(MRI_SURFACE *mris, MRI *mri_brain, double  l_shrinkwrap) ;
+static double mrisComputeShrinkwrapError(MRI_SURFACE *mris, MRI *mri_brain, double l_shrinkwrap) ;
 
 
 #if 0
@@ -5230,7 +5232,7 @@ MRIScomputeSSE(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
   double  sse, sse_area, sse_angle, delta, sse_curv, sse_spring, sse_dist,
           area_scale, sse_corr, sse_neg_area, l_corr, sse_val, sse_sphere,
           sse_grad, sse_nl_area, sse_tspring, sse_repulse, sse_tsmooth,
-          sse_repulsive_ratio;
+          sse_repulsive_ratio, sse_shrinkwrap;
   int     ano, fno ;
   FACE    *face ;
   MHT     *mht_v_current = NULL ;
@@ -5245,7 +5247,7 @@ MRIScomputeSSE(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
 #endif
 
   sse_repulse = sse_nl_area = sse_corr = sse_angle = sse_neg_area = sse_val = sse_sphere =
-    sse_area = sse_spring = sse_curv = sse_dist = sse_tspring = sse_grad = 0.0;
+    sse_shrinkwrap = sse_area = sse_spring = sse_curv = sse_dist = sse_tspring = sse_grad = 0.0;
 
   if (!FZERO(parms->l_repulse))
     mht_v_current = MHTfillVertexTable(mris, mht_v_current,CURRENT_VERTICES);
@@ -5303,6 +5305,8 @@ MRIScomputeSSE(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
     sse_grad = mrisComputeIntensityGradientError(mris, parms) ;
   if (!FZERO(parms->l_sphere))
     sse_sphere = mrisComputeSphereError(mris, parms->l_sphere, parms->a) ;
+  if (!FZERO(parms->l_shrinkwrap))
+    sse_shrinkwrap = mrisComputeShrinkwrapError(mris, parms->mri_brain, parms->l_shrinkwrap) ;
 
   sse = 0 ;
 
@@ -5310,6 +5314,7 @@ MRIScomputeSSE(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
     (double)parms->l_area      * sse_neg_area + sse_repulse + sse_tsmooth +
     (double)parms->l_sphere    * sse_sphere + sse_repulsive_ratio +
     (double)parms->l_intensity * sse_val + 
+    (double)parms->l_shrinkwrap * sse_shrinkwrap + 
     (double)parms->l_grad      * sse_grad + 
     (double)parms->l_parea     * sse_area + 
     (double)parms->l_nlarea    * sse_nl_area + 
@@ -11641,13 +11646,14 @@ mrisComputeTangentialSpringTerm(MRI_SURFACE *mris, double l_spring)
 
 static int
 mrisComputeIntensityTerm(MRI_SURFACE *mris, double l_intensity, MRI *mri_brain,
-                         MRI *mri_smooth, double sigma)
+                         MRI *mri_smooth, double sigma_global)
 {
   int     vno ;
   VERTEX  *v ;
   float   x, y, z, nx, ny, nz, dx, dy, dz ;
   Real    val0, xw, yw, zw, del, val_outside, val_inside, delI, delV, k,
           ktotal ;
+	double  sigma ;
 
   if (FZERO(l_intensity))
     return(NO_ERROR) ;
@@ -11666,6 +11672,8 @@ mrisComputeIntensityTerm(MRI_SURFACE *mris, double l_intensity, MRI *mri_brain,
     MRIsurfaceRASToVoxel(mri_brain, x, y, z, &xw, &yw, &zw);
     MRIsampleVolume(mri_brain, xw, yw, zw, &val0) ;
     sigma = v->val2 ;
+		if (FZERO(sigma))
+			sigma = sigma_global ;
 
     nx = v->nx ; ny = v->ny ; nz = v->nz ;
 
@@ -11685,13 +11693,13 @@ mrisComputeIntensityTerm(MRI_SURFACE *mris, double l_intensity, MRI *mri_brain,
         k = exp(-dist*dist/(2*sigma*sigma)) ; ktotal += k ;
         xw = x + dist*nx ; yw = y + dist*ny ; zw = z + dist*nz ;
         // MRIworldToVoxel(mri_brain, xw, yw, zw, &xw, &yw, &zw) ;
-	MRIsurfaceRASToVoxel(mri_brain, xw, yw, zw, &xw, &yw, &zw);
+				MRIsurfaceRASToVoxel(mri_brain, xw, yw, zw, &xw, &yw, &zw);
         MRIsampleVolume(mri_brain, xw, yw, zw, &val) ;
         val_outside += k*val ;
-
+				
         xw = x - dist*nx ; yw = y - dist*ny ; zw = z - dist*nz ;
         // MRIworldToVoxel(mri_brain, xw, yw, zw, &xw, &yw, &zw) ;
-	MRIsurfaceRASToVoxel(mri_brain, xw, yw, zw, &xw, &yw, &zw);
+				MRIsurfaceRASToVoxel(mri_brain, xw, yw, zw, &xw, &yw, &zw);
         MRIsampleVolume(mri_brain, xw, yw, zw, &val) ;
         val_inside += k*val ;
       }
@@ -12649,6 +12657,8 @@ mrisLogIntegrationParms(FILE *fp, MRI_SURFACE *mris,INTEGRATION_PARMS *parms)
           (float)parms->tol, host_name, parms->n_averages, mris->nsize) ;
   if (!FZERO(parms->l_area))
     fprintf(fp, ", l_area=%2.3f", parms->l_area) ;
+  if (!FZERO(parms->l_shrinkwrap))
+    fprintf(fp, ", l_shrinkwrap=%2.3f", parms->l_shrinkwrap) ;
   if (!FZERO(parms->l_external))
     fprintf(fp, ", l_extern=%2.3f", parms->l_external) ;
   if (!FZERO(parms->l_parea))
@@ -17271,6 +17281,7 @@ MRISpositionSurface(MRI_SURFACE *mris, MRI *mri_brain, MRI *mri_smooth,
     MRISclearGradient(mris) ;
     mrisComputeIntensityTerm(mris, l_intensity, mri_brain, mri_smooth,
                              parms->sigma);
+		mrisComputeShrinkwrapTerm(mris, mri_brain, parms->l_shrinkwrap) ;
     mrisComputeIntensityGradientTerm(mris, parms->l_grad,mri_brain,mri_smooth);
     mrisComputeSurfaceRepulsionTerm(mris, parms->l_surf_repulse, mht_v_orig);
     if (gMRISexternalGradient)
@@ -34198,3 +34209,58 @@ MRISspringTermWithGaussianCurvature(MRI_SURFACE *mris, double gaussian_norm, dou
   return(NO_ERROR) ;
 }
 
+static int
+mrisComputeShrinkwrapTerm(MRI_SURFACE *mris, MRI *mri_brain, double  l_shrinkwrap)
+{
+	int    vno ;
+	Real   xw, yw, zw, x, y, z, val, dx, dy, dz ;
+	VERTEX *v ;
+	float  min_val, max_val, target_val, delta ;
+
+	MRIvalRange(mri_brain, &min_val, &max_val) ;
+	target_val = (min_val + max_val) / 2 ;
+	for (vno = 0 ; vno < mris->nvertices ; vno++)
+	{
+		v = &mris->vertices[vno] ;
+		target_val = v->val ;
+		x = v->x ; y = v->y ; z = v->z ;
+    MRIsurfaceRASToVoxel(mri_brain, x, y, z, &xw, &yw, &zw);
+    MRIsampleVolume(mri_brain, xw, yw, zw, &val) ;
+		delta = (val - target_val) ;
+		dx = delta * v->nx * l_shrinkwrap ;
+		dy = delta * v->ny * l_shrinkwrap ;
+		dz = delta * v->nz * l_shrinkwrap ;
+
+		v->dx += dx ; v->dy += dy ; v->dz += dz ;
+    if (vno == Gdiag_no)
+      fprintf(stdout, "v %d shrinkwrap term: (%2.3f, %2.3f, %2.3f), target %2.1f, MRI %2.1f, del=%2.1f, N=(%2.1f, %2.1f, %2.1f)\n",
+              vno, dx, dy, dz, target_val, val, delta, v->nx, v->ny, v->nz) ;
+	}
+	return(NO_ERROR) ;
+}
+
+static double
+mrisComputeShrinkwrapError(MRI_SURFACE *mris, MRI *mri_brain, double l_shrinkwrap)
+{
+#if 0
+	static int iter = 100 ;
+	int    vno ;
+	Real   xw, yw, zw, x, y, z, val ;
+	VERTEX *v ;
+	float  min_val, max_val, target_val, error ;
+	double sse ;
+
+	MRIvalRange(mri_brain, &min_val, &max_val) ;
+	target_val = (min_val + max_val) / 2 ;
+	sse = 0 ;
+	for (vno = 0 ; vno < mris->nvertices ; vno++)
+	{
+		v = &mris->vertices[vno] ;
+		sse += iter ;
+	}
+	iter-- ;
+	return(sse) ;
+#else
+	return(0.0) ;
+#endif
+}
