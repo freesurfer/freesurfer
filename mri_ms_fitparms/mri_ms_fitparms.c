@@ -159,6 +159,8 @@ main(int argc, char *argv[])
                 Progname, nvolumes, in_fname) ;
     nvolumes++ ;
   }
+
+  
   printf("using %d FLASH volumes to estimate tissue parameters.\n", nvolumes) ;
   mri_T1 = MRIclone(mri_flash[0], NULL) ;
   mri_PD = MRIclone(mri_flash[0], NULL) ;
@@ -484,7 +486,10 @@ estimate_ms_params(MRI **mri_flash, MRI **mri_flash_synth, int nvolumes, MRI *mr
       center_indx = best_indx;
     }
     T1 = MRISvox(mri_T1, x, y, z) = (short)nint(SignalTableT1[best_indx]);
-    PD = MRISvox(mri_PD, x, y, z) = (short)nint(norm/SignalTableNorm[best_indx]);
+    PD = norm/SignalTableNorm[best_indx];
+    if ((short)PD < 0)
+      PD = (double)(0x7fff-1) ;
+    MRISvox(mri_PD, x, y, z) = PD ;
     for (j = 0 ; j < nvolumes ; j++)
     {
       mri = mri_flash_synth[j] ;
