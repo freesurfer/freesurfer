@@ -1,18 +1,3 @@
-/*
-new ScreenToRAS function
-on SetCursorToScreenPt, use ScreenToRAS to set RAS
-
-rewrite RecenterViewToScreenPt
-cursor to ras, save ras
-inScreen to voxel
-recenter around voxel
-SetCursorToRASPt ( saved ras )
-
-how to draw multiple vertices? averaged?
-
-change SaveCursorInVoxel to SaveCursor/RestoreCursor using RAS pts
- */
-
 /*============================================================================
  Copyright (c) 1996 Martin Sereno and Anders Dale
 =============================================================================*/
@@ -84,6 +69,9 @@ int            tk_NumMainWindows = 0;
 #  define mapcolor(I,R,G,B)  \
            tkoSetOneColor((int)I,(float)R/255.0,(float)G/255.0,(float)B/255.0)
 #  define rectwrite(X0,Y0,X1,Y1,P) \
+           glMatrixMode ( GL_PROJECTION ); \
+           glLoadIdentity (); \
+           glOrtho ( 0, xdim-1, 0, ydim-1, -1.0, 1.0 ); \
            glRasterPos2i(X0,Y0); \
            glDrawPixels((X1-X0)+1,(Y1-Y0)+1,GL_RGBA,GL_UNSIGNED_BYTE,P) 
 /*
@@ -284,7 +272,7 @@ static int   control_points = 0 ;
 static int   num_control_points = 0 ;
 
 
-// kt
+// ============================================================ kevin teich's stuff
 
                                        /* irix compiler doesn't like inlines */
 #ifdef IRIX
@@ -292,7 +280,8 @@ static int   num_control_points = 0 ;
 #endif
 
 
-                                     /* constants */
+// ================================================================== DEBUGGING
+
 #define kDebugging          1 
 
 /* these can be redefined to do anything, or nothing at all. they can be used
@@ -312,6 +301,8 @@ char gDebuggingOn;
 #define EndDebugCode            
 #define DebugPrint              if(gDebuggingOn) { fprintf ( stderr,
 #define EndDebugPrint           ); }
+#define Here(n)                 if(gDebuggingOn){fprintf(stderr,"--> here %d\n",\
+                                n);}
 
 #else
 
@@ -324,8 +315,12 @@ char gDebuggingOn;
 #define EndDebugCode            */
 #define DebugPrint              /*
 #define EndDebugPrint           */
+#define Here(n)
 #endif
 
+// ===========================================================================
+
+// ==================================================================== OUTPUT
 
 /* for regular output. this could be remapped to display to a file or some 
    window widget like a status bar. that'd be cool. */
@@ -333,6 +328,10 @@ char gDebuggingOn;
 #define DeleteOutput
 #define OutputPrint            fprintf ( stdout,
 #define EndOutputPrint         );
+
+// ===========================================================================
+
+// ================================================================== GRAPHICS
 
 
 #define kBytesPerPixel                    4         // assume 32 bit pixels
@@ -352,22 +351,71 @@ char gDebuggingOn;
 #define kPixelOffset_Red                  0
 #endif
 
+                                       /* color values for 
+                                          drawing functions */
+           
+#ifdef IRIX
+#define kRGBAColor_Red      0xff0000ff
+#define kRGBAColor_Green    0x00ff00ff
+#define kRGBAColor_Yellow   0xffff00ff
+#else
+#define kRGBAColor_Red      0xff0000ff
+#define kRGBAColor_Green    0xff00ff00
+#define kRGBAColor_Yellow   0xff00ffff
+#endif 
+
+
 #define kCtrlPtCrosshairRadius            5
 #define kCursorCrosshairRadius            5
-
-
-                                     /* determines if a number is odd. */
-#define isOdd(x) (x%2)
 
                                      /* for indexing arrays of points */
 #define kPointArrayIndex_X                0
 #define kPointArrayIndex_Y                1
 #define kPointArrayIndex_Beginning        0
 
-                                      /* for different surface types */
-#define kSurfaceType_Current              0
-#define kSurfaceType_Original             1
-#define kSurfaceType_Canonical            2
+                                       /* draws a crosshair cursor into a 
+                                          video buffer. */
+void DrawCrosshairInBuffer ( char * inBuffer,       // the buffer
+                               int inX, int inY,      // location in buffer
+                               int inSize,            // radius of crosshair
+                               long inColor );        // color, should be a
+                                                      // kRGBAColor_ value
+
+                                       /* fills a box with a color.
+                                          starts drawing with the input coords
+                                          as the upper left and draws a box 
+                                          the dimesnions of the size */
+void FillBoxInBuffer ( char * inBuffer,       // the buffer
+                       int inX, int inY,      // location in buffer
+                       int inSize,            // width/height of pixel
+                       long inColor );        // color, should be a
+                                              // kRGBAColor_ value
+
+
+                                       /* fast pixel blitting */
+inline
+void SetGrayPixelInBuffer ( char * inBuffer, int inIndex, int inCount,
+                            unsigned char inGray );
+
+inline
+void SetColorPixelInBuffer ( char * inBuffer, int inIndex, int inPixelSize,
+                             unsigned char inRed, unsigned char inGreen,
+                             unsigned char inBlue );
+
+inline
+void SetCompositePixelInBuffer ( char * inBuffer, int inIndex, int inCount,
+                                 long inPixel );
+
+                                       /* general function that draws a list
+            of vertices as something in opengl */
+void DrawWithFloatVertexArray ( GLenum inMode,
+        float *inVertices, int inNumVertices );
+
+
+
+// =============================================================================
+
+// ======================================================================= VOXEL
 
                                        /* a voxel data struct. most places
                                           only need an int voxel, but some
@@ -389,11 +437,11 @@ inline float Voxel_GetFloatX ( Voxel * inVoxel );
 inline float Voxel_GetFloatY ( Voxel * inVoxel );
 inline float Voxel_GetFloatZ ( Voxel * inVoxel );
 
+// =============================================================================
 
+// ================================================================== VOXEL LIST
 
-                                       /* managers for the list of selected
-                                          control pts. really just an array
-                                          and some accessor methods. each
+                                       /* a list of voxels. each function
                                           returns an error code. */
 #define kVListErr_NoErr                                0
 #define kVListErr_InvalidPtr                           1
@@ -472,6 +520,10 @@ void TclVList_PrintDebug ( VoxelList * inList );
 char * VList_GetErrorString ( int inErr );
 
 
+// =============================================================================
+
+// ================================================================= VOXEL SPACE
+
                                        /* VoxelSpace, a 3-plane list of voxels
                                           optimized for searching for voxels 
                                           in 3 dimensions */
@@ -543,55 +595,177 @@ void TclVSpace_PrintDebug ( VoxelSpace * inSpace );
                                        /* return an error string */
 char * VSpace_GetErrorString ( int inErrorNum );
 
-                                       /* main handling function for clicks.
-                                          looks at modifier keys and other
-                                          program state and calls the
-                                          approritate functions for
-                                          manipulation cursor, zoom level, and
-                                          selecting. */
-void ProcessClick ( int inClickX, int inClickY );
+// =============================================================================
 
-                                       /* main functions for setting the 
-                                          cursor (red crosshair) to a certain
-                                          point in screen coords. the latter
-                  calls the former. */
-void SetCursorToScreenPt ( int inScreenX, int inScreenY, int inScreenZ );
-void SetCursorToRASPt ( Real inRASX, Real inRASY, Real inRASZ );
+// ====================================================== COORDINATE CONVERSIONS
 
-                                       /* when the tcl script changes planes
-                                          in zoomed mode, some coordinates 
-                                          that were in zoomed space get
-                                          changed due to differences in the
-                                          screen->voxel conversion based on
-                                          the new plane. these two functions
-                                          save the cursor in voxel coords,
-                                          which are the same in any plane,
-                                          and then after the plane switch
-                                          changes them back to screen coords.
-                                          these are called from the tcl
-                                          script. */
-void SaveCursorInVoxel ();
-void SetCursorToSavedVoxel ();
+                                        /* convert a click to screen coords. 
+                                           only converts the two coords that 
+                                           correspond to the x/y coords on
+                                           the visible plane, leaving the
+                                           third untouched, so the out
+                                           coords should be set to the current
+                                           cursor coords before calling. */
+void ClickToScreen ( int inH, int inV, int inPlane,
+                     int *ioScreenJ, int *ioScreenI, int *ioScreenIM );
 
-                                       /* sets the plane, preserving cursor
-                                          location properly. */
-void SetPlane ( int inNewPlane );
+                                       /* converts screen coords to 
+                                          voxel coords and back */
+void ScreenToVoxel ( int inPlane,               // what plane we're on
+                     int j, int i, int im,      // incoming screen coords
+                     int *x, int *y, int *z);   // outgoing voxel coords
 
-                                       /* this function sets the view
-                                          center to a new screen point. */
-void RecenterViewToScreenPt ( int inScreenX, int inScreenY, int inScreenZ );
-void RecenterViewToCursor ();
+                                       /* there are actually two screen 
+                                          spaces, unzoomed and local zoomed, 
+                                          and when conveting screen to voxel
+                                          and back, the x/y screen coords get
+                                          the local zoomer conversion and the
+                                          z gets the unzoomed conversion, so we
+                                          have seperate inline functions for
+                                          doing everything. */
+inline int ScreenXToVoxelX ( int j );
+inline int LocalZoomXToVoxelX ( int lj );
+inline int ScreenYToVoxelY ( int i );
+inline int LocalZoomYToVoxelY ( int li );
+inline int ScreenZToVoxelZ ( int im );
+inline int LocalZoomZToVoxelZ ( int lim );
 
-                                       /* do local zooming. ZoomViewIn() and 
-                                          Out() zoom in and out by a factor
-                                          of 2, while UnzoomView() resets the 
-                                          zoom to 1x and recenters to the
-                                          middle voxel. */
-void ZoomViewIn ();
-void ZoomViewOut ();
-void UnzoomView ();
+void VoxelToScreen ( int x, int y, int z,       // incoming voxel coords
+                     int inPlane,               // what plane we're on
+                     int *j, int *i, int *im ); // outgoing screen coords 
+
+inline int VoxelXToScreenX ( int x );
+inline int VoxelXToLocalZoomX ( int x );
+inline int VoxelYToScreenY ( int y );
+inline int VoxelYToLocalZoomY ( int y );
+inline int VoxelZToScreenZ ( int z );
+inline int VoxelZToLocalZoomZ ( int z );
+
+                                       /* converts ras coords to
+                                          voxel coords and back */
+void RASToVoxel ( Real x, Real y, Real z,        // incoming ras coords
+                  int *xi, int *yi, int *zi );   // outgoing voxel coords
+
+void VoxelToRAS ( int xi, int yi, int zi,        // incoming voxel coords
+                  Real *x, Real *y, Real *z );   // outgoing RAS coords
+
+                                       /* convert ras coords to the two
+                                          two screen coords that are relevant
+            for this plane. this is specifically
+                                          used when we are zoomed in and need
+                                          to get screen coords that are more
+                                          precise than int voxels. */
+void RASToFloatScreenXY ( Real x, Real y, Real z,    // incoming ras coords
+                          int inPlane,               // plane to convert on
+                          float *j, float *i );      // out float screen
+
+                                       /* convert ras coords to screen coords
+            and back. note that this is a much
+            finer resolution of screen coords
+            than the voxel-screen conversions. */
+void RASToScreen ( Real inX, Real inY, Real inZ,
+       int inPlane, 
+       int * outScreenX, int * outScreenY, int * outScreenZ );
+void ScreenToRAS ( int inPlane, int inScreenX, int inScreenY, int inScreenZ,
+       Real * outRASX, Real * outRASY, Real * outRASZ );
+
+
+// =============================================================================
+
+// ============================================================= BOUNDS CHECKING
+
+                                        /* various bounds checking. these
+                                           three check basic bounds conditions.
+                                           if they fail, something is 
+                                           very wrong, and using those coords
+                                           will probably cause a crash. */
+inline char IsScreenPointInBounds ( int inPlane, int j, int i, int im );
+inline char IsVoxelInBounds ( int x, int y, int z );
+inline char IsRASPointInBounds ( Real x, Real y, Real z );
+
+                                        /* these two check if screen points
+                                           are _visible_ within the current
+                                           window, not adjusting for local
+                                           zooming. if they fail, it doesn't
+                                           mean the screen point will cause
+                                           a crash, it just means that it
+                                           won't be visible on the current
+                                           window. */
+inline char IsScreenPtInWindow ( int j, int i, int im );
+inline char IsTwoDScreenPtInWindow ( int j, int i );
+
+// =============================================================================
+
+// ==================================================== SELECTING CONTROL POINTS
 
 inline char IsInSelectionMode ();
+
+                                       /* draw control point. switches on 
+                                          the current display style of the 
+                                          point. */
+void DrawCtrlPt ( char * inBuffer,  // video buffer to draw into
+                  int inX, int inY, // x,y location in the buffer
+                  long inColor );   // color to draw in
+
+                                       /* handles the clicking of ctrl pts.
+                                          takes a screen pt and looks for the
+                                          closest ctrl pt in the same plane
+                                          displayed on the screen. if it
+                                          finds one, it adds or removes it
+                                          from the selection, depending on
+                                          the ctrt and shift key. */
+void SelectCtrlPt ( int inScreenX, int inScreenY,     // screen pt clicked
+                    int inScreenZ, int inPlane );     // plane to search in
+
+                                        /* remove the selected control points 
+                                       tk    from the control point space */
+void DeleteSelectedCtrlPts ();
+
+
+                                       /* reads the control.dat file, 
+                                          transforms all pts from RAS space 
+                                          to voxel space, and adds them as 
+                                          control pts */
+void ProcessCtrlPtFile ( char * inDir );
+
+                                       /* writes all control points to the
+                                          control.dat file in RAS space */
+void WriteCtrlPtFile ( char * inDir );
+
+                                       /* tsia */
+void ToggleCtrlPtDisplayStatus ();
+void ToggleCtrlPtDisplayStyle ();
+
+                                       /* global storage for ctrl space. */
+VoxelSpace gCtrlPtList;
+
+                                       /* global storage for selected ctrl 
+                                          pts. */
+VoxelList gSelectionList;
+
+                                       /* flag for displaying ctrl pts. if 
+                                          true, draws ctrl pts in draw loop. */
+char gIsDisplayCtrlPts;
+
+                                       /* style of control point to draw */
+#define kCtrlPtStyle_Point                    1
+#define kCtrlPtStyle_Crosshair                2
+char gCtrlPtDrawStyle;
+
+                                       /* whether or not we've added the 
+                                          contents of the control.dat file to
+                                          our control pt space. we only want
+                                          to add it once. */
+char gParsedCtrlPtFile;
+
+// =============================================================================
+
+// ==================================================================== SURFACES
+
+                                      /* for different surface types */
+#define kSurfaceType_Current              0
+#define kSurfaceType_Original             1
+#define kSurfaceType_Canonical            2
 
                                        /* stuffs a vertex into a voxel, using
                                           the plane to determine orientation
@@ -637,250 +811,6 @@ void CalcDrawPointsForVoxelsCrossingPlane ( float inPlaneZ, int inPlane,
                                             float *outX, float *outY );
 void DrawSurface ( MRI_SURFACE * theSurface, int inPlane, int inSurface );
 
-
-                                       /* draw control point. switches on 
-                                          the current display style of the 
-                                          point. */
-void DrawCtrlPt ( char * inBuffer,  // video buffer to draw into
-                  int inX, int inY, // x,y location in the buffer
-                  long inColor );   // color to draw in
-
-                                       /* handles the clicking of ctrl pts.
-                                          takes a screen pt and looks for the
-                                          closest ctrl pt in the same plane
-                                          displayed on the screen. if it
-                                          finds one, it adds or removes it
-                                          from the selection, depending on
-                                          the ctrt and shift key. */
-void SelectCtrlPt ( int inScreenX, int inScreenY,     // screen pt clicked
-                    int inScreenZ, int inPlane );     // plane to search in
-
-                                        /* remove the selected control points 
-                                       tk    from the control point space */
-void DeleteSelectedCtrlPts ();
-
-
-                                       /* reads the control.dat file, 
-                                          transforms all pts from RAS space 
-                                          to voxel space, and adds them as 
-                                          control pts */
-void ProcessCtrlPtFile ( char * inDir );
-
-                                       /* writes all control points to the
-                                          control.dat file in RAS space */
-void WriteCtrlPtFile ( char * inDir );
-
-                                       /* tsia */
-void ToggleCtrlPtDisplayStatus ();
-void ToggleCtrlPtDisplayStyle ();
-
-                                        /* convert a click to screen coords. 
-                                           only converts the two coords that 
-                                           correspond to the x/y coords on
-                                           the visible plane, leaving the
-                                           third untouched, so the out
-                                           coords should be set to the current
-                                           cursor coords before calling. */
-void ClickToScreen ( int inH, int inV, int inPlane,
-                     int *ioScreenJ, int *ioScreenI, int *ioScreenIM );
-
-                                       /* converts screen coords to 
-                                          voxel coords and back */
-void ScreenToVoxel ( int inPlane,               // what plane we're on
-                     int j, int i, int im,      // incoming screen coords
-                     int *x, int *y, int *z);   // outgoing voxel coords
-
-                                       /* there are actually two screen 
-                                          spaces, unzoomed and local zoomed, 
-                                          and when conveting screen to voxel
-                                          and back, the x/y screen coords get
-                                          the local zoomer conversion and the
-                                          z gets the unzoomed conversion, so we
-                                          have seperate inline functions for
-                                          doing everything. */
-inline int ScreenXToVoxelX ( int j );
-inline int LocalZoomXToVoxelX ( int lj );
-inline int ScreenYToVoxelY ( int i );
-inline int LocalZoomYToVoxelY ( int li );
-inline int ScreenZToVoxelZ ( int im );
-inline int LocalZoomZToVoxelZ ( int lim );
-
-void VoxelToScreen ( int x, int y, int z,       // incoming voxel coords
-                     int inPlane,               // what plane we're on
-                     int *j, int *i, int *im ); // outgoing screen coords 
-
-inline int VoxelXToScreenX ( int x );
-inline int VoxelXToLocalZoomX ( int x );
-inline int VoxelYToScreenY ( int y );
-inline int VoxelYToLocalZoomY ( int y );
-inline int VoxelZToScreenZ ( int z );
-inline int VoxelZToLocalZoomZ ( int z );
-
-                                        /* various bounds checking. the first
-                                           two check basic bounds conditions.
-                                           if they fail, something is 
-                                           very wrong, and using those coords
-                                           will probably cause a crash. */
-inline char IsScreenPointInBounds ( int inPlane, int j, int i, int im );
-inline char IsVoxelInBounds ( int x, int y, int z );
-                                        /* these two check if screen points
-                                           are _visible_ within the current
-                                           window, not adjusting for local
-                                           zooming. if they fail, it doesn't
-                                           mean the screen point will cause
-                                           a crash, it just means that it
-                                           won't be visible on the current
-                                           window. */
-inline char IsScreenPtInWindow ( int j, int i, int im );
-inline char IsTwoDScreenPtInWindow ( int j, int i );
-
-                                       /* converts ras coords to
-                                          voxel coords and back */
-void RASToVoxel ( Real x, Real y, Real z,        // incoming ras coords
-                  int *xi, int *yi, int *zi );   // outgoing voxel coords
-
-void VoxelToRAS ( int xi, int yi, int zi,        // incoming voxel coords
-                  Real *x, Real *y, Real *z );   // outgoing RAS coords
-
-                                       /* convert ras coords to the two
-                                          two screen coords that are relevant
-                                          for this plane. this is specifically
-                                          used when we are zoomed in and need
-                                          to get screen coords that are more
-                                          precise than int voxels. */
-void RASToFloatScreenXY ( Real x, Real y, Real z,    // incoming ras coords
-                          int inPlane,               // plane to convert on
-                          float *j, float *i );      // out float screen
-
-                                       /* convert ras coords to screen coords
-            and back. note that this is a much
-            finer resolution of screen coords
-            than the voxel-screen conversions. */
-void RASToScreen ( Real inX, Real inY, Real inZ,
-       int inPlane, 
-       int * outScreenX, int * outScreenY, int * outScreenZ );
-void ScreenToRAS ( int inPlane, int inScreenX, int inScreenY, int inScreenZ,
-       Real * outRASX, Real * outRASY, Real * outRASZ );
-
-
-                                       /* print info about a screen point */
-void PrintScreenPointInformation ( int j, int i, int im );
-
-                                       /* print info about the current
-                                          zoom level */
-void PrintZoomInformation ();
-
-                                       /* draws a crosshair cursor into a 
-                                          video buffer. */
-void DrawCrosshairInBuffer ( char * inBuffer,       // the buffer
-                               int inX, int inY,      // location in buffer
-                               int inSize,            // radius of crosshair
-                               long inColor );        // color, should be a
-                                                      // kRGBAColor_ value
-
-                                       /* fills a box with a color.
-                                          starts drawing with the input coords
-                                          as the upper left and draws a box 
-                                          the dimesnions of the size */
-void FillBoxInBuffer ( char * inBuffer,       // the buffer
-                       int inX, int inY,      // location in buffer
-                       int inSize,            // width/height of pixel
-                       long inColor );        // color, should be a
-                                              // kRGBAColor_ value
-
-
-                                       /* fast pixel blitting */
-inline
-void SetGrayPixelInBuffer ( char * inBuffer, int inIndex,
-                            unsigned char inGray );
-
-inline
-void SetColorPixelInBuffer ( char * inBuffer, int inIndex,
-                             unsigned char inRed, unsigned char inGreen,
-                             unsigned char inBlue );
-
-inline
-void SetCompositePixelInBuffer ( char * inBuffer, int inIndex,
-                                 long inPixel );
-
-                                       /* color values for 
-                                          drawing functions */
-           
-#ifdef IRIX
-#define kRGBAColor_Red      0xff0000ff
-#define kRGBAColor_Green    0x00ff00ff
-#define kRGBAColor_Yellow   0xffff00ff
-#else
-#define kRGBAColor_Red      0xff0000ff
-#define kRGBAColor_Green    0xff00ff00
-#define kRGBAColor_Yellow   0xff00ffff
-#endif 
-                                       /* for managing and checking the 
-                                          center point */
-void SetCenterVoxel ( int x, int y, int z );
-void CheckCenterVoxel ();
-
-                                       /* send a message to the tk window when we
-            change our coords. this makes the window
-            update its slider coords. */
-void SendUpdateMessageToTKWindow ();
-                                       /* set and get the tcl interp to send
-            the msg to */
-void SetTCLInterp ( Tcl_Interp * inInterp );
-Tcl_Interp * GetTCLInterp ();
-
-                                       /* global storage for ctrl space. */
-VoxelSpace gCtrlPtList;
-
-                                       /* global storage for selected ctrl 
-                                          pts. */
-VoxelList gSelectionList;
-
-                                       /* flag for displaying ctrl pts. if 
-                                          true, draws ctrl pts in draw loop. */
-char gIsDisplayCtrlPts;
-
-                                       /* style of control point to draw */
-#define kCtrlPtStyle_Point                    1
-#define kCtrlPtStyle_Crosshair                2
-char gCtrlPtDrawStyle;
-
-                                       /* whether or not we've added the 
-                                          contents of the control.dat file to
-                                          our control pt space. we only want
-                                          to add it once. */
-char gParsedCtrlPtFile;
-
-
-                                       /* controls our local zooming, or 
-                                          zooming around the center point. 
-                                          gCenter is the voxel that is at the 
-                                          center of the screen. this should 
-                                          not be such that with the current 
-                                          zoom level, an edge of the window 
-                                          is out of bounds of the voxel space.
-                                          i.e. the only center possible at 
-                                          zoom level 1 is 128, 128. at zoom 
-                                          level 2, anything from 64,64 to 
-                                          196,196 is possible. gLocalZoom is 
-                                          the zoom level _in addition_ to
-                                          the normal zf scaling factor that 
-                                          is set at startup. so with zf = 2
-                                          and gLocalZoom = 1, each voxel is 
-                                          2x2 pixels. at zf=2 gLocalZoom=2,
-                                          each voxel is 4x4 pixels. at zf=1
-                                          and gLocalZoom=2, each voxel is 2x2
-                                          pixels. */
-
-#define kMinLocalZoom                          1
-#define kMaxLocalZoom                          16
-int gCenterX, gCenterY, gCenterZ, gLocalZoom;
-
-                                       /* for saving our cursor position in
-                                          voxel coords when we swtich planes
-                                          while zoomed in. */
-int gSavedCursorVoxelX, gSavedCursorVoxelY, gSavedCursorVoxelZ;
-
                                        /* flags for toggling surface
                                           display. */
 char gIsDisplayCurrentSurface = FALSE;
@@ -904,10 +834,134 @@ char gIsAverageSurfaceVertices = TRUE;
 vertex_type * gHilitedVertex = NULL;
 int gHilitedVertexSurface= -1;
 
+// =============================================================================
+
+// ================================================================ CURSOR UTILS
+
+                                       /* main functions for setting the 
+                                          cursor (red crosshair) to a certain
+                                          point in screen coords. the latter
+                  calls the former. */
+void SetCursorToScreenPt ( int inScreenX, int inScreenY, int inScreenZ );
+void SetCursorToRASPt ( Real inRASX, Real inRASY, Real inRASZ );
+
+                                       /* when the tcl script changes planes
+                                          in zoomed mode, some coordinates 
+                                          that were in zoomed space get
+                                          changed due to differences in the
+                                          screen->voxel conversion based on
+                                          the new plane. these two functions
+                                          save the cursor in voxel coords,
+                                          which are the same in any plane,
+                                          and then after the plane switch
+                                          changes them back to screen coords.
+                                          these are called from the tcl
+                                          script. */
+void SaveCursorLocation ();
+void RestoreCursorLocation ();
+
+                                       /* sets the plane, preserving cursor
+                                          location properly. */
+void SetPlane ( int inNewPlane );
+
+                                       /* print info about a screen point */
+void PrintScreenPointInformation ( int j, int i, int im );
+
+                                       /* send a message to the tk window when we
+            change our coords. this makes the window
+            update its slider coords. */
+void SendUpdateMessageToTKWindow ();
+
+                                       /* for saving our cursor position in
+                                          voxel coords when we swtich planes
+                                          while zoomed in. */
+Real gSavedCursorVoxelX, gSavedCursorVoxelY, gSavedCursorVoxelZ;
+
+// =============================================================================
+
+// ===================================================================== ZOOMING
+
+
+                                       /* controls our local zooming, or 
+                                          zooming around the center point. 
+                                          gCenter is the voxel that is at the 
+                                          center of the screen. this should 
+                                          not be such that with the current 
+                                          zoom level, an edge of the window 
+                                          is out of bounds of the voxel space.
+                                          i.e. the only center possible at 
+                                          zoom level 1 is 128, 128. at zoom 
+                                          level 2, anything from 64,64 to 
+                                          196,196 is possible. gLocalZoom is 
+                                          the zoom level _in addition_ to
+                                          the normal zf scaling factor that 
+                                          is set at startup. so with zf = 2
+                                          and gLocalZoom = 1, each voxel is 
+                                          2x2 pixels. at zf=2 gLocalZoom=2,
+                                          each voxel is 4x4 pixels. at zf=1
+                                          and gLocalZoom=2, each voxel is 2x2
+                                          pixels. */
+#define kMinLocalZoom                          1
+#define kMaxLocalZoom                          16
+
+                                       /* this function sets the view
+                                          center to a new screen point. */
+void RecenterViewToScreenPt ( int inScreenX, int inScreenY, int inScreenZ );
+void RecenterViewToCursor ();
+
+                                       /* do local zooming. ZoomViewIn() and 
+                                          Out() zoom in and out by a factor
+                                          of 2, while UnzoomView() resets the 
+                                          zoom to 1x and recenters to the
+                                          middle voxel. */
+void ZoomViewIn ();
+void ZoomViewOut ();
+void UnzoomView ();
+
+                                       /* for managing and checking the 
+                                          center point */
+void SetCenterVoxel ( int x, int y, int z );
+void CheckCenterVoxel ();
+
+                                       /* print info about the current
+                                          zoom level */
+void PrintZoomInformation ();
+
+                                       /* for storing the current center voxel
+            and zoom level. */
+int gCenterX, gCenterY, gCenterZ, gLocalZoom;
+
+// =============================================================================
+
+// =================================================================== INTERFACE
+
+                                       /* main handling function for clicks.
+                                          looks at modifier keys and other
+                                          program state and calls the
+                                          approritate functions for
+                                          manipulation cursor, zoom level, and
+                                          selecting. */
+void ProcessClick ( int inClickX, int inClickY );
+
+// =============================================================================
+
+// ======================================================================== MISC
+
+                                     /* determines if a number is odd. */
+#define isOdd(x) (x%2)
+
+
+                                       /* set and get the tcl interp to send
+            the msg to */
+void SetTCLInterp ( Tcl_Interp * inInterp );
+Tcl_Interp * GetTCLInterp ();
+
                                        /* the tcl interpreter */
 Tcl_Interp * gTCLInterp = NULL;
 
 #define set3fv(v,x,y,z) {v[0]=x; v[1]=y; v[2]=z;}
+
+// =============================================================================
 
 // end_kt 
 
@@ -2032,7 +2086,7 @@ exit(1);
     sprintf(fname,"%s/%s",lsubjectsdir,lpname);
     if (!MATCH(lpname,"local")) {
       if ((fp=fopen(fname,"r"))==NULL) {
-        printf("medit: ### can't find subject %s\n",lpname); exit(1);}
+        printf("medit: ### can't find subject %s\n",fname); exit(1);}
       else fclose(fp);
     }
 
@@ -3526,15 +3580,15 @@ reset_control_points(void)
 }
 
 void
-goto_vertex(int vno)
-{
+goto_vertex(int vno) {
+
   VERTEX *v ;
 
-  if (!mris)
-  {
+  if (!mris) {
     fprintf(stderr, "surface not loaded.\n") ;
     return ;
   }
+
   v = &mris->vertices[vno] ;
 
   DebugPrint "found vertex %d at RAS pt (%2.2f, %2.2f, %2.2f)\n",
@@ -3555,12 +3609,14 @@ goto_orig_vertex(int vno) {
 
   VERTEX *v ;
 
-  if (!mris)
-  {
+  if (!mris) {
     fprintf(stderr, "surface not loaded.\n") ;
     return ;
   }
   v = &mris->vertices[vno] ;
+
+  DebugPrint "found vertex %d at RAS pt (%2.2f, %2.2f, %2.2f)\n",
+    vno, v->x, v->y, v->z EndDebugPrint;
 
   // hilite this vertex.
   HiliteSurfaceVertex ( v, kSurfaceType_Original );
@@ -3573,16 +3629,18 @@ goto_orig_vertex(int vno) {
 }
 
 void
-goto_canon_vertex(int vno)
-{
+goto_canon_vertex(int vno) {
+
   VERTEX *v ;
 
-  if (!mris)
-  {
+  if (!mris) {
     fprintf(stderr, "surface not loaded.\n") ;
     return ;
   }
   v = &mris->vertices[vno] ;
+
+  DebugPrint "found vertex %d at RAS pt (%2.2f, %2.2f, %2.2f)\n",
+    vno, v->x, v->y, v->z EndDebugPrint;
 
   // hilite this vertex.
   HiliteSurfaceVertex ( v, kSurfaceType_Canonical );
@@ -4746,41 +4804,39 @@ void SetCursorToRASPt ( Real inX, Real inY, Real inZ ) {
   SetCursorToScreenPt ( theScreenX, theScreenY, theScreenZ );
 }
 
-void SaveCursorInVoxel () {
+void SaveCursorLocation () {
 
-  // save screen cursor coords to voxel coords.
-  ScreenToVoxel ( plane, jc, ic, imc, 
-          &gSavedCursorVoxelX, &gSavedCursorVoxelY, &gSavedCursorVoxelZ );
+  // save screen cursor coords to RAS coords.
+  ScreenToRAS ( plane, jc, ic, imc, 
+    &gSavedCursorVoxelX, &gSavedCursorVoxelY, &gSavedCursorVoxelZ );
 }
 
-void SetCursorToSavedVoxel () {
+void RestoreCursorLocation () {
   
-  // restore screen cursor from saved voxel coords.
-  VoxelToScreen ( gSavedCursorVoxelX, gSavedCursorVoxelY, gSavedCursorVoxelZ,
-                  plane, &jc, &ic, &imc );
+  // restore screen cursor from saved RAS coords.
+  RASToScreen ( gSavedCursorVoxelX, gSavedCursorVoxelY, gSavedCursorVoxelZ,
+    plane, &jc, &ic, &imc );
 }
 
 void SetPlane ( int inNewPlane ) {
 
   // save the cursor location.
-  SaveCursorInVoxel ();
+  SaveCursorLocation ();
   
   // set the plane value.
   plane = inNewPlane;
 
   // restore the cursor.
-  SetCursorToSavedVoxel ();
+  RestoreCursorLocation ();
 }
 
 void RecenterViewToScreenPt ( int inScreenX, int inScreenY, int inScreenZ ) {
   
   int theNewCenterX, theNewCenterY, theNewCenterZ;
-  Real theSavedCursorX, theSavedCursorY, theSavedCursorZ;
   //  Real theTestCursorX, theTestCursorY, theTestCursorZ;
 
   // first get the cursor in RAS form to remember it
-  ScreenToRAS ( plane, jc, ic, imc,
-    &theSavedCursorX, &theSavedCursorY, &theSavedCursorZ );
+  SaveCursorLocation ();
   
   // get the voxel to center around.
   ScreenToVoxel ( plane, inScreenX, inScreenY, inScreenZ,
@@ -4793,7 +4849,7 @@ void RecenterViewToScreenPt ( int inScreenX, int inScreenY, int inScreenZ ) {
   CheckCenterVoxel ();
   
   // reset the cursor in the new screen position
-  SetCursorToRASPt ( theSavedCursorX, theSavedCursorY, theSavedCursorZ );
+  RestoreCursorLocation ();
 
   /*
   DebugCode {
@@ -4821,14 +4877,11 @@ void RecenterViewToCursor () {
 
 void ZoomViewIn () {
 
-  int theSavedCursorX, theSavedCursorY, theSavedCursorZ;
-
   // don't zoom in all3 mode.
   if ( all3flag ) return;
 
-  // first get the cursor in voxel form to remember it
-  ScreenToVoxel ( plane, jc, ic, imc,
-                  &theSavedCursorX, &theSavedCursorY, &theSavedCursorZ );
+  // remember the cursor
+  SaveCursorLocation ();
 
   // double our local zoom factor and check its bounds.
   gLocalZoom *= 2;
@@ -4836,23 +4889,16 @@ void ZoomViewIn () {
     gLocalZoom = kMaxLocalZoom;
 
   // reset the cursor in the new screen position
-  VoxelToScreen ( theSavedCursorX, theSavedCursorY, theSavedCursorZ,
-                  plane, &jc, &ic, &imc );
-
-  // set it officially.
-  SetCursorToScreenPt ( jc, ic, imc );
+  RestoreCursorLocation ();
 }
 
 void ZoomViewOut () {
 
-  int theSavedCursorX, theSavedCursorY, theSavedCursorZ;
-
   // don't zoom in all3 mode.
   if ( all3flag ) return;
 
-  // first get the cursor in voxel form to remember it
-  ScreenToVoxel ( plane, jc, ic, imc,
-                  &theSavedCursorX, &theSavedCursorY, &theSavedCursorZ );
+  // remember the cursor
+  SaveCursorLocation ();
 
   // half our local zoom factor and check its bounds.
   gLocalZoom /= 2;
@@ -4863,11 +4909,7 @@ void ZoomViewOut () {
   CheckCenterVoxel ();
 
   // reset the cursor in the new screen position
-  VoxelToScreen ( theSavedCursorX, theSavedCursorY, theSavedCursorZ,
-                  plane, &jc, &ic, &imc );
-
-  // set it officially.
-  SetCursorToScreenPt ( jc, ic, imc );
+  RestoreCursorLocation ();
 }
 
 void UnzoomView () {
@@ -4904,16 +4946,21 @@ void draw_image( int imc, int ic, int jc,
   int theListCount, theListIndex;
   char theResult;
   long theColor;
-  /*  Colorindex v; */
+  int theVoxelSize;
   GLubyte v;
   hax = xdim/2;
   hay = ydim/2;
+
   if (all3flag) curs = 15;
   else          curs = 2;
 
   
-  // kt - cleaned up a bunch of code, simplified some things, changed var
-  // names, tightened up the draw loop, hopefully making it faster.
+  // calc voxel size, or the number of pixels that represent a single voxel.
+  if ( !all3flag ) {
+    theVoxelSize = zf * gLocalZoom;
+  } else {
+    theVoxelSize = zf/2;
+  }
 
   if ( maxflag && !all3flag ) {
 
@@ -4957,18 +5004,17 @@ void draw_image( int imc, int ic, int jc,
       
       // this is our z axis in this view.
       theScreenZ = imc;
-
+      
       if ( theScreenZ >= 0 && theScreenZ < imnr1*zf ) {
 
-        // start drawing image
-
-        for ( theScreenY = 0; theScreenY < ydim; theScreenY++ ) {
+  // start drawing image
+        for ( theScreenY = 0; theScreenY < ydim; theScreenY += theVoxelSize ) {
 
           // skip odd lines if we're in all3 view.
           if ( all3flag && isOdd(theScreenY ) )
             continue;
 
-          for ( theScreenX = 0; theScreenX < xdim; theScreenX++ ) {
+          for ( theScreenX = 0; theScreenX < xdim; theScreenX += theVoxelSize  ) {
 
             // ?? don't know what this does.
             if ( 128 == theScreenX && 128 == theScreenY )
@@ -5009,10 +5055,12 @@ void draw_image( int imc, int ic, int jc,
             EnableDebuggingOutput;
             
             // draw the value as a gray pixel.
-            SetGrayPixelInBuffer ( vidbuf, theDestIndex, hacked_map[v] );
+            SetGrayPixelInBuffer ( vidbuf, theDestIndex, theVoxelSize,
+           hacked_map[v] );
 
-            // next pixel
-            theDestIndex += kBytesPerPixel;
+            // next pixel. it's actually voxel size places away,
+      // becasue we just draw voxel size pixels.
+            theDestIndex += kBytesPerPixel * theVoxelSize;
             
             // if we're in all3 view..
             if ( all3flag )
@@ -5023,6 +5071,10 @@ void draw_image( int imc, int ic, int jc,
               if ( xdim - 2 == theScreenX )
                 theDestIndex += kBytesPerPixel * hax;
           } 
+
+    // step down a row. we're already at the end of one row, so we step
+    // down theVoxelSize-1 rows.
+    theDestIndex += kBytesPerPixel * (theVoxelSize-1) * xdim;
         }
 
         // end drawing image
@@ -5149,7 +5201,7 @@ void draw_image( int imc, int ic, int jc,
       }
     }
 
-    // this section is not commented except where it differs from the
+    // This section is not commented except where it differs from the
     // above section. it is essentially the same except for determining
     // the x/y/z coords in various spaces and determining the drawing
     // location of the all3 view panels.
@@ -5164,12 +5216,12 @@ void draw_image( int imc, int ic, int jc,
 
       if ( theScreenY >= 0 && theScreenY < ynum*zf ) {
 
-        for ( theScreenZ = 0; theScreenZ < ydim; theScreenZ++ ) {
+        for ( theScreenZ = 0; theScreenZ < ydim; theScreenZ += theVoxelSize ) {
           
           if ( all3flag && isOdd(theScreenZ) )
             continue;
           
-          for ( theScreenX = 0; theScreenX < xdim; theScreenX++ ) {
+          for ( theScreenX = 0; theScreenX < xdim; theScreenX += theVoxelSize ) {
 
             if ( all3flag && isOdd(theScreenX) )
               continue;
@@ -5205,14 +5257,16 @@ void draw_image( int imc, int ic, int jc,
                  ( jc == theScreenY && abs(theScreenY-imc) <= curs) ) 
               v=0 /*NUMVALS+MAPOFFSET*/;
             
-            SetGrayPixelInBuffer ( vidbuf, theDestIndex, hacked_map[v] );
+            SetGrayPixelInBuffer ( vidbuf, theDestIndex, theVoxelSize, 
+           hacked_map[v] );
             
-            theDestIndex += kBytesPerPixel;
+            theDestIndex += kBytesPerPixel * theVoxelSize;
 
             if ( all3flag )
               if ( xdim - 2 == theScreenX )
                 theDestIndex += kBytesPerPixel * hax;
           } 
+    theDestIndex += kBytesPerPixel * (theVoxelSize-1) * xdim;
         }
         
         if ( gIsDisplayCtrlPts ) {
@@ -5316,12 +5370,12 @@ void draw_image( int imc, int ic, int jc,
 
       if ( theScreenX >= 0 && theScreenX < xnum*zf ) {
 
-        for ( theScreenY = 0; theScreenY < ydim; theScreenY++ ) {
+        for ( theScreenY = 0; theScreenY < ydim; theScreenY += theVoxelSize ) {
 
           if ( all3flag && isOdd(theScreenY) )
             continue;
           
-          for ( theScreenZ = 0; theScreenZ < xdim; theScreenZ++ ) {
+          for ( theScreenZ = 0; theScreenZ < xdim; theScreenZ += theVoxelSize ) {
 
             if ( all3flag && isOdd(theScreenZ) )
               continue;
@@ -5347,15 +5401,17 @@ void draw_image( int imc, int ic, int jc,
 
       EnableDebuggingOutput;
 
-            SetGrayPixelInBuffer ( vidbuf, theDestIndex, hacked_map[v] );
+            SetGrayPixelInBuffer ( vidbuf, theDestIndex, theVoxelSize,
+           hacked_map[v] );
 
-            theDestIndex += kBytesPerPixel;
+            theDestIndex += kBytesPerPixel * theVoxelSize;
 
             if ( all3flag )
               if ( xdim - 2 == theScreenZ )
                 theDestIndex += kBytesPerPixel * hax;
 
           }
+    theDestIndex += kBytesPerPixel * (theVoxelSize-1) * xdim;
         }
         
         if ( gIsDisplayCtrlPts ) {
@@ -5461,7 +5517,7 @@ void draw_image( int imc, int ic, int jc,
         for ( theScreenX = 0; theScreenX < xdim; theScreenX += 2 ) {
 
           v = sim[2][255-theScreenY/zf][theScreenX/zf] + MAPOFFSET;
-          SetGrayPixelInBuffer ( vidbuf, theDestIndex, v );
+          SetGrayPixelInBuffer ( vidbuf, theDestIndex, 1, v );
           theDestIndex += kBytesPerPixel;
 
           if ( theScreenX == xdim - 2 )
@@ -6206,6 +6262,31 @@ void CalcDrawPointsForVoxelsCrossingPlane ( float inPlaneZ, int inPlane,
 }
 
 
+void FindRASScreenBounds ( Real *outMinX, Real *outMinY,
+         Real *outMaxX, Real *outMaxY ) {
+
+  Real theDummy, theMinX, theMinY, theMaxX, theMaxY;
+
+  switch ( plane ) {
+  case CORONAL:
+    ScreenToRAS ( plane, 1, 1, 1, &theMinX, &theDummy, &theMinY );
+    ScreenToRAS ( plane, xdim-2, ydim-2, xdim-2, &theMaxX, &theDummy, &theMaxY );
+    break;
+  case HORIZONTAL:
+    break;
+  case SAGITTAL:
+    break;
+  }
+
+  DebugPrint "FindRASScreenBounds(): Got minx = %2.1f, miny = %2.1f, maxx = %2.1f, maxy = %2.1f\n", theMinX, theMinY, theMaxX, theMaxY EndDebugPrint;
+
+  *outMinX = theMinX;
+  *outMinY = theMinY;
+  *outMaxX = theMaxX;
+  *outMaxY = theMaxY;
+}
+
+
 
 void DrawSurface ( MRI_SURFACE * theSurface, int inPlane, int inSurface ) {
 
@@ -6213,14 +6294,14 @@ void DrawSurface ( MRI_SURFACE * theSurface, int inPlane, int inSurface ) {
   vertex_type * theNeighborVertex, * theVertex;
   int theNeighborVertexIndex, theVertexIndex, theFaceIndex, theNumFaces;
   Voxel theVox1, theVox2;
-  float theDrawPoint[VERTICES_PER_FACE][2]; // an array of 2d points
-  float theDrawPointX, theDrawPointY, 
-    theHilitedVertexDrawPointX[20], theHilitedVertexDrawPointY[20];
-  int theNumDrawPoints, theDrawPointIndex, theNumHilitedPoints;
+  float theDrawPoint[VERTICES_PER_FACE][2], // an array of 2d points
+    theHilitedVertexDrawPoint[20][2];
+  float theDrawPointX, theDrawPointY;
+  int theNumDrawPoints, theNumHilitedPoints;
   int thePlaneZ;
-  char isHilitedVertexOnScreen;
   float theLineColor[3], theVertexColor[3];
   float theLineWidth, thePointSize;
+  char isHilitedVertexOnScreen;
 
   // set our drawing plane correctly
   ortho2 ( 0.0, xdim-1, 0.0, ydim-1 );
@@ -6238,9 +6319,6 @@ void DrawSurface ( MRI_SURFACE * theSurface, int inPlane, int inSurface ) {
     break;
   }
 
-  isHilitedVertexOnScreen = FALSE;
-  theNumHilitedPoints = TRUE;
-
   // for each face in this surface...
   theNumFaces = theSurface->nfaces;
   for ( theFaceIndex = 0; theFaceIndex < theNumFaces; theFaceIndex++ ) {
@@ -6255,6 +6333,8 @@ void DrawSurface ( MRI_SURFACE * theSurface, int inPlane, int inSurface ) {
 
     // no points to draw yet.
     theNumDrawPoints = 0;
+    theNumHilitedPoints = 0;
+    isHilitedVertexOnScreen = FALSE;
 
     // for every vertex in this face...
     for ( theVertexIndex = 0; 
@@ -6351,25 +6431,21 @@ void DrawSurface ( MRI_SURFACE * theSurface, int inPlane, int inSurface ) {
         set3fv ( theVertexColor, 0.0, 1.0, 1.0 );
               break;
             }
-          }
-
+    }
+    
     // is this the hilited vertex?
-    if ( /*!isHilitedVertexOnScreen &&*/
-         IsSurfaceVertexHilited ( theVertex, inSurface ) ) {
-
+    if ( IsSurfaceVertexHilited ( theVertex, inSurface ) ) {
+      
       // mark it to be drawn later.
-      theHilitedVertexDrawPointX[theNumHilitedPoints] = theDrawPointX;
-      theHilitedVertexDrawPointY[theNumHilitedPoints] = theDrawPointY;
-      isHilitedVertexOnScreen = TRUE;
-
+      theHilitedVertexDrawPoint
+        [theNumHilitedPoints][kPointArrayIndex_X] = theDrawPointX;
+      theHilitedVertexDrawPoint
+        [theNumHilitedPoints][kPointArrayIndex_Y] = theDrawPointY;
       theNumHilitedPoints ++;
-      /*
-      DebugPrint "Found pt at %2.1f, %2.1f\n",
-        theHilitedVertexDrawPointX, theHilitedVertexDrawPointY EndDebugPrint;
-      */
+      isHilitedVertexOnScreen = TRUE;
     }
   }
-     }
+      }
       
       // use this vertex as the neighboring vertex now.
       theNeighborVertexIndex = theVertexIndex;
@@ -6378,7 +6454,7 @@ void DrawSurface ( MRI_SURFACE * theSurface, int inPlane, int inSurface ) {
       
     // we have points to draw..
     if ( theNumDrawPoints > 0 ) {
-      
+
       // set our line width and color.
       theLineWidth  = surflinewidth;
       if ( all3flag ) {
@@ -6387,25 +6463,9 @@ void DrawSurface ( MRI_SURFACE * theSurface, int inPlane, int inSurface ) {
       glLineWidth ( theLineWidth );
       glColor3fv ( theLineColor );
 
-      // start a line.
-      bgnline ();
-
-      // draw the points for this face.
-      for ( theDrawPointIndex = 0;
-            theDrawPointIndex < theNumDrawPoints;
-            theDrawPointIndex++ ) {
-        
-        // if this point is on screen...
-        if ( IsTwoDScreenPtInWindow ( 
-                  theDrawPoint[theDrawPointIndex][kPointArrayIndex_X],
-                  theDrawPoint[theDrawPointIndex][kPointArrayIndex_Y] ) ) {
-          
-          // draw this point.
-          v2f (&(theDrawPoint[theDrawPointIndex][kPointArrayIndex_Beginning]));
-        }
-      }
-
-      endline ();
+      // draw a line with these vertices
+      DrawWithFloatVertexArray ( GL_LINES, 
+         (float*)theDrawPoint, theNumDrawPoints );
 
       // if we're drawing vertices...
       if ( IsSurfaceVertexDisplayOn () ) {
@@ -6418,25 +6478,9 @@ void DrawSurface ( MRI_SURFACE * theSurface, int inPlane, int inSurface ) {
   glPointSize ( thePointSize );
   glColor3fv ( theVertexColor );
   
-  // start drawing points.
-  glBegin ( GL_POINTS );
-  
-  // draw the points for this face.
-  for ( theDrawPointIndex = 0;
-        theDrawPointIndex < theNumDrawPoints;
-        theDrawPointIndex++ ) {
-    
-    // if this point is on screen...
-    if ( IsTwoDScreenPtInWindow ( 
-        theDrawPoint[theDrawPointIndex][kPointArrayIndex_X],
-        theDrawPoint[theDrawPointIndex][kPointArrayIndex_Y] ) ) {
-      
-      // draw this point.
-      v2f (&(theDrawPoint[theDrawPointIndex][kPointArrayIndex_Beginning]));
-    }
-  }
-  
-  glEnd ();
+  // draw points with these vertices.
+  DrawWithFloatVertexArray ( GL_POINTS, 
+           (float*)theDrawPoint, theNumDrawPoints );
       }
 
       // draw the hilited vertex if there is one.
@@ -6446,27 +6490,46 @@ void DrawSurface ( MRI_SURFACE * theSurface, int inPlane, int inSurface ) {
   glPointSize ( thePointSize * 3 );
   glColor3f ( 1.0, 0.0, 1.0 );
   
-  glBegin ( GL_POINTS );
-  
-  for ( theDrawPointIndex = 0;
-        theDrawPointIndex < theNumHilitedPoints;
-        theDrawPointIndex++ ) {
-
-  // draw this point.
-    glVertex2f ( theHilitedVertexDrawPointX[theDrawPointIndex],
-           theHilitedVertexDrawPointY[theDrawPointIndex] );
-  
-  }
-  /*
-    DebugPrint "Drew hilited vertex at %2.1f, %2.1f\n",
-    theHilitedVertexDrawPointX, theHilitedVertexDrawPointY EndDebugPrint;
-  */
-  
-  glEnd ();
+  // draw these vertices as points.
+  DrawWithFloatVertexArray ( GL_POINTS, 
+           (float*)theHilitedVertexDrawPoint,
+           theNumHilitedPoints );
       }
     }
   }
+
+  glFlush ();
 }
+
+void DrawWithFloatVertexArray ( GLenum inMode,
+         float *inVertices, int inNumVertices ) {
+
+  int theVertexIndex;
+
+  // start drawing whatever it is we're drawing.
+  glBegin ( inMode );
+
+  // for each vertex...
+  for ( theVertexIndex = 0; theVertexIndex < inNumVertices; theVertexIndex++ ) {
+
+    // this is a screen point. if it's onscreen...
+    if ( IsTwoDScreenPtInWindow ( 
+      inVertices[2*theVertexIndex + kPointArrayIndex_X],
+      inVertices[2*theVertexIndex + kPointArrayIndex_Y] ) ) {
+
+      /*
+      DebugPrint "(%2.1f, %2.1f) ", inVertices[theVertexIndex][kPointArrayIndex_X], inVertices[theVertexIndex][kPointArrayIndex_Y] EndDebugPrint;
+      */
+      
+      // draw it.
+      glVertex2fv ( &(inVertices[2*theVertexIndex + kPointArrayIndex_Beginning]) );
+    }
+  }
+
+  // stop drawing.
+  glEnd ();
+}
+
 
 void
 draw_surface(void)
@@ -6505,7 +6568,7 @@ draw_surface(void)
       f = &mris->faces[k];
 
       // get the last neighboring vertex's y distance from our slice
-       ln = VERTICES_PER_FACE-1;
+      ln = VERTICES_PER_FACE-1;
       ld = mris->vertices[f->v[ln]].y - yc;
 
       // for every vertex...
@@ -7986,14 +8049,14 @@ int TclScreenToVoxel ( ClientData inClientData, Tcl_Interp * inInterp,
 int TclVoxelToScreen ( ClientData inClientData, Tcl_Interp * inInterp,
                        int argc, char ** argv );
 
-int TclSaveCursorInVoxel WBEGIN
-     ERR ( 1, "Wrong # args: SaveCursorInVoxel" )
-     SaveCursorInVoxel ();
+int TclSaveCursorLocation WBEGIN
+     ERR ( 1, "Wrong # args: SaveCursorLocation" )
+     SaveCursorLocation ();
      WEND
 
-int TclSetCursorToSavedVoxel WBEGIN
-     ERR ( 1, "Wrong # args: SetCursorToSavedVoxel" )
-     SetCursorToSavedVoxel ();
+int TclRestoreCursorLocation WBEGIN
+     ERR ( 1, "Wrong # args: RestoreCursorLocation" )
+     RestoreCursorLocation ();
      WEND
 
 int W_UnzoomView WBEGIN
@@ -8245,9 +8308,9 @@ char **argv;
                       (ClientData) NULL, (Tcl_CmdDeleteProc*) NULL );
   Tcl_CreateCommand ( interp, "VoxelToScreen", TclVoxelToScreen,
                       (ClientData) NULL, (Tcl_CmdDeleteProc*) NULL );
-  Tcl_CreateCommand ( interp, "SaveCursorInVoxel", TclSaveCursorInVoxel, REND);
-  Tcl_CreateCommand ( interp, "SetCursorToSavedVoxel", 
-                      TclSetCursorToSavedVoxel, REND);
+  Tcl_CreateCommand ( interp, "SaveCursorLocation", TclSaveCursorLocation, REND);
+  Tcl_CreateCommand ( interp, "RestoreCursorLocation", 
+                      TclRestoreCursorLocation, REND);
   // end_kt
 
   /*=======================================================================*/
@@ -9749,9 +9812,11 @@ inline int LocalZoomXToVoxelX ( int j ) {
 
 inline int ScreenYToVoxelY ( int i ) {
   return ( ((ydim - 1) - i) / zf ); }
+//return ( (ydim - i) / zf ); }
 
 inline int LocalZoomYToVoxelY ( int i ) {
   return (((ydim-1-i)/zf)/gLocalZoom) + (gCenterY-(ydim/zf/2/gLocalZoom)); } 
+//return (((ydim-i)/zf)/gLocalZoom) + (gCenterY-(ydim/zf/2/gLocalZoom)); } 
 
 inline int ScreenZToVoxelZ ( int im ) {
   return ( im / zf ); }
@@ -9856,9 +9921,11 @@ inline int VoxelXToLocalZoomX ( int x ) {
 
 inline int VoxelYToScreenY ( int y ) {
   return ( (ydim - 1) - (zf * y) ); }
+//return ( ydim - (zf * y) ); }
 
 inline int VoxelYToLocalZoomY ( int y ) {
   return (ydim-1) - ( gLocalZoom * zf * (y - gCenterY) ) - (ydim/2); }
+//return ydim - ( gLocalZoom * zf * (y - gCenterY) ) - (ydim/2); }
 
 inline int VoxelZToScreenZ ( int z ) {
   return ( z * zf ); }
@@ -9961,6 +10028,24 @@ char IsVoxelInBounds ( int x, int y, int z ) {
 
   return TRUE;
 }
+
+inline
+char IsRASPointInBounds ( Real x, Real y, Real z ) {
+
+  if ( x < xx0 || x > xx1 || y < yy0 || y > yy1 || z < zz0 || z > zz1 ) {
+
+    DebugPrint "!!! RAS coords out of bounds: (%2.1f, %2.1f, %2.1f)\n",
+      x, y, z EndDebugPrint;
+    DebugPrint "    x: %2.1f, %2.1f  y: %2.1f, %2.1f  z: %2.1f, %2.1f\n",
+      xx0, xx1, yy0, yy1, zz0, zz1 EndDebugPrint;
+
+    return FALSE;
+  }
+
+  return TRUE;
+}
+
+
 
 inline
 char IsScreenPtInWindow ( int j, int i, int im ){   // in screen coords
@@ -10078,13 +10163,13 @@ void RASToFloatScreenXY ( Real x, Real y, Real z,    // incoming ras coords
     break;
 
   case SAGITTAL:
-    *i = (float) ( (rYDim-1.0) - rLocalZoom * fsf * 
-                   ( ((zz1-z)/ps) - 255.0 + ((rYDim - 1.0)/fsf) - rCenterY) - 
-                   ( rYDim/2.0 ) );
-
     *j = (float) ( rLocalZoom * zf * 
                    ( ( ((y+0.5)-yy0) / st ) - rCenterZ ) +
                    ( rXDim / 2.0 ) );
+
+    *i = (float) ( (rYDim-1.0) - rLocalZoom * fsf * 
+                   ( ((zz1-z)/ps) - 255.0 + ((rYDim - 1.0)/fsf) - rCenterY) - 
+                   ( rYDim/2.0 ) );
     break;
   }
 
@@ -10097,6 +10182,13 @@ void RASToScreen ( Real inRASX, Real inRASY, Real inRASZ,
   Real rLocalZoom, rCenterX, rCenterY, rCenterZ;
   Real rYDim, rXDim;
   Real theRealVoxX, theRealVoxY, theRealVoxZ;
+
+  // do some bounds checking
+  if ( ! IsRASPointInBounds ( inRASX, inRASY, inRASZ ) ) {
+
+    DebugPrint "RASToScreen(): Input RAS pt invalid.\n" EndDebugPrint;
+    return;
+  }
 
   // convert everything to reals.
   rLocalZoom = (Real) gLocalZoom;
@@ -10160,6 +10252,13 @@ void RASToScreen ( Real inRASX, Real inRASY, Real inRASZ,
     break;
   }
 
+  // do some bounds checking
+  if ( ! IsScreenPointInBounds ( plane, *outScreenX, *outScreenY, *outScreenZ ) ) {
+
+    DebugPrint "RASToScreen(): Output screen pt invalid.\n" EndDebugPrint;
+    *outScreenX = *outScreenY = *outScreenZ = 0;
+  }
+
 }
 
 void ScreenToRAS ( int inPlane, int inScreenX, int inScreenY, int inScreenZ,
@@ -10169,6 +10268,14 @@ void ScreenToRAS ( int inPlane, int inScreenX, int inScreenY, int inScreenZ,
   Real rLocalZoom, rCenterX, rCenterY, rCenterZ;
   Real rYDim, rXDim, rHalfScreen;
   Real theRealVoxX, theRealVoxY, theRealVoxZ;
+
+  // do some bounds checking
+  if ( ! IsScreenPointInBounds ( plane, inScreenX, inScreenY, inScreenZ ) ) {
+
+    DebugPrint "ScreenToRAS(): Input screen pt invalid.\n" 
+      EndDebugPrint;
+    return;
+  }
 
   // convert everything to reals.
   rScreenX = (Real) inScreenX;
@@ -10225,6 +10332,14 @@ void ScreenToRAS ( int inPlane, int inScreenX, int inScreenY, int inScreenZ,
   *outRASX = (Real) (xx1 - (ps * theRealVoxX));
   *outRASY = (Real) (yy0 + (st * theRealVoxZ));
   *outRASZ = (Real) (zz1 - (ps * (255.0 - ((rYDim-1.0)/fsf) + theRealVoxY)));
+
+  // do some bounds checking
+  if ( ! IsRASPointInBounds ( *outRASX, *outRASY, *outRASZ ) ) {
+
+    DebugPrint "ScreenToRAS(): Output RAS pt invalid.\n" EndDebugPrint;
+    *outRASX = *outRASY = *outRASZ = 0;
+    return;
+  }
 }
 
 /* ===================================================== Graphics utilities */
@@ -10261,7 +10376,7 @@ void DrawCrosshairInBuffer ( char * inBuffer,       // the buffer
     theBufIndex = 4 * ( inY*xdim + x );
 
     // copy the color in.
-    SetCompositePixelInBuffer ( inBuffer, theBufIndex, inColor );
+    SetCompositePixelInBuffer ( inBuffer, theBufIndex, 1, inColor );
   }
 
   // same thing down the y line...
@@ -10269,7 +10384,7 @@ void DrawCrosshairInBuffer ( char * inBuffer,       // the buffer
     if ( y < 0 || y >= ydim-1 ) 
       continue;
     theBufIndex = 4 * ( y*xdim +inX );
-    SetCompositePixelInBuffer ( inBuffer, theBufIndex, inColor );
+    SetCompositePixelInBuffer ( inBuffer, theBufIndex, 1, inColor );
   }
 }
 
@@ -10299,7 +10414,7 @@ void FillBoxInBuffer ( char * inBuffer,       // the buffer
       theBufIndex = 4 * ( y*xdim + x );
 
       // copy the color in.
-      SetCompositePixelInBuffer ( inBuffer, theBufIndex, inColor );
+      SetCompositePixelInBuffer ( inBuffer, theBufIndex, 1, inColor );
     }
   }
 }
@@ -10308,13 +10423,13 @@ void FillBoxInBuffer ( char * inBuffer,       // the buffer
                                                  /* fast pixel blitting */
 
 inline
-void SetGrayPixelInBuffer ( char * inBuffer, int inIndex,
+void SetGrayPixelInBuffer ( char * inBuffer, int inIndex, int inCount,
                             unsigned char inGray ) {
 
   // instead of copying each component one at a time, we combine
   // all components into a single long by bitshifting them to the
   // right place and then copying it all in at once.
-  SetCompositePixelInBuffer ( inBuffer, inIndex, 
+  SetCompositePixelInBuffer ( inBuffer, inIndex, inCount,
     ( (unsigned char)kPixelComponentLevel_Max << kPixelOffset_Alpha |
       (unsigned char)inGray << kPixelOffset_Blue |
       (unsigned char)inGray << kPixelOffset_Green |
@@ -10322,11 +10437,11 @@ void SetGrayPixelInBuffer ( char * inBuffer, int inIndex,
 }
 
 inline
-void SetColorPixelInBuffer ( char * inBuffer, int inIndex,
+void SetColorPixelInBuffer ( char * inBuffer, int inIndex, int inPixelSize,
                              unsigned char inRed, unsigned char inGreen,
                              unsigned char inBlue ) {
 
-  SetCompositePixelInBuffer ( inBuffer, inIndex, 
+  SetCompositePixelInBuffer ( inBuffer, inIndex, inPixelSize,
     ( (unsigned char)kPixelComponentLevel_Max << kPixelOffset_Alpha |
       (unsigned char)inBlue << kPixelOffset_Blue |
       (unsigned char)inGreen<< kPixelOffset_Green |
@@ -10334,10 +10449,18 @@ void SetColorPixelInBuffer ( char * inBuffer, int inIndex,
 }
 
 inline
-void SetCompositePixelInBuffer ( char * inBuffer, int inIndex,
+void SetCompositePixelInBuffer ( char * inBuffer, int inBaseIndex, int inPixelSize,
                                  long inPixel ) {
+  int theRow, theCol, theIndex;
+  for ( theRow = 0; theRow < inPixelSize; theRow ++ ) {
+    for ( theCol = 0; theCol < inPixelSize;  theCol++ ) {
 
-  *(long*)&(inBuffer[inIndex]) = (long) inPixel;
+      theIndex = inBaseIndex +
+  (sizeof(long) * theRow * xdim) + // rows
+  (sizeof(long) * theCol);         // cols
+      *(long*)&(inBuffer[theIndex]) = (long) inPixel;
+    }
+  }
 }
 
 
@@ -10423,6 +10546,9 @@ void PrintScreenPointInformation ( int j, int i, int ic ) {
   int thePixelValue;
   char theResult, theValue;
   Voxel theVoxel;
+  float theFloatScreenX, theFloatScreenY;
+  int theScreenX, theScreenY;
+  float theFunctionalValue;
 
   // get the voxel coords
   ScreenToVoxel ( plane, j, i, ic, &theVoxX, &theVoxY, &theVoxZ );
@@ -10468,6 +10594,27 @@ void PrintScreenPointInformation ( int j, int i, int ic ) {
     printf ( " Talairch (%2.1f,%2.1f,%2.1f)",
              theTalX, theTalY, theTalZ );
   }
+
+
+  // if we're doing an overlay..
+  if ( TRUE == do_overlay &&
+       getenv ( "I_WANT_FUNCTIONAL_OVERLAY_OUTPUT" ) ) {
+
+    // transform RAS to screen xy
+    RASToFloatScreenXY ( theRASX, theRASY, theRASZ, plane, 
+       &theFloatScreenX, &theFloatScreenY );
+
+    // cast to int.
+    theScreenX = (int)theFloatScreenX;
+    theScreenY = (int)theFloatScreenY;
+
+    // get the overlay value out of the cache. this is twitzel's formula
+    // from compose().
+    theFunctionalValue = fcache[theScreenY*512 + theScreenX];
+
+    printf ( "Functional value: %f2.5\n", theFunctionalValue );
+  }
+
 
   // get the value for this voxel
   Voxel_Set ( &theVoxel, theVoxX, theVoxY, theVoxY );
