@@ -16,7 +16,7 @@
 #include "mrimorph.h"
 #include "mrinorm.h"
 
-static char vcid[] = "$Id: mris_make_surfaces.c,v 1.38 2001/06/01 21:06:36 fischl Exp $";
+static char vcid[] = "$Id: mris_make_surfaces.c,v 1.39 2001/08/29 19:59:42 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -38,6 +38,7 @@ int MRISfindExpansionRegions(MRI_SURFACE *mris) ;
 int MRIsmoothBrightWM(MRI *mri_T1, MRI *mri_wm) ;
 MRI *MRIfindBrightNonWM(MRI *mri_T1, MRI *mri_wm) ;
 
+static char T1_name[STRLEN] = "brain" ;
 
 char *Progname ;
 
@@ -200,7 +201,7 @@ main(int argc, char *argv[])
   else
   { label_val = rh_label ; replace_val = lh_label ; }
 
-  sprintf(fname, "%s/%s/mri/T1", sdir, sname) ;
+  sprintf(fname, "%s/%s/mri/%s", sdir, sname, T1_name) ;
   fprintf(stderr, "reading volume %s...\n", fname) ;
   mri_T1 = MRIread(fname) ;
   if (!mri_T1)
@@ -711,6 +712,12 @@ get_option(int argc, char *argv[])
   {
     nbrs = atoi(argv[2]) ;
     fprintf(stderr,  "using neighborhood size = %d\n", nbrs) ;
+    nargs = 1 ;
+  }
+  else if (!stricmp(option, "T1"))
+  {
+    strcpy(T1_name, argv[2]) ;
+    printf("using %s as T1 volume...\n", T1_name) ;
     nargs = 1 ;
   }
   else if (!stricmp(option, "median"))
