@@ -81,5 +81,7 @@ int       TransformSampleInverseVoxel(TRANSFORM *transform, int width, int heigh
                                       int *px, int *py, int *pz) ;
 TRANSFORM *TransformAlloc(int type, MRI *mri) ;
 int       TransformInvert(TRANSFORM *transform, MRI *mri) ;
+MRI       *TransformApply(TRANSFORM *transform, MRI *mri_src, MRI *mri_dst) ;
+MRI       *TransformApplyInverse(TRANSFORM *transform, MRI *mri_src, MRI *mri_dst) ;
 
 #endif
