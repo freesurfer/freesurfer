@@ -358,6 +358,7 @@ MRICclassify(MRIC *mric, MRI *mri_src, MRI *mri_dst,
 
   for (z = 0 ; z < depth ; z++)
   {
+    DiagHeartbeat((float)z / (float)depth) ;
     for (y = 0 ; y < height ; y++)
     {
       psrc = &MRIvox(mri_src, 0, y, z) ;
