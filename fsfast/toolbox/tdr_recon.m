@@ -2,7 +2,7 @@
 % reconstruction according to the time-domain reconstruction
 % algorithm 
 %
-% $Id: tdr_recon.m,v 1.8 2004/01/22 00:52:02 greve Exp $
+% $Id: tdr_recon.m,v 1.9 2004/05/01 20:54:38 greve Exp $
 tic;
 
 
@@ -53,10 +53,15 @@ fprintf('Loading rcolmat file ... ');
 load(rcolmatfile);
 if(exist('rorev') ~= 1) rorev = 0; end
 fprintf('Done (%g)\n',toc);
+
 [nrows ncols nslices] = size(fidvol1);
 nv = prod([nrows ncols nslices]);
-sliceorder = [1:2:nslices 2:2:nslices];
 nkcols = 2*ncols;
+
+% Slice order should be part of rcol.mat
+if(exist('sliceorder')~=1)
+  sliceorder = [1:2:nslices 2:2:nslices];
+end
 
 kvec = kspacevector2(nkcols,tDwell,tRampUp,tFlat,...
 		     tRampDown,tDelSamp,tdelay);
@@ -92,9 +97,6 @@ if(fixpedrift)
   vref = epiref_dist;
   pevoxshift = zeros(nframes,1);
   for frame = 1:nframes
-    if(nframes > 100) 
-      fprintf('  frame = %d (%g)  pevoxshift\n',frame,toc);
-    end
     kr = load_mgh(kepi_rfile,[],frame);
     kr = permute(kr,[2 1 3]);
     ki = load_mgh(kepi_ifile,[],frame);
@@ -105,17 +107,45 @@ if(fixpedrift)
     c2 = c1 + round(ncols/2) - 1;
     ind = c1:c2;
     pevoxshift(frame) = tdr_peshift(vref(:,ind,:),krvol(:,ind,:));
+    if(nframes > 100 | 1) 
+      fprintf('  frame = %d, shift = %g (t=%4.1f)\n',frame,pevoxshift(frame),toc);
+    end
   end
   clear kr ki kvol;
   fprintf('   done (%g).\n',toc);
+
+  % Fit to a quadradic %
+  if(nframes > 3)
+    Xq = fast_polytrendmtx(1,nframes,1,2);
+    T = Xq*inv(Xq'*Xq)*Xq';
+  else
+    T = eye(nframes);
+  end
+  pevoxshiftest = T*pevoxshift;
+
   fname = sprintf('%s-peshift.dat',funcstem);
   fp = fopen(fname,'w');
-  fprintf(fp,'%g\n',pevoxshift);
+  fprintf(fp,'%g %g\n',[pevoxshift pevoxshiftest]');
   fclose(fp);
+
+  if(fitpedrift)
+    % Actually use the quadradic fit
+    pevoxshift = pevoxshiftest;
+  end
+  
+end
+
+if(~isempty(phstem)) doph = 1;
+else                 doph = 0;
+end
+if(~isempty(realstem)) doreal = 1;
+else                   doreal = 0;
+end
+if(~isempty(imagstem)) doimag = 1;
+else                   doimag = 0;
 end
 
 dgbeta = zeros(2,1,nslices,nframes);
-vol = zeros(nrows,ncols,nslices,nframes);
 %vol = zeros(nrows,ncols,nslices,nframes);
 for nthAcqSlice = 1:nslices
   sliceno = sliceorder(nthAcqSlice);
@@ -124,7 +154,10 @@ for nthAcqSlice = 1:nslices
   %Rtdrslice = Rtdr(:,:,:,nthAcqSlice);
   Rtdrslice = Rtdr(:,:,:,sliceno);
   
-  %fslice = zeros(nrows,ncols,nframes);
+  fslice = zeros(nrows,ncols,nframes);
+  if(doph) phslice = zeros(nrows,ncols,nframes); end
+  if(doreal) realslice = zeros(nrows,ncols,nframes); end
+  if(doimag) imagslice = zeros(nrows,ncols,nframes); end
   for frame = 1:nframes
   
     kepi_r = load_mgh(kepi_rfile,nthAcqSlice,frame);
@@ -153,54 +186,73 @@ for nthAcqSlice = 1:nslices
     %kepi2 = kepi*Rrow; % without deghosting
     
     if(~usefid)
-      img = abs(Rcol * kepi2);
+      img   = abs(Rcol * kepi2); 
+      if(doph)   phimg   = angle(Rcol * kepi2); end
+      if(doreal) realimg = real(Rcol * kepi2); end
+      if(doimag) imagimg = imag(Rcol * kepi2); end
     else
       %img = zeros(64,128);
       img = zeros(nrows,ncols);
       for imgcol = 1:ncols
 	Rtdrcol = Rtdrslice(:,:,imgcol);
 	img(:,imgcol) = abs(Rtdrcol*kepi2(:,imgcol));
+        if(doph)   phimg(:,imgcol)   = angle(Rtdrcol*kepi2(:,imgcol)); end
+        if(doreal) realimg(:,imgcol) = real(Rtdrcol*kepi2(:,imgcol)); end
+        if(doimag) imagimg(:,imgcol) = imag(Rtdrcol*kepi2(:,imgcol)); end
       end
     end
     
     % Extract the center, and flip
-    %img2 = flipud(img(:,33:end-32));
     img2 = flipud(img);
-    
     % Shift so that it matches the siemens recon %
-    img3 = img2;
-    img3(2:end,:) = img2(1:end-1,:);
-    vol(:,:,sliceno,frame) = img3;
-    %fslice(:,:,frame) = img3 * 1e5;
-  
+    img2(2:end,:) = img2(1:end-1,:);
+    %vol(:,:,sliceno,frame) = img3;
+    fslice(:,:,frame) = img2 * 1e5;
+
+    if(doph) 
+      phimg2 = flipud(phimg);
+      phimg2(2:end,:) = phimg2(1:end-1,:);
+      phslice(:,:,frame) = (180/pi)*phimg2;
+    end
+    
+    if(doreal) 
+      realimg2 = flipud(realimg);
+      realimg2(2:end,:) = realimg2(1:end-1,:);
+      realslice(:,:,frame) = realimg2 * 1e5;
+    end
+    
+    if(doimag) 
+      imagimg2 = flipud(imagimg);
+      imagimg2(2:end,:) = imagimg2(1:end-1,:);
+      imagslice(:,:,frame) = imagimg2 * 1e5;
+    end
+    
   end % frame
   
-  %fprintf('Saving slice to %s (%g)\n',funcstem,toc);
-  %fast_svbslice(fslice,funcstem,sliceno-1,'bfloat',mristruct);
+  fprintf('Saving slice to %s (%g)\n',funcstem,toc);
+  fast_svbslice(fslice,funcstem,sliceno-1,'bfloat',mristruct);
+
+  if(doph) 
+    phslice = unwrap(phslice,[],3);
+    fast_svbslice(phslice,phstem,sliceno-1,'bfloat',mristruct);
+  end
+  if(doreal) 
+    realslice = unwrap(realslice,[],3);
+    fast_svbslice(realslice,realstem,sliceno-1,'bfloat',mristruct);
+  end
+  if(doimag) 
+    imagslice = unwrap(imagslice,[],3);
+    fast_svbslice(imagslice,imagstem,sliceno-1,'bfloat',mristruct);
+  end
+
 end
 
 if(~isempty(fidstem))
-  if(0)
-    % Prep the fidimg
-    fidvol10 = fidvol1;
-    fidvol1 = fidvol10;
-    fidvol1 = flipdim( fidvol1(:,33:end-32,:,:), 1);
-    fidvol1(2:64,:,:) = fidvol1(1:63,:,:);
-    
-    h = ceil(nslices/2);
-    a = [1:h]';
-    b = [h+1:2*h]';
-    c = reshape1d([a b]');
-    s = c(1:nslices);
-    fidvol1 = fidvol1(:,:,s);
-  else
-    fidvol1 = flipdim(fidvol1,1);
-    fidvol1(2:end,:,:) = fidvol1(1:end-1,:,:);
-  end
-  
-  % Save the fidimg
+  fidvol1 = flipdim(fidvol1,1);
+  fidvol1(2:end,:,:) = fidvol1(1:end-1,:,:);
   fast_svbslice(fidvol1,fidstem,-1,[],mristruct);
-end
+end  % Save the fidimg
+
 
 % Save the deghosting parameters %
 fname = sprintf('%s.dgbeta',funcstem);
@@ -217,6 +269,8 @@ fp = fopen(fname,'w');
 fprintf(fp,fmt,squeeze(dgbeta(2,1,:,:)));
 fclose(fp);
 end
+
+return; % data must have been saved in the slice loop
 
 % Rescale for bshort, save scaling
 volmin = min(reshape1d(vol));
