@@ -1110,7 +1110,8 @@ void Surf_ConvertVoxelToSurfaceSpace ( xVoxelRef       iVoxel,
     xVoxl_SetFloat( oSurfVox,
 		    *MATRIX_RELT(tmp2,1,1), 
 		    *MATRIX_RELT(tmp2,2,1), 
-#endif		    *MATRIX_RELT(tmp2,3,1) );
+		    *MATRIX_RELT(tmp2,3,1) );
+#endif
   }
   
 }
