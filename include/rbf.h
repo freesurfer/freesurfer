@@ -51,6 +51,9 @@ RBF   *RBFinit(int ninputs, int noutputs, int max_clusters[], char *names[]) ;
 int   RBFtrain(RBF *rbf, int (*get_observation_func)
                (VECTOR *v_obs, int no, void *parm, int same_class,int *class),
                void *parm, float momentum) ;
+int   RBFretrain(RBF *rbf, int (*get_observation_func)
+               (VECTOR *v_obs, int no, void *parm, int same_class,int *class),
+               void *parm, float momentum) ;
 int   RBFfree(RBF **prbf) ;
 int   RBFprint(RBF *rbf, FILE *fp) ;
 int   RBFprintActivations(RBF *rbf, VECTOR *v_obs, VECTOR *v_error, 
