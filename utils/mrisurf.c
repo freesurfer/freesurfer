@@ -299,7 +299,6 @@ static int mrisEraseFace(MRI_SURFACE *mris, MRI *mri, int fno) ;
 static int  mrisRipVertices(MRI_SURFACE *mris) ;
 #endif
 static double mrisRmsValError(MRI_SURFACE *mris, MRI *mri) ;
-static int mrisRemoveTriangleLinks(MRI_SURFACE *mris) ;
 static int mrisRemoveVertexLink(MRI_SURFACE *mris, int vno1, int vno2) ;
 static int mrisStoreVtotalInV3num(MRI_SURFACE *mris) ;
 static int  mrisFindAllOverlappingFaces(MRI_SURFACE *mris, MHT *mht,int fno, 
@@ -625,7 +624,7 @@ MRISreadOverAlloc(char *fname, double pct_over)
   mris->radius = MRISaverageRadius(mris) ;
 #if 0
   if (IS_QUADRANGULAR(mris))
-    mrisRemoveTriangleLinks(mris) ;
+    MRISremoveTriangleLinks(mris) ;
 #endif
   MRIScomputeMetricProperties(mris) ;
   /*  mrisFindPoles(mris) ;*/
@@ -904,7 +903,7 @@ MRISfastRead(char *fname)
 
 #if 0
   if (IS_QUADRANGULAR(mris))
-    mrisRemoveTriangleLinks(mris) ;
+    MRISremoveTriangleLinks(mris) ;
 #endif
   MRISstoreCurrentPositions(mris) ;
   return(mris) ;
@@ -3545,7 +3544,7 @@ MRISregister(MRI_SURFACE *mris, MRI_SP *mrisp_template,
   static  int first = 1 ;
   
   if (IS_QUADRANGULAR(mris))
-    mrisRemoveTriangleLinks(mris) ;
+    MRISremoveTriangleLinks(mris) ;
   TimerStart(&start) ;
   MRISsaveVertexPositions(mris, ORIGINAL_VERTICES) ;
   FileNamePath(mris->fname, path) ;
@@ -3733,7 +3732,7 @@ MRISunfold(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int max_passes)
   struct  timeb start ;
   
   if (IS_QUADRANGULAR(mris))
-    mrisRemoveTriangleLinks(mris) ;
+    MRISremoveTriangleLinks(mris) ;
   TimerStart(&start) ;
   starting_sse = ending_sse = 0.0f ;   /* compiler warning */
   memset(nbrs, 0, MAX_NBHD_SIZE*sizeof(nbrs[0])) ;
@@ -8939,7 +8938,7 @@ MRISinflateBrain(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
   n_averages = parms->n_averages ;
 
   if (IS_QUADRANGULAR(mris))
-    mrisRemoveTriangleLinks(mris) ;
+    MRISremoveTriangleLinks(mris) ;
   if (Gdiag & DIAG_WRITE)
   {
     char fname[STRLEN] ;
@@ -9079,7 +9078,7 @@ MRISinflateToSphere(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
   double  delta_t = 0.0, rms_radial_error, sse ;
 
   if (IS_QUADRANGULAR(mris))
-    mrisRemoveTriangleLinks(mris) ;
+    MRISremoveTriangleLinks(mris) ;
   write_iterations = parms->write_iterations ;
   n_averages = parms->n_averages ;
 
@@ -14099,7 +14098,7 @@ MRISpositionSurface(MRI_SURFACE *mris, MRI *mri_brain, MRI *mri_smooth,
   struct timeb  then ; int msec ;
 
   if (IS_QUADRANGULAR(mris))
-    mrisRemoveTriangleLinks(mris) ;
+    MRISremoveTriangleLinks(mris) ;
   TimerStart(&then) ;
   parms->mri_brain = mri_brain ;
   parms->mri_smooth = mri_smooth ;
@@ -18171,11 +18170,14 @@ MRISsoapBubbleVals(MRI_SURFACE *mris, int navgs)
   fprintf(stderr, "\n") ;
   return(NO_ERROR) ;
 }
-static int
-mrisRemoveTriangleLinks(MRI_SURFACE *mris)
+int
+MRISremoveTriangleLinks(MRI_SURFACE *mris)
 {
   int    fno ;
   FACE   *f ;
+
+  if (!IS_QUADRANGULAR(mris))
+    return(NO_ERROR) ;
 
   if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
     fprintf(stderr, "removing non-quadrangular links.\n") ;
