@@ -1041,7 +1041,8 @@ ImageOffsetDirection(IMAGE *Ix, IMAGE *Iy, int wsize, IMAGE *Iorient,
                      IMAGE *Ioffset)
 {
   int    x0, y0, rows, cols, x, y, whalf, xc, yc, yoff, off ;
-  float  *xpix, *ypix, dx, dy, *or_xpix,*or_ypix, *oxpix, *oypix, dir, ox, oy ;
+  float  *xpix, *ypix, dx, dy, *or_xpix,*or_ypix, *oxpix, *oypix, dir, ox, oy,
+         dot ;
 
   rows = Ix->rows ;
   cols = Ix->cols ;
@@ -1094,7 +1095,10 @@ ImageOffsetDirection(IMAGE *Ix, IMAGE *Iy, int wsize, IMAGE *Iorient,
           off = yoff + x ;
           dx = *(xpix+off) ;
           dy = *(ypix+off) ;
-          dir += (x*ox + y*oy) * fabs(dx*ox + dy*oy) ;
+          dot = dx*ox + dy*oy ;
+          if (dot < 0.0f)
+            dot = 0.0f ;
+          dir += (x*ox + y*oy) * dot ;
         }
       }
 
