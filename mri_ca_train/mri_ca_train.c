@@ -4,8 +4,8 @@
 /*                                                                     */
 /* Warning: Do not edit the following four lines.  CVS maintains them. */
 /* Revision Author: $Author: fischl $                                           */
-/* Revision Date  : $Date: 2005/04/01 20:37:32 $                                             */
-/* Revision       : $Revision: 1.38 $                                         */
+/* Revision Date  : $Date: 2005/04/04 19:41:36 $                                             */
+/* Revision       : $Revision: 1.39 $                                         */
 /***********************************************************************/
 
 #include <stdio.h>
@@ -94,7 +94,7 @@ main(int argc, char *argv[])
   parms.prior_spacing = 2.0f ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_ca_train.c,v 1.38 2005/04/01 20:37:32 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_ca_train.c,v 1.39 2005/04/04 19:41:36 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -1111,8 +1111,9 @@ static void modify_transform(TRANSFORM *transform, MRI *mri_inputs, GCA *gca)
       mri_buf->c_s = gcam->atlas.c_s;
       if (warned == 0)
       {
-	fprintf(stderr, "INFO: modified c_(r,a,s) using the non-linear transform dst value.\n");
-	warned = 1;
+				if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
+					fprintf(stderr, "INFO: modified c_(r,a,s) using the non-linear transform dst value.\n");
+				warned = 1;
       }
     }
     else // this is an old 3d, I should use c_(ras) = 0
@@ -1122,8 +1123,9 @@ static void modify_transform(TRANSFORM *transform, MRI *mri_inputs, GCA *gca)
       mri_buf->c_s = 0;
       if (warned == 0)
       {
-	fprintf(stderr, "INFO: modified c_(r,a,s) = 0.\n");
-	warned = 1;
+				if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
+					fprintf(stderr, "INFO: modified c_(r,a,s) = 0.\n");
+				warned = 1;
       }
     }
   }
@@ -1141,8 +1143,9 @@ static void modify_transform(TRANSFORM *transform, MRI *mri_inputs, GCA *gca)
       mri_buf->c_s = lta->xforms[0].dst.c_s;
       if (warned == 0)
       {
-	fprintf(stderr, "INFO: modified c_(r,a,s) using the xform dst.\n");
-	warned = 1;
+				if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
+					fprintf(stderr, "INFO: modified c_(r,a,s) using the xform dst.\n");
+				warned = 1;
       }
     }
     else // keep the old behavior
@@ -1152,8 +1155,9 @@ static void modify_transform(TRANSFORM *transform, MRI *mri_inputs, GCA *gca)
       mri_buf->c_s = 0;
       if (warned == 0)
       {
-	fprintf(stderr, "INFO: modified c_(r,a,s) = 0.\n");
-	warned = 1;
+				if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
+					fprintf(stderr, "INFO: modified c_(r,a,s) = 0.\n");
+				warned = 1;
       }
     }
   }
@@ -1168,8 +1172,9 @@ static void modify_transform(TRANSFORM *transform, MRI *mri_inputs, GCA *gca)
       mri_buf->c_s = lta->xforms[0].dst.c_s;
       if (warned == 0)
       {
-	fprintf(stderr, "INFO: modified c_(r,a,s) using the xform dst\n");
-	warned = 1;
+				if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
+					fprintf(stderr, "INFO: modified c_(r,a,s) using the xform dst\n");
+				warned = 1;
       }
     }
     // dst invalid
@@ -1180,9 +1185,12 @@ static void modify_transform(TRANSFORM *transform, MRI *mri_inputs, GCA *gca)
       mri_buf->c_s =   9.75;
       if (warned == 0)
       {
-	fprintf(stderr, "INFO: modified c_(r,a,s) using average_305 value\n");
-	fprintf(stderr, "INFO: if this is not preferred, set environment variable NO_AVERAGE305\n");
-	warned = 1;
+				if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
+				{
+					fprintf(stderr, "INFO: modified c_(r,a,s) using average_305 value\n");
+					fprintf(stderr, "INFO: if this is not preferred, set environment variable NO_AVERAGE305\n");
+				}
+				warned = 1;
       }
     }
     else // keep old behavior
@@ -1192,12 +1200,13 @@ static void modify_transform(TRANSFORM *transform, MRI *mri_inputs, GCA *gca)
       mri_buf->c_s = 0;
       if (warned == 0)
       {
-	fprintf(stderr, "INFO: xform.dst invalid thus modified c_(r,a,s) = 0.\n");
-	warned = 1;
+				if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
+					fprintf(stderr, "INFO: xform.dst invalid thus modified c_(r,a,s) = 0.\n");
+				warned = 1;
       }
     }
     /////////////////////////////////////////////////////////////////
-    printf("INFO: original RAS-to-RAS transform\n");
+		printf("INFO: original RAS-to-RAS transform\n");
     MatrixPrint(stdout, lta->xforms[0].m_L);
     // going from vox->RAS->TalRAS
     i_to_r = extract_i_to_r(mri_inputs);
