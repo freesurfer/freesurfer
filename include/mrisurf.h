@@ -82,7 +82,7 @@ typedef struct vertex_type_
   float valbak;          /* scalar data stack */
   float val2bak;         /* complex comp data stack */
   float stat;            /* statistic */
-#if 0
+#if 1
   int undefval;          /* [previously dist=0] */
   int old_undefval;      /* for smooth_val_sparse */
   int fixedval;          /* [previously val=0] */
