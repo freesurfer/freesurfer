@@ -75,7 +75,7 @@ int  GCAcompleteTraining(GCA *gca) ;
 MRI  *GCAlabel(MRI *mri_src, GCA *gca, MRI *mri_dst, LTA *lta) ;
 MRI  *GCAclassify(MRI *mri_src,GCA *gca,MRI *mri_dst,LTA *lta,int max_labels);
 MRI  *GCAreclassifyUsingGibbsPriors(MRI *mri_inputs, GCA *gca, MRI *mri_dst,
-                                    LTA *lta, int max_iter) ;
+                                    LTA *lta, int max_iter, MRI *mri_fixed) ;
 GCA  *GCAreduce(GCA *gca_src) ;
 int  GCAnodeToVoxel(GCA *gca, MRI *mri, int xn, int yn, int zn, int *pxv, 
                     int *pyv, int *pzv) ;
@@ -84,6 +84,8 @@ float GCAcomputeLogImageProbability(GCA *gca, MRI *mri_inputs, MRI *mri_labels,
 float  GCAcomputeLogSampleProbability(GCA *gca, GCA_SAMPLE *gcas, 
                                       MRI *mri_inputs,
                                       MATRIX *m_L,int nsamples);
+MRI  *GCAanneal(MRI *mri_inputs, GCA *gca, MRI *mri_dst,LTA *lta, 
+                int max_iter);
 int    GCAsourceVoxelToNodePoint(GCA *gca, MRI *mri, LTA *lta,
                                  Real xv, Real yv, Real zv, 
                                  Real *pxn, Real *pyn, Real *pzn) ;
@@ -95,6 +97,8 @@ int    GCAsampleStats(GCA *gca, MRI *mri, LTA *lta, int class,
 
 
 
+MRI  *GCAannealUnlikelyVoxels(MRI *mri_inputs, GCA *gca, MRI *mri_dst,
+                              LTA *lta, int max_iter, MRI *mri_fixed) ;
 GCA_SAMPLE *GCAfindContrastSamples(GCA *gca, int *pnsamples, int min_spacing,
                                  float min_prior) ;
 GCA_SAMPLE *GCAfindStableSamples(GCA *gca, int *pnsamples, int min_spacing,
@@ -108,6 +112,13 @@ int        GCAwriteSamples(GCA *gca, MRI *mri, GCA_SAMPLE *gcas, int nsamples,
 int        GCAtransformAndWriteSamples(GCA *gca, MRI *mri, GCA_SAMPLE *gcas, 
                                        int nsamples,char *fname,LTA *lta) ;
 MRI        *GCAmri(GCA *gca, MRI *mri) ;
+MRI        *GCAbuildMostLikelyVolume(GCA *gca, MRI *mri) ;
+MRI  *GCAlabelProbabilities(MRI *mri_inputs, GCA *gca, MRI *mri_dst, LTA *lta);
+MRI  *GCAcomputeProbabilities(MRI *mri_inputs, GCA *gca, MRI *mri_labels, 
+                              MRI *mri_dst, LTA *lta);
+
+MRI   *GCAconstrainLabelTopology(GCA *gca, MRI *mri_inputs, MRI *mri_src, 
+                                 MRI *mri_dst, LTA *lta) ;
 
 #define MIN_PRIOR  0.5
 
