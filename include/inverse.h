@@ -2,6 +2,7 @@
 #define INVERSE_H
 
 #include "matrix.h"
+#include "rec.h"
 
 typedef struct
 {
@@ -26,6 +27,8 @@ IOP *IOPRead(char *fname, int hemi) ;
 int IOPWrite(IOP *iop, char *fname) ;
 int IOPFree(IOP **piop) ;
 int IOPNormalize(IOP *iop) ;
+MATRIX *IOPapplyInverseOperator(IOP *iop, REC *rec, MATRIX *m_sol) ;
+
 
 #define INVERSE_RH    1
 #define INVERSE_LH    2
