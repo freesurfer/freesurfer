@@ -598,6 +598,11 @@ MRI *MRIdilateThreshLabel(MRI *mri_src, MRI *mri_val, MRI *mri_dst, int label,
 MRI *MRIsoapBubbleLabel(MRI *mri_src, MRI *mri_label, MRI *mri_dst, int label,
                         int niter);
 int MRIsetValues(MRI *mri, int val) ;
+int  MRIcomputeClassStatistics(MRI *mri_T1, MRI *mri_labeled,
+                               float gray_low, float gray_hi,
+                               float *pmean_wm, float *psigma_wm,
+                               float *pmean_gm, float *psigma_gm) ;
+
 
 #define MRI_NOT_WHITE   1
 #define MRI_AMBIGUOUS   128
