@@ -45,6 +45,22 @@ void initVolGeom(VOL_GEOM *vg);
 void writeVolGeom(FILE *fp, const VOL_GEOM *vg);
 void readVolGeom(FILE *fp, VOL_GEOM *vg);
 
+void vg_print(const VOL_GEOM *vg)
+{
+  if (vg->valid == 1)
+  {
+    fprintf(stderr, "volume geometry:\n");
+    fprintf(stderr, "extent  : (%d, %d, %d)\n", vg->width, vg->height, vg->depth);
+    fprintf(stderr, "voxel   : (%.4f, %.4f, %.4f)\n", vg->xsize, vg->ysize, vg->zsize);
+    fprintf(stderr, "x_(ras) : (%.4f, %.4f, %.4f)\n", vg->x_r, vg->x_a, vg->x_s);
+    fprintf(stderr, "y_(ras) : (%.4f, %.4f, %.4f)\n", vg->y_r, vg->y_a, vg->y_s);
+    fprintf(stderr, "z_(ras) : (%.4f, %.4f, %.4f)\n", vg->z_r, vg->z_a, vg->z_s);
+    fprintf(stderr, "c_(ras) : (%.4f, %.4f, %.4f)\n", vg->c_r, vg->c_a, vg->c_s);
+  }
+  else
+    fprintf(stderr, "volume geometry info is either not contained or not valid.\n");
+}
+
 // what should be the initialized value?
 // I guess make it the same as COR standard.
 void initVolGeom(VOL_GEOM *vg)
