@@ -4,9 +4,9 @@
 
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2004/07/19 04:05:05 $
-// Revision       : $Revision: 1.215 $
-char *VERSION = "$Revision: 1.215 $";
+// Revision Date  : $Date: 2004/07/21 17:11:46 $
+// Revision       : $Revision: 1.216 $
+char *VERSION = "$Revision: 1.216 $";
 
 #define TCL
 #define TKMEDIT 
@@ -1052,7 +1052,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
      shorten our argc and argv count. If those are the only args we
      had, exit. */
   /* rkt: check for and handle version tag */
-  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.215 2004/07/19 04:05:05 kteich Exp $", "$Name:  $");
+  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.216 2004/07/21 17:11:46 kteich Exp $", "$Name:  $");
   if (nNumProcessedVersionArgs && argc - nNumProcessedVersionArgs == 1)
     exit (0);
   argc -= nNumProcessedVersionArgs;
@@ -5010,7 +5010,7 @@ int main ( int argc, char** argv ) {
     DebugPrint( ( "%s ", argv[nArg] ) );
   }
   DebugPrint( ( "\n\n" ) );
-  DebugPrint( ( "$Id: tkmedit.c,v 1.215 2004/07/19 04:05:05 kteich Exp $ $Name:  $\n" ) );
+  DebugPrint( ( "$Id: tkmedit.c,v 1.216 2004/07/21 17:11:46 kteich Exp $ $Name:  $\n" ) );
 
   
   /* init glut */
@@ -6497,8 +6497,6 @@ void SaveSelectionToLabelFile ( char * isFileName ) {
 
     Volm_GetValueAtMRIIdx_( gSelectionVolume, &MRIIdx, &selected );
     if( 0 != selected ) {
-
-      printf( "got %d %d %d\n", xVoxl_ExpandInt( &MRIIdx ) );
 
       /* convert mri idx to surface ras. note we may use surface ras
 	 here because it ignores c_ras, which is what label files
