@@ -170,7 +170,7 @@ MRIunpackFileName(char *inFname, int *pframe, int *ptype, char *outFname)
     }
 
     if(*ptype == -1)
-      ErrorExit(ERROR_BADPARM, "unrecognized file type for file %s", outFname);
+      ErrorReturn(ERROR_BADPARM, (ERROR_BADPARM, "unrecognized file type for file %s", outFname));
 
   }
 
@@ -232,7 +232,8 @@ MRIread(char *fpref)
   BUFTYPE *buf ;   /* tmp space to read in whole buffer */
   FILE    *fp ;
 
-  MRIunpackFileName(fpref, &frame, &type, fname) ;
+  if(MRIunpackFileName(fpref, &frame, &type, fname) != NO_ERROR)
+    return(NULL);
 
   switch (type)
   {
