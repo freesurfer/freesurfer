@@ -39,8 +39,9 @@ typedef struct vertex_type_
 {
   float x,y,z;           /* curr position */
   float nx,ny,nz;        /* curr normal */
-  float dx, dy, dz ;     /* current change in position */
-  float odx, ody, odz ; 
+  double dx, dy, dz ;     /* current change in position */
+  double odx, ody, odz ; 
+  double ldx, ldy, ldz ;  /* last change of position (for momentum) */
   float ox,oy,oz;        /* last position */
   float curv;            /* curr curvature */
   float val;             /* scalar data value (file: rh.val, sig2-rh.w) */
@@ -70,6 +71,8 @@ typedef struct vertex_type_
   int *n;                /* [0-3, num long] */
   int vnum;              /* number neighboring vertices */
   int *v;                /* array neighboring vertex numbers, vnum long */
+  int v2num ;            /* number of 2-connected neighbors */
+                        
 #if 0
   float bnx,bny,obnx,obny;                       /* boundary normal */
   float *fnx ;           /* face normal - x component */
@@ -140,7 +143,7 @@ typedef struct
 
 typedef struct
 {
-  float   tol ;               /* tolerance for terminating a step */
+  double  tol ;               /* tolerance for terminating a step */
   float   l_angle ;           /* coefficient of angle term */
   float   l_area ;            /* coefficient of area term */
   float   l_corr ;            /* coefficient of correlation term */
@@ -156,7 +159,14 @@ typedef struct
   int     start_t ;           /* starting time step */
   int     t ;                 /* current time */
   FILE    *fp ;               /* for logging results */
+  float   Hdesired ;          /* desired (mean) curvature */
+  int     integration_type ;  /* line minimation or momentum */
+  double  momentum ;
+  double  dt ;                /* time step (for momentum only) */
 } INTEGRATION_PARMS ;
+
+#define INTEGRATE_LINE_MINIMIZE    0
+#define INTEGRATE_MOMENTUM         1
 
 
 /*
@@ -208,8 +218,10 @@ typedef struct
 #define ELLIPSOID_PROJECTION PROJECT_ELLIPSOID
 #define PROJECT_PLANE        2
 #define PLANAR_PROJECTION    PROJECT_PLANE
+#define MOMENTUM             0.8
 
 #define TOL                  1e-6  /* minimum error tolerance for unfolding */
+#define DELTA_T              0.1
 
 /* can't include this before structure, as stats.h includes this file. */
 #include "stats.h"
