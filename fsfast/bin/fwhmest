@@ -8,7 +8,9 @@ set VERSION = '$Id'
 set PrintHelp = 0;
 
 set InStem = ();
-set PolyOrder = ();
+set PolyOrder = -1;
+set xmatfile = ();
+set extregstem = ();
 set MaskStem = ();
 set tmpdir = ();
 set outfile = ();
@@ -59,13 +61,13 @@ if($status) exit 1;
 set doffile = $tmpdir/dof.dat
 rm -f $doffile
 
-if($PolyOrder > -1) then
+if($PolyOrder < 0 && $#xmatfile == 0 && $#extregstem == 0) goto smoothest;
 
-  ## Set path for matlab file ##
-  if(! $monly)  set MLF = "/tmp/fwhmest_$$.m"
-  rm -f $MLF
+## Set path for matlab file ##
+if(! $monly)  set MLF = "/tmp/fwhmest_$$.m"
+rm -f $MLF
 
-  set outstem = $tmpdir/f;
+set outstem = $tmpdir/f;
 
   #-----------------------------------------------------#
 tee $MLF <<EOF
@@ -73,6 +75,8 @@ tee $MLF <<EOF
   outstem = '$outstem';
   order   = [$PolyOrder];
   doffile = '$doffile';
+  xmatfile = '$xmatfile';
+  extregstem = '$extregstem';
 
   [f mristruct] = fast_ldbslice(instem);
   if(isempty(f))
@@ -85,14 +89,48 @@ tee $MLF <<EOF
   nf = szf(4);
   f = reshape(f,[nv nf])';
 
-  X = fast_polytrendmtx(1,nf,1,order);
-  R = eye(nf) - X*inv(X'*X)*X';
-  f = R*f;
+  X = [];
+
+  if(~isempty(xmatfile))
+    XX = load(xmatfile);
+    if(isempty(XX))
+      fprintf('ERROR: loading %s\n',xmatfile);
+      return; quit;
+    end
+    X = [X XX.Xfinal];
+  end
+
+  if(~isempty(extregstem))
+    extreg = fmri_ldbvolume(extregstem);
+    if(isempty(extreg))
+      fprintf('ERROR: could not load %s\n',extregstem);
+      return;
+    end
+    if(size(extreg,3)~=1) extreg = squeeze(extreg)'; %'
+    else                  extreg = squeeze(extreg);
+    end
+    % normalize
+    extreg = extreg - repmat(mean(extreg), [nf 1]);
+    extreg = extreg./repmat(std(extreg), [nf 1]);
+    X = [X extreg];
+  end
+
+  if(order > -1)
+    Xp = fast_polytrendmtx(1,nf,1,order);
+    X = [X Xp];
+  end
+
+  if(~isempty(X))
+    R = eye(nf) - X*inv(X'*X)*X';
+    f = R*f;
+    dof = size(X,1) - size(X,2);
+  else
+    dof = nf;
+  end
 
   f = reshape(f',szf);
   fast_svbslice(f,outstem,-1,'',mristruct);
 
-  dof = size(X,1) - size(X,2);
   fp = fopen(doffile,'w');
   fprintf(fp,'%g\n',dof);
   fclose(fp);
@@ -101,13 +139,16 @@ tee $MLF <<EOF
 EOF
   #-----------------------------------------------------#
 
-  cat $MLF | matlab -nospash -display iconic |& tee -a $LF
-  mri_convert $outstem"_000.bfloat" $tmpdir/f.img
-else
-  set dof = `getnframes $instem`;
+cat $MLF | matlab -nospash -display iconic |& tee -a $LF
+mri_convert $outstem"_000.bfloat" $tmpdir/f.img
+
+smoothest:
+
+if($PolyOrder < 0 && $#xmatfile == 0 && $#extregstem == 0) then
+  set dof = `getnframes $InStem`;
   echo $dof > $doffile
   set bext = `getbext $InStem`;
-  mri_convert $instem"_000.$bext" $tmpdir/f.img
+  mri_convert $InStem"_000.$bext" $tmpdir/f.img
 endif
 
 set bext = `getbext $MaskStem`;
@@ -153,6 +194,16 @@ while( $#argv != 0 )
     case "--polyfit":
       if ( $#argv == 0) goto arg1err;
       set PolyOrder = $argv[1]; shift;
+      breaksw
+
+    case "--X":
+      if ( $#argv == 0) goto arg1err;
+      set xmatfile = $argv[1]; shift;
+      breaksw
+
+    case "--extreg":
+      if ( $#argv == 0) goto arg1err;
+      set extregstem = $argv[1]; shift;
       breaksw
 
     case "--mask":
@@ -216,6 +267,8 @@ usage_exit:
   echo "  --mask maskstem"
   echo ""
   echo "  --polyfit N : default is 0"
+  echo "  --X xmatfile"
+  echo "  --extreg extregstem"
   echo "  --o outfile : default is instem.fwhm.dat"
   echo "   -umask umask          : set unix file permission mask"
   echo "   -version              : print version and exit"
