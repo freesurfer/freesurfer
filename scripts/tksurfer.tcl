@@ -987,7 +987,7 @@ pack forget .draw.main.acurv.ck
 buttons $f "SEND PNT" { find_orig_vertex_coordinates; findsendto; \
    catch { send tkanalyse { goto_point; redraw; set curslice $curslice } }; \
    catch { send $fulltkmedit { goto_point; redraw; unzoomcoords $plane; \
-                          sendupdate; sendgoto } }; \
+                           } }; \
    catch { send $fulltkregister { goto_point; set updateflag TRUE; \
                              unzoomcoords $plane } } } row 1 4
 buttons $f "GOTO PNT" { select_orig_vertex_coordinates } row 1 4
