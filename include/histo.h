@@ -60,5 +60,7 @@ int       HISTOplot(HISTOGRAM *histo, char *fname) ;
 int       HISTOaddSample(HISTOGRAM *histo, float val, float bmin, float bmax) ;
 int       HISTOfindCurrentPeak(HISTOGRAM *histo, int b0, int wsize, float min_pct) ;
 int       HISTOfillHoles(HISTO *h) ;
+int       HISTOtotal(HISTO *h) ;
+int       HISTOtotalInRegion(HISTO *h, int b0, int b1) ;
 
 #endif
