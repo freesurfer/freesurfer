@@ -1,6 +1,6 @@
 #!/bin/csh -f
 
-set SEQEFF_VER = '$Id: seqefficiency,v 1.2 2004/02/10 22:33:56 greve Exp $';
+set SEQEFF_VER = '$Id: seqefficiency,v 1.3 2004/05/13 19:11:10 greve Exp $';
 
 if ( $#argv < 4 ) then
   echo ""
@@ -23,6 +23,7 @@ if ( $#argv < 4 ) then
   echo "   -nextreg n     : use first n external regressors"
   echo "   -extregorthog  : orthogonalize external regressors wrt task"
   echo "   -gammafit delta tau  : fit events to a gamma function"
+  echo "   -spmhrf nderivatives  : use SPM HRF with number of derivatives"
   echo "   -monly mfile   : generate matlab file only"
   echo ""
   echo "  $SEQEFF_VER"
@@ -54,6 +55,7 @@ set PerReg = ();
 set ExtRegList = ();
 set nExtReg = ();
 set ExtRegOrthog = 0;
+set spmhrf = -1;
 
 goto parse_args;
 parse_args_return:
@@ -104,12 +106,14 @@ tee $MLF > /dev/null <<EOF
   ExtRegList = '$ExtRegList';
   nExtReg = [$nExtReg];
   ExtRegOrthog = [$ExtRegOrthog];
+  spmhrf = $spmhrf;
 
   if(~isempty(ExtRegList)) ExtRegList = splitstring(ExtRegList); end
 
   SubSampRate = TR/TER;
 
-  Nh = round(TimeWindow/TER);
+  Nfir = round(TimeWindow/TER);
+  Nh = Nfir;
   nruns = size(parfilelist,1);
 
   idlistall = [];
@@ -147,7 +151,7 @@ tee $MLF > /dev/null <<EOF
   for run = 1:nruns
     parfile = deblank(parfilelist(run,:));
     par = fmri_ldpar(parfile);
-    Xpar = fmri_par2scm(par,Nc,SubSampRate*Ntp,TER,Nh,TPS);
+    Xpar = fmri_par2scm(par,Nc,SubSampRate*Ntp,TER,Nfir,TPS);
     if(TR ~= TER)
       Xtmp = Xpar;
       nn = [1:SubSampRate:size(Xtmp,1)];
@@ -156,7 +160,25 @@ tee $MLF > /dev/null <<EOF
 
     if(gammafit)
       Xpar = fmri_scm2gcm(Xpar,Nnnc,TER,TPS,gfDelta,gfTau);
+      Nh = 1;
     end
+    if(spmhrf > -1)
+      tspmhrf = TER*[0:Nfir-1]'-TPS;
+      hspmhrf = fast_spmhrf(tspmhrf);
+      Aspmhrf = hspmhrf;
+      dhspmhrf = hspmhrf;
+      for nderiv = 1:spmhrf
+        dhspmhrf = gradient(dhspmhrf);
+	Aspmhrf = [Aspmhrf dhspmhrf];
+      end
+      A = [];
+      for c = 1:Nnnc
+        A = fast_blockdiag2(A,Aspmhrf);
+      end
+      Xpar = Xpar*A;
+      Nh = spmhrf+1;
+    end
+
     if(pforder >= 0) 
        Xpf = fast_polytrendmtx(run,Ntp,nruns,pforder); 
     else
@@ -199,7 +221,6 @@ tee $MLF > /dev/null <<EOF
     X = [X; F*Xrun];
   end
 
-  if(gammafit) Nh = 1; end
   NTaskAvgs = Nh*Nnnc;
 
   if(~isempty(desmtxfile))
@@ -340,6 +361,11 @@ while( $#argv != 0 )
       set gammafit = 1;
       set delta = $argv[1]; shift;
       set tau   = $argv[1]; shift;
+      breaksw
+
+    case "-spmhrf":
+      if( $#argv < 1) goto arg1err;
+      set spmhrf = $argv[1]; shift;
       breaksw
 
     case "-TW":

@@ -1,8 +1,8 @@
 #!/bin/csh -f
 # selxavg-sess
 #
-# $Id: selxavg-sess,v 1.10 2004/03/30 16:29:57 greve Exp $
-set VERSION = '$Id: selxavg-sess,v 1.10 2004/03/30 16:29:57 greve Exp $';
+# $Id: selxavg-sess,v 1.11 2004/05/13 19:10:57 greve Exp $
+set VERSION = '$Id: selxavg-sess,v 1.11 2004/05/13 19:10:57 greve Exp $';
 set FASTVER = `cat $FMRI_ANALYSIS_DIR/docs/version`;
 
 set inputargs = ($argv);
@@ -87,8 +87,9 @@ endif
 
 # Determine if this analysis uses a gamma fit (needed when making
 # default contrasts
-set tmp = `cat $cfgfile | grep gammafit`;
-if($#tmp == 0) then
+set tmp1 = `cat $cfgfile | grep gammafit`;
+set tmp2 = `cat $cfgfile | grep spmhrf`;
+if($#tmp1 == 0 && $#tmp2 == 0) then
   set IsGammaFit = 0;
 else
   set IsGammaFit = 1;
