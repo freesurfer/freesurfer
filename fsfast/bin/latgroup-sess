@@ -1,7 +1,7 @@
 #!/bin/csh -f
 # latgrinder-sess
 #
-set VERSION = '$Id: latgroup-sess,v 1.1 2004/06/07 00:15:11 greve Exp $';
+set VERSION = '$Id: latgroup-sess,v 1.2 2004/06/07 00:23:39 greve Exp $';
 
 set inputargs = ($argv);
 
@@ -237,8 +237,8 @@ if($status) then
   echo "ERROR: mri_surf2surf failed"
   exit 1;
 endif
-rm $outstem-fsig-$hemi"_"???.*
-rm $outstem-fsig-$hemi.bhdr
+rm -f $outstem-fsig-$hemi"_"???.*
+rm -f $outstem-fsig-$hemi.bhdr
 
 set outw = $outstem-ces-$targetsubject-$hemi.w
 set cmd = (mri_surf2surf \
@@ -256,9 +256,8 @@ if($status) then
   echo "ERROR: mri_surf2surf failed"
   exit 1;
 endif
-rm $outstem-ces-$hemi"_"???.*
-rm $outstem-ces-$hemi.bhdr
-
+rm -f $outstem-ces-$hemi"_"???.*
+rm -f $outstem-ces-$hemi.bhdr
 
 echo "" | tee -a $LF
 echo "" | tee -a $LF
@@ -550,9 +549,13 @@ CCGroup1 > CCGroup2.
 IF a GDM file is not used, then all subjects are assumed to be
 in Group1, and CCGroup2=0.
 
-
 There are two other files created: outstem-ces-targsubj-?h.log
 and outstem-ces-targsubj-?h.mat. These are just their for
 bookkeeping purposes.
 
+EXAMPLE:
 
+latgroup-sess -a latency1  -latdir latdir \
+  -ca 1 -cc 2 \
+  -hemi lh -o latgroup/1v2 \
+  -sf controls -sf patients -df dir -gdm gdm.dat
