@@ -13,8 +13,9 @@
 #include "mri.h"
 #include "macros.h"
 #include "utils.h"
+#include "timer.h"
 
-static char vcid[]="$Id: mris_sphere.c,v 1.11 1999/02/09 22:03:16 fischl Exp $";
+static char vcid[]="$Id: mris_sphere.c,v 1.12 1999/03/01 00:00:35 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -44,11 +45,13 @@ main(int argc, char *argv[])
 {
   char         **av, *in_surf_fname, *out_fname, 
                fname[100], *cp ;
-  int          ac, nargs ;
+  int          ac, nargs, msec ;
   MRI_SURFACE  *mris ;
+  struct timeb  then ;
 
   Gdiag = DIAG_SHOW ;
 
+  TimerStart(&then) ;
   Progname = argv[0] ;
   ErrorInit(NULL, NULL, NULL) ;
   DiagInit(NULL, NULL, NULL) ;
@@ -117,48 +120,57 @@ main(int argc, char *argv[])
   fprintf(stderr, "reading original vertex positions...\n") ;
   if (!FZERO(disturb))
     mrisDisturbVertices(mris, disturb) ;
-  if (parms.niterations > 0)
+  MRISreadOriginalProperties(mris, "smoothwm") ;
+  
+  fprintf(stderr, "unfolding cortex into spherical form...\n");
+  MRIStalairachTransform(mris, mris) ;
+
+  if (quick)
   {
-    MRISreadOriginalProperties(mris, "smoothwm") ;
-    MRISsetNeighborhoodSize(mris, nbrs) ;
+    INTEGRATION_PARMS inflation_parms ;
 
-    fprintf(stderr,"surface projected - minimizing metric distortion...\n");
-    MRIStalairachTransform(mris, mris) ;
-    MRISprojectOntoSphere(mris, mris, DEFAULT_RADIUS) ;
-    if (quick)
-    {
-      double mean, sigma, dmin, dmax ;
-
-      mean = MRIScomputeVertexSpacingStats(mris, &sigma, &dmin, &dmax) ;
-      fprintf(stderr, "vertex spacing %2.2f +- %2.2f (%2.2f-->%2.2f)\n",
-              mean, sigma, dmin, dmax) ;
-      mean = MRIScomputeFaceAreaStats(mris, &sigma, &dmin, &dmax) ;
-      fprintf(stderr, "face area %2.2f +- %2.2f (%2.2f-->%2.2f)\n",
-              mean, sigma, dmin, dmax) ;
-      parms.l_parea = 1 ; parms.l_nlarea = 0 ;
-      MRISquickSphere(mris, &parms, max_passes) ;  
-      mean = MRIScomputeVertexSpacingStats(mris, &sigma, &dmin, &dmax) ;
-      fprintf(stderr, "vertex spacing %2.2f +- %2.2f (%2.2f-->%2.2f)\n",
-              mean, sigma, dmin, dmax) ;
-      mean = MRIScomputeFaceAreaStats(mris, &sigma, &dmin, &dmax) ;
-      fprintf(stderr, "face area %2.2f +- %2.2f (%2.2f-->%2.2f)\n",
-              mean, sigma, dmin, dmax) ;
-      parms.l_parea = 0 ; parms.l_nlarea = 1 ;
-      MRISquickSphere(mris, &parms, max_passes) ;  
-      mean = MRIScomputeVertexSpacingStats(mris, &sigma, &dmin, &dmax) ;
-      fprintf(stderr, "vertex spacing %2.2f +- %2.2f (%2.2f-->%2.2f)\n",
-              mean, sigma, dmin, dmax) ;
-      mean = MRIScomputeFaceAreaStats(mris, &sigma, &dmin, &dmax) ;
-      fprintf(stderr, "face area %2.2f +- %2.2f (%2.2f-->%2.2f)\n",
-              mean, sigma, dmin, dmax) ;
-    }
-    else
-      MRISunfold(mris, &parms, max_passes) ;  
-    fprintf(stderr, "writing spherical brain to %s\n", out_fname) ;
-    MRISwrite(mris, out_fname) ;
+    memset(&inflation_parms, 0, sizeof(INTEGRATION_PARMS)) ;
+    inflation_parms.write_iterations = parms.write_iterations ;
+    inflation_parms.niterations = 200 ;
+    inflation_parms.l_spring_norm = 1.0 ;
+    inflation_parms.l_sphere = .25 ;
+    inflation_parms.a = DEFAULT_RADIUS ;
+    inflation_parms.tol = 1 ;
+    inflation_parms.integration_type = INTEGRATE_MOMENTUM ;
+    inflation_parms.momentum = 0.9 ;
+    inflation_parms.dt = 0.9 ;
+    
+    MRISinflateToSphere(mris, &inflation_parms) ;
+    parms.start_t = inflation_parms.start_t ;
   }
+  MRISprojectOntoSphere(mris, mris, DEFAULT_RADIUS) ;
+  fprintf(stderr,"surface projected - minimizing metric distortion...\n");
+  MRISsetNeighborhoodSize(mris, nbrs) ;
+  if (quick)
+  {
+#if 1
+    MRISprintTessellationStats(mris, stderr) ;
+    parms.nbhd_size = 1 ; parms.max_nbrs = 8 ;
+    parms.l_parea = 1 ; parms.l_nlarea = 0 ; parms.l_dist = 1 ;
+    /* was parms->l_dist = 0.1 */
+    /*    parms.n_averages = 256 ;*/
+    MRISquickSphere(mris, &parms, max_passes) ;  
+    MRISresetNeighborhoodSize(mris, 1) ;
+    parms.n_averages = 32 ; parms.tol = 1 ;
+#endif
+    MRISprintTessellationStats(mris, stderr) ;
+    parms.l_parea = 0.01 ; parms.l_nlarea = 1 ; parms.l_dist = 0.01 ;
+    MRISquickSphere(mris, &parms, max_passes) ;  
+    MRISprintTessellationStats(mris, stderr) ;
+  }
+  else
+    MRISunfold(mris, &parms, max_passes) ;  
+  fprintf(stderr, "writing spherical brain to %s\n", out_fname) ;
+  MRISwrite(mris, out_fname) ;
 
-
+  msec = TimerStop(&then) ;
+  fprintf(stderr, "spherical transformation took %2.2f hours\n",
+          (float)msec/(1000.0f*60.0f*60.0f));
   exit(0) ;
   return(0) ;  /* for ansi */
 }
@@ -312,8 +324,10 @@ get_option(int argc, char *argv[])
     nbrs = 1 ;
     parms.l_spring = parms.l_dist = parms.l_parea = parms.l_area = 0.0 ; 
     parms.l_nlarea = 1.0 ;
-    parms.tol = 10 ;
-    parms.n_averages = 32 ;
+    parms.tol = .25 ;
+    parms.nbhd_size = 7 ; parms.max_nbrs = 8 ;
+    parms.n_averages = 1024 ;
+    /*    parms.tol = 10.0f / (sqrt(33.0/1024.0)) ;*/
     break ;
   case 'B':
     base_dt_scale = atof(argv[2]) ;
