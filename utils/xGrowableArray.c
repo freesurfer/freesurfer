@@ -54,8 +54,8 @@ xGArr_tErr xGArr_New ( xGrowableArrayRef* opList,
     free( this );
 
   if( xGArr_tErr_NoErr != eResult ) {
-    DebugPrint "Error %d in xGArr_New: %s\n",
-      eResult, xGArr_GetErrorString( eResult ) EndDebugPrint;
+    DebugPrint( ( "Error %d in xGArr_New: %s\n",
+      eResult, xGArr_GetErrorString( eResult ) ));
   }
 
  cleanup:
@@ -92,8 +92,8 @@ xGArr_tErr xGArr_Delete ( xGrowableArrayRef* iopList ) {
  error:
 
   if( xGArr_tErr_NoErr != eResult ) {
-    DebugPrint "Error %d in xGArr_Delete: %s\n",
-      eResult, xGArr_GetErrorString( eResult ) EndDebugPrint;
+    DebugPrint( ( "Error %d in xGArr_Delete: %s\n",
+      eResult, xGArr_GetErrorString( eResult ) ));
   }
 
  cleanup:
@@ -147,8 +147,8 @@ xGArr_tErr xGArr_Add ( xGrowableArrayRef this,
  error:
 
   if( xGArr_tErr_NoErr != eResult ) {
-    DebugPrint "Error %d in xGArr_Add: %s\n",
-      eResult, xGArr_GetErrorString( eResult ) EndDebugPrint;
+    DebugPrint( ( "Error %d in xGArr_Add: %s\n",
+      eResult, xGArr_GetErrorString( eResult ) ));
   }
 
  cleanup:
@@ -172,8 +172,8 @@ xGArr_tErr xGArr_ResetIterator ( xGrowableArrayRef this ) {
  error:
 
   if( xGArr_tErr_NoErr != eResult ) {
-    DebugPrint "Error %d in xGArr_ResetIterator: %s\n",
-      eResult, xGArr_GetErrorString( eResult ) EndDebugPrint;
+    DebugPrint( ( "Error %d in xGArr_ResetIterator: %s\n",
+      eResult, xGArr_GetErrorString( eResult ) ));
   }
 
  cleanup:
@@ -191,7 +191,7 @@ xGArr_tErr xGArr_NextItem ( xGrowableArrayRef this,
     goto error;
 
   /* see if we're at the end */
-  if( this->mnNext >= (this->mnNumItems-1) ) {
+  if( this->mnNext >= (this->mnNumItems) ) {
     eResult = xGArr_tErr_LastItem;
     goto cleanup;
   }
@@ -209,8 +209,8 @@ xGArr_tErr xGArr_NextItem ( xGrowableArrayRef this,
  error:
 
   if( xGArr_tErr_NoErr != eResult ) {
-    DebugPrint "Error %d in xGArr_NextItem: %s\n",
-      eResult, xGArr_GetErrorString( eResult ) EndDebugPrint;
+    DebugPrint( ( "Error %d in xGArr_NextItem: %s\n",
+      eResult, xGArr_GetErrorString( eResult ) ));
   }
 
  cleanup:
