@@ -2143,7 +2143,6 @@ Volm_tErr Volm_SetAllValues ( mriVolumeRef this,
 			      float        iNewValue ) {
   
   Volm_tErr   eResult = Volm_tErr_NoErr;
-  xVoxel      idx;
   
   DebugEnterFunction( ("Volm_SetAllValues( this=%p, iNewValue=%d )", 
 		       this, (int)iNewValue) );
