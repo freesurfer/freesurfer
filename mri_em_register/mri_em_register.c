@@ -448,17 +448,18 @@ register_mri(MRI *mri_in, GCA *gca, MORPH_PARMS *parms, int passno)
   return(NO_ERROR) ;
 }
 
-#define MAX_ANGLES      10
+#define DEFAULT_MAX_STEPS 10
+static double MAX_ANGLES = DEFAULT_MAX_STEPS ;
 #define MAX_ANGLE       RADIANS(30)
 #define MIN_ANGLE       RADIANS(2)
 
 #define MAX_SCALE       1.3
 #define MIN_SCALE       0.7
 
-static int max_angles = MAX_ANGLES ;
+static int max_angles = DEFAULT_MAX_STEPS ;
 
 
-#define MAX_TRANS       MAX_ANGLES
+static double MAX_TRANS = DEFAULT_MAX_STEPS ;
 
 static MATRIX *
 find_optimal_transform(MRI *mri, GCA *gca, GCA_SAMPLE *gcas, int nsamples,
@@ -543,7 +544,7 @@ find_optimal_transform(MRI *mri, GCA *gca, GCA_SAMPLE *gcas, int nsamples,
             scale,max_log_p, old_max, old_max+fabs(tol*old_max)) ;
 
     /* search a finer nbhd (if do-while continues) */
-    scale *= 0.75 ;
+    scale *= 0.5 ;
     mean = (max_scale + min_scale)/2 ;
     delta = (max_scale - min_scale)/2 ;
     max_scale = mean + delta*scale ;
@@ -981,10 +982,16 @@ get_option(int argc, char *argv[])
     nargs = 1 ;
     break ;
   case 'S':
+#if 0
     parms.sigma = atof(argv[2]) ;
     printf("using sigma=%2.3f as upper bound on blurring.\n", 
             parms.sigma) ;
     nargs = 1 ;
+#else
+    MAX_ANGLES = MAX_TRANS = max_angles = (float)atoi(argv[2]) ;
+    nargs = 1 ;
+    printf("examining %2.0f different trans/rot/scale values...\n", MAX_TRANS);
+#endif
     break ;
   case '?':
   case 'U':
