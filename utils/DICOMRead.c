@@ -2,7 +2,7 @@
    DICOM 3.0 reading functions
    Author: Sebastien Gicquel and Douglas Greve
    Date: 06/04/2001
-   $Id: DICOMRead.c,v 1.48 2003/10/21 17:06:14 tosa Exp $
+   $Id: DICOMRead.c,v 1.49 2003/10/21 20:48:19 tosa Exp $
 *******************************************************/
 
 #include <stdio.h>
@@ -36,7 +36,8 @@ void *malloc(size_t size);
 static int DCMPrintCond(CONDITION cond);
 void *ReadDICOMImage2(int nfiles, DICOMInfo **aDicomInfo, int startIndex);
 
-static bool IsTagPresent[NUMBEROFTAGS];
+static BOOL IsTagPresent[NUMBEROFTAGS];
+static int sliceDirCosPresent;
 
 //#define _DEBUG
 
@@ -86,6 +87,8 @@ MRI * sdcmLoadVolume(char *dcmfile, int LoadVolume)
   xs=ys=zs=xe=ye=ze=sign=0.; /* to avoid compiler warnings */
   slice = 0; frame = 0; /* to avoid compiler warnings */
 
+  sliceDirCosPresent = 0; // assume not present
+
   if(SDCMListFile != NULL)
     SeriesList = ReadSiemensSeries(SDCMListFile, &nlist, dcmfile);
   else
@@ -110,6 +113,7 @@ MRI * sdcmLoadVolume(char *dcmfile, int LoadVolume)
   /* First File in the Run */
   sdfi = sdfi_list[0];
   /* there are some Siemens files don't have the slice dircos */
+  if (sliceDirCosPresent == 0)
   {
     xs = sdfi_list[0]->ImgPos[0]; ys = sdfi_list[0]->ImgPos[1]; zs = sdfi_list[0]->ImgPos[2];
     xe = sdfi_list[nlist-1]->ImgPos[0]; ye = sdfi_list[nlist-1]->ImgPos[1]; ze = sdfi_list[nlist-1]->ImgPos[2];
@@ -121,7 +125,10 @@ MRI * sdcmLoadVolume(char *dcmfile, int LoadVolume)
     sign = sdfi->Vs[0]*(xs-xe) + sdfi->Vs[1]*(ys-ye) + sdfi->Vs[2]*(ze-zs);
     if (sign < 0)
     {
-      // fprintf(stderr, "INFO: weird (this should not happen).\n");
+      fprintf(stderr, "INFO: Handedness changed to left-handed.\n");
+      sdfi->Vs[0] = -sdfi->Vs[0];
+      sdfi->Vs[1] = -sdfi->Vs[1];
+      sdfi->Vs[2] = -sdfi->Vs[2];
     }
   }
 
@@ -1040,7 +1047,11 @@ int sdcmSliceDirCos(char *dcmfile, float *Vsx, float *Vsy, float *Vsz)
     free(tmpstr);
   }
 
-  if( *Vsx == 0 && *Vsy == 0 && *Vsz == 0 ) return(1);
+  if( *Vsx == 0 && *Vsy == 0 && *Vsz == 0 ) 
+  {
+    sliceDirCosPresent = 0;
+    return (1);
+  }
 
   /* Convert from LPS to RAS */
   (*Vsx) *= -1.0;
@@ -1052,6 +1063,8 @@ int sdcmSliceDirCos(char *dcmfile, float *Vsx, float *Vsy, float *Vsz)
   (*Vsx) /= rms;
   (*Vsy) /= rms;
   (*Vsz) /= rms;
+
+  sliceDirCosPresent = 1;
 
   return(0);
 }
@@ -1302,7 +1315,7 @@ SDCMFILEINFO *GetSDCMFileInfo(char *dcmfile)
     /* we have x_(r,a,s) and y_(r,a,s).  z_(r,a,s) must be orthogonal to these */
     /* get the cross product of x_(r,a,s) and y_(r,a,s) is in proportion to z_(r,a,s) */
     /* also x_(r,a,s) and y_(r,a,s) are normalized and thus cross product is also normalized */
-    /* Note that RAS is right-handed coords and sign is fixed  */
+    /* here right-handedness is assumed. must be compared with the image positions           */
     xr = sdcmfi->Vc[0]; xa = sdcmfi->Vc[1]; xs = sdcmfi->Vc[2]; 
     yr = sdcmfi->Vr[0]; ya = sdcmfi->Vr[1]; ys = sdcmfi->Vr[2];
     zr = xa*ys - xs*ya; za = xs*yr - xr*ys; zs = xr*ya - xa*yr;
@@ -3589,7 +3602,7 @@ void *ReadDICOMImage2(int nfiles, DICOMInfo **aDicomInfo, int startIndex)
 void SortFiles(char *fNames[], int nFiles, DICOMInfo ***ptrDicomArray, int *nStudies)
 {
   int n, npermut;
-  bool done;
+  BOOL done;
   
   DICOMInfo **dicomArray, *storage;
   dicomArray=(DICOMInfo **)calloc(nFiles, sizeof(DICOMInfo *));
