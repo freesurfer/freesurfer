@@ -1,7 +1,7 @@
 #!/bin/csh -f
 # spmregister-sess
 #
-set VERSION = '$Id: spmregister-sess,v 1.3 2003/11/05 21:35:29 greve Exp $';
+set VERSION = '$Id: spmregister-sess,v 1.4 2003/11/07 00:44:46 greve Exp $';
 set inputargs = ($argv);
 set DateString = "`date '+%y%m%d%H%M'`"
 
@@ -229,4 +229,5 @@ usage_exit:
   echo "   -fsvol volid   : FreeSurfer vol id (default is $fsvol)"
   echo "   -umask umask   : set unix file permission mask"
   echo "   -version       : print version and exit"
+  echo ""
 exit 1;
