@@ -67,7 +67,7 @@
 
 #ifdef LINUX
 #define exp2(f)     pow(2.0,(f))
-#define log2(f)     (log(f) / log(10.0))
+#define log2(f)     (log(f) / log(2.0))
 #endif
 
 #ifdef _MSDOS
