@@ -16,7 +16,7 @@
 #include "mrimorph.h"
 #include "mrinorm.h"
 
-static char vcid[] = "$Id: mris_make_surfaces.c,v 1.39 2001/08/29 19:59:42 fischl Exp $";
+static char vcid[] = "$Id: mris_make_surfaces.c,v 1.40 2002/07/04 19:34:36 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -39,6 +39,9 @@ int MRIsmoothBrightWM(MRI *mri_T1, MRI *mri_wm) ;
 MRI *MRIfindBrightNonWM(MRI *mri_T1, MRI *mri_wm) ;
 
 static char T1_name[STRLEN] = "brain" ;
+
+static char *orig_white = NULL ;
+static char *orig_pial = NULL ;
 
 char *Progname ;
 
@@ -103,6 +106,7 @@ static float max_thickness = 5.0 ;
 #define MID_GRAY               ((MAX_GRAY + MIN_GRAY_AT_CSF_BORDER) / 2)
 #define MAX_GRAY_AT_CSF_BORDER    75
 #define MIN_CSF                10
+#define MAX_CSF                40
 
 static  int   max_border_white_set = 0,
   min_border_white_set = 0,
@@ -110,7 +114,8 @@ static  int   max_border_white_set = 0,
   max_gray_set = 0,
   max_gray_at_csf_border_set = 0,
   min_gray_at_csf_border_set = 0,
-  min_csf_set = 0 ;
+  min_csf_set = 0,
+  max_csf_set = 0 ;
 
 static  float   max_border_white = MAX_BORDER_WHITE,
                 min_border_white = MIN_BORDER_WHITE,
@@ -118,11 +123,14 @@ static  float   max_border_white = MAX_BORDER_WHITE,
                 max_gray = MAX_GRAY,
                 max_gray_at_csf_border = MAX_GRAY_AT_CSF_BORDER,
                 min_gray_at_csf_border = MIN_GRAY_AT_CSF_BORDER,
-                min_csf = MIN_CSF ;
+                min_csf = MIN_CSF,
+                max_csf = MAX_CSF ;
+static char sdir[STRLEN] = "" ;
+
 int
 main(int argc, char *argv[])
 {
-  char          **av, *hemi, *sname, sdir[400], *cp, fname[500], mdir[STRLEN];
+  char          **av, *hemi, *sname, *cp, fname[STRLEN], mdir[STRLEN];
   int           ac, nargs, i, label_val, replace_val, msec, n_averages ;
   MRI_SURFACE   *mris ;
   MRI           *mri_wm, *mri_kernel = NULL, *mri_smooth = NULL, 
@@ -178,11 +186,14 @@ main(int argc, char *argv[])
   TimerStart(&then) ;
   sname = argv[1] ;
   hemi = argv[2] ;
-  cp = getenv("SUBJECTS_DIR") ;
-  if (!cp)
-    ErrorExit(ERROR_BADPARM, 
-              "%s: SUBJECTS_DIR not defined in environment.\n", Progname) ;
-  strcpy(sdir, cp) ;
+  if (!strlen(sdir))
+  {
+    cp = getenv("SUBJECTS_DIR") ;
+    if (!cp)
+      ErrorExit(ERROR_BADPARM, 
+                "%s: SUBJECTS_DIR not defined in environment.\n", Progname) ;
+    strcpy(sdir, cp) ;
+  }
   
   cp = getenv("MRI_DIR") ;
   if (!cp)
@@ -332,7 +343,13 @@ main(int argc, char *argv[])
   if (nbrs > 1)
     MRISsetNeighborhoodSize(mris, nbrs) ;
 
-  sprintf(parms.base_name, "%s%s", white_matter_name, suffix) ;
+  sprintf(parms.base_name, "%s%s%s", white_matter_name, output_suffix, suffix) ;
+  if (orig_white)
+  {
+    printf("reading initial white vertex positions from %s...\n", orig_white) ;
+    if (MRISreadVertexPositions(mris, orig_white) != NO_ERROR)
+      ErrorExit(Gerror, "reading of orig white failed...");
+  }
   MRIScomputeMetricProperties(mris) ;    /* recompute surface normals */
   MRISstoreMetricProperties(mris) ;
   MRISsaveVertexPositions(mris, ORIGINAL_VERTICES) ;
@@ -387,7 +404,7 @@ main(int argc, char *argv[])
     MRISprintTessellationStats(mris, stderr) ;
     MRIScomputeBorderValues(mris, mri_T1, mri_smooth, 
                             MAX_WHITE, max_border_white, min_border_white,
-                            min_gray_at_white_border, current_sigma, 
+                            min_gray_at_white_border, max_gray, current_sigma, 
                             2*max_thickness, parms.fp, GRAY_WHITE) ;
     MRISfindExpansionRegions(mris) ;
     if (vavgs)
@@ -497,7 +514,7 @@ main(int argc, char *argv[])
   }
 
   parms.t = parms.start_t = 0 ;
-  sprintf(parms.base_name, "%s%s", pial_name, suffix) ;
+  sprintf(parms.base_name, "%s%s%s", pial_name, output_suffix, suffix) ;
   parms.niterations = ngray ;
   MRISsaveVertexPositions(mris, ORIGINAL_VERTICES) ; /* save white-matter */
   parms.l_surf_repulse = l_surf_repulse ;
@@ -517,6 +534,12 @@ main(int argc, char *argv[])
   MRImask(mri_T1, mri_labeled, mri_T1, BRIGHT_BORDER_LABEL, MID_GRAY) ;
   if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
     MRIwrite(mri_T1, "pial_masked.mgh") ;
+  if (orig_pial)
+  {
+    printf("reading initial pial vertex positions from %s...\n", orig_pial) ;
+    if (MRISreadVertexPositions(mris, orig_pial) != NO_ERROR)
+      ErrorExit(Gerror, "reading orig pial positions failed") ;
+  }
   for (n_averages = max_pial_averages, i = 0 ; 
        n_averages >= min_pial_averages ; 
        n_averages /= 2, current_sigma /= 2, i++)
@@ -534,7 +557,7 @@ main(int argc, char *argv[])
     MRIfree(&mri_kernel) ;
     if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
     {
-      char fname[200] ;
+      char fname[STRLEN] ;
       sprintf(fname, "sigma%.0f.mgh", current_sigma) ;
       fprintf(stderr, "writing smoothed volume to %s...\n", fname) ; 
       MRIwrite(mri_smooth, fname) ;
@@ -547,7 +570,7 @@ main(int argc, char *argv[])
     parms.n_averages = n_averages ; parms.l_tsmooth = l_tsmooth ;
     MRIScomputeBorderValues(mris, mri_T1, mri_smooth, max_gray, 
                             max_gray_at_csf_border, min_gray_at_csf_border,
-                            min_csf,current_sigma, max_thickness+1, parms.fp,
+                            min_csf,max_csf,current_sigma, max_thickness+1, parms.fp,
                             GRAY_CSF) ;
     if (vavgs)
     {
@@ -587,7 +610,7 @@ main(int argc, char *argv[])
 
   if (in_out_in_flag)
   {
-    sprintf(parms.base_name, "%s%s", white_matter_name, suffix) ;
+    sprintf(parms.base_name, "%s%s%s", white_matter_name, output_suffix, suffix) ;
     MRIScomputeMetricProperties(mris) ;    /* recompute surface normals */
     MRISstoreMetricProperties(mris) ;
     MRISsaveVertexPositions(mris, TMP_VERTICES) ;
@@ -627,7 +650,7 @@ main(int argc, char *argv[])
       MRISprintTessellationStats(mris, stderr) ;
       MRIScomputeBorderValues(mris, mri_T1, mri_smooth, MAX_WHITE, 
                               max_border_white, min_border_white, 
-                              min_gray_at_white_border,
+                              min_gray_at_white_border, max_gray,
                               current_sigma, 2*max_thickness, parms.fp,
                               GRAY_WHITE) ;
       MRISfindExpansionRegions(mris) ;
@@ -720,6 +743,24 @@ get_option(int argc, char *argv[])
     printf("using %s as T1 volume...\n", T1_name) ;
     nargs = 1 ;
   }
+  else if (!stricmp(option, "SDIR"))
+  {
+    strcpy(sdir, argv[2]) ;
+    printf("using %s as SUBJECTS_DIR...\n", sdir) ;
+    nargs = 1 ;
+  }
+  else if (!stricmp(option, "orig_white"))
+  {
+    orig_white = argv[2] ;
+    printf("using %s starting white location...\n", orig_white) ;
+    nargs = 1 ;
+  }
+  else if (!stricmp(option, "orig_pial"))
+  {
+    orig_pial = argv[2] ;
+    printf("using %s starting pial locations...\n", orig_pial) ;
+    nargs = 1 ;
+  }
   else if (!stricmp(option, "median"))
   {
     apply_median_filter = 1 ;
@@ -764,6 +805,12 @@ get_option(int argc, char *argv[])
   {
     min_csf_set = 1 ;
     min_csf = atof(argv[2]) ;
+    nargs = 1 ;
+  }
+  else if (!stricmp(option, "max_csf"))
+  {
+    max_csf_set = 1 ;
+    max_csf = atof(argv[2]) ;
     nargs = 1 ;
   }
   else if (!stricmp(option, "noauto"))
