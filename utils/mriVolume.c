@@ -1679,6 +1679,7 @@ Volm_tErr Volm_Flood ( mriVolumeRef        this,
 	}
 	break;
       default:
+	break;
       }
       
       /* Check distance if >0. if it's over our max distance, exit. */
@@ -1706,6 +1707,7 @@ Volm_tErr Volm_Flood ( mriVolumeRef        this,
 	goto cleanup;
 	break;
       default:
+	break;
       }
       
       /* Calc our bounds */
