@@ -125,6 +125,13 @@ int fix_genesis(char *fname, char *dname)
   memcpy(&exam_header_offset, &(buf[132]), 4);
   exam_header_offset = orderIntBytes(exam_header_offset);
 
+  if(exam_header_offset + 282 + 23 >= file_length)
+  {
+    free(buf);
+    errno = 0;
+    ErrorReturn(ERROR_BADFILE, (ERROR_BADFILE, "file %s is too short", fname));
+  }
+
   memset(&(buf[exam_header_offset+10]), 0x00, 33);     /*  hospital name              */
   memset(&(buf[exam_header_offset+97]), 0x00, 25);     /*  patient name               */
   memset(&(buf[exam_header_offset+122]), 0x00, 2);     /*  patient age                */
@@ -190,6 +197,13 @@ int fix_siemens(char *fname, char *dname)
   }
 
   fclose(fp);
+
+  if(6058 + 27 >= file_length)
+  {
+    free(buf);
+    errno = 0;
+    ErrorReturn(ERROR_BADFILE, (ERROR_BADFILE, "file %s is too short", fname));
+  }
 
   memset(&(buf[105]), 0x00, 27);     /*  G08.Ide.InstitutionID              */
   memset(&(buf[132]), 0x00, 27);     /*  G08.Ide.ReferringPhysician         */
