@@ -2924,13 +2924,13 @@ FunV_tErr FunV_CalcTimeCourseAverages_ ( tkmFunctionalVolumeRef this,
 	    oafDeviations[nValue] = (oafDeviations[nValue] / fOffset) * 100.0;
 	  }
 	}
-      } else {
-	
-	/* fill deviations with 0s */
-	for( nValue = 0; nValue < nNumTimePoints; nValue++ ) {
-	  oafDeviations[nValue] = 0;
-	}
       }
+    }
+  } else {
+    
+    /* fill deviations with 0s */
+    for( nValue = 0; nValue < nNumTimePoints; nValue++ ) {
+      oafDeviations[nValue] = 0;
     }
   }
   
