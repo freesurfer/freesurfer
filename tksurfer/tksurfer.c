@@ -1317,7 +1317,7 @@ typedef struct {
   float min_value;
   float max_value;
   int ***frequencies; /* the frequency of values in num_freq_bins for
-			 each time point and condition i.e.
+m			 each time point and condition i.e.
 			 frequency[cond][tp][bin] */
   int num_freq_bins;
 } SCLV_FIELD_INFO;
@@ -1397,6 +1397,7 @@ int sclv_get_value_for_percentile              (int field, float percentile,
 
 /* copies field settings from one field to another */
 int sclv_copy_view_settings_from_current_field (int field);
+int sclv_copy_all_view_settings_from_current_field ();
 int sclv_copy_view_settings_from_field (int field, int fromfield);
 
 /* swaps values in two fields */
@@ -9360,6 +9361,9 @@ sclv_smooth(int niter, int field)
     }
   printf("\n");PR;
   
+  /* values have changed, need to recalc frequencies */
+  sclv_calc_frequencies (field);
+
   return (ERROR_NONE);
 }
 
@@ -16776,6 +16780,7 @@ int W_sclv_smooth  PARM;
 int W_sclv_set_current_field  PARM; 
 int W_sclv_set_current_timepoint  PARM; 
 int W_sclv_copy_view_settings_from_current_field PARM;
+int W_sclv_copy_all_view_settings_from_current_field PARM;
 int W_sclv_copy_view_settings_from_field PARM;
 int W_sclv_set_current_threshold_from_percentile PARM;
 int W_sclv_send_histogram PARM;
@@ -17708,12 +17713,15 @@ ERR(3,"Wrong # args: sclv_smooth steps field")
      ERR(3,"Wrong # args: sclv_set_current_timepoint timepoint condition")
      sclv_set_timepoint_of_field(sclv_current_field,
 				 atoi(argv[1]),atoi(argv[2]));  WEND
-				 int W_sclv_copy_view_settings_from_field  WBEGIN
-				 ERR(3,"Wrong # args: sclv_copy_view_settings_from_field field fromfield")
+int W_sclv_copy_view_settings_from_field  WBEGIN
+     ERR(3,"Wrong # args: sclv_copy_view_settings_from_field field fromfield")
      sclv_copy_view_settings_from_field(atoi(argv[1]),atoi(argv[2]));  WEND
      int W_sclv_copy_view_settings_from_current_field  WBEGIN
      ERR(2,"Wrong # args: sclv_copy_view_settings_from_current_field field")
      sclv_copy_view_settings_from_current_field(atoi(argv[1]));  WEND
+int W_sclv_copy_all_view_settings_from_current_field  WBEGIN
+     ERR(1,"Wrong # args: sclv_copy_all_view_settings_from_current_field")
+     sclv_copy_all_view_settings_from_current_field();  WEND
      int W_sclv_set_current_threshold_from_percentile  WBEGIN
      ERR(4,"Wrong # args: sclv_set_current_threshold_from_percentile thresh mid slope")
      sclv_set_current_threshold_from_percentile(atof(argv[1]),atof(argv[2]),atof(argv[3]));  WEND
@@ -18451,6 +18459,8 @@ int main(int argc, char *argv[])   /* new main */
 		    W_sclv_set_current_timepoint, REND);
   Tcl_CreateCommand(interp, "sclv_copy_view_settings_from_current_field", 
 		    W_sclv_copy_view_settings_from_current_field, REND);
+  Tcl_CreateCommand(interp, "sclv_copy_all_view_settings_from_current_field", 
+		    W_sclv_copy_all_view_settings_from_current_field, REND);
   Tcl_CreateCommand(interp, "sclv_copy_view_settings_from_field", 
 		    W_sclv_copy_view_settings_from_field, REND);
   Tcl_CreateCommand(interp, "sclv_set_current_threshold_from_percentile", 
@@ -21059,9 +21069,7 @@ int sclv_send_current_field_info ()
   
   char cmd[1024];
   
-#if 0
   printf("sending info for field=%d\n\tmin=%f max=%f\n\tfthresh=%f fmid=%f fslope=%f\n\ttp=%d cn=%d ntps+%d ncns=%d\n", sclv_current_field, sclv_value_min, sclv_value_max, fthresh, fmid, fslope, sclv_cur_timepoint, sclv_cur_condition, sclv_num_timepoints, sclv_num_conditions);
-#endif
   
   /* Send the current histogram info here as well. */
   sclv_send_histogram (sclv_current_field);
@@ -21225,18 +21233,32 @@ int sclv_copy_view_settings_from_field (int field, int fromfield)
   if (fromfield < 0 || fromfield >= NUM_SCALAR_VALUES)
     return (ERROR_BADPARM);
   
+  printf ("sclv_copy_view_settings_from_field %d %d\n", field, fromfield);
+
+  /* if fromfield is the current field, update from the shared variables. */
+  if (fromfield == sclv_current_field)
+    {
+      sclv_field_info[fromfield].fthresh = fthresh;
+      sclv_field_info[fromfield].fmid = fmid;
+      sclv_field_info[fromfield].foffset = foffset;
+      sclv_field_info[fromfield].fslope = fslope;
+    }
+  
   sclv_field_info[field].fthresh = sclv_field_info[fromfield].fthresh;
   sclv_field_info[field].fmid = sclv_field_info[fromfield].fmid;
   sclv_field_info[field].foffset = sclv_field_info[fromfield].foffset;
   sclv_field_info[field].fslope = sclv_field_info[fromfield].fslope;
   
-  /* if this is the current field, update the shared variables. */
+  /* if this is the current field, update the shared variables and
+     send the current info. */
   if (field == sclv_current_field)
     {
       fthresh = sclv_field_info[sclv_current_field].fthresh;
       fmid = sclv_field_info[sclv_current_field].fmid;;
       foffset = sclv_field_info[sclv_current_field].foffset;;
       fslope = sclv_field_info[sclv_current_field].fslope;
+
+      sclv_send_current_field_info();
     }
   
   return (ERROR_NONE);
@@ -21246,6 +21268,19 @@ int sclv_copy_view_settings_from_current_field (int field)
 {
   sclv_copy_view_settings_from_field (field, sclv_current_field);
   
+  return (ERROR_NONE);
+}
+
+int sclv_copy_all_view_settings_from_current_field ()
+{
+  int field;
+
+  for (field = 0; field < NUM_SCALAR_VALUES; field++) 
+    { 
+      if (field != sclv_current_field)
+	sclv_copy_view_settings_from_field (field, sclv_current_field);
+    }
+
   return (ERROR_NONE);
 }
 
