@@ -1168,7 +1168,7 @@ MATRIX *DevolveXFM(char *subjid, MATRIX *XFM, char *xfmname)
       printf("ERROR: could not open %s for reading \n",xfmpath);
       return(NULL);
     }
-    lta = LTAread(xfmpath);
+    lta = LTAreadEx(xfmpath);
     if(lta == NULL){
       printf("ERROR: reading %s\n",xfmpath);
       return(NULL);
@@ -1212,7 +1212,7 @@ TransformRead(char *fname)
   case LINEAR_RAS_TO_RAS:
   case TRANSFORM_ARRAY_TYPE:
   default:
-    trans->xform = (void *)LTAread(fname) ;
+    trans->xform = (void *)LTAreadEx(fname) ;
     if (!trans->xform)
     {
       free(trans) ;
