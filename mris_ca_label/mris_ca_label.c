@@ -13,6 +13,7 @@
 #include "timer.h"
 #include "gcsa.h"
 #include "transform.h"
+#include "annotation.h"
 
 int main(int argc, char *argv[]) ;
 static int get_option(int argc, char *argv[]) ;
@@ -80,6 +81,7 @@ main(int argc, char *argv[])
   subject_name = argv[1] ; hemi = argv[2] ; canon_surf_name = argv[3] ; 
   out_fname = argv[5] ;
 
+	printf("reading atlas from %s...\n", argv[4]) ;
   gcsa = GCSAread(argv[4]) ;
   if (!gcsa)
     ErrorExit(ERROR_NOFILE, "%s: could not read classifier from %s",
@@ -169,9 +171,15 @@ main(int argc, char *argv[])
   {
     printf("labeling surface...\n") ;
     GCSAlabel(gcsa, mris) ;
+		if (Gdiag_no >= 0)
+			printf("vertex %d: label %s\n", Gdiag_no, annotation_to_name(mris->vertices[Gdiag_no].annotation, NULL)) ;
     printf("relabeling using gibbs priors...\n") ;
     GCSAreclassifyUsingGibbsPriors(gcsa, mris) ;
+		if (Gdiag_no >= 0)
+			printf("vertex %d: label %s\n", Gdiag_no, annotation_to_name(mris->vertices[Gdiag_no].annotation, NULL)) ;
     postprocess(gcsa, mris) ;
+		if (Gdiag_no >= 0)
+			printf("vertex %d: label %s\n", Gdiag_no, annotation_to_name(mris->vertices[Gdiag_no].annotation, NULL)) ;
     if (gcsa_write_iterations != 0)
     {
       char fname[STRLEN] ;
@@ -184,6 +192,8 @@ main(int argc, char *argv[])
     MRISreadAnnotation(mris, read_fname) ;
 
   MRISmodeFilterAnnotations(mris, filter) ;
+	if (Gdiag_no >= 0)
+		printf("vertex %d: label %s\n", Gdiag_no, annotation_to_name(mris->vertices[Gdiag_no].annotation, NULL)) ;
     
   printf("writing output to %s...\n", out_fname) ;
   if (MRISwriteAnnotation(mris, out_fname) != NO_ERROR)
@@ -260,9 +270,15 @@ get_option(int argc, char *argv[])
     nargs = 1 ;
     printf("applying mode filter %d times before writing...\n", filter) ;
     break ;
+	case 'T':
+		if (read_named_annotation_table(argv[2]) != NO_ERROR)
+			ErrorExit(ERROR_BADFILE, "%s: could not read annotation file %s...\n", Progname, argv[2]) ;
+		nargs = 1 ;
+		break ;
   case 'V':
     Gdiag_no = atoi(argv[2]) ;
     nargs = 1 ;
+		printf("printing diagnostic information about vertex %d\n", Gdiag_no) ;
     break ;
   case 'W':
     gcsa_write_iterations = atoi(argv[2]) ;
