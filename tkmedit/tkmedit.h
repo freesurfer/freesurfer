@@ -143,6 +143,7 @@ typedef enum {
 
   /* interface configuration */
   tkm_tTclCommand_MoveToolWindow,
+  tkm_tTclCommand_RaiseToolWindow,
   tkm_tTclCommand_CsurfInterface,
   tkm_tTclCommand_FinishBuildingInterface,
 
@@ -163,6 +164,13 @@ typedef enum {
   tkm_tVolumeType_Parc,
   tkm_knNumVolumeTypes
 } tkm_tVolumeType;
+
+typedef enum {
+
+  tkm_tSurfaceType_Main = 0,
+  tkm_tSurfaceType_Aux,
+  tkm_knNumSurfaceTypes
+} tkm_tSurfaceType;
 
 typedef enum {
 

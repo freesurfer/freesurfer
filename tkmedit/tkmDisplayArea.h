@@ -213,14 +213,14 @@ struct tkmDisplayArea {
   xPoint2n               mMouseLocation;
 
   /* surface lists */
-  xGrowableArrayRef*     maSurfaceLists;
+  xGrowableArrayRef*     maSurfaceLists[tkm_knNumSurfaceTypes];
 
   /* display data */
   mriVolumeRef           mpVolume;
   mriVolumeRef           mpAuxVolume;
   mriVolumeRef           mROIGroup;
   mriVolumeRef           mTensor;
-  mriSurfaceRef          mpSurface;
+  mriSurfaceRef          mpSurface[tkm_knNumSurfaceTypes];
   tkmFunctionalVolumeRef mpFunctionalVolume;
   x3DListRef             mpControlPoints;
   x3DListRef             mpSelection;
@@ -284,6 +284,7 @@ DspA_tErr DspA_SetROIGroup                   ( tkmDisplayAreaRef this,
 DspA_tErr DspA_SetTensor                   ( tkmDisplayAreaRef this,
                  mriVolumeRef      iTensor );
 DspA_tErr DspA_SetSurface                    ( tkmDisplayAreaRef this, 
+                 tkm_tSurfaceType  iType,
                  mriSurfaceRef     ipSurface );
 DspA_tErr DspA_SetOverlayVolume              ( tkmDisplayAreaRef this,
                  tkmFunctionalVolumeRef ipVol );
@@ -453,7 +454,8 @@ DspA_tErr DspA_DrawFunctionalOverlayToFrame_ ( tkmDisplayAreaRef this );
 DspA_tErr DspA_DrawSelectionToFrame_         ( tkmDisplayAreaRef this );
 
 /* other drawing subfunctions */
-DspA_tErr DspA_BuildSurfaceDrawLists_  ( tkmDisplayAreaRef this );
+DspA_tErr DspA_BuildSurfaceDrawLists_  ( tkmDisplayAreaRef this,
+           tkm_tSurfaceType  iType );
 DspA_tErr DspA_DrawMarker_             ( tkmDisplayAreaRef this,
            DspA_tMarker      iType,
            float*            ifaColor,
@@ -491,10 +493,12 @@ DspA_tErr DspA_InitSurfaceLists_     ( tkmDisplayAreaRef this,
                int               inNumLists );
 DspA_tErr DspA_PurgeSurfaceLists_    ( tkmDisplayAreaRef this );
 DspA_tErr DspA_NewSurfaceList_       ( tkmDisplayAreaRef this,
+               tkm_tSurfaceType  iType,
                mri_tOrientation  iOrientation,
                Surf_tVertexSet   iSurface,
                int               inSlice );
 xGrowableArrayRef DspA_GetSurfaceList_ ( tkmDisplayAreaRef this,
+           tkm_tSurfaceType  iType,
            mri_tOrientation  iOrientation,
            Surf_tVertexSet   iSurface,
            int               inSlice );

@@ -107,42 +107,43 @@ MWin_tErr MWin_SetVolume         ( tkmMeditWindowRef this,
                  int     inSizeY,
                  int     inSizeZ );
 MWin_tErr MWin_SetAuxVolume         ( tkmMeditWindowRef this,
-                 int     inDispIndex,
-                 mriVolumeRef   ipVolume,
-                 int     inSizeX,
-                 int     inSizeY,
-                 int     inSizeZ) ;
+              int     inDispIndex,
+              mriVolumeRef   ipVolume,
+              int     inSizeX,
+              int     inSizeY,
+              int     inSizeZ) ;
 MWin_tErr MWin_SetROIGroup         ( tkmMeditWindowRef this,
-     int       inDispIndex,
-     mriVolumeRef     iGroup );
+             int       inDispIndex,
+             mriVolumeRef     iGroup );
 MWin_tErr MWin_SetTensor       ( tkmMeditWindowRef this,
-     int       inDispIndex,
-     mriVolumeRef     iTensor );
+         int       inDispIndex,
+         mriVolumeRef     iTensor );
 MWin_tErr MWin_SetSurface         ( tkmMeditWindowRef this, 
-     int       inDispIndex,
-     mriSurfaceRef     ipSurface );
+            int               inDispIndex,
+            tkm_tSurfaceType  iType,
+            mriSurfaceRef     ipSurface );
 MWin_tErr MWin_SetOverlayVolume         ( tkmMeditWindowRef this,
-     int       inDispIndex,
-     tkmFunctionalVolumeRef ipVol );
+            int       inDispIndex,
+            tkmFunctionalVolumeRef ipVol );
 MWin_tErr MWin_SetControlPointsSpace       ( tkmMeditWindowRef this,
-     int       inDispIndex,
-     x3DListRef     ipVoxels );
+               int       inDispIndex,
+               x3DListRef     ipVoxels );
 MWin_tErr MWin_SetSelectionSpace       ( tkmMeditWindowRef this, 
-     int       inDispIndex,
-     x3DListRef     ipVoxels );
+           int       inDispIndex,
+           x3DListRef     ipVoxels );
 MWin_tErr MWin_SetHeadPointList         ( tkmMeditWindowRef this,
-     int       inDispIndex,
-     mriHeadPointListRef iList );
+            int       inDispIndex,
+            mriHeadPointListRef iList );
 MWin_tErr MWin_SetGCA           ( tkmMeditWindowRef this,
-     int       inDispIndex,
-     GCA*       iVolume,
-     TRANSFORM* iTransform );
+          int       inDispIndex,
+          GCA*       iVolume,
+          TRANSFORM* iTransform );
 MWin_tErr MWin_SetVLIs            ( tkmMeditWindowRef this,
-     int       inDispIndex,
-     VLI*       iVLI1,
-     VLI*       iVLI2,
-     char*       isVLI1_name,
-     char*       isVLI2_name );
+            int       inDispIndex,
+            VLI*       iVLI1,
+            VLI*       iVLI2,
+            char*       isVLI1_name,
+            char*       isVLI2_name );
 
 
 /* viewing state changes. specify the display area the same way as above. */

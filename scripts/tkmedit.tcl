@@ -603,6 +603,26 @@ set tDlogSpecs(LoadPialSurface) [list \
   -default1 [list GetDefaultLocation LoadPialSurface] \
   -okCmd {LoadCanonicalSurface %s1; \
   SetDefaultLocation LoadPialSurface %s1} ]
+set tDlogSpecs(LoadMainAuxSurface) [list \
+  -title "Load Main Aux Surface" \
+  -prompt1 "Load Surface:" \
+  -note1 "The file name of the surface to load" \
+  -default1 [list GetDefaultLocation LoadMainAuxSurface] \
+  -okCmd {LoadMainSurface 1 %s1; SetDefaultLocation LoadMainAuxSurface %s1} ]
+set tDlogSpecs(LoadOriginalAuxSurface) [list \
+  -title "Load Original Aux Surface" \
+  -prompt1 "Load Surface:" \
+  -note1 "The file name of the surface to load" \
+  -default1 [list GetDefaultLocation LoadOriginalAuxSurface] \
+  -okCmd {LoadOriginalSurface 1 %s1; \
+  SetDefaultLocation LoadOriginalAuxSurface %s1} ]
+set tDlogSpecs(LoadPialAuxSurface) [list \
+  -title "Load Pial Aux Surface" \
+  -prompt1 "Load Surface:" \
+  -note1 "The file name of the surface to load" \
+  -default1 [list GetDefaultLocation LoadPialAuxSurface] \
+  -okCmd {LoadCanonicalSurface 1 %s1; \
+  SetDefaultLocation LoadPialAuxSurface %s1} ]
 set tDlogSpecs(WriteSurfaceValues) [list \
   -title "Write Surface Values" \
   -prompt1 "Save Values As:" \
@@ -1980,9 +2000,9 @@ proc SetViewPreset { iPreset } {
 proc CreateWindow { iwwTop } {
 
     global ksWindowName
-
     frame $iwwTop
     wm title . $ksWindowName
+    wm withdraw .
 }
 
 proc CreateMenuBar { ifwMenuBar } {
@@ -2072,6 +2092,11 @@ proc CreateMenuBar { ifwMenuBar } {
       "Load Main Surface..." \
       {DoFileDlog LoadMainSurface} } \
       \
+      { command \
+      "Load Main Aux Surface..." \
+      {DoFileDlog LoadMainAuxSurface} \
+      tMenuGroup_SurfaceLoading } \
+      \
       { cascade "Load Surface Configuration..." { \
       { command \
       "Original Verticies" \
@@ -2083,9 +2108,25 @@ proc CreateMenuBar { ifwMenuBar } {
       {DoFileDlog LoadPialSurface} \
       tMenuGroup_SurfaceLoading } } } \
       \
+      { cascade "Load Aux Surface Configuration..." { \
+      { command \
+      "Original Verticies" \
+      {DoFileDlog LoadOriginalAuxSurface} \
+      tMenuGroup_SurfaceLoading } \
+      \
+      { command \
+      "Pial Verticies " \
+      {DoFileDlog LoadPialAuxSurface} \
+      tMenuGroup_SurfaceLoading } } } \
+      \
       { command \
       "Unload Surface" \
       UnloadSurface \
+      tMenuGroup_SurfaceLoading } \
+      \
+      { command \
+      "Unload Aux Surface" \
+      UnloadSurface 1 \
       tMenuGroup_SurfaceLoading } \
       \
       { command \
@@ -3249,7 +3290,6 @@ foreach toolbar {main nav recon} {
 # lets us execute scripts from the command line but only after the
 # window is open
 after idle { catch { ExecuteQueuedScripts } }
-
 
 dputs "Successfully parsed tkmedit.tcl"
 

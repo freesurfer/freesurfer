@@ -238,14 +238,17 @@ xList_tCompare CompareVoxels ( void* inVoxelA, void* inVoxelB );
 
 #include "mriSurface.h"
 
-mriSurfaceRef gSurface = NULL;
+mriSurfaceRef gSurface[tkm_knNumSurfaceTypes];
 
-tkm_tErr LoadSurface          ( char*           isName );
-tkm_tErr LoadSurfaceVertexSet ( Surf_tVertexSet iSet,
-        char*           fname );
-void     UnloadSurface        ();
+tkm_tErr LoadSurface          ( tkm_tSurfaceType iType, 
+        char*            isName );
+tkm_tErr LoadSurfaceVertexSet ( tkm_tSurfaceType iType, 
+        Surf_tVertexSet  iSet,
+        char*            fname );
+void     UnloadSurface        ( tkm_tSurfaceType iType );
 
-void     WriteSurfaceValues   ( char*           isFileName );
+void     WriteSurfaceValues   ( tkm_tSurfaceType iType, 
+        char*            isFileName );
 
 // ===========================================================================
 
@@ -1786,7 +1789,7 @@ printf("-interface script    : scecify interface script (default is tkmedit.tcl)
     /* load surface. trasnsform must be inited first. */
     if ( bSurfaceDeclared ) {
       DebugNote( ("Loading surface") );
-      eResult = LoadSurface( sSurface );
+      eResult = LoadSurface( tkm_tSurfaceType_Main, sSurface );
     }
 
     /* load segmentation */
@@ -2005,7 +2008,8 @@ void GotoSurfaceVertex ( Surf_tVertexSet iSurface, int inVertex ) {
   char      sSetName[STRLEN];
 
   /* get the vertex */
-  eSurface = Surf_GetNthVertex( gSurface, iSurface, inVertex, &anaIdx,
+  eSurface = Surf_GetNthVertex( gSurface[tkm_tSurfaceType_Main],
+        iSurface, inVertex, &anaIdx,
         sDescription );
   if( Surf_tErr_NoErr != eSurface ) 
     goto error;
@@ -2056,7 +2060,8 @@ void FindNearestSurfaceVertex ( Surf_tVertexSet iSurface ) {
     goto error;
 
   /* get the vertex */
-  eSurface = Surf_GetClosestVertexVoxel( gSurface, iSurface, &cursor, &anaIdx,
+  eSurface = Surf_GetClosestVertexVoxel( gSurface[tkm_tSurfaceType_Main],
+           iSurface, &cursor, &anaIdx,
            sDescription);
   if( Surf_tErr_NoErr != eSurface ) 
     goto error;
@@ -2271,7 +2276,8 @@ void tkm_HandleIdle () {
 
 // ================================================================== SURFACES
 
-tkm_tErr LoadSurface ( char* isName ) {
+tkm_tErr LoadSurface ( tkm_tSurfaceType iType,
+           char*            isName ) {
   
   tkm_tErr  eResult                    = tkm_tErr_NoErr;
   Surf_tErr eSurface                   = Surf_tErr_NoErr;
@@ -2279,9 +2285,12 @@ tkm_tErr LoadSurface ( char* isName ) {
   char      sName[tkm_knPathLen]       = "";
   char      sError[tkm_knErrStringLen] = "";
 
-  DebugEnterFunction( ("LoadSurface( isName=%s )", isName) );
-
+  DebugEnterFunction( ("LoadSurface( iType=%d, isName=%s )", 
+           (int)iType, isName) );
+  
   DebugAssertThrowX( (NULL != isName),
+         eResult, tkm_tErr_InvalidParameter );
+  DebugAssertThrowX( (iType >= 0 && iType < tkm_knNumSurfaceTypes),
          eResult, tkm_tErr_InvalidParameter );
 
   /* make file name */
@@ -2290,19 +2299,19 @@ tkm_tErr LoadSurface ( char* isName ) {
 
   /* create the surface */
   DebugNote( ("Creating surface") );
-  eSurface = Surf_New( &gSurface, sName, gIdxToRASTransform);
+  eSurface = Surf_New( &gSurface[iType], sName, gIdxToRASTransform);
   DebugAssertThrowX( (Surf_tErr_NoErr == eSurface),
          eResult, tkm_tErr_CouldntLoadSurface );
 
   /* see if it was loaded */
   DebugNote( ("Loading main vertex set") );
-  eSurface = Surf_IsVertexSetLoaded( gSurface, Surf_tVertexSet_Main, 
+  eSurface = Surf_IsVertexSetLoaded( gSurface[iType], Surf_tVertexSet_Main, 
              &bLoaded );
   DebugAssertThrowX( (bLoaded), eResult, tkm_tErr_CouldntLoadSurface );
-
+  
   /* set the medit window surface. */
   DebugNote( ("Setting surface in main window") );
-  MWin_SetSurface( gMeditWindow, -1, gSurface );
+  MWin_SetSurface( gMeditWindow, -1, iType, gSurface[iType] );
 
   /* turn on the loading and viewing options for surfaces in our interface.
      also turn the surface display onn in the window. turn on the 
@@ -2320,13 +2329,13 @@ tkm_tErr LoadSurface ( char* isName ) {
 
   /* load other vertices. if these fail, it's okay. */
   DebugNote( ("Loading orig set") );
-  LoadSurfaceVertexSet( Surf_tVertexSet_Original, "orig" );
+  LoadSurfaceVertexSet( iType, Surf_tVertexSet_Original, "orig" );
   DebugNote( ("Loading pial set") );
-  LoadSurfaceVertexSet( Surf_tVertexSet_Pial, "pial" );
-
+  LoadSurfaceVertexSet( iType, Surf_tVertexSet_Pial, "pial" );
+  
   DebugCatch;
   DebugCatchError( eResult, tkm_tErr_NoErr, tkm_GetErrorString );
-
+  
   xUtil_snprintf( sError, sizeof(sError), "Loading Surface %s", isName );
   tkm_DisplayError( sError,
         tkm_GetErrorString(eResult),
@@ -2335,14 +2344,15 @@ tkm_tErr LoadSurface ( char* isName ) {
         "type that tkmedit recognizes "
         "or the file was unreadable due to permissions." );
   EndDebugCatch;
-
+  
   DebugExitFunction;
 
   return eResult;
 }
 
-tkm_tErr LoadSurfaceVertexSet ( Surf_tVertexSet iSet,
-        char*           isName ) {
+tkm_tErr LoadSurfaceVertexSet ( tkm_tSurfaceType iType,
+        Surf_tVertexSet  iSet,
+        char*            isName ) {
   
   tkm_tErr          eResult  = tkm_tErr_NoErr;
   Surf_tErr         eSurface = Surf_tErr_NoErr;
@@ -2350,22 +2360,24 @@ tkm_tErr LoadSurfaceVertexSet ( Surf_tVertexSet iSet,
   DspA_tDisplayFlag flag     = DspA_tDisplayFlag_None;
   tkm_tTclCommand   command  = 0;
 
-  DebugEnterFunction( ("LoadSurfaceVertexSet( iSet=%d, isName=%s )", 
-           (int)iSet, isName) );
+  DebugEnterFunction( ("LoadSurfaceVertexSet( iType=%d, iSet=%d, isName=%s )", 
+           (int)iType, (int)iSet, isName) );
 
   DebugAssertThrowX( (NULL != isName),
          eResult, tkm_tErr_InvalidParameter );
-  DebugAssertThrowX( (NULL != gSurface),
+  DebugAssertThrowX( (iType >= 0 && iType < tkm_knNumSurfaceTypes),
+         eResult, tkm_tErr_InvalidParameter );
+  DebugAssertThrowX( (NULL != gSurface[iType]),
          eResult, tkm_tErr_SurfaceNotLoaded );
 
   /* load the vertex set and check if it was loaded. */
   DebugNote( ("Loading vertex set") );
-  eSurface = Surf_LoadVertexSet( gSurface, isName, iSet );
+  eSurface = Surf_LoadVertexSet( gSurface[iType], isName, iSet );
   DebugAssertThrowX( (Surf_tErr_NoErr == eSurface),
          eResult, tkm_tErr_CouldntLoadSurfaceVertexSet );
-
+  
   DebugNote( ("Checking if vertex set is loaded") );
-  eSurface = Surf_IsVertexSetLoaded( gSurface, iSet, &bLoaded );
+  eSurface = Surf_IsVertexSetLoaded( gSurface[iType], iSet, &bLoaded );
   DebugAssertThrowX( (bLoaded),eResult, tkm_tErr_CouldntLoadSurfaceVertexSet );
 
   /* get command and flag to set */
@@ -2391,7 +2403,8 @@ tkm_tErr LoadSurfaceVertexSet ( Surf_tVertexSet iSet,
 
   /* set the surface in the window to purge the cache */
   DebugNote( ("Setting surface in window") );
-  MWin_SetSurface( gMeditWindow, -1, gSurface );
+  MWin_SetSurface( gMeditWindow, -1, tkm_tSurfaceType_Main, 
+       gSurface[tkm_tSurfaceType_Main] );
 
   DebugCatch;
   DebugCatchError( eResult, tkm_tErr_NoErr, tkm_GetErrorString );
@@ -2402,34 +2415,56 @@ tkm_tErr LoadSurfaceVertexSet ( Surf_tVertexSet iSet,
   return eResult;
 }
 
-void UnloadSurface () {
+void UnloadSurface ( tkm_tSurfaceType iType ) {
 
+  tkm_tErr  eResult  = tkm_tErr_NoErr;
   Surf_tErr eSurface = Surf_tErr_NoErr;
 
-  if( !gSurface )
+  DebugAssertThrowX( (NULL != gSurface[iType]),
+         eResult, tkm_tErr_InvalidParameter );
+  if( !gSurface[iType] )
     return;
 
   /* free the surface. */
-  eSurface = Surf_Delete( &gSurface );
+  eSurface = Surf_Delete( &gSurface[iType] );
   if( Surf_tErr_NoErr != eSurface ) {
     DebugPrint( ( "Surf error %d in UnloadSurface: %s\n",
       eSurface, Surf_GetErrorString( eSurface ) ) );
   }
 
-  /* disable our loading options */
-  tkm_SendTclCommand( tkm_tTclCommand_ShowSurfaceLoadingOptions, "0" );
+  /* if this is our main surface, disable our loading options */
+  if( tkm_tSurfaceType_Main == iType ) {
+    tkm_SendTclCommand( tkm_tTclCommand_ShowSurfaceLoadingOptions, "0" );
+  }
 
-/* update the medit window. */
-  MWin_SetSurface( gMeditWindow, -1, gSurface );
+  /* update the medit window. */
+  MWin_SetSurface( gMeditWindow, -1, iType, gSurface[iType] );
+
+  DebugCatch;
+  DebugCatchError( eResult, tkm_tErr_NoErr, tkm_GetErrorString );
+  EndDebugCatch;
+
+  DebugExitFunction;
 }
 
-void WriteSurfaceValues ( char* isFileName ) {
+void WriteSurfaceValues ( tkm_tSurfaceType iType,
+        char*            isFileName ) {
 
-  if( !gSurface )
+  tkm_tErr  eResult  = tkm_tErr_NoErr;
+
+  DebugAssertThrowX( (NULL != gSurface[iType]),
+         eResult, tkm_tErr_InvalidParameter );
+  if( !gSurface[iType] )
     return;
 
   /* Write the values for this surface. */
-  Surf_WriteValues( gSurface, isFileName );
+  Surf_WriteValues( gSurface[iType], isFileName );
+
+  DebugCatch;
+  DebugCatchError( eResult, tkm_tErr_NoErr, tkm_GetErrorString );
+  EndDebugCatch;
+
+  DebugExitFunction;
 }
 
 // ===========================================================================
@@ -3200,15 +3235,27 @@ int TclWriteControlPointFile ( ClientData inClientData, Tcl_Interp* inInterp,
 int TclLoadMainSurface ( ClientData inClientData, Tcl_Interp* inInterp,
        int argc, char* argv[] ) {
 
-  if ( argc != 2 ) {
+  tkm_tSurfaceType type       = tkm_tSurfaceType_Main;
+  char*            sFileName = NULL;
+
+  switch( argc ) {
+    case 2:
+      type = tkm_tSurfaceType_Main;
+      sFileName = argv[1];
+      break;
+    case 3:
+      type = atoi( argv[1] );
+      sFileName = argv[2];
+      break;
+  default:
     Tcl_SetResult ( inInterp, 
-        "wrong # args: LoadMainSurface surface_name:string",
-        TCL_VOLATILE );
+        "wrong # args: LoadMainSurface [0=main|1=aux] "
+        "surface_name:string", TCL_VOLATILE );
     return TCL_ERROR;
   }
 
   if( gbAcceptingTclCommands ) {
-    LoadSurface ( argv[1] );
+    LoadSurface ( type, sFileName );
   }
 
   return TCL_OK;
@@ -3217,15 +3264,27 @@ int TclLoadMainSurface ( ClientData inClientData, Tcl_Interp* inInterp,
 int TclLoadCanonicalSurface ( ClientData inClientData, Tcl_Interp* inInterp,
             int argc, char* argv[] ) {
 
-  if ( argc != 2 ) {
+  tkm_tSurfaceType type       = tkm_tSurfaceType_Main;
+  char*            sFileName = NULL;
+
+  switch( argc ) {
+    case 2:
+      type = tkm_tSurfaceType_Main;
+      sFileName = argv[1];
+      break;
+    case 3:
+      type = atoi( argv[1] );
+      sFileName = argv[2];
+      break;
+  default:
     Tcl_SetResult ( inInterp, 
-        "wrong # args: LoadCanonicalSurface surface_name:string",
-        TCL_VOLATILE );
+        "wrong # args: LoadCanonicalSurface [0=main|1=aux]"
+        "surface_name:string", TCL_VOLATILE );
     return TCL_ERROR;
   }
 
   if( gbAcceptingTclCommands ) {
-    LoadSurfaceVertexSet( Surf_tVertexSet_Pial, argv[1] );
+    LoadSurfaceVertexSet( type, Surf_tVertexSet_Pial, sFileName );
   }
 
   return TCL_OK;
@@ -3234,15 +3293,27 @@ int TclLoadCanonicalSurface ( ClientData inClientData, Tcl_Interp* inInterp,
 int TclLoadOriginalSurface ( ClientData inClientData, Tcl_Interp* inInterp,
            int argc, char* argv[] ) {
 
-  if ( argc != 2 ) {
+  tkm_tSurfaceType type       = tkm_tSurfaceType_Main;
+  char*            sFileName = NULL;
+
+  switch( argc ) {
+    case 2:
+      type = tkm_tSurfaceType_Main;
+      sFileName = argv[1];
+      break;
+    case 3:
+      type = atoi( argv[1] );
+      sFileName = argv[2];
+      break;
+  default:
     Tcl_SetResult ( inInterp, 
-        "wrong # args: LoadOriginalSurface surface_name:string",
-        TCL_VOLATILE );
+        "wrong # args: LoadOriginalSurface [0=main|1=aux]"
+        "surface_name:string", TCL_VOLATILE );
     return TCL_ERROR;
   }
 
   if( gbAcceptingTclCommands ) {
-    LoadSurfaceVertexSet( Surf_tVertexSet_Original, argv[1] );
+    LoadSurfaceVertexSet( type, Surf_tVertexSet_Original, sFileName );
   }  
 
   return TCL_OK;
@@ -3251,15 +3322,23 @@ int TclLoadOriginalSurface ( ClientData inClientData, Tcl_Interp* inInterp,
 int TclUnloadAllSurfaces ( ClientData inClientData, Tcl_Interp* inInterp,
          int argc, char* argv[] ) {
 
-  if ( argc != 1 ) {
-    Tcl_SetResult ( inInterp, 
-        "wrong # args: UnloadSurface",
+  tkm_tSurfaceType type       = tkm_tSurfaceType_Main;
+
+  switch( argc ) {
+    case 1:
+      type = tkm_tSurfaceType_Main;
+      break;
+    case 2:
+      type = atoi( argv[1] );
+      break;
+  default:
+    Tcl_SetResult ( inInterp, "wrong # args: UnloadSurface [0=main|1=aux]",
         TCL_VOLATILE );
     return TCL_ERROR;
   }
 
   if( gbAcceptingTclCommands ) {
-    UnloadSurface ();
+    UnloadSurface ( type );
   }  
 
   return TCL_OK;
@@ -3267,17 +3346,29 @@ int TclUnloadAllSurfaces ( ClientData inClientData, Tcl_Interp* inInterp,
 
 
 int TclWriteSurfaceValues ( ClientData inClientData, Tcl_Interp* inInterp,
-         int argc, char* argv[] ) {
+          int argc, char* argv[] ) {
   
-  if ( argc != 2 ) {
+  tkm_tSurfaceType type      = tkm_tSurfaceType_Main;
+  char*            sFileName = NULL;
+
+  switch( argc ) {
+    case 2:
+      type = tkm_tSurfaceType_Main;
+      sFileName = argv[1];
+      break;
+    case 3:
+      type = atoi( argv[1] );
+      sFileName = argv[2];
+      break;
+  default:
     Tcl_SetResult ( inInterp, 
-        "wrong # args: WriteSurfaceValues file_name:string",
-        TCL_VOLATILE );
+        "wrong # args: WriteSurfaceValues [0=main|1=aux] "
+        "file_name:string", TCL_VOLATILE );
     return TCL_ERROR;
   }
 
   if( gbAcceptingTclCommands ) {
-    WriteSurfaceValues ( argv[1] );
+    WriteSurfaceValues ( type, sFileName );
   }  
 
   return TCL_OK;
@@ -8998,12 +9089,13 @@ void tkm_FloodFillSegmentation ( xVoxelRef       iAnaIdx,
 
 void tkm_SetSurfaceDistance    ( xVoxelRef iAnaIdx,
          float     ifDistance ) {
-
-  if( NULL == gSurface ) {
+  
+  if( NULL == gSurface[tkm_tSurfaceType_Main] ) {
     return;
   }
-
-  Surf_SetVertexValue( gSurface, Surf_tVertexSet_Main, Surf_tValueSet_Val,
+  
+  Surf_SetVertexValue( gSurface[tkm_tSurfaceType_Main], 
+           Surf_tVertexSet_Main, Surf_tValueSet_Val,
            iAnaIdx, ifDistance );
 }
 
@@ -9076,7 +9168,8 @@ char kTclCommands [tkm_knNumTclCommands][STRLEN] = {
   "BarChart_Draw",
 
   /* interface configuration */
-  "wm deiconify .; raise .; wm geometry .",
+  "wm geometry . ",
+  "wm deiconify .; raise .",
   "CsurfInterface",
   "tkm_Finish",
 
