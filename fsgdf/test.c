@@ -1,6 +1,6 @@
 #include "fsgdf.h"
 
-char *Progname="fsgdf test app";
+//char *Progname="fsgdf test app";
 
 int main (int argc, char** argv)
 {

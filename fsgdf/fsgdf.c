@@ -1,7 +1,7 @@
 /*
   fsgdf.c
   Utilities for reading freesurfer group descriptor file format 
-  $Id: fsgdf.c,v 1.15 2002/11/21 22:43:08 kteich Exp $
+  $Id: fsgdf.c,v 1.16 2002/11/25 22:18:28 kteich Exp $
 
   See:   http://surfer.nmr.mgh.harvard.edu/docs/fsgdf.txt
 
@@ -1066,6 +1066,8 @@ int gdfGetNthSubjectNthValue(FSGD *gd, int nsubject,
 int gdfGetNthSubjectMeasurement(FSGD *gd, int nsubject, 
 				int x, int y, int z, float *value)
 {
+  float v;
+
   if(NULL == gd)
     return(-1);
   if(nsubject < 0 || nsubject >= gd->ninputs)
@@ -1080,19 +1082,24 @@ int gdfGetNthSubjectMeasurement(FSGD *gd, int nsubject,
 
   switch( gd->data->type ) {
     case MRI_UCHAR:
-      *value = MRIseq_vox(gd->data,x,y,z,nsubject);
+      v = MRIseq_vox(gd->data,x,y,z,nsubject);
+      *value = v;
       break;
     case MRI_INT:
-      *value = MRIIseq_vox(gd->data,x,y,z,nsubject);
+      v = MRIIseq_vox(gd->data,x,y,z,nsubject);
+      *value = v;
       break;
     case MRI_LONG:
-      *value = MRILseq_vox(gd->data,x,y,z,nsubject);
+      v = MRILseq_vox(gd->data,x,y,z,nsubject);
+      *value = v;
       break;
     case MRI_FLOAT:
-      *value = MRIFseq_vox(gd->data,x,y,z,nsubject);
+      v = MRIFseq_vox(gd->data,x,y,z,nsubject);
+      *value = v;
       break;
     case MRI_SHORT:
-      *value = MRISseq_vox(gd->data,x,y,z,nsubject);
+      v = MRISseq_vox(gd->data,x,y,z,nsubject);
+      *value = v;
       break;
     default:
       break ;

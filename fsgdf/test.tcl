@@ -8,23 +8,37 @@ if { [info exists env(FSDEV_TEST_DATA)] } {
     set fnTestDataDir /space/lyon/1/fsdev/test_data
 }
 
-FsgdfPlot_Init
-set err [FsgdfPlot_ParseHeader "$fnTestDataDir/fsgdf/y-lh.fsgd"]
-if { $err } { puts "!!!! FsgdfPlot_ParseHeader failed." ; exit }
-FsgdfPlot_ShowWindow
+set glID {}
 
-#FsgdfPlot_SaveToTable test.table
-#FsgdfPlot_SaveToPostscript test.ps
+FsgdfPlot_Init
+set ID [FsgdfPlot_Read "$fnTestDataDir/fsgdf/y-lh.fsgd"]
+if { $ID < 0 } { puts "!!!! FsgdfPlot_ParseHeader failed." ; exit }
+FsgdfPlot_ShowWindow $ID
+
+lappend glID $ID
+
+set ID [FsgdfPlot_Read "$fnTestDataDir/fsgdf/novar.fsgd"]
+if { $ID < 0 } { puts "!!!! FsgdfPlot_ParseHeader failed." ; exit }
+FsgdfPlot_ShowWindow $ID
+
+lappend glID $ID
 
 
 proc ScheduleRedraw {} {
-    global gRedraws
+    global gRedraws glID
     after 500 {
-	set vno [expr round(rand() * 10000)]
-	FsgdfPlot_SetPoint $vno 0 0
-	FsgdfPlot_SetInfo "vno $vno"
+
+	foreach ID $glID {
+	    set vno [expr round(rand() * 10000)]
+	    FsgdfPlot_SetPoint $ID $vno 0 0
+	    FsgdfPlot_SetInfo $ID "vno $vno"
+
+	    FsgdfPlot_SaveToTable $ID test.table
+	    FsgdfPlot_SaveToPostscript $ID test.ps
+	}
+
 	incr gRedraws -1
-	if { $gRedraws > 0 } { ScheduleRedraw }
+	if { $gRedraws > 0 } [list ScheduleRedraw]
     }
 }
 
@@ -32,16 +46,14 @@ set gRedraws 10
 ScheduleRedraw
 
 
-
-
 if { 0 } {
 after 5000 {
-    FsgdfPlot_BeginPointList
+    FsgdfPlot_BeginPointList $gID
     for { set vno 1000 } { $vno < 10000 } { incr vno } {
-	FsgdfPlot_AddPoint $vno 0 0
+	FsgdfPlot_AddPoint $gID $vno 0 0
     }
-    FsgdfPlot_EndPointList
-    FsgdfPlot_SetInfo "vnos 1000 - 10000"
+    FsgdfPlot_EndPointList $gID
+    FsgdfPlot_SetInfo $gID "vnos 1000 - 10000"
 
 }
 }
