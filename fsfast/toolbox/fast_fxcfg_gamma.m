@@ -6,7 +6,8 @@ function rt = fast_fxcfg_gamma(DoWhat,thing)
 %  nparams - returns number of parameters in model (9). thing not needed.
 %  nregressors - number of regressors in current X matrix. thing=flacfg
 %  matrix - X matrix. thing=flacfg
-%  amatrix - identity. thing=flacfg
+%  irfmatrix - thing=flacfg
+%  erfmatrix - thing=flacfg
 %  parseline - parses the line, thing = line
 %  createline - create a model line. thing=flacfg
 %  autopsd - returns psdwindow
@@ -24,11 +25,7 @@ function rt = fast_fxcfg_gamma(DoWhat,thing)
 %  8. Tau
 %  9. Number of Derivatives to add
 %
-% $Id: fast_fxcfg_gamma.m,v 1.1 2003/03/19 07:00:15 greve Exp $
-
-% Things to do:
-% Handle tpx, nskip
-
+% $Id: fast_fxcfg_gamma.m,v 1.2 2003/03/21 05:31:55 greve Exp $
 
 rt = [];
 
@@ -66,12 +63,20 @@ switch(DoWhat)
  
  case 'autopsd'
   if(isempty(flacfg)) pr_fla_needed(DoWhat); return; end
-  rt = [0 .01 40]; % need to do better here
+  rt = [0 .1 40]; % need to do better here
  
- case 'amatrix'
+ case {'irfmatrix','erfmatrix'}
   if(isempty(flacfg)) pr_fla_needed(DoWhat); return; end
-  rt = get_amatrix(flacfg);
+  rt = get_amatrix(flacfg,DoWhat);
  
+ case 'irftaxis'
+  if(isempty(flacfg)) pr_fla_needed(DoWhat); return; end
+  rt = get_taxis(flacfg,'irftaxis');
+
+ case 'erftaxis'
+  if(isempty(flacfg)) pr_fla_needed(DoWhat); return; end
+  rt = get_taxis(flacfg,'erftaxis');
+
  case 'matrix'
   if(isempty(flacfg)) pr_fla_needed(DoWhat); return; end
   X = get_matrix(flacfg);
@@ -90,7 +95,7 @@ switch(DoWhat)
   rt = createline(flacfg);
  
  otherwise
-  fprintf('ERROR: fast_fxcfg_gamma: getwhat = %s, unrecognized\n',getwhat);
+  fprintf('ERROR: fast_fxcfg_gamma: DoWhat = %s, unrecognized\n',DoWhat);
 
 end
 
@@ -206,16 +211,15 @@ nr = nderiv + 1;
 return;
 
 %------------------------------------------------------------%
-function A = get_amatrix(flacfg)
-
-A = [];
+function taxis = get_taxis(flacfg,axistype)
+taxis = [];
 
 fxcfg = fast_fxcfg('getfxcfg',flacfg);
 if(isempty(fxcfg)) return; end
 
 autopsdwin = fxcfg.params(5);
 if(autopsdwin)
-  psdwin = fast_fxcfg('autowin',flacfg);
+  psdwin = fast_fxcfg('autopsd',flacfg);
   if(isempty(psdwin)) return; end
   psdmin = psdwin(1);
   dpsd   = psdwin(2);
@@ -225,12 +229,29 @@ else
   dpsd   = fxcfg.params(3);
   psdmax = fxcfg.params(4);
 end
+bcw = fxcfg.params(6);
 
-delta = fxcfg.params(7);
-tau = fxcfg.params(8);
-nderiv = fxcfg.params(9);
-t = fast_psdwin([psdmin dpsd psdmax],'irftaxis');
+
+taxis = fast_psdwin([psdmin dpsd psdmax bcw],axistype);
+
+return;
+%------------------------------------------------------------%
+function A = get_amatrix(flacfg,matrixtype)
+% matrixtype = 'irfmatrix' or 'erfmatrix'
+
+A = [];
+
+fxcfg = fast_fxcfg('getfxcfg',flacfg);
+if(isempty(fxcfg)) return; end
+
+% Get IRF time axis here, apply BCW below
+t = get_taxis(flacfg,'irftaxis');
 if(isempty(t)) return; end
+
+bcw    = fxcfg.params(6);
+delta  = fxcfg.params(7);
+tau    = fxcfg.params(8);
+nderiv = fxcfg.params(9);
 
 r = (t-delta)./tau;
 h = (r.^2) .* exp(-r);
@@ -271,7 +292,7 @@ evid   = fxcfg.params(1);
 
 autopsdwin = fxcfg.params(5);
 if(autopsdwin)
-  psdwin = fast_fxcfg('autowin',flacfg);
+  psdwin = fast_fxcfg('autopsd',flacfg);
   if(isempty(psdwin)) return; end
   psdmin = psdwin(1);
   dpsd   = psdwin(2);
@@ -295,20 +316,22 @@ if(isempty(flacfg.useevschweight) | flacfg.useevschweight == 0)
   wPresEvId = [];
 end
 
+% Build any BCW into Xfir
 Xfir = fast_sched2Xfir(tPresEvId,ntp,flacfg.TR,psd,flacfg.tDelay,wPresEvId); 
 if(isempty(Xfir)) return; end
 
-A = fast_fxcfg('amatrix',flacfg);
+% Get IRF
+A = fast_fxcfg('irfmatrix',flacfg);
 if(isempty(A)) return; end
 
-if(size(Xfir,2) ~= size(A,2))
+if(size(Xfir,2) ~= size(A,1))
   fprintf('ERROR: gamma: dimension mismatch between Xfir and A\n');
   return;
 end
 
 X = Xfir*A;
 
-% Handle nskip, tpx, flacfg.usetpexclude
+% tpx and nskip are handled in fast_fxcfg('matrix',flacfg)
 
 return;
 %------------------------------------------------------------%
