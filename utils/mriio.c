@@ -8414,10 +8414,11 @@ mghRead(char *fname, int read_volume, int frame)
 	  many frames. Otherwise I would have had to change the whole
 	  MRIread interface and that was too much of a pain. Sorry.
        */
-      if (frame <= -1)  
+      if (frame < -1)  
         nframes = frame*-1 ; 
- 
+
       start_frame = 0 ; end_frame = nframes-1 ;
+      fprintf(stderr, "read %d frames\n", nframes);
     }
     buf = (BUFTYPE *)calloc(bytes, sizeof(BUFTYPE)) ;
     mri = MRIallocSequence(width, height, depth, type, nframes) ;
