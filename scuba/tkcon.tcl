@@ -187,7 +187,7 @@ proc ::tkcon::Init {args} {
 	    alias clear dir dump echo idebug lremove
 	    tkcon_puts tkcon_gets observe observe_var unalias which what
 	}
-	RCS		{RCS: @(#) $Id: tkcon.tcl,v 1.2 2004/03/24 23:34:24 kteich Exp $}
+	RCS		{RCS: @(#) $Id: tkcon.tcl,v 1.3 2004/04/03 22:05:19 kteich Exp $}
 	HEADURL		{http://cvs.sourceforge.net/cgi-bin/viewcvs.cgi/tkcon/tkcon/tkcon.tcl?rev=HEAD}
 	docs		"http://tkcon.sourceforge.net/"
 	email		{jeff@hobbs.org}
@@ -559,7 +559,7 @@ proc ::tkcon::InitUI {title} {
     set root $PRIV(root)
     # RKT : if embed is spec'd, don't try and make a window.
     set w ""
-    if { $OPT(embed) } {
+    if { [info exists OPT(embed)] && $OPT(embed) } {
 	set w $root
     } else {
 	if {[string match . $root]} {
