@@ -1,8 +1,11 @@
 function [err, racfexp] = fast_ar1w_fiterr(p,racf,R,w)
 % err = fast_ar1wfiterr(p,racf,R,<w>)
 %
-% error function for fminsearch (which uses Nelder-Mead 
-% unconstrained non-linear search).
+% error function for fitting an AR1+W noise model while also taking
+% into account the bias introduced by GLM fitting. This function
+% can be used with fminsearch, which uses Nelder-Mead 
+% unconstrained non-linear search. 'Unconstrained' can cause
+% problems. 
 %
 % p = [alpha rho];
 % racf is actual residual ACF (nf-by-1). Should be created with
@@ -15,6 +18,10 @@ function [err, racfexp] = fast_ar1w_fiterr(p,racf,R,w)
 % 
 % err = sum( abs(racf-racfexp).*w ); % L1 norm
 % 
+% Autocorrelation function of AR1+White Noise
+%   acf(0) = 1
+%   acf(n) = (1-alpha)*rho^n
+%
 % Example:
 %  p = [0 racf(2)]; % Init as simple AR1
 %  popt = fminsearch('fast_ar1w_fiterr',p,[],racf,R);
@@ -22,12 +29,19 @@ function [err, racfexp] = fast_ar1w_fiterr(p,racf,R,w)
 %  [e racfexp] = fast_ar1w_fiterr(popt,racfmn,R);
 %  plot(1:nf,racf,1:nf,racfexp)
 % 
-% For nf=100 and nice racfs, takes about .35 sec on 
-%  Athalon 1GHz and scales with nf^2.
-% 
-% See also: fast_ar1w_acf, fast_acorr.
+% Notes: 
+%  1. For nf=100 and nice racfs, takes about .35 sec on 
+%     Athalon 1GHz and scales with nf^2.
+%  2. Unconstrained search can yield alpha<0 and rho > 1.
+%  3. As alpha->1, the error is less sensitive to rho.
+%  4. There is a danger of local minima. This parameterization
+%     is not well conditioned as very different combinations
+%     of alpha and rho can lead to very similar ACFs. Try
+%     initializing with fast_ar1w_fit on the RACF.
 %
-% $Id: fast_ar1w_fiterr.m,v 1.1 2004/04/29 20:19:41 greve Exp $
+% See also: fast_ar1w_acf, fast_acorr, fast_ar1w_fit.
+%
+% $Id: fast_ar1w_fiterr.m,v 1.2 2004/04/29 22:22:20 greve Exp $
 %
 % (c) Douglas N. Greve, 2004
 %
