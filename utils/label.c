@@ -1142,6 +1142,16 @@ LabelFillUnassignedVertices(MRI_SURFACE *mris, LABEL *area)
   VERTEX  *v ;
   float   dx, dy, dz, x, y, z, dist, min_dist ;
 
+  for (i = n = 0 ; n < area->n_points ; n++)
+  {
+    lv = &area->lv[n] ;
+    if (lv->vno >= 0 && lv->vno <= mris->nvertices)
+      continue ;
+    i++ ;   /* count # of unassigned vertices */
+  }
+  if (i <= 0)
+    return(NO_ERROR) ;  /* no work needed */
+
   /* if we can't find a vertex within 10 mm of the point, something is wrong */
   mht = MHTfillVertexTableRes(mris, NULL, ORIGINAL_VERTICES, 10.0) ;
   for (n = 0 ; n < area->n_points ; n++)
