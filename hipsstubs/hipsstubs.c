@@ -1,7 +1,13 @@
 
-#if 1
+#if 0
+/* wrote replacements for these */
 int h_copy(void) ;
 int h_copy(void) {return(-1);}
+int init_header(void) ;
+int init_header(void) {return(-1);}
+#endif
+
+#if 1
 int perr(void) ;
 int perr(void) {return(-1);}
 int h_canny(void) ;
