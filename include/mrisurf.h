@@ -352,8 +352,7 @@ MRI_SURFACE  *MRISunfold(MRI_SURFACE *mris, INTEGRATION_PARMS *parms,
                          int max_passes) ;
 int          MRISregister(MRI_SURFACE *mris, MRI_SP *mrisp_template, 
                            INTEGRATION_PARMS *parms, int max_passes) ;
-int          MRISrigidBodyAlign(MRI_SURFACE *mris, MRI_SP *mrisp_template,
-                                INTEGRATION_PARMS *parms) ;
+int          MRISrigidBodyAlign(MRI_SURFACE *mris, INTEGRATION_PARMS *parms) ;
 MRI_SURFACE  *MRISunfoldOnSphere(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, 
                                  int max_passes);
 MRI_SURFACE  *MRISflatten(MRI_SURFACE *mris, INTEGRATION_PARMS *parms) ;
@@ -403,6 +402,7 @@ double       MRIScurvatureError(MRI_SURFACE *mris, double Kd) ;
 MRI_SURFACE  *MRISscaleBrain(MRI_SURFACE *mris_src, MRI_SURFACE *mris_dst, 
                              float scale) ;
 int          MRISstoreMetricProperties(MRI_SURFACE *mris) ;
+int          MRISzeroNegativeAreas(MRI_SURFACE *mris) ;
 int          MRISstoreMeanCurvature(MRI_SURFACE *mris) ;
 int          MRISreadTetherFile(MRI_SURFACE *mris, char *fname, float radius) ;
 int          MRISreadVertexPositions(MRI_SURFACE *mris, char *fname) ;
