@@ -42,7 +42,7 @@ unsigned long  Gdiag = 0 ;
         diag bits.
 
 ------------------------------------------------------------------------*/
-int
+unsigned long
 DiagInit(void)
 {
   char *cp ;
@@ -108,6 +108,9 @@ int
 DiagDrawBox(unsigned long diag_bits, int win, int row0, int col, 
                  int rows, int cols, int color)
 {
+   int i;
+   i=win; i=row0; i=col; i=rows; i=cols; i=color; /* prevent warning (dng) */
+
   if (!(diag_bits & Gdiag))
     return(-1) ;
 
@@ -126,6 +129,9 @@ DiagDrawBox(unsigned long diag_bits, int win, int row0, int col,
 int
 DiagCloseWindow(unsigned long diag_bits, int win)
 {
+   int i;
+   i=(int)diag_bits; i=win;
+
   return(0) ;
 }
 /*-----------------------------------------------------
@@ -140,6 +146,8 @@ DiagCreateWindow(unsigned long diag_bits, int wrows, int wcols,
                  int rows,int cols)
 {
   int win ;
+   int i;
+   i=wcols; i=(int)diag_bits;
 
 /*
   create a set of rows x cols windows, each one of which is wrows x wcols
@@ -155,3 +163,21 @@ DiagCreateWindow(unsigned long diag_bits, int wrows, int wcols,
   return(win) ;
 }
 
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
+int
+DiagPrintf(unsigned long diag_bits, char *fmt, ...)
+{
+  va_list args ;
+  
+  if (!(diag_bits & Gdiag))
+    return(-1) ;
+
+  va_start(args, fmt) ;
+  return(vprintf(fmt, args)) ;
+}
