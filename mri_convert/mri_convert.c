@@ -28,6 +28,8 @@ static int conform = 0;
 static int nc = 0;
 static int xdim = XDIM, ydim = YDIM, zdim = ZDIM ;
 static int raw_flag;
+static int invert = 0 ;
+static float thresh = 10 ;
 static int raw_width, raw_height, raw_depth, raw_type;
 
 static float blur_sigma = 0.0f ;
@@ -152,6 +154,9 @@ main(int argc, char *argv[])
     mri = mri_tmp ;
   }
 
+  if (invert)
+    MRIinvertContrast(mri, mri, thresh) ;
+
   if (transform_fname || inverse_transform_fname)
   {
     MRI *mri_tmp ;
@@ -274,6 +279,12 @@ get_option(int argc, char *argv[])
   }
   else if (!stricmp(option, "conform"))
     conform = 1 ;
+  else if (!stricmp(option, "invert"))
+  {
+    thresh = atof(argv[2]) ; invert = 1 ;
+    nargs = 1 ;
+    fprintf(stderr, "inverting all values above %2.1f\n", thresh) ;
+  }
   else if(!strcmp(option, "nc"))
   {
     printf("nc flag: conform overridden\n");
