@@ -2899,3 +2899,47 @@ MATRIX *MatrixToeplitz(VECTOR *v, MATRIX *T, int Type)
 
   return(T);
 }
+/*----------------------------------------------------------*/
+MATRIX *MatrixNormalizeCol(MATRIX *m, MATRIX *mcnorm)
+{
+  int r,c;
+  float sum2, v;
+
+  if(mcnorm == NULL){
+    mcnorm = MatrixAlloc(m->rows,m->cols,MATRIX_REAL);
+    if(mcnorm == NULL){
+      printf("ERROR: MatrixNormalizeCol: could not alloc\n");
+      return(NULL);
+    }
+  }
+  else{
+    if(mcnorm->rows != m->rows || mcnorm->cols != m->cols){
+      printf("ERROR: MatrixNormalizeCol: dimension mismatch\n");
+      return(NULL);
+    }
+  }
+
+  for(c=1; c <= m->cols; c++){
+    sum2 = 0.0;
+    for(r=1; r <= m->rows; r++){
+      v = m->rptr[r][c];
+      sum2 += (v*v);
+    }
+    v = sqrt(sum2);
+    if(v != 0)
+      for(r=1; r <= m->rows; r++) 
+	mcnorm->rptr[r][c] = (m->rptr[r][c])/v;
+    else
+      for(r=1; r <= m->rows; r++) 
+	mcnorm->rptr[r][c] = 0.0;
+
+  }
+
+  printf("m ----------------------------\n");
+  MatrixPrint(stdout,m);
+  printf("mcnorm ----------------------------\n");
+  MatrixPrint(stdout,mcnorm);
+
+  
+  return(mcnorm);
+}
