@@ -1495,7 +1495,7 @@ insert_thin_temporal_white_matter(MRI *mri_in, MRI *mri_labeled,
             gc = GCAfindPriorGC(gca, xp, yp, zp, gcap->labels[n]) ;
             gcas[i].x = x ; gcas[i].y = y ; gcas[i].z = z ;
             gcas[i].xp = xp ; gcas[i].yp = yp ; gcas[i].zp = zp ;
-            gcas[i].n = n ; gcas[i].label = gcap->labels[n] ;
+            gcas[i].label = gcap->labels[n] ;
             gcas[i].prior = gcap->priors[n] ;
             gcas[i].mean = gc->mean ;
             gcas[i].var = gc->var ;
