@@ -6,6 +6,7 @@
 
 #include "MRIio.h"
 #include "mrisurf.h"
+#include "label.h"
 
 /* float-to-integer conversions */
 #define FLT2INT_ROUND 0  /* c = (int)rint(x) */
