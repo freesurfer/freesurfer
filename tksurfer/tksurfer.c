@@ -581,6 +581,7 @@ int curvflag = TRUE; /* draw curv if loaded */
 int mouseoverflag = TRUE; /* show mouseover information */
 int redrawlockflag = FALSE; /* redraw on window uncover events */
 int simpledrawmodeflag = TRUE; /* draw based on scalar values */
+int forcegraycurvatureflag = FALSE; /* always draw grayscale curvature */
 Tcl_Interp *g_interp = NULL;
 
 int curwindowleft = 0; /* keep track of window position, updated on move */
@@ -5823,8 +5824,8 @@ read_talairach(char *fname)    /* marty: ignore abs paths in COR-.info */
   lta = LTAread(fname) ;
   if (lta==NULL)
     printf("surfer: Talairach xform file not found (ignored)\n");
-  else 
-    transform_loaded = TRUE;
+  else  
+      transform_loaded = TRUE;
 }
 
 void
@@ -12508,19 +12509,25 @@ fill_color_array(MRI_SURFACE *mris, float *colors)
       if (simpledrawmodeflag)
 	{
 	  /* if surfcolor (curvature) is on and there is an overlay,
-	     get a grayscale value. if just surfcolor and curvflag are
-	     on, get a red/green color based on the curvature. else
-	     just use the solid background color. */
-	  if (surfcolor && overlayflag && curvflag)
+	     or if the force grayscale curvature flag is on, get a
+	     grayscale value. if just surfcolor and curvflag are on,
+	     get a red/green color based on the curvature. else just
+	     use the solid background color. */
+	  if ((surfcolor && overlayflag && curvflag) || forcegraycurvatureflag)
 	    {
+	      /* grayscale curvature */
 	      mode = REAL_VAL;
 	      val2 = v->curv;
 	    } 
 	  else if (surfcolor && curvflag)
 	    {
+	      /* red green curvature */
 	      mode = GREEN_RED_CURV;
 	      val2 = v->curv;
-	    } else {
+	    } 
+	  else
+	    {
+	      /* solid background color */
 	      mode = REAL_VAL;
 	      val2 = 0;
 	    }
@@ -18115,7 +18122,7 @@ int main(int argc, char *argv[])   /* new main */
   /* end rkt */
   
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: tksurfer.c,v 1.48 2003/08/05 19:19:25 kteich Exp $");
+  nargs = handle_version_option (argc, argv, "$Id: tksurfer.c,v 1.49 2003/08/06 16:46:04 kteich Exp $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -18791,6 +18798,8 @@ int main(int argc, char *argv[])   /* new main */
 	      TCL_LINK_BOOLEAN);
   Tcl_LinkVar(interp,"drawlabelflag",(char *)&labl_draw_flag,
 	      TCL_LINK_BOOLEAN);
+  Tcl_LinkVar(interp,"forcegraycurvatureflag",(char *)&forcegraycurvatureflag,
+	      TCL_LINK_BOOLEAN);
   /* end rkt */
   /*=======================================================================*/
   /***** link global surfer INT variables to tcl equivalents */
@@ -18980,7 +18989,6 @@ int main(int argc, char *argv[])   /* new main */
   enable_menu_set (MENUSET_VSET_INFLATED_LOADED, 0);
   enable_menu_set (MENUSET_VSET_WHITE_LOADED, 0);
   enable_menu_set (MENUSET_VSET_PIAL_LOADED, 0);
-  /*  enable_menu_set (MENUSET_VSET_ORIGINAL_LOADED, 0);*/
   if (NULL == func_timecourse)
     enable_menu_set (MENUSET_TIMECOURSE_LOADED, 0);
   enable_menu_set (MENUSET_OVERLAY_LOADED, 0);
@@ -20398,7 +20406,11 @@ enable_menu_set (int set, int enable) {
 	}
       sprintf (tcl_cmd, "%s %d", tcl_cmd, enable);
       Tcl_Eval(g_interp, tcl_cmd);
-      if (*g_interp->result != 0) printf(g_interp->result);
+      if (*g_interp->result != 0) 
+	{
+	  printf("surfer: couldn't dis/enable menu set %d: %s \n",
+		 set, g_interp->result);
+	}
     }
   return(ERROR_NONE);
 }
