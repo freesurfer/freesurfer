@@ -144,11 +144,11 @@ RecReadPartially(char *fname, int iop_neeg, int iop_nmeg,int flag)
               fname) ;
   
   /* added by twitzel */
-  if(flag==1) {
+  if(flag & 1) {
     rec->nmeg_channels = 0;
     tnchan = rec->neeg_channels;
   }
-  if(flag==2) {
+  if(flag & 2) {
     rec->neeg_channels = 0;
     tnchan = rec->nmeg_channels;
   }
