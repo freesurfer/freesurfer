@@ -452,6 +452,7 @@ int   MRIerasePlane(MRI *mri, float x0, float y0, float z0,
 int   MRIeraseBorders(MRI *mri, int width) ;
 int   MRIindexNotInVolume(MRI *mri, Real col, Real row, Real slice) ;
 int   MRIsampleVolume(MRI *mri, Real x, Real y, Real z, Real *pval) ;
+int   MRIinterpolateIntoVolume(MRI *mri, Real x, Real y, Real z, Real val) ;
 int   MRIsampleVolumeSlice(MRI *mri, Real x, Real y, Real z, Real *pval, int slice_direction) ;
 
 int   MRIsampleSeqVolume(MRI *mri, Real x, Real y, Real z, float *valvect,
@@ -903,6 +904,7 @@ MRI *MRImarkLabelBorderVoxels(MRI *mri_src, MRI *mri_dst, int label, int mark, i
 int MRIcomputeLabelNbhd(MRI *mri_labels, MRI *mri_vals, int x, int y, int z, int *label_counts, float *label_means, 
 												int whalf, int max_labels) ;
 float MRIvoxelsInLabelWithPartialVolumeEffects(MRI *mri, MRI *mri_vals, int label) ;
+MRI   *MRImakeDensityMap(MRI *mri, MRI *mri_vals, int label, MRI *mri_dst) ;
 
 /* extract the RASToVoxeMatrix from an MRI */
 MATRIX *GetSurfaceRASToVoxelMatrix(MRI *mri);

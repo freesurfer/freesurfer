@@ -8,10 +8,10 @@
  *
  */
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2005/01/26 19:33:28 $
-// Revision       : $Revision: 1.283 $
-char *MRI_C_VERSION = "$Revision: 1.283 $";
+// Revision Author: $Author: fischl $
+// Revision Date  : $Date: 2005/01/26 20:07:39 $
+// Revision       : $Revision: 1.284 $
+char *MRI_C_VERSION = "$Revision: 1.284 $";
 
 /*-----------------------------------------------------
   INCLUDE FILES
@@ -182,8 +182,7 @@ MATRIX *MRIxfmCRS2XYZtkreg(MRI *mri)
   MRI *tmp;
   MATRIX *K;
 
-  tmp = MRIallocHeader(mri->width, mri->height, 
-		       mri->depth, mri->type);
+  tmp = MRIallocHeader(mri->width, mri->height, mri->depth, mri->type);
 
   /* Set tkregister defaults */
   /* column         row           slice          center      */
@@ -7548,6 +7547,103 @@ MRIsampleVolumeFrameType(MRI *mri, Real x, Real y, Real z, int frame, int type, 
   }
   return(NO_ERROR) ;
 }
+int
+MRIinterpolateIntoVolume(MRI *mri, Real x, Real y, Real z, Real val)
+{
+  int  OutOfBounds;
+  int  xm, xp, ym, yp, zm, zp, width, height, depth ;
+  Real xmd, ymd, zmd, xpd, ypd, zpd ;  /* d's are distances */
+
+  OutOfBounds = MRIindexNotInVolume(mri, x, y, z);
+  if(OutOfBounds == 1){
+    /* unambiguously out of bounds */
+    return(NO_ERROR) ;
+  }
+
+  width = mri->width ; height = mri->height ; depth = mri->depth ; 
+
+  if (x >= width)    x = width - 1.0 ;
+  if (y >= height)   y = height - 1.0 ;
+  if (z >= depth)    z = depth - 1.0 ;
+  if (x < 0.0)       x = 0.0 ;
+  if (y < 0.0)       y = 0.0 ;
+  if (z < 0.0)       z = 0.0 ;
+
+  xm = MAX((int)x, 0) ;
+  xp = MIN(width-1, xm+1) ;
+  ym = MAX((int)y, 0) ;
+  yp = MIN(height-1, ym+1) ;
+  zm = MAX((int)z, 0) ;
+  zp = MIN(depth-1, zm+1) ;
+
+  xmd = x - (float)xm ;
+  ymd = y - (float)ym ;
+  zmd = z - (float)zm ;
+  xpd = (1.0f - xmd) ;
+  ypd = (1.0f - ymd) ;
+  zpd = (1.0f - zmd) ;
+
+  switch (mri->type)
+  {
+  case MRI_UCHAR:
+		MRIvox(mri, xm, ym, zm) += nint(xpd * ypd * zpd * val) ;
+		MRIvox(mri, xm, ym, zp) += nint(xpd * ypd * zmd * val) ;
+		MRIvox(mri, xm, yp, zm) += nint(xpd * ymd * zpd * val) ;
+		MRIvox(mri, xm, yp, zp) += nint(xpd * ymd * zmd * val) ;
+		MRIvox(mri, xp, ym, zm) += nint(xmd * ypd * zpd * val) ;
+		MRIvox(mri, xp, ym, zp) += nint(xmd * ypd * zmd * val) ;
+		MRIvox(mri, xp, yp, zm) += nint(xmd * ymd * zpd * val) ;
+		MRIvox(mri, xp, yp, zp) += nint(xmd * ymd * zmd * val) ;
+    break ;
+  case MRI_FLOAT:
+		MRIFvox(mri, xm, ym, zm) += (xpd * ypd * zpd * val) ;
+		MRIFvox(mri, xm, ym, zp) += (xpd * ypd * zmd * val) ;
+		MRIFvox(mri, xm, yp, zm) += (xpd * ymd * zpd * val) ;
+		MRIFvox(mri, xm, yp, zp) += (xpd * ymd * zmd * val) ;
+		MRIFvox(mri, xp, ym, zm) += (xmd * ypd * zpd * val) ;
+		MRIFvox(mri, xp, ym, zp) += (xmd * ypd * zmd * val) ;
+		MRIFvox(mri, xp, yp, zm) += (xmd * ymd * zpd * val) ;
+		MRIFvox(mri, xp, yp, zp) += (xmd * ymd * zmd * val) ;
+    break ;
+  case MRI_SHORT:
+		MRISvox(mri, xm, ym, zm) += nint(xpd * ypd * zpd * val) ;
+		MRISvox(mri, xm, ym, zp) += nint(xpd * ypd * zmd * val) ;
+		MRISvox(mri, xm, yp, zm) += nint(xpd * ymd * zpd * val) ;
+		MRISvox(mri, xm, yp, zp) += nint(xpd * ymd * zmd * val) ;
+		MRISvox(mri, xp, ym, zm) += nint(xmd * ypd * zpd * val) ;
+		MRISvox(mri, xp, ym, zp) += nint(xmd * ypd * zmd * val) ;
+		MRISvox(mri, xp, yp, zm) += nint(xmd * ymd * zpd * val) ;
+		MRISvox(mri, xp, yp, zp) += nint(xmd * ymd * zmd * val) ;
+    break ;
+  case MRI_INT:
+		MRIIvox(mri, xm, ym, zm) += nint(xpd * ypd * zpd * val) ;
+		MRIIvox(mri, xm, ym, zp) += nint(xpd * ypd * zmd * val) ;
+		MRIIvox(mri, xm, yp, zm) += nint(xpd * ymd * zpd * val) ;
+		MRIIvox(mri, xm, yp, zp) += nint(xpd * ymd * zmd * val) ;
+		MRIIvox(mri, xp, ym, zm) += nint(xmd * ypd * zpd * val) ;
+		MRIIvox(mri, xp, ym, zp) += nint(xmd * ypd * zmd * val) ;
+		MRIIvox(mri, xp, yp, zm) += nint(xmd * ymd * zpd * val) ;
+		MRIIvox(mri, xp, yp, zp) += nint(xmd * ymd * zmd * val) ;
+    break ;
+  case MRI_LONG:
+		MRILvox(mri, xm, ym, zm) += nint(xpd * ypd * zpd * val) ;
+		MRILvox(mri, xm, ym, zp) += nint(xpd * ypd * zmd * val) ;
+		MRILvox(mri, xm, yp, zm) += nint(xpd * ymd * zpd * val) ;
+		MRILvox(mri, xm, yp, zp) += nint(xpd * ymd * zmd * val) ;
+		MRILvox(mri, xp, ym, zm) += nint(xmd * ypd * zpd * val) ;
+		MRILvox(mri, xp, ym, zp) += nint(xmd * ypd * zmd * val) ;
+		MRILvox(mri, xp, yp, zm) += nint(xmd * ymd * zpd * val) ;
+		MRILvox(mri, xp, yp, zp) += nint(xmd * ymd * zmd * val) ;
+    break ;
+  default:
+    ErrorReturn(ERROR_UNSUPPORTED, 
+                (ERROR_UNSUPPORTED, 
+                 "MRIsampleVolume: unsupported type %d", mri->type)) ;
+    break ;
+  }
+  return(NO_ERROR) ;
+}
+
 /*-------------------------------------------------------------------
   MRIsampleVolume() - performs trilinear interpolation on a
   single-frame volume. See MRIsampleSeqVolume() for sampling
@@ -11279,6 +11375,84 @@ MRIvoxelsInLabelWithPartialVolumeEffects(MRI *mri, MRI *mri_vals, int label)
 
 	MRIfree(&mri_border) ;
 	return(volume) ;
+}
+
+MRI *
+MRImakeDensityMap(MRI *mri, MRI *mri_vals, int label, MRI *mri_dst)
+{
+	float   vox_vol, volume ;
+	int     x, y, z, nbr_label_counts[MAX_CMA_LABELS],label_counts[MAX_CMA_LABELS], this_label, border, nbr_label, max_count,
+          vox_label ;
+	MRI     *mri_border ;
+	float   label_means[MAX_CMA_LABELS], pv, mean_label, mean_nbr, val ;
+
+	if (mri_dst == NULL)
+		mri_dst = MRIalloc(mri->width, mri->height, mri->depth, MRI_FLOAT) ;
+
+	/* first find border voxels */
+	mri_border = MRImarkLabelBorderVoxels(mri, NULL, label, 1, 1) ;
+	if (DIAG_VERBOSE_ON && (Gdiag & DIAG_WRITE))
+		MRIwrite(mri_border, "b.mgz") ;
+	vox_vol = mri->xsize*mri->ysize*mri->zsize ;
+	for (x = 0 ; x < mri->width ; x++)
+	{
+		for (y = 0 ; y < mri->height ; y++)
+		{
+			for (z = 0 ; z < mri->depth ; z++)
+			{
+				if (x == Gx && y == Gy && z == Gz)
+					DiagBreak() ;
+				vox_label = MRIgetVoxVal(mri, x, y, z, 0) ;
+				border = MRIgetVoxVal(mri_border, x, y, z, 0) ;
+				if ((vox_label != label) && (border == 0))
+					continue ;
+
+				if (border == 0)
+					volume = vox_vol ;
+				else  /* compute partial volume */
+				{
+					MRIcomputeLabelNbhd(mri, mri_vals, x, y, z, nbr_label_counts, label_means, 1, MAX_CMA_LABELS) ;
+					MRIcomputeLabelNbhd(mri, mri_vals, x, y, z, label_counts, label_means, 7, MAX_CMA_LABELS) ;
+					val = MRIgetVoxVal(mri_vals, x, y, z, 0) ;  /* compute partial volume based on intensity */
+					mean_label = label_means[vox_label] ;
+					nbr_label = -1 ; max_count = 0 ;
+					/* look for a label that is a nbr and is on the other side of val from the label mean */
+					for (this_label = 0 ; this_label < MAX_CMA_LABELS ; this_label++)
+					{
+						if (this_label == vox_label)
+							continue ;
+						if (nbr_label_counts[this_label] == 0)   /* not a nbr */
+							continue ;
+
+						if ((label_counts[this_label] > max_count) && 
+								((label_means[this_label] - val) * (mean_label - val) < 0))
+						{
+							max_count = label_means[this_label] ;
+							nbr_label = this_label ;
+						}
+					}
+					if (vox_label != label && nbr_label != label)  /* this struct not in voxel */
+						continue ;
+
+					if (max_count > 0)  /* compute partial volume pct */
+					{
+						mean_nbr = label_means[nbr_label] ;
+						pv = (val - mean_nbr) / (mean_label - mean_nbr) ;
+						if (vox_label == label)
+							volume = pv*vox_vol ;
+						else
+							volume = vox_vol * (1-pv) ;
+						if (pv < 0 || pv > 1)
+							DiagBreak() ;
+					}
+				}
+				MRIsetVoxVal(mri_dst, x, y, z, 0, volume) ;
+			}
+		}
+	}
+
+	MRIfree(&mri_border) ;
+	return(mri_dst) ;
 }
 
 MRI *
