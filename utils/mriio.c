@@ -4895,8 +4895,7 @@ static MRI *analyzeRead(char *fname, int read_volume)
 
   hdr = ReadAnalyzeHeader(hdrfile, &swap, &mritype, &bytes_per_voxel);
   if(hdr == NULL) return(NULL);
-  if (Gdiag & DIAG_VERBOSE_ON)
-    DumpAnalyzeHeader(stdout,hdr);
+  if (Gdiag & DIAG_VERBOSE_ON)  DumpAnalyzeHeader(stdout,hdr);
 
   /* Get the number of frames as either the fourth dimension or 
      the number of files. */
@@ -5349,6 +5348,25 @@ static int analyzeWriteFrame(MRI *mri, char *fname, int frame)
   MatrixFree(&T);
   MatrixFree(&invT);
 
+  /* Set the hist.orient field -- this is not always correct */
+  /* see http://wideman-one.com/gw/brain/analyze/formatdoc.htm  */
+  if(fabs(mri->z_s) > fabs(mri->z_r) && fabs(mri->z_s) > fabs(mri->z_a)){
+    // Transverse: Superior/Inferior > both Right and Anterior
+    if(mri->x_r > 0) hdr.hist.orient = 0; // transverse unflipped
+    else             hdr.hist.orient = 3; // transverse flipped
+  }
+  if(fabs(mri->z_a) > fabs(mri->z_r) && fabs(mri->z_a) > fabs(mri->z_s)){
+    // Cor: Anterior/Post > both Right and Superior
+    if(mri->x_r > 0) hdr.hist.orient = 1; // cor unflipped
+    else             hdr.hist.orient = 4; // cor flipped
+  }
+  if(fabs(mri->z_r) > fabs(mri->z_a) && fabs(mri->z_r) > fabs(mri->z_s)){
+    // Sag: Righ/Left > both Anterior and Superior
+    if(mri->x_r > 0) hdr.hist.orient = 2; // sag unflipped
+    else             hdr.hist.orient = 5; // sag flipped
+  }
+  printf("INFO: set hdr.hist.orient to %d\n",hdr.hist.orient);
+
   /* ----- open the header file ----- */
   if((fp = fopen(hdr_fname, "w")) == NULL){
     errno = 0;
@@ -5558,6 +5576,26 @@ static int analyzeWrite4D(MRI *mri, char *fname)
   MatrixPrint(stdout,T);
   printf("--------------------\n");
 
+
+  /* Set the hist.orient field -- this is not always correct */
+  /* see http://wideman-one.com/gw/brain/analyze/formatdoc.htm  */
+  if(fabs(mri->z_s) > fabs(mri->z_r) && fabs(mri->z_s) > fabs(mri->z_a)){
+    // Transverse: Superior/Inferior > both Right and Anterior
+    if(mri->x_r > 0) hdr.hist.orient = 0; // transverse unflipped
+    else             hdr.hist.orient = 3; // transverse flipped
+  }
+  if(fabs(mri->z_a) > fabs(mri->z_r) && fabs(mri->z_a) > fabs(mri->z_s)){
+    // Cor: Anterior/Post > both Right and Superior
+    if(mri->x_r > 0) hdr.hist.orient = 1; // cor unflipped
+    else             hdr.hist.orient = 4; // cor flipped
+  }
+  if(fabs(mri->z_r) > fabs(mri->z_a) && fabs(mri->z_r) > fabs(mri->z_s)){
+    // Sag: Righ/Left > both Anterior and Superior
+    if(mri->x_r > 0) hdr.hist.orient = 2; // sag unflipped
+    else             hdr.hist.orient = 5; // sag flipped
+  }
+  hdr.hist.orient = -1;
+  printf("INFO: set hdr.hist.orient to %d\n",hdr.hist.orient);
 
   /* ----- write T to the  .mat file ----- */
   error_value = MatlabWrite(T, mat_fname, "M");
