@@ -16,7 +16,7 @@
 #include "icosahedron.h"
 #include "label.h"
 
-static char vcid[] = "$Id: mris_spherical_average.c,v 1.7 2002/11/19 18:21:47 fischl Exp $";
+static char vcid[] = "$Id: mris_spherical_average.c,v 1.8 2003/02/20 20:52:38 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -316,6 +316,11 @@ get_option(int argc, char *argv[])
   }
   else switch (toupper(*option))
   {
+	case 'V':
+		Gdiag_no = atoi(argv[2]) ;
+		nargs = 1 ;
+		printf("debugging vertex %d\n", Gdiag_no) ;
+		break ;
   case 'A':
     navgs = atoi(argv[2]) ;
     fprintf(stderr, "blurring thickness for %d iterations\n",navgs);
