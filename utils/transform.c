@@ -2209,9 +2209,9 @@ LTA *ltaReadFileEx(const char *fname)
     {
       if (strncmp(line, "src volume info", 15)==0)
       {
+	char *p;
 	if (DIAG_VERBOSE_ON)
 	  fprintf(stderr, "INFO: src volume info present\n");
-	char *p;
 	readVolGeom(fp, &lta->xforms[i].src);
 	p = fgets(line, 199, fp);
 	if (strncmp(line, "dst volume info", 15)==0)
