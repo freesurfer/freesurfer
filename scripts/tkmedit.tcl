@@ -1,6 +1,6 @@
 #! /usr/bin/tixwish
 
-# $Id: tkmedit.tcl,v 1.67 2003/10/08 21:26:53 tosa Exp $
+# $Id: tkmedit.tcl,v 1.68 2003/12/08 08:04:32 kteich Exp $
 
 
 source $env(FREESURFER_HOME)/lib/tcl/tkm_common.tcl
@@ -293,6 +293,8 @@ foreach surface "$tkm_tSurfaceType(main) $tkm_tSurfaceType(aux)" {
     }
 }
 
+set gbUseRealRAS 0
+
 # general volume info
 foreach volume "$tkm_tVolumeType(main) $tkm_tVolumeType(aux)" {
     set gVolume($volume,colorScale,brightness) 0
@@ -531,6 +533,12 @@ proc UpdateSurfaceLineColor { iSurface iSet ifRed ifGreen ifBlue } {
     set gSurface($iSurface,$iSet,color,blue) [expr round($ifBlue * 255)]
 }
 
+proc UpdateUseRealRAS { ibUseRealRAS } {
+    global gbUseRealRAS
+
+    set gbUseRealRAS $ibUseRealRAS
+}
+
 proc UpdateSegBrushInfo { inColor ib3D iSrc inFuzzy inDistance } {
     global gSegBrush
 
@@ -666,6 +674,11 @@ proc SendVolumeSampleType { iVolume } {
 proc SendVolumeResampleMethod { iVolume } {
     global gVolume
     SetVolumeResampleMethod $iVolume $gVolume($iVolume,resampleMethod)
+}
+
+proc SendUseRealRAS { } {
+    global gbUseRealRAS
+    SetUseRealRAS $gbUseRealRAS
 }
 
 proc UpdateVolumeValueMinMax { iVolume iMin iMax } {
@@ -1811,6 +1824,7 @@ proc DoSurfaceInfoDlog { } {
     global tkm_tSurfaceType
     global ksaSurfaceVertexSetString
     global ksaSurfaceTypeString
+    global gbUseRealRAS
 
     set wwDialog .wwSurfaceInfoDlog
 
@@ -1821,6 +1835,9 @@ proc DoSurfaceInfoDlog { } {
 	set fwButtons $wwDialog.fwButtons
 	
 	frame $fwTop
+
+	tkm_MakeCheckboxes $fwTop.cbwUseRealRAS x {
+	    { text "Use real RAS" gbUseRealRAS "SendUseRealRAS" } }
 	
 	tkm_MakeBigLabel $fwTop.lwColors "Colors"
 
@@ -1854,13 +1871,59 @@ proc DoSurfaceInfoDlog { } {
 	}
 	tkm_MakeSliders $fwTop.fwWidths $lSliders
 	
-	pack $fwTop.lwColors $fwTop.fwColors \
+	pack $fwTop.cbwUseRealRAS $fwTop.lwColors $fwTop.fwColors \
 	    $fwTop.lwWidths $fwTop.fwWidths \
 	    -side top \
 	    -anchor w
 	
 	# buttons. 
 	tkm_MakeCloseButton $fwButtons $wwDialog
+	
+	pack $fwTop $fwButtons \
+	    -side top       \
+	    -expand yes     \
+	    -fill x
+    }
+    
+}
+
+proc DoResolveUseRealRASDlog { } {
+
+    global gDialog
+    global gbUseRealRAS
+
+    set wwDialog .wwResolveUseRealRASDlog
+
+    # try to create the dlog...
+    if { [Dialog_Create $wwDialog "Use Real RAS" {-borderwidth 10}] } {
+	
+	set fwTop     $wwDialog.fwTop
+	set fwButtons $wwDialog.fwButtons
+	
+	frame $fwTop
+
+	tkm_MakeNormalLabel $fwTop.lwExplanation \
+	    "The surface you are loading uses a different\nRAS coordinate space interpretation than you have\nspecified (or is the default setting)."
+
+	if { $gbUseRealRAS } {
+	    set sUseRealRAS_0 "Use surface RAS (surface setting)"
+	    set sUseRealRAS_1 "Use real RAS (current setting)"
+	} else {
+	    set sUseRealRAS_0 "Use surface RAS (current setting)"
+	    set sUseRealRAS_1 "Use real RAS (surface setting)"
+	}
+
+	tkm_MakeRadioButtons $fwTop.rbwUseRealRAS y "" gbUseRealRAS \
+	    [list \
+		 [list text $sUseRealRAS_0 0 ""] \
+		 [list text $sUseRealRAS_1 1 ""] ] 
+
+	pack $fwTop.lwExplanation $fwTop.rbwUseRealRAS \
+	    -side top \
+	    -anchor w
+	
+	# buttons. 
+	tkm_MakeCancelOKButtons $fwButtons $wwDialog "SendUseRealRAS"
 	
 	pack $fwTop $fwButtons \
 	    -side top       \
