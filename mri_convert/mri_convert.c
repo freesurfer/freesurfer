@@ -3,9 +3,9 @@
 // original: written by Bruce Fischl (Apr 16, 1997)
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2003/12/09 20:43:38 $
-// Revision       : $Revision: 1.74 $
+// Revision Author: $Author: tosa $
+// Revision Date  : $Date: 2003/12/10 21:30:58 $
+// Revision       : $Revision: 1.75 $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -173,7 +173,7 @@ int main(int argc, char *argv[])
   invert_val = -1.0;
   in_info_flag = FALSE;
   out_info_flag = FALSE;
-  conform_flag = TRUE;
+  conform_flag = FALSE; // TRUE;
   parse_only_flag = FALSE;
   reorder_flag = FALSE;
   in_stats_flag = FALSE;
@@ -213,7 +213,7 @@ int main(int argc, char *argv[])
   nskip = 0;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_convert.c,v 1.74 2003/12/09 20:43:38 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_convert.c,v 1.75 2003/12/10 21:30:58 tosa Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -234,8 +234,8 @@ int main(int argc, char *argv[])
       get_string(argc, argv, &i, in_name);
     else if(strcmp(argv[i], "-o") == 0 || strcmp(argv[i], "--output_volume") == 0)
       get_string(argc, argv, &i, out_name);
-    else if(strcmp(argv[i], "-nc") == 0 || strcmp(argv[i], "--no_conform") == 0)
-      conform_flag = FALSE;
+    else if (strcmp(argv[i], "-c") == 0 || strcmp(argv[i], "--conform") == 0)
+      conform_flag = TRUE;
     else if (strcmp(argv[i], "-cm") == 0 || strcmp(argv[i], "--conform_min") == 0)
     {
       conform_min = TRUE;
@@ -809,7 +809,7 @@ int main(int argc, char *argv[])
   }
   if (conform_flag == FALSE && conform_min == TRUE)
   {
-    fprintf(stderr, "You cannot use both -nc (--no_conform) and -cm (--conform_min) at the same time.\n");
+    fprintf(stderr, "In order to use -cm (--conform_min), you must set -c (--conform)  at the same time.\n");
     exit(1);
   }
 
@@ -893,6 +893,27 @@ int main(int argc, char *argv[])
   if(read_only_flag && (out_info_flag || out_matrix_flag))
     fprintf(stderr, "%s: warning: read only flag is set; no output information will be printed\n", Progname);
 
+  /* ----- get the type of the output ----- */
+  if(!force_out_type_flag)
+  {
+    // if(!read_only_flag && !no_write_flag)     because conform_flag value changes depending on type below
+    {
+      out_volume_type = mri_identify(out_name);
+      if(out_volume_type == MRI_VOLUME_TYPE_UNKNOWN)
+      {
+        fprintf(stderr, "%s: can't determine type of output volume\n", Progname);
+        exit(1);
+      }
+    }
+  }
+  else
+    out_volume_type = forced_out_type;
+
+  // if output type is COR, then it is always conformed
+  if (out_volume_type == MRI_CORONAL_SLICE_DIRECTORY)
+    conform_flag = TRUE;
+
+
   /* ----- catch the parse-only flag ----- */
   if(parse_only_flag)
   {
@@ -927,22 +948,6 @@ int main(int argc, char *argv[])
     exit(0);
 
   }
-
-  /* ----- get the type of the output ----- */
-  if(!force_out_type_flag)
-  {
-    if(!read_only_flag && !no_write_flag)
-    {
-      out_volume_type = mri_identify(out_name);
-      if(out_volume_type == MRI_VOLUME_TYPE_UNKNOWN)
-      {
-        fprintf(stderr, "%s: can't determine type of output volume\n", Progname);
-        exit(1);
-      }
-    }
-  }
-  else
-    out_volume_type = forced_out_type;
 
   /* ----- check for a gdf image stem if the output type is gdf ----- */
   if(out_volume_type == GDF_FILE && strlen(gdf_image_stem) == 0)
@@ -1444,63 +1449,32 @@ int main(int argc, char *argv[])
     MRIcopyHeader(mri, template);
     if(conform_flag)
     {
-      if(out_volume_type == MRI_CORONAL_SLICE_DIRECTORY)
+      conform_width = 256;
+      if (conform_min == TRUE)
       {
-				conform_width = 256;
-        if (conform_min == TRUE)
-				{
-          conform_size = findMinSize(mri, &conform_width);
-				}
-				else
-				{
-					conform_width = findRightSize(mri, conform_size);
-				}
-        template->width = template->height = template->depth = conform_width;
-        template->imnr0 = 1;
-        template->imnr1 = conform_width;
-				template->type = MRI_UCHAR;
-        template->thick = conform_size;
-        template->ps = conform_size;
-        template->xsize = template->ysize = template->zsize = conform_size;
-				printf("Original Data has (%g, %g, %g) mm size and (%d, %d, %d) voxels.\n",
-							 mri->xsize, mri->ysize, mri->zsize, mri->width, mri->height, mri->depth);
-        printf("Data is conformed to %g mm size and %d voxels for all directions\n", 
-							 conform_size, conform_width); 
-        template->xstart = template->ystart = template->zstart = - conform_width/2;
-        template->xend = template->yend = template->zend = conform_width/2;
-        template->x_r = -1.0;  template->x_a =  0.0;  template->x_s =  0.0;
-        template->y_r =  0.0;  template->y_a =  0.0;  template->y_s = -1.0;
-        template->z_r =  0.0;  template->z_a =  1.0;  template->z_s =  0.0;
+	conform_size = findMinSize(mri, &conform_width);
       }
-			else 
-			{
-				conform_width = 256;
-				if (conform_min == TRUE)
-				{
-					conform_size = findMinSize(mri, &conform_width);
-				}
-				else
-				{
-					conform_width = findRightSize(mri, conform_size);
-				}
-				template->width = template->height = template->depth = conform_width;
-				template->imnr0 = 1;
-				template->imnr1 = conform_width;
-				template->thick = conform_size;
-				template->ps = conform_size;
-				template->xsize = template->ysize = template->zsize = conform_size;
-				printf("Original Data has (%g, %g, %g) mm size and (%d, %d, %d) voxels.\n",
-							 mri->xsize, mri->ysize, mri->zsize, mri->width, mri->height, mri->depth);
-				printf("Data is conformed to %g mm size and %d voxels for all directions\n", 
-							 conform_size, conform_width); 
-				template->xstart = template->ystart = template->zstart = - conform_width/2;
-				template->xend = template->yend = template->zend = conform_width/2;
-				template->x_r = -1.0;  template->x_a =  0.0;  template->x_s =  0.0;
-				template->y_r =  0.0;  template->y_a =  0.0;  template->y_s = -1.0;
-				template->z_r =  0.0;  template->z_a =  1.0;  template->z_s =  0.0;
-			}
-		}
-		
+      else
+      {
+	conform_width = findRightSize(mri, conform_size);
+      }
+      template->width = template->height = template->depth = conform_width;
+      template->imnr0 = 1;
+      template->imnr1 = conform_width;
+      template->type = MRI_UCHAR;
+      template->thick = conform_size;
+      template->ps = conform_size;
+      template->xsize = template->ysize = template->zsize = conform_size;
+      printf("Original Data has (%g, %g, %g) mm size and (%d, %d, %d) voxels.\n",
+	     mri->xsize, mri->ysize, mri->zsize, mri->width, mri->height, mri->depth);
+      printf("Data is conformed to %g mm size and %d voxels for all directions\n", 
+	     conform_size, conform_width); 
+      template->xstart = template->ystart = template->zstart = - conform_width/2;
+      template->xend = template->yend = template->zend = conform_width/2;
+      template->x_r = -1.0;  template->x_a =  0.0;  template->x_s =  0.0;
+      template->y_r =  0.0;  template->y_a =  0.0;  template->y_s = -1.0;
+      template->z_r =  0.0;  template->z_a =  1.0;  template->z_s =  0.0;
+    }
   }
 
   /* ----- apply command-line parameters ----- */
@@ -1976,11 +1950,12 @@ void usage(FILE *stream)
   printf("\n");
   printf("  -i, --input_volume\n");
   printf("  -o, --output_volume\n");
-  printf("  -nc, --no_conform\n");
+  printf("  -c, --conform\n");
+  printf("            conform to 1mm voxel size in coronal slice direction with 256^3 or more\n"); 
   printf("  -cm, --conform_min\n");
-  printf("            conform to the src min direction size (valid only for COR type)\n");
+  printf("            conform to the src min direction size\n");
   printf("  -cs, --conform_size size_in_mm\n");
-  printf("            conform to the size given in mm (valid only for COR type)\n");
+  printf("            conform to the size given in mm\n");
   printf("  -po, --parse_only\n");
   printf("  -is, --in_stats\n");
   printf("  -os, --out_stats\n");
