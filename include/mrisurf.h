@@ -933,6 +933,8 @@ typedef struct
 	int smooth; /* smoothing the patch */
 	int match; /* matching the patch onto the surface using local parameters */
 	int movie; /* save interesting files for movie purpose */
+	int correct_defect; /* correct only one single defect */
+	int check_surface_intersection; /* check if self-intersection happens */
 } TOPOLOGY_PARMS ;
 
 int MRIScenterSphere(MRI_SURFACE *mris);
