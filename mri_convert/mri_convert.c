@@ -4,8 +4,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2004/11/23 17:13:17 $
-// Revision       : $Revision: 1.96 $
+// Revision Date  : $Date: 2004/11/23 17:15:56 $
+// Revision       : $Revision: 1.97 $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -226,7 +226,7 @@ int main(int argc, char *argv[])
   nskip = 0;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_convert.c,v 1.96 2004/11/23 17:13:17 tosa Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_convert.c,v 1.97 2004/11/23 17:15:56 tosa Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -1398,6 +1398,7 @@ int main(int argc, char *argv[])
 	{
 	  fprintf(stderr, "ERROR: fslmat does not have the information on the dst volume\n");
 	  fprintf(stderr, "ERROR: you must give option '--like volume' to specify the dst volume info\n");
+	  MRIfree(&mri);
 	  exit(1);
 	}
 	// now setup dst volume info
