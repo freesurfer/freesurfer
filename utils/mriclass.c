@@ -28,6 +28,7 @@
 #include "gclass.h"
 #include "mriclass.h"
 #include "utils.h"
+#include "region.h"
 
 /*-----------------------------------------------------
                     MACROS AND CONSTANTS
@@ -82,9 +83,14 @@ MRICfree(MRIC **pmric)
         Description
 ------------------------------------------------------*/
 MRIC *
-MRICalloc(int type, int ninputs, void *parms)
+MRICalloc(int type, int features, void *parms)
 {
   MRIC  *mric ;
+  int   f, ninputs ;
+
+  for (ninputs = 0, f = 0x001 ; f <= MAX_FEATURE ; f<<= 1)
+    if (f & features)
+      ninputs++ ;
 
   if (ninputs < 1 || ninputs > MAX_INPUTS)
     ErrorReturn(NULL, (ERROR_BADPARM,
@@ -97,6 +103,7 @@ MRICalloc(int type, int ninputs, void *parms)
 
   mric->type = type ;
   mric->ninputs = ninputs ;
+  mric->features = features ;
   switch (type)
   {
   case CLASSIFIER_GAUSSIAN:
@@ -253,7 +260,7 @@ MRIC *
 MRICread(char *fname)
 {
   MRIC  *mric ;
-  int   ninputs, type ;
+  int   ninputs, type, features ;
   FILE  *fp ;
   char  prior_fname[100], line[100], *cp ;
 
@@ -264,14 +271,14 @@ MRICread(char *fname)
 
   prior_fname[0] = 0 ;
   cp = fgetl(line, 99, fp) ;
-  if (sscanf(cp, "%d %d %s", &type, &ninputs, prior_fname) < 2)
+  if (sscanf(cp, "%d %d 0x%x %s", &type, &ninputs, &features,prior_fname) < 3)
   {
     fclose(fp) ;
     ErrorReturn(NULL, (ERROR_BADFILE, "MRICread(%s): could not scan parms",
                 fname)) ;
   }
 
-  mric = MRICalloc(type, ninputs, NULL) ;
+  mric = MRICalloc(type, features, NULL) ;
   if (*prior_fname)
     mric->mri_priors = MRIread(prior_fname) ;
   switch (type)
@@ -304,7 +311,7 @@ MRICwrite(MRIC *mric, char *fname)
     ErrorReturn(ERROR_NO_FILE, 
               (ERROR_NO_FILE,"MRICwrite(%s): could not open file",fname));
 
-  fprintf(fp, "%d %d", mric->type, mric->ninputs) ;
+  fprintf(fp, "%d %d 0x%x", mric->type, mric->ninputs, mric->features) ;
   if (mric->mri_priors)
     fprintf(fp, " %s", mric->prior_fname) ;
   fprintf(fp, "\n") ;
@@ -328,7 +335,7 @@ MRICwrite(MRIC *mric, char *fname)
 
 ------------------------------------------------------*/
 #define PRETTY_SURE              .90f
-#define DEFINITELY_BACKGROUND    LO_LIM
+#define DEFINITELY_BACKGROUND    (LO_LIM-10)
 
 MRI *
 MRICclassify(MRIC *mric, MRI *mri_src, MRI *mri_dst, 
@@ -396,7 +403,7 @@ MRICclassify(MRIC *mric, MRI *mri_src, MRI *mri_dst,
               m_priors->rptr[classno+1][1] = 
                 MRIFseq_vox(mri_priors, xt, yt, zt, classno) ;
           }
-          MRICcomputeInputs(mri_src, x, y, z, inputs, mric->ninputs) ;
+          MRICcomputeInputs(mri_src, x, y, z, inputs, mric->features) ;
           for (row = 1 ; row <= mric->ninputs ; row++)
             m_inputs->rptr[row][1] = inputs[row] ;
           
@@ -484,7 +491,7 @@ MRICupdateMeans(MRIC *mric, MRI *mri_src, MRI *mri_target, BOX *box)
         gcl = &gc->classes[classno] ;
         gcl->nobs++ ;
 
-        MRICcomputeInputs(mri_src, x, y, z, inputs, mric->ninputs) ;
+        MRICcomputeInputs(mri_src, x, y, z, inputs, mric->features) ;
         for (row = 1 ; row <= mric->ninputs ; row++)
           gcl->m_u->rptr[row][1] += inputs[row] ;
       }
@@ -578,7 +585,7 @@ MRICupdateCovariances(MRIC *mric, MRI *mri_src, MRI *mri_target, BOX *box)
 
         gcl = &gc->classes[classno] ;
 
-        MRICcomputeInputs(mri_src, x, y, z, inputs, mric->ninputs) ;
+        MRICcomputeInputs(mri_src, x, y, z, inputs, mric->features) ;
         for (row = 1 ; row <= mric->ninputs ; row++)  /* subtract means */
           inputs[row] -= gcl->m_u->rptr[row][1] ;
         for (row = 1 ; row <= gcl->m_covariance->rows ; row++)
@@ -642,20 +649,110 @@ MRICcomputeCovariances(MRIC *mric)
         Description
 
 ------------------------------------------------------*/
+#define REGION_SIZE 8
 int
-MRICcomputeInputs(MRI *mri, int x,int y,int z,float *inputs,int ninputs)
+MRICcomputeInputs(MRI *mri, int x,int y,int z,float *inputs,int features)
 {
-  int   i ;
+  static MRI_REGION  region = {0,0, 0, 0,0,0} ;
+  static MRI  *mri_prev = NULL, *mri_zscore3 = NULL, *mri_zscore5 = NULL ,
+              *mri_direction = NULL, *mri_mean3 = NULL, *mri_mean5 = NULL ;
+  int         i ;
 
+  if (!mri_prev || mri_prev != mri || 
+      (REGIONinside(&region,x,y,z) == REGION_OUTSIDE))
+  {
+    MRI *mri_std, *mri_mean, *mri_region, *mri_grad ;
+
+    region.x = x ;
+    region.y = y ;
+    region.z = z ;
+    region.dx = mri->width ;
+    region.dy = mri->height ;
+    region.dz = REGION_SIZE ;
+    if (x + region.dx > mri->width)
+      region.dx = mri->width - x ;
+    if (y + region.dy > mri->height)
+      region.dy = mri->height - y ;
+    if (z + region.dz > mri->depth)
+      region.dz = mri->depth - z ;
+    mri_prev = mri ;
+    if (mri_zscore3)
+      MRIfree(&mri_zscore3) ;
+    if (mri_zscore5)
+      MRIfree(&mri_zscore5) ;
+    if (mri_mean3)
+      MRIfree(&mri_mean3) ;
+    if (mri_mean5)
+      MRIfree(&mri_mean5) ;
+    if (mri_direction)
+      MRIfree(&mri_direction) ;
+    if (features & FEATURE_ZSCORE3)
+    {
+      static int first = 1 ;
+      mri_mean = MRImeanRegion(mri, NULL, 3, &region) ;
+      mri_std = MRIstdRegion(mri, NULL, mri_mean, 3, &region) ;
+      mri_zscore3 = MRIzScoreRegion(mri, NULL, mri_mean, mri_std, &region);
+      if (first)
+      {
+        first = 0 ;
+        MRIwrite(mri_mean, "mean.mnc") ;
+        MRIwrite(mri_std, "std.mnc") ;
+        MRIwrite(mri_zscore3, "zscore.mnc") ;
+      }
+      MRIfree(&mri_mean) ;
+      MRIfree(&mri_std) ;
+    }
+    if (features & FEATURE_ZSCORE5)
+    {
+      static int first = 1 ;
+      mri_mean = MRImeanRegion(mri, NULL, 5, &region) ;
+      mri_std = MRIstdRegion(mri, NULL, mri_mean, 5, &region) ;
+      mri_zscore5 = MRIzScoreRegion(mri, NULL, mri_mean, mri_std, &region);
+      if (first)
+      {
+        first = 0 ;
+        MRIwrite(mri_mean, "mean.mnc") ;
+        MRIwrite(mri_std, "std.mnc") ;
+        MRIwrite(mri_zscore5, "zscore.mnc") ;
+      }
+      MRIfree(&mri_mean) ;
+      MRIfree(&mri_std) ;
+    }
+    if (features & FEATURE_DIRECTION)
+    {
+      static int first = 0 ;
+      mri_region = MRIextractRegion(mri, NULL, &region) ;
+      mri_grad = MRIsobel(mri_region, NULL, NULL) ;
+      mri_direction = MRIdirectionMap(mri_grad, NULL, 3) ;
+      if (first)
+      {
+        first = 0 ;
+        MRIwrite(mri_direction, "dir.mnc") ;
+      }
+      MRIfree(&mri_region) ;
+      MRIfree(&mri_grad) ;
+    }
+    if (features & FEATURE_MEAN3)
+      mri_mean3 = MRImeanRegion(mri, NULL, 3, &region) ;
+    if (features & FEATURE_MEAN5)
+      mri_mean5 = MRImeanRegion(mri, NULL, 5, &region) ;
+  }
+
+  /* inputs are 1 based because of matrix stuff (because of NRC) */
   i = 1 ;
-  inputs[i++] = (float)MRIvox(mri, x, y, z) ;
-  if (ninputs > 1)
-    inputs[i++] = MRIvoxelZscore(mri, x, y, z, 3) ;
-  if (ninputs > 2)
-    inputs[i++] = MRIvoxelZscore(mri, x, y, z, 5) ;
-  if (ninputs > 3)
-    inputs[i++] = MRIvoxelDirection(mri, x, y, z, 3) ;
-
+  if (features & FEATURE_INTENSITY)
+    inputs[i++] = (float)MRIvox(mri, x, y, z) ;
+  if (features & FEATURE_ZSCORE3)
+    inputs[i++] = MRIFvox(mri_zscore3, x-region.x, y-region.y, z-region.z) ;
+  if (features & FEATURE_ZSCORE5)
+    inputs[i++] = MRIFvox(mri_zscore5, x-region.x, y-region.y, z-region.z) ;
+  if (features & FEATURE_DIRECTION)
+    inputs[i++] = MRIFvox(mri_direction, x-region.x, y-region.y, z-region.z) ;
+  if (features & FEATURE_MEAN3)
+    inputs[i++] = MRIFvox(mri_mean3, x-region.x, y-region.y, z-region.z) ;
+  if (features & FEATURE_MEAN5)
+    inputs[i++] = MRIFvox(mri_mean5, x-region.x, y-region.y, z-region.z) ;
+  
   return(NO_ERROR) ;
 }
 /*-----------------------------------------------------
