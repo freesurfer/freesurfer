@@ -1,7 +1,7 @@
 #!/bin/csh -f
 # extract-roi-tc-sess
 #
-set VERSION = '$Id: extract-roi-tc-sess,v 1.1 2003/12/17 21:51:53 greve Exp $'
+set VERSION = '$Id: extract-roi-tc-sess,v 1.2 2003/12/17 23:25:04 greve Exp $'
 
 set inputargs = ($argv);
 
@@ -187,10 +187,12 @@ fclose(fp);
 EOF
 #--------------------------------------------#
 
-  if(! $monly) then
-    cat $MLF | matlab -display iconic
-    rm -f $MLF
-  end # run
+    if(! $monly) then
+      cat $MLF | matlab -display iconic
+      rm -f $MLF
+    endif
+
+  end  # run
 
 end # session
 
