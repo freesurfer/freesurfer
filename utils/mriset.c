@@ -1144,8 +1144,8 @@ MRIreplaceValues(MRI *mri_src, MRI *mri_dst, BUFTYPE in_val, BUFTYPE out_val)
 MRI *
 MRImask(MRI *mri_src, MRI *mri_mask, MRI *mri_dst,int mask,float out_val)
 {
-  int     width, height, depth, x, y, z;
-  BUFTYPE *pmask, mask_val ;
+  int     width, height, depth, x, y, z, mask_val;
+  BUFTYPE *pmask ;
   float   val ;
 
   width = mri_src->width ;
@@ -1166,6 +1166,8 @@ MRImask(MRI *mri_src, MRI *mri_mask, MRI *mri_dst,int mask,float out_val)
       pmask = &MRIvox(mri_mask, 0, y, z) ;
       for (x = 0 ; x < width ; x++)
       {
+				if (x == Gx && y == Gy && z == Gz)
+					DiagBreak() ;
 				switch (mri_mask->type)
 				{
 				case MRI_UCHAR: mask_val = *pmask++ ; break ;
