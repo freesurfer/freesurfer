@@ -323,8 +323,7 @@ IMAGE *MRItoImageView(MRI *mri, IMAGE *I, int slice, int view, int frame) ;
 #define MRI_DEPTH       2
 
 #define MRI_CORONAL     0
-#define MRI_SAGITAL     1
-#define MRI_SAGITTAL    MRI_SAGITAL
+#define MRI_SAGITTAL    1
 #define MRI_HORIZONTAL  2
 #define MRI_AXIAL       MRI_HORIZONTAL
 
@@ -379,7 +378,7 @@ MRI        *MRIupdateDistanceMap(MRI *mri_distance) ;
 MRI        *MRIfill(MRI *mri_src, MRI *mri_dst, int seed_x, int seed_y, 
                     int seed_z, int threshold, int fill_val) ;
 MRI        *MRIfillFG(MRI *mri_src, MRI *mri_dst, int seed_x, int seed_y, 
-                    int seed_z, int threshold, int fill_val) ;
+                    int seed_z, int threshold, int fill_val, int *npix) ;
                     
 
 /* constants used in mri_dir of MRIoffsetDirection and for MRIminmax filter */
