@@ -6,8 +6,11 @@
 
 typedef struct face_type_
 {
-  int v[4];                      /* vertex numbers */
-  int ripflag;                   /* ripped face */
+  int    v[4];                      /* vertex numbers */
+  float  area ;                     /* a x b . n */
+  float  nx, ny, nz ;               /* face normal (a x b) */
+  float  orig_area ;                /* area before unfolding */
+  int    ripflag;                   /* ripped face */
 #if 0
   float logshear,shearx,sheary;  /* compute_shear */
 #endif
@@ -17,6 +20,7 @@ typedef struct vertex_type_
 {
   float x,y,z;           /* curr position */
   float nx,ny,nz;        /* curr normal */
+  float dx, dy, dz ;     /* last change in position */
 #if 0
   float ox,oy,oz;        /* last position */
 #endif
@@ -104,8 +108,9 @@ typedef struct
   VERTEX       *v_occipital_pole ;
   float        max_curv ;
   float        min_curv ;
-  int          total_area ;
+  float        total_area ;
   int          hemisphere ;            /* which hemisphere */
+  int          initialized ;
 
   General_transform transform ;   /* the next two are from this struct */
   Transform         *linear_transform ;
@@ -117,7 +122,7 @@ typedef struct
 
 
 MRI_SURFACE  *MRISread(char *fname) ;
-int          MRISwrite(MRI_SURFACE *mris) ;
+int          MRISwrite(MRI_SURFACE *mris, char *fname) ;
 MRI_SURFACE  *MRISalloc(int nvertices, int nfaces) ;
 int          MRISfree(MRI_SURFACE **pmris) ;
 MRI_SURFACE  *MRISprojectOntoEllipsoid(MRI_SURFACE *mris_src, 
@@ -127,10 +132,9 @@ MRI_SURFACE  *MRISclone(MRI_SURFACE *mris_src) ;
 MRI_SURFACE  *MRIScenter(MRI_SURFACE *mris_src, MRI_SURFACE *mris_dst) ;
 MRI_SURFACE  *MRIStalairachTransform(MRI_SURFACE *mris_src, 
                                     MRI_SURFACE *mris_dst);
-MRI_SURFACE  *MRISunfold(MRI_SURFACE *mris_src, MRI_SURFACE *mris_dst,
-                        int niterations, float l_area, float l_angle,
-                        float l_corr);
-
+MRI_SURFACE  *MRISunfold(MRI_SURFACE *mris, int niterations, float momentum,
+                         float l_area, float l_angle, float l_corr);
+int          MRIScomputeFaceAreas(MRI_SURFACE *mris) ;
 
 
 /* constants for vertex->tethered */
