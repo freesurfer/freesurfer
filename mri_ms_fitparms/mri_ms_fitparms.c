@@ -136,8 +136,10 @@ main(int argc, char *argv[])
       mri_flash[nvolumes]->flip_angle = fa ;
     }
     printf("TE = %2.2f, TR = %2.2f, alpha = %2.2f\n", mri_flash[nvolumes]->te, 
-           mri_flash[nvolumes]->tr, mri_flash[nvolumes]->flip_angle) ;
+           mri_flash[nvolumes]->tr, DEGREES(mri_flash[nvolumes]->flip_angle)) ;
+#if 0
     mri_flash[nvolumes]->flip_angle = RADIANS(mri_flash[nvolumes]->flip_angle);
+#endif
     if (conform)
     {
       MRI *mri_tmp ;
