@@ -133,6 +133,13 @@ typedef struct
   MRI          *mri_node__;       // these three MRI are helper to get
   MRI          *mri_prior__;      // appropriate transforms
   MRI          *mri_tal__;
+  MATRIX       *node_i_to_r__;
+  MATRIX       *node_r_to_i__;
+  MATRIX       *prior_i_to_r__;
+  MATRIX       *prior_r_to_i__;
+  MATRIX       *tal_i_to_r__;
+  MATRIX       *tal_r_to_i__;
+  MATRIX       *tmp__;
 } GAUSSIAN_CLASSIFIER_ARRAY, GCA ;
 
 

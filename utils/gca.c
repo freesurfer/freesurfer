@@ -2,9 +2,9 @@
 // originally written by Bruce Fischl
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2004/03/23 16:59:49 $
-// Revision       : $Revision: 1.107 $
+// Revision Author: $Author: tosa $
+// Revision Date  : $Date: 2004/03/23 19:53:52 $
+// Revision       : $Revision: 1.108 $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -172,6 +172,8 @@ void GCAcopyDCToMRI(GCA *gca, MRI *mri)
   mri->x_s = gca->x_s; mri->y_s = gca->y_s; mri->z_s = gca->z_s;
   mri->c_r = gca->c_r; mri->c_a = gca->c_a; mri->c_s = gca->c_s;
   mri->ras_good_flag = 1;
+  mri->i_to_r__ = extract_i_to_r(mri);
+  mri->r_to_i__ = extract_r_to_i(mri);
 }
 
 void GCAcleanup(GCA *gca)
@@ -188,6 +190,20 @@ void GCAcleanup(GCA *gca)
   {
     MRIfree(&gca->mri_tal__); gca->mri_tal__ = 0;
   }
+  if (gca->node_i_to_r__)
+  {  MatrixFree(&(gca->node_i_to_r__)); gca->node_i_to_r__ = 0;}
+  if (gca->node_r_to_i__)
+  {  MatrixFree(&(gca->node_r_to_i__)); gca->node_r_to_i__ = 0;}
+  if (gca->prior_i_to_r__)
+  {  MatrixFree(&(gca->prior_i_to_r__)); gca->prior_i_to_r__ = 0;}
+  if (gca->prior_r_to_i__)
+  {  MatrixFree(&(gca->prior_r_to_i__)); gca->prior_r_to_i__ = 0;}
+  if (gca->tal_i_to_r__)
+  {  MatrixFree(&(gca->tal_i_to_r__)); gca->tal_i_to_r__ = 0;}
+  if (gca->tal_r_to_i__)
+  {  MatrixFree(&(gca->tal_r_to_i__)); gca->tal_r_to_i__ = 0;}
+  if (gca->tmp__)
+  { MatrixFree(&gca->tmp__); gca->tmp__ = 0;  }
 }
 
 // set up mri's used in GCA
@@ -243,6 +259,25 @@ void GCAsetup(GCA *gca)
   //mtal = extract_i_to_r(gca->mri_tal__);
   // MatrixPrint(stderr, mtal);
   // MatrixFree(&mtal);
+  if (gca->node_i_to_r__)
+  {  MatrixFree(&(gca->node_i_to_r__)); gca->node_i_to_r__ = 0;}
+  if (gca->node_r_to_i__)
+  {  MatrixFree(&(gca->node_r_to_i__)); gca->node_r_to_i__ = 0;}
+  if (gca->prior_i_to_r__)
+  {  MatrixFree(&(gca->prior_i_to_r__)); gca->prior_i_to_r__ = 0;}
+  if (gca->prior_r_to_i__)
+  {  MatrixFree(&(gca->prior_r_to_i__)); gca->prior_r_to_i__ = 0;}
+  if (gca->tal_i_to_r__)
+  {  MatrixFree(&(gca->tal_i_to_r__)); gca->tal_i_to_r__ = 0;}
+  if (gca->tal_r_to_i__)
+  {  MatrixFree(&(gca->tal_r_to_i__)); gca->tal_r_to_i__ = 0;}
+  gca->node_i_to_r__ = extract_i_to_r(gca->mri_node__);
+  gca->node_r_to_i__ = extract_r_to_i(gca->mri_node__);
+  gca->prior_i_to_r__ = extract_i_to_r(gca->mri_prior__);
+  gca->prior_r_to_i__ = extract_r_to_i(gca->mri_prior__);
+  gca->tal_i_to_r__ = extract_i_to_r(gca->mri_tal__);
+  gca->tal_r_to_i__ = extract_r_to_i(gca->mri_tal__);
+  gca->tmp__ = MatrixAlloc(4,4, MATRIX_REAL);
 }
 
 // using the values of mri, modify gca
@@ -552,15 +587,16 @@ int GCAvoxelToNodeReal(GCA *gca, MRI *mri, Real xv, Real yv, Real zv,
   //         V                V
   //        node   <-----    RAS
   //               r_to_i
-  MATRIX *rasFromVoxel = extract_i_to_r(mri);
-  MATRIX *nodeFromRAS = extract_r_to_i(gca->mri_node__);
-  MATRIX *voxelToNode = MatrixMultiply(nodeFromRAS, rasFromVoxel, NULL);
+  MATRIX *rasFromVoxel = mri->i_to_r__; // extract_i_to_r(mri);
+  MATRIX *nodeFromRAS = gca->node_r_to_i__; // extract_r_to_i(gca->mri_node__);
+  MATRIX *voxelToNode = gca->tmp__;
+  MatrixMultiply(nodeFromRAS, rasFromVoxel, gca->tmp__);
 
   TransformWithMatrix(voxelToNode, xv, yv, zv, pxn, pyn, pzn);
 
-  MatrixFree(&rasFromVoxel);
-  MatrixFree(&nodeFromRAS);
-  MatrixFree(&voxelToNode);
+  // MatrixFree(&rasFromVoxel);
+  // MatrixFree(&nodeFromRAS);
+  // MatrixFree(&voxelToNode);
 
   return NO_ERROR;
 }
@@ -595,15 +631,16 @@ GCAvoxelToNode(GCA *gca, MRI *mri, int xv, int yv, int zv, int *pxn,
 int GCAvoxelToPriorReal(GCA *gca, MRI *mri, Real xv, Real yv, Real zv, 
 			 Real *pxp, Real *pyp, Real *pzp)
 {
-  MATRIX *rasFromVoxel = extract_i_to_r(mri);
-  MATRIX *priorFromRAS = extract_r_to_i(gca->mri_prior__);
-  MATRIX *voxelToPrior = MatrixMultiply(priorFromRAS, rasFromVoxel, NULL);
+  MATRIX *rasFromVoxel = mri->i_to_r__; //extract_i_to_r(mri);
+  MATRIX *priorFromRAS = gca->prior_r_to_i__; //extract_r_to_i(gca->mri_prior__);
+  MATRIX *voxelToPrior = gca->tmp__;
+  MatrixMultiply(priorFromRAS, rasFromVoxel, gca->tmp__);
 
   TransformWithMatrix(voxelToPrior, xv, yv, zv, pxp, pyp, pzp);
 
-  MatrixFree(&rasFromVoxel);
-  MatrixFree(&priorFromRAS);
-  MatrixFree(&voxelToPrior);
+  // MatrixFree(&rasFromVoxel);
+  // MatrixFree(&priorFromRAS);
+  // MatrixFree(&voxelToPrior);
 
   return NO_ERROR;
 }
@@ -645,15 +682,16 @@ int GCAnodeToVoxelReal(GCA *gca, MRI *mri, Real xn, Real yn, Real zn,
   //         |                |
   //        node   ----->    RAS
   //               i_to_r
-  MATRIX *rasFromNode = extract_i_to_r(gca->mri_node__);
-  MATRIX *voxelFromRAS = extract_r_to_i(mri);
-  MATRIX *nodeToVoxel = MatrixMultiply(voxelFromRAS, rasFromNode, NULL);
+  MATRIX *rasFromNode = gca->node_i_to_r__; //  extract_i_to_r(gca->mri_node__);
+  MATRIX *voxelFromRAS = mri->r_to_i__; //  extract_r_to_i(mri);
+  MATRIX *nodeToVoxel = gca->tmp__; 
+  MatrixMultiply(voxelFromRAS, rasFromNode, gca->tmp__);
 
   TransformWithMatrix(nodeToVoxel, xn, yn, zn, pxv, pyv, pzv);
 
-  MatrixFree(&rasFromNode);
-  MatrixFree(&voxelFromRAS);
-  MatrixFree(&nodeToVoxel);
+  // MatrixFree(&rasFromNode);
+  // MatrixFree(&voxelFromRAS);
+  // MatrixFree(&nodeToVoxel);
 
   return NO_ERROR;
 }
@@ -693,15 +731,17 @@ GCAnodeToVoxel(GCA *gca, MRI *mri, int xn, int yn, int zn,
 int GCApriorToVoxelReal(GCA *gca, MRI *mri, Real xp, Real yp, Real zp, 
 			 Real *pxv, Real *pyv, Real *pzv)
 {
-  MATRIX *rasFromPrior = extract_i_to_r(gca->mri_prior__);
-  MATRIX *voxelFromRAS = extract_r_to_i(mri);
-  MATRIX *priorToVoxel = MatrixMultiply(voxelFromRAS, rasFromPrior, NULL);
+  MATRIX *rasFromPrior = gca->prior_i_to_r__; // extract_i_to_r(gca->mri_prior__);
+  MATRIX *voxelFromRAS = mri->r_to_i__; // extract_r_to_i(mri);
+  MATRIX *priorToVoxel = gca->tmp__;
+  MatrixMultiply(voxelFromRAS, rasFromPrior, gca->tmp__);
 
+  // TransformWithMatrix(priorToVoxel, xp, yp, zp, pxv, pyv, pzv);
   TransformWithMatrix(priorToVoxel, xp, yp, zp, pxv, pyv, pzv);
 
-  MatrixFree(&rasFromPrior);
-  MatrixFree(&voxelFromRAS);
-  MatrixFree(&priorToVoxel);
+  // MatrixFree(&rasFromPrior);
+  // MatrixFree(&voxelFromRAS);
+  // MatrixFree(&priorToVoxel);
 
   return NO_ERROR;
 }
@@ -984,7 +1024,7 @@ gcaAllocMax(int ninputs, float prior_spacing, float node_spacing, int width, int
   gca->prior_height = (int)((float)height/prior_spacing+.99) ;
   gca->prior_depth = (int)(((float)depth/prior_spacing)+.99) ;
   gca->flags = flags ;
-  
+
   gca->nodes = (GCA_NODE ***)calloc(gca->node_width, sizeof(GCA_NODE **)) ;
   if (!gca->nodes)
     ErrorExit(ERROR_NOMEMORY, "GCAalloc: could not allocate nodes") ;
@@ -1068,6 +1108,11 @@ gcaAllocMax(int ninputs, float prior_spacing, float node_spacing, int width, int
   gca->mri_node__ = 0;
   gca->mri_prior__ = 0;
   gca->mri_tal__ = 0;
+  // initialize
+  gca->node_i_to_r__ = gca->node_r_to_i__ = 0;
+  gca->prior_i_to_r__ = gca->prior_r_to_i__ = 0;
+  gca->tal_i_to_r__ = gca->tal_r_to_i__ = 0;
+
   GCAsetup(gca);
 
   return(gca) ;
