@@ -1,0 +1,293 @@
+#!/bin/csh -f
+# make-segvol-table - creates a table of volumes of subcortical 
+# structures for the given list of subjects.
+
+set VERSION = '$Id: make-segvol-table,v 1.1 2003/02/21 19:59:08 greve Exp $';
+set inputargs = ($argv);
+set subjects = ();
+set outfile = ();
+set table = $FREESURFER_HOME/tkmeditColorsCMA
+set idlist = ();
+set asegdir0 = aseg;
+set PrintHelp = 0;
+
+if($#argv == 0) goto usage_exit;
+set n = `echo $argv | grep version | wc -l` 
+if($n != 0) then
+  echo $VERSION
+  exit 0;
+endif
+set n = `echo $argv | grep help | wc -l` 
+if($n != 0) then
+  set PrintHelp = 1;
+  goto usage_exit;
+endif
+
+goto parse_args;
+parse_args_return:
+
+goto check_params;
+check_params_return:
+
+# Check that all the ids exist in table and make list
+# of id numbers
+set idnolist = ();
+if($#idlist != 0) then
+  foreach id ($idlist)
+    set ok = `grep $id $table | wc -l`;
+    if($ok == 0) then
+      echo "ERROR: cannot find $id in $table"
+      exit 1;
+    endif
+    set tmp = `grep $id $table`;
+    set idno = $tmp[1];
+    if($idno == 0) continue;
+    set idnolist = ($idnolist $idno);
+  end
+else
+  set idnolist = `cat $table | awk '{print $1}'`;
+  set idlist   = `cat $table | awk '{print $2}'`;
+endif
+
+# Check that all the nec files are there #
+foreach subject ($subjects)
+
+  set subjdir = $SUBJECTS_DIR/$subject
+  if(! -e $subjdir) then
+    echo "ERROR: cannot find $subjdir"
+    exit 1;
+  endif
+
+  set asegdir = $subjdir/mri/$asegdir0
+  if(! -e $asegdir) then
+    echo "ERROR: cannot find $asegdir"
+    exit 1;
+  endif
+
+  set corinfo = $asegdir/COR-.info
+  if(! -e $corinfo) then
+    echo "ERROR: cannot find $corinfo"
+    exit 1;
+  endif
+
+end
+
+# Create output directory
+set outdir = `dirname $outfile`;
+mkdir -p $outdir
+if(-e $outfile) mv $outfile $outfile.bak
+set tmpoutfile = $outfile.tmp
+
+# Put structure name as first column
+echo "Structure" >> $outfile
+foreach id ($idlist)
+  echo "$id" >> $outfile
+end
+
+# Start loop #
+set mlvfile = $outdir/mlvfile.$$
+set mlvtmpfile = $outdir/mlvfile.$$.tmp
+set mlvtmp2file = $outdir/mlvfile.$$.tmp2
+foreach subject ($subjects)  
+  set asegdir = $SUBJECTS_DIR/$subject/mri/$asegdir0
+  echo "---------------------------------"
+  echo "$subject `date`"    
+  set cmd = (mri_label_volume -l $mlvfile $asegdir $idnolist)
+  $cmd
+  if($status) then
+    echo "ERROR: mri_label_volume"
+    pwd
+    echo $cmd
+    exit 1;
+  endif
+  echo $subject > $mlvtmpfile
+  cat $mlvtmpfile $mlvfile > $mlvtmp2file
+  paste $outfile $mlvtmp2file >> $tmpoutfile
+  mv $tmpoutfile $outfile
+  rm -f $mlvfile $mlvtmpfile $mlvtmp2file
+end
+
+
+date
+echo " "
+echo "make-segvol-table done"
+echo " "
+
+exit 0;
+###############################################
+
+############--------------##################
+parse_args:
+set cmdline = ($argv);
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "-s":
+      if ( $#argv == 0) goto arg1err;
+      set subjects = ($subjects $argv[1]); shift;
+      breaksw
+
+    case "-sf":
+      if ( $#argv == 0) goto arg1err;
+      set subjfile = $argv[1]; shift;
+      if(! -e $subjfile) then
+        echo "ERROR: cannot find $subjfile"
+        exit 1;
+      endif
+      set subjects = ($subjects `cat $subjfile`); 
+      breaksw
+
+    case "-o":
+      if ( $#argv == 0) goto arg1err;
+      set outfile = $argv[1]; shift;
+      breaksw
+
+    case "-id":
+      if ( $#argv == 0) goto arg1err;
+      set idlist = ($idlist $argv[1]); shift;
+      breaksw
+
+    case "-idno":
+      if ( $#argv == 0) goto arg1err;
+      set idnolist = ($idnolist $argv[1]); shift;
+      if($idlst > 255) then
+        echo "ERROR: id=$idlst, cannot be greater than 255"
+        exit 1;
+      endif
+      breaksw
+
+    case "-sd":
+      if ( $#argv == 0) goto arg1err;
+      setenv SUBJECTS_DIR $argv[1]; shift;
+      if(! -e $SUBJECTS_DIR) then
+        echo "ERROR: cannot find $SUBJECTS_DIR"
+        exit 1;
+      endif
+      breaksw
+
+    case "-segdir":
+    case "-asegdir":
+      if ( $#argv == 0) goto arg1err;
+      set asegdir0 = $argv[1]; shift;
+      breaksw
+
+    case "-idmap":
+    case "-t":
+      if ( $#argv == 0) goto arg1err;
+      set table = $argv[1]; shift;
+      breaksw
+
+    case "-umask":
+      if ( $#argv == 0) goto arg1err;
+      umask $1; shift;
+      breaksw
+
+    case "-verbose":
+      set verbose = 1;
+      breaksw
+
+    case "-echo":
+      set echo = 1;
+      breaksw
+
+    case "-debug":
+      set verbose = 1;
+      set echo = 1;
+      breaksw
+
+    default:
+      echo ERROR: Flag $flag unrecognized. 
+      echo $cmdline
+      exit 1
+      breaksw
+  endsw
+
+end
+
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+
+  if($#subjects == 0) then
+    echo "ERROR: no subjects specified"
+    exit 1
+  endif
+
+  if(! -e $table) then
+    echo "ERROR: cannot find $table"
+    exit 1;
+  endif
+
+  if($#outfile == 0) then
+    echo "ERROR: no output specified"
+    exit 1
+  endif
+
+goto check_params_return;
+############--------------##################
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+
+############--------------##################
+usage_exit:
+  echo ""
+  echo "USAGE: make-segvol-table"
+  echo ""
+  echo "Required Arguments:";
+  echo "   -s  subj1 <-s subj2 ...>"
+  echo "   -sf subjfile : file with list of subjects>"
+  echo "   -o  outfile"
+  echo ""
+  echo "Optional Arguments:";
+  echo "   -idmap fname : file with structure name and id number."
+  echo "        Default is FREESURFER_HOME/tkmeditColorsCMA"
+  echo "   -id name1 <-id name2> : default is all"
+  echo "   -segdir subdirname : default is aseg"
+  echo "   -sd subjectsdir : default is SUBJECTS_DIR"
+  echo ""
+  echo "Other Arguments (Optional)"
+  echo "   -umask umask   : set unix file permission mask"
+  echo "   -version       : print version and exit"
+  echo ""
+  echo "   -help"
+  echo ""
+
+
+  if($PrintHelp) then
+
+  echo ""
+  echo $VERSION
+  echo ""
+
+  cat $0 | awk 'BEGIN{prt=0}{if(prt) print $0; if($1 == "BEGINHELP") prt = 1 }'
+
+  endif
+
+exit 1;
+
+#---- Everything below here is printed out as part of help -----#
+BEGINHELP
+
+Creates a table of volumes of subcortical structures for the given
+list of subjects. Each row is a different structure, and each column
+is a different subject. The first column gives the structure name, and
+the first row gives the subject id. The list of subjects can be listed
+directly on the command-line (with -s) or specified inside of a text 
+file (with -sf). The output table is a text file specified with -o.
+
+By default, make-segvol-table gets the volume of each structure listed
+in the FREESURFER_HOME/tkmeditColorsCMA from the mri/aseg volume in
+each subject. The structure list file can be changed with -idmap. The
+segmentation subdirectory can be changed from aseg with -segdir. A
+subset of the structures can be obtained by explicitly listing each
+structure name on the command-line with -id (the name must be present
+in the idmap).
