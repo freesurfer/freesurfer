@@ -1,27 +1,99 @@
 #!/usr/bin/wish
-# this cript looks at the headers of ima files in a predetermined archive directory. The default archive directory is over-ridden by the environment variable ARCHIVE_DIR. the user selcets a session and the path to that session is proveded to the script that copies the relevant files via nfs to the local machine and unpacks them locally into b shorts.
+
+# this script looks at the headers of ima files in a predetermined archive directory. The default archive directory is over-ridden by the environment variable ARCHIVE_DIR. the user selects a session and the path to that session is proveded to the script that copies the relevant files via nfs to the local machine and unpacks them locally into b shorts.
+
+# Copyright (C) 2001 Tony Harris tony@nmr.mgh.harvard.edu
+
+# This program is free software; you can redistribute it and/or
+# modify it under the terms of the GNU General Public License
+# as published by the Free Software Foundation; either version 2
+# of the License, or (at your option) any later version.
+
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+# http://www.gnu.org/copyleft/gpl.html
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+
 #--------------------------------------------------------------------------------------#
 #Structure of this script:
 
 #global variables
 #subroutines
 #   dialogs
-#    functions
+#   functions
+#       session info
+#       search
+#       transfer
+#       utils
 #widgets
 #bindings
 #main
 #--------------------------------------------------------------------------------------#
-#export ALPHA_BIN=/space/annecy/5/users/inverse/freesurfer_alpha/bin
-#cp unpack_ima.tcl $ALPHA_BIN/noarch
-#export PATH=$PATH:$ALPHA_BIN/noarch
-#export PATH=$PATH:$ALPHA_BIN/Linux
+
+# Alphabetical listing of functions (updated 07 Aug 2001) :
+
+# CheckDirOK
+# CheckScratchDirOK
+# CheckSourceDirOK
+# CheckTargetDirOK
+# ConvertMINCfiles
+# CreateAlertDialog
+# CreateFileBrowser
+# CreateMINCfiles
+# CreateOutputMonitor
+# CreateProgressBarWindow
+# CreateSearchDialog
+# CreateSequenceDialog
+# CreateSessionInfoView
+# DeleteOutputMonitor
+# DeleteSequenceListItem
+# DestroyAlertDialog
+# DestroyFileBrowser
+# DestroyProgressBarWindow
+# DestroySearchDialog
+# DestroySequenceDialog
+# DestroySessionInfoView
+# Dialog_Create
+# Dialog_Dismiss
+# Dialog_Wait
+# DicomPushMinc
+# GetHeaderInfo
+# GetMincSisterSession
+# GetSeqDir
+# GetSequences
+# GetSessionDescriptors
+# GetSessionInfoFromFile
+# Ima2sessions
+# KillPipe
+# LoadListBox
+# LocalSearch
+# Log
+# MountCDROM
+# QueryDB
+# ReadIncomingDir
+# ReadIndexFile
+# RestoreSessions
+# Run_unpackmincdir
+# SaveSessions
+# SelectCDROM
+# StartTransfer
+# TransferIMAfiles
+# TransferIMAtoMINC
+# TransferSortMincFiles
+# ViewCDROM
+
 
 #----------------------------------------------------------------------------------------#
 # global variable defined elsewhere
 
 # sessionNumber: integer 0-N, numerical order of sessions read
 #
-# session(sessionNumber, fieldValue) A 2-D array containing all that is known about the sessions. 
+# session(sessionNumber, fieldValue) 
+#   A 2-D array containing a subset of header info from each session.
 #   The field Keys are:
 #     0 patient_name
 #     1 patient_ID
@@ -32,27 +104,29 @@
 #     6 experiment_name
 #     7 path to first file in session directory
 #
-# displayedSessions A list containing the "session" indices which are currently displayed 
-#    in the list box
-
+# functions which write to "session" array: QueryDB ReadIncomingDir ReadIndexFile
+set numberOfSessionKeys 8
 
 #-----------------------------------------------------------------------------------------#
 
-#define needed variables
+#define global variables
 
 set targetDir $env(HOME)
-set archiveDir /space/sharbot/1/siemens
-#set archiveDir /space/bourget/1/siemens
+#set archiveDir /space/sharbot/1/siemens
+set archiveDir /space/bourget/1/siemens
+set mincDir /space/bourget/1/minc
 set sourceDir $archiveDir
-set indexFile  [file join [file dirname $archiveDir] index2.txt ]
+#set indexFile  [file join [file dirname $archiveDir] index2.txt ]
+set indexFile  /space/newdata/1/ima_index.txt
 
-set env(MRI_DIR) /space/annecy/5/users/inverse/freesurfer_alpha
+set env(MRI_DIR) /space/lyon/1/home/inverse/freesurfer_alpha
 set noArchBin "$env(MRI_DIR)/bin/noarch"
 set archBin "$env(MRI_DIR)/bin/[exec uname]"
-
+set cdromDir "/mnt/cdrom"
 
 set mincOnly 0
-set copyDone 1
+set mincOnlyString ""
+set copyDone 1; #copy routines check this after each iteration
 
 set typeList { \
                {"Siemens file" ".ima" "SIEM" } \
@@ -60,6 +134,7 @@ set typeList { \
                {"bshort file" ".bshort" "BSHT" } \
                {"all" "*" {} } \
               }
+
 array set knownSequences {
                             scout scout
                             ep2d  bold
@@ -67,24 +142,31 @@ array set knownSequences {
                             ep3d  bold
                             mpr   3danat
                             se    t1conv
-                      tse7  t2conv
+                            tse7  t2conv
                             tse5  protoden
                             flash flash
                             default default
                     }
+
 set sessionIndex 0;         #default selection in listbox
 set targetDirWritable 0;    #default permission
-set sequenceDialogClosed 0; #default state: dialog is open?
-set lastSessionScanned -1;  # which session is the current sequnece info for?
+set sequenceDialogClosed 1; #default state: closed
+set searchDialogClosed 1
+set lastSessionScanned -1;  # which session is the current sequence info for?
 set percentOfSequencesScanned 0
 set patientName ""
-        set afterDate   01
-        set afterMonth  01
-        set afterYear   1990
-        set currentTime [clock seconds]
-        set beforeDate  [clock format $currentTime -format %d ]
-        set beforeMonth [clock format $currentTime -format %m ]
-        set beforeYear  [clock format $currentTime -format %Y ]
+set afterDate   01;         # search for sessions made after this date
+set afterMonth  01
+set afterMonthLabel Jan
+set afterYear   1990
+set currentTime [clock seconds]
+set beforeDate  [clock format $currentTime -format %d ]
+set beforeMonth [clock format $currentTime -format %m ]
+set beforeMonthLabel [clock format $currentTime -format %b ]
+set beforeYear  [clock format $currentTime -format %Y ]
+
+# list of stuff to kill when "stop" button is pressed
+set mySubProcesses [list ima2mnc ima2mnc.nofork unpackmincdir unpackimadir mri_convert dicomserver dicomserver.nofork siemens_dicom_send ]
 
 #--------------------------------  dicom send strings   ----------------------------------#
 
@@ -95,15 +177,16 @@ set archiveHost bourget
 
 #------------------------------    help strings    ---------------------------------------#
 
-set eh "\
-Select a session that you want unpacked.
-Pick a directory to unpack it. Hit the 
-unpack button."
+set basicHelp "\
+Select a session that you want transferred/translated.
+Pick a directory to save it to. Hit the start button.
+
+Documentation is at:
+http://surfer.nmr.mgh.harvard.edu/archive"
 
 set commandLineHelp "\
 This script takes 0 or 1 arguments.
-The argument must be a writeable directory
-in which the minc files can be unpacked."
+The argument must be a writeable directory."
 
 set changeDestinationDirHelp "\
 Use this dialog to select the directory where
@@ -118,7 +201,7 @@ Use \"View Recent Pushes\" in order to view that
 directory.
 
 If the new directory is on an AMD-mediated
-NFS-mounted  remote filesystem, you not be able
+NFS-mounted remote filesystem, you not be able
 navigate by mouse. You will need to
 type at least the first three directory levels, 
      e.g. /space/bourget/1
@@ -180,7 +263,11 @@ Primarily for debugging purposes."
 set transferIMAhelp "\
 This option will copy ima files directly, with no triage."
 
-set transferBshortHelp "Convert the Siemens IMA data for the selected session into the Sessions Format used by FS-FAST. Functional data is converted into bshort format, and structural data is converted into COR format."
+set transferBshortHelp "\
+Convert the Siemens IMA data for the selected session 
+into the Sessions Format used by FS-FAST. Functional 
+data is converted into bshort format, and structural 
+data is converted into COR format."
 
 set transferMINChelp "\
 Temporarily disabled
@@ -196,13 +283,27 @@ The server writes minc files to /space/incoming/minc
 To access these files, use the utility \"browse-sessions\""
 
 set bugHelp "\
-To report errors send email to analysis-bugs@nmr.mgh.harvard.edu. Include the following: (1) Date and approximate time of scan, (2) Scanner used, (3) Subject name, (4) Number of runs and type of each run, (5) destination directory, (6) log file, and (7) the nature of the problem."
+To report errors send email to analysis-bugs@nmr.mgh.harvard.edu. 
+Include the following: 
+(1) Date and approximate time of scan
+(2) Scanner used
+(3) Subject name
+(4) Number of runs and type of each run
+(5) destination directory
+(6) log file
+(7) the nature of the problem."
 
 #-----------------------------------------------------------------------------------------#
 # include the progress bar source code
 
-source $noArchBin/progressbar.tcl
-
+if { [ file exists $noArchBin/progressbar.tcl ] } { source $noArchBin/progressbar.tcl } \
+else \
+   {
+      tk_messageBox -type ok -default ok -title "Error" \
+                    -message "could not find  $noArchBin/progressbar.tcl" \
+                    -icon error
+      exit
+   }
 
 #--------------------------------------------------------------------------------------#
 #-------------------------    check for dependencies     ------------------------------#
@@ -289,7 +390,8 @@ proc Dialog_Wait {top varName {focus {}}} \
   focus $old
   }
 
-#--------------------------------------------------------------------------------------#
+
+#---------------------------------     Dialog_Dismiss     ------------------------------#
 
 proc Dialog_Dismiss {top} \
   {
@@ -303,7 +405,11 @@ proc Dialog_Dismiss {top} \
         .commandFrame.viewProgressButton config -state normal
   }
 
-#--------------------------------------------------------------------------------------#
+
+
+#----------------------------      CreateOutputMonitor       ----------------------------#
+# Logging output goes here
+# Just write to the pipe "log" and the output appears in this window
 
 proc CreateOutputMonitor {} \
     {
@@ -345,7 +451,7 @@ proc DeleteOutputMonitor {} \
     }
 
 
-#--------------------------------------------------------------------------------------#
+#-------------------------------     CreateProgressBarWindow     -------------------------------#
 
 proc CreateProgressBarWindow { caption } \
     {
@@ -353,7 +459,7 @@ proc CreateProgressBarWindow { caption } \
         set pbw .myProgressBarWindow
 
         if {[Dialog_Create $pbw "Progress" -borderwidth 10 ] } \
-     {
+           {
                              
               #set pbw .myProgressBarWindow
               
@@ -365,11 +471,11 @@ proc CreateProgressBarWindow { caption } \
               
               bind $pbw <Control-c> { DestroyProgressBarWindow }
               
-          } \
-   else \
+            } \
+        else \
            {
              $pbw.progressLabel configure -text $caption
-     }
+           }
 
         
     }
@@ -377,20 +483,20 @@ proc CreateProgressBarWindow { caption } \
 proc DestroyProgressBarWindow {}   { destroy .myProgressBarWindow }
 
 
-#--------------------------------------------------------------------------------------#
+#---------------------------------    CreateSearchDialog    ----------------------------------#
 
-proc CreateSearchDialog {} \
+proc CreateSearchDialog { } \
     {
-        global  dialog searchString searchDialogClosed \
-                patientName \
-                afterDate afterMonth afterYear beforeDate beforeMonth beforeYear
+        global  dialog searchString searchDialogClosed dbType \
+                afterMonthLabel beforeMonthLabel \
+                patientName afterDate afterMonth afterYear beforeDate beforeMonth beforeYear
 
+        if { ! $searchDialogClosed } { return 1 }
         set sd .searchDialog
 
-        #puts "$beforeDate $beforeMonth $beforeYear"
 
         if {[Dialog_Create $sd "Search" -borderwidth 10 ] } \
-     {
+           {
                              
               set sd .searchDialog
 
@@ -399,58 +505,151 @@ proc CreateSearchDialog {} \
               entry $nameFrame.nameEntryBox -textvariable patientName -relief sunken 
 
               set dateFrame  [ frame $sd.dateBoxFrame ]
-              set titleLabel [ label $dateFrame.titleLabel -text ""]
-              set dateLabel  [ label $dateFrame.dateLabel  -text "DD"]
-        set monthLabel [ label $dateFrame.monthLabel -text "MM"]
-        set yearLabel  [ label $dateFrame.yearLabel  -text "YY"]
+              set titleLabel [ label $dateFrame.titleLabel -text "" ]
+              set dateLabel  [ label $dateFrame.dateLabel  -text "Day" ]
+              set monthLabel [ label $dateFrame.monthLabel -text "Month" ]
+              set yearLabel  [ label $dateFrame.yearLabel  -text "Year" ]
               grid  $titleLabel $dateLabel $monthLabel $yearLabel
 
               label $dateFrame.afterLabel -text "After"
-              entry $dateFrame.afterDate -textvariable afterDate -relief sunken -width 2
-              entry $dateFrame.afterMonth -textvariable afterMonth -relief sunken -width 2
-              entry $dateFrame.afterYear -textvariable afterYear -relief sunken -width 4
+              entry $dateFrame.afterDate -textvariable afterDate -relief sunken -width 2 
+              #entry $dateFrame.afterMonth -textvariable afterMonth -relief sunken -width 2
+              menubutton $dateFrame.afterMonthMenu -textvariable afterMonthLabel \
+                                        -menu $dateFrame.afterMonthMenu.menuList
+        entry $dateFrame.afterYear -textvariable afterYear -relief sunken -width 4
               grid $dateFrame.afterLabel $dateFrame.afterDate \
-                   $dateFrame.afterMonth $dateFrame.afterYear
+                   $dateFrame.afterMonthMenu $dateFrame.afterYear
 
               label $dateFrame.beforeLabel -text "Before"
               entry $dateFrame.beforeDate -textvariable beforeDate -relief sunken -width 2
-              entry $dateFrame.beforeMonth -textvariable beforeMonth -relief sunken -width 2
+              #entry $dateFrame.beforeMonth -textvariable beforeMonth -relief sunken -width 2
+              menubutton $dateFrame.beforeMonthMenu -textvariable beforeMonthLabel \
+                                                   -menu $dateFrame.beforeMonthMenu.menuList
               entry $dateFrame.beforeYear -textvariable beforeYear -relief sunken -width 4
               grid $dateFrame.beforeLabel $dateFrame.beforeDate \
-                   $dateFrame.beforeMonth $dateFrame.beforeYear
+                   $dateFrame.beforeMonthMenu $dateFrame.beforeYear
+
+
+              set todayFrame [ frame $sd.todayFrame  -width 50 ]
+        set spacer2 [ frame  $todayFrame.spacer2 -height 40 -width 40 ]
+              button $todayFrame.todayButton -text today -command {
+      set currentTime [clock seconds]
+      set beforeDate  [clock format $currentTime -format %d ]
+      set beforeMonth [clock format $currentTime -format %m ]
+      set beforeMonthLabel [clock format $currentTime -format %b ]
+      set beforeYear  [clock format $currentTime -format %Y ]
+
+      set afterDate $beforeDate
+      set afterMonth $beforeMonth
+      set afterMonthLabel $beforeMonthLabel
+      set afterYear $beforeYear
+                }
+
 
               set spacer1 [ frame $sd.spacer1 -height 20 ]
 
+              
+
               set buttonFrame [ frame $sd.buttonFrame ]
-              button $buttonFrame.cancelButton -text Cancel -command { set searchString ""
-                                                              DestroySearchDialog
-                                                            }
-              button $buttonFrame.submitButton -text Search -command { QueryDB }
+              button $buttonFrame.cancelButton -text Cancel \
+                                               -command { 
+                                                           set searchString ""
+                                                           DestroySearchDialog
+                                                         }
+              button $buttonFrame.submitButton -default active -text Search -command \
+                  { 
+         #if {[ string equal $dbType "sql" ]} { QueryDB } else { LocalSearch }
+                  if { [ string compare $dbType "sql" ] == 0 } { QueryDB } else { LocalSearch }            }
+
+  # month menu items #
+        set afterMonthMenuList [menu $dateFrame.afterMonthMenu.menuList ]
+              $afterMonthMenuList add command -label Jan \
+                                              -command { set afterMonthLabel "Jan"; set afterMonth 01}
+              $afterMonthMenuList add command -label Feb \
+                                              -command { set afterMonthLabel "Feb"; set afterMonth 02}
+              $afterMonthMenuList add command -label Mar \
+                                              -command { set afterMonthLabel "Mar"; set afterMonth 03}
+              $afterMonthMenuList add command -label Apr \
+                                              -command { set afterMonthLabel "Apr"; set afterMonth 04}
+              $afterMonthMenuList add command -label May \
+                                              -command { set afterMonthLabel "May"; set afterMonth 05}
+              $afterMonthMenuList add command -label Jun \
+                                              -command { set afterMonthLabel "Jun"; set afterMonth 06}
+              $afterMonthMenuList add command -label Jul \
+                                              -command { set afterMonthLabel "Jul"; set afterMonth 07}
+              $afterMonthMenuList add command -label Aug \
+                                              -command { set afterMonthLabel "Aug"; set afterMonth 08}
+              $afterMonthMenuList add command -label Sep \
+                                              -command { set afterMonthLabel "Sep"; set afterMonth 09}
+              $afterMonthMenuList add command -label Oct \
+                                              -command { set afterMonthLabel "Oct"; set afterMonth 10}
+              $afterMonthMenuList add command -label Nov \
+                                              -command { set afterMonthLabel "Nov"; set afterMonth 11}
+              $afterMonthMenuList add command -label Dec \
+                                              -command { set afterMonthLabel "Dec"; set afterMonth 12}
+
+        set beforeMonthMenuList [menu $dateFrame.beforeMonthMenu.menuList ]
+              $beforeMonthMenuList add command -label Jan \
+                                              -command { set beforeMonthLabel "Jan"; set beforeMonth 01}
+              $beforeMonthMenuList add command -label Feb \
+                                              -command { set beforeMonthLabel "Feb"; set beforeMonth 02}
+              $beforeMonthMenuList add command -label Mar \
+                                              -command { set beforeMonthLabel "Mar"; set beforeMonth 03}
+              $beforeMonthMenuList add command -label Apr \
+                                              -command { set beforeMonthLabel "Apr"; set beforeMonth 04}
+              $beforeMonthMenuList add command -label May \
+                                              -command { set beforeMonthLabel "May"; set beforeMonth 05}
+              $beforeMonthMenuList add command -label Jun \
+                                              -command { set beforeMonthLabel "Jun"; set beforeMonth 06}
+              $beforeMonthMenuList add command -label Jul \
+                                              -command { set beforeMonthLabel "Jul"; set beforeMonth 07}
+              $beforeMonthMenuList add command -label Aug \
+                                              -command { set beforeMonthLabel "Aug"; set beforeMonth 08}
+              $beforeMonthMenuList add command -label Sep \
+                                              -command { set beforeMonthLabel "Sep"; set beforeMonth 09}
+              $beforeMonthMenuList add command -label Oct \
+                                              -command { set beforeMonthLabel "Oct"; set beforeMonth 10}
+              $beforeMonthMenuList add command -label Nov \
+                                              -command { set beforeMonthLabel "Nov"; set beforeMonth 11}
+              $beforeMonthMenuList add command -label Dec \
+                                              -command { set beforeMonthLabel "Dec"; set beforeMonth 12}
 
     #--- pack ----#
               pack $nameFrame.searchEntryBoxlabel $nameFrame.nameEntryBox   -side left
               pack $buttonFrame.cancelButton      $buttonFrame.submitButton -side left
-              
+              pack $todayFrame.spacer2            $todayFrame.todayButton   -side left
+
               pack $nameFrame -fill both -expand true
               pack $dateFrame
+              pack $todayFrame
               pack $spacer1
-              pack $buttonFrame
+        pack $buttonFrame
 
    #--- bind ----#
-              bind $nameFrame.nameEntryBox <Return> { QueryDB }
+              bind $nameFrame.nameEntryBox <Return> {  
+#                 if {[ string equal $dbType "sql" ]} { QueryDB } else { LocalSearch }
+                  if { [ string compare $dbType "sql" ] == 0 } { QueryDB } else { LocalSearch }
+                 }
         bind $sd <Control-c>       { set searchString ""; DestroySearchDialog }
-              
-          }
+                      
+
+   #--- main ----#
+        set searchDialogClosed 0
+        SaveSessions
+    }
 
     }
 
 proc DestroySearchDialog {} \
   { 
-    global searchDialogClosed 
+    global searchDialogClosed
+    RestoreSessions
+    LoadListBox
     set searchDialogClosed 1
     destroy .searchDialog 
   }
  
+
 
 #--------------------------------------------------------------------------------------#
 
@@ -474,7 +673,7 @@ proc CreateSessionInfoView {myIMAfile} \
               pack $infoFrame.sy -side right -fill y
               pack $infoFrame.t -side left -fill both -expand true
 
-              pack $infoFrame
+              pack $infoFrame -fill both -expand true
               pack $siv.closeButton -anchor center
 
 # -- bind  ---#
@@ -485,8 +684,20 @@ proc CreateSessionInfoView {myIMAfile} \
               $t tag configure bold -font {times 12 bold}
 
 # -- read file  ---#
-        if { [ catch {open "|$archBin/mri_info $myIMAfile" r} IN ] } \
-                 {$t insert end "$IN"; return 1}
+        if { ! [ file readable $myIMAfile ] } \
+                 {
+         tk_messageBox -type ok -default ok -title "Error" \
+                                   -message "Could not read $myIMAfile" \
+                                   -icon error 
+                     DestroySessionInfoView
+         return 1
+                  }
+
+        set infoProg mri_info
+        if [string match {*.dcm} $myIMAfile] { set infoProg dcm_info }
+              if { [ catch {open "|$archBin/$infoProg $myIMAfile" r} IN ] } \
+                   {$t insert end "$IN"; return 1}
+
        
         set headerLines [ split [ read $IN ] \n ]
         close $IN
@@ -514,8 +725,9 @@ proc DestroySessionInfoView {} \
   }
 
 
-#--------------------------------------------------------------------------------------#
-
+#----------------------------       CreateAlertDialog      -----------------------------------#
+# general purpose dialog for displaying informationl strings
+# some limited ability to expand according to string size, to wrap & stuff like that
 proc CreateAlertDialog {title alertMessage} \
     {
         global  dialog session alertDialogClosed archBin
@@ -798,11 +1010,16 @@ proc CreateFileBrowser { dirType callersDir } \
                                      } \
           else {
                  set response [tk_messageBox -type yesno \
-                                                      -default yes -title "Warning" \
-             -message "make $fbInfo(currentDir)" \
-                   -icon warning ]
-                                         if {[string match yes $response]} \
-               { file mkdir $fbInfo(currentDir)}
+                                             -default yes -title "Warning" \
+                                             -message "make $fbInfo(currentDir)" \
+                                             -icon warning ]
+                 if {[string match yes $response]} \
+                    { 
+      if { [ catch "file mkdir $fbInfo(currentDir)" errorMsg ] } \
+          {
+        tk_messageBox -type ok -message $errorMsg
+          }
+                    }
                }
         }
     #--- pack ----#
@@ -904,62 +1121,11 @@ proc DestroyFileBrowser {} \
     destroy .fileBrowser 
   }
 
-#--------------------------------------------------------------------------------------#
-
-proc Log {pipeName} \
-    {
-  global  pipeState log 
-        if [eof $pipeName] { KillPipe $pipeName } \
-        else \
-      {
-               gets $pipeName line
-#     if { ! [string compare $line "Done sending files." ] } \
-#                    { 
-#                        $log insert end "log: $line\n"
-#                        $log see end
-#                       if {[catch {close $pipeName} errorMsg ]} \
-#                          {
-#            CreateAlertDialog "Error: Log" $errorMsg
-#                    }
-#                       set  pipeState 1
-#                       return 0
-#                    }
-
-#                if { $line == 0 } { KillPipe $pipeName }
-
-              $log insert end $line\n
-              $log see end
-
-              
-            }
-    }
 
 
-#--------------------------------------------------------------------------------------#
-
-proc KillPipe {pipeName} \
-    {
-        global pipeState log
-
-
-      if {[catch {close $pipeName} errorMsg ]} \
-      {
-              $log insert end $errorMsg\n
-              $log see end
-
-#              foreach pid [pid $pipeName] \
-#         {
-
-#                 if {[catch {exec kill $pid} errorMsg ]} \
-#              { 
-#                     CreateAlertDialog "Error" "Could not close process $pid\n$errorMsg"
-#                     return 1
-#        }
-#               }
-      }
-  set pipeState 1
-        return 0 
-    }
+#-------------------------------------------------------------------------------------#
+#                              GET INFO ROUTINES                                      #
+#-------------------------------------------------------------------------------------#
 
 
 #----------------------------------   ReadIndexFile   -----------------------------------#
@@ -1010,9 +1176,12 @@ proc GetHeaderInfo { myIMAfile} \
     {
        global headerInfo archBin
        set myIndex 0
-  if { [ catch {open "|$archBin/mri_info $myIMAfile" r} IN ] } \
+       set infoProg mri_info
+       if [string match {*.dcm} $myIMAfile] { set infoProg dcm_info }
+
+  if { [ catch {open "|$archBin/$infoProg $myIMAfile" r} IN ] } \
            {puts "$IN"; return 1}
-       #set IN [ open "|mri_info $myIMAfile" r ]
+       
   set headerLines [ split [ read $IN ] \n ]
   close $IN
 
@@ -1101,7 +1270,10 @@ proc GetSessionDescriptors { i } \
 
 
 
-#------------------------------    ReadArchiveIndex    ---------------------------------#
+#------------------------------    ReadIncomingDir    ---------------------------------#
+# Extract header info from the first file in each session dir on specified directory
+# Load "session" array
+# called by main, ViewCDROM,  view local directory, view recent pushes
 
 proc ReadIncomingDir {} \
     {
@@ -1153,7 +1325,10 @@ for {set dirNumber 0} { $dirNumber < $numberOfNewDirs } {incr dirNumber} \
   if { [ file isfile $fileName ] } \
            { 
              #puts $fileName
-             if {[catch {exec mri_info $fileName | grep sequence } exitStatus]} \
+             set infoProg mri_info
+             if [string match {*.dcm} $fileName] { set infoProg dcm_info }
+
+             if {[catch {exec $infoProg $fileName | grep sequence } exitStatus]} \
                    { 
                      #could not find "sequnce" in the header
                      continue
@@ -1200,425 +1375,72 @@ for {set dirNumber 0} { $dirNumber < $numberOfNewDirs } {incr dirNumber} \
   return 0
 }
 
+#--------------------------    GetSeqDir    -------------------------------#
+#updates the destination diectory associated with a given sequence
 
-#-----------   LOAD LISTBOX   ---------------#
-
-proc LoadListBox {} \
+proc GetSeqDir { sequenceType } \
     {
-       global session sessionInfoFrame numberOfSessions
+        global knownSequences fbInfo targetDir newDirSelected
 
-        $sessionInfoFrame.sessionList delete 0 end
-        for {set index 0} { $index < $numberOfSessions } {incr index} \
-           {
-              $sessionInfoFrame.sessionList insert end [ GetSessionDescriptors $index ]
-            }
+  set newDirSelected 0
+  #disable change archive/destdir options
+  .menubar.mFile entryconfigure 1 -state disabled
+  .menubar.mFile entryconfigure 2 -state disabled
 
-        update
-        return 0
- 
-}
+  CreateFileBrowser "Destination" "${targetDir}/$knownSequences($sequenceType)"
+  tkwait variable newDirSelected
 
+  DestroyFileBrowser
 
-#--------------------------------------------------------------------------------------#
+        if { $newDirSelected == 2 } { return $knownSequences($sequenceType) }
 
-proc CheckDirOK {} \
-    {
-        global targetDir sourceDir archiveDir targetDirWritable
-  set targetDirReady 0
-  set sourceDirReady 0
+        set newDir [file tail $fbInfo(currentDir)]
+  set knownSequences($sequenceType) $newDir
+  #puts "$newDir selected"
 
-        if { ! $targetDirWritable } \
-      {
+        .sequenceDialog.tableFrame.${sequenceType}dirFrame.button configure -text  $newDir
+        set $knownSequences($sequenceType) $newDir
 
-        if [ file exists $targetDir ] \
-          {
-             if { [ string compare [ exec ls $targetDir ] ""]} \
-                 {
-                     set overwriteAnswer [tk_messageBox -type yesno \
-                                             -default yes \
-                                             -title "$targetDir not empty" \
-                                             -message "Overwrite contents of $targetDir" \
-                     -icon question ]
-                        if { ![string compare $overwriteAnswer no]} \
-                           {
-                             set targetDirWritable 0
-                             return 0}
-                        
-                 }
-
+  .menubar.mFile entryconfigure 1 -state normal
+  .menubar.mFile entryconfigure 2 -state normal
+  #"set newDir \[ CreateFileBrowser destination $targetDir \]"
     }
 
 
-       if { ! [ file exists $targetDir ]} \
-           { 
-              if { [ file writable [ file dirname $targetDir ] ] } \
-                 { file mkdir $targetDir } \
-              else \
-                {
-                  tk_messageBox -type ok -default ok -title "Error" \
-                       -message "could not create $targetDir" -icon error 
-                  set targetDir .
-                  return 0
-                }
-           }
+#--------------------------    DeleteSequenceListItem    ------------------------#
 
-       if { ![ file isdirectory $targetDir ] } \
-          {
-             tk_messageBox -type ok -default ok -title "Error" \
-                       -message "$targetDir is not a directory" -icon error 
-             set targetDir .
-             return 0
-          }
-
-
-      if { ! [ file writable $targetDir ] } \
-              {
-                  tk_messageBox -type ok -default ok -title "Error" \
-                       -message "$targetDir is not writeable" -icon error 
-                  set targetDir .
-                  return 0
-         }
-   set targetDirWritable 1
-
-    }
-
-  if { [ CheckSourceDirOK ] } { return 1 } else { return 0 }
-
-
-  }
-
-#----------------------------------------------------------------------------#
-proc CheckSourceDirOK {} \
-{
-  global  sourceDir archiveDir
-
-  if { ! [ file isdirectory $sourceDir ] }\
-              {
-                  tk_messageBox -type ok -default ok -title "Error" \
-                       -message "$sourceDir is not a directory" -icon error 
-                  set sourceDir $archiveDir
-                  return 0
-         }
-
-   if { ![ file readable $sourceDir ] } \
-              {
-                  tk_messageBox -type ok -default ok -title "Error" \
-                       -message "$sourceDir is not readable" -icon error 
-                  set sourceDir $archiveDir
-                  return 0
-         }
-
-    return 1
-
-  }
-
-#----------------------------------------------------------------------------#
-
-proc TransferIMAfiles {destinationDir} \
+proc DeleteSequenceListItem { listItem } \
     {
-    global sourceDir copyDone log progressValue
-
-    set dirContents [ exec ls $sourceDir ]
-    set numberOfFilesTransferred 0
-    set dirLength [ llength $dirContents ]
-    set progressValue 0
-
-    CreateProgressBarWindow "Transferring IMA files"
-    puts "dirLength $dirLength"
-
-    foreach fileName $dirContents \
-      {
-  #puts "cp ${sourceDir}/${fileName} ${destinationDir}/${fileName}"
-        if { $copyDone } \
-           { 
-             $log insert end "Transfer aborted\n$numberOfFilesTransferred files transferred\n"
-             $log see end
-             DestroyProgressBarWindow
-             update
-             return 1 
-           }
-
-        if {[catch {exec cp ${sourceDir}/${fileName} ${destinationDir}/${fileName} } \
-       errorMsg ]} {puts stderr $errorMsg}
-        incr numberOfFilesTransferred       
-  $log insert end "${destinationDir}/${fileName}\n"
-        $log see end
-
-        set progressValue [ expr $numberOfFilesTransferred*100/$dirLength ]
-        update
-      }
-
-    $log insert end "\n$numberOfFilesTransferred files transferred\nTransfer complete\n"
-    $log see end
-    update
-    #set sourceDir $destinationDir
-     DestroyProgressBarWindow
-     set copyDone 1
+        global sequenceTypes 
+        return [ lreplace $sequenceTypes [ lsearch sequenceTypes $listItem ] ]
     }
 
 
-#----------------------------------------------------------------------------#
-
-proc TransferMINCfiles {destinationDir} \
+#-------------------------------   LocalSearch   -------------------------------#
+ # Search the "session" array for $searchString
+ # rewrites 'session" and updates listbox
+ # is called by CreateSearchDialog
+proc LocalSearch {} \
     {
+       global  session numberOfSessions numberOfSessionKeys searchString patientName
 
-       global sourceDir copyDone log archBin unpackmincdirPipe
+       set searchString $patientName
+       set x 0
 
-       #set dirContents [ exec ls $sourceDir ]
-       #set dirLength [ llength $dirContents ]
-       #puts "dirLength $dirLength"
-
-  #puts "cp ${sourceDir}/${fileName} ${destinationDir}/${fileName}"
-        if { $copyDone } \
-           { 
-             $log insert end "Transfer aborted\n"
-             $log see end
-             update
-             return 1 
-           }
-
-       if { ! [ file exists $archBin/ima2mnc ] } \
-     {
-          CreateAlertDialog "Error" \
-                   "Couldn't find $archBin/ima2mnc"
-             return 1
-     }
-#       puts "$archBin/ima2mnc -range 1 3 -host bourget -aetitle bay2fmri -port 50082 $sourceDir $destinationDir"
-       #puts "$archBin/ima2mnc  $sourceDir $destinationDir"
-
-  set unpackmincdirPipe [open "|$archBin/ima2mnc $sourceDir $destinationDir" ]
-
-        fileevent $unpackmincdirPipe readable {Log $unpackmincdirPipe}
-        fconfigure $unpackmincdirPipe -blocking 0
-
-        vwait pipeState
-
-       $log insert end "\n\n"
-       $log see end
-       update
-       
-       set copyDone 1
-    }
-
-
-#-----------------------------   DicomPushMinc   ----------------------------------#
-
-proc DicomPushMinc {destinationDir} \
-    {
-       global session sessionIndex sourceDir copyDone log pipeState unpackmincdirPipe \
-              noArchBin archiveHost env \
-              dicomSendCommand mosaicString portNumber
-
-        set bareFileName [ file tail $session($sessionIndex,7) ]
-
-  if {[regexp {^[0-9]+} $bareFileName sessionNumber]} \
-           { } \
-        else \
-           {
-             CreateAlertDialog "Error" \
-                   "Couldn't get session number from $bareFileName"
-             return 1
-           }
-        
-
-        if {[string match "martyrium*" $env(HOSTNAME) ]} \
-           {puts "$dicomSendCommand $mosaicString $archiveHost $portNumber bay2fmri $sessionNumber -dir $sourceDir -max_outstanding 0"}
-
-  set unpackmincdirPipe [open "|$dicomSendCommand $mosaicString $archiveHost $portNumber bay2fmri $sessionNumber -dir $sourceDir -max_outstanding 0" ]
-
-      fileevent $unpackmincdirPipe readable {Log $unpackmincdirPipe}
-      fconfigure $unpackmincdirPipe -blocking 0
-      vwait pipeState
-
-      set copyDone 1
-#/home/dicom/bin/siemens_dicom_send bourget 50082 bay2fmri 480 -dir /local_mount/space/bourget/3/siemens/sonata-21006-20001010-123121-480  -max_outstanding 0
-    }
-
-#-----------------------------   TransferBshortFiles   ----------------------------------#
-
-proc TransferBshortFiles {destinationDir} \
-    {
-       #sequenceFiles:   array of lists. each key is a seqtype. Each list contains filenames
-       #sequenceTypes:  list of sesionsequence types like ep2d, mpr, se, etc
-       #knownSequences: associative array of sequence types to dirNames
-
-    global sequenceFiles sequenceTypes knownSequences \
-           commandFrame sourceDir copyDone log archBin progressValue \
-           lastSessionScanned sessionIndex
-    
-    if { $lastSessionScanned != $sessionIndex } \
-  { 
-    if { [CreateSequenceDialog $sessionIndex]} \
-        { 
-                 if { $copyDone } {return 1} \
-                 else { CreateAlertDialog "Error" "Session Scan failed"; return 1 }
-        }
-  }
-
-    set numberOfFilesToTransfer 0
-    foreach sequenceName $sequenceTypes \
-        { incr numberOfFilesToTransfer [llength $sequenceFiles($sequenceName)] }
-
-    set dirContents [ exec ls $sourceDir ]
-    set numberOfFilesTransferred 0
-    set dirLength [ llength $dirContents ]
-    set progressValue 0
-
-    CreateProgressBarWindow "Transferring b-short files"
-    
-
-    foreach sequenceName $sequenceTypes \
-      {
-          # make dest dir if non-existant
-    if { ! [ file exists ${destinationDir}/$knownSequences($sequenceName)]} \
-        {
-      if {[ catch "file mkdir [file join $destinationDir $knownSequences($sequenceName)]" errormsg] } \
-                      { 
-                         CreateAlertDialog Error $errormsg
-                         continue
-          }
-
-        }
-
-        foreach fileName $sequenceFiles($sequenceName) \
-          {
-              set imaFilePath  [file join $sourceDir $fileName ]
-              set bshortFilePath [file join $destinationDir [file join $knownSequences($sequenceName) [ file rootname $fileName ].bshort ] ]
-
-       puts "cp $imaFilePath $bshortFilePath"
-             if { $copyDone } \
-                { 
-                $log insert end "Transfer aborted\n$numberOfFilesTransferred files transferred\n"
-                $log see end
-                DestroyProgressBarWindow
-                update
-                return 1 
-                }
-
-              if {[catch {exec $archBin/mri_convert $imaFilePath $bshortFilePath }  errorMsg ]} \
-                {
-                  # error!
-                   #puts stderr $errorMsg
-                   $log insert end "failed: $bshortFilePath\n"
-                   $log insert end $errorMsg
-                   $log see end
-                 } \
-              else \
-          {
-                  # successful copy
-                   incr numberOfFilesTransferred       
-            $log insert end "$bshortFilePath\n"
-                  $log see end
-          }
-              set progressValue [ expr $numberOfFilesTransferred*100/$numberOfFilesToTransfer ]
-             update
-    }; #end fileName $sequenceFiles($sequenceName)
-      }; #foreach sequenceName $sequenceTypes
-
-    $log insert end "\n$numberOfFilesTransferred files transferred\nTransfer complete\n"
-    $log see end
-    update
-    #set sourceDir $destinationDir
-     DestroyProgressBarWindow
-     set copyDone 1
-    
-      }; #end of proc 
-
-#-----------------------------   TransferBshortFiles   ----------------------------------#
-
-proc Ima2sessions {destinationDir} \
-    {
-       global sourceDir copyDone log noArchBin archBin ima2sessionsPipe
-
-  #puts "cp ${sourceDir}/${fileName} ${destinationDir}/${fileName}"
-        if { $copyDone } \
-           { 
-             $log insert end "Transfer aborted\n"
-             $log see end
-             update
-             return 1 
-           }
-
-       if { ! [ file exists $noArchBin/unpackimadir ] } \
-     {
-          CreateAlertDialog "Error" \
-                   "Couldn't find $noArchBin/unpackimadir"
-             return 1
-     }
-
-       #puts "$noArchBin/unpackimadir  -src $sourceDir -targ $destinationDir"
-
-  set ima2sessionsPipe [open "|$noArchBin/unpackimadir -src $sourceDir -targ $destinationDir" ]
-
-        fileevent $ima2sessionsPipe readable { Log $ima2sessionsPipe }
-        fconfigure $ima2sessionsPipe -blocking 0
-
-        vwait pipeState
-
-       $log insert end "\n\n"
-       $log see end
-       update
-       
-       set copyDone 1
-    
-      }; #end of proc 
-
-#----------------------------------------------------------------------------#
-
-proc CreateMINCfiles {destinationDir} \
-    {
-
-        global archBin 
-  set imaDir "/tmp/ima[pid]"  
-      file mkdir $imaDir
-      TransferIMAfiles $imaDir
-      set dirContents [ exec ls $imaDir ]
-      foreach fileName $dirContents \
-   {
-            puts "mri_convert ${imaDir}/${fileName} ${destinationDir}/${fileName}"
-       if {[catch {exec $archBin/mri_convert ${imaDir}/${fileName} ${destinationDir}/[file rootname $fileName].mnc } errorMsg ]} {puts stderr $errorMsg}
-    }
-      puts "IMA -> MINC done\n"
-      #file delete -force $imaDir
-    }
-
-
-#----------------------------------------------------------------------------#
-
-proc ConvertMINCfiles {mincOnly} \
-    {
-      global targetDir
-      set mincDir "/tmp/minc[pid]"  
-      file mkdir $mincDir
-      ConvertIMAfiles $mincDir
-      set unpackmincdirPipe [open "|unpackmincdir  -src $mincDir -targ $targetDir $mincOnly" ]
-
-      fileevent $unpackmincdirPipe readable {Log $unpackmincdirPipe}
-      fconfigure $unpackmincdirPipe -blocking 0
-      vwait pipeState
-      
-   }
-
-
-#-----------------------   SEARCH DESCRIPTORS FOR MATCH   --------------------------#
-
-proc SearchDescriptors {} \
-    {
-       global  sessionInfoFrame session searchString displayedSessions
-
-       #puts $searchString
-       #puts $displayedSessions
-       foreach listIndex $displayedSessions \
-   {
-           
-           if { [ string match "*$searchString*" $session($listIndex,0) ] } \
+  for {set listIndex 0} {$listIndex < $numberOfSessions} {incr listIndex} \
          {
-      lappend hitList $listIndex
-                  #puts "$session($listIndex,0)"
-         }
+           
+           #if { [ string match "*$searchString*" $session($listIndex,0) ] } 
+           if { [regexp -nocase $searchString $session($listIndex,0) ] } \
+         {
+                 set matchedSessions($x)  $listIndex
+                 incr x
+                 lappend hitList $listIndex
+                 #puts "$session($listIndex,0)"
+              }
          }
 
-  if { ! [ info exists hitList ] } \
+       if { ! $x } \
            { 
               tk_messageBox -type ok \
                             -default ok -title "debug" \
@@ -1626,24 +1448,28 @@ proc SearchDescriptors {} \
               return 1
            }
 
-       # reset displayed list
-       unset displayedSessions
-       set displayedSessions $hitList
-       #puts $displayedSessions
-       $sessionInfoFrame.sessionList delete 0 end
-
-       foreach listIndex $displayedSessions \
-   {
-           $sessionInfoFrame.sessionList insert end [ GetSessionDescriptors $listIndex ]
-           #puts [ GetSessionDescriptors $listIndex ]
-   }
-
        update
+
+       # reset session array to just the hits
+
+       set numberOfSessions $x
+
+  for {set id 0} { $id < $numberOfSessions} {incr id } \
+     {
+         for {set field 0} {$field < $numberOfSessionKeys} {incr field } \
+     {
+        set session($id,$field) $session($matchedSessions($id),$field)
+           }
+     }
+       update
+       LoadListBox
+
 
     }
 
 #-----------------------   GetSequences   --------------------------#
 # fills sequenceFiles (an array of lists containing filenames)
+# called by CreateSequenceDialog
 
 proc GetSequences {sessionNumber} \
     {
@@ -1667,7 +1493,7 @@ proc GetSequences {sessionNumber} \
         set currentFileNumber 1
 
        foreach fileName $fileNames \
-   {
+         {
              if { $copyDone } {return 2}
 
              #update sequence dialog, if open
@@ -1677,12 +1503,16 @@ proc GetSequences {sessionNumber} \
 
              set fullFileName [file join $sessionDir $fileName]
              #puts "$fullFileName"
-       if {[catch {exec $archBin/mri_info $fullFileName}   exitStatus]} \
+
+           set infoProg mri_info
+           if [string match {*.dcm} $fullFileName] { set infoProg dcm_info }
+
+           if {[catch {exec $archBin/$infoProg $fullFileName}   exitStatus]} \
                { 
-           set response [tk_messageBox -type yesno \
+                   set response [tk_messageBox -type yesno \
                                   -default no -title "Error" \
                             -icon error \
-          -message "$exitStatus\n\nContinue?" ]
+                            -message "$exitStatus\n\nContinue?" ]
                   if {[string match yes $response]} {continue} else { return 1}
 
                }
@@ -1744,10 +1574,10 @@ proc GetSequences {sessionNumber} \
          foreach dirName [array names sequenceFiles] \
        {
            puts "\t$dirName: [llength $sequenceFiles($dirName)]"
-           if {[catch "open /home/tony/Dicom/tempdir/$dirName w" OUT ]} \
-         {puts $OUT; continue}
-           foreach fileName $sequenceFiles($dirName) {puts $OUT $fileName}
-           close $OUT
+#            if {[catch "open /home/tony/Dicom/tempdir/$dirName w" OUT ]} \
+#          {puts $OUT; continue}
+#            foreach fileName $sequenceFiles($dirName) {puts $OUT $fileName}
+#            close $OUT
        }
 
          puts "My sequences: $sequenceTypes"
@@ -1763,86 +1593,8 @@ proc GetSequences {sessionNumber} \
 
 
 
-#--------------------------    startTransfer    -------------------------------#
-
-proc StartTransfer {} \
-     {   
-        global commandFrame transferType pipeState copyDone targetDir
-
-        if { ! [CheckDirOK] } \
-           { 
-             $commandFrame.startButton configure -state disabled 
-             return 1
-           }
-        set pipeState 0
-        set copyDone 0
-        $commandFrame.startButton config -state disabled
-        $commandFrame.stopButton config -state normal
-
-        switch -exact $transferType \
-   {
-       minc    { TransferMINCfiles $targetDir }
-
-             #bshorts { TransferBshortFiles $targetDir }
-             bshorts { Ima2sessions $targetDir }
-
-             dicom_minc     { DicomPushMinc $targetDir }
-
-             ima     { TransferIMAfiles $targetDir }
-
-             default { TransferIMAfiles $targetDir }
-   }
-     
-         tkwait variable copyDone
-
-         $commandFrame.stopButton config -state disabled
-         $commandFrame.startButton config -state normal 
-         #puts "StartTransfer exited"
-      }
-
-
-#--------------------------    GetSeqDir    -------------------------------#
-#updates the destination diectory associated with a given sequence
-
-proc GetSeqDir { sequenceType } \
-    {
-        global knownSequences fbInfo targetDir newDirSelected
-
-  set newDirSelected 0
-  #disable change archive/destdir options
-  .menubar.mFile entryconfigure 1 -state disabled
-  .menubar.mFile entryconfigure 2 -state disabled
-
-  CreateFileBrowser "Destination" "${targetDir}/$knownSequences($sequenceType)"
-  tkwait variable newDirSelected
-
-  DestroyFileBrowser
-
-        if { $newDirSelected == 2 } { return $knownSequences($sequenceType) }
-
-        set newDir [file tail $fbInfo(currentDir)]
-  set knownSequences($sequenceType) $newDir
-  #puts "$newDir selected"
-
-        .sequenceDialog.tableFrame.${sequenceType}dirFrame.button configure -text  $newDir
-        set $knownSequences($sequenceType) $newDir
-
-  .menubar.mFile entryconfigure 1 -state normal
-  .menubar.mFile entryconfigure 2 -state normal
-  #"set newDir \[ CreateFileBrowser destination $targetDir \]"
-    }
-
-
-#--------------------------    DeleteSequenceListItem    ------------------------#
-
-proc DeleteSequenceListItem { listItem } \
-    {
-        global sequenceTypes 
-  return [ lreplace $sequenceTypes [ lsearch sequenceTypes $listItem ] ]
-    }
-
-
 #--------------------------    QueryDB    ------------------------#
+
 proc QueryDB {  } \
     {
         global session sessionInfoFrame numberOfSessions \
@@ -1854,9 +1606,9 @@ proc QueryDB {  } \
         .menubar.mFile entryconfigure 2 -state disabled; #change destination
 
         for {set index 0} {$index <= [ .menubar.mView index end] } {incr index} \
-      {
-               .menubar.mView entryconfigure $index -state disabled
-      }
+         {
+            .menubar.mView entryconfigure $index -state disabled
+          }
 
 
         set afterTimeStamp  "${afterYear}${afterMonth}${afterDate}"
@@ -1866,13 +1618,13 @@ proc QueryDB {  } \
         #the file pkgIndex.tcl must be in same dir as sql.so
         lappend auto_path $env(MRI_DIR)/local/bin/[exec uname]
         if {[catch {package require Sql} errorMsg]} \
-      {
+           {
               CreateAlertDialog Error $errorMsg
               return 1
             }
 
        # Connect to the database
-  if {[catch {set conn [sql connect bourget query]} errorMsg]} \
+  if {[catch {set conn [sql connect bourget.nmr.mgh.harvard.edu query]} errorMsg]} \
       {
               CreateAlertDialog Error $errorMsg
               return 1
@@ -1919,6 +1671,990 @@ proc QueryDB {  } \
     }
 
 
+#-----------   LOAD LISTBOX   ---------------#
+
+proc LoadListBox {} \
+    {
+       global session sessionInfoFrame numberOfSessions
+
+        $sessionInfoFrame.sessionList delete 0 end
+        for {set index 0} { $index < $numberOfSessions } {incr index} \
+           {
+              $sessionInfoFrame.sessionList insert end [ GetSessionDescriptors $index ]
+            }
+
+        update
+        return 0
+ 
+}
+
+
+#--------------------------------------------------------------------------------------#
+
+proc MountCDROM {} \
+{
+  global  cdromDir
+  set foundFlag 0
+
+# get list of mounted FSs
+   set mountOutput [ split [ exec mount ] \n ] 
+
+# is $cdromDir already mounted?
+   foreach mountString $mountOutput \
+     { 
+        if { [ string match  *${cdromDir}* $mountString ] } {  set foundFlag 1 }
+     }
+
+# if mounted then return true
+    if { $foundFlag } {return 1 }
+
+
+# try to mount cdrom
+     if { [ catch "exec mount $cdromDir" errorMsg ] } \
+        {
+     tk_messageBox -type ok -default ok -title "Error" \
+                   -message "$errorMsg" -icon error 
+     return 0
+   }
+
+    return 1 ;#mount state is true
+}
+
+
+#--------------------------------------------------------------------------------------#
+
+proc SelectCDROM {} \
+{
+   global  cdromDir  newDirSelected fbInfo
+
+   set newDirSelected 0
+   set initialDir "/"
+
+    if { [ file isdirectory $cdromDir ] } { set initialDir $cdromDir}
+
+   .menubar.mFile entryconfigure 1 -state disabled
+   .menubar.mFile entryconfigure 2 -state disabled
+   .menubar.mFile entryconfigure 3 -state disabled
+
+   CreateFileBrowser "CDROM" $initialDir
+   tkwait variable newDirSelected
+
+     DestroyFileBrowser
+    .menubar.mFile entryconfigure 1 -state normal
+    .menubar.mFile entryconfigure 2 -state normal
+    .menubar.mFile entryconfigure 3 -state normal    
+#ok
+   if { $newDirSelected == 1 } \
+      { set cdromDir $fbInfo(currentDir) }
+# cancel
+    if { $newDirSelected == 2 } { return 0 ;# not selected }
+
+
+# try to mount
+    if { [MountCDROM] } {return 1 } else {return 0}
+# return true if selected and mounted
+}
+
+#--------------------------------------------------------------------------------------#
+
+proc ViewCDROM {} \
+{
+  global  cdromDir archiveDir 
+ 
+ 
+
+#is $cdromDir already mounted?
+   if { ! [MountCDROM] } \
+      {
+        # user selects new cdrom Dir
+         if { ! [SelectCDROM]} { return 1}
+      }
+
+    set archiveDir $cdromDir
+    ReadIncomingDir
+    return 0
+
+}
+
+#--------------------------------------------------------------------------------------#
+proc CheckDirOK {} \
+    {
+  if { ! [ CheckTargetDirOK ] } { return 0 }
+  if { ! [ CheckSourceDirOK ] } { return 0 }
+  if { ! [ CheckScratchDirOK ] } { return 0 }
+        return 1; # return true if okay
+    }
+
+#--------------------------------------------------------------------------------------#
+proc CheckTargetDirOK {} \
+    {
+       global targetDir 
+
+       if { ! [ file exists $targetDir ]} \
+           { 
+              if { [ file writable [ file dirname $targetDir ] ] } \
+                 { file mkdir $targetDir } \
+              else \
+                {
+                  tk_messageBox -type ok -default ok -title "Error" \
+                       -message "could not create $targetDir" -icon error 
+        set targetDir [pwd]
+                  return 0
+                }
+           }
+# targetDir exists, is it a directory?     
+  
+       if { ![ file isdirectory $targetDir ] } \
+          {
+             tk_messageBox -type ok -default ok -title "Error" \
+                       -message "$targetDir is not a directory" -icon error 
+        set targetDir [pwd]
+             return 0
+          }
+
+# targetDir is a directory, is it empty?
+
+             if { [ string compare [ exec ls $targetDir ] ""] } \
+                 {
+                     set overwriteAnswer [ tk_messageBox -type yesno \
+                                             -default yes \
+                                             -title "$targetDir not empty" \
+                                             -message "Overwrite contents of $targetDir" \
+                                             -icon question ]
+                     if { ! [string compare $overwriteAnswer no] }  { return 0  }
+                        
+                  }
+
+
+      if { ! [ file writable $targetDir ] } \
+              {
+                  tk_messageBox -type ok -default ok -title "Error" \
+                       -message "$targetDir is not writeable" -icon error 
+                  set targetDir [pwd]
+                  return 0
+         }
+
+    
+
+  return 1
+  }
+
+#----------------------------------------------------------------------------#
+
+proc CheckSourceDirOK {} \
+{
+  global  sourceDir archiveDir
+
+  if { ! [ file isdirectory $sourceDir ] }\
+              {
+                  tk_messageBox -type ok -default ok -title "Error" \
+                       -message "$sourceDir is not a directory" -icon error 
+                  set sourceDir $archiveDir
+                  return 0
+         }
+
+   if { ! [ file readable $sourceDir ] } \
+              {
+                  tk_messageBox -type ok -default ok -title "Error" \
+                       -message "$sourceDir is not readable" -icon error 
+                  set sourceDir $archiveDir
+                  return 0
+         }
+
+   if { [ string match {*allegra-20002*} $sourceDir ] 
+  || [ string match {*sonata-21006*} $sourceDir ] } {
+  return 1
+   } else {
+  set errmsg {\
+This subject cannot be unpacked through browse-sessions. However it can \
+be unpacked using a program called unpacksdcmdir. Run 'unpacksdcmdir \
+-help' to get extensive documentation on how to use it. The source \
+directory can either be the location of the data on a CD or the location \
+of the data in the archive. For the subject you just selected, the location is }
+  append errmsg $sourceDir
+  append errmsg "\n\n\n\n\n\n\n\n\n\n"
+  CreateAlertDialog {ERROR: UNSUPPORTED DATA} $errmsg
+  set sourceDir $archiveDir
+  return 0
+   }
+  
+   # NEVER REACH HERE
+
+  }
+
+#----------------------------------------------------------------------------#
+
+proc CheckScratchDirOK {} \
+{
+  global  scratchDir newDirSelected fbInfo
+
+# if scratch space was never set
+    if { [string compare $scratchDir "no scratch dir set" ] == 0 } \
+      {
+           set newDirSelected 0
+           .menubar.mFile entryconfigure 1 -state disabled
+           .menubar.mFile entryconfigure 2 -state disabled
+           .menubar.mFile entryconfigure 3 -state disabled
+
+    CreateFileBrowser "Scratch Space" [exec pwd]
+           tkwait variable newDirSelected
+
+             DestroyFileBrowser
+            .menubar.mFile entryconfigure 1 -state normal
+            .menubar.mFile entryconfigure 2 -state normal
+            .menubar.mFile entryconfigure 3 -state normal    
+#ok
+           if { $newDirSelected == 1 } \
+              { set scratchDir $fbInfo(currentDir) }
+# cancel
+           if { $newDirSelected == 2 } { return 1 }
+      }
+
+  if { ! [ file exists $scratchDir ] } \
+      {
+    if { ! [ file writable [file dirname $scratchDir] ] } \
+        {
+      tk_messageBox -type ok -default ok -title "Error" \
+          -message "Cannot create $scratchDir in [file dirname $scratchDir]" 
+                      -icon error 
+                  return 0
+        }
+          file mkdir $scratchDir
+          
+      }
+
+  if { ! [ file isdirectory $scratchDir ] } \
+          {
+            
+             tk_messageBox -type ok -default ok -title "Error" -icon error \
+                                -message "$scratchDir is not a directory" 
+             return 0
+            
+          }
+
+  if { ! [ file writable $scratchDir ] } \
+          {
+             tk_messageBox -type ok -default ok -title "Error" -icon error \
+                                -message "$scratchDir is not writable" 
+             return 0
+            
+          }
+
+#puts "$scratchDir good to go [ file writable $scratchDir ]"
+    return 1
+
+  }
+
+#-------------------------------------------------------------------------------------#
+#                              TRANSFER ROUTINES                                      #
+#-------------------------------------------------------------------------------------#
+
+
+
+proc TransferIMAfiles {destinationDir} \
+    {
+    global sourceDir copyDone log progressValue
+
+    set dirContents [ exec ls $sourceDir ]
+    set numberOfFilesTransferred 0
+    set dirLength [ llength $dirContents ]
+    set progressValue 0
+
+    CreateProgressBarWindow "Transferring IMA files"
+    #puts "dirLength $dirLength"
+
+    foreach fileName $dirContents \
+      {
+  #puts "cp ${sourceDir}/${fileName} ${destinationDir}/${fileName}"
+        if { $copyDone } \
+           { 
+             $log insert end "Transfer aborted\n$numberOfFilesTransferred files transferred\n"
+             $log see end
+             DestroyProgressBarWindow
+             update
+             return 1 
+           }
+
+        if {[catch {exec cp ${sourceDir}/${fileName} ${destinationDir}/${fileName} } \
+       errorMsg ]} {puts stderr $errorMsg}
+        incr numberOfFilesTransferred       
+  $log insert end "${destinationDir}/${fileName}\n"
+        $log see end
+
+        set progressValue [ expr $numberOfFilesTransferred*100/$dirLength ]
+        update
+      }
+
+    $log insert end "\n$numberOfFilesTransferred files transferred\nTransfer complete\n"
+    $log see end
+    update
+    #set sourceDir $destinationDir
+     DestroyProgressBarWindow
+     set copyDone 1
+    }
+
+
+
+#-----------------------      TransferIMAtoMINC   --------------------------------------#
+# creates minc from ima using ima2mnc
+# called by StartTransfer
+
+proc TransferIMAtoMINC {destinationDir} \
+    {
+
+       global sourceDir copyDone log archBin unpackmincdirPipe commandFrame progressValue
+
+       set imaDirContents [ exec ls $sourceDir ]
+       set imaDirLength [ llength $imaDirContents ]
+       $log insert end "Source dir: $sourceDir\n"
+       $log insert end "Destination dir: $destinationDir\n"
+       $log insert end "Converting $imaDirLength ima files to minc\n"
+       $log insert end "\n\n"
+       $log see end
+
+       if { $copyDone } \
+           { 
+             $log insert end "ima->minc conversion aborted\n"
+             $log see end
+             update
+             set copyDone 1
+       return 1 
+           }
+
+  # if minc already exist, skip ima->minc conversion
+  set mincSession [ GetMincSisterSession $sourceDir ]
+       #puts "$mincSession"
+       if { [ string length $mincSession ] > 0 } \
+     {
+         set mincDirPath "/space/bourget/1/minc/$mincSession"
+         set dirContents [ exec ls $mincDirPath ]
+         set numberOfFilesTransferred 0
+         set dirLength [ llength $dirContents ]
+         set progressValue 0
+         CreateProgressBarWindow "Transferring directly from minc archive"
+         foreach fileName $dirContents \
+       {
+           if { [ catch "exec cp $mincDirPath/$fileName $destinationDir" errorMsg ] } \
+         {
+             set response [ tk_messageBox -type yesno -default no -title "Error" \
+              -message "$errorMsg\nContinue?" \
+              -icon error ]
+
+             if { [ string match $response "no" ] } \
+           {
+               set copyDone 1
+               DestroyProgressBarWindow
+               return 0
+           }
+         }
+           incr numberOfFilesTransferred
+           set progressValue [ expr $numberOfFilesTransferred*100/$dirLength ]
+           update
+       }
+         DestroyProgressBarWindow
+         set copyDone 1
+         return 0
+     }
+
+       if { ! [ file exists $archBin/ima2mnc ] } \
+           {
+              CreateAlertDialog "Error" \
+                   "Couldn't find $archBin/ima2mnc"
+        set copyDone 1
+              return 1
+           }
+#       puts "$archBin/ima2mnc -range 1 3 -host bourget -aetitle bay2fmri -port 50082 $sourceDir $destinationDir"
+       #puts "$archBin/ima2mnc  -servparent -nofork $sourceDir $destinationDir"
+
+  set unpackmincdirPipe [open "|$archBin/ima2mnc  -wait $sourceDir $destinationDir" ]
+
+        fileevent $unpackmincdirPipe readable {Log $unpackmincdirPipe}
+        fconfigure $unpackmincdirPipe -blocking 0
+
+        vwait pipeState
+
+       $log insert end "\n\n"
+       $log see end
+       update
+       
+       set copyDone 1
+       return 0
+   }
+
+#(\x1a) -----------------------      Run_unpackmincdir   --------------------------------------#
+# creates bshorts using unpackmincdir
+# source dir is a minc dir
+# called by StartTransfer
+
+proc Run_unpackmincdir {sourceDir destinationDir} \
+    {
+
+       global  copyDone log noArchBin unpackmincdirPipe commandFrame mincOnlyString
+
+       set dirContents [ exec ls $sourceDir ]
+       set dirLength [ llength $dirContents ]
+       $log insert end "$dirLength minc scans\n"
+       $log insert end "\n\n"
+       $log see end
+
+  #puts "cp ${sourceDir}/${fileName} ${destinationDir}/${fileName}"
+        if { $copyDone } \
+           { 
+             $log insert end "unpacking minc aborted\n"
+             $log see end
+             update
+             return 1 
+           }
+
+       if { ! [ file exists $noArchBin/unpackmincdir ] } \
+     {
+          CreateAlertDialog "Error" \
+                   "Couldn't find $archBin/unpackmincdir"
+             return 1
+     }
+  #puts "$noArchBin/unpackmincdir -src $sourceDir -targ $destinationDir $mincOnlyString"
+  set unpackmincdirPipe [open "|$noArchBin/unpackmincdir -src $sourceDir -targ $destinationDir $mincOnlyString" ]
+
+        fileevent $unpackmincdirPipe readable {Log $unpackmincdirPipe}
+        fconfigure $unpackmincdirPipe -blocking 0 -eofchar \x00
+
+        vwait pipeState
+
+       $log insert end "\n\n"
+       $log see end
+       update
+       
+       set copyDone 1
+       return 0
+    }
+
+
+
+
+#-----------------------------   DicomPushMinc   ----------------------------------#
+# calls dicom server to translate ima to minc on the dicom server host
+# called by StartTransfer
+# this function has been deprecated
+
+proc DicomPushMinc {destinationDir} \
+    {
+       global session sessionIndex sourceDir copyDone log pipeState unpackmincdirPipe \
+              noArchBin archiveHost env \
+              dicomSendCommand mosaicString portNumber
+
+        set bareFileName [ file tail $session($sessionIndex,7) ]
+
+  if {[regexp {^[0-9]+} $bareFileName sessionNumber]} \
+           { } \
+        else \
+           {
+             CreateAlertDialog "Error" \
+                   "Couldn't get session number from $bareFileName"
+             return 1
+           }
+        
+
+        if {[string match "martyrium*" $env(HOSTNAME) ]} \
+           {puts "$dicomSendCommand $mosaicString $archiveHost $portNumber bay2fmri $sessionNumber -dir $sourceDir -max_outstanding 0"}
+
+  set unpackmincdirPipe [open "|$dicomSendCommand $mosaicString $archiveHost $portNumber bay2fmri $sessionNumber -dir $sourceDir -max_outstanding 0" ]
+
+      fileevent $unpackmincdirPipe readable {Log $unpackmincdirPipe}
+      fconfigure $unpackmincdirPipe -blocking 0
+      vwait pipeState
+
+      set copyDone 1
+#/home/dicom/bin/siemens_dicom_send bourget 50082 bay2fmri 480 -dir /local_mount/space/bourget/3/siemens/sonata-21006-20001010-123121-480  -max_outstanding 0
+    }
+
+#-----------------------------   TransferSortMincFiles   ----------------------------------#
+# copy over ima files, sorted into sequence directories. translate each ima sequence dir to a minc sequence dir using ima2mnc
+#called by StartTransfer
+proc TransferSortMincFiles {destinationDir} \
+    {
+       #sequenceFiles:   array of lists. each key is a seqtype. Each list contains filenames
+       #sequenceTypes:  list of sesionsequence types like ep2d, mpr, se, etc
+       #knownSequences: associative array of sequence types to dirNames
+
+    global sequenceFiles sequenceTypes knownSequences \
+           commandFrame sourceDir archBin progressValue \
+           lastSessionScanned sessionIndex sequenceDialogClosed \
+           log unpackmincdirPipe  pipeState copyDone scratchDir
+    
+    if { ! [ CheckScratchDirOK ] } {set copyDone 1; return 1 }
+
+    if { $lastSessionScanned != $sessionIndex } \
+      { 
+         if { [ CreateSequenceDialog $sessionIndex]} \
+            { 
+                if { $copyDone } {return 1} \
+                else { CreateAlertDialog "Error" "Session Scan failed"; return 1 }
+             }
+         vwait sequenceDialogClosed
+       }
+# set up temp dir for ima files
+    set imaDir "$scratchDir/ima[pid]"
+    if {[ catch "file mkdir $imaDir" errormsg ] } \
+       { 
+          CreateAlertDialog Error $errormsg
+          DestroyProgressBarWindow
+    set copyDone 1
+          return 1 
+       }
+    
+# Create sequence directories
+    foreach sequenceName $sequenceTypes \
+      {
+#       puts "\nsequenceName: $sequenceName"
+#       puts "sequenceDir: $knownSequences($sequenceName)"
+
+       set imaSequenceDir  [file join $imaDir $knownSequences($sequenceName) ]
+       set destSequenceDir [file join $destinationDir $knownSequences($sequenceName) ]
+
+      # mkdir will make all parent dirs needed
+      if { [ catch "file mkdir $destSequenceDir $imaSequenceDir" errormsg ] } \
+          { 
+             CreateAlertDialog Error $errormsg
+             DestroyProgressBarWindow
+             return 1 
+           }
+
+# get number of files to transfer
+    set numberOfFilesTransferred 0
+    set progressValue 0
+    set dirContents [ exec ls $sourceDir ]
+    set numberOfFilesToTransfer [ llength $dirContents ]
+
+    CreateProgressBarWindow "Transferring files"
+
+# copy all the files from the current sequence to the local ima sequence dir   
+        foreach fileName $sequenceFiles($sequenceName) \
+          {
+             if { $copyDone } \
+                { 
+                   $log insert end "Transfer aborted\n$numberOfFilesTransferred files transferred\n"
+                    $log see end
+                    DestroyProgressBarWindow
+                    update
+                    return 1 
+                }
+
+             set sourceFilePath  [file join $sourceDir $fileName ]
+             #puts "cp $imaFilePath $tempFilePath"
+             if {[catch {exec cp $sourceFilePath $imaSequenceDir }  errorMsg ]} \
+                {
+                  # error!
+                   $log insert end $errorMsg
+                   $log insert end "\n"
+       $log see end
+                 } \
+              else \
+                {
+                  # successful copy
+                   incr numberOfFilesTransferred       
+                   $log insert end "Transferring $sequenceName: $fileName\n"
+                   $log see end
+               }
+              set progressValue [ expr $numberOfFilesTransferred*100/$numberOfFilesToTransfer ]
+             update
+        }; #end fileName $sequenceFiles($sequenceName)
+      }; #foreach sequenceName $sequenceTypes
+
+#check all files transferred
+    if { $numberOfFilesToTransfer != $numberOfFilesTransferred } \
+  {
+     CreateAlertDialog "Error" \
+                "Number of files to translate: $numberOfFilesToTransfer
+                 Number of files transferred: $numberOfFilesTransferred
+
+                 ima directory has been preserved at:
+                 $imaDir"
+            DestroyProgressBarWindow
+            set copyDone 1
+            return 1
+  }
+# normal termination of transfer
+    $log insert end "\n$numberOfFilesTransferred files transferred\nTransfer complete\n"
+    $log see end
+    update
+    DestroyProgressBarWindow
+    set progressValue 0
+
+# write minc files to destination session dirs
+    CreateProgressBarWindow "Translating to minc"
+    foreach sequenceName $sequenceTypes \
+      {
+       set imaSequenceDir [file join $imaDir $knownSequences($sequenceName) ]
+       set mincSequenceDir [file join $destinationDir $knownSequences($sequenceName) ]
+
+#  puts "$archBin/ima2mnc -servparent -nofork $tempFilePath $destFilePath"
+  set unpackmincdirPipe [open "|$archBin/ima2mnc $imaSequenceDir $mincSequenceDir" ]
+
+        fileevent $unpackmincdirPipe readable {Log $unpackmincdirPipe}
+        fconfigure $unpackmincdirPipe -blocking 0
+
+        vwait pipeState
+  incr numberOfFilesTransferred [ llength $sequenceFiles($sequenceName) ]
+        set progressValue [ expr $numberOfFilesTransferred*100/$numberOfFilesToTransfer ]
+        $log insert end "\n\n"
+        $log see end
+        update
+
+      }
+    if { $numberOfFilesToTransfer != $numberOfFilesTransferred } \
+  {
+     CreateAlertDialog "Error" \
+                "Number of files to translate: $numberOfFilesToTransfer
+                 Number of files transferred: $numberOfFilesTransferred
+
+                 ima directory has been preserved at:
+                 $imaDir"
+
+  } \
+   else  {
+          if {[ catch "exec rm -r $imaDir" errormsg] } { CreateAlertDialog Error $errormsg }
+  }
+
+     DestroyProgressBarWindow
+     set copyDone 1
+     return 0
+  }; #end of proc 
+
+#-----------------------------   Ima2sessions   ----------------------------------#
+#called by StartTransfer
+proc Ima2sessions {destinationDir} \
+    {
+       global copyDone log noArchBin archBin ima2sessionsPipe \
+              sourceDir 
+  #puts "cp ${sourceDir}/${fileName} ${destinationDir}/${fileName}"
+        if { $copyDone } \
+           { 
+             $log insert end "Transfer aborted\n"
+             $log see end
+             update
+             return 1 
+           }
+
+  # if minc already exist, skip ima->minc conversion
+  set mincSession [ GetMincSisterSession $sourceDir ]
+  if { [string length $mincSession ] > 0 } \
+     {
+         set mincDirPath "/space/bourget/1/minc/$mincSession"
+         Run_unpackmincdir $mincDirPath $destinationDir
+         set copyDone 1
+         return 0
+     } 
+
+
+       if { ! [ file exists $noArchBin/unpackimadir ] } \
+     {
+          CreateAlertDialog "Error" \
+                   "Couldn't find $noArchBin/unpackimadir"
+             return 1
+     }
+
+       #puts "$noArchBin/unpackimadir  -src $sourceDir -targ $destinationDir"
+
+  set ima2sessionsPipe [open "|$noArchBin/unpackimadir -src $sourceDir -targ $destinationDir -keepminc" ]
+
+        fileevent $ima2sessionsPipe readable { Log $ima2sessionsPipe }
+        fconfigure $ima2sessionsPipe -blocking 0
+
+        vwait pipeState
+
+       $log insert end "\n\n"
+       $log see end
+       update
+       
+       set copyDone 1
+    
+      }; #end of proc 
+
+#----------------------------------------------------------------------------#
+
+proc CreateMINCfiles {destinationDir} \
+    {
+       # Converts individual ima files to minc files directly
+       # This function has been deprecated because its dependency, "mri_convert", has a known bug
+
+        global archBin scratchDir
+        set imaDir "$scratchDir/ima[pid]"  
+        file mkdir $imaDir
+        TransferIMAfiles $imaDir
+        set dirContents [ exec ls $imaDir ]
+        foreach fileName $dirContents \
+          {
+            puts "mri_convert ${imaDir}/${fileName} ${destinationDir}/${fileName}"
+            if {[catch {exec $archBin/mri_convert ${imaDir}/${fileName} ${destinationDir}/[file rootname $fileName].mnc } errorMsg ]} {puts stderr $errorMsg}
+          }
+        puts "IMA -> MINC done\n"
+        #file delete -force $imaDir
+    }
+
+
+#-----------------------         ConvertMINCfiles    --------------------------------------#
+# performs triage on minc files using unpackmincdir
+
+proc ConvertMINCfiles {mincOnly} \
+    {
+      global targetDir scratchDir
+  set mincDir "$scratchDir/minc[pid]"  
+      file mkdir $mincDir
+      ConvertIMAfiles $mincDir
+      set unpackmincdirPipe [open "|unpackmincdir  -src $mincDir -targ $targetDir $mincOnly" ]
+
+      fileevent $unpackmincdirPipe readable {Log $unpackmincdirPipe}
+      fconfigure $unpackmincdirPipe -blocking 0
+      vwait pipeState
+      
+   }
+
+
+
+
+#--------------------------    startTransfer    -------------------------------#
+# coordinates the stransfer/translate routines
+# is called by the start button
+proc StartTransfer {} \
+     {   
+        global commandFrame transferType pipeState copyDone  mincOnlyString \
+               targetDir sourceDir scratchDir
+
+        if { ! [CheckTargetDirOK] } \
+           { 
+             $commandFrame.startButton configure -state disabled 
+             set copyDone 1
+             return 1
+           }
+
+        if { ! [CheckSourceDirOK] } \
+           { 
+             $commandFrame.startButton configure -state disabled 
+             set copyDone 1
+             return 1
+           }
+        set pipeState 0
+        set copyDone 0
+        $commandFrame.startButton config -state disabled
+        $commandFrame.stopButton config -state normal
+
+        switch -exact $transferType \
+          {
+              #for bshorts
+        experimental {
+                              if { ! [CheckScratchDirOK] } \
+                                  { 
+                                    $commandFrame.startButton configure -state disabled 
+                                    set copyDone 1
+                                    return 1
+                                  }
+                  set mincDir "$scratchDir/minc[pid]"
+                  file mkdir $mincDir
+                  #puts "minc dir: $mincDir"
+                  if { [TransferIMAtoMINC $mincDir] == 0 } \
+                     { 
+             set copyDone 0; #reset global flag
+             set mincDirPath [file join $mincDir [ exec ls $mincDir ] ]
+             #puts "minc dir: $mincDirPath"; #dicom_send creates a subdir
+                                     Run_unpackmincdir $mincDirPath $targetDir 
+                                 } \
+          else {puts "TransferIMAtoMINC failed"}
+      exec rm -rf $mincDir "$scratchDir/ima[pid]"
+        }
+
+
+
+              minc    { TransferIMAtoMINC $targetDir }
+
+        customMincSort { TransferSortMincFiles $targetDir  }
+
+        mincSorted {
+      set mincOnlyString "-minconly"
+      set mincSession [ GetMincSisterSession $sourceDir ]
+      if { [string length $mincSession ] > 0 } \
+          {
+        # if minc already exist, skip ima->minc conversion
+        set mincDirPath "/space/bourget/1/minc/$mincSession"
+        Run_unpackmincdir $mincDirPath $targetDir
+          } \
+      else {
+                              if { ! [CheckScratchDirOK] } \
+                                  { 
+                                    $commandFrame.startButton configure -state disabled 
+                                    set copyDone 1
+                                    return 1
+                                  }
+               
+                  set mincDir "$scratchDir/minc[pid]"
+                  file mkdir $mincDir
+                  #puts "minc dir: $mincDir"
+                  if { [TransferIMAtoMINC $mincDir] == 0 } \
+                     { 
+             set copyDone 0; #reset global flag
+             #dicom_send creates a subdir
+             set mincDirContents [list [ exec ls $mincDir ] ]
+                                     #the dicomserver will create exactly one session dir
+             if { [llength $mincDirContents ] == 1 } \
+           {
+                    set mincDirPath [ file join $mincDir $mincDirContents ]
+                    #puts "minc dir: $mincDirPath"; 
+                                             Run_unpackmincdir $mincDirPath $targetDir 
+           }
+                                 } \
+          else { puts "TransferIMAtoMINC failed" }
+                 exec rm -fr $mincDir "${scratchDir}/ima[pid]"
+
+                           
+      }
+      set mincOnlyString ""
+                          }
+
+             #bshorts { TransferBshortFiles $targetDir }
+             bshorts { Ima2sessions $targetDir }
+
+             dicom_minc     { DicomPushMinc $targetDir }
+
+             ima     { TransferIMAfiles $targetDir }
+
+             default { TransferIMAfiles $targetDir }
+          }
+     
+         #tkwait variable copyDone
+
+         $commandFrame.stopButton configure -state disabled
+         $commandFrame.startButton configure -state normal 
+         #puts "StartTransfer exited"
+     }
+
+
+
+#-------------------------------------------------------------------------------------#
+#                              UTILITY ROUTINES                                      #
+#-------------------------------------------------------------------------------------#
+
+
+proc Log {pipeName} \
+    {
+  global  pipeState log 
+        if [eof $pipeName] { KillPipe $pipeName } \
+        else \
+      {
+               gets $pipeName line
+#     if { ! [string compare $line "Done sending files." ] } \
+#                    { 
+#                        $log insert end "log: $line\n"
+#                        $log see end
+#                       if {[catch {close $pipeName} errorMsg ]} \
+#                          {
+#            CreateAlertDialog "Error: Log" $errorMsg
+#                    }
+#                       set  pipeState 1
+#                       return 0
+#                    }
+
+#                if { $line == 0 } { KillPipe $pipeName }
+
+              $log insert end $line\n
+              $log see end
+
+              
+            }
+    }
+
+
+#--------------------------------------------------------------------------------------#
+
+proc KillPipe {pipeName} \
+    {
+        global pipeState log
+
+
+      if {[catch {close $pipeName} errorMsg ]} \
+      {
+              $log insert end $errorMsg\n
+              $log see end
+
+#              foreach pid [pid $pipeName] \
+#         {
+
+#                 if {[catch {exec kill $pid} errorMsg ]} \
+#              { 
+#                     CreateAlertDialog "Error" "Could not close process $pid\n$errorMsg"
+#                     return 1
+#        }
+#               }
+      }
+  set pipeState 1
+        return 0 
+    }
+
+
+#---------------------------------     SaveSessions    -------------------------------------#
+# save the "session" array before starting a search
+# called by CreateSearchDialog
+proc SaveSessions { } \
+    {
+        global session numberOfSessions numberOfSessionKeys savedSessions numberOfSavedSessions
+
+        set numberOfSavedSessions $numberOfSessions
+
+  for {set id 0} { $id < $numberOfSessions} {incr id } \
+     {
+         for {set field 0} {$field < $numberOfSessionKeys} {incr field } \
+     {
+        set savedSessions($id,$field) $session($id,$field) 
+           }
+     }
+
+
+    }
+
+proc RestoreSessions { } \
+    {
+        global session numberOfSessions numberOfSessionKeys savedSessions numberOfSavedSessions
+
+        set numberOfSessions $numberOfSavedSessions
+
+  for {set id 0} { $id < $numberOfSessions} {incr id } \
+     {
+         for {set field 0} {$field < $numberOfSessionKeys} {incr field } \
+     {
+        set session($id,$field) $savedSessions($id,$field) 
+           }
+     }
+
+
+    }
+
+#---------------------------------     GetMincSisterSession    --------------------------------#
+# find out if there is a minc session that corresponds to a given ima session
+
+proc GetMincSisterSession { imaDir } \
+    {
+        global mincDir
+
+  set baseIMAdirName [ file tail $imaDir ]
+  set dirNameSegments [ split $baseIMAdirName - ]
+  set scanNumberString [ lindex $dirNameSegments end ]
+  set scanNumberStringLength [ expr [string length $scanNumberString ] + 2 ]
+  set baseIMAdir [ string range $baseIMAdirName 0  [expr [string length $baseIMAdirName ] - $scanNumberStringLength ]  ] 
+        #puts "$baseIMAdir"
+        
+  #set baseMincDirname [ exec ls -d $mincDir/\*$baseIMAdir ]; # doesn't work
+  set mincSessions   [ split [ exec ls -1 $mincDir ] "\n" ]
+  foreach mincSession $mincSessions \
+  {
+      if { [ string match *$baseIMAdir $mincSession ] } \
+      {
+    #puts "found $mincSession"
+    return $mincSession
+      }
+   }
+  return ""
+    }
+
+
+
 
 #=============================================================================#
 #---------------------------- Define widgets   -------------------------------#
@@ -1928,38 +2664,41 @@ proc QueryDB {  } \
 menu .menubar
 #attach it to the main window
 . config -menu .menubar
-foreach menuWidget { File View Option Help } \
+foreach menuWidget { File View Search Option Help } \
     {
-  set $menuWidget [ menu .menubar.m$menuWidget ]
+        set $menuWidget [ menu .menubar.m$menuWidget ]
         .menubar add cascade -label $menuWidget -menu .menubar.m$menuWidget 
     }
 
-$File add command -label "Change archives" -command \
-                       { 
-                        set newDirSelected 0
-                        .menubar.mFile entryconfigure 1 -state disabled
-                        .menubar.mFile entryconfigure 2 -state disabled
+$File add command -label "Select Archive" -command \
+        { 
+          set newDirSelected 0
+    .menubar.mFile entryconfigure 1 -state disabled ; #disable other file browser items
+          .menubar.mFile entryconfigure 2 -state disabled
+          .menubar.mFile entryconfigure 3 -state disabled
 
-      CreateFileBrowser "Archive" $archiveDir
-      tkwait variable newDirSelected
+           CreateFileBrowser "Archive" $archiveDir
+           tkwait variable newDirSelected
 
          if { $newDirSelected == 1 } \
             { set archiveDir $fbInfo(currentDir) }
 
-                 if { [CheckSourceDirOK] } { $commandFrame.startButton configure -state normal } \
-                        else { $commandFrame.startButton configure -state disabled }
+          DestroyFileBrowser
+         .menubar.mFile entryconfigure 1 -state normal
+         .menubar.mFile entryconfigure 2 -state normal
+         .menubar.mFile entryconfigure 3 -state normal
 
+       if { ! [CheckSourceDirOK] } { $commandFrame.startButton configure -state disabled }
 
-                         DestroyFileBrowser
-                        .menubar.mFile entryconfigure 1 -state normal
-                        .menubar.mFile entryconfigure 2 -state normal
-                       }
+       }
+                       
 
-$File add command -label "New destination dir" -command \
-                       { 
-                        set newDirSelected 0
-                        .menubar.mFile entryconfigure 1 -state disabled
-                        .menubar.mFile entryconfigure 2 -state disabled
+$File add command -label "Select Destination" -command \
+    { 
+      set newDirSelected 0
+      .menubar.mFile entryconfigure 1 -state disabled
+      .menubar.mFile entryconfigure 2 -state disabled
+      .menubar.mFile entryconfigure 3 -state disabled
 
       CreateFileBrowser "Destination" $targetDir
       tkwait variable newDirSelected
@@ -1967,24 +2706,90 @@ $File add command -label "New destination dir" -command \
          if { $newDirSelected == 1 } \
             { set targetDir $fbInfo(currentDir) }
 
-                 if { [CheckDirOK] } { $commandFrame.startButton configure -state normal } \
-                        else { $commandFrame.startButton configure -state disabled }
+               if { ! [CheckTargetDirOK] } { $commandFrame.startButton configure -state disabled }
 
-                         DestroyFileBrowser
-                        .menubar.mFile entryconfigure 1 -state normal
-                        .menubar.mFile entryconfigure 2 -state normal
-                       }
+             }
+         DestroyFileBrowser
+         .menubar.mFile entryconfigure 1 -state normal
+         .menubar.mFile entryconfigure 2 -state normal
+         .menubar.mFile entryconfigure 3 -state normal
 
+
+$File add command -label "Select Scratch Dir" -command \
+       { 
+           set newDirSelected 0
+           set oldScratchDir $scratchDir
+
+           .menubar.mFile entryconfigure 1 -state disabled
+           .menubar.mFile entryconfigure 2 -state disabled
+           .menubar.mFile entryconfigure 3 -state disabled
+
+           if { [string compare "no scratch dir set" $scratchDir ] == 0 } \
+               { CreateFileBrowser "Scratch Space" [pwd] } \
+           else \
+               { CreateFileBrowser "Scratch Space" $scratchDir }
+
+           tkwait variable newDirSelected
+
+           if { $newDirSelected == 1 } \
+              { set scratchDir $fbInfo(currentDir) }
+
+
+             DestroyFileBrowser
+            .menubar.mFile entryconfigure 1 -state normal
+            .menubar.mFile entryconfigure 2 -state normal
+            .menubar.mFile entryconfigure 3 -state normal
+
+     CheckScratchDirOK
+      
+       }
+
+$File add command -label "Select CDROM Dir" -command { SelectCDROM }
 
 $File add command -label Quit -command {  exit   }
 
 
          #--------- View ------------#
 
-$View add command -label "Recent Pushes"   -state normal \
-                                           -command { ReadIncomingDir  }
 
-$View add command -label "All sessions"   -state normal \
+$View add command -label "cdrom"   -state normal \
+                                       -command { ViewCDROM  }
+
+$View add command -label "Local Directory"   -state normal \
+                                           -command { 
+#      if { [ string equal $archiveDir "/space/bourget/1/siemens" ] } 
+      if { [ string compare $archiveDir "/space/bourget/1/siemens" ] == 0 } \
+    { 
+              set newDirSelected 0
+              .menubar.mFile entryconfigure 1 -state disabled
+              .menubar.mFile entryconfigure 2 -state disabled
+
+              CreateFileBrowser "Archive" $archiveDir
+              tkwait variable newDirSelected
+
+              if { $newDirSelected == 1 } \
+                 { set archiveDir $fbInfo(currentDir) }
+
+              if { [CheckSourceDirOK] } \
+      { ReadIncomingDir; $commandFrame.startButton configure -state normal } \
+              else { $commandFrame.startButton configure -state disabled }
+
+
+               DestroyFileBrowser
+               .menubar.mFile entryconfigure 1 -state normal
+               .menubar.mFile entryconfigure 2 -state normal
+    } \
+     else { ReadIncomingDir }
+ 
+   }
+
+
+
+$View add command -label "Recent Pushes"   -state normal \
+                                           -command { set archiveDir /space/bourget/1/siemens
+                                                      ReadIncomingDir  }
+
+$View add command -label "Entire database"   -state normal \
                                        -command { 
                                     set afterDate   01
                                     set afterMonth  01
@@ -2008,15 +2813,39 @@ $View add command -label "Slice"  -command \
        if [ catch {exec $noArchBin/tkmedit_wrapper $fileName } exitStatus ] \
                               {  tk_messageBox -type ok \
                                               -default ok -title "Error" \
-                -message $exitStatus
-            }
+                                              -message $exitStatus
+                              }
             }
     }
 
 $View add command -label "Sequences" -command {
-                                                   #puts "sessionIndex $sessionIndex"
-                                                    CreateSequenceDialog $sessionIndex
-                                                 }
+                                                 #puts "sessionIndex $sessionIndex"
+                                                  CreateSequenceDialog $sessionIndex
+                                                  vwait sequenceDialogClosed
+                                              }
+
+         #--------- Search ------------#
+
+$Search add command -label "Archive database"   -state normal \
+                    -command { 
+                                .menubar.mSearch entryconfigure 1 -state disabled
+                                .menubar.mSearch entryconfigure 2 -state disabled
+                               set dbType sql
+                               CreateSearchDialog
+                                .menubar.mSearch entryconfigure 1 -state normal
+                                .menubar.mSearch entryconfigure 2 -state normal
+                             }
+
+$Search add command -label "Window Contents"   -state normal \
+                    -command { 
+                                .menubar.mSearch entryconfigure 1 -state disabled
+                                .menubar.mSearch entryconfigure 2 -state disabled
+              set dbType local
+                                CreateSearchDialog 
+                                .menubar.mSearch entryconfigure 1 -state normal
+                                .menubar.mSearch entryconfigure 2 -state normal
+
+                             }
 
          #--------- Option ------------#
 
@@ -2026,22 +2855,41 @@ $Option add command -label "Load text DB"   -state disabled \
                                                   ReadIndexFile $indexFile
                                                 }
 
-$Option add command -label "Search"   -state normal \
-                                       -command { CreateSearchDialog
-               }
-
-$Option add command -label "state info" -state disabled \
+$Option add command -label "state info" -state normal \
                                         -command { 
                                               CreateAlertDialog "State" \
-                 "sessions: $numberOfSessions\nArchive Dir: $archiveDir\nDest Dir: $targetDir" }
+                 "sessions: $numberOfSessions\nArchive Dir: $archiveDir\nDest Dir: $targetDir\nScratch Dir: $scratchDir\ncdrom Dir: $cdromDir"
+ }
+
+$Option add command -label "minc sorted"   -state normal \
+                                       -command { 
+                                                  set transferType customMincSort
+                    StartTransfer
+                                                }
+
+$Option add cascade  -label "do not use" -menu $Option.experimental
+    set expMenu [ menu $Option.experimental -tearoff 1 ]
+
+$expMenu add command -label "find minc"   -state normal \
+                                       -command { 
+                                                  GetMincSisterSession $sourceDir
+                                                }
+
+$expMenu add command -label "bshorts"   -state normal \
+                                       -command { 
+                                                  set transferType experimental
+                    StartTransfer
+                                                }
+
+$expMenu add command -label "kill pipe"   -state normal \
+                                       -command { 
+                                                  KillPipe $unpackmincdirPipe
+                                                }
 
 
          #--------- Help ------------#
 
-$Help add command -label "Eh?" -command { tk_messageBox -type ok \
-                                              -default ok -title "Eh?" \
-                -icon question \
-                                              -message $eh }
+$Help add command -label "Basic Help" -command { CreateAlertDialog "Basic Help"  $basicHelp }
 
 
 $Help add command -label "command line" \
@@ -2107,8 +2955,8 @@ $TransferHelp add command -label "IMA" \
 $TransferHelp add command -label "minc" \
                   -command { CreateAlertDialog "minc" $transferMINChelp }
 
-$TransferHelp add command -label "dicom minc" \
-                  -command { CreateAlertDialog "dicom minc" $transferdicomMinchelp }
+# $TransferHelp add command -label "dicom minc" \
+#                   -command { CreateAlertDialog "dicom minc" $transferdicomMinchelp }
 
 
 
@@ -2162,7 +3010,13 @@ button $commandFrame.stopButton -text "stop" \
                                 {
           set copyDone 1
           if { [ info exists unpackmincdirPipe] } \
-                                       { KillPipe $unpackmincdirPipe }
+        { KillPipe $unpackmincdirPipe }
+
+          foreach subProcess $mySubProcesses \
+      {
+              catch "exec killall $subProcess" errorMsg
+    #puts $errorMsg
+            }
                                  
                                  $commandFrame.stopButton config -state disabled
                                  $commandFrame.startButton config -state normal
@@ -2180,6 +3034,7 @@ set tranferTypeFrame [ frame $commandFrame.tranferTypeFrame -borderwidth 2 -reli
 label       $tranferTypeFrame.transferTypeLabel  -text "Output Format"
 radiobutton $tranferTypeFrame.bshortsRadioButton -text "Sessions\n(bshort)" -value bshorts -variable transferType -state normal
 radiobutton $tranferTypeFrame.mincRadioButton    -text "MINC" -value minc -variable transferType -state normal
+radiobutton $tranferTypeFrame.mincSortedRadioButton    -text "MINC (sorted)" -value mincSorted -variable transferType -state normal
 radiobutton $tranferTypeFrame.imaRadioButton     -text "IMA"   -value ima  -variable transferType
 
 $tranferTypeFrame.bshortsRadioButton select
@@ -2195,6 +3050,7 @@ pack $tranferTypeFrame.transferTypeLabel -pady 5 -padx 5 ; #-anchor c
 pack $tranferTypeFrame.bshortsRadioButton  -anchor w
 pack $tranferTypeFrame.imaRadioButton      -anchor w
 pack $tranferTypeFrame.mincRadioButton     -anchor w
+pack $tranferTypeFrame.mincSortedRadioButton     -anchor w
 
 
 # pack command column #
@@ -2237,6 +3093,16 @@ bind .leftFrame.targetDirEntryBox <Return> \
          else { $commandFrame.startButton configure -state disabled }
     }
 
+bind all <Alt-f> {
+                    .menubar.mSearch entryconfigure 1 -state disabled
+                    .menubar.mSearch entryconfigure 2 -state disabled
+                     set dbType sql
+                     CreateSearchDialog
+                     .menubar.mSearch entryconfigure 1 -state normal
+                     .menubar.mSearch entryconfigure 2 -state normal
+                 }
+bind all <Alt-t> {set patientName "xfer"; QueryDB }
+
 bind all <Control-c> { exit }
 bind all <Alt-q> { exit }
 bind all <Control-q> { exit }
@@ -2277,13 +3143,14 @@ switch -exact $argc \
 
 if {! [file readable $archiveDir ] } \
     { 
-       tk_messageBox -type ok -default ok -title "Command Line Help" \
-                -icon error \
-                                              -message "Could not find archive directory $archiveDir"
+       tk_messageBox -type ok -default ok -title "Error" \
+                     -icon error \
+                         -message "Could not find archive directory $archiveDir"
        exit
     }
 
-
+if { [file writable "/scratch" ] }  { set scratchDir "/scratch" } \
+    else { set scratchDir "no scratch dir set" }
 
 #----------------------- READ MASTER INDEX ---------------------------------#
 
