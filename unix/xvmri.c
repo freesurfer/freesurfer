@@ -294,6 +294,9 @@ XVMRIshowFrame(XV_FRAME *xvf, MRI *mri, int which, int slice,int frame)
   IMAGE  *I ;
   float  mag ;
 
+  if (frame < 0)
+    frame = 0 ;
+
   if (which_click == which && mri != mris[which])
     which_click = -1 ;  /* a new MR image shown */
 
