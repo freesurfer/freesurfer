@@ -1,6 +1,6 @@
 /*----------------------------------------------------------
   Name: vol2surf.c
-  $Id: mri_vol2surf.c,v 1.13 2003/04/16 18:58:43 kteich Exp $
+  $Id: mri_vol2surf.c,v 1.14 2003/07/15 23:58:53 greve Exp $
   Author: Douglas Greve
   Purpose: Resamples a volume onto a surface. The surface
   may be that of a subject other than the source subject.
@@ -57,7 +57,7 @@ static void dump_options(FILE *fp);
 static int  singledash(char *flag);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_vol2surf.c,v 1.13 2003/04/16 18:58:43 kteich Exp $";
+static char vcid[] = "$Id: mri_vol2surf.c,v 1.14 2003/07/15 23:58:53 greve Exp $";
 char *Progname = NULL;
 
 char *defaulttypestring;
@@ -70,6 +70,10 @@ char *srcregfile = NULL;
 char *srcwarp    = NULL;
 int   srcoldreg  = 0;
 char *srcsubject = NULL;
+
+char *srchitvolid   = NULL;
+char *srchittypestring = NULL;
+int   srchittype = MRI_VOLUME_TYPE_UNKNOWN;
 
 char *hemi    = NULL;
 char *surfname = "white";
@@ -108,6 +112,7 @@ char *SUBJECTS_DIR = NULL;
 MRI *SrcVol, *SurfVals, *SurfVals2;
 MRI *SrcHits, *SrcDist, *TrgHits, *TrgDist;
 MRI *mritmp;
+MRI *SrcHitVol;
 
 FILE *fp;
 
@@ -136,9 +141,10 @@ int main(int argc, char **argv)
   int nTrgMulti,nSrcMulti;
   float MnTrgMultiHits,MnSrcMultiHits;
   int nargs;
+  int r,c,s,nsrchits;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_vol2surf.c,v 1.13 2003/04/16 18:58:43 kteich Exp $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_vol2surf.c,v 1.14 2003/07/15 23:58:53 greve Exp $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -272,11 +278,19 @@ int main(int argc, char **argv)
     printf("Done\n");
   }
 
+  SrcHitVol = MRIallocSequence(SrcVol->width,SrcVol->height,
+			       SrcVol->depth,MRI_FLOAT,1);
+  if(SrcHitVol == NULL){
+    printf("ERROR: could not alloc SrcHitVol\n");
+    exit(1);
+  }
+  MRIcopyHeader(SrcVol,SrcHitVol);
+
   /* Map the values from the volume to the surface */
   printf("Mapping Source Volume onto Source Subject Surface\n");
   fflush(stdout);
   SurfVals = vol2surf_linear(SrcVol, Qsrc, Fsrc, Wsrc, Dsrc, 
-           Surf, ProjFrac, interpmethod, float2int);
+           Surf, ProjFrac, interpmethod, float2int, SrcHitVol);
   fflush(stdout);
   if(SurfVals == NULL){
     printf("ERROR: mapping volume to source\n");
@@ -285,6 +299,23 @@ int main(int argc, char **argv)
   printf("Done mapping volume to surface\n");
   fflush(stdout);
   MRIfree(&SrcVol);
+
+  /* Count the number of source voxels hit */
+  nsrchits = 0;
+  for(c=0; c < SrcHitVol->width; c++){
+    for(r=0; r < SrcHitVol->height; r++){
+      for(s=0; s < SrcHitVol->depth; s++){
+	if(MRIFseq_vox(SrcHitVol,c,r,s,0) > 0.5) nsrchits++;
+      }
+    }
+  }
+  printf("Number of source voxels hit = %d\n",nsrchits);
+
+  if(srchitvolid != NULL){
+    printf("Saving src hit volume.\n");
+    MRIwriteType(SrcHitVol,srchitvolid,srchittype);
+  }
+  MRIfree(&SrcHitVol);
 
   if(trgsubject != NULL && strcmp(trgsubject,srcsubject)){
     /* load in the source subject registration */
@@ -304,7 +335,7 @@ int main(int argc, char **argv)
       printf("Reading target registration \n   %s\n",fname);
       TrgSurfReg = MRISread(fname);
       if(TrgSurfReg == NULL){
-  printf("ERROR: could not read %s\n",fname);
+	printf("ERROR: could not read %s\n",fname);
         exit(1);
       }
     }
@@ -315,13 +346,13 @@ int main(int argc, char **argv)
        IcoOrder,IcoRadius);
       TrgSurfReg = ReadIcoByOrder(IcoOrder,IcoRadius);
       if(TrgSurfReg==NULL) {
-  printf("ERROR reading icosahedron\n");
-  exit(1);
+	printf("ERROR reading icosahedron\n");
+	exit(1);
       }
     }
     printf("Done loading target registration surface\n");
     fflush(stdout);
-
+    
     if(!strcmp(mapmethod,"nnfr")) ReverseMapFlag = 1;
     else                          ReverseMapFlag = 0;
 
@@ -375,14 +406,14 @@ int main(int argc, char **argv)
     /* save the Source Hits into a .w file */
     if(srchitfile != NULL){
       for(vtx = 0; vtx < Surf->nvertices; vtx++)
-  Surf->vertices[vtx].val = MRIFseq_vox(SrcHits,vtx,0,0,0) ;
+	Surf->vertices[vtx].val = MRIFseq_vox(SrcHits,vtx,0,0,0) ;
       MRISwriteValues(Surf, srchitfile) ;
       MRIfree(&SrcHits);
     }
     /* save the Target Hits into a .w file */
     if(trghitfile != NULL){
       for(vtx = 0; vtx < SurfOut->nvertices; vtx++)
-  SurfOut->vertices[vtx].val = MRIFseq_vox(TrgHits,vtx,0,0,0) ;
+	SurfOut->vertices[vtx].val = MRIFseq_vox(TrgHits,vtx,0,0,0) ;
       MRISwriteValues(SurfOut, trghitfile) ;
       MRIfree(&TrgHits);
     }
@@ -413,21 +444,21 @@ int main(int argc, char **argv)
   else{
     if(reshape){
       if(reshapefactor == 0) 
-  reshapefactor = GetClosestPrimeFactor(SurfVals2->width,6);
+	reshapefactor = GetClosestPrimeFactor(SurfVals2->width,6);
       if(reshapefactor != SurfVals2->width){
-  printf("Reshaping %d (nvertices = %d)\n",
-         reshapefactor,SurfVals2->width);
-  mritmp = mri_reshape(SurfVals2, SurfVals2->width / reshapefactor, 
-           1, reshapefactor,SurfVals2->nframes);
-  if(mritmp == NULL){
-    printf("ERROR: mri_reshape could not alloc\n");
-    return(1);
-  }
-  MRIfree(&SurfVals2);
-  SurfVals2 = mritmp;
+	printf("Reshaping %d (nvertices = %d)\n",
+	       reshapefactor,SurfVals2->width);
+	mritmp = mri_reshape(SurfVals2, SurfVals2->width / reshapefactor, 
+			     1, reshapefactor,SurfVals2->nframes);
+	if(mritmp == NULL){
+	  printf("ERROR: mri_reshape could not alloc\n");
+	  return(1);
+	}
+	MRIfree(&SurfVals2);
+	SurfVals2 = mritmp;
       }
       else{
-  printf("INFO: nvertices is prime, cannot reshape\n");
+	printf("INFO: nvertices is prime, cannot reshape\n");
       }
     }
     printf("Writing\n");
@@ -488,6 +519,20 @@ static int parse_commandline(int argc, char **argv)
       if(nargc < 1) argnerr(option,1);
       srctypestring = pargv[0];
       srctype = string_to_type(srctypestring);
+      nargsused = 1;
+    }
+    else if (!strcmp(option, "--srchitvol") ||
+       !strcmp(option, "--srchit")){
+      if(nargc < 1) argnerr(option,1);
+      srchitvolid = pargv[0];
+      nargsused = 1;
+    }
+    else if (!strcmp(option, "--srchit_type") ||
+       !strcmp(option, "--srchitvol_type") ||
+       !strcmp(option, "--srchitfmt")){
+      if(nargc < 1) argnerr(option,1);
+      srchittypestring = pargv[0];
+      srchittype = string_to_type(srchittypestring);
       nargsused = 1;
     }
     else if (!strcmp(option, "--srcreg")){
@@ -650,6 +695,9 @@ static void print_usage(void)
   printf("   --frame     save only nth frame (with paint format)\n");
   printf("   --noreshape do not save output as multiple 'slices'\n");
   printf("   --rf R  integer reshaping factor, save as R 'slices'\n");
+  printf("   --srchit   volume to store the number of hits at each vox \n");
+  printf("   --srchit_type  source hit volume format \n");
+
   printf("\n");
   printf(" Other Options\n");
   printf("   --help      print out information on how to use this program\n");
@@ -767,8 +815,15 @@ static void print_help(void)
 "\n"
 "  --rf R\n"
 "\n"
-"    Explicity set the reshaping factor to R. R must be an integer factor of \n"
-"    the number of vertices.\n"
+"    Explicity set the reshaping factor to R. R must be an integer factor \n"
+"    of the number of vertices. \n"
+"\n"
+"  --srchit volid\n"
+"\n"
+"    Save a volume (the same size as the source) in which the value at\n"
+"    each voxel is the number of surface vertices it maps to. The number of\n"
+"    voxels hit at least once is printed to stdout as :\n"
+"       'Number of source voxels hit' \n"
 "\n"
 "  --version : print version and exit.\n"
 "\n"
@@ -789,7 +844,7 @@ static void print_help(void)
 "  for the icosaheron. For non-ico, the prime factor of Nv closest to 6 is chosen. \n"
 "  Reshaping can be important for logistical reasons (eg, Nv can easily exceed \n"
 "  the maximum number of elements allowed in the analyze format). R can be forced \n"
-"  to 1 with --noreshape. The user can also explicity set R from the command-line"
+"  to 1 with --noreshape. The user can also explicity set R from the command-line\n"
 "  using --rf. Any geometry information saved with the output file will \n"
 "  be bogus.\n"
 "\n"
@@ -892,6 +947,19 @@ static void check_options(void)
     exit(1);
   }
 
+  if(srchitvolid != NULL){
+    if(srchittype == MRI_VOLUME_TYPE_UNKNOWN) {
+      if(defaulttype == MRI_VOLUME_TYPE_UNKNOWN)
+	srchittype = mri_identify(srchitvolid);
+      else
+	srchittype = defaulttype;
+    }
+    if(srchittype == MRI_VOLUME_TYPE_UNKNOWN){
+      printf("ERROR: could not determine type of %s\n",srcvolid);
+      exit(1);
+    }
+  }
+
   if(outtypestring != NULL && 
      (!strcasecmp(outtypestring,"w") || !strcasecmp(outtypestring,"paint"))){
     printf("INFO: output format is paint\n");
@@ -942,6 +1010,11 @@ static void dump_options(FILE *fp)
   if(srcwarp != NULL) fprintf(fp,"srcwarp = %s\n",srcwarp);
   else                   fprintf(fp,"srcwarp unspecified\n");
 
+  if(srchitvolid != NULL){
+    fprintf(fp,"srchitvol = %s\n",srchitvolid);
+    if(srchittypestring != NULL) fprintf(fp,"srchittype = %s\n",srchittypestring);
+  }
+
   fprintf(fp,"surf = %s\n",surfname);
   fprintf(fp,"hemi = %s\n",hemi);
   if(trgsubject != NULL){
@@ -969,74 +1042,4 @@ static int singledash(char *flag)
   return(0);
 }
 
-/* These are from before using MRIread() */
-#if 0
-  /* get info about the source volume */
-  if(!strcmp(srcfmt,"bvolume")){
-    err = bf_getvoldim(srcvolid,&nrows_src,&ncols_src,
-           &nslcs_src,&nfrms,&endian,&srctype);
-    if(err) exit(1);
-    /* Dsrc: read the source registration file */
-    colres_src = ipr; /* in-plane resolution */
-    rowres_src = ipr; /* in-plane resolution */
-    slcres_src = bpr; /* between-plane resolution */
-  }
-  if(!strcmp(srcfmt,"cor")){
-    nrows_src = 256;
-    ncols_src = 256;
-    nslcs_src = 256;
-    endian = 0;
-    nfrms = 1;
-    srctype = 0;
-    colres_src = 1;
-    rowres_src = 1;
-    slcres_src = 1;
-  }
-  printf("Source Volume: %d %d %d %d\n",nrows_src,ncols_src,nslcs_src,nfrms);
-
-  /* load in the (possibly 4-D) source volume */
-  printf("Loading volume %s ...",srcvolid); fflush(stdout);
-  if(!strcmp(srcfmt,"bvolume")){
-    SrcVol = mri_load_bvolume(srcvolid);
-    if(SrcVol == NULL) exit(1);
-  }
-  else{
-    SrcVol = mri_load_cor_as_float(srcvolid);
-  }
-#endif
-#if 0
-  /* save the target volume in an appropriate format */
-  if(!strcasecmp(ofmt,"bshort") || !strcasecmp(ofmt,"bfloat") || 
-     !strcasecmp(ofmt,"bfile")  || !strcasecmp(ofmt,"bvolume") ){
-    /*-------------- bvolume --------------*/
-    if(!strcasecmp(ofmt,"bfile")  || !strcasecmp(ofmt,"bvolume") )
-      outtype = srctype;
-    else if(!strcasecmp(ofmt,"bshort")) outtype = BF_SHORT;
-    else if(!strcasecmp(ofmt,"bfloat")) outtype = BF_FLOAT;
-
-    printf("Saving volume to %s as bvolume\n",outfile); fflush(stdout);
-    mri_save_as_bvolume(SurfVals2,outfile,endian,outtype); 
-
-    /* for a stat volume, save the .dat file */
-    if(is_sxa_volume(srcvolid)) sv_sxadat_by_stem(sxa,outfile);
-  }
-/* --------------------------------------------- */
-int check_format(char *trgfmt)
-{
-  if( strcasecmp(trgfmt,"bvolume") != 0 &&
-      strcasecmp(trgfmt,"bfile") != 0 &&
-      strcasecmp(trgfmt,"bshort") != 0 &&
-      strcasecmp(trgfmt,"bfloat") != 0 &&
-      strcasecmp(trgfmt,"w") != 0 &&
-      strcasecmp(trgfmt,"paint") != 0 &&
-      strcasecmp(trgfmt,"cor") != 0 ){
-    fprintf(stderr,"ERROR: format %s unrecoginized\n",trgfmt);
-    fprintf(stderr,"Legal values are: bvolume, bfile, bshort, bfloat, and cor\n");
-    fprintf(stderr,"                  paint, w\n");
-    exit(1);
-  }
-  return(0);
-}
-
-#endif
 
