@@ -4,10 +4,13 @@ function [pdf, pdfvar] = pdf_rayleigh(x,mean)
 % Rayleigh Probability distribution/density function sampled at
 % x. If mean is not specified, it defaults to 1. The variance
 % is dependent on the mean and is (4/pi-1)*mean.^2, which is
-% returned in pdfvar.
-% 
+% returned in pdfvar. 
 %
-% $Id: pdf_rayleigh.m,v 1.1 2004/05/22 01:10:21 greve Exp $
+% Rayleigh dist noise can be constructed from complex white noise:
+%   y = abs(randn(10000,1) +i*randn(10000,1));
+%   The var will be the var of the white noise times (2-pi/2)
+%
+% $Id: pdf_rayleigh.m,v 1.2 2004/09/30 19:49:22 greve Exp $
 
 pdf = [];
 if(nargin < 1 | nargin > 2)
