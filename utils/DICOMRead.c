@@ -2,7 +2,7 @@
    DICOM 3.0 reading functions
    Author: Sebastien Gicquel and Douglas Greve
    Date: 06/04/2001
-   $Id: DICOMRead.c,v 1.37 2003/08/15 14:29:03 tosa Exp $
+   $Id: DICOMRead.c,v 1.38 2003/08/18 17:30:06 tosa Exp $
 *******************************************************/
 
 #include <stdio.h>
@@ -566,7 +566,12 @@ char *SiemensAsciiTag(char *dcmfile, char *TagString)
   free(TestStr);
 
   
-  if(! dumpline) return(NULL); /* Could not match Begin String */
+  if(! dumpline) 
+  {
+    fclose(fp);    // must close
+    fflush(stdout); fflush(stderr);
+    return(NULL); /* Could not match Begin String */
+  }
 
   /* Once the Begin String has been matched, this section 
      searches each line until the TagString is matched
