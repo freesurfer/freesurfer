@@ -407,15 +407,15 @@ GCinit(GCLASSIFY *gc, int class)
     gcl->ill_cond = 1 ;
   }
   m_uT = MatrixTranspose(gcl->m_u, NULL) ;
-  det = MatrixDeterminant(gcl->m_covariance) ;
   gcl->m_W = MatrixScalarMul(m_sigma_inverse, -0.5f, gcl->m_W) ;
   m_tmp = MatrixMultiply(m_sigma_inverse, gcl->m_u, NULL) ;
   gcl->m_wT = MatrixTranspose(m_tmp, gcl->m_wT) ;
   MatrixFree(&m_tmp) ;
   m_tmp = MatrixMultiply(m_sigma_inverse, gcl->m_u, NULL) ;
   m_tmp2 = MatrixMultiply(m_uT, m_tmp, NULL) ;
-  det = MatrixDeterminant(m_sigma_inverse) ;
   gcl->w0 = -0.5*(gc->nvars * log(2*M_PI) + m_tmp2->rptr[1][1] + log(det)) ;
+
+/* log of prior can be added to gcl->w0 */
 
 #if 0
 fprintf(stdout, "\nclass %d:\n", class) ;
