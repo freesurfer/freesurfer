@@ -15,7 +15,7 @@
 #include "utils.h"
 #include "version.h"
 
-static char vcid[] = "$Id: mris_flatten.c,v 1.23 2003/04/17 18:37:30 kteich Exp $";
+static char vcid[] = "$Id: mris_flatten.c,v 1.24 2003/07/30 15:02:12 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -37,7 +37,7 @@ static int mrisDisturbVertices(MRI_SURFACE *mris, double amount) ;
 static int randomly_flatten = 0 ;
 static int   nospring = 0 ;
 static float scale = 3 ;
-static int   max_passes = 1 ;
+static int   max_passes = 3 ;
 
 static int sphere_flag = 0 ;
 static int plane_flag = 0 ;
@@ -57,7 +57,7 @@ main(int argc, char *argv[])
   MRI_SURFACE  *mris ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_flatten.c,v 1.23 2003/04/17 18:37:30 kteich Exp $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_flatten.c,v 1.24 2003/07/30 15:02:12 fischl Exp $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
