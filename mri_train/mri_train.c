@@ -49,7 +49,7 @@ main(int argc, char *argv[])
   training_file_name = argv[1] ;
   output_file_name = argv[2] ;
 
-  mric = MRICalloc(classifier, features, NULL) ;
+  mric = MRICalloc(1, &classifier, &features, NULL) ;
   MRICtrain(mric, training_file_name, priors_fname) ;
   MRICwrite(mric, output_file_name) ;
   MRICfree(&mric) ;
