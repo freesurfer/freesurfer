@@ -77,6 +77,7 @@ extern int Gz ;
 extern int Gvx ;
 extern int Gvy ;
 extern int Gvz ;
+extern int IMAGE_SIZE ;
 
 #define PT_NONE           0
 #define PT_CIRCLE         1
