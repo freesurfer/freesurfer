@@ -2,7 +2,7 @@
 # epidewarp.fsl
 #
 
-set VERSION = '$Id: epidewarp.fsl,v 1.9 2004/12/03 18:03:54 greve Exp $'
+set VERSION = '$Id: epidewarp.fsl,v 1.10 2004/12/16 19:31:17 greve Exp $'
 set inputargs = ($argv);
 
 set dph = ();
@@ -661,7 +661,11 @@ Prints copious amounts to the screen.
 SUGGESTED FIELD MAP PARAMETERS
 
 These field map parameters are begin used by the Biomedical
-Informatics Research Network (www.nbirn.net).
+Informatics Research Network (www.nbirn.net). For Siemens, we
+recommend using the stock sequence called gre_field_mapping.  The
+DeltaTE might differ slightly on individual systems from the values
+listed below depending upon the exact strength (eg, 2.89T instead of
+exactly 3T).
 
 TR = 500ms (1000ms with phased-array)
 TE1: Minimum possible
