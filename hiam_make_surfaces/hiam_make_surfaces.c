@@ -7,8 +7,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: pengyu $
-// Revision Date  : $Date: 2005/01/26 22:52:41 $
-// Revision       : $Revision: 1.3 $
+// Revision Date  : $Date: 2005/03/31 22:31:03 $
+// Revision       : $Revision: 1.4 $
 ////////////////////////////////////////////
 
 #include <stdio.h>
@@ -78,7 +78,7 @@ static char     *labelvolume = "mri/aseg" ;
 static char     *orig_name =  "hippocampus.orig" ;
 static float    weight_Gspring = 0.0 ;
 static double   gaussian_norm = 2.0;
-static int      write_iterations = 1 ;
+static int      write_iterations = 0 ;
 static int      niteration = 0 ;
 static int      smooth_spikes = 500;
 static int      nbrs = 3 ;
@@ -286,9 +286,9 @@ main(int argc, char *argv[])
 					}
 				}
 	
-				fprintf(stderr, "%dth iteration: ratio = %2.5f, energy_quadcur = %5.2f, energy_label = %5.2f,"
+				/*fprintf(stderr, "%dth iteration: ratio = %2.5f, energy_quadcur = %5.2f, energy_label = %5.2f,"\
 								" energy_repulse = %5.2f, energy_Nspring = %5.2f, energy_Tspring = %5.2f\n",\
-								t,ratio,energy_quadcur,energy_label,energy_repulse,energy_Nspring,energy_Tspring) ;
+								t,ratio,energy_quadcur,energy_label,energy_repulse,energy_Nspring,energy_Tspring) ; */
 				t++; energy_old = energy_new ;
 				
 		}
@@ -1278,8 +1278,8 @@ mrisExaminemovelength(MRI_SURFACE *mris)
 #endif
 	}
 	
-	fprintf(stderr,"There are %d vertex make large movement in a single step\n", over_num);
-	fprintf(stderr,"%d vertex move out of region in %dth iteration\n", overnum, t+1);
+	//fprintf(stderr,"There are %d vertex make large movement in a single step\n", over_num);
+	//fprintf(stderr,"%d vertex move out of region in %dth iteration\n", overnum, t+1);
 	return (NO_ERROR);
 }
 
