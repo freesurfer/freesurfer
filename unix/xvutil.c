@@ -24,6 +24,7 @@
 #include "xvutil.h"
 #include "proto.h"
 #include "hipsh.h"
+#include "error.h"
 
 /*----------------------------------------------------------------------
                            MACROS AND CONSTANTS
@@ -183,6 +184,11 @@ xvCreateFrame(XV_FRAME *xvf, char *name)
                            XV_WIDTH,    width,
                            XV_HEIGHT,   height,
                            NULL);
+  if (!xvf->frame)
+    ErrorExit(ERROR_BADPARM, 
+              "xvCreateFrame(%s, (%d, %d), %d): could not create frame",
+              name, xvf->rows, xvf->cols, xvf->display_size) ;
+
   xvf->display = (Display *)xv_get(xvf->frame,XV_DISPLAY);
   xvf->screen = DefaultScreen(xvf->display);
   xvf->black_pixel = BlackPixel(xvf->display, xvf->screen);
@@ -191,6 +197,11 @@ xvCreateFrame(XV_FRAME *xvf, char *name)
   xvInitColors(xvf) ;
 
   xvf->panel =(Panel)xv_create((Xv_opaque)xvf->frame,PANEL,XV_X,0,XV_Y,0,NULL);
+  if (!xvf->panel)
+    ErrorExit(ERROR_BADPARM, 
+              "xvCreateFrame(%s, (%d, %d), %d): could not create panel",
+              name, xvf->rows, xvf->cols, xvf->display_size) ;
+
   xvf->gc = DefaultGC(xvf->display,DefaultScreen(xvf->display));
   XSetForeground(xvf->display, xvf->gc, xvf->black_pixel);
   XSetBackground(xvf->display, xvf->gc, xvf->white_pixel);
@@ -231,6 +242,9 @@ XVprintf(XV_FRAME *xvf, int which, ...)
   va_list  args ;
   char     *fmt ;
   int      len ;
+
+  if (which < 0 || which > 1)
+    ErrorReturn(0, (ERROR_BADPARM, "XVprintf(%d): out of range", which)) ;
 
   va_start(args, which) ;
   fmt = va_arg(args, char *) ;
@@ -545,10 +559,9 @@ XVshowImage(XV_FRAME *xvf, int which, IMAGE *image, int frame)
   }
   else
   {
-    GtmpFloatImage->cols = GtmpByteImage->cols = GtmpByteImage2->cols = 
-      image->cols ;
-    GtmpFloatImage->rows = GtmpByteImage->rows = GtmpByteImage2->rows = 
-      image->rows ;
+    ImageSetSize(GtmpFloatImage, image->rows, image->cols) ;
+    ImageSetSize(GtmpByteImage, image->rows, image->cols) ;
+    ImageSetSize(GtmpByteImage2, image->rows, image->cols) ;
   }
 
   ImageCopyFrames(image, GtmpFloatImage, frame, 1, 0) ;
