@@ -1,7 +1,7 @@
 function flac = fast_ldflac(flacfile)
 % flac = fast_ldflac(flacfile)
 %
-% $Id: fast_ldflac.m,v 1.3 2004/10/18 05:48:29 greve Exp $
+% $Id: fast_ldflac.m,v 1.4 2004/10/25 04:54:38 greve Exp $
 
 flac = [];
 if(nargin > 1)
@@ -72,6 +72,7 @@ while(1)
    case 'fixacf',      flac.fixacf      = sscanf(tline,'%*s %d',1);
    case 'EV', 
     ev = flac_ev_parse(tline);
+    if(isempty(ev)) flac=[]; return; end
     flac.ev(nthev) = ev;
     nthev = nthev + 1;
    case 'CONTRAST-BEGIN', 
