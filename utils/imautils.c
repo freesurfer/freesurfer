@@ -474,10 +474,6 @@ IMAFILEINFO *imaLoadFileInfo(char *imafile)
     ifi->VolDim[2] = (int)ltmp;
   }
 
-  /* Number of frames */
-  imaLoadValFromKey(fp,"G18_Acq_NumberOfAverages",&ltmp);
-  ifi->NFrames = (int)ltmp;
-
   /* Col and Row Spacing, should work for mosaics and non */
   imaLoadValFromKey(fp,"G21_Rel1_CM_FoV_Height",&dtmp);
   FoVHeight = (float) dtmp;
@@ -528,12 +524,17 @@ IMAFILEINFO *imaLoadFileInfo(char *imafile)
   imaLoadValFromKey(fp,"G21_Rel1_CM_ImageNormal_Tra",&dtmp);
   ifi->Vs[1] = -dtmp; /* Z,S */
 
-  if(! ifi->IsMosaic) 
+  if(! ifi->IsMosaic) {
     ifi->NFilesPerFrame = ifi->VolDim[2];
+    ifi->NFrames = 1;
+  }
   else{
     nVolVoxs = ifi->VolDim[0] * ifi->VolDim[1] * ifi->VolDim[2];
     nMosVoxs = ifi->NImageRows * ifi->NImageCols;
     ifi->NFilesPerFrame = (int)(ceil((float)nVolVoxs/nMosVoxs));
+    /* Number of frames */
+    imaLoadValFromKey(fp,"G18_Acq_NumberOfAverages",&ltmp);
+    ifi->NFrames = (int)ltmp;
   }
 
   ifi->NFilesInSeriesExp = ifi->NFilesPerFrame * ifi->NFrames;
