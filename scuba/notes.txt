@@ -83,8 +83,12 @@ View
  - knows RAS coordinate space , converts window<->RAS
  - GetInfoAtWindowLocation( iX,iY, ocPairs, oasLabels, oasValues )
  - link information: type, which views are linked
- - SetCursor()
+ - SetView()
+ - SetMarker()
  - SetLayers( iczLayers, iaLayerIDs ) 
+ - one view is selected
+   - SelectThisView() - calls UnselectThisView() on all other vies
+   - UnselectThisView()
 
 Layer
  - static Layer& GetLayer( LayerID );
@@ -162,14 +166,102 @@ volume loading
 
 - info update
  - tk send mouse location to ToglManager
-   - send to Frame
-     - send to View
-       - view transforms to 3/5D point, calls on Layers
+   - frame->MouseMoved
+     - view->MouseMoved
+       - view transforms to 3/5D point, calls on layer->MouseMoved
          - polls DataCollection for info
-	 - calls update functions via tcl manager
+	 - calls update functions via TclCommandManager
 
 - linked cursors
  - tk pass clicks to ToglManager
    - passes to Frame, interprets tool and calls tool function
-     - View gets SetCursor()
+     - View gets SetView()
        - if View is linked, goes through static list of linked Views and calls SetCursor()
+
+
+  for static tcl responders: 
+    first time layer or view is created, 
+      if (bTclFunctionsNotRegistered)
+        RegisterTclFunctions()
+
+Layer:
+  GetLayerIDList 
+    returns a list of layer IDs
+  GetLayerType <ID>
+    returns a text string {2DMRI,2DMRIS,etc}
+  GetLayerOpacity <ID>
+    Layer& layer = GetLayer(ID);
+    return layer.GetOpacity();
+  SetLayerOpacity <ID> <opacity>
+    Layer& layer = GetLayer(ID);
+    layer.SetOpacity(opacity);
+
+Frame:
+  SetFrameViewConfiguration <frameID> <configuration>
+  GetViewIDFromFrameRowCol <frameID> <row> <col>   -- returns View::ID
+  GetSelectedViewID <frameID>    --- returns View::ID
+
+View:
+  SetViewOrientation <ID> <orientation>
+  SetViewZoomLevel <ID> <zoomLevel>
+  SetViewInPlane <ID> <plane>
+  SetViewCenter <ID> <X> <Y> <Z>
+  SetViewLinkFlag <ID> <linkFlag>
+
+
+  NewVolumeDataCollection <filename>
+    creates VolumeCollection(filename)
+    returns collection ID
+  New2DMRILayer <collectionID>
+    creates 2DMRILayer(collectionID)
+    returns layer ID
+  
+
+
+all classes
+Class::ID is auto-incrementing and autosetting
+Class() gets next ID, sets, and adds to list
+static map<ID,Class*> keeps track of Classes
+Class* GetByID( Class::ID ) for external use
+
+  Class::Class() {
+    mID = GetNextID();
+    mIDMap[mID] = this;
+  }
+  Class::~Class() {
+    mIDMap[mID] = NULL;
+  }
+
+  ID mID;
+  static ID mNextID;
+  static ID GetNextID () { return mNextID++; }
+  ID GetID() const  { return mID; }
+
+  static Class& GetClass( ID const iID );
+  typedef std::map<Class::ID,Class*> ClassIDMap;
+  static ClassIDMap mIDMap;
+
+  Class& 
+  Class::GetClass( ID const iID ) {
+
+    Class* obj = mIDMap[iID];
+    if( NULL == obj ) {
+      DebugOutputStatic( << "GetDataCollection ID=" << iID << " was null" );
+      throw domain_error( "ID no longer valid" );
+    }
+  
+    return *obj;
+  }
+
+string GetLabel()
+void SetLabel(string)
+
+  ID GetID() const { return mID; }
+  std::string GetLabel() const { return msLabel; }
+  void SetLabel( std::string const isLabel ) { msLabel = isLabel; }
+
+
+
+ToglFrame - doesn't automatically set ID because this is set by the togl stuff
+FrameView
+ViewLayer

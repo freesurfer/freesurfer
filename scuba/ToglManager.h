@@ -13,9 +13,16 @@ class ToglFrame : public DebugReporter {
  public:
   typedef int ID;
 
+  // Constructor takes an ID that is ultimately set by the Tcl script.
   ToglFrame( ID iID );
   virtual ~ToglFrame();
 
+  // Accessor for the ID
+  ID GetID() const { return mID; }
+
+  // These callabacks are called by the ToglManager. Subclasses
+  // can't/shouldn't override these as these setup the environment
+  // before the overridable versions are called.
   void Draw();
   void Reshape( int iWidth, int iHeight );
   void Timer();
@@ -25,13 +32,19 @@ class ToglFrame : public DebugReporter {
   void KeyDown( int inX, int inY, std::string isKey, int iModifers );
   void KeyUp( int inX, int inY, std::string isKey, int iModifers );
   
-  ID GetID() const { return mID; }
-  
-  void PostRedisplay() { mbPostRedisplay = true; }
-  bool WantRedisplay() { return mbPostRedisplay; }
+  // These manage flags that the ToglManager will check to see if the
+  // frame wants a redisplay. The frame should call RequestRedisplay()
+  // to request one. Then ToglManager will ask the frame if it wants
+  // one by calling WantRedisplay() on it, and notify that the
+  // redisplay has been posted with RedisplayPosted().
+  void RequestRedisplay() { mbPostRedisplay = true; }
+  bool WantRedisplay() const { return mbPostRedisplay; }
   void RedisplayPosted() { mbPostRedisplay = false; }
 
  protected:
+
+  // These are the overridable functions that subclass frames can use
+  // to implement specific behavior.
   virtual void DoDraw();
   virtual void DoReshape();
   virtual void DoTimer();
@@ -41,20 +54,32 @@ class ToglFrame : public DebugReporter {
   virtual void DoKeyDown( int inX, int inY, std::string isKey, int iModifers );
   virtual void DoKeyUp( int inX, int inY, std::string isKey, int iModifers );
 
+  // These are set by the Reshape() function. These should not be
+  // manually set by subclasses.
   int mHeight;
   int mWidth;
 
+  // Frame ID.
   ID mID;
 
+  // Redisplay requested flag.
   bool mbPostRedisplay;
 };
 
+
+
+// A factory class for the ToglManager so it can create ToglFrame
+// subclasses. ToglFrame subclasses should also have their own
+// subclass of the ToglFrameFactory and pass it to the ToglManager's
+// SetFrameFactory().
 class ToglFrameFactory {
  public:
   virtual ToglFrame* NewToglFrame( ToglFrame::ID iID ) { 
     return new ToglFrame( iID );
   }
 };
+
+
 
 class ToglManager {
 

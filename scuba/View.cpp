@@ -3,10 +3,7 @@
 
 using namespace std;
 
-View::View( string isID ) {
-  msID = isID;
-  mWidth = 0;
-  mHeight = 0;
+View::View( string isID ) : FrameView( isID ) {
 }
 
 void
@@ -19,6 +16,10 @@ View::Draw() {
   for( int nChar = 0; nChar < msID.length(); nChar++ ) {
     glutBitmapCharacter( GLUT_BITMAP_HELVETICA_18, msID[nChar] );
   }
+}
+
+void
+View::Reshape() {
 }
 
 void
