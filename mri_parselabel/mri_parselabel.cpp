@@ -4,6 +4,7 @@
 //
 #include <iostream>
 #include <iomanip>
+#include <string>
 #include <fstream>
 #include <vector>
 #include <algorithm>
@@ -79,7 +80,7 @@ int main(int argc, char *argv[])
   int nargs;
   Progname=argv[0];
 
-  nargs = handle_version_option (argc, argv, "$Id: mri_parselabel.cpp,v 1.8 2004/06/10 16:49:42 tosa Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_parselabel.cpp,v 1.9 2004/06/10 16:52:10 tosa Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
