@@ -2807,6 +2807,104 @@ MRIconvolve1dShort(MRI *mri_src, MRI *mri_dst, float *k, int len, int axis,
 
 ------------------------------------------------------*/
 MRI *
+MRIconvolve1dFloat(MRI *mri_src, MRI *mri_dst, float *k, int len, int axis,
+                  int src_frame, int dst_frame)
+{
+  int           x, y, z, width, height, halflen, depth, *xi, *yi, *zi ;
+  register int  i ;
+  float         *inBase ;
+  float         *outPix ;
+  float         *ki, total ;
+
+  width = mri_src->width ;
+  height = mri_src->height ;
+  depth = mri_src->depth ;
+
+  if (!mri_dst)
+    mri_dst = MRIalloc(width, height, depth, MRI_FLOAT) ;
+
+  if (mri_dst->type != MRI_FLOAT)
+    ErrorReturn(NULL, 
+                (ERROR_UNSUPPORTED, 
+                 "MRIconvolve1dFloat: unsupported dst pixel format %d",
+                 mri_dst->type)) ;
+
+  halflen = len/2 ;
+
+  xi = mri_src->xi ; yi = mri_src->yi ; zi = mri_src->zi ;
+
+  switch (axis)
+  {
+  case MRI_WIDTH:
+    for (z = 0 ; z < depth ; z++)
+    {
+      for (y = 0 ; y < height ; y++)
+      {
+        inBase = &MRIFseq_vox(mri_src, 0, y, z, src_frame) ;
+        outPix = &MRIFseq_vox(mri_dst, 0, y, z, dst_frame) ;
+        for (x = 0 ; x < width ; x++)
+        {
+          total = 0.0f ;
+          
+          for (ki = k, i = 0 ; i < len ; i++)
+            total += *ki++ * (float)(*(inBase + xi[x+i-halflen])) ;
+          
+          *outPix++ = total ;
+        }
+      }
+    }
+    break ;
+  case MRI_HEIGHT:
+    for (z = 0 ; z < depth ; z++)
+    {
+      for (y = 0 ; y < height ; y++)
+      {
+        outPix = &MRIFseq_vox(mri_dst, 0, y, z, dst_frame) ;
+        for (x = 0 ; x < width ; x++)
+        {
+          total = 0.0f ;
+          
+          for (ki = k, i = 0 ; i < len ; i++)
+            total += *ki++ * 
+              (float)(MRIFseq_vox(mri_src, x,yi[y+i-halflen],z,src_frame));
+            
+            *outPix++ = total ;
+        }
+      }
+    }
+    break ;
+  case MRI_DEPTH:
+    for (z = 0 ; z < depth ; z++)
+    {
+      for (y = 0 ; y < height ; y++)
+      {
+        outPix = &MRIFseq_vox(mri_dst, 0, y, z, dst_frame) ;
+        for (x = 0 ; x < width ; x++)
+        {
+          total = 0.0f ;
+          
+          for (ki = k, i = 0 ; i < len ; i++)
+            total += *ki++ * 
+              (float)(MRIFseq_vox(mri_src, x,y,zi[z+i-halflen], src_frame));
+          
+          *outPix++ = total ;
+        }
+      }
+    }
+    break ;
+  }
+
+  return(mri_dst) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+
+------------------------------------------------------*/
+MRI *
 MRIreduce1d(MRI *mri_src, MRI *mri_dst, float *k, int len, int axis)
 {
   int    x, y, z, i, dheight, dwidth, ddepth, xi,yi, zi, halflen  ;
@@ -2825,7 +2923,7 @@ MRIreduce1d(MRI *mri_src, MRI *mri_dst, float *k, int len, int axis)
                      mri_src->xsize*2, mri_src->ysize*2, mri_src->zsize*2) ;
   }
 
-  if ((mri_dst->type != MRI_UCHAR) || (mri_src->type != MRI_FLOAT))
+  if (((mri_dst->type != MRI_UCHAR) && (mri_dst->type != MRI_FLOAT)) || (mri_src->type != MRI_FLOAT))
     ErrorReturn(NULL,
                 (ERROR_UNSUPPORTED, 
                  "MRIreduce1d: src %d or dst %d format unsupported",
@@ -2861,7 +2959,7 @@ MRIreduce1d(MRI *mri_src, MRI *mri_dst, float *k, int len, int axis)
             
             total = total + k[i] * MRIFvox(mri_src, xi, yi, zi) ;
           }
-          MRIvox(mri_dst, x, y, z) = (BUFTYPE)nint(total) ;
+					MRIsetVoxVal(mri_dst, x, y, z, 0, total);
         }
       }
     }
@@ -2888,7 +2986,7 @@ MRIreduce1d(MRI *mri_src, MRI *mri_dst, float *k, int len, int axis)
             
             total = total + k[i] * MRIFvox(mri_src, xi, yi, zi) ;
           }
-          MRIvox(mri_dst, x, y, z) = (BUFTYPE)nint(total) ;
+					MRIsetVoxVal(mri_dst, x, y, z, 0, total);
         }
       }
     }
@@ -2916,7 +3014,7 @@ MRIreduce1d(MRI *mri_src, MRI *mri_dst, float *k, int len, int axis)
             
             total = total + k[i] * MRIFvox(mri_src, xi, yi, zi) ;
           }
-          MRIvox(mri_dst, x, y, z) = (BUFTYPE)nint(total) ;
+					MRIsetVoxVal(mri_dst, x, y, z, 0, total);
         }
       }
     }

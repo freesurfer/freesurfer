@@ -3,8 +3,8 @@
 //
 // 
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Date  : $Date: 2004/06/03 18:15:13 $
-// Revision       : $Revision: 1.47 $
+// Revision Date  : $Date: 2004/06/08 14:12:18 $
+// Revision       : $Revision: 1.48 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -2030,6 +2030,72 @@ GCAMmorphToAtlas(MRI *mri_src, GCA_MORPH *gcam, MRI *mri_morphed, int frame)
 
   return(mri_morphed) ;
 }
+MRI *
+GCAMmorphToAtlasType(MRI *mri_src, GCA_MORPH *gcam, MRI *mri_morphed, int frame, int interp_type)
+{
+  int        width, height, depth, x, y, z, start_frame, end_frame ;
+  float      xd, yd, zd ;
+  Real       val ;
+
+  if (frame >= 0 && frame < mri_src->nframes)
+    start_frame = end_frame = frame ;
+  else
+  {
+    start_frame = 0 ; end_frame = mri_src->nframes-1 ;
+  }
+
+  width = mri_src->width ; height = mri_src->height ; depth = mri_src->depth ; 
+
+  // GCAM is a non-linear voxel-to-voxel transform
+  // it also assumes that the uniform voxel size
+  if (mri_morphed)
+  {
+    if ( (mri_src->xsize != mri_src->ysize)
+         || (mri_src->xsize != mri_src->zsize)
+         || (mri_src->ysize != mri_src->zsize))
+    {
+      ErrorExit(ERROR_BADPARM, "non-uniform volumes cannot be used for GCAMmorphToAtlas()\n");
+    }
+  }
+  if (!mri_morphed)
+  {
+    mri_morphed = MRIallocSequence(width, height, depth, mri_src->type, frame < 0 ? mri_src->nframes : 1) ;
+    MRIcopyHeader(mri_src, mri_morphed) ;
+  }
+
+  for (x = 0 ; x < width ; x++)
+  {
+    for (y = 0 ; y < height ; y++)
+    {
+      for (z = 0 ; z < depth ; z++)
+      {
+				if (x == Gx && y == Gy && z == Gz)
+					DiagBreak() ;
+
+				if (!GCAMsampleMorph(gcam, (float)x*mri_src->thick, 
+														 (float)y*mri_src->thick, (float)z*mri_src->thick, 
+														 &xd, &yd, &zd))
+				{
+					xd /= mri_src->thick ; yd /= mri_src->thick ; zd /= mri_src->thick ; 
+					for (frame = start_frame ; frame <= end_frame ; frame++)
+					{
+						if (xd > -1 && yd > -1 && zd > 0 &&
+								xd < width && yd < height && zd < depth)
+							MRIsampleVolumeFrameType(mri_src, xd, yd, zd, frame, interp_type, &val) ;
+						else
+							val = 0.0 ;
+						MRIsetVoxVal(mri_morphed, x, y, z, frame-start_frame, val) ;
+					}
+				}
+      }
+    }
+  }
+
+  // copy the gcam dst information to the morphed volume
+  useVolGeomToMRI(&gcam->dst, mri_morphed);
+
+  return(mri_morphed) ;
+}
 static int
 log_integration_parms(FILE *fp, GCA_MORPH_PARMS *parms)
 {
@@ -2484,6 +2550,16 @@ GCAMsampleMorph(GCA_MORPH *gcam, float x, float y, float z,
   xpd = (1.0f - xmd) ;
   ypd = (1.0f - ymd) ;
   zpd = (1.0f - zmd) ;
+	if (
+			(gcam->nodes[xm][ym][zm].invalid == GCAM_POSITION_INVALID) ||
+    (gcam->nodes[xm][ym][zp].invalid == GCAM_POSITION_INVALID) ||
+    (gcam->nodes[xm][yp][zm].invalid == GCAM_POSITION_INVALID) ||
+    (gcam->nodes[xm][yp][zp].invalid == GCAM_POSITION_INVALID) ||
+    (gcam->nodes[xp][ym][zm].invalid == GCAM_POSITION_INVALID) ||
+    (gcam->nodes[xp][ym][zp].invalid == GCAM_POSITION_INVALID) ||
+    (gcam->nodes[xp][yp][zm].invalid == GCAM_POSITION_INVALID) ||
+			(gcam->nodes[xp][yp][zp].invalid == GCAM_POSITION_INVALID))
+		return(ERROR_BADPARM) ;
 
   *pxd =
     xpd * ypd * zpd * gcam->nodes[xm][ym][zm].x +
