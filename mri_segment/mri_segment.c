@@ -26,6 +26,8 @@ char *Progname ;
 
 int main(int argc, char *argv[]) ;
 static int get_option(int argc, char *argv[]) ;
+MRI *MRIremoveWrongDirection(MRI *mri_src, MRI *mri_dst, int wsize,
+                             float low_thresh, float hi_thresh) ;
 
 int
 main(int argc, char *argv[])
@@ -78,11 +80,14 @@ main(int argc, char *argv[])
     */
   for (i = 0 ; i < niter ; i++)
   {
-    MRIreclassify(mri_src, mri_labeled, mri_labeled, wm_low-5, gray_hi+5,wsize);
+    MRIreclassify(mri_src, mri_labeled, mri_labeled, wm_low-5,gray_hi+5,wsize);
   }
   MRIfree(&mri_tmp) ;
 
   mri_dst = MRImaskLabels(mri_src, mri_labeled, NULL) ;
+  fprintf(stderr, 
+          "\nremoving voxels with positive offset direction...\n") ;
+  MRIremoveWrongDirection(mri_dst, mri_dst, 3, wm_low-5, gray_hi+5) ;
 
   MRIfree(&mri_src) ;
   MRIfree(&mri_labeled) ; 
@@ -164,3 +169,57 @@ get_option(int argc, char *argv[])
 
   return(nargs) ;
 }
+#define BLUR_SIGMA 0.25f
+MRI *
+MRIremoveWrongDirection(MRI *mri_src, MRI *mri_dst, int wsize, 
+                        float low_thresh, float hi_thresh)
+{
+  MRI  *mri_kernel, *mri_smooth ;
+  int  x, y, z, width, height, depth, val, nchanged, ntested ;
+
+  mri_kernel = MRIgaussian1d(BLUR_SIGMA, 100) ;
+  fprintf(stderr, "smoothing T1 volume with sigma = %2.3f\n", BLUR_SIGMA) ;
+  mri_smooth = MRIclone(mri_src, NULL) ;
+  MRIconvolveGaussian(mri_src, mri_smooth, mri_kernel) ;
+  MRIfree(&mri_kernel) ;
+
+  if (!mri_dst)
+    mri_dst = MRIclone(mri_src, NULL) ;
+
+  nchanged = ntested = 0 ;
+  width = mri_src->width ; height = mri_src->height ; depth = mri_src->depth ; 
+  for (z = 0 ; z < depth ; z++)
+  {
+    for (y = 0 ; y < height ; y++)
+    {
+      for (x = 0 ; x < width ; x++)
+      {
+        val = MRIvox(mri_src, x, y, z) ;
+        if (val >= low_thresh && val <= hi_thresh)
+        {
+          ntested++ ;
+          if (MRIvoxelDirection(mri_smooth, x, y, z, wsize) > 0)
+          {
+            nchanged++ ;
+            val = 0 ;
+          }
+        }
+        MRIvox(mri_dst, x, y, z) = val ;
+      }
+    }
+  }
+    
+  if (Gdiag & DIAG_SHOW)
+  {
+    fprintf(stderr, "               %8d voxels tested (%2.2f%%)\n",
+            ntested, 100.0f*(float)ntested/ (float)(width*height*depth));
+    fprintf(stderr, "               %8d voxels changed (%2.2f%%)\n",
+            nchanged, 100.0f*(float)nchanged/ (float)(width*height*depth));
+  }
+  MRIfree(&mri_smooth) ;
+  return(mri_dst) ;
+}
+
+
+
+
