@@ -65,6 +65,11 @@
 #define STRALLOC(str)   ((char *)calloc(strlen(str)+1, sizeof(char)))
 #define STRCPALLOC(str) strcpy(STRALLOC(str), str)
 
+#ifdef LINUX
+#define exp2(f)     pow(2.0,(f))
+#define log2(f)     (log(f) / log(10.0))
+#endif
+
 #define ISPOW2(n)   (exp2((float)nint(log2((float)n))) == (float)n)
 
 #endif
