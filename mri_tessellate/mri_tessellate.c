@@ -82,7 +82,7 @@ main(int argc, char *argv[])
     if (argc<4)
     {
       printf("Usage: %s <input volume> <label> <output surface>\n",Progname);
-      exit(0);
+      exit(1);
     }
 
     sscanf(argv[2],"%d",&value);
@@ -91,7 +91,7 @@ main(int argc, char *argv[])
     if (data_dir==NULL)
     {
       printf("environment variable SUBJECTS_DIR undefined (use setenv)\n");
-      exit(0);
+      exit(1);
     }
     sprintf(ifpref,"%s/%s/mri/filled/COR-",data_dir,argv[1]);
     sprintf(ofpref,"%s/%s/surf/%s.orig",data_dir,argv[1],argv[3]);
@@ -128,7 +128,7 @@ read_images(char *fpref)
 
   sprintf(fname,"%s.info",fpref);
   fptr = fopen(fname,"r");
-  if (fptr==NULL) {printf("File %s not found.\n",fname);exit(0);}
+  if (fptr==NULL) {printf("File %s not found.\n",fname);exit(1);}
   fscanf(fptr,"%*s %d",&imnr0);
   fscanf(fptr,"%*s %d",&imnr1);
   fscanf(fptr,"%*s %*d");
@@ -175,7 +175,7 @@ read_images(char *fpref)
   {
     file_name(fpref,fname,k+imnr0,"%03d");
           fptr = fopen(fname,"rb");
-          if (fptr==NULL) {printf("File %s not found.\n",fname);exit(0);}
+          if (fptr==NULL) {printf("File %s not found.\n",fname);exit(1);}
           fread(buf,sizeof(char),bufsize,fptr);
           buffer_to_image(buf,im[k],xnum,ynum);
           fclose(fptr);
@@ -261,12 +261,10 @@ make_surface(void)
   face_index = 0;
   vertex_index = 0;
 
-  printf("\n") ;
   for (imnr=0;imnr<=numimg;imnr++)
   {
     if (vertex_index || face_index)
-      printf("\rslice %d: %d vertices, %d faces   ",
-             imnr,vertex_index,face_index);
+      printf("slice %d: %d vertices, %d faces\n",imnr,vertex_index,face_index);
     for (i=0;i<=IMGSIZE;i++)
     for (j=0;j<=IMGSIZE;j++)
     {
@@ -319,7 +317,6 @@ make_surface(void)
       face_index_table0[f_pack] = face_index_table1[f_pack];
     }
   }
-  printf("\n") ;
 }
 
 #if 0
