@@ -962,6 +962,12 @@ TransformRead(char *fname)
   case TRANSFORM_ARRAY_TYPE:
   default:
     trans->xform = (void *)LTAread(fname) ;
+    if (!trans->xform)
+    {
+      free(trans) ;
+      return(NULL) ;
+    }
+    trans->type = ((LTA *)trans->xform)->type ;
     break ;
   case MORPH_3D_TYPE:
     gcam = GCAMread(fname) ;
