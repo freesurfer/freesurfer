@@ -4,15 +4,20 @@
 # USAGE: talairach2 subjectid <mgzflag>
 #  subjectid - name of the subject
 #  mgzflag - if anything is present, then it will assume
-#   that the orig volume is stored as orig.mgz in the mri
-#   directory (ie, the orig dir does not exist and there
+#   that the nu volume is stored as nu.mgz in the mri
+#   directory (ie, the nu dir does not exist and there
 #   is no COR volume).
 #
-########################################################
-
-set VERSION = '$Id: talairach2,v 1.6 2004/07/15 21:54:06 greve Exp $';
+# originally mri/orig was used for this purpose
+# The algorithm of mritotal is correlation based and thus
+# it is better to use the intensity normalized volume, nu.
+#########################################################
+set VERSION = '$Id: talairach2,v 1.7 2004/08/31 18:07:37 tosa Exp $';
 
 set MGZ = ();
+
+# MNI perl module needs the following setting
+setenv LANG C
 
 # Look for version #
 set n = `echo $argv | grep version | wc -l` 
@@ -50,7 +55,7 @@ echo "INFO: registering $subject"
 date 
 
 echo "--------------------------------------------"
-set cmd = (mri_convert orig$MGZ orig.mnc)
+set cmd = (mri_convert nu$MGZ nu.mnc)
 echo $cmd
 $cmd
 if($status) then
@@ -58,18 +63,18 @@ if($status) then
   exit 1;
 endif
 
-if(! -e orig.mnc) then
+if(! -e nu.mnc) then
   echo "ERROR: cannot find orig.mnc"
   exit 1;
 endif
 
 echo "--------------------------------------------"
 set cmd = (mritotal -verbose -debug -clobber -protocol icbm \
-           orig.mnc transforms/talairach.xfm)
+           nu.mnc transforms/talairach.xfm)
 echo $cmd
 $cmd > ../scripts/mritotal.log
 set st = $status
-rm orig.mnc
+rm nu.mnc
 if($st) then
   echo "ERROR: mritotal failed, see scripts/mritotal.log"
   exit 1;
