@@ -21,48 +21,93 @@ void chklc(void)
   char  str[STRLEN] ;
 
   sprintf(str, "S%sER%sRONT%sOR", "URF", "_F", "DO") ;
-  if (getenv(str) != NULL)
-    return ;
+  if (getenv(str) != NULL) return ;
 
   cp = getenv("FREESURFER_HOME");
- 
-  if (cp)
-	{
-		strncpy(dirname, cp, STRLEN) ;
-	}
-  else
-  {
-    dirname[0] = 46; /*  ascii "."   */
-		dirname[1] = 0;
+  if(cp == NULL){
+    printf("-----------------------------------------------------\n");
+    printf("FreeSurfer Error: environment FREESURFER_HOME is not defined.\n"
+	   "  If you are outside the NMR-Martinos Center, please set this\n"
+	   "  variable to the location where you installed FreeSurfer.\n"
+	   "  If you are inside the NMR-Martinos Center, please source\n"
+	   "  the standard environment.\n");
+    printf(
+   "  If you need to install FreeSurfer, go to surfer.nmr.mgh.harvard.edu\n");
+    fprintf(stderr,"-----------------------------------------------------\n");
+    fprintf(stderr,
+	    "FreeSurfer Error: environment FREESURFER_HOME is not defined.\n"
+	    "  If you are outside the NMR-Martinos Center, please set this\n"
+	    "  variable to the location where you installed FreeSurfer.\n"
+	    "  If you are inside the NMR-Martinos Center, please source\n"
+	    "  the standard environment.\n");
+    fprintf(stderr,
+    "  If you need to install FreeSurfer, go to surfer.nmr.mgh.harvard.edu\n");
+    exit(-1);
   }
  
+  strncpy(dirname, cp, STRLEN) ;
 
   lfilename = (char*)calloc(1,512);
   email = (char*)calloc(1,512);
   magic = (char*)calloc(1,512);
-  key = (char*)calloc(1,512);
-  gkey = (char*)calloc(1,1024);
+  key   = (char*)calloc(1,512);
+  gkey  = (char*)calloc(1,1024);
 
   sprintf(lfilename,"%s/.lic%s",dirname, "ense");
 
   lfile = fopen(lfilename,"r");
-  if(lfile) {
-    fscanf(lfile,"%s\n",email);
-    fscanf(lfile,"%s\n",magic);
-    fscanf(lfile,"%s\n",key);
-    
-    sprintf(gkey,"%s.%s",email,magic);
-#ifndef Darwin
-    if (strcmp(key,crypt(gkey,"*C*O*R*T*E*C*H*S*0*1*2*3*"))!=0) {
-      printf("No valid license key !\n");
-      exit(-1);
-    }
-#endif
-  }
-  else {
-    printf("License file not found !\n");
+  if(lfile == NULL) {
+    printf("-----------------------------------------------------\n");
+    printf("FreeSurfer license file %s not found.\n",lfilename);
+    printf("  If you are outside the NMR-Martinos center,\n"
+	   "  go to http://surfer.nmr.mgh.harvard.edu to \n" 
+	   "  to get a valid license file (it's free).\n");
+    printf("  If you are inside the NMR-Martinos center,\n"
+	   "  make sure to source the standard environment.\n");
+    fprintf(stderr,"-----------------------------------------------------\n");
+    fprintf(stderr,"FreeSurfer license file %s not found.\n",lfilename);
+    fprintf(stderr,
+	    "  If you are outside the NMR-Martinos center,\n"
+	    "  go to http://surfer.nmr.mgh.harvard.edu to \n" 
+	    "  to get a valid license file (it's free).\n");
+    fprintf(stderr,
+	    "  If you are inside the NMR-Martinos center,\n"
+	    "  make sure to source the standard environment.\n");
     exit(-1);
   }
+
+  fscanf(lfile,"%s\n",email);
+  fscanf(lfile,"%s\n",magic);
+  fscanf(lfile,"%s\n",key);
+    
+  sprintf(gkey,"%s.%s",email,magic);
+
+#ifndef Darwin
+  if (strcmp(key,crypt(gkey,"*C*O*R*T*E*C*H*S*0*1*2*3*"))!=0) {
+    printf("-----------------------------------------------------\n");
+    printf("FreeSurfer: Invalid license key found in license file %s \n",
+	   lfilename);
+    printf("  If you are outside the NMR-Martinos center,\n"
+	   "  go to http://surfer.nmr.mgh.harvard.edu to \n" 
+	   "  to get a valid license file (it's free).\n");
+    printf("  If you are inside the NMR-Martinos center,\n"
+	   "  make sure to source the standard environment.\n");
+    fprintf(stderr,"-----------------------------------------------------\n");
+    fprintf(stderr,
+	    "FreeSurfer: Invalid license key found in license file %s \n",
+	    lfilename);
+    fprintf(stderr,
+	    "  If you are outside the NMR-Martinos center,\n"
+	    "  go to http://surfer.nmr.mgh.harvard.edu to \n" 
+	    "  to get a valid license file (it's free).\n");
+    fprintf(stderr,
+	    "  If you are inside the NMR-Martinos center,\n"
+	    "  make sure to source the standard environment.\n");
+    exit(-1);
+  }
+#endif
+
+
   free(email);
   free(magic);
   free(key);
