@@ -92,7 +92,6 @@ static GC1D *gcaFindHighestPriorGC(GCA *gca, int x, int y, int z,int label,
 static double gcaGibbsImageLogLikelihood(GCA *gca, MRI *mri_labels, 
                                          MRI *mri_inputs, TRANSFORM *transform) ;
 
-static GC1D *gcaFindGC(GCA *gca, int x, int y, int z,int label) ;
 static int mriFillRegion(MRI *mri, int x,int y,int z,int fill_val,int whalf);
 static int gcaFindMaxPriors(GCA *gca, float *max_priors) ;
 static int gcaFindIntensityBounds(GCA *gca, float *pmin, float *pmax) ;
@@ -584,7 +583,7 @@ GCAtrain(GCA *gca, MRI *mri_inputs, MRI *mri_labels, TRANSFORM *transform, GCA *
             (label == Ggca_label || Ggca_label < 0))
         {
           GC1D *gc ;
-          gc = gcaFindGC(gca, xn, yn, zn, label) ;
+          gc = GCAfindGC(gca, xn, yn, zn, label) ;
           if (gc)
             printf("voxel(%d,%d,%d) = %d --> node(%d,%d,%d), "
                    "label %s (%d), mean %2.1f\n",
@@ -2022,7 +2021,7 @@ GCAcomputeLogSampleProbabilityUsingCoords(GCA *gca, GCA_SAMPLE *gcas,
 
     gcap = &gca->priors[xp][yp][zp] ;
     gcan = &gca->nodes[xn][yn][zn] ;
-    gc = gcaFindGC(gca, xn, yn, zn, gcas[i].label) ;
+    gc = GCAfindGC(gca, xn, yn, zn, gcas[i].label) ;
 #define TRIM_DISTANCES 0
 #if TRIM_DISTANCES
          
@@ -3128,7 +3127,7 @@ GCAmri(GCA *gca, MRI *mri)
         gcap = &gca->priors[xp][yp][zp] ;
         for (val = 0.0, n = 0 ; n < gcap->nlabels ; n++)
         {
-          gc = gcaFindGC(gca, xn, yn, zn, gcap->labels[n]) ;
+          gc = GCAfindGC(gca, xn, yn, zn, gcap->labels[n]) ;
           if (gc)
             val += gc->mean * gcap->priors[n] ;
         }
@@ -3367,7 +3366,7 @@ gcaFindBestSample(GCA *gca, int x, int y, int z,int label,int wsize,
           DiagBreak() ;
           prior = gcap->priors[n] ;
           GCApriorToNode(gca, xi, yi, zi, &xn, &yn, &zn) ;
-          gc = gcaFindGC(gca, xn, yn, zn, label) ;
+          gc = GCAfindGC(gca, xn, yn, zn, label) ;
           if (!gc)
             continue ;
           
@@ -4892,12 +4891,12 @@ GCAfindPriorGC(GCA *gca, int xp, int yp, int zp,int label)
   int xn, yn, zn ;
 
   GCApriorToNode(gca, xp, yp, zp, &xn, &yn, &zn) ;
-  return(gcaFindGC(gca, xn, yn, zn, label)) ;
+  return(GCAfindGC(gca, xn, yn, zn, label)) ;
 }
 
 #if 1
-static GC1D *
-gcaFindGC(GCA *gca, int xn, int yn, int zn,int label)
+GC1D *
+GCAfindGC(GCA *gca, int xn, int yn, int zn,int label)
 {
   int        n ;
   GCA_NODE   *gcan  ;
@@ -7613,7 +7612,7 @@ GCAhisto(GCA *gca, int nbins, int **pcounts)
       {
         gcan = &gca->nodes[x][y][z] ;
         if (gcan->nlabels == 0 || (gcan->nlabels == 1 && 
-                                   gcaFindGC(gca,x,y,z,Unknown) != NULL))
+                                   GCAfindGC(gca,x,y,z,Unknown) != NULL))
           continue ;
         counts[gcan->nlabels]++ ;
       }
@@ -8014,6 +8013,51 @@ GCAcomputeMAPlabelAtLocation(GCA *gca, int xp, int yp, int zp, float val,
     *pmax_n = max_n ;
   return(max_label) ;
 }
+int
+GCAcomputeMLElabelAtLocation(GCA *gca, int xp, int yp, int zp, float val, 
+                             int *pmax_n, float *plog_p)
+{
+  GCA_PRIOR  *gcap ;
+  GC1D       *gc ;
+  int        n, max_n, max_label ;
+  float      log_p, max_log_p ;
+
+  gcap = &gca->priors[xp][yp][zp] ;
+  if (gcap->nlabels == 0)
+  {
+    if (plog_p)
+      *plog_p = 0.0 ;
+    if (pmax_n)
+      *pmax_n = -1 ;
+    return(Unknown) ;
+  }
+
+  max_label = gcap->labels[0] ; max_n = 0 ;
+  gc = GCAfindPriorGC(gca, xp, yp, zp, gcap->labels[0]) ; 
+  if (gc)
+    max_log_p = gcaComputeConditionalLogDensity(gc, val, max_label) ;
+  else
+    max_log_p = -100000 ;
+  for (n = 1 ; n < gcap->nlabels ; n++)
+  {
+    gc = GCAfindPriorGC(gca, xp, yp, zp, gcap->labels[n]) ; 
+    if (!gc)
+      continue ;
+    log_p = gcaComputeConditionalLogDensity(gc,val,gcap->labels[n]);
+    if (log_p > max_log_p)
+    {
+      max_log_p = log_p ;
+      max_n = n ;
+      max_label = gcap->labels[n] ;
+    }
+  }
+
+  if (plog_p)
+    *plog_p = max_log_p ;
+  if (pmax_n)
+    *pmax_n = max_n ;
+  return(max_label) ;
+}
 static GC1D *
 alloc_gcs(int nlabels, int flags)
 {
@@ -8204,7 +8248,7 @@ GCArenormalizeFromAtlas(GCA *gca, GCA *gca_template)
         {
           label = gcan->labels[ns] ;
           gc = &gcan->gcs[ns] ;
-          gct = gcaFindGC(gca_template, xt, yt, zt, label) ;
+          gct = GCAfindGC(gca_template, xt, yt, zt, label) ;
           if (gct == NULL)
             continue ;    /* label not in template GCA */
           gc->mean = gct->mean ;
