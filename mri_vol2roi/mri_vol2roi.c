@@ -6,7 +6,7 @@
   Purpose: averages the voxels within an ROI. The ROI
            can be constrained structurally (with a label file)
            and/or functionally (with a volumetric mask)
-  $Id: mri_vol2roi.c,v 1.17 2003/09/29 21:32:31 greve Exp $
+  $Id: mri_vol2roi.c,v 1.18 2004/02/09 16:23:52 greve Exp $
 */
 
 #include <stdio.h>
@@ -54,7 +54,7 @@ int BTypeFromStem(char *stem);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_vol2roi.c,v 1.17 2003/09/29 21:32:31 greve Exp $";
+static char vcid[] = "$Id: mri_vol2roi.c,v 1.18 2004/02/09 16:23:52 greve Exp $";
 char *Progname = NULL;
 
 char *roifile    = NULL;
@@ -128,7 +128,7 @@ int main(int argc, char **argv)
   int nargs;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_vol2roi.c,v 1.17 2003/09/29 21:32:31 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_vol2roi.c,v 1.18 2004/02/09 16:23:52 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -295,17 +295,6 @@ int main(int argc, char **argv)
   
   if(mSrcVol == NULL) exit(1);
   printf("done\n");
-
-  /* This takes care of the situation were there was no .bhdr */
-  if(! mSrcVol->ras_good_flag){
-    printf("WARNING: Source volume geometry unknown, assuming \n"
-	   "voxels sizes as found in register.dat, which should \n"
-	   "be ok.\n");
-    mSrcVol->xsize = colres_src;
-    mSrcVol->ysize = rowres_src;
-    mSrcVol->zsize = slcres_src;
-  }
-
   /* If this is a statistical volume, raise each frame to it's appropriate
      power (eg, stddev needs to be squared)*/
   if(is_sxa_volume(srcvolid)){
