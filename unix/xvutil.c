@@ -544,12 +544,14 @@ XVshowImage(XV_FRAME *xvf, int which, IMAGE *image, int frame)
   }
   else   /* image from here on in refers to the zoomed image */
   {
-    dimage->oSourceImage = image ;
+/*    dimage->oSourceImage = image ;*/
     dimage->zoomImage = 
       ImageExtract(image, NULL, dimage->x0, dimage->y0, dimage->dx,dimage->dy);
-    if (dimage->sourceImage && dimage->sourceImage != dimage->oSourceImage)
+    if (dimage->sourceImage && dimage->sourceImage != dimage->oSourceImage &&
+        (dimage->sourceImage != image))
       ImageFree(&dimage->sourceImage) ;
-    dimage->sourceImage = ImageCopy(image, NULL) ;
+    if (!dimage->sourceImage)
+      dimage->sourceImage = ImageCopy(image, NULL) ;
     image = dimage->zoomImage ;
   }
 
@@ -935,7 +937,7 @@ xv_dimage_event_handler(Xv_Window xv_window, Event *event)
       break ;
     }
   }
-  else switch (event_id(event)) 
+  else switch (event_id(event))   /* ctrl is not down */
   {
   case MS_MIDDLE:
     xvf_hips = xvf ;
