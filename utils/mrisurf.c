@@ -68,7 +68,7 @@ static int   mrisIntegrate(MRI_SURFACE *mris, INTEGRATION_PARMS *parms,
 static int   mrisIntegrationEpoch(MRI_SURFACE *mris, INTEGRATION_PARMS *parms,
                                   int n_avgs);
 static int   mrisRemoveNegativeArea(MRI_SURFACE *mris,INTEGRATION_PARMS *parms,
-                                    int n_avgs, float min_area_pct, int max_passes);
+                                    int n_avgs, float min_area_pct,int max_passes);
 static double mrisLineMinimize(MRI_SURFACE *mris, INTEGRATION_PARMS *parms);
 static double mrisMomentumTimeStep(MRI_SURFACE *mris,INTEGRATION_PARMS *parms);
 static double mrisAdaptiveTimeStep(MRI_SURFACE *mris,INTEGRATION_PARMS *parms);
@@ -2435,10 +2435,10 @@ MRISunfold(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int max_passes)
     {
       pct_error = MRISpercentDistanceError(mris) ;
       if (Gdiag & DIAG_WRITE)
-        fprintf(parms->fp, "epoch %d of %d starting distance error %%%2.3f\n",
+        fprintf(parms->fp, "epoch %d of %d starting distance error %%%2.2f\n",
                 (int)(passno*NCOEFS+i+1),(int)(max_passes*NCOEFS), 
                 (float)pct_error);
-      fprintf(stderr, "epoch %d of %d starting distance error %%%2.3f\n",
+      fprintf(stderr, "epoch %d of %d starting distance error %%%2.2f\n",
               (int)(passno*NCOEFS+i+1), (int)(max_passes*NCOEFS), 
               (float)pct_error);
     
@@ -2488,11 +2488,11 @@ MRISunfold(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int max_passes)
   pct_error = MRISpercentDistanceError(mris) ;
   if (Gdiag & DIAG_SHOW)
     mrisLogStatus(mris, parms, stderr, 0) ;
-  fprintf(stderr, "final distance error %%%2.3f\n", (float)pct_error);
+  fprintf(stderr, "final distance error %%%2.2f\n", (float)pct_error);
   if (Gdiag & DIAG_WRITE)
   {
     mrisLogStatus(mris, parms, parms->fp, 0) ;
-    fprintf(parms->fp, "final distance error %%%2.3f\n", pct_error);
+    fprintf(parms->fp, "final distance error %%%2.2f\n", pct_error);
     fclose(parms->fp) ;
   }
 
@@ -4252,9 +4252,10 @@ mrisLineMinimize(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
 
   delta_t = min_delta ;
 
-  fprintf(stderr,"grad=%2.3f, max_del=%2.3f, mean=%2.3f, max_dt=%2.1f, "
-          "starting dt=%2.3f, min_dt=%2.3f\n", (float)grad, (float)max_delta, 
-          mean_delta,(float)max_dt, (float)delta_t,min_dt) ;
+  if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
+    fprintf(stderr,"grad=%2.3f, max_del=%2.3f, mean=%2.3f, max_dt=%2.1f, "
+            "starting dt=%2.3f, min_dt=%2.3f\n", (float)grad, (float)max_delta, 
+            mean_delta,(float)max_dt, (float)delta_t,min_dt) ;
 
   /* fit a quadratic form to it, and predict location of minimum */
   {
@@ -4352,7 +4353,8 @@ mrisLineMinimize(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
         mini = i ;
       }
     }
-    fprintf(stderr, "min %d (%2.3f)\n", mini, dt_in[mini]) ;
+    if (Gdiag & DIAG_SHOW)
+      fprintf(stderr, "min %d (%2.3f)\n", mini, dt_in[mini]) ;
     mrisApplyGradient(mris, dt_in[mini]) ;
 #if 0
     /* will be done by caller */
