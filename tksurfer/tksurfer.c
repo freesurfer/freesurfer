@@ -1006,6 +1006,8 @@ void compute_cortical_thickness(void) ;
 static void read_disc(char *subject_name) ;
 static void deconvolve_weights(char *weight_fname, char *scale_fname) ;
 /* begin rkt */
+static int init_vertex_arrays(MRI_SURFACE *mris) ;
+
 void swap_vertex_fields(int a, int b); /* params are FIELD_*  */
 static void print_vertex_data(int vno, FILE *fp, float dmin) ;
 static void update_labels(int label_set, int vno, float dmin) ; /* LABELSET_ */
@@ -6529,6 +6531,22 @@ read_binary_surface(char *fname)
   MRISclearCurvature(mris) ;
   printf("surfer: vertices=%d, faces=%d\n",mris->nvertices,mris->nfaces);
   surface_compiled = 0 ;
+  vertex_array_dirty = 1; /* rkt - added this */
+
+  /* begin rkt */
+  /* since we just changed the surface and the number of verts, a lot
+     of stuff that has initialized itself based on the number of verts
+     is no longer valid. so we call the init functions to re-init a
+     lot of this stuff. */
+  init_vertex_arrays(mris);
+  vset_initialize();
+  func_initialize();
+  sclv_initialize();
+  conv_initialize();
+  labl_initialize();
+  fbnd_initialize();
+  /* end rkt */
+
   return(NO_ERROR) ;
 }
 
@@ -12097,12 +12115,24 @@ init_vertex_arrays(MRI_SURFACE *mris)
   if (!colors)
     ErrorExit(ERROR_NOMEMORY, "init_vertex_arrays: calloc failed") ;
   
+  /* begin rkt */
+  if (NULL != vertices)
+    free (vertices);
+  if (NULL != normals)
+    free (normals);
+  if (NULL != faces)
+    free (faces);
+  /* end rkt */
+
   vertices = (GLfloat *)calloc(3*mris->nvertices, sizeof(GLfloat)) ;
   normals = (GLfloat *)calloc(3*mris->nvertices, sizeof(GLfloat)) ;
   faces = (GLuint *)calloc(VERTICES_PER_FACE*mris->nfaces, sizeof(unsigned int)) ;
   if (!vertices || !faces || !colors || !normals)
     ErrorExit(ERROR_NOMEMORY, "init_vertex_arrays: calloc failed") ;
   
+  /* begin rkt */
+  /* commented this stuff out */
+#if 0
   fill_vertex_arrays(mris) ;
   
   /* glEnableClientState ( GL_NORMAL_ARRAY ); */
@@ -12113,6 +12143,9 @@ init_vertex_arrays(MRI_SURFACE *mris)
   glVertexPointer(3, GL_FLOAT, 0, vertices) ;
   glNormalPointer(GL_FLOAT, 0, normals) ;
   glColorPointer(3, GL_FLOAT, 0, colors);
+#endif
+  /* end rkt */
+
 #endif
   return(NO_ERROR) ;
 }
@@ -18163,7 +18196,7 @@ int main(int argc, char *argv[])   /* new main */
   /* end rkt */
   
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: tksurfer.c,v 1.41 2003/05/12 17:31:15 kteich Exp $");
+  nargs = handle_version_option (argc, argv, "$Id: tksurfer.c,v 1.42 2003/05/13 20:05:05 kteich Exp $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -18180,6 +18213,7 @@ int main(int argc, char *argv[])   /* new main */
   conv_initialize();
   labl_initialize();
   cncl_initialize();
+  fbnd_initialize();
   /* end rkt */
   
   /* get tksurfer tcl startup script location from environment */
@@ -20459,8 +20493,14 @@ vset_initialize()
 {
   int i;
   /* set them all to null */
-  for (i=0;i<NUM_VERTEX_SETS;i++)
-    vset_vertex_list[i]=NULL;
+  for (i=0; i<NUM_VERTEX_SETS; i++)
+    {
+      if (NULL != vset_vertex_list[i])
+	free (vset_vertex_list[i]);
+
+      vset_vertex_list[i]=NULL;
+    }
+
   return(NO_ERROR);
 }
 
@@ -21916,7 +21956,11 @@ int labl_initialize () {
   labl_num_labels = 0;
   labl_selected_label = LABL_NONE_SELECTED;
   labl_table = NULL;
+  if (labl_is_border != NULL)
+    free (labl_is_border);
   labl_is_border = NULL;
+  if (labl_top_label != NULL)
+    free (labl_top_label);
   labl_top_label = NULL;
   labl_cache_is_current = 0;
   labl_draw_style = LABL_STYLE_OPAQUE;
@@ -23345,6 +23389,10 @@ int fbnd_initialize ()
   /* default values. */
   fbnd_selected_boundary = FBND_NONE_SELECTED;
   fbnd_num_boundaries = 0;
+
+  if (NULL != fbnd_is_boundary)
+    free (fbnd_is_boundary);
+  fbnd_is_boundary = NULL;
   
   return (ERROR_NONE);
 }
