@@ -1,4 +1,13 @@
-
+//
+// mri_ca_normalize
+// written by Bruce Fischl
+// 
+// Warning: Do not edit the following four lines.  CVS maintains them.
+// Revision Author: $Author: tosa $
+// Revision Date  : $Date: 2004/05/19 13:45:57 $
+// Revision       : $Revision: 1.23 $
+//
+////////////////////////////////////////////////////////////////////
 
 #include <math.h>
 #include <stdlib.h>
@@ -98,7 +107,7 @@ main(int argc, char *argv[])
   TRANSFORM    *transform = NULL ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_ca_normalize.c,v 1.22 2004/05/12 16:28:09 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_ca_normalize.c,v 1.23 2004/05/19 13:45:57 tosa Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -133,60 +142,60 @@ main(int argc, char *argv[])
   TimerStart(&start) ;
   printf("reading atlas from '%s'...\n", gca_fname) ;
   fflush(stdout) ;
-	if (seg_fname == NULL)
-	{
-		gca = GCAread(gca_fname) ;
-		if (gca == NULL)
-			ErrorExit(ERROR_NOFILE, "%s: could not open GCA %s.\n",
-								Progname, gca_fname) ;
+  if (seg_fname == NULL)
+  {
+    gca = GCAread(gca_fname) ;
+    if (gca == NULL)
+      ErrorExit(ERROR_NOFILE, "%s: could not open GCA %s.\n",
+		Progname, gca_fname) ;
 		
-		printf("reading transform from '%s'...\n", xform_fname) ;
-		fflush(stdout) ;
-		transform = TransformRead(xform_fname) ;
-		if (!transform)
-			ErrorExit(ERROR_BADPARM, "%s: could not open xform file %s", Progname,xform_fname) ;
+    printf("reading transform from '%s'...\n", xform_fname) ;
+    fflush(stdout) ;
+    transform = TransformRead(xform_fname) ;
+    if (!transform)
+      ErrorExit(ERROR_BADPARM, "%s: could not open xform file %s", Progname,xform_fname) ;
 		
-		if (novar)
-			GCAunifyVariance(gca) ;
+    if (novar)
+      GCAunifyVariance(gca) ;
 		
-		if (renormalization_fname)
-		{
-			FILE   *fp ;
-			int    *labels, nlines, i ;
-			float  *intensities, f1, f2 ;
-			char   *cp, line[STRLEN] ;
+    if (renormalization_fname)
+    {
+      FILE   *fp ;
+      int    *labels, nlines, i ;
+      float  *intensities, f1, f2 ;
+      char   *cp, line[STRLEN] ;
 			
-			fp = fopen(renormalization_fname, "r") ;
-			if (!fp)
-				ErrorExit(ERROR_NOFILE, "%s: could not read %s",
-									Progname, renormalization_fname) ;
+      fp = fopen(renormalization_fname, "r") ;
+      if (!fp)
+	ErrorExit(ERROR_NOFILE, "%s: could not read %s",
+		  Progname, renormalization_fname) ;
 			
-			cp = fgetl(line, 199, fp) ;
-			nlines = 0 ;
-			while (cp)
-			{
-				nlines++ ;
-				cp = fgetl(line, 199, fp) ;
-			}
-			rewind(fp) ;
-			printf("reading %d labels from %s...\n", nlines,renormalization_fname) ;
-			labels = (int *)calloc(nlines, sizeof(int)) ;
-			intensities = (float *)calloc(nlines, sizeof(float)) ;
-			cp = fgetl(line, 199, fp) ;
-			for (i = 0 ; i < nlines ; i++)
-			{
-				sscanf(cp, "%e  %e", &f1, &f2) ;
-				labels[i] = (int)f1 ; intensities[i] = f2 ;
-				if (labels[i] == Left_Cerebral_White_Matter)
-					DiagBreak() ;
-				cp = fgetl(line, 199, fp) ;
-			}
-			GCArenormalizeIntensities(gca, labels, intensities, nlines) ;
-			free(labels) ; free(intensities) ;
-		}
-	}
-	else
-		gca = NULL ;  /* don't need atlas if using segmentation */
+      cp = fgetl(line, 199, fp) ;
+      nlines = 0 ;
+      while (cp)
+      {
+	nlines++ ;
+	cp = fgetl(line, 199, fp) ;
+      }
+      rewind(fp) ;
+      printf("reading %d labels from %s...\n", nlines,renormalization_fname) ;
+      labels = (int *)calloc(nlines, sizeof(int)) ;
+      intensities = (float *)calloc(nlines, sizeof(float)) ;
+      cp = fgetl(line, 199, fp) ;
+      for (i = 0 ; i < nlines ; i++)
+      {
+	sscanf(cp, "%e  %e", &f1, &f2) ;
+	labels[i] = (int)f1 ; intensities[i] = f2 ;
+	if (labels[i] == Left_Cerebral_White_Matter)
+	  DiagBreak() ;
+	cp = fgetl(line, 199, fp) ;
+      }
+      GCArenormalizeIntensities(gca, labels, intensities, nlines) ;
+      free(labels) ; free(intensities) ;
+    }
+  }
+  else
+    gca = NULL ;  /* don't need atlas if using segmentation */
 
   for (input = 0 ; input < ninputs ; input++)
   {
@@ -195,8 +204,8 @@ main(int argc, char *argv[])
     mri_tmp = MRIread(in_fname) ;
     if (!mri_tmp)
       ErrorExit(ERROR_NOFILE, "%s: could not read input MR volume from %s",
-								Progname, in_fname) ;
-		MRImakePositive(mri_tmp, mri_tmp) ;
+		Progname, in_fname) ;
+    MRImakePositive(mri_tmp, mri_tmp) ;
     if (alpha > 0)
       mri_tmp->flip_angle = alpha ;
     if (TR > 0)
@@ -211,12 +220,12 @@ main(int argc, char *argv[])
     if (input == 0)
     {
       mri_in = 
-				MRIallocSequence(mri_tmp->width, mri_tmp->height, mri_tmp->depth,
-												 mri_tmp->type, ninputs) ;
+	MRIallocSequence(mri_tmp->width, mri_tmp->height, mri_tmp->depth,
+			 mri_tmp->type, ninputs) ;
       if (!mri_in)
-				ErrorExit(ERROR_NOMEMORY, 
-									"%s: could not allocate input volume %dx%dx%dx%d",
-									mri_tmp->width, mri_tmp->height, mri_tmp->depth,ninputs) ;
+	ErrorExit(ERROR_NOMEMORY, 
+		  "%s: could not allocate input volume %dx%dx%dx%d",
+		  mri_tmp->width, mri_tmp->height, mri_tmp->depth,ninputs) ;
       MRIcopyHeader(mri_tmp, mri_in) ;
     }
 
@@ -227,12 +236,12 @@ main(int argc, char *argv[])
 
       mri_mask = MRIread(mask_fname) ;
       if (!mri_mask)
-				ErrorExit(ERROR_NOFILE, "%s: could not open mask volume %s.\n",
-									Progname, mask_fname) ;
+	ErrorExit(ERROR_NOFILE, "%s: could not open mask volume %s.\n",
+		  Progname, mask_fname) ;
 
 		
       for (i = 1 ; i < WM_MIN_VAL ; i++)
-				MRIreplaceValues(mri_mask, mri_mask, i, 0) ;
+	MRIreplaceValues(mri_mask, mri_mask, i, 0) ;
       MRImask(mri_tmp, mri_mask, mri_tmp, 0, 0) ;
       MRIfree(&mri_mask) ;
     }
@@ -240,118 +249,118 @@ main(int argc, char *argv[])
     MRIfree(&mri_tmp) ;
   }
 
-	if (seg_fname == NULL)
-	{
-		if (gca->type == GCA_PARAM)
-		{
-			GCA *gca_tmp ;
+  if (seg_fname == NULL)
+  {
+    if (gca->type == GCA_PARAM)
+    {
+      GCA *gca_tmp ;
 			
-			printf("mapping T1/PD atlas into %d-dimensional FLASH space atlas\n", mri_in->nframes) ;
-			// that means gca->ninputs = nframes
-			gca_tmp = GCAcreateFlashGCAfromParameterGCA(gca, TRs, fas, TEs, mri_in->nframes, GCA_DEFAULT_NOISE_PARAMETER) ;
-			// now the type is set gca->type = GCA_FLASH
-			GCAfree(&gca) ;
-			gca = gca_tmp ;
-			GCAhistoScaleImageIntensities(gca, mri_in) ;
-		}
-		else if (gca->type == GCA_FLASH)
-		{
-			GCA *gca_tmp ;
+      printf("mapping T1/PD atlas into %d-dimensional FLASH space atlas\n", mri_in->nframes) ;
+      // that means gca->ninputs = nframes
+      gca_tmp = GCAcreateFlashGCAfromParameterGCA(gca, TRs, fas, TEs, mri_in->nframes, GCA_DEFAULT_NOISE_PARAMETER) ;
+      // now the type is set gca->type = GCA_FLASH
+      GCAfree(&gca) ;
+      gca = gca_tmp ;
+      GCAhistoScaleImageIntensities(gca, mri_in) ;
+    }
+    else if (gca->type == GCA_FLASH)
+    {
+      GCA *gca_tmp ;
 			
-			printf("mapping %d-dimensional flash atlas into %d-dimensional input space\n",
-						 gca->ninputs, ninputs) ;
-			if (novar)
-				GCAunifyVariance(gca) ;
+      printf("mapping %d-dimensional flash atlas into %d-dimensional input space\n",
+	     gca->ninputs, ninputs) ;
+      if (novar)
+	GCAunifyVariance(gca) ;
 			
-			gca_tmp = GCAcreateFlashGCAfromFlashGCA(gca, TRs, fas, TEs, mri_in->nframes) ;
-			GCAfree(&gca) ;
-			gca = gca_tmp ;
-			GCAhistoScaleImageIntensities(gca, mri_in) ;
-		}
-		else
-			GCAhistoScaleImageIntensities(gca, mri_in) ;
+      gca_tmp = GCAcreateFlashGCAfromFlashGCA(gca, TRs, fas, TEs, mri_in->nframes) ;
+      GCAfree(&gca) ;
+      gca = gca_tmp ;
+      GCAhistoScaleImageIntensities(gca, mri_in) ;
+    }
+    else
+      GCAhistoScaleImageIntensities(gca, mri_in) ;
 		
-		if (example_T1)
-		{
-			MRI *mri_T1, *mri_seg ;
+    if (example_T1)
+    {
+      MRI *mri_T1, *mri_seg ;
 			
-			mri_seg = MRIread(example_segmentation) ;
-			if (!mri_seg)
-				ErrorExit(ERROR_NOFILE,"%s: could not read example segmentation from %s",
-									Progname, example_segmentation) ;
-			mri_T1 = MRIread(example_T1) ;
-			if (!mri_T1)
-				ErrorExit(ERROR_NOFILE,"%s: could not read example T1 from %s",
-									Progname, example_T1) ;
-			printf("scaling atlas intensities using specified examples...\n") ;
-			MRIeraseBorderPlanes(mri_seg) ;
-			GCArenormalizeToExample(gca, mri_seg, mri_T1) ;
-			MRIfree(&mri_seg) ; MRIfree(&mri_T1) ;
-		}
+      mri_seg = MRIread(example_segmentation) ;
+      if (!mri_seg)
+	ErrorExit(ERROR_NOFILE,"%s: could not read example segmentation from %s",
+		  Progname, example_segmentation) ;
+      mri_T1 = MRIread(example_T1) ;
+      if (!mri_T1)
+	ErrorExit(ERROR_NOFILE,"%s: could not read example T1 from %s",
+		  Progname, example_T1) ;
+      printf("scaling atlas intensities using specified examples...\n") ;
+      MRIeraseBorderPlanes(mri_seg) ;
+      GCArenormalizeToExample(gca, mri_seg, mri_T1) ;
+      MRIfree(&mri_seg) ; MRIfree(&mri_T1) ;
+    }
 		
-		if (tissue_parms_fname)   /* use FLASH forward model */
-			GCArenormalizeToFlash(gca, tissue_parms_fname, mri_in) ;
-	}
+    if (tissue_parms_fname)   /* use FLASH forward model */
+      GCArenormalizeToFlash(gca, tissue_parms_fname, mri_in) ;
+  }
 
-	if (seg_fname)   /* use segmentation volume to drive normalization */
-	{
-		MRI *mri_seg ;
-		int  structs[MAX_CMA_LABELS], nstructs ;
-		mri_seg = MRIread(seg_fname) ;
-		if (!mri_seg)
-			ErrorExit(ERROR_NOFILE, "%s: could not read segmentation volume %s...\n", Progname, seg_fname);
+  if (seg_fname)   /* use segmentation volume to drive normalization */
+  {
+    MRI *mri_seg ;
+    int  structs[MAX_CMA_LABELS], nstructs ;
+    mri_seg = MRIread(seg_fname) ;
+    if (!mri_seg)
+      ErrorExit(ERROR_NOFILE, "%s: could not read segmentation volume %s...\n", Progname, seg_fname);
 
-		nstructs = 0 ;
-		structs[nstructs++] = Left_Cerebral_White_Matter ;
-		structs[nstructs++] = Right_Cerebral_White_Matter ;
-		mri_norm = normalize_from_segmentation_volume(mri_in, NULL, mri_seg, structs, nstructs) ;
+    nstructs = 0 ;
+    structs[nstructs++] = Left_Cerebral_White_Matter ;
+    structs[nstructs++] = Right_Cerebral_White_Matter ;
+    mri_norm = normalize_from_segmentation_volume(mri_in, NULL, mri_seg, structs, nstructs) ;
     MRIcopy(mri_norm, mri_in) ;  /* for next pass through */
-		MRIfree(&mri_norm) ;
-		MRIfree(&mri_seg) ;
+    MRIfree(&mri_norm) ;
+    MRIfree(&mri_seg) ;
+  }
+  else
+  {
+    gcas = GCAfindAllSamples(gca, &nsamples, NULL) ;
+    printf("using %d sample points...\n", nsamples) ;
+    GCAcomputeSampleCoords(gca, mri_in, gcas, nsamples, transform) ;
+    if (sample_fname)
+      GCAtransformAndWriteSamples(gca, mri_in, gcas, nsamples, sample_fname, transform) ;
+		
+		
+    for (n = 3 ; n <= nregions ; n++)
+    {
+      for (norm_samples = i = 0 ; i < NSTRUCTURES ; i++)
+      {
+	if (normalization_structures[i] == Gdiag_no)
+	  DiagBreak() ;
+	printf("finding control points in %s....\n", cma_label_to_name(normalization_structures[i])) ;
+	gcas_struct = find_control_points(gca, gcas, nsamples, &struct_samples, n,
+					  normalization_structures[i], mri_in, transform, min_prior,
+					  ctl_point_pct) ;
+	discard_unlikely_control_points(gca, gcas_struct, struct_samples, mri_in, transform,
+					cma_label_to_name(normalization_structures[i])) ;
+	if (i)
+	{
+	  GCA_SAMPLE *gcas_tmp ;
+	  gcas_tmp = gcas_concatenate(gcas_norm, gcas_struct, norm_samples, struct_samples) ;
+	  free(gcas_norm) ;
+	  norm_samples += struct_samples ;
+	  gcas_norm = gcas_tmp ;
 	}
 	else
 	{
-		gcas = GCAfindAllSamples(gca, &nsamples, NULL) ;
-		printf("using %d sample points...\n", nsamples) ;
-		GCAcomputeSampleCoords(gca, mri_in, gcas, nsamples, transform) ;
-		if (sample_fname)
-			GCAtransformAndWriteSamples(gca, mri_in, gcas, nsamples, sample_fname, transform) ;
-		
-		
-		for (n = 3 ; n <= nregions ; n++)
-		{
-			for (norm_samples = i = 0 ; i < NSTRUCTURES ; i++)
-			{
-				if (normalization_structures[i] == Gdiag_no)
-					DiagBreak() ;
-				printf("finding control points in %s....\n", cma_label_to_name(normalization_structures[i])) ;
-				gcas_struct = find_control_points(gca, gcas, nsamples, &struct_samples, n,
-																					normalization_structures[i], mri_in, transform, min_prior,
-																					ctl_point_pct) ;
-				discard_unlikely_control_points(gca, gcas_struct, struct_samples, mri_in, transform,
-																				cma_label_to_name(normalization_structures[i])) ;
-				if (i)
-				{
-					GCA_SAMPLE *gcas_tmp ;
-					gcas_tmp = gcas_concatenate(gcas_norm, gcas_struct, norm_samples, struct_samples) ;
-					free(gcas_norm) ;
-					norm_samples += struct_samples ;
-					gcas_norm = gcas_tmp ;
-				}
-				else
-				{
-					gcas_norm = gcas_struct ; norm_samples = struct_samples ;
-				}
-			}
+	  gcas_norm = gcas_struct ; norm_samples = struct_samples ;
+	}
+      }
 			
-			printf("using %d total control points for intensity normalization...\n", norm_samples) ;
-			if (normalized_transformed_sample_fname)
-				GCAtransformAndWriteSamples(gca, mri_in, gcas_norm, norm_samples, 
-																		normalized_transformed_sample_fname, 
-																		transform) ;
-			mri_norm = GCAnormalizeSamples(mri_in, gca, gcas_norm, file_only ? 0 :norm_samples,
-																		 transform, ctl_point_fname) ;
-		}
+      printf("using %d total control points for intensity normalization...\n", norm_samples) ;
+      if (normalized_transformed_sample_fname)
+	GCAtransformAndWriteSamples(gca, mri_in, gcas_norm, norm_samples, 
+				    normalized_transformed_sample_fname, 
+				    transform) ;
+      mri_norm = GCAnormalizeSamples(mri_in, gca, gcas_norm, file_only ? 0 :norm_samples,
+				     transform, ctl_point_fname) ;
+    }
     if (Gdiag & DIAG_WRITE)
     {
       char fname[STRLEN] ;
@@ -362,7 +371,7 @@ main(int argc, char *argv[])
       GCAtransformAndWriteSamples(gca, mri_in, gcas_norm, norm_samples, 
                                   fname, transform) ;
 
-		}
+    }
     MRIcopy(mri_norm, mri_in) ;  /* for next pass through */
     MRIfree(&mri_norm) ;
   }
@@ -374,7 +383,7 @@ main(int argc, char *argv[])
     mri_in->tr = TRs[input] ; mri_in->flip_angle = fas[input] ; mri_in->te = TEs[input] ;
     if (MRIwriteFrame(mri_in, out_fname, input)  != NO_ERROR)
       ErrorExit(ERROR_BADFILE, "%s: could not write normalized volume to %s",
-								Progname, out_fname);
+		Progname, out_fname);
   }
   MRIfree(&mri_in) ;
 
@@ -392,7 +401,7 @@ main(int argc, char *argv[])
   minutes = seconds / 60 ;
   seconds = seconds % 60 ;
   printf("normalization took %d minutes and %d seconds.\n", 
-				 minutes, seconds) ;
+	 minutes, seconds) ;
   if (diag_fp)
     fclose(diag_fp) ;
   exit(0) ;
@@ -959,10 +968,10 @@ discard_unlikely_control_points(GCA *gca, GCA_SAMPLE *gcas, int nsamples,
     {
       xv = gcas[i].x ; yv = gcas[i].y ; zv = gcas[i].z ;
       if (xv == Gx && yv == Gy && zv == Gz)
-				DiagBreak() ;
+	DiagBreak() ;
       MRIsampleVolumeFrame(mri_in, gcas[i].x,gcas[i].y,gcas[i].z, n, &val) ;
       if (FZERO(val))
-				DiagBreak() ;
+	DiagBreak() ;
       h->counts[nint(val-fmin)]++ ;
     }
 
@@ -971,14 +980,14 @@ discard_unlikely_control_points(GCA *gca, GCA_SAMPLE *gcas, int nsamples,
     do
     {
       if (gca->ninputs == 1) /*  find  brightest peak as for  n=1 it is T1  weighted  */
-				peak = HISTOfindLastPeak(hsmooth, HISTO_WINDOW_SIZE,MIN_HISTO_PCT);
+	peak = HISTOfindLastPeak(hsmooth, HISTO_WINDOW_SIZE,MIN_HISTO_PCT);
       else
-				peak = HISTOfindHighestPeakInRegion(hsmooth, 0, h->nbins-1) ;
+	peak = HISTOfindHighestPeakInRegion(hsmooth, 0, h->nbins-1) ;
       end = HISTOfindEndOfPeak(hsmooth, peak, 0.01) ;
       start = HISTOfindStartOfPeak(hsmooth, peak, 0.01) ;
       for (mean_ratio = 0.0, i = 0 ; i < nsamples ; i++)
       {
-				mean_ratio += hsmooth->bins[peak] / gcas[i].means[n];
+	mean_ratio += hsmooth->bins[peak] / gcas[i].means[n];
       }
       mean_ratio /= (Real)nsamples ;
       HISTOclearBins(hsmooth, hsmooth, hsmooth->bins[start], hsmooth->bins[end])  ;
@@ -989,11 +998,11 @@ discard_unlikely_control_points(GCA *gca, GCA_SAMPLE *gcas, int nsamples,
     {
       xv = gcas[i].x ; yv = gcas[i].y ; zv = gcas[i].z ;
       if (xv == Gx && yv == Gy && zv == Gz)
-				DiagBreak() ;
+	DiagBreak() ;
       MRIsampleVolumeFrame(mri_in, gcas[i].x,gcas[i].y,gcas[i].z, n, &val) ;
       if (val-fmin < start || val-fmin > end)
       {
-				num++ ; gcas[i].label = 0 ;
+	num++ ; gcas[i].label = 0 ;
       }
     }
     HISTOfree(&h) ; HISTOfree(&hsmooth) ;
@@ -1033,25 +1042,25 @@ usage_exit(int code)
 static MRI *
 normalize_from_segmentation_volume(MRI *mri_src, MRI *mri_dst, MRI *mri_seg, int *structs, int nstructs)
 {
-	MRI *mri_bin, *mri_tmp ;
-	int i ;
+  MRI *mri_bin, *mri_tmp ;
+  int i ;
 
-	if (!mri_dst)
-		mri_dst = MRIclone(mri_src, NULL) ;
-	mri_tmp = MRIclone(mri_seg, NULL) ;
-	mri_bin = MRIclone(mri_seg, NULL) ;
-	for (i = 0 ; i < nstructs ; i++)
-	{
-		MRIcopyLabel(mri_seg, mri_tmp, structs[i]) ;
-		MRIbinarize(mri_tmp, mri_tmp, 1, 0, 1) ;
-		MRIerode(mri_tmp, mri_tmp) ;
-		MRIadd(mri_tmp, mri_bin, mri_bin) ;
-	}
+  if (!mri_dst)
+    mri_dst = MRIclone(mri_src, NULL) ;
+  mri_tmp = MRIclone(mri_seg, NULL) ;
+  mri_bin = MRIclone(mri_seg, NULL) ;
+  for (i = 0 ; i < nstructs ; i++)
+  {
+    MRIcopyLabel(mri_seg, mri_tmp, structs[i]) ;
+    MRIbinarize(mri_tmp, mri_tmp, 1, 0, 1) ;
+    MRIerode(mri_tmp, mri_tmp) ;
+    MRIadd(mri_tmp, mri_bin, mri_bin) ;
+  }
 
-	mri_dst = normalizeFromLabel(mri_src, mri_dst, mri_bin, fas) ;
+  mri_dst = normalizeFromLabel(mri_src, mri_dst, mri_bin, fas) ;
 
-	MRIfree(&mri_bin) ; MRIfree(&mri_tmp) ;
-	return(mri_dst) ;
+  MRIfree(&mri_bin) ; MRIfree(&mri_tmp) ;
+  return(mri_dst) ;
 }
 #include "mrinorm.h"
 MRI *
@@ -1063,32 +1072,32 @@ normalizeFromLabel(MRI *mri_in, MRI *mri_dst, MRI *mri_seg, double *fas)
   double  mean, sigma, max_fa ;
   Real    val ;
 
-	max_fa = fas[T1_index = 0] ;
-	for (i = 1 ; i < mri_in->nframes ; i++)
-		if (fas[i] > max_fa)
-		{
-			T1_index = i ;
-			max_fa = fas[i] ;
-		}
-	printf("using volume %d as most T1-weighted for normalization\n",T1_index) ;
+  max_fa = fas[T1_index = 0] ;
+  for (i = 1 ; i < mri_in->nframes ; i++)
+    if (fas[i] > max_fa)
+    {
+      T1_index = i ;
+      max_fa = fas[i] ;
+    }
+  printf("using volume %d as most T1-weighted for normalization\n",T1_index) ;
   width = mri_in->width ; height = mri_in->height ; depth = mri_in->depth ;
-	if (!mri_dst)
-		mri_dst = MRIclone(mri_in, NULL) ;
+  if (!mri_dst)
+    mri_dst = MRIclone(mri_in, NULL) ;
   mri_ctrl = MRIalloc(width, height, depth, MRI_UCHAR) ;
   MRIcopyHeader(mri_in, mri_ctrl);
   mri_bias = MRIalloc(mri_in->width,mri_in->height,mri_in->depth,MRI_SHORT);
   if (!mri_bias)    
     ErrorExit(ERROR_NOMEMORY, 
-							"GCAnormalizeSamples: could not allocate (%d,%d,%d,2) bias image",
-							mri_in->width,mri_in->height,mri_in->depth) ;
+	      "GCAnormalizeSamples: could not allocate (%d,%d,%d,2) bias image",
+	      mri_in->width,mri_in->height,mri_in->depth) ;
   MRIcopyHeader(mri_in, mri_bias);
 
 #define MAX_BIAS 1250
 #define NO_BIAS  1000
 #define MIN_BIAS  750
 
-	/* use all non-zero locations in mri_seg as control points */
-	MRIbinarize(mri_seg, mri_ctrl, 1, 0, CONTROL_MARKED) ;
+  /* use all non-zero locations in mri_seg as control points */
+  MRIbinarize(mri_seg, mri_ctrl, 1, 0, CONTROL_MARKED) ;
 
   for (z = 0 ; z < depth ; z++)
   {
@@ -1100,11 +1109,11 @@ normalizeFromLabel(MRI *mri_in, MRI *mri_dst, MRI *mri_seg, double *fas)
           DiagBreak() ;
         MRISvox(mri_bias, x,y,z) = NO_BIAS ;  /* by default */
         if (MRIvox(mri_ctrl, x, y, z) != CONTROL_MARKED)  /* not read from file */
-					continue ;
+	  continue ;
 	
-				MRIsampleVolumeFrame(mri_in, x, y, z, T1_index, &val) ;
-				bias = NO_BIAS*DEFAULT_DESIRED_WHITE_MATTER_VALUE / val ;          
-				MRISvox(mri_bias, x, y, z) = (short)nint(bias) ;
+	MRIsampleVolumeFrame(mri_in, x, y, z, T1_index, &val) ;
+	bias = NO_BIAS*DEFAULT_DESIRED_WHITE_MATTER_VALUE / val ;          
+	MRISvox(mri_bias, x, y, z) = (short)nint(bias) ;
       }
     }
   }
@@ -1195,32 +1204,32 @@ normalizeFromLabel(MRI *mri_in, MRI *mri_dst, MRI *mri_seg, double *fas)
         bias = (float)MRISvox(mri_bias, x, y, z)/NO_BIAS ;
         if (bias < 0)
           DiagBreak() ;
-				for (input = 0 ; input < mri_in->nframes ; input++)
-				{
-					MRIsampleVolumeFrame(mri_in, x, y, z, input, &val) ;
-					val *= bias ;   /* corrected value */
-					switch (mri_in->type)
-					{
-					case MRI_UCHAR: 
-						if (val < 0)
-							val = 0 ;
-						else if (val > 255)
-							val = 255 ;
-						MRIseq_vox(mri_dst, x, y, z, input) = (BUFTYPE)nint(val) ; 
-						break ;
-					case MRI_SHORT: 
-						MRISseq_vox(mri_dst, x, y, z, input) = (short)nint(val) ; 
-						break ;
-					case MRI_FLOAT: 
-						MRIFseq_vox(mri_dst, x, y, z, input) = val ; 
-						break ;
-					default:
-						ErrorReturn(NULL,
-												(ERROR_UNSUPPORTED, 
-												 "GCAnormalizeSamples: unsupported input type %d",mri_in->type));
-						break ;
-					}
-				}
+	for (input = 0 ; input < mri_in->nframes ; input++)
+	{
+	  MRIsampleVolumeFrame(mri_in, x, y, z, input, &val) ;
+	  val *= bias ;   /* corrected value */
+	  switch (mri_in->type)
+	  {
+	  case MRI_UCHAR: 
+	    if (val < 0)
+	      val = 0 ;
+	    else if (val > 255)
+	      val = 255 ;
+	    MRIseq_vox(mri_dst, x, y, z, input) = (BUFTYPE)nint(val) ; 
+	    break ;
+	  case MRI_SHORT: 
+	    MRISseq_vox(mri_dst, x, y, z, input) = (short)nint(val) ; 
+	    break ;
+	  case MRI_FLOAT: 
+	    MRIFseq_vox(mri_dst, x, y, z, input) = val ; 
+	    break ;
+	  default:
+	    ErrorReturn(NULL,
+			(ERROR_UNSUPPORTED, 
+			 "GCAnormalizeSamples: unsupported input type %d",mri_in->type));
+	    break ;
+	  }
+	}
       }
     }
   }
