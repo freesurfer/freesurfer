@@ -237,6 +237,12 @@ option menus for data collections in label dlogs
 
 
 
+static version
+ - find out how to pass arguments to scuba.tcl
+ - redo argument letters
+ - remove scuba sh file and make the static version the default build
+
+
 BRUCE'S LIST:::
 
 - b/c controled by mouse
@@ -260,3 +266,5 @@ nav tools draw onscreen sliders for feedback
  - on mouse down with right tool, draw scale bar
  - function to translate v position into modifcation value
  - start at mouse point, use expo scale towards edge for min/max values
+
+

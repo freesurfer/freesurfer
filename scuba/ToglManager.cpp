@@ -282,7 +282,7 @@ ToglManager::InitializeTogl ( Tcl_Interp* iInterp ) {
   // Initialize the Togl module.
   int rTogl = Togl_Init( iInterp );
   if( TCL_ERROR == rTogl ) {
-    throw logic_error( "Couldn't initialize Togl" );
+    throw runtime_error( "Couldn't initialize Togl" );
   }
 
   // Register our Togl callbacks.

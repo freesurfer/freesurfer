@@ -1,7 +1,10 @@
 
 package require Tix
 
-load [file dirname [info script]]/libscuba[info sharedlibextension] scuba
+set err [catch { PrintAllCommands } sResult]
+if { $err } {
+    load [file dirname [info script]]/libscuba[info sharedlibextension] scuba
+}
 
 # Also look for tkUtils.tcl.
 foreach sSourceFileName { tkUtils.tcl tkcon.tcl } {
@@ -2997,6 +3000,7 @@ proc DoLoadLabelDlog {} {
 # up our windows first. So cache those in lCommands and we'll execute
 # them later.
 set lCommands {}
+if { [info exists argc] } {
 set nArg 0
 while { $nArg < $argc } {
     set sArg [lindex $argv $nArg]
@@ -3027,6 +3031,7 @@ while { $nArg < $argc } {
     }
     incr nArg
 }
+}
 
 # Do some startup stuff.
 BuildShortcutDirsList
@@ -3037,18 +3042,11 @@ LoadImages
 set gaWidget(window) .main
 toplevel $gaWidget(window)
 
-# Make the tkcon window. This must be done at this scope because the
+# Make the tkcon panel. This must be done at this scope because the
 # tkcon.tcl script needs access to some global vars.
 set gaWidget(tkcon) [frame $gaWidget(window).tkcon -height 40]
-
-set av $argv
-set argv ""
-#toplevel .dummy
 ::tkcon::Init -root $gaWidget(window).tkcon -showmenu 0 -embed 1
 tkcon attach main
-#wm geometry $gaWidget(window).tkcon -10-10
-#destroy .dummy
-set argv $av
 
 
 # Make the areas in the window. Make the scuba frame first because it
