@@ -27,13 +27,15 @@ typedef struct
   time point) followed by all the standard deviation images (one per
   time point) for that slice for each event type.
   */ 
-#define AVG_VOL          0
-#define STD_VOL          1
-#define AVD_DOF_VOL      2
-#define STD_DOF_VOL      3
+
+#define ALLOC_MEANS        0x0001
+#define ALLOC_STDS         0x0002
+#define ALLOC_DOFS         0x0004
 
 
 #define MAX_EVENTS       10
+
+#define mri_pvals        mri_avgs
 
 typedef struct
 {
@@ -72,12 +74,11 @@ int       StatWriteRegistration(fMRI_REG *reg, char *fname) ;
 
 int       StatFreeRegistration(fMRI_REG **preg) ;
 int       StatFree(SV **psv) ;
-#if 0
-SV        *StatVolumeToTalairach(SV *sv, SV *sv_tal, int resolution) ;
-#endif
 SV        *StatAllocVolume(SV *sv, int nevents, int width, int height,
-                           int nslices, int time_points, int track_dof) ;
+                           int nslices, int time_points, int which) ;
 SV        *StatAllocTalairachVolume(SV *sv, float fov, float resolution) ;
 int       StatAccumulateTalairachVolume(SV *sv_tal, SV *sv) ;
+int       StatReadTransform(STAT_VOLUME *sv, char *name) ;
+int       StatVolumeExists(char *prefix) ;
 
 #endif

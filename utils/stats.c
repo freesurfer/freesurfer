@@ -35,8 +35,11 @@ StatReadRegistration(char *fname)
     ErrorReturn(NULL, (ERROR_NOFILE, 
                        "StatReadRegistration: could not open %s", fname)) ;
   reg = (fMRI_REG *)calloc(1, sizeof(fMRI_REG)) ;
-  reg->fmri2mri = MatrixAlloc(REG_ROWS, REG_COLS, MATRIX_REAL) ;
+  reg->mri2fmri = MatrixAlloc(REG_ROWS, REG_COLS, MATRIX_REAL) ;
   fgetl(reg->name, MAX_LINE_LEN-1, fp) ;
+
+  if (!stricmp(reg->name, "margaret"))
+    DiagBreak() ;
 
   fgetl(line, MAX_LINE_LEN-1, fp) ;
   if (sscanf(line, "%f", &reg->in_plane_res) != 1)
@@ -55,17 +58,17 @@ StatReadRegistration(char *fname)
   {
     for (col = 1 ; col <= REG_COLS ; col++)
     {
-      if (fscanf(fp, "%f  ", &reg->fmri2mri->rptr[row][col]) != 1)
+      if (fscanf(fp, "%f  ", &reg->mri2fmri->rptr[row][col]) != 1)
         ErrorReturn(NULL,
                     (ERROR_BADFILE, 
-                     "StatReadRegistration: could not scan element (%d, %d)",
-                     row, col)) ;
+                  "StatReadRegistration(%s): could not scan element (%d, %d)",
+                     fname, row, col)) ;
     }
     fscanf(fp, "\n") ;
   }
   fclose(fp) ;
-  reg->mri2fmri = MatrixInverse(reg->fmri2mri, NULL) ;
-  if (!reg->mri2fmri)
+  reg->fmri2mri = MatrixInverse(reg->mri2fmri, NULL) ;
+  if (!reg->fmri2mri)
     ErrorExit(ERROR_BADPARM, "StatReadReg: singular registration matrix") ;
 
   return(reg) ;
@@ -86,6 +89,7 @@ StatFreeRegistration(fMRI_REG **preg)
 
   reg = *preg ;
   MatrixFree(&reg->fmri2mri) ;
+  MatrixFree(&reg->mri2fmri) ;
   free(reg) ;
   return(NO_ERROR) ;
 }
@@ -101,10 +105,10 @@ StatFreeRegistration(fMRI_REG **preg)
 SV *
 StatReadVolume(char *prefix)
 {
-  char         path[100], fname[100], line[MAX_LINE_LEN], *cp, subjects[100] ;
+  char         path[100], fname[100], line[MAX_LINE_LEN], *cp ;
   STAT_VOLUME  *sv ;
   FILE         *fp ;
-  int          dof_mean, dof_sigma, event_number, slice_number,
+  int          dof_mean, dof_sigma, event_number, slice_number, which_alloc,
                width, height, nframes, nslices, t, event, nitems, x, y, z ;
   float        *buf ;
 
@@ -117,55 +121,57 @@ StatReadVolume(char *prefix)
   /* read in register.dat */
   sprintf(fname, "%s/register.dat", path) ;
   sv->reg = StatReadRegistration(fname) ;
-
-  /* read in the Talairach transform file */
-  cp = getenv("SUBJECTS_DIR") ;
-  if (cp)
-    strcpy(subjects, cp) ;
-  else
-    strcpy(subjects, "~inverse/subjects") ;
-  sprintf(fname, "%s/%s/mri/transforms/talairach.xfm",subjects, sv->reg->name);
-
-  /*  fprintf(stderr, "reading transform from %s...", fname) ;*/
-  if (input_transform_file(fname, &sv->transform) != OK)
-    ErrorPrintf(ERROR_NO_FILE, 
-                "%s: could not read xform file '%s'\n", Progname, fname) ;
-  sv->linear_transform = get_linear_transform_ptr(&sv->transform) ;
-  sv->inverse_linear_transform = 
-    get_inverse_linear_transform_ptr(&sv->transform) ;
-  /*  fprintf(stderr, "done.\n") ;*/
+  if (!sv->reg)
+    return(NULL) ;
 
   /* read the global header file */
   sprintf(fname, "%s.dat", prefix) ;
   fp = fopen(fname, "r") ;
-  if (!fp)
-    ErrorReturn(NULL, (ERROR_NOFILE, 
+  which_alloc = ALLOC_MEANS ;
+  if (fp)  /* means there are time points and means and sigmas */
+  {
+#if 0
+    if (!fp)
+      ErrorReturn(NULL, (ERROR_NOFILE, 
                        "StatReadVolume: could not open dat file %s", fname)) ;
-  fgetl(line, MAX_LINE_LEN-1, fp) ;
-  sscanf(line, "%*s %f", &sv->tr) ;
-  fgetl(line, MAX_LINE_LEN-1, fp) ;
-  sscanf(line, "%*s %f", &sv->timewindow) ;
-  fgetl(line, MAX_LINE_LEN-1, fp) ;
-  sscanf(line, "%*s %f", &sv->prestim) ;
-  fgetl(line, MAX_LINE_LEN-1, fp) ;
-  sscanf(line, "%*s %d", &sv->nevents) ;
-  fgetl(line, MAX_LINE_LEN-1, fp) ;
-  sscanf(line, "%*s %d", &sv->time_per_event) ;
-  fclose(fp) ;
+#endif
+    fgetl(line, MAX_LINE_LEN-1, fp) ;
+    sscanf(line, "%*s %f", &sv->tr) ;
+    fgetl(line, MAX_LINE_LEN-1, fp) ;
+    sscanf(line, "%*s %f", &sv->timewindow) ;
+    fgetl(line, MAX_LINE_LEN-1, fp) ;
+    sscanf(line, "%*s %f", &sv->prestim) ;
+    fgetl(line, MAX_LINE_LEN-1, fp) ;
+    sscanf(line, "%*s %d", &sv->nevents) ;
+    fgetl(line, MAX_LINE_LEN-1, fp) ;
+    sscanf(line, "%*s %d", &sv->time_per_event) ;
+    fclose(fp) ;
+    which_alloc |= ALLOC_STDS ;
+  }
+  else
+  {
+    sv->nevents = 1 ;
+    sv->time_per_event = 0 ;  /* will be filled in later by .dat file */
+  }
 
   /* now read in the dof file */
   sprintf(fname, "%s_000.dof", prefix) ;
   fp = fopen(fname, "r") ;
-  if (!fp)
-    ErrorReturn(NULL, (ERROR_NOFILE, 
-                       "StatReadVolume: could not open dof file %s", fname)) ;
-  while ((cp = fgetl(line, MAX_LINE_LEN-1, fp)) != NULL)
+  if (fp)
   {
-    sscanf(cp, "%d %d %d", &event_number, &dof_mean, &dof_sigma) ;
-    sv->mean_dofs[event_number] = (float)dof_mean ;
-    sv->std_dofs[event_number] = (float)dof_sigma ;
+#if 0
+    if (!fp)
+      ErrorReturn(NULL, (ERROR_NOFILE, 
+                         "StatReadVolume: could not open dof file %s", fname));
+#endif
+    while ((cp = fgetl(line, MAX_LINE_LEN-1, fp)) != NULL)
+    {
+      sscanf(cp, "%d %d %d", &event_number, &dof_mean, &dof_sigma) ;
+      sv->mean_dofs[event_number] = (float)dof_mean ;
+      sv->std_dofs[event_number] = (float)dof_sigma ;
+    }
+    fclose(fp) ;
   }
-  fclose(fp) ;
 
   /* count # of slices */
   slice_number = 0 ;
@@ -182,15 +188,22 @@ StatReadVolume(char *prefix)
 
   sv->nslices = nslices = slice_number ;
 
-  nframes = 2 * sv->time_per_event * sv->nevents ;
-  fprintf(stderr, "reading %d slices, %d images per slice\n",nslices, nframes);
   /* first read .hdr file to get slice dimensions */
   sprintf(fname, "%s_%3.3d.hdr", prefix, 0) ;
   fp = fopen(fname, "r") ;
   if (!fp)
     ErrorExit(ERROR_NOFILE, "StatReadVolume: could not open %s",fname) ;
   fscanf(fp, "%d %d %d", &width, &height, &nframes) ;
+  if (!sv->time_per_event)
+    sv->time_per_event = nframes ;  /* no global .dat file */
   fclose(fp) ;
+
+  nframes = sv->time_per_event * sv->nevents ;
+  if (which_alloc & ALLOC_STDS)
+    nframes *= 2.0f ;
+  if (Gdiag & DIAG_SHOW)
+    fprintf(stderr, "reading %d slices, %d images per slice\n",
+            nslices, nframes);
 
   buf = (float *)calloc(width*height, sizeof(float)) ;
   if (!buf)
@@ -198,7 +211,12 @@ StatReadVolume(char *prefix)
 
   nframes = sv->time_per_event ;  /* one frame per time point */
 
-  StatAllocVolume(sv, sv->nevents, width,height,nslices,sv->time_per_event,0);
+  StatAllocVolume(sv, sv->nevents, width,height,nslices,sv->time_per_event,
+                  which_alloc);
+
+  /* read it after nevents */
+  if (stricmp(sv->reg->name, "talairach"))
+    StatReadTransform(sv, sv->reg->name) ;
 
   /* read in the actual data */
   nitems = width * height ;
@@ -213,7 +231,7 @@ StatReadVolume(char *prefix)
     sv->slice_width = width ; sv->slice_height = height ;
     fclose(fp) ;
 
-    /* now read .bfloat file to parse actual data ANDERS */
+    /* now read .bfloat file to parse actual data */
     sprintf(fname, "%s_%3.3d.bfloat", prefix, z) ;
     fp = fopen(fname, "r") ;
     if (!fp)
@@ -225,7 +243,7 @@ StatReadVolume(char *prefix)
       for (t = 0 ; t < sv->time_per_event ; t++)
       {
         if (fread(buf, sizeof(float), nitems, fp) != nitems)
-          ErrorReturn(sv, (ERROR_BADFILE, "StatReadVolume: could not read "
+          ErrorReturn(NULL, (ERROR_BADFILE, "StatReadVolume: could not read "
                            "%dth slice",z)) ;
         for (y = 0 ; y < height ; y++)
         {
@@ -237,10 +255,10 @@ StatReadVolume(char *prefix)
       }
 
       /* read slice of standard deviations for each time point */
-      for (t = 0 ; t < sv->time_per_event ; t++)
+      if (sv->mri_stds[event]) for (t = 0 ; t < sv->time_per_event ; t++)
       {
         if (fread(buf, sizeof(float), nitems, fp) != nitems)
-          ErrorReturn(sv, (ERROR_BADFILE, "StatReadVolume: could not read "
+          ErrorReturn(NULL, (ERROR_BADFILE, "StatReadVolume: could not read "
                            "%dth slice",z)) ;
         for (y = 0 ; y < height ; y++)
         {
@@ -253,15 +271,62 @@ StatReadVolume(char *prefix)
     }
 
     fclose(fp) ;
+
+
+    if (!sv->mri_avg_dofs[event])
+      continue ;
+
+    /* if dof files exist for each slice, read them in */
+    sprintf(fname, "%s_dof_%3.3d.bfloat", prefix, z) ;
+    fp = fopen(fname, "r") ;
+    if (!fp)
+      ErrorExit(ERROR_NOFILE, "StatReadVolume: could not open %s",fname) ;
+
+    for (event = 0 ; event < sv->nevents ; event++)
+    {
+      /* read slice of mean dofs for each time point */
+      for (t = 0 ; t < sv->time_per_event ; t++)
+      {
+        if (fread(buf, sizeof(float), nitems, fp) != nitems)
+          ErrorReturn(NULL, (ERROR_BADFILE, "StatReadVolume: could not read "
+                           "%dth slice",z)) ;
+        for (y = 0 ; y < height ; y++)
+        {
+          for (x = 0 ; x < width ; x++)
+          {
+            MRIFseq_vox(sv->mri_avg_dofs[event],x,y,z,t) = buf[y*width+x] ;
+          }
+        }
+      }
+
+      /* read slice of standard deviation dofs for each time point */
+      if (sv->mri_stds[event]) for (t = 0 ; t < sv->time_per_event ; t++)
+      {
+        if (fread(buf, sizeof(float), nitems, fp) != nitems)
+          ErrorReturn(NULL, (ERROR_BADFILE, "StatReadVolume: could not read "
+                           "%dth slice",z)) ;
+        for (y = 0 ; y < height ; y++)
+        {
+          for (x = 0 ; x < width ; x++)
+          {
+            MRIFseq_vox(sv->mri_std_dofs[event],x,y,z,t) = buf[y*width+x] ;
+          }
+        }
+      }
+    }
+
+    fclose(fp) ;
+
+
   }
   for (event = 0 ; event < sv->nevents ; event++)
   {
     MRIsetResolution(sv->mri_avgs[event], sv->reg->in_plane_res, 
                      sv->reg->in_plane_res, sv->reg->slice_thickness) ;
-    MRIsetResolution(sv->mri_stds[event], sv->reg->in_plane_res, 
-                     sv->reg->in_plane_res, sv->reg->slice_thickness) ;
-    MRIsetTransform(sv->mri_avgs[event], &sv->transform) ;
-    MRIsetTransform(sv->mri_stds[event], &sv->transform) ;
+    if (sv->mri_stds[event])
+      MRIsetResolution(sv->mri_stds[event], sv->reg->in_plane_res, 
+                       sv->reg->in_plane_res, sv->reg->slice_thickness) ;
+      
   }
 
   free(buf) ;
@@ -335,7 +400,7 @@ StatVolumeToTalairach(SV *sv, MRI *mri, int resolution)
 ------------------------------------------------------------------------*/
 STAT_VOLUME *
 StatAllocVolume(SV *sv, int nevents, int width, int height, 
-                int nslices, int time_points, int track_dofs)
+                int nslices, int time_points, int which_alloc)
 {
   int    event ;
   
@@ -360,11 +425,15 @@ StatAllocVolume(SV *sv, int nevents, int width, int height,
       MRIallocSequence(width, height, nslices, MRI_FLOAT, time_points) ;
     if (!sv->mri_avgs[event])
       ErrorExit(ERROR_NO_MEMORY, "StatAllocVolume: could not allocate volume");
-    sv->mri_stds[event] = 
-      MRIallocSequence(width, height, nslices, MRI_FLOAT, time_points) ;
-    if (!sv->mri_stds[event])
-      ErrorExit(ERROR_NO_MEMORY, "StatAllocVolume: could not allocate volume");
-    if (track_dofs)
+    if (which_alloc & ALLOC_STDS)
+    {
+      sv->mri_stds[event] = 
+        MRIallocSequence(width, height, nslices, MRI_FLOAT, time_points) ;
+      if (!sv->mri_stds[event])
+        ErrorExit(ERROR_NO_MEMORY, "StatAllocVolume: could not allocate "
+                  "volume");
+    }
+    if (which_alloc & ALLOC_DOFS)
     {
       sv->mri_avg_dofs[event] = 
         MRIallocSequence(width, height, nslices, MRI_FLOAT, time_points) ;
@@ -396,12 +465,14 @@ StatAllocTalairachVolume(SV *sv, float fov, float resolution)
 
   width = height = depth = nint(fov / resolution) ;
   sv_tal = StatAllocVolume(NULL, sv->nevents, width, height, depth, 
-                           sv->time_per_event,1);
+                     sv->time_per_event,ALLOC_MEANS|ALLOC_STDS|ALLOC_DOFS);
 
   strcpy(sv_tal->reg->name, "talairach") ;
   sv_tal->nslices = depth ;
   sv_tal->slice_width = width ;
   sv_tal->slice_height = height ;
+  sv_tal->reg->slice_thickness = sv_tal->reg->in_plane_res = resolution ;
+  sv_tal->reg->brightness_scale = 2.0f ;
 
   for (event = 0 ; event < sv->nevents ; event++)
   {
@@ -479,6 +550,9 @@ StatAccumulateTalairachVolume(SV *sv_tal, SV *sv)
         {
           for (x = 0 ; x < width ; x++)
           {
+            if (x == 35 && y == 35 && z == 6)
+              DiagBreak() ;
+
             /* convert to subject's world coordinates (in mm) */
             MRItalairachVoxelToWorld(mri_avg, (Real)x, (Real)y, (Real)z, 
                                      &xf, &yf, &zf) ;
@@ -497,6 +571,9 @@ StatAccumulateTalairachVolume(SV *sv_tal, SV *sv)
                 yv >= 0 && yv < sheight &&
                 zv >= 0 && zv < sdepth)
             {
+              if (xv == 30 && yv == 51 && zv == 2 && t == 2)
+                DiagBreak() ;
+
               /* update means */
               tal_mean = MRIFseq_vox(sv_tal->mri_avgs[event], x, y, z, t) ;
               mean = MRIFseq_vox(sv->mri_avgs[event], xv, yv, zv, t) ;
@@ -512,7 +589,10 @@ StatAccumulateTalairachVolume(SV *sv_tal, SV *sv)
               std = MRIFseq_vox(sv->mri_stds[event], xv, yv, zv, t) ;
               dof = sv->std_dofs[event] ;
               tal_dof = MRIFseq_vox(sv_tal->mri_std_dofs[event], x, y, z, t) ;
-              tal_std = (tal_std * tal_dof + std * dof) / (tal_dof + dof) ;
+
+              /* work with variances so things are linear */
+              tal_std *= tal_std ; std *= std ;
+              tal_std = sqrt((tal_std * tal_dof + std * dof)/(tal_dof + dof));
               tal_dof += dof ;
               MRIFseq_vox(sv_tal->mri_std_dofs[event], x, y, z, t) = tal_dof ;
               MRIFseq_vox(sv_tal->mri_stds[event], x, y, z, t) = tal_std ;
@@ -566,7 +646,7 @@ StatWriteVolume(SV *sv, char *prefix)
 
   buf = (float *)calloc(sv->slice_width*sv->slice_height, sizeof(float)) ;
   if (!buf)
-    ErrorExit(ERROR_NO_MEMORY, "StatReadVolume: could not allocate buffer") ;
+    ErrorExit(ERROR_NO_MEMORY, "StatWriteVolume: could not allocate buffer") ;
 
   /* write out the dof files, the .hdr files and the .bfloat data files */
   nitems = width * height ;
@@ -596,7 +676,7 @@ StatWriteVolume(SV *sv, char *prefix)
     sprintf(fname, "%s_%3.3d.bfloat", prefix, z) ;
     fp = fopen(fname, "w") ;
     if (!fp)
-      ErrorExit(ERROR_NOFILE, "StatReadVolume: could not open %s",fname) ;
+      ErrorExit(ERROR_NOFILE, "StatWriteVolume: could not open %s",fname) ;
 
     for (event = 0 ; event < sv->nevents ; event++)
     {
@@ -612,7 +692,7 @@ StatWriteVolume(SV *sv, char *prefix)
         }
         if (fwrite(buf, sizeof(float), nitems, fp) != nitems)
           ErrorReturn(ERROR_BADFILE, 
-                      (ERROR_BADFILE, "StatWriteVolume: could not read "
+                      (ERROR_BADFILE, "StatWriteVolume: could not write "
                        "%dth slice",z)) ;
       }
 
@@ -628,20 +708,20 @@ StatWriteVolume(SV *sv, char *prefix)
         }
         if (fwrite(buf, sizeof(float), nitems, fp) != nitems)
           ErrorReturn(ERROR_BADFILE, 
-                      (ERROR_BADFILE, "StatWriteVolume: could not read "
+                      (ERROR_BADFILE, "StatWriteVolume: could not write "
                        "%dth slice", z)) ;
       }
     }
 
     fclose(fp) ;
 
-    if (sv->mri_avg_dofs[event])
+    if (sv->mri_avg_dofs[0]) /* keeping track of dofs on a per-voxel basis */
     {
       /* now write out dofs on a per-voxel basis */
       sprintf(fname, "%s_dof_%3.3d.bfloat", prefix, z) ;
       fp = fopen(fname, "w") ;
       if (!fp)
-        ErrorExit(ERROR_NOFILE, "StatReadVolume: could not open %s",fname) ;
+        ErrorExit(ERROR_NOFILE, "StatWriteVolume: could not open %s",fname) ;
       
       for (event = 0 ; event < sv->nevents ; event++)
       {
@@ -655,7 +735,7 @@ StatWriteVolume(SV *sv, char *prefix)
           }
           if (fwrite(buf, sizeof(float), nitems, fp) != nitems)
             ErrorReturn(ERROR_BADFILE, 
-                        (ERROR_BADFILE, "StatWriteVolume: could not read "
+                        (ERROR_BADFILE, "StatWriteVolume: could not write "
                          "%dth slice",z)) ;
         }
         
@@ -669,7 +749,7 @@ StatWriteVolume(SV *sv, char *prefix)
           }
           if (fwrite(buf, sizeof(float), nitems, fp) != nitems)
             ErrorReturn(ERROR_BADFILE, 
-                        (ERROR_BADFILE, "StatWriteVolume: could not read "
+                        (ERROR_BADFILE, "StatWriteVolume: could not write "
                          "%dth slice", z)) ;
         }
       }
@@ -698,7 +778,7 @@ StatWriteRegistration(fMRI_REG *reg, char *fname)
   if (!fp)
     ErrorReturn(NULL, (ERROR_NOFILE, 
                        "StatWriteRegistration: could not open %s", fname)) ;
-
+  fprintf(fp, "%s\n", reg->name) ;
   fprintf(fp, "%f\n", reg->in_plane_res) ;
   fprintf(fp, "%f\n", reg->slice_thickness) ;
   fprintf(fp, "%f\n", reg->brightness_scale) ;
@@ -712,4 +792,61 @@ StatWriteRegistration(fMRI_REG *reg, char *fname)
   fclose(fp) ;
   return(NO_ERROR) ;
 }
+/*------------------------------------------------------------------------
+       Parameters:
 
+      Description:
+  
+    Return Values:
+        nothing.
+------------------------------------------------------------------------*/
+int
+StatReadTransform(STAT_VOLUME *sv, char *name)
+{
+  char  *cp, subjects[100], fname[100] ;
+  int   event ;
+
+  /* read in the Talairach transform file */
+  cp = getenv("SUBJECTS_DIR") ;
+  if (cp)
+    strcpy(subjects, cp) ;
+  else
+    strcpy(subjects, "~inverse/subjects") ;
+  sprintf(fname,"%s/%s/mri/transforms/talairach.xfm",subjects, name);
+  
+  if (input_transform_file(fname, &sv->transform) != OK)
+    ErrorPrintf(ERROR_NO_FILE, 
+                "%s: could not read xform file '%s'\n", Progname, fname) ;
+  sv->linear_transform = get_linear_transform_ptr(&sv->transform) ;
+  sv->inverse_linear_transform = 
+    get_inverse_linear_transform_ptr(&sv->transform) ;
+  
+  for (event = 0 ; event < sv->nevents ; event++)
+  {
+    MRIsetTransform(sv->mri_avgs[event], &sv->transform) ;
+    if (sv->mri_stds[event])
+      MRIsetTransform(sv->mri_stds[event], &sv->transform) ;
+  }
+  return(NO_ERROR) ;
+}
+/*------------------------------------------------------------------------
+       Parameters:
+
+      Description:
+  
+    Return Values:
+        nothing.
+------------------------------------------------------------------------*/
+int       
+StatVolumeExists(char *prefix)
+{
+  char   fname[100] ;
+  FILE   *fp ;
+
+  sprintf(fname, "%s_%3.3d.bfloat", prefix, 0) ;
+  fp = fopen(fname, "r") ;
+  if (!fp)
+    return(0) ;
+  fclose(fp) ;
+  return(1) ;
+}
