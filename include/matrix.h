@@ -65,6 +65,7 @@ MATRIX  *MatrixCopyImagRegion(MATRIX *mSrc, MATRIX *mDst, int start_row,
                                  int start_col, int rows, int cols, 
                                  int dest_row, int dest_col) ;
 MATRIX *MatrixRealToComplex(MATRIX *mReal, MATRIX *mImag, MATRIX *mOut);
+MATRIX *MatrixRegularize(MATRIX *mIn, MATRIX *mOut) ;
 
 /* determinants and eigenvectors */
 float  MatrixDeterminant(MATRIX *m) ;
