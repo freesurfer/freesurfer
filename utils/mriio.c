@@ -1331,6 +1331,9 @@ static MRI *siemensRead(char *fname, int read_volume_flag)
 
   mri->location = 0.0;
 
+  fseek(fp, 2112, SEEK_SET) ;
+  mri->flip_angle = freadDouble(fp) ;  /* in degrees */
+
   fseek(fp, 1560, SEEK_SET);
   fread(&d, 8, 1, fp);
   mri->tr = orderDoubleBytes(d);
