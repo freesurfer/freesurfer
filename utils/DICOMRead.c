@@ -2,7 +2,7 @@
    DICOM 3.0 reading functions
    Author: Sebastien Gicquel and Douglas Greve
    Date: 06/04/2001
-   $Id: DICOMRead.c,v 1.30 2003/06/17 15:00:56 tosa Exp $
+   $Id: DICOMRead.c,v 1.31 2003/07/02 15:35:30 tosa Exp $
 *******************************************************/
 
 #include <stdio.h>
@@ -34,6 +34,7 @@ void *malloc(size_t size);
 #undef _DICOMRead_SRC
 
 static int DCMPrintCond(CONDITION cond);
+void *ReadDICOMImage2(int nfiles, DICOMInfo **aDicomInfo, int startIndex);
 
 static bool IsTagPresent[NUMBEROFTAGS];
 
@@ -3153,84 +3154,192 @@ void *ReadDICOMImage(int nfiles, DICOMInfo **aDicomInfo)
   printf("reading DICOM image...\n");
 
   switch (bitsAllocated)
-    {
-    case 8:
-      v8=(unsigned char *)calloc(nvox, sizeof(unsigned char));
-      if (v8==NULL) {
-  printf("ReadDICOMImage: allocation problem\n");
-  exit(1);
-      }
-      break;
-    case 16:
-      v16=(unsigned short *)calloc(nvox, sizeof(unsigned short));
-      if (v16==NULL) {
-  printf("ReadDICOMImage: allocation problem\n");
-  exit(1);
-      }
-      break;
-    } // switch
-
-  for (n=0; n<nfiles; n++) 
-    {
-      GetDICOMInfo(aDicomInfo[n]->FileName, &dcminfo, TRUE, n);
-      
-      if (n==0)
-  for (i=0; i<3; i++)
-    aDicomInfo[0]->FirstImagePosition[i]=dcminfo.ImagePosition[i];
-      if (n==nfiles-1)
-  for (i=0; i<3; i++)
-    aDicomInfo[0]->LastImagePosition[i]=dcminfo.ImagePosition[i];
-      
-      offset=npix*n;
-      
-      switch (dcminfo.BitsAllocated) 
   {
-  case 8:  
-    PixelData8=(unsigned char*)dcminfo.PixelData;
-    for (j=0; j<npix; j++)
+  case 8:
+    v8=(unsigned char *)calloc(nvox, sizeof(unsigned char));
+    if (v8==NULL) {
+      printf("ReadDICOMImage: allocation problem\n");
+      exit(1);
+    }
+    break;
+  case 16:
+    v16=(unsigned short *)calloc(nvox, sizeof(unsigned short));
+    if (v16==NULL) {
+      printf("ReadDICOMImage: allocation problem\n");
+      exit(1);
+    }
+    break;
+  } // switch
+  
+  for (n=0; n<nfiles; n++) 
+  {
+    GetDICOMInfo(aDicomInfo[n]->FileName, &dcminfo, TRUE, n);
+    
+    if (n==0)
+      for (i=0; i<3; i++)
+	aDicomInfo[0]->FirstImagePosition[i]=dcminfo.ImagePosition[i];
+    if (n==nfiles-1)
+      for (i=0; i<3; i++)
+	aDicomInfo[0]->LastImagePosition[i]=dcminfo.ImagePosition[i];
+    
+    offset=npix*n;
+    
+    switch (dcminfo.BitsAllocated) 
+    {
+    case 8:  
+      PixelData8=(unsigned char*)dcminfo.PixelData;
+      for (j=0; j<npix; j++)
       {
         v8[offset+j]=PixelData8[j];
         if (PixelData8[j]>max8)
-    max8=PixelData8[j];
+	  max8=PixelData8[j];
         else if (PixelData8[j]<min8)
-    min8=PixelData8[j];
+	  min8=PixelData8[j];
       }
-    aDicomInfo[0]->min8=min8;
-    aDicomInfo[0]->max8=max8;    
-    free(PixelData8);
-    break;
-    
-  case 16:  
-    PixelData16=(unsigned short*)dcminfo.PixelData;
-    for (j=0; j<npix; j++)
+      aDicomInfo[0]->min8=min8;
+      aDicomInfo[0]->max8=max8;    
+      free(PixelData8);
+      break;
+      
+    case 16:  
+      PixelData16=(unsigned short*)dcminfo.PixelData;
+      for (j=0; j<npix; j++)
       {
         v16[offset+j]=PixelData16[j];
         if (PixelData16[j]>max16)
-    max16=PixelData16[j];
+	  max16=PixelData16[j];
         else if (PixelData16[j]<min16)
-    min16=PixelData16[j];
+	  min16=PixelData16[j];
       }
-    aDicomInfo[0]->min16=min16;
-    aDicomInfo[0]->max16=max16;
-    free(PixelData16);
-    break;
-  }
+      aDicomInfo[0]->min16=min16;
+      aDicomInfo[0]->max16=max16;
+      free(PixelData16);
+      break;
     }
+  }
 
   for (i=0; i<3; i++)
     aDicomInfo[0]->ImagePosition[i]=(firstPosition[i]+lastPosition[i])/2.;
+  
+  switch (bitsAllocated)
+  {
+  case 8:
+    return((void *)v8);
+    break;
+  case 16:
+    return((void *)v16);
+    break;
+  default:
+    return NULL;
+  }
+}
+
+// ReadDICOMImage2
+//
+///////////////////////////////////////////////////////////////////
+void *ReadDICOMImage2(int nfiles, DICOMInfo **aDicomInfo, int startIndex)
+{
+  int n, i, j, bitsAllocated, numberOfFrames, offset, nvox;
+  DICOMInfo dcminfo;
+  unsigned char *PixelData8, *v8=NULL;
+  unsigned short *PixelData16, *v16=NULL;
+  int npix;
+  double firstPosition[3], lastPosition[3];
+  unsigned short int min16=65535, max16=0;
+  unsigned short int min8=255, max8=0;
+
+  npix=aDicomInfo[startIndex]->Columns*aDicomInfo[startIndex]->Rows;
+  numberOfFrames=nfiles;
+  nvox=npix*numberOfFrames;
+  // filling missing info
+  aDicomInfo[startIndex]->NumberOfFrames=numberOfFrames;
+  bitsAllocated=aDicomInfo[startIndex]->BitsAllocated;
+
+  printf("reading DICOM image...\n");
 
   switch (bitsAllocated)
-    {
-    case 8:
-      return((void *)v8);
-      break;
-    case 16:
-      return((void *)v16);
-      break;
-    default:
-      return NULL;
+  {
+  case 8:
+    v8=(unsigned char *)calloc(nvox, sizeof(unsigned char));
+    if (v8==NULL) {
+      printf("ReadDICOMImage: allocation problem\n");
+      exit(1);
     }
+    break;
+  case 16:
+    v16=(unsigned short *)calloc(nvox, sizeof(unsigned short));
+    if (v16==NULL) {
+      printf("ReadDICOMImage: allocation problem\n");
+      exit(1);
+    }
+    break;
+  } // switch
+  
+  for (n=0; n<nfiles; n++) 
+  {
+    GetDICOMInfo(aDicomInfo[n+startIndex]->FileName, &dcminfo, TRUE, n);
+    
+    if (n==0)
+      // fill missing info
+      for (i=0; i<3; i++)
+	aDicomInfo[startIndex]->FirstImagePosition[i]=dcminfo.ImagePosition[i];
+    if (n==nfiles-1)
+      // fill missing info
+      for (i=0; i<3; i++)
+	aDicomInfo[startIndex]->LastImagePosition[i]=dcminfo.ImagePosition[i];
+    
+    offset=npix*n;
+    
+    switch (dcminfo.BitsAllocated) 
+    {
+    case 8:  
+      PixelData8=(unsigned char*)dcminfo.PixelData;
+      for (j=0; j<npix; j++)
+      {
+        v8[offset+j]=PixelData8[j];
+        if (PixelData8[j]>max8)
+	  max8=PixelData8[j];
+        else if (PixelData8[j]<min8)
+	  min8=PixelData8[j];
+      }
+      // fill missing info
+      aDicomInfo[startIndex]->min8=min8;
+      aDicomInfo[startIndex]->max8=max8;    
+      free(PixelData8);
+      break;
+      
+    case 16:  
+      PixelData16=(unsigned short*)dcminfo.PixelData;
+      for (j=0; j<npix; j++)
+      {
+        v16[offset+j]=PixelData16[j];
+        if (PixelData16[j]>max16)
+	  max16=PixelData16[j];
+        else if (PixelData16[j]<min16)
+	  min16=PixelData16[j];
+      }
+      // fill missing info
+      aDicomInfo[startIndex]->min16=min16;
+      aDicomInfo[startIndex]->max16=max16;
+      free(PixelData16);
+      break;
+    }
+  }
+  // fill missing info
+  for (i=0; i<3; i++)
+    aDicomInfo[startIndex]->ImagePosition[i]=(firstPosition[i]+lastPosition[i])/2.;
+  
+  switch (bitsAllocated)
+  {
+  case 8:
+    return((void *)v8);
+    break;
+  case 16:
+    return((void *)v16);
+    break;
+  default:
+    return NULL;
+  }
 }
 
 
@@ -3255,60 +3364,60 @@ void SortFiles(char *fNames[], int nFiles, DICOMInfo ***ptrDicomArray, int *nStu
   *ptrDicomArray=dicomArray;
   
   for (n=0; n<nFiles; n++)
-    {
-      if ((dicomArray[n]=(DICOMInfo *)calloc(1, sizeof(DICOMInfo)))==NULL)
   {
-    printf("DICOM conversion (SortFiles): can not allocate %d bytes\n", (int)sizeof(DICOMInfo));
-    exit(1);
-  }
-      GetDICOMInfo(fNames[n], dicomArray[n], FALSE, 1);
+    if ((dicomArray[n]=(DICOMInfo *)calloc(1, sizeof(DICOMInfo)))==NULL)
+    {
+      printf("DICOM conversion (SortFiles): can not allocate %d bytes\n", (int)sizeof(DICOMInfo));
+      exit(1);
     }
+    GetDICOMInfo(fNames[n], dicomArray[n], FALSE, 1);
+  }
 
   // sort by acquisition time, then image number
   done=false;
   while (!done)
-    {
-      npermut=0;
-      for (n=0; n<nFiles-1; n++)
-  if (strcmp(dicomArray[n]->AcquisitionTime, dicomArray[n+1]->AcquisitionTime)>0)  // 2nd time inferior to first
-    {
-      storage=dicomArray[n];
-      dicomArray[n]=dicomArray[n+1];
-      dicomArray[n+1]=storage;
-      npermut++;
-    }
-      done=(npermut==0);      
-    }  
+  {
+    npermut=0;
+    for (n=0; n<nFiles-1; n++)
+      if (strcmp(dicomArray[n]->AcquisitionTime, dicomArray[n+1]->AcquisitionTime)>0)  // 2nd time inferior to first
+      {
+	storage=dicomArray[n];
+	dicomArray[n]=dicomArray[n+1];
+	dicomArray[n+1]=storage;
+	npermut++;
+      }
+    done=(npermut==0);      
+  }  
 
   // sort by image number
   done=false;
   while (!done)
-    {
-      npermut=0;
-      for (n=0; n<nFiles-1; n++)
-  if (strcmp(dicomArray[n]->AcquisitionTime, dicomArray[n+1]->AcquisitionTime)==0
-      && dicomArray[n]->ImageNumber>dicomArray[n+1]->ImageNumber)
-    {
-      storage=dicomArray[n];
-      dicomArray[n]=dicomArray[n+1];
-      dicomArray[n+1]=storage;
-      npermut++;
-    }
-      done=(npermut==0);      
-    }  
-
+  {
+    npermut=0;
+    for (n=0; n<nFiles-1; n++)
+      if (strcmp(dicomArray[n]->AcquisitionTime, dicomArray[n+1]->AcquisitionTime)==0
+	  && dicomArray[n]->ImageNumber>dicomArray[n+1]->ImageNumber)
+      {
+	storage=dicomArray[n];
+	dicomArray[n]=dicomArray[n+1];
+	dicomArray[n+1]=storage;
+	npermut++;
+      }
+    done=(npermut==0);      
+  }  
+  
   // check studies number
   *nStudies=1;
   for (n=0; n<nFiles-1; n++)
     if (strcmp(dicomArray[n]->AcquisitionTime, 
 	       dicomArray[n+1]->AcquisitionTime)!=0)
       (*nStudies)++;
-
+  
   if (*nStudies > 1) 
-    {
-      printf("WARNING: DICOM conversion, %d different acquisition times "
-	     "have been identified\n", *nStudies);
-    }
+  {
+    printf("WARNING: DICOM conversion, %d different acquisition times "
+	   "have been identified\n", *nStudies);
+  }
 }
 
 /*******************************************************
@@ -4093,6 +4202,9 @@ int DICOMRead(char *FileName, MRI **mri, int ReadImage)
   unsigned char *v8=NULL;
   unsigned short *v16=NULL;
   FILE *fp;
+  int numFiles;
+  int inputIndex;
+  int inputImageNumber;
 
   for (i=0; i< NUMBEROFTAGS; i++)
     IsTagPresent[i]=false;
@@ -4133,38 +4245,88 @@ int DICOMRead(char *FileName, MRI **mri, int ReadImage)
   
   // sort DICOM files by study date, then image number
   SortFiles(CleanedFileNames, NumberOfDICOMFiles, &aDicomInfo, &nStudies);
-  if (nStudies>1)
-    {
-      printf("Generating log file dicom.log\n");
-      fp = fopen("dicom.log", "w");
-      if (fp==NULL) {
-  printf("Can not create file dicom.log\n");
-      }
-      else {
-  for (i=0; i<NumberOfDICOMFiles; i++)
-    fprintf(fp, "%s\t%d\n", aDicomInfo[i]->FileName, aDicomInfo[i]->ImageNumber);
-  fclose(fp);
-      }
-    }
 
-  switch (aDicomInfo[0]->BitsAllocated)
+  // if more than 1 studies in the file then do more work to create
+  // a list of files which to make an output file.   Then use that
+  // to print out the information.
+  inputIndex = 0;
+  inputImageNumber = 1;
+  if (nStudies>1)
+  {
+    printf("Generating log file dicom.log\n");
+    fp = fopen("dicom.log", "w");
+    if (fp==NULL) {
+      printf("Can not create file dicom.log\n");
+    }
+    else 
     {
+      printf("Starting filenames for the studies\n");
+      for (i=0; i<NumberOfDICOMFiles; i++)
+      {
+	fprintf(fp, "%s\t%d\n", aDicomInfo[i]->FileName, aDicomInfo[i]->ImageNumber);
+	// find the index for the input file
+	if (!strcmp(FileName, aDicomInfo[i]->FileName))
+	{
+	  inputIndex = i;
+	  inputImageNumber = aDicomInfo[i]->ImageNumber;
+	}
+	// print the starting filename for the studies
+	if (aDicomInfo[i]->ImageNumber ==1)
+	  printf(" %s\n", aDicomInfo[i]->FileName);
+      }
+      fclose(fp);
+    }
+  }
+  // ok found the Dicominfo for the input file and its image number.
+  // look for the starting index for this selected list
+  inputIndex -= inputImageNumber-1; // -1 is due to ImageNumber being counted from 1 not 0.
+  // verify ImageNumber to be 1
+  if (aDicomInfo[inputIndex]->ImageNumber != 1)
+  {
+    fprintf(stderr, "Somehow the image number was not 1 for the list.  We will use the default\n");
+    inputIndex = 0;
+  }
+  if (nStudies > 1)
+  {
+    printf("Use %s as the starting filename for this extraction.\n", aDicomInfo[inputIndex]->FileName);
+    printf("If like to use the different one, please pick one of the files listed above.\n");
+  }
+  // find the total number of files belonging to this list
+  // the list has been sorted and thus look for the end.
+  // numFiles = aDicomInfo[inputIndex]->NumberOfFrames; this is not reliable
+  // use the ImageNumber directly
+  numFiles = 1; // i=0
+  for (i=1; i < NumberOfDICOMFiles; ++i)
+  {
+    if (aDicomInfo[i]->ImageNumber >= numFiles)
+    {
+      numFiles = aDicomInfo[i]->ImageNumber;
+    }
+    else
+      break;
+  }
+  switch (aDicomInfo[inputIndex]->BitsAllocated)
+  {
     case 8:
-      v8=(unsigned char *)ReadDICOMImage(NumberOfDICOMFiles, aDicomInfo);
-      pmri=MRIallocSequence(aDicomInfo[0]->Columns, aDicomInfo[0]->Rows, aDicomInfo[0]->NumberOfFrames, MRI_UCHAR, 1);
-      DICOMInfo2MRI(aDicomInfo[0], (void *)v8, pmri);
+      v8=(unsigned char *)ReadDICOMImage2(numFiles, aDicomInfo, inputIndex);
+      pmri=MRIallocSequence(aDicomInfo[inputIndex]->Columns, 
+			    aDicomInfo[inputIndex]->Rows, 
+			    numFiles, MRI_UCHAR, 1);
+      DICOMInfo2MRI(aDicomInfo[inputIndex], (void *)v8, pmri);
       free(v8);
       break;
     case 16:
-      v16=(unsigned short *)ReadDICOMImage(NumberOfDICOMFiles, aDicomInfo);
-      pmri=MRIallocSequence(aDicomInfo[0]->Columns, aDicomInfo[0]->Rows, aDicomInfo[0]->NumberOfFrames, MRI_SHORT, 1);
-      DICOMInfo2MRI(aDicomInfo[0], (void *)v16, pmri);
+      v16=(unsigned short *)ReadDICOMImage2(numFiles, aDicomInfo, inputIndex);
+      pmri=MRIallocSequence(aDicomInfo[inputIndex]->Columns, 
+			    aDicomInfo[inputIndex]->Rows, 
+			    numFiles, MRI_SHORT, 1);
+      DICOMInfo2MRI(aDicomInfo[inputIndex], (void *)v16, pmri);
       free(v16);
       break;
-    }
+  }
   
   // display only first DICOM header
-  PrintDICOMInfo(aDicomInfo[0]);
+  PrintDICOMInfo(aDicomInfo[inputIndex]);
 
   *mri=pmri;
 
