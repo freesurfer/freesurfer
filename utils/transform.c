@@ -882,3 +882,49 @@ LTAvoxelTransformToCoronalRasTransform(LTA *lta)
 
   return(NO_ERROR) ;
 }
+/*-----------------------------------------------------------
+  FixMNITal() - function to compute the "real" talairach coordinates
+  from the MNI talaiarch coordinates. Can be done in-place. This is
+  based on Matthew Brett's 10/8/98 transform. See
+  http://www.mrc-cbu.cam.ac.uk/Imaging/mnispace.html
+  -----------------------------------------------------------*/
+int FixMNITal(float  xmni, float  ymni, float  zmni,
+        float *xtal, float *ytal, float *ztal)
+{
+  MATRIX *T, *xyzMNI, *xyzTal;
+
+
+  T = MatrixAlloc(4, 4, MATRIX_REAL);
+  if(zmni >= 0.0){
+    stuff_four_by_four(T, 
+           .9900,  .0000, .0000, 0,
+           .0000,  .9688, .0460, 0,
+           .0000, -.0485, .9189, 0,
+           .0000,  .0000, .0000, 1);
+  }
+  else {
+    stuff_four_by_four(T, 
+           .9900,  .0000, .0000, 0,
+           .0000,  .9688, .0420, 0,
+           .0000, -.0485, .8390, 0,
+           .0000,  .0000, .0000, 1);
+  }
+
+  xyzMNI = MatrixAlloc(4, 1, MATRIX_REAL);
+  xyzMNI->rptr[1][1] = xmni;
+  xyzMNI->rptr[2][1] = ymni;
+  xyzMNI->rptr[3][1] = zmni;
+  xyzMNI->rptr[4][1] = 1.0;
+
+  xyzTal = MatrixMultiply(T,xyzMNI,NULL);
+
+  *xtal = xyzTal->rptr[1][1];
+  *ytal = xyzTal->rptr[2][1];
+  *ztal = xyzTal->rptr[3][1];
+
+  MatrixFree(&T);
+  MatrixFree(&xyzMNI);
+  MatrixFree(&xyzTal);
+
+  return(0);
+}
