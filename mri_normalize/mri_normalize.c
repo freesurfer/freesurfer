@@ -17,6 +17,7 @@ static int get_option(int argc, char *argv[]) ;
 static void  usage_exit(void) ;
 
 static int conform = 0 ;
+static int gentle_flag = 0 ;
 
 char *Progname ;
 
@@ -58,7 +59,7 @@ main(int argc, char *argv[])
     argv += nargs ;
   }
 
-  if (argc < 2)
+  if (argc < 3)
     usage_exit() ;
 
   if (argc < 1)
@@ -116,9 +117,15 @@ main(int argc, char *argv[])
   for (n = 0 ; n < num_3d_iter ; n++)
   {
     fprintf(stderr, "3d normalization pass %d of %d\n", n+1, num_3d_iter) ;
-    MRI3dNormalize(mri_dst, NULL, DEFAULT_DESIRED_WHITE_MATTER_VALUE, mri_dst,
-                   intensity_above, intensity_below,
-                   control_point_fname != NULL && !n && no1d);
+    if (gentle_flag)
+      MRI3dGentleNormalize(mri_dst, NULL, DEFAULT_DESIRED_WHITE_MATTER_VALUE,
+                           mri_dst,
+                           intensity_above/2, intensity_below/2,
+                           control_point_fname != NULL && !n && no1d);
+    else
+      MRI3dNormalize(mri_dst, NULL, DEFAULT_DESIRED_WHITE_MATTER_VALUE,mri_dst,
+                     intensity_above, intensity_below,
+                     control_point_fname != NULL && !n && no1d);
   }
 
   if (verbose)
@@ -155,6 +162,11 @@ get_option(int argc, char *argv[])
   {
     conform = 1 ;
     fprintf(stderr, "interpolating and embedding volume to be 256^3...\n") ;
+  }
+  else if (!stricmp(option, "gentle"))
+  {
+    gentle_flag = 1 ;
+    fprintf(stderr, "performing kinder gentler normalization...\n") ;
   }
   else switch (toupper(*option))
   {
