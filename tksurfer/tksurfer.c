@@ -583,6 +583,12 @@ int redrawlockflag = FALSE; /* redraw on window uncover events */
 int simpledrawmodeflag = TRUE; /* draw based on scalar values */
 int forcegraycurvatureflag = FALSE; /* always draw grayscale curvature */
 int drawcursorflag = TRUE; /* draw the cyan cursor */
+int ignorezeroesinhistogramflag = FALSE; /* if true, don't count 0s in
+					    overlay histogram */
+int lastignorezeroesinhistogramflag = FALSE; /* this is done to see if
+						we need to recalc the
+						freqs */
+
 Tcl_Interp *g_interp = NULL;
 
 int curwindowleft = 0; /* keep track of window position, updated on move */
@@ -18131,7 +18137,7 @@ int main(int argc, char *argv[])   /* new main */
   /* end rkt */
   
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: tksurfer.c,v 1.52 2003/08/22 22:07:25 kteich Exp $");
+  nargs = handle_version_option (argc, argv, "$Id: tksurfer.c,v 1.53 2003/08/25 22:40:02 kteich Exp $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -18810,6 +18816,9 @@ int main(int argc, char *argv[])   /* new main */
   Tcl_LinkVar(interp,"forcegraycurvatureflag",(char *)&forcegraycurvatureflag,
 	      TCL_LINK_BOOLEAN);
   Tcl_LinkVar(interp,"drawcursorflag",(char *)&drawcursorflag,
+	      TCL_LINK_BOOLEAN);
+  Tcl_LinkVar(interp,"ignorezeroesinhistogramflag",
+	      (char *)&ignorezeroesinhistogramflag,
 	      TCL_LINK_BOOLEAN);
   /* end rkt */
   /*=======================================================================*/
@@ -21335,30 +21344,44 @@ int func_calc_avg_timecourse_values (int condition, int* num_good_voxels,
   FunD_IsErrorDataPresent(func_timecourse, &present);
   if (present)
     {
-      
-      /* get the deviations at all time points */
-      func_error = FunD_GetDeviationForAllTimePoints (func_timecourse,
-						      condition, deviations);
-      
-      if (func_error!=FunD_tErr_NoError)
-	ErrorPrintf(func_convert_error(func_error),"func_calc_avg_timecourse_values: error in FunD_GetDeviationForAllTimePoints\n");
-      
-      /* if we have offset values... */
-      if (func_use_timecourse_offset && func_timecourse_offset!=NULL) 
+      /* go through the voxel list again. */
+      xGArr_ResetIterator (func_selected_ras);
+      array_error = xGArr_tErr_NoErr;
+      while ((array_error=xGArr_NextItem(func_selected_ras,
+					 (void*)&selected_voxel))
+	     ==xGArr_tErr_NoErr) 
 	{
 	  
-	  /* divide all deviations by the offset and mult by 100 to 
-	     get a percent */
-	  for (tp=0;tp<num_timepoints;tp++)
-	    deviations[tp] = (deviations[tp]/offset)*100.0;
+	  /* convert to an xvoxel */
+	  xVoxl_SetFloat (&voxel,
+			  selected_voxel.x,selected_voxel.y,selected_voxel.z);
+	  
+	  /* get the deviations at all time points */
+	  func_error = 
+	    FunD_GetDeviationForAllTimePoints (func_timecourse,
+					       &voxel, condition, deviations);
+	  
+	  if (func_error!=FunD_tErr_NoError)
+	    ErrorPrintf(func_convert_error(func_error),"func_calc_avg_timecourse_values: error in FunD_GetDeviationForAllTimePoints\n");
+	  
+	  /* if we have offset values... */
+	  if (func_use_timecourse_offset && func_timecourse_offset!=NULL) 
+	    {
+	      
+	      /* divide all deviations by the offset and mult by 100 to 
+		 get a percent */
+	      for (tp=0;tp<num_timepoints;tp++)
+		deviations[tp] = (deviations[tp]/offset)*100.0;
+	    }
 	}
-    } else {
-      
+    } 
+  else
+    {
       /* fill deviations with 0s */
       for (tp=0;tp<num_timepoints;tp++)
 	deviations[tp] = 0;
     }
-  
+
   return(ERROR_NONE);
 }
 
@@ -21470,7 +21493,7 @@ sclv_calc_frequencies(int field)
   num_values = (sclv_field_info[field].max_value - 
 		sclv_field_info[field].min_value);
   valPerBin = num_values / (float)sclv_field_info[field].num_freq_bins;
-	  
+	
   /* allocate storage for each time point and condition... */
   sclv_field_info[field].frequencies = 
     calloc( sclv_field_info[field].num_conditions, sizeof(int**) );
@@ -21499,10 +21522,13 @@ sclv_calc_frequencies(int field)
 	    {
 	      v = &mris->vertices[vno] ;
 	      sclv_get_value (v, field, &value);
-	      bin = (float)(value - sclv_field_info[field].min_value) / (float)valPerBin;
-	      if (bin >= 0 && bin < sclv_field_info[field].num_freq_bins)
-		sclv_field_info[field].frequencies[condition][timepoint][bin]++;
-	      
+	      if (!ignorezeroesinhistogramflag ||
+		  (ignorezeroesinhistogramflag && value != 0))
+		{
+		  bin = (float)(value - sclv_field_info[field].min_value) / (float)valPerBin;
+		  if (bin >= 0 && bin < sclv_field_info[field].num_freq_bins)
+		    sclv_field_info[field].frequencies[condition][timepoint][bin]++;
+		}
 	    }
 	}
     }
@@ -21530,7 +21556,7 @@ sclv_calc_frequencies(int field)
     }
   printf ("------------------------------- \n");
 #endif
-  
+
   return (ERROR_NONE);
 }
 
@@ -21838,6 +21864,14 @@ int sclv_send_histogram ( int field ) {
   int condition, timepoint;
   int bin;
   
+  /* if our lastignorezeroesinhistogramflag is different than from
+     what it was last time, we need to recalc the freqs. */
+  if (lastignorezeroesinhistogramflag != ignorezeroesinhistogramflag)
+    {
+      sclv_calc_frequencies(field);
+    }
+  lastignorezeroesinhistogramflag = ignorezeroesinhistogramflag;
+
   /* calculate the number of values and the increment between
      each value */
   increment = 
