@@ -3,9 +3,8 @@
 //
 // 
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2004/05/27 13:38:50 $
-// Revision       : $Revision: 1.38 $
+// Revision Date  : $Date: 2004/05/27 14:42:59 $
+// Revision       : $Revision: 1.39 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -39,6 +38,8 @@
 #define FSIGN(f)  (((f) < 0) ? -1 : 1)
 #endif
 
+static int different_neighbor_labels(GCA_MORPH *gcam, int x,int y,int z,int whalf) ;
+static int zero_vals(float *vals, int nvals) ;
 #if 0
 static int gcamMLElabelAtLocation(GCA_MORPH *gcam, int x, int y, int z, float *vals) ;
 #endif
@@ -409,7 +410,7 @@ GCAMread(char *fname)
     {
       pclose(fp);
       ErrorReturn(NULL, (ERROR_BADPARM, "GCAMread(%s): zcat encountered error.",
-			 fname)) ;
+												 fname)) ;
     }
   }
   else
@@ -711,7 +712,11 @@ gcamLogLikelihoodTerm(GCA_MORPH *gcam, MRI *mri, MRI *mri_smooth, double l_log_l
           DiagBreak() ;
         if (gcamn->status & GCAM_IGNORE_LIKELIHOOD)
           continue ;
-        
+
+				/* don't use unkown nodes unless they border something that's not unknown */
+        if (IS_UNKNOWN(gcamn->label) && different_neighbor_labels(gcam, x,y,z,1) == 0)
+					continue ;
+
         load_vals(mri, gcamn->x, gcamn->y, gcamn->z, vals, gcam->gca->ninputs) ;
         if (!gcamn->gc)
         {
@@ -749,6 +754,23 @@ gcamLogLikelihoodTerm(GCA_MORPH *gcam, MRI *mri, MRI *mri_smooth, double l_log_l
         }
         
         MatrixMultiply(m_inv_cov, v_means, v_means) ;
+				if (IS_UNKNOWN(gcamn->label))
+				{
+					if (zero_vals(vals, gcam->gca->ninputs))
+					{
+						if (Gx == x && Gy == y && Gz == z)
+							printf("discounting unknown label at (%d, %d, %d) due to skull strip difference\n",
+										 x, y, z) ;
+						/* probably difference in skull stripping (vessels present or absent) - don't let it dominate */
+						if (VECTOR_ELT(v_means,1) > .5)  /* don't let it be more than 1/2 stds away */
+							VECTOR_ELT(v_means,1) = .5 ;
+					}
+#if 0
+					else 
+						if (VECTOR_ELT(v_means,1) > 2)  /* don't let it be more than 2 stds away */
+							VECTOR_ELT(v_means,1) = 2 ;
+#endif
+				}
         MatrixMultiply(m_delI, v_means, v_grad) ;
         
         gcamn->dx += l_log_likelihood*V3_X(v_grad) ;
@@ -880,6 +902,10 @@ gcamLogLikelihoodEnergy(GCA_MORPH *gcam, MRI *mri)
 
         if (gcamn->status & GCAM_IGNORE_LIKELIHOOD)
           continue ;
+				/* don't use unkown nodes unless they border something that's not unknown */
+        if (IS_UNKNOWN(gcamn->label) && different_neighbor_labels(gcam, x,y,z,1) == 0)
+					continue ;
+
         load_vals(mri, gcamn->x, gcamn->y, gcamn->z, vals, gcam->gca->ninputs) ;
         if (gcamn->gc)
           error = GCAmahDist(gcamn->gc, vals, gcam->gca->ninputs) + log(covariance_determinant(gcamn->gc, gcam->gca->ninputs)) ;
@@ -1289,9 +1315,9 @@ gcamJacobianTermAtNode(GCA_MORPH *gcam, MRI *mri, double l_jacobian,
       continue ;
 
     if (gcamn->invalid  == GCAM_POSITION_INVALID || 
-	gcamni->invalid == GCAM_POSITION_INVALID || 
-	gcamnj->invalid == GCAM_POSITION_INVALID || 
-	gcamnk->invalid == GCAM_POSITION_INVALID)
+				gcamni->invalid == GCAM_POSITION_INVALID || 
+				gcamnj->invalid == GCAM_POSITION_INVALID || 
+				gcamnk->invalid == GCAM_POSITION_INVALID)
       continue;
 
     num++ ;
@@ -4492,4 +4518,47 @@ GCAMmarkNegativeNodesInvalid(GCA_MORPH *gcam)
   }
   return(NO_ERROR) ;
 }
+
+static int
+zero_vals(float *vals, int nvals)
+{
+	int n, z ;
+
+	for (z = 1, n = 0 ; n < nvals ; n++)
+		if (!FZERO(vals[n]))
+		{
+			z = 0 ; break ;
+		}
+
+	return(z) ;
+}
+
+static int
+different_neighbor_labels(GCA_MORPH *gcam, int x,int y,int z,int whalf)
+{
+	int        label, num, i, j, k ;
+
+	label = gcam->nodes[x][y][z].label ;
+	for (num = 0, i = x-whalf ; i <= x+whalf ; i++)
+	{
+		if (i < 0 || i >= gcam->width)
+			continue ;
+		for (j = y-whalf ; j <= y+whalf ; j++)
+		{
+			if (j < 0 || j >= gcam->height)
+				continue ;
+			for (k = z-whalf ; k <= z+whalf ; k++)
+			{
+				if (k < 0 || k >= gcam->height)
+					continue ;
+				if (i == 0 && j == 0 && k == 0)
+					continue ;
+				if (label != gcam->nodes[i][j][k].label)
+					num++ ;
+			}
+		}
+	}
+	return(num) ;
+}
+
 

@@ -2,9 +2,9 @@
 // originally written by Bruce Fischl
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2004/05/27 13:39:31 $
-// Revision       : $Revision: 1.138 $
+// Revision Author: $Author: fischl $
+// Revision Date  : $Date: 2004/05/27 14:42:59 $
+// Revision       : $Revision: 1.139 $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -1665,7 +1665,7 @@ GCAread(char *fname)
       pclose(fp);
       errno = 0;
       ErrorReturn(NULL, (ERROR_BADPARM,"GCAread(%s): zcat encountered error",
-			 fname)) ;
+												 fname)) ;
     }
   }
   else
@@ -1705,32 +1705,32 @@ GCAread(char *fname)
           gcan = &gca->nodes[x][y][z] ;
           gcan->nlabels = freadInt(fp) ;
           gcan->total_training = freadInt(fp) ;
-	  if (gcan->nlabels)
-	  {
-	    gcan->labels = (unsigned char *)calloc(gcan->nlabels, sizeof(unsigned char)) ;
-	    if (!gcan->labels)
-	      ErrorExit(ERROR_NOMEMORY, "GCAread(%s): could not allocate %d "
-			"labels @ (%d,%d,%d)", fname, gcan->nlabels, x, y, z) ;
-	    gcan->gcs = alloc_gcs(gcan->nlabels, flags, gca->ninputs) ;
-	    if (!gcan->gcs)
-	      ErrorExit(ERROR_NOMEMORY, "GCAread(%s); could not allocated %d gcs "
-			"@ (%d,%d,%d)", fname, gcan->nlabels, x, y, z) ;
+					if (gcan->nlabels)
+					{
+						gcan->labels = (unsigned char *)calloc(gcan->nlabels, sizeof(unsigned char)) ;
+						if (!gcan->labels)
+							ErrorExit(ERROR_NOMEMORY, "GCAread(%s): could not allocate %d "
+												"labels @ (%d,%d,%d)", fname, gcan->nlabels, x, y, z) ;
+						gcan->gcs = alloc_gcs(gcan->nlabels, flags, gca->ninputs) ;
+						if (!gcan->gcs)
+							ErrorExit(ERROR_NOMEMORY, "GCAread(%s); could not allocated %d gcs "
+												"@ (%d,%d,%d)", fname, gcan->nlabels, x, y, z) ;
           }
-	  else // no labels assigned to this node
-	  {
-	    gcan->labels = 0;
-	    gcan->gcs = 0;
-	  }
+					else // no labels assigned to this node
+					{
+						gcan->labels = 0;
+						gcan->gcs = 0;
+					}
           for (n = 0 ; n < gcan->nlabels ; n++)
           {
-	    int r, c;
+						int r, c;
             gc = &gcan->gcs[n] ;
             gcan->labels[n] = (unsigned char)fgetc(fp) ;
-	    for (r = 0 ; r < gca->ninputs ; r++)
-	      gc->means[r] = freadFloat(fp) ;
-	    for (i = r = 0 ; r < gca->ninputs ; r++)
-	      for (c = r ; c < gca->ninputs ; c++, i++)
-		gc->covars[i] = freadFloat(fp) ;
+						for (r = 0 ; r < gca->ninputs ; r++)
+							gc->means[r] = freadFloat(fp) ;
+						for (i = r = 0 ; r < gca->ninputs ; r++)
+							for (c = r ; c < gca->ninputs ; c++, i++)
+								gc->covars[i] = freadFloat(fp) ;
             if (gca->flags & GCA_NO_MRF)
               continue ;
             for (i = 0 ; i < GIBBS_NEIGHBORS ; i++)
@@ -1792,37 +1792,37 @@ GCAread(char *fname)
           gcan = &gca->nodes[x][y][z] ;
           gcan->nlabels = freadInt(fp) ;
           gcan->total_training = freadInt(fp) ;
-	  if (gcan->nlabels)
-	  {
-	    gcan->labels = (unsigned char *)calloc(gcan->nlabels, sizeof(unsigned char)) ;
-	    if (!gcan->labels)
-	      ErrorExit(ERROR_NOMEMORY, "GCAread(%s): could not allocate %d "
-			"labels @ (%d,%d,%d)", fname, gcan->nlabels, x, y, z) ;
-	    gcan->gcs = alloc_gcs(gcan->nlabels, flags, gca->ninputs) ;
-	    if (!gcan->gcs)
-	      ErrorExit(ERROR_NOMEMORY, "GCAread(%s); could not allocated %d gcs "
-			"@ (%d,%d,%d)", fname, gcan->nlabels, x, y, z) ;
+					if (gcan->nlabels)
+					{
+						gcan->labels = (unsigned char *)calloc(gcan->nlabels, sizeof(unsigned char)) ;
+						if (!gcan->labels)
+							ErrorExit(ERROR_NOMEMORY, "GCAread(%s): could not allocate %d "
+												"labels @ (%d,%d,%d)", fname, gcan->nlabels, x, y, z) ;
+						gcan->gcs = alloc_gcs(gcan->nlabels, flags, gca->ninputs) ;
+						if (!gcan->gcs)
+							ErrorExit(ERROR_NOMEMORY, "GCAread(%s); could not allocated %d gcs "
+												"@ (%d,%d,%d)", fname, gcan->nlabels, x, y, z) ;
           }
-	  else // no labels at this node
-	  {
-	    gcan->labels = 0;
-	    gcan->gcs = 0;
-	  }
+					else // no labels at this node
+					{
+						gcan->labels = 0;
+						gcan->gcs = 0;
+					}
           for (n = 0 ; n < gcan->nlabels ; n++)
           {
-	    int  r, c ;
+						int  r, c ;
 
             gc = &gcan->gcs[n] ;
 						
             gcan->labels[n] = (unsigned char)fgetc(fp) ;
 						
-	    for (r = 0 ; r < gca->ninputs ; r++)
-	      gc->means[r] = freadFloat(fp) ;
-	    for (i = r = 0 ; r < gca->ninputs ; r++)
-	      for (c = r ; c < gca->ninputs ; c++, i++)
-		gc->covars[i] = freadFloat(fp) ;
-	    if (gca->flags & GCA_NO_MRF)
-	      continue ;
+						for (r = 0 ; r < gca->ninputs ; r++)
+							gc->means[r] = freadFloat(fp) ;
+						for (i = r = 0 ; r < gca->ninputs ; r++)
+							for (c = r ; c < gca->ninputs ; c++, i++)
+								gc->covars[i] = freadFloat(fp) ;
+						if (gca->flags & GCA_NO_MRF)
+							continue ;
             for (i = 0 ; i < GIBBS_NEIGHBORS ; i++)
             {
               gc->nlabels[i] = freadInt(fp) ;
@@ -1858,26 +1858,26 @@ GCAread(char *fname)
           if (x == Ggca_x && y == Ggca_y && z == Ggca_z)
             DiagBreak() ;
           gcap = &gca->priors[x][y][z] ;
-	  if (gcap==NULL)
-	    continue;
+					if (gcap==NULL)
+						continue;
           gcap->nlabels = freadInt(fp) ;
           gcap->total_training = freadInt(fp) ;
-	  if (gcap->nlabels)
-	  {
-	    gcap->labels = (unsigned char *)calloc(gcap->nlabels, sizeof(unsigned char)) ;
-	    if (!gcap->labels)
-	      ErrorExit(ERROR_NOMEMORY, "GCAread(%s): could not allocate %d "
-			"labels @ (%d,%d,%d)", fname, gcap->nlabels, x, y, z) ;
-	    gcap->priors = (float *)calloc(gcap->nlabels, sizeof(float)) ;
-	    if (!gcap->priors)
-	      ErrorExit(ERROR_NOMEMORY, "GCAread(%s): could not allocate %d "
-			"priors @ (%d,%d,%d)", fname, gcap->nlabels, x, y, z) ;
-	  }
-	  else // no lables assigned to this priors
-	  {
-	    gcap->labels = 0;
-	    gcap->priors = 0;
-	  }
+					if (gcap->nlabels)
+					{
+						gcap->labels = (unsigned char *)calloc(gcap->nlabels, sizeof(unsigned char)) ;
+						if (!gcap->labels)
+							ErrorExit(ERROR_NOMEMORY, "GCAread(%s): could not allocate %d "
+												"labels @ (%d,%d,%d)", fname, gcap->nlabels, x, y, z) ;
+						gcap->priors = (float *)calloc(gcap->nlabels, sizeof(float)) ;
+						if (!gcap->priors)
+							ErrorExit(ERROR_NOMEMORY, "GCAread(%s): could not allocate %d "
+												"priors @ (%d,%d,%d)", fname, gcap->nlabels, x, y, z) ;
+					}
+					else // no labels assigned to this priors
+					{
+						gcap->labels = 0;
+						gcap->priors = 0;
+					}
           for (n = 0 ; n < gcap->nlabels ; n++)
           {
             gcap->labels[n] = (unsigned char)fgetc(fp) ;
@@ -1895,22 +1895,22 @@ GCAread(char *fname)
     {
       for (z = 0 ; z < gca->node_depth ; z++)
       {
-	int xp, yp, zp ;
+				int xp, yp, zp ;
 	
-	if (x == Ggca_x && y == Ggca_y && z == Ggca_z)
-	  DiagBreak() ;
-	gcan = &gca->nodes[x][y][z] ;
-	if (gcaNodeToPrior(gca, x, y, z, &xp, &yp, &zp)==NO_ERROR)
-	{
-	  gcap = &gca->priors[xp][yp][zp] ;
-	  if (gcap==NULL)
-	    continue;
-	  for (n = 0 ; n < gcan->nlabels ; n++)
-	  {
-	    gc = &gcan->gcs[n] ;
-	    gc->ntraining = gcan->total_training * getPrior(gcap,gcan->labels[n]) ;
-	  }
-	}
+				if (x == Ggca_x && y == Ggca_y && z == Ggca_z)
+					DiagBreak() ;
+				gcan = &gca->nodes[x][y][z] ;
+				if (gcaNodeToPrior(gca, x, y, z, &xp, &yp, &zp)==NO_ERROR)
+				{
+					gcap = &gca->priors[xp][yp][zp] ;
+					if (gcap==NULL)
+						continue;
+					for (n = 0 ; n < gcan->nlabels ; n++)
+					{
+						gc = &gcan->gcs[n] ;
+						gc->ntraining = gcan->total_training * getPrior(gcap,gcan->labels[n]) ;
+					}
+				}
       }
     }
   }
@@ -1927,72 +1927,72 @@ GCAread(char *fname)
       // while (!feof(fp))
       while (freadIntEx(&tag, fp))
       {
-	/* all tags are format: <int: tag> <int: num> <parm> <parm> .... */
-	// tag = freadInt(fp) ;
-	switch (tag)
-	{
-	case TAG_GCA_TYPE:
-	  freadInt(fp) ;   /* skip num=1 */
-	  gca->type = freadInt(fp) ;   
-	  switch(gca->type)
-	  {
-	  case GCA_NORMAL:
-	    printf("setting gca type = Normal gca type\n");
-	    break;
-	  case GCA_PARAM:
-	    printf("setting gca type = T1/PD gca type\n");
-	    break;
-	  case GCA_FLASH:
-	    printf("setting gca type = FLASH gca type\n");
-	    break;
-	  default:
-	    printf("setting gca type = Unknown\n");
-	    gca->type=GCA_UNKNOWN;
-	    break;
-	  }
-	  break ;
-	case TAG_PARAMETERS:
-	  nparms = freadInt(fp) ;   /* how many MR parameters are stored */
-	  printf("reading %d MR parameters out of GCA header...\n", nparms) ;
-	  for (n = 0 ; n < gca->ninputs ; n++)
-	  {
-	    gca->TRs[n] = freadFloat(fp) ;
-	    gca->FAs[n] = freadFloat(fp) ;
-	    gca->TEs[n] = freadFloat(fp) ;
-	    printf("input %d: TR=%2.1f msec, FA=%2.1f deg, TE=%2.1f msec\n",
-		   n, gca->TRs[n], DEGREES(gca->FAs[n]), gca->TEs[n]) ;
-	  }
-	  break ;
-	case TAG_GCA_DIRCOS:
-	  gca->x_r = freadFloat(fp);
-	  gca->x_a = freadFloat(fp);
-	  gca->x_s = freadFloat(fp);
-	  gca->y_r = freadFloat(fp);
-	  gca->y_a = freadFloat(fp);
-	  gca->y_s = freadFloat(fp);
-	  gca->z_r = freadFloat(fp);
-	  gca->z_a = freadFloat(fp);
-	  gca->z_s = freadFloat(fp);
-	  gca->c_r = freadFloat(fp);
-	  gca->c_a = freadFloat(fp);
-	  gca->c_s = freadFloat(fp);
-	  gca->width = freadInt(fp);
-	  gca->height = freadInt(fp);
-	  gca->depth = freadInt(fp);
-	  gca->xsize = freadFloat(fp);
-	  gca->ysize = freadFloat(fp);
-	  gca->zsize = freadFloat(fp);
+				/* all tags are format: <int: tag> <int: num> <parm> <parm> .... */
+				// tag = freadInt(fp) ;
+				switch (tag)
+				{
+				case TAG_GCA_TYPE:
+					freadInt(fp) ;   /* skip num=1 */
+					gca->type = freadInt(fp) ;   
+					switch(gca->type)
+					{
+					case GCA_NORMAL:
+						printf("setting gca type = Normal gca type\n");
+						break;
+					case GCA_PARAM:
+						printf("setting gca type = T1/PD gca type\n");
+						break;
+					case GCA_FLASH:
+						printf("setting gca type = FLASH gca type\n");
+						break;
+					default:
+						printf("setting gca type = Unknown\n");
+						gca->type=GCA_UNKNOWN;
+						break;
+					}
+					break ;
+				case TAG_PARAMETERS:
+					nparms = freadInt(fp) ;   /* how many MR parameters are stored */
+					printf("reading %d MR parameters out of GCA header...\n", nparms) ;
+					for (n = 0 ; n < gca->ninputs ; n++)
+					{
+						gca->TRs[n] = freadFloat(fp) ;
+						gca->FAs[n] = freadFloat(fp) ;
+						gca->TEs[n] = freadFloat(fp) ;
+						printf("input %d: TR=%2.1f msec, FA=%2.1f deg, TE=%2.1f msec\n",
+									 n, gca->TRs[n], DEGREES(gca->FAs[n]), gca->TEs[n]) ;
+					}
+					break ;
+				case TAG_GCA_DIRCOS:
+					gca->x_r = freadFloat(fp);
+					gca->x_a = freadFloat(fp);
+					gca->x_s = freadFloat(fp);
+					gca->y_r = freadFloat(fp);
+					gca->y_a = freadFloat(fp);
+					gca->y_s = freadFloat(fp);
+					gca->z_r = freadFloat(fp);
+					gca->z_a = freadFloat(fp);
+					gca->z_s = freadFloat(fp);
+					gca->c_r = freadFloat(fp);
+					gca->c_a = freadFloat(fp);
+					gca->c_s = freadFloat(fp);
+					gca->width = freadInt(fp);
+					gca->height = freadInt(fp);
+					gca->depth = freadInt(fp);
+					gca->xsize = freadFloat(fp);
+					gca->ysize = freadFloat(fp);
+					gca->zsize = freadFloat(fp);
 	  
-	  printf("Direction cosines read:\n");
-	  printf(" x_r = % .4f, y_r = % .4f, z_r = % .4f\n", gca->x_r, gca->y_r, gca->z_r);
-	  printf(" x_a = % .4f, y_a = % .4f, z_a = % .4f\n", gca->x_a, gca->y_a, gca->z_a);
-	  printf(" x_s = % .4f, y_s = % .4f, z_s = % .4f\n", gca->x_s, gca->y_s, gca->z_s);
-	  printf(" c_r = % .4f, c_a = % .4f, c_s = % .4f\n", gca->c_r, gca->c_a, gca->c_s);
+					printf("Direction cosines read:\n");
+					printf(" x_r = % .4f, y_r = % .4f, z_r = % .4f\n", gca->x_r, gca->y_r, gca->z_r);
+					printf(" x_a = % .4f, y_a = % .4f, z_a = % .4f\n", gca->x_a, gca->y_a, gca->z_a);
+					printf(" x_s = % .4f, y_s = % .4f, z_s = % .4f\n", gca->x_s, gca->y_s, gca->z_s);
+					printf(" c_r = % .4f, c_a = % .4f, c_s = % .4f\n", gca->c_r, gca->c_a, gca->c_s);
           break;
-	default:
-	  ErrorPrintf(ERROR_BADFILE, "GCAread(%s): unknown tag %x\n", fname, tag) ;
-	  break ;
-	}
+				default:
+					ErrorPrintf(ERROR_BADFILE, "GCAread(%s): unknown tag %x\n", fname, tag) ;
+					break ;
+				}
       }
     }
   }
@@ -10280,21 +10280,21 @@ GCAfindAllSamples(GCA *gca, int *pnsamples, int *exclude_list)
       for (z = 0 ; z < depth ; z++)
       {
         gcap = &gca->priors[x][y][z] ;
-	if (gcap==NULL)
-	  continue;
+				if (gcap==NULL)
+					continue;
         max_p = 0 ;  max_n = -1 ; max_label = 0 ;
-	// if no label, ignore
-	if (gcap->nlabels == 0)
-	  continue ;
+				// if no label, ignore
+				if (gcap->nlabels == 0)
+					continue ;
 
-	//////////////// debug code /////////////////////////////////
+				//////////////// debug code /////////////////////////////////
         if (x*gca->prior_spacing == Gx && y*gca->prior_spacing == Gy && 
             z*gca->prior_spacing == Gz)
           DiagBreak() ;
         /////////////////////////////////////////////////////////////
 
         // go through the labels to find the max value for prior probablity
-	// and its label
+				// and its label
         for (n = 0 ; n < gcap->nlabels ; n++)
         {
           label = gcap->labels[n] ;
@@ -10306,10 +10306,10 @@ GCAfindAllSamples(GCA *gca, int *pnsamples, int *exclude_list)
             max_label = gcap->labels[n] ;
           }
         }
-	// if this label is in the exclude list, continue
-	if (exclude_list && exclude_list[max_label] > 0)
-	  continue ;
-	// if the label is unknown and no +/-1 neighbor has different label, continue
+				// if this label is in the exclude list, continue
+				if (exclude_list && exclude_list[max_label] > 0)
+					continue ;
+				// if the label is unknown and no +/-1 neighbor has different label, continue
         if (IS_UNKNOWN(max_label) &&
             (different_nbr_max_labels(gca, x, y, z, 1, 0) == 0))
           continue ;
@@ -10336,12 +10336,12 @@ GCAfindAllSamples(GCA *gca, int *pnsamples, int *exclude_list)
       for (z = 0 ; z < depth ; z++)
       {
         gcap = &gca->priors[x][y][z] ;
-	if (gcap==NULL)
-	  continue;
+				if (gcap==NULL)
+					continue;
         max_p = 0 ;  max_n = -1 ; max_label = 0 ;
-	// no label, ignore
-	if (gcap->nlabels == 0)
-	  continue ;
+				// no label, ignore
+				if (gcap->nlabels == 0)
+					continue ;
 
         for (n = 0 ; n < gcap->nlabels ; n++)
         {
@@ -10354,56 +10354,56 @@ GCAfindAllSamples(GCA *gca, int *pnsamples, int *exclude_list)
             max_label = gcap->labels[n] ;
           }
         }
-	if (exclude_list && exclude_list[max_label] > 0)
-	  continue ;
+				if (exclude_list && exclude_list[max_label] > 0)
+					continue ;
         if (IS_UNKNOWN(max_label) &&
             (different_nbr_max_labels(gca, x, y, z, 1, 0) == 0))
           continue ;
 
-	// store prior coordinates
+				// store prior coordinates
         gcas[i].xp = x ; 
-	gcas[i].yp = y ; 
-	gcas[i].zp = z ;
-	//////////////////////////////////////
-	// store talarached coordinate 
-	// talarached and prior has the same direction cosines 
-	// thus prior->talarached is only the scale difference
-	// Note that we pick only one point in prior_spacing, though.
+				gcas[i].yp = y ; 
+				gcas[i].zp = z ;
+				//////////////////////////////////////
+				// store talarached coordinate 
+				// talarached and prior has the same direction cosines 
+				// thus prior->talarached is only the scale difference
+				// Note that we pick only one point in prior_spacing, though.
         gcas[i].x = x*gca->prior_spacing/gca->xsize ; 
         gcas[i].y = y*gca->prior_spacing/gca->ysize ; 
         gcas[i].z = z*gca->prior_spacing/gca->zsize ;
-	//////////////////////////////////////
+				//////////////////////////////////////
         gcas[i].label = max_label ;
         gcas[i].prior = max_p ;
-	gcas[i].means = (float *)calloc(gca->ninputs, sizeof(float)) ;
-	gcas[i].covars = (float *)calloc((gca->ninputs*(gca->ninputs+1))/2, sizeof(float)) ;
-	if (!gcas[i].means || !gcas[i].covars)
-	  ErrorExit(ERROR_NOMEMORY, "GCAfindAllSamples: could not allocate mean (%d) and covariance (%d) matrices",
-		    gca->ninputs, gca->ninputs*(gca->ninputs+1)/2) ;
+				gcas[i].means = (float *)calloc(gca->ninputs, sizeof(float)) ;
+				gcas[i].covars = (float *)calloc((gca->ninputs*(gca->ninputs+1))/2, sizeof(float)) ;
+				if (!gcas[i].means || !gcas[i].covars)
+					ErrorExit(ERROR_NOMEMORY, "GCAfindAllSamples: could not allocate mean (%d) and covariance (%d) matrices",
+										gca->ninputs, gca->ninputs*(gca->ninputs+1)/2) ;
         gc = GCAfindPriorGC(gca, x, y, z, max_label) ;
         if (gc) // found
         {
-	  for (v = r = 0 ; r < gca->ninputs ; r++)
-	  {
-	    gcas[i].means[r] = gc->means[r] ;
-	    for (c = r ; c < gca->ninputs ; c++, v++)
-	      gcas[i].covars[v] = gc->covars[v] ;
-	  }
+					for (v = r = 0 ; r < gca->ninputs ; r++)
+					{
+						gcas[i].means[r] = gc->means[r] ;
+						for (c = r ; c < gca->ninputs ; c++, v++)
+							gcas[i].covars[v] = gc->covars[v] ;
+					}
         }
         else // not found
         {
-	  badcount++;
-	  for (v = r = 0 ; r < gca->ninputs ; r++)
-	  {
-	    gcas[i].means[r] = 0.0 ;
-	    for (c = r ; c < gca->ninputs ; c++, v++)
-	    {
-	      if (c == r)
-		gcas[i].covars[v] = 1.0 ;
-	      else
-		gcas[i].covars[v] = 0.0 ;
-	    }
-	  }
+					badcount++;
+					for (v = r = 0 ; r < gca->ninputs ; r++)
+					{
+						gcas[i].means[r] = 0.0 ;
+						for (c = r ; c < gca->ninputs ; c++, v++)
+						{
+							if (c == r)
+								gcas[i].covars[v] = 1.0 ;
+							else
+								gcas[i].covars[v] = 0.0 ;
+						}
+					}
         }
         gcas[i].log_p = 0 ; // initialize
         i++ ;
