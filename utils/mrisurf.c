@@ -401,7 +401,7 @@ MRISreadOverAlloc(char *fname, double pct_over)
     mris = mrisReadAsciiFile(fname) ;
     if (!mris)
       return(NULL) ;
-    version = -1 ;
+    version = -3 ;
   }
   else if (type == MRIS_ICO_FILE)
   {
