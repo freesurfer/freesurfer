@@ -125,6 +125,8 @@ DspA_tErr DspA_New ( tkmDisplayAreaRef* oppWindow,
   this->mHilitedSurface        = Surf_tVertexSet_None;
   this->mbSliceChanged         = TRUE;
   this->mnVolumeSize           = 0;
+  this->mpSelectedHeadPoint     = NULL;
+  this->mnParcellationIndex    = -1;
 
   /* all our display flags start out false. */
   for ( nFlag = 0; nFlag < DspA_knNumDisplayFlags; nFlag++ )
@@ -716,13 +718,15 @@ DspA_tErr DspA_SetCursor ( tkmDisplayAreaRef this,
         xVoxelRef          ipCursor ) {
 
   DspA_tErr             eResult            = DspA_tErr_NoErr;
- xVoxelRef              pVoxel             = NULL;
+  xVoxelRef             pVoxel             = NULL;
   int                   nSlice             = 0;
   unsigned char         ucVolumeValue      = 0;
   FunV_tErr             eFunctional        = FunV_tErr_NoError;
-  FunV_tFunctionalValue functionalValue   = 0;
+  FunV_tFunctionalValue functionalValue    = 0;
   char                  sTclArguments[256] = "";
- 
+  HPtL_tHeadPointRef    pHeadPoint         = NULL;
+  tBoolean              bEditable          = FALSE;
+
   xVoxl_New( &pVoxel );
 
   /* verify us. */
@@ -798,9 +802,46 @@ DspA_tErr DspA_SetCursor ( tkmDisplayAreaRef this,
     /* and the parcellation label if it's on */
     if( this->mabDisplayFlags[DspA_tDisplayFlag_ParcellationOverlay] 
   && NULL != this->mpParcellationVolume ) {
-      tkm_GetParcellationLabel( this->mpCursor, sTclArguments );
+      /* save the parcellation label so they may select it later. */
+      tkm_GetParcellationLabel( this->mpCursor, 
+        &this->mnParcellationIndex,
+        sTclArguments );
       tkm_SendTclCommand( tkm_tTclCommand_UpdateParcellationLabel, 
         sTclArguments );
+    }
+
+    /* and the head point label if it's on */
+    if( this->mabDisplayFlags[DspA_tDisplayFlag_HeadPoints]
+  && NULL != this->mHeadPoints ) {
+
+      /* get the closest head point */
+      tkm_GetHeadPoint( this->mpCursor, this->mOrientation, &pHeadPoint );
+      if( NULL != pHeadPoint ) {
+
+  /* get a nice label */
+  sprintf( sTclArguments, "\"%s\"", pHeadPoint->msLabel );
+
+  /* hilite this point too */
+  this->mpSelectedHeadPoint = pHeadPoint;
+
+  /* enable the edit label option */
+  bEditable = TRUE;
+
+      } else {
+
+  strcpy( sTclArguments, "None" );
+
+  /* no selected point */
+  this->mpSelectedHeadPoint = NULL;
+
+  /* disable the edit label option */
+  bEditable = FALSE;
+      }
+
+      tkm_SendTclCommand( tkm_tTclCommand_UpdateHeadPointLabel, 
+        sTclArguments );
+      tkm_SendTclCommand( tkm_tTclCommand_ShowHeadPointLabelEditingOptions,
+        bEditable ? "1" : "0"  );
     }
 
     /* also see if we have functional data and can send a value for that
@@ -835,6 +876,60 @@ DspA_tErr DspA_SetCursor ( tkmDisplayAreaRef this,
  cleanup:
 
   xVoxl_Delete( &pVoxel );
+
+  return eResult;
+}
+
+DspA_tErr DspA_SetSlice ( tkmDisplayAreaRef this,
+        int               inSlice ) {
+  
+  DspA_tErr eResult = DspA_tErr_NoErr;
+  xVoxelRef  pCursor = NULL;
+  
+  xVoxl_New( &pCursor );
+
+  /* verify us. */
+  eResult = DspA_Verify ( this );
+  if ( DspA_tErr_NoErr != eResult )
+    goto error;
+
+  /* copy the cursor. */
+  xVoxl_Copy( pCursor, this->mpCursor );
+
+  /* change the slice */
+  switch ( this->mOrientation ) {
+  case mri_tOrientation_Coronal:
+    xVoxl_SetZ( pCursor, inSlice );
+    break;
+  case mri_tOrientation_Horizontal:
+    xVoxl_SetY( pCursor, inSlice );
+    break;
+  case mri_tOrientation_Sagittal:
+    xVoxl_SetX( pCursor, inSlice );
+    break;
+  default:
+    eResult = DspA_tErr_InvalidOrientation;
+    goto error;
+  }
+
+  /* set the cursor. */
+  eResult = DspA_SetCursor( this, pCursor );
+   if ( DspA_tErr_NoErr != eResult )
+    goto error;
+
+  goto cleanup;
+
+ error:
+
+  /* print error message */
+  if ( DspA_tErr_NoErr != eResult ) {
+    DebugPrint "Error %d in DspA_SetSlice: %s\n",
+      eResult, DspA_GetErrorString(eResult) EndDebugPrint;
+  }
+
+ cleanup:
+
+  xVoxl_Delete( &pCursor );
 
   return eResult;
 }
@@ -1188,7 +1283,23 @@ DspA_tErr DspA_SetDisplayFlag ( tkmDisplayAreaRef this,
     if( this->mabDisplayFlags[iWhichFlag] != bNewValue )
       this->mbSliceChanged = TRUE;
 
+    break;
+
+
+  case DspA_tDisplayFlag_Selection:
   case DspA_tDisplayFlag_MaxIntProj:
+
+    /* if the flag is different, set dirty flag */
+    if( this->mabDisplayFlags[iWhichFlag] != bNewValue )
+      this->mbSliceChanged = TRUE;
+
+    break;
+
+  case DspA_tDisplayFlag_HeadPoints:
+
+    /* check to see if we have a list */
+    if( NULL == this->mHeadPoints )
+      bNewValue = FALSE;
 
     /* if the flag is different, set dirty flag */
     if( this->mabDisplayFlags[iWhichFlag] != bNewValue )
@@ -1661,9 +1772,11 @@ DspA_tErr DspA_HandleMouseUp_ ( tkmDisplayAreaRef this,
   if ( DspA_tErr_NoErr != eResult )
     goto error;
   
+  /*
   DebugPrint "Mouse up screen x %d y %d buffer x %d y %d volume %d %d %d\n",
     ipEvent->mWhere.mnX, ipEvent->mWhere.mnY, bufferPt.mnX, bufferPt.mnY,
     xVoxl_ExpandInt( pVolumeVox ) EndDebugPrint;
+  */
 
   /* set the cursor. */
   eResult = DspA_SetCursor( this, pVolumeVox );
@@ -2325,6 +2438,36 @@ void DspA_BrushVoxelsInThreshold_ (xVoxelRef ipVoxel ) {
       snBrushNewValue );
 }
 
+DspA_tErr DspA_SelectCurrentParcellationLabel ( tkmDisplayAreaRef this ) {
+
+  DspA_tErr eResult = DspA_tErr_NoErr;
+
+  /* verify us. */
+  eResult = DspA_Verify ( this );
+  if ( DspA_tErr_NoErr != eResult )
+    goto error;
+
+  /* if we have the data and our index is good, tell tkmedit to select stuff */
+  if( NULL != this->mpParcellationVolume
+      && -1 != this->mnParcellationIndex ) {
+    tkm_SelectParcellationLabel( this->mnParcellationIndex );
+  }
+
+  goto cleanup;
+
+ error:
+
+  /* print error message */
+  if ( DspA_tErr_NoErr != eResult ) {
+    DebugPrint "Error %d in DspA_SelectCurrentParcellationLabel: %s\n",
+      eResult, DspA_GetErrorString(eResult) EndDebugPrint;
+  }
+
+ cleanup:
+
+  return eResult;
+}
+
 DspA_tErr DspA_Redraw_ ( tkmDisplayAreaRef this ) {
 
   DspA_tErr eResult       = DspA_tErr_NoErr;
@@ -2388,15 +2531,6 @@ DspA_tErr DspA_HandleDraw_ ( tkmDisplayAreaRef this ) {
     }
   }
 
-  /* draw head points */
-  if( this->mabDisplayFlags[DspA_tDisplayFlag_HeadPoints] ) {
-    eResult = DspA_DrawHeadPointsToFrame_( this );
-    if ( DspA_tErr_NoErr != eResult ) {
-      DspA_Signal( "DspA_HandleDraw_", __LINE__, eResult );
-      eResult = DspA_tErr_NoErr;
-    }
-  }
-
   /* draw the frame buffer */
   eResult = DspA_DrawFrameBuffer_ ( this );
   if ( DspA_tErr_NoErr != eResult ) {
@@ -2404,9 +2538,18 @@ DspA_tErr DspA_HandleDraw_ ( tkmDisplayAreaRef this ) {
     eResult = DspA_tErr_NoErr;
   }
 
+  /* draw head points */
+  if( this->mabDisplayFlags[DspA_tDisplayFlag_HeadPoints] ) {
+    eResult = DspA_DrawHeadPoints_( this );
+    if ( DspA_tErr_NoErr != eResult ) {
+      DspA_Signal( "DspA_HandleDraw_", __LINE__, eResult );
+      eResult = DspA_tErr_NoErr;
+    }
+  }
+
   /* draw the control points */
   if( this->mabDisplayFlags[DspA_tDisplayFlag_ControlPoints] ) {
-    eResult = DspA_DrawControlPointsToFrame_( this );
+    eResult = DspA_DrawControlPoints_( this );
     if ( DspA_tErr_NoErr != eResult ) {
       DspA_Signal( "DspA_HandleDraw_", __LINE__, eResult );
       eResult = DspA_tErr_NoErr;
@@ -2632,7 +2775,7 @@ DspA_tErr DspA_DrawCursor_ ( tkmDisplayAreaRef this ) {
   if ( DspA_tErr_NoErr != eResult )
     goto error;
 
-  bufferPt.mnY = GLDRAW_Y_FLIP(bufferPt.mnY);
+  //  bufferPt.mnY = GLDRAW_Y_FLIP(bufferPt.mnY);
 
   /* calculate width and height using scale */
   nWidth  = ((float) DspA_knCursorCrosshairSize / this->mfFrameBufferScaleX);
@@ -2915,7 +3058,7 @@ DspA_tErr DspA_BuildCurrentFrame_ ( tkmDisplayAreaRef this ) {
   tBoolean              bPixelSet   = FALSE;
   int                   nY          = 0;
 
-  xUtil_StartTimer();
+  //  xUtil_StartTimer();
 
   /* make our voxels */
   xVoxl_New ( &pVoxel );
@@ -2987,23 +3130,33 @@ DspA_tErr DspA_BuildCurrentFrame_ ( tkmDisplayAreaRef this ) {
     /* get the plain anatomical value from the main or aux
        volume. */
     if( this->mabDisplayFlags[DspA_tDisplayFlag_AuxVolume] ) {
-      if( this->mabDisplayFlags[DspA_tDisplayFlag_MaxIntProj] )
+      if( this->mabDisplayFlags[DspA_tDisplayFlag_MaxIntProj] ) {
         ucValue = tkm_GetMaxIntProjValue( this->mpAuxVolume,
             this->mOrientation,
             pVoxel );
-        else
-    ucValue = tkm_GetVolumeValue ( this->mpAuxVolume, pVoxel );
+        tkm_GetAnatomicalVolumeColor( this->mpAuxVolume,
+              ucValue, &color );
+      } else {
+        ucValue = tkm_GetVolumeValue ( this->mpAuxVolume, pVoxel );
+        tkm_GetAnatomicalVolumeColor( this->mpAuxVolume, 
+              ucValue, &color );
+      }
     } else {
-      if( this->mabDisplayFlags[DspA_tDisplayFlag_MaxIntProj] )
+     
+      if( this->mabDisplayFlags[DspA_tDisplayFlag_MaxIntProj] ) {
+
+        /* get the value and color */
         ucValue = tkm_GetMaxIntProjValue( this->mpVolume,
             this->mOrientation,
             pVoxel );
-      else
+        tkm_GetAnatomicalVolumeColor( this->mpVolume, ucValue, &color );
+      } else {
+        
+        /* get the value and color */
         ucValue = tkm_GetVolumeValue ( this->mpVolume, pVoxel );
+        tkm_GetAnatomicalVolumeColor( this->mpVolume, ucValue, &color );
+      }
     }
-
-    /* get the color */
-    tkm_GetAnatomicalVolumeColor( ucValue, &color );
   }
 
 
@@ -3089,7 +3242,7 @@ DspA_tErr DspA_BuildCurrentFrame_ ( tkmDisplayAreaRef this ) {
   xVoxl_Delete ( &pFuncMin );
   xVoxl_Delete ( &pFuncMax );
 
-  xUtil_StopTimer( "build frame buffer" );
+  //  xUtil_StopTimer( "build frame buffer" );
 
   return eResult;
 }
@@ -3166,7 +3319,7 @@ DspA_tErr DspA_DrawFunctionalOverlayToFrame_ ( tkmDisplayAreaRef this ) {
 }
 
 
-DspA_tErr DspA_DrawControlPointsToFrame_ ( tkmDisplayAreaRef this ) {
+DspA_tErr DspA_DrawControlPoints_ ( tkmDisplayAreaRef this ) {
 
   DspA_tErr    eResult    = DspA_tErr_NoErr;
   xListRef     list       = NULL;
@@ -3237,8 +3390,8 @@ DspA_tErr DspA_DrawControlPointsToFrame_ ( tkmDisplayAreaRef this ) {
     goto error;
   
   /* draw a point here. */
-  DspA_DrawCrosshairIntoFrame_( this, faColor, &bufferPt, 
-              DspA_knControlPointCrosshairSize );
+  DspA_DrawMarker_( this, DspA_tMarker_Crosshair, faColor, &bufferPt, 
+        DspA_knControlPointCrosshairSize );
       }
     }
 
@@ -3258,7 +3411,7 @@ DspA_tErr DspA_DrawControlPointsToFrame_ ( tkmDisplayAreaRef this ) {
 
   /* print error message */
   if ( DspA_tErr_NoErr != eResult ) {
-    DebugPrint "Error %d in DspA_DrawControlPointsToFrame_: %s\n",
+    DebugPrint "Error %d in DspA_DrawControlPoints_: %s\n",
       eResult, DspA_GetErrorString(eResult) EndDebugPrint;
   }
 
@@ -3342,7 +3495,7 @@ DspA_tErr DspA_DrawSelectionToFrame_ ( tkmDisplayAreaRef this ) {
     goto error;
     
   /* y flip the volume pt to flip the image over. */
-  bufferPt.mnY = BUFFER_Y_FLIP(bufferPt.mnY);
+  bufferPt.mnY = Y_FLIP(bufferPt.mnY);
   
   /* write it back to the buffer. */
   for( nY = bufferPt.mnY; nY < bufferPt.mnY + this->mnZoomLevel; nY++ ) {
@@ -3384,17 +3537,43 @@ DspA_tErr DspA_DrawSelectionToFrame_ ( tkmDisplayAreaRef this ) {
   return eResult;
 }
 
-DspA_tErr DspA_DrawHeadPointsToFrame_ ( tkmDisplayAreaRef this ) {
+DspA_tErr DspA_DrawHeadPoints_ ( tkmDisplayAreaRef this ) {
 
-  DspA_tErr          eResult     = DspA_tErr_NoErr;
-  HPtL_tErr          eHeadPtList = HPtL_tErr_NoErr;
-  HPtL_tHeadPointRef pHeadPt     = NULL;
-  xPoint2n           bufferPt    = {0,0};
-  float              faColor[3]  = {0, 0, 0};
-  xVoxel             anaIdx;
+  DspA_tErr            eResult     = DspA_tErr_NoErr;
+  HPtL_tErr            eHeadPtList = HPtL_tErr_NoErr;
+  HPtL_tHeadPointRef   pHeadPt     = NULL;
+  xPoint2n             bufferPt    = {0,0};
+  float                faColor[3]  = {0, 0, 0};
+  xVoxel               anaIdx;
+  int                  nSize       = 0;
+  HPtL_tIterationPlane plane       = HPtL_tIterationPlane_X;
   
+  /* find our iteration orientation */
+  if( this->mabDisplayFlags[DspA_tDisplayFlag_MaxIntProj] ) {
+    plane = HPtL_tIterationPlane_All;
+  } else {
+    switch( this->mOrientation ) {
+    case mri_tOrientation_Horizontal:
+      plane = HPtL_tIterationPlane_Y;
+      break;
+    case mri_tOrientation_Coronal:
+      plane = HPtL_tIterationPlane_Z;
+      break;
+    case mri_tOrientation_Sagittal:
+      plane = HPtL_tIterationPlane_X;
+      break;
+    default:
+      eResult = DspA_tErr_InvalidOrientation;
+      goto error;
+      break;
+    }
+  }
+
   /* reset the iterator */
-  eHeadPtList = HPtL_ResetIterator( this->mHeadPoints );
+  eHeadPtList = HPtL_ResetIterator( this->mHeadPoints,
+            plane, 
+            DspA_GetCurrentSliceNumber_( this ),
+            1.0 );
   if( HPtL_tErr_NoErr != eHeadPtList ) {
     goto error;
   }
@@ -3402,28 +3581,41 @@ DspA_tErr DspA_DrawHeadPointsToFrame_ ( tkmDisplayAreaRef this ) {
   while( (eHeadPtList = HPtL_NextPoint( this->mHeadPoints, &pHeadPt ))
    == HPtL_tErr_NoErr ) {
 
-    /* color is red if cardinal, green if not. */
-    if ( strcmp( pHeadPt->msLabel, "cardinal") == 0 ) {
+    /* color is red if hilited, purple if cardinal, green if not. */
+    if( pHeadPt == this->mpSelectedHeadPoint ) {
       faColor[0] = 1;
       faColor[1] = 0;
       faColor[2] = 0;
+    } else if ( strcmp( pHeadPt->msLabel, "cardinal" ) == 0 ) {
+      faColor[0] = 1;
+      faColor[1] = 0;
+      faColor[2] = 1;
     } else {
       faColor[0] = 0;
       faColor[1] = 1;
       faColor[2] = 0;
     }      
   
-    /* convert ras pt to volume pt */
-    tkm_ConvertRASToVolume( &(pHeadPt->mClientPoint), &anaIdx );
+    /* cardinal points are big */
+    if ( strcmp( pHeadPt->msLabel, "cardinal" ) == 0 ) {
+      nSize = DspA_knControlPointCrosshairSize * 2;
+    } else {
+      nSize = DspA_knControlPointCrosshairSize;
+    }      
+
+    /* get our pt */
+    xVoxl_Copy( &anaIdx, &(pHeadPt->mClientPoint) );
 
     /* convert to buffer point. */
+    DisableDebuggingOutput;
     eResult = DspA_ConvertVolumeToBuffer_ ( this, &anaIdx, &bufferPt );
+    EnableDebuggingOutput;
     if ( DspA_tErr_NoErr != eResult )
       continue;
   
     /* draw a point here. */
-    DspA_DrawCrosshairIntoFrame_( this, faColor, &bufferPt, 
-          DspA_knControlPointCrosshairSize );
+    DspA_DrawMarker_( this, DspA_tMarker_Diamond, 
+          faColor, &bufferPt, nSize );
   }
 
   if( eHeadPtList != HPtL_tErr_LastPoint )
@@ -3433,12 +3625,15 @@ DspA_tErr DspA_DrawHeadPointsToFrame_ ( tkmDisplayAreaRef this ) {
 
  error:
 
-  if( HPtL_tErr_NoErr != eHeadPtList )
+  if( HPtL_tErr_NoErr != eHeadPtList ) {
     eResult = DspA_tErr_ErrorAccessingHeadPointList;
+    DebugPrint "HPtL error %d in DspA_DrawHeadPoints_: %s\n",
+      eHeadPtList, HPtL_GetErrorString(eHeadPtList) EndDebugPrint;
+  }
 
   /* print error message */
   if ( DspA_tErr_NoErr != eResult ) {
-    DebugPrint "Error %d in DspA_DrawHeadPointsToFrame_: %s\n",
+    DebugPrint "Error %d in DspA_DrawHeadPoints_: %s\n",
       eResult, DspA_GetErrorString(eResult) EndDebugPrint;
   }
 
@@ -3624,34 +3819,66 @@ DspA_tErr DspA_BuildSurfaceDrawLists_ ( tkmDisplayAreaRef this ) {
   xVoxl_Delete( &anaNeighborVertex );
 
   return eResult;
-  }
+}
 
-DspA_tErr DspA_DrawCrosshairIntoFrame_ ( tkmDisplayAreaRef this,
-           float*            ifaColor,
-           xPoint2nRef       ipWhere,
-           int               inSize ) {
+DspA_tErr DspA_DrawMarker_ ( tkmDisplayAreaRef this,
+        DspA_tMarker      iType,
+        float*            ifaColor,
+        xPoint2nRef       ipWhere,
+        int               inSize ) {
+
   DspA_tErr eResult = DspA_tErr_NoErr;
   int       nWidth  = 0;
   int       nHeight = 0;
   
-  /* calculate width and height using scale */
-  nWidth  = ((float)inSize / this->mfFrameBufferScaleX);
-  nHeight = ((float)inSize / this->mfFrameBufferScaleY);
-
   DspA_SetUpOpenGLPort_( this );
+    
+  switch( iType ) {
+    
+  case DspA_tMarker_Crosshair:
 
-  /* draw the crosshair */
-  glColor3fv ( ifaColor );
-  
-  glBegin ( GL_LINES );
-  glVertex2d ( ipWhere->mnX, ipWhere->mnY-nHeight );
-  glVertex2d ( ipWhere->mnX, ipWhere->mnY+nHeight );
-  glEnd ();
-  
-  glBegin ( GL_LINES );
-  glVertex2d ( ipWhere->mnX-nWidth, ipWhere->mnY );
-  glVertex2d ( ipWhere->mnX+nWidth, ipWhere->mnY );
-  glEnd ();
+    /* calculate width and height using scale */
+    nWidth  = ((float)inSize / this->mfFrameBufferScaleX);
+    nHeight = ((float)inSize / this->mfFrameBufferScaleY);
+    
+    DspA_SetUpOpenGLPort_( this );
+    
+    /* draw the crosshair */
+    glColor3fv ( ifaColor );
+    
+    glBegin ( GL_LINES );
+    glVertex2d ( ipWhere->mnX, ipWhere->mnY-nHeight );
+    glVertex2d ( ipWhere->mnX, ipWhere->mnY+nHeight );
+    glEnd ();
+    
+    glBegin ( GL_LINES );
+    glVertex2d ( ipWhere->mnX-nWidth, ipWhere->mnY );
+    glVertex2d ( ipWhere->mnX+nWidth, ipWhere->mnY );
+    glEnd ();
+
+    break;
+
+  case DspA_tMarker_Diamond:
+
+    /* calculate width and height using scale */
+    nWidth  = ((float)inSize / this->mfFrameBufferScaleX);
+    nHeight = ((float)inSize / this->mfFrameBufferScaleY);
+    
+    /* draw the diamond */
+    glColor3fv ( ifaColor );
+    
+    glBegin ( GL_LINE_LOOP );
+    glVertex2d ( ipWhere->mnX-nWidth, ipWhere->mnY );
+    glVertex2d ( ipWhere->mnX, ipWhere->mnY-nHeight );
+    glVertex2d ( ipWhere->mnX+nWidth, ipWhere->mnY );
+    glVertex2d ( ipWhere->mnX, ipWhere->mnY+nHeight );
+    glEnd ();
+    
+    break;
+
+  default:
+    break;
+  }
 
   goto cleanup;
 
@@ -3660,7 +3887,7 @@ DspA_tErr DspA_DrawCrosshairIntoFrame_ ( tkmDisplayAreaRef this,
 
   /* print error message */
   if ( DspA_tErr_NoErr != eResult ) {
-    DebugPrint "Error %d in DspA_DspA_DrawCrosshairIntoFrame_: %s\n",
+    DebugPrint "Error %d in DspA_DspA_DrawMarker_: %s\n",
       eResult, DspA_GetErrorString(eResult) EndDebugPrint;
   }
 
@@ -3774,6 +4001,34 @@ int DspA_GetCurrentSliceNumber_ ( tkmDisplayAreaRef this ) {
   }
 
   return nSlice;
+}
+
+DspA_tErr DspA_GetSelectedHeadPt ( tkmDisplayAreaRef   this,
+           HPtL_tHeadPointRef* opHeadPoint ) {
+
+  DspA_tErr eResult = DspA_tErr_NoErr;
+
+  /* verify us. */
+  eResult = DspA_Verify ( this );
+  if ( DspA_tErr_NoErr != eResult )
+    goto error;
+
+  /* return the head point */
+  *opHeadPoint = this->mpSelectedHeadPoint;
+
+  goto cleanup;
+
+ error:
+
+  /* print error message */
+  if ( DspA_tErr_NoErr != eResult ) {
+    DebugPrint "Error %d in DspA_GetSelectedHeadPt: %s\n",
+      eResult, DspA_GetErrorString(eResult) EndDebugPrint;
+  }
+
+ cleanup:
+
+  return eResult;
 }
 
 DspA_tErr DspA_InitSurfaceLists_( tkmDisplayAreaRef this,
@@ -3949,10 +4204,14 @@ DspA_tErr DspA_ConvertVolumeToBuffer_ ( tkmDisplayAreaRef this,
     break;
   }
 
+  /* flip */
+  fY = GLDRAW_Y_FLIP_FLOAT(fY);
+
   /* now zoom the coords to our zoomed buffer state */
   fX = (fZoomLevel * (fX - xVoxl_GetFloatX(this->mpZoomCenter))) +
    (fVolumeSize/2.0);
-  fY = (fZoomLevel * (fY - xVoxl_GetFloatY(this->mpZoomCenter))) +
+  fY = (fZoomLevel * (fY - 
+    GLDRAW_Y_FLIP_FLOAT(xVoxl_GetFloatY(this->mpZoomCenter)))) +
     (fVolumeSize/2.0);
 
   /* return the point */
@@ -4036,7 +4295,7 @@ DspA_tErr DspA_ConvertPlaneToVolume_ ( tkmDisplayAreaRef this,
                xPoint2nRef       ipPlanePt,
                int               inSlice,
                mri_tOrientation  iOrientation,
-              xVoxelRef          opVolumeVox ) {
+               xVoxelRef         opVolumeVox ) {
   
   DspA_tErr eResult     = DspA_tErr_NoErr;
  xVoxelRef  pVolumeVox  = NULL;
@@ -4223,7 +4482,9 @@ DspA_tErr DspA_SendViewStateToTcl_ ( tkmDisplayAreaRef this ) {
   /* and the parcellation label if it's on */
   if( this->mabDisplayFlags[DspA_tDisplayFlag_ParcellationOverlay] 
       && NULL != this->mpParcellationVolume ) {
-    tkm_GetParcellationLabel( this->mpCursor, sTclArguments );
+    tkm_GetParcellationLabel( this->mpCursor, 
+            &this->mnParcellationIndex,
+            sTclArguments );
     tkm_SendTclCommand( tkm_tTclCommand_UpdateParcellationLabel, 
       sTclArguments );
   }
