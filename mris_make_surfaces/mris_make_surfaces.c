@@ -17,7 +17,7 @@
 #include "mrimorph.h"
 #include "mrinorm.h"
 
-static char vcid[] = "$Id: mris_make_surfaces.c,v 1.22 1999/09/28 19:32:59 fischl Exp $";
+static char vcid[] = "$Id: mris_make_surfaces.c,v 1.23 1999/10/25 22:45:27 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -76,6 +76,7 @@ main(int argc, char *argv[])
   MRI           *mri_wm, *mri_kernel = NULL, *mri_smooth = NULL, 
                 *mri_filled, *mri_T1 ;
   float         max_len ;
+  double        l_intensity ;
   struct timeb  then ;
   M3D           *m3d ;
 
@@ -87,28 +88,17 @@ main(int argc, char *argv[])
   memset(&parms, 0, sizeof(parms)) ;
   parms.projection = NO_PROJECTION ;
   parms.tol = 1e-4 ;
-  parms.dt = 0.75f ;
+  parms.dt = 0.25f ;
   parms.base_dt = BASE_DT_SCALE*parms.dt ;
   parms.n_averages = 2 /*8*/ /* 32*/ ; /*N_AVERAGES*/ ;
-#if 1
-  parms.l_tspring = 1.0f ; parms.l_curv = 0.5 ; parms.l_intensity = 0.1 ;
+  parms.l_tspring = 1.0f ; parms.l_curv = 1.0 ; parms.l_intensity = 0.2 ;
 
-#else
-#if 0
-  parms.l_spring = 1.0f ;
-#else
-  parms.l_nspring = 0.25f ;  /* will be changed for gray matter surface */
-  parms.l_tspring = 1.0f ;
-#endif
-  parms.l_intensity = 0.075 /* 0.025f*/ ;
-  parms.l_grad = 1.0f ;
-#endif
 
 
   parms.niterations = 0 ;
   parms.write_iterations = 5 /*WRITE_ITERATIONS */;
   parms.integration_type = INTEGRATE_MOMENTUM ;
-  parms.momentum = -0.75 ;
+  parms.momentum = 0.8 ;
   parms.dt_increase = 1.0 /* DT_INCREASE */;
   parms.dt_decrease = 1.0 /* DT_DECREASE*/ ;
   parms.error_ratio = 50.0 /*ERROR_RATIO */;
@@ -241,8 +231,11 @@ main(int argc, char *argv[])
       while (MRISdivideLongEdges(mris, max_len) > 0)
       {}
   }
+  l_intensity = parms.l_intensity ;
+  MRISsetVals(mris, -1) ;  /* clear white matter intensities */
   for (i = 0, sigma = 2.0f ; sigma > .2 ; sigma /= 2, i++)
   {
+    parms.l_intensity = l_intensity * sigma ;
     if (nowhite)
       break ;
     mri_kernel = MRIgaussian1d(sigma, 100) ;
@@ -253,12 +246,8 @@ main(int argc, char *argv[])
     MRIfree(&mri_kernel) ;
 
     MRISprintTessellationStats(mris, stderr) ;
-    
-#if 0
-    MRIScomputeWhiteSurfaceValues(mris, mri_T1, mri_smooth) ;
-#else
+
     MRIScomputeBorderValues(mris, mri_T1, mri_smooth, 120, 100, 100, 70) ;
-#endif
 
     /*
       there are frequently regions of gray whose intensity is fairly
@@ -358,23 +347,28 @@ main(int argc, char *argv[])
             "refinement took %2.1f minutes\n", (float)msec/(60*1000.0f));
     exit(0) ;
   }
-  parms.t = parms.start_t = 0.0 ;
+  parms.t = parms.start_t = 0 ;
   strcpy(parms.base_name, GRAY_MATTER_NAME) ;
   parms.niterations = ngray ;
   MRISsaveVertexPositions(mris, ORIGINAL_VERTICES) ; /* save white-matter */
   parms.l_nspring = .5 ;   /* only for first iteration */
+  MRISsetVals(mris, -1) ;  /* clear target intensities */
   for (sigma = 2.0f ; sigma > .2 ; sigma /= 2 )
   {
+    parms.l_intensity = l_intensity * sigma ;
     fprintf(stderr, "smoothing T1 volume with sigma = %2.3f\n", sigma) ;
     mri_kernel = MRIgaussian1d(sigma, 100) ;
     mri_smooth = MRIconvolveGaussian(mri_T1, mri_smooth, mri_kernel) ;
     MRIfree(&mri_kernel) ;
 
     fprintf(stderr, "repositioning cortical surface to gray/csf boundary.\n") ;
+    MRIScomputeBorderValues(mris, mri_T1, mri_smooth, 90, 75, 65, 0) ;
 #if 0
-    MRIScomputeGraySurfaceValues(mris, mri_T1, mri_smooth, gray_surface) ;
-#else
-    MRIScomputeBorderValues(mris, mri_T1, mri_smooth, 90, 65, 55, 0) ;
+    if (parms.start_t == 0)
+    {
+      fprintf(stderr, "moving vertices to estimated pial surface...\n") ;
+      MRISmoveSurface(mris, mri_T1, mri_smooth,&parms);
+    }
 #endif
     if (write_vals)
     {
@@ -396,12 +390,7 @@ main(int argc, char *argv[])
   }
 #endif
 
-#if 0
-  sprintf(fname, "%s/%s/surf/%s.%s%s", sdir, sname, hemi, GRAY_MATTER_NAME,
-          suffix) ;
-#else
   sprintf(fname, "%s/%s/surf/%s.%s%s", sdir, sname, hemi, pial_name, suffix) ;
-#endif
   fprintf(stderr, "writing pial surface to %s...\n", fname) ;
   MRISwrite(mris, fname) ;
   /*  if (!(parms.flags & IPFLAG_NO_SELF_INT_TEST))*/
