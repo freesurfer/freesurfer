@@ -3,8 +3,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2004/09/24 18:50:56 $
-// Revision       : $Revision: 1.108 $
+// Revision Date  : $Date: 2004/10/22 21:16:04 $
+// Revision       : $Revision: 1.109 $
 
 #include "tkmDisplayArea.h"
 #include "tkmMeditWindow.h"
@@ -4260,7 +4260,7 @@ DspA_tErr DspA_HandleDraw_ ( tkmDisplayAreaRef this ) {
       DspA_Signal( "DspA_HandleDraw_", __LINE__, eResult );
       eResult = DspA_tErr_NoErr;
     }
-    
+
     /* Segmentation overlay */
     if( this->mabDisplayFlags[DspA_tDisplayFlag_SegmentationVolumeOverlay] ) {
       eResult = DspA_DrawSegmentationOverlayToFrame_( this );
@@ -4322,7 +4322,6 @@ DspA_tErr DspA_HandleDraw_ ( tkmDisplayAreaRef this ) {
   }
   
   /* Now a couple overlays that draw with direct openGL commands. */
-
   /* Head points */
   if( this->mabDisplayFlags[DspA_tDisplayFlag_HeadPoints] ) {
     eResult = DspA_DrawHeadPoints_( this );
@@ -4445,7 +4444,7 @@ DspA_tErr DspA_DrawFrameBuffer_ ( tkmDisplayAreaRef this ) {
   DspA_SetUpOpenGLPort_( this );
   
   glDrawPixels ( this->mnVolumeSizeX, this->mnVolumeSizeY,
-		 GL_RGBA, GL_UNSIGNED_BYTE, this->mpFrameBuffer );
+  		 GL_RGBA, GL_UNSIGNED_BYTE, this->mpFrameBuffer );
   
   goto cleanup;
   
@@ -5899,10 +5898,9 @@ DspA_tErr DspA_DrawSelectionToFrame_ ( tkmDisplayAreaRef this ) {
 	  xVoxl_GetY(&anaIdx) != 0 &&
 	  xVoxl_GetZ(&anaIdx) != 0 ) {
 	
+	Volm_GetValueAtIdxUnsafe( this->mpSelection, &anaIdx, &value );
+	if( value > 0 ) {
 
-	Volm_GetValueAtIdx( this->mpSelection, &anaIdx, &value );
-	if( 1.0 == value ) {
-	  
 	  /* get the current color in the buffer */
 	  xColr_SetFloat( &color, (float)pFrame[DspA_knRedPixelCompIndex] /
 			(float)DspA_knMaxPixelValue,
@@ -5913,7 +5911,7 @@ DspA_tErr DspA_DrawSelectionToFrame_ ( tkmDisplayAreaRef this ) {
 	  
 	  /* make it greener */
 	  xColr_HilightComponent( &color, xColr_tComponent_Green );
-	  
+
 	  /* put it back */
 	  pFrame[DspA_knRedPixelCompIndex]   = 
 	    (GLubyte)(color.mfRed * (float)DspA_knMaxPixelValue);
