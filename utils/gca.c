@@ -3,8 +3,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2004/02/04 21:55:45 $
-// Revision       : $Revision: 1.93 $
+// Revision Date  : $Date: 2004/02/05 16:12:53 $
+// Revision       : $Revision: 1.94 $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -4198,6 +4198,7 @@ GCAwriteSamples(GCA *gca, MRI *mri, GCA_SAMPLE *gcas, int nsamples,
   mri_dst = MRIalloc(mri->width, mri->height, mri->depth, MRI_UCHAR) ;
   // add header information
   MRIcopyHeader(mri, mri_dst);
+  GCAcopyDCToMRI(gca, mri_dst);
 
   // for each sample
   for (n = 0 ; n < nsamples ; n++)
@@ -4234,7 +4235,6 @@ GCAmri(GCA *gca, MRI *mri)
   if (!mri)
   {
     mri = MRIallocSequence(gca->node_width, gca->node_height, gca->node_depth, MRI_UCHAR, gca->ninputs) ;
-    GCAcopyDCToMRI(gca, mri);
     mri->xsize = gca->node_spacing;
     mri->ysize = gca->node_spacing;
     mri->zsize = gca->node_spacing;
@@ -4731,6 +4731,8 @@ gcaFindClosestMeanSample(GCA *gca, float *means, float min_prior, int x, int y,
   return(NO_ERROR) ;
 }
 #endif
+
+// create a volume mapped to the current mri volume
 int
 GCAtransformAndWriteSamples(GCA *gca, MRI *mri, GCA_SAMPLE *gcas, 
                             int nsamples,char *fname,TRANSFORM *transform)
@@ -4747,8 +4749,8 @@ GCAtransformAndWriteSamples(GCA *gca, MRI *mri, GCA_SAMPLE *gcas,
     if (gcas[n].label == Gdiag_no)
       DiagBreak() ;
     if (!GCApriorToSourceVoxel(gca, mri_dst, transform,
-                          gcas[n].xp, gcas[n].yp, gcas[n].zp, 
-                          &xv, &yv, &zv)) 
+			       gcas[n].xp, gcas[n].yp, gcas[n].zp, 
+			       &xv, &yv, &zv)) 
     {
       if (gcas[n].label > 0)
 	label = gcas[n].label ;
@@ -4756,17 +4758,23 @@ GCAtransformAndWriteSamples(GCA *gca, MRI *mri, GCA_SAMPLE *gcas,
 	label = 29 ;  /* Left undetermined - visible */
       else
 	label = 0 ;  /* Left undetermined - visible */
+
       mriFillRegion(mri_dst, xv, yv, zv, label, 0) ;
+
       if (gcas[n].x == Gx && gcas[n].y == Gy && gcas[n].z == Gz)
 	DiagBreak() ;
+
       gcas[n].x = xv ;
       gcas[n].y = yv ;
       gcas[n].z = zv ;
+
+      //////////// diag /////////////////////////
       if (gcas[n].x == Gx && gcas[n].y == Gy && gcas[n].z == Gz)
 	DiagBreak() ;
       if (DIAG_VERBOSE_ON && Gdiag & DIAG_SHOW)
 	printf("label %d: (%d, %d, %d) <-- (%d, %d, %d)\n",
 	       gcas[n].label,gcas[n].xp,gcas[n].yp,gcas[n].zp, xv, yv, zv) ;
+      //////////////////////////////////////////////
     }
   }
   fprintf(stderr, "writing samples to %s...\n", fname) ;
@@ -6071,7 +6079,6 @@ GCAbuildMostLikelyVolume(GCA *gca, MRI *mri)
     mri = MRIallocSequence(gca->prior_width, gca->prior_height,
 			   gca->prior_depth, MRI_FLOAT, gca->ninputs) ;
     // hey create gca volume and thus copies gca prior values  
-    GCAcopyDCToMRI(gca, mri);
     mri->xsize = gca->prior_spacing;
     mri->ysize = gca->prior_spacing;
     mri->zsize = gca->prior_spacing;
@@ -6147,11 +6154,12 @@ GCAbuildMostLikelyVolumeFrame(GCA *gca, MRI *mri, int frame)
   {
     mri = MRIallocSequence(gca->prior_width, gca->prior_height,
 			   gca->prior_depth, MRI_FLOAT, 1) ;
-    GCAcopyDCToMRI(gca, mri);
     mri->xsize = gca->prior_spacing;
     mri->ysize = gca->prior_spacing;
     mri->zsize = gca->prior_spacing;
   }
+  // gca volume direction cosines must be copied
+  GCAcopyDCToMRI(gca, mri);
 
   width = mri->width ; depth = mri->depth ; height = mri->height ;
   
@@ -10151,6 +10159,15 @@ GCAcomputeSampleCoords(GCA *gca, MRI *mri, GCA_SAMPLE *gcas,
   int    n, x, y, z ;
 
   TransformInvert(transform, mri) ;
+  if (transform->type == LINEAR_VOX_TO_VOX)
+  {
+    LTA *lta;
+    lta = (LTA *) transform->xform;
+    fprintf(stderr, "INFO: compute sample coordinates transform\n");
+    MatrixPrint(stderr, lta->xforms[0].m_L);
+  }
+  fprintf(stderr, "INFO: transform used\n");
+  
   for (n = 0 ; n < nsamples ; n++)
   {
     if (gcas[n].label == Gdiag_no)
