@@ -15,7 +15,7 @@ function showfigxy(varargin)
 %
 % Note: this will take over keyboard and mousing callbacks!
 %
-% $Id: showfigxy.m,v 1.2 2004/01/15 04:06:54 greve Exp $
+% $Id: showfigxy.m,v 1.3 2004/01/16 22:24:40 greve Exp $
 %
 
 if(nargin == 0)  event = 'init'; 
@@ -115,13 +115,13 @@ switch(event)
    case 'x', 
     ud.xzoom = ~ud.xzoom ;
     if(ud.xzoom) zoom xon;
-    else         zoom xoff;
+    else         zoom off;
     end
    
    case 'y', zoom;
     ud.yzoom = ~ud.yzoom ;
     if(ud.yzoom) zoom yon;
-    else         zoom yoff;
+    else         zoom off;
     end
    
    case 'z', zoom;
