@@ -8,10 +8,10 @@
  *
 */
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: greve $
-// Revision Date  : $Date: 2003/07/15 23:56:34 $
-// Revision       : $Revision: 1.236 $
-char *MRI_C_VERSION = "$Revision: 1.236 $";
+// Revision Author: $Author: tosa $
+// Revision Date  : $Date: 2003/07/25 15:39:33 $
+// Revision       : $Revision: 1.237 $
+char *MRI_C_VERSION = "$Revision: 1.237 $";
 
 /*-----------------------------------------------------
                     INCLUDE FILES
@@ -2112,8 +2112,125 @@ int   MRIworldToVoxelIndex(MRI *mri, Real xw, Real yw, Real zw,
   }
   return(NO_ERROR) ;
 }
-/*-----------------------------------------------------
-------------------------------------------------------*/
+
+/* 
+  int MRIvoxleToSurfaceRAS and int MRIsurfaceRASToVoxel
+ 
+  get the surfaceRAS values from original voxel
+  Note that this is different from MRIvoxelToWorld().
+
+  Note that currently MATRIX uses float** to store data.
+  Going around the circle of transform causes error accumulation quickly.
+  I noticed that 7 x 10^(-6) is very common.
+
+*/
+
+MATRIX *surfaceRASFromVoxel_(MRI *mri)
+{
+  // Derivation (avoid expensive matrix calculation)
+  // 
+  //                orig -----(rasFromVoxel)------> RAS (scanner RAS or physical RAS)
+  //                  |                              |
+  //        (conformedVoxelFromVoxel)               (1)
+  //                  |                              |
+  //                  V                              V
+  //             conformed--(RASfromConformed)----->RAS (scanner RAS or physical RAS)
+  //                  |                              |
+  //                 (1)                      (surfaceRASFromRAS)
+  //                  |                              |
+  //                  V                              V
+  //           conformed-(surfaceRASFromConformed)->surfaceRAS
+  //
+  //
+  // where  RASFromConformed = [ -1  0  0   s1 ] where s1 = c_r + 128
+  //                           [  0  0  1   s2 ]       s2 = c_a - 128
+  //                           [  0 -1  0   s3 ]       s3 = c_s + 128
+  //                           [  0  0  0    1 ]
+  //
+  //  surfaceRASFromConformed= [ -1  0  0  128 ]
+  //                           [  0  0  1 -128 ]
+  //                           [  0 -1  0  128 ]
+  //                           [  0  0  0   1  ]
+  // Therefore
+  //        surfaceRASFromRAS= [  1  0  0  -c_r]  just a translation matrix
+  //                           [  0  1  0  -c_a]
+  //                           [  0  0  1  -c_s]
+  //                           [  0  0  0    1 ]
+  //  
+  //  surfaceRASFromVoxel = surfaceRASFromRAS (x) RASFromVoxel
+  //
+  //  i.e.       applying translation on RASFromVoxel
+  //
+  MATRIX *rasFromVoxel;
+  MATRIX *sRASFromVoxel;
+  double m14, m24, m34;
+
+  rasFromVoxel = extract_i_to_r(mri);
+  sRASFromVoxel = MatrixCopy(rasFromVoxel, NULL);
+  MatrixFree(&rasFromVoxel);
+  // modify 
+  m14 = *MATRIX_RELT(sRASFromVoxel, 1,4);
+  *MATRIX_RELT(sRASFromVoxel, 1,4) = m14 - mri->c_r;
+  m24 = *MATRIX_RELT(sRASFromVoxel, 2,4);
+  *MATRIX_RELT(sRASFromVoxel, 2,4) = m24 - mri->c_a;
+  m34 = *MATRIX_RELT(sRASFromVoxel, 3,4);
+  *MATRIX_RELT(sRASFromVoxel, 3,4) = m34 - mri->c_s;
+
+  return sRASFromVoxel;
+}                             
+
+int MRIvoxelToSurfaceRAS(MRI *mri, Real xv, Real yv, Real zv, 
+		       Real *xs, Real *ys, Real *zs)
+{
+  MATRIX *sRASFromVoxel;
+  VECTOR *vv, *sr;
+
+  sRASFromVoxel = surfaceRASFromVoxel_(mri);
+  // calculate the surface ras value
+  vv = VectorAlloc(4, MATRIX_REAL);
+  V4_LOAD(vv, xv, yv, zv, 1.);
+  sr = MatrixMultiply(sRASFromVoxel, vv, NULL);
+  *xs = V3_X(sr);
+  *ys = V3_Y(sr);
+  *zs = V3_Z(sr);
+
+  MatrixFree(&sRASFromVoxel);
+  VectorFree(&vv);
+  VectorFree(&sr);
+
+  return (NO_ERROR);
+}
+
+MATRIX *voxelFromSurfaceRAS_(MRI *mri)
+{
+  MATRIX *sRASFromVoxel = surfaceRASFromVoxel_(mri);
+  MATRIX *voxelFromSRAS = MatrixInverse(sRASFromVoxel, NULL);
+  MatrixFree(&sRASFromVoxel) ;
+  return voxelFromSRAS;
+}
+
+int MRIsurfaceRASToVoxel(MRI *mri, Real xr, Real yr, Real zr, 
+			 Real *xv, Real *yv, Real *zv)
+{
+  MATRIX *voxelFromSRAS;
+  VECTOR *sr, *vv;
+
+  voxelFromSRAS=voxelFromSurfaceRAS_(mri);
+  sr = VectorAlloc(4, MATRIX_REAL);
+  V4_LOAD(sr, xr, yr, zr, 1.);
+  vv = MatrixMultiply(voxelFromSRAS, sr, NULL);
+  *xv = V3_X(vv);
+  *yv = V3_Y(vv);
+  *zv = V3_Z(vv);
+
+  MatrixFree(&voxelFromSRAS);
+  VectorFree(&sr);
+  VectorFree(&vv);
+
+  return (NO_ERROR);
+}
+
+/*------------------------------------------------------*/
 int
 MRIworldToVoxel(MRI *mri, Real xw, Real yw, Real zw, 
                 Real *pxv, Real *pyv, Real *pzv)
@@ -9711,6 +9828,7 @@ MATRIX *extract_r_to_i(MRI *mri)
   return(m_ras_to_voxel) ;
 }
   
+// allocate memory and the user must free it.
 MATRIX *extract_i_to_r(MRI *mri)
 {
   MATRIX *m;
@@ -10325,3 +10443,4 @@ MRInormalizeSequence(MRI *mri, float target)
 
 	return(NO_ERROR) ;
 }
+
