@@ -7116,8 +7116,11 @@ and for dest
   MatrixFree(&src_mat);
   MatrixFree(&dest_mat);
 
-  printf("MRIresample() matrix is:\n");
-  MatrixPrint(stdout, m);
+  if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
+  {
+    printf("MRIresample() matrix is:\n");
+    MatrixPrint(stdout, m);
+  }
   return(m) ;
 
 } /* end MRIreslice() */
