@@ -2684,9 +2684,9 @@ swab(pixel_data, pixel_data, mri->height * mri->width * 2);
   }
   else if(strncmp(slice_direction, "Sag", 3) == 0)
   {
-    mri->xdir = XDIM;
+    mri->xdir = ZDIM;
     mri->ydir = YDIM;
-    mri->zdir = ZDIM;
+    mri->zdir = XDIM;
   }
   else if(strncmp(slice_direction, "Tra", 3) == 0)
   {
