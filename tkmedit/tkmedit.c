@@ -1028,14 +1028,14 @@ void setStatColor(float f, unsigned char *rp, unsigned char *gp, unsigned char *
   *bp = (unsigned char)b;
 }
 
-void compose(unsigned char* stbuffer, unsigned char* outbuffer)
+void compose(unsigned char* stbuffer, unsigned char* outbuffer, int dir)
 {
   int w,h;
   int hax,hay;
   int i,j,k;
   int curs;
   int imnr;
-
+  int ims;
   unsigned char red,green,blue;
   unsigned char ccolor1,ccolor2;
 
@@ -1072,8 +1072,8 @@ void compose(unsigned char* stbuffer, unsigned char* outbuffer)
     if (stbuffer[h*512+w]<white_lolim+MAPOFFSET || stbuffer[h*512+w]>white_hilim+MAPOFFSET)
       red = green = blue = hacked_map[MAPOFFSET];
       }
-      outbuffer[4*h*xdim+4*w]=red;
-      outbuffer[4*h*xdim+4*w+1]=green;
+      outbuffer[4*h*xdim+4*w]=red; 
+      outbuffer[4*h*xdim+4*w+1]=green; 
       outbuffer[4*h*xdim+4*w+2]=blue;
       outbuffer[4*h*xdim+4*w+3]=255;
     }
@@ -1131,6 +1131,37 @@ void compose(unsigned char* stbuffer, unsigned char* outbuffer)
       vidbuf[k+3]=255;
     }
   }
+
+  if(all3flag) {
+    if(dir==0) {
+      for (i=ic-curs;i<=ic+curs;i++) {
+  k = 4*(hax + i/2*xdim/2+imc/2 + i/2*hax);
+  vidbuf[k] = ccolor1; vidbuf[k+1] = vidbuf[k+2] = ccolor2;
+  vidbuf[k+3]=255;
+      } 
+    } else {
+      ims = 511-imc;
+      for (i=ic-curs;i<=ic+curs;i++) {
+  k = 4*(hax + i/2*xdim/2+ims/2 + i/2*hax);
+  vidbuf[k] = ccolor1; vidbuf[k+1] = vidbuf[k+2] = ccolor2;
+  vidbuf[k+3]=255;
+      } 
+    }
+    if(dir==0) {
+      for (imnr=imc-curs;imnr<=imc+curs;imnr++) {
+  k = 4*(hax + ic/2*xdim/2+imnr/2 + ic/2*hax);
+  vidbuf[k] = ccolor1; vidbuf[k+1] = vidbuf[k+2] = ccolor2;
+  vidbuf[k+3]=255;
+      }
+    } else {
+      ims = 511-imc;
+      for (imnr=ims-curs;imnr<=ims+curs;imnr++) {
+  k = 4*(hax + ic/2*xdim/2+imnr/2 + ic/2*hax);
+  vidbuf[k] = ccolor1; vidbuf[k+1] = vidbuf[k+2] = ccolor2;
+  vidbuf[k+3]=255;
+      }
+    }
+  }  
 }
 
 void draw_image_hacked(int imc, int ic, int jc)
@@ -1152,6 +1183,7 @@ void draw_image_hacked(int imc, int ic, int jc)
       break;
     }
     getPlane(NULL,2,0,0);
+    compose(dhcache,vidbuf,0);
   } else if(all3flag) {
     setupCoronal(imc/zf);
     getPlane(NULL,1,0,256);
@@ -1159,16 +1191,18 @@ void draw_image_hacked(int imc, int ic, int jc)
     getPlane(NULL,1,256,256);
     setupHorizontal(ic/zf);
     getPlane(NULL,1,0,0);
-    if(jc>255)
+    if(jc>255) {
       getMaximumProjection(1,256,0,0);
-    else 
+      compose(dhcache,vidbuf,0);
+    } else { 
       getMaximumProjection(1,256,0,1);
+      compose(dhcache,vidbuf,1);
+    }
   }
-  
-  compose(dhcache,vidbuf);
   rectwrite(0,0,xdim-1,ydim-1,vidbuf);
-
+  
   /* rectwrite(0,0,xdim-1,ydim-1,dhcache);*/
+  
 }
 
 #endif
