@@ -60,6 +60,7 @@ ScubaGlobalPreferences::DoListenToTclCommand ( char* isCommand,
 	sKey == GetStringForKey( KeyMouseButtonTwo ) ||
 	sKey == GetStringForKey( KeyMouseButtonThree ) ||
 	sKey == GetStringForKey( DrawCoordinateOverlay ) ||
+	sKey == GetStringForKey( DrawMarkers ) ||
 	sKey == GetStringForKey( DrawPlaneIntersections ) ||
 	sKey == GetStringForKey( KeyMoveViewLeft ) ||
 	sKey == GetStringForKey( KeyMoveViewRight ) ||
@@ -94,6 +95,7 @@ ScubaGlobalPreferences::DoListenToTclCommand ( char* isCommand,
 	sKey == GetStringForKey( ShowConsole ) ||
 	sKey == GetStringForKey( AutoConfigureView ) ||
 	sKey == GetStringForKey( DrawCoordinateOverlay ) ||
+	sKey == GetStringForKey( DrawMarkers ) ||
 	sKey == GetStringForKey( DrawPlaneIntersections ) ||
 	sKey == GetStringForKey( ShowFPS ) ) {
 
@@ -148,6 +150,7 @@ ScubaGlobalPreferences::GetPrefAsBool ( PrefKey iKey ) {
       iKey == ShowConsole ||
       iKey == AutoConfigureView ||
       iKey == DrawCoordinateOverlay ||
+      iKey == DrawMarkers ||
       iKey == DrawPlaneIntersections ||
       iKey == ShowFPS ) {
   
@@ -211,6 +214,7 @@ ScubaGlobalPreferences::GetStringForKey ( PrefKey iKey ) {
   case KeyMouseButtonTwo:          return "KeyMouseButtonTwo";           break;
   case KeyMouseButtonThree:        return "KeyMouseButtonThree";         break;
   case DrawCoordinateOverlay:      return "DrawCoordinateOverlay";       break;
+  case DrawMarkers:                return "DrawMarkers";                 break;
   case DrawPlaneIntersections:     return "DrawPlaneIntersections";      break;
   case KeyMoveViewLeft:            return "KeyMoveViewLeft";             break;
   case KeyMoveViewRight:           return "KeyMoveViewRight";            break;
@@ -291,6 +295,11 @@ ScubaGlobalPreferences::ReadPreferences () {
   prefsMgr.RegisterValue( GetStringForKey( DrawCoordinateOverlay ), 
 			  "Draw the coordinate overlay in views.", 
 			  drawCoordinateOverlay );
+
+  PreferencesManager::IntPrefValue drawMarkers( true );
+  prefsMgr.RegisterValue( GetStringForKey( DrawMarkers ), 
+			  "Draw markers in views.", 
+			  drawMarkers );
 
   PreferencesManager::IntPrefValue drawPlaneIntersections( true );
   prefsMgr.RegisterValue( GetStringForKey( DrawPlaneIntersections ), 

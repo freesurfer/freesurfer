@@ -22,7 +22,7 @@ class ScubaGlobalPreferences : public TclCommandListener, public Broadcaster {
 		 KeyZoomViewIn, KeyZoomViewOut,
 		 KeyCycleViewsInFrame, KeyShuffleLayers,
 		 KeyMouseButtonOne, KeyMouseButtonTwo, KeyMouseButtonThree,
-		 DrawCoordinateOverlay, DrawPlaneIntersections,
+		 DrawCoordinateOverlay, DrawPlaneIntersections, DrawMarkers,
 		 ShowFPS };
 
   // Gets the static reference to this class.
