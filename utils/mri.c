@@ -6051,9 +6051,6 @@ MRIcopyFrame(MRI *mri_src, MRI *mri_dst, int src_frame, int dst_frame)
   int       width, height, depth, y, z ;
   BUFTYPE   *psrc, *pdst ;
 
-  if (src_frame >= mri_src->nframes || dst_frame >= mri_dst->nframes)
-    ErrorReturn(NULL, (ERROR_BADPARM, "MRIcopyFrame: frame # out of bounds"));
-
   width = mri_src->width ; 
   height = mri_src->height ;
   depth = mri_src->depth ;
@@ -6068,6 +6065,9 @@ MRIcopyFrame(MRI *mri_src, MRI *mri_dst, int src_frame, int dst_frame)
 
   if (mri_dst->type != MRI_UCHAR)
     ErrorReturn(NULL,(ERROR_UNSUPPORTED,"MRIcopyFrame: dst must be UCHAR"));
+  if (src_frame >= mri_src->nframes || dst_frame >= mri_dst->nframes)
+    ErrorReturn(NULL, (ERROR_BADPARM, "MRIcopyFrame: frame # out of bounds"));
+
 
   for (z = 0 ; z < depth ; z++)
   {
