@@ -33,7 +33,7 @@
                     MACROS AND CONSTANTS
 -------------------------------------------------------*/
 
-#define DEBUG_POINT(x,y,z)  (((x) == 32)&&((y)==25)&&((z)==32))
+#define DEBUG_POINT(x,y,z)  (((x) == 28)&&((y)==18)&&((z)==37))
 #define MAXLEN 256
 
 
@@ -938,6 +938,7 @@ MRIplaneOfLeastVarianceNormal(MRI *mri_src, MRI *mri_dst, int wsize)
 
   return(mri_dst) ;
 }
+#if 0
 /*-----------------------------------------------------
         Parameters:
 
@@ -1084,6 +1085,121 @@ MRIcentralPlaneOfLeastVarianceNormal(MRI *mri_src, MRI *mri_dst, int wsize)
   }
   return(mri_dst) ;
 }
+#else
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
+MRI *
+MRIcentralPlaneOfLeastVarianceNormal(MRI *mri_src, MRI *mri_dst, int wsize)
+{
+  int      width, height, depth, x, y, z, whalf, vertex, xk, yk,
+           mini, maxi, xi, yi, zi, *pxi, *pyi, *pzi, x1, y1, z1, x0, y0,z0;
+  float    min_var, max_var, varv, avgv, val,
+           background_val, fmax ;
+  BUFTYPE  *pdst, max_val ;
+  float    xbase, ybase, zbase, *pe1_x, *pe1_y, *pe1_z,
+           *pe2_x, *pe2_y, *pe2_z, e1_x, e1_y, e1_z, e2_x, e2_y, e2_z ;
+
+  init_basis_vectors() ;
+    
+  pxi = mri_src->xi ; pyi = mri_src->yi ; pzi = mri_src->zi ;
+  MRIvalRange(mri_src, &background_val, &fmax) ;
+  background_val *= 0.2f ;  /* anything smaller than 20% of peak is bg */
+
+  width = mri_src->width ;
+  height = mri_src->height ;
+  depth = mri_src->depth ;
+  whalf = (wsize-1)/2 ;
+
+  if (!mri_dst)
+    mri_dst = MRIclone(mri_src, NULL) ;
+
+  if (mri_src->roi.dx > 0)
+  {
+    x0 = MAX(0, mri_src->roi.x) ;
+    y0 = MAX(0, mri_src->roi.y) ;
+    z0 = MAX(0, mri_src->roi.z) ;
+    x1 = MIN(x0 + mri_src->roi.dx - 1, width-1) ;
+    y1 = MIN(y0 + mri_src->roi.dy - 1, height-1) ;
+    z1 = MIN(z0 + mri_src->roi.dz - 1, depth-1) ;
+  }
+  else
+  {
+    x0 = y0 = z0 = 0 ;
+    x1 = width-1 ;
+    y1 = height-1 ;
+    z1 = depth-1 ;
+  }
+
+  for (z = z0 ; z <= z1 ; z++)
+  {
+    DiagHeartbeat((float)(z-z0) / (float)z1) ;
+    for (y = y0 ; y <= y1 ; y++)
+    {
+      pdst = &MRIvox(mri_dst, x0, y, z) ;
+      for (x = x0 ; x <= x1 ; x++)
+      {
+        /*
+          for this point (x,y,z), go through a set of directions on the unit
+          sphere. For each direction, find all the planes orthogonal to that
+          dir. within our window, and pick the direction in which the variance
+          of all the planes is smallest. This will hopefully be the normal to 
+          the cortical surface.
+          */
+        maxi = mini = -1 ;
+        min_var = 100000.0f ;    /* minimum variance of central planes */
+        max_var = -100000.0f ;   /* maximum variance of central planes */
+        pe1_x = e1_x_v ; pe1_y = e1_y_v ; pe1_z = e1_z_v ;
+        pe2_x = e2_x_v ; pe2_y = e2_y_v ; pe2_z = e2_z_v ;
+        for (vertex = 0 ; vertex < NVERTICES ; vertex++)
+        {
+          e1_x = *pe1_x++ ;   /* first in-plane basis vector */
+          e1_y = *pe1_y++ ;
+          e1_z = *pe1_z++ ;
+          e2_x = *pe2_x++ ;   /* second in-plane basis vector */
+          e2_y = *pe2_y++ ;
+          e2_z = *pe2_z++ ;
+
+          varv = 0.0f ;
+          avgv = (float)MRIvox(mri_src,x,y,z) ;
+          max_val = 0 ;
+          /* now find the values in this plane */
+          for (yk = -whalf ; yk <= whalf ; yk++)
+          {
+            xbase = (float)x + (float)yk * e2_x ;
+            ybase = (float)y + (float)yk * e2_y ;
+            zbase = (float)z + (float)yk * e2_z ;
+            for (xk = -whalf ; xk <= whalf ; xk++)
+            {
+              /* in-plane vect. is linear combination of scaled basis vects */
+              xi = nint(xbase + xk*e1_x) ;
+              xi = pxi[xi] ;
+              yi = nint(ybase + xk*e1_y) ;
+              yi = pyi[yi] ;
+              zi = nint(zbase + xk*e1_z) ;
+              zi = pzi[zi] ;
+              val = avgv - (float)MRIvox(mri_src, xi, yi, zi) ;
+              varv += val * val ;
+            }
+          }
+
+          if (varv>max_var) {max_var=varv;maxi=vertex;}
+          if (varv<min_var) {min_var=varv;mini=vertex;}
+          if (FZERO(varv))  /* zero variance - won't find anything less */
+            break ;
+        }
+        /* done - put vector components into output */
+        *pdst++ = (BUFTYPE)mini;
+      }
+    }
+  }
+  return(mri_dst) ;
+}
+#endif
 /*-----------------------------------------------------
         Parameters:
 
@@ -1215,7 +1331,7 @@ MRI *
 MRIfindThinWMStrands(MRI *mri_src, MRI *mri_dst, int wsize)
 {
   int      width, height, depth, x, y, z, whalf, yk, n, vertex,xi,yi,zi,
-           *pxi, *pyi, *pzi, thin, was_white, black_white, val ;
+           *pxi, *pyi, *pzi, thin, was_white, black_white, white_black, val ;
   float    nx, ny, nz, xf, yf, zf ;
   BUFTYPE  *pdst, *psrc ;
 
@@ -1239,13 +1355,13 @@ MRIfindThinWMStrands(MRI *mri_src, MRI *mri_dst, int wsize)
       pdst = &MRIvox(mri_dst, 0, y, z) ;  /* ptr to destination */
       for (x = 0 ; x < width ; x++)
       {
-        thin = 0 ;
+        thin = was_white = black_white = white_black = 0 ;
 if (DEBUG_POINT(x,y,z))
     DiagBreak() ;
         if (*psrc++) for (vertex = 0 ; !thin && vertex < NVERTICES ; vertex++)
         {
           was_white = -1 ;
-          black_white = -wsize-1 ;
+          black_white = white_black = 0 ;
           nx = ic_x_vertices[vertex] ;  /* normal vector */
           ny = ic_y_vertices[vertex] ;
           nz = ic_z_vertices[vertex] ;
@@ -1261,14 +1377,15 @@ if (DEBUG_POINT(x,y,z))
             val = (float)MRIvox(mri_src, xi, yi, zi) ;
             if ((was_white > 0) && !val)   /* white to black transition */
             {
-               /* check to see if we previously had a b-to-w transition */
-              if (black_white >= -wsize)
+              if (black_white) /* we previously had a b-to-w transition */
               {
-                thin = ((yk - black_white) <= wsize) ;
+                thin = ((yk - black_white) < wsize) ;
 if (DEBUG_POINT(x,y,z))
     DiagBreak() ;
                 break ;
               }
+              
+              white_black = yk ;
             }
             else if (!was_white && val > 0)  /* black to white transition */
               black_white = yk ;
