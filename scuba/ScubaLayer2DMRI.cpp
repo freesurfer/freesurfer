@@ -1060,13 +1060,13 @@ ScubaLayer2DMRI::HandleTool ( float iRAS[3], ViewState& iViewState,
 	case 1:
 	  mCurrentLine->Add( ras );
 	  mCurrentLine->MarkEndOfSegment();
-	  mFirstLineRAS.Set( ras );
 	  break;
 	case 2:
 	  EndLine( *mCurrentLine, iTranslator );
 	  mCurrentLine = NULL;
 	  break;
 	case 3:
+	  mCurrentLine->Add( mFirstLineRAS );
 	  EndLine( *mCurrentLine, iTranslator );
 	  mCurrentLine = NULL;
 	  break;
@@ -1116,11 +1116,12 @@ ScubaLayer2DMRI::HandleTool ( float iRAS[3], ViewState& iViewState,
 
       /* No mouse event, current line */
       if( NULL != mCurrentLine ) {
-	
+
+	Point3<float>& end = mCurrentLine->GetPointAtEndOfLastSegment();
 	if( iTool.GetMode() == ScubaToolState::straightLine ) {
-	  StretchLineStraight( *mCurrentLine, mFirstLineRAS.xyz(), iRAS );
+	  StretchLineStraight( *mCurrentLine, end.xyz(), iRAS );
 	} else if( iTool.GetMode() == ScubaToolState::edgeLine ) {
-	  StretchLineAsEdge( *mCurrentLine, mFirstLineRAS.xyz(), 
+	  StretchLineAsEdge( *mCurrentLine, end.xyz(), 
 			     iRAS, iViewState, iTranslator,
 			     iTool.GetEdgeLineStraightBias(),
 			     iTool.GetEdgeLineEdgeBias() );
