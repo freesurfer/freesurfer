@@ -17233,7 +17233,7 @@ int
 MRIScomputeBorderValues(MRI_SURFACE *mris,MRI *mri_brain,
                         MRI *mri_smooth, Real inside_hi, Real border_hi,
                         Real border_low, Real outside_low, double sigma,
-                        float max_thickness, FILE *log_fp)
+                        float max_thickness, FILE *log_fp, int which)
 {
   Real    val, x, y, z, max_mag_val, xw, yw, zw,mag,max_mag, max_mag_dist=0.0f,
           previous_val, next_val, min_val,inward_dist,outward_dist,xw1,yw1,zw1,
@@ -17398,6 +17398,25 @@ MRIScomputeBorderValues(MRI_SURFACE *mris,MRI *mri_brain,
         MRIworldToVoxel(mri_brain, x, y, z, &xw, &yw, &zw) ;
         MRIsampleVolumeDerivativeScale(mri_brain, xw, yw, zw, nx, ny, nz,&mag,
                                        sigma);
+        if (which == GRAY_CSF)
+        {
+          /* 
+             sample the next val we would process. If it is too low, then we 
+             have definitely rached the border, and the current gradient 
+             should be considered a local max.
+
+             Don't want to do this for gray/white, as the gray/white gradient 
+             often continues seemlessly into the gray/csf.
+          */
+          x = v->x + v->nx*(dist+STEP_SIZE) ;
+          y = v->y + v->ny*(dist+STEP_SIZE) ;
+          z = v->z + v->nz*(dist+STEP_SIZE) ;
+          MRIworldToVoxel(mri_brain, x, y, z, &xw, &yw, &zw) ;
+          MRIsampleVolume(mri_brain, xw, yw, zw, &next_val) ;
+          if (next_val < border_low)
+            next_mag = 0 ;
+        }
+
         if (vno == Gdiag_no)
           fprintf(fp, "%2.3f  %2.3f  %2.3f  %2.3f  %2.3f\n",
                  dist, val, mag, previous_mag, next_mag) ;
