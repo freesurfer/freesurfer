@@ -10,7 +10,7 @@ if { $err } {
     load [file dirname [info script]]/libscuba[info sharedlibextension] scuba
 }
 
-DebugOutput "\$Id: scuba.tcl,v 1.88 2005/03/01 19:11:30 kteich Exp $"
+DebugOutput "\$Id: scuba.tcl,v 1.89 2005/03/02 00:16:31 kteich Exp $"
 
 # gTool
 #   current - current selected tool (nav,)
@@ -729,6 +729,9 @@ proc ToolBarWrapper { isName iValue } {
 	    seed - gradient { 
 		SetToolFloodFuzzinessType $gaFrame([GetMainFrameID],toolID) \
 		    $gaTool(current,fuzzinessType)
+	    }
+	    table - user {
+		SortVoxelEditingStructureListBox
 	    }
 	}
     }
@@ -1805,8 +1808,22 @@ proc MakeToolsPanel { ifwTop } {
     set gaWidget(toolProperties,eraseVoxelValueEntry) \
 	$fwPropsVoxelEditingSub.ewEraseValue
 
-
-
+    frame $fwPropsVoxelEditingSub.fwStructureListOrder
+    tkuMakeNormalLabel $fwPropsVoxelEditingSub.fwStructureListOrder.lwSort \
+	-label "Sort: "
+    tkuMakeToolbar $fwPropsVoxelEditingSub.fwStructureListOrder.tbwSort \
+	-allowzero 0 -radio 1 \
+	-variable gaTool(structureListOrder,type) \
+	-command ToolBarWrapper \
+	-buttons {
+	    {-type text -name table -label "Table"}
+	    {-type text -name user -label "User"}
+	}
+    pack $fwPropsVoxelEditingSub.fwStructureListOrder.lwSort \
+	$fwPropsVoxelEditingSub.fwStructureListOrder.tbwSort \
+	-side left -fill x
+    set gaTool(structureListOrder,type) table
+    
     tixScrolledListBox $fwPropsVoxelEditingSub.lbStructure \
 	-scrollbar auto \
 	-browsecmd VoxelEditingStructureListBoxCallback
@@ -1817,8 +1834,10 @@ proc MakeToolsPanel { ifwTop } {
     
     grid $fwPropsVoxelEditingSub.ewNewValue    -column 0 -row 0 -sticky ew
     grid $fwPropsVoxelEditingSub.mwLUT         -column 0 -row 1 -sticky ew
-    grid $fwPropsVoxelEditingSub.lbStructure   -column 0 -row 2 -sticky ew
-    grid $fwPropsVoxelEditingSub.ewEraseValue  -column 0 -row 3 -sticky ew
+    grid $fwPropsVoxelEditingSub.fwStructureListOrder \
+	-column 0 -row 2 -sticky ew
+    grid $fwPropsVoxelEditingSub.lbStructure   -column 0 -row 3 -sticky ew
+    grid $fwPropsVoxelEditingSub.ewEraseValue  -column 0 -row 4 -sticky ew
 
     set gaWidget(toolProperties,voxelEditing) $fwPropsVoxelEditing
 
@@ -3090,7 +3109,8 @@ proc SelectToolInToolProperties { iTool } {
 	    set gaTool(current,onlyFloodZero) \
 		[GetToolOnlyFloodZero $gaTool(current,id)]
 
-	    if { "$gaTool(current,type)" == "voxelEditing" } {
+	    if { "$gaTool(current,type)" == "voxelEditing" ||
+	         "$gaTool(current,type)" == "roiEditing" } {
 
 		grid $gaWidget(toolProperties,voxelEditing) \
 		    -column 0 -row 4 -sticky ew
@@ -3157,19 +3177,7 @@ proc SelectLUTInVoxelEditingStructureListBox { iLUTID } {
 
     set gaTool(current,voxelLutID) $iLUTID
 
-    # Clear the listbox.
-    $gaWidget(toolProperties,voxelStructureListBox) subwidget listbox \
-	delete 0 end
-
-    # Put the entries in the list box.
-    set cEntries [GetColorLUTNumberOfEntries $gaTool(current,voxelLutID)]
-    for { set nEntry 0 } { $nEntry < $cEntries } { incr nEntry } {
-	catch {
-	    set sLabel "$nEntry: [GetColorLUTEntryLabel $gaTool(current,voxelLutID) $nEntry]"
-	    $gaWidget(toolProperties,voxelStructureListBox) subwidget listbox \
-		insert end $sLabel
-	}
-    }
+    SortVoxelEditingStructureListBox
 
     # Make sure the right menu item is selected.
     $gaWidget(toolProperties,voxelLutMenu) config -disablecallback 1
@@ -3185,11 +3193,122 @@ proc VoxelEditingStructureListBoxCallback {} {
     global gaTool
     global gaWidget
 
-    set nStructure [$gaWidget(toolProperties,voxelStructureListBox) \
-			subwidget listbox curselection]
+    set nEntry [$gaWidget(toolProperties,voxelStructureListBox) \
+		    subwidget listbox curselection]
+    if { $nEntry == "" } { return }
+    set nStructure $gaTool(structureListOrder,entryToIndex,$nEntry)
 
+    # Increment our user count.
+    if { "$gaTool(structureListOrder,type)" == "table" } {
+	if { [info exists gaTool(structureListOrder,count,$nStructure)] } {
+	    incr gaTool(structureListOrder,count,$nStructure)
+	} else {
+	    set gaTool(structureListOrder,count,$nStructure) 0
+	}
+    }
+
+    # Select the structure.
     SelectStructureInVoxelEditingListBox $nStructure
 }
+
+proc SortVoxelEditingStructureListBox {} {
+    dputs "SortVoxelEditingStructureListBox"
+    
+    global gaWidget
+    global gaTool
+
+    # Don't do this if we haven't selected an LUT yet.
+    if { ![info exists gaTool(current,voxelLutID)] } {
+	return;
+    }
+    
+    # Clear the listbox.
+    $gaWidget(toolProperties,voxelStructureListBox) subwidget listbox \
+	delete 0 end
+
+    # Put the entries in the list box.
+    set cStructures [GetColorLUTNumberOfEntries $gaTool(current,voxelLutID)]
+
+    # If table order, just insert them in the order of the table.
+    if { "$gaTool(structureListOrder,type)" == "table" } {
+	
+	set nEntry 0
+	for { set nStructure 0 } { $nStructure < $cStructures } { incr nStructure } {
+	    catch {
+		# Get a label.
+		set sLabel "$nStructure: [GetColorLUTEntryLabel $gaTool(current,voxelLutID) $nStructure]"
+
+		# Insert the item.
+		$gaWidget(toolProperties,voxelStructureListBox) subwidget \
+		    listbox insert end $sLabel
+
+		# Hook up index->structure tables.
+		set gaTool(structureListOrder,indexToEntry,$nStructure) $nEntry
+		set gaTool(structureListOrder,entryToIndex,$nEntry) $nStructure
+		incr nEntry
+	    }
+	}
+
+	# If user order, first get all the items that have counts >
+	# 0. Then sort the list according to counts. Then go through
+	# the sorted list and insert stuff in the listbox.
+    } elseif { "$gaTool(structureListOrder,type)" == "user" } {
+
+	set lEntries {}
+	for { set nStructure 0 } { $nStructure < $cStructures } { incr nStructure } {
+	    catch {
+		set sLabel "$nStructure: [GetColorLUTEntryLabel $gaTool(current,voxelLutID) $nStructure]"
+
+		# Get the count and if > 0, make an entry into our
+		# unsorted list.
+		set count $gaTool(structureListOrder,count,$nStructure)
+		if { $count > 0 } {
+		    set lEntries \
+			[lappend lEntries [list $sLabel $nStructure $count]]
+		}
+	    }
+	}
+
+	# Sort the list with our sort function.
+	set lSorted [lsort -command CompareLUTEntry $lEntries]
+
+	# Now go through the sorted list and insert normally.
+	set nEntry 0
+	foreach entry $lSorted {
+
+	    set sLabel [lindex $entry 0]
+	    set nStructure [lindex $entry 1]
+
+	    $gaWidget(toolProperties,voxelStructureListBox) subwidget \
+		listbox insert end $sLabel
+	    
+	    set gaTool(structureListOrder,indexToEntry,$nStructure) $nEntry
+	    set gaTool(structureListOrder,entryToIndex,$nEntry) $nStructure
+	    incr nEntry
+	}
+    }
+}
+
+
+# Our list sorter, sorts by decreasing count first then by increasing
+# structure index. Input is a {label structure count} triple.
+proc CompareLUTEntry { a b } {
+    
+    set countA [lindex $a 2]
+    set countB [lindex $b 2]
+
+    set result 0
+    if { $countA == $countB } {
+	set structureA [lindex $a 1]
+	set structureB [lindex $b 1]
+	set result [expr $structureA > $structureB]
+    } else {
+	set result [expr $countA < $countB]
+    }
+
+    return $result
+}
+
 
 proc SelectStructureInVoxelEditingListBox { inStructure } {
     dputs "SelectStructureInVoxelEditingListBox  $inStructure  "
@@ -3204,17 +3323,21 @@ proc SelectStructureInVoxelEditingListBox { inStructure } {
 	    $gaWidget(toolProperties,newVoxelValueEntry)
 	SetToolNewVoxelValue $gaTool(current,id) $gaTool(current,newVoxelValue)
     }
-    
+
+    if { "$gaTool(structureListOrder,type)" == "user" } {
+	SortVoxelEditingStructureListBox
+    }
+
     # Make sure the structure is highlighted and visible in the listbox.
     catch {
+	set nEntry $gaTool(structureListOrder,indexToEntry,$inStructure)
 	$gaWidget(toolProperties,voxelStructureListBox) subwidget listbox \
 	    selection clear 0 end
 	$gaWidget(toolProperties,voxelStructureListBox) subwidget listbox \
-	    selection set $gaTool(current,newVoxelValue)
+	    selection set $nEntry
 	$gaWidget(toolProperties,voxelStructureListBox) subwidget listbox \
-	    see $gaTool(current,structure)
+	    see $Entry
     }
-
 }
 
 # SUBJECTS LOADER FUNCTIONS =============================================
@@ -3571,6 +3694,7 @@ proc UpdateLUTList {} {
 
     global gaLUT
     global gaWidget
+    global gaTool
 
     # Get the lut ID list.
     set gaLUT(idList) [GetColorLUTIDList] 
@@ -3592,9 +3716,13 @@ proc UpdateLUTList {} {
     FillMenuFromList $gaWidget(roiProperties,lutMenu) $gaLUT(idList) \
 	"GetColorLUTLabel %s" {} false
 
-    # Rebuild the list in voxel editing.
+    # Rebuild the list in voxel editing. Set an LUT here if we don't
+    # have one yet.
     FillMenuFromList $gaWidget(toolProperties,voxelLutMenu) $gaLUT(idList) \
 	"GetColorLUTLabel %s" {} false
+    if { ![info exists gaTool(current,voxelLutID)] } {
+	SelectLUTInVoxelEditingStructureListBox 0
+    }
 }
 
 # LABEL AREA FUNCTIONS ==================================================
@@ -4605,7 +4733,7 @@ proc SaveSceneScript { ifnScene } {
     set f [open $ifnScene w]
 
     puts $f "\# Scene file generated "
-    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.88 2005/03/01 19:11:30 kteich Exp $"
+    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.89 2005/03/02 00:16:31 kteich Exp $"
     puts $f ""
 
     # Find all the data collections.

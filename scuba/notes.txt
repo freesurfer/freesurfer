@@ -412,7 +412,7 @@ ventricle again etc all the time.
 
 BRUCE'S LIST:::
 
-- Goto Coords sets cursor
+x Goto Coords sets cursor
 
 - save layer setup to script
 
