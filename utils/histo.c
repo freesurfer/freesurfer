@@ -6,11 +6,11 @@
  *       AUTHOR:      Bruce Fischl
  *       DATE:        1/8/97
  *
-*/
+ */
 
 /*-----------------------------------------------------
-                    INCLUDE FILES
--------------------------------------------------------*/
+  INCLUDE FILES
+  -------------------------------------------------------*/
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
@@ -24,12 +24,12 @@
 #include "macros.h"
 
 /*-----------------------------------------------------
-        Parameters:
+  Parameters:
 
-        Returns value:
+  Returns value:
 
-        Description
-------------------------------------------------------*/
+  Description
+  ------------------------------------------------------*/
 int
 HISTOfree(HISTOGRAM **phisto)
 {
@@ -37,19 +37,19 @@ HISTOfree(HISTOGRAM **phisto)
 
   histo = *phisto ;
   *phisto = NULL ;
-	free(histo->bins) ;
-	free(histo->counts) ;
+  free(histo->bins) ;
+  free(histo->counts) ;
   if (histo)
     free(histo) ;
   return(NO_ERROR) ;
 }
 /*-----------------------------------------------------
-        Parameters:
+  Parameters:
 
-        Returns value:
+  Returns value:
 
-        Description
-------------------------------------------------------*/
+  Description
+  ------------------------------------------------------*/
 int
 HISTOdump(HISTOGRAM *histo, FILE *fp)
 {
@@ -70,10 +70,10 @@ HISTOdump(HISTOGRAM *histo, FILE *fp)
 HISTOGRAM *
 HISTOrealloc(HISTOGRAM *histo, int nbins)
 {
-	if (histo->bins)
-		free(histo->bins) ;
-	if (histo->counts)
-		free(histo->counts) ;
+  if (histo->bins)
+    free(histo->bins) ;
+  if (histo->counts)
+    free(histo->counts) ;
   histo->bins = (float *)calloc(nbins, sizeof(float)) ;
   histo->counts = (float *)calloc(nbins, sizeof(float)) ;
   if (!histo->counts || !histo->bins)
@@ -82,12 +82,12 @@ HISTOrealloc(HISTOGRAM *histo, int nbins)
   return(histo) ;
 }
 /*-----------------------------------------------------
-        Parameters:
+  Parameters:
 
-        Returns value:
+  Returns value:
 
-        Description
-------------------------------------------------------*/
+  Description
+  ------------------------------------------------------*/
 HISTOGRAM *
 HISTOalloc(int nbins)
 {
@@ -99,18 +99,19 @@ HISTOalloc(int nbins)
 
   histo->bins = (float *)calloc(nbins, sizeof(float)) ;
   histo->counts = (float *)calloc(nbins, sizeof(float)) ;
+  fprintf(stderr, "histo->bins and ->counts allocated %d bins\n", nbins);
   if (!histo->counts || !histo->bins)
     ErrorExit(ERROR_NOMEMORY, "HISTOalloc(%d): could not allocate histogram",nbins) ;
   histo->nbins = nbins ;
   return(histo) ;
 }
 /*-----------------------------------------------------
-        Parameters:
+  Parameters:
 
-        Returns value:
+  Returns value:
 
-        Description
-------------------------------------------------------*/
+  Description
+  ------------------------------------------------------*/
 HISTOGRAM *
 HISTOcrunch(HISTOGRAM *histo_src, HISTOGRAM *histo_dst)
 {
@@ -135,12 +136,12 @@ HISTOcrunch(HISTOGRAM *histo_src, HISTOGRAM *histo_dst)
   return(histo_dst) ;
 }
 /*-----------------------------------------------------
-        Parameters:
+  Parameters:
 
-        Returns value:
+  Returns value:
 
-        Description
-------------------------------------------------------*/
+  Description
+  ------------------------------------------------------*/
 HISTOGRAM *
 HISTOcopy(HISTOGRAM *histo_src, HISTOGRAM *histo_dst)
 {
@@ -152,14 +153,14 @@ HISTOcopy(HISTOGRAM *histo_src, HISTOGRAM *histo_dst)
   return(histo_dst) ;
 }
 /*-----------------------------------------------------
-        Parameters:
+  Parameters:
 
-        Returns value:
+  Returns value:
 
-        Description
-          Treat histo_src as a function mapping input intensities
-          to output intensities, and numerically invert it.
-------------------------------------------------------*/
+  Description
+  Treat histo_src as a function mapping input intensities
+  to output intensities, and numerically invert it.
+  ------------------------------------------------------*/
 HISTOGRAM *
 HISTOinvert(HISTOGRAM *histo_src, HISTOGRAM *histo_dst, int max_dst)
 {
@@ -191,10 +192,10 @@ HISTOinvert(HISTOGRAM *histo_src, HISTOGRAM *histo_dst, int max_dst)
   }
 
   histo_dst->nbins = max_dst ;
-/* 
-   fill in zeros in the inverse histogram - they correspond to
-   flat regions in the forward map (i.e. multiple-valued).
-*/
+  /* 
+     fill in zeros in the inverse histogram - they correspond to
+     flat regions in the forward map (i.e. multiple-valued).
+  */
   for (val = b = 0 ; b < histo_dst->nbins ; b++)
   {
     if (histo_dst->counts[b] > 0)
@@ -206,12 +207,12 @@ HISTOinvert(HISTOGRAM *histo_src, HISTOGRAM *histo_dst, int max_dst)
   return(histo_dst) ;
 }
 /*-----------------------------------------------------
-        Parameters:
+  Parameters:
 
-        Returns value:
+  Returns value:
 
-        Description
-------------------------------------------------------*/
+  Description
+  ------------------------------------------------------*/
 HISTOGRAM *
 HISTOnormalize(HISTOGRAM *histo_src, HISTOGRAM *histo_dst, int max_out)
 {
@@ -235,12 +236,12 @@ HISTOnormalize(HISTOGRAM *histo_src, HISTOGRAM *histo_dst, int max_out)
   return(histo_dst) ;
 }
 /*-----------------------------------------------------
-        Parameters:
+  Parameters:
 
-        Returns value:
+  Returns value:
 
-        Description
-------------------------------------------------------*/
+  Description
+  ------------------------------------------------------*/
 HISTOGRAM *
 HISTOclear(HISTOGRAM *histo_src, HISTOGRAM *histo_dst)
 {
@@ -252,12 +253,12 @@ HISTOclear(HISTOGRAM *histo_src, HISTOGRAM *histo_dst)
   return(histo_dst) ;
 }
 /*-----------------------------------------------------
-        Parameters:
+  Parameters:
 
-        Returns value:
+  Returns value:
 
-        Description
-------------------------------------------------------*/
+  Description
+  ------------------------------------------------------*/
 HISTOGRAM *
 HISTOclearCounts(HISTOGRAM *histo_src, HISTOGRAM *histo_dst)
 {
@@ -271,16 +272,16 @@ HISTOclearCounts(HISTOGRAM *histo_src, HISTOGRAM *histo_dst)
   return(histo_dst) ;
 }
 /*-----------------------------------------------------
-        Parameters:
+  Parameters:
 
-        Returns value:
+  Returns value:
 
-        Description
-          treating histo1 and histo2 as mappings from intensities to
-          intensities (via the ->counts[] field), compose the two
-          mappings into a composite transformation (first histo1 then
-          histo2).
-------------------------------------------------------*/
+  Description
+  treating histo1 and histo2 as mappings from intensities to
+  intensities (via the ->counts[] field), compose the two
+  mappings into a composite transformation (first histo1 then
+  histo2).
+  ------------------------------------------------------*/
 HISTOGRAM *
 HISTOcompose(HISTOGRAM *histo1, HISTOGRAM *histo2, HISTOGRAM *histo_dst)
 {
@@ -300,22 +301,22 @@ HISTOcompose(HISTOGRAM *histo1, HISTOGRAM *histo2, HISTOGRAM *histo_dst)
   return(histo_dst) ;
 }
 /*-----------------------------------------------------
-        Parameters:
+  Parameters:
 
-        Returns value:
+  Returns value:
 
-        Description
-------------------------------------------------------*/
+  Description
+  ------------------------------------------------------*/
 HISTOGRAM *
 HISTOfillZeros(HISTOGRAM *histo_src, HISTOGRAM *histo_dst)
 {
   int  b, val ;
 
   histo_dst = HISTOcopy(histo_src, histo_dst) ;
-/* 
-   fill in zeros in the inverse histogram - they correspond to
-   flat regions in the forward map (i.e. multiple-valued).
-*/
+  /* 
+     fill in zeros in the inverse histogram - they correspond to
+     flat regions in the forward map (i.e. multiple-valued).
+  */
   for (val = b = 0 ; b < histo_dst->nbins ; b++)
   {
     if (histo_dst->counts[b] > 0)
@@ -327,17 +328,17 @@ HISTOfillZeros(HISTOGRAM *histo_src, HISTOGRAM *histo_dst)
   return(histo_dst) ;
 }
 /*-----------------------------------------------------
-        Parameters:
+  Parameters:
 
-        Returns value:
+  Returns value:
 
-        Description
-          Make a compose two mappings - one forward and one
-          inverse. This is useful in the context of histogram
-          specification in which the forward is the equalization
-          histogram of the source image, and the inverse is
-          the equalization histogram of the template image.
-------------------------------------------------------*/
+  Description
+  Make a compose two mappings - one forward and one
+  inverse. This is useful in the context of histogram
+  specification in which the forward is the equalization
+  histogram of the source image, and the inverse is
+  the equalization histogram of the template image.
+  ------------------------------------------------------*/
 #define MAX_STRETCH 2
 
 HISTOGRAM *
@@ -389,12 +390,12 @@ HISTOcomposeInvert(HISTOGRAM *histo_fwd, HISTOGRAM *histo_inv,
   return(histo_dst) ;
 }
 /*-----------------------------------------------------
-        Parameters:
+  Parameters:
 
-        Returns value:
+  Returns value:
 
-        Description
-------------------------------------------------------*/
+  Description
+  ------------------------------------------------------*/
 HISTOGRAM *
 HISTOadd(HISTOGRAM *h1, HISTOGRAM *h2, HISTOGRAM *histo_dst)
 {
@@ -413,12 +414,12 @@ HISTOadd(HISTOGRAM *h1, HISTOGRAM *h2, HISTOGRAM *histo_dst)
   return(histo_dst) ;
 }
 /*-----------------------------------------------------
-        Parameters:
+  Parameters:
 
-        Returns value:
+  Returns value:
 
-        Description
-------------------------------------------------------*/
+  Description
+  ------------------------------------------------------*/
 HISTOGRAM *
 HISTOmul(HISTOGRAM *h1, HISTOGRAM *h2, HISTOGRAM *histo_dst)
 {
@@ -437,12 +438,12 @@ HISTOmul(HISTOGRAM *h1, HISTOGRAM *h2, HISTOGRAM *histo_dst)
   return(histo_dst) ;
 }
 /*-----------------------------------------------------
-        Parameters:
+  Parameters:
 
-        Returns value:
+  Returns value:
 
-        Description
-------------------------------------------------------*/
+  Description
+  ------------------------------------------------------*/
 HISTOGRAM *
 HISTOsubtract(HISTOGRAM *h1, HISTOGRAM *h2, HISTOGRAM *histo_dst)
 {
@@ -461,12 +462,12 @@ HISTOsubtract(HISTOGRAM *h1, HISTOGRAM *h2, HISTOGRAM *histo_dst)
   return(histo_dst) ;
 }
 /*-----------------------------------------------------
-        Parameters:
+  Parameters:
 
-        Returns value:
+  Returns value:
 
-        Description
-------------------------------------------------------*/
+  Description
+  ------------------------------------------------------*/
 HISTOGRAM *
 HISTOclearBins(HISTOGRAM *histo_src, HISTOGRAM *histo_dst, int min_val, int max_val)
 {
@@ -480,21 +481,21 @@ HISTOclearBins(HISTOGRAM *histo_src, HISTOGRAM *histo_dst, int min_val, int max_
 
   for (b = 0 ; b < histo_dst->nbins ; b++)
   {
-		if (histo_dst->bins[b] >= min_val && histo_dst->bins[b] <= max_val)
-		{
-			histo_dst->counts[b] = 0 ;
-		}
+    if (histo_dst->bins[b] >= min_val && histo_dst->bins[b] <= max_val)
+    {
+      histo_dst->counts[b] = 0 ;
+    }
   }
 
   return(histo_dst) ;
 }
 /*-----------------------------------------------------
-        Parameters:
+  Parameters:
 
-        Returns value:
+  Returns value:
 
-        Description
-------------------------------------------------------*/
+  Description
+  ------------------------------------------------------*/
 #define MAX_LEN 2000
 HISTOGRAM *
 HISTOsmooth(HISTOGRAM *histo_src, HISTOGRAM *histo_dst,float sigma)
@@ -506,9 +507,16 @@ HISTOsmooth(HISTOGRAM *histo_src, HISTOGRAM *histo_dst,float sigma)
   if (!histo_dst)
     histo_dst = HISTOalloc(nbins) ;
   else
+  {
+    if (histo_dst->nbins < histo_src->nbins)
+    {
+      fprintf(stderr, "histo_dst->nbins = %d, histo_src->nbins - %d\n",
+              histo_dst->nbins, histo_src->nbins);
+      HISTOrealloc(histo_dst, nbins);
+    }
     histo_dst->nbins = nbins ;
-	histo_dst->bin_size = histo_src->bin_size ;
-
+    histo_dst->bin_size = histo_src->bin_size ;
+  }
   /* build the kernel in k */
   len = (int)nint(8.0f * sigma)+1 ;
   if (ISEVEN(len))   /* ensure it's even */
@@ -553,12 +561,12 @@ HISTOsmooth(HISTOGRAM *histo_src, HISTOGRAM *histo_dst,float sigma)
   return(histo_dst) ;
 }
 /*-----------------------------------------------------
-        Parameters:
+  Parameters:
 
-        Returns value:
+  Returns value:
 
-        Description
-------------------------------------------------------*/
+  Description
+  ------------------------------------------------------*/
 int
 HISTOfindLastPeakRelative(HISTOGRAM *h, int wsize, float min_pct)
 {
@@ -574,10 +582,10 @@ HISTOfindLastPeakRelative(HISTOGRAM *h, int wsize, float min_pct)
   whalf = (wsize-1)/2 ;
   nbins = h->nbins ;
 
-/*
-   check to see if the value at b is bigger than anything else within
-   a whalfxwhalf window on either side.
-*/
+  /*
+    check to see if the value at b is bigger than anything else within
+    a whalfxwhalf window on either side.
+  */
   for (b = nbins-1 ; b >= 0 ; b--)
   {
     center_val = h->counts[b] ;
@@ -599,12 +607,12 @@ HISTOfindLastPeakRelative(HISTOGRAM *h, int wsize, float min_pct)
   return(-1) ;
 }
 /*-----------------------------------------------------
-        Parameters:
+  Parameters:
 
-        Returns value:
+  Returns value:
 
-        Description
-------------------------------------------------------*/
+  Description
+  ------------------------------------------------------*/
 int
 HISTOfindFirstPeakRelative(HISTOGRAM *h, int wsize, float min_pct)
 {
@@ -620,10 +628,10 @@ HISTOfindFirstPeakRelative(HISTOGRAM *h, int wsize, float min_pct)
   whalf = (wsize-1)/2 ;
   nbins = h->nbins ;
 
-/*
-   check to see if the value at b is bigger than anything else within
-   a whalfxwhalf window on either side.
-*/
+  /*
+    check to see if the value at b is bigger than anything else within
+    a whalfxwhalf window on either side.
+  */
   for (b = 0 ; b < nbins ; b++)
   {
     center_val = h->counts[b] ;
@@ -645,12 +653,12 @@ HISTOfindFirstPeakRelative(HISTOGRAM *h, int wsize, float min_pct)
   return(-1) ;
 }
 /*-----------------------------------------------------
-        Parameters:
+  Parameters:
 
-        Returns value:
+  Returns value:
 
-        Description
-------------------------------------------------------*/
+  Description
+  ------------------------------------------------------*/
 int
 HISTOfindLastPeak(HISTOGRAM *h, int wsize, float min_pct)
 {
@@ -671,10 +679,10 @@ HISTOfindLastPeak(HISTOGRAM *h, int wsize, float min_pct)
   whalf = (wsize-1)/2 ;
   nbins = h->nbins ;
 
-/*
-   check to see if the value at b is bigger than anything else within
-   a whalfxwhalf window on either side.
-*/
+  /*
+    check to see if the value at b is bigger than anything else within
+    a whalfxwhalf window on either side.
+  */
   for (b = nbins-1 ; b >= 0 ; b--)
   {
     center_val = h->counts[b] ;
@@ -696,12 +704,12 @@ HISTOfindLastPeak(HISTOGRAM *h, int wsize, float min_pct)
   return(-1) ;
 }
 /*-----------------------------------------------------
-        Parameters:
+  Parameters:
 
-        Returns value:
+  Returns value:
 
-        Description
-------------------------------------------------------*/
+  Description
+  ------------------------------------------------------*/
 int
 HISTOfindFirstPeak(HISTOGRAM *h, int wsize, float min_pct)
 {
@@ -722,10 +730,10 @@ HISTOfindFirstPeak(HISTOGRAM *h, int wsize, float min_pct)
   whalf = (wsize-1)/2 ;
   nbins = h->nbins ;
 
-/*
-   check to see if the value at b is bigger than anything else within
-   a whalfxwhalf window on either side.
-*/
+  /*
+    check to see if the value at b is bigger than anything else within
+    a whalfxwhalf window on either side.
+  */
   for (b = 0 ; b < nbins ; b++)
   {
     center_val = h->counts[b] ;
@@ -751,12 +759,12 @@ HISTOfindFirstPeak(HISTOGRAM *h, int wsize, float min_pct)
   return(-1) ;
 }
 /*-----------------------------------------------------
-        Parameters:
+  Parameters:
 
-        Returns value:
+  Returns value:
 
-        Description
-------------------------------------------------------*/
+  Description
+  ------------------------------------------------------*/
 int
 HISTOfindValley(HISTOGRAM *h, int wsize, int b0, int b1)
 {
@@ -780,10 +788,10 @@ HISTOfindValley(HISTOGRAM *h, int wsize, int b0, int b1)
   if ((b1 < 0) || (b1 >= nbins))
     b1 = nbins - 1 ;
 
-/*
-   check to see if the value at b is smaller than anything else within
-   a whalfxwhalf window on either side.
-*/
+  /*
+    check to see if the value at b is smaller than anything else within
+    a whalfxwhalf window on either side.
+  */
   for (b = b0 ; b <= b1 ; b++)
   {
     center_val = h->counts[b] ;
@@ -804,15 +812,15 @@ HISTOfindValley(HISTOGRAM *h, int wsize, int b0, int b1)
 }
 
 /*-----------------------------------------------------
-        Parameters:
+  Parameters:
 
-        Returns value:
+  Returns value:
 
-        Description
-------------------------------------------------------*/
+  Description
+  ------------------------------------------------------*/
 /* only a peak if it is at least MIN_STD intensity units away
    from the mean in the wsize neighborhood.
-   */
+*/
 #define MIN_STD   1.9
 
 int
@@ -836,10 +844,10 @@ HISTOfindLastPeakInRegion(HISTOGRAM *h, int wsize, float min_pct, int b0,
   whalf = (wsize-1)/2 ;
   nbins = h->nbins ;
 
-/*
-   check to see if the value at b is bigger than anything else within
-   a whalfxwhalf window on either side.
-*/
+  /*
+    check to see if the value at b is bigger than anything else within
+    a whalfxwhalf window on either side.
+  */
   for (b = b1 ; b >= b0 ; b--)
   {
     center_val = h->counts[b] ;
@@ -871,12 +879,12 @@ HISTOfindLastPeakInRegion(HISTOGRAM *h, int wsize, float min_pct, int b0,
   return(-1) ;
 }
 /*-----------------------------------------------------
-        Parameters:
+  Parameters:
 
-        Returns value:
+  Returns value:
 
-        Description
-------------------------------------------------------*/
+  Description
+  ------------------------------------------------------*/
 int
 HISTOfindFirstPeakInRegion(HISTOGRAM *h, int wsize, float min_pct, 
                            int b0, int b1)
@@ -898,10 +906,10 @@ HISTOfindFirstPeakInRegion(HISTOGRAM *h, int wsize, float min_pct,
   whalf = (wsize-1)/2 ;
   nbins = h->nbins ;
 
-/*
-   check to see if the value at b is bigger than anything else within
-   a whalfxwhalf window on either side.
-*/
+  /*
+    check to see if the value at b is bigger than anything else within
+    a whalfxwhalf window on either side.
+  */
   for (b = b0 ; b <= b1 ; b++)
   {
     center_val = h->counts[b] ;
@@ -924,12 +932,12 @@ HISTOfindFirstPeakInRegion(HISTOGRAM *h, int wsize, float min_pct,
   return(-1) ;
 }
 /*-----------------------------------------------------
-        Parameters:
+  Parameters:
 
-        Returns value:
+  Returns value:
 
-        Description
-------------------------------------------------------*/
+  Description
+  ------------------------------------------------------*/
 int
 HISTOfindHighestPeakInRegion(HISTOGRAM *h, int b0, int b1)
 {
@@ -942,10 +950,10 @@ HISTOfindHighestPeakInRegion(HISTOGRAM *h, int b0, int b1)
     b0 = 0 ;
   if (b1 >= h->nbins)
     b1 = h->nbins-1 ;
-/*
-   check to see if the value at b is bigger than anything else within
-   a whalfxwhalf window on either side.
-*/
+  /*
+    check to see if the value at b is bigger than anything else within
+    a whalfxwhalf window on either side.
+  */
   max_count = 0 ; max_count_bin = -1 ;
   for (b = b0 ; b <= b1 ; b++)
   {
@@ -960,12 +968,12 @@ HISTOfindHighestPeakInRegion(HISTOGRAM *h, int b0, int b1)
   return(max_count_bin) ;
 }
 /*-----------------------------------------------------
-        Parameters:
+  Parameters:
 
-        Returns value:
+  Returns value:
 
-        Description
-------------------------------------------------------*/
+  Description
+  ------------------------------------------------------*/
 int
 HISTOplot(HISTOGRAM *histo, char *fname)
 {
@@ -1055,7 +1063,7 @@ HISTOfindStartOfPeak(HISTOGRAM *h, int b0, float pct_peak)
   int  b, b1 ;
   float val, thresh ;
 
-	b1 = HISTOfindPreviousValley(h, b0) ;
+  b1 = HISTOfindPreviousValley(h, b0) ;
 
   thresh = h->counts[b0]*pct_peak ;
   if (b0 <= 0)
@@ -1076,7 +1084,7 @@ HISTOfindEndOfPeak(HISTOGRAM *h, int b0, float pct_peak)
   int  b, b1 ;
   float val, thresh ;
 
-	b1 = HISTOfindNextValley(h, b0) ;
+  b1 = HISTOfindNextValley(h, b0) ;
 
   thresh = h->counts[b0]*pct_peak ;
   if (b0 >= h->nbins)
@@ -1094,7 +1102,7 @@ int
 HISTOfindCurrentPeak(HISTOGRAM *histo, int b0, int wsize, float min_pct)
 {
   int  b, whalf, bw, peak, nbins = histo->nbins ;
-	float next_count, prev_count, other_val, center_val ;
+  float next_count, prev_count, other_val, center_val ;
   float max_count, min_count ;
 
   peak = HISTOfindHighestPeakInRegion(histo, 0, histo->nbins) ;
@@ -1104,86 +1112,86 @@ HISTOfindCurrentPeak(HISTOGRAM *histo, int b0, int wsize, float min_pct)
   min_count = min_pct * max_count ;
 
   whalf = (wsize-1)/2 ;
-	for (next_count = prev_count = 0, bw = b0-whalf ; bw <= b0+whalf ; bw++)
-	{
-		if (bw < 0)
-			continue ;
-		if (bw >= nbins)
-			continue ;
-		if (bw < b0)
-			prev_count += histo->counts[bw] ;
-		else if (bw > b0)
-			next_count += histo->counts[bw] ;
-	}
+  for (next_count = prev_count = 0, bw = b0-whalf ; bw <= b0+whalf ; bw++)
+  {
+    if (bw < 0)
+      continue ;
+    if (bw >= nbins)
+      continue ;
+    if (bw < b0)
+      prev_count += histo->counts[bw] ;
+    else if (bw > b0)
+      next_count += histo->counts[bw] ;
+  }
 
-	if (next_count > prev_count)  /* search forwards */
-	{
-		for (b = b0-whalf ; b < histo->nbins ; b++)
-		{
-			if (b < 0)
-				continue ;
-			center_val = histo->counts[b] ;
-			if (center_val < min_count)
-				continue ;
-			peak = 1 ;
-			for (bw = b-(whalf-1) ; bw <= b+whalf ; bw++)
-			{
-				if (bw < 0 || bw >= nbins)
-					continue ;
-				other_val = histo->counts[bw] ;
-				if (other_val > center_val)
-				{
-					peak = 0 ;
-					break ;
-				}
-			}
-			if (peak)
-			{
-				int bv ;
+  if (next_count > prev_count)  /* search forwards */
+  {
+    for (b = b0-whalf ; b < histo->nbins ; b++)
+    {
+      if (b < 0)
+        continue ;
+      center_val = histo->counts[b] ;
+      if (center_val < min_count)
+        continue ;
+      peak = 1 ;
+      for (bw = b-(whalf-1) ; bw <= b+whalf ; bw++)
+      {
+        if (bw < 0 || bw >= nbins)
+          continue ;
+        other_val = histo->counts[bw] ;
+        if (other_val > center_val)
+        {
+          peak = 0 ;
+          break ;
+        }
+      }
+      if (peak)
+      {
+        int bv ;
 
-				bv = HISTOfindNextValley(histo, 0) ;
+        bv = HISTOfindNextValley(histo, 0) ;
 #if 0
-				if (bv >= 0 && center_val*min_pct < histo->counts[bv])
-					continue ;
+        if (bv >= 0 && center_val*min_pct < histo->counts[bv])
+          continue ;
 #endif
-				return(b) ;
-			}
-		}
-	}
-	else   /* search backwards */
-	{
-		for (b = b0+(whalf-1) ; b >= 0 ; b--)
-		{
-			if (b >= histo->nbins)
-				continue ;
-			center_val = histo->counts[b] ;
-			if (center_val < min_count)
-				continue ;
-			peak = 1 ;
-			for (bw = b-whalf ; bw <= b+whalf ; bw++)
-			{
-				if (bw < 0 || bw >= nbins)
-					continue ;
-				other_val = histo->counts[bw] ;
-				if (other_val > center_val)
-				{
-					peak = 0 ;
-					break ;
-				}
-			}
-			if (peak)
-			{
-				int bv ;
+        return(b) ;
+      }
+    }
+  }
+  else   /* search backwards */
+  {
+    for (b = b0+(whalf-1) ; b >= 0 ; b--)
+    {
+      if (b >= histo->nbins)
+        continue ;
+      center_val = histo->counts[b] ;
+      if (center_val < min_count)
+        continue ;
+      peak = 1 ;
+      for (bw = b-whalf ; bw <= b+whalf ; bw++)
+      {
+        if (bw < 0 || bw >= nbins)
+          continue ;
+        other_val = histo->counts[bw] ;
+        if (other_val > center_val)
+        {
+          peak = 0 ;
+          break ;
+        }
+      }
+      if (peak)
+      {
+        int bv ;
 
-				bv = HISTOfindPreviousValley(histo, 0) ;
+        bv = HISTOfindPreviousValley(histo, 0) ;
 #if 0
-				if (bv >= 0 && center_val*min_pct < histo->counts[bv])
-					continue ;
+        if (bv >= 0 && center_val*min_pct < histo->counts[bv])
+          continue ;
 #endif
-				return(b) ;
-			}
-		}
-	}
+        return(b) ;
+      }
+    }
+  }
 
   return(-1) ;
 }
@@ -1191,41 +1199,41 @@ HISTOfindCurrentPeak(HISTOGRAM *histo, int b0, int wsize, float min_pct)
 int
 HISTOfillHoles(HISTO *h)
 {
-	int b ;
+  int b ;
 
-	for (b = 1 ; b < h->nbins-1 ; b++)
-	{
-		if (h->counts[b] == 0)
-			h->counts[b] = (h->counts[b-1] + h->counts[b+1]) / 2 ;
-	}
-	if (h->counts[0] == 0)
-		h->counts[0] = h->counts[1] ;
-	if (h->counts[h->nbins-1] == 0)
-		h->counts[h->nbins-1] = h->counts[h->nbins-2] ;
-	return(NO_ERROR) ;
+  for (b = 1 ; b < h->nbins-1 ; b++)
+  {
+    if (h->counts[b] == 0)
+      h->counts[b] = (h->counts[b-1] + h->counts[b+1]) / 2 ;
+  }
+  if (h->counts[0] == 0)
+    h->counts[0] = h->counts[1] ;
+  if (h->counts[h->nbins-1] == 0)
+    h->counts[h->nbins-1] = h->counts[h->nbins-2] ;
+  return(NO_ERROR) ;
 }
 int
 HISTOtotalInRegion(HISTO *h, int b0, int b1)
 {
-	int b, total ;
+  int b, total ;
 
-	for (total = 0, b = b0 ; b <= b1 ; b++)
-	{
-		total += h->counts[b] ;
-	}
-	return(total) ;
+  for (total = 0, b = b0 ; b <= b1 ; b++)
+  {
+    total += h->counts[b] ;
+  }
+  return(total) ;
 }
 
 int
 HISTOclearZeroBin(HISTOGRAM *h)
 {
-	int b ;
+  int b ;
 
-	for (b = 0 ; b < h->nbins-1 ; b++)
-	{
-		if (h->bins[b] > 0)
-			break ;
-	}
-	h->counts[b] = 0 ;
-	return(NO_ERROR) ;
+  for (b = 0 ; b < h->nbins-1 ; b++)
+  {
+    if (h->bins[b] > 0)
+      break ;
+  }
+  h->counts[b] = 0 ;
+  return(NO_ERROR) ;
 }
