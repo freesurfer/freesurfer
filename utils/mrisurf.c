@@ -1024,6 +1024,8 @@ MRISwrite(MRI_SURFACE *mris, char *name)
   type = mrisFileNameType(fname) ;
   if (type == MRIS_ASCII_TRIANGLE_FILE)
     return(MRISwriteAscii(mris, fname)) ;
+  else if (type == MRIS_VTK_FILE)
+    return(MRISwriteVTK(mris, fname)) ;
   else if (type == MRIS_GEO_TRIANGLE_FILE)
     return(MRISwriteGeo(mris, fname)) ;
   if (mris->type == MRIS_TRIANGULAR_SURFACE)
@@ -14180,6 +14182,8 @@ mrisFileNameType(char *fname)
     type = MRIS_GEO_FILE ;
   else if (!strcmp(ext, "TRI") || !strcmp(ext, "ICO"))
     type = MRIS_ICO_FILE ;
+  else if (!strcmp(ext, "VTK"))
+    type = MRIS_VTK_FILE ;
   else
     type = MRIS_BINARY_FILE ;
 
@@ -14219,6 +14223,49 @@ MRISwriteAscii(MRI_SURFACE *mris, char *fname)
     for (n = 0 ; n < VERTICES_PER_FACE ; n++)
       fprintf(fp, "%d ", face->v[n]) ;
     fprintf(fp, "%d\n", face->ripflag) ;
+  }
+
+  fclose(fp) ;
+  return(NO_ERROR) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
+int
+MRISwriteVTK(MRI_SURFACE *mris, char *fname)
+{
+  int     vno, fno, n ;
+  VERTEX  *v ;
+  FACE    *face ;
+  FILE    *fp ;
+
+  fp = fopen(fname, "w") ;
+  if (!fp)
+    ErrorReturn(ERROR_NOFILE, 
+              (ERROR_NOFILE, "MRISwriteAscii: could not open file %s",fname));
+                 
+  fprintf(fp, "# vtk DataFile Version 1.0\n") ;
+  fprintf(fp, "vtk output\nASCII\nDATASET POLYDATA\nPOINTS %d float\n",
+          mris->nvertices) ;
+  /*  fprintf(fp, "%d %d\n", mris->nvertices, mris->nfaces) ;*/
+
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    fprintf(fp, "%f  %f  %f\n", v->x, v->y, v->z) ;
+  }
+  fprintf(fp, "POLYGONS %d %d\n", mris->nfaces, mris->nfaces*4) ;
+  for (fno = 0 ; fno < mris->nfaces ; fno++)
+  {
+    face = &mris->faces[fno] ;
+    fprintf(fp,"%d ", VERTICES_PER_FACE) ;
+    for (n = 0 ; n < VERTICES_PER_FACE ; n++)
+      fprintf(fp, "%d ", face->v[n]) ;
+    fprintf(fp, "\n") ;
   }
 
   fclose(fp) ;
@@ -29158,9 +29205,6 @@ MRIScombine(MRI_SURFACE *mris_src, MRI_SURFACE *mris_total,
     vdst->marked++ ;
     switch (which)
     {
-    case VERTEX_ANNOTATION:  /* will sample from dst back to source later */
-      vdst->marked = 0 ;
-      break ;
     case VERTEX_AREA:
       vdst->d += v->origarea ;
       break ;
@@ -29224,9 +29268,6 @@ MRIScombine(MRI_SURFACE *mris_src, MRI_SURFACE *mris_total,
     vdst->marked++ ;
     switch (which)
     {
-    case VERTEX_ANNOTATION:
-      vdst->annotation = v->annotation ;
-      break ;
     case VERTEX_AREA:
       vdst->origarea += v->origarea ;
       vdst->val2 += (v->origarea*v->origarea) ;
@@ -29289,9 +29330,6 @@ MRISsphericalCopy(MRI_SURFACE *mris_src, MRI_SURFACE *mris_dst,
     vdst->val2 = v->val2 ;
     switch (which)
     {
-    case VERTEX_ANNOTATION:
-      vdst->annotation = v->annotation ;
-      break ;
     case VERTEX_AREA:
       vdst->origarea = v->origarea ;
       break ;
