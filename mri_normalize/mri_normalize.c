@@ -47,7 +47,7 @@ main(int argc, char *argv[])
   struct timeb start ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_normalize.c,v 1.22 2003/06/16 18:12:21 fischl Exp $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_normalize.c,v 1.23 2003/06/17 16:41:24 fischl Exp $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -230,30 +230,18 @@ get_option(int argc, char *argv[])
 static void
 usage_exit(int code)
 {
-    printf("usage: %s <input volume> <output volume>\n\n", Progname) ;
-    printf("\t-slope <float s>  set the curvature slope (both n and p)\n");
-    printf("\t-pslope <float p> set the curvature pslope (default=%2.1f)\n", pslope);
-    printf("\t-nslope <float n> set the curvature nslope (default=%2.1f)\n", nslope);
-    printf("\t-debug_voxel <int x y z> set voxel for debugging\n");
-    printf("\t-auto             automatically detect class statistics (default)\n");
-    printf("\t-noauto           don't automatically detect class statistics\n");
-    printf("\t-log              log to ./segment.dat\n");
-    printf("\t-keep             keep wm edits. maintains all values of 0 and 255\n");
-    printf("\t-ghi, -gray_hi <int h> set the gray matter high limit (default=%d)\n", gray_hi);
-    printf("\t-wlo, -wm_low  <int l> set the white matter low limit (default=%d)\n", wm_low);
-    printf("\t-whi, -wm_hi <int h>   set the white matter high limit (default=%d)\n", wm_hi);
-    printf("\t-nseg <int n>      thicken the n largest thin strands (default=%d)\n", nsegments);
-    printf("\t-thicken           toggle thickening step (default=ON)\n");
-    printf("\t-fillbg            toggle filling of the basal ganglia (default=OFF)\n");
-    printf("\t-fillv             toggle filling of the ventricles (default=OFF)\n");
-    printf("\t-b <float s>       set blur sigma (default=%2.2f)\n", blur_sigma);
-    printf("\t-n <int i>         set # iterations of border classification (default=%d)\n", niter);
-    printf("\t-t <int t>         set limit to thin strands in mm (default=%d)\n", thickness);
-    printf("\t-v                 verbose\n");
-    printf("\t-p <float p>       set % threshold (default=%2.2f)\n", pct);
-    printf("\t-x <filename>      extract options from filename\n");
-    printf("\t-w <int w>         set wsize (default=%d)\n", wsize);
-    printf("\t-u                 usage\n");
-    exit(code);
+	printf("usage: %s [input directory] [output directory]\n\n", Progname) ;
+	printf("\t-no1d              disable 1d normalization\n");
+	printf("\t-conform           interpolate and embed volume to be 256^3\n");
+	printf("\t-gentle            perform kinder gentler normalization\n");
+	printf("\t-f <path to file>  use control points file (usually control.dat)\n");
+	printf("\t-w <mri_vol c> <mri_vol b> write ctrl point(c) and bias field(b) volumes\n");
+	printf("\t-a <float a>       use control point with intensity a above target (default=%2.1f)\n", intensity_above);
+	printf("\t-b <float b>       use control point with intensity b below target (default=%2.1f)\n", intensity_below);
+	printf("\t-g <float g>       use max intensity/mm gradient g (default=%2.3f)\n", mni.max_gradient);
+	printf("\t-v                 verbose\n");
+	printf("\t-n <int n>         use n 3d normalization iterations (default=%d)\n", num_3d_iter);
+	printf("\t-u                 print usage\n");
+	exit(code);
 }
 
