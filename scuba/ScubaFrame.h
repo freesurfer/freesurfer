@@ -68,6 +68,8 @@ protected:
   View* GetViewAtColRow( int iCol, int iRow );
   void SetViewAtColRow( int iCol, int iRow, View* const iView );
 
+  void CaptureToFile ( std::string ifn );
+
   // View configuration and the number of rows we have, and for each
   // row, the numbe rof columns in that row.
   ViewConfiguration mViewConfiguration;

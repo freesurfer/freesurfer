@@ -2,6 +2,7 @@
 #include "PreferencesManager.h"
 extern "C" {
 #include "glut.h"
+#include "rgb_image.h"
 }
 #include "ScubaView.h"
 
@@ -55,6 +56,8 @@ ScubaFrame::ScubaFrame( ID iID )
 			 "Returns the ID of the tool for this frame." );
   commandMgr.AddCommand( *this, "CycleCurrentViewInFrame", 1, "frameID",
 			 "Selects the next view in a frame." );
+  commandMgr.AddCommand( *this, "CaptureFrameToFile", 2, "frameID fileName",
+			 "Make a screen capture of the frame." );
 
 }
 
@@ -511,6 +514,23 @@ ScubaFrame::DoListenToTclCommand( char* isCommand, int iArgc, char** iasArgv ) {
     }
   }
 
+  // CaptureFrameToFile <frameID> <fileName>
+  if( 0 == strcmp( isCommand, "CaptureFrameToFile" ) ) {
+    int frameID = strtol(iasArgv[1], (char**)NULL, 10);
+    if( ERANGE == errno ) {
+      sResult = "bad view ID";
+      return error;
+    }
+    
+    if( mID == frameID ) {
+
+      string fn( iasArgv[2] );
+      CaptureToFile( fn );
+    }
+  }
+
+
+
   return ok;
 }
 
@@ -856,3 +876,110 @@ ScubaFrame::FindViewAtWindowLoc( int iWindow[2], int* onCol, int* onRow ) {
     return NULL;
   }
 }
+
+void
+ScubaFrame::CaptureToFile ( string ifn ) {
+  
+  GLint rowlength, skiprows, skippixels, alignment;
+  GLboolean swapbytes, lsbfirst;
+  int nNumBytes = 0;
+  GLenum eGL;
+  RGB_IMAGE *image;
+  int y,size;
+  unsigned short *r,*g,*b;
+  unsigned short  *red = NULL;
+  unsigned short  *green = NULL;
+  unsigned short  *blue = NULL;
+  FILE *fp;
+  
+  size = mWidth * mHeight;
+  nNumBytes = sizeof( unsigned short ) * size;
+  
+  try { 
+
+    red  = (unsigned short*) malloc( nNumBytes );
+    if( NULL == red ) {
+      throw runtime_error( "Couldn't allocate red buffer." );
+    }
+    green = (unsigned short*) malloc( nNumBytes );
+    if( NULL == green ) {
+      throw runtime_error( "Couldn't allocate green buffer." );
+    }
+    blue  = (unsigned short*) malloc( nNumBytes );
+    if( NULL == blue ) {
+      throw runtime_error( "Couldn't allocate blue buffer ." );
+    }
+    
+    glReadBuffer( GL_FRONT );
+    
+    glGetBooleanv(GL_UNPACK_SWAP_BYTES, &swapbytes);
+    glGetBooleanv(GL_UNPACK_LSB_FIRST, &lsbfirst);
+    glGetIntegerv(GL_UNPACK_ROW_LENGTH, &rowlength);
+    glGetIntegerv(GL_UNPACK_SKIP_ROWS, &skiprows);
+    glGetIntegerv(GL_UNPACK_SKIP_PIXELS, &skippixels);
+    glGetIntegerv(GL_UNPACK_ALIGNMENT, &alignment);
+  
+    glPixelStorei(GL_UNPACK_SWAP_BYTES, GL_FALSE);
+    glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
+    glPixelStorei(GL_UNPACK_SKIP_ROWS, 0);
+    glPixelStorei(GL_UNPACK_SKIP_PIXELS, 0);
+    glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
+    
+    glReadPixels(0, 0, mWidth, mHeight, GL_RED,  
+		 GL_UNSIGNED_SHORT, (GLvoid *)red);
+    eGL = glGetError ();
+    if( GL_NO_ERROR != eGL ) {
+      throw runtime_error( "Error reading pixels" );
+    }
+    glReadPixels(0, 0, mWidth, mHeight, GL_GREEN,
+		 GL_UNSIGNED_SHORT, (GLvoid *)green);
+    eGL = glGetError ();
+    if( GL_NO_ERROR != eGL ) {
+      throw runtime_error( "Error reading pixels" );
+    }
+    glReadPixels(0, 0, mWidth, mHeight, GL_BLUE, 
+		 GL_UNSIGNED_SHORT, (GLvoid *)blue);
+    eGL = glGetError ();
+    if( GL_NO_ERROR != eGL ) {
+      throw runtime_error( "Error reading pixels" );
+    }
+    
+    glPixelStorei(GL_UNPACK_SWAP_BYTES, swapbytes);
+    glPixelStorei(GL_UNPACK_LSB_FIRST, lsbfirst);
+    glPixelStorei(GL_UNPACK_ROW_LENGTH, rowlength);
+    glPixelStorei(GL_UNPACK_SKIP_ROWS, skiprows);
+    glPixelStorei(GL_UNPACK_SKIP_PIXELS, skippixels);
+    glPixelStorei(GL_UNPACK_ALIGNMENT, alignment);
+
+    char fn[1000];
+    strcpy( fn, ifn.c_str() );
+    fp = fopen(fn,"w");
+    if (fp==NULL){
+      throw runtime_error( "Can't write file." );
+    }
+    fclose(fp);
+    image = iopen(fn,"w",UNCOMPRESSED(1), 3, mWidth, mHeight, 3);
+    for(y = 0 ; y < mHeight; y++) {
+      r = red + y * mWidth;
+      g = green + y * mWidth;
+      b = blue + y * mWidth;
+      putrow(image, r, y, 0);
+      putrow(image, g, y, 1);
+      putrow(image, b, y, 2);
+    }
+    iclose(image);
+  
+  }
+
+  catch(...) {
+  }
+
+  if( NULL != red ) 
+    free( red ); 
+  if( NULL != green ) 
+    free( green ); 
+  if( NULL != blue ) 
+    free( blue );
+}
+
+

@@ -12,7 +12,6 @@
 #include "VectorOps.h"
 #include "Utilities.h"
 
-
 using namespace std;
 
 int const ScubaView::kBytesPerPixel = 4;
@@ -937,6 +936,7 @@ ScubaView::DoListenToTclCommand( char* isCommand, int iArgc, char** iasArgv ) {
       sReturnValues = ssReturnValues.str();
     }
   }
+
 
   return ok;
 }

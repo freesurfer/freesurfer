@@ -10,7 +10,7 @@ if { $err } {
     load [file dirname [info script]]/libscuba[info sharedlibextension] scuba
 }
 
-DebugOutput "\$Id: scuba.tcl,v 1.40 2004/07/23 00:41:53 kteich Exp $"
+DebugOutput "\$Id: scuba.tcl,v 1.41 2004/07/23 02:55:23 kteich Exp $"
 
 # gTool
 #   current - current selected tool (nav,)
@@ -424,6 +424,8 @@ proc MakeMenuBar { ifwTop } {
 	{command "Load Volume..." { DoLoadVolumeDlog } }
 	{command "Load Label..." { DoLoadLabelDlog } }
 	{command "Load Transform..." { DoLoadTransformDlog } }
+	{separator}
+	{command "Save RGB Capture..." { DoSaveRGBDlog } }
 	{separator}
 	{command "Save Label..." { DoSaveLabelDlog } }
 	{command "Export ROIs as Segmenation..." { DoExportROIsDlog } }
@@ -3455,6 +3457,21 @@ proc DoLoadTransformDlog {} {
 	-shortcuts $glShortcutDirs \
 	-okCmd { 
 	    LoadTransform %s1
+	}
+}
+
+proc DoSaveRGBDlog {} {
+    dputs "DoSaveRGBDlog  "
+
+    global glShortcutDirs
+
+    tkuDoFileDlog -title "Save RGB Capture" \
+	-prompt1 "Save RGB: " \
+	-defaultdir1 [GetDefaultFileLocation RGB] \
+	-defaultvalue1 [GetDefaultFileLocation RGB] \
+	-shortcuts $glShortcutDirs \
+	-okCmd { 
+	    CaptureFrameToFile [GetMainFrameID] %s1
 	}
 }
 
