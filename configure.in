@@ -43,7 +43,7 @@ AC_C_BIGENDIAN_CROSS
 echo "byte order is " $BYTEORDER
 AC_SUBST(BYTEORDER)
 
-AC_MSG_NOTICE(Setitng OS from target ...)
+AC_MSG_NOTICE(Setting OS from target ...)
 case "${target}" in
  i*86-*-linux-gnu*)
  OS=Linux
@@ -279,7 +279,8 @@ AC_PATH_X
 ##### compiles <X11/Intrinsic.h> without the need for X_CFLAGS
 ##### However, GL/gl.h in /usr/X11R6/include/GL/gl.h is not automaticlaly found
 if test -z "$x_includes"; then
-  AC_MSG_ERROR(x_includes not set. Specify using --x-includes=)
+  x_includes=/usr/X11R6/include
+  AC_MSG_NOTICE(x_includes set to /usr/X11R6/include.  If not correct, specify using --x-includes=)
 fi
 
 ACX_PTHREAD
