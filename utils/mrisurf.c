@@ -30,6 +30,7 @@
 #include "selxavgio.h"
 #include "machine.h"
 #include "tags.h"
+#include "talairachex.h"
 /*---------------------------- STRUCTURES -------------------------*/
 
 /*---------------------------- CONSTANTS -------------------------*/
@@ -23354,85 +23355,168 @@ MRIStranslate(MRI_SURFACE *mris, float dx, float dy, float dz)
            before applying the linear transform
 ------------------------------------------------------*/
 int
-MRIStransform(MRI_SURFACE *mris, MRI *mri, LTA *lta)
+MRIStransform(MRI_SURFACE *mris, MRI *mri, LTA *lta, MRI *mri_dst)
 {
   int    vno ;
   VERTEX *v ;
-  Real   xv, yv, zv, xw, yw, zw ;
-  VECTOR *v_X, *v_Y ;
-  int i;
+  Real   xw, yw, zw ;
   MATRIX *m;
-  MRI *dst;
+  // for ras-to-ras transform
+  MATRIX *RASFromSurfaceRAS = 0;
+  MATRIX *surfaceRASFromRAS = 0;
+  // for voxel-to-voxel transform
+  MATRIX *voxelFromSurfaceRAS = 0;
+  MATRIX *surfaceRASFromVoxel = 0;
+  //
+  MATRIX *surfaceRASFromSurfaceRAS = 0;
+  LT *lt = 0;
+  int srcPresent = 1;
+  int dstPresent = 1;
+  int error = 0;
+  char errMsg[256];
+  // depend on the type of transform you have to handle differently
+  //
+  //       orig              ------>      RAS   c_(ras) != 0
+  //        |                              |
+  //        |                              | identity
+  //        V                              V 
+  //    conformed vol        ------>      RAS   c_(ras) != 0
+  //        |                              |
+  //        | identity                     | surfaceRASFromRAS
+  //        V                              V
+  //    conformed vol        ------>   surfaceRAS  c_(ras) = 0
+  //
+  // given a volume transform you have to create a surfaceRAS transform
+  //
+  // Note that vertices are given by surfaceRAS coordinates
+  //
+  // RAS-to-RAS transform
+  //                  orig                 dst
+  //    surfaceRAS--->RAS --(ras-to-ras)-->RAS -->surfaceRAS
+  //
+  // VOX-to-Vox transform
+  //
+  //    surfaceRAS--->Vox---(vox-to-vox)-->Vox -->surfaceRAS
+  //
+  //
+  if (lta->num_xforms > 1)
+    ErrorExit(ERROR_BADPARM, "we cannot handle multiple transforms\n");
+  if (lta->num_xforms == 0)
+    ErrorExit(ERROR_BADPARM, "transform does not have transform ;-) \n");
 
-  v_X  = VectorAlloc(4, MATRIX_REAL) ;  /* input (src) coordinates */
-  v_Y  = VectorAlloc(4, MATRIX_REAL) ;  /* transformed (dst) coordinates */
+  // if volumes are not given, then try to get them from transform
+  lt = &lta->xforms[0];
 
-  if (mri)
+  // if mri is given, then override the one stored in the transform
+  if (!mri && lt->src.valid == 1)
   {
-    v_X->rptr[4][1] = 1.0f / mri->thick ;
+    srcPresent = 0;
+    fprintf(stderr, "INFO:try to get src info from transform.\n");
+    mri = MRIallocHeader(lt->src.width, lt->src.height, lt->src.depth, MRI_UCHAR);
+    mri->x_r = lt->src.x_r; mri->y_r = lt->src.y_r; mri->z_r = lt->src.z_r; mri->c_r = lt->src.c_r;
+    mri->x_a = lt->src.x_a; mri->y_a = lt->src.y_a; mri->z_a = lt->src.z_a; mri->c_a = lt->src.c_a;
+    mri->x_s = lt->src.x_s; mri->y_s = lt->src.y_s; mri->z_s = lt->src.z_s; mri->c_s = lt->src.c_s;
+    mri->xsize = lt->src.xsize; mri->ysize = lt->src.ysize; mri->zsize = lt->src.zsize;
+    mri->ras_good_flag = 1;
+  }
+  else if (!mri)
+  {
+    error = 1;
+    strcpy(errMsg, "When mri == NULL, the transform must have the valid src info.\n");
+    goto mristransform_cleanup;
+  }
+  // mri_dst side
+  // Note: if mri_dst is given, override the one stored in the transform
+  if (!mri_dst && lt->dst.valid == 1)
+  {
+    dstPresent = 0;
+    fprintf(stderr, "INFO:try to get dst info from transform.\n");
+    lt = &lta->xforms[0];
+    mri_dst = MRIallocHeader(lt->dst.width, lt->dst.height, lt->dst.depth, MRI_UCHAR);
+    mri_dst->x_r = lt->dst.x_r; mri_dst->y_r = lt->dst.y_r; mri_dst->z_r = lt->dst.z_r; 
+    mri_dst->c_r = lt->dst.c_r;
+    mri_dst->x_a = lt->dst.x_a; mri_dst->y_a = lt->dst.y_a; mri_dst->z_a = lt->dst.z_a; 
+    mri_dst->c_a = lt->dst.c_a;
+    mri_dst->x_s = lt->dst.x_s; mri_dst->y_s = lt->dst.y_s; mri_dst->z_s = lt->dst.z_s; 
+    mri_dst->c_s = lt->dst.c_s;
+    mri_dst->xsize = lt->dst.xsize; mri_dst->ysize = lt->dst.ysize; mri_dst->zsize = lt->dst.zsize;
+    mri_dst->ras_good_flag = 1;
+  }
+  else if (!mri_dst)
+  {
+    error = 1;
+    strcpy(errMsg, "INFO:When mri_dst == NULL, the transform must have the valid dst info.\n");
+    strcpy(errMsg, "INFO:If your target is average_305 and the transform is RAS-to-RAS,\n");
+    strcpy(errMsg, "INFO:then you can set environmental variable USE_AVERAGE305 to be true\n");
+    strcpy(errMsg, "INFO:and try again.\n");
+    goto mristransform_cleanup;
+  }
+  /////////////////////////////////////////////////////////////////////////////
+  // Now we can calculate
+  if (lta->type == LINEAR_RAS_TO_RAS)
+  {
+    RASFromSurfaceRAS = RASFromSurfaceRAS_(mri); // needs only c_(ras) info
+    surfaceRASFromRAS = surfaceRASFromRAS_(mri_dst);  // need only c_(ras) info
+    m = MatrixMultiply(lta->xforms[0].m_L, RASFromSurfaceRAS, NULL);
+    surfaceRASFromSurfaceRAS = MatrixMultiply(surfaceRASFromRAS, m, NULL);
+  }
+  else if (lta->type == LINEAR_VOX_TO_VOX)
+  {
+    if (mri->width != mri_dst->width 
+	|| mri->height != mri_dst->height
+	|| mri->depth != mri_dst->depth)
+    {
+      fprintf(stderr, "WARNING:********************************************************\n");
+      fprintf(stderr, "WARNING:voxel-to-voxel transform must have the same volume sizes.\n");
+      fprintf(stderr, "WARNING:You gave src (%d, %dm, %d) vs. dst (%d, %d, %d).\n",
+	      mri->width, mri->height, mri->depth, mri_dst->width, mri_dst->height, mri_dst->depth);
+      fprintf(stderr, "WARNING:The result of this transform is most likely wrong.\n");
+      fprintf(stderr, "WARNING:********************************************************\n");
+    }
+    voxelFromSurfaceRAS = voxelFromSurfaceRAS_(mri);
+    surfaceRASFromVoxel = surfaceRASFromVoxel_(mri_dst);
+    m = MatrixMultiply(lta->xforms[0].m_L, voxelFromSurfaceRAS, NULL);
+    surfaceRASFromSurfaceRAS = MatrixMultiply(surfaceRASFromVoxel, m, NULL);
+  }
+  // now apply the transform
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    if (v->ripflag)
+      continue ;
+    // transform vertex point to actual voxel point
+    TransformWithMatrix(surfaceRASFromSurfaceRAS, v->x, v->y, v->z, &xw, &yw, &zw);
+    v->x = xw ; v->y = yw ; v->z = zw ;
+  }
+  MRIfree(&mri_dst);
+  mrisComputeSurfaceDimensions(mris) ;
 
-    if (lta->type == LINEAR_RAS_TO_RAS)
-    {
-      dst = MRIcopy(mri, NULL);// allocated
-      // must change to LINEAR_VOX_TO_VOX
-      for (i=0; i < lta->num_xforms; ++i)
-      {
-	if (lta->xforms[i].dst.valid==1)
-	{
-	  // modify so that dst will have the transform target c_(r,a,s) value
-	  printf("INFO: modify the target c_(r,a,s) to (%f, %f, %f)\n",
-		 lta->xforms[i].dst.c_r, lta->xforms[i].dst.c_a, lta->xforms[i].dst.c_a);
-	  dst->c_r = lta->xforms[i].dst.c_r;
-	  dst->c_a = lta->xforms[i].dst.c_a;
-	  dst->c_s = lta->xforms[i].dst.c_s;
-	}
-	else
-	  fprintf(stderr, "WARNING: could not get the transform target info. Position may be shifted.\n");
-	m = MRIrasXformToVoxelXform(mri, dst, lta->xforms[i].m_L, NULL); // allocated
-	MatrixFree(&(lta->xforms[i].m_L));
-	lta->xforms[i].m_L = m; // replace the matrix
-      }				   
-      lta->type = LINEAR_VOX_TO_VOX;
-      MRIfree(&dst);
-    }
-    for (vno = 0 ; vno < mris->nvertices ; vno++)
-    {
-      v = &mris->vertices[vno] ;
-      if (v->ripflag)
-        continue ;
-      // transform vertex point to actual voxel point
-      MRISvertexToVoxel(v, mri, &xv, &yv, &zv) ;
-      V3_X(v_X) = xv ; V3_Y(v_X) = yv ; V3_Z(v_X) = zv ;
-      // transform vox-to-vox
-      LTAtransformPoint(lta, v_X, v_Y) ;
-      xv = V3_X(v_Y) ; yv = V3_Y(v_Y) ; zv = V3_Z(v_Y) ;
-      //MRIvoxelToWorld(mri, xv, yv, zv, &xw, &yw, &zw) ;
-      MRIvoxelToSurfaceRAS(mri, xv, yv, zv, &xw, &yw, &zw); // convert back to surface
-      v->x = xw ; v->y = yw ; v->z = zw ;
-    }
+ mristransform_cleanup:
+  // free memory //////////////////////////////
+  if (RASFromSurfaceRAS)
+    MatrixFree(&RASFromSurfaceRAS);
+  if (surfaceRASFromRAS)
+    MatrixFree(&surfaceRASFromRAS);
+  if (m)
+    MatrixFree(&m);
+  if (voxelFromSurfaceRAS)
+    MatrixFree(&voxelFromSurfaceRAS);
+  if (surfaceRASFromVoxel)
+    MatrixFree(&surfaceRASFromVoxel);
+  if (surfaceRASFromSurfaceRAS)
+    MatrixFree(&surfaceRASFromSurfaceRAS);
+  if (!srcPresent && mri)
+    MRIfree(&mri);
+  if (!dstPresent && mri_dst)
+    MRIfree(&mri_dst);
+
+  if (error)
+  {
+    ErrorExit(ERROR_BADPARM, errMsg);
+    return -1; // just to satisfy compiler
   }
   else
-  {
-    v_X->rptr[4][1] = 1.0f ;
-
-    if (lta->type == LINEAR_VOX_TO_VOX)
-    {
-      // must modify to LINEAR_RAS_TO_RAS
-      fprintf(stderr, "WARNING: Using VOX_TO_VOX transform.  Must use RAS_TO_RAS transform\n");
-    }
-    for (vno = 0 ; vno < mris->nvertices ; vno++)
-    {
-      v = &mris->vertices[vno] ;
-      if (v->ripflag)
-        continue ;
-      V3_X(v_X) = v->x ; V3_Y(v_X) = v->y ; V3_Z(v_X) = v->z ;
-      LTAtransformPoint(lta, v_X, v_Y) ;
-      v->x = V3_X(v_Y) ; v->y = V3_Y(v_Y) ; v->z = V3_Z(v_Y) ;
-    }
-  }
-  VectorFree(&v_X) ; VectorFree(&v_Y) ; 
-  mrisComputeSurfaceDimensions(mris) ;
-  return(NO_ERROR) ;
+    return(NO_ERROR) ;
 }
 /*-----------------------------------------------------
         Parameters:
