@@ -3,8 +3,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2003/11/26 17:36:02 $
-// Revision       : $Revision: 1.92 $
+// Revision Date  : $Date: 2003/12/01 19:22:27 $
+// Revision       : $Revision: 1.93 $
 
 #include "tkmDisplayArea.h"
 #include "tkmMeditWindow.h"
@@ -489,28 +489,39 @@ DspA_tErr DspA_SetVolume ( tkmDisplayAreaRef this,
 
   /* Calculate the min and max volume index in screen coords. This is
      the screen space that corresponds to volume voxels. Coordinates
-     outside of thie range are invalid. Used in VerifyVolumeVoxel. */
-  this->mnMinVolumeIndexX = floor((float)inSizeX/2.0) - 
-    floor((float)this->mnVolumeDimensionX/2.0);
-  this->mnMinVolumeIndexY = floor((float)inSizeY/2.0) - 
-    floor((float)this->mnVolumeDimensionY/2.0);
+     outside of thie range are invalid. Used in VerifyVolumeVoxel. Use
+     min/max to get a minimum range of 0-256, this is because some
+     volumes have weird spacing issues or something. I don't know. */
+  this->mnMinVolumeIndexX = MIN( 0, 
+				 floor((float)inSizeX/2.0) - 
+				 floor((float)this->mnVolumeDimensionX/2.0) );
+  this->mnMinVolumeIndexY = MIN( 0, 
+				 floor((float)inSizeY/2.0) - 
+				 floor((float)this->mnVolumeDimensionY/2.0) );
   this->mnMinVolumeIndexZ = floor((float)inSizeZ/2.0) - 
     floor((float)this->mnVolumeDimensionZ/2.0);
 
-  this->mnMaxVolumeIndexX = ceil((float)inSizeX/2.0) +
-    ceil((float)this->mnVolumeDimensionX/2.0);
-  this->mnMaxVolumeIndexY = ceil((float)inSizeY/2.0) + 
-    ceil((float)this->mnVolumeDimensionY/2.0);
+  this->mnMaxVolumeIndexX = MAX( inSizeX,
+				 ceil((float)inSizeX/2.0) +
+				 ceil((float)this->mnVolumeDimensionX/2.0) );
+  this->mnMaxVolumeIndexY = MAX( inSizeY,
+				 ceil((float)inSizeY/2.0) + 
+				 ceil((float)this->mnVolumeDimensionY/2.0) );
   this->mnMaxVolumeIndexZ = ceil((float)inSizeZ/2.0) + 
     ceil((float)this->mnVolumeDimensionZ/2.0);
 
   /* This ugly little hack is for single slice images that show up in
      slice 127 but should probably go into slice 128 as the calculated
-     bounds suggest. Ah well.. */
+     bounds suggest. Ah well. If it isn't one of these images, calc
+     the min/max as usual. */
   if( 128 == this->mnMinVolumeIndexZ &&
       129 == this->mnMaxVolumeIndexZ ) {
-    this->mnMinVolumeIndexZ = 127;
+    this->mnMinVolumeIndexZ = 127; 
+  } else {
+    this->mnMinVolumeIndexZ = MIN( 0, this->mnMinVolumeIndexZ );
+    this->mnMaxVolumeIndexZ = MAX( inSizeZ, this->mnMaxVolumeIndexZ );
   }
+
 
   /* if we alreayd have a frame buffer, delete it */
   if( NULL == this->mpFrameBuffer ) {
