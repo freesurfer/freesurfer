@@ -3,8 +3,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2004/01/09 23:23:09 $
-// Revision       : $Revision: 1.82 $
+// Revision Date  : $Date: 2004/01/12 16:46:46 $
+// Revision       : $Revision: 1.83 $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -28,9 +28,9 @@ int Ggca_label = -1 ;
 int Ggca_x = -1 ;
 int Ggca_y = -1 ;
 int Ggca_z = -1 ;
-int Gxp = -1;
-int Gyp = -1;
-int Gzp = -1;
+int Gxp = 64;
+int Gyp = 43;
+int Gzp = 64;
 
 /* this is the hack section */
 double PRIOR_FACTOR = 0.1 ;
@@ -361,7 +361,12 @@ gcaNodeToPrior(GCA *gca, int xn, int yn, int zn, int *pxp, int *pyp, int *pzp)
   MATRIX *priorFromRAS = extract_r_to_i(mri_prior__);
   MATRIX *nodeToPrior = MatrixMultiply(priorFromRAS, rasFromNode, NULL);
   TransformWithMatrix(nodeToPrior, xn, yn, zn, &xp, &yp, &zp);
+
   // bounds check
+  // xn, yn, zn are double.  we use voxel center as integer
+  ixp = (int) floor(xp+.5);
+  iyp = (int) floor(yp+.5);
+  izp = (int) floor(zp+.5);
   if (ixp < 0) 
     errCode = ERROR_BADPARM;
   else if (iyp < 0) 
@@ -396,6 +401,10 @@ GCApriorToNode(GCA *gca, int xp, int yp, int zp, int *pxn, int *pyn, int *pzn)
   MATRIX *priorToNode = MatrixMultiply(nodeFromRAS, rasFromPrior, NULL);
   TransformWithMatrix(priorToNode, xp, yp, zp, &xn, &yn, &zn);
   // bounds check
+  // xn, yn, zn are double.  we use voxel center as integer
+  ixn = (int) floor(xn+.5);
+  iyn = (int) floor(yn+.5);
+  izn = (int) floor(zn+.5);
   if (ixn < 0) 
     errCode = ERROR_BADPARM;
   else if (iyn < 0) 
@@ -1153,6 +1162,7 @@ GCAtrainCovariances(GCA *gca, MRI *mri_inputs, MRI *mri_labels, TRANSFORM *trans
   return(NO_ERROR) ;
 }
 #include <unistd.h>
+
 int
 GCAtrain(GCA *gca, MRI *mri_inputs, MRI *mri_labels, TRANSFORM *transform, GCA *gca_prune,
          int noint)
@@ -1206,7 +1216,7 @@ GCAtrain(GCA *gca, MRI *mri_inputs, MRI *mri_labels, TRANSFORM *transform, GCA *
           DiagBreak() ;
 
 	///////////////////////////////////////////////////
-
+	
 	// get the segmented voxel label
         label = MRIvox(mri_labels, x, y, z) ;
 #if 0  
@@ -1220,12 +1230,27 @@ GCAtrain(GCA *gca, MRI *mri_inputs, MRI *mri_labels, TRANSFORM *transform, GCA *
         if (!GCAsourceVoxelToNode(gca, mri_inputs, transform, x, y, z, &xn, &yn, &zn))
 	  if (!GCAsourceVoxelToPrior(gca, mri_inputs, transform, x, y, z, &xp, &yp, &zp))
 	  {
+	    // debugging code /////////////////////////////////////////////////////////////
 	    if (xp == Gxp && yp == Gyp && zp == Gzp)
 	    {
-	      printf("src (%d, %d, %d), prior (%d, %d, %d), node (%d, %d, %d), label = %d\n",
-		     x,y,z, xp, yp, zp, xn, yn, zn, label);
+	      GC1D *gc ;
+	      int  i ;
+	      // using node to find the label
+	      gc = GCAfindGC(gca, xn, yn, zn, label) ;
+	      if (gc)
+	      {
+		gcan = &gca->nodes[xn][yn][zn];
+		printf("\npos (%d, %d, %d) label=%d, Node (%d, %d, %d) labels:", x, y, z, label, xn, yn, zn); 
+		for (i=0; i < gcan->nlabels; ++i)
+		  printf("%d ", gcan->labels[i]);
+                printf("\n");
+		gcap = &gca->priors[xp][yp][zp];
+		printf("pos (%d, %d, %d) label=%d, Prior (%d, %d, %d) labels:", x, y, z, label, xp, yp, zp); 
+		for (i=0; i < gcap->nlabels; ++i)
+		  printf("%d ", gcap->labels[i]);
+                printf("\n");
+	      }	
 	    }
-
 	    // got node point (xn, yn. zn) and prior point (xp, yp, zp) for
 	    // this label volume point (x, y, z)
 	    // update the value at this prior point
@@ -6054,6 +6079,7 @@ GCAbuildMostLikelyVolume(GCA *gca, MRI *mri)
     ErrorExit(ERROR_BADPARM, "GCAbuildMostLikelyVolume: mri->frames (%d) does not match gca->ninputs (%d)",
 	      mri->nframes, gca->ninputs) ;
 
+  // mri is prior if mri = NULL
   width = mri->width ; depth = mri->depth ; height = mri->height ;  
   for (z = 0 ; z < depth ; z++)
   {
@@ -11781,37 +11807,37 @@ GCArelabelNonbrain(GCA *gca, MRI *mri_inputs, MRI *mri_src, MRI *mri_dst, TRANSF
 int
 GCAreplaceLabels(GCA *gca, int in_label, int out_label)
 {
-	int       x, y, z, n ;
-	GCA_NODE  *gcan ;
-	GCA_PRIOR *gcap ;
-
-	for (x = 0 ; x < gca->node_width ; x++)
-	{
-		for (y = 0 ; y < gca->node_height ; y++)
-		{
-			for (z = 0 ; z < gca->node_depth ; z++)
-			{
-				gcan = &gca->nodes[x][y][z] ;
-				for (n = 0 ; n < gcan->nlabels ; n++)
-					if (gcan->labels[n] == in_label)
-						gcan->labels[n] = out_label ;
-			}
-		}
-	}
-
-	for (x = 0 ; x < gca->prior_width ; x++)
-	{
-		for (y = 0 ; y < gca->prior_height ; y++)
-		{
-			for (z = 0 ; z < gca->prior_depth ; z++)
-			{
-				gcap = &gca->priors[x][y][z] ;
-				for (n = 0 ; n < gcap->nlabels ; n++)
-					if (gcap->labels[n] == in_label)
-						gcap->labels[n] = out_label ;
-			}
-		}
-	}
-
-	return(NO_ERROR) ;
+  int       x, y, z, n ;
+  GCA_NODE  *gcan ;
+  GCA_PRIOR *gcap ;
+  
+  for (x = 0 ; x < gca->node_width ; x++)
+  {
+    for (y = 0 ; y < gca->node_height ; y++)
+    {
+      for (z = 0 ; z < gca->node_depth ; z++)
+      {
+	gcan = &gca->nodes[x][y][z] ;
+	for (n = 0 ; n < gcan->nlabels ; n++)
+	  if (gcan->labels[n] == in_label)
+	    gcan->labels[n] = out_label ;
+      }
+    }
+  }
+  
+  for (x = 0 ; x < gca->prior_width ; x++)
+  {
+    for (y = 0 ; y < gca->prior_height ; y++)
+    {
+      for (z = 0 ; z < gca->prior_depth ; z++)
+      {
+	gcap = &gca->priors[x][y][z] ;
+	for (n = 0 ; n < gcap->nlabels ; n++)
+	  if (gcap->labels[n] == in_label)
+	    gcap->labels[n] = out_label ;
+      }
+    }
+  }
+  
+  return(NO_ERROR) ;
 }
