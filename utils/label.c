@@ -13,6 +13,7 @@
 #include "mrisurf.h"
 #include "label.h"
 #include "mri.h"
+#include "mrishash.h"
 
 static LABEL_VERTEX *labelFindVertexNumber(LABEL *area, int vno) ;
 static Transform *labelLoadTransform(char *subject_name, char *sdir,
@@ -367,6 +368,9 @@ LabelToFlat(LABEL *area, MRI_SURFACE *mris)
 {
   int     n, vno ;
   VERTEX  *v ;
+	MRIS_HASH_TABLE *mht ;
+
+	mht = MHTfillVertexTable(mris, NULL, CURRENT_VERTICES) ;
 
   for (n = 0 ; n < area->n_points ; n++)
   {
@@ -380,15 +384,24 @@ LabelToFlat(LABEL *area, MRI_SURFACE *mris)
     }
     else    /* in canonical coordinate system - find closest vertex */
     {
+#if 0
       vno = 
         MRISfindClosestVertex(mris, area->lv[n].x,area->lv[n].y,area->lv[n].z);
-      v = &mris->vertices[vno] ;
-      area->lv[n].vno = vno ;
+#endif
+      v = 
+        MHTfindClosestVertexInTable(mht, mris, area->lv[n].x,area->lv[n].y,area->lv[n].z);
+			if (v == NULL)
+				continue ;
+			vno = v - mris->vertices ; ;
+			if (vno == Gdiag_no)
+				DiagBreak() ;
+			area->lv[n].vno = vno ;
       area->lv[n].x = v->x ;
       area->lv[n].y = v->y ;
       area->lv[n].z = v->z ;
     }
   }
+	MHTfree(&mht) ;
   return(NO_ERROR) ;
 }
 /*-----------------------------------------------------
