@@ -19,7 +19,7 @@ function [y,u,s,v] = fast_spatcornoise(Nf,Nv,pvs,v)
 % y is rescaled globally so that the variance over all elements
 % is 1.
 %
-% $Id: fast_spatcornoise.m,v 1.1 2004/08/18 20:47:57 greve Exp $
+% $Id: fast_spatcornoise.m,v 1.2 2004/08/19 00:54:05 greve Exp $
 %
 
 if(nargin < 2 | nargin > 4)
@@ -39,8 +39,10 @@ pvs = sort(pvs);
 pvs = flipud(pvs); % largest first
 
 ydim = length(find(pvs>0));
-s = diag(pvs);
-s = s(1:ydim,1:ydim);
+ydim = min(ydim,Nf);
+ydim = min(ydim,Nv);
+
+s = diag(pvs(1:ydim));
 
 [u blah blah] = fast_svd(randn(Nf,ydim));
 if(~exist('v','var')) 
