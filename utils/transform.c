@@ -163,13 +163,7 @@ LTAwrite(LTA *lta, char *fname)
   fclose(fp) ;
   return(NO_ERROR) ;
 }
-/*-----------------------------------------------------
-        Parameters:
-
-        Returns value:
-
-        Description
-------------------------------------------------------*/
+/*-----------------------------------------------------*/
 LTA *
 LTAread(char *fname)
 {
@@ -177,13 +171,12 @@ LTAread(char *fname)
   LTA       *lta ;
   MATRIX    *V, *W, *m_tmp ;
 
-  type = TransformFileNameType(fname) ;
+  type = TransformFileNameType(fname);
   switch (type)
   {
-	case REGISTER_DAT:
-		lta = ltaReadRegisterDat(fname) ;
-    if (!lta)
-      return(NULL) ;
+  case REGISTER_DAT:
+    lta = ltaReadRegisterDat(fname) ;
+    if (!lta) return(NULL) ;
     V = MatrixAlloc(4, 4, MATRIX_REAL) ;  /* world to voxel transform */
     W = MatrixAlloc(4, 4, MATRIX_REAL) ;  /* voxel to world transform */
     *MATRIX_RELT(V, 1, 1) = -1 ; *MATRIX_RELT(V, 1, 4) = 128 ;
@@ -686,17 +679,8 @@ LTAtransformPointAndGetWtotal(LTA *lta, VECTOR *v_X, VECTOR *v_Y)
   MatrixMultiply(m_L, v_X, v_Y) ;
   return(wtotal) ;
 }
-/*-----------------------------------------------------
-        Parameters:
-
-        Returns value:
-
-        Description
-         Same as LTAtransformPoint but also return weight normalization
-         factor.
-------------------------------------------------------*/
-int
-TransformFileNameType(char *fname)
+/*-----------------------------------------------------*/
+int TransformFileNameType(char *fname)
 {
   int file_type = TRANSFORM_ARRAY_TYPE ;
   char *dot, buf[500], *number ;
@@ -704,13 +688,11 @@ TransformFileNameType(char *fname)
   strcpy(buf, fname) ;
   dot = strrchr(buf, '@') ;
   number = strchr(buf, '#') ;
-  if (number)
-    *number = 0 ;  /* don't consider : part of extension */
+  if(number)  *number = 0 ;  /* don't consider : part of extension */
 
-  if (!dot)
-    dot = strrchr(buf, '.') ;
+  if(!dot)   dot = strrchr(buf, '.') ;
 
-  if (dot)
+  if(dot)
   {
     dot++ ;
     StrUpper(buf) ;
@@ -1007,14 +989,15 @@ int FixMNITal(float  xmni, float  ymni, float  zmni,
   was computed with the orig-volume native vox2ras transform (or any
   volume with the same geometry). The XFM maps from native orig RAS to
   a native target RAS. Note: this has no effect when the orig volume
-  has c_ras = 0. If XFM is empty, then the talairach.xfm is read from
-  the subject's directory.  
+  has c_ras = 0. If XFM is empty, then xfmname is read from the
+  subject's transforms directory.  If xfmname is empty, then
+  talairach.xfm is used.  
   Note: uses LTAvoxelTransformToCoronalRasTransform(). 
   -----------------------------------------------------------------*/
-MATRIX *DevolveXFM(char *subjid, MATRIX *XFM)
+MATRIX *DevolveXFM(char *subjid, MATRIX *XFM, char *xfmname)
 {
   MATRIX *Torig_tkreg, *invTorig_tkreg, *Torig_native, *Mfix;
-  char origdir[2000], xfmpath[2000], *sd;
+  char dirname[2000], xfmpath[2000], *sd;
   MRI *mriorig;
   FILE *fp;
   LTA    *lta;
@@ -1024,28 +1007,43 @@ MATRIX *DevolveXFM(char *subjid, MATRIX *XFM)
     printf("ERROR: SUBJECTS_DIR not defined\n");
     return(NULL);
   }
-  sprintf(origdir,"%s/%s/mri/orig",sd,subjid);
-  mriorig = MRIreadHeader(origdir,MRI_CORONAL_SLICE_DIRECTORY);
-  if(mriorig == NULL){
-    printf("ERROR: could not read header for %s\n",origdir);
+
+  /* Check that the subject exists */
+  sprintf(dirname,"%s/%s",sd,subjid);
+  if(!fio_IsDirectory(dirname)){
+    printf("ERROR: cannot find subject %s in %s\n",subjid,sd);
     return(NULL);
   }
+
+  /* Load the orig header for the subject */
+  sprintf(dirname,"%s/%s/mri/orig",sd,subjid);
+  mriorig = MRIreadHeader(dirname,MRI_CORONAL_SLICE_DIRECTORY);
+  if(mriorig == NULL){
+    printf("ERROR: could not read header for %s\n",dirname);
+    return(NULL);
+  }
+
   if(XFM==NULL){
     /* Read in the talairach.xfm matrix */
-    sprintf(xfmpath,"%s/%s/mri/transforms/talairach.xfm",sd,subjid);
+    if(xfmname == NULL) xfmname = "talairach.xfm";
+    sprintf(xfmpath,"%s/%s/mri/transforms/%s",sd,subjid,xfmname);
     fp = fopen(xfmpath,"r");
     if(fp == NULL){
       printf("ERROR: could not open %s for reading \n",xfmpath);
       return(NULL);
     }
     lta = LTAread(xfmpath);
+    if(lta == NULL){
+      printf("ERROR: reading %s\n",xfmpath);
+      return(NULL);
+    }
     if(lta->type == LINEAR_VOX_TO_VOX)
       LTAvoxelTransformToCoronalRasTransform(lta);
-    XFM = lta->xforms[0].m_L;
+    XFM = MatrixCopy(lta->xforms[0].m_L,NULL);
     LTAfree(&lta);
   }
 
-  /* Mfig = inv(Torig_tkreg)*Torig_native */
+  /* Mfix = inv(Torig_tkreg)*Torig_native */
   /* X2 = Mfix*X */
   Torig_tkreg  = MRIxfmCRS2XYZtkreg(mriorig);
   Torig_native = MRIxfmCRS2XYZ(mriorig,0);
