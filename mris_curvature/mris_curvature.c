@@ -13,7 +13,7 @@
 #include "mri.h"
 #include "macros.h"
 
-static char vcid[] = "$Id: mris_curvature.c,v 1.15 1998/11/16 21:54:27 fischl Exp $";
+static char vcid[] = "$Id: mris_curvature.c,v 1.16 2001/04/03 16:33:01 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -48,7 +48,8 @@ static int nbrs_per_distance = 0 ;
 int
 main(int argc, char *argv[])
 {
-  char         **av, *in_fname,fname[200],hemi[10], path[200], name[200],*cp ;
+  char         **av, *in_fname,fname[STRLEN],hemi[10], path[STRLEN], 
+               name[STRLEN],*cp ;
   int          ac, nargs, nhandles ;
   MRI_SURFACE  *mris ;
   double       ici, fi, var ;
