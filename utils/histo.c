@@ -81,6 +81,10 @@ HISTOalloc(int nbins)
   if (!histo)
     ErrorExit(ERROR_NO_MEMORY, "HISTOalloc(%d): allocation failed", nbins) ;
 
+  histo->bins = (float *)calloc(nbins, sizeof(float)) ;
+  histo->counts = (float *)calloc(nbins, sizeof(float)) ;
+  if (!histo->counts || !histo->bins)
+    ErrorExit(ERROR_NOMEMORY, "HISTOalloc(%d): could not allocate histogram",nbins) ;
   histo->nbins = nbins ;
   return(histo) ;
 }
@@ -127,8 +131,8 @@ HISTOcopy(HISTOGRAM *histo_src, HISTOGRAM *histo_dst)
   if (!histo_dst)
     histo_dst = HISTOalloc(histo_src->nbins) ;
   histo_dst->nbins = histo_src->nbins ;
-  memcpy(histo_dst->counts, histo_src->counts, sizeof(histo_src->counts)) ;
-  memcpy(histo_dst->bins, histo_src->bins, sizeof(histo_src->bins)) ;
+  memcpy(histo_dst->counts, histo_src->counts, sizeof(histo_src->counts)*histo_src->nbins) ;
+  memcpy(histo_dst->bins, histo_src->bins, sizeof(histo_src->bins)*histo_src->nbins) ;
   return(histo_dst) ;
 }
 /*-----------------------------------------------------
@@ -481,7 +485,7 @@ HISTOclearBins(HISTOGRAM *histo_src, HISTOGRAM *histo_dst, int b0, int b1)
 
         Description
 ------------------------------------------------------*/
-#define MAX_LEN 9
+#define MAX_LEN 2000
 HISTOGRAM *
 HISTOsmooth(HISTOGRAM *histo_src, HISTOGRAM *histo_dst,float sigma)
 {
