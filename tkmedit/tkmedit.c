@@ -3,10 +3,10 @@
   ===========================================================================*/
 
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2004/04/06 15:25:11 $
-// Revision       : $Revision: 1.203 $
-char *VERSION = "$Revision: 1.203 $";
+// Revision Author: $Author: kteich $
+// Revision Date  : $Date: 2004/04/29 22:09:16 $
+// Revision       : $Revision: 1.204 $
+char *VERSION = "$Revision: 1.204 $";
 
 #define TCL
 #define TKMEDIT 
@@ -1035,7 +1035,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
      shorten our argc and argv count. If those are the only args we
      had, exit. */
   /* rkt: check for and handle version tag */
-  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.203 2004/04/06 15:25:11 tosa Exp $", "$Name:  $");
+  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.204 2004/04/29 22:09:16 kteich Exp $", "$Name:  $");
   if (nNumProcessedVersionArgs && argc - nNumProcessedVersionArgs == 1)
     exit (0);
   argc -= nNumProcessedVersionArgs;
@@ -4983,7 +4983,7 @@ int main ( int argc, char** argv ) {
     DebugPrint( ( "%s ", argv[nArg] ) );
   }
   DebugPrint( ( "\n\n" ) );
-  DebugPrint( ( "$Id: tkmedit.c,v 1.203 2004/04/06 15:25:11 tosa Exp $ $Name:  $\n" ) );
+  DebugPrint( ( "$Id: tkmedit.c,v 1.204 2004/04/29 22:09:16 kteich Exp $ $Name:  $\n" ) );
 
   
   /* init glut */
@@ -7100,6 +7100,8 @@ tkm_tErr LoadVolume ( tkm_tVolumeType iType,
   char                 sTclArguments[tkm_knTclCmdLen] = "";
   Volm_tSampleType     sampleType           = Volm_tSampleType_Nearest;
   Volm_tResampleMethod resampleMethod       = Volm_tResampleMethod_RAS;
+  float                fBrightness          = Volm_kfDefaultBrightness;
+  float                fContrast            = Volm_kfDefaultContrast;
 
   DebugEnterFunction( ("LoadVolume( iType=%d,  isName=%s )", 
            (int)iType, isName) );
@@ -7127,12 +7129,15 @@ tkm_tErr LoadVolume ( tkm_tVolumeType iType,
   DebugAssertThrowX( (Volm_tErr_NoErr == eVolume),
 		     eResult, tkm_tErr_CouldntReadVolume );
   
-	if( gbScaleUpVolume ) {
-		Volm_SetMinVoxelSizeToOne( newVolume );
-	}
+  if( gbScaleUpVolume ) {
+    Volm_SetMinVoxelSizeToOne( newVolume );
+  }
 
-  /* if the volume exists, delete it */
+  /* if the volume exists, get the brightness and contrast to restore
+     later, and delete the volume */
   if( NULL != gAnatomicalVolume[iType] ) {
+    Volm_GetBrightnessAndContrast( gAnatomicalVolume[iType], 
+				   &fBrightness, &fContrast );
     UnloadDisplayTransform( iType );
     Volm_Delete( &gAnatomicalVolume[iType] );
   }
@@ -7174,7 +7179,9 @@ tkm_tErr LoadVolume ( tkm_tVolumeType iType,
 #endif
 
   /* Set the default color scale. Get the value min and max from the
-     volume and use that. Use default brightness and contrast. */
+     volume and use that. Set brightness and contrast, which will be
+     the default values, or, if we had a volume loaded before, the
+     values from that volume. */
   Volm_GetValueMinMax( gAnatomicalVolume[iType], 
 		       &gfaAnaColorMin[iType], &gfaAnaColorMax[iType] );
   sprintf( sTclArguments, "%d %.2f %.2f", (int)iType, 
@@ -7183,9 +7190,7 @@ tkm_tErr LoadVolume ( tkm_tVolumeType iType,
 		      
 
   SetVolumeColorMinMax( iType, gfaAnaColorMin[iType], gfaAnaColorMax[iType] );
-  SetVolumeBrightnessAndContrast( iType, 
-				  Volm_kfDefaultBrightness,
-				  Volm_kfDefaultContrast );
+  SetVolumeBrightnessAndContrast( iType, fBrightness, fContrast );
   
   /* volume is clean */
   gbAnatomicalVolumeDirty[iType] = FALSE;
