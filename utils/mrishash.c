@@ -64,6 +64,12 @@ static int checkFace(MRIS_HASH_TABLE *mht, MRI_SURFACE *mris, int fno1) ;
 MRIS_HASH_TABLE *
 MHTfillVertexTable(MRI_SURFACE *mris,MRIS_HASH_TABLE *mht, int which)
 {
+  return(MHTfillVertexTableRes(mris, mht, which, VOXEL_RES)) ;
+}
+MRIS_HASH_TABLE *
+MHTfillVertexTableRes(MRI_SURFACE *mris,MRIS_HASH_TABLE *mht, int which,
+                      float res)
+{
   int     vno ;
   int     xv, yv, zv ;
   MHBT    *bucket ;
@@ -77,7 +83,7 @@ MHTfillVertexTable(MRI_SURFACE *mris,MRIS_HASH_TABLE *mht, int which)
     ErrorExit(ERROR_NO_MEMORY, 
               "MHTfillVertexTable: could not allocate hash table.\n") ;
   
-  mht->vres = VOXEL_RES ;
+  mht->vres = res ;
   for (xv = 0 ; xv < TABLE_SIZE ; xv++)
   {
     for (yv = 0 ; yv < TABLE_SIZE ; yv++)

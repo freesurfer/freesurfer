@@ -35,6 +35,8 @@ typedef struct
 MRIS_HASH_TABLE *MHTfillTable(MRI_SURFACE *mris,MRIS_HASH_TABLE *mht) ;
 MRIS_HASH_TABLE *MHTfillVertexTable(MRI_SURFACE *mris,MRIS_HASH_TABLE *mht,
                                     int which) ;
+MRIS_HASH_TABLE *MHTfillVertexTableRes(MRI_SURFACE *mris,MRIS_HASH_TABLE *mht,
+                                    int which, float res) ;
 int             MHTfree(MRIS_HASH_TABLE **pmht) ;
 int             MHTcheckFaces(MRI_SURFACE *mris,MRIS_HASH_TABLE *mht) ;
 int             MHTcheckSurface(MRI_SURFACE *mris,MRIS_HASH_TABLE *mht) ;
