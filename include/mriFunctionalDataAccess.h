@@ -100,8 +100,7 @@ typedef struct {
   
   /* When we know we have error values present, these are used */
   tBoolean mbErrorDataPresent;
-  float** mDeviations;    /* Deviations in [condition][timepoint] */
-  float*  mCovMtxDiag;    /* Ch in [condtions*timepts][conditions*timepts] */
+  float** mCovMtx;       /* [conditions-1*timepts][conditions-1*timepts] */
 
   /* If the client tells us its bound size, we'll try making a
      resampled volume in client space to speed up data access (avoids
@@ -133,18 +132,18 @@ typedef struct {
    Additionally, the MRI data could contain error data, which is an
    additional frame of data for each condition, but only the first
    number is valid in each condition. Additionally, the MRI has a set
-   of 'null data' at the first condition if error data is present.
+   of 'null data' and a sigma data at the first condition if error
+   data is present.
 
    Here is how it is ordered:
+
+
+   WITHOUT ERROR DATA
 
    condition
      time point
        frame of displayable data
-     error data (if present)
 
-   i.e.
-
-   WITHOUT ERROR DATA
                        time
    frame   condition   point   type
      0         0         0     data
@@ -154,20 +153,35 @@ typedef struct {
 
    WITH ERROR DATA
 
+   condition 0
+     time point
+       null values (ignored)
+       sigma values
+   condition 1..n
+     time point
+       frame of displayable data
+       std dev (ignored)
+
                        time
-   frame   condition   point   type    notes
-     0         0         0     data    null condition
-     1         0         0     error   null condition
-     2         0         1     data    null condition
-     3         0         1     error   null condition
-     4         1         0     data
-     5         1         0     error   first value is sigma value
-     6         1         1     data
-     7         1         1     error   all 0s
-     8         2         0     data
-     9         2         0     error   first value is sigma value
-     10        2         1     data
-     11        2         1     error   all 0s
+   frame   condition   point   type
+     0         0               null (ignored)
+     1         0               null (ignored)
+     2         0               null (ignored)
+     3         0         0     sigma
+     4         0         1     sigma
+     5         0         2     sigma
+     6         1         0     data
+     7         1         1     data
+     8         1         2     data
+     9         1               std dev (ignored)
+     10        1               std dev (ignored)
+     11        1               std dev (ignored)
+     12        2         0     data
+     13        2         1     data
+     14        2         2     data
+     15        2               std dev (ignored)
+     16        2               std dev (ignored)
+     17        2               std dev (ignored)
  
 */
 
@@ -222,7 +236,7 @@ FunD_tErr FunD_SetConversionMethod ( mriFunctionalDataRef this,
 /* Value accessors. */
 FunD_tErr FunD_GetData                 ( mriFunctionalDataRef this,
 					 xVoxelRef            iClientVox, 
-					 int                  iPlane, 
+					 int                  iTimePoint, 
 					 int                  iCondition,
 					 float*               oData );
 FunD_tErr FunD_GetDataForAllTimePoints ( mriFunctionalDataRef this,
@@ -231,10 +245,12 @@ FunD_tErr FunD_GetDataForAllTimePoints ( mriFunctionalDataRef this,
 					 float*               oaData );
 
 FunD_tErr FunD_GetDeviation                 ( mriFunctionalDataRef this,
+					      xVoxelRef            iClientVox, 
 					      int                  iCondition, 
 					      int                  iTimePoint,
 					      float*               oValue );
 FunD_tErr FunD_GetDeviationForAllTimePoints ( mriFunctionalDataRef this, 
+					      xVoxelRef            iClientVox, 
 					      int                  iCondition, 
 					      float*               oaData );
 
@@ -349,6 +365,7 @@ void FunD_ConvertClientToFuncRAS_ ( mriFunctionalDataRef this,
 
 void FunD_GetSigma_ ( mriFunctionalDataRef this,
 		      int                  iCondition,
+		      xVoxelRef             iFuncIdx,
 		      float*               oSigma );
 
 /* Note that the functions in this section are implemented as

@@ -150,6 +150,7 @@ FunD_tErr FunD_New ( mriFunctionalDataRef* opVolume,
   eResult = FunD_ParseRegistrationAndInitMatricies_( this , iTkregMat);
   DebugAssertThrow( (FunD_tErr_NoError == eResult) );
   
+#if 0
   /* if we have error data... */
   if( this->mbErrorDataPresent ) {
     
@@ -163,7 +164,8 @@ FunD_tErr FunD_New ( mriFunctionalDataRef* opVolume,
       DebugAssertThrow( (FunD_tErr_NoError == eResult) );
     }
   }
-  
+#endif  
+
   FunD_DebugPrint( this );
 
   /* Get the value range. */
@@ -679,6 +681,8 @@ FunD_tErr FunD_ParseRegistrationAndInitMatricies_ ( mriFunctionalDataRef this,
   return eResult;
 }
 
+
+#if 0
 FunD_tErr FunD_CalcDeviations_ ( mriFunctionalDataRef this ) {
   
   FunD_tErr eResult        = FunD_tErr_NoError;
@@ -752,6 +756,8 @@ FunD_tErr FunD_CalcDeviations_ ( mriFunctionalDataRef this ) {
   
   return eResult;
 }
+#endif
+
 
 FunD_tErr FunD_SetClientCoordBounds ( mriFunctionalDataRef this,
 				      int                  inXMin,
@@ -803,7 +809,8 @@ FunD_tErr FunD_SetConversionMethod ( mriFunctionalDataRef this,
   
   FunD_tErr eResult = FunD_tErr_NoError;
 
-  DebugEnterFunction( ("FunD_CalcDeviations_( this=%p )", this) );
+  DebugEnterFunction( ("FunD_SetConversionMethod( this=%p, iMethod=%d )", 
+		       this, iMethod) );
 
   DebugNote( ("Checking parameters") );
   DebugAssertThrowX( (NULL != this), eResult, FunD_tErr_InvalidParameter );
@@ -956,11 +963,17 @@ FunD_tErr FunD_GetDataForAllTimePoints ( mriFunctionalDataRef this,
 }
 
 FunD_tErr FunD_GetDeviation ( mriFunctionalDataRef this,
+			      xVoxelRef            iClientVox, 
 			      int                  iCondition, 
 			      int                  iTimePoint,
 			      float*               oValue ) {
   
-  FunD_tErr eResult = FunD_tErr_NoError;
+  FunD_tErr eResult     = FunD_tErr_NoError;
+  xVoxel    funcIdx;
+  int       nCovMtx     = 0;
+  float     fCovariance = 0;
+  float     fSigma      = 0;
+  
 
   DebugEnterFunction( ("FunD_GetDeviation( this=%p, iCondition=%d, "
 		       "iTimePoint=%d, oValue=%p)", this, iCondition, 
@@ -980,8 +993,22 @@ FunD_tErr FunD_GetDeviation ( mriFunctionalDataRef this,
   eResult = FunD_Verify( this );
   DebugAssertThrow( (eResult == FunD_tErr_NoError) );
 
+  DebugNote( ("Calculating cov mtx index") );
+  nCovMtx = 
+    ((this->mNumTimePoints * (iCondition-1) + iTimePoint) * 
+     (this->mNumConditions-1) * this->mNumTimePoints) +
+    (this->mNumTimePoints * (iCondition-1) + iCondition);
+  DebugNote( ("Getting cov mtx value %d\n", nCovMtx) );
+  fCovariance = this->mCovMtxDiag[nCovMtx];
+ 
+  DebugNote( ("Converting client voxel to func idx") );
+  FunD_ConvertClientToFuncIdx_( this, iClientVox, &funcIdx );
+
+  DebugNote( ("Getting sigma value") );
+  FunD_GetSigma_ ( this, iCondition, &funcIdx, &fSigma );
+
   DebugNote( ("Setting return value") );
-  *oValue = this->mDeviations[iCondition][iTimePoint];
+  *oValue = sqrt( fSigma*fSigma * fCovariance );
   
   DebugCatch;
   DebugCatchError( eResult, FunD_tErr_NoError, FunD_GetErrorString );
@@ -993,12 +1020,18 @@ FunD_tErr FunD_GetDeviation ( mriFunctionalDataRef this,
 }
 
 FunD_tErr FunD_GetDeviationForAllTimePoints ( mriFunctionalDataRef this,
+					      xVoxelRef            iClientVox, 
 					      int                  iCondition, 
 					      float*               oaValue ) {
   
   FunD_tErr eResult    = FunD_tErr_NoError;
   int       nTimePoint = 0;
+  xVoxel    funcIdx;
+  int       nCovMtx     = 0;
+  float     fCovariance = 0;
+  float     fSigma      = 0;
   
+
   DebugEnterFunction( ("FunD_GetDeviation( this=%p, iCondition=%d, "
 		       "oaValue=%p)", this, iCondition, oaValue) );
 
@@ -1013,10 +1046,24 @@ FunD_tErr FunD_GetDeviationForAllTimePoints ( mriFunctionalDataRef this,
   eResult = FunD_Verify( this );
   DebugAssertThrow( (eResult == FunD_tErr_NoError) );
 
+  DebugNote( ("Converting client voxel to func idx") );
+  FunD_ConvertClientToFuncIdx_( this, iClientVox, &funcIdx );
+  
+  DebugNote( ("Getting sigma value") );
+  FunD_GetSigma_ ( this, iCondition, &funcIdx, &fSigma );
+    
   for( nTimePoint = 0; nTimePoint < this->mNumTimePoints; nTimePoint++ ) {
     
-    DebugNote( ("Setting return value for tp %d", nTimePoint) );
-    oaValue[nTimePoint] = this->mDeviations[iCondition][nTimePoint];
+    DebugNote( ("Calculating cov mtx index") );
+    nCovMtx = 
+      ((this->mNumTimePoints * (iCondition-1) + nTimePoint) * 
+       (this->mNumConditions-1) * this->mNumTimePoints) +
+      (this->mNumTimePoints * (iCondition-1) + iCondition);
+    DebugNote( ("Getting cov mtx value %d\n", nCovMtx) );
+    fCovariance = this->mCovMtxDiag[nCovMtx];
+    
+    DebugNote( ("Setting return value") );
+    oaValue[nTimePoint] = sqrt( fSigma*fSigma * fCovariance );
   }
 
   DebugCatch;
@@ -2451,6 +2498,7 @@ void FunD_SetValue_ ( mriFunctionalDataRef this,
 
 void FunD_GetSigma_ ( mriFunctionalDataRef this,
 		      int                  inCondition,
+		      xVoxelRef            iFuncIdx,
 		      float*               oSigma ) {
   
   int   nFrame         = 0;
@@ -2464,19 +2512,24 @@ void FunD_GetSigma_ ( mriFunctionalDataRef this,
 
   switch( this->mpData->type ) {
     case MRI_UCHAR:
-      *oSigma = MRIseq_vox( this->mpData, 0, 0, 0, nFrame );
+      *oSigma = MRIseq_vox( this->mpData, xVoxl_GetX(iFuncIdx),
+			 xVoxl_GetY(iFuncIdx), xVoxl_GetZ(iFuncIdx), nFrame );
       break;
     case MRI_INT:
-      *oSigma = MRIIseq_vox( this->mpData, 0, 0, 0, nFrame );
+      *oSigma = MRIIseq_vox( this->mpData, xVoxl_GetX(iFuncIdx),
+			 xVoxl_GetY(iFuncIdx), xVoxl_GetZ(iFuncIdx), nFrame );
       break;
     case MRI_LONG:
-      *oSigma = MRILseq_vox( this->mpData, 0, 0, 0, nFrame );
+      *oSigma = MRILseq_vox( this->mpData, xVoxl_GetX(iFuncIdx),
+			 xVoxl_GetY(iFuncIdx), xVoxl_GetZ(iFuncIdx), nFrame );
       break;
     case MRI_FLOAT:
-      *oSigma = MRIFseq_vox( this->mpData, 0, 0, 0, nFrame );
+      *oSigma = MRIFseq_vox( this->mpData, xVoxl_GetX(iFuncIdx),
+			 xVoxl_GetY(iFuncIdx), xVoxl_GetZ(iFuncIdx), nFrame );
       break;
     case MRI_SHORT:
-      *oSigma = MRISseq_vox( this->mpData, 0, 0, 0, nFrame );
+      *oSigma = MRISseq_vox( this->mpData, xVoxl_GetX(iFuncIdx),
+			 xVoxl_GetY(iFuncIdx), xVoxl_GetZ(iFuncIdx), nFrame );
       break;
     default:
       *oSigma = 0;
