@@ -4,9 +4,9 @@
 
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2003/03/19 17:51:12 $
-// Revision       : $Revision: 1.136 $
-char *VERSION = "$Revision: 1.136 $";
+// Revision Date  : $Date: 2003/03/26 21:43:00 $
+// Revision       : $Revision: 1.137 $
+char *VERSION = "$Revision: 1.137 $";
 
 #define TCL
 #define TKMEDIT 
@@ -987,17 +987,15 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
   eFunctional = FunV_GetThreshold( gFunctionalVolume, &min, &min, &slope );
   DebugAssertThrow( (FunV_tErr_NoError == eFunctional ) );
   
-
   /* First look for the version option and handle that. If found,
      shorten our argc and argv count. If those are the only args we
      had, exit. */
-  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.136 2003/03/19 17:51:12 kteich Exp $");
+  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.137 2003/03/26 21:43:00 kteich Exp $");
   argc -= nNumProcessedVersionArgs;
   argv += nNumProcessedVersionArgs;
   if( 1 == argc ) {
     exit( 0 );
   }
-
 
   if (argc<2) {
     
@@ -6179,7 +6177,7 @@ tkm_tErr SetSubjectHomeDirFromEnv ( char* isSubject ) {
       "%s/%s", sEnvVar, isSubject );
   
   /* send tcl update */
-  tkm_SendTclCommand( tkm_tTclCommand_UpdateHomeDirectory, gsSubjectHomeDir );
+  tkm_SendTclCommand( tkm_tTclCommand_UpdateSubjectDirectory, gsSubjectHomeDir );
   
   DebugPrint( ("Set subject home dir to %s\n", gsSubjectHomeDir) );
   
@@ -6875,7 +6873,7 @@ tkm_tErr SetVolumeDirty ( tkm_tVolumeType iVolume, tBoolean ibDirty ) {
   /* set the dirty flag */
   gbAnatomicalVolumeDirty[iVolume] = ibDirty;
   
-  /* update tcl */
+  /* updatex tcl */
   switch( iVolume ) {
   case tkm_tVolumeType_Main:
     tkm_SendTclCommand( tkm_tTclCommand_ShowVolumeDirtyOptions, 
@@ -8238,6 +8236,9 @@ tkm_tErr LoadSegmentationColorTable ( char* isColorFileName ) {
     tkm_SendTclCommand( tkm_tTclCommand_AddParcColorTableEntry,
       sTclArguments );
   }
+
+  tkm_SendTclCommand( tkm_tTclCommand_UpdateSegmentationColorTable,
+		      isColorFileName );
   
   DebugCatch;
   DebugCatchError( eResult, tkm_tErr_NoErr, tkm_GetErrorString );
@@ -10852,7 +10853,8 @@ char *kTclCommands [tkm_knNumTclCommands] = {
   "UpdateSegmentationVolumeAlpha",
   "UpdateDTIVolumeAlpha",
   "UpdateTimerStatus",
-  "UpdateHomeDirectory",
+  "UpdateSubjectDirectory",
+  "UpdateSegmentationColorTable",
   "UpdateVolumeDirty",
   "UpdateAuxVolumeDirty",
   

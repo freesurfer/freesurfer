@@ -114,7 +114,8 @@ typedef enum {
   tkm_tTclCommand_UpdateSegmentationVolumeAlpha,
   tkm_tTclCommand_UpdateDTIVolumeAlpha,
   tkm_tTclCommand_UpdateTimerStatus,
-  tkm_tTclCommand_UpdateHomeDirectory,
+  tkm_tTclCommand_UpdateSubjectDirectory,
+  tkm_tTclCommand_UpdateSegmentationColorTable,
   tkm_tTclCommand_UpdateVolumeDirty,
   tkm_tTclCommand_UpdateAuxVolumeDirty,
   
