@@ -10,7 +10,7 @@ if { $err } {
     load [file dirname [info script]]/libscuba[info sharedlibextension] scuba
 }
 
-DebugOutput "\$Id: scuba.tcl,v 1.66 2005/01/05 23:22:05 kteich Exp $"
+DebugOutput "\$Id: scuba.tcl,v 1.67 2005/01/06 23:15:46 kteich Exp $"
 
 # gTool
 #   current - current selected tool (nav,)
@@ -928,7 +928,23 @@ proc ScubaKeyUpCallback { inX inY iState iKey } {
 	RedrawFrame [GetMainFrameID]
     }
 
+    if { "$iKey" == "c" } {
+	set viewID [GetSelectedViewID [GetMainFrameID]]
+	set nHighestLevel 0
+	for { set nLevel 0 } { $nLevel < 10 } { incr nLevel } {
+	    set curLayer($nLevel) [GetLayerInViewAtLevel $viewID $nLevel]
+	    if { $curLayer($nLevel) != -1 } {
+		set nHighestLevel $nLevel
+	    }
+	}
 
+	for { set nLevel 0 } { $nLevel < $nHighestLevel } { incr nLevel } {
+	    SetLayerInViewAtLevel $viewID $curLayer([expr $nLevel+1]) $nLevel
+	}
+	SetLayerInViewAtLevel $viewID $curLayer(0) $nHighestLevel
+
+	SelectViewInViewProperties $viewID
+    }
 }
 
 proc ScubaKeyDownCallback { inX inY iState iKey } {
@@ -967,6 +983,7 @@ proc GetPreferences {} {
 	KeyInPlaneY
 	KeyInPlaneZ
 	KeyCycleViewsInFrame
+	KeyShuffleLayers
 	KeyMoveViewLeft
 	KeyMoveViewRight
 	KeyMoveViewUp 
@@ -3457,6 +3474,7 @@ proc DoPrefsDlog {} {
 	    KeyInPlaneX       "Change view to x axis in-plane"
 	    KeyInPlaneY       "Change view to y axis in-plane"
 	    KeyInPlaneZ       "Change view to z axis in-plane"
+	    KeyShuffleLayers  "Shuffle layers in a view"
 	} {
    
 	    tkuMakeEntry $fwKeys.fw$sKey \
@@ -3723,6 +3741,9 @@ proc MakeVolumeCollection { ifnVolume } {
     set err [catch { SetVolumeCollectionFileName $colID $ifnVolume } sResult]
     if { 0 != $err } { tkuErrorDlog $sResult; return }
 
+    set err [catch { LoadVolumeFromFileName $colID } sResult]
+    if { 0 != $err } { tkuErrorDlog $sResult; return }
+
     # Get a good name for the collection.
     set sLabel [ExtractLabelFromFileName $ifnVolume]
     
@@ -3740,6 +3761,9 @@ proc MakeSurfaceCollection { ifnSurface } {
     if { 0 != $err } { tkuErrorDlog $sResult; return }
 
     set err [catch { SetSurfaceCollectionFileName $colID $ifnSurface } sResult]
+    if { 0 != $err } { tkuErrorDlog $sResult; return }
+
+    set err [catch { LoadSurfaceFromFileName $colID } sResult]
     if { 0 != $err } { tkuErrorDlog $sResult; return }
 
     # Get a good name for the collection.
@@ -4320,7 +4344,7 @@ proc SaveSceneScript { ifnScene } {
     set f [open $ifnScene w]
 
     puts $f "\# Scene file generated "
-    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.66 2005/01/05 23:22:05 kteich Exp $"
+    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.67 2005/01/06 23:15:46 kteich Exp $"
     puts $f ""
 
     # Find all the data collections.
