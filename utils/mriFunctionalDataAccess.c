@@ -1778,8 +1778,11 @@ FunD_tErr FunD_SaveRegistration ( mriFunctionalDataRef this ) {
   sprintf( sFileName, "%s", this->msRegistrationFileName );
   DebugNote( ("Opening file %s", sFileName) );
   pFile = fopen( sFileName, "r" );
+  ///////////////////////////////////////////////////////////////
+  // if registration file exists, then write a backup file, too.
   if( NULL != pFile ) {
     
+    // then find the new backup filename
     while( NULL != pFile ) {
       
       DebugNote( ("Closing %s", sFileName) );
@@ -1789,17 +1792,21 @@ FunD_tErr FunD_SaveRegistration ( mriFunctionalDataRef this ) {
       sprintf( sBackupFileName, "%s.%d", sFileName, nBackup++ );
       DebugNote( ("Opening file %s", sBackupFileName) );
       pFile = fopen( sBackupFileName, "r" );
+      // if file exists, then pFile != NULL.
+      // if file does not exist, then pFile = NULL.
     }
-
-    DebugNote( ("Closing file") );
-    fclose( pFile );
+    // now pFile == NULL now
+    // DebugNote( ("Closing file") );
+    // fclose( pFile );  you cannot do this
 
     /* copy the registration file to backup */
-    DebugNote( ("Opening file %s", sBackupFileName) );
+    // open the original file
     pFile = fopen( sFileName, "r" );
     DebugNote( ("Opening backup file %s", sBackupFileName) );
+    // open the backup file for writing
     pBackupFile = fopen( sBackupFileName, "w" );
     DebugNote( ("Copying bytes to backup file") );
+    // write to the backup file from the original file
     while( !feof( pFile ) ) {
       fread( &data, sizeof(data), 1, pFile );
       fwrite( &data, sizeof(data), 1, pBackupFile );
