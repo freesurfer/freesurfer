@@ -296,7 +296,7 @@ ImageReadHeader(char *fname)
 {
   IMAGE   *I = NULL ;
   FILE    *fp ;
-  int     type, frame, ecode ;
+  int     type, frame ;
   char    buf[100] ;
 
   strcpy(buf, fname) ;   /* don't destroy callers string */
@@ -308,9 +308,27 @@ ImageReadHeader(char *fname)
     ErrorReturn(NULL, (ERROR_NO_FILE, "ImageReadHeader(%s, %d) failed\n", 
                        fname, frame)) ;
 
+  I = ImageFReadHeader(fp, fname) ;
+  fclose(fp) ;
+
+  return(I) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
+IMAGE *
+ImageFReadHeader(FILE *fp, char *fname)
+{
+  IMAGE   *I = NULL ;
+  int     ecode ;
+
   I = (IMAGE *)calloc(1, sizeof(IMAGE)) ;
   if (!I)
-    ErrorExit(ERROR_NO_MEMORY, "ImageReadHeader: could not allocate header\n") ;
+    ErrorExit(ERROR_NO_MEMORY, "ImageReadHeader: could not allocate header\n");
   ecode = fread_header(fp, I, fname) ;
   if (ecode != HIPS_OK)
   {
@@ -319,7 +337,6 @@ ImageReadHeader(char *fname)
                      "ImageReadHeader(%s): fread_header failed (%d)\n", 
                      fname, ecode)) ;
   }
-  fclose(fp) ;
 
   return(I) ;
 }
@@ -4674,9 +4691,12 @@ ImageNormalizeOffsetDistances(IMAGE *Isrc, IMAGE *Idst, int maxsteps)
 ----------------------------------------------------------------------*/
 #define ISSMALL(m)   (fabs(m) < 0.00001f)
 
+#if 0
 static float avg[] = { 1.0f/9.0f, 1.0f/9.0f, 1.0f/9.0f,
                        1.0f/9.0f, 1.0f/9.0f, 1.0f/9.0f,
                        1.0f/9.0f, 1.0f/9.0f, 1.0f/9.0f } ;
+#endif
+
 #if 1
 IMAGE *
 ImageSmoothOffsets(IMAGE *Isrc, IMAGE *Idst, int wsize)
