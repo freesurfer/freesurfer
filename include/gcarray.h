@@ -40,7 +40,6 @@ int     GCarrayUpdate(GCARRAY *gcarray, MRI *mri_src,MRI *mri_norm,
                       MRI *mri_target);
 int     GCarrayFinish(GCARRAY *gcarray) ;
 MRI     *GCarrayClassify(GCARRAY *gcarray, MRI *mri_src, MRI *mri_dst,
-                         MRI *mri_norm,
                          float conf, MRI *mri_probs, MRI *mri_classes) ;
 int     GCarrayToVoxel(GCARRAY *gcarray, int xc, int yc, int zc,
                         int *pxv, int *pyv, int *pzv) ;
