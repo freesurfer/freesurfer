@@ -19,6 +19,8 @@ int mri_identify(char *fname)
     return(GENESIS_FILE);
   else if(is_ge_lx(fname))
     return(GE_LX_FILE);
+  else if(is_sdt(fname))
+    return(SDT_FILE);
   else if(is_mgh(fname))
     return(MRI_MGH_FILE);
   else if(is_mnc(fname))

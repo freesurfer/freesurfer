@@ -130,6 +130,8 @@ void dummy_identify(void)
     printf("succeed\nbrik\n");
   else if(type == BSHORT_FILE)
     printf("succeed\nbshort\n");
+  else if(type == SDT_FILE)
+    printf("succeed\nsdt\n");
   else
     {
     printf("fail\n");
