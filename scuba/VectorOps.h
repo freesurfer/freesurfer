@@ -2,6 +2,7 @@
 
 float DotVectors( Point3<float>& v1, Point3<float>& v2 );
 float Length ( Point3<float>& v );
+float Distance ( Point3<float>& v, Point3<float>& w );
 Point3<float> operator*( float s, Point3<float>& v );
 Point3<float> operator*( float s, Point3<float> v );
 Point3<float> operator*( Point3<float>& v, float s );

@@ -50,6 +50,15 @@ Transform44::SetMainTransform ( Transform44&  iTransform ) {
 }
 
 void
+Transform44::MakeRotation ( float iCenterPoint[3], 
+			    float iRotationVector[3],
+			    float iRadians ) {
+
+  m.MakeRotation( iCenterPoint, iRotationVector, iRadians );
+  ValuesChanged();
+}
+
+void
 Transform44::LoadFromLTAFile ( string ifnLTA ) {
 
   LTA* lta = LTAreadEx( ifnLTA.c_str() );

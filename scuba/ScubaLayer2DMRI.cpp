@@ -1261,6 +1261,39 @@ ScubaLayer2DMRI::FindClosestLine ( float iRAS[3],
     PointList3<float>* line = *tLine;
     Point3<float>& beginRAS = line->GetPointAtIndex( 0 );
     if( iViewState.IsRASVisibleInPlane( beginRAS.xyz(), range ) ) {
+      
+
+      float minDistanceInLine = 999999;
+      
+      int cPoints = line->GetNumPoints();
+      int nCurPoint = 1;
+      for( nCurPoint = 1; nCurPoint < cPoints; nCurPoint++ ) {
+	
+	int nBackPoint = nCurPoint - 1;
+	
+	Point3<float>& curPoint  = line->GetPointAtIndex( nCurPoint );
+	Point3<float>& backPoint = line->GetPointAtIndex( nBackPoint );
+	
+	float distance = 
+	  Utilities::DistanceFromLineToPoint3f( curPoint, backPoint,whereRAS );
+
+	if( distance < minDistanceInLine )
+	  minDistanceInLine = distance;
+      }
+      
+      if( minDistanceInLine < minDistance ) {
+	minDistance = minDistanceInLine;
+	closestLine = line;
+      }
+    }
+  }
+
+#if 0
+  std::list<PointList3<float>*>::iterator tLine;
+  for( tLine = mLines.begin(); tLine != mLines.end(); ++tLine ) {
+    PointList3<float>* line = *tLine;
+    Point3<float>& beginRAS = line->GetPointAtIndex( 0 );
+    if( iViewState.IsRASVisibleInPlane( beginRAS.xyz(), range ) ) {
       float distance = 
 	line->GetSquaredDistanceOfClosestPoint( minDistance, whereRAS );
       if( distance < minDistance ) {
@@ -1269,6 +1302,7 @@ ScubaLayer2DMRI::FindClosestLine ( float iRAS[3],
       }
     }
   }
+#endif
 
   return closestLine;
 }
@@ -1455,7 +1489,7 @@ EdgePathFinder::GetEdgeCost ( Point2<int>& iPoint ) {
   float RAS[3];
   mTranslator->TranslateWindowToRAS( iPoint.xy(), RAS );
   if( mVolume->IsRASInMRIBounds( RAS ) ) {
-    return mVolume->GetMRIMagnitudeValueAtRAS( RAS );
+    return 1.0 / (mVolume->GetMRIMagnitudeValueAtRAS( RAS ) + 0.0001);
   } else {
     return mLongestEdge;
   }

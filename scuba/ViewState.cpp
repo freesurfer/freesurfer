@@ -18,7 +18,6 @@ std::ostream& operator << ( std::ostream& os, ViewState& iInput ) {
   return os;
 }
 
-
 bool
 ViewState::IsRASVisibleInPlane ( float iRAS[3], float iRange ) {
 

@@ -1,6 +1,7 @@
 #include "string_fixed.h"
 #include <stdexcept>
 #include "Utilities.h"
+#include "VectorOps.h"
 
 using namespace std;
 
@@ -56,3 +57,26 @@ Utilities::FindPointsOnLine2d ( int iPointA[2], int iPointB[2],
   }
 }
 
+float
+Utilities::DistanceFromLineToPoint3f ( Point3<float>& iLineA, 
+				       Point3<float>& iLineB,
+				       Point3<float>& iPoint ) {
+  
+  // iLineA is A, iLineB is B, iPoint is P. Find line segment lengths.
+  float AB = Distance( iLineA, iLineB );
+  float AP = Distance( iLineA, iPoint );
+  float BP = Distance( iLineB, iPoint );
+
+  // These points form a triangle. Find the semiperimeter.
+  float semiperimeter = ( AB + AP + BP ) / 2.0;
+
+  // Area of triangle.
+  float area = semiperimeter * (semiperimeter - AB) *
+    (semiperimeter - AP) * (semiperimeter - BP);
+
+  // h is height of this triangle, which the distance from P to the
+  // base or the line AB.
+  float h = 2 * (area / AB);
+
+  return h;
+}

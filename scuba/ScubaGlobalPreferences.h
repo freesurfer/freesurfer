@@ -14,14 +14,14 @@ class ScubaGlobalPreferences : public TclCommandListener, public Broadcaster {
 
  public:
 
-  enum PrefKey { ShowConsole, ViewFlipLeftRight,
+  enum PrefKey { ShowConsole, AutoConfigureView, ViewFlipLeftRight,
 		 KeyInPlaneX, KeyInPlaneY, KeyInPlaneZ,
 		 KeyMoveViewLeft, KeyMoveViewRight,
 		 KeyMoveViewUp, KeyMoveViewDown,
 		 KeyMoveViewIn, KeyMoveViewOut,
 		 KeyZoomViewIn, KeyZoomViewOut,
 		 KeyCycleViewsInFrame,
-		 DrawCoordinateOverlay, DrawCenterCrosshairOverlay };
+		 DrawCoordinateOverlay, DrawPlaneIntersections };
 
   // Gets the static reference to this class.
   static ScubaGlobalPreferences& GetPreferences();

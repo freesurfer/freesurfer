@@ -11,6 +11,7 @@
 #include "ScubaWindowToRASTranslator.h"
 #include "ScubaToolState.h"
 #include "ScubaTransform.h"
+#include "Point2.h"
 
 class ScubaViewStaticTclListener : public DebugReporter, 
 				   public TclCommandListener {
@@ -44,6 +45,7 @@ public:
   void Set2DRASCenter ( float iRASCenter[3] );
   void Set2DZoomLevel ( float iZoom );
   void Set2DInPlane ( ViewState::Plane iPlane );
+  void Set2DPlaneNormal ( float iNormal[3] );
 
   void Get2DRASCenter ( float oRASCenter[3] );
   float Get2DZoomLevel ();
@@ -182,6 +184,7 @@ protected:
   int mLastMouseDown[2];
   float mOriginalCenterRAS[3];
   float mOriginalZoom;
+  Point3<float> mOriginalPlaneNormal;
 
   float mInPlaneMovementIncrements[3];
 
@@ -201,9 +204,34 @@ protected:
   // Link stuff.
   static std::map<int,bool> mViewIDLinkedList;
 
-  // The world to view transform, or the 'view transform.' Applied to
-  // all world coordinates before getting to the view.
+  // The world to view transform, or the 'view transform.' Actually
+  // goes from world -> view. Used in conjunction with mWorldToWindow
+  // get get window coords. This is user settable.
   ScubaTransform* mWorldToView;
+
+  // This is the view -> window or display plane transform. It is
+  // based on the mViewState current inplane and plane normal. It is
+  // updated any time the view plane changes.
+  Transform44 mViewToWindow;
+
+  void CalcViewToWindowTransform ();
+
+  // This is our actual world -> window transform composed of
+  // mWorldToView and mViewToWindow. It is updated any time these two
+  // are changed.
+  Transform44 mWorldToWindow;
+
+  void CalcWorldToWindowTransform ();
+
+  // Calculates the RAS points of the intersection with a view's
+  // inplane, our inplane, and our viewing box.
+  void CalcAllViewIntersectionPoints ();
+  void CalcViewIntersectionPoints ( int iViewID );
+  //  std::map<int,Point2<Point3<float> > > mViewIDViewIntersectionPointMap;
+  Point3<float> mViewIDViewIntersectionPointMap[10][2];
+
+  // For moving view intersection markers.
+  int mCurrentMovingViewIntersection;
 
   // Whether to flip the right/left coordinates.
   bool mbFlipLeftRightInYZ;
@@ -228,9 +256,7 @@ protected:
 
 class ScubaViewFactory : public ViewFactory {
  public:
-  virtual View* NewView() { 
-    return new ScubaView();
-  }
+  virtual View* NewView();
 };
 
 class ScubaViewBroadcaster : public Broadcaster {

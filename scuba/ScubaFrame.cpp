@@ -748,19 +748,17 @@ ScubaFrame::SetViewConfiguration( ScubaFrame::ViewConfiguration iConfig ) {
 
   // First disable existing views that won't be in the new
   // configuration.
-  if( cNewRows < mcRows ) {
-    for( int nRow = cNewRows-1; nRow < mcRows; nRow++ ) {
-      int cCols = mcCols[nRow];
-      if( cNewCols[nRow] < cCols ) {
-	for( int nCol = cNewCols[nRow]-1; nCol < cCols; nCol++ ) {
-	  View* view;
-	  try {
-	    view = GetViewAtColRow( nCol, nRow );
-	    view->SetVisibleInFrame( false );
+  for( int nRow = 0; nRow < mcRows; nRow++ ) {
+    int cCols = mcCols[nRow];
+    if( cNewCols[nRow] < cCols ) {
+      for( int nCol = cNewCols[nRow]; nCol < cCols; nCol++ ) {
+	View* view;
+	try {
+	  view = GetViewAtColRow( nCol, nRow );
+	  view->SetVisibleInFrame( false );
 	  } 
-	  catch(...) {
-	    fprintf( stderr, "didn't get it\n" );
-	  }
+	catch(...) {
+	  cerr << "didn't get view col " << nCol << " row " << nRow << endl;
 	}
       }
     }
@@ -789,7 +787,7 @@ ScubaFrame::SetViewConfiguration( ScubaFrame::ViewConfiguration iConfig ) {
 	  view->SetLabel( sID.str() );
 	  
 	  view->SetVisibleInFrame( true );
-	
+
 	  view->AddListener( this );
 
 	} else {

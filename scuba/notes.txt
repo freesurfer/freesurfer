@@ -250,7 +250,8 @@ x - live reslicing
 x  - each view gets a color
 x  - in each view, display a color for intersection of other views
  - inplane tool
-  - on click, compare to inplane values of other views, find closest
+  x on click, compare to inplane values of other views, find closest
+    x find distance from line to point tool
   - on drag, change in plane center ras value
  - change inplane value to an actual plane description
  - can click and drag on those lines to move in plane or rotate
@@ -292,11 +293,10 @@ x     - display text, progress, have buttons on right
 
 x add 'selectable' flag to layer
 
-- surfaceRAS problem
-  - need to transform volume and surface from surfaceRAS space into real RAS space
-  - on volume, read in c_r,a,s and compose with index->dataRAS transform
-  - on surface, user MRIreadHeader to read ../mri/orig/COR-.info to read in c_r,a,s
-    - if not found, print error message
+x surfaceRAS problem
+  x need to transform volume and surface from surfaceRAS space into real RAS space
+  x on volume, read in c_r,a,s and compose with index->dataRAS transform
+  x on surface, read cras from lta
 
 
 DRAWING TOOLS:::
@@ -309,7 +309,7 @@ DRAWING TOOLS:::
 BRUCE'S LIST:::
 
 x data collection transform 
-- markers
+x markers
 - b/c controled by mouse, perhaps mod+mouse when nav tool is on
 
 
@@ -320,6 +320,7 @@ BUGS:::
 - sometimes filling returns an error with NewTask tcl cmd
 - crashing on ROI fill
 - markers and cursor draw at different slices when zoomed in
+- load up with no data, go to 2x2 view, switch view 0 to y, view 0's int line comes up in other views but other views' lines don't show in 0
 
 FUTURE IDEAS:::
 
@@ -331,34 +332,6 @@ nav tools draw onscreen sliders for feedback
  - function to translate v position into modifcation value
  - start at mouse point, use expo scale towards edge for min/max values
 
-
- 
--10.24      0      0 252.06
-     0 -10.24      0 192.67
-     0      0     10 164.819
-     0      0      0      1
-
-2.20863 -8.91588 -0.833334 272.035
-10.8348 2.3259 3.83109 198.361
--3.47596 -1.88695 10.976 187.85
-     0      0      0      1
-
-
--10.24      0      0 252.06
-     0 -10.24      0 192.67
-     0      0     10 164.819
-     0      0      0      1
-
-2.20863 -8.91588 0.833334 120.81
-10.8348 2.3259 -3.83109 -330.683
-3.47595 1.88695 10.976 71.8314
-     0      0      0      1
-
-
-2.20863 -11.3346 -1.07944 456.601
-8.52271 2.3259 3.90353 250.945
--2.68347 -1.85193 10.976 395.132
-     0      0      0      1
 
 hi cras 
 

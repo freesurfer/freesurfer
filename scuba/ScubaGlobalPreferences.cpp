@@ -50,12 +50,13 @@ ScubaGlobalPreferences::DoListenToTclCommand ( char* isCommand, int iArgc,
     string sKey = iasArgv[1];
     if( sKey == GetStringForKey( ViewFlipLeftRight ) ||
 	sKey == GetStringForKey( ShowConsole ) ||
+	sKey == GetStringForKey( AutoConfigureView ) ||
 	sKey == GetStringForKey( KeyInPlaneX ) ||
 	sKey == GetStringForKey( KeyInPlaneY ) ||
 	sKey == GetStringForKey( KeyInPlaneZ ) ||
 	sKey == GetStringForKey( KeyCycleViewsInFrame ) ||
 	sKey == GetStringForKey( DrawCoordinateOverlay ) ||
-	sKey == GetStringForKey( DrawCenterCrosshairOverlay ) ||
+	sKey == GetStringForKey( DrawPlaneIntersections ) ||
 	sKey == GetStringForKey( KeyMoveViewLeft ) ||
 	sKey == GetStringForKey( KeyMoveViewRight ) ||
 	sKey == GetStringForKey( KeyMoveViewUp ) ||
@@ -85,8 +86,9 @@ ScubaGlobalPreferences::DoListenToTclCommand ( char* isCommand, int iArgc,
     string sKey = iasArgv[1];
     if( sKey == GetStringForKey( ViewFlipLeftRight ) ||
 	sKey == GetStringForKey( ShowConsole ) ||
+	sKey == GetStringForKey( AutoConfigureView ) ||
 	sKey == GetStringForKey( DrawCoordinateOverlay ) ||
-	sKey == GetStringForKey( DrawCenterCrosshairOverlay ) ) {
+	sKey == GetStringForKey( DrawPlaneIntersections ) ) {
 
       bool bValue;
 
@@ -133,8 +135,9 @@ ScubaGlobalPreferences::GetPrefAsBool ( PrefKey iKey ) {
 
   if( iKey == ViewFlipLeftRight  ||
       iKey == ShowConsole ||
+      iKey == AutoConfigureView ||
       iKey == DrawCoordinateOverlay ||
-      iKey == DrawCenterCrosshairOverlay ) {
+      iKey == DrawPlaneIntersections ) {
   
     PreferencesManager& prefsMgr = PreferencesManager::GetManager();
     string sValue = prefsMgr.GetValue( GetStringForKey( iKey ) );
@@ -181,13 +184,14 @@ ScubaGlobalPreferences::GetStringForKey ( PrefKey iKey ) {
 
   switch( iKey ) {
   case ShowConsole:                return "ShowConsole";                 break;
+  case AutoConfigureView:          return "AutoConfigureView";           break;
   case ViewFlipLeftRight:          return "ViewFlipLeftRight";           break;
   case KeyInPlaneX:                return "KeyInPlaneX";                 break;
   case KeyInPlaneY:                return "KeyInPlaneY";                 break;
   case KeyInPlaneZ:                return "KeyInPlaneZ";                 break;
   case KeyCycleViewsInFrame:       return "KeyCycleViewsInFrame";        break;
   case DrawCoordinateOverlay:      return "DrawCoordinateOverlay";       break;
-  case DrawCenterCrosshairOverlay: return "DrawCenterCrosshairOverlay";  break;
+  case DrawPlaneIntersections:     return "DrawPlaneIntersections";      break;
   case KeyMoveViewLeft:            return "KeyMoveViewLeft";             break;
   case KeyMoveViewRight:           return "KeyMoveViewRight";            break;
   case KeyMoveViewUp:              return "KeyMoveViewUp";               break;
@@ -221,6 +225,12 @@ ScubaGlobalPreferences::ReadPreferences () {
 			  "Show the tkcon console on startup.",
 			  showConsole );
 
+  PreferencesManager::IntPrefValue autoConfigure( true );
+  prefsMgr.RegisterValue( GetStringForKey( AutoConfigureView ), 
+			  "Automatically set up the view when the view "
+			  "configuration is changed.",
+			  autoConfigure );
+
   PreferencesManager::StringPrefValue inPlaneX( "x" );
   prefsMgr.RegisterValue( GetStringForKey( KeyInPlaneX ), 
 			  "Key to change in plane to X in the view.",
@@ -245,10 +255,10 @@ ScubaGlobalPreferences::ReadPreferences () {
 			  "Draw the coordinate overlay in views.", 
 			  drawCoordinateOverlay );
 
-  PreferencesManager::IntPrefValue drawCenterCrosshairOverlay( true );
-  prefsMgr.RegisterValue( GetStringForKey( DrawCenterCrosshairOverlay ), 
-			  "Draw the center crosshair overlay in views.", 
-			  drawCenterCrosshairOverlay );
+  PreferencesManager::IntPrefValue drawPlaneIntersections( true );
+  prefsMgr.RegisterValue( GetStringForKey( DrawPlaneIntersections ), 
+			  "Draw the intersections of other views with this one as lines.", 
+			  drawPlaneIntersections );
 
   PreferencesManager::StringPrefValue moveViewLeft( "Left" );
   prefsMgr.RegisterValue( "KeyMoveViewLeft", 

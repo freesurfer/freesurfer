@@ -10,7 +10,7 @@ if { $err } {
     load [file dirname [info script]]/libscuba[info sharedlibextension] scuba
 }
 
-DebugOutput "\$Id: scuba.tcl,v 1.37 2004/06/18 20:04:58 kteich Exp $"
+DebugOutput "\$Id: scuba.tcl,v 1.38 2004/06/26 00:37:21 kteich Exp $"
 
 # gTool
 #   current - current selected tool (nav,)
@@ -373,7 +373,8 @@ proc LoadImages {} {
     
     set sFileErrors ""
     foreach sImageName { icon_edit_label icon_edit_volume icon_draw_line
-	icon_navigate icon_edit_ctrlpts icon_edit_parc icon_line_tool
+	icon_navigate icon_rotate_plane icon_edit_ctrlpts 
+	icon_edit_parc icon_line_tool
 	icon_view_single icon_view_multiple icon_view_31 
 	icon_cursor_goto icon_cursor_save 
 	icon_main_volume icon_aux_volume icon_linked_cursors 
@@ -443,14 +444,16 @@ proc MakeMenuBar { ifwTop } {
     tkuMakeMenu -menu $gaMenu(view) -label "View" -items {
 	{check "Flip Left/Right" { SetViewFlipLeftRightYZ $gaView(current,id) $gaView(flipLeftRight) } gaView(flipLeftRight) }
 	{check "Coordinate Overlay" { SetPreferencesValue DrawCoordinateOverlay $gaView(coordOverlay); RedrawFrame [GetMainFrameID] } gaView(coordOverlay) }
-	{check "Center Crosshair Overlay" { SetPreferencesValue DrawCenterCrosshairOverlay $gaView(crosshairOverlay); RedrawFrame [GetMainFrameID] } gaView(crosshairOverlay) }
+	{check "Plane Intersections" { SetPreferencesValue DrawPlaneIntersections $gaView(planeIntersections); RedrawFrame [GetMainFrameID] } gaView(planeIntersections) }
 	{check "Show Console:Alt N" { ShowHideConsole $gaView(tkcon,visible) } gaView(tkcon,visible) }
+	{check "Auto-Configure" {} gaView(autoConfigure) }
     }
 
     set gaView(flipLeftRight) [GetPreferencesValue ViewFlipLeftRight]
     set gaView(tkcon,visible) [GetPreferencesValue ShowConsole]
     set gaView(coordOverlay)  [GetPreferencesValue DrawCoordinateOverlay]
-    set gaView(crosshairOverlay)  [GetPreferencesValue DrawCenterCrosshairOverlay]
+    set gaView(planeIntersections) [GetPreferencesValue DrawPlaneIntersections]
+    set gaView(autoConfigure)  [GetPreferencesValue AutoConfigureView]
 
     pack $gaMenu(view) -side left
 
@@ -486,6 +489,7 @@ proc MakeToolBar { ifwTop } {
 	-command {ToolBarWrapper} \
 	-buttons {
 	    { -type image -name navigation -image icon_navigate } 
+	    { -type image -name plane -image icon_rotate_plane } 
 	    { -type image -name marker -image icon_marker_crosshair } 
 	    { -type image -name voxelEditing -image icon_edit_volume } 
 	    { -type image -name roiEditing -image icon_edit_label } 
@@ -538,13 +542,30 @@ proc ToolBarWrapper { isName iValue } {
 
     if { $iValue == 1 } {
 	switch $isName {
-	    navigation - marker - voxelEditing - roiEditing - \
+	    navigation - marker - plane - voxelEditing - roiEditing - \
 		straightLine - edgeLine {
 		SetToolMode $gaFrame([GetMainFrameID],toolID) $isName
 		SelectToolInToolProperties $isName
 	    }
 	    c1 - c22 - c13 {
 		SetFrameViewConfiguration [GetMainFrameID] $isName
+		# Customize the views here if requested.
+		if { $gaView(autoConfigure) } {
+		    set fID [GetMainFrameID]
+		    if { "$isName" == "c22" } {
+			SetViewInPlane [GetViewIDFromFrameColRow $fID 0 0] x
+			SetViewInPlane [GetViewIDFromFrameColRow $fID 1 0] y
+			SetViewInPlane [GetViewIDFromFrameColRow $fID 0 1] z
+			SetViewInPlane [GetViewIDFromFrameColRow $fID 1 1] x
+		    }
+		    if { "$isName" == "c13" } {
+			SetViewInPlane [GetViewIDFromFrameColRow $fID 0 0] x
+			SetViewInPlane [GetViewIDFromFrameColRow $fID 0 1] x
+			SetViewInPlane [GetViewIDFromFrameColRow $fID 1 1] y
+			SetViewInPlane [GetViewIDFromFrameColRow $fID 2 1] z
+		    }
+		}
+		CopyViewLayersToAllViewsInFrame $fID $gaView(current,id) 
 		UpdateViewList
 	    }
 	    x - y - z {
@@ -849,7 +870,8 @@ proc Quit {} {
     SetPreferencesValue ViewFlipLeftRight $gaView(flipLeftRight)
     SetPreferencesValue ShowConsole $gaView(tkcon,visible)
     SetPreferencesValue DrawCoordinateOverlay $gaView(coordOverlay)
-    SetPreferencesValue DrawCenterCrosshairOverlay $gaView(crosshairOverlay)
+    SetPreferencesValue DrawPlaneIntersections $gaView(planeIntersections)
+    SetPreferencesValue AutoConfigureView $gaView(autoConfigure)
     SetPreferences
     SaveGlobalPreferences
 
@@ -1255,8 +1277,8 @@ proc MakeToolsPanel { ifwTop } {
     set gaWidget(toolProperties,menu) $fwMenu
 
     FillMenuFromList $fwMenu \
-	{ navigation marker voxelEditing roiEditing straightLine edgeLine }  "" \
-	{ "Navigation" "Marker" "Voxel Editing" "ROI Editing" "Straight Line" "Edge Line"} false
+	{ navigation plane marker voxelEditing roiEditing straightLine edgeLine }  "" \
+	{ "Navigation" "Plane" "Marker" "Voxel Editing" "ROI Editing" "Straight Line" "Edge Line"} false
 
 
     frame $fwPropsCommon

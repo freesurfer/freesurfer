@@ -8,6 +8,12 @@ float DotVectors ( Point3<float>& v1, Point3<float>& v2 ) {
 float Length ( Point3<float>& v ) {
   return( sqrt( v[0]*v[0] + v[1]*v[1] + v[2]*v[2] ) );
 }
+
+float Distance ( Point3<float>& v, Point3<float>& w ) {
+  return( sqrt( (v[0] - w[0]) * (v[0] - w[0]) +
+		(v[1] - w[1]) * (v[1] - w[1]) +
+		(v[2] - w[2]) * (v[2] - w[2]) ) );
+}
   
 Point3<float> operator* ( float s, Point3<float>& v ) {
   return Point3<float>( v[0]*s, v[1]*s, v[2]*s );

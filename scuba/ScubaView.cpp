@@ -9,6 +9,7 @@
 #include "Point2.h"
 #include "Point3.h"
 #include "VectorOps.h"
+#include "Utilities.h"
 
 using namespace std;
 
@@ -44,7 +45,7 @@ ScubaView::ScubaView() {
   mInPlaneMarkerColor[1] = kInPlaneMarkerColors[nMarkerColor][1];
   mInPlaneMarkerColor[2] = kInPlaneMarkerColors[nMarkerColor][2];
   mbVisibleInFrame = false;
-
+  mCurrentMovingViewIntersection = -1;
 
   ScubaGlobalPreferences& globalPrefs =
     ScubaGlobalPreferences::GetPreferences();
@@ -169,8 +170,10 @@ ScubaView::Set2DRASCenter ( float iRASCenter[3] ) {
     
   // Broadcast this change.
   ScubaViewBroadcaster& broadcaster = ScubaViewBroadcaster::GetBroadcaster();
-    broadcaster.SendBroadcast( "2DRASCenterChanged", (void*)&mID );
-    
+  broadcaster.SendBroadcast( "2DRASCenterChanged", (void*)&mID );
+  
+  CalcViewToWindowTransform();
+
   // Changed our view center, so we need to rebuild the overlay.
   RebuildOverlayDrawList();
   RequestRedisplay();
@@ -193,29 +196,80 @@ ScubaView::Set2DZoomLevel ( float iZoomLevel ) {
 void
 ScubaView::Set2DInPlane ( ViewState::Plane iPlane ) {
 
+  // If we are going to a new plane, reset our plane normal. 
+  if( mViewState.mInPlane != iPlane ) {
+    switch( iPlane ) {
+    case ViewState::X:
+      mViewState.mPlaneNormal[0] = 1; 
+      mViewState.mPlaneNormal[1] = 0;
+      mViewState.mPlaneNormal[2] = 0;
+      break;
+    case ViewState::Y:
+      mViewState.mPlaneNormal[0] = 0;
+      mViewState.mPlaneNormal[1] = 1;
+      mViewState.mPlaneNormal[2] = 0;
+      break;
+    case ViewState::Z:
+      mViewState.mPlaneNormal[0] = 0; 
+      mViewState.mPlaneNormal[1] = 0;
+      mViewState.mPlaneNormal[2] = 1;
+      break;
+    }
+  }
+
   mViewState.mInPlane = iPlane;
 
-  switch( iPlane ) {
+  // Broadcast this change.
+  ScubaViewBroadcaster& broadcaster = ScubaViewBroadcaster::GetBroadcaster();
+  broadcaster.SendBroadcast( "2DInPlaneChanged", (void*)&mID );
+
+  CalcViewToWindowTransform();
+
+  // We changed our orientation so we must recalc all the other views'
+  // intersection points.
+  CalcAllViewIntersectionPoints();
+
+  // Changed in plane, so we need to rebuild the overlay.
+  RebuildOverlayDrawList();
+  RequestRedisplay();
+}
+
+void
+ScubaView::Set2DPlaneNormal ( float iNormal[3] ) {
+
+  switch( mViewState.mInPlane ) {
   case ViewState::X:
-    mViewState.mPlaneNormal[0] = 1; 
-    mViewState.mPlaneNormal[1] = 0;
-    mViewState.mPlaneNormal[2] = 0;
+    if( fabs(iNormal[0]) >= 0.5 ) {
+      mViewState.mPlaneNormal[0] = iNormal[0];
+      mViewState.mPlaneNormal[1] = iNormal[1];
+      mViewState.mPlaneNormal[2] = iNormal[2];
+    }
     break;
   case ViewState::Y:
-    mViewState.mPlaneNormal[0] = 0; 
-    mViewState.mPlaneNormal[1] = 1; 
-    mViewState.mPlaneNormal[2] = 0;
+    if( fabs(iNormal[1]) >= 0.5 ) {
+      mViewState.mPlaneNormal[0] = iNormal[0];
+      mViewState.mPlaneNormal[1] = iNormal[1];
+      mViewState.mPlaneNormal[2] = iNormal[2];
+    }
     break;
   case ViewState::Z:
-    mViewState.mPlaneNormal[0] = 0; 
-    mViewState.mPlaneNormal[1] = 0;
-    mViewState.mPlaneNormal[2] = 1;
+    if( fabs(iNormal[2]) >= 0.5 ) {
+      mViewState.mPlaneNormal[0] = iNormal[0];
+      mViewState.mPlaneNormal[1] = iNormal[1];
+      mViewState.mPlaneNormal[2] = iNormal[2];
+    }
     break;
   }
 
   // Broadcast this change.
   ScubaViewBroadcaster& broadcaster = ScubaViewBroadcaster::GetBroadcaster();
-  broadcaster.SendBroadcast( "2DInPlaneChanged", (void*)&mID );
+  broadcaster.SendBroadcast( "2DPlaneNormalChanged", (void*)&mID );
+
+  CalcViewToWindowTransform();
+
+  // We changed our orientation so we must recalc all the other views'
+  // intersection points.
+  CalcAllViewIntersectionPoints();
 
   // Changed in plane, so we need to rebuild the overlay.
   RebuildOverlayDrawList();
@@ -333,6 +387,7 @@ ScubaView::SetWorldToViewTransform ( int iTransformID ) {
     mWorldToView->RemoveListener( this );
     mWorldToView = &(ScubaTransform::FindByID( iTransformID ));
     mWorldToView->AddListener( this );
+    CalcWorldToWindowTransform();
     RequestRedisplay();
   }
   catch(...) {
@@ -880,16 +935,23 @@ ScubaView::DoListenToMessage ( string isMessage, void* iData ) {
   }
 
   if( isMessage == "DrawCoordinateOverlay" ||
-      isMessage == "DrawCenterCrosshairOverlay" ) {
+      isMessage == "DrawPlaneIntersections" ) {
     RebuildOverlayDrawList(); // our overlay will be different
     RequestRedisplay();
   }
 
-  // If we're linked, we need to change our view.
   if( isMessage == "2DRASCenterChanged" ||
       isMessage == "2DZoomLevelChanged" ||
-      isMessage == "2DInPlaneChanged" ) {
+      isMessage == "2DInPlaneChanged" ||
+      isMessage == "2DPlaneNormalChanged" ) {
+
     int viewID = *(int*)iData;
+
+    // If somebody else's RAS center or inplane changed, we need to
+    // recalc our inplane intersection points.
+    CalcViewIntersectionPoints( viewID );
+
+    // If we're linked, we need to change our view.
     if( mViewIDLinkedList[GetID()] && mViewIDLinkedList[viewID] ) {
       View& view = View::FindByID( viewID );
       // ScubaView& scubaView = dynamic_cast<ScubaView&>(view);
@@ -909,7 +971,7 @@ ScubaView::DoListenToMessage ( string isMessage, void* iData ) {
 
     // If we're visible request redisplays.
     if( IsVisibleInFrame() ) {
-      RebuildOverlayDrawList();
+      mbRebuildOverlayDrawList = true;
       RequestRedisplay();
     }
   }
@@ -923,6 +985,14 @@ ScubaView::DoListenToMessage ( string isMessage, void* iData ) {
   if( isMessage == "KeyMoveViewOut" )   msMoveViewOut   = *(string*)iData;
   if( isMessage == "KeyZoomViewIn" )    msZoomViewIn    = *(string*)iData;
   if( isMessage == "KeyZoomViewOut" )   msZoomViewOut   = *(string*)iData;
+
+  // New view, get some info about it.
+  if( isMessage == "NewView" ) {
+    int viewID = *(int*)iData;
+    if( viewID != GetID() ) {
+      CalcViewIntersectionPoints( viewID );
+    }
+  }
 
   View::DoListenToMessage( isMessage, iData );
 }
@@ -1064,34 +1134,122 @@ ScubaView::DoMouseMoved( int iWindow[2],
       if( moveLeftRight || moveUpDown || moveInOut ) {
 	
 	if( iTool.GetMode() == ScubaToolState::navigation ) {
-	  
-	  float newRAS[3];
+
+	  // Put the window relative translations into window relative.
+	  Point3<float> move;
 	  switch( mViewState.mInPlane ) {
 	  case ViewState::X:
-	    newRAS[0] = mOriginalCenterRAS[0] + moveInOut;
-	    newRAS[1] = mOriginalCenterRAS[1] + moveLeftRight;
-	    newRAS[2] = mOriginalCenterRAS[2] + moveUpDown;
+	    move.Set( moveInOut, moveLeftRight, moveUpDown );
 	    break;
 	  case ViewState::Y:
-	    newRAS[0] = mOriginalCenterRAS[0] + moveLeftRight;
-	    newRAS[1] = mOriginalCenterRAS[1] + moveInOut;
-	    newRAS[2] = mOriginalCenterRAS[2] + moveUpDown;
+	    move.Set( moveLeftRight, moveInOut, moveUpDown );
 	    break;
 	  case ViewState::Z:
-	    newRAS[0] = mOriginalCenterRAS[0] + moveLeftRight;
-	    newRAS[1] = mOriginalCenterRAS[1] + moveUpDown;
-	    newRAS[2] = mOriginalCenterRAS[2] + moveInOut;
+	    move.Set( moveLeftRight, moveUpDown, moveInOut );
 	    break;
 	  }
-	  Set2DRASCenter( newRAS );
 	  
-	} else if( iTool.GetMode() == ScubaToolState::plane ) {
-	  
-	  // Find the closest inplane line from another view.
-	  
-	  // Move that view's center RAS.
+	  // Translate the original view center into a window center.
+	  Point3<float> oldCenterWindow;
+	  mViewToWindow.MultiplyVector3( mOriginalCenterRAS, 
+					 oldCenterWindow.xyz() );
 
+	  // Apply the move.
+	  Point3<float> newCenterWindow;
+	  newCenterWindow[0] = oldCenterWindow[0] + move[0];
+	  newCenterWindow[1] = oldCenterWindow[1] + move[1];
+	  newCenterWindow[2] = oldCenterWindow[2] + move[2];
+
+	  // Convert back into view.
+	  Point3<float> newCenterView;
+	  mViewToWindow.InvMultiplyVector3( newCenterWindow.xyz(),
+					    newCenterView.xyz() );
 	  
+	  // Set the new center.
+	  Set2DRASCenter( newCenterView.xyz() );
+
+	} else if( iTool.GetMode() == ScubaToolState::plane ) {
+
+	  // If we have a view to move...
+	  if( mCurrentMovingViewIntersection != -1 ) {
+	    
+	    // Get the view..
+	    View& view = View::FindByID( mCurrentMovingViewIntersection );
+	    // ScubaView& scubaView = dynamic_cast<ScubaView&>(view);
+	    ScubaView& scubaView = (ScubaView&)view;
+	    
+	    switch( iInput.Button() ) {
+	      
+	      // Button 1, move that view's center RAS.
+	    case 1: {
+	      
+	      // Put the window relative translations into window
+	      // relative. Note we don't move in or out in this tool.
+	      Point3<float> move;
+	      switch( mViewState.mInPlane ) {
+	      case ViewState::X:
+		move.Set( 0, -moveLeftRight, -moveUpDown );
+		break;
+	      case ViewState::Y:
+		move.Set( -moveLeftRight, 0, -moveUpDown );
+		break;
+	      case ViewState::Z:
+		move.Set( -moveLeftRight, -moveUpDown, 0 );
+		break;
+	      }
+	      
+	      // Translate the original view center into a window center.
+	      Point3<float> oldCenterWindow;
+	      mViewToWindow.MultiplyVector3( mOriginalCenterRAS, 
+					     oldCenterWindow.xyz() );
+	      
+	      // Apply the move.
+	      Point3<float> newCenterWindow;
+	      newCenterWindow[0] = oldCenterWindow[0] + move[0];
+	      newCenterWindow[1] = oldCenterWindow[1] + move[1];
+	      newCenterWindow[2] = oldCenterWindow[2] + move[2];
+	      
+	      // Convert back into view.
+	      Point3<float> newCenterView;
+	      mViewToWindow.InvMultiplyVector3( newCenterWindow.xyz(),
+						newCenterView.xyz() );
+	      
+	      // Set the new center in the view.
+	      scubaView.Set2DRASCenter( newCenterView.xyz() );
+	      
+	    } break;
+	    
+	    // Button 2, rotate.
+	    case 2: {
+	
+	      // Find the biggest delta and divide it by the screen
+	      // dimension.
+	      float delta = (fabs(mMouseMoveDelta[0]) >
+			     fabs(mMouseMoveDelta[1]) ?
+			     mMouseMoveDelta[0] / (float)mWidth :
+			     mMouseMoveDelta[1] / (float)mHeight);
+	      
+	      // Multiple by ~2pi to get radians.
+	      float rads = delta * 6.3;
+	      
+	      // We're going to rotate around our plane normal. With
+	      // an origin of 0.
+	      Point3<float> axis( mViewState.mPlaneNormal );
+	      Point3<float> origin( 0,0,0 );
+	      Matrix44 rotate;
+	      rotate.MakeRotation( origin.xyz(), axis.xyz(), rads );
+	      
+	      // Now rotate the original normal to get a new normal.
+	      Point3<float> newPlaneNormal;
+	      rotate.MultiplyVector3( mOriginalPlaneNormal.xyz(),
+				      newPlaneNormal.xyz() );
+	      
+	      // Normalize it and set it in the view.
+	      NormalizeVector( newPlaneNormal );
+	      scubaView.Set2DPlaneNormal( newPlaneNormal.xyz() );
+	    } break;
+	    }
+	  }
 	}
       }
       
@@ -1180,6 +1338,12 @@ ScubaView::DoMouseUp( int iWindow[2],
     }
   }
 
+  // Unselect view intersection line if plane tool.
+  if( iTool.GetMode() == ScubaToolState::plane ) {
+    mCurrentMovingViewIntersection = -1;
+    mbRebuildOverlayDrawList = true;
+    RequestRedisplay();
+  }
 
   // If not a straight control-click, pass this tool to our layers.
   if( !(iInput.IsControlKeyDown() && 
@@ -1209,6 +1373,9 @@ void
 ScubaView::DoMouseDown( int iWindow[2], 
 			InputState& iInput, ScubaToolState& iTool ) {
 
+  Point3<float> ras;
+  TranslateWindowToRAS( iWindow, ras.xyz() );
+
   mLastMouseDown[0] = mLastMouseMoved[0] = iWindow[0];
   mLastMouseDown[1] = mLastMouseMoved[1] = iWindow[1];
   mMouseMoveDelta[0] = 0.0;
@@ -1218,18 +1385,64 @@ ScubaView::DoMouseDown( int iWindow[2],
   mOriginalCenterRAS[2] = mViewState.mCenterRAS[2];
   mOriginalZoom = mViewState.mZoomLevel;
 
+  // If this is the plane tool, find the nearest plane line.
+  if( iTool.GetMode() == ScubaToolState::plane ) {
+
+    // Find the closest inplane line from another view.
+    float minDistance = 999999;
+    int closestViewID = -1;
+    list<int> viewIDs;
+    GetIDList( viewIDs );
+    list<int>::iterator tViewID;
+    for( tViewID = viewIDs.begin(); tViewID != viewIDs.end(); ++tViewID ) {
+      
+      int viewID = *tViewID;
+      if( viewID != GetID () ) {
+	
+	View& view = View::FindByID( viewID );
+	// ScubaView& scubaView = dynamic_cast<ScubaView&>(view);
+	ScubaView& scubaView = (ScubaView&)view;
+	
+	if( scubaView.IsVisibleInFrame() ) {
+	  
+	  Point3<float> P1, P2;
+	  P1.Set( mViewIDViewIntersectionPointMap[viewID][0] );
+	  P2.Set( mViewIDViewIntersectionPointMap[viewID][1] );
+	  
+	  float distance = 
+	    Utilities::DistanceFromLineToPoint3f( P1, P2, ras );
+	  if( distance <= minDistance ) {
+	    minDistance = distance;
+	    closestViewID = viewID;
+	  }
+	}
+      }
+    }
+
+    mCurrentMovingViewIntersection = closestViewID;
+    if( mCurrentMovingViewIntersection != -1 ) {
+      // Get the views current RAS center.
+      View& view = View::FindByID( mCurrentMovingViewIntersection );
+      // ScubaView& scubaView = dynamic_cast<ScubaView&>(view);
+      ScubaView& scubaView = (ScubaView&)view;
+      scubaView.Get2DRASCenter( mOriginalCenterRAS );
+      scubaView.Get2DPlaneNormal( mOriginalPlaneNormal.xyz() );
+
+      mbRebuildOverlayDrawList = true;
+      RequestRedisplay();
+    }
+  }
+
   // If not a straight control-click, pass this tool to our layers.
   if( !(iInput.IsControlKeyDown() && 
 	!iInput.IsShiftKeyDown() && !iInput.IsAltKeyDown()) ) {
-    float ras[3];
-    TranslateWindowToRAS( iWindow, ras );
     map<int,int>::iterator tLevelLayerID;
     for( tLevelLayerID = mLevelLayerIDMap.begin(); 
 	 tLevelLayerID != mLevelLayerIDMap.end(); ++tLevelLayerID ) {
       int layerID = (*tLevelLayerID).second;
       try {
 	Layer& layer = Layer::FindByID( layerID );
-	layer.HandleTool( ras, mViewState, *this, iTool, iInput );
+	layer.HandleTool( ras.xyz(), mViewState, *this, iTool, iInput );
 	if( layer.WantRedisplay() ) {
 	  RequestRedisplay();
 	  layer.RedisplayPosted();
@@ -1366,42 +1579,8 @@ ScubaView::DoKeyUp( int iWindow[2],
 
 }
 
-void
-ScubaView::TranslateWindowToRAS ( int const iWindow[2], float oRAS[3] ) {
-
-  // At zoom level one every pixel is an RAS point, so we're scaled by
-  // that and then offset by the RAS center. We find a 3D point by
-  // using our mInPlane and the corresponding mCenterRAS in ViewState.
-
-  int xWindow = iWindow[0];
-  float viewRAS[3];
-  switch( mViewState.mInPlane ) {
-  case ViewState::X:
-    viewRAS[0] = mViewState.mCenterRAS[0];
-    viewRAS[1] = ConvertWindowToRAS( xWindow,mViewState.mCenterRAS[1],mWidth );
-    viewRAS[2] = ConvertWindowToRAS(iWindow[1],mViewState.mCenterRAS[2],mHeight );
-    break;
-  case ViewState::Y:
-    if( mbFlipLeftRightInYZ ) {
-      xWindow = mWidth - xWindow;
-    }
-    viewRAS[0] = ConvertWindowToRAS( xWindow,mViewState.mCenterRAS[0],mWidth );
-    viewRAS[1] = mViewState.mCenterRAS[1];
-    viewRAS[2] = ConvertWindowToRAS(iWindow[1],mViewState.mCenterRAS[2],mHeight );
-    break;
-  case ViewState::Z:
-    if( mbFlipLeftRightInYZ ) {
-      xWindow = mWidth - xWindow;
-    }
-    viewRAS[0] = ConvertWindowToRAS( xWindow,mViewState.mCenterRAS[0],mWidth );
-    viewRAS[1] = ConvertWindowToRAS(iWindow[1],mViewState.mCenterRAS[1],mHeight );
-    viewRAS[2] = mViewState.mCenterRAS[2];
-    break;
-  }
-
-#if 0
-  float RAS[3];
-  mWorldToView->InvMultiplyVector3( viewRAS, RAS );
+void 
+ScubaView::CalcViewToWindowTransform () {
 
   Point3<float> N( mViewState.mPlaneNormal );
   N = NormalizeVector( N );
@@ -1416,16 +1595,66 @@ ScubaView::TranslateWindowToRAS ( int const iWindow[2], float oRAS[3] ) {
 
 
   double rads = RadsBetweenVectors( N, D );
+  if( mViewState.mInPlane == ViewState::X ) {
+    rads = -rads;
+  }
 
   Point3<float> axis = CrossVectors( N, D );
-  mTmpRotation.MakeRotation( mViewState.mCenterRAS,
-			     axis.xyz(),
-			     rads );
+  mViewToWindow.MakeRotation( mViewState.mCenterRAS,
+			      axis.xyz(), rads );
 
-  mTmpRotation.MultiplyVector3( RAS, oRAS );
-#else
-  mWorldToView->InvMultiplyVector3( viewRAS, oRAS );
-#endif
+
+  CalcWorldToWindowTransform();
+}
+
+void 
+ScubaView::CalcWorldToWindowTransform () {
+
+  mWorldToWindow = 
+    mViewToWindow * mWorldToView->Inverse();
+
+}
+
+void
+ScubaView::TranslateWindowToRAS ( int const iWindow[2], float oRAS[3] ) {
+
+  // At zoom level one every pixel is an RAS point, so we're scaled by
+  // that and then offset by the RAS center. We find a 3D point by
+  // using our mInPlane and the corresponding mCenterRAS in ViewState.
+
+  int xWindow = iWindow[0];
+  float windowRAS[3];
+  switch( mViewState.mInPlane ) {
+  case ViewState::X:
+    windowRAS[0] = mViewState.mCenterRAS[0];
+    windowRAS[1] = ConvertWindowToRAS( xWindow,
+				       mViewState.mCenterRAS[1], mWidth );
+    windowRAS[2] = ConvertWindowToRAS(iWindow[1],
+				      mViewState.mCenterRAS[2], mHeight );
+    break;
+  case ViewState::Y:
+    if( mbFlipLeftRightInYZ ) {
+      xWindow = mWidth - xWindow;
+    }
+    windowRAS[0] = ConvertWindowToRAS( xWindow,
+				       mViewState.mCenterRAS[0], mWidth );
+    windowRAS[1] = mViewState.mCenterRAS[1];
+    windowRAS[2] = ConvertWindowToRAS( iWindow[1],
+				       mViewState.mCenterRAS[2], mHeight );
+    break;
+  case ViewState::Z:
+    if( mbFlipLeftRightInYZ ) {
+      xWindow = mWidth - xWindow;
+    }
+    windowRAS[0] = ConvertWindowToRAS( xWindow,
+				       mViewState.mCenterRAS[0], mWidth );
+    windowRAS[1] = ConvertWindowToRAS( iWindow[1],
+				       mViewState.mCenterRAS[1], mHeight );
+    windowRAS[2] = mViewState.mCenterRAS[2];
+    break;
+  }
+
+  mWorldToWindow.InvMultiplyVector3( windowRAS, oRAS );
 }
 
 float
@@ -1439,57 +1668,30 @@ ScubaView::ConvertWindowToRAS ( float iWindow, float iRASCenter,
 void
 ScubaView::TranslateRASToWindow ( float const iRAS[3], int oWindow[2] ) {
   
-#if 0
-  Point3<float> N( mViewState.mPlaneNormal );
-  N = NormalizeVector( N );
+  float windowRAS[3];
+  mWorldToWindow.MultiplyVector3( iRAS, windowRAS );
 
-  Point3<float> D;
-  switch( mViewState.mInPlane ) {
-  case ViewState::X: D.Set( 1, 0, 0 ); break;
-  case ViewState::Y: D.Set( 0, 1, 0 ); break;
-  case ViewState::Z: D.Set( 0, 0, 1 ); break;
-  }
-  D = NormalizeVector( D );
-
-
-  double rads = RadsBetweenVectors( N, D );
-
-  Point3<float> axis = CrossVectors( N, D );
-  mTmpRotation.MakeRotation( mViewState.mCenterRAS,
-			     axis.xyz(),
-			     -rads );
-
-  float RAS[3];
-  mTmpRotation.MultiplyVector3( iRAS, RAS );
-  
-  float viewRAS[3];
-  mWorldToView->MultiplyVector3( RAS, viewRAS );
-#else
-  
-  float viewRAS[3];
-  mWorldToView->MultiplyVector3( iRAS, viewRAS );
-#endif
   float xWindow = 0, yWindow = 0;
   switch( mViewState.mInPlane ) {
   case ViewState::X:
-    xWindow = ConvertRASToWindow( viewRAS[1],
+    xWindow = ConvertRASToWindow( windowRAS[1],
 				  mViewState.mCenterRAS[1], mWidth );
-    yWindow = ConvertRASToWindow( viewRAS[2],
+    yWindow = ConvertRASToWindow( windowRAS[2],
 				  mViewState.mCenterRAS[2], mHeight );
     break;
   case ViewState::Y:
-    xWindow = ConvertRASToWindow( viewRAS[0],
+    xWindow = ConvertRASToWindow( windowRAS[0],
 				  mViewState.mCenterRAS[0], mWidth );
-    yWindow = ConvertRASToWindow( viewRAS[2],
+    yWindow = ConvertRASToWindow( windowRAS[2],
 				  mViewState.mCenterRAS[2], mHeight );
     if( mbFlipLeftRightInYZ ) {
       xWindow = mWidth - xWindow;
     }
     break;
   case ViewState::Z:
-    xWindow = ConvertRASToWindow( viewRAS[0],
+    xWindow = ConvertRASToWindow( windowRAS[0],
 				  mViewState.mCenterRAS[0], mWidth );
-    yWindow = ConvertRASToWindow( viewRAS[1],
+    yWindow = ConvertRASToWindow( windowRAS[1],
 				  mViewState.mCenterRAS[1], mHeight );
     if( mbFlipLeftRightInYZ ) {
       xWindow = mWidth - xWindow;
@@ -1508,6 +1710,89 @@ ScubaView::ConvertRASToWindow ( float iRAS, float iRASCenter,
   return ((iRAS - iRASCenter) * mViewState.mZoomLevel) +
     (iWindowDimension / 2.0);
 }
+
+void
+ScubaView::CalcAllViewIntersectionPoints () {
+
+  list<int> viewIDs;
+  GetIDList( viewIDs );
+  list<int>::iterator tViewID;
+  for( tViewID = viewIDs.begin(); tViewID != viewIDs.end(); ++tViewID ) {
+    int viewID = *tViewID;
+    if( viewID != GetID () ) {
+      CalcViewIntersectionPoints( viewID );
+    }
+  }
+}
+
+void
+ScubaView::CalcViewIntersectionPoints ( int iViewID ) {
+
+  View& view = View::FindByID( iViewID );
+  // ScubaView& scubaView = dynamic_cast<ScubaView&>(view);
+  ScubaView& scubaView = (ScubaView&)view;
+
+  // Get the dot of our plane normal and its plane normal. If not
+  // zero...
+  Point3<float> n1( mViewState.mPlaneNormal );
+  Point3<float> n2;
+  scubaView.Get2DPlaneNormal( n2.xyz() );
+  if( !AreVectorsParallel( n1, n2 ) ) {
+    
+    // Get p1 and p2, the center RAS points for our plane
+    // and their plane.
+    Point3<float> p1( mViewState.mCenterRAS );
+    Point3<float> p2;
+    scubaView.Get2DRASCenter( p2.xyz() );
+    
+    // p3 is our RAS point for the edge of the window, and
+    // n3 is the normal for the 'side' of the viewing 'box',
+    // pointing into the middle of the window. This is
+    // definitely perpendicular to n1, but we need to check
+    // against n2, because if it is, then we need to change
+    // the normal to try a plane in the other
+    // orientation. i.e. if we're checking the left side
+    // plane, we'll change to the top side plane.
+    Point2<int> windowTopLeft( 0, 0 );
+    Point3<float> p3;
+    TranslateWindowToRAS( windowTopLeft.xy(), p3.xyz() );
+    Point3<float> n3;
+    switch( Get2DInPlane() ) { 
+    case ViewState::X:  n3.Set( 0, 1, 0 ); break;
+    case ViewState::Y:  n3.Set( 1, 0, 0 ); break;
+    case ViewState::Z:  n3.Set( 1, 0, 0 ); break;
+    }
+    
+    if( AreVectorsParallel( n2, n3 ) ) {
+      switch( Get2DInPlane() ) { 
+      case ViewState::X:  n3.Set( 0, 0, 1 ); break;
+      case ViewState::Y:  n3.Set( 0, 0, 1 ); break;
+      case ViewState::Z:  n3.Set( 0, 1, 0 ); break;
+      }
+    }
+    
+    // Intersect the three planes. This gives us an RAS
+    // interesction.
+    Point3<float> P_1((DotVectors(p1,n1) * CrossVectors(n2,n3)) +
+		      (DotVectors(p2,n2) * CrossVectors(n3,n1)) +
+		      (DotVectors(p3,n3) * CrossVectors(n1,n2)));
+    Point3<float> P1 = P_1 / TripleScaleVectors( n1, n2, n3 );
+    
+    // Now do the right or bottom plane.
+    Point2<int> windowBottomRight( mWidth-1, mHeight-1 );
+    TranslateWindowToRAS( windowBottomRight.xy(), p3.xyz() );
+    
+    Point3<float> P_2((DotVectors(p1,n1) * CrossVectors(n2,n3)) +
+		      (DotVectors(p2,n2) * CrossVectors(n3,n1)) +
+		      (DotVectors(p3,n3) * CrossVectors(n1,n2)));
+    Point3<float> P2 = P_2 / TripleScaleVectors( n1, n2, n3 );
+ 
+    // Save the results.
+    mViewIDViewIntersectionPointMap[iViewID][0].Set( P1 );
+    mViewIDViewIntersectionPointMap[iViewID][1].Set( P2 );
+  }
+}
+
 
 void
 ScubaView::SetCursor ( float iRAS[3] ) {
@@ -1733,7 +2018,7 @@ ScubaView::BuildOverlay () {
     }
   }
 
-  if( prefs.GetPrefAsBool( ScubaGlobalPreferences::DrawCenterCrosshairOverlay )) {
+  if( prefs.GetPrefAsBool( ScubaGlobalPreferences::DrawPlaneIntersections )) {
 
     // Draw our marker color around us.
     glColor3f( mInPlaneMarkerColor[0], 
@@ -1757,86 +2042,58 @@ ScubaView::BuildOverlay () {
       
       if( viewID != GetID () ) {
 
+	View& view = View::FindByID( viewID );
+	// ScubaView& scubaView = dynamic_cast<ScubaView&>(view);
+	ScubaView& scubaView = (ScubaView&)view;
+
 	try {
-	  View& view = View::FindByID( viewID );
-	  // ScubaView& scubaView = dynamic_cast<ScubaView&>(view);
-	  ScubaView& scubaView = (ScubaView&)view;
-	  
 	  if( scubaView.IsVisibleInFrame() ) {
 	    
-	    // Get the dot of our plane normal and its plane
-	    // normal. If not zero...
-	    Point3<float> n1( mViewState.mPlaneNormal );
-	    Point3<float> n2;
-	    scubaView.Get2DPlaneNormal( n2.xyz() );
-	    if( !AreVectorsParallel( n1, n2 ) ) {
+	    Point3<float> P1, P2;
+	    P1.Set( mViewIDViewIntersectionPointMap[viewID][0] );
+	    P2.Set( mViewIDViewIntersectionPointMap[viewID][1] );
+	    
+	    // Transform to window points. These are the two points
+	    // to connect to draw a line.
+	    Point2<int> drawPoint1;
+	    Point2<int> drawPoint2;
+	    TranslateRASToWindow( P1.xyz(), drawPoint1.xy() );
+	    TranslateRASToWindow( P2.xyz(), drawPoint2.xy() );
+	    
+	    // Get its marker color.
+	    float color[3];
+	    scubaView.GetInPlaneMarkerColor( color );
 
-	      // Get p1 and p2, the center RAS points for our plane
-	      // and their plane.
-	      Point3<float> p1( mViewState.mCenterRAS );
-	      Point3<float> p2;
-	      scubaView.Get2DRASCenter( p2.xyz() );
+	    // If this is the one we're currently moving, draw it thicker.
+	    if( viewID == mCurrentMovingViewIntersection ) {
+	      glLineWidth( 3 );
+	    } else {
+	      glLineWidth( 1 );
+	    }	      
+	    
+	    // Draw the line.
+	    glColor3f( color[0], color[1], color[2] );	    
+	    glBegin( GL_LINES );
+	    glVertex2d( drawPoint1.x(), drawPoint1.y() );
+	    glVertex2d( drawPoint2.x(), drawPoint2.y() );
+	    glEnd();
 
-	      // p3 is our RAS point for the edge of the window, and
-	      // n3 is the normal for the 'side' of the viewing 'box',
-	      // pointing into the middle of the window. This is
-	      // definitely perpendicular to n1, but we need to check
-	      // against n2, because if it is, then we need to change
-	      // the normal to try a plane in the other
-	      // orientation. i.e. if we're checking the left side
-	      // plane, we'll change to the top side plane.
-	      Point2<int> windowTopLeft( 0, 0 );
-	      Point3<float> p3;
-	      TranslateWindowToRAS( windowTopLeft.xy(), p3.xyz() );
-	      Point3<float> n3;
-	      switch( Get2DInPlane() ) { 
-	      case ViewState::X:  n3.Set( 0, 1, 0 ); break;
-	      case ViewState::Y:  n3.Set( 1, 0, 0 ); break;
-	      case ViewState::Z:  n3.Set( 1, 0, 0 ); break;
-	      }
-	      
-	      if( AreVectorsParallel( n2, n3 ) ) {
-		switch( Get2DInPlane() ) { 
-		case ViewState::X:  n3.Set( 0, 0, 1 ); break;
-		case ViewState::Y:  n3.Set( 0, 0, 1 ); break;
-		case ViewState::Z:  n3.Set( 0, 1, 0 ); break;
-		}
-	      }
+	    // Now just get the RAS center and draw a little circle there.
+	    Point3<float> centerRAS;
+	    Point2<int> centerWindow;
+	    scubaView.Get2DRASCenter( centerRAS.xyz() );
+	    TranslateRASToWindow( centerRAS.xyz(), centerWindow.xy() );
 
-	      // Intersect the three planes. This gives us an RAS
-	      // interesction.
-	      Point3<float> P_1((DotVectors(p1,n1) * CrossVectors(n2,n3)) +
-				(DotVectors(p2,n2) * CrossVectors(n3,n1)) +
-				(DotVectors(p3,n3) * CrossVectors(n1,n2)));
-	      Point3<float> P1 = P_1 / TripleScaleVectors( n1, n2, n3 );
+	    glColor3f( color[0], color[1], color[2] );	    
+	    glBegin( GL_LINE_STRIP );
+	    glVertex2d( centerWindow.x(), centerWindow.y()-4 );
+	    glVertex2d( centerWindow.x()-4, centerWindow.y() );
+	    glVertex2d( centerWindow.x(), centerWindow.y()+4 );
+	    glVertex2d( centerWindow.x()+4, centerWindow.y() );
+	    glVertex2d( centerWindow.x(), centerWindow.y()-4 );
+	    glEnd();
+	    
 
-	      // Now do the right or bottom plane.
-	      Point2<int> windowBottomRight( mWidth-1, mHeight-1 );
-	      TranslateWindowToRAS( windowBottomRight.xy(), p3.xyz() );
-
-	      Point3<float> P_2((DotVectors(p1,n1) * CrossVectors(n2,n3)) +
-				(DotVectors(p2,n2) * CrossVectors(n3,n1)) +
-				(DotVectors(p3,n3) * CrossVectors(n1,n2)));
-	      Point3<float> P2 = P_2 / TripleScaleVectors( n1, n2, n3 );
-
-	      // Transform to window points. These are the two points
-	      // to connect to draw a line.
-	      Point2<int> drawPoint1;
-	      Point2<int> drawPoint2;
-	      TranslateRASToWindow( P1.xyz(), drawPoint1.xy() );
-	      TranslateRASToWindow( P2.xyz(), drawPoint2.xy() );
-
-	      // Get its marker color.
-	      float color[3];
-	      scubaView.GetInPlaneMarkerColor( color );
-
-	      // Draw the line.
-	      glColor3f( color[0], color[1], color[2] );	    
-	      glBegin( GL_LINES );
-	      glVertex2d( drawPoint1.x(), drawPoint1.y() );
-	      glVertex2d( drawPoint2.x(), drawPoint2.y() );
-	      glEnd();
-	    }
 	  }
 	}
 	catch(...) {
@@ -1865,6 +2122,7 @@ ScubaView::BuildOverlay () {
 
     int cursorWindow[2];
     TranslateRASToWindow( mCursor.xyz(), cursorWindow );
+    glLineWidth( 1 );
     glColor3f( 1,0,0 );
     glBegin( GL_LINES );
     glVertex2d( cursorWindow[0] - 5, cursorWindow[1] );
@@ -1878,6 +2136,7 @@ ScubaView::BuildOverlay () {
     if( mMarkerVisible[nMarker] ) {
       int markerWindow[2];
       TranslateRASToWindow( mMarkerRAS[nMarker].xyz(), markerWindow );
+      glLineWidth( 1 );
       glColor3f( 0,1,0 );
       glBegin( GL_LINES );
       glVertex2d( markerWindow[0] - 5, markerWindow[1] );
@@ -1953,6 +2212,19 @@ ScubaView::DrawOverlay () {
 ScubaViewBroadcaster::ScubaViewBroadcaster () {
   mCurrentBroadcaster = -1;
 }
+
+View* 
+ScubaViewFactory::NewView() { 
+  ScubaView* view = new ScubaView();
+
+  // Notify other views of this new one.
+  int id = view->GetID();
+  ScubaViewBroadcaster& broadcaster = ScubaViewBroadcaster::GetBroadcaster();
+  broadcaster.SendBroadcast( "NewView", (void*)&id );
+
+  return view;
+}
+
 
 ScubaViewBroadcaster&
 ScubaViewBroadcaster::GetBroadcaster () {
