@@ -1050,6 +1050,52 @@ Trns_tErr Trns_ConvertBtoRAS ( mriTransformRef this,
 }
 
 
+Trns_tErr Trns_ConvertBRAStoB ( mriTransformRef this,
+				xVoxelRef       iBRASVoxel,
+				xVoxelRef       oBVoxel ) {
+
+  Trns_tErr eResult = Trns_tErr_NoErr;
+  
+  eResult = Trns_Verify( this );
+  if( Trns_tErr_NoErr != eResult )
+    goto error;
+
+  /* if we don't have our trans matricies, return an error. */
+  if( NULL == this->mRAStoB ) {
+    eResult = Trns_tErr_TransformationMatrixNotInited;
+    goto error;
+  }
+
+  /* set our coord matrix */
+  *MATRIX_RELT(this->mCoord1,1,1) = xVoxl_GetFloatX( iBRASVoxel );
+  *MATRIX_RELT(this->mCoord1,2,1) = xVoxl_GetFloatY( iBRASVoxel );
+  *MATRIX_RELT(this->mCoord1,3,1) = xVoxl_GetFloatZ( iBRASVoxel );
+  *MATRIX_RELT(this->mCoord1,4,1) = 1;
+
+  /* do the transform */
+  MatrixMultiply(this->mRAStoB, this->mCoord1, this->mCoord2 );
+
+  /* set the voxel to the matrix */
+  xVoxl_SetFloat( oBVoxel,
+		  *MATRIX_RELT(this->mCoord2,1,1), 
+		  *MATRIX_RELT(this->mCoord2,2,1), 
+		  *MATRIX_RELT(this->mCoord2,3,1) );
+
+  goto cleanup;
+
+ error:
+
+  if( Trns_tErr_NoErr != eResult ) {
+    DebugPrint( ("Error %d in Trns_ConvertBRAStoB: %s\n",
+      eResult, Trns_GetErrorString( eResult ) ) );
+  }
+
+ cleanup:
+
+  return eResult;
+}
+
+
 Trns_tErr Trns_ConvertMatrixAtoB ( mriTransformRef this,
            MATRIX*         iAMatrix,
            MATRIX*         oBMatrix ) {
