@@ -2,9 +2,9 @@
 // tkmDisplayArea.c
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2003/06/12 01:08:09 $
-// Revision       : $Revision: 1.75 $
+// Revision Author: $Author: tosa $
+// Revision Date  : $Date: 2003/07/01 14:23:43 $
+// Revision       : $Revision: 1.76 $
 
 #include "tkmDisplayArea.h"
 #include "tkmMeditWindow.h"
@@ -703,6 +703,7 @@ DspA_tErr DspA_SetSegmentationVolume ( tkmDisplayAreaRef this,
     }
     break;
   default:
+    break;
   }
   tkm_SendTclCommand( tkm_tTclCommand_ShowSegmentationOptions, 
 		      sTclArguments );
@@ -2924,6 +2925,7 @@ DspA_tErr DspA_HandleMouseUp_ ( tkmDisplayAreaRef this,
     break;
 
   default:
+    break;
   }
 
   /* If this isn't the nav tool, or is, but the cntrl key is down, set
@@ -3109,6 +3111,7 @@ DspA_tErr DspA_HandleMouseDown_ ( tkmDisplayAreaRef this,
     break;
 
   default:
+    break;
   }
   
   goto cleanup;
@@ -3343,8 +3346,8 @@ DspA_tErr DspA_HandleMouseMoved_ ( tkmDisplayAreaRef this,
       break;
     }
     break;
-
   default:
+    break;
   }
   
   
@@ -3805,6 +3808,7 @@ void DspA_BrushVoxelsInThreshold_ ( xVoxelRef ipaVoxel, int inCount,
 					    sBrush.mInfo[brush].mnNewValue );
       break;
   default:
+    break;
   }
 }
 
@@ -4865,6 +4869,7 @@ DspA_tErr DspA_DrawDTIOverlayToFrame_ ( tkmDisplayAreaRef this ) {
     case xColr_tComponent_Green: pDest += DspA_knGreenPixelCompIndex; break;
     case xColr_tComponent_Blue:  pDest += DspA_knBluePixelCompIndex;  break;
     default:
+      break;
     }
   
     for ( bufferPt.mnY = yMin; bufferPt.mnY != yMax; bufferPt.mnY += yInc) {
@@ -7357,6 +7362,7 @@ DspA_tErr DspA_SmartCutAtCursor ( tkmDisplayAreaRef this ) {
     dZ = 1000;
     break;
   default:
+    break;
   }
 
   /* Now see in which dimension we have the smallest distance. Then,
