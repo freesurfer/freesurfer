@@ -678,31 +678,36 @@ MRInormFindControlPoints(MRI *mri_src, int wm_target, float intensity_above,
           too_low = 0 ;
           if (val0 >= low_thresh && val0 <= hi_thresh && !ctrl)
           {
-            for (zk = -1 ; zk <= 1 ; zk++)
+            if (x == 167 && y == 127 && z == 126)
+              DiagBreak() ;
+            for (zk = -1 ; zk <= 1 && !too_low ; zk++)
             {
               zi = pzi[z+zk] ;
-              for (yk = -1 ; yk <= 1 ; yk++)
+              for (yk = -1 ; yk <= 1 && !too_low ; yk++)
               {
                 yi = pyi[y+yk] ;
-                for (xk = -1 ; xk <= 1 ; xk++)
+                for (xk = -1 ; xk <= 1 && !too_low ; xk++)
                 {
-                  if ((abs(xk) + abs(yk) + abs(zk)) > 1)
-                    continue ;  /* only allow 4 (6 in 3-d) connectivity */
+                  /*
+                    check for any 27-connected neighbor that is not
+                    in the right intensity range.
+                  */
                   xi = pxi[x+xk] ;
-                  ctrl = MRIvox(mri_ctrl, xi, yi, zi) ;
                   val = MRIvox(mri_src, xi, yi, zi) ;
                   if (val > hi_thresh || val < low_thresh)
                   {
                     too_low = 1 ; ctrl = 0 ;
                   }
-                  if (ctrl || too_low)
-                    break ;
+                  if ((abs(xk) + abs(yk) + abs(zk)) > 1)
+                    continue ;  /* only allow 4 (6 in 3-d) connectivity */
+
+                  /* now make sure that a 6-connected neighbor exists that
+                     is currently a control point.
+                  */
+                  if (MRIvox(mri_ctrl, xi, yi, zi))
+                    ctrl = 1 ;
                 }
-                if (ctrl || too_low)
-                  break ;
               }
-              if (ctrl || too_low)
-                break ;
             }
             MRIvox(mri_ctrl, x, y, z) = ctrl ;
             if (ctrl)
