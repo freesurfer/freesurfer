@@ -62,6 +62,11 @@ set parallelupdate TRUE
 set cor 0
 set hor 1
 set sag 2
+set changeplanelock 0
+
+# kt
+set gZoomCallNum 1
+set g3DViewFlag 0
 
 ### source standard widget wrapper code
 source $env(MRI_DIR)/lib/tcl/wrappers.tcl
@@ -215,30 +220,91 @@ proc fixdipdecname { varName index op } {
 }  
 
 proc fixfocus { varName index op } {
-  global plane cor hor sag
+  global plane cor hor sag changeplanelock
+  if {$changeplanelock} { return }
   if {$plane==$cor} { focus .mri.main.left.view.pan.cor.bot.sc }
   if {$plane==$hor} { focus .mri.main.left.view.pan.hor.bot.sc }
   if {$plane==$sag} { focus .mri.main.left.view.pan.sag.bot.sc }
 }
 
 proc zoomcoords { varName index op } {  ;# trace nice, update real if changed
-  global zf newimc newic newjc imc ic jc
+  global zf newimc newic newjc imc ic jc plane
   global dontzoom
   if {$dontzoom} { return }
-  set imc [expr $newimc*$zf]
-  set ic [expr $newic*$zf]
-  set jc [expr $newjc*$zf]
+  #set imc [expr $newimc*$zf]
+  #set ic [expr $newic*$zf]
+  #set jc [expr $newjc*$zf]
+
+    # kt - to do coord conversions properly, call the VoxelToScreen cmd from
+    # the c code. pass in our new* coords, which represent the coords on the
+    # sliders, and use them to set our screen coords, used in the c code.
+    # additionally, we need to flip ic here because the slider is in the
+    # opposite orientation.
+    #puts "zoom before: jc, ic, imc = $jc, $ic, $imc newjc, newic, newimc = $newjc, $newic, $newimc plane = $plane"
+    # set gZoomCallNum [expr $gZoomCallNum+1]
+    set theTempNewIC [expr 255 - $newic]
+    # puts "             tempic = $theTempNewIC"
+    set jc [lindex [VoxelToScreen $newjc $theTempNewIC $newimc $plane] 0]
+    set ic [lindex [VoxelToScreen $newjc $theTempNewIC $newimc $plane] 1]
+    set imc [lindex [VoxelToScreen $newjc $theTempNewIC $newimc $plane] 2]
+    # set gZoomCallNum [expr $gZoomCallNum-1]
+    #puts "zoom after:  jc, ic, imc = $jc, $ic, $imc newjc, newic, newimc = $newjc, $newic, $newimc plane = $plane"
+
+    # end_kt
 }
 
 proc unzoomcoords { } {  ;# update nice (stop loop)
-  global zf newimc newic newjc imc ic jc
+  global zf newimc newic newjc imc ic jc plane
   global dontzoom
   set dontzoom TRUE
-  set newimc [expr $imc/$zf]
-  set newic [expr $ic/$zf]
-  set newjc [expr $jc/$zf]
+    #set newimc [expr $imc/$zf]
+    #set newic [expr $ic/$zf]
+    #set newjc [expr $jc/$zf]
+
+    # kt - do the same thing, other way around. set our slider coords
+    # to the converted screen coords from our c code.
+    #puts "unzoom before: jc, ic, imc = $jc, $ic, $imc newjc, newic, newimc = $newjc, $newic, $newimc plane = $plane"
+    # set gZoomCallNum [expr $gZoomCallNum+1]
+    
+    set newjc [lindex [ScreenToVoxel $plane $jc $ic $imc] 0]
+    set newic [lindex [ScreenToVoxel $plane $jc $ic $imc] 1]
+    set newimc [lindex [ScreenToVoxel $plane $jc $ic $imc] 2]
+    # set gZoomCallNum [expr $gZoomCallNum-1]
+    #puts "unzoom after:  jc, ic, imc = $jc, $ic, $imc newjc, newic, newimc = $newjc, $newic, $newimc plane = $plane"
+
   set dontzoom FALSE
+
+    # end_kt
 }
+
+# kt - this calls c code to save and restore the cursor before and after 
+# setting the new plane. replaced all code that set the plan variable directly
+# to use this function.
+proc SetPlane { inNewPlane } {
+
+    global plane
+
+    SaveCursorInVoxel;
+    set plane $inNewPlane;
+    SetCursorToSavedVoxel;
+    redraw;
+    update idletasks;
+    sendupdate;
+}    
+
+# kt - this does a similar thing except with switching between all3 view.
+proc Set3DViewFlag { varName index op } {
+
+    global all3flag g3DViewFlag
+
+    SaveCursorInVoxel;
+    set all3flag $g3DViewFlag;
+    SetCursorToSavedVoxel;
+    redraw;
+    update idletasks;
+    sendupdate;
+}
+
 
 proc talupdate { varName index op } {
   global xtalairach ytalairach ztalairach
@@ -312,9 +378,23 @@ proc changeslice { dir } {
   global plane cor hor sag
   if {$dir == "up"} { upslice; redraw }
   if {$dir == "down"} { downslice; redraw }
-  if {$plane==$cor} { set newimc [expr $imc/$zf] }
-  if {$plane==$hor} { set newic [expr $ic/$zf] }
-  if {$plane==$sag} { set newjc [expr $jc/$zf] }
+
+    # kt - changed to use conversion function (for consistency)
+    # if {$plane==$cor} { set newimc [expr $imc/$zf] }
+    # if {$plane==$hor} { set newic [expr $ic/$zf] }
+    # if {$plane==$sag} { set newjc [expr $jc/$zf] }
+
+    if {$plane==$cor} {
+        set newimc [lindex [ScreenToVoxel $plane $jc $ic $imc] 2]
+    }
+
+    if {$plane==$hor} {
+        set newic [lindex [ScreenToVoxel $plane $jc $ic $imc] 1]
+    }
+
+    if {$plane==$sag} {
+        set newjc [lindex [ScreenToVoxel $plane $jc $ic $imc] 0]
+    }
 }
 
 proc rotheadpts { angle } {
@@ -338,6 +418,12 @@ proc transheadpts { dist axis } {
   }
 }
 
+proc findsendto { } {
+  global fulltksurfer
+  set fulltksurfer ""
+  catch { set fulltksurfer [lrange [exec ps -af | grep /tksurfer] 7 7] }
+}
+
 proc testclose { } {
   global editedimage abs_imstem
   if {$editedimage} {
@@ -351,7 +437,8 @@ proc testclose { } {
 
 proc histogram { } {
   global linearflag bwflag rgb
-  if { [exec uname] != "IRIX"} { return }
+  #if { [exec uname] != "IRIX"} { return }
+  if { [exec uname] != "IRIX" && [exec uname] != "IRIX64"} { return }
   set tmprgb /tmp/hist.rgb
   set linearflag TRUE
   set bwflag TRUE
@@ -478,7 +565,7 @@ pack .mri -side left
           frame .mri.main.left.view.butt.right
           pack .mri.main.left.view.butt.right -side left
     # right column
-    frame .mri.main.right -borderwidth 2
+    frame .mri.main.right ;# -borderwidth 2
     pack .mri.main.right -side left
       frame .mri.main.right.fi -borderwidth 2 -relief groove
       pack .mri.main.right.fi -side top
@@ -494,7 +581,7 @@ pack .mri -side left
           pack .mri.main.right.snorm.bot.ffrac -side left
           frame .mri.main.right.snorm.bot.dir
           pack .mri.main.right.snorm.bot.dir -side left
-      frame .mri.main.right.wm -borderwidth 2 -relief groove
+      frame .mri.main.right.wm ;# -borderwidth 2 -relief groove
       pack .mri.main.right.wm -side top -fill x
         frame .mri.main.right.wm.tru
         pack .mri.main.right.wm.tru -side top
@@ -510,6 +597,8 @@ pack .mri -side left
           pack .mri.main.right.wm.fil.le -side left
           frame .mri.main.right.wm.fil.ri
           pack .mri.main.right.wm.fil.ri -side left
+        frame .mri.main.right.wm.thr
+        pack .mri.main.right.wm.thr -side top
       frame .mri.main.right.im2 -borderwidth 2 -relief groove
       pack .mri.main.right.im2 -side top -fill both
       frame .mri.main.right.cmp
@@ -598,19 +687,19 @@ $f.a3D.ck config -onvalue 0 -offvalue 1   ;# flip polarity
 # point
 set f .mri.main.left.head.pnt
 # async so doesn't wait for answer from running offline tcl script
-buttons $f "SEND PNT" { write_point; \
-         catch { send -async tksurfer select_orig_vertex_coordinates } } row 2 2
+buttons $f "SEND PNT" { write_point; findsendto; \
+  catch { send -async $fulltksurfer select_orig_vertex_coordinates } } row 2 2
 buttons $f "GOTO PNT" {goto_point; redraw; unzoomcoords; sendgoto} row 2 2
-checks $f "" "all" all3flag row
-$f.aall.ck config -command { redraw }
+checks $f "" "all" g3DViewFlag row
+$f.aall.ck config -command { redraw } ;# kt- unzoom before all3
 
 ### cor: button (x=jc,y=imc,z=ic)
 set f .mri.main.left.view.pan.cor.top
-buttons $f "CORONAL" {set plane $cor; redraw; unzoomcoords; sendupdate} row
+buttons $f "CORONAL" { SetPlane $cor;} row
 edlabval $f "yTal" 0 n 9 5 row
 $f.yTal.e config -textvariable ytalairach -font $sfont
 bind $f.yTal.e <Return> \
-  {set plane $cor; talairach_to_coords; redraw; unzoomcoords; sendupdate}
+  { SetPlane $cor; talairach_to_coords; redraw; unzoomcoords; sendupdate}
 $f.yTal.la config -text "yTal P/A:"
 ### cor: slice
 set f .mri.main.left.view.pan.cor.bot
@@ -618,20 +707,20 @@ scale $f.sc -from $cormin -to $cormax -length $sclenx -variable newimc \
    -orient horizontal -tickinterval 127 -showvalue false -font $sfont \
    -width 11 -resolution 1
 pack $f.sc -side left
-bind $f.sc <ButtonRelease> {set plane $cor; redraw; update idletasks;sendupdate}
+bind $f.sc <ButtonRelease> { SetPlane $cor; }
 #bind $f.sc <B1-Motion> { redraw }   ;# too slow
 edlabval $f "none" 0 n 0 3 row
 pack $f.none -side top   ;# repack to align with scale
 $f.none.e config -textvariable newimc -font $sfont
-bind $f.none.e <Return> {set plane $cor; redraw; update idletasks; sendupdate}
+bind $f.none.e <Return> {SetPlane $cor;}
 
 ### sag: button
 set f .mri.main.left.view.pan.sag.top
-buttons $f SAGITTAL {set plane $sag; redraw; unzoomcoords; sendupdate} row 2 8
+buttons $f SAGITTAL {SetPlane $sag;} row 2 8
 edlabval $f "xTal" 0 n 9 5 row
 $f.xTal.e config -textvariable xtalairach -font $sfont
 bind $f.xTal.e <Return> \
-  {set plane $sag; talairach_to_coords; redraw; unzoomcoords; sendupdate}
+  {SetPlane $sag; talairach_to_coords; redraw; unzoomcoords; sendupdate}
 $f.xTal.la config -text "xTal R/L:"
 ### sag: slice
 set f .mri.main.left.view.pan.sag.bot
@@ -639,20 +728,20 @@ scale $f.sc -from $sagmin -to $sagmax -length $sclenx -variable newjc \
    -orient horizontal -tickinterval 127 -showvalue false -font $sfont \
    -width 11 -resolution 1
 pack $f.sc -side left
-bind $f.sc <ButtonRelease> {set plane $sag; redraw; update idletasks;sendupdate}
+bind $f.sc <ButtonRelease> { SetPlane $sag; }
 #bind $f.sc <B1-Motion> { redraw }
 edlabval $f "none" 0 n 0 3 row
 pack $f.none -side top
 $f.none.e config -textvariable newjc -font $sfont
-bind $f.none.e <Return> {set plane $sag; redraw; update idletasks; sendupdate}
+bind $f.none.e <Return> {SetPlane $sag;}
 
 ### hor: button
 set f .mri.main.left.view.pan.hor.top
-buttons $f HORIZONTAL {set plane $hor; redraw; unzoomcoords; sendupdate} row 2 6
+buttons $f HORIZONTAL {SetPlane $hor;} row 2 6
 edlabval $f "zTal" 0 n 9 5 row
 $f.zTal.e config -textvariable ztalairach -font $sfont
 bind $f.zTal.e <Return> \
-  {set plane $hor; talairach_to_coords; redraw; unzoomcoords; sendupdate}
+  {SetPlane $hor; talairach_to_coords; redraw; unzoomcoords; sendupdate}
 $f.zTal.la config -text "zTal I/S:"
 ### hor: slice
 set f .mri.main.left.view.pan.hor.bot
@@ -660,12 +749,12 @@ scale $f.sc -from $hormin -to $hormax -length $sclenx -variable newic \
    -orient horizontal -tickinterval 127 -showvalue false -font $sfont \
    -width 11 -resolution 1
 pack $f.sc -side left
-bind $f.sc <ButtonRelease> {set plane $hor; redraw; update idletasks;sendupdate}
+bind $f.sc <ButtonRelease> { SetPlane $hor; }
 #bind $f.sc <B1-Motion> { redraw }
 edlabval $f "none" 0 n 0 3 row
 pack $f.none -side top
 $f.none.e config -textvariable newic -font $sfont
-bind $f.none.e <Return> {set plane $hor; redraw; update idletasks; sendupdate}
+bind $f.none.e <Return> {SetPlane $hor; }
 
 ### explicit plane focus
 trace variable plane w fixfocus
@@ -685,6 +774,11 @@ trace variable zf w contupdate
 
 ### current pixval
 trace variable selectedpixval w pixvaltitle
+
+### set all3 view
+trace variable g3DViewFlag w Set3DViewFlag 
+
+
 
 ### misc buttons
 set f .mri.main.left.view.butt.left
@@ -793,6 +887,15 @@ set f .mri.main.right.wm.fil
 buttons $f "PLANEFILTER" { wmfilter_corslice } row 1 4
 edlabval $f "grayhigh" $gray_hilim n 10 3
 $f.grayhigh.e config -textvariable gray_hilim
+
+# overlay thresh
+set f .mri.main.right.wm.thr
+edlabval $f fthr 0 n 5 3 row
+edlabval $f fslope 0 n 7 3 row
+edlabval $f fmid 0 n 5 3 row
+$f.fthr.e config -textvariable f2thresh
+$f.fslope.e config -textvariable fslope
+$f.fmid.e config -textvariable fmid
 
 ### read 2nd image
 set f .mri.main.right.im2
@@ -963,9 +1066,9 @@ bind . <Alt-Key-M> { .main.left.view.butt.left.aoverlay.ck invoke }
 bind . <Alt-m> { .mri.main.left.view.butt.left.aoverlay.ck invoke }
 bind . <Alt-d> { .mri.main.left.view.butt.left.asurface.ck invoke }
 # planes
-bind . <Alt-y> { set plane $cor; redraw }
-bind . <Alt-x> { set plane $sag; redraw }
-bind . <Alt-z> { set plane $hor; redraw }
+bind . <Alt-y> { SetPlane $cor; }
+bind . <Alt-x> { SetPlane $sag; }
+bind . <Alt-z> { SetPlane $hor; }
 # slices
 bind . <Alt-Right> { changeslice up; sendupdate }
 bind . <Alt-Left>  { changeslice down; sendupdate }
