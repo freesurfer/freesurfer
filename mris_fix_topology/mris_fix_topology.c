@@ -16,7 +16,7 @@
 #include "icosahedron.h"
 #include "mrishash.h"
 
-static char vcid[] = "$Id: mris_fix_topology.c,v 1.3 1999/04/20 14:44:13 fischl Exp $";
+static char vcid[] = "$Id: mris_fix_topology.c,v 1.4 1999/08/13 21:58:51 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -30,7 +30,9 @@ char *Progname ;
 
 
 static char *sphere_name = "qsphere" ;
-static char *orig_name = "smoothwm" ;
+static char *orig_name = "orig" ;
+static char suffix[STRLEN] = "_corrected" ;
+static int  add = 1 ;
 
 #define MAX_VERTICES  0
 #define MAX_FACES     0
@@ -42,6 +44,7 @@ main(int argc, char *argv[])
   int           ac, nargs ;
   MRI_SURFACE   *mris, *mris_corrected ;
   int           msec, nvert, nfaces, nedges, eno ;
+  float         max_len ;
   struct timeb  then ;
 
   Gdiag |= DIAG_WRITE ;
@@ -97,19 +100,27 @@ main(int argc, char *argv[])
   if (!mris_corrected)  /* for now */
     exit(0) ;
 
-  sprintf(fname, "%s/%s/surf/%s.%s", sdir, sname, hemi, "inflated_corrected");
+  if (add)
+    for (max_len = 1.5*8 ; max_len > 1 ; max_len /= 2)
+      MRISdivideLongEdges(mris_corrected, max_len) ;
+
+#if 0
+  sprintf(fname, "%s/%s/surf/%s.inflated%s", sdir, sname, hemi, suffix);
   fprintf(stderr, "writing corrected surface to %s...\n", fname) ;
   MRISwrite(mris_corrected, fname) ;
+#endif
 
   MRISrestoreVertexPositions(mris_corrected, ORIGINAL_VERTICES) ;
-  sprintf(fname, "%s/%s/surf/%s.%s", sdir, sname, hemi, "smoothwm_corrected");
+  sprintf(fname, "%s/%s/surf/%s.%s%s", sdir, sname, hemi, orig_name,suffix);
   fprintf(stderr, "writing corrected surface to %s...\n", fname) ;
   MRISwrite(mris_corrected, fname) ;
 
+#if 0
   MRISrestoreVertexPositions(mris_corrected, CANONICAL_VERTICES) ;
-  sprintf(fname, "%s/%s/surf/%s.%s", sdir, sname, hemi, "sphere_corrected");
+  sprintf(fname, "%s/%s/surf/%s.sphere%s", sdir, sname, hemi, suffix);
   fprintf(stderr, "writing corrected surface to %s...\n", fname) ;
   MRISwrite(mris_corrected, fname) ;
+#endif
 
 #if 0
   fprintf(stderr, "computing curvature of regenerated surface...\n") ;
@@ -153,6 +164,22 @@ get_option(int argc, char *argv[])
     sphere_name = argv[2] ;
     fprintf(stderr,"reading spherical homeomorphism from '%s'\n",sphere_name);
     nargs = 1 ;
+  }
+  else if (!stricmp(option, "suffix"))
+  {
+    strcpy(suffix, argv[2]) ;
+    fprintf(stderr,"adding suffix '%s' to output names\n", suffix) ;
+    nargs = 1 ;
+  }
+  else if (!stricmp(option, "add"))
+  {
+    fprintf(stderr,"adding vertices after retessellation\n") ;
+    add = 1 ;
+  }
+  else if (!stricmp(option, "noadd"))
+  {
+    fprintf(stderr,"not adding vertices after retessellation\n") ;
+    add = 0 ;
   }
   else if (!stricmp(option, "orig"))
   {
