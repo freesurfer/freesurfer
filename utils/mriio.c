@@ -1060,8 +1060,8 @@ analyzeWrite(MRI *mri, char *fname, int frame)
 
   if (mri->slice_direction != MRI_CORONAL)
     ErrorReturn(ERROR_UNSUPPORTED, 
-                (ERROR_UNSUPPORTED,"analyzeWrite: unsupported slice direction %d", 
-                mri->slice_direction)) ;
+            (ERROR_UNSUPPORTED,"analyzeWrite: unsupported slice direction %d", 
+             mri->slice_direction)) ;
 
   switch (mri->type)
   {
@@ -1116,19 +1116,27 @@ analyzeRead(char *fname, int read_volume, int frame)
   else
     max_dim = height > depth ? height : depth ;
 
+#if 1
   if (hdr.dime.pixdim[0] > 3.5f)/* hack to support FIL and texas */
   {
     width = hdr.dime.dim[1]; depth = hdr.dime.dim[2]; height = hdr.dime.dim[3];
   }
+#endif
 
 #if 1
   /* these are the sizes the image 'should' be */
   if (hdr.dime.pixdim[0] > 3.5f)/* hack to support FIL and texas */
   {
-    hdr.dime.pixdim[2] *= 2 ;
+    hdr.dime.pixdim[2] *= 1.3 ;
+#if 1
     width = max_dim / hdr.dime.pixdim[1] ;
     height = max_dim / hdr.dime.pixdim[2] ;
     depth = max_dim / hdr.dime.pixdim[3] ;
+#else
+    width = max_dim / hdr.dime.pixdim[3] ;
+    height = max_dim / hdr.dime.pixdim[2] ;
+    depth = max_dim / hdr.dime.pixdim[1] ;
+#endif
   }
   else
   {
@@ -1140,6 +1148,7 @@ analyzeRead(char *fname, int read_volume, int frame)
 
   mri = 
     MRIallocSequence(width, height, depth, type, hdr.dime.dim[4]);
+#if 1
   if (hdr.dime.pixdim[0] > 3.5f)/* hack to support FIL and texas */
   {
     mri->xsize = hdr.dime.pixdim[1] ;
@@ -1147,6 +1156,7 @@ analyzeRead(char *fname, int read_volume, int frame)
     mri->zsize = hdr.dime.pixdim[3] ;
   }
   else
+#endif
   {
     mri->xsize = hdr.dime.pixdim[3] ;
     mri->ysize = hdr.dime.pixdim[2] ;
@@ -1177,6 +1187,15 @@ analyzeRead(char *fname, int read_volume, int frame)
 #if 1
   mri_dst = MRIinterpolate(mri, NULL) ;
   MRIfree(&mri) ;
+  if (hdr.dime.pixdim[0] > 3.5f)/* hack to support FIL and texas */
+  {
+    mri = MRIreorder(mri_dst, NULL, ZDIM, -XDIM, -YDIM) ;
+    MRIreorder(mri, mri_dst, XDIM, YDIM, -ZDIM) ;
+#if 0
+    MRIfree(&mri_dst) ;
+    mri_dst = mri ;
+#endif
+  }
   return(mri_dst) ;
 #else
   return(mri) ;
@@ -1398,6 +1417,7 @@ read_byte_analyze_image(char *fname, MRI *mri, dsr *hdr)
   width = hdr->dime.dim[1] ;
   height = hdr->dime.dim[2] ;
   depth = hdr->dime.dim[3] ;
+#if 1
   if (hdr->dime.pixdim[0] > 3.5f)/* hack to support FIL and texas */
   {
     xoff = (mri->width - width) / 2 ;
@@ -1405,6 +1425,7 @@ read_byte_analyze_image(char *fname, MRI *mri, dsr *hdr)
     zoff = (mri->depth - height) / 2 ;
   }
   else
+#endif
   {
     xoff = (mri->width - depth) / 2 ;
     yoff = (mri->height - height) / 2 ;
@@ -1425,7 +1446,7 @@ read_byte_analyze_image(char *fname, MRI *mri, dsr *hdr)
     fclose(fp) ;
     ErrorReturn(ERROR_NOMEMORY, 
                 (ERROR_NOMEMORY, 
-                 "read_analyze_image: could not allocate %d x %d x %d buffer",
+                "read_analyze_image: could not allocate %d x %d x %d buffer",
                  width, height, bytes_per_pix)) ;
   }
 
@@ -1454,9 +1475,7 @@ read_byte_analyze_image(char *fname, MRI *mri, dsr *hdr)
           break;
         case DT_UNSIGNED_CHAR:
           b = (char)(*(unsigned char *)(buf+bytes_per_pix*(y*width+x)));
-          if (b != 0)
-            DiagBreak() ;
-          xd = z + xoff ; yd = (height-y-1) + yoff ; zd = (width-x-1) + zoff ;
+          xd = z + xoff ; yd = (height-y-1) + yoff ; zd = (width-x-1) + zoff;
           MRIvox(mri, xd, yd, zd) = b ;
           break;
         case DT_SIGNED_SHORT:
@@ -1471,6 +1490,10 @@ read_byte_analyze_image(char *fname, MRI *mri, dsr *hdr)
           b = (char)(scale * (float)(s-hdr->dime.glmin));
           break;
         }
+#if 0
+        xd = z + xoff ; yd = (height-y-1) + yoff ; zd = (width-x-1) + zoff ;
+        MRIvox(mri, xd, yd, zd) = b ;
+#endif
       }
     }
   }
@@ -1494,8 +1517,8 @@ read_byte_analyze_image(char *fname, MRI *mri, dsr *hdr)
         fclose(fp) ;
         ErrorReturn(ERROR_BADFILE, 
                     (ERROR_BADFILE, 
-                     "read_analyze_image: could not slice %d (%d items read)",
-                     z, bufsize)) ;
+                   "read_analyze_image: could not slice %d (%d items read)",
+                   z, bufsize)) ;
       }
       
       for (y = 0 ; y < height ; y++)
@@ -1507,11 +1530,13 @@ read_byte_analyze_image(char *fname, MRI *mri, dsr *hdr)
           s = swapShort(s) ;
 #endif
           b = (char)(scale * (float)(s-smin));
+#if 1
           if (hdr->dime.pixdim[0] > 3.5f)/* hack to support FIL and texas */
           {
             xd = x + xoff ; yd = z + yoff ; zd = y + zoff;
           }
           else
+#endif
           {
             xd = z + xoff ; yd = (height-y-1) + yoff ; zd = (width-x-1) + zoff;
           }
@@ -1566,7 +1591,7 @@ write_analyze_header(char *fname, MRI *mri)
   default:
     ErrorReturn(ERROR_UNSUPPORTED, 
                 (ERROR_UNSUPPORTED, 
-                 "write_analyze_header: unsupported volume type %d", mri->type));
+               "write_analyze_header: unsupported volume type %d", mri->type));
   }
   hdr.dime.dim_un0 = 0 ;
   for (i=0;i<8;i++)
@@ -1635,7 +1660,6 @@ write_analyze_header(char *fname, MRI *mri)
                  nwritten, sizeof(dsr))) ;
   return(NO_ERROR) ;
 }
-
 /*-----------------------------------------------------
         Parameters:
 
@@ -1668,7 +1692,7 @@ write_analyze_image(char *fname, MRI *mri)
     fclose(fp) ;
     ErrorReturn(ERROR_NOMEMORY, 
                 (ERROR_NOMEMORY, 
-                 "read_analyze_image: could not allocate %d x %d x %d buffer",
+                "read_analyze_image: could not allocate %d x %d x %d buffer",
                  width, height, bytes_per_pix)) ;
   }
 
@@ -1683,8 +1707,6 @@ write_analyze_image(char *fname, MRI *mri)
           f = MRIFvox(mri, xd, yd, zd) ;
         else
           f = MRIvox(mri, xd, yd, zd) ;
-        if (f != 0)
-          DiagBreak() ;
 #ifdef Linux
         f = swapFloat(f) ;
 #endif
@@ -1709,9 +1731,10 @@ write_analyze_image(char *fname, MRI *mri)
       free(buf) ;
       fclose(fp) ;
       ErrorReturn(ERROR_BADFILE, 
-               (ERROR_BADFILE, 
-               "write_analyze_image: could not write slice %d (%d items read)",
-                z, bufsize)) ;
+                  (ERROR_BADFILE, 
+                   "write_analyze_image: could not write slice %d "
+                   "(%d items read)",
+                   z, bufsize)) ;
     }
 
   }
@@ -1719,6 +1742,118 @@ write_analyze_image(char *fname, MRI *mri)
   free(buf) ;
   return(NO_ERROR) ;
 }
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
+MRI *
+MRIreorder(MRI *mri_src, MRI *mri_dst, int xdim, int ydim, int zdim)
+{
+  int  width, height, depth, xs, ys, zs, xd, yd, zd, x, y, z ;
+  
+  width = mri_src->width ; height = mri_src->height ; depth = mri_src->depth;
+  if (!mri_dst)
+    mri_dst = MRIclone(mri_src, NULL) ;
+
+  xd = yd = zd = 0 ;
+  switch (abs(xdim))
+  {
+  default:
+  case XDIM: 
+    if (mri_dst->width != width)
+      ErrorReturn(NULL,(ERROR_BADPARM, "MRIreorder: incorrect dst width"));
+    break ;
+  case YDIM: 
+    if (mri_dst->height != width)
+      ErrorReturn(NULL,(ERROR_BADPARM, "MRIreorder: incorrect dst width"));
+    break ;
+  case ZDIM: 
+    if (mri_dst->depth != width)
+      ErrorReturn(NULL,(ERROR_BADPARM, "MRIreorder: incorrect dst width"));
+    break ;
+  }
+  switch (abs(ydim))
+  {
+  default:
+  case XDIM: 
+    if (mri_dst->width != height)
+      ErrorReturn(NULL,(ERROR_BADPARM, "MRIreorder: incorrect dst height"));
+    break ;
+  case YDIM: 
+    if (mri_dst->height != height)
+      ErrorReturn(NULL,(ERROR_BADPARM, "MRIreorder: incorrect dst height"));
+    break ;
+  case ZDIM: 
+    if (mri_dst->depth != height)
+      ErrorReturn(NULL,(ERROR_BADPARM, "MRIreorder: incorrect dst height"));
+    break ;
+  }
+  switch (abs(zdim))
+  {
+  default:
+  case XDIM: 
+    if (mri_dst->width != depth)
+      ErrorReturn(NULL,(ERROR_BADPARM, "MRIreorder: incorrect dst depth"));
+    break ;
+  case YDIM: 
+    if (mri_dst->height != depth)
+      ErrorReturn(NULL,(ERROR_BADPARM, "MRIreorder: incorrect dst depth"));
+    break ;
+  case ZDIM: 
+    if (mri_dst->depth != depth)
+      ErrorReturn(NULL,(ERROR_BADPARM, "MRIreorder: incorrect dst depth"));
+    break ;
+  }
+      
+  for (zs = 0 ; zs < depth ; zs++)
+  {
+    if (zdim < 0)
+      z = depth - zs - 1 ;
+    else
+      z = zs ;
+    switch (abs(zdim))
+    {
+    case XDIM:  xd = z ; break ;
+    case YDIM:  yd = z ; break ;
+    default:
+    case ZDIM:  zd = z ; break ;
+    }
+    for (ys = 0 ; ys < height ; ys++)
+    {
+      if (ydim < 0)
+        y = height - ys - 1 ;
+      else
+        y = ys ;
+      switch (abs(ydim))
+      {
+      case XDIM: xd = y ; break ;
+      case YDIM: yd = y ; break ;
+      default:
+      case ZDIM: zd = y ; break ;
+      }
+      for (xs = 0 ; xs < width ; xs++)
+      {
+        if (xdim < 0)
+          x = width - xs - 1 ;
+        else
+          x = xs ;
+        switch (abs(xdim))
+        {
+        case XDIM: xd = x ; break ;
+        case YDIM: yd = x ; break ;
+        default:
+        case ZDIM: zd = x ; break ;
+        }
+        MRIvox(mri_dst, xd, yd, zd) = MRIvox(mri_src, xs, ys, zs) ;
+      }
+    }
+  }
+  return(mri_dst) ;
+}
+
   c = header->hist.originator[8]; header->hist.originator[8] = header->hist.originator[9]; header->hist.originator[9] = c;
 
 }  /*  end flipAnalyzeHeader()  */
