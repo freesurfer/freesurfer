@@ -37,6 +37,7 @@ Volume3<T>::~Volume3 () {
     }
     free( mData );
   }
+  mData = NULL;
 }
 
 template <typename T>

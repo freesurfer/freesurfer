@@ -10,7 +10,7 @@ if { $err } {
     load [file dirname [info script]]/libscuba[info sharedlibextension] scuba
 }
 
-DebugOutput "\$Id: scuba.tcl,v 1.30 2004/05/11 00:42:49 kteich Exp $"
+DebugOutput "\$Id: scuba.tcl,v 1.31 2004/05/26 21:26:40 kteich Exp $"
 
 # gTool
 #   current - current selected tool (nav,)
@@ -1222,7 +1222,8 @@ proc MakeToolsPanel { ifwTop } {
 
     tkuMakeSliders $fwPropsBrushSub.swRadius -sliders {
 	{-label "Radius" -variable gaTool(current,radius) 
-	    -min 1 -max 20 -entry true
+	    -min 0.1 -max 20 -entry true
+	    -resolution 0.1
 	    -command {SetToolBrushRadius $gaFrame([GetMainFrameID],toolID) $gaTool(current,radius)} }
     }
 

@@ -224,6 +224,15 @@ ScubaLayer2DMRI::DrawIntoBuffer ( GLubyte* iBuffer, int iWidth, int iHeight,
     }
   }
 
+  // Precalc our color * opacity.
+  GLubyte aColorTimesROIOpacity[256];
+  GLubyte aColorTimesOneMinusROIOpacity[256];
+  for( int i = 0; i < 256; i++ ) {
+    aColorTimesROIOpacity[i] = (GLubyte)( (float)i * mROIOpacity );
+    aColorTimesOneMinusROIOpacity[i] = 
+      (GLubyte)( (float)i * (1.0 - mROIOpacity) );
+  }
+
   for( window[1] = windowMin[1]; window[1] < windowMax[1]; window[1]++ ) {
     dest = iBuffer + (window[1] * iWidth * 4) + (windowMin[0] * 4);
     for( window[0] = windowMin[0]; window[0] < windowMax[0]; window[0]++ ) {
@@ -236,12 +245,12 @@ ScubaLayer2DMRI::DrawIntoBuffer ( GLubyte* iBuffer, int iWidth, int iHeight,
 	
 	// Write the RGB value to the buffer. Write a 255 in the
 	// alpha byte.
-	dest[0] = (GLubyte) (((float)dest[0] * (1.0 - mROIOpacity)) +
-			     ((float)selectColor[0] * mROIOpacity));
-	dest[1] = (GLubyte) (((float)dest[1] * (1.0 - mROIOpacity)) +
-			     ((float)selectColor[1] * mROIOpacity));
-	dest[2] = (GLubyte) (((float)dest[2] * (1.0 - mROIOpacity)) +
-			     ((float)selectColor[2] * mROIOpacity));
+	dest[0] = aColorTimesOneMinusROIOpacity[dest[0]] +
+	  aColorTimesROIOpacity[selectColor[0]];
+	dest[1] = aColorTimesOneMinusROIOpacity[dest[1]] +
+	  aColorTimesROIOpacity[selectColor[1]];
+	dest[2] = aColorTimesOneMinusROIOpacity[dest[2]] +
+	  aColorTimesROIOpacity[selectColor[2]];
       }
       
       // Advance our pixel buffer pointer.
@@ -1387,9 +1396,7 @@ UndoSelectionAction::UndoSelectionAction ( VolumeCollection* iVolume,
 					   bool ibSelect, float iRAS[3] ) {
   mVolume = iVolume;
   mbSelect = ibSelect;
-  mRAS[0] = iRAS[0];
-  mRAS[1] = iRAS[1];
-  mRAS[2] = iRAS[2];
+  memcpy( mRAS, iRAS, sizeof(float) * 3 );
 }
 
 void
@@ -1424,14 +1431,14 @@ EdgePathFinder::EdgePathFinder ( int iViewWidth, int iViewHeight,
 float 
 EdgePathFinder::GetEdgeCost ( Point2<int>& iPoint ) {
 
-  // Get the magnitude value at this point. We add 0.1 to it because
+  // Get the 1/magnitude value at this point. We add 0.1 to it because
   // if it's 0, there's no preference for straight lines, since
   // diagonal lines will have the same cost, which in some cases makes
   // a really weird looking line.
   float RAS[3];
   mTranslator->TranslateWindowToRAS( iPoint.xy(), RAS );
   if( mVolume->IsRASInMRIBounds( RAS ) ) {
-    return mVolume->GetMRIMagnitudeValueAtRAS( RAS ) + 0.1;
+    return 1.0 / (mVolume->GetMRIMagnitudeValueAtRAS( RAS ) + 0.0001);
   } else {
     return mLongestEdge;
   }

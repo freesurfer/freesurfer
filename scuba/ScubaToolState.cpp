@@ -11,7 +11,7 @@ map<int,ScubaToolState*> IDTracker<ScubaToolState>::mIDMap;
 
 ScubaToolState::ScubaToolState() {
   mMode = navigation;
-  mBrushRadius = 1;
+  mBrushRadius = 0.5;
   mBrushShape = circle;
   mbBrush3D = false;
   mbFloodStopAtLines = true;
@@ -143,7 +143,7 @@ ScubaToolState::DoListenToTclCommand ( char* isCommand,
     
     if( GetID() == toolID ) {
 
-      int radius = strtol(iasArgv[2], (char**)NULL, 10);
+      float radius = strtod(iasArgv[2], (char**)NULL);
       if( ERANGE == errno ) {
 	sResult = "bad radius";
 	return error;
@@ -165,7 +165,7 @@ ScubaToolState::DoListenToTclCommand ( char* isCommand,
       stringstream ssValues;
       ssValues << GetBrushRadius();
       sReturnValues = ssValues.str();
-      sReturnFormat = "i";
+      sReturnFormat = "f";
     }
   }
 

@@ -805,7 +805,7 @@ VolumeCollection::IsRASEdge ( float iRAS[3] ) {
 }
 
 void
-VolumeCollection::GetRASPointsInCube ( float iCenterRAS[3], int iRadius,
+VolumeCollection::GetRASPointsInCube ( float iCenterRAS[3], float iRadius,
 				       bool ibBrushX, bool ibBrushY,
 				       bool ibBrushZ,
 				       list<Point3<float> >& oPoints ) {
@@ -842,7 +842,7 @@ VolumeCollection::GetRASPointsInCube ( float iCenterRAS[3], int iRadius,
 }
 
 void
-VolumeCollection::GetRASPointsInSphere ( float iCenterRAS[3], int iRadius,
+VolumeCollection::GetRASPointsInSphere ( float iCenterRAS[3], float iRadius,
 					 bool ibBrushX, bool ibBrushY,
 					 bool ibBrushZ,
 					 list<Point3<float> >& oPoints ) {
@@ -876,7 +876,7 @@ VolumeCollection::GetRASPointsInSphere ( float iCenterRAS[3], int iRadius,
 			       ((nY-iCenterRAS[1]) * (nY-iCenterRAS[1])) + 
 			       ((nZ-iCenterRAS[2]) * (nZ-iCenterRAS[2])) );
 
-	if( distance > (float)iRadius ) {
+	if( distance > iRadius ) {
 	  continue;
 	}
 
@@ -1171,19 +1171,20 @@ return true;
 void
 VolumeCollectionFlooder::Flood ( VolumeCollection& iVolume, 
 				 float iRASSeed[3], Params& iParams ) {
-  
+
   mVolume = &iVolume;
   mParams = &iParams;
 
   this->DoBegin();
 
-  Volume3<bool> bVisited( iVolume.mMRI->width, 
-			  iVolume.mMRI->height, 
-			  iVolume.mMRI->depth, false );
+  Volume3<bool>* bVisited =
+    new Volume3<bool>( iVolume.mMRI->width, 
+		       iVolume.mMRI->height, 
+		       iVolume.mMRI->depth, false );
 
   // Save the initial value.
   float seedValue = iVolume.GetMRINearestValueAtRAS( iRASSeed );
-  
+
   // Push the seed onto the list. 
   Point3<int> seed;
   iVolume.RASToMRIIndex( iRASSeed, seed.xyz() );
@@ -1200,10 +1201,10 @@ VolumeCollectionFlooder::Flood ( VolumeCollection& iVolume,
       continue;
     }
 
-    if( bVisited.Get_Unsafe( point.x(), point.y(), point.z() ) ) {
+    if( bVisited->Get_Unsafe( point.x(), point.y(), point.z() ) ) {
       continue;
     }
-    bVisited.Set_Unsafe( point.x(), point.y(), point.z(), true );
+    bVisited->Set_Unsafe( point.x(), point.y(), point.z(), true );
 
     // Get RAS.
     float ras[3];

@@ -72,10 +72,10 @@ class VolumeCollection : public DataCollection {
   void UnmarkRASEdge ( float iRAS[3] );
   bool IsRASEdge ( float iRAS[3] );
 
-  void GetRASPointsInCube ( float iCenterRAS[3], int iRadius,
+  void GetRASPointsInCube ( float iCenterRAS[3], float iRadius,
 			    bool ibBrushX, bool ibBrushY, bool ibBrushZ,
 			    std::list<Point3<float> >& oPoints );
-  void GetRASPointsInSphere ( float iCenterRAS[3], int iRadius,
+  void GetRASPointsInSphere ( float iCenterRAS[3], float iRadius,
 			      bool ibBrushX, bool ibBrushY, bool ibBrushZ,
 			      std::list<Point3<float> >& oPoints );
 

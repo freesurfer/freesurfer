@@ -262,6 +262,13 @@ x     - functions to NewTask, UpdateTask, CheckForTaskButtons
 x   - change scuba.tcl functions
 x     - display text, progress, have buttons on right
 
+DRAWING TOOLS:::
+
+- connecting lines
+- save reload lines
+- < 1mm brush size
+
+- write docs for jean and david
 
 BRUCE'S LIST:::
 
@@ -273,6 +280,8 @@ BUGS:::
 - tabbing when in console switches frame, disable?
 - brings up tkcon window briefly when booting
 - sometimes filling returns an error with NewTask tcl cmd
+- crashing on ROI fill
+
 
 FUTURE IDEAS:::
 

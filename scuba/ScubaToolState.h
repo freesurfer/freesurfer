@@ -14,8 +14,8 @@ class ScubaToolState : public TclCommandListener, public IDTracker<ScubaToolStat
   void SetMode ( Mode iMode ) { mMode = iMode; }
   Mode GetMode () { return mMode; }
 
-  void SetBrushRadius ( int iRadius ) { mBrushRadius = iRadius; }
-  int GetBrushRadius () { return mBrushRadius; }
+  void SetBrushRadius ( float iRadius ) { mBrushRadius = iRadius; }
+  float GetBrushRadius () { return mBrushRadius; }
 
   enum Shape { square, circle };
   void SetBrushShape ( Shape iShape ) { mBrushShape = iShape; }
@@ -47,7 +47,7 @@ class ScubaToolState : public TclCommandListener, public IDTracker<ScubaToolStat
   Mode mMode;
 
   // Brush settings.
-  int mBrushRadius;
+  float mBrushRadius;
   Shape mBrushShape;
   bool mbBrush3D;
 

@@ -25,6 +25,9 @@ using namespace std;
     } \
 
 
+#define VFEQUAL(v,a,b,c) \
+   (FEQUAL(((v)[0]),a) && FEQUAL(((v)[1]),b) && FEQUAL(((v)[2]),c))
+
 class ScubaTransformTester {
 public:
   void Test( Tcl_Interp* iInterp );
@@ -94,6 +97,72 @@ ScubaTransformTester::Test ( Tcl_Interp* iInterp ) {
     Assert((FEQUAL( in[0], 5.0 ) && 
 	    FEQUAL( in[1], 6.0 ) && FEQUAL( in[2], 7.0) ),
 	   "Inv scale mult check failed");
+
+
+    Point3<float> p( 1, 0, 0 );
+    Point3<float> q;
+
+    transform.MakeXRotation( M_PI );
+    p.Set( 1, 0, 0 );
+    transform.MultiplyVector3( p.xyz(), q.xyz() );
+    Assert(VFEQUAL(q,1,0,0), "X Rotation failed");
+    p.Set( 0, 1, 0 );
+    transform.MultiplyVector3( p.xyz(), q.xyz() );
+    Assert(VFEQUAL(q,0,-1,0), "X Rotation failed");
+    p.Set( 0, 0, 1 );
+    transform.MultiplyVector3( p.xyz(), q.xyz() );
+    Assert(VFEQUAL(q,0,0,-1), "X Rotation failed");
+
+    transform.MakeYRotation( M_PI );
+    p.Set( 1, 0, 0 );
+    transform.MultiplyVector3( p.xyz(), q.xyz() );
+    Assert(VFEQUAL(q,-1,0,0), "Y Rotation failed");
+    p.Set( 0, 1, 0 );
+    transform.MultiplyVector3( p.xyz(), q.xyz() );
+    Assert(VFEQUAL(q,0,1,0), "Y Rotation failed");
+    p.Set( 0, 0, 1 );
+    transform.MultiplyVector3( p.xyz(), q.xyz() );
+    Assert(VFEQUAL(q,0,0,-1), "Y Rotation failed");
+
+    transform.MakeZRotation( M_PI );
+    p.Set( 1, 0, 0 );
+    transform.MultiplyVector3( p.xyz(), q.xyz() );
+    Assert(VFEQUAL(q,-1,0,0), "Z Rotation failed");
+    p.Set( 0, 1, 0 );
+    transform.MultiplyVector3( p.xyz(), q.xyz() );
+    Assert(VFEQUAL(q,0,-1,0), "Z Rotation failed");
+    p.Set( 0, 0, 1 );
+    transform.MultiplyVector3( p.xyz(), q.xyz() );
+    Assert(VFEQUAL(q,0,0,1), "Z Rotation failed");
+
+    ScubaTransform m;
+    for( int r = 0; r < 4; r++ ) {
+      for( int c = 0; c < 4; c++ ) {
+	m.SetCR( c, r, (r * 4) + c);
+      }
+    }
+    ScubaTransform id;
+    id.MakeIdentity();
+    ScubaTransform n = m * id;
+    for( int r = 0; r < 4; r++ ) {
+      for( int c = 0; c < 4; c++ ) {
+	Assert( (FEQUAL(n(c,r),m(c,r))), "Operator* failed" );
+      }
+    }
+
+    p.Set( 0, 1, 0 );
+    Point3<float> v( 1, 0, 0 );
+    m.MakeRotation( p.xyz(), v.xyz(), M_PI );
+    p.Set( 1, 0, 0 );
+    m.MultiplyVector3( p.xyz(), q.xyz() );
+    Assert(VFEQUAL(q,1,2,0), "Rotation failed");
+
+    p.Set( 0, 0, 1 );
+    v.Set( 0, 1, 0 );
+    m.MakeRotation( p.xyz(), v.xyz(), M_PI );
+    p.Set( 0, 0, 0 );
+    m.MultiplyVector3( p.xyz(), q.xyz() );
+    Assert(VFEQUAL(q,0,0,2), "Rotation failed");
 
 
     // Try the tcl commands.
