@@ -22,7 +22,8 @@ static char *example_segmentation = NULL ;
 static int insert_thin_temporal_white_matter(MRI *mri_in, 
                                              MRI *mri_labeled, 
                                              GCA *gca, 
-                                             LTA *lta) ;
+                                             LTA *lta,
+                                             GCA *gca_all) ;
 static int distance_to_label(MRI *mri_labeled, int label, int x, 
                              int y, int z, int dx, int dy, 
                              int dz, int max_dist) ;
@@ -731,7 +732,7 @@ preprocess(MRI *mri_in, MRI *mri_labeled, GCA *gca, LTA *lta,
       ErrorExit(ERROR_NOFILE, "%s: could not read temporal lobe GCA file %s",
                 Progname, tl_gca_fname) ;
 
-    insert_thin_temporal_white_matter(mri_in, mri_labeled, gca_tl, lta) ;
+    insert_thin_temporal_white_matter(mri_in, mri_labeled, gca_tl, lta,gca) ;
     GCAfree(&gca_tl) ;
     if (gca_write_iterations != 0)
     {
@@ -1217,17 +1218,19 @@ edit_amygdala(MRI *mri_in, MRI *mri_labeled, GCA *gca, LTA *lta,
 }
 static int
 insert_thin_temporal_white_matter(MRI *mri_in, MRI *mri_labeled, 
-                                  GCA *gca, LTA *lta)
+                                  GCA *gca, LTA *lta, GCA *gca_all)
 {
-  MRI       *mri_tmp, *mri_probs ;
+  MRI       *mri_tmp, *mri_probs, *mri_tmp_labels ;
   int       width, height, depth, x, y, z, xn, yn, zn, n, nsamples, i ;
-  int       xmin, xmax, ymin, ymax, zmin, zmax, yi, yimax ;
+  int       xmin, xmax, ymin, ymax, zmin, zmax,yi,zi, yimax, ximax, zimax,
+            **added, nchanged, label ;
   GCA_NODE  *gcan ;
   GC1D      *gc ;
   GCA_SAMPLE *gcas ;
   double     p, pmax ;
 
   mri_tmp = MRIclone(mri_in, NULL) ;
+  mri_tmp_labels = MRIclone(mri_labeled, NULL) ;
 
   width = mri_tmp->width ; height = mri_tmp->height ; depth = mri_tmp->depth ;
   mri_probs = MRIalloc(width, height, depth, MRI_UCHAR) ;
@@ -1260,7 +1263,6 @@ insert_thin_temporal_white_matter(MRI *mri_in, MRI *mri_labeled,
               zmax = z ;
 
             nsamples++ ;
-            MRIvox(mri_tmp, x, y, z) = 255 ;
             break ;
           }
         }
@@ -1311,33 +1313,400 @@ insert_thin_temporal_white_matter(MRI *mri_in, MRI *mri_labeled,
     if (p > 255.0)
       p = 255.0 ;
     MRIvox(mri_probs, gcas[i].x, gcas[i].y, gcas[i].z) = (char)p ;
+    MRIvox(mri_tmp_labels, gcas[i].x, gcas[i].y, gcas[i].z) = gcas[i].label ;
   }
 
-  /* put in the coordinates of the samples */
+  added = (int **)calloc(width, sizeof(int *)) ;
+  if (!added)
+    ErrorExit(ERROR_NOMEMORY, "%s: could not allocate added array", Progname);
+  for (x = 0 ; x < width ; x++)
+  {
+    added[x] = (int *)calloc(depth, sizeof(int)) ;
+    if (!added[x])
+      ErrorExit(ERROR_NOMEMORY, "%s: could not allocate added array[%d]", 
+                Progname, x);
+  }
+
+  /******** Left Hemisphere ***********/
+
+  /* find highest probability pair over whole temporal lobe,
+     and use them to bootstrap process.
+  */
+  pmax = 0.0 ; ximax = yimax = zimax = 0 ;
   for (i = 0, x = xmin ; x <= xmax ; x++)
   {
     for (z = zmin ; z <= zmax ; z++)
     {
-      pmax = 0.0 ; yimax = 0 ;
       for (y = ymin ; y <= ymax ; y++)
       {
+        if (MRIvox(mri_tmp_labels,x,y,z) != Left_Cerebral_White_Matter)
+          continue ;
         yi = mri_probs->yi[y+1] ;
         p = MRIvox(mri_probs, x,  y, z) + MRIvox(mri_probs, x, yi, z) ;
         if (p > pmax)
         {
-          pmax = p ; yimax = y ;
+          pmax = p ; ximax = x ; yimax = y ; zimax = z ;
         }
-      }
-
-      /* erase everything except the two highest contiguous voxels */
-      for (y = ymin ; y <= ymax ; y++)
-      {
-        if (y == yimax || y == yimax+1)
-          continue ;
-        MRIvox(mri_tmp, x, y, z) = 0 ;
       }
     }
   }
+
+
+  printf("using (%d, %d, %d) as seed point for LH\n", ximax, yimax, zimax) ;
+
+  /* put the seed point back in */
+  MRIvox(mri_tmp, ximax, yimax, zimax) = 255 ;
+  MRIvox(mri_tmp, ximax, yimax+1, zimax) = 255 ;
+  xmin = ximax-1 ; xmax = ximax+1 ;
+  ymin = yimax-1 ; ymax = yimax+2 ;
+  zmin = zimax-1 ; zmax = zimax+1 ;
+  added[ximax][zimax] = 1 ;  /* already added to this plane */
+  do
+  {
+    nchanged = 0 ;
+
+    for (x = xmin ; x <= xmax ; x++)
+    {
+      for (z = zmin ; z <= zmax ; z++)
+      {
+        if (added[x][z])
+          continue ;
+        pmax = 0.0 ; yimax = -1 ;
+        for (y = ymin ; y <= ymax ; y++)
+        {
+          if (MRIvox(mri_tmp, x, y, z))
+            continue ;
+          if (!MRIvox(mri_tmp, x+1, y, z)  && !MRIvox(mri_tmp, x-1, y, z) && 
+              (!MRIvox(mri_tmp, x, y, z+1) && !MRIvox(mri_tmp, x, y, z-1)))
+            continue ;
+          yi = mri_probs->yi[y+1] ;
+          p = MRIvox(mri_probs, x,  y, z) + MRIvox(mri_probs, x, yi, z) ;
+          if (p > pmax)
+          {
+            pmax = p ; yimax = y ;
+          }
+        }
+
+        if (yimax < 0)
+          continue ;   /* couldn't find one */
+
+        if (x == Ggca_x && y == Ggca_y && z == Ggca_z)
+          DiagBreak() ;
+        if (x == Ggca_x && z == Ggca_z)
+          DiagBreak() ;
+        added[x][z] = 1 ;
+        if (x == xmin)
+          xmin-- ;
+        if (x == xmax)
+          xmax++ ;
+        if (yimax == ymin)
+          ymin-- ;
+        if (yimax == ymax)
+          ymax++ ;
+        if (z == zmin)
+          zmin-- ;
+        if (z == zmax)
+          zmax++ ;
+
+        MRIvox(mri_tmp, x, yimax, z) = 255 ;
+        MRIvox(mri_tmp, x, yimax+1, z) = 255 ;
+        nchanged++ ;
+      }
+    }
+  } while (nchanged > 0) ;
+
+
+  /******** Right Hemisphere ***********/
+
+  /* recompute the bounding box */
+  xmin = width ; ymin = height ; zmin = depth ;
+  xmax = ymax = zmax = 0 ;
+  for (i = 0 ; i < nsamples ; i++)
+  {
+    x = gcas[i].x ; y = gcas[i].y ; z = gcas[i].z ;
+    if (x < xmin)
+      xmin = x ;
+    if (x > xmax)
+      xmax = x ;
+    if (y < ymin)
+      ymin = y ;
+    if (y > ymax)
+      ymax = y ;
+    if (z < zmin)
+      zmin = z ;
+    if (z > zmax)
+      zmax = z ;
+  }
+
+  /* find highest probability pair over whole temporal lobe,
+     and use them to bootstrap process.
+  */
+  pmax = 0.0 ; ximax = yimax = zimax = 0 ;
+  for (i = 0, x = xmin ; x <= xmax ; x++)
+  {
+    for (z = zmin ; z <= zmax ; z++)
+    {
+      for (y = ymin ; y <= ymax ; y++)
+      {
+        if (MRIvox(mri_tmp_labels,x,y,z) != Right_Cerebral_White_Matter)
+          continue ;
+        yi = mri_probs->yi[y+1] ;
+        p = MRIvox(mri_probs, x,  y, z) + MRIvox(mri_probs, x, yi, z) ;
+        if (p > pmax)
+        {
+          pmax = p ; ximax = x ; yimax = y ; zimax = z ;
+        }
+      }
+    }
+  }
+
+
+  printf("using (%d, %d, %d) as seed point for RH\n", ximax, yimax, zimax) ;
+
+  /* put the seed point back in */
+  MRIvox(mri_tmp, ximax, yimax, zimax) = 255 ;
+  MRIvox(mri_tmp, ximax, yimax+1, zimax) = 255 ;
+  xmin = ximax-1 ; xmax = ximax+1 ;
+  ymin = yimax-1 ; ymax = yimax+2 ;
+  zmin = zimax-1 ; zmax = zimax+1 ;
+  added[ximax][zimax] = 1 ;  /* already added to this plane */
+  do
+  {
+    nchanged = 0 ;
+
+    for (x = xmin ; x <= xmax ; x++)
+    {
+      for (z = zmin ; z <= zmax ; z++)
+      {
+        if (added[x][z])
+          continue ;
+        pmax = 0.0 ; yimax = -1 ;
+        for (y = ymin ; y <= ymax ; y++)
+        {
+          if (MRIvox(mri_tmp, x, y, z))
+            continue ;
+          if (!MRIvox(mri_tmp, x+1, y, z)  && !MRIvox(mri_tmp, x-1, y, z) && 
+              (!MRIvox(mri_tmp, x, y, z+1) && !MRIvox(mri_tmp, x, y, z-1)))
+            continue ;
+          yi = mri_probs->yi[y+1] ;
+          p = MRIvox(mri_probs, x,  y, z) + MRIvox(mri_probs, x, yi, z) ;
+          if (p > pmax)
+          {
+            pmax = p ; yimax = y ;
+          }
+        }
+
+        if (yimax < 0)
+          continue ;   /* couldn't find one */
+
+        if (x == Ggca_x && y == Ggca_y && z == Ggca_z)
+          DiagBreak() ;
+        if (x == Ggca_x && z == Ggca_z)
+          DiagBreak() ;
+        added[x][z] = 1 ;
+        if (x == xmin)
+          xmin-- ;
+        if (x == xmax)
+          xmax++ ;
+        if (yimax == ymin)
+          ymin-- ;
+        if (yimax == ymax)
+          ymax++ ;
+        if (z == zmin)
+          zmin-- ;
+        if (z == zmax)
+          zmax++ ;
+
+        MRIvox(mri_tmp, x, yimax, z) = 255 ;
+        MRIvox(mri_tmp, x, yimax+1, z) = 255 ;
+        nchanged++ ;
+      }
+    }
+  } while (nchanged > 0) ;
+
+  /* now do some spackling and flossing */
+  /* recompute the bounding box */
+  xmin = width ; ymin = height ; zmin = depth ;
+  xmax = ymax = zmax = 0 ;
+  for (i = 0 ; i < nsamples ; i++)
+  {
+    x = gcas[i].x ; y = gcas[i].y ; z = gcas[i].z ;
+    if (x < xmin)
+      xmin = x ;
+    if (x > xmax)
+      xmax = x ;
+    if (y < ymin)
+      ymin = y ;
+    if (y > ymax)
+      ymax = y ;
+    if (z < zmin)
+      zmin = z ;
+    if (z > zmax)
+      zmax = z ;
+  }
+  do
+  {
+    nchanged = 0 ;
+
+    for (x = xmin ; x <= xmax ; x++)
+    {
+      for (z = zmin ; z <= zmax ; z++)
+      {
+        for (y = ymin ; y <= ymax ; y++)
+        {
+          if (x == Ggca_x && y == Ggca_y && z == Ggca_z)
+            DiagBreak() ;
+          if (MRIvox(mri_tmp, x, y, z))
+            continue ;
+          if ((MRIvox(mri_tmp, x+1, y, z) && MRIvox(mri_tmp, x-1,y,z)) ||
+              (MRIvox(mri_tmp, x, y, z-1) && MRIvox(mri_tmp, x,y,z+1)))
+          {
+            nchanged++ ;
+            MRIvox(mri_tmp, x,y,z) = 
+              MAX(MAX(MAX(MRIvox(mri_tmp, x+1, y, z),
+                  MRIvox(mri_tmp, x-1,y,z)),
+                      MRIvox(mri_tmp, x, y, z-1)),
+                  MRIvox(mri_tmp, x,y,z+1)) ;
+          }
+        }
+      }
+    }
+  } while (nchanged > 0) ;
+
+
+  do
+  {
+    nchanged = 0 ;
+    for (x = xmin ; x <= xmax ; x++)
+    {
+      for (z = zmin ; z <= zmax ; z++)
+      {
+        for (y = ymin ; y <= ymax ; y++)
+        {
+          if (x == Ggca_x && y == Ggca_y && z == Ggca_z)
+            DiagBreak() ;
+          if (MRIvox(mri_tmp, x, y, z))
+            continue ;
+          yi = mri_tmp->yi[y+1] ;
+          if (MRIvox(mri_tmp,x,yi,z)) /* check inferior */
+          {
+            yi = mri_tmp->yi[y-1] ;
+            zi = mri_tmp->zi[z+1] ;
+            if (MRIvox(mri_tmp, x, yi, zi)) /* inferior voxel on */
+            {
+              nchanged++ ;
+              MRIvox(mri_tmp, x,y,z) = 255 ;
+            }
+            else
+            {
+              zi = mri_tmp->zi[z-1] ;
+              if (MRIvox(mri_tmp, x, yi,  zi))
+              {
+                nchanged++ ;
+                MRIvox(mri_tmp, x,y,z) = 255 ;
+              }
+            }
+          }
+
+          yi = mri_tmp->yi[y-1] ;
+          if (MRIvox(mri_tmp,x,yi,z)) /* check suprior */
+          {
+            yi = mri_tmp->yi[y+1] ;
+            zi = mri_tmp->zi[z+1] ;
+            if (MRIvox(mri_tmp, x, yi, zi)) /* inferior voxel on */
+            {
+              nchanged++ ;
+              MRIvox(mri_tmp, x,y,z) = 255 ;
+            }
+            else
+            {
+              zi = mri_tmp->zi[z-1] ;
+              if (MRIvox(mri_tmp, x, yi,  zi))
+              {
+                nchanged++ ;
+                MRIvox(mri_tmp, x,y,z) = 255 ;
+              }
+            }
+          }
+        }
+      }
+    }
+  } while (nchanged > 0) ;
+
+
+  /* do a couple of iterations adding maxiumum likelihood wm voxels */
+  for (i = 0 ; i < 3 ; i++)
+  {
+    int labels[MAX_CMA_LABEL+1], nlabels, max_label, n ;
+    double probs[MAX_CMA_LABEL+1], max_p ;
+
+    for (x = xmin ; x <= xmax ; x++)
+    {
+      for (z = zmin ; z <= zmax ; z++)
+      {
+        for (y = ymin ; y <= ymax ; y++)
+        {
+          if (MRIvox(mri_tmp, x, y, z))
+            continue ;
+          if (MRIneighborsOn(mri_tmp, x, y, z, 1) == 0)
+            continue ;
+          nlabels =
+            GCAcomputeVoxelLikelihoods(gca_all,mri_in,x,y,z,lta,labels,probs);
+          for (max_p = 0, max_label = -1, n = 0 ; n < nlabels ; n++)
+          {
+            if (probs[n] > max_p)
+            {
+              max_p = probs[n] ; max_label = labels[n] ;
+            }
+          }
+          if (IS_WM(max_label))
+          {
+            nchanged++ ;
+            MRIvox(mri_tmp, x, y, z) = 255 ;
+          }
+        }
+      }
+    }
+  }
+
+  for (x = xmin ; x <= xmax ; x++)
+  {
+    for (z = zmin ; z <= zmax ; z++)
+    {
+      for (y = ymin-1 ; y <= ymax+1 ; y++)
+      {
+        if (x == Ggca_x && y == Ggca_y && z == Ggca_z)
+          DiagBreak() ;
+
+        if (MRIvox(mri_tmp, x, y, z) == 0) /* not temporal wm */
+          continue ;
+
+        /* examine label inferior to this one. If it's hippo or ventricle,
+           change it to cortex.
+        */
+        for (i = 1 ; i < 5 ; i++)
+        {
+          yi = mri_tmp->yi[y+i] ;
+          label = MRIvox(mri_labeled,x,yi,z) ;
+          if (IS_HIPPO(label) || IS_LAT_VENT(label))
+          {
+            int left ;
+            
+            left = 
+              (label == Left_Hippocampus) || 
+              (label == Left_Lateral_Ventricle) ||
+              (label == Left_Inf_Lat_Vent) ;
+            label = left ? Left_Cerebral_Cortex : Right_Cerebral_Cortex ;
+            MRIvox(mri_labeled, x, yi, z) = label ;
+          }
+        }
+      }
+    }
+  }
+    
+#if 0
+  MRIclose((mri_tmp, mri_tmp) ; MRIdilate6(mri_tmp, mri_tmp) ;
+#endif
 
   for (i = 0 ; i < nsamples ; i++)
   {
@@ -1347,11 +1716,17 @@ insert_thin_temporal_white_matter(MRI *mri_in, MRI *mri_labeled,
   }
 
   free(gcas) ;
-  printf("writing temporal lobe volume...") ;
-  MRIwrite(mri_tmp, "/tmp/temp.mgh") ;
-  MRIwrite(mri_probs, "/tmp/probs.mgh") ;
+  if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+  {
+    printf("writing temporal lobe volume...") ;
+    MRIwrite(mri_tmp, "temp.mgh") ;
+    MRIwrite(mri_probs, "probs.mgh") ;
+  }
 
-  MRIfree(&mri_tmp) ; MRIfree(&mri_probs) ;
+  MRIfree(&mri_tmp) ; MRIfree(&mri_probs) ; MRIfree(&mri_tmp_labels) ;
+  for (x = 0 ; x < width ; x++)
+    free(added[x]) ;
+  free(added) ;
   printf("done.\n") ;
   return(NO_ERROR) ;
 }
