@@ -45,6 +45,7 @@
 #include "runfuncs.h"
 #include "congraph.h"
 #include "h_logz.h"
+#include "filter.h"
 #include "map.h"
 #include "image.h"
 #include "error.h"
@@ -1447,10 +1448,12 @@ LogMapDiffusePerona(LOGMAP_INFO *lmi, IMAGE *inImage, IMAGE *outImage,
         stime = (float)i * exp(2.0f*start_rho) * KERNEL_MUL ;
         end_rho = lmi->rhos[end_ring] ;
         etime = (float)i * exp(2.0f*end_rho) * KERNEL_MUL ;
-        
+
+#if 0        
         fprintf(stderr, "iteration %d, ring=%d (%2.3f) --> %d (%2.3f) "
                 "(time=%2.1f --> %2.1f)\n",
                 i, start_ring, start_rho, end_ring, end_rho, stime, etime) ;
+#endif
         if (Gdiag & DIAG_WRITE)
         {
           int npixels ;
@@ -1674,13 +1677,17 @@ mapCalculateParms(LOGMAP_INFO *lmi)
   logrange = maxlog - minlog ;
   if (lmi->nrings == 0)
   {
+#if 0
     lmi->nrings = nint((logrange * k) / PI) ;
+#else
+    lmi->nrings = (int)((logrange * k) / PI) ;
+#endif
 #if 1
     fprintf(stderr,
             "maxr=%2.3f, minlog %2.3f, maxlog %2.3f, logrange %2.3f\n",
             maxr, minlog, maxlog, logrange) ;
-    fprintf(stderr, "nspokes=%d, setting nrings = %d\n", lmi->nspokes,
-            lmi->nrings) ;
+    fprintf(stderr, "nspokes=%d, setting nrings = %d (%2.3f)\n", lmi->nspokes,
+            lmi->nrings, (logrange * k) / PI) ;
 #endif
   }
 }
@@ -2152,7 +2159,13 @@ logBuildRhoList(LOGMAP_INFO *lmi)
 #endif
   }
 
-  min_rho = 1000.0f ;
+#if 0
+  /* prevent empty last ring */
+  if (FZERO(lmi->rhos[nrings-1]))
+    nrings = lmi->nrings = nrings - 1 ;
+#endif
+
+  min_rho = 1000.0f ; 
   max_rho = 0.0f ;
   for (ring = 0; ring < nrings; ring++) 
   {
@@ -2684,7 +2697,7 @@ LogMapInitForwardFilter(LOGMAP_INFO *lmi, int which)
   CARTESIAN_PIXEL     *cp ;
   LOGPIX              *lpix ;
   float               radius, dist ;
-  int                 overflows = 0, col_end, row_end ;
+  int                 overflows = 0, col_end, row_end, ring1, ring2 ;
 
   rows = lmi->nrows ;
   cols = lmi->ncols ;  /* size of cartesian image */
@@ -2695,17 +2708,39 @@ LogMapInitForwardFilter(LOGMAP_INFO *lmi, int which)
     ErrorReturn(ERROR_NO_MEMORY, (ERROR_NO_MEMORY,
                 "LogMapInitForwardFilter: could not allocate LUT")) ;
 
+#if 0
   fprintf(stderr, "building lookup tables...\n") ;
+#endif
   nrings = lmi->nrings ;
   nspokes = lmi->nspokes ;
   for (ring = 0 ; ring < nrings ; ring++)
   {
     if (ring < nrings-1)
-      radius = exp(lmi->rhos[ring+1]) - exp(lmi->rhos[ring]) ;
+    {
+      ring1 = ring ;
+      ring2 = ring+1 ;
+      if (FZERO(lmi->rhos[ring2])) /* necessary because of empty rings */
+      {
+        ring1-- ;
+        ring2-- ;
+      }
+    }
     else
-      radius = exp(lmi->rhos[ring]) - exp(lmi->rhos[ring-1]) ;
+    {
+      ring1 = ring-1 ;
+      ring2 = ring ;
+      if (FZERO(lmi->rhos[ring1]))
+      {
+        ring1++ ;
+        ring2++ ;
+      }
+    }
+    radius = exp(lmi->rhos[ring2]) - exp(lmi->rhos[ring1]) ;
     radius = fabs(radius) ;
+
+#if 0
     fprintf(stderr, "\rring, %d, radius %2.1f ", ring, radius) ;
+#endif
     for (spoke = 0 ; spoke < nspokes ; spoke++)
     {
       lpix = LOG_PIX(lmi, ring, spoke) ;
@@ -2725,9 +2760,18 @@ LogMapInitForwardFilter(LOGMAP_INFO *lmi, int which)
           if (dist <= radius)
           {
             cp = cmi->pix + row * cols + col ;
+#if 0
+            if (col == 128 && row == 231)
+              fprintf(stdout, "%d: (%d, %d) <-- (%d, %d) (%d, %d) (%2.2f)\n",
+                      cp->npix, col, row, ccol, crow, ring, spoke, dist) ;
+#endif
             if (cp->npix >= MAX_PIX)   /* no more room */
             {
               overflows++ ;
+#if 0
+              fprintf(stdout, "%d: (%d, %d) <-- (%d, %d) (%d, %d) (%2.2f)\n",
+                      cp->npix, col, row, ccol, crow, ring, spoke, dist) ;
+#endif
               continue ;
             }
             cp->logpix[cp->npix++] = lpix ;
@@ -2737,6 +2781,28 @@ LogMapInitForwardFilter(LOGMAP_INFO *lmi, int which)
       }
     }
   }
+
+#if 0
+  col = 128 ;
+  row = 231 ;
+  cp = cmi->pix + row * cols + col ;
+  fprintf(stdout, "(%d, %d) <-- %d\n", col, row, cp->npix) ;
+  fflush(stdout) ;
+
+{
+  FILE *fp ;
+
+  fp = fopen("lut.dat", "wb") ;
+  cp = cmi->pix ;
+  for (row = 0 ; row < rows ;  row++)
+  {
+    for (col = 0 ; col < cols ; col++, cp++)
+      fprintf(fp, "%d ", cp->npix) ;
+    fprintf(fp, "\n") ;
+  }
+  fclose(fp) ;
+}
+#endif
 
   fprintf(stderr, "LUT built with %d overflows\n", overflows) ;
   return(NO_ERROR) ;
