@@ -1,8 +1,8 @@
 function r = fast_selxavg(varargin)
 % r = fast_selxavg(varargin)
-% '$Id: fast_selxavg.m,v 1.1 2003/03/04 20:47:39 greve Exp $'
+% '$Id: fast_selxavg.m,v 1.2 2003/03/14 18:15:11 greve Exp $'
 
-version = '$Id: fast_selxavg.m,v 1.1 2003/03/04 20:47:39 greve Exp $';
+version = '$Id: fast_selxavg.m,v 1.2 2003/03/14 18:15:11 greve Exp $';
 fprintf(1,'%s\n',version);
 r = 1;
 
@@ -1211,7 +1211,6 @@ function s = check_params(s)
     instem = deblank(s.invollist(1,:));
     [s.nslices nrows ncols ntrs] = fmri_bvoldim(instem);
     if(s.nslices == 0) 
-keyboard
       fprintf(2,'ERROR: Volume %s does not exist\n',instem);
       s=[]; return;
     end      
