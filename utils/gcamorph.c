@@ -267,13 +267,13 @@ GCAMinit(GCA_MORPH *gcam, MRI *mri, GCA *gca, TRANSFORM *transform)
 {
   GCA_MORPH_NODE  *gcamn ;
   GC1D            *gc ;
-  GCA_NODE        *gcan ;
+  GCA_PRIOR       *gcap ;
   int             x, y, z, width, height, depth, n, max_n, max_label, label ;
   float           max_p, ox, oy, oz ;
 
   width = gcam->width ; height = gcam->height ; depth = gcam->depth ;
   TransformInvert(transform, mri) ;
-  gcam->gca = gca ; gcam->spacing = gca->spacing ;
+  gcam->gca = gca ; gcam->spacing = gca->prior_spacing ;
   for (x = 0 ; x < width ; x++)
   {
     for (y = 0 ; y < height ; y++)
@@ -281,24 +281,23 @@ GCAMinit(GCA_MORPH *gcam, MRI *mri, GCA *gca, TRANSFORM *transform)
       for (z = 0 ; z < depth ; z++)
       {
         gcamn = &gcam->nodes[x][y][z] ;
-        gcan = &gca->nodes[x][y][z] ;
+        gcap = &gca->priors[x][y][z] ;
         max_p = 0 ;  max_n = -1 ; max_label = 0 ;
 
-        for (n = 0 ; n < gcan->nlabels ; n++)
+        for (n = 0 ; n < gcap->nlabels ; n++)
         {
-          gc = &gcan->gcs[n] ;
-          label = gcan->labels[n] ;
+          label = gcap->labels[n] ;
           if (label == Gdiag_no)
             DiagBreak() ;
-          if (gc->prior > max_p)
+          if (gcap->priors[n] > max_p)
           {
             max_n = n ;
-            max_p = gc->prior ;
-            max_label = gcan->labels[n] ;
+            max_p = gcap->priors[n] ;
+            max_label = gcap->labels[n] ;
           }
         }
         gcamn->xn = x ; gcamn->yn = y ; gcamn->zn = z ;
-        GCAnodeToSourceVoxelFloat(gca, mri, transform, x, y, z,
+        GCApriorToSourceVoxelFloat(gca, mri, transform, x, y, z,
                              &ox, &oy, &oz) ;
 
         gcamn->x = gcamn->origx = ox ; 
@@ -308,8 +307,17 @@ GCAMinit(GCA_MORPH *gcam, MRI *mri, GCA *gca, TRANSFORM *transform)
         gcamn->label = max_label ;
         gcamn->n = max_n ;
         gcamn->prior = max_p ;
-        gcamn->std = sqrt(gcan->gcs[max_n].var) ;
-        gcamn->mean = gcan->gcs[max_n].mean ;
+        gc = GCAfindPriorGC(gca, x, y, z, max_label) ;
+        if (gc)
+        {
+          gcamn->std = gc->var ;
+          gcamn->mean = gc->mean ;
+        }
+        else   /* probably out of field of view */
+        {
+          gcamn->std = 1 ;
+          gcamn->mean = 0 ;
+        }
         gcamn->log_p = 0 ;
 #endif
         if (x == Gx && y == Gy && z == Gz)
@@ -1825,6 +1833,7 @@ GCAMcomputeLabels(MRI *mri, GCA_MORPH *gcam)
   int            x, y, z, width, height, depth, label, n, nchanged = 0 ;
   Real           val ;
   GCA_MORPH_NODE *gcamn ;
+  GCA_PRIOR      *gcap ;
   GC1D           *gc ;
 
   return(GCAMcomputeMaxPriorLabels(gcam)) ;
@@ -1837,16 +1846,26 @@ GCAMcomputeLabels(MRI *mri, GCA_MORPH *gcam)
         MRIsampleVolume(mri, gcamn->x, gcamn->y, gcamn->z, &val) ;
         label = 
           GCAcomputeMAPlabelAtLocation(gcam->gca, x,y,z,val,&n,&gcamn->log_p);
+        gcap = &gcam->gca->priors[x][y][z] ;
         if (n >= 0)
         {
-          gc = &gcam->gca->nodes[x][y][z].gcs[n] ;
           if (label != gcamn->label)
             nchanged++ ;
           gcamn->label = label ;
           gcamn->n = n ;
-          gcamn->prior = gc->prior ;
-          gcamn->std = sqrt(gc->var) ;
-          gcamn->mean = gc->mean ;
+          gcamn->prior = gcap->priors[n] ;
+          gc = GCAfindPriorGC(gcam->gca, x, y, z, label) ;
+          if (gc)
+          {
+            gcamn->std = sqrt(gc->var) ;
+            gcamn->mean = gc->mean ;
+          }
+          else   /* probably out of field of view */
+          {
+            gcamn->std = 1 ;
+            gcamn->mean = 0 ;
+          }
+
           if (x == Gx && y == Gy && z == Gz)
             printf("RELABEL: node(%d, %d, %d): label %s (%d), mean %2.1f+-%2.1f, prior %2.1f, MRI=%2.0f\n",
                    x, y, z, cma_label_to_name(label), label,
@@ -1876,7 +1895,7 @@ GCAMcomputeMaxPriorLabels(GCA_MORPH *gcam)
   int            x, y, z, width, height, depth, label, n, nchanged = 0,max_n ;
   GCA_MORPH_NODE *gcamn ;
   GC1D           *gc ;
-  GCA_NODE       *gcan ;
+  GCA_PRIOR      *gcap ;
   double         max_prior ;
 
   width = gcam->width  ; height = gcam->height ; depth = gcam->depth ; 
@@ -1885,25 +1904,33 @@ GCAMcomputeMaxPriorLabels(GCA_MORPH *gcam)
       for (z = 0 ; z < depth ; z++)
       {
         gcamn = &gcam->nodes[x][y][z] ;
-        gcan = &gcam->gca->nodes[x][y][z] ;
-        for (max_prior = -1, max_n = -1, n = 0 ; n < gcan->nlabels ; n++)
-          if  (gcan->gcs[n].prior >= max_prior)
+        gcap = &gcam->gca->priors[x][y][z] ;
+        for (max_prior = -1, max_n = -1, n = 0 ; n < gcap->nlabels ; n++)
+          if  (gcap->priors[n] >= max_prior)
           {
-            max_prior = gcan->gcs[n].prior ;
+            max_prior = gcap->priors[n] ;
             max_n = n ;
           }
         n = max_n ; 
         if (n >= 0)
         {
-          label = gcan->labels[n] ;
-          gc = &gcan->gcs[n] ;
+          label = gcap->labels[n] ;
           if (label != gcamn->label)
             nchanged++ ;
           gcamn->label = label ;
           gcamn->n = n ;
-          gcamn->prior = gc->prior ;
-          gcamn->std = sqrt(gc->var) ;
-          gcamn->mean = gc->mean ;
+          gcamn->prior = gcap->priors[n] ;
+          gc = GCAfindPriorGC(gcam->gca, x, y, z, label) ;
+          if (gc)
+          {
+            gcamn->std = sqrt(gc->var) ;
+            gcamn->mean = gc->mean ;
+          }
+          else   /* probably out of field of view */
+          {
+            gcamn->std = 1 ;
+            gcamn->mean = 0 ;
+          }
         }
         else  /* out of FOV probably */
         {
@@ -1939,7 +1966,7 @@ GCAMbuildMostLikelyVolume(GCA_MORPH *gcam, MRI *mri)
       {
         if (x == Gx && y == Gy && z == Gz)
           DiagBreak() ;
-        GCAvoxelToNode(gcam->gca, mri, x, y, z, &xn, &yn, &zn) ;
+        GCAvoxelToPrior(gcam->gca, mri, x, y, z, &xn, &yn, &zn) ;
         gcamn = &gcam->nodes[xn][yn][zn] ;
         switch (mri->type)
         {
