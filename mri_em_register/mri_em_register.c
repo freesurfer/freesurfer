@@ -16,6 +16,7 @@
 #include "utils.h"
 #include "gca.h"
 #include "cma.h"
+#include "mrinorm.h"
 
 char         *Progname ;
 static MORPH_PARMS  parms ;
@@ -24,6 +25,7 @@ static char *norm_fname = NULL ;
 
 static char *sample_fname = NULL ;
 static char *transformed_sample_fname = NULL ;
+static int novar = 0 ;
 
 #define MIN_SPACING   2.0
 static float min_spacing = MIN_SPACING ;
@@ -38,9 +40,13 @@ static double rzrot = 0.0 ;
 static double rxrot = 0.0 ;
 static double ryrot = 0.0 ;
 
+static LTA *Glta = NULL ;
+
+static int translation_only = 0 ;
 static int get_option(int argc, char *argv[]) ;
 static int register_mri(MRI *mri_in, GCA *gca, MP *parms, int passno) ;
 
+static char *renormalization_fname = NULL ;
 static int center = 1 ;
 static int nreductions = 1 ;
 static int noscale = 0 ;
@@ -49,7 +55,8 @@ static int transform_loaded = 0 ;
 static char *gca_mean_fname = NULL ;
 
 static MATRIX *find_optimal_transform(MRI *mri_in, GCA *gca, GCA_SAMPLE *gcas,
-                                      int nsamples, MATRIX *m_L, int passno) ;
+                                      int nsamples, MATRIX *m_L, int passno,
+                                      int write_iterations) ;
 static double find_optimal_translation(GCA *gca, GCA_SAMPLE *gcas, MRI *mri, 
                                        int nsamples, MATRIX *m_L, 
                                        float min_trans, float max_trans, 
@@ -145,6 +152,45 @@ main(int argc, char *argv[])
               Progname, gca_fname) ;
 
 
+  if (novar)
+    GCAunifyVariance(gca) ;
+
+  if (renormalization_fname)
+  {
+    FILE   *fp ;
+    int    *labels, nlines, i ;
+    float  *intensities, f1, f2 ;
+    char   *cp, line[STRLEN] ;
+
+    fp = fopen(renormalization_fname, "r") ;
+    if (!fp)
+      ErrorExit(ERROR_NOFILE, "%s: could not read %s",
+                Progname, renormalization_fname) ;
+
+    cp = fgetl(line, 199, fp) ;
+    nlines = 0 ;
+    while (cp)
+    {
+      nlines++ ;
+      cp = fgetl(line, 199, fp) ;
+    }
+    rewind(fp) ;
+    printf("reading %d labels from %s...\n", nlines,renormalization_fname) ;
+    labels = (int *)calloc(nlines, sizeof(int)) ;
+    intensities = (float *)calloc(nlines, sizeof(float)) ;
+    cp = fgetl(line, 199, fp) ;
+    for (i = 0 ; i < nlines ; i++)
+    {
+      sscanf(cp, "%e  %e", &f1, &f2) ;
+      labels[i] = (int)f1 ; intensities[i] = f2 ;
+      if (labels[i] == Left_Cerebral_White_Matter)
+        DiagBreak() ;
+      cp = fgetl(line, 199, fp) ;
+    }
+    GCArenormalizeIntensities(gca, labels, intensities, nlines) ;
+    free(labels) ; free(intensities) ;
+  }
+
 #if 0
   if (gca->spacing < min_spacing)
     printf(
@@ -180,6 +226,18 @@ main(int argc, char *argv[])
     ErrorExit(ERROR_NOFILE, "%s: could not open input volume %s.\n",
               Progname, in_fname) ;
 
+  if (parms.write_iterations != 0)
+  {
+    char fname[STRLEN] ;
+    MRI  *mri_gca ;
+    mri_gca = MRIclone(mri_in, NULL) ;
+    GCAmri(gca, mri_gca) ;
+    sprintf(fname, "%s_target", parms.base_name) ;
+    MRIwriteImageViews(mri_gca, fname, 400) ;
+    sprintf(fname, "%s_target.mgh", parms.base_name) ;
+    printf("writing target volume to %s...\n", fname) ;
+    MRIwrite(mri_gca, fname) ;
+  }
   if (sample_fname)
   {
     GCAwriteSamples(gca, mri_in, parms.gcas, nsamples, sample_fname) ;
@@ -260,7 +318,7 @@ main(int argc, char *argv[])
 #endif
 
   if (!transform_loaded)   /* wasn't preloaded */
-    parms.lta = LTAalloc(1, mri_in) ;
+    Glta = parms.lta = LTAalloc(1, mri_in) ;
 
   if (!FZERO(blur_sigma))
   {
@@ -288,6 +346,7 @@ main(int argc, char *argv[])
     done = (((log_p - old_log_p) / fabs(old_log_p)) < tol) ;
     if (!done)
     {
+      free(parms.gcas) ;
       parms.gcas = GCAfindStableSamples(gca, &nsamples,
                                         (int)min_spacing,min_prior);
       printf("using %d sample points...\n", nsamples) ;
@@ -308,11 +367,12 @@ main(int argc, char *argv[])
 
   if (norm_fname)
   {
-    int  *ordered_indices, i, label, nused ;
+    int   *ordered_indices, i, label, nused, nleft_cbm, nright_cbm, 
+          nleft_used, nright_used ;
     MRI   *mri_norm ;
 
     /* make "unknowns" the bottom of the list */
-    for (nused = i = 0 ; i < nsamples ; i++)
+    for (nleft_cbm = nright_cbm = nused = i = 0 ; i < nsamples ; i++)
     {
       label = parms.gcas[i].label ;
       if (label == Unknown || 
@@ -322,7 +382,13 @@ main(int argc, char *argv[])
            (label != Right_Cerebellum_White_Matter )))
         parms.gcas[i].log_p = -100000 ;
       else
+      {
         nused++ ;
+        if (label == Left_Cerebellum_White_Matter )
+          nleft_cbm++ ;
+        else if (label == Right_Cerebellum_White_Matter)
+          nright_cbm++ ;
+      }
     }
 
     /* rank samples by log probability */
@@ -341,9 +407,31 @@ main(int argc, char *argv[])
 #else
 
     /* remove the least likely samples */
-    printf("sorting %d white matter points by likelihood\n", nused) ;
+    printf("sorting %d (%d/%d l/r cerebellum) white matter points by "
+           "likelihood\n", nused, nleft_cbm, nright_cbm) ;
+    for (nleft_used = nright_used = i = 0 ; i < nused/10 ; i++)
+    {
+      if (parms.gcas[ordered_indices[i]].label == Left_Cerebellum_White_Matter)
+        nleft_used++ ;
+      else if (parms.gcas[ordered_indices[i]].label == 
+               Right_Cerebellum_White_Matter)
+        nright_used++ ;
+    }
+#define MIN_CEREBELLUM  (30)
+    printf("%d/%d (l/r) cerebellar points initially in top 10%%\n", 
+           nleft_used,nright_used) ;
+          
     for (i = nused/10 ; i < nsamples ; i++)
-      parms.gcas[ordered_indices[i]].label = 0 ;
+    {
+      if ((parms.gcas[ordered_indices[i]].label == 
+           Left_Cerebellum_White_Matter) && nleft_used < MIN_CEREBELLUM)
+        nleft_used++ ;
+      else  if ((parms.gcas[ordered_indices[i]].label == 
+                 Right_Cerebellum_White_Matter) && nright_used< MIN_CEREBELLUM)
+        nright_used++ ;
+      else
+        parms.gcas[ordered_indices[i]].label = 0 ;
+    }
 #endif
 
 #if 0
@@ -404,10 +492,6 @@ register_mri(MRI *mri_in, GCA *gca, MORPH_PARMS *parms, int passno)
   MRIscaleMeanIntensities(mri_in, mri_ref, mri_in);
   printf("initializing alignment using PCA...\n") ;
 #endif
-  if (Gdiag & DIAG_WRITE && parms->write_iterations > 0)
-  {
-    MRIwriteImageViews(mri_in, "before_pca", 400) ;
-  }
 
 
   if (passno == 0)
@@ -415,7 +499,8 @@ register_mri(MRI *mri_in, GCA *gca, MORPH_PARMS *parms, int passno)
   else
     m_L = MatrixCopy(parms->lta->xforms[0].m_L, NULL) ;
 
-  find_optimal_transform(mri_in, gca, parms->gcas, parms->nsamples,m_L,passno);
+  find_optimal_transform(mri_in, gca, parms->gcas, parms->nsamples,m_L,passno,
+                         parms->write_iterations);
 
   if (!parms->lta)
     parms->lta = LTAalloc(1, NULL) ;
@@ -459,30 +544,88 @@ static double MAX_ANGLES = DEFAULT_MAX_STEPS ;
 static int max_angles = DEFAULT_MAX_STEPS ;
 
 
-static double MAX_TRANS = DEFAULT_MAX_STEPS ;
+static int MAX_TRANS_STEPS = DEFAULT_MAX_STEPS ;
+static double MAX_TRANS = 50 ;
 
 static MATRIX *
 find_optimal_transform(MRI *mri, GCA *gca, GCA_SAMPLE *gcas, int nsamples,
-                       MATRIX *m_L, int passno)
+                       MATRIX *m_L, int passno, int write_iterations)
 {
   MATRIX   *m_origin ;
-  MRI      *mri_gca ;
+  MRI      *mri_gca  ;
   double   in_means[3], gca_means[3], dx, dy, dz, max_log_p, old_max,
            max_angle, angle_steps, min_scale, max_scale, scale_steps, scale,
-           delta, mean ;
-  int      niter ;
+           delta, mean, wm_mean ;
+  int      niter, mri_peak ;
+  HISTOGRAM *h_mri, *h_smooth ;
+  MRI_REGION box ;
+
+
+  if (!passno && Gdiag & DIAG_WRITE && write_iterations > 0)
+  {
+    char fname[STRLEN] ;
+
+    sprintf(fname, "%s_before_intensity.mgh", parms.base_name) ;
+    printf("writing snapshot to %s...\n", fname) ;
+    MRIwrite(mri, fname) ;
+    MRIwriteImageViews(mri, "before_intensity", 400) ;
+  }
+
+#define MIN_BIN  50
+#define OFFSET_SIZE  25
+
+  if (passno == 0)
+  {
+    MRIfindApproximateSkullBoundingBox(mri, 50, &box) ;
+    box.x += OFFSET_SIZE ; box.y += OFFSET_SIZE ; box.z += OFFSET_SIZE ;
+    box.dx -= 2*OFFSET_SIZE; box.dy -= 2*OFFSET_SIZE; box.dz -= 2*OFFSET_SIZE;
+    wm_mean = GCAlabelMean(gca, Left_Cerebral_White_Matter) ;
+    wm_mean = (wm_mean + GCAlabelMean(gca, Right_Cerebral_White_Matter))/2.0 ;
+    printf("mean wm in atlas = %2.0f, using box (%d,%d,%d) --> (%d, %d,%d) "
+           "to find MRI wm\n", wm_mean, box.x, box.y, box.z, 
+           box.x+box.dx-1,box.y+box.dy-1, box.z+box.dz-1) ;
+    
+    h_mri = MRIhistogramRegion(mri, 0, NULL, &box) ; 
+    HISTOclearBins(h_mri, h_mri, 0, MIN_BIN) ;
+    HISTOplot(h_mri, "mri.histo") ;
+    mri_peak = HISTOfindLastPeak(h_mri, HISTO_WINDOW_SIZE,MIN_HISTO_PCT);
+    printf("before smoothing, mri peak at %d\n", mri_peak) ;
+    h_smooth = HISTOsmooth(h_mri, NULL, 2) ;
+    HISTOplot(h_smooth, "mri_smooth.histo") ;
+    mri_peak = HISTOfindLastPeak(h_smooth, HISTO_WINDOW_SIZE,MIN_HISTO_PCT);
+    printf("after smoothing, mri peak at %d, scaling input intensities "
+           "by %2.1f\n", mri_peak, wm_mean/mri_peak) ;
+    HISTOfree(&h_smooth) ; HISTOfree(&h_mri) ;
+    MRIscalarMul(mri, mri, wm_mean/mri_peak) ;
+  }
 
   
   /* first align centroids */
   mri_gca = MRIclone(mri, NULL) ;
   GCAmri(gca, mri_gca) ;
 
+  if (!passno && Gdiag & DIAG_WRITE && write_iterations > 0)
+  {
+    char fname[STRLEN] ;
+
+    Glta->xforms[0].m_L = m_L ;
+    sprintf(fname, "%s_after_intensity.mgh", parms.base_name) ;
+    printf("writing snapshot to %s...\n", fname) ;
+    MRIwrite(mri, fname) ;
+    MRIwriteImageViews(mri, "before_centering", 400) ;
+    sprintf(fname, "%s_before_centering.mgh", parms.base_name) ;
+    GCAtransformAndWriteSamples(gca, mri, gcas, nsamples, 
+                                fname, Glta) ;
+  }
   if (gca_mean_fname)
   {
     printf("writing gca volume to %s...\n", gca_mean_fname) ;
     MRIwrite(mri_gca, gca_mean_fname) ;
     printf("done\n") ;
   }
+
+  max_log_p = GCAcomputeLogSampleProbability(gca, gcas, mri, m_L,nsamples) ;
+  printf("initial log_p = %2.1f\n", max_log_p) ;
 
   MRIcenterOfMass(mri, in_means, 0) ;
   MRIcenterOfMass(mri_gca, gca_means, 0) ;
@@ -491,7 +634,10 @@ find_optimal_transform(MRI *mri, GCA *gca, GCA_SAMPLE *gcas, int nsamples,
           in_means[0], in_means[1], in_means[2],
           gca_means[0], gca_means[1], gca_means[2]) ;
 
+
+
   MRIfree(&mri_gca) ;
+
 
   /* now apply translation to take in centroid to ref centroid */
   dx = gca_means[0] - in_means[0] ; dy = gca_means[1] - in_means[1] ;
@@ -515,6 +661,26 @@ find_optimal_transform(MRI *mri, GCA *gca, GCA_SAMPLE *gcas, int nsamples,
   max_angle = MAX_ANGLE ; angle_steps = max_angles ;
   max_scale = MAX_SCALE ; min_scale = MIN_SCALE ; scale_steps = max_angles ;
 
+  if (write_iterations != 0)
+  {
+    char fname[STRLEN] ;
+    MRI *mri_aligned ;
+
+    mri_aligned = MRIlinearTransform(mri, NULL, m_L) ;
+    sprintf(fname, "%s_after_centering", parms.base_name) ;
+    MRIwriteImageViews(mri_aligned, fname, 400) ;
+    sprintf(fname, "%s_after_centering.mgh", parms.base_name) ;
+    printf("writing image after centering to %s...\n", fname) ;
+#if 0
+    MRIwrite(mri_aligned, fname) ;
+#else
+    Glta->xforms[0].m_L = m_L ;
+    GCAtransformAndWriteSamples(gca, mri, gcas, nsamples, 
+                                fname, Glta) ;
+#endif
+    MRIfree(&mri_aligned) ;
+    
+  }
 #define MIN_ITER 1
   niter = 0 ; scale = 1.0 ;
   do
@@ -522,13 +688,14 @@ find_optimal_transform(MRI *mri, GCA *gca, GCA_SAMPLE *gcas, int nsamples,
     old_max = max_log_p ;
     max_log_p = find_optimal_translation(gca, gcas, mri, nsamples, m_L,
                                          -scale*MAX_TRANS, scale*MAX_TRANS, 
-                                         MAX_TRANS, 2) ;
+                                         MAX_TRANS_STEPS, 2) ;
 
-    max_log_p = find_optimal_rotation(gca, gcas, mri, nsamples, m_L, m_origin,
-                                      -scale*max_angle, scale*max_angle, 
-                                      angle_steps, 3) ;
+    if (!translation_only)
+      max_log_p = find_optimal_rotation(gca, gcas, mri, nsamples, m_L,m_origin,
+                                        -scale*max_angle, scale*max_angle, 
+                                        angle_steps, 3) ;
 
-    if (!noscale)
+    if (!noscale && !translation_only)
     {
       max_log_p = find_optimal_scaling(gca, gcas, mri, nsamples, m_L, m_origin,
                                        min_scale, max_scale, scale_steps, 3) ;
@@ -538,6 +705,26 @@ find_optimal_transform(MRI *mri, GCA *gca, GCA_SAMPLE *gcas, int nsamples,
                                                     RADIANS(2*scale),
                                                   1-.025*scale, 1+.025*scale, 
                                                   max_angles/3,max_angles/3,3);
+    }
+    if (write_iterations != 0)
+    {
+      char fname[STRLEN] ;
+      MRI *mri_aligned ;
+      
+      mri_aligned = MRIlinearTransform(mri, NULL, m_L) ;
+      sprintf(fname, "%s%03d", parms.base_name, niter+1) ;
+      MRIwriteImageViews(mri_aligned, fname, 400) ;
+      sprintf(fname, "%s%03d.mgh", parms.base_name, niter+1) ;
+      printf("writing image after centering to %s...\n", fname) ;
+#if 0
+      MRIwrite(mri_aligned, fname) ;
+#else
+      Glta->xforms[0].m_L = m_L ;
+      GCAtransformAndWriteSamples(gca, mri, gcas, nsamples, 
+                                  fname, Glta) ;
+#endif
+
+      MRIfree(&mri_aligned) ;
     }
     
     printf("scale %2.3f: max=%2.1f, old_max =%2.1f (thresh=%2.1f)\n",
@@ -753,11 +940,12 @@ find_optimal_translation(GCA *gca, GCA_SAMPLE *gcas, MRI *mri, int nsamples,
            log_p, max_log_p, mean_trans ;
   int      i ;
 
+  delta = (max_trans-min_trans) / trans_steps ;
   m_L_tmp = NULL ;
   m_trans = MatrixIdentity(4, NULL) ;
   x_max = y_max = z_max = 0.0 ;
   max_log_p = GCAcomputeLogSampleProbability(gca, gcas, mri, m_L,nsamples) ;
-  *MATRIX_RELT(m_trans, 4, 4) = 1.0 ;
+
   for (i = 0 ; i <= nreductions ; i++)
   {
     delta = (max_trans-min_trans) / trans_steps ;
@@ -856,6 +1044,18 @@ get_option(int argc, char *argv[])
     use_contrast = 1 ;
     printf("using contrast to find labels...\n") ;
   }
+  else if (!strcmp(option, "RENORM"))
+  {
+    renormalization_fname = argv[2] ;
+    nargs = 1 ;
+    printf("renormalizing using predicted intensity values in %s...\n",
+           renormalization_fname) ;
+  }
+  else if (!strcmp(option, "TRANSONLY"))
+  {
+    translation_only = 1 ;
+    printf("only computing translation parameters...\n") ;
+  }
   else if (!strcmp(option, "WRITE_MEAN"))
   {
     gca_mean_fname = argv[2] ;
@@ -873,6 +1073,11 @@ get_option(int argc, char *argv[])
     min_spacing = atof(argv[2]) ;
     nargs = 1 ;
     printf("using min GCA spacing %2.0f...\n", min_spacing) ;
+  }
+  else if (!stricmp(option, "NOVAR"))
+  {
+    novar = 1 ;
+    printf("not using variance estimates\n") ;
   }
   else if (!strcmp(option, "DT"))
   {
@@ -988,9 +1193,9 @@ get_option(int argc, char *argv[])
             parms.sigma) ;
     nargs = 1 ;
 #else
-    MAX_ANGLES = MAX_TRANS = max_angles = (float)atoi(argv[2]) ;
+    MAX_ANGLES = MAX_TRANS_STEPS = max_angles = (float)atoi(argv[2]) ;
     nargs = 1 ;
-    printf("examining %2.0f different trans/rot/scale values...\n", MAX_TRANS);
+    printf("examining %2.0f different trans/rot/scale values...\n",MAX_ANGLES);
 #endif
     break ;
   case '?':
