@@ -13,7 +13,7 @@
 #include "timer.h"
 #include "cma.h"
 
-static char vcid[] = "$Id: mri_fill.c,v 1.53 2002/02/07 18:41:28 fischl Exp $";
+static char vcid[] = "$Id: mri_fill.c,v 1.54 2002/02/07 22:29:24 fischl Exp $";
 
 /*-------------------------------------------------------------------
                                 CONSTANTS
@@ -1452,8 +1452,12 @@ find_slice_center(MRI *mri,  int *pxo, int *pyo)
   border = 1 ;
   for (y = yo-1 ; border && y <= yo+1 ; y++)
   {
+    if (y < 0 || y >= height)
+      continue ;
     for (x = xo-1 ; border && x <= xo+1 ; x++)
     {
+      if (x < 0 || x >= width)
+        continue ;
       if (MRIvox(mri, x, y, 0) >= WM_MIN_VAL) /* see if it is a border pixel */
       {
         border = 0 ;
