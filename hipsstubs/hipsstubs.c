@@ -128,8 +128,8 @@ void MachThreadExit(void) {}
 #endif
 /* getparam(hd,name,fmt,count,valuepointer) */
 
-int getparam(struct header *hd, ...) { return(0) ; }
-int setparam(struct header *hd, ...) { return(0) ; }
-void *findparam(struct header *hd, char *name) { return(NULL) ; }
-int clearparam(struct header *hd, char *name) { return(0) ; }
+int getparam(void *hd, ...) { return(0) ; }
+int setparam(void *hd, ...) { return(0) ; }
+void *findparam(void *hd, char *name) { return(NULL) ; }
+int clearparam(void *hd, char *name) { return(0) ; }
 
