@@ -2668,6 +2668,8 @@ do_one_gl_event(Tcl_Interp *interp)   /* tcl */
 	else {
 	  clear_all_vertex_marks();
 	  /* begin rkt */
+	  /* deselect label. */
+	  labl_select(-1);
 	  redraw();
 	  /* end rkt */
 	}
