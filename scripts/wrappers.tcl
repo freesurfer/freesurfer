@@ -132,7 +132,7 @@ proc okreplace { absfilename {altmsg none} {altretlabel none} {midbut none} } {
   global userok pfont ffontbb bgcol entbgcol
   set file [file tail $absfilename]
   set dir [file dirname $absfilename]
-  set f [toplevel .dialog -borderwidth 10]
+  set f [toplevel .okreplace -borderwidth 10]
   positionpopup $f
   wm protocol $f WM_DELETE_WINDOW killbox
   label $f.la -text REPLACE -font $ffontbb -bd 2 -relief groove -padx 7 -pady 7 
@@ -159,8 +159,8 @@ proc okreplace { absfilename {altmsg none} {altretlabel none} {midbut none} } {
   pack $b.replace -side right -padx 5 -anchor e
   if {$midbut != "none"} {pack $b.mid -side right -padx 5 -anchor e}
   pack $b.cancel -side right -padx 5 -anchor e
-  bind .dialog <Control-c> {set userok 0}
-  bind .dialog <Return> {set userok 1}
+  bind .okreplace <Control-c> {set userok 0}
+  bind .okreplace <Return> {set userok 1}
   foreach win "$f $f.msg $f.buttons" { $win configure -background $bgcol }
   foreach win "$f.la $b.cancel $b.replace" { $win configure -bg $entbgcol }
   if {$midbut != "none"} {$b.mid configure -bg $entbgcol}
@@ -180,7 +180,7 @@ proc okclose { absfilename } {
   global userok pfont ffontbb bgcol entbgcol
   set file [file tail $absfilename]
   set dir [file dirname $absfilename]
-  set f [toplevel .dialog -borderwidth 10]
+  set f [toplevel .okclose -borderwidth 10]
   positionpopup $f
   wm protocol $f WM_DELETE_WINDOW killbox
   label $f.la -text CLOSE -font $ffontbb -bd 2 -relief groove -padx 7 -pady 7 
@@ -212,7 +212,7 @@ proc okclose { absfilename } {
 
 proc confirmalert { errortext } {
   global userok pfont ffontbb bgcol entbgcol
-  set nm .dialog
+  set nm .confirm
   while {[info commands $nm] == "$nm"} {set nm ${nm}x}
   set f [toplevel $nm -borderwidth 10]
   positionpopup $f
@@ -233,16 +233,16 @@ proc confirmalert { errortext } {
   wm protocol . WM_DELETE_WINDOW killbox
   raise $f
   focus $f
-  grab $f
+  #grab $f   ;# errors if another app grabs
   tkwait variable userok
-  grab release $f
+  #grab release $f
   destroy $f
   wm protocol . WM_DELETE_WINDOW testclose
   return $userok
 }
 
 proc helpwin { helpfile {cols 50} {rows 10} {location std} } {
-  global userok env ffont ffontbb pfont program bgcol entbgcol
+  global userok env ffont ffontbb pfont program bgcol entbgcol selbgcol
   set nm .help
   while {[info commands $nm] == "$nm"} {set nm ${nm}x}
   if {$location == "std"} {
@@ -260,8 +260,8 @@ proc helpwin { helpfile {cols 50} {rows 10} {location std} } {
 
   frame $f.t
   set log [text $f.t.log -width $cols -height $rows -font $ffont \
-                     -borderwidth 2 -relief raised -setgrid true \
-                     -yscrollcommand "$f.t.scroll set"]
+    -borderwidth 2 -relief raised -setgrid true -selectbackground $selbgcol \
+    -yscrollcommand "$f.t.scroll set"]
   scrollbar $f.t.scroll -command "$f.t.log yview"
   pack $f.t.scroll -side right -fill y
   pack $f.t.log -side left -expand true -fill y
@@ -273,25 +273,12 @@ proc helpwin { helpfile {cols 50} {rows 10} {location std} } {
 
   set b [frame $f.but -borderwidth 1]
   pack $b -side right
-  button $b.ok -text "OK" -font $pfont -command {set userok 0}
+  button $b.ok -text "OK" -font $pfont -command "destroy $f"
   pack $b.ok -side right -padx 5 -anchor e
-  button $b.st -text "STAY" -font $pfont -command {set userok 1}
-  pack $b.st -side right -padx 5 -anchor e
   foreach win "$f $f.but $f.t.scroll" { $win config -background $bgcol }
   foreach win "$f.la $b.ok $f.t.log" { $win config -background $entbgcol }
-
-  bind $nm <Control-c> {set userok 0}
-  bind $nm <Return> {set userok 0}
+  bind $nm <Return> "destroy $f"
   focus $f
-  grab $f
-  tkwait variable userok
-  grab release $f
-  if {$userok == 1} {
-    pack forget $b.st
-    $b.ok config -command "destroy $f"
-    return
-  }
-  destroy $f
 }
 
 proc killbox { } {
