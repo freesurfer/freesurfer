@@ -2,7 +2,7 @@
 # epidewarp.fsl
 #
 
-set VERSION = '$Id: epidewarp.fsl,v 1.10 2004/12/16 19:31:17 greve Exp $'
+set VERSION = '$Id: epidewarp.fsl,v 1.11 2005/02/21 20:47:34 greve Exp $'
 set inputargs = ($argv);
 
 set dph = ();
@@ -715,7 +715,11 @@ Doug Greve, Dave Tuch, Tom Liu, and Bryon Mueller with generous help
 from the FSL crew (www.fmrib.ox.ac.uk/fsl) and the Biomedical
 Informatics Research Network (www.nbirn.net).
 
+Reference:
 
+Jezzard, Peter, and Balaban, Robert S. Correction for Geometric
+Distortion in Echo Planar Images from B0 Field Variations. Mag Res
+Med, 1995, 34:65-73.
 
 
 
