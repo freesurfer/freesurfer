@@ -163,6 +163,7 @@ typedef struct
   float        total_area ;
   float        orig_area ;
   float        neg_area ;
+  float        neg_orig_area ;   /* amount of original surface in folds */
   int          zeros ;
   int          hemisphere ;            /* which hemisphere */
   int          initialized ;

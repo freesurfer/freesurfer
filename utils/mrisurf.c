@@ -4067,8 +4067,10 @@ MRISquickSphere(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int max_passes)
   base_averages = parms->n_averages ;
   niter = parms->niterations ;
   passno = 0 ;
+#if 0
   if ((parms->flags & IPFLAG_QUICK) == 0)
     parms->tol = parms->tol * 1024 / (sqrt((double)base_averages+1)) ;
+#endif
   do
   {
     mrisIntegrationEpoch(mris, parms, base_averages) ;
@@ -4507,7 +4509,10 @@ MRISintegrate(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int n_averages)
   l_area = parms->l_area ;
   write_iterations = parms->write_iterations ;
   niterations = parms->niterations ;
-  tol = parms->tol * sqrt(((double)n_averages + 1.0) / 1024.0);
+  if ((parms->flags & IPFLAG_QUICK) == 0)
+    tol = parms->tol * sqrt(((double)n_averages + 1.0) / 1024.0);
+  else
+    tol = parms->tol ;
   sse_thresh = tol ;
   if (Gdiag & DIAG_SHOW)
     fprintf(stderr,"integrating with navgs=%d and tol=%2.3e\n",n_averages,tol);
@@ -5055,7 +5060,7 @@ mrisOrientEllipsoid(MRI_SURFACE *mris)
   if ((mris->status != MRIS_PARAMETERIZED_SPHERE) || (!mris->total_area))
 #endif
   {
-    mris->total_area = mris->neg_area = 0.0f ;
+    mris->total_area = mris->neg_orig_area = mris->neg_area = 0.0f ;
     for (fno = 0 ; fno < mris->nfaces ; fno++)
     {
       face = &mris->faces[fno] ;
@@ -5064,7 +5069,10 @@ mrisOrientEllipsoid(MRI_SURFACE *mris)
       if (face->area >= 0.0f)
         mris->total_area += face->area ;
       else
+      {
         mris->neg_area += -face->area ;
+        mris->neg_orig_area += face->orig_area ;
+      }
     }
   }
 
@@ -5104,7 +5112,7 @@ mrisOrientPlane(MRI_SURFACE *mris)
   }
 
   /* now recompute the total surface area, ignoring negative areas */
-  mris->total_area = mris->neg_area = 0.0f ;
+  mris->total_area = mris->neg_orig_area = mris->neg_area = 0.0f ;
   for (fno = 0 ; fno < mris->nfaces ; fno++)
   {
     face = &mris->faces[fno] ;
@@ -5113,7 +5121,10 @@ mrisOrientPlane(MRI_SURFACE *mris)
     if (face->area >= 0.0f)
       mris->total_area += face->area ;
     else
+    {
       mris->neg_area += -face->area ;
+      mris->neg_orig_area += face->orig_area ;
+    }
   }
 
   for (vno = 0 ; vno < mris->nvertices ; vno++)
@@ -11778,16 +11789,18 @@ mrisLogStatus(MRI_SURFACE *mris,INTEGRATION_PARMS *parms,FILE *fp, float dt)
 #endif
   if (FZERO(parms->l_corr) && FZERO(parms->l_pcorr))
     fprintf(fp, "%3.3d: dt: %2.2f, sse: %2.0f (%2.3f, %2.1f, %2.3f), "
-            "neg: %d (%%%2.3f), avgs: %d\n", 
+            "neg: %d (%%%2.3f:%%%2.2f), avgs: %d\n", 
             parms->t, dt, sse, area_rms, (float)DEGREES(angle_rms), dist_rms,
             negative, 100.0*mris->neg_area/(mris->neg_area+mris->total_area),
+            100.0*mris->neg_orig_area/(mris->orig_area),
             parms->n_averages);
   else
     fprintf(fp, "%3.3d: dt: %2.3f, sse: %2.1f (%2.3f, %2.1f, %2.3f, %2.3f), "
-            "neg: %d (%%%2.2f), avgs: %d\n", 
+            "neg: %d (%%%2.2f:%%%2.2f), avgs: %d\n", 
             parms->t, dt, sse, area_rms, (float)DEGREES(angle_rms), dist_rms,
             corr_rms, negative, 
             100.0*mris->neg_area/(mris->neg_area+mris->total_area),
+            100.0*mris->neg_orig_area/(mris->orig_area),
             parms->n_averages);
 
   fflush(fp) ;
