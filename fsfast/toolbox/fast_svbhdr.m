@@ -6,7 +6,7 @@ function err = fast_svbhdr(m, bhdrfile)
 %
 % See also fast_ldbhdr and fast_mri_struct.
 %
-% $Id: fast_svbhdr.m,v 1.1 2003/08/01 21:19:51 greve Exp $
+% $Id: fast_svbhdr.m,v 1.2 2003/08/02 00:56:14 greve Exp $
 
 err = 1;
 
@@ -32,7 +32,8 @@ BR = m.T*[m.voldim(1) m.voldim(2) 0 1]'; % Bot right + 0.5 vox
 %BR = m.T*[m.voldim(1)-0.5 m.voldim(2)-0.5 -0.5 1]'; % Bot right
 
 SliceNorm = m.T(:,3);
-SliceNorm = SliceNorm/sqrt(sum(SliceNorm.^2));
+mag = sqrt(sum(SliceNorm.^2));
+if(mag>0) SliceNorm = SliceNorm/mag; end
 
 fprintf(fid,'          cols: %d\n',m.voldim(1));
 fprintf(fid,'          rows: %d\n',m.voldim(2));
