@@ -1,27 +1,27 @@
-function err = fast_svbslice(y,stem,sliceno,bext,bhdrstr)
-% err = fast_svbslice(y,stem,sliceno,bext,bhdrstr)
+function err = fast_svbslice(y,stem,sliceno,bext,mristruct)
+% err = fast_svbslice(y,stem,sliceno,bext,mristruct)
 %
 % size(y) = [rows cols frames]
 % sliceno is zero-based
 % if bext is not specificed or is null, it is set to bfloat
-% bhdrstr is printed to stem.bhdr
+% mristruct (see fast_mri_struct) is used to create stem.bhdr
 %
-% if sliceno is < 0 then size(y) = [slices rows cols frames]
+% if sliceno is < 0 then size(y) = [rows cols slices frames]
 % and each slice is saved.
 %
-% $Id: fast_svbslice.m,v 1.4 2003/08/01 00:03:50 greve Exp $
+% See also fast_ldbslice, fast_mri_struct, fast_svbhdr.
+% 
+% $Id: fast_svbslice.m,v 1.5 2003/08/02 00:57:49 greve Exp $
 
 err = 1;
 
 if(nargin < 2 | nargin > 5)
-  fprintf('err = fast_svbslice(y,stem,sliceno,<bext>,<bhdrstr>)\n');
+  fprintf('err = fast_svbslice(y,stem,sliceno,<bext>,<mristruct>)\n');
   return;
 end
 
 if(exist('bext') ~= 1) bext = ''; end
 if(isempty(bext)) bext = 'bfloat'; end
-
-if(exist('bhdrstr') ~= 1) bhdrstr = ''; end
 
 if(strcmp(bext,'bfloat') == 0 & strcmp(bext,'bshort') == 0)
   fprintf('ERROR: bext = %s, must be bfloat or bshort\n',bext);
@@ -29,22 +29,42 @@ if(strcmp(bext,'bfloat') == 0 & strcmp(bext,'bshort') == 0)
 end
   
 if(sliceno >= 0)
+  % Save as a single slice %
   fname = sprintf('%s_%03d.%s',stem,sliceno,bext);
   fmri_svbfile(y,fname);
 else
-  nslices = size(y,1);
+  % Save as an entire volume %
+  nslices = size(y,3);
   for slice = 0:nslices-1
     fname = sprintf('%s_%03d.%s',stem,slice,bext);
-    fmri_svbfile(squeeze(y(slice+1,:,:,:)),fname);
+    fmri_svbfile(squeeze(y(:,:,slice+1,:)),fname);
   end
+
+  % Check for extra slices and delete them %
+  slice = nslices
+  while(1)
+    fname = sprintf('%s_%03d.%s',stem,slice,bext);
+    fid = fopen(fname,'r');
+    if(fid ~= -1) delete(fname);
+    else break;
+    end
+    fname = sprintf('%s_%03d.hdr',stem,slice);
+    fid = fopen(fname,'r');
+    if(fid ~= -1) delete(fname);
+    else break;
+    end
+    slice = slice+1;
+  end
+
 end
 
-if(~isempty(bhdrstr))
-  % Should make sure nframes is correct %
-  bhdrfile = sprintf('%s.bhdr',stem);
-  fid = fopen(bhdrfile,'w');
-  fprintf(fid,'%s',bhdrstr);
-  fclose(fid);
+% Save the bhdr file %
+if(exist('mristruct') == 1)
+  szf = size(y);
+  fdims = length(szf);
+  nframes = szf(fdims);
+  mristruct.nframes = nframes;
+  fast_svbhdr(mristruct,stem);
 end
 
 err = 0;
