@@ -548,13 +548,15 @@ LTAtransform(MRI *mri_src, MRI *mri_dst, LTA *lta)
     if (!mri_dst) 
     {
       mri_dst = MRIclone(mri_src, NULL);
-      fprintf(stderr, "INFO: Copied c_(r,a,s) from the src\n");
+			if (DIAG_VERBOSE_ON)
+				fprintf(stderr, "INFO: Copied c_(r,a,s) from the src\n");
     }
     if (tran->dst.valid == 1) // transform dst is valid
     {
       // modify dst c_(r,a,s) using the transform dst value
       // to make the better positioning
-      fprintf(stderr, "INFO: Modifying dst c_(r,a,s), using the transform dst\n");
+			if (DIAG_VERBOSE_ON)
+				fprintf(stderr, "INFO: Modifying dst c_(r,a,s), using the transform dst\n");
       mri_dst->c_r = tran->dst.c_r;
       mri_dst->c_a = tran->dst.c_a;
       mri_dst->c_s = tran->dst.c_s;

@@ -10,9 +10,9 @@
  *       DATE:        1/8/97
  *
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2004/02/06 18:08:27 $
-// Revision       : $Revision: 1.42 $
+// Revision Author: $Author: fischl $
+// Revision Date  : $Date: 2004/04/02 22:08:37 $
+// Revision       : $Revision: 1.43 $
 */
 
 /*-----------------------------------------------------
@@ -6978,11 +6978,13 @@ dfp_em_step_func(int itno, float sse, void *vparms, float *p)
     }
   }
   //////////////////////////// new //////////////////////////
+#if 0
   parms->lta->xforms[0].m_L->rptr[4][1] = 0.;
   parms->lta->xforms[0].m_L->rptr[4][2] = 0.;
   parms->lta->xforms[0].m_L->rptr[4][3] = 0.;
   parms->lta->xforms[0].m_L->rptr[4][4] = 1.;
   MatrixPrintHires(stderr, parms->lta->xforms[0].m_L);
+#endif
   ///////////////////////////////////////////////////////////
   if ((parms->write_iterations > 0) && 
       Gdiag & DIAG_WRITE && 
@@ -7043,9 +7045,12 @@ mriQuasiNewtonLinearAlignPyramidLevel(MRI *mri_in, MRI *mri_ref,
         m_L->rptr[row][col] = p[i++] ;
       }
     }
-    printf("after pass:transform: ( %.2f, %.2f, %.2f, %.2f)\n", p[1], p[2], p[3], p[4]);
-    printf("                      ( %.2f, %.2f, %.2f, %.2f)\n", p[5], p[6], p[7], p[8]);
-    printf("                      ( %.2f, %.2f, %.2f, %.2f)\n", p[9], p[10], p[11], p[12]);
+		if (DIAG_VERBOSE_ON)
+		{
+			printf("after pass:transform: ( %.2f, %.2f, %.2f, %.2f)\n", p[1], p[2], p[3], p[4]);
+			printf("                      ( %.2f, %.2f, %.2f, %.2f)\n", p[5], p[6], p[7], p[8]);
+			printf("                      ( %.2f, %.2f, %.2f, %.2f)\n", p[9], p[10], p[11], p[12]);
+		}
 
   } while ((fold-fnew)/fold > parms->tol) ;
 
@@ -7395,10 +7400,10 @@ static void                 // in         out
 computeEMAlignmentGradient(float *p, float *g)
 {
 #if 1
-  int    width, height, depth, row, col, i, xn, yn, zn, xv, yv, zv, n ;
+  int    width, height, depth, row, col, i, xn, yn, zn, xv, yv, zv, n, ndets=0 ;
   VECTOR *v_X, *v_Y, *v_means, *v_X_T ; /* original and transformed coordinate systems */
   MATRIX *m_L, *m_dL, *m_dI_X_T, *m_delI, *m_inv_cov, *m_tmp1, *m_tmp2 ;
-  double dx, dy, dz ;
+  double dx, dy, dz, det, det_total ;
   MRI    *mri_in ;
   MP     *parms ;
   GCA    *gca ;
@@ -7423,9 +7428,11 @@ computeEMAlignmentGradient(float *p, float *g)
   m_L->rptr[4][1] = m_L->rptr[4][2] = m_L->rptr[4][3] = 0 ;
   m_L->rptr[4][4] = 1.0 ;
 #ifndef __OPTIMIZE__
+#if 0
   printf("g_mri_in c_(r,a,s) = (%.3f, %.3f, %.3f)\n", mri_in->c_r, mri_in->c_a, mri_in->c_s);
   printf("Transform in EMAlignmentGradient\n");
   MatrixPrintHires(stderr, m_L);
+#endif
 #endif
   width = mri_in->width ; height = mri_in->height ; depth = mri_in->depth ;
   m_dI_X_T = MatrixAlloc(4, 4, MATRIX_REAL) ;
@@ -7441,6 +7448,7 @@ computeEMAlignmentGradient(float *p, float *g)
   transform = TransformAlloc(LINEAR_VOX_TO_VOX, NULL) ;
   MatrixCopy(m_L, ((LTA *)(transform->xform))->xforms[0].m_L) ;
   TransformInvert(transform, NULL) ;
+	det_total = 0.0 ; ndets = 0 ;
   for (i = 0 ; i < parms->nsamples ; i++)
   {
     xn = gcas[i].xp ; yn = gcas[i].yp ; zn = gcas[i].zp ; 
@@ -7448,19 +7456,21 @@ computeEMAlignmentGradient(float *p, float *g)
     if (!GCApriorToSourceVoxel(gca, mri_in, transform, xn, yn, zn, &xv, &yv, &zv))
     {
       gc = GCAfindSourceGC(gca, mri_in, transform, xv, yv, zv, gcas[i].label) ;
-    
+
       /////////////////////// here is the one makes translation ///////////////
-      VECTOR_ELT(v_X, 4) = 1.; ////////////////////////////////////////////////
+			/*      VECTOR_ELT(v_X, 4) = 1.;*/ ////////////////////////////////////////////////
       V3_X(v_X) = xv ; V3_Y(v_X) = yv ; V3_Z(v_X) = zv ; MatrixTranspose(v_X, v_X_T) ;
       
       if (gc)
       {
-	load_mean_vector(gc, v_means, gca->ninputs) ;
-	load_inverse_covariance_matrix(gc, m_inv_cov, gca->ninputs) ;
+				load_mean_vector(gc, v_means, gca->ninputs) ;
+				load_inverse_covariance_matrix(gc, m_inv_cov, gca->ninputs) ;
+				det = MatrixDeterminant(m_inv_cov) ;
+				det_total += det ; ndets++ ;
       }
       else
       {
-	MatrixClear(v_means) ; MatrixIdentity(gca->ninputs, m_inv_cov) ;
+				MatrixClear(v_means) ; MatrixIdentity(gca->ninputs, m_inv_cov) ;
       }
       
       load_vals(mri_in, xv, yv, zv, vals, gca->ninputs) ;
@@ -7468,13 +7478,17 @@ computeEMAlignmentGradient(float *p, float *g)
       /* construct gradient tensor */
       for (n = 0 ; n < gca->ninputs ; n++)
       {
-	// taking x+1, x-1 -> dx, y+1, y-1 -> dy, z+1, z-1 -> dz
-	MRIsampleVolumeGradientFrame(mri_in, xv, yv, zv, &dx, &dy, &dz, n) ;
-	*MATRIX_RELT(m_delI, 1, n+1) = dx ;
-	*MATRIX_RELT(m_delI, 2, n+1) = dy ;
-	*MATRIX_RELT(m_delI, 3, n+1) = dz ;
-	*MATRIX_RELT(m_delI, 4, n+1) = 1.;
-	VECTOR_ELT(v_means, n+1) -= vals[n] ;
+				// taking x+1, x-1 -> dx, y+1, y-1 -> dy, z+1, z-1 -> dz
+				MRIsampleVolumeGradientFrame(mri_in, xv, yv, zv, &dx, &dy, &dz, n) ;
+				*MATRIX_RELT(m_delI, 1, n+1) = dx ;
+				*MATRIX_RELT(m_delI, 2, n+1) = dy ;
+				*MATRIX_RELT(m_delI, 3, n+1) = dz ;
+#if 1
+				*MATRIX_RELT(m_delI, 4, n+1) = 1.;
+#else
+				*MATRIX_RELT(m_delI, 4, n+1) = 0.;
+#endif
+				VECTOR_ELT(v_means, n+1) -= vals[n] ;
       }
       // m_tmp1 = ninputs (x) 4
       m_tmp1 = MatrixMultiply(v_means, v_X_T, m_tmp1) ;     /* (I(Lr) - A(r)) r' */
@@ -7488,7 +7502,11 @@ computeEMAlignmentGradient(float *p, float *g)
     }
   }
 
-  MatrixScalarMul(m_dL, parms->l_intensity/(double)(gca->ninputs*parms->nsamples), m_dL);
+	if (ndets > 0)
+		det_total /= (double)ndets ;
+	else
+		det_total = 0 ;
+  MatrixScalarMul(m_dL, parms->dt*parms->l_intensity/(double)(det_total*gca->ninputs*parms->nsamples), m_dL);
   MatrixFree(&m_dI_X_T) ; MatrixFree(&v_X) ; MatrixFree(&m_inv_cov) ;
   MatrixFree(&m_tmp1) ; MatrixFree(&m_tmp2) ; MatrixFree(&v_X_T) ;
 
@@ -7531,8 +7549,10 @@ computeEMAlignmentErrorFunctional(float *p)
   m_L->rptr[4][1] = m_L->rptr[4][2] = m_L->rptr[4][3] = 0 ;
   m_L->rptr[4][4] = 1.0 ;
 #ifndef __OPTIMIZE__
+#if 0
   printf("Transform at EMAlignmentErrorFunctional:\n");
   MatrixPrintHires(stderr, m_L);
+#endif
 #endif
   old_lta = (LTA *)parms->transform->xform ;
   parms->transform->xform = (void *)lta ;
@@ -7811,7 +7831,7 @@ MRIemAlign(MRI *mri_in, GCA *gca, MORPH_PARMS *parms, MATRIX *m_L)
       -GCAcomputeLogSampleProbability(gca,parms->gcas,mri_in,
                                       parms->transform,parms->nsamples);
 		i++ ;
-    printf("outof QuasiNewtonEMA: %03d: -log(p) = %6.1f  tol %f\n",i, pcurrent, parms->tol) ;
+    printf("outof QuasiNewtonEMA: %03d: -log(p) = %6.1f  tol %f\n",parms->start_t+i, pcurrent, parms->tol) ;
   } while(((pcurrent - pold) / (pold)) > parms->tol) ;
 
   strcpy(parms->base_name, base_name) ;

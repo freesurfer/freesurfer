@@ -8,10 +8,10 @@
  *
 */
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2004/03/29 17:50:33 $
-// Revision       : $Revision: 1.264 $
-char *MRI_C_VERSION = "$Revision: 1.264 $";
+// Revision Author: $Author: fischl $
+// Revision Date  : $Date: 2004/04/02 22:08:37 $
+// Revision       : $Revision: 1.265 $
+char *MRI_C_VERSION = "$Revision: 1.265 $";
 
 /*-----------------------------------------------------
                     INCLUDE FILES
@@ -1011,6 +1011,24 @@ MRIvalRangeRegion(MRI *mri, float *pmin, float *pmax, MRI_REGION *region)
   fmax = -10000.0f ;
   switch (mri->type)
   {
+	default:
+    for (z = z0 ; z < depth ; z++)
+    {
+      for (y = y0 ; y < height ; y++)
+      {
+        pf = &MRIFvox(mri, x0, y, z) ;
+        for (x = x0 ; x < width ; x++)
+        {
+          val = MRIgetVoxVal(mri, x, y, z, 0) ;
+          if (val < fmin)
+            fmin = val ;
+          if (val > fmax)
+            fmax = val ;
+        }
+      }
+    }
+    break ;
+
   case MRI_FLOAT:
     for (z = z0 ; z < depth ; z++)
     {
@@ -1045,10 +1063,6 @@ MRIvalRangeRegion(MRI *mri, float *pmin, float *pmax, MRI_REGION *region)
       }
     }
     break ;
-  default:
-    ErrorReturn(ERROR_UNSUPPORTED, 
-                (ERROR_UNSUPPORTED, "MRIvalRangeRegion: unsupported type %d",
-                 mri->type)) ;
   }
 
   *pmin = fmin ;
