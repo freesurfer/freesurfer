@@ -13,7 +13,7 @@
 #include "timer.h"
 #include "cma.h"
 
-static char vcid[] = "$Id: mri_fill.c,v 1.49 2001/06/01 14:53:57 fischl Exp $";
+static char vcid[] = "$Id: mri_fill.c,v 1.50 2001/06/01 17:04:51 fischl Exp $";
 
 /*-------------------------------------------------------------------
                                 CONSTANTS
@@ -2748,6 +2748,8 @@ edit_segmentation(MRI *mri_wm, MRI *mri_seg)
 #endif
           }
           break ;
+        case Left_Accumbens_area:
+        case Right_Accumbens_area:
         case Left_Caudate:
         case Right_Caudate:
         case Left_Putamen:
