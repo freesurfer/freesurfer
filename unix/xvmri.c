@@ -224,6 +224,7 @@ mri_event_handler(XV_FRAME *xvf, Event *event,DIMAGE *dimage,
     case 'S':   /* change all views and slices to be the same */
       XVMRIsetView(xvf, which, mri_views[which]) ;
       break ;
+#if 0
     case '0':
       fprintf(stderr, "turning off voxel (%d, %d, %d)\n", x, y, z) ;
       switch (mri->type)
@@ -250,6 +251,7 @@ mri_event_handler(XV_FRAME *xvf, Event *event,DIMAGE *dimage,
       }
       XVMRIshowFrame(xvf, mri, which, mri_slices[which], mri_frames[which]) ;
       break ;
+#endif
     case 'G':
     case 'g':
       /* look in 4 places for edit.dat - same dir as image, tmp/edit.dat
