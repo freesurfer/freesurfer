@@ -36,22 +36,6 @@ mri_edit_wm_with_aseg_LDFLAGS=$(OS_LDFLAGS)
 #
 # by the way, you can have as many bin_PROGRAMS in the same directory
 #
-########################################################################
-# when you want to create your program to test, use the following framework
-# you can have as many programs (separated by space) as check_PROGRAMS
-# your program can consist of many sources (you add to _SOURCES= line)
-# You can do "make myown" to compile. The default CFLAGS="-g -O2", but
-# you can do "make CFLAGS=-g myown" to create debugging version.
-#
-# the program listed as check_PROGRAMS are not compiled under standard "make".
-# only "make check" will compile them.
-# 
-# please don't remove myown.c
-########################################################################
-check_PROGRAMS= myown
-
-myown_SOURCES=myown.c
-myown_LDADD=$(addprefix $(top_srcdir)/, $(LIBS_MGH))
 
 
 
