@@ -726,7 +726,8 @@ XVMRIsetView(XV_FRAME *xvf, int which, int view)
         default:
           slice2 = slice ;
         }
-        XVMRIsetView(xvf, which2, view) ;
+/*        XVMRIsetView(xvf, which2, view) ;*/
+        mri_views[which2] = view ;
         XVMRIshowFrame(xvf, mri2, which2, slice2, mri_frames[which2]) ;
       }
     }
