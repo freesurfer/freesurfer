@@ -23,6 +23,7 @@
 #include "error.h"
 #include "hips.h"
 #include "proto.h"
+#include "rgb_image.h"
 
 /*-----------------------------------------------------
                     MACROS AND CONSTANTS
@@ -38,6 +39,7 @@ static char error_fname[100] = ERROR_FNAME ;
 static int (*error_vprintf)(const char *fmt, va_list args) = vprintf ;
 static int (*error_vfprintf)(FILE *fp,const char *fmt,va_list args) = vfprintf;
 static void (*error_exit)(int ecode) = (void *)(int)exit ;
+static void rgb_error(char *error_str) ;
 
 /*-----------------------------------------------------
                       GLOBAL DATA
@@ -56,11 +58,25 @@ int Gerror = NO_ERROR ;
 
         Description
 ------------------------------------------------------*/
+static void
+rgb_error(char *error_str)
+{
+  ErrorPrintf(ERROR_BADPARM, error_str) ;
+  return ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
 int
 ErrorInit(char *fname, 
                   int (*vfprint)(FILE *fp, const char *fmt, va_list args),
                   int (*vprint)(const char *fmt, va_list args))
 {
+  i_seterror(rgb_error) ;
   if (fname)
     strcpy(error_fname, fname) ;
   if (vfprint)
