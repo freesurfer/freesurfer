@@ -276,88 +276,6 @@ ImageRead(char *fname)
 
         Description
 ------------------------------------------------------*/
-static unsigned char thicken_se[9] = { 255, 1, 255, 1, 1, 1, 255, 1, 255 } ;
-IMAGE *
-ImageDilate(IMAGE *Isrc, IMAGE *Idst, int which)
-{
-  int    ecode, center_row, center_col, gray ;
-  IMAGE  Ise, *Iin, *Itmp, *Iout ;
-
-  init_header(&Ise, "orig", "seq", 1, "today", 3, 3, PFBYTE, 1, "temp");
-
-  if (!Idst)
-    Idst = ImageAlloc(Isrc->rows, Isrc->cols, PFBYTE, Isrc->num_frame) ;
-
-  if (Isrc->pixel_format != PFBYTE)
-  {
-    Itmp = ImageScale(Isrc, NULL, 0, 255) ;
-    Iin = ImageAlloc(Isrc->rows, Isrc->cols, PFBYTE, Isrc->num_frame) ;
-    ImageCopy(Itmp, Iin) ;
-    ImageFree(&Itmp) ;
-  }
-  else
-    Iin = Isrc ;
-
-  if (Idst->pixel_format != PFBYTE)
-    Iout = ImageAlloc(Isrc->rows, Isrc->cols, PFBYTE, Isrc->num_frame) ;
-  else
-    Iout = Idst ;
-
-  ImageReplace(Iin, Iin, 255.0f, 1.0f) ;
-  ImageReplace(Iin, Iin, 0.0f, 255.0f) ;
-
-  switch (which)
-  {
-  case MORPH_THICKEN:
-    Ise.image = Ise.firstpix = thicken_se ;
-    center_row = Ise.rows / 2 ;
-    center_col = Ise.cols / 2 ;
-    ecode = h_morphdil(Iin, &Ise, Iout, center_row, center_col, 128) ;
-    break ;
-  default:
-    ErrorExit(ERROR_UNSUPPORTED, 
-              "ImageMorph: unsupported morphological operation %d\n", which) ;
-    break ;
-  }
-
-  if (Iin != Isrc)   /* source image was not in proper format */
-    ImageFree(&Iin) ;
-  else    /* translate back to original format */
-  {
-    ImageReplace(Isrc, Isrc, 255.0f, 0.0f) ;
-    ImageReplace(Isrc, Isrc, 1.0f, 255.0f) ;
-  }
-
-  if (Idst != Iout)
-  {
-    ImageCopy(Iout, Idst) ;
-    ImageFree(&Iout) ;
-  }
-
-  ImageReplace(Idst, Idst, 255.0f, 0.0f) ;
-  ImageReplace(Idst, Idst, 1.0f, 255.0f) ;
-  
-  return(Idst) ;
-}
-/*-----------------------------------------------------
-        Parameters:
-
-        Returns value:
-
-        Description
-------------------------------------------------------*/
-IMAGE   *
-ImageErode(IMAGE *Isrc, IMAGE *Idst, int which)
-{
-  return(Idst) ;
-}
-/*-----------------------------------------------------
-        Parameters:
-
-        Returns value:
-
-        Description
-------------------------------------------------------*/
 IMAGE *
 ImageThreshold(IMAGE *Isrc, IMAGE *Idst, float threshold)
 {
@@ -642,7 +560,7 @@ ImageEdgeDetect(IMAGE *Isrc, IMAGE *Idst, float sigma, int wsize, float lthresh,
   if (!Idst)
     Idst = ImageAlloc(Isrc->rows, Isrc->cols, PFBYTE, Isrc->num_frame) ;
 
-  ImageScale(Isrc, Isrc, 0.0f, 255.0f) ;
+  ImageScale(Isrc, Isrc, .0f, 255.0f) ;
   if (Idst->pixel_format != PFBYTE)
     Iout = ImageAlloc(Isrc->rows, Isrc->cols, PFBYTE, Isrc->num_frame) ;
   else
@@ -1127,6 +1045,10 @@ ImageFrame(char *fname)
         Returns value:
 
         Description
+           since h_linscale only outputs FLOAT images (and doesn't
+           complain otherwise!), we must allocate a temp. image for
+           output purposes unless the supplied one is already in
+           float format.
 ------------------------------------------------------*/
 IMAGE *
 ImageScale(IMAGE *Isrc, IMAGE *Idst, float new_min, float new_max)
@@ -1134,10 +1056,16 @@ ImageScale(IMAGE *Isrc, IMAGE *Idst, float new_min, float new_max)
   float  scale, old_min, old_max ;
   int    ecode, imin, imax ;
   byte   bmin, bmax ;
+  IMAGE  *Iout ;
 
   if (!Idst)
     Idst = ImageAlloc(Isrc->rows, Isrc->cols, Isrc->pixel_format, 
                       Isrc->num_frame) ;
+
+  if (Idst->pixel_format != PFFLOAT)  /* h_linscale outputs floats */
+    Iout = ImageAlloc(Isrc->rows, Isrc->cols, PFFLOAT, Isrc->num_frame) ;
+  else
+    Iout = Idst ;
 
   switch (Isrc->pixel_format)
   {
@@ -1165,11 +1093,15 @@ ImageScale(IMAGE *Isrc, IMAGE *Idst, float new_min, float new_max)
     ErrorExit(ecode, "ImageScale: h_minmax failed (%d)\n", ecode) ;
 
   scale = (new_max - new_min) / (old_max - old_min) ;
-  ecode = h_linscale(Isrc, Idst, scale, new_min - old_min * scale) ;
+  ecode = h_linscale(Isrc, Iout, scale, new_min - old_min * scale) ;
   if (ecode != HIPS_OK)
     ErrorExit(ecode, "ImageScale: h_linscale failed (%d)\n", ecode) ;
 
-  ecode = h_minmax(Isrc, &old_min, &old_max, 0) ;
+  if (Iout != Idst)  /* copy it to desired format */
+  {
+    ImageCopy(Iout, Idst) ;
+    ImageFree(&Iout) ;
+  }
   return(Idst) ;
 }
 /*-----------------------------------------------------
