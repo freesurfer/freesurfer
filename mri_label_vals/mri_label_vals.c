@@ -37,7 +37,7 @@ main(int argc, char *argv[])
 	Real   xw, yw, zw, xv, yv, zv, val;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_label_vals.c,v 1.7 2003/10/02 13:56:44 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_label_vals.c,v 1.8 2003/11/06 22:36:16 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -57,7 +57,7 @@ main(int argc, char *argv[])
     argv += nargs ;
   }
 
-  if (argc < 2)
+  if (argc < 3)
     usage_exit(1) ;
 
   vol_name = argv[1] ;
