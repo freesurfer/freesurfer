@@ -454,7 +454,9 @@ MRICcomputeInputs(MRI *mri, int x,int y,int z,float *inputs,int features)
               *mri_direction = NULL, *mri_mean3 = NULL, *mri_mean5 = NULL,
               *mri_cpolv = NULL, *mri_cpolv_mean3 = NULL, 
               *mri_cpolv_mean5 = NULL, *mri_cpolv_median3 = NULL,
-              *mri_cpolv_median5 = NULL ;
+              *mri_cpolv_median5 = NULL,
+              *mri_min3 = NULL, *mri_min5 = NULL, *mri_min7 = NULL ;
+
   int         x0, y0, z0 ;
   MRI_REGION  rbig ;
   float       *in ;
@@ -503,6 +505,12 @@ MRICcomputeInputs(MRI *mri, int x,int y,int z,float *inputs,int features)
     MRIclipRegion(mri, &region, &region) ;
     total_computed += (region.dx*region.dy*region.dz) ;
     mri_prev = mri ;
+    if (mri_min3)
+      MRIfree(&mri_min3) ;
+    if (mri_min5)
+      MRIfree(&mri_min5) ;
+    if (mri_min7)
+      MRIfree(&mri_min7) ;
     if (mri_zscore3)
       MRIfree(&mri_zscore3) ;
     if (mri_zscore5)
@@ -604,6 +612,22 @@ MRICcomputeInputs(MRI *mri, int x,int y,int z,float *inputs,int features)
         MRIwrite(mri_cpolv_median5, "median5.mnc") ;
       }
     }
+    if (features & FEATURE_MIN3)
+      mri_min3 = MRIerodeRegion(mri, NULL, 3, &region) ;
+    if (features & FEATURE_MIN5)
+      mri_min5 = MRIerodeRegion(mri, NULL, 5, &region) ;
+    if (features & FEATURE_MIN7)
+      mri_min7 = MRIerodeRegion(mri, NULL, 7, &region) ;
+    if (features & FEATURE_MIN5)
+    {
+      static int first = 1 ;
+
+      if ((Gdiag & DIAG_WRITE) && first)
+      {
+        first = 0 ;
+        MRIwrite(mri_min5, "min5.mnc") ;
+      }
+    }
   }
   else
     buffered++ ;
@@ -631,6 +655,12 @@ MRICcomputeInputs(MRI *mri, int x,int y,int z,float *inputs,int features)
     *in++ = (float)MRIvox(mri_cpolv_median3, x0, y0, z0) ;
   if (features & FEATURE_CPOLV_MEDIAN5)
     *in++ = (float)MRIvox(mri_cpolv_median5, x0, y0, z0) ;
+  if (features & FEATURE_MIN3)
+    *in++ = (float)MRIvox(mri_min3, x0, y0, z0) ;
+  if (features & FEATURE_MIN5)
+    *in++ = (float)MRIvox(mri_min5, x0, y0, z0) ;
+  if (features & FEATURE_MIN7)
+    *in++ = (float)MRIvox(mri_min7, x0, y0, z0) ;
   
   return(NO_ERROR) ;
 }
