@@ -9,9 +9,9 @@
 */
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2003/02/11 16:09:17 $
-// Revision       : $Revision: 1.213 $
-char *MRI_C_VERSION = "$Revision: 1.213 $";
+// Revision Date  : $Date: 2003/02/11 16:14:56 $
+// Revision       : $Revision: 1.214 $
+char *MRI_C_VERSION = "$Revision: 1.214 $";
 
 /*-----------------------------------------------------
                     INCLUDE FILES
@@ -2125,9 +2125,9 @@ MRIworldToVoxel(MRI *mri, Real xw, Real yw, Real zw,
       V3_LOAD(v_w, xw - mri->c_r, yw - mri->c_a, zw - mri->c_s) ;
       v_v = MatrixMultiply(m_R_inv, v_w, NULL) ;
 
-      *pxv = V3_X(v_v) + (mri->width-1)/2.0 ; // don't use 2 but 2.0 to get double promotion
-      *pyv = V3_Y(v_v) + (mri->height-1)/2.0 ;
-      *pzv = V3_Z(v_v) + (mri->depth-1)/2.0 ;
+      *pxv = V3_X(v_v) + (mri->width)/2.0 ; // don't use 2 but 2.0 to get double promotion
+      *pyv = V3_Y(v_v) + (mri->height)/2.0 ;
+      *pzv = V3_Z(v_v) + (mri->depth)/2.0 ;
       VectorFree(&v_v) ; VectorFree(&v_w) ; MatrixFree(&m_R_inv) ;
     }
     break;
