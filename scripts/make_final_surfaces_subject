@@ -1,0 +1,12 @@
+#!/bin/tcsh -f
+
+setenv DIAG 0x04040
+
+
+cd $SUBJECTS_DIR/$1/scripts
+mris_make_surfaces -w 0 $1 lh 
+mris_make_surfaces -w 0 $1 rh
+parcellate_subject $1
+
+
+
