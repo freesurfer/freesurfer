@@ -1129,6 +1129,12 @@ static IMAGE *PBMReadHeader(FILE *fp, IMAGE *I)
 {
   ErrorReturn(NULL, (ERROR_UNSUPPORTED, "pbm not supported on IRIX")) ; 
 }
+static int 
+PPMWriteImage(IMAGE *I, char *fname, int frame)
+{
+  ErrorReturn(ERROR_UNSUPPORTED, 
+              (ERROR_UNSUPPORTED, "ppm not supported on IRIX")) ; 
+}
 #else
 static IMAGE *
 PGMReadHeader(FILE *fp, IMAGE *I)
