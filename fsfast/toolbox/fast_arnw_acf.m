@@ -1,44 +1,68 @@
-function acf = fast_arnw_acf(p,nf)
+function acf = fast_arnw_acf(phi,nf,alpha)
 %
-% acf = fast_arnw_acf(p,nf)
+% acf = fast_arnw_acf(phi,nf,alpha)
 % 
 % Computes the autocorrelation function of an AR(N)+White noise
 % process given the AR coefficients and alpha.
 %
-% p = [alpha phi1 phi2 ... phiN]; 
-%   phi1-phiN are the ARN parameters consistent.
-%   Note: these are negative relative to the "standard" 
-%   interpretation. Eg, for an AR1, phi1 = -0.5 corresponds
+% phi = [phi1 phi2 ... phiN]; 
+%   phi1-phiN are the ARN parameters
+%   Eg, for an AR1, phi1 = 0.5 corresponds
 %   to an acf = (0.5).^[1:nf]
 %
-% phi is of the form resulting from aryule, arburg, arcov, or armcov. 
+% phi has a different form than that resulting from aryule, arburg, 
+% arcov, or armcov. These functions return a vector of the form 
+% [1 -phi].
+%
+% If alpha = 0, [], or is not present, then it is
+% ignored. Otherwise, the ARN acf is scaled by (1-alpha),
+% keeping the 0 lag at 1.
 %
 % Pure ARN process:
-%   y(j) = -phi(2)*y(j-1) - phi(3)*y(j-2) ... + e(j)
+%   y(j) = phi(2)*y(j-1) + phi(3)*y(j-2) ... + e(j)
 %
 % nf is the number of delays over which to compute
 %   the autocorreation function.
 %
-% Unstable if abs of abs(pole) is > 1
-%   poles = roots(phi);
+% Unstable if any abs(pole) is > 1, where poles = roots([1 -phi]);
 % 
-% See also: fast_ar2acf, fast_arnw_fiterr
+% See also: fast_arnw_fiterr
 %
-% $Id: fast_arnw_acf.m,v 1.1 2004/05/24 00:08:55 greve Exp $
+% Ref: Time Series Analysis by Hamilton, pg. 59.
+%
+% $Id: fast_arnw_acf.m,v 1.2 2004/05/27 01:39:16 greve Exp $
 
 acf = [];
 
-if(nargin ~= 2)
-  fprintf('acf = fast_arnw_acf(p,nf)\n');
+if(nargin < 2 | nargin > 3)
+  fprintf('acf = fast_arnw_acf(phi,nf,alpha)\n');
   return;
 end
 
-alpha = p(1);
-phi = p(2:end);
+if(~exist('alpha','var')) alpha = []; end
+if(isempty(alpha))        alpha = 0;  end
+
+order = length(phi);
 phi = [1 phi(:)'];
 
-acf = fast_ar2acf(phi,nf);
-acf(2:end) = (1-alpha)*acf(2:end);
+F(1,:) = phi(2:order+1); 
+F(2:order,:) = [eye(order-1) zeros(order-1,1)];
+G = inv(eye(order.^2) - kron(F,F));
+g = G(1:order,1);
+g2 = g/g(1);
 
+acf = g2;
+for j=order+1:nf
+  acf(j) = 0;
+  for m=1:order
+    acf(j) = acf(j) + acf(j-m)*phi(m+1) ;
+  end
+end
+
+acf = acf(:);
+
+if(alpha > 0)
+  acf(2:nf) = (1-alpha)*acf(2:nf);
+end
 
 return
