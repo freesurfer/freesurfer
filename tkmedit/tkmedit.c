@@ -4,9 +4,9 @@
 
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2003/09/24 18:06:55 $
-// Revision       : $Revision: 1.178 $
-char *VERSION = "$Revision: 1.178 $";
+// Revision Date  : $Date: 2003/09/25 17:47:10 $
+// Revision       : $Revision: 1.179 $
+char *VERSION = "$Revision: 1.179 $";
 
 #define TCL
 #define TKMEDIT 
@@ -858,7 +858,7 @@ extern void scale2x(int, int, unsigned char *);
 
 
 void ParseCmdLineArgs( int argc, char *argv[] );
-void WriteVoxelToControlFile ( xVoxelRef inVolumeVox );
+void WriteVoxelToControlFile ( xVoxelRef iMRIIdx );
 void WriteVoxelToEditFile    ( xVoxelRef inVolumeVox );
 
 void rotate_brain(float a,char c) ;
@@ -1027,7 +1027,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
      shorten our argc and argv count. If those are the only args we
      had, exit. */
   /* rkt: check for and handle version tag */
-  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.178 2003/09/24 18:06:55 kteich Exp $", "$Name:  $");
+  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.179 2003/09/25 17:47:10 kteich Exp $", "$Name:  $");
   if (nNumProcessedVersionArgs && argc - nNumProcessedVersionArgs == 1)
     exit (0);
   argc -= nNumProcessedVersionArgs;
@@ -2554,7 +2554,7 @@ void AverageSurfaceVertexPositions ( int inNumAverages ) {
   return;
 }
 
-void WriteVoxelToControlFile ( xVoxelRef iAnaIdx ) {
+void WriteVoxelToControlFile ( xVoxelRef iMRIIdx ) {
   
   tkm_tErr  eResult         = tkm_tErr_NoErr;
   Volm_tErr eVolume         = Volm_tErr_NoErr;
@@ -2562,8 +2562,8 @@ void WriteVoxelToControlFile ( xVoxelRef iAnaIdx ) {
   FILE*      file         = NULL;
   xVoxel    ras;
   
-  DebugEnterFunction( ("WriteVoxelToControlFile ( iAnaIdx=%d,%d,%d )",
-           xVoxl_ExpandInt( iAnaIdx )) );
+  DebugEnterFunction( ("WriteVoxelToControlFile ( iMRIIdx=%d,%d,%d )",
+		       xVoxl_ExpandInt( iMRIIdx )) );
   
   /* make the file name */
   MakeFileName( "control.dat", tkm_tFileName_ControlPoints, 
@@ -2595,13 +2595,13 @@ void WriteVoxelToControlFile ( xVoxelRef iAnaIdx ) {
   
   /* convert idx to ras */
   eVolume = Volm_ConvertMRIIdxToRAS( gAnatomicalVolume[tkm_tVolumeType_Main],
-				     iAnaIdx, &ras );
+				     iMRIIdx, &ras );
   DebugAssertThrowX( (Volm_tErr_NoErr == eVolume), 
          eResult, tkm_tErr_ErrorAccessingVolume );
   
   /* write RAS space pt to file */
   DebugNote( ("Writing control point %.2f,%.2f,%.2f to file",
-        xVoxl_ExpandFloat( &ras ) ));
+	      xVoxl_ExpandFloat( &ras ) ));
   fprintf( file,"%f %f %f\n", xVoxl_ExpandFloat( &ras ) );
   
   DebugCatch;
@@ -3899,6 +3899,7 @@ int TclNewControlPoint ( ClientData inClientData, Tcl_Interp* inInterp,
        int argc, char* argv[] ) {
   
   xVoxel cursor;
+  xVoxel MRIIdx;
   
   if ( argc != 1 ) {
     Tcl_SetResult ( inInterp, "wrong # args: NewControlPoint",
@@ -3908,7 +3909,9 @@ int TclNewControlPoint ( ClientData inClientData, Tcl_Interp* inInterp,
   
   if( gbAcceptingTclCommands ) {
     MWin_GetCursor ( gMeditWindow, &cursor );
-    NewControlPoint ( &cursor, TRUE );
+    Volm_ConvertIdxToMRIIdx( gAnatomicalVolume[tkm_tVolumeType_Main],
+			     &cursor, &MRIIdx );
+    NewControlPoint ( &MRIIdx, TRUE );
   }
   
   return TCL_OK;
@@ -6040,7 +6043,7 @@ void NewControlPoint ( xVoxelRef iMRIIdx,
   /* allocate a copy of the voxel */
   xVoxl_New( &MRIIdx );
   xVoxl_Copy( MRIIdx, iMRIIdx );
-  
+
   /* add the voxel to the ctrl pt space */
   e3DList = x3Lst_AddItem( gControlPointList, MRIIdx, MRIIdx );
   if( e3DList != x3Lst_tErr_NoErr )
