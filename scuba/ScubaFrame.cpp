@@ -346,7 +346,7 @@ ScubaFrame::DoListenToTclCommand( char* isCommand, int iArgc, char** iasArgv ) {
 	// from Tcl, just like we y flip them in ToglFrame.
 	int windowCoords[2];
 	windowCoords[0] = windowX;
-	windowCoords[0] = (mHeight - windowY);
+	windowCoords[1] = (mHeight - windowY);
 	View* view = FindViewAtWindowLoc( windowCoords, NULL, NULL );
 	if( NULL != view ) {
 	  int id = view->GetID();

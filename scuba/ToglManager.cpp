@@ -243,7 +243,7 @@ ToglManager::KeyUpCallback ( struct Togl* iTogl, int iArgc, char* iArgv[] ) {
 }
 
 int
-ToglManager::ExitCallback ( struct Togl* iTogl, int iArgc, char* iArgv[] ) {
+ToglManager::EyxitCallback ( struct Togl* iTogl, int iArgc, char* iArgv[] ) {
 
   if( iArgc != 2 ) {
     return TCL_ERROR;

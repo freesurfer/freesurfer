@@ -215,25 +215,6 @@ DataCollection:
 
 
 
-todo:
-
-code:
-report info at RAS
-b/c, LUT color map
-editing
-selection
-control points
-markers
-
-interfaces:
-Load Volume
-Frame: View Configuration
-Volume Info: change color map
-       load LUT
-
-
-
-
 plan :
 
 test_ScubaLayers
@@ -275,8 +256,9 @@ x ScubaLayer2DMRIS.cpp
 x layer factory stuff
 x  - surface color
 x  - draw with opacity
- - line drawing
+x - line drawing
  - line width
+ - antialiased line drawing
 
 cursor linking
 x - Set2DRASCenter, Set2DZoomLevel
@@ -321,7 +303,7 @@ x Listener class
 x  - ListenToMessage( string message, void* data )
 
 x option for left/right flip, i.e. Neurology View, which does a x flip in R and S views
- - make static for all views??
+x  - make static for all views??
  - add function for getting initial values of global menu and toolbar vars i.e. gaView(flipLeftRight)
 
 consider linking ScubaFrame's selected view to the gaView(current) view in scuba.tcl, link view configuration in scuba.tcl and select view in view props automatically. the 't' view selecting key would need to be reimplemented in scuba.tcl.
@@ -397,11 +379,10 @@ Frame Info
 
 BUGS:::
 
-- left right flipped in coronal
 - when change in plane with key, no update to tcl
    - should all this stuff be done in tcl because there's no notficiation method from c->tcl?
 - only send .2f coords in labels in ScubaView
-
+- tix option menu callbacks use the -command value as the parameter, not the menu index - check all the callbacks
 
 future ideas:
 

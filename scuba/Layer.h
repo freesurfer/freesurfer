@@ -63,6 +63,20 @@ class Layer : public DebugReporter, public IDTracker<Layer>, public TclCommandLi
   bool WantRedisplay() const { return mbPostRedisplay; }
   void RedisplayPosted() { mbPostRedisplay = false; }
 
+  // Some drawing tools.
+  void DrawPixelIntoBuffer ( GLubyte* iBuffer, int iWidth, int iHeight,
+			     int iWindow[2], int iColor[3], float iOpacity );
+  
+  void DrawPixelIntoBuffer ( GLubyte* iAddress,
+			     int iColor[3], float iOpacity );
+  
+  void DrawAALineIntoBuffer ( GLubyte* iBuffer, int iWidth, int iHeight,
+			      int iFromWindow[2], int iToWindow[2],
+			      int iColor[3], int iThickness, float iOpacity );
+  void DrawLineIntoBuffer ( GLubyte* iBuffer, int iWidth, int iHeight,
+			    int iFromWindow[2], int iToWindow[2],
+			    int iColor[3], int iThickness, float iOpacity );
+
  protected:
 
   int mWidth;

@@ -867,6 +867,12 @@ ScubaView::DoMouseMoved( int iWindow[2],
 	zoomInOut = mMouseMoveDelta[1] / 10.0;
 	break;
       }
+
+      if( mbFlipLeftRightInYZ && 
+	  (mViewState.mInPlane == ViewState::Y ||
+	   mViewState.mInPlane == ViewState::Z) ) {
+	moveLeftRight = -moveLeftRight;
+      }
       
       if( moveLeftRight || moveUpDown || moveInOut ) {
 	

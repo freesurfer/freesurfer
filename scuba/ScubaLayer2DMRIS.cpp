@@ -1,3 +1,4 @@
+#include <list>
 #include "ScubaLayer2DMRIS.h"
 
 using namespace std;
@@ -49,7 +50,13 @@ ScubaLayer2DMRIS::DrawIntoBuffer ( GLubyte* iBuffer, int iWidth, int iHeight,
 
   MRIS* surf = mSurface->GetMRIS();
 
+  list<int> drawList;
+  int cIntersectionsInFace = 0;
+  int intersectionPair[2][2];
+  
   for( int nFace = 0; nFace < surf->nfaces; nFace++ ) {
+
+    cIntersectionsInFace = 0;
 
     FACE* face = &(surf->faces[nFace]);
     for( int nVertex = 0; nVertex < VERTICES_PER_FACE; nVertex++ ) {
@@ -105,16 +112,52 @@ ScubaLayer2DMRIS::DrawIntoBuffer ( GLubyte* iBuffer, int iWidth, int iHeight,
 
 	if( window[0] >= 0 && window[0] < iWidth && 
 	    window[1] >= 0 && window[1] < iHeight ) { 
-	  GLubyte* dest = iBuffer + (iWidth * window[1] * 4) + (window[0] * 4);
-	  dest[0] = (GLubyte) (((float)dest[0] * (1.0 - mOpacity)) +
-			       ((float)maLineColor[0] * mOpacity));
-	  dest[1] = (GLubyte) (((float)dest[1] * (1.0 - mOpacity)) +
-			       ((float)maLineColor[1] * mOpacity));
-	  dest[2] = (GLubyte) (((float)dest[2] * (1.0 - mOpacity)) +
-			       ((float)maLineColor[2] * mOpacity));
-	  dest[3] = 255;
+
+	  intersectionPair[cIntersectionsInFace][0] = window[0];
+	  intersectionPair[cIntersectionsInFace][1] = window[1];
+	  
+	  cIntersectionsInFace++;
+
+	  if( cIntersectionsInFace == 2 ) {
+	    cIntersectionsInFace = 0;
+	    drawList.push_back( intersectionPair[0][0] );
+	    drawList.push_back( intersectionPair[0][1] );
+	    drawList.push_back( intersectionPair[1][0] );
+	    drawList.push_back( intersectionPair[1][1] );
+	  }
+
 	}
       }
+    }
+  }
+
+  bool bDraw = false;
+  int window1[2];
+  int window2[2];
+
+  list<int>::iterator tDrawList;
+  for( tDrawList = drawList.begin(); 
+       tDrawList != drawList.end(); ++tDrawList ) {
+    
+    if( !bDraw ) {
+
+      window1[0] = *tDrawList;
+      window1[1] = *(++tDrawList);
+      bDraw = true;
+
+    } else {
+
+      window2[0] = *tDrawList;
+      window2[1] = *(++tDrawList);
+      bDraw = false;
+
+      DrawPixelIntoBuffer( iBuffer, iWidth, iHeight, window1, 
+			   maVertexColor, mOpacity );
+      DrawPixelIntoBuffer( iBuffer, iWidth, iHeight, window2, 
+			   maVertexColor, mOpacity );
+
+      DrawLineIntoBuffer( iBuffer, iWidth, iHeight, window1, window2,
+			  maLineColor, 1, mOpacity );
     }
   }
 }

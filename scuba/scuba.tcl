@@ -1054,12 +1054,10 @@ proc UpdateLayerList {} {
 
 # VIEW PROPERTIES FUNCTIONS =============================================
 
-proc ViewPropertiesMenuCallback { inView } {
+proc ViewPropertiesMenuCallback { iViewID } {
     global gaView
 
-    # Get the ID at this index in the idList, then select that layer.
-    set viewID [lindex $gaView(idList) $inView]
-    SelectViewInViewProperties $viewID
+    SelectViewInViewProperties $iViewID
 }
 
 proc ViewPropertiesDrawLevelMenuCallback { iLevel inLayer } {

@@ -1,5 +1,6 @@
 #include <iostream>
 #include "Layer.h"
+#include "macros.h"
 
 using namespace std;
 
@@ -150,6 +151,184 @@ Layer::HandleTool ( float iRAS[3],
 		    ScubaToolState& iTool, InputState& iInput ){
 
 }
+
+
+void 
+Layer::DrawPixelIntoBuffer ( GLubyte* iBuffer, int iWidth, int iHeight,
+			     int iWindow[2], int iColor[3], float iOpacity ){
+
+  GLubyte* dest = iBuffer + (iWindow[0] * 4) + (iWindow[1] * iWidth * 4);
+  DrawPixelIntoBuffer( dest, iColor, iOpacity );
+}
+
+void 
+Layer::DrawPixelIntoBuffer ( GLubyte* iAddress,
+			     int iColor[3], float iOpacity ){
+
+  iAddress[0] = (GLubyte) (((float)iAddress[0] * (1.0 - iOpacity)) +
+			   ((float)iColor[0] * iOpacity));
+  iAddress[1] = (GLubyte) (((float)iAddress[1] * (1.0 - iOpacity)) +
+			   ((float)iColor[1] * iOpacity));
+  iAddress[2] = (GLubyte) (((float)iAddress[2] * (1.0 - iOpacity)) +
+			   ((float)iColor[2] * iOpacity));
+  iAddress[3] = 255; 
+}
+
+
+
+void 
+Layer::DrawAALineIntoBuffer ( GLubyte* iBuffer, int iWidth, int iHeight,
+			      int iFromWindow[2], int iToWindow[2],
+			      int iColor[3], int iThickness, float iOpacity ) {
+
+  // Set up x1, x2, y1, y2 so that x1 is always less than x2;
+  int x1 = MIN( iFromWindow[0], iToWindow[0] );
+  int x2 = MAX( iFromWindow[0], iToWindow[0] );
+  int y1 = iFromWindow[1];
+  int y2 = iToWindow[1];
+
+  // Calculate deltas.
+  int dx = x2 - x1;
+  int dy = y2 - y1;
+
+  // If the dy is negative, remember it and reverse dy.
+  bool bNegativeY = false;
+  if( dy < 0 ) {
+    bNegativeY = true;   // This affects
+    dy = -dy;
+  }
+
+  // If the line is steep, remember it and swap dx and dy so dx >
+  // dy. This makes sure that x will be our major axis and y our
+  // minor.
+  bool bSteep = false;
+  if( dy > dx ) {
+    bSteep = true;
+    int temp = dx; dx = dy; dy = temp;
+  }
+
+  // Calculate our step increments based on the negative y-ness and
+  // steep-ness.
+  int adjInc, diagInc, orthInc;
+  if( !bSteep && !bNegativeY ) {
+    adjInc  = ( 1 * 4) + ( 0 * iWidth * 4);
+    diagInc = ( 1 * 4) + ( 1 * iWidth * 4);
+    orthInc = ( 0 * 4) + ( 1 * iWidth * 4);
+  } else if( bSteep && !bNegativeY ) {
+    adjInc  = ( 0 * 4) + ( 1 * iWidth * 4);
+    diagInc = ( 1 * 4) + ( 1 * iWidth * 4);
+    orthInc = ( 1 * 4) + ( 0 * iWidth * 4);
+  } else if( !bSteep && bNegativeY ) {
+    adjInc  = ( 1 * 4) + ( 0 * iWidth * 4);
+    diagInc = ( 1 * 4) + (-1 * iWidth * 4);
+    orthInc = ( 0 * 4) + (-1 * iWidth * 4);
+  } else if( bSteep && bNegativeY ) {
+    adjInc  = ( 0 * 4) + (-1 * iWidth * 4);
+    diagInc = ( 1 * 4) + (-1 * iWidth * 4);
+    orthInc = ( 1 * 4) + ( 0 * iWidth * 4);
+  }
+
+  // Calculate the slope. In the divide by zero case, set it to a big
+  // number.
+  float slope;
+  if( 0 == dx ) {
+    slope = 100000;
+  } else {
+    slope = dy / dx;
+  }
+  float Poinc = sqrt( slope );
+  if( 0 == Poinc ) Poinc = 1;
+  float Painc = slope * Poinc;
+  float Pdinc = Painc - Poinc;
+  float Pmid = 0;
+  float Pnow = 0;
+
+  float Bainc = dy * 2.0;
+  float Bdinc = (dy-dx) * 2.0;
+  float Bvar = Bainc - dx;
+
+  GLubyte* midPixel = iBuffer + ( x1 * 4 ) + ( y1 * iWidth * 4 );
+  GLubyte* curPixel;
+  
+  do {
+    // Draw at the middle pixel with our current Pmid.
+    DrawPixelIntoBuffer( midPixel, iColor, Pmid );
+
+    // Walk up the minor axis.
+    for( Pnow = Poinc - Pmid,   curPixel = midPixel + (GLubyte)orthInc;
+	 Pnow < iThickness;
+	 Pnow += Poinc,         curPixel += (GLubyte)orthInc ) {
+      DrawPixelIntoBuffer( curPixel, iColor, Pnow );
+    }
+
+    // Walk down the minor axis.
+    for( Pnow = Poinc - Pmid,   curPixel = midPixel - (GLubyte)orthInc;
+	 Pnow < iThickness;
+	 Pnow += Poinc,         curPixel -= (GLubyte)orthInc ) {
+      DrawPixelIntoBuffer( curPixel, iColor, Pnow );
+    }
+    
+    if( Bvar < 0 ) {
+      Bvar += Bainc;
+      midPixel += adjInc;
+      Pmid += Painc;
+    } else {
+      Bvar += Bdinc;
+      midPixel += diagInc;
+      Pmid += Pdinc;
+    }
+    
+    dx--;
+  } while( dx >= 0 );
+
+}
+
+void
+Layer::DrawLineIntoBuffer ( GLubyte* iBuffer, int iWidth, int iHeight,
+			    int iFromWindow[2], int iToWindow[2],
+			    int iColor[3], int iThickness, float iOpacity ) {
+  
+  int dx = iToWindow[0] - iFromWindow[0];
+  int ax = abs(dx) * 2;
+  int sx = dx > 0 ? 1 : dx < 0 ? -1 : 0; // sign of dx
+
+  int dy = iToWindow[1] - iFromWindow[1];
+  int ay = abs(dy) * 2;
+  int sy = dy > 0 ? 1 : dy < 0 ? -1 : 0; // sign of dy
+
+  int cur[2];
+  cur[0] = iFromWindow[0];
+  cur[1] = iFromWindow[1];
+
+  if( ax > ay ) {
+
+    int d = ay - (ax / 2);
+    while( cur[0] != iToWindow[0] ) {
+      DrawPixelIntoBuffer( iBuffer, iWidth, iHeight, cur, iColor, iOpacity );
+      if( d >= 0 ) {
+	cur[1] += sy;
+	d -= ax;
+      } 
+      cur[0] += sx;
+      d += ay;
+    }
+
+  } else {
+
+    int d = ax - (ay / 2);
+    while( cur[1] != iToWindow[1] ) {
+      DrawPixelIntoBuffer( iBuffer, iWidth, iHeight, cur, iColor, iOpacity );
+      if( d >= 0 ) {
+	cur[0] += sx;
+	d -= ay;
+      } 
+      cur[1] += sy;
+      d += ax;
+    }
+
+  }
+}
+
 
 TclCommandListener::TclCommandResult
 LayerStaticTclListener::DoListenToTclCommand ( char* isCommand, 
