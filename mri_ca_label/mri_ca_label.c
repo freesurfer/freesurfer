@@ -99,16 +99,16 @@ int
 main(int argc, char *argv[])
 {
   char         **av ;
-  int          ac, nargs ;
+  int          ac, nargs, extra ;
   char         *in_fname, *out_fname,  *gca_fname, *xform_fname ;
-  MRI          *mri_in, *mri_labeled, *mri_fixed = NULL, *mri_tmp ;
+  MRI          *mri_inputs, *mri_labeled, *mri_fixed = NULL, *mri_tmp ;
   int          msec, minutes, seconds, ninputs, input ;
   struct timeb start ;
   GCA          *gca ;
   TRANSFORM     *transform ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_ca_label.c,v 1.36 2003/04/15 17:43:04 kteich Exp $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_ca_label.c,v 1.37 2003/06/13 15:23:36 fischl Exp $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -167,6 +167,28 @@ main(int argc, char *argv[])
 
   printf("reading %d input volumes...\n", ninputs) ;
 
+  /*  fprintf(stderr, "mri_inputs read: xform %s\n", mri_inputs->transform_fname) ;*/
+  printf("reading classifier array from %s...\n", gca_fname) ;
+  gca = GCAread(gca_fname) ;
+  if (!gca)
+    ErrorExit(ERROR_NOFILE, "%s: could not read classifier array from %s",
+              Progname, gca_fname) ;
+
+	extra = 0 ;
+	if (gca->flags & GCA_XGRAD)
+		extra += ninputs ;
+	if (gca->flags & GCA_YGRAD)
+		extra += ninputs ;
+	if (gca->flags & GCA_ZGRAD)
+		extra += ninputs ;
+
+	if (gca->ninputs != (ninputs+extra) && !map_to_flash && gca->type != GCA_FLASH)
+		ErrorExit(ERROR_BADPARM, "%s: gca requires %d inputs, %d specified on command line",
+							Progname, gca->ninputs, ninputs) ;
+
+  if (avgs)
+    GCAmeanFilterConditionalDensities(gca, avgs) ;
+
 	for (input = 0 ; input < ninputs ; input++)
 	{
 		in_fname = argv[1+input] ;
@@ -196,14 +218,14 @@ main(int argc, char *argv[])
 
 		if (input == 0)
 		{
-			mri_in = 
+			mri_inputs = 
 				MRIallocSequence(mri_tmp->width, mri_tmp->height, mri_tmp->depth,
-												 mri_tmp->type, ninputs) ;
-			if (!mri_in)
+												 mri_tmp->type, ninputs+extra) ;
+			if (!mri_inputs)
 				ErrorExit(ERROR_NOMEMORY, 
 									"%s: could not allocate input volume %dx%dx%dx%d",
 									mri_tmp->width, mri_tmp->height, mri_tmp->depth,ninputs) ;
-			MRIcopyHeader(mri_tmp, mri_in) ;
+			MRIcopyHeader(mri_tmp, mri_inputs) ;
 		}
 
 		if (filter)
@@ -227,23 +249,9 @@ main(int argc, char *argv[])
 			MRIfree(&mri_dir) ; MRIfree(&mri_smooth) ;
 			exit(1) ;
 		}
-		MRIcopyFrame(mri_tmp, mri_in, 0, input) ;
+		MRIcopyFrame(mri_tmp, mri_inputs, 0, input) ;
 		MRIfree(&mri_tmp) ;
 	}
-
-  /*  fprintf(stderr, "mri_in read: xform %s\n", mri_in->transform_fname) ;*/
-  printf("reading classifier array from %s...\n", gca_fname) ;
-  gca = GCAread(gca_fname) ;
-  if (!gca)
-    ErrorExit(ERROR_NOFILE, "%s: could not read classifier array from %s",
-              Progname, gca_fname) ;
-
-	if (gca->ninputs != ninputs && !map_to_flash && gca->type != GCA_FLASH)
-		ErrorExit(ERROR_BADPARM, "%s: gca requires %d inputs, %d specified on command line",
-							Progname, gca->ninputs, ninputs) ;
-
-  if (avgs)
-    GCAmeanFilterConditionalDensities(gca, avgs) ;
 
   if (example_T1)
   {
@@ -264,12 +272,12 @@ main(int argc, char *argv[])
   }
 
   if (tissue_parms_fname)   /* use FLASH forward model */
-    GCArenormalizeToFlash(gca, tissue_parms_fname, mri_in) ;
+    GCArenormalizeToFlash(gca, tissue_parms_fname, mri_inputs) ;
 
   if (mri_fname)
   {
-    GCAbuildMostLikelyVolume(gca, mri_in) ;
-    MRIwrite(mri_in, mri_fname) ;
+    GCAbuildMostLikelyVolume(gca, mri_inputs) ;
+    MRIwrite(mri_inputs, mri_fname) ;
     exit(0) ;
   }
   if (renormalization_fname)
@@ -315,10 +323,10 @@ main(int argc, char *argv[])
 		if (novar)
 			GCAunifyVariance(gca) ;
 
-		gca_tmp = GCAcreateFlashGCAfromFlashGCA(gca, TRs, fas, TEs, mri_in->nframes) ;
+		gca_tmp = GCAcreateFlashGCAfromFlashGCA(gca, TRs, fas, TEs, mri_inputs->nframes) ;
 		GCAfree(&gca) ;
 		gca = gca_tmp ;
-		GCAhistoScaleImageIntensities(gca, mri_in) ;
+		GCAhistoScaleImageIntensities(gca, mri_inputs) ;
 	}
 
 	if (map_to_flash)
@@ -328,15 +336,63 @@ main(int argc, char *argv[])
 		if (novar)
 			GCAunifyVariance(gca) ;
 
-		gca_tmp = GCAcreateFlashGCAfromParameterGCA(gca, TRs, fas, TEs, mri_in->nframes) ;
+		gca_tmp = GCAcreateFlashGCAfromParameterGCA(gca, TRs, fas, TEs, mri_inputs->nframes) ;
 		GCAfree(&gca) ;
 		gca = gca_tmp ;
-		GCAhistoScaleImageIntensities(gca, mri_in) ;
+		GCAhistoScaleImageIntensities(gca, mri_inputs) ;
 	}
 	else if (histo_norm)
-    GCAhistoScaleImageIntensities(gca, mri_in) ;
+    GCAhistoScaleImageIntensities(gca, mri_inputs) ;
 
-	
+
+	if (gca->flags & GCA_GRAD)
+	{
+		int i, start = ninputs ;
+		MRI *mri_kernel, *mri_smooth, *mri_grad, *mri_tmp ;
+
+		mri_kernel = MRIgaussian1d(1.0, 30) ;
+		mri_smooth = MRIconvolveGaussian(mri_inputs, NULL, mri_kernel) ;
+				
+		if (mri_inputs->type != MRI_FLOAT)
+		{
+			mri_tmp = MRISeqchangeType(mri_inputs, MRI_FLOAT, 0, 0, 1) ;
+			MRIfree(&mri_inputs) ; mri_inputs = mri_tmp ;
+		}
+		start = ninputs ;
+		if (gca->flags & GCA_XGRAD)
+		{
+			for (i = 0 ; i < ninputs ; i++)
+			{
+				mri_grad = MRIxSobel(mri_smooth, NULL, i) ;
+				MRIcopyFrame(mri_grad, mri_inputs, 0, start+i) ;
+				MRIfree(&mri_grad) ;
+			}
+			start += ninputs ;
+		}
+		if (gca->flags & GCA_YGRAD)
+		{
+			for (i = 0 ; i < ninputs ; i++)
+			{
+				mri_grad = MRIySobel(mri_smooth, NULL, i) ;
+				MRIcopyFrame(mri_grad, mri_inputs, 0, start+i) ;
+				MRIfree(&mri_grad) ;
+			}
+			start += ninputs ;
+		}
+		if (gca->flags & GCA_ZGRAD)
+		{
+			for (i = 0 ; i < ninputs ; i++)
+			{
+				mri_grad = MRIzSobel(mri_smooth, NULL, i) ;
+				MRIcopyFrame(mri_grad, mri_inputs, 0, start+i) ;
+				MRIfree(&mri_grad) ;
+			}
+			start += ninputs ;
+		}
+		
+		MRIfree(&mri_kernel) ; MRIfree(&mri_smooth) ; 
+	}
+
   if (novar)
     GCAunifyVariance(gca) ;
 	if (regularize > 0)
@@ -348,13 +404,13 @@ main(int argc, char *argv[])
     transform = TransformRead(xform_fname) ;
     if (!transform)
       ErrorExit(ERROR_NOFILE, "%s: could not open transform", xform_fname) ;
-    TransformInvert(transform, mri_in) ;
+    TransformInvert(transform, mri_inputs) ;
   }
   else
     transform = TransformAlloc(LINEAR_VOX_TO_VOX, NULL) ;
 
 	if (norm_PD)
-		GCAnormalizePD(gca, mri_in, transform) ;
+		GCAnormalizePD(gca, mri_inputs, transform) ;
 
   if (heq_fname)
   {
@@ -365,12 +421,12 @@ main(int argc, char *argv[])
       ErrorExit(ERROR_NOFILE, 
                 "%s: could not read histogram equalization volume %s", 
                 Progname, heq_fname) ;
-    MRIhistoEqualize(mri_in, mri_eq, mri_in, 30, 170) ;
+    MRIhistoEqualize(mri_inputs, mri_eq, mri_inputs, 30, 170) ;
     MRIfree(&mri_eq) ;
     if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
     {
       fprintf(stderr, "writing equalized volume to %s...\n", "heq.mgh") ;
-      MRIwrite(mri_in, "heq.mgh") ;
+      MRIwrite(mri_inputs, "heq.mgh") ;
     }
   }
 
@@ -385,7 +441,7 @@ main(int argc, char *argv[])
   else
   {
     printf("labeling volume...\n") ;
-    mri_labeled = GCAlabel(mri_in, gca, NULL, transform) ;
+    mri_labeled = GCAlabel(mri_inputs, gca, NULL, transform) ;
     if (wm_fname)
     {
       MRI *mri_wm ;
@@ -413,41 +469,50 @@ main(int argc, char *argv[])
       printf("writing snapshot to %s...\n", fname) ;
       MRIwrite(mri_labeled, fname) ;
     }
+#if 0
     while (renormalize_iter--)  /* update gca values  and relabel */
     {
-      preprocess(mri_in, mri_labeled, gca, transform, mri_fixed) ;
+      preprocess(mri_inputs, mri_labeled, gca, transform, mri_fixed) ;
       printf("renormalizing GCA to initial labeling...\n") ;
-      GCArenormalizeAdaptive(mri_in, mri_labeled, gca, transform, renormalize_wsize,
+      GCArenormalizeAdaptive(mri_inputs, mri_labeled, gca, transform, renormalize_wsize,
                              pthresh) ;
-      GCAlabel(mri_in, gca, mri_labeled, transform) ;
+      GCAlabel(mri_inputs, gca, mri_labeled, transform) ;
     }
-    preprocess(mri_in, mri_labeled, gca, transform, mri_fixed) ;
+#else
+		if (renormalize_iter > 0)
+		{
+			GCAmapRenormalize(gca, mri_inputs, transform) ;
+			printf("relabeling volume...\n") ;
+      GCAlabel(mri_inputs, gca, mri_labeled, transform) ;
+		}
+#endif
+    preprocess(mri_inputs, mri_labeled, gca, transform, mri_fixed) ;
     if (fixed_flag == 0)
       MRIfree(&mri_fixed) ;
     if (!no_gibbs)
     {
       if (anneal)
-        GCAanneal(mri_in, gca, mri_labeled, transform, max_iter) ;
+        GCAanneal(mri_inputs, gca, mri_labeled, transform, max_iter) ;
       else
-        GCAreclassifyUsingGibbsPriors(mri_in, gca, mri_labeled, transform, max_iter,
+        GCAreclassifyUsingGibbsPriors(mri_inputs, gca, mri_labeled, transform, max_iter,
                                       mri_fixed, 0, NULL);
     }
   }
-  GCAmaxLikelihoodBorders(gca, mri_in, mri_labeled, mri_labeled,transform,mle_niter,
+  GCAmaxLikelihoodBorders(gca, mri_inputs, mri_labeled, mri_labeled,transform,mle_niter,
                           5.0);
   if (expand_flag)
   {
-    GCAexpandVentricle(gca, mri_in, mri_labeled, mri_labeled, transform,   
+    GCAexpandVentricle(gca, mri_inputs, mri_labeled, mri_labeled, transform,   
                        Left_Lateral_Ventricle) ;
-    GCAexpandVentricle(gca, mri_in, mri_labeled, mri_labeled, transform,   
+    GCAexpandVentricle(gca, mri_inputs, mri_labeled, mri_labeled, transform,   
                        Right_Lateral_Ventricle) ;
 #if 0
-    GCAexpandVentricle(gca, mri_in, mri_labeled, mri_labeled, transform,   
+    GCAexpandVentricle(gca, mri_inputs, mri_labeled, mri_labeled, transform,   
                        Left_Inf_Lat_Vent) ;
-    GCAexpandVentricle(gca, mri_in, mri_labeled, mri_labeled, transform,   
+    GCAexpandVentricle(gca, mri_inputs, mri_labeled, mri_labeled, transform,   
                        Right_Inf_Lat_Vent) ;
 #endif
-    GCAexpandCortex(gca, mri_in, mri_labeled, mri_labeled, transform) ;
+    GCAexpandCortex(gca, mri_inputs, mri_labeled, mri_labeled, transform) ;
   }
 
   if (mask_volume_fname)
@@ -470,8 +535,8 @@ main(int argc, char *argv[])
     MRIwrite(mri_labeled, fname) ;
   }
 
-  GCAconstrainLabelTopology(gca, mri_in, mri_labeled, mri_labeled, transform) ;
-	/*  GCAfree(&gca) ; */MRIfree(&mri_in) ;
+  GCAconstrainLabelTopology(gca, mri_inputs, mri_labeled, mri_labeled, transform) ;
+	/*  GCAfree(&gca) ; */MRIfree(&mri_inputs) ;
 #if 0
   if (filter)
   {
@@ -728,7 +793,39 @@ static void
 usage_exit(int code)
 {
   printf("usage: %s [options] <input volume(s)> <xform> <gca file>"
-         " <output volume>\n", Progname) ;
+         " <output volume>\n\n", Progname) ;
+  printf("\t-nogibbs                     disable gibbs priors\n");
+  printf("\t-wm <path>                   use wm segmentation\n");
+  printf("\t-conform                     interpolate volume to be isotropic 1mm^3\n");
+  printf("\t-normpd                      normalize PD image to GCA means\n");
+  printf("\t-tl <gca_tl>                 use file to label thin temporal lobe\n");
+  printf("\t-debug_voxel <x> <y> <z>     debug voxel\n");
+  printf("\t-debug_node <x> <y> <z>      debug node\n");
+  printf("\t-debug_label <int n>         debug label\n");
+  printf("\t-tr <float n>                set TR in msec\n");
+  printf("\t-te <float n>                set TE in msec\n");
+  printf("\t-alpha <float n>             set alpha in radians\n");
+  printf("\t-example <mri_vol> <segmentation> use T1 (mri_vol) and segmentation as example\n");
+  printf("\t-pthresh <float n>           use p threshold n for adaptive renormalization (default=.7)\n");
+  printf("\t-niter <int n>               apply max likelihood for n iterations (default=2)\n");
+  printf("\t-novar                       do not use variance in classification\n");
+  printf("\t-regularize <float n>        regularize variance to be sigma+nC(noise)\n");
+  printf("\t-nohippo                     do not auto-edit hippocampus\n");
+  printf("\t-fwm <mri_vol>               use fixed white matter segmentation from wm\n");
+  printf("\t-mri <mri_vol>               write most likely MR volume to mri_vol\n");
+  printf("\t-heq <mri_vol>               use histogram equalization from mri_vol\n");
+  printf("\t-renorm <mri_vol>            renormalize using predicted intensity values in mri_vol\n");
+  printf("\t-flash                       use FLASH forward model to predict intensity values\n");
+  printf("\t-flash_params <filename>     use FLASH forward model and tissue params in filename to predict\n");
+  printf("\t-renormalize <wsize> <iter>  renorm class means <iter> times after initial label with window of <wsize>\n");
+  printf("\t-r <mri_vol>                 set input volume\n");
+  printf("\t-h                           use GCA to histogram normalize input image\n");
+  printf("\t-a <int n>                   mean filter n time to conditional densities\n");
+  printf("\t-w <int n> <filename>        write snapshots of gibbs process every n times to filename\n");
+  printf("\t-m <mri_vol>                 use mri_vol to mask final labeling\n");
+  printf("\t-e <int n>                   expand\n");
+  printf("\t-n <int n>                   set max iterations to n (default=200)\n");
+  printf("\t-f <int f> <float t>         filter labeled volume with threshold t (default=.5) mode filter f (default=0)times\n");  
   exit(code) ;
 }
 
@@ -863,12 +960,12 @@ static int cma_expandable_labels[] =
 #define NEXPANDABLE_LABELS sizeof(cma_expandable_labels) / sizeof(cma_expandable_labels[0])
 
 static int
-preprocess(MRI *mri_in, MRI *mri_labeled, GCA *gca, TRANSFORM *transform,
+preprocess(MRI *mri_inputs, MRI *mri_labeled, GCA *gca, TRANSFORM *transform,
            MRI *mri_fixed)
 {
   int i ;
 
-  GCArelabel_cortical_gray_and_white(gca, mri_in, mri_labeled,mri_labeled,transform);
+  GCArelabel_cortical_gray_and_white(gca, mri_inputs, mri_labeled,mri_labeled,transform);
   if (gca_write_iterations != 0)
   {
     char fname[STRLEN] ;
@@ -888,7 +985,7 @@ preprocess(MRI *mri_in, MRI *mri_labeled, GCA *gca, TRANSFORM *transform,
     if (renormalize_wsize > 0)  /* gca was renormalized - update gca_tl to new means */
       GCArenormalizeFromAtlas(gca_tl, gca) ;
 
-    insert_thin_temporal_white_matter(mri_in, mri_labeled, gca_tl, transform,gca) ;
+    insert_thin_temporal_white_matter(mri_inputs, mri_labeled, gca_tl, transform,gca) ;
     GCAfree(&gca_tl) ;
     if (gca_write_iterations != 0)
     {
@@ -901,27 +998,27 @@ preprocess(MRI *mri_in, MRI *mri_labeled, GCA *gca, TRANSFORM *transform,
 
   if (hippocampus_flag)
   {
-    edit_hippocampus(mri_in, mri_labeled, gca, transform, mri_fixed) ;
-    edit_amygdala(mri_in, mri_labeled, gca, transform, mri_fixed) ;
+    edit_hippocampus(mri_inputs, mri_labeled, gca, transform, mri_fixed) ;
+    edit_amygdala(mri_inputs, mri_labeled, gca, transform, mri_fixed) ;
   }
   if (expand_flag) 
   {
     for (i = 0 ; i < NEXPANDABLE_LABELS ; i++)
-      GCAexpandLabelIntoWM(gca, mri_in, mri_labeled, mri_labeled, transform,
+      GCAexpandLabelIntoWM(gca, mri_inputs, mri_labeled, mri_labeled, transform,
                            mri_fixed, cma_expandable_labels[i]) ;
 #if 0
-    GCAexpandVentricleIntoWM(gca, mri_in, mri_labeled, mri_labeled, transform,
+    GCAexpandVentricleIntoWM(gca, mri_inputs, mri_labeled, mri_labeled, transform,
                              mri_fixed,Left_Lateral_Ventricle) ;
-    GCAexpandVentricleIntoWM(gca, mri_in, mri_labeled, mri_labeled, transform,
+    GCAexpandVentricleIntoWM(gca, mri_inputs, mri_labeled, mri_labeled, transform,
                              mri_fixed,Left_Inf_Lat_Vent) ;
-    GCAexpandVentricleIntoWM(gca, mri_in, mri_labeled, mri_labeled, transform,
+    GCAexpandVentricleIntoWM(gca, mri_inputs, mri_labeled, mri_labeled, transform,
                              mri_fixed,Right_Lateral_Ventricle) ;
-    GCAexpandVentricleIntoWM(gca, mri_in, mri_labeled, mri_labeled, transform,
+    GCAexpandVentricleIntoWM(gca, mri_inputs, mri_labeled, mri_labeled, transform,
                              mri_fixed, Right_Inf_Lat_Vent) ;
 #endif
   }
 #if 0
-  GCAmaxLikelihoodBorders(gca, mri_in, mri_labeled, mri_labeled, transform,2,2.0) ;
+  GCAmaxLikelihoodBorders(gca, mri_inputs, mri_labeled, mri_labeled, transform,2,2.0) ;
 #endif
   return(NO_ERROR) ;
 }
@@ -945,7 +1042,7 @@ distance_to_label(MRI *mri_labeled, int label, int x, int y, int z, int dx,
   return(d) ;
 }
 static int
-edit_hippocampus(MRI *mri_in, MRI *mri_labeled, GCA *gca, TRANSFORM *transform, 
+edit_hippocampus(MRI *mri_inputs, MRI *mri_labeled, GCA *gca, TRANSFORM *transform, 
                  MRI *mri_fixed)
 {
   int   width, height, depth, x, y, z, label, nchanged, dleft, olabel,
@@ -958,7 +1055,7 @@ edit_hippocampus(MRI *mri_in, MRI *mri_labeled, GCA *gca, TRANSFORM *transform,
 
   mri_tmp = MRIcopy(mri_labeled, NULL) ;
 
-  width = mri_in->width ; height = mri_in->height ; depth = mri_in->depth ;
+  width = mri_inputs->width ; height = mri_inputs->height ; depth = mri_inputs->depth ;
 
   total_changed = 0 ;
   for (nchanged = z = 0 ; z < depth ; z++)
@@ -988,7 +1085,7 @@ edit_hippocampus(MRI *mri_in, MRI *mri_labeled, GCA *gca, TRANSFORM *transform,
           {
             int xi ;
 
-            xi = mri_in->xi[x-1] ;
+            xi = mri_inputs->xi[x-1] ;
             if (MRIvox(mri_labeled, xi, y, z) == Left_Cerebral_Cortex)
             {
 							if (GCAlabelExists(gca, mri_labeled, transform, xi, y, z, Left_Hippocampus) == 0)
@@ -1011,7 +1108,7 @@ edit_hippocampus(MRI *mri_in, MRI *mri_labeled, GCA *gca, TRANSFORM *transform,
           {
             int xi ;
 
-            xi = mri_in->xi[x+1] ;
+            xi = mri_inputs->xi[x+1] ;
             if (MRIvox(mri_labeled, xi, y, z) == Right_Cerebral_Cortex)
             {
 							if (GCAlabelExists(gca, mri_labeled, transform, xi, y, z, Right_Hippocampus) == 0)
@@ -1030,9 +1127,9 @@ edit_hippocampus(MRI *mri_in, MRI *mri_labeled, GCA *gca, TRANSFORM *transform,
             break ;
           }
         case Left_Hippocampus:
-          pwm = GCAlabelProbability(mri_in, gca, transform, x, y, z, 
+          pwm = GCAlabelProbability(mri_inputs, gca, transform, x, y, z, 
                                     Left_Cerebral_White_Matter) ;
-          phippo = GCAlabelProbability(mri_in, gca, transform, x, y, z, 
+          phippo = GCAlabelProbability(mri_inputs, gca, transform, x, y, z, 
                                        Left_Hippocampus) ;
           if (phippo > 2*pwm)
             continue ;  /* don't let it change */
@@ -1061,9 +1158,9 @@ edit_hippocampus(MRI *mri_in, MRI *mri_labeled, GCA *gca, TRANSFORM *transform,
           }
           break ;
         case Right_Hippocampus:
-          pwm = GCAlabelProbability(mri_in, gca, transform, x, y, z, 
+          pwm = GCAlabelProbability(mri_inputs, gca, transform, x, y, z, 
                                     Right_Cerebral_White_Matter) ;
-          phippo = GCAlabelProbability(mri_in, gca, transform, x, y, z, 
+          phippo = GCAlabelProbability(mri_inputs, gca, transform, x, y, z, 
                                        Right_Hippocampus) ;
           if (phippo > 2*pwm)
             continue ;  /* don't let it change */
@@ -1499,7 +1596,7 @@ edit_hippocampus(MRI *mri_in, MRI *mri_labeled, GCA *gca, TRANSFORM *transform,
   return(NO_ERROR) ;
 }
 static int
-edit_amygdala(MRI *mri_in, MRI *mri_labeled, GCA *gca, TRANSFORM *transform, 
+edit_amygdala(MRI *mri_inputs, MRI *mri_labeled, GCA *gca, TRANSFORM *transform, 
                  MRI *mri_fixed)
 {
   int   width, height, depth, x, y, z, label, nchanged, olabel,
@@ -1508,7 +1605,7 @@ edit_amygdala(MRI *mri_in, MRI *mri_labeled, GCA *gca, TRANSFORM *transform,
 
   mri_tmp = MRIcopy(mri_labeled, NULL) ;
 
-  width = mri_in->width ; height = mri_in->height ; depth = mri_in->depth ;
+  width = mri_inputs->width ; height = mri_inputs->height ; depth = mri_inputs->depth ;
 
   nchanged = 0 ;
   /* change amygdala voxels that have a run of wm superior to them
@@ -1583,7 +1680,7 @@ edit_amygdala(MRI *mri_in, MRI *mri_labeled, GCA *gca, TRANSFORM *transform,
   return(NO_ERROR) ;
 }
 static int
-insert_thin_temporal_white_matter(MRI *mri_in, MRI *mri_labeled, 
+insert_thin_temporal_white_matter(MRI *mri_inputs, MRI *mri_labeled, 
                                   GCA *gca, TRANSFORM *transform, GCA *gca_all)
 {
   MRI       *mri_tmp, *mri_probs, *mri_tmp_labels ;
@@ -1595,7 +1692,7 @@ insert_thin_temporal_white_matter(MRI *mri_in, MRI *mri_labeled,
   GCA_SAMPLE *gcas ;
   double     p, pmax ;
 
-  mri_tmp = MRIclone(mri_in, NULL) ;
+  mri_tmp = MRIclone(mri_inputs, NULL) ;
   mri_tmp_labels = MRIclone(mri_labeled, NULL) ;
 
   width = mri_tmp->width ; height = mri_tmp->height ; depth = mri_tmp->depth ;
@@ -1609,7 +1706,7 @@ insert_thin_temporal_white_matter(MRI *mri_in, MRI *mri_labeled,
     {
       for (y = 0 ; y < height ; y++)
       {
-        GCAsourceVoxelToPrior(gca, mri_in, transform, x, y, z, &xp, &yp, &zp) ;
+        GCAsourceVoxelToPrior(gca, mri_inputs, transform, x, y, z, &xp, &yp, &zp) ;
         gcap = &gca->priors[xp][yp][zp] ;
         for (n = 0 ; n < gcap->nlabels ; n++)
         {
@@ -1650,7 +1747,7 @@ insert_thin_temporal_white_matter(MRI *mri_in, MRI *mri_labeled,
     {
       for (y = ymin ; y <= ymax ; y++)
       {
-        GCAsourceVoxelToPrior(gca, mri_in, transform, x, y, z, &xp, &yp, &zp) ;
+        GCAsourceVoxelToPrior(gca, mri_inputs, transform, x, y, z, &xp, &yp, &zp) ;
         gcap = &gca->priors[xp][yp][zp] ;
         for (n = 0 ; n < gcap->nlabels ; n++)
         {
@@ -1674,7 +1771,7 @@ insert_thin_temporal_white_matter(MRI *mri_in, MRI *mri_labeled,
       }
     }
   }
-  GCAcomputeLogSampleProbabilityUsingCoords(gca, gcas, mri_in, 
+  GCAcomputeLogSampleProbabilityUsingCoords(gca, gcas, mri_inputs, 
                                             transform, nsamples) ;
   for (i = 0 ; i < nsamples ; i++)
   {
@@ -2059,7 +2156,7 @@ insert_thin_temporal_white_matter(MRI *mri_in, MRI *mri_labeled,
           if (MRIneighborsOn(mri_tmp, x, y, z, 1) == 0)
             continue ;
           nlabels =
-            GCAcomputeVoxelLikelihoods(gca_all,mri_in,x,y,z,transform,labels,probs);
+            GCAcomputeVoxelLikelihoods(gca_all,mri_inputs,x,y,z,transform,labels,probs);
           for (max_p = 0, max_label = -1, n = 0 ; n < nlabels ; n++)
           {
             if (probs[n] > max_p)
@@ -2127,7 +2224,7 @@ insert_thin_temporal_white_matter(MRI *mri_in, MRI *mri_labeled,
             MRIvox(mri_labeled, x, yi, z) = label ;
           }
 #else
-          GCAsourceVoxelToPrior(gca_all, mri_in, transform, x, yi, z, &xp, &yp, &zp) ;
+          GCAsourceVoxelToPrior(gca_all, mri_inputs, transform, x, yi, z, &xp, &yp, &zp) ;
           gcap = &gca_all->priors[xp][yp][zp] ;
           if (label == Left_Cerebral_Cortex || label == Right_Cerebral_Cortex)
           {
