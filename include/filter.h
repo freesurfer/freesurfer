@@ -28,6 +28,7 @@
 #define FILTER_SIGMA             12
 #define FILTER_DIFFUSE_HV        13
 #define FILTER_MEAN              14
+#define FILTER_SOBEL             15
 #define FILTER_OFFSET            0x0100
 
 #define FILTER_MEDIAN_OFFSET     (FILTER_MEDIAN | FILTER_OFFSET)
