@@ -730,10 +730,10 @@ static int ConvertCRS2XYZ(int col, int row, int slc, MATRIX *CRS2XYZ,
 
 /*----------------------------------------------------*/
 CHT *CHTalloc(int n_ithr, double ithr_lo, double ithr_hi,
-	      int n_vthr, double vthr_lo, double vthr_hi)
+	      int n_sthr, double sthr_lo, double sthr_hi)
 {
   CHT *cht;
-  double dithr, dvthr;
+  double dithr, dsthr;
   int i,v;
   
   cht = (CHT *) calloc(1,sizeof(CHT));
@@ -746,17 +746,17 @@ CHT *CHTalloc(int n_ithr, double ithr_lo, double ithr_hi,
   cht->ithr_lo = ithr_lo;
   cht->ithr_hi = ithr_hi;
 
-  cht->n_vthr = n_vthr;
-  cht->vthr = (double *) calloc(n_vthr,sizeof(double));
-  if(n_vthr != 1) dvthr = (vthr_hi - vthr_lo)/(n_vthr-1);
-  else            dvthr = 0;
-  for(v=0; v < n_vthr; v++) cht->vthr[v] = vthr_lo + dvthr*v;
-  cht->vthr_lo = vthr_lo;
-  cht->vthr_hi = vthr_hi;
+  cht->n_sthr = n_sthr;
+  cht->sthr = (double *) calloc(n_sthr,sizeof(double));
+  if(n_sthr != 1) dsthr = (sthr_hi - sthr_lo)/(n_sthr-1);
+  else            dsthr = 0;
+  for(v=0; v < n_sthr; v++) cht->sthr[v] = sthr_lo + dsthr*v;
+  cht->sthr_lo = sthr_lo;
+  cht->sthr_hi = sthr_hi;
 
   cht->hits = (int **) calloc(n_ithr,sizeof(int*));
   for(i=0; i < n_ithr; i++)    
-    cht->hits[i] = (int *) calloc(n_vthr,sizeof(int));
+    cht->hits[i] = (int *) calloc(n_sthr,sizeof(int));
 
   return(cht);
 }
@@ -771,7 +771,7 @@ int CHTfree(CHT **ppcht)
   for(i=0; i < cht->n_ithr; i++) free(cht->hits[i]);
   free(cht->hits);
   free(cht->ithr);
-  free(cht->vthr);
+  free(cht->sthr);
   free(*ppcht);
   *ppcht = NULL;
 
@@ -792,19 +792,19 @@ int CHTprint(FILE *fp, CHT *cht)
   fprintf(fp,"# ithr_lo     %lf\n",cht->ithr_lo);
   fprintf(fp,"# ithr_hi     %lf\n",cht->ithr_hi);
   fprintf(fp,"# ithr_sign   %s\n",cht->ithr_sign);
-  fprintf(fp,"# n_vthr      %d\n",cht->n_vthr);
-  fprintf(fp,"# vthr_lo     %lf\n",cht->vthr_lo);
-  fprintf(fp,"# vthr_hi     %lf\n",cht->vthr_hi);
+  fprintf(fp,"# n_sthr      %d\n",cht->n_sthr);
+  fprintf(fp,"# sthr_lo     %lf\n",cht->sthr_lo);
+  fprintf(fp,"# sthr_hi     %lf\n",cht->sthr_hi);
   //fprintf(fp,"# STARTDATA\n");
 
   fprintf(fp,"     ");
-  for(v=0; v < cht->n_vthr; v++) 
-    fprintf(fp,"%4.2lf ",cht->vthr[v]);
+  for(v=0; v < cht->n_sthr; v++) 
+    fprintf(fp,"%4.2lf ",cht->sthr[v]);
   fprintf(fp,"\n");
 
   for(i=0; i < cht->n_ithr; i++) {
     fprintf(fp,"%4.2lf ",cht->ithr[i]);
-    for(v=0; v < cht->n_vthr; v++) 
+    for(v=0; v < cht->n_sthr; v++) 
       fprintf(fp,"%5d ",cht->hits[i][v]);
     fprintf(fp,"\n");
   }
@@ -843,8 +843,8 @@ CHT *CHTread(char *fname)
   double   ithr_lo, ithr_hi; /* intensity threshold range */
   int    n_ithr; /* Number ithreshs bet lo and hi*/
   char     ithr_sign[50]; /* abs, pos, neg*/
-  double   vthr_lo, vthr_hi; /* volume threshold range */
-  int    n_vthr; /* Number vthreshs bet lo and hi*/
+  double   sthr_lo, sthr_hi; /* volume threshold range */
+  int    n_sthr; /* Number sthreshs bet lo and hi*/
   int i,v;
   double dummy;
 
@@ -887,12 +887,12 @@ CHT *CHTread(char *fname)
     if(!strcmp(tag,"ithr_lo")) sscanf(tmpstr,"%*s %*s %lf",&ithr_lo);
     if(!strcmp(tag,"ithr_hi")) sscanf(tmpstr,"%*s %*s %lf",&ithr_hi);
     if(!strcmp(tag,"ithr_sign")) sscanf(tmpstr,"%*s %*s %s",ithr_sign);
-    if(!strcmp(tag,"n_vthr"))  sscanf(tmpstr,"%*s %*s %d", &n_vthr);
-    if(!strcmp(tag,"vthr_lo")) sscanf(tmpstr,"%*s %*s %lf",&vthr_lo);
-    if(!strcmp(tag,"vthr_hi")) sscanf(tmpstr,"%*s %*s %lf",&vthr_hi);
+    if(!strcmp(tag,"n_sthr"))  sscanf(tmpstr,"%*s %*s %d", &n_sthr);
+    if(!strcmp(tag,"sthr_lo")) sscanf(tmpstr,"%*s %*s %lf",&sthr_lo);
+    if(!strcmp(tag,"sthr_hi")) sscanf(tmpstr,"%*s %*s %lf",&sthr_hi);
   }
   
-  cht = CHTalloc(n_ithr, ithr_lo, ithr_hi, n_vthr, vthr_lo, vthr_hi);
+  cht = CHTalloc(n_ithr, ithr_lo, ithr_hi, n_sthr, sthr_lo, sthr_hi);
   cht->nsim    = nsim;
   cht->nvox    = nvox;
   cht->totvol  = totvol;
@@ -914,11 +914,93 @@ CHT *CHTread(char *fname)
   for(i=0; i < cht->n_ithr; i++) {
     // Skip first column as it is the ithr for that row
     fscanf(fp,"%lf ",&dummy); 
-    for(v=0; v < cht->n_vthr; v++) 
+    for(v=0; v < cht->n_sthr; v++) 
       fscanf(fp,"%d ",&(cht->hits[i][v]));
   }
 
   fclose(fp);
 
   return(cht);
+}
+
+/*-----------------------------------------------------------------
+  CHTcompare() - compares two CHTs. Returns 1 if they are different
+  and 0 if they are the same. If an item in the targ is less than 0,
+  then it's value is replaced with the value of the source. This 
+  does not trigger a 1 return and allows for values to be filled in.
+  ----------------------------------------------------------------*/
+int CHTcompare(CHT *src, CHT *targ)
+{
+  if(targ->nvox < 0) targ->nvox = src->nvox;
+  else if(targ->nvox != src->nvox) return(1);
+
+  if(targ->totvol < 0) targ->totvol = src->totvol;
+  else if(targ->totvol != src->totvol) return(1);
+
+  if(targ->fwhm < 0) targ->fwhm = src->fwhm;
+  else if(targ->fwhm != src->fwhm) return(1);
+
+  if(targ->nsmooth < 0) targ->nsmooth = src->nsmooth;
+  else if(targ->nsmooth != src->nsmooth) return(1);
+
+  if(targ->ithr_lo < 0) targ->ithr_lo = src->ithr_lo;
+  else if(targ->ithr_lo != src->ithr_lo) return(1);
+
+  if(targ->ithr_hi < 0) targ->ithr_hi = src->ithr_hi;
+  else if(targ->ithr_hi != src->ithr_hi) return(1);
+
+  if(targ->n_ithr < 0) targ->n_ithr = src->n_ithr;
+  else if(targ->n_ithr != src->n_ithr) return(1);
+
+  if(strlen(targ->ithr_sign)==0) 
+    CHTsetSignString(targ, src->ithr_sign);
+  else if(strcmp(targ->ithr_sign,src->ithr_sign)) return(1);
+
+  if(targ->sthr_lo < 0) targ->sthr_lo = src->sthr_lo;
+  else if(targ->sthr_lo != src->sthr_lo) return(1);
+
+  if(targ->sthr_hi < 0) targ->sthr_hi = src->sthr_hi;
+  else if(targ->sthr_hi != src->sthr_hi) return(1);
+
+  if(targ->n_sthr < 0) targ->n_sthr = src->n_sthr;
+  else if(targ->n_sthr != src->n_sthr) return(1);
+
+  return(0);
+}
+
+/*--------------------------------------------------------------
+  CHTsetSignString() - sets the sign string. If the string is
+  unrecognized, returns 1, otherwise 0. If the string is NULL,
+  abs is used.
+  --------------------------------------------------------------*/
+int CHTsetSignString(CHT *cht, char *ithr_sign)
+{
+  int ithr_signid;
+
+  ithr_signid = CHTsignId(ithr_sign);
+  if(ithr_signid == -100) return(1);
+
+  cht->ithr_signid = ithr_signid;
+
+  if(ithr_sign == NULL) strcpy(cht->ithr_sign,"abs");
+  else                  strcpy(cht->ithr_sign,ithr_sign);
+
+  return(0);
+}
+
+/*--------------------------------------------------------------
+  CHTsignId() - converts the sign string to a numeric code. The
+  code is set in the CHT structure and returned.
+  --------------------------------------------------------------*/
+int CHTsignId(char *ithr_sign)
+{
+
+  if(ithr_sign == NULL) return(0); // abs
+  if(!strcasecmp(ithr_sign,"pos"))      return(+1);
+  else if(!strcasecmp(ithr_sign,"abs")) return(0);
+  else if(!strcasecmp(ithr_sign,"neg")) return(-1);
+
+  printf("ERROR: ithr_sign = %s, unrecognized.\n",ithr_sign);
+  printf("       ithr_sign must be pos, neg, or abs.\n");
+  return(-100);
 }

@@ -67,6 +67,7 @@ LABEL *clustCluster2Label(VOLCLUSTER *vc, MRI *vol, int frame,
 int clustDumpClusterList(FILE *fp, VOLCLUSTER **vclist, int nlist, 
        MRI *vol, int frame);
 
+/*----------------------------------------------------------*/
 typedef struct {
   int nsim; /* number of simulation runs to generate table */
   int nvox; /* number of voxels/vertices in search area */
@@ -78,21 +79,21 @@ typedef struct {
   double  *ithr; /* intensity thresholds*/
   char     ithr_sign[50]; /* abs, pos, neg*/
   int      ithr_signid; /* 0=abs, 1=pos, -1=neg*/
-  double   vthr_lo, vthr_hi; /* volume threshold range */
-  int    n_vthr; /* Number vthreshs bet lo and hi*/
-  double  *vthr; /* volume thresholds*/
-  int **hits;  /* hit[ithr][vthr] */
+  double   sthr_lo, sthr_hi; /* cluster size threshold range */
+  int    n_sthr; /* Number sthr's bet lo and hi*/
+  double  *sthr; /* list of size thresholds*/
+  int **hits;  /* hit[ithr][sthr] */
 
 } CLUSTER_HIT_TABLE, CHT;
 
 CHT *CHTalloc(int n_ithr, double ithr_lo, double ithr_hi,
-	      int n_vthr, double vthr_lo, double vthr_hi);
+	      int n_sthr, double sthr_lo, double sthr_hi);
 int CHTfree(CHT **ppcht);
 int CHTprint(FILE *fp, CHT *cht);
 int CHTwrite(char *fname, CHT *cht);
 CHT *CHTread(char *fname);
-
-
-
+int CHTcompare(CHT *src, CHT *targ);
+int CHTsetSignString(CHT *cht, char *ithr_sign);
+int CHTsignId(char *ithr_sign);
 
 #endif
