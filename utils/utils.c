@@ -602,7 +602,7 @@ angleDistance(float theta1, float theta2)
 
   adist = fabs(theta1 - theta2) ;
   if (adist >= PI)
-    adist -= PI ;
+    adist = fabs(adist - 2*PI) ;
 
   return(adist) ;
 }
