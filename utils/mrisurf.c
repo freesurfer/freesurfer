@@ -8349,7 +8349,7 @@ int
 MRISwritePatchAscii(MRI_SURFACE *mris, char *fname)
 {
   FILE    *fp ;
-  int     vno, fno, n ;
+  int     vno, fno, n, nvertices, nfaces ;
   VERTEX  *v ;
   FACE    *face ;
 
@@ -8359,8 +8359,24 @@ MRISwritePatchAscii(MRI_SURFACE *mris, char *fname)
                 (ERROR_NOFILE, "MRISwritePatchAscii: could not open file %s",
                  fname));
                  
+  for (nvertices = vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    if (v->ripflag)
+      continue ;
+    nvertices++ ;
+  }
+  for (nfaces = fno = 0 ; fno < mris->nfaces ; fno++)
+  {
+    face = &mris->faces[fno] ;
+    if (face->ripflag)
+      continue ;
+    nfaces++ ;
+  }
   fprintf(fp, "#!ascii version of patch %s\n", mris->fname) ;
-  fprintf(fp, "%d %d\n", mris->nvertices, mris->nfaces) ;
+  fprintf(fp, "%d %d\n", nvertices, nfaces) ;
+  fprintf(stderr, "nvertices=%d (valid=%d) nfaces=%d\n", nvertices, 
+          mrisValidVertices(mris), nfaces) ;
 
   for (vno = 0 ; vno < mris->nvertices ; vno++)
   {
