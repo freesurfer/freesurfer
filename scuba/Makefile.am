@@ -71,7 +71,8 @@ check_PROGRAMS= testIDTracker testBroadcaster testUtilities \
 	testDataCollection testScubaDataCollections testVolumeCollection \
 	testSurfaceCollection testScubaLayers testScubaLayer2DMRI \
 	testScubaLayer2DMRIS testScubaView testScubaFrame \
-	testScubaTransform testScubaColorLUT testScubaROI testScubaROIVolume 
+	testScubaTransform testScubaColorLUT testScubaROI testScubaROIVolume \
+	testVectorOps
 
 TESTS=$(check_PROGRAMS) 
 
@@ -92,11 +93,13 @@ testPath_SOURCES=test_Path.cpp \
 	$(UTILITIES_SRCS) $(BASIC_SRCS)
 testShortestPathFinder_SOURCES=test_ShortestPathFinder.cpp \
 	$(UTILITIES_SRCS) $(BASIC_SRCS)
+testVectorOps_SOURCES=test_VectorOps.cpp \
+	$(UTILITIES_SRCS) $(BASIC_SRCS)
 
 testToglManager_SOURCES=test_ToglManager.cpp \
 	$(UTILITIES_SRCS) $(BASIC_SRCS) $(GUI_SRCS) $(FSDATA_SRCS)
 testDataManager_SOURCES=test_DataManager.cpp \
-	$(UTILITIES_OBJS) $(BASIC_OBJS) $(FSDATA_OBJS)
+	$(UTILITIES_SRCS) $(BASIC_SRCS) $(FSDATA_SRCS)
 testTclCommandManager_SOURCES=test_TclCommandManager.cpp \
 	$(UTILITIES_SRCS) $(BASIC_SRCS) 
 testPreferencesManager_SOURCES=test_PreferenceManager.cpp \
@@ -109,28 +112,28 @@ testDataCollection_SOURCES=test_DataCollection.cpp \
 testScubaDataCollections_SOURCES=test_ScubaDataCollections.cpp \
 	$(UTILITIES_SRCS) $(BASIC_SRCS) $(FSDATA_SRCS) 
 testVolumeCollection_SOURCES=test_VolumeCollection.cpp \
-	$(UTILITIES_SRCS) $(BASIC_SRCS) $(FSDTAT_SRCS) 
+	$(UTILITIES_SRCS) $(BASIC_SRCS) $(FSDATA_SRCS) 
 testSurfaceCollection_SOURCES= test_SurfaceCollection.cpp \
 	$(UTILITIES_SRCS) $(BASIC_SRCS) $(FSDATA_SRCS) 
 
 testScubaLayers_SOURCES=test_ScubaLayers.cpp \
 	$(UTILITIES_SRCS) $(BASIC_SRCS) $(GUI_SRCS) $(LAYER_SRCS)
 testScubaLayer2DMRI_SOURCES=test_ScubaLayer2DMRI.cpp \
-	$(UTILITIES_OBJS) $(BASIC_OBJS) $(FSDATA_OBJS) $(GUI_OBJS) $(LAYER_OBJS) 
+	$(UTILITIES_SRCS) $(BASIC_SRCS) $(FSDATA_SRCS) $(GUI_SRCS) $(LAYER_SRCS) 
 testScubaLayer2DMRIS_SOURCES=test_ScubaLayer2DMRIS.cpp \
-	$(UTILITIES_OBJS) $(BASIC_OBJS) $(FSDATA_OBJS) $(GUI_OBJS) $(LAYER_OBJS) 
+	$(UTILITIES_SRCS) $(BASIC_SRCS) $(FSDATA_SRCS) $(GUI_SRCS) $(LAYER_SRCS) 
 
 testScubaView_SOURCES=test_ScubaView.cpp \
 	$(UTILITIES_SRCS) $(BASIC_SRCS) $(GUI_SRCS) $(FSDATA_SRCS)
 testScubaFrame_SOURCES=test_ScubaFrame.cpp \
 	$(UTILITIES_SRCS) $(BASIC_SRCS) $(FSDATA_SRCS) $(GUI_SRCS) $(LAYER_SRCS) 
 testScubaTransform_SOURCES=test_ScubaTransform.cpp \
-	$(UTILITIES_SRCS) $(BASIC_SRCS) $(FSDTAT_SRCS) 
+	$(UTILITIES_SRCS) $(BASIC_SRCS) $(FSDATA_SRCS) 
 testScubaColorLUT_SOURCES=test_ScubaColorLUT.cpp \
-	$(UTILITIES_SRCS) $(BASIC_SRCS) $(FSDTAT_SRCS) 
+	$(UTILITIES_SRCS) $(BASIC_SRCS) $(FSDATA_SRCS) 
 testScubaROI_SOURCES=test_ScubaROI.cpp \
 	$(UTILITIES_SRCS) $(BASIC_SRCS) $(FSDATA_SRCS) 
 testScubaROIVolume_SOURCES=test_ScubaROIVolume.cpp \
-	$(UTILITIES_SRCS) $(BASIC_SRCS) $(FSDTAT_SRCS) 
+	$(UTILITIES_SRCS) $(BASIC_SRCS) $(FSDATA_SRCS) 
 
 
