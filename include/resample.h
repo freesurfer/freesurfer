@@ -96,6 +96,11 @@ MRI *surf2surf_nnfr(MRI *SrcSurfVals, MRI_SURFACE *SrcSurfReg,
 MRI *surf2surf_nnf(MRI *SrcSurfVals, MRI_SURFACE *SrcSurfReg, 
        MRI_SURFACE *TrgSurfReg, int UseHash);
 
+MRI *MRImapSurf2VolClosest(MRIS *surf, MRI *vol, 
+         MATRIX *Ma2v, float projfrac);
+int MRIsurf2Vol(MRI *surfvals, MRI *vol, MRI *map);
+
+
 
 #endif /* #ifndef RESAMPLE_H_INC */
 

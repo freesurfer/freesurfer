@@ -1,6 +1,6 @@
 /*---------------------------------------------------------------
   Name: resample.c
-  $Id: resample.c,v 1.4 2002/04/17 22:12:07 greve Exp $
+  $Id: resample.c,v 1.5 2002/04/18 19:31:17 greve Exp $
   Author: Douglas N. Greve
   Purpose: code to perform resapling from one space to another, 
   including: volume-to-volume, volume-to-surface, and surface-to-surface.
@@ -751,9 +751,9 @@ MRI *vol2surf_linear(MRI *SrcVol,
     /* nearest neighbor */
     switch(float2int){
     case FLT2INT_ROUND:
-      icol_src = (int)rint(Scrs->rptr[0+1][0+1]);
-      irow_src = (int)rint(Scrs->rptr[1+1][0+1]);
-      islc_src = (int)rint(Scrs->rptr[2+1][0+1]);
+      icol_src = nint(Scrs->rptr[0+1][0+1]);
+      irow_src = nint(Scrs->rptr[1+1][0+1]);
+      islc_src = nint(Scrs->rptr[2+1][0+1]);
       break;
     case FLT2INT_FLOOR:
       icol_src = (int)floor(Scrs->rptr[0+1][0+1]);
@@ -777,6 +777,15 @@ MRI *vol2surf_linear(MRI *SrcVol,
     if(irow_src < 0 || irow_src >= SrcVol->height ||
        icol_src < 0 || icol_src >= SrcVol->width  ||
        islc_src < 0 || islc_src >= SrcVol->depth ) continue;
+
+    if(Gdiag_no > 0 && vtx == 30756){
+      printf("diag -----------------------------\n");
+      printf("vtx = %d  %g %g %g\n",vtx,Tx,Ty,Tz);
+      printf("fCRS  %g %g %g\n",Scrs->rptr[1][1],
+       Scrs->rptr[2][1],Scrs->rptr[3][1]);
+      printf("CRS  %d %d %d\n",icol_src,irow_src,islc_src);
+    }
+
 
     /* only gets here if it is in bounds */
     nhits ++;
@@ -1060,435 +1069,197 @@ MATRIX * ConstMatrix(int rows, int cols, float val)
   return(M);;
 }
 
-/*-------------------------------------------------------------------*/
-/*-------------------------------------------------------------------*/
-/*-------------------------------------------------------------------*/
-/*-------------------------------------------------------------------*/
-/*-------------------------------------------------------------------*/
 
-
-
-#if 0
-/* this is superceded by label2mask_linear() and vol2maskavg() */
-/*------------------------------------------------------------*/
-MRI *vol2roi_linear(MRI *SrcVol, 
-        MATRIX *Qsrc, MATRIX *Fsrc, MATRIX *Wsrc, MATRIX *Dsrc, 
-        MRI *SrcMskVol, MATRIX *Msrc2lbl, LABEL *Label, 
-        int float2int, int *nhits, MRI *FinalMskVol)
+/*-------------------------------------------------------------------
+  MRIsurf2Vol() - the purpose of this function is to resample values
+  from a surface to a volume. Most of the real work is done in the
+  creation of map, which has the same size as vol; each voxel in map
+  has the vertex number of the corresponding point on the surface. If
+  there is no corresponding point, then the value will be -1. See
+  MRImapSurf2VolClosest().  MRI vol must have already been allocated.
+  ----------------------------------------------------------------*/
+int MRIsurf2Vol(MRI *surfvals, MRI *vol, MRI *map)
 {
-  MATRIX *QFWDsrc;
-  MATRIX *Lxyz2Scrs;
-  MATRIX *Scrs, *Lxyz, *Mlbl2src;
-  MRI *ROI;
-  int   irow_src, icol_src, islc_src; /* integer row, col, slc in source */
-  float srcval, roival, mskval;
-  int frm, vlbl;
-  
-  /* compute the transforms */
-  QFWDsrc = ComputeQFWD(Qsrc,Fsrc,Wsrc,Dsrc,NULL);
-  if(Msrc2lbl != NULL) Mlbl2src = MatrixInverse(Msrc2lbl,NULL);
-  else                 Mlbl2src = NULL;
-  if(Mlbl2src != NULL) Lxyz2Scrs = MatrixMultiply(QFWDsrc,Mlbl2src,NULL);    
-  else                 Lxyz2Scrs = MatrixCopy(QFWDsrc,NULL);
+  int vtx, c, r, s, f;
+  float val;
 
-  printf("\n");
-  printf("Lxyz2Scrs:\n");
-  MatrixPrint(stdout,Lxyz2Scrs);
-  printf("\n");
-
-  /* preallocate the row-col-slc vectors */
-  Lxyz = MatrixAlloc(4,1,MATRIX_REAL);
-  Lxyz->rptr[3+1][0+1] = 1.0;
-  Scrs = MatrixAlloc(4,1,MATRIX_REAL);
-
-  /* allocate an output "volume" */
-  ROI = MRIallocSequence(1,1,1,MRI_FLOAT,SrcVol->nframes);
-  if(ROI == NULL) return(NULL);
-  
-  *nhits = 0;
-  
-  for(vlbl = 0; vlbl < Label->n_points; vlbl++){
-    
-    Lxyz->rptr[0+1][0+1] = Label->lv[vlbl].x;
-    Lxyz->rptr[1+1][0+1] = Label->lv[vlbl].y;
-    Lxyz->rptr[2+1][0+1] = Label->lv[vlbl].z;
-    
-    MatrixMultiply(Lxyz2Scrs,Lxyz,Scrs);
-    
-    /* nearest neighbor */
-    switch(float2int){
-    case FLT2INT_ROUND:
-      icol_src = (int)rint(Scrs->rptr[0+1][0+1]);
-      irow_src = (int)rint(Scrs->rptr[1+1][0+1]);
-      islc_src = (int)rint(Scrs->rptr[2+1][0+1]);
-      break;
-    case FLT2INT_FLOOR:
-      icol_src = (int)floor(Scrs->rptr[0+1][0+1]);
-      irow_src = (int)floor(Scrs->rptr[1+1][0+1]);
-      islc_src = (int)floor(Scrs->rptr[2+1][0+1]);
-      break;
-    case FLT2INT_TKREG:
-      icol_src = (int)floor(Scrs->rptr[0+1][0+1]);
-      irow_src = (int) ceil(Scrs->rptr[1+1][0+1]);
-      islc_src = (int)floor(Scrs->rptr[2+1][0+1]);
-      break;
-    default:
-      fprintf(stderr,"vol2roi_linear(): unrecoginized float2int code %d\n",
-        float2int);
-      MRIfree(&ROI);
-      return(NULL);
-      break;
-    }
-    
-    if(irow_src < 0 || irow_src >= SrcVol->height ||
-       icol_src < 0 || icol_src >= SrcVol->width  ||
-       islc_src < 0 || islc_src >= SrcVol->depth ) continue;
-
-    if(SrcMskVol != NULL){
-      mskval = MRIFseq_vox(SrcMskVol,icol_src,irow_src,islc_src,0);
-      if(mskval < 0.5) continue;
-    }
-
-    if(FinalMskVol != NULL){
-      mskval = 10 + drand48();
-      MRIFseq_vox(FinalMskVol,icol_src,irow_src,islc_src,0) = mskval;
-    }
-
-    (*nhits)++;
-    for(frm = 0; frm < SrcVol->nframes; frm++){
-      srcval = MRIFseq_vox(SrcVol,icol_src,irow_src,islc_src,frm);
-      roival = MRIFseq_vox(ROI,0,0,0,frm);
-      roival = roival + srcval;
-      MRIFseq_vox(ROI,0,0,0,frm) = roival;
-    }
+  if(vol->width  != map->width ||
+     vol->height != map->height||
+     vol->depth  != map->depth ){
+    printf("ERROR: vol and map dimensions differ\n");
+    return(1);
   }
 
-  fprintf(stderr,"INFO: vol2roi: there were %d hits\n", *nhits);
+  if(surfvals->nframes != vol->nframes){
+    printf("ERROR: surfvals and vol have different number of frames\n");
+    return(1);
+  }
 
-  /* divide by the number of hits */
-  if( *nhits > 0){
-    for(frm = 0; frm < SrcVol->nframes; frm++){
-      roival = MRIFseq_vox(ROI,0,0,0,frm);
-      roival = roival/(*nhits);
-      MRIFseq_vox(ROI,0,0,0,frm) = roival;
+  for(c=0; c < vol->width; c++){
+    for(r=0; r < vol->height; r++){
+      for(s=0; s < vol->depth; s++){
+  vtx = MRIIseq_vox(map,c,r,s,0);
+  for(f = 0; f < vol->nframes; f++){
+    if(vtx < 0){
+      MRIsetVoxVal(vol,c,r,s,f,0.0);
+      continue;
     }
+    val = MRIgetVoxVal(surfvals,vtx,0,0,f);
+    MRIsetVoxVal(vol,c,r,s,f,val);
   }
-  else{
-    fprintf(stderr,"WARNING: vol2roi: no hits found\n");
-  }
-
-  MatrixFree(&QFWDsrc);
-  MatrixFree(&Lxyz2Scrs);
-  MatrixFree(&Scrs);
-  MatrixFree(&Lxyz);
-  if(Mlbl2src != NULL) MatrixFree(&Mlbl2src);
-
-  printf("vol2roi_linear: done\n");
-
-  return(ROI);  
-}
-#endif
-
-#if 0
-/* -------------------------------------------------------------------- 
-   ComputeVolNNbrsOfVol() - for each voxel index in Vol1, computes the 
-   nearest neighbor in Vol2 based on the matrix Pv1tov2. Pv1tov2 converts 
-   CRS in volume 1 to CRS in volume 1 (CRS = col, row, slice). The result
-   is a list whose length equals the number of voxels in Vol1. The nth value
-   in the list is the index of the voxel in Vol2 that is closest to the
-   nth voxel in Vol1.  The index of a voxel is the location of that voxel 
-   when all the voxels are arranged linearly by col, row, slice.
-
-   Because the mapping is nearest-neighbor, the result could have been returned
-   in a vector of ints. However, for compatibility with multiple-neighbor maps,
-   the result is returned in a Ragged Array (see raggedarray.c)
-   -------------------------------------------------------------------- */
-RAGGEDARRAY * 
-ComputeVolNNbrsOfVol(int nrows1, int ncols1, int nslcs1, 
-         int nrows2, int ncols2, int nslcs2, 
-         MATRIX *Pv1tov2)
-{
-  RAGGEDARRAY * NbrMap;
-  int r1,c1,s1,volindex1,nvoxs1;
-  int r2,c2,s2,volindex2;
-  MATRIX *crs1, *crs2;
-
-  crs1 = MatrixAlloc(4,1,MATRIX_REAL); /* row, col, slice */
-  crs2 = MatrixAlloc(4,1,MATRIX_REAL); /* row, col, slice */
-
-  /* Total number of voxels in volume 1 */
-  nvoxs1 = nrows1*ncols1*nslcs1;
-
-  /* Allocate a Neighbor Map using a Ragged Array (see raggedarray.c).*/
-  NbrMap = ra_alloc(nvoxs1,RAGRAY_INT);
-  if(NbrMap == NULL) return(NULL);
-
-  /* Go through all voxels in volume 1 */
-  for(s1=0; s1<nslcs1; s1++){
-    for(r1=0; r1<nrows1; r1++){
-      for(c1=0; c1<ncols1; c1++){
-
-  /* Compute the linear index for c1,r1,s1 */
-  crs2ind(&volindex1,c1,r1,s1,ncols1,nrows1,nslcs1);
-
-  /* Load a vector with col, row, and slice of volume 1 */
-  crs1->rptr[0+1][0+1] = c1;
-  crs1->rptr[1+1][0+1] = r1;
-  crs1->rptr[2+1][0+1] = s1;
-
-  /* Compute the corresponding col, row, and slice of volume 2 */
-  MatrixMultiply(Pv1tov2,crs1,crs2); /* crs2 = Pv1tov2 * crs1 */
-
-  /* Unload col, row, and slice of volume 2 from vector */
-  /* (Truncation is used for historical purposes) */
-  c2 = (int)rint(crs2->rptr[0+1][0+1]);
-  r2 = (int)rint(crs2->rptr[1+1][0+1]);
-  s2 = (int)rint(crs2->rptr[2+1][0+1]);
-
-  /* Make sure that the voxel is in bounds of volume 2 */
-  if(c2 < 0 || c2 >= ncols2 || r2 < 0 || r2 >= nrows2 || 
-     s2 < 0 || s2 >= nslcs2){
-    /*printf("%5d  %7.3f %7.3f %7.3f\n",volindex1,
-     crs2->rptr[0+1][0+1],crs2->rptr[0+1][1+1],
-     crs2->rptr[2+1][0+1]);*/
-    continue;
-  }
-
-  /* Compute the linear index for c2,r2,s2 */
-  crs2ind(&volindex2,c2,r2,s2,ncols2,nrows2,nslcs2);
-
-  /* volindex1 and volindex2 are now a pair */
-  /* Add pair to map */
-  ra_ivalappend(volindex2,NbrMap,volindex1);
-
       }
     }
   }
 
-  MatrixFree(&crs1);
-  MatrixFree(&crs2);
-
-  return(NbrMap);
+  return(0);
 }
+/*-------------------------------------------------------------------
+  MRImapSurf2VolClosest() - the purpose of this function is to create
+  a map of a volume in which the value at each voxel is the integer
+  value of the vertex that is closest to it. If no vertex is within a
+  voxel, its value is set to -1. 
 
-/* -------------------------------------------------------------------- 
-   ComputeVolNNbrsOfSurf() - for each vertex in the Surface, computes the 
-   nearest neighbor in a Volume of size ncols, nrows, nslices based on
-   the matrix Qs2v. Qs2v  converts an x,y,z in Surface space to column, row,
-   and slice in the volume (crs = Qs2v * xyz).
+  Qa2v is a matrix that maps XYZ in anatomical/surface space to CRS in
+  volume space. It must be compatible with the native geometry of vol.
+  Typically, Qa2v = inv(Tvol)*Ma2v, where Tvol maps from CRS of the
+  vol to XYZ of the volume (see MRIxfmCRS2XYZ), and Ma2v maps from XYZ
+  of the reference anatomical to XYZ of the volume. If Ma2v is the
+  tkregister registration matrix, then it must have been fixed with
+  MRIfixTkReg.
 
-   The result is a list whose length equals the number of verticies in the 
-   surface. The nth value in the list is the index of the voxel in the Volume 
-   that  is closest to the nth vertex on the Surface.  The index of a voxel is 
-   the location of that voxel when all the voxels are arranged linearly by col, row, 
-   slice.
-
-   Because the mapping is nearest-neighbor, the result could have been returned
-   in a vector of ints. However, for compatibility with multiple-neighbor maps,
-   the result is returned in a Ragged Array (see raggedarray.c)
-
-   projfrac: allows the x,y,z of a vertex to be recomputed by projecting along
-   the surface-normal a distance equal to projfrac*thickness. projfrac is
-   intended to be between 0 and 1, which 0 being no change in the vertex xyz, and 
-   1 being projection to the other side of cortex.
-
-   Historically, this mapping is used for "painting", and Qs2v = Qf*R, where
-   R is the registration matrix and Qf is the functional quantization matrix
-   (see FOVQuantMatrix()).
-   -------------------------------------------------------------------- */
-RAGGEDARRAY * 
-ComputeVolNNbrsOfSurf(MRI_SURFACE *surf, 
-          int nrows, int ncols, int nslcs, 
-          MATRIX *Qs2v, float projfrac)
+  If projfrac is non-zero, the XYZ of a vertex is computed based on
+  its native XYZ offset in the direction of the surface normal by
+  projfrac fraction of the thickness at that point. Obviously, the
+  thickness must have been loaded into the surface at this point.
+  ------------------------------------------------------------------*/
+MRI *MRImapSurf2VolClosest(MRIS *surf, MRI *vol, 
+         MATRIX *Qa2v, float projfrac)
 {
-  RAGGEDARRAY * NbrMap;
-  int r,c,s,volindex,vtx;
-  float x,y,z;
-  MATRIX *xyz, *crs;
+  MRI *map, *dist2;
+  int vtx, vtxmin, c, r, s;
+  float xvtx,yvtx,zvtx;
+  float d2, d2min;
+  MATRIX *xyzvtx, *icrs, *fcrs, *xyzcrs;
+  //MATRIX *Tvol;
 
-  /* Allocate a Neighbor Map using a Ragged Array (see raggedarray.c).*/
-  NbrMap = ra_alloc(surf->nvertices,RAGRAY_INT);
-  if(NbrMap == NULL) return(NULL);
+  /* Alloc map - for a given voxel, holds the number of the
+     closest vertex */
+  map = MRIalloc(vol->width, vol->height, vol->depth, MRI_INT);
+  if(map == NULL){
+    printf("ERROR: MRImapSurf2VolClosest: could not alloc vtx map\n");
+    return(NULL);
+  }
+  /* Alloc dist - for a given voxel, holds the distance of the
+     closest vertex to the voxel. */
+  dist2 = MRIalloc(vol->width, vol->height, vol->depth, MRI_FLOAT);
+  if(dist2 == NULL){
+    printf("ERROR: MRImapSurf2VolClosest: could not alloc dist map\n");
+    return(NULL);
+  }
 
-  /* Create vectors for (surf) xyz and (vol) crs*/
-  xyz = MatrixAlloc(4,1,MATRIX_REAL);
-  xyz->rptr[3+1][0+1] = 1.0;
-  crs = MatrixAlloc(4,1,MATRIX_REAL); /* row, col, slice */
+  /* Initially set all the voxels in the map to -1 to mark that
+     they have not been hit by a surface vertex */
+  MRIvalueFill(map,-1);
 
-  /*-----------------------------------------------*/
-  for(vtx = 0; vtx < surf->nvertices; vtx ++){
+  /* Intialize matrix stuff */
+  //Tvol = MRIxfmCRS2XYZ(vol, 0); /* converts crs to xyz in vol */
+  xyzvtx = MatrixAlloc(4,1,MATRIX_REAL);
+  fcrs = MatrixAlloc(4,1,MATRIX_REAL);   /* vertex row, col, slice */
+  icrs = MatrixAlloc(4,1,MATRIX_REAL);   /* voxel row, col, slice */
+  xyzcrs = MatrixAlloc(4,1,MATRIX_REAL); /* voxel xyz */
 
-    /* Get the xyz of the vertex as projected along the normal a
-       distance equal to a fraction of the cortical thickness at
-       that point. */
-    ProjNormFracThick(&x,&y,&z,surf,vtx,projfrac);
+  /* Set the 4th item to 1 */
+  xyzvtx->rptr[4][1] = 1.0;
+  fcrs->rptr[4][1]   = 1.0;
+  icrs->rptr[4][1]   = 1.0;
+  xyzcrs->rptr[4][1] = 1.0;
+
+  /*----------- Loop through vertices --------------*/
+  for(vtx = 0; vtx < surf->nvertices; vtx++){
+
+    if(projfrac == 0){
+      xvtx = surf->vertices[vtx].x;
+      yvtx = surf->vertices[vtx].y;
+      zvtx = surf->vertices[vtx].z;
+    }
+    else{
+      /* Get the xyz of the vertex as projected along the normal a
+   distance equal to a fraction of the cortical thickness at
+   that point. */
+      ProjNormFracThick(&xvtx,&yvtx,&zvtx,surf,vtx,projfrac);
+    }
 
     /* load vertex xyz values into a vector */
-    xyz->rptr[0+1][0+1] = x;
-    xyz->rptr[1+1][0+1] = y;
-    xyz->rptr[2+1][0+1] = z;
+    xyzvtx->rptr[1][1] = xvtx;
+    xyzvtx->rptr[2][1] = yvtx;
+    xyzvtx->rptr[3][1] = zvtx;
+    /* [4] is already 1 */
 
-    /* compute the floating row, col, and slice */
-    MatrixMultiply(Qs2v,xyz,crs); /* crs = Qs2v * xyz */
+    /* Compute the CRS in volume space */
+    /* fcrs = Qa2v * xyzvtx */
+    MatrixMultiply(Qa2v,xyzvtx,fcrs);
 
-    /* Unload col, row, and slice of volume from vector */
-    /* (Truncation is used for historical purposes) */
-    c = (int)(floor(crs->rptr[0+1][0+1]));
-    r = (int)(floor(crs->rptr[1+1][0+1]));
-    s = (int)(floor(crs->rptr[2+1][0+1]));
+    /* Round CRS to nearest integer */
+    c = nint(fcrs->rptr[1][1]);
+    r = nint(fcrs->rptr[2][1]);
+    s = nint(fcrs->rptr[3][1]);
 
-    /* check for out-of-bounds */
-    if(c < 0 || c >= ncols || r < 0 || r >= nrows || 
-       s < 0 || s >= nslcs) continue;
-
-    /* compute the volume index corresponding to the row, col, and slice */
-    crs2ind(&volindex,c,r,s,nrows,ncols,nslcs);
-
-    if(vtx < 10){
-      printf("%d   %6.2f %6.2f %6.2f   %6.2f %6.2f %6.2f  %3d %3d %3d  %d\n",vtx,
-       x,y,z,crs->rptr[0+1][0+1],crs->rptr[1+1][0+1],
-       crs->rptr[2+1][0+1],  c,r,s,volindex);
+    if(Gdiag_no > 0 && vtx == 30756){
+      printf("diag -----------------------------\n");
+      printf("vtx = %d  %g %g %g\n",vtx,xvtx,yvtx,zvtx);
+      printf("fCRS  %g %g %g\n",fcrs->rptr[1][1],
+       fcrs->rptr[2][1],fcrs->rptr[3][1]);
+      printf("CRS  %d %d %d\n",c,r,s);
     }
 
-    /* vtx and volumeindex are now a pair */
-    /* Add pair to the map */
-    ra_ivalappend(volindex,NbrMap,vtx);
+    /* Check that it is in the volume */
+    if(c < 0 || c >= vol->width)  continue;
+    if(r < 0 || r >= vol->height) continue;
+    if(s < 0 || s >= vol->depth)  continue;
 
-  }
-  /*-----------------------------------------------*/
+    /* Load rounded CRS into vector */
+    icrs->rptr[1][1] = c;
+    icrs->rptr[2][1] = r;
+    icrs->rptr[3][1] = s;
+    /* [4] is already 1 */
 
-  MatrixFree(&xyz);
-  MatrixFree(&crs);
+    /* Compute XYZ of rounded CRS in volume space. This
+     is the XYZ of the center of the voxel*/
+    /* xyzcrs = Tvol * icrs */
+    //MatrixMultiply(Tvol,icrs,xyzcrs);
 
-  return(NbrMap);
-}
-#endif
-#if 0
-/*------------------------------------------------------
-  resample()
-  A: Na X nfrms
-  B: Nb X nfrms
-  A2B: Nb X nNeighbors
-  ------------------------------------------------------*/
-MATRIX * resample_nbrmean(MATRIX *A, RAGRAY *A2B)
-{
-  MATRIX *B;
-  int nfrms, Na, Nb, amax;
-  int tmp1, tmp2, err;
-  int a,b,c,f;
+    /* Compute the distance between the voxel and the
+       vertex (actually distance squared) */
+    d2 = SQR( vol->xsize*(c - icrs->rptr[1][1]) ) + 
+         SQR( vol->ysize*(r - icrs->rptr[2][1]) ) + 
+         SQR( vol->zsize*(s - icrs->rptr[3][1]) );
 
-  Na    = A->rows;
-  nfrms = A->cols;
-  Nb    = A2B->nrows;
-
-  /* check that A2B values are within bounds of A */
-  amax  = ra_ivalmax(A2B, &tmp1, &tmp2, &err);
-  if(amax >= Na){
-    fprintf(stderr,"A2B value at (%d,%d) = %d > Na=%d\n",
-      tmp1,tmp2,amax,Na);
-    return(NULL);
-  }
-
-  B = MatrixAlloc(Nb, nfrms, MATRIX_REAL );
-  MatrixClear( B );
-
-  for(b=0;b<Nb;b++){
-    for(f=0; f < nfrms; f++){
-      B->rptr[b+1][f+1] = 0.0;
-      if(A2B->ncols[b] > 0){
-  for(c = 0; c < A2B->ncols[b]; c++){
-    a = A2B->irptr[b][c];
-    B->rptr[b+1][f+1] += A->rptr[a+1][f+1];
-  }
-  B->rptr[b+1][f+1] /= A2B->ncols[b];
-      }
-      else B->rptr[b+1][f+1] = 0.0;
-    }
-  }
-
-  return(B);
-}
-#endif
-
-
-#if 0
-2/4/01
-This is replaced by surf2surf_nnfr with the ReverseMapFlag=0.
-/*----------------------------------------------------------------
-  MRI *surf2surf_nnf() - resample values on one surface to another
-  using nearest-neighbor, forward only (nnf) method.
-----------------------------------------------------------------*/
-MRI *surf2surf_nnf(MRI *SrcSurfVals, MRI_SURFACE *SrcSurfReg, 
-       MRI_SURFACE *TrgSurfReg, int UseHash)
-{
-  MRI *TrgSurfVals = NULL;
-  int svtx, tvtx, f, nunmapped;
-  VERTEX *v;
-  MHT *SrcHash;
-  float dmin;
-
-  if(SrcSurfVals->width != SrcSurfReg->nvertices){
-    fprintf(stderr,"surf2surf_nnf(): Vals and Reg dimension mismatch\n");
-    fprintf(stderr,"nVals = %d, nReg %d\n",SrcSurfVals->width,
-      SrcSurfReg->nvertices);
-    return(NULL);
-  }
-
-  /* allocate a "volume" to hold the output */
-  TrgSurfVals = MRIallocSequence(TrgSurfReg->nvertices,1,1,
-         MRI_FLOAT,SrcSurfVals->nframes);
-  if(TrgSurfVals == NULL) return(NULL);
-
-  /* build hash tables */
-  if(UseHash){
-    printf("surf2surf_nnf: building source hash (res=16).\n");
-    SrcHash = MHTfillVertexTableRes(SrcSurfReg, NULL,CURRENT_VERTICES,16);
-  }
-
-  /*---------------------------------------------------------------
-    Go through the forward loop (finding closest srcvtx to each trgvtx).
-    This maps each target vertex to a source vertex */
-  printf("Surf2Surf: Forward Loop (%d)\n",TrgSurfReg->nvertices);
-  nunmapped = 0;
-  for(tvtx = 0; tvtx < TrgSurfReg->nvertices; tvtx++){
-    if(!UseHash){
-      if(tvtx%100 == 0) {printf("%5d ",tvtx);fflush(stdout);}
-      if(tvtx%1000 == 999){printf("\n");fflush(stdout);}
-    }
-
-    /* find closest source vertex */
-    v = &(TrgSurfReg->vertices[tvtx]);
-    if(UseHash) svtx = MHTfindClosestVertexNo(SrcHash,SrcSurfReg,v,&dmin);
-    else        svtx = MRISfindClosestVertex(SrcSurfReg,v->x,v->y,v->z);
-
-    if(svtx < 0) {/* this can only happen with MHT */
-      nunmapped ++;
-      printf("Unmapped: %3d tvtx = %6d, %6.2f %6.2f %6.2f\n",
-       nunmapped,tvtx,v->x,v->y,v->z);
+    /* Check whether this voxel has been hit. If not
+       just set its map vertex and dist to current. */
+    vtxmin = MRIIseq_vox(map,c,r,s,0);
+    if(vtxmin < 0){
+      MRIIseq_vox(map,c,r,s,0)   = vtx;
+      MRIFseq_vox(dist2,c,r,s,0) = d2;
       continue;
     }
 
-    /* accumulate mapped values for each frame */
-    for(f=0; f < SrcSurfVals->nframes; f++)
-      MRIFseq_vox(TrgSurfVals,tvtx,0,0,f) += MRIFseq_vox(SrcSurfVals,svtx,0,0,f);
-
-    if(tvtx == 22232){
-      printf("dmin = %g\n",dmin);
-      printf("tvtx = %6d, %6.2f %6.2f %6.2f %g\n",tvtx,v->x,v->y,v->z,
-       MRIFseq_vox(TrgSurfVals,tvtx,0,0,0));
-      v = &(SrcSurfReg->vertices[tvtx]);
-      printf("svtx = %6d, %6.2f %6.2f %6.2f %g\n",svtx,v->x,v->y,v->z,
-       MRIFseq_vox(SrcSurfVals,svtx,0,0,0));
-
+    /* Check whether this vertex is closer */
+    d2min = MRIFseq_vox(dist2,c,r,s,0);
+    if(d2min > d2){
+      MRIIseq_vox(map,c,r,s,0)   = vtx;
+      MRIFseq_vox(dist2,c,r,s,0) = d2;
     }
-  }
-  printf("\n");
 
-  /* no reverse loop */
-  /* no need to divide by the number of source vertices because
-     each target can only map to one source */
+  } /* end loop over vertices */
 
-  return(TrgSurfVals);
+  //MatrixFree(&Tvol);
+  MatrixFree(&xyzvtx);
+  MatrixFree(&icrs);
+  MatrixFree(&fcrs);
+  MatrixFree(&xyzcrs);
+  MRIfree(&dist2);
+  return(map);
 }
 
-#endif
+/*-------------------------------------------------------------------*/
+/*-------------------------------------------------------------------*/
