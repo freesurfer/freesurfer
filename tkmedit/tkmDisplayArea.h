@@ -535,6 +535,11 @@ DspA_tErr DspA_DrawHistogram ( tkmDisplayAreaRef        this,
 /* write the current distance to the vertex closest to the cursor */
 DspA_tErr DspA_SetSurfaceDistanceAtCursor ( tkmDisplayAreaRef this );
 
+/* looks at which volume edge the cursor is nearest and then 'cuts' the
+   region from that edge to the same plane at the cursor by setting
+   those values to 0.*/
+DspA_tErr DspA_SmartCutAtCursor ( tkmDisplayAreaRef this );
+
 /* tkmedit needs to get the selected head pt */
 DspA_tErr DspA_GetSelectedHeadPt ( tkmDisplayAreaRef   this,
 				   HPtL_tHeadPointRef* opHeadPoint );

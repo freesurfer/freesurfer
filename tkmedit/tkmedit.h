@@ -219,9 +219,6 @@ void tkm_DisplayError   ( char* isAction, char* isError, char* isDesc );
 void tkm_DisplayAlert   ( char* isAction, char* isMsg, char* isDesc );
 
 /* volume value */
-void tkm_GetValueAtAnaIdx ( tkm_tVolumeType iVolume,
-			    xVoxelRef       iAnaIdx,
-			    tVolumeValue*   oValue );
 void tkm_GetAnaDimension  ( tkm_tVolumeType iVolume,
 			    int*            onDimensionX, 
 			    int*            onDimensionY, 
@@ -265,24 +262,34 @@ void tkm_FloodFillSegmentation ( tkm_tSegType      iVolume,
 
 /* dti color */
 void tkm_GetDTIColorAtVoxel ( xVoxelRef        iAnaIdx,
-            mri_tOrientation iPlane,
-            xColor3fRef      iBaseColor,
-            xColor3fRef      oColor );
+			      mri_tOrientation iPlane,
+			      xColor3fRef      iBaseColor,
+			      xColor3fRef      oColor );
             
 
 /* dealing with control points */
 void tkm_MakeControlPoint             ( xVoxelRef        iAnaIdx );
 void tkm_RemoveControlPointWithinDist ( xVoxelRef        iAnaIdx,
-          mri_tOrientation iPlane,
-          int              inDistance );
+					mri_tOrientation iPlane,
+					int              inDistance );
 void tkm_WriteControlFile             ();
 
 /* editing */
-void tkm_EditVoxelInRange( tkm_tVolumeType  iVolume, 
-			   xVoxelRef        inVolumeVox, 
-			   tVolumeValue     inLow, 
-			   tVolumeValue     inHigh, 
-			   tVolumeValue     inNewValue );
+void tkm_EditAnatomicalVolumeInRange( tkm_tVolumeType  iVolume, 
+				      xVoxelRef        inVolumeVox, 
+				      tVolumeValue     inLow, 
+				      tVolumeValue     inHigh, 
+				      tVolumeValue     inNewValue );
+
+/* Sets a region in the anatomical volume to a new value. */
+void tkm_SetAnatomicalVolumeRegion ( tkm_tVolumeType iVolume,
+				     int             iAnaX0,
+				     int             iAnaX1,
+				     int             iAnaY0,
+				     int             iAnaY1,
+				     int             iAnaZ0,
+				     int             iAnaZ1,
+				     float           iNewValue );
 
 /* undo list */
 void tkm_ClearUndoList   ();
@@ -295,9 +302,9 @@ tBoolean tkm_IsAnaIdxInUndoVolume          ( xVoxelRef iAnaIdx );
 
 /* head points */
 void tkm_GetHeadPoint ( xVoxelRef           iAnaIdx,
-      mri_tOrientation    iOrientation,
-      tBoolean            ibFlat,
-      HPtL_tHeadPointRef* opPoint );
+			mri_tOrientation    iOrientation,
+			tBoolean            ibFlat,
+			HPtL_tHeadPointRef* opPoint );
 
 /* selecting */
 void tkm_SelectVoxel    ( xVoxelRef iAnaIdx );
@@ -314,7 +321,7 @@ void tkm_ReadCursorFromEditFile  ();
 
 /* writing surface distances. */
 void tkm_SetSurfaceDistance    ( xVoxelRef iAnaIdx,
-         float     ifDistance );
+				 float     ifDistance );
 
 /* cleaning up */
 void tkm_Quit ();

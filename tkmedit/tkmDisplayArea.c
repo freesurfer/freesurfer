@@ -3,8 +3,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2003/01/14 23:06:52 $
-// Revision       : $Revision: 1.45 $
+// Revision Date  : $Date: 2003/01/15 19:32:10 $
+// Revision       : $Revision: 1.46 $
 
 #include "tkmDisplayArea.h"
 #include "tkmMeditWindow.h"
@@ -3469,20 +3469,20 @@ void DspA_BrushVoxelsInThreshold_ ( xVoxelRef ipVoxel, void* ipData ) {
   /* edit the voxel according to what the brush target is. */
   switch( sBrush.mTarget ) {
   case DspA_tBrushTarget_Main:
-    tkm_EditVoxelInRange( tkm_tVolumeType_Main, ipVoxel, 
-			  sBrush.mInfo[brush].mnLow,
-			  sBrush.mInfo[brush].mnHigh,
-			  sBrush.mInfo[brush].mnNewValue );
+    tkm_EditAnatomicalVolumeInRange( tkm_tVolumeType_Main, ipVoxel, 
+				     sBrush.mInfo[brush].mnLow,
+				     sBrush.mInfo[brush].mnHigh,
+				     sBrush.mInfo[brush].mnNewValue );
     break;
   case DspA_tBrushTarget_MainAux:
-    tkm_EditVoxelInRange( tkm_tVolumeType_Main, ipVoxel, 
-			  sBrush.mInfo[brush].mnLow,
-			  sBrush.mInfo[brush].mnHigh,
-			  sBrush.mInfo[brush].mnNewValue );
-    tkm_EditVoxelInRange( tkm_tVolumeType_Aux, ipVoxel, 
-			  sBrush.mInfo[brush].mnLow,
-			  sBrush.mInfo[brush].mnHigh,
-			  sBrush.mInfo[brush].mnNewValue );
+    tkm_EditAnatomicalVolumeInRange( tkm_tVolumeType_Main, ipVoxel, 
+				     sBrush.mInfo[brush].mnLow,
+				     sBrush.mInfo[brush].mnHigh,
+				     sBrush.mInfo[brush].mnNewValue );
+    tkm_EditAnatomicalVolumeInRange( tkm_tVolumeType_Aux, ipVoxel, 
+				     sBrush.mInfo[brush].mnLow,
+				     sBrush.mInfo[brush].mnHigh,
+				     sBrush.mInfo[brush].mnNewValue );
     break;
   default:
   }
@@ -6086,7 +6086,6 @@ DspA_tErr DspA_SendPointInformationToTcl_ ( tkmDisplayAreaRef this,
   int                   nValue             = 0;
   DspA_tHistogramParams histoParams;
   float                 fDistance          = 0;
-  tkm_tSegType          segType            = tkm_tSegType_Main;
 
   xVoxel MRIIdx;
 
@@ -6636,6 +6635,140 @@ DspA_tErr DspA_SetSurfaceDistanceAtCursor ( tkmDisplayAreaRef this ) {
   
   return eResult;
 }
+
+DspA_tErr DspA_SmartCutAtCursor ( tkmDisplayAreaRef this ) {
+  
+  DspA_tErr eResult      = DspA_tErr_NoErr;
+  Volm_tErr eVolume      = Volm_tErr_NoErr;
+  tkm_tVolumeType volume = tkm_tVolumeType_Main;
+  int       curX         = 0;
+  int       curY         = 0;
+  int       curZ         = 0;
+  int       minX         = 0;
+  int       minY         = 0;
+  int       minZ         = 0;
+  int       maxX         = 0;
+  int       maxY         = 0;
+  int       maxZ         = 0;
+  int       dMinX        = 0;
+  int       dMinY        = 0;
+  int       dMinZ        = 0;
+  int       dMaxX        = 0;
+  int       dMaxY        = 0;
+  int       dMaxZ        = 0;
+  int       dX           = 0;
+  int       dY           = 0;
+  int       dZ           = 0;
+
+  /* verify us. */
+  eResult = DspA_Verify ( this );
+  if ( DspA_tErr_NoErr != eResult )
+    goto error;
+  
+  /* Get the right volume based on which one we're viewing at the
+     moment. Also gegt the dimensions from this volume. */
+  if( this->mabDisplayFlags[DspA_tDisplayFlag_AuxVolume] ) {
+    volume = tkm_tVolumeType_Aux;
+    eVolume = Volm_GetDimensions( this->mpAuxVolume, &maxX, &maxY, &maxZ );
+  } else {
+    volume = tkm_tVolumeType_Main;
+    eVolume = Volm_GetDimensions( this->mpVolume, &maxX, &maxY, &maxZ );
+  }
+
+  /* Mins are zero. */
+  minX = minY = minZ = 0;
+
+  /* We actually want the max index, which is one less than the
+     dimension. */
+  maxX = maxX - 1;
+  maxY = maxY - 1;
+  maxZ = maxZ - 1;
+
+  /* Get the cursor location. */
+  curX = xVoxl_GetX( this->mpCursor );
+  curY = xVoxl_GetY( this->mpCursor );
+  curZ = xVoxl_GetZ( this->mpCursor );
+
+  /* Find the distance between the cursor and the min and max
+     indices. */
+  dMinX = abs( minX - curX );
+  dMaxX = abs( maxX - curX );
+  dMinY = abs( minY - curY );
+  dMaxY = abs( maxY - curY );
+  dMinZ = abs( minZ - curZ );
+  dMaxZ = abs( maxZ - curZ );
+
+  /* Now find the lesser of the distance from min or max in a
+     plane. */
+  dX = MIN( dMinX, dMaxX );
+  dY = MIN( dMinY, dMaxY );
+  dZ = MIN( dMinZ, dMaxZ );
+
+  /* Based on our orientation, set the distance that's parallel
+     to the view to a big number so that it will not be the smallest
+     distance. */
+  switch( this->mOrientation ) {
+  case mri_tOrientation_Sagittal:
+    dX = 1000;
+    break;
+  case mri_tOrientation_Horizontal:
+    dY = 1000;
+    break;
+  case mri_tOrientation_Coronal:
+    dZ = 1000;
+    break;
+  default:
+  }
+
+  /* Now see in which dimension we have the smallest distance. Then,
+     in that axis, find if we are closer to the min or max. Then call
+     the set function with the proper region and set those values to
+     0. */
+  if( dX < dY && dX < dZ ) {
+    if( dMinX < dMaxX ) {
+      tkm_SetAnatomicalVolumeRegion( volume, 
+				     minX, curX, minY, maxY, minZ, maxZ, 0 );
+    } else {
+      tkm_SetAnatomicalVolumeRegion( volume, 
+				     curX, maxX, minY, maxY, minZ, maxZ, 0 );
+    }
+  } else if( dY < dX && dY < dZ ) {
+    if( dMinY < dMaxY ) {
+      tkm_SetAnatomicalVolumeRegion( volume, 
+				     minX, maxX, minY, curY, minZ, maxZ, 0 );
+    } else {
+      tkm_SetAnatomicalVolumeRegion( volume,
+				     minX, maxX, curY, maxY, minZ, maxZ, 0 );
+    }
+  } else if( dZ < dX && dZ < dY ) {
+    if( dMinZ < dMaxZ ) {
+      tkm_SetAnatomicalVolumeRegion( volume, 
+				     minX, maxX, minY, maxY, minZ, curZ, 0 );
+    } else {
+      tkm_SetAnatomicalVolumeRegion( volume, 
+				     minX, maxX, minY, maxY, curZ, maxZ, 0 );
+    }
+  } 
+
+  /* Redraw ourselves. */
+  this->mbSliceChanged = TRUE;
+  DspA_Redraw_( this );
+
+  goto cleanup;
+  
+ error:
+  
+  /* print error message */
+  if ( DspA_tErr_NoErr != eResult ) {
+    DebugPrint( ("Error %d in DspA_SmartCutAtCursor: %s\n",
+		 eResult, DspA_GetErrorString(eResult) ) );
+  }
+  
+ cleanup:
+  
+  return eResult;
+}
+
 
 DspA_tErr DspA_Verify ( tkmDisplayAreaRef this ) {
   

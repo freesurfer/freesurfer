@@ -4,9 +4,9 @@
 
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2003/01/14 23:06:52 $
-// Revision       : $Revision: 1.122 $
-char *VERSION = "$Revision: 1.122 $";
+// Revision Date  : $Date: 2003/01/15 19:32:11 $
+// Revision       : $Revision: 1.123 $
+char *VERSION = "$Revision: 1.123 $";
 
 #define TCL
 #define TKMEDIT 
@@ -355,11 +355,20 @@ void FlipVolume       ( mri_tOrientation iAxis );
 void RotateVolume    ( mri_tOrientation iAxis,
 		       float      ifDegrees );
 
-void EditVoxelInRange ( tkm_tVolumeType iVolume,
-			xVoxelRef       ipVoxel, 
-			Volm_tValue     inLow,
-			Volm_tValue     inHigh, 
-			Volm_tValue     inNewValue );
+void EditAnatomicalVolumeInRange ( tkm_tVolumeType iVolume,
+				   xVoxelRef       ipVoxel, 
+				   Volm_tValue     inLow,
+				   Volm_tValue     inHigh, 
+				   Volm_tValue     inNewValue );
+
+void SetAnatomicalVolumeRegion ( tkm_tVolumeType iVolume,
+				 int             iAnaX0,
+				 int             iAnaX1,
+				 int             iAnaY0,
+				 int             iAnaY1,
+				 int             iAnaZ0,
+				 int             iAnaZ1,
+				 float           iNewValue );
 
 int EditAnatomicalVolume ( xVoxelRef iAnaIdx, int inValue );
 int EditAuxAnatomicalVolume ( xVoxelRef iAnaIdx, int inValue );
@@ -6769,11 +6778,11 @@ void RotateVolume ( mri_tOrientation  iAxis,
   DebugExitFunction;
 }
 
-void EditVoxelInRange ( tkm_tVolumeType iVolume,
-			xVoxelRef       ipVoxel, 
-			Volm_tValue     inLow,
-			Volm_tValue     inHigh, 
-			Volm_tValue     inNewValue ) {
+void EditAnatomicalVolumeInRange ( tkm_tVolumeType iVolume,
+				   xVoxelRef       ipVoxel, 
+				   Volm_tValue     inLow,
+				   Volm_tValue     inHigh, 
+				   Volm_tValue     inNewValue ) {
   
   float        value    = 0;
   Volm_tValue newValue = 0;
@@ -6820,6 +6829,68 @@ void EditVoxelInRange ( tkm_tVolumeType iVolume,
   
   /* volume is dirty. */
   SetVolumeDirty( iVolume, TRUE );
+}
+
+void SetAnatomicalVolumeRegion ( tkm_tVolumeType iVolume,
+				 int             iAnaX0,
+				 int             iAnaX1,
+				 int             iAnaY0,
+				 int             iAnaY1,
+				 int             iAnaZ0,
+				 int             iAnaZ1,
+				 float           iNewValue ) {
+  
+  tkm_tErr   eResult = tkm_tErr_NoErr;
+  Volm_tErr  eVolume = Volm_tErr_NoErr;
+  xVoxel     begin;
+  xVoxel     end;
+  xVoxel     cur;
+
+  DebugEnterFunction( ("SetAnatomicalVolumeRegion( iVolume=%d, "
+		       "iAnaX0=%d, iAnaY0=%d, iAnaZ0=%d, "
+		       "iAnaX1=%d, iAnaY1=%d, iAnaZ1=%d )",
+		       iVolume, iAnaX0, iAnaY0, iAnaZ0,
+		       iAnaX1, iAnaY1, iAnaZ1) );
+
+  DebugAssertThrowX( (iVolume >= 0 && iVolume < tkm_knNumVolumeTypes),
+		     eResult, tkm_tErr_InvalidParameter );
+  
+  /* Make sure we got a good range. */
+  xVoxl_Set( &begin, 
+	     MIN( iAnaX0, iAnaX1 ),
+	     MIN( iAnaY0, iAnaY1 ),
+	     MIN( iAnaZ0, iAnaZ1 ) );
+  eVolume = Volm_VerifyIdxInMRIBounds( gAnatomicalVolume[iVolume], &begin );
+  DebugAssertThrowX( (Volm_tErr_NoErr == eVolume), 
+		     eResult, tkm_tErr_InvalidParameter );
+  xVoxl_Set( &end, 
+	     MAX( iAnaX0, iAnaX1 ),
+	     MAX( iAnaY0, iAnaY1 ),
+	     MAX( iAnaZ0, iAnaZ1 ) );
+  eVolume = Volm_VerifyIdxInMRIBounds( gAnatomicalVolume[iVolume], &end );
+  DebugAssertThrowX( (Volm_tErr_NoErr == eVolume), 
+		     eResult, tkm_tErr_InvalidParameter );
+
+  /* step through the volume and set everything to this value. */
+  DebugNote( ("Setting volume values") );
+  xVoxl_Copy( &cur, &begin );
+  while( xVoxl_IncrementWithMinsUntilLimits( &cur, 
+					     xVoxl_GetX(&begin), 
+					     xVoxl_GetY(&begin), 
+					     xVoxl_GetX(&end), 
+					     xVoxl_GetY(&end), 
+					     xVoxl_GetZ(&end) ) ) {
+    Volm_SetValueAtIdx_( gAnatomicalVolume[iVolume], &cur, iNewValue );
+  }
+  
+  /* volume is dirty. */
+  SetVolumeDirty( iVolume, TRUE );
+
+  DebugCatch;
+  DebugCatchError( eResult, tkm_tErr_NoErr, tkm_GetErrorString );
+  EndDebugCatch;
+  
+  DebugExitFunction;
 }
 
 int EditAnatomicalVolume ( xVoxelRef iAnaIdx, int inValue ) {
@@ -9955,14 +10026,31 @@ void tkm_WriteControlFile () {
   WriteControlPointFile( );
 }
 
-void tkm_EditVoxelInRange( tkm_tVolumeType  iVolume, 
-			   xVoxelRef        inVolumeVox, 
-			   tVolumeValue     inLow, 
-			   tVolumeValue     inHigh, 
-			   tVolumeValue     inNewValue ) {
+void tkm_EditAnatomicalVolumeInRange( tkm_tVolumeType  iVolume, 
+				      xVoxelRef        inVolumeVox, 
+				      tVolumeValue     inLow, 
+				      tVolumeValue     inHigh, 
+				      tVolumeValue     inNewValue ) {
   
-  EditVoxelInRange( iVolume, inVolumeVox, inLow, inHigh, inNewValue );
+  EditAnatomicalVolumeInRange( iVolume, inVolumeVox, 
+			       inLow, inHigh, inNewValue );
   
+}
+
+void tkm_SetAnatomicalVolumeRegion ( tkm_tVolumeType iVolume,
+				     int             iAnaX0,
+				     int             iAnaX1,
+				     int             iAnaY0,
+				     int             iAnaY1,
+				     int             iAnaZ0,
+				     int             iAnaZ1,
+				     float           iNewValue ) {
+
+  SetAnatomicalVolumeRegion( iVolume, 
+			     iAnaX0, iAnaX1, 
+			     iAnaY0, iAnaY1, 
+			     iAnaZ0, iAnaZ1, 
+			     iNewValue );
 }
 
 void tkm_SelectVoxel (xVoxelRef inVolumeVox ) {
@@ -10071,15 +10159,6 @@ void tkm_WriteVoxelToEditFile ( xVoxelRef inVolumeVox ) {
 void tkm_ReadCursorFromEditFile () {
   
   GotoSavedCursor();
-}
-
-void tkm_GetValueAtAnaIdx ( tkm_tVolumeType iVolume,
-          xVoxelRef    iAnaIdx,
-          tVolumeValue*    oValue ) {
-  
-  float fValue = 0;
-  Volm_GetValueAtIdx( gAnatomicalVolume[iVolume], iAnaIdx, &fValue );
-  *oValue = (tVolumeValue) fValue;
 }
 
 void tkm_GetAnaDimension  ( tkm_tVolumeType iVolume,
