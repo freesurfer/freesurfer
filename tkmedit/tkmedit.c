@@ -8004,44 +8004,44 @@ int W_UnzoomView WBEGIN
 int W_CtrlPtMode WBEGIN
      ERR ( 1, "Wrong # args: CtrlPtMode" )
      SetMode ( kMode_CtrlPt );
-     WEND;
+     WEND
 
 int W_EditMode WBEGIN
      ERR ( 1, "Wrong # args: EditMode" )
      SetMode ( kMode_Edit );
-     WEND;
+     WEND
 
 int W_SelectMode WBEGIN
      ERR ( 1, "Wrong # args: SelectMode" )
      SetMode ( kMode_Select );
-     WEND;
+     WEND
 
      // for setting brush info
 int W_SetBrushRadius WBEGIN
      ERR ( 2, "Wrong # args: SetBrushRadius radius" )
      SetBrushRadius ( atoi(argv[1]) );
-     WEND;
+     WEND
 
 int W_SetBrushShape WBEGIN
      ERR ( 2, "Wrong # args: SetBrushShape 0=square,1=circular" )
      SetBrushShape ( (Brush_Shape)(atoi(argv[1])) );
-     WEND;
+     WEND
 
 int W_SetBrush3DStatus WBEGIN
      ERR ( 2, "Wrong # args: SetBrush3DStatus status" )
      SetBrush3DStatus ( atoi(argv[1]) );
-     WEND;
+     WEND
 
      // saving and loading labels
 int W_SaveSelectionToLabelFile WBEGIN
      ERR ( 2, "Wrong # args: SaveSelectionToLabelFile label_name" )
      SaveSelectionToLabelFile ( argv[1] );
-     WEND;
+     WEND
 
 int W_LoadSelectionFromLabelFile WBEGIN
      ERR ( 2, "Wrong # args: LoadSelectionFromLabelFile label_name" )
      LoadSelectionFromLabelFile ( argv[1] );
-     WEND;
+     WEND
 
 
 
