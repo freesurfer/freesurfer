@@ -1,10 +1,10 @@
 #!/bin/csh -f
 # fsf-glmfit
 
-set VERSION = '$Id: fsf-glmfit,v 1.1 2004/05/14 04:46:31 greve Exp $';
+set VERSION = '$Id: fsf-glmfit,v 1.2 2004/05/27 01:41:15 greve Exp $';
 set inputargs = ($argv);
-set ystemlist = ();
-set nacfstemlist = ();
+set ystem = ();
+set nacfstem = ();
 set xmatfile = ();
 set outdir = ();
 set synth = 0;
@@ -14,6 +14,7 @@ set synth_amp = 0;
 set monly = 0;
 set MLF = ();
 set keepresid = 0;
+set nskip = 0;
 
 ## If there are no arguments, just print useage and exit ##
 set PrintHelp = 0;
@@ -43,10 +44,11 @@ rm -f $MLF
 tee $MLF > /dev/null <<EOF
 
 tic;
-ystemlist = splitstring('$ystemlist');
+ystem = splitstring('$ystem');
 xmatfile  = '$xmatfile';
-nacfstemlist = splitstring('$nacfstemlist');
+nacfstem = splitstring('$nacfstem');
 outdir = '$outdir';
+nskip = $nskip;
 synth = $synth;
 synth_std = $synth_std;
 synth_ar1 = $synth_ar1;
@@ -55,72 +57,57 @@ synth_amp = $synth_amp;
 tmp = load(xmatfile);
 if(isempty(tmp)) return; end
 X     = tmp.X;
-[nftotx nbeta] = size(X);
+[nfx nbeta] = size(X);
 ntask = tmp.nTask;
 Ctask = eye(ntask,nbeta);
-R = eye(nftotx) - X*inv(X'*X)*X';
+R = eye(nfx) - X*inv(X'*X)*X';
 
 if(synth)
-  nacfsynth = synth_ar1.^[0:nftotx-1]';
+  nacfsynth = synth_ar1.^[0:nfx-1]';
   Snsynth = toeplitz(nacfsynth);
   Srsynth = R*Snsynth*R;
   synth_ar1r = mean(diag(Srsynth,1))/mean(diag(Srsynth));
   fprintf('synth_ar1 = %g, synth_ar1r = %g\n',synth_ar1,synth_ar1r);
 end
 
-ny = size(ystemlist,1);
-nflist = 0;
-for nthy = 1:ny
-  ystem = deblank(ystemlist(nthy,:));
-  [nslices nr nc nf] = fmri_bvoldim(ystem);
-  if(isempty(nslices) | nslices == 0) return; end
-  nflist(nthy) = nf;
-end
-nftot = sum(nflist);
-nfind = cumsum(nflist);
+[nslices nr nc nf] = fmri_bvoldim(ystem);
+if(isempty(nslices) | nslices == 0) return; end
+nf = nf - nskip;
 
-if(nftot ~= nftotx)
-  fprintf('ERROR: nframes = %d, does not equal X (%d)\n',nftot,nftotx);
+if(nf ~= nfx)
+  fprintf('ERROR: nframes = %d, does not equal X (%d)\n',nf,nfx);
   return;
 end
 
 for slice = 1:nslices
   fprintf('slice %d (t=%g)\n',slice,toc)
 
-  yslice = [];
-  ysum = 0;
-  nf1 = 1;
-  for nthy = 1:ny
-    nf2 = nfind(nthy);
-    ystem = deblank(ystemlist(nthy,:));
-    mristruct = fast_ldbhdr(ystem);
-    if(~synth)
-      yrun  = fast_ldbslice(ystem,slice-1);
-    else
-      [nslices nr nc nf] = fmri_bvoldim(ystem);
-      nv = nr*nc;
-      yrun = 0;
-      if(synth_std > 0) 
-        yrun = synth_std*randn(nf,nv);
-        if(abs(synth_ar1) > 0)
-   	  nacfsynth = synth_ar1.^[0:nf-1]';
-          Fsynth = chol(toeplitz(nacfsynth))';
-          yrun = Fsynth*yrun;
-        end
+  mristruct = fast_ldbhdr(ystem);
+  if(~synth)
+    yslice  = fast_ldbslice(ystem,slice-1);
+    if(nskip > 0) yslice = yslice(:,:,nskip+1:end); end
+    yslice = fast_vol2mat(yslice,1);
+  else
+    [nslices nr nc nf] = fmri_bvoldim(ystem);
+    nf = nf - nskip;
+    nv = nr*nc;
+    yslice = 0;
+    if(synth_std > 0) 
+      yslice = synth_std*randn(nf,nv);
+      if(abs(synth_ar1) > 0)
+        nacfsynth = synth_ar1.^[0:nf-1]';
+        Fsynth = chol(toeplitz(nacfsynth))';
+        yslice = Fsynth*yslice;
       end
-      if(abs(synth_amp) > 0)
-        yrun = yrun + (synth_amp*X(nf1:nf2,:)*ones(nbeta,nv));
-      end
-      yrun = fast_mat2vol(yrun,[nr nc],1);
     end
-    ysum = ysum + sum(yrun,3);
-    yrun = fast_vol2mat(yrun,1);
-    yslice = [yslice; yrun];
-    nf1 = nf2 + 1;
-  end
-  ymn = ysum/nftot;
+    if(abs(synth_amp) > 0)
+      yslice = yslice + (synth_amp*X(nf1:nf2,:)*ones(nbeta,nv));
+    end
+  end % synth
+  ymn = mean(yslice,1);
+  ymn = reshape(ymn,[nr nc]);
 
-  if(isempty(nacfstemlist))
+  if(isempty(nacfstem))
     [beta, rvar, vdof, r] = fast_glmfit(yslice,X);
     [F Fsig] = fast_fratio(beta,X,rvar,Ctask);
     ztask = fast_p2z(Fsig);
@@ -135,6 +122,8 @@ for slice = 1:nslices
       Fbetasig = [Fbetasig; Fbetasigtmp];
     end
   end
+
+  racf = fast_acorr(r,'unbiasedcoeff');
 
   beta = fast_mat2vol(beta,[nr nc],1);
   rvar = fast_mat2vol(rvar,[nr nc],1);
@@ -180,41 +169,35 @@ for slice = 1:nslices
   fprintf(fp,'%g\n',vdof);
   fclose(fp);
 
-  nf1 = 1;
-  for nthy = 1:ny
-    nf2 = nfind(nthy);
-    rrun = r(nf1:nf2,:);
-    racf = fast_acorr(rrun,'unbiasedcoeff');
-
-    if(synth)
-      rar1mn = mean(racf(2,:),2);
-      fprintf('  Synth: %d  ar1r = %g, exp=%g\n',nthy,rar1mn,synth_ar1r);
-    end
-
-    rrun = fast_mat2vol(rrun,[nr nc],1);
-    racf = fast_mat2vol(racf,[nr nc],1);
-
-    rstem = sprintf('%s/resid/r%03d',outdir,nthy);
-    fast_svbslice(rrun,rstem,slice-1,'',mristruct);
-
-    racfstem = sprintf('%s/racf/racf%03d',outdir,nthy);
-    fast_svbslice(racf,racfstem,slice-1,'',mristruct);
-
-    nf1 = nf2+1;
+  if(synth)
+    rar1mn = mean(racf(2,:),2);
+    fprintf('  Synth: %d  ar1r = %g, exp=%g\n',nthy,rar1mn,synth_ar1r);
   end
 
-  xmatoutfile = sprintf('%s/X.mat',outdir);
-  save(xmatoutfile,'X','ntask','ystemlist','nacfstemlist','outdir',...
-       'synth','synth_std','synth_ar1','synth_amp');
+  r    = fast_mat2vol(r,[nr nc],1);
+  rstem = sprintf('%s/resid/r',outdir);
+  fast_svbslice(r,rstem,slice-1,'',mristruct);
+
+  racf = fast_mat2vol(racf,[nr nc],1);
+  racfstem = sprintf('%s/racf/racf',outdir);
+  fast_svbslice(racf,racfstem,slice-1,'',mristruct);
 
 end % slice loop
+
+xmatoutfile = sprintf('%s/X.mat',outdir);
+save(xmatoutfile,'X','ntask','ystem','nacfstem','outdir',...
+     'synth','synth_std','synth_ar1','synth_amp');
+
 
 fprintf('fsf-glmfit: matlab: done (t=%g)\n',toc);
 
 EOF
 #----------------------------------------------#
 
-
+if(! $monly) then
+  cat $MLF | matlab -display iconic
+  rm -f $MLF
+endif
 
 
 echo "Started at $StartTime" 
@@ -236,7 +219,7 @@ while( $#argv != 0 )
 
     case "--y":
       if ( $#argv == 0) goto arg1err;
-      set ystemlist = ($ystemlist $argv[1]); shift;
+      set ystem = $argv[1]; shift;
       breaksw
 
     case "--X":
@@ -250,12 +233,17 @@ while( $#argv != 0 )
 
     case "--nacf":
       if ( $#argv == 0) goto arg1err;
-      set nacfstemlist = ($nacfstemlist $argv[1]); shift;
+      set nacfstem = $argv[1]; shift;
       breaksw
 
     case "--o":
       if ( $#argv == 0) goto arg1err;
-      set outdir  = $argv[1]; shift;
+      set outdir = $argv[1]; shift;
+      breaksw
+
+    case "--nskip":
+      if ( $#argv == 0) goto arg1err;
+      set nskip = $argv[1]; shift;
       breaksw
 
     case "--monly":
@@ -306,7 +294,7 @@ goto parse_args_return;
 ############--------------##################
 check_params:
 
-  if($#ystemlist == 0) then
+  if($#ystem == 0) then
     echo "ERROR: no input specified"    
     exit 1;
   endif
@@ -320,12 +308,6 @@ check_params:
     echo "ERROR: no output directory specified"    
     exit 1;
   endif
-
-  if($#nacfstemlist != 0 && $#nacfstemlist != $#ystemlist) then
-    echo "ERROR: if specifying nacf, must be same number as input"
-    exit 1;
-  endif
-
 
   mkdir -p $outdir
   mkdir -p $outdir/resid
@@ -347,10 +329,11 @@ usage_exit:
   echo ""
   echo "USAGE: fsf-glmfit"
   echo ""
-  echo "  --y ystem <--y ystem ...>"
+  echo "  --y ystem "
   echo "  --X X"
-  echo "  --nacf nacf <--nacf nacf>"
+  echo "  --nacf nacf"
   echo "  --o outdir"
+  echo "  --nskip nskip : skip the first nskip time points"
   echo "  --keepresid"
   echo ""
 
