@@ -756,3 +756,19 @@ LTAinverseWorldToWorld(LTA *lta, float x, float y, float z, float *px,
   return(NO_ERROR) ;
 }
 
+int
+LTAtoVoxelCoords(LTA *lta, MRI *mri)
+{
+  MATRIX *m_L ;
+  int    i ;
+
+  for (i = 0 ; i < lta->num_xforms ; i++)
+  {
+    m_L = MRIrasXformToVoxelXform(mri, mri, lta->xforms[i].m_L, NULL) ;
+    MatrixFree(&lta->xforms[0].m_L) ;
+    lta->xforms[0].m_L = m_L ;
+  }
+  return(NO_ERROR) ;
+}
+
+

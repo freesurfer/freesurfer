@@ -44,6 +44,7 @@ MATRIX   *LTAinverseTransformAtPoint(LTA *lta, float x, float y, float z,
                                      MATRIX *m_L) ;
 MATRIX   *LTAworldTransformAtPoint(LTA *lta, float x, float y,float z,
                                    MATRIX *m_L);
+int      LTAtoVoxelCoords(LTA *lta, MRI *mri) ;
 
 #define TRANSFORM_ARRAY_TYPE    0
 #define MORPH_3D_TYPE           1
