@@ -514,8 +514,12 @@ static MRI *mri_read(char *fname, int type, int volume_flag, int start_frame, in
            "(file type recognized but not caught)"));
   }
 
-	if (mri == NULL)
-		return(NULL) ;
+  if (mri == NULL)
+    return(NULL) ;
+
+  // cache the transform
+  mri->i_to_r__ = extract_i_to_r(mri);
+  mri->r_to_i__ = extract_r_to_i(mri);
 
   if(start_frame == -1)
     return(mri);
