@@ -10,7 +10,7 @@
 #include "macros.h"
 #include "proto.h"
 
-static char vcid[] = "$Id: mri_fill.c,v 1.13 1998/03/10 00:24:01 fischl Exp $";
+static char vcid[] = "$Id: mri_fill.c,v 1.14 1998/04/17 18:47:19 fischl Exp $";
 
 /*-------------------------------------------------------------------
                                 CONSTANTS
@@ -122,11 +122,10 @@ static int logging = 0 ;
 static int get_option(int argc, char *argv[]) ;
 static void print_version(void) ;
 static void print_help(void) ;
-void main(int argc, char *argv[]) ;
+int main(int argc, char *argv[]) ;
 
 static int fill_holes(void) ;
 static int fill_brain(int threshold) ;
-void main(int argc, char *argv[]) ;
 static MRI *find_cutting_plane(MRI *mri, Real x_tal, Real y_tal,Real z_tal,
                               int orientation, int *pxv, int *pvy, int *pzv,
                                int seed_set) ;
@@ -140,7 +139,7 @@ static int neighbors_on(MRI *mri, int x0, int y0, int z0) ;
                                 FUNCTIONS
 -------------------------------------------------------------------*/
 
-void
+int
 main(int argc, char *argv[])
 {
   int     x, y, z, xd, yd, zd, xnew, ynew, znew ;
@@ -284,7 +283,8 @@ main(int argc, char *argv[])
                       cc_tal_y,cc_tal_z,&xr,&yr,&zr);
 #endif
   wm_lh_x = nint(xr) ; wm_lh_y = nint(yr) ; wm_lh_z = nint(zr) ;
-  if (!MRIvox(mri_im, wm_lh_x, wm_lh_y, wm_lh_z))
+  if ((MRIvox(mri_im, wm_lh_x, wm_lh_y, wm_lh_z) <= WM_MIN_VAL) ||
+      (neighbors_on(mri_im, wm_lh_x, wm_lh_y, wm_lh_z) < MIN_NEIGHBORS))
   {
     xnew = ynew = znew = 0 ;
     min_dist = 10000.0f ;
@@ -318,6 +318,11 @@ main(int argc, char *argv[])
       fprintf(stderr, "found at (%d, %d, %d)\n", xnew, ynew, znew) ;
   }
 
+  if (Gdiag & DIAG_SHOW)
+    fprintf(stderr, "lh seed point at (%d, %d, %d): %d neighbors on.\n",
+            wm_lh_x, wm_lh_y, wm_lh_z, 
+            neighbors_on(mri_im, wm_lh_x, wm_lh_y, wm_lh_z)) ;
+
   /* find white matter seed point for the right hemisphere */
 #if 0
   MRItalairachToVoxel(mri_im, wm_rh_tal_x,wm_rh_tal_y,wm_rh_tal_z,&xr,&yr,&zr);
@@ -326,7 +331,8 @@ main(int argc, char *argv[])
                       cc_tal_y, cc_tal_z, &xr, &yr, &zr);
 #endif
   wm_rh_x = nint(xr) ; wm_rh_y = nint(yr) ; wm_rh_z = nint(zr) ;
-  if (!MRIvox(mri_im, wm_rh_x, wm_rh_y, wm_rh_z))
+  if ((MRIvox(mri_im, wm_rh_x, wm_rh_y, wm_rh_z) <= WM_MIN_VAL) ||
+      (neighbors_on(mri_im, wm_rh_x, wm_rh_y, wm_rh_z) < MIN_NEIGHBORS))
   {
     xnew = ynew = znew = 0 ;
     min_dist = 10000.0f ;
@@ -361,7 +367,10 @@ main(int argc, char *argv[])
 
   }
 
-
+  if (Gdiag & DIAG_SHOW)
+    fprintf(stderr, "rh seed point at (%d, %d, %d): %d neighbors on.\n",
+            wm_rh_x, wm_rh_y, wm_rh_z, 
+            neighbors_on(mri_im, wm_rh_x, wm_rh_y, wm_rh_z)) ;
 
   /* initialize the fill with the detected seed points */
   MRIvox(mri_fill, wm_rh_x, wm_rh_y, wm_rh_z) = RIGHT_HEMISPHERE_WHITE_MATTER ;
@@ -435,6 +444,7 @@ main(int argc, char *argv[])
   if (!Gdiag)
     fprintf(stderr, "done.\n") ;
   exit(0) ;
+  return(0) ;
 }
 static int 
 fill_brain(int threshold)
