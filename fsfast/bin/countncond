@@ -2,7 +2,7 @@
 # countncond counts the number of non-null conditions in a 
 # list of paradigm files.
 #
-# $Id: countncond,v 1.1 2004/02/17 22:02:17 greve Exp $
+# $Id: countncond,v 1.2 2004/11/10 18:04:35 greve Exp $
 
 if($#argv == 0) then
   echo "USAGE: countncond parfile1 <parfile2 ...>"
@@ -11,22 +11,28 @@ endif
 
 set parfilelist = ($argv);
 
+set partmp = /tmp/par.$$
 set condlist = ();
 foreach par ($parfilelist)
   if(! -e $par) then
     echo "ERROR: cannot find $par"
     exit 1; 
   endif
-
-  set tmp = `cat $par | awk '{if($2 != "") print $2}' | sort | uniq `
+  cp $par $partmp
+  pushd /tmp > /dev/null
+  dos2unix par.$$ >& /dev/null
+  popd > /dev/null
+  set tmp = `cat $partmp | awk '{if($2 != "") print $2}' | sort | uniq `
   set condlist = ($condlist $tmp);
 end
 
-set TF = /tmp/countncond.$$
+set TF = /tmp/countncond
 rm -f $TF
+#echo $TF
 
 foreach c ($condlist)
-  if($c == 0) continue;
+  if("$c" == "0") continue;
+  #echo "--$c--"
   echo $c >> $TF
 end
 
@@ -34,6 +40,7 @@ set ucondlist = `cat $TF | sort | uniq`;
 echo $#ucondlist
 
 rm -f $TF
+rm -f $partmp
 
 
 exit 0;
