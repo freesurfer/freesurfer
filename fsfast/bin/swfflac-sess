@@ -2,7 +2,7 @@
 # swfflac-sess
 #
 
-set VERSION = '$Id: swfflac-sess,v 1.6 2005/01/23 17:16:15 greve Exp $';
+set VERSION = '$Id: swfflac-sess,v 1.7 2005/03/19 00:35:09 greve Exp $';
 
 set cmdargs = ($argv);
 
@@ -32,6 +32,7 @@ set sop = 0;
 set snconly = 0;
 set nbhd_inplane = 0;
 set useffxbeta = 0;
+set assumeiid = 0;
 set gnorm = 0;
 
 if($#argv == 0)  goto usage_exit;
@@ -103,6 +104,7 @@ sncdim = $sncdim;
 snconly = $snconly;
 nbhd_inplane = $nbhd_inplane;
 useffxbeta = $useffxbeta;
+assumeiid = $assumeiid;
 gnorm = $gnorm;
 
 monly = $monly;
@@ -231,7 +233,6 @@ while( $#argv != 0 )
 
     case "-sop":
       set sop = 1;
-      set fdr = 1; # Turns off FDR 
       breaksw
 
     case "-gnorm":
@@ -280,11 +281,16 @@ while( $#argv != 0 )
       if ( $#argv == 0) goto arg1err;
       set sncdim = $argv[1]; shift;
       set usesnc = 1;
-      if($sncdim == 0) set usesnc = 0;
+      if($sncdim == 0)    set usesnc = 0;
+      if($sncdim == "00") set usesnc = 0;
       breaksw
 
     case "-ffxbeta":
       set useffxbeta = 1;
+      breaksw
+
+    case "-iid":
+      set assumeiid = 1;
       breaksw
 
     case "-nolog":
@@ -372,6 +378,7 @@ usage_exit:
   echo "   -nbhd : use local instead of whole-brain"
   echo "   -nbhd-inplane : define neighborhood to be only within plane"
   echo "   -sncdim dim"
+  echo "   -iid : assume noise is locally iid"
   echo "   -fdr fdr"
   echo "   -sop : spill-over protection -- turns off fdr"
   echo "   -gnorm : L2 normalize kernel"
