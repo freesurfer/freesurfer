@@ -445,10 +445,14 @@ MatrixPrint(FILE *fp, MATRIX *mat)
 {
   int  row, col, rows, cols ;
 
-	if (fp == NULL)
-		ErrorReturn(ERROR_BADPARM,(ERROR_BADPARM, "MatrixPrint: fp = NULL!")) ;
-	if (mat == NULL)
-		ErrorReturn(ERROR_BADPARM,(ERROR_BADPARM, "MatrixPrint: mat = NULL!")) ;
+  if (fp == NULL)
+  {
+    fp = stdout ; 
+    ErrorPrintf(ERROR_BADPARM, "MatrixPrint: fp = NULL!") ;
+  }
+  if (mat == NULL)
+    ErrorReturn(ERROR_BADPARM,(ERROR_BADPARM, "MatrixPrint: mat = NULL!")) ;
+
   rows = mat->rows ;
   cols = mat->cols ;
 
