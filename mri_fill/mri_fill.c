@@ -12,7 +12,7 @@
 #include "mrimorph.h"
 #include "timer.h"
 
-static char vcid[] = "$Id: mri_fill.c,v 1.42 2000/07/17 14:14:33 fischl Exp $";
+static char vcid[] = "$Id: mri_fill.c,v 1.43 2000/08/04 16:18:04 fischl Exp $";
 
 /*-------------------------------------------------------------------
                                 CONSTANTS
@@ -1011,7 +1011,7 @@ find_cutting_plane(MRI *mri, Real x_tal, Real y_tal,Real z_tal,int orientation,
   MRI        *mri_slices[MAX_SLICES], *mri_filled[MAX_SLICES], *mri_cut=NULL ;
   Real       dx, dy, dz, x, y, z, aspect,MIN_ASPECT,MAX_ASPECT,
              aspects[MAX_SLICES] ;
-  int        slice, offset, area[MAX_SLICES], min_area, min_slice,xo,yo,
+  int        slice, offset, area[MAX_SLICES], min_area, min_slice,xo,yo,found,
              xv, yv, zv, x0, y0, z0, xi, yi, zi, MIN_AREA, MAX_AREA, done ;
   FILE       *fp = NULL ;   /* for logging pons and cc statistics */
   char       fname[100], *name ;
@@ -1093,11 +1093,16 @@ find_cutting_plane(MRI *mri, Real x_tal, Real y_tal,Real z_tal,int orientation,
     fprintf(stderr, "using seed (%d, %d, %d), TAL = (%2.1f, %2.1f, %2.1f)\n",
             *pxv, *pyv, *pzv, x_tal, y_tal, z_tal) ;
     mri_cut = MRIcopy(mri_filled[0], NULL) ;
-    for (yv = region.y ; yv < region.y+region.dy ; yv++)
+    for (xv = region.x ; xv < region.x+region.dx ; xv++)
     {
-      for (xv = region.x ; xv < region.x+region.dx ; xv++)
+      found = 0 ;
+      for (yv = region.y ; yv < region.y+region.dy ; yv++)
       {
-        MRIvox(mri_cut, xv, yv, 0) = 1 ;
+        if (!found)
+          found  = (MRIvox(mri_cut, xv, yv, 0) > 0) ;
+
+        if (found)
+          MRIvox(mri_cut, xv, yv, 0) = 1 ;
       }
     }
     xv = *pxv ; yv = *pyv ; zv = *pzv ;
@@ -1234,11 +1239,16 @@ find_cutting_plane(MRI *mri, Real x_tal, Real y_tal,Real z_tal,int orientation,
         region.dy = SLICE_SIZE - region.y ;
       
       /*    for (yv = region.y ; yv < region.y+region.dy ; yv++)*/
-      for (yv = region.y ; yv < region.y+region.dy ; yv++)
+      for (xv = region.x ; xv < region.x+region.dx ; xv++)
       {
-        for (xv = region.x ; xv < region.x+region.dx ; xv++)
+        found = 0 ;
+        for (yv = region.y ; yv < region.y+region.dy ; yv++)
         {
-          MRIvox(mri_filled[slice], xv, yv, 0) = 1 ;
+          if (!found)
+            found  = (MRIvox(mri_filled[slice], xv, yv, 0) > 0) ;
+
+          if (found)
+            MRIvox(mri_filled[slice], xv, yv, 0) = 1 ;
         }
       }
       
