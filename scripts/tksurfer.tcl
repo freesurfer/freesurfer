@@ -1,6 +1,6 @@
 #! /usr/bin/tixwish
 
-# $Id: tksurfer.tcl,v 1.44 2003/04/23 22:32:19 kteich Exp $
+# $Id: tksurfer.tcl,v 1.45 2003/05/13 20:05:37 kteich Exp $
 
 package require BLT;
 
@@ -4288,7 +4288,7 @@ proc prompt {} {
 proc LoadSurface { isFileName } {
     global insurf hemi ext
     set insurf [ExpandFileName $isFileName kFileName_Surface]
-    #read_binary_surf
+    read_binary_surf
     UpdateAndRedraw
     set hemi [file rootname [file tail $insurf]]
     set ext [string trimleft [file tail $insurf] $hemi.]
