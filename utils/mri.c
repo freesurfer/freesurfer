@@ -1900,6 +1900,7 @@ MRIworldToVoxel(MRI *mri, Real xw, Real yw, Real zw,
 {
   switch (mri->slice_direction)
   {
+	default:
   case MRI_UNDEFINED:
 #if 1
     {
@@ -1968,12 +1969,14 @@ MRIworldToVoxel(MRI *mri, Real xw, Real yw, Real zw,
     trans_RASToVoxel(xw, yw, zw, pxv, pyv, pzv) ;
 #endif
     break ;
+#if 0
   default:
     ErrorReturn(ERROR_UNSUPPORTED, 
                 (ERROR_UNSUPPORTED,
                  "MRIworldToVoxel: unsupported slice direction %d", 
                  mri->slice_direction)) ;
     break ;
+#endif
   }
   return(NO_ERROR) ;
 }
