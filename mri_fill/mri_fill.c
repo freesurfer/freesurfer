@@ -23,7 +23,7 @@
 #include "transform.h"
 #include "talairachex.h"
 
-static char vcid[] = "$Id: mri_fill.c,v 1.81 2004/07/30 13:39:17 tosa Exp $";
+static char vcid[] = "$Id: mri_fill.c,v 1.82 2004/10/27 20:31:41 fischl Exp $";
 
 
 /*-------------------------------------------------------------------
@@ -289,8 +289,8 @@ main(int argc, char *argv[])
   char    input_fname[STRLEN],out_fname[STRLEN], fname[STRLEN] ;
   Real    xr, yr, zr, dist, min_dist ;
   MRI     *mri_cc, *mri_pons, *mri_lh_fill, *mri_rh_fill, *mri_lh_im, 
-          *mri_rh_im /*, *mri_blur*/, *mri_labels, *mri_tal, *mri_tmp, *mri_tmp2,
-          *mri_saved_labels, *mri_seg ;
+		*mri_rh_im /*, *mri_blur*/, *mri_labels, *mri_tal, *mri_tmp, *mri_tmp2,
+		*mri_saved_labels, *mri_seg ;
   int     x_pons, y_pons, z_pons, x_cc, y_cc, z_cc, xi, yi, zi ;
   MORPH_3D  *m3d ;
   struct timeb  then ;
@@ -309,7 +309,7 @@ main(int argc, char *argv[])
   // Gdiag = 0xFFFFFFFF;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_fill.c,v 1.81 2004/07/30 13:39:17 tosa Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_fill.c,v 1.82 2004/10/27 20:31:41 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -436,10 +436,10 @@ main(int argc, char *argv[])
       // linear_transform is zero based column-major array
       for (row = 1 ; row <= 3 ; row++)
       {
-	*MATRIX_RELT(m_L,row,1) = mri_im->linear_transform->m[0][row-1];
-	*MATRIX_RELT(m_L,row,2) = mri_im->linear_transform->m[1][row-1];
-	*MATRIX_RELT(m_L,row,3) = mri_im->linear_transform->m[2][row-1];
-	*MATRIX_RELT(m_L,row,4) = mri_im->linear_transform->m[3][row-1];
+				*MATRIX_RELT(m_L,row,1) = mri_im->linear_transform->m[0][row-1];
+				*MATRIX_RELT(m_L,row,2) = mri_im->linear_transform->m[1][row-1];
+				*MATRIX_RELT(m_L,row,3) = mri_im->linear_transform->m[2][row-1];
+				*MATRIX_RELT(m_L,row,4) = mri_im->linear_transform->m[3][row-1];
       }
       fprintf(stderr, "talairach transform\n");
       MatrixPrint(stderr, m_L);
@@ -448,18 +448,18 @@ main(int argc, char *argv[])
       getVolGeom(mri_im, src);
       getVolGeom(mri_im, dst);
       if (getenv("NO_AVERAGE305")) // if this is set
-	fprintf(stderr, "INFO: tal dst c_(r,a,s) not modified\n");
+				fprintf(stderr, "INFO: tal dst c_(r,a,s) not modified\n");
       else
       {
-	fprintf(stderr, "INFO: Modifying talairach volume c_(r,a,s) based on average_305\n");
-	dst->valid = 1;
-	// use average_305 value
-	dst->c_r = -0.095;
-	dst->c_a = -16.51;
-	dst->c_s =   9.75;
-	mri_talheader->c_r = dst->c_r;
-	mri_talheader->c_a = dst->c_a;
-	mri_talheader->c_s = dst->c_s;
+				fprintf(stderr, "INFO: Modifying talairach volume c_(r,a,s) based on average_305\n");
+				dst->valid = 1;
+				// use average_305 value
+				dst->c_r = -0.095;
+				dst->c_a = -16.51;
+				dst->c_s =   9.75;
+				mri_talheader->c_r = dst->c_r;
+				mri_talheader->c_a = dst->c_a;
+				mri_talheader->c_s = dst->c_s;
       }
     }
     else
@@ -505,7 +505,7 @@ main(int argc, char *argv[])
     if  (mri_im->linear_transform == 0)
     {
       if (find_cc_seed_with_segmentation(mri_tal, mri_seg, &cc_tal_x, &cc_tal_y, &cc_tal_z) == NO_ERROR)
-	cc_seed_set = 1;
+				cc_seed_set = 1;
     }
   }
   else
@@ -522,11 +522,11 @@ main(int argc, char *argv[])
     printf("Verify whether the seed point is inside the volume first\n");
     MRItalairachToVoxelEx(mri_im, cc_tal_x, cc_tal_y, cc_tal_z, &xv, &yv, &zv, lta);
     if (xv > (mri_im->width-1) || xv < 0 
-	|| yv > (mri_im->height-1) || yv < 0
-	|| zv > (mri_im->depth-1) || zv < 0)
+				|| yv > (mri_im->height-1) || yv < 0
+				|| zv > (mri_im->depth-1) || zv < 0)
     {
       fprintf(stderr, "The seed point (%.2f, %.2f, %.2f) is mapped to a voxel (%.2f, %.2f. %.2f).\n",
-	      cc_tal_x, cc_tal_y, cc_tal_z, xv, yv, zv);
+							cc_tal_x, cc_tal_y, cc_tal_z, xv, yv, zv);
       fprintf(stderr, "Make sure that the seed point is given in talaraich position or use -CV option\n");
       return -1;
     }
@@ -540,9 +540,9 @@ main(int argc, char *argv[])
   {
     // compute the tal position using lta
     MRIvoxelToTalairachEx(mri_im, cc_vol_x, cc_vol_y, cc_vol_z,
-			  &cc_tal_x, &cc_tal_y, &cc_tal_z, lta);
+													&cc_tal_x, &cc_tal_y, &cc_tal_z, lta);
     printf("Calculated talairach cc position (%.2f, %.2f, %.2f)\n",
-	   cc_tal_x, cc_tal_y, cc_tal_z);
+					 cc_tal_x, cc_tal_y, cc_tal_z);
 
     // mark as cc_seed_set by the tal
     cc_seed_set = 1;
@@ -573,10 +573,10 @@ main(int argc, char *argv[])
     if (!mri_cc && mri_seg)
     {
       if (find_cc_seed_with_segmentation(mri_tal, mri_seg, &cc_tal_x, &cc_tal_y, &cc_tal_z) == NO_ERROR)
-	cc_seed_set = 1;
+				cc_seed_set = 1;
       mri_cc = 
-	find_cutting_plane(mri_tal, cc_tal_x, cc_tal_y, cc_tal_z, MRI_SAGITTAL,
-			   &x_cc, &y_cc, &z_cc, cc_seed_set, lta) ;
+				find_cutting_plane(mri_tal, cc_tal_x, cc_tal_y, cc_tal_z, MRI_SAGITTAL,
+													 &x_cc, &y_cc, &z_cc, cc_seed_set, lta) ;
     }
     
     if (!mri_cc)
@@ -599,7 +599,7 @@ main(int argc, char *argv[])
   // find_cutting_plane returns talairach voxel position
   // change them to talairach RAS position
   MRIvoxelToWorld(mri_tal, (Real) x_cc, (Real) y_cc, (Real) z_cc, 
-		  &cc_tal_x, &cc_tal_y, &cc_tal_z);
+									&cc_tal_x, &cc_tal_y, &cc_tal_z);
   printf("talairach cc position changed to (%.2f, %.2f, %.2f)\n", cc_tal_x, cc_tal_y, cc_tal_z);
 
   if (log_fp)
@@ -613,9 +613,9 @@ main(int argc, char *argv[])
   {
     // compute the tal position using lta
     MRIvoxelToTalairachEx(mri_im, pons_vol_x, pons_vol_y, pons_vol_z,
-			  &pons_tal_x, &pons_tal_y, &pons_tal_z, lta);
+													&pons_tal_x, &pons_tal_y, &pons_tal_z, lta);
     printf("Using voxel pons seed point, calculated talairach pons position (%.2f, %.2f, %.2f)\n",
-	   pons_tal_x, pons_tal_y, pons_tal_z);
+					 pons_tal_x, pons_tal_y, pons_tal_z);
 
     // mark as cc_seed_set by the tal
     pons_seed_set = 1;
@@ -626,11 +626,11 @@ main(int argc, char *argv[])
     printf("Verify whether the seed point is inside the volume first\n");
     MRItalairachToVoxelEx(mri_im, pons_tal_x, pons_tal_y, pons_tal_z, &xv, &yv, &zv, lta);
     if (xv > (mri_im->width-1) || xv < 0 
-	|| yv > (mri_im->height-1) || yv < 0
-	|| zv > (mri_im->depth-1) || zv < 0)
+				|| yv > (mri_im->height-1) || yv < 0
+				|| zv > (mri_im->depth-1) || zv < 0)
     {
       fprintf(stderr, "The seed point (%.2f, %.2f, %.2f) is mapped to a voxel (%.2f, %.2f. %.2f).\n",
-	      pons_tal_x, pons_tal_y, pons_tal_z, xv, yv, zv);
+							pons_tal_x, pons_tal_y, pons_tal_z, xv, yv, zv);
       fprintf(stderr, "Make sure that the seed point is given in talaraich position or use -CV option\n");
       return -1;
     }
@@ -759,7 +759,7 @@ main(int argc, char *argv[])
 
   /* make cuts in both image and labels image to avoid introducing a connection
      with one of the labels
-        */
+	*/
   MRImask(mri_im, mri_cc, mri_im, 1, fill_val) ;
   MRImask(mri_im, mri_pons, mri_im, 1, fill_val) ;
   if (mri_saved_labels)
@@ -802,10 +802,10 @@ main(int argc, char *argv[])
     // talairach space is RAS
 
     MRItalairachToVoxelEx(mri_im, cc_tal_x+2*SEED_SEARCH_SIZE,  
-                        cc_tal_y,cc_tal_z,&xr,&yr,&zr, lta);
+													cc_tal_y,cc_tal_z,&xr,&yr,&zr, lta);
 
     printf("search rh wm seed point around talairach space:(%.2f, %.2f, %.2f) SRC: (%.2f, %.2f, %.2f)\n",
-	   cc_tal_x+2*SEED_SEARCH_SIZE, cc_tal_y, cc_tal_z, xr, yr, zr);
+					 cc_tal_x+2*SEED_SEARCH_SIZE, cc_tal_y, cc_tal_z, xr, yr, zr);
 
     wm_rh_x = nint(xr) ; wm_rh_y = nint(yr) ; wm_rh_z = nint(zr) ;
 
@@ -865,13 +865,13 @@ main(int argc, char *argv[])
   {
     /* find white matter seed point for the left hemisphere */
     MRItalairachToVoxelEx(mri_im, cc_tal_x-2*SEED_SEARCH_SIZE,  
-                        cc_tal_y, cc_tal_z, &xr, &yr, &zr, lta);
+													cc_tal_y, cc_tal_z, &xr, &yr, &zr, lta);
     printf("search lh wm seed point around talairach space (%.2f, %.2f, %.2f), SRC: (%.2f, %.2f, %.2f)\n",
-	   cc_tal_x-2*SEED_SEARCH_SIZE, cc_tal_y, cc_tal_z, xr, yr, zr);
+					 cc_tal_x-2*SEED_SEARCH_SIZE, cc_tal_y, cc_tal_z, xr, yr, zr);
 
     wm_lh_x = nint(xr) ; wm_lh_y = nint(yr) ; wm_lh_z = nint(zr) ;
     if ((MRIvox(mri_im, wm_lh_x, wm_lh_y, wm_lh_z) <= WM_MIN_VAL) ||
-      (neighbors_on(mri_im, wm_lh_x, wm_lh_y, wm_lh_z) < MIN_NEIGHBORS))
+				(neighbors_on(mri_im, wm_lh_x, wm_lh_y, wm_lh_z) < MIN_NEIGHBORS))
     {
       found = xnew = ynew = znew = 0 ;
       min_dist = 10000.0f/voxsize ;
@@ -919,10 +919,10 @@ main(int argc, char *argv[])
   if (segmentation_fname)
   {
     MRIeraseTalairachPlaneNewEx(mri_seg, mri_cc, MRI_SAGITTAL, x_cc, y_cc, z_cc, 
-				mri_seg->width, fill_val, lta);
+																mri_seg->width, fill_val, lta);
     edit_segmentation(mri_im, mri_seg) ;
     MRIeraseTalairachPlaneNewEx(mri_im, mri_cc, MRI_SAGITTAL, x_cc, y_cc, z_cc, 
-				mri_seg->width, fill_val, lta);
+																mri_seg->width, fill_val, lta);
   }
 
   MRIfree(&mri_cc) ;
@@ -960,9 +960,9 @@ main(int argc, char *argv[])
 
   fprintf(stderr, "combining hemispheres...\n") ;
   MRIvoxelToTalairachEx(mri_lh_fill, (Real)wm_lh_x, (Real)wm_lh_y, (Real)wm_lh_z,
-                      &xr, &yr, &zr, lta) ;
+												&xr, &yr, &zr, lta) ;
   MRIvoxelToTalairachEx(mri_rh_fill, (Real)wm_rh_x, (Real)wm_rh_y, (Real)wm_rh_z,
-                      &xr, &yr, &zr, lta) ;
+												&xr, &yr, &zr, lta) ;
   
   mri_fill = MRIcombineHemispheres(mri_lh_fill, mri_rh_fill, NULL, 
                                    wm_lh_x, wm_lh_y, wm_lh_z,
@@ -1022,7 +1022,7 @@ main(int argc, char *argv[])
     MRItalairachToVoxelEx(mri_fill,cc_tal_x-10, cc_tal_y, cc_tal_z, &xr,&yr,&zr, lta);
     mri_ventricle = 
       MRIfillVentricle(mri_fill, mri_p_ventricle, mri_T1, NULL, 90.0f, 
-                     lh_fill_val, nint(xr), mri_fill->width-1) ;
+											 lh_fill_val, nint(xr), mri_fill->width-1) ;
     if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
       MRIwrite(mri_ventricle, "left_ventricle.mgh") ;
     MRIdilate(mri_ventricle, mri_ventricle) ;
@@ -1083,13 +1083,13 @@ main(int argc, char *argv[])
     if ((badRH > 10000) || (badLH > 10000))
     {
       if (lta)
-	LTAfree(&lta);
+				LTAfree(&lta);
       MRIfree(&mri_fill);
       MRIfree(&mri_talheader);
 
       fprintf(stderr, "badRH = %d/%d, badLH=%d/%d\n", badRH, totRH, badLH, totLH);
       errno = 0; // otherwise it will print standard error
-      ErrorExit(ERROR_BADPARM, "Please check filled volume.  Cerebellum may be included.\n");
+      ErrorPrintf(ERROR_BADPARM, "Please check filled volume.  Cerebellum may be included.\n");
     }
   }
   if (lta)
