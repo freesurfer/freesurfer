@@ -6943,7 +6943,51 @@ MRImeanFrame(MRI *mri, int frame)
 
 #define N_HIST_BINS 1000
 
-MRI *MRIchangeType(MRI *src, int dest_type, float f_low, float f_high, int no_scale_option_flag)
+/*--------------------------------------------------------------
+  MRISeqchangeType() - changes the data type for a 3D or 4D volume.
+  This simply changes the volume dimensions so that it appears to be a
+  3D volume, then calls MRIchangeType(), and then resets the
+  dimensions to their original values. The values of the volume can be
+  rescaled between f_low and f_high.
+  ------------------------------------------------------------*/
+MRI *MRISeqchangeType(MRI *vol, int dest_type, float f_low, 
+          float f_high, int no_scale_option_flag)
+{
+  int nslices, nframes;
+  MRI *mri;
+
+  /* Change vol dimensions to make it look like a single frame */
+  nslices = vol->depth;
+  nframes = vol->nframes;
+  vol->depth = nslices*nframes;
+  vol->nframes = 1;
+
+  /* Change the type */
+  mri = MRIchangeType(vol,dest_type,f_low,f_high,no_scale_option_flag);
+
+  /* Change vol dimensions back to original */
+  vol->depth = nslices;
+  vol->nframes = nframes;
+
+  /* Check for error */
+  if(mri == NULL) {
+    fprintf(stderr,"ERROR: MRISeqchangeType: MRIchangeType\n");
+    return(NULL);
+  }
+
+  /* Change mri dimensions back to original */
+  mri->depth = nslices;
+  mri->nframes = nframes;
+
+  return(mri);
+}
+/*-----------------------------------------------------------
+  MRIchangeType() - changes the data type of a 3D MRI volume,
+  with optional rescaling. Use MRISeqchangeType() for 3D or
+  4D volumes.
+  ---------------------------------------------------------*/
+MRI *MRIchangeType(MRI *src, int dest_type, float f_low, 
+       float f_high, int no_scale_option_flag)
 {
 
   MRI *dest = NULL;
@@ -7167,6 +7211,7 @@ MRI *MRIchangeType(MRI *src, int dest_type, float f_low, float f_high, int no_sc
 
 } /* end MRIchangeType() */
 
+/*-----------------------------------------------------*/
 MATRIX *MRIgetResampleMatrix(MRI *src, MRI *template_vol)
 {
 
