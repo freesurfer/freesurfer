@@ -685,7 +685,8 @@ edit_hippocampus(MRI *mri_in, MRI *mri_labeled, GCA *gca, LTA *lta,
                  MRI *mri_fixed)
 {
   int   width, height, depth, x, y, z, label, nchanged, dleft, 
-        dright, dpos, dant, dup, ddown, dup_hippo, ddown_gray, i, left ;
+        dright, dpos, dant, dup, ddown, dup_hippo, ddown_gray, i, left,
+        ddown_ventricle ;
   MRI   *mri_tmp ;
   float phippo, pwm ;
 
@@ -699,7 +700,7 @@ edit_hippocampus(MRI *mri_in, MRI *mri_labeled, GCA *gca, LTA *lta,
     {
       for (x = 0 ; x < width ; x++)
       {
-        if (x == 96 && y == 123 && z == 132)  /* wm should be pallidum */
+        if (x == Ggca_x && y == Ggca_y && z == Ggca_z)
           DiagBreak() ;
         label = MRIvox(mri_labeled, x, y, z) ;
 
@@ -779,7 +780,7 @@ edit_hippocampus(MRI *mri_in, MRI *mri_labeled, GCA *gca, LTA *lta,
       {
         for (x = 0 ; x < width ; x++)
         {
-          if (x == 153 && y == 123 && z == 121)  
+          if (x == Ggca_x && y == Ggca_y && z == Ggca_z)  
             DiagBreak() ;
           label = MRIvox(mri_tmp, x, y, z) ;
 
@@ -793,10 +794,19 @@ edit_hippocampus(MRI *mri_in, MRI *mri_labeled, GCA *gca, LTA *lta,
                                     Left_Cerebral_White_Matter,x,y,z,0,-1,0,3);
             
             ddown_gray = distance_to_label(mri_tmp,Left_Cerebral_Cortex,
-                                           x,y,z,0,1,0,2);
+                                           x,y,z,0,1,0,3);
             dup_hippo = distance_to_label(mri_tmp,
                                           Left_Hippocampus,x,y,z,0,-1,0,3);
             
+            ddown_ventricle = 
+              MIN(distance_to_label(mri_tmp, Left_Lateral_Ventricle,
+                                    x,y,z,0,1,0,3),
+                  distance_to_label(mri_tmp, Left_Inf_Lat_Vent,
+                                    x,y,z,0,1,0,3)) ;
+
+            if (ddown_ventricle < ddown_gray)
+              continue ;  /* gray should never be superior to ventricle */
+
             /* closer to superior white matter than hp and gray below */
             if (((dup < dup_hippo) && ddown > ddown_gray))
             {
@@ -812,10 +822,19 @@ edit_hippocampus(MRI *mri_in, MRI *mri_labeled, GCA *gca, LTA *lta,
             
             ddown_gray = distance_to_label(mri_tmp,
                                            Right_Cerebral_Cortex,
-                                           x,y,z,0,1,0,2);
+                                           x,y,z,0,1,0,3);
             dup_hippo = distance_to_label(mri_tmp,
                                           Right_Hippocampus,x,y,z,0,-1,0,3);
             
+            ddown_ventricle = 
+              MIN(distance_to_label(mri_tmp, Right_Lateral_Ventricle,
+                                    x,y,z,0,1,0,3),
+                  distance_to_label(mri_tmp, Right_Inf_Lat_Vent,
+                                    x,y,z,0,1,0,3)) ;
+
+            if (ddown_ventricle < ddown_gray)
+              continue ;  /* gray should never be superior to ventricle */
+
             /* closer to superior white matter than hp and gray below */
             if (((dup < dup_hippo) && ddown > ddown_gray))
             {
@@ -840,7 +859,7 @@ edit_hippocampus(MRI *mri_in, MRI *mri_labeled, GCA *gca, LTA *lta,
       {
         for (x = 0 ; x < width ; x++)
         {
-          if (x == 153 && y == 118 && z == 115)  
+          if (x == Ggca_x && y == Ggca_y && z == Ggca_z)
             DiagBreak() ;
           label = MRIvox(mri_tmp, x, y, z) ;
 
