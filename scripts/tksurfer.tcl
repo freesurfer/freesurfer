@@ -3171,6 +3171,17 @@ proc save_rgb_named { isName } {
     save_rgb_named_orig $rel_rgbname
 }
 
+# RKT - this can be called by an outside script to make tksurfer look
+# at the rgb variable and update the variable in the RGB filename
+# widget. i.e. if the user sets teh rgb env var to a file name and
+# readenv.tcl is called, call this function to make tksurfer change
+# its RGB filename to the value read in from the env.
+proc update_rgb_filename {} {
+    global rgb
+    setfile rgb $rgb
+    puts "new rgb = $rgb"
+}
+
 # ======================================================================= MISC 
 
 proc prompt {} {
