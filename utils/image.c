@@ -3532,19 +3532,28 @@ ImageAbs(IMAGE *inImage, IMAGE *outImage)
            Description:
 ----------------------------------------------------------------------*/
 int        
-ImageSobel(IMAGE *inImage, IMAGE *gradImage, 
+ImageSobel(IMAGE *Isrc, IMAGE *gradImage, 
                      IMAGE *dxImage, IMAGE *dyImage)
 {
   static IMAGE *xImage = NULL, *yImage = NULL ;
+  IMAGE        *Iin ;
   int          x, y, rows, cols ;
   float        *xpix, *ypix, *gradpix = NULL, xval, yval, gval ;
 
-  rows = inImage->rows ;
-  cols = inImage->cols ;
+  if (Isrc->pixel_format != PFFLOAT)
+  {
+    Iin = ImageAlloc(Isrc->rows, Isrc->cols, PFFLOAT, 1) ;
+    ImageCopy(Isrc, Iin) ;
+  }
+  else
+    Iin = Isrc ;
+
+  rows = Isrc->rows ;
+  cols = Isrc->cols ;
 
   if (!dxImage)
   {
-    if (!ImageCheckSize(inImage, xImage, 0, 0, 0))
+    if (!ImageCheckSize(Isrc, xImage, 0, 0, 0))
     {
       if (xImage)
         ImageFree(&xImage) ;
@@ -3558,7 +3567,7 @@ ImageSobel(IMAGE *inImage, IMAGE *gradImage,
 
   if (!dyImage)
   {
-    if (!ImageCheckSize(inImage, yImage, 0, 0, 0))
+    if (!ImageCheckSize(Isrc, yImage, 0, 0, 0))
     {
       if (yImage)
         ImageFree(&yImage) ;
@@ -3573,8 +3582,13 @@ ImageSobel(IMAGE *inImage, IMAGE *gradImage,
   
   ImageSetSize(dxImage, rows, cols) ;
   ImageSetSize(dyImage, rows, cols) ;
-  ImageConvolve3x3(inImage, sx, dxImage) ;
-  ImageConvolve3x3(inImage, sy, dyImage) ;
+#if 0
+  ImageConvolve3x3(Isrc, sx, dxImage) ;
+  ImageConvolve3x3(Isrc, sy, dyImage) ;
+#else
+  ImageSobelX(Isrc, dxImage) ;
+  ImageSobelY(Isrc, dyImage) ;
+#endif
   if (gradImage)
   {
     ImageSetSize(gradImage, rows, cols) ;
@@ -3594,6 +3608,9 @@ ImageSobel(IMAGE *inImage, IMAGE *gradImage,
     }
   }
 
+  if (Iin != Isrc)
+    ImageFree(&Iin) ;
+
   return(0) ;
 }
 /*----------------------------------------------------------------------
@@ -3601,21 +3618,95 @@ ImageSobel(IMAGE *inImage, IMAGE *gradImage,
 
            Description:
 ----------------------------------------------------------------------*/
+/*
+   -0.25    0    0.25
+   -0.50    0    0.50
+   -0.25    0    0.25
+*/
 int
-ImageSobelX(IMAGE *inImage, IMAGE *xImage)
+ImageSobelX(IMAGE *Isrc, IMAGE *xImage)
 {
-  ImageConvolve3x3(inImage, sx, xImage) ;
+  register float *tl_pix, *ml_pix, *bl_pix, *tr_pix, *mr_pix, *br_pix, *outPtr;
+  int     rows, cols, row, col ;
+
+  rows = Isrc->rows ;
+  cols = Isrc->cols ;
+  outPtr = IMAGEFpix(xImage, 1, 1) ;
+  tl_pix = IMAGEFpix(Isrc, 0, 0) ;
+  ml_pix = IMAGEFpix(Isrc, 0, 1) ;
+  bl_pix = IMAGEFpix(Isrc, 0, 2) ;
+  tr_pix = IMAGEFpix(Isrc, 2, 0) ;
+  mr_pix = IMAGEFpix(Isrc, 2, 1) ;
+  br_pix = IMAGEFpix(Isrc, 2, 2) ;
+
+  /* don't apply sobel to outer ring to pixels to avoid border effects */
+  rows-- ;
+  cols-- ;
+  for (row = 1 ; row < rows ; row++)
+  {
+    for (col = 1 ; col < cols ; col++)
+    {
+      *outPtr++ =
+        -.25f * *tl_pix++ - .5f * *ml_pix++ - .25f * *bl_pix++ +
+         .25f * *tr_pix++ + .5f * *mr_pix++ + .25f * *br_pix++ ;
+    }
+    outPtr += 2 ;
+    tl_pix += 2 ;
+    ml_pix += 2 ;
+    bl_pix += 2 ;
+    tr_pix += 2 ;
+    mr_pix += 2 ;
+    br_pix += 2 ;
+  }
+
   return(0) ;
 }
+/*
+   -0.25   -.50   -0.25
+    0       0      0
+    0.25    .50    0.25
+*/
 /*----------------------------------------------------------------------
             Parameters:
 
            Description:
 ----------------------------------------------------------------------*/
 int
-ImageSobelY(IMAGE *inImage, IMAGE *yImage)
+ImageSobelY(IMAGE *Isrc, IMAGE *yImage)
 {
-  ImageConvolve3x3(inImage, sy, yImage) ;
+  register float *tl_pix, *tm_pix,*tr_pix, *bl_pix, *bm_pix, *br_pix, *outPtr;
+  int     rows, cols, row, col ;
+
+  rows = Isrc->rows ;
+  cols = Isrc->cols ;
+  outPtr = IMAGEFpix(yImage, 1, 1) ;
+  tl_pix = IMAGEFpix(Isrc, 0, 0) ;
+  tm_pix = IMAGEFpix(Isrc, 1, 0) ;
+  tr_pix = IMAGEFpix(Isrc, 2, 0) ;
+  bl_pix = IMAGEFpix(Isrc, 0, 2) ;
+  bm_pix = IMAGEFpix(Isrc, 1, 2) ;
+  br_pix = IMAGEFpix(Isrc, 2, 2) ;
+
+  /* don't apply sobel to outer ring to pixels to avoid border effects */
+  rows-- ;
+  cols-- ;
+  for (row = 1 ; row < rows ; row++)
+  {
+    for (col = 1 ; col < cols ; col++)
+    {
+      *outPtr++ =
+        -.25f * *tl_pix++ - .5f * *tm_pix++ - .25f * *tr_pix++ +
+         .25f * *bl_pix++ + .5f * *bm_pix++ + .25f * *br_pix++ ;
+    }
+    outPtr += 2 ;
+    tl_pix += 2 ;
+    tm_pix += 2 ;
+    tr_pix += 2 ;
+    bl_pix += 2 ;
+    bm_pix += 2 ;
+    br_pix += 2 ;
+  }
+
   return(0) ;
 }
 /*----------------------------------------------------------------------
@@ -3624,12 +3715,12 @@ ImageSobelY(IMAGE *inImage, IMAGE *yImage)
            Description:
 ----------------------------------------------------------------------*/
 IMAGE *
-ImageXDerivative(IMAGE *inImage, IMAGE *xImage)
+ImageXDerivative(IMAGE *Isrc, IMAGE *xImage)
 {
   if (!xImage)
-    xImage = ImageAlloc(inImage->rows, inImage->cols, PFFLOAT, 1) ;
+    xImage = ImageAlloc(Isrc->rows, Isrc->cols, PFFLOAT, 1) ;
 
-  ImageConvolve3x3(inImage, sx, xImage) ;
+  ImageConvolve3x3(Isrc, sx, xImage) ;
 
   return(xImage) ;
 }
@@ -3639,12 +3730,12 @@ ImageXDerivative(IMAGE *inImage, IMAGE *xImage)
            Description:
 ----------------------------------------------------------------------*/
 IMAGE *
-ImageYDerivative(IMAGE *inImage, IMAGE *yImage)
+ImageYDerivative(IMAGE *Isrc, IMAGE *yImage)
 {
   if (!yImage)
-    yImage = ImageAlloc(inImage->rows, inImage->cols, PFFLOAT, 1) ;
+    yImage = ImageAlloc(Isrc->rows, Isrc->cols, PFFLOAT, 1) ;
 
-  ImageConvolve3x3(inImage, sy, yImage) ;
+  ImageConvolve3x3(Isrc, sy, yImage) ;
 
   return(yImage) ;
 }
@@ -3654,17 +3745,17 @@ ImageYDerivative(IMAGE *inImage, IMAGE *yImage)
            Description:
 ----------------------------------------------------------------------*/
 int
-ImageConvolve3x3(IMAGE *inImage, float kernel[], IMAGE *outImage)
+ImageConvolve3x3(IMAGE *Isrc, float kernel[], IMAGE *outImage)
 {
   int     rows, cols, x, y, xk, yk, k, xi, yi, frame ;
   float   *fkpix, sum, *fopix, *fipix ;
 
-  rows = inImage->rows ;
-  cols = inImage->cols ;
+  rows = Isrc->rows ;
+  cols = Isrc->cols ;
 
-  for (frame = 0 ; frame < inImage->num_frame ; frame++)
+  for (frame = 0 ; frame < Isrc->num_frame ; frame++)
   {
-    switch (inImage->pixel_format)
+    switch (Isrc->pixel_format)
     {
     case PFFLOAT:
       fopix = (float *)IMAGEFseq_pix(outImage, 0, 0, frame) ;
@@ -3688,7 +3779,7 @@ ImageConvolve3x3(IMAGE *inImage, float kernel[], IMAGE *outImage)
                 xi = 0 ;
               else if (xi >= cols)
                 xi = cols-1 ;
-              fipix = IMAGEFseq_pix(inImage, xi, yi, frame) ;
+              fipix = IMAGEFseq_pix(Isrc, xi, yi, frame) ;
               sum = sum + *fipix * *fkpix ;
             }
           }
@@ -3698,7 +3789,7 @@ ImageConvolve3x3(IMAGE *inImage, float kernel[], IMAGE *outImage)
       break ;
     default:
       fprintf(stderr, "ImageConvolve3x3: unsupported pixel format %d\n",
-              inImage->pixel_format) ;
+              Isrc->pixel_format) ;
       exit(-1);
       break ;
     }
@@ -3742,18 +3833,18 @@ static float weights[] =
 #define LAPLACIAN_POINTS   (sizeof(xoffsets) / sizeof(xoffsets[0]))
 
 IMAGE  *
-ImageLaplacian(IMAGE *inImage, IMAGE *outImage)
+ImageLaplacian(IMAGE *Isrc, IMAGE *outImage)
 {
   int     rows, cols, x, y, xi, yi, i ;
   float   *fkpix, sum, *fopix, fival ;
 
-  rows = inImage->rows ;
+  rows = Isrc->rows ;
   cols = outImage->cols ;
 
   if (!outImage)
     outImage = ImageAlloc(rows, cols, 1, PFFLOAT) ;
 
-  switch (inImage->pixel_format)
+  switch (Isrc->pixel_format)
   {
   case PFFLOAT:
     fopix = (float *)IMAGEFpix(outImage, 0, 0) ;
@@ -3775,7 +3866,7 @@ ImageLaplacian(IMAGE *inImage, IMAGE *outImage)
             xi = 0 ;
           else if (xi >= cols)
             xi = cols-1 ;
-          fival = *IMAGEFpix(inImage, xi, yi) ;
+          fival = *IMAGEFpix(Isrc, xi, yi) ;
           sum += fival * *fkpix++ ;
         }
         *fopix = sum ;
@@ -3784,7 +3875,7 @@ ImageLaplacian(IMAGE *inImage, IMAGE *outImage)
     break ;
   default:
     fprintf(stderr, "ImageLaplacian: unsupported pixel format %d\n",
-            inImage->pixel_format) ;
+            Isrc->pixel_format) ;
     exit(-1);
     break ;
   }
@@ -3797,27 +3888,27 @@ ImageLaplacian(IMAGE *inImage, IMAGE *outImage)
            Description:
 ----------------------------------------------------------------------*/
 IMAGE *
-ImageConvolveGaussian(IMAGE *inImage,IMAGE *gImage, IMAGE *outImage,
+ImageConvolveGaussian(IMAGE *Isrc,IMAGE *gImage, IMAGE *outImage,
                      int dst_frameno)
 {
   static IMAGE     *tmpImage = NULL ;
   int              ksize ;
   float            *kernel, *buf ;
 
-  if (!ImageCheckSize(inImage, tmpImage, 0, 0, 0))
+  if (!ImageCheckSize(Isrc, tmpImage, 0, 0, 0))
   {
     if (tmpImage)
       ImageFree(&tmpImage) ;
-    tmpImage = ImageAlloc(inImage->rows, inImage->cols, PFFLOAT, 1) ;
+    tmpImage = ImageAlloc(Isrc->rows, Isrc->cols, PFFLOAT, 1) ;
   }
   if (!outImage)
-    outImage = ImageAlloc(inImage->rows, inImage->cols, PFFLOAT, 1) ;
+    outImage = ImageAlloc(Isrc->rows, Isrc->cols, PFFLOAT, 1) ;
 
-  ImageSetSize(tmpImage, inImage->rows, inImage->cols) ;
+  ImageSetSize(tmpImage, Isrc->rows, Isrc->cols) ;
 
   kernel = IMAGEFpix(gImage, 0, 0) ;
   ksize = gImage->cols ;
-  ImageConvolve1d(inImage, tmpImage, kernel, ksize, IMAGE_VERTICAL) ;
+  ImageConvolve1d(Isrc, tmpImage, kernel, ksize, IMAGE_VERTICAL) ;
 
   buf = IMAGEFpix(outImage, 0, 0) ;
   outImage->image = (byte *)IMAGEFseq_pix(outImage, 0, 0, dst_frameno) ;
@@ -3908,14 +3999,14 @@ static float kernel[KERNEL_SIZE]  =
 } ;
 
 IMAGE *
-ImageReduce(IMAGE *inImage, IMAGE *outImage)
+ImageReduce(IMAGE *Isrc, IMAGE *outImage)
 {
   int  rows, cols ;
   static IMAGE *tmpImage = NULL ;
 
-  rows = inImage->rows ;
-  cols = inImage->cols ;
-  if (!ImageCheckSize(inImage, tmpImage, rows, cols, 0) && tmpImage)
+  rows = Isrc->rows ;
+  cols = Isrc->cols ;
+  if (!ImageCheckSize(Isrc, tmpImage, rows, cols, 0) && tmpImage)
   {
     ImageFree(&tmpImage) ;
     tmpImage = NULL ;
@@ -3940,13 +4031,13 @@ ImageReduce(IMAGE *inImage, IMAGE *outImage)
     outImage = ImageAlloc(rows, cols, PFFLOAT, 1) ;
   else
   {
-    if (!ImageCheckSize(inImage, outImage, rows, cols, 0))
+    if (!ImageCheckSize(Isrc, outImage, rows, cols, 0))
       ErrorReturn(outImage, (ERROR_NO_MEMORY,
                              "ImageReduce: output image is too small\n")) ;
   }
 
   /* blur vertically */
-  ImageConvolve1d(inImage, tmpImage, kernel, KERNEL_SIZE, IMAGE_VERTICAL) ;
+  ImageConvolve1d(Isrc, tmpImage, kernel, KERNEL_SIZE, IMAGE_VERTICAL) ;
   ImageReduce1d(tmpImage, outImage, kernel, KERNEL_SIZE, IMAGE_HORIZONTAL) ;
 #if 0
 {
@@ -4171,14 +4262,14 @@ ImageGaussian1d(float sigma, int max_len)
            Description:
 ----------------------------------------------------------------------*/
 int
-ImageExtractInto(IMAGE *inImage, IMAGE *outImage, int x0, int y0, 
+ImageExtractInto(IMAGE *Isrc, IMAGE *outImage, int x0, int y0, 
                      int dx, int dy, int xdst, int ydst)
 {
   UCHAR    *csrc, *cdst ;
   float    *fsrc, *fdst ;
   int      xin, yin, yout, x1, y1, yend, xend ;
 
-  if (inImage->pixel_format != outImage->pixel_format)
+  if (Isrc->pixel_format != outImage->pixel_format)
   {
     fprintf(stderr, "ImageExtractInto: out format must match input format\n");
     return(-1) ;
@@ -4186,17 +4277,17 @@ ImageExtractInto(IMAGE *inImage, IMAGE *outImage, int x0, int y0,
 
   x1 = x0 + dx ;
   y1 = y0 + dy ;
-  xend = inImage->cols-1 ;
-  yend = inImage->rows-1 ;
+  xend = Isrc->cols-1 ;
+  yend = Isrc->rows-1 ;
 
-  switch (inImage->pixel_format)
+  switch (Isrc->pixel_format)
   {
   case PFBYTE:
     yout = ydst ;
     cdst = IMAGEpix(outImage, xdst, ydst) ;
     for (yin = y0 ; yin < y1 ; yin++, yout++)
     {
-      csrc = IMAGEpix(inImage, x0, yin) ;
+      csrc = IMAGEpix(Isrc, x0, yin) ;
       cdst = IMAGEpix(outImage, xdst, yout) ;
       for (xin = x0 ; xin < x1 ; xin++, cdst++, csrc++)
       {
@@ -4212,7 +4303,7 @@ ImageExtractInto(IMAGE *inImage, IMAGE *outImage, int x0, int y0,
     fdst = IMAGEFpix(outImage, xdst, ydst) ;
     for (yin = y0 ; yin < y1 ; yin++, yout++)
     {
-      fsrc = IMAGEFpix(inImage, x0, yin) ;
+      fsrc = IMAGEFpix(Isrc, x0, yin) ;
       fdst = IMAGEFpix(outImage, xdst, yout) ;
       for (xin = x0 ; xin < x1 ; xin++, fdst++, fsrc++)
       {
@@ -4225,7 +4316,7 @@ ImageExtractInto(IMAGE *inImage, IMAGE *outImage, int x0, int y0,
     break ;
   default:
     fprintf(stderr,"ImageExtractInto: unsupported image format %d\n", 
-            inImage->pixel_format) ;
+            Isrc->pixel_format) ;
     return(-1) ;
   }
 
@@ -4237,7 +4328,7 @@ ImageExtractInto(IMAGE *inImage, IMAGE *outImage, int x0, int y0,
            Description:
 ----------------------------------------------------------------------*/
 int
-ImageExtract(IMAGE *inImage, IMAGE *outImage, int x0, int y0,int dx,
+ImageExtract(IMAGE *Isrc, IMAGE *outImage, int x0, int y0,int dx,
             int dy)
 {
   UCHAR    *csrc, *cdst ;
@@ -4245,17 +4336,17 @@ ImageExtract(IMAGE *inImage, IMAGE *outImage, int x0, int y0,int dx,
 
   x1 = x0 + dx ;
   y1 = y0 + dy ;
-  xend = inImage->cols-1 ;
-  yend = inImage->rows-1 ;
+  xend = Isrc->cols-1 ;
+  yend = Isrc->rows-1 ;
 
-  switch (inImage->pixel_format)
+  switch (Isrc->pixel_format)
   {
   case PFBYTE:
     yout = xout = 0 ;
     cdst = IMAGEpix(outImage, 0, 0) ;
     for (yin = y0 ; yin < y1 ; yin++, yout++)
     {
-      csrc = IMAGEpix(inImage, x0, yin) ;
+      csrc = IMAGEpix(Isrc, x0, yin) ;
       cdst = IMAGEpix(outImage, 0, yout) ;
       for (xout = 0, xin = x0 ; xin < x1 ; xin++, xout++, cdst++, csrc++)
       {
@@ -4269,7 +4360,7 @@ ImageExtract(IMAGE *inImage, IMAGE *outImage, int x0, int y0,int dx,
 
   default:
     fprintf(stderr,"ImageExtract: unsupported image format %d\n", 
-            inImage->pixel_format) ;
+            Isrc->pixel_format) ;
     return(-1) ;
   }
 
@@ -4281,27 +4372,27 @@ ImageExtract(IMAGE *inImage, IMAGE *outImage, int x0, int y0,int dx,
            Description:
 ----------------------------------------------------------------------*/
 IMAGE *
-ImageZeroMean(IMAGE *inImage, IMAGE *outImage)
+ImageZeroMean(IMAGE *Isrc, IMAGE *outImage)
 {
   int    frameno, rows, cols, row, col, pix_per_frame, nframes ;
   float  ftotal, fmean, *fSrcPtr, *fDstPtr, *fSrcBase, *fDstBase ;
 
-  if (inImage->pixel_format != PFFLOAT || 
+  if (Isrc->pixel_format != PFFLOAT || 
       (outImage && outImage->pixel_format != PFFLOAT))
   {
     fprintf(stderr, "ImageZeroMean: unsupported pixel format %d\n",
-            inImage->pixel_format) ;
+            Isrc->pixel_format) ;
     return(NULL) ;
   }
 
   if (!outImage)
-    outImage = ImageClone(inImage) ;
+    outImage = ImageClone(Isrc) ;
 
-  nframes = inImage->num_frame ;
-  rows = inImage->rows ;
-  cols = inImage->cols ;
+  nframes = Isrc->num_frame ;
+  rows = Isrc->rows ;
+  cols = Isrc->cols ;
   pix_per_frame = rows * cols ;
-  fSrcBase = IMAGEFpix(inImage, 0, 0) ;
+  fSrcBase = IMAGEFpix(Isrc, 0, 0) ;
   fDstBase = IMAGEFpix(outImage, 0, 0) ;
 
   /* mean of each pixel across all frames */
@@ -4336,7 +4427,7 @@ ImageZeroMean(IMAGE *inImage, IMAGE *outImage)
 
            Description:
               form the covariance matrix treating each frame of
-              inimage as an observation.
+              Isrc as an observation.
 ----------------------------------------------------------------------*/
 IMAGE *
 ImageCovarMatrix(IMAGE *image, float **pmeans)
@@ -4735,22 +4826,22 @@ ImageReconstruct(IMAGE *pcImage, IMAGE *coefImage, IMAGE *xrImage,
               vector and normalize it so its length is 1.
 ----------------------------------------------------------------------*/
 int
-ImageNormalizeFrames(IMAGE *inImage, IMAGE *outImage)
+ImageNormalizeFrames(IMAGE *Isrc, IMAGE *outImage)
 {
   float  flen, *fsrcPtr, *fdstPtr, fval ;
   int    frameno, rows, cols;
   long   npix, pix_per_frame ;
 
-  rows = inImage->rows ;
-  cols = inImage->cols ;
+  rows = Isrc->rows ;
+  cols = Isrc->cols ;
   pix_per_frame = (long)rows * cols ;
   
-  switch (inImage->pixel_format)
+  switch (Isrc->pixel_format)
   {
   case PFFLOAT:
-    for (frameno = 0 ; frameno < inImage->num_frame ; frameno++)
+    for (frameno = 0 ; frameno < Isrc->num_frame ; frameno++)
     {
-      fsrcPtr = IMAGEFpix(inImage, 0, 0) + frameno * pix_per_frame ;
+      fsrcPtr = IMAGEFpix(Isrc, 0, 0) + frameno * pix_per_frame ;
       npix = pix_per_frame ;
       flen = 0.0f ;
       while (npix--)
@@ -4763,7 +4854,7 @@ ImageNormalizeFrames(IMAGE *inImage, IMAGE *outImage)
       if (FZERO(flen))
         return(-2) ;
 
-      fsrcPtr = IMAGEFpix(inImage, 0, 0) + frameno * pix_per_frame ;
+      fsrcPtr = IMAGEFpix(Isrc, 0, 0) + frameno * pix_per_frame ;
       fdstPtr = IMAGEFpix(outImage, 0, 0) + frameno * pix_per_frame ;
       npix = pix_per_frame ;
 
@@ -4773,7 +4864,7 @@ ImageNormalizeFrames(IMAGE *inImage, IMAGE *outImage)
     break ;
   default:
     fprintf(stderr, "ImageNormalizeFrames: unsupported pixel format %d\n",
-            inImage->pixel_format) ;
+            Isrc->pixel_format) ;
     return(-1);
   }
   
