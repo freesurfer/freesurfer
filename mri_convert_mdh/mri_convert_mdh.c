@@ -13,7 +13,7 @@
 #include "version.h"
 
 #ifndef lint
-static char vcid[] = "$Id: mri_convert_mdh.c,v 1.14 2004/05/03 17:39:17 greve Exp $";
+static char vcid[] = "$Id: mri_convert_mdh.c,v 1.15 2005/03/04 22:06:45 greve Exp $";
 #endif /* lint */
 
 #define MDH_SIZE    128        //Number of bytes in the miniheader
@@ -26,7 +26,7 @@ static char vcid[] = "$Id: mri_convert_mdh.c,v 1.14 2004/05/03 17:39:17 greve Ex
 #define MDH_DIM_ECHO    4
 
 typedef struct tagMDH {
-  unsigned long ulTimeStamp, BitMask1, ScanCounter;
+  unsigned long ulTimeStamp, BitMask1, ScanCounter, ChannelId;
   unsigned short Ncols, UsedChannels, Slice, Partition, Echo, Rep,LoopCounterLine;
   unsigned short KSpaceCenterCol,KSpaceCenterLine, CutOffDataPre, CutOffDataPost ;
   float SlicePosSag,SlicePosCor,SlicePosTra;
@@ -64,6 +64,7 @@ int MDHloadEchoChan(char *measout, int ChanId, int EchoId, int nReps,
 		    int nSlices, int nEchoes, int nRows, int nChans,
 		    int nCols, int nPCNs, int FasterDim, 
 		    MRI *mriReal, MRI *mriImag);
+int MDHdumpADC(char *measoutpath, char *outfile);
 
 /*--------------------------------------------------------------------*/
 char *Progname = NULL;
@@ -78,7 +79,7 @@ static void dump_options(FILE *fp);
 static int  isflag(char *flag);
 static int  singledash(char *flag);
 static int  stringmatch(char *str1, char *str2);
-char *srcdir, *outdir;
+char *srcdir, *outdir, *adcfile=NULL;
 int rev, infoonly=1, dumpmdh=0, debug=0, adcstats=0;
 
 int DimSpeced=0;
@@ -110,7 +111,7 @@ int main(int argc, char **argv)
   int nargs;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_convert_mdh.c,v 1.14 2004/05/03 17:39:17 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_convert_mdh.c,v 1.15 2005/03/04 22:06:45 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -150,6 +151,11 @@ int main(int argc, char **argv)
     exit(0);
   }
 
+  if(adcfile){
+    MDHdumpADC(measoutpath,adcfile);
+    exit(0);
+  }
+
   if(adcstats){
     MDHadcStats(measoutpath);
     exit(0);
@@ -185,8 +191,10 @@ int main(int argc, char **argv)
   sscanf(tmpstr,"%f",&ReadoutFOV);
   free(tmpstr);
   tmpstr = MDHparseMrProt(mdhascfile, "dFlipAngleDegree");
-  sscanf(tmpstr,"%f",&FlipAngle);
-  free(tmpstr);
+  if(tmpstr != NULL){
+    sscanf(tmpstr,"%f",&FlipAngle);
+    free(tmpstr);
+  }
 
   printf("TR = %g, nSPL = %d, nPCNs = %d\n",TR,nPerLine,nPCNs);
   printf("nFrames = %d, nSlices = %d, nEchos = %d, nPELs = %d\n",
@@ -279,6 +287,7 @@ int main(int argc, char **argv)
 
     mdh = ReadMiniHeader(fp,mdh,mdhversion);
     if(feof(fp)) break;
+    if(debug) PrintMiniHeader(stdout,mdh);
     fread(adc,sizeof(float), 2*nPerLine, fp);
     if(feof(fp)){
       //printf("WARNING: hit eof during data read\n");
@@ -286,6 +295,7 @@ int main(int argc, char **argv)
     }
     if(mdh->Rep >= nFrames){
       printf("ERROR: frame = %d >= nFrames = %d\n",mdh->Rep,nFrames);
+      PrintMiniHeader(stdout,mdh);
       exit(1);
     }
     if(mdh->Slice >= nSlices){
@@ -480,6 +490,11 @@ static int parse_commandline(int argc, char **argv)
       infoonly = 0;
       nargsused = 1;
     }
+    else if (stringmatch(option, "--dumpadc")){
+      if(nargc < 1) argnerr(option,1);
+      adcfile = pargv[0];
+      nargsused = 1;
+    }
     else if (stringmatch(option, "--dim")){
       if(nargc < 6) argnerr(option,6);
       sscanf(pargv[0],"%d",&nFrames);
@@ -547,6 +562,7 @@ static void print_usage(void)
   printf("   --TE TE1 TE2 ... \n");
   printf("\n");
   printf("   --dump : dump info about each adc (but not adc) \n");
+  printf("   --dumpadc file : dump adc into text file\n");
   printf("   --adcstats : dump min, max, and avg over all adcs \n");
   printf("\n");
   printf("   --help : a short story about a Spanish boy named Manual\n");
@@ -595,6 +611,11 @@ static void print_help(void)
 "\n"
 "Print out the header info for each readout line (but not the ADC\n"
 "data itself). Only the source dir needs to be given for this option.\n"
+"\n"
+"--dumpadc file\n"
+"\n"
+"Print out ADC into file in simple ascii/text format. This is just the\n"
+"raw data, with no indication of what is what.\n"
 "\n"
 "-adcstats\n"
 "\n"
@@ -812,7 +833,7 @@ MDH *ReadMiniHeader15(FILE *fp, MDH *mdh)
   fread(&ftmp,sizeof(float),1, fp); //Quaternion3
   fread(&ftmp,sizeof(float),1, fp); //Quaternion4
 
-  fread(&ultmp,sizeof(long),1, fp); //ChannelId
+  fread(&mdh->ChannelId,sizeof(long),1, fp); //ChannelId
 
   if( (mdh->BitMask1 & MDH_BM_PHASECOR) != 0) mdh->IsPCN = 1;
   else  mdh->IsPCN = 0;
@@ -904,6 +925,8 @@ int PrintMiniHeader(FILE *fp, MDH *mdh)
   fprintf(fp,"CutOffDataPre  %d\n",mdh->CutOffDataPre);  
   fprintf(fp,"CutOffDataPost %d\n",mdh->CutOffDataPost);  
   fprintf(fp,"ROOffCenter    %f\n",mdh->ReadoutOffCenter);  
+  fprintf(fp,"NoChannels     %d\n",mdh->UsedChannels);  
+  fprintf(fp,"ChannelId      %ld\n",mdh->ChannelId);  
   fprintf(fp,"SP  %7.2f %7.2f %7.2f \n",
 	  mdh->SlicePosSag,mdh->SlicePosCor,mdh->SlicePosTra);
   fprintf(fp,"Ncols        %d\n",mdh->Ncols);
@@ -1570,6 +1593,38 @@ int MDHdump(char *measoutpath)
 
   printf("n = %d\n",n);
   return(n);
+}
+/*--------------------------------------------------------------
+  MDHdumpADC - dump the ADC contents of the given meas.out to outfile
+  ---------------------------------------------------------------*/
+int MDHdumpADC(char *measoutpath, char *outfile)
+{
+  FILE *fp, *outfp;
+  unsigned long offset;
+  int m;
+  MDH *mdh=NULL;
+  int mdhversion;
+  float adc[10000];
+
+  mdhversion = MDHversion(measoutpath);
+  fp = fopen(measoutpath,"r");
+  fread(&offset,sizeof(long),1, fp);
+  fseek(fp,offset,SEEK_SET);
+
+  outfp = fopen(outfile,"w");
+
+  while(!feof(fp)){
+    mdh = ReadMiniHeader(fp,mdh,mdhversion);
+    if(feof(fp)) break;
+    fread(adc,sizeof(float), 2*mdh->Ncols, fp);
+    for(m=0; m < 2*mdh->Ncols; m++){
+      fprintf(outfp,"%20.40f\n",adc[m]);
+    }
+  }
+  fclose(fp);
+  fclose(outfp);
+
+  return(0);
 }
 /*--------------------------------------------------------------
   MDHadcStats - compute stats for data
