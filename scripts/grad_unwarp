@@ -1,8 +1,8 @@
 #!/bin/csh -f
 # grad_unwarp - convert, unwarp, and resample dicom files
 #
-# $Id: grad_unwarp,v 1.6 2004/01/18 07:05:51 ebeth Exp $
-set VERSION = '$Id: grad_unwarp,v 1.6 2004/01/18 07:05:51 ebeth Exp $';
+# $Id: grad_unwarp,v 1.7 2004/01/18 21:58:56 ebeth Exp $
+set VERSION = '$Id: grad_unwarp,v 1.7 2004/01/18 21:58:56 ebeth Exp $';
 
 set inputargs = ($argv);
 
@@ -356,6 +356,20 @@ exit 1;
 # already geometrically conformed; mri_convert will further "conform"
 # it to type uchar unless restrained).
 
+# deleted from help text because I FIXED convert_unwarp_resample.m!!
+# 
+# Exception-to-the-exception: at the moment, -corfov resamples to the
+# 256^3 1mm^3 FOV centered on scanner isocenter (0,0,0) (understand,
+# voxel-in-scanner coordinates are still correct).  Therefore, if you
+# want to be able to do a voxel-by-voxel comparison of cor-format
+# dewarped and nondewarped versions of your volume, run both with
+# grad_unwarp -cor -corfov.  This way, they will both be in the same
+# space.  If they do not have to be in cor format, mri_convert (-zgez if
+# GE) to mgh (no interpolation takes place) and run the dewarper on
+# that.
+# 
+#   This nonrecentering behavior is likely to change soon, i.e. in the
+#   next week or month.
 
 #---- Everything below here is printed out as part of help -----#
 BEGINHELP
@@ -370,28 +384,32 @@ Its engine is matlab code: each instance of it requires not only a
 license but also an Image Toolbox license.  In related news, it is
 much slower than mri_convert --in_type dicom --out_type mgh.
 
-Its advantages are minor.  For GE volumes, grad_unwarp knows to
-correct for the GE-Z-offset bug (after the FOV is selected, all GE
-machines of which I am aware move the table to center the FOV along
-the Z axis; the dicom files reflect the old coordinates, whereas c_s
-should be set to 0.0).  As of version 1.58 (2003/08/25), this behavior
-is not automatic in mri_convert, but can and should be forced by
-invoking it -zgez or --zero_ge_z_offset.  Otherwise any dewarp done
-on that mgh file will be incorrect.
+The advantages of grad_unwarp re converting are minor.
 
-There is also no particular reason to use grad_unwarp to convert from
-dicom or mgh to cor, unless you are dewarping as well.
+For GE volumes, grad_unwarp knows to correct for the GE-Z-offset bug
+(after the FOV is selected, all GE machines of which I am aware move
+the table to center the FOV along the Z axis; the dicom files reflect
+the old coordinates, whereas c_s should be set to 0.0).  As of version
+1.58 (2003/08/25), this behavior is not automatic in mri_convert, but
+can and should be forced by invoking it -zgez or --zero_ge_z_offset.
+Otherwise any dewarp done on that mgh file will be incorrect.
+
+Another advantage is that it is probably correct.  WARNING: when
+loading dicom volumes, grad_unwarp and mri_convert differ by
+half-voxels in the c_ras (and vox2ras transform matrix) they
+calculate.  It has yet to be determined which code is incorrect.  If
+you need to "match" mri_convert output in some way, by all means use
+mri_convert to convert from dicom to mgh and then do your dewarping
+(and cor resample if any) with grad_unwarp.
 
 grad_unwarp -i dicomfile -o mghfile
 grad_unwarp -i dicomdir -s series -o mghfile
 grad_unwarp -i dicomfile -cor -o cordir
 grad_unwarp -i dicomdir -s series -cor -o cordir
 
-No one has ever tested this re converting mgh to cor!
-
-If you were running this -unwarp and outputting to -cor, be sure to
-add -corfov to avoid having two interpolation stages!  See RESAMPLE
-below for details.
+grad_unwarp converts to cor by calling mri_convert at the end.  If you
+were running grad_unwarp -unwarp -cor, be sure to add -corfov to avoid
+having two interpolation stages.  (See RESAMPLE below for details.)
 
 
 DEWARP
@@ -447,25 +465,47 @@ RESAMPLE
 -cor invokes mri_convert to cor at the end.  If you are dewarping and
 you use -cor, you should also use -corfov.  This will ensure that the
 resampling to cor does not happen in a separate stage from the dewarp
-resampling.  Exception: if you are not dewarping, (you probably should
-not be using grad_unwarp in the first place, but) there is only one
-resample being done, so there is no reason not to let mri_convert do
-it.
+resampling.  If you are not dewarping, (you probably should not be
+using grad_unwarp in the first place, but) there is only one resample
+being done, so there is no reason not to let mri_convert do it.
 
-Exception-to-the-exception: at the moment, -corfov resamples to the
-256^3 1mm^3 FOV centered on scanner isocenter (0,0,0) (understand,
-voxel-in-scanner coordinates are still correct).  Therefore, if you
-want to be able to do a voxel-by-voxel comparison of cor-format
-dewarped and nondewarped versions of your volume, run both with
-grad_unwarp -cor -corfov.  This way, they will both be in the same
-space.  If they do not have to be in cor format, mri_convert (-zgez if
-GE) to mgh (no interpolation takes place) and run the dewarper on
-that.
+FYI, the time a dewarp and/or resample takes increases with number of
+voxels in the output volume, so in general when grad_unwarp is writing
+to COR, it takes about twice as long as mgh.  (mri_convert probably
+takes twice as long as well, but still quick.)
 
-  This nonrecentering behavior is likely to change soon, i.e. in the
-  next week or month.
+Okay, here is the weirdest resampling behavior, although this is
+really a paragraph about mri_convert.  (1) When you use mri_convert to
+resample and convert to COR format (which involves a semimystical,
+ultraclever, histogramming resample to type uchar), you get a fine
+uchar COR output volume.  (2) When you use mri_convert in two stages -
+one to resample to COR FOV but save as e.g. float mgh and a second to
+do the conversion to COR format (with the histogramming resample to
+uchar) - this produces different results compared with (1), brighter
+by 5-15 out of 0-255.  Default interpolation, trilinear
+("interpolate"), was used.
 
-The time a dewarp and/or resample takes increases with number of
-voxels in the output volume, so in general outputting cor takes about
-twice as long as mgh.
+Path (1):
+ $ mri_convert -i infile.mgh -o outvol/
+
+Path (2):
+ $ mri_convert -odt float -oic 256 -ojc 256 -okc 256 -ois 1 -ojs 1 -oks 1 -oid -1 0 0 -ojd 0 0 -1 -okd 0 1 0 -i infile.mgh -o tmpfile.mgh
+ $ mri_convert -i tmpfile.mgh -o outvol/
+
+Since grad_unwarp -corfov -cor does the COR FOV resample in matlab and
+then calls mri_convert to do the COR format change and rescale, it is
+not too surprising that the results agree much more closely with path
+(2) above.  (Of voxels where the intensity value in both volumes was
+over 10, the nonmatching fraction was 4.9213e-04; all of those
+nonmatches were by +-1.)
+
+(In other news, cor-resample volume-centering is working as of
+convert_unwarp_resample.m version 1.6 (grad_unwarp version 1.7).  This
+means that the output volume will have the same c_ras as the input
+volume.  Previously, c_ras = (0,0,0) was used, so the volume was
+centered around scanner isocenter, and the brain was typically
+off-center (though I never saw one so off-center as to go at all out
+of the FOV).  The vox2ras matrix was _correct_, i.e. it told you where
+your voxel was with respect to the scanner, so this was no problem for
+gradient dewarping.)
 
