@@ -3,11 +3,11 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2003/06/20 19:47:47 $
-// Revision       : $Revision: 1.21 $
+// Revision Date  : $Date: 2003/07/02 18:35:56 $
+// Revision       : $Revision: 1.22 $
 //
 ////////////////////////////////////////////////////////////////////
-char *MRI_INFO_VERSION = "$Revision: 1.21 $";
+char *MRI_INFO_VERSION = "$Revision: 1.22 $";
 #include <stdio.h>
 #include <sys/stat.h>
 #include <unistd.h>
@@ -84,7 +84,7 @@ int main(int argc, char *argv[])
   int nargs;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_info.c,v 1.21 2003/06/20 19:47:47 tosa Exp $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_info.c,v 1.22 2003/07/02 18:35:56 tosa Exp $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -106,6 +106,25 @@ int main(int argc, char *argv[])
 
 } /* end main() */
 
+int PrettyMatrixPrint(MATRIX *mat)
+{
+  int row;
+
+  if (mat == NULL)
+    ErrorReturn(ERROR_BADPARM,(ERROR_BADPARM, "mat = NULL!")) ;
+
+  if (mat->type != MATRIX_REAL)
+    ErrorReturn(ERROR_BADPARM,(ERROR_BADPARM, "mat is not Real type")) ;
+ 
+  if (mat->rows != 4 || mat->cols != 4)
+    ErrorReturn(ERROR_BADPARM,(ERROR_BADPARM, "mat is not of 4 x 4")) ;
+    
+  for (row=1; row < 5; ++row)
+    printf("              %8.4f %8.4f %8.4f %10.4f\n",
+	   mat->rptr[row][1], mat->rptr[row][2], mat->rptr[row][3], mat->rptr[row][4]);
+  return (NO_ERROR);
+}
+
 static void do_file(char *fname)
 {
 #if 0
@@ -124,7 +143,7 @@ static void do_file(char *fname)
   
   printf("Volume information for %s\n", fname);
   printf("    dimensions: %d x %d x %d\n", mri->width, mri->height, mri->depth) ;
-  printf("   voxel sizes: %2.1f, %2.1f, %2.1f\n", mri->xsize, mri->ysize, mri->zsize) ;
+  printf("   voxel sizes: %5.3f, %5.3f, %5.3f\n", mri->xsize, mri->ysize, mri->zsize) ;
   printf("          type: %s (%d)\n",
 	 mri->type == MRI_UCHAR   ? "UCHAR" :
 	 mri->type == MRI_SHORT   ? "SHORT" :
@@ -141,15 +160,15 @@ static void do_file(char *fname)
 	 mri->tr, mri->te, mri->ti, DEGREES(mri->flip_angle)) ;
   printf("       nframes: %d\n", mri->nframes) ;
   printf("ras xform %spresent\n", mri->ras_good_flag ? "" : "not ") ;
-  printf("    xform info: x_r = %8.4f, y_r = %8.4f, z_r = %8.4f, c_r = %8.4f\n",
+  printf("    xform info: x_r = %8.4f, y_r = %8.4f, z_r = %8.4f, c_r = %10.4f\n",
 	 mri->x_r, mri->y_r, mri->z_r, mri->c_r);
-  printf("              : x_a = %8.4f, y_a = %8.4f, z_a = %8.4f, c_a = %8.4f\n",
+  printf("              : x_a = %8.4f, y_a = %8.4f, z_a = %8.4f, c_a = %10.4f\n",
 	 mri->x_a, mri->y_a, mri->z_a, mri->c_a);
-  printf("              : x_s = %8.4f, y_s = %8.4f, z_s = %8.4f, c_s = %8.4f\n",
+  printf("              : x_s = %8.4f, y_s = %8.4f, z_s = %8.4f, c_s = %10.4f\n",
 	 mri->x_s, mri->y_s, mri->z_s, mri->c_s);
 
   m = MRIgetVoxelToRasXform(mri) ; // extract_i_to_r(mri) (just macto)
-  printf("voxel to ras transform:\n") ; MatrixPrint(stdout, m) ;
+  printf("voxel to ras transform:\n") ; PrettyMatrixPrint(m) ;
   MRIfree(&mri) ; MatrixFree(&m) ;
 
   return;
