@@ -166,12 +166,15 @@ FunV_tErr FunV_New    ( tkmFunctionalVolumeRef* oppVolume,
 			void(*ipSendTclCommandFunction)(char*) );
 FunV_tErr FunV_Delete ( tkmFunctionalVolumeRef* ioppVolume );
 
-/* loads the data volumes */
+/* loads the data volumes. The transform should be a->b index->RAS
+   (only a->RAS transform will be used). */
 FunV_tErr FunV_LoadOverlay    ( tkmFunctionalVolumeRef this,
+				mriTransformRef        iTransform,
 				char*                  isPathAndStem,
 				char*                  isOffsetPath,
 				char*                  isRegistration );
 FunV_tErr FunV_LoadTimeCourse ( tkmFunctionalVolumeRef this,
+				mriTransformRef        iTransform,
 				char*                  isPathAndStem,
 				char*                  isOffsetPath,
 				char*                  isRegistration );
@@ -179,6 +182,7 @@ FunV_tErr FunV_LoadTimeCourse ( tkmFunctionalVolumeRef this,
 /* this loads a specific volume. will delete one if it already exists. */
 FunV_tErr FunV_LoadFunctionalVolume_ ( tkmFunctionalVolumeRef this,
 				       mriFunctionalDataRef*  ioppVolume,
+				       mriTransformRef        iTransform,
 				       char*                  isPath,
 				       char*                  isStem,
 				       char*                  isHeaderStem,

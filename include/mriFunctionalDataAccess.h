@@ -89,6 +89,7 @@ typedef struct {
   int mDataPlaneSizes[5];
   
   // transformation objects.
+  mriTransformRef mClientTransform;
   mriTransformRef mIdxToIdxTransform;
   mriTransformRef mRASToIdxTransform;
   
@@ -117,9 +118,11 @@ typedef struct {
 
 /* allocates and destroys volumes. new volumes require a
    pathname. allocater parses header files and initializes all data
-   except for reading in the volume data. */
+   except for reading in the volume data. The transform should be a->b
+   index->RAS (only a->RAS transform will be used). */
 
 FunD_tErr FunD_New    ( mriFunctionalDataRef* outVolume,
+			mriTransformRef       iTransform,
 			char*                 inPathName, 
 			char*                 inStem,
 			char*                 inHeaderStem,

@@ -56,10 +56,11 @@ char *FunD_ksaErrorString [FunD_tErr_knNumErrorCodes] = {
 // ===================================================================== VOLUME
 
 FunD_tErr FunD_New ( mriFunctionalDataRef* outVolume,
-         char*                 isPathName, 
-         char*                 isStem,
-         char*                 isHeaderStem,
-         char*                 isRegistration ) {
+		     mriTransformRef       iTransform,
+		     char*                 isPathName, 
+		     char*                 isStem,
+		     char*                 isHeaderStem,
+		     char*                 isRegistration ) {
   
   mriFunctionalDataRef this    = NULL;
   FunD_tErr            eResult = FunD_tErr_NoError;
@@ -123,6 +124,9 @@ FunD_tErr FunD_New ( mriFunctionalDataRef* outVolume,
   Trns_New( &(this->mIdxToIdxTransform) );
   Trns_New( &(this->mRASToIdxTransform) );
   
+  /* Copy client transform */
+  Trns_DeepClone( iTransform, &this->mClientTransform );
+
   /* try to parse a stem header */
   DebugNote( ("Trying stem header") );
   eResult = FunD_ParseStemHeader ( this );
@@ -241,6 +245,7 @@ FunD_tErr FunD_Delete ( mriFunctionalDataRef * ioVolume ) {
   // delete our transformers.
   Trns_Delete( &(this->mIdxToIdxTransform) );
   Trns_Delete( &(this->mRASToIdxTransform) );
+  Trns_Delete( &(this->mClientTransform) );
   
   // delete the structure.
   free ( this );
@@ -458,9 +463,11 @@ FunD_tErr FunD_ParseRegistrationAndInitMatricies ( mriFunctionalDataRef this ) {
   *MATRIX_RELT(mTmp,4,4) = 1.0;
   Trns_CopyBtoRAS( this->mIdxToIdxTransform, mTmp );
   Trns_CopyBtoRAS( this->mRASToIdxTransform, mTmp );
+  MatrixFree( &mTmp );
   
   // create the anatomical index to anatomical ras matrix
-  MatrixClear( mTmp );
+#if 0
+  mTmp = MatrixAlloc( 4, 4, MATRIX_REAL );
   *MATRIX_RELT(mTmp,1,1) = -1.0;
   *MATRIX_RELT(mTmp,2,3) = 1.0;
   *MATRIX_RELT(mTmp,3,2) = -1.0;
@@ -468,11 +475,14 @@ FunD_tErr FunD_ParseRegistrationAndInitMatricies ( mriFunctionalDataRef this ) {
   *MATRIX_RELT(mTmp,2,4) = -128.0;
   *MATRIX_RELT(mTmp,3,4) = 128.0;
   *MATRIX_RELT(mTmp,4,4) = 1.0;
+#endif
+  Trns_GetBtoRAS( this->mClientTransform, &mTmp );
   Trns_CopyAtoRAS( this->mIdxToIdxTransform, mTmp );
   
   /* the ras to idx transformer gets the identity matrix here */
-  MatrixIdentity( 4, mTmp );
+  mTmp = MatrixIdentity( 4, NULL );
   Trns_CopyAtoRAS( this->mRASToIdxTransform, mTmp );
+  MatrixFree( &mTmp );
   
   /* a is anatomical, b is functional, mri2fmri takes us from a_ras
      to b_ras */
@@ -482,7 +492,6 @@ FunD_tErr FunD_ParseRegistrationAndInitMatricies ( mriFunctionalDataRef this ) {
   // get rid of the registration info.
   StatFreeRegistration ( &theRegInfo );
   
-  MatrixFree( &mTmp );
   
   /*
     Trns_DebugPrint_( this->mIdxToIdxTransform );

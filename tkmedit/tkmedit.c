@@ -4,9 +4,9 @@
 
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2003/05/12 17:29:51 $
-// Revision       : $Revision: 1.146 $
-char *VERSION = "$Revision: 1.146 $";
+// Revision Date  : $Date: 2003/05/16 19:40:20 $
+// Revision       : $Revision: 1.147 $
+char *VERSION = "$Revision: 1.147 $";
 
 #define TCL
 #define TKMEDIT 
@@ -1004,7 +1004,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
      shorten our argc and argv count. If those are the only args we
      had, exit. */
   /* rkt: check for and handle version tag */
-  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.146 2003/05/12 17:29:51 kteich Exp $");
+  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.147 2003/05/16 19:40:20 kteich Exp $");
   if (nNumProcessedVersionArgs && argc - nNumProcessedVersionArgs == 1)
     exit (0);
   argc -= nNumProcessedVersionArgs;
@@ -7470,9 +7470,10 @@ tkm_tErr LoadFunctionalOverlay( char* isPathAndStem,
   /* attempt to load. */
   DebugNote( ("Loading overlay") );
   eFunctional = FunV_LoadOverlay( gFunctionalVolume, 
-          sPathAndStem,
-          psOffsetPathAndStem,
-          psRegistration );
+				  gIdxToRASTransform,
+				  sPathAndStem,
+				  psOffsetPathAndStem,
+				  psRegistration );
   DebugAssertThrowX( (FunV_tErr_NoError == eFunctional),
          eResult, tkm_tErr_CouldntLoadOverlay );
   
@@ -7541,9 +7542,10 @@ tkm_tErr LoadFunctionalTimeCourse( char* isPathAndStem,
   /* attempt to load. */
   DebugNote( ("Loading time course") );
   eFunctional = FunV_LoadTimeCourse( gFunctionalVolume, 
-             sPathAndStem, 
-             psOffsetPathAndStem,
-             psRegistration );
+				     gIdxToRASTransform,
+				     sPathAndStem, 
+				     psOffsetPathAndStem,
+				     psRegistration );
   
   DebugAssertThrowX( (FunV_tErr_NoError == eFunctional),
          eResult, tkm_tErr_CouldntLoadOverlay );

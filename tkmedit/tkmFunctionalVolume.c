@@ -244,6 +244,7 @@ FunV_tErr FunV_Delete ( tkmFunctionalVolumeRef* ioppVolume ) {
 }
 
 FunV_tErr FunV_LoadOverlay ( tkmFunctionalVolumeRef this,
+			     mriTransformRef        iTransform,
 			     char*                  isPathAndStem,
 			     char*                  isOffsetPathAndStem,
 			     char*                  isRegistration ) {
@@ -273,6 +274,7 @@ FunV_tErr FunV_LoadOverlay ( tkmFunctionalVolumeRef this,
   
   /* attempt to load the volume */
   eResult = FunV_LoadFunctionalVolume_( this, &(this->mpOverlayVolume), 
+					iTransform,
 					sPath, sStem, NULL, isRegistration, 
 					TRUE );
   if( FunV_tErr_NoError != eResult ) {
@@ -299,6 +301,7 @@ FunV_tErr FunV_LoadOverlay ( tkmFunctionalVolumeRef this,
     
     /* attempt to load offset volume, if there is one */
     eResult = FunV_LoadFunctionalVolume_( this, &(this->mpOverlayOffsetVolume),
+					  iTransform,
 					  sOffsetPath, sOffsetStem, 
 					  sOffsetStem, isRegistration, FALSE );
     if( FunV_tErr_NoError != eResult ) {
@@ -380,6 +383,7 @@ FunV_tErr FunV_LoadOverlay ( tkmFunctionalVolumeRef this,
 }
 
 FunV_tErr FunV_LoadTimeCourse ( tkmFunctionalVolumeRef this,
+				mriTransformRef        iTransform,
 				char*                  isPathAndStem,
 				char*                  isOffsetPathAndStem,
 				char*                  isRegistration) {
@@ -409,6 +413,7 @@ FunV_tErr FunV_LoadTimeCourse ( tkmFunctionalVolumeRef this,
   /* attempt to load the volume */
   eResult = FunV_LoadFunctionalVolume_( this, 
 					&(this->mpTimeCourseVolume), 
+					iTransform,
 					sPath, sStem, NULL, isRegistration, 
 					TRUE );
   if( FunV_tErr_NoError != eResult )
@@ -429,6 +434,7 @@ FunV_tErr FunV_LoadTimeCourse ( tkmFunctionalVolumeRef this,
     /* attempt to load offset volume, if there is one */
     eResult = FunV_LoadFunctionalVolume_( this,
 					  &(this->mpTimeCourseOffsetVolume),
+					  iTransform,
 					  sOffsetPath, sOffsetStem,
 					  sOffsetStem, isRegistration, FALSE );
     if( FunV_tErr_NoError != eResult ) {
@@ -479,6 +485,7 @@ FunV_tErr FunV_LoadTimeCourse ( tkmFunctionalVolumeRef this,
 
 FunV_tErr FunV_LoadFunctionalVolume_ ( tkmFunctionalVolumeRef this,
 				       mriFunctionalDataRef*  ioppVolume,
+				       mriTransformRef        iTransform,
 				       char*                  isPath,
 				       char*                  isStem,
 				       char*                  isHeaderStem,
@@ -505,7 +512,8 @@ FunV_tErr FunV_LoadFunctionalVolume_ ( tkmFunctionalVolumeRef this,
   }
   
   /* load the volume */
-  eVolume = FunD_New( &pVolume, isPath, isStem, isHeaderStem, isRegistration );
+  eVolume = FunD_New( &pVolume, iTransform, 
+		      isPath, isStem, isHeaderStem, isRegistration );
   if( FunD_tErr_NoError != eVolume ) {
     eResult = FunV_tErr_ErrorLoadingVolume;
     goto error;
