@@ -5846,7 +5846,7 @@ MRI *MRIreadGeRoi(char *fname, int n_slices)
     sprintf(fname_use, "%s%03d%s", prefix, i, postfix);
     if((fp = fopen(fname_use, "r")) != NULL)
     {
-printf("%s\n", fname_use);
+
       fseek(fp, 4, SEEK_SET);
       fread(&pixel_data_offset, 4, 1, fp);  pixel_data_offset = orderIntBytes(pixel_data_offset);
       fseek(fp, pixel_data_offset, SEEK_SET);
