@@ -62,7 +62,7 @@
 /* limit the size of the ratio so that the exp() doesn't explode */
 #define MAX_NEG_RATIO       (400 / NEG_AREA_K)
 #define MAX_ASYNCH_MM       0.3
-#define MAX_ASYNCH_NEW_MM   0.5
+#define MAX_ASYNCH_NEW_MM   0.3
 
 
 typedef struct
