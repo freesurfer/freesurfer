@@ -314,7 +314,7 @@ MatrixFree(MATRIX **pmat)
       nelts *= 2 ;
 
 #ifdef _POSIX_MAPPED_FILES
-    munmap(mat->data, (nelts+2) * sizeof(float)) ;
+    munmap((void *) mat->data, (nelts+2) * sizeof(float)) ;
 #endif
     fclose(mat->mmapfile) ;
   }
