@@ -12585,6 +12585,7 @@ fill_color_array(MRI_SURFACE *mris, float *colors)
 		}
 	      else
 		{
+		  val = -val;
 		  if (!revphaseflag)
 		    mode = FIELDSIGN_NEG;
 		  else
