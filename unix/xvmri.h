@@ -48,6 +48,7 @@ int  XVMRIshowThreeViews(XV_FRAME *xvf) ;
 
 
 
+extern int   mri_slices[] ;
 extern IMAGE *Idisplay[] ;
 extern int   mri_views[] ;
 extern int   mri_depths[] ;
