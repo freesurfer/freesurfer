@@ -201,3 +201,16 @@ DiagPrintf(unsigned long diag_bits, char *fmt, ...)
   va_start(args, fmt) ;
   return((*diag_vprintf)(fmt, args)) ;
 }
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+          dummy for break points in debugger
+------------------------------------------------------*/
+void
+DiagBreak(void)
+{
+}
+
