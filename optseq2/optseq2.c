@@ -46,7 +46,7 @@ Can something be done to affect the off-diagonals?
   #undef X
 #endif
 
-static char vcid[] = "$Id: optseq2.c,v 1.3 2002/08/27 00:09:32 greve Exp $";
+static char vcid[] = "$Id: optseq2.c,v 1.4 2002/08/27 00:17:29 greve Exp $";
 char *Progname = NULL;
 
 static int  parse_commandline(int argc, char **argv);
@@ -749,6 +749,8 @@ static void print_usage(void)
   printf("  --help : print help page\n");
   printf("  --version : print version string \n");
 
+  printf("\n");
+  printf("%s\n",vcid);
   printf("\n");
 }
 /* --------------------------------------------- */
