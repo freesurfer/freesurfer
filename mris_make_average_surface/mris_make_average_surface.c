@@ -4,8 +4,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2004/01/29 14:59:12 $
-// Revision       : $Revision: 1.9 $
+// Revision Date  : $Date: 2004/04/07 21:05:48 $
+// Revision       : $Revision: 1.10 $
 //
 ////////////////////////////////////////////////////////////////////
 #include <stdio.h>
@@ -25,7 +25,7 @@
 #include "transform.h"
 #include "version.h"
 
-static char vcid[] = "$Id: mris_make_average_surface.c,v 1.9 2004/01/29 14:59:12 tosa Exp $";
+static char vcid[] = "$Id: mris_make_average_surface.c,v 1.10 2004/04/07 21:05:48 tosa Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -55,7 +55,7 @@ main(int argc, char *argv[])
   MRI          *mri ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_make_average_surface.c,v 1.9 2004/01/29 14:59:12 tosa Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_make_average_surface.c,v 1.10 2004/04/07 21:05:48 tosa Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -109,14 +109,13 @@ main(int argc, char *argv[])
     sprintf(fname, "%s/%s/mri/T1", sdir, argv[i]) ;
 		mri = MRIreadHeader(fname, MRI_CORONAL_SLICE_DIRECTORY) ;
 		if (!mri)
-			ErrorExit(ERROR_BADPARM, "%s: could not read reference MRI volume from %s", Progname, fname) ;
+		  ErrorExit(ERROR_BADPARM, "%s: could not read reference MRI volume from %s", Progname, fname) ;
 
     MRISsaveVertexPositions(mris, CANONICAL_VERTICES) ;
     MRISrestoreVertexPositions(mris, ORIGINAL_VERTICES) ;
 #if 0
     MRIStalairachTransform(mris, mris, lta) ;
 #else
-    fprintf(stderr, "The following must be revisited**********************************\n");
     MRIStransform(mris, mri, lta, 0) ;
 #endif
     MRISsaveVertexPositions(mris, ORIGINAL_VERTICES) ;
