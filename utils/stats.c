@@ -537,6 +537,12 @@ StatAccumulateSurfaceVolume(SV *sv_surf, SV *sv, MRI_SURFACE *mris)
   mri_std = MRIallocSequence(width, height, depth, MRI_FLOAT, 2) ;
   MRIcopyHeader(sv_surf->mri_stds[0], mri_std) ;
 
+  if (sv_surf->nevents != sv->nevents)
+    ErrorReturn(ERROR_BADPARM, 
+                (ERROR_BADPARM, 
+                 "StatAccumulateTalairachVolume: inconsistent # of events "
+                 "(%d vs %d)", sv_surf->nevents, sv->nevents)) ;
+
   for (event = 0 ; event < sv_surf->nevents ; event++)
   {
     sv_surf->mean_dofs[event] += sv->mean_dofs[event] ;
@@ -706,6 +712,12 @@ StatAccumulateTalairachVolume(SV *sv_tal, SV *sv)
   sxoff = (float)(sv->slice_width-1)/2.0f ;
   syoff = (float)(sv->slice_height-1)/2.0f ;
   szoff = (float)(sv->nslices-1)/2.0f ;
+
+  if (sv_tal->nevents != sv->nevents)
+    ErrorReturn(ERROR_BADPARM, 
+                (ERROR_BADPARM, 
+                 "StatAccumulateTalairachVolume: inconsistent # of events "
+                 "(%d vs %d)", sv_tal->nevents, sv->nevents)) ;
 
   for (event = 0 ; event < sv_tal->nevents ; event++)
   {
