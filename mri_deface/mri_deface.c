@@ -13,6 +13,7 @@
 #include "timer.h"
 #include "diag.h"
 #include "mrimorph.h"
+#include "mri_conform.h"
 #include "utils.h"
 #include "gca.h"
 #include "cma.h"
@@ -299,7 +300,26 @@ main(int argc, char *argv[])
     ErrorExit(ERROR_NOFILE, "%s: could not open input volume %s.\n",
               Progname, in_fname) ;
 	mri_orig = MRIcopy(mri_in, NULL) ;
+  if (mri_in->type!=MRI_UCHAR)
+	{
+		MRI *mri_tmp ;
 
+		printf("changing type of input volume to 8 bits/voxel...\n") ;
+		mri_tmp = MRIconform(mri_in) ;
+		mri_in = mri_tmp ;
+	}
+  if (parms.write_iterations != 0)
+  {
+    char fname[STRLEN] ;
+    MRI  *mri_gca ;
+    mri_gca = MRIclone(mri_in, NULL) ;
+    GCAbuildMostLikelyVolume(gca, mri_gca) ;
+    sprintf(fname, "%s_target", parms.base_name) ;
+    MRIwriteImageViews(mri_gca, fname, IMAGE_SIZE) ;
+    sprintf(fname, "%s_target.mgh", parms.base_name) ;
+    printf("writing target volume to %s...\n", fname) ;
+    MRIwrite(mri_gca, fname) ;
+  }
   if (mask_fname)
   {
     MRI *mri_mask ;
@@ -342,18 +362,6 @@ main(int argc, char *argv[])
   if (tissue_parms_fname)   /* use FLASH forward model */
     GCArenormalizeToFlash(gca, tissue_parms_fname, mri_in) ;
 
-  if (parms.write_iterations != 0)
-  {
-    char fname[STRLEN] ;
-    MRI  *mri_gca ;
-    mri_gca = MRIclone(mri_in, NULL) ;
-    GCAbuildMostLikelyVolume(gca, mri_gca) ;
-    sprintf(fname, "%s_target", parms.base_name) ;
-    MRIwriteImageViews(mri_gca, fname, IMAGE_SIZE) ;
-    sprintf(fname, "%s_target.mgh", parms.base_name) ;
-    printf("writing target volume to %s...\n", fname) ;
-    MRIwrite(mri_gca, fname) ;
-  }
 
   if (!FZERO(tx) || !FZERO(ty) || !FZERO(tz))
   {
@@ -381,7 +389,20 @@ main(int argc, char *argv[])
     MRIfree(&mri_in) ; mri_in = mri_tmp ;
   }
 
-  parms.lta->xforms[0].m_L = MatrixIdentity(4, NULL) ;
+	parms.lta->xforms[0].m_L = MatrixIdentity(4, NULL) ;
+	if (parms.write_iterations != 0)
+	{
+		char fname[STRLEN] ;
+		MRI *mri_aligned ;
+		
+		mri_aligned = MRIlinearTransform(mri_in, NULL, parms.lta->xforms[0].m_L) ;
+		sprintf(fname, "%s_conformed.mgh", parms.base_name) ;
+		MRIwrite(mri_aligned, fname) ;
+		sprintf(fname, "%s_conformed", parms.base_name) ;
+		MRIwriteImageViews(mri_aligned, fname, IMAGE_SIZE) ;
+		MRIfree(&mri_aligned) ;
+	}
+
 
   i = 0 ;
 #if 0
@@ -465,6 +486,15 @@ main(int argc, char *argv[])
   }
   printf("anonymizing volume...\n") ;
 	mri_out = MRIremoveFace(mri_in, NULL, parms.lta, gca, gca_face, radius) ;
+	{
+		MRI *mri_tmp ;
+
+		printf("resampling to original coordinate system...\n");
+		mri_tmp = MRIresample(mri_out, mri_orig, RESAMPLE_NEAREST) ;
+		MRIfree(&mri_out) ; mri_out = mri_tmp ;
+		MRIwrite(mri_out, "after_resampling.mgh") ;
+	}
+
 	MRImask(mri_orig, mri_out, mri_orig, 0, 0) ;
 	printf("writing anonymized volume to %s...\n", out_fname) ;
 	MRIwrite(mri_orig, out_fname) ;
@@ -499,9 +529,11 @@ register_mri(MRI *mri_in, GCA *gca, MORPH_PARMS *parms, int passno, int spacing)
 #endif
 
 
+#if 0
   if (passno == 0)
     m_L = MatrixIdentity(4, NULL) ;
   else
+#endif
     m_L = MatrixCopy(parms->lta->xforms[0].m_L, NULL) ;
 
   find_optimal_transform(mri_in, gca, parms->gcas, parms->nsamples,m_L,passno,
