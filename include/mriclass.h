@@ -44,5 +44,11 @@ MRI     *MRIclassThreshold(MRIC *mric, MRI *mri_probs, MRI *mri_classes,
                            MRI *mri_dst, float threshold) ;
 
 GCLASSIFY *MRIgetClassifier(MRIC *mric, MRI *mri, int xv, int yv, int zv) ;
+int      MRIclassUpdateMeans(MRIC *mric, MRI *mris[], MRI *mri_target, 
+                             int nimages) ;
+int      MRIclassComputeMeans(MRIC *mric) ;
+int      MRIclassComputeCovariances(MRIC *mric) ;
+int      MRIclassUpdateCovariances(MRIC *mric, MRI *mris[], MRI *mri_target, 
+                             int nimages) ;
 
 #endif
