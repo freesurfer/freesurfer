@@ -435,7 +435,7 @@ Volm_tErr Volm_ExportNormToCOR ( mriVolumeRef this,
   return eResult;
 }
 
-#define _VLDTDEBUG
+//#define _VLDTDEBUG
 
 Volm_tErr Volm_LoadDisplayTransform ( mriVolumeRef this,
               char*        isFileName ) {
