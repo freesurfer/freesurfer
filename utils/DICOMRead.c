@@ -2,7 +2,7 @@
    DICOM 3.0 reading functions
    Author: Sebastien Gicquel and Douglas Greve
    Date: 06/04/2001
-   $Id: DICOMRead.c,v 1.43 2003/09/08 22:20:33 tosa Exp $
+   $Id: DICOMRead.c,v 1.44 2003/09/09 15:36:32 tosa Exp $
 *******************************************************/
 
 #include <stdio.h>
@@ -1338,49 +1338,52 @@ SDCMFILEINFO *GetSDCMFileInfo(char *dcmfile)
 /*----------------------------------------------------------*/
 int DumpSDCMFileInfo(FILE *fp, SDCMFILEINFO *sdcmfi)
 {
-  fprintf(fp,"FileName          %s\n",sdcmfi->FileName);
-  fprintf(fp,"NumarisVer        %s\n",sdcmfi->NumarisVer);
-  fprintf(fp,"ScannerModel      %s\n",sdcmfi->ScannerModel);
-  fprintf(fp,"PatientName       %s\n",sdcmfi->PatientName);
-  fprintf(fp,"StudyDate         %s\n",sdcmfi->StudyDate);
-  fprintf(fp,"StudyTime         %s\n",sdcmfi->StudyTime);
-  fprintf(fp,"SeriesTime        %s\n",sdcmfi->SeriesTime);
-  fprintf(fp,"AcqTime           %s\n",sdcmfi->AcquisitionTime);
-  fprintf(fp,"PulseSeq          %s\n",sdcmfi->PulseSequence);
-  fprintf(fp,"Protocol          %s\n",sdcmfi->ProtocolName);
-  fprintf(fp,"PhEncDir          %s\n",sdcmfi->PhEncDir);
-  fprintf(fp,"EchoNo            %d\n",sdcmfi->EchoNo);
-  fprintf(fp,"FlipAngle         %g\n",sdcmfi->FlipAngle);
-  fprintf(fp,"EchoTime          %g\n",sdcmfi->EchoTime);
-  fprintf(fp,"InversionTime     %g\n",sdcmfi->InversionTime);
-  fprintf(fp,"RepetitionTime    %g\n",sdcmfi->RepetitionTime);
-  fprintf(fp,"PhEncFOV          %g\n",sdcmfi->PhEncFOV);
-  fprintf(fp,"ReadoutFOV        %g\n",sdcmfi->ReadoutFOV);
- 
-  fprintf(fp,"RunNo             %d\n",sdcmfi->RunNo);
-  fprintf(fp,"SeriesNo          %d\n",sdcmfi->SeriesNo);
-  fprintf(fp,"ImageNo           %d\n",sdcmfi->ImageNo);
-  fprintf(fp,"NImageRows        %d\n",sdcmfi->NImageRows);
-  fprintf(fp,"NImageCols        %d\n",sdcmfi->NImageCols);
-  fprintf(fp,"NFrames           %d\n",sdcmfi->NFrames);
-  fprintf(fp,"SliceArraylSize   %d\n",sdcmfi->SliceArraylSize);
-  fprintf(fp,"IsMosaic          %d\n",sdcmfi->IsMosaic);
+  fprintf(fp,"FileName \t\t%s\n",sdcmfi->FileName);
+  fprintf(fp,"Identification\n");
+  fprintf(fp,"\tNumarisVer        %s\n",sdcmfi->NumarisVer);
+  fprintf(fp,"\tScannerModel      %s\n",sdcmfi->ScannerModel);
+  fprintf(fp,"\tPatientName       %s\n",sdcmfi->PatientName);
+  fprintf(fp, "Date and time\n");
+  fprintf(fp,"\tStudyDate         %s\n",sdcmfi->StudyDate);
+  fprintf(fp,"\tStudyTime         %s\n",sdcmfi->StudyTime);
+  fprintf(fp,"\tSeriesTime        %s\n",sdcmfi->SeriesTime);
+  fprintf(fp,"\tAcqTime           %s\n",sdcmfi->AcquisitionTime);
+  fprintf(fp,"Acquisition parameters\n");
+  fprintf(fp,"\tPulseSeq          %s\n",sdcmfi->PulseSequence);
+  fprintf(fp,"\tProtocol          %s\n",sdcmfi->ProtocolName);
+  fprintf(fp,"\tPhEncDir          %s\n",sdcmfi->PhEncDir);
+  fprintf(fp,"\tEchoNo            %d\n",sdcmfi->EchoNo);
+  fprintf(fp,"\tFlipAngle         %g\n",sdcmfi->FlipAngle);
+  fprintf(fp,"\tEchoTime          %g\n",sdcmfi->EchoTime);
+  fprintf(fp,"\tInversionTime     %g\n",sdcmfi->InversionTime);
+  fprintf(fp,"\tRepetitionTime    %g\n",sdcmfi->RepetitionTime);
+  fprintf(fp,"\tPhEncFOV          %g\n",sdcmfi->PhEncFOV);
+  fprintf(fp,"\tReadoutFOV        %g\n",sdcmfi->ReadoutFOV);
+  fprintf(fp,"Image information\n");
+  fprintf(fp,"\tRunNo             %d\n",sdcmfi->RunNo);
+  fprintf(fp,"\tSeriesNo          %d\n",sdcmfi->SeriesNo);
+  fprintf(fp,"\tImageNo           %d\n",sdcmfi->ImageNo);
+  fprintf(fp,"\tNImageRows        %d\n",sdcmfi->NImageRows);
+  fprintf(fp,"\tNImageCols        %d\n",sdcmfi->NImageCols);
+  fprintf(fp,"\tNFrames           %d\n",sdcmfi->NFrames);
+  fprintf(fp,"\tSliceArraylSize   %d\n",sdcmfi->SliceArraylSize);
+  fprintf(fp,"\tIsMosaic          %d\n",sdcmfi->IsMosaic);
 
-  fprintf(fp,"ImgPos  %8.4f %8.4f %8.4f \n",
+  fprintf(fp,"\tImgPos            %8.4f %8.4f %8.4f \n",
     sdcmfi->ImgPos[0],sdcmfi->ImgPos[1],sdcmfi->ImgPos[2]);
 
-  fprintf(fp,"VolRes     %8.4f %8.4f %8.4f \n",sdcmfi->VolRes[0],
+  fprintf(fp,"\tVolRes            %8.4f %8.4f %8.4f \n",sdcmfi->VolRes[0],
     sdcmfi->VolRes[1],sdcmfi->VolRes[2]);
-  fprintf(fp,"VolDim     %3d %3d %3d \n",sdcmfi->VolDim[0],
+  fprintf(fp,"\tVolDim            %3d %3d %3d \n",sdcmfi->VolDim[0],
     sdcmfi->VolDim[1],sdcmfi->VolDim[2]);
-  fprintf(fp,"Vc         %8.4f %8.4f %8.4f \n",
+  fprintf(fp,"\tVc                %8.4f %8.4f %8.4f \n",
     sdcmfi->Vc[0],sdcmfi->Vc[1],sdcmfi->Vc[2]);
-  fprintf(fp,"Vr         %8.4f %8.4f %8.4f \n",
+  fprintf(fp,"\tVr                %8.4f %8.4f %8.4f \n",
     sdcmfi->Vr[0],sdcmfi->Vr[1],sdcmfi->Vr[2]);
-  fprintf(fp,"Vs         %8.4f %8.4f %8.4f \n",
+  fprintf(fp,"\tVs                %8.4f %8.4f %8.4f \n",
     sdcmfi->Vs[0],sdcmfi->Vs[1],sdcmfi->Vs[2]);
 
-  fprintf(fp,"VolCenter  %8.4f %8.4f %8.4f \n",
+  fprintf(fp,"\tVolCenter         %8.4f %8.4f %8.4f \n",
     sdcmfi->VolCenter[0],sdcmfi->VolCenter[1],sdcmfi->VolCenter[2]);
 
   return(0);
