@@ -478,6 +478,8 @@ extern float ic_z_vertices[]  ;
 #define RAW_FILE                      13
 #define SIGNA_FILE                    14
 #define DICOM_FILE                    15
+#define MRI_ANALYZE4D_FILE            16 
+
 
 
 int        MRImatch(MRI *mri1, MRI *mri2) ;
@@ -745,5 +747,12 @@ int MRIsincSampleVolume(MRI *mri, Real x, Real y, Real z, int hw, Real *pval);
 MRI *MRIsincTransform(MRI *mri_src, MRI *mri_dst, MATRIX *mA, int hw);
 int MRIlabelOverlap(MRI *mri1, MRI *mri2, int label) ;
 int MRIeraseBorderPlanes(MRI *mri) ;
+
+#ifdef _MRIIO_SRC
+  int SPM_N_Zero_Pad = -1;
+#else
+  extern int SPM_N_Zero_Pad;
+#endif
+
 
 #endif
