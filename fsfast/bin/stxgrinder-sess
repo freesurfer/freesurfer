@@ -1,7 +1,7 @@
 #!/bin/csh -f
 # stxgrinder-sess
 #
-set VERSION = '$Id: stxgrinder-sess,v 1.2 2003/03/19 01:03:48 greve Exp $';
+set VERSION = '$Id: stxgrinder-sess,v 1.3 2003/08/02 01:02:05 greve Exp $';
 set FASTVER = `cat $FMRI_ANALYSIS_DIR/docs/version`;
 
 set inputargs = ($argv);
@@ -103,6 +103,8 @@ if($#perrun != 0) then
   set analysis = $analysis$perrun;
 endif
 
+set StartDate = `date`;
+
 ## Loop through each hemi (if needed) ##
 foreach hs ($hemi)
 
@@ -111,12 +113,12 @@ foreach hs ($hemi)
 
   foreach sess ($SessList)
 
+   echo "-------------------------------------------------------"
+   echo "-------------------------------------------------------"
+   echo "Session: $sess "
 
    foreach contrast ($contrastlist)
-
-    echo "-------------------------------------------------------"
-    echo "-------------------------------------------------------"
-    echo "Session: $sess "
+    set cmtx = $analysis/$contrast.mat
 
     set sessinfo = $sess/session.info
     set IsGroup = `grep GroupAverage $sessinfo | wc -l`;
@@ -206,7 +208,8 @@ foreach hs ($hemi)
 
 end # loop over hemispheres #
 
-date | tee -a $LF
+echo "Started on $StartDate" | tee -a $LF
+echo "Ended   on `date`"     | tee -a $LF
 echo " "
 echo "stxgrinder-sess completed " | tee -a $LF
 echo " "
