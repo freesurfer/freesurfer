@@ -44,8 +44,6 @@
 #define BACKGROUND_VAL   10
 #define MAX_EXP          200
 
-int IMAGE_SIZE = DEFAULT_IMAGE_SIZE ;
-
 int MRIsampleReferenceWeightingGradient(MRI *mri, int x, int y, int z, 
                                         double *pdx, double *pdy, double *pdz);
 double MRIsampleReferenceWeighting(MRI *mri, int x, int y, int z) ;
