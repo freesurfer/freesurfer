@@ -3,7 +3,7 @@ function [vSig, pSig, ces] = fmri_stxgrinder(Test,hAvg, VoxVar, Ch, DOF, RM, q)
 % [vSig, <pSig>, <ces> ] = fmri_stxgrinder(Test, hAvg, VoxVar, Ch, DOF, RM, q)
 %
 %
-% $Id: fmri_stxgrinder.m,v 1.1 2003/03/04 20:47:40 greve Exp $
+% $Id: fmri_stxgrinder.m,v 1.2 2003/03/28 23:53:26 greve Exp $
 %
 
 
@@ -57,6 +57,7 @@ if(l0 == prod(size(VoxVar)))
   end
   pSig = ones(sz);
   vSig = zeros(sz);
+  ces =  zeros(sz);
   return;
 end
 if(l0 ~= 0)
