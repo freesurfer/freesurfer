@@ -8119,3 +8119,106 @@ ICOreadVertexPositions(MRI_SURFACE *mris, char *fname, int which)
   }
   return(NO_ERROR) ;
 }
+
+/*------------------------------------------------------------------
+  MRI_SURFACE *ReadIcoByOrder() -- loads an icosaheron given it's
+  "order".  Reads the MRI_DIR environment variable, then loads the
+  file "MRI_DIR/lib/bem/ic%d.tri" where %d is the "order".  As read in,
+  the vertices of the icosahedron are on the unit sphere. If RescaleFactor
+  is greater than zero, the coordinates of each vertex are multiplied
+  by RescaleFactor (ie, the new sphere has a radius of RescaleFactor).
+  Note: I (doug) don't know I'm using the term "order" properly.
+  I did not know what else to call this particular property.
+  -------------------------------------------------------------------*/
+MRI_SURFACE *ReadIcoByOrder(int IcoOrder, float RescaleFactor)
+{
+  char *MRI_DIR, trifile[2048];
+  MRI_SURFACE *surf;
+  VERTEX *v;
+  int vtx;
+
+  MRI_DIR = getenv("MRI_DIR") ;
+  sprintf(trifile,"%s/lib/bem/ic%d.tri",MRI_DIR,IcoOrder);
+  printf("   Reading icosahedron %s\n", trifile) ;
+  surf = ICOread(trifile);
+  if(surf == NULL){
+    fprintf(stderr,"ERROR: ReadIcoByOrder: reading icosahedron file\n");
+    return(NULL);
+  }
+
+  /* rescale xyz to something other than the unit sphere */
+  if(RescaleFactor > 0 && RescaleFactor != 1){
+    for (vtx = 0 ; vtx < surf->nvertices ; vtx++){
+      v = &surf->vertices[vtx] ;
+      v->x *= RescaleFactor; 
+      v->y *= RescaleFactor; 
+      v->z *= RescaleFactor;
+    }
+  }
+  return(surf);
+}
+/*-----------------------------------------------------------------
+  MRI_SURFACE *ReadIcoByNVtxs -- loads an icosaheron given the number
+  of vertices.  Converts the number of vertices into the "order", then
+  calls ReadIcoByOrder().
+  ------------------------------------------------------------------*/
+MRI_SURFACE *ReadIcoByNVtxs(int nIcoVtxs, float RescaleFactor)
+{
+  MRI_SURFACE *surf;
+  int IcoOrder;
+
+  IcoOrder = IcoOrderFromNVtxs(nIcoVtxs);
+  if(IcoOrder == -1) return(NULL);
+
+  surf = ReadIcoByOrder(IcoOrder,RescaleFactor);
+  return(surf);
+}
+/*-------------------------------------------------------------
+  IcoOrderFromNVtxs() - returns the "order" of the icosahedron
+  give the number of vertices in the ico. The icosahedrons are
+  stored in a file whose name is based on the order.
+  Note: I (doug) don't know I'm using the term "order" properly.
+  I did not know what else to call this particular property.
+  --------------------------------------------------------------*/
+int IcoOrderFromNVtxs(int nIcoVtxs)
+{
+  int IcoOrder = -1;
+
+  switch(nIcoVtxs){
+  case       12: IcoOrder = 0; break;
+  case       42: IcoOrder = 1; break;
+  case      162: IcoOrder = 2; break;
+  case      642: IcoOrder = 3; break;
+  case     2562: IcoOrder = 4; break;
+  case    10242: IcoOrder = 5; break;
+  case    40962: IcoOrder = 6; break;
+  case   163842: IcoOrder = 7; break;
+  }
+  if(IcoOrder == -1)
+    fprintf(stderr,"ERROR: nIcoVtxs = %d does not match an IcoOrder\n",
+      nIcoVtxs);
+  return(IcoOrder);
+}
+/*-------------------------------------------------------------
+  IcoNVtxsFromOrder() 
+  --------------------------------------------------------------*/
+int IcoNVtxsFromOrder(int IcoOrder)
+{
+  int nIcoVtxs = -1;
+
+  switch(IcoOrder){
+  case       0: nIcoVtxs =     12; break;
+  case       1: nIcoVtxs =     42; break;
+  case       2: nIcoVtxs =    162; break;
+  case       3: nIcoVtxs =    642; break;
+  case       4: nIcoVtxs =   2562; break;
+  case       5: nIcoVtxs =  10242; break;
+  case       6: nIcoVtxs =  40962; break;
+  case       7: nIcoVtxs = 163842; break;
+  }
+  if(nIcoVtxs == -1)
+    fprintf(stderr,"ERROR: IcoOrder = %d is out of range (0-7)\n",
+      IcoOrder);
+  return(nIcoVtxs);
+}
+
