@@ -403,9 +403,15 @@ MRI        *MRIfillFG(MRI *mri_src, MRI *mri_dst, int seed_x, int seed_y,
                     int seed_z, int threshold, int fill_val, int *npix) ;
                     
 
+int   MRIneighborsOn(MRI *mri, int x0, int y0, int z0, int min_val) ;
+int   MRIneighborsOff(MRI *mri, int x0, int y0, int z0, int min_val) ;
+
 /* constants used in mri_dir of MRIoffsetDirection and for MRIminmax filter */
 #define OFFSET_NEGATIVE_GRADIENT_DIRECTION    0
 #define OFFSET_GRADIENT_DIRECTION             1
 #define OFFSET_ZERO                           2
+
+/* anything below this is not white matter */
+#define WM_MIN_VAL                       2 
 
 #endif
