@@ -16,6 +16,8 @@ int main(int argc, char *argv[]) ;
 static int get_option(int argc, char *argv[]) ;
 static void  usage_exit(void) ;
 
+static int conform = 0 ;
+
 char *Progname ;
 
 static MRI_NORM_INFO  mni ;
@@ -73,8 +75,12 @@ main(int argc, char *argv[])
   if (!mri_src)
     ErrorExit(ERROR_NO_FILE, "%s: could not open source file %s", 
               Progname, in_fname) ;
+#if 0
   if ((mri_src->type != MRI_UCHAR) ||
       (!(mri_src->xsize == 1 && mri_src->ysize == 1 && mri_src->zsize == 1)))
+#else
+    if (conform || mri_src->type != MRI_UCHAR)
+#endif
   {
     MRI  *mri_tmp ;
 
@@ -111,7 +117,8 @@ main(int argc, char *argv[])
   {
     fprintf(stderr, "3d normalization pass %d of %d\n", n+1, num_3d_iter) ;
     MRI3dNormalize(mri_dst, NULL, DEFAULT_DESIRED_WHITE_MATTER_VALUE, mri_dst,
-                   intensity_above, intensity_below);
+                   intensity_above, intensity_below,
+                   control_point_fname != NULL && !n && no1d);
   }
 
   if (verbose)
@@ -143,6 +150,11 @@ get_option(int argc, char *argv[])
   {
     no1d = 1 ;
     fprintf(stderr, "disabling 1d normalization...\n") ;
+  }
+  else if (!stricmp(option, "conform"))
+  {
+    conform = 1 ;
+    fprintf(stderr, "interpolating and embedding volume to be 256^3...\n") ;
   }
   else switch (toupper(*option))
   {
