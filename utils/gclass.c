@@ -19,7 +19,6 @@
 #include "matrix.h"
 #include "diag.h"
 #include "error.h"
-#include "const.h"
 #include "gclass.h"
 
 /*-----------------------------------------------------
@@ -127,7 +126,7 @@ GCtrain(GCLASSIFY *gc, int class, MATRIX *m_inputs)
   m_tmp = MatrixMultiply(m_sigma_inverse, gcl->m_u, NULL) ;
   m_tmp2 = MatrixMultiply(m_uT, m_tmp, NULL) ;
   det = MatrixDeterminant(m_sigma_inverse) ;
-  gcl->w0 = -0.5*(gc->nvars * log(2*PI) + m_tmp2->rptr[1][1] + log(det)) ;
+  gcl->w0 = -0.5*(gc->nvars * log(2*M_PI) + m_tmp2->rptr[1][1] + log(det)) ;
 
 #if 0
 fprintf(stdout, "\nclass %d:\n", class) ;
