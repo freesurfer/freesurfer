@@ -168,6 +168,10 @@ is_signa(char *fname)
   return(header.x > 2 && header.x < 1024*10 &&
          header.y > 2 && header.y < 1024*10 &&
          header.tr > 0 && header.tr < 1000000 &&
+         header.fov > .0002 && header.fov < 300 &&
+         (fabs(header.strtx) + fabs(header.endx) > .000001) &&
+         (fabs(header.strtz) + fabs(header.endy) > .000001) &&
+         (fabs(header.strty) + fabs(header.endz) > .000001) &&
          fabs(header.ti) < 100000 && fabs(header.te) < 10000) ;
 }
 
@@ -191,6 +195,12 @@ signaRead(char *fname, int read_volume_flag)
                     fname, HLENGTH)) ;
   get_signa_header_info((char *)&h, &header) ;
 
+  if (header.imnr1 < 0)
+  {
+    fprintf(stderr, "WARNING: # of slices=%d in header - assuming 124...\n",
+            header.imnr1) ;
+    header.imnr1 = 124 ;
+  }
   mri = MRIalloc(header.x, header.y, header.imnr1-header.imnr0+1, MRI_SHORT) ;
   if (!mri)
     ErrorReturn(NULL, (ERROR_NOMEMORY, 
@@ -220,7 +230,7 @@ signaRead(char *fname, int read_volume_flag)
                       fname)) ;
 
     fseek(fp, HLENGTH, SEEK_SET) ;
-    ret = fread(&MRISvox(mri, 0, 0, i-mri->imnr0),
+    fread(&MRISvox(mri, 0, 0, i-mri->imnr0),
           sizeof(short),mri->width*mri->height,fp);
     orderShortBuffer(&MRISvox(mri,0,0,i-mri->imnr0),mri->width*mri->height) ;
     fclose(fp) ;
