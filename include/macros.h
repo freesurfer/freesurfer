@@ -63,11 +63,11 @@
 #define ISTINY(f)    (fabs(f) < 0.00000001f)
 
 #define FZERO(f)     (fabs(f) < 0.0000001F)
-#define iszero(f)   (FZERO(f))
 #define DZERO(d)     (fabs(d) < 1e-15)
+#define iszero(f)   (FZERO(f))
+#define FEQUAL(f1,f2) (FZERO(f1-f2))
 
 #define ISINT(f)      ((float)((int)f) == f)
-#define FEQUAL(f1,f2) (FZERO(f1-f2))
 
 #ifndef SQR
 #define SQR(a)   ((a)*(a))
