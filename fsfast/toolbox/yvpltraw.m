@@ -53,10 +53,10 @@ switch(cbflag)
     ud.fsd = dirname(ud.anadir);
     ud = set_stem(ud);
     [ud err] = set_matrices(ud);
-    ud.c = round(ud.ncols/2);
-    ud.r = round(ud.nrows/2);
-    ud.s = round(ud.nslices/2);
     ud.base = 0;
+    ud.c = floor(ud.ncols/2) + ud.base;
+    ud.r = floor(ud.nrows/2) + ud.base;
+    ud.s = floor(ud.nslices/2) + ud.base;
     ud.showpar = 0; % show partial model fit
     ud.showyhat = 1;
     ud.showraw = 1;
@@ -356,8 +356,8 @@ function [ud, err] = load_voxel(ud)
   err = 0;
   v = fast_ldbvoxel(ud.stem,ud.c,ud.r,ud.s,ud.base);
   if(isempty(v))
-    fprintf('ERROR: yvpltraw: loading voxel %d %d %d\n',...
-	   ud.c,ud.r,ud.s);
+    fprintf('ERROR: yvpltraw: loading voxel %d %d %d (base=%d)\n',...
+	   ud.c,ud.r,ud.s,ud.base);
     err = 1;
     return;
   end
