@@ -4,9 +4,8 @@
 
 #include "error.h"
 #include "sig.h"
+#include "diag.h"
 #include "proto.h"
-
-
 
 #define ITMAX 100
 #define EPS 3.0e-7
@@ -18,7 +17,9 @@ float betacf(float a, float b, float x)
   float az=1.0,am=1.0,ap,app,aold;
   int m;
   float amax = 0.0, bmax = 0.0 ;
-  
+
+  if (!finite(a) || !finite(b) || !finite(x))
+    DiagBreak() ;
   if (a > amax) amax = a;
   if (b > bmax) bmax = b;
   qab=a+b;
