@@ -485,6 +485,8 @@ LabelRipRestOfSurface(LABEL *area, MRI_SURFACE *mris)
   for (n = 0 ; n < area->n_points ; n++)
   {
     vno = area->lv[n].vno ;
+		if (vno < 0 || vno >= mris->nvertices)
+			continue ;
     v = &mris->vertices[vno] ;
     v->ripflag = 0 ;
   }

@@ -3,8 +3,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2004/09/16 19:11:41 $
-// Revision       : $Revision: 1.153 $
+// Revision Date  : $Date: 2004/10/27 20:33:10 $
+// Revision       : $Revision: 1.154 $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -5761,7 +5761,7 @@ GCAreclassifyUsingGibbsPriors(MRI *mri_inputs, GCA *gca, MRI *mri_dst,TRANSFORM 
       if (gca_write_iterations)
       {
         char fname[STRLEN] ;
-        sprintf(fname, "%s%03d.mgh", gca_write_fname, iter) ;
+        sprintf(fname, "%s%03d.mgz", gca_write_fname, iter) ;
         printf("writing snapshot to %s...\n", fname) ;
         MRIwrite(mri_dst, fname) ;
       }
@@ -5965,7 +5965,7 @@ GCAreclassifyUsingGibbsPriors(MRI *mri_inputs, GCA *gca, MRI *mri_dst,TRANSFORM 
         char fname[STRLEN] ;
         static int fno = 0 ;
 
-        sprintf(fname, "%s%03d.mgh", gca_write_fname, fno+1) ; fno++ ;
+        sprintf(fname, "%s%03d.mgz", gca_write_fname, fno+1) ; fno++ ;
         printf("writing snapshot to %s...\n", fname) ;
         MRIwrite(mri_dst, fname) ;
       }
@@ -5973,7 +5973,7 @@ GCAreclassifyUsingGibbsPriors(MRI *mri_inputs, GCA *gca, MRI *mri_dst,TRANSFORM 
     if ((gca_write_iterations > 0) && !(iter % gca_write_iterations))
     {
       char fname[STRLEN] ;
-      sprintf(fname, "%s%03d.mgh", gca_write_fname, iter+1) ;
+      sprintf(fname, "%s%03d.mgz", gca_write_fname, iter+1) ;
       printf("writing snapshot to %s...\n", fname) ;
       MRIwrite(mri_dst, fname) ;
     }
@@ -7437,7 +7437,7 @@ GCAnormalizeSamples(MRI *mri_in, GCA *gca, GCA_SAMPLE *gcas, int nsamples,
   printf("%d of %d control points discarded\n", num, total) ;
 
   MRIbuildVoronoiDiagram(mri_bias, mri_ctrl, mri_bias) ;
-  /*  MRIwrite(mri_bias, "bias.mgh") ;*/
+  /*  MRIwrite(mri_bias, "bias.mgz") ;*/
 #if 1
   {
     MRI *mri_kernel, *mri_smooth, *mri_down ;
@@ -7456,7 +7456,7 @@ GCAnormalizeSamples(MRI *mri_in, GCA *gca, GCA_SAMPLE *gcas, int nsamples,
 #else
   MRIsoapBubble(mri_bias, mri_ctrl, mri_bias, 10) ;
 #endif
-  /*  MRIwrite(mri_bias, "smooth_bias.mgh") ;*/
+  /*  MRIwrite(mri_bias, "smooth_bias.mgz") ;*/
 
 
   width = mri_in->width ; height = mri_in->height ; depth = mri_in->depth ;
@@ -7690,7 +7690,7 @@ GCAnormalizeSamplesT1PD(MRI *mri_in, GCA *gca, GCA_SAMPLE *gcas, int nsamples,
   printf("%d of %d control points discarded\n", num, total) ;
 
   MRIbuildVoronoiDiagram(mri_bias, mri_ctrl, mri_bias) ;
-  /*  MRIwrite(mri_bias, "bias.mgh") ;*/
+  /*  MRIwrite(mri_bias, "bias.mgz") ;*/
 #if 0
   {
     MRI *mri_kernel, *mri_smooth ;
@@ -7702,7 +7702,7 @@ GCAnormalizeSamplesT1PD(MRI *mri_in, GCA *gca, GCA_SAMPLE *gcas, int nsamples,
 #else
   MRIsoapBubble(mri_bias, mri_ctrl, mri_bias, 10) ;
 #endif
-  /*  MRIwrite(mri_bias, "smooth_bias.mgh") ;*/
+  /*  MRIwrite(mri_bias, "smooth_bias.mgz") ;*/
 
 
   width = mri_in->width ; height = mri_in->height ; depth = mri_in->depth ;
@@ -9215,7 +9215,7 @@ GCArenormalizeLabels(MRI *mri_in, MRI *mri_labeled, GCA *gca, TRANSFORM *transfo
     GCAlabelMri(gca, mri_means, label, transform) ;
     if (DIAG_VERBOSE_ON && Gdiag & DIAG_WRITE)
     {
-      sprintf(fname, "%s_label.mgh", cma_label_to_name(label)) ;
+      sprintf(fname, "%s_label.mgz", cma_label_to_name(label)) ;
       MRIwrite(mri_means, fname) ;
     }
 
@@ -9289,7 +9289,7 @@ GCArenormalizeLabels(MRI *mri_in, MRI *mri_labeled, GCA *gca, TRANSFORM *transfo
 
     if (DIAG_VERBOSE_ON && Gdiag & DIAG_WRITE)
     {
-      sprintf(fname, "%s_means.mgh", cma_label_to_name(label)) ;
+      sprintf(fname, "%s_means.mgz", cma_label_to_name(label)) ;
       MRIwrite(mri_means, fname) ;
     }
 
@@ -9307,10 +9307,10 @@ GCArenormalizeLabels(MRI *mri_in, MRI *mri_labeled, GCA *gca, TRANSFORM *transfo
     
     if (DIAG_VERBOSE_ON && Gdiag & DIAG_WRITE)
     {
-      sprintf(fname, "%s_soap.mgh", cma_label_to_name(label)) ;
+      sprintf(fname, "%s_soap.mgz", cma_label_to_name(label)) ;
       MRIwrite(mri_means, fname) ;
 
-      sprintf(fname, "%s_control.mgh", cma_label_to_name(label)) ;
+      sprintf(fname, "%s_control.mgz", cma_label_to_name(label)) ;
       MRIwrite(mri_control, fname) ;
     }
 

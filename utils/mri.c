@@ -9,9 +9,9 @@
  */
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2004/06/28 20:44:37 $
-// Revision       : $Revision: 1.277 $
-char *MRI_C_VERSION = "$Revision: 1.277 $";
+// Revision Date  : $Date: 2004/10/27 20:33:11 $
+// Revision       : $Revision: 1.278 $
+char *MRI_C_VERSION = "$Revision: 1.278 $";
 
 /*-----------------------------------------------------
   INCLUDE FILES
@@ -3275,10 +3275,10 @@ MRIthresholdRangeInto(MRI *mri_src,MRI *mri_dst,BUFTYPE low_val,BUFTYPE hi_val)
   threshold an MRI.
   ------------------------------------------------------*/
 MRI *
-MRIthreshold(MRI *mri_src, MRI *mri_dst, BUFTYPE threshold)
+MRIthreshold(MRI *mri_src, MRI *mri_dst, float threshold)
 {
   int     width, height, depth, x, y, z ;
-  BUFTYPE *psrc, *pdst, val ;
+  float   val ;
 
   if (!mri_dst)
     mri_dst = MRIclone(mri_src, NULL) ;
@@ -3291,14 +3291,12 @@ MRIthreshold(MRI *mri_src, MRI *mri_dst, BUFTYPE threshold)
   {
     for (y = 0 ; y < height ; y++)
     {
-      psrc = &MRIvox(mri_src, 0, y, z) ;
-      pdst = &MRIvox(mri_dst, 0, y, z) ;
       for (x = 0 ; x < width ; x++)
       {
-        val = *psrc++ ;
+        val = MRIgetVoxVal(mri_src, x, y, z, 0) ;
         if (val < threshold)
           val = 0 ;
-        *pdst++ = val ;
+				MRIsetVoxVal(mri_dst, x, y, z, 0, val) ;
       }
     }
   }

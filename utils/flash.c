@@ -322,3 +322,20 @@ lookup_flash_value(double TR, double flip_angle, double PD, double T1)
   FLASH = PD*flt->flash[index] ;
   return(FLASH) ;
 }
+double 
+FLASHforwardModelT2star(double T1, double PD, double T2star, double TR, double flip_angle, double TE)
+{
+  double FLASH, E1 ;
+  double  CFA, SFA ;
+
+
+  CFA = cos(flip_angle) ; SFA = sin(flip_angle) ;
+  E1 = exp(-TR/T1) ;
+      
+  FLASH = PD * SFA ;
+  if (!DZERO(T1))
+    FLASH *= (1-E1)/(1-CFA*E1);
+	if (!DZERO(T2star))
+		FLASH *= exp(-TE/T2star) ;
+  return(FLASH) ;
+}

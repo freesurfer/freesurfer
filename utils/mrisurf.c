@@ -3,9 +3,9 @@
 // written by Bruce Fischl
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: segonne $
-// Revision Date  : $Date: 2004/10/26 23:08:12 $
-// Revision       : $Revision: 1.302 $
+// Revision Author: $Author: fischl $
+// Revision Date  : $Date: 2004/10/27 20:33:11 $
+// Revision       : $Revision: 1.303 $
 //////////////////////////////////////////////////////////////////
 #include <stdio.h>
 #include <string.h>
@@ -120,6 +120,10 @@ typedef struct
 #define F_CROSS(a,b,d) (d[0]=a[1]*b[2]-b[1]*a[2],\
                        d[1]=a[2]*b[0]-b[2]*a[0],\
                        d[2]=a[0]*b[1]-b[0]*a[1])
+#ifdef SIGN
+#undef SIGN  /* get rid of silly NRC version */
+#endif
+
 #ifndef SIGN
 #define SIGN(x) (((x)>0)? 1.0 : -1.0 )
 #endif
@@ -25540,21 +25544,21 @@ mrisFindAllOverlappingFaces(MRI_SURFACE *mris, MHT *mht,int fno, int *flist)
     for (y = y0 ; y <= y1 ; y += 0.5)
       for (z = z0 ; z <= z1 ; z += 0.5)
       {
-	bucket = MHTgetBucket(mht, x, y, z) ;
-	if (!bucket || bucket == last_bucket)
-	  continue ;
-	last_bucket = bucket ;
-	for (bin = bucket->bins, i = 0 ; i < bucket->nused ; i++, bin++)
-	{
-	  f2 = &mris->faces[bin->fno] ;
-	  if (!f2->ripflag)  /* only add it once */
-	  {
-	    if (nfaces == 100000)
-	      ErrorExit(ERROR_BADPARM, "Too many faces");
-	    all_faces[nfaces++] = bin->fno ;
-	    f2->ripflag = 1 ;
-	  }
-	}
+				bucket = MHTgetBucket(mht, x, y, z) ;
+				if (!bucket || bucket == last_bucket)
+					continue ;
+				last_bucket = bucket ;
+				for (bin = bucket->bins, i = 0 ; i < bucket->nused ; i++, bin++)
+				{
+					f2 = &mris->faces[bin->fno] ;
+					if (!f2->ripflag)  /* only add it once */
+					{
+						if (nfaces == 100000)
+							ErrorExit(ERROR_BADPARM, "Too many faces");
+						all_faces[nfaces++] = bin->fno ;
+						f2->ripflag = 1 ;
+					}
+				}
       }
   for (i = 0 ; i < nfaces ; i++)     /* reset ripflag */
     mris->faces[all_faces[i]].ripflag = 0 ;
@@ -25584,8 +25588,9 @@ mrisFindAllOverlappingFaces(MRI_SURFACE *mris, MHT *mht,int fno, int *flist)
         if (edgesIntersect(mris, &edge1, &edge2))
         {
           f2->ripflag = 1 ;  /* use ripflag as a mark */
-	  if (total_found==1000)
-	    ErrorExit(ERROR_BADPARM, "Too many intersected faces");
+					if (total_found==1000)
+						ErrorExit(ERROR_BADPARM, "Too many intersected faces for face %d (%d, %d, %d)",
+											fno, f1->v[0], f1->v[1], f1->v[2]);
           flist[total_found++] = all_faces[i] ;
         }
       }
