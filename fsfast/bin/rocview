@@ -1,9 +1,9 @@
 #!/bin/csh -f
 # rocview
 #
-# $Id: rocview,v 1.4 2003/04/21 01:38:43 greve Exp $
+# $Id: rocview,v 1.5 2003/04/22 05:40:01 greve Exp $
 
-set VERSION = '$Id: rocview,v 1.4 2003/04/21 01:38:43 greve Exp $';
+set VERSION = '$Id: rocview,v 1.5 2003/04/22 05:40:01 greve Exp $';
 set inputargs = ($argv);
 
 set fprvolid = ();
@@ -134,7 +134,7 @@ if(~isempty(fprvolid))
     end
     if(size(maskvolid,1) > 1)
       nthmaskvolid = deblank(maskvolid(nth,:));
-      if(fmtimg) maskvol = fast_ldanalyze(maskvolid);
+      if(fmtimg) maskvol = fast_ldanalyze(nthmaskvolid);
       else       maskvol = fmri_ldbvolume(nthmaskvolid);
       end
       if(isempty(maskvol)) return; end
@@ -175,6 +175,7 @@ if(~isempty(fprvolid))
 
   [pdf alpha nx fpr ] = ComputePDF(reshape1d(fprvol),alphamin,alphamax,deltap);
   %[fpr alpha] = ComputeFPR(reshape1d(fprvol),deltap);
+  clear fprvol;
 
   if(~isempty(outfile))
     fid = fopen(outfile,'w');
