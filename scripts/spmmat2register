@@ -1,7 +1,8 @@
 #!/bin/csh -f
 
-set SPMMAT2REGISTER_VER = '$Id: spmmat2register,v 1.4 1999/10/23 00:52:15 greve Exp $';
+set SPMMAT2REGISTER_VER = '$Id: spmmat2register,v 1.5 1999/11/16 00:17:59 greve Exp $';
 
+set OutStream = /dev/null;
 set funcvol   = ();
 set structvol = ();
 set regfile = "register.dat"
@@ -11,6 +12,7 @@ set target = "spm";
 set frows = 256;
 set fcols = 256;
 set fslices = 20;
+set SlcOrient = "RAS";
 
 if($#argv == 0) goto usage_exit;
 
@@ -53,7 +55,9 @@ else
   set TARGET = "matlab -display iconic "
 endif 
 
-$TARGET > /dev/null <<EOF
+$TARGET > $OutStream <<EOF
+
+  SlcOrient = '$SlcOrient';
 
   if($UseStructMat) 
     load ('$structmatfile');
@@ -98,18 +102,23 @@ $TARGET > /dev/null <<EOF
     W = Mforig*inv(Mf);
   end
 
-  % Cor to Axial, with y flip %
+  % Cor to Axial %
   Rac = zeros(4,4);
-  Rac(1,1) =  1;
-  Rac(4,4) =  1;
-  Rac(2,3) = -1;
+  if(strcmp(SlcOrient,'RAS'))
+    Rac(1,1) =  1;
+  else
+    Rac(1,1) = -1;
+  end
+  Rac(2,3) =  1; 
   Rac(3,2) =  1;
+  Rac(4,4) =  1;
 
   Mreg = W*Ma*inv(Qa)*Rac;
 
-  offset = Mreg(:,4);
-  newoffset = Rac'*offset;
-  Mreg(:,4) = newoffset;
+  % I dont see why this is necessary %
+  % offset = Mreg(:,4);
+  % newoffset = Rac'*offset; %'
+  % Mreg(:,4) = newoffset;
 
   SubjName = '$subject';
   fid = fopen('$regfile','w');
@@ -198,6 +207,20 @@ while( $#argv != 0 )
       set subject = $argv[1]; shift;
       breaksw
 
+    case "-LAS":
+    case "-las":
+      set SlcOrient = "LAS";
+      breaksw
+
+    case "-debug":
+      set verbose = 1;
+      set OutStream = /dev/stdout;
+      breaksw
+
+    case "-verbose":
+      set OutStream = /dev/stdout;
+      breaksw
+
     case "-monly":
       if ( $#argv == 0) goto arg1err;
       set mfile = $argv[1]; shift;
@@ -252,6 +275,7 @@ usage_exit:
   echo "   -svol    structural volume     required"
   echo "   -fvol    functional volume     required"
   echo "   -subject subject name          required"
+  echo "   -LAS     Left/Ant/Sup          RAS"
   echo "   -o       output register file  register.dat"
   echo "   -target  spm | mgh             spm";
   echo "   -frows   number of func rows (with target mgh)"
