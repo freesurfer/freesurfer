@@ -14,7 +14,7 @@
 #include "macros.h"
 #include "utils.h"
 
-static char vcid[] = "$Id: mris_flatten.c,v 1.8 1998/01/08 22:34:05 fischl Exp $";
+static char vcid[] = "$Id: mris_flatten.c,v 1.9 1998/02/06 22:55:47 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -371,8 +371,7 @@ static void
 print_usage(void)
 {
   fprintf(stderr, 
-          "usage: %s [options] <surface file> <patch file name> <output patch>"
-          "\n", Progname) ;
+          "usage: %s [options] <input patch> <output patch>\n", Progname) ;
 }
 
 static void
@@ -380,7 +379,7 @@ print_help(void)
 {
   print_usage() ;
   fprintf(stderr, 
-       "\nThis program will add a template into an average surface.\n");
+       "\nThis program will flatten a surface patch\n");
   fprintf(stderr, "\nvalid options are:\n\n") ;
   exit(1) ;
 }
