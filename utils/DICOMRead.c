@@ -2,7 +2,7 @@
    DICOM 3.0 reading functions
    Author: Sebastien Gicquel and Douglas Greve
    Date: 06/04/2001
-   $Id: DICOMRead.c,v 1.33 2003/07/17 20:00:34 tosa Exp $
+   $Id: DICOMRead.c,v 1.34 2003/07/22 19:37:22 kteich Exp $
 *******************************************************/
 
 #include <stdio.h>
@@ -609,7 +609,7 @@ int dcmGetVolRes(char *dcmfile, float *ColRes, float *RowRes, float *SliceRes)
   char *s;
   int ns,n;
   int slash_not_found;
-  int tag_not_found;
+  int tag_not_found = 0;
 
   /* Load the Pixel Spacing - this is a string of the form:
      ColRes\RowRes   */
