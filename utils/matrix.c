@@ -2380,3 +2380,17 @@ MatrixReshape(MATRIX *m_src, MATRIX *m_dst, int rows, int cols)
 }
 
 
+/*------------------------------------------------------------*/
+float MatrixTrace(MATRIX *M)
+{
+  int n, nmax;
+  float trace;
+  
+  if(M->rows >= M->cols) nmax = M->cols;
+  else                   nmax = M->rows;
+
+  trace = 0.0;
+  for(n=1; n <= nmax; n++) trace += M->rptr[n][n];
+
+  return(trace);
+}

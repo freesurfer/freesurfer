@@ -175,6 +175,7 @@ MATRIX *MatrixAllocTranslation(int n, double *trans) ;
 #define MatrixClone(mat)   MatrixCopy(mat, NULL)
 #define VectorClone        MatrixClone
 
+float MatrixTrace(MATRIX *M);
 
 
 #endif
