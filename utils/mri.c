@@ -8,10 +8,10 @@
  *
 */
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: ch $
-// Revision Date  : $Date: 2004/01/08 21:33:01 $
-// Revision       : $Revision: 1.251 $
-char *MRI_C_VERSION = "$Revision: 1.251 $";
+// Revision Author: $Author: ebeth $
+// Revision Date  : $Date: 2004/01/23 22:31:04 $
+// Revision       : $Revision: 1.252 $
+char *MRI_C_VERSION = "$Revision: 1.252 $";
 
 /*-----------------------------------------------------
                     INCLUDE FILES
@@ -7786,21 +7786,21 @@ MRIsincSampleVolume(MRI *mri, Real x, Real y, Real z, int hw, Real *pval)
 	   jx1<IMIN(ix_low+nwidth,width-1); 
 	   jx1++,jx_rel++)
 	{
-	  coeff_x[jx_rel] = ham_sinc((double)(x-jx1)*xsize,2*xsize*nwidth);
+	  coeff_x[jx_rel] = ham_sinc((double)(x-jx1),2*nwidth);
 	  coeff_x_sum += coeff_x[jx_rel];
 	}
       for (jy1=IMAX(iy_high-nwidth,0), jy_rel=0;
 	   jy1<IMIN(iy_low+nwidth,height-1); 
 	   jy1++,jy_rel++)
 	{
-	  coeff_y[jy_rel] = ham_sinc((double)(y-jy1)*ysize,2*nwidth*ysize);
+	  coeff_y[jy_rel] = ham_sinc((double)(y-jy1),2*nwidth);
 	  coeff_y_sum += coeff_y[jy_rel];
 	}
       for (jz1=IMAX(iz_high-nwidth,0), jz_rel=0;
 	   jz1<IMIN(iz_low+nwidth,depth-1); 
 	   jz1++,jz_rel++)
 	{
-	  coeff_z[jz_rel] = ham_sinc((double)(z-jz1)*zsize,2*nwidth*zsize);
+	  coeff_z[jz_rel] = ham_sinc((double)(z-jz1),2*nwidth);
 	  coeff_z_sum += coeff_z[jz_rel];
 	}
       
