@@ -452,6 +452,8 @@ int          MRISwriteValues(MRI_SURFACE *mris, char *fname) ;
 int          MRISwriteCurvatureToWFile(MRI_SURFACE *mris, char *fname) ;
 int          MRISwriteTriangleProperties(MRI_SURFACE *mris, char *mris_fname);
 int          MRISaverageCurvatures(MRI_SURFACE *mris, int navgs) ;
+int          MRISminFilterCurvatures(MRI_SURFACE *mris, int niter) ;
+int          MRISmaxFilterCurvatures(MRI_SURFACE *mris, int niter) ;
 int          MRISaverageMarkedCurvatures(MRI_SURFACE *mris, int navgs) ;
 double       MRIScomputeAverageCurvature(MRI_SURFACE *mris, double *psigma) ;
 int          MRISaverageVertexPositions(MRI_SURFACE *mris, int navgs) ;
