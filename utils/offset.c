@@ -1127,7 +1127,7 @@ IMAGE *
 ImageOffsetMagnitude(IMAGE *Isrc, IMAGE *Idst, int maxsteps)
 {
   int  rows, cols, x, y, ax, ay, sx, sy, x1, y1, dx, dy, odx, ody, d, xn, yn,
-       steps, dot, xold, yold ;
+       steps, dot = 0, xold, yold ;
   float *src_xpix, *src_ypix, *dst_xpix, *dst_ypix, *oxpix, *oypix ;
 
   if (!Idst)
