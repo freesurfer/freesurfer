@@ -1,0 +1,447 @@
+#!/bin/csh -f
+# mris_glm-sess
+#
+
+set VERSION = '$Id: mris_glm-sess,v 1.1 2004/08/25 03:07:34 greve Exp $';
+set fsgdf = ();
+set analysis = ();
+set contrast = ();
+set map = "ces";
+set hemi = ();
+set PrintHelp = 0;
+set mris_glm_args = ();
+set frame = 0;
+set projfrac = 0.5;
+set ForcePaint = 1;
+
+set cmdargs = ($argv);
+
+if($#argv == 0)  goto usage_exit;
+set n = `echo $argv | grep -e -help | wc -l` 
+if($n != 0) then
+  set PrintHelp = 1;
+  goto usage_exit;
+  exit 1;
+endif
+
+set SessList = `getsesspath $argv`;
+if($status || $#SessList == 0) then
+  getsesspath $argv 
+  exit 1;
+endif
+
+goto parse_args;
+parse_args_return:
+
+goto check_params;
+check_params_return:
+
+set cfgfile  = $analysis/analysis.cfg
+set infofile = $analysis/analysis.info
+if(! -e $infofile) then
+  echo "ERROR: cannot find $infofile"
+  exit 1;
+endif
+
+## Get parameters from the info file ##
+set fsd = `cat $infofile | awk '{if($1 == "fsd") print $2}'`;
+
+set LF = log/mris_glm-$analysis-$contrast.log
+if(-e $LF) mv $LF $LF.bak
+
+date | tee -a $LF
+pwd  | tee -a $LF
+echo $0  | tee -a $LF
+echo $cmdargs | tee -a $LF
+echo $VERSION | tee -a $LF
+hostname  | tee -a $LF
+
+#------------------------------------------------------------------#
+set StartTime = `date`;
+set subjlist = ();
+set wlist = ();
+foreach sess ($SessList)
+  set sessid = `basename $sess`;
+
+  set snfile = $sess/subjectname
+  if(! -e $snfile) then
+    echo "ERROR: cannot find $snfile" | tee -a $LF
+    exit 1;
+  endif
+  set subject = `cat $snfile`;
+
+  ### Check that the target directory is there ###
+  set condir = $sess/$fsd/$analysis/$contrast
+  if(! -d $condir) then
+    echo "ERROR: $condir does not exist"   | tee -a $LF
+    exit 1;
+  endif
+
+  # Check that the map is there
+  set mapstem = $condir/$map
+  set map0 = $mapstem"_000.bfloat"
+  if(! -e $map0) then
+    echo "ERROR: cannot find $map0" | tee -a $LF
+    exit 1;
+  endif
+
+  set mapw = $condir/$map-$frame-$hemi.w
+  if(! -e $mapw || $ForcePaint) then
+    echo "INFO: painting ..." | tee -a $LF
+    set cmd = (mri_vol2surf --src $mapstem --src_type bfloat)
+    set cmd = ($cmd --srcreg $sess/$fsd/register.dat --hemi $hemi)
+    set cmd = ($cmd --projfrac $projfrac --frame $frame)
+    set cmd = ($cmd --out $mapw --out_type paint)
+    echo "------------------------------------" | tee -a $LF
+    pwd | tee -a $LF
+    echo $cmd | tee -a $LF
+    $cmd | tee -a $LF
+    if($status) then
+      echo "ERROR: mri_vol2surf"| tee -a $LF
+      exit 1;
+    endif
+  endif
+  set subjlist = ($subjlist $subject)
+  set wlist = ($wlist --i $mapw)
+
+end # Loop over sessions #
+
+# Get the list of subjects from the FSGD file
+set fssubjlist = `cat $fsgdf | awk '{if($1 == "Input") print $2}'`
+
+# Compare the FSGD file to the session list
+if($#subjlist != $#fssubjlist) then
+  echo "ERROR: number of fsgdf inputs does not equal number of sessions"| tee -a $LF
+  exit 1;
+endif
+
+@ n = 1;
+foreach s ($subjlist)
+  if($s != $fssubjlist[$n]) then
+    echo "ERROR: fsgdf subject list is not the same as session list"| tee -a $LF
+    exit 1;
+  endif
+  @ n = $n + 1;
+end
+
+# OK, now construct the mris_glm command-line
+set cmd = (mris_glm --allowsubjrep)
+set cmd = ($cmd --fsgd $fsgdf --hemi $hemi)
+set cmd = ($cmd $wlist --ifmt paint)
+set cmd = ($cmd $mris_glm_args)
+echo "--------------------------------------"| tee -a $LF
+pwd | tee -a $LF
+echo $cmd | tee -a $LF
+$cmd | tee -a $LF
+if($status) then
+  echo "ERROR: mris_glm"| tee -a $LF
+  exit 1;
+endif
+
+echo ""
+echo "Started at $StartTime" | tee -a $LF
+echo "Ended   at `date`"     | tee -a $LF
+echo "mris_glm-sess Done"    | tee -a $LF
+echo ""
+
+exit 0;
+###############################################
+
+
+############--------------##################
+parse_args:
+set cmdline = "$argv";
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "-analysis":
+    case "-a":
+      if ( $#argv == 0) goto arg1err;
+      set analysis = $argv[1]; shift;
+      breaksw
+
+    case "-contrast":
+    case "-c":
+      if ( $#argv == 0) goto arg1err;
+      set contrast = $argv[1]; shift;
+      breaksw
+
+    case "-map":
+    case "-m":
+      if ( $#argv == 0) goto arg1err;
+      set map = $argv[1]; shift;
+      breaksw
+
+    case "-frame":
+    case "--frame":
+      if ( $#argv == 0) goto arg1err;
+      set frame = $argv[1]; shift;
+      breaksw
+
+    case "-projfrac":
+      if ( $#argv == 0) goto arg1err;
+      set projfrac = $argv[1]; shift;
+      breaksw
+
+    case "-fsgd":
+    case "--fsgd":
+      if ( $#argv == 0) goto arg1err;
+      set fsgdf = $argv[1]; shift;
+      breaksw
+
+    case "-hemi":
+    case "--hemi":
+      if ( $#argv == 0) goto arg1err;
+      set hemi = $argv[1]; shift;
+      breaksw
+
+    case "-force-paint":
+    case "-forcepaint":
+      set ForcePaint = 1;
+      breaksw
+
+    case "-no-force-paint":
+      set ForcePaint = 0;
+      breaksw
+
+    case "--meas":
+    case "--design":
+    case "--beta_in":
+    case "--var_in":
+      echo "ERROR: cannot use mris_glm $flag flag with mris_glm-sess"
+      exit 1;
+      breaksw
+
+    case "-g":
+    case "-s":
+    case "-sf":
+    case "-d":
+    case "-df":
+      shift;
+      # ignore getsesspath arguments 
+      breaksw
+
+    case "-cwd":
+      # ignore getsesspath arguments 
+      breaksw
+
+    case "-umask":
+      if ( $#argv == 0) goto arg1err;
+      setenv MRI_UMASK $1; shift;
+      breaksw
+
+    case "-debug":
+      set verbose = 1;
+      set echo = 1; # turns on terminal echoing
+      breaksw
+
+    default:
+      set mris_glm_args = ($mris_glm_args $flag);
+      breaksw
+  endsw
+
+end
+
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+
+if($#analysis == 0) then
+  echo "ERROR: must spec analysis"
+  exit 1;
+endif
+
+if($#contrast == 0) then
+  echo "ERROR: must spec contrast"
+  exit 1;
+endif
+
+if($#hemi == 0) then
+  echo "ERROR: must spec hemi"
+  exit 1;
+endif
+
+if($#fsgdf == 0) then
+  echo "ERROR: must spec fsgdf"
+  exit 1;
+endif
+
+goto check_params_return;
+############--------------##################
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+
+############--------------##################
+usage_exit:
+  echo ""
+  echo "USAGE: mris_glm-sess"
+  echo ""
+  echo " -fsgd fname : FreeSurfer Group Descriptor File"
+  echo " -a analysis : FS-FAST analysis"
+  echo " -c contrast : FS-FAST contrast"
+  echo " -m map      : (default $map)"
+  echo " -frame frame : 0-based frame in the map (default is 0)"
+  echo " -hemi hemi (lh or rh)"
+  echo " -projfrac frac : projection fraction (default is $projfrac)"
+  echo " -no-force-paint : do not force a repaint even with .w file is there"
+  echo ""
+  echo " <mris_glm arguments>"
+  echo ""
+  echo "Session Arguments (Required)"
+  echo " -sf sessidfile  "
+  echo " -df srchdirfile "
+  echo " -s  sessid      "
+  echo " -d  srchdir     "
+  echo ""
+  echo "Other Arguments"
+  echo " -version        : print version and exit"
+  echo " -help           : print help and exit"
+  echo ""
+
+  if(! $PrintHelp) exit 1;
+
+  echo $VERSION
+
+  cat $0 | awk 'BEGIN{prt=0}{if(prt) print $0; if($1 == "BEGINHELP") prt = 1 }'
+
+exit 1;
+
+#---- Everything below here is printed out as part of help -----#
+BEGINHELP
+
+This is an FS-FAST Sessions frontend for using mris_glm for fMRI
+analysis. mris_glm is a program for performing group and intergroup
+random effects analysis in a common surface space and has the ability
+to regress against subject and session-specific variables such as Age,
+IQ, etc. You will not be able to run mris_glm-sess without knowing how
+to run mri_glm. See mris_glm --help.  mris_glm-sess will go through
+each session, paint the statistic onto the subjects surface, then run
+mris_glm with the painted statistic for all subjects as inputs.
+
+COMMAND-LINE ARGUMENTS
+
+-fsgd fname
+
+Name of a FreeSurfer Group Descriptor (FSGD) file. This file contains
+a list of subjects and their attributes. The group-level design matrix
+is derived from this file. See mris_glm --help for more info. Each
+subject that appears in the FSGD file must have a counterpart in the
+list of sessions. The order of subjects in the FSGD file must be the
+same as that in the list of sessions.
+
+-a analysis
+
+FSFAST analysis
+
+-c contrast
+
+FSFAST contrast
+
+-m map
+
+The name of the map in the contrast. By default, it is "ces", which is
+the contrast-effect size computed by stxgrinder-sess. See
+stxgrinder-sess -help.
+
+-frame frameno
+
+Zero-based frame number corresponding to the frame in the map to use
+as the indpendent variable in the group analysis. By default, frame
+is 0 (ie, the frist frame).
+
+-hemi hemi
+
+Hemisphere (lh or rh).
+
+-projfrac frac
+
+When painting, project the surface a fraction frac of the thickness
+into the cortical ribbon. See mri_vol2surf --help.
+
+-no-force-paint
+
+Do not force a repaint of each individual statistic. By default, the 
+statistic is painted regardless of whether the paint file is there
+or not. If the paint file is not there, a paint command will 
+always be issued.
+
+<mris_glm arguments>
+
+As mentioned above, mris_glm-sess is just a front-end for mris_glm.
+mris_glm-sess collects all of the relevant input data and creates the
+mri_glm command-line. However, the user must supply the rest of the
+mris_glm command-line, such as the name of the target subject, the
+smoothing amount (if any), and the all the output arguments (eg,
+--beta, --var, etc). A contrast can be specified at this time as well,
+or the user can save the estimation outputs only and then computes
+contrasts with a separate call to mris_glm. Note that --beta_in,
+--var_in, --meas, and --design cannot be specified through
+mris_glm-sess.
+
+EXAMPLES
+
+Example of an FSGD File (my.fsgd):
+---------------- cut here ---------------
+GroupDescriptorFile 1
+Title NormVsPat
+Class Class1 plus blue 
+CLASS Class2 circle green
+Variables Age
+Input normals-101 Class1 30
+Input normals-103 Class1 10
+Input normals-104 Class1 22
+Input normals-105 Class1 45
+Input normals-106 Class1 17
+Input patients-101 Class2 30
+Input patients-103 Class2 10
+Input patients-104 Class2 22
+Input patients-105 Class2 45
+Input patients-106 Class2 17
+---------------- cut here ---------------
+
+This has 8 subjects with their ages, classified into 2 classes.
+The subject name as found in $SUBJECTS_DIR appears immediately
+after the "Input" flag (eg, normals-105). 
+
+Example of corresponding session id file (my.sessid):
+---------------- cut here ---------------
+norm-101-fmri
+norm-103-fmri
+norm-104-fmri
+norm-105-fmri
+norm-106-fmri
+pat-101-fmri
+pat-103-fmri
+pat-104-fmri
+pat-105-fmri
+pat-106-fmri
+---------------- cut here ---------------
+
+This has 8 sessions that have the same order as in my.fsgd. Note that the 
+session name is not the same as the subject name.
+
+The command to process this data set would be:
+
+mris_glm-sess -hemi lh -projfrac 0.5 \
+  -fsgd my.fsgd -sf my.sessid \
+  -a sm-sm5 -c allvres \
+  --trgsubj average7 \
+  --gcv 1 -1 0 0 --sigt sigt-average7-lh.w paint  
+
+Processes the left hemisphere (-hemi lh) and projects half the the
+thickness into the cortical ribbon (-projfrac 0.5). The statistic is
+derived from the sm-sm5 analysis using the allvres contrast. All
+input subjects are mapped to the average7 subject, and a contrast
+is computed between the two classes.
+
+
+
