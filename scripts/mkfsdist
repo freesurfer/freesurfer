@@ -5,7 +5,7 @@
 # editing.
 #
 # mkfsdist
-# $Id: mkfsdist,v 1.23 2003/05/15 21:37:14 kteich Exp $
+# $Id: mkfsdist,v 1.24 2003/05/15 21:42:59 kteich Exp $
 #
 # Usage: mkfsdist sourcedir targetdir platform [options]
 #
@@ -71,7 +71,7 @@
 #  files found in tar-exclude-more and tar-exclude-gca.
 #
 # 
-set VERSION = '$Id: mkfsdist,v 1.23 2003/05/15 21:37:14 kteich Exp $';
+set VERSION = '$Id: mkfsdist,v 1.24 2003/05/15 21:42:59 kteich Exp $';
 
 # To include the autoseg in the distribution set environment varible
 # KEEPAUTOSEG to 1 before running mkfsdist (ie, setenv KEEPAUTOSEG 1)
@@ -534,36 +534,48 @@ endif
 if( $BERT_RAW ) then
     echo "--------------------------------------------" | tee -a $LF
     date | tee -a $LF  
-    pushd $BERT_ORIG_DIR > /dev/null
-    pawd
-    set TF = $TARGET_DIR/bert.raw.tar.gz
-    rm -f $TF
-    tar cvz -f $TF ./001 ./002 ./003 >> $LF
+    if( -e $BERT_ORIG_DIR ) then
+      pushd $BERT_ORIG_DIR > /dev/null
+      pawd
+      set TF = $TARGET_DIR/bert.raw.tar.gz
+      rm -f $TF
+      tar cvz -f $TF ./001 ./002 ./003 >> $LF
+    else
+      cp $BERT_ORIG_TARRED $TARGET_DIR
+    endif
 endif
 
 #----- Tar up berts reconstructed anatomicals --------#
 if( $BERT_RECON ) then
     echo "--------------------------------------------" | tee -a $LF
     date | tee -a $LF  
-    pushd $BERT_ANAT_DIR > /dev/null
-    cd ..
-    pawd
-    set TF = $TARGET_DIR/bert.recon.tar.gz
-    rm -f $TF 
-    tar cvz -f $TF ./bert >> $LF
+    if( -e $BERT_ANAT_DIR ) then
+      pushd $BERT_ANAT_DIR > /dev/null
+      cd ..
+      pawd
+      set TF = $TARGET_DIR/bert.recon.tar.gz
+      rm -f $TF 
+      tar cvz -f $TF ./bert >> $LF
+    else
+      cp $BERT_ANAT_TARRED $TARGET_DIR
+    endif
 endif
 
 #----- Tar up Bert's functional data --------#
 if( $BERT_FUNC ) then
     echo "--------------------------------------------" | tee -a $LF
     date | tee -a $LF  
-    pushd $BERT_FUNC_DIR > /dev/null
-    cd ..
-    echo "Tarring bert functional data" | tee -a $LF
-    set TF = $TARGET_DIR/bert.func.tar.gz
-    rm -f $TF
-    tar cvz -f $TF ./bert-functional >> $LF
-    date | tee -a $LF  
+    if( -e $BERT_FUNC_DIR ) then
+      pushd $BERT_FUNC_DIR > /dev/null
+      cd ..
+      echo "Tarring bert functional data" | tee -a $LF
+      set TF = $TARGET_DIR/bert.func.tar.gz
+      rm -f $TF
+      tar cvz -f $TF ./bert-functional >> $LF
+      date | tee -a $LF  
+    else
+      cp $BERT_FUNC_TARRED $TARGET_DIR
+    endif
 endif
 
 echo "------------------------------------------" | tee -a $LF
