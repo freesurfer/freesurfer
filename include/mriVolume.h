@@ -29,7 +29,6 @@ typedef enum {
   Volm_tErr_MRIVolumeNotPresent,
   Volm_tErr_ScannerTransformNotPresent,
   Volm_tErr_IdxToRASTransformNotPresent,
-  Volm_tErr_FloodMaxIterationCountReached,
   Volm_tErr_FloodVisitCommandNotSupported,
   
   Volm_knNumErrorCodes
@@ -93,9 +92,6 @@ typedef struct {
   Volm_tVisitFunction  mpFunction;     /* User function, called for each */ 
   void*                mpFunctionData; /* visited. */
 
-  tBoolean   mbFloodIterationMaxReached; /* Set when iterating function
-					    reaches iteration limit. */
-
 } Volm_tFloodParams;
 
 typedef struct {
@@ -144,8 +140,6 @@ typedef struct {
   xVoxel  mTmpVoxel2;
   Real    mTmpReal;
   
-  int mnFloodIterationCount; /* Used in Volm_Flood */
-
 } mriVolume, *mriVolumeRef;
 
 Volm_tErr Volm_New        ( mriVolumeRef* opVolume );

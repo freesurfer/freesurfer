@@ -5,6 +5,7 @@
 #include "xUtilities.h"
 #include "mri_conform.h"
 #include "mriTransform.h"
+#include "xList.h"
 
 //#define LINEAR_CORONAL_RAS_TO_CORONAL_RAS       21
 // should be in transform.h if they aren't already
@@ -24,7 +25,6 @@ char Volm_ksaErrorStrings[Volm_knNumErrorCodes][Volm_knErrStringLen] = {
   "MRI volume not present.",
   "Scanner transform not present.",
   "Index to RAS transform not present.",
-  "Maximum iteration count for flood was reached",
   "Flood user function can only return Continue or Stop"
 };
 
@@ -1682,15 +1682,32 @@ Volm_tErr Volm_GetIdxToRASTransform ( mriVolumeRef     this,
 Volm_tErr Volm_Flood ( mriVolumeRef        this,
 		       Volm_tFloodParams*  iParams ) {
   
-  Volm_tErr eResult     = Volm_tErr_NoErr;
-  int       nSize       = 0;
-  tBoolean* visited     = NULL;
+  Volm_tErr    eResult       = Volm_tErr_NoErr;
+  xList_tErr   eList         = xList_tErr_NoErr;
+  xListRef     list          = NULL;
+  int          nSize         = 0;
+  tBoolean*    visited       = NULL;
+  xVoxelRef    curVoxel      = NULL;
+  xVoxelRef    newVoxel      = NULL;
+  Volm_tVisitCommand eVisit  = Volm_tVisitComm_Continue;
+  int          nVisitedIndex = 0;
+  int          nZ            = 0;
+  int          nBeginX       = 0;
+  int          nEndX         = 0;
+  int          nBeginY       = 0;
+  int          nEndY         = 0;
+  int          nBeginZ       = 0;
+  int          nEndZ         = 0;
+  int          nY            = 0;
+  int          nX            = 0;
+  xVoxel       idx;
+  float        fValue        = 0;
+  float        fDistance     = 0;
 #ifdef Solaris
-  int      i            = 0;
+  int          i             = 0;
 #endif
   
   DebugEnterFunction( ("Volm_Flood( this=%p, iParams=%p )", this, iParams) );
-  
   
   DebugNote( ("Verifying volume") );
   eResult = Volm_Verify( this );
@@ -1724,19 +1741,125 @@ Volm_tErr Volm_Flood ( mriVolumeRef        this,
   bzero( visited, nSize * sizeof( tBoolean ) );
 #endif
 
-  /* Clear our iteration count. */
-  this->mnFloodIterationCount = 0;
+  /* Initialize the list of voxels. Create a new voxel, copy our
+     source into it, and put it in the list. */
+  xList_New( &list );
+  xVoxl_New( &newVoxel );
+  xVoxl_Copy( newVoxel, &iParams->mSourceIdx );
+  xList_PushItem( list, newVoxel );
+
+  /* Start going through the list. */
+  curVoxel = NULL;
+  eList = xList_tErr_NoErr;
+  while ( xList_tErr_NoErr == eList ) {
+
+    /* Try to pop a voxel off the list. If we get one... */
+    eList = xList_PopItem ( list, (void**)&curVoxel );
+    if ( eList == xList_tErr_NoErr && NULL != curVoxel ) {
+
+      /* If we've already been here, continue. If not, mark our visited
+	 volume and continue. */
+      nVisitedIndex = xVoxl_ExpandToIndex( curVoxel, this->mnDimensionZ, 
+					   this->mnDimensionY );
+      if( visited[nVisitedIndex] ) {
+	continue;
+      }
+      visited[nVisitedIndex] = TRUE;
   
-  /* Recursivly iterate with these values */
-  DebugNote( ("Starting iteration") );
-  iParams->mbFloodIterationMaxReached = FALSE;
-  eResult = Volm_FloodIterate_( this, iParams, 
-				&(iParams->mSourceIdx), visited );
-  DebugAssertThrow( (Volm_tErr_NoErr == eResult) );
-  
-  /* If the iteration limit flag was set, return that error. */
-  DebugAssertThrowX( (!iParams->mbFloodIterationMaxReached),
-		     eResult, Volm_tErr_FloodMaxIterationCountReached );
+      /* Get the value and do the comparison. If it's okay, go on, if
+	 not, continue. */
+      Volm_GetValueAtIdx_( this, curVoxel, &fValue );
+      switch( iParams->mComparator ) {
+      case Volm_tValueComparator_LTE:
+	if( !(fValue <= iParams->mfSourceValue + iParams->mfFuzziness) ) {
+	  continue;
+	}
+	break;
+      case Volm_tValueComparator_EQ:
+	if( !(iParams->mfSourceValue - iParams->mfFuzziness <= fValue &&
+	      fValue <= iParams->mfSourceValue + iParams->mfFuzziness) ) {
+	  continue;
+	}
+	break;
+      case Volm_tValueComparator_GTE:
+	if( !(fValue >= iParams->mfSourceValue - iParams->mfFuzziness) ) {
+	  continue;
+	}
+	break;
+      default:
+      }
+      
+      /* Check distance if >0. if it's over our max distance, exit. */
+      if( iParams->mfMaxDistance > 0 ) {
+	fDistance = 
+	  sqrt( ((xVoxl_GetX(curVoxel) - xVoxl_GetX(&(iParams->mSourceIdx))) * 
+		 (xVoxl_GetX(curVoxel) - xVoxl_GetX(&(iParams->mSourceIdx)))) +
+		((xVoxl_GetY(curVoxel) - xVoxl_GetY(&(iParams->mSourceIdx))) * 
+		 (xVoxl_GetY(curVoxel) - xVoxl_GetY(&(iParams->mSourceIdx)))) +
+		((xVoxl_GetZ(curVoxel) - xVoxl_GetZ(&(iParams->mSourceIdx))) * 
+		 (xVoxl_GetZ(curVoxel) - xVoxl_GetZ(&(iParams->mSourceIdx)))));
+	if( fDistance > iParams->mfMaxDistance )
+	  continue;
+      }
+      
+      /* This is good, so call the user function. Handle their return code. */
+      eVisit = 
+	iParams->mpFunction( curVoxel, fValue, iParams->mpFunctionData );
+      switch( eVisit ) {
+      case Volm_tVisitComm_SkipRestOfRow:
+      case Volm_tVisitComm_SkipRestOfPlane:
+	DebugThrowX( eResult, Volm_tErr_FloodVisitCommandNotSupported );
+	break;
+      case Volm_tVisitComm_Stop:
+	goto cleanup;
+	break;
+      default:
+      }
+      
+      /* Calc our bounds */
+      nBeginX  = MAX( xVoxl_GetX(curVoxel) - 1, 0 );
+      nEndX    = MIN( xVoxl_GetX(curVoxel) + 1, this->mnDimensionX );
+      nBeginY  = MAX( xVoxl_GetY(curVoxel) - 1, 0 );
+      nEndY    = MIN( xVoxl_GetY(curVoxel) + 1, this->mnDimensionY );
+      nBeginZ  = MAX( xVoxl_GetZ(curVoxel) - 1, 0 );
+      nEndZ    = MIN( xVoxl_GetZ(curVoxel) + 1, this->mnDimensionZ );
+      
+      /* If we're not in 3d, limit one of them based on the orientation */
+      if( !iParams->mb3D ) {
+	switch( iParams->mOrientation ) {
+	case mri_tOrientation_Coronal:
+	  nBeginZ = nEndZ = xVoxl_GetZ(curVoxel);
+	  break;
+	case mri_tOrientation_Horizontal:
+	  nBeginY = nEndY = xVoxl_GetY(curVoxel);
+	  break;
+	case mri_tOrientation_Sagittal:
+	  nBeginX = nEndX = xVoxl_GetX(curVoxel);
+	  break;
+	default:
+	  goto cleanup;
+	  break;
+	}
+      }
+      
+      /* Check the surrounding voxels. For each one, create a new
+	 voxel and add it to the list.  */
+      for( nZ = nBeginZ; nZ <= nEndZ; nZ++ ) {
+	for( nY = nBeginY; nY <= nEndY; nY++ ) {
+	  for( nX = nBeginX; nX <= nEndX; nX++ ) {
+	    xVoxl_Set( &idx, nX, nY, nZ );
+	    if( Volm_VerifyIdx_( this, &idx ) == Volm_tErr_NoErr ) {
+	      xVoxl_New( &newVoxel );
+	      xVoxl_Set( newVoxel, nX, nY, nZ );
+	      xList_PushItem( list, newVoxel );
+	    }
+	  }
+	}
+      }
+      /* Delete the current voxel. */
+      xVoxl_Delete( &curVoxel );
+    }
+  }
 
   DebugCatch;
   DebugCatchError( eResult, Volm_tErr_NoErr, Volm_GetErrorString );
@@ -1748,144 +1871,6 @@ Volm_tErr Volm_Flood ( mriVolumeRef        this,
   }
   
   DebugExitFunction;
-
-  return eResult;
-}
-
-Volm_tErr Volm_FloodIterate_ ( mriVolumeRef        this,
-			       Volm_tFloodParams*  iParams,
-			       xVoxelRef           iIdx,
-			       tBoolean*           iVisited ) {
-  
-  Volm_tErr          eResult   = Volm_tErr_NoErr;
-  Volm_tVisitCommand eVisit  = Volm_tVisitComm_Continue;
-  int          nVisitedIndex = 0;
-  int          nZ        = 0;
-  int          nBeginX   = 0;
-  int          nEndX     = 0;
-  int          nBeginY   = 0;
-  int          nEndY     = 0;
-  int          nBeginZ   = 0;
-  int          nEndZ     = 0;
-  int          nY        = 0;
-  int          nX        = 0;
-  xVoxel       idx;
-  float        fValue    = 0;
-  float        fDistance = 0;
-  
-  /* NOTE: Since this is a possibly really high recursively iterative
-     thing, don't do the normal Debug{Enter,Exit}Function stuff,
-     because it would really rack up memory usage. */
-
-  /* Don't do this too many times. */
-  this->mnFloodIterationCount++;
-  if( this->mnFloodIterationCount >= Volm_knMaxFloodIteration ) {
-    iParams->mbFloodIterationMaxReached = TRUE;
-    DebugQuietThrow();
-  }
-  
-  /* If we've already been here, return. If not, mark our visited
-     volume and continue. */
-  nVisitedIndex = 
-    xVoxl_ExpandToIndex( iIdx, this->mnDimensionZ, this->mnDimensionY );
-  if( iVisited[nVisitedIndex] ) {
-    goto cleanup;
-  }
-  iVisited[nVisitedIndex] = TRUE;
-  
-  /* Get the value and do the comparison. If it's okay, continue, if
-     not, return. */
-  Volm_GetValueAtIdx_( this, iIdx, &fValue );
-  switch( iParams->mComparator ) {
-  case Volm_tValueComparator_LTE:
-    if( !(fValue <= iParams->mfSourceValue + iParams->mfFuzziness) ) {
-      goto cleanup;
-    }
-    break;
-  case Volm_tValueComparator_EQ:
-    if( !(iParams->mfSourceValue - iParams->mfFuzziness <= fValue &&
-	  fValue <= iParams->mfSourceValue + iParams->mfFuzziness) ) {
-      goto cleanup;
-    }
-    break;
-  case Volm_tValueComparator_GTE:
-    if( !(fValue >= iParams->mfSourceValue - iParams->mfFuzziness) ) {
-      goto cleanup;
-    }
-    break;
-  default:
-  }
-
-  /* Check distance if >0. if it's over our max distance, exit. */
-  if( iParams->mfMaxDistance > 0 ) {
-    fDistance = sqrt(
-         ((xVoxl_GetX(iIdx) - xVoxl_GetX(&(iParams->mSourceIdx))) * 
-          (xVoxl_GetX(iIdx) - xVoxl_GetX(&(iParams->mSourceIdx)))) +
-         ((xVoxl_GetY(iIdx) - xVoxl_GetY(&(iParams->mSourceIdx))) * 
-          (xVoxl_GetY(iIdx) - xVoxl_GetY(&(iParams->mSourceIdx)))) +
-         ((xVoxl_GetZ(iIdx) - xVoxl_GetZ(&(iParams->mSourceIdx))) * 
-          (xVoxl_GetZ(iIdx) - xVoxl_GetZ(&(iParams->mSourceIdx)))) );
-    if( fDistance > iParams->mfMaxDistance )
-      goto cleanup;
-  }
-  
-  /* This is good, so call the user function. Handle their return code. */
-  eVisit = iParams->mpFunction( iIdx, fValue, iParams->mpFunctionData );
-  switch( eVisit ) {
-  case Volm_tVisitComm_SkipRestOfRow:
-  case Volm_tVisitComm_SkipRestOfPlane:
-    DebugThrowX( eResult, Volm_tErr_FloodVisitCommandNotSupported );
-    break;
-  case Volm_tVisitComm_Stop:
-    goto cleanup;
-    break;
-  default:
-  }
-  
-  /* Calc our bounds */
-  nBeginX  = MAX( xVoxl_GetX(iIdx) - 1, 0 );
-  nEndX    = MIN( xVoxl_GetX(iIdx) + 1, this->mnDimensionX );
-  nBeginY  = MAX( xVoxl_GetY(iIdx) - 1, 0 );
-  nEndY    = MIN( xVoxl_GetY(iIdx) + 1, this->mnDimensionY );
-  nBeginZ  = MAX( xVoxl_GetZ(iIdx) - 1, 0 );
-  nEndZ    = MIN( xVoxl_GetZ(iIdx) + 1, this->mnDimensionZ );
-  
-  /* If we're not in 3d, limit one of them based on the orientation */
-  if( !iParams->mb3D ) {
-    switch( iParams->mOrientation ) {
-    case mri_tOrientation_Coronal:
-      nBeginZ = nEndZ = xVoxl_GetZ(iIdx);
-      break;
-    case mri_tOrientation_Horizontal:
-      nBeginY = nEndY = xVoxl_GetY(iIdx);
-      break;
-    case mri_tOrientation_Sagittal:
-      nBeginX = nEndX = xVoxl_GetX(iIdx);
-      break;
-    default:
-      goto cleanup;
-      break;
-    }
-  }
-  
-  /* Check the surrounding voxels */
-  for( nZ = nBeginZ; nZ <= nEndZ; nZ++ ) {
-    for( nY = nBeginY; nY <= nEndY; nY++ ) {
-      for( nX = nBeginX; nX <= nEndX; nX++ ) {
-	xVoxl_Set( &idx, nX, nY, nZ );
-	if( Volm_VerifyIdx_( this, &idx ) == Volm_tErr_NoErr ) {
-	  eResult = Volm_FloodIterate_( this, iParams, &idx, iVisited );
-	}
-      }
-    }
-  }
-  
-  DebugCatch;
-  /* Don't print the error message here, as if it is happeneing it
-     will probably happen a lot. */
-  EndDebugCatch;
-  
-  this->mnFloodIterationCount--;
 
   return eResult;
 }
