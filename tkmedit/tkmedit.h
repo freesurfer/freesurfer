@@ -260,14 +260,14 @@ void tkm_CalcSegLabelVolume ( tkm_tSegType iVolume,
  
 /* editing the segmentation */
 void tkm_EditSegmentation      ( tkm_tSegType      iVolume,
-				 xVoxelRef         iAnaIdx,
+				 xVoxelRef         iMRIIdx,
 				 int               inIndex );
 void tkm_EditSegmentationArray ( tkm_tSegType      iVolume,
-				 xVoxelRef         iaAnaIdx,
+				 xVoxelRef         iaMRIIdx,
 				 int               inCount,
 				 int               inIndex );
 void tkm_FloodFillSegmentation ( tkm_tSegType      iVolume,
-				 xVoxelRef         iAnaIdx,
+				 xVoxelRef         iMRIIdx,
 				 int               inIndex,
 				 tBoolean          ib3D,
 				 tkm_tVolumeTarget iSrc,
@@ -290,12 +290,12 @@ void tkm_WriteControlFile             ();
 
 /* editing */
 void tkm_EditAnatomicalVolumeInRange( tkm_tVolumeType  iVolume, 
-				      xVoxelRef        inVolumeVox, 
+				      xVoxelRef        iMRIIdx, 
 				      tVolumeValue     inLow, 
 				      tVolumeValue     inHigh, 
 				      tVolumeValue     inNewValue );
 void tkm_EditAnatomicalVolumeInRangeArray( tkm_tVolumeType  iVolume, 
-					   xVoxelRef        iaVolumeVox, 
+					   xVoxelRef        iaMRIIdx, 
 					   int              inCount,
 					   tVolumeValue     inLow, 
 					   tVolumeValue     inHigh, 
@@ -327,11 +327,12 @@ void tkm_GetHeadPoint ( xVoxelRef           iAnaIdx,
 			HPtL_tHeadPointRef* opPoint );
 
 /* selecting */
-void tkm_SelectVoxel         ( xVoxelRef iAnaIdx );
-void tkm_SelectVoxelArray    ( xVoxelRef iaAnaIdx, int inCount );
-void tkm_DeselectVoxel       ( xVoxelRef iAnaIdx );
-void tkm_DeselectVoxelArray  ( xVoxelRef iaAnaIdx, int inCount );
+void tkm_SelectVoxel         ( xVoxelRef iMRIIdx );
+void tkm_SelectVoxelArray    ( xVoxelRef iaMRIIdx, int inCount );
+void tkm_DeselectVoxel       ( xVoxelRef iMRIIdx );
+void tkm_DeselectVoxelArray  ( xVoxelRef iaMRIIdx, int inCount );
 void tkm_ClearSelection      ();
+tBoolean tkm_IsSelectionPresent ();
 void tkm_FloodSelect         ( xVoxelRef         iSeedAnaIdx,
 			       tBoolean          ib3D,
 			       tkm_tVolumeTarget iSrc,
