@@ -456,7 +456,7 @@ Volm_tErr Volm_SetFromMRI_ ( mriVolumeRef this,
   DebugNote( ("Creating scanner transform") );
   Trns_New( &this->mScannerTransform );
   DebugNote( ("Getting scanner transform matrix") );
-  scannerTransform = MRIgetVoxelToRasXform( iMRI );
+  scannerTransform = extract_i_to_r( iMRI );
   DebugAssertThrowX( (NULL != scannerTransform),
 		     eResult, Volm_tErr_AllocationFailed );
   DebugNote( ("Copying scanner transform matrix into transform") );
@@ -507,8 +507,14 @@ Volm_tErr Volm_SetFromMRI_ ( mriVolumeRef this,
       // we set four matrices
       // AtoRAS, AtoB, BtoRAS, ARStoBRAS
       // this is AtoRAS ////////////////////////////////
-      idxToRASTransform = MRIgetVoxelToRasXform( iMRI );
+      idxToRASTransform = extract_i_to_r( iMRI );
       // that includes voxelsize
+
+#if 0
+      fprintf(stderr,"mriVolume: idxToRAS (from extract_i_to_r), will be AtoRAS:\n");
+      MatrixPrint(stderr,idxToRASTransform);
+#endif
+
       DebugAssertThrowX( (NULL != idxToRASTransform),
                          eResult, Volm_tErr_AllocationFailed );
       DebugNote( ("Copying idx to ras transform matrix into transform") );
@@ -650,7 +656,7 @@ Volm_tErr Volm_LoadDisplayTransform ( mriVolumeRef this,
 
 	m_ras2ras = MatrixMultiply(m_coronal2thisorientation, m_coronalras2coronalras, NULL); //m_ras_c2ras_s
 	
-        m_ras2vox = MRIgetRasToVoxelXform(this->mpMriValues);
+        m_ras2vox = extract_r_to_i(this->mpMriValues);
         m_ras2ras_inverse = MatrixInverse(m_ras2ras, NULL) ; // ras_s2ras_c
         m_tmp = MatrixMultiply(m_ras2ras_inverse, gm_screen2ras, NULL) ;
         MatrixMultiply(m_ras2vox, m_tmp, this->m_resample) ;
@@ -696,7 +702,7 @@ Volm_tErr Volm_LoadDisplayTransform ( mriVolumeRef this,
 	Trns_GetARAStoBRAS(this->mDisplayTransform, &m_ras2ras) ;
 	//E/ m_ras2ras is either from v2v case above or what mri_rigid_register wrote out, i.e. ras_c2ras_s
 
-	m_ras2vox = MRIgetRasToVoxelXform(this->mpMriValues) ;
+	m_ras2vox = extract_r_to_i(this->mpMriValues) ;
 	m_ras2ras_inverse = MatrixInverse(m_ras2ras, NULL) ;
 	m_tmp = MatrixMultiply(m_ras2ras_inverse, gm_screen2ras, NULL) ;
 	MatrixMultiply(m_ras2vox, m_tmp, this->m_resample) ;
@@ -764,7 +770,7 @@ MATRIX *Volm_VoxelXformToCoronalRasXform(MRI *mri_src, MATRIX *m_vox_c2vox_s, MA
   *MATRIX_RELT(V, 4, 4) = 1 ;
 
   //E/ vox to appropriate Ras
-  W = MRIgetVoxelToRasXform(mri_src);
+  W = extract_i_to_r(mri_src);
 
   m_tmp = MatrixMultiply(m_vox_c2vox_s, V, NULL) ;
   m_ras_c2ras_s = MatrixMultiply(W, m_tmp, NULL) ;
@@ -804,7 +810,7 @@ MATRIX *Volm_V2CVXtoR2CRX(MRI *mri_src, MATRIX *m_vox_s2vox_c, MATRIX *m_ras_s2r
     *MATRIX_RELT(W, 4, 4) = 1 ;
 
   //E/ ras to appropriate vox
-  V = MRIgetRasToVoxelXform(mri_src);
+  V = extract_r_to_i(mri_src);
 
   m_tmp = MatrixMultiply(m_vox_s2vox_c, V, NULL) ;
   m_ras_s2ras_c = MatrixMultiply(W, m_tmp, NULL) ;
