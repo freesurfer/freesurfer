@@ -59,7 +59,7 @@ main(int argc, char *argv[])
   DiagInit(NULL, NULL, NULL) ;
   ErrorInit(NULL, NULL, NULL) ;
 
-  nargs = handle_version_option (argc, argv, "$Id: mri_remove_neck.c,v 1.2 2003/09/05 04:45:37 kteich Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_remove_neck.c,v 1.3 2005/03/24 17:12:56 fischl Exp $", "$Name:  $");
   argc -= nargs ;
   if (1 == argc)
     exit (0);
@@ -83,23 +83,24 @@ main(int argc, char *argv[])
   out_fname = argv[4] ;
 
   TimerStart(&start) ;
-  printf("reading '%s'...\n", gca_fname) ;
+  printf("reading atlas '%s'...\n", gca_fname) ;
   fflush(stdout) ;
   gca = GCAread(gca_fname) ;
   if (gca == NULL)
     ErrorExit(ERROR_NOFILE, "%s: could not open GCA %s.\n", Progname, gca_fname) ;
 
-  printf("reading '%s'...\n", in_fname) ;
+  printf("reading input volume '%s'...\n", in_fname) ;
   fflush(stdout) ;
   mri_in = MRIread(in_fname) ;
   if (!mri_in)
     ErrorExit(ERROR_NOFILE, "%s: could not open input volume %s.\n", Progname, in_fname) ;
 
-  printf("reading '%s'...\n", transform_fname) ;
+  printf("reading transform '%s'...\n", transform_fname) ;
   fflush(stdout) ;
 	transform = TransformRead(transform_fname) ;
   if (!transform)
     ErrorExit(ERROR_NOFILE, "%s: could not open transform %s.\n", Progname, transform_fname) ;
+	TransformInvert(transform, mri_in) ;
 
   printf("removing structures at least %d mm from brain...\n", radius) ;
 	mri_out = MRIremoveNonBrain(mri_in, NULL, transform, gca, radius, fill_val) ;
@@ -242,11 +243,15 @@ fill_brain_volume(MRI *mri, GCA *gca, TRANSFORM *transform, int radius)
 		{
 			for (z = 0 ; z < mri->depth ; z++)
 			{
+				if (x == Gx && y == Gy && z == Gz)
+					DiagBreak() ;
 				MRIvox(mri_brain, x, y, z) = 0 ;
 				gcap = getGCAP(gca, mri, transform, x, y, z) ;
+				if (gcap == NULL)
+					continue ;
 				for (n = 0 ; n < gcap->nlabels ; n++)
 				{
-					if (IS_BRAIN(gcap->labels[n]))
+					if (IS_BRAIN(gcap->labels[n]) && (gcap->labels[n] != Brain_Stem))
 					{
 						MRIvox(mri_brain, x, y, z) = 128 ;
 						break ;
@@ -255,6 +260,8 @@ fill_brain_volume(MRI *mri, GCA *gca, TRANSFORM *transform, int radius)
 			}
 		}
 	}
+	if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+		MRIwrite(mri_brain, "brain_mask.mgz") ;
 	for (i = 0 ; i < radius ; i++)
 		MRIdilate(mri_brain, mri_brain) ;
 	return(mri_brain) ;
