@@ -3,9 +3,9 @@
 // original: written by Bruce Fischl (Apr 16, 1997)
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2003/07/07 19:15:01 $
-// Revision       : $Revision: 1.54 $
+// Revision Author: $Author: ebeth $
+// Revision Date  : $Date: 2003/07/07 19:34:35 $
+// Revision       : $Revision: 1.55 $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -199,7 +199,7 @@ int main(int argc, char *argv[])
   conform_size = 1.0;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_convert.c,v 1.54 2003/07/07 19:15:01 tosa Exp $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_convert.c,v 1.55 2003/07/07 19:34:35 ebeth Exp $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -486,6 +486,8 @@ int main(int argc, char *argv[])
         resample_type_val = RESAMPLE_WEIGHTED;
       else if(strcmp(StrLower(resample_type), "sinc") == 0)
         resample_type_val = RESAMPLE_SINC;
+      else if(strcmp(StrLower(resample_type), "cubic") == 0)
+        resample_type_val = RESAMPLE_CUBIC;
       else
       {
         fprintf(stderr, "\n%s: unknown resample type \"%s\"\n", Progname, argv[i]);
@@ -1515,6 +1517,7 @@ int main(int argc, char *argv[])
     case RESAMPLE_INTERPOLATE: printf("trilinear interpolation \n"); break;
     case RESAMPLE_NEAREST:     printf("nearest \n"); break;
     case RESAMPLE_SINC:        printf("sinc \n"); break;
+    case RESAMPLE_CUBIC:       printf("cubic \n"); break;
     case RESAMPLE_WEIGHTED:    printf("weighted \n"); break;
     }
     mri2 = MRIresample(mri, template, resample_type_val);
@@ -1742,7 +1745,7 @@ void usage(FILE *stream)
   fprintf(stream, "\n");
   fprintf(stream, "  -odt, --out_data_type <uchar|short|int|float>\n");
   fprintf(stream, "\n");
-  fprintf(stream, "  -rt, --resample_type <interpolate|weighted|nearest|sinc> (default is interpolate)\n");
+  fprintf(stream, "  -rt, --resample_type <interpolate|weighted|nearest|sinc|cubic> (default is interpolate)\n");
   fprintf(stream, "\n");
   fprintf(stream, "  --no_scale flag <-ns>: 1 = dont rescale values for COR\n");
   fprintf(stream, "\n");
