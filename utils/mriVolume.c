@@ -479,53 +479,14 @@ Volm_tErr Volm_LoadDisplayTransform ( mriVolumeRef this,
       m_tmp = MatrixMultiply(m_ras2ras_inverse, gm_screen2ras, NULL) ;
       MatrixMultiply(m_ras2vox, m_tmp, this->m_resample) ;
 
+      printf("resample matrix is:\n") ;
+      MatrixPrint(stdout, this->m_resample) ;
       MatrixFree(&m_ras2vox) ; MatrixFree(&m_tmp);MatrixFree(&m_ras2ras_inverse);
       break ;
     }
   default:   /* don't know what to do yet */
     break ;
   }
-#if 0
-  if (this->mpRawValues)
-  {
-    int     type ;
-
-    Trns_GetType( (this->mDisplayTransform), &type) ;
-    if (type == LINEAR_RAS_TO_RAS)    /* convert it to voxel coords */
-    {
-      MATRIX *m_vox_to_vox, *m_ras_to_ras ;
-
-      Trns_GetARAStoBRAS( (this->mDisplayTransform), &m_ras_to_ras) ;
-      m_vox_to_vox = MRIrasXformToVoxelXform(this->mpMriValues, 
-                                             this->mpMriValues, m_ras_to_ras, NULL) ;
-    }
-    else
-    {
-      MATRIX  *m_AtoB, *m_N_vox_to_ras, *m_R_ras_to_vox, *m_tmp, *m_tmp2,
-              *m_resample, *m_resample_inverse ;
-      /* 
-         if the LTA  converts indices in the raw volume to
-         indices in the display volume. Update it, so that it returns
-         indices in the norm volume.
-      */
-      
-      m_N_vox_to_ras  =  MRIgetVoxelToRasXform(this->mpMriValues) ;
-      m_R_ras_to_vox =  MRIgetRasToVoxelXform(this->mpRawValues) ;
-      m_resample = MatrixMultiply(m_R_ras_to_vox, m_N_vox_to_ras, NULL) ;
-      m_resample_inverse = MatrixInverse(m_resample, NULL) ;
-      DebugAssertThrowX( (m_resample_inverse != NULL),
-                         eResult, Volm_tErr_CouldntReadTransform );
-      
-      Trns_GetAtoB((this->mDisplayTransform), &m_AtoB) ;
-      m_tmp2 = MatrixMultiply(m_AtoB, m_resample, NULL) ;
-      m_tmp = MatrixMultiply(m_resample_inverse, m_tmp2, NULL) ;
-      Trns_CopyARAStoBRAS((this->mDisplayTransform), m_tmp) ;
-      MatrixFree(&m_tmp) ; MatrixFree(&m_N_vox_to_ras) ; /* free stuff */
-      MatrixFree(&m_R_ras_to_vox) ; MatrixFree(&m_AtoB) ;  MatrixFree(&m_tmp2) ;
-      MatrixFree(&m_resample) ; MatrixFree(&m_resample_inverse) ;
-    }
-  }
-#endif
 
 
   DebugCatch;
