@@ -1255,6 +1255,9 @@ ImageScaleRange(IMAGE *image, float fmin, float fmax, int low, int high)
   float  *fsrc,  fval, norm ;
   double *dsrc,  dval, dmin, dmax, dnorm, dlow ;
 
+  if (FZERO(fmax-fmin))
+    return(ERROR_BADPARM) ;
+
   size = image->cols * image->rows ;
   switch (image->pixel_format)
   {
