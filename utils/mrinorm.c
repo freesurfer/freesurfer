@@ -691,7 +691,7 @@ MRInormFindControlPoints(MRI *mri_src, int wm_target, float intensity_above,
                          float intensity_below, MRI *mri_ctrl)
 {
   int     width, height, depth, x, y, z, xk, yk, zk, xi, yi, zi, *pxi, *pyi, 
-          *pzi, ctrl, nctrl, nfilled, too_low, total_filled,i, val0, val, n;
+          *pzi, ctrl, nctrl, nfilled, too_low, total_filled, val0, val, n;
   BUFTYPE low_thresh, hi_thresh ;
 
   if (!wm_target)
