@@ -3,10 +3,10 @@
   ===========================================================================*/
 
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2004/03/16 20:57:55 $
-// Revision       : $Revision: 1.202 $
-char *VERSION = "$Revision: 1.202 $";
+// Revision Author: $Author: tosa $
+// Revision Date  : $Date: 2004/04/06 15:25:11 $
+// Revision       : $Revision: 1.203 $
+char *VERSION = "$Revision: 1.203 $";
 
 #define TCL
 #define TKMEDIT 
@@ -1035,7 +1035,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
      shorten our argc and argv count. If those are the only args we
      had, exit. */
   /* rkt: check for and handle version tag */
-  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.202 2004/03/16 20:57:55 fischl Exp $", "$Name:  $");
+  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.203 2004/04/06 15:25:11 tosa Exp $", "$Name:  $");
   if (nNumProcessedVersionArgs && argc - nNumProcessedVersionArgs == 1)
     exit (0);
   argc -= nNumProcessedVersionArgs;
@@ -4983,7 +4983,7 @@ int main ( int argc, char** argv ) {
     DebugPrint( ( "%s ", argv[nArg] ) );
   }
   DebugPrint( ( "\n\n" ) );
-  DebugPrint( ( "$Id: tkmedit.c,v 1.202 2004/03/16 20:57:55 fischl Exp $ $Name:  $\n" ) );
+  DebugPrint( ( "$Id: tkmedit.c,v 1.203 2004/04/06 15:25:11 tosa Exp $ $Name:  $\n" ) );
 
   
   /* init glut */
@@ -5935,10 +5935,15 @@ void ProcessControlPointFile ( ) {
 		sFileName, sizeof(sFileName) );
   
   /* Read the file. */
-  pControlPoints = 
-    MRIreadControlPoints( sFileName, &nNumControlPoints, &bUseRealRAS );
-  DebugAssertThrowX( (NULL != pControlPoints), eResult,
-		     tkm_tErr_ErrorAccessingFile );
+  if (FileExists(sFileName))
+  {
+    pControlPoints = 
+      MRIreadControlPoints( sFileName, &nNumControlPoints, &bUseRealRAS );
+    DebugAssertThrowX( (NULL != pControlPoints), eResult,
+		       tkm_tErr_ErrorAccessingFile );
+  }
+  else
+    DebugPrint( ("Could not open control.dat file.\n") );
 
   /* Parse the points. */
   for( nPoint = 0; nPoint < nNumControlPoints; nPoint++ ) {
