@@ -27477,7 +27477,8 @@ mrisTessellateDefect(MRI_SURFACE *mris, MRI_SURFACE *mris_corrected, DEFECT *def
 										 HISTOGRAM *h_border, HISTOGRAM *h_grad, MRI *mri_gray_white,
 										 HISTOGRAM *h_dot, TOPOLOGY_PARMS *parms)
 {
-  int    i, j, vlist[10000], n, nvertices, nedges, ndiscarded ;
+#define MAX_DEFECT_VERTICES 200000
+  int    i, j, vlist[MAX_DEFECT_VERTICES], n, nvertices, nedges, ndiscarded ;
   VERTEX *v, *v2 ;
   EDGE   *et ;
 	/*  double  cx, cy, cz, max_len ;*/
@@ -27491,6 +27492,9 @@ mrisTessellateDefect(MRI_SURFACE *mris, MRI_SURFACE *mris_corrected, DEFECT *def
   */
   for (nvertices = i = 0 ; i < defect->nvertices ; i++)
   {
+		if (nvertices >= MAX_DEFECT_VERTICES)
+			ErrorExit(ERROR_NOMEMORY, "mrisTessellateDefect: too many vertices in defect (%d)",
+								MAX_DEFECT_VERTICES) ;
     if (defect->vertices[i] == Gdiag_no)
       DiagBreak() ;
     if (vertex_trans[defect->vertices[i]] == Gdiag_no)
