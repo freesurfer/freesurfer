@@ -108,6 +108,8 @@ typedef struct
   DIMAGE          **dimages ;
   int             min_panel_width ;
   int             precision ;
+  int             ydir ;        /* direction of y coord relative to xview */
+  int             noprint ;     /* 1 --> don't do XVprintf in event_handler */
 } XV_FRAME ;
 
 
@@ -148,6 +150,8 @@ int XVdoSync(XV_FRAME *xvf, int which) ;
 int XVsyncAll(XV_FRAME *xvf, int which) ;
 int XVunsyncAll(XV_FRAME *xvf, int which) ;
 int XVshowAllSyncedImages(XV_FRAME *xvf, int which) ;
+int XVsetPrintStatus(XV_FRAME *xvf, int status) ;
+int XVsetYDir(XV_FRAME *xvf, int ydir) ;
 
 #define WINDOW_PAD          3
 
