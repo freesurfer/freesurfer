@@ -105,7 +105,8 @@ MRI       *MRIfindNeck(MRI *mri_src, MRI *mri_dst, int thresh_low,
 int       MRIlabelAreas(MRI *mri_label, float *areas, int nlabels) ;
 int       MRIlabelCentroid(MRI *mri_label,int l,float *px,float *py,float *pz);
 int       MRIlinearAlign(MRI *mri_in, MRI *mri_ref, MORPH_PARMS *parms);
-int       MRIrigidAlign(MRI *mri_in,MRI *mri_ref, MORPH_PARMS *parms);
+int       MRIrigidAlign(MRI *mri_in,MRI *mri_ref, MORPH_PARMS *parms, 
+                        MATRIX *m_L);
 int       MRIinitTranslation(MRI *mri_in, MRI *mri_ref, MATRIX *m_L) ;
 int       MRIinitScaling(MRI *mri_in, MRI *mri_ref, MATRIX *m_L) ;
 int       MRIfindMeans(MRI *mri, float *means) ;
