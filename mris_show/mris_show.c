@@ -14,7 +14,7 @@
 #include "mrisurf.h"
 #include "macros.h"
 
-static char vcid[] = "$Id: mris_show.c,v 1.2 1997/07/14 18:19:35 fischl Exp $";
+static char vcid[] = "$Id: mris_show.c,v 1.3 1997/07/14 18:27:05 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -798,6 +798,7 @@ home(MRI_SURFACE *mris)
 {
   float angle ;
 
+  glMatrixMode(GL_MODELVIEW);
   glLoadIdentity();
   if (mris->hemisphere == RIGHT_HEMISPHERE)
     angle = RIGHT_HEMISPHERE_ANGLE ;
