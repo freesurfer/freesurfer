@@ -13324,7 +13324,12 @@ MRISreadOriginalProperties(MRI_SURFACE *mris, char *sname)
 
   old_status = mris->status ;
   mris->status = MRIS_PATCH ;  /* so no orientating will be done */
-  MRISreadVertexPositions(mris, sname) ;
+  if (MRISreadVertexPositions(mris, sname) != NO_ERROR)
+    ErrorReturn(ERROR_BADFILE,
+                (ERROR_BADFILE, 
+                 "MRISreadOriginalProperties: could not read surface file %s",
+                 sname)) ;
+  
   MRISsaveVertexPositions(mris, ORIGINAL_VERTICES) ;
   MRIScomputeMetricProperties(mris) ;
   MRIScomputeTriangleProperties(mris) ;
