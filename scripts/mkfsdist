@@ -5,7 +5,7 @@
 # editing.
 #
 # mkfsdist
-# $Id: mkfsdist,v 1.17 2003/04/29 18:54:45 kteich Exp $
+# $Id: mkfsdist,v 1.18 2003/05/09 16:49:32 kteich Exp $
 #
 # Usage: mkfsdist targetdir
 #
@@ -54,7 +54,7 @@
 #  files found in tar-exclude-more and tar-exclude-gca.
 #
 # 
-set VERSION = '$Id: mkfsdist,v 1.17 2003/04/29 18:54:45 kteich Exp $';
+set VERSION = '$Id: mkfsdist,v 1.18 2003/05/09 16:49:32 kteich Exp $';
 
 # To include the autoseg in the distribution set environment varible
 # KEEPAUTOSEG to 1 before running mkfsdist (ie, setenv KEEPAUTOSEG 1)
@@ -302,6 +302,10 @@ find $SOURCE_DIR_REL -name \*.01\* >> $EXCLUDE_FILE
 find $SOURCE_DIR_REL -name \*~ >> $EXCLUDE_FILE
 find $SOURCE_DIR_REL -name \#\*\# >> $EXCLUDE_FILE
 find $SOURCE_DIR_REL -name \*.bu >> $EXCLUDE_FILE
+find $SOURCE_DIR_REL -name \*.bak >> $EXCLUDE_FILE
+find $SOURCE_DIR_REL -name \*.log >> $EXCLUDE_FILE
+find $SOURCE_DIR_REL -name \*.old >> $EXCLUDE_FILE
+find $SOURCE_DIR_REL -name .xdebug\* >> $EXCLUDE_FILE
 find $SOURCE_DIR_REL -name tar-exclude >> $EXCLUDE_FILE
 find $SOURCE_DIR_REL -name tar-exclude-more >> $EXCLUDE_FILE
 
