@@ -53,6 +53,7 @@ static char *residual_name = NULL ;
 
 #define MAX_IMAGES 100
 #define MIN_T1   5  /* avoid singularity at T1=0 */
+#define MIN_PD   5
 #define MIN_ITER 5
 #define MAX_ITER 5000
 
@@ -63,13 +64,13 @@ static double FLASHforwardModel(double flip_angle, double TR, double PD,
                                 double T1) ;
 static double estimateVoxelParameters(MRI **mri_flash, int nvolumes, int x, 
                                       int y, int z, MRI *mri_T1, MRI *mri_PD,
-                                      double T1, double PD) ;
+                                      int nsteps) ;
 
 static double
 computeVoxelSSE(MRI **mri_flash, int nflash, int x, 
                 int y, int z, double PD, double T1) ;
 
-static int write_iterations = 0 ;
+static int write_iterations = 0, nsteps = 4 ; ;
 static float        tr = 0, te = 0, fa = 0 ;
 
 int
@@ -149,8 +150,8 @@ main(int argc, char *argv[])
       mri_flash[nvolumes]->flip_angle = fa ;
       fa = 0 ;
     }
-    printf("TR = %2.2f, alpha = %2.2f\n", mri_flash[nvolumes]->tr, 
-           mri_flash[nvolumes]->flip_angle) ;
+    printf("TE = %2.2f, TR = %2.2f, alpha = %2.2f\n", mri_flash[nvolumes]->te, 
+           mri_flash[nvolumes]->tr, mri_flash[nvolumes]->flip_angle) ;
     mri_flash[nvolumes]->flip_angle = RADIANS(mri_flash[nvolumes]->flip_angle);
     if (conform)
     {
@@ -203,8 +204,9 @@ main(int argc, char *argv[])
     for (ignored = z = 0 ; z < depth ; z++)
     {
       if (z > 0)
-        printf("z = %d, ignored = %d, avg rms=%2.1f, T1=%2.0f, PD=%2.0f...\n", 
-               z, ignored, avg_rms, last_T1, last_PD) ;
+        printf("z = %d, avg rms=%2.1f, T1=%2.0f, PD=%2.0f...\n", 
+               z, avg_rms, last_T1, last_PD) ;
+#if 0
       if (z > 0 && z*width*height - ignored > 0)
       {
         int processed = z*width*height - ignored, hours ;
@@ -225,6 +227,7 @@ main(int argc, char *argv[])
         minutes = minutes % 60 ;
         printf("estimate %02d:%02d:%02d remaining.\n", hours,minutes, seconds);
       }
+#endif
       if (write_iterations > 0 && z > 0 && !(z%write_iterations))
       {
         printf("writing T1 esimates to %s...\n", out_T1_fname) ;
@@ -285,19 +288,17 @@ main(int argc, char *argv[])
             /*            last_T1 = last_PD = 1000 ;*/
             continue ;
           }
-          sse = findInitialParameters(mri_flash, nvolumes, x, y, z,
-                                      500, 5000, 500, 5000,
-                                      &last_PD, &last_T1, 10) ;
+#if 0
           sse = findInitialParameters(mri_flash, nvolumes, x, y, z,
                                       last_PD-1000, last_PD+1000, 
                                       last_T1-1000, last_T1+1000,
                                       &last_PD, &last_T1, 10) ;
+#endif
 #if 0
           sse = findInitialParameters(mri_flash, nvolumes, x, y, z,
                                       last_PD-100, last_PD+100, 
                                       last_T1-100, last_T1+100,
                                       &last_PD, &last_T1, 10) ;
-#endif
           if (last_T1 <= MIN_T1 || last_PD <= 0)
           {
             ignored++ ;
@@ -305,8 +306,9 @@ main(int argc, char *argv[])
             /*            last_T1 = last_PD = 1000 ;*/
             continue ;
           }
+#endif
           sse = estimateVoxelParameters(mri_flash, nvolumes, x, y, z,
-                                        mri_T1, mri_PD, last_T1, last_PD) ;
+                                        mri_T1, mri_PD, nsteps) ;
           nvox++ ;
           last_T1 = MRISvox(mri_T1, x, y, z) ; last_PD = MRISvox(mri_PD, x, y, z) ;
           total_rms += sqrt(sse/nvolumes) ;
@@ -315,6 +317,8 @@ main(int argc, char *argv[])
         }
       }
       avg_rms = total_rms / nvox ;
+      if (!finite(avg_rms))
+        DiagBreak() ;
     }
   }
 
@@ -460,6 +464,11 @@ get_option(int argc, char *argv[])
     nargs = 1 ;
     printf("ignoring locations in which all images are less than %2.2f\n", 
            thresh) ;
+    break ;
+  case 'N':
+    nsteps = atoi(argv[2]) ;
+    nargs = 1 ;
+    printf("using %d steps for global search...\n", nsteps) ;
     break ;
   case 'A':
     align = 1 ;
@@ -752,8 +761,8 @@ computeVoxelSSE(MRI **mri_flash, int nflash, int x,
 
 static double
 findInitialParameters(MRI **mri_flash, int nflash, int x, int y, int z, 
-                      double min_PD, double max_PD, double min_T1, double max_T1, 
-                      double *pPD, double *pT1, int nsteps)
+                      double min_PD, double max_PD, double min_T1, 
+                      double max_T1, double *pPD, double *pT1, int nsteps)
 {
   double    estimate, err, T1, PD, T1_step, PD_step, sse, min_sse ;
   int       i ;
@@ -862,17 +871,33 @@ dM_dPD(double flip_angle, double TR, double PD, double T1)
 }
 static double STEP_SIZE = 10 ;  /* was 0.1 */
 static double momentum = 0.9 ;  /* was 0.8 */
-static double tol = 0.0001 ;
+static double tol = 0.001 ;
 
 static double
 estimateVoxelParameters(MRI **mri_flash, int nvolumes, int x, 
-                                      int y, int z, MRI *mri_T1, MRI *mri_PD,
-                        double T1, double PD)
+                        int y, int z, MRI *mri_T1, MRI *mri_PD, int nsteps)
 {
-  double   sse, last_sse, dT1, dPD, ival, estimate, err,
-           last_dT1, last_dPD ;
+  double   sse, last_sse, dT1, dPD, ival, estimate, err, T1, PD,
+           last_dT1, last_dPD, min_T1, max_T1, min_PD, max_PD, search_size ;
   int      i, niter ;
   MRI      *mri ;
+
+#define SEARCH_STEPS 4
+  search_size = 3000 ; T1 = PD = 3000 ;
+  for (i = 0 ; i < nsteps ; i++)
+  {
+    min_T1 = MAX(MIN_T1, T1-search_size) ;
+    max_T1 = T1+search_size ;
+    min_PD = MAX(MIN_PD, PD-search_size) ;
+    max_PD = PD+search_size ;
+    sse = findInitialParameters(mri_flash, nvolumes, x, y, z,
+                                min_PD, max_PD, min_T1, max_T1, 
+                                &PD, &T1, SEARCH_STEPS) ;
+    if (Gdiag == 99)
+      printf("min rms %2.1f at (T1=%2.0f, PD=%2.0f)\n",
+             sqrt(sse/nvolumes), T1, PD) ;
+    search_size /= SEARCH_STEPS ;
+  }
 
   last_sse = sse = computeVoxelSSE(mri_flash, nvolumes, x, y, z,PD,T1);
 
