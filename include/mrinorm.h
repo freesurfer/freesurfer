@@ -86,12 +86,12 @@ int MRInormCheckPeaks(MNI *mni, float *inputs, float *outputs, int npeaks) ;
 
 MRI *MRInormFindControlPoints(MRI *mri_src, int wm_target, 
                               float intensity_above, float intensity_below,
-                              MRI *mri_ctrl) ;
+                              MRI *mri_ctrl, int which) ;
 MRI *MRInormGentlyFindControlPoints(MRI *mri_src, int wm_target, 
                                     float intensity_above, 
                                     float intensity_below, MRI *mri_ctrl) ;
 MRI *MRIbuildBiasImage(MRI *mri_src,MRI *mri_ctrl, MRI *mri_bias);
-MRI *MRI3dNormalize(MRI *mri_src, MRI *mri_bias, int wm_target, MRI *mri_norm,
+MRI *MRI3dNormalize(MRI *mri_orig, MRI *mri_src, int wm_target, MRI *mri_norm,
                     float intensity_above, float intensity_below,
                     int only_file);
 MRI *MRI3dGentleNormalize(MRI *mri_src, MRI *mri_bias, int wm_target, 

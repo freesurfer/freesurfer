@@ -622,6 +622,7 @@ MRI   *MRIreplaceValues(MRI *mri_src, MRI *mri_dst,
                        BUFTYPE in_val, BUFTYPE out_val) ;
 MRI   *MRImask(MRI *mri_src, MRI *mri_mask, MRI *mri_dst, int mask,
                float out_val) ;
+MRI   *MRImeanMask(MRI *mri_src, MRI *mri_mask, MRI *mri_dst,int mask, int wsize) ;
 MRI   *MRIthresholdMask(MRI *mri_src, MRI *mri_mask, MRI *mri_dst, 
                         BUFTYPE mask_threshold, BUFTYPE out_val) ;
 
@@ -809,6 +810,7 @@ int mriio_command_line(int argc, char *argv[]);
 int mriio_set_subject_name(char *name);
 int MRIgetVolumeName(char *string, char *name_only);
 MRI *MRIread(char *fname);
+MRI *MRIreadEx(char *fname, int nthframe);
 MRI *MRIreadType(char *fname, int type);
 MRI *MRIreadInfo(char *fname);
 MRI *MRIreadHeader(char *fname, int type);
