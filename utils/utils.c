@@ -653,10 +653,8 @@ StrRemoveSpaces(char *str)
        Parameters:
 
       Description:
-         calculate the distance between 2 angles.
 
     Return Values:
-       remove leading spaces from a string
 ------------------------------------------------------------------------*/
 #ifdef SunOS
 extern char *getwd(char *pathname) ;
@@ -665,7 +663,7 @@ extern char *getwd(char *pathname) ;
 char *
 FileNameAbsolute(char *fname, char *absFname)
 {
-  char pathname [MAXPATHLEN] ;
+  char pathname[MAXPATHLEN] ;
   int  len ;
 
   if (*fname == '/')
@@ -683,3 +681,27 @@ FileNameAbsolute(char *fname, char *absFname)
   }
   return(absFname) ;
 }
+/*------------------------------------------------------------------------
+       Parameters:
+
+      Description:
+        extract the path name from a file name and return a pointer
+        to it.
+
+    Return Values:
+------------------------------------------------------------------------*/
+char *
+FileNamePath(char *fname, char *pathName)
+{
+  char *slash ;
+
+  strcpy(pathName, fname) ;
+  slash = strrchr(pathName, '/') ;
+  if (slash)
+    *slash = 0 ;          /* remove file name */
+  else      
+    getwd(pathName)  ;    /* no path at all, must be cwd */
+
+  return(pathName) ;
+}
+  
