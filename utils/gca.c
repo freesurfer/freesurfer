@@ -3,8 +3,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2004/01/14 16:37:31 $
-// Revision       : $Revision: 1.87 $
+// Revision Date  : $Date: 2004/01/14 18:31:21 $
+// Revision       : $Revision: 1.88 $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -367,7 +367,7 @@ get_node_prior(GCA *gca, int label, int xn, int yn, int zn)
     return(getPrior(gcap, label)) ;
   }
   else 
-    return 0.;
+    return (VERY_UNLIKELY);
 }
 
 // use the same function for bounds checking
@@ -3471,8 +3471,8 @@ compare_gca_samples(const void *pgcas1, const void *pgcas2)
     else
       return(-1) ;
 #else
-		/* check size of determinants */
-		return(1) ;
+    /* check size of determinants */
+    return(1) ;
 #endif
   }
 
