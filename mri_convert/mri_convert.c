@@ -90,8 +90,10 @@ int main(int argc, char *argv[])
   int temp_type;
   int roi_flag;
   FILE *fptmp;
+  int translate_labels_flag;
 
   for(i=0;i<argc;i++) printf("%s ",argv[i]);
+  printf("\n");
 
   /* ----- keep the compiler quiet ----- */
   mri2 = NULL;
@@ -148,6 +150,7 @@ int main(int argc, char *argv[])
   color_file_flag = FALSE;
   no_scale_flag = FALSE;
   roi_flag = FALSE;
+  translate_labels_flag = TRUE;
 
   for(i = 1;i < argc;i++)
   {
@@ -473,6 +476,10 @@ int main(int argc, char *argv[])
       get_string(argc, argv, &i, color_file_name);
       color_file_flag = TRUE;
     }
+    else if(strcmp(argv[i], "-nt") == 0 || strcmp(argv[i], "--no_translate") == 0)
+    {
+      translate_labels_flag = FALSE;
+    }
     else if(strcmp(argv[i], "-ns") == 0 || strcmp(argv[i], "--no_scale") == 0)
     {
       get_ints(argc, argv, &i, &no_scale_flag, 1);
@@ -748,6 +755,8 @@ int main(int argc, char *argv[])
     if(reorder_flag)
       printf("reordering, values are %d %d %d\n", reorder_vals[0], reorder_vals[1], reorder_vals[2]);
 
+    printf("translation of otl labels is %s\n", translate_labels_flag ? "on" : "off");
+
     exit(0);
 
   }
@@ -829,9 +838,9 @@ int main(int argc, char *argv[])
       read_parcellation_volume_flag = FALSE;
 
     if(in_like_flag)
-      mri = MRIreadOtl(in_name, mri_in_like->width, mri_in_like->height, mri_in_like->depth, color_file_name, read_parcellation_volume_flag, fill_parcellation_flag);
+      mri = MRIreadOtl(in_name, mri_in_like->width, mri_in_like->height, mri_in_like->depth, color_file_name, read_parcellation_volume_flag, fill_parcellation_flag, translate_labels_flag);
     else
-      mri = MRIreadOtl(in_name, 0, 0, in_n_k, color_file_name, read_parcellation_volume_flag, fill_parcellation_flag);
+      mri = MRIreadOtl(in_name, 0, 0, in_n_k, color_file_name, read_parcellation_volume_flag, fill_parcellation_flag, translate_labels_flag);
 
     if(mri == NULL)
     {
