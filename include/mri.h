@@ -110,6 +110,12 @@ MRI   *MRIrotateY_I(MRI *mri_src, MRI *mri_dst, float y_angle) ;
 MRI   *MRIrotateZ_I(MRI *mri_src, MRI *mri_dst, float z_angle) ;
 MRI   *MRIrotate_I(MRI *mri_src, MRI *mri_dst, MATRIX *mR, MATRIX *mO) ;
 
+/* extraction routines */
+MRI   *MRIextract(MRI *mri_src, MRI *mri_dst, int x0, int y0, int z0,
+                  int dx, int dy, int dz) ;
+MRI   *MRIextractInto(MRI *mri_src, MRI *mri_dst, int x0, int y0, int z0,
+                  int dx, int dy, int dz, int x1, int y1, int z1) ;
+
 #include "image.h"
 
 IMAGE *MRItoImage(MRI *mri, IMAGE *I, int slice) ;
