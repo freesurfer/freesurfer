@@ -3,17 +3,18 @@
 # Performs motion correction of anatomicals. This should produce
 # the same output as mri_motion_correct
 
-set VERSION = '$Id: mri_motion_correct2,v 1.7 2004/01/16 20:25:10 tosa Exp $';
+set VERSION = '$Id: mri_motion_correct2,v 1.8 2004/10/04 22:52:12 greve Exp $';
 
-set tmpdir      = /tmp;
+set tmpdir      = ();
 set inputlist   = ();
-set outdir      = ();
+set outspec     = ();
 set PrintHelp   = 0;
 set LF          = ();
 set CleanUp     = 1;
 set CleanUpList = ();
 set PWD = pwd;
 set HiRes = '';
+set outfmt = ();
 
 # If no args, print usage and exit #
 if($#argv == 0) then
@@ -46,7 +47,11 @@ check_params_return:
 
 ##### Create a log file ######
 if($#LF == 0) then
-  set LF = $outdir/mri_motion_correct2.log
+  if("$outfmt" == "COR") then
+    set LF = $outdir/mri_motion_correct2.log
+  else
+    set LF = $outspec.mri_motion_correct2.log
+  endif
   if(-e $LF) mv $LF $LF.old
 endif
 
@@ -65,9 +70,58 @@ which mri_convert  >> $LF
 
 set StartTime = `date`;
 
-#------------- Convert to MINC ------------#
-set allcor = $tmpdir/allcor
-set CleanUpList = ($CleanUpList $allcor);
+# Get TR, TI, TE, and FlipAngle, check consist
+foreach input ($inputlist)
+  set TR = `mri_info $input --tr`;
+  if($status) then
+    echo "ERROR: $status"
+    exit 1;
+  endif
+  set TE = `mri_info $input --te`;
+  if($status) then
+    echo "ERROR: $status"
+    exit 1;
+  endif
+  set TI = `mri_info $input --ti`;
+  if($status) then
+    echo "ERROR: $status"
+    exit 1;
+  endif
+  set FlipAngle = `mri_info $input --flip_angle`;
+  if($status) then
+    echo "ERROR: $status"
+    exit 1;
+  endif
+
+  if($input == $inputlist[1]) then
+    set TR0 = $TR;
+    set TE0 = $TE;
+    set TI0 = $TI;
+    set FlipAngle0 = $FlipAngle
+  endif
+
+  if($TR != $TR0) then
+    echo "ERROR: TRs are inconsistent $TR0 $TR"
+    exit 1;
+  endif
+  if($TE != $TE0) then
+    echo "ERROR: TEs are inconsistent $TE0 $TE"
+    exit 1;
+  endif
+  if($TI != $TI0) then
+    echo "ERROR: TIs are inconsistent $TI0 $TI"
+    exit 1;
+  endif
+  if($FlipAngle != $FlipAngle0) then
+    echo "ERROR: FlipAngles are inconsistent $FlipAngle0 $FlipAngle"
+    exit 1;
+  endif
+
+end
+
+
+#------------- Convert each input to MINC ------------#
+set CleanUpList = ($CleanUpList );
 set mncinputlist = ();
 @ run = 0;
 foreach input ($inputlist)
@@ -77,34 +131,16 @@ foreach input ($inputlist)
   echo "Converting $input " |& tee -a $LF
   date |& tee -a $LF
 
-  cat $input/COR-??? > $allcor |& tee -a $LF
-
   set mncinput = $tmpdir/cor-$run.mnc
   set mncinputlist = ($mncinputlist $mncinput);
   rm -f $mncinput
-
-  if(0) then
-    # rawtominc is MNI software without --version option, but it is cvs'ed.
-    set cmd = (rawtominc)
-    set cmd = ($cmd -coronal -byte -xstep 1 -ystep 1 -zstep 1 -xstart)
-    set cmd = ($cmd -128 -ystart -128 -zstart -128 )
-    set cmd = ($cmd $mncinput 256 256 256)
-    set cmd = ($cmd -input $allcor)
-    pwd >> $LF
-    echo $cmd >> $LF
-    $cmd |& tee -a $LF
-    if($status) then
-      echo "ERROR: rawtominc failed" |& tee -a $LF
-      exit 1;
-    endif
-  endif
 
   set cmd = (mri_convert $input $mncinput)
   pwd >> $LF
   echo $cmd >> $LF
   $cmd |& tee -a $LF
   if($status) then
-    echo "ERROR: rawtominc failed" |& tee -a $LF
+    echo "ERROR: mri_convert failed" |& tee -a $LF
     exit 1;
   endif
 
@@ -158,7 +194,7 @@ foreach mncinput ($mncinputlist)
 
 end
 
-#----------- Average Volume Together ---------------#
+#----------- Average Volumes Together ---------------#
 echo "-----------------------------------------" |& tee -a $LF
 echo "Averaging " |& tee -a $LF
 date |& tee -a $LF
@@ -174,11 +210,12 @@ if($status) then
   exit 1;
 endif
 
-#----------- Convert Average to COR ---------------#
+#----------- Convert Average to output ---------------#
 echo "-----------------------------------------" |& tee -a $LF
-echo "Converting Average to COR " |& tee -a $LF
+echo "Converting Average to output " |& tee -a $LF
 date |& tee -a $LF
-set cmd = (mri_convert ${HiRes} $avgvol $outdir);
+set cmd = (mri_convert ${HiRes} $avgvol $outspec);
+set cmd = ($cmd -tr $TR -te $TE -TI $TI -flip_angle $FlipAngle)
 pwd >> $LF
 echo $cmd >> $LF
 $cmd |& tee -a $LF
@@ -189,150 +226,6 @@ endif
 
 goto cleanup;
 cleanup_return:
-
-
-#------  Add info about TR, TE, TI, and Flip Angle --#
-################# initialize
-set trlist = ()
-set telist = ()
-set tilist = ()
-set falist = ()
-
-##### create lists for tr, te, flip_angle
-################ TR
-foreach input ($inputlist)
-  set tr = `awk '{ if ($1 == "tr") print $2}' $input/COR-.info`
-  if ($#tr != 0) then 
-    echo $input " TR vlaue is " $tr |& tee -a $LF
-    set trlist = ($trlist $tr)
-  else
-    echo $input " TR not found" |& tee -a $LF
-  endif
-################# TE
-  set te = `awk '{ if ($1 == "te") print $2}' $input/COR-.info`  
-  if ($#te != 0) then
-    echo $input " TE vlaue is " $te |& tee -a $LF
-    set telist = ($telist $te)
-  else
-    echo $input " TE not found" |& tee -a $LF
-  endif
-################# TI
-  set ti = `awk '{ if ($1 == "ti") print $2}' $input/COR-.info`  
-  if ($#ti != 0) then
-    echo $input " TI vlaue is " $ti |& tee -a $LF
-    set tilist = ($tilist $te)
-  else
-    echo $input " TI not found" |& tee -a $LF
-  endif
-################# Flip angle
-  set fa = `awk '{ if ($1 == "flip") if ($2=="angle") print $3}' $input/COR-.info` 
-  if ($#fa != 0) then
-    echo $input " Flip angle is " $fa |& tee -a $LF
-    set falist = ($falist $fa)
-  else
-    echo $input " Flip angle not found" |& tee -a $LF
-  endif
-end
-
-##### check the uniqueness ######
-################################# TR
-@ count = 0
-set tr1=0
-foreach elem ($trlist)
-  @ count = $count + 1
-  if ($count == 1) then
-    set tr1 = $elem
-  else if ($tr1 != $elem) then
-    set tr1 = 0
-  endif
-end
-
-echo "TR is set to " $tr1 |& tee -a $LF
-
-################################# TE
-@ count = 0
-set te1=0
-foreach elem ($telist)
-  @ count = $count + 1
-  if ($count == 1) then
-    set te1 = $elem
-  else if ($te1 != $elem) then
-    set te1 = 0
-  endif
-end
-
-echo "TE is set to " $te1 |& tee -a $LF
-
-################################# TI
-@ count = 0
-set ti1=0
-foreach elem ($tilist)
-  @ count = $count + 1
-  if ($count == 1) then
-    set ti1 = $elem
-  else if ($ti1 != $elem) then
-    set ti1 = 0
-  endif
-end
-
-echo "TI is set to " $ti1 |& tee -a $LF
-
-
-################################# Flip angle
-@ count = 0
-set fa1=0
-foreach elem ($falist)
-  @ count = $count + 1
-  if ($count == 1) then
-    set fa1 = $elem
-  else if ($fa1 != $elem) then
-    set fa1 = 0
-  endif
-end
-
-echo "Flip angle is set to " $fa1 |& tee -a $LF
-
-################################ write tr, te, ti, fa
-cp $outdir/COR-.info $outdir/tmp
-# check whether tr is present
-echo "Writing TR value " $tr1
-set tr = `awk '{ if ($1 == "tr") print $2}' $outdir/COR-.info`
-if ($#tr != 0) then 
-  echo "found tr field"
-  awk -v trval=$tr1 '{ if ($1 == "tr") print $1, trval; else print }' $outdir/tmp > $outdir/tmp2
-else
-  echo "tr " $tr1 >> $outdir/COR-.info
-endif 
-
-echo "Writing TE value " $te1
-set te = `awk '{ if ($1 == "te") print $2}' $outdir/COR-.info` 
-if ($#te != 0) then
-  echo "found te field"
-  awk -v teval=$te1 '{ if ($1 == "te") print $1, teval; else print }' $outdir/tmp2 > $outdir/tmp3
-else
-  echo "te " $te1 >> $outdir/COR-.info
-endif
-
-echo "Writing TI value " $ti1
-set ti = `awk '{ if ($1 == "ti") print $2}' $outdir/COR-.info`  
-if ($#ti != 0) then
-  echo "found ti field"
-  awk -v tival=$ti1 '{ if ($1 == "ti") print $1, tival; else print }' $outdir/tmp3 > $outdir/tmp4
-else  
-  echo "ti " $ti1 >> $outdir/COR-.info
-endif
-
-echo "Writing Flip angle (degrees) " $fa1
-set fa = `awk '{ if ($1 == "flip") if ($2=="angle") print $3}' $outdir/COR-.info` 
-if ($#fa != 0) then
-  echo "found flip angle field"
-  awk -v faval=$fa1 '{ if ($1 == "flip") print "flip angle", faval; else print }' $outdir/tmp4 > $outdir/tmp5
-else
-  echo "flip angle " $fa1 >> $outdir/COR-.info
-endif
-
-mv $outdir/tmp5 $outdir/COR-.info
-rm -f $outdir/tmp?
 
 #---------------- end processing--------------------#
 echo "Started at: $StartTime"    |& tee -a $LF
@@ -361,7 +254,7 @@ while( $#argv != 0 )
 
     case "-o":
       if ( $#argv == 0) goto arg1err;
-      set outdir = $argv[1]; shift;
+      set outspec = $argv[1]; shift;
       breaksw
 
     case "-i":
@@ -372,6 +265,7 @@ while( $#argv != 0 )
     case "-tmpdir":
       if ( $#argv == 0) goto arg1err;
       set tmpdir = $argv[1]; shift;
+      set CleanUp = 0;
       breaksw
 
     case "-umask":
@@ -425,44 +319,39 @@ check_params:
     exit 1;
   endif
 
-  if($#outdir == 0) then
-    echo "ERROR: no output directory specified"
+  if($#outspec == 0) then
+    echo "ERROR: no output specified"
     exit 1;
   endif
 
-  # Create the output directory and get full path
+  set outfmt = `mri_info $outspec --format`
+  if("$outfmt" == "unknown") set outfmt = "COR";
+
+  if("$outfmt" == "COR") then
+    set outdir = $outspec
+  else
+    set outdir = `dirname $outspec`;
+  endif
   mkdir -p $outdir
   if($status) then
     echo "ERROR: cannot create $outdir"
     exit 1;
   endif
-  pushd $outdir > /dev/null
-  set outdir = `pwd`;
-  popd > /dev/null
 
   # Go through each input, make sure it exists
-  # and re-create the list with full path names
-  set inputlist0 = ($inputlist);
-  set inputlist  = ()
-  foreach i ($inputlist0)
-    set inbase = `basename $i`;
-    set indir  = `dirname $i`;
-    if(! -e $indir) then
-      echo "ERROR: cannot find $indir"
+  foreach i ($inputlist)
+    mri_info $i > /dev/null
+    if($status) then
+      echo "ERROR: with $i"
       exit 1;
     endif
-    if(! -e $i/COR-.info ) then
-      echo "ERROR: cannot find $i/COR-.info"
-      exit 1;
-    endif
-    pushd $indir > /dev/null
-    set indir = `pwd`;
-    popd > /dev/null
-    set input = $indir/$inbase
-    set inputlist = ($inputlist $input);
   end
 
   # Create the tmp directory and get full path
+  if($#tmpdir == 0) then
+    set tmpdir = $outdir/tmp-mri_motion_correct2-$$
+  endif
+  echo tmpdir is $tmpdir 
   if($tmpdir != /tmp) then
     mkdir -p $tmpdir
     if($status) then
@@ -493,6 +382,8 @@ cleanup:
     end
   endif
 
+  rm -r $tmpdir
+
 goto cleanup_return;
 ############--------------##################
 
@@ -505,7 +396,7 @@ usage_exit:
   echo ""
   echo "Required Arguments:"
   echo ""
-  echo "  -o  outdir : output directory"
+  echo "  -o  output spec : output file or directory (for COR)"
   echo "  -i  input1 <-i input2 <-i input3>>"
   echo ""
   echo "Optional Arguments:";
@@ -519,4 +410,27 @@ usage_exit:
 
   if(! $PrintHelp) exit 1;
 
+  echo $VERSION
+
+  cat $0 | awk 'BEGIN{prt=0}{if(prt) print $0; if($1 == "BEGINHELP") prt = 1 }'
+
 exit 1;
+
+#---- Everything below here is printed out as part of help -----#
+BEGINHELP
+
+Aligns and averages two or more volumes. Uses minctracc with -lsq6 to
+perform the alignment. Then uses mincresample and mincaverage.
+
+The inputs and output can be any format accepted by mri_convert.
+
+Example:
+
+mri_motion_correct2 -i 002.mgz  -i 003 -o mc4.img
+
+  002.mgz is a volume in compressed MGH format.
+  003 is in COR format.
+  mc4.img (the output) is in analyze format.
+
+
+
