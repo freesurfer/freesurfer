@@ -29,6 +29,7 @@
 #include "macros.h"
 #include "fio.h"
 #include "proto.h"
+#include "const.h"
 #include "region.h"
 #include "mrisurf.h"
 #include "icosahedron.h"
@@ -495,14 +496,14 @@ MRIfindNeck(MRI *mri_src,MRI *mri_dst,int thresh_low,int thresh_hi,
 
   if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
   {
-    char fname[100] ;
+    char fname[STRLEN] ;
     sprintf(fname, "midline%d.mgh", callno) ;
     MRIwrite(mri_midline, fname) ;
   }
   mri_label = MRIlabel(mri_midline, NULL, &nlabels) ;
   if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
   {
-    char fname[100] ;
+    char fname[STRLEN] ;
     sprintf(fname, "label%d.mgh", callno) ;
     MRIwrite(mri_label, fname) ;
   }
@@ -576,7 +577,7 @@ MRIfindNeck(MRI *mri_src,MRI *mri_dst,int thresh_low,int thresh_hi,
   mri_rot = MRIlinearTransform(mri_src, NULL, m_L) ;
   if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
   {
-    char fname[100] ;
+    char fname[STRLEN] ;
     sprintf(fname, "rot%d.mgh", callno) ;
     MRIwrite(mri_rot, fname) ;
   }
@@ -584,7 +585,7 @@ MRIfindNeck(MRI *mri_src,MRI *mri_dst,int thresh_low,int thresh_hi,
   MRIopen(mri_thresh, mri_thresh) ;
   if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
   {
-    char fname[100] ;
+    char fname[STRLEN] ;
     sprintf(fname, "thresh%d.mgh", callno) ;
     MRIwrite(mri_thresh, fname) ;
   }
@@ -606,7 +607,7 @@ MRIfindNeck(MRI *mri_src,MRI *mri_dst,int thresh_low,int thresh_hi,
 
   if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
   {
-    char fname[100] ;
+    char fname[STRLEN] ;
     sprintf(fname, "unerased%d.mgh", callno) ;
     fprintf(stderr, "writing volume before erasure to %s\n", fname) ;
     MRIwrite(mri_dst, fname) ;
@@ -632,7 +633,7 @@ MRIfindNeck(MRI *mri_src,MRI *mri_dst,int thresh_low,int thresh_hi,
     MRIeraseNeck(mri_dst, np) ;
     if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
     {
-      char fname[100] ;
+      char fname[STRLEN] ;
       sprintf(fname, "erased%d.mgh", callno) ;
       fprintf(stderr, "writing volume after erasure to %s\n", fname) ;
       MRIwrite(mri_dst, fname) ;
@@ -872,7 +873,7 @@ find_spinal_fusion(MRI *mri_thresh, float *px, float *py, float *pz)
     }
     if (found && Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
     {
-      char fname[100] ;
+      char fname[STRLEN] ;
       sprintf(fname, "spinal_label%d.mgh", y) ;
       MRIwrite(mri_label, fname) ;
     }
@@ -1011,7 +1012,7 @@ MRIlinearAlign(MRI *mri_in, MRI *mri_ref, MP *parms)
   MRI    *mri_in_pyramid[MAX_LEVELS], *mri_ref_pyramid[MAX_LEVELS] ;
 #endif
   double rms ;
-  char   base_name[100] ;
+  char   base_name[STRLEN] ;
   MRI    *mri_tmp ;
 
   mriNormalizeStds(mri_ref) ;
@@ -1231,7 +1232,7 @@ mriLinearAlignPyramidLevel(MRI *mri_in, MRI *mri_ref, MORPH_PARMS *parms)
   int        k, n, nsmall = 0 ;
   MATRIX     *m_L ;
   static int ncalls = 0 ;
-  char       fname[100], base_name[100] ;
+  char       fname[STRLEN], base_name[STRLEN] ;
 
   /*  MRIeraseBorders(mri_in, 1) ; MRIeraseBorders(mri_ref, 1) ;*/
   if (mri_ref->nframes > 1)
@@ -1412,7 +1413,7 @@ static int
 writeSnapshot(MRI *mri, MORPH_PARMS *parms, int n)
 {
   MRI   *mri_tmp ;
-  char  fname[200] ;
+  char  fname[STRLEN] ;
 
   if (!(Gdiag & DIAG_WRITE))
     return(NO_ERROR) ;
@@ -1596,7 +1597,7 @@ ltaGradientStep(MRI *mri_in, MRI *mri_ref, LTA *lta, double dt,
 static int
 openLogFile(MORPH_PARMS *parms)
 {
-  char fname[100] ;
+  char fname[STRLEN] ;
 
   if ((Gdiag & DIAG_WRITE) && (parms->log_fp == NULL))
   {
@@ -2311,7 +2312,7 @@ MRI3Dmorph(MRI *mri_in, MRI *mri_ref, MORPH_PARMS *parms)
   MRI          *mri_in_pyramid[MAX_LEVELS], *mri_ref_pyramid[MAX_LEVELS]
     /*, *mri_in_transformed*/ ;
   MORPH_3D     *m3d_tmp, *m3d ;
-  char         base_name[100] ;
+  char         base_name[STRLEN] ;
   double       dt, base_intensity, base_sigma, sigma, base_tol, max_thick ;
   MRI_SURFACE  *mris_ref_skull, *mris_in_skull ;
   float        dx, dy, dz ;
@@ -3667,7 +3668,7 @@ m3dAlignPyramidLevel(MRI *mri_in, MRI *mri_ref, MRI *mri_ref_blur,
   last_neg = m3d->neg ;
   if ((Gdiag & DIAG_WRITE) && (parms->write_iterations>0) && !parms->start_t)
   {
-    /*    char fname[100] ;*/
+    /*    char fname[STRLEN] ;*/
     write3DSnapshot(m3d->mri_in, m3d->mri_ref, parms, m3d, 0) ;
 
 #if 0
