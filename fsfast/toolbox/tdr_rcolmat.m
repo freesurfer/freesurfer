@@ -2,7 +2,7 @@
 % columns based on the FID map and according to the time-domain
 % reconstruction method.
 %
-% $Id: tdr_rcolmat.m,v 1.2 2003/09/25 02:12:39 greve Exp $
+% $Id: tdr_rcolmat.m,v 1.3 2003/11/06 19:42:45 greve Exp $
 
 if(0) 
   % Input and output files
@@ -99,7 +99,8 @@ end % slice
 
 fprintf('Saving to %s\n',rcolmatfile);
 save(rcolmatfile,'fidmatfile','dnorm','regmethod',...
-     'fidvol1mn','fidvol1','TE','perev',...
-     'svdregpct','tikregfact','Rtdr','RtdrCond','RtdrDim');
+     'fidvol1mn','fidvol1','TE','TEList','perev',...
+     'svdregpct','tikregfact','Rtdr','RtdrCond','RtdrDim',...
+     'T2s','B0','epiref_dist','epiref_undist');
 fprintf('Done (%g)\n',toc);
 
