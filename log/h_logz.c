@@ -247,7 +247,7 @@ LogMapForward(LOGMAP_INFO *lmi, IMAGE *tvImage, IMAGE *logImage)
   int   *spoke, *ring, sring, sspoke ;
   char  *runl ;
   UCHAR *tvEndRowPtr, *tvPtr ;
-  IMAGE *Itmp, *Itmp2, *Iltmp, *Ilsave ;
+  IMAGE *Itmp, *Itmp2, *Iltmp, *Ilsave = NULL ;
 
   if (tvImage->pixel_format != PFBYTE)
   {
