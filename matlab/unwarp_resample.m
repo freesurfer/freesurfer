@@ -1,4 +1,4 @@
-% $Id: unwarp_resample.m,v 1.3 2004/01/23 21:09:37 ebeth Exp $
+% $Id: unwarp_resample.m,v 1.4 2004/09/13 17:43:50 greve Exp $
 %
 % In this file:
 %
@@ -56,15 +56,33 @@ if unwarpflag %E%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
   ncoords_x = fread(fid,1,'int32');
   ncoords_y = fread(fid,1,'int32');
   ncoords_z = fread(fid,1,'int32');
+  nv = ncoords_x*ncoords_y*ncoords_z;
   coords_x = fread(fid,2,'float32')*1000;
   coords_y = fread(fid,2,'float32')*1000;
   coords_z = fread(fid,2,'float32')*1000;
   Dx = fread(fid,ncoords_x*ncoords_y*ncoords_z,'float32')'*1000;
+  if(length(Dx) ~= nv)
+    msg = sprintf('ERROR: reading Dx from %s, read %d, expected %d\n'...
+		  gradfilename,nv,length(Dx));
+    qoe(msg);  error(msg);
+  end
   Dy = fread(fid,ncoords_x*ncoords_y*ncoords_z,'float32')'*1000;
+  if(length(Dy) ~= nv)
+    msg = sprintf('ERROR: reading Dy from %s, read %d, expected %d\n'...
+		  gradfilename,nv,length(Dy));
+    qoe(msg);  error(msg);
+  end
   Dz = fread(fid,ncoords_x*ncoords_y*ncoords_z,'float32')'*1000;
+  if(length(Dz) ~= nv)
+    msg = sprintf('ERROR: reading Dz from %s, read %d, expected %d\n'...
+		  gradfilename,nv,length(Dz));
+    qoe(msg);  error(msg);
+  end
+
 
   if SGflag % Siemens
     JacDet = fread(fid,ncoords_x*ncoords_y*ncoords_z,'float32')';
+    % Should do a check here
   else %GE
     JacDetx = fread(fid,ncoords_x*ncoords_y*ncoords_z,'float32')';
     JacDety = fread(fid,ncoords_x*ncoords_y*ncoords_z,'float32')';
@@ -87,7 +105,7 @@ end %if unwarpflag %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 tic;
 for s = [1:nslices_out]
 %  if (mod(s,10)==0)
-    fprintf('slice %3d/%d  %g\t\t',s,nslices_out,toc)
+    fprintf('slice %3d/%d  %g\t\n',s,nslices_out,toc)
 %  end
 
   % Get CRS in target volume %
@@ -133,19 +151,22 @@ for s = [1:nslices_out]
     Dz1 = interp_trilin(Rgw,Cgw,Sgw,Dz,ncoords_y,ncoords_x,ncoords_z);
     [Dx2,Dy2,Dz2] = proj(unwarpdims,Mdc,[Dx1;Dy1;Dz1]);
 
-    if SGflag %Siemens
-      JacDet1 = interp_trilin(Rgw,Cgw,Sgw,JacDet,ncoords_y,ncoords_x,ncoords_z);
-    else %GE
-      JacDetx1 = interp_trilin(Rgw,Cgw,Sgw,JacDetx,ncoords_y,ncoords_x,ncoords_z);
-      JacDety1 = interp_trilin(Rgw,Cgw,Sgw,JacDety,ncoords_y,ncoords_x,ncoords_z);
-      JacDetz1 = interp_trilin(Rgw,Cgw,Sgw,JacDetz,ncoords_y,ncoords_x,ncoords_z);
-      JacDet1 = jdproj([JacDetx1;JacDety1;JacDetz1],Mdc,unwarpdims,3);
-      % that last arg to jdproj is maxjd=3
-      % The first arg is 3 rows x ncoords^3 columns
-      % and JacDet1 is a row vector with ncoords^3 rows.
-      
-      % a = max(JacDet1 - JacDetx1.*JacDety1.*JacDetz1); keyboard;
-      % Test: 3D, a==0, good.
+
+    if Jacobianflag
+      if SGflag %Siemens
+	JacDet1 = interp_trilin(Rgw,Cgw,Sgw,JacDet,ncoords_y,ncoords_x,ncoords_z);
+      else %GE
+	JacDetx1 = interp_trilin(Rgw,Cgw,Sgw,JacDetx,ncoords_y,ncoords_x,ncoords_z);
+	JacDety1 = interp_trilin(Rgw,Cgw,Sgw,JacDety,ncoords_y,ncoords_x,ncoords_z);
+	JacDetz1 = interp_trilin(Rgw,Cgw,Sgw,JacDetz,ncoords_y,ncoords_x,ncoords_z);
+	JacDet1 = jdproj([JacDetx1;JacDety1;JacDetz1],Mdc,unwarpdims,3);
+	% that last arg to jdproj is maxjd=3
+	% The first arg is 3 rows x ncoords^3 columns
+	% and JacDet1 is a row vector with ncoords^3 rows.
+	
+	% a = max(JacDet1 - JacDetx1.*JacDety1.*JacDetz1); keyboard;
+	% Test: 3D, a==0, good.
+      end
     end
 
     % Recompute the XYZ %
