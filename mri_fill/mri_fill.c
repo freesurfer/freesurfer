@@ -176,20 +176,6 @@ main(int argc, char *argv[])
     ErrorExit(ERROR_NOFILE, "%s: could not read %s", Progname, input_fname) ;
   mri_fill = MRIclone(mri_im, NULL) ;
 
-  find_pons(mri_im, &pons_tal_x, &pons_tal_y, &pons_tal_z) ;
-  mri_pons = 
-    find_cutting_plane(mri_im, pons_tal_x,pons_tal_y, pons_tal_z,
-                       MRI_HORIZONTAL, &x_pons, &y_pons, &z_pons);
-  if (!mri_pons) /* heuristic failed to find the pons - try Talairach coords */
-  {
-    pons_tal_x = PONS_TAL_X ; pons_tal_y = PONS_TAL_Y; pons_tal_z = PONS_TAL_Z;
-    mri_pons = 
-      find_cutting_plane(mri_im, pons_tal_x,pons_tal_y, pons_tal_z,
-                         MRI_HORIZONTAL, &x_pons, &y_pons, &z_pons);
-    if (!mri_pons)
-      ErrorExit(ERROR_BADPARM, "%s: could not find pons", Progname);
-  }
-
   if (find_corpus_callosum(mri_im,&cc_tal_x,&cc_tal_y,&cc_tal_z) != NO_ERROR)
     mri_cc = NULL ;
   else
@@ -206,6 +192,20 @@ main(int argc, char *argv[])
                          &x_cc, &y_cc, &z_cc) ;
     if (!mri_cc)
       ErrorExit(ERROR_BADPARM, "%s: could not find corpus callosum", Progname);
+  }
+
+  find_pons(mri_im, &pons_tal_x, &pons_tal_y, &pons_tal_z) ;
+  mri_pons = 
+    find_cutting_plane(mri_im, pons_tal_x,pons_tal_y, pons_tal_z,
+                       MRI_HORIZONTAL, &x_pons, &y_pons, &z_pons);
+  if (!mri_pons) /* heuristic failed to find the pons - try Talairach coords */
+  {
+    pons_tal_x = PONS_TAL_X ; pons_tal_y = PONS_TAL_Y; pons_tal_z = PONS_TAL_Z;
+    mri_pons = 
+      find_cutting_plane(mri_im, pons_tal_x,pons_tal_y, pons_tal_z,
+                         MRI_HORIZONTAL, &x_pons, &y_pons, &z_pons);
+    if (!mri_pons)
+      ErrorExit(ERROR_BADPARM, "%s: could not find pons", Progname);
   }
 
   MRIeraseTalairachPlane(mri_im, mri_cc, MRI_SAGITTAL, x_cc, y_cc, z_cc, 
@@ -248,7 +248,7 @@ main(int argc, char *argv[])
     xnew = ynew = znew = 0 ;
     min_dist = 10000.0f ;
     if (Gdiag & DIAG_SHOW)
-      fprintf(stderr, "searching for lh wm seed") ;
+      fprintf(stderr, "searching for lh wm seed...") ;
     for (k = wm_lh_z-SEED_SEARCH_SIZE ; k <= wm_lh_z+SEED_SEARCH_SIZE ; k++)
     {
       zi = mri_im->zi[k] ;
@@ -284,7 +284,7 @@ main(int argc, char *argv[])
     xnew = ynew = znew = 0 ;
     min_dist = 10000.0f ;
     if (Gdiag & DIAG_SHOW)
-      fprintf(stderr, "searching for rh wm seed") ;
+      fprintf(stderr, "searching for rh wm seed...") ;
     for (k = wm_rh_z-SEED_SEARCH_SIZE ; k <= wm_rh_z+SEED_SEARCH_SIZE ; k++)
     {
       zi = mri_im->zi[k] ;
@@ -310,7 +310,10 @@ main(int argc, char *argv[])
     if (Gdiag & DIAG_SHOW)
       fprintf(stderr, "found at (%d, %d, %d)\n", xnew, ynew, znew) ;
     wm_rh_x = xnew ; wm_rh_y = ynew ; wm_rh_z = znew ; 
+
   }
+
+
 
   /* initialize the fill with the detected seed points */
   MRIvox(mri_fill, wm_rh_x, wm_rh_y, wm_rh_z) = RIGHT_HEMISPHERE_WHITE_MATTER ;
@@ -592,15 +595,16 @@ print_help(void)
           "\t-T <threshold> - specify fill_holes threshold (default=%d)\n",
           DEFAULT_NEIGHBOR_THRESHOLD) ;
   fprintf(stderr, 
-          "\t-L <x,y,z>     - the Talairach coords of the wm seed for the\n"
-          "\t                 left hemisphere\n") ;
+          "\t-L <x> <y> <z> - the Talairach coords of the white matter seed\n"
+          "\t                 for the left hemisphere\n") ;
   fprintf(stderr, 
-          "\t-R <x,y,z>     - the Talairach coords of the wm seed for the\n"
-          "\t                 right hemisphere\n") ;
+          "\t-R <x> <y> <z> - the Talairach coords of the white matter seed\n"
+          "\t                 for the right hemisphere\n") ;
   fprintf(stderr, 
-          "\t-P <x,y,z>     - the Talairach coords of the seed for the pons") ;
+          "\t-P <x> <y> <z> - the Talairach coords of the seed for the "
+          "pons\n");
   fprintf(stderr, 
-          "\t-C <x,y,z>     - the Talairach coords of the seed for the\n"
+          "\t-C <x> <y> <z> - the Talairach coords of the seed for the\n"
           "\t                 corpus callosum\n") ;
   exit(0) ;
 }
@@ -622,10 +626,10 @@ print_help(void)
 #define MIN_CC_AREA       350
 #define MAX_CC_AREA       850
 #define MIN_CC_ASPECT     0.1
-#define MAX_CC_ASPECT     0.575
+#define MAX_CC_ASPECT     0.65
 
-#define MIN_PONS_AREA     400
-#define MAX_PONS_AREA     800
+#define MIN_PONS_AREA     375
+#define MAX_PONS_AREA     700
 #define MIN_PONS_ASPECT   0.8
 #define MAX_PONS_ASPECT   1.2
 
@@ -1026,7 +1030,7 @@ find_pons(MRI *mri, Real *p_ponsx, Real *p_ponsy, Real *p_ponsz)
 {
   MRI   *mri_slice, *mri_filled ;
   Real  xr, yr, zr ;
-  int   xv, yv, zv, x, y, width, height, thickness, xstart, xo, yo, area ;
+  int   xv, yv, zv, x, y, width, height, thickness, xstart, xo, yo, area,xmax ;
 
   thickness = xstart = -1 ;
   MRItalairachToVoxel(mri, 0.0, 0.0, 0.0, &xr, &yr, &zr);
@@ -1082,7 +1086,7 @@ find_pons(MRI *mri, Real *p_ponsx, Real *p_ponsy, Real *p_ponsz)
    now, starting from that slice, proceed upwards until we find a
    'cleft', which is about where we want to cut.
 */
-  x = xstart ;  /* needed for initialization */
+  xmax = x = xstart ;  /* needed for initialization */
   do
   {
     xstart = x ;
@@ -1092,7 +1096,9 @@ find_pons(MRI *mri, Real *p_ponsx, Real *p_ponsy, Real *p_ponsz)
 
     if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
       fprintf(stderr, "slice %d, xstart %d\n", y, x) ;
-  } while ((xstart - x < MIN_DELTA_THICKNESS) && (y >0)) ;
+    if (x > xmax)
+      xmax = x ;
+  } while ((xmax - x < MIN_DELTA_THICKNESS) && (y >0)) ;
 
   /* now search forward to find center of slice */
   for (thickness = 0, xstart = x ; 
