@@ -591,11 +591,13 @@ MRIhistoSegment(MRI *mri_src, MRI *mri_labeled, int wm_low, int wm_hi,
   whalf = wsize/2 ;
   region.dx = region.dy = region.dz = wsize ;
 
+#if 0
   if ((Gdiag & DIAG_WRITE) && DIAG_VERBOSE_ON)
   {
     MRIwrite(mri_labeled, "label.mnc") ;
     MRIwrite(mri_src, "src.mnc") ;
   }
+#endif
   for (nlabeled = nvox = z = 0 ; z < depth ; z++)
   {
     DiagShowPctDone((float)z / (float)(depth-1), 5) ;
