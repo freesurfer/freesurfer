@@ -4236,7 +4236,8 @@ GCAtransformAndWriteSamples(GCA *gca, MRI *mri, GCA_SAMPLE *gcas,
   MRI    *mri_dst ;
 
   mri_dst = MRIalloc(mri->width, mri->height, mri->depth, MRI_UCHAR) ;
-  
+  MRIcopyHeader(mri, mri_dst);
+
   TransformInvert(transform, mri) ;
   for (n = 0 ; n < nsamples ; n++)
   {
