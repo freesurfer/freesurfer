@@ -1664,7 +1664,7 @@ void mincGetVolumeInfo(const char *srcVol, VOL_GEOM *vgSrc)
   MRI *mri= 0;
   struct stat stat_buf;
   int ret;
-
+  
   if (srcVol != 0)
   {
     // check the existence of a file
@@ -1693,13 +1693,14 @@ void mincGetVolumeInfo(const char *srcVol, VOL_GEOM *vgSrc)
 	initVolGeom(vgSrc); // valid = 0; so no need to give info
       }
     }
-    else
+    else // file exists
     {
+      // note that both mri volume but also gca can be read
       mri = MRIreadHeader((char *)srcVol, MRI_VOLUME_TYPE_UNKNOWN);
-      if (mri == NULL)
+      if (mri) // find the MRI volume
+      	getVolGeom(mri, vgSrc);
+      else // cound not find the volume
 	initVolGeom(vgSrc);
-      else
-	getVolGeom(mri, vgSrc);
     }
   }
   else
@@ -1711,6 +1712,10 @@ void mincGetVolumeInfo(const char *srcVol, VOL_GEOM *vgSrc)
     strcpy(vgSrc->fname, srcVol);
   else
     strcpy(vgSrc->fname, "unknown");
+
+  // free memory
+  if (mri)
+    MRIfree(&mri);
 
   return;
 }
