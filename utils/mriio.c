@@ -8302,7 +8302,7 @@ mghRead(char *fname, int read_volume, int frame)
   if (!read_volume)
   {
     mri = MRIallocHeader(width, height, depth, type) ;
-    mri->dof = dof ;
+    mri->dof = dof ; mri->nframes = nframes ;
     fseek(fp, mri->nframes*width*height*depth*bpv, SEEK_CUR) ;
   }
   else
