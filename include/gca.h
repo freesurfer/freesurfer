@@ -131,6 +131,7 @@ MRI  *GCAannealUnlikelyVoxels(MRI *mri_inputs, GCA *gca, MRI *mri_dst,
                               LTA *lta, int max_iter, MRI *mri_fixed) ;
 GCA_SAMPLE *GCAfindContrastSamples(GCA *gca, int *pnsamples, int min_spacing,
                                  float min_prior) ;
+GCA_SAMPLE *GCAfindAllSamples(GCA *gca, int *pnsamples) ;
 GCA_SAMPLE *GCAfindStableSamples(GCA *gca, int *pnsamples, int min_spacing,
                                  float min_prior) ;
 GCA_SAMPLE *GCAfindStableSamplesByLabel(GCA *gca, int nsamples, 
