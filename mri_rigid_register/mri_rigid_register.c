@@ -1,3 +1,16 @@
+//
+// mri_rigid_register.c
+//
+// original author:
+// original date  :
+//
+// Warning: Do not edit the following four lines.  CVS maintains them.
+// Revision Author: $Author: tosa $
+// Revision Date  : $Date: 2003/09/22 15:19:04 $
+// Revision       : $Revision: 1.13 $
+//
+////////////////////////////////////////////////////////////////////
+
 /*E*
 
   Now works reasonably well with non-coronal anisotropic volumes -
@@ -70,7 +83,7 @@ M_reg
 static int write_iterations = 0 ;
 
 static MRI *MRR_MRIhybrid(MRI *mri_src, MRI *mri_target, MRI *mri_xformed);
-static MATRIX *MRR_VoxelXformToCoronalRasXform(MRI *mri_src, MRI *mri_dst, MATRIX *m_voxel_xform, MATRIX *m_coronalras_xform);
+/*static */MATRIX *MRR_VoxelXformToCoronalRasXform(MRI *mri_src, MRI *mri_dst, MATRIX *m_voxel_xform, MATRIX *m_coronalras_xform);
 //static int maxabs(int a, int b, int c); //E/ unquestionably the wrong tool
 
 static int apply_transform(MRI *mri_in, MRI *mri_target, MATRIX *M_reg, MRI *mri_xformed) ;
@@ -130,10 +143,10 @@ main(int argc, char *argv[])
   int    msec, minutes, seconds;
   struct timeb start ;
   LTA    *lta ;
-  MATRIX *M_reg, *vox_s2vox_t, *m_coronalras_src2trg;
+  MATRIX *M_reg, *vox_s2vox_t; // *m_coronalras_src2trg;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_rigid_register.c,v 1.12 2003/09/05 04:45:37 kteich Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_rigid_register.c,v 1.13 2003/09/22 15:19:04 tosa Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -171,14 +184,14 @@ main(int argc, char *argv[])
     ErrorExit(ERROR_NOFILE, "%s: could not read dst MRI from %s",
 	      Progname, target_fname) ;
 
-	if (B1_fname)
-	{
-		mri_B1  = MRIread(B1_fname) ;
-		if (!mri_B1)
-			ErrorExit(ERROR_NOFILE, "%s: could not read B1 mapfrom %s", Progname, B1_fname) ;
-	}
-	else
-		mri_B1 = NULL ;
+  if (B1_fname)
+  {
+    mri_B1  = MRIread(B1_fname) ;
+    if (!mri_B1)
+      ErrorExit(ERROR_NOFILE, "%s: could not read B1 mapfrom %s", Progname, B1_fname) ;
+  }
+  else
+    mri_B1 = NULL ;
 
 
   //E/ someone was working on this conform piece:
@@ -209,9 +222,6 @@ main(int argc, char *argv[])
   
   printf("writing registration matrix to %s...\n", out_fname);
   lta = LTAalloc(1,NULL) ;
-
-  vox_s2vox_t = MRIrasXformToVoxelXform(mri_src, mri_target, M_reg, NULL);
-
 //#define _MRR_DEBUG
 #ifdef _MRR_DEBUG
   fprintf(stderr, "mrr: vox_s2vox_t = \n");
@@ -219,24 +229,33 @@ main(int argc, char *argv[])
 #endif
 
   if (voxel_xform)
-	{
-		lta->type = LINEAR_VOXEL_TO_VOXEL ;
-		MatrixCopy(vox_s2vox_t, lta->xforms[0].m_L) ;
-	}	
+  {
+    // M_reg is the RAS-to-RAS transform
+    vox_s2vox_t = MRIrasXformToVoxelXform(mri_src, mri_target, M_reg, NULL);
+    lta->type = LINEAR_VOXEL_TO_VOXEL ;
+    MatrixCopy(vox_s2vox_t, lta->xforms[0].m_L) ;
+    MatrixFree(&vox_s2vox_t);
+  }	
   else
-	{
-		lta->type = LINEAR_CORONAL_RAS_TO_CORONAL_RAS ;
-		//E/ LTAvoxelTransformToCoronalRasTransform(lta) ;
-		// That didn't take voxel size into account.
-		// Replacement fn turns vox2vox tx into cor-ras_to_cor-ras tx:
-		m_coronalras_src2trg =
-			MRR_VoxelXformToCoronalRasXform
-			(mri_src, mri_target, vox_s2vox_t, NULL);
-		MatrixCopy(m_coronalras_src2trg, lta->xforms[0].m_L) ;
-	}
-  
-  LTAwrite(lta,out_fname) ;
-  MatrixFree(&vox_s2vox_t);
+  {
+    // keep as it is if ras-to-ras
+    lta->type = LINEAR_RAS_TO_RAS;
+#if 0 
+    lta->type = LINEAR_CORONAL_RAS_TO_CORONAL_RAS ;
+    //E/ LTAvoxelTransformToCoronalRasTransform(lta) ;
+    // That didn't take voxel size into account.
+    // Replacement fn turns vox2vox tx into cor-ras_to_cor-ras tx:
+    m_coronalras_src2trg =
+      MRR_VoxelXformToCoronalRasXform
+      (mri_src, mri_target, vox_s2vox_t, NULL);
+    MatrixCopy(m_coronalras_src2trg, lta->xforms[0].m_L) ;
+#endif
+  }
+  // save src and target information in lta
+  getVolGeom(mri_src, &lta->xforms[0].src);
+  getVolGeom(mri_target, &lta->xforms[0].dst);
+  LTAwriteEx(lta,out_fname) ;
+
   
   //E/ Maybe need cases here, too?  -out_like targ or templ or other?
   //("conform"?)
@@ -248,15 +267,15 @@ main(int argc, char *argv[])
     mri_in = MRIread(write_volumes[i]) ;
 
     if (!mri_in)
-		{
-			if (exit_if_writefile_not_found)
-				ErrorExit(ERROR_NOFILE, "%s: could not read volume %s", Progname, write_volumes[i]) ;
-			else
-			{
-				fprintf(stderr, "%s: could not read volume %s - skipping...\n", Progname, write_volumes[i]) ; 
-				continue;
-			}
-		}
+    {
+      if (exit_if_writefile_not_found)
+	ErrorExit(ERROR_NOFILE, "%s: could not read volume %s", Progname, write_volumes[i]) ;
+      else
+      {
+	fprintf(stderr, "%s: could not read volume %s - skipping...\n", Progname, write_volumes[i]) ; 
+	continue;
+      }
+    }
 #if 1
     mri_xformed = MRR_MRIhybrid(mri_in, mri_target, NULL);
     apply_transform(mri_in, mri_target, M_reg, mri_xformed) ;
@@ -264,21 +283,21 @@ main(int argc, char *argv[])
     //E/ Someone could work on this when things quiet down - to make
     //this option act more like mri_transform -
     if (apply_out_type == 1) // -out_like mri_target
-		{
-			mri_xformed = MRR_MRIhybrid(mri_in, mri_target, NULL);
-			apply_transform(mri_in, mri_target, M_reg, mri_xformed) ;
-		}
+    {
+      mri_xformed = MRR_MRIhybrid(mri_in, mri_target, NULL);
+      apply_transform(mri_in, mri_target, M_reg, mri_xformed) ;
+    }
     else if (apply_out_type == 2) // -out_like tkmedit template - coronal 1mm^3 256^3 c_ras=0 but not UCHAR
       // for compatibility with mri_transform, which won't know about target unless you specify -out_like.
-		{
-			mri_xformed = MRIalloc(256,256,256,  mri_in->type);
-			mri_xformed->x_r = -1.0;      mri_xformed->x_a =  0.0;      mri_xformed->x_s =  0.0;
-			mri_xformed->y_r =  0.0;      mri_xformed->y_a =  0.0;      mri_xformed->y_s = -1.0;
-			mri_xformed->z_r =  0.0;      mri_xformed->z_a =  1.0;      mri_xformed->z_s =  0.0;
-			mri_xformed->c_r =  0.0;      mri_xformed->c_a =  0.0;      mri_xformed->c_s =  0.0; //?
-			
-			apply_transform(mri_in, mri_xformed, M_reg, mri_xformed) ;
-		}
+    {
+      mri_xformed = MRIalloc(256,256,256,  mri_in->type);
+      mri_xformed->x_r = -1.0;      mri_xformed->x_a =  0.0;      mri_xformed->x_s =  0.0;
+      mri_xformed->y_r =  0.0;      mri_xformed->y_a =  0.0;      mri_xformed->y_s = -1.0;
+      mri_xformed->z_r =  0.0;      mri_xformed->z_a =  1.0;      mri_xformed->z_s =  0.0;
+      mri_xformed->c_r =  0.0;      mri_xformed->c_a =  0.0;      mri_xformed->c_s =  0.0; //?
+      
+      apply_transform(mri_in, mri_xformed, M_reg, mri_xformed) ;
+    }
 #endif
 		
     printf("writing transformed volume to %s...\n", out_fnames[i]) ;
@@ -486,31 +505,31 @@ estimate_rigid_regmatrix(MRI *mri_source, MRI *mri_target, MATRIX *M_reg, MRI *m
   MATRIX   *voxmat1, *voxmat2 ;
   double   voxval1[MAX_VOX], voxval2[MAX_VOX], sum1, sum2, wt[MAX_VOX],
 		       max_wt ;
-	MRI      *mri_source_edge, *mri_target_edge ;
-
-	if (noskull)
-	{
-		MRI *mri_tmp, *mri_tmp2 ;
-		int i ;
-
+  MRI      *mri_source_edge, *mri_target_edge ;
+  
+  if (noskull)
+  {
+    MRI *mri_tmp, *mri_tmp2 ;
+    int i ;
+    
 #define VOXELS_FROM_EDGE 2
-		mri_tmp = MRIbinarize(mri_source, NULL, 1, 128, 0) ; mri_tmp2 = NULL ;
-		for (i = 0 ;i < VOXELS_FROM_EDGE ; i++)
-		{
-			mri_tmp2 = MRIdilate(mri_tmp, mri_tmp2) ;
-			MRIcopy(mri_tmp2, mri_tmp) ;
-		}
-		mri_source_edge = mri_tmp ; MRIfree(&mri_tmp2) ;
-
-		mri_tmp = MRIbinarize(mri_target, NULL, 1, 128, 0) ; mri_tmp2 = NULL ;
-		for (i = 0 ;i < VOXELS_FROM_EDGE ; i++)
-		{
-			mri_tmp2 = MRIdilate(mri_tmp, mri_tmp2) ;
-			MRIcopy(mri_tmp2, mri_tmp) ;
-		}
-		mri_target_edge = mri_tmp ; MRIfree(&mri_tmp2) ;
-	}
-
+    mri_tmp = MRIbinarize(mri_source, NULL, 1, 128, 0) ; mri_tmp2 = NULL ;
+    for (i = 0 ;i < VOXELS_FROM_EDGE ; i++)
+    {
+      mri_tmp2 = MRIdilate(mri_tmp, mri_tmp2) ;
+      MRIcopy(mri_tmp2, mri_tmp) ;
+    }
+    mri_source_edge = mri_tmp ; MRIfree(&mri_tmp2) ;
+    
+    mri_tmp = MRIbinarize(mri_target, NULL, 1, 128, 0) ; mri_tmp2 = NULL ;
+    for (i = 0 ;i < VOXELS_FROM_EDGE ; i++)
+    {
+      mri_tmp2 = MRIdilate(mri_tmp, mri_tmp2) ;
+      MRIcopy(mri_tmp2, mri_tmp) ;
+    }
+    mri_target_edge = mri_tmp ; MRIfree(&mri_tmp2) ;
+  }
+  
 
   vox2ras_source = MRIgetVoxelToRasXform(mri_source) ;
   vox2ras_target = MRIgetVoxelToRasXform(mri_target) ;
@@ -527,18 +546,18 @@ estimate_rigid_regmatrix(MRI *mri_source, MRI *mri_target, MATRIX *M_reg, MRI *m
     {
       nvalues++;
     }
-		MRIsampleVolume(mri_source, x, y, z, &val1) ;
-		MRIsampleVolume(mri_target, x, y, z, &val2) ;
-		sum1 += val1 ; sum2 += val2 ;
+    MRIsampleVolume(mri_source, x, y, z, &val1) ;
+    MRIsampleVolume(mri_target, x, y, z, &val2) ;
+    sum1 += val1 ; sum2 += val2 ;
   }
-
-	if (nvalues >= MAX_VOX)
-		ErrorExit(ERROR_NOMEMORY, "%s: # of samples %d exceeds max %d",Progname,nvalues,MAX_VOX) ;
-
-	if (noscale)
-		scale_2_to_1 = 1 ;
-	else
-		scale_2_to_1 = sum1 / sum2 ;
+  
+  if (nvalues >= MAX_VOX)
+    ErrorExit(ERROR_NOMEMORY, "%s: # of samples %d exceeds max %d",Progname,nvalues,MAX_VOX) ;
+  
+  if (noscale)
+    scale_2_to_1 = 1 ;
+  else
+    scale_2_to_1 = sum1 / sum2 ;
   printf("nvalues = %d, initial scaling = %2.2f\n", nvalues, scale_2_to_1);
 
   voxmat1 = MatrixAlloc(4,nvalues,MATRIX_REAL); 
@@ -561,20 +580,20 @@ estimate_rigid_regmatrix(MRI *mri_source, MRI *mri_target, MATRIX *M_reg, MRI *m
 /*
       voxval1[indx] = MRISvox(mri_source, x, y, z); 
 */
-			if (mri_B1 == NULL)
-				wt[indx] = 1 ;
-			else    /* use inverse of field-map (squared) to wt registration */
-			{
-				MRIsampleVolume(mri_B1, xf, yf, zf, &val1) ;
-				if (FZERO(val1))  /* should never happen */
-					val1 = 1e-3 ;
-				wt[indx] = 1.0 / (val1*val1) ;
-				if (wt[indx] > max_wt)
-				{
-					max_wt = wt[indx] ;
+      if (mri_B1 == NULL)
+	wt[indx] = 1 ;
+      else    /* use inverse of field-map (squared) to wt registration */
+      {
+	MRIsampleVolume(mri_B1, xf, yf, zf, &val1) ;
+	if (FZERO(val1))  /* should never happen */
+	  val1 = 1e-3 ;
+	wt[indx] = 1.0 / (val1*val1) ;
+	if (wt[indx] > max_wt)
+	{
+	  max_wt = wt[indx] ;
 					max_wt_indx = indx ;
-				}
-			}
+	}
+      }
     }
   }
 
@@ -592,157 +611,157 @@ estimate_rigid_regmatrix(MRI *mri_source, MRI *mri_target, MATRIX *M_reg, MRI *m
   M_reg_opt = MatrixCopy(M_reg, NULL);
   M_reg_bak = MatrixCopy(M_reg_opt, NULL);
   M_tmp = MatrixCopy(M_reg, NULL);
-	M_tmp2 = MatrixCopy(M_tmp, NULL) ;
-
-	MatrixMultiply(M_reg,vox2ras_source,M_tmp);
-	MatrixMultiply(ras2vox_target,M_tmp,vox_s2vox_t);
-	if (write_iterations > 0)
-	{
+  M_tmp2 = MatrixCopy(M_tmp, NULL) ;
+  
+  MatrixMultiply(M_reg,vox2ras_source,M_tmp);
+  MatrixMultiply(ras2vox_target,M_tmp,vox_s2vox_t);
+  if (write_iterations > 0)
+  {
+    char fname[STRLEN] ;
+    MRI  *mri_aligned ;
+    
+    sprintf(fname, "step%04d", iter) ;
+    mri_aligned = MRIlinearTransform(mri_source, NULL, vox_s2vox_t);
+    MRIwriteImageViews(mri_target, "target", IMAGE_SIZE) ;
+    MRIwriteImageViews(mri_aligned, "step0000", IMAGE_SIZE) ;
+    MRIfree(&mri_aligned) ;
+  }
+  
+  best_sse = 1e30; 
+  sse = 0;
+  voxmat2 = MatrixMultiply(vox_s2vox_t,voxmat1,NULL);
+  printf("initial voxel transform:\n") ;
+  MatrixPrint(stdout, vox_s2vox_t) ;
+  scale = step[0] ;
+  for (indx=1; indx<=nvalues; indx++)
+  {
+    if (indx == Gdiag_no)
+      DiagBreak() ;
+    if ((voxmat1->rptr[1][indx] == Gx) &&
+	(voxmat1->rptr[2][indx] == Gy) &&
+	(voxmat1->rptr[3][indx] == Gz))
+      DiagBreak() ;
+    xf=voxmat2->rptr[1][indx]; yf=voxmat2->rptr[2][indx]; zf=voxmat2->rptr[3][indx];
+    MRIsampleVolume(mri_target, xf, yf, zf, &val2) ;
+    voxval2[indx] = scale_2_to_1 * val2;
+    val1 = voxval1[indx];
+    err = val1-val2;
+#if 1
+    /* ignore background voxels when doing fine alignment */
+    if (dt*scale <= 2 && (FZERO(val1) || FZERO(val2)))
+      err = 0 ;
+#endif
+    sse += err*err*wt[indx];
+  }
+  sse /= nvalues;
+  best_sse = sse ;
+  printf("initial sse = %2.2f (%2.1f)\n", best_sse, sqrt(best_sse)) ;
+  
+  /* first find best translation */
+  axi = ayi = azi = 0 ; scale = 256 ;
+  for (stepindx=0; stepindx<NSTEP; stepindx++) 
+  {
+    scale = step[stepindx] ;
+    do
+    {
+      changed = 0 ;
+      for (txi = -3; txi <= 3; txi++)
+	for (tyi = -3; tyi <= 3; tyi++)
+	  for (tzi = -3; tzi <= 3; tzi++)
+	  {
+	    tx = txi*dt*scale; ty = tyi*dt*scale; tz = tzi*dt*scale;
+	    //						printf("checking translation (%2.1f, %2.1f, %2.1f)\n", tx, ty, tz) ;
+	    M_delta1->rptr[1][4]=tx;
+	    M_delta1->rptr[2][4]=ty;
+	    M_delta1->rptr[3][4]=tz;
+	    M_delta2->rptr[2][2]=1;
+	    M_delta2->rptr[2][3]=0;
+	    M_delta2->rptr[3][2]=0;
+	    M_delta2->rptr[3][3]=1;
+	    MatrixMultiply(M_delta2,M_delta1,M_delta5);
+	    M_delta3->rptr[1][1]=1;
+	    M_delta3->rptr[1][3]=0;
+	    M_delta3->rptr[3][1]=0;
+	    M_delta3->rptr[3][3]=1;
+	    MatrixMultiply(M_delta3,M_delta5,M_delta6);
+	    M_delta4->rptr[1][1]=1;
+	    M_delta4->rptr[1][2]=0;
+	    M_delta4->rptr[2][1]=0;
+	    M_delta4->rptr[2][2]=1;
+	    MatrixMultiply(M_delta4,M_delta6,M_delta);
+	    MatrixMultiply(M_delta,M_reg_bak,M_reg);
+	    
+	    MatrixMultiply(M_reg,vox2ras_source,M_tmp);
+	    MatrixMultiply(ras2vox_target,M_tmp,vox_s2vox_t);
+	    
+	    MatrixMultiply(vox_s2vox_t,voxmat1,voxmat2);
+	    sse = 0;
+	    for (indx=1; indx<=nvalues; indx++)
+	    {
+	      if (indx == Gdiag_no)
+		DiagBreak() ;
+	      if ((voxmat1->rptr[1][indx] == Gx) &&
+		  (voxmat1->rptr[2][indx] == Gy) &&
+		  (voxmat1->rptr[3][indx] == Gz))
+		DiagBreak() ;
+	      xf=voxmat2->rptr[1][indx]; yf=voxmat2->rptr[2][indx]; zf=voxmat2->rptr[3][indx];
+	      MRIsampleVolume(mri_target, xf, yf, zf, &val2) ;
+	      voxval2[indx] = scale_2_to_1 * val2;
+	      val1 = voxval1[indx];
+	      err = val1-val2;
+	      sse += err*err*wt[indx];
+	    }
+	    sse /= nvalues;
+	    if (sse<best_sse-tol)
+	    {
+	      iter++ ;
+	      if (iter == Gdiag_no)
+		DiagBreak() ;
+	      best_sse = sse;
+	      if (FZERO(best_sse))
+		DiagBreak() ;
+	      MatrixCopy(M_reg, M_reg_opt);
+	      if ((write_iterations > 0) && (iter % write_iterations) == 0)
+	      {
 		char fname[STRLEN] ;
-		MRI  *mri_aligned ;
-
+		MRI *mri_aligned ;
+		
+		MatrixMultiply(M_reg_opt,vox2ras_source,M_tmp);
+		MatrixMultiply(ras2vox_target,M_tmp,vox_s2vox_t);
 		sprintf(fname, "step%04d", iter) ;
 		mri_aligned = MRIlinearTransform(mri_source, NULL, vox_s2vox_t);
-		MRIwriteImageViews(mri_target, "target", IMAGE_SIZE) ;
-		MRIwriteImageViews(mri_aligned, "step0000", IMAGE_SIZE) ;
+		printf("writing snapshots to %s...\n", fname) ;
+		MRIwriteImageViews(mri_aligned, fname, IMAGE_SIZE) ;
 		MRIfree(&mri_aligned) ;
-	}
-
-  best_sse = 1e30; 
-	sse = 0;
-	voxmat2 = MatrixMultiply(vox_s2vox_t,voxmat1,NULL);
-	printf("initial voxel transform:\n") ;
-	MatrixPrint(stdout, vox_s2vox_t) ;
-	scale = step[0] ;
-	for (indx=1; indx<=nvalues; indx++)
-	{
-		if (indx == Gdiag_no)
-			DiagBreak() ;
-		if ((voxmat1->rptr[1][indx] == Gx) &&
-				(voxmat1->rptr[2][indx] == Gy) &&
-				(voxmat1->rptr[3][indx] == Gz))
-			DiagBreak() ;
-		xf=voxmat2->rptr[1][indx]; yf=voxmat2->rptr[2][indx]; zf=voxmat2->rptr[3][indx];
-		MRIsampleVolume(mri_target, xf, yf, zf, &val2) ;
-		voxval2[indx] = scale_2_to_1 * val2;
-		val1 = voxval1[indx];
-		err = val1-val2;
-#if 1
-		/* ignore background voxels when doing fine alignment */
-		if (dt*scale <= 2 && (FZERO(val1) || FZERO(val2)))
-			err = 0 ;
-#endif
-		sse += err*err*wt[indx];
-	}
-	sse /= nvalues;
-	best_sse = sse ;
-	printf("initial sse = %2.2f (%2.1f)\n", best_sse, sqrt(best_sse)) ;
-
-	/* first find best translation */
-	axi = ayi = azi = 0 ; scale = 256 ;
-  for (stepindx=0; stepindx<NSTEP; stepindx++) 
-	{
-		scale = step[stepindx] ;
-		do
-		{
-			changed = 0 ;
-			for (txi = -3; txi <= 3; txi++)
-				for (tyi = -3; tyi <= 3; tyi++)
-					for (tzi = -3; tzi <= 3; tzi++)
-					{
-						tx = txi*dt*scale; ty = tyi*dt*scale; tz = tzi*dt*scale;
-						//						printf("checking translation (%2.1f, %2.1f, %2.1f)\n", tx, ty, tz) ;
-						M_delta1->rptr[1][4]=tx;
-						M_delta1->rptr[2][4]=ty;
-						M_delta1->rptr[3][4]=tz;
-						M_delta2->rptr[2][2]=1;
-						M_delta2->rptr[2][3]=0;
-						M_delta2->rptr[3][2]=0;
-						M_delta2->rptr[3][3]=1;
-						MatrixMultiply(M_delta2,M_delta1,M_delta5);
-						M_delta3->rptr[1][1]=1;
-						M_delta3->rptr[1][3]=0;
-						M_delta3->rptr[3][1]=0;
-						M_delta3->rptr[3][3]=1;
-						MatrixMultiply(M_delta3,M_delta5,M_delta6);
-						M_delta4->rptr[1][1]=1;
-						M_delta4->rptr[1][2]=0;
-						M_delta4->rptr[2][1]=0;
-						M_delta4->rptr[2][2]=1;
-						MatrixMultiply(M_delta4,M_delta6,M_delta);
-						MatrixMultiply(M_delta,M_reg_bak,M_reg);
-						
-						MatrixMultiply(M_reg,vox2ras_source,M_tmp);
-						MatrixMultiply(ras2vox_target,M_tmp,vox_s2vox_t);
-						
-						MatrixMultiply(vox_s2vox_t,voxmat1,voxmat2);
-						sse = 0;
-						for (indx=1; indx<=nvalues; indx++)
-						{
-							if (indx == Gdiag_no)
-								DiagBreak() ;
-							if ((voxmat1->rptr[1][indx] == Gx) &&
-									(voxmat1->rptr[2][indx] == Gy) &&
-									(voxmat1->rptr[3][indx] == Gz))
-								DiagBreak() ;
-							xf=voxmat2->rptr[1][indx]; yf=voxmat2->rptr[2][indx]; zf=voxmat2->rptr[3][indx];
-							MRIsampleVolume(mri_target, xf, yf, zf, &val2) ;
-							voxval2[indx] = scale_2_to_1 * val2;
-							val1 = voxval1[indx];
-							err = val1-val2;
-							sse += err*err*wt[indx];
-						}
-						sse /= nvalues;
-						if (sse<best_sse-tol)
-						{
-							iter++ ;
-							if (iter == Gdiag_no)
-								DiagBreak() ;
-							best_sse = sse;
-							if (FZERO(best_sse))
-								DiagBreak() ;
-							MatrixCopy(M_reg, M_reg_opt);
-							if ((write_iterations > 0) && (iter % write_iterations) == 0)
-							{
-								char fname[STRLEN] ;
-								MRI *mri_aligned ;
-								
-								MatrixMultiply(M_reg_opt,vox2ras_source,M_tmp);
-								MatrixMultiply(ras2vox_target,M_tmp,vox_s2vox_t);
-								sprintf(fname, "step%04d", iter) ;
-								mri_aligned = MRIlinearTransform(mri_source, NULL, vox_s2vox_t);
-								printf("writing snapshots to %s...\n", fname) ;
-								MRIwriteImageViews(mri_aligned, fname, IMAGE_SIZE) ;
-								MRIfree(&mri_aligned) ;
-							}
-							
-							/*
-								printf("M_delta\n"); MatrixPrint(stdout,M_delta);
-							*/
-							/*
-								printf("M_delta1\n"); MatrixPrint(stdout,M_delta1);
-								printf("M_delta2\n"); MatrixPrint(stdout,M_delta2);
-								printf("M_delta3\n"); MatrixPrint(stdout,M_delta3);
-								printf("M_delta4\n"); MatrixPrint(stdout,M_delta4);
-								printf("M_delta5\n"); MatrixPrint(stdout,M_delta5);
-								printf("M_delta6\n"); MatrixPrint(stdout,M_delta6);
-							*/
-							if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
-							{
-								printf("M_reg_opt\n"); MatrixPrint(stdout,M_reg_opt);
-								printf("vox_s2vox_t\n"); MatrixPrint(stdout,vox_s2vox_t);
-							}
-							changed = 1;
-						}
-					}
-		} while (changed) ;
-	}
-	printf("scale %d: after searching for optimal translation %2.1f, sse = %2.2f (%2.1f)\n", scale, dt*scale, best_sse, sqrt(best_sse)) ;
-	MatrixPrint(stdout, M_reg_opt) ;
-
-
-	if (noskull)
-		printf("ignoring skull-stripped voxels...\n") ;
+	      }
+	      
+	      /*
+		printf("M_delta\n"); MatrixPrint(stdout,M_delta);
+	      */
+	      /*
+		printf("M_delta1\n"); MatrixPrint(stdout,M_delta1);
+		printf("M_delta2\n"); MatrixPrint(stdout,M_delta2);
+		printf("M_delta3\n"); MatrixPrint(stdout,M_delta3);
+		printf("M_delta4\n"); MatrixPrint(stdout,M_delta4);
+		printf("M_delta5\n"); MatrixPrint(stdout,M_delta5);
+		printf("M_delta6\n"); MatrixPrint(stdout,M_delta6);
+	      */
+	      if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
+	      {
+		printf("M_reg_opt\n"); MatrixPrint(stdout,M_reg_opt);
+		printf("vox_s2vox_t\n"); MatrixPrint(stdout,vox_s2vox_t);
+	      }
+	      changed = 1;
+	    }
+	  }
+    } while (changed) ;
+  }
+  printf("scale %d: after searching for optimal translation %2.1f, sse = %2.2f (%2.1f)\n", scale, dt*scale, best_sse, sqrt(best_sse)) ;
+  MatrixPrint(stdout, M_reg_opt) ;
+  
+  
+  if (noskull)
+    printf("ignoring skull-stripped voxels...\n") ;
   for (stepindx=0; stepindx<NSTEP; stepindx++) 
   {
     scale = step[stepindx];
@@ -801,59 +820,59 @@ estimate_rigid_regmatrix(MRI *mri_source, MRI *mri_target, MATRIX *M_reg, MRI *m
         sse = 0;
         for (indx=1; indx<=nvalues; indx++)
         {
-					if (indx == Gdiag_no)
-						DiagBreak() ;
-					if ((voxmat1->rptr[1][indx] == Gx) &&
-							(voxmat1->rptr[2][indx] == Gy) &&
-							(voxmat1->rptr[3][indx] == Gz))
-						DiagBreak() ;
+	  if (indx == Gdiag_no)
+	    DiagBreak() ;
+	  if ((voxmat1->rptr[1][indx] == Gx) &&
+	      (voxmat1->rptr[2][indx] == Gy) &&
+	      (voxmat1->rptr[3][indx] == Gz))
+	    DiagBreak() ;
           xf=voxmat2->rptr[1][indx]; yf=voxmat2->rptr[2][indx]; zf=voxmat2->rptr[3][indx];
           MRIsampleVolume(mri_target, xf, yf, zf, &val2) ;
           voxval2[indx] = scale_2_to_1 * val2;
           val1 = voxval1[indx];
           err = val1-val2;
-
-					/* ignore background voxels when doing fine alignment */
-					if (noskull)
-					{
-						Real b1, b2, xf1, yf1, zf1 ;
-
-						MRIsampleVolume(mri_target_edge, xf, yf, zf, &b2) ;
-						xf1 = voxmat1->rptr[1][indx];
-						yf1 = voxmat1->rptr[2][indx];
-						zf1 = voxmat1->rptr[3][indx];
-						MRIsampleVolume(mri_source_edge, xf1, yf1, zf1, &b1) ;
-						
-						if (b1 > 0.1 && b2 > 0.1 && (FZERO(val1) || FZERO(val2)))
-							err = 0 ;
-					}
-
+	  
+	  /* ignore background voxels when doing fine alignment */
+	  if (noskull)
+	  {
+	    Real b1, b2, xf1, yf1, zf1 ;
+	    
+	    MRIsampleVolume(mri_target_edge, xf, yf, zf, &b2) ;
+	    xf1 = voxmat1->rptr[1][indx];
+	    yf1 = voxmat1->rptr[2][indx];
+	    zf1 = voxmat1->rptr[3][indx];
+	    MRIsampleVolume(mri_source_edge, xf1, yf1, zf1, &b1) ;
+	    
+	    if (b1 > 0.1 && b2 > 0.1 && (FZERO(val1) || FZERO(val2)))
+	      err = 0 ;
+	  }
+	  
           sse += (err*err*wt[indx]);
         }
         sse /= nvalues;
         if (sse<best_sse-tol)
         {
-					iter++ ;
-					if (iter == Gdiag_no)
-						DiagBreak() ;
+	  iter++ ;
+	  if (iter == Gdiag_no)
+	    DiagBreak() ;
           best_sse = sse;
-					if (FZERO(best_sse))
-						DiagBreak() ;
+	  if (FZERO(best_sse))
+	    DiagBreak() ;
           MatrixCopy(M_reg, M_reg_opt);
-					if ((write_iterations > 0) && (iter % write_iterations) == 0)
-					{
-						char fname[STRLEN] ;
-						MRI *mri_aligned ;
-
-						MatrixMultiply(M_reg_opt,vox2ras_source,M_tmp);
-						MatrixMultiply(ras2vox_target,M_tmp,vox_s2vox_t);
-						sprintf(fname, "step%04d", iter) ;
-						mri_aligned = MRIlinearTransform(mri_source, NULL, vox_s2vox_t);
-						printf("writing snapshots to %s...\n", fname) ;
-						MRIwriteImageViews(mri_aligned, fname, IMAGE_SIZE) ;
-						MRIfree(&mri_aligned) ;
-					}
-
+	  if ((write_iterations > 0) && (iter % write_iterations) == 0)
+	  {
+	    char fname[STRLEN] ;
+	    MRI *mri_aligned ;
+	    
+	    MatrixMultiply(M_reg_opt,vox2ras_source,M_tmp);
+	    MatrixMultiply(ras2vox_target,M_tmp,vox_s2vox_t);
+	    sprintf(fname, "step%04d", iter) ;
+	    mri_aligned = MRIlinearTransform(mri_source, NULL, vox_s2vox_t);
+	    printf("writing snapshots to %s...\n", fname) ;
+	    MRIwriteImageViews(mri_aligned, fname, IMAGE_SIZE) ;
+	    MRIfree(&mri_aligned) ;
+	  }
+	  
           if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
             printf("%d (%d) %f %f %f %f %f %f sse = %f (%f)\n",scale,pass,tx,ty,tz,ax,
                    ay,az,sse,sqrt(sse));
@@ -879,65 +898,65 @@ estimate_rigid_regmatrix(MRI *mri_source, MRI *mri_target, MATRIX *M_reg, MRI *m
      
     }
 
-		MatrixMultiply(M_reg,vox2ras_source,M_tmp);
-		MatrixMultiply(ras2vox_target,M_tmp,vox_s2vox_t);
-
+    MatrixMultiply(M_reg,vox2ras_source,M_tmp);
+    MatrixMultiply(ras2vox_target,M_tmp,vox_s2vox_t);
+    
 #if 1  
-		for (new_scale = 0.0, num = 0.0, z = 0 ; z < depth ; z++)
-		{
-			for (y = 0 ; y < height ; y++)
-			{
-				for (x = 0 ; x < width ; x++)
-				{ 
-					M_tmp->rptr[1][1] = x;
-					M_tmp->rptr[2][1] = y;
-					M_tmp->rptr[3][1] = z;
-					M_tmp->rptr[4][1] = 1;
-					MatrixMultiply(vox_s2vox_t,M_tmp,M_tmp2);
-					xf = M_tmp2->rptr[1][1] ; yf = M_tmp2->rptr[2][1] ; zf = M_tmp2->rptr[3][1] ;
-
-					MRIsampleVolume(mri_source, x, y, z, &val1) ;
-					MRIsampleVolume(mri_target, xf, yf, zf, &val2) ;
-					if (FZERO(val1)|| FZERO(val2))
-						continue ;
-					num++ ;
-					new_scale += val1 / val2 ;
-					if (!finite(new_scale))
-						DiagBreak()  ;
-				}
-			}
-		}
-
+    for (new_scale = 0.0, num = 0.0, z = 0 ; z < depth ; z++)
+    {
+      for (y = 0 ; y < height ; y++)
+      {
+	for (x = 0 ; x < width ; x++)
+	{ 
+	  M_tmp->rptr[1][1] = x;
+	  M_tmp->rptr[2][1] = y;
+	  M_tmp->rptr[3][1] = z;
+	  M_tmp->rptr[4][1] = 1;
+	  MatrixMultiply(vox_s2vox_t,M_tmp,M_tmp2);
+	  xf = M_tmp2->rptr[1][1] ; yf = M_tmp2->rptr[2][1] ; zf = M_tmp2->rptr[3][1] ;
+	  
+	  MRIsampleVolume(mri_source, x, y, z, &val1) ;
+	  MRIsampleVolume(mri_target, xf, yf, zf, &val2) ;
+	  if (FZERO(val1)|| FZERO(val2))
+	    continue ;
+	  num++ ;
+	  new_scale += val1 / val2 ;
+	  if (!finite(new_scale))
+	    DiagBreak()  ;
+	}
+      }
+    }
+    
 #else
-		for (num = 0, new_scale = 0.0, indx=1; indx<=nvalues; indx++)
-		{
-			xf=voxmat2->rptr[1][indx]; yf=voxmat2->rptr[2][indx]; zf=voxmat2->rptr[3][indx];
-			MRIsampleVolume(mri_target, xf, yf, zf, &val2) ;
-			val1 = voxval1[indx];
-			/* ignore background voxels when doing fine alignment */
-			if (!FZERO(val1) && !FZERO(val2))
-			{
-				num++ ;
-				new_scale += val1 / val2 ;
-			}
-		}
+    for (num = 0, new_scale = 0.0, indx=1; indx<=nvalues; indx++)
+    {
+      xf=voxmat2->rptr[1][indx]; yf=voxmat2->rptr[2][indx]; zf=voxmat2->rptr[3][indx];
+      MRIsampleVolume(mri_target, xf, yf, zf, &val2) ;
+      val1 = voxval1[indx];
+      /* ignore background voxels when doing fine alignment */
+      if (!FZERO(val1) && !FZERO(val2))
+      {
+	num++ ;
+	new_scale += val1 / val2 ;
+      }
+    }
 #endif
 #if 0
-		if (!FZERO(num))
-		{
-			new_scale /= (double)num ;
-			if (noscale)
-				scale_2_to_1 = 1 ;
-			else
-				scale_2_to_1 = new_scale ;
-			if (!finite(scale_2_to_1))
-				DiagBreak() ;
-			printf("setting image scaling factor to %2.2f\n", scale_2_to_1) ;
-			if (scale_2_to_1 > 100)
-				DiagBreak() ;
-			if (stepindx >= 7)
-				DiagBreak() ;
-		}
+    if (!FZERO(num))
+    {
+      new_scale /= (double)num ;
+      if (noscale)
+	scale_2_to_1 = 1 ;
+      else
+	scale_2_to_1 = new_scale ;
+      if (!finite(scale_2_to_1))
+	DiagBreak() ;
+      printf("setting image scaling factor to %2.2f\n", scale_2_to_1) ;
+      if (scale_2_to_1 > 100)
+	DiagBreak() ;
+      if (stepindx >= 7)
+	DiagBreak() ;
+    }
 #endif
 
     printf("step %d: best_sse = %f (%f)\n",stepindx,best_sse,sqrt(best_sse));
@@ -950,30 +969,30 @@ estimate_rigid_regmatrix(MRI *mri_source, MRI *mri_target, MATRIX *M_reg, MRI *m
     }
   }
 
-	if (write_iterations > 0)
-	{
-		char fname[STRLEN] ;
-		MRI  *mri_aligned ;
-		MATRIX *vox2ras_source, *ras2vox_source, *vox2ras_target, *ras2vox_target, *m_tmp ;
-
-		vox2ras_source = MRIgetVoxelToRasXform(mri_source) ;
-		vox2ras_target = MRIgetVoxelToRasXform(mri_target) ;
-		ras2vox_source = MatrixInverse(vox2ras_source, NULL);
-		ras2vox_target = MatrixInverse(vox2ras_target, NULL);
-		m_tmp = MatrixMultiply(M_reg_opt,vox2ras_source, NULL);
-		vox_s2vox_t = MatrixMultiply(ras2vox_target,m_tmp, NULL);
-
-		sprintf(fname, "step%04d", iter+1) ;
-		mri_aligned = MRIlinearTransform(mri_source, NULL, vox_s2vox_t);
-		MRIwriteImageViews(mri_aligned, fname, IMAGE_SIZE) ;
-		MRIfree(&mri_aligned) ;
-		MatrixFree(&vox2ras_source) ;
-		MatrixFree(&ras2vox_source) ;
-		MatrixFree(&vox2ras_target) ;
-		MatrixFree(&ras2vox_target) ;
-		MatrixFree(&m_tmp) ;
-	}
-
+  if (write_iterations > 0)
+  {
+    char fname[STRLEN] ;
+    MRI  *mri_aligned ;
+    MATRIX *vox2ras_source, *ras2vox_source, *vox2ras_target, *ras2vox_target, *m_tmp ;
+    
+    vox2ras_source = MRIgetVoxelToRasXform(mri_source) ;
+    vox2ras_target = MRIgetVoxelToRasXform(mri_target) ;
+    ras2vox_source = MatrixInverse(vox2ras_source, NULL);
+    ras2vox_target = MatrixInverse(vox2ras_target, NULL);
+    m_tmp = MatrixMultiply(M_reg_opt,vox2ras_source, NULL);
+    vox_s2vox_t = MatrixMultiply(ras2vox_target,m_tmp, NULL);
+    
+    sprintf(fname, "step%04d", iter+1) ;
+    mri_aligned = MRIlinearTransform(mri_source, NULL, vox_s2vox_t);
+    MRIwriteImageViews(mri_aligned, fname, IMAGE_SIZE) ;
+    MRIfree(&mri_aligned) ;
+    MatrixFree(&vox2ras_source) ;
+    MatrixFree(&ras2vox_source) ;
+    MatrixFree(&vox2ras_target) ;
+    MatrixFree(&ras2vox_target) ;
+    MatrixFree(&m_tmp) ;
+  }
+  
   /*E* I (re)moved this:
   if (apply_xform)
   {
@@ -986,10 +1005,10 @@ estimate_rigid_regmatrix(MRI *mri_source, MRI *mri_target, MATRIX *M_reg, MRI *m
   }
   *E*/
 
-	if (noskull)
-	{
-		MRIfree(&mri_source_edge) ; MRIfree(&mri_target_edge) ;
-	}
+  if (noskull)
+  {
+    MRIfree(&mri_source_edge) ; MRIfree(&mri_target_edge) ;
+  }
   MatrixCopy(M_reg_opt, M_reg);
 }
 
@@ -1079,27 +1098,27 @@ estimate_rigid_regmatrix(MRI *mri_source, MRI *mri_target, MATRIX *M_reg)
 
   
   if (mri_source->ras_good_flag)
+  {
+    switch (maxabs(mri_source->x_s,mri_source->y_s,mri_source->z_s))
     {
-      switch (maxabs(mri_source->x_s,mri_source->y_s,mri_source->z_s))
-	{
-	case 1: //coronal or sagittal
-	  /*E*
-	  if (mri_source->y_s>0) bbox.y += bbox.dy/4.;  //probably not, for coronal
-	  bbox.dy *=.75;
-	  fprintf(stderr, "Volume is coronal or sagittal or within 45 degrees - BUG: or 180deg off of that - for this case, matching on grid points only in the superior 3/4 of skull bounding box is implemented.\n");
-	  break;
-	  *E*/
-	case 0:
-	case 2:
-	default:
-	  fprintf(stderr, "Matching on grid points over entire image.\n");
-	  bbox.x = bbox.y = bbox.z = 0;
-	  bbox.dx = mri_source->width;
-	  bbox.dy = mri_source->height;
-	  bbox.dz = mri_source->depth;
-	  break;
-	}
+    case 1: //coronal or sagittal
+      /*E*
+	if (mri_source->y_s>0) bbox.y += bbox.dy/4.;  //probably not, for coronal
+	bbox.dy *=.75;
+	fprintf(stderr, "Volume is coronal or sagittal or within 45 degrees - BUG: or 180deg off of that - for this case, matching on grid points only in the superior 3/4 of skull bounding box is implemented.\n");
+	break;
+	*E*/
+    case 0:
+    case 2:
+    default:
+      fprintf(stderr, "Matching on grid points over entire image.\n");
+      bbox.x = bbox.y = bbox.z = 0;
+      bbox.dx = mri_source->width;
+      bbox.dy = mri_source->height;
+      bbox.dz = mri_source->depth;
+      break;
     }
+  }
   /*E*
   else
     {
@@ -1148,9 +1167,9 @@ estimate_rigid_regmatrix(MRI *mri_source, MRI *mri_target, MATRIX *M_reg)
   yplusdy = bbox.y + bbox.dy;
   zplusdz = bbox.z + bbox.dz;
   if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
-    {
-      fprintf(stderr, "x,y,z;xplusdx,yplusdy,zplusdz = %d,%d,%d;%d,%d,%d\n", bbox.x,bbox.y,bbox.z, xplusdx,yplusdy,zplusdz);
-    }
+  {
+    fprintf(stderr, "x,y,z;xplusdx,yplusdy,zplusdz = %d,%d,%d;%d,%d,%d\n", bbox.x,bbox.y,bbox.z, xplusdx,yplusdy,zplusdz);
+  }
   
   nvalues = 0;
   for (z = bbox.z ; z < zplusdz ; z+=dz)
@@ -1628,10 +1647,6 @@ estimate_rigid_regmatrix(MRI *mri_source, MRI *mri_target, MATRIX *M_reg)
 }
 #endif
 
-
-
-
-
 static int
 apply_transform(MRI *mri_in, MRI *mri_target, MATRIX *M_reg, MRI *mri_xformed)
 {
@@ -1646,6 +1661,7 @@ apply_transform(MRI *mri_in, MRI *mri_target, MATRIX *M_reg, MRI *mri_xformed)
   vox2ras_target = MRIgetVoxelToRasXform(mri_target) ;
   ras2vox_source = MatrixInverse(vox2ras_source, NULL);
   ras2vox_target = MatrixInverse(vox2ras_target, NULL);
+  // M_reg is RAS-to-RAS
   m_tmp = MatrixMultiply(M_reg,vox2ras_source, NULL);
   vox_s2vox_t =MatrixMultiply(ras2vox_target,m_tmp, NULL);
   m = MatrixInverse(vox_s2vox_t, NULL) ;
@@ -1655,7 +1671,7 @@ apply_transform(MRI *mri_in, MRI *mri_target, MATRIX *M_reg, MRI *mri_xformed)
   MatrixFree(&ras2vox_target) ;
   MatrixFree(&m_tmp) ;
   MatrixFree(&vox_s2vox_t) ;
-	MRIcopyPulseParameters(mri_in, mri_xformed) ;
+  MRIcopyPulseParameters(mri_in, mri_xformed) ;
 
   v_in = MatrixAlloc(4, 1, MATRIX_REAL) ;
   v_target = MatrixAlloc(4, 1, MATRIX_REAL) ;
