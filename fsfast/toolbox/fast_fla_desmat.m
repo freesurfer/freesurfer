@@ -22,7 +22,7 @@ if(isempty(flacfg.fxlist))
   return;
 end
 
-nruns = length(flacfg.sesscfg.runlist);
+nruns = size(flacfg.sesscfg.runlist,1);
 nfx = length(flacfg.fxlist);
 
 % Get the list of run indices to use %
@@ -79,6 +79,5 @@ end
 
 % Finally!
 X = [Xfe Xre];
-
 
 return;
