@@ -20,17 +20,20 @@ char *Progname ;
 static char *log_fname = NULL ;
 static void usage_exit(int code) ;
 
+static int quiet = 0 ;
 static int all_flag = 0 ;
 
 int
 main(int argc, char *argv[])
 {
   char   **av ;
-  int    ac, nargs, lno, nshared, nvox1, nvox2 ;
-  int          msec, minutes, seconds, wrong, total, correct ;
+  int    ac, nargs, lno, nshared, nvox1, nvox2, total_nvox1, total_nvox2,
+         total_nshared, nlabels, i ;
+  int          msec, minutes, seconds/*, wrong, total, correct*/ ;
   struct timeb start ;
   MRI    *mri1, *mri2 ;
   FILE   *log_fp ;
+  float  nvox_mean ;
 
   Progname = argv[0] ;
   ErrorInit(NULL, NULL, NULL) ;
@@ -83,17 +86,18 @@ main(int argc, char *argv[])
       nvox2 = MRIvoxelsInLabel(mri2, lno) ;
       if (!nvox1 && !nvox2)
         continue ;
+      nvox_mean = (float)(nvox1+nvox2)/2.0f ;
       nshared = MRIlabelOverlap(mri1, mri2, lno) ;
       
-      printf("volume diff = |(%d - %d)| / %d = %2.2f\n",
-             nvox1, nvox2, nvox1, 100.0f*(float)abs(nvox1-nvox2)/nvox1) ;
-      printf("volume overlap = %d / %d = %2.2f\n",
-             nshared, nvox1, 100.0f*(float)nshared/nvox1) ;
+      printf("volume diff = |(%d - %d)| / %2.1f = %2.2f\n",
+             nvox1, nvox2, nvox_mean,100.0f*(float)abs(nvox1-nvox2)/nvox_mean);
+      printf("volume overlap = %d / %2.1f = %2.2f\n",
+             nshared, nvox_mean, 100.0f*(float)nshared/nvox_mean) ;
       if (log_fp)
       {
         fprintf(log_fp, "%d  %2.2f  %2.2f\n", lno,
-                100.0f*(float)abs(nvox1-nvox2)/nvox1,
-                100.0f*(float)nshared/nvox1) ;
+                100.0f*(float)abs(nvox1-nvox2)/nvox_mean,
+                100.0f*(float)nshared/nvox_mean) ;
       }
 #else
       nvox1 = MRIcopyLabel(mri1, mri1_label, lno) ;
@@ -118,33 +122,44 @@ main(int argc, char *argv[])
   }
   else
   {
-    lno = atoi(argv[3]) ;
-    nvox1 = MRIvoxelsInLabel(mri1, lno) ;
-    nvox2 = MRIvoxelsInLabel(mri2, lno) ;
-    nshared = MRIlabelOverlap(mri1, mri2, lno) ;
-
-    printf("label %d: volume diff = |(%d - %d)| / %d = %2.2f\n",
-           lno,nvox1, nvox2, nvox1, 100.0f*(float)abs(nvox1-nvox2)/nvox1) ;
-    printf("label %d: volume overlap = %d / %d = %2.2f\n",
-           lno, nshared, nvox1, 100.0f*(float)nshared/nvox1) ;
-    if (log_fp)
+    nlabels = total_nvox1 = total_nvox2 = total_nshared = 0 ;
+    for (i = 3 ; i < argc ; i++)
     {
-      fprintf(log_fp, "%2.2f  %2.2f\n", 
-              100.0f*(float)abs(nvox1-nvox2)/nvox1,
-              100.0f*(float)nshared/nvox1) ;
-      fclose(log_fp) ;
-    }
-#if 0
-    correct = total-wrong ;
-    printf("%d of %d voxels correctly labeled - %2.2f%%\n",
-           correct, total, 100.0f*(float)correct/(float)total) ;
-    if (log_fp)
+      lno = atoi(argv[i]) ;
+      nvox1 = MRIvoxelsInLabel(mri1, lno) ;
+      nvox2 = MRIvoxelsInLabel(mri2, lno) ;
+      nvox_mean = (float)(nvox1+nvox2)/2 ;
+      nshared = MRIlabelOverlap(mri1, mri2, lno) ;
+      
+      if (!quiet)
+      {
+        printf("label %d: volume diff = |(%d - %d)| / %2.1f = %2.2f\n",
+               lno,nvox1,nvox2,nvox_mean,
+               100.0f*(float)abs(nvox1-nvox2)/nvox_mean);
+        printf("label %d: volume overlap = %d / %2.1f = %2.2f\n",
+               lno, nshared, nvox_mean, 100.0f*(float)nshared/nvox_mean) ;
+      }
+      if (log_fp)
+      {
+        fprintf(log_fp, "%2.2f  %2.2f\n", 
+                100.0f*(float)abs(nvox1-nvox2)/nvox_mean,
+                100.0f*(float)nshared/nvox_mean) ;
+        fclose(log_fp) ;
+      }
+      total_nvox1 += nvox1 ;
+      total_nvox2 += nvox2 ;
+      total_nshared += nshared ;
+      nlabels++ ;
+    }      
+    if (nlabels > 1)
     {
-      fprintf(log_fp,"%d  %d  %2.4f\n", correct, total, 
-              100.0f*(float)correct/(float)total) ;
-      fclose(log_fp) ;
+      nvox_mean = (total_nvox1 + total_nvox2) / 2 ;
+      printf("total: volume diff = |(%d - %d)| / %2.1f = %2.2f\n",
+             total_nvox1,total_nvox2,nvox_mean,
+             100.0f*(float)abs(total_nvox1-total_nvox2)/nvox_mean);
+      printf("total: volume overlap = %d / %2.1f = %2.2f\n",
+             total_nshared, nvox_mean, 100.0f*(float)total_nshared/nvox_mean) ;
     }
-#endif
   }
 
   msec = TimerStop(&start) ;
@@ -173,6 +188,9 @@ get_option(int argc, char *argv[])
   option = argv[1] + 1 ;            /* past '-' */
   switch (toupper(*option))
   {
+  case 'Q':
+    quiet = 1 ;
+    break ;
   case 'A':
     all_flag = 1 ;
     break ;
