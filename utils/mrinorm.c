@@ -2174,7 +2174,7 @@ MRI3dUseFileControlPoints(MRI *mri, char *fname)
 {
   FILE *fp ;
   char *cp, line[STRLEN] ;
-  int  i ;
+  int  i = 0 ;
   float xw, yw, zw ;
   int   xv, yv, zv ;
 
