@@ -318,6 +318,8 @@ int   MRIvoxelToWorld(MRI *mri, Real xv, Real yv, Real zv,
                       Real *xw, Real *yw, Real *zw) ;
 int   MRIworldToVoxel(MRI *mri, Real xw, Real yw, Real zw,
                 Real *pxv, Real *pyv, Real *pzv) ;
+int   MRIworldToVoxelIndex(MRI *mri, Real xw, Real yw, Real zw,
+                int *pxv, int *pyv, int *pzv) ;
 int   MRIworldToTalairachVoxel(MRI *mri, Real xw, Real yw, Real zw,
                 Real *pxv, Real *pyv, Real *pzv) ;
 int   MRIvoxelToTalairachVoxel(MRI *mri, Real xv, Real yv, Real zv,
