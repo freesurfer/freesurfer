@@ -1961,6 +1961,9 @@ MRIclear(MRI *mri)
 
   switch (mri->type)
   {
+  case MRI_UCHAR:
+    bytes = sizeof(unsigned char) ;
+    break ;
   case MRI_BITMAP:
     bytes /= 8 ;
     break ;
@@ -1973,7 +1976,13 @@ MRIclear(MRI *mri)
   case MRI_INT:
     bytes *= sizeof(int) ;
     break ;
+  case MRI_SHORT:
+    bytes *= sizeof(short) ;
+    break ;
   default:
+    ErrorReturn(ERROR_UNSUPPORTED, 
+                (ERROR_UNSUPPORTED, 
+                 "MRIclear: unsupported input type %d", mri->type)) ;
     break ;
   }
 
@@ -2826,7 +2835,7 @@ MRIcopy(MRI *mri_src, MRI *mri_dst)
   float   *fdst, *fsrc ;
   BUFTYPE *csrc, *cdst ;
   int     dest_ptype, *isrc;
-  short   *ssrc ;
+  short   *ssrc, *sdst ;
 
   if (mri_src == mri_dst)
     return(mri_dst) ;
@@ -2890,6 +2899,24 @@ MRIcopy(MRI *mri_src, MRI *mri_dst)
     case MRI_FLOAT:
       switch (mri_dst->type)
       {
+      case MRI_SHORT: /* float --> short */
+        for (frame = 0 ; frame < mri_src->nframes ; frame++)
+        {
+          for (z = 0 ; z < depth ; z++)
+          {
+            for (y = 0 ; y < height ; y++)
+            {
+              sdst = &MRISseq_vox(mri_dst, 0, y, z, frame) ;
+              fsrc = &MRIFseq_vox(mri_src, 0, y, z, frame) ;
+              for (x = 0 ; x < width ; x++)
+              {
+                val = nint(*fsrc++) ;
+                *sdst++ = (short)val ;
+              }
+            }
+          }
+        }
+        break ;
       case MRI_UCHAR:  /* float --> unsigned char */
         for (frame = 0 ; frame < mri_src->nframes ; frame++)
         {
@@ -2965,6 +2992,29 @@ MRIcopy(MRI *mri_src, MRI *mri_dst)
             }
           }
         }
+        break ;
+      case MRI_UCHAR:
+        for (frame = 0 ; frame < mri_src->nframes ; frame++)
+        {
+          for (z = 0 ; z < depth ; z++)
+          {
+            for (y = 0 ; y < height ; y++)
+            {
+              cdst = &MRIseq_vox(mri_dst, 0, y, z, frame) ;
+              ssrc = &MRISseq_vox(mri_src, 0, y, z, frame) ;
+              for (x = 0 ; x < width ; x++)
+              {
+                *cdst++ = (float)*ssrc++ ;
+              }
+            }
+          }
+        }
+        break ;
+      default:
+        ErrorReturn(NULL,
+                    (ERROR_BADPARM, 
+                     "MRIcopy: src type %d & dst type %d unsupported",
+                     mri_src->type, mri_dst->type)) ;
         break ;
       }
       break ;
