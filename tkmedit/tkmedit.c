@@ -331,6 +331,51 @@ char *Progname ;
 
 /*--------------------- twitzels hacks ------------------------------*/
 
+#ifndef NOLICENSE
+
+/* Licensing */
+void checkLicense(char* dirname)
+{
+  FILE* lfile;
+  char* email;
+  char* magic;
+  char* key;
+  char* gkey;
+  char* lfilename;
+
+  lfilename = (char*)malloc(512);
+  email = (char*)malloc(512);
+  magic = (char*)malloc(512);
+  key = (char*)malloc(512);
+  gkey = (char*)malloc(1024);
+
+  sprintf(lfilename,"%s/.license",dirname);
+
+  lfile = fopen(lfilename,"r");
+  if(lfile) {
+    fscanf(lfile,"%s\n",email);
+    fscanf(lfile,"%s\n",magic);
+    fscanf(lfile,"%s\n",key);
+    
+    sprintf(gkey,"%s.%s",email,magic);
+    if (strcmp(key,crypt(gkey,"*C*O*R*T*E*C*H*S*0*1*2*3*"))!=0) {
+      printf("No valid license key !\n");
+      exit(-1);
+    }
+  }
+  else {
+    printf("License file not found !\n");
+    exit(-1);
+  }
+  free(email);
+  free(magic);
+  free(key);
+  free(gkey);
+  free(lfilename);
+  return;  
+}
+#endif
+
 char hacked_map[256];
 
 /*--------------------- functional ----------------------------------*/
@@ -5364,6 +5409,9 @@ char **argv;
     printf("    [dir containing mri distribution]\n");
     exit(1);
   }
+#ifndef NOLICENSE
+  checkLicense(envptr);
+#endif
   sprintf(tkmedit_tcl,"%s/lib/tcl/%s",envptr,"tkmedit.tcl");
   if ((fp=fopen(tkmedit_tcl,"r"))==NULL) {
     printf("tkmedit: script %s not found\n",tkmedit_tcl);
