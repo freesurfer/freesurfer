@@ -1308,7 +1308,9 @@ xvHipsCmdFrameInit(XV_FRAME *xvf)
               PANEL_VALUE_DISPLAY_LENGTH,  40,
               XV_SHOW,                     TRUE,
               PANEL_NOTIFY_PROC,           xvHipsCommand,
+#if 0
               PANEL_LABEL_STRING,          "Hips Command: ",
+#endif
               PANEL_VALUE,                 hips_cmd_str,
               NULL) ;
 }
@@ -1335,6 +1337,7 @@ buttonQuit(Panel_item item, Event *event)
 
            Description:
 ----------------------------------------------------------------------*/
+#define POINT_SIZE 2
 void
 XVdrawPoint(XV_FRAME *xvf, int which, int x, int y, int color)
 {
@@ -1385,16 +1388,16 @@ XVdrawPoint(XV_FRAME *xvf, int which, int x, int y, int color)
 
   XSetLineAttributes(display, gc, 0, LineSolid, CapRound, JoinBevel) ;
   
-  x0 = x - 4 ;
-  y0 = y - 4 ;
-  x1 = x + 4 ;
-  y1 = y + 4 ;
+  x0 = x - POINT_SIZE ;
+  y0 = y - POINT_SIZE ;
+  x1 = x + POINT_SIZE ;
+  y1 = y + POINT_SIZE ;
   XDrawLine(display, window, gc, x0, y0, x1, y1) ;
 
-  x0 = x + 4 ;
-  y0 = y - 4 ;
-  x1 = x - 4 ;
-  y1 = y + 4 ;
+  x0 = x + POINT_SIZE ;
+  y0 = y - POINT_SIZE ;
+  x1 = x - POINT_SIZE ;
+  y1 = y + POINT_SIZE ;
   XDrawLine(display, window, gc, x0, y0, x1, y1) ;
 
 /*  XFlush(display);*/
@@ -2418,8 +2421,10 @@ XVsetWriteFunc(XV_FRAME *xvf, char *frame_name, char *prompt_str,
 {
   if (frame_name)
     xv_set(hips_cmd_frame, FRAME_LABEL, frame_name, NULL) ;
+#if 0
   if (prompt_str)
     xv_set(hips_cmd_panel_item, PANEL_LABEL_STRING, prompt_str) ;
+#endif
   xvf->write_func = write_func ;
   return(NO_ERROR) ;
 }
