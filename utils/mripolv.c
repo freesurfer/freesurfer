@@ -3717,7 +3717,7 @@ MRIcpolvMedianCurveVoxel(MRI *mri, MRI *mri_labeled, int x0, int y0, int z0,
   {
     x = x0 + nx*dist ; y = y0 + ny*dist ; z = z0 + nz*dist ;
     median = MRIcpolvMedianAtVoxel(mri, vertex, x, y, z, wsize) ;
-    medians[i] = median ; dists[i] = fabs(dist) ;
+    medians[i] = median ; dists[i] = dist ;
     if ((median >= 100.0f) && (fabs(dist) < white_dist))
     {
       white_val = median ;
@@ -3762,7 +3762,7 @@ MRIcpolvMedianCurveVoxel(MRI *mri, MRI *mri_labeled, int x0, int y0, int z0,
       if ((medians[i] > white_val) && (medians[i] > 95))
       {
         white_val = medians[i] ;
-        white_dist = dists[i] ;
+        white_dist = fabs(dists[i]) ;
       }
     }
     if (FZERO(white_dist))
@@ -3777,7 +3777,7 @@ MRIcpolvMedianCurveVoxel(MRI *mri, MRI *mri_labeled, int x0, int y0, int z0,
       if ((medians[i] < gray_val) && (medians[i] < 95))
       {
         gray_val = medians[i] ;
-        gray_dist = dists[i] ;
+        gray_dist = fabs(dists[i]) ;
       }
     }
     if (FZERO(gray_dist))
