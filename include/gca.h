@@ -338,6 +338,7 @@ int set_covariance_matrix(GC1D *gc, MATRIX *m_cov, int ninputs) ;
 int GCAmaxLikelihoodLabel(GCA_NODE *gcan, float *vals, int ninputs, float *plikelihood) ;
 int GCAfreeRegionalGCAN(GCA_NODE **pgcan) ;
 GCA *GCAcompactify(GCA *gca);
+MRI *GCAreplaceImpossibleLabels(MRI *mri_inputs, GCA *gca, MRI *mri_in_labels, MRI *mri_out_labels, TRANSFORM *transform) ;
 
 extern int Ggca_x, Ggca_y, Ggca_z, Ggca_label ;
 
