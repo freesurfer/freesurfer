@@ -320,6 +320,8 @@ typedef struct
   MRI     *mri_smooth ;       /* smoothed version of mri_brain */
 } INTEGRATION_PARMS ;
 
+#define IP_USE_CURVATURE  0x0001
+
 
 /* can't include this before structure, as stats.h includes this file. */
 #include "stats.h"
@@ -619,14 +621,15 @@ int   MRIScomputeAverageCircularPhaseGradient(MRI_SURFACE *mris, LABEL *area,
                                             float *pdx,float *pdy,float *pdz);
 
 int  MRIScomputeWhiteSurfaceValues(MRI_SURFACE *mris, MRI *mri_brain, 
-                                   MRI *mri_wm, float nsigma) ;
+                                   MRI *mri_smooth,MRI *mri_wm);
 int  MRIScomputeGraySurfaceValues(MRI_SURFACE *mris, MRI *mri_brain, 
-                                  MRI *mri_wm, float nsigma,
-                                  float gray_surface);
+                                  MRI *mri_smooth, float gray_surface);
 int  MRIScomputeDistanceErrors(MRI_SURFACE *mris, int nbhd_size,int max_nbrs);
 int  MRISripFaces(MRI_SURFACE *mris) ;
 int  MRISremoveRipped(MRI_SURFACE *mris) ;
 int  MRISbuildFileName(MRI_SURFACE *mris, char *sname, char *fname) ;
+int  MRISsmoothSurfaceNormals(MRI_SURFACE *mris, int niter) ;
+int  MRISsoapBubbleVals(MRI_SURFACE *mris, int niter) ;
 
 #define RH_LABEL           127
 #define LH_LABEL           255
