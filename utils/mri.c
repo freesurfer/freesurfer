@@ -9,9 +9,9 @@
 */
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2004/03/23 19:54:35 $
-// Revision       : $Revision: 1.261 $
-char *MRI_C_VERSION = "$Revision: 1.261 $";
+// Revision Date  : $Date: 2004/03/23 20:45:49 $
+// Revision       : $Revision: 1.262 $
+char *MRI_C_VERSION = "$Revision: 1.262 $";
 
 /*-----------------------------------------------------
                     INCLUDE FILES
@@ -4688,8 +4688,8 @@ int MRIcopyHeader(MRI *mri_src, MRI *mri_dst)
 
   strcpy(mri_dst->gdf_image_stem, mri_src->gdf_image_stem);
 
-  MatrixCopy(mri_src->i_to_r__, mri_dst->i_to_r__);
-  MatrixCopy(mri_src->r_to_i__, mri_dst->r_to_i__);
+  mri_dst->i_to_r__ = MatrixCopy(mri_src->i_to_r__, mri_dst->i_to_r__);
+  mri_dst->r_to_i__ = MatrixCopy(mri_src->r_to_i__, mri_dst->r_to_i__);
 
   return(NO_ERROR) ;
 }
