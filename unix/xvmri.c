@@ -549,7 +549,7 @@ XVMRIshowFrame(XV_FRAME *xvf, MRI *mri, int which, int slice,int frame)
 
   XVsetImageSize(xvf, which, nint((float)I->rows*mag), 
                  nint((float)I->cols*mag));
-  XVresize(xvf) ;
+/*  XVresize(xvf) ;*/
 
   /* must be done before XVshowImage to draw point properly */
   if (which_click < 0)  /* reset current click point */
@@ -642,7 +642,7 @@ XVMRIshowRange(XV_FRAME *xvf, MRI *mri, int which, int slice,
 
   XVsetImageSize(xvf, which, nint((float)I->rows*mag), 
                  nint((float)I->cols*mag));
-  XVresize(xvf) ;
+/*  XVresize(xvf) ;*/
 
   /* must be done before XVshowImage to draw point properly */
   if (which_click < 0)  /* reset current click point */
