@@ -69,7 +69,6 @@ static int    m3dAlignPyramidLevel(MRI *mri_in, MRI *mri_ref,
 static int    mriOrthonormalizeTransform(MATRIX *m_L) ;
 static double mriIntensityRMS(MRI *mri_in, MRI *mri_ref, LTA *lta, 
                               double l_intensity, NECK_PARMS *np) ;
-static int    mriWriteImageViews(MRI *mri, char *base_name, int target_size) ;
 static int    mriWriteImageView(MRI *mri, char *base_name, int target_size, 
                              int view, int slice) ;
 static int    writeSnapshot(MRI *mri, MORPH_PARMS *parms, int n) ;
@@ -1062,7 +1061,7 @@ MRIlinearAlign(MRI *mri_in, MRI *mri_ref, MP *parms)
     }
     if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
     {
-      mriWriteImageViews(parms->mri_ref, "ref", IMAGE_SIZE) ;
+      MRIwriteImageViews(parms->mri_ref, "ref", IMAGE_SIZE) ;
       writeSnapshot(parms->mri_in, parms, 0) ;
     }
     mri_tmp = LTAtransform(mri_in_erased, NULL, parms->lta) ;
@@ -1333,7 +1332,7 @@ mriLinearAlignPyramidLevel(MRI *mri_in, MRI *mri_ref, MORPH_PARMS *parms)
 #if USE_INVERSE == 0
       sprintf(fname, "%sref", base_name) ;
       fprintf(stderr, "writing reference views to %s...\n", fname) ;
-      mriWriteImageViews(parms->mri_ref, fname, IMAGE_SIZE) ;
+      MRIwriteImageViews(parms->mri_ref, fname, IMAGE_SIZE) ;
 #endif
     }
   }
@@ -1360,7 +1359,7 @@ mriLinearAlignPyramidLevel(MRI *mri_in, MRI *mri_ref, MORPH_PARMS *parms)
         nsmall = 0 ;
 
     /* more than 2 small steps or error increased - integration asymptoted */
-    if (nsmall > 2 || old_rms < rms)
+    if ((nsmall > 2 || old_rms < rms) && !parms->rigid)
       break ;
     old_rms = rms ;
   }
@@ -1477,7 +1476,7 @@ writeSnapshot(MRI *mri, MORPH_PARMS *parms, int n)
   if (!n)
   {
     sprintf(fname, "%s_input", parms->base_name) ;
-    mriWriteImageViews(parms->mri_in, fname, IMAGE_SIZE) ;
+    MRIwriteImageViews(parms->mri_in, fname, IMAGE_SIZE) ;
   }
   mri_tmp = MRIinverseLinearTransform(parms->mri_ref, NULL, 
                                       parms->lta->xforms[0].m_L) ;
@@ -1496,7 +1495,7 @@ writeSnapshot(MRI *mri, MORPH_PARMS *parms, int n)
     MRIwrite(mri_tmp, fname) ;
   }
   sprintf(fname, "%s%3.3d", parms->base_name, n) ;
-  mriWriteImageViews(mri_tmp, fname, IMAGE_SIZE) ;
+  MRIwriteImageViews(mri_tmp, fname, IMAGE_SIZE) ;
 #if 0
   mriWriteImageView(mri_tmp, fname, IMAGE_SIZE, MRI_CORONAL, -1) ; 
   mriWriteImageView(mri_tmp, fname, IMAGE_SIZE, MRI_SAGITTAL, -1) ; 
@@ -1654,16 +1653,20 @@ ltaGradientStep(MRI *mri_in, MRI *mri_ref, LTA *lta, double dt,
             max_val = fabs(*MATRIX_RELT(lt->m_dL, r, c)) ;
         }
       }
+#if 0
       if (dt*max_val > (MAX_LINEAR_DEL))
         dt = MAX_LINEAR_DEL / (max_val) ;
+#endif
       
       for (max_val = 0.0, r = 1 ; r <= lt->m_dL->rows ; r++)
       {
         if (fabs(*MATRIX_RELT(lt->m_dL, r, 4)) > max_val)
           max_val = fabs(*MATRIX_RELT(lt->m_dL, r, 4)) ;
       }
+#if 0
       if (dt*max_val > (MAX_TRANSLATION_DEL))
         dt = MAX_TRANSLATION_DEL / max_val ;
+#endif
 
       MatrixScalarMul(lt->m_dL, -dt, lt->m_dL) ;
       MatrixScalarMul(lt->m_last_dL, momentum, lt->m_last_dL) ;
@@ -2503,7 +2506,7 @@ MRI3Dmorph(MRI *mri_in, MRI *mri_ref, MORPH_PARMS *parms)
     MRIeraseNeck(mri_tmp, &parms->in_np) ;
     mri_in_transformed = LTAtransform(mri_tmp, NULL, parms->lta) ;
     if (Gdiag & DIAG_WRITE)
-      mriWriteImageViews(mri_in_transformed, "in_erased", IMAGE_SIZE) ;
+      MRIwriteImageViews(mri_in_transformed, "in_erased", IMAGE_SIZE) ;
     MRIfree(&mri_tmp) ;
     mris_in_skull = MRISshrinkWrapSkull(mri_in_transformed, parms) ;
     MRIfree(&mri_in_transformed) ;
@@ -2512,7 +2515,7 @@ MRI3Dmorph(MRI *mri_in, MRI *mri_ref, MORPH_PARMS *parms)
     mri_tmp = MRIcopy(parms->mri_ref, NULL) ;
     MRIeraseNeck(mri_tmp, &parms->ref_np) ;
     if (Gdiag & DIAG_WRITE)
-      mriWriteImageViews(mri_tmp, "ref_erased", IMAGE_SIZE) ;
+      MRIwriteImageViews(mri_tmp, "ref_erased", IMAGE_SIZE) ;
     if (Gdiag & DIAG_SHOW)
       fprintf(stderr, "building representations of the inner skull...\n") ;
     mris_ref_skull = MRISshrinkWrapSkull(mri_tmp, parms) ;
@@ -2551,9 +2554,9 @@ MRI3Dmorph(MRI *mri_in, MRI *mri_ref, MORPH_PARMS *parms)
       MRI *mri_tmp ;
       
       fprintf(stderr, "writing pre skull-normalized volumes...\n") ;
-      mriWriteImageViews(mri_in, "input", IMAGE_SIZE) ;
+      MRIwriteImageViews(mri_in, "input", IMAGE_SIZE) ;
       mri_tmp = MRIapplyInverse3DMorph(mri_ref, m3d, NULL) ;
-      mriWriteImageViews(mri_tmp, "pre_skull_morph", IMAGE_SIZE) ;
+      MRIwriteImageViews(mri_tmp, "pre_skull_morph", IMAGE_SIZE) ;
       MRIfree(&mri_tmp) ;
     }
     m3dMorphSkull(m3d,mris_in_skull,mris_ref_skull,mri_ref_pyramid[MAX_LEVEL]);
@@ -2563,7 +2566,7 @@ MRI3Dmorph(MRI *mri_in, MRI *mri_ref, MORPH_PARMS *parms)
       
       fprintf(stderr, "writing post skull-normalized images...\n") ;
       mri_tmp = MRIapplyInverse3DMorph(mri_ref, m3d, NULL) ;
-      mriWriteImageViews(mri_tmp, "post_skull_morph", IMAGE_SIZE) ;
+      MRIwriteImageViews(mri_tmp, "post_skull_morph", IMAGE_SIZE) ;
       MRIfree(&mri_tmp) ;
       if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
       {
@@ -2587,7 +2590,7 @@ MRI3Dmorph(MRI *mri_in, MRI *mri_ref, MORPH_PARMS *parms)
       MRIwrite(mri_tmp, "in_skull_morphed.mgh") ;
       MRIfree(&mri_tmp) ;
       mri_tmp = MRIapplyInverse3DMorph(mri_ref, m3d, NULL) ;
-      mriWriteImageViews(mri_tmp, "postformed", IMAGE_SIZE) ;
+      MRIwriteImageViews(mri_tmp, "postformed", IMAGE_SIZE) ;
       MRIfree(&mri_tmp) ;
       fprintf(stderr, "writing out skull-normalized volumes...\n") ;
       mri_tmp = MRIapplyInverse3DMorph(mri_ref, m3d, NULL) ;
@@ -2706,7 +2709,7 @@ MRI3Dmorph(MRI *mri_in, MRI *mri_ref, MORPH_PARMS *parms)
     fprintf(stderr,
             "writing final morphed volume image views...\n");
     mri_tmp = MRIapplyInverse3DMorph(mri_ref, m3d, NULL) ;
-    mriWriteImageViews(mri_tmp, "morphed", IMAGE_SIZE) ;
+    MRIwriteImageViews(mri_tmp, "morphed", IMAGE_SIZE) ;
     MRIfree(&mri_tmp) ;
   }
   return(m3d) ;
@@ -4197,7 +4200,7 @@ write3DSnapshot(MRI *mri_in,MRI *mri_ref,MORPH_PARMS *parms,
   if (!n)
   {
     sprintf(fname, "in_%s", parms->base_name) ;
-    mriWriteImageViews(mri_in, fname, IMAGE_SIZE) ;
+    MRIwriteImageViews(mri_in, fname, IMAGE_SIZE) ;
 #if 0
     sprintf(fname, "in_%s.mgh", parms->base_name) ;
     fprintf(stderr, "writing volume to %s...\n", fname) ;
@@ -4207,7 +4210,7 @@ write3DSnapshot(MRI *mri_in,MRI *mri_ref,MORPH_PARMS *parms,
 
   mri_tmp = MRIapplyInverse3DMorph(mri_ref, m3d, NULL) ;
   sprintf(fname, "%s%3.3d", parms->base_name, n) ;
-  mriWriteImageViews(mri_tmp, fname, IMAGE_SIZE) ;
+  MRIwriteImageViews(mri_tmp, fname, IMAGE_SIZE) ;
 #if 0
   if (((n) % (10*parms->write_iterations)) == 0)
   {
@@ -4228,8 +4231,8 @@ write3DSnapshot(MRI *mri_in,MRI *mri_ref,MORPH_PARMS *parms,
         Description
 
 ------------------------------------------------------*/
-static int
-mriWriteImageViews(MRI *mri, char *base_name, int target_size)
+int
+MRIwriteImageViews(MRI *mri, char *base_name, int target_size)
 {
   if (Gdiag & DIAG_SHOW)
     fprintf(stderr, "writing image views to ???_%s.rgb...\n", base_name) ;
@@ -6327,7 +6330,7 @@ m3RecomputeTranslation(MORPH_3D *m3d, MRI *mri_in, MRI *mri_ref,
             "recomputing translation values based on skull morph...\n");
   mri_in_xformed = MRIapplyInverse3DMorph(mri_ref, m3d, NULL) ;
   if (Gdiag & DIAG_WRITE)
-    mriWriteImageViews(mri_in_xformed, "postxform", IMAGE_SIZE) ;
+    MRIwriteImageViews(mri_in_xformed, "postxform", IMAGE_SIZE) ;
   MRIfindCenterOfBrain(mri_in, in_means, in_means+1, in_means+2) ;
   MRIfindCenterOfBrain(mri_in_xformed, ref_means, ref_means+1, ref_means+2) ;
   dx = (double)(ref_means[0] - in_means[0]) * mri_in->thick ;
@@ -6340,9 +6343,9 @@ m3RecomputeTranslation(MORPH_3D *m3d, MRI *mri_in, MRI *mri_ref,
   if (Gdiag & DIAG_WRITE)
   {
     MRI  *mri_tmp ;
-    mriWriteImageViews(mri_in, "input", IMAGE_SIZE) ;
+    MRIwriteImageViews(mri_in, "input", IMAGE_SIZE) ;
     mri_tmp = MRIapplyInverse3DMorph(mri_ref, m3d, NULL) ;
-    mriWriteImageViews(mri_tmp, "posttrans", IMAGE_SIZE) ;
+    MRIwriteImageViews(mri_tmp, "posttrans", IMAGE_SIZE) ;
     MRIfree(&mri_tmp) ;
   }
   MRIfree(&mri_in) ;  MRIfree(&mri_ref) ;
@@ -6569,7 +6572,7 @@ MRIrigidAlign(MRI *mri_in, MRI *mri_ref, MORPH_PARMS *parms)
 
   /* build Gaussian pyramid */
   mri_in_pyramid[0] = mri_in ; mri_ref_pyramid[0] = mri_ref ;
-#if 0
+#if 1
   nlevels = 1 ;
 #else
   for (nlevels = 1 ; nlevels < MAX_LEVELS ; nlevels++)
@@ -6582,7 +6585,7 @@ MRIrigidAlign(MRI *mri_in, MRI *mri_ref, MORPH_PARMS *parms)
   }
 #endif
 
-  for (i = nlevels-1 ; i >= 1 ; i--)
+  for (i = nlevels-1 ; i >= 0 ; i--)
   {
 #if 0
     MATRIX *m_R ;
@@ -6673,6 +6676,10 @@ mriOrthonormalizeTransform(MATRIX *m_L)
     *MATRIX_RELT(m_L, i+1, 3) = c3[i] ;
   }
 
+  /* remove translation component */
+  for (i = 1 ; i <= 3 ; i++)
+    *MATRIX_RELT(m_L, i, 4) = 0 ;
+  
   return(NO_ERROR) ;
 }
 
