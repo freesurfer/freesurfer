@@ -347,7 +347,7 @@ MRIclassTrain(MRIC *mric, MRI *mri_src, MRI *mri_zscore, MRI *mri_target)
              width, depth, height, scale, classno, nclasses, nobs[NCLASSES],
              swidth, sheight, sdepth, overlap, ninputs ;
   BUFTYPE    src, target ;
-  Real       xrv, yrv, zrv ;
+  Real       xrv, yrv, zrv, xt, yt, zt ;
 
   scale = mric->scale ;
   overlap = MAX(1, scale/4) ;
@@ -437,9 +437,11 @@ if ((xv == 22 && yv == 27 && zv == 31) ||
                 MRIFvox(mri_zscore, xv, yv, zv) ;
               if (mric->nvars > 2)
               {
-                m_inputs[classno]->rptr[nobs[classno]+1][3] = xm ;
-                m_inputs[classno]->rptr[nobs[classno]+1][4] = ym ;
-                m_inputs[classno]->rptr[nobs[classno]+1][5] = zm ;
+                MRIvoxelToWorld(mri_src, (Real)xm, (Real)ym, (Real)zm,
+                                         &xt, &yt, &zt) ;
+                m_inputs[classno]->rptr[nobs[classno]+1][3] = xt ;
+                m_inputs[classno]->rptr[nobs[classno]+1][4] = yt ;
+                m_inputs[classno]->rptr[nobs[classno]+1][5] = zt ;
               }
               nobs[classno]++ ;
             }
@@ -482,7 +484,7 @@ MRIclassify(MRIC *mric, MRI *mri_src, MRI *mri_zscore, MRI *mri_dst,
              nclasses, swidth, sheight, sdepth ;
   BUFTYPE    *psrc, src, *pdst, *pclasses ;
   float      *pzscore, prob, *pprobs = NULL ;
-  Real       xt, yt, zt, xoff, yoff, zoff ;
+  Real       xt, yt, zt, xoff, yoff, zoff, xw, yw, zw ;
 
 #if 0
   if (mric->swidth != mri_src->width || mric->sheight != mri_src->height ||
@@ -563,9 +565,10 @@ MRIclassify(MRIC *mric, MRI *mri_src, MRI *mri_zscore, MRI *mri_dst,
         m_inputs->rptr[2][1] = *pzscore++ ;
         if (mric->nvars > 2)
         {
-          m_inputs->rptr[3][1] = x ;
-          m_inputs->rptr[4][1] = y ;
-          m_inputs->rptr[5][1] = z ;
+          MRIvoxelToWorld(mri_src, xt, yt, zt, &xw, &yw, &zw) ;
+          m_inputs->rptr[3][1] = xw ;
+          m_inputs->rptr[4][1] = yw ;
+          m_inputs->rptr[5][1] = zw ;
         }
         
         /* now classify this observation */
@@ -849,7 +852,7 @@ MRIclassUpdateMeans(MRIC *mric, MRI *mris[], MRI *mri_target, int nimages)
              nclasses, swidth, sheight, sdepth, overlap ;
   BUFTYPE    *psrc, *ptarget, src, target ;
   float      *pzscore ;
-  Real       xt, yt, zt, xoff, yoff, zoff ;
+  Real       xt, yt, zt, xoff, yoff, zoff, xw, yw, zw ;
   MRI        *mri_src ;
 
   mri_src = mris[0] ;
@@ -931,9 +934,10 @@ MRIclassUpdateMeans(MRIC *mric, MRI *mris[], MRI *mri_target, int nimages)
         gcl->m_u->rptr[2][1] += *pzscore++ ;
         if (mric->nvars > 2)
         {
-          gcl->m_u->rptr[3][1] += (float)xt ;
-          gcl->m_u->rptr[4][1] += (float)yt ;
-          gcl->m_u->rptr[5][1] += (float)zt ;
+          MRIvoxelToWorld(mri_src, xt, y, z, &xw, &yw, &zw) ;
+          gcl->m_u->rptr[3][1] += (float)xw ;
+          gcl->m_u->rptr[4][1] += (float)yw ;
+          gcl->m_u->rptr[5][1] += (float)zw ;
         }
       }
     }
@@ -958,7 +962,7 @@ MRIclassUpdateCovariances(MRIC *mric, MRI *mris[],MRI *mri_target,int nimages)
              nclasses, swidth, sheight, sdepth, overlap, col, row ;
   BUFTYPE    *psrc, *ptarget, src, target ;
   float      *pzscore, obs[6], covariance ;
-  Real       xt, yt, zt, xoff, yoff, zoff ;
+  Real       xt, yt, zt, xoff, yoff, zoff, xw, yw, zw ;
   MRI        *mri_src ;
 
   mri_src = mris[0] ;
@@ -1039,9 +1043,10 @@ MRIclassUpdateCovariances(MRIC *mric, MRI *mris[],MRI *mri_target,int nimages)
         obs[2] = *pzscore++ - gcl->m_u->rptr[2][1] ;
         if (mric->nvars > 2)
         {
-          obs[3] = (float)xt - gcl->m_u->rptr[3][1] ;
-          obs[4] = (float)yt - gcl->m_u->rptr[4][1] ;
-          obs[5] = (float)zt - gcl->m_u->rptr[5][1] ;
+          MRIvoxelToWorld(mri_src, xt, yt, zt, &xw, &yw, &zw) ;
+          obs[3] = (float)xw - gcl->m_u->rptr[3][1] ;
+          obs[4] = (float)yw - gcl->m_u->rptr[4][1] ;
+          obs[5] = (float)zw - gcl->m_u->rptr[5][1] ;
         }
         for (row = 1 ; row <= gcl->m_covariance->rows ; row++)
         {
