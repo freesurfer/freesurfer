@@ -3,8 +3,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2003/04/18 22:53:58 $
-// Revision       : $Revision: 1.60 $
+// Revision Date  : $Date: 2003/04/23 17:02:59 $
+// Revision       : $Revision: 1.61 $
 
 #include "tkmDisplayArea.h"
 #include "tkmMeditWindow.h"
@@ -5346,8 +5346,11 @@ DspA_tErr DspA_BuildSurfaceDrawLists_ ( tkmDisplayAreaRef this,
        it unless the slice changed flag is set.. */
     list = DspA_GetSurfaceList_( this, iType, this->mOrientation, surface,
 				 DspA_GetCurrentSliceNumber_(this) );
-    if( NULL != list &&
-	!this->mbSliceChanged ) {
+    if( NULL != list ) {
+      // rkt: why was this here? to update draw list when new surface
+      // is loaded? but DspA_PurgeSurfaceLists_ should just be called
+      // to do that.
+      // !this->mbSliceChanged ) {
       continue;
     }
     
