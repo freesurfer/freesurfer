@@ -123,6 +123,10 @@ catch {
 
 set knBalloonWait 500
 
+proc tkm_GetNormalFont {} { global kNormalFont; return $kNormalFont }
+proc tkm_GetSmallFont {} { global kSmallFont; return $kSmallFont }
+proc tkm_GetLabelFont {} { global kLabelFont; return $kLabelFont }
+
 proc tkm_MakeBigLabel { isFrame isText {inWrapLength 0} } {
 
     global kLabelFont
