@@ -7915,7 +7915,7 @@ GCAfindAllSamples(GCA *gca, int *pnsamples)
             max_label = gcap->labels[n] ;
           }
         }
-#if 0
+#if 1
         if (IS_UNKNOWN(max_label) &&
             (different_nbr_labels(gca, x, y, z, 1, 0, .1) == 0))
           continue ;
@@ -7954,7 +7954,7 @@ GCAfindAllSamples(GCA *gca, int *pnsamples)
             max_label = gcap->labels[n] ;
           }
         }
-#if 0
+#if 1
         if (IS_UNKNOWN(max_label) &&
             (different_nbr_labels(gca, x, y, z, 1, 0, .1) == 0))
           continue ;

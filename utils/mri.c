@@ -7360,6 +7360,53 @@ MRIsampleVolumeGradient(MRI *mri, Real x, Real y, Real z,
         Returns value:
 
         Description
+          Interpolate the volume gradient to cubic voxels.
+------------------------------------------------------*/
+int
+MRIsampleVolumeGradientFrame(MRI *mri, Real x, Real y, Real z, 
+														 Real *pdx, Real *pdy, Real *pdz, int frame)
+{
+  int  width, height, depth ;
+  Real xp1, xm1, yp1, ym1, zp1, zm1 ;
+
+  width = mri->width ; height = mri->height ; depth = mri->depth ; 
+  if (x >= width)
+    x = width - 1.0 ;
+  if (y >= height)
+    y = height - 1.0 ;
+  if (z >= depth)
+    z = depth - 1.0 ;
+  if (x < 0.0)
+    x = 0.0 ;
+  if (y < 0.0)
+    y = 0.0 ;
+  if (z < 0.0)
+    z = 0.0 ;
+	if (frame >= mri->nframes)
+		frame = mri->nframes-1 ;
+	if (frame < 0)
+		frame = 0 ;
+		
+  MRIsampleVolumeFrame(mri, x+1.0, y, z, frame, &xp1) ;
+  MRIsampleVolumeFrame(mri, x-1.0, y, z, frame, &xm1) ;
+
+  MRIsampleVolumeFrame(mri, x, y+1.0, z, frame, &yp1) ;
+  MRIsampleVolumeFrame(mri, x, y-1.0, z, frame, &ym1) ;
+
+  MRIsampleVolumeFrame(mri, x, y, z+1.0, frame, &zp1) ;
+  MRIsampleVolumeFrame(mri, x, y, z-1.0, frame, &zm1) ;
+
+  *pdx = (xp1-xm1)/(2.0*mri->xsize) ; 
+  *pdy = (yp1-ym1)/(2.0*mri->ysize) ; 
+  *pdz = (zp1-zm1)/(2.0*mri->zsize) ; 
+  return(NO_ERROR) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
 ------------------------------------------------------*/
 int
 MRIneighborsOn(MRI *mri, int x0, int y0, int z0, int min_val)

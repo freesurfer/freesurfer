@@ -6884,7 +6884,6 @@ dfp_step_func(int itno, float sse, void *vparms, float *p)
     parms->lta->xforms[0].m_L = m_save ;
   }
   logIntegration(parms, itno, (double)rms) ;
-  parms->start_t++ ;
 }
 
 static void 
@@ -6914,12 +6913,12 @@ dfp_em_step_func(int itno, float sse, void *vparms, float *p)
     m_tmp = MRIvoxelXformToRasXform(g_mri_in, g_mri_ref, m_save, NULL) ;
     m_voxel = MRIrasXformToVoxelXform(parms->mri_in,parms->mri_ref,m_tmp,NULL);
     parms->lta->xforms[0].m_L = m_voxel ;
-    writeSnapshot(parms->mri_in, parms, total_steps++) ;
+    writeSnapshot(parms->mri_in, parms, parms->start_t+total_steps++) ;
     MatrixFree(&m_voxel) ; MatrixFree(&m_tmp) ;
     parms->lta->xforms[0].m_L = m_save ;
   }
   logIntegration(parms, itno, (double)sse) ;
-  parms->start_t++ ;
+	/*  parms->start_t++ ;*/
 }
 
 static int
