@@ -1,5 +1,5 @@
 % fast_isxavg_re_abb_sess.m
-% $Id: fast_isxavg_re_abb_sess.m,v 1.3 2003/08/06 18:32:14 greve Exp $
+% $Id: fast_isxavg_re_abb_sess.m,v 1.4 2003/10/30 19:02:15 greve Exp $
 
 % These variable must be set first
 %SessList = splitstring('$SessList');
@@ -56,11 +56,12 @@ for nthhemi = 1:nhemi
 		      analysis,spacedir,hemicode);
       if(~synth)
         [h mristruct] = fast_ldbslice(hstem,slice);
-	mristruct.voldim = [ncols nrows nslices];
         if(isempty(h))
           fprintf('ERROR: loading %s\n',hstem);
           return;
         end
+	if(isempty(mristruct)) mristruct = fast_mri_struct; end
+	mristruct.voldim = [ncols nrows nslices];
         hr = h(:,:,8);  % real
         hi = h(:,:,9);  % imag
       else
