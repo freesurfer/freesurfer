@@ -4,7 +4,7 @@
   email:   analysis-bugs@nmr.mgh.harvard.edu
   Date:    2/27/02
   Purpose: converts values in one volume to another volume
-  $Id: mri_vol2vol.c,v 1.6 2004/10/15 16:04:53 greve Exp $
+  $Id: mri_vol2vol.c,v 1.7 2004/11/01 18:53:27 greve Exp $
 
   Things to do:
     1. Add ability to spec output center XYZ.
@@ -56,7 +56,7 @@ static int istringnmatch(char *str1, char *str2, int n);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_vol2vol.c,v 1.6 2004/10/15 16:04:53 greve Exp $";
+static char vcid[] = "$Id: mri_vol2vol.c,v 1.7 2004/11/01 18:53:27 greve Exp $";
 char *Progname = NULL;
 
 int debug = 0, gdiagno = -1;
@@ -153,6 +153,12 @@ int main(int argc, char **argv)
     outprecisioncode = TempVol->type;
     outprecision = MRIprecisionString(TempVol->type);
   }
+  if(outvolfmtid == MRI_CORONAL_SLICE_DIRECTORY){
+    printf("INFO: forcing output to be uchar for COR\n");
+    outprecisioncode = MRI_UCHAR;
+    outprecision = MRIprecisionString(MRI_UCHAR);
+  }
+
 
   xfov = TempVol->xsize * TempVol->width;
   yfov = TempVol->ysize * TempVol->height;
@@ -264,6 +270,7 @@ int main(int argc, char **argv)
   }
   MRIcopyHeader(TempVol,OutVol);
   OutVol->nframes = InVol->nframes;
+  OutVol->type = MRI_FLOAT; /*Keep float until the end*/
 
   if(invertxfm) MatrixInverse(X,X);
 
@@ -317,7 +324,7 @@ int main(int argc, char **argv)
 	maxrescale = 255;
       }
       printf("dont_irescale = %d\n",dont_irescale);
-      tmpmri = MRISeqchangeType(OutVol, TempVol->type, 
+      tmpmri = MRISeqchangeType(OutVol, outprecisioncode, 
 				minrescale, maxrescale, dont_irescale);
       if(tmpmri == NULL){
 	printf("ERROR: changing type\n");
@@ -326,9 +333,11 @@ int main(int argc, char **argv)
       MRIfree(&OutVol);
       OutVol = tmpmri;
     }
+
     printf("INFO: writing output volume to %s (%s)\n",
 	   outvolpath,outvolfmt);
     MRIwriteType(OutVol,outvolpath,outvolfmtid);
+
     if(outvolfmtid == MRI_CORONAL_SLICE_DIRECTORY)
       sprintf(regfile,"%s/COR.reg",outvolpath);
     if(outvolfmtid == BSHORT_FILE || outvolfmtid == BFLOAT_FILE){
