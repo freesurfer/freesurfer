@@ -2,7 +2,7 @@
    DICOM 3.0 reading functions
    Author: Sebastien Gicquel and Douglas Greve
    Date: 06/04/2001
-   $Id: DICOMRead.c,v 1.54 2004/05/06 18:01:24 fischl Exp $
+   $Id: DICOMRead.c,v 1.55 2004/08/05 20:02:28 tosa Exp $
 *******************************************************/
 
 #include <stdio.h>
@@ -562,8 +562,9 @@ int IsSiemensDICOM(char *dcmfile)
   
   e = GetElementFromFile(dcmfile, 0x8, 0x70);
   if(e == NULL){
-    printf("ERROR: reading dicom file %s\n",dcmfile);
-    exit(1);
+    printf("WARNING: searching dicom file %s for Manufacturer tag 0x8, 0x70\n",dcmfile);
+    printf("WARNING: the result could be a mess.\n");
+    return(0);
   }
   fflush(stdout);fflush(stderr);
 
