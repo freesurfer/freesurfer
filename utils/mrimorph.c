@@ -2543,6 +2543,7 @@ MRI3Dmorph(MRI *mri_in, MRI *mri_ref, MORPH_PARMS *parms)
       m3d_tmp = m3dscaleUp2(m3d, NULL, parms) ;
       m3d = m3d_tmp ;
       m3d->mri_in = mri_in ; m3d->mri_ref = mri_ref ;
+      m3dComputeMetricProperties(m3d) ;
     }
   }
 
