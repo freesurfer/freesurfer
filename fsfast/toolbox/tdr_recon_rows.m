@@ -1,11 +1,11 @@
-function [rimg, dgbeta] = tdr_recon_rows(kimg,Rrow,PERev)
+function [rimg, dgbeta, ncsub] = tdr_recon_rows(kimg,Rrow,PERev)
 % [rimg, dgbeta] = tdr_recon_rows(kimg,Rrow,<PERev>)
 %
 % The rows are reconned by applying Rrow. Includes deghosting.
 %
 % See also tdr_recon_cols.
 % 
-% $Id: tdr_recon_rows.m,v 1.1 2003/10/28 04:32:14 greve Exp $
+% $Id: tdr_recon_rows.m,v 1.2 2003/10/28 05:15:36 greve Exp $
 
 rimg = [];
 dgbeta = [];
@@ -23,11 +23,12 @@ Rcol = inv(Fcol);
 
 rimg = zeros(size(kimg));
 dgbeta = zeros(2,nslices,nframes);
+ncsub = zeros(nslices,nframes);
 for frame = 1:nframes
   for slice = 1:nslices
     kslice = kimg(:,:,slice,frame);
     kslice(evenrows,:) = fliplr(kslice(evenrows,:));
-    [rimg(:,:,slice,frame) dgbeta(:,slice,frame)] = ...
+    [rimg(:,:,slice,frame) dgbeta(:,slice,frame) ncsub(slice,frame)] = ...
 	tdr_deghost(kslice,Rcol,Rrow,PERev);
   end
 end
