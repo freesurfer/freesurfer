@@ -229,6 +229,19 @@ MATRIX *MRIfixTkReg(MRI *ref, MRI *mov, MATRIX *R)
   MatrixMultiply(D,Kref,D);
   MatrixMultiply(D,invTref,D);
 
+  if(0) {
+    printf("MRIfixTkReg -----------------------------\n");
+    printf("Tref ----------------\n");
+    MatrixPrint(stdout,Tref);
+    printf("Tmov ----------------\n");
+    MatrixPrint(stdout,Tmov);
+    printf("Kref ----------------\n");
+    MatrixPrint(stdout,Kref);
+    printf("Kmov ----------------\n");
+    MatrixPrint(stdout,Kmov);
+    printf("------------------------------------------\n");
+  }
+
   MatrixFree(&Kref);
   MatrixFree(&Tref);
   MatrixFree(&Kmov);
