@@ -102,7 +102,7 @@ main(int argc, char *argv[])
 
   if (argc < 4)
     ErrorExit(ERROR_BADPARM, 
-              "usage: %s <in brain> <template> <output file name>\n",
+              "usage: %s <in brain> <atlas> <transform file> <output file name>\n",
               Progname) ;
 
   in_fname = argv[1] ;
