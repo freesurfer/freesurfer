@@ -18255,7 +18255,7 @@ int main(int argc, char *argv[])   /* new main */
   /* end rkt */
   
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: tksurfer.c,v 1.85 2004/12/12 00:50:01 kteich Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: tksurfer.c,v 1.86 2004/12/14 21:13:48 kteich Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -22167,6 +22167,8 @@ int sclv_set_threshold_using_fdr (int field, float rate, int only_marked)
     if (only_marked) free (saved_undefval);
     return (err);
   }
+  printf ("surfer: MRISfdr2vwth with rate %.2f and sign %d returned "
+	  "threshold %f\n", rate, sign, threshold );
 
   /* we we're only doing marked verts, go through and restore the
      undefval values. */
