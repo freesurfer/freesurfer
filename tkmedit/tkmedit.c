@@ -2447,9 +2447,10 @@ do_one_gl_event(Tcl_Interp *interp)   /* tcl */
 
         if (XPending(xDisplay)) {
           XPeekEvent(xDisplay, &ahead);
-          if (ahead.type==ButtonPress)   changeplanelock = TRUE;
-          if (ahead.type==ButtonRelease) changeplanelock = TRUE;
-        } else changeplanelock = FALSE;
+          if      (ahead.type==ButtonPress)   changeplanelock = TRUE;
+          else if (ahead.type==ButtonRelease) changeplanelock = TRUE;
+          else                                changeplanelock = FALSE;
+        }
         break;
 
       case ButtonRelease:
