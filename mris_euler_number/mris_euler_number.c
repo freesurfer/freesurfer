@@ -13,7 +13,7 @@
 #include "mri.h"
 #include "macros.h"
 
-static char vcid[] = "$Id: mris_euler_number.c,v 1.1 1997/10/28 21:49:29 fischl Exp $";
+static char vcid[] = "$Id: mris_euler_number.c,v 1.2 1999/11/12 23:50:40 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -59,7 +59,7 @@ main(int argc, char *argv[])
               Progname, in_fname) ;
   eno = MRIScomputeEulerNumber(mris, &nvertices, &nfaces, &nedges) ;
   fprintf(stderr, "euler # = v-e+f = 2g-2: %d - %d + %d = %d --> %d holes\n",
-          nvertices, nedges, nfaces, eno, 2-eno) ;
+          nvertices, nedges, nfaces, eno, 1-eno/2) ;
 
   fprintf(stderr, "      F =2V-4:          %d %s= %d-4 (%d)\n",
           nfaces, nfaces == 2*nvertices-4 ? "" : "!", 2*nvertices,
