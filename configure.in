@@ -258,6 +258,8 @@ if test $ac_cv_prog_cc_cpuflags = no; then
  AC_MSG_NOTICE("gcc on this PC cannot accept $CPUFLAGS.  gcc may be too old?")
  CPUFLAGS=""
 fi 
+# write the flag file
+echo "CPUFLAGS=$CPUFLAGS" > cpuflags.mak
 
 CFLAGS=$ac_save_CFLAGS
 CFLAGS="-Wall $CPUFLAGS $CFLAGS"
