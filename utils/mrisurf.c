@@ -12437,11 +12437,7 @@ mrisComputeSurfaceRepulsionTerm(MRI_SURFACE *mris, double l_repulse, MHT *mht)
         max_vno = bin->fno ;
         max_dot = dot ;
       }
-#if 0
-      sx += (scale*norm[0]) ; sy += (scale*norm[1]) ; sz += (scale*norm[2]) ;
-#else
       sx += (scale*v->nx) ; sy += (scale*v->ny) ; sz += (scale*v->nz) ;
-#endif
     }
     
     v->dx += sx ; v->dy += sy ; v->dz += sz ;
@@ -15082,7 +15078,7 @@ MRISpositionSurface(MRI_SURFACE *mris, MRI *mri_brain, MRI *mri_smooth,
     mrisComputeSpringTerm(mris, parms->l_spring) ;
     mrisComputeNormalizedSpringTerm(mris, parms->l_spring_norm) ;
     mrisComputeRepulsiveTerm(mris, parms->l_repulse, mht_v_current) ;
-    mrisComputeThicknessSmoothnessTerm(mris, parms->l_repulse) ;
+    mrisComputeThicknessSmoothnessTerm(mris, parms->l_tsmooth) ;
     mrisComputeNormalSpringTerm(mris, parms->l_nspring) ;
     mrisComputeQuadraticCurvatureTerm(mris, parms->l_curv) ;
     /*    mrisComputeAverageNormalTerm(mris, avgs, parms->l_nspring) ;*/
@@ -16957,6 +16953,9 @@ MRIScomputeBorderValues(MRI_SURFACE *mris,MRI *mri_brain,
                                        current_sigma);
         if (mag >= 0.0)
           break ;
+        MRIsampleVolume(mri_brain, xw, yw, zw, &val) ;
+        if (val > border_hi)
+          break ;
       }
       inward_dist = dist+.25 ; 
       for (dist = 0 ; dist < max_thickness ; dist += 0.5)
@@ -16970,6 +16969,9 @@ MRIScomputeBorderValues(MRI_SURFACE *mris,MRI *mri_brain,
         MRIsampleVolumeDerivativeScale(mri_brain, xw, yw, zw, nx, ny,nz, &mag,
                                        current_sigma);
         if (mag >= 0.0)
+          break ;
+        MRIsampleVolume(mri_brain, xw, yw, zw, &val) ;
+        if (val < border_low)
           break ;
       }
       outward_dist = dist-.25 ; 
@@ -17065,10 +17067,6 @@ MRIScomputeBorderValues(MRI_SURFACE *mris,MRI *mri_brain,
         MRIworldToVoxel(mri_brain, x, y, z, &xw, &yw, &zw) ;
         MRIsampleVolumeDerivativeScale(mri_brain, xw, yw, zw, nx, ny, nz,&mag,
                                        sigma);
-#if 0
-        if (outside_low <= 1)  /* hack!!!! - don't use it on pial surface */
-        { previous_mag = next_mag = fabs(mag)-1 ;}
-#endif
         if (vno == Gdiag_no)
           fprintf(fp, "%2.3f  %2.3f  %2.3f  %2.3f  %2.3f\n",
                  dist, val, mag, previous_mag, next_mag) ;
@@ -17233,8 +17231,8 @@ MRIScomputeBorderValues(MRI_SURFACE *mris,MRI *mri_brain,
           mean_border, nmissing, nalways_missing, mean_dist, 
           mean_in, 100.0f*(float)nin/(float)nfound, 
           mean_out, 100.0f*(float)nout/(float)nfound) ;
-  fprintf(stdout, "%%%2.2f local maxima, %%%2.2f large gradients "
-          "and %%%2.2f min vals\n",
+  fprintf(stdout, "%%%2.0f local maxima, %%%2.0f large gradients "
+          "and %%%2.0f min vals\n",
           100.0f*(float)ngrad_max/(float)mris->nvertices,
           100.0f*(float)ngrad/(float)mris->nvertices,
           100.0f*(float)nmin/(float)mris->nvertices) ;
@@ -17246,8 +17244,8 @@ MRIScomputeBorderValues(MRI_SURFACE *mris,MRI *mri_brain,
             mean_border, nmissing, nalways_missing, mean_dist, 
             mean_in, 100.0f*(float)nin/(float)nfound, 
             mean_out, 100.0f*(float)nout/(float)nfound) ;
-    fprintf(log_fp, "%%%2.2f local maxima, %%%2.2f large gradients "
-            "and %%%2.2f min vals\n",
+    fprintf(log_fp, "%%%2.0f local maxima, %%%2.0f large gradients "
+            "and %%%2.0f min vals\n",
             100.0f*(float)ngrad_max/(float)mris->nvertices,
             100.0f*(float)ngrad/(float)mris->nvertices,
             100.0f*(float)nmin/(float)mris->nvertices) ;
