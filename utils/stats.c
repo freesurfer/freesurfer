@@ -920,13 +920,15 @@ StatWriteVolume(SV *sv, char *prefix)
   sprintf(fname, "%s/register.dat", path) ;
   StatWriteRegistration(sv->reg, fname) ;
 
-  if(sv->voltype != 0) {
+  if(sv->voltype != 0)   /* not a raw stats file (sel averaged) */
+  {
     /* write the global header file */
     sprintf(fname, "%s.dat", prefix) ;
     fp = fopen(fname, "w") ;
     if (!fp)
-      ErrorReturn(ERROR_NOFILE, (ERROR_NOFILE, 
-         "StatWriteVolume: could not open dat file %s", fname)) ;
+      ErrorReturn(ERROR_NOFILE, 
+                  (ERROR_NOFILE, 
+                   "StatWriteVolume: could not open dat file %s", fname)) ;
     fprintf(fp, "tr %f\n", sv->tr) ;
     fprintf(fp, "timewindow %f\n", sv->timewindow) ;
     fprintf(fp, "prestim %f\n", sv->prestim) ;
@@ -934,14 +936,14 @@ StatWriteVolume(SV *sv, char *prefix)
     fprintf(fp, "perevent %d\n", sv->time_per_event) ;
     fclose(fp) ;
   }
-
+  
   buf = (float *)calloc(sv->slice_width*sv->slice_height, sizeof(float)) ;
   if (!buf)
     ErrorExit(ERROR_NO_MEMORY, "StatWriteVolume: could not allocate buffer") ;
-
+  
   if(sv->voltype == 0)  nframes =   sv->time_per_event*sv->nevents;
   else                  nframes = 2*sv->time_per_event*sv->nevents;
-
+  
   /* write out the dof files, the .hdr files and the .bfloat data files */
   nitems = width * height ;
   for (z = 0 ; z < sv->nslices ; z++)
@@ -951,14 +953,15 @@ StatWriteVolume(SV *sv, char *prefix)
       sprintf(fname, "%s_%3.3d.dof", prefix, z) ;
       fp = fopen(fname, "w") ;
       if (!fp)
-  ErrorReturn(ERROR_NOFILE,(ERROR_NOFILE,"StatWriteVolume: could not open "
-          "dof file %s",fname));
+        ErrorReturn(ERROR_NOFILE,
+                    (ERROR_NOFILE,"StatWriteVolume: could not open "
+                     "dof file %s",fname));
       for (event_number = 0 ; event_number < sv->nevents ; event_number++)
-  fprintf(fp, "%d %2.0f %2.0f\n", event_number, 
-    sv->mean_dofs[event_number], sv->std_dofs[event_number]) ;
+        fprintf(fp, "%d %2.0f %2.0f\n", event_number, 
+                sv->mean_dofs[event_number], sv->std_dofs[event_number]) ;
       fclose(fp) ;
     }
-
+    
     /* write out .hdr file */
     sprintf(fname, "%s_%3.3d.hdr", prefix, z) ;
     fp = fopen(fname, "w") ;
@@ -966,13 +969,13 @@ StatWriteVolume(SV *sv, char *prefix)
       ErrorExit(ERROR_NOFILE, "StatWriteVolume: could not open %s",fname) ;
     fprintf(fp, "%d %d %d 0\n", sv->slice_width, sv->slice_height, nframes);
     fclose(fp) ;
-
+    
     /* now write out actual data into .bfloat files */
     sprintf(fname, "%s_%3.3d.bfloat", prefix, z) ;
     fp = fopen(fname, "w") ;
     if (!fp)
       ErrorExit(ERROR_NOFILE, "StatWriteVolume: could not open %s",fname) ;
-
+    
     for (event = 0 ; event < sv->nevents ; event++) {
       /* write slice of means for each time point */
       for (t = 0 ; t < sv->time_per_event ; t++)
@@ -993,29 +996,30 @@ StatWriteVolume(SV *sv, char *prefix)
                       (ERROR_BADFILE, "StatWriteVolume: could not write "
                        "%dth slice",z)) ;
       }
-
-      if(sv->voltype != 0){
-  /* write slice of standard deviations for each time point */
-  for (t = 0 ; t < sv->time_per_event ; t++){
-    for (y = 0 ; y < height ; y++){
-      for (x = 0 ; x < width ; x++){
-        fval = MRIFseq_vox(sv->mri_stds[event],x,y,z,t) ;
+      
+      if(sv->voltype != 0)
+      {
+        /* write slice of standard deviations for each time point */
+        for (t = 0 ; t < sv->time_per_event ; t++){
+          for (y = 0 ; y < height ; y++){
+            for (x = 0 ; x < width ; x++){
+              fval = MRIFseq_vox(sv->mri_stds[event],x,y,z,t) ;
 #ifdef Linux
-        fval = swapFloat(fval) ;
+              fval = swapFloat(fval) ;
 #endif
-        buf[y*width+x] = fval ;
+              buf[y*width+x] = fval ;
+            }
+          }
+          if (fwrite(buf, sizeof(float), nitems, fp) != nitems)
+            ErrorReturn(ERROR_BADFILE, 
+                        (ERROR_BADFILE, "StatWriteVolume: could not write "
+                         "%dth slice", z)) ;
+        }
       }
     }
-    if (fwrite(buf, sizeof(float), nitems, fp) != nitems)
-      ErrorReturn(ERROR_BADFILE, 
-      (ERROR_BADFILE, "StatWriteVolume: could not write "
-       "%dth slice", z)) ;
-  }
-      }
-    }
-
+    
     fclose(fp) ;
-
+    
     if (sv->mri_avg_dofs[0]) /* keeping track of dofs on a per-voxel basis */
     {
 #if 0 /* don't write out _dof_ file */
@@ -1071,10 +1075,11 @@ StatWriteVolume(SV *sv, char *prefix)
       fclose(fp) ;
 #endif      
     }
-    }
-
+  }
+  
   /* now remove old files which may have had more slices */
-  for ( ; z < sv->nslices*4 ; z++) {
+  for ( ; z < sv->nslices*4 ; z++) 
+  {
     /* write out .dof file */
     sprintf(fname, "%s_%3.3d.bfloat", prefix, z) ;
     unlink(fname) ;
