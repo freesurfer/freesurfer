@@ -4,8 +4,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2004/06/14 19:50:11 $
-// Revision       : $Revision: 1.289 $
+// Revision Date  : $Date: 2004/06/14 19:55:36 $
+// Revision       : $Revision: 1.290 $
 //////////////////////////////////////////////////////////////////
 #include <stdio.h>
 #include <string.h>
@@ -2774,7 +2774,7 @@ mrisReadTransform(MRIS *mris, char *mris_fname)
   }
   else
   {
-    if (mris->lta->xforms[0].type == LINEAR_RAS_TO_RAS)
+    if (mris->lta->type != LINEAR_RAS_TO_RAS)
       ErrorExit(ERROR_BADPARM, "the transform is not RAS-TO-RAS.  not supported.");
   }
   //////////////////////////////////////////////////////////////////////
