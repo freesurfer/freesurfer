@@ -297,6 +297,7 @@ typedef struct
   float   l_sphere ;          /* for expanding the surface to a sphere */
   float   l_expand ;          /* for uniformly expanding the surface */
   float   l_grad ;            /* gradient term */
+  float   l_convex ;          /* convexity term */
   int     n_averages ;        /* # of averages */
   int     min_averages ;
   int     nbhd_size ;
@@ -335,7 +336,7 @@ typedef struct
 
 #define IP_USE_CURVATURE  0x0001
 #define IP_NO_RIGID_ALIGN 0x0002
-
+#define IP_RETRY_INTEGRATION  0x0004
 
 /* can't include this before structure, as stats.h includes this file. */
 #include "stats.h"
