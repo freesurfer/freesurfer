@@ -91,6 +91,8 @@ MATRIX *MatrixAsciiReadFrom(FILE *fp, MATRIX *m) ;
 #define VectorCopy(v1, v2)         MatrixCopy(v1, v2)
 #define VectorClear(v)             MatrixClear(v)
 #define VectorTranspose(vsrc,vdst) MatrixTranspose(vsrc, vdst)
+#define VectorAsciiWriteInto       MatrixAsciiWriteInto
+#define VectorAsciiReadFrom        MatrixAsciiReadFrom
 
 #define VECTOR_ELT(v,i)            ((v)->rptr[i][1])
 #define RVECTOR_ELT(v,i)            ((v)->rptr[1][i])
@@ -100,6 +102,7 @@ float  VectorDot(VECTOR *v1, VECTOR *v2) ;
 float  VectorNormalizedDot(VECTOR *v1, VECTOR *v2) ;
 float  VectorDistance(VECTOR *v1, VECTOR *v2) ;
 VECTOR *MatrixColumn(MATRIX *m, VECTOR *v, int col) ;
+MATRIX *VectorOuterProduct(VECTOR *v1, VECTOR *v2, MATRIX *m) ;
 
 #define X_ROTATION   0
 #define Y_ROTATION   1
