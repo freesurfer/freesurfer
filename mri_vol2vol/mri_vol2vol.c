@@ -4,7 +4,7 @@
   email:   analysis-bugs@nmr.mgh.harvard.edu
   Date:    2/27/02
   Purpose: converts values in one volume to another volume
-  $Id: mri_vol2vol.c,v 1.5 2004/10/14 22:50:42 greve Exp $
+  $Id: mri_vol2vol.c,v 1.6 2004/10/15 16:04:53 greve Exp $
 
   Things to do:
     1. Add ability to spec output center XYZ.
@@ -38,6 +38,9 @@
 #undef X
 #endif
 
+// For some reason, this does not seemed to be defined in math.h
+double round(double x);
+
 static int  parse_commandline(int argc, char **argv);
 static void check_options(void);
 static void print_usage(void) ;
@@ -53,7 +56,7 @@ static int istringnmatch(char *str1, char *str2, int n);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_vol2vol.c,v 1.5 2004/10/14 22:50:42 greve Exp $";
+static char vcid[] = "$Id: mri_vol2vol.c,v 1.6 2004/10/15 16:04:53 greve Exp $";
 char *Progname = NULL;
 
 int debug = 0, gdiagno = -1;
@@ -67,10 +70,15 @@ char *outvolfmt = NULL;
 int   outvolfmtid = 0;
 char *outprecision = NULL;
 int   outprecisioncode;
+
 float outvoxres[3];
 int   force_outvoxres = 0;
-int    outvoxdim[3];
+int   force_outvoxres_in_plane = 0;
+
+int   outvoxdim[3];
 int   force_outvoxdim = 0;
+int   force_outvoxdim_in_plane = 0;
+
 float outcenter[3];
 int   force_outcenter = 0;
 float shiftcenter[3] = {0,0.0};
@@ -99,6 +107,7 @@ char talxfmpath[1000];
 int fstalairach = 0;
 char *talsubject = "talmni305", *talsubjecttmp;
 float talres = 2.0; // Can only be 1, 1.5, or 2
+char *subject = NULL;
 
 int dont_irescale = 1;
 float minrescale = 0.0, maxrescale = 255.0;
@@ -107,7 +116,7 @@ char fname[1000], dname[1000];
 /*---------------------------------------------------------------*/
 int main(int argc, char **argv)
 {
-  float ipr, bpr, intensity;
+  float ipr, bpr, intensity, xfov, yfov, zfov;
   int float2int,err;
   char *trgsubject;
   char regfile[1000];
@@ -145,15 +154,30 @@ int main(int argc, char **argv)
     outprecision = MRIprecisionString(TempVol->type);
   }
 
-  if(force_outvoxres){
+  xfov = TempVol->xsize * TempVol->width;
+  yfov = TempVol->ysize * TempVol->height;
+  zfov = TempVol->zsize * TempVol->depth;
+  if(force_outvoxres || force_outvoxres_in_plane){
+    // Change pixel size while keeping FOV
     TempVol->xsize = outvoxres[0];
     TempVol->ysize = outvoxres[1];
-    TempVol->zsize = outvoxres[2];
+    TempVol->width  = (int)(round(xfov/TempVol->xsize));
+    TempVol->height = (int)(round(yfov/TempVol->ysize));
+    if(! force_outvoxres_in_plane){
+      TempVol->zsize = outvoxres[2];
+      TempVol->depth  = (int)(round(zfov/TempVol->zsize));
+    }
   }
-  if(force_outvoxdim){
-    TempVol->width = outvoxdim[0];
+  if(force_outvoxdim || force_outvoxdim_in_plane){
+    // Change dimension while keeping FOV
+    TempVol->width  = outvoxdim[0];
     TempVol->height = outvoxdim[1];
-    TempVol->depth = outvoxdim[2];
+    TempVol->xsize = xfov/TempVol->width;
+    TempVol->ysize = yfov/TempVol->height;
+    if(! force_outvoxdim_in_plane){
+      TempVol->depth  = outvoxdim[2];
+      TempVol->zsize = zfov/TempVol->depth;
+    }
   }
   if(force_outcenter){
     /* This does nothing */
@@ -230,17 +254,6 @@ int main(int argc, char **argv)
   else X = MatrixIdentity(4,NULL);
   printf("Final XFM ------------------------------\n");
   MatrixPrint(stdout,X);
-
-  if(force_outvoxres){
-    TempVol->xsize = outvoxres[0];
-    TempVol->ysize = outvoxres[1];
-    TempVol->zsize = outvoxres[2];
-  }
-  if(force_outvoxdim){
-    TempVol->width  = outvoxdim[0];
-    TempVol->height = outvoxdim[1];
-    TempVol->depth  = outvoxdim[2];
-  }
 
   /*---------- Allocate the output volume ------------------*/
   OutVol = MRIallocSequence(TempVol->width, TempVol->height, 
@@ -325,15 +338,22 @@ int main(int argc, char **argv)
     else
       sprintf(regfile,"%s.reg",outvolpath);
     printf("INFO: writing registration matrix to %s\n",regfile);
-    if(fstalairach) R = Xtalfov;
-    else            R = MatrixIdentity(4,NULL);
-    regio_write_register(regfile,talsubject,OutVol->xsize,
+    if(fstalairach){
+      R = Xtalfov;
+      subject = talsubject;
+    }
+    else  R = MatrixIdentity(4,NULL);
+    regio_write_register(regfile,subject,OutVol->xsize,
 			 OutVol->zsize,1,R,FLT2INT_ROUND);
 
     printf("To check registration, run:\n");
     printf("\n");
-    printf("  tkregister2 --mov %s --reg %s\n",
+    printf("  tkregister2 --mov %s --reg %s ",
 	   outvolpath,regfile);
+
+    if(!fstalairach) printf("--targ %s\n",tempvolpath);
+    else printf("\n");
+
     printf("\n");
     printf("\n");
 
@@ -406,6 +426,28 @@ static int parse_commandline(int argc, char **argv)
       force_outvoxres = 1;
       nargsused = 3;
     }
+    else if (istringnmatch(option, "--voxres-in-plane",0)){
+      if(nargc < 2) argnerr(option,2);
+      sscanf(pargv[0],"%f",&outvoxres[0]);
+      sscanf(pargv[1],"%f",&outvoxres[1]);
+      force_outvoxres_in_plane = 1;
+      nargsused = 2;
+    }
+    else if (istringnmatch(option, "--voxdim",0)){
+      if(nargc < 3) argnerr(option,3);
+      sscanf(pargv[0],"%d",&outvoxdim[0]);
+      sscanf(pargv[1],"%d",&outvoxdim[1]);
+      sscanf(pargv[2],"%d",&outvoxdim[2]);
+      force_outvoxdim = 1;
+      nargsused = 3;
+    }
+    else if (istringnmatch(option, "--voxdim-in-plane",0)){
+      if(nargc < 2) argnerr(option,2);
+      sscanf(pargv[0],"%d",&outvoxdim[0]);
+      sscanf(pargv[1],"%d",&outvoxdim[1]);
+      force_outvoxdim_in_plane = 1;
+      nargsused = 2;
+    }
     else if (istringnmatch(option, "--center",0)){
       if(nargc < 3) argnerr(option,3);
       sscanf(pargv[0],"%f",&outcenter[0]);
@@ -421,15 +463,6 @@ static int parse_commandline(int argc, char **argv)
       sscanf(pargv[2],"%f",&shiftcenter[2]);
       nargsused = 3;
     }
-    else if (istringnmatch(option, "--voxdim",0)){
-      if(nargc < 3) argnerr(option,3);
-      sscanf(pargv[0],"%d",&outvoxdim[0]);
-      sscanf(pargv[1],"%d",&outvoxdim[1]);
-      sscanf(pargv[2],"%d",&outvoxdim[2]);
-      force_outvoxdim = 1;
-      nargsused = 3;
-    }
-
     else if (istringnmatch(option, "--template",6)){
       if(nargc < 1) argnerr(option,1);
       tempvolpath = pargv[0]; nargsused = 1;
@@ -485,6 +518,11 @@ static int parse_commandline(int argc, char **argv)
       }
     }
 
+    else if (istringnmatch(option, "--subject",3)){
+      if(nargc < 1) argnerr(option,1);
+      subject = pargv[0]; nargsused = 1;
+    }
+
     else{
       fprintf(stderr,"ERROR: Option %s unknown\n",option);
       if(singledash(option))
@@ -514,7 +552,9 @@ static void print_usage(void)
   //printf("  --conform : use COR as output template <fmt>\n");
   printf("  --precision precision : overrides template precision\n");
   printf("  --voxres colres rowres sliceres : override template\n");
+  printf("  --voxres-in-plane colres rowres : override template\n");
   printf("  --voxdim ncols  nrows  nslices : override template\n");
+  printf("  --voxdim-in-plane ncols  nrows : override template\n");
   printf("  --center x y z : override template\n");
   printf("\n");
   printf("  --irescale min max : rescale intensities to min/max\n");
@@ -525,6 +565,7 @@ static void print_usage(void)
   printf("  --invxfm : invert transform before applying\n");
   printf("  \n");
   printf("  --interp method : nearest, <trilin>, sinc \n");
+  printf("  --s subjectname : subject name for output reg file\n");
   printf("  \n");
   printf("  --help    : hidden secrets of success\n");
   printf("  --gdiagno number : set diag level\n");
@@ -575,10 +616,22 @@ static void print_help(void)
 "--voxres colres rowres sliceres \n"
 "\n"
 "Set output voxel resolution (in mm). Overrides voxres in template.\n"
+"Keeps the same field-of-view, so the output dimension is automatically\n"
+"changed accordingly (so it cannot be used with --voxdim).\n"
+"\n"
+"--voxres-in-plane colres rowres \n"
+"\n"
+"Same as --voxres but only on the in-plane components.\n"
 "\n"
 "--voxdim ncols nrows nslices \n"
 "\n"
-"Set output voxel dimension. Overrides voxres in template.\n"
+"Set output voxel dimension. Overrides voxres in template. Keeps\n"
+"the same field-of-view, so the output resolution is automatically\n"
+"changed accordingly (so it cannot be used with --voxres).\n"
+"\n"
+"--voxdim-in-plane ncols nrows \n"
+"\n"
+"Same as --voxdim but only on the in-plane components.\n"
 "\n"
 "--xfm xfmfile\n"
 "\n"
@@ -624,6 +677,12 @@ static void print_help(void)
 "are: nearest, trilin, and sinc. trilin is the default. sinc requires\n"
 "one parameter (hw). sinc probably does not work.\n"
 "\n"
+"--s subjectname\n"
+"\n"
+"Subject name for output registration file. This has not effect on the\n"
+"actual reslicing but can have an effect when the registration file\n"
+"is used in subsequent processing.\n"
+"\n"
 "--gdiagno diagnostic level\n"
 "\n"
 "Sets the diagnostic level (only good for debuggin').\n"
@@ -668,10 +727,10 @@ EXAMPLES:
    mri_vol2vol --in f_000.bfloat --out ftal_000.bfloat
      --xfm register.dat --fstal --fstalres 1.5
 
-   register.dat registers the anatomical and functional. Note that
-   a template is not needed. The registration of ftal with the
-   talairach subject can then be checked with:
-     tkregister2 --mov ftal_000.bfloat --reg ftal.reg
+   register.dat registers the subject anatomical and functional. Note
+   that a template is not needed (it is generated internally). The
+   registration of the ftal volume with the talairach subject can then
+   be checked with: tkregister2 --mov ftal_000.bfloat --reg ftal.reg
 
 2. Resample a structural volume to talairach space.
 
@@ -693,6 +752,16 @@ EXAMPLES:
                --temp func_000.bshort
                --xfm  register.dat
                --interp nearest
+
+4. Resample an anatomical volume into the functional space with a
+   1 mm in-plane resolution:
+
+  mri_vol2vol --in $SUBJECTS_DIR/mysubj/mri/orig \
+    --temp mysubjsess/bold/001/f_000.bshort --s mysubj \
+    --xfm  mysubjsess/bold/register.dat \
+    --out  mysubjsess/anatfunc/999/f_000.bshort \
+    --voxres-in-plane 1 1
+
 
 MORE NOTES
 
@@ -825,6 +894,12 @@ static void check_options(void)
 	   "       using --fstal\n");
     exit(1);
   }
+  if(force_outvoxres && force_outvoxdim){
+    printf("ERROR: cannot change ouput voxel resolution and output\n");
+    printf("       voxel dimension\n");
+    exit(1);
+  }
+
 
   return;
 }
