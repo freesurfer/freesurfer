@@ -6122,7 +6122,7 @@ MRImeanFrame(MRI *mri, int frame)
 
 #define N_HIST_BINS 1000
 
-MRI *MRIchangeType(MRI *src, int dest_type, float f_low, float f_high)
+MRI *MRIchangeType(MRI *src, int dest_type, float f_low, float f_high, int no_scale_option_flag)
 {
 
   MRI *dest = NULL;
@@ -6156,19 +6156,20 @@ MRI *MRIchangeType(MRI *src, int dest_type, float f_low, float f_high)
     no_scale_flag = TRUE;
   else if(src->type == MRI_INT && (dest_type == MRI_LONG || dest_type == MRI_FLOAT))
     no_scale_flag = TRUE;
-/*
   else
   {
-    if(dest_type == MRI_UCHAR && src_min >= UCHAR_MIN && src_max <= UCHAR_MAX)
-      no_scale_flag = TRUE;
-    if(dest_type == MRI_SHORT && src_min >= SHORT_MIN && src_max <= SHORT_MAX)
-      no_scale_flag = TRUE;
-    if(dest_type == MRI_INT && src_min >= INT_MIN && src_max <= INT_MAX)
-      no_scale_flag = TRUE;
-    if(dest_type == MRI_LONG && src_min >= LONG_MIN && src_max <= LONG_MAX)
-      no_scale_flag = TRUE;
+    if(no_scale_option_flag)
+    {
+      if(dest_type == MRI_UCHAR && src_min >= UCHAR_MIN && src_max <= UCHAR_MAX)
+        no_scale_flag = TRUE;
+      if(dest_type == MRI_SHORT && src_min >= SHORT_MIN && src_max <= SHORT_MAX)
+        no_scale_flag = TRUE;
+      if(dest_type == MRI_INT && src_min >= INT_MIN && src_max <= INT_MAX)
+        no_scale_flag = TRUE;
+      if(dest_type == MRI_LONG && src_min >= LONG_MIN && src_max <= LONG_MAX)
+        no_scale_flag = TRUE;
+    }
   }
-*/
 
   if(no_scale_flag)
   {
@@ -6247,12 +6248,12 @@ MRI *MRIchangeType(MRI *src, int dest_type, float f_low, float f_high)
     nth = (int)(f_low * src->width * src->height * src->depth);
     for(n_passed = 0,bin = 0;n_passed < nth && bin < N_HIST_BINS;bin++)
       n_passed += hist_bins[bin];
-    src_min = (float)bin * bin_size;
+    src_min = (float)bin * bin_size + src_min;
 
     nth = (int)((1.0-f_high) * src->width * src->height * src->depth);
     for(n_passed = 0,bin = N_HIST_BINS-1;n_passed < nth && bin > 0;bin--)
       n_passed += hist_bins[bin];    
-    src_max = (float)bin * bin_size;
+    src_max = (float)bin * bin_size + src_min;
 
     if(src_min >= src_max)
     {
@@ -7340,3 +7341,77 @@ MRIscaleMeanIntensities(MRI *mri_src, MRI *mri_ref, MRI *mri_dst)
 
   return(mri_dst) ;
 }
+
+MRI *MRIsmoothParcellation(MRI *mri, int smooth_parcellation_count)
+{
+
+  MRI *mri2;
+  int i, j, k;
+  short vals[26];
+  int counts[32768];
+  int c;
+
+  if(mri->type != MRI_SHORT)
+  {
+    ErrorReturn(NULL, (ERROR_UNSUPPORTED, "MRIsmoothParcellation(): only supported for shorts data"));
+  }
+
+  mri2 = MRIcopy(mri, NULL);
+  if(mri2 == NULL)
+  {
+    ErrorReturn(NULL, (ERROR_NOMEMORY, "MRIsmoothParcellation(): error copying structre"));
+  }
+
+  for(i = 1;i < mri->width-1;i++)
+  {
+    for(j = 1;j < mri->height-1;j++)
+    {
+      for(k = 1;k < mri->depth-1;k++)
+      {
+
+        memset(counts, 0x00, 32768 * sizeof(int));
+
+        vals[ 0] = MRISvox(mri, i+1, j+1, k+1);
+        vals[ 1] = MRISvox(mri, i+1, j+1, k  );
+        vals[ 2] = MRISvox(mri, i+1, j+1, k-1);
+        vals[ 3] = MRISvox(mri, i+1, j  , k+1);
+        vals[ 4] = MRISvox(mri, i+1, j  , k  );
+        vals[ 5] = MRISvox(mri, i+1, j  , k-1);
+        vals[ 6] = MRISvox(mri, i+1, j-1, k+1);
+        vals[ 7] = MRISvox(mri, i+1, j-1, k  );
+        vals[ 8] = MRISvox(mri, i+1, j-1, k-1);
+
+        vals[ 9] = MRISvox(mri, i  , j+1, k+1);
+        vals[10] = MRISvox(mri, i  , j+1, k  );
+        vals[11] = MRISvox(mri, i  , j+1, k-1);
+        vals[12] = MRISvox(mri, i  , j  , k+1);
+        /* --- ignore the voxel itself --- */
+        vals[13] = MRISvox(mri, i  , j  , k-1);
+        vals[14] = MRISvox(mri, i  , j-1, k+1);
+        vals[15] = MRISvox(mri, i  , j-1, k  );
+        vals[16] = MRISvox(mri, i  , j-1, k-1);
+
+        vals[17] = MRISvox(mri, i-1, j+1, k+1);
+        vals[18] = MRISvox(mri, i-1, j+1, k  );
+        vals[19] = MRISvox(mri, i-1, j+1, k-1);
+        vals[20] = MRISvox(mri, i-1, j  , k+1);
+        vals[21] = MRISvox(mri, i-1, j  , k  );
+        vals[22] = MRISvox(mri, i-1, j  , k-1);
+        vals[23] = MRISvox(mri, i-1, j-1, k+1);
+        vals[24] = MRISvox(mri, i-1, j-1, k  );
+        vals[25] = MRISvox(mri, i-1, j-1, k-1);
+
+        for(c = 0;c < 26;c++)
+          counts[vals[c]]++;
+
+        for(c = 0;c < 26;c++)
+          if(counts[vals[c]] >= smooth_parcellation_count)
+            MRISvox(mri2, i, j, k) = vals[c];
+
+      }
+    }
+  }
+
+  return(mri2);
+
+} /* end MRIsmoothParcellation() */
