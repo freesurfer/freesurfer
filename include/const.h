@@ -6,6 +6,8 @@
 
 ----------------------------------------------------------------------*/
 
+#include <math.h>
+
 #ifndef CONST_H
 #define CONST_H
 
@@ -18,13 +20,17 @@
 #define UNDEFINED       255
 #define DEFINED(r, s)   ((r != UNDEFINED) && (s != UNDEFINED))
 
-#ifndef PI
-#define PI             3.1415926
+#ifndef M_PI
+#define M_PI            3.14159265358979323846
 #endif
 
-#define INV_SQRTPI     0.56419
+#ifndef PI
+#define PI              M_PI
+#endif
 
-#define STR_LEN        100   /* misc. string length */
+#define INV_SQRTPI      0.56419
+
+#define STR_LEN         100   /* misc. string length */
 
 /* predefined file descriptors */
 #define FD_STDIN       0
