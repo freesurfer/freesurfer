@@ -10,7 +10,7 @@
 #include "mrimorph.h"
 
 /* ----- determines tolerance of non-orthogonal basis vectors ----- */
-#define CLOSE_ENOUGH  (1e-4)
+#define CLOSE_ENOUGH  (5e-3)
 
 void get_ints(int argc, char *argv[], int *pos, int *vals, int nvals);
 void get_floats(int argc, char *argv[], int *pos, float *vals, int nvals);
@@ -23,7 +23,7 @@ char *Progname;
 int main(int argc, char *argv[])
 {
 
-  MRI *mri, *mri2, *template;
+  MRI *mri, *mri2, *template, *mri_in_like;
   int i;
   int reorder_vals[3];
   float invert_val;
@@ -72,6 +72,17 @@ int main(int argc, char *argv[])
   MRI *mri_transformed;
   int transform_type;
   MATRIX *inverse_transform_matrix;
+  int smooth_parcellation_flag, smooth_parcellation_count;
+  int in_like_flag;
+  char in_like_name[STRLEN];
+  int in_n_i, in_n_j, in_n_k;
+  int in_n_i_flag, in_n_j_flag, in_n_k_flag;
+  int fill_parcellation_flag;
+  int read_parcellation_volume_flag;
+  int color_file_flag;
+  char color_file_name[STRLEN];
+  int no_scale_flag;
+int temp_type;
 
   /* ----- keep the compiler quiet ----- */
   mri2 = NULL;
@@ -121,6 +132,12 @@ int main(int argc, char *argv[])
   reslice_like_flag = FALSE;
   frame_flag = FALSE;
   transform_flag = FALSE;
+  smooth_parcellation_flag = FALSE;
+  in_like_flag = FALSE;
+  in_n_i_flag = in_n_j_flag = in_n_k_flag = FALSE;
+  fill_parcellation_flag = FALSE;
+  color_file_flag = FALSE;
+  no_scale_flag = FALSE;
 
   for(i = 1;i < argc;i++)
   {
@@ -342,6 +359,21 @@ int main(int argc, char *argv[])
       get_ints(argc, argv, &i, &out_n_k, 1);
       out_n_k_flag = TRUE;
     }
+    else if(strcmp(argv[i], "-ini") == 0 || strcmp(argv[i], "-iic") == 0 || strcmp(argv[i], "--in_i_count") == 0)
+    {
+      get_ints(argc, argv, &i, &in_n_i, 1);
+      in_n_i_flag = TRUE;
+    }
+    else if(strcmp(argv[i], "-inj") == 0 || strcmp(argv[i], "-ijc") == 0 || strcmp(argv[i], "--in_j_count") == 0)
+    {
+      get_ints(argc, argv, &i, &in_n_j, 1);
+      in_n_j_flag = TRUE;
+    }
+    else if(strcmp(argv[i], "-ink") == 0 || strcmp(argv[i], "-ikc") == 0 || strcmp(argv[i], "--in_k_count") == 0)
+    {
+      get_ints(argc, argv, &i, &in_n_k, 1);
+      in_n_k_flag = TRUE;
+    }
     else if(strcmp(argv[i], "-odt") == 0 || strcmp(argv[i], "--out_data_type") == 0)
     {
       get_string(argc, argv, &i, out_data_type_string);
@@ -401,6 +433,36 @@ int main(int argc, char *argv[])
     {
       get_ints(argc, argv, &i, &frame, 1);
       frame_flag = TRUE;
+    }
+    else if(strcmp(argv[i], "-il") == 0 || strcmp(argv[i], "--in_like") == 0)
+    {
+      get_string(argc, argv, &i, in_like_name);
+      in_like_flag = TRUE;
+    }
+    else if(strcmp(argv[i], "-fp") == 0 || strcmp(argv[i], "--fill_parcellation") == 0)
+    {
+      fill_parcellation_flag = TRUE;
+    }
+    else if(strcmp(argv[i], "-sp") == 0 || strcmp(argv[i], "--smooth_parcellation") == 0)
+    {
+      get_ints(argc, argv, &i, &smooth_parcellation_count, 1);
+      if(smooth_parcellation_count < 14 || smooth_parcellation_count > 26)
+      {
+        fprintf(stderr, "\n%s: clean parcellation count must be between 14 and 26, inclusive\n", Progname);
+        usage_message(stderr);
+        exit(1);
+      }
+      smooth_parcellation_flag = TRUE;
+    }
+    else if(strcmp(argv[i], "-cf") == 0 || strcmp(argv[i], "--color_file") == 0)
+    {
+      get_string(argc, argv, &i, color_file_name);
+      color_file_flag = TRUE;
+    }
+    else if(strcmp(argv[i], "-ns") == 0 || strcmp(argv[i], "--no_scale") == 0)
+    {
+      get_ints(argc, argv, &i, &no_scale_flag, 1);
+      no_scale_flag = (no_scale_flag == 0 ? FALSE : TRUE);
     }
     else if(strcmp(argv[i], "-u") == 0 || strcmp(argv[i], "--usage") == 0)
     {
@@ -547,28 +609,131 @@ int main(int argc, char *argv[])
   else
     out_volume_type = forced_out_type;
 
+  /* ----- read the in_like volume ----- */
+  if(in_like_flag)
+  {
+    printf("reading info from %s...\n", in_like_name);
+    mri_in_like = MRIreadInfo(in_like_name);
+    if(mri_in_like == NULL)
+      exit(1);
+  }
+
   /* ----- read the volume ----- */
   if(force_in_type_flag)
     in_volume_type = forced_in_type;
   else
     in_volume_type = mri_identify(in_name_only);
+
   if(in_volume_type == MRI_VOLUME_TYPE_UNKNOWN)
   {
     ErrorPrintf(ERROR_BADFILE, "unknown file type for file %s", in_name_only);
+    if(in_like_flag)
+      MRIfree(&mri_in_like);
     exit(1);
   }
+
   printf("reading from %s...\n", in_name_only);
-  if(read_only_flag && in_info_flag && !in_stats_flag)
-    mri = MRIreadInfo(in_name);
+
+  if(in_volume_type == OTL_FILE)
+  {
+
+    if(!in_like_flag && !in_n_k_flag)
+    {
+      ErrorPrintf(ERROR_BADPARM, "parcellation read: must specify a volume depth with either in_like or in_k_count");
+      exit(1);
+    }
+
+    if(!color_file_flag)
+    {
+      ErrorPrintf(ERROR_BADPARM, "parcellation read: must specify a color file name");
+      exit(1);
+    }
+
+    read_parcellation_volume_flag = TRUE;
+    if(read_only_flag && in_info_flag && !in_stats_flag)
+      read_parcellation_volume_flag = FALSE;
+
+    if(in_like_flag)
+      mri = MRIreadOtl(in_name, mri_in_like->width, mri_in_like->height, mri_in_like->depth, color_file_name, read_parcellation_volume_flag, fill_parcellation_flag);
+    else
+      mri = MRIreadOtl(in_name, 0, 0, in_n_k, color_file_name, read_parcellation_volume_flag, fill_parcellation_flag);
+
+    /* ----- smooth the parcellation if requested ----- */
+    if(smooth_parcellation_flag)
+    {
+      printf("smoothing parcellation...\n");
+      mri2 = MRIsmoothParcellation(mri, smooth_parcellation_count);
+      if(mri2 == NULL)
+        exit(1);
+      MRIfree(&mri);
+      mri = mri2;
+    }
+
+    resample_type_val = RESAMPLE_NEAREST;
+    no_scale_flag = TRUE;
+
+  }
   else
   {
-    if(force_in_type_flag)
-      mri = MRIreadType(in_name, in_volume_type);
+
+    if(read_only_flag && in_info_flag && !in_stats_flag)
+      mri = MRIreadInfo(in_name);
     else
-      mri = MRIread(in_name);
+    {
+      if(force_in_type_flag)
+        mri = MRIreadType(in_name, in_volume_type);
+      else
+        mri = MRIread(in_name);
+    }
+
   }
+
   if(mri == NULL)
+  {
+    if(in_like_flag)
+      MRIfree(&mri_in_like);
     exit(1);
+  }
+
+  if(in_volume_type != OTL_FILE)
+  {
+  if(fill_parcellation_flag)
+    printf("fill_parcellation flag ignored on a non-parcellation read\n");
+  if(smooth_parcellation_flag)
+    printf("smooth_parcellation flag ignored on a non-parcellation read\n");
+  }
+
+  /* ----- apply the in_like volume if it's been read ----- */
+  if(in_like_flag)
+  {
+    if(mri->width   != mri_in_like->width ||
+       mri->height  != mri_in_like->height ||
+       mri->depth   != mri_in_like->depth ||
+       mri->nframes != mri_in_like->nframes)
+    {
+      ErrorPrintf(ERROR_BADPARM, "volume sizes do not match\n");
+      ErrorPrintf(ERROR_BADPARM, "%s: (width, height, depth, frames) = (%d, %d, %d, %d)\n", in_name, mri->width, mri->height, mri->depth, mri->nframes);
+      ErrorPrintf(ERROR_BADPARM, "%s: (width, height, depth, frames) = (%d, %d, %d, %d)\n", in_like_name, mri_in_like->width, mri_in_like->height, mri_in_like->depth, mri_in_like->nframes);
+      MRIfree(&mri);
+      MRIfree(&mri_in_like);
+      exit(1);
+    }
+
+    temp_type = mri->type;
+
+    if(MRIcopyHeader(mri_in_like, mri) != NO_ERROR)
+    {
+      ErrorPrintf(ERROR_BADPARM, "error copying information from %s structure to %s structure\n", in_like_name, in_name);
+      MRIfree(&mri);
+      MRIfree(&mri_in_like);
+      exit(1);
+    }
+
+    mri->type = temp_type;
+
+    MRIfree(&mri_in_like);
+
+  }
 
   /* ----- check for ras good flag -- warn if it's not set ----- */
   if(mri->ras_good_flag == 0)
@@ -868,7 +1033,7 @@ int main(int argc, char *argv[])
   if(mri->type != template->type)
   {
     printf("changing data type...\n");
-    mri2 = MRIchangeType(mri, template->type, 0.0, 0.999);
+    mri2 = MRIchangeType(mri, template->type, 0.0, 0.999, no_scale_flag);
     if(mri2 == NULL)
       exit(1);
     MRIfree(&mri);
@@ -883,7 +1048,9 @@ int main(int argc, char *argv[])
      mri->z_r != template->z_r || mri->z_a != template->z_a || mri->z_s != template->z_s ||
      mri->c_r != template->c_r || mri->c_a != template->c_a || mri->c_s != template->c_s)
   {
-    printf("reslicing...\n");
+    printf("reslicing (%s)...\n", (resample_type_val == RESAMPLE_INTERPOLATE ? "interpolate" : 
+                                  (resample_type_val == RESAMPLE_NEAREST     ? "nearest" : 
+                                  (resample_type_val == RESAMPLE_WEIGHTED    ? "weighted" : "unknown"))));
     mri2 = MRIresample(mri, template, resample_type_val);
     if(mri2 == NULL)
       exit(1);
