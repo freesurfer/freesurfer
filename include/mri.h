@@ -476,6 +476,7 @@ extern float ic_z_vertices[]  ;
 #define GDF_FILE                      12
 #define RAW_FILE                      13
 #define SIGNA_FILE                    14
+#define DICOM_FILE                    15
 
 
 int        MRImatch(MRI *mri1, MRI *mri2) ;
