@@ -1,3 +1,13 @@
+//
+// fio.c
+//
+// Warning: Do not edit the following four lines.  CVS maintains them.
+// Revision Author: $Author: tosa $
+// Revision Date  : $Date: 2004/07/08 17:08:59 $
+// Revision       : $Revision: 1.22 $
+//
+////////////////////////////////////////////////////////////////////
+
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -25,7 +35,7 @@ FILE *MGHopen_file(char *fname, char *rwmode)
 int
 putf(float f, FILE *fp)
 {
-#ifdef Linux
+#if (BYTE_ORDER == LITTLE_ENDIAN)
   f = swapFloat(f) ;
 #endif
   return(fwrite(&f,4,1,fp));
@@ -37,7 +47,7 @@ getf(FILE *fp)
   float f;
 
   fread(&f,4,1,fp);
-#ifdef Linux
+#if (BYTE_ORDER == LITTLE_ENDIAN)
   f = swapFloat(f) ;
 #endif
   return f;
@@ -62,7 +72,7 @@ fread2(int *v, FILE *fp)
   int   ret ;
 
   ret = fread(&s,2,1,fp);
-#ifdef Linux
+#if (BYTE_ORDER == LITTLE_ENDIAN)
   s = swapShort(s) ;
 #endif
   *v = s;
@@ -76,7 +86,7 @@ fread3(int *v, FILE *fp)
   int  ret ;
 
   ret = fread(&i,3,1,fp);
-#ifdef Linux
+#if (BYTE_ORDER == LITTLE_ENDIAN)
   i = (unsigned int)swapInt(i) ;
 #endif
   *v = ((i>>8) & 0xffffff);
@@ -90,7 +100,7 @@ fread4(float *v, FILE *fp)
   int   ret ;
 
   ret = fread(&f,4,1,fp);
-#ifdef Linux
+#if (BYTE_ORDER == LITTLE_ENDIAN)
   f = swapFloat(f) ;
 #endif
   *v = f;
@@ -115,7 +125,7 @@ fwrite2(int v, FILE *fp)
   else if (v < -0x7fff)
     v = -0x7fff ;
   s = (short)v;
-#ifdef Linux
+#if (BYTE_ORDER == LITTLE_ENDIAN)
   s = swapShort(s) ;
 #endif
   return(fwrite(&s,2,1,fp));
@@ -126,7 +136,7 @@ fwrite3(int v, FILE *fp)
 {
   unsigned int i = (unsigned int)(v<<8);
 
-#ifdef Linux
+#if (BYTE_ORDER == LITTLE_ENDIAN)
   i = (unsigned int)swapInt(i) ;
 #endif
   return(fwrite(&i,3,1,fp));
@@ -135,7 +145,7 @@ fwrite3(int v, FILE *fp)
 int
 fwrite4(int v,FILE *fp)
 {
-#ifdef Linux
+#if (BYTE_ORDER == LITTLE_ENDIAN)
   v = swapInt(v) ;
 #endif
   return(fwrite(&v,4,1,fp));
@@ -144,7 +154,7 @@ fwrite4(int v,FILE *fp)
 int
 fwriteShort(short s, FILE *fp)
 {
-#ifdef Linux
+#if (BYTE_ORDER == LITTLE_ENDIAN)
   s = swapShort(s) ;
 #endif
   return(fwrite(&s, sizeof(short), 1, fp)) ;
@@ -156,7 +166,7 @@ freadFloat(FILE *fp)
   int   ret ;
 
   ret = fread(&f,4,1,fp);
-#ifdef Linux
+#if (BYTE_ORDER == LITTLE_ENDIAN)
   f = swapFloat(f) ;
 #endif
   if (ret != 1)
@@ -170,7 +180,7 @@ freadDouble(FILE *fp)
   int   ret ;
 
   ret = fread(&d,sizeof(double),1,fp);
-#ifdef Linux
+#if (BYTE_ORDER == LITTLE_ENDIAN)
   d = swapDouble(d) ;
 #endif
   if (ret != 1)
@@ -184,7 +194,7 @@ freadInt(FILE *fp)
   int  i, nread ;
 
   nread = fread(&i,sizeof(int),1,fp);
-#ifdef Linux
+#if (BYTE_ORDER == LITTLE_ENDIAN)
   i = swapInt(i) ;
 #endif
   return(i) ;
@@ -198,7 +208,7 @@ freadShort(FILE *fp)
   short s ;
 
   nread = fread(&s,sizeof(short),1,fp);
-#ifdef Linux
+#if (BYTE_ORDER == LITTLE_ENDIAN)
   s = swapShort(s) ;
 #endif
   if (nread != 1)
@@ -217,7 +227,7 @@ int freadFloatEx(float *pf, FILE *fp)
 {
   int   ret ;
   ret = fread(pf,sizeof(float),1,fp);
-#ifdef Linux
+#if (BYTE_ORDER == LITTLE_ENDIAN)
   *pf = swapFloat(*pf) ;
 #endif
   return ret;
@@ -227,7 +237,7 @@ int freadDoubleEx(double *pd, FILE *fp)
 {
   int   ret ;
   ret = fread(pd,sizeof(double),1,fp);
-#ifdef Linux
+#if (BYTE_ORDER == LITTLE_ENDIAN)
   *pd = swapDouble(*pd) ;
 #endif
   return ret;
@@ -237,7 +247,7 @@ int freadIntEx(int *pi, FILE *fp)
 {
   int nread ;
   nread = fread(pi,sizeof(int),1,fp);
-#ifdef Linux
+#if (BYTE_ORDER == LITTLE_ENDIAN)
   *pi = swapInt(*pi) ; /* swapInt(int i) */
 #endif
   return(nread);
@@ -247,7 +257,7 @@ int freadShortEx(short *ps, FILE *fp)
 {
   int   nread ;
   nread = fread(ps,sizeof(short),1,fp);
-#ifdef Linux
+#if (BYTE_ORDER == LITTLE_ENDIAN)
   *ps = swapShort(*ps) ;
 #endif
   return(nread) ;
@@ -257,7 +267,7 @@ int freadShortEx(short *ps, FILE *fp)
 int
 fwriteInt(int v, FILE *fp)
 {
-#ifdef Linux
+#if (BYTE_ORDER == LITTLE_ENDIAN)
   v = swapInt(v) ;
 #endif
   return(fwrite(&v,sizeof(int),1,fp));
@@ -266,7 +276,7 @@ fwriteInt(int v, FILE *fp)
 int
 fwriteFloat(float f, FILE *fp)
 {
-#ifdef Linux
+#if (BYTE_ORDER == LITTLE_ENDIAN)
   f = swapFloat(f) ;
 #endif
   return(fwrite(&f,sizeof(float),1,fp));
@@ -275,7 +285,7 @@ fwriteFloat(float f, FILE *fp)
 int
 fwriteDouble(double d, FILE *fp)
 {
-#ifdef Linux
+#if (BYTE_ORDER == LITTLE_ENDIAN)
   d = swapDouble(d) ;
 #endif
   return(fwrite(&d,sizeof(double),1,fp));

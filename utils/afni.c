@@ -3,8 +3,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2003/11/04 22:03:55 $
-// Revision       : $Revision: 1.3 $
+// Revision Date  : $Date: 2004/07/08 17:06:39 $
+// Revision       : $Revision: 1.4 $
 //
 // moved out from mriio.c
 //
@@ -786,7 +786,8 @@ MRI *afniRead(char *fname, int read_volume)
 
   header->fov = ( xfov > yfov ? (xfov > zfov ? xfov : zfov ) : (yfov > zfov ? yfov : zfov ) );
 
-#ifdef Linux
+#if (BYTE_ORDER==LITTLE_ENDIAN) 
+  //#ifdef Linux
   swap_flag = big_endian_flag;
 #else
   swap_flag = !big_endian_flag;
@@ -1125,7 +1126,8 @@ int afniWrite(MRI *mri, char *fname)
   fprintf(fp, "type = \n");
   fprintf(fp, "name = BYTEORDER_STRING\n");
   fprintf(fp, "count = 10\n");
-#ifdef Linux
+#if (BYTE_ORDER==LITTLE_ENDIAN) 
+  //#ifdef Linux
   fprintf(fp, " LSB_FIRST~\n");
 #else
   fprintf(fp, " MSB_FIRST~\n");

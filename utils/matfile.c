@@ -1,3 +1,12 @@
+// 
+// matfile.c
+//
+// Warning: Do not edit the following four lines.  CVS maintains them.
+// Revision Author: $Author: tosa $
+// Revision Date  : $Date: 2004/07/08 17:10:56 $
+// Revision       : $Revision: 1.14 $
+//
+////////////////////////////////////////////////////////////////////
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -20,7 +29,8 @@ static double swapDouble(double dval) ;
 
 static char *MatProgname = "matfile" ;
 
-#ifdef Linux
+#if (BYTE_ORDER==LITTLE_ENDIAN)
+// #ifdef Linux
 #define DIFFERENT_ENDIAN(mf)   (mf->type != MATFILE_PC)
 #else
 #define DIFFERENT_ENDIAN(mf)   (mf->type == MATFILE_PC)
