@@ -649,7 +649,7 @@ set tDlogSpecs(ImportParcellation) [list \
   -prompt2 "Load Color Table:" \
   -note2 "The file containing the colors and ROI definitions" \
   -default2 [list GetDefaultLocation ImportParcellation_ColorTable] \
-  -okCmd {LoadParcellationVolume %s1 %s2; \
+  -okCmd {LoadSegmentationVolume %s1 %s2; \
   SetDefaultLocation ImportParcellation_Volume %s1; \
   SetDefaultLocation ImportParcellation_ColorTable %s2} ]
 set tDlogSpecs(SaveParcellationAs) [list \
