@@ -1783,12 +1783,9 @@ ImageScaleUp(IMAGE *inImage, IMAGE *outImage, float scale)
 
   if (!ImageCheckSize(inImage, outImage, nint(inImage->rows*scale),
                           nint(inImage->cols*scale), inImage->num_frame))
-  {
-    fprintf(stderr, 
+    ErrorReturn(-1, (ERROR_NO_MEMORY,
           "ImageScaleUp: output image not large enough %d x %d -> %d x %d\n",
-            inImage->rows, inImage->cols, outImage->rows, outImage->cols);
-    return(-1) ;
-  }
+            inImage->rows, inImage->cols, outImage->rows, outImage->cols));
 
   outCols = outImage->cols = nint((float)inImage->cols * scale) ;
   outRows = outImage->rows = nint((float)inImage->rows * scale) ;
