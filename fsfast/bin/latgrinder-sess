@@ -1,0 +1,365 @@
+#!/bin/csh -f
+# latgrinder-sess
+#
+set VERSION = '$Id: latgrinder-sess,v 1.1 2004/06/01 18:33:44 greve Exp $'
+
+set inputargs = ($argv);
+
+set analysis = ();
+set pthresh  = ();
+set latdir   = ();
+
+set MLF = ();
+set monly = 0;
+set PrintHelp = 0;
+set DateStr = "`date '+%y%m%d%H%M%S'`"
+
+if($#argv == 0)  goto usage_exit;
+set n = `echo $argv | grep version | wc -l` 
+if($n != 0) then
+  echo $VERSION
+  exit 0;
+endif
+set n = `echo $argv | grep -e -help | wc -l` 
+if($n != 0) then
+  set PrintHelp = 1;  
+  goto usage_exit;
+endif
+
+set SessList = `getsesspath $inputargs`;
+if($status || $#SessList == 0) then
+  echo "ERROR: finding sessions"
+  echo "       $SessList" 
+  exit 1;
+endif
+
+goto parse_args;
+parse_args_return:
+
+goto check_params;
+check_params_return:
+## Get functional subdirectory from the info file ##
+set infofile = $analysis/analysis.info
+set cfgfile = $analysis/analysis.cfg
+if(! -e $infofile) then
+  echo "ERROR: cannot find $infofile" 
+  exit 1;
+endif
+set fsd = `cat $infofile | awk '{if($1 == "fsd") print $2}'`;
+set designtype = `cat $infofile | awk '{if($1 == "designtype") print $2}'`;
+set spmhrf = `cat $cfgfile | awk '{if($1 == "-spmhrf") print $2}'`;
+if($#spmhrf == 0) then
+  echo "ERROR: analysis must use spmhrf"
+  exit 1;
+endif
+if($spmhrf != 1) then
+  echo "ERROR: spmhrf must have one derivative"
+  exit 1;
+endif
+
+
+##### Create a log file ######
+set logdir = `pwd`/log;
+mkdir -p $logdir
+if(! -e $logdir | ! -w $logdir) then
+  echo "WARNING: could not create $logdir"
+  set LF = /dev/null
+else
+  set LF = $logdir/latgrinder-sess.$DateStr.log
+  if(-e $LF) mv $LF $LF.old
+endif
+echo "--------------------------------------------------------------"
+echo "latgrinder-sess logfile is $LF"
+echo "--------------------------------------------------------------"
+
+echo "latgrinder-sess log file" >> $LF
+echo $VERSION >> $LF
+id            >> $LF
+pwd           >> $LF
+echo $0     >> $LF
+echo $inputargs  >> $LF
+uname -a      >> $LF
+date          >> $LF
+
+# Create the latency directory for each session
+foreach sess ($SessList)
+  set latpath = $sess/$fsd/$analysis/$latdir
+  mkdir -p $latpath
+end
+
+
+if(! $monly) set MLF = /tmp/latgrinder-sess-$$.m
+echo MLF is $MLF
+rm -f $MLF
+
+#--------------------------------------------------------------#
+tee $MLF > /dev/null <<EOF
+SessList = splitstring('$SessList');
+fsd      = '$fsd';
+analysis = '$analysis';
+pthresh  = $pthresh;
+latdir   = '$latdir';
+
+nsessions = size(SessList,1);
+
+for nthsess = 1:nsessions
+  sess = deblank(SessList(nthsess,:));
+  fprintf('%s\n',sess);
+
+  xmatfile = sprintf('%s/%s/%s/X.mat',sess,fsd,analysis);
+  design = load(xmatfile);
+  if(isempty(design))
+    fprintf('ERROR: loading %s\n',xmatfile);
+    return;
+  end
+  Nc = design.Nnnc;
+  Nperc = design.Navgs_per_cond;
+  TR = design.TR;
+  X  = design.Xfinal;
+  nbeta = size(X,2);
+  ntask = Nc*Nperc;
+
+  Ch = inv(X'*X);
+  DOF = size(X,1) - size(X,2);
+
+  hstem = sprintf('%s/%s/%s/h',sess,fsd,analysis);
+  fprintf('Loading %s\n',hstem);
+  [havg rvar hd] = fast_ldsxabvolume(hstem);
+  if(isempty(havg))
+    fprintf('ERROR: loading %s\n',hstem);
+    return;
+  end
+  havg = permute(havg,[2 3 1 4]);
+  rvar = permute(rvar,[2 3 1]);
+  mristruct = fast_ldbhdr(hstem);
+  [nr nc ns nf] = size(havg);
+  nv = nr*nc*ns;
+  havg = fast_vol2mat(havg);
+  rvar = fast_vol2mat(rvar);
+
+  latpath = sprintf('%s/%s/%s/%s',sess,fsd,analysis,latdir);
+
+  fprintf('Computing latency\n');
+  tsig = zeros(Nc,nv);
+  latency  = zeros(Nc,nv);
+  for nthc = 1:Nc
+    n_cond = 2*(nthc-1) + 1;
+    n_cond_deriv = n_cond + 1;
+
+    r = havg(n_cond_deriv,:)./havg(n_cond,:);
+    C=1.78;
+    D=3.1;
+    latency(nthc,:)  = 2*C./(1+exp(D*r)) - C;
+
+    C = zeros(1,nbeta);
+    C(n_cond) = 1;
+    ces = havg(n_cond,:);
+    cesvar = rvar * (C * Ch * C');
+    t = ces./sqrt(cesvar);
+    tsig(nthc,:) = sign(t).*tTest(DOF,abs(t),200);
+  end
+  tsiglog10 = -log10(-abs(tsig)) .* sign(tsig);
+
+  latency   = fast_mat2vol(latency,  [nr nc ns]);
+  tsiglog10 = fast_mat2vol(tsiglog10,[nr nc ns]);
+
+  % Mask out latencies that do not meet threshold
+  indzero = find(abs(tsiglog10) < pthresh);
+  latencymasked = latency;
+  latencymasked(indzero) = 0;
+
+  latstem = sprintf('%s/lat',latpath);
+  fast_svbslice(latency,latstem,-1,'',mristruct);
+
+  latmstem = sprintf('%s/latm',latpath);
+  fast_svbslice(latencymasked,latmstem,-1,'',mristruct);
+
+  sigstem = sprintf('%s/sig',latpath);
+  fast_svbslice(tsiglog10,sigstem,-1,'',mristruct);
+
+end % Session
+
+fprintf('matlab: latgrinder-sess done\n');
+
+EOF
+#--------------------------------------------------------------#
+
+echo "-----------------------------------------------------"| tee -a $LF
+
+set StartTime = `date`;
+if(! $monly) then
+  cat $MLF | matlab -nojvm -nosplash -display iconic
+  rm -f $MLF
+endif
+
+echo "" | tee -a $LF
+echo "" | tee -a $LF
+echo "Started at $StartTime" | tee -a $LF
+echo "Ended   at `date`"     | tee -a $LF
+echo "latgrinder-sess completed" | tee -a $LF
+echo " "
+echo " "
+
+exit 0;
+###############################################
+
+############--------------##################
+parse_args:
+set cmdline = ($argv);
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "-a":
+    case "-analysis":
+      if ( $#argv == 0) goto arg1err;
+      set analysis = $argv[1]; shift;
+      breaksw
+
+    case "-thresh":
+      if ( $#argv == 0) goto arg1err;
+      set pthresh = $argv[1]; shift;
+      breaksw
+
+    case "-latdir":
+      if ( $#argv == 0) goto arg1err;
+      set latdir = $argv[1]; shift;
+      breaksw
+
+    case "-monly":
+      if ( $#argv == 0) goto arg1err;
+      set MLF = $argv[1]; shift;
+      set monly = 1;
+      breaksw
+
+    case "-umask":
+      if ( $#argv == 0) goto arg1err;
+      umask $argv[1]; shift;
+      breaksw
+
+    case "-debug":
+      set verbose = 1;
+      set echo = 1;
+      breaksw
+
+    case "-cwd":
+      breaksw
+
+    case "-g":
+    case "-s":
+    case "-sf":
+    case "-df":
+    case "-d":
+      # ignore getsesspath arguments 
+      shift;
+      breaksw
+
+    default:
+      echo ERROR: Flag $flag unrecognized. 
+      echo $cmdline
+      exit 1
+      breaksw
+  endsw
+
+end
+
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+
+  set errs = 0;
+
+  if($#analysis == 0) then
+    echo "ERROR: no analysis specified"
+    set errs = 1;
+  endif
+
+  if($#pthresh == 0) then
+    echo "ERROR: no threshold specified"
+    set errs = 1;
+  endif
+
+  if($#latdir == 0) then
+    echo "ERROR: no latency directory specified"
+    set errs = 1;
+  endif
+
+goto check_params_return;
+############--------------##################
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+
+############--------------##################
+usage_exit:
+  echo " "
+  echo "USAGE: latgrinder-sess"
+  echo ""
+  echo "   -a analysisname : session-level functional analysis name"
+  echo "   -thresh  -log10(sigthresh) : eg, 2 for .01"
+  echo "   -latdir latdir  : latency contrast directory"
+  echo ""
+  echo "   -sf sessidfile  ..."
+  echo "   -df srchdirfile ..."
+  echo "   -s  sessid      ..."
+  echo "   -d  srchdir     ..."
+  echo ""
+  echo "   -help"
+  echo "   -umask umask   : set unix file permission mask"
+  echo "   -version       : print version and exit"
+  echo " "
+
+  if(! $PrintHelp ) exit 1;
+
+  echo " "
+  echo "$VERSION "
+  echo " "
+
+  cat $0 | awk 'BEGIN{prt=0}{if(prt) print $0; if($1 == "BEGINHELP") prt = 1 }'
+exit 1;
+
+#---- Everything below here is printed out as part of help -----#
+BEGINHELP
+
+FS-FAST utility to comppute the onset latency. The analysis must
+have been performed with the SPM HRF with one derivative (ie, with
+"-spmhrf 1" when running mkanalysis-sess). The latency is computed
+as described in  Henson, et al, 2002.
+
+The results will be stored under the analysis in a subdirectory called
+latdir. There will be three volumes: (1) sig - significance map of
+each condition vs baseline. The number of frames will equal to the
+number of conditions. (2) lat - latency maps - one for each
+condition. The values are in seconds. This map is unmasked. (3) latm -
+masked latency.  Same as (2) but with latencies of voxels whose
+conditions do not exceed pthresh set to zero. This is the map that
+should be used for further analysis. Note that a voxel may have
+zero for some conditions and non-zero for others.
+
+These results can be treated just as any other contrast. Specify the map 
+as either sig, lat, or latm.
+
+Example:
+
+  latgrinder-sess -s AMN_01 -thresh 3 -latdir lat3 -a fn-sm5-spm
+
+will create a directory called lat3 under the fn-sm5-spm analysis of
+session AMN_01. This directory will have three volumes: sig, lat, and
+latm. latm will be the same as lat but with voxels whose corresponding
+sig value is less than 3 (.001) set to 0. This map can be viewed with:
+
+  sliceview-sess -s AMN_01 -a fn-sm5-spm -c lat3 -map latm \
+     -thmin .1 -thmax 2
+
+Note the threshold is set to show latencies of .1 sec to 2 sec.
+
+Refs: Henson, et al, "Detecting Latency Differences in Event-Related
+BOLD Responses: Application to Words versus Nonwords and Intial versus
+Repeated Face Presentations" NI, 15, 83-97. 2002.
