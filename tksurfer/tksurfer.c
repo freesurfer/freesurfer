@@ -16828,6 +16828,7 @@ int W_sclv_get_normalized_color_for_value PARM;
 int W_clear_vertex_marks PARM;
 int W_swap_vertex_fields PARM;
 int W_undo_last_action PARM;
+int W_get_marked_vnos PARM;
 /* end rkt */
 
 #define TkCreateMainWindow Tk_CreateMainWindow
@@ -17911,6 +17912,35 @@ int W_fill_flood_from_cursor (ClientData clientData,Tcl_Interp *interp,
   return TCL_OK;
 }
 
+int W_get_marked_vnos ( ClientData clientData, Tcl_Interp *interp,
+			int argc, char *argv[] ) 
+{
+  Tcl_Obj *list;
+  int vno;
+  VERTEX* v = NULL;
+
+  if(argc != 1)
+    {
+      Tcl_SetResult(interp, "Wrong # args: get_marked_vnos", TCL_VOLATILE);
+      return TCL_ERROR;
+    }
+
+  list = Tcl_NewListObj(0,NULL);
+  
+  for (vno = 0; vno < mris->nvertices; vno++)
+    {
+      v = &mris->vertices[vno];
+      if (v->marked)
+	{
+	  Tcl_ListObjAppendElement(interp,list,Tcl_NewIntObj(vno));
+	}
+    }
+
+  Tcl_SetObjResult(interp,list);
+
+  return TCL_OK;
+}
+
 /* end rkt */
 /*=======================================================================*/
 
@@ -18595,6 +18625,9 @@ int main(int argc, char *argv[])   /* new main */
   
   Tcl_CreateCommand(interp, "draw_curvature_line",
                     W_draw_curvature_line, REND);
+
+  Tcl_CreateCommand(interp, "get_marked_vnos",
+                    W_get_marked_vnos, REND);
   
   /* end rkt */
   /*=======================================================================*/
