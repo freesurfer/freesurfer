@@ -101,9 +101,11 @@ MRIhistogramRegion(MRI *mri, int nbins, HISTOGRAM *histo, MRI_REGION *region)
   static HISTOGRAM  h_prev ;
   static MRI_REGION reg_prev ;
 
+#if 0
   if (mri->type != MRI_UCHAR)
     ErrorReturn(NULL, 
                 (ERROR_UNSUPPORTED,"MRIhistogramRegion: must by type UCHAR"));
+#endif
 
   fmin = MRIvalRange(mri, &fmin, &fmax) ;
   bmin = (BUFTYPE)fmin ; bmax = (BUFTYPE)fmax ;
@@ -174,10 +176,13 @@ mriHistogramRegion(MRI *mri, int nbins, HISTOGRAM *histo, MRI_REGION *region)
   int        width, height, depth, x, y, z, bin_no, x0, y0, z0 ;
   float      fmin, fmax, bin_size ;
   BUFTYPE    val, *psrc, bmin, bmax ;
+  short      *spsrc ;
 
+#if 0
   if (mri->type != MRI_UCHAR)
     ErrorReturn(NULL, 
                 (ERROR_UNSUPPORTED,"mriHistogramRegion: must by type UCHAR"));
+#endif
 
   if (mri->type == MRI_UCHAR)
   {
@@ -222,19 +227,47 @@ mriHistogramRegion(MRI *mri, int nbins, HISTOGRAM *histo, MRI_REGION *region)
 
   for (bin_no = 0 ; bin_no < nbins ; bin_no++)
     histo->bins[bin_no] = (bin_no+1)*bin_size ;
-  for (z = z0 ; z < depth ; z++)
+
+  switch (mri->type)
   {
-    for (y = y0 ; y < height ; y++)
+  case MRI_UCHAR:
+    for (z = z0 ; z < depth ; z++)
     {
-      psrc = &MRIvox(mri, x0, y, z) ;
-      for (x = x0 ; x < width ; x++)
+      for (y = y0 ; y < height ; y++)
       {
-        val = *psrc++ ;
-        bin_no = (int)((float)(val - bmin) / (float)bin_size) ;
-        histo->counts[bin_no]++ ;
+        psrc = &MRIvox(mri, x0, y, z) ;
+        for (x = x0 ; x < width ; x++)
+        {
+          val = *psrc++ ;
+          bin_no = (int)((float)(val - bmin) / (float)bin_size) ;
+          histo->counts[bin_no]++ ;
+        }
       }
     }
+    break ;
+  case MRI_SHORT:
+    for (z = z0 ; z < depth ; z++)
+    {
+      for (y = y0 ; y < height ; y++)
+      {
+        spsrc = &MRISvox(mri, x0, y, z) ;
+        for (x = x0 ; x < width ; x++)
+        {
+          bin_no = (int)((float)(*spsrc++ - bmin) / (float)bin_size) ;
+          histo->counts[bin_no]++ ;
+        }
+      }
+    }
+    break ;
+  default:
+    ErrorReturn(NULL, 
+                (ERROR_UNSUPPORTED, 
+                 "mriHistogramRegion: unsupported mri type %d",
+                 mri->type)) ;
+    break ;
   }
+
+    
   return(histo) ;
 }
 /*-----------------------------------------------------
@@ -320,6 +353,7 @@ MRIgetEqualizeHistoRegion(MRI *mri, HISTOGRAM *histo_eq, int low,
 {
   int       i, total, total_pix, *pc, *pdst, nbins ;
   HISTOGRAM histo ;
+
 
   if (mri->type != MRI_UCHAR)
     ErrorReturn(NULL,

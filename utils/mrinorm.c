@@ -38,6 +38,9 @@
                     STATIC PROTOTYPES
 -------------------------------------------------------*/
 
+static MRI *mriSplineNormalizeShort(MRI *mri_src,MRI *mri_dst, 
+                                    MRI **pmri_field, float *inputs,
+                                    float *outputs, int npoints) ;
 static MRI *mriMarkUnmarkedNeighbors(MRI *mri_src, MRI *mri_marked,
                                      MRI *mri_dst, int mark, int nbr_mark) ;
 static int mriRemoveOutliers(MRI *mri, int min_nbrs) ;
@@ -46,9 +49,13 @@ static MRI *mriDownsampleCtrl2(MRI *mri_src, MRI *mri_dst) ;
 #endif
 static MRI *mriSoapBubbleFloat(MRI *mri_src, MRI *mri_ctrl, MRI *mri_dst,
                                int niter) ;
+static MRI *mriSoapBubbleShort(MRI *mri_src, MRI *mri_ctrl, MRI *mri_dst,
+                               int niter) ;
 static MRI *mriSoapBubbleExpandFloat(MRI *mri_src, MRI *mri_ctrl, MRI *mri_dst,
                                int niter) ;
 static MRI *mriBuildVoronoiDiagramFloat(MRI *mri_src, MRI *mri_ctrl,
+                                        MRI *mri_dst);
+static MRI *mriBuildVoronoiDiagramShort(MRI *mri_src, MRI *mri_ctrl,
                                         MRI *mri_dst);
 
 static int num_control_points = 0 ;
@@ -85,6 +92,9 @@ MRIsplineNormalize(MRI *mri_src,MRI *mri_dst, MRI **pmri_field,
   double    d ;
   char      *cp ;
 
+  if (mri_src->type == MRI_SHORT)
+    return(mriSplineNormalizeShort(mri_src, mri_dst, pmri_field, inputs, 
+                                   outputs, npoints)) ;
   cp = getenv("RAN") ;
   if (cp)
     d = atof(cp) ;
@@ -131,6 +141,69 @@ MRIsplineNormalize(MRI *mri_src,MRI *mri_dst, MRI **pmri_field,
         else if (dval < 0)
           dval = 0 ;
         *pdst++ = (BUFTYPE)dval ;
+      }
+    }
+  }
+  return(mri_dst) ;
+}
+static MRI *
+mriSplineNormalizeShort(MRI *mri_src,MRI *mri_dst, MRI **pmri_field,
+                   float *inputs,float *outputs, int npoints)
+{
+  int       width, height, depth, x, y, z, i, dval ;
+  short     *psrc, *pdst, sval ;
+  char      *pfield = NULL ;
+  float     outputs_2[MAX_SPLINE_POINTS], frac ;
+  MRI       *mri_field = NULL ;
+  double    d ;
+  char      *cp ;
+
+  cp = getenv("RAN") ;
+  if (cp)
+    d = atof(cp) ;
+  else
+    d = 0.0 ;
+
+  if (pmri_field)
+  {
+    mri_field = *pmri_field ;
+    if (!mri_field)
+      *pmri_field = mri_field = 
+        MRIalloc(BIAS_IMAGE_WIDTH, mri_src->height, 1, MRI_UCHAR) ;
+  }
+
+  if (npoints > MAX_SPLINE_POINTS)
+    npoints = MAX_SPLINE_POINTS ;
+  spline(inputs, outputs, npoints, 0.0f, 0.0f, outputs_2) ;
+  if (!mri_dst)
+    mri_dst = MRIclone(mri_src, NULL) ;
+
+  width = mri_src->width ;
+  height = mri_src->height ;
+  depth = mri_src->depth ;
+
+  for (y = 0 ; y < height ; y++)
+  {
+    if (pmri_field)
+      pfield = &MRIvox(mri_field, 0, y, 0) ;
+    splint(inputs, outputs, outputs_2, npoints, (float)y, &frac) ;
+    if (pmri_field)
+      for (i = 0 ; i < BIAS_IMAGE_WIDTH ; i++)
+        *pfield++ = nint(110.0f/frac) ;
+
+    for (z = 0 ; z < depth ; z++)
+    {
+      psrc = &MRISvox(mri_src, 0, y, z) ;
+      pdst = &MRISvox(mri_dst, 0, y, z) ;
+      for (x = 0 ; x < width ; x++)
+      {
+        sval = *psrc++ ;
+        dval = nint((float)sval * frac + randomNumber(0.0,d)) ;
+        if (dval > 255)
+          dval = 255 ;
+        else if (dval < 0)
+          dval = 0 ;
+        *pdst++ = (short)dval ;
       }
     }
   }
@@ -613,8 +686,8 @@ MRInormFindControlPoints(MRI *mri_src, int wm_target, float intensity_above,
                          float intensity_below, MRI *mri_ctrl)
 {
   int     width, height, depth, x, y, z, xk, yk, zk, xi, yi, zi, *pxi, *pyi, 
-          *pzi, ctrl, nctrl, nfilled, too_low, total_filled,i;
-  BUFTYPE val0, val, low_thresh, hi_thresh ;
+          *pzi, ctrl, nctrl, nfilled, too_low, total_filled,i, val0, val;
+  BUFTYPE low_thresh, hi_thresh ;
 
   if (!wm_target)
     wm_target = DEFAULT_DESIRED_WHITE_MATTER_VALUE ;
@@ -635,7 +708,15 @@ MRInormFindControlPoints(MRI *mri_src, int wm_target, float intensity_above,
     {
       for (x = 0 ; x < width ; x++)
       {
-        val0 = MRIvox(mri_src, x, y, z) ;
+        switch (mri_src->type)
+        {
+        case MRI_UCHAR: val0 = MRIvox(mri_src, x, y, z) ; break ;
+        case MRI_SHORT: val0 = MRISvox(mri_src, x, y, z) ; break ;
+        default:
+          ErrorReturn(NULL, (ERROR_UNSUPPORTED, 
+                             "MRInormFindControlPoints: unsupported"
+                             " src format %d", mri_src->type)) ;
+        }
         if (val0 >= low_thresh && val0 <= hi_thresh)
         {
 #define WSIZE   5
@@ -650,7 +731,12 @@ MRInormFindControlPoints(MRI *mri_src, int wm_target, float intensity_above,
               for (xk = -WHALF ; ctrl && xk <= WHALF ; xk++)
               {
                 xi = pxi[x+xk] ;
-                val = MRIvox(mri_src, xi, yi, zi) ;
+                switch (mri_src->type)
+                {
+                default:
+                case MRI_UCHAR: val = MRIvox(mri_src, xi, yi, zi) ; break ;
+                case MRI_SHORT: val = MRISvox(mri_src, xi, yi, zi) ; break ;
+                }
                 if (val > hi_thresh || val < low_thresh)
                   ctrl = 0 ;   /* not homogeneous enough */
               }
@@ -682,7 +768,12 @@ MRInormFindControlPoints(MRI *mri_src, int wm_target, float intensity_above,
       {
         for (x = 0 ; x < width ; x++)
         {
-          val0 = MRIvox(mri_src, x, y, z) ;
+          switch (mri_src->type)
+          {
+          default:
+          case MRI_UCHAR: val0 = MRIvox(mri_src, x, y, z) ; break ;
+          case MRI_SHORT: val0 = MRISvox(mri_src, x, y, z) ; break ;
+          }
           ctrl = MRIvox(mri_ctrl, x, y, z) ;
           too_low = 0 ;
           if (val0 >= low_thresh && val0 <= hi_thresh && !ctrl)
@@ -703,7 +794,12 @@ MRInormFindControlPoints(MRI *mri_src, int wm_target, float intensity_above,
                     current point.
                   */
                   xi = pxi[x+xk] ;
-                  val = MRIvox(mri_src, xi, yi, zi) ;
+                  switch (mri_src->type)
+                  {
+                  default:
+                  case MRI_UCHAR: val = MRIvox(mri_src, xi, yi, zi) ; break ;
+                  case MRI_SHORT: val = MRISvox(mri_src, xi, yi, zi) ; break ;
+                  }
                   if (val > hi_thresh || val < low_thresh)
                   {
                     too_low = 1 ; ctrl = 0 ;
@@ -1147,6 +1243,135 @@ mriBuildVoronoiDiagramFloat(MRI *mri_src, MRI *mri_ctrl, MRI *mri_dst)
 
         Description
 ------------------------------------------------------*/
+static MRI *
+mriBuildVoronoiDiagramShort(MRI *mri_src, MRI *mri_ctrl, MRI *mri_dst)
+{
+  int     width, height, depth, x, y, z, xk, yk, zk, xi, yi, zi, 
+          *pxi, *pyi, *pzi, nchanged, n, total ;
+  BUFTYPE *pmarked, *pctrl, ctrl, mark ;
+  short   *psrc, *pdst ;
+  float   src, val, mean ;
+  MRI     *mri_marked ;
+  float   scale ;
+
+  width = mri_src->width ; height = mri_src->height ; depth = mri_src->depth ; 
+  if (!mri_dst)
+    mri_dst = MRIclone(mri_src, NULL) ;
+
+  scale = mri_src->width / mri_dst->width ;
+  pxi = mri_src->xi ; pyi = mri_src->yi ; pzi = mri_src->zi ;
+
+  /* initialize dst image */
+  for (total = z = 0 ; z < depth ; z++)
+  {
+    for (y = 0 ; y < height ; y++)
+    {
+      psrc = &MRISvox(mri_src, 0, y, z) ;
+      pctrl = &MRIvox(mri_ctrl, 0, y, z) ;
+      pdst = &MRISvox(mri_dst, 0, y, z) ;
+      for (x = 0 ; x < width ; x++)
+      {
+        if (x == 141 && y == 68 && z == 127)
+          DiagBreak() ;
+        ctrl = *pctrl++ ;
+        src = (float)*psrc++ ;
+        if (!ctrl)
+          val = 0 ;
+        else   /* find mean in region, and use it as bias field estimate */
+        { 
+          val = src ;
+          total++ ; 
+          val = MRISvox(mri_src, x, y, z) ;/* it's already reduced, don't avg*/
+        } 
+        *pdst++ = val ;
+      }
+    }
+  }
+
+  total = width*height*depth - total ;  /* total # of voxels to be processed */
+  mri_marked = MRIcopy(mri_ctrl, NULL) ;
+
+  /* now propagate values outwards */
+  do
+  {
+    nchanged = 0 ;
+    /*
+      use mri_marked to keep track of the last set of voxels changed which
+      are marked CONTROL_MARKED. The neighbors of these will be marked
+      with CONTROL_TMP, and they are the only ones which need to be
+      examined.
+    */
+    mriMarkUnmarkedNeighbors(mri_marked, mri_ctrl, mri_marked, CONTROL_MARKED, 
+                             CONTROL_TMP);
+    MRIreplaceValues(mri_marked, mri_marked, CONTROL_MARKED, CONTROL_NONE) ;
+    MRIreplaceValues(mri_marked, mri_marked, CONTROL_TMP, CONTROL_MARKED) ;
+    for (z = 0 ; z < depth ; z++)
+    {
+      for (y = 0 ; y < height ; y++)
+      {
+        pmarked = &MRIvox(mri_marked, 0, y, z) ;
+        pdst = &MRISvox(mri_dst, 0, y, z) ;
+        for (x = 0 ; x < width ; x++)
+        {
+          mark = *pmarked++ ;
+          if (mark != CONTROL_MARKED)  /* not a neighbor of a marked point */
+          {
+            pdst++ ; ;
+            continue ;
+          }
+
+          /* now see if any neighbors are on and set this voxel to the
+             average of the marked neighbors (if any) */
+          mean = 0.0f ; n = 0 ;
+          for (zk = -1 ; zk <= 1 ; zk++)
+          {
+            zi = pzi[z+zk] ;
+            for (yk = -1 ; yk <= 1 ; yk++)
+            {
+              yi = pyi[y+yk] ;
+              for (xk = -1 ; xk <= 1 ; xk++)
+              {
+                xi = pxi[x+xk] ;
+                if (MRIvox(mri_ctrl, xi, yi, zi))
+                {
+                  n++ ; mean += (float)MRISvox(mri_dst, xi, yi, zi) ;
+                }
+              }
+            }
+          }
+          if (n > 0)  /* some neighbors were on */
+          {
+            MRIvox(mri_ctrl, x, y, z) = CONTROL_TMP ; /* it has a value */
+            *pdst++ = mean / (float)n ;
+            nchanged++ ;
+          }
+          else   /* should never happen anymore */
+            pdst++ ;
+        }
+      }
+    }
+    total -= nchanged ;
+    if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
+      fprintf(stderr, 
+              "Voronoi: %d voxels assigned, %d remaining.      \n", 
+              nchanged, total) ;
+  } while (nchanged > 0 && total > 0) ;
+
+  if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
+    fprintf(stderr, "\n") ;
+  MRIfree(&mri_marked) ;
+  MRIreplaceValues(mri_ctrl, mri_ctrl, CONTROL_TMP, CONTROL_NONE) ;
+  if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+    MRIwrite(mri_ctrl, "ctrl.mgh") ;
+  return(mri_dst) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
 MRI *
 MRIbuildVoronoiDiagram(MRI *mri_src, MRI *mri_ctrl, MRI *mri_dst)
 {
@@ -1158,6 +1383,8 @@ MRIbuildVoronoiDiagram(MRI *mri_src, MRI *mri_ctrl, MRI *mri_dst)
 
   if (mri_src->type == MRI_FLOAT)
     return(mriBuildVoronoiDiagramFloat(mri_src, mri_ctrl, mri_dst));
+  if (mri_src->type == MRI_SHORT)
+    return(mriBuildVoronoiDiagramShort(mri_src, mri_ctrl, mri_dst));
 
   width = mri_src->width ; height = mri_src->height ; depth = mri_src->depth ; 
   if (!mri_dst)
@@ -1306,6 +1533,8 @@ MRIsoapBubble(MRI *mri_src, MRI *mri_ctrl, MRI *mri_dst,int niter)
 
   if (mri_src->type == MRI_FLOAT)
     return(mriSoapBubbleFloat(mri_src, mri_ctrl, mri_dst, niter)) ;
+  else if (mri_src->type == MRI_SHORT)
+    return(mriSoapBubbleShort(mri_src, mri_ctrl, mri_dst, niter)) ;
 
   width = mri_src->width ; height = mri_src->height ; depth = mri_src->depth ; 
   if (!mri_dst)
@@ -1458,7 +1687,6 @@ MRIsoapBubbleExpand(MRI *mri_src, MRI *mri_ctrl, MRI *mri_dst,int niter)
   /*MRIwrite(mri_dst, "soap.mnc") ;*/
   return(mri_dst) ;
 }
-
 /*-----------------------------------------------------
         Parameters:
 
@@ -1527,6 +1755,77 @@ mriSoapBubbleFloat(MRI *mri_src, MRI *mri_ctrl, MRI *mri_dst,int niter)
   MRIfree(&mri_tmp) ;
 
   /*MRIwrite(mri_dst, "soap.mnc") ;*/
+  return(mri_dst) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
+static MRI *
+mriSoapBubbleShort(MRI *mri_src, MRI *mri_ctrl, MRI *mri_dst,int niter)
+{
+  int     width, height, depth, x, y, z, xk, yk, zk, xi, yi, zi, i,
+          *pxi, *pyi, *pzi ;
+  BUFTYPE *pctrl, ctrl, mean ;
+  short   *ptmp ;
+  MRI     *mri_tmp ;
+
+  width = mri_src->width ; height = mri_src->height ; depth = mri_src->depth ; 
+  if (!mri_dst)
+    mri_dst = MRIcopy(mri_src, NULL) ;
+
+  pxi = mri_src->xi ; pyi = mri_src->yi ; pzi = mri_src->zi ;
+
+  mri_tmp = MRIcopy(mri_dst, NULL) ;
+
+  /* now propagate values outwards */
+  for (i = 0 ; i < niter ; i++)
+  {
+    if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
+      fprintf(stderr, "soap bubble iteration %d of %d\n", i+1, niter) ;
+    for ( z = 0 ; z < depth ; z++)
+    {
+      for (y = 0 ; y < height ; y++)
+      {
+        pctrl = &MRIvox(mri_ctrl, 0, y, z) ;
+        ptmp = &MRISvox(mri_tmp, 0, y, z) ;
+        for (x = 0 ; x < width ; x++)
+        {
+          ctrl = *pctrl++ ;
+          if (ctrl == CONTROL_MARKED)   /* marked point - don't change it */
+          {
+            ptmp++ ;
+            continue ;
+          }
+          /* now set this voxel to the average of the marked neighbors */
+          mean = 0.0f ;
+          for (zk = -1 ; zk <= 1 ; zk++)
+          {
+            zi = pzi[z+zk] ;
+            for (yk = -1 ; yk <= 1 ; yk++)
+            {
+              yi = pyi[y+yk] ;
+              for (xk = -1 ; xk <= 1 ; xk++)
+              {
+                xi = pxi[x+xk] ;
+                mean += MRISvox(mri_dst, xi, yi, zi) ;
+              }
+            }
+          }
+          *ptmp++ = (float)mean / (3.0f*3.0f*3.0f) ;
+        }
+      }
+    }
+    MRIcopy(mri_tmp, mri_dst) ;
+  }
+
+  MRIfree(&mri_tmp) ;
+
+  if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+    MRIwrite(mri_dst, "soap.mgh") ;
   return(mri_dst) ;
 }
 /*-----------------------------------------------------
