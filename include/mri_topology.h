@@ -26,4 +26,47 @@ int checkNbh(MRI *mri,int i,int j,int k,int label,int connectivity);
 int checkSNbh(MRI *mri,int i,int j,int k,int label,int connectivity);
 Nbh* Nnk(Nbh* nbh_src,Nbh *nbh_dst,int connectivity);
 int checkSP(Nbh *fgnbh_src,Nbh *fgnbh_dst,int *fgtp,Nbh *bgnbh_src,Nbh *bgnbh_dst,int *bgtp,int connectivity);
+
+#define MAX_NUMBER_OF_LABELS 50
+
+//different mode of corrections
+#define NORMAL_MODE 0
+#define VOXEL_MODE 1 
+#define PROB_MODE 2
+#define PROB_MAP_MODE 3
+#define MAP_MODE 4
+
+typedef struct MRI_TOPOLOGY_PARMS
+{ 
+  //connectivity type (1, 2, 3 or 4)
+  int connectivity;
+  //label information
+  int nlabels;
+  int labels[MAX_NUMBER_OF_LABELS];
+
+  //correction mode (VOXEL, PRIORS, ...)
+  int mode;
+  int background_priority;
+  int only;
+  int using_gca_maps;
+  char *transform_fname,*gca_fname;
+  char* prior_map_file;
+  float alpha,beta;
+  int guess_initial_segmentation;
+
+  //surfaces information
+  int generate_surface;
+  char *initial_surface_file,*final_surface_file;
+  int tesselation_mode;
+  int MarchingCubes;
+
+  //debugging information
+  char *debugging_map_folder;
+
+
+}MRI_TOPOLOGY_PARMS;
+
+MRI_TOPOLOGY_PARMS* MRI_TOPOLOGY_PARMSalloc(void);
+MRI *MRIcorrectTopology(MRI *mri_orig,MRI *mri_seg, MRI*mri_output,MRI_TOPOLOGY_PARMS *mritopparms);
+
 #endif
