@@ -90,6 +90,8 @@ ScubaView::ScubaView() {
   commandMgr.AddCommand( *this, "SetViewInPlane", 2, "viewID inPlane",
 			 "Sets the in plane in a view. inPlane should be "
 			 "one of the following: x y z" );
+  commandMgr.AddCommand( *this, "GetViewInPlane", 1, "viewID",
+			 "Returns the in plane in a view." );
   commandMgr.AddCommand( *this, "SetViewZoomLevel", 2, "viewID zoomLevel",
 			 "Sets the zoom level in a view. zoomLevel should be "
 			 "a float." );
@@ -176,24 +178,6 @@ ScubaView::ScubaView() {
 			  "Key to zoom the view out in plane.",
 			  zoomViewOut );
   msZoomViewOut = prefsMgr.GetValue( "key-ZoomViewOut" );
-
-  PreferencesManager::StringPrefValue inPlaneX( "x" );
-  prefsMgr.RegisterValue( "key-InPlaneX", 
-			  "Key to change in plane to X in the view.",
-			  inPlaneX );
-  msInPlaneXKey = prefsMgr.GetValue( "key-InPlaneX" );
-
-  PreferencesManager::StringPrefValue inPlaneY( "y" );
-  prefsMgr.RegisterValue( "key-InPlaneY", 
-			  "Key to change in plane to Y in the view.",
-			  inPlaneY );
-  msInPlaneYKey = prefsMgr.GetValue( "key-InPlaneY" );
-
-  PreferencesManager::StringPrefValue inPlaneZ( "z" );
-  prefsMgr.RegisterValue( "key-InPlaneZ", 
-			  "Key to change in plane to Z in the view.",
-			  inPlaneZ );
-  msInPlaneZKey = prefsMgr.GetValue( "key-InPlaneZ" );
 
   map<string,string> labelValueMap;
   mLabelValueMaps["cursor"] = labelValueMap;
@@ -404,6 +388,31 @@ ScubaView::DoListenToTclCommand( char* isCommand, int iArgc, char** iasArgv ) {
 	return error;
       }
       Set2DInPlane( inPlane );
+    }
+  }
+
+  // GetViewInPlane <viewID>
+  if( 0 == strcmp( isCommand, "GetViewInPlane" ) ) {
+    int viewID = strtol(iasArgv[1], (char**)NULL, 10);
+    if( ERANGE == errno ) {
+      sResult = "bad view ID";
+      return error;
+    }
+    
+    if( mID == viewID ) {
+      
+      sReturnFormat = "s";
+      switch( mViewState.mInPlane ) {
+      case ViewState::X:
+	sReturnValues = "x";
+	break;
+      case ViewState::Y:
+	sReturnValues = "y";
+	break;
+      case ViewState::Z:
+	sReturnValues = "z";
+	break;
+      }
     }
   }
 
@@ -810,6 +819,7 @@ ScubaView::DoMouseMoved( int iWindow[2],
 
   // Get the RAS coords into a string and set that label/value.
   stringstream ssRASCoords;
+  ssRASCoords.width(5);
   ssRASCoords << ras[0] << " " << ras[1] << " " << ras[2];
   labelValueMap["RAS"] = ssRASCoords.str();
 
@@ -1104,15 +1114,6 @@ ScubaView::DoKeyDown( int iWindow[2],
     }
     Set2DZoomLevel( newZoom );
 
-  } else if( key == msInPlaneXKey ) {
-    mViewState.mInPlane = ViewState::X;
-    RebuildOverlayDrawList();
-  } else if( key == msInPlaneYKey ) {
-    mViewState.mInPlane = ViewState::Y;
-    RebuildOverlayDrawList();
-  } else if( key == msInPlaneZKey ) {
-    mViewState.mInPlane = ViewState::Z;
-    RebuildOverlayDrawList();
   }
 
   RequestRedisplay();

@@ -150,9 +150,6 @@ protected:
   std::string msMoveViewOut;
   std::string msZoomViewIn;
   std::string msZoomViewOut;
-  std::string msInPlaneXKey;
-  std::string msInPlaneYKey;
-  std::string msInPlaneZKey;
 
   // Link stuff.
   static int mCurrentBroadcaster;

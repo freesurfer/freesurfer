@@ -28,6 +28,7 @@ foreach sSourceFileName { tkUtils.tcl tkcon.tcl } {
 # gaWidget
 #   window - main window
 #   tkconWindow - tkcon window
+#   scubaFrame,ID - frame widget for frame ID
 #   menuBar - menu bar
 #     col, row - grid position
 #   toolBar - tool bar
@@ -36,13 +37,23 @@ foreach sSourceFileName { tkUtils.tcl tkcon.tcl } {
 #     col, row - grid position
 #   labelArea - label area
 #     col, row - grid position
+#   subjectsLoader
+#     subjectsMenu - menu of subjects, value is index gaSubject(nameList)
+#     volumeMenu - list of currect subj's mri vols, value is full filename
+#     surfaceMenu - list of current subj's surfs, value is full filename
+#   layerProperties
+#     menu - layer menu, value is layer ID
+#   viewProperties
+#     menu - view menu, value is view ID
+#     drawLevelMenuN - menu of layers at draw level N, value is layer ID
+#     transformMenu - menu of transforms, value is transform ID
+#   transformProperties
+#     menu - transform menu, value is transform ID
 
 # gSubject
+#   nameList - directory listing of SUBJECTS_DIR
 
 # gaMenu
-
-# gView
-#  inPlane - inPlane of current view
 
 # gaSubject
 
@@ -51,7 +62,16 @@ foreach sSourceFileName { tkUtils.tcl tkcon.tcl } {
 #     viewConfi
 
 # gaView
-
+#   current
+#     id
+#     menuIndex
+#     id
+#     col
+#     row
+#     linked
+#     drawN
+#     transformID
+#     inPlane
 
 # gaLayer
 #   current - currently displayed layer in props panel
@@ -407,15 +427,13 @@ proc MakeToolBar { ifwTop } {
     tkuMakeToolbar $fwToolBar.fwInPlane \
 	-allowzero false \
 	-radio true \
-	-variable gView(inPlane) \
+	-variable gaView(current,inPlane) \
 	-command {ToolBarWrapper} \
 	-buttons {
-	    { -type image -name r -image icon_orientation_sagittal }
-	    { -type image -name a -image icon_orientation_coronal }
-	    { -type image -name s -image icon_orientation_horizontal }
+	    { -type image -name x -image icon_orientation_sagittal }
+	    { -type image -name y -image icon_orientation_coronal }
+	    { -type image -name z -image icon_orientation_horizontal }
 	}
-
-    set gView(inPlane) r
 
     pack $fwToolBar.fwTool $fwToolBar.fwView $fwToolBar.fwInPlane \
 	-side left
@@ -435,7 +453,7 @@ proc ToolBarWrapper { isName iValue } {
 		SetFrameViewConfiguration [GetMainFrameID] $isName
 		UpdateViewList
 	    }
-	    r - a - s {
+	    x - y - z {
 		SetViewInPlane [GetSelectedViewID [GetMainFrameID]] $isName
 		RedrawFrame [GetMainFrameID]
 	    }
@@ -466,6 +484,7 @@ proc MakeScubaFrame { ifwTop } {
     global gFrameWidgetToID
     global gaFrame
     global gaTool
+    global gaWidget
 
     set fwScuba $ifwTop.fwScuba
     
@@ -474,18 +493,50 @@ proc MakeScubaFrame { ifwTop } {
 
     bind $fwScuba <Motion> \
 	"%W MouseMotionCallback %x %y %b; ScubaMouseMotionCallback %x %y %b"
-    bind $fwScuba <ButtonPress> "%W MouseDownCallback %x %y %b"
+    bind $fwScuba <ButtonPress> \
+	"%W MouseDownCallback %x %y %b; ScubaMouseDownCallback %x %y %b"
     bind $fwScuba <ButtonRelease> "%W MouseUpCallback %x %y %b"
     bind $fwScuba <KeyRelease> "%W KeyUpCallback %x %y %K"
     bind $fwScuba <KeyPress> "%W KeyDownCallback %x %y %K"
     bind $fwScuba <Enter> "focus $fwScuba"
 
+    set gaWidget(scubaFrame,$frameID) $fwScuba
     set gFrameWidgetToID($fwScuba) $frameID
 
     set gaFrame($frameID,toolID) [GetToolIDForFrame $frameID]
     set gaTool($frameID,mode) [GetToolMode $gaFrame($frameID,toolID)]
 
     return $fwScuba
+}
+
+proc MakeScubaFrameBindings { iFrameID } {
+    global gaWidget
+
+    set fwScuba $gaWidget(scubaFrame,$iFrameID)
+
+    set sKeyInPlaneX [GetPreferencesValue key-InPlaneX]
+    set sKeyInPlaneY [GetPreferencesValue key-InPlaneY]
+    set sKeyInPlaneZ [GetPreferencesValue key-InPlaneZ]
+    set sKeyCycleView [GetPreferencesValue key-CycleViewsInFrame]
+
+    bind $fwScuba <Key-$sKeyInPlaneX> {
+	set gaView(current,inPlane) x
+	SetViewInPlane [GetSelectedViewID [GetMainFrameID]] $gaView(current,inPlane)
+    }
+    bind $fwScuba <Key-$sKeyInPlaneY> {
+	set gaView(current,inPlane) y
+	SetViewInPlane [GetSelectedViewID [GetMainFrameID]] $gaView(current,inPlane)
+    }
+    bind $fwScuba <Key-$sKeyInPlaneZ> { 
+	set gaView(current,inPlane) z
+	SetViewInPlane [GetSelectedViewID [GetMainFrameID]] $gaView(current,inPlane)
+    }
+    bind $fwScuba <Key-$sKeyCycleView> {
+	CycleCurrentViewInFrame [GetMainFrameID]
+	set viewID [GetSelectedViewID [GetMainFrameID]]
+	SelectViewInViewProperties $viewID
+	RedrawFrame [GetMainFrameID]
+    }
 }
 
 proc ScubaMouseMotionCallback { inX inY iButton } {
@@ -500,6 +551,15 @@ proc ScubaMouseMotionCallback { inX inY iButton } {
     if { 0 != $err } { tkuErrorDlog $sResult; return }
 
     UpdateLabelArea $labelValues
+}
+
+proc ScubaMouseDownCallback { inX inY iButton } {
+    global gaView
+
+    set viewID [GetSelectedViewID [GetMainFrameID]]
+    if { $viewID != $gaView(current,id) } {
+	SelectViewInViewProperties $viewID
+    }
 }
 
 proc Quit {} {
@@ -901,12 +961,8 @@ proc MakeTransformsPanel { ifwTop } {
 
 # LAYER PROPERTIES FUNCTIONS ===========================================
 
-proc LayerPropertiesMenuCallback { inLayer } {
-    global gaLayer
-
-    # Get the ID at this index in the idList, then select that layer.
-    set layerID [lindex $gaLayer(idList) $inLayer]
-    SelectLayerInLayerProperties $layerID
+proc LayerPropertiesMenuCallback { iLayerID } {
+    SelectLayerInLayerProperties $iLayerID
 }
 
 proc SelectLayerInLayerProperties { iLayerID } {
@@ -929,8 +985,7 @@ proc SelectLayerInLayerProperties { iLayerID } {
     # callback and set the value of the menu to the index of this
     # layer ID in the layer ID list. Then reenable the callback.
     $gaWidget(layerProperties,menu) config -disablecallback 1
-    $gaWidget(layerProperties,menu) config \
-	-value [lsearch $gaLayer(idList) $iLayerID]
+    $gaWidget(layerProperties,menu) config -value $iLayerID
     $gaWidget(layerProperties,menu) config -disablecallback 0
     
     # Do the type specific stuff.
@@ -1055,8 +1110,6 @@ proc UpdateLayerList {} {
 # VIEW PROPERTIES FUNCTIONS =============================================
 
 proc ViewPropertiesMenuCallback { iViewID } {
-    global gaView
-
     SelectViewInViewProperties $iViewID
 }
 
@@ -1076,15 +1129,12 @@ proc ViewPropertiesDrawLevelMenuCallback { iLevel inLayer } {
     RedrawFrame [GetMainFrameID]
 }
 
-proc ViewPropertiesTransformMenuCallback { inTransform } {
+proc ViewPropertiesTransformMenuCallback { iTransformID } {
     global gaView
     global gaTransform
     
-    # Find the transform ID from the list of indices.
-    set transformID [lindex $gaTransform(idList) [expr $inTransform]]
-
     # Set the transform in this view and redraw.
-    SetViewTransform $gaView(current,id) $transformID
+    SetViewTransform $gaView(current,id) $iTransformID
     RedrawFrame [GetMainFrameID]
 }
 
@@ -1092,12 +1142,16 @@ proc SelectViewInViewProperties { iViewID } {
     global gaWidget
     global gaView
 
+    SetSelectedViewID [GetMainFrameID] $iViewID
+
     # Get the general view properties from the specific view and
     # load them into the 'current' slots.
     set gaView(current,id) $iViewID
     set gaView(current,col) [GetColumnOfViewInFrame [GetMainFrameID] $iViewID]
     set gaView(current,row) [GetRowOfViewInFrame [GetMainFrameID] $iViewID]
     set gaView(current,linked) [GetViewLinkedStatus $iViewID]
+    set gaView(current,transformID) [GetViewTransform $iViewID]
+    set gaView(current,inPlane) [GetViewInPlane $iViewID]
  
     for { set nLevel 0 } { $nLevel < 10 } { incr nLevel } {
 	set gaView(current,draw$nLevel) \
@@ -1108,9 +1162,14 @@ proc SelectViewInViewProperties { iViewID } {
     # callback and set the value of the menu to the index of this
     # view ID in the view ID list. Then reenable the callback.
     $gaWidget(viewProperties,menu) config -disablecallback 1
-    $gaWidget(viewProperties,menu) config \
-	-value [lsearch $gaView(idList) $iViewID]
+    $gaWidget(viewProperties,menu) config -value $iViewID
     $gaWidget(viewProperties,menu) config -disablecallback 0
+
+    # Select the right transform in the transform menu
+    $gaWidget(viewProperties,transformMenu) config -disablecallback 1
+    $gaWidget(viewProperties,transformMenu) config \
+	-value $gaView(current,transformID)
+    $gaWidget(viewProperties,transformMenu) config -disablecallback 0    
 
     UpdateCurrentViewProperties
 }
@@ -1135,8 +1194,7 @@ proc UpdateCurrentViewProperties {} {
 
 	# Find the index of the layer ID at this draw level in the
 	# view, and set the menu appropriately.
-	$gaWidget(viewProperties,drawLevelMenu$nLevel) config \
-	    -value [lsearch $gaLayer(idList) $layerID]
+	$gaWidget(viewProperties,drawLevelMenu$nLevel) config -value $layerID
 
 	# Renable the callback.
 	$gaWidget(viewProperties,drawLevelMenu$nLevel) \
@@ -1356,8 +1414,7 @@ proc SelectTransformInTransformProperties { iTransformID } {
     # callback and set the value of the menu to the index of this
     # transform ID in the transform ID list. Then reenable the callback.
     $gaWidget(transformProperties,menu) config -disablecallback 1
-    $gaWidget(transformProperties,menu) config \
-	-value [lsearch $gaTransform(idList) $iTransformID]
+    $gaWidget(transformProperties,menu) config -value $iTransformID
     $gaWidget(transformProperties,menu) config -disablecallback 0
 }
 
@@ -1800,7 +1857,11 @@ UpdateTransformList
 SelectViewInViewProperties 0
 SelectTransformInTransformProperties 0
 
+MakeScubaFrameBindings [GetMainFrameID]
+
 # Now execute all the commands we cached before.
 foreach command $lCommands {
     eval $command
 }
+
+

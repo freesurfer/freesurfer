@@ -33,6 +33,8 @@ ScubaFrame::ScubaFrame( ToglFrame::ID iID )
 			 "view configuration." );
   commandMgr.AddCommand( *this, "GetSelectedViewID", 1, "frameID",
 			 "Return the viewID of the selected view." );
+  commandMgr.AddCommand( *this, "SetSelectedViewID", 2, "frameID viewID",
+			 "Sets the select view in a frame." );
   commandMgr.AddCommand( *this, "GetNumberOfRowsInFrame", 1, "frameID",
 			 "Return the number of rows in a frame." );
   commandMgr.AddCommand( *this, "GetNumberOfColsAtRowInFrame", 2, 
@@ -52,14 +54,9 @@ ScubaFrame::ScubaFrame( ToglFrame::ID iID )
 			 "in a view to all other views in a frame." );
   commandMgr.AddCommand( *this, "GetToolIDForFrame", 1, "frameID",
 			 "Returns the ID of the tool for this frame." );
+  commandMgr.AddCommand( *this, "CycleCurrentViewInFrame", 1, "frameID",
+			 "Selects the next view in a frame." );
 
-
-  PreferencesManager& prefsMgr = PreferencesManager::GetManager();
-  prefsMgr.UseFile( ".scuba" );
-  PreferencesManager::StringPrefValue cycleKey( "q" );
-  prefsMgr.RegisterValue( "key-CycleViewsInFrame", 
-			  "Key to cycle view in a frame.", cycleKey );
-  msCycleKey = prefsMgr.GetValue( "key-CycleViewsInFrame" );
 }
 
 ScubaFrame::~ScubaFrame() {
@@ -162,6 +159,50 @@ ScubaFrame::DoListenToTclCommand( char* isCommand, int iArgc, char** iasArgv ) {
     }
   }
 
+  // SetSelectedViewID <frameID> <viewID>
+  if( 0 == strcmp( isCommand, "SetSelectedViewID" ) ) {
+    int frameID = strtol(iasArgv[1], (char**)NULL, 10);
+    if( ERANGE == errno ) {
+      sResult = "bad frame ID";
+      return error;
+    }
+    
+    if( mID == frameID ) {
+
+      int viewID = strtol(iasArgv[2], (char**)NULL, 10);
+      if( ERANGE == errno ) {
+	sResult = "bad view ID";
+	return error;
+      }
+      
+      for( int nRow = 0; nRow < mcRows; nRow++ ) {
+	int cCols = mcCols[nRow];
+	for( int nCol = 0; nCol < cCols; nCol++ ) {
+	  
+	  try {
+	    View* view = GetViewAtColRow( nCol, nRow );
+	    if( view->GetID() == viewID ) {
+	      mnSelectedViewRow = nRow;
+	      mnSelectedViewCol = nCol;
+	      return ok;
+	    }
+	  }
+	  catch(...) {
+	    stringstream ssError;
+	    ssError << "couldn't get view at col " 
+		    << nCol << " row " << nRow;
+	    sResult = ssError.str();
+	    return error;
+	  }
+	}
+      }
+      stringstream ssError;
+      ssError << "View ID " << viewID << " is not currently on screen.";
+      sResult = ssError.str();
+      return error;
+    }
+  }
+  
 
   // GetSelectedViewID <frameID>
   if( 0 == strcmp( isCommand, "GetSelectedViewID" ) ) {
@@ -448,6 +489,29 @@ ScubaFrame::DoListenToTclCommand( char* isCommand, int iArgc, char** iasArgv ) {
     }
   }
 
+  // CycleCurrentViewInFrame <frameID>
+  if( 0 == strcmp( isCommand, "CycleCurrentViewInFrame" ) ) {
+    int frameID = strtol(iasArgv[1], (char**)NULL, 10);
+    if( ERANGE == errno ) {
+      sResult = "bad frame ID";
+      return error;
+    }
+    
+    if( mID == frameID ) {
+      
+      if( mnSelectedViewCol < mcCols[mnSelectedViewRow] - 1 ) {
+	mnSelectedViewCol++;
+      } else if( mnSelectedViewRow < mcRows - 1 ) {
+	mnSelectedViewRow++;
+	mnSelectedViewCol = 0;
+      } else {
+	mnSelectedViewRow = 0;
+	mnSelectedViewCol = 0;
+      }
+
+    }
+  }
+
   return ok;
 }
 
@@ -628,23 +692,6 @@ void
 ScubaFrame::DoKeyDown( int iWindow[2], InputState& iInput ) {
 
   try {
-
-    // Tab key cycles selected view.
-    if( iInput.Key() == msCycleKey ) {
-      if( mnSelectedViewCol < mcCols[mnSelectedViewRow] - 1 ) {
-	mnSelectedViewCol++;
-      } else if( mnSelectedViewRow < mcRows - 1 ) {
-	mnSelectedViewRow++;
-	mnSelectedViewCol = 0;
-      } else {
-	mnSelectedViewRow = 0;
-	mnSelectedViewCol = 0;
-      }
-
-      // Redraw the frame.
-      RequestRedisplay();  
-    }
-
     View* view = GetViewAtColRow( mnSelectedViewCol, mnSelectedViewRow );
 
     int viewCoords[2];

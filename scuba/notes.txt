@@ -306,7 +306,9 @@ x option for left/right flip, i.e. Neurology View, which does a x flip in R and 
 x  - make static for all views??
  - add function for getting initial values of global menu and toolbar vars i.e. gaView(flipLeftRight)
 
-consider linking ScubaFrame's selected view to the gaView(current) view in scuba.tcl, link view configuration in scuba.tcl and select view in view props automatically. the 't' view selecting key would need to be reimplemented in scuba.tcl.
+x move some key funcs to tcl
+x  - gaView(current,inPlane) - get prefs from file, do key binding in MakeScubaFrame
+
 
 x ScubaGlobalPrefs object with static getter
 x  - on ctor, gets stuff from prefs file
@@ -314,6 +316,43 @@ x  - ScubaView gets R/L flip bool from here
  - modify PreferencesManager to have PreferencesUsers class, others mix in, have SavePrerferences() call that clientes use to set prefs before file is saved
 
 x ScubaView needs to use TranslateWindowToRAS when drawing coords on side of window
+
+
+ScubaLUT
+ - ScubaLUT with normal GetIDList, etc, wrapper for colortab.c
+   - index<->color functions
+ - File menu option for loading LUT
+ - change 2DMRILayer to take LUT id instead of filename
+
+LUT panel
+ - For now, just lists loaded LUTs, settable label, and a text field with their contents
+
+ScubaROI
+ - normal GetROIIdList interface, etc
+ - list of RAS coords
+ - type: structure or free
+ - int structure
+ - int lutID
+ - int color[3]
+
+ScubaLayer2DMRI gets lutID instead of filename
+
+Collection panel
+ - ID and type
+ - editable label
+ - cb for selectable
+ - type specific frame for filenames
+ - ROI pane
+   - list of collection's ROIs   - calls SelectCollectionsROI <roiID>
+   - free/structure rb
+   - LUT pdm
+   - structure pdm
+   - color picker
+   - New button
+
+ - File Load ROI: Volume collection pdm, file name 
+
+
 
 
 ROIs
@@ -328,9 +367,15 @@ ROIs
    - New ROI, Delete ROI button
    - congifure color or LUT value of ROI
 
+ - gaCollection(current)
+
  - NewROI <colID>  - returns roiID
  - GetListOfROISForCollection <colID> - returns list of roiID
- - SelectRAS <roiID> <ras>
+ - SelectROIInCollection <colID> <roiID>
+
+ - SelectROI( roiID )
+ - {Un}SelectRAS( ras ) - selects/unselects from current roi
+ - {Un}SelectRASArea( area ) - has to look at data's resolution to find necessary step values to select proper elements in area
 
 
 
@@ -410,10 +455,6 @@ Frame Info
 
 BUGS:::
 
-- when change in plane with key, no update to tcl
-   - should all this stuff be done in tcl because there's no notficiation method from c->tcl?
-- only send .2f coords in labels in ScubaView
-- tix option menu callbacks use the -command value as the parameter, not the menu index - check all the callbacks
 
 future ideas:
 

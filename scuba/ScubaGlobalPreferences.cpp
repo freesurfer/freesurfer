@@ -1,5 +1,8 @@
+#include <string>
 #include "ScubaGlobalPreferences.h"
 #include "PreferencesManager.h"
+
+using namespace std;
 
 ScubaGlobalPreferences& 
 ScubaGlobalPreferences::GetPreferences() {
@@ -12,6 +15,10 @@ ScubaGlobalPreferences::GetPreferences() {
     TclCommandManager& commandMgr = TclCommandManager::GetManager();
     commandMgr.AddCommand( *sPreferences, "SaveGlobalPreferences", 0, "", 
 			   "Saves preferences." );
+    commandMgr.AddCommand( *sPreferences, "GetPreferencesValue", 1, "key", 
+			   "Return a preferences value." );
+    commandMgr.AddCommand( *sPreferences, "SetPreferencesValue", 2, 
+			   "key value", "Set a preferences value." );
   }
 
   return *sPreferences;
@@ -39,6 +46,17 @@ ScubaGlobalPreferences::DoListenToTclCommand ( char* isCommand, int iArgc,
     SavePreferences();
   }
 
+  // GetPreferencesValue
+  if( 0 == strcmp( isCommand, "GetPreferencesValue" ) ) {
+
+    string sKey = iasArgv[1];
+    PreferencesManager& prefsMgr = PreferencesManager::GetManager();
+    string sValue = prefsMgr.GetValue( sKey );
+    sReturnFormat = "s";
+    sReturnValues = sValue;
+
+  }
+
   return ok;
 }
 
@@ -56,6 +74,29 @@ ScubaGlobalPreferences::ReadPreferences () {
 		       viewFlipLeftRightInYZValue );
   viewFlipLeftRightInYZValue.SetFromString( prefsMgr.GetValue( "ViewFlipLeftRight" ) );
   mbViewFlipLeftRightInYZ = viewFlipLeftRightInYZValue.GetValue();
+
+  PreferencesManager::StringPrefValue inPlaneX( "x" );
+  prefsMgr.RegisterValue( "key-InPlaneX", 
+			  "Key to change in plane to X in the view.",
+			  inPlaneX );
+  msInPlaneXKey = prefsMgr.GetValue( "key-InPlaneX" );
+
+  PreferencesManager::StringPrefValue inPlaneY( "y" );
+  prefsMgr.RegisterValue( "key-InPlaneY", 
+			  "Key to change in plane to Y in the view.",
+			  inPlaneY );
+  msInPlaneYKey = prefsMgr.GetValue( "key-InPlaneY" );
+
+  PreferencesManager::StringPrefValue inPlaneZ( "z" );
+  prefsMgr.RegisterValue( "key-InPlaneZ", 
+			  "Key to change in plane to Z in the view.",
+			  inPlaneZ );
+  msInPlaneZKey = prefsMgr.GetValue( "key-InPlaneZ" );
+
+  PreferencesManager::StringPrefValue cycleKey( "q" );
+  prefsMgr.RegisterValue( "key-CycleViewsInFrame", 
+			  "Key to cycle view in a frame.", cycleKey );
+  msCycleKey = prefsMgr.GetValue( "key-CycleViewsInFrame" );
 }
 
 void

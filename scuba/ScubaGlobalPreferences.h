@@ -25,6 +25,10 @@ class ScubaGlobalPreferences : public TclCommandListener {
   void WritePreferences ();
 
   bool mbViewFlipLeftRightInYZ;
+  std::string msInPlaneXKey;
+  std::string msInPlaneYKey;
+  std::string msInPlaneZKey;
+  std::string msCycleKey;
 };
 
 

@@ -71,9 +71,6 @@ protected:
   int mnSelectedViewCol;
   int mnSelectedViewRow;
 
-  // Keys.
-  std::string msCycleKey;
-
   // The map of view pointers. The first is a map for columns and the
   // second is a map of those for rows.
   typedef std::map<int,View*> ViewColMap;
