@@ -26,23 +26,6 @@
 #define BEPSILON (0.000001*10)
 
 
-/* some macros */
-#define CROSS(dest,v1,v2)                      \
-              dest[0]=v1[1]*v2[2]-v1[2]*v2[1]; \
-              dest[1]=v1[2]*v2[0]-v1[0]*v2[2]; \
-              dest[2]=v1[0]*v2[1]-v1[1]*v2[0];
-
-#define DOT(v1,v2) (v1[0]*v2[0]+v1[1]*v2[1]+v1[2]*v2[2])
-#define VLEN(v)    (sqrt(DOT(v,v)))
-#define SUB(dest,v1,v2)          \
-            dest[0]=v1[0]-v2[0]; \
-            dest[1]=v1[1]-v2[1]; \
-            dest[2]=v1[2]-v2[2]; 
-
-#define SCALAR_MUL(dest, s, v) \
-            dest[0]=v[0]*s; \
-            dest[1]=v[1]*s; \
-            dest[2]=v[2]*s; 
 
 
 /* sort so that a<=b */
