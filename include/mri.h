@@ -360,10 +360,10 @@ int        MRIisValid(MRI *mri) ;
 MRI        *MRIflipByteOrder(MRI *mri_src, MRI *mri_dst) ;
 
 MRI        *MRIfill(MRI *mri_src, MRI *mri_distance, 
-                    int x0, int y0, int z0, int niter) ;
+                    float x0, float y0, float z0, int niter) ;
 MRI        *MRIextractInterior(MRI *mri_src, MRI *mri_distance,  MRI *mri_dst);
 MRI        *MRIbuildDistanceMap(MRI *mri_src, MRI *mri_distance,
-                                int x0, int y0, int z0) ;
+                                float x0, float y0, float z0, float r) ;
 MRI        *MRIupdateDistanceMap(MRI *mri_distance) ;
 
 /* constants used in mri_dir of MRIoffsetDirection and for MRIminmax filter */
