@@ -1,7 +1,7 @@
 #!/bin/csh -f
 # 
-# $Id: spmregister,v 1.4 2003/11/13 20:55:26 greve Exp $
-set VERSION = '$Id: spmregister,v 1.4 2003/11/13 20:55:26 greve Exp $';
+# $Id: spmregister,v 1.5 2003/12/18 23:23:41 greve Exp $
+set VERSION = '$Id: spmregister,v 1.5 2003/12/18 23:23:41 greve Exp $';
 set inputargs = ($argv);
 
 set subjid = ();
@@ -173,7 +173,8 @@ endif
 
 # Computer the registration file #
 set cmd = (tkregister2 --s $subjid --mov $movvolimg \
-           --regheader --noedit --reg $regfile);
+           --regheader --noedit --reg $regfile \
+           --fstarg $fsvol);
 echo "--------------------------------------------------" |& tee -a $LF
 pwd        |& tee -a $LF
 echo $cmd  |& tee -a $LF
