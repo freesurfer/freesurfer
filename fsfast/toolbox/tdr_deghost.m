@@ -1,5 +1,5 @@
-function [kimg2, beta] = tdr_deghost(kimg,Rrow,perev,synth)
-% kimg2 = tdr_deghost(kimg,Rrow,<perev>,<synth>)
+function [kimg2, beta, phsynth] = tdr_deghost(kimg,Rrow,perev,synth)
+% [kimg2 beta phsynth] = tdr_deghost(kimg,Rrow,<perev>,<synth>)
 %
 % Recons the rows of kimg with deghosting.
 %
@@ -17,23 +17,29 @@ function [kimg2, beta] = tdr_deghost(kimg,Rrow,perev,synth)
 %   kimg = (100+randn(size(kimg))) + i*(100+randn(size(kimg)));
 % Offset by 100 so that it stays gaussian after recon.
 %
-% $Id: tdr_deghost.m,v 1.7 2004/05/01 20:31:34 greve Exp $
+% $Id: tdr_deghost.m,v 1.8 2005/03/19 00:18:26 greve Exp $
 %
 
 rsubdel = 3; % region around center
 rthresh = 1; % fraction of mean to use as segmentation thresh
 
 kimg2 = [];
-if(nargin ~= 2 & nargin ~= 3)
-  fprintf('kimg2 = tdr_deghost(kimg,Rrow,<perev>)\n');
+if(nargin < 2 | nargin > 4)
+  fprintf('kimg2 = tdr_deghost(kimg,Rrow,<perev>,<synth>)\n');
   return;
 end
 
 if(exist('perev')==0) perev = []; end
 if(isempty(perev)) perev = 0; end
 
+if(exist('synth')==0) synth = []; end
+if(isempty(synth)) synth = 0; end
+
 nrows = size(kimg,1);
 ncols = size(Rrow,2);
+
+[nkrows nkcols] = size(kimg);
+nkv = nkrows*nkcols;
 
 if(~perev)
   refrows = [1:2:nrows]; % odd
@@ -82,10 +88,14 @@ phsynth = (X2*beta)';
 vref = exp(-i*phsynth/2);
 vmov = exp(+i*phsynth/2);
 
-% Replace with white noise if desired. Offset by 100 so as to keep
-% it gaussian after recon.
+% Replace with white noise if desired. In image space with a simple
+% fourier recon, each image voxel will have an mean offest of 10
+% and std=1.
 if(synth)
-  kimg = (100+randn(size(kimg))) + i*(100+randn(size(kimg)));
+  rk0 = round(nkrows/2)+1;
+  ck0 = round(nkcols/2)+1;
+  kimg = sqrt(nkv)*(randn(size(kimg)) + i*randn(size(kimg)));
+  kimg(rk0,ck0,:) = 10*nkv;
 end
 
 % Recon rows of all lines
