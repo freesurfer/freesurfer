@@ -115,10 +115,7 @@ void useVolGeomToMRI(const VOL_GEOM *src, MRI *dst)
   strcpy(dst->fname, src->fname);
   // now we cache transform and thus we have to do the following whenever
   // we change direction cosines
-  if (dst->i_to_r__) { MatrixFree(&dst->i_to_r__); dst->i_to_r__ = 0; }
-  if (dst->r_to_i__) { MatrixFree(&dst->r_to_i__); dst->r_to_i__ = 0; }
-  dst->i_to_r__ = extract_i_to_r(dst);
-  dst->r_to_i__ = extract_r_to_i(dst);
+  MRIreInitCache(dst);
 }
 
 void copyVolGeom(const VOL_GEOM *src, VOL_GEOM *dst)
@@ -602,8 +599,14 @@ LTAdivide(LTA *lta, MRI *mri)
         Description
           Apply a transform array to an image.
 ------------------------------------------------------*/
-MRI *
+MRI*
 LTAtransform(MRI *mri_src, MRI *mri_dst, LTA *lta)
+{
+  return LTAtransformInterp(mri_src, mri_dst, lta, -1);
+}
+
+MRI *
+LTAtransformInterp(MRI *mri_src, MRI *mri_dst, LTA *lta, int interp)
 {
   int         y1, y2, y3, width, height, depth, xi, yi, zi ;
   VECTOR      *v_X, *v_Y ;/* original and transformed coordinate systems */
@@ -653,7 +656,6 @@ LTAtransform(MRI *mri_src, MRI *mri_dst, LTA *lta)
     {
       // use the same volume size as the src
       mri_dst = MRIclone(mri_src, NULL);
-
       if (tran->dst.valid == 1) // transform dst is valid
       {
 	// modify dst c_(r,a,s) using the transform dst value
@@ -667,11 +669,7 @@ LTAtransform(MRI *mri_src, MRI *mri_dst, LTA *lta)
 	mri_dst->ras_good_flag = 1;
 	// now we cache transform and thus we have to do the following whenever
 	// we change direction cosines
-	if (mri_dst->i_to_r__) { MatrixFree(&mri_dst->i_to_r__); mri_dst->i_to_r__ = 0; }
-	if (mri_dst->r_to_i__) { MatrixFree(&mri_dst->r_to_i__); mri_dst->r_to_i__ = 0; }
-	mri_dst->i_to_r__ = extract_i_to_r(mri_dst);
-	mri_dst->r_to_i__ = extract_r_to_i(mri_dst);
-	
+	MRIreInitCache(mri_dst);
       }
       else if(getenv("USE_AVERAGE305"))
       {
@@ -683,10 +681,7 @@ LTAtransform(MRI *mri_src, MRI *mri_dst, LTA *lta)
 	mri_dst->ras_good_flag = 1;
 	// now we cache transform and thus we have to do the following whenever
 	// we change direction cosines
-	if (mri_dst->i_to_r__) { MatrixFree(&mri_dst->i_to_r__); mri_dst->i_to_r__ = 0; }
-	if (mri_dst->r_to_i__) { MatrixFree(&mri_dst->r_to_i__); mri_dst->r_to_i__ = 0; }
-	mri_dst->i_to_r__ = extract_i_to_r(mri_dst);
-	mri_dst->r_to_i__ = extract_r_to_i(mri_dst);
+	MRIreInitCache(mri_dst);
       }
       else
 	fprintf(stderr, "INFO: Transform dst volume info is not used (valid flag = 0).\n");
@@ -695,7 +690,7 @@ LTAtransform(MRI *mri_src, MRI *mri_dst, LTA *lta)
     if (lta->type == LINEAR_RAS_TO_RAS)
     {
       // don't need any info from dst
-      return(MRIapplyRASlinearTransform(mri_src, mri_dst, lta->xforms[0].m_L)) ;
+      return(MRIapplyRASlinearTransformInterp(mri_src, mri_dst, lta->xforms[0].m_L, interp)) ;
     }
     else if (lta->type == LINEAR_VOX_TO_VOX)// vox-to-vox
     {
@@ -715,14 +710,14 @@ LTAtransform(MRI *mri_src, MRI *mri_dst, LTA *lta)
       else
       {
 	fprintf(stderr, "INFO: assumes that the dst volume given is the same as the dst for the transform\n");
-	return(MRIlinearTransform(mri_src, mri_dst, lta->xforms[0].m_L)) ;
+	return(MRIlinearTransformInterp(mri_src, mri_dst, lta->xforms[0].m_L, interp)) ;
       }
     }
     else if (lta->type == LINEAR_PHYSVOX_TO_PHYSVOX)
     {
       // must have both transform src and dst geometry information
       LTAchangeType(lta, LINEAR_RAS_TO_RAS);
-      return(MRIapplyRASlinearTransform(mri_src, mri_dst, lta->xforms[0].m_L)) ;
+      return(MRIapplyRASlinearTransformInterp(mri_src, mri_dst, lta->xforms[0].m_L, interp)) ;
     }
     else
       ErrorExit(ERROR_BADPARM, "LTAtransform: unknown linear transform\n");
@@ -1824,13 +1819,17 @@ TransformInvert(TRANSFORM *transform, MRI *mri)
 MRI *
 TransformApplyType(TRANSFORM *transform, MRI *mri_src, MRI *mri_dst, int interp_type)
 {
+  LTA *lta = 0;
   switch (transform->type)
   {
   case MORPH_3D_TYPE:
     mri_dst = GCAMmorphToAtlasType(mri_src, (GCA_MORPH*)transform->xform, NULL, -1, interp_type) ;
     break ;
   default:
-    mri_dst = MRIlinearTransformInterp(mri_src, NULL, ((LTA *)transform->xform)->xforms[0].m_L, interp_type);
+    // this does not work for RAS-to-RAS
+    // mri_dst = MRIlinearTransformInterp(mri_src, NULL, ((LTA *)transform->xform)->xforms[0].m_L, interp_type);
+    lta = (LTA *) transform->xform;
+    mri_dst = LTAtransformInterp(mri_src, NULL, lta, interp_type);
     break ;
   }
   return(mri_dst) ;
@@ -1839,13 +1838,20 @@ TransformApplyType(TRANSFORM *transform, MRI *mri_src, MRI *mri_dst, int interp_
 MRI *
 TransformApply(TRANSFORM *transform, MRI *mri_src, MRI *mri_dst)
 {
+  LTA *lta = 0;
   switch (transform->type)
   {
   case MORPH_3D_TYPE:
+    // does take care of the dst c_ras position using atlas information
     mri_dst = GCAMmorphToAtlas(mri_src, (GCA_MORPH*)transform->xform, NULL, -1) ;
     break ;
   default:
-    mri_dst = MRIlinearTransform(mri_src, NULL, ((LTA *)transform->xform)->xforms[0].m_L);
+    // now assumes that this is the LTA type
+    // the following does the wrong thing for RAS-to-RAS
+    // mri_dst = MRIlinearTransform(mri_src, NULL, ((LTA *)transform->xform)->xforms[0].m_L);
+    // the following take care of dst c_ras poisiton
+    lta = (LTA *) transform->xform;
+    mri_dst= LTAtransform(mri_src, NULL, lta);
     break ;
   }
   return(mri_dst) ;
@@ -1854,13 +1860,19 @@ TransformApply(TRANSFORM *transform, MRI *mri_src, MRI *mri_dst)
 MRI *
 TransformApplyInverse(TRANSFORM *transform, MRI *mri_src, MRI *mri_dst)
 {
+  LTA *lta = 0;
   switch (transform->type)
   {
   case MORPH_3D_TYPE:
     mri_dst = GCAMmorphFromAtlas(mri_src,(GCA_MORPH*)transform->xform,NULL);
     break ;
   default:
-    mri_dst = MRIinverseLinearTransform(mri_src, NULL, ((LTA *)transform->xform)->xforms[0].m_L);
+    // the following does not work for ras-to-ras
+    // mri_dst = MRIinverseLinearTransform(mri_src, NULL, ((LTA *)transform->xform)->xforms[0].m_L);
+    lta = (LTA*) transform->xform;
+    LTAinvert(lta);
+    mri_dst = LTAtransform(mri_src, NULL, lta);
+    LTAinvert(lta); // restore the original
     break ;
   }
   return(mri_dst) ;
