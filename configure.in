@@ -65,7 +65,7 @@ case "${host}" in
  ;; 
  powerpc64-*)
  OS=BIGENDIAN
- OS_CPPFLAGS="-Wall -fwritable-strings -m64"
+ OS_CPPFLAGS="-Wall -fwritable-strings"
  OS_LDFLAGS="-all-static"
  LDFLAGS="-L/usr/lib64 $LDFLAGSA"
  DYNAMIC_LIB_EXT=".so"
