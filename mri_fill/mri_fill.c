@@ -14,7 +14,7 @@
 #include "mrinorm.h"
 #include "cma.h"
 
-static char vcid[] = "$Id: mri_fill.c,v 1.56 2002/06/29 17:59:58 fischl Exp $";
+static char vcid[] = "$Id: mri_fill.c,v 1.57 2002/07/02 21:56:44 fischl Exp $";
 
 /*-------------------------------------------------------------------
                                 CONSTANTS
@@ -417,6 +417,7 @@ main(int argc, char *argv[])
   mri_tmp2 = MRIfromTalairach(mri_pons, NULL) ;
   MRIbinarize(mri_tmp2, mri_tmp2, 1, 0, 1) ;
   MRIfree(&mri_pons) ; mri_pons = mri_tmp2 ;
+  MRIdilate(mri_pons, mri_pons) ;
 
   MRIfree(&mri_tal) ;
 
