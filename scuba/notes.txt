@@ -480,7 +480,10 @@ x connect keybindings
 - get the new layers window working
   x working on pdmTransform
   - ignore markers for histogram.
+    - doesn't set properly for small_values.mgz
   - min/mid/max marker for heat scale
+
+- value field doesn't update properly for float values (small_values.mgz)
 
 x default dirs for file dlogs if subject is loaded
 

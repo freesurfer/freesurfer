@@ -71,7 +71,9 @@ ScubaGlobalPreferences::DoListenToTclCommand ( char* isCommand,
 	sKey == GetStringForKey( KeyMoveViewOut ) ||
 	sKey == GetStringForKey( KeyZoomViewIn ) ||
 	sKey == GetStringForKey( KeyZoomViewOut ) ||
-	sKey == GetStringForKey( ShowFPS )
+	sKey == GetStringForKey( ShowFPS ) ||
+	sKey == GetStringForKey( SelectedTool ) ||
+	sKey == GetStringForKey( LockOnCursor )
 	) {
       
       PreferencesManager& prefsMgr = PreferencesManager::GetManager();
@@ -99,6 +101,7 @@ ScubaGlobalPreferences::DoListenToTclCommand ( char* isCommand,
 	sKey == GetStringForKey( DrawMarkers ) ||
 	sKey == GetStringForKey( DrawPaths ) ||
 	sKey == GetStringForKey( DrawPlaneIntersections ) ||
+	sKey == GetStringForKey( LockOnCursor ) ||
 	sKey == GetStringForKey( ShowFPS ) ) {
 
       bool bValue;
@@ -126,7 +129,8 @@ ScubaGlobalPreferences::DoListenToTclCommand ( char* isCommand,
 	       sKey == GetStringForKey( KeyShuffleLayers ) ||
 	       sKey == GetStringForKey( KeyMouseButtonOne ) ||
 	       sKey == GetStringForKey( KeyMouseButtonTwo ) ||
-	       sKey == GetStringForKey( KeyMouseButtonThree ) ) {
+	       sKey == GetStringForKey( KeyMouseButtonThree ) ||
+	       sKey == GetStringForKey( SelectedTool ) ) {
 
       string sValue = iasArgv[2];
 
@@ -155,6 +159,7 @@ ScubaGlobalPreferences::SetPreferencesValue ( PrefKey iKey, bool ibValue ) {
       iKey == DrawMarkers ||
       iKey == DrawPaths ||
       iKey == DrawPlaneIntersections ||
+      iKey == LockOnCursor ||
       iKey == ShowFPS ) {
   
     PreferencesManager& prefsMgr = PreferencesManager::GetManager();
@@ -191,7 +196,8 @@ ScubaGlobalPreferences::SetPreferencesValue ( PrefKey iKey, string isValue ) {
       iKey == KeyMoveViewIn ||
       iKey == KeyMoveViewOut ||
       iKey == KeyZoomViewIn ||
-      iKey == KeyZoomViewOut ) {
+      iKey == KeyZoomViewOut ||
+      iKey == SelectedTool ) {
   
     PreferencesManager& prefsMgr = PreferencesManager::GetManager();
     PreferencesManager::StringPrefValue value( isValue );
@@ -217,6 +223,7 @@ ScubaGlobalPreferences::GetPrefAsBool ( PrefKey iKey ) {
       iKey == DrawMarkers ||
       iKey == DrawPaths ||
       iKey == DrawPlaneIntersections ||
+      iKey == LockOnCursor ||
       iKey == ShowFPS ) {
   
     PreferencesManager& prefsMgr = PreferencesManager::GetManager();
@@ -249,7 +256,8 @@ ScubaGlobalPreferences::GetPrefAsString ( PrefKey iKey ) {
       iKey == KeyMoveViewIn ||
       iKey == KeyMoveViewOut ||
       iKey == KeyZoomViewIn ||
-      iKey == KeyZoomViewOut ) {
+      iKey == KeyZoomViewOut ||
+      iKey == SelectedTool ) {
   
     PreferencesManager& prefsMgr = PreferencesManager::GetManager();
     string sValue = prefsMgr.GetValue( GetStringForKey( iKey ) );
@@ -290,6 +298,8 @@ ScubaGlobalPreferences::GetStringForKey ( PrefKey iKey ) {
   case KeyMoveViewOut:             return "KeyMoveViewOut";              break;
   case KeyZoomViewIn:              return "KeyZoomViewIn";               break;
   case KeyZoomViewOut:             return "KeyZoomViewOut";              break;
+  case SelectedTool:               return "SelectedTool";                break;
+  case LockOnCursor:               return "LockOnCursor";                break;
   case ShowFPS:                    return "ShowFPS";                     break;
   default:
     throw runtime_error( "Invalid key" );
@@ -421,6 +431,16 @@ ScubaGlobalPreferences::ReadPreferences () {
   prefsMgr.RegisterValue( "ShowFPS", 
 			  "Show the FPS (frames per second) for draws.",
 			  showFPS );
+
+  PreferencesManager::StringPrefValue selectedTool( "navigation" );
+  prefsMgr.RegisterValue( "SelectedTool", 
+			  "The selected tool.",
+			  selectedTool );
+
+  PreferencesManager::IntPrefValue lockOnCursor( false );
+  prefsMgr.RegisterValue( "LockOnCursor", 
+			  "Lock On Cursor setting.",
+			  lockOnCursor );
 
 }
 

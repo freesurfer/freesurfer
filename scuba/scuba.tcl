@@ -10,7 +10,7 @@ if { $err } {
     load [file dirname [info script]]/libscuba[info sharedlibextension] scuba
 }
 
-DebugOutput "\$Id: scuba.tcl,v 1.69 2005/01/28 20:43:40 kteich Exp $"
+DebugOutput "\$Id: scuba.tcl,v 1.70 2005/02/01 21:15:06 kteich Exp $"
 
 # gTool
 #   current - current selected tool (nav,)
@@ -629,6 +629,7 @@ proc ToolBarWrapper { isName iValue } {
     global gaROI
     global gaTool
     global gaView
+    global gaPrefs
 
     if { $iValue == 1 } {
 	switch $isName {
@@ -636,6 +637,7 @@ proc ToolBarWrapper { isName iValue } {
 		straightPath - edgePath {
 		SetToolMode $gaFrame([GetMainFrameID],toolID) $isName
 		SelectToolInToolProperties $isName
+		set gaPrefs(SelectedTool) $isName
 	    }
 	    c1 - c22 - c13 {
 		SetFrameViewConfiguration [GetMainFrameID] $isName
@@ -999,6 +1001,8 @@ proc GetPreferences {} {
 	KeyMouseButtonOne
 	KeyMouseButtonTwo
 	KeyMouseButtonThree
+	LockOnCursor
+	SelectedTool
     } {
 	set gaPrefs($sKey) [GetPreferencesValue $sKey]
     }
@@ -1023,6 +1027,8 @@ proc SetPreferences {} {
 	KeyMouseButtonOne
 	KeyMouseButtonTwo
 	KeyMouseButtonThree
+	LockOnCursor
+	SelectedTool
     } {
 	SetPreferencesValue $sKey $gaPrefs($sKey)
     }
@@ -1032,7 +1038,7 @@ proc Quit {} {
     dputs "Quit  "
     global gaView
     global gaWidget
-
+    
     # Set our prefs values and save our prefs.
     SetPreferencesValue ViewFlipLeftRight $gaView(flipLeftRight)
     SetPreferencesValue ShowConsole $gaView(tkcon,visible)
@@ -1044,7 +1050,10 @@ proc Quit {} {
     SetPreferencesValue ShowFPS $gaView(showFPS)
     SetPreferences
     SaveGlobalPreferences
-
+    
+    # Keep us from doing this multiple times because of binding
+    # Quit to the destroy event.
+    bind  $gaWidget(window) <Destroy> ""
     destroy $gaWidget(window)
 
     exit
@@ -1915,11 +1924,12 @@ proc MakeViewPropertiesPanel { ifwTop } {
 		-command {SetViewLinkedStatus $gaView(current,id) $gaView(current,linked)} }
 	}
 
+    # This Locked on Cursor also sets the global pref to the same value.
     tkuMakeCheckboxes $fwProps.cbwLocked \
 	-checkboxes {
 	    {-type text -label "Locked on Cursor"
 		-variable gaView(current,lockedCursor)
-		-command {SetViewLockOnCursor $gaView(current,id) $gaView(current,lockedCursor)} }
+		-command {SetViewLockOnCursor $gaView(current,id) $gaView(current,lockedCursor); SetPreferencesValue LockOnCursor $gaView(current,lockedCursor); set gaPrefs(LockOnCursor) [GetPreferencesValue LockOnCursor]} }
 	}
 
     for { set nLevel 0 } { $nLevel < 10 } { incr nLevel } {
@@ -2677,6 +2687,17 @@ proc SelectViewInViewProperties { iViewID } {
     set gaView(current,inPlaneInc) \
 	[GetViewInPlaneMovementIncrement $iViewID $gaView(current,inPlane)]
     tkuRefreshEntryNotify $gaWidget(viewProperties,inPlaneInc)
+
+    # This is kind of hacky. We have a preference for the Lock on
+    # Cursor setting. What we want to do is see if we've gotten the
+    # setting from the prefs yet for this view. If not, set this
+    # view's setting to the prefs. If the checkbox is manually
+    # clicked, we'll change the pref to the new value.
+    if { ![info exists gaView(lockOverride,$iViewID)] } {
+	set gaView(current,lockedCursor) [GetPreferencesValue LockOnCursor]
+	SetViewLockOnCursor $iViewID true
+	set gaView(lockOverride,$iViewID) 1
+    }
 
     # This is the same for every view but get it here anyway.
     set gaView(numMarkers) [GetNumberOfViewMarkers]
@@ -4350,7 +4371,7 @@ proc SaveSceneScript { ifnScene } {
     set f [open $ifnScene w]
 
     puts $f "\# Scene file generated "
-    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.69 2005/01/28 20:43:40 kteich Exp $"
+    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.70 2005/02/01 21:15:06 kteich Exp $"
     puts $f ""
 
     # Find all the data collections.
@@ -4721,7 +4742,7 @@ UpdateLUTList
 SelectViewInViewProperties 0
 SelectTransformInTransformProperties 0
 SelectLUTInLUTProperties 0
-SelectToolInToolProperties navigation
+SelectToolInToolProperties [GetPreferencesValue SelectedTool]
 
 
 ShowHideConsole $gaView(tkcon,visible)
