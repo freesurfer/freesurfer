@@ -786,7 +786,7 @@ MRIhistogramLabelRegion(MRI *mri, MRI *mri_labeled, MRI_REGION *region, int labe
     {
       for (x = x0 ; x < x1 ; x++)
       {
-        if (MRIvox(mri_labeled, x, y, z) != label)
+        if (MRIgetVoxVal(mri_labeled, x, y, z, 0) != label)
           continue ;
         switch (mri->type)
         {
@@ -854,7 +854,7 @@ MRIhistogramLabel(MRI *mri, MRI *mri_labeled, int label, int nbins)
     {
       for (x = 0 ; x < width ; x++)
       {
-        if (MRIvox(mri_labeled, x, y, z) != label)
+        if (MRIgetVoxVal(mri_labeled, x, y, z, 0) != label)
           continue ;
         switch (mri->type)
         {
