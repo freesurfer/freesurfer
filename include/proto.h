@@ -9,6 +9,8 @@
 
 #ifdef SPARC
 
+int fflush(FILE *fp) ;
+int fscanf(FILE *fp, const char *fmt, ...) ;
 int fprintf(FILE *fp, const char *fmt, ...) ;
 int printf(const char *fmt, ...) ;
 int vsprintf(char *str, const char *fmt, va_list args) ;
