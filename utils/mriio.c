@@ -10762,76 +10762,128 @@ MRIappend(MRI *mri, char *fpref)
   return(NO_ERROR) ;
 }
 
+
+// mgh file has the following structures
+//
+// headers
+// frames
+// other tagged info
+//
+// in order to append to the file you have to first read
+// all the information (including tagged infos) and then
+// write out
+//
 static int
 mghAppend(MRI *mri, char *fname, int frame)
 {
   FILE  *fp ;
-  int   start_frame, end_frame, x, y, z, width, height, depth, nframes ;
+  int  y, z, nframes, depth ;
+  MRI *nmri = 0;
+  MRI *omri = 0;
+  int bytes;
+  int datasize;
 
-  if (frame >= 0)
-    start_frame = end_frame = frame ;
-  else
-  {
-    start_frame = 0 ; end_frame = mri->nframes-1 ;
-  }
   fp = fopen(fname, "rb") ;
   if (!fp)   /* doesn't exist */
     return(mghWrite(mri, fname, frame)) ;
   fclose(fp) ;
-  fp = fopen(fname, "r+b") ;
-  if (!fp)
+
+  // we must read everything
+  omri= MRIread(fname);
+  // simple check for consistency
+  if ((omri->width != mri->width) 
+      || (omri->height != mri->height)
+      || (omri->depth != mri->depth)
+      || (omri->type != mri->type))
+  {
+    ErrorExit(ERROR_BADPARM, "Appending mri must have the same type");
+  }
+  nframes = omri->nframes + mri->nframes;
+  // allocate frames needed to save all
+  nmri=MRIallocSequence(omri->width, omri->height, omri->depth, omri->type, nframes);
+  if (!nmri)
   {
     errno = 0;
     ErrorReturn(ERROR_BADPARM, 
-                (ERROR_BADPARM,"mghAppend(%s, %d): could not open file",
+                (ERROR_BADPARM,"mghAppend(%s, %d): could not open file to append",
                  fname, frame)) ;
   }
-
-  /* WARNING - this is dependent on the order of writing in mghWrite */
-  width = mri->width ; height = mri->height ; depth = mri->depth ;
-  fseek(fp, 4*sizeof(int), SEEK_SET) ;
-  nframes = freadInt(fp) ;
-  fseek(fp, 4*sizeof(int), SEEK_SET) ;
-  fwriteInt(nframes+end_frame-start_frame+1, fp) ;
-  fseek(fp, 0, SEEK_END) ;
-
-  for (frame = start_frame ; frame <= end_frame ; frame++)
+  // copy header info
+  MRIcopyHeader(omri, nmri);
+  // we have to modify nframes
+  nmri->nframes=nframes;
+  //
+  // we have to copy tag_data.  I have no idea about how tag_data
+  // must be merged and thus I just add two together literally
+  //
+  datasize = 0;
+  if (omri->tag_data)
+    datasize += omri->tag_data_size;
+  if (mri->tag_data)
+    datasize += mri->tag_data_size;
+  if (datasize)
   {
-    for (z = 0 ; z < depth ; z++)
+    char *ptr = 0;
+    nmri->tag_data = calloc(sizeof(char), sizeof(datasize));
+    nmri->tag_data_size = datasize;
+    // copy from the original
+    if (omri->tag_data)
     {
-      for (y = 0 ; y < height ; y++)
+      memcpy(nmri->tag_data, omri->tag_data, sizeof(omri->tag_data_size));
+      ptr = nmri->tag_data + sizeof(omri->tag_data_size);
+    }
+    if (mri->tag_data)
+    {
+      memcpy((void *) ptr, mri->tag_data, sizeof(mri->tag_data_size));
+    }
+  }
+  // now modify nmri to have one more frame
+  bytes = omri->width ;
+  switch (omri->type)
+  {
+  case MRI_UCHAR:
+    bytes *= sizeof(BUFTYPE) ;
+    break ;
+  case MRI_SHORT:
+    bytes *= sizeof(short);
+    break;
+  case MRI_FLOAT:
+    bytes *= sizeof(float) ;
+    break ;
+  case MRI_INT:
+    bytes *= sizeof(int) ;
+    break ;
+  case MRI_LONG:
+    bytes *= sizeof(long) ;
+    break ;
+  }
+  // copy from omri
+  depth = omri->depth;
+  for (frame = 0 ; frame < omri->nframes ; frame++)
+  {
+    for (z = 0 ; z < omri->depth ; z++)
+    {
+      for (y = 0 ; y < omri->height ; y++)
       {
-        switch (mri->type)
-        {
-        case MRI_FLOAT:
-          for (x = 0 ; x < width ; x++)
-          {
-            fwriteFloat(MRIFseq_vox(mri,x,y,z,frame), fp) ;
-          }
-          break ;
-        case MRI_UCHAR:
-          if (fwrite(&MRIseq_vox(mri,0,y,z,frame), sizeof(BUFTYPE), width, fp) 
-              != width)
-          {
-            errno = 0;
-            ErrorReturn(ERROR_BADFILE, 
-                        (ERROR_BADFILE, 
-                         "mghAppend: could not write %d bytes to %s",
-                         width, fname)) ;
-          }
-          break ;
-        default:
-          errno = 0;
-          ErrorReturn(ERROR_UNSUPPORTED, 
-                      (ERROR_UNSUPPORTED, "mghAppend: unsupported type %d",
-                       mri->type)) ;
-          break ;
-        }
+	memcpy(nmri->slices[z+frame*depth][y],           // dst
+	       omri->slices[z+frame*depth][y], bytes) ;  // src
       }
     }
   }
+  // append from mri
+  for (frame = 0; frame < mri->nframes; frame++)
+  {
+    for (z = 0 ; z < mri->depth ; z++)
+    {
+      for (y = 0 ; y < mri->height ; y++)
+      {
+	memcpy(nmri->slices[z+(frame+omri->nframes)*depth][y], 
+	       mri->slices[z+frame*depth][y], bytes) ;
+      }
+    }
+  }
+  mghWrite(nmri, fname, -1); // write all frames
 
-  fclose(fp) ;
   return(NO_ERROR) ;
 }
 
