@@ -95,13 +95,8 @@ MRI *MRISshell(MRI *mri_src,MRI_SURFACE *mris,MRI *mri_dst,int clearflag)
     MRIcopyHeader(mri_src, mri_dst);
   }
 
-  if (clearflag) {
-    for (i=0; i<depth; i++)
-      for (j=0; j<height; j++)
-        for (imnr=0; imnr<width; imnr++)
-          MRIvox(mri_dst,imnr,j,i)=0;
-//    MRIclear(mri_dst);
-  }
+  if (clearflag)
+    MRIclear(mri_dst);
 
   /* Fill each face in MRI volume */
   for (fno=0; fno<mris->nfaces; fno++) {
@@ -299,13 +294,8 @@ MRI *MRISpartialshell(MRI *mri_src,MRI_SURFACE *mris,MRI *mri_dst,int clearflag)
     mri_dst = MRIalloc(width, height, depth, mri_src->type);
     MRIcopyHeader(mri_src, mri_dst);
   }
-  if (clearflag) {
-    for (i=0; i<depth; i++)
-      for (j=0; j<height; j++)
-        for (imnr=0; imnr<width; imnr++)
-          MRIvox(mri_dst,imnr,j,i)=0;
-//    MRIclear(mri_dst);
-  }
+  if (clearflag)
+    MRIclear(mri_dst);
 
   /* Fill each face in MRI volume */
   for (fno=0; fno<mris->nfaces; fno++) {
@@ -762,4 +752,5 @@ int IllegalCorticalNeighbour(MRI *mri_masked,int i,int j,int k)
 
   return illegalflag;
 }
+
 
