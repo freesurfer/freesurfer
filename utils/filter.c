@@ -821,56 +821,56 @@ static float kernel[KERNEL_SIZE]  =
 } ;
 
 IMAGE *
-ImageReduce(IMAGE *Isrc, IMAGE *outImage)
+ImageReduce(IMAGE *Isrc, IMAGE *Idst)
 {
   int  rows, cols ;
-  static IMAGE *tmpImage = NULL ;
+  static IMAGE *Itmp = NULL ;
 
   rows = Isrc->rows ;
   cols = Isrc->cols ;
-  if (!ImageCheckSize(Isrc, tmpImage, rows, cols, 0) && tmpImage)
+  if (!ImageCheckSize(Isrc, Itmp, rows, cols, 0) && Itmp)
   {
-    ImageFree(&tmpImage) ;
-    tmpImage = NULL ;
+    ImageFree(&Itmp) ;
+    Itmp = NULL ;
   }
 
-  if (!tmpImage)
+  if (!Itmp)
   {
-    tmpImage = ImageAlloc(rows, cols, PFFLOAT, 1) ;
-    if (!tmpImage)
+    Itmp = ImageAlloc(rows, cols, PFFLOAT, 1) ;
+    if (!Itmp)
       return(NULL) ;
   }
   else
   {
-    ImageSetSize(tmpImage,rows,cols) ;
-    ImageClearArea(tmpImage, 0, 0, -1, -1, 0.0f) ;
+    ImageSetSize(Itmp,rows,cols) ;
+    ImageClearArea(Itmp, 0, 0, -1, -1, 0.0f) ;
   }
 
   rows /= 2 ;
   cols /= 2 ;
 
-  if (!outImage)
-    outImage = ImageAlloc(rows, cols, PFFLOAT, 1) ;
-  else
+  if (!ImageCheckSize(Isrc, Idst, rows, cols, 0))
   {
-    if (!ImageCheckSize(Isrc, outImage, rows, cols, 0))
-      ErrorReturn(outImage, (ERROR_NO_MEMORY,
-                             "ImageReduce: output image is too small\n")) ;
+    if (Idst)
+      ImageFree(&Idst) ;
+    Idst = ImageAlloc(rows, cols, PFFLOAT, 1) ;
   }
+  else
+    ImageSetSize(Idst, rows, cols) ;
 
   /* blur vertically */
-  ImageConvolve1d(Isrc, tmpImage, kernel, KERNEL_SIZE, IMAGE_VERTICAL) ;
-  ImageReduce1d(tmpImage, outImage, kernel, KERNEL_SIZE, IMAGE_HORIZONTAL) ;
+  ImageConvolve1d(Isrc, Itmp, kernel, KERNEL_SIZE, IMAGE_VERTICAL) ;
+  ImageReduce1d(Itmp, Idst, kernel, KERNEL_SIZE, IMAGE_HORIZONTAL) ;
 #if 0
 {
   char str[100] ;
   sprintf(str, "tmp%d.hipl", rows*2) ;
-  ImageWrite(tmpImage, str) ;
+  ImageWrite(Itmp, str) ;
   sprintf(str, "out%d.hipl", rows*2) ;
-  ImageWrite(outImage, str) ;
+  ImageWrite(Idst, str) ;
 }
 #endif
-  return(outImage) ;
+  return(Idst) ;
 }
 /*----------------------------------------------------------------------
             Parameters:
