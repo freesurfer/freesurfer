@@ -19,7 +19,7 @@ void xDbg_Init ( char* isFileName );
 void xDbg_ShutDown ();
 void xDbg_PrintStatus ();
 void xDbg_RegisterSegfaultHandler ( void(*f)(int) );
-void xDbg_PushStack ( char* isString );
+void xDbg_PushStack ( char* isTitle, char* isNote );
 void xDbg_PopStack ();
 char* xDbg_GetCurrentFunction ();
 void xDbg_PrintStack ();
@@ -96,8 +96,9 @@ extern char                 xDbg_sCurNoteDesc[xDbg_knMaxDescLength];
 /* use at the beginning and ending of a function. the string will be written
    to a stack which will be printed if the program crashes. use the exit
    macro at the end of a function to pop the last string off the stack. */
-#define DebugEnterFunction(ARGS) xDbg_SetStackDesc ARGS ; \
-                                 xDbg_PushStack( xDbg_sStackDesc )
+#define DebugEnterFunction(ARGS) \
+                   xDbg_PushStack( xDbg_sStackDesc, xDbg_sCurNoteDesc ); \
+                   xDbg_SetStackDesc ARGS ; \
 
 #define DebugExitFunction        xDbg_PopStack()
 

@@ -14,7 +14,8 @@ char xDbg_sCurNoteDesc[xDbg_knMaxDescLength];
 
 
 
-char masStack[xDbg_knMaxStackDepth][xDbg_knMaxDescLength];
+char masStackTitle[xDbg_knMaxStackDepth][xDbg_knMaxDescLength];
+char masStackNote[xDbg_knMaxStackDepth][xDbg_knMaxDescLength];
 int  mCurrentStackDepth = 0;
 void (*mSegfaultFunction)(int);
 
@@ -100,12 +101,14 @@ void xDbg_PrintStatus () {
     fprintf( stderr, "stream = NULL\n" );
 }
 
-void xDbg_PushStack ( char* isString ) {
+void xDbg_PushStack ( char* isTitle, char* isNote ) {
 
   if( mCurrentStackDepth+1 < xDbg_knMaxStackDepth ) {
     
-    strncpy( masStack[mCurrentStackDepth], isString, 
-       xDbg_knMaxDescLength );
+    strncpy( masStackTitle[mCurrentStackDepth], isTitle, 
+	     xDbg_knMaxDescLength );
+    strncpy( masStackNote[mCurrentStackDepth], isNote, 
+	     xDbg_knMaxDescLength );
     
     ++mCurrentStackDepth;
   } else {
@@ -122,15 +125,14 @@ void xDbg_PopStack () {
 
   } else {
 
-    DebugPrint( ("ERROR: xDbg_PopStack call when stack is empty.\n"
-      ) );
+    DebugPrint( ("ERROR: xDbg_PopStack call when stack is empty.\n") );
   }
 }
 
 char* xDbg_GetCurrentFunction () {
 
   if( mCurrentStackDepth > 0 ) {
-    return masStack[mCurrentStackDepth-1];
+    return masStackTitle[mCurrentStackDepth-1];
   } else {
     return "(No current function)";
   }
@@ -139,10 +141,22 @@ char* xDbg_GetCurrentFunction () {
 void xDbg_PrintStack () {
 
   int nCurDesc = 0;
+  int nSpace   = 0; 
 
-  DebugPrint( ("xDebug stack\n\tLength: %d\n", mCurrentStackDepth ) );
-  for( nCurDesc = mCurrentStackDepth-1; nCurDesc >= 0; nCurDesc-- ) {
-    DebugPrint( ("\t%02d: %s\n", nCurDesc, masStack[nCurDesc] ) );
+  DebugPrint( ("xDebug stack (length: %d)\n", mCurrentStackDepth+1 ) );
+
+  strncpy( masStackTitle[mCurrentStackDepth], xDbg_sStackDesc, 
+	   xDbg_knMaxDescLength );
+  strncpy( masStackNote[mCurrentStackDepth], xDbg_sCurNoteDesc, 
+	   xDbg_knMaxDescLength );
+
+  for( nCurDesc = mCurrentStackDepth; nCurDesc >= 0; nCurDesc-- ) {
+    for( nSpace = 0; nSpace <= nCurDesc; nSpace++ )
+      DebugPrint( ("  ") );
+    DebugPrint( ("%02d: %s\n", nCurDesc, masStackTitle[nCurDesc]) );
+    for( nSpace = 0; nSpace <= nCurDesc; nSpace++ )
+      DebugPrint( ("  ") );
+    DebugPrint( ("%02d: %s\n", nCurDesc, masStackNote[nCurDesc] ) );
   }
 }
 
