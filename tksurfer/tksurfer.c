@@ -49,7 +49,7 @@ void val_to_curv(void) ;
 void val_to_stat(void) ;
 void stat_to_val(void) ;
 
-static void label_to_stat(void) ;
+static void label_to_stat(int which_overlay) ;
 static void f_to_t(void) ;
 static void t_to_p(int dof) ;
 static void f_to_p(int numer_dof, int denom_dof) ;
@@ -16178,7 +16178,7 @@ print_help_surfer(void)
 
   printf("  remove_triangle_links            [script]\n");
 
-  printf("  label_to_stat                     [script]\n");
+  printf("  label_to_stat <overlay #>        \n");
   printf("  f_to_t                           [script]\n");
   printf("  t_to_p                           [script]\n");
   printf("  f_to_p                           [script]\n");
@@ -17435,8 +17435,8 @@ int                  W_f_to_t  WBEGIN
                        f_to_t();  WEND
 
 int                  W_label_to_stat  WBEGIN
-  ERR(1,"Wrong # args: label_to_stat ")
-                       label_to_stat();  WEND
+  ERR(2,"Wrong # args: label_to_stat ")
+                       label_to_stat(atoi(argv[1]));  WEND
 
 int                  W_remove_triangle_links  WBEGIN
   ERR(1,"Wrong # args: remove_triangle_links ")
@@ -23083,11 +23083,11 @@ f_to_t(void)
 }
 
 static void
-label_to_stat(void)
+label_to_stat(int which_overlay)
 {
   VERTEX *v ;
   LABEL  *area ;
-  int    n, field = SCLV_VALSTAT ;
+  int    n, field = which_overlay ;
   float  mn, mx, f ;
   char                  cmd[STRLEN];
 
