@@ -1269,6 +1269,7 @@ static int corWrite(MRI *mri, char *fname)
   char *fbase;
   FILE *fp;
   int i, j;
+  int rv;
 
   /* ----- check the mri structure for COR file compliance ----- */
 
@@ -1319,11 +1320,12 @@ static int corWrite(MRI *mri, char *fname)
   {
     *fbase = '/';
     fbase++;
+    *fbase = '\0';
   }
 
   /* Create the directory */
-  errno = mkdir(fname_use,(mode_t)-1);
-  if(errno != 0 && errno != EEXIST){
+  rv = mkdir(fname_use,(mode_t)-1);
+  if(rv != 0 && errno != EEXIST){
     printf("ERROR: creating directory %s\n",fname_use);
     perror(NULL);    
     return(1);
