@@ -179,9 +179,9 @@ ScubaLayer2DMRI::DrawIntoBuffer ( GLubyte* iBuffer, int iWidth, int iHeight,
 	aColorTimesOpacity[color[1]];
       dest[2] = aColorTimesOneMinusOpacity[dest[2]] + 
 	aColorTimesOpacity[color[2]];
-      dest[3] = (GLubyte) 255;
+      //      dest[3] = (GLubyte) 255;
       
-      dest += 4;
+      dest += 3;
     }
   }
 
@@ -209,7 +209,7 @@ ScubaLayer2DMRI::DrawIntoBuffer ( GLubyte* iBuffer, int iWidth, int iHeight,
       }
       
       // Advance our pixel buffer pointer.
-      dest += 4;
+      dest += 3;
       
     }
   }
