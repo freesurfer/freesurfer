@@ -1,6 +1,6 @@
 #!/bin/csh -f
 
-set SPMMAT2REGISTER_VER = '$Id: spmmat2register,v 1.5 1999/11/16 00:17:59 greve Exp $';
+set SPMMAT2REGISTER_VER = '$Id: spmmat2register,v 1.6 1999/11/18 02:13:42 greve Exp $';
 
 set OutStream = /dev/null;
 set funcvol   = ();
@@ -13,6 +13,8 @@ set frows = 256;
 set fcols = 256;
 set fslices = 20;
 set SlcOrient = "RAS";
+set Intensity = 0.3;
+set CoorDef = "RAS"
 
 if($#argv == 0) goto usage_exit;
 
@@ -22,32 +24,20 @@ parse_args_return:
 goto check_args;
 check_args_return:
 
-set UseStructMat = 1;
-set structmatfile = $structvol.mat
-if(! -e $structmatfile ) then
-  set structimgfile = $structvol.img
-  if(! -e $structimgfile ) then
-   echo "ERROR: cannot find $structmatfile or $structimgfile "
-   exit 1;
-  endif
-  set UseStructMat = 0;
+set structimgfile = $structvol.img
+if(! -e $structimgfile ) then
+  echo "ERROR: cannot find $structimgfile "
+  exit 1;
 endif
 
-set UseFuncMat = 1;
-set funcmatfile = $funcvol.mat
-if(! -e $funcmatfile ) then
-  set funcimgfile = $funcvol.img
-  if(! -e $funcimgfile ) then
-   echo "ERROR: cannot find $funcmatfile or $funcimgfile "
-   exit 1;
-  endif
-  set UseFuncMat = 0;
+set funcimgfile = $funcvol.img
+if(! -e $funcimgfile ) then
+  echo "ERROR: cannot find $funcimgfile "
+  exit 1;
 endif
 
 set outdir = `dirname $regfile`;
 mkdir -p $outdir
-set okfile = "$outdir/tmp_spm2reg.ok"
-rm -f $okfile
 
 if($monly) then
   set TARGET = " tee  $mfile "
@@ -55,70 +45,57 @@ else
   set TARGET = "matlab -display iconic "
 endif 
 
+rm -f $regfile
+
+#-----------------------------------------------------------------#
 $TARGET > $OutStream <<EOF
 
   SlcOrient = '$SlcOrient';
+  StructVol = '$structvol.img';
+  FuncVol   = '$funcvol.img';
+  CoorDef   = '$CoorDef';
 
-  if($UseStructMat) 
-    load ('$structmatfile');
-    Ma = M;
-  else
-    Ma = spm_get_space('$structvol');
+  % Load in the StructSubscript to Functional mm Matrix (SPM Space) %
+  Ma = spm_get_space(StructVol);
+
+  % Get the dimensions of the structual volume %
+  Sdim = spm_hread(StructVol);
+
+  % Compute structural voxel size (SPM Space)%
+  dvs = sqrt(sum(Ma(1:3,1:3).^2));
+
+  % Compute StructSubscript to Structural mm Matrix (SPM Space) %
+  Qs  = diag([dvs 1]);
+  Qs(:,4) = [-(Sdim(1)+1)/2 -(Sdim(2)+1)/2 -(Sdim(2)+1)/2 1]';%'
+
+  % Load in the FuncSubscript to Functional mm Matrix (SPM Space) %
+  Qf = spm_get_space(FuncVol);
+
+  % Compute functional voxel size (SPM Space)%
+  dvf = sqrt(sum(Qf(1:3,1:3).^2));
+
+  % Get the dimensions of the functional volume %
+  Fdim = spm_hread(FuncVol);
+
+  % Compute the FuncSubscript to Functional mm Matrix (MGH Space) %
+  Qfp = Qf;
+  Qfp(2,:) = Qf(3,:);
+  Qfp(3,:) = Qf(2,:);
+  Qfp = abs(Qfp);
+  Qfp(1,1) = -Qfp(1,1);
+  Qfp(2,4) = -Qfp(2,4);
+  Qfp(3,2) = -Qfp(3,2);
+  Qfp(:,4) = Qfp(:,4) -1;
+  Qfp(4,4) = 1;
+
+  % Change coordinate system definition (default RAS) %
+  Hmm = eye(4);
+  if(strcmp(CoorDef,'LAS'))
+    Hmm(1,1) = -1;
   end
 
-  if($UseFuncMat) 
-    load ('$funcmatfile');
-    Mf = M;
-  else
-    Mf = spm_get_space('$funcvol');
-  end
-
-  dvf = sqrt(sum(Mf(1:3,1:3).^2));
-  Qa = zeros(4);
-  Qa(1,1) = 1;
-  Qa(2,2) = 1;
-  Qa(3,3) = 1;
-  av = -ones(4,1)*(256+1)/2;
-  av(4) = 1;
-  Qa(:,4) = av;
-
-  if(strcmp('$target','spm'))
-    W = eye(4);
-  else
-    % This is hardwired for now %
-    Ncols = $frows;  
-    Nrows = $fcols;  
-    Nslices = $fslices;
-
-    Mforig = zeros(4);
-    Mforig(1,1) = abs(dvf(1));
-    Mforig(2,2) = abs(dvf(2));
-    Mforig(3,3) = abs(dvf(3));
-    Mforig(4,4) = 1;
-    Mforig(1,4) = -abs(dvf(1))*(Ncols+1)/2;
-    Mforig(2,4) = -abs(dvf(2))*(Nrows+1)/2;
-    Mforig(3,4) = -abs(dvf(3))*(Nslices+1)/2;
-
-    W = Mforig*inv(Mf);
-  end
-
-  % Cor to Axial %
-  Rac = zeros(4,4);
-  if(strcmp(SlcOrient,'RAS'))
-    Rac(1,1) =  1;
-  else
-    Rac(1,1) = -1;
-  end
-  Rac(2,3) =  1; 
-  Rac(3,2) =  1;
-  Rac(4,4) =  1;
-
-  Mreg = W*Ma*inv(Qa)*Rac;
-
-  % I dont see why this is necessary %
-  % offset = Mreg(:,4);
-  % newoffset = Rac'*offset; %'
-  % Mreg(:,4) = newoffset;
+  % Compute the matrix for register.dat %
+  Mreg = Qfp*inv(Qf)*Ma*inv(Qs)*Hmm;
 
   SubjName = '$subject';
   fid = fopen('$regfile','w');
@@ -130,25 +107,18 @@ $TARGET > $OutStream <<EOF
   fprintf(fid,'%s\n',SubjName);
   fprintf(fid,'%8.4f\n',dvf(1));
   fprintf(fid,'%8.4f\n',dvf(3));
-  fprintf(fid,'%8.4f\n',1.0);
+  fprintf(fid,'%8.4f\n',$Intensity);
   fprintf(fid,'%8.4f %8.4f %8.4f %8.4f\n',Mreg'); %'
   fclose(fid);
  
-  if(~$monly)
-    fid = fopen('$okfile','w');
-    fclose(fid);
-  end
-
   return;
 EOF
+#-----------------------------------------------------------------#
 
 if(! $monly) then
-  if( -e $okfile ) then
-    #echo "spmmat2register finished SUCCESSFULLY"
-    rm -f $okfile
-    exit 0;
-  else
-    echo "spmmat2register FAILED"
+  if(! -e $regfile ) then
+    echo "ERROR: $regfile not created"
+    echo "  Rerun with -debug flag"
     exit 1;
   endif
 endif
@@ -181,24 +151,9 @@ while( $#argv != 0 )
       set regfile = $argv[1]; shift;
       breaksw
 
-    case "-target":
+    case "-intensity":
       if ( $#argv == 0) goto arg1err;
-      set target = $argv[1]; shift;
-      breaksw
-
-    case "-frows":
-      if ( $#argv == 0) goto arg1err;
-      set frows = $argv[1]; shift;
-      breaksw
-
-    case "-fcols":
-      if ( $#argv == 0) goto arg1err;
-      set fcols = $argv[1]; shift;
-      breaksw
-
-    case "-fslices":
-      if ( $#argv == 0) goto arg1err;
-      set fslices = $argv[1]; shift;
+      set Intensity = $argv[1]; shift;
       breaksw
 
     case "-subject":
@@ -207,9 +162,9 @@ while( $#argv != 0 )
       set subject = $argv[1]; shift;
       breaksw
 
-    case "-LAS":
-    case "-las":
-      set SlcOrient = "LAS";
+    case "-coordef":
+      if ( $#argv == 0) goto arg1err;
+      set CoorDef = $argv[1]; shift;
       breaksw
 
     case "-debug":
@@ -262,6 +217,11 @@ check_args:
     exit 1;
   endif  
 
+  if($CoorDef != "RAS" && $CoorDef != "LAS") then
+    echo "ERROR: CoorDef $CoorDef not supported"
+    exit 1;
+  endif
+
 goto check_args_return;
 
 ############--------------##################
@@ -272,16 +232,14 @@ arg1err:
 #----------------------------------------------------------------#
 usage_exit:
   echo "\nUSAGE: \n spmmat2register "
-  echo "   -svol    structural volume     required"
-  echo "   -fvol    functional volume     required"
-  echo "   -subject subject name          required"
-  echo "   -LAS     Left/Ant/Sup          RAS"
-  echo "   -o       output register file  register.dat"
-  echo "   -target  spm | mgh             spm";
-  echo "   -frows   number of func rows (with target mgh)"
-  echo "   -fcols   number of func cols (with target mgh)"
-  echo "   -fslices number of func slices (with target mgh)"
-  echo "   -umask   newumask"
-  echo "   -monly   mfile"
+  echo "   -svol      structural volume     (required)"
+  echo "   -fvol      functional volume     (required)"
+  echo "   -subject   subject name          (required)"
+  echo "   -o         output register file  (register.dat)"
+  echo "   -intensity intensity value for register ($Intensity)"
+  echo "   -coordef   coordinate definition of structs ($CoorDef)"
+  echo "   -umask     newumask"
+  echo "   -monly     mfile"
+  echo "   -debug     print out lots of info"
   echo "\n $SPMMAT2REGISTER_VER \n"
 exit 1;
