@@ -12,7 +12,7 @@
 #include "mrimorph.h"
 #include "timer.h"
 
-static char vcid[] = "$Id: mri_fill.c,v 1.45 2000/09/20 16:19:55 fischl Exp $";
+static char vcid[] = "$Id: mri_fill.c,v 1.46 2001/04/02 20:47:17 fischl Exp $";
 
 /*-------------------------------------------------------------------
                                 CONSTANTS
@@ -292,6 +292,9 @@ main(int argc, char *argv[])
     if (!mri_cc)
       ErrorExit(ERROR_BADPARM, "%s: could not find corpus callosum", Progname);
   }
+  /* update tal coords of CC based on data (BUG FIX - BRF) */
+  MRIvoxelToTalairach(mri_im, (Real)x_cc, (Real)y_cc, (Real)z_cc,
+                      &cc_tal_x, &cc_tal_y, &cc_tal_z) ;
   
   if ((Gdiag & DIAG_WRITE) && DIAG_VERBOSE_ON)
     MRIwrite(mri_cc, "cc.mgh") ;
@@ -541,7 +544,7 @@ main(int argc, char *argv[])
       found = xnew = ynew = znew = 0 ;
       min_dist = 10000.0f ;
       if (Gdiag & DIAG_SHOW)
-        fprintf(stderr, "searching for rh wm seed...") ;
+        fprintf(stderr, "searching for lh wm seed...") ;
       for (z = wm_lh_z-SEED_SEARCH_SIZE ; z <= wm_lh_z+SEED_SEARCH_SIZE ; z++)
       {
         zi = mri_im->zi[z] ;
