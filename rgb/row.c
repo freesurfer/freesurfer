@@ -33,42 +33,42 @@ int putrow_uc(RGB_IMAGE *image, unsigned char *buffer,
       sptr = buffer;
       /* this might be uneccessary for this uc function */
       for(x=image->xsize; x--;) { 
-	*cptr = *sptr++;
-	if (*cptr > max) max = *cptr;
-	if (*cptr < min) min = *cptr;
-	cptr++;
+  *cptr = *sptr++;
+  if (*cptr > max) max = *cptr;
+  if (*cptr < min) min = *cptr;
+  cptr++;
       }
       image->min = min;
       image->max = max;
       img_seek(image,y,z);
       cnt = image->xsize;
       if (img_write(image,(char *)(image->tmpbuf),cnt) != cnt) {
-	i_errhdlr("putrow: error on write of row\n",0,0,0,0);
-	return -1;
+  i_errhdlr("putrow: error on write of row\n",0,0,0,0);
+  return -1;
       } else
-	return cnt;
+  return cnt;
       /* NOTREACHED */
   
     case 2: 
       printf("ERROR: this rgb save function BPP=2 is not implemented\n");
       /* min = image->min;
-	 max = image->max;
-	 sptr = buffer;
-	 for(x=image->xsize; x--;) { 
-	 if (*sptr > max) max = *sptr;
-	 if (*sptr < min) min = *sptr;
-	 sptr++;
-	 }
-	 image->min = min;
-	 image->max = max;
-	 img_seek(image,y,z);
-	 cnt = image->xsize<<1;
-	 if (img_write(image,(char *)(buffer),cnt) != cnt) {
-	 i_errhdlr("putrow: error on write of row\n",0,0,0,0);
-	 return -1;
-	 } else {
-	 return image->xsize;
-	 }
+   max = image->max;
+   sptr = buffer;
+   for(x=image->xsize; x--;) { 
+   if (*sptr > max) max = *sptr;
+   if (*sptr < min) min = *sptr;
+   sptr++;
+   }
+   image->min = min;
+   image->max = max;
+   img_seek(image,y,z);
+   cnt = image->xsize<<1;
+   if (img_write(image,(char *)(buffer),cnt) != cnt) {
+   i_errhdlr("putrow: error on write of row\n",0,0,0,0);
+   return -1;
+   } else {
+   return image->xsize;
+   }
       */
       /* NOTREACHED */
   
@@ -84,9 +84,9 @@ int putrow_uc(RGB_IMAGE *image, unsigned char *buffer,
       max = image->max;
       sptr = buffer;
       for(x=image->xsize; x--;) { 
-	if (*sptr > max) max = *sptr;
-	if (*sptr < min) min = *sptr;
-	sptr++;
+  if (*sptr > max) max = *sptr;
+  if (*sptr < min) min = *sptr;
+  sptr++;
       }
       image->min = min;
       image->max = max;
@@ -94,10 +94,10 @@ int putrow_uc(RGB_IMAGE *image, unsigned char *buffer,
       img_setrowsize(image,cnt,y,z);
       img_seek(image,y,z);
       if (img_write(image,(char *)(image->tmpbuf),cnt) != cnt) {
-	i_errhdlr("putrow: error on write of row\n",0,0,0,0);
-	return -1;
+  i_errhdlr("putrow: error on write of row\n",0,0,0,0);
+  return -1;
       } else
-	return image->xsize;
+  return image->xsize;
       */
       /* NOTREACHED */
       /*
@@ -106,9 +106,9 @@ int putrow_uc(RGB_IMAGE *image, unsigned char *buffer,
       max = image->max;
       sptr = buffer;
       for(x=image->xsize; x--;) { 
-	if (*sptr > max) max = *sptr;
-	if (*sptr < min) min = *sptr;
-	sptr++;
+  if (*sptr > max) max = *sptr;
+  if (*sptr < min) min = *sptr;
+  sptr++;
       }
       image->min = min;
       image->max = max;
@@ -117,16 +117,16 @@ int putrow_uc(RGB_IMAGE *image, unsigned char *buffer,
       img_setrowsize(image,cnt,y,z);
       img_seek(image,y,z);
       if(image->dorev)
-	cvtshorts(image->tmpbuf,cnt);
+  cvtshorts(image->tmpbuf,cnt);
       if (img_write(image,(char *)(image->tmpbuf),cnt) != cnt) {
-	if(image->dorev)
-	  cvtshorts(image->tmpbuf,cnt);
-	i_errhdlr("putrow: error on write of row\n",0,0,0,0);
-	return -1;
+  if(image->dorev)
+    cvtshorts(image->tmpbuf,cnt);
+  i_errhdlr("putrow: error on write of row\n",0,0,0,0);
+  return -1;
       } else {
-	if(image->dorev)
-	  cvtshorts(image->tmpbuf,cnt);
-	return image->xsize; */
+  if(image->dorev)
+    cvtshorts(image->tmpbuf,cnt);
+  return image->xsize; 
       }
       */
       /* NOTREACHED */
