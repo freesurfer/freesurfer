@@ -95,6 +95,12 @@ void useVolGeomToMRI(const VOL_GEOM *src, MRI *dst)
   dst->z_r = src->z_r; dst->z_a = src->z_a; dst->z_s = src->z_s;
   dst->c_r = src->c_r; dst->c_a = src->c_a; dst->c_s = src->c_s;
   strcpy(dst->fname, src->fname);
+  // now we cache transform and thus we have to do the following whenever
+  // we change direction cosines
+  if (dst->i_to_r__) { MatrixFree(&dst->i_to_r__); dst->i_to_r__ = 0; }
+  if (dst->r_to_i__) { MatrixFree(&dst->r_to_i__); dst->r_to_i__ = 0; }
+  dst->i_to_r__ = extract_i_to_r(dst);
+  dst->r_to_i__ = extract_r_to_i(dst);
 }
 
 void copyVolGeom(const VOL_GEOM *src, VOL_GEOM *dst)
