@@ -12,7 +12,7 @@
 #include "mrimorph.h"
 #include "timer.h"
 
-static char vcid[] = "$Id: mri_fill.c,v 1.39 2000/04/19 19:52:37 fischl Exp $";
+static char vcid[] = "$Id: mri_fill.c,v 1.40 2000/04/21 15:53:52 fischl Exp $";
 
 /*-------------------------------------------------------------------
                                 CONSTANTS
@@ -102,6 +102,16 @@ static Real pons_tal_z = -20.0 ;
 
 static int cc_seed_set = 0 ;
 static int pons_seed_set = 0 ;
+static int lh_seed_set = 0 ;
+static int rh_seed_set = 0 ;
+
+static Real lh_tal_x ;
+static Real lh_tal_y ;
+static Real lh_tal_z ;
+
+static Real rh_tal_x ;
+static Real rh_tal_y ;
+static Real rh_tal_z ;
 
 char *Progname ;
 
@@ -456,95 +466,110 @@ main(int argc, char *argv[])
   if (!Gdiag)
     fprintf(stderr, "done.\n") ;
 
-  /* find white matter seed point for the left hemisphere */
-  MRItalairachToVoxel(mri_im, cc_tal_x+SEED_SEARCH_SIZE,
-                      cc_tal_y,cc_tal_z,&xr,&yr,&zr);
-
-  wm_rh_x = nint(xr) ; wm_rh_y = nint(yr) ; wm_rh_z = nint(zr) ;
-  if ((MRIvox(mri_im, wm_rh_x, wm_rh_y, wm_rh_z) <= WM_MIN_VAL) ||
-      (neighbors_on(mri_im, wm_rh_x, wm_rh_y, wm_rh_z) < MIN_NEIGHBORS))
+  if (rh_seed_set)
   {
-    xnew = ynew = znew = 0 ;
-    min_dist = 10000.0f ;
-    if (Gdiag & DIAG_SHOW)
-      fprintf(stderr, "searching for lh wm seed...") ;
-    for (z = wm_rh_z-SEED_SEARCH_SIZE ; z <= wm_rh_z+SEED_SEARCH_SIZE ; z++)
+    MRItalairachToVoxel(mri_im, rh_tal_x, rh_tal_y,rh_tal_z,&xr,&yr,&zr);
+    wm_rh_x = nint(xr) ; wm_rh_y = nint(yr) ; wm_rh_z = nint(zr) ;
+  }
+  else
+  {
+    /* find white matter seed point for the right hemisphere */
+    MRItalairachToVoxel(mri_im, cc_tal_x+SEED_SEARCH_SIZE,
+                        cc_tal_y,cc_tal_z,&xr,&yr,&zr);
+    
+    wm_rh_x = nint(xr) ; wm_rh_y = nint(yr) ; wm_rh_z = nint(zr) ;
+    if ((MRIvox(mri_im, wm_rh_x, wm_rh_y, wm_rh_z) <= WM_MIN_VAL) ||
+        (neighbors_on(mri_im, wm_rh_x, wm_rh_y, wm_rh_z) < MIN_NEIGHBORS))
     {
-      zi = mri_im->zi[z] ;
-      for (y = wm_rh_y-SEED_SEARCH_SIZE ; y <= wm_rh_y+SEED_SEARCH_SIZE ; y++)
+      xnew = ynew = znew = 0 ;
+      min_dist = 10000.0f ;
+      if (Gdiag & DIAG_SHOW)
+        fprintf(stderr, "searching for rh wm seed...") ;
+      for (z = wm_rh_z-SEED_SEARCH_SIZE ; z <= wm_rh_z+SEED_SEARCH_SIZE ; z++)
       {
-        yi = mri_im->yi[y] ;
-        for (x = wm_rh_x-SEED_SEARCH_SIZE ;x <= wm_rh_x+SEED_SEARCH_SIZE ; x++)
+        zi = mri_im->zi[z] ;
+        for (y = wm_rh_y-SEED_SEARCH_SIZE ; y <= wm_rh_y+SEED_SEARCH_SIZE ; y++)
         {
-          xi = mri_im->xi[x] ;
-          if ((MRIvox(mri_im, xi, yi, zi) >= WM_MIN_VAL) &&
-              neighbors_on(mri_im, xi, yi, zi) >= MIN_NEIGHBORS)
+          yi = mri_im->yi[y] ;
+          for (x = wm_rh_x-SEED_SEARCH_SIZE ;x <= wm_rh_x+SEED_SEARCH_SIZE ;x++)
           {
-            xd = (xi - wm_rh_x) ; yd = (yi - wm_rh_y) ; zd = (zi - wm_rh_z) ;
-            dist = xd*xd + yd*yd + zd*zd ;
-            if (dist < min_dist)
+            xi = mri_im->xi[x] ;
+            if ((MRIvox(mri_im, xi, yi, zi) >= WM_MIN_VAL) &&
+                neighbors_on(mri_im, xi, yi, zi) >= MIN_NEIGHBORS)
             {
-              xnew = xi ; ynew = yi ; znew = zi ;
-              min_dist = dist ;
+              xd = (xi - wm_rh_x) ; yd = (yi - wm_rh_y) ; zd = (zi - wm_rh_z) ;
+              dist = xd*xd + yd*yd + zd*zd ;
+              if (dist < min_dist)
+              {
+                xnew = xi ; ynew = yi ; znew = zi ;
+                min_dist = dist ;
+              }
             }
           }
         }
       }
+      wm_rh_x = xnew ; wm_rh_y = ynew ; wm_rh_z = znew ; 
+      if (Gdiag & DIAG_SHOW)
+        fprintf(stderr, "found at (%d, %d, %d)\n", xnew, ynew, znew) ;
     }
-    wm_rh_x = xnew ; wm_rh_y = ynew ; wm_rh_z = znew ; 
     if (Gdiag & DIAG_SHOW)
-      fprintf(stderr, "found at (%d, %d, %d)\n", xnew, ynew, znew) ;
+      fprintf(stderr, "rh seed point at (%d, %d, %d): %d neighbors on.\n",
+              wm_rh_x, wm_rh_y, wm_rh_z, 
+              neighbors_on(mri_im, wm_rh_x, wm_rh_y, wm_rh_z)) ;
+
   }
 
-  if (Gdiag & DIAG_SHOW)
-    fprintf(stderr, "lh seed point at (%d, %d, %d): %d neighbors on.\n",
-            wm_rh_x, wm_rh_y, wm_rh_z, 
-            neighbors_on(mri_im, wm_rh_x, wm_rh_y, wm_rh_z)) ;
-
-  /* find white matter seed point for the right hemisphere */
-  MRItalairachToVoxel(mri_im, cc_tal_x-SEED_SEARCH_SIZE, 
-                      cc_tal_y, cc_tal_z, &xr, &yr, &zr);
-  wm_lh_x = nint(xr) ; wm_lh_y = nint(yr) ; wm_lh_z = nint(zr) ;
-  if ((MRIvox(mri_im, wm_lh_x, wm_lh_y, wm_lh_z) <= WM_MIN_VAL) ||
+  if (lh_seed_set)
+  {
+    MRItalairachToVoxel(mri_im, lh_tal_x, lh_tal_y,lh_tal_z,&xr,&yr,&zr);
+    wm_lh_x = nint(xr) ; wm_lh_y = nint(yr) ; wm_lh_z = nint(zr) ;
+  }
+  else
+  {
+    /* find white matter seed point for the left hemisphere */
+    MRItalairachToVoxel(mri_im, cc_tal_x-SEED_SEARCH_SIZE, 
+                        cc_tal_y, cc_tal_z, &xr, &yr, &zr);
+    wm_lh_x = nint(xr) ; wm_lh_y = nint(yr) ; wm_lh_z = nint(zr) ;
+    if ((MRIvox(mri_im, wm_lh_x, wm_lh_y, wm_lh_z) <= WM_MIN_VAL) ||
       (neighbors_on(mri_im, wm_lh_x, wm_lh_y, wm_lh_z) < MIN_NEIGHBORS))
-  {
-    xnew = ynew = znew = 0 ;
-    min_dist = 10000.0f ;
-    if (Gdiag & DIAG_SHOW)
-      fprintf(stderr, "searching for rh wm seed...") ;
-    for (z = wm_lh_z-SEED_SEARCH_SIZE ; z <= wm_lh_z+SEED_SEARCH_SIZE ; z++)
     {
-      zi = mri_im->zi[z] ;
-      for (y = wm_lh_y-SEED_SEARCH_SIZE ; y <= wm_lh_y+SEED_SEARCH_SIZE ; y++)
+      xnew = ynew = znew = 0 ;
+      min_dist = 10000.0f ;
+      if (Gdiag & DIAG_SHOW)
+        fprintf(stderr, "searching for rh wm seed...") ;
+      for (z = wm_lh_z-SEED_SEARCH_SIZE ; z <= wm_lh_z+SEED_SEARCH_SIZE ; z++)
       {
-        yi = mri_im->yi[y] ;
-        for (x = wm_lh_x-SEED_SEARCH_SIZE ;x <= wm_lh_x+SEED_SEARCH_SIZE ; x++)
+        zi = mri_im->zi[z] ;
+        for (y = wm_lh_y-SEED_SEARCH_SIZE ; y <= wm_lh_y+SEED_SEARCH_SIZE ; y++)
         {
-          xi = mri_im->xi[x] ;
-          if ((MRIvox(mri_im, xi, yi, zi) >= WM_MIN_VAL) &&
-              (neighbors_on(mri_im, xi, yi, zi) >= MIN_NEIGHBORS))
+          yi = mri_im->yi[y] ;
+          for (x = wm_lh_x-SEED_SEARCH_SIZE ;x <= wm_lh_x+SEED_SEARCH_SIZE ;x++)
           {
-            xd = (xi - wm_lh_x) ; yd = (yi - wm_lh_y) ; zd = (zi - wm_lh_z) ;
-            dist = xd*xd + yd*yd + zd*zd ;
-            if (dist < min_dist)
+            xi = mri_im->xi[x] ;
+            if ((MRIvox(mri_im, xi, yi, zi) >= WM_MIN_VAL) &&
+                (neighbors_on(mri_im, xi, yi, zi) >= MIN_NEIGHBORS))
             {
-              xnew = xi ; ynew = yi ; znew = zi ;
-              min_dist = dist ;
+              xd = (xi - wm_lh_x) ; yd = (yi - wm_lh_y) ; zd = (zi - wm_lh_z) ;
+              dist = xd*xd + yd*yd + zd*zd ;
+              if (dist < min_dist)
+              {
+                xnew = xi ; ynew = yi ; znew = zi ;
+                min_dist = dist ;
+              }
             }
           }
         }
       }
+      if (Gdiag & DIAG_SHOW)
+        fprintf(stderr, "found at (%d, %d, %d)\n", xnew, ynew, znew) ;
+      wm_lh_x = xnew ; wm_lh_y = ynew ; wm_lh_z = znew ; 
+
     }
     if (Gdiag & DIAG_SHOW)
-      fprintf(stderr, "found at (%d, %d, %d)\n", xnew, ynew, znew) ;
-    wm_lh_x = xnew ; wm_lh_y = ynew ; wm_lh_z = znew ; 
-
+      fprintf(stderr, "lh seed point at (%d, %d, %d): %d neighbors on.\n",
+              wm_lh_x, wm_lh_y, wm_lh_z, 
+              neighbors_on(mri_im, wm_lh_x, wm_lh_y, wm_lh_z)) ;
   }
-
-  if (Gdiag & DIAG_SHOW)
-    fprintf(stderr, "rh seed point at (%d, %d, %d): %d neighbors on.\n",
-            wm_lh_x, wm_lh_y, wm_lh_z, 
-            neighbors_on(mri_im, wm_lh_x, wm_lh_y, wm_lh_z)) ;
 
 #if 0
   /* initialize the fill with the detected seed points */
@@ -837,6 +862,26 @@ get_option(int argc, char *argv[])
     lh_fill_val = atoi(argv[2]) ;
     nargs = 1 ;
     fprintf(stderr,"using %d as fill val for left hemisphere.\n",lh_fill_val);
+  }
+  else if (!strcmp(option, "lh"))
+  {
+    lh_seed_set = 1 ;
+    lh_tal_x = atof(argv[2]) ;
+    lh_tal_y = atof(argv[3]) ;
+    lh_tal_z = atof(argv[4]) ;
+    fprintf(stderr, "using (%2.1f, %2.1f, %2.1f) as lh seed\n",
+            lh_tal_x, lh_tal_y, lh_tal_z) ;
+    nargs = 3 ;
+  }
+  else if (!strcmp(option, "rh"))
+  {
+    rh_seed_set = 1 ;
+    rh_tal_x = atof(argv[2]) ;
+    rh_tal_y = atof(argv[3]) ;
+    rh_tal_z = atof(argv[4]) ;
+    fprintf(stderr, "using (%2.1f, %2.1f, %2.1f) as rh seed\n",
+            rh_tal_x, rh_tal_y, rh_tal_z) ;
+    nargs = 3 ;
   }
   else if (!strcmp(option, "ccmask"))
   {
