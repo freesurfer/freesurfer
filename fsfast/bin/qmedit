@@ -1,0 +1,234 @@
+#!/bin/csh -f
+# qmedit - quick tkmedit
+#
+set VERSION = '$Id: qmedit,v 1.1 2005/03/19 00:37:40 greve Exp $';
+set cmdargs = ($argv);
+
+set anatvol    = orig;
+set auxvol     = brain;
+set surf       = ();
+
+set segvol     = ();
+set segcolor   = $FREESURFER_HOME/tkmeditColorsCMA;
+set segopacity = .3;
+
+set overlayvol = ();
+set tcvol      = ();
+set regfile    = ();
+set fthresh = 2
+set fmid = 5;
+set fslope = 0.33
+
+set tkmeditargs = ();
+
+if($#argv == 0) then
+  goto usage_exit;
+  exit 1;
+endif
+
+set n = `echo $argv | grep version | wc -l` 
+if($n != 0) then
+  echo $VERSION
+  exit 0;
+endif
+
+goto parse_args;
+parse_args_return:
+
+goto check_params;
+check_params_return:
+
+if($#regfile) then
+  set subject = `cat $regfile | head -1`;
+  echo "Subject is $subject"
+  if(! -e $SUBJECTS_DIR/$subject) then
+    echo "ERROR: cannot find $subject in $SUBJECTS_DIR"
+    exit 1;
+  endif
+endif
+
+if(! -e $SUBJECTS_DIR/$subject/mri/$anatvol) then
+  echo "ERROR: cannot find $anatvol in $subject/mri"
+  exit 1;
+endif
+
+if($#segvol) then
+  set segpath = $SUBJECTS_DIR/$subject/mri/$segvol
+else
+  set segpath = ();
+endif
+
+set cmd = (tkmedit $subject $anatvol $surf)
+if($#auxvol) set cmd = ($cmd -aux $auxvol)
+if($#segvol) set cmd = ($cmd -segmentation $segpath $segcolor)
+set cmd = ($cmd -fthresh $fthresh -fmid $fmid -fslope $fslope)
+if($#tcvol) set cmd = ($cmd -timecourse $tcvol -timecourse-reg $regfile)
+if($#overlayvol)set cmd = ($cmd -overlay $overlayvol -overlay-reg $regfile)
+
+echo ""
+echo ""
+echo "setenv SUBJECTS_DIR $SUBJECTS_DIR"
+pwd
+echo ""
+echo $cmd
+echo ""
+echo ""
+
+$cmd
+
+exit 0;
+###############################################
+
+############--------------##################
+parse_args:
+set cmdline = "$argv";
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "-o":
+      if ( $#argv == 0) goto arg1err;
+      set overlayvol = $argv[1]; shift;
+      breaksw
+
+    case "-t":
+      if ( $#argv == 0) goto arg1err;
+      set tcvol = $argv[1]; shift;
+      breaksw
+
+    case "-r":
+      if ( $#argv == 0) goto arg1err;
+      set regfile = $argv[1]; shift;
+      breaksw
+
+    case "-fslope":
+    case "-fs":
+      if ( $#argv == 0) goto arg1err;
+      set fslope = $argv[1]; shift;
+      breaksw
+
+    case "-fthresh":
+    case "-ft":
+      if ( $#argv == 0) goto arg1err;
+      set fthresh = $argv[1]; shift;
+      breaksw
+
+    case "-fmid":
+    case "-fm":   
+      if ( $#argv == 0) goto arg1err;
+      set fmid = $argv[1]; shift;
+      breaksw
+
+    case "-fmask":
+      set fthresh = 0.5
+      set fmid = 1;
+      set fslope = 1;
+      breaksw
+
+    case "-anat":   
+      if ( $#argv == 0) goto arg1err;
+      set anatvol = $argv[1]; shift;
+      breaksw
+
+    case "-aux":   
+      if ( $#argv == 0) goto arg1err;
+      set auxvol = $argv[1]; shift;
+      breaksw
+
+    case "-noaux":   
+      set auxvol = ();
+      breaksw
+
+    case "-seg":   
+      if ( $#argv == 0) goto arg1err;
+      set segvol = $argv[1]; shift;
+      breaksw
+
+    case "-s":   
+      if ( $#argv == 0) goto arg1err;
+      set subject = $argv[1]; shift;
+      breaksw
+
+    case "-surf":   
+      if ( $#argv == 0) goto arg1err;
+      set surf = $argv[1]; shift;
+      breaksw
+
+    case "-tkmargs":   
+      if ( $#argv == 0) goto arg1err;
+      set tkmargs = $argv[1]; shift;
+      breaksw
+
+    case "--version":
+    case "-version":
+      echo $VERSION
+      exit 0;
+      breaksw
+
+    case "-umask":
+      if ( $#argv == 0) goto arg1err;
+      set umaskarg = "-umask $argv[1]";
+      umask $argv[1]; shift;
+      breaksw
+
+    case "-debug":
+      set verbose = 1;
+      set echo = 1;
+      breaksw
+
+    default:
+      echo ERROR: Flag $flag unrecognized. 
+      echo $cmdline
+      exit 1
+      breaksw
+  endsw
+
+end
+
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+
+  if($#overlayvol != 0) then
+    if($#regfile == 0) then
+      echo "ERROR: no registration file specified"
+      exit 1
+    endif
+    if(! -e $regfile) then
+      echo "ERROR: cannot find $regfile"
+      exit 1
+    endif
+  endif
+
+goto check_params_return;
+############--------------##################
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+
+############--------------##################
+usage_exit:
+  echo "USAGE: qmedit"
+  echo "Options:";
+  echo "   -o overlayvol"
+  echo "   -r regfile"
+  echo "   -fthresh fthresh : default is 2"
+  echo "   -fmid    fmid    : default is 5"
+  echo "   -fslope  fslope  : default is .33"
+  echo "   -fmask  : fthresh=0.5, fmid=1, fslope=1"
+  echo "   -anat    anatvol : default is orig"
+  echo "   -aux     auxvol : default is brain"
+  echo "   -seg     segvol : eg, aseg"
+  echo "   -noaux : do not use an aux volume"
+  echo "   -surf surfname : eg, lh.white"
+  #echo "   -tkargs  tkmeditargs"
+  echo "   -version       : print version and exit"
+exit 1;
+
