@@ -12,7 +12,7 @@
 #include "mrimorph.h"
 #include "timer.h"
 
-static char vcid[] = "$Id: mri_fill.c,v 1.37 1999/11/05 00:17:39 fischl Exp $";
+static char vcid[] = "$Id: mri_fill.c,v 1.38 1999/11/19 15:18:25 fischl Exp $";
 
 /*-------------------------------------------------------------------
                                 CONSTANTS
@@ -157,6 +157,7 @@ static MRI *mriReadConditionalProbabilities(MRI *mri_T1, char *atlas_name,
 static MRI *MRIfillVentricle(MRI *mri_src, MRI *mri_prob, MRI *mri_T1,
                              MRI *mri_dst, float thresh, int out_label,
                              int xmin, int xmax) ;
+static int MRIfillDegenerateLocations(MRI *mri_fill, int fillval) ;
 
 /*-------------------------------------------------------------------
                                 FUNCTIONS
@@ -168,7 +169,7 @@ main(int argc, char *argv[])
   int     x, y, z, xd, yd, zd, xnew, ynew, znew, msec ;
   int     nargs, wm_rh_x, wm_rh_y, wm_rh_z, wm_lh_x, wm_lh_y, wm_lh_z ;
   char    input_fname[STRLEN],out_fname[STRLEN], fname[STRLEN] ;
-  Real    xr, yr, zr, dist, min_dist, lh_tal_x, rh_tal_x ;
+  Real    xr, yr, zr, dist, min_dist ;
   MRI     *mri_cc, *mri_pons, *mri_lh_fill, *mri_rh_fill, *mri_lh_im, 
           *mri_rh_im /*, *mri_blur*/ ;
   int     x_pons, y_pons, z_pons, x_cc, y_cc, z_cc, xi, yi, zi ;
@@ -485,12 +486,8 @@ main(int argc, char *argv[])
             neighbors_on(mri_im, wm_rh_x, wm_rh_y, wm_rh_z)) ;
 
   /* find white matter seed point for the right hemisphere */
-#if 0
-  MRItalairachToVoxel(mri_im, wm_lh_tal_x,wm_lh_tal_y,wm_lh_tal_z,&xr,&yr,&zr);
-#else
   MRItalairachToVoxel(mri_im, cc_tal_x-SEED_SEARCH_SIZE, 
                       cc_tal_y, cc_tal_z, &xr, &yr, &zr);
-#endif
   wm_lh_x = nint(xr) ; wm_lh_y = nint(yr) ; wm_lh_z = nint(zr) ;
   if ((MRIvox(mri_im, wm_lh_x, wm_lh_y, wm_lh_z) <= WM_MIN_VAL) ||
       (neighbors_on(mri_im, wm_lh_x, wm_lh_y, wm_lh_z) < MIN_NEIGHBORS))
@@ -543,20 +540,46 @@ main(int argc, char *argv[])
   mri_rh_fill = MRIclone(mri_im, NULL) ;
   mri_lh_im = MRIcopy(mri_im, NULL) ;
   mri_rh_im = MRIcopy(mri_im, NULL) ;
+
+#if 0
+  /* find and eliminate degenerate surface
+     locations caused by diagonal connectivity in which a vertex is
+     simultaneously on both sides of the surface.
+  */
+  fprintf(stderr, "filling degenerate left hemisphere surface locations...\n");
+  MRIfillDegenerateLocations(mri_lh_im, lh_fill_val) ;
+  fprintf(stderr,"filling degenerate right hemisphere surface locations...\n");
+  MRIfillDegenerateLocations(mri_rh_im, rh_fill_val) ;
+#endif
+
   fprintf(stderr, "filling left hemisphere...\n") ;
   MRIfillVolume(mri_lh_fill, mri_lh_im, wm_lh_x, wm_lh_y, wm_lh_z,lh_fill_val);
   fprintf(stderr, "filling right hemisphere...\n") ;
   MRIfillVolume(mri_rh_fill, mri_rh_im, wm_rh_x, wm_rh_y, wm_rh_z,rh_fill_val);
   MRIfree(&mri_lh_im) ; MRIfree(&mri_rh_im) ; MRIfree(&mri_im) ;
+
+
+#if 1
+  /* find and eliminate degenerate surface locations caused by diagonal
+     connectivity in which a vertex is simultaneously on both sides of 
+     the surface. This might cause bubbles in the volume - seems unlikely,
+     but....
+  */
+  fprintf(stderr, "filling degenerate left hemisphere surface locations...\n");
+  MRIfillDegenerateLocations(mri_lh_fill, lh_fill_val) ;
+  fprintf(stderr,"filling degenerate right hemisphere surface locations...\n");
+  MRIfillDegenerateLocations(mri_rh_fill, rh_fill_val) ;
+#endif
+
   fprintf(stderr, "combining hemispheres...\n") ;
   MRIvoxelToTalairach(mri_lh_fill, (Real)wm_lh_x, (Real)wm_lh_y, (Real)wm_lh_z,
                       &xr, &yr, &zr) ;
-  lh_tal_x = xr ;
   MRIvoxelToTalairach(mri_rh_fill, (Real)wm_rh_x, (Real)wm_rh_y, (Real)wm_rh_z,
                       &xr, &yr, &zr) ;
-  rh_tal_x = xr ;
+  
   mri_fill = MRIcombineHemispheres(mri_lh_fill, mri_rh_fill, NULL, cc_tal_x) ;
   MRIfree(&mri_lh_fill) ; MRIfree(&mri_rh_fill) ;
+
 
   if (atlas_name)
   {
@@ -1346,8 +1369,16 @@ find_corpus_callosum(MRI *mri, Real *pccx, Real *pccy, Real *pccz)
   MRI_REGION  region ;
 
 
+#if 1
   MRItalairachToVoxel(mri, 0.0, 0.0, 0.0, &xr, &yr, &zr);
   xv = nint(xr) ; yv = nint(yr) ; zv = nint(zr) ;
+#else
+  MRIboundingBoxNbhd(mri, 50, 5, &region) ;
+  xv = (region.x + region.dx) / 2 ;
+  yv = (region.y + region.dy) / 2 ;
+  zv = (region.z + region.dz) / 2 ;
+  xv = region.x ; yv = region.y ;
+#endif
   mri_slice = 
     MRIextractTalairachPlane(mri, NULL, MRI_CORONAL,xv,yv,zv,SLICE_SIZE) ;
   if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
@@ -1544,6 +1575,9 @@ find_pons(MRI *mri, Real *p_ponsx, Real *p_ponsy, Real *p_ponsz,
   {
     xstart = x ;
     y-- ; bheight++ ;
+    if (y < 0)
+      ErrorReturn(ERROR_BADPARM, 
+                  (ERROR_BADPARM, "could not find bottom of brainstem")) ;
     for (x = width-1 ; !MRIvox(mri_filled,x,y,0) && (x >= 0) ; x--)
     {}
 
@@ -2249,4 +2283,253 @@ MRIfillVentricle(MRI *mri_src, MRI *mri_prob, MRI *mri_T1, MRI *mri_dst,
           ventricle_voxels, ventricle_voxels-total_expanded, total_expanded);
 
   return(mri_dst) ;
+}
+
+static int is_diagonal(MRI *mri, int x0, int y0, int z0, int block[2][2][2]) ;
+static int count_diagonals(MRI *mri, int x0, int y0, int z0) ;
+static int count_voxel_diagonals(MRI *mri, int x0, int y0, int z0) ;
+static int fillDiagonals(MRI *mri, int fillval) ;
+
+static int
+MRIfillDegenerateLocations(MRI *mri, int fillval)
+{
+  int nfilled, total_filled ;
+
+  total_filled = 0 ;
+  do
+  {
+    nfilled = fillDiagonals(mri, fillval) ;
+    total_filled += nfilled ;
+    fprintf(stderr, "%d voxels filled\n", nfilled) ;
+  } while(nfilled > 0) ;
+
+  return(NO_ERROR) ;
+}
+static int
+fillDiagonals(MRI *mri, int fillval)
+{
+  int  nfilled, x, y, z, width, height, depth, block[2][2][2], xk, yk, zk,
+       x1, y1, z1, mxk, myk, mzk, diagonals, min_diagonals ;
+
+  nfilled = 0 ;
+
+  width = mri->width ; height = mri->height ; depth = mri->depth ;
+  for (z = 1 ; z < (depth-1) ; z++)
+  {
+    for (y = 1 ; y < (height-1) ; y++)
+    {
+      for (x = 1 ; x < (width-1) ; x++)
+      {
+        while (is_diagonal(mri, x, y, z, block))
+        {
+          /* find one voxel to fill */
+          min_diagonals = 10000 ;
+          mxk = myk = mzk = 0 ;
+          for (zk = 0 ; zk <= 1 ; zk++)
+          {
+            z1 = z + zk ;
+            for (yk = 0 ; yk <= 1 ; yk++)
+            {
+              y1 = y + yk ;
+              for (xk = 0 ; xk <= 1 ; xk++)
+              {
+
+                /* should arbitrate here - try to find non-diagonal fill */
+                if (block[xk][yk][zk])
+                {
+                  x1 = x + xk ;
+                  MRIvox(mri, x1, y1, z1) = fillval ;
+                  diagonals = count_voxel_diagonals(mri, x1, y1, z1) ;
+                  if (diagonals <= min_diagonals)
+                  {
+                    min_diagonals = diagonals ;
+                    mxk = xk ; myk = yk ; mzk = zk ;
+                  }
+                  MRIvox(mri, x1, y1, z1) = 0 ;
+                }
+              }
+            }
+          }
+          MRIvox(mri, x+mxk, y+myk, z+mzk) = fillval ;
+          nfilled++ ;
+        }
+      }
+    }
+  }
+  return(nfilled) ;
+}
+
+static int
+is_diagonal(MRI *mri, int x0, int y0, int z0, int block[2][2][2])
+{
+  int   non, x, y, z, d, dsign, diagonal = 0 ;
+
+  /* do quick check to see if it is possible */
+  for (non = 0, z = z0 ; z <= z0+1 ; z++)
+    for (y = y0 ; y <= y0+1 ; y++)
+      for (x = x0 ; x <= x0+1 ; x++)
+        if (MRIvox(mri,x,y,z))
+          non++ ;
+
+  if (non < 2 || non > 6)
+    return(0) ;
+  
+  /* now compute x derivatives for potential filling locations */
+  for (dsign = 0, z = z0 ; z <= z0+1 ; z++)
+  {
+    for (y = y0 ; y <= y0+1 ; y++)
+    {
+      for (x = x0 ; x <= x0+1 ; x++)
+      {
+        if (MRIvox(mri,x,y,z) < WM_MIN_VAL)
+        {
+          d = MRIvox(mri, x0+1,y,z) - MRIvox(mri, x0,y,z) ;
+          block[x-x0][y-y0][z-z0] = d ;
+          if (d*dsign < 0)
+            diagonal = 1 ;  /* opposite sign spatial derivatives - diagonal */
+          else
+            dsign = d ;
+        }
+        else
+          block[x-x0][y-y0][z-z0] = 0 ;
+      }
+    }
+  }
+
+  if (diagonal)
+    return(1) ;
+
+  /* now compute y derivatives for potential filling locations */
+  for (dsign = 0, z = z0 ; z <= z0+1 ; z++)
+  {
+    for (y = y0 ; y <= y0+1 ; y++)
+    {
+      for (x = x0 ; x <= x0+1 ; x++)
+      {
+        if (MRIvox(mri,x,y,z) < WM_MIN_VAL)
+        {
+          d = MRIvox(mri, x,y0+1,z) - MRIvox(mri, x,y0,z) ;
+          block[x-x0][y-y0][z-z0] = d ;
+          if (d*dsign < 0)
+            diagonal = 1 ;  /* opposite sign spatial derivatives - diagonal */
+          else
+            dsign = d ;
+        }
+        else
+          block[x-x0][y-y0][z-z0] = 0 ;
+      }
+    }
+  }
+
+  if (diagonal)
+    return(1) ;
+
+  /* now compute y derivatives for potential filling locations */
+  for (dsign = 0, z = z0 ; z <= z0+1 ; z++)
+  {
+    for (y = y0 ; y <= y0+1 ; y++)
+    {
+      for (x = x0 ; x <= x0+1 ; x++)
+      {
+        if (MRIvox(mri,x,y,z) < WM_MIN_VAL)
+        {
+          d = MRIvox(mri, x,y,z0+1) - MRIvox(mri, x,y,z0+1) ;
+          block[x-x0][y-y0][z-z0] = d ;
+          if (d*dsign < 0)
+            diagonal = 1 ;  /* opposite sign spatial derivatives - diagonal */
+          else
+            dsign = d ;
+        }
+        else
+          block[x-x0][y-y0][z-z0] = 0 ;
+      }
+    }
+  }
+
+  return(diagonal) ;
+}
+static int
+count_voxel_diagonals(MRI *mri, int x0, int y0, int z0)
+{
+  int diagonals = 0, xk, yk, zk ;
+
+  for (zk = -1 ; zk <= 0 ; zk++)
+  for (yk = -1 ; yk <= 0 ; yk++)
+  for (xk = -1 ; xk <= 0 ; xk++)
+    diagonals += count_diagonals(mri, x0+xk, y0+yk, z0+zk) ;
+  return(diagonals) ;
+}
+static int
+count_diagonals(MRI *mri, int x0, int y0, int z0) 
+{
+  int   non, x, y, z, d, dsign, diagonals = 0 ;
+
+  /* do quick check to see if it is possible */
+  for (non = 0, z = z0 ; z <= z0+1 ; z++)
+    for (y = y0 ; y <= y0+1 ; y++)
+      for (x = x0 ; x <= x0+1 ; x++)
+        if (MRIvox(mri,x,y,z))
+          non++ ;
+
+  if (non < 2 || non > 6)
+    return(0) ;
+  
+  /* now compute x derivatives for potential filling locations */
+  for (dsign = 0, z = z0 ; z <= z0+1 ; z++)
+  {
+    for (y = y0 ; y <= y0+1 ; y++)
+    {
+      for (x = x0 ; x <= x0+1 ; x++)
+      {
+        if (MRIvox(mri,x,y,z) < WM_MIN_VAL)
+        {
+          d = MRIvox(mri, x0+1,y,z) - MRIvox(mri, x0,y,z) ;
+          if (d*dsign < 0)
+            diagonals++ ;  /* opposite sign spatial derivatives - diagonal */
+          else
+            dsign = d ;
+        }
+      }
+    }
+  }
+
+  /* now compute y derivatives for potential filling locations */
+  for (dsign = 0, z = z0 ; z <= z0+1 ; z++)
+  {
+    for (y = y0 ; y <= y0+1 ; y++)
+    {
+      for (x = x0 ; x <= x0+1 ; x++)
+      {
+        if (MRIvox(mri,x,y,z) < WM_MIN_VAL)
+        {
+          d = MRIvox(mri, x,y0+1,z) - MRIvox(mri, x,y0,z) ;
+          if (d*dsign < 0)
+            diagonals++ ;  /* opposite sign spatial derivatives - diagonal */
+          else
+            dsign = d ;
+        }
+      }
+    }
+  }
+
+  /* now compute y derivatives for potential filling locations */
+  for (dsign = 0, z = z0 ; z <= z0+1 ; z++)
+  {
+    for (y = y0 ; y <= y0+1 ; y++)
+    {
+      for (x = x0 ; x <= x0+1 ; x++)
+      {
+        if (MRIvox(mri,x,y,z) < WM_MIN_VAL)
+        {
+          d = MRIvox(mri, x,y,z0+1) - MRIvox(mri, x,y,z0+1) ;
+          if (d*dsign < 0)
+            diagonals++ ;  /* opposite sign spatial derivatives - diagonal */
+          else
+            dsign = d ;
+        }
+      }
+    }
+  }
+
+  return(diagonals) ;
 }
