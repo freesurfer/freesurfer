@@ -15,7 +15,7 @@
 #include "version.h"
 
 
-static char vcid[] = "$Id: spherical_stats.c,v 1.2 2005/02/14 19:38:03 segonne Exp $";
+static char vcid[] = "$Id: spherical_stats.c,v 1.3 2005/02/22 17:31:43 tosa Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -183,117 +183,116 @@ static float findMedian(HISTO *histo, float med){
 	return (histo->bin_size*n); 
 }
 static void printStats(MRIS *mris, char *fname){
-	FILE *f;
-	int m,n,nvertices;
-	int r,g,b,bin;
-	float mean_dist,Efract,larea;
-	float median_25,median_50,median_75;
-	COLOR_TABLE *ct;
-	float maxv;
-	CTE* cte;
-	int index;
-	HISTOGRAM *histo;
+  FILE *f;
+  int m,n,nvertices;
+  int r,g,b,bin;
+  float mean_dist,Efract,larea;
+  float median_25,median_50,median_75;
+  COLOR_TABLE *ct;
+  float maxv;
+  CTE* cte;
+  int index;
+  HISTOGRAM *histo;
+  VERTEX *v;
 
-	histo=HISTOalloc(100);
-	histo->bin_size=MAX_DIST/100.0;
+  histo=HISTOalloc(100);
+  histo->bin_size=MAX_DIST/100.0;
 
-	ct = mris->ct;
+  ct = mris->ct;
 
-	VERTEX *v;
+  f=fopen(fname,"w+");
+  if(!f) {
+    fprintf(stderr,"could not open file\n");
+    return;
+  }
 
-	f=fopen(fname,"w+");
-	if(!f) {
-		fprintf(stderr,"could not open file\n");
-		return;
-	}
-
-	for( m = 0 ; m < nlabels ; m++){
+  for( m = 0 ; m < nlabels ; m++){
 	
-		index=CTABannotationToIndex(ct,labels[m]) ;
-		if (index >= 0 || index < ct->nbins){
-			 cte = &(ct->bins[index]);
-			 fprintf(f,"Label %s \n",cte->name);
-		}else{
-			MRISAnnotToRGB(labels[m],r,g,b);
-			fprintf(f,"Label %d - [ %d , %d , %d ] \n",labels[m],r,g,b);
-		}
+    index=CTABannotationToIndex(ct,labels[m]) ;
+    if (index >= 0 || index < ct->nbins){
+      cte = &(ct->bins[index]);
+      fprintf(f,"Label %s \n",cte->name);
+    }else{
+      MRISAnnotToRGB(labels[m],r,g,b);
+      fprintf(f,"Label %d - [ %d , %d , %d ] \n",labels[m],r,g,b);
+    }
 		
-		maxv=0.0f;
-		Efract=0.0f;
-		mean_dist=0.0f;
-		nvertices=0;
-		for ( n = 0 ; n < mris->nvertices ; n++){
-			v=&mris->vertices[n];
-			if(v->ripflag) continue;
+    maxv=0.0f;
+    Efract=0.0f;
+    mean_dist=0.0f;
+    nvertices=0;
+    for ( n = 0 ; n < mris->nvertices ; n++){
+      v=&mris->vertices[n];
+      if(v->ripflag) continue;
 			
-			if(v->val != labels[m]) continue;
+      if(v->val != labels[m]) continue;
 
-			nvertices++;
+      nvertices++;
 			
-			if(v->val2==1){ /* mislabeled point */
-				mean_dist += v->d;
-				if(v->d>maxv)
-					maxv=v->d;
-				Efract += 1.0f;
-				bin=MIN(histo->nbins-1,MAX(0,(int)(v->d/histo->bin_size)));
-				histo->counts[bin]++;
-			}
-		}
-		Efract = Efract/(float)nvertices;
-		if(Efract) mean_dist = mean_dist/(Efract*nvertices);
+      if(v->val2==1){ /* mislabeled point */
+	mean_dist += v->d;
+	if(v->d>maxv)
+	  maxv=v->d;
+	Efract += 1.0f;
+	bin=MIN(histo->nbins-1,MAX(0,(int)(v->d/histo->bin_size)));
+	histo->counts[bin]++;
+      }
+    }
+    Efract = Efract/(float)nvertices;
+    if(Efract) mean_dist = mean_dist/(Efract*nvertices);
 
-		larea=0;
-		for(n=0;n<mris->nfaces;n++)
-		{
-			if(mris->vertices[mris->faces[n].v[0]].val!=labels[m]) continue;
-			if(mris->vertices[mris->faces[n].v[1]].val!=labels[m]) continue;
-			if(mris->vertices[mris->faces[n].v[2]].val!=labels[m]) continue;
-			larea+=mris->faces[n].area;
-		}
+    larea=0;
+    for(n=0;n<mris->nfaces;n++)
+    {
+      if(mris->vertices[mris->faces[n].v[0]].val!=labels[m]) continue;
+      if(mris->vertices[mris->faces[n].v[1]].val!=labels[m]) continue;
+      if(mris->vertices[mris->faces[n].v[2]].val!=labels[m]) continue;
+      larea+=mris->faces[n].area;
+    }
 
-		larea /= Total_Brain_Area;
+    larea /= Total_Brain_Area;
 
-		global_nvertices[m] += (float)nvertices;
-		mean_global_dist[m] += mean_dist;
-		mean_global_Efract[m] += Efract;
-		mean_max[m] += maxv;
-		mean_area[m] += larea;
-		mean_fraction[m] += 100.0*sqrt(larea)*Efract;
-		global_count[m]++;
+    global_nvertices[m] += (float)nvertices;
+    mean_global_dist[m] += mean_dist;
+    mean_global_Efract[m] += Efract;
+    mean_max[m] += maxv;
+    mean_area[m] += larea;
+    mean_fraction[m] += 100.0*sqrt(larea)*Efract;
+    global_count[m]++;
 
-		normalize(histo);
+    normalize(histo);
 
-		for(n=0;n<histo->nbins;n++)
-			histos[m]->counts[n]+=histo->counts[n];
+    for(n=0;n<histo->nbins;n++)
+      histos[m]->counts[n]+=histo->counts[n];
 
-		median_25=findMedian(histo,25);
-		median_50=findMedian(histo,50);
-		median_75=findMedian(histo,75);
+    median_25=findMedian(histo,25);
+    median_50=findMedian(histo,50);
+    median_75=findMedian(histo,75);
 
-		mean_global_median_25[m] += median_25;
-		mean_global_median_50[m] += median_50;
-		mean_global_median_75[m] += median_75;
+    mean_global_median_25[m] += median_25;
+    mean_global_median_50[m] += median_50;
+    mean_global_median_75[m] += median_75;
 		
-		fprintf(f,"Vertices# :  %d - Area : %2.3f%% \nFraction : %2.3f%% - Fraction*sqrt(Area) : %2.3f \n" ,
-						nvertices,100.0*larea,100.0*Efract,100.0*Efract*sqrt(larea));
-		fprintf(f,"Mean Distance Error : %f - Median (25,50,75) = ( %f , %f , %f ) - Max : %f\n",mean_dist,median_25,median_50,median_75,maxv);
-		fprintf(f,"\n");
+    fprintf(f,"Vertices# :  %d - Area : %2.3f%% \nFraction : %2.3f%% - Fraction*sqrt(Area) : %2.3f \n" ,
+	    nvertices,100.0*larea,100.0*Efract,100.0*Efract*sqrt(larea));
+    fprintf(f,"Mean Distance Error : %f - Median (25,50,75) = ( %f , %f , %f ) - Max : %f\n",mean_dist,median_25,median_50,median_75,maxv);
+    fprintf(f,"\n");
 
-		if(global_stats_per_label){
-			fprintf(label_file[m],"SUBJECT %s\n",current_subject);
- 			fprintf(label_file[m],"           FRACTION  :       %2.3f\n",100.0*Efract);
-			fprintf(label_file[m],"           MEAN DIST :       %f\n",mean_dist);
-			fprintf(label_file[m],"Vertices# :  %d - Area : %2.3f%% \nFraction : %2.3f%% - Fraction*sqrt(Area) : %2.3f \n" ,
-						nvertices,100.0*larea,100.0*Efract,100.0*Efract*sqrt(larea));
-		fprintf(label_file[m],"Mean Distance Error : %f - Median (25,50,75) = ( %f , %f , %f ) - Max : %f\n",mean_dist,median_25,median_50,median_75,maxv);
-		fprintf(label_file[m],"\n");
-		}
+    if(global_stats_per_label){
+      fprintf(label_file[m],"SUBJECT %s\n",current_subject);
+      fprintf(label_file[m],"           FRACTION  :       %2.3f\n",100.0*Efract);
+      fprintf(label_file[m],"           MEAN DIST :       %f\n",mean_dist);
+      fprintf(label_file[m],"Vertices# :  %d - Area : %2.3f%% \nFraction : %2.3f%% - Fraction*sqrt(Area) : %2.3f \n" ,
+	      nvertices,100.0*larea,100.0*Efract,100.0*Efract*sqrt(larea));
+      fprintf(label_file[m],"Mean Distance Error : %f - Median (25,50,75) = ( %f , %f , %f ) - Max : %f\n",mean_dist,median_25,median_50,median_75,maxv);
+      fprintf(label_file[m],"\n");
+    }
 
-	}
+  }
 
 	
 
-	HISTOfree(&histo);
+  HISTOfree(&histo);
   fclose(f);
 }
 
@@ -482,7 +481,7 @@ int main(int argc, char *argv[])
 	//	struct timeb start; 
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: spherical_stats.c,v 1.2 2005/02/14 19:38:03 segonne Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: spherical_stats.c,v 1.3 2005/02/22 17:31:43 tosa Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
