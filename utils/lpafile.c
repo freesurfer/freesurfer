@@ -35,10 +35,11 @@ LPAFreadImageAnswer(LPAF *lpaf, int current)
 
   fp = fopen(fname, "rb") ;
   if (!fp)
-    ErrorReturn(-1, (ERROR_NO_FILE,"LPAFreadImageAnswer(%d): could not open %s",
+    ErrorReturn(-1,(ERROR_NO_FILE,"LPAFreadImageAnswer(%d): could not open %s",
                      current, fname)) ;
 
   ecode = fread_header(fp, &Iheader, fname) ;
+  fclose(fp) ;
   if (ecode)
     ErrorReturn(-2, (ERROR_BADFILE, 
                      "LPAFreadImageAnswer(%s): could not read header",fname));
