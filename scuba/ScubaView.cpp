@@ -62,6 +62,10 @@ ScubaView::ScubaView() {
     ScubaGlobalPreferences::GetPreferences();
   globalPrefs.AddListener( this );
 
+  // Get the prefs for the lock on cursor status.
+  mbLockOnCursor = 
+    globalPrefs.GetPrefAsBool( ScubaGlobalPreferences::LockOnCursor );
+
   ScubaViewBroadcaster& broadcaster = ScubaViewBroadcaster::GetBroadcaster();
   broadcaster.AddListener( this );
 
