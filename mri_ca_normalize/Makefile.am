@@ -9,5 +9,5 @@ AM_LDFLAGS=
 bin_PROGRAMS = mri_ca_normalize
 mri_ca_normalize_SOURCES=mri_ca_normalize.c
 mri_ca_normalize_LDADD= $(addprefix $(top_srcdir)/, $(LIBS_MGH))
-mri_ca_normalize_LDFLAGS=$(OS_LDFLAGS)
-
+#mri_ca_normalize_LDFLAGS=$(OS_LDFLAGS)
+mri_ca_normalize_LDFLAGS=-all-static

@@ -17,7 +17,7 @@
 #include "version.h"
 #include "label.h"
 
-static char vcid[] = "$Id: mris_make_surfaces.c,v 1.53 2004/11/10 19:40:59 fischl Exp $";
+static char vcid[] = "$Id: mris_make_surfaces.c,v 1.54 2004/11/15 19:18:59 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -55,6 +55,7 @@ static int create = 1 ;
 static int smoothwm = 0 ;
 static int white_only = 0 ;
 static int overlay = 0 ;
+static int inverted_contrast = 0 ;
 static int auto_detect_stats = 1 ;
 
 static int in_out_in_flag = 0 ;  /* for Arthur (as are most things) */
@@ -133,6 +134,7 @@ static char sdir[STRLEN] = "" ;
 
 static int MGZ = 0; // for use with MGZ format
 
+static float check_contrast_direction(MRI_SURFACE *mris,MRI *mri_T1) ;
 int
 main(int argc, char *argv[])
 {
@@ -148,7 +150,7 @@ main(int argc, char *argv[])
   M3D           *m3d ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_make_surfaces.c,v 1.53 2004/11/10 19:40:59 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_make_surfaces.c,v 1.54 2004/11/15 19:18:59 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -352,6 +354,7 @@ main(int argc, char *argv[])
     MRIwrite(mri_T1, fname) ;
   }
 
+
   if (auto_detect_stats)
   {
     MRI *mri_tmp ;
@@ -361,6 +364,7 @@ main(int argc, char *argv[])
     MRIcomputeClassStatistics(mri_T1, mri_tmp, 30, WHITE_MATTER_MEAN,
                               &white_mean, &white_std, &gray_mean,
                               &gray_std) ;
+
     if (!min_gray_at_white_border_set)
       min_gray_at_white_border = gray_mean-gray_std ;
     if (!max_border_white_set)
@@ -400,6 +404,11 @@ main(int argc, char *argv[])
     ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s",
               Progname, fname) ;
 
+	inverted_contrast = (check_contrast_direction(mris,mri_T1) < 0) ;
+	if (inverted_contrast)
+	{
+		printf("inverted contrast detected....\n") ;
+	}
 	if (highres_label)
 	{
 		LabelRipRestOfSurface(highres_label, mris) ;
@@ -1574,3 +1583,33 @@ MRIfindBrightNonWM(MRI *mri_T1, MRI *mri_wm)
   MRIfree(&mri_tmp) ;
   return(mri_labeled) ;
 }
+static float
+check_contrast_direction(MRI_SURFACE *mris,MRI *mri_T1)
+{
+	int     vno, n ;
+	VERTEX  *v ;
+	Real    x, y, z, xw, yw, zw, val, mean_inside, mean_outside ;
+
+	mean_inside = mean_outside = 0.0 ;
+	for (n = vno = 0 ; vno < mris->nvertices ; vno++)
+	{
+		v = &mris->vertices[vno] ;
+		if (v->ripflag != 0)
+			continue ;
+		x = v->x+0.5*v->nx ; y = v->y+0.5*v->ny ; z = v->z+0.5*v->nz ;
+    MRIsurfaceRASToVoxel(mri_T1, x, y, z, &xw, &yw, &zw);
+    MRIsampleVolume(mri_T1, xw, yw, zw, &val) ;
+		mean_outside += val ;
+
+		x = v->x-0.5*v->nx ; y = v->y-0.5*v->ny ; z = v->z-0.5*v->nz ;
+    MRIsurfaceRASToVoxel(mri_T1, x, y, z, &xw, &yw, &zw);
+    MRIsampleVolume(mri_T1, xw, yw, zw, &val) ;
+		mean_inside += val ;
+		n++ ;
+	}
+	mean_inside /= (float)n ;
+	mean_outside /= (float)n ;
+	printf("mean inside = %2.1f, mean outside = %2.1f\n", mean_inside, mean_outside) ;
+	return(mean_inside - mean_outside) ;
+}
+
