@@ -1,6 +1,12 @@
 /*============================================================================
   Copyright (c) 1996 Martin Sereno and Anders Dale
   =============================================================================*/
+// Warning: Do not edit the following four lines.  CVS maintains them.
+// Revision Author: $Author: tosa $
+// Revision Date  : $Date: 2003/01/13 23:10:42 $
+// Revision       : $Revision: 1.121 $
+char *VERSION = "$Revision: 1.121 $";
+
 #define TCL
 #define TKMEDIT 
 /*#if defined(Linux) || defined(sun) || defined(SunOS) */
@@ -921,7 +927,8 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
     printf("            : transformation\n");
     printf("\n");
     printf("-interface script    : scecify interface script (default is tkmedit.tcl)\n");
-    
+    printf("\n");
+    printf("--version            : print version of tkmedit\n");
     exit(1);
   }
   
@@ -935,7 +942,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
   nCurrentArg = 1;
   bFatalError = FALSE;
   while( nCurrentArg < argc
-   && FALSE == bFatalError) {
+	 && FALSE == bFatalError) {
     
     /* get the arg */
     DebugNote( ("Copying argv[%d]", nCurrentArg) );
@@ -944,725 +951,729 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
     /* check for a option */
     if( '-' == sArg[0] ) {
       
-      if( MATCH( sArg, "-tcl" ) ) {
+      if ( MATCH( sArg, "--version")) {
+	printf("Version: %s\n", VERSION);
+	exit(0);
+
+      } else if ( MATCH( sArg, "-tcl" ) ) {
   
-  /* check for one more. */
-  if( argc > nCurrentArg + 1 
-      && '-' != argv[nCurrentArg+1][0] ) {
+	/* check for one more. */
+	if( argc > nCurrentArg + 1 
+	    && '-' != argv[nCurrentArg+1][0] ) {
     
-    /* copy the script name in */
-    DebugNote( ("Parsing -tcl option") );
-    xUtil_strncpy( sScriptName, argv[nCurrentArg+1], 
-       sizeof(sScriptName) );
+	  /* copy the script name in */
+	  DebugNote( ("Parsing -tcl option") );
+	  xUtil_strncpy( sScriptName, argv[nCurrentArg+1], 
+			 sizeof(sScriptName) );
     
-    /* queue the script */
-    EnqueueScript( sScriptName );
+	  /* queue the script */
+	  EnqueueScript( sScriptName );
+	  
+	  nCurrentArg += 2;
+	  
+	} else {
     
-    nCurrentArg += 2;
-    
-  } else {
-    
-    /* misuse of that option */
-    tkm_DisplayError( "Parsing -tcl option",
-          "Expected an argument",
-          "This option needs an argument: the name of the "
-          "script to run." );
-    nCurrentArg ++;
-  }
+	  /* misuse of that option */
+	  tkm_DisplayError( "Parsing -tcl option",
+			    "Expected an argument",
+			    "This option needs an argument: the name of the "
+			    "script to run." );
+	  nCurrentArg ++;
+	}
   
       } else if( MATCH( sArg, "-o" ) ) {
+	
+	/* make sure there are enough args */
+	if( argc > nCurrentArg + 2 &&
+	    '-' != argv[nCurrentArg+1][0] &&
+	    '-' != argv[nCurrentArg+2][0] ) {
+	  
+	  /* read the overlay path and stem */
+	  DebugNote( ("Parsing overlay in -o option") );
+	  xUtil_snprintf( sOverlayPathAndStem, sizeof(sOverlayPathAndStem),
+			  "%s/%s",argv[nCurrentArg+1], argv[nCurrentArg+2] );
+	  bLoadingOverlay = TRUE;
+	  nCurrentArg += 3;
+	  
+	} else {
+	  
+	  /* misuse of that option */
+	  tkm_DisplayError( "Parsing -o option",
+			    "Expected an argument",
+			    "This option needs two arguments: the path and "
+			    "the stem of the data." );
+	  nCurrentArg ++;
+	}
   
-  /* make sure there are enough args */
-  if( argc > nCurrentArg + 2 &&
-      '-' != argv[nCurrentArg+1][0] &&
-      '-' != argv[nCurrentArg+2][0] ) {
-    
-    /* read the overlay path and stem */
-    DebugNote( ("Parsing overlay in -o option") );
-    xUtil_snprintf( sOverlayPathAndStem, sizeof(sOverlayPathAndStem),
-        "%s/%s",argv[nCurrentArg+1], argv[nCurrentArg+2] );
-    bLoadingOverlay = TRUE;
-    nCurrentArg += 3;
-    
-  } else {
-    
-    /* misuse of that option */
-    tkm_DisplayError( "Parsing -o option",
-          "Expected an argument",
-          "This option needs two arguments: the path and "
-          "the stem of the data." );
-    nCurrentArg ++;
-  }
-  
-  /* check for two more. */
-  if( argc > nCurrentArg + 1 
-      && '-' != argv[nCurrentArg][0] ) {
-    
-    /* read in time course path and stem. */
-    DebugNote( ("Parsing time course in -o option") );
-    xUtil_snprintf( sTimeCoursePathAndStem, 
-        sizeof(sTimeCoursePathAndStem),
-        "%s/%s",
-        argv[nCurrentArg], argv[nCurrentArg+1] );
-    bLoadingTimeCourse = TRUE;
-    nCurrentArg += 2;
-  }
+	/* check for two more. */
+	if( argc > nCurrentArg + 1 
+	    && '-' != argv[nCurrentArg][0] ) {
+	  
+	  /* read in time course path and stem. */
+	  DebugNote( ("Parsing time course in -o option") );
+	  xUtil_snprintf( sTimeCoursePathAndStem, 
+			  sizeof(sTimeCoursePathAndStem),
+			  "%s/%s",
+			  argv[nCurrentArg], argv[nCurrentArg+1] );
+	  bLoadingTimeCourse = TRUE;
+	  nCurrentArg += 2;
+	}
   
       } else if( MATCH( sArg, "-overlay" ) ) {
-  
-  /* make sure there are enough args */
-  if( argc > nCurrentArg + 1 &&
-      '-' != argv[nCurrentArg+1][0] ) {
-    
-    /* copy arg into a destructible string */
-    DebugNote( ("Parsing -overlay option") );
-    xUtil_strncpy( sOverlayPathAndStem, argv[nCurrentArg+1],
-       sizeof(sOverlayPathAndStem) );
-    bLoadingOverlay = TRUE;
-    nCurrentArg += 2;
-    
-  } else {
-    
-    /* misuse of that option */
-    tkm_DisplayError( "Parsing -overlay option",
-          "Expected an argument",
-          "This option needs an argument, the path and "
-          "stem of the data." );
-    nCurrentArg ++;
-  }
+	
+	/* make sure there are enough args */
+	if( argc > nCurrentArg + 1 &&
+	    '-' != argv[nCurrentArg+1][0] ) {
+	  
+	  /* copy arg into a destructible string */
+	  DebugNote( ("Parsing -overlay option") );
+	  xUtil_strncpy( sOverlayPathAndStem, argv[nCurrentArg+1],
+			 sizeof(sOverlayPathAndStem) );
+	  bLoadingOverlay = TRUE;
+	  nCurrentArg += 2;
+	  
+	} else {
+	  
+	  /* misuse of that option */
+	  tkm_DisplayError( "Parsing -overlay option",
+			    "Expected an argument",
+			    "This option needs an argument, the path and "
+			    "stem of the data." );
+	  nCurrentArg ++;
+	}
   
       } else if( MATCH( sArg, "-overlay-reg" ) ) {
   
-  /* make sure there are enough args */
-  if( argc > nCurrentArg + 1 &&
-      '-' != argv[nCurrentArg+1][0] ) {
+	/* make sure there are enough args */
+	if( argc > nCurrentArg + 1 &&
+	    '-' != argv[nCurrentArg+1][0] ) {
+	  
+	  /* copy arg  */
+	  DebugNote( ("Parsing -overlay-reg option") );
+	  psOverlayRegistration = sOverlayRegistration;
+	  xUtil_strncpy( sOverlayRegistration, argv[nCurrentArg+1],
+			 sizeof(sOverlayRegistration) );
+	  nCurrentArg += 2;
+	  
+	} else {
     
-    /* copy arg  */
-    DebugNote( ("Parsing -overlay-reg option") );
-    psOverlayRegistration = sOverlayRegistration;
-    xUtil_strncpy( sOverlayRegistration, argv[nCurrentArg+1],
-       sizeof(sOverlayRegistration) );
-    nCurrentArg += 2;
-    
-  } else {
-    
-    /* misuse of that option */
-    tkm_DisplayError( "Parsing -overlay-reg option",
-          "Expected an argument",
-          "This option needs an argument, the file name "
-          "of the registration data." );
-    nCurrentArg ++;
-  }
+	  /* misuse of that option */
+	  tkm_DisplayError( "Parsing -overlay-reg option",
+			    "Expected an argument",
+			    "This option needs an argument, the file name "
+			    "of the registration data." );
+	  nCurrentArg ++;
+	}
   
       } else if( MATCH( sArg, "-overlay-offset" ) ) {
   
-  /* make sure there are enough args */
-  if( argc > nCurrentArg + 1 &&
-      '-' != argv[nCurrentArg+1][0] ) {
+	/* make sure there are enough args */
+	if( argc > nCurrentArg + 1 &&
+	    '-' != argv[nCurrentArg+1][0] ) {
+	  
+	  /* copy arg  */
+	  DebugNote( ("Parsing -overlay-offset option") );
+	  psOverlayOffsetPathAndStem = sOverlayOffsetPathAndStem;
+	  xUtil_strncpy( sOverlayOffsetPathAndStem, argv[nCurrentArg+1],
+			 sizeof(sOverlayOffsetPathAndStem) );
+	  nCurrentArg += 2;
+	  
+	} else {
     
-    /* copy arg  */
-    DebugNote( ("Parsing -overlay-offset option") );
-    psOverlayOffsetPathAndStem = sOverlayOffsetPathAndStem;
-    xUtil_strncpy( sOverlayOffsetPathAndStem, argv[nCurrentArg+1],
-       sizeof(sOverlayOffsetPathAndStem) );
-    nCurrentArg += 2;
-    
-  } else {
-    
-    /* misuse of that option */
-    tkm_DisplayError( "Parsing -overlay-offset option",
-          "Expected an argument",
-          "This option needs an argument, the path "
-          "and stem of the offset volume." );
-    nCurrentArg ++;
-  }
+	  /* misuse of that option */
+	  tkm_DisplayError( "Parsing -overlay-offset option",
+			    "Expected an argument",
+			    "This option needs an argument, the path "
+			    "and stem of the offset volume." );
+	  nCurrentArg ++;
+	}
   
       } else if( MATCH( sArg, "-timecourse" ) ) {
   
-  /* make sure there are enough args */
-  if( argc > nCurrentArg + 1 ) {
+	/* make sure there are enough args */
+	if( argc > nCurrentArg + 1 ) {
+	  
+	  /* copy arg into a destructible string */
+	  DebugNote( ("Parsing -timecourse option") );
+	  xUtil_strncpy( sTimeCoursePathAndStem, argv[nCurrentArg+1],
+			 sizeof(sTimeCoursePathAndStem) );
+	  bLoadingTimeCourse = TRUE;
+	  nCurrentArg += 2;
+	  
+	} else {
     
-    /* copy arg into a destructible string */
-    DebugNote( ("Parsing -timecourse option") );
-    xUtil_strncpy( sTimeCoursePathAndStem, argv[nCurrentArg+1],
-       sizeof(sTimeCoursePathAndStem) );
-    bLoadingTimeCourse = TRUE;
-    nCurrentArg += 2;
-    
-  } else {
-    
-    /* misuse of that option */
-    tkm_DisplayError( "Parsing -timecourse option",
-          "Expected an argument",
-          "This option needs an argument, the path and "
-          "stem of the data." );
-    nCurrentArg ++;
-  }
-  
+	  /* misuse of that option */
+	  tkm_DisplayError( "Parsing -timecourse option",
+			    "Expected an argument",
+			    "This option needs an argument, the path and "
+			    "stem of the data." );
+	  nCurrentArg ++;
+	}
+	
       } else if( MATCH( sArg, "-timecourse-reg" ) ) {
   
-  /* make sure there are enough args */
-  if( argc > nCurrentArg + 1 &&
-      '-' != argv[nCurrentArg+1][0] ) {
+	/* make sure there are enough args */
+	if( argc > nCurrentArg + 1 &&
+	    '-' != argv[nCurrentArg+1][0] ) {
+	  
+	  /* copy arg  */
+	  DebugNote( ("Parsing -timecourse-reg option") );
+	  psTimeCourseRegistration = sTimeCourseRegistration;
+	  xUtil_strncpy( sTimeCourseRegistration, argv[nCurrentArg+1],
+			 sizeof(sTimeCourseRegistration) );
+	  nCurrentArg += 2;
+	  
+	} else {
     
-    /* copy arg  */
-    DebugNote( ("Parsing -timecourse-reg option") );
-    psTimeCourseRegistration = sTimeCourseRegistration;
-    xUtil_strncpy( sTimeCourseRegistration, argv[nCurrentArg+1],
-       sizeof(sTimeCourseRegistration) );
-    nCurrentArg += 2;
-    
-  } else {
-    
-    /* misuse of that option */
-    tkm_DisplayError( "Parsing -timecourse-reg option",
-          "Expected an argument",
-          "This option needs an argument, the file name "
-          "of the registration data." );
-    nCurrentArg ++;
-  }
+	  /* misuse of that option */
+	  tkm_DisplayError( "Parsing -timecourse-reg option",
+			    "Expected an argument",
+			    "This option needs an argument, the file name "
+			    "of the registration data." );
+	  nCurrentArg ++;
+	}
   
       } else if( MATCH( sArg, "-timecourse-offset" ) ) {
   
-  /* make sure there are enough args */
-  if( argc > nCurrentArg + 1 &&
-      '-' != argv[nCurrentArg+1][0] ) {
+	/* make sure there are enough args */
+	if( argc > nCurrentArg + 1 &&
+	    '-' != argv[nCurrentArg+1][0] ) {
+	  
+	  /* copy arg  */
+	  DebugNote( ("Parsing -timecourse-offset option") );
+	  psTimeCourseOffsetPathAndStem = sTimeCourseOffsetPathAndStem;
+	  xUtil_strncpy( sTimeCourseOffsetPathAndStem, argv[nCurrentArg+1],
+			 sizeof(sTimeCourseOffsetPathAndStem) );
+	  nCurrentArg += 2;
+	  
+	} else {
     
-    /* copy arg  */
-    DebugNote( ("Parsing -timecourse-offset option") );
-    psTimeCourseOffsetPathAndStem = sTimeCourseOffsetPathAndStem;
-    xUtil_strncpy( sTimeCourseOffsetPathAndStem, argv[nCurrentArg+1],
-       sizeof(sTimeCourseOffsetPathAndStem) );
-    nCurrentArg += 2;
-    
-  } else {
-    
-    /* misuse of that option */
-    tkm_DisplayError( "Parsing -timecourse-offset option",
-          "Expected an argument",
-          "This option needs an argument, the path "
-          "and stem to the offset volume." );
-    nCurrentArg ++;
-  }
+	  /* misuse of that option */
+	  tkm_DisplayError( "Parsing -timecourse-offset option",
+			    "Expected an argument",
+			    "This option needs an argument, the path "
+			    "and stem to the offset volume." );
+	  nCurrentArg ++;
+	}
   
       } else if( MATCH( sArg, "-register" ) ) {
-  
-  /* set our flag */
-  DebugNote( ("Enabling registration.") );
-  bEnablingRegistration = TRUE;
-  nCurrentArg ++;
-  
+	
+	/* set our flag */
+	DebugNote( ("Enabling registration.") );
+	bEnablingRegistration = TRUE;
+	nCurrentArg ++;
+	
       } else if( MATCH( sArg, "-segmentation" ) ||
-     MATCH( sArg, "-seg" ) ||
-     MATCH( sArg, "-segmentation" ) ||
-     MATCH( sArg, "-parc" ) ) {
-  
-  /* make sure there are enough args */
-  if( argc > nCurrentArg + 2 &&
-      '-' != argv[nCurrentArg+1][0] &&
-      '-' != argv[nCurrentArg+2][0] ) {
-    
-    /* copy path and color file */
-    DebugNote( ("Parsing -segmentation/seg option") );
-    xUtil_strncpy( sSegmentationPath, argv[nCurrentArg+1],
-       sizeof(sSegmentationPath) );
-    xUtil_strncpy( sSegmentationColorFile, argv[nCurrentArg+2],
-       sizeof(sSegmentationColorFile) );
-    bLoadingSegmentation = TRUE;
-    nCurrentArg += 3;
-    
-  } else {
-    
-    /* misuse of that switch */
-    tkm_DisplayError( "Parsing -segmentation/seg option",
-          "Expected two arguments",
-          "This option needs two arguments: the path of "
-          "the COR volume and the name of the colors "
-          "file." );
-    nCurrentArg ++;
-  }
-  
+		 MATCH( sArg, "-seg" ) ||
+		 MATCH( sArg, "-segmentation" ) ||
+		 MATCH( sArg, "-parc" ) ) {
+	
+	/* make sure there are enough args */
+	if( argc > nCurrentArg + 2 &&
+	    '-' != argv[nCurrentArg+1][0] &&
+	    '-' != argv[nCurrentArg+2][0] ) {
+	  
+	  /* copy path and color file */
+	  DebugNote( ("Parsing -segmentation/seg option") );
+	  xUtil_strncpy( sSegmentationPath, argv[nCurrentArg+1],
+			 sizeof(sSegmentationPath) );
+	  xUtil_strncpy( sSegmentationColorFile, argv[nCurrentArg+2],
+			 sizeof(sSegmentationColorFile) );
+	  bLoadingSegmentation = TRUE;
+	  nCurrentArg += 3;
+	  
+	} else {
+	  
+	  /* misuse of that switch */
+	  tkm_DisplayError( "Parsing -segmentation/seg option",
+			    "Expected two arguments",
+			    "This option needs two arguments: the path of "
+			    "the COR volume and the name of the colors "
+			    "file." );
+	  nCurrentArg ++;
+	}
+	
       } else if( MATCH( sArg, "-f" ) ) {
   
-  /* make sure subject is not already declared */
-  if( bSubjectDeclared ) {
-    tkm_DisplayError( "Parsing -f option",
-          "Subject already declared",
-          "The -f option is only to be used if the "
-          "subject is not to be declared using the "
-          "subect/image type format." );
-    bFatalError = TRUE;
+	/* make sure subject is not already declared */
+	if( bSubjectDeclared ) {
+	  tkm_DisplayError( "Parsing -f option",
+			    "Subject already declared",
+			    "The -f option is only to be used if the "
+			    "subject is not to be declared using the "
+			    "subect/image type format." );
+	  bFatalError = TRUE;
+	  
+	  /* check for path */
+	} else if( argc > nCurrentArg + 1 &&
+		   '-' != argv[nCurrentArg+1][0] ) {
+	  
+	  /* read the path */
+	  DebugNote( ("Parsing -f option") );
+	  xUtil_strncpy( sSubject, argv[nCurrentArg+1], sizeof(sSubject) );
+	  bUsingMRIRead = TRUE;
+	  bSubjectDeclared = TRUE;
+	  nCurrentArg += 2;
     
-    /* check for path */
-  } else if( argc > nCurrentArg + 1 &&
-       '-' != argv[nCurrentArg+1][0] ) {
+	  /* save subject home */
+	  DebugNote( ("Setting subject home directory to %s", sSubject) );
+	  SetSubjectHomeDir( sSubject );
+	  
+	  /* disable automatic file name making because there's no
+	     home dir, really */
+	  gEnableFileNameGuessing = FALSE;
+	  
+	} else {
     
-    /* read the path */
-    DebugNote( ("Parsing -f option") );
-    xUtil_strncpy( sSubject, argv[nCurrentArg+1], sizeof(sSubject) );
-    bUsingMRIRead = TRUE;
-    bSubjectDeclared = TRUE;
-    nCurrentArg += 2;
-    
-    /* save subject home */
-    DebugNote( ("Setting subject home directory to %s", sSubject) );
-    SetSubjectHomeDir( sSubject );
-    
-    /* disable automatic file name making because there's no
-       home dir, really */
-    gEnableFileNameGuessing = FALSE;
-    
-  } else {
-    
-    /* misuse of that switch */
-    tkm_DisplayError( "Parsing -f option",
-          "Expected an argument",
-          "This option needs an argument: the path or "
-          "file name of the data to use." );
-    nCurrentArg ++;
-  }
-  
+	  /* misuse of that switch */
+	  tkm_DisplayError( "Parsing -f option",
+			    "Expected an argument",
+			    "This option needs an argument: the path or "
+			    "file name of the data to use." );
+	  nCurrentArg ++;
+	}
+	
       } else if( MATCH( sArg, "-fthresh" ) ) {
-  
-  /* check for the value following the switch */
-  if( argc > nCurrentArg + 1 &&
-      '-' != argv[nCurrentArg+1][0] ) {
+	
+	/* check for the value following the switch */
+	if( argc > nCurrentArg + 1 &&
+	    '-' != argv[nCurrentArg+1][0] ) {
+	  
+	  /* get the value */
+	  DebugNote( ("Parsing -fthresh option") );
+	  min = (FunV_tFunctionalValue) atof( argv[nCurrentArg+1] );
+	  bThresh = TRUE;
+	  nCurrentArg +=2 ;
+	  
+	} else { 
     
-    /* get the value */
-    DebugNote( ("Parsing -fthresh option") );
-    min = (FunV_tFunctionalValue) atof( argv[nCurrentArg+1] );
-    bThresh = TRUE;
-    nCurrentArg +=2 ;
-    
-  } else { 
-    
-    /* misuse of that switch */
-    tkm_DisplayError( "Parsing -fthresh option",
-          "Expected an argument",
-          "This option needs an argument: the threshold "
-          "value to use." );
-    nCurrentArg += 1;
-  }
+	  /* misuse of that switch */
+	  tkm_DisplayError( "Parsing -fthresh option",
+			    "Expected an argument",
+			    "This option needs an argument: the threshold "
+			    "value to use." );
+	  nCurrentArg += 1;
+	}
   
       } else if( MATCH( sArg, "-fmid" ) ) {
   
-  /* check for the value following the switch */
-  if( argc > nCurrentArg + 1 &&
-      '-' != argv[nCurrentArg+1][0] ) {
+	/* check for the value following the switch */
+	if( argc > nCurrentArg + 1 &&
+	    '-' != argv[nCurrentArg+1][0] ) {
+	  
+	  /* get the value */
+	  DebugNote( ("Parsing -fmid option") );
+	  mid = (FunV_tFunctionalValue) atof( argv[nCurrentArg+1] );
+	  bMid = TRUE;
+	  nCurrentArg +=2 ;
+	  
+	} else { 
     
-    /* get the value */
-    DebugNote( ("Parsing -fmid option") );
-    mid = (FunV_tFunctionalValue) atof( argv[nCurrentArg+1] );
-    bMid = TRUE;
-    nCurrentArg +=2 ;
-    
-  } else { 
-    
-    /* misuse of that switch */
-    tkm_DisplayError( "Parsing -fmid option",
-          "Expected an argument",
-          "This option needs an argument: the threshold "
-          "value to use." );
-    nCurrentArg += 1;
-  }
+	  /* misuse of that switch */
+	  tkm_DisplayError( "Parsing -fmid option",
+			    "Expected an argument",
+			    "This option needs an argument: the threshold "
+			    "value to use." );
+	  nCurrentArg += 1;
+	}
   
       } else if( MATCH( sArg, "-sdir" ) ) {
-  /* check for the value following the switch */
-  if( argc > nCurrentArg + 1 &&
-      '-' != argv[nCurrentArg+1][0] ) {
-    
-    /* get the value */
-    DebugNote( ("Parsing -sdir option") );
-    gsCommandLineSubjectsDir = argv[nCurrentArg+1] ;
-    nCurrentArg +=2 ;
-    
-  } else { 
-    
-    /* misuse of that switch */
-    tkm_DisplayError( "Parsing -fslope option",
-          "Expected an argument",
-          "This option needs an argument: the threshold "
-          "value to use." );
-    nCurrentArg += 1;
-  }
+	/* check for the value following the switch */
+	if( argc > nCurrentArg + 1 &&
+	    '-' != argv[nCurrentArg+1][0] ) {
+	  
+	  /* get the value */
+	  DebugNote( ("Parsing -sdir option") );
+	  gsCommandLineSubjectsDir = argv[nCurrentArg+1] ;
+	  nCurrentArg +=2 ;
+	  
+	} else { 
+	  
+	  /* misuse of that switch */
+	  tkm_DisplayError( "Parsing -fslope option",
+			    "Expected an argument",
+			    "This option needs an argument: the threshold "
+			    "value to use." );
+	  nCurrentArg += 1;
+	}
       } else if( MATCH( sArg, "-fslope" ) ) {
-  
-  /* check for the value following the switch */
-  if( argc > nCurrentArg + 1 &&
-      '-' != argv[nCurrentArg+1][0] ) {
-    
-    /* get the value */
-    DebugNote( ("Parsing -fslope option") );
-    slope = (FunV_tFunctionalValue) atof( argv[nCurrentArg+1] );
-    bSlope = TRUE;
-    nCurrentArg +=2 ;
-    
-  } else { 
-    
-    /* misuse of that switch */
-    tkm_DisplayError( "Parsing -fslope option",
-          "Expected an argument",
-          "This option needs an argument: the threshold "
-          "value to use." );
-    nCurrentArg += 1;
-  }
+	
+	/* check for the value following the switch */
+	if( argc > nCurrentArg + 1 &&
+	    '-' != argv[nCurrentArg+1][0] ) {
+	  
+	  /* get the value */
+	  DebugNote( ("Parsing -fslope option") );
+	  slope = (FunV_tFunctionalValue) atof( argv[nCurrentArg+1] );
+	  bSlope = TRUE;
+	  nCurrentArg +=2 ;
+	  
+	} else { 
+	  
+	  /* misuse of that switch */
+	  tkm_DisplayError( "Parsing -fslope option",
+			    "Expected an argument",
+			    "This option needs an argument: the threshold "
+			    "value to use." );
+	  nCurrentArg += 1;
+	}
   
       } else if( MATCH( sArg, "-fsmooth" ) ) {
-  
-  /* check for the value following the switch */
-  if( argc > nCurrentArg + 1 &&
-      '-' != argv[nCurrentArg+1][0] ) {
-    
-    /* get the value */
-    DebugNote( ("Parsing -fsmooth option") );
-    smoothSigma = (float) atof( argv[nCurrentArg+1] );
-    bSmooth = TRUE;
-    nCurrentArg +=2 ;
-    
-  } else { 
-    
-    /* misuse of that switch */
-    tkm_DisplayError( "Parsing -fsmooth option",
-          "Expected an argument",
-          "This option needs an argument: the sigma of the Gaussian "
-          "value to use." );
-    nCurrentArg += 1;
-  }
+	
+	/* check for the value following the switch */
+	if( argc > nCurrentArg + 1 &&
+	    '-' != argv[nCurrentArg+1][0] ) {
+	  
+	  /* get the value */
+	  DebugNote( ("Parsing -fsmooth option") );
+	  smoothSigma = (float) atof( argv[nCurrentArg+1] );
+	  bSmooth = TRUE;
+	  nCurrentArg +=2 ;
+	  
+	} else { 
+	  
+	  /* misuse of that switch */
+	  tkm_DisplayError( "Parsing -fsmooth option",
+			    "Expected an argument",
+			    "This option needs an argument: the sigma of the Gaussian "
+			    "value to use." );
+	  nCurrentArg += 1;
+	}
   
       } else if( MATCH( sArg, "-revphaseflag" ) ) {
   
-  /* check for the value following the switch */
-  if( argc > nCurrentArg + 1
-      && '-' != argv[nCurrentArg+1][0] ) {
-    
-    /* get the value */
-    DebugNote( ("Parsing -revphaseflag option") );
-    nRevPhaseFlag = atoi( argv[nCurrentArg+1] );
-    bRevPhaseFlag = TRUE;
-    nCurrentArg +=2 ;
-    
-  } else { 
-    
-    /* misuse of that switch */
-    tkm_DisplayError( "Parsing -revphaseflag option",
-          "Expected an argument",
-          "This option needs an argument: a 1 or 0 to "
-          "turn it on or off." );
-    nCurrentArg += 1;
-  }
-  
+	/* check for the value following the switch */
+	if( argc > nCurrentArg + 1
+	    && '-' != argv[nCurrentArg+1][0] ) {
+	  
+	  /* get the value */
+	  DebugNote( ("Parsing -revphaseflag option") );
+	  nRevPhaseFlag = atoi( argv[nCurrentArg+1] );
+	  bRevPhaseFlag = TRUE;
+	  nCurrentArg +=2 ;
+	  
+	} else { 
+	  
+	  /* misuse of that switch */
+	  tkm_DisplayError( "Parsing -revphaseflag option",
+			    "Expected an argument",
+			    "This option needs an argument: a 1 or 0 to "
+			    "turn it on or off." );
+	  nCurrentArg += 1;
+	}
+	
       } else if( MATCH( sArg, "-truncphaseflag" ) ) {
-  
-  /* check for the value following the switch */
-  if( argc > nCurrentArg + 1
-      && '-' != argv[nCurrentArg+1][0] ) {
-    
-    /* get the value */
-    DebugNote( ("Parsing -truncphaseflag option") );
-    nTruncPhaseFlag = atoi( argv[nCurrentArg+1] );
-    bTruncPhaseFlag = TRUE;
-    nCurrentArg +=2 ;
-    
-  } else { 
-    
-    /* misuse of that switch */
-    tkm_DisplayError( "Parsing -truncphaseflag option",
-          "Expected an argument",
-          "This option needs an argument: a 1 or 0 to "
-          "turn it on or off." );
-    nCurrentArg += 1;
-  }
+	
+	/* check for the value following the switch */
+	if( argc > nCurrentArg + 1
+	    && '-' != argv[nCurrentArg+1][0] ) {
+	  
+	  /* get the value */
+	  DebugNote( ("Parsing -truncphaseflag option") );
+	  nTruncPhaseFlag = atoi( argv[nCurrentArg+1] );
+	  bTruncPhaseFlag = TRUE;
+	  nCurrentArg +=2 ;
+	  
+	} else { 
+	  
+	  /* misuse of that switch */
+	  tkm_DisplayError( "Parsing -truncphaseflag option",
+			    "Expected an argument",
+			    "This option needs an argument: a 1 or 0 to "
+			    "turn it on or off." );
+	  nCurrentArg += 1;
+	}
   
       } else if( MATCH( sArg, "-segmentation-opacity" ) ||
-     MATCH( sArg, "-roialpha" ) ) {
+		 MATCH( sArg, "-roialpha" ) ) {
   
-  /* check for the value following the switch */
-  if( argc > nCurrentArg + 1 &&
-      '-' != argv[nCurrentArg+1][0] ) {
+	/* check for the value following the switch */
+	if( argc > nCurrentArg + 1 &&
+	    '-' != argv[nCurrentArg+1][0] ) {
+	  
+	  /* get the value */
+	  DebugNote( ("Parsing -roialpha option") );
+	  fROIGroupAlpha = (float) atof( argv[nCurrentArg+1] );
+	  bROIGroupAlpha = TRUE;
+	  nCurrentArg +=2 ;
+	  
+	} else { 
     
-    /* get the value */
-    DebugNote( ("Parsing -roialpha option") );
-    fROIGroupAlpha = (float) atof( argv[nCurrentArg+1] );
-    bROIGroupAlpha = TRUE;
-    nCurrentArg +=2 ;
-    
-  } else { 
-    
-    /* misuse of that switch */
-    tkm_DisplayError( "Parsing -roialpha option",
-          "Expected an argument",
-          "This option needs an argument: the alpha "
-          "value to use." );
-    nCurrentArg += 1;
-  }
+	  /* misuse of that switch */
+	  tkm_DisplayError( "Parsing -roialpha option",
+			    "Expected an argument",
+			    "This option needs an argument: the alpha "
+			    "value to use." );
+	  nCurrentArg += 1;
+	}
   
       } else if( MATCH( sArg, "-aux" ) ) {
   
-  /* check for the value following the switch */
-  if( argc > nCurrentArg + 1
-      && '-' != argv[nCurrentArg+1][0] ) {
+	/* check for the value following the switch */
+	if( argc > nCurrentArg + 1
+	    && '-' != argv[nCurrentArg+1][0] ) {
+	  
+	  /* read in the aux file name */
+	  DebugNote( ("Parsing -aux option") );
+	  xUtil_strncpy( sAuxVolume, argv[nCurrentArg+1], 
+			 sizeof(sAuxVolume) );
+	  bLoadingAuxVolume = TRUE;
+	  nCurrentArg += 2;
+	  
+	} else { 
     
-    /* read in the aux file name */
-    DebugNote( ("Parsing -aux option") );
-    xUtil_strncpy( sAuxVolume, argv[nCurrentArg+1], 
-       sizeof(sAuxVolume) );
-    bLoadingAuxVolume = TRUE;
-    nCurrentArg += 2;
-    
-  } else { 
-    
-    /* misuse of that switch */
-    tkm_DisplayError( "Parsing -aux option",
-          "Expected an argument",
-          "This option needs an argument: the image type, "
-          "directory, or file name of the data to load "
-          "as the aux volume." );
-    nCurrentArg += 1;
-  }     
+	  /* misuse of that switch */
+	  tkm_DisplayError( "Parsing -aux option",
+			    "Expected an argument",
+			    "This option needs an argument: the image type, "
+			    "directory, or file name of the data to load "
+			    "as the aux volume." );
+	  nCurrentArg += 1;
+	}     
   
       } else if( MATCH( sArg, "-main-transform" ) ) {
   
-  /* check for the value following the switch */
-  if( argc > nCurrentArg + 1
-      && '-' != argv[nCurrentArg+1][0] ) {
-    
-    /* read in the main transform file name */
-    DebugNote( ("Parsing -main-transform option") );
-    xUtil_strncpy( sMainTransform, argv[nCurrentArg+1], 
-       sizeof(sMainTransform) );
-    bLoadingMainTransform = TRUE;
-    nCurrentArg += 2;
-    
-  } else { 
-    
-    /* misuse of that switch */
-    tkm_DisplayError( "Parsing -main-transform option",
-          "Expected an argument",
-          "This option needs an argument: the "
-          "file name of the transform to load." );
-    nCurrentArg += 1;
-  }
+	/* check for the value following the switch */
+	if( argc > nCurrentArg + 1
+	    && '-' != argv[nCurrentArg+1][0] ) {
+	  
+	  /* read in the main transform file name */
+	  DebugNote( ("Parsing -main-transform option") );
+	  xUtil_strncpy( sMainTransform, argv[nCurrentArg+1], 
+			 sizeof(sMainTransform) );
+	  bLoadingMainTransform = TRUE;
+	  nCurrentArg += 2;
+	  
+	} else { 
+	  
+	  /* misuse of that switch */
+	  tkm_DisplayError( "Parsing -main-transform option",
+			    "Expected an argument",
+			    "This option needs an argument: the "
+			    "file name of the transform to load." );
+	  nCurrentArg += 1;
+	}
   
       } else if( MATCH( sArg, "-aux-transform" ) ) {
   
-  /* check for the value following the switch */
-  if( argc > nCurrentArg + 1
-      && '-' != argv[nCurrentArg+1][0] ) {
+	/* check for the value following the switch */
+	if( argc > nCurrentArg + 1
+	    && '-' != argv[nCurrentArg+1][0] ) {
+	  
+	  /* read in the aux transform file name */
+	  DebugNote( ("Parsing -aux-transform option") );
+	  xUtil_strncpy( sAuxTransform, argv[nCurrentArg+1], 
+			 sizeof(sAuxTransform) );
+	  bLoadingAuxTransform = TRUE;
+	  nCurrentArg += 2;
+	  
+	} else { 
     
-    /* read in the aux transform file name */
-    DebugNote( ("Parsing -aux-transform option") );
-    xUtil_strncpy( sAuxTransform, argv[nCurrentArg+1], 
-       sizeof(sAuxTransform) );
-    bLoadingAuxTransform = TRUE;
-    nCurrentArg += 2;
-    
-  } else { 
-    
-    /* misuse of that switch */
-    tkm_DisplayError( "Parsing -aux-transform option",
-          "Expected an argument",
-          "This option needs an argument: the "
-          "file name of the transform to load." );
-    nCurrentArg += 1;
-  }
+	  /* misuse of that switch */
+	  tkm_DisplayError( "Parsing -aux-transform option",
+			    "Expected an argument",
+			    "This option needs an argument: the "
+			    "file name of the transform to load." );
+	  nCurrentArg += 1;
+	}
   
       } else if( MATCH( sArg, "-label" ) ) {
-  
-  /* check for the value following the switch */
-  if( argc > nCurrentArg + 1
-      && '-' != argv[nCurrentArg+1][0] ) {
+	
+	/* check for the value following the switch */
+	if( argc > nCurrentArg + 1
+	    && '-' != argv[nCurrentArg+1][0] ) {
     
-    /* read in the label name */
-    DebugNote( ("Parsing -label option") );
-    xUtil_strncpy( sLabel, argv[nCurrentArg+1], sizeof(sLabel) );
-    
-    bLoadingLabel = TRUE;
-    nCurrentArg += 2;
-    
-  } else { 
-    
-    /* misuse of that switch */
-    tkm_DisplayError( "Parsing -label option",
-          "Expected an argument",
-          "This option needs an argument: the file name "
-          "of the label file." );
-    nCurrentArg += 1;
-  }
+	  /* read in the label name */
+	  DebugNote( ("Parsing -label option") );
+	  xUtil_strncpy( sLabel, argv[nCurrentArg+1], sizeof(sLabel) );
+	  
+	  bLoadingLabel = TRUE;
+	  nCurrentArg += 2;
+	  
+	} else { 
+	  
+	  /* misuse of that switch */
+	  tkm_DisplayError( "Parsing -label option",
+			    "Expected an argument",
+			    "This option needs an argument: the file name "
+			    "of the label file." );
+	  nCurrentArg += 1;
+	}
   
       } else if( MATCH( sArg, "-headpts" ) ) {
   
-  /* check for the value following the switch */
-  if( argc > nCurrentArg + 1
-      && '-' != argv[nCurrentArg+1][0] ) {
-    
-    /* read in the head pts and transform file name */
-    DebugNote( ("Parsing -headpts option") );
-    xUtil_strncpy( sHeadPts, argv[nCurrentArg+1], sizeof(sHeadPts) );
-    
-    /* if they gave us a transform file as well... */
-    if( argc > nCurrentArg + 2
-        && '-' != argv[nCurrentArg+2][0] ) {
-      
-      /* save that */
-      DebugNote( ("Parsing transform of -headpts option") );
-      xUtil_strncpy( sHeadPtsTransform, argv[nCurrentArg+2],
-         sizeof(sHeadPtsTransform));
-      bHaveHeadPtsTransform = TRUE;
-    } else {
-      bHaveHeadPtsTransform = FALSE;
-    }
-    
-    bLoadingHeadPts = TRUE;
-    nCurrentArg += 3;
-    
-  } else { 
-    
-    /* misuse of that switch */
-    tkm_DisplayError( "Parsing -headpts option",
-          "Expected one or two arguments",
-          "This option needs an argument: the file name "
-          "of the head points file, and optionally the "
-          "file name of the transform to use." );
-    nCurrentArg += 1;
-  }
-  
+	/* check for the value following the switch */
+	if( argc > nCurrentArg + 1
+	    && '-' != argv[nCurrentArg+1][0] ) {
+	  
+	  /* read in the head pts and transform file name */
+	  DebugNote( ("Parsing -headpts option") );
+	  xUtil_strncpy( sHeadPts, argv[nCurrentArg+1], sizeof(sHeadPts) );
+	  
+	  /* if they gave us a transform file as well... */
+	  if( argc > nCurrentArg + 2
+	      && '-' != argv[nCurrentArg+2][0] ) {
+	    
+	    /* save that */
+	    DebugNote( ("Parsing transform of -headpts option") );
+	    xUtil_strncpy( sHeadPtsTransform, argv[nCurrentArg+2],
+			   sizeof(sHeadPtsTransform));
+	    bHaveHeadPtsTransform = TRUE;
+	  } else {
+	    bHaveHeadPtsTransform = FALSE;
+	  }
+	  
+	  bLoadingHeadPts = TRUE;
+	  nCurrentArg += 3;
+	  
+	} else { 
+	  
+	  /* misuse of that switch */
+	  tkm_DisplayError( "Parsing -headpts option",
+			    "Expected one or two arguments",
+			    "This option needs an argument: the file name "
+			    "of the head points file, and optionally the "
+			    "file name of the transform to use." );
+	  nCurrentArg += 1;
+	}
+	
       } else if( MATCH( sArg, "-overlaycache" ) ) {
+	
+	/* check for the value following the switch */
+	if( argc > nCurrentArg + 1
+	    && '-' != argv[nCurrentArg+1][0] ) {
+	  
+	  /* get the value */
+	  DebugNote( ("Parsing -overlaycache option") );
+	  nUseOverlayCacheFlag = atoi( argv[nCurrentArg+1] );
+	  bUseOverlayCacheFlag = TRUE;
+	  nCurrentArg +=2 ;
+    
+	} else { 
+    
+	  /* misuse of that switch */
+	  tkm_DisplayError( "Parsing -overlaycache option",
+			    "Expected an argument",
+			    "This option needs an argument: a 1 or 0 to "
+			    "turn the option on or off." );
+	  nCurrentArg += 1;
+	}
   
-  /* check for the value following the switch */
-  if( argc > nCurrentArg + 1
-      && '-' != argv[nCurrentArg+1][0] ) {
-    
-    /* get the value */
-    DebugNote( ("Parsing -overlaycache option") );
-    nUseOverlayCacheFlag = atoi( argv[nCurrentArg+1] );
-    bUseOverlayCacheFlag = TRUE;
-    nCurrentArg +=2 ;
-    
-  } else { 
-    
-    /* misuse of that switch */
-    tkm_DisplayError( "Parsing -overlaycache option",
-          "Expected an argument",
-          "This option needs an argument: a 1 or 0 to "
-          "turn the option on or off." );
-    nCurrentArg += 1;
-  }
-  
-  /* rkt - commented out because the functional volume should no
-     longer set the conversion method explicitly. it should only be
-     set when parsing the register.dat file. */
+	/* rkt - commented out because the functional volume should no
+	   longer set the conversion method explicitly. it should only be
+	   set when parsing the register.dat file. */
 #if 0
       } else if( MATCH( sArg, "-float2int" ) ) {
   
-  /* check for the value following the switch */
-  if( argc > nCurrentArg + 1
-      && '-' != argv[nCurrentArg+1][0] ) {
+	/* check for the value following the switch */
+	if( argc > nCurrentArg + 1
+	    && '-' != argv[nCurrentArg+1][0] ) {
     
-    /* get the value */
-    DebugNote( ("Parsing -float2int option") );
-    if( MATCH( argv[nCurrentArg+1], "tkreg" ) ) {
-      convMethod = FunD_tConversionMethod_FCF;
-      bSetConversionMethod = TRUE;
-      nCurrentArg +=2;
-    }
-    else if( MATCH( argv[nCurrentArg+1], "floor" ) ) {
-      convMethod = FunD_tConversionMethod_FFF;
-      bSetConversionMethod = TRUE;
-      nCurrentArg +=2;
-    }
-    else if( MATCH( argv[nCurrentArg+1], "round" ) ) {
-      convMethod = FunD_tConversionMethod_Round;
-      bSetConversionMethod = TRUE;
-      nCurrentArg +=2;
-    } else {
-      tkm_DisplayError( "Parsing -float2int option",
-            "Argument not recognized",
-            "Please specify tkreg, floor, or round "
-            "as the conversion method." );
-      nCurrentArg +=1;
-    }
+	  /* get the value */
+	  DebugNote( ("Parsing -float2int option") );
+	  if( MATCH( argv[nCurrentArg+1], "tkreg" ) ) {
+	    convMethod = FunD_tConversionMethod_FCF;
+	    bSetConversionMethod = TRUE;
+	    nCurrentArg +=2;
+	  }
+	  else if( MATCH( argv[nCurrentArg+1], "floor" ) ) {
+	    convMethod = FunD_tConversionMethod_FFF;
+	    bSetConversionMethod = TRUE;
+	    nCurrentArg +=2;
+	  }
+	  else if( MATCH( argv[nCurrentArg+1], "round" ) ) {
+	    convMethod = FunD_tConversionMethod_Round;
+	    bSetConversionMethod = TRUE;
+	    nCurrentArg +=2;
+	  } else {
+	    tkm_DisplayError( "Parsing -float2int option",
+			      "Argument not recognized",
+			      "Please specify tkreg, floor, or round "
+			      "as the conversion method." );
+	    nCurrentArg +=1;
+	  }
     
-  } else { 
+	} else { 
     
-    /* misuse of that switch */
-    tkm_DisplayError( "Parsing -overlaycache option",
-          "Expected an argument",
-          "This option needs an argument: a 1 or 0 to "
-          "turn the option on or off." );
-    nCurrentArg += 1;
-  }
+	  /* misuse of that switch */
+	  tkm_DisplayError( "Parsing -overlaycache option",
+			    "Expected an argument",
+			    "This option needs an argument: a 1 or 0 to "
+			    "turn the option on or off." );
+	  nCurrentArg += 1;
+	}
 #endif
   
       } else if( MATCH( sArg, "-interface" ) ) {
   
-  /* check for another value */
-  if( argc > nCurrentArg + 1
-      && '-' != argv[nCurrentArg+1][0] ) {
+	/* check for another value */
+	if( argc > nCurrentArg + 1
+	    && '-' != argv[nCurrentArg+1][0] ) {
+	  
+	  /* copy in the interface name */
+	  DebugNote( ("Parsing -interface option") );
+	  strcpy( gInterfaceScriptName, argv[nCurrentArg+1] );
+	  nCurrentArg += 2;
+	  
+	} else { 
     
-    /* copy in the interface name */
-    DebugNote( ("Parsing -interface option") );
-    strcpy( gInterfaceScriptName, argv[nCurrentArg+1] );
-    nCurrentArg += 2;
-    
-  } else { 
-    
-    /* misuse of that switch */
-    tkm_DisplayError( "Parsing -interface option",
-          "Expected an argument",
-          "This option needs an argument: the file name "
-          "of the interface script file to use." );
-    nCurrentArg += 1;
-  }
+	  /* misuse of that switch */
+	  tkm_DisplayError( "Parsing -interface option",
+			    "Expected an argument",
+			    "This option needs an argument: the file name "
+			    "of the interface script file to use." );
+	  nCurrentArg += 1;
+	}
   
       } else if( MATCH( sArg, "-" ) ) {
   
-  /* set no edit mode. */
-  DebugNote( ("Parsing - option") );
-  bNoEdit = TRUE;
-  nCurrentArg += 1;
-  
+	/* set no edit mode. */
+	DebugNote( ("Parsing - option") );
+	bNoEdit = TRUE;
+	nCurrentArg += 1;
+	
       } else if( MATCH( sArg, "-csurf" ) ) {
-  
-  /* set name of interface to tkmedit_csurf.tcl */
-  DebugNote( ("Parsing -csurf option") );
-  gbUseCsurfInterface = TRUE;
-  nCurrentArg ++;
+	
+	/* set name of interface to tkmedit_csurf.tcl */
+	DebugNote( ("Parsing -csurf option") );
+	gbUseCsurfInterface = TRUE;
+	nCurrentArg ++;
   
       } else {
   
-  /* unrecognized option, build an error message and ignore it. */
-  xUtil_snprintf( sError, sizeof(sError), 
-      "Option %s not recognized", sArg );
-  tkm_DisplayError( "Parsing command line options",
-        sError,
-        "This option was not recognized and ignored." );
-  nCurrentArg ++;
+	/* unrecognized option, build an error message and ignore it. */
+	xUtil_snprintf( sError, sizeof(sError), 
+			"Option %s not recognized", sArg );
+	tkm_DisplayError( "Parsing command line options",
+			  sError,
+			  "This option was not recognized and ignored." );
+	nCurrentArg ++;
       }
       
       /* check for local keyword */
     } else if ( MATCH( sArg, "local" ) || 
-    MATCH( sArg, "." ) ) {
+		MATCH( sArg, "." ) ) {
       
       /* make sure subject is not already declared */
       if( bSubjectDeclared ) {
-  tkm_DisplayError( "Parsing local option",
-        "Subject already declared",
-        "The local option is only to be used if the "
-        "subject is not to be declared using the "
-        "subect/image type format." );
-  bFatalError = TRUE;
+	tkm_DisplayError( "Parsing local option",
+			  "Subject already declared",
+			  "The local option is only to be used if the "
+			  "subject is not to be declared using the "
+			  "subect/image type format." );
+	bFatalError = TRUE;
   
       } else {
   
-  /* set local flag */
-  DebugNote( ("Parsing local option") );
-  bLocalImageDir = TRUE;
-  bSubjectDeclared = TRUE;
-  nCurrentArg ++;
-  
-  /* save subject home */
-  DebugNote( ("Setting user home dir to %s", gsUserHomeDir) );
-  SetSubjectHomeDir( gsUserHomeDir );
+	/* set local flag */
+	DebugNote( ("Parsing local option") );
+	bLocalImageDir = TRUE;
+	bSubjectDeclared = TRUE;
+	nCurrentArg ++;
+	
+	/* save subject home */
+	DebugNote( ("Setting user home dir to %s", gsUserHomeDir) );
+	SetSubjectHomeDir( gsUserHomeDir );
       }
       
     } else {
@@ -1671,70 +1682,70 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
    declared the sunject yet. */
       if( !bSubjectDeclared ) {
   
-  /*make sure we have enough args and they arn't switches */
-  if( argc > nCurrentArg+1 ) {
-    
-    /* make sure the next two args arn't switches or local/. args */
-    if( '-' == argv[nCurrentArg+1][0] ) {
-      
-      /* image dir is missing. */
-      tkm_DisplayError( "Parsing subject and image name",
-            "Image name not declared",
-            "When declaring the subject and image type, "
-            "two arguments are expected." );
-      bFatalError = TRUE;
-      
-    } else { 
-      
-      /* read in subject and image name. */
-      DebugNote( ("Parsing subject name") );
-      xUtil_strncpy( sSubject, argv[nCurrentArg], sizeof(sSubject) );
-      
-      DebugNote( ("Parsing image type") );
-      xUtil_strncpy( sImageDir, argv[nCurrentArg+1], 
-         sizeof(sImageDir) );
-      bSubjectDeclared = TRUE;
-      nCurrentArg += 2;
-      
-      /* save subject home */
-      DebugNote( ("Setting subject home from env") );
-      eResult = SetSubjectHomeDirFromEnv( sSubject );
-      DebugAssertThrow( (tkm_tErr_NoErr == eResult) );
-    }
-    
-    /* check for a surface. if we have enough args... */
-    if( argc > nCurrentArg ) {
-      
-      /* and this one isn't a switch or the local flag... */
-      if( '-' != argv[nCurrentArg][0] 
-    && !MATCH( argv[nCurrentArg], "local" )
-    && !MATCH( argv[nCurrentArg], "." ) ) {
-        
-        /* read it as a surface. */
-        DebugNote( ("Parsing surface name") );
-        xUtil_strncpy( sSurface, argv[nCurrentArg], sizeof(sSurface) );
-        bSurfaceDeclared = TRUE;
-        nCurrentArg ++;
-      }
-    }
-  } else {
-    tkm_DisplayError( "Parsing arguments",
-          "Subject and image not declared",
-          "You must pass a subject name and image type "
-          "to load. Enter tkmedit with no arguments "
-          "for a list of parameters." );
-    bFatalError = TRUE;
-  }
+	/*make sure we have enough args and they arn't switches */
+	if( argc > nCurrentArg+1 ) {
+	  
+	  /* make sure the next two args arn't switches or local/. args */
+	  if( '-' == argv[nCurrentArg+1][0] ) {
+	    
+	    /* image dir is missing. */
+	    tkm_DisplayError( "Parsing subject and image name",
+			      "Image name not declared",
+			      "When declaring the subject and image type, "
+			      "two arguments are expected." );
+	    bFatalError = TRUE;
+	    
+	  } else { 
+	    
+	    /* read in subject and image name. */
+	    DebugNote( ("Parsing subject name") );
+	    xUtil_strncpy( sSubject, argv[nCurrentArg], sizeof(sSubject) );
+	    
+	    DebugNote( ("Parsing image type") );
+	    xUtil_strncpy( sImageDir, argv[nCurrentArg+1], 
+			   sizeof(sImageDir) );
+	    bSubjectDeclared = TRUE;
+	    nCurrentArg += 2;
+	    
+	    /* save subject home */
+	    DebugNote( ("Setting subject home from env") );
+	    eResult = SetSubjectHomeDirFromEnv( sSubject );
+	    DebugAssertThrow( (tkm_tErr_NoErr == eResult) );
+	  }
+	  
+	  /* check for a surface. if we have enough args... */
+	  if( argc > nCurrentArg ) {
+	    
+	    /* and this one isn't a switch or the local flag... */
+	    if( '-' != argv[nCurrentArg][0] 
+		&& !MATCH( argv[nCurrentArg], "local" )
+		&& !MATCH( argv[nCurrentArg], "." ) ) {
+	      
+	      /* read it as a surface. */
+	      DebugNote( ("Parsing surface name") );
+	      xUtil_strncpy( sSurface, argv[nCurrentArg], sizeof(sSurface) );
+	      bSurfaceDeclared = TRUE;
+	      nCurrentArg ++;
+	    }
+	  }
+	} else {
+	  tkm_DisplayError( "Parsing arguments",
+			    "Subject and image not declared",
+			    "You must pass a subject name and image type "
+			    "to load. Enter tkmedit with no arguments "
+			    "for a list of parameters." );
+	  bFatalError = TRUE;
+	}
   
       } else {
   
-  /* totally unrecognized */
-  xUtil_snprintf( sError, sizeof(sError),
-      "Unrecognized option: %s", sArg );
-  tkm_DisplayError( "Parsing arguments",
-        sError,
-        "This option is not recognized by tkmedit." );
-  nCurrentArg++;
+	/* totally unrecognized */
+	xUtil_snprintf( sError, sizeof(sError),
+			"Unrecognized option: %s", sArg );
+	tkm_DisplayError( "Parsing arguments",
+			  sError,
+			  "This option is not recognized by tkmedit." );
+	nCurrentArg++;
       }
     }
   }
