@@ -2,6 +2,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
+#include <sys/types.h>
+#include <sys/stat.h>
 #include <unistd.h>
 #include "fio.h"
 #include "machine.h"
@@ -387,4 +389,20 @@ int fio_FileExistsReadable(char *fname)
     return(1);
   }
   return(0);
+}
+/*-----------------------------------------------------
+  fio_IsDirectory(fname) - fname exists and is a directory
+  -----------------------------------------------------*/
+int fio_IsDirectory(char *fname)
+{
+  FILE *fp;
+  struct stat buf;
+  int err;
+
+  fp = fopen(fname,"r");
+  if(fp == NULL) return(0);
+  fclose(fp);
+  err = stat(fname, &buf);
+  if(err != 0) return(0);
+  return(S_ISDIR(buf.st_mode));
 }
