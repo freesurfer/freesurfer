@@ -1,10 +1,10 @@
 /*============================================================================
  Copyright (c) 1996 Martin Sereno and Anders Dale
 =============================================================================*/
-/*   $Id: tkregister2.c,v 1.29 2004/11/17 22:48:13 greve Exp $   */
+/*   $Id: tkregister2.c,v 1.30 2004/12/14 19:58:00 greve Exp $   */
 
 #ifndef lint
-static char vcid[] = "$Id: tkregister2.c,v 1.29 2004/11/17 22:48:13 greve Exp $";
+static char vcid[] = "$Id: tkregister2.c,v 1.30 2004/12/14 19:58:00 greve Exp $";
 #endif /* lint */
 
 #define TCL
@@ -1235,13 +1235,26 @@ static void print_help(void)
 "\n"
 "USING WITH FSL and SPM \n"
 "\n"
-"First convert the anatomical (ie, the one in \n"
-"SUBJECTS_DIR/subjectname/mri/orig to analyze format (use mri_convert\n"
-"SUBJECTS_DIR/subjectname/mri/orig cor.img). Convert the functional\n"
-"to analyze format (eg, f.img). \n"
+"In order to apply the FreeSurfer tools to data analyzed in FSL or SPM, it\n"
+"is necessary that you create a FreeSurfer-style registration matrix. This\n"
+"matrix is stored in a text file which is usually called 'register.dat'.\n"
+"It is not the same as an SPM .mat file. It is not the same as an FSL .mat \n"
+"file. It is not the same as an analyze .hdr file. You can obtain a\n"
+"FreeSurfer-style registration matrix from those things but it is not the\n"
+"same as those things. If you do not obtain a FreeSurfer-style registration \n"
+"matrix, then you will not be able to use the FreeSurfer tools with your\n"
+"functional data.\n"
 "\n"
-"When using the SPM registration tool, select the functional (f.img) as the target\n"
-"and the anatomical (cor.img) as the object, and select the 'Coregister only' option. \n"
+"You can obtain a FreeSurfer-style registration matrix by directly editing the\n"
+"registration from within tkregister2, however, it will be easier if you\n"
+"use FSL or SPM to perform the registration and then use tkregister2 to\n"
+"generate the FreeSurfer-style registration matrix. To do this, first convert\n"
+"the anatomical (ie, the one in SUBJECTS_DIR/subjectname/mri/orig) \n"
+"to analyze format (use mri_convert SUBJECTS_DIR/subjectname/mri/orig cor.img).\n"
+"Convert the functional to analyze format (eg, f.img). \n"
+"\n"
+"When using the SPM registration tool, select the functional (f.img) as the object\n"
+"and the anatomical (cor.img) as the target, and select the 'Coregister only' option. \n"
 "The registration will be written into the functional .mat file. Run tkregister2 \n"
 "with the --regheader option. Use the --noedit option to suppress\n"
 "the GUI. Editing the registration will not affect the registration\n"
@@ -3610,7 +3623,7 @@ char **argv;
   int nargs;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: tkregister2.c,v 1.29 2004/11/17 22:48:13 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: tkregister2.c,v 1.30 2004/12/14 19:58:00 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
