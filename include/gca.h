@@ -62,6 +62,7 @@ typedef struct
   short   *nlabels;
   short   n_just_priors ;
   int     ntraining ;
+	char    regularized ;
 } GC1D, GAUSSIAN_CLASSIFIER_1D ;
 
 typedef struct
