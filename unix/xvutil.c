@@ -112,7 +112,11 @@ static int             hips_cmd_source = 0 ;
 static void            (*XVevent_handler)(Event *event, DIMAGE *dimage) = NULL;
 static void            (*XVkb_handler)(Event *event, DIMAGE *dimage) = NULL;
 static void            (*XVquit_func)(void) = NULL;
-static void            (*XVrepaint_handler)(XV_FRAME *xvf,DIMAGE *dimage)=NULL;
+
+#define MAX_HANDLERS 10
+typedef void    (*repaint_func)(XV_FRAME *xvf,DIMAGE *dimage) ;
+static repaint_func XVrepaint_handlers[MAX_HANDLERS] ;
+static int num_repaint_handlers = 0 ;
 
 /*----------------------------------------------------------------------
             Parameters:
@@ -441,7 +445,8 @@ void
 XVrepaintImage(XV_FRAME *xvf, int which)
 {
   DIMAGE    *dimage ;
-  IMAGE *image ;
+  IMAGE     *image ;
+  int       i ;
 
   dimage = xvGetDimage(xvf, which, DIMAGE_ALLOCATED) ;
   if (!dimage || dimage->entered)
@@ -454,8 +459,8 @@ XVrepaintImage(XV_FRAME *xvf, int which)
               0, 0, 0, 0, image->cols, image->rows);
   }
 
-  if (XVrepaint_handler)
-    (*XVrepaint_handler)(xvf, dimage) ;
+  for (i = 0 ; i < num_repaint_handlers ; i++)
+    (*XVrepaint_handlers[i])(xvf, dimage) ;
   dimage->entered = 0 ;
 }
 /*----------------------------------------------------------------------
@@ -745,6 +750,12 @@ xv_dimage_event_handler(Xv_Window xv_window, Event *event)
     return ;
   }
   if (dimage->used != DIMAGE_IMAGE)
+    return ;
+
+/* 
+   check validity of source image as clicks can occur somewhat asynchronously.
+*/
+  if (!dimage->sourceImage || !dimage->sourceImage->image)
     return ;
 
   x = (int)((float)x / dimage->xscale) ;
@@ -1101,7 +1112,10 @@ XVsetParms(void (*event_handler)(Event *event, DIMAGE *dimage))
 void
 XVsetRepaintHandler(void (*repaint_handler)(XV_FRAME *xvf, DIMAGE *dimage))
 {
-  XVrepaint_handler = repaint_handler ;
+  if (num_repaint_handlers >= MAX_HANDLERS)
+    return ;
+
+  XVrepaint_handlers[num_repaint_handlers++] = repaint_handler ;
 }
 /*----------------------------------------------------------------------
             Parameters:
@@ -1716,20 +1730,25 @@ XVsetImageSize(XV_FRAME *xvf, int which, int rows, int cols)
            WIN_META_EVENTS, WIN_LEFT_KEYS, WIN_RIGHT_KEYS,NULL, NULL);
     dimage->window = 
       (Window)xv_get(canvas_paint_window(dimage->canvas),XV_XID);
-    
-    ImageFree(&dimage->dispImage) ;
-    dimage->dispImage = ImageAlloc(rows, cols, PFBYTE, 1) ;
+
+    if (dimage->dispImage->rows != rows || dimage->dispImage->cols != cols)
+    {
+      ImageFree(&dimage->dispImage) ;
+      dimage->dispImage = ImageAlloc(rows, cols, PFBYTE, 1) ;
+    }
     
     /* should free the ximage and the canvas, but don't know how yet */
     dimage->ximage = xvCreateXimage(xvf, dimage->dispImage) ;
     if (xvGetTitle(xvf, i, title, 1))
       XVshowImageTitle(xvf, i, title) ;
 
+#if 0
 /* 
    must show image here to refill dispImage, otherwise repaint will display
    a blank image.
 */
     XVshowImage(xvf, i, dimage->sourceImage, dimage->frame) ;
+#endif
 
     if (dimage->sync)
     {
