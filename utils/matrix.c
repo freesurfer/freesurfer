@@ -2546,3 +2546,133 @@ MATRIX *MatrixZero(int rows, int cols, MATRIX *X)
   X = MatrixConstVal(0,rows,cols,X);
   return(X);
 }
+/*----------------------------------------------------------------*/
+MATRIX *MatrixSum(MATRIX *m, int dim, MATRIX *msum)
+{
+  int outrows, outcols;
+  int r,c;
+
+  if(dim==1){ /* sum over the rows */
+    outrows = 1;
+    outcols = m->cols;
+  }      
+  else{       /* sum over the cols */
+    outrows = m->rows;
+    outcols = 1;
+  }      
+
+  if(msum == NULL) msum = MatrixZero(outrows,outcols,NULL);
+  else{
+    if(msum->rows != outrows || msum->cols != outcols){
+      printf("ERROR: MatrixSum: dimension mismatch\n");
+      return(NULL);
+    }
+  }
+
+  if( (dim ==1 && m->rows > 1) || (dim == 2 && m->cols > 1) ){
+    for(r=1; r <= m->rows; r++){
+      for(c=1; c <= m->cols; c++){
+	if(dim==1) msum->rptr[1][c] += m->rptr[r][c];
+	else       msum->rptr[r][1] += m->rptr[r][c];
+      }
+    }
+  }
+  else{ /* Just copy vector to output */
+    if(dim==1)
+      for(c=1; c <= m->cols; c++) msum->rptr[1][c] = m->rptr[1][c];
+    else
+      for(r=1; r <= m->rows; r++) msum->rptr[r][1] = m->rptr[r][1];
+  }
+
+  return(msum);
+}
+/*----------------------------------------------------------------*/
+double VectorRange(MATRIX *v, double *pVmin, double *pVmax)
+{
+  double min,max, val;
+  int r,c;
+
+  min = v->rptr[1][1];
+  max = v->rptr[1][1];
+  for(r=1; r <= v->rows; r++){
+    for(c=1; c <= v->cols; c++) {
+      val = v->rptr[r][c];
+      if(min > val) min = val;
+      if(max < val) max = val;
+    }
+  }
+   
+  if(pVmin != NULL) *pVmin = min;
+  if(pVmax != NULL) *pVmax = max;
+
+  return(max-min);
+}
+/*----------------------------------------------------------------*/
+double VectorSum(MATRIX *v)
+{
+  double sum;
+  int r,c;
+
+  sum = 0.0;
+  for(r=1; r <= v->rows; r++)
+    for(c=1; c <= v->cols; c++) 
+      sum += (v->rptr[r][c]);
+  return(sum);
+}
+/*----------------------------------------------------------------*/
+double VectorMean(MATRIX *v)
+{
+  double sum,mean;
+
+  sum = VectorSum(v);
+  mean = sum/(v->rows * v->cols);
+
+  return(mean);
+}
+
+/*----------------------------------------------------------------*/
+double VectorVar(MATRIX *v, double *pMean)
+{
+  double f, mean, sum2, var;
+  int r,c;
+
+  mean = VectorMean(v);
+  if(pMean != NULL) *pMean = mean;
+
+  sum2 = 0.0;
+  for(r=1; r <= v->rows; r++){
+    for(c=1; c <= v->cols; c++) {
+      f = v->rptr[r][c] - mean;
+      sum2 += (f*f);
+    }
+  }
+
+  var = sum2/(v->rows * v->cols - 1);
+
+  return(var);
+}
+
+/*----------------------------------------------------------------*/
+double VectorStdDev(MATRIX *v, double *pMean)
+{
+  double  var;
+  var = VectorVar(v,pMean);
+  return(sqrt(var));
+}
+
+/*----------------------------------------------------------------*/
+MATRIX *MatrixDRand48(int rows, int cols, MATRIX *m)
+{
+  int r,c;
+
+  if(m==NULL) m = MatrixAlloc(rows,cols,MATRIX_REAL);
+  /* if m != NULL rows and cols are ignored */
+  
+  for(r=1; r <= m->rows; r++){
+    for(c=1; c <= m->cols; c++){
+      m->rptr[r][c] = drand48();
+    }
+  }
+
+  return(m);
+}
