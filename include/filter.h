@@ -51,6 +51,8 @@
 #define FILTER_CPOLV_MEAN              35 
 #define FILTER_CPOLV_NORMAL_CURVATURE  36
 #define FILTER_CPOLV_CURVATURE         37
+#define FILTER_CPOLV_ORDER             38
+#define FILTER_POLV_ORDER              39
 
 #define FILTER_OFFSET            0x0100
 
