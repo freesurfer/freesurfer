@@ -3,11 +3,11 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: greve $
-// Revision Date  : $Date: 2004/10/04 22:18:50 $
-// Revision       : $Revision: 1.32 $
+// Revision Date  : $Date: 2004/10/06 16:16:02 $
+// Revision       : $Revision: 1.33 $
 //
 ////////////////////////////////////////////////////////////////////
-char *MRI_INFO_VERSION = "$Revision: 1.32 $";
+char *MRI_INFO_VERSION = "$Revision: 1.33 $";
 #include <stdio.h>
 #include <sys/stat.h>
 #include <unistd.h>
@@ -36,7 +36,7 @@ static void usage_exit(void);
 static void print_help(void) ;
 static void print_version(void) ;
 
-static char vcid[] = "$Id: mri_info.c,v 1.32 2004/10/04 22:18:50 greve Exp $";
+static char vcid[] = "$Id: mri_info.c,v 1.33 2004/10/06 16:16:02 greve Exp $";
 
 char *Progname ;
 
@@ -54,6 +54,9 @@ int PrintNRows = 0;
 int PrintNSlices = 0;
 int PrintNFrames = 0;
 int PrintFormat = 0;
+int PrintColDC   = 0;
+int PrintRowDC   = 0;
+int PrintSliceDC = 0;
 
 int debug = 0;
 
@@ -129,6 +132,11 @@ static int parse_commandline(int argc, char **argv)
     else if (!strcasecmp(option, "--nslices"))   PrintNSlices = 1;
     else if (!strcasecmp(option, "--depth"))     PrintNSlices = 1;
 
+    else if (!strcasecmp(option, "--cdc"))       PrintColDC = 1;
+    else if (!strcasecmp(option, "--rdc"))       PrintRowDC = 1;
+    else if (!strcasecmp(option, "--sdc"))     PrintSliceDC = 1;
+
+
     else if (!strcasecmp(option, "--nframes"))   PrintNFrames = 1;
     else if (!strcasecmp(option, "--format")) PrintFormat = 1;
 
@@ -156,6 +164,9 @@ static void print_usage(void)
   printf("   --ncols : print number of columns (width) to stdout\n");
   printf("   --nrows : print number of rows (height) to stdout\n");
   printf("   --nslices : print number of columns (depth) to stdout\n");
+  printf("   --cdc : print column direction cosine (x_{r,a,s})\n");
+  printf("   --rdc : print row    direction cosine (y_{r,a,s})\n");
+  printf("   --sdc : print slice  direction cosine (z_{r,a,s})\n");
   printf("   --nframes : print number of frames to stdout\n");
   printf("   --format : file format\n");
   printf("\n");
@@ -171,6 +182,9 @@ static void print_help(void)
 "of information can be printed out as well by specifying the proper\n"
 "flag (eg, --tr for TR). Time is in msec. Distance is in MM. Angles\n"
 "are in radians.\n"
+"\n"
+"The direction cosine outputs (--cdc, --rdc, --sdc) correspond to \n"
+"mri_convert flags -iid, -ijd, -ikd.\n"
 );
 
 
@@ -273,6 +287,18 @@ static void do_file(char *fname)
   }
   if(PrintNFrames){
     printf("%d\n",mri->nframes);
+    return;
+  }
+  if(PrintColDC){
+    printf("%g %g %g\n",mri->x_r,mri->x_a,mri->x_s);
+    return;
+  }
+  if(PrintRowDC){
+    printf("%g %g %g\n",mri->y_r,mri->y_a,mri->y_s);
+    return;
+  }
+  if(PrintSliceDC){
+    printf("%g %g %g\n",mri->z_r,mri->z_a,mri->z_s);
     return;
   }
 
