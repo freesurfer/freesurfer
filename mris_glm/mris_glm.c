@@ -4,7 +4,7 @@
   email:   analysis-bugs@nmr.mgh.harvard.edu
   Date:    2/27/02
   Purpose: Computes glm inferences on the surface.
-  $Id: mris_glm.c,v 1.4 2002/10/25 19:50:59 greve Exp $
+  $Id: mris_glm.c,v 1.5 2002/10/25 19:59:34 greve Exp $
 
 Things to do:
   0. Documentation.
@@ -66,7 +66,7 @@ MATRIX *ReadAsciiMatrix(char *asciimtxfname);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mris_glm.c,v 1.4 2002/10/25 19:50:59 greve Exp $";
+static char vcid[] = "$Id: mris_glm.c,v 1.5 2002/10/25 19:59:34 greve Exp $";
 char *Progname = NULL;
 
 char *hemi        = NULL;
@@ -802,7 +802,16 @@ COMMAND-LINE ARGUMENTS
 File name for design matrix. The design matrix must be in an ASCII
 file. The first column must be the id assigned to the subject 
 during FreeSurfer reconstruction. The following columns are the
-the design matrix.
+the design matrix. It is possible for the design matrix to be
+ill-conditioned. This means that two columns are identical or that
+one column is equal to a weighted sum of any of the other columns.
+In this case, the matrix cannot be inverted and so the analysis
+must stop. The matrix is judged to be ill-conditioned if its 
+condition number is greater than 100000. It is possible to test
+the condition of a matrix without having to include all the 
+command-line options needed for a full analysis. Just run:
+    mris_glm --design fname
+It will print out an INFO line with the condition number.
 
 --surfmeas name 
 
