@@ -17,7 +17,7 @@
 #include "label.h"
 #include "version.h"
 
-static char vcid[] = "$Id: mris_spherical_average.c,v 1.12 2003/09/05 04:45:44 kteich Exp $";
+static char vcid[] = "$Id: mris_spherical_average.c,v 1.13 2004/06/29 16:00:42 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -53,7 +53,7 @@ main(int argc, char *argv[])
   LABEL           *area, *area_avg = NULL ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_spherical_average.c,v 1.12 2003/09/05 04:45:44 kteich Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_spherical_average.c,v 1.13 2004/06/29 16:00:42 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -152,7 +152,10 @@ main(int argc, char *argv[])
       if (!area)
         ErrorExit(ERROR_BADFILE,"%s: could not read label file %s for %s.\n",
                   Progname, data_fname, argv[i]);
-			LabelSetStat(area, 1) ;
+			if (argc-1-FIRST_SUBJECT > 1)
+				LabelSetStat(area, 1) ;
+			else
+				printf("only %d subject - copying statistics...\n", argc-1-FIRST_SUBJECT );
       area_avg = LabelSphericalCombine(mris, area, mht, mris_avg, area_avg) ;
       break ;
     case VERTEX_CURVATURE:
