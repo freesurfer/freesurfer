@@ -12,7 +12,9 @@ end
 d = dir(dirname);
 if(isempty(d))
   msg = sprintf('No runs found in %s\n',dirname);
-  qoe(msg); error(msg);
+  fprintf('%s',msg);
+  return;
+  %qoe(msg); error(msg);
 end
 
 if(~exist('runlistfile')) runlistfile = ''; end
