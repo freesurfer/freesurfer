@@ -304,6 +304,8 @@ static int   num_control_points = 0 ;
 
 // ===========================================================================
 
+void testtko ();
+
 
 // =========================================================== READING VOLUMES
 
@@ -315,6 +317,7 @@ static int   num_control_points = 0 ;
               independent of the SUBJECTS_DIR env
               variable. */
 void ReadVolumeWithMRIRead ( char * inFileOrPath );
+
 
 // ===========================================================================
 
@@ -2087,7 +2090,9 @@ int Medit(ClientData clientData, Tcl_Interp *interp, int argc, char *argv[]) {
     char isUsingMRIRead;
     char theMRIReadPath [NAME_LENGTH];
     char isLoadingFunctionalData;
-    char theFunctionalPath[256], theFunctionalStem[16];
+    char isLoadingFunctionalCompoundData;
+    char theFunctionalOverlayPath[256], theFunctionalOverlayStem[16];
+    char theFunctionalTimeCoursePath[256], theFunctionalTimeCourseStem[16];
 
     isUsingMRIRead = FALSE;
     isLoadingFunctionalData = FALSE;
@@ -2169,10 +2174,22 @@ exit(1);
     if ( argc > 3 && MATCH ( argv[argc-3], "-o" ) ) {
 
       isLoadingFunctionalData = TRUE;
-      strcpy ( theFunctionalPath, argv[argc-2] );
-      strcpy ( theFunctionalStem, argv[argc-1] );
+      strcpy ( theFunctionalOverlayPath, argv[argc-2] );
+      strcpy ( theFunctionalOverlayStem, argv[argc-1] );
       argc -= 3;
     }
+
+    if ( argc > 5 && MATCH ( argv[argc-5], "-o" ) ) {
+
+      isLoadingFunctionalCompoundData = TRUE;
+      strcpy ( theFunctionalOverlayPath,    argv[argc-4] );
+      strcpy ( theFunctionalOverlayStem,    argv[argc-3] );
+      strcpy ( theFunctionalTimeCoursePath, argv[argc-2] );
+      strcpy ( theFunctionalTimeCourseStem, argv[argc-1] );
+      argc -= 5;
+    }
+
+
 
                                    /* at this point, our remaining argv is:
               0       1     2            3         4
@@ -2342,7 +2359,20 @@ exit(1);
     if ( isLoadingFunctionalData ) {
 
       // load it.
-      FuncDis_LoadData ( theFunctionalPath, theFunctionalStem );
+      FuncDis_LoadData ( theFunctionalOverlayPath, theFunctionalOverlayStem );
+
+      // go to selection mode.
+      SetMode ( kMode_Select );
+    }
+
+    // if we have compound functional data...
+    if ( isLoadingFunctionalCompoundData ) {
+
+      // load it.
+      FuncDis_LoadCompoundData ( theFunctionalOverlayPath, 
+         theFunctionalOverlayStem,
+         theFunctionalTimeCoursePath,
+         theFunctionalTimeCourseStem );
 
       // go to selection mode.
       SetMode ( kMode_Select );
@@ -4619,7 +4649,7 @@ void ProcessClick ( int inClickX, int inClickY ) {
     SetCursorToScreenPt ( theClickedJ, theClickedI, theClickedIM );
 
     // if ctrl is down and we're not in all3 mode..
-    if ( ctrlkeypressed && !all3flag ) {
+    irangctrlkeypressed && !all3flag ) {
       
       // zoom out
        RecenterViewToScreenPt ( theClickedJ, theClickedI, theClickedIM );
@@ -8050,6 +8080,10 @@ int W_SetSurfaceVertexStyle WBEGIN
      redraw ();
      WEND
 
+int W_testtko WBEGIN
+     ERR ( 1, "just testtko" )
+     testtko ();
+     WEND
 
   // end_kt
 
@@ -8400,6 +8434,9 @@ char **argv;
           W_HideSurfaceVertices,             REND );
   Tcl_CreateCommand ( interp, "SetSurfaceVertexStyle",
           W_SetSurfaceVertexStyle,           REND );
+
+  Tcl_CreateCommand ( interp, "testtko",
+          W_testtko,           REND );
 
   // end_kt
 
@@ -9485,7 +9522,7 @@ void DrawSelectedVoxels ( char * inBuffer, int inPlane, int inPlaneNum ) {
     (unsigned char)theValue << kPixelOffset_Blue |
     (unsigned char)theIntensifiedValue << kPixelOffset_Green |
     (unsigned char)theValue << kPixelOffset_Red );
-      
+
       // go to screen points
       VoxelToScreen ( Voxel_GetX(theVoxel), Voxel_GetY(theVoxel),
           Voxel_GetZ(theVoxel), 
@@ -11108,7 +11145,6 @@ unsigned char GetVoxelValue ( tVolumeRef inVolume,
     return inVolume [ (gVolumeDimension * gVolumeDimension * z) +
         (gVolumeDimension * y) + x ];
     //  }
-  return 0;
 }
 
 unsigned char * GetVolumeSlicePtr ( tVolumeRef inVolume, int inSlice ) {
@@ -11361,3 +11397,25 @@ char IsInMode ( Interface_Mode inMode ) {
 }
 
 // end_kt
+
+
+
+
+
+
+
+
+void testtko () {
+
+  
+  if (  tkoInitWindow ( "test" ) ) {
+
+    DebugPrint "testtko returned good\n" EndDebugPrint;
+
+  } else {
+
+    DebugPrint "testtko returned bad\n" EndDebugPrint;
+  }    
+  
+
+}
