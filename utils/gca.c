@@ -2656,10 +2656,10 @@ GCAtransformAndWriteSamples(GCA *gca, MRI *mri, GCA_SAMPLE *gcas,
     xv = nint(V3_X(v_input)); yv = nint(V3_Y(v_input)); zv=nint(V3_Z(v_input));
     if (xv < 0) xv = 0 ;
     if (xv >= mri->width) xv = mri->width-1 ;
-    if (yv < 0) xv = 0 ;
-    if (yv >= mri->height) xv = mri->height-1 ;
-    if (zv < 0) xv = 0 ;
-    if (zv >= mri->depth) xv = mri->depth-1 ;
+    if (yv < 0) yv = 0 ;
+    if (yv >= mri->height) yv = mri->height-1 ;
+    if (zv < 0) zv = 0 ;
+    if (zv >= mri->depth) zv = mri->depth-1 ;
 #if 0
     if (gcas[n].label > 0)
       MRIvox(mri_dst, xv, yv, zv) = gcas[n].label ;
@@ -4296,10 +4296,10 @@ GCAnormalizeSamples(MRI *mri_in, GCA *gca, GCA_SAMPLE *gcas, int nsamples,
     xv = nint(V3_X(v_input)); yv = nint(V3_Y(v_input)); zv=nint(V3_Z(v_input));
     if (xv < 0) xv = 0 ;
     if (xv >= mri_in->width) xv = mri_in->width-1 ;
-    if (yv < 0) xv = 0 ;
-    if (yv >= mri_in->height) xv = mri_in->height-1 ;
-    if (zv < 0) xv = 0 ;
-    if (zv >= mri_in->depth) xv = mri_in->depth-1 ;
+    if (yv < 0) yv = 0 ;
+    if (yv >= mri_in->height) yv = mri_in->height-1 ;
+    if (zv < 0) zv = 0 ;
+    if (zv >= mri_in->depth) zv = mri_in->depth-1 ;
 
     if (xv == 181 && yv == 146 && zv == 128)
       DiagBreak() ;
