@@ -44,6 +44,8 @@
 #define INFO_FNAME    "COR-.info"
 #define MAX_DIM       4
 
+#define IMAX3(a, b, c)  (a > b ? (a > c ? 0 : 2) : (b > c ? 1 : 2))
+
 /*-----------------------------------------------------
                     STATIC DATA
 -------------------------------------------------------*/
@@ -299,6 +301,7 @@ MRIread(char *fpref)
     break ;
   case MRI_MINC_FILE:
     mri = mncRead(fname, 1, frame) ;
+printf("%d,%d,%d,%d\n", mri->xdir, mri->ydir, mri->zdir, mri->slice_direction);
     if (!mri)
       return(NULL) ;
    break ;
@@ -2429,6 +2432,13 @@ genesisRead(char *fname, int read_volume, int frame)
   float d_fov_x, d_fov_y, d_fov_z;
   short *pixel_data = NULL;
   char fname_mod[STR_LEN];
+float top_left[2][3], top_right[2][3], bottom_right[2][3], normal[2][3];
+int ras_index = 0;
+float coords_in[12];
+int i, j;
+float x_vec[3], y_vec[3], z_vec[3];
+int xmax, ymax, zmax;
+int xsign, ysign, zsign;
 
   frame = 0; /* fix this */
 
@@ -2516,8 +2526,9 @@ genesisRead(char *fname, int read_volume, int frame)
 
   mri->fov = d_fov_x;
 
+/*
   mri->slice_direction = orderShortBytes(*((short *)(&image_header[114])));
-
+*/
   fclose(fp) ;
 
   mri->imnr0 = 1 ;
@@ -2528,6 +2539,8 @@ genesisRead(char *fname, int read_volume, int frame)
   mri->te = 0 ;
   mri->ti = 0 ;
   strcpy(mri->fname, fname) ;
+
+  mri->slice_direction = MRI_UNDEFINED;
 
   if(read_volume)
   {
@@ -2567,14 +2580,161 @@ genesisRead(char *fname, int read_volume, int frame)
 
       short_buffer_to_image(pixel_data, mri, slice_number - min_slice_number, 0);
 
+      if(ras_index < 2)
+      {
+        fseek(fp, offset_to_image_header + 142, SEEK_SET);
+        fread(coords_in, sizeof(float), 12, fp);
+        normal[ras_index][0] = orderFloatBytes(coords_in[0]);
+        normal[ras_index][1] = orderFloatBytes(coords_in[1]);
+        normal[ras_index][2] = orderFloatBytes(coords_in[2]);
+        top_left[ras_index][0] = orderFloatBytes(coords_in[3]);
+        top_left[ras_index][1] = orderFloatBytes(coords_in[4]);
+        top_left[ras_index][2] = orderFloatBytes(coords_in[5]);
+        top_right[ras_index][0] = orderFloatBytes(coords_in[6]);
+        top_right[ras_index][1] = orderFloatBytes(coords_in[7]);
+        top_right[ras_index][2] = orderFloatBytes(coords_in[8]);
+        bottom_right[ras_index][0] = orderFloatBytes(coords_in[9]);
+        bottom_right[ras_index][1] = orderFloatBytes(coords_in[10]);
+        bottom_right[ras_index][2] = orderFloatBytes(coords_in[11]);
+        ras_index++;
+      }
+
       fclose(fp) ;
     }
 
     free(pixel_data);
 
+for(i = 0;i < 2;i++)
+  for(j = 0;j < 3;j++)
+   printf("normal[%d][%d]: %g\n", i, j, normal[i][j]);
+
+for(i = 0;i < 2;i++)
+  for(j = 0;j < 3;j++)
+   printf("top_left[%d][%d]: %g\n", i, j, top_left[i][j]);
+
+for(i = 0;i < 2;i++)
+  for(j = 0;j < 3;j++)
+   printf("top_right[%d][%d]: %g\n", i, j, top_right[i][j]);
+
+for(i = 0;i < 2;i++)
+  for(j = 0;j < 3;j++)
+   printf("bottom_right[%d][%d]: %g\n", i, j, bottom_right[i][j]);
+
+    x_vec[0] = (top_right[0][0] - top_left[0][0]);
+    x_vec[1] = (top_right[0][1] - top_left[0][1]);
+    x_vec[2] = (top_right[0][2] - top_left[0][2]);
+
+    y_vec[0] = (top_right[0][0] - bottom_right[0][0]);
+    y_vec[1] = (top_right[0][1] - bottom_right[0][1]);
+    y_vec[2] = (top_right[0][2] - bottom_right[0][2]);
+
+    z_vec[0] = top_left[1][0] - top_left[0][0];
+    z_vec[1] = top_left[1][1] - top_left[0][1];
+    z_vec[2] = top_left[1][2] - top_left[0][2];
+
+    /* determine the axis reordering that's needed */
+    /* start with the x axis; is the R, A, or S coordinate the longest? */
+
+printf("x: %g,%g,%g\n", x_vec[0], x_vec[1], x_vec[2]);
+printf("y: %g,%g,%g\n", y_vec[0], y_vec[1], y_vec[2]);
+printf("z: %g,%g,%g\n", z_vec[0], z_vec[1], z_vec[2]);
+
+xmax = IMAX3(abs(x_vec[0]), abs(x_vec[1]), abs(x_vec[2]));
+ymax = IMAX3(abs(y_vec[0]), abs(y_vec[1]), abs(y_vec[2]));
+zmax = IMAX3(abs(z_vec[0]), abs(z_vec[1]), abs(z_vec[2]));
+
+xsign = SIGN(x_vec[xmax]);
+ysign = SIGN(y_vec[ymax]);
+zsign = SIGN(z_vec[zmax]);
+/**/
+    printf("max3(x_vec) = %c1 * %d\n", (xsign == 1 ? '+' : '-'), xmax);
+    printf("max3(y_vec) = %c1 * %d\n", (ysign == 1 ? '+' : '-'), ymax);
+    printf("max3(z_vec) = %c1 * %d\n", (zsign == 1 ? '+' : '-'), zmax);
+
+    if(xmax == 0)
+      mri->xdir = -XDIM*xsign;
+    if(xmax == 1)
+      mri->xdir = ZDIM*xsign;
+    if(xmax == 2)
+      mri->xdir = YDIM*xsign;
+
+    if(ymax == 0)
+      mri->ydir = -XDIM*ysign;
+    if(ymax == 1)
+      mri->ydir = ZDIM*ysign;
+    if(ymax == 2)
+      mri->ydir = YDIM*ysign;
+
+    if(zmax == 0)
+      mri->zdir = -XDIM*zsign;
+    if(zmax == 1)
+      mri->zdir = ZDIM*zsign;
+    if(zmax == 2)
+      mri->zdir = YDIM*zsign;
+
+    /* x axis */
+/*
+    if(fabs(x_vec[0]) > fabs(x_vec[1]))
+    {
+      if(fabs(x_vec[0]) > fabs(x_vec[2]))
+        mri->xdir = -XDIM * SIGN(x_vec[0]);
+      else
+        mri->xdir = YDIM * SIGN(x_vec[2]);
+    }
+    else
+    {
+      if(fabs(x_vec[1]) > fabs(x_vec[2]))
+        mri->xdir = ZDIM * SIGN(x_vec[1]);
+      else
+        mri->xdir = YDIM * SIGN(x_vec[2]);
+    }
+*/
+    /* y axis */
+/*
+    if(fabs(y_vec[0]) > fabs(y_vec[1]))
+    {
+      if(fabs(y_vec[0]) > fabs(y_vec[2]))
+        mri->ydir = -XDIM * SIGN(y_vec[0]);
+      else
+        mri->ydir = YDIM * SIGN(y_vec[2]);
+    }
+    else
+    {
+      if(fabs(y_vec[1]) > fabs(y_vec[2]))
+        mri->ydir = ZDIM * SIGN(y_vec[1]);
+      else
+        mri->ydir = YDIM * SIGN(y_vec[2]);
+    }
+*/    
+    /* z axis */
+/*
+    if(fabs(z_vec[0]) > fabs(z_vec[1]))
+    {
+      if(fabs(z_vec[0]) > fabs(z_vec[2]))
+        mri->zdir = -XDIM * SIGN(z_vec[0]);
+      else
+        mri->zdir = YDIM * SIGN(z_vec[2]);
+    }
+    else
+    {
+      if(fabs(z_vec[1]) > fabs(z_vec[2]))
+        mri->zdir = ZDIM * SIGN(z_vec[1]);
+      else
+        mri->zdir = YDIM * SIGN(z_vec[2]);
+    }
+*/
+printf("%d, %d, %d\n", mri->xdir, mri->ydir, mri->zdir);
+
+mri->xdir = 1;
+mri->ydir = 2;
+mri->zdir = 3;
+printf("%d, %d, %d\n", mri->xdir, mri->ydir, mri->zdir);
+/**/
   } /* end if(read_volume) */
 
+printf("direction is %d\n", mri->slice_direction);
 
+/*
   if(mri->slice_direction == 2)
   {
     mri->xdir = XDIM;
@@ -2593,7 +2753,7 @@ genesisRead(char *fname, int read_volume, int frame)
     mri->ydir = YDIM;
     mri->zdir = ZDIM;
   }
-
+*/
   return(mri);
 
 } /* end genesisRead() */
