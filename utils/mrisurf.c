@@ -15735,8 +15735,8 @@ MRIScomputeWhiteSurfaceValues(MRI_SURFACE *mris, MRI *mri_brain,
 #endif
 int
 MRIScomputeBorderValues(MRI_SURFACE *mris,MRI *mri_brain,
-                        MRI *mri_smooth, Real inside_hi, Real inside_low,
-                        Real outside_low)
+                        MRI *mri_smooth, Real inside_hi, Real border_hi,
+                        Real border_low, Real outside_low)
 {
   Real    val, x, y, z, max_mag_val, xw, yw, zw,mag,max_mag, max_mag_dist=0.0f,
           previous_val, next_val, min_val,inward_dist,outward_dist,xw1,yw1,zw1;
@@ -15802,7 +15802,7 @@ MRIScomputeBorderValues(MRI_SURFACE *mris,MRI *mri_brain,
       z = v->z + v->nz*(dist-1) ;
       MRIworldToVoxel(mri_brain, x, y, z, &xw, &yw, &zw) ;
       MRIsampleVolume(mri_brain, xw, yw, zw, &previous_val) ;
-      if (previous_val < inside_hi && previous_val > inside_low)
+      if (previous_val < inside_hi && previous_val > border_low)
       {
         x = v->x + v->nx*dist ; y = v->y + v->ny*dist ; z = v->z + v->nz*dist ;
         MRIworldToVoxel(mri_brain, x, y, z, &xw, &yw, &zw) ;
@@ -15821,7 +15821,7 @@ MRIScomputeBorderValues(MRI_SURFACE *mris,MRI *mri_brain,
           z = v->z + v->nz*(dist+1) ;
           MRIworldToVoxel(mri_brain, x, y, z, &xw, &yw, &zw) ;
           MRIsampleVolume(mri_brain, xw, yw, zw, &next_val) ;
-          if (next_val >= outside_low && next_val < inside_low)
+          if (next_val >= outside_low && next_val < border_hi)
           {          
             max_mag_dist = dist ;
             max_mag = fabs(mag) ;
@@ -15831,22 +15831,24 @@ MRIScomputeBorderValues(MRI_SURFACE *mris,MRI *mri_brain,
       }
     }
 
-    if (max_mag_val > 0)
+    if (max_mag_val > 0)   /* found the border value */
     {
-      if (max_mag_val > inside_low)
-        max_mag_val = inside_low ;
+#if 1
+      if (max_mag_val > border_low)
+        max_mag_val = border_low ;
+#endif
       mean_dist += max_mag_dist ;
       v->val = max_mag_val ;
       v->mean = max_mag ;
       mean_border += max_mag_val ; total_vertices++ ;
       v->marked = 1 ;
     }
-    else
+    else         /* couldn't find the border value */
     {
       if (min_val < 1000)
       {
-        if (min_val > inside_low)
-          min_val = inside_low ;
+        if (min_val > border_low)  /* found a low value, but not low enough */
+          min_val = border_low ;
         v->val = min_val ;
         mean_border += min_val ; total_vertices++ ;
         v->marked = 1 ;
