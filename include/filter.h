@@ -55,6 +55,7 @@
 #define FILTER_POLV_ORDER              39
 #define FILTER_POLV_ZSCORE             40
 #define FILTER_CPOLV_ZSCORE            41
+#define FILTER_WM_STRAND_SIZE          42
 
 #define FILTER_OFFSET            0x0100
 
