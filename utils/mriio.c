@@ -7944,28 +7944,29 @@ mghRead(char *fname, int read_volume, int frame)
   case MRI_TENSOR:  bpv = sizeof(float) ; nframes = 9 ; break ;
   }
   bytes = width * height * bpv ;  /* bytes per slice */
-  if (frame >= 0)
-  {
-    start_frame = end_frame = frame ;
-    fseek(fp, frame*width*height*depth*bpv, SEEK_CUR) ;
-    nframes = 1 ;
-  }
-  else
-  {  /* hack - # of frames < -1 means to only read in that
-        many frames. Otherwise I would have had to change the whole
-        MRIread interface and that was too much of a pain. Sorry.
-     */
-    if (frame < -1)  
-    { nframes = frame*-1 ; } 
-    start_frame = 0 ; end_frame = nframes-1 ;
-  }
   if (!read_volume)
   {
     mri = MRIallocHeader(width, height, depth, type) ;
     mri->dof = dof ;
+    fseek(fp, mri->nframes*width*height*depth*bpv, SEEK_CUR) ;
   }
   else
   {
+		if (frame >= 0)
+		{
+			start_frame = end_frame = frame ;
+			fseek(fp, frame*width*height*depth*bpv, SEEK_CUR) ;
+			nframes = 1 ;
+		}
+		else
+		{  /* hack - # of frames < -1 means to only read in that
+					many frames. Otherwise I would have had to change the whole
+					MRIread interface and that was too much of a pain. Sorry.
+			 */
+			if (frame < -1)  
+			{ nframes = frame*-1 ; } 
+			start_frame = 0 ; end_frame = nframes-1 ;
+		}
     if (type == MRI_UCHAR)
       buf = (BUFTYPE *)calloc(bytes, sizeof(BUFTYPE)) ;
     else
