@@ -3,9 +3,9 @@
 // original: written by Bruce Fischl (June 16, 1998)
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2004/12/30 20:43:02 $
-// Revision       : $Revision: 1.5 $
+// Revision Author: $Author: tosa $
+// Revision Date  : $Date: 2005/01/07 20:57:22 $
+// Revision       : $Revision: 1.6 $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -26,7 +26,7 @@
 #include "version.h"
 #include "label.h"
 
-static char vcid[] = "$Id: mris_refine_surfaces.c,v 1.5 2004/12/30 20:43:02 fischl Exp $";
+static char vcid[] = "$Id: mris_refine_surfaces.c,v 1.6 2005/01/07 20:57:22 tosa Exp $";
 
 int debug__ = 0; /// tosa debug
 
@@ -154,7 +154,7 @@ main(int argc, char *argv[])
   LT            *lt =0;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_refine_surfaces.c,v 1.5 2004/12/30 20:43:02 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_refine_surfaces.c,v 1.6 2005/01/07 20:57:22 tosa Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -307,8 +307,7 @@ main(int argc, char *argv[])
   sprintf(fname, "%s/%s/mri/%s", sdir, sname, argv[3]) ;
   if(MGZ) sprintf(fname, "%s.mgz",fname);
   fprintf(stderr, "reading hires volume %s...\n", fname) ;
-  mri_hires = MRIread(fname);
-  mri_hires_pial = MRIread(fname); // cached volume
+  mri_hires = mri_hires_pial = MRIread(fname); 
   if (!mri_hires)
     ErrorExit(ERROR_NOFILE, "%s: could not read input volume %s",
               Progname, fname) ;
@@ -427,10 +426,10 @@ main(int argc, char *argv[])
     fprintf(stderr, "computing class statistics...\n");
 #if 0
     MRIcomputeClassStatistics(mri_hires, mri_tmp, 30, WHITE_MATTER_MEAN,
-															&white_mean, &white_std, &gray_mean,
-															&gray_std) ;
+			      &white_mean, &white_std, &gray_mean,
+			      &gray_std) ;
 #else
-		MRIScomputeClassStatistics(mris, mri_hires,&white_mean, &white_std, &gray_mean, &gray_std) ;
+    MRIScomputeClassStatistics(mris, mri_hires,&white_mean, &white_std, &gray_mean, &gray_std) ;
 #endif
     
     if (!min_gray_at_white_border_set)
@@ -537,16 +536,16 @@ main(int argc, char *argv[])
     MRISprintTessellationStats(mris, stderr) ;
     if (inverted_contrast)
       MRIScomputeInvertedGrayWhiteBorderValues(mris, mri_hires, mri_smooth, 
-																							 MAX_WHITE, max_border_white, min_border_white,
-																							 min_gray_at_white_border, 
-																							 max_border_white /*max_gray*/, current_sigma, 
-																							 2*max_thickness, parms.fp) ;
+					       MAX_WHITE, max_border_white, min_border_white,
+					       min_gray_at_white_border, 
+					       max_border_white /*max_gray*/, current_sigma, 
+					       2*max_thickness, parms.fp) ;
     else
       MRIScomputeBorderValues(mris, mri_hires, mri_smooth, 
-															MAX_WHITE, max_border_white, min_border_white,
-															min_gray_at_white_border, 
-															max_border_white /*max_gray*/, current_sigma, 
-															2*max_thickness, parms.fp, GRAY_WHITE) ;
+			      MAX_WHITE, max_border_white, min_border_white,
+			      min_gray_at_white_border, 
+			      max_border_white /*max_gray*/, current_sigma, 
+			      2*max_thickness, parms.fp, GRAY_WHITE) ;
     MRISfindExpansionRegions(mris) ;
     if (vavgs)
     {
@@ -557,7 +556,7 @@ main(int argc, char *argv[])
         VERTEX *v ;
         v = &mris->vertices[Gdiag_no] ;
         fprintf(stderr,"v %d, target value = %2.1f, mag = %2.1f, dist=%2.2f\n",
-								Gdiag_no, v->val, v->mean, v->d) ;
+		Gdiag_no, v->val, v->mean, v->d) ;
       }
     }
 
@@ -623,21 +622,21 @@ main(int argc, char *argv[])
               suffix);
       MRISprintTessellationStats(mris, stderr) ;
 
-			//  restore to hires for further processing
-			MRISsurf2surf(mris, mri_hires, hires_lta);
+      //  restore to hires for further processing
+      MRISsurf2surf(mris, mri_hires, hires_lta);
     }
   }
   else   /* read in previously generated white matter surface */
   {
     sprintf(fname, "%s", white_matter_name) ;
-		LTAinvert(hires_lta); // get inverse
-		MRISsurf2surf(mris, mri_filled, hires_lta);
-		LTAinvert(hires_lta); // restore the original
+    LTAinvert(hires_lta); // get inverse
+    MRISsurf2surf(mris, mri_filled, hires_lta);
+    LTAinvert(hires_lta); // restore the original
     if (MRISreadVertexPositions(mris, fname) != NO_ERROR)
       ErrorExit(Gerror, "%s: could not read white matter surfaces.",
                 Progname) ;
-		//  restore to hires for further processing
-		MRISsurf2surf(mris, mri_hires, hires_lta);
+    //  restore to hires for further processing
+    MRISsurf2surf(mris, mri_hires, hires_lta);
     MRIScomputeMetricProperties(mris) ;
   }
   
@@ -670,28 +669,25 @@ main(int argc, char *argv[])
   fprintf(stderr, "repositioning cortical surface to gray/csf boundary.\n") ;
   parms.l_repulse = 0 ;
 
-	if (orig_pial != NULL)
-	{
-		//////////////////////////////////////////////////////////////////////////
-		// set vertices to orig_pial positions
-		//////////////////////////////////////////////////////////////////////////
-		printf("reading initial pial vertex positions from %s...\n", orig_pial) ;
-		LTAinvert(hires_lta); // get inverse
-		MRISsurf2surf(mris, mri_filled, hires_lta);
-		LTAinvert(hires_lta); // restore the original
-		if (MRISreadVertexPositions(mris, orig_pial) != NO_ERROR)
-			ErrorExit(Gerror, "reading orig pial positions failed") ;
+  if (orig_pial != NULL)
+  {
+    //////////////////////////////////////////////////////////////////////////
+    // set vertices to orig_pial positions
+    //////////////////////////////////////////////////////////////////////////
+    printf("reading initial pial vertex positions from %s...\n", orig_pial) ;
+    LTAinvert(hires_lta); // get inverse
+    MRISsurf2surf(mris, mri_filled, hires_lta);
+    LTAinvert(hires_lta); // restore the original
+    if (MRISreadVertexPositions(mris, orig_pial) != NO_ERROR)
+      ErrorExit(Gerror, "reading orig pial positions failed") ;
 		
-		/////////////////////////////////////////////////////////////////////////
-		// convert the surface into hires volume
-		/////////////////////////////////////////////////////////////////////////
-		MRISsurf2surf(mris, mri_hires, hires_lta);
-	}
+    /////////////////////////////////////////////////////////////////////////
+    // convert the surface into hires volume
+    /////////////////////////////////////////////////////////////////////////
+    MRISsurf2surf(mris, mri_hires, hires_lta);
+  }
 
-  ////////////////////////////////////////////////////////////////////////
-  // mri_hires was modified and thus use cached mri_hires
-  ////////////////////////////////////////////////////////////////////////
-  MRIfree(&mri_hires);
+  // we need to retain the mask
   mri_hires = mri_hires_pial ;
 
   /////////////////////////////////////////////////////////////////////////
@@ -717,20 +713,20 @@ main(int argc, char *argv[])
       */
       if (inverted_contrast == 0)
       {
-				if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
-					MRIwrite(mri_hires, "pial_masked.mgh") ;
+	if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+	  MRIwrite(mri_hires, "pial_masked.mgh") ;
       }
       if (inverted_contrast)
-				MRIScomputeInvertedPialBorderValues(mris, mri_hires, mri_smooth, max_gray, 
-																						max_gray_at_csf_border, min_gray_at_csf_border,
-																						min_csf,(max_csf+max_gray_at_csf_border)/2,
-																						current_sigma, 2*max_thickness, parms.fp) ;
+	MRIScomputeInvertedPialBorderValues(mris, mri_hires, mri_smooth, max_gray, 
+					    max_gray_at_csf_border, min_gray_at_csf_border,
+					    min_csf,(max_csf+max_gray_at_csf_border)/2,
+					    current_sigma, 2*max_thickness, parms.fp) ;
       else
-				MRIScomputeBorderValues(mris, mri_hires, mri_smooth, max_gray, 
-																max_gray_at_csf_border, min_gray_at_csf_border,
-																min_csf,(max_csf+max_gray_at_csf_border)/2,
-																current_sigma, 2*max_thickness, parms.fp,
-																GRAY_CSF) ;
+	MRIScomputeBorderValues(mris, mri_hires, mri_smooth, max_gray, 
+				max_gray_at_csf_border, min_gray_at_csf_border,
+				min_csf,(max_csf+max_gray_at_csf_border)/2,
+				current_sigma, 2*max_thickness, parms.fp,
+				GRAY_CSF) ;
       if (vavgs)
       {
         fprintf(stderr, "averaging target values for %d iterations...\n",vavgs) ;
