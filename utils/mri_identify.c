@@ -115,6 +115,8 @@ int mri_identify(char *fname_passed)
     return(BSHORT_FILE);
   else if(is_bfloat(fname))
     return(BFLOAT_FILE);
+  else if (IsSiemensDICOM(fname))
+    return(SIEMENS_DICOM_FILE);
   else if (IsDICOM(fname))
     return(DICOM_FILE);
   else if(is_genesis(fname))
@@ -139,8 +141,6 @@ int mri_identify(char *fname_passed)
     return(OTL_FILE);
   else if(is_gdf(fname))
     return(GDF_FILE);
-  else if (IsSiemensDICOM(fname))
-    return(SIEMENS_DICOM_FILE);
   else
     return(MRI_VOLUME_TYPE_UNKNOWN);
 
