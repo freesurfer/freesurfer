@@ -1,10 +1,10 @@
 /*============================================================================
  Copyright (c) 1996 Martin Sereno and Anders Dale
 =============================================================================*/
-/*   $Id: tkregister2.c,v 1.23 2004/07/02 21:42:53 tosa Exp $   */
+/*   $Id: tkregister2.c,v 1.24 2004/08/12 04:13:34 greve Exp $   */
 
 #ifndef lint
-static char vcid[] = "$Id: tkregister2.c,v 1.23 2004/07/02 21:42:53 tosa Exp $";
+static char vcid[] = "$Id: tkregister2.c,v 1.24 2004/08/12 04:13:34 greve Exp $";
 #endif /* lint */
 
 #define TCL
@@ -159,6 +159,7 @@ static int  singledash(char *flag);
 static int  stringmatch(char *str1, char *str2);
 static int nth_is_arg(int nargc, char **argv, int nth);
 static int checkfmt(char *fmt);
+static int MRIisConformant(MRI *vol);
 
 #ifndef TRUE
 #  define TRUE 1
@@ -318,6 +319,8 @@ MATRIX *Tscreen, *Qtarg, *Qmov;
 char *fslregfname;
 char *fslregoutfname;
 MATRIX *invDmov, *FSLRegMat, *invFSLRegMat; 
+MATRIX *Mtc, *invMtc, *Vt2s,*Ttargcor, *invTtargcor; 
+MATRIX *Dtargcor, *invDtargcor, *Dtarg, *invDtarg;
 
 int LoadSurf = 0, UseSurf=0;
 char *surfname = "white", surf_path[2000];
@@ -346,6 +349,8 @@ int Register(ClientData clientData,Tcl_Interp *interp, int argc, char *argv[])
   dump_options(stdout);
   printf("%s\n",vcid);
   printf("Diagnostic Level %d\n",Gdiag_no);
+
+  Mtc = MatrixIdentity(4,NULL);
 
   /* read the registration here to get subjectid */
   if(!mkheaderreg && fslregfname == NULL && !fstal) 
@@ -444,7 +449,6 @@ int Register(ClientData clientData,Tcl_Interp *interp, int argc, char *argv[])
     MRIfree(&targ_vol);
     targ_vol = mritmp;
   }
-
   if(!fstal || !fixxfm) Ttarg = MRIxfmCRS2XYZtkreg(targ_vol);
   else                  Ttarg = MRIxfmCRS2XYZ(targ_vol,0);
   invTtarg = MatrixInverse(Ttarg,NULL);
@@ -524,6 +528,9 @@ int Register(ClientData clientData,Tcl_Interp *interp, int argc, char *argv[])
     if(fscale_2 == 0) fscale_2 = .15;
     float2int = FLT2INT_ROUND;
   }
+
+  printf("---- Input registration matrix --------\n");
+  MatrixPrint(stdout,RegMat);
 
   pname = subjectid;
   printf("subject = %s\n",subjectid);
@@ -622,6 +629,73 @@ int Register(ClientData clientData,Tcl_Interp *interp, int argc, char *argv[])
     printf("that a .bhdr file exists\n");
   }
 
+  if(! MRIisConformant(targ_vol) ){
+    printf("ERROR: target volume is non-conformant\n");
+    exit(1);
+    printf("WARNING: conforming target. Cardinal axis may be \n");
+    printf("rotated but the registration will be correct. \n");
+    mritmp = MRIallocSequence(256,256,256, MRI_FLOAT, 1) ;
+    mritmp->xsize = 1;
+    mritmp->ysize = 1;
+    mritmp->zsize = 1;
+    mritmp->x_r = targ_vol->x_r;
+    mritmp->x_a = targ_vol->x_a;
+    mritmp->x_s = targ_vol->x_s;
+    mritmp->y_r = targ_vol->y_r;
+    mritmp->y_a = targ_vol->y_a;
+    mritmp->y_s = targ_vol->y_s;
+    mritmp->z_r = targ_vol->z_r;
+    mritmp->z_a = targ_vol->z_a;
+    mritmp->z_s = targ_vol->z_s;
+    mritmp->c_r = targ_vol->c_r;
+    mritmp->c_a = targ_vol->c_a;
+    mritmp->c_s = targ_vol->c_s;
+
+    Ttargcor  = MRIxfmCRS2XYZtkreg(mritmp);
+    Dtargcor  = MRIxfmCRS2XYZ(mritmp,0);
+    Dtarg     = MRIxfmCRS2XYZ(targ_vol,0);
+    invDtarg  = MatrixInverse(Dtarg,0);
+    Vt2s = MatrixMultiply(invDtarg,Dtargcor,NULL);
+
+    invTtargcor  = MatrixInverse(Ttargcor,NULL);
+    invDtargcor  = MatrixInverse(Dtargcor,NULL);
+    Mtc = MatrixMultiply(Ttargcor,invDtargcor,NULL);
+    MatrixMultiply(Mtc,Dtarg,Mtc);
+    MatrixMultiply(Mtc,invTtarg,Mtc);
+
+    printf("Ttc -------------\n");
+    MatrixPrint(stdout,Ttargcor);
+    printf("Dtc -------------\n");
+    MatrixPrint(stdout,Dtargcor);
+    printf("Dt -------------\n");
+    MatrixPrint(stdout,Dtarg);
+    printf("Tt -------------\n");
+    MatrixPrint(stdout,Ttarg);
+    printf("Mtc -------------\n");
+    MatrixPrint(stdout,Mtc);
+
+    MRIvol2Vol(targ_vol, mritmp, Vt2s, SAMPLE_TRILINEAR, 0);
+    MRIfree(&targ_vol);
+    targ_vol = mritmp;
+
+    MatrixFree(&Ttargcor);
+    MatrixFree(&invTtargcor);
+    MatrixFree(&Dtargcor);
+    MatrixFree(&Dtarg);
+    MatrixFree(&invDtarg);
+    MatrixFree(&Vt2s);
+    //MRIwrite(targ_vol,"cor.mgh");
+  }
+  //else Mtc already equals identity
+  invMtc = MatrixInverse(Mtc,NULL);
+
+  MatrixMultiply(RegMat,invMtc,RegMat);
+  for (i=0;i<4;i++){
+    for (j=0;j<4;j++){
+      tm[i][j] = RegMat->rptr[i+1][j+1];
+    }
+  }
+
   xdim_2 = mov_vol->width;
   ydim_2 = mov_vol->height;
   imnr1_2 = mov_vol->depth-1;
@@ -656,9 +730,6 @@ int Register(ClientData clientData,Tcl_Interp *interp, int argc, char *argv[])
 
   binbuff = (unsigned char *)calloc(3*xdim*ydim,sizeof(char));
   
-  printf("---- Input registration matrix --------\n");
-  MatrixPrint(stdout,RegMat);
-
   if(tkrtitle == NULL) tkrtitle = subjectid;
 
   printf("Opening window %s\n",pname);fflush(stdout);
@@ -2454,18 +2525,21 @@ void write_reg(char *fname)
   extern char *fslregoutfname;
   extern int fstal;
   extern char talxfmfile[2000];
-  extern MATRIX *RegMat;
+  extern MATRIX *RegMat, *Mtc;
+  static MATRIX *RegMatTmp=NULL;
   int i,j;
   FILE *fp;
 
   editedmatrix = FALSE;
 
+  RegMatTmp = MatrixMultiply(RegMat,Mtc,RegMatTmp);
+
   printf("RegMat ---------------------------\n");
-  MatrixPrint(stdout,RegMat);
+  MatrixPrint(stdout,RegMatTmp);
 
   if(fstal){
     make_backup(talxfmfile);
-    regio_write_mincxfm(talxfmfile,RegMat);
+    regio_write_mincxfm(talxfmfile,RegMatTmp);
     return;
   }
 
@@ -2481,7 +2555,8 @@ void write_reg(char *fname)
   fprintf(fp,"%f\n",fscale_2);
   for (i=0;i<4;i++) {
     for (j=0;j<4;j++)
-      fprintf(fp,"%e ",tm[i][j]);
+      //fprintf(fp,"%e ",tm[i][j]);
+      fprintf(fp,"%e ",RegMatTmp->rptr[i+1][j+1]);
     fprintf(fp,"\n");
   }
   fprintf(fp,"round\n");
@@ -2496,12 +2571,15 @@ void write_reg(char *fname)
 void write_fslreg(char *fname)
 {
   extern MRI *mov_vol, *targ_vol;
-  extern MATRIX *RegMat;
+  extern MATRIX *RegMat, *Mtc;
+  static MATRIX *RegMatTmp=NULL;
   int i,j;
   FILE *fp;
   MATRIX *Mfsl;
 
-  Mfsl = MRItkreg2FSL(targ_vol, mov_vol, RegMat);
+  RegMatTmp = MatrixMultiply(RegMat,Mtc,RegMatTmp);
+
+  Mfsl = MRItkreg2FSL(targ_vol, mov_vol, RegMatTmp);
 
   fp = fopen(fname,"w");
   if(fp == NULL){
@@ -3474,7 +3552,7 @@ char **argv;
   int nargs;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: tkregister2.c,v 1.23 2004/07/02 21:42:53 tosa Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: tkregister2.c,v 1.24 2004/08/12 04:13:34 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -3732,3 +3810,13 @@ static void Prompt(interp, partial)
   fflush(stdout);
 }
 
+static int MRIisConformant(MRI *vol)
+{
+  if(fabs(vol->xsize - 1) > .001) return(0);
+  if(fabs(vol->ysize - 1) > .001) return(0);
+  if(fabs(vol->zsize - 1) > .001) return(0);
+  if(vol->width  != 256) return(0);
+  if(vol->depth  != 256) return(0);
+  if(vol->height != 256) return(0);
+  return(1);
+}
