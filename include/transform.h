@@ -72,6 +72,7 @@ int FixMNITal(float  xmni, float  ymni, float  zmni,
 
 
 TRANSFORM *TransformRead(char *fname) ;
+TRANSFORM *TransformIdentity(void) ;
 int       TransformFree(TRANSFORM **ptrans) ;
 int       TransformSample(TRANSFORM *transform, int xv, int yv, int zv, float *px, float *py, float *pz) ;
 int       TransformSampleInverse(TRANSFORM *transform, int xv, int yv, int zv, 

@@ -13,6 +13,7 @@ typedef struct
   int     nbins ;
   float   *bins ;   /* upper end of the range that maps to this bin */
   float   *counts ; /* # of voxels which map to this bin */
+	float   bin_size ;
 } HISTOGRAM, HISTO ;
 
 int       HISTOfree(HISTOGRAM **phisto) ;

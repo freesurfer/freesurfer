@@ -16,6 +16,7 @@ int triangle_ray_intersect(double orig_pt[3], double dir[3], double U0[3],
 
 #define DOT(v1,v2) (v1[0]*v2[0]+v1[1]*v2[1]+v1[2]*v2[2])
 #define VLEN(v)    (sqrt(DOT(v,v)))
+#define VZERO(v)   (FZERO(DOT(v,v)))
 #define SUB(dest,v1,v2)          \
             dest[0]=v1[0]-v2[0]; \
             dest[1]=v1[1]-v2[1]; \

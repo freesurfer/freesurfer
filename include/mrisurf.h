@@ -706,6 +706,8 @@ int   MRISmoveSurface(MRI_SURFACE *mris, MRI *mri_brain,
 int   MRISscaleVals(MRI_SURFACE *mris, float scale) ;
 int   MRISsetVals(MRI_SURFACE *mris, float val) ;
 int   MRISaverageVals(MRI_SURFACE *mris, int navgs) ;
+int   MRISaverageVal2baks(MRI_SURFACE *mris, int navgs) ;
+int   MRISaverageVal2s(MRI_SURFACE *mris, int navgs) ;
 int   MRISaverageMarkedVals(MRI_SURFACE *mris, int navgs) ;
 int   MRISaverageEveryOtherVertexPositions(MRI_SURFACE *mris, int navgs, 
                                            int which) ;
@@ -791,9 +793,18 @@ double MRIScomputeFaceAreaStats(MRI_SURFACE *mris, double *psigma,
 int MRISprintTessellationStats(MRI_SURFACE *mris, FILE *fp) ;
 int MRISmergeIcosahedrons(MRI_SURFACE *mri_src, MRI_SURFACE *mri_dst) ;
 int MRISinverseSphericalMap(MRI_SURFACE *mris, MRI_SURFACE *mris_ico) ;
+typedef struct
+{
+	int     max_patches ;
+	int     max_unchanged ;
+	double  l_mri ;
+	double  l_curv ;
+	double  l_unmri ;
+} TOPOLOGY_PARMS ;
 MRI_SURFACE *MRIScorrectTopology(MRI_SURFACE *mris, 
                                  MRI_SURFACE *mris_corrected, MRI *mri,
-                                 int nsmooth) ;
+                                 int nsmooth,
+																 TOPOLOGY_PARMS *parms) ;
 int MRISripDefectiveFaces(MRI_SURFACE *mris) ;
 int MRISunrip(MRI_SURFACE *mris) ;
 int MRISdivideLongEdges(MRI_SURFACE *mris, double thresh) ;
@@ -910,6 +921,9 @@ MRI *MRISsmoothMRI(MRIS *Surf, MRI *Src, int nSmoothSteps, MRI *Targ);
 int  MRISclearFlags(MRI_SURFACE *mris, int flags) ;
 int  MRISsetFlags(MRI_SURFACE *mris, int flags) ;
 
+int MRISmedianFilterVals(MRI_SURFACE *mris, int nmedians) ;
+int MRISmedianFilterVal2s(MRI_SURFACE *mris, int nmedians) ;
+int MRISmedianFilterVal2baks(MRI_SURFACE *mris, int nmedians) ;
 #endif
 
 
