@@ -9,7 +9,7 @@
 
 using namespace std;
 
-class TestListener : public TclCommandListener {
+class TestListenerCounter : public TclCommandListener {
 
 protected:
   int mID;
@@ -22,9 +22,9 @@ protected:
   list<ListenCount*> mlListenCounts;
 
 public:
-  TestListener( int const iID ) : mID( iID ) { }
+  TestListenerCounter( int const iID ) : mID( iID ) { }
 
-  void ListenToTclCommand ( char* isCommand, int iArgc, char** iArgv ) {
+  void DoListenToTclCommand ( char* isCommand, int iArgc, char** iArgv ) {
     list<ListenCount*>::iterator tListenCount;
     for( tListenCount = mlListenCounts.begin();
 	 tListenCount != mlListenCounts.end(); ++tListenCount ) {
@@ -55,6 +55,40 @@ public:
   }
 };
 
+class TestListenerReturner : public TclCommandListener {
+
+public:
+  void DoListenToTclCommand( char *isCommand, int iArgc, char** iArgv ) {
+
+    // These test the functionality of returning Tcl objects to the
+    // Tcl context. Used in conjunction with test_TclCommandManager.tcl.
+    if( 0 == strcmp( isCommand, "ReturnSingleInt" ) ) {
+      sReturnFormat = "i";
+      sReturnValues = "5";
+    } else if( 0 == strcmp( isCommand, "ReturnSingleFloat" ) ) {
+      sReturnFormat = "f";
+      sReturnValues = "5.5";
+    } else if( 0 == strcmp( isCommand, "ReturnSingleString" ) ) {
+      sReturnFormat = "s";
+      sReturnValues = "hello";
+    } else if( 0 == strcmp( isCommand, "ReturnSingleTwoWordString" ) ) {
+      sReturnFormat = "s";
+      sReturnValues = "\"hello world\"";
+    } else if( 0 == strcmp( isCommand, "ReturnSingleLongString" ) ) {
+      sReturnFormat = "s";
+      sReturnValues = "\"to neither love nor reverence will thou be tied\"";
+    } else if( 0 == strcmp( isCommand, "ReturnSingleList" ) ) {
+      sReturnFormat = "Lifsl";
+      sReturnValues = "5 5.5 hello";
+    } else if( 0 == strcmp( isCommand, "ReturnNestedList" ) ) {
+      sReturnFormat = "LifsLifsll";
+      sReturnValues = "5 5.5 hello 6 6.6 \"hello world\"";
+    } else if( 0 == strcmp( isCommand, "ReturnMessage" ) ) {
+      sResult = "This is a result string.";
+    }
+  }
+};
+
 int main ( int iArgc, char** iArgv ) {
 
   int rTcl = TCL_OK;
@@ -62,9 +96,9 @@ int main ( int iArgc, char** iArgv ) {
   int const kzCommands = 100;
   int const kNumberOfCallsToMake = 100;
 
-  TestListener* aListener[kzListeners];
+  TestListenerCounter* aListener[kzListeners];
   for( int nListener = 0; nListener < kzListeners; nListener++ ) {
-    aListener[nListener] = new TestListener( nListener );
+    aListener[nListener] = new TestListenerCounter( nListener );
   }
 
   char asCommandNames[1024][kzCommands]; 
@@ -187,6 +221,31 @@ int main ( int iArgc, char** iArgv ) {
       }
     }
 
+    
+    // Add the return testing commands.
+    TestListenerReturner listener;
+    commandMgr.AddCommand( listener, "ReturnSingleInt" );
+    commandMgr.AddCommand( listener, "ReturnSingleFloat" );
+    commandMgr.AddCommand( listener, "ReturnSingleString" );
+    commandMgr.AddCommand( listener, "ReturnSingleTwoWordString" );
+    commandMgr.AddCommand( listener, "ReturnSingleLongString" );
+    commandMgr.AddCommand( listener, "ReturnSingleList" );
+    commandMgr.AddCommand( listener, "ReturnNestedList" );
+    commandMgr.AddCommand( listener, "ReturnMessage" );
+
+    // Run the script that will test tcl return stuff.
+    cerr << "Running tcl script..." << endl;
+    rTcl = Tcl_EvalFile( interp, "test_TclCommandManager.tcl" );
+    char* sTclResult = Tcl_GetStringResult( interp );
+    if( 0 != strcmp( sTclResult, "" ) ) {
+      cerr << "result not null" << endl;
+      throw logic_error( interp->result );
+    }
+    if( rTcl != TCL_OK ) {
+      cerr << "rTcl not OK" << endl;
+      throw logic_error( interp->result );
+    }
+    
   }
   catch ( char* msg ) {
     cerr << msg << " failed" << endl;

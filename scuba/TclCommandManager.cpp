@@ -2,6 +2,19 @@
 #include <stdexcept>
 #include "TclCommandManager.h"
 
+using namespace std;
+
+void
+TclCommandListener::ListenToTclCommand ( char* iCommand, 
+					 int iArgc, char** iArgv ) {
+  sReturnFormat = "";
+  sReturnValues = "";
+  sResult = "";
+
+  this->DoListenToTclCommand( iCommand, iArgc, iArgv );
+}
+
+
 TclCommandManager::TclCommandManager() : DebugReporter() {
 
   mbStarted = false;
@@ -91,9 +104,125 @@ TclCommandManager::HandleCommand ( ClientData iClientData, Tcl_Interp* iInterp,
 
 	TclCommandListener* listener = *tListener;
 	listener->ListenToTclCommand( argv[0], argc, argv );
+
+	if( listener->sReturnFormat.length() != 0 ) {
+	  stringstream sFormat( listener->sReturnFormat );
+	  stringstream sValues( listener->sReturnValues );
+
+	  Tcl_Obj* rObj = 
+	    commandMgr.ConvertFStringToTclObj( sFormat, sValues, iInterp );
+	  Tcl_SetObjResult( iInterp, rObj );
+	}
+
+	if( listener->sResult.length() != 0 ) {
+	  char* sResult = strdup( listener->sResult.c_str() );
+	  Tcl_SetResult( iInterp, sResult, TCL_VOLATILE );
+	  free( sResult );
+	}
       }
     }
   }
-
+  
   return rTcl;
+}
+
+
+Tcl_Obj*
+TclCommandManager::ConvertFStringToTclObj( stringstream& isFormat,
+					   stringstream& isValues,
+					   Tcl_Interp* iInterp ) {
+
+  Tcl_Obj* rObj = NULL;
+
+  char cFormat;
+  isFormat >> cFormat;
+  switch( cFormat ) {
+    
+  case 'L': {
+    Tcl_Obj* list = Tcl_NewListObj( 0, NULL );
+    
+    Tcl_Obj* newObject =
+      ConvertFStringToTclObj( isFormat, isValues, iInterp );
+    
+    while( newObject != NULL ) {
+      Tcl_ListObjAppendElement( iInterp, list, newObject );
+      
+      newObject = 
+	ConvertFStringToTclObj( isFormat, isValues, iInterp );
+    }
+    
+    rObj = list;
+  }
+    break;
+    
+  case 'l':
+    rObj = NULL;
+    break;
+    
+  case 'i': {
+    
+    // Pull a string off the value stream.
+    string sValue;
+    isValues >> sValue;
+    
+    // Try to convert it to an int.
+    int value = strtol(sValue.c_str(), (char**)NULL, 10);
+    if( ERANGE == errno ) {
+      DebugOutput( << "Error converting " << sValue << " to int." );
+      throw logic_error( "couldn't covnert string to int" );
+    }
+    
+    // Return it.
+    rObj = Tcl_NewIntObj( value );
+  }
+    break;
+    
+  case 'f': {
+    
+    // Pull a string off the value stream.
+    string sValue;
+    isValues >> sValue;
+
+    // Try to convert it to a float.
+    double value = strtod(sValue.c_str(), (char**)NULL);
+    if( ERANGE == errno ) {
+      DebugOutput( << "Error converting " << sValue << " to double." );
+      throw logic_error( "couldn't covnert string to double" );
+    }
+
+    // Return it.
+    rObj = Tcl_NewDoubleObj( value );
+  }
+    break;
+
+  case 's': {
+    
+    // Pull a string off the value stream.
+    stringstream sReturn;
+    string sValue;
+    isValues >> sValue;
+    sReturn << sValue;
+
+    // If the first char was a ", keep going until we get another ".
+    if( sValue[0] == '\"' ) {
+      while( sReturn.str().rfind('\"', sReturn.str().length()) == 0 ) {
+	isValues >> sValue;
+	sReturn << " " << sValue;
+      }
+    }
+
+    // Strip the quotes if necessary and return it.
+    string sReturn2 = sReturn.str();
+    if( sReturn2[0] == '\"' ) {
+      sReturn2 = sReturn2.substr( 1, sReturn2.length()-2 );
+    }
+    rObj = Tcl_NewStringObj( sReturn2.c_str(), sReturn2.length() );
+  }
+    break;
+
+  default:
+    DebugOutput( << "Invalid format char " << cFormat );
+  }
+
+  return rObj;
 }

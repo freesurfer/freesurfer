@@ -3,8 +3,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2003/10/17 16:52:28 $
-// Revision       : $Revision: 1.2 $
+// Revision Date  : $Date: 2003/10/20 20:40:04 $
+// Revision       : $Revision: 1.3 $
 
 #ifndef TclCommandManager_h
 #define TclCommandManager_h
@@ -12,11 +12,33 @@
 #include <stdlib.h>
 #include <list>
 #include <tcl.h>
+#include <string>
+#include <sstream>
+#include <stdexcept>
+#include <sstream>
 #include "DebugReporter.h"
 
+// This class should be subclassed and the DoListenToTclCommand to
+// implement the function to be called from Tcl space.  Values can be
+// returned by writing a format and value string. See the test code
+// for examples.
 class TclCommandListener {
+  friend class TclCommandManager;
+  
  public:
-  virtual void ListenToTclCommand ( char* iCommand, int iArgc, char** iArgv ) = 0;
+  void ListenToTclCommand  ( char* iCommand, int iArgc, char** iArgv );
+  virtual void DoListenToTclCommand ( char* iCommand, int iArgc, char** iArgv ) = 0;
+
+ protected:
+  // Valid format chars are:
+  //   i - int object
+  //   f - float object
+  //   s - string object
+  //   L - begin list
+  //   l - end list
+  std::string sReturnFormat;
+  std::string sReturnValues;
+  std::string sResult;
 };
 
 class TclCommandManager : public DebugReporter {
@@ -54,6 +76,10 @@ class TclCommandManager : public DebugReporter {
  protected:
 
   TclCommandManager();
+
+  Tcl_Obj* ConvertFStringToTclObj( std::stringstream& isFormat,
+				   std::stringstream& isValues,
+				   Tcl_Interp* iInterp );
 
   // Create the command in the Tcl context and attach our handler.
   void CreateCommand( Command& iCommand );
