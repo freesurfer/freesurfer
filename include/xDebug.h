@@ -1,9 +1,6 @@
 #ifndef xDebug_H
 #define xDebug_H
 
-
-extern char gDebuggingOn;
-
 #include <stdio.h>
 
 // define true and false
@@ -23,11 +20,13 @@ extern char gDebuggingOn;
    and DeleteDebugging to take it down. */
 #ifdef kDebugging
 
+extern char gDebuggingOn;
+
 // regular cerr debugging output.
 #define InitDebugging           if (getenv("XDEBUG")) gDebuggingOn = TRUE;
 #define DeleteDebugging
 #define DisableDebuggingOutput  gDebuggingOn = FALSE;
-#define EnableDebuggingOutput   if (getenv("XDEBUG" )) gDebuggingOn = TRUE;
+#define EnableDebuggingOutput   if (getenv("XDEBUG")) gDebuggingOn = TRUE;
 #define DebugCode               
 #define EndDebugCode            
 #define DebugPrint              if(gDebuggingOn) { fprintf ( stderr,
@@ -50,4 +49,3 @@ extern char gDebuggingOn;
 #endif
 
 #endif
-

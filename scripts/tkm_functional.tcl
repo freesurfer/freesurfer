@@ -1,12 +1,11 @@
-#! /usr/bin/wish4.0
+#! /usr/bin/wish
 
 # our graph code
 source $env(MRI_DIR)/lib/tcl/tkm_graph.tcl
+source $env(MRI_DIR)/lib/tcl/tkm_dialog.tcl
+source $env(MRI_DIR)/lib/tcl/tkm_wrappers.tcl
 
-source $env(MRI_DIR)/lib/tcl/wrappers.tcl
-
-# hungarian notation notes
-
+# hungarian notation notes:
 # prefix  type                   library (if applicable)
 # ww      window widget          tk
 # fw      frame widget           tk
@@ -19,152 +18,379 @@ source $env(MRI_DIR)/lib/tcl/wrappers.tcl
 # ew      entry widget           tk
 # lew     label entry widget     tix
 # rw      radio button widget    tk
-# cbw     checkbutton widget    tk
+# cbw     checkbutton widget     tk
 # bw      button widget          tk
 # dw      dialog box widget      tix
 # nw      notebook widget        tix
-# cbxw    combobox widget       tix
+# cbxw    combobox widget        tix
 # l       list                   tcl
 # n       integer / number
 # s       string
 # f       float
 # g       global
 
+# function naming:
+# functions prefixed with Set or xxxx_Set are c functions that the script
+# calls to change variables. functions prefixed with Update are functions
+# that the c code calls when variables are changed. when the user changes
+# value from the tk interface, the change is 'suggested' with a Set command.
+# the c code will accept or reject the change and then call the Update
+# function with the new (or old) value.
+
+# constants
 set ksWindowName "Functional Data"
 set kLabelFont   $pfont
 set kNormalFont  $mfont
+set gsGraphName      "timeCourse"
 
-# unique identifiers for names
-set ksGraphDataName(0) cond0
-set ksGraphDataName(1) cond1
-set ksGraphDataName(2) cond2
-set ksGraphDataName(3) cond3
-set ksGraphDataName(4) cond4
-
-# color for conditions
-set ksGraphDataColor(0) red
-set ksGraphDataColor(1) blue
-set ksGraphDataColor(2) green
-set ksGraphDataColor(3) purple
-set ksGraphDataColor(4) yellow
-
-# the vmar/hmark stuff likes its colors with braces around them
-set ksGraphDataColor2(0) {red}
-set ksGraphDataColor2(1) {blue}
-set ksGraphDataColor2(2) {green}
-set ksGraphDataColor2(3) {purple}
-set ksGraphDataColor2(4) {yellow}
+# FunV_tDisplayFlag
+set FunV_tDisplayFlag_Ol_TruncateOverlay 0
+set FunV_tDisplayFlag_Ol_ReversePhase    1
+set FunV_tDisplayFlag_TC_GraphWindowOpen 2
+set FunV_tDisplayFlag_Ol_OffsetValues    3
+set FunV_tDisplayFlag_TC_OffsetValues    4
 
 # our global vars
-set gnIsDisplay              1
-set gnTimeResolution         0
-set gnNumPreStimPoints       0
-set gfCurrentTimeCourseValue 0
-set gfCurrentOverlayValue    0
-set gnTimePoint              0
-set gnTimeSecond             0
-set gnCondition              0
-set gsTimeCoursePath         ""
-set gsTimeCourseStem         ""
-set gsOverlayPath            ""
-set gsOverlayStem            ""
-set gfThresholdMin           0
-set gfThresholdMid           0
-set gfThresholdMax           0
-set glGraphData(0)           {}
-set glGraphData(1)           {}
-set glGraphData(2)           {}
-set glGraphData(3)           {}
-set glGraphData(4)           {}
+set gnTimePoint      0
+set gnTimeSecond     0
+set gnCondition      0
+set gbTruncate       0
+set gbReverse        0
+set gbOverlayOffset  0
+set gbShowOverlayOffsetOptions   0
+set gfThreshold(min)   0
+set gfThreshold(mid)   0
+set gfThreshold(slope) 0
+set gnOverlayNumTimePoints 0
+set gnOverlayNumConditions 0
+set gsOverlayDataName ""
 
-set gsGraphName      "timeCourse"
-set gnNumberErrorBars 0
+set glAllColors {Red Green Blue Purple Yellow Orange Brown Pink Gray LightBlue}
+set gnMaxColors [llength $glAllColors]
+set nCondition 1
+foreach dataSet $glAllColors {
+    set gGraphSetting($dataSet,visible)  1
+    set gGraphSetting($dataSet,condition) $nCondition
+    incr nCondition
+    set ksGraphDataColor($dataSet) $dataSet
+    set ksGraphDataColor2($dataSet) "{$dataSet}"
+}
+set glGraphColors [lrange $glAllColors 0 end]
+set gbErrorBars                     0
+set gbTimeCourseOffset              0
+set gbShowTimeCourseOffsetOptions   0
+set gnPreStimPoints                 0
+set gnTimeResolution                0
+set gnMaxNumErrorBars               0
+set gnNumDataSets                0
+set gnNumTimeCourseConditions    0
+set gsTimeCourseLocation ""
+set gsTimeCourseDataName ""
+set gbAutoRangeGraph 1
 
 # ============================================================== DRAWING GRAPH
 
-proc ClearGraphData {} {
+proc TimeCourse_BeginDrawingGraph {} {
 
-    global ksGraphDataName
-    global gsGraphName gcwGraph gnNumberErrorBars
+    TimeCourse_ClearData
+}
 
-    $gsGraphName clearmark currentTimePointMark
+proc TimeCourse_ClearData {} {
+
+    global ksGraphDataColor
+    global gsGraphName gcwGraph gnMaxNumErrorBars gbAutoRangeGraph
+    global gcwGraph gsGraphName glGraphColors
+
+    $gsGraphName configure -autorange $gbAutoRangeGraph
+
+    # get size of graph
+    set nWidth [winfo width $gcwGraph]
+    set nHeight [winfo height $gcwGraph]
+
+    # just recreate the graph. 
+    # set size of graph widget. leave room for axes.
+    $gsGraphName configure \
+      -width [expr $nWidth - 70] \
+      -height [expr $nHeight - 50] \
+      -nticks_x [expr $nWidth / 30] \
+      -nticks_y [expr $nHeight / 30]
+
+    if { [catch {$gsGraphName clearmark currentTimePointMark} sResult] } {}
 
     # for every condition...
-    for {set nIndex 0} {$nIndex < 5} {incr nIndex} {
-  
-  # clear its data and error bars
-  $gsGraphName data $ksGraphDataName($nIndex) -coords {}
+    foreach dataSet $glGraphColors {
 
-  for {set nBarIndex 0}                     \
-    {$nBarIndex < $gnNumberErrorBars} \
-    {incr nBarIndex} {
-      set sTag errorBars$nIndex-$nBarIndex
+  # clear its data and error bars
+  $gsGraphName data $dataSet                  \
+    -colour $ksGraphDataColor($dataSet) \
+    -points 0                           \
+    -lines 0                            \
+    -coords {0 0 1 1}
+
+  # for each possible error here..
+  for {set nErrorIndex 0} {$nErrorIndex < $gnMaxNumErrorBars}\
+    {incr nErrorIndex} {
+      
+      # build a tag for this bar and delete the error bars
+      set sTag errorBars$dataSet-$nErrorIndex
       $gcwGraph delete -withtag $sTag
-      }
+  }
     }
 }
 
-proc SetGraphData { inDataSet ilPoints } {
+proc TimeCourse_UpdateGraphData { inDataSet ilPoints } {
 
-    global ksGraphDataName ksGraphDataColor ksGraphDataColor2 
-    global gsGraphName gcwGraph 
-    global glGraphData gnCondition gnTimeSecond gsGraphDataName
+    global glGraphData gnNumDataSets
 
     # save our graph data
     set glGraphData($inDataSet) $ilPoints
 
-    # set the points. use the color for the this condition.
-    $gsGraphName data $ksGraphDataName($inDataSet)    \
-      -colour $ksGraphDataColor($inDataSet) \
-      -points 1                             \
-      -lines 1                              \
-      -coords $ilPoints
+    if {[expr $inDataSet + 1] > $gnNumDataSets} {
+  set gnNumDataSets [expr $inDataSet + 1]
+    }
 
-    # draw some axes
-    $gsGraphName vmark 0 yAxis {black}
-    $gsGraphName hmark 0 xAxis {black}
-    
-    # create the time bar at the current second in the color for the
-    # current condition
-    $gsGraphName vmark $gnTimeSecond currentTimePointMark \
-      $ksGraphDataColor2($gnCondition)
-
-    RecalcCurrentTimeCourseValue
 }
 
-proc SetGraphErrorBars { inDataSet ilErrors } {
+proc TimeCourse_UpdateErrorData { inDataSet ilErrors } {
 
-    global ksGraphDataName ksGraphDataColor ksGraphDataColor2
-    global gsGraphName gcwGraph 
-    global gnCondition gnTimeSecond glGraphData
-    global gnNumberErrorBars
+    global glErrorData
 
-    # for each error...
-    set nLength [llength $ilErrors]
-    set gnNumberErrorBars $nLength
-    for {set nIndex 0} {$nIndex < $nLength} {incr nIndex} {
+    set glErrorData($inDataSet) $ilErrors
+}
 
-  # get the error amount.
-  set nError [lindex $ilErrors $nIndex]
+proc TimeCourse_EndDrawingGraph {} {
 
-  # get the x/y coords for the corresponding point.
-  set nPointIndex [expr $nIndex * 2]
-  set nGraphX [lindex $glGraphData($inDataSet) $nPointIndex]
-  set nGraphY [lindex $glGraphData($inDataSet) [expr $nPointIndex + 1]]
+    TimeCourse_DrawGraph
+}
 
-  # convert it to canvas coords
-  set nCanvasX [$gsGraphName x2canvas $nGraphX]
-  set nCanvasY [$gsGraphName y2canvas $nGraphY]
+proc TimeCourse_DrawGraph {} {
 
-  # draw a vertical line at the point, extending above and beyond
-  # the point the amounto f the error. use the right color.
-  set sTag errorBars$inDataSet-$nIndex
-  $gcwGraph delete -withtag $sTag
-  $gcwGraph create line                          \
-    $nCanvasX [expr $nCanvasY - $nError]   \
-    $nCanvasX [expr $nCanvasY + $nError]   \
-    -fill $ksGraphDataColor($inDataSet)    \
-    -tag $sTag
+    global gsGraphName ksGraphDataColor ksGraphDataColor2 knGraphColorIndex
+    global glErrorData glGraphData gGraphSetting glGraphColors
+    global gnCondition gnTimeSecond
+    global gsGraphName gcwGraph gbErrorBars gbAutoRangeGraph
+    global gnMaxNumErrorBars gnNumDataSets gnNumTimeCourseConditions
+
+    # if no data, return
+    if {$gnNumDataSets == 0} {
+  return;
+    }
+    
+    # find the x mins and maxes for our values.
+    set nXMin 100000
+    set nXMax -100000
+    set nYMin 100000
+    set nYMax -100000
+    foreach dataSet $glGraphColors {
+  
+  if { $gGraphSetting($dataSet,visible) == 1 } {
+
+      # get the condition index for this color
+      set nCondition $gGraphSetting($dataSet,condition)
+      
+      # make sure we have this data
+      if { [catch { set lGraphData $glGraphData($nCondition) } s]} {
+    continue;
+      }
+
+      # get the number of values
+      set nDataLength [llength $lGraphData]
+      set nDataPointsLength [expr $nDataLength / 2]
+
+      # go thru values and check for mins and maxes.
+      for {set nIndex 0} {$nIndex < $nDataPointsLength} {incr nIndex} {
+
+    # get func value
+    set nGraphIndex [expr [expr $nIndex * 2] + 1]
+    set nValue [lindex $lGraphData $nGraphIndex];
+
+    # now compare to y min/max
+    if { $nValue < $nYMin } { set nYMin $nValue }
+    if { $nValue > $nYMax } { set nYMax $nValue }
+      }
+
+      # if we are displayinge rror data...
+      if { $gbErrorBars == 1 } {
+    
+    # get the errors for this condition
+    if { [catch { set lErrors $glErrorData($nCondition) } s] } {
+        continue;
+    }  
+    
+    # get the number of values. make sure it's the same as the
+    # number of data values.
+    set nErrorLength [llength $lErrors]
+    if { $nDataPointsLength != $nErrorLength } {
+        continue;
+    }
+    
+    # scan thru. use error length since we want to ignore 
+    # the x point values in the graph data.
+    for {set nIndex 0} {$nIndex < $nErrorLength} {incr nIndex} {
+        
+        # get func value
+        set nGraphIndex [expr [expr $nIndex * 2] + 1]
+        
+        # get error amt and add/subtract to get a low/hi value
+        set nError [lindex $lErrors $nIndex];
+        set nLow [expr $nValue - $nError]
+        set nHigh [expr $nValue + $nError]
+        
+        # now compare to y min/max
+        if { $nLow < $nYMin } { set nYMin $nLow }
+        if { $nHigh > $nYMax } { set nYMax $nHigh }
+    }
+      }
+  }
+
+  # the x min and max is just the first and last x value in any
+  # data set
+  set nLength [llength $glGraphData(0)]
+  set nXMin [lindex $glGraphData(0) 0]
+  set nXMax [lindex $glGraphData(0) [expr $nLength - 2]]
+    }
+    set nPadding [expr [expr $nYMax - $nYMin] / 15]
+
+    # now size the graph, but only if they haven't selected autorange.
+    if { $gbAutoRangeGraph == 1 } {
+  $gsGraphName configure -autorange 0 \
+    -xmin $nXMin \
+    -xmax $nXMax \
+    -ymin [expr $nYMin - $nPadding] \
+    -ymax [expr $nYMax + $nPadding]
+    } else {
+      $gsGraphName configure -autorange 0
+    }
+
+    foreach dataSet $glGraphColors {
+  
+  # if not visible, draw some dummy data in this color. make
+  # sure to use the already established min and max as the dummy
+  # data so we don't mess up our range. 
+  if { $gGraphSetting($dataSet,visible) == 0 } {
+#      set lDummyVals "{$nXMin $nYMin $nXMax $nYMax}"
+      set lDummyVals {0 0 1 1}
+      $gsGraphName data $dataSet \
+        -colour $ksGraphDataColor($dataSet) \
+        -points  0 \
+        -lines  0 \
+        -coords $lDummyVals
+      continue;
+  }
+      
+  # get the condition index for this color
+  set nCondition $gGraphSetting($dataSet,condition)
+  
+  # make sure we have this data
+  if { [catch { set lGraphData $glGraphData($nCondition) } sResult]} {
+      # no data
+      continue;
+  }
+  set nLength [llength $lGraphData]
+  if { $nLength <= 0 } {
+      continue;
+  }
+
+  # graph the data
+  $gsGraphName data $dataSet                  \
+    -colour $ksGraphDataColor($dataSet) \
+    -points 1                           \
+    -lines 1                            \
+    -coords $lGraphData
+
+  # get the errors for this condition
+  if { [catch { set lErrors $glErrorData($nCondition) } sResult] } {
+      # no error data
+      continue;
+  }
+  
+  # for each error...
+  set nLength [llength $lErrors]
+  if { $nLength > $gnMaxNumErrorBars } { 
+      set gnMaxNumErrorBars $nLength
+  }
+  for {set nErrorIndex 0} {$nErrorIndex < $nLength} {incr nErrorIndex} {
+      
+      # build a tag for this bar.
+      set sTag errorBars$dataSet-$nErrorIndex
+
+      # actually, if they are hidden, just delete this tag.
+      if { $gbErrorBars == 0 } {
+    $gcwGraph delete -withtag $sTag
+    continue;
+      }
+  
+      # actually, if this color is not visible, just delete this tag.
+      if { $gGraphSetting($dataSet,visible) == 0 } {
+    $gcwGraph delete -withtag $sTag
+    continue;
+      }
+  
+      # get error amt
+      set nError [lindex $lErrors $nErrorIndex]
+      
+      # get the x/y coords at this point on the graph
+      set nPointIndex [expr $nErrorIndex * 2]
+      set nGraphX [lindex $lGraphData $nPointIndex]
+      set nGraphY [lindex $lGraphData [expr $nPointIndex + 1]]
+      
+      # get the y bounds, with errors, then cap to graph
+      set nGraphY1 [expr $nGraphY - $nError]
+      set nGraphY2 [expr $nGraphY + $nError]
+      if { $nGraphY1 < [$gsGraphName cget ymin] } {
+    set nGraphY1 [$gsGraphName cget ymin]
+      }
+      if { $nGraphY2 > [$gsGraphName cget ymax] } {
+    set nGraphY2 [$gsGraphName cget ymax]
+      }
+      
+      # convert it to canvas coords
+      set nCanvasX  [$gsGraphName x2canvas $nGraphX]
+      set nCanvasY1 [$gsGraphName y2canvas $nGraphY1]
+      set nCanvasY2 [$gsGraphName y2canvas $nGraphY2]
+      
+      # draw a vertical line at this point, extending above and below
+      # it, using the right color.
+      $gcwGraph delete -withtag $sTag
+      $gcwGraph create line \
+        [expr $nCanvasX - 5] $nCanvasY1 \
+        [expr $nCanvasX + 5] $nCanvasY1 \
+        $nCanvasX $nCanvasY1 \
+        $nCanvasX $nCanvasY2 \
+        [expr $nCanvasX - 5] $nCanvasY2 \
+        [expr $nCanvasX + 5] $nCanvasY2 \
+        -fill $ksGraphDataColor($dataSet) \
+        -tag $sTag
+  }
+    }
+    
+    # draw some axes
+    $gsGraphName vmark 0 yAxis black
+    $gsGraphName hmark 0 xAxis black
+
+    TimeCourse_DrawCurrentTimePoint
+}
+
+proc TimeCourse_DrawCurrentTimePoint {} {
+
+    global gsGraphName gcwGraph gnTimeSecond
+
+    # delete the old one
+    $gcwGraph delete currentTimePoint
+
+    # draw a dashed line at current time point
+    set nX [$gsGraphName x2canvas $gnTimeSecond]
+    set nYTop [$gsGraphName y2canvas [$gsGraphName cget ymax]]
+    set nYBottom [$gsGraphName y2canvas [$gsGraphName cget ymin]]
+    set nYStep [expr [expr $nYTop - $nYBottom] / 10]
+    set nYCurrent $nYBottom
+    for {set nStep 0} {$nStep < 5} {incr nStep } {
+  $gcwGraph create line \
+    $nX $nYCurrent \
+    $nX [expr $nYCurrent + $nYStep] \
+    -fill red \
+    -tag currentTimePoint
+  incr nYCurrent [expr $nYStep * 2]
     }
 }
 
@@ -174,149 +400,459 @@ proc HandleGraphClick { inX inY } {
     global gsGraphName
 
     # get the x coord of the graph and send it to the c code.
-    set nX [$gsGraphName canvas2x $inX]
-    SetCurrentFunctionalTimeSecond $nX
+    set nSecond [$gsGraphName canvas2x $inX]
 }
 
 # ============================================================== UPDATING VARS
 
-proc UpdateTimeCoursePath { isPath } {
+proc ShowFunctionalWindow {} {
 
-    global gsTimeCoursePath
-
-    set gsTimeCoursePath $isPath
+    global gwwTop
+    wm deiconify $gwwTop
 }
 
-proc UpdateTimeCourseStem { isStem } {
+proc HideFunctionalWindow {} {
 
-    global gsTimeCourseStem
-
-    set gsTimeCourseStem $isStem
+    global gwwTop
+    wm withdraw $gwwTop
 }
 
-# called by the c code when the time resolution is updated
-proc UpdateTimeResolution { inTimeResolution } {
+proc Overlay_DoConfigDlog {} { 
 
-    global gnTimeResolution
+    global gDialog
+    global FunV_tDisplayFlag_Ol_TruncateOverlay 
+    global FunV_tDisplayFlag_Ol_ReversePhase
+    global gnOverlayNumTimePoints gnOverlayNumConditions
+    global gnTimePoint gnCondition gbOverlayOffset gbShowOverlayOffsetOptions
+    global gbTruncate gbReverse
+    global gfThreshold
+
+    set wwDialog .wwOverlayConfigDlog
+
+    if { [Dialog_Create $wwDialog "Configure Functional Overlay" {-borderwidth 10}] } {
+
+  set fwTimePoint       $wwDialog.fwTimePoint
+  set fwCondition       $wwDialog.fwCondition
+  set fwTruncate        $wwDialog.fwTruncate
+  set fwReverse         $wwDialog.fwReverse
+  set fwOffset          $wwDialog.fwOffset
+  set fwThresholdMin    $wwDialog.fwThresholdMin
+  set fwThresholdMid    $wwDialog.fwThresholdMid
+  set fwThresholdSlope  $wwDialog.fwThresholdSlope
+  set fwButtons         $wwDialog.fwButtons
+
+  Overlay_SaveConfiguration;
+
+  set nMaxCondition [expr $gnOverlayNumConditions - 1]
+  set nMaxTimePoint [expr $gnOverlayNumTimePoints - 1]
+
+  tkm_MakeEntryWithIncDecButtons \
+    $fwTimePoint "Time Point (0-$nMaxTimePoint)" \
+    gnTimePoint \
+    {set gnTimePoint $gnTimePoint} \
+    {set gnTimePoint [expr $gnTimePoint - 1]} \
+    {set gnTimePoint [expr $gnTimePoint + 1]}
+
+  tkm_MakeEntryWithIncDecButtons \
+    $fwCondition "Condition (0-$nMaxCondition)" \
+    gnCondition \
+    {set gnCondition $gnCondition} \
+    {set gnCondition  [expr $gnCondition - 1]} \
+    {set gnCondition  [expr $gnCondition + 1]}
+
+  tkm_MakeCheckbox $fwTruncate "Truncate values" gbTruncate \
+    {set gbTruncate $gbTruncate}
+
+  tkm_MakeCheckbox $fwReverse "Reverse values" gbReverse \
+    {set gbReverse $gbReverse}
+
+  if { $gbShowOverlayOffsetOptions == 1 } {
+      tkm_MakeCheckbox $fwOffset "Show percent change" gbOverlayOffset \
+        {set gbOverlayOffset $gbOverlayOffset}
+  } else {
+      frame $fwOffset
+  }
+
+  tkm_MakeEntry $fwThresholdMin "Threshold minimum" gfThreshold(min) 6
+  tkm_MakeEntry $fwThresholdMid "Threshold midpoint" gfThreshold(mid) 6
+  tkm_MakeEntry $fwThresholdSlope "Threshold slope" gfThreshold(slope) 6
+
+  tkm_MakeCancelApplyOKButtons $fwButtons $wwDialog \
+    { Overlay_SetConfiguration; } \
+    { Overlay_RestoreConfiguration; }
+  
+  pack $fwTimePoint $fwCondition $fwTruncate $fwReverse $fwOffset \
+    $fwThresholdMin $fwThresholdMid $fwThresholdSlope \
+    $fwButtons \
+    -side top \
+    -anchor w \
+    -expand yes \
+    -fill x
+    }
+}
+
+proc TimeCourse_DoConfigDlog {} {
+
+    global gDialog gbShowTimeCourseOffsetOptions
+    global gbErrorBars gnPreStimPoints gnTimeResolution gbTimeCourseOffset
+    global gGraphSetting gnNumTimeCourseConditions glGraphColors
+
+    set wwDialog .wwTimeCourseConfigDlog
+
+    if { [Dialog_Create $wwDialog "Configure Time Course" {-borderwidth 10}] } {
+
+  set nMaxCondition [expr $gnNumTimeCourseConditions - 1]
+
+  set fwConditions          $wwDialog.fwConditions
+  set fwLabels              $fwConditions.fwLabels
+  set fwVisibleLabel        $fwLabels.fwVisibleLabel
+  set fwConditionLabel      $fwLabels.fwConditionLabel
+  set fwErrorBars           $wwDialog.fwErrorBars
+  set fwAutoRange           $wwDialog.fwAutoRange
+  set fwOffset              $wwDialog.fwOffset
+  set fwPreStimPoints       $wwDialog.fwPreStimPoints
+  set fwTimeRes             $wwDialog.fwTimeRes
+  set fwButtons             $wwDialog.fwButtons
+
+  TimeCourse_SaveConfiguration;
+
+  frame $fwConditions
+
+  frame $fwLabels
+  tkm_MakeBigLabel $fwVisibleLabel "Visible"
+  pack $fwVisibleLabel \
+    -side left \
+    -anchor w
+  tkm_MakeBigLabel $fwConditionLabel "Condition Shown"
+  pack $fwConditionLabel \
+    -side right \
+    -anchor e
+  pack $fwLabels \
+    -side top \
+    -expand yes \
+    -fill x
+
+  foreach dataSet $glGraphColors {
+
+      set fw $fwConditions.fwCondition$dataSet
+      frame $fw
+      tkm_MakeCheckbox $fw.cbVisibile \
+        "" gGraphSetting($dataSet,visible) \
+        "TimeCourse_SetGraphSetting $dataSet visible \$gGraphSetting($dataSet,visible)"
+      tkm_MakeNormalLabel $fw.lwLabel "$dataSet"
+      tkm_MakeEntryWithIncDecButtons \
+        $fw.fwControl \
+        "Condition (0-$nMaxCondition)" \
+        gGraphSetting($dataSet,condition) \
+        "TimeCourse_SetGraphSetting $dataSet condition \$gGraphSetting($dataSet,condition)" \
+        "TimeCourse_SetGraphSetting $dataSet condition \[expr \$gGraphSetting($dataSet,condition) - 1\]" \
+        "TimeCourse_SetGraphSetting $dataSet condition \[expr \$gGraphSetting($dataSet,condition) + 1\]"
+      pack $fw.cbVisibile $fw.lwLabel \
+        -side left \
+        -anchor w
+      pack $fw.fwControl \
+        -side right
+      pack $fw \
+        -expand yes \
+        -fill x
+  }
+
+
+  tkm_MakeCheckbox \
+    $fwErrorBars "Show error bars" gbErrorBars \
+    {set gbErrorBars $gbErrorBars}
+
+  tkm_MakeCheckbox \
+    $fwAutoRange "Automatically size graph" gbAutoRangeGraph \
+    {set gbAutoRangeGraph $gbAutoRangeGraph}
+
+  if { $gbShowTimeCourseOffsetOptions == 1 } {
+      tkm_MakeCheckbox \
+        $fwOffset "Show percent change" gbTimeCourseOffset \
+        {set gbTimeCourseOffset $gbTimeCourseOffset}
+  } else {
+      frame $fwOffset
+  }
+
+  tkm_MakeEntryWithIncDecButtons \
+    $fwPreStimPoints "Number of pre-stim points" gnPreStimPoints \
+    {set gnPreStimPoints $gnPreStimPoints} \
+    {set gnPreStimPoints [expr $gnPreStimPoints - 1]} \
+    {set gnPreStimPoints [expr $gnPreStimPoints + 1]}
+
+  tkm_MakeActiveLabel \
+    $fwTimeRes "Time resolution" gnTimeResolution
+
+  tkm_MakeCancelApplyOKButtons $fwButtons $wwDialog \
+    { TimeCourse_SetConfiguration; \
+    TimeCourse_DrawGraph } \
+    { TimeCourse_RestoreConfiguration; \
+    TimeCourse_DrawGraph }
+
+  pack $fwConditions $fwErrorBars $fwAutoRange $fwOffset \
+    $fwPreStimPoints $fwTimeRes $fwButtons \
+    -side top \
+    -anchor w \
+    -expand yes \
+    -fill x
+    }
+}
+
+
+# ================================================== MANAGING INTERNAL STUFF
+
+proc TimeCourse_SetGraphSetting { iColor iType iValue } {
+    global gGraphSetting gnNumTimeCourseConditions
     
-    set gnTimeResolution $inTimeResolution
+    if { $iType == "condition" } {
+  if { $iValue >= $gnNumTimeCourseConditions } {
+      ErrorDlog "Invalid condition for $iColor. Must be between 0 and $gnNumTimeCourseConditions."
+      return;
+  }
+  if { $iValue < 0 } {
+      ErrorDlog "Invalid condition for $iColor. Must be between 0 and $gnNumTimeCourseConditions."
+      return;
+  }
+    }
+
+    set gGraphSetting($iColor,$iType) $iValue
 }
 
-# called by the c code when the number of prestim points is changed
-proc UpdateNumPreStimPoints { inNumPreStimPoints } {
+proc Overlay_SaveConfiguration {} {
 
-    global gnNumPreStimPoints
+    global gnTimePoint gnCondition gbTruncate gbReverse gfThreshold 
+    global gbOverlayOffset
+    global gnSavedTimePoint gnSavedCondition gbSavedTruncate
+    global gbSavedReverse gfSavedThreshold gbSavedOverlayOffset
+    
+    set gnSavedTimePoint $gnTimePoint
+    set gnSavedCondition $gnCondition
+    set gbSavedTruncate $gbTruncate
+    set gbSavedReverse $gbReverse
+    set gbSavedTruncate $gbTruncate
+    set gbSavedOverlayOffset $gbOverlayOffset
+    foreach entry {min mid slope} {
+  set gfSavedThreshold($entry) $gfThreshold($entry)
+    }
 
-    set gnNumPreStimPoints $inNumPreStimPoints
+
 }
 
-proc RecalcCurrentTimeCourseValue {} {
+proc Overlay_RestoreConfiguration {} {
 
-    global glGraphData
-    global gnTimePoint gnCondition gfCurrentTimeCourseValue
+    global gnTimePoint gnCondition gbTruncate gbReverse gfThreshold
+    global gbOverlayOffset
+    global gnSavedTimePoint gnSavedCondition gbSavedTruncate
+    global gbSavedReverse gfSavedThreshold gbSavedOverlayOffset
+    
+    set gnTimePoint $gnSavedTimePoint
+    set gnCondition $gnSavedCondition
+    set gnTruncate $gbSavedTruncate
+    set gbReverse $gbSavedReverse
+    set gbTruncate $gbSavedTruncate
+    set gbOverlayOffset $gbSavedOverlayOffset
+    foreach entry {min mid slope} {
+  set gfThreshold($entry) $gfSavedThreshold($entry)
+    }
 
-    # get the index of the y value of the point we're interested in
-    set nIndex [expr [expr $gnTimePoint * 2] + 1]
-
-    # pull the value out of our graph data
-    set gfCurrentTimeCourseValue [lindex $glGraphData($gnCondition) $nIndex]
+    Overlay_SetConfiguration
 }
 
-proc UpdateOverlayPath { isPath } {
+proc Overlay_SetConfiguration {} {
 
-    global gsOverlayPath
+    global gnTimePoint gnCondition gbTruncate gbReverse gfThreshold
+    global gbOverlayOffset
+    global FunV_tDisplayFlag_Ol_TruncateOverlay
+    global FunV_tDisplayFlag_Ol_ReversePhase
+    global FunV_tDisplayFlag_Ol_OffsetValues
 
-    set gsOverlayPath $isPath
+    Overlay_SetTimePoint $gnTimePoint
+    Overlay_SetCondition $gnCondition
+    Overlay_SetDisplayFlag $FunV_tDisplayFlag_Ol_TruncateOverlay $gbTruncate
+    Overlay_SetDisplayFlag $FunV_tDisplayFlag_Ol_ReversePhase $gbReverse
+    Overlay_SetDisplayFlag $FunV_tDisplayFlag_Ol_OffsetValues $gbOverlayOffset
+    Overlay_SetThreshold $gfThreshold(min) $gfThreshold(mid) $gfThreshold(slope)
 }
 
-proc UpdateOverlayStem { isStem } {
+proc TimeCourse_SaveConfiguration {} {
 
-    global gsOverlayStem
+    global gbErrorBars gnPreStimPoints gnTimeResolution gGraphSetting
+    global gbTimeCourseOffset
+    global gbSavedErrorBars gnSavedPreStimPoints gnSavedTimeResolution
+    global gSavedGraphSetting glGraphColors gbSavedTimeCourseOffset
 
-    set gsOverlayStem $isStem
+    set gbSavedErrorBars $gbErrorBars
+    set gnSavedPreStimPoints $gnPreStimPoints
+    set gnSavedTimeResolution $gnTimeResolution
+    set gbSavedTimeCourseOffset $gbTimeCourseOffset
+    foreach color $glGraphColors {
+  foreach entry {visible condition} {
+      set gSavedGraphSetting($color,$entry) $gGraphSetting($color,$entry)
+  }
+    }
 }
 
-# called by the c code when the display flag is updated
-proc UpdateDisplayStatus { inIsDisplay } {
+proc TimeCourse_RestoreConfiguration {} {
 
-    global gnIsDisplay
+    global gbErrorBars gnPreStimPoints gnTimeResolution gGraphSetting
+    global gbTimeCourseOffset
+    global gbSavedErrorBars gnSavedPreStimPoints gnSavedTimeResolution
+    global gSavedGraphSetting glGraphColors gbSavedTimeCourseOffset
 
-    set gnIsDisplay $inIsDisplay
+    set gbErrorBars $gbSavedErrorBars
+    set gnPreStimPoints $gnSavedPreStimPoints
+    set gnTimeResolution $gnSavedTimeResolution
+    set gbTimeCourseOffset $gbSavedTimeCourseOffset
+    foreach color $glGraphColors {
+  foreach entry {visible condition} {
+      set gGraphSetting($color,$entry) $gSavedGraphSetting($color,$entry)
+  }
+    }
+
+    TimeCourse_SetConfiguration;
 }
 
-# called by the c code when the time point is updated.
-proc UpdateTimePoint { inTimePoint inTimeSecond } {
+proc TimeCourse_SetConfiguration {} {
 
-    global gnTimePoint gnTimeSecond gsGraphName
+    global gbErrorBars gnPreStimPoints gnTimeResolution gbTimeCourseOffset
+    global FunV_tDisplayFlag_TC_OffsetValues
 
-    # set our globals
+    TimeCourse_SetErrorBarsFlag $gbErrorBars
+    TimeCourse_SetNumPreStimPoints $gnPreStimPoints
+    TimeCourse_SetTimeResolution $gnTimeResolution
+    TimeCourse_SetDisplayFlag $FunV_tDisplayFlag_TC_OffsetValues $gbTimeCourseOffset
+}
+# =======================================================================
+
+
+# ============================================================= C CALLBACKS
+
+proc Overlay_UpdateNumTimePoints { inNumPts } { 
+    global gnOverlayNumTimePoints
+    set gnOverlayNumTimePoints $inNumPts
+}
+
+proc Overlay_UpdateNumConditions { inNumConditions } { 
+    global gnOverlayNumConditions
+    set gnOverlayNumConditions $inNumConditions
+}
+
+proc Overlay_UpdateDisplayFlag { iFlag ibNewValue } { 
+    
+    global FunV_tDisplayFlag_Ol_ReversePhase 
+    global FunV_tDisplayFlag_Ol_TruncateOverlay
+
+    global gbTruncate gbReverse
+
+    if { $FunV_tDisplayFlag_Ol_ReversePhase == $iFlag } {
+  set gbReverse $ibNewValue
+    }
+    if { $FunV_tDisplayFlag_Ol_TruncateOverlay == $iFlag } {
+  set gbTruncate $ibNewValue
+    }
+}
+
+proc Overlay_UpdateDataName { isName } { 
+    global gsOverlayDataName
+    set gsOverlayDataName $isName
+} 
+
+proc Overlay_UpdateTimePoint { inTimePoint inTimeSecond } {
+    global gnTimePoint gnTimeSecond
     set gnTimePoint  $inTimePoint
     set gnTimeSecond $inTimeSecond
-
-    # move the current time bar.
-    $gsGraphName movevmark currentTimePointMark $gnTimeSecond
-
-    RecalcCurrentTimeCourseValue
+    TimeCourse_DrawCurrentTimePoint
 }
 
-# called by the c code when the condition is updated
-proc UpdateCondition { inCondition } {
-
-    global gnCondition gnTimeSecond gsGraphName
-    global ksGraphDataColor2
-
-    # set our global
+proc Overlay_UpdateCondition { inCondition } {
+    global gnCondition 
     set gnCondition $inCondition
-
-    # clear the existing time bar and make a new one with the color
-    # of the new condition.
-    $gsGraphName clearmark currentTimePointMark
-    $gsGraphName vmark $gnTimeSecond currentTimePointMark \
-      $ksGraphDataColor2($gnCondition)
-
-    RecalcCurrentTimeCourseValue
 }
 
-proc UpdateCurrentOverlayValue { ifValue } {
-
-    global gfCurrentOverlayValue
-
-    set gfCurrentOverlayValue $ifValue
+proc Overlay_UpdateThreshold { ifMin ifMid ifSlope } {
+    global gfThreshold
+    set gfThreshold(min) $ifMin
+    set gfThreshold(mid) $ifMid
+    set gfThreshold(slope) $ifSlope
 }
 
-# called by the c code when the threshold min is updated
-proc UpdateThresholdMin { ifMin } {
+proc Overlay_ShowOffsetOptions { ibShow } {
 
-    global gfThresholdMin
-
-    # set our global
-    set gfThresholdMin $ifMin
+    global gbShowOverlayOffsetOptions
+    set gbShowOverlayOffsetOptions $ibShow
 }
 
-# called by the c code when the threshold mid is updated
-proc UpdateThresholdMid { ifMid } {
+proc TimeCourse_UpdateNumConditions { inNumConditions } { 
+    global gnNumTimeCourseConditions
+    global glAllColors gnMaxColors glGraphColors gGraphSetting
+    set gnNumTimeCourseConditions $inNumConditions
+    
+    # set the graph colors to the first num_conditions possible colors
+    set nLastColorToUse [expr $gnNumTimeCourseConditions - 1]
+    if { $nLastColorToUse > [expr $gnMaxColors - 1] } {
+  set nLastColorToUse [expr $gnMaxColors - 1]
+    }
+    set glGraphColors [lrange $glAllColors 0 $nLastColorToUse]
+    
 
-    global gfThresholdMid
-
-    # set our global
-    set gfThresholdMid $ifMid
+    # make sure none of our graph setting conditions are invalid
+    foreach dataSet $glGraphColors {
+  if { $gGraphSetting($dataSet,condition) >= $gnNumTimeCourseConditions } {
+      set gGraphSetting($dataSet,condition) 0
+      set gGraphSetting($dataSet,visible)   0
+  }
+    }
 }
 
-# called by the c code when the threshold max is updated
-proc UpdateThresholdMax { ifMax } {
+proc TimeCourse_UpdateNumPreStimPoints { inNumPts } { 
+    global gnPreStimPoints
+    set gnPreStimPoints $inNumPts
+ }
 
-    global gfThresholdMax
+proc TimeCourse_UpdateTimeResolution { inTimeRes } { 
+    global gnTimeResolution
+    set gnTimeResolution $inTimeRes
+ }
 
-    # set our global
-    set gfThresholdMax $ifMax
+proc TimeCourse_UpdateDisplayFlag { iFlag ibNewValue } { 
+
+    global FunV_tDisplayFlag_TC_GraphWindowOpen
+    
+    if { $FunV_tDisplayFlag_TC_GraphWindowOpen == $iFlag } {
+  if { $ibNewValue == 0 } {
+      HideFunctionalWindow
+  } else {
+      ShowFunctionalWindow
+  }
+    }
+}
+
+proc TimeCourse_UpdateDataName { isName } { 
+    global gwwTop gsTimeCourseDataName
+    wm title $gwwTop $isName
+    set gsTimeCourseDataName $isName
+}
+
+proc TimeCourse_UpdateLocationName { isName } { 
+    global gsTimeCourseLocation
+    set gsTimeCourseLocation $isName
+}
+
+proc TimeCourse_SetErrorBarsFlag { ibNewValue } {
+    global gbErrorBars
+    set gbErrorBars $ibNewValue
+}
+
+proc TimeCourse_ShowOffsetOptions { ibShow } {
+
+    global gbShowTimeCourseOffsetOptions
+    set gbShowTimeCourseOffsetOptions $ibShow
 }
 
 # ========================================================= BUILDING INTERFACE
 
 proc CreateWindow { iwwTop } {
-
     global ksWindowName
-
     toplevel $iwwTop
     wm title $iwwTop $ksWindowName
 }
@@ -325,30 +861,45 @@ proc CreateGraphFrame { ifwGraph } {
 
     global gcwGraph
     global kLabelFont
-    global gsGraphName
+    global gsGraphName gsTimeCourseDataName gsTimeCourseLocation
 
     frame $ifwGraph
 
-    set lwTimeCourse $ifwGraph.lwTimeCourse
+    set fwDataName   $ifwGraph.fwDataName
     set gcwGraph     $ifwGraph.gcwGraph
+    set fwLocation   $ifwGraph.fwLocation
 
-    label $lwTimeCourse -text "Time Course Graph" \
-      -anchor w \
-      -font $kLabelFont
+    tkm_MakeActiveLabel $fwDataName "" gsTimeCourseDataName
 
     canvas $gcwGraph -width 400 -height 300
     
+    bind $gcwGraph <Configure> { ResizeGraphFrame }
+
     emu_graph $gsGraphName -canvas $gcwGraph -width 330 -height 250
     
-    pack $lwTimeCourse $gcwGraph -side top \
-      -fill both       \
+    tkm_MakeActiveLabel $fwLocation "" gsTimeCourseLocation
+    
+    pack $fwDataName    \
+      -side top     \
+      -expand false \
+      -anchor w
+
+    pack $gcwGraph \
+      -side top            \
+      -fill both           \
       -expand true
 
-    pack $ifwGraph -side top \
-      -padx 3          \
-      -pady 3          \
-      -expand true     \
-      -fill x
+    pack $ifwGraph       \
+      -side top    \
+      -padx 3     \
+      -pady 3      \
+      -expand true \
+      -fill both
+
+    pack $fwLocation   \
+      -side top     \
+      -expand false \
+      -anchor w
 
     # clicking in the canvas calls HandleGraphClick with the coords clicked
     bind $gcwGraph <ButtonRelease-1> {
@@ -356,338 +907,42 @@ proc CreateGraphFrame { ifwGraph } {
     }
 }
 
-proc CreateTimeCourseFrame { ifwTimeCourse } {
+proc ResizeGraphFrame {} {
 
-    global kLabelFont kNormalFont
-    global gnTimeResolution gnNumPreStimPoints
-    global gsTimeCoursePath gsTimeCourseStem gfCurrentTimeCourseValue
+    global gcwGraph gsGraphName gwwTop
 
-    frame $ifwTimeCourse 
-    
-    set fwLabel $ifwTimeCourse.fwLabel
-    set lwLabel $fwLabel.lwLabel
-
-    set fwFileName $ifwTimeCourse.fwFileName
-    set lwPath     $fwFileName.lwPath
-    set ewPath     $fwFileName.ewPath
-    set lwStem     $fwFileName.lwStem
-    set ewStem     $fwFileName.ewStem
-
-    set fwTimePoints  $ifwTimeCourse.fwTimePoints
-    set lwTimeRes     $fwTimePoints.lwTimeRes
-    set ewTimeRes     $fwTimePoints.ewTimeRes
-    set lwPreStim     $fwTimePoints.lwPreStim
-    set ewPreStim     $fwTimePoints.ewPreStim
-
-    set fwCurrentValue $ifwTimeCourse.fwCurrentValue
-    set lwCurrentValue $fwCurrentValue.lwCurrentValue
-    set lwActualValue  $fwCurrentValue.lwActualValue
-
-
-    # the label that goes at the top of the frame
-    frame $fwLabel
-    label $lwLabel -text "Time Course Volume" \
-      -font $kLabelFont
-    pack $lwLabel -anchor w
-
-    # the path and stem entries
-    frame $fwFileName
-    label $lwPath -text "Path" \
-      -font $kNormalFont
-    entry $ewPath -textvariable gsTimeCoursePath \
-      -bd 0
-    label $lwStem -text "Stem" \
-      -font $kNormalFont
-    entry $ewStem -textvariable gsTimeCourseStem \
-      -width 3                             \
-      -bd 0
-
-    # pack them in a row, with the path entry filling
-    pack $lwPath -side left
-    pack $ewPath -side left \
-      -fill x         \
-      -expand true
-    pack $lwStem $ewStem -side left
-
-    # time res and prestim entries
-    frame $fwTimePoints
-    label $lwTimeRes -text "Time Resolution: " \
-      -font $kNormalFont                 \
-      -anchor e
-    entry $ewTimeRes -textvariable gnTimeResolution \
-      -width 3                                \
-      -bd 0
-    label $lwPreStim -text "# Pre-stim Time Pts: " \
-      -font $kNormalFont                     \
-      -anchor e
-    entry $ewPreStim -textvariable gnNumPreStimPoints \
-      -width 3                                  \
-      -bd 0
-
-    # pack them in a row, to the left
-    pack $lwTimeRes $ewTimeRes  $lwPreStim $ewPreStim -side left
-
-    # make the label that will contain the actual current value
-    frame $fwCurrentValue
-    label $lwCurrentValue -text "Current value:" \
-      -font $kNormalFont                   \
-      -anchor w
-    label $lwActualValue -textvariable gfCurrentTimeCourseValue \
-      -font $kNormalFont                   \
-      -anchor w
-    pack $lwCurrentValue $lwActualValue -side left
-
-    # pack the subframes in a column
-    pack $fwLabel $fwFileName $fwTimePoints $fwCurrentValue -side top \
-      -expand true                                              \
-      -fill x                                                   \
-      -anchor w
-
-    # pack the time course frame
-    pack $ifwTimeCourse -side top \
-      -padx 3               \
-      -pady 3               \
-      -expand true          \
-      -fill x               \
-      -anchor w
-
-    # pressing return in the fields calls the c set functions
-    bind $ewPath <Return> {
-  LoadTimeCourseData $gsTimeCoursePath $gsTimeCourseStem
-    }
-    bind $ewStem <Return> {
-  LoadTimeCourseData $gsTimeCoursePath $gsTimeCourseStem
-    }
-    bind $ewTimeRes <Return> {
-  SetCurrentFunctionalTimeResolution $gnTimeResolution
-    }
-    bind $ewPreStim <Return> {
-  SetCurrentFunctionalNumPreStimPoints $gnNumPreStimPoints
-    }
-}
-
-proc CreateOverlayFrame { ifwOverlay } {
-
-    global kLabelFont kNormalFont
-    global gnIsDisplay gnTimePoint gnCondition
-    global gsOverlayPath gsOverlayStem gfCurrentOverlayValue
-
-    frame $ifwOverlay
-    
-    set fwLabel $ifwOverlay.fwLabel
-    set lwLabel $fwLabel.lwLabel
-
-    set fwVisible  $ifwOverlay.fwVisible
-    set cbwVisible $fwVisible.cbwVisible
-
-    set fwFileName $ifwOverlay.fwFileName
-    set lwPath     $fwFileName.lwPath
-    set ewPath     $fwFileName.ewPath
-    set lwStem     $fwFileName.lwStem
-    set ewStem     $fwFileName.ewStem
-
-    set fwCurrentPlane  $ifwOverlay.fwCurrentPlane
-    set lwTimePoint     $fwCurrentPlane.lwTimePoint
-    set ewTimePoint     $fwCurrentPlane.ewTimePoint
-    set bwIncTimePoint  $fwCurrentPlane.vwIncTimePoint
-    set bwDecTimePoint  $fwCurrentPlane.vwDecTimePoint
-    set lwCondition     $fwCurrentPlane.lwCondition
-    set ewCondition     $fwCurrentPlane.ewCondition
-    set bwIncCondition  $fwCurrentPlane.vwIncCondition
-    set bwDecCondition  $fwCurrentPlane.vwDecCondition
-
-    set fwCurrentValue $ifwOverlay.fwCurrentValue
-    set lwCurrentValue $fwCurrentValue.lwCurrentValue
-    set lwActualValue  $fwCurrentValue.lwActualValue
-
-    set fwThreshold     $ifwOverlay.fwThreshold
-    set lwThreshold     $fwThreshold.lwThreshold
-    set lwMin           $fwThreshold.lwMin
-    set ewMin           $fwThreshold.ewMin
-    set lwMid           $fwThreshold.lwMid
-    set ewMid           $fwThreshold.ewMid
-    set lwMax           $fwThreshold.lwMax
-    set ewMax           $fwThreshold.ewMax
-
-    # the label that goes at the top of the frame
-    frame $fwLabel
-    label $lwLabel -text "Overlay Volume" \
-      -font $kLabelFont
-    pack $lwLabel -anchor w
-
-    # visible checkbutton
-    frame $fwVisible -bd 0
-    checkbutton $cbwVisible -text "Visible" \
-      -variable gnIsDisplay          \
-      -font $kNormalFont             \
-      -highlightbackground white
-    pack $cbwVisible -side left
-
-    # the path and stem entries
-    frame $fwFileName
-    label $lwPath -text "Path" \
-      -font $kNormalFont
-    entry $ewPath -textvariable gsOverlayPath \
-      -bd 0
-    label $lwStem -text "Stem" \
-      -font $kNormalFont
-    entry $ewStem -textvariable gsOverlayStem \
-      -width 3                          \
-      -bd 0
-
-    # pack them in a row, with the path entry filling
-    pack $lwPath -side left
-    pack $ewPath -side left \
-      -fill x         \
-      -expand true
-    pack $lwStem $ewStem -side left
-
-    # cur time point and condition entries with their buttons
-    frame $fwCurrentPlane
-    label $lwTimePoint -text "Time Point: " \
-      -font $kNormalFont \
-      -anchor e
-    entry $ewTimePoint -textvariable gnTimePoint \
-      -width 3                             \
-      -bd 0
-    button $bwDecTimePoint -text "-" \
-      -font $kNormalFont       \
-      -padx 2                  \
-      -pady 0                  \
-      -bd 1
-    button $bwIncTimePoint -text "+" \
-      -font $kNormalFont       \
-      -padx 2                  \
-      -pady 0                  \
-      -bd 1
-    label $lwCondition -text "Condition: " \
-      -font $kNormalFont \
-      -anchor e
-    entry $ewCondition -textvariable gnCondition \
-      -width 3                              \
-      -bd 0
-    button $bwDecCondition -text "-" \
-      -font $kNormalFont       \
-      -padx 2                  \
-      -pady 0                  \
-      -bd 1
-    button $bwIncCondition -text "+" \
-      -font $kNormalFont       \
-      -padx 2                  \
-      -pady 0                  \
-      -bd 1
-
-    # pack them in a row, to the left
-    pack $lwTimePoint $ewTimePoint          \
-      $bwDecTimePoint $bwIncTimePoint \
-      $lwCondition $ewCondition       \
-      $bwDecCondition $bwIncCondition -side left \
-      -padx 2
-
-    # make the label that will contain the actual current value
-    frame $fwCurrentValue
-    label $lwCurrentValue -text "Current value:" \
-      -font $kNormalFont                   \
-      -anchor w
-    label $lwActualValue -textvariable gfCurrentOverlayValue \
-      -font $kNormalFont                   \
-      -anchor w
-    pack $lwCurrentValue $lwActualValue -side left
-
-    # threshold min, mid, and max
-    frame $fwThreshold
-    label $lwThreshold -text "Color scale thresholds: " \
-      -font $kNormalFont                          \
-      -anchor e
-    label $lwMin -text "Min: " \
-      -font $kNormalFont \
-      -anchor e
-    entry $ewMin -textvariable gfThresholdMin \
-      -width 6                          \
-      -bd 0
-    label $lwMid -text "Mid: " \
-      -font $kNormalFont \
-      -anchor e
-    entry $ewMid -textvariable gfThresholdMid \
-      -width 6                          \
-      -bd 0
-    label $lwMax -text "Max: " \
-      -font $kNormalFont \
-      -anchor e
-    entry $ewMax -textvariable gfThresholdMax \
-      -width 6                          \
-      -bd 0
-    
-    # pack them in a row, to the left
-    pack $lwThreshold $lwMin $ewMin $lwMid $ewMid $lwMax $ewMax -side left \
-      -padx 2
-
-    # pack the subframes in a column
-    pack $fwLabel $fwVisible $fwFileName     \
-      $fwCurrentPlane $fwCurrentValue  \
-      $fwThreshold  -side top          \
-      -expand true                     \
-      -fill x                          \
-      -anchor w
-
-    # pack the time course frame
-    pack $ifwOverlay -side top  \
-      -padx 3             \
-      -pady 3             \
-      -expand true        \
-      -fill x             \
-      -anchor w
-
-    # clicking visible changes the value and calls teh c code func
-    bind $ewPath <Return> {
-  LoadOverlayData $gsOverlayPath $gsOverlayStem
-    }
-    bind $ewStem <Return> {
-  LoadOverlayData $gsOverlayPath $gsOverlayStem
-    }
-    bind $cbwVisible <ButtonRelease-1> {
-  SetCurrentFunctionalDisplayStatus $gnIsDisplay
-    }
-    bind $ewTimePoint <Return> {
-  SetCurrentFunctionalTimePoint $gnTimePoint
-    }
-    bind $bwDecTimePoint <ButtonRelease-1> {
-  SetCurrentFunctionalTimePoint [expr $gnTimePoint - 1]
-    }
-    bind $bwIncTimePoint <ButtonRelease-1> {
-  SetCurrentFunctionalTimePoint [expr $gnTimePoint + 1]
-    }
-    bind $ewCondition <Return> {
-  SetCurrentFunctionalCondition $gnCondition
-    }
-    bind $bwDecCondition <ButtonRelease-1> {
-  SetCurrentFunctionalCondition [expr $gnCondition - 1]
-    }
-    bind $bwIncCondition <ButtonRelease-1> {
-  SetCurrentFunctionalCondition [expr $gnCondition + 1]
-    }
-    bind $ewMin <Return> {
-  SetCurrentFunctionalThresholdMin $gfThresholdMin
-    }
-    bind $ewMid <Return> {
-  SetCurrentFunctionalThresholdMid $gfThresholdMid
-    }
-    bind $ewMax <Return> {
-  SetCurrentFunctionalThresholdMax $gfThresholdMax
-    }
+    # redraw graph
+    TimeCourse_ClearData
+    TimeCourse_DrawGraph
 }
 
 # = ====================================================================== MAIN
 
 # build the window
-set wwTop        .w
-set fwGraph      $wwTop.fwGraph
-set fwTimeCourse $wwTop.fwTimeCourse
-set fwOverlay    $wwTop.fwOverlay
+set gwwTop       .wwFunctional
+set fwGraph      $gwwTop.fwGraph
 
-CreateWindow          $wwTop
+CreateWindow          $gwwTop
 CreateGraphFrame      $fwGraph
-CreateTimeCourseFrame $fwTimeCourse
-CreateOverlayFrame    $fwOverlay
 
 set gfwGraph $fwGraph
+
+wm withdraw $gwwTop
+
+proc TestData {} {
+
+    TimeCourse_UpdateGraphData 0 {1 1 2 2 3 3 4 4 5 5}
+    TimeCourse_UpdateGraphData 1 {1 8 2 9 3 6 4 8 5 9}
+    TimeCourse_UpdateErrorData 1 {.9 .8 .7 .6 .5}
+    TimeCourse_UpdateGraphData 2 {1 -3 2 0 3 -4 4 -8 5 8}
+    TimeCourse_UpdateGraphData 3 {1 2 2 9 3 -9 4 8 5 10}
+    TimeCourse_UpdateGraphData 4 {1 -4 2 8 3 -9 4 8 5 1}
+    TimeCourse_UpdateGraphData 6 {1 3 2 8 3 9 4 9 5 -2.3}
+    TimeCourse_UpdateGraphData 7 {1 8 2 -1 3 -8 4 5 5 -1}
+    TimeCourse_UpdateNumConditions 7
+}
+
+
+
+
+

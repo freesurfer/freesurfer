@@ -28,7 +28,7 @@
 ##  SUPPORT, UPDATES, ENHANCEMENTS, OR MODIFICATIONS.
 ##
 ##-----------------------------------------------------------------------
-## $Id: tkm_graph.tcl,v 1.1 2000/03/23 17:21:30 inverse Exp $ 
+## $Id: tkm_graph.tcl,v 1.2 2000/07/11 16:59:57 inverse Exp $ 
 
 
 #------------------------------------------------------------------
@@ -799,4 +799,3 @@ proc tdtest {} {
     foo data d1 -colour red -points 0 -lines 1 -trackdata tdata
 #    foo data d2 -colour blue -points 0 -lines 1 -coords [tdata coords]
 }
-

@@ -1,1168 +1,2557 @@
-#! /usr/local/bin/tclsh7.4
-############################################################################
-#  Copyright (c) 1999 CorTechs - All rights reserved
-############################################################################
-set tk_strictMotif 1
-set program tkmedit
-set thisapp [tk appname]   ;# maybe multiple copies
-### fonts from wrappers.tcl
+#! /usr/bin/wish
 
-set sclenx 150
-set scleny 140
-
-### medit vars set to abs paths at startup
-# $home $session $subject $hemi $ext $dip $dec
-
-### literal subdirs for setfile
-set bemdir bem
-set rgbdir rgb
-set surfdir surf
-set fsdir fs
-set mridir mri
-
-### file lists for setfile
-set bemfiles { dip dec hpts htrans }
-set rgbfiles { rgb }
-set surffiles { insurf curv }
-set fsfiles { fs fm }
-set mrifiles { abs_imstem }
-
-### default transform
-set xrot 0
-set yrot 0
-set zrot 0
-set xtrans 0
-set ytrans 0
-
-### default norm direction
-set normdir 1
-
-### default brush
-set circleflag 1
-set inplaneflag 1
-set selectedpixval 1
-
-### save panel
-set userok 0
-
-### slice (slider!) limits
-set cormax [expr $imnr1-1]
-set cormin 0
-set sagmax [expr $xdim/$zf-1]
-set sagmin 0
-set hormax [expr $ydim/$zf-1]
-set hormin 0
-set newimc 127
-set newic 127
-set newjc 127
-set dontzoom FALSE
-set parallelupdate TRUE
-
-### slice planes
-set cor 0
-set hor 1
-set sag 2
-set changeplanelock 0
-
-# kt
-set gZoomCallNum 1
-set g3DViewFlag 0
-
-### source standard widget wrapper code
+# our graph code
+source $env(MRI_DIR)/lib/tcl/tkm_graph.tcl
 source $env(MRI_DIR)/lib/tcl/wrappers.tcl
+source $env(MRI_DIR)/lib/tcl/tkm_dialog.tcl
+source $env(MRI_DIR)/lib/tcl/tkm_wrappers.tcl
 
-############################################################################
-proc setsession { name } {
-  global session home subject
-  if { [string range $name 0 0] == "~" } {
-    if { [string length $name] == 1 } {
-      set session $home/$subject
-      return
-    }
-    if { [string length $name] < 3 || [string range $name 1 1] != "/"} {
-      puts "bad tilde name for setsession"
-      prompt
-      return
-    }
-    set tildegone [string range $name 2 end]
-    set subdir [file dirname $tildegone]
-    set sessiontail [file tail $tildegone]
-    if { $subdir == "." } {
-      set session $home/$subject/$sessiontail
-    } else {
-      set session $home/$subject/$subdir/$sessiontail
-    }
-  } elseif { [string range $name 0 0] == "/" } {
-    set session $name
-  } else {
-    puts "invalid name for setsession: must start with ~/ or /"
-    prompt
-    return
-  }
+# hungarian notation notes:
+# prefix  type                   library (if applicable)
+# ww      window widget          tk
+# fw      frame widget           tk
+# slw     selector widget        tix
+# cw      control widget         tix
+# lw      label widget           tk
+# lfw     label frame widget     tix
+# vw      canvas widget          tk
+# gw      graph widget           emu_graph
+# ew      entry widget           tk
+# lew     label entry widget     tix
+# rw      radio button widget    tk
+# cbw     checkbutton widget     tk
+# bw      button widget          tk
+# sw      scale (slider) widget  tk
+# mbw     menu button widget     tk
+# mw      menu widget            tk
+# dw      dialog box widget      tix
+# nw      notebook widget        tix
+# cbxw    combobox widget        tix
+# l       list                   tcl
+# n       integer / number
+# s       string
+# f       float
+# g       global
+
+# function naming:
+# functions prefixed with Set or xxxx_Set are c functions that the script
+# calls to change variables. functions prefixed with Update are functions
+# that the c code calls when variables are changed. when the user changes
+# value from the tk interface, the change is 'suggested' with a Set command.
+# the c code will accept or reject the change and then call the Update
+# function with the new (or old) value.
+
+# constants
+set ksWindowName "TkMedit Tools"
+set kLabelFont   $pfont
+set kNormalFont  $mfont
+set kHighlightBgColor white
+
+# DspA_tOrientation
+set DspA_tOrientation_Coronal    0
+set DspA_tOrientation_Horizontal 1
+set DspA_tOrientation_Sagittal   2
+
+# DspA_tDisplayFlag
+set DspA_tDisplayFlag_AuxVolume                   1
+set DspA_tDisplayFlag_Cursor                      2
+set DspA_tDisplayFlag_MainSurface                 3
+set DspA_tDisplayFlag_OriginalSurface             4
+set DspA_tDisplayFlag_CanonicalSurface            5
+set DspA_tDisplayFlag_InterpolateSurfaceVertices  6
+set DspA_tDisplayFlag_DisplaySurfaceVertices      7
+set DspA_tDisplayFlag_ControlPoints               8
+set DspA_tDisplayFlag_Selection                   9
+set DspA_tDisplayFlag_FunctionalOverlay          10
+set DspA_tDisplayFlag_ParcellationOverlay        11
+
+# DspA_tTool
+set DspA_tTool_Select     0
+set DspA_tTool_Edit       1
+set DspA_tTool_CtrlPts    2
+set DspA_tTool_CustomEdit 3
+
+# DspA_tBrushShape
+set DspA_tBrushShape_Circle 0
+set DspA_tBrushShape_Square 1
+
+# MWin_tDisplayConfiguration
+set MWin_tDisplayConfiguration_1x1 0
+set MWin_tDisplayConfiguration_2x2 1
+
+# MWin_tVolumeType
+set MWin_tVolumeType_Main 0
+set MWin_tVolumeType_Aux  1
+
+# tkm_tSurfaceType
+set tkm_tSurfaceType_Current   0
+set tkm_tSurfaceType_Original  1
+set tkm_tSurfaceType_Canonical 2
+
+# tFunctionalVolume
+set tFunctionalVolume_Overlay    0
+set tFunctionalVolume_TimeCourse 1
+
+# our global vars
+set gOrientation 0
+set gbLinkedCursor 1
+set gnVolX 0
+set gnVolY 0
+set gnVolZ 0
+set gsVolCoords ""
+set gfwVolCoords ""
+set gfRASX 0
+set gfRASY 0
+set gfRASZ 0
+set gsRASCoords ""
+set gfwRASCoords ""
+set gfTalX 0
+set gfTalY 0
+set gfTalZ 0
+set gsTalCoords ""
+set gfwTalCoords ""
+set gsVolName ""
+set gnVolValue 0
+set gfwVolValue ""
+set gsAuxVolName ""
+set gnAuxVolValue 0
+set gfwAuxVolValue ""
+set gsFuncCoords ""
+set gfwFuncCoords ""
+set gfFuncValue 0
+set gfwFuncValue ""
+set gnZoomLevel 0
+set gTool $DspA_tTool_Select
+set gDisplayedVolume 0
+set gb3DDisplay 0
+set gbCursor 0
+set gbSelection 0
+set gbControlPoints 0
+set gbFunctional 0
+set gbParcellation 0
+set gbMainSurface 0
+set gbOriginalSurface 0
+set gbCanonicalSurface 0
+set gbDisplaySurfaceVertices 0
+set gbInterpolateSurfaceVertices 0
+set gnBrushRadius 1
+set gBrushShape $DspA_tBrushShape_Circle
+set gbBrush3D true
+set gnBrushLow 0
+set gnBrushHigh 0
+set gnBrushNewValue 0
+set gfVolumeColorScaleThresh 0
+set gfVolumeColorScaleSquash 0
+set gbVolumeDirty 0
+
+# ========================================================= UPDATES FROM MEDIT
+
+proc UpdateLinkedCursorFlag { ibLinked } {
+
+    global gbLinkedCursor
+    set gbLinkedCursor $ibLinked
 }
 
-proc setfile { varName value } {  ;# makes "varName"abbrev if it doesn't exist
-  upvar $varName localvar               ;# setfile dec */bem/brain3d5-5.dec
-  upvar ${varName}abbrev localabbrev    ;# setfile rgb ~/tmp/myrgb
-  global home subject session imtype
-  global bemdir rgbdir surfdir fsdir mridir
-  global bemfiles rgbfiles surffiles fsfiles mrifiles
-  ### set subdir using name of var and premade lists
-  if { [lsearch -exact $bemfiles $varName] >= 0 } {
-    set subdir $bemdir
-  } elseif { [lsearch -exact $rgbfiles $varName] >= 0 } {
-    set subdir $rgbdir
-  } elseif { [lsearch -exact $surffiles $varName] >= 0 } {
-    set subdir $surfdir
-  } elseif { [lsearch -exact $fsfiles $varName] >= 0 } {
-    set subdir $fsdir
-  } elseif { [lsearch -exact $mrifiles $varName] >= 0 } {
-    set subdir $mridir
-  } else {
-    puts "bad arg: don't know how to set file type: $varName"
-    puts "  setfile {$bemfiles} value"
-    puts "  setfile {$rgbfiles} value"
-    puts "  setfile {$surffiles} value"
-    puts "  setfile {$fsfiles} value"
-    prompt
-    return
-  }
-  ### do expansions and make fullname
-  if { [string range $value 0 0] == "/"} {
-    set fullname $value
-  } elseif { [string range $value 0 0] == "~"} {
-    if { [string length $value] > 1 && [string range $value 1 1] != "/" } {
-      puts "tkmedit: can't reset subject home dir without restarting"
-      prompt
-      return
-    }
-    if { [string length $value] < 3 } {
-      puts "tkmedit: no filename specified for setfile"
-      prompt
-      return
-    }
-    set tildegone [string range $value 2 end]
-    set subdir [file dirname $tildegone]      ;# overwrite, may be multilevel
-    set filename [file tail $tildegone]
-    if { $subdir == "." } {
-      set fullname $home/$subject/$filename
-    } else {
-      set fullname $home/$subject/$subdir/$filename
-    }
-  } elseif { [string range $value 0 0] == "*"} {
-    set stargone [string range $value 2 end]
-    set fullname $session/$stargone
-  } else {  ;# relative (guess session vs. subjects)
-    if {$subdir == $bemdir} {
-      set fullname $home/$subject/$subdir/$value
-    } elseif { $subdir == $surfdir } {
-      set fullname $home/$subject/$subdir/$value
-    } elseif { $subdir == $fsdir } {
-      set fullname $session/$subdir/$value
-    } elseif { $subdir == $mridir } {
-      if { $imtype == "local" } {
-        set fullname $session/$value
-      } else {
-        set fullname $session/$subdir/$value
-      }
-    } elseif { $subdir == "." } {
-      set fullname $session/$value
-    } else {
-      set fullname $session/$subdir/$value
-    }
-  }
-  set localvar $fullname
-  #puts $fullname
+proc UpdateVolumeCursor { inX inY inZ } {
 
-  ### attempt to re-abbrev (first ~, then *, else set absolute)
-  set homename $home/$subject
-  set homelen [string length $homename]
-  set endhome [incr homelen -1]
-  set begintail [incr homelen 1]
-  if { $homename == [string range $fullname 0 $endhome] } {
-    set localabbrev ~[string range $fullname $begintail end]
-    return
-  }
-  set sessionlen [string length $session]
-  set endsession [incr sessionlen -1]
-  set begintail [incr sessionlen 1]
-  if { $session == [string range $fullname 0 $endsession] } {
-    set localabbrev *[string range $fullname $begintail end]
-    return
-  }
-  set localabbrev $fullname
+    global gnVolX gnVolY gnVolZ gsVolCoords
+    set gnVolX $inX
+    set gnVolY $inY
+    set gnVolZ $inZ
+
+    # update the cursor string
+    set gsVolCoords "($gnVolX, $gnVolY, $gnVolZ)"
 }
 
-proc resettransform { } {
-  global xrot yrot zrot xtrans ytrans
-  set xrot 0; set yrot 0; set zrot 0
-  set xtrans 0; set ytrans 0
+proc UpdateRASCursor { ifX ifY ifZ } {
+
+    global gfRASX gfRASY gfRASZ gsRASCoords
+    set gfRASX $ifX
+    set gfRASY $ifY
+    set gfRASZ $ifZ
+
+    # update the cursor string
+    set gsRASCoords "($gfRASX, $gfRASY, $gfRASZ)"
 }
 
-proc fixdipdecname { varName index op } {
-  global dip dec dip_spacing
-  global dipabbrev decabbrev
-  switch $op {
-    w {    ;# on varName write
-    ### read current abbrev in entry
-    setfile dip $dipabbrev
-    setfile dec $decabbrev
-    set diptail [format "brain3d%d.dip" $dip_spacing]
-    set dectail [format "brain3d%d.dec" $dip_spacing]
-    ### work on absolute because file dirname does its own ~ expand!!
-    set dip [file dirname $dip]/$diptail
-    set dec [file dirname $dec]/$dectail
-    ### update entry abbrev
-    setfile dip $dip
-    setfile dec $dec
-    }
-  }
-}  
+proc UpdateTalCursor { ifX ifY ifZ } {
 
-proc fixfocus { varName index op } {
-  global plane cor hor sag changeplanelock
-  if {$changeplanelock} { return }
-  if {$plane==$cor} { focus .mri.main.left.view.pan.cor.bot.sc }
-  if {$plane==$hor} { focus .mri.main.left.view.pan.hor.bot.sc }
-  if {$plane==$sag} { focus .mri.main.left.view.pan.sag.bot.sc }
+    global gfTalX gfTalY gfTalZ gsTalCoords
+    set gfTalX $ifX
+    set gfTalY $ifY
+    set gfTalZ $ifZ
+
+    # update the cursor string
+    set gsTalCoords "($gfTalX, $gfTalY, $gfTalZ)"
 }
 
-proc zoomcoords { varName index op } {  ;# trace nice, update real if changed
-  global zf newimc newic newjc imc ic jc plane
-  global dontzoom
-  if {$dontzoom} { return }
-  #set imc [expr $newimc*$zf]
-  #set ic [expr $newic*$zf]
-  #set jc [expr $newjc*$zf]
+proc UpdateVolumeName { isName } {
 
-    # kt - to do coord conversions properly, call the VoxelToScreen cmd from
-    # the c code. pass in our new* coords, which represent the coords on the
-    # sliders, and use them to set our screen coords, used in the c code.
-    # additionally, we need to flip ic here because the slider is in the
-    # opposite orientation.
-  # update - i guess we don't anymore. _shrug_
-    #puts "zoom before: jc, ic, imc = $jc, $ic, $imc newjc, newic, newimc = $newjc, $newic, $newimc plane = $plane"
-    # set gZoomCallNum [expr $gZoomCallNum+1]
-    # set theTempNewIC [expr 255 - $newic]
-    # puts "             tempic = $theTempNewIC"
-    set jc [lindex [VoxelToScreen $newjc $newic $newimc $plane] 0]
-    set ic [lindex [VoxelToScreen $newjc $newic $newimc $plane] 1]
-    set imc [lindex [VoxelToScreen $newjc $newic $newimc $plane] 2]
-    # set gZoomCallNum [expr $gZoomCallNum-1]
-    #puts "zoom after:  jc, ic, imc = $jc, $ic, $imc newjc, newic, newimc = $newjc, $newic, $newimc plane = $plane"
-
-    # end_kt
+    global gsVolName
+    set gsVolName $isName
 }
 
-proc unzoomcoords { } {  ;# update nice (stop loop)
-  global zf newimc newic newjc imc ic jc plane
-  global dontzoom
-  set dontzoom TRUE
-    #set newimc [expr $imc/$zf]
-    #set newic [expr $ic/$zf]
-    #set newjc [expr $jc/$zf]
- 
-   # kt - do the same thing, other way around. set our slider coords
-    # to the converted screen coords from our c code.
-    #puts "unzoom before: jc, ic, imc = $jc, $ic, $imc newjc, newic, newimc = $newjc, $newic, $newimc plane = $plane"
-    # set gZoomCallNum [expr $gZoomCallNum+1]
+proc UpdateVolumeValue { inValue } {
+
+    global gnVolValue
+    set gnVolValue $inValue
+}
+
+proc UpdateAuxVolumeName { isName } {
+
+    global gsAuxVolName
+    set gsAuxVolName $isName
+}
+
+proc UpdateAuxVolumeValue { inValue } {
+
+    global gnAuxVolValue
+    set gnAuxVolValue $inValue
+}
+
+proc UpdateFunctionalValue { ifValue } {
+
+    global gfFuncValue
+    set gfFuncValue $ifValue
+}
+
+proc UpdateFunctionalCoords { inX inY inZ } {
+
+    global gsFuncCoords
+
+    # update the cursor string
+    set gsFuncCoords "($inX, $inY, $inZ)"
+}
+
+proc UpdateZoomLevel { inLevel } { 
+
+    global gnZoomLevel
+    set gnZoomLevel $inLevel
+}
+
+proc UpdateOrientation { iOrientation } {
+
+    global gOrientation
+    set gOrientation $iOrientation
+}
+
+proc UpdateDisplayFlag { iFlag ibValue } {
+
+    # tcl doesn't make it easy to do constants.
+    global DspA_tDisplayFlag_AuxVolume DspA_tDisplayFlag_Cursor
+    global DspA_tDisplayFlag_MainSurface DspA_tDisplayFlag_OriginalSurface
+    global DspA_tDisplayFlag_CanonicalSurface 
+    global DspA_tDisplayFlag_InterpolateSurfaceVertices
+    global DspA_tDisplayFlag_DisplaySurfaceVertices 
+    global DspA_tDisplayFlag_ControlPoints
+    global DspA_tDisplayFlag_Selection DspA_tDisplayFlag_FunctionalOverlay
+    global DspA_tDisplayFlag_ParcellationOverlay
+    global MWin_tVolumeType_Main MWin_tVolumeType_Aux
+
+    global gDisplayedVolume gb3DDisplay gbCursor gbSelection gbControlPoints
+    global gbFunctional gbMainSurface gbOriginalSurface gbCanonicalSurface
+    global gbDisplaySurfaceVertices gbInterpolateSurfaceVertices
+    global gbParcellation
     
-    set newjc [lindex [ScreenToVoxel $plane $jc $ic $imc] 0]
-    set newic [lindex [ScreenToVoxel $plane $jc $ic $imc] 1]
-    set newimc [lindex [ScreenToVoxel $plane $jc $ic $imc] 2]
-    # set gZoomCallNum [expr $gZoomCallNum-1]
-    #puts "unzoom after:  jc, ic, imc = $jc, $ic, $imc newjc, newic, newimc = $newjc, $newic, $newimc plane = $plane"
 
-  set dontzoom FALSE
-
-    # end_kt
+    if { $DspA_tDisplayFlag_AuxVolume == $iFlag } {
+  if { $ibValue == 0 } {
+      set gDisplayedVolume $MWin_tVolumeType_Main
+  } else {
+      set gDisplayedVolume $MWin_tVolumeType_Aux
+  }
+    }
+    if { $DspA_tDisplayFlag_Cursor == $iFlag } {
+  set gbCursor $ibValue
+    }
+    if { $DspA_tDisplayFlag_MainSurface == $iFlag } {
+  set gbMainSurface $ibValue
+    }
+    if { $DspA_tDisplayFlag_OriginalSurface == $iFlag } {
+  set gbOriginalSurface $ibValue
+    }
+    if { $DspA_tDisplayFlag_CanonicalSurface == $iFlag } {
+  set gbCanonicalSurface $ibValue
+    }
+    if { $DspA_tDisplayFlag_InterpolateSurfaceVertices == $iFlag } {
+  set gbInterpolateSurfaceVertices $ibValue
+    }
+    if { $DspA_tDisplayFlag_DisplaySurfaceVertices == $iFlag } {
+  set gbDisplaySurfaceVertices $ibValue
+    }
+    if { $DspA_tDisplayFlag_ControlPoints == $iFlag } {
+  set gbControlPoints $ibValue
+    }
+    if { $DspA_tDisplayFlag_Selection == $iFlag } {
+  set gbSelection $ibValue
+    }
+    if { $DspA_tDisplayFlag_FunctionalOverlay == $iFlag } {
+  set gbFunctional $ibValue
+    }
+    if { $DspA_tDisplayFlag_ParcellationOverlay == $iFlag } {
+  set gbParcellation $ibValue
+    }
 }
 
-# kt - this calls c code to save and restore the cursor before and after 
-# setting the new plane. replaced all code that set the plane variable directly
-# to use this function.
-proc SetPlane { inNewPlane } {
+proc UpdateTool { iTool } {
 
-    global plane jc ic imc
+    global gTool
+    set gTool $iTool
+}
 
-#    if { $plane == $inNewPlane } {
-#  puts "SetPlane: new plane = plane, exiting.";
-#  return;
+proc UpdateBrush { inRadius iShape ib3D } {
+
+    global gnBrushRadius gBrushShape gbBrush3D
+
+    set gnBrushRadius $inRadius
+    set gBrushShape   $iShape
+    set gbBrush3D     $ib3D
+}
+
+proc UpdateBrushThreshold { inLow inHigh inNewValue } {
+
+    global gnBrushLow gnBrushHigh gnBrushNewValue
+
+    set gnBrushLow      $inLow
+    set gnBrushHigh     $inHigh
+    set gnBrushNewValue $inNewValue
+}
+
+proc UpdateVolumeColorScaleInfo { inThresh inSquash } {
+
+    global gfVolumeColorScaleThresh gfVolumeColorScaleSquash 
+
+    set gfVolumeColorScaleThresh $inThresh
+    set gfVolumeColorScaleSquash $inSquash
+}
+
+proc UpdateVolumeDirty { ibDirty } {
+
+    global gbVolumeDirty
+    set gbVolumeDirty $ibDirty
+}
+
+# =============================================================== DIALOG BOXES
+
+proc DoLoadAuxVolumeDlog {} {
+
+    global kLabelFont kNormalFont
+    global gDialog
+
+    set sVolumeName ""
+    
+    set wwDialog .wwLoadAuxVolumeDialog
+
+    # try to create the dlog...
+    if { [Dialog_Create $wwDialog "Load Aux Volume" {-borderwidth 10}] } {
+
+  set fwMain    $wwDialog.fwMain
+  set lwPrompt  $fwMain.lwPrompts
+  set ewName    $fwMain.ewName
+
+  set fwButtons $wwDialog.fwButtons
+  set bwOK      $fwButtons.bwOK
+  set bwCancel  $fwButtons.bwCancel
+
+  # prompt and entry field
+  frame $fwMain
+  label $lwPrompt -text "Enter a volume name:" \
+    -font $kLabelFont
+  entry $ewName -textvariable sVolumeName \
+    -font $kNormalFont
+  pack $lwPrompt         \
+    -side top      \
+    -anchor w
+  pack $ewName           \
+    -side top      \
+    -anchor w      \
+    -expand yes    \
+    -fill x
+
+  # ok and cancel buttons. the ok button will actually call the
+  # important function here.
+  frame $fwButtons
+  button $bwOK -text "OK"     \
+    -font $kNormalFont  \
+    -command { LoadAuxVolume $sVolumeName; \
+    Dialog_Close .wwLoadAuxVolumeDialog }
+  button $bwCancel -text "Cancel" \
+    -font $kNormalFont      \
+    -command { Dialog_Close .wwLoadAuxVolumeDialog }
+  pack $bwOK $bwCancel \
+    -side right  \
+    -padx 5      \
+    -pady 5
+
+  pack $fwMain $fwButtons \
+    -side top       \
+    -expand yes     \
+    -fill x         \
+    -padx 5         \
+    -pady 5
+
+  bind $wwDialog <Return> { .wwLoadAuxVolumeDialog.fwButtons.bwOK flash; .wwLoadAuxVolumeDialog.fwButtons.bwOK invoke }
+   bind $wwDialog <Escape> { .wwLoadAuxVolumeDialog.fwButtons.bwCancel flash; .wwLoadAuxVolumeDialog.fwButtons.bwCancel invoke }
+   }
+}
+
+proc DoSaveVolumeAsDlog {} {
+
+    global kLabelFont kNormalFont
+    global gDialog
+
+    set sVolumeName ""
+    set wwDialog .wwSaveVolumeAsDlog
+
+    # try to create the dlog...
+    if { [Dialog_Create $wwDialog "Save Volume As..." {-borderwidth 10}] } {
+
+  set fwMain    $wwDialog.fwMain
+  set lwPrompt  $fwMain.lwPrompt
+  set ewName    $fwMain.ewName
+
+  set fwButtons $wwDialog.fwButtons
+  set bwOK      $fwButtons.bwOK
+  set bwCancel  $fwButtons.bwCancel
+
+  # prompt and entry field
+  frame $fwMain
+  label $lwPrompt -text "Path to save this volume in:" \
+    -font $kLabelFont
+  entry $ewName -textvariable sVolumeName \
+    -font $kNormalFont
+  pack $lwPrompt         \
+    -side top      \
+    -anchor w
+  pack $ewName           \
+    -side top      \
+    -anchor w      \
+    -expand yes    \
+    -fill x
+
+  # ok and cancel buttons. the ok button will actually call the
+  # important function here.
+  frame $fwButtons
+  button $bwOK -text "OK"     \
+    -font $kNormalFont  \
+    -command { SaveVolumeAs $sVolumeName; \
+    Dialog_Close .wwSaveVolumeAsDlog }
+  button $bwCancel -text "Cancel" \
+    -font $kNormalFont      \
+    -command { Dialog_Close .wwSaveVolumeAsDlog }
+  pack $bwOK $bwCancel \
+    -side right  \
+    -padx 5      \
+    -pady 5
+
+  pack $fwMain $fwButtons \
+    -side top       \
+    -expand yes     \
+    -fill x         \
+    -padx 5         \
+    -pady 5
+
+  bind $wwDialog <Return> { .wwSaveVolumeAsDlog.fwButtons.bwOK flash; .wwSaveVolumeAsDlog.fwButtons.bwOK invoke }
+  bind $wwDialog <Escape> { .wwSaveLabelDlog.fwButtons.bwCancel flash; .wwSaveLabelDlog.fwButtons.bwCancel invoke }
+    }
+}
+
+proc DoSaveLabelDlog {} {
+
+    global kLabelFont kNormalFont
+    global gDialog
+
+    set sLabelName ""
+    set wwDialog .wwSaveLabelDlog
+
+    # try to create the dlog...
+    if { [Dialog_Create $wwDialog "Save Label" {-borderwidth 10}] } {
+
+  set fwMain    $wwDialog.fwMain
+  set lwPrompt  $fwMain.lwPrompt
+  set ewName    $fwMain.ewName
+
+  set fwButtons $wwDialog.fwButtons
+  set bwOK      $fwButtons.bwOK
+  set bwCancel  $fwButtons.bwCancel
+
+  # prompt and entry field
+  frame $fwMain
+  label $lwPrompt -text "Save this label as:" \
+    -font $kLabelFont
+  entry $ewName -textvariable sLabelName \
+    -font $kNormalFont
+  pack $lwPrompt         \
+    -side top      \
+    -anchor w
+  pack $ewName           \
+    -side top      \
+    -anchor w      \
+    -expand yes    \
+    -fill x
+
+  # ok and cancel buttons. the ok button will actually call the
+  # important function here.
+  frame $fwButtons
+  button $bwOK -text "OK"     \
+    -font $kNormalFont  \
+    -command { SaveLabel $sLabelName; \
+    Dialog_Close .wwSaveLabelDlog }
+  button $bwCancel -text "Cancel" \
+    -font $kNormalFont      \
+    -command { Dialog_Close .wwSaveLabelDlog }
+  pack $bwOK $bwCancel \
+    -side right  \
+    -padx 5      \
+    -pady 5
+
+  pack $fwMain $fwButtons \
+    -side top       \
+    -expand yes     \
+    -fill x         \
+    -padx 5         \
+    -pady 5
+
+  bind $wwDialog <Return> { .wwSaveLabelDlog.fwButtons.bwOK flash; .wwSaveLabelDlog.fwButtons.bwOK invoke }
+  bind $wwDialog <Escape> { .wwSaveLabelDlog.fwButtons.bwCancel flash; .wwSaveLabelDlog.fwButtons.bwCancel invoke }
+    }
+}
+
+proc DoLoadLabelDlog {} {
+
+    global kLabelFont kNormalFont
+    global gDialog
+
+    set sLabelName ""
+    set wwDialog .wwLoadLabelDlog
+
+    # try to create the dlog...
+    if { [Dialog_Create $wwDialog "Load Label" {-borderwidth 10}] } {
+
+  set fwMain    $wwDialog.fwMain
+  set lwPrompt  $fwMain.lwPrompt
+  set ewName    $fwMain.ewName
+
+  set fwButtons $wwDialog.fwButtons
+  set bwOK      $fwButtons.bwOK
+  set bwCancel  $fwButtons.bwCancel
+
+  # prompt and entry field
+  frame $fwMain
+  label $lwPrompt -text "Enter a label name:" \
+    -font $kLabelFont
+  entry $ewName -textvariable sLabelName \
+    -font $kNormalFont
+  pack $lwPrompt         \
+    -side top      \
+    -anchor w
+  pack $ewName           \
+    -side top      \
+    -anchor w      \
+    -expand yes    \
+    -fill x
+
+  # ok and cancel buttons. the ok button will actually call the
+  # important function here.
+  frame $fwButtons
+  button $bwOK -text "OK"     \
+    -font $kNormalFont  \
+    -command { LoadLabel $sLabelName; \
+    Dialog_Close .wwLoadLabelDlog }
+  button $bwCancel -text "Cancel" \
+    -font $kNormalFont      \
+    -command { Dialog_Close .wwLoadLabelDlog }
+  pack $bwOK $bwCancel \
+    -side right  \
+    -padx 5      \
+    -pady 5
+
+  pack $fwMain $fwButtons \
+    -side top       \
+    -expand yes     \
+    -fill x         \
+    -padx 5         \
+    -pady 5
+
+  bind $wwDialog <Return> { .wwLoadLabelDlog.fwButtons.bwOK flash; .wwLoadLabelDlog.fwButtons.bwOK invoke }
+  bind $wwDialog <Escape> { .wwLoadLabelDlog.fwButtons.bwCancel flash; .wwLoadLabelDlog.fwButtons.bwCancel invoke }
+    }
+}
+
+proc LoadSurface { isSurfaceName } {
+
+    global tkm_tSurfaceType_Current tkm_tSurfaceType_Original
+    global tkm_tSurfaceType_Canonical
+    global gLoadingSurface
+
+    if { $tkm_tSurfaceType_Current == $gLoadingSurface } { 
+  LoadMainSurface $isSurfaceName
+    }
+
+    if { $tkm_tSurfaceType_Original == $gLoadingSurface } {
+  LoadOriginalSurface $isSurfaceName
+    }
+    
+    if { $tkm_tSurfaceType_Canonical == $gLoadingSurface } {
+  LoadCanonicalSurface $isSurfaceName
+    }
+}
+
+proc DoLoadSurfaceDlog { iSurface } {
+
+    global kLabelFont kNormalFont
+    global gDialog
+    global gLoadingSurface
+ 
+    set gLoadingSurface $iSurface
+    set sSurfaceName ""
+    set wwDialog .wwLoadSurfaceDlog
+
+    # try to create the dlog...
+    if { [Dialog_Create $wwDialog "Load Surface" {-borderwidth 10}] } {
+
+  set fwMain    $wwDialog.fwMain
+  set lwPrompt  $fwMain.lwPrompt
+  set ewName    $fwMain.ewName
+
+  set fwButtons $wwDialog.fwButtons
+  set bwOK      $fwButtons.bwOK
+  set bwCancel  $fwButtons.bwCancel
+
+  # prompt and entry field
+  frame $fwMain
+  label $lwPrompt -text "Enter a surface name:" \
+    -font $kLabelFont
+  entry $ewName -textvariable sSurfaceName \
+    -font $kNormalFont
+  pack $lwPrompt         \
+    -side top      \
+    -anchor w
+  pack $ewName           \
+    -side top      \
+    -anchor w      \
+    -expand yes    \
+    -fill x
+
+  # ok and cancel buttons. the ok button will actually call the
+  # important function here.
+  frame $fwButtons
+  button $bwOK -text "OK"     \
+    -font $kNormalFont  \
+    -command { LoadSurface $sSurfaceName; \
+    Dialog_Close .wwLoadSurfaceDlog }
+  button $bwCancel -text "Cancel" \
+    -font $kNormalFont      \
+    -command { Dialog_Close .wwLoadSurfaceDlog }
+  pack $bwOK $bwCancel \
+    -side right  \
+    -padx 5      \
+    -pady 5
+
+  pack $fwMain $fwButtons \
+    -side top       \
+    -expand yes     \
+    -fill x         \
+    -padx 5         \
+    -pady 5
+
+  bind $wwDialog <Return> { .wwLoadSurfaceDlog.fwButtons.bwOK flash; .wwLoadSurfaceDlog.fwButtons.bwOK invoke }
+  bind $wwDialog <Escape> { .wwLoadSurfaceDlog.fwButtons.bwCancel flash; .wwLoadSurfaceDlog.fwButtons.bwCancel invoke }
+    }
+}
+
+proc FindVertex { inVertex } {
+
+    global tkm_tSurfaceType_Current tkm_tSurfaceType_Original
+    global tkm_tSurfaceType_Canonical
+    global gFindingSurface
+
+    if { $tkm_tSurfaceType_Current   == $gFindingSurface } {
+  GotoMainVertex $inVertex
+    }
+    if { $tkm_tSurfaceType_Original  == $gFindingSurface } {
+  GotoOriginalVertex $inVertex
+    }
+    if { $tkm_tSurfaceType_Canonical == $gFindingSurface } {
+  GotoCanonicalVertex $inVertex
+    }
+}
+
+proc DoFindVertexDlog { iSurface } {
+
+    global kLabelFont kNormalFont
+    global gDialog
+    global gFindingSurface
+
+    set gFindingSurface $iSurface
+    set nVertex 0
+    set wwDialog .wwFindVertexDlog
+
+    # try to create the dlog...
+    if { [Dialog_Create $wwDialog "Find Vertex" {-borderwidth 10}] } {
+
+  set fwMain    $wwDialog.fwMain
+  set lwPrompt  $fwMain.lwPrompt
+  set ewName    $fwMain.ewName
+
+  set fwButtons $wwDialog.fwButtons
+  set bwOK      $fwButtons.bwOK
+  set bwCancel  $fwButtons.bwCancel
+
+  # prompt and entry field
+  frame $fwMain
+  label $lwPrompt -text "Enter a vertex number:" \
+    -font $kLabelFont
+  entry $ewName -textvariable nVertex \
+    -font $kNormalFont
+  pack $lwPrompt         \
+    -side top      \
+    -anchor w
+  pack $ewName           \
+    -side top      \
+    -anchor w      \
+    -expand yes    \
+    -fill x
+
+  # ok and cancel buttons. the ok button will actually call the
+  # important function here.
+  frame $fwButtons
+  button $bwOK -text "OK"     \
+    -font $kNormalFont  \
+    -command { FindVertex $nVertex; \
+    Dialog_Close .wwFindVertexDlog }
+  button $bwCancel -text "Cancel" \
+    -font $kNormalFont      \
+    -command { Dialog_Close .wwFindVertexDlog }
+  pack $bwOK $bwCancel \
+    -side right  \
+    -padx 5      \
+    -pady 5
+
+  pack $fwMain $fwButtons \
+    -side top       \
+    -expand yes     \
+    -fill x         \
+    -padx 5         \
+    -pady 5
+
+  bind $wwDialog <Return> { .wwFindVertexDlog.fwButtons.bwOK flash; .wwFindVertexDlog.fwButtons.bwOK invoke }
+  bind $wwDialog <Escape> { .wwFindVertexDlog.fwButtons.bwCancel flash; .wwFindVertexDlog.fwButtons.bwCancel invoke }
+    }
+}
+
+proc LoadFunctionalVolume { isPath isStem } {
+
+    global tFunctionalVolume_Overlay tFunctionalVolume_TimeCourse
+    global gLoadingVolume
+
+    if { $gLoadingVolume == $tFunctionalVolume_Overlay } {
+  Overlay_LoadData $isPath $isStem
+    }
+    if { $gLoadingVolume == $tFunctionalVolume_TimeCourse } {
+  TimeCourse_LoadData $isPath $isStem
+    }
+}
+
+proc DoLoadFunctionalDlog { iVolume } {
+
+    global kLabelFont kNormalFont
+    global tFunctionalVolume_Overlay tFunctionalVolume_TimeCourse
+    global gDialog
+    global gLoadingVolume
+
+    set gLoadingVolume $iVolume
+    set sPath ""
+    set sStem ""
+    set wwDialog .wwLoadFunctionalDlog
+
+    # this doesn't work the second+ time the dlog is loaded
+#    if { $iVolume == $tFunctionalVolume_Overlay } {
+#  set sWindowName "Load Overlay Data"
+#    } else {
+#  set sWindowName "Load Time Course Data"
 #    }
+    set sWindowName "Load Functional Volume"
 
-    SaveCursorLocation;
-    set plane $inNewPlane;
-    RestoreCursorLocation;
-    redraw;
-    update idletasks;
-    sendupdate;
-}    
+    # try to create the dlog...
+    if { [Dialog_Create $wwDialog $sWindowName {-borderwidth 10}] } {
 
-# kt - this does a similar thing except with switching between all3 view.
-proc Set3DViewFlag { varName index op } {
+#  wm title $wwDialog $sWindowName
 
-    global all3flag g3DViewFlag
+  set fwMain    $wwDialog.fwMain
+  set lwPrompt  $fwMain.lwPrompt
+  set ewPath    $fwMain.ewPath
+  set ewStem    $fwMain.ewStem
 
-    SaveCursorLocation;
-    set all3flag $g3DViewFlag;
-    RestoreCursorLocation;
-    redraw;
-    update idletasks;
-    sendupdate;
+  set fwButtons $wwDialog.fwButtons
+  set bwOK      $fwButtons.bwOK
+  set bwCancel  $fwButtons.bwCancel
+
+  # prompt and entry fields
+  frame $fwMain
+  label $lwPrompt -text "Enter a path and stem:" \
+    -font $kLabelFont
+  entry $ewPath -textvariable sPath \
+    -font $kNormalFont
+  entry $ewStem -textvariable sStem \
+    -font $kNormalFont        \
+    -width 8
+  pack $lwPrompt         \
+    -side top      \
+    -anchor w
+  pack $ewPath           \
+    -side left     \
+    -anchor w      \
+    -expand yes    \
+    -fill x
+  pack $ewStem           \
+    -side left     \
+    -anchor e      \
+    -expand no
+
+  # ok and cancel buttons. the ok button will actually call the
+  # important function here.
+  frame $fwButtons
+  button $bwOK -text "OK"     \
+    -font $kNormalFont  \
+    -command { LoadFunctionalVolume $sPath $sStem; \
+    Dialog_Close .wwLoadFunctionalDlog }
+  button $bwCancel -text "Cancel" \
+    -font $kNormalFont      \
+    -command { Dialog_Close .wwLoadFunctionalDlog }
+  pack $bwOK $bwCancel \
+    -side right  \
+    -padx 5      \
+    -pady 5
+
+  pack $fwMain $fwButtons \
+    -side top       \
+    -expand yes     \
+    -fill x         \
+    -padx 5         \
+    -pady 5
+
+   bind $wwDialog <Return> { .wwLoadFunctionalDlog.fwButtons.bwOK flash; .wwLoadFunctionalDlog.fwButtons.bwOK invoke }
+   bind $wwDialog <Escape> { .wwFindVertexDlog.fwButtons.bwCancel flash; .wwFindVertexDlog.fwButtons.bwCancel invoke }
+   }
+
+
 }
 
+proc DoSaveDlog {} {
 
-proc talupdate { varName index op } {
-  global xtalairach ytalairach ztalairach
-  coords_to_talairach
-  set xtalairach $xtalairach   ;# touch tcl: trace doesn't report C updates
-  set ytalairach $ytalairach
-  set ztalairach $ztalairach
-}
+    global kLabelFont kNormalFont
+    global gDialog
 
-proc contupdate { varName index op } {  ;# trace zf, change binding
-  global zf
-  if {$zf < 3} {
-    bind .mri.main.left.view.pan.cor.bot.sc <B1-Motion> { redraw }
-    bind .mri.main.left.view.pan.sag.bot.sc <B1-Motion> { redraw }
-    bind .mri.main.left.view.pan.hor.bot.sc <B1-Motion> { redraw }
-  } else {
-    bind .mri.main.left.view.pan.cor.bot.sc <B1-Motion> { }
-    bind .mri.main.left.view.pan.sag.bot.sc <B1-Motion> { }
-    bind .mri.main.left.view.pan.hor.bot.sc <B1-Motion> { }
-  }
-}
+    set wwDialog .wwSaveDlog
 
-proc pixvaltitle { varName index op } {  ;# 0.2 msec
-  global selectedpixval tkmeditinterface
-  if {$tkmeditinterface == "micro"} {
-    wm title . "pixelvalue = $selectedpixval"
-  } else {
-    wm title . "medit tools (pixelvalue = $selectedpixval)"
-  }
-}
+    # try to create the dlog...
+    if { [Dialog_Create $wwDialog "Save Volume" {-borderwidth 10}] } {
 
-proc sendupdate { } {
-  global newimc newic newjc plane thisapp parallelupdate program
-  set applist "{$program} {$program #2}"
-  foreach app $applist {
-    if { $app != $thisapp } {
-      if {$parallelupdate} {
-        catch { send -async $app "set plane $plane; set newimc $newimc; \
-                                  set newic $newic; set newjc $newjc; redraw" }
-      } else {
-        catch { send -async $app "goto_point; set newimc $newimc; \
-                                  set newic $newic; set newjc $newjc; redraw" }
-      }
+  set fwMain    $wwDialog.fwMain
+  set lwPrompt  $fwMain.lwPrompt
+
+  set fwButtons $wwDialog.fwButtons
+  set bwOK      $fwButtons.bwOK
+  set bwCancel  $fwButtons.bwCancel
+
+  # prompt and entry field
+  frame $fwMain
+  label $lwPrompt -text "Are you sure you wish to save changes to the volume?" \
+    -font $kLabelFont
+  pack $lwPrompt         \
+    -side top      \
+    -anchor w
+
+  # ok and cancel buttons. the ok button will actually call the
+  # important function here.
+  frame $fwButtons
+  button $bwOK -text "OK"     \
+    -font $kNormalFont  \
+    -command { SaveVolume; \
+    Dialog_Close .wwSaveDlog; }
+  button $bwCancel -text "Cancel" \
+    -font $kNormalFont      \
+    -command { Dialog_Close .wwSaveDlog }
+  pack $bwOK $bwCancel \
+    -side right  \
+    -padx 5      \
+    -pady 5
+
+  pack $fwMain $fwButtons \
+    -side top       \
+    -expand yes     \
+    -fill x         \
+    -padx 5         \
+    -pady 5
+
+   bind $wwDialog <Return> { .wwSaveDlog.fwButtons.bwOK flash; .wwSaveDlog.fwButtons.bwOK invoke }
+   bind $wwDialog <Escape> { .wwSaveDlog.fwButtons.bwCancel flash; .wwSaveDlog.fwButtons.bwCancel invoke }
     }
-  }
 }
 
-proc sendgoto { } {
-  global plane thisapp parallelupdate program
-  if {$parallelupdate} {
-    set applist "{$program} {$program #2}"
-    foreach app $applist {
-      if { $app != $thisapp } {
-        catch { send -async $app "goto_point; redraw; unzoomcoords" }
-      }
+proc DoBrushInfoDlog {} {
+
+    global kLabelFont kNormalFont kHighlightBgColor
+    global gDialog
+    global DspA_tBrushShape_Square DspA_tBrushShape_Circle
+    global gnBrushRadius gBrushShape gbBrush3D
+    global gnSavedBrushRadius gSavedBrushShape gbSavedBrush3D
+
+    set wwDialog .wwBrushInfoDlog
+
+    set gnSavedBrushRadius $gnBrushRadius
+    set gSavedBrushShape   $gBrushShape
+    set gbSavedBrush3D     $gbBrush3D
+
+    # try to create the dlog...
+    if { [Dialog_Create $wwDialog "Brush Size" {-borderwidth 10}] } {
+
+  set fwLabel              $wwDialog.fwLabel
+  set lwLabel              $fwLabel.lwLabel
+  
+  set fwRadiusLabel        $wwDialog.fwRadiusLabel
+  set lwRadius             $fwRadiusLabel.lwRadius
+    
+  set fwRadiusScale        $wwDialog.fwRadiusScale
+  set swRadius             $fwRadiusScale.swRadius
+  set ewRadius             $fwRadiusScale.ewRadius
+  
+  set fwShapeRadios        $wwDialog.fwShapeRadios
+  set rwCircle             $fwShapeRadios.rwCircle
+  set rwSquare             $fwShapeRadios.rwSquare
+  
+  set fw3DCheckbox         $wwDialog.fw3DCheckbox
+  set cw3D                 $fw3DCheckbox.cw3D
+    
+  set fwButtons            $wwDialog.fwButtons
+  set bwOK                 $fwButtons.bwOK
+  set bwApply              $fwButtons.bwApply
+  set bwCancel             $fwButtons.bwCancel
+  
+  # the label that goes at the top of the frame
+  frame $fwLabel
+  label $lwLabel -text "Brush" \
+    -font $kLabelFont
+  pack $lwLabel -side left \
+    -anchor w
+  
+  # Radius label
+  frame $fwRadiusLabel
+  label $lwRadius -text "Radius" \
+    -font $kNormalFont
+  pack $lwRadius -side left \
+    -anchor w
+  
+  # radius slider
+  frame $fwRadiusScale
+  scale $swRadius -orient horizontal          \
+    -variable gnBrushRadius             \
+    -from 1                             \
+    -to 100                             \
+    -showvalue false 
+  entry $ewRadius -textvariable gnBrushRadius \
+    -width 3
+  pack $swRadius      \
+    -side left  \
+    -anchor w   \
+    -fill x
+  pack $ewRadius     \
+    -side left \
+    -anchor w  \
+    -expand no
+  
+  # sahpe radio buttons
+  frame $fwShapeRadios
+  radiobutton $rwCircle -text "Circle"  \
+    -variable gBrushShape         \
+    -font $kNormalFont   \
+    -highlightbackground $kHighlightBgColor \
+    -relief flat                  \
+    -value $DspA_tBrushShape_Circle
+  radiobutton $rwSquare -text "Square " \
+    -variable gBrushShape         \
+    -font $kNormalFont   \
+    -highlightbackground $kHighlightBgColor \
+    -relief flat                  \
+    -value $DspA_tBrushShape_Square
+  pack $rwCircle $rwSquare              \
+    -side top                     \
+    -anchor w
+  
+  # 3d checkbox
+  frame $fw3DCheckbox
+  checkbutton $cw3D -text "3D"    \
+    -variable gbBrush3D     \
+    -font $kNormalFont      \
+    -highlightbackground $kHighlightBgColor
+  pack $cw3D        \
+    -side top \
+    -anchor w
+  
+  # pack them in a column
+  pack $fwLabel $fwRadiusLabel $fwRadiusScale \
+    $fwShapeRadios $fw3DCheckbox        \
+    -side top                           \
+    -anchor w                           \
+    -expand yes                         \
+    -fill x
+  
+  # ok and cancel buttons. the ok button will actually call the
+  # important function here.
+  frame $fwButtons
+  button $bwOK -text "OK"     \
+    -font $kNormalFont  \
+    -command { SetBrush $gnBrushRadius $gBrushShape $gbBrush3D; \
+    Dialog_Close .wwBrushInfoDlog }
+  button $bwApply -text "Apply"     \
+    -font $kNormalFont  \
+    -command { SetBrush $gnBrushRadius $gBrushShape $gbBrush3D; }
+  button $bwCancel -text "Cancel" \
+    -font $kNormalFont      \
+    -command { SetBrush $gnSavedBrushRadius $gSavedBrushShape $gbSavedBrush3D; \
+    Dialog_Close .wwBrushInfoDlog }
+  pack $bwOK $bwApply $bwCancel \
+    -side right  \
+    -padx 5      \
+    -pady 5
+
+  pack $fwButtons \
+    -side top       \
+    -expand yes     \
+    -fill x         \
+    -padx 5         \
+    -pady 5
+
+    bind $wwDialog <Return> { .wwBrushInfoDlog.fwButtons.bwOK flash; .wwBrushInfoDlog.fwButtons.bwOK invoke }
+    bind $wwDialog <Escape> { .wwBrushInfoDlog.fwButtons.bwCancel flash; .wwBrushInfoDlog.fwButtons.bwCancel invoke }
+   }
+}
+
+proc DoCustomBrushDlog {} {
+
+    global kLabelFont kNormalFont kHighlightBgColor
+    global gDialog
+    global gnBrushLow gnBrushHigh gnBrushNewValue
+    global gnSavedBrushLow gnSavedBrushHigh gnSavedBrushNewValue
+
+    set wwDialog .wwCustomBrushDlog
+
+    set gnSavedBrushLow      $gnBrushLow
+    set gnSavedBrushHigh     $gnBrushHigh
+    set gnSavedBrushNewValue $gnBrushNewValue
+
+    # try to create the dlog...
+    if { [Dialog_Create $wwDialog "Custom Brush" {-borderwidth 10}] } {
+
+  set fwLabel              $wwDialog.fwLabel
+  set lwLabel              $fwLabel.lwLabel
+  
+  set fwLowLabel        $wwDialog.fwLowLabel
+  set lwLow             $fwLowLabel.lwLow
+
+  set fwLowScale        $wwDialog.fwLowScale
+  set swLow             $fwLowScale.swLow
+  set ewLow             $fwLowScale.ewLow
+  
+  set fwHighLabel        $wwDialog.fwHighLabel
+  set lwHigh             $fwHighLabel.lwHigh
+
+  set fwHighScale        $wwDialog.fwHighScale
+  set swHigh             $fwHighScale.swHigh
+  set ewHigh             $fwHighScale.ewHigh
+  
+  set fwNewValueLabel        $wwDialog.fwNewValueLabel
+  set lwNewValue             $fwNewValueLabel.lwNewValue
+
+  set fwNewValueScale        $wwDialog.fwNewValueScale
+  set swNewValue             $fwNewValueScale.swNewValue
+  set ewNewValue             $fwNewValueScale.ewNewValue
+  
+  set fwButtons            $wwDialog.fwButtons
+  set bwOK                 $fwButtons.bwOK
+  set bwApply              $fwButtons.bwApply
+  set bwCancel             $fwButtons.bwCancel
+  
+  # the label that goes at the top of the frame
+  frame $fwLabel
+  label $lwLabel -text "Custom Brush" \
+    -font $kLabelFont
+  pack $lwLabel -side left \
+    -anchor w
+  
+  # label
+  frame $fwLowLabel
+  label $lwLow -text "Low" \
+    -font $kNormalFont
+  pack $lwLow -side left \
+    -anchor w
+  
+  # scale
+  frame $fwLowScale
+  scale $swLow -orient horizontal       \
+    -variable gnBrushLow          \
+    -from 0                             \
+    -to 255                             \
+    -showvalue false 
+  entry $ewLow -textvariable gnBrushLow \
+    -width 3
+  pack $swLow   \
+    -side left  \
+    -anchor w   \
+    -expand yes \
+    -fill x
+  pack $ewLow  \
+    -side left \
+    -anchor w  \
+    -expand no
+
+  # label
+  frame $fwHighLabel
+  label $lwHigh -text "High" \
+    -font $kNormalFont
+  pack $lwHigh -side left \
+    -anchor w
+  
+  # scale
+  frame $fwHighScale
+  scale $swHigh -orient horizontal       \
+    -variable gnBrushHigh          \
+    -from 0                             \
+    -to 255                             \
+    -showvalue false 
+  entry $ewHigh -textvariable gnBrushHigh \
+    -width 3
+  pack $swHigh   \
+    -side left  \
+    -anchor w   \
+    -expand yes \
+    -fill x
+  pack $ewHigh  \
+    -side left \
+    -anchor w  \
+    -expand no
+
+  # label
+  frame $fwNewValueLabel
+  label $lwNewValue -text "New Value" \
+    -font $kNormalFont
+  pack $lwNewValue -side left \
+    -anchor w
+  
+  # scale
+  frame $fwNewValueScale
+  scale $swNewValue -orient horizontal       \
+    -variable gnBrushNewValue          \
+    -from 0                             \
+    -to 255                             \
+    -showvalue false 
+  entry $ewNewValue -textvariable gnBrushNewValue \
+    -width 3
+  pack $swNewValue   \
+    -side left  \
+    -anchor w   \
+    -expand yes \
+    -fill x
+  pack $ewNewValue  \
+    -side left \
+    -anchor w  \
+    -expand no
+
+  # pack them in a column
+  pack $fwLabel $fwLowLabel $fwLowScale \
+    $fwHighLabel $fwHighScale \
+    $fwNewValueLabel $fwNewValueScale \
+    -side top                           \
+    -anchor w                           \
+    -expand yes                         \
+    -fill x
+  
+  # ok and cancel buttons. the ok button will actually call the
+  # important function here.
+  frame $fwButtons
+  button $bwOK -text "OK"     \
+    -font $kNormalFont  \
+    -command { SetBrushThreshold $gnBrushLow $gnBrushHigh $gnBrushNewValue; \
+    Dialog_Close .wwCustomBrushDlog }
+  button $bwApply -text "Apply"     \
+    -font $kNormalFont  \
+    -command { SetBrushThreshold $gnBrushLow $gnBrushHigh $gnBrushNewValue; }
+  button $bwCancel -text "Cancel" \
+    -font $kNormalFont      \
+    -command { SetBrushThreshold $gnSavedBrushLow $gnSavedBrushHigh $gnSavedBrushNewValue; \
+    Dialog_Close .wwCustomBrushDlog }
+  pack $bwOK $bwApply $bwCancel \
+    -side right  \
+    -padx 5      \
+    -pady 5
+
+  pack $fwButtons \
+    -side top       \
+    -expand yes     \
+    -fill x         \
+    -padx 5         \
+    -pady 5
+
+    bind $wwDialog <Return> { .wwCustomBrushDlog.fwButtons.bwOK flash; .wwCustomBrushDlog.fwButtons.bwOK invoke }
+    bind $wwDialog <space> { .wwCustomBrushDlog.fwButtons.bwApply flash; .wwCustomBrushDlog.fwButtons.bwApply invoke }
+    bind $wwDialog <Escape> { .wwCustomBrushDlog.fwButtons.bwCancel flash; .wwCustomBrushDlog.fwButtons.bwCancel invoke }
+   }
+}
+
+proc DoVolumeColorScaleInfoDlog {} {
+
+    global kLabelFont kNormalFont
+    global gDialog
+    global gfVolumeColorScaleThresh gfVolumeColorScaleSquash 
+ 
+    set wwDialog .wwVolumeColorScaleInfoDlog
+
+    # try to create the dlog...
+    if { [Dialog_Create $wwDialog "Brightness / Contrast" {-borderwidth 10}] } {
+
+  set fwTop                $wwDialog.fwTop
+
+  set fwLeft               $fwTop.fwLeft
+  set lwThresh             $fwLeft.lwThresh
+  set lwSquash             $fwLeft.lwSquash
+  
+  set fwRight              $fwTop.fwRight
+  set fwScales             $fwRight.fwScales
+  set swSquash             $fwScales.swSquash
+  set swThresh             $fwScales.swThresh
+
+  set fwEntries            $fwRight.fwEntries
+  set ewSquash             $fwEntries.ewSquash
+  set ewThresh             $fwEntries.ewThresh
+  
+  set fwButtons            $wwDialog.fwButtons
+  set bwOK                 $fwButtons.bwOK
+  
+  frame $fwTop
+  
+  # labels
+  frame $fwLeft
+  label $lwThresh -text "Brightness" \
+    -font $kNormalFont
+  label $lwSquash -text "Contrast" \
+    -font $kNormalFont
+  pack $lwThresh $lwSquash \
+    -side top        \
+    -pady 5          \
+    -anchor w
+
+  frame $fwRight
+
+  # scales
+  frame $fwScales
+  scale $swThresh -orient horizontal         \
+    -command { SetVolumeColorScale $gfVolumeColorScaleThresh $gfVolumeColorScaleSquash } \
+    -variable gfVolumeColorScaleThresh \
+    -from 1                            \
+    -to 0                              \
+    -length 100                        \
+    -resolution 0.01                   \
+    -showvalue false
+  scale $swSquash -orient horizontal         \
+    -command { SetVolumeColorScale $gfVolumeColorScaleThresh $gfVolumeColorScaleSquash } \
+    -variable gfVolumeColorScaleSquash \
+    -from 0                            \
+    -to 20                             \
+    -length 100                        \
+    -resolution 1                      \
+    -showvalue false
+  pack $swThresh $swSquash \
+    -side top        \
+    -pady 5          \
+    -expand yes      \
+    -anchor w
+
+  # entries
+  frame $fwEntries
+  entry $ewThresh                                \
+    -textvariable gfVolumeColorScaleThresh \
+    -font $kNormalFont                     \
+    -width 5
+  bind $ewThresh <Return> { SetVolumeColorScale $gfVolumeColorScaleThresh $gfVolumeColorScaleSquash }
+  entry $ewSquash                                \
+    -textvariable gfVolumeColorScaleSquash \
+    -font $kNormalFont                     \
+    -width 5
+  bind $ewSquash <Return> { SetVolumeColorScale $gfVolumeColorScaleThresh $gfVolumeColorScaleSquash }
+  pack $ewThresh $ewSquash \
+    -side top        \
+    -pady 5          \
+    -expand yes      \
+    -anchor w
+  
+  # pack scales and entries
+  pack $fwScales $fwEntries  \
+    -side left         \
+    -padx 5            \
+    -anchor w          \
+    -expand yes        \
+    -fill x
+
+  # pack left and right
+  pack $fwLeft $fwRight    \
+    -side left       \
+    -padx 5          \
+    -expand yes      \
+    -anchor w
+
+  # ok and cancel buttons. the ok button will actually call the
+  # important function here.
+  frame $fwButtons
+  button $bwOK -text "OK"     \
+    -font $kNormalFont  \
+    -command { Dialog_Close .wwVolumeColorScaleInfoDlog }
+  pack $bwOK              \
+    -side right
+
+  pack $fwTop $fwButtons  \
+    -side top    \
+    -expand yes     \
+    -fill x         \
+    -padx 5         \
+    -pady 5
+
+    bind $wwDialog <Return> { .wwVolumeColorScaleInfoDlog.fwButtons.bwOK flash; .wwVolumeColorScaleInfoDlog.fwButtons.bwOK invoke }
     }
+}
+
+proc DoThresholdDlog {} {
+
+    global kLabelFont kNormalFont kHighlightBgColor
+    global gDialog
+    
+    set wwDialog .wwThresholdDlog
+
+    # try to create the dlog...
+    if { [Dialog_Create $wwDialog "Threshold" {-borderwidth 10}] } {
+
+  set fwTop                $wwDialog.fwTop
+
+  set fwThresh      $wwDialog.fwThresh
+  set lwThresh      $fwThresh.lwThresh
+  set ewThresh      $fwThresh.ewThresh
+  
+  set fwDirection   $wwDialog.fwDirection
+  set rwAbove       $fwDirection.rwAbove
+  set rwBelow       $fwDirection.rwBelow
+
+  set fwNewValue    $wwDialog.fwNewValue
+  set lwNewValue    $fwNewValue.lwNewValue
+  set ewNewValue    $fwNewValue.ewNewValue
+
+  set fwButtons     $wwDialog.fwButtons
+  set bwCancel      $fwButtons.bwCancel
+  set bwApply       $fwButtons.bwApply
+  set bwOK          $fwButtons.bwOK
+  
+  # threshold value
+  frame $fwThresh
+  label $lwThresh -text "Threshold:" \
+    -font $kNormalFont
+  entry $ewThresh -textvariable nThreshold \
+    -font $kNormalFont
+  pack $lwThresh     \
+    -side left      \
+    -anchor w
+  pack  $ewThresh     \
+    -side right      \
+    -anchor e
+  
+  #direction radios
+  frame $fwDirection
+  radiobutton $rwBelow -text "Below"              \
+    -variable bAbove                        \
+    -font $kNormalFont                      \
+    -highlightbackground $kHighlightBgColor \
+    -relief flat                            \
+    -value 0
+  radiobutton $rwAbove -text "Above"              \
+    -variable bAbove                        \
+    -font $kNormalFont                      \
+    -highlightbackground $kHighlightBgColor \
+    -relief flat                            \
+    -value 1
+  pack $rwBelow $rwAbove \
+    -side left     \
+    -anchor w
+
+  # new value
+  frame $fwNewValue
+  label $lwNewValue -text "New Value:" \
+    -font $kNormalFont
+  entry $ewNewValue -textvariable nNewValue \
+    -font $kNormalFont
+  pack $lwNewValue     \
+    -side left      \
+    -anchor w
+  pack  $ewNewValue     \
+    -side right      \
+    -anchor e
+
+  # buttons. the ok button will actually call the
+  # important function here.
+  frame $fwButtons
+  button $bwOK -text "OK"     \
+    -font $kNormalFont  \
+    -command { ThresholdVolume $nThreshold $bAbove $nNewValue; \
+    Dialog_Close .wwThresholdDlog }
+  button $bwApply -text "Apply"  \
+    -font $kNormalFont     \
+    -command { ThresholdVolume $nThreshold $bAbove $nNewValue }
+  button $bwCancel -text "Close" \
+    -font $kNormalFont      \
+    -command { Dialog_Close .wwThresholdDlog }
+  pack $bwOK $bwApply $bwCancel \
+    -side right  \
+    -padx 5      \
+    -pady 5
+  
+  pack $fwThresh $fwDirection $fwNewValue $fwButtons \
+    -side top       \
+    -expand yes     \
+    -fill x         \
+    -padx 5         \
+    -pady 5
+
+    bind $wwDialog <Return> { .wwThresholdDlog.fwButtons.bwOK flash; .wwThresholdDlog.fwButtons.bwOK invoke }
+    bind $wwDialog <space> { .wwThresholdDlog.fwButtons.bwApply flash; .wwThresholdDlog.fwButtons.bwApply invoke }
+   bind $wwDialog <Escape> { .wwThresholdDlog.fwButtons.bwCancel flash; .wwThresholdDlog.fwButtons.bwCancel invoke }    }
+}
+
+proc DoLoadParcellationDlog {} {
+
+    global kLabelFont kNormalFont
+    global gDialog
+
+    set sVolume ""
+    set sColorFile ""
+    set wwDialog .wwLoadParcellationDlog
+
+    # try to create the dlog...
+    if { [Dialog_Create $wwDialog "Load Parcellation" {-borderwidth 10}] } {
+
+  set fwMain    $wwDialog.fwMain
+  set lwVolume  $fwMain.lwVolume
+  set ewVolume  $fwMain.ewVolume
+  set lwColor   $fwMain.lwColor
+  set ewColor   $fwMain.ewColor
+
+  set fwButtons $wwDialog.fwButtons
+  set bwOK      $fwButtons.bwOK
+  set bwCancel  $fwButtons.bwCancel
+
+  # volume prompt and entry field
+  frame $fwMain
+  label $lwVolume -text "Enter a volume path with prefix (i.e. /COR-):" \
+    -font $kLabelFont
+  entry $ewVolume -textvariable sVolume \
+    -font $kNormalFont
+  pack $lwVolume         \
+    -side top      \
+    -anchor w
+  pack $ewVolume         \
+    -side top      \
+    -anchor w      \
+    -expand yes    \
+    -fill x
+
+  # color prompt and entry field
+  label $lwColor -text "Enter a color file name:" \
+    -font $kLabelFont
+  entry $ewColor -textvariable sColorFile \
+    -font $kNormalFont
+  pack $lwColor          \
+    -side top      \
+    -anchor w
+  pack $ewColor          \
+    -side top      \
+    -anchor w      \
+    -expand yes    \
+    -fill x
+
+  # ok and cancel buttons. the ok button will actually call the
+  # important function here.
+  frame $fwButtons
+  button $bwOK -text "OK"     \
+    -font $kNormalFont  \
+    -command { LoadParcellationVolume $sVolume $sColorFile; \
+    Dialog_Close .wwLoadParcellationDlog }
+  button $bwCancel -text "Cancel" \
+    -font $kNormalFont      \
+    -command { Dialog_Close .wwLoadParcellationDlog }
+  pack $bwOK $bwCancel \
+    -side right  \
+    -padx 5      \
+    -pady 5
+
+  pack $fwMain $fwButtons \
+    -side top       \
+    -expand yes     \
+    -fill x         \
+    -padx 5         \
+    -pady 5
+
+    bind $wwDialog <Return> { .wwLoadParcellationDlog.fwButtons.bwOK invoke }
+    bind $wwDialog <Escape> { .wwLoadParcellationDlog.fwButtons.bwCancel invoke }
+    }
+}
+
+proc DoSaveRGBDlog {} {
+
+    global kLabelFont kNormalFont
+    global gDialog
+
+    set sRGBName ""
+    set wwDialog .wwSaveRGBDlog
+
+    # try to create the dlog...
+    if { [Dialog_Create $wwDialog "Save RGB" {-borderwidth 10}] } {
+
+  set fwMain    $wwDialog.fwMain
+  set lwPrompt  $fwMain.lwPrompt
+  set ewName    $fwMain.ewName
+
+  set fwButtons $wwDialog.fwButtons
+  set bwOK      $fwButtons.bwOK
+  set bwCancel  $fwButtons.bwCancel
+
+  # prompt and entry field
+  frame $fwMain
+  label $lwPrompt -text "Save RGB as:" \
+    -font $kLabelFont
+  entry $ewName -textvariable sRGBName \
+    -font $kNormalFont
+  pack $lwPrompt         \
+    -side top      \
+    -anchor w
+  pack $ewName           \
+    -side top      \
+    -anchor w      \
+    -expand yes    \
+    -fill x
+
+  # ok and cancel buttons. the ok button will actually call the
+  # important function here.
+  frame $fwButtons
+  button $bwOK -text "OK"     \
+    -font $kNormalFont  \
+    -command { Dialog_Close .wwSaveRGBDlog; \
+               SaveRGB $sRGBName; }
+  button $bwCancel -text "Cancel" \
+    -font $kNormalFont      \
+    -command { Dialog_Close .wwSaveRGBDlog }
+  pack $bwOK $bwCancel \
+    -side right  \
+    -padx 5      \
+    -pady 5
+
+  pack $fwMain $fwButtons \
+    -side top       \
+    -expand yes     \
+    -fill x         \
+    -padx 5         \
+    -pady 5
+
+    bind $wwDialog <Return> { .wwSaveRGBDlog.fwButtons.bwOK flash; .wwSaveRGBDlog.fwButtons.bwOK invoke }
+    bind $wwDialog <Escape> { .wwSaveRGBDlog.fwButtons.bwCancel flash; .wwSaveRGBDlog.fwButtons.bwCancel invoke }
+    }
+}
+
+# ======================================================== INTERFACE MODIFIERS
+
+proc ShowVolumeCoords { ibShow } {
+
+    global gfwVolCoords gfwRASCoords gfwTalCoords gfwVolValue
+
+    if { $ibShow == 1 } {
+  
+  # try to pack before ras coords
+  if {[catch { pack $gfwVolCoords  \
+    -before $gfwRASCoords    \
+    -side top                \
+    -anchor w } sResult] } {
+      
+      # failed, try to pack before tal coords
+      if {[catch { pack $gfwVolCoords \
+        -before $gfwTalCoords   \
+        -side top               \
+        -anchor w } sResult] } {
+    
+    # failed, try vol value
+    if {[catch { pack $gfwVolCoords  \
+      -before $gfwVolValue     \
+      -side top                \
+      -anchor w } sResult] } {
+        
+        # damn it
+        return;
+    }
+      }
   }
+      
+    } else {
+  pack forget $gfwVolCoords
+    }
 }
 
-proc gotoslice { slice } {
-  global plane cor hor sag
-  global newimc newic newjc
-  if {$plane==$cor} { set newimc $slice }
-  if {$plane==$hor} { set newic $slice }
-  if {$plane==$sag} { set newjc $slice }
-  redraw
-}
+proc ShowRASCoords { ibShow } {
 
-proc changeslice { dir } {
-  global zf newimc newic newjc imc ic jc
-  global plane cor hor sag
-  if {$dir == "up"} { upslice; redraw }
-  if {$dir == "down"} { downslice; redraw }
+    global gfwVolCoords gfwRASCoords gfwTalCoords gfwVolValue
 
-    # kt - the c code handles the conversions now
-    # if {$plane==$cor} { set newimc [expr $imc/$zf] }
-    # if {$plane==$hor} { set newic [expr $ic/$zf] }
-    # if {$plane==$sag} { set newjc [expr $jc/$zf] }
-}
+    if { $ibShow == 1 } {
 
-proc rotheadpts { angle } {
-  global plane cor hor sag
-  if {$plane==$cor} { rotate_brain_y [expr $angle*10.0] }
-  if {$plane==$hor} { rotate_brain_z [expr -$angle*10.0] }
-  if {$plane==$sag} { rotate_brain_x [expr $angle*10.0] }
-}
+  # try packing before tal coords
+  if {[catch { pack $gfwRASCoords            \
+    -before $gfwTalCoords \
+    -side top             \
+    -anchor w } sResult] } {
 
-proc transheadpts { dist axis } {
-  global plane cor hor sag
-  if {$axis=="x"} {
-    if {$plane==$cor} { translate_brain_x [expr -$dist] }
-    if {$plane==$hor} { translate_brain_x [expr -$dist] }
-    if {$plane==$sag} { translate_brain_y $dist }
+      # failed, try vol value
+      if {[catch { pack $gfwRASCoords  \
+        -before $gfwVolValue     \
+        -side top                \
+        -anchor w } sResult] } {
+    
+    return;
+      }
   }
-  if {$axis=="y"} {
-    if {$plane==$cor} { translate_brain_z $dist }
-    if {$plane==$hor} { translate_brain_y $dist }
-    if {$plane==$sag} { translate_brain_z $dist }
+
+    } else {
+  pack forget $gfwRASCoords
+    }
+}
+
+proc ShowTalCoords { ibShow } {
+
+    global gfwVolCoords gfwRASCoords gfwTalCoords gfwVolValue
+
+    if { $ibShow == 1 } {
+  if {[catch { pack $gfwTalCoords            \
+    -before $gfwVolValue  \
+    -side top             \
+    -anchor w } sResult] } {
+
+      return;
   }
+    } else {
+  pack forget $gfwTalCoords
+    }
 }
 
-proc findsendto { } {
-  global fulltksurfer
-  set fulltksurfer ""
-  catch { set fulltksurfer [lrange [exec ps -af | grep /tksurfer] 7 7] }
-}
+proc ShowAuxValue { ibShow } {
 
-proc testclose { } {
-  global editedimage abs_imstem
-  if {$editedimage} {
-    set resp [okclose ${abs_imstem}[format "%03d..." $editedimage]]
-    if {$resp > 1} {write_images}
-    if {$resp > 0} {exit}
-  } else {
-    exit
+    global gfwVolValue gfwAuxVolValue
+
+    if { $ibShow == 1 } {
+  if {[catch { pack $gfwAuxVolValue  \
+    -after $gfwVolValue      \
+    -side top                \
+    -anchor w } sResult] } {
+
+      puts "ShowAuxValue: pack failed: $sResult"
+      return;
   }
+    } else {
+  pack forget $gfwTalCoords
+    }
 }
 
-proc histogram { } {
-  global linearflag bwflag rgb
-  #if { [exec uname] != "IRIX"} { return }
-  if { [exec uname] != "IRIX" && [exec uname] != "IRIX64"} { return }
-  set tmprgb /tmp/hist.rgb
-  set linearflag TRUE
-  set bwflag TRUE
-  set rgbbak $rgb
-  set rgb $tmprgb
-  redraw
-  save_rgb
-  exec hist $tmprgb &   ;# else waits
-  set linearflag FALSE
-  set bwflag FALSE
-  redraw
-  exec rm $tmprgb  ;# unsafe
-  set rgb $rgbbak
+proc ShowFuncCoords { ibShow } {
+
+    global gfwAuxVolValue gfwVolValue gfwFuncCoords gfFuncValue
+
+    if { $ibShow == 1 } {
+  if {[catch { pack $gfwFuncCoords            \
+    -before $gfwFuncValue  \
+    -side top             \
+    -anchor w } sResult] } {
+      
+      if {[catch { pack $gfwFuncCoords  \
+        -after $gfwAuxVolValue      \
+        -side top                \
+        -anchor w } sResult] } {
+    
+    if {[catch { pack $gfwFuncCoords  \
+      -after $gfwVolValue      \
+      -side top                \
+      -anchor w } sResult] } {
+
+        puts "ShowFuncCoords: pack failed: $sResult"
+        return;
+    }
+      }
+  }
+
+    } else {
+  pack forget $gfwFuncCoords
+    }
 }
 
-proc macro { } {
-  global tkmeditinterface selectedpixval
-  .mri.main.left.head.save.aSAVEIMG.bu config -text "SAVEIMG"
-  .mri.main.left.head.pnt.aall.ck config -text "all"
-  .mri.main.left.head.save.a3D.ck config -text "3D"
-  pack forget .mri.main.left.head
-  pack .mri.main.left.head -before .mri.main.left.view  ;# back to old nest
-  set winlist { .meg .mri.main.right .mri.head }
-  pack .mri.head             -before .mri.main -fill x
-  pack .mri.main.right       -after .mri.main.left
-  pack .mri.main.right.snorm -after .mri.main.right.fi
-  pack .meg                  -after .mri
-  set tkmeditinterface macro
-  set selectedpixval $selectedpixval
+proc ShowFuncValue { ibShow } {
+
+    global gfwVolValue gfwAuxVolValue gfwFuncValue gfwFuncCoords
+    global DspA_tDisplayFlag_FunctionalOverlay
+
+    if { $ibShow == 1 } {
+  if {[catch { pack $gfwFuncValue  \
+    -after $gfwFuncCoords      \
+    -side top                \
+    -anchor w } sResult] } {
+      
+      if {[catch { pack $gfwFuncValue  \
+        -after $gfwAuxVolValue      \
+        -side top                \
+        -anchor w } sResult] } {
+    
+    if {[catch { pack $gfwFuncValue  \
+      -after $gfwVolValue      \
+      -side top                \
+      -anchor w } sResult] } {
+        
+        puts "ShowFuncValue: pack failed: $sResult"
+        return;
+    }
+      }
+  }
+
+  # show item
+  SetDisplayFlag $DspA_tDisplayFlag_FunctionalOverlay 1
+
+    } else {
+  pack forget $gfwTalCoords
+    }
 }
 
-proc mini+ { } {
-  global tkmeditinterface selectedpixval
-  .mri.main.left.head.save.aSAVEIMG.bu config -text "SAVEIMG"
-  .mri.main.left.head.pnt.aall.ck config -text "all"
-  .mri.main.left.head.save.a3D.ck config -text "3D"
-  pack forget .mri.main.left.head
-  pack .mri.main.left.head -before .mri.main.left.view
-  pack .mri.head             -before .mri.main -fill x
-  pack .mri.main.right       -after .mri.main.left
-  pack .mri.main.right.snorm -after .mri.main.right.fi
-  set winlist { .meg }
-  foreach win $winlist { pack forget $win }
-  set tkmeditinterface mini+
-  set selectedpixval $selectedpixval
+proc ShowOverlayOptions { ibShow } {
+    global gDisplayMenu gnFunctionalOverlayMenuIndex
+
+    #  enable or disable menu item
+    if { $ibShow == 0 } {
+  $gDisplayMenu entryconfigure $gnFunctionalOverlayMenuIndex \
+    -state disabled
+    } else {
+  $gDisplayMenu entryconfigure $gnFunctionalOverlayMenuIndex \
+    -state normal
+    }
 }
 
-proc micro { } {
-  global tkmeditinterface selectedpixval
-  .mri.main.left.head.save.aSAVEIMG.bu config -text "SAVEIMG"
-  .mri.main.left.head.save.a3D.ck config -text "3D"
-  .mri.main.left.head.pnt.aall.ck config -text "all"
-  pack forget .mri.main.left.head
-  pack .mri.main.left.head -before .mri.main.left.view
-  set winlist { .meg .mri.main.right .mri.head }
-  foreach win $winlist { pack forget $win }
-  set tkmeditinterface micro
-  set selectedpixval $selectedpixval
+proc ShowTimeCourseOptions { ibShow } {
+    global gDisplayMenu gnTimeCourseMenuIndex
+
+    # enable or disable menu item
+    if { $ibShow == 0 } {
+  $gDisplayMenu entryconfigure $gnTimeCourseMenuIndex \
+    -state disabled
+    } else {
+  $gDisplayMenu entryconfigure $gnTimeCourseMenuIndex \
+    -state normal
+    }
 }
 
-proc mini { } {    ;# rearrange nesting
-  global tkmeditinterface selectedpixval
-  pack .mri.head       -before .mri.main
-  pack .mri.main.right -after .mri.main.left
-  pack forget .mri.main.left.head
-  pack .mri.main.left.head
-  pack .mri.main.right -in .mri.main.left.head    ;# redo nesting
-  .mri.main.left.head.save.aSAVEIMG.bu config -text "SAVE IMGS"
-  .mri.main.left.head.save.a3D.ck config -text "3Dbrush"
-  .mri.main.left.head.pnt.aall.ck config -text "all3views"
-  set winlist { .mri.head .meg .mri.main.right.snorm }
-  foreach win $winlist { pack forget $win }
-  set tkmeditinterface mini
-  set selectedpixval $selectedpixval
+# ========================================================= BUILDING INTERFACE
+
+proc CreateWindow { iwwTop } {
+
+    global ksWindowName
+
+    frame $iwwTop
+    wm title . $ksWindowName
 }
 
-############################################################################
-wm title . "medit tools" ;# "tkmedit ($subject -- editable image: $imtype)"
-wm geometry . +122+762    ;# +534+36
-wm protocol . WM_DELETE_WINDOW testclose
-wm resizable . 0 0
+proc CreateMenuBar { ifwMenuBar } {
 
-frame .mri
-pack .mri -side left
-  frame .mri.head
-  pack .mri.head -side top -fill x
-    frame .mri.head.pop
-    pack .mri.head.pop -side left
-    frame .mri.head.home
-    pack .mri.head.home -side left
-    frame .mri.head.env
-    pack .mri.head.env -side left
-  frame .mri.main
-  pack .mri.main -side top
-    # left column
-    frame .mri.main.left
-    pack .mri.main.left -side left
-      frame .mri.main.left.head -borderwidth 2 -relief groove
-      pack .mri.main.left.head -side top -fill x
-        frame .mri.main.left.head.save
-        pack .mri.main.left.head.save -side top
-        frame .mri.main.left.head.pnt
-        pack .mri.main.left.head.pnt -side top
-      frame .mri.main.left.view
-      pack .mri.main.left.view -side left
-        frame .mri.main.left.view.pan
-        pack .mri.main.left.view.pan -side top -fill y
-        # three identical slice panels
-        foreach v { cor sag hor } {
-          frame .mri.main.left.view.pan.$v -borderwidth 2 -relief groove
-          pack .mri.main.left.view.pan.$v -side top -fill x
-            frame .mri.main.left.view.pan.$v.top
-            pack .mri.main.left.view.pan.$v.top -side top
-            frame .mri.main.left.view.pan.$v.bot
-            pack .mri.main.left.view.pan.$v.bot -side top
-        }
-        # misc checks
-        frame .mri.main.left.view.butt
-        pack .mri.main.left.view.butt -side top
-          frame .mri.main.left.view.butt.left -relief groove
-          pack .mri.main.left.view.butt.left -side left
-          frame .mri.main.left.view.butt.mid -width 1 -background darkgray 
-          pack .mri.main.left.view.butt.mid -side left -fill y
-          frame .mri.main.left.view.butt.right
-          pack .mri.main.left.view.butt.right -side left
-    # right column
-    frame .mri.main.right ;# -borderwidth 2
-    pack .mri.main.right -side left
-      frame .mri.main.right.fi -borderwidth 2 -relief groove
-      pack .mri.main.right.fi -side top
-      frame .mri.main.right.snorm -borderwidth 2 -relief groove
-      pack .mri.main.right.snorm -side top -fill x
-        frame .mri.main.right.snorm.but
-        pack .mri.main.right.snorm.but -side top
-        frame .mri.main.right.snorm.bot
-        pack .mri.main.right.snorm.bot -side top
-          frame .mri.main.right.snorm.bot.lim
-          pack .mri.main.right.snorm.bot.lim -side left
-          frame .mri.main.right.snorm.bot.ffrac
-          pack .mri.main.right.snorm.bot.ffrac -side left
-          frame .mri.main.right.snorm.bot.dir
-          pack .mri.main.right.snorm.bot.dir -side left
-      frame .mri.main.right.wm ;# -borderwidth 2 -relief groove
-      pack .mri.main.right.wm -side top -fill x
-        frame .mri.main.right.wm.tru
-        pack .mri.main.right.wm.tru -side top
-          frame .mri.main.right.wm.tru.le
-          pack .mri.main.right.wm.tru.le -side left
-          frame .mri.main.right.wm.tru.mi
-          pack .mri.main.right.wm.tru.mi -side left
-          frame .mri.main.right.wm.tru.ri
-          pack .mri.main.right.wm.tru.ri -side left
-        frame .mri.main.right.wm.fil
-        pack .mri.main.right.wm.fil -side top
-          frame .mri.main.right.wm.fil.le
-          pack .mri.main.right.wm.fil.le -side left
-          frame .mri.main.right.wm.fil.ri
-          pack .mri.main.right.wm.fil.ri -side left
-        frame .mri.main.right.wm.thr
-        pack .mri.main.right.wm.thr -side top
-      frame .mri.main.right.im2 -borderwidth 2 -relief groove
-      pack .mri.main.right.im2 -side top -fill both
-      frame .mri.main.right.cmp
-      pack .mri.main.right.cmp -side top -fill both
+    global kLabelFont kNormalFont
+    global DspA_tOrientation_Sagittal DspA_tOrientation_Horizontal 
+    global DspA_tOrientation_Coronal
+    global DspA_tTool_Select DspA_tTool_Edit DspA_tTool_CtrlPts 
+    global DspA_tTool_CustomEdit
+    global gnVolX gnVolY gnVolZ
+    global gb3D gbCursor gbSelection gbControlPoints gbFunctional
+    global gbMainSurface gbOriginalSurface gbCanonicalSurface
+    global gbDisplaySurfaceVertices gbInterpolateSurfaceVertices
+    global gbParcellation
+    global gTool
+    global gDisplayMenu gnFunctionalOverlayMenuIndex gnTimeCourseMenuIndex
 
-frame .meg
-pack .meg -side left
-  frame .meg.ti -borderwidth 1
-  pack .meg.ti -side top
-  frame .meg.dips -borderwidth 2 -relief groove
-  pack .meg.dips -side top
-    frame .meg.dips.spac
-    pack .meg.dips.spac -side left
-    frame .meg.dips.en
-    pack .meg.dips.en -side left
-  frame .meg.xform
-  pack .meg.xform -side left
-    frame .meg.xform.files
-    pack .meg.xform.files -side top
-    frame .meg.xform.pan
-    pack .meg.xform.pan -side top
-      # rotate plus fieldsign
-      frame .meg.xform.pan.le
-      pack .meg.xform.pan.le -side left -anchor n
-        frame .meg.xform.pan.le.rg
-        pack .meg.xform.pan.le.rg -side top -anchor n -fill x
-          frame .meg.xform.pan.le.rg.rot -borderwidth 2 -relief groove
-          pack .meg.xform.pan.le.rg.rot -side top -fill both
-            frame .meg.xform.pan.le.rg.rot.top
-            pack .meg.xform.pan.le.rg.rot.top -side top
-            frame .meg.xform.pan.le.rg.rot.bot
-            pack .meg.xform.pan.le.rg.rot.bot -side top -anchor center
-        frame .meg.xform.pan.le.surf -borderwidth 2 -relief groove
-        pack .meg.xform.pan.le.surf -side top -fill x
-          frame .meg.xform.pan.le.surf.top
-          pack .meg.xform.pan.le.surf.top -side top
-            frame .meg.xform.pan.le.surf.top.le
-            pack .meg.xform.pan.le.surf.top.le -side left
-            frame .meg.xform.pan.le.surf.top.ri
-            pack .meg.xform.pan.le.surf.top.ri -side left
-          frame .meg.xform.pan.le.surf.bot
-          pack .meg.xform.pan.le.surf.bot -side top
-        frame .meg.xform.pan.le.ex
-        pack .meg.xform.pan.le.ex -side top
-          frame .meg.xform.pan.le.ex.le
-          pack .meg.xform.pan.le.ex.le -side left
-          frame .meg.xform.pan.le.ex.ri
-          pack .meg.xform.pan.le.ex.ri -side left
-      # translate panel
-      frame .meg.xform.pan.tran -borderwidth 2 -relief groove
-      pack .meg.xform.pan.tran -side left -anchor n -fill y
-        frame .meg.xform.pan.tran.top
-        pack .meg.xform.pan.tran.top -side top
-        frame .meg.xform.pan.tran.bot
-        pack .meg.xform.pan.tran.bot -side top
-          frame .meg.xform.pan.tran.bot.la
-          pack .meg.xform.pan.tran.bot.la -side right -anchor center
-            frame .meg.xform.pan.tran.bot.la.ent
-            pack .meg.xform.pan.tran.bot.la.ent -side top
-            frame .meg.xform.pan.tran.bot.la.wm -borderwidth 2 -relief groove
-            pack .meg.xform.pan.tran.bot.la.wm -side top
-            frame .meg.xform.pan.tran.bot.la.en
-            pack .meg.xform.pan.tran.bot.la.en -side top
 
-############################################################################
-### title 
-set f .mri.head.pop
-buttons $f "POP GL" { pop_gl_window } row 0 5
-set f .mri.head.home
-edlabval $f "home(~)" $home/$subject n 8 30
-$f.home(~).e config -font $ffontb -state disabled
-$f.home(~).e xview end
-# readenv
-set f .mri.head.env
-buttons $f READENV { source $env(MRI_DIR)/lib/tcl/readenv.tcl; redraw } col 0 5
-### main buttons (bigger font)
-set f .mri.main.left.head.save
-buttons $f "SAVEIMG" \
- { testreplace ${abs_imstem}[format "%03d" $editedimage] write_images } row 1 4
-$f.aSAVEIMG.bu config -font $ffontbb
+    frame $ifwMenuBar
 
-# brush
+    set mbwVolume      $ifwMenuBar.mbwVolume
+    set mwVolume       $mbwVolume.mwVolume
 
-edlabval $f "rad" 0 n 4 2 row
-$f.rad.e config -textvariable prad -font $sfont
+    set mbwSelection   $ifwMenuBar.mbwSelection
+    set mwSelection    $mbwSelection.mwSelection
 
-checks $f "" "3D" inplaneflag row
-$f.a3D.ck config -onvalue 0 -offvalue 1   ;# flip polarity
+    set mbwEdit        $ifwMenuBar.mbwEdit
+    set mwEdit         $mbwEdit.mwEdit
 
-# point
-set f .mri.main.left.head.pnt
-# async so doesn't wait for answer from running offline tcl script
-buttons $f "SEND PNT" { write_point; findsendto; \
-  catch { send -async $fulltksurfer select_orig_vertex_coordinates } } row 2 2
-buttons $f "GOTO PNT" {goto_point; redraw; unzoomcoords; sendgoto} row 2 2
-checks $f "" "all" g3DViewFlag row
-$f.aall.ck config -command { redraw } ;# kt- unzoom before all3
+    set mbwDisplay     $ifwMenuBar.mbwDisplay
+    set mwDisplay      $mbwDisplay.mwDisplay
 
-### cor: button (x=jc,y=imc,z=ic)
-# on the top of the area...
-set f .mri.main.left.view.pan.cor.top
-# put a button that calls SetPlane
-buttons $f "CORONAL" { SetPlane $cor;} row
-# and an editable value
-edlabval $f "yTal" 0 n 9 5 row
-$f.yTal.e config -textvariable ytalairach -font $sfont
-# when you press return in there, call this string of functions
-bind $f.yTal.e <Return> \
-  { SetPlane $cor; talairach_to_coords; redraw; unzoomcoords; sendupdate}
-$f.yTal.la config -text "yTal P/A:"
-# on the bottom...
-set f .mri.main.left.view.pan.cor.bot
-# make a slider linked to newimc
-scale $f.sc -from $cormin -to $cormax -length $sclenx -variable newimc \
-   -orient horizontal -tickinterval 127 -showvalue false -font $sfont \
-   -width 11 -resolution 1
-pack $f.sc -side left
-# when the button goes up, call SetPlane
-bind $f.sc <ButtonRelease> { SetPlane $cor; }
-# put another editable value
-edlabval $f "none" 0 n 0 3 row
-pack $f.none -side top   ;# repack to align with scale
-# link it to newimc
-$f.none.e config -textvariable newimc -font $sfont
-# when you press return in it, call SetPlane
-bind $f.none.e <Return> {SetPlane $cor;}
+    set mbwTools       $ifwMenuBar.mbwTools
+    set mwTools        $mbwTools.mwTools
 
-### sag: button
-set f .mri.main.left.view.pan.sag.top
-buttons $f SAGITTAL {SetPlane $sag;} row 2 8
-edlabval $f "xTal" 0 n 9 5 row
-$f.xTal.e config -textvariable xtalairach -font $sfont
-bind $f.xTal.e <Return> \
-  {SetPlane $sag; talairach_to_coords; redraw; unzoomcoords; sendupdate}
-$f.xTal.la config -text "xTal R/L:"
-### sag: slice
-set f .mri.main.left.view.pan.sag.bot
-scale $f.sc -from $sagmin -to $sagmax -length $sclenx -variable newjc \
-   -orient horizontal -tickinterval 127 -showvalue false -font $sfont \
-   -width 11 -resolution 1
-pack $f.sc -side left
-bind $f.sc <ButtonRelease> { SetPlane $sag; redraw; }
-#bind $f.sc <B1-Motion> { redraw }
-edlabval $f "none" 0 n 0 3 row
-pack $f.none -side top
-$f.none.e config -textvariable newjc -font $sfont
-bind $f.none.e <Return> {SetPlane $sag;}
+    set mbwCtrlPts     $ifwMenuBar.mbwCtrlPts
+    set mwCtrlPts      $mbwCtrlPts.mwCtrlPts
 
-### hor: button
-set f .mri.main.left.view.pan.hor.top
-buttons $f HORIZONTAL {SetPlane $hor;} row 2 6
-edlabval $f "zTal" 0 n 9 5 row
-$f.zTal.e config -textvariable ztalairach -font $sfont
-bind $f.zTal.e <Return> \
-  {SetPlane $hor; talairach_to_coords; redraw; unzoomcoords; sendupdate}
-$f.zTal.la config -text "zTal I/S:"
-### hor: slice
-set f .mri.main.left.view.pan.hor.bot
-scale $f.sc -from $hormin -to $hormax -length $sclenx -variable newic \
-   -orient horizontal -tickinterval 127 -showvalue false -font $sfont \
-   -width 11 -resolution 1
-pack $f.sc -side left
-bind $f.sc <ButtonRelease> { SetPlane $hor; redraw; }
-#bind $f.sc <B1-Motion> { redraw }
-edlabval $f "none" 0 n 0 3 row
-pack $f.none -side top
-$f.none.e config -textvariable newic -font $sfont
-bind $f.none.e <Return> {SetPlane $hor; }
+    set mbwSurface     $ifwMenuBar.mbwSurface
+    set mwSurface      $mbwSurface.mwSurface
+ 
+    set mbwFunctional  $ifwMenuBar.mbwFunctional
+    set mwFunctional   $mbwFunctional.mwFunctional
 
-### explicit plane focus
-trace variable plane w fixfocus
+    # volume menu button
+    menubutton $mbwVolume -text "File" \
+      -menu $mwVolume              \
+      -underline 0                 \
+      -font $kNormalFont
+    
+    # volume menu items
+    menu $mwVolume
+    $mwVolume add command -label "Load Aux Volume..." \
+      -command { DoLoadAuxVolumeDlog }          \
+      -underline 1                              \
+      -font $kNormalFont
+    $mwVolume add command -label "Save Volume" \
+      -command { DoSaveDlog }            \
+      -underline 0                       \
+      -font $kNormalFont
+    $mwVolume add command -label "Save Volume As..." \
+      -command { DoSaveVolumeAsDlog }          \
+      -font $kNormalFont
+    $mwVolume add separator
+    $mwVolume add command -label "Save Point" \
+      -command { SendCursor }                         \
+      -underline 20                                   \
+      -font $kNormalFont
+    $mwVolume add command -label "Goto Point" \
+      -command { ReadCursor }                           \
+      -underline 0                                      \
+      -font $kNormalFont
+    $mwVolume add separator
+    $mwVolume add command -label "Load Label..." \
+      -command { DoLoadLabelDlog }            \
+      -underline 0                            \
+      -font $kNormalFont
+    $mwVolume add command -label "Save Label..." \
+      -command { DoSaveLabelDlog }            \
+      -underline 2                            \
+      -font $kNormalFont
+    $mwVolume add separator
+    $mwVolume add command -label "Load Surface..." \
+      -command { DoLoadSurfaceDlog $tkm_tSurfaceType_Current } \
+      -underline 5                            \
+      -font $kNormalFont
+    $mwVolume add command -label "Unload Surface" \
+      -command { UnloadSurface }             \
+      -underline 0                           \
+      -font $kNormalFont
+    $mwVolume add separator
+    $mwVolume add command -label "Load Overlay Data..." \
+      -command { DoLoadFunctionalDlog $tFunctionalVolume_Overlay } \
+      -underline 7                                    \
+      -font $kNormalFont                              
+    $mwVolume add command -label "Load Time Course Data..." \
+      -command { DoLoadFunctionalDlog $tFunctionalVolume_TimeCourse } \
+      -underline 5                                        \
+      -font $kNormalFont
+    $mwVolume add separator
+    $mwVolume add command -label "Load Parcellation..." \
+      -command { DoLoadParcellationDlog }         \
+      -font $kNormalFont
+    $mwVolume add separator
+    $mwVolume add command -label "Save RGB..." \
+      -command { DoSaveRGBDlog }         \
+      -font $kNormalFont
+    $mwVolume add separator
+    $mwVolume add command -label "Quit" \
+      -command { QuitMedit }      \
+      -underline 0                \
+      -font $kNormalFont
 
-### fix slice num on var update
-trace variable newimc w zoomcoords
-trace variable newic w zoomcoords
-trace variable newjc w zoomcoords
+    # edit menu button
+    menubutton $mbwEdit -text "Edit" \
+      -menu $mwEdit            \
+      -underline 0             \
+      -font $kNormalFont
+    
+    # edit menu items
+    menu $mwEdit
+    $mwEdit add command -label "Undo Last Edit" \
+      -command { UndoLastEdit }           \
+      -font $kNormalFont
+    $mwEdit add separator
+    $mwEdit add command -label "Take Snapshot of Volume" \
+      -command { SnapshotVolume }                  \
+      -font $kNormalFont
+    $mwEdit add command -label "Restore Volume from Snapshot" \
+      -command { RestoreVolumeFromSnapshot }            \
+      -font $kNormalFont
+    $mwEdit add separator
+    $mwEdit add command -label "Clear Selection" \
+      -command { ClearSelection }          \
+      -font $kNormalFont
+    $mwEdit add command -label "Graph Selected Region" \
+      -command { GraphSelectedRegion }                 \
+      -underline 4                                     \
+      -font $kNormalFont
+  
+    # display menu button
+    menubutton $mbwDisplay -text "Display" \
+      -menu $mwDisplay         \
+      -underline 0             \
+      -font $kNormalFont
+    
+    # display items
+    menu $mwDisplay
+    $mwDisplay add command -label "Brightness / Contrast..." \
+      -command { DoVolumeColorScaleInfoDlog }       \
+      -font $kNormalFont
+    $mwDisplay add command -label "Configure Functional Overlay..." \
+      -command { Overlay_DoConfigDlog }       \
+      -font $kNormalFont                 \
+      -state disabled
+    $mwDisplay add command -label "Configure Time Course Graph..." \
+      -command { TimeCourse_DoConfigDlog }       \
+      -font $kNormalFont                 \
+      -state disabled
+    # save the location of this menu item so we can enable it later
+    set gDisplayMenu                 $mwDisplay
+    set gnFunctionalOverlayMenuIndex 2
+    set gnTimeCourseMenuIndex 3
+    $mwDisplay add separator
+    $mwDisplay add radio -label "Main Volume" \
+      -command { SetDisplayFlag $DspA_tDisplayFlag_AuxVolume $MWin_tVolumeType_Main } \
+      -variable gDisplayedVolume        \
+      -font $kNormalFont                \
+      -value 0
+    $mwDisplay add radio -label "Aux Volume" \
+      -command { SetDisplayFlag $DspA_tDisplayFlag_AuxVolume $MWin_tVolumeType_Aux } \
+      -variable gDisplayedVolume       \
+      -font $kNormalFont               \
+      -value 1
+    $mwDisplay add separator
+    $mwDisplay add check -label "3D Multiple Views" \
+      -command { SetDisplayConfig $gb3D }     \
+      -underline 0                            \
+      -variable gb3D                          \
+      -font $kNormalFont
+    $mwDisplay add check -label "Cursor" \
+      -command { SetDisplayFlag $DspA_tDisplayFlag_Cursor $gbCursor } \
+      -underline 0                 \
+      -variable gbCursor           \
+      -font $kNormalFont 
+    $mwDisplay add check -label "Selection / Label" \
+      -command { SetDisplayFlag $DspA_tDisplayFlag_Selection $gbSelection } \
+      -underline 12                           \
+      -variable gbSelection                   \
+      -font $kNormalFont
+    $mwDisplay add check -label "Control Points" \
+      -command { SetDisplayFlag $DspA_tDisplayFlag_ControlPoints $gbControlPoints } \
+      -underline 3                         \
+      -variable gbControlPoints            \
+      -font $kNormalFont
+    $mwDisplay add check -label "Functional Overlay" \
+      -command { SetDisplayFlag $DspA_tDisplayFlag_FunctionalOverlay $gbFunctional } \
+      -variable gbFunctional                   \
+      -underline 0                             \
+      -font $kNormalFont
+    $mwDisplay add check -label "Parcellation Overlay" \
+      -command { SetDisplayFlag $DspA_tDisplayFlag_ParcellationOverlay $gbParcellation } \
+      -variable gbParcellation                 \
+      -underline 2                             \
+      -font $kNormalFont
+    $mwDisplay add check -label "Main Surface" \
+      -command { SetDisplayFlag $DspA_tDisplayFlag_MainSurface $gbMainSurface } \
+      -underline 0                       \
+      -variable gbMainSurface            \
+      -font $kNormalFont
+    $mwDisplay add check -label "Original Surface" \
+      -command { SetDisplayFlag $DspA_tDisplayFlag_OriginalSurface $gbOriginalSurface } \
+      -underline 0                           \
+      -variable gbOriginalSurface            \
+      -font $kNormalFont
+    $mwDisplay add check -label "Pial Surface" \
+      -command { SetDisplayFlag $DspA_tDisplayFlag_CanonicalSurface $gbCanonicalSurface } \
+      -underline 0                       \
+      -variable gbCanonicalSurface       \
+      -font $kNormalFont
+    $mwDisplay add check -label "Surface Vertices" \
+      -command { SetDisplayFlag $DspA_tDisplayFlag_DisplaySurfaceVertices $gbDisplaySurfaceVertices } \
+      -underline 8                           \
+      -variable gbDisplaySurfaceVertices     \
+      -font $kNormalFont
+    $mwDisplay add check -label "Interpolate Surface Vertices" \
+      -command { SetDisplayFlag $DspA_tDisplayFlag_InterpolateSurfaceVertices $gbInterpolateSurfaceVertices } \
+      -underline 0                                       \
+      -variable gbInterpolateSurfaceVertices             \
+      -font $kNormalFont
 
-### fix tal on nice update
-trace variable newimc w talupdate
-trace variable newic w talupdate
-trace variable newjc w talupdate
+    # tools menu buttonx
+    menubutton $mbwTools -text "Tools" \
+      -menu $mwTools             \
+      -underline 0               \
+      -font $kNormalFont
+    
+    # tool menu items
+    menu $mwTools
+    $mwTools add radio -label "Select Voxels"       \
+      -command { SetTool $DspA_tTool_Select } \
+      -variable gTool                         \
+      -font $kNormalFont                      \
+      -value $DspA_tTool_Select
+    $mwTools add radio -label "Edit Voxels"        \
+      -command { SetTool $DspA_tTool_Edit }  \
+      -variable gTool                        \
+      -font $kNormalFont                     \
+      -value $DspA_tTool_Edit
+    $mwTools add radio -label "Select Ctrl Pts"      \
+      -command { SetTool $DspA_tTool_CtrlPts } \
+      -variable gTool                          \
+      -font $kNormalFont                       \
+      -value $DspA_tTool_CtrlPts
+    $mwTools add radio -label "Edit Voxels w/ Custom Brush" \
+      -command { SetTool $DspA_tTool_CustomEdit }     \
+      -variable gTool                                 \
+      -font $kNormalFont                              \
+      -value $DspA_tTool_CustomEdit
+    $mwTools add separator
+    $mwTools add command -label "Brush Size..." \
+      -command { DoBrushInfoDlog }       \
+      -font $kNormalFont
+    $mwTools add command -label "Custom Brush..." \
+      -command { DoCustomBrushDlog }       \
+      -font $kNormalFont
+    $mwTools add separator
+    $mwTools add command -label "Threshold..." \
+      -command { DoThresholdDlog }       \
+      -font $kNormalFont
 
-### allow continuous update with zf=1
-trace variable zf w contupdate
-
-### current pixval
-trace variable selectedpixval w pixvaltitle
-
-### set all3 view
-trace variable g3DViewFlag w Set3DViewFlag 
-
-## trace the brush vars so we can call nice functions to do the updating
-trace variable circleflag w SendBrushInfo
-trace variable inplaneflag w SendBrushInfo
-trace variable prad w SendBrushInfo
-
-proc SendBrushInfo {  varName index op } {
-
-    global circleflag inplaneflag prad
-
-    SetBrushShape $circleflag
-    SetBrush3DStatus [expr 1 - $inplaneflag]
-    SetBrushRadius $prad
+    # ctrl pts menu button
+    menubutton $mbwCtrlPts -text "Control Points" \
+      -menu $mwCtrlPts                      \
+      -underline 0                          \
+      -font $kNormalFont
+    
+    # ctrl pts menu items
+    menu $mwCtrlPts
+    $mwCtrlPts add command -label "New"                          \
+      -command { NewControlPoint $gnVolX $gnVolY $gnVolZ } \
+      -font $kNormalFont
+    $mwCtrlPts add command -label "Select None"   \
+      -command { DeselectAllControlPoints } \
+      -underline 8                          \
+      -font $kNormalFont
+    $mwCtrlPts add command -label "Delete Selected"  \
+      -command { DeleteSelectedControlPoints } \
+      -underline 0                             \
+      -font $kNormalFont
+    $mwCtrlPts add command -label "Save"       \
+      -command { WriteControlPointFile } \
+      -font $kNormalFont
+     
+    # surface menu button
+    menubutton $mbwSurface -text "Surface" \
+      -menu $mwSurface               \
+      -underline 1                   \
+      -font $kNormalFont
+    
+    # surface menu items
+    menu $mwSurface
+    $mwSurface add command -label "Show Nearest Main Vertex" \
+      -command { ShowNearestMainVertex }               \
+      -font $kNormalFont
+    $mwSurface add command -label "Show Nearest Original Vertex" \
+      -command { ShowNearestOriginalVertex }               \
+      -font $kNormalFont
+    $mwSurface add command -label "Show Nearest Pial Vertex" \
+      -command { ShowNearestCanonicalVertex }               \
+      -font $kNormalFont
+    $mwSurface add command -label "Find Main Vertex..."             \
+      -command { DoFindVertexDlog $tkm_tSurfaceType_Current } \
+      -font $kNormalFont
+    $mwSurface add command -label "Find Original Vertex..."          \
+      -command { DoFindVertexDlog $tkm_tSurfaceType_Original } \
+      -font $kNormalFont
+    $mwSurface add command -label "Find Pial Vertex..."          \
+      -command { DoFindVertexDlog $tkm_tSurfaceType_Canonical } \
+      -font $kNormalFont
+     
+    pack $mbwVolume $mbwEdit $mbwDisplay $mbwTools \
+      $mbwCtrlPts $mbwSurface  \
+      -side left
 }
 
-### misc buttons
-set f .mri.main.left.view.butt.left
-checks $f "" "overlay" do_overlay col
-$f.aoverlay.ck config -command redraw
-checks $f "" "surface" surfflag col 
-$f.asurface.ck config -command redraw
-set f .mri.main.left.view.butt.right
-edlabval $f "contrast" 0 n 9 4
-$f.contrast.e config -textvariable fsquash
-bind $f.contrast.e <Return> { set_scale }
-edlabval $f "midpoint" 0 n 9 4
-$f.midpoint.e config -textvariable fthresh
-bind $f.midpoint.e <Return> { set_scale }
+proc CreateCursorFrame { ifwCursor } {
 
-set f .mri.main.right.fi
-### surface
-edlabval $f "surf" default r 6 15
-setfile insurf $insurf  ;# make abbrev from C default
-$f.surf.e config -textvariable insurfabbrev
-$f.surf.br config -command { setfile insurf [.mri.main.right.fi.surf.e get]; \
-                             read_binary_surf; redraw } -padx 7
-bind .mri.main.right.fi.surf.e <Return> { .mri.main.right.fi.surf.br invoke}
+    global kLabelFont kNormalFont kHighlightBgColor
+    global gfwVolCoords gfwRASCoords gfwTalCoords gfwVolValue
+    global gfwAuxVolValue gfwFuncValue
+    global gbLinkedCursor gsVolCoords gsRASCoords 
+    global gsTalCoords gsVolName gnVolValue  gsFuncCoords
+    global gsAuxVolValue gnAuxVolValue gfwFuncCoords gfFuncValue
 
-### session (doesn't work anyway since 2nd imagedir not yet setfile'd)
-#edlabval $f "sess" $session s 5 17
-#$f.sess.e config -textvariable session
-#$f.sess.bs config -command {setsession [.mri.main.right.fi.sess.e get]}
+    frame $ifwCursor
 
-### output dataset
-edlabval $f "outim" default w 6 15
-setfile abs_imstem $abs_imstem   ;# make abbrev from C default
-$f.outim.e config -textvariable abs_imstemabbrev
-$f.outim.bw config -command { \
-        setfile abs_imstem [.mri.main.right.fi.outim.e get]; \
-        testreplace ${abs_imstem}[format "%03d" $editedimage] write_images } \
-        -padx 7
-bind .mri.main.right.fi.outim.e <Return> { .mri.main.right.fi.outim.bw invoke}
+    set fwLabel             $ifwCursor.fwLabel
+    set lwLabel             $fwLabel.lwLabel
+    
+    set fwLinkCheckbox      $ifwCursor.fwLinkCheckbox
+    set cwLink              $fwLinkCheckbox.cwLink
+    
+    set gfwVolCoords        $ifwCursor.fwVolCoords
+    set ewVolCoordsLabel    $gfwVolCoords.ewVolCoordsLabel
+    set ewVolCoords         $gfwVolCoords.ewVolCoords
 
-### save rgb button,field
-edlabval $f "rgb" default  w 4 17
-setfile rgb $rgb   ;# make abbrev
-$f.rgb.e config -textvariable rgbabbrev
-$f.rgb.bw config -command { setfile rgb [.mri.main.right.fi.rgb.e get]; \
-                             testreplace $rgb save_rgb } -padx 7
-### norm field
-set f .mri.main.right.snorm.but
-buttons $f TEST1 { norm_slice $normdir; \
-                .mri.main.right.cmp.aCOMPARE.bu config -relief sunken } row 1 5
-label $f.la1 -text " PieceWiseLinNorm " -font $ffontb
-pack $f.la1 -side left
-buttons $f ALL { norm_allslices $normdir } row 1 5
-set f .mri.main.right.snorm.bot.lim
-edlabval $f "lim3" 0 n 5 3
-edlabval $f "lim2" 0 n 5 3
-edlabval $f "lim1" 0 n 5 3
-edlabval $f "lim0" 0 n 5 3
-$f.lim3.e config -textvariable lim3
-$f.lim2.e config -textvariable lim2
-$f.lim1.e config -textvariable lim1
-$f.lim0.e config -textvariable lim0
-bind $f.lim3.e <Return> { .mri.main.right.snorm.but.aTEST1.bu invoke }
-bind $f.lim2.e <Return> { .mri.main.right.snorm.but.aTEST1.bu invoke }
-bind $f.lim1.e <Return> { .mri.main.right.snorm.but.aTEST1.bu invoke }
-bind $f.lim0.e <Return> { .mri.main.right.snorm.but.aTEST1.bu invoke }
-set f .mri.main.right.snorm.bot.ffrac
-edlabval $f "ffrac3" 0 n 7 4
-edlabval $f "ffrac2" 0 n 7 4
-edlabval $f "ffrac1" 0 n 7 4
-edlabval $f "ffrac0" 0 n 7 4
-$f.ffrac3.e config -textvariable ffrac3
-$f.ffrac2.e config -textvariable ffrac2
-$f.ffrac1.e config -textvariable ffrac1
-$f.ffrac0.e config -textvariable ffrac0
-bind $f.ffrac3.e <Return> { .mri.main.right.snorm.but.aTEST1.bu invoke }
-bind $f.ffrac2.e <Return> { .mri.main.right.snorm.but.aTEST1.bu invoke }
-bind $f.ffrac1.e <Return> { .mri.main.right.snorm.but.aTEST1.bu invoke }
-bind $f.ffrac0.e <Return> { .mri.main.right.snorm.but.aTEST1.bu invoke }
-set f .mri.main.right.snorm.bot.dir
-radios $f "" "P/A" normdir 0 3 col
-radios $f "" "I/S" normdir 1 3 col
-radios $f "" "R/L" normdir 2 3 col
-label $f.la1 -text "(radiol)" -font $sfont
-pack $f.la1 -side top
+    set gfwRASCoords        $ifwCursor.fwRASCoords
+    set ewRASCoordsLabel    $gfwRASCoords.ewRASCoordsLabel
+    set ewRASCoords         $gfwRASCoords.ewRASCoords
 
-### white matter test truncate
-set f .mri.main.right.wm.tru.le
-buttons $f "WMTRUNC" \
-                {if {$truncflag} { set truncflag 0; \
-                  .mri.main.right.wm.tru.le.aWMTRUNC.bu config -relief raised }\
-                 else {set truncflag 1; \
-                  .mri.main.right.wm.tru.le.aWMTRUNC.bu config -relief sunken};\
-                 redraw } row 1 3
-set f .mri.main.right.wm.tru.mi
-edlabval $f "low" $white_lolim n 5 3
-$f.low.e config -textvariable white_lolim
-bind $f.low.e <Return> { set truncflag 0; \
-                                 .mri.main.right.wm.tru.le.aWMTRUNC.bu invoke}
-set f .mri.main.right.wm.tru.ri
-edlabval $f "high" $white_hilim n 5 3
-$f.high.e config -textvariable white_hilim
-bind $f.high.e <Return> { set truncflag 0; \
-                                  .mri.main.right.wm.tru.le.aWMTRUNC.bu invoke}
-# wmfilter test
-set f .mri.main.right.wm.fil
-buttons $f "PLANEFILTER" { wmfilter_corslice } row 1 4
-edlabval $f "grayhigh" $gray_hilim n 10 3
-$f.grayhigh.e config -textvariable gray_hilim
+    set gfwTalCoords        $ifwCursor.fwTalCoords
+    set ewTalCoordsLabel    $gfwTalCoords.ewTalCoordsLabel
+    set ewTalCoords         $gfwTalCoords.ewTalCoords
 
-# overlay thresh
-set f .mri.main.right.wm.thr
-edlabval $f fthr 0 n 5 3 row
-edlabval $f fslope 0 n 7 3 row
-edlabval $f fmid 0 n 5 3 row
-$f.fthr.e config -textvariable f2thresh
-$f.fslope.e config -textvariable fslope
-$f.fmid.e config -textvariable fmid
+    set gfwVolValue         $ifwCursor.fwVolValue
+    set ewVolValueLabel     $gfwVolValue.ewVolValueLabel
+    set ewVolValue          $gfwVolValue.ewVolValue
 
-### read 2nd image
-set f .mri.main.right.im2
-edlabval $f "secondimagedir" T1 r 13 8
-$f.secondimagedir.br config -command { \
-        read_second_images [.mri.main.right.im2.secondimagedir.e get]; \
-        .mri.main.right.cmp.aCOMPARE.bu config -relief sunken }
-bind $f.secondimagedir.e <Return> { \
-                         .mri.main.right.im2.secondimagedir.br invoke }
-$f.secondimagedir.la config -text "2nd imagedir:"
+    set gfwAuxVolValue      $ifwCursor.fwAuxVolValue
+    set ewAuxVolValueLabel  $gfwAuxVolValue.ewAuxVolValueLabel
+    set ewAuxVolValue       $gfwAuxVolValue.ewAuxVolValue
 
-### image operation buttons
-set f .mri.main.right.cmp
-buttons $f "SAGMIRR" { mirror; redraw } row 2 5
-buttons $f "HISTOGRAM" { histogram } row 1 4
-buttons $f "COMPARE" {if {$drawsecondflag} { set drawsecondflag 0; \
-                       .mri.main.right.cmp.aCOMPARE.bu config -relief raised } \
-                      else {set drawsecondflag 1; \
-                       .mri.main.right.cmp.aCOMPARE.bu config -relief sunken };\
-                      redraw } row 2 4
-$f.aCOMPARE.bu config -font $ffontbb
+    set gfwFuncCoords       $ifwCursor.fwFuncCoords
 
-### title
-set f .meg.ti
-label $f.la -text "DIPOLE SAMPLE, MEG/EEG REGISTRATION, SURFPAINT" \
-                                                      -font $ffontb -pady 0
-pack $f.la -side top
+    set gfwFuncValue        $ifwCursor.fwFuncValue
+    set ewFuncValueLabel    $gfwFuncValue.ewFuncValueLabel
+    set ewFuncValue         $gfwFuncValue.ewFuncValue
 
-### spacing and dipoles
-set f .meg.dips.spac
-label $f.la -text "3D DIPOLES" -font $ffontb -pady 2
-pack $f.la -side top
-edlabval $f "spacing" 0 n 8 2
-$f.spacing.e config -textvariable dip_spacing
-bind $f.spacing.e <Return> { fixdipdecname dip_spacing 0 w }
-# dipoles
-set f .meg.dips.en
-edlabval $f  "dip"  default   w 4 19
-edlabval $f  "dec"  default   w 4 19
-setfile dip $dip    ;# make abbrevs
-setfile dec $dec
-$f.dip.e config -textvariable dipabbrev
-$f.dec.e config -textvariable decabbrev
-trace variable dip_spacing w fixdipdecname
-# entries (don't abbrev $f inside { }: need curr $dipname but orig $f)
-$f.dip.bw config -command { setfile dip [.meg.dips.en.dip.e get]; \
-                                     testreplace $dip write_dipoles }
-$f.dec.bw config -command { setfile dec [.meg.dips.en.dec.e get]; \
-                                     testreplace $dec write_decimation }
+    # the label that goes at the top of the frame
+    frame $fwLabel
+    label $lwLabel -text "Cursor" \
+      -font $kLabelFont
+    pack $lwLabel -side left \
+      -anchor w
 
-### headpts read/write files
-set f .meg.xform.files
-edlabval $f "hpts"    default   r  7 22
-edlabval $f "htrans"  default   rw 7 22
-setfile hpts $hpts      ;# make abbrevs
-setfile htrans $htrans
-$f.hpts.e config -textvariable hptsabbrev
-$f.htrans.e config -textvariable htransabbrev
-# entries (can't abbrev $f inside { }: we need curr $dipname but orig $f)
-$f.hpts.br config -command { setfile hpts [.meg.xform.files.hpts.e get]; \
-                                        read_hpts; redraw }
-$f.htrans.br config -command { setfile htrans [.meg.xform.files.htrans.e get]; \
-                                        read_htrans; redraw }
-$f.htrans.bw config -command { setfile htrans [.meg.xform.files.htrans.e get]; \
-                                  testreplace $htrans write_htrans }
-### rotate headpts
-# title and horiz scale
-set f .meg.xform.pan.le.rg.rot.top
-label $f.title -text "ROTATE HDPTS (deg)" -font $ffontb -pady 0
-pack $f.title -side top
-scale $f.z -from 10 -to -10 -length $sclenx -variable zrot \
-    -orient horizontal -tickinterval 10 -showvalue false -font $sfont \
-    -width 11 -resolution 0.2
-pack $f.z -side top
-bind $f.z <ButtonRelease> { rotheadpts $zrot; resettransform; redraw }
-# entry
-set f .meg.xform.pan.le.rg.rot.bot
-edlabval $f "zrot" 0 n 5 4
-$f.zrot.e config -textvariable zrot -font $sfont -highlightthickness 1
-$f.zrot.la config -font $sfont
-bind $f.zrot.e <Return> { rotheadpts $zrot; resettransform; redraw }
+    # link checkbox
+    frame $fwLinkCheckbox
+    checkbutton $cwLink -text "Linked Cursors"    \
+      -command { SetLinkedCursorFlag $gbLinkedCursor } \
+      -variable gbLinkedCursor          \
+      -font $kNormalFont      \
+      -highlightbackground $kHighlightBgColor
+    pack $cwLink -side left
 
-### curv, fieldsign, linewidth
-# label, linewidth
-set f .meg.xform.pan.le.surf.top.le
-label $f.title -text "SURFPAINT" -font $ffontb -pady 0
-pack $f.title -side left
-set f .meg.xform.pan.le.surf.top.ri
-edlabval $f "linewidth" 0 n 10 3
-$f.linewidth.e config -textvariable surflinewidth -highlightthickness 0
-bind $f.linewidth.e <Return> { redraw }
-# entries
-set f .meg.xform.pan.le.surf.bot
-edlabval $f "curv" 0 r 5 9
-edlabval $f "fs" 0 r 3 11
-edlabval $f "fm" 0 r 3 11
-setfile curv $curv  ;# makes abbrevs
-setfile fs $fs
-setfile fm $fm
-$f.curv.e config -textvariable curvabbrev
-$f.fs.e config -textvariable fsabbrev
-$f.fm.e config -textvariable fmabbrev
-$f.curv.br config -command {setfile fs [.meg.xform.pan.le.surf.bot.curv.e get];\
-                                          read_binary_curv; redraw }
-$f.fs.br config -command { setfile fs [.meg.xform.pan.le.surf.bot.fs.e get];\
-                                          read_fieldsign; redraw }
-$f.fm.br config -command { setfile fm [.meg.xform.pan.le.surf.bot.fm.e get];\
-                                          read_fsmask; redraw }
-### extras
-set f .meg.xform.pan.le.ex.le
-buttons $f "SMOOTH 3D" { smooth_3d 1 } col 0 5
-checks $f "" "fl" flossflag row
-checks $f "" "sp" spackleflag row
-$f.afl.ck config -highlightthickness 0
-$f.asp.ck config -highlightthickness 0
-set f .meg.xform.pan.le.ex.ri
-checks $f "" "bwflag" bwflag col
-checks $f "" "linearflg" linearflag col
-$f.alinearflg.ck config -command redraw
+    # the volume coords
+    frame $gfwVolCoords
+    label $ewVolCoordsLabel -text "Volume" \
+      -font $kNormalFont
+    entry $ewVolCoords                 \
+      -textvariable gsVolCoords  \
+      -width 26                  \
+      -font $kNormalFont         \
+      -state disabled            \
+      -highlightbackground $kHighlightBgColor \
+      -relief flat 
+    pack $ewVolCoordsLabel $ewVolCoords -side left \
+      -anchor w
 
-### translate headpts
-# title and horiz scale
-set f .meg.xform.pan.tran.top
-label $f.la -text "TRANSLATE HDPTS (mm)" -font $ffontb -pady 0
-pack $f.la -side top
-scale $f.x -from -25 -to 25 -length $sclenx -variable xtrans \
-   -orient horizontal -tickinterval 25 -showvalue false -font $sfont \
-   -width 11 -resolution 0.5
-pack $f.x -side top
-bind $f.x <ButtonRelease> { transheadpts $xtrans x; resettransform; redraw}
-# vertical scale
-set f .meg.xform.pan.tran.bot
-scale $f.y -from 25 -to -25 -length $scleny -variable ytrans \
-   -orient vertical -tickinterval 25 -showvalue false -font $sfont \
-   -width 11 -resolution 0.5
-pack $f.y -side left
-bind $f.y <ButtonRelease> { transheadpts $ytrans y; resettransform; redraw}
-# entries
-set f .meg.xform.pan.tran.bot.la.ent
-edlabval $f "x" 0 n 2 6
-edlabval $f "y" 0 n 2 6
-$f.x.e config -textvariable xtrans -font $sfont
-$f.y.e config -textvariable ytrans -font $sfont
-$f.x.la config -font $sfont
-$f.y.la config -font $sfont
-bind $f.x.e <Return> { transheadpts $xtrans x; resettransform; redraw}
-bind $f.y.e <Return> { transheadpts $ytrans y; resettransform; redraw}
-label $f.la -text " " -font $sfont  ;# space
-pack  $f.la -side top
+    # the RAS coords
+    frame $gfwRASCoords
+    label $ewRASCoordsLabel -text "RAS" \
+      -font $kNormalFont
+    entry $ewRASCoords                 \
+      -textvariable gsRASCoords  \
+      -width 26                  \
+      -font $kNormalFont         \
+      -state disabled            \
+      -highlightbackground $kHighlightBgColor \
+      -relief flat 
+    pack $ewRASCoordsLabel $ewRASCoords -side left \
+      -anchor w
 
-### update slice num's
-unzoomcoords
-set plane $cor
-set zf $zf
+    # the Talairach coords
+    frame $gfwTalCoords
+    label $ewTalCoordsLabel -text "Talairach" \
+      -font $kNormalFont
+    entry $ewTalCoords                 \
+      -textvariable gsTalCoords  \
+      -width 26                  \
+      -font $kNormalFont         \
+      -state disabled            \
+      -highlightbackground $kHighlightBgColor \
+      -relief flat 
+    pack $ewTalCoordsLabel $ewTalCoords -side left \
+      -anchor w
 
-############################################################################
-### shortcut key bindings
-# commands
-bind . <Alt-f> { ".mri.main.left.head.pnt.aSEND PNT.bu" invoke }
-bind . <Alt-r> { ".mri.main.left.head.pnt.aGOTO PNT.bu" invoke }
-bind . <Alt-R> { setfile hpts [.meg.xform.files.hpts.e get]; read_hpts; \
-                 setfile htrans [.meg.xform.files.htrans.e get]; \
-                 read_htrans; redraw }
-bind . <Alt-w> { .mri.main.left.head.save.aSAVEIMG.bu invoke }
-bind . <Alt-W>  { setfile htrans [.meg.xform.files.htrans.e get]; \
-                  testreplace $htrans write_htrans }
-bind . <Alt-Key-M> { .main.left.view.butt.left.aoverlay.ck invoke }
-bind . <Alt-m> { .mri.main.left.view.butt.left.aoverlay.ck invoke }
-bind . <Alt-d> { .mri.main.left.view.butt.left.asurface.ck invoke }
-# planes
-bind . <Alt-y> { SetPlane $cor; }
-bind . <Alt-x> { SetPlane $sag; }
-bind . <Alt-z> { SetPlane $hor; }
-# slices
-bind . <Alt-Right> { changeslice up; sendupdate }
-bind . <Alt-Left>  { changeslice down; sendupdate }
-bind . <Alt-Up>    { changeslice up; sendupdate }
-bind . <Alt-Down>  { changeslice down; sendupdate }
-# contrast
-bind . <Alt-asterisk> { set fsquash [expr $fsquash * 1.1]; set_scale }
-bind . <Alt-slash> { set fsquash [expr $fsquash / 1.1]; set_scale }
-bind . <Alt-plus> { set fthresh [expr $fthresh + 0.05]; set_scale }
-bind . <Alt-minus> { set fthresh [expr $fthresh - 0.05]; set_scale }
-# brush size
-bind . <Alt-b> { set prad 0 }
-bind . <Alt-B> { set prad [expr ($prad+1)%%5 ] }
-bind . <Alt-v> { set pradtmp $prad; set prad $pradlast; set pradlast $pradtmp}
-# translate small
-bind . <Alt-semicolon> { transheadpts 0.5 x;  set overlay_mode 2; redraw }
-bind . <Alt-l>         { transheadpts -0.5 x; set overlay_mode 2; redraw }
-bind . <Alt-p>         { transheadpts 0.5 y;  set overlay_mode 2; redraw }
-bind . <Alt-period>    { transheadpts -0.5 y; set overlay_mode 2; redraw }
-# translate big
-bind . <Alt-colon>     { transheadpts 2.5 x;  set overlay_mode 2; redraw }
-bind . <Alt-L>         { transheadpts -2.5 x; set overlay_mode 2; redraw }
-bind . <Alt-P>         { transheadpts 2.5 y;  set overlay_mode 2; redraw }
-bind . <Alt-greater>   { transheadpts -2.5 y; set overlay_mode 2; redraw }
-# rotate
-bind . <Alt-braceleft>    { rotheadpts 5.0;  set overlay_mode 2; redraw }
-bind . <Alt-braceright>   { rotheadpts -5.0; set overlay_mode 2; redraw }
-bind . <Alt-bracketleft>  { rotheadpts 0.5;  set overlay_mode 2; redraw }
-bind . <Alt-bracketright> { rotheadpts -0.5; set overlay_mode 2; redraw }
-# second image
-bind . <Alt-c> { .mri.main.right.cmp.aCOMPARE.bu invoke }
-bind . <Alt-0> { .mri.main.right.cmp.aCOMPARE.bu invoke }
-bind . <Alt-apostrophe>  { .mri.main.right.cmp.aCOMPARE.bu invoke }
-# interface size
-bind . <Control-F1> { micro }
-bind . <Control-F2> { mini }
-bind . <Control-F3> { mini+ }
-bind . <Control-F4> { macro }
+     # the volume value
+    frame $gfwVolValue
+    entry $ewVolValueLabel             \
+      -textvariable gsVolName    \
+      -width 0                   \
+      -font $kNormalFont         \
+      -state disabled            \
+      -highlightbackground $kHighlightBgColor \
+      -relief flat
+    entry $ewVolValue                  \
+      -textvariable gnVolValue   \
+      -width 5                   \
+      -font $kNormalFont         \
+      -state disabled            \
+      -highlightbackground $kHighlightBgColor \
+      -relief flat 
+    pack $ewVolValueLabel $ewVolValue -side left \
+      -anchor w
 
-############################################################################
-### right-click help
-bind .mri.main.left.head.save.aSAVEIMG.bu <ButtonRelease-3> { helpwin saveimg }
-bind .mri.main.left.head.save.rad.e <ButtonRelease-3> { helpwin brush }
-bind .mri.main.left.head.save.a3D.ck <ButtonRelease-3> { helpwin inplane }
-bind .mri.main.left.head.pnt.aall.ck <ButtonRelease-3> { helpwin all3 }
-bind ".mri.main.left.head.pnt.aSEND PNT.bu" <ButtonRelease-3> {helpwin save_pnt}
-bind ".mri.main.left.head.pnt.aGOTO PNT.bu" <ButtonRelease-3> {helpwin goto_pnt}
-bind .mri.main.right.cmp.aSAGMIRR.bu <ButtonRelease-3> { helpwin sagmirror }
-bind .mri.main.right.cmp.aHISTOGRAM.bu <ButtonRelease-3> { helpwin histogram }
-bind ".meg.xform.pan.le.ex.le.aSMOOTH 3D.bu" <ButtonRelease-3> { helpwin smooth}
-bind .mri.main.right.snorm.but.aTEST1.bu <ButtonRelease-3> { helpwin test1 }
-bind .mri.main.right.snorm.but.aALL.bu <ButtonRelease-3> { helpwin all }
-bind .mri.main.right.wm.tru.le.aWMTRUNC.bu <ButtonRelease-3> { helpwin wmtrunc }
-bind .mri.main.right.wm.fil.aPLANEFILTER.bu <ButtonRelease-3> {helpwin wmfilter}
-bind .mri.main.right.cmp.aCOMPARE.bu <ButtonRelease-3> { helpwin compare }
-bind .mri.main.left.view.butt.right.contrast.e <ButtonRelease-3> \
-                                                        { helpwin fsquash }
-bind .mri.main.left.view.butt.right.midpoint.e <ButtonRelease-3> \
-                                                        { helpwin fthresh }
-bind .mri.main.right.im2.secondimagedir.br <ButtonRelease-3> { helpwin im2read }
-bind .mri.main.right.im2.secondimagedir.e <ButtonRelease-3> { helpwin im2entry }
-bind .mri.head.env.aREADENV.bu <ButtonRelease-3> { helpwin readenv }
+     # the aux volume value
+    frame $gfwAuxVolValue
+    entry $ewAuxVolValueLabel          \
+      -textvariable gsAuxVolName \
+      -width 0                   \
+      -font $kNormalFont         \
+      -state disabled            \
+      -highlightbackground $kHighlightBgColor \
+      -relief flat
+    entry $ewAuxVolValue                     \
+      -textvariable gnAuxVolValue   \
+      -width 5                      \
+      -font $kNormalFont            \
+      -state disabled               \
+      -highlightbackground $kHighlightBgColor    \
+      -relief flat 
+    pack $ewAuxVolValueLabel $ewAuxVolValue -side left \
+      -anchor w
 
-############################################################################
-puts "tkmedit.tcl: startup done"
+    # the Funcairach coords
+    tkm_MakeActiveLabel $gfwFuncCoords \
+      "Overlay" gsFuncCoords
 
-# N.B.: w/command line script, these execute before gl window up
+    # the functional value
+    frame $gfwFuncValue
+    label $ewFuncValueLabel -text "Overlay value" \
+      -font $kNormalFont
+    entry $ewFuncValue                 \
+      -textvariable gfFuncValue  \
+      -width 5                   \
+      -font $kNormalFont         \
+      -state disabled            \
+      -highlightbackground $kHighlightBgColor \
+      -relief flat 
+    pack $ewFuncValueLabel $ewFuncValue -side left \
+      -anchor w
+
+    # pack the subframes in a column. don't pack vol coords, aux value,
+    # or func value. these can be explicity shown later.
+    pack $fwLabel $fwLinkCheckbox $gfwRASCoords \
+      $gfwTalCoords $gfwVolValue          \
+      -side top                           \
+      -anchor w
+
+}
+
+proc CreateDisplayFrame { ifwDisplay } {
+
+    global kLabelFont kNormalFont kHighlightBgColor
+    global DspA_tOrientation_Sagittal DspA_tOrientation_Horizontal 
+    global DspA_tOrientation_Coronal
+    global gOrientation gnVolX gnVolY gnVolZ gnZoomLevel
+    global gb3D gbCursor gbSelection gbControlPoints gbFunctional
+    global gbMainSurface gbOriginalSurface gbCanonicalSurface
+    global gbDisplaySurfaceVertices gbInterpolateSurfaceVertices
+
+    frame $ifwDisplay
+
+    set fwLabel            $ifwDisplay.fwLabel
+    set lwLabel            $fwLabel.lwLabel
+
+    set fwSagittalButton   $ifwDisplay.fwSagittalButton
+    set rwSagittal         $fwSagittalButton.rwSagittal
+
+    set fwSagittalScale    $ifwDisplay.fwSagittalScale
+    set swSagittal         $fwSagittalScale.swSagittal
+    set ewSagittal         $fwSagittalScale.ewSagittal
+    
+    set fwHorizontalButton $ifwDisplay.fwHorizontalButton
+    set rwHorizontal       $fwHorizontalButton.rwHorizontal
+
+    set fwHorizontalScale  $ifwDisplay.fwHorizontalScale
+    set swHorizontal       $fwHorizontalScale.swHorizontal
+    set ewHorizontal       $fwHorizontalScale.ewHorizontal
+    
+    set fwCoronalButton    $ifwDisplay.fwCoronalButton
+    set rwCoronal          $fwCoronalButton.rwCoronal
+
+    set fwCoronalScale     $ifwDisplay.fwCoronalScale
+    set swCoronal          $fwCoronalScale.swCoronal
+    set ewCoronal          $fwCoronalScale.ewCoronal
+    
+    set fwZoomLabel        $ifwDisplay.fwZoomLabel
+    set lwZoom             $fwZoomLabel.lwZoom
+    
+    set fwZoomScale        $ifwDisplay.fwZoomScale
+    set swZoom             $fwZoomScale.swZoom
+    set ewZoom             $fwZoomScale.ewZoom
+
+    # the label that goes at the top of the frame
+    frame $fwLabel
+    label $lwLabel -text "Display" \
+      -font $kLabelFont
+    pack $lwLabel -side left \
+      -anchor w
+
+    # sagittal orientation radio button
+    frame $fwSagittalButton
+    radiobutton $rwSagittal -text "Sagittal" \
+      -command { SetOrientation $gOrientation } \
+      -font $kNormalFont \
+      -highlightbackground $kHighlightBgColor \
+      -variable gOrientation           \
+      -relief flat                     \
+      -value $DspA_tOrientation_Sagittal
+    pack $rwSagittal -side left \
+      -anchor w
+
+    # sagittal slice slider
+    frame $fwSagittalScale
+    scale $swSagittal -orient horizontal \
+      -variable gnVolX             \
+      -from 0                      \
+      -to 255                      \
+      -length 200                  \
+      -showvalue false
+    bind $swSagittal <ButtonRelease> { SetCursor $gnVolX $gnVolY $gnVolZ }
+    bind $swSagittal <B1-Motion>     { SetCursor $gnVolX $gnVolY $gnVolZ }
+    entry $ewSagittal -textvariable gnVolX \
+      -width 3                       \
+      -selectbackground green        \
+      -insertbackground black
+    bind $ewSagittal <Return> { SetCursor $gnVolX $gnVolY $gnVolZ }
+    pack $swSagittal    \
+      -side left  \
+      -anchor w   \
+      -expand yes \
+      -fill x
+    pack $ewSagittal   \
+      -side left \
+      -anchor w  \
+      -expand no
+
+    # horizontal orientaiton radio button
+    frame $fwHorizontalButton
+    radiobutton $rwHorizontal -text "Horizontal" \
+      -command { SetOrientation $gOrientation } \
+      -font $kNormalFont   \
+      -highlightbackground $kHighlightBgColor \
+      -variable gOrientation               \
+      -relief flat                         \
+      -value $DspA_tOrientation_Horizontal
+    pack $rwHorizontal -side left \
+      -anchor w
+
+    # horiontal slice slider
+    frame $fwHorizontalScale
+    scale $swHorizontal -orient horizontal \
+      -variable gnVolY               \
+      -from 0                        \
+      -to 255                        \
+      -showvalue false
+    bind $swHorizontal <ButtonRelease> { SetCursor $gnVolX $gnVolY $gnVolZ }
+    bind $swHorizontal <B1-Motion>     { SetCursor $gnVolX $gnVolY $gnVolZ }
+    entry $ewHorizontal -textvariable gnVolY  \
+      -selectbackground green           \
+      -insertbackground black           \
+      -width 3
+    bind $ewHorizontal <Return> { SetCursor $gnVolX $gnVolY $gnVolZ }
+    pack $swHorizontal    \
+      -side left  \
+      -anchor w   \
+      -expand yes \
+      -fill x
+    pack $ewHorizontal   \
+      -side left \
+      -anchor w  \
+      -expand no
+
+    # coronal orientation radio button
+    frame $fwCoronalButton
+    radiobutton $rwCoronal -text "Coronal" \
+      -command { SetOrientation $gOrientation } \
+      -variable gOrientation         \
+      -font $kNormalFont   \
+      -highlightbackground $kHighlightBgColor \
+      -relief flat                   \
+      -value $DspA_tOrientation_Coronal
+    pack $rwCoronal -side left \
+      -anchor w
+
+    # coronal slice slider
+    frame $fwCoronalScale
+    scale $swCoronal -orient horizontal \
+      -variable gnVolZ            \
+      -from 0                     \
+      -to 255                     \
+      -showvalue false
+    bind $swCoronal <ButtonRelease> { SetCursor $gnVolX $gnVolY $gnVolZ }
+    bind $swCoronal <B1-Motion>     { SetCursor $gnVolX $gnVolY $gnVolZ }
+    entry $ewCoronal -textvariable gnVolZ \
+      -selectbackground green       \
+      -insertbackground black       \
+      -width 3
+    bind $ewCoronal <Return> { SetCursor $gnVolX $gnVolY $gnVolZ }
+    pack $swCoronal     \
+      -side left  \
+      -anchor w   \
+      -expand yes \
+      -fill x
+    pack $ewCoronal    \
+      -side left \
+      -anchor w  \
+      -expand no
+
+    # zoom label
+    frame $fwZoomLabel
+    label $lwZoom -text "Zoom" \
+      -font $kNormalFont
+    pack $lwZoom -side left \
+      -anchor w
+
+    # zoom slider
+    frame $fwZoomScale
+    scale $swZoom -orient horizontal \
+      -command { SetZoomLevel $gnZoomLevel } \
+      -variable gnZoomLevel    \
+      -from 1                  \
+      -to 16                   \
+      -showvalue false
+    bind $swZoom <ButtonRelease> { SetZoomLevel $gnZoomLevel }
+    bind $swZoom <B1-Motion>     { SetZoomLevel $gnZoomLevel }
+    entry $ewZoom -textvariable gnZoomLevel \
+      -selectbackground green         \
+      -insertbackground black         \
+      -width 3
+    bind $ewZoom <Return> { SetZoomLevel $gnZoomLevel }
+    pack $swZoom    \
+      -side left  \
+      -anchor w   \
+      -expand yes \
+      -fill x
+    pack $ewZoom   \
+      -side left \
+      -anchor w  \
+      -expand no
+
+    # pack them all together in a column
+    pack $fwLabel $fwSagittalButton $fwSagittalScale   \
+      $fwHorizontalButton $fwHorizontalScale     \
+      $fwCoronalButton $fwCoronalScale           \
+      $fwZoomLabel $fwZoomScale                  \
+      -side top                                  \
+      -anchor w                                  \
+      -expand yes                                \
+      -fill x
+}
+
+proc CreateToolbarFrame { ifwToolBar } {
+
+    global kLabelFont kNormalFont
+
+    frame $ifwToolBar
+
+    set fwButtons   $ifwToolBar.fwButtons
+    set bwSend      $fwButtons.bwSend
+    set bwRead      $fwButtons.bwRead
+
+    frame $fwButtons
+    button $bwSend -text "Save Point" \
+      -font $kNormalFont          \
+      -command { SendCursor }
+    button $bwRead -text "Goto Point" \
+      -font $kNormalFont         \
+      -command { ReadCursor }
+
+    pack $bwSend $bwRead \
+      -side left
+
+    pack $fwButtons   \
+      -side top \
+      -fill y   \
+      -expand yes
+}
+
+# = ====================================================================== MAIN
+
 fixcolors
-if [info exists env(tkmeditinterface)] {
-  if {$env(tkmeditinterface) == "macro"} { macro }
-  if {$env(tkmeditinterface) == "mini+"} { mini+ }
-  if {$env(tkmeditinterface) == "mini"}  { mini }
-  if {$env(tkmeditinterface) == "micro"} { micro }
-} else {
-  mini
-  puts "tkmedit.tcl: default mini interface (to change: macro,mini+,mini,micro)"
-  puts "tkmedit.tcl: or: setenv tkmeditinterface {macro,mini+,mini,micro}"
+
+# build the window
+set wwTop        .w
+set fwMenuBar    $wwTop.fwMenuBar
+set fwLeft       $wwTop.fwLeft
+set fwRight      $wwTop.fwRight
+set fwCursor     $fwLeft.fwCursor
+set fwToolbar    $fwLeft.fwToolbar
+
+CreateWindow         $wwTop
+
+frame $fwLeft
+
+CreateMenuBar        $fwMenuBar
+CreateCursorFrame    $fwCursor
+CreateToolbarFrame   $fwToolbar
+CreateDisplayFrame   $fwRight
+
+# pack the window
+pack $fwMenuBar      \
+  -side top    \
+  -expand true \
+  -fill x      \
+  -anchor w
+
+pack $fwCursor $fwToolbar \
+  -side top         \
+  -expand true      \
+  -fill x           \
+  -anchor w
+
+pack $fwLeft $fwRight \
+  -side left    \
+  -padx 3       \
+  -pady 3       \
+  -expand true  \
+  -fill x       \
+  -fill y       \
+  -anchor nw
+
+pack $wwTop
+
+proc CsurfInterface {} {
+
+    .w.fwMenuBar.mbwVolume.mwVolume delete 15 17
+    .w.fwMenuBar.mbwEdit.mwEdit delete 7
+    .w.fwMenuBar.mbwTools.mwTools delete 3
+    .w.fwMenuBar.mbwDisplay.mwDisplay delete 13
+    .w.fwMenuBar.mbwDisplay.mwDisplay delete 17 18
+    pack forget .w.fwMenuBar.mbwCtrlPts    
+    pack forget .w.fwMenuBar.mbwSurface
+
 }
 
+
+
+
+
+
+
+proc ErrorDlog { isMsg } {
+
+    global gwwTop
+
+    tk_messageBox -type ok \
+      -icon error \
+      -message $isMsg \
+      -title "Error" \
+      -parent $gwwTop
+}
