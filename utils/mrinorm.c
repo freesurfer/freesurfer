@@ -33,8 +33,6 @@
                     MACROS AND CONSTANTS
 -------------------------------------------------------*/
 
-#define DEFAULT_DESIRED_WHITE_MATTER_VALUE  110
-#define DEFAULT_SMOOTH_SIGMA                2.0f
 
 /*-----------------------------------------------------
                     STATIC PROTOTYPES
@@ -59,14 +57,17 @@ MRIsplineNormalize(MRI *mri_src,MRI *mri_dst, MRI **pmri_field,
                    float *inputs,float *outputs, int npoints)
 {
   int       width, height, depth, x, y, z, i ;
-  BUFTYPE   *psrc, *pdst, sval, dval, *pfield ;
+  BUFTYPE   *psrc, *pdst, sval, dval, *pfield = NULL ;
   float     outputs_2[MAX_SPLINE_POINTS], frac ;
-  MRI       *mri_field ;
+  MRI       *mri_field = NULL ;
 
-  mri_field = *pmri_field ;
-  if (!mri_field)
-    *pmri_field = mri_field = 
-      MRIalloc(BIAS_IMAGE_WIDTH, mri_src->height, 1, MRI_UCHAR) ;
+  if (pmri_field)
+  {
+    mri_field = *pmri_field ;
+    if (!mri_field)
+      *pmri_field = mri_field = 
+        MRIalloc(BIAS_IMAGE_WIDTH, mri_src->height, 1, MRI_UCHAR) ;
+  }
 
   if (npoints > MAX_SPLINE_POINTS)
     npoints = MAX_SPLINE_POINTS ;
@@ -80,10 +81,12 @@ MRIsplineNormalize(MRI *mri_src,MRI *mri_dst, MRI **pmri_field,
 
   for (y = 0 ; y < height ; y++)
   {
-    pfield = &MRIvox(mri_field, 0, y, 0) ;
+    if (pmri_field)
+      pfield = &MRIvox(mri_field, 0, y, 0) ;
     splint(inputs, outputs, outputs_2, npoints, (float)y, &frac) ;
-    for (i = 0 ; i < BIAS_IMAGE_WIDTH ; i++)
-      *pfield++ = nint(110.0f/frac) ;
+    if (pmri_field)
+      for (i = 0 ; i < BIAS_IMAGE_WIDTH ; i++)
+        *pfield++ = nint(110.0f/frac) ;
 
     for (z = 0 ; z < depth ; z++)
     {
@@ -260,6 +263,9 @@ MRInormInit(MRI *mri, MNI *mni, int windows_above_t0,int windows_below_t0,
   float       size_mod ;
   Real        x0, y0, z0 ;
 
+  if (wsize <= 0)
+    wsize = DEFAULT_WINDOW_SIZE ;
+
   if (!mni->desired_wm_value)
     mni->desired_wm_value = DEFAULT_DESIRED_WHITE_MATTER_VALUE ;
   else
@@ -273,10 +279,17 @@ MRInormInit(MRI *mri, MNI *mni, int windows_above_t0,int windows_below_t0,
   if (error != NO_ERROR)
     ErrorReturn(error, 
           (error, "MRInormComputeWindows: could not find Talairach origin"));
-  nwindows = windows_above_t0 + windows_below_t0 ;
 
-  mni->windows_above_t0 = windows_above_t0 ;
-  mni->windows_below_t0 = windows_below_t0 ;
+  if (windows_above_t0 > 0)
+    mni->windows_above_t0 = windows_above_t0 ;
+  else
+    mni->windows_above_t0 = DEFAULT_WINDOWS_ABOVE_T0 ;
+
+  if (windows_below_t0 > 0)
+    mni->windows_below_t0 = windows_below_t0 ;
+  else
+    mni->windows_below_t0 = DEFAULT_WINDOWS_BELOW_T0 ;
+  nwindows = mni->windows_above_t0 + mni->windows_below_t0 ;
   x = 0 ;
   dx = mri->width ;
   z = 0 ;
@@ -374,10 +387,21 @@ MRI *
 MRInormalize(MRI *mri_src, MRI *mri_dst, MNI *mni)
 {
   float    inputs[MAX_SPLINE_POINTS], outputs[MAX_SPLINE_POINTS] ;
-  int      npeaks ;
+  int      npeaks, dealloc = 0 ;
+
+  if (!mni)   /* do local initialization */
+  {
+    dealloc = 1 ;
+    mni = (MNI *)calloc(1, sizeof(MNI)) ;
+    MRInormInit(mri_src, mni, 0, 0, 0, 0, 0.0f) ;
+  }
 
   MRInormFillHistograms(mri_src, mni) ;
   npeaks = MRInormFindPeaks(mni, inputs, outputs) ;
   mri_dst = MRIsplineNormalize(mri_src, mri_dst,NULL,inputs,outputs,npeaks);
+
+  if (dealloc)
+    free(mni) ;
+
   return(mri_dst) ;
 }
