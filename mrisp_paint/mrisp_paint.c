@@ -13,7 +13,7 @@
 #include "macros.h"
 #include "version.h"
 
-static char vcid[] = "$Id: mrisp_paint.c,v 1.5 2003/09/05 04:45:45 kteich Exp $";
+static char vcid[] = "$Id: mrisp_paint.c,v 1.6 2005/02/14 04:30:19 segonne Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -26,19 +26,35 @@ static void print_version(void) ;
 char *Progname ;
 
 static int normalize = 0 ;
+static int variance =  0 ;
 static int navgs = 0 ;
 static int sqrt_flag = 0 ;
+
+static char *surface_names[] = 
+  {
+    "inflated",
+    "smoothwm",
+    "smoothwm"
+  } ;
+
+static int field_no = -1;
+static char subjects_dir[STRLEN] ;
+static char *hemi=NULL;
+static char *subject_name;
 
 int
 main(int argc, char *argv[])
 {
   char         **av, *surf_fname, *template_fname, *out_fname, *cp;
-  int          ac, nargs, param_no = 0 ;
-  MRI_SURFACE  *mris ;
+  int          n,ac, nargs, param_no = 0 ;
+	float        sse,var;
+	char fname[STRLEN];
+  MRI_SURFACE  *mris ,*mris_var;
   MRI_SP       *mrisp ;
+	VERTEX *v;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mrisp_paint.c,v 1.5 2003/09/05 04:45:45 kteich Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mrisp_paint.c,v 1.6 2005/02/14 04:30:19 segonne Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -102,8 +118,68 @@ main(int argc, char *argv[])
     MRISnormalizeFromParameterization(mrisp, mris, param_no) ;
   else
     MRISfromParameterization(mrisp, mris, param_no) ;
+	
+	MRISaverageCurvatures(mris, navgs) ;
 
-  MRISaverageCurvatures(mris, navgs) ;
+	if(variance){
+		/* check if SUBJECTS_DIR is set up */
+		if (!strlen(subjects_dir)) /* hasn't been set on command line */
+		{
+			cp = getenv("SUBJECTS_DIR") ;
+			if (!cp)
+				ErrorExit(ERROR_BADPARM, "%s: SUBJECTS_DIR not defined in environment", 
+									Progname);
+			strcpy(subjects_dir, cp) ;
+		}
+		mris_var=MRISclone(mris);
+		/* reading or generating the field */
+		if (ReturnFieldName(field_no)){  /* read in precomputed curvature file */
+			sprintf(fname, "%s/%s/surf/%s.%s", subjects_dir,subject_name,hemi,ReturnFieldName(field_no)) ;
+			if (MRISreadCurvatureFile(mris_var, fname) != NO_ERROR){
+				MRISfree(&mris_var);
+				ErrorExit(ERROR_BADPARM,"%s: could not load file %s\n",fname);
+			}
+		}else{                       /* compute curvature of surface */
+			sprintf(fname, "%s/%s/surf/%s.%s", subjects_dir,subject_name,hemi,surface_names[field_no]) ;
+/* 			if(parms->fields[n].field==0) */
+/* 				sprintf(fname, "inflated") ; */
+/* 			else */
+/* 				sprintf(fname, "smoothwm") ; */
+			MRISsaveVertexPositions(mris_var, CANONICAL_VERTICES) ;
+			if (MRISreadVertexPositions(mris_var, fname) != NO_ERROR){
+				MRISfree(&mris_var);
+				ErrorExit(ERROR_BADPARM,"%s: could not load file %s\n",fname);
+			}
+			MRISsetNeighborhoodSize(mris_var, -1) ;  /* back to max */
+			MRIScomputeMetricProperties(mris_var) ;
+			MRIScomputeSecondFundamentalForm(mris_var) ;
+			MRISuseMeanCurvature(mris_var) ;
+			MRISaverageCurvatures(mris_var, navgs) ;
+			MRISresetNeighborhoodSize(mris_var,1);/*only use nearest neighbor distances*/
+			MRISrestoreVertexPositions(mris_var, CANONICAL_VERTICES) ;
+		}
+		MRISnormalizeField(mris_var,IsDistanceField(field_no));
+		MRISnormalizeField(mris,IsDistanceField(field_no));
+		/* save curv into curvbak*/
+		for(n=0 ; n < mris->nvertices; n++){
+			v=&mris_var->vertices[n];
+			v->curvbak=v->curv;
+		}
+		/* computing variance */
+		MRISfromParameterization(mrisp, mris_var, param_no+1) ;
+		for(sse=0.0f,n=0 ; n < mris->nvertices; n++){
+			v=&mris_var->vertices[n];
+			var=MAX(0.01,v->curv);
+			v->curv = SQR(v->curvbak-mris->vertices[n].curv)/var;
+			sse += v->curv;
+		}
+		fprintf(stderr,"XXXXXXXXXXXXXXXXXXX\n\n");
+		fprintf(stderr,"The SSE for this field is %f\n",sqrt(sse/(float)mris->nvertices));
+			fprintf(stderr,"\nXXXXXXXXXXXXXXXXXXX\n\n");
+
+		MRISfree(&mris_var);
+	}
+
   fprintf(stderr, "writing curvature file to %s...\n", out_fname) ;
   if (sqrt_flag)
   {
@@ -136,7 +212,24 @@ get_option(int argc, char *argv[])
     print_help() ;
   else if (!stricmp(option, "-version"))
     print_version() ;
-  else switch (toupper(*option))
+	else if (!stricmp(option, "SDIR"))
+  {
+    strcpy(subjects_dir, argv[2]) ;
+    nargs = 1 ;
+    printf("using %s as subjects directory\n", subjects_dir) ;
+  }
+	else if (!stricmp(option, "variance")){
+		variance=1;
+		hemi = argv[3];
+		subject_name = argv[2];
+		field_no = atoi(argv[4]);
+		if(field_no<0) {
+			fprintf(stderr,"Incorrect Field Number\n");
+			exit(-1);
+		}
+		fprintf(stderr,"generating variance map for with field %d (%s/surf/%s.%s) \n",field_no,subject_name,hemi,ReturnFieldName(field_no));
+		nargs=3;
+  }else switch (toupper(*option))
   {
   case 'A':
     navgs = atoi(argv[2]) ;

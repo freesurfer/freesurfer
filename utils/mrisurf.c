@@ -4,8 +4,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: segonne $
-// Revision Date  : $Date: 2005/02/11 23:54:58 $
-// Revision       : $Revision: 1.331 $
+// Revision Date  : $Date: 2005/02/14 04:33:07 $
+// Revision       : $Revision: 1.332 $
 //////////////////////////////////////////////////////////////////
 #include <stdio.h>
 #include <string.h>
@@ -4480,24 +4480,6 @@ void MRISnormalizeField(MRIS *mris , int distance_field){
 		MRISnormalizeCurvature(mris);
 }
 
-static char *FRAME_FIELD_NAMES[]=  /* order correspond to maccros defined in mrisurf.h */
-	{
-		NULL,
-		"sulc",
-		NULL, /* curvature directly computed */
-		GRAYMID_NAME,
-		T1MID_NAME,
-		T2MID_NAME,
-		PDMID_NAME,
-		AMYGDALA_DIST_NAME,       
-		HIPPOCAMPUS_DIST_NAME,        
-		PALLIDUM_DIST_NAME,        
-		PUTAMEN_DIST_NAME,          
-		CAUDATE_DIST_NAME,          
-		LAT_VENTRICLE_DIST_NAME,     
-		INF_LAT_VENTRICLE_DIST_NAME,
-	};
-
 
 int MRISvectorRegister(MRI_SURFACE *mris, MRI_SP *mrisp_template, 
              INTEGRATION_PARMS *parms, int max_passes, float min_degrees, float max_degrees, int nangles)
@@ -4513,8 +4495,6 @@ int MRISvectorRegister(MRI_SURFACE *mris, MRI_SP *mrisp_template,
 	int n,fno,ncorrs;
 	int *frames,nframes,nf,*indices;
 	float l_corr;
-	float l_mg_corr,l_mg_pcorr,l_c_corr,l_c_pcorr;
-	int n_mg,n_c;
 	int pdone = 1 ;
 	VALS_VP *vp;
   
@@ -4589,10 +4569,10 @@ int MRISvectorRegister(MRI_SURFACE *mris, MRI_SP *mrisp_template,
 		if (FZERO(l_corr)) continue; /* don't load useless fields */
 
 		fprintf(stderr,"  -loading field %d with correlation coefficiens ( %2.1f , %2.1f )...\n",n,parms->fields[n].l_corr,parms->fields[n].l_pcorr);
-		if (FRAME_FIELD_NAMES[parms->fields[n].field]){  /* read in precomputed curvature file */
+		if (ReturnFieldName(parms->fields[n].field)){  /* read in precomputed curvature file */
 			sprintf(fname, "%s.%s", 
 							mris->hemisphere == RIGHT_HEMISPHERE ? "rh":"lh", 
-							FRAME_FIELD_NAMES[parms->fields[n].field]) ;
+							ReturnFieldName(parms->fields[n].field)) ;
 			if (MRISreadCurvatureFile(mris, fname) != NO_ERROR){
 				fprintf(stderr, "%s: could not read curvature file '%s'\n","MRISvectorRegister", fname) ;
 				fprintf(stderr,"setting up correlation coefficient to zero\n");
@@ -4637,8 +4617,9 @@ int MRISvectorRegister(MRI_SURFACE *mris, MRI_SP *mrisp_template,
 		i = NSIGMAS-1;
 		first=0;
 #endif
-		
-		first = 0 ; 
+
+		if((parms->flags & IP_NO_RIGID_ALIGN)) /* no rigid alignment */
+			first = 0 ; 
 
 		parms->sigma = sigma = sigmas[i] ;
 		parms->dt = base_dt ;
@@ -4674,7 +4655,7 @@ int MRISvectorRegister(MRI_SURFACE *mris, MRI_SP *mrisp_template,
 		/* normalize mean (only) intensities for target */
 		MRISfromParameterizations(parms->mrisp_template, mris, frames,indices , nframes);
 		for( n = 0 ; n < nframes ; n++){
-			fprintf(stderr,"normalized target field %d (frame = %d - field %d)...\n",n,indices[n],parms->fields[indices[n]].field);
+			fprintf(stderr,"normalized target field %d (frame = %d(%d) - field = %d)...\n",indices[n],parms->fields[indices[n]].frame,frames[n],parms->fields[indices[n]].field);
 			MRISsetValuesToCurvatures(mris,indices[n]);
 			MRISnormalizeField(mris,parms->fields[indices[n]].type) ;
 			MRISsetCurvaturesToValues(mris,indices[n]);
@@ -4705,7 +4686,7 @@ int MRISvectorRegister(MRI_SURFACE *mris, MRI_SP *mrisp_template,
 		/* normalize mean intensities for source */
 		MRISfromParameterizations(parms->mrisp, mris, frames,indices,nframes);
 		for( n = 0 ; n < nframes ; n++){
-			fprintf(stderr,"normalized source field %d (frame = %d - field %d)...\n",n,indices[n],parms->fields[indices[n]].field);
+			fprintf(stderr,"normalized source field %d (frame = %d(%d) - field = %d)...\n",indices[n],parms->fields[indices[n]].frame,frames[n],parms->fields[indices[n]].field);
 			MRISsetValuesToCurvatures(mris,indices[n]);
 			MRISnormalizeField(mris,parms->fields[indices[n]].type) ;
 			MRISsetCurvaturesToValues(mris,indices[n]);
@@ -4744,36 +4725,11 @@ int MRISvectorRegister(MRI_SURFACE *mris, MRI_SP *mrisp_template,
 					fprintf(stdout, "finding optimal rigid alignment\n") ;
 				if (Gdiag & DIAG_WRITE)
 					fprintf(parms->fp, "finding optimal rigid alignment\n") ;
-
-				/* for the rotation, midgray is set to zero */
-				n_mg=-1;l_mg_corr=l_mg_pcorr=0.0;
-				n_c=-1;l_c_corr=l_c_pcorr=0.0;
-				if (*IMAGEFseq_pix(mrisp_template->Ip, 0, 0, 2) <= 1.0){ /* first time only */
-					for( n = 0 ; n < nframes ; n++)
-						if(parms->fields[indices[n]].field==GRAYMID_CORR_FRAME){
-							n_mg=indices[n];
-							l_mg_corr=parms->fields[n_mg].l_corr;
-							l_mg_pcorr=parms->fields[n_mg].l_pcorr;
-							parms->fields[n_mg].l_corr=parms->fields[n_mg].l_pcorr=0.0;
-						}
-					if(parms->fields[indices[n]].field==CURVATURE_CORR_FRAME){
-							n_c=indices[n];
-							l_c_corr=parms->fields[n_c].l_corr;
-							l_c_pcorr=parms->fields[n_c].l_pcorr;
-							parms->fields[n_c].l_corr=parms->fields[n_c].l_pcorr=0.0;
-						}
-				}
+				
 				MRISrigidBodyAlignVectorGlobal(mris, parms, min_degrees, max_degrees, nangles) ;
 				if (Gdiag & DIAG_WRITE && parms->write_iterations != 0)
 				  MRISwrite(mris, "rotated") ;
-				if(n_mg>=0){
-					parms->fields[n_mg].l_corr=l_mg_corr;
-					parms->fields[n_mg].l_pcorr=l_mg_pcorr;
-				}
-				if(n_c>=0){
-					parms->fields[n_c].l_corr=l_c_corr;
-					parms->fields[n_c].l_pcorr=l_c_pcorr;
-				}
+				
 			}
 		}
 
@@ -4787,9 +4743,9 @@ int MRISvectorRegister(MRI_SURFACE *mris, MRI_SP *mrisp_template,
 
   parms->tol /= 10 ;  /* remove everything possible pretty much */
   if (Gdiag & DIAG_SHOW)
-    fprintf(stdout, "removing remaining folds...\n") ;
+    fprintf(stdout, "\nRemoving remaining folds...\n") ;
   if (Gdiag & DIAG_WRITE)
-    fprintf(parms->fp, "removing remaining folds...\n") ;
+    fprintf(parms->fp, "\nRemoving remaining folds...\n") ;
   parms->l_nlarea *= 5 ;
   mrisIntegrationEpoch(mris, parms, parms->n_averages) ;
 
@@ -14944,14 +14900,32 @@ mrisLogStatus(MRI_SURFACE *mris,INTEGRATION_PARMS *parms,FILE *fp, float dt)
   float  area_rms, angle_rms, curv_rms, sse, dist_rms, corr_rms ;
   int    n,negative ;
 	float nv;
+	int fyi;
 
   if (!(Gdiag & DIAG_SHOW))
     return(NO_ERROR) ;
 
   negative = MRIScountNegativeTriangles(mris) ;
 
+	fyi=0;
+	if(parms->flags & IP_USE_MULTIFRAMES){
+		if(FZERO(parms->l_corr)){ /* just for your information */
+			/* check if we can load curvature information */
+			for(n=0;n<parms->nfields;n++)
+				if(parms->fields[n].field==CURVATURE_CORR_FRAME){
+					parms->frame_no=parms->fields[n].frame*IMAGES_PER_SURFACE;
+					fyi=1;
+					parms->l_corr=1.0f;
+					break;
+				}
+		}
+	}
+
 	sse  = mrisComputeError(mris, parms,&area_rms,&angle_rms,&curv_rms,&dist_rms,
 			  &corr_rms);
+
+	if(fyi)
+		parms->l_corr=0.0f;
 
 #if  0
   sse = MRIScomputeSSE(mris, parms) ;
