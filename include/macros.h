@@ -116,3 +116,10 @@
 #endif
 
 #endif
+
+// you can do #if GCC_VERSION > 30200 for gcc 3.2.0
+#ifdef __GNUC__
+#define GCC_VERSION (__GNUC__ * 10000 \
+                     + __GNUC_MINOR__ * 100 \
+                     + __GNUC_PATCHLEVEL__)
+#endif
