@@ -4,8 +4,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2004/05/20 17:35:04 $
-// Revision       : $Revision: 1.91 $
+// Revision Date  : $Date: 2004/08/12 18:00:41 $
+// Revision       : $Revision: 1.92 $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -220,7 +220,7 @@ int main(int argc, char *argv[])
   nskip = 0;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_convert.c,v 1.91 2004/05/20 17:35:04 tosa Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_convert.c,v 1.92 2004/08/12 18:00:41 tosa Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -1493,6 +1493,40 @@ int main(int argc, char *argv[])
     }
 
   }
+  else if (out_like_flag) // flag set but no transform
+  {
+    // modify direction cosines to use the out-like volume direction cosines
+    //
+    //   src --> RAS
+    //    |       |
+    //    |       |
+    //    V       V
+    //   dst --> RAS   where dst i_to_r is taken from out volume
+    MRI *tmp = 0;
+    MATRIX *src2dst = 0;
+
+    printf("INFO: transform src into the like-volume: %s\n", out_like_name);
+    tmp = MRIreadHeader(out_like_name, MRI_VOLUME_TYPE_UNKNOWN);
+    mri_transformed = MRIalloc(tmp->width, tmp->height, tmp->depth, mri->type);
+    if (!mri_transformed)
+    {
+      ErrorExit(ERROR_NOMEMORY, "could not allocate memory");
+    }
+    MRIcopyHeader(tmp, mri_transformed);
+    MRIfree(&tmp); tmp = 0;
+    // just to make sure
+    if (mri->i_to_r__)
+      mri->i_to_r__ = extract_i_to_r(mri);
+    if (mri_transformed->r_to_i__)
+      mri_transformed->r_to_i__ = extract_r_to_i(mri_transformed);
+    // got the transform
+    src2dst = MatrixMultiply(mri_transformed->r_to_i__, mri->i_to_r__, NULL);
+    // now get the values (tri-linear)
+    MRIlinearTransform(mri, mri_transformed, src2dst);
+    MatrixFree(&src2dst);
+    MRIfree(&mri);
+    mri=mri_transformed;
+  } 
 
   if(reslice_like_flag)
   {
