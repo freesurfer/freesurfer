@@ -2744,6 +2744,7 @@ ScubaView::DrawFrameBuffer () {
   glEnd();
 #endif
 
+  // Clear the update rect.
   mViewState.ResetUpdateRect();
 }
 

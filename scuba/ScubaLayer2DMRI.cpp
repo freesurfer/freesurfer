@@ -1098,9 +1098,6 @@ ScubaLayer2DMRI::HandleTool ( float iRAS[3], ViewState& iViewState,
 			      ScubaWindowToRASTranslator& iTranslator,
 			      ScubaToolState& iTool, InputState& iInput ) {
   
-  // Never handle control clicks, since that's a navigation thing
-  // handled by the view.
-
   // Only do this if we're the target layer.
   if( iTool.GetTargetLayer() != GetID() )
     return;
@@ -1199,37 +1196,58 @@ ScubaLayer2DMRI::HandleTool ( float iRAS[3], ViewState& iViewState,
 	// that. These are the corners of our plane.
 	Point2<int> window;
 	Point3<float> sq[4];
-	Point2<int> sqw[2];
 	float rad = iTool.GetBrushRadius();
+	int windowBrushRad = (int)( iViewState.mZoomLevel * rad );
 
 	// Get our four plane points.
 	iTranslator.TranslateRASToWindow( iRAS, window.xy() );
-	window[0] -= (int)( iViewState.mZoomLevel * rad );
-	window[1] -= (int)( iViewState.mZoomLevel * rad );
+	window[0] -= windowBrushRad;
+	window[1] -= windowBrushRad;
 	iTranslator.TranslateWindowToRAS( window.xy(), sq[0].xyz() );
-	sqw[0][0] = window[0];
-	sqw[0][1] = window[1];
-
-	iTranslator.TranslateRASToWindow( iRAS, window.xy() );
-	window[0] += (int)( iViewState.mZoomLevel * rad );
-	window[1] -= (int)( iViewState.mZoomLevel * rad );
+	window[0] += 2 * windowBrushRad;
 	iTranslator.TranslateWindowToRAS( window.xy(), sq[1].xyz() );
-
-	iTranslator.TranslateRASToWindow( iRAS, window.xy() );
-	window[0] += (int)( iViewState.mZoomLevel * rad );
-	window[1] += (int)( iViewState.mZoomLevel * rad );
+	window[1] += 2 * windowBrushRad;
 	iTranslator.TranslateWindowToRAS( window.xy(), sq[2].xyz() );
-	sqw[1][0] = window[0];
-	sqw[1][1] = window[1];
-
-	iTranslator.TranslateRASToWindow( iRAS, window.xy() );
-	window[0] -= (int)( iViewState.mZoomLevel * rad );
-	window[1] += (int)( iViewState.mZoomLevel * rad );
+	window[0] -= 2* windowBrushRad;
 	iTranslator.TranslateWindowToRAS( window.xy(), sq[3].xyz() );
 
-	iViewState.AddUpdateRect( sqw[0][0], sqw[0][1],
-				  sqw[1][0], sqw[1][1] );
+	// Now we need to calculate an update rect in window
+	// coordinates. When we brush, this will be the area that is
+	// updated on the screen. But we want to make this at least as
+	// big enough to cover whole voxels. So we'll increase the
+	// rect by the size of the voxel in window coords.
+	Point3<float> updateRectRAS[2];
+	Point2<int> updateRectWindow[2];
 
+	// Get a 0,0,0 voxel and a voxel-size voxel, convert both to
+	// window, and get the difference. This is the voxel size in
+	// the window.
+	Point3<float> voxelRAS;
+	Point3<float> originRAS;
+	voxelRAS[0] = mVolume->GetVoxelXSize();
+	voxelRAS[1] = mVolume->GetVoxelYSize();
+	voxelRAS[2] = mVolume->GetVoxelZSize();
+	originRAS.Set( 0, 0, 0 );
+	Point2<int> voxelWindow;
+	Point2<int> originWindow;
+	iTranslator.TranslateRASToWindow( voxelRAS.xyz(), voxelWindow.xy() );
+	iTranslator.TranslateRASToWindow( originRAS.xyz(), originWindow.xy() );
+	Point2<int> voxelSizeWindow;
+	voxelSizeWindow.Set( voxelWindow[0] - originWindow[0],
+			     voxelWindow[1] - originWindow[1] );
+					  
+	iTranslator.TranslateRASToWindow( iRAS, window.xy() );
+	updateRectWindow[0][0] = 
+	  window[0] - windowBrushRad - voxelSizeWindow[0];
+	updateRectWindow[0][1] = 
+	  window[1] - windowBrushRad - voxelSizeWindow[1];
+	updateRectWindow[1][0] = 
+	  window[0] + windowBrushRad + voxelSizeWindow[0];
+	updateRectWindow[1][1] =
+	  window[1] + windowBrushRad + voxelSizeWindow[1];
+
+	iViewState.AddUpdateRect( updateRectWindow[0][0], updateRectWindow[0][1], updateRectWindow[1][0], updateRectWindow[1][1] );
+				  
 
 	// Now get the RAS points in this square or circle.
 	list<Point3<float> > points;
