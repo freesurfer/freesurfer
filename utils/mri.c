@@ -2985,15 +2985,18 @@ MRIallocIndices(MRI *mri)
   mri->xi = (int *)calloc(width+2*MAX_INDEX, sizeof(int)) ;
   if (!mri->xi)
     ErrorExit(ERROR_NO_MEMORY, 
-              "MRIallocIndices: could not allocate index array") ;
+              "MRIallocIndices: could not allocate %d elt index array",
+              width+2*MAX_INDEX) ;
   mri->yi = (int *)calloc(height+2*MAX_INDEX, sizeof(int)) ;
   if (!mri->yi)
     ErrorExit(ERROR_NO_MEMORY, 
-              "MRIallocIndices: could not allocate index array") ;
+              "MRIallocIndices: could not allocate %d elt index array",
+              height+2*MAX_INDEX) ;
   mri->zi = (int *)calloc(depth+2*MAX_INDEX, sizeof(int)) ;
   if (!mri->zi)
     ErrorExit(ERROR_NO_MEMORY, 
-              "MRIallocIndices: could not allocate index array") ;
+              "MRIallocIndices: could not allocate %d elt index array",
+              depth+2*MAX_INDEX) ;
 
 /* 
    indexing into these arrays returns valid pixel indices from  
