@@ -9,6 +9,7 @@
 #include "mrisurf.h"
 #include "matrix.h"
 #include "proto.h"
+#include "stats.h"
 
 /*---------------------------- STRUCTURES -------------------------*/
 
@@ -3609,3 +3610,78 @@ mrisAverageAreas(MRI_SURFACE *mris, int num_avgs, int which)
 }
 
 #endif
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
+int
+MRISsampleStatVolume(MRI_SURFACE *mris, STAT_VOLUME *sv, int time_point)
+{
+  VERTEX   *v ;
+  int      vno, xv, yv, zv ;
+  Real     x, y, z, xt, yt, zt ;
+
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    x = (Real)v->x ; y = (Real)v->y ; z = (Real)v->z ;
+
+    /* now convert them into talairach space */
+    MRIworldToTalairachVoxel(sv->mri_pvals[0], x, y, z, &xt, &yt, &zt) ;
+    xv = nint(xt) ; yv = nint(yt) ; zv = nint(zt) ;
+    v->val = MRIFseq_vox(sv->mri_pvals[0], xv, yv, zv, time_point) ;
+    if (vno == 1446)
+      DiagBreak() ;
+  }
+
+  return(NO_ERROR) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
+int
+MRISwriteValues(MRI_SURFACE *mris, char *fname)
+{
+  int k,num;                   /* loop counters */
+  float f;
+  FILE *fp;
+  double sum=0,sum2=0,max= -1000,min=1000;
+
+  if (Gdiag & DIAG_SHOW)
+    fprintf(stderr, "writing out surface values to %s.\n", fname) ;
+
+  fp = fopen(fname,"wb");
+  if (fp==NULL) 
+    ErrorExit(ERROR_NOFILE, "Can't create file %s\n",fname) ;
+
+  for (k=0,num=0;k<mris->nvertices;k++) 
+    if (mris->vertices[k].val!=0) num++;
+  printf("num = %d\n",num);
+  fwrite2(0,fp);
+  fwrite3(num,fp);
+  for (k=0;k<mris->nvertices;k++)
+  {
+    if (mris->vertices[k].val!=0)
+    {
+      fwrite3(k,fp);
+      f = mris->vertices[k].val;
+      fwrite(&f,1,sizeof(float),fp);
+      sum += f;
+      sum2 += f*f;
+      if (f>max) max=f;
+      if (f<min) min=f;
+    }
+  }
+  fclose(fp);
+  sum /= num;
+  sum2 = sqrt(sum2/num-sum*sum);
+  printf("avg = %f, stdev = %f, min = %f, max = %f\n",sum,sum2,min,max);
+  return(NO_ERROR) ;
+}
