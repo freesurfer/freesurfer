@@ -34,6 +34,8 @@ int  XVMRIinit(XV_FRAME *xvf, int view_row, int view_col) ;
 void XVMRIshowAll(XV_FRAME *xvf) ;
 int  XVMRIfree(MRI **pmri, int which) ;
 int  XVMRIsetView(XV_FRAME *xvf, int which, int view) ;
+int  XVMRIsetPoint(XV_FRAME *xvf, int which, int x, int y, int z) ;
+int  XVMRIsetImageName(XV_FRAME *xvf, char *image_name) ;
 
 
 
