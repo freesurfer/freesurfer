@@ -1,0 +1,4 @@
+#!/bin/tcsh -ef
+
+parcellate_subject-lh $1 
+parcellate_subject-rh $1

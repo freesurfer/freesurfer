@@ -1,0 +1,13 @@
+#!/bin/tcsh -ef
+
+cd $SUBJECTS_DIR/$1/scripts
+
+#mri_tessellate ../mri/filled 127 ../surf/rh.orig
+#mris_smooth ../surf/rh.orig ../surf/rh.smoothwm
+#mris_inflate -dist 0 ../surf/rh.smoothwm ../surf/rh.inflated
+#mris_sphere -w 0  -q ../surf/rh.inflated ../surf/rh.qsphere
+
+mris_sphere -w 0 -inflate -in 200 -q ../surf/rh.inflated ../surf/rh.qsphere
+mris_fix_topology $1 rh
+mris_smooth  ../surf/rh.orig ../surf/rh.smoothwm
+mris_inflate ../surf/rh.smoothwm ../surf/rh.inflated

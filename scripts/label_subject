@@ -1,0 +1,12 @@
+#!/bin/tcsh -ef
+
+setenv LTA   talairach.lta
+setenv ASEG  aseg
+setenv GCA $MRI_DIR/average/young_new_b.gca
+setenv GCA_TL $MRI_DIR/average/young_tl_b.gca
+
+setenv s $1
+
+set sdir = $SUBJECTS_DIR/$s/mri
+mkdir -p $sdir/$ASEG
+mri_ca_label -tl $GCA_TL -mask $sdir/brain  $sdir/norm $sdir/transforms/$LTA $GCA $sdir/$ASEG

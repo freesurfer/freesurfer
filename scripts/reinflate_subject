@@ -1,0 +1,8 @@
+#!/bin/tcsh -f
+
+setenv DIAG 0x04040
+
+pushd $SUBJECTS_DIR/$1/scripts
+inflate_subject-lh $1
+inflate_subject-rh $1
+popd

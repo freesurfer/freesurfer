@@ -1,0 +1,17 @@
+#!/bin/tcsh -ef
+
+setenv GCA $MRI_DIR/average/n7.gca
+setenv GCA $MRI_DIR/average/mixed.gca
+setenv LTA talairach.lta
+
+setenv s $1
+
+set sdir = $SUBJECTS_DIR/$s/mri
+foreach d (fsamples norm transforms)
+	mkdir -p $sdir/$d ;\
+end
+
+
+echo "~fischl/build/mri_em_register/mri_em_register -p .5 -fsamples $sdir/fsamples -norm $sdir/norm $sdir/orig $GCA $sdir/transforms/$LTA"
+~fischl/build/mri_em_register/mri_em_register -p .75 -fsamples $sdir/fsamples -norm $sdir/norm $sdir/orig $GCA $sdir/transforms/$LTA
+

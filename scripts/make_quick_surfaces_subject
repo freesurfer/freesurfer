@@ -1,0 +1,11 @@
+#!/bin/tcsh -f
+
+setenv DIAG 0x04040
+
+
+pushd $SUBJECTS_DIR/$1/scripts
+mris_make_surfaces -q -w 0 $1 lh 
+mris_make_surfaces -q -w 0 $1 rh
+
+wait 
+popd 

@@ -1,0 +1,12 @@
+#!/bin/tcsh -f
+
+pushd $SUBJECTS_DIR/$1/scripts
+if (-e ../tmp/control.dat == 0) then
+		mri_normalize ../mri/orig ../mri/T1
+else
+		mri_normalize -f ../tmp/control.dat ../mri/orig ../mri/T1
+endif
+#mri_strip_skull $1 1
+mri_watershed $SUBJECTS_DIR/$1/mri/T1 $SUBJECTS_DIR/$1/mri/brain
+mri_segment -keep ../mri/brain ../mri/wm
+inflate_subject $1

@@ -1,0 +1,26 @@
+#!/bin/tcsh -f
+
+setenv DIAG 0x04048
+
+pushd $SUBJECTS_DIR/$1/
+touch NOTES
+echo " " >> NOTES
+echo $0 $* >> NOTES
+whoami >> NOTES
+date >> NOTES
+hostname >> NOTES
+popd
+
+
+
+pushd $SUBJECTS_DIR/$1/scripts
+mris_sphere -inflate -w 0 -q ../surf/rh.inflated ../surf/rh.qsphere
+mris_fix_topology -suffix _corrected $1 rh
+mris_smooth ../surf/rh.orig_corrected ../surf/rh.smoothwm_corrected
+mris_inflate ../surf/rh.smoothwm_corrected ../surf/rh.inflated_corrected
+mris_curvature -a 10 -w ../surf/rh.smoothwm
+cp ../surf/rh.smoothwm.H ../surf/rh.curv
+mris_curvature -a 10 -w ../surf/rh.smoothwm_corrected
+cp ../surf/rh.smoothwm_corrected.H ../surf/rh.curv_corrected
+mris_make_surfaces -w 0 -suffix _corrected  $1 rh
+popd

@@ -1,0 +1,4 @@
+#!/bin/tcsh -f
+
+pbsubmit -m $2 -R -c "morph_subject-lh $1"
+pbsubmit -m $2 -R -c "morph_subject-rh $1"

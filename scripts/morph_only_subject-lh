@@ -1,0 +1,16 @@
+#!/bin/tcsh -f
+pushd $SUBJECTS_DIR/$1/
+touch NOTES
+echo " " >> NOTES
+echo $0 $* >> NOTES
+whoami >> NOTES
+date >> NOTES
+hostname >> NOTES
+popd
+
+
+pushd $SUBJECTS_DIR/$1/scripts
+#mris_sphere -w 0 ../surf/lh.inflated ../surf/lh.sphere
+mris_register -w 0 -curv ../surf/lh.sphere $MRI_DIR/average/lh.average.tif ../surf/lh.sphere.reg
+mris_register -w 0 ../surf/lh.sphere $MRI_DIR/average/lh.average.tif ../surf/lh.sphere.dist_new
+popd

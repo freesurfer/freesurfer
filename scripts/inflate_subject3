@@ -1,0 +1,20 @@
+#!/bin/tcsh -f
+
+# this scripts needs to be rerun each time the
+# wm volume is edited
+
+setenv DIAG 0x04040
+
+# -P allows the specification of a point in the brainstem at which
+# to cut horizontally. This must be a slice in which the brainstem
+# is not connected to cortex or cerebellum, etc...
+
+# mri_fill -P 0.4 -25.9 -17.2  ../mri/wm ../mri/filled
+pushd  $SUBJECTS_DIR/$1/scripts
+mri_fill ../mri/wm ../mri/filled
+inflate_subject-lh $1 &
+$p1=$!
+inflate_subject-rh $1
+wait $p1
+popd
+

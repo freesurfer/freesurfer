@@ -1,0 +1,6 @@
+#!/bin/tcsh -f
+
+sphere_subject-lh $1 
+sphere_subject-rh $1
+
+wait

@@ -1,0 +1,8 @@
+#!/bin/tcsh -f
+
+umask 0
+
+
+
+fix_subject_corrected-lh $1 
+fix_subject_corrected-rh $1

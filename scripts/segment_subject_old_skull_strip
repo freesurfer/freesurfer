@@ -1,0 +1,42 @@
+#! /bin/tcsh -ef
+
+# this script should only be run once per subject.
+
+if (-e $SUBJECTS_DIR/$1/scripts == 0)  mkdir $SUBJECTS_DIR/$1/scripts ; endif
+
+if (-e $SUBJECTS_DIR/$1/scripts/brain.dat == 0)  \
+	if (-e $SUBJECTS_DIR/scripts/brain.dat) \
+			cp $SUBJECTS_DIR/scripts/brain.dat $SUBJECTS_DIR/$1/scripts ; \
+	endif
+endif
+
+pushd $SUBJECTS_DIR/$1/scripts
+
+foreach d (../tmp ../mri/T1 ../mri/wm ../mri/filled ../mri/brain ../surf)
+    if (-e $d == 0)  mkdir $d ; endif
+end
+
+
+
+
+# this is just needed for diagnostic purposes
+setenv DIAG 0x04048
+
+talairach $1
+
+# intensity normalize the data 
+mri_normalize ../mri/orig ../mri/T1
+cp ../mri/T1/COR-.info ../mri/brain
+cp ../mri/T1/COR-.info ../mri/wm
+
+# strip the skull
+mri_strip_skull $1 1
+#mri_watershed $SUBJECTS_DIR/$1/mri/T1 $SUBJECTS_DIR/$1/mri/brain
+
+# label white matter
+mri_segment $SUBJECTS_DIR/$1/mri/brain $SUBJECTS_DIR/$1/mri/wm
+inflate_subject $1
+
+
+
+

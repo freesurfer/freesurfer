@@ -28,7 +28,7 @@ find $SOURCE_DIR_REL -name \*.log >> $EXCLUDE_FILE
 find $SOURCE_DIR_REL -name \*.old >> $EXCLUDE_FILE
 find $SOURCE_DIR_REL -name .xdebug\* >> $EXCLUDE_FILE
 
-rsync --recursive --copy-links --exclude-from $EXCLUDE_FILE $SOURCE_DIR $DEST_DIR
+rsync --recursive -v --copy-links --exclude-from=$EXCLUDE_FILE $SOURCE_DIR $DEST_DIR
 
 
 rm -f $EXCLUDE_FILE

@@ -1,0 +1,11 @@
+#!/bin/tcsh -ef
+
+setenv LTA   talairach.lta
+setenv ASEG  aseg
+setenv GCA $MRI_DIR/average/mixed.gca
+
+setenv s $1
+
+set sdir = $SUBJECTS_DIR/$s/mri
+mkdir -p $sdir/$ASEG
+~fischl/build/mri_ca_label/mri_ca_label -mask $sdir/brain  $sdir/norm $sdir/transforms/$LTA $GCA $sdir/$ASEG

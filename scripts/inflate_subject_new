@@ -1,0 +1,17 @@
+#!/bin/csh
+
+# this scripts needs to be rerun each time the
+# wm volume is edited
+
+setenv DIAG 0x04040
+
+# -P allows the specification of a point in the brainstem at which
+# to cut horizontally. This must be a slice in which the brainstem
+# is not connected to cortex or cerebellum, etc...
+
+# mri_fill -P 0.4 -25.9 -17.2  ../mri/wm ../mri/filled
+pushd $SUBJECTS_DIR/$1/scripts
+mri_fill ../mri/$2 ../mri/filled
+inflate_subject_new-lh $1 $2
+inflate_subject_new-rh $1 $2
+popd

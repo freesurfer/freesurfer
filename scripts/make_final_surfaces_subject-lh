@@ -1,0 +1,20 @@
+#!/bin/tcsh -ef
+
+setenv DIAG 0x04040
+
+cd $SUBJECTS_DIR/$1/surf
+foreach f ( lh.inflated lh.orig lh.qsphere )
+  if ( -s $f == 0 ) then
+    echo ERROR: $f is empty/missing
+    exit 2
+  endif
+end
+set newer=`find lh.qsphere -newer lh.orig -print`
+if ( $newer == lh.qsphere ) then
+  echo ERROR: lh.qsphere newer than lh.orig
+  exit 2
+endif
+
+cd $SUBJECTS_DIR/$1/scripts
+mris_make_surfaces -w 0 $1 lh 
+

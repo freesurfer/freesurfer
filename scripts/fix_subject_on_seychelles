@@ -1,0 +1,18 @@
+#!/bin/tcsh -f
+
+pushd $SUBJECTS_DIR/$1/scripts
+#mri_fill ../mri/wm ../mri/filled
+pbsubmit -p  -R -c "fix_subject-lh $1"
+pbsubmit -p  -R -c "fix_subject-rh $1"
+wait
+
+popd
+pushd $SUBJECTS_DIR/$1/
+touch NOTES
+echo " " >> NOTES
+echo $0 $* >> NOTES
+whoami >> NOTES
+date >> NOTES
+hostname >> NOTES
+popd
+

@@ -1,0 +1,15 @@
+#!/bin/tcsh
+pushd $SUBJECTS_DIR/$1/
+touch NOTES
+echo " " >> NOTES
+echo $0 $* >> NOTES
+whoami >> NOTES
+date >> NOTES
+hostname >> NOTES
+popd
+
+pushd $SUBJECTS_DIR/$1/scripts
+mri_tessellate ../mri/filled 255 ../surf/lh.orig_$2
+mris_smooth ../surf/lh.orig_$2 ../surf/lh.smoothwm_$2
+mris_inflate ../surf/lh.smoothwm_$2 ../surf/lh.inflated_$2
+popd
