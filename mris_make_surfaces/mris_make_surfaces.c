@@ -17,7 +17,7 @@
 #include "mrimorph.h"
 #include "mrinorm.h"
 
-static char vcid[] = "$Id: mris_make_surfaces.c,v 1.18 1999/08/16 19:25:41 fischl Exp $";
+static char vcid[] = "$Id: mris_make_surfaces.c,v 1.19 1999/08/16 19:30:44 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -233,7 +233,8 @@ main(int argc, char *argv[])
   {
     fprintf(stderr, "adding vertices to initial tessellation...\n") ;
     for (max_len = 1.5*8 ; max_len > 1 ; max_len /= 2)
-      MRISdivideLongEdges(mris, max_len) ;
+      while (MRISdivideLongEdges(mris, max_len) > 0)
+      {}
   }
   for (i = 0, sigma = 2.0f ; sigma > .2 ; sigma /= 2, i++)
   {
@@ -282,7 +283,8 @@ main(int argc, char *argv[])
     if (add)
     {
       for (max_len = 1.5*8 ; max_len > 1 ; max_len /= 2)
-        MRISdivideLongEdges(mris, max_len) ;
+        while (MRISdivideLongEdges(mris, max_len) > 0)
+        {}
     }
     parms.l_nspring = 0 ;  /* only first time smooth surface */
   }
