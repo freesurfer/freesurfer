@@ -345,7 +345,7 @@ xUndL_tErr xUndL_Print ( xUndoListRef this ) {
   xUndL_tErr      eResult     = xUndL_tErr_NoErr;
   xList_tErr      eListResult = xList_tErr_NoErr;
   xUndL_tEntryPtr pItem       = NULL;
-  size_t          nCount      = 0;
+  int             nCount      = 0;
   
   // verify ourself.
   eResult = xUndL_Verify ( this );
