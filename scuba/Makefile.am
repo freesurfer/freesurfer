@@ -77,7 +77,7 @@ check_PROGRAMS=test_ScubaView
 TESTS=$(check_PROGRAMS) 
 
 test_ScubaView_SOURCES=test_ScubaView.cpp $(UTILITIES_SRCS) $(BASIC_SRCS) $(GUI_SRCS) $(FSDATA_SRCS)
-test_ScubaFrame_SOURCES=$(UTILITIES_SRCS) $(BASIC_SRCS) $(FSDATA_SRCS) $(GUI_SRCS) $(LAYER_SRCS) test_ScubaFrame.cpp 
+# test_ScubaFrame_SOURCES=$(UTILITIES_SRCS) $(BASIC_SRCS) $(FSDATA_SRCS) $(GUI_SRCS) $(LAYER_SRCS) test_ScubaFrame.cpp 
 
 
 #test_ToglManager_SOURCES=test_ToglManager.cpp $(UTILITIES_SRCS) $(BASIC_SRCS) $(GUI_SRCS) $(FSDATA_SRCS)
