@@ -10,7 +10,7 @@ function r = save_mgh(vol, fname, M, mr_parms);
 %
 % See also: load_mgh, vox2ras_0to1
 %
-% $Id: save_mgh.m,v 1.5 2004/01/02 22:15:24 fischl Exp $
+% $Id: save_mgh.m,v 1.6 2004/07/26 14:08:50 fischl Exp $
 %
 
 r = 1;
@@ -89,5 +89,14 @@ fclose(fid) ;
 
 r = 0;
 
+if (strcmpi(fname((length(fname)-3):length(fname)), '.MGZ') | ...
+		strcmpi(fname((length(fname)-3):length(fname)), '.GZ'))
+
+	gzipped =  round(rand(1)*10000000);
+	ind = findstr(fname, '.');
+	new_fname = sprintf('/tmp/tmp%d.mgh', gzipped);
+	unix(sprintf('mv %s %s ; gzip %s ; mv %s.gz %s', fname, new_fname, new_fname, new_fname, fname)) ;
+	fname = new_fname ;
+end	
 return;
 
