@@ -121,7 +121,12 @@ main(int argc, char *argv[])
                               &gray_sigma) ;
     
     if (!wm_low_set)
-      wm_low = gray_mean + gray_sigma ;
+    {
+      if (FZERO(gray_sigma))
+        wm_low = (white_mean+gray_mean) / 2 ;
+      else
+        wm_low = gray_mean + gray_sigma ;
+    }
     else
       wm_low += 10 ;   /* set it back to it's original value */
     if (!gray_hi_set)
