@@ -253,6 +253,13 @@ mri_event_handler(XV_FRAME *xvf, Event *event,DIMAGE *dimage,
   default:
     if (event_is_up(event)) switch ((char)event->ie_code)
     {
+    case 'B':
+      brush++ ;
+      break ;
+    case 'b':
+      if (brush > 0)
+        brush-- ;
+      break ;
     case 'S':   /* change all views and slices to be the same */
       XVMRIsetView(xvf, which, mri_views[which]) ;
       break ;
