@@ -138,6 +138,7 @@ typedef struct
   float        Kmin ;             /* min Gaussian curvature */
   float        Kmax ;             /* max Gaussian curvature */
   double       Ktotal ;           /* total Gaussian curvature */
+  int          patch ;            /* 1 if a patch of the surface */
 } MRI_SURFACE, MRIS ;
 
 
@@ -162,7 +163,8 @@ typedef struct
   float   Hdesired ;          /* desired (mean) curvature */
   int     integration_type ;  /* line minimation or momentum */
   double  momentum ;
-  double  dt ;                /* time step (for momentum only) */
+  double  dt ;                /* current time step (for momentum only) */
+  double  base_dt ;           /* base time step (for momentum only) */
 } INTEGRATION_PARMS ;
 
 #define INTEGRATE_LINE_MINIMIZE    0
