@@ -14,7 +14,11 @@ MRI_REGION *REGIONintersect(MRI_REGION *reg1, MRI_REGION *reg2,
 MRI_REGION *REGIONunion(MRI_REGION *reg1, MRI_REGION *reg2, MRI_REGION *rdst);
 MRI_REGION *REGIONalloc(void) ;
 MRI_REGION *REGIONcopy(MRI_REGION *rsrc, MRI_REGION *rdst) ;
+int        REGIONinside(MRI_REGION *reg, int x, int y, int z) ;
 
 
+#define REGION_INSIDE      1
+#define REGION_ON_BORDER   -1
+#define REGION_OUTSIDE     0
 
 #endif

@@ -169,4 +169,30 @@ REGIONunion(MRI_REGION *reg1, MRI_REGION *reg2, MRI_REGION *rdst)
 {
   return(rdst) ;
 }
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
+int
+REGIONinside(MRI_REGION *reg, int x, int y, int z)
+{
+  int x1, y1, z1 ;
+
+  x1 = reg->x + reg->dx - 1 ;
+  y1 = reg->y + reg->dy - 1 ;
+  z1 = reg->z + reg->dz - 1 ;
+  
+  if (x < reg->x || x > x1 || y < reg->y || y > y1 || z < reg->z || z > z1)
+    return(REGION_OUTSIDE) ;
+
+  if ((x == reg->x || x == x1) && 
+      (y == reg->y || y == y1) &&
+      (z == reg->z || z == z1))
+    return(REGION_ON_BORDER) ;
+
+  return(REGION_INSIDE) ;
+}
 
