@@ -15,7 +15,7 @@
 #include "mrishash.h"
 #include "macros.h"
 
-static char vcid[] = "$Id: mris_make_surfaces.c,v 1.3 1998/10/28 15:35:31 fischl Exp $";
+static char vcid[] = "$Id: mris_make_surfaces.c,v 1.4 1998/10/29 15:31:17 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -161,7 +161,7 @@ main(int argc, char *argv[])
     mri_smooth = mri_T1 ;
 
   sprintf(fname, "%s/%s/surf/%s.%s", sdir, sname, hemi, ORIG_NAME) ;
-  fprintf(stderr, "reading spherical surface %s...\n", fname) ;
+  fprintf(stderr, "reading original surface position from %s...\n", fname) ;
   mris = MRISread(fname) ;
   if (!mris)
     ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s",
