@@ -502,10 +502,19 @@ MRISread(char *fname)
     fclose(fp);
   }
   strcpy(mris->fname, fname) ;
-  if (strstr(fname, "rh"))
-    mris->hemisphere = RIGHT_HEMISPHERE ;
-  else
-    mris->hemisphere = LEFT_HEMISPHERE ;
+  {
+    char *surf_name ;
+
+    surf_name = strrchr(fname, '/') ;
+    if (surf_name == NULL)
+      surf_name = fname ;
+    else
+      surf_name++ ;  /* past the last slash */
+    if (toupper(*surf_name) == 'R')
+      mris->hemisphere = RIGHT_HEMISPHERE ;
+    else
+      mris->hemisphere = LEFT_HEMISPHERE ;
+  }
   if ((version<0) || type == MRIS_ASCII_QUADRANGLE_FILE)
   {
     for (vno = 0 ; vno< mris->nvertices ; vno++)
@@ -776,10 +785,19 @@ MRISfastRead(char *fname)
     fclose(fp);
   }
   strcpy(mris->fname, fname) ;
-  if (strstr(fname, "rh"))
-    mris->hemisphere = RIGHT_HEMISPHERE ;
-  else
-    mris->hemisphere = LEFT_HEMISPHERE ;
+  {
+    char *surf_name ;
+
+    surf_name = strrchr(fname, '/') ;
+    if (surf_name == NULL)
+      surf_name = fname ;
+    else
+      surf_name++ ;  /* past the last slash */
+    if (toupper(*surf_name) == 'R')
+      mris->hemisphere = RIGHT_HEMISPHERE ;
+    else
+      mris->hemisphere = LEFT_HEMISPHERE ;
+  }
   if ((version<0) || type == MRIS_ASCII_QUADRANGLE_FILE)
   {
     for (vno = 0 ; vno< mris->nvertices ; vno++)
