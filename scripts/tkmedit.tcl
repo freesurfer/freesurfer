@@ -1,6 +1,6 @@
 #! /usr/bin/tixwish
 
-# $Id: tkmedit.tcl,v 1.33 2003/04/07 20:02:53 kteich Exp $
+# $Id: tkmedit.tcl,v 1.34 2003/04/09 17:11:27 kteich Exp $
 
 source $env(MRI_DIR)/lib/tcl/tkm_common.tcl
 
@@ -598,6 +598,9 @@ proc GetDefaultLocation { iType } {
 	    }
 	    LoadFunctional-overlay - LoadFunctional-timecourse {
 		set gsaDefaultLocation($iType) $gsSubjectDirectory/fmri
+	    }
+	    LoadGCA_Volume - LoadGCA_Transform - SaveGCA {
+		set gsaDefaultLocation($iType) $gsSubjectDirectory/average
 	    }
 	    default { 
 		set gsaDefaultLocation($iType) $gsSubjectDirectory 
