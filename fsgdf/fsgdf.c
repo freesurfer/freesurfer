@@ -1,7 +1,7 @@
 /*
   fsgdf.c
   Utilities for reading freesurfer group descriptor file format 
-  $Id: fsgdf.c,v 1.18 2003/04/09 22:24:33 greve Exp $
+  $Id: fsgdf.c,v 1.19 2003/06/30 20:39:32 greve Exp $
 
   See:   http://surfer.nmr.mgh.harvard.edu/docs/fsgdf.txt
 
@@ -49,10 +49,14 @@
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
-#include "fsgdf.h"
 #include "mri2.h"
 #include "fio.h"
 #include "matfile.h"
+
+#define FSGDF_SRC
+#include "fsgdf.h"
+#undef FSGDF_SRC
+
 
 /* This should be in ctype.h, but the compiler complains */
 #ifndef Darwin
@@ -442,6 +446,7 @@ static FSGD *gdfReadV1(char *gdfname)
 
   r = gdfCheckSubjRep(gd);
   if(r != -1){
+    /* See gdfCheckSubjRep() for fsgdf_AllowSubjRep usage */
     printf("ERROR: subject id %s appears multiple times\n",gd->subjid[r]);
     sprintf(tag,"Input");
     goto formaterror;
@@ -554,11 +559,16 @@ static int gdfCheckVarRep(FSGD *gd)
   gdfCheckSubjRep() - checks whether there are any
   repetitions in the subject labels. Returns -1 if
   there are no reps, otherwise returns the index
-  of one of the reps.
+  of one of the reps. If the global variable 
+  fsgdf_AllowSubjRep is set to 1, then is always 
+  returns -1 (ie, no reps).
   --------------------------------------------------*/
 static int gdfCheckSubjRep(FSGD *gd)
 {
   int n,m;
+  extern int fsgdf_AllowSubjRep;
+
+  if(fsgdf_AllowSubjRep) return(-1);
 
   for(n=0; n < gd->ninputs; n++)
     for(m=n+1; m < gd->ninputs; m++)
@@ -1141,7 +1151,7 @@ FSGD *gdfSubSet(FSGD *infsgd, int nClasses, char **ClassList,
     }
   }
   else nCUse = infsgd->nclasses;
-  if(nVars > 0){
+  if(nVars >= 0){
     nVUse = nVars;
     for(n=0; n < nVars; n++){
       if(gdfGetVarLabelNo(infsgd,VarList[n]) == -1){
