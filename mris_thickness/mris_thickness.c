@@ -13,7 +13,7 @@
 #include "mri.h"
 #include "macros.h"
 
-static char vcid[] = "$Id: mris_thickness.c,v 1.5 2000/01/03 19:33:41 fischl Exp $";
+static char vcid[] = "$Id: mris_thickness.c,v 1.6 2000/01/18 13:40:22 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -27,6 +27,7 @@ char *Progname ;
 static char pial_name[100] = "pial" ;
 
 static int nbhd_size = 2 ;
+static float max_thick = 5.0 ;
 
 int
 main(int argc, char *argv[])
@@ -78,7 +79,7 @@ main(int argc, char *argv[])
     ErrorExit(Gerror, "%s: could not read white matter surface", Progname) ;
   fprintf(stderr, "measuring gray matter thickness...\n") ;
 
-  MRISmeasureCorticalThickness(mris, nbhd_size) ;
+  MRISmeasureCorticalThickness(mris, nbhd_size, max_thick) ;
 
 #if 0
   sprintf(fname, "%s/%s/surf/%s", sdir, sname, out_fname) ;
@@ -110,6 +111,13 @@ get_option(int argc, char *argv[])
   {
     strcpy(pial_name, argv[2]) ;
     fprintf(stderr,  "reading pial surface from file named %s\n", pial_name) ;
+    nargs = 1 ;
+  }
+  else if (!stricmp(option, "max"))
+  {
+    max_thick = atof(argv[2]) ;
+    fprintf(stderr,  "limiting maximum cortical thickness to %2.2f mm.\n",
+            max_thick) ;
     nargs = 1 ;
   }
   else switch (toupper(*option))
