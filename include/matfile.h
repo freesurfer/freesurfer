@@ -23,6 +23,15 @@ typedef struct
     char  *idata ;
 } MATFILE ;
 
+typedef struct
+{
+  char *mfile;
+  int nvars;
+  char *varname[1000];
+  MATRIX *varmtx[1000];
+} MATFILECONTENTS, MLFC;
+
+
 char    *MatReadHeader(FILE *fp, MATFILE *mf) ;
 MATFILE *MatFileRead(const char *fname, int type) ;
 MATRIX  *MatlabRead(const char *fname) ;
@@ -30,6 +39,10 @@ int     MatlabWrite(MATRIX *mat, const char *fname, char *name) ;
 int     MatFileWrite(const char *fname,
                     float *data, int rows, int cols, char *name) ;
 int Matlab_Install_printf( int (*new_printf)(const char *szFormat, ...) );
+MLFC *ReadMatlabFileContents(const char *fname);
+int   MLFCprint(FILE *fp, MLFC *mlfc);
+int MLFCfree(MLFC **ppmlfc);
+MATRIX *ReadMatlabFileVariable(char *fname, char *varname);
 
 #define MAT_BYTE     0
 #define MAT_DOUBLE   1
