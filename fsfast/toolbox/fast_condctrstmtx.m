@@ -15,7 +15,9 @@ function R = fast_condctrstmtx(TER,TW,TPS,SumDelays,WDelays,RmPrestim)
 %  [], replaced with ones (ie, forces a simple average).
 %
 % RmPrestim = 1 subtract prestimulus average; will replace
-%   the prestim components of WDelays.
+%   the prestim components of WDelays. If the delays are not
+%   summed, then the final matrix will have nPreStim fewer
+%   rows than than if RmPrestim was not used.
 %
 % If the prestim is not removed and SumDelays=0
 % then returns the identity of size nDelays = round(TW/TER).
@@ -50,14 +52,26 @@ else
 end
 
 if(SumDelays)
+  % ContrastMtx is a single row consisting of the weights
   R = WDelays;
+  % If removing prestim, reset the first Nps components
   if(Nps > 0) R(1,1:Nps) = -1/Nps; end
 else
+  % ContrastMtx may be more than one row 
+  % The matrix is divided into two parts: PreStim and PostStim
+  % The PreStim part has all -1/Nps.
+  % The PostStim part is diagonal with the PostStim Weights
   if(Nps > 0) Rpre = -ones(nDelays-Nps,Nps)/Nps;
   else        Rpre = [];
   end
-  Rpost = eye(nDelays-Nps);
+  nnpost = [Nps+1:nDelays]; % PostStim Indicies
+  Rpost  = diag(WDelays(nnpost)); % Diagonal PostStim Weights
+  %Rpost = eye(nDelays-Nps);
   R = [Rpre Rpost];
+
+  % Remove rows of R for which the PostStim weights are zero
+  indnz = find(WDelays(nnpost) ~= 0);
+  R = R(indnz,:);
 end
 
 % Make sure that the positives of each row sum to 1
