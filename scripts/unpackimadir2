@@ -1,0 +1,1111 @@
+#!/usr/bin/tclsh
+#------------------------------------------------------------------#
+proc PrintUsage { } {
+  puts "USAGE: upackimadir2 "
+  puts ""
+  puts "  -src  srcdir  : directory with the IMA files "
+  puts "  -targ targdir : top directory into which the files will be unpacked"
+  puts ""
+  puts "  -run    runno subdir format name : spec unpacking rules on cmdline"
+  puts "  -cfg    cfgfile : spec unpacking rules in file"
+  puts "  -seqcfg seqcfgfile : spec unpacking rules based on sequence"
+  puts ""
+  puts "  -fsfast  : unpack to fsfast  directory structure"
+  puts "  -generic : unpack to generic directory structure"
+  puts ""
+  puts "  -scanonly file : only scan the directory and put result in file"
+  puts "  -nspmzeropad N : set frame number zero padding width for SPM"
+  puts ""
+  puts "  -help : print out information about how to run this program"
+  puts ""
+}
+#------------------------------------------------------------------#
+proc HelpExit { } {
+puts ""
+PrintUsage;
+puts ""
+
+puts "DESCRIPTION 
+
+This program will unpack the data from a directory containing Siemens
+IMA files. Unpacking can entail copying IMA files into the target
+directory sorted by series/run or converting them into a different
+format (also sorted by series/run). It is assumed that the source
+files are from one and only one scanning session. Supported formats
+are IMA, COR, bshort, MINC, analyze, and SPM-analyze. Note: this
+program does not convert properly to MINC yet.
+
+ARGUMENTS:
+
+  -src srcdir 
+
+     This is the directory where the IMA files reside. This can be 
+     a directory on a CD-ROM. If this is the only option, a list
+     of runs will be printed to stdout. The information for each
+     run will consist of: run number, acquisition sequence,
+     rows, columns, slices, frames, and first IMA file in the run.
+     This information can be useful for configuring the unpacking.
+
+  -targ trgdir 
+
+     This is the parent directory into which the files will be unpacked. 
+     It does not need to exist before running this script. The sorting 
+     of the files into directories under the parent is determined by 
+     the unpacking rules (see below).
+
+  -run RunNumber Subdir Format Name
+
+     Specifies unpacking rules from the command-line for the given
+     run. Multiple runs can be unpacked with multiple -run options.
+     See SPECIFYING UNPACKING RULES below.
+
+  -cfg file
+
+     Specifies run-based unpacking rules using the given file. 
+     Each line in the file is the same as what would follow -run 
+     above. See SPECIFYING UNPACKING RULES below.
+
+  -seqcfg file
+
+     Specifies unpacking rules based on the acquisition sequence. This
+     may be more convenient than run-based. See SPECIFYING UNPACKING
+     RULES below.
+
+  -fsfast
+
+     Sort into FS-FAST directory structure.
+
+  -generic 
+
+     Sort generically.
+
+  -nspmzeropad N
+
+     Set the zero-padding of the frame number for spm-analyze files. Default
+     is 3. SPM files will have names of the following format NameXXX.img, where
+     XXX is the zero-padded frame number.
+
+  -scanonly file
+
+     This instructs the script to only scan the directory to determine
+     the contents. A summary of the contents are stored in file. This
+     can be useful for specifying the unpacking rules and for checking
+     the error status of each run. It is not necessary to specify 
+     unpacking rules (though source and target directories are still
+     necessary).
+
+SPECIFYING UNPACKING RULES:
+
+To unpack a series/run of data, one needs to specify three things: 
+   1. The subdirectory the data will go into
+   2. The name assigned to the data file(s)
+   3. The format
+
+This is done by specifying a configuration and sorting method. The
+sorting method can be either generic or fsfast. The configuration can
+be either run-based or sequence-based. The final path of a data file
+can be determined from the following table:
+
+  Generic, Run-based: targdir/subdir/name.ext
+  Generic, Seq-based: targdir/subdir/nameXXX.ext
+  FSFAST,  Run-based: targdir/subdir/XXX/name.ext
+  FSFAST,  Seq-based: targdir/subdir/XXX/name.ext
+
+where XXX is the three digit, zero-padded run number. ext is the
+format-based extension.
+
+The run-based configuration can be specified either on the command
+line (-run option) or from a file (-cfg option). In either case, the
+configuration is consists of four pieces of information: run number,
+subdir, format, and name. The run number is the integer number of the
+run (or Series) to be unpacked. Only the runs specified will be
+unpacked.
+
+The sequence-based configuration can only be specified from a
+file. Each row in the file must contain the following four pieces of
+information: sequence name, subdirectory, format, name. If generic
+sorting is used, then the three digit run number is inserted between
+the name and extension. This method is convenient when unpacking many
+different sessions where the sequences are all the same but the run on
+which each was collected may change. A configuration file with
+sequences commonly used around the MGH/NMR center can be found in
+\$FREESURFER_HOME/scanseq.unpackcfg. Note: all sequences found in the
+session (except scouts) must be represented in the config file. Scouts
+are not unpacked.
+
+Legal formats are:
+
+     IMA     - just copies IMA files
+     COR     - MGH-NMR COR file format
+     bshort  - MGH-NMR bshort file format
+     MINC    - MNI Medical Imaging NetCDF format (ext = mnc)
+       NOTE: does not convert properly to MINC yet
+     SPM     - SPM (Analyze 3D) format (ext = img)
+     ANALYZE - Full Analyze 4D format  (ext = img)
+     MGH     - Local MGH format        (ext = mgh)
+
+Case is ignored. For IMA and COR formats, the name is ignored (though
+there must be a placeholder there). For bshort, the name becomes the
+stem. For FS-FAST applications, it is strongly suggested that the Name
+for bshorts be set to 'f' (no quotes). When SPM format is chosen, the
+actual file name will be NameFFF.img, where FFF is the three- digit,
+zero-padded frame number (starting with 1). The width of the zero-
+padding can be set with -nspmzeropad option. For ANALYZE, Name.img and
+Name.hdr will be created.
+
+SCANNING THE SOURCE DIRECTORY
+
+When only the source directory is specified or the -scanonly option is
+used, unpackimadir will scan the source directory for all the Siemens
+IMA files. It will also sort them into Run/Series, but no error checking
+on each Run is done.  The summary will be printed to the stdout. If
+-scanonly is used, the summary will be put into file specified as
+the argument to -scanonly.  The output looks something like below:
+
+  1              scout_3T22cm 256 256   1   1 208-1-1.ima
+  2               scout_nostd 256 256   3   1 208-2-2.ima
+  3     mpr_ns_t1_4b130_nostd 256 256 128   1 208-3-5.ima
+  4       ep2d_irm_ts_29b3125  64  64  21   1 208-4-133.ima
+  5       ep2d_fid_ts_15b3125  64  64  21 180 208-5-135.ima
+  6       ep2d_fid_ts_15b3125  64  64  21 180 208-6-495.ima
+  7       ep2d_fid_ts_15b3125  64  64  21 180 208-7-855.ima
+  8       ep2d_fid_ts_15b3125  64  64  21 180 208-8-1215.ima
+  9       ep2d_fid_ts_15b3125  64  64  21 180 208-9-1575.ima
+ 10       ep2d_fid_ts_15b3125  64  64  21 180 208-10-1935.ima
+ 11              scout_3T22cm 256 256   1   1 208-11-2295.ima
+ 12               scout_nostd 256 256   3   1 208-12-2296.ima
+ 13       ep2d_fid_ts_15b3125  64  64  21 180 208-13-2299.ima
+ 14       ep2d_fid_ts_15b3125  64  64  21 180 208-14-2659.ima
+
+The seven columns correspond to the following: (1) run/series number,
+(2) acquisition sequence, (3) columns, (4) rows, (5) slices, (6) frames,
+and (7) first IMA file in series.
+
+EXAMPLES
+
+Consider a session consisting of the data collected above sitting 
+in a directory called /space/imadir
+
+1. Copy the MP-RAGE files to /space/mydata/mpr
+
+  unpackimadir2 -src /space/imadir -targ /space/mydata -generic
+    -run 3 mpr IMA blah 
+
+  Note: 'blah' is ignored because the format is DICOM.
+
+2. Convert the t1epi and the second functional to bshort using 
+   FS-FAST sorting
+
+  unpackimadir2 -src /space/imadir -targ /space/mydata -fsfast
+    -run 4 t1epi bshort f 
+    -run 6 bold  bshort f 
+
+  This will create /space/mydata/t1epi/004 and /space/mydata/bold/006,
+  each with bshort volumes.
+
+3. Convert the MP-RAGES to COR, and the t1epi and 3rd functional
+   to bshort using FS-FAST sorting and a run-based configuration file.
+
+   Create a configuration file (eg, mycfgfile) with the contents
+
+         3 3danat COR    blah
+         4 t1epi  bshort f 
+         7 bold   bshort f 
+  unpackimadir2 -src /space/imadir -targ /space/mydata 
+    -fsfast -cfg mycfgfile
+
+  This will create 3danat/003 (with a COR volume), t1epi/004 and 
+  bold/007 (each as bshort volumes with stem f).
+
+4. Convert all the data to analyze using a sequence-based 
+configuration.
+
+Create configuration file myseqconfig with the following contents:
+
+  mpr_ns_t1_4b130_nostd / analyze f
+  ep2d_irm_ts_29b3125 / analyze f
+  ep2d_fid_ts_15b3125 / analyze f
+  ep2d_fid_ts_15b3125 / analyze f
+  ep2d_fid_ts_15b3125 / analyze f
+  ep2d_fid_ts_15b3125 / analyze f
+  ep2d_fid_ts_15b3125 / analyze f
+  ep2d_fid_ts_15b3125 / analyze f
+  ep2d_fid_ts_15b3125 / analyze f
+  ep2d_fid_ts_15b3125 / analyze f
+
+Then run:
+
+  unpackimadir2 -src /space/imadir -targ /space/mydata 
+    -generic -seqcfg myseqcfgfile
+
+This will create 10 analyze volumes: f003.img, ..., f010.img,
+f013.img, f014.img in the target directory. Specifying '/' as the
+subdir results in the files going directly into the target directory
+instead of a subdirectory.
+
+OTHER OUTPUT
+
+A file called unpack.log is created in the target directory. This is
+useful for debugging and generally keeping track of where the data came
+from and how it was unpacked.
+
+Each output volume will have an IMA dump file with information from
+the Siemens IMA header.
+
+BUGS
+
+Any acquisition sequence with the string 'scout' in it is skipped.
+
+MINC volumes are incorrectly oriented.
+
+BUG REPORTING
+
+Send bugs/suggestions to analysis-bugs@nmr.mgh.harvard.edu. For bug
+reports, include the command-line used and the unpack.log file.
+
+AUTHOR
+
+Douglas N. Greve, Ph.D., MGH-NMR Center"
+
+puts ""
+puts {$Id: unpackimadir2,v 1.1 2002/02/12 00:00:31 greve Exp $}
+puts ""
+
+exit 1;
+}
+#------------------------------------------------------------------#
+proc ParseCommandLine { argc argv } {
+  global imadir targdir sortmethod cfgfile unpackcfg noexec scanonly;
+  global scanfile nspmzeropad seqcfgfile;
+
+  set ntharg 0
+  while  { $ntharg < $argc } {
+
+    set option [lindex $argv $ntharg];
+    incr ntharg 1
+
+    set nargrem [expr $argc - $ntharg]; # number or arguments remaining
+
+    switch -exact -- $option {
+
+      -src {
+        if { $nargrem < 1 } { ArgNError $option 1 }
+        set imadir [lindex $argv $ntharg];
+        incr ntharg 1
+      }
+
+      -targ {
+        if { $nargrem < 1 } { ArgNError $option 1 }
+        set targdir [lindex $argv $ntharg];
+        incr ntharg 1
+        set scanonly 0;
+      }
+
+      -run {
+        if { $nargrem < 4 } { ArgNError $option 4 }
+        set runno      [lindex $argv $ntharg]; incr ntharg 1
+        set dirid      [lindex $argv $ntharg]; incr ntharg 1
+        set unpackfmt  [lindex $argv $ntharg]; incr ntharg 1
+        set unpackname [lindex $argv $ntharg]; incr ntharg 1
+        set cfg [list $runno $dirid $unpackfmt $unpackname]
+        lappend unpackcfg $cfg;
+      }
+
+      -cfg {
+        if { $nargrem < 1 } { ArgNError $option 1 }
+        set cfgfile [lindex $argv $ntharg];
+        incr ntharg 1
+      }
+
+      -seqcfg {
+        if { $nargrem < 1 } { ArgNError $option 1 }
+        set seqcfgfile [lindex $argv $ntharg];
+        incr ntharg 1
+      }
+
+      -scanonly { 
+        if { $nargrem < 1 } { ArgNError $option 1 }
+        set scanfile [lindex $argv $ntharg];
+        set scanonly 1; 
+        incr ntharg 1
+      }
+
+      -nspmzeropad { 
+        if { $nargrem < 1 } { ArgNError $option 1 }
+        set nspmzeropad [lindex $argv $ntharg];
+        incr ntharg 1
+      }
+
+      -fsfast  { set sortmethod fsfast; }
+      -generic { set sortmethod generic; }
+      -noexec  { set noexec 1; }
+      -help    { HelpExit;} 
+
+      default { 
+        puts "ERROR: $option unrecognized";
+        exit 1;
+      }
+    }; # end switch
+  }; # end while
+  return;
+}
+#------------------------------------------------------------------#
+proc CheckArgs { } {
+  global imadir targdir sortmethod cfgfile unpackcfg scanonly;
+  global scanfile seqcfgfile;
+
+  if { ! [info exists imadir] } {
+     puts "ERROR: no source directory specified"
+     exit 1;
+  }
+
+  if { $scanonly } { return };
+
+  set scanfile $targdir/scan.info
+
+  if { ! [info exists targdir] } {
+     puts "ERROR: no target directory specified"
+     exit 1;
+  }
+
+  if { [info exists cfgfile] && [info exists unpackcfg] } {
+     puts "ERROR: cannot spec cfgfile and command line config"
+     exit 1;
+  }
+
+  if { [info exists cfgfile] && [info exists seqcfgfile] } {
+     puts "ERROR: cannot spec cfgfile and seqcfgfile"
+     exit 1;
+  }
+
+  if { ![info exists cfgfile] && ![info exists unpackcfg] && ![info exists seqcfgfile] } {
+     puts "ERROR: no unpacking rules specified"
+     # Goto GUI here???
+     exit 1;
+  }
+
+  if { [info exists cfgfile] } {
+    if {! [file exists $cfgfile]} {
+      puts stdout "ERROR: config file $cfgfile does not exist"
+      exit 1;
+    }
+    set unpackcfg [ReadUnpackCfg $cfgfile];
+  }; # else unpackcfg specified on command line
+
+  if { [info exists seqcfgfile] } {
+    if {! [file exists $seqcfgfile]} {
+      puts stdout "ERROR: config file $seqcfgfile does not exist"
+      exit 1;
+    }
+  }; # else unpackcfg specified on command line
+
+  return;
+}
+#------------------------------------------------------------------#
+proc ArgNError { option n } {
+  if { $n == 1 } {
+    puts "ERROR: flag $option needs 1 argument";
+  } else {
+    puts "ERROR: flag $option needs $n arguments";
+  }
+  exit 1;
+}
+#------------------------------------------------------------------#
+proc ReadUnpackCfg { cfgfile } {
+  global LF;
+
+  if [catch {open $cfgfile r} FileId] {
+     puts "Cannot open $cfgfile";
+     puts $LF "Cannot open $cfgfile";
+     exit 1;
+  }
+
+  set nthline 0;
+  while { [gets $FileId line] >= 0 } {
+    incr nthline;
+    set linelen [llength $line ];
+    if { $linelen == 0  } { continue; }
+    if { $linelen != 4 } {
+       puts "ERROR: $cfgfile is formatted incorrectly"
+       puts "  Line $nthline has [llength $line ] elements."
+       puts "  Expecting 4 elements: RunNo, Dir, Format, Name";
+       puts " $line";
+       puts $LF "ERROR: $cfgfile is formatted incorrectly"
+       puts $LF "  Line $nthline has [llength $line ] elements."
+       puts $LF "  Expecting 4 elements: RunNo, Dir, Format, Name";
+       puts $LF " $line";
+       exit 1;
+    }
+    lappend unpackcfg $line;
+  }
+  close $FileId;
+
+  return $unpackcfg;
+}
+#---------------------------------------------------------------#
+proc ReadSeqCfg { seqcfgfile } {
+  global LF;
+
+  if [catch {open $seqcfgfile r} FileId] {
+     puts "Cannot open $seqcfgfile";
+     puts $LF "Cannot open $seqcfgfile";
+     exit 1;
+  }
+
+  set nthline 0;
+  while { [gets $FileId line] >= 0 } {
+    incr nthline;
+    set linelen [llength $line ];
+    if { $linelen == 0  } { continue; }
+    if { $linelen != 4 } {
+       puts "ERROR: $seqcfgfile is formatted incorrectly"
+       puts "  Line $nthline has [llength $line ] elements."
+       puts "  Expecting 4 elements: SeqName, Dir, Format, Basename";
+       puts " $line";
+       puts $LF "ERROR: $seqcfgfile is formatted incorrectly"
+       puts $LF "  Line $nthline has [llength $line ] elements."
+       puts $LF "  Expecting 4 elements: SeqName, Dir, Format, Name";
+       puts $LF " $line";
+       exit 1;
+    }
+    #puts $line
+    lappend seqcfg $line;
+  }
+  close $FileId;
+
+  return $seqcfg;
+}
+#---------------------------------------------------------------#
+proc GetSeqUnpackCfg { TargSeq SeqCfgList } {
+
+  foreach SeqCfg $SeqCfgList {
+    set Seq [lindex $SeqCfg 0];
+    if { [string compare $TargSeq $Seq]  == 0 } {
+       return $SeqCfg;
+    }
+  }
+  puts "ERROR: cannot find a match for $TargSeq in Sequence Config";
+  exit 1;
+}
+#------------------------------------------------------------------#
+proc CheckUnpackCfgDuplication { unpackcfg } {
+  # Looks for duplicate run numbers in the unpacking config
+  global LF;
+
+  set nruns [llength $unpackcfg];
+  if { $nruns == 0 } {
+    puts "ERROR: no runs found in the configuration."
+    puts $LF "ERROR: no runs found in the configuration."
+    exit 1;
+  }
+
+  set nthRun  0;
+  foreach runcfg $unpackcfg {
+    incr nthRun;
+    set RunNo [lindex $runcfg 0];
+    if { $RunNo < 1 } {
+      puts "ERROR: nthRun=$nthRun has an invalid run number ($RunNo)"
+      puts $LF "ERROR: nthRun=$nthRun has an invalid run number ($RunNo)"
+      exit 1;
+    }
+    lappend runnolist $RunNo;
+  }
+
+  set runnolist [lsort $runnolist];
+
+  set PrevRunNo 0;
+  foreach RunNo $runnolist {
+    if { $PrevRunNo == $RunNo } {
+      puts "INFO: Run number $RunNo is duplicated "
+      puts $LF "INFO: Run number $RunNo is duplicated "
+      #exit 1;
+    }
+    set PrevRunNo $RunNo;
+  }
+
+  return 0;
+}
+#------------------------------------------------------------------#
+proc CheckUnpackCfgFormat { unpackcfg } {
+  # Checks that all the formats listed in the unpacking
+  # congfiguration are valid.
+  global LF;
+
+  set nruns [llength $unpackcfg];
+  if { $nruns == 0 } {
+    puts "ERROR: no runs found in the configuration."
+    puts $LF "ERROR: no runs found in the configuration."
+    exit 1;
+  }
+
+  set nthRun  0;
+  foreach runcfg $unpackcfg {
+    incr nthRun;
+    set RunNo [lindex $runcfg 0];
+    set Fmt0  [lindex $runcfg 2];
+    set Fmt [string tolower $Fmt0];
+
+    if { [string compare $Fmt bshort]  != 0 && \
+         [string compare $Fmt cor]     != 0 && \
+         [string compare $Fmt spm]     != 0 && \
+         [string compare $Fmt analyze] != 0 && \
+         [string compare $Fmt minc]    != 0 && \
+         [string compare $Fmt ima]    != 0 && \
+         [string compare $Fmt mgh]     != 0 } {
+      puts "ERROR: Run $RunNo has an invalid format ($Fmt0)"
+      puts $LF "ERROR: Run $RunNo has an invalid format ($Fmt0)"
+      exit 1;
+    }
+
+    if { [string compare $Fmt minc] == 0 } {
+      puts ""
+      puts "WARNING: you have chosen MINC format. The orientation"
+      puts "of the output may be incorrect."
+      puts ""
+    }
+
+  }
+
+  return 0;
+}
+
+#------------------------------------------------------------------#
+proc CheckUnpackCfgExist { unpackcfg SeriesList} {
+  # Checks that the runs listed in the unpacking configuration
+  # actually exist in the session.
+  global LF;
+
+  set nruns [llength $unpackcfg];
+  if { $nruns == 0 } {
+    puts "ERROR: no runs found in the configuration."
+    puts $LF "ERROR: no runs found in the configuration."
+    exit 1;
+  }
+
+  set nseries [llength $SeriesList];
+  if { $nruns == 0 } {
+    puts "ERROR: no series found in series list."
+    puts $LF "ERROR: no series found in series list."
+    exit 1;
+  }
+
+  foreach runcfg $unpackcfg {
+    set RunNo [lindex $runcfg 0];
+    set ok 0;
+    foreach series $SeriesList {
+      set SeriesNo [lindex $series 0];
+      if { $RunNo == $SeriesNo } { set ok 1; break; };
+    }
+    if { ! $ok } {
+      puts "ERROR: cannot find $RunNo in ima directory"
+      exit 1;
+    }
+  }
+
+  return 0;
+}
+#------------------------------------------------------#
+proc HasIMAExtension { imapath } {
+  # Returns a 1 if the given file has a .ima extension
+  set ext [file extension $imapath]
+
+  set c [string compare $ext ".ima"];
+  if { $c == 0 } {
+    return 1;
+  } else {
+    return 0;
+  }
+}
+#-----------------------------------------------#
+proc ParseIMAFileName { imapath } {
+  # Parses the ima file name into base-run-imgno
+  if { ! [HasIMAExtension $imapath] } {
+    puts "ERROR: $imapath does not have a .ima extension"
+    return "";
+  }
+
+  set imafile [file tail $imapath]
+  set tmp [split $imafile "-"];
+  set tmplen [llength $tmp];
+  if { $tmplen != 3 } {
+    puts "ERROR: $imafile does not have proper ima name format"
+    return "";
+  }
+
+  set base [lindex $tmp 0];
+  set run  [lindex $tmp 1];
+  set tmp2 [split [lindex $tmp 2] "."];
+  set imgno [lindex $tmp2 0];
+
+  return [list $base $run $imgno];
+}
+#-----------------------------------------------#
+proc ParseMRIInfo { imafile key } {
+  # Parses mri_info output for key string
+  set tmp [exec mri_info $imafile | grep $key];
+  set tmp [split $tmp];
+  set n [expr [llength $tmp] - 1];
+  set tmp [lindex $tmp $n];
+  set keyvalue [file tail $tmp]
+  return $keyvalue;
+}
+#-----------------------------------------------#
+proc GetSeqName { imafile } {
+  # Gets the pulse sequence name, not including the path 
+  # set tmp [ParseMRIInfo $imafile "sequence name:"];
+  set tmp [exec mri_probe_ima --i $imafile --attr pulseseq]
+  set seqname [file tail $tmp]
+  return $seqname;
+}
+#----------------------------------------------------#
+proc GetVolDim { imafile } {
+  # Gets the number of rows, columns, slices, and frames
+  # set ncols [ParseMRIInfo $imafile "base raw matrix size:"];
+  # set nrows $ncols;
+  # set nslices [ParseMRIInfo $imafile "nominal number of slices:"];
+  # set nframes [ParseMRIInfo $imafile "number of averages:"];
+  # set voldim [list $ncols $nrows $nslices $nframes]
+
+  set voldim  [exec mri_probe_ima --i $imafile --attr voldim]
+  set nframes [exec mri_probe_ima --i $imafile --attr nframes]
+  lappend voldim $nframes;
+
+  return $voldim;
+}
+#----------------------------------------------------#
+proc CompareRunInfo { RI1 RI2 } {
+  # Compare two RunInfo structs (for sorting by run no)
+  set RunNo1 [lindex $RI1 0];
+  set RunNo2 [lindex $RI2 0];
+
+  if { $RunNo1 == $RunNo2 } {
+    return 0;
+  } elseif { $RunNo1 < $RunNo2 } {
+    return -1;
+  } else { return 1 };
+
+}
+#------------------------------------------------------------#
+proc CompareIMAFileNames { ima1 ima2 } {
+  # Compare two IMA file names so that they can be sorted
+
+  set imaparts [ParseIMAFileName $ima1];
+  if { [llength $imaparts] != 3 } {
+    puts "ERROR: file name $ima1 is not formatted correctly"
+    exit 1;
+  }
+  set base1  [lindex $imaparts 0];
+  set run1   [lindex $imaparts 1];
+  set imgno1 [lindex $imaparts 2];
+
+  set imaparts [ParseIMAFileName $ima2];
+  if { [llength $imaparts] != 3 } {
+    puts "ERROR: file name $ima2 is not formatted correctly"
+    exit 1;
+  }
+  set base2  [lindex $imaparts 0];
+  set run2   [lindex $imaparts 1];
+  set imgno2 [lindex $imaparts 2];
+
+  if { $imgno1 < $imgno2 } { return -1; }
+  if { $imgno1 > $imgno2 } { return  1; }
+
+  return 0;
+}
+
+#------------------------------------------------------------#
+proc ScanIMADir { imadir } {
+  set imalist [glob $imadir/*.ima];
+  set nimas [llength $imalist];
+
+  # Sort by image number #
+  set imalist [lsort -command CompareIMAFileNames $imalist ]
+
+  set nthima 1;
+  foreach ima $imalist {
+
+    # Get the parts to the IMA file name #
+    set imaparts [ParseIMAFileName $ima];
+    if { [llength $imaparts] != 3 } {
+      puts "ERROR: file name $ima is not formatted correctly"
+      exit 1;
+    }
+    set base  [lindex $imaparts 0];
+    set run   [lindex $imaparts 1];
+    set imgno [lindex $imaparts 2];
+
+    # Make sure the bases are consistent #
+    if { $nthima == 1 } { 
+      set base0 $base ;
+      set NthIMAInRun 1;
+      set RunNo 0 ; # Forces New Run
+    } else {
+      if { $base != $base0 } {
+         puts "ERROR: multible bases found ($base0,$base)"
+         exit 1;
+      }
+    }
+
+    # Check for a new run #
+    if { $RunNo != $run } { 
+      set RunNo $run;
+      set imabasename [file tail $ima]
+      set SeqName [GetSeqName $ima];
+      set VolDim  [GetVolDim  $ima];
+      set ncols   [lindex $VolDim 0];
+      set nrows   [lindex $VolDim 1];
+      set nslices [lindex $VolDim 2];
+      set nframes [lindex $VolDim 3];
+      # puts [format "%3d %35s %3d %3d %3d %3d %s" \
+      #             $RunNo $SeqName $ncols $nrows $nslices $nframes \
+      #             $imabasename]
+
+      set RunInfo [list $RunNo $SeqName $ncols $nrows $nslices $nframes \
+                   $imabasename];
+      lappend RunInfoList $RunInfo;
+    }
+  
+    incr nthima;
+  }
+
+  set RunInfoList [lsort -command CompareRunInfo $RunInfoList ]
+  return $RunInfoList
+}
+#----------------------------------------------------#
+proc GetRunInfo {  RunNo RunInfoList } {
+  # Get the RunInfo of RunNo from the list
+
+  foreach RunInfo $RunInfoList {
+    set RunNoList [lindex $RunInfo 0];
+    if { $RunNoList == $RunNo } {
+       return $RunInfo;
+    }
+  }
+
+  puts "ERROR: cannot find RunNo $RunNo"
+  exit 1;
+}
+
+#----------------------------------------------------#
+#----------- Main -----------------------------------#
+#----------------------------------------------------#
+
+# global imadir targdir sortmethod cfgfile unpackcfg ;
+# global scanfile nspmzeropad noexec scanonly;
+set mriconvert mri_convert
+
+# If scanonly is stays set to 2, then the directory
+# is scanned and the info about each run is printed
+# to stdout (no file is created). If scanonly changes
+# to 1, then the run info is printed into the given
+# file and the script exits. If scaninfo is 0, then 
+# then the run info is printed into scan.info of the
+# target directory, and the directory is unpacked.
+set scanonly 2 
+
+set sortmethod fsfast
+set noexec 0
+set nspmzeropad 3
+
+if { $argc == 0 } { PrintUsage; exit 1;}
+
+ParseCommandLine $argc $argv;
+CheckArgs;
+
+# Check that the input directory is there #
+if {! [file exists $imadir]} {
+  puts stdout "ERROR: directory $imadir does not exist"
+  exit 1;
+}
+
+# Get list of information about each run #
+set RunInfoList [ScanIMADir $imadir];
+
+if { $scanonly != 2} { 
+
+  # Create directory for scan file #
+  set scanfiledir [file dirname $scanfile];
+  set err [catch {file mkdir $scanfiledir}];
+  if { $err } {
+    puts "ERROR: could not make $scanfiledir"
+    exit 1;
+  }
+  # Open the scanfile
+  if [catch {open $scanfile w} ScanFileId] {
+    puts "ERROR: Cannot open $scanfile";
+    exit 1;
+  }
+}
+
+# Print out info about each run #
+foreach RunInfo $RunInfoList {
+  set RunNo   [lindex $RunInfo 0];
+  set SeqName [lindex $RunInfo 1];
+  set ncols   [lindex $RunInfo 2];
+  set nrows   [lindex $RunInfo 3];
+  set nslices [lindex $RunInfo 4];
+  set nframes [lindex $RunInfo 5];
+  set IMABaseName [lindex $RunInfo 6];
+  if { $scanonly != 2} { 
+    puts $ScanFileId [format "%3d %25s %3d %3d %3d %3d %s" \
+         $RunNo $SeqName $ncols $nrows $nslices $nframes \
+         $IMABaseName]
+  }
+  puts [format "%3d %25s %3d %3d %3d %3d %s" \
+       $RunNo $SeqName $ncols $nrows $nslices $nframes \
+       $IMABaseName]
+  
+}
+
+if { $scanonly != 2} { close $ScanFileId; }
+
+if { $scanonly != 0} { exit 0;}
+
+# Check that the target directory is writable
+set targparent [file dirname $targdir];
+if { ! [file writable $targparent] } {
+   puts "ERROR: user does not have write permission to $targparent"
+   exit 1;
+}
+# Create the target directory
+set err [catch {file mkdir $targdir}];
+if { $err } {
+  puts "ERROR: could not make $targdir"
+  exit 1;
+}
+
+set StartTime [exec date];
+puts $StartTime;
+
+# Create a Log File #
+set LogFile "$targdir/unpack.log"
+if [catch {open $LogFile w} LF] {
+  puts "Cannot open $LogFile";
+  exit 1;
+}
+puts "INFO: Logfile is $LogFile"
+puts $LF "Log file created by unpackimadir2"
+puts $LF {$Id: unpackimadir2,v 1.1 2002/02/12 00:00:31 greve Exp $}
+puts $LF "$LogFile"
+puts $LF [pwd];
+puts $LF [exec date];
+puts $LF "$argv"
+puts $LF "imadir $imadir"
+
+# Create upackcfg from Sequence Configuration #
+if { [info exists seqcfgfile] } {
+  set SeqCfgList [ReadSeqCfg $seqcfgfile];
+}
+if { [info exists SeqCfgList] } {
+  foreach RunInfo $RunInfoList {
+    set RunNo   [lindex $RunInfo 0];
+    set SeqName [lindex $RunInfo 1];
+
+    if { [string match *scout* $SeqName] } {
+      puts $LF "Run $RunNo ($SeqName) appears to be a scout, skipping"
+      puts "Run $RunNo ($SeqName) appears to be a scout, skipping"
+      continue;
+    }
+    set SeqUnpackCfg [GetSeqUnpackCfg $SeqName $SeqCfgList]
+    set dirid      [lindex $SeqUnpackCfg 1];
+    set unpackfmt  [lindex $SeqUnpackCfg 2];
+    set basename   [lindex $SeqUnpackCfg 3];
+
+    set unpackname $basename
+    if { [string compare $sortmethod "generic"] == 0} {
+      switch -exact -- [string tolower $unpackfmt] {
+        spm     {set unpackname [format "%s%03d" $basename $RunNo]}
+        analyze {set unpackname [format "%s%03d" $basename $RunNo]}
+        minc    {set unpackname [format "%s%03d" $basename $RunNo]}
+        mgh     {set unpackname [format "%s%03d" $basename $RunNo]}
+        bshort  {set unpackname [format "%s%03d"     $basename $RunNo]}
+        cor     {set unpackname [format "%03d"       $RunNo]}
+      }
+    }
+
+    set cfg [list $RunNo $dirid $unpackfmt $unpackname]
+    puts "$RunNo $SeqName $dirid $unpackfmt $unpackname"
+    lappend unpackcfg $cfg;
+  }
+}
+
+# Check for duplication and format errors
+CheckUnpackCfgDuplication $unpackcfg;
+CheckUnpackCfgFormat      $unpackcfg;
+puts $LF "sortmethod $sortmethod"
+puts $LF "unpacking config ------------------"
+puts $LF $unpackcfg;
+puts $LF "-----------------------------------"
+
+# Check that each run listed in the configuration
+# actually exists in the session.
+CheckUnpackCfgExist $unpackcfg $RunInfoList
+
+# Now unpack each run #
+foreach runcfg $unpackcfg {
+  set RunNo  [lindex $runcfg 0];
+  set SubDir [lindex $runcfg 1];
+  set Fmt    [lindex $runcfg 2];
+  set Name   [lindex $runcfg 3];
+
+  puts $LF "---------------------------------------------------------"
+  puts $LF "Run $RunNo -----------------------------------------"
+  puts $LF [exec date];
+  puts $LF $runcfg
+  puts "---------------------------------------------------------"
+  puts "Run $RunNo -----------------------------------------"
+  puts [exec date];
+  puts $runcfg
+
+  # Get the Run Info for this run #
+  set RunInfo [GetRunInfo $RunNo $RunInfoList ];
+  puts $RunInfo
+  set SeqName [lindex $RunInfo 1];
+  set ncols   [lindex $RunInfo 2];
+  set nrows   [lindex $RunInfo 3];
+  set nslices [lindex $RunInfo 4];
+  set nframes [lindex $RunInfo 5];
+  set IMABaseName [lindex $RunInfo 6];
+  set IMAFile $imadir/$IMABaseName
+
+  # If this run is a scout, skip it #
+  puts $LF "SeqName $SeqName"
+  puts "SeqName $SeqName"
+
+  if { [string match *scout* $SeqName] } {
+    puts $LF "This run appears to be a scout, skipping"
+    puts "This run appears to be a scout, skipping"
+    continue;
+  }
+
+  if { ! [string compare $sortmethod fsfast ] } {
+    set OutDir [format "%s/%s/%03d" $targdir $SubDir $RunNo];
+  } else {
+    set OutDir [format "%s/%s" $targdir $SubDir];
+  }
+  set err [catch {file mkdir $OutDir}];
+  if { $err } {
+    puts "ERROR: could not make $OutDir"
+    exit 1;
+  }
+
+  set OutType {}
+  set Fmt [string tolower $Fmt];
+  if { ! [string compare $Fmt bshort ] } {
+     set OutFile [format "%s/%s_000.bshort" $OutDir $Name];
+  } elseif { ! [string compare $Fmt spm ] } {
+     set OutFile [format "%s/%s" $OutDir $Name];
+  } elseif { ! [string compare $Fmt analyze ] } {
+     set OutFile [format "%s/%s.img" $OutDir $Name];
+     set Fmt analyze4d
+  } elseif { ! [string compare $Fmt minc ] } {
+     set OutFile [format "%s/%s.mnc" $OutDir $Name];
+  } elseif { ! [string compare $Fmt mgh ] } {
+     set OutFile [format "%s/%s.mgh" $OutDir $Name];
+  } else {
+     set OutFile $OutDir;
+  }
+  set DumpFile $OutDir/$Name.imaheader.dump
+
+  set TR [exec mri_probe_ima --i $IMAFile --attr tr]
+  set VolRes [exec mri_probe_ima --i $IMAFile --attr volres]
+  set ColRes   [lindex $VolRes 0];
+  set RowRes   [lindex $VolRes 1];
+  set SliceRes [lindex $VolRes 2];
+
+  # Create the seq.info file if using FS-FAST sorting #
+  if { ! [string compare $sortmethod fsfast ] } {
+    set SeqInfo [format "%s/%s/seq.info" $targdir $SubDir];
+    if [catch {open $SeqInfo w} SeqInfoId] {
+      puts "Cannot open $SeqInfo";
+      exit 1;
+    }
+    puts $SeqInfoId "sequencename $SeqName";
+    puts $SeqInfoId "nrows $nrows";
+    puts $SeqInfoId "ncols $ncols";
+    puts $SeqInfoId "nslcs $nslices";
+    puts $SeqInfoId "rowpixelsize $RowRes";
+    puts $SeqInfoId "colpixelsize $ColRes";
+    puts $SeqInfoId "slcpixelsize $SliceRes";
+    if { $nframes > 1 } {
+      puts $SeqInfoId "ntrs $nframes";
+      puts $SeqInfoId "TR   $TR";
+    }
+    close $SeqInfoId;
+  }
+
+  # Now run mri_convert or copy ima files #
+  if { [string compare $Fmt ima ] } {
+    # Use mri_convert #
+
+    puts $LF "------- mri_convert -------------"
+    set cnvcmd [list $mriconvert $IMAFile $OutFile -ot $Fmt \
+                 --nspmzeropad $nspmzeropad];
+    puts $LF $cnvcmd
+    puts $LF "-----------------------"
+
+    if { ! $noexec } {
+      set err [catch {exec -keepnewline \
+          $mriconvert $IMAFile $OutFile -ot $Fmt \
+                      --nspmzeropad $nspmzeropad \
+                       >&@ $LF } mriconvlog];
+      puts $LF $mriconvlog;
+      if { $err } {
+         puts $LF "ERROR: mri_convert";
+         puts "ERROR: mri_convert";
+         puts $mriconvlog;
+         exit 1;
+      }
+      exec mri_probe_ima --i $IMAFile > $DumpFile
+    }
+  } else {
+    #-------- copy ima files ------#
+    puts $LF "Copying IMA files"
+    set FilesInRun [glob $imadir/*-$RunNo-*];
+
+    foreach imafile $FilesInRun {
+      #set trgimafile "$OutDir/$dcmfile"
+      if { ! $noexec } {
+        file copy -force $imafile $OutDir;
+      }
+
+    }
+  }
+
+}; # end loop over the unpacking of each run #
+
+# Create the session.info file for FS-FAST #
+if { ! [string compare $sortmethod fsfast ] } {
+  set PatName   [exec mri_probe_ima --i $IMAFile --attr patname]
+  set PatDOB    [exec mri_probe_ima --i $IMAFile --attr patdob]
+  set PatGender [exec mri_probe_ima --i $IMAFile --attr patgender]
+  set StudyDate [exec mri_probe_ima --i $IMAFile --attr studydate]
+
+  set SessInfo $targdir/session.info 
+  if [catch {open $SessInfo w} SessInfoId] {
+      puts "Cannot open $SessInfo";
+      exit 1;
+  }
+  puts $SessInfoId "$PatName";  
+  puts $SessInfoId "$PatDOB";
+  puts $SessInfoId "$PatGender";
+  puts $SessInfoId "$StudyDate";
+  close $SessInfoId
+}
+
+
+puts $LF "StartTime: $StartTime"
+puts $LF "EndTime:   [exec date]"
+puts $LF "unpacksdcmdir Done"
+
+close $LF;
+
+puts "StartTime: $StartTime"
+puts "EndTime:   [exec date]"
+puts "unpacksdcmdir Done"
+
+puts " "
+
+exit 0
+
+
