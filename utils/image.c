@@ -2652,19 +2652,33 @@ ImageMedianFilter(IMAGE *inImage, int wsize,
         {
           /* reflect across the boundary */
           yc = y + y0 + dy ;
+#if 0
           if (yc < 0)
             yc = -yc ;
           else if (yc >= rows)
             yc = rows - (yc - rows + 1) ;
+#else
+          if (yc < 0)
+            yc = 0 ;
+          else if (yc >= rows)
+            yc = rows - 1 ;
+#endif
 
           inPix = IMAGEFseq_pix(inImage, 0, yc, frame) ;
           for (x = -whalf ; x <= whalf ; x++)
           {
             xc = x0 + x + dx ;
+#if 0
             if (xc < 0)
               xc = -xc ;
             else if (xc >= cols)
               xc = cols - (xc - cols + 1) ;
+#else
+            if (xc < 0)
+              xc = 0 ;
+            else if (xc >= cols)
+              xc = cols - 1 ;
+#endif
 
 #if 0            
             *sptr++ = *IMAGEFseq_pix(inImage, xc, yc, frame) ;
