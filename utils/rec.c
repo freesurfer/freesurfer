@@ -87,6 +87,7 @@ RecRead(char *fname, int iop_neeg, int iop_nmeg)
 /* flag = 0 everything as usual
    flag = 1 load only EEG channels
    flag = 2 load only MEG channels
+   flag = 4 don't pad with ramp
 */
 REC *
 RecReadPartially(char *fname, int iop_neeg, int iop_nmeg,int flag)
@@ -111,7 +112,10 @@ RecReadPartially(char *fname, int iop_neeg, int iop_nmeg,int flag)
   fscanf(fp,"%*s");
   fscanf(fp,"%d %d %d",&rec->ntimepts,&rec->nmeg_channels,&rec->neeg_channels);
   tnchan = rec->nmeg_channels+rec->neeg_channels ;
-  rec->ptime = (int)(2*pow(2.0,ceil(log((float)rec->ntimepts)/log(2.0))));
+  rec->ptime = rec->ntimepts;
+  if(!(flag & 4)) {
+    rec->ptime = (int)(2*pow(2.0,ceil(log((float)rec->ntimepts)/log(2.0))));
+  }
   printf("ntimepts=%d, ptime=%d\n",rec->ntimepts, rec->ptime);
 #if 0
   if (sol_ntime>0 && sol_ntime!=rec->ntimepts)
