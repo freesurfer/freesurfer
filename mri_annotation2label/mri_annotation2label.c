@@ -1,6 +1,6 @@
 /*----------------------------------------------------------
   Name: mri_annotation2label.c
-  $Id: mri_annotation2label.c,v 1.1 2001/05/08 21:52:35 greve Exp $
+  $Id: mri_annotation2label.c,v 1.2 2001/05/08 21:56:07 greve Exp $
   Author: Douglas Greve
   Purpose: Converts an annotation to a labels.
 
@@ -72,7 +72,7 @@ static int  singledash(char *flag);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_annotation2label.c,v 1.1 2001/05/08 21:52:35 greve Exp $";
+static char vcid[] = "$Id: mri_annotation2label.c,v 1.2 2001/05/08 21:56:07 greve Exp $";
 char *Progname = NULL;
 
 char  *subject   = NULL;
@@ -133,7 +133,7 @@ int main(int argc, char **argv)
 
   /* ------ Load annotation ------ */
   sprintf(annotfile,"%s/%s/label/%s_%s.annot",
-	  SUBJECTS_DIR,subject,hemi,annotation);
+    SUBJECTS_DIR,subject,hemi,annotation);
   printf("Loading annotations from %s\n",annotfile);
   err = MRISreadAnnotation(Surf, annotfile);
   if(err){
@@ -170,11 +170,11 @@ int main(int argc, char **argv)
       ano = Surf->vertices[vtxno].annotation;
       vtxani = annotation_to_index(ano);
       if(vtxani == ani){
-	label->lv[nthpoint].vno = vtxno;
-	label->lv[nthpoint].x = vtx->x;
-	label->lv[nthpoint].y = vtx->y;
-	label->lv[nthpoint].z = vtx->z;
-	nthpoint ++;
+  label->lv[nthpoint].vno = vtxno;
+  label->lv[nthpoint].x = vtx->x;
+  label->lv[nthpoint].y = vtx->y;
+  label->lv[nthpoint].z = vtx->z;
+  nthpoint ++;
       }
     }
 
@@ -234,7 +234,7 @@ static int parse_commandline(int argc, char **argv)
     else{
       fprintf(stderr,"ERROR: Option %s unknown\n",option);
       if(singledash(option))
-	fprintf(stderr,"       Did you really mean -%s ?\n",option);
+  fprintf(stderr,"       Did you really mean -%s ?\n",option);
       exit(-1);
     }
     nargc -= nargsused;
@@ -251,16 +251,16 @@ static void usage_exit(void)
 /* --------------------------------------------- */
 static void print_usage(void)
 {
-  fprintf(stderr, "USAGE: %s \n",Progname) ;
-  fprintf(stderr, "\n");
-  fprintf(stderr, "   --subject    source subject\n");
-  fprintf(stderr, "   --hemi       hemisphere (lh or rh) (with surface)\n");
-  fprintf(stderr, "   --labelbase  output will be base-XXX.label \n");
-  fprintf(stderr, "   --annotation as found in SUBJDIR/labels <aparc>\n");
-  fprintf(stderr, "\n");
-  fprintf(stderr, "   --help       display help\n");  
-  fprintf(stderr, "   --version    display version\n");  
-  fprintf(stderr, "\n");
+  fprintf(stdout, "USAGE: %s \n",Progname) ;
+  fprintf(stdout, "\n");
+  fprintf(stdout, "   --subject    source subject\n");
+  fprintf(stdout, "   --hemi       hemisphere (lh or rh) (with surface)\n");
+  fprintf(stdout, "   --labelbase  output will be base-XXX.label \n");
+  fprintf(stdout, "   --annotation as found in SUBJDIR/labels <aparc>\n");
+  fprintf(stdout, "\n");
+  fprintf(stdout, "   --help       display help\n");  
+  fprintf(stdout, "   --version    display version\n");  
+  fprintf(stdout, "\n");
 }
 /* --------------------------------------------- */
 static void dump_options(FILE *fp)
@@ -328,7 +328,7 @@ static void print_help(void)
 /* --------------------------------------------- */
 static void print_version(void)
 {
-  fprintf(stderr, "%s\n", vcid) ;
+  fprintf(stdout, "%s\n", vcid) ;
   exit(1) ;
 }
 /* --------------------------------------------- */
