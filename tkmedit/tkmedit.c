@@ -194,6 +194,7 @@ int promptflag = FALSE;
 int followglwinflag = TRUE;
 int initpositiondoneflag = FALSE;
 int all3flag = FALSE;
+int changeplanelock = FALSE;
 int npts = 0;
 int prad = 0;
 int pradlast = 0;
@@ -1810,6 +1811,11 @@ do_one_gl_event(Tcl_Interp *interp)   /* tcl */
         sy = 1024 - w.y - sy;
         if (button2pressed) {select_pixel(sx,sy,FALSE); edit_pixel(TO_WHITE);}
         if (button3pressed) {select_pixel(sx,sy,FALSE); edit_pixel(TO_BLACK);}
+        if (XPending(xDisplay)) {
+          XPeekEvent(xDisplay, &ahead);
+          if (ahead.type==ButtonPress)   changeplanelock = TRUE;
+          if (ahead.type==ButtonRelease) changeplanelock = TRUE;
+        } else changeplanelock = FALSE;
         break;
 
       case ButtonRelease:
@@ -2813,10 +2819,13 @@ void redraw(void)
 #else
   char title[5*NAME_LENGTH];
 #endif
-
+  static int lastplane = CORONAL;
 
   if (!openglwindowflag) {
     printf("medit: ### redraw failed: no gl window open\n");PR return; }
+
+  if (changeplanelock && plane!=lastplane) plane = lastplane;
+  lastplane = plane;
 
   set_scale();
   color(BLACK);
@@ -5545,6 +5554,8 @@ char **argv;
   Tcl_LinkVar(interp,"followglwinflag",(char *)&followglwinflag, 
                                                         TCL_LINK_BOOLEAN);
   Tcl_LinkVar(interp,"all3flag",(char *)&all3flag,TCL_LINK_BOOLEAN);
+  Tcl_LinkVar(interp,"changeplanelock",(char *)&changeplanelock, 
+                                                        TCL_LINK_BOOLEAN);
   /*=======================================================================*/
   /***** link global INT variables to tcl equivalents */
   Tcl_LinkVar(interp,"zf",(char *)&zf, TCL_LINK_INT);
