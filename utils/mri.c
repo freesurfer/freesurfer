@@ -8080,3 +8080,29 @@ MRI *MRIsmoothParcellation(MRI *mri, int smooth_parcellation_count)
   return(mri2);
 
 } /* end MRIsmoothParcellation() */
+
+int
+MRIeraseBorderPlanes(MRI *mri)
+{
+  int  x, y, z ;
+
+  for (x = 0 ; x < mri->width ; x++)
+    for (y = 0 ; y < mri->height ; y++)
+    {
+      MRIvox(mri, x, y, 0) = MRIvox(mri, x, y, mri->depth-1) = 0 ;
+    }
+
+  for (y = 0 ; y < mri->height ; y++)
+    for (z = 0 ; z < mri->depth ; z++)
+    {
+      MRIvox(mri, 0, y, z) = MRIvox(mri, mri->width-1, y, z) = 0 ;
+    }
+
+  for (x = 0 ; x < mri->width ; x++)
+    for (z = 0 ; z < mri->depth ; z++)
+    {
+      MRIvox(mri, x, 0, z) = MRIvox(mri, x, mri->height-1, z) = 0 ;
+    }
+
+  return(NO_ERROR) ;
+}
