@@ -883,6 +883,7 @@ void draw_all_cursor(void) ;
 void draw_all_vertex_cursor(void) ;
 void clear_all_vertex_cursor(void) ;
 void select_vertex(short sx,short sy) ;
+void select_vertex_by_vno(int vno) ;
 void find_vertex_at_screen_point(short sx,short sy,int* ovno, float* od) ;
 void invert_vertex(int vno) ;
 void invert_face(int fno) ;
@@ -5252,7 +5253,7 @@ select_vertex(short sx,short sy)
   float d;
   VERTEX* v;
   
-  /* sets dmin to the distance of the vertex found */
+  /* sets d to the distance of the vertex found */
   find_vertex_at_screen_point(sx, sy, &vno, &d);
   if (vno>=0)
     {
@@ -5287,6 +5288,43 @@ select_vertex(short sx,short sy)
 }
 
 /* begin rkt */
+void
+select_vertex_by_vno (int vno) 
+{
+  VERTEX* v;
+
+  if (vno < 0 || vno >= mris->nvertices) 
+    {
+      return;
+    }
+
+  selection = vno;
+  print_vertex_data(selection, stdout, 0) ;
+
+  /* if we have functional data... */
+  if(func_timecourse!=NULL)
+    {
+      v = &(mris->vertices[selection]);
+      
+      /* select only this voxel and graph it */
+      func_clear_selection();
+      func_select_ras(v->origx,v->origy,v->origz);
+      func_graph_timecourse_selection();
+    }
+  
+  /* select the label at this vertex, if there is one. */
+  labl_select_label_by_vno (vno);
+  
+  /* select the boundary at this vertex, if there is one. */
+  fbnd_select_boundary_by_vno (vno);
+  
+  /* finally, update the labels. */
+  if (vno>=0)
+    {
+      update_labels(LABELSET_CURSOR, vno, 0);
+    }
+}
+
 void
 find_vertex_at_screen_point(short sx,short sy,int* ovno, float* od) {
   
@@ -16712,6 +16750,7 @@ int W_draw_all_cursor  PARM;
 int W_draw_all_vertex_cursor  PARM;
 int W_clear_all_vertex_cursor  PARM;
 /* begin rkt */
+int W_select_vertex_by_vno PARM;
 int W_sclv_read_binary_values  PARM; 
 int W_sclv_read_binary_values_frame  PARM; 
 int W_sclv_read_bfile_values  PARM; 
@@ -17533,6 +17572,10 @@ int                  W_clear_all_vertex_cursor  WBEGIN
   ERR(1,"Wrong # args: clear_all_vertex_cursor")
                        clear_all_vertex_cursor();  WEND
 /* begin rkt */
+int W_select_vertex_by_vno WBEGIN
+           ERR(2, "Wrong # args: select_vertex_by_vno vno")
+     select_vertex_by_vno (atoi(argv[1])); WEND
+
 int W_swap_vertex_fields WBEGIN
            ERR(3,"Wrong # args: swap_vertex_fields <typea> <typeb>")
      swap_vertex_fields(atoi(argv[1]),atoi(argv[2])); WEND
@@ -18356,6 +18399,9 @@ int main(int argc, char *argv[])   /* new main */
   Tcl_CreateCommand(interp, "clear_all_vertex_cursor",
                            W_clear_all_vertex_cursor,      REND);
   /* begin rkt */
+  Tcl_CreateCommand(interp, "select_vertex_by_vno",
+        W_select_vertex_by_vno, REND);
+
   Tcl_CreateCommand(interp, "swap_vertex_fields",
               W_swap_vertex_fields, REND);
 
