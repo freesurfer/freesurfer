@@ -5,11 +5,11 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: segonne $
-// Revision Date  : $Date: 2005/03/23 02:06:14 $
-// Revision       : $Revision: 1.31 $
+// Revision Date  : $Date: 2005/03/23 02:19:29 $
+// Revision       : $Revision: 1.32 $
 //
 ////////////////////////////////////////////////////////////////////
-char *MRI_WATERSHED_VERSION = "$Revision: 1.31 $";
+char *MRI_WATERSHED_VERSION = "$Revision: 1.32 $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -128,6 +128,9 @@ typedef struct STRIP_PARMS
   int manual_params;
   int manual_CSF_MAX,manual_TRANSITION_intensity,manual_GM_intensity;
 
+	//number of iteration in MRISgoToClosestDarkestPoint
+	int dark_iter;
+
   // whether to use surfaceRAS or not
   int useSRAS;
 
@@ -176,6 +179,7 @@ typedef struct
   int atlas;
   int validation;
   int verbose_mode;
+	int dark_iter;
 
 } MRI_variables;
 
@@ -330,6 +334,7 @@ void usageHelp()
   fprintf(stderr, "\n-n                   : not use the watershed analyze process");
   fprintf(stderr, "\n-LABEL               : labelize the output volume into scalp, skull, csf, gray and white");
   fprintf(stderr, "\n-man int_csf int_trn int_gray: to change the different parameters csf_max, transition_intensity and GM_intensity");
+	fprintf(stderr, "\n-dark int_niter      : go to the closest darkest point during int_niter iterations (default 10)");
   fprintf(stderr, "\n-mask                : mask a volume with the brain mask");
   fprintf(stderr, "\n\n--help               : show this usage message");
   fprintf(stderr, "\n--version            : show the current version\n\n");
@@ -455,6 +460,12 @@ get_option(int argc, char *argv[],STRIP_PARMS *parms)
     parms->surfname=argv[3];
     fprintf(stderr,"Mode:          Saving shrank brain surface\n") ;
     nargs = 2 ;
+  }
+	else if(!strcmp(option, "dark"))
+  {
+    parms->dark_iter=atoi(argv[2]);
+    fprintf(stderr,"Mode:          moving to closest darkest points during %d iterations\n",parms->dark_iter) ;
+    nargs = 1 ;
   }
   else if(!strcmp(option, "wat"))
   {
@@ -582,7 +593,7 @@ int main(int argc, char *argv[])
   /************* Command line****************/
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_watershed.cpp,v 1.31 2005/03/23 02:06:14 segonne Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_watershed.cpp,v 1.32 2005/03/23 02:19:29 segonne Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -737,6 +748,8 @@ static STRIP_PARMS* init_parms(void)
   /* don't do T1 analysis */
   sp->noT1analysis = 0;
 
+	sp->dark_iter=10;
+
   /*no input brain parms*/
   sp->cx=-1;
   sp->rb=-1;
@@ -799,6 +812,7 @@ static MRI_variables* init_variables(MRI *mri_with_skull)
   v->GM_MIN = 0;
   v->GM_intensity = 0;
   v->TRANSITION_intensity=0;
+	v->dark_iter=10;
 
   return v;
 
@@ -3133,6 +3147,7 @@ static void Template_Deformation(STRIP_PARMS *parms,MRI_variables *MRI_var)
 #endif
 
     ////////////////////////////////////////////////////////////////////
+		MRI_var->dark_iter=parms->dark_iter;
     MRISgoToClosestDarkestPoint(MRI_var);
     // MRISwrite(MRI_var->mris, "surface4");
 #ifndef __OPTIMIZE__
@@ -7646,7 +7661,7 @@ static void MRISgoToClosestDarkestPoint(MRI_variables *MRI_var)
      v->odz = 0;
     }
 
-  int niter = 10;
+  int niter = MRI_var->dark_iter;
   for (iter=0;niter;iter++)
   {
     /////////////////////////////////////////////////////////////////////
