@@ -4,9 +4,9 @@
 
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2003/06/12 19:53:51 $
-// Revision       : $Revision: 1.159 $
-char *VERSION = "$Revision: 1.159 $";
+// Revision Date  : $Date: 2003/06/12 20:16:11 $
+// Revision       : $Revision: 1.160 $
+char *VERSION = "$Revision: 1.160 $";
 
 #define TCL
 #define TKMEDIT 
@@ -1042,7 +1042,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
      shorten our argc and argv count. If those are the only args we
      had, exit. */
   /* rkt: check for and handle version tag */
-  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.159 2003/06/12 19:53:51 kteich Exp $");
+  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.160 2003/06/12 20:16:11 kteich Exp $");
   if (nNumProcessedVersionArgs && argc - nNumProcessedVersionArgs == 1)
     exit (0);
   argc -= nNumProcessedVersionArgs;
@@ -5027,11 +5027,11 @@ int main ( int argc, char** argv ) {
     if( NULL == pEnvVar) {
       tkm_DisplayError( "Trying to find interface file",
 			"No valid file found",
-			"Tkmedit couldn't find a valid interface file. "
-			"Normally this is in the directory specified in "
-			"the MRI_DIR varible, but this was not set in "
-			"your environment. Tkmedit needs this file to "
-			"run." );
+			"Tkmedit couldn't find a valid interface file "
+			"(tkmedit.tcl). Normally this is in the directory "
+			"specified in the MRI_DIR varible, but this was "
+			"not set in your environment. Tkmedit needs this "
+			"file to run." );
       PrintCachedTclErrorDlogsToShell();
       exit( 1 );
     }
