@@ -3189,10 +3189,6 @@ static void PrintStatistics(SEGMENTATION *segmentation)
     if(segmentation->components[k].cost>=0 && segmentation->components[k].ncells)
       ;//fprintf(stderr,"\n  the cost of the component nbr %d =is %f with %d cells",k,segmentation->components[k].cost,segmentation->components[k].ncells);
 }
-
-
-#endif
-
 static void PrintSurfaceStatistics(MRI *mri,int label,int connectivity)
 {
     int euler,pnvertices,  pnfaces, pnedges;
@@ -3204,6 +3200,10 @@ static void PrintSurfaceStatistics(MRI *mri,int label,int connectivity)
     MRISwrite(mris,"./surface");
     MRISfree(&mris);
 }
+
+#endif
+
+
 
 static int backgroundSegmentation(TC_PARMS *parms)
 {
@@ -4108,9 +4108,9 @@ int main(int argc, char *argv[])
 
   
   //  if(parms->initsurface)
-  fprintf(stderr,"\n doing it...");
-  PrintSurfaceStatistics(parms->mri_seg,parms->labels[0],parms->tess);
-  fprintf(stderr,"done\n");
+  //fprintf(stderr,"\n doing it...");
+  //PrintSurfaceStatistics(parms->mri_seg,parms->labels[0],parms->tess);
+  //fprintf(stderr,"done\n");
 
   if(parms->surfname)
     mris=&parms->mris;
