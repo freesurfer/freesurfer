@@ -2,17 +2,15 @@ function varargout = univarlab(varargin)
 % UNIVARLAB Application M-file for univarlab.fig
 %    FIG = UNIVARLAB launch univarlab GUI.
 %    UNIVARLAB('callback_name', ...) invoke the named callback.
-% Last Modified by GUIDE v2.0 15-Aug-2003 01:12:14
-% $Id: univarlab.m,v 1.6 2003/08/15 05:40:33 greve Exp $
+% Last Modified by GUIDE v2.0 20-Aug-2003 01:47:49
+% $Id: univarlab.m,v 1.7 2003/08/20 06:43:46 greve Exp $
 
 % To do:
 %   Closing/Quiting functions
-%   Choose whether to display some windows
 %   Choose whether to display some traces
 %   Better HDR
 %   Info/Help
 %   TR/Ntp
-%   CNR
 %   Signifiances
 %   Slider for Manual
 %   Test for Matrix Condition
@@ -90,6 +88,7 @@ gd.FIREstFLA        = [];  % First level analysis struct for est FIR
   % ---------- Gamma Estimation parameters ------------------%
 gd.GamDeltaEst = gd.GamDeltaSynth; % Use this val in estimation model
 gd.GamTauEst   = gd.GamTauSynth;   % Use this val in estimation model
+gd.GamNDeriv   = 0;
 gd.C1AmpEst    = 0.0;  % Estimated value of C1
 gd.C2AmpEst    = 0.0;  % Estimated value of C2
 gd.GamRStd     = 0.0;  % Estimated value of Gamma resid std
@@ -469,6 +468,19 @@ figure(gd.hunivarlab);
 guidata(gd.hunivarlab,gd)
 return;
 
+% --------------------------------------------------------------------
+function varargout = GamDeriv_cb_Callback(h, eventdata, gd, varargin)
+gd.GamNDeriv = ~gd.GamNDeriv;
+gd = MakeFirstLevelAnalysis(gd);
+gd = Estimate(gd);
+gd = PlotRaw(gd);
+gd = PlotACF(gd);
+gd = PlotHRF(gd);
+guidata(gd.hunivarlab, gd);
+
+return;
+
+
 %-------------------------------------------------%
 function gd = PlotHRF(gd)
 if(gd.ShowHRF==0) return; end
@@ -495,8 +507,8 @@ FIRHRF2 = gd.FIRbeta(nPerFIR+1:2*nPerFIR);
 gd.GamEstFLA.nthfx = 1;
 GamEstPSD = fast_fxcfg('irftaxis',gd.GamEstFLA);
 GamEstHRF = fast_fxcfg('irfmatrix',gd.GamEstFLA);
-GamEstHRF1 = GamEstHRF * gd.Gambeta(1);
-GamEstHRF2 = GamEstHRF * gd.Gambeta(2);
+GamEstHRF1 = GamEstHRF * gd.Gambeta(1:1+gd.GamNDeriv);
+GamEstHRF2 = GamEstHRF * gd.Gambeta(2+gd.GamNDeriv:2+2*gd.GamNDeriv);
 
 plot(GamSynthPSD,GamSynthHRF1,'+-',...
      GamSynthPSD,GamSynthHRF2,'+-',...
@@ -836,11 +848,11 @@ gd.FIRDOF = size(gd.XFIR,1)-size(gd.XFIR,2);
 
   %-------- Est Gamma ------------------------%
 gd.GamEstFLA = gd.FIREstFLA;
-fxline = sprintf('effect fixed cond1 gamma 1 0 .1 30 0 0 %g %g 0',...
-		 gd.GamDeltaEst(1),gd.GamTauEst(1));
+fxline = sprintf('effect fixed cond1 gamma 1 0 .1 30 0 0 %g %g %d',...
+		 gd.GamDeltaEst(1),gd.GamTauEst(1),gd.GamNDeriv);
 gd.GamEstFLA.fxlist(1).fx = fast_fxcfg('parseline',fxline);
-fxline = sprintf('effect fixed cond2 gamma 2 0 .1 30 0 0 %g %g 0',...
-		 gd.GamDeltaEst(1),gd.GamTauEst(1));
+fxline = sprintf('effect fixed cond2 gamma 2 0 .1 30 0 0 %g %g %d',...
+		 gd.GamDeltaEst(1),gd.GamTauEst(1),gd.GamNDeriv);
 gd.GamEstFLA.fxlist(2).fx = fast_fxcfg('parseline',fxline);
 gd.XGam = fast_fla_desmat(gd.GamEstFLA);
 gd.RGam = eye(gd.ntp) - gd.XGam*inv(gd.XGam'*gd.XGam)*gd.XGam'; 
@@ -876,7 +888,6 @@ gd.ynoise    = gd.NoiseStd(1)*gd.ynoise0;
 if(gd.NoiseAR1(1) ~= 0) 
   gd.ynoise  = gd.NoiseF * gd.ynoise;
 end
-
 return;
 
 % --------------------------------------------------------------------
@@ -897,6 +908,9 @@ return;
 % --------------------------------------------------------------------
 function gd = SynthObserved(gd)
 gd.yobserved = gd.ysignal + gd.ynoise;
+gd.cnr = sum(gd.ysignal.^2)/sum(gd.ynoise.^2);
+s = sprintf('CNR %6.2f',gd.cnr);
+set(gd.CNR_tx,'string',s);
 return;
 
 % --------------------------------------------------------------------
@@ -943,7 +957,7 @@ set(gd.FIRRStdTxt,'string',sprintf('%3.2f',gd.resfirstd));
 set(gd.GamRStdTxt,'string',sprintf('%3.2f',gd.resgamstd));
 set(gd.GamRStdTxt,'string',sprintf('%3.2f',gd.resgamstd));
 set(gd.C1AmpEstTxt,'string',sprintf('%3.2f',gd.Gambeta(1)));
-set(gd.C2AmpEstTxt,'string',sprintf('%3.2f',gd.Gambeta(2)));
+set(gd.C2AmpEstTxt,'string',sprintf('%3.2f',gd.Gambeta(2+gd.GamNDeriv)));
 
 gd.FIRFixACFMtx = []; % Will need new matrix
 gd.GamFixACFMtx = []; % Will need new matrix
@@ -953,16 +967,20 @@ return;
 
 %----------------------------------------------------------%
 function gd = EstimateManual(gd);
-if(gd.FitMean)
-  gd.yhatmangam = gd.XGam * [gd.C1AmpMan(1) gd.C2AmpMan(1) 0]';
-else
-  gd.yhatmangam = gd.XGam * [gd.C1AmpMan(1) gd.C2AmpMan(1)]';
-end
+
+b = [gd.C1AmpMan(1) gd.C2AmpMan(1); zeros(gd.GamNDeriv,2)];
+b = reshape1d(b);
+if(gd.FitMean) b = [b; 0]; end
+gd.yhatmangam = gd.XGam * b;
 gd.resmangam  = gd.yobserved - gd.yhatmangam;
 gd.resmangamvar = sum(gd.resmangam.^2)/gd.GamDOF;
 gd.resmangamstd = sqrt(gd.resmangamvar);
 set(gd.ManGamRStdTxt,'string',sprintf('%3.2f',gd.resmangamstd));
 return;
+
+
+
+
 
 
 
