@@ -5,7 +5,7 @@
 # editing.
 #
 # mkfsdist
-# $Id: mkfsdist,v 1.15 2003/04/23 20:24:59 kteich Exp $
+# $Id: mkfsdist,v 1.16 2003/04/24 19:07:01 kteich Exp $
 #
 # Usage: mkfsdist targetdir
 #
@@ -54,7 +54,7 @@
 #  files found in tar-exclude-more and tar-exclude-gca.
 #
 # 
-set VERSION = '$Id: mkfsdist,v 1.15 2003/04/23 20:24:59 kteich Exp $';
+set VERSION = '$Id: mkfsdist,v 1.16 2003/04/24 19:07:01 kteich Exp $';
 
 # To include the autoseg in the distribution set environment varible
 # KEEPAUTOSEG to 1 before running mkfsdist (ie, setenv KEEPAUTOSEG 1)
@@ -76,11 +76,12 @@ set BERT_FUNC_DIR = /space/sake/5/tutorial/JUL01/bert-functional
 
 #------------------------------------------------------#
 if($#argv < 3) then
-  echo "USAGE: mkfsdist sourcedir targetdir platform=[Linux|Darwin] [options]"
+  echo "USAGE: mkfsdist sourcedir targetdir platform [options]"
   echo ""
   echo "   sourcedir: usually freesurfer_alpha or freesurfer_dev"
   echo "   targetdir: dir in which to create archive"
   echo "    platform: platform for whose binaries will be included"
+  echo "              either Linux, Darwin, or Solaris"
   echo ""
   echo "   options include:"
   echo "     --no-compress, --compress: create or don't create a gzipped tarfile (default yes)"
@@ -94,7 +95,7 @@ if($#argv < 3) then
   echo "     --no-bert-func, --bert-func (default yes)"
   echo "     --no-data: equivalent to --no-average, --no-minc, --no-talairach, --no-bert-*"
   echo ""
-  echo "Ex: mkfsdist ~inverse/freesurfer_alpha ~/work Linux"
+  echo "Ex: mkfsdist ~inverse/freesurfer_alpha ~/work Linux --no-data"
   echo ""
   exit 1;
 endif
@@ -150,7 +151,7 @@ end
 
 
 # Check the platform argument #
-if( "$PLATFORM" != "Linux" && "$PLATFORM" != "Darwin" ) then
+if( "$PLATFORM" != "Linux" && "$PLATFORM" != "Darwin" && "$PLATFORM" != "Solaris") then
   echo "ERROR: this platform not supported."
   exit 1;
 endif
@@ -289,16 +290,19 @@ endif
 if( "$PLATFORM" != "Darwin" ) then
   find $SOURCE_DIR_REL | grep Darwin >> $EXCLUDE_FILE
 endif
+if( "$PLATFORM" != "Solaris" ) then
+  find $SOURCE_DIR_REL | grep Solaris >> $EXCLUDE_FILE
+endif
 find $SOURCE_DIR_REL | grep Linux2 >> $EXCLUDE_FILE
 find $SOURCE_DIR_REL | grep IRIX >> $EXCLUDE_FILE
 find $SOURCE_DIR_REL | grep SunOS >> $EXCLUDE_FILE
-find $SOURCE_DIR_REL | grep Solaris >> $EXCLUDE_FILE
 find $SOURCE_DIR_REL -name \*.03\* >> $EXCLUDE_FILE
 find $SOURCE_DIR_REL -name \*.02\* >> $EXCLUDE_FILE
 find $SOURCE_DIR_REL -name \*.01\* >> $EXCLUDE_FILE
 find $SOURCE_DIR_REL -name \*~ >> $EXCLUDE_FILE
 find $SOURCE_DIR_REL -name \#\*\# >> $EXCLUDE_FILE
 find $SOURCE_DIR_REL -name \*.bu >> $EXCLUDE_FILE
+find $SOURCE_DIR_REL -name tar-exclude >> $EXCLUDE_FILE
 find $SOURCE_DIR_REL -name tar-exclude-more >> $EXCLUDE_FILE
 
 
@@ -449,6 +453,9 @@ if( $MINC ) then
     endif
     if( "$PLATFORM" == "Darwin" ) then
 	set mni_platform = MacOS10.2
+    endif
+    if( "$PLATFORM" == "Solaris" ) then
+	set mni_platform = Solaris
     endif
     set mnidir = ./$mni_platform/packages/mni
     if(! -e $mnidir) then
