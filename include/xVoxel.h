@@ -53,7 +53,7 @@ tBoolean xVoxl_IncrementUntilLimit ( xVoxelRef this, int inLimit );
 tBoolean xVoxl_IncrementUntilLimits ( xVoxelRef this, int inXLimit, 
               int inYLimit, int inZLimit );
 
-int xVoxl_ExpandToIndex ( xVoxelRef this, int inDimension );
+int xVoxl_ExpandToIndex ( xVoxelRef this, int inDimensionX, int inDimensionY );
 
 void xVoxl_PrintDebug ( xVoxelRef  this );
 
