@@ -535,6 +535,7 @@ extern float ic_z_vertices[]  ;
 #define DICOM_FILE                    15
 #define MRI_ANALYZE4D_FILE            16 
 #define SIEMENS_DICOM_FILE            17
+#define BRUKER_FILE                   18
 
 int        MRImatch(MRI *mri1, MRI *mri2) ;
 int        MRIvalRange(MRI *mri, float *pmin, float *pmax) ;
