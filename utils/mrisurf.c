@@ -3,9 +3,9 @@
 // written by Bruce Fischl
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: greve $
-// Revision Date  : $Date: 2004/11/12 22:13:12 $
-// Revision       : $Revision: 1.307 $
+// Revision Author: $Author: fischl $
+// Revision Date  : $Date: 2004/11/15 18:09:11 $
+// Revision       : $Revision: 1.308 $
 //////////////////////////////////////////////////////////////////
 #include <stdio.h>
 #include <string.h>
@@ -2529,9 +2529,7 @@ MRIScomputeNormals(MRI_SURFACE *mris)
       continue ;
     mrisNormalize(snorm);
 
-    // DNG Changed from /=2 to /=3. 
-    // See also MRIScomputeTriangleProperties()
-    v->area /= 3.0 ;
+    v->area /= 2 ;
     if (v->origarea<0)        /* has never been set */
       v->origarea = v->area;
 
@@ -4164,7 +4162,7 @@ MRISregister(MRI_SURFACE *mris, MRI_SP *mrisp_template,
       parms->fp = fopen(fname, "w") ;
       if (!parms->fp)
         ErrorExit(ERROR_NOFILE, "%s: could not open log file %s",
-		  Progname, fname) ;
+									Progname, fname) ;
     }
     mrisLogIntegrationParms(parms->fp, mris,parms) ;
   }
@@ -4253,7 +4251,7 @@ MRISregister(MRI_SURFACE *mris, MRI_SP *mrisp_template,
       if (Gdiag & DIAG_WRITE && !i && !parms->start_t)
       {
         MRISfromParameterization(mrisp_template, mris, ino);
-	MRISnormalizeCurvature(mris) ;
+				MRISnormalizeCurvature(mris) ;
         sprintf(fname, "%s/%s.target", path, mris->hemisphere == RIGHT_HEMISPHERE ? "rh":"lh") ;
         if (Gdiag & DIAG_SHOW)
           fprintf(stdout, "writing curvature file %s...\n", fname) ;
@@ -4331,9 +4329,9 @@ MRISregister(MRI_SURFACE *mris, MRI_SP *mrisp_template,
           if (Gdiag & DIAG_WRITE)
             fprintf(parms->fp, "finding optimal rigid alignment\n") ;
           MRISrigidBodyAlignGlobal(mris, parms, min_degrees, max_degrees, nangles) ;
-	  /*          MRISrigidBodyAlignGlobal(mris, parms, 0.5f, 32.0f, 8) ;*/
-	  if (Gdiag & DIAG_WRITE && parms->write_iterations != 0)
-	    MRISwrite(mris, "rotated") ;
+					/*          MRISrigidBodyAlignGlobal(mris, parms, 0.5f, 32.0f, 8) ;*/
+					if (Gdiag & DIAG_WRITE && parms->write_iterations != 0)
+						MRISwrite(mris, "rotated") ;
         }
       }
 
@@ -5117,9 +5115,9 @@ mrisIntegrationEpoch(MRI_SURFACE *mris, INTEGRATION_PARMS *parms,int base_averag
           parms->fp = fopen(fname, "w") ;
         else
           parms->fp = fopen(fname, "a") ;
-	if (!parms->fp)
-	  ErrorExit(ERROR_NOFILE, "%s: could not open log file %s",
-		    Progname, fname) ;
+				if (!parms->fp)
+					ErrorExit(ERROR_NOFILE, "%s: could not open log file %s",
+										Progname, fname) ;
       }
       fprintf(parms->fp, "%s/%s = %2.3f\n", snum, sdenom, ratio) ;
     }
@@ -5133,7 +5131,7 @@ mrisIntegrationEpoch(MRI_SURFACE *mris, INTEGRATION_PARMS *parms,int base_averag
     steps = MRISintegrate(mris, parms, n_averages) ;
     if (n_averages > 0 && parms->flags & IP_RETRY_INTEGRATION && 
         ((parms->integration_type == INTEGRATE_LINE_MINIMIZE) ||
-	 (parms->integration_type == INTEGRATE_LM_SEARCH)))
+				 (parms->integration_type == INTEGRATE_LM_SEARCH)))
     {
       int niter = parms->niterations ;
       int integration_type = parms->integration_type ;
@@ -5544,6 +5542,8 @@ MRIScomputeSSE(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
 
   sse = 0 ;
 
+  if (gMRISexternalSSE)
+    sse = (*gMRISexternalSSE)(mris, parms) ;
   sse += 
     (double)parms->l_area      * sse_neg_area + sse_repulse + sse_tsmooth +
     (double)parms->l_sphere    * sse_sphere + sse_repulsive_ratio +
@@ -5585,7 +5585,7 @@ MRIScomputeSSEExternal(MRI_SURFACE *mris, INTEGRATION_PARMS *parms,
   else
     sse = 0 ;
   *ext_sse = sse ;
-  sse += MRIScomputeSSE(mris, parms) ;
+  sse = MRIScomputeSSE(mris, parms) ;
 
   return(sse) ;
 }
@@ -5911,9 +5911,7 @@ mrisOrientPlane(MRI_SURFACE *mris)
       face = &mris->faces[v->f[fno]] ;
       v->area += face->area ;
     }
-    // DNG Changed from /=2 to /=3. 
-    // See also MRIScomputeTriangleProperties()
-    v->area /= 3.0; 
+    v->area /= 2 ;
   }
 
   return(NO_ERROR) ;
@@ -6379,8 +6377,7 @@ MRIScomputeTriangleProperties(MRI_SURFACE *mris)
 			if (face->ripflag == 0)
 				v->area += face->area ;
 		}
-    // DNG Changed from /=2 to /=3. 
-    v->area /= 3.0 ;
+    v->area /= 2.0 ;
   }
 
   VectorFree(&v_a) ;
@@ -16622,6 +16619,8 @@ MRISrigidBodyAlignGlobal(MRI_SURFACE *mris, INTEGRATION_PARMS *parms,
   {
     mina = minb = ming = 0.0 ;
     min_sse = mrisComputeCorrelationError(mris, parms, 1) ;  /* was 0 !!!! */
+		if (gMRISexternalSSE)
+			min_sse += (*gMRISexternalSSE)(mris, parms) ;
     delta = 2*degrees / (float)nangles ;
     if (Gdiag & DIAG_SHOW)
       fprintf(stdout, "scanning %2.2f degree nbhd, min sse = %2.2f\n", 
@@ -16642,6 +16641,8 @@ MRISrigidBodyAlignGlobal(MRI_SURFACE *mris, INTEGRATION_PARMS *parms,
           MRISsaveVertexPositions(mris, TMP_VERTICES) ;
           MRISrotate(mris, mris, alpha, beta, gamma) ;
           sse = mrisComputeCorrelationError(mris, parms, 1) ;  /* was 0 !!!! */
+					if (gMRISexternalSSE)
+						sse += (*gMRISexternalSSE)(mris, parms) ;
           MRISrestoreVertexPositions(mris, TMP_VERTICES) ;
           if (sse < min_sse)
           {
@@ -16665,6 +16666,8 @@ MRISrigidBodyAlignGlobal(MRI_SURFACE *mris, INTEGRATION_PARMS *parms,
     {
       MRISrotate(mris, mris, mina, minb, ming) ;
       sse = mrisComputeCorrelationError(mris, parms, 1) ;  /* was 0 !!!! */
+			if (gMRISexternalSSE)
+				sse += (*gMRISexternalSSE)(mris, parms) ;
       if (Gdiag & DIAG_SHOW)
         fprintf(stdout, "min sse = %2.2f at (%2.2f, %2.2f, %2.2f)\n",
                 sse, (float)DEGREES(mina), (float)DEGREES(minb), 
@@ -16679,7 +16682,7 @@ MRISrigidBodyAlignGlobal(MRI_SURFACE *mris, INTEGRATION_PARMS *parms,
       if (Gdiag & DIAG_WRITE && parms->write_iterations > 0)
         mrisWriteSnapshot(mris, parms, parms->start_t) ;
       if (Gdiag & DIAG_WRITE)
-	mrisLogStatus(mris, parms, parms->fp, 0.0f) ;
+				mrisLogStatus(mris, parms, parms->fp, 0.0f) ;
       if (Gdiag & DIAG_SHOW)
         mrisLogStatus(mris, parms, stderr, 0.0f) ;
     }

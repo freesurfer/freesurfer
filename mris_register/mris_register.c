@@ -12,8 +12,9 @@
 #include "mri.h"
 #include "macros.h"
 #include "version.h"
+#include "gcsa.h"
 
-static char vcid[] = "$Id: mris_register.c,v 1.20 2004/04/26 20:58:26 fischl Exp $";
+static char vcid[] = "$Id: mris_register.c,v 1.21 2004/11/15 18:09:26 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -23,6 +24,7 @@ static void print_usage(void) ;
 static void print_help(void) ;
 static void print_version(void) ;
 static int  compute_area_ratios(MRI_SURFACE *mris) ;
+static double gcsaSSE(MRI_SURFACE *mris, INTEGRATION_PARMS *parms) ;
 
 static int max_passes = 4 ;
 static float min_degrees = 0.5 ;
@@ -42,6 +44,14 @@ static char curvature_fname[STRLEN] = "" ;
 static char *orig_name = "smoothwm" ;
 static char *jacobian_fname = NULL ;
 
+#define MAX_LABELS 100
+static int nlabels = 0 ;
+static LABEL *labels[MAX_LABELS] ;
+static char  *label_names[MAX_LABELS] ;
+static GCSA  *label_gcsa[MAX_LABELS] ;
+static int   label_indices[MAX_LABELS] ;
+
+
 static int use_defaults = 1 ;
 
 static INTEGRATION_PARMS  parms ;
@@ -55,7 +65,7 @@ main(int argc, char *argv[])
   MRI_SP       *mrisp_template ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_register.c,v 1.20 2004/04/26 20:58:26 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_register.c,v 1.21 2004/11/15 18:09:26 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -84,6 +94,7 @@ main(int argc, char *argv[])
   parms.error_ratio = 1.03 /*ERROR_RATIO */;
   parms.dt_increase = 1.0 ;
   parms.dt_decrease = 1.0 ;
+	parms.l_external = 10 ;   /* in case manual label is specified */
   parms.error_ratio = 1.1 /*ERROR_RATIO */;
   parms.integration_type = INTEGRATE_ADAPTIVE ;
   parms.integration_type = INTEGRATE_MOMENTUM /*INTEGRATE_LINE_MINIMIZE*/ ;
@@ -380,6 +391,29 @@ get_option(int argc, char *argv[])
     nargs = 1 ;
     fprintf(stderr, "momentum = %2.2f\n", (float)parms.momentum) ;
     break ;
+	case 'L':
+		if (nlabels >= MAX_LABELS-1)
+			ErrorExit(ERROR_NO_MEMORY, "%s: too many labels specified (%d max)", Progname, MAX_LABELS) ;
+		nargs = 3 ;
+		labels[nlabels] = LabelRead(NULL, argv[2]) ;
+		if (labels[nlabels] == NULL)
+			ErrorExit(ERROR_NOFILE, "%s: could not read label file %s", Progname, argv[2]) ;
+		label_gcsa[nlabels] = GCSAread(argv[3]) ;
+		if (label_gcsa[nlabels] == NULL)
+			ErrorExit(ERROR_NOFILE, "%s: could not read GCSA file %s", Progname, argv[3]) ;
+		label_names[nlabels] = argv[4] ;
+		label_indices[nlabels] = CTABnameToAnnotation(label_gcsa[nlabels]->ct, argv[4]) ;
+
+		if (label_indices[nlabels] < 0)
+			ErrorExit(ERROR_NOFILE, "%s: could not map name %s to index", Progname, argv[3]) ;
+		nlabels++ ;
+		gMRISexternalSSE = gcsaSSE ;
+		break ;
+	case 'E':
+		parms.l_external = atof(argv[2]) ;
+		nargs = 1 ;
+		printf("setting l_external = %2.1f\n", parms.l_external) ;
+		break ;
   case 'C':
     strcpy(curvature_fname, argv[2]) ;
     nargs = 1 ;
@@ -420,8 +454,9 @@ get_option(int argc, char *argv[])
     nargs = 1 ;
     break ;
   case '?':
+	case 'H':
   case 'U':
-    print_usage() ;
+    print_help() ;
     exit(1) ;
     break ;
   default:
@@ -436,7 +471,7 @@ get_option(int argc, char *argv[])
 static void
 usage_exit(void)
 {
-  print_usage() ;
+  print_help() ;
   exit(1) ;
 }
 
@@ -455,6 +490,8 @@ print_help(void)
   fprintf(stderr, 
        "\nThis program register a surface with  an average surface.\n");
   fprintf(stderr, "\nvalid options are:\n\n") ;
+	fprintf(stderr, "\n\t-l <label file> <atlas (*.gcs)> <label name>\n"
+					"\tthis option will specify a manual label to align with atlas label <label name>\n");
   exit(1) ;
 }
 
@@ -483,5 +520,47 @@ compute_area_ratios(MRI_SURFACE *mris)
   }
 
   return(NO_ERROR) ;
+}
+
+static double 
+gcsaSSE(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
+{
+	int       vno, ano, lno, vno_prior, n, found ;
+	VERTEX    *v, *v_prior ;
+	double    sse ;
+	LABEL     *area ;
+  CP_NODE   *cpn ;
+  CP        *cp ;
+	GCSA      *gcsa ;
+
+	for (sse = 0.0, ano = 0 ; ano < nlabels ; ano++)
+	{
+		area = labels[ano] ;
+		gcsa = label_gcsa[ano] ;
+		for (lno = 0 ; lno < area->n_points ; lno++)
+		{
+			vno = area->lv[lno].vno ;
+			if (vno < 0)
+				continue ;
+			v = &mris->vertices[vno] ;
+			found = 0 ;
+			v_prior = GCSAsourceToPriorVertex(gcsa, v) ;
+			vno_prior = v_prior - gcsa->mris_priors->vertices ;
+			cpn = &gcsa->cp_nodes[vno_prior] ;
+			for (n = 0 ; n < cpn->nlabels ; n++)
+			{
+				cp = &cpn->cps[n] ;
+				if (cpn->labels[n] == label_indices[ano])
+				{
+					found = 1 ;
+					break ;
+				}
+			}
+			if (found == 0)
+				sse += parms->l_external ;
+		}
+	}
+
+	return(sse) ;
 }
 

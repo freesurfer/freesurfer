@@ -6,6 +6,7 @@
 #include "error.h"
 #include "colortab.h"
 #include "fio.h"
+#include "proto.h"
 
 COLOR_TABLE *
 CTABread(char *fname)
@@ -194,3 +195,52 @@ CTABannotationToIndex(COLOR_TABLE *ctab, int annotation)
 	CTABcolorToIndex(ctab, r, g, b, &index) ;
 	return(index) ;
 }
+int
+CTABnameToIndex(COLOR_TABLE *ctab, char *name)
+{
+  CTE *bin;
+  int nbin;
+
+  if (NULL == ctab)
+    return(-1);
+
+  nbin = 0;
+  while (nbin < ctab->nbins)
+	{
+		bin = &(ctab->bins[nbin]);
+		if (!stricmp(name, bin->name))
+		{
+			return(nbin) ;
+		}
+      
+		nbin++;
+	}
+  
+  return(-1);
+}
+
+int
+CTABnameToAnnotation(COLOR_TABLE *ctab, char *name)
+{
+  CTE *bin;
+  int nbin, annotation ;
+
+  if (NULL == ctab)
+    return(-1);
+
+  nbin = 0;
+  while (nbin < ctab->nbins)
+	{
+		bin = &(ctab->bins[nbin]);
+		if (!stricmp(name, bin->name))
+		{
+			annotation = (bin->b << 16) + (bin->g << 8) + bin->r ;
+			return(annotation) ;
+		}
+      
+		nbin++;
+	}
+  
+  return(-1);
+}
+

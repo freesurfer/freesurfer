@@ -30,7 +30,6 @@ static int    GCSAupdateNodeGibbsPriors(CP_NODE *cpn, int label,
                                         MRI_SURFACE *mris, int vno) ;
 static int    GCSAupdateNodeCovariance(GCSA_NODE *gcsan, int label, 
                                        double *v_inputs, int ninputs) ;
-static VERTEX *GCSAsourceToPriorVertex(GCSA *gcsa, VERTEX *v) ;
 static VERTEX *GCSAsourceToClassifierVertex(GCSA *gcsa, VERTEX *v) ;
 static int    GCSANclassify(GCSA_NODE *gcsa_node, CP_NODE *cpn,
                             double *v_inputs, 
@@ -296,7 +295,7 @@ GCSAsourceToClassifierVertex(GCSA *gcsa, VERTEX *v)
   vdst = MHTfindClosestVertex(gcsa->mht_classifiers, gcsa->mris_classifiers,v);
   return(vdst) ;
 }
-static VERTEX *
+VERTEX *
 GCSAsourceToPriorVertex(GCSA *gcsa, VERTEX *v)
 {
   VERTEX *vdst ;
