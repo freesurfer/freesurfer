@@ -1059,30 +1059,30 @@ FunD_tErr FunD_GetDataAtRAS ( mriFunctionalDataRef this,
 }
 
 FunD_tErr FunD_GetDataAtAnaIdxForAllTimePoints
-                        ( mriFunctionalDataRef this,xVoxelRef inVoxel, int inCondition, 
-        float *outData ) {
-
+( mriFunctionalDataRef this,xVoxelRef inVoxel, int inCondition, 
+  float *outData ) {
+  
   FunD_tErr theErr;
- xVoxelRef theFunctionalVoxel;
+  xVoxelRef theFunctionalVoxel;
   int theTimePoint;
   float theValue;
-
+  
   xVoxl_New( &theFunctionalVoxel );
-
+  
   // make sure we're valid.
   theErr = FunD_AssertIsValid ( this );
   if ( FunD_tErr_NoError != theErr )
     return theErr;
-
+  
   // convert to func index
   FunD_ConvertAnaIdxToFuncIdx( this, inVoxel, theFunctionalVoxel );
-
+  
   // make sure all the indicies are valid.
   if ( !FunD_IsFunctionalVoxelValid(this,theFunctionalVoxel) ) {
     theErr = FunD_tErr_InvalidFunctionalVoxel;
     goto cleanup;
   }
-
+  
   if ( !FunD_IsConditionIndexValid(this,inCondition) ) {
     theErr =  FunD_tErr_InvalidConditionIndex;
     goto cleanup;
@@ -1095,16 +1095,66 @@ FunD_tErr FunD_GetDataAtAnaIdxForAllTimePoints
     
     // get the data at this point.
     theValue = FunD_GetValue ( this, theFunctionalVoxel,
-         inCondition, theTimePoint );
-
+             inCondition, theTimePoint );
+    
     // put it in output array.
     outData[theTimePoint] = theValue;
   }
   
-      cleanup:
+ cleanup:
   
   xVoxl_Delete ( &theFunctionalVoxel );
+  
+  return theErr;
+}
 
+FunD_tErr FunD_GetDataAtRASForAllTimePoints
+( mriFunctionalDataRef this, xVoxelRef inVoxel, int inCondition, 
+  float *outData ) {
+  
+  FunD_tErr theErr;
+  xVoxelRef theFunctionalVoxel;
+  int theTimePoint;
+  float theValue;
+  
+  xVoxl_New( &theFunctionalVoxel );
+  
+  // make sure we're valid.
+  theErr = FunD_AssertIsValid ( this );
+  if ( FunD_tErr_NoError != theErr )
+    return theErr;
+  
+  // convert to func index
+  FunD_ConvertRASToFuncIdx( this, inVoxel, theFunctionalVoxel );
+  
+  // make sure all the indicies are valid.
+  if ( !FunD_IsFunctionalVoxelValid(this,theFunctionalVoxel) ) {
+    theErr = FunD_tErr_InvalidFunctionalVoxel;
+    goto cleanup;
+  }
+  
+  if ( !FunD_IsConditionIndexValid(this,inCondition) ) {
+    theErr =  FunD_tErr_InvalidConditionIndex;
+    goto cleanup;
+  }
+  
+  // for each time point...
+  for ( theTimePoint = 0;
+  theTimePoint < this->mNumTimePoints;
+  theTimePoint++ ) {
+    
+    // get the data at this point.
+    theValue = FunD_GetValue ( this, theFunctionalVoxel,
+             inCondition, theTimePoint );
+    
+    // put it in output array.
+    outData[theTimePoint] = theValue;
+  }
+  
+ cleanup:
+  
+  xVoxl_Delete ( &theFunctionalVoxel );
+  
   return theErr;
 }
 

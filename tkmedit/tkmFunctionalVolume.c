@@ -2702,8 +2702,8 @@ FunV_tErr FunV_CalcTimeCourseAverages_ ( tkmFunctionalVolumeRef this,
   for( nValue = 0; nValue < nNumTimePoints; nValue++ ) {
     afSums[nValue] += oafValues[nValue];
   }
-
-
+  
+  
   /* if we have error data, we'll need to divide our error bar
      values by the average offset. */
   if( this->mabDisplayFlags[FunV_tDisplayFlag_TC_OffsetValues] 

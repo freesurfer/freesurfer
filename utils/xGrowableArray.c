@@ -83,6 +83,7 @@ xGArr_tErr xGArr_Delete ( xGrowableArrayRef* iopList ) {
   this->mSignature = 0x1;
 
   /* free us */
+  free( this->mpData );
   free( this );
 
   *iopList = NULL;
@@ -217,6 +218,43 @@ xGArr_tErr xGArr_NextItem ( xGrowableArrayRef this,
 
   return eResult;
 }
+
+xGArr_tErr xGArr_Clear  ( xGrowableArrayRef this ) {
+
+  xGArr_tErr eResult = xGArr_tErr_NoErr;
+
+  eResult = xGArr_Verify( this );
+  if( xGArr_tErr_NoErr != eResult )
+    goto error;
+
+  /* free our storage and realloc it */
+  free( this->mpData );
+  this->mpData = malloc( this->mnMaxSizeBytes );
+  if( NULL == this->mpData ) {
+    eResult = xGArr_tErr_AllocationFailed;
+    goto error;
+  }
+
+  /* reset counter */
+  this->mnNumItems = 0;
+  this->mnNext     = 0;
+
+  goto cleanup;
+
+ error:
+
+  if( xGArr_tErr_NoErr != eResult ) {
+    DebugPrint( ( "Error %d in xGArr_Clear: %s\n",
+      eResult, xGArr_GetErrorString( eResult ) ));
+  }
+
+ cleanup:
+
+  return eResult;
+  
+
+}
+
 
 xGArr_tErr xGArr_Verify ( xGrowableArrayRef this ) {
 

@@ -182,7 +182,11 @@ FunD_tErr FunD_GetDataAtRAS    ( mriFunctionalDataRef this,
          float*               outData );
 
 FunD_tErr FunD_GetDataAtAnaIdxForAllTimePoints ( mriFunctionalDataRef this,
-            xVoxelRef             inVoxel, 
+             xVoxelRef            inVoxel, 
+             int              inCondition, 
+             float*              outData );
+FunD_tErr FunD_GetDataAtRASForAllTimePoints    ( mriFunctionalDataRef this,
+             xVoxelRef            inVoxel, 
              int              inCondition, 
              float*              outData );
 

@@ -42,6 +42,8 @@ xGArr_tErr xGArr_ResetIterator ( xGrowableArrayRef this );
 xGArr_tErr xGArr_NextItem      ( xGrowableArrayRef this,
          void*             opDest );
 
+xGArr_tErr xGArr_Clear  ( xGrowableArrayRef this );
+
 xGArr_tErr xGArr_Verify ( xGrowableArrayRef this );
 char* xGArr_GetErrorString ( xGArr_tErr ieCode );
 
