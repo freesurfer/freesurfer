@@ -5,7 +5,7 @@
 # editing.
 #
 # mkfsdist
-# $Id: mkfsdist,v 1.31 2004/01/29 22:01:55 kteich Exp $
+# $Id: mkfsdist,v 1.32 2005/01/21 17:35:14 kteich Exp $
 #
 # Usage: mkfsdist sourcedir targetdir platform [options]
 #
@@ -72,7 +72,7 @@
 #  files found in tar-exclude-more and tar-exclude-gca.
 #
 # 
-set VERSION = '$Id: mkfsdist,v 1.31 2004/01/29 22:01:55 kteich Exp $';
+set VERSION = '$Id: mkfsdist,v 1.32 2005/01/21 17:35:14 kteich Exp $';
 
 # To include the autoseg in the distribution set environment varible
 # KEEPAUTOSEG to 1 before running mkfsdist (ie, setenv KEEPAUTOSEG 1)
@@ -247,7 +247,7 @@ endif
 
 # Check that the talairach subject is there #
 if( $TALAIRACH && ! -e $SUBJECTS_DIR/talairach) then
-  echo "ERROR: cannot find $$SUBJECTS_DIR/talairach"
+  echo "ERROR: cannot find $SUBJECTS_DIR/talairach"
   exit 1;
 endif
 
