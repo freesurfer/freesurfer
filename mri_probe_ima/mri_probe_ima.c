@@ -20,7 +20,7 @@
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_probe_ima.c,v 1.4 2002/01/31 00:48:30 greve Exp $";
+static char vcid[] = "$Id: mri_probe_ima.c,v 1.5 2002/03/01 22:40:28 greve Exp $";
 char *Progname = NULL;
 
 static int  parse_commandline(int argc, char **argv);
@@ -129,6 +129,26 @@ int main(int argc, char **argv)
     }
     if(stringmatch(attrname,"patgender")){
       printf("%s\n",ifi->PatientGender);
+      return(0); exit(0);
+    }
+    if(stringmatch(attrname,"ismosaic")){
+      printf("%d\n",ifi->IsMosaic);
+      return(0); exit(0);
+    }
+    if(stringmatch(attrname,"nfilesact")){
+      printf("%d\n",ifi->NFilesInSeries);
+      return(0); exit(0);
+    }
+    if(stringmatch(attrname,"nfilesexp")){
+      printf("%d\n",ifi->NFilesInSeriesExp);
+      return(0); exit(0);
+    }
+    if(stringmatch(attrname,"nfilesperframe")){
+      printf("%d\n",ifi->NFilesPerFrame);
+      return(0); exit(0);
+    }
+    if(stringmatch(attrname,"error")){
+      printf("%d\n",ifi->ErrorFlag);
       return(0); exit(0);
     }
     printf("ERROR: attribute %s not recognized\n",attrname);
@@ -361,7 +381,11 @@ static void print_help(void)
 "  studytime : time of the scan  (HHMMSS)\n"
 "  voldim    : number of columns, rows, and slices in the volume. \n"
 "  volres    : spacing between columns, rows, and slices in the volume\n"
-"  nframes   : number of frames\n"
+"  nframes   : number of frames (expected)\n"
+"  ismosaic  : returns 1 if slices are mosaiced, 0 otherwise\n"
+"  nfilesact : actual number of files found for this series\n"
+"  nfilesexp : number of files expected for this series\n"
+"  error     : 1 if actual number of files does not equal expected, 0 otherwise\n"
 "  tr        : repetition time (sec)\n"
 "  pulseseq  : pulse sequence name\n"
 "  patname   : patient name \n"
@@ -385,16 +409,19 @@ static void print_help(void)
 "may not be filled with legitimate values, depending upon how the pulse sequence\n"
 "was programmed.\n"
 "\n"
-"The G28_Pre_PixelSize_Row and G28_Pre_PixelSize_Column values are incorrect for\n"
-"mosaics. This is actually the way Siemens stores these values and is not an bug in \n"
-"this program.\n"
+"The G28_Pre_PixelSize_Row and G28_Pre_PixelSize_Column values are \n"
+"incorrect for mosaics. This is actually the way Siemens stores \n"
+"these values and is not an bug in  this program.\n"
+"\n"
+"G20_Rel_Study (3200, long) appears to be the Series Number. There is\n"
+"another variable (G20_Rel_Series, 3204, long), but this has garbage in\n"
+"it, at least in the MGH-NMR files.\n"
+"\n"
 "\n"
 "VERSION\n"
 "\n"
 );
 printf("   %s\n\n", vcid) ;
-
-
 
   exit(1) ;
 }
