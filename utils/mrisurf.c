@@ -107,13 +107,13 @@ static int   mrisComputeCurvatureTerm(MRI_SURFACE *mris,
                                       INTEGRATION_PARMS *parms) ;
 static int mrisProjectSurface(MRI_SURFACE *mris) ;
 static int mrisOrientSurface(MRI_SURFACE *mris) ;
-static int   mrisComputeSpringNormalTerm(MRI_SURFACE *mris,
-                                         INTEGRATION_PARMS *parms);
 static int   mrisComputeBoundaryNormals(MRI_SURFACE *mris) ;
 static int   mrisSmoothBoundaryNormals(MRI_SURFACE *mris, int niter) ;
 static int   mrisFlipPatch(MRI_SURFACE *mris) ;
 
 #if 0
+static int   mrisComputeSpringNormalTerm(MRI_SURFACE *mris,
+                                         INTEGRATION_PARMS *parms);
 static double mrisComputeAverageHeight(MRI_SURFACE *mris) ;
 
 static int   mrisComputeSethianCurvatureTerm(MRI_SURFACE *mris, 
@@ -763,7 +763,7 @@ MRISsampleDistances(MRI_SURFACE *mris, int *nbrs, int max_nbhd)
     }
 
 
-    if (Gdiag_no == vno)
+    if ((Gdiag_no == vno) && DIAG_VERBOSE_ON)
     {
       FILE  *fp ;
       char  fname[100] ;
@@ -964,7 +964,7 @@ MRISsetNeighborhoodSize(MRI_SURFACE *mris, int nsize)
             fprintf(stderr, 
                     "warning: vertex %d has duplicate neighbors %d and %d!\n",
                     vno, i, n) ;
-      if ((vno == Gdiag_no) && (Gdiag & DIAG_SHOW))
+      if ((vno == Gdiag_no) && (Gdiag & DIAG_SHOW) && DIAG_VERBOSE_ON)
       {
         fprintf(stderr, "v %d: vnum=%d, v2num=%d, vtotal=%d\n",
                 vno, v->vnum, v->v2num, v->vtotal) ;
@@ -2475,7 +2475,7 @@ MRISunfold(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int max_passes)
   mrisIntegrationEpoch(mris, parms, parms->n_averages = 0) ; 
 
   parms->l_area = 1.0f ;
-  parms->l_dist = 0.001f ;
+  parms->l_dist = 0.01f ;  /* was 0.001 */
   parms->l_angle = ANGLE_AREA_SCALE * parms->l_area ;
   parms->niterations = niter ;
 
@@ -4338,7 +4338,7 @@ mrisLineMinimize(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
       MatrixFree(&m_xT) ; MatrixFree(&m_xTx) ; MatrixFree(&m_xTx_inv) ;
     }
 
-    if (Gdiag & DIAG_SHOW)
+    if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
       fprintf(stderr, "sses: %2.2f  ", sse_out[0]) ;
     mini = 0 ; min_sse = sse_out[mini] ; 
     for (i = 1 ; i < N ; i++)
@@ -6241,7 +6241,9 @@ MRIScomputeSecondFundamentalForm(MRI_SURFACE *mris)
     vertex->k1 = k1 ; vertex->k2 = k2 ;
     vertex->K = k1 * k2 ;
     vertex->H = (k1 + k2) / 2 ;
-
+    if (vno == Gdiag_no && (Gdiag & DIAG_SHOW))
+      fprintf(stderr, "v %d: k1=%2.3f, k2=%2.3f, K=%2.3f, H=%2.3f\n",
+              vno, vertex->k1, vertex->k2, vertex->K, vertex->H) ;
     if (vertex->K < mris->Kmin)
       mris->Kmin = vertex->K ;
     if (vertex->H < mris->Hmin)
@@ -6459,8 +6461,7 @@ MRISinflateBrain(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
   int     base_averages, n_averages, done, total_steps, n, write_iterations,
           niterations, nv, nsmall ;
   INTEGRATION_PARMS _parms ;
-  double  first_fi, last_fi, var, starting_var, delta_t = 0.0, fi, 
-          ici, starting_fi, starting_ici, fi_desired, sse ;
+  double  first_fi, delta_t = 0.0, fi, ici, starting_fi, starting_ici, fi_desired;
 
   if (!parms)   /* use all defaults */
   {
@@ -6513,23 +6514,23 @@ MRISinflateBrain(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
   niterations = parms->niterations ;
   total_steps = 0 ;
   fi_desired = parms->fi_desired ;
-  fprintf(stderr, "inflating to desired FI = %2.3f\n", parms->fi_desired);
+  fprintf(stderr, "inflating to desired folding index = %2.3f\n", 
+          parms->fi_desired);
 
   /* write out initial surface */
   if ((parms->write_iterations > 0) && (Gdiag&DIAG_WRITE))
     mrisWriteSnapshot(mris, parms, 0) ;
   
-  var = MRIStotalVariation(mris) ;
-  sse = mrisComputeSSE(mris, parms) ;
   MRIScomputeCurvatureIndices(mris, &ici, &fi) ;
-  fprintf(stderr, "%3.3d: dt: %2.4f, sse=%2.0f, ici=%2.2f, fi=%2.2f, "
-          "avgs=%d\n", 0,
-          0.0f, (float)sse, (float)ici,(float)fi, parms->n_averages) ;
+  if (Gdiag & DIAG_SHOW)
+    fprintf(stderr, "%3.3d: dt: %2.4f, ici=%2.2f, fi=%2.2f, avgs=%d\n", 
+            0, 0.0f, (float)ici,(float)fi, parms->n_averages) ;
+  else
+    fprintf(stderr, "\rstep %3.3d: FI=%2.1f (target=%2.1f)   ", 0, fi, fi_desired);
   if (Gdiag & DIAG_WRITE)
   {
-    fprintf(parms->fp, "%3.3d: dt: %2.4f, sse=%2.0f, ici=%2.2f, "
-            "fi=%2.2f, avgs=%d\n", 0,
-            0.0f, (float)sse,(float)ici, (float)fi, parms->n_averages) ;
+    fprintf(parms->fp, "%3.3d: dt: %2.4f, ici=%2.2f, fi=%2.2f, avgs=%d\n", 
+            0, 0.0f, (float)ici, (float)fi, parms->n_averages) ;
     fflush(parms->fp) ;
   }
 
@@ -6541,7 +6542,6 @@ MRISinflateBrain(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
     for (n_averages = base_averages ; !done ; n_averages /= 2)
     {
       parms->n_averages = n_averages ;     /* # of averages == scale */
-      starting_var = MRIStotalVariation(mris) ;
       MRIScomputeCurvatureIndices(mris, &starting_ici, &starting_fi) ;
       mrisClearMomentum(mris) ;
       nsmall = 0 ;
@@ -6549,9 +6549,7 @@ MRISinflateBrain(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
       {
         mrisClearGradient(mris) ;
         mrisComputeDistanceTerm(mris, parms) ;
-        mrisComputeSpringNormalTerm(mris, parms) ;
         mrisComputeSpringTerm(mris, parms) ;
-        mrisComputeNegTerm(mris, parms) ;
 
         mrisAverageGradients(mris, n_averages) ;
         switch (parms->integration_type)
@@ -6568,38 +6566,24 @@ MRISinflateBrain(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
           break ;
         }
         /*        mrisOrientSurf(mris) ;*/
-        var = MRIStotalVariation(mris) ;
-        sse = mrisComputeSSE(mris, parms) ;
+        MRISupdateSurface(mris) ;   /* will compute metric props and curvatures */
         MRIScomputeCurvatureIndices(mris, &ici, &fi) ;
-        fprintf(stderr, "%3.3d: dt: %2.4f, sse=%2.0f, ici=%2.2f, fi=%2.2f, "
-                "avgs=%d\n", n+total_steps+1,
-                (float)delta_t, (float)sse, (float)ici,(float)fi, n_averages) ;
+        if (Gdiag & DIAG_SHOW)
+          fprintf(stderr, "%3.3d: dt: %2.4f, ici=%2.2f, fi=%2.2f, avgs=%d\n", 
+                  n+total_steps+1,(float)delta_t, (float)ici,(float)fi,n_averages);
+        else
+          fprintf(stderr, "\rstep %3.3d: FI=%2.1f (target=%2.1f)   ", 
+                  n+total_steps+1, fi, fi_desired) ;
         if (Gdiag & DIAG_WRITE)
         {
-          fprintf(parms->fp, "%3.3d: dt: %2.4f, sse=%2.0f, ici=%2.2f, "
-                  "fi=%2.2f, avgs=%d\n", n+total_steps+1,
-                  (float)delta_t, (float)sse,(float)ici, (float)fi, n_averages) ;
+          fprintf(parms->fp, "%3.3d: dt: %2.4f, ici=%2.2f, fi=%2.2f, avgs=%d\n", 
+                  n+total_steps+1,(float)delta_t,(float)ici,(float)fi,n_averages);
 
           fflush(parms->fp) ;
         }
         if (fi < fi_desired)
           break ;
 
-#if 0
-        if (starting_ici - ici < parms->tol && starting_fi - fi < parms->tol)
-        {
-          mrisClearMomentum(mris) ;
-          fprintf(stderr, "resetting momentum and ") ;
-          parms->dt = parms->base_dt ;
-          fprintf(stderr,"setting dt to base (%2.5f)\n",(float)parms->base_dt);
-          if (++nsmall >= MAX_SMALL)
-            break ;
-        }
-        else
-          nsmall = 0 ;
-#endif
-
-        starting_var = var ;
         starting_fi = fi ;
         starting_ici = ici ;
 
@@ -6607,19 +6591,18 @@ MRISinflateBrain(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
             !((total_steps+n+1)%write_iterations)&&(Gdiag&DIAG_WRITE))
           mrisWriteSnapshot(mris, parms, total_steps+n+1) ;
       }
+      if (fi < fi_desired)  /* done */
+        break ;
       parms->start_t += n ;
       total_steps += n ;
       parms->dt = parms->base_dt ;         /* reset time step */
       done = n_averages == 0 ;    /* finished integrating at smallest scale */
     }
-    MRIScomputeCurvatureIndices(mris, &ici, &last_fi) ;
-  } while (fi_desired < last_fi) ;
+  } while (fi >= fi_desired) ;
 
-
+  fprintf(stderr, "\ninflation complete.\n") ;
   if (Gdiag & DIAG_WRITE)
     fclose(parms->fp) ;
-
-  mrisProjectSurface(mris) ;
 
   return(NO_ERROR) ;
 }
@@ -7106,7 +7089,6 @@ mrisSmoothNormals(MRI_SURFACE *mris, int niterations)
   VectorFree(&v_n2) ;
   return(NO_ERROR) ;
 }
-#endif
 /*-----------------------------------------------------
         Parameters:
 
@@ -7168,13 +7150,14 @@ mrisComputeSpringNormalTerm(MRI_SURFACE *mris,INTEGRATION_PARMS *parms)
     vertex->dy += l_spring * sy ;
     vertex->dz += l_spring * sz ;
     if (vno == Gdiag_no)
-      fprintf(stderr, "moving vertex %d by (%2.3f, %2.3f, %2.3f)\n",
+      fprintf(stderr, "vertex %d spring term: (%2.3f, %2.3f, %2.3f)\n",
               vno, vertex->dx, vertex->dy, vertex->dz) ;
   }
   
 
   return(NO_ERROR) ;
 }
+#endif
 /*-----------------------------------------------------
         Parameters:
 
@@ -7246,7 +7229,7 @@ mrisComputeSpringTerm(MRI_SURFACE *mris,INTEGRATION_PARMS *parms)
     vertex->dy += l_spring * sy ;
     vertex->dz += l_spring * sz ;
     if (vno == Gdiag_no)
-      fprintf(stderr, "moving vertex %d by (%2.3f, %2.3f, %2.3f)\n",
+      fprintf(stderr, "vertex %d spring term: (%2.3f, %2.3f, %2.3f)\n",
               vno, vertex->dx, vertex->dy, vertex->dz) ;
   }
   
@@ -7332,7 +7315,7 @@ mrisComputeDistanceTerm(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
     V3_CLEAR(v_delta) ;
     VECTOR_LOAD(v_n, v->nx, v->ny, v->nz) ;
 
-    if (vno == Gdiag_no && Gdiag & DIAG_SHOW)
+    if (vno == Gdiag_no && Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
       fprintf(stderr, 
             "computing distance term for vertex %d @ (%2.2f, %2.2f, %2.2f)\n",
               vno, v->x, v->y, v->z) ;
