@@ -1,5 +1,5 @@
-function [fspec, fstem, fmt] = MRIfspec(fstring)
-% [fspec fstem fmt] = MRIfspec(fstring)
+function [fspec, fstem, fmt] = MRIfspec(fstring,checkdisk)
+% [fspec fstem fmt] = MRIfspec(fstring,<checkdisk>)
 %
 % Determine the file specification (fspec), stem (fstem), and format
 % (fmt) from the given file string.
@@ -11,23 +11,26 @@ function [fspec, fstem, fmt] = MRIfspec(fstring)
 % If fstring is an fspec, then the format is determined from the
 % extension.
 %
-% If fstring is an fstem, then the format is determined by finding a
-% file on disk named fstem.fmt. The formats are searched in the
-% following order: mgh, mgz, bhdr, or img. The search order is only
-% important when there are multiple files that would have met the
-% criteria, then only the first one is chosen. If no such file is
-% found, then empty strings are returned.
+% If fstring is an fstem and checkdisk=1 or NOT present, then the
+% format is determined by finding a file on disk named fstem.fmt. The
+% formats are searched in the following order: mgh, mgz, bhdr, or
+% img. The search order is only important when there are multiple
+% files that would have met the criteria, then only the first one is
+% chosen. If no such file is found, then empty strings are returned.
 %
-% $Id: MRIfspec.m,v 1.1 2004/11/13 16:48:43 greve Exp $
+% $Id: MRIfspec.m,v 1.2 2004/11/18 00:46:14 greve Exp $
 
 fspec = [];
 fstem = [];
 fmt   = [];
 
-if(nargin ~= 1)
-  fprintf('[fspec fstem fmt] = MRIfspec(fstring)\n');
+if(nargin < 1 | nargin > 2)
+  fprintf('[fspec fstem fmt] = MRIfspec(fstring,<checkdisk>)\n');
   return;
 end
+
+% If checkdisk is not passed, then do a check disk
+if(~exist('checkdisk','var')) checkdisk = 1; end
 
 % First, examin fstring to see if it has an extension fspec must have
 % at least 4 characters (5 for bhdr). Order is not important here.
@@ -65,6 +68,10 @@ end
 % If it gets here, then it cannot determine the format from an
 % extension, so fstring could be a stem, so see if a file with
 % stem.fmt exists. Order is imporant here.
+
+% Do this only if checkdisk is on
+if(~checkdisk) return; end
+
 fstem = fstring;
 
 fmt = 'mgh';
