@@ -22,7 +22,7 @@ ScubaLayer2DMRI::ScubaLayer2DMRI () {
   mSampleMethod = nearest;
   mColorMapMethod = grayscale;
   mBrightness = 0.25;
-  mContrast = 12.0; mNegContrast = -mContrast;
+  mContrast = 12.0; 
   mCurrentPath = NULL;
   mROIOpacity = 0.7;
   mbEditableROI = true;
@@ -896,6 +896,25 @@ ScubaLayer2DMRI::DoListenToTclCommand ( char* isCommand, int iArgc, char** iasAr
 void
 ScubaLayer2DMRI::DataChanged () {
 
+  float newMinValue, newMaxValue;
+  newMinValue = mVolume->GetMRIMinValue();
+  newMaxValue = mVolume->GetMRIMaxValue();
+  if ( newMinValue < mMinVisibleValue ||
+       newMaxValue > mMaxVisibleValue ) {
+
+    cerr << "ScubaLayer2DMRI: "
+	 << "old min max " << mMinVisibleValue << " " << mMaxVisibleValue
+	 << "new min max " << newMinValue << " " << newMaxValue << endl;
+
+    SetMinVisibleValue( mVolume->GetMRIMinValue() );
+    SetMaxVisibleValue( mVolume->GetMRIMaxValue() );
+
+    stringstream ssCommand;
+    ssCommand << "2DMRILayerMinMaxValueChanged " << GetID();
+    TclCommandManager& mgr = TclCommandManager::GetManager();
+    mgr.SendCommand( ssCommand.str() );
+  }
+
   RequestRedisplay();
 }
 
@@ -1442,7 +1461,6 @@ ScubaLayer2DMRI::GetPreferredInPlaneIncrements ( float oIncrements[3] ) {
   oIncrements[2] = mVolume->GetVoxelZSize();
 }
 
-					    
 
 // ======================================================================
 

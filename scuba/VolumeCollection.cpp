@@ -495,8 +495,6 @@ VolumeCollection::SetMRIValueAtRAS ( float iRAS[3], float iValue ) {
     int index[3];
     RASToMRIIndex( iRAS, index );
     switch( mMRI->type ) {
-    default:
-      break ;
     case MRI_UCHAR:
       MRIvox( mMRI, index[0], index[1], index[2] ) = (BUFTYPE) iValue;
       break ;
@@ -512,11 +510,17 @@ VolumeCollection::SetMRIValueAtRAS ( float iRAS[3], float iValue ) {
     case MRI_INT:
       MRIIvox( mMRI, index[0], index[1], index[2] ) = (int) iValue;
       break ;
+    default:
+      break ;
     }
   }
 
-  if( iValue < mMRIMinValue ) mMRIMinValue = iValue;
-  if( iValue < mMRIMaxValue ) mMRIMaxValue = iValue;
+  if( iValue < mMRIMinValue ) {
+    mMRIMinValue = iValue;
+  }
+  if( iValue > mMRIMaxValue ) {
+    mMRIMaxValue = iValue;
+  }
 
   DataChanged();
 }

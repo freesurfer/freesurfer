@@ -44,6 +44,7 @@ class ScubaLayer2DMRI : public Layer {
   virtual TclCommandResult
     DoListenToTclCommand ( char* isCommand, int iArgc, char** iArgv );
 
+  // Override to change min/max range on new value.
   virtual void DataChanged();
 
   virtual void HandleTool ( float iRAS[3], ViewState& iViewState,
@@ -67,8 +68,7 @@ class ScubaLayer2DMRI : public Layer {
   static float const kMaxPixelComponentValueFloat;  
   void BuildGrayscaleLUT ();
   void SetBrightness ( float iBrightness ) { mBrightness = iBrightness; }
-  void SetContrast ( float iContrast ) { 
-    mContrast = iContrast; mNegContrast = -mContrast; }
+  void SetContrast ( float iContrast ) { mContrast = iContrast; }
 
   void SetMinVisibleValue ( float iValue );
   float GetMinVisibleValue () { return mMinVisibleValue; }
@@ -99,14 +99,6 @@ class ScubaLayer2DMRI : public Layer {
 				 
   virtual void GetPreferredInPlaneIncrements ( float oIncrements[3] );
 
-  // Create the histogram fill window from a list of voxels.
-  void MakeHistogramFillWindow ( std::list<Point3<float> >& iRAS );
-
-  // Get a list of voxels in the current visible view plane. One RAS per
-  // voxel.
-  void GetRASInVisibleViewPlane ( int iWidth, int iHeight, 
-				  ScubaWindowToRASTranslator& iTranslator,
-				  std::list<Point3<float> >&  oRAS );
  
  protected:
   
@@ -120,7 +112,7 @@ class ScubaLayer2DMRI : public Layer {
   float mMinVisibleValue, mMaxVisibleValue;
 
   // For grayscale drawing.
-  float mBrightness, mContrast, mNegContrast;
+  float mBrightness, mContrast;
   //  std::map<int,float> mGrayscaleLUT; // 0-255
   int mGrayscaleLUT[256]; // 0-255
 

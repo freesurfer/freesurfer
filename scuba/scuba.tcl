@@ -10,7 +10,7 @@ if { $err } {
     load [file dirname [info script]]/libscuba[info sharedlibextension] scuba
 }
 
-DebugOutput "\$Id: scuba.tcl,v 1.59 2004/10/08 17:31:48 kteich Exp $"
+DebugOutput "\$Id: scuba.tcl,v 1.60 2004/10/08 18:30:34 kteich Exp $"
 
 # gTool
 #   current - current selected tool (nav,)
@@ -803,7 +803,7 @@ proc ScubaMouseMotionCallback { inX inY iState iButton } {
     global gaLayer
     global gaTool
 
-    # state 257 = mouse 1 + shift
+    # state 257 = mouse 1 + shift. Change the brightness or contrast.
     if { $gaTool($gaFrame([GetMainFrameID],toolID),mode) == "navigation" &&
 	 $iState == 257 } {
 
@@ -2450,6 +2450,25 @@ proc SelectLayerInLayerProperties { iLayerID } {
 	}
     }
 }
+
+proc 2DMRILayerMinMaxValueChanged { iLayerID } {
+    global gaLayer
+    global gaWidget
+
+    if { $gaLayer(current,id) == $iLayerID } {
+	
+	set gaLayer(current,minValue) [Get2DMRILayerMinValue $iLayerID]
+	set gaLayer(current,maxValue) [Get2DMRILayerMaxValue $iLayerID]
+	tkuUpdateSlidersRange $gaWidget(layerProperties,minMaxSliders) \
+	    $gaLayer(current,minValue) $gaLayer(current,maxValue)
+
+	set gaLayer(current,minVisibleValue) \
+	    [Get2DMRILayerMinVisibleValue $iLayerID]
+	set gaLayer(current,maxVisibleValue) \
+	    [Get2DMRILayerMaxVisibleValue $iLayerID]
+    }
+}
+
 
 # This builds the layer ID list and populates the menu that selects
 # the current layer in the layer props panel, and the menus in the
@@ -4154,7 +4173,7 @@ proc SaveSceneScript { ifnScene } {
     set f [open $ifnScene w]
 
     puts $f "\# Scene file generated "
-    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.59 2004/10/08 17:31:48 kteich Exp $"
+    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.60 2004/10/08 18:30:34 kteich Exp $"
     puts $f ""
 
     # Find all the data collections.
