@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
+#include <assert.h>
 
 #include "error.h"
 #include "stc.h"
@@ -49,10 +50,87 @@ StcWrite(char *fname, MATRIX *m_data, float epoch_begin_lat,
   return(NO_ERROR) ;
 }
 
+STC_FILE *StcOpen(char* fstem) 
+{
+  STC_FILE* stc_file;
+  char fname[STRLEN];
+  int vno;
+
+  stc_file = (STC_FILE *)calloc(1, sizeof(STC_FILE));
+
+  sprintf(fname,"%s.stc",fstem);
+  stc_file->file_handle = fopen(fname,"r");
+  if (stc_file->file_handle==NULL)
+    ErrorReturn(NULL, 
+                (ERROR_NOFILE, "StcRead: could not open %s", fname)) ;
+
+  stc_file->epoch_begin_lat = freadFloat(stc_file->file_handle);
+  stc_file->sample_period = freadFloat(stc_file->file_handle);
+  stc_file->nvertices = freadInt(stc_file->file_handle);
+  stc_file->vertices = (int *)calloc(stc_file->nvertices, sizeof(int)) ;
+  if (!stc_file->vertices)
+    ErrorExit(ERROR_NOMEMORY, "StcRead(%s): could not allocated %d vector",
+              fname, stc_file->nvertices) ;
+
+  for (vno=0;vno<stc_file->nvertices;vno++)
+  {
+    stc_file->vertices[vno] = freadInt(stc_file->file_handle);
+  }
+  stc_file->ntimepts = freadInt(stc_file->file_handle);
+
+  return stc_file;
+}
+
+void StcClose(STC_FILE *stc_file)
+{
+  if(stc_file->file_handle)
+    fclose(stc_file->file_handle);
+  
+  if(stc_file->vertices) {
+    free(stc_file->vertices);
+    stc_file->vertices = 0;
+    stc_file->nvertices = 0;
+  }
+}
+
+STC_FRAME *StcReadFrame(int fno, STC_FILE* stc_file)
+{
+  STC_FRAME *stc;
+  int baseoffset,offset;
+  int framesize,vno;
+
+  assert(stc_file->file_handle);
+  
+  stc = (STC_FRAME *)calloc(1, sizeof(STC_FRAME));
+
+  stc->nperdip = stc_file->nperdip;
+  stc->ndipoles = stc_file->ndipoles;
+  stc->nvertices = stc_file->nvertices;
+
+  baseoffset = 12 + 4*stc_file->nvertices + 4;
+  framesize = 4*stc_file->ndipoles*stc_file->nperdip;
+  offset = baseoffset + fno*framesize;
+  fseek(stc_file->file_handle,offset,SEEK_SET);
+
+  stc->m_vals = 
+    MatrixAlloc(stc->nperdip*stc->nvertices,1,MATRIX_REAL);
+
+  if (!stc->m_vals)
+    ErrorExit(ERROR_NOMEMORY, "StcReadFrame could not allocate %dx%d matrix",
+              stc_file->nperdip*stc_file->nvertices, 1) ;
+  
+  for (vno=0;vno<stc->m_vals->rows;vno++)
+    {
+      *MATRIX_RELT(stc->m_vals, vno+1,1) = freadFloat(stc_file->file_handle);
+    }
+
+  return stc;
+}
+
 STC *
 StcRead(char *fstem)
 {
-  int   j,vno, ndipoles, dipoles_per_location ;
+  int   j,vno;
   char  fname[STRLEN];
   FILE  *fp;
   STC   *stc ;
@@ -96,7 +174,7 @@ StcRead(char *fstem)
     MatrixAlloc(stc->nperdip*stc->nvertices,stc->ntimepts,MATRIX_REAL);
   if (!stc->m_vals)
     ErrorExit(ERROR_NOMEMORY, "StcRead(%s) could not allocate %dx%d matrix",
-              fname, stc->nvertices, stc->ntimepts) ;
+              fname, stc->nperdip*stc->nvertices, stc->ntimepts) ;
 
   for (j=0;j<stc->ntimepts;j++)
   {

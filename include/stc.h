@@ -15,7 +15,33 @@ typedef struct
   MATRIX  *m_vals ;
 } STC ;
 
+typedef struct 
+{
+  float   epoch_begin_lat ;
+  float   sample_period ;
+  int     ntimepts ;
+  int     nperdip;
+  int     ndipoles;
+  int     nvertices ;
+  int     *vertices ;
+  FILE*   file_handle;
+} STC_FILE;
+
+typedef struct 
+{
+  float   epoch_begin_lat ;
+  float   sample_period ;
+  int     nperdip;
+  int     ndipoles;
+  int     nvertices;
+  MATRIX  *m_vals ;
+} STC_FRAME;
+
 STC *StcRead(char *fname) ;
+STC_FILE *StcOpen(char* fname);
+void StcClose(STC_FILE* stc_file);
+STC_FRAME *StcReadFrame(int fno,STC_FILE* stc_file);
+int StcWriteFrame(int fno,STC_FILE* stc_file);
 int StcWrite(char *fname, MATRIX *m_data, float epoch_begin_lat,
              float sample_period, int *vertices, int nvertices) ;
 void StcFree(STC* stc);
