@@ -25,10 +25,13 @@ typedef struct
 
 
 MRIC    *MRIclassAlloc(int width, int height, int depth, int scale, int nvars);
+int     MRIclassTrainAll(MRIC *mric, char *training_file_name) ;
 int     MRIclassSetTransform(MRIC *mric, Transform *transform, 
                              Transform *inverse_transform) ;
 int     MRIclassFree(MRIC **pmric) ;
 int     MRIclassTrain(MRIC *mric, MRI *mri_src,MRI *mri_norm,MRI *mri_target);
+int     MRIclassUpdate(MRIC *mric, MRI *mri_src,MRI *mri_norm,MRI *mri_target);
+int     MRIclassFinish(MRIC *mric) ;
 MRI     *MRIclassify(MRIC *mric, MRI *mri_src, MRI *mri_dst, MRI *mri_norm,
                      float conf, MRI *mri_probs, MRI *mri_classes) ;
 int     MRIclassToVoxel(MRIC *mric, int xc, int yc, int zc,
