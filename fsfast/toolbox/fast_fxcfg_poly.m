@@ -15,10 +15,7 @@ function rt = fast_fxcfg_poly(DoWhat,thing)
 %
 % Polynomial Parameters:
 %  1. Order
-% $Id: fast_fxcfg_poly.m,v 1.1 2003/03/19 07:00:44 greve Exp $
-
-% Things to do:
-% Handle tpx, nskip
+% $Id: fast_fxcfg_poly.m,v 1.2 2003/03/21 05:27:35 greve Exp $
 
 rt = [];
 
@@ -170,17 +167,10 @@ if(isempty(ntp)) return; end
 fxcfg = fast_fxcfg('getfxcfg',flacfg);
 if(isempty(fxcfg)) return; end
 
-% Do weighting for poly?
-wRun = fast_fxcfg('getrunweight',flacfg);
-if(isempty(wRun)) return; end
-
 order = fxcfg.params(1);
 X = fast_polytrendmtx(1,ntp,1,order);
 
-% Do weighting for poly?
-if(wRun ~= 1) X = wRun * X; end
-
-% Handle tpx, flacfg.usetpexclude, nskip
+% tpx and nskip are handled in fast_fxcfg('matrix',flacfg)
 
 return;
 %------------------------------------------------------------%
