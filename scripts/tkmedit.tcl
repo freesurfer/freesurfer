@@ -1669,8 +1669,7 @@ proc DoSaveRGBSeriesDlog {} {
 
   # ok and cancel buttons.
   tkm_MakeCancelOKButtons $fwButtons $wwDialog \
-    "tkm_UpdateFileSelectorVariable $fwDir; \
-    SaveRGBSeries \$sDir/\$sPrefix \$nBegin \$nEnd"
+    "SaveRGBSeries \$sDir/\$sPrefix \$nBegin \$nEnd"
 
   pack $fwDir $fwPrefix $fwBegin $fwEnd $fwButtons \
     -side top       \
