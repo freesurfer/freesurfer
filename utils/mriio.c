@@ -926,7 +926,7 @@ if(x_r == 0.0 && x_a == 0.0 && x_s == 0.0 && y_r == 0.0 && y_a == 0.0 && y_s == 
       sprintf(xform_use, "%s/../transforms/talairach.xfm", fname);
 
       if(!FileExists(xform_use))
-        printf("can't talairach file\n");
+        printf("can't find talairach file '%s'\n", xform_use);
 
     }
 
