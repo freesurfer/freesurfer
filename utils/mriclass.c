@@ -35,7 +35,7 @@
 -------------------------------------------------------*/
 
 #define POLV_WSIZE             5
-#define DEBUG_POINT(x,y,z)     (((x) == 40)&&((y)==62)&&((z)==94))
+#define DEBUG_POINT(x,y,z)     (((x) == 44)&&((y)==14)&&((z)==31))
 
 #define MAX_FILES 100
 
@@ -430,15 +430,21 @@ MRICclassify(MRIC *mric, MRI *mri_src, MRI *mri_dst,
   VECTOR     *v_inputs ;
   GCLASSIFY  *gc ;
   int        x, y, z, width, depth, height, classno, nclasses, xt, yt,zt,
-             round, x1, y1, z1, x0, type, c ;
+             round, x1, y1, z1, x0, type, c, bg ;
   BUFTYPE    *psrc, src, *pdst, *pclasses ;
-  float      prob, *pprobs = NULL, total, min_output ;
+  float      prob, *pprobs = NULL, total, min_output, fmin, fmax ;
   Real       xrt, yrt, zrt ;
   MRI        *mri_priors, *mri_in ;
   MRI_REGION bounding_box ;
   RBF        *rbf ;
 
+#if 0
   MRIboundingBox(mri_src, DEFINITELY_BACKGROUND, &bounding_box) ;
+#else
+  MRIvalRange(mri_src, &fmin, &fmax) ;
+  bg = nint(.2 * (fmax-fmin) + fmin) ;
+  MRIboundingBox(mri_src, bg, &bounding_box) ;
+#endif
   REGIONexpand(&bounding_box, &bounding_box, POLV_WSIZE/2) ;
   MRIclipRegion(mri_src, &bounding_box, &bounding_box) ;
   REGIONcopy(&bounding_box, &mri_src->roi) ;
@@ -501,6 +507,8 @@ MRICclassify(MRIC *mric, MRI *mri_src, MRI *mri_dst,
               m_priors->rptr[classno+1][1] = 
                 MRIFseq_vox(mri_priors, xt, yt, zt, classno) ;
           }
+if (DEBUG_POINT(x,y,z))
+  DiagBreak() ;
           MRICcomputeInputs(mric,mri_in,x,y,z, v_inputs,mric->features[round]);
 
           switch (type)  /* now classify this observation */
@@ -563,7 +571,39 @@ MRICclassify(MRIC *mric, MRI *mri_src, MRI *mri_dst,
         Description
 
 ------------------------------------------------------*/
-#define REGION_SIZE 2
+#define DEFAULT_REGION_SIZE 8
+static int region_size = DEFAULT_REGION_SIZE ;
+
+int
+MRICsetRegionSize(MRIC *mric, int rsize)
+{
+  int old_rsize = region_size ;
+  region_size = rsize ;
+  return(old_rsize) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+
+------------------------------------------------------*/
+int
+MRICresetRegionSize(MRIC *mric)
+{
+  int old_rsize = region_size ;
+  region_size = DEFAULT_REGION_SIZE ;
+  return(old_rsize) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+
+------------------------------------------------------*/
 int
 MRICcomputeInputs(MRIC *mric, MRI *mri, int x,int y,int z,VECTOR *v_inputs,
                   int features)
@@ -620,7 +660,7 @@ MRICcomputeInputs(MRIC *mric, MRI *mri, int x,int y,int z,VECTOR *v_inputs,
     region.z = z ;
     region.dx = mri->width ;
     region.dy = mri->height ;
-    region.dz = REGION_SIZE ;
+    region.dz = region_size ;
     MRIclipRegion(mri, &region, &region) ;
     total_computed += (region.dx*region.dy*region.dz) ;
     mri_prev = mri ;
@@ -687,7 +727,8 @@ MRICcomputeInputs(MRIC *mric, MRI *mri, int x,int y,int z,VECTOR *v_inputs,
       MRI        *mri_tmp ;
       int        x0, y0, z0 ;
 
-      REGIONexpand(&region, &rbig, 1) ; /* expand region by 1 voxel */
+      /* expand region by 2 voxels to avoid border effects */
+      REGIONexpand(&region, &rbig, 2) ; 
       MRIclipRegion(mri, &rbig, &rbig) ;
       mri_region = MRIextractRegion(mri, NULL, &rbig) ;
       mri_grad = MRIsobel(mri_region, NULL, NULL) ;
@@ -698,7 +739,7 @@ MRICcomputeInputs(MRIC *mric, MRI *mri, int x,int y,int z,VECTOR *v_inputs,
 
       mri_direction = 
         MRIextract(mri_tmp, NULL, x0,y0,z0,region.dx,region.dy, region.dz) ;
-      if (Gdiag & DIAG_WRITE && first)
+      if ((Gdiag & DIAG_WRITE) && first)
       {
         first = 0 ;
         MRIwrite(mri_direction, "dir.mnc") ;
@@ -767,7 +808,7 @@ MRICcomputeInputs(MRIC *mric, MRI *mri, int x,int y,int z,VECTOR *v_inputs,
   if (features & FEATURE_MEAN5)
     VECTOR_ELT(v_inputs, index++) = MRIFvox(mri_mean5, x0, y0, z0) ;
   if (features & FEATURE_CPOLV_MEAN3)
-    VECTOR_ELT(v_inputs, index++) = (float)MRIvox(mri_cpolv_mean3, x0, y0, z0) ;
+    VECTOR_ELT(v_inputs, index++) = (float)MRIvox(mri_cpolv_mean3, x0, y0, z0);
   if (features & FEATURE_CPOLV_MEAN5)
     VECTOR_ELT(v_inputs, index++) = (float)MRIvox(mri_cpolv_mean5, x0,y0,z0) ;
   if (features & FEATURE_CPOLV_MEDIAN3)
@@ -1186,6 +1227,8 @@ MRICfeatureName(MRIC *mric, int round, int feature_number)
     return("DIRECTION") ;
   if (f & FEATURE_MEAN3)
     return("MEAN3") ;
+  if (f & FEATURE_MEAN5)
+    return("MEAN5") ;
   if (f &  FEATURE_CPOLV_MEAN3)
     return("CPOLV MEAN3") ;
   if (f & FEATURE_CPOLV_MEAN5)
@@ -1269,10 +1312,10 @@ MRICfeatureNumber(MRIC *mric, int round, int feature_code)
   /* find bit which corresponds to this # */
   for (f = 0x001, fno = 0 ; f != MAX_FEATURE ; f<<=1)
   {
-    if (f & mric->features[round]) 
-      fno++ ;
     if (f & feature_code)
       return(fno) ;
+    if (f & mric->features[round]) 
+      fno++ ;
   }
 
   return(-1) ;
@@ -1598,14 +1641,6 @@ MRICbuildScatterPlot(MRIC *mric, int class, MATRIX *m_scatter,
     /* map 0 to half_bins, -MAX_SIGMA*sigma to 0, MAX_SIGMA*sigma to nbins */
     x = z[0]*(nbins-1)+1 ;
     y = z[1]*(nbins-1)+1 ;
-    if (x <= 0) 
-      DiagBreak() ; 
-    else if (x > nbins) 
-      DiagBreak() ;
-    if (y <= 0) 
-      DiagBreak() ; 
-    else if (y > nbins) 
-      DiagBreak() ;
     if (!FZERO(VECTOR_ELT(v_obs,1)) || !FZERO(VECTOR_ELT(v_obs,2)))
       m_scatter->rptr[x][y] += 1.0f ;
   }
