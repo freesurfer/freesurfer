@@ -17,7 +17,7 @@
 #include "oglutil.h"
 
 #if 0
-static char vcid[] = "$Id: oglutil.c,v 1.15 1998/05/14 15:01:04 fischl Exp $";
+static char vcid[] = "$Id: oglutil.c,v 1.16 1998/06/02 15:46:44 fischl Exp $";
 #endif
 
 /*-------------------------------- CONSTANTS -----------------------------*/
@@ -205,7 +205,7 @@ OGLUcompile(MRI_SURFACE *mris, int *marked_vertices, int flags, float cslope)
     }
     for (n=0;n<4;n++)
       if (mris->vertices[f->v[n]].marked)
-        marked = 1 ;
+        marked = mris->vertices[f->v[n]].marked ;
 
     glBegin(GL_QUADS) ;
     for (n=0;n<4;n++)
@@ -271,7 +271,39 @@ OGLUcompile(MRI_SURFACE *mris, int *marked_vertices, int flags, float cslope)
         coord_coef = 0 ;
 
       if (marked)
-        glColor3ub(0,255,255) ;      /* paint the marked vertex blue */
+      {
+        switch (marked)
+        {
+        default:
+        case MARK_RED:
+          glColor3ub(255,0,0) ;  
+          break ;
+          break ;
+        case MARK_WHITE:
+          glColor3ub(255,255,255) ;  
+          break ;
+          break ;
+        case MARK_GREEN:
+          glColor3ub(0,255,0) ;  
+          break ;
+          break ;
+        case MARK_BLUE:
+          glColor3ub(0,255,255) ;  
+          break ;
+        case MARK_YELLOW:
+          glColor3ub(255,255, 0) ;  
+          break ;
+        case MARK_ORANGE:
+          glColor3ub(255,128, 128) ;   /* orange */
+          break ;
+        case MARK_LIGHTGREEN:
+          glColor3ub(200,255, 200) ;  
+          break ;
+        case MARK_PURPLE:
+          glColor3ub(255,0,255) ;  
+          break ;
+        }
+      }
       else if (v->border && !(flags & BW_FLAG) && !(flags & NOBORDER_FLAG))
         glColor3f(240,240,0.0);
       else   /* color it depending on curvature */
