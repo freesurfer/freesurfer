@@ -13,6 +13,10 @@
 
 extern int errno;
 
+#ifdef SunOS
+int stricmp(char *str1, char *str2) ;
+#endif
+
 int mri_identify(char *fname)
 {
 
