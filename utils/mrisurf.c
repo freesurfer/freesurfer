@@ -28,7 +28,8 @@
 #include "colortab.h"
 #include "tags.h"
 #include "selxavgio.h"
-
+#include "machine.h"
+#include "tags.h"
 /*---------------------------- STRUCTURES -------------------------*/
 
 /*---------------------------- CONSTANTS -------------------------*/
@@ -368,6 +369,7 @@ static int mrisDivideFace(MRI_SURFACE *mris, int fno, int vno1, int vno2,
 #define QUAD_FILE_MAGIC_NUMBER      (-1 & 0x00ffffff)
 #define TRIANGLE_FILE_MAGIC_NUMBER  (-2 & 0x00ffffff)
 #define NEW_QUAD_FILE_MAGIC_NUMBER  (-3 & 0x00ffffff)
+/* 16777215 = 0xFFFFFF */
 #define NEW_VERSION_MAGIC_NUMBER  16777215
 #define START_Y                   (-128)
 #define SLICE_THICKNESS           1
@@ -423,17 +425,18 @@ MRISreadOverAlloc(char *fname, double pct_over)
   FILE        *fp = NULL ;
   VERTEX      *vertex ;
   FACE        *face ;
+  int         tag;
 
   chklc() ;    /* check to make sure license.dat is present */
-  type = MRISfileNameType(fname) ;
-  if (type == MRIS_ASCII_TRIANGLE_FILE)
+  type = MRISfileNameType(fname) ; /* using extension to get type */
+  if (type == MRIS_ASCII_TRIANGLE_FILE)  /* .ASC */
   {
     mris = mrisReadAsciiFile(fname) ;
     if (!mris)
       return(NULL) ;
     version = -3 ;
   }
-  else if (type == MRIS_ICO_FILE)
+  else if (type == MRIS_ICO_FILE)        /* .TRI, .ICO */
   {
     mris = ICOreadOverAlloc(fname, pct_over) ;
     if (!mris)
@@ -441,14 +444,14 @@ MRISreadOverAlloc(char *fname, double pct_over)
     return(mris) ;
     version = -2 ;
   }
-  else if (type == MRIS_GEO_TRIANGLE_FILE)
+  else if (type == MRIS_GEO_TRIANGLE_FILE) /* .GEO */ 
   {
     mris = mrisReadGeoFile(fname) ;
     if (!mris)
       return(NULL) ;
     version = -4;
   }
-  else
+  else // default type MRIS_BINARY_QUADRANGLE_FILE ... use magic number
   {
     fp = fopen(fname, "rb") ;
     if (!fp)
@@ -474,7 +477,7 @@ MRISreadOverAlloc(char *fname, double pct_over)
         ErrorReturn(NULL, (Gerror, "mrisReadTriangleFile failed.\n")) ;
       version = -3 ;
     }
-    else
+    else /* no magic number assigned */
     {
       rewind(fp);
       version = 0;
@@ -482,7 +485,8 @@ MRISreadOverAlloc(char *fname, double pct_over)
         printf("surfer: old surface file format\n");
     }
   }
-  if (version >= -2)  /* some type of quadrangle file */
+  /* some type of quadrangle file processing */
+  if (version >= -2) 
   {
     fread3(&nvertices, fp);
     fread3(&nquads, fp);   /* # of qaudrangles - not triangles */
@@ -497,10 +501,11 @@ MRISreadOverAlloc(char *fname, double pct_over)
 
     imnr0 = 1000 ;
     imnr1 = 0 ;
+    /* read vertices *************************************************/
     for (vno = 0 ; vno < nvertices ; vno++)
     {
       vertex = &mris->vertices[vno] ;
-      if (version == -1)
+      if (version == -1)        /* QUAD_FILE_MAGIC_NUMBER */
       {
         fread2(&ix,fp);
         fread2(&iy,fp);
@@ -509,7 +514,7 @@ MRISreadOverAlloc(char *fname, double pct_over)
         vertex->y = iy/100.0;
         vertex->z = iz/100.0;
       }
-      else  /* version == -2 */
+      else  /* version == -2 */ /* NEW_QUAD_FILE_MAGIC_NUMBER */
       {
         vertex->x = freadFloat(fp) ;
         vertex->y = freadFloat(fp) ;
@@ -518,6 +523,7 @@ MRISreadOverAlloc(char *fname, double pct_over)
 #if 0
       vertex->label = NO_LABEL ;
 #endif
+      /* brain-dead code and never used again either */
       imnr = (int)((vertex->y-START_Y)/SLICE_THICKNESS+0.5);
       if (imnr > imnr1)
         imnr1 = imnr ;
@@ -541,7 +547,7 @@ MRISreadOverAlloc(char *fname, double pct_over)
       else 
         vertex->num = 0;   /* will figure it out */
     }
-
+    /* read face vertices *******************************************/
     for (fno = 0 ; fno < mris->nfaces ; fno += 2)
     {
       int which ;
@@ -593,8 +599,24 @@ MRISreadOverAlloc(char *fname, double pct_over)
         mris->vertices[mris->faces[fno+1].v[n]].num++;
       }
     }
+    // new addition
+    if (freadIntEx(&tag, fp))
+    {
+      if (tag == TAG_USEREALRAS)
+	if (!freadIntEx(&mris->useRealRAS,fp)) // set useRealRAS
+	  mris->useRealRAS = 0; // if error, set to default
+    }
+    else // no tag found.
+    {
+      // mark vertex coordinates are using the conformed (256^3) and c_(r,a,s) = 0.
+      mris->useRealRAS = 0;
+    }
     fclose(fp);
   }
+  /* end of quadrangle file processing */
+  /* file is closed now for all types ***********************************/
+
+  /* find out if this surface is lh or rh from fname */
   strcpy(mris->fname, fname) ;
   {
     char *surf_name ;
@@ -609,6 +631,10 @@ MRISreadOverAlloc(char *fname, double pct_over)
     else
       mris->hemisphere = LEFT_HEMISPHERE ;
   }
+
+  /***********************************************************************/
+  /* build members of mris structure                                     */
+  /***********************************************************************/
   if ((version<0) || type == MRIS_ASCII_TRIANGLE_FILE)
   {
     for (vno = 0 ; vno< mris->nvertices ; vno++)
@@ -721,6 +747,9 @@ MRISreadOverAlloc(char *fname, double pct_over)
   return(mris) ;
 }
 /*-----------------------------------------------------
+
+  MRISfastRead() just calls MRISRead()
+
         Parameters:
 
         Returns value:
@@ -730,6 +759,7 @@ MRISreadOverAlloc(char *fname, double pct_over)
 MRI_SURFACE *
 MRISfastRead(char *fname)
 {
+  /********* why you keep the rest ? ******************/
 #if 1
   return(MRISread(fname)) ;
 #else
@@ -1102,6 +1132,9 @@ MRISwrite(MRI_SURFACE *mris, char *name)
       fwrite3(mris->faces[k+1].v[2],fp);
     }
   }
+  /* write whether vertex data was using the real RAS rather than conformed RAS */
+  fwriteInt(TAG_USEREALRAS, fp);
+  fwriteInt(mris->useRealRAS, fp);
   fclose(fp);
   return(NO_ERROR) ;
 }
@@ -1126,6 +1159,7 @@ MRISoverAlloc(int max_vertices, int max_faces, int nvertices, int nfaces)
   mris->nfaces = nfaces ;
   mris->max_vertices = max_vertices ;
   mris->max_faces = max_faces ;
+  mris->useRealRAS = 0; /* just initialize */
   return(mris) ;
 }
 /*-----------------------------------------------------
@@ -1159,6 +1193,7 @@ MRISalloc(int nvertices, int nfaces)
     ErrorExit(ERROR_NO_MEMORY, 
               "MRISalloc(%d, %d): could not allocate faces",
               nfaces, sizeof(FACE));
+  mris->useRealRAS = 0; /* just initialize */
   return(mris) ;
 }
 /*-----------------------------------------------------
@@ -14265,11 +14300,14 @@ MRISpercentDistanceError(MRI_SURFACE *mris)
   return(100.0*pct) ;
 }
 /*-----------------------------------------------------
-        Parameters:
+  int MRISfileNameType()
 
-        Returns value:
+        Parameters: char *fname
 
-        Description
+        Returns value: int 
+
+        Description: return filetype using the extension
+	             default is MRIS_BINARY_QUADRANGLE_FILE
 ------------------------------------------------------*/
 int   
 MRISfileNameType(char *fname)
