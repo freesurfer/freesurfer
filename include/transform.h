@@ -2,9 +2,9 @@
 /* transform.h                                                         */
 /*                                                                     */
 /* Warning: Do not edit the following four lines.  CVS maintains them. */
-/* Revision Author: $Author: tosa $                                           */
-/* Revision Date  : $Date: 2003/08/21 21:50:37 $                                             */
-/* Revision       : $Revision: 1.19 $                                         */
+/* Revision Author: $Author: greve $                                           */
+/* Revision Date  : $Date: 2003/08/24 22:01:53 $                                             */
+/* Revision       : $Revision: 1.20 $                                         */
 /*                                                                     */
 /***********************************************************************/
 
@@ -102,7 +102,7 @@ int      LTAvoxelTransformToCoronalRasTransform(LTA *lta) ;
 
 int FixMNITal(float  xmni, float  ymni, float  zmni,
         float *xtal, float *ytal, float *ztal);
-MATRIX *DevolveXFM(char *subjid, MATRIX *XFM);
+MATRIX *DevolveXFM(char *subjid, MATRIX *XFM, char *xfmname);
 
 TRANSFORM *TransformRead(char *fname) ;
 TRANSFORM *TransformIdentity(void) ;
