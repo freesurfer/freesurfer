@@ -231,7 +231,7 @@ mriHistogramLabel(MRI *mri, int nbins, HISTOGRAM *histo, LABEL *label)
   depth = mri->depth ;
 
   for (bin_no = 0 ; bin_no < nbins ; bin_no++)
-    histo->bins[bin_no] = (bin_no+1)*bin_size ;
+    histo->bins[bin_no] = (bin_no+1)*bin_size+fmin ;
 
   switch (mri->type)
   {
@@ -349,7 +349,7 @@ mriHistogramRegion(MRI *mri, int nbins, HISTOGRAM *histo, MRI_REGION *region)
     z0 = 0 ;
 
   for (bin_no = 0 ; bin_no < nbins ; bin_no++)
-    histo->bins[bin_no] = (bin_no+1)*bin_size ;
+    histo->bins[bin_no] = (bin_no+1)*bin_size+fmin ;
 
   switch (mri->type)
   {
@@ -705,14 +705,14 @@ MRIhistogram(MRI *mri, int nbins)
     nbins = nint(fmax - fmin + 1.5) ;
 
   histo = HISTOalloc(nbins) ;
-
   bin_size = (fmax - fmin + 1) / (float)nbins ;
+	histo->bin_size = bin_size ;
   width = mri->width ;
   height = mri->height ;
   depth = mri->depth ;
 
   for (bin_no = 0 ; bin_no < nbins ; bin_no++)
-    histo->bins[bin_no] = (bin_no+1)*bin_size ;
+    histo->bins[bin_no] = (bin_no+1)*bin_size+fmin ;
   for (z = 0 ; z < depth ; z++)
   {
     for (y = 0 ; y < height ; y++)
@@ -757,7 +757,7 @@ MRIhistogramLabel(MRI *mri, MRI *mri_labeled, int label, int nbins)
   depth = mri->depth ;
 
   for (bin_no = 0 ; bin_no < nbins ; bin_no++)
-    histo->bins[bin_no] = (bin_no+1)*bin_size ;
+    histo->bins[bin_no] = (bin_no+1)*bin_size+fmin ;
   for (z = 0 ; z < depth ; z++)
   {
     for (y = 0 ; y < height ; y++)

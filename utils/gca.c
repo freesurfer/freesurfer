@@ -2,9 +2,9 @@
 // originally written by Bruce Fischl
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2004/03/19 14:56:18 $
-// Revision       : $Revision: 1.106 $
+// Revision Author: $Author: fischl $
+// Revision Date  : $Date: 2004/03/23 16:59:49 $
+// Revision       : $Revision: 1.107 $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -9648,7 +9648,8 @@ GCAhistoScaleImageIntensities(GCA *gca, MRI *mri)
 
   mri_frame = MRIcopyFrame(mri, NULL, max_T1_weighted_image, 0) ;
   MRIvalRange(mri_frame, &fmin, &fmax) ; 
-  h_mri = MRIhistogram(mri_frame, nint(fmax-fmin+1)) ; h_mri->counts[0] = 0 ; /* ignore background */
+  h_mri = MRIhistogram(mri_frame, nint(fmax-fmin+1)) ; 
+	HISTOclearZeroBin(h_mri) ; /* ignore background */
   h_smooth = HISTOsmooth(h_mri, NULL, 2) ;
 #if 0
   mri_peak = HISTOfindHighestPeakInRegion(h_smooth, 0, h_smooth->nbins/3) ;

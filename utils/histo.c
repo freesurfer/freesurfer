@@ -468,7 +468,7 @@ HISTOsubtract(HISTOGRAM *h1, HISTOGRAM *h2, HISTOGRAM *histo_dst)
         Description
 ------------------------------------------------------*/
 HISTOGRAM *
-HISTOclearBins(HISTOGRAM *histo_src, HISTOGRAM *histo_dst, int b0, int b1)
+HISTOclearBins(HISTOGRAM *histo_src, HISTOGRAM *histo_dst, int min_val, int max_val)
 {
   int b ;
 
@@ -478,19 +478,13 @@ HISTOclearBins(HISTOGRAM *histo_src, HISTOGRAM *histo_dst, int b0, int b1)
   if (!histo_dst || histo_dst != histo_src)
     histo_dst = HISTOcopy(histo_src, histo_dst) ;
 
-  if (b0 < 0)
-    b0 = 0 ;
-  if (b1 >= histo_src->nbins)
-    b1 = histo_src->nbins-1 ;
-
-  for (b = b0 ; b <= b1 ; b++)
+  for (b = 0 ; b < histo_dst->nbins ; b++)
   {
-    histo_dst->counts[b] = 0 ;
-    histo_dst->bins[b] = 0 ;
+		if (histo_dst->bins[b] >= min_val && histo_dst->bins[b] <= max_val)
+		{
+			histo_dst->counts[b] = 0 ;
+		}
   }
-
-  if (b1 == histo_dst->nbins-1)
-    histo_dst->nbins = b0 ;
 
   return(histo_dst) ;
 }
@@ -1222,3 +1216,21 @@ HISTOtotalInRegion(HISTO *h, int b0, int b1)
 	return(total) ;
 }
 
+int
+HISTOclearZeroBin(HISTOGRAM *h)
+{
+	int b, zero_bin = 0 ;
+	float min_dist ;
+
+	min_dist = fabs(h->bins[0]) ;
+	for (b = 1 ; b < h->nbins ; b++)
+	{
+		if (fabs(h->bins[b]) < min_dist)
+		{
+			min_dist = fabs(h->bins[b]) ;
+			zero_bin = b ;
+		}
+	}
+	h->counts[zero_bin] = 0 ;
+	return(NO_ERROR) ;
+}
