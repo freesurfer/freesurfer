@@ -81,7 +81,6 @@ typedef enum {
   tkm_tTclCommand_UpdateLinkedCursorFlag = 0,
   tkm_tTclCommand_UpdateVolumeCursor,
   tkm_tTclCommand_UpdateVolumeSlice,
-  tkm_tTclCommand_UpdateMRICursor,
   tkm_tTclCommand_UpdateRASCursor,
   tkm_tTclCommand_UpdateTalCursor,
   tkm_tTclCommand_UpdateScannerCursor,

@@ -6018,12 +6018,6 @@ DspA_tErr DspA_SendPointInformationToTcl_ ( tkmDisplayAreaRef this,
   sprintf( sTclArguments, "%d", nSlice );
   tkm_SendTclCommand( tkm_tTclCommand_UpdateVolumeSlice, sTclArguments );
   
-  /* also convert to MRI idx and send those coords along. */
-  Volm_ConvertIdxToMRIIdx( this->mpVolume, iAnaIdx, &voxel );
-  sprintf( sTclArguments, "%s %d %d %d", 
-	   DspA_ksaDisplaySet[iSet], xVoxl_ExpandInt( &voxel ) );
-  tkm_SendTclCommand( tkm_tTclCommand_UpdateMRICursor, sTclArguments );
-  
   /* also convert to RAS and send those coords along. */
   Volm_ConvertIdxToRAS( this->mpVolume, iAnaIdx, &voxel );
   sprintf( sTclArguments, "%s %.1f %.1f %.1f", 
