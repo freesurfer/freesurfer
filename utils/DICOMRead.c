@@ -2,7 +2,7 @@
    DICOM 3.0 reading functions
    Author: Sebastien Gicquel and Douglas Greve
    Date: 06/04/2001
-   $Id: DICOMRead.c,v 1.27 2002/12/19 21:45:58 greve Exp $
+   $Id: DICOMRead.c,v 1.28 2003/02/13 21:19:34 greve Exp $
 *******************************************************/
 
 #include <stdio.h>
@@ -298,12 +298,17 @@ DCM_OBJECT *GetObjectFromFile(char *fname, unsigned long options)
   DCM_OBJECT *object;
   int ok;
   
+  //printf("     GetObjectFromFile(): %s %ld\n",fname,options);
+  fflush(stdout);
+  fflush(stderr);
+
   ok = IsDICOM(fname);
   if(! ok){
     fprintf(stderr,"ERROR: %s is not a dicom file\n",fname);
     COND_DumpConditions();
     return(NULL);
   }
+  options = options | DCM_ACCEPTVRMISMATCH;
 
   cond=DCM_OpenFile(fname, DCM_PART10FILE|options, &object);
   if (cond != DCM_NORMAL)
@@ -461,14 +466,22 @@ int IsSiemensDICOM(char *dcmfile)
 {
   DCM_ELEMENT *e;
 
+  //printf("Entering IsSiemensDICOM (%s)\n",dcmfile);
+  fflush(stdout);fflush(stderr);
 
-  if(! IsDICOM(dcmfile) ) return(0);
+  if(! IsDICOM(dcmfile) ){
+    fflush(stdout);fflush(stderr);
+    //printf("Leaving IsSiemensDICOM (%s)\n",dcmfile);
+    return(0);
+  }
+  fflush(stdout);fflush(stderr);
   
   e = GetElementFromFile(dcmfile, 0x8, 0x70);
   if(e == NULL){
     printf("ERROR: reading dicom file %s\n",dcmfile);
     exit(1);
   }
+  fflush(stdout);fflush(stderr);
 
   /* Siemens appears to add a space onto the end of their
      Manufacturer string*/
@@ -480,6 +493,7 @@ int IsSiemensDICOM(char *dcmfile)
   }
   FreeElementData(e); free(e);
 
+  //printf("Leaving IsSiemensDICOM (%s)\n",dcmfile);
   return(1);
 }
 
@@ -515,6 +529,10 @@ char *SiemensAsciiTag(char *dcmfile, char *TagString)
   char VariableName[500];
   char *VariableValue;
   
+  //printf("Entering SiemensAsciiTag() \n");fflush(stdout);fflush(stderr);
+  //printf("dcmfile = %s, tagstr = %s\n",dcmfile,TagString);
+  fflush(stdout);fflush(stderr);
+
   BeginStr = "### ASCCONV BEGIN ###";
   LenBeginStr = strlen(BeginStr);
   TestStr = (char *) calloc(LenBeginStr+1,sizeof(char));
@@ -570,6 +588,9 @@ char *SiemensAsciiTag(char *dcmfile, char *TagString)
     }
   }
   fclose(fp);
+
+  //printf("Leaving SiemensAsciiTag() \n");fflush(stdout);fflush(stderr);
+  fflush(stdout);fflush(stderr);
 
   return(VariableValue);
 }
@@ -946,7 +967,11 @@ SDCMFILEINFO *GetSDCMFileInfo(char *dcmfile)
 
   sdcmfi = (SDCMFILEINFO *) calloc(1,sizeof(SDCMFILEINFO));
 
+  fflush(stdout);
+  fflush(stderr);
   object = GetObjectFromFile(dcmfile, 0);
+  fflush(stdout);
+  fflush(stderr);
   if(object == NULL) exit(1);
 
   l = strlen(dcmfile);
@@ -965,7 +990,7 @@ SDCMFILEINFO *GetSDCMFileInfo(char *dcmfile)
   tag=DCM_MAKETAG(0x8, 0x31);
   cond=GetString(&object, tag, &sdcmfi->SeriesTime);
 
-  tag=DCM_MAKETAG(0x8, 0x31);
+  tag=DCM_MAKETAG(0x8, 0x32);
   cond=GetString(&object, tag, &sdcmfi->AcquisitionTime);
 
   tag=DCM_MAKETAG(0x8, 0x1090);
@@ -999,7 +1024,6 @@ SDCMFILEINFO *GetSDCMFileInfo(char *dcmfile)
 
   tag=DCM_MAKETAG(0x18, 0x1020);
   cond=GetDoubleFromString(&object, tag, &dtmp);
-
 
   tag=DCM_MAKETAG(0x18, 0x1314);
   cond=GetDoubleFromString(&object, tag, &dtmp);
@@ -1078,6 +1102,9 @@ SDCMFILEINFO *GetSDCMFileInfo(char *dcmfile)
   }
 
   cond=DCM_CloseObject(&object);
+
+  /* Clear the condition stack to prevent overflow */
+  COND_PopCondition(1);
 
   return(sdcmfi);
 
@@ -1239,22 +1266,22 @@ SDCMFILEINFO **ScanSiemensDCMDir(char *PathName, int *NSDCMFiles)
   if(PathName[pathlength-1] == '/'){
     for(i = pathlength-1; i >= 0; i--){
       if(PathName[i] == '/'){
-  PathName[i] = ' ';
-  break;
+	PathName[i] = ' ';
+	break;
       }
     }
   }
   pathlength=strlen(PathName);
-
+  
   /* select all directory entries, and sort them by name */
   NFiles = scandir(PathName, &NameList, 0, alphasort);
-
+  
   if( NFiles < 0 ){
     fprintf(stderr,"WARNING: No files found in %s\n",PathName);
     return(NULL);
   }
   fprintf(stderr,"INFO: Found %d files in %s\n",NFiles,PathName);
-
+  
   /* Count the number of Siemens DICOM Files */
   fprintf(stderr,"INFO: counting Siemens Files\n");
   (*NSDCMFiles) = 0;
@@ -1286,14 +1313,14 @@ SDCMFILEINFO **ScanSiemensDCMDir(char *PathName, int *NSDCMFiles)
       fprintf(stderr,"%3d ",sumpct);
       fflush(stderr);
       if(SDCMStatusFile != NULL){
-  fp = fopen(SDCMStatusFile,"w");
-  if(fp != NULL){
-    fprintf(fp,"%3d\n",sumpct);
-    fclose(fp);
-  }
+	fp = fopen(SDCMStatusFile,"w");
+	if(fp != NULL){
+	  fprintf(fp,"%3d\n",sumpct);
+	  fclose(fp);
+	}
       }
     }
-
+    
     sprintf(tmpstr,"%s/%s", PathName, NameList[i]->d_name);
     if(IsSiemensDICOM(tmpstr)) {
       sdcmfi_list[*NSDCMFiles] = GetSDCMFileInfo(tmpstr);
@@ -1319,10 +1346,14 @@ SDCMFILEINFO **LoadSiemensSeriesInfo(char **SeriesList, int nList)
   SDCMFILEINFO **sdfi_list;
   int n;
 
+  //printf("LoadSiemensSeriesInfo()\n");
+
   sdfi_list = (SDCMFILEINFO **)calloc(nList, sizeof(SDCMFILEINFO *));
 
   for(n = 0; n < nList; n++){
+    fflush(stdout);fflush(stderr);
 
+    //printf("%3d %s ---------------\n",n,SeriesList[n]);
     if(! IsSiemensDICOM(SeriesList[n]) ) {
       fprintf(stderr,"ERROR: %s is not a Siemens DICOM File\n",
         SeriesList[n]);
@@ -1331,6 +1362,9 @@ SDCMFILEINFO **LoadSiemensSeriesInfo(char **SeriesList, int nList)
       return(NULL);
     }
 
+    //printf("Getting file info %s ---------------\n",SeriesList[n]);
+    fflush(stdout);
+    fflush(stderr);
     sdfi_list[n] = GetSDCMFileInfo(SeriesList[n]);
     if(sdfi_list[n] == NULL) {
       fprintf(stderr,"ERROR: reading %s \n",SeriesList[n]);
@@ -1338,10 +1372,9 @@ SDCMFILEINFO **LoadSiemensSeriesInfo(char **SeriesList, int nList)
       free(sdfi_list);
       return(NULL);
     }
-
   }
   fprintf(stderr,"\n");
-  fflush(stderr);
+  fflush(stdout); fflush(stderr);
 
   return( sdfi_list );
 }
@@ -1451,6 +1484,7 @@ char **ScanSiemensSeries(char *dcmfile, int *nList)
     return(NULL);
   }
 
+  printf("Getting Series No \n");
   SeriesNo = dcmGetSeriesNo(dcmfile);
   if(SeriesNo == -1){
     fprintf(stderr,"ERROR: reading series number from %s\n",dcmfile);
@@ -1458,6 +1492,7 @@ char **ScanSiemensSeries(char *dcmfile, int *nList)
     return(NULL);
   }
 
+  printf("Scanning Directory \n");
   /* select all directory entries, and sort them by name */
   PathName = fio_dirname(dcmfile);  
   NFiles = scandir(PathName, &NameList, 0, alphasort);
@@ -1476,13 +1511,15 @@ char **ScanSiemensSeries(char *dcmfile, int *nList)
   (*nList) = 0;
   for(i = 0; i < NFiles; i++){
     sprintf(tmpstr,"%s/%s", PathName, NameList[i]->d_name);
+    //printf("Testing %s ----------------------------------\n",tmpstr);
+    IsSiemensDICOM(tmpstr);
     if(IsSiemensDICOM(tmpstr)){
       SeriesNoTest = dcmGetSeriesNo(tmpstr);
       if(SeriesNoTest == SeriesNo){
-  SeriesList[*nList] = (char *) calloc(strlen(tmpstr)+1,sizeof(char));
-  memcpy(SeriesList[*nList], tmpstr, strlen(tmpstr));
-  //printf("%3d  %s\n",*nList,SeriesList[*nList]);
-  (*nList)++;
+	SeriesList[*nList] = (char *) calloc(strlen(tmpstr)+1,sizeof(char));
+	memcpy(SeriesList[*nList], tmpstr, strlen(tmpstr));
+	//printf("%3d  %s\n",*nList,SeriesList[*nList]);
+	(*nList)++;
       }
     }
   }
@@ -2763,13 +2800,13 @@ CONDITION GetDICOMInfo(char *fname, DICOMInfo *dcminfo, BOOL ReadImage, int Imag
 
   int i;
 
-  cond=DCM_OpenFile(fname, DCM_PART10FILE, object);
+  cond=DCM_OpenFile(fname, DCM_PART10FILE|DCM_ACCEPTVRMISMATCH, object);
   if (cond != DCM_NORMAL)
-    cond=DCM_OpenFile(fname, DCM_ORDERLITTLEENDIAN, object);
+    cond=DCM_OpenFile(fname, DCM_ORDERLITTLEENDIAN|DCM_ACCEPTVRMISMATCH, object);
   if (cond != DCM_NORMAL)
-    cond=DCM_OpenFile(fname, DCM_ORDERBIGENDIAN, object);
+    cond=DCM_OpenFile(fname, DCM_ORDERBIGENDIAN|DCM_ACCEPTVRMISMATCH, object);
   if (cond != DCM_NORMAL)
-    cond=DCM_OpenFile(fname, DCM_FORMATCONVERSION, object);
+    cond=DCM_OpenFile(fname, DCM_FORMATCONVERSION|DCM_ACCEPTVRMISMATCH, object);
   if (cond != DCM_NORMAL)
     {
       printf("not DICOM images, sorry...\n");
@@ -3260,12 +3297,14 @@ void SortFiles(char *fNames[], int nFiles, DICOMInfo ***ptrDicomArray, int *nStu
   // check studies number
   *nStudies=1;
   for (n=0; n<nFiles-1; n++)
-    if (strcmp(dicomArray[n]->AcquisitionTime, dicomArray[n+1]->AcquisitionTime)!=0)
+    if (strcmp(dicomArray[n]->AcquisitionTime, 
+	       dicomArray[n+1]->AcquisitionTime)!=0)
       (*nStudies)++;
 
   if (*nStudies > 1) 
     {
-      printf("WARNING: DICOM conversion, %d different acquisition times have been identified\n", *nStudies);
+      printf("WARNING: DICOM conversion, %d different acquisition times "
+	     "have been identified\n", *nStudies);
     }
 }
 
@@ -3280,45 +3319,64 @@ void SortFiles(char *fNames[], int nFiles, DICOMInfo ***ptrDicomArray, int *nStu
 int IsDICOM(char *fname)
 {
   int d;
+  FILE *fp;
   CONDITION cond;
-  DCM_OBJECT** object=(DCM_OBJECT**)calloc(1, sizeof(DCM_OBJECT*));
+  DCM_OBJECT *object;
 
   d = 0;
-  //if(!strcmp(fname,"/mnt/cdrom/10190001/14597100")) d = 1;
 
-  if(d) printf("-------------------------------\n");
+  if(d) printf("Entering IsDICOM (%s)\n",fname);
+  fflush(stdout);fflush(stderr);
 
-  if(d) printf("Opening as part10\n");
-  cond=DCM_OpenFile(fname, DCM_PART10FILE, object);
-  if (cond != DCM_NORMAL && d) DCMPrintCond(cond);
+  /* DCM_ACCEPTVRMISMATCH appears to be needed with data produced 
+     by a recent (2/10/03) Siemens upgrade */
+
+  /* check that the file exists */
+  fp = fopen(fname,"r");
+  if(fp == NULL) return(0);
+  fclose(fp);
+
+  /* check that file is not a directory*/
+  if(fio_IsDirectory(fname)) return(0);
+
+  if(d) printf("Opening %s as part10\n",fname);
+  COND_PopCondition(1); /* Clears the Condition Stack */
+  fflush(stdout);fflush(stderr);
+  cond=DCM_OpenFile(fname, DCM_PART10FILE|DCM_ACCEPTVRMISMATCH, &object);
+  fflush(stdout); fflush(stderr);
+  if (cond != DCM_NORMAL && d) {
+    DCMPrintCond(cond);
+    COND_DumpConditions(); 
+  }
 
   if (cond != DCM_NORMAL){
     if(d) printf("Opening as littleendian\n");
-    cond=DCM_OpenFile(fname, DCM_ORDERLITTLEENDIAN, object);
+    cond=DCM_OpenFile(fname, DCM_ORDERLITTLEENDIAN|DCM_ACCEPTVRMISMATCH, 
+		      &object);
     if (cond != DCM_NORMAL && d) DCMPrintCond(cond);
   }
 
   if (cond != DCM_NORMAL){
     if(d) printf("Opening as bigendian\n");
-    cond=DCM_OpenFile(fname, DCM_ORDERBIGENDIAN, object);
+    cond=DCM_OpenFile(fname, DCM_ORDERBIGENDIAN|DCM_ACCEPTVRMISMATCH, 
+		      &object);
     if (cond != DCM_NORMAL && d) DCMPrintCond(cond);
   }
 
   if (cond != DCM_NORMAL){
-    if(d) printf("Opening as bigendian\n");
-    cond=DCM_OpenFile(fname, DCM_FORMATCONVERSION, object);
+    if(d) printf("Opening as format conversion\n");
+    cond=DCM_OpenFile(fname, DCM_FORMATCONVERSION|DCM_ACCEPTVRMISMATCH, 
+		      &object);
     if (cond != DCM_NORMAL && d) DCMPrintCond(cond);
   }
 
-  if(cond == DCM_NORMAL) DCM_CloseObject(object);
+  if(cond == DCM_NORMAL) DCM_CloseObject(&object);
 
-#if 0
-  if(cond != DCM_NORMAL){
-    DCMPrintCond(cond);
-    DiagBreak();
-  }
-#endif
+  fflush(stdout);fflush(stderr);
 
+  if(d) printf("Leaving IsDICOM (%s)\n",fname);
+
+  COND_PopCondition(1); /* Clears the Condition Stack */
   return(cond == DCM_NORMAL);
 }
 /*---------------------------------------------------------------*/
