@@ -4550,7 +4550,7 @@ ImageValid(IMAGE *I)
       if (val == 0.0)
         continue ;
       exponent = log(fabs(val)) ;
-      if (fabs(exponent > 20))
+      if (fabs(exponent) > 20.0)
         return(0) ;
     }
     break ;
@@ -4562,7 +4562,7 @@ ImageValid(IMAGE *I)
       if (val == 0.0)
         continue ;
       exponent = log(fabs(val)) ;
-      if (fabs(exponent > 20))
+      if (fabs(exponent) > 20.0)
         return(0) ;
     }
     break ;
@@ -4775,5 +4775,54 @@ ImageUpsample2(IMAGE *Isrc, IMAGE *Idst)
 
   return(Idst) ;
 }
+/*----------------------------------------------------------------------
+            Parameters:
 
+           Description:
+              calculate the Root Mean-Squared difference between two
+              images.
+----------------------------------------------------------------------*/
+float
+ImageRMSDifference(IMAGE *I1_in, IMAGE *I2_in)
+{
+  float dif, rms, *pix1, *pix2 ;
+  int   width, height, x, y ;
+  IMAGE *I1, *I2 ;
 
+  width = I1_in->cols ;
+  height = I1_in->rows ;
+  if (I1_in->pixel_format != PFFLOAT)
+  {
+    I1 = ImageAlloc(height, width, PFFLOAT, 1) ;
+    ImageCopy(I1_in, I1) ;
+  }
+  else
+    I1 = I1_in ;
+
+  if (I2_in->pixel_format != PFFLOAT)
+  {
+    I2 = ImageAlloc(height, width, PFFLOAT, 1) ;
+    ImageCopy(I2_in, I2) ;
+  }
+  else
+    I2 = I2_in ;
+
+  rms = 0.0f ;
+  pix1 = IMAGEFpix(I1, 0, 0) ;
+  pix2 = IMAGEFpix(I2, 0, 0) ;
+  for (y = 0 ; y < height ; y++, pix1++, pix2++)
+  {
+    for (x = 0 ; x < width ; x++)
+    {
+      dif = (*pix1 - *pix2) ;
+      rms += (dif * dif) ;
+    }
+  }
+
+  rms = sqrt(rms) / (float)(width*height) ;
+  if (I1 != I1_in)
+    ImageFree(&I1) ;
+  if (I2 != I2_in)
+    ImageFree(&I2) ;
+  return(rms) ;
+}
