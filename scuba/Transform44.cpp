@@ -62,7 +62,10 @@ Transform44::MakeRotation ( float iCenterPoint[3],
 void
 Transform44::LoadFromLTAFile ( string ifnLTA ) {
 
-  LTA* lta = NULL;
+  /* Hack. Since LTAreadEx converts register.dat files to a
+     LINEAR_VOX_TO_VOX in the wrong coordinate space, we'll read
+     register.dat files in manually, and use LTAreadEx for the
+     rest. */
   if( ifnLTA.find("register.dat",0) ) {
 
     char fnLTA[1000];

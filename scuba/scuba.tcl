@@ -10,7 +10,7 @@ if { $err } {
     load [file dirname [info script]]/libscuba[info sharedlibextension] scuba
 }
 
-DebugOutput "\$Id: scuba.tcl,v 1.41 2004/07/23 02:55:23 kteich Exp $"
+DebugOutput "\$Id: scuba.tcl,v 1.42 2004/07/23 13:57:13 kteich Exp $"
 
 # gTool
 #   current - current selected tool (nav,)
@@ -3511,6 +3511,11 @@ while { $nArg < $argc } {
 	    incr nArg
 	    set fnTransform [lindex $argv $nArg]
 	    lappend lCommands "LoadTransform $fnTransform"
+	}
+	c - script {
+	    incr nArg
+	    set fnScript [lindex $argv $nArg]
+	    lappend lCommands "after idle { source $fnScript }"
 	}
 	
 	help - default {
