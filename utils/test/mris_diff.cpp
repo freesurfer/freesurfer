@@ -50,7 +50,7 @@ void jacobi(float **a, int n, float *d, float** v,int * nrot);
 void ludcmp(double** a,int n,int* indx,double* d);
 void lubksb(double** a,int n,int* indx,double* b);
 
-static char vcid[] = "$Id: mris_diff.cpp,v 1.1 2005/02/08 16:26:18 xhan Exp $";
+static char vcid[] = "$Id: mris_diff.cpp,v 1.2 2005/03/21 18:04:01 xhan Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -78,6 +78,7 @@ char *mapout_fname = NULL; /* must be used together with above */
 int debugflag = 0;
 int debugvtx = 0;
 int pathflag = 0; 
+int abs_flag = 0;
 
 int percentage = 0;
 
@@ -122,7 +123,7 @@ int main(int argc, char *argv[])
   MRI *mri_map = NULL;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_diff.cpp,v 1.1 2005/02/08 16:26:18 xhan Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_diff.cpp,v 1.2 2005/03/21 18:04:01 xhan Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -330,13 +331,17 @@ int main(int argc, char *argv[])
     if(maxV < scalar) maxV = scalar;
     if(minV > scalar) minV = scalar;
     meanV += scalar;  
+    
+    if(scalar < 0) scalar = -scalar;
+    absMean += scalar;
 
-    absMean += (scalar > 0 ? scalar : -scalar);
+    //    if(abs_flag) MRIsetVoxVal(resVal, index, 0, 0, 0, scalar);
+    //    absMean += (scalar > 0 ? scalar : -scalar);
   }
   
   printf("total %d vertices involved in thickness comparison \n", total);
-  meanV /= (total + 1e-10);
-  absMean /= (total + 1e-10);
+  meanV /= (total + 1e-20);
+  absMean /= (total + 1e-20);
 
   if(maplike_fname && mapout_fname){
     mri_map = MRIread(maplike_fname);
@@ -347,11 +352,21 @@ int main(int argc, char *argv[])
 	}
   }
 
+  if(abs_flag){
+    printf("Compute stdev of absolute-valued thickness difference\n");
+  }
+
   std = 0.0;
   for(index = 0; index < Surf1->nvertices; index++){
     if(Surf1->vertices[index].border == 1) continue;
     tmpval = MRIgetVoxVal(resVal,index,0,0,0);
-    scalar = tmpval - meanV;
+    if(abs_flag){ //compute stat of absolute-value-thickness-differences
+      if(tmpval < 0) tmpval = -tmpval;
+      scalar = tmpval - absMean;
+    }
+    else
+      scalar = tmpval - meanV;
+
     std += scalar*scalar;  
 
     if(maplike_fname && mapout_fname){
@@ -385,7 +400,7 @@ int main(int argc, char *argv[])
 
   }
   
-  std /= (total + 1e-10);
+  std /= (total + 1e-20);
 
   std = sqrt(std);
 
@@ -543,6 +558,10 @@ get_option(int argc, char *argv[])
   else if (!stricmp(option, "distance"))
   {
       compute_distance = 1;
+  }  
+  else if (!stricmp(option, "abs"))
+  {
+      abs_flag = 1;
   }  
   else if(!stricmp(option, "debug"))
     {

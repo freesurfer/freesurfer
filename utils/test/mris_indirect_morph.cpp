@@ -50,7 +50,7 @@ void lubksb(double** a,int n,int* indx,double* b);
 
 void MRISsampleTemplateMappingToSource(MRI_SURFACE *mris, MRI_SURFACE *mris_template);
 
-static char vcid[] = "$Id: mris_indirect_morph.cpp,v 1.2 2005/02/08 19:17:55 xhan Exp $";
+static char vcid[] = "$Id: mris_indirect_morph.cpp,v 1.3 2005/03/21 18:04:01 xhan Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -107,7 +107,7 @@ int main(int argc, char *argv[])
   int          transform_type;
   
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_indirect_morph.cpp,v 1.2 2005/02/08 19:17:55 xhan Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_indirect_morph.cpp,v 1.3 2005/03/21 18:04:01 xhan Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -483,19 +483,12 @@ double v_to_f_distance(VERTEX *P0, MRI_SURFACE *mri_surf, int face_number, int d
     if(s < 0){
       if(t<0){
 	/* Region 4 */
-	tmp0 = b + d; tmp1 = c + e;
-	if(tmp1 > tmp0){
-	  numer = tmp1 - tmp0;
-	  denom = a - b - b +c;
-	  s = (numer >= denom ? 1 : numer/denom);
-	  t = 1-s;
-
-	}else {
-	  s = 0;
-	  /* t = (e >= 0 ? 0 : (-e >= c ? 0 > = c + e = tmp1) */
-	  t = (tmp1 <= 0 ? 1 : (e >= 0 ? 0 : -e/c));
-	}
-	if(debug) printf("region 4, s =%g, t =%g\n", s, t);	
+	if( d < 0){ /* Minimum on edge t = 0 */
+	  s = (-d >= a ? 1 : -d/a); t = 0;
+	}else if (e < 0){ /* Minimum on edge s = 0 */
+	  t = (-e >= c ? 1 : -e/c); s = 0;
+	}else { s = 0; t = 0;}
+	if(debug) printf("region 4,  d= %g, e = %g, s =%g, t =%g\n", d, e, s, t);
       }else{
 	/* Region 3 */
 	s = 0;
@@ -518,11 +511,18 @@ double v_to_f_distance(VERTEX *P0, MRI_SURFACE *mri_surf, int face_number, int d
   }else{
     if( s < 0 ){
       /* Region 2 */
-      if( d < 0){ /* Minimum on edge t = 0 */
-	s = (-d >= a ? 1 : -d/a); t = 0;
-      }else if (e < 0){ /* Minimum on edge s = 0 */
-	t = (-e >= c ? 1 : -e/c); s = 0;
-      }else { s = 0; t = 0;}
+      tmp0 = b + d; tmp1 = c + e;
+      if(tmp1 > tmp0){
+	numer = tmp1 - tmp0;
+	denom = a - b - b +c;
+	s = (numer >= denom ? 1 : numer/denom);
+	t = 1-s;
+	
+      }else{
+	s = 0;
+	/* t = (e >= 0 ? 0 : (-e >= c ? 0 > = c + e = tmp1) */
+	t = (tmp1 <= 0 ? 1 : (e >= 0 ? 0 : -e/c));
+      }
       if(debug) printf("region 2, s =%g, t =%g\n", s, t);
     }else if( t < 0){
       /* Region 6 */

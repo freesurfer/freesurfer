@@ -7,7 +7,7 @@
 #define FMARCHING3D
 
 #include <math.h>
-#include "heap.h"
+#include "heap_vol.h"
 #include "mri.h"
 #define ALIVE 1
 #define NBAND 2

@@ -5,8 +5,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: xhan $
-// Revision Date  : $Date: 2005/02/11 22:09:45 $
-// Revision       : $Revision: 1.3 $
+// Revision Date  : $Date: 2005/03/21 18:04:01 $
+// Revision       : $Revision: 1.4 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -48,7 +48,7 @@
 
 static int USE_ONE = 0; /* use SW from WM only */
 static int out_type = 3; /* MRI_FLOAT */
-static double noise_threshold = 1.0; /* threshold for background noise */
+static double noise_threshold = 0.1; /* threshold for background noise */
 
 MRI *MRInormalizeXH(MRI *mri_src, MRI *mri_dst, MRI *mri_mask);
 int main(int argc, char *argv[]) ;
@@ -111,7 +111,7 @@ main(int argc, char *argv[])
   int count_white, count_gray;
   
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_ms_LDA.c,v 1.3 2005/02/11 22:09:45 xhan Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_ms_LDA.c,v 1.4 2005/03/21 18:04:01 xhan Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -342,7 +342,7 @@ main(int argc, char *argv[])
 	      value += MRIFvox(mri_flash[i], x, y, z)*LDAweight[i];
 	    }
 	    
-	    
+	    //	    if(value < 0) value = 0;
 	    
 	    if(max_val < value) max_val = value;
 	    if(min_val > value) min_val = value;
@@ -771,6 +771,8 @@ void computeLDAweights(float *weights, MRI **mri_flash, MRI *mri_label, MRI *mri
     MatrixPrint(stdout, SW1);
   }
 
+#if 0
+  /* The following approach is equivalent to use -regularize; i.e., regularizing is equivalent to set SW to indentity */
   /* Compute inverse of SW */
   if(just_test == 0)
     InvSW = MatrixInverse(SW1, NULL);
@@ -783,7 +785,21 @@ void computeLDAweights(float *weights, MRI **mri_flash, MRI *mri_label, MRI *mri
       InvSW->rptr[m1][m1] = 1.0;
     }
   }
+#else
+  /* Here, we try to ignore the covariance term */
+  if(just_test){
+    for(m1=1; m1 < nvolumes_total; m1++){
+      for(m2=m1+1; m2 <= nvolumes_total; m2++){
+	SW1->rptr[m1][m2] = 0.0; /* index starts from 1 for matrix */
+	SW1->rptr[m2][m1] = 0.0; /* index starts from 1 for matrix */
+      }
+    }
+  }
+
+  InvSW = MatrixInverse(SW1, NULL);
   
+#endif  
+
   if(InvSW == NULL){ /* inverse doesn't exist */
     ErrorExit(ERROR_BADPARM, "%s: singular fuzzy covariance matrix.\n", Progname);	          
   }

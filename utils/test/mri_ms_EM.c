@@ -12,8 +12,8 @@
 // C. Archambeau et al Flexible and Robust Bayesian Classification by Finite Mixture Models, ESANN'2004
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: xhan $
-// Revision Date  : $Date: 2005/02/14 20:21:32 $
-// Revision       : $Revision: 1.3 $
+// Revision Date  : $Date: 2005/03/21 18:04:01 $
+// Revision       : $Revision: 1.4 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -54,7 +54,7 @@ static int zoff[6] = {0,  0, 0,  0, 1, -1};
 /* For fair comparison, need to generate a hard segmentation! */
 
 static int fix_class_size = 1;
-static double kappa = 0.0000001; /* 0.01 is too big */
+static double kappa = 1e-8; /* 0.01 is too big */ //this number seems need to be reduced if using 16 echos, but need be this large for just using average; so critical, not good. How to make it robust?
 
 static int debug_flag = 0;
 
@@ -99,11 +99,11 @@ static int rescale = 0;
 
 static int fuzzy_lda = 0; /* whether use Fuzzy cov and fuzzy centroid for LDA */
 
-static double mybeta = 0.5; /*weight for MRF */
+static double mybeta = 0.1; /*weight for MRF */
 
 /* eps and lambda are used for covariance regularization */
-static double eps = 1e-30;
-static double lambda = 0.1;
+static double eps = 1e-20; //such a big change seems having no effect
+static double lambda = 0.1; //0.2;
 static int regularize = 0;
 
 /* Clustering is performed only within ROI */
@@ -169,10 +169,12 @@ main(int argc, char *argv[])
   double oldMems[MAX_CLASSES];
   float classSize[MAX_CLASSES];
   int brainsize;
-
-  int nx, ny, nz, nc;
+  int num_outlier;
+  int nx=0, ny=0, nz=0, nc;
+  int xn, yn, zn, index;
 
   double nbhdP;
+  double inv_sqrt_2piM; /* 1/sqrt((2 pi)^M) */ //normalization factor
 
   float *LDAmean1, *LDAmean2, *LDAweight;
   int class_dura;
@@ -183,7 +185,7 @@ main(int argc, char *argv[])
   int indexmap[MAX_CLASSES + 1];
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_ms_EM.c,v 1.3 2005/02/14 20:21:32 xhan Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_ms_EM.c,v 1.4 2005/03/21 18:04:01 xhan Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -419,6 +421,8 @@ main(int argc, char *argv[])
    * for the multi-dimensional clustering 
    */
 
+  inv_sqrt_2piM = 1.0/pow(6.28318531, 0.5*nvolumes_total);
+
   /* Perform iterative fuzzy-clustering until convergence */
   iter = 0; max_change = 10000.0;
   while(max_change > tolerance && iter < max_iters){
@@ -506,12 +510,13 @@ main(int argc, char *argv[])
     */
     
     /* Need to change this to Gauss-Seidel, otherwise it's too slow */
+    num_outlier = 0;
     for(z=0; z < depth; z++)
       for(y=0; y< height; y++)
 	for(x=0; x < width; x++) {
 	  if(MRIvox(mri_mask, x, y, z) == 0) continue;	  
 	  
-	  sum_of_distance = 0;
+	  sum_of_distance = 1e-20;
 	  /* Compute distance */
 	  for(c=0; c < num_classes; c++){
 	    /* record old membership values */
@@ -521,19 +526,27 @@ main(int argc, char *argv[])
 	    /* Distance2 now is the likelihood, store it */
 	    MRIFvox(mri_mem_old[c], x, y, z) = distance2;
 
+	    if(debug_flag && x == Gx && y == Gy && z == Gz){
+	      printf("exp(-0.5*distance(%d)) =%g \n", c, distance2);
+	    }
+
+	    //	    distance2 *= (classSize[c]*sqrt(detF[c])*inv_sqrt_2piM); 
 	    distance2 *= (classSize[c]*sqrt(detF[c])); 
-	    
+	    if(debug_flag && x == Gx && y == Gy && z == Gz){
+	      printf("LE(%d) =%g \n", c, distance2);
+	    }
+
 	    /* Compute neighborhood PDF */
 	    /* Need to find the ML estimate for each neighbor and then sum up
 	       the prior. This will be very time-consuming; easier if use atlas
 	       To make it faster, have to store previous membership functions
 	    */
 
-	    // nbhdP = 100* NbhdLikelihood(mri_mem_old, mri_mask, x, y, z, c, num_classes);
+	    //	    nbhdP = 100* NbhdLikelihood(mri_mem_old, mri_mask, x, y, z, c, num_classes);
 	    /* Use current membership */
 	    /* Gives better convergence rate */
 	    /* Maybe a Gauss-seidel iteration is even better */
-	    nbhdP = 100* NbhdLikelihood(mri_mem, mri_mask, x, y, z, c, num_classes);
+	    nbhdP = NbhdLikelihood(mri_mem, mri_mask, x, y, z, c, num_classes);
 
 	    if(debug_flag && x == Gx && y == Gy && z == Gz){
 	      printf("c= %d, nbhdP =%g \n", c, nbhdP);
@@ -546,9 +559,14 @@ main(int argc, char *argv[])
 	    sum_of_distance += distance2;
 	  }
 
-	  if(sum_of_distance <= 1e10){ /* Outlier */
-	    sum_of_distance = 1.0;
-	    //	    printf("(x,y,z) = (%d,%d,%d), sum_of_distance = %g\n",x,y,z, sum_of_distance);
+	  if(debug_flag && x == Gx && y == Gy && z == Gz){
+	    printf("sum_of_distance= %g \n", sum_of_distance);
+	  }
+
+	  if(sum_of_distance <= 0){ /* Outlier */
+	    sum_of_distance = 1.0; //this hard truncation seems a bad idea! but sounds good! Anyway, using it lead to slow convergence
+	    num_outlier++; //the number will keep growing
+	    // printf("(x,y,z) = (%d,%d,%d), sum_of_distance = %g\n",x,y,z, sum_of_distance);
 	    // ErrorExit(ERROR_BADPARM, "%s: overflow in computing membership function.\n", Progname);		    
 	  }
 
@@ -558,7 +576,7 @@ main(int argc, char *argv[])
 	    MRIFvox(mri_mem[c], x, y, z) = distance2;
 
 	    if(debug_flag && x == Gx && y == Gy && z == Gz){
-	      printf("c= %d, memship =%g \n", c, distance2);
+	      printf("memship(%d) =%g \n", c, distance2);
 	    }
 
 	    distance2 -= oldMems[c];
@@ -579,6 +597,7 @@ main(int argc, char *argv[])
 	  
 	} /* end of all data points */
     
+    printf("num_outlier = %d\n", num_outlier);
     printf("maxchange = %g (at (%d,%d,%d))\n", max_change, nx, ny, nz);
     /* printf("oldmem(%d) = %g, new = %g\n", nc, MRIFvox(mri_mem_old[nc], nx, ny, nz),MRIFvox(mri_mem[nc], nx, ny, nz)); */ // no longer valid
     
@@ -625,6 +644,13 @@ main(int argc, char *argv[])
     printf("indexmap[%d] = %d\n", i, indexmap[i]);
   }
 
+#if 0
+  if(num_classes == 4){
+    /* compute the size of class 1 and class 2, and assign the one with smaller size to class 1 (dura) */
+    printf("Is this meaningful?\n");
+    
+  }
+
   /* Compute class size */
   for(c=0; c < num_classes; c++)
     classSize[c] = 0;
@@ -643,12 +669,37 @@ main(int argc, char *argv[])
     c = NRindex[1]; NRindex[1] = NRindex[2]; NRindex[2] = c;
     indexmap[i] = 2; indexmap[j] = 1;
   } 
+#endif
 
-  if(num_classes == 4){
-    /* compute the size of class 1 and class 2, and assign the one with smaller size to class 1 (dura) */
-    printf("Is this meaningful?\n");
-    
-  }
+  /* compute size as number of voxels adjacent to background */
+  /* Will use that size to tell which is dura */
+  for(c=0; c < num_classes; c++)
+    classSize[c] = 0;
+  for(z=1; z < (depth-1); z++)
+    for(y=1; y< (height-1); y++)
+      for(x=1; x < (width-1); x++){
+	if(MRIvox(mri_mask, x, y, z) == 0) continue;
+	/* find hard-seg */
+	label = 0;
+	for(c=1; c < num_classes; c++){
+	  if(MRIFvox(mri_mem[c], x, y, z) > MRIFvox(mri_mem[label],x,y,z)){
+	    label = c;
+	  }
+	}
+	
+	for(index = 0; index < 6; index++){
+	  xn = x + xoff[index]; yn = y + yoff[index]; zn = z + zoff[index];
+	  if(MRIvox(mri_mask, xn, yn, zn) == 0) classSize[label] += 1.0;
+	}
+      }
+  
+  if(classSize[NRindex[2]] > classSize[NRindex[1]]){
+    printf("Switch to make sure dura has more background neighbors, and as final label 1 \n");
+    i = NRindex[1] -1; j = NRindex[2] - 1;
+    c = NRindex[1]; NRindex[1] = NRindex[2]; NRindex[2] = c;
+    indexmap[i] = 2; indexmap[j] = 1;
+  } 
+  
 
   if(hard_segmentation){
     MRI *mri_seg = NULL;
@@ -956,6 +1007,12 @@ get_option(int argc, char *argv[])
       rescale = 1;
       printf("Rescale the membership function to improve contrast.\n") ;
     }
+  else if (!stricmp(option, "kappa"))
+    {
+      kappa = atof(argv[2]);
+      nargs =1;
+      printf("Typicality parameter kappa = %g.\n", kappa) ;
+    }
   else if (!stricmp(option, "hard_seg"))
     {
       hard_segmentation = 1;
@@ -1025,7 +1082,9 @@ get_option(int argc, char *argv[])
   else if(!stricmp(option, "regularize"))
     {
       regularize = 1;
-      printf("Regularize the covariance matrix\n");
+      lambda = atof(argv[2]);
+      nargs =1;
+      printf("Regularize the covariance matrix, lambda = %g\n", lambda);
     }
   else if (!stricmp(option, "label"))
     {
@@ -1399,6 +1458,8 @@ void update_centroids(MRI **mri_flash, MRI **mri_mem, MRI **mri_lihood, MRI *mri
   width = mri_flash[0]->width;
   height = mri_flash[0]->height;
 
+  printf("kappa = %g \n", kappa);
+
   /* Put the voxel iteration inside makes it easier to 
    * program, but may take longer time. Otherwise, need to
    * declare numer and denom as matrices!
@@ -1413,8 +1474,8 @@ void update_centroids(MRI **mri_flash, MRI **mri_mem, MRI **mri_lihood, MRI *mri
 	    {
 	      if(MRIvox(mri_mask, x, y, z) > 0){
 		/* Use this "typicallity scale leads to poor results */
-		// scale =  MRIFvox(mri_lihood[c], x, y, z);
-		// scale = scale/(scale + kappa);
+		scale =  MRIFvox(mri_lihood[c], x, y, z);
+		scale = scale/(scale + kappa);
 		mem = MRIFvox(mri_mem[c], x, y, z)*scale;
 		data = MRIFvox(mri_flash[m], x, y, z);
 		numer += mem*data;
@@ -1479,14 +1540,18 @@ void update_F(MATRIX **F, MRI **mri_flash, MRI **mri_mem, MRI **mri_lihood, MRI 
 	F[c]->rptr[m1][m2] = 0.0; /* index starts from 1 for matrix */
       }
     }
-    
+
+    printf("kappa = %g\n", kappa);
     denom = 0.0;
     for(z=0; z < depth; z++)
       for(y=0; y< height; y++)
 	for(x=0; x < width; x++){
 	  if(MRIvox(mri_mask, x, y, z) == 0) continue;
-	  // scale =  MRIFvox(mri_lihood[c], x, y, z);
-	  // scale = scale/(scale + kappa);
+	  /* This scale is necessary, but kappa cannot be too big!
+	   *  Setting scale to constant one will not converge
+	   */
+	  scale =  MRIFvox(mri_lihood[c], x, y, z);
+	  scale = scale/(scale + kappa);
 	  mem = MRIFvox(mri_mem[c], x, y, z)*scale;
 	  /* mem = mem*mem; */ /* here differs from FCM */
 	  denom +=  mem;
@@ -1551,12 +1616,15 @@ void compute_detF(MATRIX **F, double *detF, int num_classes){
 
     tmpv = MatrixDeterminant(F[c]);
 
+#if 0
+    /* the following may lead to unexpected performance */
     if(tmpv < 0.000001){ /*singular */
       for(i=1; i <= F[c]->rows; i++)
 	F[c]->rptr[i][i] += 0.01; /* try to recover it */
-
+      
       tmpv = MatrixDeterminant(F[c]);
     }
+#endif
     
     detF[c] = tmpv;
 

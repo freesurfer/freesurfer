@@ -6,8 +6,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: xhan $
-// Revision Date  : $Date: 2005/02/08 16:26:18 $
-// Revision       : $Revision: 1.1 $
+// Revision Date  : $Date: 2005/03/21 18:04:01 $
+// Revision       : $Revision: 1.2 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -113,7 +113,7 @@ main(int argc, char *argv[])
 
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_ms_compute_CNR.c,v 1.1 2005/02/08 16:26:18 xhan Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_ms_compute_CNR.c,v 1.2 2005/03/21 18:04:01 xhan Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -159,7 +159,9 @@ main(int argc, char *argv[])
     MINLABEL = MIN(class1, class2);
     MAXLABEL = MAX(class1, class2);
   }
+  
   num_classes = MAXLABEL - MINLABEL + 1;
+
   printf("Total of %d classes considered in LDA training\n", num_classes);
 
   if(num_classes <= 1){
@@ -442,35 +444,49 @@ main(int argc, char *argv[])
     fp = 0;
 
   printf("compute pair-wise CNR/Mahalanobis distances \n");
-  /*  for(i=0; i <num_classes-1;i++)
-    for(j=i+1; j < num_classes; j++){
-  */
-  for(index = 0; index < CNR_pairs; index++){
-    i = ilist[index] - MINLABEL;
-    j = jlist[index] - MINLABEL;
-
-    if(AdjMatrix->rptr[i+1][j+1] < 0.5) continue;
-    if(ldaflag){
-      /* The following should only be executed once */
-      cnr = computePairCNR(LDAmeans[i], LDAmeans[j], SWs[i], SWs[j], classSize[i],  classSize[j], nvolumes_total, LDAweight, 1);
+  if(ldaflag){
+    for(i=0; i <num_classes-1;i++)
+      for(j=i+1; j < num_classes; j++){
+	if(AdjMatrix->rptr[i+1][j+1] < 0.5) continue;
+	cnr = computePairCNR(LDAmeans[i], LDAmeans[j], SWs[i], SWs[j], classSize[i],  classSize[j], nvolumes_total, LDAweight, 1);
+	if(fp)
+	  fprintf(fp, "%9.4f ", (float)cnr);
+	
+	printf("CNR of class %d and class %d is %g\n", i+MINLABEL, j+MINLABEL, cnr);
+	
+      }
+    
+    if(fp){
+      fprintf(fp, "\n");
+      fclose(fp);
     }
-    else if(i== (2-MINLABEL) && j == (3-MINLABEL) && nvolumes_total > 1)
-      cnr = computePairCNR(LDAmeans[i], LDAmeans[j], SWs[i], SWs[j], classSize[i],  classSize[j], nvolumes_total, LDAweight, 1);
-    else
-      cnr = computePairCNR(LDAmeans[i], LDAmeans[j], SWs[i], SWs[j], classSize[i], classSize[j], nvolumes_total, 0, 0);
-    
-    if(fp)
-      fprintf(fp, "%9.4f ", (float)cnr);
-    
-    printf("CNR of class %d and class %d is %g\n", i+MINLABEL, j+MINLABEL, cnr);
-    
-  }
-  
-  if(fp){
-    fprintf(fp, "\n");
-    fclose(fp);
-  }
 
+  }
+  else{
+    
+    for(index = 0; index < CNR_pairs; index++){
+      i = ilist[index] - MINLABEL;
+      j = jlist[index] - MINLABEL;
+      
+      if(AdjMatrix->rptr[i+1][j+1] < 0.5) continue;
+      if(i== (2-MINLABEL) && j == (3-MINLABEL) && nvolumes_total > 1)
+	cnr = computePairCNR(LDAmeans[i], LDAmeans[j], SWs[i], SWs[j], classSize[i],  classSize[j], nvolumes_total, LDAweight, 1);
+      else
+	cnr = computePairCNR(LDAmeans[i], LDAmeans[j], SWs[i], SWs[j], classSize[i], classSize[j], nvolumes_total, 0, 0);
+      
+      if(fp)
+	fprintf(fp, "%9.4f ", (float)cnr);
+      
+      printf("CNR of class %d and class %d is %g\n", i+MINLABEL, j+MINLABEL, cnr);
+      
+    }
+    
+    if(fp){
+      fprintf(fp, "\n");
+      fclose(fp);
+    }
+  }
+    
   /* output weights for optimize CNR for class 2 and class 3 */
   if(weight_fname != NULL){
     output_weights_to_file(LDAweight, weight_fname, nvolumes_total);
