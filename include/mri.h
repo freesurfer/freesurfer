@@ -24,8 +24,6 @@ typedef struct
   int           imnr0 ;     /* starting image # */
   int           imnr1 ;     /* ending image # */
   int           ptype ;     /* not used */
-  int           xnum ;
-  int           ynum ;
   float         fov ;
   float         thick ;
   float         ps ;   
@@ -56,6 +54,11 @@ typedef struct
   Transform         *inverse_linear_transform ;
   int           free_transform ;   /* are we responsible for freeing it? */
   int           nframes ;          /* # of concatenated images */
+
+  /* these are used to handle boundary conditions (arrays of indices) */
+  int           *xi ;
+  int           *yi ;
+  int           *zi ;
 } MRI_IMAGE, MRI ;
 
 /* single pixel filtering */
@@ -165,6 +168,11 @@ MRI   *MRIerode(MRI *mri_src, MRI *mri_dst) ;
 MRI   *MRIdilate(MRI *mri_src, MRI *mri_dst) ;
 MRI   *MRIopen(MRI *mri_src, MRI *mri_dst) ;
 MRI   *MRIclose(MRI *mri_src, MRI *mri_dst) ;
+/* the following use 4 (or 6 in 3-D) connectivity */
+MRI   *MRIerode6(MRI *mri_src, MRI *mri_dst) ;
+MRI   *MRIdilate6(MRI *mri_src, MRI *mri_dst) ;
+MRI   *MRIopen6(MRI *mri_src, MRI *mri_dst) ;
+MRI   *MRIclose6(MRI *mri_src, MRI *mri_dst) ;
 
 /* filtering operations */
 MRI   *MRIgaussian1d(float sigma, int max_len) ;
