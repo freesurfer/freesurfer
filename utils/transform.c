@@ -1791,27 +1791,29 @@ int mincFindVolume(const char *line, const char *line2, char **srcVol, char **ds
       pch = strtok((char *) line, " ");
       while (pch != NULL)
       {
-	strcpy(buf, pch);
-	if (strstr(buf, ".mnc")) // first src mnc volume
-	{
-	  mncorig = 1;
-	  if (count ==0) // src
-	  {
-	    count++;
-	    *srcVol = (char *) malloc(strlen(pch)+1);
-	    strcpy(*srcVol, pch);
-	    fprintf(stdout, "INFO: Src volume %s\n", *srcVol);
-	  }	
-	  else if (count == 1) // this is the second one must be dest volume
-	  {
-	    *dstVol = (char *) malloc(strlen(pch)+1);
-	    strcpy(*dstVol, pch);
-	    fprintf(stdout, "INFO: Target volume %s\n", *dstVol);
-	    count = 0; // restore for another case
-	    return 1;
-	  }
-	}
-	pch = strtok(NULL, " ");
+				strcpy(buf, pch);
+				if (strstr(buf, ".mnc")) // first src mnc volume
+				{
+					mncorig = 1;
+					if (count ==0) // src
+					{
+						count++;
+						*srcVol = (char *) malloc(strlen(pch)+1);
+						strcpy(*srcVol, pch);
+						if (DIAG_VERBOSE_ON)
+							fprintf(stdout, "INFO: Src volume %s\n", *srcVol);
+					}	
+					else if (count == 1) // this is the second one must be dest volume
+					{
+						*dstVol = (char *) malloc(strlen(pch)+1);
+						strcpy(*dstVol, pch);
+						if (DIAG_VERBOSE_ON)
+							fprintf(stdout, "INFO: Target volume %s\n", *dstVol);
+						count = 0; // restore for another case
+						return 1;
+					}
+				}
+				pch = strtok(NULL, " ");
       }
     }
     else // let us assume MINC GUI transform
@@ -1820,28 +1822,34 @@ int mincFindVolume(const char *line, const char *line2, char **srcVol, char **ds
       pch = strtok(NULL, " ");          // now points to filename
       if (pch != NULL)
       {
-	strcpy(buf, pch);
-	if (strstr(buf, ".mnc")) // if it is a minc file.  it is dst
-	{
-	  *dstVol = (char *) malloc(strlen(pch)+1);
-	  strcpy(*dstVol, pch);
-	}
-	pch = strtok((char *) line2, " "); // points to %Volume
-	pch = strtok(NULL, " ");        // now points to filename
-	if (pch != NULL)
-	{
-	  strcpy(buf, pch);
-	  if (strstr(buf, ".mnc")) // if it is a minc file   it is src
-	  {
-	    *srcVol = (char *) malloc(strlen(pch)+1);
-	    strcpy(*srcVol, pch);
-	  }
-	}
+				strcpy(buf, pch);
+				if (strstr(buf, ".mnc")) // if it is a minc file.  it is dst
+				{
+					*dstVol = (char *) malloc(strlen(pch)+1);
+					strcpy(*dstVol, pch);
+				}
+				pch = strtok((char *) line2, " "); // points to %Volume
+				pch = strtok(NULL, " ");        // now points to filename
+				if (pch != NULL)
+				{
+					strcpy(buf, pch);
+					if (strstr(buf, ".mnc")) // if it is a minc file   it is src
+					{
+						*srcVol = (char *) malloc(strlen(pch)+1);
+						strcpy(*srcVol, pch);
+					}
+				}
       }
       if (*srcVol)
-	fprintf(stdout, "INFO: Src volume %s\n", *srcVol);
+			{
+				if (DIAG_VERBOSE_ON)
+					fprintf(stdout, "INFO: Src volume %s\n", *srcVol);
+			}
       if (*dstVol)
-	fprintf(stdout, "INFO: Target volume %s\n", *dstVol);
+			{
+				if (DIAG_VERBOSE_ON)
+					fprintf(stdout, "INFO: Target volume %s\n", *dstVol);
+			}
     }
   }
   else
@@ -1853,20 +1861,22 @@ int mincFindVolume(const char *line, const char *line2, char **srcVol, char **ds
       strcpy(buf, pch);
       if (strstr(buf, "src")) // first src mnc volume
       {
-	// get next token
-	pch=strtok(NULL, " ");
-	*srcVol = (char *) malloc(strlen(pch)+1);
-	strcpy(*srcVol, pch);
-	fprintf(stdout, "INFO: Src volume %s\n", *srcVol);
+				// get next token
+				pch=strtok(NULL, " ");
+				*srcVol = (char *) malloc(strlen(pch)+1);
+				strcpy(*srcVol, pch);
+				if (DIAG_VERBOSE_ON)
+					fprintf(stdout, "INFO: Src volume %s\n", *srcVol);
       }
       else if (strstr(buf, "dst"))
       {
-	// get next token
-	pch=strtok(NULL, " "); 
-	*dstVol = (char *) malloc(strlen(pch)+1);
-	strcpy(*dstVol, pch);
-	fprintf(stdout, "INFO: Target volume %s\n", *dstVol);
-	return 1;
+				// get next token
+				pch=strtok(NULL, " "); 
+				*dstVol = (char *) malloc(strlen(pch)+1);
+				strcpy(*dstVol, pch);
+				if (DIAG_VERBOSE_ON)
+					fprintf(stdout, "INFO: Target volume %s\n", *dstVol);
+				return 1;
       }
       pch = strtok(NULL, " ");
     }
@@ -1893,22 +1903,22 @@ void mincGetVolumeInfo(const char *srcVol, VOL_GEOM *vgSrc)
       // now check whether it is average_305
       if (strstr(srcVol, "average_305"))
       {
-	printf("INFO: The transform was made with average_305.mnc.\n");
-	// average_305 value
-	vgSrc->width = 172; vgSrc->height = 220; vgSrc->depth = 156;
-	vgSrc->xsize = 1; vgSrc->ysize = 1; vgSrc->zsize = 1;
-	vgSrc->x_r = 1; vgSrc->x_a = 0; vgSrc->x_s = 0;
-	vgSrc->y_r = 0; vgSrc->y_a = 1; vgSrc->y_s = 0;
-	vgSrc->z_r = 0; vgSrc->z_a = 0; vgSrc->z_s = 1;      
-	vgSrc->c_r = -0.0950;
-	vgSrc->c_a = -16.5100;
-	vgSrc->c_s = 9.7500;
-	vgSrc->valid = 1;
+				printf("INFO: The transform was made with average_305.mnc.\n");
+				// average_305 value
+				vgSrc->width = 172; vgSrc->height = 220; vgSrc->depth = 156;
+				vgSrc->xsize = 1; vgSrc->ysize = 1; vgSrc->zsize = 1;
+				vgSrc->x_r = 1; vgSrc->x_a = 0; vgSrc->x_s = 0;
+				vgSrc->y_r = 0; vgSrc->y_a = 1; vgSrc->y_s = 0;
+				vgSrc->z_r = 0; vgSrc->z_a = 0; vgSrc->z_s = 1;      
+				vgSrc->c_r = -0.0950;
+				vgSrc->c_a = -16.5100;
+				vgSrc->c_s = 9.7500;
+				vgSrc->valid = 1;
       }
       else
       {
-	// printf("INFO: Set Volume %s to the standard COR type.\n", srcVol);
-	initVolGeom(vgSrc); // valid = 0; so no need to give info
+				// printf("INFO: Set Volume %s to the standard COR type.\n", srcVol);
+				initVolGeom(vgSrc); // valid = 0; so no need to give info
       }
     }
     else // file exists
@@ -1918,7 +1928,7 @@ void mincGetVolumeInfo(const char *srcVol, VOL_GEOM *vgSrc)
       if (mri) // find the MRI volume
       	getVolGeom(mri, vgSrc);
       else // cound not find the volume
-	initVolGeom(vgSrc);
+				initVolGeom(vgSrc);
     }
   }
   else

@@ -3,8 +3,8 @@
 //
 // 
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Date  : $Date: 2004/07/20 15:50:15 $
-// Revision       : $Revision: 1.52 $
+// Revision Date  : $Date: 2004/09/14 13:39:30 $
+// Revision       : $Revision: 1.53 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -1426,7 +1426,7 @@ gcamAreaTermAtNode(GCA_MORPH *gcam, MRI *mri, double l_area,
 {
   GCA_MORPH_NODE *gcamn, *gcamni, *gcamnj, *gcamnk ;
   float          delta ;
-  int            n, width, height, depth, num, invert ;
+  int            n, width = 0, height = 0, depth = 0, num, invert ;
   static VECTOR  *v_i = NULL, *v_j, *v_k, *v_j_x_k, *v_i_x_j,*v_k_x_i,*v_grad,
     *v_tmp ;
   double         orig_area ;

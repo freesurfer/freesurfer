@@ -1406,7 +1406,7 @@ init_basis_vectors(void)
     e2_x = *pe2_x++ = e2_x * len ;   
     e2_y = *pe2_y++ = e2_y * len ;
     e2_z = *pe2_z++ = e2_z * len ;
-#if 1
+#if 0
     DiagFprintf(0L, 
               "vertex %d: (%2.2f, %2.2f, %2.2f) --> (%2.2f, %2.2f, %2.2f) "
               "x (%2.2f, %2.2f, %2.2f)\n",
@@ -1975,7 +1975,7 @@ MRIthickenThinWMStrands(MRI *mri_T1, MRI *mri_src, MRI *mri_dst,int thickness,
               continue ;
             if ((fabs(nx) + fabs(ny) + fabs(nz)) > 1)
               continue ;
-            if (!ny || nx || nz)
+           if (!ny || nx || nz)
               continue ;  /* hack - only allow superior-inferior thickening */
 
             /* first search 'downwards' to see if we can find non-white */
@@ -2016,7 +2016,7 @@ MRIthickenThinWMStrands(MRI *mri_T1, MRI *mri_src, MRI *mri_dst,int thickness,
                 xv = nint((Real)x + (up_dist+1.5)*nx) ;
                 yv = nint((Real)y + (up_dist+1.5)*ny) ;
                 zv = nint((Real)z + (up_dist+1.5)*nz) ;
-                if (!MRIvox(mri_dst, xv, yv, zv))
+                if ((MRIindexNotInVolume(mri_T1,xv,yv,zv) == 0) && !MRIvox(mri_dst, xv, yv, zv))
                 {
                   up_added = 1 ;
                   xv = nint((Real)x + (up_dist+.5)*nx) ;

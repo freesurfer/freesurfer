@@ -1281,7 +1281,8 @@ static MRI *corRead(char *fname, int read_volume)
         mri->inverse_linear_transform = get_inverse_linear_transform_ptr(&mri->transform);
         mri->free_transform = 1;
         strcpy(mri->transform_fname, xform_use);
-	fprintf(stderr, "INFO: loaded talairach xform : %s\n", mri->transform_fname);
+				if (DIAG_VERBOSE_ON)
+					fprintf(stderr, "INFO: loaded talairach xform : %s\n", mri->transform_fname);
       }
       else
       {
@@ -2858,13 +2859,15 @@ static int bvolumeWrite(MRI *vol, char *fname_passed, int type)
   }
 
   if(vol->type != type){
-    printf("INFO: bvolumeWrite: changing type\n");
+		if (DIAG_VERBOSE_ON)
+			printf("INFO: bvolumeWrite: changing type\n");
     nslices = vol->depth;
     nframes = vol->nframes;
     vol->depth = nslices*nframes;
     vol->nframes = 1;
     MRIlimits(vol,&min,&max);
-    printf("INFO: bvolumeWrite: range %g %g\n",min,max);
+		if (DIAG_VERBOSE_ON)
+			printf("INFO: bvolumeWrite: range %g %g\n",min,max);
     mri = MRIchangeType(vol,type,min,max,1);
     if(mri == NULL) {
       fprintf(stderr,"ERROR: bvolumeWrite: MRIchangeType\n");
@@ -8608,7 +8611,8 @@ mghRead(char *fname, int read_volume, int frame)
 	    mri->linear_transform = get_linear_transform_ptr(&mri->transform);
 	    mri->inverse_linear_transform = get_inverse_linear_transform_ptr(&mri->transform);
 	    mri->free_transform = 1;
-	    fprintf(stderr, "INFO: loaded talairach xform : %s\n", mri->transform_fname);
+			if (DIAG_VERBOSE_ON)
+				fprintf(stderr, "INFO: loaded talairach xform : %s\n", mri->transform_fname);
 	  }
 	  else
 	  {

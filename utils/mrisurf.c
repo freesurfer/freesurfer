@@ -3,9 +3,9 @@
 // written by Bruce Fischl
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2004/08/02 19:50:01 $
-// Revision       : $Revision: 1.299 $
+// Revision Author: $Author: fischl $
+// Revision Date  : $Date: 2004/09/14 13:39:31 $
+// Revision       : $Revision: 1.300 $
 //////////////////////////////////////////////////////////////////
 #include <stdio.h>
 #include <string.h>
@@ -1269,6 +1269,8 @@ MRISfree(MRI_SURFACE **pmris)
     free(mris->dz2) ;
   if (mris->labels)
     free(mris->labels) ;
+	if (mris->ct)
+		CTABfree(&mris->ct) ;
   for (vno = 0 ; vno < mris->nvertices ; vno++)
   {
     if (mris->vertices[vno].f)
