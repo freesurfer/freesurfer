@@ -17,7 +17,7 @@
 #include "macros.h"
 #include "oglutil.h"
 
-static char vcid[] = "$Id: oglutil.c,v 1.4 1997/11/01 22:41:55 fischl Exp $";
+static char vcid[] = "$Id: oglutil.c,v 1.5 1997/12/03 21:56:31 fischl Exp $";
 
 
 /*-------------------------------- CONSTANTS -----------------------------*/
@@ -37,39 +37,23 @@ static char vcid[] = "$Id: oglutil.c,v 1.4 1997/11/01 22:41:55 fischl Exp $";
 static void load_brain_coords(float x,float y, float z, float v[]) ;
 void   OGLUsetLightingModel(float lite0, float lite1, float lite2, 
              float lite3, float newoffset) ;
+static int mrisFindMaxExtents(MRI_SURFACE *mris) ;
+static int ogluSetFOV(MRI_SURFACE *mris) ;
 
 double oglu_fov = FOV ;
+
+static int oglu_scale = 1 ;
 
 int
 OGLUinit(MRI_SURFACE *mris, long frame_xdim, long frame_ydim)
 {
   int    error ;
-  double zfov, max_dim ;
 
   glViewport(0,0,frame_xdim,frame_ydim);
   glLoadIdentity();
   glMatrixMode(GL_PROJECTION);
-  
-  oglu_fov = FOV ;
-  max_dim = MAX(mris->xhi, MAX(mris->yhi, mris->zhi)) ;
-  max_dim = MAX(max_dim, MAX(-mris->xlo, MAX(-mris->ylo, -mris->zlo))) ;
-  if (2*max_dim < FOV)
-    oglu_fov = 2*max_dim ;
-  else
-    oglu_fov = FOV ;
 
-  if (mris->xlo < -oglu_fov)
-    oglu_fov = -1.1f * mris->xlo ;
-  if (mris->ylo < -oglu_fov)
-    oglu_fov = -1.1f * mris->ylo ;
-  if (mris->xhi > oglu_fov)
-    oglu_fov = 1.1f * mris->xhi ;
-  if (mris->yhi > oglu_fov)
-    oglu_fov = 1.1f * mris->yhi ;
-
-  zfov = 10.0f*oglu_fov ; 
-  glOrtho(-oglu_fov, oglu_fov, -oglu_fov, oglu_fov, -zfov, zfov);
-
+  ogluSetFOV(mris) ;
   glClearColor(0.0, 0.0, 0.0, 1.0);
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
   OGLUsetLightingModel(-1.0f, -1.0f, -1.0f, -1.0f, -1.0f) ;
@@ -170,9 +154,10 @@ OGLUcompile(MRI_SURFACE *mris, int *marked_vertices, int flags, float cslope)
 {
   int          k, n, red, green, blue, error, mv, marked ;
   face_type    *f;
-  vertex_type  *v ;
+  VERTEX       *v, *vn ;
   float        v1[3], min_curv, max_curv, offset ;
 
+/*  ogluSetFOV(mris) ;*/
   if (Gdiag & DIAG_SHOW)
     fprintf(stderr, "compiling surface tesselation...") ;
 
@@ -186,6 +171,25 @@ OGLUcompile(MRI_SURFACE *mris, int *marked_vertices, int flags, float cslope)
     f = &mris->faces[k];
     marked = 0 ;
 
+    if (flags & MESH_FLAG)
+    {
+      float v2[3], v3[3] ;
+
+      glBegin(GL_LINES);
+      glColor3ub(255,255,255);
+      for (n=0;n<4;n++)
+      {
+        v = &mris->vertices[f->v[n]];
+        vn = n == 3 ? &mris->vertices[f->v[0]] : &mris->vertices[f->v[n+1]] ;
+        load_brain_coords(v->nx,v->ny,v->nz,v1);
+        glNormal3fv(v1);
+        load_brain_coords(v->x,v->y,v->z,v2);
+        load_brain_coords(vn->x, vn->y, vn->z,v3);
+        glVertex3fv(v2);
+        glVertex3fv(v3);
+      }
+      glEnd() ;
+    }
 #if 0
     for (n=0;n<4;n++)
       for (mv = 0 ; marked_vertices[mv] >= 0 ; mv++)
@@ -370,3 +374,85 @@ load_brain_coords(float x,float y, float z, float v[])
 
 
 #endif
+static int
+mrisFindMaxExtents(MRI_SURFACE *mris)
+{
+  int     vno, xlo, xhi, ylo, yhi, zlo, zhi, x, y, z ;
+  VERTEX  *v ;
+
+  xhi=yhi=zhi= -10000;
+  xlo=ylo=zlo=  10000;
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    if (v->ripflag)
+      continue ;
+    x = v->x;
+    y = v->y;
+    z = v->z;
+    if (x>xhi) xhi=x;
+    if (x<xlo) xlo=x;
+    if (y>yhi) yhi=y;
+    if (y<ylo) ylo=y;
+    if (z>zhi) zhi=z;
+    if (z<zlo) zlo=z;
+  }
+
+  mris->xlo = xlo ; mris->xhi = xhi ;
+  mris->ylo = ylo ; mris->yhi = yhi ;
+  mris->zlo = zlo ; mris->zhi = zhi ;
+  return(NO_ERROR) ;
+}
+
+static int
+ogluSetFOV(MRI_SURFACE *mris)
+{
+  double zfov, max_dim ;
+
+  mrisFindMaxExtents(mris) ;
+  oglu_fov = FOV ;
+  if (oglu_scale)
+  {
+    max_dim = MAX(mris->xhi, MAX(mris->yhi, mris->zhi)) ;
+    max_dim = MAX(max_dim, MAX(-mris->xlo, MAX(-mris->ylo, -mris->zlo))) ;
+    max_dim *= 2 ;
+#if 0
+    if (3*max_dim < FOV)
+      oglu_fov = 3*max_dim ;
+    else if (max_dim > FOV)  /* try and keep it constant for a range of sizes */
+    {
+      oglu_fov = FOV*1.5 ;
+      while (oglu_fov < max_dim)
+        oglu_fov *= 2.0 ;
+    }
+    else
+      oglu_fov = FOV ;
+#else
+    oglu_fov = max_dim*1.1 ;
+#endif
+    
+#if 0
+    if (mris->xlo < -oglu_fov)
+      oglu_fov = -1.1f * mris->xlo ;
+    if (mris->ylo < -oglu_fov)
+      oglu_fov = -1.1f * mris->ylo ;
+    if (mris->xhi > oglu_fov)
+      oglu_fov = 1.1f * mris->xhi ;
+    if (mris->yhi > oglu_fov)
+      oglu_fov = 1.1f * mris->yhi ;
+#endif
+  }
+
+  zfov = 10.0f*oglu_fov ; 
+  glOrtho(-oglu_fov, oglu_fov, -oglu_fov, oglu_fov, -zfov, zfov);
+
+  return(NO_ERROR) ;
+}
+
+int
+OGLUnoscale(void)
+{
+  oglu_scale = 0 ;
+  return(NO_ERROR) ;
+}
+
