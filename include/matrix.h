@@ -115,6 +115,35 @@ float  VectorTripleProduct(VECTOR *v1, VECTOR *v2, VECTOR *v3) ;
 VECTOR *VectorNormalize(VECTOR *vin, VECTOR *vout) ;
 
 
+/* these are macro versions that work on 3-d vectors */
+#define V3_X(v)      (VECTOR_ELT(v,1))
+#define V3_Y(v)      (VECTOR_ELT(v,2))
+#define V3_Z(v)      (VECTOR_ELT(v,3))
+#define V3_LEN(v)    (sqrt(V3_X(v)*V3_X(v)+V3_Y(v)*V3_Y(v)+V3_Z(v)*V3_Z(v)))
+#define V3_LEN_SQ(v) (V3_X(v)*V3_X(v)+V3_Y(v)*V3_Y(v)+V3_Z(v)*V3_Z(v))
+#define V3_CROSS_PRODUCT(va,vb,vc) \
+                 V3_X(vc) = V3_Y(va)*V3_Z(vb)- V3_Z(va)*V3_Y(vb),  \
+                 V3_Y(vc) = V3_Z(va)*V3_X(vb)- V3_X(va)*V3_Z(vb),  \
+                 V3_Z(vc) = V3_X(va)*V3_Y(vb)- V3_Y(va)*V3_X(vb) ; 
+#define V3_TRIPLE_PRODUCT(va,vb,vc) \
+                (V3_X(vc) * (V3_Y(va)*V3_Z(vb)- V3_Z(va)*V3_Y(vb)) + \
+                 V3_Y(vc) * (V3_Z(va)*V3_X(vb)- V3_X(va)*V3_Z(vb)) + \
+                 V3_Z(vc) * (V3_X(va)*V3_Y(vb)- V3_Y(va)*V3_X(vb)))
+#define V3_ADD(va,vb,vc) \
+                 V3_X(vc) = V3_X(va)+V3_X(vb), \
+                 V3_Y(vc) = V3_Y(va)+V3_Y(vb), \
+                 V3_Z(vc) = V3_Z(va)+V3_Z(vb) ;
+#define V3_DOT(va,vb) (V3_X(va)*V3_X(vb)+V3_Y(va)*V3_Y(vb)+V3_Z(va)*V3_Z(vb))
+#define V3_SCALAR_MUL(va,s,vb)  (V3_X(vb)=V3_X(va)*s,\
+                                 V3_Y(vb)=V3_Y(va)*s,\
+                                 V3_Z(vb)=V3_Z(va)*s)
+
+#define V3_NORMALIZE(va,vb)  { float len = (V3_LEN(va)) ; \
+                                  if (FZERO(len)) len = 1.0f ; \
+                                  else len = 1.0f / len ; \
+                                  V3_SCALAR_MUL(va,len,vb) ; }
+#define V3_CLEAR(v)          (V3_X(v) = 0, V3_Y(v) = 0, V3_Z(v) = 0)
+
 #define X_ROTATION   0
 #define Y_ROTATION   1
 #define Z_ROTATION   2
