@@ -27,6 +27,7 @@ static char *xform_name = "talairach.xfm" ;
 static int ninputs = 1 ;  /* T1 intensity */
 
 static char subjects_dir[STRLEN] ;
+static char *heq_fname = NULL ;
 
 int
 main(int argc, char *argv[])
@@ -36,7 +37,7 @@ main(int argc, char *argv[])
   int          msec, minutes, seconds, nsubjects ;
   struct timeb start ;
   GCA          *gca ;
-  MRI          *mri_parc, *mri_T1 ;
+  MRI          *mri_parc, *mri_T1, *mri_eq = NULL ;
   LTA          *lta ;
 
   Progname = argv[0] ;
@@ -69,6 +70,15 @@ main(int argc, char *argv[])
   }
 
 
+  if (heq_fname)
+  {
+    mri_eq = MRIread(heq_fname) ;
+    if (!mri_eq)
+      ErrorExit(ERROR_NOFILE, 
+                "%s: could not read histogram equalization volume %s", 
+                Progname, heq_fname) ;
+  }
+
   out_fname = argv[argc-1] ;
   nsubjects = argc-2 ;
   fprintf(stderr, "training on %d subject and writing results to %s\n",
@@ -96,6 +106,12 @@ main(int argc, char *argv[])
     if (!mri_T1)
       ErrorExit(ERROR_NOFILE, "%s: could not read T1 data from file %s",
                 Progname, fname) ;
+
+    if (mri_eq)
+    {
+      printf("histogram equalizing input image...\n") ;
+      MRIhistoEqualize(mri_T1, mri_eq, mri_T1, 30, 170) ;
+    }
 
     if (xform_name)
     {
@@ -150,12 +166,19 @@ get_option(int argc, char *argv[])
     nargs = 1 ;
     fprintf(stderr, "spacing nodes every %2.1f mm\n", parms.spacing) ;
   }
-  else if (!stricmp(option, "T1_DIR"))
+  else if (!stricmp(option, "HEQ"))
   {
-    parc_dir = argv[2] ;
+    heq_fname = argv[2] ;
+    nargs = 1 ;
+    printf("reading template for histogram equalization from %s...\n", 
+           heq_fname) ;
+  }
+  else if (!stricmp(option, "T1"))
+  {
+    orig_dir = argv[2] ;
     nargs = 1 ;
     fprintf(stderr, "reading T1 data from subject's mri/%s directory\n",
-            parc_dir) ;
+            orig_dir) ;
   }
   else if (!stricmp(option, "PARC_DIR"))
   {
