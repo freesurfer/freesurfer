@@ -11,7 +11,7 @@
 #include "utils.h"
 #include "mri.h"
 
-static char vcid[] = "$Id: mri_fill.c,v 1.1 1997/09/12 21:37:18 fischl Exp $";
+static char vcid[] = "$Id: mri_fill.c,v 1.2 1997/09/15 19:34:57 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 static int get_option(int argc, char *argv[]) ;
@@ -23,7 +23,7 @@ static void print_version(void) ;
 char *Progname ;
 
 #define CSF_THRESHOLD        50 
-#define VENTRICLE_FILL_VAL   200 ;
+#define VENTRICLE_FILL_VAL   200
 
 static Real tal_seed_x = -2 ;
 static Real tal_seed_y = -2 ;
