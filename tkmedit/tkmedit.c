@@ -5936,9 +5936,9 @@ tkm_tErr FindUserHomeDir () {
 }
 
 void MakeFileName ( char*     isInput,
-        tkm_tFileName  iType, 
-        char*         osCompleteFileName,
-        int         inDestSize ) {
+		    tkm_tFileName  iType, 
+		    char*         osCompleteFileName,
+		    int         inDestSize ) {
   
   char sFileName[tkm_knPathLen] = "";
   
@@ -5986,10 +5986,11 @@ void MakeFileName ( char*     isInput,
   default:
     if( gEnableFileNameGuessing ) {
       xUtil_snprintf( sFileName, sizeof(sFileName),
-          "%s/%s/%s", gsSubjectHomeDir, 
-          ksaFileNameSubDirs[iType], isInput );
+		      "%s/%s/%s", gsSubjectHomeDir, 
+		      ksaFileNameSubDirs[iType], isInput );
     } else {
-      xUtil_strncpy( sFileName, isInput, sizeof(sFileName) );
+      xUtil_snprintf(sFileName,sizeof(sFileName), "./%s", isInput);
+      /* xUtil_strncpy( sFileName, isInput, sizeof(sFileName) ); */
     }     
     break;
   }
