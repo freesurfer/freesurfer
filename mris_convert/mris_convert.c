@@ -13,7 +13,7 @@
 #include "macros.h"
 #include "fio.h"
 
-static char vcid[] = "$Id: mris_convert.c,v 1.8 1998/09/13 16:43:33 fischl Exp $";
+static char vcid[] = "$Id: mris_convert.c,v 1.9 2000/06/30 14:55:35 fischl Exp $";
 
 
 /*-------------------------------- CONSTANTS -----------------------------*/
@@ -27,7 +27,8 @@ static void usage_exit(void) ;
 static void print_usage(void) ;
 static void print_help(void) ;
 static void print_version(void) ;
-static int convertWFile(char *in_fname, char *out_fname) ;
+static int convertToWFile(char *in_fname, char *out_fname) ;
+static int convertFromWFile(char *in_fname, char *out_fname) ;
 static int writeAsciiCurvFile(MRI_SURFACE *mris, char *out_fname) ;
 
 /*-------------------------------- DATA ----------------------------*/
@@ -37,7 +38,8 @@ char *Progname ;
 static int talairach_flag = 0 ;
 static int patch_flag = 0 ;
 static int read_orig_positions = 0 ;
-static int w_file_flag = 0 ;
+static int w_file_dst_flag = 0 ;
+static int w_file_src_flag = 0 ;
 static int curv_file_flag = 0 ;
 static char *curv_fname ;
 static char *orig_surf_name = NULL ;
@@ -77,12 +79,26 @@ main(int argc, char *argv[])
   {
     strcpy(ext, dot+1) ;
     if (!stricmp(ext, "W")) 
-      w_file_flag = 1 ;
+      w_file_dst_flag = 1 ;
   }
 
-  if (w_file_flag)
+  if (w_file_dst_flag)
   {
-    convertWFile(in_fname, out_fname) ;
+    convertToWFile(in_fname, out_fname) ;
+    exit(0) ;
+  }
+
+  dot = strrchr(in_fname, '.') ;
+  if (dot)
+  {
+    strcpy(ext, dot+1) ;
+    if (!stricmp(ext, "W")) 
+      w_file_src_flag = 1 ;
+  }
+
+  if (w_file_src_flag)
+  {
+    convertFromWFile(in_fname, out_fname) ;
     exit(0) ;
   }
 
@@ -221,7 +237,7 @@ print_version(void)
   exit(1) ;
 }
 static int
-convertWFile(char *in_fname, char *out_fname)
+convertToWFile(char *in_fname, char *out_fname)
 {
   FILE   *infp, *outfp ;
   char   line[300], *cp ;
@@ -257,6 +273,40 @@ convertWFile(char *in_fname, char *out_fname)
   }
   fclose(infp) ;
   fclose(outfp) ;
+  return(NO_ERROR) ;
+}
+
+
+static int
+convertFromWFile(char *in_fname, char *out_fname)
+{
+  FILE   *infp, *outfp ;
+  int    vno, num, ilat, i ;
+  float  val, lat ;
+
+  fprintf(stderr, "writing ascii w file %s...\n", out_fname) ;
+  outfp = fopen(out_fname,"wb");
+  if (outfp==NULL) 
+    ErrorExit(ERROR_NOFILE, "%s: Can't create file %s\n",Progname,out_fname) ;
+
+  infp = fopen(in_fname,"rb");
+  if (infp==NULL) 
+    ErrorExit(ERROR_NOFILE, "%s: Can't create file %s\n",Progname,in_fname) ;
+
+
+  fread2(&ilat,infp);
+  lat = (float)ilat/10.0;
+  fprintf(outfp, "%2.3f\n", lat) ;
+  fread3(&num,infp);
+  fprintf(outfp, "%d\n", num) ;
+  for (i=0;i<num;i++)
+  {
+    fread3(&vno,infp);
+    val = freadFloat(infp) ;
+    fprintf(outfp, "%d  %f\n", vno, val) ;
+  }
+  fclose(outfp); fclose(infp) ;
+
   return(NO_ERROR) ;
 }
 
