@@ -90,6 +90,7 @@ typedef struct vertex_type_
   float  origx, origy,
          origz ;          /* original coordinates */
   float  pialx, pialy, pialz ;  /* pial surface coordinates */
+  float  whitex, whitey, whitez ;  /* pial surface coordinates */
   float  infx, infy, infz; /* inflated coordinates */
   float  fx, fy, fz ;      /* flattened coordinates */
   float e1x, e1y, e1z ;  /* 1st basis vector for the local tangent plane */
@@ -659,6 +660,7 @@ MRI_SP  *MRISPandLabel(MRI_SP *mrisp, MRI_SURFACE *mris, LABEL *area) ;
 #define FLATTENED_VERTICES  6
 #define PIAL_VERTICES       7
 #define TMP2_VERTICES       8
+#define WHITE_VERTICES      9
 
 
 int          MRISsaveVertexPositions(MRI_SURFACE *mris, int which) ;
