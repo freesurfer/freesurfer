@@ -1,6 +1,6 @@
 #!/bin/csh -f
 
-set FUNCVITS_VER = '$Id: mri-funcvits,v 1.3 2000/02/19 01:43:10 greve Exp $';
+set FUNCVITS_VER = '$Id: mri-funcvits,v 1.4 2000/09/27 22:26:31 greve Exp $';
 
 set stem     = ();
 set outdir   = ();
@@ -8,7 +8,8 @@ set icosize  = 10242;
 set hemilist = (lh rh);
 set svitdir  = ();
 set icodir   = ();
-set origsurfname = orig
+#set origsurfname = orig
+set paintsurfname = white
 set sphsurfname  = sphere
 set cansurfname  = sphere.dist_new
 set noforce = 0;
@@ -21,18 +22,18 @@ parse_args_return:
 
 if($#stem != 1 || $#outdir != 1) then
   echo "\nUSAGE: \n\n mri-funcvits "
-  echo "   -stem     template stem      --required--"
-  echo "   -outdir   output directory   --required--"
-  echo "   -reg      registration file  templatedir/register.dat"
-  echo "   -orig     orig surface       $origsurfname"
-  echo "   -sphere   spherical surface  $sphsurfname"
-  echo "   -icosize  icosahedron size   $icosize"
-  echo "   -hemi     hemifield(s)       lh rh"
-  echo "   -svitdir  svit directory     SubjectsDir/subject/svit"
-  echo "   -icodir   ico directory      $MRI_DIR/lib/bem"
-  echo "   -umask    newumask"
-  echo "   -mail     user"
-  echo "   -noforce  dont create if already exists"
+  echo "   -stem      template stem      --required--"
+  echo "   -outdir    output directory   --required--"
+  echo "   -reg       registration file  templatedir/register.dat"
+  echo "   -paintsurf surface upon which to paint  $paintsurfname"
+  echo "   -sphere    spherical surface  $sphsurfname"
+  echo "   -icosize   icosahedron size   $icosize"
+  echo "   -hemi      hemifield(s)       lh rh"
+  echo "   -svitdir   svit directory     SubjectsDir/subject/svit"
+  echo "   -icodir    ico directory      $MRI_DIR/lib/bem"
+  echo "   -umask     newumask"
+  echo "   -mail      user"
+  echo "   -noforce   dont create if already exists"
   echo "\n $FUNCVITS_VER \n"
   exit 1;
 endif
@@ -95,7 +96,8 @@ uname -a
 echo "Stem:     $stem"
 echo "OutDir:   $outdir"
 echo "Subject:  $subject"
-echo "Orig:     $origsurfname"
+#echo "Orig:     $origsurfname"
+echo "PaintSurf: $paintsurfname"
 echo "Sphere:   $sphsurfname"
 echo "IcoSize:  $icosize"
 echo "VitDir:   $svitdir"
@@ -116,7 +118,8 @@ foreach hemi ($hemilist)
 
   set sphsurf  = $SUBJECTS_DIR/$subject/surf/$hemi.$sphsurfname
   set cansurf  = $SUBJECTS_DIR/$subject/surf/$hemi.$cansurfname
-  set origsurf = $SUBJECTS_DIR/$subject/surf/$hemi.orig
+  #set origsurf = $SUBJECTS_DIR/$subject/surf/$hemi.$origsurfname
+  set paintsurf = $SUBJECTS_DIR/$subject/surf/$hemi.$paintsurfname
 
   set s2iscvit   = $svitdir/$hemi.sph-to-ic$icosize-sc.vit
   set csurffc    = $hemi.csurf-fc.vss
@@ -128,7 +131,8 @@ foreach hemi ($hemilist)
      echo "$csurffc  already exists, skipping"
   else
     echo "---- $csurffc `date`--------"
-    set cmd = "vss-project -i $origsurf -f surf "
+    # set cmd = "vss-project -i $origsurf -f surf "
+    set cmd = "vss-project -i $paintsurf -f surf "
     set cmd = "$cmd -pm $fregfile -f register -o $csurffc"
     if($debug) then
       echo $cmd
@@ -218,10 +222,10 @@ while( $#argv != 0 )
       set regfile = $argv[1]; shift;
       breaksw
 
-    case "-orig"
-    case "-or"
+    case "-paintsurf"
+    case "-ps"
       if ( $#argv == 0) goto arg1err;
-      set origsurfname = $argv[1]; shift;
+      set paintsurfname = $argv[1]; shift;
       breaksw
 
     case "-sphere"
