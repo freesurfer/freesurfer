@@ -1796,7 +1796,7 @@ Volm_tErr Volm_FloodIterate_ ( mriVolumeRef        this,
     for( nY = nBeginY; nY <= nEndY; nY++ ) {
       for( nX = nBeginX; nX <= nEndX; nX++ ) {
 	xVoxl_Set( &idx, nX, nY, nZ );
-	if( Volm_VerifyIdx( this, &idx ) == Volm_tErr_NoErr ) {
+	if( Volm_VerifyIdx_( this, &idx ) == Volm_tErr_NoErr ) {
 	  Volm_FloodIterate_( this, iParams, &idx, iVisited );
 	}
       }
@@ -1804,7 +1804,8 @@ Volm_tErr Volm_FloodIterate_ ( mriVolumeRef        this,
   }
   
   DebugCatch;
-  DebugCatchError( eResult, Volm_tErr_NoErr, Volm_GetErrorString );
+  /* Don't print the error message here, as if it is happeneing it
+     will probably happen a lot. */
   EndDebugCatch;
   
   this->mnFloodIterationCount--;
