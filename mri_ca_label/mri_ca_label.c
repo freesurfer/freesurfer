@@ -13,6 +13,8 @@
 #include "gca.h"
 #include "transform.h"
 #include "cma.h"
+#include "histo.h"
+#include "mrinorm.h"
 
 static int distance_to_label(MRI *mri_labeled, int label, int x, 
                              int y, int z, int dx, int dy, 
@@ -187,6 +189,7 @@ main(int argc, char *argv[])
     GCArenormalizeIntensities(gca, labels, intensities, nlines) ;
     free(labels) ; free(intensities) ;
   }
+  GCAhistoScaleImageIntensities(gca, mri_in) ;
   if (stricmp(xform_fname, "none"))
   {
     lta = LTAread(xform_fname) ;
