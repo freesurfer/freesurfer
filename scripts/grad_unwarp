@@ -1,8 +1,8 @@
 #!/bin/csh -f
-# dcm2mgh - convert, unwarp, and resample dicom files
+# grad_unwarp - convert, unwarp, and resample dicom files
 #
-# $Id: grad_unwarp,v 1.1 2003/07/24 21:53:17 ebeth Exp $
-set VERSION = '$Id: grad_unwarp,v 1.1 2003/07/24 21:53:17 ebeth Exp $';
+# $Id: grad_unwarp,v 1.2 2003/07/24 22:13:06 ebeth Exp $
+set VERSION = '$Id: grad_unwarp,v 1.2 2003/07/24 22:13:06 ebeth Exp $';
 
 set inputargs = ($argv);
 
@@ -46,14 +46,14 @@ if(! -e $logdir) then
   echo "WARNING: could not create $logdir"
   set LF = /dev/null
 else
-  set LF = $logdir/dcm2mgh.log
+  set LF = $logdir/grad_unwarp.log
   if(-e $LF) mv $LF $LF.old
 endif
 echo "--------------------------------------------------------------"
-echo "dcm2mgh logfile is $LF"
+echo "grad_unwarp logfile is $LF"
 echo "--------------------------------------------------------------"
 
-echo "dcm2mgh log file" >> $LF
+echo "grad_unwarp log file" >> $LF
 echo $VERSION >> $LF
 id            >> $LF
 pwd           >> $LF
@@ -64,12 +64,12 @@ date            >> $LF
 
 set StartTime = `date`;
 
-if($#MLF == 0) set MLF = /tmp/dcm2mgh_$$.m
+if($#MLF == 0) set MLF = /tmp/grad_unwarp_$$.m
 rm -f $MLF
 echo "INFO: matlab file is $MLF"
 
 if($outcor) then
-  set outfileuse = $outdir/dcm2mgh_$$.mgh
+  set outfileuse = $outdir/grad_unwarp_$$.mgh
 else
   set outfileuse = $outfile
 endif
@@ -129,7 +129,7 @@ echo "Ended   at `date`" | tee -a $LF
 echo " " | tee -a $LF
 
 
-echo "dcm2mgh Done" 
+echo "grad_unwarp Done" 
 echo " " 
 
 exit 0;
@@ -282,7 +282,7 @@ arg1err:
 ############--------------##################
 usage_exit:
   echo ""
-  echo "USAGE: dcm2mgh"
+  echo "USAGE: grad_unwarp"
   echo ""  
   echo "   -i infile   : dcmdir or dcmfile or mghfile"
   echo "   -s seriesno : needed only if invoking -i dcmdir"
@@ -308,4 +308,5 @@ exit 1;
 #---- Everything below here is printed out as part of help -----#
 BEGINHELP
 
-dcm2mgh - convert, unwarp, and resample dicom files to mgh files.
+grad_unwarp - convert, unwarp, and resample dicom files to mgh files.
+
