@@ -1929,7 +1929,7 @@ GCAnormalizedLogSampleProbability(GCA *gca, GCA_SAMPLE *gcas,
     total_log_p += log_p ;
     gcas[i].log_p = log_p ;
 
-    if (!finite(total_log_p))
+    if (!check_finite("1", total_log_p))
     {
       fprintf(stderr, 
               "total log p not finite at (%d, %d, %d) var=%2.2f\n", 
@@ -1978,7 +1978,7 @@ GCAcomputeLogSampleProbability(GCA *gca, GCA_SAMPLE *gcas,
     total_log_p += log_p ;
     gcas[i].log_p = log_p ;
 
-    if (!finite(total_log_p))
+    if (!check_finite("2", total_log_p))
     {
       fprintf(stderr, 
               "total log p not finite at (%d, %d, %d) var=%2.2f\n", 
@@ -2043,7 +2043,7 @@ GCAcomputeLogSampleProbabilityUsingCoords(GCA *gca, GCA_SAMPLE *gcas,
     total_log_p += log_p ;
     gcas[i].log_p = log_p ;
 
-    if (!finite(total_log_p))
+    if (!check_finite("3", total_log_p))
     {
       DiagBreak() ;
       fprintf(stderr, 
@@ -2107,7 +2107,7 @@ GCAcomputeLogImageProbability(GCA *gca, MRI *mri_inputs, MRI *mri_labels,
             -log(sqrt(gc->var)) - 
             0.5 * (dist*dist/gc->var) +
             log(getPrior(gcap, label)) ;
-          if (!finite(total_log_p))
+          if (!check_finite("4", total_log_p))
           {
             DiagBreak() ;
             fprintf(stderr, 
@@ -2489,9 +2489,17 @@ GCAfindStableSamplesByLabel(GCA *gca, int nsamples, float min_prior)
         ordered_labels[label][i].yp = y ;
         ordered_labels[label][i].zp = z ;
         ordered_labels[label][i].label = label ;
-        ordered_labels[label][i].prior = gcap->priors[n] ;
-        ordered_labels[label][i].var = gc->var ;
-        ordered_labels[label][i].mean = gc->mean ;
+        ordered_labels[label][i].prior = getPrior(gcap, label) ;
+        if (!gc)
+        {
+          ordered_labels[label][i].var = 1.0 ;
+          ordered_labels[label][i].mean = 0.0 ;
+        }
+        else
+        {
+          ordered_labels[label][i].var = gc->var ;
+          ordered_labels[label][i].mean = gc->mean ;
+        }
       }
     }
   }
@@ -6315,7 +6323,7 @@ gcaExtractRegionLabelAsSamples(GCA *gca, MRI *mri_labeled, TRANSFORM *transform,
                                int *pnsamples, int label, int xp, int yp, 
                                int zp, int wsize)
 {
-  int         i, nsamples, width, height, depth, x, y, z, n,
+  int         i, nsamples, width, height, depth, x, y, z,
               xi, yi, zi, xk, yk, zk, whalf ;
   GCA_SAMPLE  *gcas ;
   GCA_PRIOR   *gcap ;
@@ -6330,14 +6338,6 @@ gcaExtractRegionLabelAsSamples(GCA *gca, MRI *mri_labeled, TRANSFORM *transform,
   TransformInvert(transform, mri_labeled) ;
   GCApriorToSourceVoxel(gca, mri_labeled, transform, 
                        xp, yp, zp, &x, &y, &z) ;
-  for (n = 0 ; n < gcap->nlabels ; n++)
-    if (gcap->labels[n] == label)
-      break ;
-
-  gc = GCAfindPriorGC(gca, xp, yp, zp, label) ;
-  if (!gc)
-    return(NULL) ;
-
   for (nsamples = 0, zk = -whalf  ; zk <= whalf ; zk++)
   {
     zi = mri_labeled->zi[z + zk] ;
@@ -6378,12 +6378,21 @@ gcaExtractRegionLabelAsSamples(GCA *gca, MRI *mri_labeled, TRANSFORM *transform,
         if (xi == Ggca_x && yi == Ggca_y && zi == Ggca_z)
           DiagBreak() ;
 
+        gcap = getGCAP(gca, mri_labeled, transform, xi, yi, zi) ;
+        GCAsourceVoxelToPrior(gca, mri_labeled, transform, xi, yi, zi, &xp, &yp, &zp) ;
+        gc = GCAfindPriorGC(gca, xp, yp, zp, label) ;
+        if (!gc || !gcap)
+        {
+          nsamples-- ;   /* shouldn't happen */
+          continue ;
+        }
+
         gcas[i].label = label ;
         gcas[i].xp = xp ; gcas[i].yp = yp ; gcas[i].zp = zp ; 
         gcas[i].x = xi ;   gcas[i].y = yi ;   gcas[i].z = zi ; 
         gcas[i].var = gc->var ;
         gcas[i].mean = gc->mean ;
-        gcas[i].prior = gcap->priors[n] ;
+        gcas[i].prior = getPrior(gcap, label) ;
         if (FZERO(gcas[i].prior))
           DiagBreak() ;
         i++ ;
@@ -6445,18 +6454,18 @@ gcaExtractLabelAsSamples(GCA *gca, MRI *mri_labeled, TRANSFORM *transform,
             break ;
         }
 
-        if (n >= gcap->nlabels)
+        gc = GCAfindPriorGC(gca, xp, yp, zp, label) ;
+        if (n >= gcap->nlabels || !gc)
         {
           nsamples-- ;   /* doesn't exist at this location */
           continue ;   /* ?? */
         }
-        gc = GCAfindPriorGC(gca, xp, yp, zp, label) ;
         gcas[i].label = label ;
         gcas[i].xp = xp ; gcas[i].yp = yp ; gcas[i].zp = zp ; 
         gcas[i].x = x ;   gcas[i].y = y ;   gcas[i].z = z ; 
         gcas[i].var = gc->var ;
         gcas[i].mean = gc->mean ;
-        gcas[i].prior = gcap->priors[n] ;
+        gcas[i].prior = getPrior(gcap, label) ;
         if (FZERO(gcas[i].prior))
           DiagBreak() ;
         i++ ;
@@ -6626,7 +6635,7 @@ int
 GCArenormalizeAdaptive(MRI *mri_in, MRI *mri_labeled, GCA *gca, TRANSFORM *transform,
                        int wsize)
 {
-  int              x, y, z, n, label, nsamples, val,
+  int              x, y, z, n, label, nsamples, val, xp,yp, zp,
                    *ordered_indices, i, index ;
   float            mean, var ;
   GCA_NODE         *gcan ;
@@ -6648,9 +6657,10 @@ GCArenormalizeAdaptive(MRI *mri_in, MRI *mri_labeled, GCA *gca, TRANSFORM *trans
           label = gcan->labels[n] ;
           if (label == Unknown)
             continue ;
+          gcaNodeToPrior(gca, x, y, z, &xp, &yp, &zp) ;
           gcas = gcaExtractRegionLabelAsSamples(gca, mri_labeled,transform,
                                                 &nsamples,label,
-                                                x, y, z, wsize);
+                                                xp, yp, zp, wsize);
           if (!nsamples || !gcas)
             continue ;
           if (label == Ggca_label)
@@ -7861,9 +7871,9 @@ check_finite(char *where, double what)
   {
     ErrorPrintf(ERROR_BADPARM, "%s not finite!\n",where) ;
     DiagBreak() ;
-    return(ERROR_BADPARM) ;
+    return(0) ;
   }
-  return(0) ;
+  return(1) ;
 }
 
 int
