@@ -12,6 +12,7 @@ extern "C" {
 #include "mri.h"
 #include "version.h"
 #include "macros.h"
+#include "transform.h"
   char *Progname;
 }
 
@@ -20,6 +21,8 @@ using namespace std;
 int useRealRAS = 0;
 int fillup=0;
 double scale = 1;
+string xfname;
+int invert=0;
 
 // voxel size
 double vx;
@@ -29,7 +32,7 @@ double vz;
 class Vertex
 {
 public:
-  Vertex(double x, double y, double z, double value=0) 
+  Vertex(double x=0, double y=0, double z=0, double value=0) 
     : x_(x), y_(y), z_(z), value_(value) {}
 
   double x_; 
@@ -67,12 +70,15 @@ int selectAddedRegion(MRI *mri, MRI *orig, unsigned char val);
 int (*voxToRAS)(MRI *mri, Real x, Real y, Real z, Real *xs, Real *ys, Real *zs);
 int (*rasToVox)(MRI *mri, Real x, Real y, Real z, Real *xs, Real *ys, Real *zs);
 
+#define V4_LOAD(v, x, y, z, r)  (VECTOR_ELT(v,1)=x, VECTOR_ELT(v,2)=y, \
+                                  VECTOR_ELT(v,3)=z, VECTOR_ELT(v,4)=r) ;
+
 int main(int argc, char *argv[])
 {
   int nargs;
   Progname=argv[0];
 
-  nargs = handle_version_option (argc, argv, "$Id: mri_parselabel.cpp,v 1.6 2004/06/07 14:11:41 tosa Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_parselabel.cpp,v 1.7 2004/06/09 22:41:12 tosa Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -91,6 +97,9 @@ int main(int argc, char *argv[])
     cerr << "option: -cras        : use scanner ras value for label position" << endl;
     cerr << "                       default is to use the surface ras value."<< endl;
     cerr << "        -scale <val> : uses <val> to scale label position" << endl;
+    cerr << "        -xfm   <xfm> : use the xfm to transform the vertices " << endl;
+    cerr << "                     : xfm must be from highres to lowres.  If not use the next option" << endl;
+    cerr << "        -invert      : used when the xfm is from lowres into high res" << endl;
     cerr << "        -fillup      : try to verify none of the label positions are missed." << endl;
     cerr << "                       takes a long time.....                               " << endl;
     return -1;
@@ -102,6 +111,11 @@ int main(int argc, char *argv[])
   cout << "output vol : " << argv[3] << endl;
   cout << "greyvalue  : " << argv[4] << endl;
   cout << "scale      : " << scale << endl;
+  if (xfname.size() != 0)
+  {
+    cout << "xfm        : " << xfname.c_str() << endl;
+    cout << "invert     : " << invert << endl;
+  }
   cout << "---------------------------------------------------------------" << endl;
 
   int val = (int) atof(argv[4]);
@@ -116,6 +130,13 @@ int main(int argc, char *argv[])
     cerr << "Could not open file for label: " << argv[1] << endl;
     return -1;
   }  
+
+  //////////////////////////////////////////////////////////////////
+  LTA *lta = 0;
+  if (xfname.size())
+  {
+    lta = LTAread(const_cast<char *>(xfname.c_str()));
+  }
 
   MRI *mriIn=MRIread(argv[2]);
   if (!mriIn)
@@ -137,23 +158,63 @@ int main(int argc, char *argv[])
   flabel >> numvertices;
   cout << "number of vertices : " << numvertices << endl;
   cout << "reading vertices ..." << endl;
+
+  //////////////////////////////////////////////////////////////////////
+  // reading vertices 
+  //////////////////////////////////////////////////////////////////////
+  VECTOR *vIn=0;
+  VECTOR *vOut=0;
+  if (xfname.size())
+  {
+    vIn = VectorAlloc(4, MATRIX_REAL);
+    vOut = VectorAlloc(4, MATRIX_REAL);
+  }
   while (flabel.good())
   {
+    Vertex v;
     int num;
     double x, y, z;
     double value;
     flabel >> num >> x >> y >> z >> value;
     // cout << "(" << x << ", " << y << ", " << z << ")" << endl;
-    Vertex v(scale*x, scale*y, scale*z, value);
+    if (xfname.size())
+    {
+      V4_LOAD(vIn, scale*x, scale*y, scale*z, 1.);
+
+      if (invert)
+	LTAinverseTransformPoint(lta, vIn, vOut);
+      else
+	LTAtransformPoint(lta, vIn, vOut);
+
+      double xt, yt, zt;
+      xt = V3_X(vOut);
+      yt = V3_Y(vOut);
+      zt = V3_Z(vOut);
+      // create a vector
+      v = Vertex(x, y, z, value);
+    }
+    else
+      v = Vertex(scale*x, scale*y, scale*z, value);
+
     vertices.push_back(v);
   }
   flabel.close();
+  // free vector
+  if (vIn)
+    VectorFree(&vIn);
+  if (vOut)
+    VectorFree(&vOut);
+  if (lta)
+    LTAfree(&lta);
 
   // sort
   cout << "sorting ..." << endl;
   sort(vertices.begin(), vertices.end(), LessX());
   cout << "sorting done" << endl;
   
+  /////////////////////////////////////////////////////////////////////////////////
+  // create a volume
+  /////////////////////////////////////////////////////////////////////////////////
   MRI *mriOut = MRIalloc(mriIn->width, mriIn->height, mriIn->depth, MRI_UCHAR);
   MRIcopyHeader(mriIn, mriOut);
 
@@ -329,6 +390,20 @@ int get_option(int argc, char *argv[])
     cout << "we scale the label positions by " << argv[2] << endl;
     scale = atof(argv[2]);
     nargs=1;
+  }
+  else if (strcmp(option, "xfm") == 0)
+  {
+    cout << "use xfm " << argv[2] << endl;
+    cout << "make sure that this is the xfm from high res to low res" << endl;
+    cout << "if the other way, you must use -invert option also" << endl;
+    xfname = argv[2];
+    nargs=1;
+  }
+  else if (strcmp(option, "invert")==0)
+  {
+    cout << "xfm will be inverted" << endl;
+    invert=1;
+    nargs=0;
   }
   return (nargs);
 }
