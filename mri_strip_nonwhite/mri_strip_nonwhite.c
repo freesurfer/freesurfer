@@ -35,7 +35,7 @@ int
 main(int argc, char *argv[])
 {
   char   **av ;
-  int    ac, nargs, i ;
+  int    ac, nargs ;
   MRI    *mri, *mri_template, *mri_inverse_template ;
   char   *in_fname, *template_fname, *out_fname, *xform_fname, fname[100] ;
   M3D    *m3d ;
