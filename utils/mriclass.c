@@ -32,13 +32,6 @@
                     MACROS AND CONSTANTS
 -------------------------------------------------------*/
 
-#define GAUSSIAN_NCLASSES    4
-#define BACKGROUND           0
-#define GREY_MATTER          1
-#define WHITE_MATTER         2
-#define BRIGHT_MATTER        3
-#define LO_LIM               70
-#define HI_LIM               150
 
 /*-----------------------------------------------------
                     STATIC DATA
