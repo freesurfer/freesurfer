@@ -66,14 +66,17 @@ Transform44::LoadFromLTAFile ( string ifnLTA ) {
      LINEAR_VOX_TO_VOX in the wrong coordinate space, we'll read
      register.dat files in manually, and use LTAreadEx for the
      rest. */
-  if( ifnLTA.find("register.dat",0) ) {
+  string::size_type rFind = ifnLTA.find( "register.dat", 0 );
+  if( rFind != string::npos ) {
+
+    cerr << "found register.dat in " << ifnLTA << endl;
 
     char fnLTA[1000];
     char* sSubject;
     float inPlaneResolution;
     float betweenPlaneResolution;
     float intensity;
-    MATRIX* registrationMatrix;
+    MATRIX* registrationMatrix = NULL;
     int intConversionMethod;
 
     strcpy( fnLTA, ifnLTA.c_str() );
