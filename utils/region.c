@@ -195,4 +195,21 @@ REGIONinside(MRI_REGION *reg, int x, int y, int z)
 
   return(REGION_INSIDE) ;
 }
+/*-----------------------------------------------------
+        Parameters:
 
+        Returns value:
+
+        Description
+------------------------------------------------------*/
+MRI_REGION *
+REGIONexpand(MRI_REGION *rsrc, MRI_REGION *rdst, int n)
+{
+  rdst->x = rsrc->x - n ;
+  rdst->y = rsrc->y - n ;
+  rdst->z = rsrc->z - n ;
+  rdst->dx = rsrc->dx + 2*n ;
+  rdst->dy = rsrc->dy + 2*n ;
+  rdst->dz = rsrc->dz + 2*n ;
+  return(rdst) ;
+}
