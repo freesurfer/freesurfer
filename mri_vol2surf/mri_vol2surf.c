@@ -1,6 +1,6 @@
 /*----------------------------------------------------------
   Name: vol2surf.c
-  $Id: mri_vol2surf.c,v 1.15 2003/07/16 21:57:03 greve Exp $
+  $Id: mri_vol2surf.c,v 1.16 2003/08/06 00:42:15 greve Exp $
   Author: Douglas Greve
   Purpose: Resamples a volume onto a surface. The surface
   may be that of a subject other than the source subject.
@@ -57,7 +57,7 @@ static void dump_options(FILE *fp);
 static int  singledash(char *flag);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_vol2surf.c,v 1.15 2003/07/16 21:57:03 greve Exp $";
+static char vcid[] = "$Id: mri_vol2surf.c,v 1.16 2003/08/06 00:42:15 greve Exp $";
 char *Progname = NULL;
 
 char *defaulttypestring;
@@ -116,6 +116,8 @@ MRI *SrcHitVol;
 
 FILE *fp;
 
+char *nvoxfile = NULL;
+
 char tmpstr[2000];
 
 int   float2int_src;
@@ -144,7 +146,7 @@ int main(int argc, char **argv)
   int r,c,s,nsrchits;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_vol2surf.c,v 1.15 2003/07/16 21:57:03 greve Exp $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_vol2surf.c,v 1.16 2003/08/06 00:42:15 greve Exp $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -310,6 +312,15 @@ int main(int argc, char **argv)
     }
   }
   printf("Number of source voxels hit = %d\n",nsrchits);
+  if(nvoxfile != NULL){
+    fp = fopen(nvoxfile,"w");
+    if(fp == NULL)
+      printf("ERROR: could not open nvox file %s\n",nvoxfile);
+    else {
+      fprintf(fp,"%d\n",nsrchits);
+      fclose(fp);
+    }
+  }
 
   if(srchitvolid != NULL){
     printf("Saving src hit volume.\n");
@@ -634,6 +645,11 @@ static int parse_commandline(int argc, char **argv)
       outtype = string_to_type(outtypestring);
       nargsused = 1;
     }
+    else if (!strcmp(option, "--nvox")) {
+      if(nargc < 1) argnerr(option,1);
+      nvoxfile = pargv[0];
+      nargsused = 1;
+    }
     else if (!strcmp(option, "--rf")){
       if(nargc < 1) argnerr(option,1);
       sscanf(pargv[0],"%d",&reshapefactor);
@@ -699,7 +715,7 @@ static void print_usage(void)
   printf("   --rf R  integer reshaping factor, save as R 'slices'\n");
   printf("   --srchit   volume to store the number of hits at each vox \n");
   printf("   --srchit_type  source hit volume format \n");
-
+  printf("   --nvox nvoxfile : write number of voxels intersecting surface\n");
   printf("\n");
   printf(" Other Options\n");
   printf("   --help      print out information on how to use this program\n");
@@ -826,6 +842,11 @@ static void print_help(void)
 "    each voxel is the number of surface vertices it maps to. The number of\n"
 "    voxels hit at least once is printed to stdout as :\n"
 "       'Number of source voxels hit' \n"
+"\n"
+"  --nvox nvoxfile\n"
+"\n"
+"    Save the number of voxels intersecting the surface in the file\n"
+"    nvoxfile.\n"
 "\n"
 "  --version : print version and exit.\n"
 "\n"
