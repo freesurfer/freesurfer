@@ -157,6 +157,7 @@ MRI   *MRIabs(MRI *mri, MRI *mri_dst) ;
 MRI   *MRIscalarMul(MRI *mri_src, MRI *mri_dst, float scalar) ;
 
 /* filtering */
+MRI   *MRIremoveIslands(MRI *mri_src, MRI*mri_dst, int wsize, int thresh) ;
 MRI   *MRIresegmentThinWMStrands(MRI *mri_src, MRI *mri_dst, int thickness);
 MRI   *MRIthickenThinWMStrands(MRI *mri_src, MRI *mri_dst, int thickness,
                                int nvoxels) ;
