@@ -452,10 +452,11 @@ Surf_tErr Surf_GetNextAndNeighborVertex ( mriSurfaceRef    this,
 Surf_tErr Surf_GetNthVertex ( mriSurfaceRef   this,
             Surf_tVertexSet iSet,
             int             inIndex,
-            xVoxelRef       oVoxel ) {
+            xVoxelRef       oVoxel,
+            char*           osDescription ) {
 
-  Surf_tErr     eResult         = Surf_tErr_NoErr;
-  vertex_type*  vertex = NULL;
+  Surf_tErr     eResult = Surf_tErr_NoErr;
+  vertex_type*  vertex  = NULL;
 
   eResult = Surf_Verify( this );
   if( Surf_tErr_NoErr != eResult ) 
@@ -479,7 +480,14 @@ Surf_tErr Surf_GetNthVertex ( mriSurfaceRef   this,
   Surf_ConvertVertexToVoxel( vertex, iSet,
            this->mTransform, oVoxel );
   
- 
+  /* make a string of info if they want it */
+  if( NULL != osDescription ) {
+    sprintf( osDescription, "RAS Coords: %.2f %.2f %.2f",
+       Surf_GetVertexValue( vertex, iSet, Surf_tOrientation_X ), 
+       Surf_GetVertexValue( vertex, iSet, Surf_tOrientation_Y ), 
+       Surf_GetVertexValue( vertex, iSet, Surf_tOrientation_Z ) );
+  }
+
   goto cleanup;
 
  error:
@@ -499,7 +507,7 @@ Surf_tErr Surf_GetClosestVertex ( mriSurfaceRef   this,
           Surf_tVertexSet iSet,
           xVoxelRef       iClientVoxel,
           xVoxelRef       oClientVoxel,
-          char*           osResult ) {
+          char*           osDescription ) {
 
   Surf_tErr     eResult         = Surf_tErr_NoErr;
   int           nVertex         = 0;
@@ -556,8 +564,8 @@ Surf_tErr Surf_GetClosestVertex ( mriSurfaceRef   this,
   fDistance = sqrt( fDistance );
 
   /* make a string of info */
-  if( NULL != osResult ) {
-    sprintf( osResult, "Index: %d Distance: %.2f RAS Coords: %.2f %.2f %.2f", nBestVertex, fLowestDistance, Surf_GetVertexValue( currentVertex, iSet, Surf_tOrientation_X ), Surf_GetVertexValue( currentVertex, iSet, Surf_tOrientation_Y ), Surf_GetVertexValue( currentVertex, iSet, Surf_tOrientation_Z ) );
+  if( NULL != osDescription ) {
+    sprintf( osDescription, "Index: %d Distance: %.2f RAS Coords: %.2f %.2f %.2f", nBestVertex, fLowestDistance, Surf_GetVertexValue( currentVertex, iSet, Surf_tOrientation_X ), Surf_GetVertexValue( currentVertex, iSet, Surf_tOrientation_Y ), Surf_GetVertexValue( currentVertex, iSet, Surf_tOrientation_Z ) );
   }
 
   goto cleanup;
