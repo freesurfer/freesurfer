@@ -6,14 +6,13 @@
   Purpose: averages the voxels within an ROI. The ROI
            can be constrained structurally (with a label file)
            and/or functionally (with a volumetric mask)
-  $Id: mri_vol2roi.c,v 1.4 2001/04/04 18:59:16 greve Exp $
+  $Id: mri_vol2roi.c,v 1.5 2001/04/12 18:52:06 greve Exp $
 */
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
 #include <unistd.h>
-char *get_current_dir_name(void); /* should be in unistd.h */
 #include <string.h>
 
 #include "MRIio.h"
@@ -47,12 +46,12 @@ static int  check_format(char *fmt);
 
 int CompleteResFOVDim(float **trgres, float **trgfov, int **trgdim);
 int CountLabelHits(MRI *SrcVol, MATRIX *Qsrc, MATRIX *Fsrc, 
-		   MATRIX *Wsrc, MATRIX *Dsrc, 
-		   MATRIX *Msrc2lbl, LABEL *Label, int float2int);
+       MATRIX *Wsrc, MATRIX *Dsrc, 
+       MATRIX *Msrc2lbl, LABEL *Label, int float2int);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_vol2roi.c,v 1.4 2001/04/04 18:59:16 greve Exp $";
+static char vcid[] = "$Id: mri_vol2roi.c,v 1.5 2001/04/12 18:52:06 greve Exp $";
 char *Progname = NULL;
 
 char *roifile    = NULL;
@@ -129,7 +128,8 @@ int main(int argc, char **argv)
   check_options();
 
   printf("--------------------------------------------------------\n");
-  printf("%s\n",get_current_dir_name());
+  getcwd(tmpstr,2000);
+  printf("%s\n",tmpstr);
   printf("%s\n",Progname);
   for(n=0;n<argc;n++) printf(" %s",argv[n]);
   printf("\n");
@@ -140,12 +140,12 @@ int main(int argc, char **argv)
 
   /* ------------ get info about the source volume ------------------*/
   err = bf_getvoldim(srcvolid,&nrows_src,&ncols_src,
-		     &nslcs_src,&nfrms,&endian,&srctype);
+         &nslcs_src,&nfrms,&endian,&srctype);
   if(err) exit(1);
   /* Dsrc: read the source registration file */
   if(srcregfile != NULL){
     err = regio_read_register(srcregfile, &srcsubject, &ipr, &bpr, 
-			      &intensity, &Dsrc, &float2int_src);
+            &intensity, &Dsrc, &float2int_src);
     if(err) exit(1);
     colres_src = ipr; /* in-plane resolution */
     rowres_src = ipr; /* in-plane resolution */
@@ -163,7 +163,7 @@ int main(int argc, char **argv)
   Fsrc = NULL;
   /* Qsrc: Compute the quantization matrix for src volume */
   Qsrc = FOVQuantMatrix(ncols_src,  nrows_src,  nslcs_src, 
-			colres_src, rowres_src, slcres_src); 
+      colres_src, rowres_src, slcres_src); 
 
   /* ----------- load in the label ----------------- */
   if(labelfile != NULL){
@@ -185,14 +185,14 @@ int main(int argc, char **argv)
   if(mskvolid != NULL){
     /* get mask volume info */
     err = bf_getvoldim(mskvolid,&nrows_msk,&ncols_msk,
-		       &nslcs_msk,&nfrms,&endian,&msktype);
+           &nslcs_msk,&nfrms,&endian,&msktype);
     if(err) exit(1);
 
     /* get the mask registration info */
     /* xyzFOV = Dmsk*xyzAnat (in mask space) */
     if(mskregfile != NULL){
       err = regio_read_register(mskregfile, &msksubject, &ipr, &bpr, 
-				&intensity, &Dmsk, &float2int_msk);
+        &intensity, &Dmsk, &float2int_msk);
       if(err) exit(1);
       colres_msk = ipr; /* in-plane resolution */
       rowres_msk = ipr; /* in-plane resolution */
@@ -214,7 +214,7 @@ int main(int argc, char **argv)
     /* Qmsk: Compute the quantization matrix for msk volume */
     /* crsFOV = Qmsk*xyzFOV */
     Qmsk = FOVQuantMatrix(ncols_msk,  nrows_msk,  nslcs_msk, 
-			  colres_msk, rowres_msk, slcres_msk); 
+        colres_msk, rowres_msk, slcres_msk); 
 
     /* get the mask2source registration information */
     /* xyzSrc = Mmsk2src * xyzMsk */
@@ -231,9 +231,9 @@ int main(int argc, char **argv)
     /* convert from Mask Anatomical to Src FOV */
     if(!msksamesrc){
       mSrcMskVol = vol2vol_linear(mMskVol, Qmsk, NULL, NULL, Dmsk, 
-				  Qsrc, Fsrc, Wsrc, Dsrc, 
-				  nrows_src, ncols_src, nslcs_src, 
-				  Mmsk2src, INTERP_NEAREST, float2int);
+          Qsrc, Fsrc, Wsrc, Dsrc, 
+          nrows_src, ncols_src, nslcs_src, 
+          Mmsk2src, INTERP_NEAREST, float2int);
       if(mSrcMskVol == NULL) exit(1);
     }
     else mSrcMskVol = mMskVol;
@@ -258,7 +258,7 @@ int main(int argc, char **argv)
     framepower = sxa_framepower(sxa,&f);
     if(f != mSrcVol->nframes){
       fprintf(stderr," number of frames is incorrect (%d,%d)\n",
-	      f,mSrcVol->nframes);
+        f,mSrcVol->nframes);
       exit(1);
     }
     printf("INFO: Adjusting Frame Power\n");  fflush(stdout);
@@ -268,9 +268,9 @@ int main(int argc, char **argv)
   /*--------- Prepare the final mask ------------------------*/
   if(Label != NULL){
     mFinalMskVol = label2mask_linear(mSrcVol, Qsrc, Fsrc, Wsrc, 
-				     Dsrc, mSrcMskVol,
-				     Msrc2lbl, Label, float2int, 
-				     &nlabelhits, &nfinalhits);
+             Dsrc, mSrcMskVol,
+             Msrc2lbl, Label, float2int, 
+             &nlabelhits, &nfinalhits);
     if(mFinalMskVol == NULL) exit(1);
   }
   else {
@@ -283,16 +283,16 @@ int main(int argc, char **argv)
     nfinalhits = 0;
     for(r=0;r<mFinalMskVol->height;r++){
       for(c=0;c<mFinalMskVol->width;c++){
-	for(s=0;s<mFinalMskVol->depth;s++){
-	  val = MRIFseq_vox(mFinalMskVol,c,r,s,0); 
+  for(s=0;s<mFinalMskVol->depth;s++){
+    val = MRIFseq_vox(mFinalMskVol,c,r,s,0); 
           if(val > 0.5) nfinalhits ++;
-	}
+  }
       }
-    }	  
+    }    
     if(Label != NULL)
       nlabelhits = CountLabelHits(mSrcVol, Qsrc, Fsrc, 
-				  Wsrc, Dsrc, Msrc2lbl, 
-				  Label, float2int);
+          Wsrc, Dsrc, Msrc2lbl, 
+          Label, float2int);
     else  nlabelhits = 0;
   }
 
@@ -428,7 +428,7 @@ static int parse_commandline(int argc, char **argv)
 
     /* -------- label inputs ------ */
     else if(!strcmp(option, "--labelfile") || 
-	    !strcmp(option, "--label")){
+      !strcmp(option, "--label")){
       if(nargc < 1) argnerr(option,1);
       labelfile = pargv[0];
       nargsused = 1;
@@ -464,11 +464,11 @@ static int parse_commandline(int argc, char **argv)
       msktail = pargv[0];
       nargsused = 1;
       if(strncasecmp(msktail,"abs",3) &&
-	 strncasecmp(msktail,"pos",3) &&
-	 strncasecmp(msktail,"neg",3)){
-	fprintf(stderr,"ERROR: msk tail = %s, must be abs, pos, or neg\n",
-		msktail);
-	exit(1);
+   strncasecmp(msktail,"pos",3) &&
+   strncasecmp(msktail,"neg",3)){
+  fprintf(stderr,"ERROR: msk tail = %s, must be abs, pos, or neg\n",
+    msktail);
+  exit(1);
       }
     }
 
@@ -498,7 +498,7 @@ static int parse_commandline(int argc, char **argv)
     else{
       fprintf(stderr,"ERROR: Option %s unknown\n",option);
       if(singledash(option))
-	fprintf(stderr,"       Did you really mean -%s ?\n",option);
+  fprintf(stderr,"       Did you really mean -%s ?\n",option);
       printf("Match %d\n",strcmp(option, "--roiavgtxt"));
       exit(-1);
     }
@@ -743,8 +743,8 @@ LABEL   *LabelReadFile(char *labelfile)
   the label itself.
   ------------------------------------------------------------*/
 int CountLabelHits(MRI *SrcVol, MATRIX *Qsrc, MATRIX *Fsrc, 
-		   MATRIX *Wsrc, MATRIX *Dsrc, 
-		   MATRIX *Msrc2lbl, LABEL *Label, int float2int)
+       MATRIX *Wsrc, MATRIX *Dsrc, 
+       MATRIX *Msrc2lbl, LABEL *Label, int float2int)
 {
   MRI * LabelMskVol;
   int nlabelhits, nfinalhits;
@@ -752,19 +752,19 @@ int CountLabelHits(MRI *SrcVol, MATRIX *Qsrc, MATRIX *Fsrc,
   float val;
 
   LabelMskVol = label2mask_linear(mSrcVol, Qsrc, Fsrc, Wsrc, 
-				  Dsrc, NULL, Msrc2lbl,
-				  Label, float2int, 
-				  &nlabelhits, &nfinalhits);
+          Dsrc, NULL, Msrc2lbl,
+          Label, float2int, 
+          &nlabelhits, &nfinalhits);
 
   nlabelhits = 0;
   for(r=0;r<LabelMskVol->height;r++){
     for(c=0;c<LabelMskVol->width;c++){
       for(s=0;s<LabelMskVol->depth;s++){
-	val = MRIFseq_vox(LabelMskVol,c,r,s,0); 
-	if(val > 0.5) nlabelhits ++;
+  val = MRIFseq_vox(LabelMskVol,c,r,s,0); 
+  if(val > 0.5) nlabelhits ++;
       }
     }
-  }	  
+  }    
   MRIfree(&LabelMskVol);
   return(nlabelhits);
 }
