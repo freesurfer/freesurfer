@@ -3612,7 +3612,7 @@ draw_second_image(int imc, int ic, int jc)
               (j==jc&&abs(i-ic)<=curs))
       {
         if (all3flag) {
-    idx_buf = 4*(k + ((i/2)*hax));
+    idx_buf = 4*((xdim*hay) + k + ((i/2)*hax)) ;
     vidbuf[idx_buf] = 255;
     vidbuf[idx_buf+1] = vidbuf[idx_buf + 2] = 0;
     k++;
@@ -3667,7 +3667,7 @@ draw_second_image(int imc, int ic, int jc)
               (j==jc&&abs(imnr-imc)<=curs))
       {
         if (all3flag) {
-    idx_buf = 4*(k + ((i/2)*hax));
+    idx_buf = 4*((xdim*hay) + hax + k + ((imnr/2)*hax)) ;
     vidbuf[idx_buf] = 255;
     vidbuf[idx_buf+1] = vidbuf[idx_buf + 2] = 0;
     k++;
