@@ -93,12 +93,13 @@ int main()
     origf.getline(buf, sizeof(buf));
     outf.getline(buf1, sizeof(buf1));
     int faces, faces1;
-    st.str(buf);
-    st >> faces;
-    st1.str(buf1);
-    st1 >> faces1;
+    stringstream st2(buf);
+    st2 >> faces;
+    stringstream st3(buf1);
+    st3 >> faces1;
     if (faces != faces1)
     {
+      cerr << "orig :" << buf << "   new: " << buf1 << endl;
       cerr << "number of faces do not agree: orig " << faces << "   new " << faces1 << endl;
       return -1;
     }
@@ -107,11 +108,11 @@ int main()
     for (int j=0; j < faces ; ++j)
     {
       origf.getline(buf, sizeof(buf));
-      st.str(buf);
-      st >> idx >> v1 >> v2 >> v3;
+      stringstream st4(buf);
+      st4 >> idx >> v1 >> v2 >> v3;
       outf.getline(buf1, sizeof(buf1));
-      st1.str(buf1);
-      st1 >> idx1 >> v11 >> v12 >> v13;
+      stringstream st5(buf1);
+      st5 >> idx1 >> v11 >> v12 >> v13;
       if (idx != idx1 || v1 != v11 || v2 != v12 || v3 != v13)
       {
 	cerr << "vertices values do not agree " << endl;
