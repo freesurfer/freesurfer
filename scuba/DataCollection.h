@@ -26,6 +26,7 @@ class DataLocation {
     mRAS[2] = iRAS[2]; 
   }
   ~DataLocation () {}
+  float* RAS() { return mRAS; }
  protected:
   float mRAS[3];
 };
