@@ -797,7 +797,7 @@ static MRI *
 edit_lateral_ventricles(MRI *mri_in_labeled, MRI *mri_T1, MRI *mri_out_labeled)
 {
   int   width, height, depth, x, y, z, nchanged, label, total_changed, 
-        left, niter, change ;
+        left, niter, change, dvent, dwhite ;
   MRI   *mri_tmp ;
 
   mri_out_labeled = MRIcopy(mri_in_labeled, mri_out_labeled) ;
@@ -817,13 +817,31 @@ edit_lateral_ventricles(MRI *mri_in_labeled, MRI *mri_T1, MRI *mri_out_labeled)
       {
         for (x = 0 ; x < width ; x++)
         {
-          if (x == 95 && y == 127 && z == 119)  
+          if (x == Gx && y == Gy && z == Gz)  
             DiagBreak() ;
           label = MRIvox(mri_tmp, x, y, z) ;
           
           change = left = 0 ;
           switch (label)
           {
+					case Left_Inf_Lat_Vent:
+						left = 1 ;
+					case Right_Inf_Lat_Vent:
+						dwhite = distance_to_label(mri_out_labeled,
+																			left ? Left_Cerebral_White_Matter :
+																			Right_Cerebral_White_Matter,
+																			x,y,z,0,1,0,3);
+						dvent = distance_to_label(mri_out_labeled,
+																			left ? Left_Inf_Lat_Vent :
+																			Right_Inf_Lat_Vent,
+																			x,y,z,0,-1,0,3);
+						if (dvent <= 1 && dwhite <= 1)  /* borders ventricle superior and wm inferior */
+						{
+              mle_label(mri_T1, mri_tmp, x, y, z, 9, 
+												left ? Left_Inf_Lat_Vent : Right_Inf_Lat_Vent,
+												left ? Left_Cerebral_White_Matter : Right_Cerebral_White_Matter) ;
+						}
+						break ;
           case Unknown:
             if (neighborLabel(mri_tmp, x, y, z, 1, Left_Lateral_Ventricle) &&
                 neighborLabel(mri_tmp, x, y, z,1,Left_Cerebral_White_Matter))
