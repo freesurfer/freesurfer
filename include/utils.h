@@ -42,6 +42,8 @@ int IntSqrt(int n) ;
 char *StrRemoveSpaces(char *str) ;
 char *StrUpper(char *str) ;
 char *StrLower(char *str) ;
+char *StrSkipNumber(char *str) ;
+
 char *FileName(char *str) ;
 int  FileExists(char *fname) ;
 int  FileType(char *fname) ;
@@ -53,6 +55,5 @@ char *FileTmpName(char *basename) ;
 void FileRename(char *inName, char *outName) ;
 char *FileNameAbsolute(char *fname, char *absFname) ;
 char *FileNamePath(char *fname, char *pathName) ;
-
 
 #endif
