@@ -35,14 +35,17 @@ case "${host}" in
  i*86-*-linux-gnu*)
  OS=Linux
  OS_CPPFLAGS="-Wall -fwritable-strings"
+ OS_LDFLAGS="-all-static"
  ;;
  *-apple-darwin*)
  OS=Darwin
  OS_CPPFLAGS=
+ OS_LDFLAGS=
  ;;
 esac
 AC_SUBST(OS)
 AC_SUBST(OS_CPPFLAGS)
+AC_SUBST(OS_LDFLAGS)
 
 ##############################################################
 # cpu optimization
@@ -108,8 +111,9 @@ ac_mni_libraries=NO
 ac_mni_bindir=NO
 mni_libraries=""
 mni_includes=""
+AC_MSG_CHECKING(cheking MNI directory)
 # default is to use MGH installation
-if [ [ -d $mghdir/mni/current ] ]; then
+if test -d $mghdir/mni/current ; then
   ac_mni_includes=$mghdir/mni/current/include
   ac_mni_libraries=$mghdir/mni/current/lib
   ac_mni_bin=$mghdir/mni/current/bin
@@ -125,8 +129,11 @@ AC_ARG_WITH(mni-dir,
 
 # modify CXXFLAGS and LDFLAGS
 if test ! "$ac_mni_includes" = "NO"; then
+  AC_MSG_RESULT(yes)
   mni_includes=-I$ac_mni_includes
   CPPFLAGS="$CPPFLAGS $mni_includes"
+else
+  AC_MSG_RESULT(no)
 fi
 if test ! "$ac_mni_libraries" = "NO"; then 
   mni_libraries=-L$ac_mni_libraries 
@@ -144,8 +151,9 @@ ac_tcl_libraries="NO"
 ac_tcl_bindir="NO"
 tcl_includes=""
 tcl_libraries=""
+AC_MSG_CHECKING(cheking Tcl/Tk directory)
 # default is to use MGH installation
-if [ [ -d $mghdir/tcl/current ] ]; then
+if test -d $mghdir/tcl/current ; then
   ac_tcl_includes=$mghdir/tcl/current/include
   ac_tcl_libraries=$mghdir/tcl/current/lib
   ac_tcl_bindir=$mghdir/tcl/current/bin
@@ -160,8 +168,11 @@ AC_ARG_WITH(tcl-dir,
 
 # modify CXXFLAGS and LDFLAGS
 if test ! "$ac_tcl_includes" = "NO"; then
+  AC_MSG_RESULT(yes)
   tcl_includes=-I$ac_tcl_includes
   CPPFLAGS="$CPPFLAGS $tcl_includes"
+else
+  AC_MSG_RESULT(no)
 fi
 if test ! "$ac_tcl_libraries" = "NO"; then 
   tcl_libraries=-L$ac_tcl_libraries 
@@ -172,6 +183,45 @@ AC_SUBST(tcl_includes)
 AC_SUBST(tcl_libraries)
 
 ################################################################
+# BLT
+################################################################
+ac_blt_includes="NO"
+ac_blt_libraries="NO"
+ac_blt_bindir="NO"
+blt_includes=""
+blt_libraries=""
+AC_MSG_CHECKING(cheking BLT directory)
+# default is to use MGH installation
+if test -d $mghdir/blt/current ; then
+  ac_blt_includes=$mghdir/blt/current/include
+  ac_blt_libraries=$mghdir/blt/current/lib
+  ac_blt_bindir=$mghdir/blt/current/bin
+fi
+
+AC_ARG_WITH(BLT-dir,
+  [  --with-blt-dir=DIR      where the root of Blt/Tk is installed.],
+  [  ac_blt_includes="$withval"/include
+     ac_blt_libraries="$withval"/lib
+     ac_blt_bindir="$withval"/bin
+  ])
+
+# modify CXXFLAGS and LDFLAGS
+if test ! "$ac_blt_includes" = "NO"; then
+  AC_MSG_RESULT(yes)
+  blt_includes=-I$ac_blt_includes
+  CPPFLAGS="$CPPFLAGS $blt_includes"
+else
+  AC_MSG_RESULT(no)
+fi
+if test ! "$ac_blt_libraries" = "NO"; then
+  blt_libraries=-L$ac_blt_libraries 
+  LDFLAGS="$LDFLAGS $blt_libraries"
+fi
+
+AC_SUBST(blt_includes)
+AC_SUBST(blt_libraries)
+
+################################################################
 # tiff   Mac does not have this
 ################################################################
 ac_tiff_includes="NO"
@@ -179,15 +229,16 @@ ac_tiff_libraries="NO"
 ac_tiff_bindir="NO"
 tiff_includes=""
 tiff_libraries=""
+AC_MSG_CHECKING(cheking Tiff directory)
 # default is to use MGH installation
-if [ [ -d $mghdir/tiff/current ] ]; then
+if test -d $mghdir/tiff/current ; then
   ac_tiff_includes=$mghdir/tiff/current/include
   ac_tiff_libraries=$mghdir/tiff/current/lib
   ac_tiff_bindir=$mghdir/tiff/current/bin
 fi
 
 AC_ARG_WITH(tiff-dir,
-  [  --with-tiff-dir=DIR      where the root of Tiff is installed.],
+  [  --with-tiff-dir=DIR     where the root of Tiff is installed.],
   [  ac_tiff_includes="$withval"/include
      ac_tiff_libraries="$withval"/lib
      ac_tiff_bindir="$withval"/bin
@@ -195,8 +246,11 @@ AC_ARG_WITH(tiff-dir,
 
 # modify CXXFLAGS and LDFLAGS
 if test ! "$ac_tiff_includes" = "NO"; then
+  AC_MSG_RESULT(yes)
   tiff_includes=-I$ac_tiff_includes
   CPPFLAGS="$CPPFLAGS $tiff_includes"
+else
+  AC_MSG_RESULT(no)
 fi
 if test ! "$ac_tiff_libraries" = "NO"; then 
   tiff_libraries=-L$ac_tiff_libraries 
@@ -211,15 +265,16 @@ ac_jpeg_libraries="NO"
 ac_jpeg_bindir="NO"
 jpeg_includes=""
 jpeg_libraries=""
+AC_MSG_CHECKING(cheking Jpeg directory)
 # default is to use MGH installation
-if [ [ -d $mghdir/jpeg/current ] ]; then
+if test -d $mghdir/jpeg/current ; then
   ac_jpeg_includes=$mghdir/jpeg/current/include
   ac_jpeg_libraries=$mghdir/jpeg/current/lib
   ac_jpeg_bindir=$mghdir/jpeg/current/bin
 fi
 
 AC_ARG_WITH(jpeg-dir,
-  [  --with-jpeg-dir=DIR      where the root of Jpeg is installed.],
+  [  --with-jpeg-dir=DIR     where the root of Jpeg is installed.],
   [  ac_jpeg_includes="$withval"/include
      ac_jpeg_libraries="$withval"/lib
      ac_jpeg_bindir="$withval"/bin
@@ -227,8 +282,11 @@ AC_ARG_WITH(jpeg-dir,
 
 # modify CXXFLAGS and LDFLAGS
 if test ! "$ac_jpeg_includes" = "NO"; then
+  AC_MSG_RESULT(yes)
   jpeg_includes=-I$ac_jpeg_includes
   CPPFLAGS="$CPPFLAGS $jpeg_includes"
+else
+  AC_MSG_RESULT(no)
 fi
 if test ! "$ac_jpeg_libraries" = "NO"; then 
   jpeg_libraries=-L$ac_jpeg_libraries 
@@ -246,6 +304,9 @@ AX_CHECK_GLUT
 # produces GLUT_CFLAGS GLUT_LIBS
 LIBS_TCL_OPENGL="$GLUT_LIBS -lBLT -ltix -ltk -ltcl"
 AC_SUBST(LIBS_TCL_OPENGL)
+
+LIBDIRS_MGH="utils rgb unix dicom hipsstubs"
+AC_SUBST(LIBDIRS_MGH)
 
 LIBS_MGH="utils/libutils.a rgb/librgb.a unix/libunix.a dicom/libdicom.a hipsstubs/libhipsstubs.a"
 AC_SUBST(LIBS_MGH)
@@ -291,7 +352,7 @@ AC_CHECK_LIB([tix4.1.8.3],[Tix_Init],[],
 fi
 
 AC_CHECK_LIB([BLT],[Blt_Init],[],
-  [AC_MSG_ERROR("FATAL: libBLT not found.  Set LDFLAGS or --with-BLT-dir.")] )
+  [AC_MSG_ERROR("FATAL: libBLT not found. check config.log.  Set LDFLAGS or --with-BLT-dir.")] )
 # recover previous one without X and Tcl
 LIBS=$ac_save_libs
 CPPFLAGS=$ac_save_cppflags

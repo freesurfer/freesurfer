@@ -11,7 +11,7 @@ am_libutils_a_OBJECTS = $(libutils_a_SOURCES:%.c=%.o)
 
 # tqli needs with -ffloat-store
 tqli.o: tqli.c
-	@echo "compiling tqli.c to tqli.o (not optimized)"
+	@echo "compiling tqli.c to tqli.o (with -ffloat-store)"
 	source='$<' object='$@' libtool=no \
 	depfile='$(DEPDIR)/$*.Po' tmpdepfile='$(DEPDIR)/$*.TPo' \
 	$(CCDEPMODE) $(depcomp) \
