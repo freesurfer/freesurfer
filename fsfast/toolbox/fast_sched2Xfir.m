@@ -1,6 +1,6 @@
-function X = fast_sched2Xfir(tPres,ntrs,TR,PSD,tDelay,PerEvW)
+function X = fast_sched2Xfir(tPres,ntrs,TR,psdwin,tDelay,PerEvW)
 %
-% X = fast_sched2Xfir(tPres,ntrs,TR,PSD,tDelay,PerEvW)
+% X = fast_sched2Xfir(tPres,ntrs,TR,psdwin,tDelay,PerEvW)
 %
 % Creates a design matrix (aka stimulus convolution matrix) modeling
 % the hemodynamic response as an FIR with adjustable tap weights. The
@@ -21,9 +21,9 @@ function X = fast_sched2Xfir(tPres,ntrs,TR,PSD,tDelay,PerEvW)
 % TR - TR of the exmperiment (ie, time between acquisitions of 
 % functional volumes) in seconds.
 %
-% PSD - three/four component vector indicating the Post Stimulus
-% Delay window. The components are: PSDMin dPSD PSDMax BCW. dPSD 
-% has also been called the TER. BCW is the Box Car Width. If BCW
+% psdwin - three/four component vector indicating the Post Stimulus
+% Delay window. The components are: psdmin dpsd psdmax bcw. dpsd 
+% has also been called the TER. bcw is the Box Car Width. If bcw
 % is not present, it is assumed to be 0. See fast_psdwin for more 
 % details
 %
@@ -37,16 +37,16 @@ function X = fast_sched2Xfir(tPres,ntrs,TR,PSD,tDelay,PerEvW)
 % matrix entry for each presentation is given the value W(n) instead
 % of 1. Ignored if W=[].
 %
-% X will have size: Ntp by (PSDMax+BCW-PSDMin-dPSD)/dPSD
+% X will have size: Ntp by (psdmax+bcw-psdmin-dpsd)/dpsd
 % 
 % See also: fast_psdwin
 %
-% $Id: fast_sched2Xfir.m,v 1.4 2003/03/18 06:18:27 greve Exp $ 
+% $Id: fast_sched2Xfir.m,v 1.5 2003/03/21 05:21:53 greve Exp $ 
 
 X = [];
 
 if(nargin < 4 & nargin > 6)
-  msg = 'X = fast_sched2Xfir(tPres,ntrs,TR,PSD,<tDelay,PerEvW>)';
+  msg = 'X = fast_sched2Xfir(tPres,ntrs,TR,psdwin,<tDelay,PerEvW>)';
   fprintf('%s\n',msg);
   return;
 end
@@ -54,25 +54,25 @@ end
 if(exist('tDelay') ~= 1) tDelay = 0; end
 
 % Compute number of columns of X
-Nh = fast_psdwin(PSD,'npsdwin');
+Nh = fast_psdwin(psdwin,'npsdwin');
 if(isempty(Nh)) return; end
 
-PSDMin = PSD(1);
-dPSD   = PSD(2);
-PSDMax = PSD(3);
-if(length(PSD) == 3) BCW = 0;
-else BCW = PSD(4);
+psdmin = psdwin(1);
+dpsd   = psdwin(2);
+psdmax = psdwin(3);
+if(length(psdwin) == 3) bcw = 0;
+else bcw = psdwin(4);
 end
 
-TimeWindow = PSDMax - PSDMin;
+TimeWindow = psdmax - psdmin;
 
 % Compute time of last acq
 tmax = TR*(ntrs - 1);
 % Compute the resampling rate
-Rss = TR/dPSD;
+Rss = round(TR/dpsd);
 % Compute the Post Stimulus Delay at the start of the last 
 % point in the window, including BWC
-TPostStim = fast_psdwin(PSD,'erfpsdmax') - dPSD;
+TLastPoint = fast_psdwin(psdwin,'erfpsdmax') - dpsd;
 
 % Number of presentations
 Npres = length(tPres);
@@ -96,11 +96,11 @@ tPres = tPres - tDelay;
 
 X = zeros(Rss*ntrs,Nh);
 h = 1;
-for d = PSDMin:dPSD:TPostStim,
+for d = psdmin:dpsd:TLastPoint,
    td = tPres+d;
    iok = find(td >= 0 & td <= tmax);
    td = td(iok);
-   iPres = round(td/dPSD)+1;
+   iPres = round(td/dpsd)+1;
    X(iPres,h) = PerEvW(iok);
    h = h + 1;
 end
@@ -110,15 +110,9 @@ if(Rss ~= 1)
   X = X(1:Rss:Rss*ntrs,:);
 end
 
-if(BCW ~= 0)
-  Nb = BCW/dPSD;
-  Na = (IRFPSD(3)-PSDMin)/dPSD;
-  P = [zeros(Nb-1,Na); eye(Na); ];
-  b = [ones(1,Nb) zeros(1,Na-1)];
-  c = zeros(Na+Nb,1);
-  c(1) = 1;
-  B = toeplitz(c,b);
-  X = X*B*P;
+if(bcw ~= 0)
+  B = fast_boxcarmat(psdwin);
+  X = X*B;
 end
 
 return;
