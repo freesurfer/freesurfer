@@ -3536,9 +3536,13 @@ GCAtransformAndWriteSamples(GCA *gca, MRI *mri, GCA_SAMPLE *gcas,
     else
       label = 0 ;  /* Left undetermined - visible */
     mriFillRegion(mri_dst, xv, yv, zv, label, 0) ;
+    if (gcas[n].x == Gx && gcas[n].y == Gy && gcas[n].z == Gz)
+      DiagBreak() ;
     gcas[n].x = xv ;
     gcas[n].y = yv ;
     gcas[n].z = zv ;
+    if (gcas[n].x == Gx && gcas[n].y == Gy && gcas[n].z == Gz)
+      DiagBreak() ;
     if (DIAG_VERBOSE_ON && Gdiag & DIAG_SHOW)
       printf("label %d: (%d, %d, %d) <-- (%d, %d, %d)\n",
              gcas[n].label,gcas[n].xp,gcas[n].yp,gcas[n].zp, xv, yv, zv) ;
@@ -5449,8 +5453,9 @@ GCAnormalizeSamples(MRI *mri_in, GCA *gca, GCA_SAMPLE *gcas, int nsamples,
                     TRANSFORM *transform, char *ctl_point_fname)
 {
   MRI    *mri_dst, *mri_ctrl, *mri_bias ;
-  int    xv, yv, zv, n, x, y, z, width, height, depth, out_val, xn, yn, zn ;
+  int    xv, yv, zv, n, x, y, z, width, height, depth, out_val, xn, yn, zn, num, total ;
   float   bias ;
+  double  mean, sigma ;
 
   mri_dst = MRIclone(mri_in, NULL) ;
   mri_ctrl = MRIclone(mri_in, NULL) ;
@@ -5461,6 +5466,7 @@ GCAnormalizeSamples(MRI *mri_in, GCA *gca, GCA_SAMPLE *gcas, int nsamples,
               
 
 #define MAX_BIAS 1250
+#define NO_BIAS  1000
 #define MIN_BIAS  750
 
   if (ctl_point_fname)
@@ -5469,13 +5475,17 @@ GCAnormalizeSamples(MRI *mri_in, GCA *gca, GCA_SAMPLE *gcas, int nsamples,
     MRInormAddFileControlPoints(mri_ctrl, CONTROL_MARKED) ;
   }
   width = mri_in->width ; height = mri_in->height ; depth = mri_in->depth ;
+
+  /* add control points from file */
   for (z = 0 ; z < depth ; z++)
   {
     for (y = 0 ; y < height ; y++)
     {
       for (x = 0 ; x < width ; x++)
       {
-        MRISvox(mri_bias, x,y,z) = 1000 ;  /* by default */
+        if (x == Gx && y == Gy && z == Gz)
+          DiagBreak() ;
+        MRISvox(mri_bias, x,y,z) = NO_BIAS ;  /* by default */
         if (MRIvox(mri_ctrl, x, y, z) == CONTROL_MARKED)  /* read from file */
         {
           int       n, max_n ;
@@ -5504,7 +5514,7 @@ GCAnormalizeSamples(MRI *mri_in, GCA *gca, GCA_SAMPLE *gcas, int nsamples,
             continue ;
           gc = &gcan->gcs[max_n] ;
 
-          bias = 1000.0f*((float)gc->mean/MRIvox(mri_in, x, y, z)) ;
+          bias = (float)NO_BIAS*((float)gc->mean/MRIvox(mri_in, x, y, z)) ;
           if (bias < 100 || bias > 5000)
             DiagBreak() ;
           if (bias < MIN_BIAS)
@@ -5540,19 +5550,74 @@ GCAnormalizeSamples(MRI *mri_in, GCA *gca, GCA_SAMPLE *gcas, int nsamples,
     if (gcas[n].label > 0)
     {
       MRIvox(mri_ctrl, xv, yv, zv) = CONTROL_MARKED ;
-      bias = 1000.0f*((float)gcas[n].mean/MRIvox(mri_in, xv, yv, zv)) ;
+      bias = (float)NO_BIAS*((float)gcas[n].mean/MRIvox(mri_in, xv, yv, zv)) ;
       if (bias < 100 || bias > 5000)
         DiagBreak() ;
+#if 0
       if (bias < MIN_BIAS)
         bias = MIN_BIAS ;
       if (bias > MAX_BIAS)
         bias = MAX_BIAS ;
+#endif
 
       MRISvox(mri_bias, xv, yv, zv) = (short)nint(bias) ;
     }
     else
       MRIvox(mri_ctrl, xv, yv, zv) = CONTROL_NONE ;
   }
+
+  /* now check for and remove outliers */
+  mean = sigma = 0.0 ;
+  for (num = z = 0 ; z < depth ; z++)
+  {
+    for (y = 0 ; y < height ; y++)
+    {
+      for (x = 0 ; x < width ; x++)
+      {
+        if (x == Gx && y == Gy && z == Gz)
+          DiagBreak() ;
+        if (MRIvox(mri_ctrl, x, y, z) == CONTROL_MARKED)  
+        {
+          num++ ;
+          bias = (double)MRISvox(mri_bias, x, y, z) ;
+          mean += bias ; sigma += (bias*bias) ;
+        }
+      }
+    }
+  }
+
+  if (num > 0)
+  {
+    mean /= (double)num ;
+    sigma  = sqrt(sigma / (double)num - mean*mean) ;
+    printf("bias field = %2.3f +- %2.3f\n", mean/NO_BIAS, sigma/NO_BIAS) ;
+  }
+
+  /* now check for and remove outliers */
+  for (total = num = z = 0 ; z < depth ; z++)
+  {
+    for (y = 0 ; y < height ; y++)
+    {
+      for (x = 0 ; x < width ; x++)
+      {
+        if (x == Gx && y == Gy && z == Gz)
+          DiagBreak() ;
+        if (MRIvox(mri_ctrl, x, y, z) == CONTROL_MARKED)  
+        {
+          bias = (double)MRISvox(mri_bias, x, y, z) ;
+          total++ ;
+          if (fabs(bias-mean) > 4*sigma)
+          {
+            MRIvox(mri_ctrl, x, y, z) = CONTROL_NONE ;  
+            num++ ;
+            MRISvox(mri_bias, x, y, z) = NO_BIAS ;
+          }
+        }
+      }
+    }
+  }
+
+  printf("%d of %d control points discarded\n", num, total) ;
 
   MRIbuildVoronoiDiagram(mri_bias, mri_ctrl, mri_bias) ;
   /*  MRIwrite(mri_bias, "bias.mgh") ;*/
@@ -5577,7 +5642,7 @@ GCAnormalizeSamples(MRI *mri_in, GCA *gca, GCA_SAMPLE *gcas, int nsamples,
     {
       for (x = 0 ; x < width ; x++)
       {
-        bias = MRISvox(mri_bias, x, y, z)/1000.0f ;
+        bias = (float)MRISvox(mri_bias, x, y, z)/NO_BIAS ;
         if (bias < 0)
           DiagBreak() ;
         out_val = nint((float)MRIvox(mri_in, x, y, z)*bias) ;
@@ -7794,6 +7859,9 @@ GCAfindAllSamples(GCA *gca, int *pnsamples)
         gcap = &gca->priors[x][y][z] ;
         max_p = 0 ;  max_n = -1 ; max_label = 0 ;
 
+        if (x*gca->prior_spacing == Gx && y*gca->prior_spacing == Gy && 
+            z*gca->prior_spacing == Gz)
+          DiagBreak() ;
         for (n = 0 ; n < gcap->nlabels ; n++)
         {
           label = gcap->labels[n] ;
@@ -7808,9 +7876,15 @@ GCAfindAllSamples(GCA *gca, int *pnsamples)
           }
         }
 #if 1
+        if (IS_UNKNOWN(max_label) &&
+            (different_nbr_labels(gca, x, y, z, 1, 0) == 0))
+          continue ;
+#else
         if (IS_UNKNOWN(max_label))
           continue ;
 #endif
+        if (max_label == Gdiag_no)
+          DiagBreak() ;
         nsamples++ ;
       }
     }
@@ -7841,9 +7915,15 @@ GCAfindAllSamples(GCA *gca, int *pnsamples)
           }
         }
 #if 1
+        if (IS_UNKNOWN(max_label) &&
+            (different_nbr_labels(gca, x, y, z, 1, 0) == 0))
+          continue ;
+#else
         if (IS_UNKNOWN(max_label))
           continue ;
 #endif
+        if (max_label == Gdiag_no)
+          DiagBreak() ;
         gcas[i].xp = x ; gcas[i].yp = y ; gcas[i].zp = z ;
         gcas[i].x = x*gca->prior_spacing ; 
         gcas[i].y = y*gca->prior_spacing ; 
