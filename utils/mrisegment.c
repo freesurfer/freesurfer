@@ -30,7 +30,7 @@
 -------------------------------------------------------*/
 
 
-#define VOX_INCREASE  1.25
+#define VOX_INCREASE  1.1 // 1.25
 
 /*-----------------------------------------------------
                     STATIC PROTOTYPES
@@ -333,36 +333,50 @@ mriSegmentReallocateVoxels(MRI_SEGMENTATION *mriseg, int sno,
                                       int max_voxels)
 {
   MRI_SEGMENT *mseg ;
-  MSV         *old_voxels ;
+  // MSV         *old_voxels ;
+  MSV         *new_voxels;
   int         v ;
 
   if (max_voxels <= 0)
     max_voxels = MAX_VOXELS ;
 
   mseg = &mriseg->segments[sno] ;
-  old_voxels = mseg->voxels ;
+  // old_voxels = mseg->voxels ;
   
-  mseg->voxels = (MSV *)calloc(max_voxels, sizeof(MSV)) ;
-  if (!mseg->voxels)
+  // fprintf(stderr, "ReallocVoxels:%8d -> %8d\n", mseg->max_voxels, max_voxels);
+  // mseg->voxels = (MSV *)calloc(max_voxels, sizeof(MSV)) ;
+  new_voxels = (MSV *)realloc(mseg->voxels, max_voxels*sizeof(MSV)) ;
+  if (!new_voxels)
+  // if (!mseg->voxels)
   {
-    if (old_voxels)
-      free(old_voxels) ;
-    ErrorReturn(ERROR_NOMEMORY, 
+    // if (old_voxels)
+    //   free(old_voxels) ;
+    // when fail, mseg->voxels not modified
+     ErrorReturn(ERROR_NOMEMORY, 
                 (ERROR_NOMEMORY,
-                 "mriSegmentReallocVox: could not alloc %d voxels for sno %d",
+                 "mriSegmentReallocateVoxels: could not alloc %d voxels for sno %d",
                  max_voxels, sno)) ;
   }
-
+  // realloc
+  mseg->voxels = new_voxels;
   mseg->max_voxels = max_voxels ;
-
-  for (v = 0 ; v < mseg->nvoxels ; v++)
+  // realloc lack of initialization
+  for (v=mseg->nvoxels; v < mseg->max_voxels; ++v)
   {
-    mseg->voxels[v].x = old_voxels[v].x ;
-    mseg->voxels[v].y = old_voxels[v].y ;
-    mseg->voxels[v].z = old_voxels[v].z ;
+    mseg->voxels[v].x = 0;
+    mseg->voxels[v].y = 0;
+    mseg->voxels[v].z = 0;
   }
-  if (old_voxels)
-    free(old_voxels) ;
+  // this is just copying.  realloc makes this unnecessary
+  // for (v = 0 ; v < mseg->nvoxels ; v++)
+  // {
+  //   mseg->voxels[v].x = old_voxels[v].x ;
+  //   mseg->voxels[v].y = old_voxels[v].y ;
+  //   mseg->voxels[v].z = old_voxels[v].z ;
+  // }
+  // if (old_voxels)
+  //   free(old_voxels) ;
+
   return(NO_ERROR) ;
 }
 /*-----------------------------------------------------
@@ -461,6 +475,7 @@ int
 MRIcompactSegments(MRI_SEGMENTATION *mriseg)
 {
   MRI_SEGMENT *src_segment, *dst_segment ;
+  MRI_SEGMENT *newseg;
   int         s, s2 ;
 
   if (DIAG_VERBOSE_ON)
@@ -468,31 +483,53 @@ MRIcompactSegments(MRI_SEGMENTATION *mriseg)
 
   for (s = 0 ; s < mriseg->max_segments ; s++)
   {
+    // if voxel count = 0, then
     if (mriseg->segments[s].nvoxels == 0)
     {
+      // assgin dst
       dst_segment = &mriseg->segments[s] ;
+      // find the next non-zero voxel segments
       for (s2 = s+1 ; s2 < mriseg->max_segments ; s2++)
       {
         if (mriseg->segments[s2].nvoxels > 0)
           break ;
       }
+      // if within the boundary
       if (s2 < mriseg->max_segments)
       {
+	// assin src
         src_segment = &mriseg->segments[s2] ;
         if (dst_segment->voxels)
           free(dst_segment->voxels) ;
-          
+	// copy src to dst
         dst_segment->area = src_segment->area ;
         dst_segment->nvoxels = src_segment->nvoxels ;
         dst_segment->voxels = src_segment->voxels ;
         dst_segment->max_voxels = src_segment->max_voxels ;
-
+        // make the src to have nvoxels = 0
         src_segment->nvoxels = src_segment->max_voxels = 0 ;
         src_segment->area = 0.0 ; src_segment->voxels = NULL ;
+	// now we moved the non-zero segment to the front 
       }
     }
   }
-
+  //////////////////////////////////
+  // now we have segments zero voxels ones stack at the end
+  // now we keep only the non-zero voxel segments
+  // find the location of the first non-zero voxel segments
+  for (s = 0; s < mriseg->max_segments; s++)
+  {
+    if (mriseg->segments[s].nvoxels == 0)
+      break;
+  }
+  newseg = (MRI_SEGMENT *) realloc(mriseg->segments, s*sizeof(MRI_SEGMENT));
+  if (newseg)
+  {
+    mriseg->segments = newseg;
+    mriseg->max_segments = s;
+    mriseg->nsegments = s;
+    fprintf(stderr, "segments reduced to %d\n", s);
+  }
   return(NO_ERROR) ;
 }
 /*-----------------------------------------------------
