@@ -2712,3 +2712,49 @@ LTA *LTAchangeType(LTA *lta, int ltatype)
   LTAinvert(lta);
   return lta;
 }
+
+// lta is the transform from src to dst for ras2ras or vox2vox
+MATRIX *surfaceRASFromSurfaceRAS_(MRI *dst, MRI *src, LTA *lta)
+{
+  MATRIX *res = 0;
+  MATRIX *tmp=0;
+  MATRIX *surf2src=0;
+  MATRIX *dst2surf=0;
+  // this is the combined operation
+  //          surfaceRAS(src)
+  //               |
+  //               V
+  //              src ---> RAS 
+  //               |        |
+  //               |        | lta
+  //               |        |
+  //               V        V
+  //              dst----> RAS
+  //               |     
+  //               V
+  //           surfaceRAS(dst)
+  LT *lt = &lta->xforms[0];
+  if (lta->type == LINEAR_PHYSVOX_TO_PHYSVOX)
+  {
+    LTAchangeType(lta, LINEAR_RAS_TO_RAS);
+  }
+  if (lta->type == LINEAR_RAS_TO_RAS)
+  {
+    surf2src = RASFromSurfaceRAS_(src);
+    dst2surf = surfaceRASFromRAS_(dst);
+  }
+  else if (lta->type == LINEAR_VOX_TO_VOX)
+  {
+    surf2src = voxelFromSurfaceRAS_(src);
+    dst2surf = surfaceRASFromVoxel_(dst);
+  }
+  tmp = MatrixMultiply(lt->m_L, surf2src, NULL);
+  res = MatrixMultiply(dst2surf, tmp, NULL);
+  // memory management
+  MatrixFree(&tmp);
+  MatrixFree(&surf2src);
+  MatrixFree(&dst2surf);
+
+  return res;
+}
+

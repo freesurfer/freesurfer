@@ -3,8 +3,8 @@
 /*                                                                     */
 /* Warning: Do not edit the following four lines.  CVS maintains them. */
 /* Revision Author: $Author: tosa $                                           */
-/* Revision Date  : $Date: 2004/11/29 19:24:53 $                                             */
-/* Revision       : $Revision: 1.33 $                                         */
+/* Revision Date  : $Date: 2004/12/08 19:29:57 $                                             */
+/* Revision       : $Revision: 1.34 $                                         */
 /*                                                                     */
 /***********************************************************************/
 
@@ -148,3 +148,6 @@ void vg_print(const VOL_GEOM *vg);
  
 int LTAvoxelXformToRASXform(const MRI *src, const MRI *dst, LT *voxTran, LT *rasTran);
 #endif
+
+// well uses LTA
+MATRIX *surfaceRASFromSurfaceRAS_(MRI *dst, MRI *src, LTA *lta);
