@@ -1,6 +1,6 @@
 #! /usr/bin/tixwish
 
-# $Id: tkmedit.tcl,v 1.36 2003/04/18 22:47:42 kteich Exp $
+# $Id: tkmedit.tcl,v 1.37 2003/04/21 16:32:19 kteich Exp $
 
 source $env(MRI_DIR)/lib/tcl/tkm_common.tcl
 
@@ -599,8 +599,16 @@ proc GetDefaultLocation { iType } {
 	    LoadFunctional-overlay - LoadFunctional-timecourse {
 		set gsaDefaultLocation($iType) $gsSubjectDirectory/fmri
 	    }
-	    LoadGCA_Volume - LoadGCA_Transform - SaveGCA {
-		set gsaDefaultLocation($iType) $gsSubjectDirectory/average
+	    LoadGCA_Volume - SaveGCA {
+		if { [info exists env(CSURF_DIR)] } {
+		    set gsaDefaultLocation($iType) $env(CSURF_DIR)/average
+		} else {
+		    set gsaDefaultLocation($iType) $gsSubjectDirectory
+		}
+	    }
+	    LoadGCA_Transform {
+		set gsaDefaultLocation($iType) \
+		    $gsSubjectDirectory/mri/transforms
 	    }
 	    default { 
 		set gsaDefaultLocation($iType) $gsSubjectDirectory 
@@ -822,8 +830,8 @@ set tDlogSpecs(LoadSegmentation) [list \
   -title "Load Segmentation" \
   -prompt1 "Load COR Volume:" \
   -note1 "The volume file (or COR-.info for COR volumes)" \
-  -entry1 [list GetDefaultLocation ImportSegmentation_Volume] \
-  -default1 [list GetDefaultLocation ImportSegmentation_Volume] \
+  -entry1 [list GetDefaultLocation LoadSegmentation] \
+  -default1 [list GetDefaultLocation LoadSegmentation] \
   -presets1 $glShortcutDirs \
   -prompt2 "Load Color Table:" \
   -note2 "The file containing the colors and ROI definitions" \
@@ -837,8 +845,8 @@ set tDlogSpecs(LoadAuxSegmentation) [list \
   -title "Load Aux Segmentation" \
   -prompt1 "Load COR Volume:" \
   -note1 "The volume file (or COR-.info for COR volumes)" \
-  -entry1 [list GetDefaultLocation ImportSegmentation_Volume] \
-  -default1 [list GetDefaultLocation ImportSegmentation_Volume] \
+  -entry1 [list GetDefaultLocation LoadAuxSegmentation] \
+  -default1 [list GetDefaultLocation LoadAuxSegmentation] \
   -presets1 $glShortcutDirs \
   -prompt2 "Load Color Table:" \
   -note2 "The file containing the colors and ROI definitions" \
