@@ -94,7 +94,7 @@ AC_SUBST(SHARED_LDFLAGS)
 ##############################################################
 # cpu optimization
 ##############################################################
-if test "${CC}" = "gcc"; then 
+if test "${CC}" = "gcc"; then
 AC_MSG_NOTICE(Setting CPU optimization ...)
 CPUFLAGS=""
 CPUTYPE="NO"
@@ -493,7 +493,7 @@ AC_CHECK_LIB([tcl],[Tcl_Init],
 #################### Tk  needs X11 (or Aqua)
 LIBS="-lX11 $LIBS"
 CPPFLAGS="$GLUT_CFLAGS $CPPFLAGS"
-LDFLAGS="-L$x_libraries $LDFLAGS"
+LDFLAGS="$X_LIBS $LDFLAGS"
 AC_CHECK_LIB([tk],[Tk_Init],
   [LIB_TK=-ltk],
 # check tk8.4
