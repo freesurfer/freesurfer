@@ -59,7 +59,7 @@ typedef struct _LOGPIX
   int    ncpix ;         /* # of cart. pix that map to this logpix */
 } LOGPIX ;
 
-#define MAX_PIX  5
+#define MAX_PIX  8
 typedef struct
 {
   int npix ;      /* # of log pix that this cart. pixel contributes to */
