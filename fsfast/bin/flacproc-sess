@@ -1,14 +1,13 @@
 #!/bin/csh -f
 # flacproc-sess
 #
-# $Id: flacproc-sess,v 1.6 2004/11/15 17:17:59 greve Exp $
+# $Id: flacproc-sess,v 1.7 2004/11/17 01:01:16 greve Exp $
 
-set VERSION = '$Id: flacproc-sess,v 1.6 2004/11/15 17:17:59 greve Exp $';
+set VERSION = '$Id: flacproc-sess,v 1.7 2004/11/17 01:01:16 greve Exp $';
 
 set cmdargs = ($argv);
 
 set flac = ();
-set acfsegstem = acfseg
 set monly     = 0;
 set nolog     = 0;
 set PrintHelp = 0;
@@ -66,7 +65,6 @@ tic;
 
 flacfile = '$flacfile';
 sess = '$sess';
-acfsegstem = '$acfsegstem';
 Synth    = $Synth;
 SynthAR1 = $SynthAR1;
 npca = $npca;
@@ -88,8 +86,6 @@ if(isempty(flac)) return; end
 
 nruns = size(flac.runlist,1);
 
-%mstem = sprintf('%s/%s/masks/%s',flac.sess,flac.fsd,...
-%                flac.mask,flac.formatext);
 mstem = sprintf('%s/%s/masks/%s%s',flac.sess,flac.fsd,flac.mask);
 mask = MRIread(mstem);
 if(isempty(mask))
@@ -99,7 +95,8 @@ end
 indmask = find(mask.vol);
 indnotmask = find(~mask.vol);
 
-acfsegstem = sprintf('%s/%s/masks/%s',flac.sess,flac.fsd,acfsegstem);
+acfsegstem = sprintf('%s/%s/masks/%s',flac.sess,flac.fsd,flac.acfsegstem);
+fprintf('%s\n',acfsegstem);
 acfseg = MRIread(acfsegstem);
 if(isempty(acfseg)) 
   if(~monly) quit; end
