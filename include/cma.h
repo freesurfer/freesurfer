@@ -76,4 +76,7 @@
 
 
 #define IS_UNKNOWN(label)  (((label) == Unknown) || (label < 0))
+
+#define MAX_CMA_LABEL 71
+
 #endif
