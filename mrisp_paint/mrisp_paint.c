@@ -12,7 +12,7 @@
 #include "mri.h"
 #include "macros.h"
 
-static char vcid[] = "$Id: mrisp_paint.c,v 1.1 1998/10/27 01:00:26 fischl Exp $";
+static char vcid[] = "$Id: mrisp_paint.c,v 1.2 2000/06/07 13:47:23 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -25,6 +25,7 @@ static void print_version(void) ;
 char *Progname ;
 
 static int normalize = 0 ;
+static int navgs = 0 ;
 
 
 int
@@ -94,6 +95,8 @@ main(int argc, char *argv[])
     MRISnormalizeFromParameterization(mrisp, mris, param_no) ;
   else
     MRISfromParameterization(mrisp, mris, param_no) ;
+
+  MRISaverageCurvatures(mris, navgs) ;
   fprintf(stderr, "writing curvature file to %s...\n", out_fname) ;
   MRISwriteCurvature(mris, out_fname) ;
 
@@ -121,6 +124,11 @@ get_option(int argc, char *argv[])
     print_version() ;
   else switch (toupper(*option))
   {
+  case 'A':
+    navgs = atoi(argv[2]) ;
+    nargs = 1 ;
+    fprintf(stderr, "averaging curvature patterns %d times...\n", navgs) ;
+    break ;
   case 'N':
     normalize = 1 ;
     fprintf(stderr, "normalizing curvature by variance.\n") ;
