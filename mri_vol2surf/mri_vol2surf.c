@@ -1,6 +1,6 @@
 /*----------------------------------------------------------
   Name: vol2surf.c
-  $Id: mri_vol2surf.c,v 1.9 2002/05/17 20:22:41 greve Exp $
+  $Id: mri_vol2surf.c,v 1.10 2002/08/01 21:31:10 greve Exp $
   Author: Douglas Greve
   Purpose: Resamples a volume onto a surface. The surface
   may be that of a subject other than the source subject.
@@ -56,7 +56,7 @@ static void dump_options(FILE *fp);
 static int  singledash(char *flag);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_vol2surf.c,v 1.9 2002/05/17 20:22:41 greve Exp $";
+static char vcid[] = "$Id: mri_vol2surf.c,v 1.10 2002/08/01 21:31:10 greve Exp $";
 char *Progname = NULL;
 
 char *defaulttypestring;
@@ -100,7 +100,7 @@ int debug = 0;
 int reshape = 1;
 int reshapefactor = 0;
 
-MATRIX *Dsrc, *Wsrc, *Fsrc, *Qsrc;
+MATRIX *Dsrc, *Dsrctmp, *Wsrc, *Fsrc, *Qsrc;
 SXADAT *sxa;
 
 char *SUBJECTS_DIR = NULL;
@@ -115,6 +115,7 @@ char tmpstr[2000];
 int   float2int_src;
 char  *float2int_string = "round";
 int    float2int = -1;
+int   fixtkreg = 0;
 int ReverseMapFlag = 0;
 
 int framesave = 0;
@@ -193,6 +194,31 @@ int main(int argc, char **argv)
     exit(1);
   }
 
+  /* check that the resolution of the SrcVol is the same as in reg file */
+  if(fabs(SrcVol->xsize-ipr) > .01 || fabs(SrcVol->zsize-bpr) > .01){
+    printf("WARNING: the voxel resolution in the source volume (%g,%g,%g) differs \n",
+     SrcVol->xsize,SrcVol->ysize,SrcVol->zsize);
+    printf("         from that listed in the registration file (%g,%g,%g)\n",
+     ipr,ipr,bpr);
+    if(fixtkreg){
+      printf("ERROR: cannot fix tkreg matrix with resolution inconsistency\n");
+      exit(1);
+    }
+  }
+
+  /* Fix tkregister matrix if necessary */
+  if(fixtkreg && float2int == FLT2INT_TKREG){
+    printf("INFO: fixing tkregister matrix\n");
+    Dsrctmp = MRIfixTkReg(SrcVol,Dsrc);
+    printf("-------- original matrix -----------\n");
+    MatrixPrint(stdout,Dsrc);
+    printf("-------- fixed matrix -----------\n");
+    MatrixPrint(stdout,Dsrctmp);
+    MatrixFree(&Dsrc);
+    Dsrc = Dsrctmp;
+    float2int = FLT2INT_ROUND;
+  }
+
   /* Wsrc: Get the source warping Transform */
   Wsrc = NULL;
 
@@ -241,8 +267,7 @@ int main(int argc, char **argv)
   printf("Mapping Source Volume onto Source Subject Surface\n");
   fflush(stdout);
   SurfVals = vol2surf_linear(SrcVol, Qsrc, Fsrc, Wsrc, Dsrc, 
-           Surf, ProjFrac, interpmethod, 
-           float2int);
+           Surf, ProjFrac, interpmethod, float2int);
   fflush(stdout);
   if(SurfVals == NULL){
     printf("ERROR: mapping volume to source\n");
@@ -432,6 +457,8 @@ static int parse_commandline(int argc, char **argv)
     else if (!strcasecmp(option, "--nohash")) UseHash = 0;
     else if (!strcasecmp(option, "--reshape"))   reshape = 1;
     else if (!strcasecmp(option, "--noreshape")) reshape = 0;
+    else if (!strcasecmp(option, "--fixtkreg")) fixtkreg = 1;
+    else if (!strcasecmp(option, "--nofixtkreg")) fixtkreg = 0;
 
     else if ( !strcmp(option, "--default_type") ) {
       if(nargc < 1) argnerr(option,1);
@@ -592,7 +619,8 @@ static void print_usage(void)
   printf("   --src_type  input volume format \n");
   printf("   --srcreg    source registration  \n");
   printf("   --float2int float-to-int conversion method "
-    "(<round>, tkregister )\n");
+   "(<round>, tkregister )\n");
+  printf("   --fixtkreg : make make registration matrix round-compatible\n");
   printf("\n");
   printf("   --trgsubject target subject (if different than reg)\n");
   printf("   --hemi       hemisphere (lh or rh) \n");
@@ -668,6 +696,14 @@ static void print_help(void)
 "\n"
 "  --float2int method: override float2int method in registration file.\n"
 "    See BUGS.\n"
+"\n"
+"  --fixtkreg\n"
+"\n"
+"    Attempt to convert the registration matrix so that it is round \n"
+"    (or nearest neighbor) compatible. Setting this flag will only have \n"
+"    an effect if the float2int method is tkregister. It will 'fix' the \n"
+"    matrix and change the float2int method to round. Don't use this flag \n"
+"    unless you know what you are doing. \n"
 "\n"
 "  --trgsubject target subject name : resample volume onto this subject \n"
 "    instead of the one found in the registration file. The target subject \n"
