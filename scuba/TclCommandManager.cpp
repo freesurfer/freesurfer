@@ -24,6 +24,8 @@ TclCommandManager::TclCommandManager() : DebugReporter() {
 
   mbStarted = false;
   mInterp = 0;
+  mArgc = 0;
+  mArgv = NULL;
 }
 
 TclCommandManager& 
@@ -35,6 +37,10 @@ TclCommandManager::GetManager() {
 
     sManager->AddCommand( *sManager, "PrintAllCommands", 0, "", 
 			 "Print all registered commands." );
+    sManager->AddCommand( *sManager, "GetArgc", 0, "", 
+			 "Returns the argc value from the command line." );
+    sManager->AddCommand( *sManager, "GetArgv", 0, "", 
+			 "Returns the argv list from the command line." );
   }
 
   return *sManager;
@@ -320,6 +326,34 @@ TclCommandManager::DoListenToTclCommand ( char* isCommand,
     sResult = PrintAllCommands();
   }
 
+  // GetArgc
+  if( 0 == strcmp( isCommand, "GetArgc" ) ) {
+
+    // Return argc-1 because tcl's argc doesn't include the program name.
+    stringstream ssReturnValues;
+    ssReturnValues << mArgc - 1;
+    sReturnValues = ssReturnValues.str();
+    sReturnFormat = "i";
+  }
+
+  // GetArgv
+  if( 0 == strcmp( isCommand, "GetArgv" ) ) {
+
+    stringstream ssFormat;
+    stringstream ssResult;
+    ssFormat << "L";
+
+    for( int nArgc = 1; nArgc < mArgc; nArgc++ ) {
+      
+      ssFormat << "s";
+      ssResult << "\"" << mArgv[nArgc] << "\" ";
+    }
+    ssFormat << "l";
+
+    sReturnFormat = ssFormat.str();
+    sReturnValues = ssResult.str();
+  }
+
   return ok;
 }
 
@@ -362,4 +396,11 @@ TclCommandManager::DoTclEvent () {
   if( mInterp ) {
     Tcl_DoOneEvent( TCL_ALL_EVENTS | TCL_DONT_WAIT );
   }
+}
+
+void
+TclCommandManager::SetCommandLineParameters ( int iArgc, char** iArgv ) {
+  
+  mArgc = iArgc;
+  mArgv = iArgv;
 }

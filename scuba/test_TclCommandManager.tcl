@@ -110,3 +110,25 @@ if { $sResult != "throw" } {
     puts "Error on TestThrow:"
     puts "Result value was incorrect: $sResult"
 }
+
+
+set err [catch { set argc [GetArgc] } sResult]
+if { $err != 0 } {
+    puts "GetArgc returned an error: $sResult"
+}
+if { $sResult != 4 } {
+    puts "Error on GetArgc"
+    puts "Return value was incorrect: $argc"
+}
+
+set err [catch { set argv [GetArgv] } sResult]
+if { $err != 0 } {
+    puts "GetArgv returned an error: $sResult"
+}
+if { [lindex $argv 0] != "param 1" || 
+     [lindex $argv 1] != "param 2" || 
+     [lindex $argv 2] != "param 3" || 
+     [lindex $argv 3] != "param 4" } {
+    puts "Error on GetArgv:"
+    puts "Return value was incorrect: $argv"
+}

@@ -106,9 +106,9 @@ public:
   void Test( Tcl_Interp* iInterp ) {
     
     int rTcl = TCL_OK;
-    int const kzListeners = 100;
-    int const kzCommands = 100;
-    int const kNumberOfCallsToMake = 100;
+    int const kzListeners = 10;
+    int const kzCommands = 10;
+    int const kNumberOfCallsToMake = 10;
     
     TestListenerCounter* aListener[kzListeners];
     for( int nListener = 0; nListener < kzListeners; nListener++ ) {
@@ -226,6 +226,22 @@ public:
 	}
       }
     }
+
+
+    // Set our command line stuff. We'll test it in the script.
+    int argc = 5;
+    char **argv = (char**) calloc( argc, sizeof(char*) ); 
+    argv[0] = (char*) calloc( 256, sizeof(char) );
+    strcpy( argv[0], "test_TclCommandManager" );
+    argv[1] = (char*) calloc( 256, sizeof(char) );
+    strcpy( argv[1], "param 1" );
+    argv[2] = (char*) calloc( 256, sizeof(char) );
+    strcpy( argv[2], "param 2" );
+    argv[3] = (char*) calloc( 256, sizeof(char) );
+    strcpy( argv[3], "param 3" );
+    argv[4] = (char*) calloc( 256, sizeof(char) );
+    strcpy( argv[4], "param 4" );
+    commandMgr.SetCommandLineParameters( argc, argv );
 
     
     // Add the return testing commands.

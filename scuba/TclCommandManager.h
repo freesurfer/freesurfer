@@ -3,8 +3,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2004/03/24 23:34:24 $
-// Revision       : $Revision: 1.7 $
+// Revision Date  : $Date: 2004/04/03 22:04:02 $
+// Revision       : $Revision: 1.8 $
 
 #ifndef TclCommandManager_h
 #define TclCommandManager_h
@@ -102,6 +102,8 @@ class TclCommandManager : public DebugReporter, public TclCommandListener {
   // Lets the tcl parser handle an event.
   void DoTclEvent ();
 
+  void SetCommandLineParameters ( int iArgc, char** iArgv );
+
  protected:
 
   TclCommandManager();
@@ -120,6 +122,9 @@ class TclCommandManager : public DebugReporter, public TclCommandListener {
   // 'listening' to one.
   Tcl_Interp* mInterp;
   bool mbStarted;
+
+  int    mArgc;
+  char** mArgv;
 };
 
 
