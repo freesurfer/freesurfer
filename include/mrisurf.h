@@ -930,6 +930,7 @@ int MRISmedianFilterVals(MRI_SURFACE *mris, int nmedians) ;
 int MRISmedianFilterVal2s(MRI_SURFACE *mris, int nmedians) ;
 int MRISmedianFilterVal2baks(MRI_SURFACE *mris, int nmedians) ;
 int MRISfileNameType(char *fname) ;
+unsigned long MRISeraseOutsideOfSurface(float h,MRI* mri_dst,MRIS *mris,unsigned char val) ;
 
 
 /* Some utility functions to handle reading and writing annotation
