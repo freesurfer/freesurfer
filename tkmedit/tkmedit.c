@@ -298,6 +298,829 @@ void alloc_second_im(void) ;
 char *Progname ;
 /*--------------------- end prototypes ------------------------------*/
 
+/*--------------------- twitzels hacks ------------------------------*/
+
+/*--------------------- functional ----------------------------------*/
+#ifndef FUNCTIONAL_C
+#define FUNCTIONAL_C
+
+#include <errno.h>
+
+/* global variables */
+int fvwidth,fvheight,fvslices,fvframes;
+
+float fux, fuy, fuz;
+float fvx, fvy, fvz;
+float fcx, fcy, fcz;
+
+unsigned char* scaledFVolume;
+float** rawFVData;
+fMRI_REG* fvRegistration;
+float mri2fmritm[4][4];
+
+int statsloaded;
+int hot;
+int do_overlay = 0;
+int do_interpolate = 0;
+int overlay_frame = 0;
+
+float slfvps;
+float slfvst;
+
+double fslope = 1.00;
+double fmid = 0.0;
+double f2thresh =0.0;
+
+char* overlay_file = NULL;
+char* loaded_fvfile;
+
+typedef union 
+{
+  long  l;
+  float f;
+  int i;
+  char buf[4];
+  short s[2];
+} t_uni4;
+
+void transformFV(float a, float b, float c, float* d, float* e, float* f);
+
+void cleanFOV()
+{
+  int i;
+  for(i=0; i<fvslices; i++) {
+    free(rawFVData[i]);
+  }
+  
+  free(rawFVData);
+}
+
+void setupFOVars()
+{
+}
+
+void setupFVU(float tux, float tuy, float tuz)
+{
+  transformFV(tux,tuy,tuz,&fux,&fuy,&fuz);
+  fux = fux-fcx;
+  fuy = fuy-fcy;
+  fuz = fuz-fcz;
+}
+
+void setupFVV(float tvx, float tvy, float tvz)
+{
+  transformFV(tvx,tvy,tvz,&fvx,&fvy,&fvz);
+  fvx = fvx-fcx;
+  fvy = fvy-fcy;
+  fvz = fvz-fcz;
+}
+
+void setupFVC(float tcx, float tcy, float tcz)
+{
+  if(hot)
+    printf("setup centerpoint to: %f %f %f\n",tcx,tcy,tcz);
+  transformFV(tcx,tcy,tcz,&fcx,&fcy,&fcz);
+  if(hot)
+    printf("centerpoint is: %f %f %f\n",fcx,fcy,fcz);
+}
+
+
+int countFVSlices(const char* prefix)
+{
+  int slice_number = 0;
+  char fname[255];
+  FILE* fp;
+
+  do
+  {
+    sprintf(fname, "%s_%3.3d.bfloat", prefix, slice_number) ;
+    fp = fopen(fname, "r") ;
+    if (fp)   /* this is a valid slice */
+    {
+      fclose(fp) ;
+      slice_number++ ;
+    } else
+      break;
+  } while (1) ;
+
+  return slice_number;
+}
+
+/* TODO: fvframes ??? */
+void readFVSliceHeader(const char* filename) 
+{
+  FILE* fp;
+  int width, height, nframes;
+
+  fp = fopen(filename, "r");
+  
+  if(!fp)
+    printf("could not open %s !\n",filename);
+  else {
+    fscanf(fp, "%d %d %d", &width, &height, &nframes);
+    fvwidth = width; fvheight = height; fvframes = nframes;
+    fclose(fp);
+  }
+}
+
+float swapFVFloat(float value)
+{
+
+  t_uni4 fliess;
+  char tmp;
+  short tmp2;
+
+  fliess.f = value;
+  tmp = fliess.buf[0];
+  fliess.buf[0] = fliess.buf[1];
+  fliess.buf[1] = tmp;
+
+  tmp = fliess.buf[2];
+  fliess.buf[2] = fliess.buf[3];
+  fliess.buf[2] = tmp;
+
+  tmp2 = fliess.s[0];
+  fliess.s[0]= fliess.s[1];
+  fliess.s[1]=tmp2;
+ 
+  return fliess.f;
+}
+
+void transformFV(float x, float y, float z, float* x_1, float* y_1, float* z_1)
+{
+  float ggx;
+
+  *x_1 = x*mri2fmritm[0][0]+y*mri2fmritm[0][1]+z*mri2fmritm[0][2]+mri2fmritm[0][3];
+  *y_1 = x*mri2fmritm[1][0]+y*mri2fmritm[1][1]+z*mri2fmritm[1][2]+mri2fmritm[1][3];
+  *z_1 = x*mri2fmritm[2][0]+y*mri2fmritm[2][1]+z*mri2fmritm[2][2]+mri2fmritm[2][3];
+  
+  if(hot)
+    printf("after mult: %f, %f, %f\n",*x_1,*y_1,*z_1);
+  *x_1 = ((fvRegistration->in_plane_res*fvwidth)/2.0-(*x_1))/fvRegistration->in_plane_res;
+  *z_1 = fvheight-((fvRegistration->in_plane_res*fvheight)/2.0-(*z_1))/fvRegistration->in_plane_res;
+  *y_1 = (*y_1-(-fvRegistration->slice_thickness*fvslices)/2.0)/fvRegistration->slice_thickness;
+}
+
+/* TODO: swaponly on SGI's */
+void readFVVolume(const char* prefixname)
+{
+  int fvi;
+  int fvj;
+  int fvoffset;
+  int fvsize;
+  int fvl;
+  char fvfname[255];
+  FILE *fp;
+  int fvfile;
+  float *fvptr;
+
+  hot = 0;
+
+  fvsize = fvwidth*fvheight*fvframes*sizeof(float);
+  rawFVData = (float**)malloc(fvslices*sizeof(float*));
+
+  for(fvi=0; fvi<fvslices; fvi++) {
+    fvptr = (float*)malloc(fvwidth*fvheight*fvframes*sizeof(float));
+    sprintf(fvfname, "%s_%3.3d.bfloat", prefixname, fvi);
+    fvfile = open(fvfname, 0);
+    if(fvfile) {
+      fvl=read(fvfile,fvptr,fvsize);
+      printf("slice %d read %d bytes\n",fvi,fvl);
+      if( fvl<fvsize ) {
+	printf("Scheisse: %s\n",strerror(errno));
+      }
+      close(fvfile);
+      rawFVData[fvi]=fvptr;
+#ifdef Linux      
+      for(fvj=0; fvj<fvwidth*fvheight*fvframes; fvj++) {
+	fvptr[fvj]=swapFVFloat(fvptr[fvj]);
+      }
+#endif
+      
+    } else {
+      printf("Ooops! could not open file %s\n",fvfname);
+      break;
+    }
+  }
+  slfvps = fvRegistration->in_plane_res;
+  slfvst = fvRegistration->slice_thickness;
+}
+
+void copyFVMatrix()
+{
+  MATRIX* tmp;
+
+  tmp = fvRegistration->mri2fmri;
+
+  mri2fmritm[0][0] = tmp->data[0];
+  mri2fmritm[0][1] = tmp->data[1];
+  mri2fmritm[0][2] = tmp->data[2];
+  mri2fmritm[0][3] = tmp->data[3];
+  mri2fmritm[1][0] = tmp->data[4];
+  mri2fmritm[1][1] = tmp->data[5];
+  mri2fmritm[1][2] = tmp->data[6];
+  mri2fmritm[1][3] = tmp->data[7];
+  mri2fmritm[2][0] = tmp->data[8];
+  mri2fmritm[2][1] = tmp->data[9];
+  mri2fmritm[2][2] = tmp->data[10];
+  mri2fmritm[2][3] = tmp->data[11];
+  mri2fmritm[3][0] = tmp->data[12];
+  mri2fmritm[3][1] = tmp->data[13];
+  mri2fmritm[3][2] = tmp->data[14];
+  mri2fmritm[3][3] = tmp->data[15];  
+}
+
+void loadFV()
+{
+  char slicename[255];
+  char* prefixname;
+  fvRegistration = NULL;
+  
+  if(overlay_file == NULL) {
+    printf("No overlay filename given ! please set funname !\n");
+    return;
+  }
+  prefixname = overlay_file;
+
+  fvRegistration = StatReadRegistration("register.dat");
+ 
+  if(!fvRegistration) {
+    printf("Could not load registration file !\n");
+    exit(-1);
+  }   
+  fvslices = countFVSlices(prefixname);
+  
+  printf("found %d slices\n", fvslices);
+
+  sprintf(slicename, "%s_%3.3d.hdr", prefixname,0);
+  readFVSliceHeader(slicename);
+  
+  printf("read format: %d, %d, %d\n",fvwidth,fvheight,fvframes);
+  copyFVMatrix();
+
+  readFVVolume(prefixname);
+
+  statsloaded = 1;
+  loaded_fvfile = strdup(overlay_file);
+}
+
+/* sample Data interpolates trilinear */
+
+#define V000(o) rawFVData[unten][vorn+links+o] 
+#define V100(o) rawFVData[unten][vorn+rechts+o]
+#define V010(o) rawFVData[unten][hinten+links+o]
+#define V001(o) rawFVData[oben][vorn+links+o]
+#define V101(o) rawFVData[oben][vorn+rechts+o]
+#define V011(o) rawFVData[oben][hinten+links+o]
+#define V110(o) rawFVData[unten][hinten+rechts+o]
+#define V111(o) rawFVData[oben][hinten+rechts+o]
+
+float sampleData(float x, float y, float z,int frame)
+{
+  int ux,lx,uy,ly,uz,lz; /* Koordinaten der Nachbarvoxel */
+  int rechts, links, vorn, hinten, oben, unten;
+  float v;
+  int offset;
+
+  ux = ceilf(x); lx = floorf(x);
+  uy = ceilf(y); ly = floorf(y);
+  uz = ceilf((fvheight-1-z)); lz = floorf(fvheight-1-z);
+
+  /* printf("Hampf: %d %d\n", uz, lz); */
+
+  x = x - lx;
+  y = y - ly;
+  z = (fvheight-1-z) - lz;
+  
+  rechts = ux;
+  links = lx;
+  oben = uy;
+  unten = ly; 
+  vorn =  fvwidth*lz;
+  hinten = fvwidth*uz;
+
+  offset = frame*fvwidth*fvheight;
+
+  if(ux >= fvwidth || uz >= fvheight || uy >= fvslices || lx < 0 || ly < 0 || lz < 0) {
+     
+      return -30000;
+  }
+    
+  v= V000(offset)*(1-x)*(1-z)*(1-y) +
+    V100(offset)*x*(1-z)*(1-y)+
+    V010(offset)*(1-x)*z*(1-y)+
+    V001(offset)*(1-x)*(1-z)*y+
+    V101(offset)*x*(1-z)*y+
+    V011(offset)*x*z*(1-y)+
+    V111(offset)*x*z*y;
+
+  /*printf("returning: %f\n",v);*/
+  return v;
+}
+
+float lookupInParametricSpace(float u, float v, int frame)
+{
+  float x,y,z;
+
+  if(frame<fvframes) {
+    x = u*fux + v*fvx + fcx;
+    y = u*fuy + v*fvy + fcy;
+    z = u*fuz + v*fvz + fcz;
+    if(x >= fvwidth || y >= fvslices || z >= fvheight || x< 0 || y < 0 || z < 0)
+      return -30000;
+    
+    if(do_interpolate==1)
+      return sampleData(x,y,z,frame); 
+    else
+      return rawFVData[(int)floor(y)][(int)floor(63-z)*fvwidth+(int)floor(x)+frame*fvwidth*fvheight];
+      
+  } else {
+    return -30000;
+  }
+}
+
+float lookupInVoxelSpace(float x, float y, float z, int frame)
+{
+  float x1,y1,z1;
+  float v;
+  if(frame<fvframes) {
+    if(hot)
+      printf("lookup got: %f, %f, %f\n",x,y,z);
+    transformFV(x,y,z,&x1,&y1,&z1);
+    if(hot)
+      printf("resulting functional coord is: %f %f %f\n",x1,y1,z1);
+    
+    if(x1 >= fvwidth || x1 < 0 || y1 >=fvslices || y1 < 0 || z1 >= fvheight || z1 <= 0)
+      return -30000;
+    
+    if(do_interpolate == 1)
+      return sampleData(x1,y1,z1,overlay_frame);
+    else
+      return rawFVData[(int)floor(y1)][(int)floor(63-z1)*fvwidth+(int)floor(x1)+frame*fvwidth*fvheight];
+  }
+}
+  
+void printOutFunctionalCoordinate(float x, float y, float z)
+{
+  
+  float x2,y2,z2;
+  float x1,y1,z1;
+  /*printf("got coord: %f, %f, %f\n",x,y,z);*/
+  x1 = x;
+  y1 = y;
+  z1 = z;
+  if(overlay_frame < fvframes) {
+    /*printf("pretransform: %f, %f, %f\n",x1,y1,z1);
+      hot = 1;*/
+    transformFV(x1,y1,z1,&x2,&y2,&z2);
+    hot = 0;
+    /*printf("resulting functional coordinate: %f, %f, %f\n",x2,y2,z2);
+      printf("resulting voxel coordinate is: (%f, %f, %f)\n",y2,63-z2,x2);*/
+    printf("p-value: %f\n",
+	   (x2 >= fvwidth || x2 < 0 || y2 >=fvslices || y2 < 0 
+	    || z2 >= fvheight || z2 <= 0)?-30000:rawFVData[(int)floor(y2)]
+	   [(int)floor(63-z2)*fvwidth+(int)floor(x2)+overlay_frame*fvwidth*fvheight]); 
+  }
+}
+#endif 
+/*--------------------- drawing hacks -------------------------------*/
+#ifndef HACK
+#define HACK
+
+/* NOTE: In fischl space slices are coded in z, in the fspace in y, so you
+   have to swap z & y before !!! transforming
+*/
+
+/* static variables *wuerg* */
+#define COLOR_WHEEL         0   /* complexval */
+#define HEAT_SCALE          1   /* stat,positive,"" */
+#define CYAN_TO_RED         2   /* stat,positive,"" */
+#define BLU_GRE_RED         3   /* stat,positive,"" */
+#define TWOCOND_GREEN_RED   4   /* complexval */
+#define JUST_GRAY           5   /* stat,positive,"" */
+#define BLUE_TO_RED_SIGNED  6   /* signed */
+#define GREEN_TO_RED_SIGNED 7   /* signed */
+#define RYGB_WHEEL          8   /* complexval */
+#define NOT_HERE_SIGNED     9   /* signed */
+
+float ux, uy, uz;
+float vx, vy, vz;
+float cx, cy, cz;
+
+unsigned char* dhcache;
+float* fcache;
+
+int colscale=1;
+
+/* setup the span vectors */
+
+void initCache()
+{
+  int i;
+  dhcache=(unsigned char*)malloc(512*512);
+  fcache=(float*)malloc(512*512*sizeof(float));
+
+  for(i=0; i<512*512; i++)
+    fcache[i]=-30000;
+}
+
+void setupSpans()
+{
+  ux = 128;
+  uy = 0;
+  uz = 0;
+
+  vx = 0;
+  vy = 128;
+  vz = 0;
+
+  cx = 128;
+  cy = 128;
+  cz = 128;  
+}
+
+/* some default setups */
+
+void setupCoronal(int slice)
+{
+  ux = 128;
+  uy = 0;
+  uz = 0;
+
+  vx = 0;
+  vy = 128;
+  vz = 0;
+
+  cx = 128;
+  cy = 128;
+  cz = slice;  
+
+  if(statsloaded) {
+    
+    setupFVC(128-cx,128-(255-cz),cy-128);
+    setupFVU(128-(cx+ux),128-(255-(cz+uz)),(cy+uy)-128);
+    setupFVV(128-(cx+vx),128-(255-(cz+vz)),(cy+vy)-128);
+  }
+}
+
+void setupSagittal(int slice)
+{
+  ux = 0;
+  uy = 0;
+  uz = 128;
+
+  vx = 0;
+  vy = 128;
+  vz = 0;
+
+  cx = slice;
+  cy = 128;
+  cz = 128;
+  
+  if(statsloaded) {
+    setupFVC(128-cx,128-(255-cz),cy-128);
+    setupFVU(128-(cx+ux),128-(255-(cz+uz)),(cy+uy)-128);
+    setupFVV(128-(cx+vx),128-(255-(cz+vz)),(cy+vy)-128);
+  }
+   
+}
+
+void setupHorizontal(int slice)
+{
+  ux = 128;
+  uy = 0;
+  uz = 0;
+
+  vx = 0;
+  vy = 0;
+  vz = 128;
+
+  cx = 128;
+  cy = slice;
+  cz = 128;
+
+  if(statsloaded) {
+    setupFVC(128-cx,128-(255-cz),cy-128);
+    setupFVU(128-(cx+ux),128-(255-(cz+uz)),(cy+uy)-128);
+    setupFVV(128-(cx+vx),128-(255-(cz+vz)),(cy+vy)-128);
+  }
+}
+
+/* getPlane 
+   TODO: 
+   * change this into a midpoint algorithm using the spatial 
+     coherency of a plane
+   * avoid a new setup for every scanline
+   * think over integrating texturescaling for sgis
+*/
+
+void getPlane(char* fbuffer, int zf, int xoff, int yoff)
+{
+  float x, y, z;
+  int w,h;
+  float u,v;
+  float step;
+  float ostep;
+  int ozf;
+  int myoff;
+
+  register float sux, svx, aux, avx;
+  register float suy, svy, auy, avy;
+  register float suz, svz, auz, avz;
+
+  ozf = zf;
+  myoff = 512*yoff+xoff;
+
+#ifdef Linux
+  if(zf==2) 
+    zf = 1;
+#endif
+
+  step = 1.0/(128.0*zf);
+  ostep = 1.0/(128.0*ozf);
+
+  sux = step*ux; suy = step*uy; suz = step*uz;
+  svx = step*vx; svy = step*vy; svz = step*vz;
+
+  aux = -ux; auy = -uy; auz = -uz;
+  avx = -vx; avy = -vy; avz = -vz;
+  x = aux + avx + cx;
+  y = auy + avy + cy; 
+  z = auz + avz + cz;
+
+  for(h=0; h<256*zf; ++h) {
+    x = aux + avx + cx;
+    y = auy + avy + cy; 
+    z = auz + avz + cz;
+    for(w=0; w<256*zf; ++w) {
+      if(z<0 || z > 255 || x <0 || x>255 || y<0 || y>255) {
+	dhcache[myoff+w]=0;
+	continue;
+      }
+      /* this sucks on a sgi !!!
+	 floating point calculation is to slow on R5000 and
+	 this cast during memory access kills the remaining speed
+      */
+      dhcache[myoff+w] = im[(int)z][(int)(256-1-y)][(int)x];
+      x += sux;
+      y += suy; 
+      z += suz;
+    }
+    avx += svx;
+    avy += svy;
+    avz += svz;
+
+    aux = -ux;
+    auy = -uy;
+    auz = -uz;
+    myoff += 512;
+  }
+
+  myoff = 512*yoff+xoff;
+  u = v = -1;
+
+  if(statsloaded && do_overlay==1){ 
+    for(h=0; h <256*ozf; ++h) {
+      for(w=0; w<256*ozf; ++w) {
+	
+	fcache[myoff+w] = lookupInParametricSpace(u,v,overlay_frame); 
+	u += ostep; 
+      }
+      u = -1;
+      v += ostep;
+      myoff += 512;
+    }
+    
+  } else if (!statsloaded && do_overlay==1) {
+    loadFV();
+  }
+  
+#ifdef Linux
+  if(ozf==2)
+    scale2x(512,512,dhcache);
+#endif
+}
+
+void getMaximumProjection(int zf, int xoff, int yoff)
+{
+  int w, h;
+  
+  for(h=0; h<256; h++) {
+    for(w=0; w<256; w++) {
+      dhcache[(h+yoff)*512+w+xoff] = sim[2][255-h][w];
+    }
+  }
+}
+
+void setStatColor(float f, unsigned char *rp, unsigned char *gp, unsigned char *bp,
+		  float tmpoffset)
+{
+
+  float r,g,b;
+  float ftmp,c1,c2;
+
+  if (fabs(f)>f2thresh && fabs(f)<fmid)
+  {
+    ftmp = fabs(f);
+    c1 = 1.0/(fmid-f2thresh);
+    c2 = 1.0;
+
+    ftmp = c2*(ftmp-f2thresh)+f2thresh;
+    f = (f<0)?-ftmp:ftmp;
+  }
+
+  if (colscale==HEAT_SCALE)
+  {
+    if (f>=0)
+    {
+      r = tmpoffset*((f<f2thresh)?1:(f<fmid)?1-(f-f2thresh)/(fmid-f2thresh):0) +
+          ((f<f2thresh)?0:(f<fmid)?(f-f2thresh)/(fmid-f2thresh):1);
+      g = tmpoffset*((f<f2thresh)?1:(f<fmid)?1-(f-f2thresh)/(fmid-f2thresh):0) +
+          ((f<fmid)?0:(f<fmid+1.00/fslope)?1*(f-fmid)*fslope:1);
+      b = tmpoffset*((f<f2thresh)?1:(f<fmid)?1-(f-f2thresh)/(fmid-f2thresh):0);
+    } else
+    {
+      f = -f;
+      b = tmpoffset*((f<f2thresh)?1:(f<fmid)?1-(f-f2thresh)/(fmid-f2thresh):0) +
+          ((f<f2thresh)?0:(f<fmid)?(f-f2thresh)/(fmid-f2thresh):1);
+      g = tmpoffset*((f<f2thresh)?1:(f<fmid)?1-(f-f2thresh)/(fmid-f2thresh):0) +
+          ((f<fmid)?0:(f<fmid+1.00/fslope)?1*(f-fmid)*fslope:1);
+      r = tmpoffset*((f<f2thresh)?1:(f<fmid)?1-(f-f2thresh)/(fmid-f2thresh):0);
+    }
+    r = r*255;
+    g = g*255;
+    b = b*255;
+  }
+  else if (colscale==BLU_GRE_RED)
+  {  
+    if (f>=0)
+    {
+      r = tmpoffset*((f<f2thresh)?1:(f<fmid)?1-(f-f2thresh)/(fmid-f2thresh):0) +
+          ((f<f2thresh)?0:(f<fmid)?(f-f2thresh)/(fmid-f2thresh):1);
+      g = tmpoffset*((f<f2thresh)?1:(f<fmid)?1-(f-f2thresh)/(fmid-f2thresh):0) +
+          ((f<fmid)?0:(f<fmid+1.00/fslope)?1*(f-fmid)*fslope:1);
+      b = tmpoffset*((f<f2thresh)?1:(f<fmid)?1-(f-f2thresh)/(fmid-f2thresh):0) +
+          ((f<fmid)?0:(f<fmid+1.00/fslope)?1*(f-fmid)*fslope:1);
+    } else
+    {
+      f = -f;
+      b = tmpoffset*((f<f2thresh)?1:(f<fmid)?1-(f-f2thresh)/(fmid-f2thresh):0) +
+          ((f<f2thresh)?0:(f<fmid)?(f-f2thresh)/(fmid-f2thresh):1);
+      g = tmpoffset*((f<f2thresh)?1:(f<fmid)?1-(f-f2thresh)/(fmid-f2thresh):0) +
+          ((f<fmid)?0:(f<fmid+1.00/fslope)?1*(f-fmid)*fslope:1);
+      r = tmpoffset*((f<f2thresh)?1:(f<fmid)?1-(f-f2thresh)/(fmid-f2thresh):0) +
+          ((f<fmid)?0:(f<fmid+1.00/fslope)?1*(f-fmid)*fslope:1);
+    }
+    r = r*255;
+    g = g*255;
+    b = b*255;
+  }
+  else if (colscale==JUST_GRAY)
+    {
+      if (f<0) f = -f;
+      r = g = b = f*255;
+    }
+  *rp = (unsigned char)r;
+  *gp = (unsigned char)g;
+  *bp = (unsigned char)b;
+}
+
+void compose(unsigned char* stbuffer, unsigned char* outbuffer)
+{
+  int w,h;
+  int hax,hay;
+  int i,j,k;
+  int curs;
+  int imnr;
+
+  unsigned char red,green,blue;
+  unsigned char ccolor1,ccolor2;
+
+  if(all3flag) {
+    ccolor1 = 255;
+    ccolor2 = 255;
+  } else {
+    ccolor1 = NUMVALS-1;
+    ccolor2 = 0;
+  }
+
+  hax = xdim/2;
+  hay = ydim/2;
+  
+  if(all3flag)
+    curs = 15;
+  else 
+    curs = 2;
+
+  for(h=0; h<ydim; h++) {
+    for(w=0; w<xdim; w++) {
+      if(do_overlay == 1) { 
+	if(fcache[h*512+w]!=-30000)
+	  setStatColor(fcache[h*512+w],&red,&green,&blue,stbuffer[h*512+w]/255.0);
+	else {
+	  red = green = blue = stbuffer[h*512+w];
+	}
+      } else {
+	red = green = blue = stbuffer[h*512+w];
+      }
+      outbuffer[4*h*xdim+4*w]=red;
+      outbuffer[4*h*xdim+4*w+1]=green;
+      outbuffer[4*h*xdim+4*w+2]=blue;
+      outbuffer[4*h*xdim+4*w+3]=255;
+    }
+  }
+
+  if(all3flag || plane==SAGITTAL) {
+    for (i=ic-curs;i<=ic+curs;i++) {
+      if (all3flag) 
+	k = 4*(i/2*xdim/2+imc/2 + i/2*hax);
+      else if(plane==SAGITTAL)        
+	k = 4*(i*xdim+imc);
+      outbuffer[k] = ccolor1 ; outbuffer[k+1] = ccolor2;
+      outbuffer[k+2] = ccolor2;
+      outbuffer[k+3]=255;
+    }
+    for (imnr=imc-curs;imnr<=imc+curs;imnr++) {
+      if (all3flag) k = 4*(ic/2*xdim/2+imnr/2 + ic/2*hax);
+      else if(plane==SAGITTAL)
+	k = 4*(ic*xdim+imnr);
+      outbuffer[k] = ccolor1; 
+      outbuffer[k+1] = ccolor2;
+      outbuffer[k+2] = ccolor2;
+      outbuffer[k+3]=255;
+    }
+  }
+  if(all3flag || plane==CORONAL) {
+    for (i=ic-curs;i<=ic+curs;i++) {
+      if (all3flag) k = 4*(xdim*hay + i/2*xdim/2+jc/2 + i/2*hax);
+      else if(plane==CORONAL)      
+	k = 4*(i*xdim+jc);
+      vidbuf[k] = ccolor1; vidbuf[k+1] = vidbuf[k+2] = ccolor2; 
+      vidbuf[k+3]= 255;
+    }
+    for (j=jc-curs;j<=jc+curs;j++) {
+      if (all3flag) k = 4*(xdim*hay + ic/2*xdim/2+j/2 + ic/2*hax);
+      else if(plane==CORONAL)
+	k = 4*(ic*xdim+j);
+      vidbuf[k] = ccolor1; vidbuf[k+1] = vidbuf[k+2] = ccolor2; 
+      vidbuf[k+3]= 255;
+    }
+  }
+  if(all3flag || plane==HORIZONTAL) {
+    for (imnr=imc-curs;imnr<=imc+curs;imnr++) {
+      if (all3flag) k = 4*(xdim*hay+hax + imnr/2*xdim/2+jc/2 + imnr/2*hax);
+      else if(plane == HORIZONTAL)
+	k = 4*(imnr*xdim+jc);
+      vidbuf[k] = ccolor1; vidbuf[k+1] = vidbuf[k+2] = ccolor2;
+      vidbuf[k+3]=255;
+    }
+    for (j=jc-curs;j<=jc+curs;j++) {
+      if (all3flag) k = 4*(xdim*hay + hax + imc/2*xdim/2+j/2 + imc/2*hax);
+      else if(plane == HORIZONTAL)
+	k = 4*(imc*xdim+j);
+      vidbuf[k] = ccolor1; vidbuf[k+1] = vidbuf[k+2] = ccolor2;
+      vidbuf[k+3]=255;
+    }
+  }
+}
+
+void draw_image_hacked(int imc, int ic, int jc)
+{
+  memset(fcache,0,4*512*512);
+
+  memset(dhcache,128,512*512);
+
+  if(!all3flag) {
+    switch(plane) {
+    case CORONAL:
+      setupCoronal(imc/zf);
+      break;
+    case SAGITTAL:
+      setupSagittal(jc/zf);
+      break;
+    case HORIZONTAL:
+      setupHorizontal(ic/zf);
+      break;
+    }
+    getPlane(NULL,2,0,0);
+  } else if(all3flag) {
+    setupCoronal(imc/zf);
+    getPlane(NULL,1,0,256);
+    setupSagittal(jc/zf);
+    getPlane(NULL,1,0,0);
+    setupHorizontal(ic/zf);
+    getPlane(NULL,1,256,256);
+    getMaximumProjection(1,256,0);
+  }
+  
+  compose(dhcache,vidbuf);
+  rectwrite(0,0,xdim-1,ydim-1,vidbuf);
+
+  /* rectwrite(0,0,xdim-1,ydim-1,dhcache);*/
+}
+
+#endif
+/*--------------------- twitzels hack end ---------------------------*/
 
 #ifdef TCL
   int Medit(ClientData clientData, Tcl_Interp *interp, int argc, char *argv[])
@@ -344,7 +1167,8 @@ exit(1);
       argc -= 2;   /* strip so like before */
       tclscriptflag = TRUE;
     }
-    
+    statsloaded = 0;
+
     lsubjectsdir = getenv("SUBJECTS_DIR");
     if (lsubjectsdir==NULL) {
       printf("medit: env var SUBJECTS_DIR undefined (use setenv)\n");exit(1);}
@@ -436,6 +1260,20 @@ exit(1);
     imc = zf*imnr1/2;
     ic = ydim/2;
     jc = xdim/2;
+   
+    /* for twitzels stuff */
+    statsloaded = 0;
+    initCache();
+    setupFOVars();
+
+    /*loadFV("970121NH_02986_00003_00009_00001_001");*/
+    /*loadFV("twsyn");*/
+    /*overlay_file = "Sel_COND_6_0_diff";
+      loadFV();*/
+    /*loadFV("Sel_KP");*/
+    /*loadFV("Sel_nomask_4_1_diff");*/
+   
+    /* end twitzels stuff */
 
     if (tclscriptflag) {
       /* called from tkmedit.c; do nothing (don't even open gl window) */
@@ -1686,6 +2524,10 @@ void set_cursor(float xpt, float ypt, float zpt)
     printf("TALAIRACH: (%2.1f, %2.1f, %2.1f)\n", x_tal, y_tal, z_tal) ;
     xtalairach = x_tal;  ytalairach = y_tal;  ztalairach = z_tal; 
   }
+
+  /* twitzels stuff */
+  if(statsloaded)
+    printOutFunctionalCoordinate(x,y,z);
   updatepixval = TRUE;
   PR
 }
@@ -1740,7 +2582,8 @@ void redraw(void)
     wintitle(imtype2);
   }
   else {
-    draw_image(imc,ic,jc); 
+    draw_image_hacked(imc,ic,jc);
+    /* draw_image(imc,ic,jc); */
     wintitle(imtype);
   }
   if (ptsflag && !all3flag) drawpts();
@@ -2280,6 +3123,14 @@ select_pixel( short sx, short sy, int printflag)
     }
     PR
   }
+  /* twitzels stuff */
+  if(statsloaded)
+    printOutFunctionalCoordinate(x,y,z);
+  /*
+  hot=1;
+  lookupInVoxelSpace(x,y,z,0);
+  setupCoronal(imc);
+  hot=0;*/
   updatepixval = TRUE;
 }
 
@@ -4262,6 +5113,15 @@ char **argv;
   Tcl_LinkVar(interp,"script",      (char *)&rfname,TCL_LINK_STRING);
   Tcl_LinkVar(interp,"selectedpixval",(char *)&selectedpixval, TCL_LINK_INT);
   /*=======================================================================*/
+  /***** twitzels stuff ****/
+  Tcl_LinkVar(interp,"f2thresh",(char *)&f2thresh, TCL_LINK_DOUBLE);
+  Tcl_LinkVar(interp,"fslope",(char *)&fslope, TCL_LINK_DOUBLE);
+  Tcl_LinkVar(interp,"fmid",(char *)&fmid, TCL_LINK_DOUBLE);
+  Tcl_LinkVar(interp,"do_overlay",(char *)&do_overlay,TCL_LINK_BOOLEAN);
+  Tcl_LinkVar(interp,"do_interpolate",(char *)&do_interpolate,TCL_LINK_BOOLEAN);
+  Tcl_LinkVar(interp,"overlay_frame",(char *)&overlay_frame, TCL_LINK_INT);
+  Tcl_LinkVar(interp,"colscale",(char *)&colscale,TCL_LINK_INT);
+  Tcl_LinkVar(interp,"floatstem",(char *)&overlay_file,TCL_LINK_STRING);
 
   strcpy(rfname,script_tcl);  /* save in global (malloc'ed in Program) */
 
