@@ -10,6 +10,7 @@
 /*-----------------------------------------------------
                     INCLUDE FILES
 -------------------------------------------------------*/
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <stdarg.h>
@@ -36,6 +37,7 @@
 static char error_fname[100] = ERROR_FNAME ;
 static int (*error_vprintf)(const char *fmt, va_list args) = vprintf ;
 static int (*error_vfprintf)(FILE *fp,const char *fmt,va_list args) = vfprintf;
+static void (*error_exit)(int ecode) = exit ;
 
 /*-----------------------------------------------------
                     GLOBAL FUNCTIONS
@@ -84,7 +86,7 @@ ErrorExit(int ecode, char *fmt, ...)
   if (hipserrno)
     perr(ecode, "Hips error:") ;
 
-  exit(ecode) ;
+  (*error_exit)(ecode) ;
 }
 
 /*-----------------------------------------------------
@@ -114,5 +116,18 @@ ErrorPrintf(int ecode, char *fmt, ...)
   fclose(fp) ;     /* close file to flush changes */
   
   return(ecode) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
+int
+ErrorSetExitFunc(void (*exit_func)(int ecode))
+{
+  error_exit = exit_func ;
+  return(1) ;
 }
 

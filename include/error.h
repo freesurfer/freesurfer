@@ -16,7 +16,7 @@
 int     ErrorInit(char *fname, 
                   int (*vfprint)(FILE *fp, const char *fmt, va_list args),
                   int (*vprint)(const char *fmt, va_list args)) ;
-
+int     ErrorSetExitFunc(void (*exit_func)(int ecode)) ;
 void    ErrorExit(int ecode, char *fmt, ...) ;
 int     ErrorPrintf(int ecode, char *fmt, ...) ;
 #define ErrorReturn(ret, args)  { ErrorPrintf args ; return(ret) ; }
