@@ -884,11 +884,13 @@ TiffReadImage(char *fname, int frame0)
   tdata_t *buf;
   int      photometric;
   int      fillorder;
+  int      compression;
   unsigned char     *buffer;
   int      skip;
   int      i;
   float    r, g, b, y;
   float    *pf;
+  int      scanlinesize;
 
   if (!tif)
     return(NULL) ;
@@ -911,6 +913,7 @@ TiffReadImage(char *fname, int frame0)
   ret = TIFFGetFieldDefaulted(tif, TIFFTAG_PHOTOMETRIC, &photometric);
   // we don't handle fillorder at this time ;-)
   ret = TIFFGetFieldDefaulted(tif, TIFFTAG_FILLORDER, &fillorder);
+  ret = TIFFGetFieldDefaulted(tif, TIFFTAG_COMPRESSION, &compression);
 
   fprintf(stderr, "tiff info\n");
   fprintf(stderr, "         size: (%d, %d)\n", width, height);
@@ -919,29 +922,42 @@ TiffReadImage(char *fname, int frame0)
   switch(photometric)
   {
   case PHOTOMETRIC_MINISWHITE:
-    fprintf(stderr, "photometric: min value is white.\n"); break;
+    fprintf(stderr, "  photometric: min value is white.\n"); break;
   case PHOTOMETRIC_MINISBLACK:
-    fprintf(stderr, "photometric: min value is black.\n"); break;
+    fprintf(stderr, "  photometric: min value is black.\n"); break;
   case PHOTOMETRIC_RGB:
-    fprintf(stderr, "photometric: RGB color model.\n"); break;
+    fprintf(stderr, "  photometric: RGB color model.\n"); break;
   case PHOTOMETRIC_PALETTE:
-    fprintf(stderr, "photometric: use palette.\n"); break;
+    fprintf(stderr, "  photometric: use palette.\n"); break;
   case PHOTOMETRIC_MASK:
-    fprintf(stderr, "photometric: $holdout mask.\n"); break;
+    fprintf(stderr, "  photometric: $holdout mask.\n"); break;
   case PHOTOMETRIC_SEPARATED:
-    fprintf(stderr, "photometric: color separations.\n"); break;
+    fprintf(stderr, "  photometric: color separations.\n"); break;
   case PHOTOMETRIC_YCBCR:
-    fprintf(stderr, "photometric: YCbCr6 CCIR 601.\n"); break;
+    fprintf(stderr, "  photometric: YCbCr6 CCIR 601.\n"); break;
   case PHOTOMETRIC_CIELAB:
-    fprintf(stderr, "photometric: 1976 CIE L*a*b* \n"); break;
+    fprintf(stderr, "  photometric: 1976 CIE L*a*b* \n"); break;
   case PHOTOMETRIC_ITULAB:
-    fprintf(stderr, "photometric: ITU L*a*b* \n"); break;
+    fprintf(stderr, "  photometric: ITU L*a*b* \n"); break;
   case PHOTOMETRIC_LOGL:
-    fprintf(stderr, "photometric: CIE Log2(L) \n"); break;
+    fprintf(stderr, "  photometric: CIE Log2(L) \n"); break;
   case PHOTOMETRIC_LOGLUV:
-    fprintf(stderr, "photometric: CIE Log2(L) (u',v') \n"); break;
+    fprintf(stderr, "  photometric: CIE Log2(L) (u',v') \n"); break;
   default:
-    fprintf(stderr, "photometric: unknown type\n"); break;
+    fprintf(stderr, "  photometric: unknown type\n"); break;
+  }
+  switch(compression)
+  {
+  case COMPRESSION_NONE:
+    fprintf(stderr, "  compression: no compression\n"); break;
+  case COMPRESSION_LZW:
+    fprintf(stderr, "  compression: Lempel-Ziv & Welch\n"); break;
+  case COMPRESSION_JPEG:
+    fprintf(stderr, "  compression: JPEG DCT compression\n"); break;
+  case COMPRESSION_PACKBITS:
+    fprintf(stderr, "  compression: Macintosh RLE\n"); break;
+  default:
+    fprintf(stderr, "  compression: %d see /usr/include/tiff.h for meaning\n", compression); break; 
   }
   switch (bits_per_sample)  /* not valid - I don't know why */
   {
@@ -977,10 +993,12 @@ TiffReadImage(char *fname, int frame0)
     ret = TIFFGetFieldDefaulted(tif, TIFFTAG_IMAGELENGTH, &height);
     ret = TIFFGetFieldDefaulted(tif, TIFFTAG_SAMPLESPERPIXEL, &nsamples);
     ret = TIFFGetFieldDefaulted(tif, TIFFTAG_BITSPERSAMPLE,&bits_per_sample);
+    scanlinesize = TIFFScanlineSize(tif);
     for(row=0;row<height;row++)
     {
       // get the pointer at the first column of a row
       // note that the orientation is column, row
+
       if (nsamples == 1)
       {
 	switch (bits_per_sample)
@@ -1003,7 +1021,8 @@ TiffReadImage(char *fname, int frame0)
       }
       else if (nsamples == 3) // RGB model
       {
-	buffer = (unsigned char *) malloc(bits_per_sample*width*nsamples/8); // count in bytes
+	// buffer = (unsigned char *) malloc(bits_per_sample*width*nsamples/8); // count in bytes
+	buffer = (unsigned char *) malloc(scanlinesize); // count in bytes
 	if (TIFFReadScanline(tif, buffer, row, 0) < 0)
 	  ErrorReturn(NULL,
 		      (ERROR_BADFILE,
