@@ -8672,7 +8672,7 @@ MRISinflateBrain(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
       rms_height = MRISrmsTPHeight(mris) ;
       if (Gdiag & DIAG_SHOW)
         fprintf(stderr, 
-                "%3.3d: dt: %2.4f, rms height=%2.3f, avgs=%df\n", 
+                "%3.3d: dt: %2.4f, rms height=%2.3f, avgs=%d\n", 
                 n+1,(float)delta_t, (float)rms_height, n_averages);
       else
         fprintf(stderr, "\rstep %3.3d: RMS=%2.3f (target=%2.3f)   ", 
