@@ -19,7 +19,7 @@
 #
 # VERSION
 #
-#	$Id: nmr-std-env-dev.bash,v 1.1 2004/09/01 21:06:26 rudolph Exp $
+#	$Id: nmr-std-env-dev.bash,v 1.2 2004/09/01 21:11:40 rudolph Exp $
 #
 # AUTHOR
 #
@@ -36,7 +36,7 @@
 
 # Version data
 SELF="nmr-std-env-dev.bash"
-VERSION='$Id: nmr-std-env-dev.bash,v 1.1 2004/09/01 21:06:26 rudolph Exp $'
+VERSION='$Id: nmr-std-env-dev.bash,v 1.2 2004/09/01 21:11:40 rudolph Exp $'
 
 ## Turn on verboseness if desired ##
 if [ -n $NMR_STD_VERBOSE ] ; then
@@ -65,7 +65,7 @@ export OS=$(uname -s)
 # Main ENV variables
 export FREESURFER_HOME=/space/lyon/1/fsdev/freesurfer_dev
 export SUBJECTS_DIR=/cmas/fs/1/users/freesurfer/Subjects
-export FSFAST_HOME= /space/lyon/1/fsdev/freesurfer_dev/fsfast
+export FSFAST_HOME=/space/lyon/1/fsdev/freesurfer_dev/fsfast
 
 # In the original (t)csh script, the following are OS dependent.
 # Here, I assume Linux only
