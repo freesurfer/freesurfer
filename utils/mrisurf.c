@@ -12,6 +12,7 @@
 #include "macros.h"
 #include "fio.h"
 #include "mri.h"
+#include "mri2.h"
 #include "mrisurf.h"
 #include "matrix.h"
 #include "proto.h"
@@ -23,6 +24,9 @@
 #include "tritri.h"
 #include "timer.h"
 #include "chklc.h"
+#include "mri_identify.h"
+#include "selxavgio.h"
+
 
 /*---------------------------- STRUCTURES -------------------------*/
 
@@ -29875,4 +29879,128 @@ MRISclearDistances(MRI_SURFACE *mris)
   }
   
   return(NO_ERROR) ;
+}
+/*-----------------------------------------------------------------
+  MRISloadSurfVals() - loads surfaces values directly into an MRI
+  structure. The surface value file can be any format read by
+  MRIread. In addition, it can be a curv or paint file. If
+  Surf is non-null, then it is used as a template; otherwise,
+  the caller must spec the subject and hemisphere, and then the
+  ?h.white surface is used as the template (and then freed).
+
+  If the source file is neither curv nor paint, then MRIreadType is
+  used to read the file in as a "volume", and the "volume" is reshaped
+  to be nvertices X 1 X 1 X nframes (which is the final size
+  regardless).
+
+  If the source is curv format, then the given file is read from the
+  subject's surf directory. If Surf is non-null, then the sujbect
+  name and hemisphere in the MRI_SURFACE struct are used; otherwise
+  they must be passed.
+
+  If the subjectsdir string is NULL, then it reads SUBJECTS_DIR
+  from the environment.
+  -----------------------------------------------------------------*/
+MRI *MRISloadSurfVals(char *srcvalfile, char *typestring, MRI_SURFACE *Surf, 
+         char *subject, char *hemi, char *subjectsdir)
+{
+  MRI *SrcVals, *mritmp;
+  char fname[2000];
+  int vtx, srctype,reshapefactor=0,f;
+  float *framepower = NULL;
+  SXADAT *sxa;
+  int freesurface = 0;
+
+  if(Surf == NULL){
+    /*-------- set SUBJECTS DIR -------------*/
+    if(subjectsdir == NULL){
+      subjectsdir = getenv("SUBJECTS_DIR");
+      if(subjectsdir==NULL){
+  fprintf(stderr,"ERROR: SUBJECTS_DIR not defined in environment\n");
+  return(NULL);
+      }
+    }
+    /*------- load the surface -------------*/
+    sprintf(fname,"%s/%s/surf/%s.white",subjectsdir,subject,hemi);
+    printf("INFO: loading surface %s\n",fname);
+    Surf = MRISread(fname);
+    if(Surf == NULL){
+      fprintf(stderr,"ERROR: could not read %s\n",fname);
+      return(NULL);
+    }
+    freesurface = 1;
+  }
+  else{
+    subject = Surf->subject_name;
+    if(Surf->hemisphere == LEFT_HEMISPHERE)  hemi = "lh";
+    if(Surf->hemisphere == RIGHT_HEMISPHERE) hemi = "rh";
+  }
+
+  /* ------------------ load the source data ----------------------------*/
+  printf("Loading surface source data %s as %s\n",srcvalfile,typestring);
+  if(!strcmp(typestring,"curv")){ /* curvature file */
+    sprintf(fname,"%s/%s/surf/%s.%s",subjectsdir,subject,hemi,srcvalfile);
+    printf("Reading curvature file %s\n",fname);
+    MRISreadCurvatureFile(Surf, fname);
+    SrcVals = MRIallocSequence(Surf->nvertices, 1, 1,MRI_FLOAT,1);
+    for(vtx = 0; vtx < Surf->nvertices; vtx++){
+      MRIFseq_vox(SrcVals,vtx,0,0,0) = Surf->vertices[vtx].curv;
+    }
+  }
+  else if(!strcmp(typestring,"paint") || !strcmp(typestring,"w")){
+    MRISreadValues(Surf,srcvalfile);
+    SrcVals = MRIallocSequence(Surf->nvertices, 1, 1,MRI_FLOAT,1);
+    for(vtx = 0; vtx < Surf->nvertices; vtx++)
+      MRIFseq_vox(SrcVals,vtx,0,0,0) = Surf->vertices[vtx].val;
+  }
+  else { /* Use MRIreadType */
+    srctype = string_to_type(typestring);
+    if(srctype == MRI_VOLUME_TYPE_UNKNOWN) {
+      printf("ERROR: typestring %s unrecognized\n",typestring);
+      return(NULL);
+    }
+    SrcVals =  MRIreadType(srcvalfile,srctype);
+    if(SrcVals == NULL){
+      printf("ERROR: could not read %s as type %d\n",srcvalfile,srctype);
+      return(NULL);
+    }
+    if(SrcVals->height != 1 || SrcVals->depth != 1){
+      reshapefactor = SrcVals->height * SrcVals->depth;
+      printf("Reshaping %d\n",reshapefactor);
+      mritmp = mri_reshape(SrcVals, reshapefactor*SrcVals->width, 
+         1, 1, SrcVals->nframes);
+      MRIfree(&SrcVals);
+      SrcVals = mritmp;
+    }
+
+    if(SrcVals->width != Surf->nvertices){
+      fprintf(stdout,"ERROR: dimesion inconsitency in source data\n");
+      fprintf(stdout,"       Number of surface vertices = %d\n",
+        Surf->nvertices);
+      fprintf(stdout,"       Number of value vertices = %d\n",SrcVals->width);
+      return(NULL);
+    }
+    if(is_sxa_volume(srcvalfile)){
+      printf("INFO: Source volume detected as selxavg format\n");
+      sxa = ld_sxadat_from_stem(srcvalfile);
+      if(sxa == NULL) return(NULL);
+      framepower = sxa_framepower(sxa,&f);
+      if(f != SrcVals->nframes){
+  fprintf(stderr," number of frames is incorrect (%d,%d)\n",
+    f,SrcVals->nframes);
+  return(NULL);
+      }
+      printf("INFO: Adjusting Frame Power\n");  fflush(stdout);
+      mri_framepower(SrcVals,framepower);
+    }
+  }
+  if(SrcVals == NULL){
+    fprintf(stderr,"ERROR loading source values from %s\n",srcvalfile);
+    return(NULL);
+  }
+  printf("Done Loading %s\n",srcvalfile);
+
+  if(freesurface) MRISfree(&Surf);
+
+  return(SrcVals);
 }
