@@ -1,0 +1,370 @@
+#!/bin/csh -f
+# flacproc-sess
+#
+# $Id: flacproc-sess,v 1.1 2004/11/01 05:20:35 greve Exp $
+
+set VERSION = '$Id: flacproc-sess,v 1.1 2004/11/01 05:20:35 greve Exp $';
+
+set cmdargs = ($argv);
+
+set flac = ();
+set acfsegstem = acfseg
+set monly     = 0;
+set nolog     = 0;
+set PrintHelp = 0;
+set Synth     = 0;
+set SynthAR1  = 0;
+
+if($#argv == 0)  goto usage_exit;
+set n = `echo $argv | grep -e -help | wc -l` 
+if($n != 0) then
+  set PrintHelp = 1;
+  goto usage_exit;
+  exit 1;
+endif
+
+set SessList = `getsesspath $argv`;
+if($status || $#SessList == 0) then
+  getsesspath $argv 
+  exit 1;
+endif
+
+goto parse_args;
+parse_args_return:
+
+goto check_params;
+check_params_return:
+
+if(! $nolog) then
+  set LF = log/flacproc-sess.log
+  if(-e $LF) mv $LF $LF.bak
+else
+  set LF = /dev/null
+endif
+
+date | tee -a $LF
+pwd  | tee -a $LF
+echo $0  | tee -a $LF
+echo $cmdargs | tee -a $LF
+echo $VERSION | tee -a $LF
+hostname  | tee -a $LF
+
+if(! $monly) set MLF = /tmp/flacproc-sess.$$.m
+rm -f $MLF
+
+#------------------------------------------------------------------#
+set StartTime = `date`;
+foreach sess ($SessList)
+  set sessid = `basename $sess`;
+
+#--------------------------#
+tee -a $MLF > /dev/null <<EOF
+tic;
+
+flacfile = '$flacfile';
+sess = '$sess';
+acfsegstem = '$acfsegstem';
+Synth    = $Synth;
+SynthAR1 = $SynthAR1;
+monly = $monly;
+
+fprintf('-----------------------------------------------------\n');
+fprintf('Session: %s \n',sess);
+fprintf('%g ',clock);fprintf('\n');
+
+flac = fast_ldflac(flacfile);
+if(isempty(flac)) return; end
+
+flac.sess = sess;
+flac.nthrun = 1;
+flac = flac_customize(flac);
+if(isempty(flac)) return; end
+
+nruns = size(flac.runlist,1);
+
+mstem = sprintf('%s/%s/masks/%s',flac.sess,flac.fsd,...
+                flac.mask);
+mask = fast_ldbslice(mstem);
+indmask = find(mask);
+indnotmask = find(~mask);
+
+acfsegstem = sprintf('%s/%s/masks/%s',flac.sess,flac.fsd,...
+                acfsegstem);
+acfseg = fast_ldbslice(acfsegstem);
+acfseglist = unique(acfseg(:));
+nacfsegs = length(acfseglist)-1; % Exclude 0
+acfmask = (acfseg ~= 0);
+indacfmask = find(acfmask);
+
+for nthrun = 1:nruns
+  fprintf('Analyzing nthrun %d/%d (%s) %6.1f ------------\n',...
+          nthrun,nruns,flac.runlist(nthrun,:),toc);
+
+  flac.nthrun = nthrun;
+  flac = flac_customize(flac);
+  if(isempty(flac)) return; end
+  flac = flac_desmat(flac);
+  if(isempty(flac)) return; end
+
+  % Check condition of design matrix after normalizing columns
+  Xtmp = flac.X./repmat(sqrt(sum(flac.X.^2)),[flac.ntp 1]);
+  c = cond(Xtmp'*Xtmp);
+  fprintf('Design matrix condition: %g\n',c);
+  if(c > 10000)
+    fprintf('ERROR: design matrix ill-conditioned\n');
+    return;
+  end
+
+  fprintf('Loading functional data (%6.1f)\n',toc);
+  ystem = sprintf('%s/%s/%s/%s',flac.sess,flac.fsd,...
+                    flac.runlist(flac.nthrun,:),flac.funcstem);
+  [y mri] = fast_ldbslice(ystem);
+  if(isempty(y)) return; end
+  szvol = size(y);
+  szvol = szvol(1:end-1);
+  Nv = prod(szvol);
+  y = fast_vol2mat(y);
+
+  if(Synth)
+    fprintf('Synthesizing input, AR1 = %g \n',SynthAR1);
+    y = randn(size(y));
+    if(SynthAR1 ~= 0)
+	acfsynth = SynthAR1.^[0:flac.ntp-1]';
+	Facfsynth = chol(toeplitz(acfsynth))';
+	y = Facfsynth*y;
+    end
+  end
+
+  fprintf('Performing OLS estimation   (%6.1f)\n',toc);
+  [beta, rvar, vdof, r] = fast_glmfitw(y,flac.X);
+
+  % Do AMD-SNC here and re-est
+
+  fprintf('Computing NACF   (%6.1f)\n',toc);
+  % Residual forming matrix 
+  R = eye(flac.ntp) - flac.X*inv(flac.X'*flac.X)*flac.X';
+  nn = [1:flac.ntp]';
+  for nthseg = 1:nacfsegs
+    %indseg = find(acfseg(indacfmask)==nthseg);
+    indseg = find(acfseg==nthseg);
+    nperseg(nthseg) = length(indseg);
+    racf = fast_acorr(r(:,indseg));
+    %racfseg(:,nthseg)  = mean(racf(:,indseg),2);
+    racfseg(:,nthseg)  = mean(racf,2);
+    racfkjw = fast_yacf_kjw(racfseg(1:2,nthseg),R);
+    ar1(nthseg) = racfkjw(2);
+    nacfseg(:,nthseg) = ar1(nthseg).^(nn-1);
+    fprintf('  nthseg = %2d, %5d, rar1 = %6.3f, nar1 = %6.3f\n',...
+            nthseg,nperseg(nthseg),racfseg(2,nthseg),ar1(nthseg));
+  end
+  clear racf;
+
+  fprintf('Performing GLS estimation   (%6.1f)\n',toc);
+  [beta rvar vdof r] = fast_glmfitw(y,flac.X,nacfseg,acfseg);
+
+  indrvarz = find(rvar==0);
+  rvar(indrvarz) = 10e10;
+
+  fprintf('Saving estimation   (%6.1f)\n',toc);
+  outdir = sprintf('%s/%s/%s/%s',flac.sess,flac.fsd,...
+                    flac.runlist(flac.nthrun,:),flac.name);
+  mkdirp(outdir);
+
+  flacmat = sprintf('%s/flac.mat',outdir);  
+  save(flacmat,'flac','racfseg','ar1','nacfseg','acfseg','Synth','SynthAR1');
+
+  stem = sprintf('%s/beta',outdir);
+  tmp = fast_mat2vol(beta,szvol);
+  fast_svbslice(tmp,stem,[],[],mri);
+
+  stem = sprintf('%s/rvar',outdir);
+  tmp = fast_mat2vol(rvar,szvol);
+  fast_svbslice(tmp,stem,[],[],mri);
+
+  stem = sprintf('%s/res',outdir);
+  tmp = fast_mat2vol(r,szvol);
+  fast_svbslice(tmp,stem,[],[],mri);
+
+  fprintf('Computing contrasts   (%6.1f)\n',toc);
+  ncontrasts = length(flac.con);
+  for nthcon = 1:ncontrasts
+    fprintf('  %d  %s   (%6.1f)\n',nthcon,flac.con(nthcon).name,toc);
+
+    if(flac.con(nthcon).varsm > 0)
+      fprintf('  Smoothing variance with fwhm=%g mm\n',flac.con(nthcon).varsm);
+      cfwhm = flac.con(nthcon).varsm/mri.volres(1);
+      rfwhm = flac.con(nthcon).varsm/mri.volres(2);
+      sfwhm = flac.con(nthcon).varsm/mri.volres(3);
+      rvartmp = fast_mat2vol(rvar,szvol);
+      rvartmp = fast_smooth3d(rvartmp,cfwhm,rfwhm,sfwhm);
+      rvartmp = fast_vol2mat(rvartmp);
+    else
+      rvartmp = rvar;
+    end
+
+    C = flac.con(nthcon).C;
+    [F dof1 dof2 ces] = fast_fratiow(beta,flac.X,rvartmp,C,nacfseg,acfseg);
+    p = FTest(dof1, dof2, F);
+    sig = -log10(p);
+
+    condir = sprintf('%s/%s',outdir,flac.con(nthcon).name);
+    mkdirp(condir);
+
+    stem = sprintf('%s/f',condir);
+    tmp = fast_mat2vol(F,szvol);
+    fast_svbslice(tmp,stem,[],[],mri);
+
+    stem = sprintf('%s/fsig',condir);
+    tmp = fast_mat2vol(sig,szvol);
+    fast_svbslice(tmp,stem,[],[],mri);
+
+  end % contrasts
+
+end % runs
+
+fprintf(' -------------   (%6.1f)\n',toc);
+if(~monly) clear all; end
+
+EOF
+#--------------------------#
+
+end # Loop over sessions #
+
+if(! $monly) then
+  cat $MLF | matlab -display iconic
+  rm -f $MLF
+endif
+
+
+echo "Started at $StartTime" | tee -a $LF
+echo "Ended   at `date`"     | tee -a $LF
+echo "flacproc-sess Done"    | tee -a $LF
+
+exit 0;
+###############################################
+
+
+############--------------##################
+parse_args:
+set cmdline = "$argv";
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "-f":
+    case "-flac":
+      if ( $#argv == 0) goto arg1err;
+      set flacname = $argv[1]; shift;
+      set flacfile = flac/$flacname
+      if(! -e $flacfile) then
+        echo "ERROR: cannot find $flacfile"
+        exit 1;
+      endif
+      breaksw
+
+    case "-synth":
+      set Synth = 1;
+      breaksw
+
+    case "-synthar1":
+      if ( $#argv == 0) goto arg1err;
+      set SynthAR1 = $argv[1]; shift;
+      set Synth = 1;
+      breaksw
+
+    case "-monly":
+      if ( $#argv == 0) goto arg1err;
+      set MLF = $argv[1]; shift;
+      set monly = 1;
+      breaksw
+
+    case "-nolog":
+      set nolog = 1;
+      breaksw
+
+    case "-debug":
+      set verbose = 1;
+      set echo = 1;
+      breaksw
+
+    case "-g":
+    case "-s":
+    case "-sf":
+    case "-d":
+    case "-df":
+      shift;
+      # ignore getsesspath arguments 
+      breaksw
+
+    case "-cwd":
+      # ignore getsesspath arguments 
+      breaksw
+
+    case "-umask":
+      if ( $#argv == 0) goto arg1err;
+      setenv MRI_UMASK $1; shift;
+      breaksw
+
+    default:
+      echo ERROR: Flag $flag unrecognized. 
+      echo $cmdline
+      exit 1
+      breaksw
+  endsw
+
+end
+
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+
+goto check_params_return;
+############--------------##################
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+
+############--------------##################
+usage_exit:
+  echo ""
+  echo "USAGE: flacproc-sess"
+  echo ""
+  echo "   -flac flacfile : as found in flac/flacfile "
+  echo ""
+  echo "Session Arguments (Required)"
+  echo "   -sf sessidfile  "
+  echo "   -df srchdirfile "
+  echo "   -s  sessid      "
+  echo "   -d  srchdir     "
+  echo "   -fsd fsdir      (optional)"
+  echo ""
+  echo "Other Arguments"
+  echo "   -synth"
+  echo "   -synthar1 rho"
+  echo "   -debug"
+  echo "   -umask umask    : set unix file permission mask"
+  echo "   -version        : print version and exit"
+  echo "   -help           : print help and exit"
+  echo ""
+
+  if(! $PrintHelp) exit 1;
+
+  echo $VERSION
+
+  echo "------------------------------------------------------------"
+  cat $0 | awk 'BEGIN{prt=0}{if(prt) print $0; if($1 == "BEGINHELP") prt = 1 }'
+
+  echo "------------------------------------------------------------"
+
+exit 1;
+
+#---- Everything below here is printed out as part of help -----#
+BEGINHELP
+
