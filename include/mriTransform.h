@@ -67,6 +67,10 @@ Trns_tErr Trns_GetBtoRAS     ( mriTransformRef this,
              MATRIX**        opMatrix );
 Trns_tErr Trns_GetARAStoBRAS ( mriTransformRef this,
              MATRIX**        opMatrix );
+Trns_tErr Trns_GetAtoB ( mriTransformRef this,
+                         MATRIX**        opMatrix );
+Trns_tErr Trns_GetBtoA ( mriTransformRef this,
+                         MATRIX**        opMatrix );
 
 /* apply a transformation to the ARAStoBRAS matrix */
 Trns_tErr Trns_ApplyTransform ( mriTransformRef this,
