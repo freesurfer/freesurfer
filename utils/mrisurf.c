@@ -14,6 +14,7 @@
 #include "timer.h"
 #include "const.h"
 #include "mrishash.h"
+#include "icosohedron.h"
 
 /*---------------------------- STRUCTURES -------------------------*/
 
@@ -294,6 +295,14 @@ MRISread(char *fname)
       return(NULL) ;
     version = -1 ;
   }
+  else if (type == MRIS_ICO_FILE)
+  {
+    mris = ICOread(fname) ;
+    if (!mris)
+      return(NULL) ;
+    return(mris) ;
+    version = -1 ;
+  }
   else if (type == MRIS_GEO_TRIANGLE_FILE)
   {
     mris = mrisReadGeoFile(fname) ;
@@ -539,6 +548,14 @@ MRISfastRead(char *fname)
     if (!mris)
       return(NULL) ;
     version = -3 ;
+  }
+  else if (type == MRIS_ICO_FILE)
+  {
+    mris = ICOread(fname) ;
+    if (!mris)
+      return(NULL) ;
+    return(mris) ;
+    version = -1 ;
   }
   else if (type == MRIS_GEO_TRIANGLE_FILE)
   {
@@ -11201,6 +11218,8 @@ mrisFileNameType(char *fname)
     type = MRIS_ASCII_FILE ;
   else if (!strcmp(ext, "GEO"))
     type = MRIS_GEO_FILE ;
+  else if (!strcmp(ext, "TRI") || !strcmp(ext, "ICO"))
+    type = MRIS_ICO_FILE ;
   else
     type = MRIS_BINARY_FILE ;
 

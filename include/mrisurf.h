@@ -646,6 +646,7 @@ int  MRISwriteAreaErrorToValFile(MRI_SURFACE *mris, char *name) ;
 #define MRIS_GEO_TRIANGLE_FILE         2    /* movie.byu format */
 #define MRIS_ICO_SURFACE               3
 #define MRIS_TRIANGULAR_SURFACE        MRIS_ICO_SURFACE
+#define MRIS_ICO_FILE                  4
 
 
 #define IS_QUADRANGULAR(mris) \
