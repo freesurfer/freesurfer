@@ -15,7 +15,7 @@
 #define LINEAR_CORONAL_RAS_TO_CORONAL_RAS       21
 //E/ should be in transform.h if it isn't already
 
-static char vcid[] = "$Id: mri_transform.c,v 1.6 2003/09/05 04:45:38 kteich Exp $";
+static char vcid[] = "$Id: mri_transform.c,v 1.7 2004/11/17 20:50:06 fischl Exp $";
 
 //E/ For transformations: for case LINEAR_RAS_TO_RAS, we convert to
 //vox2vox with MRIrasXformToVoxelXform() in mri.c; for case
@@ -40,6 +40,7 @@ static void print_version(void) ;
 char *Progname ;
 static char *out_like_fname = NULL ;
 static int invert_flag = 0 ;
+static int resample_type = SAMPLE_TRILINEAR ;
 
 int
 main(int argc, char *argv[])
@@ -55,7 +56,7 @@ main(int argc, char *argv[])
   VECTOR *c;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_transform.c,v 1.6 2003/09/05 04:45:38 kteich Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_transform.c,v 1.7 2004/11/17 20:50:06 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -85,33 +86,33 @@ main(int argc, char *argv[])
     ErrorExit(ERROR_NOFILE, "%s: could not read MRI volume %s", Progname, 
               in_vol) ;
   if (out_like_fname) //E/ maybe need an out_kinda_like_fname
-    {
-      mri_tmp = MRIread(out_like_fname) ;
-      if (!mri_tmp)
-	ErrorExit(ERROR_NOFILE, "%s: could not read template volume from %s",out_like_fname) ;
-      mri_out = MRIalloc(mri_tmp->width, mri_tmp->height, mri_tmp->depth, mri_tmp->type) ;
-      //E/ maybe better mri_in->type?
-      MRIcopyHeader(mri_tmp, mri_out) ; //E/ reinstate this
-      //E/ MRIfree(&mri_tmp) ; // keep this around for recopy later.
+	{
+		mri_tmp = MRIread(out_like_fname) ;
+		if (!mri_tmp)
+			ErrorExit(ERROR_NOFILE, "%s: could not read template volume from %s",out_like_fname) ;
+		mri_out = MRIalloc(mri_tmp->width, mri_tmp->height, mri_tmp->depth, mri_tmp->type) ;
+		//E/ maybe better mri_in->type?
+		MRIcopyHeader(mri_tmp, mri_out) ; //E/ reinstate this
+		//E/ MRIfree(&mri_tmp) ; // keep this around for recopy later.
 
-      //E/ Hey, MRIlinearTransformInterp() just sets
-      //dst->ras_good_flag to zero!  and the x/y/zsize and stuff seems
-      //to go away during e.g. mghWrite.  recopy later?
-    }
+		//E/ Hey, MRIlinearTransformInterp() just sets
+		//dst->ras_good_flag to zero!  and the x/y/zsize and stuff seems
+		//to go away during e.g. mghWrite.  recopy later?
+	}
   else
-    {
-      mri_out = MRIalloc(256, 256, 256, mri_in->type) ;
-      //E/ set xyzc_ras to coronal ones.. - these'll get zorched
-      //by MRIlinearTransformInterp() - copy again later - is there
-      //any use in having them here now?  yes, so we can pass mri_out
-      //to the ras2vox fns.
+	{
+		mri_out = MRIalloc(256, 256, 256, mri_in->type) ;
+		//E/ set xyzc_ras to coronal ones.. - these'll get zorched
+		//by MRIlinearTransformInterp() - copy again later - is there
+		//any use in having them here now?  yes, so we can pass mri_out
+		//to the ras2vox fns.
 
-      //E/ is c_ras = 0,0,0 correct?
-      mri_out->x_r =-1; mri_out->y_r = 0; mri_out->z_r = 0; mri_out->c_r =0;
-      mri_out->x_a = 0; mri_out->y_a = 0; mri_out->z_a = 1; mri_out->c_a =0;
-      mri_out->x_s = 0; mri_out->y_s =-1; mri_out->z_s = 0; mri_out->c_s =0;
-      mri_out->ras_good_flag=1;
-    }
+		//E/ is c_ras = 0,0,0 correct?
+		mri_out->x_r =-1; mri_out->y_r = 0; mri_out->z_r = 0; mri_out->c_r =0;
+		mri_out->x_a = 0; mri_out->y_a = 0; mri_out->z_a = 1; mri_out->c_a =0;
+		mri_out->x_s = 0; mri_out->y_s =-1; mri_out->z_s = 0; mri_out->c_s =0;
+		mri_out->ras_good_flag=1;
+	}
   MRIcopyPulseParameters(mri_in, mri_out) ;
   m_total = MatrixIdentity(4, NULL) ;
   for (i = 2 ; i < argc-1 ; i++)
@@ -135,7 +136,7 @@ main(int argc, char *argv[])
       //E/ mri_rigid_register writes out m as src2trg
       
       if (lta->type == LINEAR_RAS_TO_RAS || lta->type == LINEAR_CORONAL_RAS_TO_CORONAL_RAS)
-	/* convert it to a voxel transform */
+				/* convert it to a voxel transform */
       {
         ras_flag = 1 ;
       }
@@ -157,34 +158,34 @@ main(int argc, char *argv[])
       {
         MATRIX *m_tmp ;
         printf("converting RAS xform to voxel xform...\n") ;
-	if (lta->type == LINEAR_RAS_TO_RAS)
-	  m_tmp = MRIrasXformToVoxelXform(mri_in, mri_out, m_total, NULL) ;
-	else if (lta->type == LINEAR_CORONAL_RAS_TO_CORONAL_RAS)
-	  m_tmp = 
-	    MT_CoronalRasXformToVoxelXform(mri_in, mri_out, m_total, NULL) ;
-	else
-	  //E/ how else could ras_flag be set? prev tx a R2R/CR2CR tx?
-	  exit(1);
+				if (lta->type == LINEAR_RAS_TO_RAS)
+					m_tmp = MRIrasXformToVoxelXform(mri_in, mri_out, m_total, NULL) ;
+				else if (lta->type == LINEAR_CORONAL_RAS_TO_CORONAL_RAS)
+					m_tmp = 
+						MT_CoronalRasXformToVoxelXform(mri_in, mri_out, m_total, NULL) ;
+				else
+					//E/ how else could ras_flag be set? prev tx a R2R/CR2CR tx?
+					exit(1);
 
-	//////////////////////////////////////////////////////////////
-	MatrixPrint(stdout, m_tmp);
-	c = VectorAlloc(4, MATRIX_REAL);
-	c->rptr[1][1] = (mri_in->width)/2.;
-	c->rptr[2][1] = (mri_in->height)/2.;
-	c->rptr[3][1] = (mri_in->depth)/2.;
-	c->rptr[4][1] = 1.;
-	mine = MatrixMultiply(m_tmp, c, NULL);
-	MatrixPrint(stdout, mine);
-	printf("voxel pos = %.2f, %.2f, %.2f for %.2f, %.2f, %.2f\n",
-	       mine->rptr[1][1], mine->rptr[2][1], mine->rptr[3][1],
-	       c->rptr[1][1], c->rptr[2][1], c->rptr[3][1]);
-	VectorFree(&mine);
-	/////////////////////////////////////////////////////////////
+				//////////////////////////////////////////////////////////////
+				MatrixPrint(stdout, m_tmp);
+				c = VectorAlloc(4, MATRIX_REAL);
+				c->rptr[1][1] = (mri_in->width)/2.;
+				c->rptr[2][1] = (mri_in->height)/2.;
+				c->rptr[3][1] = (mri_in->depth)/2.;
+				c->rptr[4][1] = 1.;
+				mine = MatrixMultiply(m_tmp, c, NULL);
+				MatrixPrint(stdout, mine);
+				printf("voxel pos = %.2f, %.2f, %.2f for %.2f, %.2f, %.2f\n",
+							 mine->rptr[1][1], mine->rptr[2][1], mine->rptr[3][1],
+							 c->rptr[1][1], c->rptr[2][1], c->rptr[3][1]);
+				VectorFree(&mine);
+				/////////////////////////////////////////////////////////////
 
         MatrixFree(&m_total) ; m_total = m_tmp ;
       }
       LTAfree(&lta) ;
-      MRIlinearTransform(mri_in, mri_out, m_total) ;
+      MRIlinearTransformInterp(mri_in, mri_out, m_total, resample_type) ;
     }
     else
     {
@@ -200,26 +201,26 @@ main(int argc, char *argv[])
 
   //E/ reinstate what MRIlinearTransform zorched
   if (out_like_fname)
-    {
-      //E/ MRIcopyHeader doesn't stick because later
-      //MRIlinearTransformInterp sets dst->ras_good_flag to zero!  and
-      //the x/y/zsize and stuff seems to go away during e.g. mghWrite.
-      //So we recopy it now.  'cause ras xform IS good.  Well, if
-      //mri_tmp's is.
+	{
+		//E/ MRIcopyHeader doesn't stick because later
+		//MRIlinearTransformInterp sets dst->ras_good_flag to zero!  and
+		//the x/y/zsize and stuff seems to go away during e.g. mghWrite.
+		//So we recopy it now.  'cause ras xform IS good.  Well, if
+		//mri_tmp's is.
 
-      MRIcopyHeader(mri_tmp, mri_out) ;
-      MRIfree(&mri_tmp) ;
-    }
+		MRIcopyHeader(mri_tmp, mri_out) ;
+		MRIfree(&mri_tmp) ;
+	}
   else
-    {
-      //E/ set xyzc_ras to coronal 256/1mm^3 isotropic ones.. - they
-      //got zorched by MRIlinearTransformInterp() - so copy again here
+	{
+		//E/ set xyzc_ras to coronal 256/1mm^3 isotropic ones.. - they
+		//got zorched by MRIlinearTransformInterp() - so copy again here
 
-      mri_out->x_r =-1; mri_out->y_r = 0; mri_out->z_r = 0; mri_out->c_r =0;
-      mri_out->x_a = 0; mri_out->y_a = 0; mri_out->z_a = 1; mri_out->c_a =0;
-      mri_out->x_s = 0; mri_out->y_s =-1; mri_out->z_s = 0; mri_out->c_s =0;
-      mri_out->ras_good_flag=1;
-    }
+		mri_out->x_r =-1; mri_out->y_r = 0; mri_out->z_r = 0; mri_out->c_r =0;
+		mri_out->x_a = 0; mri_out->y_a = 0; mri_out->z_a = 1; mri_out->c_a =0;
+		mri_out->x_s = 0; mri_out->y_s =-1; mri_out->z_s = 0; mri_out->c_s =0;
+		mri_out->ras_good_flag=1;
+	}
   //E/  
 
   MRIwrite(mri_out, out_vol) ;
@@ -259,6 +260,25 @@ get_option(int argc, char *argv[])
   case 'I':
     invert_flag = 1 ;
     break ;
+	case 'R':
+		if(strcmp(StrLower(argv[2]), "interpolate") == 0)
+			resample_type = SAMPLE_TRILINEAR;
+		else if(strcmp(StrLower(argv[2]), "nearest") == 0)
+			resample_type = SAMPLE_NEAREST;
+		else if(strcmp(StrLower(argv[2]), "weighted") == 0)
+			resample_type = SAMPLE_WEIGHTED;
+		else if(strcmp(StrLower(argv[2]), "sinc") == 0)
+			resample_type = SAMPLE_SINC;
+		else if(strcmp(StrLower(argv[2]), "cubic") == 0)
+			resample_type = SAMPLE_CUBIC;
+		else
+		{
+			fprintf(stderr, "\n%s: unknown resample type \"%s\"\n", Progname, argv[2]);
+			usage_exit();
+			exit(1);
+		}
+		nargs = 1 ;
+		break ;
   case '?':
   case 'U':
     print_usage() ;
