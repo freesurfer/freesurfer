@@ -30,6 +30,7 @@ int  LPAFwrite(LPAF *lpaf, int current) ;
 int  LPAFread(LPAF *lpaf, int current) ;
 int  LPAFset(LPAF *lpaf, int current, int *xp, int *yp, int xc, int yc) ;
 int  LPAFwriteImageAnswer(LPAF *lpaf, int current) ;
+int  LPAFresetImageAnswer(LPAF *lpaf, int current) ;
 int  LPAFreadImageAnswer(LPAF *lpaf, int current) ;
 
 #endif

@@ -116,6 +116,80 @@ LPAFreadImageAnswer(LPAF *lpaf, int current)
 }
 
 int
+LPAFresetImageAnswer(LPAF *lpaf, int current)
+{
+  char   *fullname, tmpname[100], fname[100] ;
+  IMAGE  Iheader, *I ;
+  FILE   *infp, *outfp ;
+  int    ecode, frame, nframes, *parms, i, current_frame, type ;
+  LP_BOX *lpb ;
+  struct extpar *xp ;
+
+  fullname = lpaf->filelist[current] ;
+
+  ImageUnpackFileName(fullname, &current_frame, &type, fname) ;
+  if (type != HIPS_IMAGE)
+    return(0) ;
+
+  infp = fopen(fname, "rb") ;
+  if (!infp)
+    ErrorReturn(-1,(ERROR_NO_FILE,
+                    "LPAFwriteImageAnswer(%d): could not open %s",
+                     current, fname)) ;
+  ecode = fread_header(infp, &Iheader, fname) ;
+  if (ecode)
+  {
+    fclose(infp) ;
+    ErrorReturn(-2, (ERROR_BADFILE,
+                  "LPAFwriteImageAnswer(%d): could not read header", current));
+  }
+  fclose(infp) ;
+  if (Iheader.numparam == 0)  /* must make room for header in image file */
+  {
+    lpafAllocParms(&Iheader) ;
+
+    /* now copy the old image file to a new one which has room for parms */
+    nframes = Iheader.num_frame ;
+    strcpy(tmpname, FileTmpName(NULL)) ;
+    outfp = fopen(tmpname, "wb") ;
+    Iheader.num_frame = 0 ;  /* ImageAppend will bump num_frame on each call */
+    ecode = fwrite_header(outfp, &Iheader, tmpname) ;
+    fclose(outfp) ;   /* flush file */
+
+    fprintf(stderr, "rewriting image file to make room for parms...\n") ;
+    for (frame = 0 ; frame < nframes ; frame++)
+    {
+      I = ImageReadFrames(fname, frame, 1) ;
+      if (!I)
+        ErrorExit(ERROR_BADFILE, "LPwriteImageAnswer: could not read frame");
+      ImageAppend(I, tmpname) ;
+      ImageFree(&I) ;
+    }
+    FileRename(tmpname, fname) ;
+    Iheader.num_frame = nframes ;  /* reset correct # of frames */
+  }
+
+  /* now put answer into header */
+  lpb = &lpaf->coords[current] ;
+
+  for (frame = 0, xp = Iheader.params ; xp ; xp = xp->nextp)
+    if (frame++ == current_frame)
+      break ;
+
+  parms = xp->val.v_pi ;
+  parms[0] = INIT_VAL ;
+  parms[1] = INIT_VAL ;
+  for (i = 0 ; i < NPOINTS ; i++)
+  {
+    parms[2+2*i] = INIT_VAL ;
+    parms[2+2*i+1] = INIT_VAL ;
+  }
+  ImageUpdateHeader(&Iheader, fname) ;
+  free_hdrcon(&Iheader) ;
+  return(1) ;
+}
+
+int
 LPAFwriteImageAnswer(LPAF *lpaf, int current)
 {
   char   *fullname, tmpname[100], fname[100] ;
