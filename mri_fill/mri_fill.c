@@ -12,7 +12,7 @@
 #include "mrimorph.h"
 #include "timer.h"
 
-static char vcid[] = "$Id: mri_fill.c,v 1.47 2001/04/03 15:30:17 fischl Exp $";
+static char vcid[] = "$Id: mri_fill.c,v 1.48 2001/04/25 02:30:23 fischl Exp $";
 
 /*-------------------------------------------------------------------
                                 CONSTANTS
@@ -1020,6 +1020,7 @@ find_cutting_plane(MRI *mri, Real x_tal, Real y_tal,Real z_tal,int orientation,
   char       fname[100], *name ;
   MRI_REGION region ;
 
+  min_slice = -1 ;
   switch (orientation)
   {
   default:
