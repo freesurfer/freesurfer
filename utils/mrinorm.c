@@ -3053,6 +3053,7 @@ mriSoapBubbleFloat(MRI *mri_src, MRI *mri_ctrl, MRI *mri_dst,int niter)
         }
         if (num > 0)
           MRIFvox(mri_dst, x, y, z) = (float)mean / (float)num;
+	// MRIFvox(mri_dst, x, y, z) = (float)nint((float)mean / (float)num);
       }
     }
   }
@@ -3091,7 +3092,8 @@ mriSoapBubbleFloat(MRI *mri_src, MRI *mri_ctrl, MRI *mri_dst,int niter)
               }
             }
           }
-          *ptmp++ = (float)mean / (3.0f*3.0f*3.0f);
+	  *ptmp++ = (float)mean / (3.0f*3.0f*3.0f);
+	  // *ptmp++ = (float)nint((float)mean / (3.0f*3.0f*3.0f));
         }
       }
     }
