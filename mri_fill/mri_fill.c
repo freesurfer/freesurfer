@@ -10,7 +10,7 @@
 #include "macros.h"
 #include "proto.h"
 
-static char vcid[] = "$Id: mri_fill.c,v 1.17 1999/01/21 18:48:46 fischl Exp $";
+static char vcid[] = "$Id: mri_fill.c,v 1.18 1999/06/06 22:15:54 fischl Exp $";
 
 /*-------------------------------------------------------------------
                                 CONSTANTS
@@ -66,6 +66,13 @@ static char vcid[] = "$Id: mri_fill.c,v 1.17 1999/01/21 18:48:46 fischl Exp $";
 /*-------------------------------------------------------------------
                                 GLOBAL DATA
 -------------------------------------------------------------------*/
+
+/*
+  NOTE: left and right hemisphere were inadvertantly switched at some
+  point and I have never fixed it -- SORRY.
+  */
+static int lh_fill_val = LEFT_HEMISPHERE_WHITE_MATTER ;
+static int rh_fill_val = RIGHT_HEMISPHERE_WHITE_MATTER ;
 
 static int ylim0,ylim1,xlim0,xlim1;
 static int fill_holes_flag = TRUE;
@@ -383,8 +390,8 @@ main(int argc, char *argv[])
             neighbors_on(mri_im, wm_rh_x, wm_rh_y, wm_rh_z)) ;
 
   /* initialize the fill with the detected seed points */
-  MRIvox(mri_fill, wm_rh_x, wm_rh_y, wm_rh_z) = RIGHT_HEMISPHERE_WHITE_MATTER ;
-  MRIvox(mri_fill, wm_lh_x, wm_lh_y, wm_lh_z) = LEFT_HEMISPHERE_WHITE_MATTER ;
+  MRIvox(mri_fill, wm_rh_x, wm_rh_y, wm_rh_z) = rh_fill_val ;
+  MRIvox(mri_fill, wm_lh_x, wm_lh_y, wm_lh_z) = lh_fill_val ;
 
   if (!Gdiag)
     fprintf(stderr, "filling volume: pass 1 of 3...") ;
@@ -583,6 +590,18 @@ get_option(int argc, char *argv[])
     print_help() ;
   else if (!strcmp(option, "-version"))
     print_version() ;
+  else if (!strcmp(option, "rval"))   /* sorry */
+  {
+    lh_fill_val = atoi(argv[2]) ;
+    nargs = 1 ;
+    fprintf(stderr,"using %d as fill val for right hemisphere.\n",lh_fill_val);
+  }
+  else if (!strcmp(option, "lval"))   /* sorry */
+  {
+    rh_fill_val = atoi(argv[2]) ;
+    nargs = 1 ;
+    fprintf(stderr,"using %d as fill val for right hemisphere.\n",rh_fill_val);
+  }
   else switch (toupper(*option))
   {
   case 'L':
