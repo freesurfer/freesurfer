@@ -961,10 +961,15 @@ void Volm_GetColorAtIdx ( mriVolumeRef this,
   }
 #endif
   
-  /* Get the value and normalize it to 0-255. */
+  /* Get the value and normalize it to 0-255 if it's not already an
+     unsigned char. */
   Volm_GetValueAtIdx_( this, iIdx, &value );
-  colorIdx = (int) (255.0 * (value - this->min_val) / 
-		    (this->max_val - this->min_val)) ;
+  if( MRI_UCHAR != this->mpMriValues->type ) {
+    colorIdx = (int) (255.0 * (value - this->min_val) / 
+		      (this->max_val - this->min_val)) ;
+  } else {
+    colorIdx = value;
+  }
 
   *oColor = this->maColorTable[colorIdx];
 }
