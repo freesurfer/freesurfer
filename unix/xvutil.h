@@ -66,6 +66,10 @@ typedef struct
   int         x, y ;        /* position on canvas */
   int         bshift ;      /* for modifying brightness of displayed image */
   float       gamma[MAX_COLORS] ;
+  float       zoom ;        /* current zoom scale */
+  int         x0 ;          /* x zoom origin */
+  int         y0 ;          /* y zoom origin */
+  IMAGE       *zoomImage ;  /* zoomed image */
 } DISPLAY_IMAGE, DIMAGE ;
 
 typedef struct
@@ -128,6 +132,7 @@ int XVdeleteImageCol(XV_FRAME *xvf) ;
 int XVsetPrecision(XV_FRAME *xvf, int precision) ;
 int XVbrighten(XV_FRAME *xvf, int which, int offset) ;
 int XVgamma(XV_FRAME *xvf, int which, float beta) ;
+int XVzoom(XV_FRAME *xvf, int which, float zoom) ;
 
 #define WINDOW_PAD          3
 
