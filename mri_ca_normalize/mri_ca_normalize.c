@@ -94,7 +94,7 @@ main(int argc, char *argv[])
   TRANSFORM    *transform = NULL ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_ca_normalize.c,v 1.16 2003/09/05 04:45:32 kteich Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_ca_normalize.c,v 1.17 2003/12/18 18:43:55 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -519,7 +519,7 @@ find_control_points(GCA *gca, GCA_SAMPLE *gcas_total,
                     MRI *mri_in, TRANSFORM *transform, double min_prior, double ctl_point_pct)
 {
   int        i, j, *ordered_indices, nsamples, xmin, ymin, zmin, xmax, ymax, zmax, xv,yv,zv,
-             x, y, z, xi, yi, zi, region_samples, used_in_region, wsize=3, histo_peak, n,
+             x, y, z, xi, yi, zi, region_samples, used_in_region, prior_wsize=5, image_wsize=3, histo_peak, n,
              nbins ;
   GCA_SAMPLE *gcas, *gcas_region, *gcas_norm ;
   double     means[MAX_GCA_INPUTS], vars[MAX_GCA_INPUTS], val, nsigma ;
@@ -555,6 +555,11 @@ find_control_points(GCA *gca, GCA_SAMPLE *gcas_total,
 
   *pnorm_samples = 0 ;
   printf("found %d control points for structure...\n", nsamples) ;
+	if (nsamples == 0)
+	{
+		DiagBreak() ;
+		return(NO_ERROR) ;
+	}
   gcas = (GCA_SAMPLE *)calloc(nsamples, sizeof(GCA_SAMPLE)) ;
   gcas_region = (GCA_SAMPLE *)calloc(nsamples, sizeof(GCA_SAMPLE)) ;
   gcas_norm = (GCA_SAMPLE *)calloc(nsamples, sizeof(GCA_SAMPLE)) ;
@@ -600,9 +605,9 @@ find_control_points(GCA *gca, GCA_SAMPLE *gcas_total,
 							DiagBreak() ;
 						if (sqrt(SQR(xv-Gx)+SQR(yv-Gy)+SQR(zv-Gz)) < 2)
 							DiagBreak() ;
-						if (min_region_prior(gca, gcas[i].xp, gcas[i].yp, gcas[i].zp, wsize, label) < min_prior)
+						if (min_region_prior(gca, gcas[i].xp, gcas[i].yp, gcas[i].zp, prior_wsize, label) < min_prior)
 							continue ;
-						if (uniform_region(gca, mri_in, transform, xv, yv, zv, wsize, &gcas[i], nsigma) == 0)
+						if (uniform_region(gca, mri_in, transform, xv, yv, zv, image_wsize, &gcas[i], nsigma) == 0)
 							continue ;
 						memmove(&gcas_region[region_samples], &gcas[i], sizeof(GCA_SAMPLE)) ;
 						region_samples++ ;
@@ -804,7 +809,9 @@ min_region_prior(GCA *gca, int xp, int yp, int zp, int wsize, int label)
   double    min_prior, prior ;
   GCA_PRIOR *gcap ;
 
-  min_prior = 1.0 ; whalf = (wsize-1)/2 ;
+	gcap = &gca->priors[xp][yp][zp] ;
+	min_prior = getPrior(gcap, label) ;
+  whalf = (wsize-1)/(gca->prior_spacing*2) ;
   for (xi = -whalf ; xi <= whalf ; xi++)
   {
     xk = xp+xi ;
@@ -890,6 +897,9 @@ discard_unlikely_control_points(GCA *gca, GCA_SAMPLE *gcas, int nsamples,
 	HISTO *h, *hsmooth ;
 	float  fmin, fmax ;
 	Real   val,  mean_ratio ;
+
+	if (nsamples == 0)
+		return(NO_ERROR) ;
 
 	for (num = n = 0 ; n < gca->ninputs ; n++)
 	{
