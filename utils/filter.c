@@ -1639,11 +1639,17 @@ ImageSigmaFilter(IMAGE *Isrc, int wsize, float nsigma, IMAGE *Ioffset,
            Description:
 ----------------------------------------------------------------------*/
 static int imageMeanFilter3x3(IMAGE *Isrc, IMAGE *Idst) ;
+static int imageMeanFilter2x2(IMAGE *Isrc, IMAGE *Idst) ;
 IMAGE *
 ImageMeanFilter(IMAGE *Isrc, int wsize, IMAGE *Idst)
 {
   IMAGE  *Iout ;
   int    rows, cols ;
+
+  if (Isrc->pixel_format != PFFLOAT)
+    ErrorReturn(NULL, (ERROR_UNSUPPORTED,
+                       "ImageMeanFilter: unsupported input format %d",
+                       Isrc->pixel_format)) ;
 
   rows = Isrc->rows ;
   cols = Isrc->cols ;
@@ -1656,10 +1662,18 @@ ImageMeanFilter(IMAGE *Isrc, int wsize, IMAGE *Idst)
   else
     Iout = Idst ;
 
-  if (wsize == 3)
-    imageMeanFilter3x3(Isrc, Idst) ;
-  else
+  switch (wsize)
   {
+  case 3:
+    imageMeanFilter3x3(Isrc, Idst) ;
+    break ;
+  case 2:
+    imageMeanFilter2x2(Isrc, Idst) ;
+    break ;
+  default:
+    ErrorReturn(Idst, (ERROR_UNSUPPORTED, 
+                       "ImageMeanFilter: unsupported filter size %d",wsize));
+    break ; /* never used */
   }
 
   if (Iout != Idst)
@@ -1683,7 +1697,7 @@ imageMeanFilter3x3(IMAGE *Isrc, IMAGE *Idst)
   rows = Isrc->rows ;
   cols = Isrc->cols ;
 
-  /* do 4 corner points separately and 1st 4 rows separately */
+  /* do 4 corner points separately and 1st and last rows and cols separately */
 
   /* top right corner */
   left = *IMAGEFpix(Isrc, cols-2, 0) + *IMAGEFpix(Isrc, cols-2, 1) ; 
@@ -1820,59 +1834,88 @@ imageMeanFilter3x3(IMAGE *Isrc, IMAGE *Idst)
 
   return(0) ;
 }
+/*----------------------------------------------------------------------
+            Parameters:
 
-
-#if 0
-  register float *bl_pix, *bm_pix, *br_pix, *outPtr, top, middle, bottom;
-  int     rows, cols, row, col ;
-
+           Description:
+              convolve with a 2x2 averaging filter using overlap for
+              efficient implementation
+----------------------------------------------------------------------*/
+static int
+imageMeanFilter2x2(IMAGE *Isrc, IMAGE *Idst)
+{
+  float  left, right, *top, *bottom, *out ;
+  int    rows, cols, row, col, cols_minus_1, rows_minus_1 ;
+  
   rows = Isrc->rows ;
   cols = Isrc->cols ;
-  outPtr = IMAGEFpix(yImage, 1, 1) ;
 
-  bl_pix = IMAGEFpix(Isrc, 0, 2) ;
-  bm_pix = IMAGEFpix(Isrc, 1, 2) ;
-  br_pix = IMAGEFpix(Isrc, 2, 2) ;
+  /* 
+     do last column and bottom right point separately using backwards 
+     averaging instead of forward 
+     */
 
-  /* don't apply sobel to outer ring to pixels to avoid border effects */
-  rows-- ;
-  cols-- ;
-  for (row = 1 ; row < rows ; row++)
+  /* bottom right corner, set it to average of 4 neighbors */
+  left = *IMAGEFpix(Isrc, cols-2, rows-2) + *IMAGEFpix(Isrc, cols-2,rows-1); 
+  right = *IMAGEFpix(Isrc, cols-1, rows-2) + *IMAGEFpix(Isrc, cols-1, rows-1);
+  *IMAGEFpix(Idst, cols-1, rows-1) = (left + right) * 0.25f ;
+
+
+  /* do last column */
+
+  /* skip last column and last row */
+  cols_minus_1 = cols - 1 ;
+  rows_minus_1 = rows - 1 ;
+
+  /* do last column */
+  left = 
+    *IMAGEFpix(Isrc, cols-2, 0) + 
+    *IMAGEFpix(Isrc, cols-1, 0) ;
+
+  bottom = IMAGEFpix(Isrc, cols-1, 1) ;    /* actually right */
+  top = IMAGEFpix(Isrc, cols-2, 1) ;       /* actually left */
+  out = IMAGEFpix(Idst, cols-1, 0) ;
+
+  for (row = 0 ; row < rows_minus_1 ; row++)
   {
-    top = 
-             *IMAGEFpix(Isrc, 0, row-1) +
-      2.0f * *IMAGEFpix(Isrc, 1, row-1) +
-             *IMAGEFpix(Isrc, 2, row-1) ;
+    right = *top + *bottom ;
+    *out = (left + right) * 0.25f ;
+    out += cols ;
+    top += cols ;
+    bottom += cols ;
+    left = right ;
+  }
 
-    middle = 
-             *IMAGEFpix(Isrc, 0, row) +
-      2.0f * *IMAGEFpix(Isrc, 1, row) +
-             *IMAGEFpix(Isrc, 2, row) ;
+  /* do last row */
+  out = IMAGEFpix(Idst, 0, rows-1) ;
+  top = IMAGEFpix(Isrc, 0, rows-2) ;
+  bottom = IMAGEFpix(Isrc, 0, rows-1) ;
+  left = *top++ + *bottom++ ;
 
-    for (col = 1 ; col < cols ; col++)
+  for (col = 0 ; col < cols_minus_1 ; col++)
+  {
+    right = *top++ + *bottom++ ;
+    *out++ = (left + right) * 0.25f ;
+    left = right ;
+  }
+
+  /* now do the image */
+  out = IMAGEFpix(Idst, 0, 0) ;
+  top = IMAGEFpix(Isrc, 0, 0) ;
+  bottom = IMAGEFpix(Isrc, 0, 1) ;
+
+  for (row = 0 ; row < rows_minus_1 ; row++)
+  {
+    left = *top++ + *bottom++ ;      
+
+    for (col = 0 ; col < cols_minus_1 ; col++)
     {
-if (0 && (row == 4 && col == 4))
-{
-  ImageWrite(Isrc, "s.hipl") ;
-  bottom = *bl_pix + 2.0f * *bm_pix + *br_pix ;
-  fprintf(stderr, "Y(%d,%d): top %2.3f, bottom %2.3f, out %2.3f\n",
-          col,row, bottom, top, (bottom - top) * .125f) ;
-  fprintf(stderr, "bottom = %2.3f + 2 * %2.3f + %2.3f\n",
-          *bl_pix, *bm_pix, *br_pix) ;
-  fprintf(stderr, "top = %2.3f + 2 * %2.3f + %2.3f\n",
-          *IMAGEFpix(Isrc, col-1, row-1), *IMAGEFpix(Isrc, col, row-1), 
-          *IMAGEFpix(Isrc, col+1, row-1)) ;
-}
-      bottom = *bl_pix++ + 2.0f * *bm_pix++ + *br_pix++ ;
-      *outPtr++ = (bottom - top) * .125f ;
-      top = middle ;
-      middle = bottom ;
+      right = *top++ + *bottom++ ;
+      *out++ = (left + right) * 0.25f ;
+      left = right ;
     }
-    outPtr += 2 ;
-    bl_pix += 2 ;
-    bm_pix += 2 ;
-    br_pix += 2;
+    out++ ;
   }
 
   return(0) ;
-#endif
+}
