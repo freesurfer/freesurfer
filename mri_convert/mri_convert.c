@@ -16,7 +16,7 @@ static int get_option(int argc, char *argv[]) ;
 char *Progname ;
 
 static int verbose = 0 ;
-
+static int xdim = XDIM, ydim = YDIM, zdim = ZDIM ;
 void
 main(int argc, char *argv[])
 {
@@ -61,6 +61,15 @@ main(int argc, char *argv[])
     mri->imnr0++ ;
     mri->imnr1++ ;
   }
+  if (xdim != XDIM || ydim != YDIM || zdim != ZDIM)
+  {
+    MRI  *mri_tmp ;
+
+    mri_tmp = MRIreorder(mri, NULL, xdim, ydim, zdim) ;
+    MRIfree(&mri) ;
+    mri = mri_tmp ;
+  }
+
   if (verbose)
     fprintf(stderr, "done.\nwriting to %s...", out_fname) ;
   MRIwrite(mri, out_fname) ;
@@ -93,6 +102,12 @@ get_option(int argc, char *argv[])
     fprintf(stderr, "reducing %d times\n", reductions) ;
 #endif
     nargs = 1 ;
+    break ;
+  case 'R':
+    xdim = atoi(argv[2]) ;
+    ydim = atoi(argv[3]) ;
+    zdim = atoi(argv[4]) ;
+    nargs = 3 ;
     break ;
   case '?':
   case 'U':
