@@ -61,6 +61,103 @@ static int checkFace(MRIS_HASH_TABLE *mht, MRI_SURFACE *mris, int fno1) ;
 /*-------------------------- FUNCTIONS --------------------------------*/
 
 
+MRIS_HASH_TABLE *
+MHTfillVertexTable(MRI_SURFACE *mris,MRIS_HASH_TABLE *mht, int which)
+{
+  int     vno ;
+  int     xv, yv, zv ;
+  MHBT    *bucket ;
+  VERTEX  *v ;
+  static int ncalls = 0 ;
+  
+  if (mht)    /* free old one */
+    MHTfree(&mht) ;
+  mht = (MRIS_HASH_TABLE *)calloc(1, sizeof(MRIS_HASH_TABLE)) ;
+  if (!mht)
+    ErrorExit(ERROR_NO_MEMORY, 
+              "MHTfillVertexTable: could not allocate hash table.\n") ;
+  
+  mht->vres = VOXEL_RES ;
+  for (xv = 0 ; xv < TABLE_SIZE ; xv++)
+  {
+    for (yv = 0 ; yv < TABLE_SIZE ; yv++)
+    {
+      mht->buckets[xv][yv] = NULL ;
+    }
+  }
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    if (vno == Gdiag_no)
+      DiagBreak() ;
+    if (v->ripflag)
+      continue ;
+    switch (which)
+    {
+    case ORIGINAL_VERTICES:
+      mhtAddFacePositions(mht, v->origx, v->origy, v->origz, vno) ;
+      break ;
+    case CANONICAL_VERTICES:
+      mhtAddFacePositions(mht, v->cx, v->cy, v->cz, vno) ;
+      break ;
+    case CURRENT_VERTICES:
+      mhtAddFacePositions(mht, v->x, v->y, v->z, vno) ;
+      break ;
+    }
+  }
+
+  if ((Gdiag & DIAG_SHOW) && !ncalls)
+  {
+    double mean, var, v, n ;
+    int    mx ;
+
+    n = mean = 0.0 ; mx = -1 ;
+    for (xv = 0 ; xv < TABLE_SIZE ; xv++)
+    {
+      for (yv = 0 ; yv < TABLE_SIZE ; yv++)
+      {
+        for (zv = 0 ; zv < TABLE_SIZE ; zv++)
+        {
+          if (!mht->buckets[xv][yv] || !mht->buckets[xv][yv][zv])
+            continue ;
+          bucket = mht->buckets[xv][yv][zv] ;
+          if (bucket->nused)
+          {
+            mean += bucket->nused ;
+            n++ ;
+          }
+          if (bucket->nused > mx)
+            mx = bucket->nused ;
+        }
+      }
+    }
+    mean /= n ;
+    var = 0.0 ;
+    for (xv = 0 ; xv < TABLE_SIZE ; xv++)
+    {
+      for (yv = 0 ; yv < TABLE_SIZE ; yv++)
+      {
+        if (!mht->buckets[xv][yv])
+          continue ;
+        for (zv = 0 ; zv < TABLE_SIZE ; zv++)
+        {
+          bucket = mht->buckets[xv][yv][zv] ;
+          if (bucket && bucket->nused)
+          {
+            v = mean - bucket->nused ;
+            var += v*v ;
+          }
+        }
+      }
+    }
+    var /= (n-1) ;
+    if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
+      fprintf(stderr, "buckets: mean = %2.1f +- %2.2f, max = %d\n",
+              mean, sqrt(var), mx) ;
+  }
+  ncalls++ ;
+  return(mht) ;
+}
 /*-----------------------------------------------------
         Parameters:
 
