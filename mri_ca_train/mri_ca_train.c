@@ -4,8 +4,8 @@
 /*                                                                     */
 /* Warning: Do not edit the following four lines.  CVS maintains them. */
 /* Revision Author: $Author: tosa $                                           */
-/* Revision Date  : $Date: 2004/03/17 16:32:25 $                                             */
-/* Revision       : $Revision: 1.27 $                                         */
+/* Revision Date  : $Date: 2004/03/17 18:52:09 $                                             */
+/* Revision       : $Revision: 1.28 $                                         */
 /***********************************************************************/
 
 #include <stdio.h>
@@ -280,7 +280,7 @@ main(int argc, char *argv[])
 	  if (!strstr(input_names[ordering[input]], "T1") 
 	      && !strstr(input_names[ordering[input]], "PD"))
 	    ErrorExit(ERROR_BADPARM, 
-		      "Need T1 and PD images. Make sure that the filename contains "T1" or "PD"\n");
+		      "Need T1 and PD images. Make sure that the filename contains \"T1\" or \"PD\"\n");
 	  gca->type=GCA_PARAM;
 	      
 	}
@@ -372,7 +372,8 @@ main(int argc, char *argv[])
         MRIfree(&mri_tmp) ;
       }// end of inputs per subject
 
-      if (i == 0 && flashm)   /* first subject */
+      // when loaded gca->type = GCA_FLASH, these should have been set?????
+      if (i == 0 && flash)   /* first subject */
         GCAsetFlashParameters(gca, TRs, FAs, TEs) ;
 
       ///////////////////////////////////////////////////////////////////////////////////////
