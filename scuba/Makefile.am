@@ -238,8 +238,8 @@ testScubaROIVolume_SOURCES=test_ScubaROIVolume.cpp \
 
 .obj/moc_mainwindow.o: .moc/moc_mainwindow.cpp
 	$(CXX) $(CXXFLAGS) -o .obj/moc_mainwindow.o
-.moc/mainwindow_QtVolumeHistogram.mainwindow: QtVolumeHistogram.h
-	$(mainwindow) QtVolumeHistogram.h -o .moc/mainwindow_QtVolumeHistogram.cpp
+.moc/moc_mainwindow.cpp: .ui/mainwindow.h
+	$(MOC) .ui/mainwindow.h -o .moc/moc_mainwindow.cpp
 
 .obj/moc_viewlayersdlog.o: .moc/moc_viewlayersdlog.cpp
 	$(CXX) $(CXXFLAGS) -o .obj/moc_viewlayersdlog.o
