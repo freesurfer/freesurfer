@@ -1,0 +1,315 @@
+#!/bin/csh -f
+# avg-surf-label
+#
+
+set VERSION = '$Id: avg-surf-label,v 1.1 2005/01/12 22:13:43 greve Exp $';
+set inputargs = ($argv);
+set PrintHelp = 0;
+
+set subjlist = ();
+set fsgd = ();
+set hemi = ();
+set measure = thickness
+set hemi = ();
+set label = ();
+set outfile = ();
+set monly = 0;
+set MLF = ();
+
+## If there are no arguments, just print useage and exit ##
+if($#argv == 0) goto usage_exit;
+set n = `echo $argv | grep -e --help | wc -l` 
+if($n != 0) then
+  set PrintHelp = 1;
+  goto usage_exit;
+endif
+set n = `echo $argv | grep -e --version | wc -l` 
+if($n != 0) then
+  echo $VERSION
+  exit 0;
+endif
+
+goto parse_args;
+parse_args_return:
+
+goto check_params;
+check_params_return:
+
+foreach subj ($subjlist)
+  if(! -e $SUBJECTS_DIR/$subj) then
+    echo "ERROR: $subj does not exist"
+    exit 1;
+  endif
+  if(! -e $SUBJECTS_DIR/$subj/surf/$hemi.$measure) then
+    echo "ERROR: $subj does not have $hemi.$measure"
+    exit 1;
+  endif
+  if(! -e $SUBJECTS_DIR/$subj/label/$label.label) then
+    echo "ERROR: $subj does not have $label"
+    exit 1;
+  endif
+end
+
+if($#MLF == 0) set MLF = /tmp/avg-surf-label-$$.m
+rm -f $MLF
+echo matlab file is $MLF
+
+if(-e $outfile) mv $outfile $outfile.bak  
+
+#------------------------------------------------------
+tee $MLF > /dev/null <<EOF
+
+subjects_dir = '$SUBJECTS_DIR';
+label = '$label';
+measure = '$measure';
+hemi = '$hemi';
+subjlist = splitstring('$subjlist');
+outfile = '$outfile';
+monly = $monly;
+
+nsubjs = size(subjlist,1);
+for nthsubj = 1:nsubjs
+  subjid = deblank(subjlist(nthsubj,:));
+  fprintf('%d %s\n',nthsubj,subjid);
+
+  labvals = read_label(subjid, label);
+  if(isempty(labvals))
+    fprintf('ERROR: reading label %s\n',label);
+    if(~monly) quit; end
+    return; 
+  end
+  labind = labvals(:,1);
+  if(isempty(find(labind ~= -1)))
+    fprintf('ERROR: it appears that label is not surface-based.\n');
+    if(~monly) quit; end
+    return; 
+  end
+  labind = labind + 1; % convert to 1-based
+  nlabel = length(labind);
+
+  curvpath = sprintf('%s/%s/surf/%s.%s',...
+                     subjects_dir,subjid,hemi,measure);
+  [curv fnum] = read_curv(curvpath);
+  if(isempty(curv))
+    fprintf('ERROR: reading curv %s\n',curvpath);
+    if(~monly) quit; end
+    return; 
+  end
+
+  avgcurv = mean(curv(labind));
+  stdcurv = std(curv(labind));
+
+  fprintf('%s %5d %g %g\n',subjid,nlabel,avgcurv,stdcurv);
+  fp = fopen(outfile,'a');
+  fprintf(fp,'%s %5d %g %g\n',subjid,nlabel,avgcurv,stdcurv);
+  fclose(fp);
+
+end
+
+fprintf('avg-surf-label: matlab done\n');
+
+EOF
+#------------------------------------------------------
+
+if(! $monly) then
+  cat $MLF | matlab -display iconic
+  rm $MLF
+endif
+
+echo "avg-surf-label done"
+
+exit 0;
+##############################################################
+
+##############################################################
+parse_args:
+set cmdline = ($argv);
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "--s":
+      if ( $#argv == 0) goto arg1err;
+      set subjlist = ($subjlist $argv[1]); shift;
+      breaksw
+
+    case "--fsgd":
+      if ( $#argv == 0) goto arg1err;
+      set fsgd = ($argv[1]); shift;
+      breaksw
+
+    case "--h":
+    case "--hemi":
+      if ( $#argv == 0) goto arg1err;
+      set hemi = $argv[1]; shift;
+      breaksw
+
+    case "--m":
+      if ( $#argv == 0) goto arg1err;
+      set measure = $argv[1]; shift;
+      breaksw
+
+    case "--l":
+      if ( $#argv == 0) goto arg1err;
+      set label = $argv[1]; shift;
+      breaksw
+
+    case "--o":
+      if ( $#argv == 0) goto arg1err;
+      set outfile = $argv[1]; shift;
+      breaksw
+
+    case "--monly":
+      if ( $#argv == 0) goto arg1err;
+      set MLF = $argv[1]; shift;
+      set monly = 1;
+      breaksw
+
+    case "--debug":
+      set verbose = 1;
+      set echo = 1; # turns on terminal echoing
+      breaksw
+
+    default:
+      echo ERROR: Flag $flag unrecognized. 
+      echo $cmdline
+      exit 1
+      breaksw
+  endsw
+
+end
+
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+
+  if($#fsgd) then
+    if(! -e $fsgd) then
+      echo "ERROR: cannot find $fsgd"    
+      exit 1;
+    endif
+    set sl = `cat $fsgd | awk '{if($1=="Input") print $2}'`;
+    if($#sl == 0) then
+      echo "ERROR: no Inputs found in $fsgd"    
+      exit 1;
+    endif
+    set subjlist = ($subjlist $sl);
+  endif
+
+  if($#subjlist == 0) then
+    echo "ERROR: no subjects specified"    
+    exit 1;
+  endif
+
+  if($#hemi == 0) then
+    echo "ERROR: no hemi specified"    
+    exit 1;
+  endif
+  if($hemi != lh && $hemi != rh) then
+    echo "ERROR: hemi = $hemi, must be lh or rh"
+    exit 1;
+  endif
+
+  if($#measure == 0) then
+    echo "ERROR: no measure specified"    
+    exit 1;
+  endif
+
+  if($#label == 0) then
+    echo "ERROR: no label specified"    
+    exit 1;
+  endif
+
+  if($#outfile == 0) then
+    echo "ERROR: no outfile specified"    
+    exit 1;
+  endif
+
+goto check_params_return;
+############--------------##################
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+
+############--------------##################
+usage_exit:
+  echo ""
+  echo "USAGE: avg-surf-label"
+  echo ""
+  echo "  --s subjid <--s subjid ...>"
+  echo "  --fsgd file.fsgd : instead of --s"
+  echo ""
+  echo "  --h hemi  "
+  echo "  --m measure : default is thickness"
+  echo "  --l label      : as found in subjid/label"
+  echo "  --o outfile    : text output file"
+  echo ""
+  echo "  --debug"
+  echo "  --help"
+  echo ""
+
+  if(! $PrintHelp) exit 1;
+
+  echo $VERSION
+
+  cat $0 | awk 'BEGIN{prt=0}{if(prt) print $0; if($1 == "BEGINHELP") prt = 1 }'
+
+exit 1;
+
+
+#---- Everything below here is printed out as part of help -----#
+BEGINHELP
+
+Averages the surface measure within the label for one or more
+subjects.
+
+--s subjid
+
+Include subjid in the list of subjects.
+
+--fsgd file.fsgd
+
+Include all subjects from the fsgd file. Subjects are indicated
+by the Input tag. See http://surfer.nmr.mgh.harvard.edu/docs/fsgdf.txt
+for more info about fsgd format. An fsgd file is often used with
+mris_glm.
+
+--h hemi
+
+Hemisphere that the label is defined over (lh or rh).
+
+--m measure
+
+Name of surface measure. There must be a file called hemi.measure
+in subjid/surf and it must be in "curv" format.
+
+--l labelname
+
+Name of label as found in subjid/label. The full label file name is
+formed as labelname.label.
+
+--o outfile
+
+The output file will be a text file with four columns:
+1. Subject Id
+2. Number of vertices in label
+3. Average measure inside the label
+4. Stddev of the measure inside the label
+
+
+EXAMPLES
+
+avg-surf-label --s dougg-2002 --h lh \
+  --l rh-avg_superior_temporal_sulcus \
+  --o sts-thickness-lh.dat
+
+avg-surf-label --fsgd eden.fsgd --h rh \
+  --l calcarine --m sulc  --o eden-calc-sulc-rh.dat
+
