@@ -444,10 +444,10 @@ AC_CHECK_LIB([tcl],[Tcl_Init],
     AC_CHECK_LIB([tcl8.4],[Tcl_Init],
     [LIB_TCL=-ltcl8.4],
 # check tcl8.3
-      AC_CHECK_LIB([tcl8.3],[Tcl_Init],
+    [ AC_CHECK_LIB([tcl8.3],[Tcl_Init],
       [LIB_TCL=-ltcl8.3],
-       [AC_MSG_ERROR("FATAL: libtcl not found. check config.log. set LDFLAGS or --with-tcl-dir.")] )
-       )
+      [AC_MSG_ERROR("FATAL: libtcl not found. check config.log. set LDFLAGS or --with-tcl-dir.")        ] )
+    ])	
   ])
 #################### Tk  needs X11 (or Aqua)
 LIBS="-lX11 $LIBS"
@@ -458,19 +458,31 @@ AC_CHECK_LIB([tk],[Tk_Init],
 # check tk8.4
   [
     AC_CHECK_LIB([tk8.4],[Tk_Init],
-      [LIB_TK=-ltk8.4],
+    [LIB_TK=-ltk8.4],
 # check tk8.3
+    [ 
       AC_CHECK_LIB([tk8.3],[Tk_Init],
       [LIB_TK=-ltk8.3],
-      [AC_MSG_ERROR("FATAL: libtk not found. check config.log. set LDFLAGS or --with-tcl-dir.")] )
-     )
+      [AC_MSG_ERROR("FATAL: libtk not found. check config.log. set LDFLAGS or --with-tcl-dir.")
+      ])
+    ])  
   ])
 
-echo $LIB_TCL $LIB_TK
-##################### Tix
+##################### Tix 
 AC_CHECK_LIB([tix],[Tix_Init],
-	[LIB_TIX=-ltix],
-        [AC_MSG_ERROR("FATAL: libtix not found. check config.log. set LDFLAGS or --with-tcl-dir.")] )
+  [LIB_TIX=-ltix],
+  [
+# check tix8.1.8.4
+    AC_CHECK_LIB([tix8.1.8.4], [Tix_Init],
+    [LIB_TIX=-ltix8.1.8.4],
+    [
+# check tix8.1.8.3
+      AC_CHECK_LIB([tix.8.1.8.3], [Tix_Init],
+      [LIB_TIX=-ltix8.1.8.3],
+      [AC_MSG_ERROR("FATAL: libtix not found. check config.log. set LDFLAGS or --with-tcl-dir.")
+      ])
+    ])
+  ])
 # if test "X$with_apple_tcl_framework" = "Xyes"; then
 #   AC_CHECK_LIB([Tix8.4],[Tix_Init],[],
 #              [AC_MSG_ERROR("FATAL: libTix8.4 not found.")])
@@ -479,8 +491,14 @@ AC_CHECK_LIB([tix],[Tix_Init],
 LDFLAGS="$LDFLAGS $blt_libraries"
 LIBS="$LIB_TK $LIB_TCL $LIBS"
 AC_CHECK_LIB([BLT],[Blt_Init],
-	[LIB_BLT=-lBLT],
-        [AC_MSG_ERROR("FATAL: libBLT not found. check config.log.  Set LDFLAGS or --with-BLT-dir.")] )
+  [LIB_BLT=-lBLT],
+# check BLT.2 (MacOSX)
+  [
+    AC_CHECK_LIB([BLT.2],[BLT_Init],
+    [LIB_BLT=-lBLT.2],
+    [AC_MSG_ERROR("FATAL: libBLT not found. check config.log.  Set LDFLAGS or --with-BLT-dir.")
+    ])
+  ])
 
 # recover previous one without X and Tcl
 LIBS=$ac_save_libs
