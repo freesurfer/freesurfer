@@ -7,11 +7,11 @@ set inputargs = ($argv);
 set VERSION = '$Id'
 set PrintHelp = 0;
 
-set InStem = ();
+set InSpec = ();
 set PolyOrder = -1;
 set xmatfile = ();
 set extregstem = ();
-set MaskStem = ();
+set MaskSpec = ();
 set tmpdir = ();
 set outfile = ();
 set monly = 0;
@@ -39,7 +39,7 @@ goto check_params;
 check_params_return:
 
 ## Get path for log-file ##
-set LF = $InStem"_fwhm.log"
+set LF = $InSpec"_fwhm.log"
 echo "Logfile is $LF"
 rm -f $LF;
 touch $LF;
@@ -53,7 +53,7 @@ echo $0 >> $LF
 echo $inputargs >> $LF
 
 if($#tmpdir == 0) then
-  set indir = `dirname $InStem`;
+  set indir = `dirname $InSpec`;
   set tmpdir = $indir/fwhmest-tmp
 endif
 
@@ -69,24 +69,23 @@ if($PolyOrder < 0 && $#xmatfile == 0 && $#extregstem == 0) goto smoothest;
 if(! $monly)  set MLF = "/tmp/fwhmest_$$.m"
 rm -f $MLF
 
-set outstem = $tmpdir/f;
+set outspec = $tmpdir/f.mgh;
 
   #-----------------------------------------------------#
 tee $MLF > /dev/null <<EOF
-  instem  = '$InStem';
-  outstem = '$outstem';
+  inspec  = '$InSpec';
+  outspec = '$outspec';
   order   = [$PolyOrder];
   doffile = '$doffile';
   xmatfile = '$xmatfile';
   extregstem = '$extregstem';
-  fmtext = '$fmtext';
+  monly  = $monly;
 
-  %[f mristruct] = fast_ldbslice(instem);
-  fspec = sprintf('%s%s',instem,fmtext);
-  f = MRIread(fspec);
+  f = MRIread(inspec);
   if(isempty(f))
-    fprintf('ERROR: loading %s\n',fspec);
-    return;
+    fprintf('ERROR: loading %s\n',inspec);
+    if(~monly) quit; end
+    return; 
   end
 
   szf = size(f.vol);
@@ -135,10 +134,8 @@ tee $MLF > /dev/null <<EOF
 
   f.vol = reshape(f.vol',szf);
 
-  fspec = sprintf('%s%s',outstem,fmtext);
-  MRIwrite(f,fspec);
-
-  %fast_svbslice(f,outstem,-1,'',mristruct);
+  %fspec = sprintf('%s%s',outstem,fmtext);
+  MRIwrite(f,outspec);
 
   fp = fopen(doffile,'w');
   fprintf(fp,'%g\n',dof);
@@ -149,32 +146,19 @@ EOF
   #-----------------------------------------------------#
 
 cat $MLF | matlab -nospash -display iconic |& tee -a $LF
-if($fmt == bvolume) then
-  mri_convert $outstem"_000.bfloat" $tmpdir/f.img
-else
-  mri_convert $outstem$fmtext $tmpdir/f.img
-endif
+mri_convert $outspec $tmpdir/f.img
 
 smoothest:
 
 if($PolyOrder < 0 && $#xmatfile == 0 && $#extregstem == 0) then
   #set dof = `getnframes $InStem`;
-  set dof = `mri_info --nframes $InStem$fmtext `;
+  set dof = `mri_info --nframes $InSpec$fmtext `;
   echo $dof > $doffile
-  if($fmt == bvolume) then
-    set bext = `getbext $InStem`;
-    mri_convert $InStem"_000.$bext" $tmpdir/f.img
-  else
-    mri_convert $InStem$fmtext $tmpdir/f.img
-  endif
+  mri_convert $InSpec $tmpdir/f.img
 endif
 
-if($fmt == bvolume) then
-  set bext = `getbext $MaskStem`;
-  mri_convert $MaskStem"_000.$bext" $tmpdir/mask.img
-else
-  mri_convert $MaskStem$fmtext $tmpdir/mask.img
-endif
+mri_convert $MaskSpec $tmpdir/mask.img
+
 
 set dof = `cat $doffile`;
 set cmd = (smoothest -V -d $dof -m $tmpdir/mask.img -r $tmpdir/f.img)
@@ -205,7 +189,7 @@ while( $#argv != 0 )
 
     case "--i":
       if ( $#argv == 0) goto arg1err;
-      set InStem = $argv[1]; shift;
+      set InSpec = $argv[1]; shift;
       breaksw
 
     case "--o":
@@ -230,7 +214,7 @@ while( $#argv != 0 )
 
     case "--mask":
       if ( $#argv == 0) goto arg1err;
-      set MaskStem = $argv[1]; shift;
+      set MaskSpec = $argv[1]; shift;
       breaksw
 
     case "--umask":
@@ -267,41 +251,33 @@ goto parse_args_return;
 ############--------------##################
 check_params:
 
-  if($#InStem == 0) then
-     echo "ERROR: must specify input stem";
-     exit 1
+  if($#InSpec == 0) then
+    echo "ERROR: must specify input";
+    exit 1
   endif
-  if($#MaskStem == 0) then
-     echo "ERROR: must specify mask stem";
-     exit 1
-  endif
-  if($#outfile == 0) set outfile = $InStem.fwhm.dat
-
-  if($#fmt == 0) then
-    echo "Autodetecting format"
-    if(-e $InStem.mgh) then
-      set fmt = "mgh";
-    else if(-e $InStem.mgz) then
-      set fmt = "mgz";
-    else if(-e $InStem.bhdr) then
-      set fmt = "bhdr";
-    else
-      echo "ERROR: cannot find $Instem"
+  if(! -e $InSpec) then
+    set fmt = `stem2fmt $InSpec`;
+    if($status) then
+      echo "ERROR: cannot find $InSpec"
       exit 1;
     endif
-    echo "Detected $fmt format"
+    set InSpec = $InSpec.$fmt
   endif
 
-  if("$fmt" == "bvolume") then
-    set fmtext = ();
-  else if("$fmt" == "mgh") then
-    set fmtext = ".mgh";
-  else if("$fmt" == "mgz") then
-    set fmtext = ".mgz";
-  else
-    echo "ERROR: format $fmt unrecognized"
-    exit 1;
+  if($#MaskSpec == 0) then
+     echo "ERROR: must specify mask ";
+     exit 1
   endif
+  if(! -e $MaskSpec) then
+    set fmt = `stem2fmt $MaskSpec`;
+    if($status) then
+      echo "ERROR: cannot find $MaskSpec"
+      exit 1;
+    endif
+    set MaskSpec = $MaskSpec.$fmt
+  endif
+
+  if($#outfile == 0) set outfile = $InSpec.fwhm.dat
 
 goto check_params_return;
 ############--------------##################
