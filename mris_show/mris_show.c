@@ -14,7 +14,32 @@
 #include "mrisurf.h"
 #include "macros.h"
 
-static char vcid[] = "$Id: mris_show.c,v 1.9 1997/09/25 22:33:12 fischl Exp $";
+static char vcid[] = "$Id: mris_show.c,v 1.10 1997/10/23 19:31:11 fischl Exp $";
+
+
+/*-------------------------------- CONSTANTS -----------------------------*/
+
+#define FIELDSIGN_POS      4    /* blue */
+#define FIELDSIGN_NEG      5    /* yellow */
+#define BORDER             6 
+#define MARKED             7 
+
+#define FRAME_SIZE         600
+
+#define DELTA_ANGLE  18.0f
+#define RIGHT_HEMISPHERE_ANGLE   90.0
+#define LEFT_HEMISPHERE_ANGLE   -90.0
+
+#define ORIG_SURFACE_LIST   1
+#define ELLIPSOID_LIST      1
+#define SCALE_FACTOR   0.55f
+#define FOV            (256.0f*SCALE_FACTOR)
+
+#ifndef GLUT_ESCAPE_KEY
+#define GLUT_ESCAPE_KEY  27
+#endif
+
+/*-------------------------------- PROTOTYPES ----------------------------*/
 
 int main(int argc, char *argv[]) ;
 
@@ -39,12 +64,14 @@ static void gfxinit(MRI_SURFACE *mris) ;
 static void set_lighting_model(float lite0, float lite1, float lite2, 
              float lite3, float newoffset) ;
 
+/*-------------------------------- DATA ----------------------------*/
+
 char *Progname ;
-char *surf_fname ;
-static MRI_SURFACE  *mris, *mris_orig, *mris_ellipsoid = NULL ;
+static char *surf_fname ;
+static MRI_SURFACE  *mris, *mris_ellipsoid = NULL ;
 static int marked_vertex = -1 ;
-static long frame_xdim = 600;
-static long frame_ydim = 600;
+static long frame_xdim = FRAME_SIZE;
+static long frame_ydim = FRAME_SIZE;
 
 static int show_temporal_region_flag = 0 ;
 static int talairach_flag = 0 ;
@@ -54,31 +81,23 @@ static float x_angle = 0.0f ;
 static float y_angle = 0.0f ;
 static float z_angle = 0.0f ;
 
-#define DELTA_ANGLE  18.0f
 static float delta_angle = 2*DELTA_ANGLE ;
 
-#define RIGHT_HEMISPHERE_ANGLE   90.0
-#define LEFT_HEMISPHERE_ANGLE   -90.0
-
-#define ORIG_SURFACE_LIST   1
-#define ELLIPSOID_LIST      1
 
 static int current_list = ORIG_SURFACE_LIST ;
 
-#define SCALE_FACTOR   0.55f
-#define FOV            (256.0f*SCALE_FACTOR)
-
 static INTEGRATION_PARMS  parms ;
 
-#ifndef GLUT_ESCAPE_KEY
-#define GLUT_ESCAPE_KEY  27
-#endif
 
 static void findAreaExtremes(MRI_SURFACE *mris) ;
 static char curvature_fname[100] = "" ;
 
 
 static float cslope = 5.0f ;
+
+static char *patch_name = NULL ;
+
+/*-------------------------------- FUNCTIONS ----------------------------*/
 
 int
 main(int argc, char *argv[])
@@ -114,10 +133,15 @@ main(int argc, char *argv[])
 
   surf_fname = in_fname = argv[1] ;
   out_fname = argv[2] ;
-  mris_orig = mris = MRISread(in_fname) ;
+  mris = MRISread(in_fname) ;
   if (!mris)
     ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s",
               Progname, in_fname) ;
+  if (patch_name)
+    if (MRISreadPatch(mris, patch_name) != NO_ERROR)
+      ErrorExit(ERROR_NOFILE, "%s: could not read patch file %s",
+                Progname, patch_name) ;
+
   if (curvature_fname[0])
     MRISreadCurvatureFile(mris, curvature_fname) ;
   if (ellipsoid_flag)
@@ -126,8 +150,8 @@ main(int argc, char *argv[])
     findAreaExtremes(mris) ;
   }
   if (talairach_flag)
-    MRIStalairachTransform(mris_orig, mris_orig) ;
-  MRIScenter(mris_orig, mris_orig) ;
+    MRIStalairachTransform(mris, mris) ;
+  MRIScenter(mris, mris) ;
 #if 0
   fprintf(stderr, "(%2.1f, %2.1f, %2.1f) --> (%2.1f, %2.1f, %2.1f), ctr "
           "(%2.1f, %2.1f, %2.1f)\n",
@@ -150,12 +174,22 @@ main(int argc, char *argv[])
   glutDisplayFunc(display_handler) ; /* specify a drawing callback function */
   gfxinit(mris) ;                    /* specify lighting and such */
 
-  if (mris->hemisphere == RIGHT_HEMISPHERE)
-    angle = RIGHT_HEMISPHERE_ANGLE ;
-  else
-    angle = LEFT_HEMISPHERE_ANGLE ;
   glMatrixMode(GL_MODELVIEW);
-  glRotatef(angle, 0.0f, 1.0f, 0.0f) ;
+  if (patch_name)
+  {
+    angle = 90.0f ;
+    glRotatef(angle, 1.0f, 0.0f, 0.0f) ;
+    glRotatef(angle, 0.0f, 1.0f, 0.0f) ;
+  }
+  else
+  {
+    if (mris->hemisphere == RIGHT_HEMISPHERE)
+      angle = RIGHT_HEMISPHERE_ANGLE ;
+    else
+      angle = LEFT_HEMISPHERE_ANGLE ;
+    glRotatef(angle, 0.0f, 1.0f, 0.0f) ;
+  }
+
 
   /* handle reshaping, keyboard and mouse events */
   glutKeyboardFunc(keyboard_handler) ;
@@ -211,6 +245,10 @@ get_option(int argc, char *argv[])
   }
   else switch (toupper(*option))
   {
+  case 'P':
+    patch_name = argv[2] ;
+    nargs = 1 ;
+    break ;
   case 'C':
     strcpy(curvature_fname, argv[2]) ;
     nargs = 1 ;
@@ -293,12 +331,10 @@ print_version(void)
 }
 
 static int meshr = 100;   /* mesh color */
+#if 0
 static int meshg = 100;
 static int meshb = 100;
-
-float pup = 0.07;  /* dist point above surface */
-
-#define POLE_DISTANCE   1.0f   /* color everything within 1 mm of pole */
+#endif
 
 int
 MRISGLcompile(MRI_SURFACE *mris)
@@ -306,40 +342,17 @@ MRISGLcompile(MRI_SURFACE *mris)
   int          k,n, red, green, blue, error ;
   face_type    *f;
   vertex_type  *v ;
-  float        v1[3], xf, yf, zf, xt, yt, zt, xo, yo, zo, xd, yd, zd,td,fd,od,
-               min_curv, max_curv, offset ;
-  Real         x, y, z, xtal,ytal,ztal ;
+  float        v1[3], min_curv, max_curv, offset ;
+  Real         x, y, z ;
 
   if (Gdiag & DIAG_SHOW)
     fprintf(stderr, "compiling surface tesselation...") ;
 
-  if (mris->v_frontal_pole)
-  {
-    xf = mris->v_frontal_pole->x ;
-    yf = mris->v_frontal_pole->y ;
-    zf = mris->v_frontal_pole->z ;
-  }
-  if (mris->v_temporal_pole)
-  {
-    xt = mris->v_temporal_pole->x ;
-    yt = mris->v_temporal_pole->y ;
-    zt = mris->v_temporal_pole->z ;
-  }
-  else
-    xt = yt = zt = 0.0f ;
-
-  if (mris->v_occipital_pole)
-  {
-    xo = mris->v_occipital_pole->x ;
-    yo = mris->v_occipital_pole->y ;
-    zo = mris->v_occipital_pole->z ;
-  }
   min_curv = mris->min_curv ;
   max_curv = mris->max_curv ;
   if (-min_curv > max_curv)
     max_curv = -min_curv ;
 
-  ytal = 10000.0f ;  /* disable temporal region stuff */
   for (k=0;k<mris->nfaces;k++) if (!mris->faces[k].ripflag)
   {
     f = &mris->faces[k];
@@ -347,38 +360,16 @@ MRISGLcompile(MRI_SURFACE *mris)
     for (n=0;n<4;n++)
     {
       v = &mris->vertices[f->v[n]];
-
 #if 0
-      xd = v->x - xf ; yd = v->y - yf ; zd = v->z - zf ;
-      fd = xd*xd + yd*yd + zd*zd ;  /* distance to frontal pole */
-      if (mris->v_temporal_pole)
-      {
-        xd = v->x - xt ; yd = v->y - yt ; zd = v->z - zt ;
-        td = xd*xd + yd*yd + zd*zd ;  /* distance to temporal pole */
-      }
-      else
-        td = 1000.0f ;
-      xd = v->x - xo ; yd = v->y - yo ; zd = v->z - zo ;
-      od = xd*xd + yd*yd + zd*zd ;  /* distance to occipital pole */
-
-      if (show_temporal_region_flag)
-      {
-        x = (Real)v->x ; y = (Real)v->y ; z = (Real)v->z ;
-        transform_point(mris->linear_transform, -x, z, y, &xtal, &ytal,&ztal);
-      }
+      if (v->ripflag)
+        continue ;
 #endif
+      if (patch_name && v->nz < 0) /* don't display negative flat stuff */
+        continue ;
       if (k == marked_vertex)
         glColor3ub(0,0,240) ;      /* paint the marked vertex blue */
-#if 0
-      else if (ytal < MAX_TALAIRACH_Y)
-        glColor3ub(0,0,meshb) ;      /* paint the temporal pole blue */
-      else if (td < POLE_DISTANCE)
-        glColor3ub(0,0,255) ;          /* paint the temporal pole blue */
-      else if (fd < POLE_DISTANCE)
-        glColor3ub(255,255,0);         /* paint the frontal pole yellow */
-      else if (od < POLE_DISTANCE)
-        glColor3ub(255,255,255);       /* paint the occipital pole white */
-#endif
+      else if (v->border)
+        glColor3f(240,240,0.0);
       else   /* color it depending on curvature */
       {
 #define MIN_GRAY  50
@@ -388,7 +379,7 @@ MRISGLcompile(MRI_SURFACE *mris)
         if (FZERO(max_curv))  /* no curvature info */
           red = green = blue = meshr ;    /* paint it gray */
 
-/* curvatures seem to be sign-inverted??? */
+        /* curvatures seem to be sign-inverted??? */
         if (v->curv > 0)  /* color it red */
         {
           offset = MAX_COLOR*tanh(cslope * (v->curv/max_curv)) ;
@@ -454,13 +445,15 @@ display_handler(void)
 static void
 gfxinit(MRI_SURFACE *mris)
 {
-  int   error ;
+  int    error ;
+  double zfov, fov ;
 
   glViewport(0,0,frame_xdim,frame_ydim);
   glLoadIdentity();
   glMatrixMode(GL_PROJECTION);
 
-  glOrtho(-FOV, FOV, -FOV, FOV, -10.0f*FOV, 10.0f*FOV);
+  zfov = 10.0f*FOV ; fov = FOV ;
+  glOrtho(-fov, fov, -fov, fov, -zfov, zfov);
 
   glClearColor(0.0, 0.0, 0.0, 1.0);
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -603,11 +596,11 @@ keyboard_handler(unsigned char key, int x, int y)
   case 't':
     sprintf(wname, "talairached cortical surface reconstruction '%s'", 
             surf_fname);
-    MRIStalairachTransform(mris_orig, mris_orig) ;
-    MRIScenter(mris_orig, mris_orig) ;
+    MRIStalairachTransform(mris, mris) ;
+    MRIScenter(mris, mris) ;
 #if COMPILE_SURFACE
     glNewList(ORIG_SURFACE_LIST, GL_COMPILE) ;
-    MRISGLcompile(mris_orig) ;
+    MRISGLcompile(mris) ;
     glEndList() ;
 #endif
     glutSetWindowTitle(wname) ;
@@ -615,7 +608,7 @@ keyboard_handler(unsigned char key, int x, int y)
   case 'P':
   case 'p':
     mris_ellipsoid = MRISprojectOntoEllipsoid(mris, NULL, 0.0f, 0.0f, 0.0f);
-    MRISfree(&mris_orig) ;
+    MRISfree(&mris) ;
     mris = mris_ellipsoid ;
 #if COMPILE_SURFACE
     glDeleteLists(ORIG_SURFACE_LIST, 1) ;
