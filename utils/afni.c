@@ -2,9 +2,9 @@
 // afni.c
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2003/11/03 20:53:19 $
-// Revision       : $Revision: 1.2 $
+// Revision Author: $Author: tosa $
+// Revision Date  : $Date: 2003/11/04 22:03:55 $
+// Revision       : $Revision: 1.3 $
 //
 // moved out from mriio.c
 //
@@ -104,8 +104,8 @@ void printAFNIHeader(AF *pAF)
 	 pAF->idcode_string);
   printf("BYTEORDER_STRING  : %s\n",
 	 pAF->byteorder_string);
-  for (i=0; i < pAF->numstats; ++i)
-    printf("BRICK_STATS       : %f\n", pAF->brick_stats[i]);
+  for (i=0; i < pAF->numstats; i=i+2)
+    printf("BRICK_STATS       : min %f\t max %f\n", pAF->brick_stats[i], pAF->brick_stats[i+1]);
   for (i=0; i < pAF->numtypes; ++i)
     printf("BRICK_TYPES       : %s\n", types[pAF->brick_types[i]]);
   for (i=0; i < pAF->numfacs; ++i)
@@ -639,6 +639,8 @@ MRI *afniRead(char *fname, int read_volume)
   float flMin;
   float flMax;
   int initialized = 0;
+  int frame;
+  int bytes;
 
   strcpy(header_fname, fname);
   c = strrchr(header_fname, '.');
@@ -673,10 +675,12 @@ MRI *afniRead(char *fname, int read_volume)
   printAFNIHeader(&af);
 
   // well, we don't have time
-  if(af.numtypes != 1)
+  if(af.numtypes != 1) // should be the same as af.dataset_rank[1] = subbricks
   {
     errno = 0;
-    ErrorReturn(NULL, (ERROR_UNSUPPORTED, "afniRead(): nframes = %d (only 1 frame supported)", af.numtypes));
+    // ErrorReturn(NULL, (ERROR_UNSUPPORTED, "afniRead(): nframes = %d (only 1 frame supported)", af.numtypes));
+    printf("INFO: number of frames dataset_rank[1] = %d : numtypes = %d \n", 
+	   af.dataset_rank[1], af.numtypes); 
   }
   // byteorder_string : required field
   if(strcmp(af.byteorder_string, "MSB_FIRST") == 0)
@@ -706,6 +710,8 @@ MRI *afniRead(char *fname, int read_volume)
 			  af.dataset_dimensions[1],
 			  af.dataset_dimensions[2], 
 			  MRI_UCHAR);
+  // set number of frames
+  header->nframes = af.dataset_rank[1];
 
   // direction cosines (use orient_specific)
   // orient_specific : required field
@@ -797,6 +803,8 @@ MRI *afniRead(char *fname, int read_volume)
   brik_file_length = ftell(fp);
   fseek(fp, 0, SEEK_SET);
 
+  // number of voxels consecutive
+
   nvoxels = header->width * header->height * header->depth * header->nframes;
 
   if(brik_file_length % nvoxels)
@@ -808,6 +816,8 @@ MRI *afniRead(char *fname, int read_volume)
   }
   // bytes_per_voxel = brik_file_length / nvoxels; // this assumes one frame
   bytes_per_voxel = af.brick_types[0] + 1; // 0(byte)-> 1, 1(short) -> 2, 3(float)->4
+
+  bytes = header->width*header->height*header->depth*bytes_per_voxel;
 
   // this check is for nframes = 1 case which is the one we are supporting
   if (bytes_per_voxel != brik_file_length/nvoxels)
@@ -847,131 +857,123 @@ MRI *afniRead(char *fname, int read_volume)
   ///////////////////////////////////////////////////////////////////////
   if(read_volume)
   {
-    mri = MRIalloc(header->width, header->height, header->depth, header->type);
+    // mri = MRIalloc(header->width, header->height, header->depth, header->type);
+    mri = MRIallocSequence(header->width, header->height, header->depth, 
+			   header->type, header->nframes) ;
     MRIcopyHeader(header, mri);
 
-    for(k = 0;k < mri->depth;k++)
+    for (frame = 0; frame < header->nframes; ++frame)
     {
-      for(j = 0;j < mri->height;j++)
+      initialized = 0;
+      for(k = 0;k < mri->depth;k++)
       {
-	if (scaling == 1.)
+	for(j = 0;j < mri->height;j++)
 	{
-	  // gulp all width 
-	  if(fread(mri->slices[k][j], bytes_per_voxel, mri->width, fp) != mri->width)
+	  if (af.brick_float_facs[frame])
+	    scaling = af.brick_float_facs[frame];
+	  else
+	    scaling = 1.;
 	  {
-	    fclose(fp);
-	    MRIfree(&header);
-	    errno = 0;
-	    ErrorReturn(NULL, (ERROR_BADFILE, "afniRead(): error reading from file %s", fname));
-	  }
-	  if(swap_flag)
-	  {
-	    // uchar does not need to swap
-	    if (bytes_per_voxel == 2) // short
+	    pmem = (void *) malloc(bytes_per_voxel*mri->width);
+	    if (pmem)
 	    {
-	      swab(mri->slices[k][j], mri->slices[k][j], mri->width * 2);
-	    }
-	    else if (bytes_per_voxel == 4) // float
-	    {
-	      for(i = 0;i < mri->width;i++)
-		MRIFvox(mri, i, j, k) = swapFloat(MRIFvox(mri, i, j, k));
-	    }
-	  }
-	}
-	else // we have to scale values
-	{
-	  pmem = (void *) malloc(bytes_per_voxel*mri->width);
-	  if (pmem)
-	  {
-	    if (fread(pmem, bytes_per_voxel, mri->width, fp) != mri->width)
-	    {
-	      fclose(fp);
-	      MRIfree(&header);
-	      errno = 0;
-	      ErrorReturn(NULL, (ERROR_BADFILE, "afniRead(): error reading from file %s", fname));
-	    }
-	    // swap bytes
-	    if(swap_flag)
-	    {
+	      if (fread(pmem, bytes_per_voxel, mri->width, fp) != mri->width)
+	      {
+		fclose(fp);
+		MRIfree(&header);
+		errno = 0;
+		ErrorReturn(NULL, (ERROR_BADFILE, "afniRead(): error reading from file %s", fname));
+	      }
+	      // swap bytes
+	      if(swap_flag)
+	      {
+		if (bytes_per_voxel == 2) // short
+		{
+		  swab(pmem, pmem, mri->width * 2);
+		}
+		else if (bytes_per_voxel == 4) // float
+		{
+		  pf = (float *) pmem;
+		  for(i = 0;i < mri->width;i++, pf++)
+		    *pf = swapFloat(*pf);
+		}
+	      }
+	      // now scaling
+	      if (bytes_per_voxel == 1) // byte
+	      {
+		pc = (unsigned char *) pmem;
+		for (i=0; i < mri->width; i++)
+		{
+		  if (scaling == 1.)
+		    MRIseq_vox(mri, i, j, k, frame) = *pc;
+		  else
+		    MRIFseq_vox(mri, i, j, k, frame) = ((float) (*pc))*scaling;
+		  ++pc;
+		}
+		findMinMaxByte((unsigned char *) pmem, mri->width, &flMin, &flMax);
+	      }
 	      if (bytes_per_voxel == 2) // short
 	      {
-		swab(pmem, pmem, mri->width * 2);
+		ps = (short *) pmem;
+		for (i=0; i < mri->width; i++)
+		{
+		  // if (*ps != 0)
+		  //   printf("%d ", *ps);
+		  if (scaling == 1.)
+		    MRISseq_vox(mri, i, j, k, frame) = *ps;
+  	          else
+		    MRIFseq_vox(mri, i, j, k, frame) = ((float) (*ps))*scaling;
+		  ++ps;
+		}
+		findMinMaxShort((short *) pmem, mri->width, &flMin, &flMax);
 	      }
 	      else if (bytes_per_voxel == 4) // float
 	      {
 		pf = (float *) pmem;
-		for(i = 0;i < mri->width;i++, pf++)
-		  *pf = swapFloat(*pf);
-	      }
-	    }
-	    // now scaling
-	    if (bytes_per_voxel == 1) // byte
-	    {
-	      pc = (unsigned char *) pmem;
-	      for (i=0; i < mri->width; i++)
+		for (i=0; i < mri->width; i++)
+		{
+		  
+		  MRIFseq_vox(mri, i, j, k, frame) = (*pf)*scaling;
+		  ++pf;
+		}
+		findMinMaxFloat((float *) pmem, mri->width, &flMin, &flMax);
+	      }  
+	      free(pmem);
+	      //
+	      if (initialized == 0)
 	      {
-		MRIFvox(mri, i, j, k) = ((float) (*pc))*scaling;
-		++pc;
+		fMin = flMin; fMax = flMax;
+		initialized = 1;
 	      }
-	      findMinMaxByte((unsigned char *) pmem, mri->width, &flMin, &flMax);
-	    }
-	    if (bytes_per_voxel == 2) // short
-	    {
-	      ps = (short *) pmem;
-	      for (i=0; i < mri->width; i++)
+	      else
 	      {
-		// if (*ps != 0)
-		//   printf("%d ", *ps);
-		MRIFvox(mri, i, j, k) = ((float) (*ps))*scaling;
-		++ps;
+		if (flMin < fMin)
+		  fMin = flMin;
+		if (flMax > fMax)
+		  fMax = flMax;
+		// printf("\n fmin =%f, fmax = %f, local min = %f, max = %f\n", fMin, fMax, flMin, flMax);
 	      }
-	      findMinMaxShort((short *) pmem, mri->width, &flMin, &flMax);
-	    }
-	    else if (bytes_per_voxel == 4) // float
-	    {
-	      pf = (float *) pmem;
-	      for (i=0; i < mri->width; i++)
-	      {
-
-		MRIFvox(mri, i, j, k) = (*pf)*scaling;
-		++pf;
-	      }
-	      findMinMaxFloat((float *) pmem, mri->width, &flMin, &flMax);
-	    }  
-	    free(pmem);
-	    //
-	    if (initialized == 0)
-	    {
-	      fMin = flMin; fMax = flMax;
-	      initialized = 1;
 	    }
 	    else
 	    {
-	      if (flMin < fMin)
-		fMin = flMin;
-	      if (flMax > fMax)
-		fMax = flMax;
-	      // printf("\n fmin =%f, fmax = %f, local min = %f, max = %f\n", fMin, fMax, flMin, flMax);
+	      fclose(fp);
+	      MRIfree(&header);
+	      errno = 0;
+	      ErrorReturn(NULL, 
+			  (ERROR_BADFILE, "afniRead(): could not allocate memory for reading %s", fname));
 	    }
 	  }
-	  else
-	  {
-	    fclose(fp);
-	    MRIfree(&header);
-	    errno = 0;
-	    ErrorReturn(NULL, 
-			(ERROR_BADFILE, "afniRead(): could not allocate memory for reading %s", fname));
-	  }
-	}
+	} // height
+      } // depth
+      // valid only for nframs == 1
+      {
+	printf("BRICK_STATS min = %f <--> actual min = %f\n", 
+	       af.brick_stats[0+2*frame], fMin*scaling);
+	printf("BRICK_STATS max = %f <--> actual max = %f\n", 
+	       af.brick_stats[1+2*frame], fMax*scaling);
       }
-    }
-    // valid only for nframs == 1
-    if (scaling != 1. && af.numtypes == 1)
-    {
-      printf("BRICK_STATS min = %f <--> actual min = %f\n", af.brick_stats[0], fMin*scaling);
-      printf("BRICK_STATS max = %f <--> actual max = %f\n", af.brick_stats[1], fMax*scaling);
-    }
-  }
+    } // nframes
+  } 
   else // not reading volume
     mri = MRIcopy(header, NULL);
 
