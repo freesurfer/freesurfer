@@ -1,11 +1,13 @@
 #!/bin/csh -f
 
-set SPMMAT2REGISTER_VER = '$Id: spmmat2register,v 1.2 1999/10/22 20:15:08 greve Exp $';
+set SPMMAT2REGISTER_VER = '$Id: spmmat2register,v 1.3 1999/10/23 00:45:47 greve Exp $';
 
 set funcvol   = ();
 set structvol = ();
 set regfile = "register.dat"
 set subject = ();
+set monly = 0;
+set target = "spm";
 
 if($#argv == 0) goto usage_exit;
 
@@ -42,13 +44,19 @@ mkdir -p $outdir
 set okfile = "$outdir/tmp_spm2reg.ok"
 rm -f $okfile
 
-matlab -display iconic > /dev/null <<EOF
+if($monly) then
+  set TARGET = " tee  $mfile "
+else
+  set TARGET = "matlab -display iconic "
+endif 
+
+$TARGET > /dev/null <<EOF
 
   if($UseStructMat) 
     load ('$structmatfile');
-    Mc = M;
+    Ma = M;
   else
-    Mc = spm_get_space('$structvol');
+    Ma = spm_get_space('$structvol');
   end
 
   if($UseFuncMat) 
@@ -58,19 +66,48 @@ matlab -display iconic > /dev/null <<EOF
     Mf = spm_get_space('$funcvol');
   end
 
-  tmp = Mc(2,:);
-  Mc(2,:) = Mc(3,:);
-  Mc(3,:) = tmp;
   dvf = sqrt(sum(Mf(1:3,1:3).^2));
-  Qc = zeros(4);
-  Qc(1,1) = 1;
-  Qc(2,2) = 1;
-  Qc(3,3) = 1;
+  Qa = zeros(4);
+  Qa(1,1) = 1;
+  Qa(2,2) = 1;
+  Qa(3,3) = 1;
   av = -ones(4,1)*(256+1)/2;
   av(4) = 1;
-  Qc(:,4) = av;
+  Qa(:,4) = av;
 
-  Mreg = Mc*inv(Qc);
+  if(strcmp('$target','spm'))
+    W = eye(4);
+  else
+    % This is hardwired for now %
+    Ncols = 256;  
+    Nrows = 256;
+    Nslices = 20;
+
+    Mforig = zeros(4);
+    Mforig(1,1) = abs(dvf(1));
+    Mforig(2,2) = abs(dvf(2));
+    Mforig(3,3) = abs(dvf(3));
+    Mforig(4,4) = 1;
+    Mforig(1,4) = -abs(dvf(1))*(Ncols+1)/2;
+    Mforig(2,4) = -abs(dvf(2))*(Nrows+1)/2;
+    Mforig(3,4) = -abs(dvf(3))*(Nslices+1)/2;
+
+    W = Mforig*inv(Mf);
+  end
+
+  % Cor to Axial, with y flip %
+  Rac = zeros(4,4);
+  Rac(1,1) =  1;
+  Rac(4,4) =  1;
+  Rac(2,3) = -1;
+  Rac(3,2) =  1;
+
+  Mreg = W*Ma*inv(Qa)*Rac;
+
+  offset = Mreg(:,4);
+  newoffset = Rac'*offset;
+  Mreg(:,4) = newoffset;
+
   SubjName = '$subject';
   fid = fopen('$regfile','w');
   if(fid == -1)
@@ -81,24 +118,28 @@ matlab -display iconic > /dev/null <<EOF
   fprintf(fid,'%s\n',SubjName);
   fprintf(fid,'%8.4f\n',dvf(1));
   fprintf(fid,'%8.4f\n',dvf(3));
-  fprintf(fid,'%8.4f\n',0.5);
-  fprintf(fid,'%8.4f %8.4f %8.4f %8.4f\n',Mreg');
+  fprintf(fid,'%8.4f\n',1.0);
+  fprintf(fid,'%8.4f %8.4f %8.4f %8.4f\n',Mreg'); %'
   fclose(fid);
-
-  fid = fopen('$okfile','w');
-  fclose(fid);
+ 
+  if(~$monly)
+    fid = fopen('$okfile','w');
+    fclose(fid);
+  end
 
   return;
 EOF
 
-if( -e $okfile ) then
-  #echo "spmmat2register finished SUCCESSFULLY"
-  rm -f $okfile
-  exit 0;
-else
-  echo "spmmat2register FAILED"
-  exit 1;
-endif"
+if(! $monly) then
+  if( -e $okfile ) then
+    #echo "spmmat2register finished SUCCESSFULLY"
+    rm -f $okfile
+    exit 0;
+  else
+    echo "spmmat2register FAILED"
+    exit 1;
+  endif
+endif
 
 
 exit 0;
@@ -128,10 +169,21 @@ while( $#argv != 0 )
       set regfile = $argv[1]; shift;
       breaksw
 
+    case "-target":
+      if ( $#argv == 0) goto arg1err;
+      set target = $argv[1]; shift;
+      breaksw
+
     case "-subject":
     case "-s":
       if ( $#argv == 0) goto arg1err;
       set subject = $argv[1]; shift;
+      breaksw
+
+    case "-monly":
+      if ( $#argv == 0) goto arg1err;
+      set mfile = $argv[1]; shift;
+      set monly = 1;
       breaksw
 
     case "-umask":
@@ -140,7 +192,6 @@ while( $#argv != 0 )
       set newumask = $argv[1]; shift;
       umask $newumask
       breaksw
-
 
     default:
       echo ERROR: Flag $flag unrecognized.
@@ -172,6 +223,11 @@ check_args:
 
 goto check_args_return;
 
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+
 #----------------------------------------------------------------#
 usage_exit:
   echo "\nUSAGE: \n spmmat2register "
@@ -179,6 +235,8 @@ usage_exit:
   echo "   -fvol    functional volume     required"
   echo "   -subject subject name          required"
   echo "   -o       output register file  register.dat"
+  echo "   -target  spm | mgh             spm";
   echo "   -umask   newumask"
+  echo "   -monly   mfile"
   echo "\n $SPMMAT2REGISTER_VER \n"
 exit 1;
