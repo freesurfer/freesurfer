@@ -26,6 +26,8 @@ static int preprocess(MRI *mri_in, MRI *mri_labeled, GCA *gca, LTA *lta,
                       MRI *mri_fixed) ;
 static int edit_hippocampus(MRI *mri_in, MRI *mri_labeled, GCA *gca, LTA *lta, 
                       MRI *mri_fixed) ;
+static int edit_amygdala(MRI *mri_in, MRI *mri_labeled, GCA *gca, LTA *lta, 
+                         MRI *mri_fixed) ;
 static int MRIcountNbhdLabels(MRI *mri, int x, int y, int z, int label) ;
 int main(int argc, char *argv[]) ;
 static int get_option(int argc, char *argv[]) ;
@@ -34,6 +36,7 @@ static double TR = -1 ;
 static double alpha = -1 ;
 static double TE = -1 ;
 static char *tissue_parms_fname = NULL ;
+static char *mask_volume_fname = NULL ;
 
 char *Progname ;
 static void usage_exit(int code) ;
@@ -311,7 +314,7 @@ main(int argc, char *argv[])
         GCAanneal(mri_in, gca, mri_labeled, lta, max_iter) ;
       else
         GCAreclassifyUsingGibbsPriors(mri_in, gca, mri_labeled, lta, max_iter,
-                                      mri_fixed);
+                                      mri_fixed, 0);
     }
   }
   GCAmaxLikelihoodBorders(gca, mri_in, mri_labeled, mri_labeled,lta,mle_niter,
@@ -331,6 +334,18 @@ main(int argc, char *argv[])
     GCAexpandCortex(gca, mri_in, mri_labeled, mri_labeled, lta) ;
   }
 
+  if (mask_volume_fname)
+  {
+    MRI *mri_mask ;
+    printf("reading volume %s for masking...\n", mask_volume_fname) ;
+    mri_mask = MRIread(mask_volume_fname) ;
+    if (!mri_mask)
+      ErrorExit(ERROR_NOFILE, "%s: could not read mask volume from %s",
+                Progname, mask_volume_fname) ;
+    MRIthresholdMask(mri_labeled, mri_mask, mri_labeled, 1, 0) ;
+    MRIfree(&mri_mask) ;
+  }
+    
   if (gca_write_iterations != 0)
   {
     char fname[STRLEN] ;
@@ -501,6 +516,11 @@ get_option(int argc, char *argv[])
     nargs = 2 ;
     printf("writing out snapshots of gibbs process every %d iterations to %s\n",
            gca_write_iterations, gca_write_fname) ;
+    break ;
+  case 'M':
+    mask_volume_fname = argv[2] ;
+    nargs = 1 ;
+    printf("using %s to mask final labeling...\n", mask_volume_fname) ;
     break ;
   case 'E':
     expand_flag = atoi(argv[2]) ;
@@ -692,7 +712,10 @@ preprocess(MRI *mri_in, MRI *mri_labeled, GCA *gca, LTA *lta,
     MRIwrite(mri_labeled, fname) ;
   }
   if (hippocampus_flag)
+  {
     edit_hippocampus(mri_in, mri_labeled, gca, lta, mri_fixed) ;
+    edit_amygdala(mri_in, mri_labeled, gca, lta, mri_fixed) ;
+  }
   if (expand_flag) 
   {
     for (i = 0 ; i < NEXPANDABLE_LABELS ; i++)
@@ -737,9 +760,10 @@ static int
 edit_hippocampus(MRI *mri_in, MRI *mri_labeled, GCA *gca, LTA *lta, 
                  MRI *mri_fixed)
 {
-  int   width, height, depth, x, y, z, label, nchanged, dleft, 
+  int   width, height, depth, x, y, z, label, nchanged, dleft, olabel,
         dright, dpos, dant, dup, ddown, dup_hippo, ddown_gray, i, left,
-        ddown_ventricle ;
+        ddown_ventricle, yi, found_wm, found_hippo, was_wm, was_hippo,
+        was_unknown ;
   MRI   *mri_tmp ;
   float phippo, pwm ;
 
@@ -949,7 +973,214 @@ edit_hippocampus(MRI *mri_in, MRI *mri_labeled, GCA *gca, LTA *lta,
     MRIcopy(mri_tmp, mri_labeled) ;
   }
 
+  /* change hippocampal voxels that have a run of wm superior to them
+     followed by a run of hippo.
+  */
+  for (z = 0 ; z < depth ; z++)
+  {
+    for (y = 0 ; y < height ; y++)
+    {
+      for (x = 0 ; x < width ; x++)
+      {
+        if (x == Ggca_x && y == Ggca_y && z == Ggca_z)  
+          DiagBreak() ;
+        label = MRIvox(mri_tmp, x, y, z) ;
+        
+        left = 0 ;
+        was_unknown = 0 ;
+        switch (label)
+        {
+        case Left_Hippocampus:
+          left = 1 ;
+        case Right_Hippocampus:
+#define MIN_UNKNOWN 5
+          for (i = 1 ; i <= MIN_UNKNOWN+3 ; i++)
+          {
+            yi = mri_tmp->yi[y+i] ;
+            olabel = MRIvox(mri_tmp, x, yi, z) ;
+            if (olabel == Left_Hippocampus || olabel == Right_Hippocampus)
+            {
+              was_unknown = 0 ;
+              continue ;
+            }
+            if (!IS_UNKNOWN(olabel))  /* don't change it */
+              break ;
+            if (++was_unknown >= MIN_UNKNOWN)
+              break ;
+          }
+          if (was_unknown >= MIN_UNKNOWN)
+          {
+            nchanged++ ;
+            MRIvox(mri_tmp, x, y, z) = left ? Left_Cerebral_Cortex : 
+              Right_Cerebral_Cortex ;
+            if (x == Ggca_x && y == Ggca_y && z == Ggca_z)  
+            {
+              printf("(%d, %d, %d) %s changed to %s in edit_hippocampus\n",
+                     x, y, z, cma_label_to_name(label),
+                     cma_label_to_name(MRIvox(mri_tmp, x, y, z))) ;
+            }
+          }
+
+          break ;
+        default:
+          break ;
+        }
+      }
+    }
+  }
+
+  /* if voxel is hippocampus with only hippocampus and a bunch of unknowns 
+     inferior to it, change it to cortical gray.
+  */
+  for (z = 0 ; z < depth ; z++)
+  {
+    for (y = 0 ; y < height ; y++)
+    {
+      for (x = 0 ; x < width ; x++)
+      {
+        if (x == Ggca_x && y == Ggca_y && z == Ggca_z)  
+          DiagBreak() ;
+        label = MRIvox(mri_tmp, x, y, z) ;
+        
+        left = 0 ;
+        found_wm = found_hippo = was_wm = was_hippo = 0 ;
+        switch (label)
+        {
+        case Left_Hippocampus:
+          left = 1 ;
+        case Right_Hippocampus:
+          for (i = 1 ; i <= 10 ; i++)
+          {
+            yi = mri_tmp->yi[y-i] ;
+            olabel = MRIvox(mri_tmp, x, yi, z) ;
+            if (found_wm)  /* check for hippo */
+            {
+              if (olabel == Left_Hippocampus || olabel == Right_Hippocampus)
+              {
+                was_hippo++ ;
+                if (was_hippo >= 2)
+                  found_hippo = 1 ;
+              }
+              else
+                was_hippo = 0 ;
+            }
+            else if (olabel == Right_Cerebral_White_Matter ||
+                     olabel == Left_Cerebral_White_Matter)
+            {
+              was_wm++ ;
+              if (was_wm >= 3)
+                found_wm = 1 ;
+            }
+            else
+              was_wm = 0 ;
+          }
+          if (found_wm && found_hippo)
+          {
+            nchanged++ ;
+            MRIvox(mri_tmp, x, y, z) = left ? Left_Cerebral_Cortex : 
+              Right_Cerebral_Cortex ;
+            if (x == Ggca_x && y == Ggca_y && z == Ggca_z)  
+            {
+              printf("(%d, %d, %d) %s changed to %s in edit_hippocampus\n",
+                     x, y, z, cma_label_to_name(label),
+                     cma_label_to_name(MRIvox(mri_tmp, x, y, z))) ;
+            }
+          }
+
+          break ;
+        default:
+          break ;
+        }
+      }
+    }
+  }
+
+  MRIcopy(mri_tmp, mri_labeled) ;
   MRIfree(&mri_tmp) ;
   printf("%d hippocampal voxels changed.\n", nchanged) ;
+  return(NO_ERROR) ;
+}
+static int
+edit_amygdala(MRI *mri_in, MRI *mri_labeled, GCA *gca, LTA *lta, 
+                 MRI *mri_fixed)
+{
+  int   width, height, depth, x, y, z, label, nchanged, olabel,
+        i, left, yi, found_wm, found_amygdala, was_wm, was_amygdala ;
+  MRI   *mri_tmp ;
+
+  mri_tmp = MRIcopy(mri_labeled, NULL) ;
+
+  width = mri_in->width ; height = mri_in->height ; depth = mri_in->depth ;
+
+  nchanged = 0 ;
+  /* change amygdala voxels that have a run of wm superior to them
+     followed by a run of amygdala.
+  */
+  for (z = 0 ; z < depth ; z++)
+  {
+    for (y = 0 ; y < height ; y++)
+    {
+      for (x = 0 ; x < width ; x++)
+      {
+        if (x == Ggca_x && y == Ggca_y && z == Ggca_z)  
+          DiagBreak() ;
+        label = MRIvox(mri_tmp, x, y, z) ;
+        
+        left = 0 ;
+        found_wm = found_amygdala = was_wm = was_amygdala = 0 ;
+        switch (label)
+        {
+        case Left_Amygdala:
+          left = 1 ;
+        case Right_Amygdala:
+          for (i = 1 ; i <= 10 ; i++)
+          {
+            yi = mri_tmp->yi[y-i] ;
+            olabel = MRIvox(mri_tmp, x, yi, z) ;
+            if (found_wm)  /* check for amygdala */
+            {
+              if (olabel == Left_Amygdala || olabel == Right_Amygdala)
+              {
+                was_amygdala++ ;
+                if (was_amygdala >= 2)
+                  found_amygdala = 1 ;
+              }
+              else
+                was_amygdala = 0 ;
+            }
+            else if (olabel == Right_Cerebral_White_Matter ||
+                     olabel == Left_Cerebral_White_Matter)
+            {
+              was_wm++ ;
+              if (was_wm >= 3)
+                found_wm = 1 ;
+            }
+            else
+              was_wm = 0 ;
+          }
+          if (found_wm && found_amygdala)
+          {
+            nchanged++ ;
+            MRIvox(mri_tmp, x, y, z) = left ? Left_Cerebral_Cortex : 
+              Right_Cerebral_Cortex ;
+            if (x == Ggca_x && y == Ggca_y && z == Ggca_z)  
+            {
+              printf("(%d, %d, %d) %s changed to %s in edit_amygdala\n",
+                     x, y, z, cma_label_to_name(label),
+                     cma_label_to_name(MRIvox(mri_tmp, x, y, z))) ;
+            }
+          }
+
+          break ;
+        default:
+          break ;
+        }
+      }
+    }
+  }
+              
+  MRIcopy(mri_tmp, mri_labeled) ;
+  MRIfree(&mri_tmp) ;
+  printf("%d amygdala voxels changed.\n", nchanged) ;
   return(NO_ERROR) ;
 }
