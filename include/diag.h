@@ -74,6 +74,9 @@ extern int Gdiag_no ;           /* misc. int for diagnostics */
 extern int Gx ;
 extern int Gy ;
 extern int Gz ;
+extern int Gsx ;
+extern int Gsy ;
+extern int Gsz ;
 extern int Gvx ;
 extern int Gvy ;
 extern int Gvz ;
