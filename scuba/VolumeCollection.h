@@ -32,6 +32,7 @@ class VolumeLocation : public DataLocation {
  public:
   VolumeLocation ( VolumeCollection& iVolume, float const iRAS[3] );
   ~VolumeLocation () {}
+  int* Index() { return mIdx; }
  protected:
   VolumeCollection& mVolume;
   int mIdx[3];
