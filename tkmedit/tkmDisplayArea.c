@@ -3,8 +3,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2003/09/08 17:55:03 $
-// Revision       : $Revision: 1.84 $
+// Revision Date  : $Date: 2003/09/10 22:30:15 $
+// Revision       : $Revision: 1.85 $
 
 #include "tkmDisplayArea.h"
 #include "tkmMeditWindow.h"
@@ -5040,7 +5040,7 @@ DspA_tErr DspA_DrawFunctionalOverlayToFrame_ ( tkmDisplayAreaRef this ) {
 
       /* get a functional value. */
       eFunctional = FunV_GetValueAtAnaIdx( this->mpFunctionalVolume,
-					   &anaIdx, &funcValue );
+					   &anaIdx, TRUE, &funcValue );
       
       /* if it was a valid voxel */
       if( FunV_tErr_NoError == eFunctional ) {
@@ -5053,6 +5053,7 @@ DspA_tErr DspA_DrawFunctionalOverlayToFrame_ ( tkmDisplayAreaRef this ) {
 	color.mfBlue  = (float)pDest[DspA_knBluePixelCompIndex] /
 	  (float)DspA_knMaxPixelValue;
 	
+
 	/* get a color value. this function automatically does the
 	   appropriate blending. */
 	eFunctional = FunV_GetColorForValue ( this->mpFunctionalVolume,
@@ -6880,7 +6881,7 @@ DspA_tErr DspA_SendPointInformationToTcl_ ( tkmDisplayAreaRef this,
       /* if this is the mouseover, use the value at the current point,
 	 and convert the point that to the func idx and ras. */
       eFunctional = FunV_GetValueAtAnaIdx( this->mpFunctionalVolume,
-					   iAnaIdx, &funcValue );
+					   iAnaIdx, FALSE, &funcValue );
       if( FunV_tErr_NoError == eFunctional ) {
 	
 	/* convert the points */
