@@ -2771,9 +2771,9 @@ MRISreadCurvatureFile(MRI_SURFACE *mris, char *sname)
     strcpy(fname, sname) ;  /* path specified explicitly */
 
 
-	type = MRISfileNameType(fname) ;
-	if (type == MRIS_ASCII_TRIANGLE_FILE)
-		return(mrisReadAsciiCurvatureFile(mris, fname)) ;
+  type = MRISfileNameType(fname) ;
+  if (type == MRIS_ASCII_TRIANGLE_FILE)
+    return(mrisReadAsciiCurvatureFile(mris, fname)) ;
 
   if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON) 
     fprintf(stdout, "reading curvature file...") ;
@@ -11554,7 +11554,8 @@ mrisComputeIntensityTerm(MRI_SURFACE *mris, double l_intensity, MRI *mri_brain,
 
     x = v->x ; y = v->y ; z = v->z ;
 
-    MRIworldToVoxel(mri_brain, x, y, z, &xw, &yw, &zw) ;
+    // MRIworldToVoxel(mri_brain, x, y, z, &xw, &yw, &zw) ;
+    MRIsurfaceRASToVoxel(mri_brain, x, y, z, &xw, &yw, &zw);
     MRIsampleVolume(mri_brain, xw, yw, zw, &val0) ;
     sigma = v->val2 ;
 
@@ -11575,12 +11576,14 @@ mrisComputeIntensityTerm(MRI_SURFACE *mris, double l_intensity, MRI *mri_brain,
       {
         k = exp(-dist*dist/(2*sigma*sigma)) ; ktotal += k ;
         xw = x + dist*nx ; yw = y + dist*ny ; zw = z + dist*nz ;
-        MRIworldToVoxel(mri_brain, xw, yw, zw, &xw, &yw, &zw) ;
+        // MRIworldToVoxel(mri_brain, xw, yw, zw, &xw, &yw, &zw) ;
+	MRIsurfaceRASToVoxel(mri_brain, xw, yw, zw, &xw, &yw, &zw);
         MRIsampleVolume(mri_brain, xw, yw, zw, &val) ;
         val_outside += k*val ;
 
         xw = x - dist*nx ; yw = y - dist*ny ; zw = z - dist*nz ;
-        MRIworldToVoxel(mri_brain, xw, yw, zw, &xw, &yw, &zw) ;
+        // MRIworldToVoxel(mri_brain, xw, yw, zw, &xw, &yw, &zw) ;
+	MRIsurfaceRASToVoxel(mri_brain, xw, yw, zw, &xw, &yw, &zw);
         MRIsampleVolume(mri_brain, xw, yw, zw, &val) ;
         val_inside += k*val ;
       }
@@ -11589,12 +11592,14 @@ mrisComputeIntensityTerm(MRI_SURFACE *mris, double l_intensity, MRI *mri_brain,
 #else
     /* sample outward from surface */
     xw = x + nx ; yw = y + ny ; zw = z + nz ;
-    MRIworldToVoxel(mri_smooth, xw, yw, zw, &xw, &yw, &zw) ;
+    // MRIworldToVoxel(mri_smooth, xw, yw, zw, &xw, &yw, &zw) ;
+    MRIsurfaceRASToVoxel(mri_smooth, xw, yw, zw, &xw, &yw, &zw);
     MRIsampleVolume(mri_smooth, xw, yw, zw, &val_outside) ;
 
     /* sample inward from surface */
     xw = x - nx ; yw = y - ny ; zw = z - nz ;
-    MRIworldToVoxel(mri_smooth, xw, yw, zw, &xw, &yw, &zw) ;
+    // MRIworldToVoxel(mri_smooth, xw, yw, zw, &xw, &yw, &zw) ;
+    MRIsurfaceRASToVoxel(mri_smooth, xw, yw, zw, &xw, &yw, &zw);
     MRIsampleVolume(mri_smooth, xw, yw, zw, &val_inside) ;
 #endif
 
@@ -11633,19 +11638,19 @@ mrisComputeIntensityTerm(MRI_SURFACE *mris, double l_intensity, MRI *mri_brain,
     delI = -1 ;  /* ignore gradient and assume that too bright means move out */
 #endif
 
-		if (delV > 5)
-			delV = 5 ;
-		else if (delV < -5)
-			delV = -5 ;
-
+    if (delV > 5)
+      delV = 5 ;
+    else if (delV < -5)
+      delV = -5 ;
+    
     del = l_intensity * delV * delI ;
 #if 0
-		if (delV > 0)  /* in a sulcus? */
-		{
-			del *= 10 ; 
-			if (Gdiag_no == vno)
-				printf("v %d: augmenting intensity term to prevent sulcal crossing\n",vno) ;
-		}
+    if (delV > 0)  /* in a sulcus? */
+    {
+      del *= 10 ; 
+      if (Gdiag_no == vno)
+	printf("v %d: augmenting intensity term to prevent sulcal crossing\n",vno) ;
+    }
 #endif
 
     dx = nx * del ; dy = ny * del ; dz = nz * del ;
@@ -11666,13 +11671,15 @@ mrisComputeIntensityTerm(MRI_SURFACE *mris, double l_intensity, MRI *mri_brain,
           
           /* sample outward from surface */
           xw = x + nx ; yw = y + ny ; zw = z + nz ;
-          MRIworldToVoxel(mri_smooth, xw, yw, zw, &xwo, &ywo, &zwo) ;
-          
+          // MRIworldToVoxel(mri_smooth, xw, yw, zw, &xwo, &ywo, &zwo) ;
+	  MRIsurfaceRASToVoxel(mri_smooth, xw, yw, zw, &xwo, &ywo, &zwo);
           /* sample inward from surface */
           xw = x - nx ; yw = y - ny ; zw = z - nz ;
-          MRIworldToVoxel(mri_smooth, xw, yw, zw, &xwi, &ywi, &zwi) ;
+          // MRIworldToVoxel(mri_smooth, xw, yw, zw, &xwi, &ywi, &zwi) ;
+	  MRIsurfaceRASToVoxel(mri_smooth, xw, yw, zw, &xwi, &ywi, &zwi);
           
-          MRIworldToVoxel(mri_brain, x, y, z, &xw, &yw, &zw) ;
+          // MRIworldToVoxel(mri_brain, x, y, z, &xw, &yw, &zw) ;
+	  MRIsurfaceRASToVoxel(mri_brain, x, y, z, &xw, &yw, &zw);
           fprintf(stdout, 
                   "I(%2.1f,%2.1f,%2.1f)=%2.1f, Io(%2.1f,%2.1f,%2.1f)=%2.1f, "
                   "Ii(%2.1f,%2.1f,%2.1f)=%2.1f\n", 
@@ -11691,13 +11698,15 @@ mrisComputeIntensityTerm(MRI_SURFACE *mris, double l_intensity, MRI *mri_brain,
 
       /* sample outward from surface */
       xw = x + nx ; yw = y + ny ; zw = z + nz ;
-      MRIworldToVoxel(mri_smooth, xw, yw, zw, &xwo, &ywo, &zwo) ;
-
+      // MRIworldToVoxel(mri_smooth, xw, yw, zw, &xwo, &ywo, &zwo) ;
+      MRIsurfaceRASToVoxel(mri_smooth, xw, yw, zw, &xwo, &ywo, &zwo);
       /* sample inward from surface */
       xw = x - nx ; yw = y - ny ; zw = z - nz ;
-      MRIworldToVoxel(mri_smooth, xw, yw, zw, &xwi, &ywi, &zwi) ;
+      // MRIworldToVoxel(mri_smooth, xw, yw, zw, &xwi, &ywi, &zwi) ;
+      MRIsurfaceRASToVoxel(mri_smooth, xw, yw, zw, &xwi, &ywi, &zwi);
 
-      MRIworldToVoxel(mri_brain, x, y, z, &xw, &yw, &zw) ;
+      // MRIworldToVoxel(mri_brain, x, y, z, &xw, &yw, &zw) ;
+      MRIsurfaceRASToVoxel(mri_brain, x, y, z, &xw, &yw, &zw);
       fprintf(stdout, 
               "I(%2.1f,%2.1f,%2.1f)=%2.1f, Io(%2.1f,%2.1f,%2.1f)=%2.1f, "
               "Ii(%2.1f,%2.1f,%2.1f)=%2.1f\n", 
@@ -11737,9 +11746,11 @@ mrisComputeIntensityGradientTerm(MRI_SURFACE*mris, double l_grad,
       at current point.
     */
     x = v->x+v->nx ; y = v->y+v->ny ; z = v->z+v->nz ;
-    MRIworldToVoxel(mri_brain, x, y, z, &xw1, &yw1, &zw1) ;
+    //MRIworldToVoxel(mri_brain, x, y, z, &xw1, &yw1, &zw1) ;
+    MRIsurfaceRASToVoxel(mri_brain, x, y, z, &xw1, &yw1, &zw1) ;
     x = v->x ; y = v->y ; z = v->z ;
-    MRIworldToVoxel(mri_brain, x, y, z, &xw, &yw, &zw) ;
+    //MRIworldToVoxel(mri_brain, x, y, z, &xw, &yw, &zw) ;
+    MRIsurfaceRASToVoxel(mri_brain, x, y, z, &xw, &yw, &zw) ;
     nx = xw1-xw ; ny = yw1-yw ; nz = zw1-zw ; 
     MRIsampleVolumeGradient(mri_smooth, xw, yw, zw, &dx, &dy, &dz) ;
     MRIsampleVolume(mri_brain, xw, yw, zw, &val0) ;
@@ -11750,14 +11761,16 @@ mrisComputeIntensityGradientTerm(MRI_SURFACE*mris, double l_grad,
 
     /* sample outward from surface */
     xw = x + nx ; yw = y + ny ; zw = z + nz ;
-    MRIworldToVoxel(mri_smooth, xw, yw, zw, &xw, &yw, &zw) ;
+    //MRIworldToVoxel(mri_smooth, xw, yw, zw, &xw, &yw, &zw) ;
+    MRIsurfaceRASToVoxel(mri_smooth, xw, yw, zw, &xw, &yw, &zw) ;
     MRIsampleVolumeGradient(mri_smooth, xw, yw, zw, &dx, &dy, &dz) ;
     mag_outside = sqrt(dx*dx+dy*dy+dz*dz) ;
     MRIsampleVolume(mri_smooth, xw, yw, zw, &val_outside) ;
 
     /* sample inward from surface */
     xw = x - nx ; yw = y - ny ; zw = z - nz ;
-    MRIworldToVoxel(mri_smooth, xw, yw, zw, &xw, &yw, &zw) ;
+    //MRIworldToVoxel(mri_smooth, xw, yw, zw, &xw, &yw, &zw) ;
+    MRIsurfaceRASToVoxel(mri_smooth, xw, yw, zw, &xw, &yw, &zw) ;
     MRIsampleVolumeGradient(mri_smooth, xw, yw, zw, &dx, &dy, &dz) ;
     mag_inside = sqrt(dx*dx+dy*dy+dz*dz) ;
     MRIsampleVolume(mri_smooth, xw, yw, zw, &val_inside) ;
@@ -11837,14 +11850,16 @@ mrisComputeIntensityGradientTerm(MRI_SURFACE*mris, double l_grad,
 
     x = v->x ; y = v->y ; z = v->z ;
     nx = v->nx ; ny = v->ny ; nz = v->nz ;
-    MRIworldToVoxel(mri_brain, x, y, z, &xw, &yw, &zw) ;
+    //MRIworldToVoxel(mri_brain, x, y, z, &xw, &yw, &zw) ;
+    MRIsurfaceRASToVoxel(mri_brain, x, y, z, &xw, &yw, &zw) ;
     MRIsampleVolumeGradient(mri_smooth, xw, yw, zw, &dx, &dy, &dz) ;
     mag = sqrt(dx*dx + dy*dy + dz*dz) ;
     MRIsampleVolume(mri_smooth, xw, yw, zw, &val) ;
 
     /* sample outward from surface */
     xw = x + v->dx ; yw = y + v->dy ; zw = z + v->dz ;
-    MRIworldToVoxel(mri_smooth, xw, yw, zw, &xw, &yw, &zw) ;
+    //MRIworldToVoxel(mri_smooth, xw, yw, zw, &xw, &yw, &zw) ;
+    MRIsurfaceRASToVoxel(mri_smooth, xw, yw, zw, &xw, &yw, &zw) ;
     MRIsampleVolumeGradient(mri_smooth, xw, yw, zw, &dx, &dy, &dz) ;
     mag_next = sqrt(dx*dx + dy*dy + dz*dz) ;
 
@@ -17487,7 +17502,8 @@ mrisHatchFace(MRI_SURFACE *mris, MRI *mri, int fno, int on)
       {
         /* compute a point on the line connecting a and c */
         x = xa + t1*dx ; y = ya + t1*dy ; z = za + t1*dz ;
-        MRIworldToVoxel(mri, x, y, z, &x, &y, &z) ;   /* volume coordinate */
+        // MRIworldToVoxel(mri, x, y, z, &x, &y, &z) ;   /* volume coordinate */
+        MRIsurfaceRASToVoxel(mri, x, y, z, &x, &y, &z) ;   /* volume coordinate */
         xv = nint(x) ; yv = nint(y) ; zv = nint(z) ;  /* voxel coordinate */
         if (on)
           MRIset_bit(mri, xv, yv, zv) ;                 /* mark it filled */
@@ -17497,7 +17513,8 @@ mrisHatchFace(MRI_SURFACE *mris, MRI *mri, int fno, int on)
       /* compute last point on line */
       t1 = 1.0f ;
       x = xa + t1*dx ; y = ya + t1*dy ; z = za + t1*dz ;
-      MRIworldToVoxel(mri, x, y, z, &x, &y, &z) ;   /* volume coordinate */
+      // MRIworldToVoxel(mri, x, y, z, &x, &y, &z) ;   /* volume coordinate */
+      MRIsurfaceRASToVoxel(mri, x, y, z, &x, &y, &z) ;   /* volume coordinate */
       xv = nint(x) ; yv = nint(y) ; zv = nint(z) ;  /* voxel coordinate */
       if (on)
         MRIset_bit(mri, xv, yv, zv) ;                 /* mark it filled */
@@ -17525,7 +17542,8 @@ mrisHatchFace(MRI_SURFACE *mris, MRI *mri, int fno, int on)
     {
       /* compute a point on the line connecting a and c */
       x = xa + t1*dx ; y = ya + t1*dy ; z = za + t1*dz ;
-      MRIworldToVoxel(mri, x, y, z, &x, &y, &z) ;   /* volume coordinate */
+      // MRIworldToVoxel(mri, x, y, z, &x, &y, &z) ;   /* volume coordinate */
+      MRIsurfaceRASToVoxel(mri, x, y, z, &x, &y, &z) ;   /* volume coordinate */
       xv = nint(x) ; yv = nint(y) ; zv = nint(z) ;  /* voxel coordinate */
       if (on)
         MRIset_bit(mri, xv, yv, zv) ;                 /* mark it filled */
@@ -17535,7 +17553,8 @@ mrisHatchFace(MRI_SURFACE *mris, MRI *mri, int fno, int on)
     /* compute last point on line */
     t1 = 1.0f ;
     x = xa + t1*dx ; y = ya + t1*dy ; z = za + t1*dz ;
-    MRIworldToVoxel(mri, x, y, z, &x, &y, &z) ;   /* volume coordinate */
+    // MRIworldToVoxel(mri, x, y, z, &x, &y, &z) ;   /* volume coordinate */
+    MRIsurfaceRASToVoxel(mri, x, y, z, &x, &y, &z) ;   /* volume coordinate */
     xv = nint(x) ; yv = nint(y) ; zv = nint(z) ;  /* voxel coordinate */
     if (on)
       MRIset_bit(mri, xv, yv, zv) ;                 /* mark it filled */
@@ -18878,20 +18897,24 @@ MRIScomputeWhiteSurfaceValues(MRI_SURFACE *mris,MRI *mri_brain,MRI *mri_smooth)
     min_val = -10.0f ; mag = 5.0f ; max_mag = 0.0f ;
     nx = v->nx ; ny = v->ny ; nz = v->nz ; 
     x = v->x ; y = v->y ; z = v->z ;
-    MRIworldToVoxel(mri_brain, x, y, z, &xw, &yw, &zw) ;
+    // MRIworldToVoxel(mri_brain, x, y, z, &xw, &yw, &zw) ;
+    MRIsurfaceRASToVoxel(mri_brain, x, y, z, &xw, &yw, &zw) ;
     x = v->x+nx ; y = v->y + ny ; z = v->z + nz ;
-    MRIworldToVoxel(mri_brain, x, y, z, &xw1, &yw1, &zw1) ;
+    // MRIworldToVoxel(mri_brain, x, y, z, &xw1, &yw1, &zw1) ;
+    MRIsurfaceRASToVoxel(mri_brain, x, y, z, &xw1, &yw1, &zw1) ;
     nx = xw1 - xw ; ny = yw1 - yw ; nz = zw1 - zw ; 
     for (dist = -3.0f ; dist < 10.0f ; dist += STEP_SIZE)
     {
       x = v->x+v->nx*(dist-1) ; y = v->y + v->ny*(dist-1) ; 
       z = v->z + v->nz*(dist-1) ;
-      MRIworldToVoxel(mri_brain, x, y, z, &xw, &yw, &zw) ;
+      // MRIworldToVoxel(mri_brain, x, y, z, &xw, &yw, &zw) ;
+      MRIsurfaceRASToVoxel(mri_brain, x, y, z, &xw, &yw, &zw) ;
       MRIsampleVolume(mri_brain, xw, yw, zw, &previous_val) ;
       if (previous_val < 120 && previous_val > 95)  /* in right range */
       {
         x = v->x + v->nx*dist ; y = v->y + v->ny*dist ; z = v->z + v->nz*dist ;
-        MRIworldToVoxel(mri_brain, x, y, z, &xw, &yw, &zw) ;
+        // MRIworldToVoxel(mri_brain, x, y, z, &xw, &yw, &zw) ;
+        MRIsurfaceRASToVoxel(mri_brain, x, y, z, &xw, &yw, &zw) ;
 
         /* see if we are at a local maximum in the gradient magnitude */
         MRIsampleVolumeDerivative(mri_smooth, xw, yw, zw, nx, ny, nz, &mag) ;
@@ -18903,7 +18926,8 @@ MRIScomputeWhiteSurfaceValues(MRI_SURFACE *mris,MRI *mri_brain,MRI *mri_smooth)
           x = v->x + v->nx*(dist+1) ;
           y = v->y + v->ny*(dist+1) ;
           z = v->z + v->nz*(dist+1) ;
-          MRIworldToVoxel(mri_brain, x, y, z, &xw, &yw, &zw) ;
+          // MRIworldToVoxel(mri_brain, x, y, z, &xw, &yw, &zw) ;
+          MRIsurfaceRASToVoxel(mri_brain, x, y, z, &xw, &yw, &zw) ;
           MRIsampleVolume(mri_brain, xw, yw, zw, &next_val) ;
           if (next_val > 60 && next_val < 95)
           {          
@@ -19090,9 +19114,11 @@ MRIScomputeBorderValues(MRI_SURFACE *mris,MRI *mri_brain,
       DiagBreak() ;
 
     x = v->x ; y = v->y ; z = v->z ;
-    MRIworldToVoxel(mri_brain, x, y, z, &xw, &yw, &zw) ;
+    // MRIworldToVoxel(mri_brain, x, y, z, &xw, &yw, &zw) ;
+    MRIsurfaceRASToVoxel(mri_brain, x, y, z, &xw, &yw, &zw) ;
     x = v->x + v->nx ; y = v->y + v->ny ; z = v->z + v->nz ;
-    MRIworldToVoxel(mri_brain, x, y, z, &xw1, &yw1, &zw1) ;
+    // MRIworldToVoxel(mri_brain, x, y, z, &xw1, &yw1, &zw1) ;
+    MRIsurfaceRASToVoxel(mri_brain, x, y, z, &xw1, &yw1, &zw1) ;
     nx = xw1 - xw ; ny = yw1 - yw ; nz = zw1 - zw ; 
 
 
@@ -19111,7 +19137,8 @@ MRIScomputeBorderValues(MRI_SURFACE *mris,MRI *mri_brain,
         if (fabs(dist)+orig_dist > max_thickness)
           break ;
         x = v->x + v->nx*dist ; y = v->y + v->ny*dist ; z = v->z + v->nz*dist ;
-        MRIworldToVoxel(mri_brain, x, y, z, &xw, &yw, &zw) ;
+        // MRIworldToVoxel(mri_brain, x, y, z, &xw, &yw, &zw) ;
+        MRIsurfaceRASToVoxel(mri_brain, x, y, z, &xw, &yw, &zw) ;
         MRIsampleVolumeDerivativeScale(mri_tmp, xw, yw, zw, nx, ny,nz,&mag,
                                        current_sigma);
         if (mag >= 0.0)
@@ -19128,7 +19155,8 @@ MRIScomputeBorderValues(MRI_SURFACE *mris,MRI *mri_brain,
         if (fabs(dist)+orig_dist > max_thickness)
           break ;
         x = v->x + v->nx*dist ; y = v->y + v->ny*dist ; z = v->z + v->nz*dist ;
-        MRIworldToVoxel(mri_brain, x, y, z, &xw, &yw, &zw) ;
+        // MRIworldToVoxel(mri_brain, x, y, z, &xw, &yw, &zw) ;
+        MRIsurfaceRASToVoxel(mri_brain, x, y, z, &xw, &yw, &zw) ;
         MRIsampleVolumeDerivativeScale(mri_tmp, xw, yw, zw, nx, ny,nz, &mag,
                                        current_sigma);
         if (mag >= 0.0)
@@ -19173,7 +19201,8 @@ MRIScomputeBorderValues(MRI_SURFACE *mris,MRI *mri_brain,
       x = v->x + v->nx*(dist-1) ; 
       y = v->y + v->ny*(dist-1) ; 
       z = v->z + v->nz*(dist-1) ;
-      MRIworldToVoxel(mri_brain, x, y, z, &xw, &yw, &zw) ;
+      // MRIworldToVoxel(mri_brain, x, y, z, &xw, &yw, &zw) ;
+      MRIsurfaceRASToVoxel(mri_brain, x, y, z, &xw, &yw, &zw) ;
       MRIsampleVolume(mri_brain, xw, yw, zw, &previous_val) ;
 #else
       /* find max val within 1 mm in inwards direction */
@@ -19187,7 +19216,8 @@ MRIScomputeBorderValues(MRI_SURFACE *mris,MRI *mri_brain,
           x = v->x + v->nx*(d-1) ; 
           y = v->y + v->ny*(d-1) ; 
           z = v->z + v->nz*(d-1) ;
-          MRIworldToVoxel(mri_brain, x, y, z, &xw, &yw, &zw) ;
+          // MRIworldToVoxel(mri_brain, x, y, z, &xw, &yw, &zw) ;
+          MRIsurfaceRASToVoxel(mri_brain, x, y, z, &xw, &yw, &zw) ;
           MRIsampleVolume(mri_brain, xw, yw, zw, &tmp_val) ;
           if (tmp_val > previous_val)
             previous_val = tmp_val ;
@@ -19200,20 +19230,23 @@ MRIScomputeBorderValues(MRI_SURFACE *mris,MRI *mri_brain,
       {
         /* see if we are at a local maximum in the gradient magnitude */
         x = v->x + v->nx*dist ; y = v->y + v->ny*dist ; z = v->z + v->nz*dist ;
-        MRIworldToVoxel(mri_brain, x, y, z, &xw, &yw, &zw) ;
+        // MRIworldToVoxel(mri_brain, x, y, z, &xw, &yw, &zw) ;
+        MRIsurfaceRASToVoxel(mri_brain, x, y, z, &xw, &yw, &zw) ;
         MRIsampleVolume(mri_brain, xw, yw, zw, &val) ;
 
         x = v->x + v->nx*(dist+STEP_SIZE) ;
         y = v->y + v->ny*(dist+STEP_SIZE) ;
         z = v->z + v->nz*(dist+STEP_SIZE) ;
-        MRIworldToVoxel(mri_brain, x, y, z, &xw, &yw, &zw) ;
+        // MRIworldToVoxel(mri_brain, x, y, z, &xw, &yw, &zw) ;
+        MRIsurfaceRASToVoxel(mri_brain, x, y, z, &xw, &yw, &zw) ;
         MRIsampleVolumeDerivativeScale(mri_tmp, xw, yw, zw, nx, ny, nz,
                                        &next_mag, sigma);
 
         x = v->x + v->nx*(dist-STEP_SIZE) ;
         y = v->y + v->ny*(dist-STEP_SIZE) ;
         z = v->z + v->nz*(dist-STEP_SIZE) ;
-        MRIworldToVoxel(mri_brain, x, y, z, &xw, &yw, &zw) ;
+        // MRIworldToVoxel(mri_brain, x, y, z, &xw, &yw, &zw) ;
+        MRIsurfaceRASToVoxel(mri_brain, x, y, z, &xw, &yw, &zw) ;
         MRIsampleVolumeDerivativeScale(mri_tmp, xw, yw, zw, nx, ny, nz,
                                        &previous_mag, sigma);
 
@@ -19227,7 +19260,8 @@ MRIScomputeBorderValues(MRI_SURFACE *mris,MRI *mri_brain,
         x = v->x + v->nx*dist;
         y = v->y + v->ny*dist;
         z = v->z + v->nz*dist;
-        MRIworldToVoxel(mri_brain, x, y, z, &xw, &yw, &zw) ;
+        // MRIworldToVoxel(mri_brain, x, y, z, &xw, &yw, &zw) ;
+        MRIsurfaceRASToVoxel(mri_brain, x, y, z, &xw, &yw, &zw) ;
         MRIsampleVolumeDerivativeScale(mri_tmp, xw, yw, zw, nx, ny, nz,&mag,
                                        sigma);
         if (which == GRAY_CSF)
@@ -19243,7 +19277,8 @@ MRIScomputeBorderValues(MRI_SURFACE *mris,MRI *mri_brain,
           x = v->x + v->nx*(dist+STEP_SIZE) ;
           y = v->y + v->ny*(dist+STEP_SIZE) ;
           z = v->z + v->nz*(dist+STEP_SIZE) ;
-          MRIworldToVoxel(mri_brain, x, y, z, &xw, &yw, &zw) ;
+          // MRIworldToVoxel(mri_brain, x, y, z, &xw, &yw, &zw) ;
+          MRIsurfaceRASToVoxel(mri_brain, x, y, z, &xw, &yw, &zw) ;
           MRIsampleVolume(mri_brain, xw, yw, zw, &next_val) ;
           if (next_val < border_low)
             next_mag = 0 ;
@@ -19267,7 +19302,8 @@ MRIScomputeBorderValues(MRI_SURFACE *mris,MRI *mri_brain,
           x = v->x + v->nx*(dist+1) ;
           y = v->y + v->ny*(dist+1) ;
           z = v->z + v->nz*(dist+1) ;
-          MRIworldToVoxel(mri_brain, x, y, z, &xw, &yw, &zw) ;
+          // MRIworldToVoxel(mri_brain, x, y, z, &xw, &yw, &zw) ;
+          MRIsurfaceRASToVoxel(mri_brain, x, y, z, &xw, &yw, &zw) ;
           MRIsampleVolume(mri_brain, xw, yw, zw, &next_val) ;
           /*
             if next val is in the right range, and the intensity at
@@ -19304,7 +19340,8 @@ MRIScomputeBorderValues(MRI_SURFACE *mris,MRI *mri_brain,
             x = v->x + v->nx*(dist+1) ;
             y = v->y + v->ny*(dist+1) ;
             z = v->z + v->nz*(dist+1) ;
-            MRIworldToVoxel(mri_brain, x, y, z, &xw, &yw, &zw) ;
+            // MRIworldToVoxel(mri_brain, x, y, z, &xw, &yw, &zw) ;
+            MRIsurfaceRASToVoxel(mri_brain, x, y, z, &xw, &yw, &zw) ;
             MRIsampleVolume(mri_brain, xw, yw, zw, &next_val) ;
             if (next_val >= outside_low && next_val <= border_hi &&
                 next_val < outside_hi)
@@ -19322,38 +19359,39 @@ MRIScomputeBorderValues(MRI_SURFACE *mris,MRI *mri_brain,
     if (vno == Gdiag_no)
       fclose(fp) ;
 
-		if (which == GRAY_CSF && local_max_found == 0 && max_mag_dist > 0)
-		{
-			float outlen ;
-			int   allgray = 1 ;
-
-			/* check to make sure it's not ringing near the gray white boundary,
-				 by seeing if there is uniform stuff outside that could be gray matter.
-			*/
-			for (outlen = max_mag_dist ; outlen < max_mag_dist+2 ; outlen += STEP_SIZE)
-			{
-				x = v->x + v->nx*outlen ;
-				y = v->y + v->ny*outlen ;
-				z = v->z + v->nz*outlen ;
-				MRIworldToVoxel(mri_brain, x, y, z, &xw, &yw, &zw) ;
-				MRIsampleVolume(mri_brain, xw, yw, zw, &val) ;
-				if ((val < outside_hi /*border_low*/) || (val > border_hi))
-				{
-					allgray = 0 ;
-					break ;
-				}
+    if (which == GRAY_CSF && local_max_found == 0 && max_mag_dist > 0)
+    {
+      float outlen ;
+      int   allgray = 1 ;
+      
+      /* check to make sure it's not ringing near the gray white boundary,
+	 by seeing if there is uniform stuff outside that could be gray matter.
+      */
+      for (outlen = max_mag_dist ; outlen < max_mag_dist+2 ; outlen += STEP_SIZE)
+      {
+	x = v->x + v->nx*outlen ;
+	y = v->y + v->ny*outlen ;
+	z = v->z + v->nz*outlen ;
+	// MRIworldToVoxel(mri_brain, x, y, z, &xw, &yw, &zw) ;
+	MRIsurfaceRASToVoxel(mri_brain, x, y, z, &xw, &yw, &zw) ;
+	MRIsampleVolume(mri_brain, xw, yw, zw, &val) ;
+	if ((val < outside_hi /*border_low*/) || (val > border_hi))
+	{
+	  allgray = 0 ;
+	  break ;
+	}
 			}
-			if (allgray)
-			{
-				if (Gdiag_no == vno)
-					printf("v %d: exterior gray matter detected, "
-								 "ignoring large gradient at %2.3f (I=%2.1f)\n",
-								 vno, max_mag_dist, max_mag_val) ;
-				max_mag_val = -10 ;   /* don't worry about largest gradient */
+      if (allgray)
+      {
+	if (Gdiag_no == vno)
+	  printf("v %d: exterior gray matter detected, "
+		 "ignoring large gradient at %2.3f (I=%2.1f)\n",
+		 vno, max_mag_dist, max_mag_val) ;
+	max_mag_val = -10 ;   /* don't worry about largest gradient */
 				max_mag_dist = 0 ;
 				num_changed++ ;
-			}
-		}
+      }
+    }
 
     if (max_mag_val > 0)   /* found the border value */
     {
@@ -19516,7 +19554,8 @@ MRIScomputeGraySurfaceValues(MRI_SURFACE *mris,MRI *mri_brain,MRI *mri_smooth,
     for (dist = 0.0f ; dist < 6.0f ; dist += STEP_SIZE)
     {
       x = v->x + v->nx*dist ; y = v->y + v->ny*dist ; z = v->z + v->nz*dist ; 
-      MRIworldToVoxel(mri_brain, x, y, z, &xw, &yw, &zw) ;
+      // MRIworldToVoxel(mri_brain, x, y, z, &xw, &yw, &zw) ;
+      MRIsurfaceRASToVoxel(mri_brain, x, y, z, &xw, &yw, &zw) ;
       MRIsampleVolume(mri_brain, xw, yw, zw, &val) ;
       if (val < 70 && val > gray_surface)  /* in right range */
       {
@@ -20679,7 +20718,8 @@ MRISaccumulateMeansInVolume(MRI_SURFACE *mris, MRI *mri, int mris_dof,
         MRISworldToTalairachVoxel(mris, mri, x, y, z, &x, &y, &z) ;
         break ;
       default:  /* surface-based */
-        MRIworldToVoxel(mri, x, y, z, &x, &y, &z) ;
+        // MRIworldToVoxel(mri, x, y, z, &x, &y, &z) ;
+        MRIsurfaceRASToVoxel(mri, x, y, z, &x, &y, &z) ;
         break ;
       }
       xv = nint(x) ; yv = nint(y) ; zv = nint(z) ;
@@ -20732,7 +20772,8 @@ MRISaccumulateStandardErrorsInVolume(MRI_SURFACE *mris, MRI *mri,
         MRISworldToTalairachVoxel(mris, mri, x, y, z, &x, &y, &z) ;
         break ;
       default:  /* surface-based */
-        MRIworldToVoxel(mri, x, y, z, &x, &y, &z) ;
+        // MRIworldToVoxel(mri, x, y, z, &x, &y, &z) ;
+        MRIsurfaceRASToVoxel(mri, x, y, z, &x, &y, &z) ;
         break ;
       }
       xv = nint(x) ; yv = nint(y) ; zv = nint(z) ;
@@ -20956,7 +20997,8 @@ mrisComputeIntensityError(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
 
     x = v->x ; y = v->y ; z = v->z ;
     
-    MRIworldToVoxel(parms->mri_brain, x, y, z, &xw, &yw, &zw) ;
+    // MRIworldToVoxel(parms->mri_brain, x, y, z, &xw, &yw, &zw) ;
+    MRIsurfaceRASToVoxel(parms->mri_brain, x, y, z, &xw, &yw, &zw) ;
     MRIsampleVolume(parms->mri_brain, xw, yw, zw, &val0) ;
 
     del0 = v->val - val0 ;
@@ -20994,7 +21036,8 @@ mrisComputeIntensityGradientError(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
 
     x = v->x ; y = v->y ; z = v->z ;
     
-    MRIworldToVoxel(parms->mri_smooth, x, y, z, &xw, &yw, &zw) ;
+    // MRIworldToVoxel(parms->mri_smooth, x, y, z, &xw, &yw, &zw) ;
+    MRIsurfaceRASToVoxel(parms->mri_smooth, x, y, z, &xw, &yw, &zw) ;
     MRIsampleVolumeGradient(parms->mri_smooth, xw, yw, zw, &dx, &dy, &dz) ;
     mag0 = sqrt(dx*dx + dy*dy + dz*dz) ;
 
@@ -26828,64 +26871,65 @@ static double
 mrisComputeDefectMRILogUnlikelihood(MRI_SURFACE *mris, MRI *mri, DEFECT_PATCH *dp, 
 																		int *vertex_trans, HISTOGRAM *h_border)
 {
-	double dx, dy, dz, d, len, ll, total_ll ;
-	int    i, nedges = 0, nsamples ;
-	VERTEX *v, *vn ;
-	Real   val, xv, yv, zv, x, y, z ;
+  double dx, dy, dz, d, len, ll, total_ll ;
+  int    i, nedges = 0, nsamples ;
+  VERTEX *v, *vn ;
+  Real   val, xv, yv, zv, x, y, z ;
   EDGE    *edge ;
-	EDGE_TABLE *etable = dp->etable ;
+  EDGE_TABLE *etable = dp->etable ;
 
   for (total_ll = 0.0, i = 0 ; i < dp->nedges ; i++)
   {
-		edge = &etable->edges[i] ;
-		if (edge->used)   /* only count edges not in current tessellation */
-			continue ;
+    edge = &etable->edges[i] ;
+    if (edge->used)   /* only count edges not in current tessellation */
+      continue ;
     v = &mris->vertices[edge->vno1] ;
     vn = &mris->vertices[edge->vno2] ;
 		
     if (v->ripflag || vn->ripflag)
       continue ;
 
-		if (edge->vno1 == Gdiag_no || edge->vno2 == Gdiag_no)
-			DiagBreak() ;
-		nedges++ ;
+    if (edge->vno1 == Gdiag_no || edge->vno2 == Gdiag_no)
+      DiagBreak() ;
+    nedges++ ;
 
-		/* sample MR values along line and build estimate of log likelihood
-			 as distance.
-		*/
-
-		/* traverse the edge connecting the two vertices in equal increments, sampling
-			 MRI volume outside and inside */
-		dx = vn->origx - v->origx ; dy = vn->origy - v->origy ; dz = vn->origz - v->origz ;
-		len = sqrt(dx*dx + dy*dy + dz*dz) ;
-		len = .5 / len ;  /* sample every 1/2 mm */
-		if (len > 1)
-			len = 1 ;
-
-		ll = 0.0 ;
-		for (nsamples = 0, d = 0 ; d <= 1 ; d += len, nsamples++)
-		{
-			x = v->origx+d*dx ; y = v->origy+d*dy ; z = v->origz+d*dz ;
-			MRIworldToVoxel(mri, x, y, z, &xv, &yv, &zv) ;
-			MRIsampleVolume(mri, xv, yv, zv, &val) ;
-			ll += log(1-h_border->counts[nint(val)]) ;
-		}
-
-		if (!finite(ll))
-			DiagBreak() ;
-		total_ll += ll / (float)nsamples ;
-	}
-	return(total_ll/*/(double)nedges*/) ;
+    /* sample MR values along line and build estimate of log likelihood
+       as distance.
+    */
+    
+    /* traverse the edge connecting the two vertices in equal increments, sampling
+       MRI volume outside and inside */
+    dx = vn->origx - v->origx ; dy = vn->origy - v->origy ; dz = vn->origz - v->origz ;
+    len = sqrt(dx*dx + dy*dy + dz*dz) ;
+    len = .5 / len ;  /* sample every 1/2 mm */
+    if (len > 1)
+      len = 1 ;
+    
+    ll = 0.0 ;
+    for (nsamples = 0, d = 0 ; d <= 1 ; d += len, nsamples++)
+    {
+      x = v->origx+d*dx ; y = v->origy+d*dy ; z = v->origz+d*dz ;
+      //MRIworldToVoxel(mri, x, y, z, &xv, &yv, &zv) ;
+      MRIsurfaceRASToVoxel(mri, x, y, z, &xv, &yv, &zv) ;
+      MRIsampleVolume(mri, xv, yv, zv, &val) ;
+      ll += log(1-h_border->counts[nint(val)]) ;
+    }
+    
+    if (!finite(ll))
+      DiagBreak() ;
+    total_ll += ll / (float)nsamples ;
+  }
+  return(total_ll/*/(double)nedges*/) ;
 }
 		 
 static float mrisDefectFaceMRILogLikelihood(MRI_SURFACE *mris, int vno1, int vno2, 
-																						int vno3, MRI *mri, DEFECT *defect, 
-																						HISTOGRAM *h_white, HISTOGRAM *h_gray, 
-																						HISTOGRAM *h_grad, MRI *mri_gray_white) ;
+					    int vno3, MRI *mri, DEFECT *defect, 
+					    HISTOGRAM *h_white, HISTOGRAM *h_gray, 
+					    HISTOGRAM *h_grad, MRI *mri_gray_white) ;
 static float
 mrisDefectFaceMRILogLikelihood(MRI_SURFACE *mris, int vno0, int vno1, int vno2, 
-															 MRI *mri, DEFECT *defect, HISTOGRAM *h_white, 
-															 HISTOGRAM *h_gray, HISTOGRAM *h_grad, MRI *mri_gray_white)
+			       MRI *mri, DEFECT *defect, HISTOGRAM *h_white, 
+			       HISTOGRAM *h_gray, HISTOGRAM *h_grad, MRI *mri_gray_white)
 {
   Real   x, y, z, xa, ya, za, xc, yc, zc, t0, t1, adx, ady, adz, dx, dy, dz, grad,
          cdx, cdy, cdz, alen, clen, delta_t0, delta_t1, len, nx, ny, nz, xv, yv, zv,
@@ -26896,9 +26940,9 @@ mrisDefectFaceMRILogLikelihood(MRI_SURFACE *mris, int vno0, int vno1, int vno2,
   float   l0[3],l1[3];
 
 	
-	v0 = &mris->vertices[vno0] ; 
-	v1 = &mris->vertices[vno1] ; 
-	v2 = &mris->vertices[vno2] ; 
+  v0 = &mris->vertices[vno0] ; 
+  v1 = &mris->vertices[vno1] ; 
+  v2 = &mris->vertices[vno2] ; 
   l0[0] = v0->origx - v1->origx; l0[1] = v0->origy - v1->origy; 
   l0[2] = v0->origz - v1->origz;
   l1[0] = v2->origx - v0->origx; l1[1] = v2->origy - v0->origy; 
@@ -26907,8 +26951,8 @@ mrisDefectFaceMRILogLikelihood(MRI_SURFACE *mris, int vno0, int vno1, int vno2,
   nx = -l1[1]*l0[2] + l0[1]*l1[2];
   ny = l1[0]*l0[2] - l0[0]*l1[2];
   nz = -l1[0]*l0[1] + l0[0]*l1[1];
-	alen = nx*nx + ny*nz + nz*nz ; if (FZERO(alen)) alen = 1 ;
-	nx /= alen ; ny /= alen ; nz /= alen ; 
+  alen = nx*nx + ny*nz + nz*nz ; if (FZERO(alen)) alen = 1 ;
+  nx /= alen ; ny /= alen ; nz /= alen ; 
 
 	/* now use sphere to orient normal vector */
   l0[0] = v0->cx - v1->cx; l0[1] = v0->cy - v1->cy; 
@@ -26919,347 +26963,359 @@ mrisDefectFaceMRILogLikelihood(MRI_SURFACE *mris, int vno0, int vno1, int vno2,
   cnx = -l1[1]*l0[2] + l0[1]*l1[2];
   cny = l1[0]*l0[2] - l0[0]*l1[2];
   cnz = -l1[0]*l0[1] + l0[0]*l1[1];
-	dot = v0->cx*cnx + v0->cy*cny + v0->cz*cnz ;
-	if (dot < 0)
-	{ nx *= -1 ; ny *= -1 ; nz *= -1 ; }
-
-	adx = v1->x - v0->x ; ady = v1->y - v0->y ; adz = v1->z - v0->z ;
-	alen = sqrt(SQR(adx)+SQR(ady)+SQR(adz)) ;
-	cdx = v2->x - v0->x ; cdy = v2->y - v0->y ; cdz = v2->z - v0->z ;
-	clen = sqrt(SQR(cdx)+SQR(cdy)+SQR(cdz)) ;
-	
-	/*
-		sample along legs of the triangle making sure the maximum spacing
-		between samples (along the longer leg) is SAMPLE_DIST.
-	*/
-	
-	/*
-		move along v0->v1 and v3->v2 lines and draw in crossing line to fill face
-		t0 parameterizes lines from v0->v1 and v0->v2 
-	*/
-	if (FZERO(alen) && FZERO(clen))
-		delta_t0 = 0.99 ;
-	else
-		delta_t0 = (alen > clen) ? (SAMPLE_DIST / alen) : (SAMPLE_DIST / clen ) ;
-	if (FZERO(delta_t0))
-		ErrorReturn(ERROR_BADPARM, 
-								(ERROR_BADPARM,
-								 "mrisDefectFaceMRILogLikelihood: face has infinite leg (%d, %d)\n",
-								 alen, clen)) ;
-	
-	if (delta_t0 >= 1.0)
-		delta_t0 = 0.99 ;
-	
-	/* delta_t0 is % of alen or clen (whichever is bigger) of SAMPLE_DIST */
-	for (nsamples = 0, ll = 0.0f, t0 = 0 ; t0 <= 1.0f ; t0 += delta_t0)
-	{
-		/* compute points (xa,ya,za) and (xc,yc,zc) on the a and c lines resp. */
-		xa = v0->x + t0*adx ; ya = v0->y + t0*ady ; za = v0->z + t0*adz ;
-		xc = v0->x + t0*cdx ; yc = v0->y + t0*cdy ; zc = v0->z + t0*cdz ;
-		dx = xc-xa ; dy = yc-ya ; dz = zc-za ;
-		len = sqrt(SQR(dx)+SQR(dy)+SQR(dz)) ;
-		if (FZERO(len))
-			delta_t1 = 0.99 ;
-		else
-		{
-			delta_t1 = SAMPLE_DIST / len ;  /* sample at SAMPLE_DIST intervals */
-			if (delta_t1 >= 1.0f)
-				delta_t1 = 0.99 ;
-		}
-		
-		/* now draw a line from (xa,ya,za) to (xc, yc, zc) */
-		for (t1 = 0 ; t1 <= 1.0f ; t1 += delta_t1, nsamples++)
-		{
-			/* compute a point on the line connecting a and c */
-			x = xa + t1*dx ; y = ya + t1*dy ; z = za + t1*dz ;
-			MRIworldToVoxel(mri, x+.5*nx, y+.5*ny, z+.5*nz, &xv, &yv, &zv) ;
-			MRIsampleVolume(mri, xv, yv, zv, &gray_val) ;
-			ll += log(h_gray->counts[nint(gray_val)]) ;
-			MRIworldToVoxel(mri, x-.5*nx, y-.5*ny, z-.5*nz, &xv, &yv, &zv) ;
-			MRIsampleVolume(mri, xv, yv, zv, &white_val) ;
-			ll += log(h_white->counts[nint(white_val)]) ;
-			grad = white_val - gray_val ;
-			bin = nint((grad-h_grad->bins[0]) / h_grad->bin_size) ;
-			if (bin < 0)
-				bin = 0 ;
-			else if (bin >= h_grad->nbins)
-				bin = h_grad->nbins-1 ;
-			ll += log(h_grad->counts[bin]) ;
-			MRIsampleVolume(mri_gray_white, white_val, gray_val, 0, &val) ;
-			jll += log(val) ;
-		}
-		/* compute last point on line */
-		t1 = 1.0f ;
-		x = xa + t1*dx ; y = ya + t1*dy ; z = za + t1*dz ;
-		MRIworldToVoxel(mri, x+.5*nx, y+.5*ny, z+.5*nz, &xv, &yv, &zv) ;
-		MRIsampleVolume(mri, xv, yv, zv, &gray_val) ;
-		ll += log(h_gray->counts[nint(gray_val)]) ;
-		MRIworldToVoxel(mri, x-.5*nx, y-.5*ny, z-.5*nz, &xv, &yv, &zv) ;
-		MRIsampleVolume(mri, xv, yv, zv, &white_val) ;
-		ll += log(h_white->counts[nint(white_val)]) ;
-		grad = white_val - gray_val ;
-		bin = nint((grad-h_grad->bins[0]) / h_grad->bin_size) ;
-		if (bin < 0)
-			bin = 0 ;
-		else if (bin >= h_grad->nbins)
-			bin = h_grad->nbins-1 ;
-		ll += log(h_grad->counts[bin]) ;
-		nsamples++ ;
-		MRIsampleVolume(mri_gray_white, white_val, gray_val, 0, &val) ;
-		jll += log(val) ;
-	}
+  dot = v0->cx*cnx + v0->cy*cny + v0->cz*cnz ;
+  if (dot < 0)
+  { nx *= -1 ; ny *= -1 ; nz *= -1 ; }
   
-	/* compute last line on the a and c lines resp. */
-	t0 = 1.0f ;
-	xa = v0->x + t0*adx ; ya = v0->y + t0*ady ; za = v0->z + t0*adz ;
-	xc = v0->x + t0*cdx ; yc = v0->y + t0*cdy ; zc = v0->z + t0*cdz ;
-	dx = xc-xa ; dy = yc-ya ; dz = zc-za ;
-	len = sqrt(SQR(dx)+SQR(dy)+SQR(dz)) ;
-	if (FZERO(len))
-		delta_t1 = 0.99 ;
-	else
-	{
-		delta_t1 = SAMPLE_DIST / len ;  /* sample at SAMPLE_DIST intervals */
-		if (delta_t1 >= 1.0f)
-			delta_t1 = 0.99 ;
-	}
+  adx = v1->x - v0->x ; ady = v1->y - v0->y ; adz = v1->z - v0->z ;
+  alen = sqrt(SQR(adx)+SQR(ady)+SQR(adz)) ;
+  cdx = v2->x - v0->x ; cdy = v2->y - v0->y ; cdz = v2->z - v0->z ;
+  clen = sqrt(SQR(cdx)+SQR(cdy)+SQR(cdz)) ;
+  
+  /*
+    sample along legs of the triangle making sure the maximum spacing
+    between samples (along the longer leg) is SAMPLE_DIST.
+  */
+  
+  /*
+    move along v0->v1 and v3->v2 lines and draw in crossing line to fill face
+    t0 parameterizes lines from v0->v1 and v0->v2 
+  */
+  if (FZERO(alen) && FZERO(clen))
+    delta_t0 = 0.99 ;
+  else
+    delta_t0 = (alen > clen) ? (SAMPLE_DIST / alen) : (SAMPLE_DIST / clen ) ;
+  if (FZERO(delta_t0))
+    ErrorReturn(ERROR_BADPARM, 
+		(ERROR_BADPARM,
+		 "mrisDefectFaceMRILogLikelihood: face has infinite leg (%d, %d)\n",
+		 alen, clen)) ;
 	
-	/* now draw a line from (xa,ya,za) to (xc, yc, zc) */
-	for (t1 = 0 ; t1 <= 1.0f ; t1 += delta_t1, nsamples++)
-	{
-		/* compute a point on the line connecting a and c */
-		x = xa + t1*dx ; y = ya + t1*dy ; z = za + t1*dz ;
-		MRIworldToVoxel(mri, x+.5*nx, y+.5*ny, z+.5*nz, &xv, &yv, &zv) ;
-		MRIsampleVolume(mri, xv, yv, zv, &gray_val) ;
-		ll += log(h_gray->counts[nint(gray_val)]) ;
-		MRIworldToVoxel(mri, x-.5*nx, y-.5*ny, z-.5*nz, &xv, &yv, &zv) ;
-		MRIsampleVolume(mri, xv, yv, zv, &white_val) ;
-		ll += log(h_white->counts[nint(white_val)]) ;
-		grad = white_val - gray_val ;
-		bin = nint((grad-h_grad->bins[0]) / h_grad->bin_size) ;
-		if (bin < 0)
-			bin = 0 ;
-		else if (bin >= h_grad->nbins)
-			bin = h_grad->nbins-1 ;
-		ll += log(h_grad->counts[bin]) ;
-		MRIsampleVolume(mri_gray_white, white_val, gray_val, 0, &val) ;
-		jll += log(val) ;
-	}
-	/* compute last point on line */
-	t1 = 1.0f ;
-	x = xa + t1*dx ; y = ya + t1*dy ; z = za + t1*dz ;
-	MRIworldToVoxel(mri, x+.5*nx, y+.5*ny, z+.5*nz, &xv, &yv, &zv) ;
-	MRIsampleVolume(mri, xv, yv, zv, &gray_val) ;
-	ll += log(h_gray->counts[nint(gray_val)]) ;
-	MRIworldToVoxel(mri, x-.5*nx, y-.5*ny, z-.5*nz, &xv, &yv, &zv) ;
-	MRIsampleVolume(mri, xv, yv, zv, &white_val) ;
-	ll += log(h_white->counts[nint(white_val)]) ;
-	grad = white_val - gray_val ;
-	bin = nint((grad-h_grad->bins[0]) / h_grad->bin_size) ;
-	if (bin < 0)
-		bin = 0 ;
-	else if (bin >= h_grad->nbins)
-		bin = h_grad->nbins-1 ;
-	ll += log(h_grad->counts[bin]) ;
-	MRIsampleVolume(mri_gray_white, white_val, gray_val, 0, &val) ;
-	jll += log(val) ;
-	nsamples++ ;
+  if (delta_t0 >= 1.0)
+    delta_t0 = 0.99 ;
+  
+  /* delta_t0 is % of alen or clen (whichever is bigger) of SAMPLE_DIST */
+  for (nsamples = 0, ll = 0.0f, t0 = 0 ; t0 <= 1.0f ; t0 += delta_t0)
+  {
+    /* compute points (xa,ya,za) and (xc,yc,zc) on the a and c lines resp. */
+    xa = v0->x + t0*adx ; ya = v0->y + t0*ady ; za = v0->z + t0*adz ;
+    xc = v0->x + t0*cdx ; yc = v0->y + t0*cdy ; zc = v0->z + t0*cdz ;
+    dx = xc-xa ; dy = yc-ya ; dz = zc-za ;
+    len = sqrt(SQR(dx)+SQR(dy)+SQR(dz)) ;
+    if (FZERO(len))
+      delta_t1 = 0.99 ;
+    else
+    {
+      delta_t1 = SAMPLE_DIST / len ;  /* sample at SAMPLE_DIST intervals */
+      if (delta_t1 >= 1.0f)
+	delta_t1 = 0.99 ;
+    }
+    
+    /* now draw a line from (xa,ya,za) to (xc, yc, zc) */
+    for (t1 = 0 ; t1 <= 1.0f ; t1 += delta_t1, nsamples++)
+    {
+      /* compute a point on the line connecting a and c */
+      x = xa + t1*dx ; y = ya + t1*dy ; z = za + t1*dz ;
+      // MRIworldToVoxel(mri, x+.5*nx, y+.5*ny, z+.5*nz, &xv, &yv, &zv) ;
+      MRIsurfaceRASToVoxel(mri, x+.5*nx, y+.5*ny, z+.5*nz, &xv, &yv, &zv) ;
+      MRIsampleVolume(mri, xv, yv, zv, &gray_val) ;
+      ll += log(h_gray->counts[nint(gray_val)]) ;
+      // MRIworldToVoxel(mri, x-.5*nx, y-.5*ny, z-.5*nz, &xv, &yv, &zv) ;
+      MRIsurfaceRASToVoxel(mri, x-.5*nx, y-.5*ny, z-.5*nz, &xv, &yv, &zv) ;
+      MRIsampleVolume(mri, xv, yv, zv, &white_val) ;
+      ll += log(h_white->counts[nint(white_val)]) ;
+      grad = white_val - gray_val ;
+      bin = nint((grad-h_grad->bins[0]) / h_grad->bin_size) ;
+      if (bin < 0)
+	bin = 0 ;
+      else if (bin >= h_grad->nbins)
+	bin = h_grad->nbins-1 ;
+      ll += log(h_grad->counts[bin]) ;
+      MRIsampleVolume(mri_gray_white, white_val, gray_val, 0, &val) ;
+      jll += log(val) ;
+    }
+    /* compute last point on line */
+    t1 = 1.0f ;
+    x = xa + t1*dx ; y = ya + t1*dy ; z = za + t1*dz ;
+    // MRIworldToVoxel(mri, x+.5*nx, y+.5*ny, z+.5*nz, &xv, &yv, &zv) ;
+    MRIsurfaceRASToVoxel(mri, x+.5*nx, y+.5*ny, z+.5*nz, &xv, &yv, &zv) ;
+    MRIsampleVolume(mri, xv, yv, zv, &gray_val) ;
+    ll += log(h_gray->counts[nint(gray_val)]) ;
+    // MRIworldToVoxel(mri, x-.5*nx, y-.5*ny, z-.5*nz, &xv, &yv, &zv) ;
+    MRIsurfaceRASToVoxel(mri, x-.5*nx, y-.5*ny, z-.5*nz, &xv, &yv, &zv) ;
+    MRIsampleVolume(mri, xv, yv, zv, &white_val) ;
+    ll += log(h_white->counts[nint(white_val)]) ;
+    grad = white_val - gray_val ;
+    bin = nint((grad-h_grad->bins[0]) / h_grad->bin_size) ;
+    if (bin < 0)
+      bin = 0 ;
+    else if (bin >= h_grad->nbins)
+      bin = h_grad->nbins-1 ;
+    ll += log(h_grad->counts[bin]) ;
+    nsamples++ ;
+    MRIsampleVolume(mri_gray_white, white_val, gray_val, 0, &val) ;
+    jll += log(val) ;
+  }
+  
+  /* compute last line on the a and c lines resp. */
+  t0 = 1.0f ;
+  xa = v0->x + t0*adx ; ya = v0->y + t0*ady ; za = v0->z + t0*adz ;
+  xc = v0->x + t0*cdx ; yc = v0->y + t0*cdy ; zc = v0->z + t0*cdz ;
+  dx = xc-xa ; dy = yc-ya ; dz = zc-za ;
+  len = sqrt(SQR(dx)+SQR(dy)+SQR(dz)) ;
+  if (FZERO(len))
+    delta_t1 = 0.99 ;
+  else
+  {
+    delta_t1 = SAMPLE_DIST / len ;  /* sample at SAMPLE_DIST intervals */
+    if (delta_t1 >= 1.0f)
+      delta_t1 = 0.99 ;
+  }
+  
+  /* now draw a line from (xa,ya,za) to (xc, yc, zc) */
+  for (t1 = 0 ; t1 <= 1.0f ; t1 += delta_t1, nsamples++)
+  {
+    /* compute a point on the line connecting a and c */
+    x = xa + t1*dx ; y = ya + t1*dy ; z = za + t1*dz ;
+    // MRIworldToVoxel(mri, x+.5*nx, y+.5*ny, z+.5*nz, &xv, &yv, &zv) ;
+    MRIsurfaceRASToVoxel(mri, x+.5*nx, y+.5*ny, z+.5*nz, &xv, &yv, &zv) ;
+    MRIsampleVolume(mri, xv, yv, zv, &gray_val) ;
+    ll += log(h_gray->counts[nint(gray_val)]) ;
+    // MRIworldToVoxel(mri, x-.5*nx, y-.5*ny, z-.5*nz, &xv, &yv, &zv) ;
+    MRIsurfaceRASToVoxel(mri, x-.5*nx, y-.5*ny, z-.5*nz, &xv, &yv, &zv) ;
+    MRIsampleVolume(mri, xv, yv, zv, &white_val) ;
+    ll += log(h_white->counts[nint(white_val)]) ;
+    grad = white_val - gray_val ;
+    bin = nint((grad-h_grad->bins[0]) / h_grad->bin_size) ;
+    if (bin < 0)
+      bin = 0 ;
+    else if (bin >= h_grad->nbins)
+      bin = h_grad->nbins-1 ;
+    ll += log(h_grad->counts[bin]) ;
+    MRIsampleVolume(mri_gray_white, white_val, gray_val, 0, &val) ;
+    jll += log(val) ;
+  }
+  /* compute last point on line */
+  t1 = 1.0f ;
+  x = xa + t1*dx ; y = ya + t1*dy ; z = za + t1*dz ;
+  // MRIworldToVoxel(mri, x+.5*nx, y+.5*ny, z+.5*nz, &xv, &yv, &zv) ;
+  MRIsurfaceRASToVoxel(mri, x+.5*nx, y+.5*ny, z+.5*nz, &xv, &yv, &zv) ;
+  MRIsampleVolume(mri, xv, yv, zv, &gray_val) ;
+  ll += log(h_gray->counts[nint(gray_val)]) ;
+  // MRIworldToVoxel(mri, x-.5*nx, y-.5*ny, z-.5*nz, &xv, &yv, &zv) ;
+  MRIsurfaceRASToVoxel(mri, x-.5*nx, y-.5*ny, z-.5*nz, &xv, &yv, &zv) ;
+  MRIsampleVolume(mri, xv, yv, zv, &white_val) ;
+  ll += log(h_white->counts[nint(white_val)]) ;
+  grad = white_val - gray_val ;
+  bin = nint((grad-h_grad->bins[0]) / h_grad->bin_size) ;
+  if (bin < 0)
+    bin = 0 ;
+  else if (bin >= h_grad->nbins)
+    bin = h_grad->nbins-1 ;
+  ll += log(h_grad->counts[bin]) ;
+  MRIsampleVolume(mri_gray_white, white_val, gray_val, 0, &val) ;
+  jll += log(val) ;
+  nsamples++ ;
 
 #if 0
-	return(ll/nsamples) ;
+  return(ll/nsamples) ;
 #else
-	return(jll/nsamples) ;
+  return(jll/nsamples) ;
 #endif
 }
 
 static double 
 mrisComputeDefectMRILogLikelihood(MRI_SURFACE *mris, MRI *mri, DEFECT *defect, 
-																	int *vertex_trans, HISTOGRAM *h_white, HISTOGRAM *h_gray, HISTOGRAM *h_grad, MRI *mri_gray_white)
+				  int *vertex_trans, HISTOGRAM *h_white, HISTOGRAM *h_gray, HISTOGRAM *h_grad, MRI *mri_gray_white)
 {
-	double sse = 0.0, nx, ny, nz, n1x, n1y, n1z, n2x, n2y, n2z, dx, dy, dz, d, len, total, ll, total_ll, jll, total_jll ;
-	int    i, vno, n, nvertices = 0, nsamples, m, vno2, bin ;
-	VERTEX *v, *vn ;
-	Real   white_val, gray_val, val0, wval, gval, xv, yv, zv, x, y, z, vtotal, val ;
+  double sse = 0.0, nx, ny, nz, n1x, n1y, n1z, n2x, n2y, n2z, dx, dy, dz, d, len, total, ll, total_ll, jll, total_jll ;
+  int    i, vno, n, nvertices = 0, nsamples, m, vno2, bin ;
+  VERTEX *v, *vn ;
+  Real   white_val, gray_val, val0, wval, gval, xv, yv, zv, x, y, z, vtotal, val ;
   double  origin[3], e0[3], e1[3], grad ;
   EDGE    edge ;
 
   for (total_jll = total_ll = 0.0, i = 0 ; i < defect->nvertices+defect->nborder ; i++)
   {
-		if (i < defect->nvertices)
-			vno = vertex_trans[defect->vertices[i]] ;
-		else
-			vno = vertex_trans[defect->border[i-defect->nvertices]] ;
-		if (vno < 0)
-			continue ;
+    if (i < defect->nvertices)
+      vno = vertex_trans[defect->vertices[i]] ;
+    else
+      vno = vertex_trans[defect->border[i-defect->nvertices]] ;
+    if (vno < 0)
+      continue ;
     v = &mris->vertices[vno] ;
     if (v->ripflag)
       continue ;
-		if (vno == Gdiag_no)
-			DiagBreak() ;
-		nvertices++ ;
-		mrisComputeDefectVertexNormal(mris, vno, &n1x, &n1y, &n1z) ;
-		vtotal = 0.0f ;
-		edge.vno1 = vno ;
-		for (nsamples = n = 0 ; n < v->vnum ; n++)
-		{
-			if (((vno == Gdiag_no) && (v->v[n] == Gx)) ||
-					((vno == Gx) && (v->v[n] == Gdiag_no)))
-				DiagBreak() ;
-			vn = &mris->vertices[v->v[n]] ;
-			mrisComputeDefectVertexNormal(mris, v->v[n], &n2x, &n2y, &n2z) ;
-			nx = (n1x + n2x) / 2 ; ny = (n1y + n2y) / 2 ; nz = (n1z + n2z) / 2 ;
-			len = sqrt(nx*nx + ny*ny + nz*nz) ;
-			if (FZERO(len))
-				len = 1 ;
-			nx /= len ; ny /= len ; nz /= len ;
-			
+    if (vno == Gdiag_no)
+      DiagBreak() ;
+    nvertices++ ;
+    mrisComputeDefectVertexNormal(mris, vno, &n1x, &n1y, &n1z) ;
+    vtotal = 0.0f ;
+    edge.vno1 = vno ;
+    for (nsamples = n = 0 ; n < v->vnum ; n++)
+    {
+      if (((vno == Gdiag_no) && (v->v[n] == Gx)) ||
+	  ((vno == Gx) && (v->v[n] == Gdiag_no)))
+	DiagBreak() ;
+      vn = &mris->vertices[v->v[n]] ;
+      mrisComputeDefectVertexNormal(mris, v->v[n], &n2x, &n2y, &n2z) ;
+      nx = (n1x + n2x) / 2 ; ny = (n1y + n2y) / 2 ; nz = (n1z + n2z) / 2 ;
+      len = sqrt(nx*nx + ny*ny + nz*nz) ;
+      if (FZERO(len))
+	len = 1 ;
+      nx /= len ; ny /= len ; nz /= len ;
+      
       /* sample MR values along line and build estimate of log likelihood
          as distance.
       */
       val0 = (v->val + vn->val) / 2 ;  /* gray/white border value */
       wval = (v->val2 + vn->val2) / 2 ;  /* white matter mean */
       gval = (v->val2bak + vn->val2bak) / 2 ;  /* gray matter mean */
-
-			/* traverse the edge connecting the two vertices in equal increments, sampling
-				 MRI volume outside and inside */
+      
+      /* traverse the edge connecting the two vertices in equal increments, sampling
+	 MRI volume outside and inside */
       dx = vn->origx - v->origx ; dy = vn->origy - v->origy ; dz = vn->origz - v->origz ;
-			len = sqrt(dx*dx + dy*dy + dz*dz) ;
+      len = sqrt(dx*dx + dy*dy + dz*dz) ;
 #define SAMPLE_DIST 0.25
-			len = SAMPLE_DIST / len ;  /* sample every 1/2 mm */
-			if (len > 1)
-				len = 1 ;
-
-			jll = ll = total = 0.0 ;
+      len = SAMPLE_DIST / len ;  /* sample every 1/2 mm */
+      if (len > 1)
+	len = 1 ;
+      
+      jll = ll = total = 0.0 ;
       for (d = 0 ; d <= 1 ; d += len, nsamples++)
       {
         x = v->origx+d*dx ; y = v->origy+d*dy ; z = v->origz+d*dz ;
-				MRIworldToVoxel(mri, x+.5*nx, y+.5*ny, z+.5*nz, &xv, &yv, &zv) ;
+	// MRIworldToVoxel(mri, x+.5*nx, y+.5*ny, z+.5*nz, &xv, &yv, &zv) ;
+	MRIsurfaceRASToVoxel(mri, x+.5*nx, y+.5*ny, z+.5*nz, &xv, &yv, &zv) ;
         MRIsampleVolume(mri, xv, yv, zv, &gray_val) ;
-				/*				ll += log(h_gray->counts[nint(gray_val)]) ;*/
+	/*				ll += log(h_gray->counts[nint(gray_val)]) ;*/
         total += fabs(gray_val-gval) ;
-				MRIworldToVoxel(mri, x-.5*nx, y-.5*ny, z-.5*nz, &xv, &yv, &zv) ;
+	// MRIworldToVoxel(mri, x-.5*nx, y-.5*ny, z-.5*nz, &xv, &yv, &zv) ;
+	MRIsurfaceRASToVoxel(mri, x-.5*nx, y-.5*ny, z-.5*nz, &xv, &yv, &zv) ;
         MRIsampleVolume(mri, xv, yv, zv, &white_val) ;
         total += fabs(white_val-wval) ;
-				/*				ll += log(h_white->counts[nint(white_val)]) ;*/
-				grad = white_val - gray_val ;
-				bin = nint((grad-h_grad->bins[0]) / h_grad->bin_size) ;
-				if (bin < 0)
-					bin = 0 ;
-				else if (bin >= h_grad->nbins)
+	/*				ll += log(h_white->counts[nint(white_val)]) ;*/
+	grad = white_val - gray_val ;
+	bin = nint((grad-h_grad->bins[0]) / h_grad->bin_size) ;
+	if (bin < 0)
+	  bin = 0 ;
+	else if (bin >= h_grad->nbins)
 					bin = h_grad->nbins-1 ;
-				/*				ll += log(h_grad->counts[bin]) ;*/
-				if (!finite(ll))
-					DiagBreak() ;
-				MRIsampleVolume(mri_gray_white, white_val, gray_val, 0, &val) ;
-				jll += log(val) ;
+	/*				ll += log(h_grad->counts[bin]) ;*/
+	if (!finite(ll))
+	  DiagBreak() ;
+	MRIsampleVolume(mri_gray_white, white_val, gray_val, 0, &val) ;
+	jll += log(val) ;
       }
 
-			/* add one sample from the centroid of any face that will get added */
-			edge.vno2 = vno2 = v->v[n] ;
-			mrisComputeCanonicalEdgeBasis(mris, &edge, &edge, origin, e0, e1) ;
+      /* add one sample from the centroid of any face that will get added */
+      edge.vno2 = vno2 = v->v[n] ;
+      mrisComputeCanonicalEdgeBasis(mris, &edge, &edge, origin, e0, e1) ;
       for (m = 0 ; m < v->vnum ; m++)
       {
-				if (v->v[m] == vno2)
-					continue ;
-				if (vertexNeighbor(mris, vno2, v->v[m]) && 
-						!isFace(mris,vno, vno2, v->v[m]) &&
-						!containsAnotherVertex(mris,vno,vno2,v->v[m],e0,e1,origin))
-          {
+	if (v->v[m] == vno2)
+	  continue ;
+	if (vertexNeighbor(mris, vno2, v->v[m]) && 
+	    !isFace(mris,vno, vno2, v->v[m]) &&
+	    !containsAnotherVertex(mris,vno,vno2,v->v[m],e0,e1,origin))
+	{
 #if 1
-						jll += mrisDefectFaceMRILogLikelihood(mris, vno, vno2, v->v[m],
-																									mri, defect, 
-																									h_white, h_gray, h_grad, mri_gray_white) ;
+	  jll += mrisDefectFaceMRILogLikelihood(mris, vno, vno2, v->v[m],
+						mri, defect, 
+						h_white, h_gray, h_grad, mri_gray_white) ;
 #else
-						VERTEX *v0, *v1, *v2 ;
-						float  x, y, z ;
-
-						v0 = v ; v1 = &mris->vertices[vno2] ; v2 = &mris->vertices[v->v[m]] ;
-						x = (v1->origx + v2->origx) / 2.0f ;
-						y = (v1->origy + v2->origy) / 2.0f ;
-						z = (v1->origz + v2->origz) / 2.0f ;
-						
-						/* now bisect v0->bisector line */
-						x = (v0->origx + x) / 2.0f ;
-						y = (v0->origy + y) / 2.0f ;
-						z = (v0->origz + z) / 2.0f ;
-						nsamples++ ;
-
-						MRIworldToVoxel(mri, x+.5*nx, y+.5*ny, z+.5*nz, &xv, &yv, &zv) ;
-						MRIsampleVolume(mri, xv, yv, zv, &gray_val) ;
-						ll += log(h_gray->counts[nint(gray_val)]) ;
-						total += fabs(gray_val-gval) ;
-						MRIworldToVoxel(mri, x-.5*nx, y-.5*ny, z-.5*nz, &xv, &yv, &zv) ;
-						MRIsampleVolume(mri, xv, yv, zv, &white_val) ;
-						ll += log(h_white->counts[nint(white_val)]) ;
-						total += fabs(white_val-wval) ;
-						grad = white_val - gray_val ;
-						bin = nint((grad-h_grad->bins[0]) / h_grad->bin_size) ;
-						if (bin < 0)
-							bin = 0 ;
-						else if (bin >= h_grad->nbins)
-							bin = h_grad->nbins-1 ;
-						ll += log(h_grad->counts[bin]) ;
+	  VERTEX *v0, *v1, *v2 ;
+	  float  x, y, z ;
+	  
+	  v0 = v ; v1 = &mris->vertices[vno2] ; v2 = &mris->vertices[v->v[m]] ;
+	  x = (v1->origx + v2->origx) / 2.0f ;
+	  y = (v1->origy + v2->origy) / 2.0f ;
+	  z = (v1->origz + v2->origz) / 2.0f ;
+	  
+	  /* now bisect v0->bisector line */
+	  x = (v0->origx + x) / 2.0f ;
+	  y = (v0->origy + y) / 2.0f ;
+	  z = (v0->origz + z) / 2.0f ;
+	  nsamples++ ;
+	  
+	  // MRIworldToVoxel(mri, x+.5*nx, y+.5*ny, z+.5*nz, &xv, &yv, &zv) ;
+	  MRIsurfaceRASToVoxel(mri, x+.5*nx, y+.5*ny, z+.5*nz, &xv, &yv, &zv) ;
+	  MRIsampleVolume(mri, xv, yv, zv, &gray_val) ;
+	  ll += log(h_gray->counts[nint(gray_val)]) ;
+	  total += fabs(gray_val-gval) ;
+	  // MRIworldToVoxel(mri, x-.5*nx, y-.5*ny, z-.5*nz, &xv, &yv, &zv) ;
+	  MRIsurfaceRASToVoxel(mri, x-.5*nx, y-.5*ny, z-.5*nz, &xv, &yv, &zv) ;
+	  MRIsampleVolume(mri, xv, yv, zv, &white_val) ;
+	  ll += log(h_white->counts[nint(white_val)]) ;
+	  total += fabs(white_val-wval) ;
+	  grad = white_val - gray_val ;
+	  bin = nint((grad-h_grad->bins[0]) / h_grad->bin_size) ;
+	  if (bin < 0)
+	    bin = 0 ;
+	  else if (bin >= h_grad->nbins)
+	    bin = h_grad->nbins-1 ;
+	  ll += log(h_grad->counts[bin]) ;
 #endif
-					}
-			}
-
-			if (!finite(total))
-				DiagBreak() ;
-			vtotal += total / (float)nsamples ;  /* 11 samples */
-			total_ll += ll / (float)nsamples ;
-			total_jll += jll / (float)nsamples ;
-		}
-		if (v->vnum == 0)
-			continue ;
-		sse += (vtotal / (float)v->vnum) ;
 	}
+      }
+
+      if (!finite(total))
+	DiagBreak() ;
+      vtotal += total / (float)nsamples ;  /* 11 samples */
+      total_ll += ll / (float)nsamples ;
+      total_jll += jll / (float)nsamples ;
+    }
+    if (v->vnum == 0)
+      continue ;
+    sse += (vtotal / (float)v->vnum) ;
+  }
 #if 0
-	return(total_ll/*/(double)nvertices*/) ;
+  return(total_ll/*/(double)nvertices*/) ;
 #else
-	return(total_jll/*/(double)nvertices*/) ;
+  return(total_jll/*/(double)nvertices*/) ;
 #endif
 }
 #if 0
 static double
 mrisComputeDefectMRIEnergy(MRI_SURFACE *mris, MRI *mri, DEFECT *defect, int *vertex_trans)
 {
-	double sse = 0.0, nx, ny, nz, n1x, n1y, n1z, n2x, n2y, n2z, dx, dy, dz, d, len, total ;
-	int    i, vno, n, nvertices = 0, nsamples, m, vno2 ;
-	VERTEX *v, *vn ;
-	Real   val, val0, wval, gval, xv, yv, zv, x, y, z, vtotal ;
+  double sse = 0.0, nx, ny, nz, n1x, n1y, n1z, n2x, n2y, n2z, dx, dy, dz, d, len, total ;
+  int    i, vno, n, nvertices = 0, nsamples, m, vno2 ;
+  VERTEX *v, *vn ;
+  Real   val, val0, wval, gval, xv, yv, zv, x, y, z, vtotal ;
   double  origin[3], e0[3], e1[3] ;
   EDGE    edge ;
 
   for (i = 0 ; i < defect->nvertices+defect->nborder ; i++)
   {
-		if (i < defect->nvertices)
-			vno = vertex_trans[defect->vertices[i]] ;
-		else
-			vno = vertex_trans[defect->border[i-defect->nvertices]] ;
-		if (vno < 0)
-			continue ;
+    if (i < defect->nvertices)
+      vno = vertex_trans[defect->vertices[i]] ;
+    else
+      vno = vertex_trans[defect->border[i-defect->nvertices]] ;
+    if (vno < 0)
+      continue ;
     v = &mris->vertices[vno] ;
     if (v->ripflag)
       continue ;
-		if (vno == Gdiag_no)
-			DiagBreak() ;
-		nvertices++ ;
-		mrisComputeDefectVertexNormal(mris, vno, &n1x, &n1y, &n1z) ;
-		vtotal = 0.0f ;
-		edge.vno1 = vno ;
-		for (nsamples = n = 0 ; n < v->vnum ; n++)
-		{
-			if (((vno == Gdiag_no) && (v->v[n] == Gx)) ||
-					((vno == Gx) && (v->v[n] == Gdiag_no)))
-				DiagBreak() ;
-			vn = &mris->vertices[v->v[n]] ;
-			mrisComputeDefectVertexNormal(mris, v->v[n], &n2x, &n2y, &n2z) ;
-			nx = (n1x + n2x) / 2 ; ny = (n1y + n2y) / 2 ; nz = (n1z + n2z) / 2 ;
-			len = sqrt(nx*nx + ny*ny + nz*nz) ;
-			if (FZERO(len))
-				len = 1 ;
-			nx /= len ; ny /= len ; nz /= len ;
-			
+    if (vno == Gdiag_no)
+      DiagBreak() ;
+    nvertices++ ;
+    mrisComputeDefectVertexNormal(mris, vno, &n1x, &n1y, &n1z) ;
+    vtotal = 0.0f ;
+    edge.vno1 = vno ;
+    for (nsamples = n = 0 ; n < v->vnum ; n++)
+    {
+      if (((vno == Gdiag_no) && (v->v[n] == Gx)) ||
+	  ((vno == Gx) && (v->v[n] == Gdiag_no)))
+	DiagBreak() ;
+      vn = &mris->vertices[v->v[n]] ;
+      mrisComputeDefectVertexNormal(mris, v->v[n], &n2x, &n2y, &n2z) ;
+      nx = (n1x + n2x) / 2 ; ny = (n1y + n2y) / 2 ; nz = (n1z + n2z) / 2 ;
+      len = sqrt(nx*nx + ny*ny + nz*nz) ;
+      if (FZERO(len))
+	len = 1 ;
+      nx /= len ; ny /= len ; nz /= len ;
+      
       /* sample MR values along line and build estimate of log likelihood
          as distance.
       */
@@ -27267,67 +27323,71 @@ mrisComputeDefectMRIEnergy(MRI_SURFACE *mris, MRI *mri, DEFECT *defect, int *ver
       wval = (v->val2 + vn->val2) / 2 ;  /* white matter mean */
       gval = (v->val2bak + vn->val2bak) / 2 ;  /* gray matter mean */
 
-			/* traverse the edge connecting the two vertices in equal increments, sampling
-				 MRI volume outside and inside */
+      /* traverse the edge connecting the two vertices in equal increments, sampling
+	 MRI volume outside and inside */
       dx = vn->origx - v->origx ; dy = vn->origy - v->origy ; dz = vn->origz - v->origz ;
-			len = sqrt(dx*dx + dy*dy + dz*dz) ;
-			len = .5 / len ;  /* sample every 1/2 mm */
+      len = sqrt(dx*dx + dy*dy + dz*dz) ;
+      len = .5 / len ;  /* sample every 1/2 mm */
 
-			total = 0.0 ;
+      total = 0.0 ;
       for (d = 0 ; d <= 1 ; d += len, nsamples++)
       {
         x = v->origx+d*dx ; y = v->origy+d*dy ; z = v->origz+d*dz ;
-				MRIworldToVoxel(mri, x+.5*nx, y+.5*ny, z+.5*nz, &xv, &yv, &zv) ;
+	// MRIworldToVoxel(mri, x+.5*nx, y+.5*ny, z+.5*nz, &xv, &yv, &zv) ;
+	MRIsurfaceRASToVoxel(mri, x+.5*nx, y+.5*ny, z+.5*nz, &xv, &yv, &zv) ;
         MRIsampleVolume(mri, xv, yv, zv, &val) ;
         total += fabs(val-gval) ;
-				MRIworldToVoxel(mri, x-.5*nx, y-.5*ny, z-.5*nz, &xv, &yv, &zv) ;
+	// MRIworldToVoxel(mri, x-.5*nx, y-.5*ny, z-.5*nz, &xv, &yv, &zv) ;
+	MRIsurfaceRASToVoxel(mri, x-.5*nx, y-.5*ny, z-.5*nz, &xv, &yv, &zv) ;
         MRIsampleVolume(mri, xv, yv, zv, &val) ;
         total += fabs(val-wval) ;
       }
 
-			/* add one sample from the centroid of any face that will get added */
-			edge.vno2 = vno2 = v->v[n] ;
-			mrisComputeCanonicalEdgeBasis(mris, &edge, &edge, origin, e0, e1) ;
+      /* add one sample from the centroid of any face that will get added */
+      edge.vno2 = vno2 = v->v[n] ;
+      mrisComputeCanonicalEdgeBasis(mris, &edge, &edge, origin, e0, e1) ;
       for (m = 0 ; m < v->vnum ; m++)
       {
-				if (v->v[m] == vno2)
-					continue ;
-				if (vertexNeighbor(mris, vno2, v->v[m]) && 
-						!isFace(mris,vno, vno2, v->v[m]) &&
-						!containsAnotherVertex(mris,vno,vno2,v->v[m],e0,e1,origin))
-          {
-						VERTEX *v0, *v1, *v2 ;
-						float  x, y, z ;
-
-						v0 = v ; v1 = &mris->vertices[vno2] ; v2 = &mris->vertices[v->v[m]] ;
-						x = (v1->origx + v2->origx) / 2.0f ;
-						y = (v1->origy + v2->origy) / 2.0f ;
-						z = (v1->origz + v2->origz) / 2.0f ;
+	if (v->v[m] == vno2)
+	  continue ;
+	if (vertexNeighbor(mris, vno2, v->v[m]) && 
+	    !isFace(mris,vno, vno2, v->v[m]) &&
+	    !containsAnotherVertex(mris,vno,vno2,v->v[m],e0,e1,origin))
+	{
+	  VERTEX *v0, *v1, *v2 ;
+	  float  x, y, z ;
 						
-						/* now bisect v0->bisector line */
-						x = (v0->origx + x) / 2.0f ;
-						y = (v0->origy + y) / 2.0f ;
-						z = (v0->origz + z) / 2.0f ;
-						nsamples++ ;
-
-						MRIworldToVoxel(mri, x+.5*nx, y+.5*ny, z+.5*nz, &xv, &yv, &zv) ;
-						MRIsampleVolume(mri, xv, yv, zv, &val) ;
-						total += fabs(val-gval) ;
-						MRIworldToVoxel(mri, x-.5*nx, y-.5*ny, z-.5*nz, &xv, &yv, &zv) ;
-						MRIsampleVolume(mri, xv, yv, zv, &val) ;
-						total += fabs(val-wval) ;
-					}
-			}
-
-			if (!finite(total))
-				DiagBreak() ;
-			vtotal += total / (float)nsamples ;  /* 11 samples */
-		}
-		if (v->vnum == 0)
-			continue ;
-		sse += (vtotal / (float)v->vnum) ;
+	  v0 = v ; v1 = &mris->vertices[vno2] ; v2 = &mris->vertices[v->v[m]] ;
+	  x = (v1->origx + v2->origx) / 2.0f ;
+	  y = (v1->origy + v2->origy) / 2.0f ;
+	  z = (v1->origz + v2->origz) / 2.0f ;
+	  
+	  /* now bisect v0->bisector line */
+	  x = (v0->origx + x) / 2.0f ;
+	  y = (v0->origy + y) / 2.0f ;
+	  z = (v0->origz + z) / 2.0f ;
+	  nsamples++ ;
+	  
+	  // MRIworldToVoxel(mri, x+.5*nx, y+.5*ny, z+.5*nz, &xv, &yv, &zv) ;
+	  MRIsurfaceRASToVoxel(mri, x+.5*nx, y+.5*ny, z+.5*nz, &xv, &yv, &zv) ;
+	  MRIsampleVolume(mri, xv, yv, zv, &val) ;
+	  total += fabs(val-gval) ;
+	  // MRIworldToVoxel(mri, x-.5*nx, y-.5*ny, z-.5*nz, &xv, &yv, &zv) ;
+	  MRIsurfaceRASToVoxel(mri, x-.5*nx, y-.5*ny, z-.5*nz, &xv, &yv, &zv) ;
+	  MRIsampleVolume(mri, xv, yv, zv, &val) ;
+	  total += fabs(val-wval) ;
 	}
-	return(sse) ;
+      }
+      
+      if (!finite(total))
+	DiagBreak() ;
+      vtotal += total / (float)nsamples ;  /* 11 samples */
+    }
+    if (v->vnum == 0)
+      continue ;
+    sse += (vtotal / (float)v->vnum) ;
+  }
+  return(sse) ;
 }
 #endif
 
@@ -27335,57 +27395,57 @@ mrisComputeDefectMRIEnergy(MRI_SURFACE *mris, MRI *mri, DEFECT *defect, int *ver
 static int
 mrisComputeDefectVertexNormal(MRI_SURFACE *mris, int vno, double *pnx, double *pny, double *pnz)
 {
-	VERTEX  *v, *vn ;
-	int     n ;
-	double  a0[3], an[3], ac0[3], acn[3], a_cross[3], ac_cross[3], dot, xc[3], nx, ny, nz, 
-		      ax, ay, az, len ;
+  VERTEX  *v, *vn ;
+  int     n ;
+  double  a0[3], an[3], ac0[3], acn[3], a_cross[3], ac_cross[3], dot, xc[3], nx, ny, nz, 
+    ax, ay, az, len ;
+  
+  v = &mris->vertices[vno] ;
+  if (v->vnum < 2)
+  {
+    *pnx = *pny = *pnz = 0 ;
+    return(ERROR_BADPARM) ;
+  }
 
-	v = &mris->vertices[vno] ;
-	if (v->vnum < 2)
-	{
-		*pnx = *pny = *pnz = 0 ;
-		return(ERROR_BADPARM) ;
-	}
+  /* in original space */
+  vn = &mris->vertices[v->v[0]] ;
+  ax = vn->origx - v->origx ; ay = vn->origy - v->origy ; az = vn->origz - v->origz ;
+  a0[0] = ax ; a0[1] = ay ; a0[2] = az ;
 
-	/* in original space */
-	vn = &mris->vertices[v->v[0]] ;
-	ax = vn->origx - v->origx ; ay = vn->origy - v->origy ; az = vn->origz - v->origz ;
-	a0[0] = ax ; a0[1] = ay ; a0[2] = az ;
+  /* on sphere */
+  ax = vn->cx - v->cx ; ay = vn->cy - v->cy ; az = vn->cz - v->cz ;
+  ac0[0] = ax ; ac0[1] = ay ; ac0[2] = az ;
+  
+  xc[0] = v->cx ; xc[1] = v->cy ; xc[2] = v->cz ;   /* vector for orienting cross products */
+  
+  nx = ny = nz = 0.0 ;
+  for (n = 1 ; n < v->vnum ; n++)
+  {
+    vn = &mris->vertices[v->v[n]] ;
+    
+    /* do original surface */
+    ax = vn->origx - v->origx ; ay = vn->origy - v->origy ; az = vn->origz - v->origz ;
+    an[0] = ax ; an[1] = ay ; an[2] = az ;
+    CROSS(a_cross, a0, an) ;
 
-	/* on sphere */
-	ax = vn->cx - v->cx ; ay = vn->cy - v->cy ; az = vn->cz - v->cz ;
-	ac0[0] = ax ; ac0[1] = ay ; ac0[2] = az ;
-
-	xc[0] = v->cx ; xc[1] = v->cy ; xc[2] = v->cz ;   /* vector for orienting cross products */
-
-	nx = ny = nz = 0.0 ;
-	for (n = 1 ; n < v->vnum ; n++)
-	{
-		vn = &mris->vertices[v->v[n]] ;
-
-		/* do original surface */
-		ax = vn->origx - v->origx ; ay = vn->origy - v->origy ; az = vn->origz - v->origz ;
-		an[0] = ax ; an[1] = ay ; an[2] = az ;
-		CROSS(a_cross, a0, an) ;
-
-		/* do it on sphere, to orient things */
-		ax = vn->cx - v->cx ; ay = vn->cy - v->cy ; az = vn->cz - v->cz ;
-		acn[0] = ax ; acn[1] = ay ; acn[2] = az ;
-		CROSS(ac_cross, ac0, acn) ;
-		dot = DOT(ac_cross, xc) ;
-		if (dot < 0)
-		{ 
-			a_cross[0] *= -1 ; a_cross[1] *= -1 ; a_cross[2] *= -1 ; 
-		}
-		nx += a_cross[0] ; ny += a_cross[1] ; nz += a_cross[2] ; 
-	}
-
-	len = sqrt(nx*nx + ny*ny + nz*nz) ;
-	if (FZERO(len))
-		len = 1 ;
-	nx /= len ; ny /= len ; nz /= len ;
-	*pnx = nx ; *pny = ny ; *pnz = nz ;
-	return(NO_ERROR) ;
+    /* do it on sphere, to orient things */
+    ax = vn->cx - v->cx ; ay = vn->cy - v->cy ; az = vn->cz - v->cz ;
+    acn[0] = ax ; acn[1] = ay ; acn[2] = az ;
+    CROSS(ac_cross, ac0, acn) ;
+    dot = DOT(ac_cross, xc) ;
+    if (dot < 0)
+    { 
+      a_cross[0] *= -1 ; a_cross[1] *= -1 ; a_cross[2] *= -1 ; 
+    }
+    nx += a_cross[0] ; ny += a_cross[1] ; nz += a_cross[2] ; 
+  }
+  
+  len = sqrt(nx*nx + ny*ny + nz*nz) ;
+  if (FZERO(len))
+    len = 1 ;
+  nx /= len ; ny /= len ; nz /= len ;
+  *pnx = nx ; *pny = ny ; *pnz = nz ;
+  return(NO_ERROR) ;
 }
 
 static double  l_mri   = 1.0 ;
@@ -27395,127 +27455,127 @@ static double  l_qcurv = 0.0 ;
 
 static double
 mrisComputeDefectLogLikelihood(MRI_SURFACE *mris, MRI *mri, DEFECT *defect, int *vertex_trans, DEFECT_PATCH *dp,
-															 HISTOGRAM *h_k1, HISTOGRAM *h_k2, HISTOGRAM *h_white, HISTOGRAM *h_gray,
-															 HISTOGRAM *h_border, HISTOGRAM *h_grad,MRI *mri_gray_white,
-															 HISTOGRAM *h_dot, TOPOLOGY_PARMS *parms)
+			       HISTOGRAM *h_k1, HISTOGRAM *h_k2, HISTOGRAM *h_white, HISTOGRAM *h_gray,
+			       HISTOGRAM *h_border, HISTOGRAM *h_grad,MRI *mri_gray_white,
+			       HISTOGRAM *h_dot, TOPOLOGY_PARMS *parms)
 {
-	static int first_time = 1 ;
-	double ll = 0.0 ;
-
-	if (first_time)
-	{
-		char *cp ;
-		l_mri = parms->l_mri ; 
-		l_unmri = parms->l_unmri ; 
-		l_curv = parms->l_curv ; 
-		if ((cp = getenv("QCURV")) != NULL)
-		{
-			l_qcurv = atof(cp) ;
-			printf("setting qcurv = %2.3f\n", l_qcurv) ;
-		}
-		if ((cp = getenv("CURV")) != NULL)
-		{
-			l_curv = atof(cp) ;
-			printf("setting curv = %2.3f\n", l_curv) ;
-		}
-		if ((cp = getenv("MRI")) != NULL)
-		{
-			l_mri = atof(cp) ;
-			printf("setting mri = %2.3f\n", l_mri) ;
-		}
-		if ((cp = getenv("UNMRI")) != NULL)
-		{
-			l_unmri = atof(cp) ;
-			printf("setting unmri = %2.3f\n", l_unmri) ;
-		}
-		first_time = 0 ;
-		if (!FZERO(l_mri))
-			printf("l_mri = %2.2f ", l_mri) ;
-		if (!FZERO(l_unmri))
-			printf("l_unmri = %2.2f ", l_unmri) ;
-		if (!FZERO(l_curv))
-			printf("l_curv = %2.2f ", l_curv) ;
-		printf("\n") ;
-	}
-	if (!FZERO(l_mri))
-		ll += l_mri * mrisComputeDefectMRILogLikelihood(mris, mri, defect, vertex_trans, h_white, h_gray,h_grad, mri_gray_white) ;
-	if (!FZERO(l_unmri))
-		ll += l_unmri * mrisComputeDefectMRILogUnlikelihood(mris, mri, dp, vertex_trans, h_border) ;
-	if (!FZERO(l_qcurv))
-		ll += l_qcurv * mrisComputeDefectCurvatureLogLikelihood(mris, defect, vertex_trans, h_k1, h_k2) ;
-	if (!FZERO(l_curv))
-		ll += l_curv * mrisComputeDefectNormalDotLogLikelihood(mris, defect, vertex_trans, h_dot) ;
-	return(ll) ;
+  static int first_time = 1 ;
+  double ll = 0.0 ;
+  
+  if (first_time)
+  {
+    char *cp ;
+    l_mri = parms->l_mri ; 
+    l_unmri = parms->l_unmri ; 
+    l_curv = parms->l_curv ; 
+    if ((cp = getenv("QCURV")) != NULL)
+    {
+      l_qcurv = atof(cp) ;
+      printf("setting qcurv = %2.3f\n", l_qcurv) ;
+    }
+    if ((cp = getenv("CURV")) != NULL)
+    {
+      l_curv = atof(cp) ;
+      printf("setting curv = %2.3f\n", l_curv) ;
+    }
+    if ((cp = getenv("MRI")) != NULL)
+    {
+      l_mri = atof(cp) ;
+      printf("setting mri = %2.3f\n", l_mri) ;
+    }
+    if ((cp = getenv("UNMRI")) != NULL)
+    {
+      l_unmri = atof(cp) ;
+      printf("setting unmri = %2.3f\n", l_unmri) ;
+    }
+    first_time = 0 ;
+    if (!FZERO(l_mri))
+      printf("l_mri = %2.2f ", l_mri) ;
+    if (!FZERO(l_unmri))
+      printf("l_unmri = %2.2f ", l_unmri) ;
+    if (!FZERO(l_curv))
+      printf("l_curv = %2.2f ", l_curv) ;
+    printf("\n") ;
+  }
+  if (!FZERO(l_mri))
+    ll += l_mri * mrisComputeDefectMRILogLikelihood(mris, mri, defect, vertex_trans, h_white, h_gray,h_grad, mri_gray_white) ;
+  if (!FZERO(l_unmri))
+    ll += l_unmri * mrisComputeDefectMRILogUnlikelihood(mris, mri, dp, vertex_trans, h_border) ;
+  if (!FZERO(l_qcurv))
+    ll += l_qcurv * mrisComputeDefectCurvatureLogLikelihood(mris, defect, vertex_trans, h_k1, h_k2) ;
+  if (!FZERO(l_curv))
+    ll += l_curv * mrisComputeDefectNormalDotLogLikelihood(mris, defect, vertex_trans, h_dot) ;
+  return(ll) ;
 }
 #if 0
 static double
 mrisComputeDefectCurvatureEnergy(MRI_SURFACE *mris, DEFECT *defect, int *vertex_trans)
 {
-	double sse = 0.0, nx, ny, nz, dx, dy, dz, vtotal, dot ;
-	int    i, vno, n, nvertices = 0 ;
-	VERTEX *v, *vn ;
-
+  double sse = 0.0, nx, ny, nz, dx, dy, dz, vtotal, dot ;
+  int    i, vno, n, nvertices = 0 ;
+  VERTEX *v, *vn ;
+  
   for (i = 0 ; i < defect->nvertices+defect->nborder ; i++)
   {
-		if (i < defect->nvertices)
-			vno = vertex_trans[defect->vertices[i]] ;
-		else
-			vno = vertex_trans[defect->border[i-defect->nvertices]] ;
-		if (vno < 0)
-			continue ;
+    if (i < defect->nvertices)
+      vno = vertex_trans[defect->vertices[i]] ;
+    else
+      vno = vertex_trans[defect->border[i-defect->nvertices]] ;
+    if (vno < 0)
+      continue ;
     v = &mris->vertices[vno] ;
     if (v->ripflag)
       continue ;
-		nvertices++ ;
-		mrisComputeDefectVertexNormal(mris, vno, &nx, &ny, &nz) ;
-		vtotal = 0.0f ;
-		for (n = 0 ; n < v->vnum ; n++)
-		{
-			vn = &mris->vertices[v->v[n]] ;
-			dx = vn->origx - v->origx ; dy = vn->origy - v->origy ; dz = vn->origz - v->origz ; 
-			dot = dx*nx + dy*ny + dz*nz ;
-			vtotal += (dot*dot) ;
-			if (!finite(vtotal))
-				DiagBreak() ;
-		}
-		if (v->vnum == 0)
-			continue ;
-		sse += (vtotal / (float)v->vnum) ;
-	}
-	return(sse) ;
+    nvertices++ ;
+    mrisComputeDefectVertexNormal(mris, vno, &nx, &ny, &nz) ;
+    vtotal = 0.0f ;
+    for (n = 0 ; n < v->vnum ; n++)
+    {
+      vn = &mris->vertices[v->v[n]] ;
+      dx = vn->origx - v->origx ; dy = vn->origy - v->origy ; dz = vn->origz - v->origz ; 
+      dot = dx*nx + dy*ny + dz*nz ;
+      vtotal += (dot*dot) ;
+      if (!finite(vtotal))
+	DiagBreak() ;
+    }
+    if (v->vnum == 0)
+      continue ;
+    sse += (vtotal / (float)v->vnum) ;
+  }
+  return(sse) ;
 }
 #endif
 static int
 mrisFindSecondNeighborhood(MRI_SURFACE *mris, int vno, int *nbrs, int *num_nbrs)
 {
-	int     n, n2 ;
-	VERTEX  *v, *vn, *vn2 ;
+  int     n, n2 ;
+  VERTEX  *v, *vn, *vn2 ;
+  
+  *num_nbrs = 0 ;
+  v = &mris->vertices[vno] ;  v->marked = 1 ;
+  for (n = 0 ; n < v->vnum ; n++)
+  {
+    vn = &mris->vertices[v->v[n]] ; vn->marked = 1 ;
+    nbrs[*num_nbrs] = v->v[n] ; *num_nbrs += 1 ;
+  }
 
-	*num_nbrs = 0 ;
-	v = &mris->vertices[vno] ;  v->marked = 1 ;
-	for (n = 0 ; n < v->vnum ; n++)
-	{
-		vn = &mris->vertices[v->v[n]] ; vn->marked = 1 ;
-		nbrs[*num_nbrs] = v->v[n] ; *num_nbrs += 1 ;
-	}
-
-	for (n = 0 ; n < v->vnum ; n++)
-	{
-		vn = &mris->vertices[v->v[n]] ;
-		for (n2 = 0 ; n2 < vn->vnum ; n2++)
-		{
-			vn2 = &mris->vertices[vn->v[n2]] ;
-			if (vn2->marked)
-				continue ;
-			vn2->marked = 1 ;
-			nbrs[*num_nbrs] = vn->v[n2] ; *num_nbrs += 1 ;
-		}
-	}
-
-	v->marked = 0 ;
-	for (n = 0 ; n < *num_nbrs ; n++)
-		mris->vertices[nbrs[n]].marked = 0 ;
-	return(NO_ERROR) ;
+  for (n = 0 ; n < v->vnum ; n++)
+  {
+    vn = &mris->vertices[v->v[n]] ;
+    for (n2 = 0 ; n2 < vn->vnum ; n2++)
+    {
+      vn2 = &mris->vertices[vn->v[n2]] ;
+      if (vn2->marked)
+	continue ;
+      vn2->marked = 1 ;
+      nbrs[*num_nbrs] = vn->v[n2] ; *num_nbrs += 1 ;
+    }
+  }
+  
+  v->marked = 0 ;
+  for (n = 0 ; n < *num_nbrs ; n++)
+    mris->vertices[nbrs[n]].marked = 0 ;
+  return(NO_ERROR) ;
 }
 #if 0
 static double
@@ -27527,12 +27587,12 @@ mrisComputeDefectQuadraticCurvatureEnergy(MRI_SURFACE *mris, DEFECT *defect, int
   VERTEX   *v, *vn ;
   float    ui, vi, rsq, a, b ;
   double   sse = 0.0 ;
-	int      nbrs[MAX_NBRS], num_nbrs ;
+  int      nbrs[MAX_NBRS], num_nbrs ;
 
-	MRISsaveVertexPositions(mris, TMP_VERTICES) ;
-	MRISrestoreVertexPositions(mris, ORIGINAL_VERTICES) ;
-	MRIScomputeMetricProperties(mris) ;
-
+  MRISsaveVertexPositions(mris, TMP_VERTICES) ;
+  MRISrestoreVertexPositions(mris, ORIGINAL_VERTICES) ;
+  MRIScomputeMetricProperties(mris) ;
+  
   mrisComputeTangentPlanes(mris) ;
   v_n = VectorAlloc(3, MATRIX_REAL) ;
   v_A = VectorAlloc(2, MATRIX_REAL) ;
@@ -27541,19 +27601,19 @@ mrisComputeDefectQuadraticCurvatureEnergy(MRI_SURFACE *mris, DEFECT *defect, int
   v_nbr = VectorAlloc(3, MATRIX_REAL) ;
   for (i = 0 ; i < defect->nvertices+defect->nborder ; i++)
   {
-		if (i < defect->nvertices)
-			vno = vertex_trans[defect->vertices[i]] ;
-		else
-			vno = vertex_trans[defect->border[i-defect->nvertices]] ;
-		if (vno < 0)
-			continue ;
+    if (i < defect->nvertices)
+      vno = vertex_trans[defect->vertices[i]] ;
+    else
+      vno = vertex_trans[defect->border[i-defect->nvertices]] ;
+    if (vno < 0)
+      continue ;
     v = &mris->vertices[vno] ;
     if (v->ripflag || v->vnum <= 0)
       continue ;
-		mrisFindSecondNeighborhood(mris, vno, nbrs, &num_nbrs) ;
-		if (num_nbrs < 3)
-			continue ;
-		MRIScomputeSecondFundamentalFormAtVertex(mris, vno, nbrs, num_nbrs) ;
+    mrisFindSecondNeighborhood(mris, vno, nbrs, &num_nbrs) ;
+    if (num_nbrs < 3)
+      continue ;
+    MRIScomputeSecondFundamentalFormAtVertex(mris, vno, nbrs, num_nbrs) ;
     v_Y = VectorAlloc(num_nbrs, MATRIX_REAL) ;    /* heights above TpS */
     m_R = MatrixAlloc(num_nbrs, 2, MATRIX_REAL) ; /* radial distances */
     VECTOR_LOAD(v_n, v->nx, v->ny, v->nz) ;
@@ -27589,17 +27649,17 @@ mrisComputeDefectQuadraticCurvatureEnergy(MRI_SURFACE *mris, DEFECT *defect, int
   VectorFree(&v_n) ; VectorFree(&v_e1) ; VectorFree(&v_e2) ; 
   VectorFree(&v_nbr) ; VectorFree(&v_A) ;
 
-	MRISrestoreVertexPositions(mris, TMP_VERTICES) ;
-	return(sse) ;
+  MRISrestoreVertexPositions(mris, TMP_VERTICES) ;
+  return(sse) ;
 }
 #endif
 
 
 static int
 mrisTessellateDefect(MRI_SURFACE *mris, MRI_SURFACE *mris_corrected, DEFECT *defect, int *vertex_trans, 
-										 MRI *mri, HISTOGRAM *h_k1,HISTOGRAM *h_k2,HISTOGRAM *h_white, HISTOGRAM *h_gray,
-										 HISTOGRAM *h_border, HISTOGRAM *h_grad, MRI *mri_gray_white,
-										 HISTOGRAM *h_dot, TOPOLOGY_PARMS *parms)
+		     MRI *mri, HISTOGRAM *h_k1,HISTOGRAM *h_k2,HISTOGRAM *h_white, HISTOGRAM *h_gray,
+		     HISTOGRAM *h_border, HISTOGRAM *h_grad, MRI *mri_gray_white,
+		     HISTOGRAM *h_dot, TOPOLOGY_PARMS *parms)
 {
 #define MAX_DEFECT_VERTICES 200000
   int    i, j, vlist[MAX_DEFECT_VERTICES], n, nvertices, nedges, ndiscarded ;
@@ -27616,8 +27676,8 @@ mrisTessellateDefect(MRI_SURFACE *mris, MRI_SURFACE *mris_corrected, DEFECT *def
   */
   for (nvertices = i = 0 ; i < defect->nvertices ; i++)
   {
-		if (nvertices >= MAX_DEFECT_VERTICES)
-			ErrorExit(ERROR_NOMEMORY, "mrisTessellateDefect: too many vertices in defect (%d)",
+    if (nvertices >= MAX_DEFECT_VERTICES)
+      ErrorExit(ERROR_NOMEMORY, "mrisTessellateDefect: too many vertices in defect (%d)",
 								MAX_DEFECT_VERTICES) ;
     if (defect->vertices[i] == Gdiag_no)
       DiagBreak() ;
@@ -27664,23 +27724,24 @@ mrisTessellateDefect(MRI_SURFACE *mris, MRI_SURFACE *mris_corrected, DEFECT *def
         DiagBreak() ;
       if (vertex_trans[vlist[j]] == Gdiag_no || vertex_trans[vlist[i]] == Gdiag_no)
         DiagBreak() ;
-			mrisComputeOrigNormal(mris, vlist[i], norm1) ; 
-			mrisComputeOrigNormal(mris, vlist[j], norm2) ;
-			nx = (norm1[0] + norm2[0]) / 2 ; ny = (norm1[1] + norm2[1]) / 2 ;
-			nz = (norm1[2] + norm2[2]) / 2 ;
-			total = sqrt(nx*nx + ny*ny + nz*nz) ;
-			if (FZERO(total))
-				total = 1 ;
-			nx /= total ; ny /= total ; nz /= total ;
+      mrisComputeOrigNormal(mris, vlist[i], norm1) ; 
+      mrisComputeOrigNormal(mris, vlist[j], norm2) ;
+      nx = (norm1[0] + norm2[0]) / 2 ; ny = (norm1[1] + norm2[1]) / 2 ;
+      nz = (norm1[2] + norm2[2]) / 2 ;
+      total = sqrt(nx*nx + ny*ny + nz*nz) ;
+      if (FZERO(total))
+	total = 1 ;
+      nx /= total ; ny /= total ; nz /= total ;
       v2 = &mris->vertices[vlist[j]] ;
       x = (v->origx+v2->origx)/2 ; y = (v->origy+v2->origy)/2 ; 
 			z = (v->origz+v2->origz)/2 ;
-      MRIworldToVoxel(mri, x, y, z, &xv, &yv, &zv) ;
-			MRIsampleVolumeGradient(mri, xv, yv, zv, &Ix, &Iy, &Iz) ;
-			total = sqrt(Ix*Ix + Iy*Iy + Iz*Iz) ;
-			if (FZERO(total))
-				total = 1 ;
-			Ix /= total ; Iy /= total ; Iz /= total ;
+      // MRIworldToVoxel(mri, x, y, z, &xv, &yv, &zv) ;
+      MRIsurfaceRASToVoxel(mri, x, y, z, &xv, &yv, &zv) ;
+      MRIsampleVolumeGradient(mri, xv, yv, zv, &Ix, &Iy, &Iz) ;
+      total = sqrt(Ix*Ix + Iy*Iy + Iz*Iz) ;
+      if (FZERO(total))
+	total = 1 ;
+      Ix /= total ; Iy /= total ; Iz /= total ;
       et[n].vno1 = vertex_trans[vlist[i]]; et[n].vno2 = vertex_trans[vlist[j]];
       if ((et[n].vno1 == 141823 && et[n].vno2 == 141908) ||
           (et[n].vno2 == 141823 && et[n].vno1 == 141908))
@@ -27701,19 +27762,23 @@ mrisTessellateDefect(MRI_SURFACE *mris, MRI_SURFACE *mris_corrected, DEFECT *def
 
       /* sample one end point */
       x = v->origx ; y = v->origy ; z = v->origz ;
-      MRIworldToVoxel(mri, x+.5*nx, y+.5*ny, z+.5*nz, &xv, &yv, &zv) ;
+      // MRIworldToVoxel(mri, x+.5*nx, y+.5*ny, z+.5*nz, &xv, &yv, &zv) ;
+      MRIsurfaceRASToVoxel(mri, x+.5*nx, y+.5*ny, z+.5*nz, &xv, &yv, &zv) ;
       MRIsampleVolume(mri, xv, yv, zv, &val) ;
       total = fabs(val-gval) ;
-      MRIworldToVoxel(mri, x-.5*nx, y-.5*ny, z-.5*nz, &xv, &yv, &zv) ;
+      // MRIworldToVoxel(mri, x-.5*nx, y-.5*ny, z-.5*nz, &xv, &yv, &zv) ;
+      MRIsurfaceRASToVoxel(mri, x-.5*nx, y-.5*ny, z-.5*nz, &xv, &yv, &zv) ;
       MRIsampleVolume(mri, xv, yv, zv, &val) ;
       total += fabs(val-wval) ;
 
       /* sample the other end point */
       x = v2->origx ; y = v2->origy ; z = v2->origz ;
-      MRIworldToVoxel(mri, x+.5*nx, y+.5*ny, z+.5*nz, &xv, &yv, &zv) ;
+      // MRIworldToVoxel(mri, x+.5*nx, y+.5*ny, z+.5*nz, &xv, &yv, &zv) ;
+      MRIsurfaceRASToVoxel(mri, x+.5*nx, y+.5*ny, z+.5*nz, &xv, &yv, &zv) ;
       MRIsampleVolume(mri, xv, yv, zv, &val) ;
       total += fabs(val-gval) ;
-      MRIworldToVoxel(mri, x-.5*nx, y-.5*ny, z-.5*nz, &xv, &yv, &zv) ;
+      // MRIworldToVoxel(mri, x-.5*nx, y-.5*ny, z-.5*nz, &xv, &yv, &zv) ;
+      MRIsurfaceRASToVoxel(mri, x-.5*nx, y-.5*ny, z-.5*nz, &xv, &yv, &zv) ;
       MRIsampleVolume(mri, xv, yv, zv, &val) ;
       total += fabs(val-wval) ;
 
@@ -27726,10 +27791,12 @@ mrisTessellateDefect(MRI_SURFACE *mris, MRI_SURFACE *mris_corrected, DEFECT *def
         x = v->origx+d*dx ;
         y = v->origy+d*dy ;
         z = v->origz+d*dz ;
-				MRIworldToVoxel(mri, x+.5*nx, y+.5*ny, z+.5*nz, &xv, &yv, &zv) ;
+	// MRIworldToVoxel(mri, x+.5*nx, y+.5*ny, z+.5*nz, &xv, &yv, &zv) ;
+	MRIsurfaceRASToVoxel(mri, x+.5*nx, y+.5*ny, z+.5*nz, &xv, &yv, &zv) ;
         MRIsampleVolume(mri, xv, yv, zv, &val) ;
         total += fabs(val-gval) ;
-				MRIworldToVoxel(mri, x-.5*nx, y-.5*ny, z-.5*nz, &xv, &yv, &zv) ;
+	// MRIworldToVoxel(mri, x-.5*nx, y-.5*ny, z-.5*nz, &xv, &yv, &zv) ;
+	MRIsurfaceRASToVoxel(mri, x-.5*nx, y-.5*ny, z-.5*nz, &xv, &yv, &zv) ;
         MRIsampleVolume(mri, xv, yv, zv, &val) ;
         total += fabs(val-wval) ;
       }
@@ -27772,34 +27839,34 @@ mrisTessellateDefect(MRI_SURFACE *mris, MRI_SURFACE *mris_corrected, DEFECT *def
                   vlist[i],vlist[j]) ;
       }
 #if 1
-			if (!edgeExists(mris, vlist[i], vlist[j]))  /* prioritize edges in original tessellation */
-				et[n].len += 100 ;
+      if (!edgeExists(mris, vlist[i], vlist[j]))  /* prioritize edges in original tessellation */
+	et[n].len += 100 ;
 #endif
     }
   }
 
-	/* find and discard all edges that intersect one that is already in the
-		 tessellation.
-	*/
-	for (ndiscarded = i = 0 ; i < nedges ; i++)
-	{
-		if (et[i].used == 0)
-			continue ;
-		for (j = i+1 ; j < nedges ; j++)
-		{
-			if (et[j].used)
-				continue ;
-			if (edgesIntersect(mris_corrected, &et[i], &et[j]))
-			{
-				ndiscarded++ ;
-				if (j < nedges-1)
-					memmove(&et[j], &et[j+1], (nedges-j-1)*sizeof(EDGE)) ;
-				nedges-- ; j-- ;
-			}
-		}
-	}
+  /* find and discard all edges that intersect one that is already in the
+     tessellation.
+  */
+  for (ndiscarded = i = 0 ; i < nedges ; i++)
+  {
+    if (et[i].used == 0)
+      continue ;
+    for (j = i+1 ; j < nedges ; j++)
+    {
+      if (et[j].used)
+	continue ;
+      if (edgesIntersect(mris_corrected, &et[i], &et[j]))
+      {
+	ndiscarded++ ;
+	if (j < nedges-1)
+	  memmove(&et[j], &et[j+1], (nedges-j-1)*sizeof(EDGE)) ;
+	nedges-- ; j-- ;
+      }
+    }
+  }
 
-	printf("%d of %d overlapping edges discarded\n", ndiscarded, nedges) ;
+  printf("%d of %d overlapping edges discarded\n", ndiscarded, nedges) ;
 
   /* sort the edge list by edge length */
   qsort(et, nedges, sizeof(EDGE), compare_edge_length) ;
@@ -27897,13 +27964,13 @@ mrisTessellateDefect(MRI_SURFACE *mris, MRI_SURFACE *mris_corrected, DEFECT *def
   fprintf(stdout, "retessellating planar representation...\n") ;
 #endif
 
-	if (getenv("USE_GA_TOPOLOGY_CORRECTION") != NULL)
-		mrisComputeOptimalRetessellation(mris, mris_corrected,mri, defect, vertex_trans,et, nedges,
-																		 h_k1,h_k2,h_white, h_gray, h_border, h_grad, mri_gray_white,
-																		 h_dot, parms) ;
-	else
-		mrisRetessellateDefect(mris, mris_corrected, defect, vertex_trans, et, nedges, NULL, NULL);
-
+  if (getenv("USE_GA_TOPOLOGY_CORRECTION") != NULL)
+    mrisComputeOptimalRetessellation(mris, mris_corrected,mri, defect, vertex_trans,et, nedges,
+				     h_k1,h_k2,h_white, h_gray, h_border, h_grad, mri_gray_white,
+				     h_dot, parms) ;
+  else
+    mrisRetessellateDefect(mris, mris_corrected, defect, vertex_trans, et, nedges, NULL, NULL);
+  
   free(et) ;
   defect_no++ ;     /* for diagnostics */
   return(NO_ERROR) ;
@@ -27920,163 +27987,163 @@ static int
 mrisCrossoverDefectPatches(DEFECT_PATCH *dp1, DEFECT_PATCH *dp2,
 													 DEFECT_PATCH *dp_dst, EDGE_TABLE *etable)
 {
-	int          i1, i2, *added, i, isrc, j, nadded ;
-	double       p ;
-	DEFECT_PATCH *dp_src ;
-
-	added = (int *)calloc(dp1->nedges, sizeof(int)) ;
-	p = randomNumber(0.0, 1.0) ;
-	if (p < 0.5)  /* add from first defect */
+  int          i1, i2, *added, i, isrc, j, nadded ;
+  double       p ;
+  DEFECT_PATCH *dp_src ;
+  
+  added = (int *)calloc(dp1->nedges, sizeof(int)) ;
+  p = randomNumber(0.0, 1.0) ;
+  if (p < 0.5)  /* add from first defect */
+  {
+    dp_src = dp1 ;
+  }
+  else
+  {
+    dp_src = dp2 ;
+  }
+  
+  for (nadded = isrc = i1 = i2 = i = 0 ; i < dp_dst->nedges ; i++)
+  {
+    if (nadded >= NUM_TO_ADD_FROM_ONE_PARENT)
+    {
+      nadded = 0 ;
+      
+      if ((dp_src == dp1 && i2 < dp2->nedges) || i1 >= dp1->nedges)  /* use dp2 */
+      {
+	dp_src = dp2 ; isrc = i2 ;
+      }
+      else if (i1 < dp1->nedges)
+      {
+	dp_src = dp1 ; isrc = i1 ;
+      }
+    }
+    else  /* keep adding from the same parent */
+    {
+      nadded++ ;
+      if (dp_src == dp1)
+	isrc = i1 ;
+      else
+	isrc = i2 ;
+    }
+    if (isrc >= dp_src->nedges) /* shouldn't happen */
+    {
+      i-- ;
+      continue ;
+    }
+    
+    /* find the next index in the src dp that hasn't been added yet */
+    while (added[dp_src->ordering[isrc]])
+      if (++isrc >= dp_src->nedges)
+	break ;
+    if (isrc >= dp_src->nedges)
+    {
+      i-- ;      /* process this one again */
+      continue ;
+    }
+    if (dp_src->ordering[isrc] == Gdiag_no)
+      DiagBreak() ;
+    if (isrc == Gdiag_no)
+      DiagBreak() ;
+    
+    if (dp_src == dp1)    /* update source index for next iteration */
+      i1 = isrc+1 ;
+    else
+      i2 = isrc+1 ;
+    
+    dp_dst->ordering[i] = dp_src->ordering[isrc] ;
+    if (dp_dst->ordering[i] >= dp_dst->nedges)
+      DiagBreak() ;
+    
+    added[dp_src->ordering[isrc]] = 1 ; /* make sure every edge is represented */
+  }
+  
+  for (i = 0 ; i < dp_dst->nedges ; i++)
+  {
+    if ((dp_dst->ordering[i] >= dp_dst->nedges) ||
+	(dp_dst->ordering[i] < 0))
+    {
+      DiagBreak() ;
+      dp_dst->ordering[i] = 0 ;
+    }
+    if (added[i] == 0)
+    {
+      for (j = 0 ; j < dp_dst->nedges ; j++)
+	if (dp_dst->ordering[j] < 0)  /* nothing in this slot */
 	{
-		dp_src = dp1 ;
+	  dp_dst->ordering[j] = i ;
+	  added[i] = 1 ; /* make sure every edge is represented */
+	  break ;
 	}
-	else
-	{
-		dp_src = dp2 ;
-	}
+    }
+  }
 
-	for (nadded = isrc = i1 = i2 = i = 0 ; i < dp_dst->nedges ; i++)
-	{
-		if (nadded >= NUM_TO_ADD_FROM_ONE_PARENT)
-		{
-			nadded = 0 ;
-
-			if ((dp_src == dp1 && i2 < dp2->nedges) || i1 >= dp1->nedges)  /* use dp2 */
-			{
-				dp_src = dp2 ; isrc = i2 ;
-			}
-			else if (i1 < dp1->nedges)
-			{
-				dp_src = dp1 ; isrc = i1 ;
-			}
-		}
-		else  /* keep adding from the same parent */
-		{
-			nadded++ ;
-			if (dp_src == dp1)
-				isrc = i1 ;
-			else
-				isrc = i2 ;
-		}
-		if (isrc >= dp_src->nedges) /* shouldn't happen */
-		{
-			i-- ;
-			continue ;
-		}
-
-		/* find the next index in the src dp that hasn't been added yet */
-		while (added[dp_src->ordering[isrc]])
-			if (++isrc >= dp_src->nedges)
-				break ;
-		if (isrc >= dp_src->nedges)
-		{
-			i-- ;      /* process this one again */
-			continue ;
-		}
-		if (dp_src->ordering[isrc] == Gdiag_no)
-			DiagBreak() ;
-		if (isrc == Gdiag_no)
-			DiagBreak() ;
-
-		if (dp_src == dp1)    /* update source index for next iteration */
-			i1 = isrc+1 ;
-		else
-			i2 = isrc+1 ;
-
-		dp_dst->ordering[i] = dp_src->ordering[isrc] ;
-		if (dp_dst->ordering[i] >= dp_dst->nedges)
-			DiagBreak() ;
-
-		added[dp_src->ordering[isrc]] = 1 ; /* make sure every edge is represented */
-	}
-
-	for (i = 0 ; i < dp_dst->nedges ; i++)
-	{
-		if ((dp_dst->ordering[i] >= dp_dst->nedges) ||
-				(dp_dst->ordering[i] < 0))
-		{
-			DiagBreak() ;
-			dp_dst->ordering[i] = 0 ;
-		}
-		if (added[i] == 0)
-		{
-			for (j = 0 ; j < dp_dst->nedges ; j++)
-				if (dp_dst->ordering[j] < 0)  /* nothing in this slot */
-				{
-					dp_dst->ordering[j] = i ;
-					added[i] = 1 ; /* make sure every edge is represented */
-					break ;
-				}
-		}
-	}
-
-	free(added) ;
-
-	return(NO_ERROR) ;
+  free(added) ;
+  
+  return(NO_ERROR) ;
 }
 static int
 mrisMutateDefectPatch(DEFECT_PATCH *dp, EDGE_TABLE *etable, double pmutation)
 {
-	int   i, j, eti, etj, tmp, *dp_indices ;
-	double p ;
+  int   i, j, eti, etj, tmp, *dp_indices ;
+  double p ;
 
-	dp_indices = (int *)calloc(dp->nedges, sizeof(int)) ;
-	for (i = 0 ; i < dp->nedges ; i++)
-		dp_indices[dp->ordering[i]] = i ;
-
-	for (i = 0 ; i < dp->nedges ; i++)
-	{
-		p = randomNumber(0.0, 1.0) ;
-		eti = dp->ordering[i] ;
-		if (p < pmutation && etable->noverlap[eti] > 0)
-		{
-			if (etable->flags[eti] & ET_OVERLAP_LIST_INCOMPLETE)  /* swap any two */
-			{
-				j = (int)randomNumber(0.0, dp->nedges-.1) ;
-				tmp = dp->ordering[i] ; dp->ordering[i] = dp->ordering[j] ; dp->ordering[j] = tmp ;
-			}
-			else   /* swap two edges that intersect */
-			{
-				j = (int)randomNumber(0.0, etable->noverlap[eti]-0.0001) ;
-				etj = etable->overlapping_edges[eti][j] ;  /* index of jth overlapping edge */
-				j = dp_indices[etj] ;  /* find where it is in this defect patch ordering */
-				
-				tmp = dp->ordering[i] ; dp->ordering[i] = dp->ordering[j] ; dp->ordering[j] = tmp ;
-				dp_indices[dp->ordering[i]] = i ;
-				dp_indices[dp->ordering[j]] = j ;
-			}
-		}
-	}
-
-	free(dp_indices) ;
-	return(NO_ERROR) ;
+  dp_indices = (int *)calloc(dp->nedges, sizeof(int)) ;
+  for (i = 0 ; i < dp->nedges ; i++)
+    dp_indices[dp->ordering[i]] = i ;
+  
+  for (i = 0 ; i < dp->nedges ; i++)
+  {
+    p = randomNumber(0.0, 1.0) ;
+    eti = dp->ordering[i] ;
+    if (p < pmutation && etable->noverlap[eti] > 0)
+    {
+      if (etable->flags[eti] & ET_OVERLAP_LIST_INCOMPLETE)  /* swap any two */
+      {
+	j = (int)randomNumber(0.0, dp->nedges-.1) ;
+	tmp = dp->ordering[i] ; dp->ordering[i] = dp->ordering[j] ; dp->ordering[j] = tmp ;
+      }
+      else   /* swap two edges that intersect */
+      {
+	j = (int)randomNumber(0.0, etable->noverlap[eti]-0.0001) ;
+	etj = etable->overlapping_edges[eti][j] ;  /* index of jth overlapping edge */
+	j = dp_indices[etj] ;  /* find where it is in this defect patch ordering */
+	
+	tmp = dp->ordering[i] ; dp->ordering[i] = dp->ordering[j] ; dp->ordering[j] = tmp ;
+	dp_indices[dp->ordering[i]] = i ;
+	dp_indices[dp->ordering[j]] = j ;
+      }
+    }
+  }
+  
+  free(dp_indices) ;
+  return(NO_ERROR) ;
 }
 static double
 mrisDefectPatchFitness(MRI_SURFACE *mris, MRI_SURFACE *mris_corrected, MRI *mri,
-											 DEFECT_PATCH *dp, int *vertex_trans, DEFECT_VERTEX_STATE *dvs,
-											 HISTOGRAM *h_k1, HISTOGRAM *h_k2, HISTOGRAM *h_white, HISTOGRAM *h_gray,
-											 HISTOGRAM *h_border, HISTOGRAM *h_grad, MRI *mri_gray_white,
-											 HISTOGRAM *h_dot, TOPOLOGY_PARMS *parms)
+		       DEFECT_PATCH *dp, int *vertex_trans, DEFECT_VERTEX_STATE *dvs,
+		       HISTOGRAM *h_k1, HISTOGRAM *h_k2, HISTOGRAM *h_white, HISTOGRAM *h_gray,
+		       HISTOGRAM *h_border, HISTOGRAM *h_grad, MRI *mri_gray_white,
+		       HISTOGRAM *h_dot, TOPOLOGY_PARMS *parms)
 {
-	int i ;
-
-	mrisRetessellateDefect(mris, mris_corrected, dp->defect, 
-												 vertex_trans, dp->etable->edges, dp->nedges, dp->ordering,
-												 dp->etable) ;
+  int i ;
+  
+  mrisRetessellateDefect(mris, mris_corrected, dp->defect, 
+			 vertex_trans, dp->etable->edges, dp->nedges, dp->ordering,
+			 dp->etable) ;
 #if 0
-	dp->fitness = -mrisComputeDefectEnergy(mris_corrected, mri, dp->defect, vertex_trans) ;
+  dp->fitness = -mrisComputeDefectEnergy(mris_corrected, mri, dp->defect, vertex_trans) ;
 #else
-	dp->fitness = mrisComputeDefectLogLikelihood(mris_corrected, mri, dp->defect, vertex_trans, dp,
-																								h_k1, h_k2, h_white, h_gray, h_border, h_grad, mri_gray_white, h_dot, parms) ;
+  dp->fitness = mrisComputeDefectLogLikelihood(mris_corrected, mri, dp->defect, vertex_trans, dp,
+					       h_k1, h_k2, h_white, h_gray, h_border, h_grad, mri_gray_white, h_dot, parms) ;
 #endif
-	mrisRestoreVertexState(mris_corrected, dvs) ; 
-
-	/* reset the edges to the unused state (unless they were in the original tessellation */
-	for (i = 0 ; i < dp->nedges ; i++)
-		if (dp->etable->edges[i].used == USED_IN_NEW_TESSELLATION)
-			dp->etable->edges[i].used = NOT_USED ;
-
-	return(dp->fitness) ;
+  mrisRestoreVertexState(mris_corrected, dvs) ; 
+  
+  /* reset the edges to the unused state (unless they were in the original tessellation */
+  for (i = 0 ; i < dp->nedges ; i++)
+    if (dp->etable->edges[i].used == USED_IN_NEW_TESSELLATION)
+      dp->etable->edges[i].used = NOT_USED ;
+  
+  return(dp->fitness) ;
 }
 
 #define MAX_PATCHES         1000
@@ -28095,580 +28162,580 @@ static int mrisCopyDefectPatch(DEFECT_PATCH *dp_src, DEFECT_PATCH *dp_dst) ;
 static int
 mrisCopyDefectPatch(DEFECT_PATCH *dp_src, DEFECT_PATCH *dp_dst)
 {
-	int i ;
-
-	dp_dst->etable = dp_src->etable ; dp_dst->defect = dp_src->defect ;
-	dp_dst->nedges = dp_src->nedges ;
-	dp_dst->fitness = dp_src->fitness ; dp_dst->rank = dp_src->rank ;
-	
-	for (i = 0 ; i < dp_src->nedges ; i++)
-		dp_dst->ordering[i] = dp_src->ordering[i] ;
-
-	return(NO_ERROR) ;
+  int i ;
+  
+  dp_dst->etable = dp_src->etable ; dp_dst->defect = dp_src->defect ;
+  dp_dst->nedges = dp_src->nedges ;
+  dp_dst->fitness = dp_src->fitness ; dp_dst->rank = dp_src->rank ;
+  
+  for (i = 0 ; i < dp_src->nedges ; i++)
+    dp_dst->ordering[i] = dp_src->ordering[i] ;
+  
+  return(NO_ERROR) ;
 }
 
 
 static int
 defectPatchRank(DEFECT_PATCH *dps, int index, int npatches)
 {
-	int   i, rank = 0 ;
+  int   i, rank = 0 ;
 
-	for (i = 0 ; i < npatches ; i++)
-	{
-		if (i == index)
-			continue ;
-
-		if (FEQUAL(dps[i].fitness, dps[index].fitness))
-		{
-			if (index > i)
-				rank++ ;
-		}
-		else if (dps[i].fitness > dps[index].fitness)
-			rank++ ;
-	}
-	return(rank) ;
+  for (i = 0 ; i < npatches ; i++)
+  {
+    if (i == index)
+      continue ;
+    
+    if (FEQUAL(dps[i].fitness, dps[index].fitness))
+    {
+      if (index > i)
+	rank++ ;
+    }
+    else if (dps[i].fitness > dps[index].fitness)
+      rank++ ;
+  }
+  return(rank) ;
 }
 
 #define MAX_EDGES 1000
 
 static int
 mrisComputeOptimalRetessellation(MRI_SURFACE *mris, MRI_SURFACE *mris_corrected,
-																 MRI *mri, DEFECT *defect, int *vertex_trans,
-																 EDGE *et, int nedges, HISTOGRAM *h_k1, HISTOGRAM *h_k2,
-																 HISTOGRAM *h_white, HISTOGRAM *h_gray, HISTOGRAM *h_border, 
-																 HISTOGRAM *h_grad, MRI *mri_gray_white, HISTOGRAM *h_dot,
-																 TOPOLOGY_PARMS *parms)
+				 MRI *mri, DEFECT *defect, int *vertex_trans,
+				 EDGE *et, int nedges, HISTOGRAM *h_k1, HISTOGRAM *h_k2,
+				 HISTOGRAM *h_white, HISTOGRAM *h_gray, HISTOGRAM *h_border, 
+				 HISTOGRAM *h_grad, MRI *mri_gray_white, HISTOGRAM *h_dot,
+				 TOPOLOGY_PARMS *parms)
 {
-	DEFECT_VERTEX_STATE *dvs ;
-	DEFECT_PATCH        dps1[MAX_PATCHES], dps2[MAX_PATCHES], *dps, *dp, *dps_next_generation ;
-	int                 i, best_i, j, g, nselected, nreplacements,rank, nunchanged = 0,
-                      nelite, ncrossovers, k, l, noverlap ;
-	int                 *overlap ;
-	double              fitness, best_fitness, last_best, fitness_mean, fitness_sigma, fitness_norm, pfitness,
-                      two_sigma_sq ;
-	static int dno = 0 ;   /* for debugging */
-	EDGE_TABLE          etable ;
-	int                 max_patches = MAX_PATCHES, ranks[MAX_PATCHES], next_gen_index, 
-                      selected[MAX_PATCHES], nzero, sno=0, max_edges, debug_patch_n=-1, nbest = 0 ;
+  DEFECT_VERTEX_STATE *dvs ;
+  DEFECT_PATCH        dps1[MAX_PATCHES], dps2[MAX_PATCHES], *dps, *dp, *dps_next_generation ;
+  int                 i, best_i, j, g, nselected, nreplacements,rank, nunchanged = 0,
+    nelite, ncrossovers, k, l, noverlap ;
+  int                 *overlap ;
+  double              fitness, best_fitness, last_best, fitness_mean, fitness_sigma, fitness_norm, pfitness,
+    two_sigma_sq ;
+  static int dno = 0 ;   /* for debugging */
+  EDGE_TABLE          etable ;
+  int                 max_patches = MAX_PATCHES, ranks[MAX_PATCHES], next_gen_index, 
+    selected[MAX_PATCHES], nzero, sno=0, max_edges, debug_patch_n=-1, nbest = 0 ;
 
-	max_patches = parms->max_patches ; max_unchanged = parms->max_unchanged ;
-	max_edges = MAX_EDGES ;
-
-	if (dno == Gdiag_no)
-		DiagBreak() ;
-
-	if (getenv("DEBUG_PATCH") != NULL)
-	{
-		int debug_patch = atoi(getenv("DEBUG_PATCH"));
-		if (debug_patch != dno)
-			max_patches = 0 ;
-		else
-		{
-			if (getenv("DEBUG_PATCH_N") != NULL)
-			{
-				debug_patch_n = atoi(getenv("DEBUG_PATCH_N")) ;
-				printf("terminating after %dth best tessellation\n", debug_patch_n) ;
-			}
-		}
-	}
-
-	if (!max_patches)
-	{
-		dno++ ;  /* for debugging */
-		mrisRetessellateDefect(mris, mris_corrected, defect, 
-													 vertex_trans, et, nedges, NULL, NULL) ;
-		return(NO_ERROR) ;
-	}
-
+  max_patches = parms->max_patches ; max_unchanged = parms->max_unchanged ;
+  max_edges = MAX_EDGES ;
+  
+  if (dno == Gdiag_no)
+    DiagBreak() ;
+  
+  if (getenv("DEBUG_PATCH") != NULL)
+  {
+    int debug_patch = atoi(getenv("DEBUG_PATCH"));
+    if (debug_patch != dno)
+      max_patches = 0 ;
+    else
+    {
+      if (getenv("DEBUG_PATCH_N") != NULL)
+      {
+	debug_patch_n = atoi(getenv("DEBUG_PATCH_N")) ;
+	printf("terminating after %dth best tessellation\n", debug_patch_n) ;
+      }
+    }
+  }
+  
+  if (!max_patches)
+  {
+    dno++ ;  /* for debugging */
+    mrisRetessellateDefect(mris, mris_corrected, defect, 
+			   vertex_trans, et, nedges, NULL, NULL) ;
+    return(NO_ERROR) ;
+  }
+  
 #if 0
-	if (dno != 5)
-	{
-		max_patches = 5 ;
-		max_unchanged = 2 ;
-		dno++ ;  /* for debugging */
-		mrisRetessellateDefect(mris, mris_corrected, defect, 
-													 vertex_trans, et, nedges, NULL, NULL) ;
-		return(NO_ERROR) ;
-	}
-	else
-	{
+  if (dno != 5)
+  {
+    max_patches = 5 ;
+    max_unchanged = 2 ;
+    dno++ ;  /* for debugging */
+    mrisRetessellateDefect(mris, mris_corrected, defect, 
+			   vertex_trans, et, nedges, NULL, NULL) ;
+    return(NO_ERROR) ;
+  }
+  else
+  {
 #if 0
-		int bin ;
-
-		for (bin = 60 ; bin <= 80 ; bin++)
-			h_gray->counts[bin] = 0.000001 ;
+    int bin ;
+    
+    for (bin = 60 ; bin <= 80 ; bin++)
+      h_gray->counts[bin] = 0.000001 ;
 #endif
-		DiagBreak() ;
-	}
+    DiagBreak() ;
+  }
 #endif
-	dno++ ;  /* for debugging */
-
-	if (nedges > 200000)
+  dno++ ;  /* for debugging */
+  
+  if (nedges > 200000)
+  {
+    mrisRetessellateDefect(mris, mris_corrected, defect, 
+			   vertex_trans, et, nedges, NULL, NULL) ;
+    return(NO_ERROR) ;
+  }
+  else if (nedges > 100000)
+  {
+    max_unchanged = MIN(max_unchanged, 1) ;
+    max_patches = MIN(max_patches, 10) ;
+    max_edges = MIN(max_edges, 100) ;
+  }
+  else if (nedges > 50000)
+  {
+    max_patches = max_patches/2 ;
+    max_edges = max_edges/5 ;
+    max_unchanged = max_unchanged / 5 ;
+  }
+  
+  etable.nedges = nedges ;
+  etable.edges = (EDGE *)calloc(nedges, sizeof(EDGE)) ;
+  etable.overlapping_edges = (int **)calloc(nedges, sizeof(int *)) ;
+  etable.noverlap = (int *)calloc(nedges, sizeof(int)) ;
+  etable.flags = (unsigned char *)calloc(nedges, sizeof(unsigned char)) ;
+  overlap = (int *)calloc(nedges, sizeof(int)) ;
+  if (!etable.edges || !etable.overlapping_edges || !etable.noverlap || !overlap)
+    ErrorExit(ERROR_NOMEMORY, "mrisComputeOptimalRetessellation: could not allocate %d edge table",
+	      nedges) ;
+  
+  memmove(etable.edges, et, nedges*sizeof(EDGE)) ;
+  
+  for (nzero = i = 0 ; i < nedges ; i++)  /* compute overlapping for each edge */
+  {
+    if (nedges > 50000 && !(i % 25000))
+      printf("%d of %d edges processed\n", i, nedges) ;
+    etable.noverlap[i] = 0 ;
+    for (noverlap = j = 0 ; j < nedges ; j++)
+    {
+      if (j == i)
+	continue ;
+      if (edgesIntersect(mris_corrected, &et[i], &et[j]))
+      {
+	overlap[noverlap] = j ;
+	noverlap++ ;
+      }
+      if (noverlap > MAX_EDGES)
+	break ;
+    }
+    if (noverlap > 0)
+    {
+      if (noverlap > MAX_EDGES)
+      {
+	etable.noverlap[i] = MAX_EDGES ;
+	etable.flags[i] |= ET_OVERLAP_LIST_INCOMPLETE ;
+      }
+      else
+	etable.noverlap[i] = noverlap ;
+      
+      etable.overlapping_edges[i] = (int *)calloc(etable.noverlap[i], sizeof(int)) ;
+      if (!etable.overlapping_edges[i])
+	ErrorExit(ERROR_NOMEMORY, 
+		  "mrisComputeOptimalRetessellation: could not allocate overlap list %d "
+		  "with %d elts",i, etable.noverlap[i]) ;
+      memmove(etable.overlapping_edges[i], overlap, etable.noverlap[i]*sizeof(int)) ;
+    }
+    else
+      nzero++ ;
+  }
+  
+  free(overlap) ;
+  
+  dvs = mrisRecordVertexState(mris_corrected, defect, vertex_trans) ;
+  dps = dps1 ;
+  
+  /* generate initial population of patches */
+  best_fitness = -1000000 ; best_i = 0 ;
+  for (i = 0 ; i < max_patches ; i++)
+  {
+    dp = &dps2[i] ;
+    dp->nedges = nedges ; dp->defect = defect ; dp->etable = &etable ;
+    dp->ordering = (int *)calloc(nedges, sizeof(int)) ;
+    if (!dp->ordering)
+      ErrorExit(ERROR_NOMEMORY, "could not allocate %dth defect patch with %d indices",
+		i, nedges) ;
+    for (j = 0 ; j < nedges ; j++)
+      dp->ordering[j] = j ;   /* initial in same order - will change later */
+    
+    dp = &dps1[i] ;
+    dp->nedges = nedges ; dp->defect = defect ; dp->etable = &etable ;
+    dp->ordering = (int *)calloc(nedges, sizeof(int)) ;
+    if (!dp->ordering)
+      ErrorExit(ERROR_NOMEMORY, "could not allocate %dth defect patch with %d indices",
+		i, nedges) ;
+    for (j = 0 ; j < nedges ; j++)
+      dp->ordering[j] = j ;   /* initial in same order - will change later */
+    
+    if (i)  /* first one is in same order as original edge table */
+      mrisMutateDefectPatch(dp, &etable, MUTATION_PCT_INIT) ;
+    fitness = mrisDefectPatchFitness(mris, mris_corrected, mri, dp, vertex_trans, dvs, 
+				     h_k1,h_k2,h_white,h_gray,h_border,h_grad,mri_gray_white,
+				     h_dot, parms) ;
+    if (i == 0 && Gdiag & 0x1000000)
+    {
+      int i ;
+      char fname[STRLEN] ;
+      sprintf(fname, "%s_defect%d_%03d", mris->fname, dno-1, sno++) ;
+      dp = &dps[best_i] ;
+      mrisRetessellateDefect(mris, mris_corrected, dp->defect, 
+			     vertex_trans, dp->etable->edges, dp->nedges, dp->ordering,
+			     dp->etable) ;
+      MRISsaveVertexPositions(mris_corrected, TMP_VERTICES) ; 
+      MRISrestoreVertexPositions(mris_corrected, ORIGINAL_VERTICES) ;
+      printf("writing surface snapshow to %s...\n",fname) ;
+      MRISwrite(mris_corrected, fname) ;
+      MRISrestoreVertexPositions(mris_corrected, TMP_VERTICES) ;
+      mrisRestoreVertexState(mris_corrected, dvs) ; 
+      /* reset the edges to the unused state (unless they were in the original tessellation */
+      for (i = 0 ; i < dp->nedges ; i++)
+	if (dp->etable->edges[i].used == USED_IN_NEW_TESSELLATION)
+	  dp->etable->edges[i].used = NOT_USED ;
+    }
+    
+    if (!i)
+    {
+      printf("defect %d: initial fitness = %2.4e, nvertices=%d, nedges=%d, max patches=%d\n", dno-1, fitness,
+	     defect->nvertices, nedges, max_patches) ;
+      best_fitness = fitness ; best_i = 0 ;
+      if (++nbest == debug_patch_n)
+	goto debug_use_this_patch ;
+    }
+    
+    if (fitness > best_fitness)
+    {
+      best_fitness = fitness ; best_i = i ;
+      printf("new optimal fitness found at %d: %2.4e\n", i, fitness) ;
+      if (++nbest == debug_patch_n)
+	goto debug_use_this_patch ;
+    }
+  }
+  
+  nelite = nint(ELITISM_PCT*max_patches) ;  /* # to keep in next generation */
+  if (nelite < 1)
+    nelite = 1 ;
+  nselected = nint(SELECTION_PCT*max_patches) ;  /* # to allow to crossover */
+  if (nselected < 2)
+    nselected = 2 ;
+  nreplacements = nint(REPLACEMENT_PCT*max_patches) ; /* # to replace with mutated versions of best */
+  if (nreplacements + nelite > max_patches)
+    nreplacements = max_patches-nelite ;
+  g = 0 ; dps = dps1 ;
+  while (nunchanged < max_unchanged)
+  {
+    if (dps == dps1)
+      dps_next_generation = dps2 ;
+    else
+      dps_next_generation = dps1 ;
+    
+    last_best = best_fitness ;
+    for (i = 0 ; i < max_patches ; i++)
+    {
+      dp = &dps[i] ;
+      dp->rank = rank = defectPatchRank(dps, i, max_patches) ;
+      ranks[rank] = i ;
+    }
+    
+    /* first add the 'elite' group that are retained unchanged */
+    next_gen_index = 0 ;
+    for (i = 0 ; i < nelite ; i++)
+      mrisCopyDefectPatch(&dps[ranks[i]], &dps_next_generation[next_gen_index++]) ;
+    
+    /* now replace the worst ones with mutated copies of the best */
+    for (i = 0 ; i < nreplacements ; i++)
+    {
+      dp = &dps_next_generation[next_gen_index++] ;
+      mrisCopyDefectPatch(&dps[ranks[i]], dp) ;
+      mrisMutateDefectPatch(dp, &etable, MUTATION_PCT) ;
+      fitness = mrisDefectPatchFitness(mris, mris_corrected, mri, dp, vertex_trans, dvs,
+				       h_k1,h_k2,h_white,h_gray, h_border,h_grad, mri_gray_white, h_dot, parms) ;
+      if (fitness > best_fitness)
+      {
+	nunchanged = 0 ;
+	best_fitness = fitness ; best_i = next_gen_index-1 ;
+	if  (Gdiag & DIAG_SHOW)
+	  printf("replacement %d MUTATION: new optimal fitness found at %d: %2.4e\n", 
+		 i, best_i, fitness) ;
+	nmut++ ;
+	if (++nbest == debug_patch_n)
 	{
-		mrisRetessellateDefect(mris, mris_corrected, defect, 
-													 vertex_trans, et, nedges, NULL, NULL) ;
-		return(NO_ERROR) ;
+	  dps = dps_next_generation ;
+	  goto debug_use_this_patch ;
 	}
-	else if (nedges > 100000)
+      }
+    }
+    
+    for (fitness_mean = fitness_sigma = 0.0, i = 0 ; i < max_patches ; i++)
+    {
+      dp = &dps[i] ;
+      fitness_mean += dp->fitness ;
+      fitness_sigma += dp->fitness*dp->fitness ;
+    }
+    
+    fitness_mean /= (float)max_patches ;
+    fitness_sigma = (fitness_sigma/max_patches - (fitness_mean*fitness_mean)) ;
+    if (fitness_sigma < 0)
+      fitness_sigma = 0 ;
+    else
+      fitness_sigma = sqrt(fitness_sigma) ;
+    if (!finite(fitness_sigma))
+      DiagBreak() ;
+    
+    two_sigma_sq = (dps[ranks[0]].fitness-dps[ranks[nselected-1]].fitness) ;
+    if (FZERO(two_sigma_sq))
+      two_sigma_sq = 1 ;
+    for (fitness_norm = 0.0, j = 0 ; j < nselected ; j++)
+    {
+      i = ranks[j] ; dp = &dps[i] ;
+      fitness_norm += exp((dp->fitness-dps[ranks[0]].fitness)/two_sigma_sq) ;  /* make them positive and increasing */
+    }
+    if (FZERO(fitness_norm))  /* something wrong */
+    {
+      for (i = 0 ; i < max_patches ; i++)
+      {
+	dp = &dps[i] ;
+	dp->rank = rank = defectPatchRank(dps, i, max_patches) ;
+	if (dp->fitness >= best_fitness)
 	{
-		max_unchanged = MIN(max_unchanged, 1) ;
-		max_patches = MIN(max_patches, 10) ;
-		max_edges = MIN(max_edges, 100) ;
+	  best_fitness = dp->fitness ;
+	  best_i = i ;
 	}
-	else if (nedges > 50000)
+	ranks[rank] = i ;
+      }
+      break ;
+    }
+    
+    ncrossovers = max_patches-(nelite+nreplacements) ;
+    for (l = k = j = 0 ; j < nselected ; j++)
+    {
+      int  nadd ;
+      
+      i = ranks[j] ; dp = &dps[i] ;
+      pfitness = exp((dp->fitness-dps[ranks[0]].fitness)/two_sigma_sq)/fitness_norm ;
+      nadd = nint(pfitness * ncrossovers) ;
+      if (nadd >= ncrossovers)
+	nadd = ncrossovers-1 ;
+      else if (nadd == 0)
+	nadd = 1 ;
+      
+      for (k = 0 ; l < ncrossovers && k < nadd ; l++, k++)
+	selected[l] = i ;
+    }
+    for ( ; l < ncrossovers ; l++)   /* fill out rest of list */
+    {
+      double p ;
+      p = randomNumber(0.0, 1.0)  ;
+      for (fitness = 0.0, j = 0 ; j < nselected ; j++)
+      {
+	i = ranks[j] ; dp = &dps[i] ;
+	pfitness = exp(dp->fitness/two_sigma_sq)/fitness_norm ;
+	fitness += pfitness ;
+	if (fitness > p)
+	  break ;
+      }
+      selected[l] = i ;
+    }
+    
+    for (i = 0 ; i < ncrossovers ; i++)
+    {
+      int   p1, p2 ;
+      
+      p1 = selected[i] ;
+      do   /* select second parent at random */
+      {
+	p2 = selected[(int)randomNumber(0, ncrossovers-.001)] ;
+      } while (p2 == p1) ;
+      
+      dp = &dps_next_generation[next_gen_index++] ;
+      mrisCrossoverDefectPatches(&dps[p1], &dps[p2], dp, &etable) ;
+      fitness = mrisDefectPatchFitness(mris, mris_corrected, mri, dp, vertex_trans, dvs,
+				       h_k1,h_k2,h_white,h_gray, h_border,h_grad, mri_gray_white, h_dot, parms) ;
+      if (fitness > best_fitness)
+      {
+	nunchanged = 0 ;
+	best_fitness = fitness ; best_i = next_gen_index-1 ;
+	if  (Gdiag & DIAG_SHOW)
+	  printf("CROSSOVER (%d x %d): new optimal fitness found at %d: %2.4e\n", 
+		 dps[p1].rank, dps[p2].rank, best_i, fitness) ;
+	ncross++ ;
+	if (++nbest == debug_patch_n)
 	{
-		max_patches = max_patches/2 ;
-		max_edges = max_edges/5 ;
-		max_unchanged = max_unchanged / 5 ;
+	  dps = dps_next_generation ;
+	  goto debug_use_this_patch ;
 	}
-
-	etable.nedges = nedges ;
-	etable.edges = (EDGE *)calloc(nedges, sizeof(EDGE)) ;
-	etable.overlapping_edges = (int **)calloc(nedges, sizeof(int *)) ;
-	etable.noverlap = (int *)calloc(nedges, sizeof(int)) ;
-	etable.flags = (unsigned char *)calloc(nedges, sizeof(unsigned char)) ;
-	overlap = (int *)calloc(nedges, sizeof(int)) ;
-	if (!etable.edges || !etable.overlapping_edges || !etable.noverlap || !overlap)
-		ErrorExit(ERROR_NOMEMORY, "mrisComputeOptimalRetessellation: could not allocate %d edge table",
-							nedges) ;
-
-	memmove(etable.edges, et, nedges*sizeof(EDGE)) ;
-
-	for (nzero = i = 0 ; i < nedges ; i++)  /* compute overlapping for each edge */
+      }
+      else   /* mutate it also */
+      {
+	mrisMutateDefectPatch(dp, &etable, MUTATION_PCT) ;
+	fitness = mrisDefectPatchFitness(mris, mris_corrected, mri, dp, vertex_trans, dvs,
+					 h_k1,h_k2,h_white,h_gray, h_border, h_grad, mri_gray_white, h_dot, parms) ;
+	if (fitness > best_fitness)
 	{
-		if (nedges > 50000 && !(i % 25000))
-			printf("%d of %d edges processed\n", i, nedges) ;
-		etable.noverlap[i] = 0 ;
-		for (noverlap = j = 0 ; j < nedges ; j++)
-		{
-			if (j == i)
-				continue ;
-			if (edgesIntersect(mris_corrected, &et[i], &et[j]))
-			{
-				overlap[noverlap] = j ;
-				noverlap++ ;
-			}
-			if (noverlap > MAX_EDGES)
-				break ;
-		}
-		if (noverlap > 0)
-		{
-			if (noverlap > MAX_EDGES)
-			{
-				etable.noverlap[i] = MAX_EDGES ;
-				etable.flags[i] |= ET_OVERLAP_LIST_INCOMPLETE ;
-			}
-			else
-				etable.noverlap[i] = noverlap ;
-
-			etable.overlapping_edges[i] = (int *)calloc(etable.noverlap[i], sizeof(int)) ;
-			if (!etable.overlapping_edges[i])
-				ErrorExit(ERROR_NOMEMORY, 
-									"mrisComputeOptimalRetessellation: could not allocate overlap list %d "
-									"with %d elts",i, etable.noverlap[i]) ;
-			memmove(etable.overlapping_edges[i], overlap, etable.noverlap[i]*sizeof(int)) ;
-		}
-		else
-			nzero++ ;
+	  nunchanged = 0 ;
+	  best_fitness = fitness ; best_i = next_gen_index-1 ;
+	  if (Gdiag & DIAG_SHOW)
+	    printf("MUTATION: new optimal fitness found at %d: %2.4e\n", best_i, fitness) ;
+	  if (++nbest == debug_patch_n)
+	  {
+	    dps = dps_next_generation ;
+	    goto debug_use_this_patch ;
+	  }
+	  nmut++ ;
 	}
-
-	free(overlap) ;
-
-	dvs = mrisRecordVertexState(mris_corrected, defect, vertex_trans) ;
-	dps = dps1 ;
-
-	/* generate initial population of patches */
-	best_fitness = -1000000 ; best_i = 0 ;
-	for (i = 0 ; i < max_patches ; i++)
-	{
-		dp = &dps2[i] ;
-		dp->nedges = nedges ; dp->defect = defect ; dp->etable = &etable ;
-		dp->ordering = (int *)calloc(nedges, sizeof(int)) ;
-		if (!dp->ordering)
-			ErrorExit(ERROR_NOMEMORY, "could not allocate %dth defect patch with %d indices",
-								i, nedges) ;
-		for (j = 0 ; j < nedges ; j++)
-			dp->ordering[j] = j ;   /* initial in same order - will change later */
-
-		dp = &dps1[i] ;
-		dp->nedges = nedges ; dp->defect = defect ; dp->etable = &etable ;
-		dp->ordering = (int *)calloc(nedges, sizeof(int)) ;
-		if (!dp->ordering)
-			ErrorExit(ERROR_NOMEMORY, "could not allocate %dth defect patch with %d indices",
-								i, nedges) ;
-		for (j = 0 ; j < nedges ; j++)
-			dp->ordering[j] = j ;   /* initial in same order - will change later */
-
-		if (i)  /* first one is in same order as original edge table */
-			mrisMutateDefectPatch(dp, &etable, MUTATION_PCT_INIT) ;
-		fitness = mrisDefectPatchFitness(mris, mris_corrected, mri, dp, vertex_trans, dvs, 
-																		 h_k1,h_k2,h_white,h_gray,h_border,h_grad,mri_gray_white,
-																		 h_dot, parms) ;
-		if (i == 0 && Gdiag & 0x1000000)
-		{
-			int i ;
-			char fname[STRLEN] ;
-			sprintf(fname, "%s_defect%d_%03d", mris->fname, dno-1, sno++) ;
-			dp = &dps[best_i] ;
-			mrisRetessellateDefect(mris, mris_corrected, dp->defect, 
-														 vertex_trans, dp->etable->edges, dp->nedges, dp->ordering,
-														 dp->etable) ;
-			MRISsaveVertexPositions(mris_corrected, TMP_VERTICES) ; 
-			MRISrestoreVertexPositions(mris_corrected, ORIGINAL_VERTICES) ;
-			printf("writing surface snapshow to %s...\n",fname) ;
-			MRISwrite(mris_corrected, fname) ;
-			MRISrestoreVertexPositions(mris_corrected, TMP_VERTICES) ;
-			mrisRestoreVertexState(mris_corrected, dvs) ; 
-			/* reset the edges to the unused state (unless they were in the original tessellation */
-			for (i = 0 ; i < dp->nedges ; i++)
-				if (dp->etable->edges[i].used == USED_IN_NEW_TESSELLATION)
-					dp->etable->edges[i].used = NOT_USED ;
-		}
-
-		if (!i)
-		{
-			printf("defect %d: initial fitness = %2.4e, nvertices=%d, nedges=%d, max patches=%d\n", dno-1, fitness,
-						 defect->nvertices, nedges, max_patches) ;
-			best_fitness = fitness ; best_i = 0 ;
-			if (++nbest == debug_patch_n)
-				goto debug_use_this_patch ;
-		}
-
-		if (fitness > best_fitness)
-		{
-			best_fitness = fitness ; best_i = i ;
-			printf("new optimal fitness found at %d: %2.4e\n", i, fitness) ;
-			if (++nbest == debug_patch_n)
-				goto debug_use_this_patch ;
-		}
-	}
-
-	nelite = nint(ELITISM_PCT*max_patches) ;  /* # to keep in next generation */
-	if (nelite < 1)
-		nelite = 1 ;
-	nselected = nint(SELECTION_PCT*max_patches) ;  /* # to allow to crossover */
-	if (nselected < 2)
-		nselected = 2 ;
-	nreplacements = nint(REPLACEMENT_PCT*max_patches) ; /* # to replace with mutated versions of best */
-	if (nreplacements + nelite > max_patches)
-		nreplacements = max_patches-nelite ;
-	g = 0 ; dps = dps1 ;
-	while (nunchanged < max_unchanged)
-	{
-		if (dps == dps1)
-			dps_next_generation = dps2 ;
-		else
-			dps_next_generation = dps1 ;
-
-		last_best = best_fitness ;
-		for (i = 0 ; i < max_patches ; i++)
-		{
-			dp = &dps[i] ;
-			dp->rank = rank = defectPatchRank(dps, i, max_patches) ;
-			ranks[rank] = i ;
-		}
-
-		/* first add the 'elite' group that are retained unchanged */
-		next_gen_index = 0 ;
-		for (i = 0 ; i < nelite ; i++)
-			mrisCopyDefectPatch(&dps[ranks[i]], &dps_next_generation[next_gen_index++]) ;
-
-		/* now replace the worst ones with mutated copies of the best */
-		for (i = 0 ; i < nreplacements ; i++)
-		{
-			dp = &dps_next_generation[next_gen_index++] ;
-			mrisCopyDefectPatch(&dps[ranks[i]], dp) ;
-			mrisMutateDefectPatch(dp, &etable, MUTATION_PCT) ;
-			fitness = mrisDefectPatchFitness(mris, mris_corrected, mri, dp, vertex_trans, dvs,
-																			 h_k1,h_k2,h_white,h_gray, h_border,h_grad, mri_gray_white, h_dot, parms) ;
-			if (fitness > best_fitness)
-			{
-				nunchanged = 0 ;
-				best_fitness = fitness ; best_i = next_gen_index-1 ;
-				if  (Gdiag & DIAG_SHOW)
-					printf("replacement %d MUTATION: new optimal fitness found at %d: %2.4e\n", 
-								 i, best_i, fitness) ;
-				nmut++ ;
-				if (++nbest == debug_patch_n)
-				{
-					dps = dps_next_generation ;
-					goto debug_use_this_patch ;
-				}
-			}
-		}
-
-		for (fitness_mean = fitness_sigma = 0.0, i = 0 ; i < max_patches ; i++)
-		{
-			dp = &dps[i] ;
-			fitness_mean += dp->fitness ;
-			fitness_sigma += dp->fitness*dp->fitness ;
-		}
-
-		fitness_mean /= (float)max_patches ;
-		fitness_sigma = (fitness_sigma/max_patches - (fitness_mean*fitness_mean)) ;
-		if (fitness_sigma < 0)
-			fitness_sigma = 0 ;
-		else
-			fitness_sigma = sqrt(fitness_sigma) ;
-		if (!finite(fitness_sigma))
-			DiagBreak() ;
-
-		two_sigma_sq = (dps[ranks[0]].fitness-dps[ranks[nselected-1]].fitness) ;
-		if (FZERO(two_sigma_sq))
-			two_sigma_sq = 1 ;
-		for (fitness_norm = 0.0, j = 0 ; j < nselected ; j++)
-		{
-			i = ranks[j] ; dp = &dps[i] ;
-			fitness_norm += exp((dp->fitness-dps[ranks[0]].fitness)/two_sigma_sq) ;  /* make them positive and increasing */
-		}
-		if (FZERO(fitness_norm))  /* something wrong */
-		{
-			for (i = 0 ; i < max_patches ; i++)
-			{
-				dp = &dps[i] ;
-				dp->rank = rank = defectPatchRank(dps, i, max_patches) ;
-				if (dp->fitness >= best_fitness)
-				{
-					best_fitness = dp->fitness ;
-					best_i = i ;
-				}
-				ranks[rank] = i ;
-			}
-			break ;
-		}
-
-		ncrossovers = max_patches-(nelite+nreplacements) ;
-		for (l = k = j = 0 ; j < nselected ; j++)
-		{
-			int  nadd ;
-
-			i = ranks[j] ; dp = &dps[i] ;
-			pfitness = exp((dp->fitness-dps[ranks[0]].fitness)/two_sigma_sq)/fitness_norm ;
-			nadd = nint(pfitness * ncrossovers) ;
-			if (nadd >= ncrossovers)
-				nadd = ncrossovers-1 ;
-			else if (nadd == 0)
-				nadd = 1 ;
-				
-			for (k = 0 ; l < ncrossovers && k < nadd ; l++, k++)
-				selected[l] = i ;
-		}
-		for ( ; l < ncrossovers ; l++)   /* fill out rest of list */
-		{
-			double p ;
-			p = randomNumber(0.0, 1.0)  ;
-			for (fitness = 0.0, j = 0 ; j < nselected ; j++)
-			{
-				i = ranks[j] ; dp = &dps[i] ;
-				pfitness = exp(dp->fitness/two_sigma_sq)/fitness_norm ;
-				fitness += pfitness ;
-				if (fitness > p)
-					break ;
-			}
-			selected[l] = i ;
-		}
-
-		for (i = 0 ; i < ncrossovers ; i++)
-		{
-			int   p1, p2 ;
-
-			p1 = selected[i] ;
-			do   /* select second parent at random */
-			{
-				p2 = selected[(int)randomNumber(0, ncrossovers-.001)] ;
-			} while (p2 == p1) ;
-
-			dp = &dps_next_generation[next_gen_index++] ;
-			mrisCrossoverDefectPatches(&dps[p1], &dps[p2], dp, &etable) ;
-			fitness = mrisDefectPatchFitness(mris, mris_corrected, mri, dp, vertex_trans, dvs,
-																			 h_k1,h_k2,h_white,h_gray, h_border,h_grad, mri_gray_white, h_dot, parms) ;
-			if (fitness > best_fitness)
-			{
-				nunchanged = 0 ;
-				best_fitness = fitness ; best_i = next_gen_index-1 ;
-				if  (Gdiag & DIAG_SHOW)
-					printf("CROSSOVER (%d x %d): new optimal fitness found at %d: %2.4e\n", 
-								 dps[p1].rank, dps[p2].rank, best_i, fitness) ;
-				ncross++ ;
-				if (++nbest == debug_patch_n)
-				{
-					dps = dps_next_generation ;
-					goto debug_use_this_patch ;
-				}
-			}
-			else   /* mutate it also */
-			{
-				mrisMutateDefectPatch(dp, &etable, MUTATION_PCT) ;
-				fitness = mrisDefectPatchFitness(mris, mris_corrected, mri, dp, vertex_trans, dvs,
-																				 h_k1,h_k2,h_white,h_gray, h_border, h_grad, mri_gray_white, h_dot, parms) ;
-				if (fitness > best_fitness)
-				{
-					nunchanged = 0 ;
-					best_fitness = fitness ; best_i = next_gen_index-1 ;
-					if (Gdiag & DIAG_SHOW)
-						printf("MUTATION: new optimal fitness found at %d: %2.4e\n", best_i, fitness) ;
-					if (++nbest == debug_patch_n)
-					{
-						dps = dps_next_generation ;
-						goto debug_use_this_patch ;
-					}
-					nmut++ ;
-				}
-			}
-		}
-
-		/* make next generation current */
-		if (dps == dps1)
-		{
-			dps = dps2 ; dps_next_generation = dps1 ;
-		}
-		else
-		{
-			dps = dps1 ; dps_next_generation = dps2 ;
-		}
-
-		/* regenerate rankings */
+      }
+    }
+    
+    /* make next generation current */
+    if (dps == dps1)
+    {
+      dps = dps2 ; dps_next_generation = dps1 ;
+    }
+    else
+    {
+      dps = dps1 ; dps_next_generation = dps2 ;
+    }
+    
+    /* regenerate rankings */
 #if 0
-		for (fitness_mean = fitness_sigma = 0.0, i = 0 ; i < max_patches ; i++)
-		{
-			dp = &dps[i] ;
-			dp->fitness = fitness = mrisDefectPatchFitness(mris, mris_corrected, mri, dp, vertex_trans, dvs,
-																										 h_k1,h_k2,h_white,h_gray, h_border,h_grad,mri_gray_white, h_dot, parms) ;
-			if (!i)
-			{
-				best_fitness = dps[0].fitness ; best_i = 0 ;
-			}
-		}
-#endif
-		
-		best_fitness = dps[0].fitness ; best_i = 0 ;
-		for (fitness_mean = fitness_sigma = 0.0, i = 0 ; i < max_patches ; i++)
-		{
-			dp = &dps[i] ;
-			dp->rank = rank = defectPatchRank(dps, i, max_patches) ;
-			if (dp->fitness >= best_fitness)
-			{
-				best_fitness = dp->fitness ;
-				best_i = i ;
-			}
-			ranks[rank] = i ;
-			fitness_mean += dp->fitness ;
-			fitness_sigma += dp->fitness*dp->fitness ;
-		}
-
-		fitness_mean /= (float)max_patches ;
-		fitness_sigma = sqrt(fitness_sigma/max_patches - (fitness_mean*fitness_mean)) ;
-		printf("generation %d complete, optimal fitness = %2.4e (%2.4e +- %2.4e)\n", ++g,best_fitness,
-					 fitness_mean, fitness_sigma);
-		if (FEQUAL(last_best, best_fitness))
-			nunchanged++ ;
-		else
-			nunchanged = 0 ;
-	}
-
-#if 0
-	dp = &dps[best_i] ;
-	fitness = mrisDefectPatchFitness(mris, mris_corrected, mri, dp, vertex_trans,dvs,h_k1,h_k2,h_white,h_gray,
-																	 h_border, h_grad, mri_gray_white, h_dot, parms);
+    for (fitness_mean = fitness_sigma = 0.0, i = 0 ; i < max_patches ; i++)
+    {
+      dp = &dps[i] ;
+      dp->fitness = fitness = mrisDefectPatchFitness(mris, mris_corrected, mri, dp, vertex_trans, dvs,
+						     h_k1,h_k2,h_white,h_gray, h_border,h_grad,mri_gray_white, h_dot, parms) ;
+      if (!i)
+      {
 	best_fitness = dps[0].fitness ; best_i = 0 ;
-	for (i = 0 ; i < max_patches ; i++)
-	{
-		dp = &dps[i] ;
-		dp->fitness = fitness = mrisDefectPatchFitness(mris, mris_corrected, mri, dp, vertex_trans, dvs,
-																									 h_k1,h_k2,h_white,h_gray, h_border, h_grad, mri_gray_white, h_dot, parms) ;
-		if (fitness > best_fitness)
-		{
-			best_fitness = fitness ; best_i = i ;
-		}
-	}
+      }
+    }
+#endif
+    
+    best_fitness = dps[0].fitness ; best_i = 0 ;
+    for (fitness_mean = fitness_sigma = 0.0, i = 0 ; i < max_patches ; i++)
+    {
+      dp = &dps[i] ;
+      dp->rank = rank = defectPatchRank(dps, i, max_patches) ;
+      if (dp->fitness >= best_fitness)
+      {
+	best_fitness = dp->fitness ;
+	best_i = i ;
+      }
+      ranks[rank] = i ;
+      fitness_mean += dp->fitness ;
+      fitness_sigma += dp->fitness*dp->fitness ;
+    }
+    
+    fitness_mean /= (float)max_patches ;
+    fitness_sigma = sqrt(fitness_sigma/max_patches - (fitness_mean*fitness_mean)) ;
+    printf("generation %d complete, optimal fitness = %2.4e (%2.4e +- %2.4e)\n", ++g,best_fitness,
+	   fitness_mean, fitness_sigma);
+    if (FEQUAL(last_best, best_fitness))
+      nunchanged++ ;
+    else
+      nunchanged = 0 ;
+  }
+
+#if 0
+  dp = &dps[best_i] ;
+  fitness = mrisDefectPatchFitness(mris, mris_corrected, mri, dp, vertex_trans,dvs,h_k1,h_k2,h_white,h_gray,
+				   h_border, h_grad, mri_gray_white, h_dot, parms);
+  best_fitness = dps[0].fitness ; best_i = 0 ;
+  for (i = 0 ; i < max_patches ; i++)
+  {
+    dp = &dps[i] ;
+    dp->fitness = fitness = mrisDefectPatchFitness(mris, mris_corrected, mri, dp, vertex_trans, dvs,
+						   h_k1,h_k2,h_white,h_gray, h_border, h_grad, mri_gray_white, h_dot, parms) ;
+    if (fitness > best_fitness)
+    {
+      best_fitness = fitness ; best_i = i ;
+    }
+  }
 #endif
  debug_use_this_patch:
-	dp = &dps[best_i] ;
-	fitness = mrisDefectPatchFitness(mris, mris_corrected, mri, dp, vertex_trans,dvs,h_k1,h_k2,h_white,h_gray,
-																	 h_border, h_grad, mri_gray_white, h_dot, parms);
-	if (fitness != best_fitness)
-		fprintf(stderr, "Warning - incorrect dp selected!!!!\n") ;
-	mrisRetessellateDefect(mris, mris_corrected, dp->defect, vertex_trans, dp->etable->edges, nedges, 
-												 dp->ordering, dp->etable) ;
-
-	/* free everything */
-	mrisFreeDefectVertexState(dvs) ;
-	for (i = 0 ; i < max_patches ; i++)
-	{
-		free(dps1[i].ordering) ;
-		free(dps2[i].ordering) ;
-	}
-
-	for (i = 0 ; i < nedges ; i++)
-	{
-		if (etable.overlapping_edges[i])
-			free(etable.overlapping_edges[i]) ;
-	}
-	free(etable.overlapping_edges) ;
-	free(etable.edges) ;
-	free(etable.noverlap) ;
-	free(etable.flags) ;
-	return(NO_ERROR) ;
+  dp = &dps[best_i] ;
+  fitness = mrisDefectPatchFitness(mris, mris_corrected, mri, dp, vertex_trans,dvs,h_k1,h_k2,h_white,h_gray,
+				   h_border, h_grad, mri_gray_white, h_dot, parms);
+  if (fitness != best_fitness)
+    fprintf(stderr, "Warning - incorrect dp selected!!!!\n") ;
+  mrisRetessellateDefect(mris, mris_corrected, dp->defect, vertex_trans, dp->etable->edges, nedges, 
+			 dp->ordering, dp->etable) ;
+  
+  /* free everything */
+  mrisFreeDefectVertexState(dvs) ;
+  for (i = 0 ; i < max_patches ; i++)
+  {
+    free(dps1[i].ordering) ;
+    free(dps2[i].ordering) ;
+  }
+  
+  for (i = 0 ; i < nedges ; i++)
+  {
+    if (etable.overlapping_edges[i])
+      free(etable.overlapping_edges[i]) ;
+  }
+  free(etable.overlapping_edges) ;
+  free(etable.edges) ;
+  free(etable.noverlap) ;
+  free(etable.flags) ;
+  return(NO_ERROR) ;
 }
 
 static int
 mrisRetessellateDefect(MRI_SURFACE *mris, MRI_SURFACE *mris_corrected, DEFECT *defect, 
-											 int *vertex_trans, EDGE *et, int nedges, int *ordering, EDGE_TABLE *etable)
+		       int *vertex_trans, EDGE *et, int nedges, int *ordering, EDGE_TABLE *etable)
 {
   double  max_len ;
-	int     i, j, max_i, max_added, nadded, index ;
-	int     (*intersection_function)(MRI_SURFACE *mris, DEFECT *defect, EDGE *e, int *vertex_trans) ;
-
+  int     i, j, max_i, max_added, nadded, index ;
+  int     (*intersection_function)(MRI_SURFACE *mris, DEFECT *defect, EDGE *e, int *vertex_trans) ;
+  
   max_len = 0 ; max_i = 0 ; max_added = nadded = 0 ;
-	intersection_function = intersectDefectEdges ;
+  intersection_function = intersectDefectEdges ;
   for (index = 0 ; index < nedges ; index++)
   {
-		if (ordering)
-			i = ordering[index] ;
-		else
-			i = index ;
-
+    if (ordering)
+      i = ordering[index] ;
+    else
+      i = index ;
+    
     if (i == 1662 || i == 1685)
       DiagBreak() ;
     if ((et[i].vno1 == 52022 || et[i].vno2 == 52022) &&
         (et[i].vno1 == 53156 || et[i].vno2 == 53156))
       DiagBreak() ;
-		if (et[i].vno1 == Gdiag_no || et[i].vno2 == Gdiag_no)
-			DiagBreak() ;
+    if (et[i].vno1 == Gdiag_no || et[i].vno2 == Gdiag_no)
+      DiagBreak() ;
     if (et[i].used)  /* already exists in tessellation - don't add it again */
       continue ;
-
-		if (etable)   /* use pre-computed intersection table */
-		{
-			int intersects = 0 ;
-
-			for (j = 0 ; j < etable->noverlap[i] ; j++)
-				if (et[etable->overlapping_edges[i][j]].used)
-				{
-					intersects = 1 ;
-					break ;
-				}
-			if (intersects)
-				continue ;
-			if (etable->flags[i] & ET_OVERLAP_LIST_INCOMPLETE)
-				intersection_function = intersectDefectEdges ;
-			else
-				intersection_function = intersectDefectConvexHullEdges ;
-		}
-
-		if ((*intersection_function)(mris_corrected, defect, &et[i], vertex_trans) == 0)
-		{
-			mrisAddEdge(mris_corrected, et[i].vno1, et[i].vno2) ;
-			et[i].used = USED_IN_NEW_TESSELLATION ; nadded++ ;
-			if (et[i].len > max_len)
-			{
-				max_len = et[i].len ; max_added = nadded-1 ;
-				max_i = i ;
-			}
-		}
+    
+    if (etable)   /* use pre-computed intersection table */
+    {
+      int intersects = 0 ;
+      
+      for (j = 0 ; j < etable->noverlap[i] ; j++)
+	if (et[etable->overlapping_edges[i][j]].used)
+	{
+	  intersects = 1 ;
+	  break ;
+	}
+      if (intersects)
+	continue ;
+      if (etable->flags[i] & ET_OVERLAP_LIST_INCOMPLETE)
+	intersection_function = intersectDefectEdges ;
+      else
+	intersection_function = intersectDefectConvexHullEdges ;
+    }
+    
+    if ((*intersection_function)(mris_corrected, defect, &et[i], vertex_trans) == 0)
+    {
+      mrisAddEdge(mris_corrected, et[i].vno1, et[i].vno2) ;
+      et[i].used = USED_IN_NEW_TESSELLATION ; nadded++ ;
+      if (et[i].len > max_len)
+      {
+	max_len = et[i].len ; max_added = nadded-1 ;
+	max_i = i ;
+      }
+    }
   }
 
-	return(NO_ERROR) ;
+  return(NO_ERROR) ;
 }
 
 static int
@@ -32421,61 +32488,63 @@ mrisComputeGrayWhiteBorderDistributions(MRI_SURFACE *mris, MRI *mri, DEFECT *def
 }
 static int
 mrisComputeJointGrayWhiteBorderDistributions(MRI_SURFACE *mris, MRI *mri, 
-																						 MRI *mri_gray_white, MRI *mri_wm)
+					     MRI *mri_gray_white, MRI *mri_wm)
 {
-	int    vno, x, y ;
-	VERTEX *v ;
-	float  norm ;
-	Real   nx, ny, nz, xv, yv, zv, xw, yw, zw, white_val, gray_val ;
-
-	MRIScomputeMetricProperties(mris) ;
-	for (vno = 0 ; vno < mris->nvertices ; vno++)
-	{
-		v = &mris->vertices[vno] ;
-		if (v->marked || v->ripflag)  /* part of a defect - ignore it */
-			continue ;
-
+  int    vno, x, y ;
+  VERTEX *v ;
+  float  norm ;
+  Real   nx, ny, nz, xv, yv, zv, xw, yw, zw, white_val, gray_val ;
+  
+  MRIScomputeMetricProperties(mris) ;
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    if (v->marked || v->ripflag)  /* part of a defect - ignore it */
+      continue ;
+    
     nx = v->nx ; ny = v->ny ; nz = v->nz ; 
     xw = v->x ; yw = v->y ; zw = v->z ; 
-
-    MRIworldToVoxel(mri_wm, xw+.5*nx, yw+.5*ny, zw+.5*nz, &xv, &yv, &zv) ;
+    
+    // MRIworldToVoxel(mri_wm, xw+.5*nx, yw+.5*ny, zw+.5*nz, &xv, &yv, &zv) ;
+    MRIsurfaceRASToVoxel(mri_wm, xw+.5*nx, yw+.5*ny, zw+.5*nz, &xv, &yv, &zv) ;
     MRIsampleVolumeType(mri_wm, xv, yv, zv, &gray_val, SAMPLE_NEAREST) ;
-    MRIworldToVoxel(mri_wm, xw-.5*nx, yw-.5*ny, zw-.5*nz, &xv, &yv, &zv) ;
+    // MRIworldToVoxel(mri_wm, xw-.5*nx, yw-.5*ny, zw-.5*nz, &xv, &yv, &zv) ;
+    MRIsurfaceRASToVoxel(mri_wm, xw-.5*nx, yw-.5*ny, zw-.5*nz, &xv, &yv, &zv) ;
     MRIsampleVolumeType(mri_wm, xv, yv, zv, &white_val, SAMPLE_NEAREST) ;
-		if (gray_val >= MIN_WM_VAL && white_val >= MIN_WM_VAL)  /* white on both sides */
-			continue ;
-
-		MRIFvox(mri_gray_white, nint(v->val2), nint(v->val2bak), 0) += 1.0f ;
-
-		if ((nint(nint(v->val2)) == 110) && (nint(v->val2bak) == 110))
-			DiagBreak() ;
-	}
-
-	for (x = 0 ; x < mri->width ; x++)
-		for (y = 0 ; y < mri->height ; y++)
-		{
-			if (FZERO(MRIFvox(mri_gray_white, x, y, 0)))
-			{
-				MRIFvox(mri_gray_white, x, y, 0) = 0.1 ;
-			}
-		}
-	for (norm = 0.0, x = 0 ; x < mri->width ; x++)
-		for (y = 0 ; y < mri->height ; y++)
-		{
-			norm += MRIFvox(mri_gray_white, x, y, 0) ;
-		}
-
-	for (x = 0 ; x < mri->width ; x++)
-		for (y = 0 ; y < mri->height ; y++)
-		{
-			MRIFvox(mri_gray_white, x, y, 0) = MRIFvox(mri_gray_white, x, y, 0) / norm ;
-		}
-
-	if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
-	{
-		MRIwrite(mri_gray_white, "gw.mgh") ;
-	}
-	return(NO_ERROR) ;
+    if (gray_val >= MIN_WM_VAL && white_val >= MIN_WM_VAL)  /* white on both sides */
+      continue ;
+    
+    MRIFvox(mri_gray_white, nint(v->val2), nint(v->val2bak), 0) += 1.0f ;
+    
+    if ((nint(nint(v->val2)) == 110) && (nint(v->val2bak) == 110))
+      DiagBreak() ;
+  }
+  
+  for (x = 0 ; x < mri->width ; x++)
+    for (y = 0 ; y < mri->height ; y++)
+    {
+      if (FZERO(MRIFvox(mri_gray_white, x, y, 0)))
+      {
+	MRIFvox(mri_gray_white, x, y, 0) = 0.1 ;
+      }
+    }
+  for (norm = 0.0, x = 0 ; x < mri->width ; x++)
+    for (y = 0 ; y < mri->height ; y++)
+    {
+      norm += MRIFvox(mri_gray_white, x, y, 0) ;
+    }
+  
+  for (x = 0 ; x < mri->width ; x++)
+    for (y = 0 ; y < mri->height ; y++)
+    {
+      MRIFvox(mri_gray_white, x, y, 0) = MRIFvox(mri_gray_white, x, y, 0) / norm ;
+    }
+  
+  if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+  {
+    MRIwrite(mri_gray_white, "gw.mgh") ;
+  }
+  return(NO_ERROR) ;
 }
 
 static int
@@ -32498,9 +32567,11 @@ mrisFindGrayWhiteBorderMean(MRI_SURFACE *mris, MRI *mri)
     nx = v->nx ; ny = v->ny ; nz = v->nz ; 
     x = v->x ; y = v->y ; z = v->z ; 
 
-    MRIworldToVoxel(mri, x+.5*nx, y+.5*ny, z+.5*nz, &xv, &yv, &zv) ;
+    // MRIworldToVoxel(mri, x+.5*nx, y+.5*ny, z+.5*nz, &xv, &yv, &zv) ;
+    MRIsurfaceRASToVoxel(mri, x+.5*nx, y+.5*ny, z+.5*nz, &xv, &yv, &zv) ;
     MRIsampleVolume(mri, xv, yv, zv, &gray_val) ;
-    MRIworldToVoxel(mri, x-.5*nx, y-.5*ny, z-.5*nz, &xv, &yv, &zv) ;
+    // MRIworldToVoxel(mri, x-.5*nx, y-.5*ny, z-.5*nz, &xv, &yv, &zv) ;
+    MRIsurfaceRASToVoxel(mri, x-.5*nx, y-.5*ny, z-.5*nz, &xv, &yv, &zv) ;
     MRIsampleVolume(mri, xv, yv, zv, &white_val) ;
 		v->val2 = white_val ; v->val2bak = gray_val ;
     v->val = (white_val + gray_val) / 2 ;
@@ -33614,7 +33685,8 @@ mrisMarkSulcalVertices(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
 
     x = v->x ; y = v->y ; z = v->z ;
     
-    MRIworldToVoxel(parms->mri_brain, x, y, z, &xw, &yw, &zw) ;
+    // MRIworldToVoxel(parms->mri_brain, x, y, z, &xw, &yw, &zw) ;
+    MRIsurfaceRASToVoxel(parms->mri_brain, x, y, z, &xw, &yw, &zw) ;
     MRIsampleVolume(parms->mri_brain, xw, yw, zw, &val0) ;
 		dot = v->dx * v->nx + v->dy * v->ny + v->dz * v->nz ;
 		
@@ -33645,20 +33717,20 @@ mrisUpdateSulcalGradients(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
     if (vno == Gdiag_no)
       DiagBreak() ;
 
-		if (v->flags & VERTEX_SULCAL)
-		{
-			dot = v->dx * v->nx + v->dy * v->ny + v->dz * v->nz ;
-			if (dot > 0)  /* now moving outwards - take out normal component */
-			{
-				num++ ;
-				v->dx -= dot*v->nx ;
-				v->dy -= dot*v->ny ;
-				v->dz -= dot*v->nz ;
-				if (vno == Gdiag_no)
-					printf("v %d: removing normal component %2.3f to prevent sulcal crossing\n",
-								 vno, dot) ;
-			}
-		}
+    if (v->flags & VERTEX_SULCAL)
+    {
+      dot = v->dx * v->nx + v->dy * v->ny + v->dz * v->nz ;
+      if (dot > 0)  /* now moving outwards - take out normal component */
+      {
+	num++ ;
+	v->dx -= dot*v->nx ;
+	v->dy -= dot*v->ny ;
+	v->dz -= dot*v->nz ;
+	if (vno == Gdiag_no)
+	  printf("v %d: removing normal component %2.3f to prevent sulcal crossing\n",
+		 vno, dot) ;
+      }
+    }
   }
 
   printf("%d vertices detected in sulcal-crossing\n", num) ;
@@ -33669,51 +33741,51 @@ mrisUpdateSulcalGradients(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
 int
 MRISsetFlags(MRI_SURFACE *mris, int flags)
 {
-	int    vno ;
-
-	for (vno = 0 ; vno < mris->nvertices ; vno++)
-		mris->vertices[vno].flags |= flags ;
-	return(NO_ERROR) ;
+  int    vno ;
+  
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+    mris->vertices[vno].flags |= flags ;
+  return(NO_ERROR) ;
 }
 
 int
 MRISclearFlags(MRI_SURFACE *mris, int flags)
 {
-	int    vno ;
-
-	for (vno = 0 ; vno < mris->nvertices ; vno++)
-		mris->vertices[vno].flags &= (~flags) ;
-	return(NO_ERROR) ;
+  int    vno ;
+  
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+    mris->vertices[vno].flags &= (~flags) ;
+  return(NO_ERROR) ;
 }
 
 static int
 mrisReadAsciiCurvatureFile(MRI_SURFACE *mris, char *fname)
 {
-	FILE   *fp ;
-	int    vno ;
-	char   line[STRLEN], *cp ;
-	VERTEX *v ;
+  FILE   *fp ;
+  int    vno ;
+  char   line[STRLEN], *cp ;
+  VERTEX *v ;
 
   fp = fopen(fname, "r") ;
   if (!fp)
     ErrorReturn(ERROR_BADFILE, (ERROR_BADFILE, "%s could not open output file %s.\n",
-																mrisReadAsciiCurvatureFile, fname)) ;
-	for (vno = 0 ; vno < mris->nvertices ; vno++)
-	{
+				mrisReadAsciiCurvatureFile, fname)) ;
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
     v = &mris->vertices[vno] ;
     if (v->ripflag)
       continue ;
-		cp = fgetl(line, 100, fp) ;
-		if (!cp)
-			break ;
+    cp = fgetl(line, 100, fp) ;
+    if (!cp)
+      break ;
     if (sscanf(line, "%*d %*f %*f %*f %f\n", &v->curv) != 1)
-			ErrorReturn(ERROR_BADFILE, 
-								(ERROR_BADFILE, 
-								 "mrisReadAsciiCurvatureFile(%s): could not scan curvature from line '%s'",fname,line));
-	}
-
-	fclose(fp) ;
-	return(NO_ERROR) ;
+      ErrorReturn(ERROR_BADFILE, 
+		  (ERROR_BADFILE, 
+		   "mrisReadAsciiCurvatureFile(%s): could not scan curvature from line '%s'",fname,line));
+  }
+  
+  fclose(fp) ;
+  return(NO_ERROR) ;
 }
 
 // expand the surface by "h" and create a volume which has "val" outside of this surface
@@ -33785,7 +33857,8 @@ MRISeraseOutsideOfSurface(float h,MRI* mri_dst,MRIS *mris,unsigned char val)
         py = py0 + (py1-py0)*u/numu;
         pz = pz0 + (pz1-pz0)*u/numu;
 
-	MRIworldToVoxel(mri_dst,px,py,pz,&tx,&ty,&tz);
+	// MRIworldToVoxel(mri_dst,px,py,pz,&tx,&ty,&tz);
+	MRIsurfaceRASToVoxel(mri_dst,px,py,pz,&tx,&ty,&tz);
 	
 	imnr=(int)(tz+0.5);
 	j=(int)(ty+0.5);
@@ -33901,10 +33974,10 @@ MRISspringTermWithGaussianCurvature(MRI_SURFACE *mris, double gaussian_norm, dou
       sy = sy/n;
       sz = sz/n;
     }
-		scale = pow(vertex->K, gaussian_norm) ;
-		if (scale > 1)
-			scale = 1 ;
-		scale *= l_spring ;
+    scale = pow(vertex->K, gaussian_norm) ;
+    if (scale > 1)
+      scale = 1 ;
+    scale *= l_spring ;
     sx *= scale ;              /* move in normal direction */
     sy *= scale ;
     sz *= scale ;
