@@ -162,8 +162,10 @@ mri_event_handler(XV_FRAME *xvf, Event *event,DIMAGE *dimage,
     MRIvoxelToTalairachVoxel(mri, (Real)x, (Real)y, (Real)z, &xtv,&ytv,&ztv);
   }
   MRIvoxelToWorld(mri, (Real)x, (Real)y, (Real)z, &xr, &yr, &zr) ;
+if ((char)event->ie_code == 'S')
+  DiagBreak() ;
 
-  if (event_shift_is_down(event))
+  if (event_shift_is_down(event) && !event_is_ascii(event))
   {
     if (event_left_is_down(event))
       val = 255 ;
