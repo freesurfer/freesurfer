@@ -327,6 +327,8 @@ int   MRIsampleVolume(MRI *mri, Real x, Real y, Real z, Real *pval) ;
 int   MRIsampleVolumeFrame(MRI *mri,Real x,Real y,Real z,int frame,Real *pval);
 int   MRIsampleVolumeGradient(MRI *mri, Real x, Real y, Real z, 
                               Real *pdx, Real *pdy, Real *pdz) ;
+int   MRIsampleVolumeDerivative(MRI *mri, Real x, Real y, Real z,
+                                Real dx, Real dy, Real dz, Real *pmag) ;
 
 /* resampling routines */
 MRI   *MRIupsample2(MRI *mri_src, MRI *mri_dst) ;
@@ -424,7 +426,7 @@ MRI        *MRIbuildDistanceMap(MRI *mri_src, MRI *mri_distance,
                                 float x0, float y0, float z0, float r) ;
 MRI        *MRIupdateDistanceMap(MRI *mri_distance) ;
 MRI        *MRIfill(MRI *mri_src, MRI *mri_dst, int seed_x, int seed_y, 
-                    int seed_z, int threshold, int fill_val, int max_filled) ;
+                    int seed_z, int threshold, int fill_val) ;
 MRI        *MRIfillFG(MRI *mri_src, MRI *mri_dst, int seed_x, int seed_y, 
                     int seed_z, int threshold, int fill_val, int *npix) ;
                     
@@ -434,7 +436,8 @@ int   MRIneighborsOff(MRI *mri, int x0, int y0, int z0, int min_val) ;
 
 MRI   *MRIreplaceValues(MRI *mri_src, MRI *mri_dst, 
                        BUFTYPE in_val, BUFTYPE out_val) ;
-MRI   *MRImask(MRI *mri_src, MRI *mri_mask, MRI *mri_dst, BUFTYPE mask) ;
+MRI   *MRImask(MRI *mri_src, MRI *mri_mask, MRI *mri_dst, BUFTYPE mask,
+               BUFTYPE out_val) ;
 
 /* constants used in mri_dir of MRIoffsetDirection and for MRIminmax filter */
 #define OFFSET_NEGATIVE_GRADIENT_DIRECTION    0
