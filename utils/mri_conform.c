@@ -16,10 +16,12 @@ MRI *MRIconform(MRI *mri)
   MRI *mri2, *mri3, *mri4;
 
   mri3 = conform_type(mri);
+
   mri4 = conform_voxels(mri3);
   MRIfree(&mri3);
   mri2 = conform_direction(mri4);
   MRIfree(&mri4);
+
   return(mri2);
 
 }  /*  end MRIconform()  */
@@ -29,9 +31,9 @@ MRI *conform_type(MRI *mri)
 
   MRI *mri2;
   int x, y, z;
-  float min, max;
+  float min = 0.0, max = 0.0;
   float scale;
-  float this;
+  float this = 0.0;
 
   if(mri->slices == NULL)
   {
