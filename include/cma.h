@@ -87,6 +87,8 @@
 #define   Left_F1 83  /*                             255  218  185    0*/
 #define   Right_F1 84  /*                            255  218  185    0*/
 #define   Optic_Chiasm   85  /*                        234  169   30    0*/
+#define   Left_Amygdala_Anterior  96 /*              205   10  125    0*/
+#define   Right_Amygdala_Anterior 97 /*              205   10  125    0*/
 
 /* no brain labels after this please unless you fix the IS_BRAIN macro */
 #define   Dura           98
