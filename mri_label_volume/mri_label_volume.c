@@ -38,6 +38,7 @@ static char *icv_fname = NULL ;
 #define MAX_COLS 10000
 static char *col_strings[MAX_COLS] ;
 static int ncols  = 0 ;
+static double atlas_icv = -1 ;
 
 int
 main(int argc, char *argv[])
@@ -50,7 +51,7 @@ main(int argc, char *argv[])
 	double  vox_volume, brain_volume ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_label_volume.c,v 1.17 2004/11/22 21:27:44 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_label_volume.c,v 1.18 2005/02/04 18:46:19 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -103,6 +104,10 @@ main(int argc, char *argv[])
 		brain_volume = (double)MRItotalVoxelsOn(mri_brain, WM_MIN_VAL) ;
 		MRIfree(&mri_brain) ;
 		brain_volume *= (mri->xsize * mri->ysize * mri->zsize) ;
+	}
+	else if (atlas_icv > 0)
+	{
+		brain_volume = atlas_icv ;
 	}
   else if (compute_pct)
   {
@@ -251,6 +256,20 @@ get_option(int argc, char *argv[])
 		Gz = atoi(argv[4]) ;
 		nargs = 3 ;
 	}
+	else if (!stricmp(option, "atlas_icv") || !stricmp(option, "eTIV"))
+	{
+		LTA    *atlas_lta ;
+		double atlas_det ;
+
+		atlas_lta = LTAreadEx(argv[2]) ;
+		if (atlas_lta == NULL)
+			ErrorExit(ERROR_NOFILE, "%s: could not open atlas transform file %s", Progname, argv[2]) ;
+		atlas_det = MatrixDeterminant(atlas_lta->xforms[0].m_L) ;
+		LTAfree(&atlas_lta) ;
+		atlas_icv = 1755*(10*10*10) / atlas_det ;
+		printf("using eTIV from atlas transform of %2.0f cm^3\n", atlas_icv/(10*10*10)) ;
+		nargs = 1 ;
+	}
 	else switch (toupper(*option))
   {
 	case 'C':
@@ -318,5 +337,6 @@ usage_exit(int code)
 	printf("\t-b <brain vol>- compute the brain volume from <brain vol> and normalize by it\n") ;
 	printf("\t-p            - compute volume as a %% of all non-zero labels\n") ;
 	printf("\t-l <fname>    - log results to <fname>\n") ;
+	printf("\t-atlas_icv <fname> - use 1755cm^3/(det(fname)) for ICV correction (c.f. Buckner et al., 2004)\n");
   exit(code) ;
 }
