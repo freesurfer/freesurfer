@@ -16,7 +16,7 @@
 #include <sys/shm.h>
 #include <X11/extensions/XShm.h>
 
-#ifdef Linux
+#ifdef __linux__
 #include <X11/extensions/xf86dga.h>
 #endif 
 
@@ -30,6 +30,9 @@
 #define INTERVAL_INC 15
 
 /* -------- Prototypes -------- */
+#ifdef __sun__ 
+int XShmQueryExtension(Display *disp) ;
+#endif 
 void useage(void);
 void quit_proc(Widget w, XEvent *event, String *pars, Cardinal *npars);
 void repaint_proc(Widget w, XEvent *event, String *pars, Cardinal *npars);
@@ -70,8 +73,8 @@ typedef struct {
 Widget frame,toplevel,quit_bt,canvas,buttons,stop_bt,loop_bt,swing_bt;
 Widget fast_bt,slow_bt;
 int shmext,nframes;
-#ifdef Linux
-int dga;
+#ifdef __linux__
+int dgaext;
 #endif 
 XImage *ximg;
 byte *imgdata;
@@ -257,7 +260,9 @@ static int highbit(unsigned long ul)
 
 static void XInit(int *argc, char ***argv)
 {
+#ifdef __linux__
   int ebase,errbase,flags;
+#endif 
 
   XtToolkitInitialize();
   xi.context = XtCreateApplicationContext();
@@ -268,7 +273,7 @@ static void XInit(int *argc, char ***argv)
   shmext = XShmQueryExtension(xi.disp);
   xi.screenno = DefaultScreen(xi.disp);
 
-#ifdef Linux
+#ifdef __linux__
   if (XF86DGAQueryExtension(xi.disp,&ebase,&errbase))
     {
       XF86DGAQueryDirectVideo(xi.disp, xi.screenno, &flags);
