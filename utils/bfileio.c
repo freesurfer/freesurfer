@@ -4,7 +4,7 @@ Purpose: Routines for handling bfile (bshort and bfloat) I/O.
 Author:  Douglas Greve
 Date:    11/22/00
 
-$Id: bfileio.c,v 1.2 2001/02/07 22:57:36 greve Exp $
+$Id: bfileio.c,v 1.3 2001/08/03 19:14:00 greve Exp $
 
 Bfile names are assumed to have the following format:
   stem_%03d.bext 
@@ -576,6 +576,7 @@ int bf_iswritable(char *fname)
   fp = fopen(tmpstr,"w");
   if(fp==NULL) return(0);
   fclose(fp);
+  unlink(tmpstr);
   return(1);
 }
 /* -----------------------------------------------------------*/
