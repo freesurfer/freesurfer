@@ -5678,6 +5678,7 @@ static int read_otl_file(FILE *fp, MRI *mri, int slice, mriColorLookupTableRef c
   float scale_x, scale_y;
   int source_x, source_y;
   char alt_compare[STRLEN];
+  int empty_label_flag;
 
   for(i = 0;i < 512;i++)
     memset(cma_field[i], 0x00, 512 * 2);
@@ -5760,6 +5761,8 @@ static int read_otl_file(FILE *fp, MRI *mri, int slice, mriColorLookupTableRef c
     seed_x = seed_y = -1;
     label[0] = '\0';
 
+    empty_label_flag = 0;
+
     while(gdf_header_flag)
     {
 
@@ -5808,8 +5811,9 @@ static int read_otl_file(FILE *fp, MRI *mri, int slice, mriColorLookupTableRef c
 
     if(label[0] == '\0')
     {
+      empty_label_flag = 1;
       errno = 0;
-      ErrorReturn(ERROR_BADPARM, (ERROR_BADPARM, "bad or undefined LABEL in otl file %d", slice));
+      ErrorPrintf(ERROR_BADPARM, "empty LABEL in otl file %d (outline %d)", slice, i);
     }
 
     if(seed_x < 0 || seed_x >= 512 || seed_y < 0 || seed_y >= 512)
@@ -5861,41 +5865,45 @@ static int read_otl_file(FILE *fp, MRI *mri, int slice, mriColorLookupTableRef c
     swab(points, points, 2 * n_rows * sizeof(short));
 #endif
 
-    strcpy(label_to_compare, label);
-    for(j = 0;label_to_compare[j] != '\0';j++)
+    if(!empty_label_flag)
     {
-      if(label_to_compare[j] == '\n')
-        label_to_compare[j] = '\0';
-      if(label_to_compare[j] == ' ')
-        label_to_compare[j] = '-';
-    }
+      strcpy(label_to_compare, label);
+      for(j = 0;label_to_compare[j] != '\0';j++)
+      {
+        if(label_to_compare[j] == '\n')
+          label_to_compare[j] = '\0';
+        if(label_to_compare[j] == ' ')
+          label_to_compare[j] = '-';
+      }
 
-    /* --- strip 'Left' and 'Right'; --- */
-    strcpy(alt_compare, label_to_compare);
-    StrLower(alt_compare);
-    if(strncmp(alt_compare, "left-", 5) == 0)
-      strcpy(alt_compare, &(label_to_compare[5]));
-    else if(strncmp(alt_compare, "right-", 6) == 0)
-      strcpy(alt_compare, &(label_to_compare[6]));
+      /* --- strip 'Left' and 'Right'; --- */
+      strcpy(alt_compare, label_to_compare);
+      StrLower(alt_compare);
+      if(strncmp(alt_compare, "left-", 5) == 0)
+        strcpy(alt_compare, &(label_to_compare[5]));
+      else if(strncmp(alt_compare, "right-", 6) == 0)
+        strcpy(alt_compare, &(label_to_compare[6]));
 
-    label_value = -1;
-    for(j = 0;j < color_table->mnNumEntries;j++)
-      if(strcmp(color_table->maEntries[j].msLabel, label_to_compare) == 0 || 
-         strcmp(color_table->maEntries[j].msLabel, alt_compare) == 0)
-        label_value = j;
+      label_value = -1;
+      for(j = 0;j < color_table->mnNumEntries;j++)
+        if(strcmp(color_table->maEntries[j].msLabel, label_to_compare) == 0 || 
+           strcmp(color_table->maEntries[j].msLabel, alt_compare) == 0)
+          label_value = j;
 
-    if(label_value == -1)
-    {
-      register_unknown_label(label);
-    }
-    else
-    {
+      if(label_value == -1)
+      {
+        register_unknown_label(label);
+      }
+      else
+      {
 
-      for(j = 0;j < n_rows;j++)
-        cma_field[points[2*j]][points[2*j+1]] = label_value;
+        for(j = 0;j < n_rows;j++)
+          cma_field[points[2*j]][points[2*j+1]] = label_value;
 
-      if(fill_flag && label_value != 0)
-        parc_fill(label_value, seed_x, seed_y);
+        if(fill_flag && label_value != 0)
+          parc_fill(label_value, seed_x, seed_y);
+
+      }
 
     }
 
