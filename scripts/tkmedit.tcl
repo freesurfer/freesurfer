@@ -1,6 +1,6 @@
 #! /usr/bin/tixwish
 
-# $Id: tkmedit.tcl,v 1.69 2003/12/18 19:44:16 kteich Exp $
+# $Id: tkmedit.tcl,v 1.70 2004/01/09 00:13:16 kteich Exp $
 
 
 source $env(FREESURFER_HOME)/lib/tcl/tkm_common.tcl
@@ -88,6 +88,7 @@ set DspA_tTool_Select     1
 set DspA_tTool_Edit       2
 set DspA_tTool_EditSeg   3
 set DspA_tTool_CtrlPts    4
+set DspA_tTool_Line       5
 
 # DspA_tBrush
 set DspA_tBrush_EditOne 0
@@ -1134,6 +1135,15 @@ set tDlogSpecs(SaveRGB) [list \
   -default1 [list GetDefaultLocation SaveRGB] \
   -presets1 $glShortcutDirs \
   -okCmd {SaveRGB %s1; SetDefaultLocation SaveRGB %s1} ]
+set tDlogSpecs(WriteLineReport) [list \
+  -title "Write Line Report" \
+  -prompt1 "Save Report As:" \
+  -note1 "The file name of the report file to write" \
+  -entry1 [list GetDefaultLocation WriteLineReport] \
+  -default1 [list GetDefaultLocation WriteLineReport] \
+  -presets1 $glShortcutDirs \
+  -okCmd {WriteLineReportToFile %s1; \
+  SetDefaultLocation WriteLineReportToFile %s1} ]
 
 proc DoFileDlog { which } {
     global tDlogSpecs
@@ -3032,6 +3042,8 @@ proc MakeKeyBindings { iwTop } {
 	{SetTool $DspA_tTool_EditSeg}
     bind $iwTop <Key-t> \
 	{SetTool $DspA_tTool_CtrlPts}
+    bind $iwTop <Key-l> \
+	{SetTool $DspA_tTool_Line}
 }
 
 proc CreateMenuBar { ifwMenuBar } {
@@ -3608,6 +3620,11 @@ proc CreateMenuBar { ifwMenuBar } {
 	    "SetTool $DspA_tTool_CtrlPts"
 	    gTool
 	    4 }
+	{ radio
+	    "Line:L"
+	    "SetTool $DspA_tTool_Line"
+	    gTool
+	    5 }
 	{ separator }
 	{ command
 	    "Configure Brush Info..."
@@ -3636,6 +3653,13 @@ proc CreateMenuBar { ifwMenuBar } {
 	{ command
 	    "Goto Center of Selection"
 	    SetCursorToCenterOfSelection }
+	{ separator }
+	{ command
+	    "Add Line to Selection"
+	    AddLineToSelection }
+	{ command
+	    "Write Line Report to File..."
+	    {DoFileDlog WriteLineReport} }
 	{ separator }
 	{ cascade "Volume" {
 	    { command
@@ -3885,7 +3909,8 @@ proc CreateToolBar { ifwToolBar } {
       { image 1 icon_edit_label "Select Voxels Tool (s)" } \
       { image 2 icon_edit_volume "Edit Voxels Tool (a)" } \
       { image 3 icon_edit_parc "Edit Segmentation Tool (g)" } \
-      { image 4 icon_edit_ctrlpts "Edit Ctrl Pts Tool (c)" } }
+      { image 4 icon_edit_ctrlpts "Edit Ctrl Pts Tool (c)" } \
+      { image 5 icon_line_tool "Line Tool (l)" } }
 
     tkm_MakeToolbar $fwViews \
       1 \
@@ -4034,7 +4059,7 @@ proc CreateImages {} {
     global ksImageDir
 
     foreach image_name { icon_edit_label icon_edit_volume \
-      icon_navigate icon_edit_ctrlpts icon_edit_parc \
+      icon_navigate icon_edit_ctrlpts icon_edit_parc icon_line_tool \
       icon_view_single icon_view_multiple icon_view_mosaic \
       icon_cursor_goto icon_cursor_save \
       icon_main_volume icon_aux_volume icon_linked_cursors \
