@@ -43,6 +43,8 @@
                     STATIC PROTOTYPES
 -------------------------------------------------------*/
 static int alloc_image_buffer(struct header *hd) ;
+static void break_here(void) ;
+static void break_here(void){ fprintf(stderr, "break point encountered!\n") ;}
 
 /*-----------------------------------------------------
                     GLOBAL FUNCTIONS
@@ -58,13 +60,17 @@ IMAGE   *
 ImageAlloc(int rows, int cols, int format, int nframes)
 {
   IMAGE *I ;
+  int   ecode ;
 
   I = (IMAGE *)calloc(1, sizeof(IMAGE)) ;
   if (!I)
     ErrorExit(ERROR_NO_MEMORY, "ImageAlloc: could not allocate header\n") ;
 
   init_header(I, "orig", "seq", nframes, "today", rows,cols,format,1, "temp");
-  alloc_image_buffer(I) ;
+  ecode = alloc_image_buffer(I) ;
+  if (ecode != HIPS_OK)
+    ErrorExit(ERROR_NO_MEMORY, "ImageAlloc: could not allocate %dx%d buffer\n",
+              rows,cols) ;
   return(I) ;
 }
 /*-----------------------------------------------------
@@ -595,6 +601,7 @@ ImageResize(IMAGE *Isrc, IMAGE *Idst, int drows, int dcols)
 {
   float x_scale, y_scale ;
   int   ecode ;
+  IMAGE *Itmp ;
 
   if (!Idst)
     Idst = ImageAlloc(drows, dcols, Isrc->pixel_format, Isrc->num_frame) ;
@@ -635,11 +642,34 @@ ImageResize(IMAGE *Isrc, IMAGE *Idst, int drows, int dcols)
       if (x_scale > 1.0f)
         ecode = h_enlarge(Isrc, Idst, nint(x_scale), nint(y_scale)) ;
       else 
-        ecode = h_reduce(Isrc, Idst, nint(1.0f/x_scale), nint(1.0f/y_scale)) ;
-      if (ecode != HIPS_OK)
-        ErrorExit(ecode,
-                  "ImageResize: h_%s(%2.3f, %2.3f) returned %d\n",
-                  x_scale > 1.0f ? "enlarge" : "reduce", ecode);
+      {
+        float scale ;
+        
+        scale = 1.0f / x_scale ;
+        if ((x_scale == y_scale) && ISPOW2(scale))
+        {
+          int   reductions, i ;
+      
+          reductions = (int)log2(scale) ;
+          fprintf(stderr, "reducing %d times\n", reductions) ;
+          for (i = 0 ; i < reductions ; i++)
+          {
+            Itmp = Isrc ;
+            Isrc = ImageReduce(Itmp, NULL) ;
+            if (i)   /* first one is real source image, don't free it */
+              ImageFree(&Itmp) ;
+          }
+          ImageCopy(Isrc, Idst) ;
+        }
+        else
+        {
+          ecode = h_reduce(Isrc, Idst, nint(1.0f/x_scale), nint(1.0f/y_scale));
+          if (ecode != HIPS_OK)
+            ErrorExit(ecode,
+                      "ImageResize: h_%s(%2.3f, %2.3f) returned %d\n",
+                      x_scale > 1.0f ? "enlarge" : "reduce", ecode);
+        }
+      }
       break ;
     }
   
@@ -774,6 +804,8 @@ ImageEdgeDetect(IMAGE *Isrc, IMAGE *Idst, float sigma, int wsize,
   if (Iout != Idst)
   {
     ImageCopy(Iout, Idst) ;
+    if (Iout->rows == 0)
+      break_here() ;
     ImageFree(&Iout) ;
   }
 
@@ -849,6 +881,9 @@ ImageClearArea(IMAGE *I, int r0, int c0, int rows, int cols, float val)
   float   *fptr ;
   int     row, col ;
   byte    *cptr, cval ;
+
+  if (rows < 0) rows = I->rows ;
+  if (cols < 0) cols = I->cols ;
 
   rows = MIN(I->rows, r0+rows) ;
   cols = MIN(I->cols, c0+cols) ;
@@ -1727,15 +1762,36 @@ ImageScaleDown(IMAGE *inImage, IMAGE *outImage, float scale)
           }
         break ;
       case PFFLOAT:
-        foutPix = IMAGEFpix(outImage, 0, 0) ;
-        for (outRow = 0 ; outRow < outRows ; outRow++)
-          for (outCol = 0 ; outCol < outCols ; outCol++, foutPix++)
+        /* if scale is a power of 2, use reduce */
+        /* if scale is a power of 2, use reduce */
+
+        if (ISPOW2(1.0f/scale))
+        {
+          int   reductions, i ;
+          IMAGE *Itmp ;
+      
+          reductions = (int)log2(1.0f/scale) ;
+          for (i = 0 ; i < reductions ; i++)
           {
-            /* map center point to this output point */
-            inRow = nint((float)outRow / scale) ;
-            inCol = nint((float)outCol / scale) ;
-            *foutPix = (float)*IMAGEFpix(inImage, inCol, inRow) ;
+            Itmp = inImage ;
+            inImage = ImageReduce(Itmp, NULL) ;
+            if (i)  /* first one is real source image, don't free it */
+              ImageFree(&Itmp) ;
           }
+          ImageCopy(inImage, outImage) ;
+        }
+        else
+        {
+          foutPix = IMAGEFpix(outImage, 0, 0) ;
+          for (outRow = 0 ; outRow < outRows ; outRow++)
+            for (outCol = 0 ; outCol < outCols ; outCol++, foutPix++)
+            {
+              /* map center point to this output point */
+              inRow = nint((float)outRow / scale) ;
+              inCol = nint((float)outCol / scale) ;
+              *foutPix = (float)*IMAGEFpix(inImage, inCol, inRow) ;
+            }
+        }
         break ;
       default:
         ErrorReturn(-1, (ERROR_UNSUPPORTED,
@@ -2545,8 +2601,6 @@ ImageAppend(IMAGE *I, char *fname)
   free_hdrcon(&Iheader) ;
   return(NO_ERROR) ;
 }
-void break_here(void) ;
-void break_here(void) {}
 /*----------------------------------------------------------------------
             Parameters:
 
@@ -2934,17 +2988,16 @@ ImageExponentialFilter(IMAGE *inImage, IMAGE *gradImage,
         /* reflect across the boundary */
         yc = y + y0 + dy ;
         if (yc < 0)
-          yc = -yc ;
+          yc = 0 ;
         else if (yc >= rows)
-          yc = rows - (yc - rows + 1) ;
-        
+          yc = rows - 1 ;
         for (x = -whalf ; x <= whalf ; x++)
         {
           xc = x0 + x + dx ;
           if (xc < 0)
-            xc = -xc ;
+            xc = 0 ;
           else if (xc >= cols)
-            xc = cols - (xc - cols + 1) ;
+            xc = cols - 1 ;
           
           fpix = *IMAGEFpix(gradImage, xc, yc) ;
           val = exp(-fpix*fpix / k)/*  * *g++ */ ;
@@ -2978,17 +3031,17 @@ ImageExponentialFilter(IMAGE *inImage, IMAGE *gradImage,
         /* reflect across the boundary */
         yc = y + y0 + dy ;
         if (yc < 0)
-          yc = -yc ;
+          yc = 0 ;
         else if (yc >= rows)
-          yc = rows - (yc - rows + 1) ;
-        
+          yc = rows - 1 ;
+
         for (x = -whalf ; x <= whalf ; x++)
         {
           xc = x0 + x + dx ;
           if (xc < 0)
-            xc = -xc ;
+            xc = 0 ;
           else if (xc >= cols)
-            xc = cols - (xc - cols + 1) ;
+            xc = cols - 1 ;
           
           fpix = *IMAGEFpix(inImage, xc, yc) ;
           val += fpix * *filterPix++ ;
@@ -3793,6 +3846,72 @@ ImageConvolve1d(IMAGE *I, IMAGE *J, float k[], int len, int axis)
       }
     }
   }
+}
+/*----------------------------------------------------------------------
+            Parameters:
+
+           Description:
+              use the kernel described by Burt and Adelson to reduce
+              the pyramid 1 level.
+----------------------------------------------------------------------*/
+#define KERNEL_SIZE 5
+#define K_A         0.4
+static float kernel[KERNEL_SIZE]  = 
+{
+  0.25f - K_A/2.0f, .25f, K_A, 0.25f, 0.25f-K_A/2.0f
+} ;
+
+IMAGE *
+ImageReduce(IMAGE *inImage, IMAGE *outImage)
+{
+  int  rows, cols ;
+  static IMAGE *tmpImage = NULL ;
+
+  rows = inImage->rows ;
+  cols = inImage->cols ;
+  if (!ImageCheckSize(inImage, tmpImage, rows, cols, 0) && tmpImage)
+  {
+    ImageFree(&tmpImage) ;
+    tmpImage = NULL ;
+  }
+
+  if (!tmpImage)
+  {
+    tmpImage = ImageAlloc(rows, cols, PFFLOAT, 1) ;
+    if (!tmpImage)
+      return(NULL) ;
+  }
+  else
+  {
+    ImageSetSize(tmpImage,rows,cols) ;
+    ImageClearArea(tmpImage, 0, 0, -1, -1, 0.0f) ;
+  }
+
+  rows /= 2 ;
+  cols /= 2 ;
+
+  if (!outImage)
+    outImage = ImageAlloc(rows, cols, PFFLOAT, 1) ;
+  else
+  {
+    if (!ImageCheckSize(inImage, outImage, rows, cols, 0))
+      ErrorReturn(outImage, (ERROR_NO_MEMORY,
+                             "ImageReduce: output image is too small\n")) ;
+  }
+
+  /* blur vertically */
+  ImageConvolve1d(inImage, tmpImage, kernel, KERNEL_SIZE, IMAGE_VERTICAL) ;
+  ImageReduce1d(tmpImage, outImage, kernel, KERNEL_SIZE, IMAGE_HORIZONTAL) ;
+#if 0
+{
+  char str[100] ;
+  sprintf(str, "tmp%d.hipl", rows*2) ;
+  ImageWrite(tmpImage, str) ;
+  sprintf(str, "out%d.hipl", rows*2) ;
+  ImageWrite(outImage, str) ;
+}
+#endif
+  return(outImage) ;
 }
 /*----------------------------------------------------------------------
             Parameters:
@@ -5055,3 +5174,64 @@ ImageSmoothOffsets(IMAGE *Isrc, IMAGE *Idst, int wsize)
   return(Idst) ;
 }
 #endif
+/*----------------------------------------------------------------------
+            Parameters:
+
+           Description:
+              apply an offset vector to a filtered image.
+----------------------------------------------------------------------*/
+IMAGE *
+ImageApplyOffset(IMAGE *Isrc, IMAGE *offsetImage, IMAGE *Idst)
+{
+  int x, y, rows, cols, dx, dy ;
+  float  *dst, *src, *dx_pix, *dy_pix ;
+  IMAGE  *Iout, *Iin ;
+
+  rows = Isrc->rows ;
+  cols = Isrc->cols ;
+
+  if (!Idst)
+    Idst = ImageAlloc(rows, cols, PFFLOAT, 1) ;
+
+  if (Idst->pixel_format != PFFLOAT)
+    Iout = ImageAlloc(rows, cols, PFFLOAT, 1) ;
+  else
+    Iout = Idst ;
+  if (Isrc->pixel_format != PFFLOAT)
+  {
+    Iin = ImageAlloc(rows, cols, PFFLOAT, 1) ;
+    ImageCopy(Isrc, Iin) ;
+  }
+  else
+    Iin = Isrc ;
+
+  if (!ImageCheckSize(Isrc, Idst, 0, 0, 0))
+    ErrorReturn(NULL, (ERROR_SIZE, "ImageApplyOffset: dst not big enough")) ;
+
+  dst = IMAGEFpix(Iout, 0, 0) ;
+  dx_pix = IMAGEFpix(offsetImage, 0, 0) ;
+  dy_pix = IMAGEFseq_pix(offsetImage, 0, 0, 1) ;
+
+ImageWrite(offsetImage, "o.hipl") ;
+  
+  for (y = 0 ; y < rows ; y++)
+  {
+    for (x = 0 ; x < cols ; x++)
+    {
+      dx = (int)*dx_pix++ ;
+      dy = (int)*dy_pix++ ;
+      src = IMAGEFpix(Iin, x+dx, y+dy) ;
+      *dst++ = *src ;
+    }
+  }
+
+  if (Iin != Isrc)
+    ImageFree(&Iin) ;
+  if (Iout != Idst)
+  {
+    ImageCopy(Iout, Idst) ;
+    ImageFree(&Iout) ;
+  }
+  return(Idst) ;
+}
+
