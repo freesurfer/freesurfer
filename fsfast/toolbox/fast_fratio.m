@@ -1,17 +1,20 @@
-function [F, Fsig, ces, edof] = fast_fratio(beta,X,rvar,C,Sn,dof2max)
-% [F, Fsig, ces] = fast_fratio(beta,X,rvar,C,<Sn>,<dof2max>)
+function [F, Fsig, ces, edof] = fast_fratio(beta,X,rvar,C,Sn,dof2max,edofuse)
+% [F, Fsig, ces] = fast_fratio(beta,X,rvar,C,<Sn>,<dof2max>,<edofuse>)
 %
 % Sn is the covariance matrix of the noise AFTER any filtering.
+% edofuse is the DOF to use instead of that computed form the
+%  various inputs. This may be needed if projections were done
+%  on the raw time course data prior to analysis.
 %
 % Worsley, K.J. and Friston, K.J. Analysis of fMRI Time-Series
 % Revisited - Again. Neuroimage 2, 173-181, 1995.
 %
 % See also: fast_glmfit.m
 %
-% $Id: fast_fratio.m,v 1.6 2003/08/02 00:55:01 greve Exp $
+% $Id: fast_fratio.m,v 1.7 2004/03/22 20:10:47 greve Exp $
 
-if(nargin < 4 | nargin > 6)
-  fprintf('[F, Fsig, ces, edof] = fast_fratio(beta,X,rvar,C,<Sn>,<dof2max>)\n');
+if(nargin < 4 | nargin > 7)
+  fprintf('[F, Fsig, ces, edof] = fast_fratio(beta,X,rvar,C,<Sn>,<dof2max>,<edofuse>)\n');
   return;
 end
 
@@ -19,6 +22,7 @@ nf = size(X,1);
 
 if(exist('dof2max') ~= 1) dof2max = []; end
 if(exist('Sn') ~= 1)      Sn = []; end
+if(exist('edofuse') ~= 1) edofuse = []; end
 
 if(~isempty(Sn))
   if(size(Sn,1) ~= nf)
@@ -31,7 +35,12 @@ if(~isempty(Sn))
   % Covariance matrix of contrast effect size
   cescvm = inv(C*inv(X'*X)*X'*Sn*X*inv(X'*X)*C');
 else
-  edof = size(X,1) - size(X,2);
+  if(isempty(edofuse))
+    edof = size(X,1) - size(X,2);
+  else
+    edof = edofuse;
+  end
+	
   % Covariance matrix of contrast effect size
   cescvm = inv(C*inv(X'*X)*C');
 end
