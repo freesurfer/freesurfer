@@ -1991,12 +1991,25 @@ void GotoSurfaceVertex ( Surf_tVertexSet iSurface, int inVertex ) {
   Surf_tErr eSurface = Surf_tErr_NoErr;
   MWin_tErr eWindow  = MWin_tErr_NoErr;
   xVoxel    anaIdx;
-            
+  char      sDescription[STRLEN];
+  char      sSetName[STRLEN];
+
   /* get the vertex */
-  eSurface = Surf_GetNthVertex( gSurface, iSurface, inVertex, &anaIdx );
+  eSurface = Surf_GetNthVertex( gSurface, iSurface, inVertex, &anaIdx,
+        sDescription );
   if( Surf_tErr_NoErr != eSurface ) 
     goto error;
+  
+  /* print the result string */
+  Surf_GetSurfaceSetName( iSurface, sSetName );
+  OutputPrint "%s vertex index %d:\n\t%s\n", 
+    sSetName, inVertex, sDescription EndOutputPrint;
 
+  /* adjust it so it aligns to the surface. */
+  eWindow = MWin_AdjustSurfaceAnaIdx( gMeditWindow, &anaIdx );
+  if( MWin_tErr_NoErr != eWindow )
+    goto error;
+  
   /* tell the window to go there. */
   eWindow = MWin_SetCursor ( gMeditWindow, -1, &anaIdx );
   if( MWin_tErr_NoErr != eWindow )
@@ -2019,7 +2032,7 @@ void FindNearestSurfaceVertex ( Surf_tVertexSet iSurface ) {
   MWin_tErr eWindow  = MWin_tErr_NoErr;
   xVoxel    cursor;
   xVoxel    anaIdx;
-  char      sResult[STRLEN];
+  char      sDescription[STRLEN];
   char      sSetName[STRLEN];
 
   /* get the cursor */
@@ -2027,16 +2040,26 @@ void FindNearestSurfaceVertex ( Surf_tVertexSet iSurface ) {
   if( MWin_tErr_NoErr != eWindow )
     goto error;
 
+  /* first unadjust the point. */
+  eWindow = MWin_UnadjustSurfaceAnaIdx( gMeditWindow, &cursor );
+  if( MWin_tErr_NoErr != eWindow )
+    goto error;
+
   /* get the vertex */
   eSurface = Surf_GetClosestVertex( gSurface, iSurface, &cursor, &anaIdx,
-            sResult);
+            sDescription);
   if( Surf_tErr_NoErr != eSurface ) 
     goto error;
 
   /* print the result string */
   Surf_GetSurfaceSetName( iSurface, sSetName );
   OutputPrint "Nearest %s vertex to %d, %d, %d:\n\t%s\n", 
-    sSetName, xVoxl_ExpandInt( &cursor ), sResult EndOutputPrint;
+    sSetName, xVoxl_ExpandInt( &cursor ), sDescription EndOutputPrint;
+
+  /* adjust it so it aligns to the surface. */
+  eWindow = MWin_AdjustSurfaceAnaIdx( gMeditWindow, &anaIdx );
+  if( MWin_tErr_NoErr != eWindow )
+    goto error;
 
   /* tell the window to go there. */
   eWindow = MWin_SetCursor ( gMeditWindow, -1, &anaIdx );
