@@ -86,16 +86,17 @@
 **	and convert the object to and from its "stream" representation.
 **	In addition, the package can parse a file which contains a stream
 **	and create its internal object.
-** Last Update:		$Author: vicka $, $Date: 2003/05/19 20:26:20 $
+** Last Update:		$Author: tosa $, $Date: 2004/06/18 18:56:04 $
 ** Source File:		$RCSfile: dcm.c,v $
-** Revision:		$Revision: 1.9 $
+** Revision:		$Revision: 1.10 $
 ** Status:		$State: Exp $
 */
 
-static char rcsid[] = "$Revision: 1.9 $ $RCSfile: dcm.c,v $";
+static char rcsid[] = "$Revision: 1.10 $ $RCSfile: dcm.c,v $";
 
 
 #include <sys/fcntl.h>
+#include <ctype.h>
 
 #include "ctn_os.h"
 
@@ -121,6 +122,9 @@ static char rcsid[] = "$Revision: 1.9 $ $RCSfile: dcm.c,v $";
 #endif
 
 static CTNBOOLEAN debug = FALSE;/* Flag for debugging messages to stdout */
+
+// undeclared ones 
+extern void swab(const void *from, void *to, ssize_t n);
 
 /* Prototypes for internal functions
 */
@@ -495,11 +499,11 @@ DCM_CloseObject(DCM_OBJECT ** callerObject)
 	while ((element = LST_Pop(&group->elementList)) != NULL) {
 	    if (debug)
 		fprintf(stderr, "DCM_CloseObject: Element %08x\n",
-			element->element.tag);
+			(unsigned int) element->element.tag);
 	    if (element->element.representation == DCM_SQ) {
 		if (debug)
 		    fprintf(stderr, "Sequence List Address: %x\n",
-			    element->element.d.sq);
+			(unsigned int) element->element.d.sq);
 		if (element->element.d.sq != NULL) {
 		    while ((sequenceItem = LST_Pop(&element->element.d.sq)) != NULL) {
 			(void) DCM_CloseObject(&sequenceItem->object);
@@ -510,7 +514,7 @@ DCM_CloseObject(DCM_OBJECT ** callerObject)
 	    } else if (element->fragmentFlag) {
 		if (debug)
 		    fprintf(stderr, "Fragment List Address: %x\n",
-			    element->element.d.fragments);
+			    (unsigned int) element->element.d.fragments);
 		if (element->element.d.fragments != NULL) {
 		    while ((fragmentItem = LST_Pop(&element->element.d.fragments)) != NULL) {
 			CTN_FREE(fragmentItem);
@@ -519,7 +523,7 @@ DCM_CloseObject(DCM_OBJECT ** callerObject)
 		}
 	    }
 	    if (debug)
-		fprintf(stderr, "DCM_CloseObject: free %8x\n", element);
+		fprintf(stderr, "DCM_CloseObject: free %8x\n", (unsigned int) element);
 
 	    CTN_FREE(element);
 	}
@@ -1082,7 +1086,7 @@ DCM_GetString(DCM_OBJECT** callerObject, DCM_TAG tag)
       strcpy(tmp, "<Unimplemented>");
       break;
     case DCM_SL:
-      sprintf(tmp, "%d", *e.d.sl);
+      sprintf(tmp, "%ld", *e.d.sl);
       break;
     case DCM_SQ:
       strcpy(tmp, "<Unimplemented>");
@@ -1091,7 +1095,7 @@ DCM_GetString(DCM_OBJECT** callerObject, DCM_TAG tag)
       sprintf(tmp, "%d", *e.d.ss);
       break;
     case DCM_UL:
-      sprintf(tmp, "%d", *e.d.ul);
+      sprintf(tmp, "%lu", *e.d.ul);
       break;
     case DCM_UN:
       strcpy(tmp, "<Unimplemented>");
@@ -1643,28 +1647,16 @@ DCM_DumpElements(DCM_OBJECT ** callerObject, long vm)
 	(void) LST_Position(&(*object)->groupList, groupItem);
 
     while (groupItem != NULL) {
-#ifdef MACOS
 	printf("Group: %04x, Length: %8ld\n", groupItem->group,
 	       groupItem->baseLength);
-#else
-	printf("Group: %04x, Length: %8d\n", groupItem->group,
-	       groupItem->baseLength);
-#endif
 	elementItem = LST_Head(&groupItem->elementList);
 	if (elementItem != NULL)
 	    (void) LST_Position(&groupItem->elementList, elementItem);
 	while (elementItem != NULL) {
-#ifdef MACOS
 	    (void) printf("%04x %04x %8ld ",
 			  DCM_TAG_GROUP(elementItem->element.tag),
 			  DCM_TAG_ELEMENT(elementItem->element.tag),
 			  elementItem->element.length);
-#else
-	    (void) printf("%04x %04x %8d ",
-			  DCM_TAG_GROUP(elementItem->element.tag),
-			  DCM_TAG_ELEMENT(elementItem->element.tag),
-			  elementItem->element.length);
-#endif
 	    (void) printf("//%31s//", elementItem->element.description);
 	    if (elementItem->element.d.ot == NULL)
 		(void) printf("Data on disk\n");
@@ -1698,17 +1690,12 @@ DCM_DumpElements(DCM_OBJECT ** callerObject, long vm)
 		    (void) printf("%s\n", scratch);
 		    break;
 		case DCM_SL:
-#ifdef MACOS
 		    (void) printf("%8lx %ld\n", *elementItem->element.d.sl,
-				  *elementItem->element.d.sl);
-#else
-		    (void) printf("%8x %d\n", *elementItem->element.d.sl,
 				  *elementItem->element.d.sl);
 		    if (vm > 1)
 			dumpBinaryData(elementItem->element.d.ot,
 				       elementItem->element.representation,
 			     elementItem->element.length / sizeof(U32), vm);
-#endif
 		    break;
 		case DCM_SS:
 		    (void) printf("%4x %d\n", *elementItem->element.d.ss,
@@ -1745,17 +1732,12 @@ DCM_DumpElements(DCM_OBJECT ** callerObject, long vm)
 		    break;
 		case DCM_AT:
 		case DCM_UL:
-#ifdef MACOS
 		    (void) printf("%8lx %ld\n", *elementItem->element.d.ul,
-				  *elementItem->element.d.ul);
-#else
-		    (void) printf("%8x %d\n", *elementItem->element.d.ul,
 				  *elementItem->element.d.ul);
 		    if (vm > 1)
 			dumpBinaryData(elementItem->element.d.ot,
 				       elementItem->element.representation,
 			     elementItem->element.length / sizeof(U32), vm);
-#endif
 		    break;
 		case DCM_US:
 		    (void) printf("%4x %d\n", *elementItem->element.d.us,
@@ -1842,13 +1824,13 @@ DCM_FormatElements(DCM_OBJECT ** callerObject, long vm, const char* prefix)
 	(void) LST_Position(&(*object)->groupList, groupItem);
 
     while (groupItem != NULL) {
-	printf("%sGroup: %04x, Length: %8d\n", prefix, groupItem->group,
+	printf("%sGroup: %04x, Length: %8lu\n", prefix, groupItem->group,
 	       groupItem->baseLength);
 	elementItem = LST_Head(&groupItem->elementList);
 	if (elementItem != NULL)
 	    (void) LST_Position(&groupItem->elementList, elementItem);
 	while (elementItem != NULL) {
-	    (void) printf("%s%04x %04x %8d ",
+	    (void) printf("%s%04x %04x %8ld ",
 			  prefix,
 			  DCM_TAG_GROUP(elementItem->element.tag),
 			  DCM_TAG_ELEMENT(elementItem->element.tag),
@@ -1886,17 +1868,12 @@ DCM_FormatElements(DCM_OBJECT ** callerObject, long vm, const char* prefix)
 		    (void) printf("%s\n", scratch);
 		    break;
 		case DCM_SL:
-#ifdef MACOS
-		    (void) printf("%8lx %ld\n", *elementItem->element.d.sl,
-				  *elementItem->element.d.sl);
-#else
-		    (void) printf("%8x %d\n", *elementItem->element.d.sl,
+		    (void) printf("%8x %ld\n", (unsigned int) *elementItem->element.d.sl,
 				  *elementItem->element.d.sl);
 		    if (vm > 1)
 			dumpBinaryData(elementItem->element.d.ot,
 				       elementItem->element.representation,
 			     elementItem->element.length / sizeof(U32), vm);
-#endif
 		    break;
 		case DCM_SS:
 		    (void) printf("%4x %d\n", *elementItem->element.d.ss,
@@ -1935,7 +1912,7 @@ DCM_FormatElements(DCM_OBJECT ** callerObject, long vm, const char* prefix)
 		    break;
 		case DCM_AT:
 		case DCM_UL:
-		    (void) printf("%8x %d\n", *elementItem->element.d.ul,
+		    (void) printf("%8x %lu\n", (unsigned int) *elementItem->element.d.ul,
 				  *elementItem->element.d.ul);
 		    if (vm > 1)
 			dumpBinaryData(elementItem->element.d.ot,
@@ -2421,7 +2398,7 @@ DCM_GetSequenceElement(DCM_OBJECT ** object, DCM_TAG top, DCM_ELEMENT * e)
     PRV_ELEMENT_ITEM *elementItem;
     DCM_SEQUENCE_ITEM *seqItem;
 
-    CTNBOOLEAN found = FALSE;
+    // CTNBOOLEAN found = FALSE;
 
     obj = (PRIVATE_OBJECT **) object;
     cond = checkObject(obj, "DCM_GetSequenceElement");
@@ -2835,12 +2812,12 @@ newElementItem(DCM_ELEMENT * src, CTNBOOLEAN allocateData,
 	l = 0;
 
     if (debug)
-	fprintf(stderr, "newElementItem: CTN_MALLOC %8d %8d ", l,
+	fprintf(stderr, "newElementItem: CTN_MALLOC %8ld %8ld ", l,
 		sizeof(PRV_ELEMENT_ITEM) + l);
 
     *dst = (PRV_ELEMENT_ITEM *) CTN_MALLOC(sizeof(PRV_ELEMENT_ITEM) + l);
     if (debug)
-	fprintf(stderr, "%8x\n", *dst);
+	fprintf(stderr, "%8x\n", (unsigned int) *dst);
 
     if (*dst == NULL) {
 	return COND_PushCondition(DCM_ELEMENTCREATEFAILED,
@@ -2914,83 +2891,83 @@ static CONDITION
 findCreateGroup(PRIVATE_OBJECT ** object, unsigned short group,
 		PRV_GROUP_ITEM ** groupItem)
 {
-    PRV_GROUP_ITEM
+  PRV_GROUP_ITEM
     * item;
-    CONDITION
-	cond;
-    CTNBOOLEAN
-	tooFar = FALSE;
+  CONDITION
+    cond;
+  CTNBOOLEAN
+    tooFar = FALSE;
 
-    item = LST_Head(&(*object)->groupList);
-    if (item != NULL)
-	(void) LST_Position(&(*object)->groupList, item);
+  item = LST_Head(&(*object)->groupList);
+  if (item != NULL)
+    (void) LST_Position(&(*object)->groupList, item);
 
-    while (item != NULL && !tooFar) {
-	if (item->group == group) {
-	    *groupItem = item;
-	    return DCM_NORMAL;
-	} else if (item->group > group) {
-	    tooFar = TRUE;
-	} else {
-	    item = LST_Next(&(*object)->groupList);
-	}
+  while (item != NULL && !tooFar) {
+    if (item->group == group) {
+      *groupItem = item;
+      return DCM_NORMAL;
+    } else if (item->group > group) {
+      tooFar = TRUE;
+    } else {
+      item = LST_Next(&(*object)->groupList);
     }
+  }
+    
+  {
+    U32 l;
+    PRV_GROUP_ITEM *newGroupItem;
+    DCM_ELEMENT groupLength = {0, DCM_UL, "", 1, sizeof(l),{NULL}};
+    PRV_ELEMENT_ITEM *groupLengthItem;
+      
+    newGroupItem = CTN_MALLOC(sizeof(*newGroupItem));
+    if (newGroupItem == NULL)
+      return COND_PushCondition(DCM_ELEMENTCREATEFAILED,
+				DCM_Message(DCM_ELEMENTCREATEFAILED),
+				"findCreateGroup",
+				group, 0xffff, sizeof(*newGroupItem));
 
-    {
-	U32 l;
-	PRV_GROUP_ITEM *newGroupItem;
-	DCM_ELEMENT groupLength = {0, DCM_UL, "", 1, sizeof(l), NULL};
-	PRV_ELEMENT_ITEM *groupLengthItem;
 
-	newGroupItem = CTN_MALLOC(sizeof(*newGroupItem));
-	if (newGroupItem == NULL)
-	    return COND_PushCondition(DCM_ELEMENTCREATEFAILED,
-				      DCM_Message(DCM_ELEMENTCREATEFAILED),
-				      "findCreateGroup",
-				      group, 0xffff, sizeof(*newGroupItem));
+    *groupItem = newGroupItem;
+    newGroupItem->group = group;
+    newGroupItem->baseLength = 0;
+    newGroupItem->longVRAttributes = 0;
+    newGroupItem->elementList = LST_Create();
+    if (newGroupItem->elementList == NULL)
+      return COND_PushCondition(DCM_LISTFAILURE,
+				DCM_Message(DCM_LISTFAILURE),
+				"findCreateGroup");
 
+    if (tooFar)
+      cond = LST_Insert(&(*object)->groupList, newGroupItem, LST_K_BEFORE);
+    else
+      cond = LST_Enqueue(&(*object)->groupList, newGroupItem);
+    if (cond != LST_NORMAL)
+      return COND_PushCondition(DCM_LISTFAILURE,
+				DCM_Message(DCM_LISTFAILURE),
+				"findCreateGroup");
+    (void) LST_Position(&(*object)->groupList, newGroupItem);
+    if (cond != LST_NORMAL)
+      return COND_PushCondition(DCM_LISTFAILURE,
+				DCM_Message(DCM_LISTFAILURE),
+				"findCreateGroup");
 
-	*groupItem = newGroupItem;
-	newGroupItem->group = group;
-	newGroupItem->baseLength = 0;
-	newGroupItem->longVRAttributes = 0;
-	newGroupItem->elementList = LST_Create();
-	if (newGroupItem->elementList == NULL)
-	    return COND_PushCondition(DCM_LISTFAILURE,
-				      DCM_Message(DCM_LISTFAILURE),
-				      "findCreateGroup");
+    groupLength.d.ul = &l;
+    l = 0;
+    if ((*object)->groupLengthFlag) {
+      groupLength.tag = DCM_MAKETAG(group, 0);
+      cond = newElementItem(&groupLength, TRUE, &groupLengthItem);
+      (void) memcpy(groupLengthItem->element.d.ot, &l, sizeof(l));
 
-	if (tooFar)
-	    cond = LST_Insert(&(*object)->groupList, newGroupItem, LST_K_BEFORE);
-	else
-	    cond = LST_Enqueue(&(*object)->groupList, newGroupItem);
-	if (cond != LST_NORMAL)
-	    return COND_PushCondition(DCM_LISTFAILURE,
-				      DCM_Message(DCM_LISTFAILURE),
-				      "findCreateGroup");
-	(void) LST_Position(&(*object)->groupList, newGroupItem);
-	if (cond != LST_NORMAL)
-	    return COND_PushCondition(DCM_LISTFAILURE,
-				      DCM_Message(DCM_LISTFAILURE),
-				      "findCreateGroup");
+      if (LST_Insert(&newGroupItem->elementList, groupLengthItem, LST_K_AFTER) !=
+	  LST_NORMAL)
+	return COND_PushCondition(DCM_LISTFAILURE,
+				  DCM_Message(DCM_LISTFAILURE),
+				  "findCreateGroup");
 
-	groupLength.d.ul = &l;
-	l = 0;
-	if ((*object)->groupLengthFlag) {
-	    groupLength.tag = DCM_MAKETAG(group, 0);
-	    cond = newElementItem(&groupLength, TRUE, &groupLengthItem);
-	    (void) memcpy(groupLengthItem->element.d.ot, &l, sizeof(l));
-
-	    if (LST_Insert(&newGroupItem->elementList, groupLengthItem, LST_K_AFTER) !=
-		LST_NORMAL)
-		return COND_PushCondition(DCM_LISTFAILURE,
-					  DCM_Message(DCM_LISTFAILURE),
-					  "findCreateGroup");
-
-	    (*object)->objectSize += 8 + groupLengthItem->element.length;
-	}
+      (*object)->objectSize += 8 + groupLengthItem->element.length;
     }
-    return DCM_NORMAL;
+  }
+  return DCM_NORMAL;
 }
 
 /* insertNewElement
@@ -3742,7 +3719,7 @@ exportData(PRIVATE_OBJECT ** object, PRV_ELEMENT_ITEM * item,
 	}
 	if ((U32) nBytes != length) {
 	    char b[512];
-	    sprintf(b, "byte count: %d %d, errno: %d", nBytes, length, errno);
+	    sprintf(b, "byte count: %d %ld, errno: %d", nBytes, length, errno);
 	    (void) COND_PushCondition(DCM_GENERALWARNING,
 			  DCM_Message(DCM_GENERALWARNING), "exportData", b);
 	    return COND_PushCondition(DCM_FILEACCESSERROR,
@@ -3848,13 +3825,13 @@ exportData(PRIVATE_OBJECT ** object, PRV_ELEMENT_ITEM * item,
 		    (void) memcpy(b, p, length);
 		else
 #ifdef SOLARIS
-		    swab((char *) p, (char *) b, length);
+		  swab((char *) p, (char *) b, length);
 #elif defined AIXV3
 		swab((short *) p, (short *) b, length);
 #elif defined MACOS
 		/* Not Yet Defined */
 #else
-		    swab(p, b, length);
+		swab(p, b, length);
 #endif
 	    } else {
 		if (byteOrder == BYTEORDER_SAME)
@@ -3969,7 +3946,7 @@ exportEncapsulatedPixels(PRIVATE_OBJECT ** object, PRV_ELEMENT_ITEM * item,
     fragmentItem = (DCM_FRAGMENT_ITEM*)LST_Head(&item->element.d.fragments);
     (void)LST_Position(&item->element.d.fragments, fragmentItem);
     while (fragmentItem != NULL) {
-      printf("Fragment size: %6d\n", fragmentItem->length);
+      printf("Fragment size: %6ld\n", fragmentItem->length);
       e.tag = 0xfffee000;
       e.length = fragmentItem->length;
       e.representation = DCM_DLM;
@@ -4045,7 +4022,7 @@ exportPixels(PRIVATE_OBJECT ** object, PRV_ELEMENT_ITEM * item,
 
   while (remainingData > 0) {
     if (debug) {
-      fprintf(stderr, "Export: (%08x) %d\n", element->tag, element->length);
+      fprintf(stderr, "Export: (%08x) %ld\n", (unsigned int) element->tag, element->length);
     }
 
     if (element->d.ot != NULL) {
@@ -4335,7 +4312,7 @@ setFileOptions(DCM_OBJECT ** obj, unsigned long *opt)
     CONDITION cond;
     char xferSyntax[DICOM_UI_LENGTH + 1];
     DCM_ELEMENT e = {DCM_METATRANSFERSYNTAX, DCM_UI, "", 1, sizeof(xferSyntax),
-    NULL};
+		     {NULL}};
 
     e.d.string = xferSyntax;
     cond = DCM_ParseObject(obj, &e, 1, NULL, 0, NULL);
@@ -4484,13 +4461,13 @@ exportStream(DCM_OBJECT ** callerObject, unsigned long opt,
 	* sequenceItem;
     DCM_ELEMENT
 	itemMarker = {
-	DCM_DLMITEM, DCM_DLM, "", 1, DCM_UNSPECIFIEDLENGTH, NULL
+	  DCM_DLMITEM, DCM_DLM, "", 1, DCM_UNSPECIFIEDLENGTH, {NULL}
     },
 	itemDelimiter = {
-	DCM_DLMITEMDELIMITATIONITEM, DCM_DLM, "", 1, 0, NULL
+	  DCM_DLMITEMDELIMITATIONITEM, DCM_DLM, "", 1, 0, {NULL}
     },
 	sequenceDelimiter = {
-	DCM_DLMSEQUENCEDELIMITATIONITEM, DCM_DLM, "", 1, 0, NULL
+	  DCM_DLMSEQUENCEDELIMITATIONITEM, DCM_DLM, "", 1, 0, {NULL}
     };
     CTNBOOLEAN
 	unspecifiedSQLength = FALSE,
@@ -4700,8 +4677,8 @@ exportStream(DCM_OBJECT ** callerObject, unsigned long opt,
 	    } else {
 		while (remainingData > 0) {
 		    if (debug)
-			fprintf(stderr, "Export: (%08x) %d\n",
-				element.tag, element.length);
+			fprintf(stderr, "Export: (%08x) %ld\n",
+				(unsigned int) element.tag, element.length);
 		    if (element.d.ot != NULL)
 			remainingData = element.length -
 			    (src - ((unsigned char *) element.d.ot));
@@ -5800,7 +5777,7 @@ readVRLength(const char *name, unsigned char **ptr, int fd, U32 * size,
     if (debug) {
 	char localVR[10];
 	mapVRtoASCII(e->representation, localVR);
-	fprintf(stderr, "%2s %6d %06x %s\n", localVR, e->length, *fileOffset,
+	fprintf(stderr, "%2s %6ld %06x %s\n", localVR, e->length, (unsigned int) *fileOffset,
 		e->description);
     }
     if (((e->length & 1) != 0) && (e->length != DCM_UNSPECIFIEDLENGTH)) {
@@ -5845,7 +5822,7 @@ readSequence(const char *name, unsigned char **ptr, int fd, U32 * size,
     DCM_SEQUENCE_ITEM *sequenceItem;
     CONDITION flag;
     unsigned char *localPtr;
-    off_t itemTagOffset;
+    off_t itemTagOffset=0;
 
     if (*size == (long) DCM_UNSPECIFIEDLENGTH)
 	knownLength = FALSE;
@@ -5863,8 +5840,8 @@ readSequence(const char *name, unsigned char **ptr, int fd, U32 * size,
 
     while (!sequenceDone) {
 	if (debug)
-	    fprintf(stderr, "Sequence Length: %d %x\n", localLength,
-		    localLength);
+	    fprintf(stderr, "Sequence Length: %ld %x\n", localLength,
+		    (unsigned int) localLength);
 
 	sequenceLength = 0;
 	if (fileOffset != NULL) {
@@ -5893,9 +5870,9 @@ readSequence(const char *name, unsigned char **ptr, int fd, U32 * size,
 
 
 	if (debug)
-	    fprintf(stderr, "Sequence item: %4x %4x %d (%x)\n",
+	    fprintf(stderr, "Sequence item: %4x %4x %ld (%x)\n",
 		    DCM_TAG_GROUP(tagE.tag),
-		    DCM_TAG_ELEMENT(tagE.tag), tagE.length, tagE.length);
+		    DCM_TAG_ELEMENT(tagE.tag), tagE.length, (unsigned int) tagE.length);
 	if (tagE.tag == DCM_DLMITEM) {
 	    localPtr = *ptr;
 	    cond = readFile1(name,
@@ -5988,9 +5965,9 @@ scanCompressedPixels(char *name, unsigned char **ptr, int fd, U32 * size,
 	scannedBytes += sequenceLength;
 
 	if (debug)
-	    fprintf(stderr, "Sequence item: %4x %4x %d (%x)\n",
+	    fprintf(stderr, "Sequence item: %4x %4x %ld (%x)\n",
 		    DCM_TAG_GROUP(tagE.tag),
-		    DCM_TAG_ELEMENT(tagE.tag), tagE.length, tagE.length);
+		    DCM_TAG_ELEMENT(tagE.tag), tagE.length, (unsigned int) tagE.length);
 	if (tagE.tag == DCM_DLMITEM) {
 	    localPtr = *ptr;
 	    if (tagE.length != 0) {
@@ -6008,7 +5985,7 @@ scanCompressedPixels(char *name, unsigned char **ptr, int fd, U32 * size,
 	    sequenceDone = TRUE;
 
 	if (debug)
-	    fprintf(stderr, "Scanned Bytes: %d\n", scannedBytes);
+	    fprintf(stderr, "Scanned Bytes: %ld\n", scannedBytes);
     }
     if ((scannedBytes & 1) != 0) {
 	lseek(fd, 1, SEEK_CUR);
@@ -6734,7 +6711,7 @@ readLengthToEnd(int fd, const char *fileName,
     unsigned char buf[24];
     DCM_OBJECT *obj;
     CONDITION cond;
-    DCM_ELEMENT e = {DCM_MAKETAG(0x0008, 0x0001), DCM_UL, "", 1, 4, NULL};
+    DCM_ELEMENT e = {DCM_MAKETAG(0x0008, 0x0001), DCM_UL, "", 1, 4, {NULL}};
     void *ctx = NULL;
     U32 rtnLength = 0;
 
@@ -6794,7 +6771,7 @@ dumpSL(S32 * sl, long vm)
 {
     long index = 0;
     while (index < vm) {
-	printf("%7d ", *(sl++));
+	printf("%7ld ", *(sl++));
 	if ((++index) % 8 == 0)
 	    printf("\n");
     }
@@ -6817,7 +6794,7 @@ dumpUL(U32 * ul, long vm)
 {
     long index = 0;
     while (index < vm) {
-	printf("%7d ", *(ul++));
+	printf("%7lu ", *(ul++));
 	if ((++index) % 8 == 0)
 	    printf("\n");
     }
@@ -6930,7 +6907,7 @@ static void
 copySequence(PRIVATE_OBJECT ** dstObj, DCM_ELEMENT * e)
 {
     LST_HEAD *lst;
-    DCM_SEQUENCE_ITEM *sqItem;
+    DCM_SEQUENCE_ITEM *sqItem=NULL;
     DCM_ELEMENT newElement;
 
     lst = LST_Create();
@@ -6971,12 +6948,12 @@ DCM_GetCompressedValue(DCM_OBJECT ** callerObject, DCM_TAG tag, void *buf,
     S32 nBytes;
     S32 toRead;
     CONDITION cond;
-    int doneFlag = 0;
+    // int doneFlag = 0;
     size_t elementLength;
     unsigned char *ptr;
     U32 size = 0;
     off_t fileOffset = 0;
-    unsigned long opt;
+    unsigned long opt = 0;
     int byteOrder;
     int explicitVR;
     CTNBOOLEAN acceptVRMismatch = FALSE;
@@ -7117,37 +7094,38 @@ DCM_GetCompressedValue(DCM_OBJECT ** callerObject, DCM_TAG tag, void *buf,
 CONDITION
 DCM_PrintSequenceList(DCM_OBJECT ** object, DCM_TAG tag)
 {
-    PRIVATE_OBJECT **obj,
-       *sqObject;
-    CONDITION cond;
-    PRV_ELEMENT_ITEM *elementItem;
-    LST_HEAD *lst;
-    DCM_SEQUENCE_ITEM *sqItem;
+  PRIVATE_OBJECT **obj,
+    *sqObject;
+  CONDITION cond = DCM_NORMAL;
+  PRV_ELEMENT_ITEM *elementItem;
+  LST_HEAD *lst;
+  DCM_SEQUENCE_ITEM *sqItem;
 
-    obj = (PRIVATE_OBJECT **) object;
-    cond = checkObject(obj, "DCM_PrintSequenceList");
-    if (cond != DCM_NORMAL)
-	return cond;
+  obj = (PRIVATE_OBJECT **) object;
+  cond = checkObject(obj, "DCM_PrintSequenceList");
+  if (cond != DCM_NORMAL)
+    return cond;
 
-    elementItem = locateElement(obj, tag);
+  elementItem = locateElement(obj, tag);
 
-    if (elementItem == NULL)
-	return COND_PushCondition(DCM_ELEMENTNOTFOUND,
-		       DCM_Message(DCM_ELEMENTNOTFOUND), DCM_TAG_GROUP(tag),
-				  DCM_TAG_ELEMENT(tag),
-				  "DCM_PrintSequenceList");
+  if (elementItem == NULL)
+    return COND_PushCondition(DCM_ELEMENTNOTFOUND,
+			      DCM_Message(DCM_ELEMENTNOTFOUND), DCM_TAG_GROUP(tag),
+			      DCM_TAG_ELEMENT(tag),
+			      "DCM_PrintSequenceList");
 
-    lst = elementItem->element.d.sq;
-    sqItem = LST_Head(&lst);
-    (void) LST_Position(&lst, sqItem);
-    while (sqItem != NULL) {
-	sqObject = (PRIVATE_OBJECT *) sqItem->object;
-	printf("size: %6d offset: %6d, pixel offset: %6d\n",
-	       sqObject->objectSize,
-	       sqObject->offset,
-	       sqObject->pixelOffset);
-	sqItem = LST_Next(&lst);
-    }
+  lst = elementItem->element.d.sq;
+  sqItem = LST_Head(&lst);
+  (void) LST_Position(&lst, sqItem);
+  while (sqItem != NULL) {
+    sqObject = (PRIVATE_OBJECT *) sqItem->object;
+    printf("size: %6ld offset: %6ld, pixel offset: %6ld\n",
+	   sqObject->objectSize,
+	   sqObject->offset,
+	   sqObject->pixelOffset);
+    sqItem = LST_Next(&lst);
+  }
+  return cond;
 }
 
 CONDITION
