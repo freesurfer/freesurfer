@@ -66,7 +66,7 @@ class SvmParam {
   // I/O
   void parse(const char* const* argv, int argc);
 
-  static ostream& printUsage(ostream& s);
+  static std::ostream& printUsage(std::ostream& s);
 };
  
 
