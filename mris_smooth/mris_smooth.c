@@ -13,7 +13,7 @@
 #include "mri.h"
 #include "macros.h"
 
-static char vcid[] = "$Id: mris_smooth.c,v 1.3 1999/03/22 23:26:53 fischl Exp $";
+static char vcid[] = "$Id: mris_smooth.c,v 1.4 1999/09/17 22:24:04 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -63,6 +63,7 @@ main(int argc, char *argv[])
     ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s",
               Progname, in_fname) ;
 
+  MRISremoveTriangleLinks(mris) ;
   fprintf(stderr, "smoothing surface tessellation for %d iterations...\n",
           niterations);
 
