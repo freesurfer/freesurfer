@@ -883,6 +883,8 @@ MRIplaneOfLeastVarianceNormal(MRI *mri_src, MRI *mri_dst, int wsize)
         maxi = mini = -1 ;
         min_var = 100000.0f ;    /* minimum variance of set of planes */
         max_var = -100000.0f ;   /* maximum variance of set of planes */
+        if (MRIvox(mri_src, x, y, z) < 50)
+          continue ;
 
         for (vertex = 0 ; vertex < NVERTICES ; vertex++)
         {
@@ -950,7 +952,7 @@ MRIcentralPlaneOfLeastVarianceNormal(MRI *mri_src, MRI *mri_dst, int wsize)
 {
   int      width, height, depth, x, y, z, whalf, vertex, xk, yk,
            mini, maxi, xi, yi, zi, *pxi, *pyi, *pzi, x1, y1, z1, x0, y0,z0;
-  float    min_var, max_var, total, total_sq, nv, varv, avgv, val,
+  float    min_mean, min_var, max_var, total, total_sq, nv, varv, avgv, val,
            background_val, fmax ;
   BUFTYPE  *pdst, max_val ;
   float    xbase, ybase, zbase, *pe1_x, *pe1_y, *pe1_z,
@@ -1033,6 +1035,7 @@ MRIcentralPlaneOfLeastVarianceNormal(MRI *mri_src, MRI *mri_dst, int wsize)
           the cortical surface.
           */
         maxi = mini = -1 ;
+        min_mean = 1000.0f ;     /* mean of minimum variance plane */
         min_var = 100000.0f ;    /* minimum variance of central planes */
         max_var = -100000.0f ;   /* maximum variance of central planes */
         pe1_x = e1_x_v ; pe1_y = e1_y_v ; pe1_z = e1_z_v ;
@@ -1078,12 +1081,15 @@ MRIcentralPlaneOfLeastVarianceNormal(MRI *mri_src, MRI *mri_dst, int wsize)
             varv = total_sq / nv - avgv * avgv ;
           }
 
-          if (varv>max_var) {max_var=varv;maxi=vertex;}
-          if (varv<min_var) {min_var=varv;mini=vertex;}
+          if (varv>max_var) { max_var=varv ; maxi=vertex ;}
+          if (varv<min_var) { min_var=varv ; mini=vertex; min_mean = avgv ;}
           if (FZERO(varv))  /* zero variance - won't find anything less */
             break ;
         }
+#if 0
         /* done - put vector components into output */
+        MRIseq_vox(mri_dst, x, y, z, 1) = (BUFTYPE)nint(min_mean) ;
+#endif
         *pdst++ = (BUFTYPE)mini;
       }
     }
@@ -1335,7 +1341,6 @@ MRIorderThreshold(MRI *mri_src, MRI *mri_dst, MRI *mri_order, int num)
   }
   return(mri_dst) ;
 }
-
 /*-----------------------------------------------------
         Parameters:
 
@@ -1413,3 +1418,135 @@ MRIpolvCount(MRI *mri_src, MRI *mri_dst, MRI *mri_polv, int wsize,
 
   return(mri_dst) ;
 }
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
+
+#define WHITE_LOW    90
+#define GRAY_HI      95
+#define WHITE_HI    130
+#define WSIZE       9
+
+#define PSLOPE       1.0
+#define NSLOPE       1.0
+
+MRI *
+MRIwmfilter(MRI *mri_src, MRI *mri_polv, MRI *mri_dst)
+{
+  int      width, height, depth, x, y, z, whalf, vertex,xi,yi,zi,
+           *pxi, *pyi, *pzi, i ;
+  float    nx, ny, nz, dx, dy, dz, curv, dsq, val ;
+  BUFTYPE  *pdst, *pptr, val0, /* *psrc, */gray_hi, white_low/*,mean, *pmean*/;
+  MRI      *mri_curv /*, *mri_tmp*/ ;
+
+  width = mri_src->width ;
+  height = mri_src->height ;
+  depth = mri_src->depth ;
+  if (DIAG_VERBOSE_ON)
+    mri_curv = MRIalloc(width, height, depth, MRI_FLOAT) ;
+  /*  mri_tmp = MRIalloc(width, height, depth, MRI_UCHAR) ;*/
+
+  whalf = (WSIZE-1)/2 ;
+
+  init_basis_vectors() ;
+  if (!mri_dst)
+    mri_dst = MRIclone(mri_src, NULL) ;
+
+#if 0
+  for (z = 0 ; z < depth ; z++)
+  {
+    for (y = 0 ; y < height ; y++)
+    {
+      pdst = &MRIvox(mri_tmp, 0, y, z) ;  /* ptr to destination */
+      psrc = &MRIvox(mri_src, 0, y, z) ;  /* ptr to source */
+      for (x = 0 ; x < width ; x++)
+      {
+        val0 = *psrc++ ;
+        if (val0 > WHITE_HI || val0 < WHITE_LOW)
+          val0 = 0 ;
+        *pdst++ = val0 ;
+      }
+    }
+  }
+#endif
+
+  pxi = mri_src->xi ; pyi = mri_src->yi ; pzi = mri_src->zi ;
+  for (z = 0 ; z < depth ; z++)
+  {
+    DiagHeartbeat((float)z / (float)(depth-1)) ;
+    for (y = 0 ; y < height ; y++)
+    {
+      pdst = &MRIvox(mri_dst, 0, y, z) ;  /* ptr to destination */
+      pptr = &MRIvox(mri_polv, 0, y, z) ; /* ptr to normal vectors */
+#if 0
+      pmean = &MRIseq_vox(mri_polv, 0, y, z, 1) ; /* ptr to means */
+#endif
+      for (x = 0 ; x < width ; x++)
+      {
+        if (x == 37 && y == 88 && z == 63)
+          DiagBreak() ;
+        vertex = *pptr++ ;
+#if 0
+        mean = *pmean++ ;
+#endif
+        nx = ic_x_vertices[vertex] ;
+        ny = ic_y_vertices[vertex] ;
+        nz = ic_z_vertices[vertex] ;
+        val0 = MRIvox(mri_src, x, y, z) ;
+
+        /* now compute the curvature in the normal direction */
+        for (curv = 0.0f, i = -whalf ; i <= whalf ; i++)
+        {
+          if (!i)
+            continue ;
+          dx = (float)i * nx ; xi = pxi[x+nint(dx)] ;
+          dy = (float)i * ny ; yi = pyi[y+nint(dy)] ;
+          dz = (float)i * nz ; zi = pzi[z+nint(dz)] ;
+          dsq = (dx*dx + dy*dy + dz*dz) ;
+          val = (float)MRIvox(mri_src, xi, yi, zi) - (float)val0 ;
+          curv += val / dsq ;
+        }
+        curv /= (WSIZE-1) ;
+        if (DIAG_VERBOSE_ON)
+          MRIFvox(mri_curv, x, y, z) = curv ;
+
+        white_low = WHITE_LOW ; gray_hi = GRAY_HI ;
+#if 0
+        if (curv < -6.0f)  /* gyrus */
+          white_low = WHITE_LOW-10 ;
+        else if (curv > 6)
+          gray_hi = GRAY_HI+10 ;
+#else
+        if (curv < 0.0f)  /* gyrus */
+          white_low += nint(NSLOPE*curv) ;
+        else if (curv > 0.0f)
+          gray_hi += nint(PSLOPE*curv) ;
+#endif
+        /*        val0 = mean ;*/
+        if (val0 > WHITE_HI)   /* too high to be white matter */
+          val0 = 0 ;
+        else if (val0 < white_low)  /* too low to be white matter */
+          val0 = 0 ;
+        else if (val0 < gray_hi)    /* ambiguous */
+        {
+          if ((gray_hi - val0) > (val0 - white_low))
+            val0 = 0 ;
+        }
+        *pdst++ = val0 ;
+      }
+    }
+  }
+
+  if (DIAG_VERBOSE_ON)
+  {
+    MRIwrite(mri_curv, "curv.mnc") ;
+    MRIfree(&mri_curv) ;
+  }
+  /*  MRIfree(&mri_tmp) ;*/
+  return(mri_dst) ;
+}
+
