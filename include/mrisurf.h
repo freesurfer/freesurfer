@@ -1,8 +1,10 @@
 #ifndef MRISURF_H
 #define MRISURF_H
 
-
+#include "macros.h"
+#include "mri.h"
 #include "volume_io.h"
+#include "image.h"
 
 #define VERTICES_PER_FACE    4
 
@@ -68,6 +70,7 @@ typedef struct vertex_type_
   int   border;            /* flag */
   float area,origarea ;
   int   tethered ;
+  float theta, phi ;             /* parameterization */
 } vertex_type, VERTEX ;
 
 #if 0
@@ -122,6 +125,7 @@ typedef struct
   Transform         *linear_transform ;
   Transform         *inverse_linear_transform ;
   int               free_transform ;
+  float        a, b, c ;          /* ellipsoid parameters */
 } MRI_SURFACE, MRIS ;
 
 
@@ -145,6 +149,45 @@ typedef struct
 } INTEGRATION_PARMS ;
 
 
+/*
+  the following structure is built after the surface has been morphed
+  into a parameterizable surface (such as a sphere or an ellipsoid). It
+  contains relevant data (such as curvature or sulc) which represented
+  in the plane of the parameterization. This then allows operations such
+  as convolution to be carried out directly in the parameterization space
+  */
+
+/* 
+   define it for a sphere, the first axis (x or u) goes from 0 to pi,
+   the second axis (y or v) goes from 0 to 2pi.
+*/
+#define PHI_MAX                   M_PI
+#define U_MAX                     PHI_MAX
+#define X_DIM(mrisp)              (mrisp->Ip->cols)
+#define U_DIM(mrisp)              X_DIM(mrisp)
+#define PHI_DIM(mrisp)            X_DIM(mrisp)
+#define PHI_MAX_INDEX(mrisp)      (X_DIM(mrisp)-1)
+#define U_MAX_INDEX(mrisp)        (PHI_MAX_INDEX(mrisp))
+
+#define THETA_MAX                 (2.0*M_PI)
+#define Y_DIM(mrisp)              (mrisp->Ip->rows)
+#define V_DIM(mrisp)              (Y_DIM(mrisp))
+#define THETA_DIM(mrisp)          (Y_DIM(mrisp))
+#define THETA_MAX_INDEX(mrisp)    (Y_DIM(mrisp)-1)
+#define V_MAX_INDEX(mrisp)        (THETA_MAX_INDEX(mrisp))
+
+typedef struct
+{
+  MRI_SURFACE  *mris ;        /* surface it came from */
+  IMAGE        *Ip ;        
+#if 0
+  /* 2-d array of curvature, or sulc in parms */
+  float        data[X_DIM][Y_DIM] ;
+  float        distances[X_DIM][Y_DIM] ;
+  int          vertices[X_DIM][Y_DIM] ;   /* vertex numbers */
+#endif
+} MRI_SURFACE_PARAMETERIZATION, MRI_SP ;
+
 #define L_ANGLE              0.01f   /* coefficient of angle term */
 #define L_AREA               1.0f    /* coefficient of angle term */
 #define N_AVERAGES           4096
@@ -154,10 +197,11 @@ typedef struct
 #define PROJECT_ELLIPSOID    1
 #define ELLIPSOID_PROJECTION PROJECT_ELLIPSOID
 
-#define TOL                  1e-5  /* minimum error tolerance for halting */
+#define TOL                  1e-5  /* minimum error tolerance for unfolding */
 
 MRI_SURFACE  *MRISread(char *fname) ;
 int          MRISwrite(MRI_SURFACE *mris, char *fname) ;
+int          MRISwriteCurvature(MRI_SURFACE *mris, char *fname) ;
 MRI_SURFACE  *MRISalloc(int nvertices, int nfaces) ;
 int          MRISfree(MRI_SURFACE **pmris) ;
 MRI_SURFACE  *MRISprojectOntoEllipsoid(MRI_SURFACE *mris_src, 
@@ -175,6 +219,19 @@ int          MRIScomputeFaceAreas(MRI_SURFACE *mris) ;
 int          MRISupdateEllipsoidSurface(MRI_SURFACE *mris) ;
 int          MRISwriteTriangleProperties(MRI_SURFACE *mris, char *mris_fname);
 
+MRI          *MRISwriteIntoVolume(MRI_SURFACE *mris, MRI *mri) ;
+MRI_SURFACE  *MRISreadFromVolume(MRI *mri, MRI_SURFACE *mris) ;
+MRI_SP       *MRIStoParameterization(MRI_SURFACE *mris, MRI_SP *mrisp, 
+                                     float scale) ;
+MRI_SURFACE  *MRISfromParameterization(MRI_SP *mrisp, MRI_SURFACE *mris) ;
+MRI_SP       *MRISPblur(MRI_SP *mrisp_src, MRI_SP *mrisp_dst, float sigma) ;
+MRI_SP       *MRISPalign(MRI_SP *mrisp_orig, MRI_SP *mrisp_src, 
+                         MRI_SP *mrisp_tmp, MRI_SP *mrisp_dst) ;
+MRI_SP       *MRISPtranslate(MRI_SP *mrisp_src, MRI_SP *mrisp_dst, int du, 
+                             int dv) ;
+MRI_SP       *MRISPclone(MRI_SP *mrisp_src) ;
+MRI_SP       *MRISPalloc(MRI_SURFACE *mris, float scale) ;
+int          MRISPfree(MRI_SP **pmrisp) ;
 
 /* constants for vertex->tethered */
 #define TETHERED_NONE           0
@@ -187,4 +244,5 @@ int          MRISwriteTriangleProperties(MRI_SURFACE *mris, char *mris_fname);
 /* constants for mris->hemisphere */
 #define LEFT_HEMISPHERE         0
 #define RIGHT_HEMISPHERE        1
+
 #endif
