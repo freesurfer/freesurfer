@@ -8,7 +8,7 @@ function flacnew = flac_customize(flac)
 %
 % See flac_desmtx for how the design matrices are built.
 %
-% $Id: flac_customize.m,v 1.4 2004/12/11 00:06:27 greve Exp $
+% $Id: flac_customize.m,v 1.5 2005/01/23 17:01:44 greve Exp $
 
 flacnew = [];
 if(nargin ~= 1)
@@ -98,21 +98,40 @@ for nthev = 1:nev
 
 end
 
+
 flacnew = flac_desmat(flacnew);
+flacnew.indtask = flac_taskregind(flacnew);			    
+flacnew.indnuis = flac_nuisregind(flacnew);			    
+
 flacnew.betafspec = sprintf('%s/%s/fla/%s/%s/beta',flacnew.sess,...
 			    flacnew.fsd,flacnew.name,...
 			    flacnew.runlist(flacnew.nthrun,:));
 flacnew.rvarfspec = sprintf('%s/%s/fla/%s/%s/rvar',flacnew.sess,...
 			    flacnew.fsd,flacnew.name,...
 			    flacnew.runlist(flacnew.nthrun,:));
-flacnew.indtask = flac_taskregind(flacnew);			    
-flacnew.indnuis = flac_nuisregind(flacnew);			    
+
+flacnew.resfspec = sprintf('%s/%s/fla/%s/%s/res',flacnew.sess,...
+			    flacnew.fsd,flacnew.name,...
+			    flacnew.runlist(flacnew.nthrun,:));
 
 flacnew.maskfspec = sprintf('%s/%s/masks/%s%s',flacnew.sess,...
 			    flacnew.fsd,flacnew.mask);
 
 flacnew.acfsegfspec = sprintf('%s/%s/masks/%s',flacnew.sess,...
 		      flacnew.fsd,flacnew.acfsegstem);
+
+ncon = length(flacnew.con);
+for nthcon = 1:ncon
+  flacnew.con(nthcon).ffspec = ...
+      sprintf('%s/%s/fla/%s/%s/%s/f',flacnew.sess,flacnew.fsd,flacnew.name,...
+	      flacnew.runlist(flacnew.nthrun,:),flacnew.con(nthcon).name);
+  flacnew.con(nthcon).fsigfspec = ...
+      sprintf('%s/%s/fla/%s/%s/%s/fsig',flacnew.sess,flacnew.fsd,flacnew.name,...
+	      flacnew.runlist(flacnew.nthrun,:),flacnew.con(nthcon).name);
+  
+end
+
+
 
 return;
 
