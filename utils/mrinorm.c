@@ -60,6 +60,14 @@ MRIsplineNormalize(MRI *mri_src,MRI *mri_dst, MRI **pmri_field,
   BUFTYPE   *psrc, *pdst, sval, dval, *pfield = NULL ;
   float     outputs_2[MAX_SPLINE_POINTS], frac ;
   MRI       *mri_field = NULL ;
+  double    d ;
+  char      *cp ;
+
+  cp = getenv("RAN") ;
+  if (cp)
+    d = atof(cp) ;
+  else
+    d = 0.0 ;
 
   if (pmri_field)
   {
@@ -95,7 +103,7 @@ MRIsplineNormalize(MRI *mri_src,MRI *mri_dst, MRI **pmri_field,
       for (x = 0 ; x < width ; x++)
       {
         sval = *psrc++ ;
-        dval = nint((float)sval * frac) ;
+        dval = nint((float)sval * frac + randomNumber(0.0,d)) ;
         *pdst++ = dval ;
       }
     }
@@ -246,12 +254,7 @@ MRIhistoNormalize(MRI *mri_src, MRI *mri_norm, MRI *mri_template, int low)
 
         Description
 ------------------------------------------------------*/
-#define SIZE_MOD          0.95
 #define WINDOW_WIDTH      120  /* in millimeters */
-
-/* 20% more of brain behind (0,0,0) than in front */
-#define Z_OFFSET_SCALE   .2 
-#define OVERLAP          2
 
 int
 MRInormInit(MRI *mri, MNI *mni, int windows_above_t0,int windows_below_t0,
@@ -305,7 +308,7 @@ MRInormInit(MRI *mri, MNI *mni, int windows_above_t0,int windows_below_t0,
   dx = mri->width ;
   z = 0 ;
   dz = mri->depth ;
-  y = y0_tal - (wsize/OVERLAP) * windows_above_t0 ;
+  y = y0_tal - nint((float)wsize*OVERLAP) * windows_above_t0 ;
   dy = wsize ;
   for (i = 0 ; i < nwindows ; i++)
   {
@@ -328,7 +331,7 @@ MRInormInit(MRI *mri, MNI *mni, int windows_above_t0,int windows_below_t0,
     reg->dz = dz + z_offset ;
     reg->dy = dy ; 
     reg->y = y ;
-    y += wsize/OVERLAP ;
+    y += nint((float)wsize*OVERLAP) ;
     if (Gdiag & DIAG_SHOW)
       fprintf(stderr, "window %d: (%d, %d, %d) -> (%d, %d, %d)\n",
               i, reg->x, reg->y, reg->z, reg->dx, reg->dy, reg->dz) ;
@@ -375,7 +378,7 @@ MRInormFindPeaks(MNI *mni, float *inputs, float *outputs)
   {
     reg = &mni->regions[i] ;
     hsmooth = HISTOsmooth(&mni->histograms[i], hsmooth, mni->smooth_sigma) ;
-    peak = HISTOfindLastPeak(hsmooth, 7, .15) ;
+    peak = HISTOfindLastPeak(hsmooth, HISTO_WINDOW_SIZE, MIN_HISTO_PCT) ;
     if (peak < 0)
       deleted++ ;
     else
