@@ -1470,7 +1470,7 @@ GCAMsampleMorph(GCA_MORPH *gcam, float x, float y, float z,
   float          xmd, ymd, zmd, xpd, ypd, zpd ;  /* d's are distances */
 
   /* x, y, z are in MRI voxel coords */
-  x /= gcam->gca->spacing ; y /= gcam->gca->spacing ; z /= gcam->gca->spacing ;
+  x /= gcam->spacing ; y /= gcam->spacing ; z /= gcam->spacing ;
   width = gcam->width ; height = gcam->height ; depth = gcam->depth ;
 
   if (x >= width)
