@@ -225,6 +225,8 @@ Volm_tErr Volm_Threshold ( mriVolumeRef     this,
 			   float            iNewValue );
 Volm_tErr Volm_Flip      ( mriVolumeRef     this,
 			   mri_tOrientation iAxis );
+Volm_tErr Volm_SetAllValues ( mriVolumeRef     this,
+			      float            iValue );
 
 Volm_tErr Volm_CopySubjectName ( mriVolumeRef this,
 				 char*        oSubjectName,

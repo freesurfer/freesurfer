@@ -2139,6 +2139,37 @@ Volm_tErr Volm_Flip ( mriVolumeRef     this,
   return eResult;
 }
 
+Volm_tErr Volm_SetAllValues ( mriVolumeRef this,
+			      float        iNewValue ) {
+  
+  Volm_tErr   eResult = Volm_tErr_NoErr;
+  xVoxel      idx;
+  
+  DebugEnterFunction( ("Volm_SetAllValues( this=%p, iNewValue=%d )", 
+		       this, (int)iNewValue) );
+  
+  DebugNote( ("Verifying volume") );
+  eResult = Volm_Verify( this );
+  DebugAssertThrow( (eResult == Volm_tErr_NoErr) );
+  
+  /* step through the volume and set everything to this value. */
+  xVoxl_Set( &idx, 0, 0, 0 );
+  DebugNote( ("Setting volume values") );
+  while( xVoxl_IncrementUntilLimits( &idx, this->mnDimensionX-1,
+                                     this->mnDimensionY-1, 
+				     this->mnDimensionZ-1) ) {
+    Volm_SetValueAtIdx_( this, &idx, iNewValue );
+  }
+  
+  DebugCatch;
+  DebugCatchError( eResult, Volm_tErr_NoErr, Volm_GetErrorString );
+  EndDebugCatch;
+  
+  DebugExitFunction;
+  
+  return eResult;
+}
+
 Volm_tErr Volm_CopySubjectName ( mriVolumeRef this,
 				 char*        oSubjectName,
 				 int          inDestLen ) {
