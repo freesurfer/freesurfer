@@ -513,13 +513,10 @@ Volm_tErr Volm_SetFromMRI_ ( mriVolumeRef this,
       Trns_CopyARAStoBRAS( this->mIdxToRASTransform, identity ); /* no display xform */
       Trns_CopyBtoRAS( this->mIdxToRASTransform, identity );
 
-      fprintf( stderr, "Using embedded idxToRAS transform:\n" );
-      MatrixPrint( stderr, idxToRASTransform );
 #ifndef FORCE_USE_EMBEDDED_CRAS
     }
   else 
     {
-      fprintf( stderr, "Using standard idxToRAS transform.\n" );
       idxToRASTransform = MatrixAlloc( 4, 4, MATRIX_REAL );
       MatrixClear( idxToRASTransform );
       *MATRIX_RELT(idxToRASTransform,1,1) = -1.0;
