@@ -1,19 +1,25 @@
-function [f, nv, nf, bhdrstr] = fast_ldbslice(bstem,sliceno)
-% [f nv nf bhdrstr] = fast_ldbslice(bstem, <sliceno>)
+function [f, mristruct] = fast_ldbslice(bstem,sliceno)
+% [f mristruct] = fast_ldbslice(bstem, <sliceno>)
+%
+% sliceno is the zero-based slice number.
 % If sliceno is not given or if it is < 0, then
-% the volume is loaded. nv is the number of spatial
-% voxels (ie, nrows*cols if a slice or nrows*cols*nslice 
-% if a volume). nf is the number of frames.
+% the volume is loaded. 
 %
-% bhdrstr is a string dump of the bhdr file, if it exists
+% mristruct is mri info from the bhdr file. See fast_mri_struct
+% and fast_ldbhdr.
 %
-
+% A single slice is rows-cols-frames
+% The volume is     rows-cols-slices-frames
+%
+% See also fast_svbslice, fast_mri_struct, fast_ldbhdr.
+%
+% $Id: fast_ldbslice.m,v 1.4 2003/08/02 00:57:35 greve Exp $
 
 f = [];
-nv = [];
+mristruct = [];
 
 if(nargin ~= 1 & nargin ~= 2)
-  fprintf('USAGE: [f nv nf] = fast_ldbslice(bstem,sliceno)\n');
+  fprintf('USAGE: [f mristruct] = fast_ldbslice(bstem,sliceno)\n');
   return;
 end
 
@@ -32,37 +38,22 @@ if(length(find(sliceno >= nslices))~=0)
 end
 
 if(sliceno(1) >= 0 & length(sliceno) == 1)
+  % Read in a single slice %
   fname = sprintf('%s_%03d.%s',bstem,sliceno,bext);
   f = fmri_ldbfile(fname);
-  sz = size(f);
-  nv = sz(1)*sz(2);
-  if(length(sz)>2) nf = sz(3);
-  else nf = 1;
-  end
-elseif(length(sliceno) > 1)
+elseif(sliceno < 0)
+  % Read in the volume %
+  f = zeros(nrows,ncols,nslices,nframes);
   nth = 1;
   for s = sliceno
     tmp = fast_ldbslice(bstem,s);
-    f(nth,:,:,:) = squeeze(tmp);
+    f(:,:,nth,:) = squeeze(tmp);
     nth = nth+1;
   end
-else
-  f = fmri_ldbvolume(bstem);
-  sz = size(f);
-  nv = sz(1)*sz(2)*sz(3);
-  if(length(sz)>3) nf = sz(4);
-  else nf = 1;
-  end
 end
 
-bhdrfile = sprintf('%s.bhdr',bstem);
-fid = fopen(bhdrfile,'r');
-if(fid ~= -1)
-  bhdrstr = fread(fid); % get the dump
-  fclose(fid);
-else
-  bhdrstr = '';
+if(nargout == 2)
+  mristruct = fast_ldbhdr(bstem);
 end
-
 
 return;
