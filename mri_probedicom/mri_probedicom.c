@@ -28,7 +28,7 @@
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_probedicom.c,v 1.4 2002/11/12 19:53:38 brucefis Exp $";
+static char vcid[] = "$Id: mri_probedicom.c,v 1.5 2002/12/03 18:29:00 greve Exp $";
 char *Progname = NULL;
 
 static int  parse_commandline(int argc, char **argv);
@@ -188,27 +188,27 @@ int main(int argc, char **argv)
   case QRY_VALUE: 
     if(!GettingPixelData){
       if(outputfile == NULL)
-  printf("%s\n",ElementValueString(&element));
+	printf("%s\n",ElementValueString(&element));
       else{
-  fp = fopen(outputfile,"w");
-  fprintf(fp,"%s\n",ElementValueString(&element));
-  fclose(fp);
+	fp = fopen(outputfile,"w");
+	fprintf(fp,"%s\n",ElementValueString(&element));
+	fclose(fp);
       }
     }
     else {
       if(outputbfile){
-  sprintf(tmpstr,"%s.hdr",outputfile);
-  ncols = GetDimLength(dicomfile,0);
-  nrows = GetDimLength(dicomfile,1);
-  endian = bf_getarchendian();
-  fp = fopen(tmpstr,"w");
-  fprintf(fp,"%d %d 1 %d\n",nrows,ncols,endian);
+	sprintf(tmpstr,"%s.hdr",outputfile);
+	ncols = GetDimLength(dicomfile,0);
+	nrows = GetDimLength(dicomfile,1);
+	endian = bf_getarchendian();
+	fp = fopen(tmpstr,"w");
+	fprintf(fp,"%d %d 1 %d\n",nrows,ncols,endian);
         fclose(fp);
-  sprintf(tmpstr,"%s.bshort",outputfile);
+	sprintf(tmpstr,"%s.bshort",outputfile);
       }
       else
-  sprintf(tmpstr,"%s",outputfile);
-
+	sprintf(tmpstr,"%s",outputfile);
+      
       //printf("Writing Pixel Data to %s\n",tmpstr);
       fp = fopen(tmpstr,"w");
       fwrite(element.d.string,sizeof(char),element.length,fp);
@@ -216,11 +216,11 @@ int main(int argc, char **argv)
       //printf("Done\n");
     }
     break;
-
+    
   }
-
+  
   DCM_CloseObject(&object);
-
+  
   /*DumpElement(stdout,&element);
   DCM_DumpElements(&object,0);*/
 
@@ -502,7 +502,6 @@ static void check_options(void)
     fprintf(stderr,"ERROR: must specify output file when querying value of  pixel data\n");
     exit(1);
   }
-
 
   return;
 }
@@ -864,6 +863,12 @@ int PartialDump(char *dicomfile, FILE *fp)
   FreeElementData(e); free(e);
   }
 
+  e = GetElementFromFile(dicomfile, 0x18, 0x1020);
+  if(e != NULL){
+    fprintf(fp,"SoftwareVersion %s\n",e->d.string);
+    FreeElementData(e); free(e);
+  }
+
   e = GetElementFromFile(dicomfile, 0x18, 0x1000);
   if(e != NULL){
   fprintf(fp,"ScannerSerialNo %s\n",e->d.string);
@@ -1006,6 +1011,12 @@ int PartialDump(char *dicomfile, FILE *fp)
   if(e != NULL){
   fprintf(fp,"PhaseEncDir %s\n",e->d.string);
   FreeElementData(e); free(e);
+  }
+
+  e = GetElementFromFile(dicomfile, 0x18, 0x88);
+  if(e != NULL){
+    fprintf(fp,"SliceDistance %s\n",e->d.string);
+    FreeElementData(e); free(e);
   }
 
   e = GetElementFromFile(dicomfile, 0x18, 0x50);
