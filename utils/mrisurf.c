@@ -6017,11 +6017,11 @@ MRISreadCanonicalCoordinates(MRI_SURFACE *mris, char *sname)
       vertex->num = 0;
 #endif
   }
-  MRISsaveVertexPositions(mris, ORIGINAL_VERTICES) ;
+  MRISsaveVertexPositions(mris, TMP_VERTICES) ;
   MRISrestoreVertexPositions(mris, CANONICAL_VERTICES) ;
   r = mris->radius = MRISaverageRadius(mris) ;
   r = mris->radius = (float)nint(mris->radius) ;
-  MRISrestoreVertexPositions(mris, ORIGINAL_VERTICES) ;
+  MRISrestoreVertexPositions(mris, TMP_VERTICES) ;
   for (vno = 0 ; vno < nvertices ; vno++)
   {
     vertex = &mris->vertices[vno] ;
@@ -11615,6 +11615,22 @@ MRISvertexToVoxel(VERTEX *v, MRI *mri,Real *pxv, Real *pyv, Real *pzv)
   Real  xw, yw, zw ;
 
   xw = v->x ; yw = v->y ; zw = v->z ;
+  MRIworldToVoxel(mri, xw, yw, zw, pxv, pyv, pzv) ;
+  return(NO_ERROR) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
+int
+MRISorigVertexToVoxel(VERTEX *v, MRI *mri,Real *pxv, Real *pyv, Real *pzv)
+{
+  Real  xw, yw, zw ;
+
+  xw = v->origx ; yw = v->origy ; zw = v->origz ;
   MRIworldToVoxel(mri, xw, yw, zw, pxv, pyv, pzv) ;
   return(NO_ERROR) ;
 }
