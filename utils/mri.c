@@ -9,9 +9,9 @@
 */
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: greve $
-// Revision Date  : $Date: 2004/02/12 05:18:34 $
-// Revision       : $Revision: 1.255 $
-char *MRI_C_VERSION = "$Revision: 1.255 $";
+// Revision Date  : $Date: 2004/02/12 05:22:24 $
+// Revision       : $Revision: 1.256 $
+char *MRI_C_VERSION = "$Revision: 1.256 $";
 
 /*-----------------------------------------------------
                     INCLUDE FILES
@@ -10583,8 +10583,9 @@ MRI *MRIrandn(int ncols, int nrows, int nslices, int nframes,
   MRIrande() - fills an MRI structure with values sampled from an
   Erlang distribution with mean avg and order order. The variance
   will be (avg^2)/order. Theoretical distribution is
-  mu = 1/avg; r = order
-  pdf = r*mu*((r*mu*x)^(r-1)) * exp(-r*mu*x) / (r-1)!
+    r = order
+    pdf(x) = r*((r*(x-avg+1))^(r-1)) * exp(-r*(x-avg+1)) / (r-1)!
+  when order=1, this generates an exponential distribution.
   --------------------------------------------------------*/
 MRI *MRIrande(int ncols, int nrows, int nslices, int nframes,
 	      float avg, int order, MRI *mri)
