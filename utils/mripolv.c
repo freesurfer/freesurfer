@@ -1246,8 +1246,6 @@ MRIfindThinWMStrands(MRI *mri_src, MRI *mri_dst, int wsize)
       for (x = 0 ; x < width ; x++)
       {
         thin = 0 ;
-if (DEBUG_POINT(x,y,z))
-    DiagBreak() ;
         if (*psrc++) for (vertex = 0 ; !thin && vertex < NVERTICES ; vertex++)
         {
           was_white = -1 ;
@@ -1271,8 +1269,6 @@ if (DEBUG_POINT(x,y,z))
               if (black_white >= -wsize)
               {
                 thin = ((yk - black_white) <= wsize) ;
-if (DEBUG_POINT(x,y,z))
-    DiagBreak() ;
                 break ;
               }
             }
@@ -1292,3 +1288,128 @@ if (DEBUG_POINT(x,y,z))
   return(mri_dst) ;
 }
 
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
+MRI *
+MRIorderThreshold(MRI *mri_src, MRI *mri_dst, MRI *mri_order, int num)
+{
+  int     width, height, depth, x, y, z, frame ;
+  BUFTYPE *psrc, *pdst, *porder, val ;
+
+  width = mri_src->width ;
+  height = mri_src->height ;
+  depth = mri_src->depth ;
+  if (!mri_dst)
+    mri_dst = MRIclone(mri_src, NULL) ;
+
+  if (mri_src->type != MRI_UCHAR || mri_dst->type != MRI_UCHAR ||
+      mri_order->type != MRI_UCHAR)
+    ErrorReturn(NULL, 
+                (ERROR_UNSUPPORTED, 
+                 "MRIorderThresh: all input MRs must be byte")) ;
+
+  for (frame = 0 ; frame < mri_src->nframes ; frame++)
+  {
+    for (z = 0 ; z < depth ; z++)
+    {
+      for (y = 0 ; y < height ; y++)
+      {
+        psrc = &MRIseq_vox(mri_src, 0, y, z, frame) ;
+        pdst = &MRIseq_vox(mri_dst, 0, y, z, frame) ;
+        porder = &MRIseq_vox(mri_order, 0, y, z, frame) ;
+        for (x = 0 ; x < width ; x++, psrc++)
+        {
+          if (*porder++ >= num)
+            val = *psrc ;
+          else
+            val = 0 ;
+          *pdst++ = val ;
+        }
+      }
+    }
+  }
+  return(mri_dst) ;
+}
+
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
+MRI *
+MRIpolvCount(MRI *mri_src, MRI *mri_dst, MRI *mri_polv, int wsize, 
+                    int lo_lim, int hi_lim)
+{
+  int      width, height, depth, x, y, z, whalf, xk, yk, n, vertex,xi,yi,zi,
+           *pxi, *pyi, *pzi, order ;
+  float    e1_x, e1_y, e1_z, e2_x, e2_y, e2_z, xbase, ybase, zbase ;
+  BUFTYPE  *pdst, *pptr, val ;
+
+  width = mri_src->width ;
+  height = mri_src->height ;
+  depth = mri_src->depth ;
+  whalf = (wsize-1)/2 ;
+
+  init_basis_vectors() ;
+  if (!mri_dst)
+    mri_dst = MRIclone(mri_src, NULL) ;
+
+  pxi = mri_src->xi ; pyi = mri_src->yi ; pzi = mri_src->zi ;
+  n = wsize*wsize ;
+  for (z = 0 ; z < depth ; z++)
+  {
+    DiagHeartbeat((float)z / (float)(depth-1)) ;
+    for (y = 0 ; y < height ; y++)
+    {
+      pdst = &MRIvox(mri_dst, 0, y, z) ;  /* ptr to destination */
+      pptr = &MRIvox(mri_polv, 0, y, z) ; /* ptr to normal vectors */
+      for (x = 0 ; x < width ; x++)
+      {
+        vertex = *pptr++ ;
+        e1_x = e1_x_v[vertex] ;  /* basis vectors for plane */
+        e1_y = e1_y_v[vertex] ;
+        e1_z = e1_z_v[vertex] ;
+        e2_x = e2_x_v[vertex] ;
+        e2_y = e2_y_v[vertex] ;
+        e2_z = e2_z_v[vertex] ;
+
+        /* 
+           calculate the median in the plane orthogonal to (a,b,c), 
+           through the current origin (x,y,z).
+           */
+
+        /* now find the values in this plane */
+        for (order = 0, yk = -whalf ; yk <= whalf ; yk++)
+        {
+          xbase = (float)x + (float)yk * e2_x ;
+          ybase = (float)y + (float)yk * e2_y ;
+          zbase = (float)z + (float)yk * e2_z ;
+          for (xk = -whalf ; xk <= whalf ; xk++)
+          {
+            /* in-plane vect. is linear combination of scaled basis vects */
+            xi = nint(xbase + xk*e1_x) ;
+            xi = pxi[xi] ;
+            yi = nint(ybase + xk*e1_y) ;
+            yi = pyi[yi] ;
+            zi = nint(zbase + xk*e1_z) ;
+            zi = pzi[zi] ;
+            val = MRIvox(mri_src, xi, yi, zi) ;
+            if (val >= lo_lim && val <= hi_lim)
+              order++ ;
+          }
+        }
+
+        *pdst++ = (BUFTYPE)order ;
+      }
+    }
+  }
+
+  return(mri_dst) ;
+}
