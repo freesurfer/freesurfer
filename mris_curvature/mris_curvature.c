@@ -13,7 +13,7 @@
 #include "mri.h"
 #include "macros.h"
 
-static char vcid[] = "$Id: mris_curvature.c,v 1.5 1997/11/06 21:18:29 fischl Exp $";
+static char vcid[] = "$Id: mris_curvature.c,v 1.6 1997/12/11 18:58:00 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -26,6 +26,7 @@ static void print_version(void) ;
 char *Progname ;
 
 static int write_flag = 0 ;
+static int nbrs = 2 ;
 
 int
 main(int argc, char *argv[])
@@ -58,6 +59,7 @@ main(int argc, char *argv[])
     ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s",
               Progname, in_fname) ;
 
+  MRISsetNeighborhoodSize(mris, nbrs) ;
 #if 0
 MRISprojectOntoCylinder(mris, 50.0f) ;
 MRISwrite(mris,in_fname) ;
@@ -74,9 +76,15 @@ mrisComputeNormals(mris) ;
   fprintf(stderr, "total integrated curvature = %2.3f*4pi (%2.3f) --> "
           "%d handles\n", (float)mris->Ktotal/(4.0f*M_PI), 
           (float)mris->Ktotal, nhandles) ;
-  
+
+fprintf(stderr, "0: k1 = %2.3f, k2 = %2.3f, H = %2.3f, K = %2.3f\n",
+        mris->vertices[0].k1, mris->vertices[0].k2, 
+        mris->vertices[0].H, mris->vertices[0].K) ;
+fprintf(stderr, "0: vnum = %d, v2num = %d, total=%d, area=%2.3f\n",
+        mris->vertices[0].vnum, mris->vertices[0].v2num,
+        mris->vertices[0].vtotal,mris->vertices[0].area) ;
   MRIScomputeCurvatureIndices(mris, &ici, &fi);
-  var = MRISvariation(mris) ;
+  var = MRIStotalVariation(mris) ;
   fprintf(stderr, "ICI = %2.1f, FI = %2.1f, variation=%2.3f\n", ici, fi, var) ;
 
   if (write_flag)
@@ -120,8 +128,18 @@ get_option(int argc, char *argv[])
     print_help() ;
   else if (!stricmp(option, "-version"))
     print_version() ;
+  else if (!stricmp(option, "nbrs"))
+  {
+    nbrs = atoi(argv[2]) ;
+    nargs = 1 ;
+    fprintf(stderr, "using neighborhood size=%d\n", nbrs) ;
+  }
   else switch (toupper(*option))
   {
+  case 'V':
+    Gdiag_no = atoi(argv[2]) ;
+    nargs = 1 ;
+    break ;
   case 'W':
     write_flag = 1 ;
     break ;
