@@ -165,8 +165,9 @@ IMAGE *LogMapNormalize(LOGMAP_INFO *lmi, IMAGE *Isrc, IMAGE *Idst,
 #define UNDEFINED       255
 #define DEFINED(r, s)   ((r != UNDEFINED) && (s != UNDEFINED))
 
-#define DIFFUSION_TIME_LOG         0
-#define DIFFUSION_TIME_CARTESIAN   1
-#define DIFFUSION_TIME_VARIABLE    2
+#define DIFFUSION_TIME_LOG            0  /* just straight diffusion */
+#define DIFFUSION_TIME_PERIPHERAL     1  /* base time on peripheral it. */
+#define DIFFUSION_TIME_FOVEAL         2  /*     ||        foveal   ||   */
+#define DIFFUSION_TIME_CARTESIAN      3  /* run for equivalent cart. it. */
 
 #endif
