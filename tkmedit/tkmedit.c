@@ -4,9 +4,9 @@
 
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2004/07/03 16:26:05 $
-// Revision       : $Revision: 1.212 $
-char *VERSION = "$Revision: 1.212 $";
+// Revision Date  : $Date: 2004/07/14 23:06:11 $
+// Revision       : $Revision: 1.213 $
+char *VERSION = "$Revision: 1.213 $";
 
 #define TCL
 #define TKMEDIT 
@@ -1051,7 +1051,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
      shorten our argc and argv count. If those are the only args we
      had, exit. */
   /* rkt: check for and handle version tag */
-  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.212 2004/07/03 16:26:05 kteich Exp $", "$Name:  $");
+  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.213 2004/07/14 23:06:11 kteich Exp $", "$Name:  $");
   if (nNumProcessedVersionArgs && argc - nNumProcessedVersionArgs == 1)
     exit (0);
   argc -= nNumProcessedVersionArgs;
@@ -2140,8 +2140,8 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
   /* If we're scaling up, do it now. Re-allocate the selection volume too. */
   if( bScaleUpVolume ) {
     Volm_SetMinVoxelSizeToOne( gAnatomicalVolume[tkm_tVolumeType_Main] );
-		Volm_GetIdxToRASTransform( gAnatomicalVolume[tkm_tVolumeType_Main],
-															 &gIdxToRASTransform );
+    Volm_GetIdxToRASTransform( gAnatomicalVolume[tkm_tVolumeType_Main],
+			       &gIdxToRASTransform );
     AllocateSelectionVolume();
 
     /* This changes when you resize the volume like that, so get it
@@ -5009,7 +5009,7 @@ int main ( int argc, char** argv ) {
     DebugPrint( ( "%s ", argv[nArg] ) );
   }
   DebugPrint( ( "\n\n" ) );
-  DebugPrint( ( "$Id: tkmedit.c,v 1.212 2004/07/03 16:26:05 kteich Exp $ $Name:  $\n" ) );
+  DebugPrint( ( "$Id: tkmedit.c,v 1.213 2004/07/14 23:06:11 kteich Exp $ $Name:  $\n" ) );
 
   
   /* init glut */
@@ -7167,8 +7167,8 @@ tkm_tErr LoadVolume ( tkm_tVolumeType iType,
   
   if( gbScaleUpVolume ) {
     Volm_SetMinVoxelSizeToOne( newVolume );
-		Volm_GetIdxToRASTransform( newVolume,
-				 &gIdxToRASTransform );
+    Volm_GetIdxToRASTransform( newVolume,
+			       &gIdxToRASTransform );
   }
 
   /* if the volume exists, get the brightness and contrast to restore
@@ -8749,6 +8749,13 @@ tkm_tErr NewSegmentationVolume ( tkm_tSegType    iVolume,
   DebugAssertThrowX( (Volm_tErr_NoErr == eVolume),
 		     eResult, tkm_tErr_ErrorAccessingSegmentationVolume );
 
+  /* Scale up if we need to. */
+  if( gbScaleUpVolume ) {
+    DebugNote( ("Setting min voxel size on new seg volume to 1") );
+    eVolume = Volm_SetMinVoxelSizeToOne( newVolume );
+    DebugAssertThrowX( (Volm_tErr_NoErr == eVolume),
+		       eResult, tkm_tErr_ErrorAccessingSegmentationVolume );
+  }
 
   /* Try to load the color table. */
   DebugNote( ("Loading color table.") );
@@ -8803,7 +8810,7 @@ tkm_tErr NewSegmentationVolume ( tkm_tSegType    iVolume,
     MWin_SetSegmentationColorTable( gMeditWindow, iVolume, 
 				    -1, gColorTable[iVolume] );
   }
-  
+
   DebugCatch;
   DebugCatchError( eResult, tkm_tErr_NoErr || tkm_tErr_CouldntLoadColorTable,
 		   tkm_GetErrorString );
@@ -9777,7 +9784,7 @@ void SetSegmentationValue ( tkm_tSegType iVolume,
 			    xVoxelRef    iMRIIdx,
 			    int          inIndex ) {
   
-  DebugEnterFunction( ("SetSegmentationValue( iVolume=%d, iaMRIIdx=%p "
+  DebugEnterFunction( ("SetSegmentationValue( iVolume=%d, iMRIIdx=%p "
 		       "inIndex=%d )", iVolume, iMRIIdx, inIndex) );
 
   DebugNote( ("Passing to EditSegmentation") );
