@@ -4,9 +4,9 @@
 
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2004/01/14 22:32:32 $
-// Revision       : $Revision: 1.191 $
-char *VERSION = "$Revision: 1.191 $";
+// Revision Date  : $Date: 2004/01/15 06:58:04 $
+// Revision       : $Revision: 1.192 $
+char *VERSION = "$Revision: 1.192 $";
 
 #define TCL
 #define TKMEDIT 
@@ -1034,7 +1034,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
      shorten our argc and argv count. If those are the only args we
      had, exit. */
   /* rkt: check for and handle version tag */
-  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.191 2004/01/14 22:32:32 kteich Exp $", "$Name:  $");
+  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.192 2004/01/15 06:58:04 kteich Exp $", "$Name:  $");
   if (nNumProcessedVersionArgs && argc - nNumProcessedVersionArgs == 1)
     exit (0);
   argc -= nNumProcessedVersionArgs;
@@ -3789,6 +3789,65 @@ int TclSetVolumeColorScale ( ClientData inClientData, Tcl_Interp* inInterp,
   return TCL_OK;
 }
 
+int TclSetVolumeBrightnessContrast ( ClientData inClientData, 
+				     Tcl_Interp* inInterp,
+				     int argc, char* argv[] ) {
+  
+  tkm_tVolumeType volume = tkm_tVolumeType_Main;
+  
+  if ( argc != 4 ) {
+    Tcl_SetResult ( inInterp, 
+		    "wrong # args: SetVolumeBrightnessAndContrast volume "
+		    "threshold:float squash:float", TCL_VOLATILE );
+    return TCL_ERROR;
+  }
+  
+  if( gbAcceptingTclCommands ) {
+    
+    /* get a volume index */
+    volume = atoi( argv[1] );
+    
+    /* make sure it's main or aux. if we have that volume, set the brightness
+       and contrast for it. */
+    if( volume == tkm_tVolumeType_Main || volume == tkm_tVolumeType_Aux ) {
+      if( NULL != gAnatomicalVolume[ volume ] ) {
+	SetVolumeBrightnessAndContrast( volume,
+					atof( argv[2] ), atof( argv[3] ));
+      }
+    }
+  }
+  
+  return TCL_OK;
+}
+
+int TclSetVolumeMinMax ( ClientData inClientData, Tcl_Interp* inInterp,
+			 int argc, char* argv[] ) {
+  
+  tkm_tVolumeType volume = tkm_tVolumeType_Main;
+  
+  if ( argc != 4 ) {
+    Tcl_SetResult ( inInterp, "wrong # args: SetVolumeMinMax volume "
+		    "min:float max:float", TCL_VOLATILE );
+    return TCL_ERROR;
+  }
+  
+  if( gbAcceptingTclCommands ) {
+    
+    /* get a volume index */
+    volume = atoi( argv[1] );
+    
+    /* make sure it's main or aux. if we have that volume, set the brightness
+       and contrast for it. */
+    if( volume == tkm_tVolumeType_Main || volume == tkm_tVolumeType_Aux ) {
+      if( NULL != gAnatomicalVolume[ volume ] ) {
+	SetVolumeColorMinMax( volume, atof( argv[2] ), atof( argv[3] ));
+      }
+    }
+  }
+  
+  return TCL_OK;
+}
+
 int TclSetVolumeSampleType ( ClientData inClientData, Tcl_Interp* inInterp,
 			     int argc, char* argv[] ) {
   
@@ -4981,7 +5040,7 @@ int main ( int argc, char** argv ) {
     DebugPrint( ( "%s ", argv[nArg] ) );
   }
   DebugPrint( ( "\n\n" ) );
-  DebugPrint( ( "$Id: tkmedit.c,v 1.191 2004/01/14 22:32:32 kteich Exp $ $Name:  $\n" ) );
+  DebugPrint( ( "$Id: tkmedit.c,v 1.192 2004/01/15 06:58:04 kteich Exp $ $Name:  $\n" ) );
 
   
   /* init glut */
@@ -5479,8 +5538,16 @@ int main ( int argc, char** argv ) {
           (ClientData) NULL, (Tcl_CmdDeleteProc*) NULL );
   
   Tcl_CreateCommand ( interp, "SetVolumeColorScale",
-          TclSetVolumeColorScale,
-          (ClientData) NULL, (Tcl_CmdDeleteProc*) NULL );
+		      TclSetVolumeColorScale,
+		      (ClientData) NULL, (Tcl_CmdDeleteProc*) NULL );
+  
+  Tcl_CreateCommand ( interp, "SetVolumeBrightnessContrast",
+		      TclSetVolumeBrightnessContrast,
+		      (ClientData) NULL, (Tcl_CmdDeleteProc*) NULL );
+
+  Tcl_CreateCommand ( interp, "SetVolumeMinMax",
+		      TclSetVolumeMinMax,
+		      (ClientData) NULL, (Tcl_CmdDeleteProc*) NULL );
   
   Tcl_CreateCommand ( interp, "SetVolumeSampleType",
 		      TclSetVolumeSampleType,
