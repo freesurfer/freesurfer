@@ -2,7 +2,7 @@
    DICOM 3.0 reading functions
    Author: Sebastien Gicquel and Douglas Greve
    Date: 06/04/2001
-   $Id: DICOMRead.c,v 1.59 2004/09/28 22:20:09 tosa Exp $
+   $Id: DICOMRead.c,v 1.60 2004/09/28 22:34:35 tosa Exp $
 *******************************************************/
 
 #include <stdio.h>
@@ -1636,6 +1636,11 @@ SDCMFILEINFO **ScanSiemensDCMDir(char *PathName, int *NSDCMFiles)
   }
   fprintf(stderr,"\n");
 
+  // free memory
+  while(NFiles--) 
+  {
+    free(NameList[NFiles]);
+  }
   free(NameList);
 
   return( sdcmfi_list );
