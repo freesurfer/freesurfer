@@ -133,7 +133,7 @@ int regio_print_register(FILE *fp, char *subject, float inplaneres,
 
   for(r=0;r<4;r++){
     for(c=0;c<4;c++){
-      fprintf(fp,"%8.5f ",R->rptr[r+1][c+1]);
+      fprintf(fp,"%e ",R->rptr[r+1][c+1]);
     }
     fprintf(fp,"\n");
   }
