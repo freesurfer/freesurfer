@@ -36,6 +36,7 @@ typedef struct
 #define MATRIX_REAL        1
 #define MATRIX_COMPLEX     2
 
+MATRIX  *MatrixReshape(MATRIX *m_src, MATRIX *m_dst, int rows, int cols) ;
 int     MatrixCheck(MATRIX *m) ;
 MATRIX  *MatrixInverse(MATRIX *mIn, MATRIX *mOut) ;
 MATRIX  *MatrixPseudoInverse(MATRIX *m, MATRIX *m_pseudo_inv) ;
@@ -56,6 +57,8 @@ MATRIX  *MatrixSubtract(MATRIX *m1, MATRIX *m2, MATRIX *mOut) ;
 MATRIX  *MatrixScalarMul(MATRIX *mIn, float val, MATRIX *mOut) ;
 MATRIX  *MatrixClear(MATRIX *mat) ;
 MATRIX  *MatrixSquareElts(MATRIX *mIn, MATRIX *mOut) ;
+MATRIX  *MatrixSignedSquareElts(MATRIX *mIn, MATRIX *mOut) ;
+MATRIX  *MatrixSqrtElts(MATRIX *mIn, MATRIX *mOut) ;
 MATRIX  *MatrixDiag(MATRIX *mDiag, MATRIX *mOut) ;
 MATRIX  *MatrixMakeDiagonal(MATRIX *mSrc, MATRIX *mDst) ;
 MATRIX  *MatrixCopyRegion(MATRIX *mSrc, MATRIX *mDst, int start_row, 
