@@ -20,7 +20,7 @@ char *Progname ;
 
 static MRI_NORM_INFO  mni ;
 static int verbose = 1 ;
-static int num_3d_iter = 5 ;
+static int num_3d_iter = 3 ;
 
 static float intensity_above = 25 ;
 static float intensity_below = 10 ;
