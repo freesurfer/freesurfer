@@ -31,10 +31,12 @@ AC_PROG_CPP
 # RedHat9.0: host = i686-pc-linux-gnu          uname -p: i686
 # MacOSX10 : host = powerpc-apple-darwin6.8    uname -p: powerpc
 #################################################################
+AC_MSG_NOTICE(Setitng OS from host ...)
 case "${host}" in
  i*86-*-linux-gnu*)
  OS=Linux
  OS_CPPFLAGS="-Wall -fwritable-strings"
+## choose static version if shared and static present
  OS_LDFLAGS="-all-static"
  ;;
  *-apple-darwin*)
@@ -50,8 +52,10 @@ AC_SUBST(OS_LDFLAGS)
 ##############################################################
 # cpu optimization
 ##############################################################
-
+GMP_GCC_VERSION_GE(${CC},3)
 if test "${CC}" = "gcc"; then 
+if test $gmp_compare_ge = yes; then
+AC_MSG_NOTICE(Setting CPU optimization ...)
 CPUFLAGS=""
 AC_MSG_CHECKING(checking for CPU ...)
 #### 
@@ -92,8 +96,12 @@ found=$CPUFLAGS
 # set the value
 CFLAGS="$CPUFLAGS $CFLAGS"
 AC_MSG_RESULT($found)
+else
+  AC_MSG_WARN(CPU optimization flag is usable only for gcc3.x or greater)
+# if gcc > gcc3
+fi 
+# if gcc
 fi
-
 ##############################################################
 # mgh put packages and create softlinks
 # default path for mni tools
@@ -102,6 +110,7 @@ fi
 AC_PATH_X
 ACX_PTHREAD
 
+AC_MSG_NOTICE(Checking directories for MNI Tcl/Tk BLT Tiff Jpeg ...)
 mghdir=/usr/pubsw/packages
 #############################################################
 # MNI
@@ -192,10 +201,11 @@ blt_includes=""
 blt_libraries=""
 AC_MSG_CHECKING(cheking BLT directory)
 # default is to use MGH installation
-if test -d $mghdir/blt/current ; then
-  ac_blt_includes=$mghdir/blt/current/include
-  ac_blt_libraries=$mghdir/blt/current/lib
-  ac_blt_bindir=$mghdir/blt/current/bin
+# MGH installs BLT in tcl directory
+if test -d $mghdir/tcl/current ; then
+  ac_blt_includes=$mghdir/tcl/current/include
+  ac_blt_libraries=$mghdir/tcl/current/lib
+  ac_blt_bindir=$mghdir/tcl/current/bin
 fi
 
 AC_ARG_WITH(BLT-dir,
@@ -296,6 +306,7 @@ fi
 # generic mods
 CPPFLAGS="$CPPFLAGS -D$OS -DANSI $OS_CPPFLAGS"
 
+AC_MSG_NOTICE(Get OpenGL info ...)
 #####################################################
 # OpenGL
 #####################################################
@@ -315,6 +326,7 @@ AC_SUBST(LIBS_MGH)
 # Checks for libraries.
 # the order is important
 #####################################################
+AC_MSG_NOTICE(Making sure that all libraries can be compilable ...)
 AC_CHECK_LIB([m], [floor])
 AC_CHECK_LIB([z], [gzopen])
 AC_CHECK_LIB([crypt], [crypt])
