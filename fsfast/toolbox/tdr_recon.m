@@ -2,7 +2,7 @@
 % reconstruction according to the time-domain reconstruction
 % algorithm 
 %
-% $Id: tdr_recon.m,v 1.3 2003/09/26 18:18:19 greve Exp $
+% $Id: tdr_recon.m,v 1.4 2003/09/30 01:39:15 greve Exp $
 tic;
 
 
@@ -40,10 +40,14 @@ if(0)
   fidstem = sprintf('%s/f',fidoutdir);
 end
 
-mristruct = fast_ldbhdr(bhdrfile);
-if(isempty(mristruct))
-  fprintf('ERROR: could not load %s\n',bhdrfile);
-  return;
+if(~isempty(bhdrfile))
+  mristruct = fast_ldbhdr(bhdrfile);
+  if(isempty(mristruct))
+    fprintf('ERROR: could not load bhdrfile %s\n',bhdrfile);
+    return;
+  end
+else
+  mristruct = [];
 end
 
 % EPI gradient and ADC timing
@@ -137,7 +141,7 @@ end
 % Rescale for bshort, save scaling
 volmin = min(reshape1d(vol));
 volmax = max(reshape1d(vol));
-fscale = (2^15-1)/(volmax-volmin);
+fscale = (2^14-1)/(volmax-volmin);
 vol = fscale*(vol-volmin);
 scalefile = sprintf('%s.scale.dat',funcstem);
 fp = fopen(scalefile,'w');
