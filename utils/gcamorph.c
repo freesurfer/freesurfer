@@ -161,6 +161,13 @@ GCAMregister(GCA_MORPH *gcam, MRI *mri, GCA_MORPH_PARMS *parms)
 	orig_relabel = relabel = parms->relabel ;
   for (level = parms->levels-1 ; level >= 0 ; level--)
   {
+		if (parms->reset_avgs == parms->navgs)
+		{
+			printf("resetting metric properties...\n") ;
+			GCAMcopyNodePositions(gcam, CURRENT_POSITIONS, ORIGINAL_POSITIONS) ;
+			gcamComputeMetricProperties(gcam) ;
+			GCAMstoreMetricProperties(gcam) ;
+		}
 		parms->relabel = (parms->relabel_avgs >= parms->navgs) ;
 	  parms->sigma = base_sigma ;
 #if 0
@@ -516,7 +523,7 @@ gcamLikelihoodTerm(GCA_MORPH *gcam, MRI *mri, MRI *mri_smooth, double l_likeliho
 {
   int             x, y, z, len, xi, yi, zi, x0, y0, z0, half_len ;
   Real            dx, dy, dz, xp1, yp1, zp1, xm1, ym1, zm1 ;
-	float           vals[MAX_GCA_INPUTS], val, mean, var ;
+	float           val, mean, var ;
   GCA_MORPH_NODE  *gcamn ;
 	MRI             *mri_nbhd, *mri_kernel ;
 
@@ -561,7 +568,7 @@ gcamLikelihoodTerm(GCA_MORPH *gcam, MRI *mri, MRI *mri_smooth, double l_likeliho
 							{
 								val = MRIFvox(mri_nbhd, xi, yi, zi) ;
 								val = (val - mean) * (val-mean) / var ;
-								MRIFvox(mri_nbhd, xi, yi, zi) = val ;
+								MRIFvox(mri_nbhd, xi, yi, zi) = sqrt(val) ;
 							}
 						}
 					}
@@ -583,11 +590,10 @@ gcamLikelihoodTerm(GCA_MORPH *gcam, MRI *mri, MRI *mri_smooth, double l_likeliho
         gcamn->dy += l_likelihood*dy ;
         gcamn->dz += l_likelihood*dz ;
         if (x == Gx && y == Gy && z == Gz)
-          printf("l_like: node(%d,%d,%d): dp=(%2.2f,%2.2f,%2.2f)"
-                 "node %2.2f+-%2.2f, MRI=%2.1f\n",
+          printf("l_like: node(%d,%d,%d): dp=(%2.2f,%2.2f,%2.2f), node %2.2f+-%2.2f\n",
                  x, y, z, gcamn->dx, gcamn->dy, gcamn->dz,
                  gcamn->gc ? gcamn->gc->means[0] : 0.0, 
-								 gcamn->gc ? sqrt(covariance_determinant(gcamn->gc, gcam->gca->ninputs)) : 0.0, vals[0]) ;
+								 gcamn->gc ? sqrt(covariance_determinant(gcamn->gc, gcam->gca->ninputs)) : 0.0) ;
       }
 
 	MRIfree(&mri_kernel) ; MRIfree(&mri_nbhd) ; MRIfree(&mri) ;
@@ -2987,7 +2993,7 @@ gcamFindOptimalTimeStep(GCA_MORPH *gcam, GCA_MORPH_PARMS *parms, MRI *mri)
 	orig_dt = parms->dt ;
 
 	/* define a pretty broad search range initially */
-	start_dt = (sqrt(parms->navgs)+1)*orig_dt / (16.0*16.0) ;
+	start_dt = (sqrt(parms->navgs)+1)*orig_dt / (10*16.0*16.0) ;
 	max_dt =   (sqrt(parms->navgs)+1)*orig_dt * (16.0*16.0) ;
 
 	for (parms->dt = start_dt ; parms->dt <= max_dt ; parms->dt*=4)
