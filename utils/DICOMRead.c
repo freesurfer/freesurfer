@@ -2,7 +2,7 @@
    DICOM 3.0 reading functions
    Author: Sebastien Gicquel and Douglas Greve
    Date: 06/04/2001
-   $Id: DICOMRead.c,v 1.41 2003/08/26 18:19:18 tosa Exp $
+   $Id: DICOMRead.c,v 1.42 2003/08/26 18:26:09 tosa Exp $
 *******************************************************/
 
 #include <stdio.h>
@@ -541,6 +541,7 @@ char *SiemensAsciiTagEx(char *dcmfile, char *TagString, int cleanup)
   char *VariableValue = 0;
   char tmpstr2[512];
   int newSize;
+  char **newlists=0;
 
   // cleanup section.  Make sure to set cleanup =1 at the final call
   // don't rely on TagString but the last flag only
@@ -610,7 +611,7 @@ char *SiemensAsciiTagEx(char *dcmfile, char *TagString, int cleanup)
 	if (count == MAX_ASCIILIST)
 	{
 	  newSize = MAX_ASCIILIST + INCREMENT;
-	  char **newlists = (char **) realloc(lists, newSize*sizeof(char *));
+	  newlists = (char **) realloc(lists, newSize*sizeof(char *));
 	  if (newlists != 0)  // if not failed
 	  {
 	    lists = newlists; // update the pointer
