@@ -10,7 +10,7 @@ function [M_V] = vox2ras_dfmeas(str_filename, varargin)
 %%
 %% VERSION
 %%
-%%	$Id: vox2ras_dfmeas.m,v 1.7 2004/06/08 19:10:21 rudolph Exp $
+%%	$Id: vox2ras_dfmeas.m,v 1.8 2004/06/09 16:30:51 rudolph Exp $
 %%
 %% SYNOPSIS
 %%
@@ -131,6 +131,7 @@ if length(varargin) == 2
 	Vr_voxelDimension = varargin{2};
 end
 if length(varargin) == 3
+	Vr_voxelDimension = varargin{2};
 	Vr_logicalSpace	 = varargin{3};
 end
 
