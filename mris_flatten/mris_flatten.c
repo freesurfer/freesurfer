@@ -14,7 +14,7 @@
 #include "macros.h"
 #include "utils.h"
 
-static char vcid[] = "$Id: mris_flatten.c,v 1.13 1998/03/25 16:24:31 fischl Exp $";
+static char vcid[] = "$Id: mris_flatten.c,v 1.14 1998/04/01 15:54:50 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -90,7 +90,7 @@ main(int argc, char *argv[])
   }
 
   if (argc < 3)
-    usage_exit() ;
+    print_help() ;
 
   parms.base_dt = base_dt_scale * parms.dt ;
   in_patch_fname = argv[1] ;
@@ -275,7 +275,7 @@ get_option(int argc, char *argv[])
     nargs = 1 ;
     fprintf(stderr, "dt_increase=%2.3f\n", parms.dt_increase) ;
   }
-  else if (!stricmp(option, "vnum"))
+  else if (!stricmp(option, "vnum") || (!stricmp(option, "distances")))
   {
     parms.nbhd_size = atof(argv[2]) ;
     parms.max_nbrs = atof(argv[3]) ;
@@ -340,19 +340,16 @@ get_option(int argc, char *argv[])
     nargs = 1 ;
     fprintf(stderr, "using n_averages = %d\n", parms.n_averages) ;
     break ;
-  case '?':
-  case 'U':
-    print_help() ;
-    exit(1) ;
-    break ;
   case 'N':
     sscanf(argv[2], "%d", &parms.niterations) ;
     nargs = 1 ;
     fprintf(stderr, "using niterations = %d\n", parms.niterations) ;
     break ;
   default:
-    fprintf(stderr, "unknown option %s\n", argv[1]) ;
-    exit(1) ;
+  case 'H':
+  case '?':
+  case 'U':
+    print_help() ;
     break ;
   }
 
@@ -380,8 +377,12 @@ print_help(void)
   fprintf(stderr, 
        "\nThis program will flatten a surface patch\n");
   fprintf(stderr, "\nvalid options are:\n\n") ;
-  fprintf(stderr, " -w <# iterations>  "
+  fprintf(stderr, " -w <# iterations>\n\t"
           "write out the surface every # of iterations.\n") ;
+  fprintf(stderr, 
+          " -distances <nbhd size> <# of vertices at each distance>\n\t"
+          "specify size of neighborhood and number of vertices at each\n\t"
+          "distance to be used in the optimization.\n") ;
   exit(1) ;
 }
 
