@@ -1,4 +1,4 @@
-% $Id: convert_unwarp_resample.m,v 1.8 2004/01/23 21:05:58 ebeth Exp $
+% $Id: convert_unwarp_resample.m,v 1.9 2004/08/18 17:38:25 greve Exp $
 %
 %% convert_unwarp_resample.m contains: 
 % convert_unwarp_resample()
@@ -8,7 +8,7 @@
 %
 %% convert_unwarp_resample() also calls:
 % unwarp_init_globals.m (initializes GRADWARPPATH, TABLE, QuitOnError)
-% unwarp_resample.m, load_mgh.m, save_mgh.m, load_dicom_series.m, etc.
+% unwarp_resample.m, load_mgh2.m, save_mgh.m, load_dicom_series.m, etc.
 %
 %% also relevant:
 % unwarp_scanners_table.m creates GRADWARPPATH/table.mat
@@ -88,7 +88,7 @@ if((exist(infile,'file')) & (strcmp(infile(end-3:end),'.mgh')))
     error('convert_unwarp_resample(infile,serno,outfile,corfovflag,unwarpflag,jacflag,interp_method,gradwarpfile,called_by_script) - for unwarping an mgh file, user must supply gradwarpfilename or type');
   end
   fprintf('INFO: loading mgh volume %s\n',infile);
-  [vol, M0, mr_parms] = load_mgh(infile);
+  [vol, M0, mr_parms] = load_mgh2(infile);
   if(isempty(vol))
     qoe('error loading mgh file.');
     error('error loading mgh file.');
