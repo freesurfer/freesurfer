@@ -11,8 +11,9 @@
 #include "proto.h"
 #include "mrisurf.h"
 #include "mri_conform.h"
+#include "version.h"
 
-static char vcid[] = "$Id: mri_cnr.c,v 1.1 2002/04/15 18:07:27 fischl Exp $";
+static char vcid[] = "$Id: mri_cnr.c,v 1.2 2003/04/15 20:23:58 kteich Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -32,6 +33,12 @@ main(int argc, char *argv[])
   MRI         *mri, *mri_template = NULL, *mri_tmp ;
   MRI_SURFACE *mris ;
   double      cnr_total, cnr = 0.0 ;
+
+  /* rkt: check for and handle version tag */
+  nargs = handle_version_option (argc, argv, "$Id: mri_cnr.c,v 1.2 2003/04/15 20:23:58 kteich Exp $");
+  if (nargs && argc - nargs == 1)
+    exit (0);
+  argc -= nargs;
 
   Progname = argv[0] ;
   ErrorInit(NULL, NULL, NULL) ;

@@ -17,6 +17,7 @@
 #include "gca.h"
 #include "cma.h"
 #include "mrinorm.h"
+#include "version.h"
 
 char         *Progname ;
 
@@ -91,6 +92,11 @@ main(int argc, char *argv[])
   GCA_SAMPLE   *gcas, *gcas_norm = NULL, *gcas_struct ;
   TRANSFORM    *transform = NULL ;
 
+  /* rkt: check for and handle version tag */
+  nargs = handle_version_option (argc, argv, "$Id: mri_ca_normalize.c,v 1.12 2003/04/15 20:17:59 kteich Exp $");
+  if (nargs && argc - nargs == 1)
+    exit (0);
+  argc -= nargs;
 
   setRandomSeed(-1L) ;
   Progname = argv[0] ;

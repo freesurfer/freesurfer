@@ -20,6 +20,7 @@
 #include "gcamorph.h"
 #include "transform.h"
 #include "mrisegment.h"
+#include "version.h"
 
 static int remove_bright =0 ;
 static int map_to_flash = 0 ;
@@ -100,6 +101,12 @@ main(int argc, char *argv[])
   int          msec, minutes, seconds/*, min_left_cbm, min_right_cbm*/ ;
   struct timeb start ;
   GCA_MORPH    *gcam ;
+
+  /* rkt: check for and handle version tag */
+  nargs = handle_version_option (argc, argv, "$Id: mri_ca_register.c,v 1.8 2003/04/15 20:18:27 kteich Exp $");
+  if (nargs && argc - nargs == 1)
+    exit (0);
+  argc -= nargs;
 
   parms.l_likelihood = 1.0f ;
   parms.niterations = 100 ;
