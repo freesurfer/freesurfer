@@ -1,6 +1,6 @@
 #! /usr/bin/tixwish
 
-# $Id: tksurfer.tcl,v 1.42 2003/04/07 20:02:53 kteich Exp $
+# $Id: tksurfer.tcl,v 1.43 2003/04/10 20:28:00 kteich Exp $
 
 package require BLT;
 
@@ -1901,8 +1901,8 @@ proc DoSelectVertexDlog {} {
 	
 	# field for vno
 	tkm_MakeEntry $fwVno "Vertex number: " vno 6 
-
-  # buttons.
+	
+	# buttons.
 	tkm_MakeDialogButtons $fwButtons $wwDialog [list \
 		[list Apply { select_vertex_by_vno $vno }] \
 		[list Close {}] \
@@ -3106,36 +3106,42 @@ proc CreateLabelFrame { ifwTop iSet } {
 
     # create the frame names
     foreach label $glLabel {
-  set gfwaLabel($label,$iSet) $ifwTop.fw$label
+	set gfwaLabel($label,$iSet) $ifwTop.fw$label
     }
-
+    
     # create two active labels in each label frame
     foreach label $glLabel {
-  frame $gfwaLabel($label,$iSet)
-  set fwLabel $gfwaLabel($label,$iSet).fwLabel
-  set fwValue $gfwaLabel($label,$iSet).fwValue
-
-  # if it's a value label, make it a normal entry (editable). else 
-  # make it an active label (uneditable).
-  if { $label == "kLabel_Val" ||         \
-    $label == "kLabel_Val2" ||     \
-    $label == "kLabel_ValBak" ||   \
-    $label == "kLabel_Val2Bak" ||  \
-    $label == "kLabel_ValStat" ||  \
-    $label == "kLabel_ImagVal" ||  \
-    $label == "kLabel_Mean" ||  \
-    $label == "kLabel_MeanImag" ||  \
-    $label == "kLabel_StdError" } { 
-      tkm_MakeEntry $fwLabel "" gsaLabelContents($label,name) 14 "UpdateOverlayDlogInfo; UpdateValueLabelName $gaScalarValueID($label,index) \[set gsaLabelContents($label,name)\]"
-  } else {
-      tkm_MakeActiveLabel $fwLabel "" gsaLabelContents($label,name) 14
-  }
-
-  # active leabel for the contents (uneditable).
-  tkm_MakeActiveLabel $fwValue "" gsaLabelContents($label,value,$iSet) 18
-  pack $fwLabel $fwValue \
-    -side left \
-    -anchor w
+	frame $gfwaLabel($label,$iSet)
+	set fwLabel $gfwaLabel($label,$iSet).fwLabel
+	set fwValue $gfwaLabel($label,$iSet).fwValue
+	
+	# if it's a value label, make it a normal entry (editable). else 
+	# make it an active label (uneditable).
+	if { $label == "kLabel_Val" ||         \
+		 $label == "kLabel_Val2" ||     \
+		 $label == "kLabel_ValBak" ||   \
+		 $label == "kLabel_Val2Bak" ||  \
+		 $label == "kLabel_ValStat" ||  \
+		 $label == "kLabel_ImagVal" ||  \
+		 $label == "kLabel_Mean" ||  \
+		 $label == "kLabel_MeanImag" ||  \
+		 $label == "kLabel_StdError" } { 
+	    tkm_MakeEntry $fwLabel "" gsaLabelContents($label,name) 14 "UpdateOverlayDlogInfo; UpdateValueLabelName $gaScalarValueID($label,index) \[set gsaLabelContents($label,name)\]"
+	} else {
+	    tkm_MakeActiveLabel $fwLabel "" gsaLabelContents($label,name) 14
+	}
+	
+	# active leabel for the contents (uneditable).
+	if { $label == "kLabel_VertexIndex" && $iSet == "cursor" } {
+	    tkm_MakeEntry $fwValue "" gsaLabelContents($label,value,$iSet) 18 \
+		"select_vertex_by_vno \[set gsaLabelContents($label,value,$iSet)\]; redraw"
+	} else {
+	    tkm_MakeActiveLabel $fwValue "" gsaLabelContents($label,value,$iSet) 18
+	}
+	
+	pack $fwLabel $fwValue \
+	    -side left \
+	    -anchor w
     }
 
 }
