@@ -1,0 +1,195 @@
+#include <sstream>
+#include "Path.h"
+#include "Scuba-impl.h"
+#include "Listener.h"
+
+char* Progname = "test_Path";
+
+using namespace std;
+
+#define Assert(x,s)   \
+  if(!(x)) { \
+  stringstream ss; \
+  ss << "Line " << __LINE__ << ": " << s; \
+  cerr << ss.str().c_str() << endl; \
+  throw runtime_error( ss.str() ); \
+  }
+
+
+class PathTester {
+public:
+  void Test();
+};
+
+class PathListener : public Listener {
+public:
+  PathListener() {
+    mPathID = -1;
+    mbPathChanged = false;
+    mbPathVertexAdded = false; 
+  }
+
+  virtual void DoListenToMessage ( string isMessage, void* iData ) {
+    if( isMessage == "pathChanged" ) {
+      mbPathChanged = true;
+      mPathID = *(int*)iData;
+    }
+    if( isMessage == "pathVertexAdded" ) {
+      mbPathVertexAdded = true;
+      mPathID = *(int*)iData;
+    }
+  }
+
+  void Reset () { 
+    mPathID = -1;
+    mbPathChanged = false;
+    mbPathVertexAdded = false; 
+  }
+  bool IsPathChanged ()     { return mbPathChanged; }
+  bool IsPathVertexAdded () { return mbPathVertexAdded; }
+  int  GetPathID ()         { return mPathID; }
+  bool mbPathChanged;
+  bool mbPathVertexAdded;
+  int  mPathID;
+};
+
+void 
+PathTester::Test () {
+
+  stringstream ssError;
+
+  try {
+
+    Path<float> l;
+    PathListener listener;
+
+    Assert( (l.GetID() == 0), "GetID() didn't work." );
+    Path<float>& a = Path<float>::FindByID( l.GetID() );
+    Assert( (l.GetID() == a.GetID()), "FindByID() didn't work." );
+
+    l.AddListener( &listener );
+    
+    Point3<float> f;
+    Point3<float>& t = f;
+    
+    for( int c = 0; c < 100; c++ ) {
+      f.Set( c, c, c );
+      l.AddVertex( f );
+      t = l.mVertices[c];
+      Assert( (t[0] == f[0] && t[1] == f[1] && t[2] == f[2]),
+	      "Got a point back but it wasn't equal to the one we put in" );
+      Assert( (listener.IsPathVertexAdded() && 
+	       l.GetID() == listener.GetPathID()),
+	      "Path did not broadcast proper pathVertexAdded msg." );
+      listener.Reset();
+    }
+    
+    Assert( (l.mVertices.size() == 100),
+	    "Incorrect size" );
+
+    l.MarkEndOfSegment();
+
+    t = l.GetPointAtEndOfLastSegment();
+    Assert( (t[0] == 99 && t[1] == 99 && t[2] == 99),
+	    "Point at end of last segment not correct" );
+
+    for( int c = 100; c < 200; c++ ) {
+      f.Set( c, c, c );
+      l.AddVertex( f );
+      t = l.mVertices[c];
+      Assert( (t[0] == f[0] && t[1] == f[1] && t[2] == f[2]),
+	      "Got a point back but it wasn't equal to the one we put in" );
+    }
+    
+    t = l.GetPointAtEndOfLastSegment();
+    Assert( (t[0] == 99 && t[1] == 99 && t[2] == 99),
+	    "Point at end of last segment not correct" );
+
+    Assert( (l.mVertices.size() == 200),
+	    "Incorrect size" );
+
+    l.ClearLastSegment();
+    
+    Assert( (l.mVertices.size() == 100),
+	    "Incorrect size after ClearLastSegment" );
+
+    for( int c = 0; c < 100; c++ ) {
+      t = l.mVertices[c];
+      Assert( (t[0] == c && t[1] == c && t[2] == c),
+	      "Got a point back but it wasn't equal to the one we put in" );
+    }
+
+    for( int c = 100; c < 200; c++ ) {
+      f.Set( c, c, c );
+      l.AddVertex( f );
+      t = l.mVertices[c];
+      Assert( (t[0] == f[0] && t[1] == f[1] && t[2] == f[2]),
+	      "Got a point back but it wasn't equal to the one we put in" );
+    }
+    
+    Assert( (l.mVertices.size() == 200),
+	    "Incorrect size" );
+
+    
+    // Test clear.
+    l.Clear();
+    Assert( (l.mVertices.size() == 0), "Incorrect size after clear" );
+    Assert( (listener.IsPathChanged() && l.GetID() == listener.GetPathID()),
+	    "Path did not broadcast proper pathChanged msg." );
+    listener.Reset();
+      
+    // Make some verts and move them.
+    for( int c = 0; c < 10; c++ ) {
+      f.Set( c, c, c );
+      l.AddVertex( f );
+    }
+    Point3<float> m( 1, -1, 0 );
+    l.Move( m );
+    Assert( (listener.IsPathChanged() && l.GetID() == listener.GetPathID()),
+	    "Path did not broadcast proper pathChanged msg." );
+    listener.Reset();
+    for( int c = 0; c < 10; c++ ) {
+      t = l.mVertices[c];
+      Assert( (t[0] == c+1 && t[1] == c-1 && t[2] == c),
+	      "Vertices not moved correctly." );
+    }
+
+    
+  }
+  catch( runtime_error e ) {
+    cerr << "failed with exception: " << e.what() << endl;
+    exit( 1 );
+  }
+  catch(...) {
+    cerr << "failed" << endl;
+    exit( 1 );
+  }
+}
+
+
+int main ( int argc, char** argv ) {
+
+  cerr << "Beginning test" << endl;
+
+  try {
+
+    PathTester tester0;
+    for( int i = 0; i < 1; i++ ) {
+      tester0.Test();
+    }
+ 
+  }
+  catch( runtime_error e ) {
+    cerr << "failed with exception: " << e.what() << endl;
+    exit( 1 );
+  }
+  catch(...) {
+    cerr << "failed" << endl;
+    exit( 1 );
+  }
+
+  cerr << "Success" << endl;
+
+  exit( 0 );
+}
+
