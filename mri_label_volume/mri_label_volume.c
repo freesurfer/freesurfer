@@ -48,7 +48,7 @@ main(int argc, char *argv[])
 	double  vox_volume, brain_volume ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_label_volume.c,v 1.14 2003/10/02 13:56:57 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_label_volume.c,v 1.15 2003/12/09 17:08:31 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -285,10 +285,6 @@ get_option(int argc, char *argv[])
 static void
 usage_exit(int code)
 {
-  printf("usage: %s [options] <volume 1> <volume 2>",
-         Progname) ;
-  printf(
-         "\tf <f low> <f hi> - apply specified filter (not implemented yet)\n"
-         );
+  printf("usage: %s [options] <volume> <label 1> <label 2> ...", Progname) ;
   exit(code) ;
 }
