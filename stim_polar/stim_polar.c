@@ -473,7 +473,7 @@ void reshape(int w, int h)
   glLoadIdentity();
 }
 
-#include <term.h>
+/*#include <term.h>*/
 
 int main(int argc, char** argv)
 {
