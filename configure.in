@@ -241,6 +241,7 @@ CPPFLAGS="$CPPFLAGS -D$OS -DANSI $OS_CPPFLAGS"
 #####################################################
 # OpenGL
 #####################################################
+AX_CHECK_GL
 AX_CHECK_GLUT
 #####################################################
 # produces GLUT_CFLAGS GLUT_LIBS
