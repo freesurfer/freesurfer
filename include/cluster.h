@@ -14,6 +14,7 @@ typedef struct
   int     nobs ;            /* # of observation in this cluster */
   int     nsamples ;        /* # of samples in this cluster */
   int     cno ;             /* index of this cluster (for diagnostics) */
+  float   det ;             /* determinant of scatter matrix */
 } CLUSTER ;
 
 typedef struct
@@ -46,6 +47,8 @@ int          CScomputeDimensionStatistics(CLUSTER_SET *cs,
                                           (VECTOR *v_obs, int no, void *parm), 
                                           void *parm) ;
 int          CSrenormalize(CLUSTER_SET *cs) ;
+int          CSwriteInto(FILE *fp, CLUSTER_SET *cs) ;
+CLUSTER_SET  *CSreadFrom(FILE *fp, CLUSTER_SET *cs) ;
 
 /* return values for CSdivide. Negative ones indicate error */
 #define CS_CONTINUE              0

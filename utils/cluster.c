@@ -32,15 +32,17 @@
                     STATIC PROTOTYPES
 -------------------------------------------------------*/
 
-static int   clusterInit(CLUSTER *cluster, int ninputs) ;
-static int   clusterFree(CLUSTER *cluster) ;
-static int   clusterNewObservation(CLUSTER *cluster, VECTOR *v_obs) ;
-static float clusterDistance(CLUSTER *cluster, VECTOR *v_obs) ;
-static int   clusterComputeStatistics(CLUSTER *cluster) ;
-static int   clusterPrint(CLUSTER *cluster, FILE *fp) ;
-static float clusterVariance(CLUSTER *cluster) ;
-static CLUSTER *clusterDivide(CLUSTER *csrc, CLUSTER *cdst) ;
-static int   normalizeObservation(CLUSTER_SET *cs, VECTOR *v_obs) ;
+static int      clusterInit(CLUSTER *cluster, int ninputs) ;
+static int      clusterFree(CLUSTER *cluster) ;
+static int      clusterNewObservation(CLUSTER *cluster, VECTOR *v_obs) ;
+static float    clusterDistance(CLUSTER *cluster, VECTOR *v_obs) ;
+static int      clusterComputeStatistics(CLUSTER *cluster) ;
+static int      clusterPrint(CLUSTER *cluster, FILE *fp) ;
+static float    clusterVariance(CLUSTER *cluster) ;
+static CLUSTER  *clusterDivide(CLUSTER *csrc, CLUSTER *cdst) ;
+static int      normalizeObservation(CLUSTER_SET *cs, VECTOR *v_obs) ;
+static int      clusterWriteInto(FILE *fp, CLUSTER *cluster) ;
+static CLUSTER  *clusterReadFrom(FILE *fp, CLUSTER *cluster) ;
 
 /*-----------------------------------------------------
                     GLOBAL FUNCTIONS
@@ -370,7 +372,17 @@ clusterComputeStatistics(CLUSTER *cluster)
         cluster->m_scatter->rptr[col][row] = covariance ;
       }
     }
-    cluster->m_inverse = MatrixInverse(cluster->m_scatter, cluster->m_inverse) ;
+    cluster->det = MatrixDeterminant(cluster->m_scatter) ;
+    if (FZERO(cluster->det*100.0f))
+      ErrorReturn(ERROR_BADPARM, 
+                  (ERROR_BADPARM, "clusterComputeStatistics: cluster %d "
+                   "singular scatter matrix", cluster->cno)) ;
+    cluster->m_inverse = MatrixInverse(cluster->m_scatter, cluster->m_inverse);
+    cluster->det = MatrixDeterminant(cluster->m_inverse) ;
+    if (FZERO(cluster->det*100.0f))
+      ErrorReturn(ERROR_BADPARM, 
+                  (ERROR_BADPARM, "clusterComputeStatistics: cluster %d "
+                   "singular inverse scatter matrix", cluster->cno)) ;
 #if 0
     fprintf(stderr, "scatter matrix:\n") ;
     MatrixPrint(stderr, cluster->m_scatter) ;
@@ -402,6 +414,8 @@ clusterPrint(CLUSTER *cluster, FILE *fp)
   fprintf(fp, "cluster %d has %d observations. Seed:", 
           cluster->cno, cluster->nsamples) ;
   MatrixPrintTranspose(fp, cluster->v_seed) ;
+  fprintf(fp, "Mean: ") ;
+  MatrixPrintTranspose(fp, cluster->v_means) ;
 #if 0
   fprintf(fp, "scatter matrix:\n") ;
   MatrixPrint(fp, cluster->m_scatter) ;
@@ -523,7 +537,8 @@ CScluster(CLUSTER_SET *cs, int (*get_observation_func)
     obs_no = 0 ;
     while ((*get_observation_func)(v_obs, obs_no++, parm) == NO_ERROR)
       CSnewObservation(cs, v_obs) ;
-    CScomputeStatistics(cs) ;
+    if (CScomputeStatistics(cs) != NO_ERROR)
+      return(Gerror) ;
   } while (CSdivide(cs) == CS_CONTINUE) ;
 
   /* Go through the data one more time to rebuild scatter matrices and means 
@@ -532,7 +547,9 @@ CScluster(CLUSTER_SET *cs, int (*get_observation_func)
   obs_no = 0 ;
   while ((*get_observation_func)(v_obs, obs_no++, parm) == NO_ERROR)
     CSnewObservation(cs, v_obs) ;
-  CScomputeStatistics(cs) ;
+  if (CScomputeStatistics(cs) != NO_ERROR)
+    return(Gerror) ;
+
   if (cs->normalize)
     CSrenormalize(cs) ;
 
@@ -582,7 +599,8 @@ CScomputeStatistics(CLUSTER_SET *cs)
   int    c ;
 
   for (c = 0 ; c < cs->nclusters ; c++)
-    clusterComputeStatistics(cs->clusters+c) ;
+    if (clusterComputeStatistics(cs->clusters+c) != NO_ERROR)
+      return(Gerror) ;
 
   cs->nsamples = cs->nobs ;
   cs->nobs = 0 ;
@@ -683,5 +701,156 @@ CSrenormalize(CLUSTER_SET *cs)
     }
   }
   return(NO_ERROR) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+          Write a CLUSTER_SET and all it's associated parameters
+          into the specified file.
+------------------------------------------------------*/
+int
+CSwriteInto(FILE *fp, CLUSTER_SET *cs)
+{
+  int i ;
+
+  fprintf(fp, "%d %d %d %d %d %d\n",
+          cs->nclusters, cs->ninputs, cs->max_clusters,
+          cs->nobs, cs->nsamples, cs->normalize) ;
+  fprintf(fp, "# input statistics (means and stds):\n") ;
+  for (i = 0 ; i < cs->ninputs ; i++)
+    fprintf(fp, "%f ", cs->means[i]) ;
+  fprintf(fp, "\n") ; 
+  for (i = 0 ; i < cs->ninputs ; i++)
+    fprintf(fp, "%f ", cs->stds[i]) ;
+  fprintf(fp, "\n") ; 
+
+  fprintf(fp, "\n# within-cluster scatter matrix:\n") ; 
+  MatrixAsciiWriteInto(fp, cs->m_sw) ;
+  fprintf(fp, "\n# between-cluster scatter matrix\n") ; 
+  MatrixAsciiWriteInto(fp, cs->m_sb) ;
+  for (i = 0 ; i < cs->nclusters ; i++)
+    clusterWriteInto(fp, cs->clusters+i) ;
+
+  return(NO_ERROR) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+          Read a (and possibly allocate) CLUSTER_SET and all it's 
+          associated parameters into the specified file.
+
+------------------------------------------------------*/
+CLUSTER_SET *
+CSreadFrom(FILE *fp, CLUSTER_SET *cs)
+{
+  int   i, ninputs, max_clusters, normalize, nobs, nsamples, nclusters ;
+  char  *cp, line[200] ;
+
+  cp = fgetl(line, 199, fp) ;
+  if (!cp)
+    ErrorReturn(NULL, (ERROR_BADFILE, "CSreadFrom: could not scan parms"));
+
+  if (sscanf(cp, "%d %d %d %d %d %d\n",
+          &nclusters, &ninputs, &max_clusters,
+          &nobs, &nsamples, &normalize) != 6)
+    ErrorReturn(NULL, (ERROR_BADFILE, "CSreadFrom: could not scan parms"));
+
+  if (cs)
+  {
+    cs->ninputs = ninputs ;
+    cs->max_clusters = max_clusters ;
+    cs->normalize = normalize ;
+  }
+  else
+    cs = CSinit(max_clusters, ninputs, normalize) ;
+
+  cs->nobs = nobs ;
+  cs->nsamples = nsamples ;
+  cs->nclusters = nclusters ;
+
+  cp = fgetl(line, 199, fp) ;
+  for (i = 0 ; i < cs->ninputs ; i++)
+  {
+    if (sscanf(cp, "%f", &cs->means[i]) != 1)
+      ErrorReturn(NULL, 
+                  (ERROR_BADFILE, "CSreadFrom: could not scan %dth mean",i));
+    cp = StrSkipNumber(cp) ;
+  }
+  cp = fgetl(line, 199, fp) ;
+  for (i = 0 ; i < cs->ninputs ; i++)
+  {
+    if (sscanf(cp, "%f", &cs->stds[i]) != 1)
+      ErrorReturn(NULL, 
+                  (ERROR_BADFILE, "CSreadFrom: could not scan %dth std",i));
+    cp = StrSkipNumber(cp) ;
+  }
+  MatrixAsciiReadFrom(fp, cs->m_sw) ;
+  MatrixAsciiReadFrom(fp, cs->m_sb) ;
+  for (i = 0 ; i < cs->nclusters ; i++)
+    clusterReadFrom(fp, cs->clusters+i) ;
+
+  return(cs) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+          Write a CLUSTER_SET and all it's associated parameters
+          into the specified file.
+------------------------------------------------------*/
+static int
+clusterWriteInto(FILE *fp, CLUSTER *cluster)
+{
+  fprintf(fp, "\n# cluster %d\n", cluster->cno) ;
+  fprintf(fp, "%d %d %d %f\n", cluster->nobs, cluster->nsamples,
+          cluster->cno, cluster->det) ;
+  fprintf(fp, "# scatter matrix:\n") ;
+  MatrixAsciiWriteInto(fp, cluster->m_scatter) ;
+  fprintf(fp, "# mean vector:\n") ;
+  VectorAsciiWriteInto(fp, cluster->v_means) ;
+  fprintf(fp, "# seed point:\n") ;
+  VectorAsciiWriteInto(fp, cluster->v_seed) ;
+  return(NO_ERROR) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+          Read a (and possibly allocate) CLUSTER and all it's 
+          associated parameters into the specified file.
+
+------------------------------------------------------*/
+static CLUSTER *
+clusterReadFrom(FILE *fp, CLUSTER *cluster)
+{
+  char *cp, line[200] ;
+
+  cp = fgetl(line, 199, fp) ;
+  if (!cp)
+    ErrorReturn(NULL, 
+                (ERROR_BADFILE, "clusterReadFrom: could not scan parms"));
+  if (sscanf(cp, "%d %d %d %f", &cluster->nobs, &cluster->nsamples,
+          &cluster->cno, &cluster->det) != 4)
+    ErrorReturn(NULL, 
+                (ERROR_BADFILE, "clusterReadFrom: could not scan parms"));
+  MatrixAsciiReadFrom(fp, cluster->m_scatter) ;
+  VectorAsciiReadFrom(fp, cluster->v_means) ;
+  VectorAsciiReadFrom(fp, cluster->v_seed) ;
+  cluster->m_inverse = MatrixInverse(cluster->m_scatter, NULL) ;
+  cluster->det = MatrixDeterminant(cluster->m_inverse) ;
+  cluster->m_evectors = 
+    MatrixEigenSystem(cluster->m_scatter, cluster->evalues, 
+                      cluster->m_evectors) ;
+  return(cluster) ;
 }
 
