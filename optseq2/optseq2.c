@@ -46,7 +46,7 @@ Can something be done to affect the off-diagonals?
   #undef X
 #endif
 
-static char vcid[] = "$Id: optseq2.c,v 1.4 2002/08/27 00:17:29 greve Exp $";
+static char vcid[] = "$Id: optseq2.c,v 2.0 2002/08/27 19:06:55 greve Exp $";
 char *Progname = NULL;
 
 static int  parse_commandline(int argc, char **argv);
@@ -701,7 +701,7 @@ static void usage_exit(void)
 /* --------------------------------------------- */
 static void print_usage(void)
 {
-  printf("USAGE: %s \n",Progname) ;
+  printf("USAGE: optseq2 \n") ;
   printf("\n");
   printf("Data Acquistion Parameters\n");
   printf("\n");
@@ -752,6 +752,10 @@ static void print_usage(void)
   printf("\n");
   printf("%s\n",vcid);
   printf("\n");
+  printf("\n");
+  printf("Optseq Home Page: \n"
+         "   http://surfer.nmr.mgh.harvard.edu/optseq\n");
+  printf("\n");
 }
 /* --------------------------------------------- */
 static void print_help(void)
@@ -783,6 +787,9 @@ static void print_help(void)
 "combination of average and stddev of the VRF. The user can also\n"
 "specify that the first order counter-balancing of the sequence of \n"
 "event-types be pre-optimized.\n"
+"\n"
+"Visit the Optseq Home Page at: \n"
+"   http://surfer.nmr.mgh.harvard.edu/optseq\n"
 "\n"
 "COMMAND-LINE ARGUMENTS\n"
 "\n"
@@ -1000,7 +1007,7 @@ static void print_help(void)
 "the trace but are included in the computation of the inverse). The \n"
 "quantity trace(inv(XtX)) is a measure of the sum square error in Bhat \n"
 "(ie, B-Bhat) relative to the noise inherent in the experiment. Therefore,  \n"
-"maximizing eff is a way of finding a schedule that will result in, on "
+"maximizing eff is a way of finding a schedule that will result in, on \n"
 "average, the least error in Bhat. \n"
 " \n"
 "Average Variance Reduction Factor (vrfavg). The Variance Reduction Factor \n"
@@ -1083,7 +1090,7 @@ static void print_help(void)
 "There is also a DOF constraint which requires that the number of parameters \n"
 "estimated be less than the number of time points, ie \n"
 " \n"
-"       Nbeta = nPSD*nEv+(PolyOrder+1) < Ntp\n"
+"       Nbeta = nPSD*nEv+(PolyOrder+1) < Ntp                         (4)\n"
 " \n"
 "where Nbeta is the number of parameters, nPSD is the number of elements \n"
 "in the post-stimulus time window (ie, (PSDMax-PSDMin)/dPSD), and PolyOrder \n"
@@ -1115,6 +1122,8 @@ static void print_help(void)
 " \n"
 "BUGS \n"
 " \n"
+" Also see the Optseq Home page at http://surfer.nmr.mgh.harvard.edu/optseq\n"
+" \n"
 " The vrfavgstd cost function does not work properly if the number of reps\n"
 " is different for different event types. A prescan window should also be\n"
 " specified\n"
@@ -1136,7 +1145,7 @@ static void print_help(void)
 " \n"
 "AUTHOR \n"
 " \n"
-" optseq2 was written by Douglas N. Greve in the Summber of '02\n"
+" optseq2 was written by Douglas N. Greve in the Summber of '02.\n"
 " \n"
 "REFERENCES \n"
 " \n"
