@@ -1913,8 +1913,11 @@ XVsyncAll(XV_FRAME *xvf, int which)
   int    rows, cols, which2, sync ;
   DIMAGE *dimage, *dimage2 ;
 
-
+#if 0
   for (sync = which = 0 ; which < xvf->rows*xvf->cols ; which++)
+#else
+    sync = 0 ;
+#endif
   {
     dimage = xvGetDimage(xvf, which, 0) ;
     if (dimage && (dimage->sync == 0))
