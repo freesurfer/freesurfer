@@ -105,7 +105,9 @@ int main(int argc, char *argv[])
   if((fp = fopen(file_name, "w")) == NULL)
     ErrorExit(ERROR_BAD_FILE, "%s: couldn't open file %s for writing", Progname, file_name);
   fprintf(fp, ".\n");
-  fprintf(fp, "%s_%%03d.bshort\n", fct_stem);
+  s = strrchr(fct_stem, '/');
+  s = (s == NULL ? fct_stem : s + 1);
+  fprintf(fp, "%s_%%03d.bshort\n", s);
   fprintf(fp, "%d %d\n", fct_slices, n_time_points);
   fprintf(fp, "%d %d\n", fct_cols, fct_rows);
   fclose(fp);
