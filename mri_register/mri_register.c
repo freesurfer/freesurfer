@@ -47,14 +47,16 @@ main(int argc, char *argv[])
   MRI          *mri_in_reduced, *mri_ref_reduced/*, *mri_reg*/ ;
 
   parms.niterations = 100 ;
-  parms.l_intensity = 0.1 ;
+  parms.l_intensity = 0.05 ;
   parms.levels = -1 ;   /* use default */
-  parms.l_dist = 1.0 ; parms.l_area = 0.0 ;
+  parms.l_dist = 1.0 ; 
+  parms.l_area = 0.00 ;
   parms.l_nlarea = 100 ;
-  parms.dt = .5 ;
-  parms.tol = 1.5e-2 ;
+  parms.sigma = 8 ;
+  parms.dt = 5 ;
+  parms.tol = 0.2 /*1.5e-2*/ ;
+  parms.navgs = 64 ;
   parms.exp_k = 10.0 ;
-  parms.sigma = 0.0f ;
   Progname = argv[0] ;
 
   DiagInit(NULL, NULL, NULL) ;
@@ -120,6 +122,7 @@ main(int argc, char *argv[])
     LTAwrite(parms.lta, out_fname) ;
   }
 
+#if 1
   if (mri_in->width > 128)
   {
     mri_in_reduced = MRIreduceByte(mri_in, NULL) ;
@@ -138,6 +141,10 @@ main(int argc, char *argv[])
   m3d = MRI3Dmorph(mri_in_reduced, mri_ref_reduced, &parms) ;
   MRIfree(&mri_ref_reduced) ;
   MRIfree(&mri_in_reduced) ;
+#else
+  m3d = MRI3Dmorph(mri_in, mri_ref, &parms) ;
+#endif
+
 #if 1
   if (Gdiag & DIAG_SHOW)
     fprintf(stderr, "writing 3d morph transform to %s...\n", out_fname) ;
@@ -226,12 +233,21 @@ get_option(int argc, char *argv[])
   }
   else switch (*option)
   {
+#if 0
   case 'S':
     parms.sigma = atof(argv[2]) ;
     fprintf(stderr, "using sigma=%2.3f as upper bound on blurring.\n", 
             parms.sigma) ;
     nargs = 1 ;
     break ;
+#else
+  case 'S':
+    parms.sigma = atof(argv[2]) ;
+    fprintf(stderr, "blurring gradient using Gaussian with sigma = %2.2f\n",
+            parms.sigma) ;
+    nargs = 1 ;
+    break ;
+#endif
   case '?':
   case 'U':
     printf("usage: %s [image file name]\n", argv[0]) ;
@@ -257,6 +273,11 @@ get_option(int argc, char *argv[])
                   Progname, transform_fname) ;
     }
     break ;
+  case 'A':
+    parms.navgs = atoi(argv[2]) ;
+    nargs = 1 ;
+    fprintf(stderr, "navgs = %d\n", parms.navgs) ;
+    break ;
   case 'L':
     linear = 1 ;
     fprintf(stderr, "finding optimal linear alignment...\n") ;
@@ -269,6 +290,7 @@ get_option(int argc, char *argv[])
   case 'K':
     parms.exp_k = atof(argv[2]) ;
     fprintf(stderr, "using exponential k = %2.1f\n", parms.exp_k) ;
+    nargs = 1 ;
     break ;
   case 'W':
     parms.write_iterations = atoi(argv[2]) ;
@@ -294,8 +316,10 @@ static LTA *
 register_mri(MRI *mri_in, MRI *mri_ref)
 {
   MORPH_PARMS parms ;
+  int         wi = parms.write_iterations ;
 
   memset(&parms, 0, sizeof(parms)) ;
+  parms.write_iterations = wi ;
   parms.mri_ref = mri_ref ; parms.mri_in = mri_in ;
   parms.dt = 5e-6 ; parms.tol = 1e-2 ; parms.niterations = 10 ;
   parms.l_intensity = 1.0f ;
