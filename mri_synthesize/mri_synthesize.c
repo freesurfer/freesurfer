@@ -14,7 +14,7 @@
 #include "mrinorm.h"
 #include "version.h"
 
-static char vcid[] = "$Id: mri_synthesize.c,v 1.6 2003/04/16 18:00:03 kteich Exp $";
+static char vcid[] = "$Id: mri_synthesize.c,v 1.7 2003/05/08 20:54:59 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -24,6 +24,7 @@ static int  get_option(int argc, char *argv[]) ;
 static void usage_exit(void) ;
 static void print_usage(void) ;
 static void print_help(void) ;
+static int  transform_T1_values_using_joint_pdf(MRI *mri_T1, char *jpdf_name, int invert) ;
 static void print_version(void) ;
 static double FLASHforwardModel(double flip_angle, double TR, double PD, 
                                 double T1) ;
@@ -39,6 +40,8 @@ static int discard = 0 ;
 static int nl_remap_T1 = 0 ;
 static float nl_scale = 0.01 ;
 static float nl_mean = 950 ;
+static char *jpdf_name = NULL ;
+static int invert = 0 ;
 
 /* optimal class separation (sort of) */
 #if 0
@@ -60,7 +63,7 @@ main(int argc, char *argv[])
   float       TR, TE, alpha ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_synthesize.c,v 1.6 2003/04/16 18:00:03 kteich Exp $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_synthesize.c,v 1.7 2003/05/08 20:54:59 fischl Exp $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -93,6 +96,11 @@ main(int argc, char *argv[])
   if (!mri_T1)
     ErrorExit(ERROR_NOFILE, "%s: could not read T1 volume %s", Progname, 
               T1_fname) ;
+
+	if (jpdf_name)
+	{
+		transform_T1_values_using_joint_pdf(mri_T1, jpdf_name, invert) ;
+	}
 
   printf("reading PD volume from %s...\n", PD_fname) ;
   mri_PD = MRIread(PD_fname) ;
@@ -148,6 +156,27 @@ get_option(int argc, char *argv[])
     printf("remapping T1 with %2.0f * (tanh(%2.4f * (T1-%2.0f))+1.5)\n",
            nl_mean, nl_scale, nl_mean) ;
     nargs = 2 ;
+  }
+  else if (!stricmp(option, "jpdf"))
+  {
+		jpdf_name = argv[2] ;
+		nargs = 1 ;
+		printf("remapping T1 values using joint pdf file %s...\n", jpdf_name) ;
+  }
+  else if (!stricmp(option, "ijpdf"))
+  {
+		jpdf_name = argv[2] ;
+		nargs = 1 ;
+		invert = 1 ;
+		printf("remapping T1 values using inverse of joint pdf file %s...\n", jpdf_name) ;
+  }
+  else if (!stricmp(option, "debug_voxel"))
+  {
+		Gx = atoi(argv[2]) ;
+		Gy = atoi(argv[3]) ;
+		Gz = atoi(argv[4]) ;
+		nargs = 3 ;
+		printf("debugging voxel (%d, %d, %d)\n", Gx, Gy, Gz) ;
   }
   else if (!stricmp(option, "w5"))
   {
@@ -246,7 +275,7 @@ static MRI *
 MRIsynthesize(MRI *mri_T1, MRI *mri_PD, MRI *mri_dst, double TR, double alpha, double TE)
 {
   int   x, y, z, width, height, depth ;
-  double flash, T1, PD ;
+  Real flash, T1, PD ;
   
 
   if (!mri_dst)
@@ -262,12 +291,12 @@ MRIsynthesize(MRI *mri_T1, MRI *mri_PD, MRI *mri_dst, double TR, double alpha, d
       {
         if (x == Gx && y == Gy && z == Gz)
           DiagBreak() ;
-        T1 = MRISvox(mri_T1, x, y, z) ;
+				MRIsampleVolume(mri_T1, x, y, z, &T1) ;
         if (T1 < 900 && T1 > 600)
           DiagBreak() ;
-        PD = MRISvox(mri_PD, x, y, z) ;
+				MRIsampleVolume(mri_PD, x, y, z, &PD) ;
         flash = FLASHforwardModel(alpha, TR, PD, T1) ;
-        MRISvox(mri_dst, x, y, z) = (short)nint(flash) ;
+        MRIsetVoxVal(mri_dst, x, y, z, 0, flash) ;
       }
     }
   }
@@ -449,3 +478,107 @@ MRIsynthesizeWeightedVolume(MRI *mri_T1, MRI *mri_PD, float w5, float TR5,
   MRIfree(&mri30) ; MRIfree(&mri5) ;
   return(mri_dst) ;
 }
+static int
+transform_T1_values_using_joint_pdf(MRI *mri_T1, char *jpdf_name, int invert)
+{
+	int   x, y, z, nbins, i, j, **jpdf, max_j, max_count ;
+	Real  T1 ;
+	FILE  *fp ;
+	float fstep, fmin, fmax, val ;
+	char  line[STRLEN], *cp, var_name[STRLEN] ;
+
+	fstep = 10 ; fmin = 10; fmax = 5000 ; nbins = 500 ;
+	fp = fopen(jpdf_name, "r") ;
+	if (fp == NULL)
+		ErrorExit(ERROR_BADPARM, "%s: could not read joint pdf file %s\n", Progname, jpdf_name) ;
+
+
+	while ((cp = fgetl(line, STRLEN-1, fp)) != NULL)
+	{
+		sscanf(cp, "%s = %f", var_name, &val) ;
+		if (stricmp(var_name, "nbins") == 0)
+			nbins = nint(val) ;
+		else if (stricmp(var_name, "fmin") == 0)
+			fmin = val ;
+		else if (stricmp(var_name, "fmax") == 0)
+			fmax = val ;
+		else if (stricmp(var_name, "fstep") == 0)
+			fstep = val ;
+		else if (stricmp(var_name, "joint_density") == 0)
+			break ;
+		else
+			break ;
+	}
+
+	printf("using nbins = %d, fmin = %2.1f, fmax = %2.1f, fstep = %2.1f\n", nbins, fmin, fmax, fstep) ;
+	jpdf = (int **)calloc(nbins, sizeof(int *)) ;
+	if (!jpdf)
+		ErrorExit(ERROR_NOMEMORY, "%s: could not allocate %d x %d bin jpdf lookup table\n", Progname, nbins, nbins);
+	for (i = 0 ; i < nbins ; i++)
+	{
+		jpdf[i] = (int *)calloc(nbins, sizeof(int)) ;
+		if (!jpdf[i])
+			ErrorExit(ERROR_NOMEMORY, "%s: could not allocate %d x %d bin jpdf lookup table\n", Progname, nbins, nbins);
+		for (j = 0; j < nbins ; j++)
+		{
+			if (fscanf(fp, "%d", &jpdf[i][j]) != 1)
+				ErrorExit(ERROR_BADFILE, "%s: could not scan element %d, %d from %s",
+									Progname, i, j, jpdf_name) ;
+		}
+		fscanf(fp, " ;\n") ;
+	}
+	fclose(fp) ;
+
+	for (x = 0 ; x < mri_T1->width ; x++)
+	{
+		for (y = 0 ; y < mri_T1->height ; y++)
+		{
+			for (z = 0 ;  z < mri_T1->depth ; z++)
+			{
+				if (x == Gx && y == Gy && z == Gz)
+					DiagBreak()  ;
+				MRIsampleVolume(mri_T1, x, y, z, &T1) ;
+				if (invert)
+				{
+					i = nint((T1-fmin)/fstep) ;
+					if (i >= nbins)
+						i = nbins-1 ;
+					if (i < 0)
+						i = 0 ;
+					max_count = jpdf[i][max_j=0] ;
+					for (j = 1 ; j < nbins ; j++)
+					{
+						if (jpdf[i][j] > max_count)
+						{
+							max_count = jpdf[i][j] ;
+							max_j = j ;
+						}
+					}
+				}
+				else
+				{
+					i = nint((T1-fmin)/fstep) ;
+					if (i >= nbins)
+						i = nbins-1 ;
+					if (i < 0)
+						i = 0 ;
+					max_count = jpdf[max_j=0][i] ;
+					for (j = 1 ; j < nbins ; j++)
+					{
+						if (jpdf[i][j] > max_count)
+						{
+							max_count = jpdf[j][i] ;
+							max_j = j ;
+						}
+					}
+				}
+
+				T1 = max_j * fstep + fmin ;
+				MRIsetVoxVal(mri_T1, x, y, z, 0, T1) ;
+			}
+		}
+	}
+
+	return(NO_ERROR) ;
+}
+
