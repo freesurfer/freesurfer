@@ -30371,3 +30371,19 @@ MRI *MRISsmoothMRI(MRIS *Surf, MRI *Src, int nSmoothSteps, MRI *Targ)
   return(Targ);
 }
 
+int
+MRISrectifyCurvature(MRI_SURFACE *mris)
+{
+  int    vno ;
+  VERTEX *v ;
+
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    v->curv = fabs(v->curv) ;
+  }
+  mrisComputeCurvatureValues(mris) ;
+  return(NO_ERROR) ;
+}
+
+
