@@ -5,11 +5,11 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2003/05/21 21:26:34 $
-// Revision       : $Revision: 1.20 $
+// Revision Date  : $Date: 2003/06/03 14:56:04 $
+// Revision       : $Revision: 1.21 $
 //
 ////////////////////////////////////////////////////////////////////
-char *MRI_WATERSHED_VERSION = "$Revision: 1.20 $";
+char *MRI_WATERSHED_VERSION = "$Revision: 1.21 $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -192,7 +192,7 @@ static int Watershed(STRIP_PARMS *parms,MRI_variables *MRI_var);
 static void AnalyzeT1Volume(STRIP_PARMS *parms,MRI_variables *MRI_var);
 static void Allocation(MRI_variables *MRI_var);
 static int calCSFIntensity(MRI_variables *MRI_var);
-static int calCOGMAX(MRI_variables *MRI_var, int *x, int *y, int *z);
+static int calCOGMAX(MRI_variables *MRI_var, STRIP_PARMS *parms, int *x, int *y, int *z);
 static int Pre_CharSorting(STRIP_PARMS *parms, MRI_variables *MRI_var);
 static void analyseWM(double *tab,MRI_variables *MRI_var);
 static BasinCell* CreateBasinCell(int val, unsigned long size, unsigned long ambiguous);
@@ -539,7 +539,7 @@ int main(int argc, char *argv[])
   /************* Command line****************/
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_watershed.cpp,v 1.20 2003/05/21 21:26:34 tosa Exp $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_watershed.cpp,v 1.21 2003/06/03 14:56:04 tosa Exp $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -1156,12 +1156,13 @@ static int calCSFIntensity(MRI_variables *MRI_var)
 }
 
 // COG in terms of voxel coordinates
-static int calCOGMAX(MRI_variables *MRI_var, int *x, int *y, int *z)
+static int calCOGMAX(MRI_variables *MRI_var, STRIP_PARMS *parms, int *x, int *y, int *z)
 {
   int i, j, k;
-  int n;
+  int n, m;
   double intensity_percent[256];
   BUFTYPE *pb;
+  int T1 = parms->T1;
 
   /*Ignore everything which is bellow CSF_intensity
     Then first estimation of the COG coord 
@@ -1171,7 +1172,8 @@ static int calCOGMAX(MRI_variables *MRI_var, int *x, int *y, int *z)
     intensity_percent[k]=0;
   }
 
-  n=0;
+  n=0; // keeps track of non-zero voxels
+  m=0; // keeps track of the center of gravity voxel
   MRI_var->xCOG = MRI_var->yCOG = MRI_var->zCOG = 0;
   int maxGrey =0;
   for(k=2;k<MRI_var->depth-2;k++)
@@ -1183,23 +1185,39 @@ static int calCOGMAX(MRI_variables *MRI_var, int *x, int *y, int *z)
       {
         if (*pb>MRI_var->CSF_intensity)
         {
-          n++;
+          n++; 
           intensity_percent[*pb]++;
-          MRI_var->xCOG+=i;
-          MRI_var->yCOG+=j;
-          MRI_var->zCOG+=k;
+	  if (!T1) // not T1 volume
+	  {
+	    MRI_var->xCOG+=i;
+	    MRI_var->yCOG+=j;
+	    MRI_var->zCOG+=k;
+	    m++;
+	  }
+	  else 
+	  {
+	    // this is done to avoid COG becoming too low
+	    // due to the large neck area
+	    if (*pb == 110) // T1 volume
+	    {
+	      MRI_var->xCOG+=i;
+	      MRI_var->yCOG+=j;
+	      MRI_var->zCOG+=k;
+	      m++;
+	    }
+	  }
 	  if (*pb > maxGrey)
 	    maxGrey = *pb;
         }
         pb++;
       }
     }
-  if(n==0)
+  if(m==0)
     Error("\n Problem in the COG calculation ");
 
-  MRI_var->xCOG/=n;
-  MRI_var->yCOG/=n;
-  MRI_var->zCOG/=n;
+  MRI_var->xCOG/=m;  // m is used here
+  MRI_var->yCOG/=m;
+  MRI_var->zCOG/=m;
 
   *x=(int)(MRI_var->xCOG+0.5);
   *y=(int)(MRI_var->yCOG+0.5);
@@ -1210,9 +1228,9 @@ static int calCOGMAX(MRI_variables *MRI_var, int *x, int *y, int *z)
   for (k=1;k<256;k++)
   {
     intensity_percent[k]+=intensity_percent[k-1];  
-    if (intensity_percent[k]*100<=n*MAX_INT)
+    if (intensity_percent[k]*100<=n*MAX_INT)  // n is used here
       MRI_var->Imax=k;
-  }  
+  } 
   return 0;
 }
 
@@ -1286,7 +1304,7 @@ static int Pre_CharSorting(STRIP_PARMS *parms,MRI_variables *MRI_var)
   
   // calculate initial estimate of COG coords and Imax (xCOG, yCOG, zCOG, and Imax)
   // in voxel unit
-  calCOGMAX(MRI_var, &x, &y, &z);
+  calCOGMAX(MRI_var, parms, &x, &y, &z);
 
   // calculate intitial estimate of brain radius (rad_Brain)
   // in voxel unit
