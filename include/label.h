@@ -46,7 +46,9 @@ int     LabelToFlat(LABEL *area, MRI_SURFACE *mris) ;
 int     LabelRipRestOfSurface(LABEL *area, MRI_SURFACE *mris) ;
 int     LabelRemoveOverlap(LABEL *area1, LABEL *area2) ;
 int     LabelRemoveDuplicates(LABEL *area) ;
+int     LabelHasVertex(int vtxno, LABEL *lb);
 LABEL   *LabelAlloc(int max_points, char *subject_name, char *label_name) ;
+int     LabelRealloc(LABEL *lb, int max_points);
 int     LabelCurvFill(LABEL *area, int *vertex_list, int nvertices, 
                     int max_vertices, MRI_SURFACE *mris) ;
 int     LabelFillMarked(LABEL *area, MRI_SURFACE *mris) ;

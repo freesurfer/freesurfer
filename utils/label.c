@@ -439,6 +439,7 @@ LabelWrite(LABEL *area, char *label_name)
     if (!area->lv[n].deleted)
       num++ ;
 
+  printf("LabelWrite: saving to %s\n",fname);
   fp = fopen(fname, "w") ;
   if (!fp)
     ErrorReturn(ERROR_NOFILE, (ERROR_NO_FILE,
@@ -1562,4 +1563,35 @@ LabelFillHoles(LABEL *area_src, MRI_SURFACE *mris)
 
 	MRIfree(&mri) ;
 	return(area_dst) ;
+}
+
+/*---------------------------------------------------------------
+  LabelHasVertex() - returns -1 if the vertex is not in the label,
+  otherwise returns the number of the label point that corresponds
+  to the vertex number.
+  ---------------------------------------------------------------*/
+int LabelHasVertex(int vtxno, LABEL *lb)
+{
+  int n;
+  for(n = 0; n < lb->n_points; n++)
+    if(lb->lv[n].vno == vtxno) return(n);
+  return(-1);
+}
+/*---------------------------------------------------------------
+  LabelRealloc() - reallocates the number of label vertices
+  to have max_points. If something goes wrong, returns 1 without
+  changing anything. Otherwise returns 0.
+  ---------------------------------------------------------------*/
+int LabelRealloc(LABEL *lb, int max_points)
+{
+  LV *lvtmp;
+
+  if(max_points <= lb->max_points) return(0);
+
+  lvtmp = realloc(lb->lv,sizeof(LV)*max_points);
+  if(lvtmp == NULL) return(1);
+  lb->max_points = max_points;
+  lb->lv = lvtmp;
+  
+  return(0);
 }
