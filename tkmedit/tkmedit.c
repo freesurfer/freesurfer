@@ -1780,10 +1780,10 @@ printf("-interface script    : scecify interface script (default is tkmedit.tcl)
     /* load segmentation */
     if( bLoadingSegmentation ) {
       eResult = LoadSegmentationVolume( sSegmentationPath, 
-          sSegmentationColorFile );
+                                        sSegmentationColorFile );
       /* set roi alpha */
       if( bROIGroupAlpha ) {
-  SetROIGroupAlpha( fROIGroupAlpha );
+        SetROIGroupAlpha( fROIGroupAlpha );
       }
     }
 
@@ -2584,7 +2584,7 @@ int TclAlignSelectedHeadPointToAnaIdx ( ClientData inClientData,
 int TclLoadGCA ( ClientData inClientData, Tcl_Interp* inInterp,
          int argc, char* argv[] ) {
   
-  if ( argc != 3 ) {
+  if ( argc < 3 || argc > 4 ) {
     Tcl_SetResult ( inInterp, "wrong # args: LoadGCA volume_dir transform_file",
         TCL_VOLATILE );
     return TCL_ERROR;
@@ -2592,6 +2592,12 @@ int TclLoadGCA ( ClientData inClientData, Tcl_Interp* inInterp,
 
   if( gbAcceptingTclCommands ) {
     LoadGCA ( argv[1], argv[2] ); 
+    if (argc == 4)
+    {
+      printf("mean filtering conditional densities %d times...\n",
+             atoi(argv[3])) ;
+      GCAmeanFilterConditionalDensities(gGCAVolume, atoi(argv[3])) ;
+    }
   }
 
   return TCL_OK;
@@ -3340,17 +3346,9 @@ void RecomputeSegmentation(mriVolumeRef inVol,
                            mriVolumeRef inSegVol, mriVolumeRef inSegChanged, 
                            mriVolumeRef outVol)
 {
-  static int first_time = 1 ;
 
   if (NULL == gGCAVolume || NULL == gGCATransform)
     return ;
-
-  if (first_time)
-  {
-    GCAmeanFilterConditionalDensities(gGCAVolume, 5) ;
-    GCAhistoScaleImageIntensities(gGCAVolume, inVol->mpMriValues) ;
-    first_time = 0 ;
-  }
 
   GCAreclassifyUsingGibbsPriors(inVol->mpMriValues, gGCAVolume, 
                                 inSegVol->mpMriValues,
@@ -8191,6 +8189,8 @@ tkm_tErr LoadGCA ( char* isGCAFileName, char* isTransformFileName ) {
 
   if( NULL != gca )
     GCAfree( &gca );
+  GCAhistoScaleImageIntensities(gGCAVolume, 
+                                gAnatomicalVolume[tkm_tVolumeType_Main]->mpMriValues) ;
 
   DebugExitFunction;
   
