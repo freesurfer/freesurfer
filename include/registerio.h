@@ -22,6 +22,7 @@ int regio_write_register(char *regfile, char *subject, float inplaneres,
        int float2int);
 
 int regio_read_mincxfm(char *xfmfile, MATRIX **R);
+int regio_write_mincxfm(char *xfmfile, MATRIX *R);
 int regio_read_xfm4(char *xfmfile, MATRIX **R);
 int regio_read_xfm(char *xfmfile, MATRIX **R);
 
