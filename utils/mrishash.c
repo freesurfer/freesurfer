@@ -1212,11 +1212,14 @@ mhtAddVoxel(VOXEL_LIST *vl, int xv, int yv, int zv)
 
         Description
 ------------------------------------------------------*/
+#define MHT_MAX_FACES 10000
+
 static int
 mhtDoesFaceVoxelListIntersect(MRIS_HASH_TABLE *mht, MRI_SURFACE *mris, 
                               VOXEL_LIST *vl, int fno)
 {
-  int    xv, yv, zv, fno2, i,j,n1,n2, intersect, nbr, vno, flist[1000], nfaces;
+  int    xv, yv, zv, fno2, i,j,n1,n2, intersect, nbr, vno, 
+         flist[MHT_MAX_FACES], nfaces;
   MHB    *bin ;
   MHBT   *bucket ;
   FACE   *f1, *f2 ;
@@ -1266,7 +1269,12 @@ mhtDoesFaceVoxelListIntersect(MRIS_HASH_TABLE *mht, MRI_SURFACE *mris,
             break ;
           }
         if (!nbr)
-          flist[nfaces++] = fno2 ;
+        {
+          if (nfaces >= MHT_MAX_FACES)
+            ErrorPrintf(ERROR_NO_MEMORY, "mhtDoesFaceVoxelListIntersect: MHT_MAX_FACES exceeded!") ;
+          else
+            flist[nfaces++] = fno2 ;
+        }
       }
     }
   }
