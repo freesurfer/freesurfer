@@ -534,6 +534,8 @@ MRI   *MRIreplaceValues(MRI *mri_src, MRI *mri_dst,
                        BUFTYPE in_val, BUFTYPE out_val) ;
 MRI   *MRImask(MRI *mri_src, MRI *mri_mask, MRI *mri_dst, BUFTYPE mask,
                BUFTYPE out_val) ;
+MRI   *MRIthresholdMask(MRI *mri_src, MRI *mri_mask, MRI *mri_dst, 
+                        BUFTYPE mask_threshold, BUFTYPE out_val) ;
 
 /* constants used in mri_dir of MRIoffsetDirection and for MRIminmax filter */
 #define OFFSET_NEGATIVE_GRADIENT_DIRECTION    0
