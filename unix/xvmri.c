@@ -81,7 +81,7 @@ static int xvmriRepaintValue(XV_FRAME *xvf, int which, int x, int y, int z) ;
 
            Description:
 ----------------------------------------------------------------------*/
-void 
+int
 mri_event_handler(XV_FRAME *xvf, Event *event,DIMAGE *dimage, 
                   int *px, int *py, int *pz)
 {
@@ -101,7 +101,7 @@ mri_event_handler(XV_FRAME *xvf, Event *event,DIMAGE *dimage,
 
   /* click can occur in the middle of other stuff (sort of asynchonous) */
   if (!mri || !mri->slices)  
-    return ;
+    return(ERROR_BAD_PARM) ;
 
 /*
   The convention  is  that  positive xspace coordinates run
@@ -163,6 +163,13 @@ mri_event_handler(XV_FRAME *xvf, Event *event,DIMAGE *dimage,
   }
   MRIvoxelToWorld(mri, (Real)x, (Real)y, (Real)z, &xr, &yr, &zr) ;
 
+  if (px)
+    *px = x ;
+  if (py)
+    *py = y ;
+  if (pz)
+    *pz = z ;
+
   if (event_shift_is_down(event) && !event_is_ascii(event))
   {
     if (event_left_is_down(event))
@@ -194,7 +201,7 @@ mri_event_handler(XV_FRAME *xvf, Event *event,DIMAGE *dimage,
   {
   case LOC_DRAG:
     if (!event_left_is_down(event))
-      return ;
+      break ;
   case MS_LEFT:
     switch (mri->type)
     {
@@ -270,7 +277,7 @@ mri_event_handler(XV_FRAME *xvf, Event *event,DIMAGE *dimage,
             if (!FileExists(fname))
             {
               XVprintf(xvf, 0, "could not find edit.dat from %s", image_path) ;
-              return ;
+              return(ERROR_NO_FILE) ;
             }
           }
         }
@@ -280,13 +287,13 @@ mri_event_handler(XV_FRAME *xvf, Event *event,DIMAGE *dimage,
       {
         XVprintf(xvf, 0, "could not scan coordinates out of %s", fname) ;
         fclose(fp) ;
-        return ;
+        return(ERROR_BAD_FILE) ;
       }
       if (fscanf(fp, "%f %f %f", &xft, &yft, &zft) != 3)
       {
         XVprintf(xvf,0,"could not scan Talairach coordinates out of %s",fname);
         fclose(fp) ;
-        return ;
+        return(ERROR_BAD_FILE) ;
       }
       fclose(fp) ;
       if (talairach)
@@ -320,7 +327,7 @@ fprintf(stderr, "voxel (%d, %d, %d)\n", nint(xv), nint(yv), nint(zv)) ;
             if (!FileExists(fname))
             {
               XVprintf(xvf, 0, "could not find edit.dat from %s", image_path) ;
-              return ;
+              return(ERROR_BAD_FILE) ;
             }
           }
         }
@@ -399,14 +406,8 @@ fprintf(stderr, "voxel (%d, %d, %d)\n", x_click, y_click, z_click) ;
 
     XVMRIsetPoint(xvf, which_click, x, y, z) ;
   }
-  if (px)
-    *px = x ;
-  if (py)
-    *py = y ;
-  if (pz)
-    *pz = z ;
+  return(NO_ERROR) ;
 }
-
 /*----------------------------------------------------------------------
             Parameters:
 
@@ -440,6 +441,46 @@ XVMRIdrawPoint(XV_FRAME *xvf, int which, int view, int depth, MRI *mri,
     break ;
   }
   XVdrawPoint(xvf, which, xi, yi, color) ;
+}
+/*----------------------------------------------------------------------
+            Parameters:
+
+           Description:
+----------------------------------------------------------------------*/
+int
+XVMRIdraw3DPoint(XV_FRAME *xvf, int which, int x,int y,int z,int color)
+{
+  int xi, yi ;
+
+  switch (mri_views[which])
+  {
+  default:
+  case MRI_CORONAL:
+    /*
+      Z=0 is the back of the head,
+      X=0 is the right side of the head
+      Y=0 is the neck/brain stem
+      */
+    xi = x ;
+    yi = y ;
+    if (z != mri_slices[which])
+      return(0) ;
+    break ;
+  case MRI_HORIZONTAL:
+    xi = x ;
+    yi = z ;
+    if (y != mri_slices[which])
+      return(0) ;
+    break ;
+  case MRI_SAGITAL:
+    xi = z ;
+    yi = y ;
+    if (x != mri_slices[which])
+      return(0) ;
+    break ;
+  }
+  XVdrawPoint(xvf, which, xi, yi, color) ;
+  return(1) ;
 }
 /*----------------------------------------------------------------------
             Parameters:
@@ -781,6 +822,7 @@ get_next_slice(IMAGE *Iold, int which, int dir)
     else
     {
       mri_depths[which] = depth ;   /* new depth is valid */
+      mri_slices[which] += dir ;   /* new depth is valid */
       if (Idisplay[which] && (Idisplay[which] != I))
         ImageFree(&Idisplay[which]) ;
       Idisplay[which] = I ;
