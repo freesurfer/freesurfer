@@ -1,6 +1,6 @@
 #! /usr/bin/tixwish
 
-# $Id: tkmedit.tcl,v 1.73 2004/01/22 21:18:41 kteich Exp $
+# $Id: tkmedit.tcl,v 1.74 2004/01/22 21:20:06 kteich Exp $
 
 
 source $env(FREESURFER_HOME)/lib/tcl/tkm_common.tcl
@@ -3427,9 +3427,6 @@ proc CreateMenuBar { ifwMenuBar } {
 	    "Clear Selection / Label"
 	    "ClearSelection; RedrawAll" }
 	{ command
-	    "Label Writer Helper..."
-	    "DoLabelWriterHelperDlog" }
-	{ command
 	    "Clear Undo Volume"
 	    ClearUndoVolume } 
     }
@@ -3806,6 +3803,9 @@ proc CreateMenuBar { ifwMenuBar } {
 	{ command
 	    "Write Line to Label..."
 	    {DoFileDlog WriteLineLabel} }
+	{ command
+	    "Label Writer Helper..."
+	    "DoLabelWriterHelperDlog" }
 	{ separator }
 	{ cascade "Volume" {
 	    { command
