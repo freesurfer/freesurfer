@@ -11,7 +11,7 @@ function [kimg2, beta] = tdr_deghost(kimg,Rrow,perev)
 %  (perev=0) or even lines (perev=1) will be used as 
 %  reference. If perev is not passed, perev=0 is assumed.
 %
-% $Id: tdr_deghost.m,v 1.5 2003/12/02 23:07:32 greve Exp $
+% $Id: tdr_deghost.m,v 1.6 2004/01/11 19:05:04 greve Exp $
 %
 
 rsubdel = 3; % region around center
@@ -36,6 +36,8 @@ else
   refrows = [2:2:nrows]; % even
   movrows = [1:2:nrows]; % odd
 end
+nrefrows = length(refrows);
+nmovrows = length(movrows);
 
 % Recon separate images based on every-other kspace
 % line. Both will have wrap-around but neither will
@@ -52,13 +54,13 @@ img2mov = fftshift(ifft(fftshift(ktmpmov,1),[],1),1);
 
 % Choose a range of rows around the center, away from 
 % wrap-around.
-rsub = (nrows/2 +1)+[-rsubdel:rsubdel];
+rsub = (round(nrows/2) +1)+[-rsubdel:rsubdel];
 
 % Segment the images, choose columns that exceed thresh
-img2mn = (abs(img2ref)+abs(img2mov))/2;
+img2mn    = (abs(img2ref)+abs(img2mov))/2;
 imgrsubmn = mean(img2mn(rsub,:));
-thresh = rthresh*mean(imgrsubmn);
-csub = find(imgrsubmn > thresh);
+thresh    = rthresh*mean(imgrsubmn);
+csub      = find(imgrsubmn > thresh);
 
 % Fit the phase difference at the segmented columns.
 % Model is offset and slope.
@@ -78,8 +80,8 @@ vmov = exp(+i*phsynth/2);
 kimg2 = kimg*Rrow;
 
 % Apply phase shift to appropriate lines
-kimg2(refrows,:) = repmat(vref,[nrows/2 1]) .* kimg2(refrows,:);
-kimg2(movrows,:) = repmat(vmov,[nrows/2 1]) .* kimg2(movrows,:);
+kimg2(refrows,:) = repmat(vref,[nrefrows 1]) .* kimg2(refrows,:);
+kimg2(movrows,:) = repmat(vmov,[nmovrows 1]) .* kimg2(movrows,:);
 
 %img = Rcol*kimg2;
 %figure; imagesc(abs(img)); colormap(gray);
