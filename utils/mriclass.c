@@ -56,6 +56,8 @@ static char *class_names[NCLASSES] =
 /*-----------------------------------------------------
                     GLOBAL FUNCTIONS
 -------------------------------------------------------*/
+int     MRIclassUpdate(MRIC *mric, MRI *mri_src,MRI *mri_norm,MRI *mri_target);
+int     MRIclassFinish(MRIC *mric) ;
 /*-----------------------------------------------------
         Parameters:
 
@@ -164,6 +166,114 @@ MRIclassFree(MRIC **pmric)
 
   free(mric->gcs) ;
   free(mric) ;
+  return(NO_ERROR) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+          Do iterative training of a classifier. First go through each
+          training pair and compute the means for the inputs, then
+          go through again and compute the covariance matrices.
+
+------------------------------------------------------*/
+int     
+MRIclassTrainAll(MRIC *mric, char *training_file_name)
+{
+  char  source_fname[100], target_fname[100], line[300], *cp ;
+  FILE  *fp ;
+  int   fno, nfiles ;
+  MRI   *mri_src, *mri_target, *mri_std, *mri_zscore, *mri_mean ;
+
+  /* first figure out the total # of files */
+  fp = fopen(training_file_name, "r") ;
+  if (!fp)
+    ErrorReturn(ERROR_NO_FILE, 
+                (ERROR_NO_FILE,
+                 "MRIclassTrainAll(%s): could not open file",
+                 training_file_name)) ;
+
+  nfiles = 0 ;
+  while ((cp = fgetl(line, 299, fp)) != NULL)
+    nfiles++ ;
+  fprintf(stderr, "processing %d files\n", nfiles) ;
+  rewind(fp) ;
+
+  /* now calculate means */
+  fno = 0 ;
+  while ((cp = fgetl(line, 299, fp)) != NULL)
+  {
+    sscanf(cp, "%s %s", source_fname, target_fname) ;
+    fprintf(stderr, "file[%d]: %s --> %s\n", fno, source_fname, target_fname);
+    mri_src = MRIread(source_fname) ;
+    if (!mri_src)
+    {
+      fprintf(stderr, "could not read MR image %s\n", source_fname) ;
+      continue ;
+    }
+    mri_target = MRIread(target_fname) ;
+    if (!mri_target)
+    {
+      fprintf(stderr, "could not read MR image %s\n", target_fname) ;
+      MRIfree(&mri_src) ;
+      continue ;
+    }
+
+    mri_mean = MRImean(mri_src, NULL, 3) ;
+    mri_std = MRIstd(mri_src, NULL, mri_mean, 3) ;
+    mri_zscore = MRInorm(mri_src, NULL, mri_mean, mri_std) ;
+
+    MRIfree(&mri_src) ;
+    MRIfree(&mri_target) ;
+    MRIfree(&mri_zscore) ;
+    MRIfree(&mri_std) ;
+    MRIfree(&mri_mean) ;
+    fno++ ;
+  }
+
+  rewind(fp) ;
+  /* now calculate covariances */
+
+
+  fclose(fp) ;
+  return(NO_ERROR) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+          Do iterative training of a classifier. First go through
+
+          allow each classifier to be trained on a part of 
+          the space that it's neighbor is responsible (i.e. 
+          use overlapping training regions). The overlap is
+          defined to be MAX(1, scale/4) on each side of the
+          region.
+------------------------------------------------------*/
+int
+MRIclassUpdate(MRIC *mric, MRI *mri_src,MRI *mri_norm,MRI *mri_target)
+{
+  return(NO_ERROR) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+          allow each classifier to be trained on a part of 
+          the space that it's neighbor is responsible (i.e. 
+          use overlapping training regions). The overlap is
+          defined to be MAX(1, scale/4) on each side of the
+          region.
+------------------------------------------------------*/
+int     
+MRIclassFinish(MRIC *mric)
+{
   return(NO_ERROR) ;
 }
 /*-----------------------------------------------------
@@ -323,10 +433,12 @@ MRIclassify(MRIC *mric, MRI *mri_src, MRI *mri_zscore, MRI *mri_dst,
   float      *pzscore, prob, *pprobs = NULL ;
   Real       xt, yt, zt ;
 
+#if 0
   if (mric->swidth != mri_src->width || mric->sheight != mri_src->height ||
       mric->sdepth != mri_src->depth)
     ErrorReturn(NULL,
                 (ERROR_BADPARM, "MRIclassify: MRI does not match classifier"));
+#endif
 
   if (conf < 0.0f || conf >= 1.0f)
     conf = PRETTY_SURE ;
@@ -657,7 +769,7 @@ MRIgetClassifier(MRIC *mric, MRI *mri, int xv, int yv, int zv)
   else if (zc >= depth)
     zc = depth-1 ;
   gc = mric->gcs[zc][yc][xc] ;
-#if 0
+#if 1
 fprintf(stderr, 
         "classifier at (%d, %d, %d) --> (%d, %d, %d) is (%d, %d, %d)\n",
         xv, yv, zv, (int)xt, (int)yt, (int)zt, xc, yc, zc) ;
