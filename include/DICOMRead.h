@@ -1,6 +1,11 @@
 #ifndef _DICOMRead_H
 #define _DICOMRead_H
 
+#include "dicom.h"
+#include "lst.h"
+#include "dicom_objects.h"
+#include "condition.h"
+
 typedef enum {
   // general infos
   DCM_StudyDate, DCM_PatientName, DCM_Manufacturer, DCM_StudyTime, DCM_SeriesTime, DCM_AcquisitionTime,
@@ -62,6 +67,50 @@ typedef struct
 
 }  DICOMInfo ;
 
+/*--- Relevant Info for a single Siemens DICOM File ------*/
+typedef struct {
+  char *FileName;
+  char *PatientName;
+  char *StudyDate;
+  char *StudyTime;
+  char *SeriesTime;
+  char *AcquisitionTime;
+  char *PulseSequence;
+  char *ProtocolName;
+  char *PhEncDir;
+
+  int   EchoNo;
+  float FlipAngle;
+  float EchoTime;
+  float RepetitionTime;
+  float InversionTime;
+
+  float PhEncFOV;
+  float ReadoutFOV;
+  
+  int  SeriesNo;
+  int  ImageNo;
+  int  NImageRows;
+  int  NImageCols;
+  float ImgPos[3];
+
+  int  lRepetitions;
+  int  SliceArraylSize;
+
+  /* Volume/Run Related parameters */
+  float Vc[3];     /* RAS col direction cosines*/
+  float Vr[3];     /* RAS row direction cosines*/
+  float Vs[3];     /* RAS slice direction cosines*/
+
+  int   RunNo;       /* Run Number that this is associated with */
+  int   IsMosaic;    /* Image is a mosaic of slices */
+  int   VolDim[3];   /* number of cols rows slices */
+  float VolRes[3];   /* Resolution of col, row, slice in mm */
+  float VolCenter[3]; /* Exact RAS center of the volume */
+  int   NFrames;     /* Equals lRepetitions + 1 */
+  
+} SDCMFILEINFO;
+
 #define NUMBEROFTAGS 22
 #define SHORTSIZE 16
 #define INTSIZE 16
@@ -97,5 +146,47 @@ int IsDICOM(char *fname);
 int ScanDir(char *PathName, char ***FileNames, int *NumberOfFiles);
 int CleanFileNames(char **FileNames, int NumberOfDICOMFiles, char ***CleanedFileNames);
 int DICOMRead(char *FileName, MRI **mri, int ReadImage);
+
+DCM_ELEMENT *GetElementFromFile(char *dicomfile, long grpid, long elid);
+int AllocElementData(DCM_ELEMENT *e);
+int FreeElementData(DCM_ELEMENT *e);
+DCM_ELEMENT *GetElementFromFile(char *dicomfile, long grpid, long elid);
+DCM_OBJECT *GetObjectFromFile(char *fname, unsigned long options);
+int IsSiemensDICOM(char *dcmfile);
+char *SiemensAsciiTag(char *dcmfile, char *TagString);
+int dcmGetNCols(char *dcmfile);
+int dcmGetNRows(char *dcmfile);
+int dcmGetVolRes(char *dcmfile, float *ColRes, float *RowRes, float *SliceRes);
+int dcmImageDirCos(char *dcmfile, 
+       float *Vcx, float *Vcy, float *Vcz,
+       float *Vrx, float *Vry, float *Vrz);
+int sdcmSliceDirCos(char *dcmfile, float *Vsx, float *Vsy, float *Vsz);
+int dcmImagePosition(char *dcmfile, float *x, float *y, float *z);
+
+int sdcmIsMosaic(char *dcmfile, int *pNcols, int *pNrows, int *pNslices, int *pNframes);
+
+int DumpSDCMFileInfo(FILE *fp, SDCMFILEINFO *sdcmfi);
+int FreeSDCMFileInfo(SDCMFILEINFO **ppsdcmfi);
+SDCMFILEINFO *GetSDCMFileInfo(char *dcmfile);
+SDCMFILEINFO **ScanSiemensDCMDir(char *PathName, int *NSDCMFiles);
+int CompareSDCMFileInfo(const void *a, const void *b);
+int SortSDCMFileInfo(SDCMFILEINFO **sdcmfi_list, int nlist);
+
+int sdfiAssignRunNo(SDCMFILEINFO **sdcmfi_list, int nfiles);
+int sdfiRunNo(char *dcmfile, SDCMFILEINFO **sdfi_list, int nlist);
+int sdfiNFilesInRun(char *dcmfile, SDCMFILEINFO **sdfi_list, int nlist);
+int *sdfiRunFileList(char *dcmfile, SDCMFILEINFO **sdfi_list, 
+         int nlist, int *NRunList);
+MRI * sdcmLoadVolume(char *dcmfile, int LoadVolume);
+int sdfiVolCenter(SDCMFILEINFO *sdfi);
+int sdfiFixImagePosition(SDCMFILEINFO *sdfi);
+int sdfiSameSlicePos(SDCMFILEINFO *sdfi1, SDCMFILEINFO *sdfi2);
+
+#ifdef Solaris
+int scandir(const char *dir, struct dirent ***namelist,
+            int (*select)(const struct dirent *),
+            int (*compar)(const void *, const void *));
+int alphasort(const void *a, const void *b);
+#endif
 
 #endif
