@@ -2,7 +2,7 @@
 % reconstruction according to the time-domain reconstruction
 % algorithm 
 %
-% $Id: tdr_recon.m,v 1.9 2004/05/01 20:54:38 greve Exp $
+% $Id: tdr_recon.m,v 1.10 2005/03/19 00:21:22 greve Exp $
 tic;
 
 
@@ -181,7 +181,7 @@ for nthAcqSlice = 1:nslices
     %if(perev) kepi = flipud(kepi);  end 
     
     % Recon the rows %
-    [kepi2 dgbetatmp] = tdr_deghost(kepi,Rrow,DeghostRef);
+    [kepi2 dgbetatmp] = tdr_deghost(kepi,Rrow,DeghostRef,0);
     dgbeta(:,1,sliceno,frame) = dgbetatmp;
     %kepi2 = kepi*Rrow; % without deghosting
     
