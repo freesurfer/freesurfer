@@ -290,7 +290,6 @@ GCAMread(char *fname)
       }
     }
   }
-
   fclose(fp) ;
 
   return(gcam) ;
@@ -340,7 +339,19 @@ GCAMinit(GCA_MORPH *gcam, MRI *mri, GCA *gca, TRANSFORM *transform, int relabel)
   float           max_p, ox, oy, oz ;
 
   width = gcam->width ; height = gcam->height ; depth = gcam->depth ;
+
+  // check consistency
+  if (width != gca->prior_width 
+      || height != gca->prior_height
+      || depth != gca->prior_depth)
+  {
+    fprintf(stderr, "GCA_MORPH (%d, %d, %d) must agree with GCA prior (%d, %d, %d)\n",
+	    gcam->width, gcam->height, gcam->depth, gca->prior_width, gca->prior_height, gca->prior_depth);
+    ErrorExit(ERROR_BADPARM, "Exiting ....\n");
+  }
+
   TransformInvert(transform, mri) ;
+  // use gca information 
   gcam->gca = gca ; gcam->spacing = gca->prior_spacing ; 
   for (x = 0 ; x < width ; x++)
   {
@@ -354,10 +365,10 @@ GCAMinit(GCA_MORPH *gcam, MRI *mri, GCA *gca, TRANSFORM *transform, int relabel)
 
         for (n = 0 ; n < gcap->nlabels ; n++)
         {
-          label = gcap->labels[n] ;
+          label = gcap->labels[n] ;   // get prior label
           if (label == Gdiag_no)
             DiagBreak() ;
-          if (gcap->priors[n] >= max_p)
+          if (gcap->priors[n] >= max_p) // update the max_p and max_label
           {
             max_n = n ;
             max_p = gcap->priors[n] ;
@@ -365,6 +376,7 @@ GCAMinit(GCA_MORPH *gcam, MRI *mri, GCA *gca, TRANSFORM *transform, int relabel)
           }
         }
         gcamn->xn = x ; gcamn->yn = y ; gcamn->zn = z ;
+	// here mri info is used
         if (!GCApriorToSourceVoxelFloat(gca, mri, transform, x, y, z,
 					&ox, &oy, &oz))
 	{
@@ -376,6 +388,7 @@ GCAMinit(GCA_MORPH *gcam, MRI *mri, GCA *gca, TRANSFORM *transform, int relabel)
 	  gcamn->n = max_n ;
 	  gcamn->prior = max_p ;
 	  gc = GCAfindPriorGC(gca, x, y, z, max_label) ;
+	  // gc can be NULL
 	  gcamn->gc = gc ;
 	  gcamn->log_p = 0 ;
 #endif
