@@ -722,6 +722,8 @@ int   MRISmeasureCorticalThickness(MRI_SURFACE *mris, MRI *mri_brain,
 int   MRISmeasureCorticalThickness(MRI_SURFACE *mris, int nbhd_size, 
                                    float max_thickness) ;
 #endif
+int
+MRISfindClosestOrigVertices(MRI_SURFACE *mris, int nbhd_size) ;
 
 int   MRISmarkRandomVertices(MRI_SURFACE *mris, float prob_marked) ;
 int   MRISmarkNegativeVertices(MRI_SURFACE *mris, int mark) ;
