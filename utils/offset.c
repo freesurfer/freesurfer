@@ -101,6 +101,10 @@ ImageCalculateNitShiOffset(IMAGE *Ix, IMAGE *Iy, int wsize,
   register float gauss, fxpix, fypix, dot_product ;
   register int   xc, yc ;
 
+  if ((Gdiag & DIAG_SHOW) && (Gdiag & DIAG_VERBOSE))
+    fprintf(stderr, 
+            "ImageCalculateNitshiOffset: mu = %2.4f, c = %2.4f, wsize = %d\n",
+            mu, c, wsize) ;
   rows = Ix->rows ;
   cols = Ix->cols ;
 
@@ -111,7 +115,11 @@ ImageCalculateNitShiOffset(IMAGE *Ix, IMAGE *Iy, int wsize,
   vsq = 0.0f ;  /* prevent compiler warning */
 
   whalf = (wsize-1)/2 ;
-  c1 = NS_FSCALE * c * (float)whalf ;
+#if 1
+  c1 = NS_FSCALE * c / (float)wsize ;
+#else
+  c1 = NS_FSCALE * c ;
+#endif
 
   /* create a local gaussian window */
   if (wsize != w)
@@ -208,6 +216,8 @@ ImageCalculateNitShiOffset(IMAGE *Ix, IMAGE *Iy, int wsize,
     }
   }
 
+  if ((Gdiag & DIAG_WRITE) && (Gdiag & DIAG_VERBOSE))
+    ImageWrite(Ioffset, "nitshi_offset.hipl") ;
   return(Ioffset) ;
 }
 /*----------------------------------------------------------------------
