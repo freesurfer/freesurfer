@@ -734,7 +734,7 @@ ImageOffsetMedialAxis(IMAGE *Ioffset, IMAGE *Iedge)
   }
   return(Iedge) ;
 }
-#if 0
+#if 1
 /*----------------------------------------------------------------------
             Parameters:
 
