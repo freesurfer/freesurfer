@@ -4,9 +4,9 @@
 
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2003/07/30 21:41:37 $
-// Revision       : $Revision: 1.167 $
-char *VERSION = "$Revision: 1.167 $";
+// Revision Date  : $Date: 2003/08/01 19:40:13 $
+// Revision       : $Revision: 1.168 $
+char *VERSION = "$Revision: 1.168 $";
 
 #define TCL
 #define TKMEDIT 
@@ -1027,7 +1027,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
      shorten our argc and argv count. If those are the only args we
      had, exit. */
   /* rkt: check for and handle version tag */
-  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.167 2003/07/30 21:41:37 kteich Exp $");
+  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.168 2003/08/01 19:40:13 kteich Exp $");
   if (nNumProcessedVersionArgs && argc - nNumProcessedVersionArgs == 1)
     exit (0);
   argc -= nNumProcessedVersionArgs;
@@ -6865,13 +6865,15 @@ void SendCachedTclCommands () {
 tkm_tErr LoadVolume ( tkm_tVolumeType iType,
 		      char*      isName ) {
   
-  tkm_tErr     eResult                        = tkm_tErr_NoErr;
-  Volm_tErr    eVolume                        = Volm_tErr_NoErr;
-  char         sPath[tkm_knPathLen]           = "";
-  char*        pEnd                           = NULL;
-  char         sError[tkm_knErrStringLen]     = "";
-  mriVolumeRef newVolume                      = NULL;
-  char         sTclArguments[tkm_knTclCmdLen] = "";
+  tkm_tErr             eResult                        = tkm_tErr_NoErr;
+  Volm_tErr            eVolume                        = Volm_tErr_NoErr;
+  char                 sPath[tkm_knPathLen]           = "";
+  char*                pEnd                           = NULL;
+  char                 sError[tkm_knErrStringLen]     = "";
+  mriVolumeRef         newVolume                      = NULL;
+  char                 sTclArguments[tkm_knTclCmdLen] = "";
+  Volm_tSampleType     sampleType           = Volm_tSampleType_Nearest;
+  Volm_tResampleMethod resampleMethod       = Volm_tResampleMethod_RAS;
 
   DebugEnterFunction( ("LoadVolume( iType=%d,  isName=%s )", 
            (int)iType, isName) );
@@ -6992,6 +6994,20 @@ tkm_tErr LoadVolume ( tkm_tVolumeType iType,
   /* Allocate the selection volume now that we have an anatomical
      volume. */
   AllocateSelectionVolume();
+
+  /* Send info to the tcl window. */
+  Volm_GetResampleMethod( gAnatomicalVolume[iType], &resampleMethod );
+  xUtil_snprintf( sTclArguments, sizeof(sTclArguments), "%d %d", 
+		  (int)iType, (int)resampleMethod );
+  tkm_SendTclCommand( tkm_tTclCommand_UpdateVolumeResampleMethod, 
+		      sTclArguments );
+
+  Volm_GetSampleType( gAnatomicalVolume[iType], &sampleType );
+  xUtil_snprintf( sTclArguments, sizeof(sTclArguments), "%d %d", 
+		  (int)iType, (int)sampleType );
+  tkm_SendTclCommand( tkm_tTclCommand_UpdateVolumeSampleType, sTclArguments );
+  
+  
 
   DebugCatch;
   DebugCatchError( eResult, tkm_tErr_NoErr, tkm_GetErrorString );
@@ -11099,10 +11115,12 @@ void tkm_SetSurfaceDistance    ( xVoxelRef iAnaIdx,
   if( NULL == gSurface[tkm_tSurfaceType_Main] ) {
     return;
   }
-  
+
+  /* This is right to be using ana idx instead of MRI idx because the
+     client space for the surface is ana idx (screen space). */
   Surf_SetVertexValue( gSurface[tkm_tSurfaceType_Main], 
-           Surf_tVertexSet_Main, Surf_tValueSet_Val,
-           iAnaIdx, ifDistance );
+		       Surf_tVertexSet_Main, Surf_tValueSet_Val,
+		       iAnaIdx, ifDistance );
 }
 
 void tkm_ShowNearestSurfaceVertex ( Surf_tVertexSet iVertexSet ) {
