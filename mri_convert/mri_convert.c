@@ -1426,7 +1426,8 @@ int main(int argc, char *argv[])
   /* ----- change type if necessary ----- */
   if(mri->type != template->type)
   {
-    printf("changing data type...\n");
+    printf("changing data type from %d to %d (noscale = %d)...\n",
+	   mri->type,template->type,no_scale_flag);
     mri2 = MRIchangeType(mri, template->type, 0.0, 0.999, no_scale_flag);
     if(mri2 == NULL) {
       printf("ERROR: MRIchangeType\n");
@@ -1527,13 +1528,13 @@ int main(int argc, char *argv[])
     printf("writing to %s...\n", out_name);
     if(force_out_type_flag){
       if(MRIwriteType(mri, out_name, out_volume_type) != NO_ERROR){
-  printf("ERROR: writing %s as %d\n",out_name,out_volume_type);
+	printf("ERROR: writing %s as %d\n",out_name,out_volume_type);
         exit(1);
       }
     }
     else{
       if(MRIwrite(mri, out_name) != NO_ERROR){
-  printf("ERROR: writing %s\n",out_name);
+	printf("ERROR: writing %s\n",out_name);
         exit(1);
       }
     }
