@@ -1,4 +1,60 @@
-
+//
+// mri_tessellate.c
+//
+// Warning: Do not edit the following four lines.  CVS maintains them.
+// Revision Author: $Author: tosa $
+// Revision Date  : $Date: 2003/01/30 19:29:32 $
+// Revision       : $Revision: 1.13 $
+//
+//
+// How it works.
+//
+// 1. pick the boundary voxel position using the grey value given in input 
+//
+//              O O O O O O O O            O O O O O O O O
+//	        O O O O O O O O            O O O O O O O O
+//              O O x x x x O O    picks   O O B B B B B O
+//	        0 O x x x x O O      ->    O O B O O O B O
+//              O O x x x x O O            O 0 B O O O B O  
+//              O O x x x x O O            O O B O O O B O
+//              O O O O O O O O            O O B B B B B O
+//              O O O O O O O O  imnr = 3  O O O O O O O O
+//      
+//    You see that there is a bias toward larger i, j, imnr.  If you take the real
+//    surface in floating value voxel-index coordinate system in the following way,
+//
+//              -0.5  0.5   1.5
+//                |  0 |  1  |  ....
+//
+//    then the surface position defined as the voxel boundary is given by
+//
+//              v_surf = v_boundary - 1/2.
+//
+// 2. The RAS coordinates of surface is given by
+//
+//              X_surf = M * (v_boundary - 1/2 - c) + C         (1)
+//
+//    where we used the general RAS from voxel transform
+//
+//              X = M * ( v - c ) + C
+//    
+//    with c is the RAS center position, C is the corresponding RAS coordinates,
+//    M is the transform (3x3).
+//
+//    If we pick c = (width/2, height/2, depth/2), C = 0, and M = (-1  0  0)(ps 0   0)
+//                                                                ( 0  0  1)(0  ps  0)
+//                                                                ( 0 -1  0)(0  0  st)
+// 
+//    then we get the value in write_binary_surface2() from eq.(1)
+//  
+//        x = xx1-(vertex[k].j-0.5)*ps;
+//        y = yy0+(vertex[k].imnr-0.5)*st;
+//        z = zz1-(vertex[k].i-0.5)*ps;
+//
+//    for xx1 = (width/2)*ps , yy0 = - (height/2)*ps, zz1 = (depth/2)*st.
+//
+//  
+char *MRI_TESSELLATE_VERSION = "$Revision: 1.13 $";
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -474,8 +530,14 @@ get_option(int argc, char *argv[])
   char *option ;
   
   option = argv[1] + 1 ;            /* past '-' */
+
   if (!stricmp(option, "an option"))
   {
+  }
+  else if (!strcasecmp(option, "-version"))
+  {
+    fprintf(stderr, "Version: %s\n", MRI_TESSELLATE_VERSION);
+    exit(0);
   }
   else switch (toupper(*option))
   {
