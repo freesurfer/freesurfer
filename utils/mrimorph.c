@@ -479,6 +479,8 @@ MRIfindNeck(MRI *mri_src,MRI *mri_dst,int thresh_low,int thresh_hi,
   double     xa ;
   static int callno = 0 ;
 
+  if (parms && !parms->lta)
+    parms->lta = LTAalloc(1, NULL) ;
   v = VectorAlloc(4, MATRIX_REAL) ; 
   thick = mri_src->thick ;
   callno++ ;   /* for diagnostics */
@@ -1228,7 +1230,10 @@ mriLinearAlignPyramidLevel(MRI *mri_in, MRI *mri_ref, MORPH_PARMS *parms)
   char       fname[100], base_name[100] ;
 
   /*  MRIeraseBorders(mri_in, 1) ; MRIeraseBorders(mri_ref, 1) ;*/
-  mri_ref->mean = MRImeanFrame(mri_ref, 1) ;
+  if (mri_ref->nframes > 1)
+    mri_ref->mean = MRImeanFrame(mri_ref, 1) ;
+  else
+    mri_ref->mean = 1.0 ;
   fprintf(stderr, "mean std = %2.2f\n", mri_ref->mean) ;
   if (DZERO(mri_ref->mean))
     mri_ref->mean = 1 ;
@@ -3631,7 +3636,10 @@ m3dAlignPyramidLevel(MRI *mri_in, MRI *mri_ref, MRI *mri_ref_blur,
           old_rms, last_avg, current_avg ;
   int     n, last_neg ;
 
-  mri_ref->mean = MRImeanFrame(mri_ref, 1) ;
+  if (mri_ref->nframes > 1)
+    mri_ref->mean = MRImeanFrame(mri_ref, 1) ;
+  else
+    mri_ref->mean = 1.0 ;
   if (DZERO(mri_ref->mean))
   {
     /*    ErrorPrintf(ERROR_BADPARM, "AlignPyramidLevel: mean std is 0!!") ;*/
@@ -4977,7 +4985,10 @@ mriNormalizeStds(MRI *mri)
   if (mri->nframes < 2)
     return(NO_ERROR) ;
 
-  mean_std = MRImeanFrame(mri, 1) ;
+  if (mri->nframes > 1)
+    mean_std = MRImeanFrame(mri, 1) ;
+  else
+    mean_std = 1.0 ;
   if (FZERO(mean_std))
   {
     mri->mean = 0.0 ;
@@ -5005,7 +5016,11 @@ mriNormalizeStds(MRI *mri)
       }
     }
   }
-  mri->mean = MRImeanFrame(mri, 1) ;
+  if (mri->nframes > 1)
+    mri->mean = MRImeanFrame(mri, 1) ;
+  else
+    mri->mean = 1.0 ;
+
   return(NO_ERROR) ;
 }
 #if USE_ITERATIVE_AVERAGING
