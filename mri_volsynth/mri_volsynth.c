@@ -4,7 +4,7 @@
   email:   analysis-bugs@nmr.mgh.harvard.edu
   Date:    2/27/02
   Purpose: Synthesize a volume.
-  $Id: mri_volsynth.c,v 1.2 2003/07/09 03:41:28 greve Exp $
+  $Id: mri_volsynth.c,v 1.3 2003/07/11 00:50:11 greve Exp $
 */
 
 #include <stdio.h>
@@ -39,7 +39,7 @@ static int  isflag(char *flag);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_volsynth.c,v 1.2 2003/07/09 03:41:28 greve Exp $";
+static char vcid[] = "$Id: mri_volsynth.c,v 1.3 2003/07/11 00:50:11 greve Exp $";
 char *Progname = NULL;
 
 int debug = 0;
@@ -53,8 +53,9 @@ float cras[4];
 float cdircos[3], rdircos[3], sdircos[3];
 char *pdfname = "gaussian";
 char *precision=NULL; /* not used yet */
-MRI *mri;
+MRI *mri, *mrism;
 long seed=53;
+float fwhm = 0, gstd = 0;
 
 /*---------------------------------------------------------------*/
 int main(int argc, char **argv)
@@ -90,6 +91,7 @@ int main(int argc, char **argv)
   check_options();
   dump_options(stdout);
 
+  printf("Synthesizing\n");
   srand48(seed);
   if(strcmp(pdfname,"gaussian")==0)
     mri = MRIrandn(dim[0], dim[1], dim[2], dim[3], 0, 1, NULL);
@@ -98,7 +100,8 @@ int main(int argc, char **argv)
   else if(strcmp(pdfname,"const")==0)
     mri = MRIconst(dim[0], dim[1], dim[2], dim[3], 1, NULL);
   else {
-    printf("ERROR: pdf %s unrecognized, must be gaussian or uniform\n",pdfname);
+    printf("ERROR: pdf %s unrecognized, must be gaussian or uniform\n",
+	   pdfname);
     exit(1);
   }
 
@@ -119,6 +122,12 @@ int main(int argc, char **argv)
   mri->c_a = cras[1];
   mri->c_s = cras[2];
 
+  if(gstd > 0){
+    printf("Smoothing\n");
+    MRIgaussianSmooth(mri, gstd, 1, mri);
+  }
+
+  printf("Saving\n");
   MRIwriteAnyFormat(mri,volid,volfmt,-1,NULL);
   //if(volfmtid == NULL) MRIwrite(mri,volid);
   //else MRIwriteType(mri,volid,);
@@ -192,6 +201,12 @@ static int parse_commandline(int argc, char **argv)
       if(nargc < 3) argnerr(option,3);
       for(i=0;i<3;i++) sscanf(pargv[i],"%f",&sdircos[i]);
       nargsused = 3;
+    }
+    else if ( !strcmp(option, "--fwhm") ) {
+      if(nargc < 1) argnerr(option,1);
+      sscanf(pargv[0],"%f",&fwhm);
+      gstd = fwhm/sqrt(log(256.0));
+      nargsused = 1;
     }
     else if (!strcmp(option, "--precision")){
       if(nargc < 1) argnerr(option,1);
@@ -297,9 +312,11 @@ static void dump_options(FILE *fp)
 	  rdircos[0],rdircos[1],rdircos[2]);
   fprintf(fp,"slice dircos  %6.4f %6.4f %6.4f\n",
 	  sdircos[0],sdircos[1],sdircos[2]);
+  fprintf(fp,"fwhm = %g, gstd  = %g\n",fwhm,gstd);
   //fprintf(fp,"precision %s\n",precision);
   fprintf(fp,"seed %ld\n",seed);
   fprintf(fp,"pdf   %s\n",pdfname);
+  printf("Diagnostic Level %d\n",Gdiag_no);
 
   return;
 }
@@ -359,3 +376,6 @@ static int isflag(char *flag)
   return(0);
 }
 
+/*---------------------------------------------------------------*/
+/*---------------------------------------------------------------*/
+/*---------------------------------------------------------------*/
