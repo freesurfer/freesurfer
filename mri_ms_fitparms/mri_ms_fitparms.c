@@ -5,8 +5,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2004/02/09 21:55:13 $
-// Revision       : $Revision: 1.28 $
+// Revision Date  : $Date: 2004/03/23 16:59:17 $
+// Revision       : $Revision: 1.29 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -120,7 +120,7 @@ main(int argc, char *argv[])
   int    modified;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_ms_fitparms.c,v 1.28 2004/02/09 21:55:13 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_ms_fitparms.c,v 1.29 2004/03/23 16:59:17 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -1730,9 +1730,9 @@ estimate_T2star(MRI **mri_flash, int nvolumes, MRI *mri_PD)
     for (j = i+1 ; j < nvolumes ; j++)
     {
       if (processed[j])
-	continue ;
+				continue ;
       if (PARAMETERS_MATCH(mri_flash[i], mri_flash[j]) == 0)
-	continue ;
+				continue ;
       processed[j] = nprocessed+1 ;
     }
     nprocessed++ ;
@@ -1805,9 +1805,9 @@ compute_T2star_map(MRI **mri_flash, int nvolumes, int *scan_types)
     for (i = 1 ; i <= nscans ; i++)  /* which multi-echo set does this volume belong to */
     {
       if (scan_types[e] == i)
-	*MATRIX_RELT(mX, e+1, i+1) = 1 ;
+				*MATRIX_RELT(mX, e+1, i+1) = 1 ;
       else
-	*MATRIX_RELT(mX, e+1, i+1) = 0 ;
+				*MATRIX_RELT(mX, e+1, i+1) = 0 ;
     }
   }
   mXpinv = MatrixPseudoInverse(mX, mXpinv) ;
@@ -1821,21 +1821,24 @@ compute_T2star_map(MRI **mri_flash, int nvolumes, int *scan_types)
     {
       for (z = 0 ; z < depth ; z++)
       {
-	if (x == Gx && y == Gy && z == Gz)
-	  DiagBreak() ;
-	for (e = 0 ; e < nvolumes ; e++)
-	{
-	  MRIsampleVolumeType(mri_flash[e], x, y, z, &val, SAMPLE_NEAREST) ;
-	  VECTOR_ELT(vY, e+1) = log(val) ;
-	}
-	vParms = MatrixMultiply(mXpinv, vY, vParms) ;
-	if (!FZERO(*MATRIX_RELT(vParms, 1, 1)))
-	  T2star = 1 / *MATRIX_RELT(vParms, 1, 1) ;
-	else
-	  T2star = 0 ;
-	if (T2star > 10000 || T2star < -1000)
-	  DiagBreak() ;
-	MRIsetVoxVal(mri_T2star, x, y, z, 0, T2star) ;
+				if (x == Gx && y == Gy && z == Gz)
+					DiagBreak() ;
+				for (e = 0 ; e < nvolumes ; e++)
+				{
+					MRIsampleVolumeType(mri_flash[e], x, y, z, &val, SAMPLE_NEAREST) ;
+					VECTOR_ELT(vY, e+1) = log(val) ;
+				}
+				vParms = MatrixMultiply(mXpinv, vY, vParms) ;
+				if (!FZERO(*MATRIX_RELT(vParms, 1, 1)))
+					T2star = 1 / *MATRIX_RELT(vParms, 1, 1) ;
+				else
+					T2star = 0 ;
+				
+				if (T2star > 10000 || T2star < -1000)
+					DiagBreak() ;
+				if (!finite(T2star))
+					T2star = 0 ;
+				MRIsetVoxVal(mri_T2star, x, y, z, 0, T2star) ;
       }
     }
   }
