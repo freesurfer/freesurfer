@@ -1,8 +1,8 @@
 #!/bin/csh -f
 # selxavg-sess
 #
-# $Id: selxavg-sess,v 1.4 2003/05/20 23:44:51 greve Exp $
-set VERSION = '$Id: selxavg-sess,v 1.4 2003/05/20 23:44:51 greve Exp $';
+# $Id: selxavg-sess,v 1.5 2003/09/08 17:40:09 greve Exp $
+set VERSION = '$Id: selxavg-sess,v 1.5 2003/09/08 17:40:09 greve Exp $';
 set FASTVER = `cat $FMRI_ANALYSIS_DIR/docs/version`;
 
 set inputargs = ($argv);
@@ -188,7 +188,12 @@ foreach sess ($SessList)
   set inplaneres  = `cat $seqinfo | awk '{if($1 == "rowpixelsize") print $2}'`;
   set TR = `cat seq.info | awk '{if($1 == "TR") print $2}'`;
 
-  set TRSame = `echo "tmp=sqrt(($TR-$TRAnalysis)^2); if (tmp < .001)  print 1 else print 0 " | bc -l`;
+  set d = `echo $TR-$TRAnalysis | bc -l`;
+  set a = `echo "sqrt($d*$d)" | bc -l`;
+  set TRSame = `echo "if($a > .001) 0; if($a < .001) 1" | bc -l` ;
+
+  # This does not work on Sun
+  #set TRSame = `echo "tmp=sqrt(($TR-$TRAnalysis)^2); if (tmp < .001)  print 1 else print 0 " | bc -l`;
 
   if(! $TRSame) then
     echo "ERROR: TR for $sessbase = $TR, Analysis TR = $TRAnalysis"
