@@ -29,7 +29,7 @@
 #include "tiffio.h"
 #include "label.h"
 
-static char vcid[] = "$Id: mris2rgb.c,v 1.14 1998/05/22 15:42:37 fischl Exp $";
+static char vcid[] = "$Id: mris2rgb.c,v 1.15 1998/06/02 14:01:56 fischl Exp $";
 
 /*-------------------------------- CONSTANTS -----------------------------*/
 
@@ -140,6 +140,14 @@ static int normalize_param = 0 ;
 
 static char *output_name = NULL ;
 
+#define MAX_POINTS 100
+static Real x_tpoint[MAX_POINTS], y_tpoint[MAX_POINTS], z_tpoint[MAX_POINTS] ;
+static int num_tpoints = 0 ;
+
+static float phi_spoint[MAX_POINTS], theta_spoint[MAX_POINTS] ;
+static int num_spoints = 0 ;
+
+
 /*-------------------------------- FUNCTIONS ----------------------------*/
 
 int
@@ -221,7 +229,11 @@ main(int argc, char *argv[])
     {
       if (Gdiag & DIAG_SHOW)
         fprintf(stderr, "reading surface file %s...\n", in_fname) ;
+#if 0
       mris = MRISfastRead(surf_fname) ;
+#else
+      mris = MRISread(surf_fname) ;
+#endif
       if (!mris)
         ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s",
                   Progname, in_fname) ;
@@ -239,8 +251,56 @@ main(int argc, char *argv[])
     else
       MRISsaveVertexPositions(mris, CANONICAL_VERTICES) ;
 
+    /* mark the nearest vertex to talairach position */
+    for (i = 0 ; i < num_tpoints ; i++) 
+    {
+      int    vno, n ;
+      VERTEX *v, *vn ;
+
+      MRISreadOriginalProperties(mris, NULL) ;
+      vno = MRIStalairachToVertex(mris, x_tpoint[i], y_tpoint[i], z_tpoint[i]) ;
+      if (vno >= 0)
+      {
+        fprintf(stderr, "marking talairach vertex %d\n", vno) ;
+        v = &mris->vertices[vno] ;
+        v->marked = i+1 ;
+        for (n = 0 ; n < v->vnum ; n++)
+        {
+          vn = &mris->vertices[v->v[n]] ;
+          vn->marked = i+1 ;
+        }
+      }
+    }
+    
+    /* mark the nearest vertex to talairach position */
+    for (i = 0 ; i < num_spoints ; i++) 
+    {
+      int    vno, n ;
+      VERTEX *v, *vn ;
+
+      if (!coord_fname)
+        ErrorExit(ERROR_BADPARM, 
+                  "%s: must specifiy canonical surface to mark canonical "
+                  "point.\n", Progname) ;
+
+      vno = MRIScanonicalToVertex(mris, phi_spoint[i], theta_spoint[i]) ;
+      if (vno >= 0)
+      {
+        fprintf(stderr, "marking spherical vertex %d\n", vno) ;
+        v = &mris->vertices[vno] ;
+        v->marked = i+1 ;
+#if 1
+        for (n = 0 ; n < v->vnum ; n++)
+        {
+          vn = &mris->vertices[v->v[n]] ;
+          vn->marked = i+1 ;
+        }
+#endif
+      }
+    }
+    
     for (i = 0 ; i < nmarked ; i++)
-      mris->vertices[marked_vertices[i]].marked = 1 ;
+      mris->vertices[marked_vertices[i]].marked = MARK_WHITE ;
     if (talairach_flag)
     {
       MRIStalairachTransform(mris, mris) ;
@@ -577,7 +637,6 @@ main(int argc, char *argv[])
   exit(0) ;
   return(0) ;  /* for ansi */
 }
-
 /*----------------------------------------------------------------------
             Parameters:
 
@@ -716,6 +775,32 @@ get_option(int argc, char *argv[])
     compile_flags |= MESH_FLAG ;
   else if (!stricmp(option, "tiff"))
     tiff_flag = 1;
+  else if (!stricmp(option, "tpoint"))
+  {
+    nargs = 3 ;
+    if (num_tpoints >= MAX_POINTS)
+      ErrorExit(ERROR_NOMEMORY, "%s: too many points defined (%d)\n",
+                Progname, MAX_POINTS+1) ;
+    x_tpoint[num_tpoints] = (Real)atof(argv[2]) ;
+    y_tpoint[num_tpoints] = (Real)atof(argv[3]) ;
+    z_tpoint[num_tpoints] = (Real)atof(argv[4]) ;
+    fprintf(stderr, "marking Talairach point (%2.1f, %2.1f, %2.1f)\n",
+            (float)x_tpoint[num_tpoints], (float)y_tpoint[num_tpoints], 
+            (float)z_tpoint[num_tpoints]) ;
+    num_tpoints++ ;
+  }
+  else if (!stricmp(option, "spoint"))
+  {
+    nargs = 2 ;
+    if (num_spoints >= MAX_POINTS)
+      ErrorExit(ERROR_NOMEMORY, "%s: too many points defined (%d)\n",
+                Progname, MAX_POINTS+1) ;
+    phi_spoint[num_spoints] = atof(argv[2]) ;
+    theta_spoint[num_spoints] = atof(argv[3]) ;
+    fprintf(stderr, "marking spherical point (%2.3f, %2.3f)\n",
+            phi_spoint[num_spoints], theta_spoint[num_spoints]) ;
+    num_spoints++ ;
+  }
   else switch (toupper(*option))
   {
   case 'L':
