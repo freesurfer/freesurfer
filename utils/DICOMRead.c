@@ -990,7 +990,7 @@ int IsDICOM(char *fname)
 
 int scandir(const char *dir, struct dirent ***namelist,
             int (*select)(const struct dirent *),
-            int (*compar)(const struct dirent **, const struct dirent **))
+            int (*compar)(const void *, const void *))
 {
   DIR *d;
   struct dirent *entry;
@@ -1023,9 +1023,11 @@ int scandir(const char *dir, struct dirent ***namelist,
   return(i);
 }
 
-int alphasort(const struct dirent **a, const struct dirent **b)
+int alphasort(const void *a, const void *b)
 {
-  return(strcmp((*a)->d_name, (*b)->d_name));
+  struct dirent **da = (struct dirent **)a;
+  struct dirent **db = (struct dirent **)b;
+  return(strcmp((*da)->d_name, (*db)->d_name));
 }
 
 #endif
