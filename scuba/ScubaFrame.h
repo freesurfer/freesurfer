@@ -9,7 +9,7 @@
 #include "ScubaToolState.h"
 #include "Listener.h"
 
-class ScubaFrame : public ToglFrame, 
+class ScubaFrame : public WindowFrame, 
 		   public TclCommandListener,
 		   public Listener // viewChanged
 {
@@ -47,7 +47,7 @@ protected:
   // configuration and view size.
   void SizeViewsToConfiguration ();
 
-  // Impelmentations of the ToglFrame callbacks.
+  // Impelmentations of the WindowFrame callbacks.
   virtual void DoDraw();
   virtual void DoReshape();
   virtual void DoTimer();
@@ -96,7 +96,7 @@ protected:
 
 // The factory passed to ToglManager so that this type of Frame is
 // created.
-class ScubaFrameFactory : public ToglFrameFactory {
+class ScubaFrameFactory : public WindowFrameFactory {
 public:
   virtual WindowFrame* NewWindowFrame( WindowFrame::ID iID ) { 
     ScubaFrame* frame = new ScubaFrame( iID );

@@ -10,30 +10,6 @@ extern "C" {
 #include "DebugReporter.h"
 #include "InputState.h"
 
-class ToglFrame : public WindowFrame {
-
- public:
-  ToglFrame( ID iID ) : WindowFrame( iID ) {}
-  virtual ~ToglFrame() {}
-
-  virtual void Reshape( int iWidth, int iHeight );
-};
-
-
-
-// A factory class for the ToglManager so it can create ToglFrame
-// subclasses. ToglFrame subclasses should also have their own
-// subclass of the ToglFrameFactory and pass it to the ToglManager's
-// SetFrameFactory().
-class ToglFrameFactory : public WindowFrameFactory {
- public:
-  virtual WindowFrame* NewWindowFrame( WindowFrame::ID iID ) { 
-    return new ToglFrame( iID );
-  }
-};
-
-
-
 class ToglManager {
 
  public:
@@ -72,11 +48,11 @@ class ToglManager {
 
  protected:
 
-  static inline int YFlip ( ToglFrame* iFrame, int iY ) {
+  static inline int YFlip ( WindowFrame* iFrame, int iY ) {
     return (iFrame->GetHeight() - iY); }
 
   // Maps Window IDs to frames.
-  static std::map<ToglFrame::ID,ToglFrame*> mFrames;
+  static std::map<WindowFrame::ID,WindowFrame*> mFrames;
 
   static WindowFrameFactory* mFactory;
 

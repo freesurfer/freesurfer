@@ -12,7 +12,7 @@ using namespace std;
 ViewFactory* ScubaFrame::mFactory = NULL;
 
 ScubaFrame::ScubaFrame( ID iID ) 
-  : ToglFrame( iID ) {
+  : WindowFrame( iID ) {
 
   DebugOutput( << "Created ScubaFrame " << iID );
   SetOutputStreamToCerr();
@@ -386,7 +386,7 @@ ScubaFrame::DoListenToTclCommand( char* isCommand, int iArgc, char** iasArgv ) {
 	
       try { 
 	// We need to y flip this since we're getting the coords right
-	// from Tcl, just like we y flip them in ToglFrame.
+	// from Tcl, just like we y flip them in WindowFrame.
 	int windowCoords[2];
 	windowCoords[0] = windowX;
 	windowCoords[1] = (mHeight - windowY);
@@ -629,6 +629,12 @@ ScubaFrame::DoDraw() {
 
 void
 ScubaFrame::DoReshape() {
+
+  glViewport( 0, 0, mWidth, mHeight );
+  glMatrixMode( GL_PROJECTION );
+  glLoadIdentity();
+  glOrtho( 0, mWidth, 0, mHeight, -1.0, 1.0 );
+  glMatrixMode( GL_MODELVIEW );
 
   SizeViewsToConfiguration();
 }

@@ -2,7 +2,8 @@
 # Makefile.am for scuba
 #
 
-AM_CPPFLAGS=-I/usr/include/GL $(GLUT_CFLAGS) $(TCL_CFLAGS) $(tcl_includes) -I$(top_srcdir)/include -I$(top_srcdir)/dicom
+AM_CPPFLAGS=-I/usr/include/GL $(GLUT_CFLAGS) $(TCL_CFLAGS) $(tcl_includes) -I$(top_srcdir)/include -I$(top_srcdir)/dicom -I/opt/intel/mkl70/include
+
 AM_LDFLAGS=-L$(top_srcdir)/lib $(LDFLAGS_TCL)
 
 UTILITIES_SRCS=Volume3.cpp \
@@ -56,10 +57,14 @@ GUI_SRCS= \
 	TclProgressDisplayManager.cpp \
 	togl.c
 
-bin_PROGRAMS = scuba
+bin_PROGRAMS = scuba wxscuba
 scuba_SOURCES=$(UTILITIES_SRCS) $(BASIC_SRCS) $(FSDATA_SRCS) $(GUI_SRCS) $(LAYER_SRCS) scuba.cpp 
 LDADD= $(addprefix $(top_srcdir)/,$(LIBS_MGH)) $(LIBS_TCL_OPENGL)
 scuba_LDFLAGS=
+
+wxscuba_SOURCES=$(UTILITIES_SRCS) $(BASIC_SRCS) $(FSDATA_SRCS) $(GUI_SRCS) $(LAYER_SRCS) wxScubaFrame.cpp wxscuba.cpp 
+wxscuba_CXXFLAGS=`wx-config --cxxflags`
+wxscuba_LDFLAGS=`wx-config --libs` -lwx_gtk_gl-2.4
 
 foodir=$(prefix)/lib/tcl
 foo_SCRIPTS=scuba.tcl tkcon.tcl
@@ -72,7 +77,7 @@ check_PROGRAMS= testIDTracker testBroadcaster testUtilities \
 	testSurfaceCollection testScubaLayers testScubaLayer2DMRI \
 	testScubaLayer2DMRIS testScubaView testScubaFrame \
 	testScubaTransform testScubaColorLUT testScubaROI testScubaROIVolume \
-	testVectorOps testRASToVoxel
+	testVectorOps testRASToVoxel testCoordTimer
 
 TESTS=$(check_PROGRAMS) 
 
@@ -108,6 +113,9 @@ testPreferencesManager_SOURCES=test_PreferenceManager.cpp \
 	$(UTILITIES_SRCS) $(BASIC_SRCS) 
 testUndoManager_SOURCES=test_UndoManager.cpp \
 	$(UTILITIES_SRCS) $(BASIC_SRCS)
+testCoordTimer_SOURCES= test_CoordTimer.cpp \
+	$(UTILITIES_SRCS) $(BASIC_SRCS) $(FSDATA_SRCS) $(GUI_SRCS)
+testCoordTimer_LDFLAGS=-L/opt/intel/mkl70/lib/32 -lmkl -lm
 
 testDataCollection_SOURCES=test_DataCollection.cpp \
 	$(UTILITIES_SRCS) $(BASIC_SRCS) $(FSDATA_SRCS)

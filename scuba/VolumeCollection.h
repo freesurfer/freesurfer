@@ -64,6 +64,9 @@ class VolumeCollection : public DataCollection {
   float GetVoxelYSize () { return mVoxelSize[1]; }
   float GetVoxelZSize () { return mVoxelSize[2]; }
 
+  void GetRASRange ( float oRASRange[6] );
+  void GetMRIIndexRange ( int oMRIIndexRange[3] );
+
   // Coordinate conversion.
   void RASToMRIIndex ( float iRAS[3], int oIndex[3] );
   void RASToMRIIndex ( float iRAS[3], float oIndex[3] );
@@ -143,13 +146,18 @@ class VolumeCollection : public DataCollection {
 			       float iCenter[3], float iRadius,
 			       std::list<Point3<float> >& oPoints );
 
-  // Import and export markers from a control point file. Import sets
-  // the markers; if there are more than the number of markers, sets
-  // the number of markers to the number of control points. Export
-  // just saves all visible markers to a file.
-  void ImportMarkersFromControlPoints ( std::string ifnControlPoints );
-  void ExportMarkersToControlPoints ( std::string ifnControlPoints );
-  
+  // Import and export points to a control point file.
+  void ImportControlPoints ( std::string ifnControlPoints,
+			     std::list<Point3<float> >& oControlPoints);
+  void ExportControlPoints ( std::string ifnControlPoints,
+			     std::list<Point3<float> >& iControlPoints );
+
+
+  // Return a histogram from the RAS voxels passed in.
+  void MakeHistogram ( std::list<Point3<float> >& iRASPoints, int icBins,
+		       float& oMinBinValue, float& oBinIncrement,
+		       std::map<int,int>& oBinCounts );
+
 protected:
 
   // Gets information from the MRI structure.

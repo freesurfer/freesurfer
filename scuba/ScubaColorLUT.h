@@ -38,6 +38,8 @@ class ScubaColorLUT : public DebugReporter, public IDTracker<ScubaColorLUT>, pub
 
   std::string GetLabelAtIndex ( int iIndex );
 
+  int GetNumberOfEntries () { return mEntries.size(); }
+
   void SetLabel( std::string isLabel ) { msLabel = isLabel; }
   std::string GetLabel() { return msLabel; }
 

@@ -31,6 +31,11 @@ class InputState {
   void SetButtonUpEvent ();
   void ClearEvents ();
 
+  void SetShiftKey ( bool ibShiftKey ) { mbShiftKey = ibShiftKey; }
+  void SetAltKey ( bool ibAltKey ) { mbAltKey = ibAltKey; }
+  void SetControlKey ( bool ibControlKey ) { mbControlKey = ibControlKey; }
+  void SetKey ( std::string isKey ) { msKey = isKey; }
+
  protected:
   bool mbShiftKey;
   bool mbAltKey;

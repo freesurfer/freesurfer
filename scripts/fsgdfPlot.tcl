@@ -1,43 +1,17 @@
 #! /usr/bin/tixwish
 
-# $Id: fsgdfPlot.tcl,v 1.10 2004/09/15 16:23:43 kteich Exp $
+# $Id: fsgdfPlot.tcl,v 1.11 2004/10/04 01:51:35 kteich Exp $
 
 package require Tix;
 package require BLT;
 
-if { 0 } {
-    # Look for the library in the following place. If we can't find it, bail.
-    set fnLib "libtclfsgdf.so"
-    if { [info exists env(OS)] } {
-	switch $env(OS) {
-	    "Darwin" { set fnLib "libtclfsgdf.dylib" }
-	    "Linux" { set fnLib "libtclfsgdf.so" }
-	}
-    } 
-    
-    set bFound 0
-    catch { lappend lPath . }
-    catch { lappend lPath $env(FSGDF_DIR) }
-    catch { lappend lPath $env(FREESURFER_HOME)/lib/$env(OS) }
-    catch { lappend lPath $env(DEV)/lib/$env(OS) }
-    
-    set gbLibLoaded 0
-    foreach sPath $lPath {
-	
-	set fnLibrary [file join $sPath $fnLib]
-	set err [catch {load $fnLibrary fsgdf} sResult]
-	if { 0 == $err } {
-	    puts "Using $fnLibrary"
-	    set gbLibLoaded 1
-	    break
-	} 
-    }
-    if { !$gbLibLoaded } {
-	puts "Couldn't load $fnLib."
-    }
+# Make sure the gdf functions we need have been declared.
+set gbLibLoaded 0
+if { [info commands gdfRead] == "gdfRead" }  {
+    set gbLibLoaded 1
+} else {
+    puts "Couldn't find gdf commands."
 }
-
-set gbLibLoaded 1
 
 
 # This function finds a file from a list of directories.

@@ -119,7 +119,10 @@ proc TestFileDlog {} {
 	-type3 checkbox \
 	-prompt3 "cb3 " \
 	-defaultvalue3 1 \
-	-okCmd "puts %s1; puts %2; puts %3"
+	-type4 menu \
+	-prompt4 "Choose an item:" \
+	-menu4 {{0 "Zero"} {1 "One"} {2 "Two"}} \
+	-okCmd "puts %s1; puts %s2; puts %s3; puts %s4"
 }
  
 proc TestFormattedErrorDlog {} {

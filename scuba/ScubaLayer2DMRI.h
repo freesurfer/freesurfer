@@ -98,6 +98,15 @@ class ScubaLayer2DMRI : public Layer {
 			       Path<float>& iRASPath );
 				 
   virtual void GetPreferredInPlaneIncrements ( float oIncrements[3] );
+
+  // Create the histogram fill window from a list of voxels.
+  void MakeHistogramFillWindow ( std::list<Point3<float> >& iRAS );
+
+  // Get a list of voxels in the current visible view plane. One RAS per
+  // voxel.
+  void GetRASInVisibleViewPlane ( int iWidth, int iHeight, 
+				  ScubaWindowToRASTranslator& iTranslator,
+				  std::list<Point3<float> >&  oRAS );
  
  protected:
   

@@ -381,10 +381,22 @@ x markers
 - b/c controled by mouse, perhaps mod+mouse when nav tool is on
 x import/export control points
 
-- fill by histogram
-  - get region with histogram
-  - define min max
-  - fill values in other (seg) volume with label (value)
+- Segment Slice by Histogram
+  - get histogram on slice or selection in slice
+    x calcs bins and sends list of value-count pairs to histogram
+    x ScubaView function will look for optional ROI 
+  - fill values in seg value
+    - c func takes list of range and values to fill
+    - undoable, counted as single action
+    - if roi was spec'd in the first place, only fill in ROI
+  - histolabel tcl code
+    x tk histogram draws
+    x tk histogram
+    x tk histogram, choose seg vol, get table from it, assign values
+
+CURRENTLY:
+ - if you give it a blank ROI, doesn't return correct range
+
 
 BUGS:::
 - tabbing when in console switches frame, disable?
@@ -396,7 +408,6 @@ BUGS:::
   - circle brush doesn't work in proper plane
   - fill not in view plane
 - new value stuff doesn't show up unless you click Tools panel first, then click voxelEditing button
-
 
 FUTURE IDEAS:::
 

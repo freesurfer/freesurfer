@@ -12,6 +12,7 @@
 #include "ScubaToolState.h"
 #include "ScubaTransform.h"
 #include "Point2.h"
+#include "VolumeCollection.h"
 
 class ScubaViewStaticTclListener : public DebugReporter, 
 				   public TclCommandListener {
@@ -106,6 +107,24 @@ public:
   static bool IsNthMarkerVisible ( int inMarker );
   static void GetNthMarker ( int inMarker, float oMarkerRAS[3] );
 
+  // Gets a histogram of values in the current view from the given
+  // volume. Generates a list of RAS points in the current view and
+  // passes that to the volume to generate a histogram, and returns
+  // the data.
+  void GetVolumeHistogramInView ( VolumeCollection& iSourceVol,
+				  ScubaROIVolume* iROI,
+				  int icBins,
+				  float& oMinBinValue, float& oBinIncrement,
+				  std::map<int,int>& oBinCounts );
+
+  void BeginValueRangeFill ( VolumeCollection& iSourceVol,
+			     ScubaROIVolume* iROI,
+			     VolumeCollection& iDestVol );
+  void DoOneValueRangeFill ( float iBeginValueRange,
+			     float iEndValueRange,
+			     float iFillValue );
+  void EndValueRangeFill   ();
+
 protected:
 
   // Tells all the layers to draw in the correct order to the frame
@@ -196,6 +215,7 @@ protected:
   float mInPlaneMovementIncrements[3];
 
   // The buffer for this view.
+  void DrawBuffer ();
   GLubyte* mBuffer;
 
   // Key assignments.
@@ -259,6 +279,24 @@ protected:
   static ScubaViewStaticTclListener mStaticListener;
 
   Matrix44 mTmpRotation;
+
+  class ValueRangeFillElement {
+  public:
+    ValueRangeFillElement ( float iBegin, float iEnd, float iValue ) :
+      mBegin(iBegin), mEnd(iEnd), mValue(iValue) {}
+    float mBegin, mEnd, mValue;
+  };
+
+  class ValueRangeFillParams {
+  public:
+    ValueRangeFillParams ( VolumeCollection& iSrc, ScubaROIVolume* iROI, VolumeCollection& iDest ) : mSourceVol(iSrc), mROI(iROI), mDestVol(iDest) {} 
+    VolumeCollection& mSourceVol;
+    ScubaROIVolume* mROI;
+    VolumeCollection& mDestVol;
+    std::list<ValueRangeFillElement> mFillElements;
+  };
+
+  ValueRangeFillParams* mValueRangeFillParams;
 };  
 
 class ScubaViewFactory : public ViewFactory {

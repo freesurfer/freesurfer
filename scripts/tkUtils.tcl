@@ -1,6 +1,6 @@
 # tkUtils.tcl (tku)
 
-# $Id: tkUtils.tcl,v 1.9 2004/08/23 03:26:47 kteich Exp $
+# $Id: tkUtils.tcl,v 1.10 2004/10/04 01:51:42 kteich Exp $
 
 # tkuMakeMenu isMenuButton "Menu Name" {item...}
 # item = { command   "Item Name" command                [group_name] }
@@ -52,6 +52,10 @@ proc tkuMakeActiveLabel { ifwTop args } {
 
     frame $ifwTop
 
+    if { [info exists aArgs(-bg)] } {
+	$ifwTop configure -bg $aArgs(-bg)
+    }
+
     if { $aArgs(-label) != "" } {
 	label $ifwTop.lw \
 		-font $aArgs(-font) \
@@ -59,6 +63,10 @@ proc tkuMakeActiveLabel { ifwTop args } {
 		-width $aArgs(-labelwidth) \
 		-height $aArgs(-labelheight) \
 		-anchor e
+	
+	if { [info exists aArgs(-bg)] } {
+	    $ifwTop.lw configure -bg $aArgs(-bg)
+	}
 
 	pack $ifwTop.lw \
 		-side left \
@@ -81,6 +89,10 @@ proc tkuMakeActiveLabel { ifwTop args } {
 	    -height $aArgs(-height) \
 	    -relief flat \
 	    -anchor w
+    
+    if { [info exists aArgs(-bg)] } {
+	$ifwTop.ew configure -bg $aArgs(-bg)
+    }
 
     pack $ifwTop.ew \
 	    -side left \
@@ -879,8 +891,52 @@ proc tkuDoFileDlog { args } {
 			-orientation h \
 			-checkboxes [list \
                            [list -type text -label "$aArgs(-prompt$nField)" \
-				-variable sFileName$nField]
-		       ] 
+				-variable sFileName$nField] ]
+		}
+		menu { 
+		    # Make sure we have a -menu argument.
+		    if { ![info exists aArgs(-menu$nField)] } {
+			puts "Missing -menu for field $nField"
+			return
+		    }
+
+		    # This one is complicated. We have a frame with a
+		    # normal label in it, then a menubutton. The
+		    # menubutton has a menu which we fill from the
+		    # -menu argument we should've gotten. That uses a
+		    # callback which will set the text of the menu
+		    # button as well as the variable name for this
+		    # field.
+		    set fwMenu [set fwPrompt$nField]
+		    set lw     $fwMenu.lw
+		    set mbw    $fwMenu.mbw
+		    set mw     $mbw.mw
+
+		    frame $fwMenu
+
+		    tkuMakeNormalLabel $lw \
+			-label "$aArgs(-prompt$nField)"
+
+		    menubutton $mbw \
+			-text "Chose" \
+			-menu $mw \
+			-indicatoron 1
+
+		    menu $mw
+		    foreach lValueLabel $aArgs(-menu$nField) {
+			set value [lindex $lValueLabel 0]
+			set sLabel [lindex $lValueLabel 1]
+			$mw add command \
+			    -label $sLabel \
+	    -command "FileDlogMenuCallback $nField $mbw \"$sLabel\" $value"
+		    }
+
+		    pack $lw $mbw \
+			-anchor w \
+			-side left
+
+		    # Default value is -1;
+		    set sFileName$nField -1
 		}
 		note { 
 		    tkuMakeNormalLabel [set fwPrompt$nField] \
@@ -928,7 +984,15 @@ proc tkuDoFileDlog { args } {
 	    wm minsize %s %d [winfo reqheight %s]
 	} $wwDialog $knWidth $wwDialog] 
     }
+} 
+
+proc FileDlogMenuCallback { inField imbw isLabel iValue } {
+    global sFileName$inField
+    $imbw config -text "$isLabel"
+    set sFileName$inField $iValue
 }
+
+		    
 
 # ============================================================ FILE SELECTORS
 

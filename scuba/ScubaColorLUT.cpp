@@ -30,6 +30,9 @@ ScubaColorLUT::ScubaColorLUT() {
 			 "Returns the number of entries in an LUT." );
   commandMgr.AddCommand( *this, "GetColorLUTEntryLabel", 2, "lutID entry",
 			 "Returns the label for an entry in an LUT." );
+  commandMgr.AddCommand( *this, "GetColorLUTEntryRGB", 2, "lutID entry",
+			 "Returns the rgb values (0-255) for an entry "
+			 "in an LUT." );
 
 }
 
@@ -148,6 +151,36 @@ ScubaColorLUT::DoListenToTclCommand ( char* isCommand,
       sReturnFormat = "s";
       stringstream ssReturnValues;
       ssReturnValues << "\"" << GetLabelAtIndex(nEntry) << "\"";
+      sReturnValues = ssReturnValues.str();
+    }
+  }
+
+  // GetColorLUTEntryRGB <lutID> <entry>
+  if( 0 == strcmp( isCommand, "GetColorLUTEntryRGB" ) ) {
+    int lutID = strtol(iasArgv[1], (char**)NULL, 10);
+    if( ERANGE == errno ) {
+      sResult = "bad transform ID";
+      return error;
+    }
+    
+    if( mID == lutID ) {
+
+      int nEntry = strtol(iasArgv[2], (char**)NULL, 10);
+      if( ERANGE == errno ) {
+	sResult = "bad entry";
+	return error;
+      }
+
+      if( nEntry < 0 || nEntry >= mcEntries ) {
+	sResult = "No entry at this index";
+	return error;
+      }
+
+      sReturnFormat = "Liiil";
+      stringstream ssReturnValues;
+      ssReturnValues << mEntries[nEntry].color[0] << " "
+		     << mEntries[nEntry].color[1] << " "
+		     << mEntries[nEntry].color[2];
       sReturnValues = ssReturnValues.str();
     }
   }

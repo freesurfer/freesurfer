@@ -146,6 +146,27 @@ ScubaView::ScubaView() {
 			 "Returns the amount the in plane movement "
 			 "increment for inPlane. inPlane should be x, "
 			 "y, or z." );
+  commandMgr.AddCommand( *this, "GetVolumeHistogramInView", 4, 
+			 "viewID volID roiID numBins",
+			 "Returns a histogram of the volume that's visible in "
+			 "a view. Returns the format: minBinValue "
+			 "binIncrement{binCount0 binCount1 .. binCountN} "
+			 "where binCountN is numBins-1." );
+  commandMgr.AddCommand( *this, "BeginValueRangeFillInView", 4,
+			 "viewID sourceVolID roiID destVolID",
+			 "Begins a series of value range fills using the "
+			 "value ranges in sourceVolID to set values in "
+			 "destVolID." );
+  commandMgr.AddCommand( *this, "DoOneValueRangeFillInView", 4,
+			 "viewID, beginValueRange, endValueRange, fillValue",
+			 "Adds a single range to a series of value range "
+			 "fills. Must be between a call to "
+			 "BeginValueRangeFillInView and "
+			 "EndValueRangeFillInView." );
+  commandMgr.AddCommand( *this, "EndValueRangeFillInView", 1, "viewID",
+			 "Performs the series of value range fills "
+			 "specified by DoOneValueRangeFill." );
+			 
 
   // Get some prefs values
   ScubaGlobalPreferences& prefs = ScubaGlobalPreferences::GetPreferences();
@@ -181,7 +202,7 @@ ScubaView::Set2DRASCenter ( float iRASCenter[3] ) {
   mViewState.mCenterRAS[0] = iRASCenter[0];
   mViewState.mCenterRAS[1] = iRASCenter[1];
   mViewState.mCenterRAS[2] = iRASCenter[2];
-    
+
   // Broadcast this change.
   ScubaViewBroadcaster& broadcaster = ScubaViewBroadcaster::GetBroadcaster();
   broadcaster.SendBroadcast( "2DRASCenterChanged", (void*)&mID );
@@ -984,6 +1005,244 @@ ScubaView::DoListenToTclCommand( char* isCommand, int iArgc, char** iasArgv ) {
     }
   }
 
+  // GetVolumeHistogramInView <viewID> <volID> <roiID> <numBins>
+  if( 0 == strcmp( isCommand, "GetVolumeHistogramInView" ) ) {
+
+    int viewID;
+    try {
+      viewID = TclCommandManager::ConvertArgumentToInt( iasArgv[1] );
+    }
+    catch( runtime_error e ) {
+      sResult = string("bad viewID: ") + e.what();
+      return error;
+    }
+    
+    if( mID == viewID ) {
+      
+      int collectionID;
+      try {
+	collectionID = TclCommandManager::ConvertArgumentToInt( iasArgv[2] );
+      }
+      catch( runtime_error e ) {
+	sResult = string("bad collectionID: ") + e.what();
+	return error;
+      }
+
+      // Find a volume collection.
+      VolumeCollection* vol = NULL;
+      try { 
+	DataCollection* col = &DataCollection::FindByID( collectionID );
+	//    VolumeCollection* vol = dynamic_cast<VolumeCollection*>(col);
+	vol = (VolumeCollection*)col;
+      }
+      catch (...) {
+	throw runtime_error( "Couldn't find volume or data collection "
+			     "wasn't a volume.." );
+      }
+
+      // Find an ROI if they want.
+      int roiID;
+      try {
+	roiID = TclCommandManager::ConvertArgumentToInt( iasArgv[3] );
+      }
+      catch( runtime_error e ) {
+	sResult = string("bad roiID: ") + e.what();
+	return error;
+      }
+
+      ScubaROIVolume* volROI = NULL;
+      if( roiID != -1 ) {
+	try { 
+	  ScubaROI* roi = &ScubaROI::FindByID( roiID );
+	  volROI = (ScubaROIVolume*)roi;
+	}
+	catch (...) {
+	  throw runtime_error( "Couldn't find ROI or ROI "
+			       "wasn't a volume ROI.." );
+	}
+      }
+
+      int cBins;
+      try {
+	cBins = TclCommandManager::ConvertArgumentToInt( iasArgv[4] );
+      }
+      catch( runtime_error e ) {
+	sResult = string("bad numBins: ") + e.what();
+	return error;
+      }
+
+      float minBinValue, binIncrement;
+      map<int,int> binCounts;
+      GetVolumeHistogramInView( *vol, volROI, cBins, 
+				minBinValue, binIncrement, binCounts );
+
+      // Build the output.
+      stringstream ssValues;
+      stringstream ssFormat;
+
+      ssFormat << "Lff";
+      ssValues << minBinValue << " " << binIncrement << " ";
+      
+      ssFormat << "L";
+      for( int nBin = 0; nBin < (int)binCounts.size(); nBin++ ) {
+	ssFormat << "i";
+	ssValues << binCounts[nBin] << " ";
+      }
+      ssFormat << "ll";
+
+      sReturnFormat = ssFormat.str();
+      sReturnValues = ssValues.str();
+    }
+
+  }
+
+
+  // BeginValueRangeFillInView <viewID> <sourceVolID> <roiID> <destVolID>
+  if( 0 == strcmp( isCommand, "BeginValueRangeFillInView" ) ) {
+
+    int viewID;
+    try {
+      viewID = TclCommandManager::ConvertArgumentToInt( iasArgv[1] );
+    }
+    catch( runtime_error e ) {
+      sResult = string("bad viewID: ") + e.what();
+      return error;
+    }
+    
+    if( mID == viewID ) {
+      
+      int sourceVolID;
+      try {
+	sourceVolID = TclCommandManager::ConvertArgumentToInt( iasArgv[2] );
+      }
+      catch( runtime_error e ) {
+	sResult = string("bad sourceVolID: ") + e.what();
+	return error;
+      }
+
+      // Find a volume collection.
+      VolumeCollection* sourceVol = NULL;
+      try { 
+	DataCollection* col = &DataCollection::FindByID( sourceVolID );
+	//    VolumeCollection* vol = dynamic_cast<VolumeCollection*>(col);
+	sourceVol = (VolumeCollection*)col;
+      }
+      catch (...) {
+	throw runtime_error( "Couldn't find source volume or data collection "
+			     "wasn't a volume.." );
+      }
+
+      // Find an ROI if they want.
+      int roiID;
+      try {
+	roiID = TclCommandManager::ConvertArgumentToInt( iasArgv[3] );
+      }
+      catch( runtime_error e ) {
+	sResult = string("bad roiID: ") + e.what();
+	return error;
+      }
+
+      ScubaROIVolume* volROI = NULL;
+      if( roiID != -1 ) {
+	try { 
+	  ScubaROI* roi = &ScubaROI::FindByID( roiID );
+	  volROI = (ScubaROIVolume*)roi;
+	}
+	catch (...) {
+	  throw runtime_error( "Couldn't find ROI or ROI "
+			       "wasn't a volume ROI.." );
+	}
+      }
+
+      int destVolID;
+      try {
+	destVolID = TclCommandManager::ConvertArgumentToInt( iasArgv[4] );
+      }
+      catch( runtime_error e ) {
+	sResult = string("bad destVolID: ") + e.what();
+	return error;
+      }
+
+      // Find a volume collection.
+      VolumeCollection* destVol = NULL;
+      try { 
+	DataCollection* col = &DataCollection::FindByID( destVolID );
+	//    VolumeCollection* vol = dynamic_cast<VolumeCollection*>(col);
+	destVol = (VolumeCollection*)col;
+      }
+      catch (...) {
+	throw runtime_error( "Couldn't find dest volume or data collection "
+			     "wasn't a volume.." );
+      }
+
+      BeginValueRangeFill( *sourceVol, volROI, *destVol );
+    }
+  }
+
+
+  // DoOneValueRangeFillInView <viewID> <begin> <end> <value>
+  if( 0 == strcmp( isCommand, "DoOneValueRangeFillInView" ) ) {
+
+    int viewID;
+    try {
+      viewID = TclCommandManager::ConvertArgumentToInt( iasArgv[1] );
+    }
+    catch( runtime_error e ) {
+      sResult = string("bad viewID: ") + e.what();
+      return error;
+    }
+    
+    if( mID == viewID ) {
+      
+      float begin;
+      try {
+	begin = TclCommandManager::ConvertArgumentToFloat( iasArgv[2] );
+      }
+      catch( runtime_error e ) {
+	sResult = string("bad beginValueRange: ") + e.what();
+	return error;
+      }
+
+      float end;
+      try {
+	end = TclCommandManager::ConvertArgumentToFloat( iasArgv[3] );
+      }
+      catch( runtime_error e ) {
+	sResult = string("bad endValueRange: ") + e.what();
+	return error;
+      }
+
+      float value;
+      try {
+	value = TclCommandManager::ConvertArgumentToFloat( iasArgv[4] );
+      }
+      catch( runtime_error e ) {
+	sResult = string("bad valueValueRange: ") + e.what();
+	return error;
+      }
+
+      DoOneValueRangeFill( begin, end, value );
+    }
+  }
+  
+  // EndValueRangeFillInView <viewID>
+  if( 0 == strcmp( isCommand, "EndValueRangeFillInView" ) ) {
+
+    int viewID;
+    try {
+      viewID = TclCommandManager::ConvertArgumentToInt( iasArgv[1] );
+    }
+    catch( runtime_error e ) {
+      sResult = string("bad viewID: ") + e.what();
+      return error;
+    }
+    
+    if( mID == viewID ) {
+
+      EndValueRangeFill();
+    }
+  }
+
 
   return ok;
 }
@@ -1172,14 +1431,13 @@ ScubaView::DoMouseMoved( int iWindow[2],
   // Rebuild our label value info because the mouse has moved.
   RebuildLabelValueInfo( ras, "mouse" );
 
-
   // Handle the navigation tool and plane tool.
   if( iTool.GetMode() == ScubaToolState::navigation ||
       iTool.GetMode() == ScubaToolState::plane ) {
 
     if( iInput.Button() && 
 	!iInput.IsControlKeyDown() && !iInput.IsShiftKeyDown() ) {
-      
+
       float delta[2];
       delta[0] = (float)(mLastMouseMoved[0] - iWindow[0]) / 
 	mViewState.mZoomLevel;
@@ -1996,6 +2254,146 @@ ScubaView::SetFlipLeftRightYZ ( bool iFlip ) {
 }
 
 
+void
+ScubaView::GetVolumeHistogramInView ( VolumeCollection& iSourceVol,
+				      ScubaROIVolume* iROI,
+				      int icBins,
+				      float& oMinBinValue,
+				      float& oBinIncrement,
+				      map<int,int>& oBinCounts ) {
+
+  // First we need to generate a list of RAS points in the view. We
+  // step through pixel by pixel but as we only want to do voxel
+  // resolution for the volume, we neeed to only add RAS points that
+  // have a unique voxel index. So make a volume the same size as the
+  // volume that we use to track which voxels have been added. Then go
+  // through all the RAS points on screen, convert to voxel index, and
+  // check if they've been added. If not, add them to the RAS list.
+  int range[3];
+  iSourceVol.GetMRIIndexRange( range );
+  Volume3<bool> bAdded( range[0], range[1], range[2], false );
+
+  int window[2];
+  Point3<float> RAS;
+  list<Point3<float> > RASPoints;
+  Point3<int> index;
+  for( window[1] = 0; window[1] < mHeight; window[1]++ ) {
+    for( window[0] = 0; window[0] < mWidth; window[0]++ ) {
+      TranslateWindowToRAS( window, RAS.xyz() );
+      if( iSourceVol.IsRASInMRIBounds( RAS.xyz() ) ) {
+	iSourceVol.RASToMRIIndex( RAS.xyz(), index.xyz() );
+
+	// If they gave us an ROI to use, make sure this is in the
+	// ROI.
+	if( NULL != iROI ) {
+	  if( !iROI->IsVoxelSelected( index.xyz() ) ) {
+	    continue;
+	  }
+	}
+
+	// If not already added, add it.
+	if( !bAdded.Get( index[0], index[1], index[2] ) ) {
+	  bAdded.Set( index[0], index[1], index[2], true );
+	  RASPoints.push_back( RAS );
+	}
+      }
+    }
+  }
+
+  if( oBinCounts.size() == 0 ) {
+    oMinBinValue = 0;
+    oBinIncrement = 0;
+  }
+
+  // Now just get a histogram for those points.
+  iSourceVol.MakeHistogram ( RASPoints, icBins,
+			     oMinBinValue, oBinIncrement, oBinCounts );
+}
+
+
+void
+ScubaView::BeginValueRangeFill ( VolumeCollection& iSourceVol,
+				 ScubaROIVolume* iROI,
+				 VolumeCollection& iDestVol ) {
+
+  if( NULL != mValueRangeFillParams ) {
+    throw runtime_error( "Already performing a value range fill." );
+  }
+
+  // Start a value range fill struct.
+  mValueRangeFillParams = 
+    new ValueRangeFillParams ( iSourceVol, iROI, iDestVol );
+
+}
+ 
+void 
+ScubaView::DoOneValueRangeFill ( float iBeginValueRange,
+				 float iEndValueRange,
+				 float iFillValue ) {
+
+  if( NULL == mValueRangeFillParams ) {
+    throw runtime_error( "Not performing a value range fill." );
+  }
+
+  // Add this range/value to our list.
+  ValueRangeFillElement
+    element( iBeginValueRange, iEndValueRange, iFillValue );
+  mValueRangeFillParams->mFillElements.push_back( element );
+}
+
+void
+ScubaView::EndValueRangeFill () {
+
+  VolumeCollection& sourceVol = mValueRangeFillParams->mSourceVol;
+  VolumeCollection& destVol   = mValueRangeFillParams->mDestVol;
+
+  // Do the same walk through of voxels that we do in the get histogram.
+  int range[3];
+  sourceVol.GetMRIIndexRange( range );
+  Volume3<bool> bAdded( range[0], range[1], range[2], false );
+
+  int window[2];
+  Point3<float> RAS;
+  list<Point3<float> > RASPoints;
+  Point3<int> index;
+  for( window[1] = 0; window[1] < mHeight; window[1]++ ) {
+    for( window[0] = 0; window[0] < mWidth; window[0]++ ) {
+      TranslateWindowToRAS( window, RAS.xyz() );
+      if( sourceVol.IsRASInMRIBounds( RAS.xyz() ) ) {
+	sourceVol.RASToMRIIndex( RAS.xyz(), index.xyz() );
+
+	// If they gave us an ROI to use, make sure this is in the
+	// ROI.
+	if( NULL != mValueRangeFillParams->mROI ) {
+	  if( !mValueRangeFillParams->mROI->IsVoxelSelected( index.xyz() ) ) {
+	    continue;
+	  }
+	}
+
+	// We need to see if we should fill this voxel. Go through our
+	// list and see if it falls into a range. If so, edit the
+	// value in the dest.
+	float value = sourceVol.GetMRINearestValueAtRAS( RAS.xyz() );
+	list<ValueRangeFillElement>::iterator tRange;
+	for( tRange = mValueRangeFillParams->mFillElements.begin();
+	     tRange != mValueRangeFillParams->mFillElements.end();
+	     ++tRange ) {
+	  ValueRangeFillElement& element = *tRange;
+	  if( value > element.mBegin && value < element.mEnd ) {
+	    destVol.SetMRIValueAtRAS( RAS.xyz(), element.mValue );
+	    break;
+	  }
+	}
+      }
+    }
+  }
+
+  delete mValueRangeFillParams;
+  mValueRangeFillParams = NULL;
+}
+
+
+
 void 
 ScubaView::BuildFrameBuffer () {
 
@@ -2066,6 +2464,12 @@ ScubaView::DrawFrameBuffer () {
   glEnd();
   glGetError(); // clear error
 #endif  
+
+  DrawBuffer();
+}
+
+void
+ScubaView::DrawBuffer () {
 
   glRasterPos2i( 0, 0 );
   glDrawPixels( mWidth, mHeight, GL_RGBA, GL_UNSIGNED_BYTE, mBuffer );
@@ -2420,6 +2824,14 @@ ScubaViewStaticTclListener::ScubaViewStaticTclListener () {
 			 "Sets the number of view markers." );
   commandMgr.AddCommand( *this, "GetNumberOfViewMarkers", 0, "", 
 			 "Returns the number of view markers." );
+  commandMgr.AddCommand( *this, "ExportMarkersToControlPoints", 2, 
+			 "collectionID fileName", 
+			 "Writes the markers to a control.dat file using "
+			 "a volume collection to transform them." );
+  commandMgr.AddCommand( *this, "ImportMarkersFromControlPoints", 2,
+			 "collectionID fileName", 
+			 "Imports markers from a control.dat file using "
+			 "a volume collection to transform them.." );
 }
 
 ScubaViewStaticTclListener::~ScubaViewStaticTclListener () {
@@ -2449,6 +2861,81 @@ ScubaViewStaticTclListener::DoListenToTclCommand ( char* isCommand,
       sReturnValues = ssReturnValues.str();
   }
 
+  // ImportMarkersFromControlPoints <collectionID> <fileName>
+  if( 0 == strcmp( isCommand, "ImportMarkersFromControlPoints" ) ) {
+    int collectionID = strtol(iasArgv[1], (char**)NULL, 10);
+    if( ERANGE == errno ) {
+      sResult = "bad collection ID";
+      return error;
+    }
+    
+    // Find a volume collection.
+    VolumeCollection* vol = NULL;
+    try { 
+      DataCollection* col = &DataCollection::FindByID( collectionID );
+      //    VolumeCollection* vol = dynamic_cast<VolumeCollection*>(col);
+      vol = (VolumeCollection*)col;
+    }
+    catch (...) {
+      throw runtime_error( "Couldn't find volume or data collection "
+			   "wasn't a volume.." );
+    }
+      
+    string fnControlPoints = iasArgv[2];
+    list<Point3<float> > lControlPoints;
+    vol->ImportControlPoints( fnControlPoints, lControlPoints );
+
+    // Set the number of markers if we don't have enough.
+    int cControlPoints = lControlPoints.size();
+    int cMarkers = ScubaView::GetNumberOfMarkers();
+    if( cMarkers < cControlPoints ) {
+      ScubaView::SetNumberOfMarkers( cControlPoints );
+    }
+
+    list<Point3<float> >::iterator tControlPoint;
+    for( tControlPoint = lControlPoints.begin();
+	 tControlPoint != lControlPoints.end();
+	 ++tControlPoint ) {
+      
+      ScubaView::SetNextMarker( (*tControlPoint).xyz() );
+    }
+  }
+  
+  // ExportMarkersToControlPoints <collectionID> <fileName>
+  if( 0 == strcmp( isCommand, "ExportMarkersToControlPoints" ) ) {
+    int collectionID = strtol(iasArgv[1], (char**)NULL, 10);
+    if( ERANGE == errno ) {
+      sResult = "bad collection ID";
+      return error;
+    }
+
+    // Find a volume collection.
+    VolumeCollection* vol = NULL;
+    try { 
+      DataCollection* col = &DataCollection::FindByID( collectionID );
+      //    VolumeCollection* vol = dynamic_cast<VolumeCollection*>(col);
+      vol = (VolumeCollection*)col;
+    }
+    catch (...) {
+      throw runtime_error( "Couldn't find volume or data collection "
+			   "wasn't a volume.." );
+    }
+      
+    // Make a list out of our visible control points.
+    list<Point3<float> > lMarkers;
+    int cMarkers = ScubaView::GetNumberOfMarkers();
+    for( int nMarker = 0; nMarker < cMarkers; nMarker++ ) {
+      if( ScubaView::IsNthMarkerVisible( nMarker ) ) {
+	float markerRAS[3];
+	ScubaView::GetNthMarker( nMarker, markerRAS );
+	lMarkers.push_back( Point3<float>( markerRAS ) );
+      }
+    }
+    
+    string fnControlPoints = iasArgv[2];
+    vol->ExportControlPoints( fnControlPoints, lMarkers );
+  }
+  
   return ok;
 }
 

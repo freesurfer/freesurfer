@@ -5,7 +5,7 @@
 
 using namespace std;
 
-map<ToglFrame::ID,ToglFrame*> ToglManager::mFrames;
+map<WindowFrame::ID,WindowFrame*> ToglManager::mFrames;
 WindowFrameFactory* ToglManager::mFactory = NULL;
 InputState ToglManager::mState;
 
@@ -13,8 +13,8 @@ InputState ToglManager::mState;
 void
 ToglManager::DrawCallback ( struct Togl* iTogl ) {
 
-  ToglFrame::ID id = atoi( Togl_Ident( iTogl ));
-  ToglFrame* frame = mFrames[id];
+  WindowFrame::ID id = atoi( Togl_Ident( iTogl ));
+  WindowFrame* frame = mFrames[id];
   frame->Draw();
   Togl_SwapBuffers( iTogl );
 }
@@ -23,8 +23,8 @@ void
 ToglManager::CreateCallback ( struct Togl* iTogl ) {
 
   if( NULL != mFactory ) {
-    ToglFrame::ID id = atoi( Togl_Ident( iTogl ));
-    ToglFrame* frame = (ToglFrame*) mFactory->NewWindowFrame( id );
+    WindowFrame::ID id = atoi( Togl_Ident( iTogl ));
+    WindowFrame* frame = (WindowFrame*) mFactory->NewWindowFrame( id );
     mFrames[id] = frame;
   }
 }
@@ -34,8 +34,8 @@ ToglManager::DestroyCallback ( struct Togl* iTogl ) {
 
   char* sIdent = Togl_Ident( iTogl ); // sometimes this is null?
   if( NULL != sIdent ) {
-    ToglFrame::ID id = atoi( Togl_Ident( iTogl ));
-    ToglFrame* frame = mFrames[id];
+    WindowFrame::ID id = atoi( Togl_Ident( iTogl ));
+    WindowFrame* frame = mFrames[id];
     delete frame;
     mFrames[id] = NULL;
   }
@@ -44,8 +44,8 @@ ToglManager::DestroyCallback ( struct Togl* iTogl ) {
 void
 ToglManager::ReshapeCallback ( struct Togl* iTogl ) {
 
-  ToglFrame::ID id = atoi( Togl_Ident( iTogl ));
-  ToglFrame* frame = mFrames[id];
+  WindowFrame::ID id = atoi( Togl_Ident( iTogl ));
+  WindowFrame* frame = mFrames[id];
   int width = Togl_Width( iTogl );
   int height = Togl_Height( iTogl );
   frame->Reshape( width, height );
@@ -60,8 +60,8 @@ ToglManager::ReshapeCallback ( struct Togl* iTogl ) {
 void
 ToglManager::TimerCallback ( struct Togl* iTogl ) {
 
-  ToglFrame::ID id = atoi( Togl_Ident( iTogl ));
-  ToglFrame* frame = mFrames[id];
+  WindowFrame::ID id = atoi( Togl_Ident( iTogl ));
+  WindowFrame* frame = mFrames[id];
   frame->Timer();
 
   // Post a redisplay if the frame wants one. 
@@ -85,8 +85,8 @@ ToglManager::MouseMotionCallback ( struct Togl* iTogl,
     mState.SetButtonDragEvent();
   }
 
-  ToglFrame::ID id = atoi( Togl_Ident( iTogl ));
-  ToglFrame* frame = mFrames[id];
+  WindowFrame::ID id = atoi( Togl_Ident( iTogl ));
+  WindowFrame* frame = mFrames[id];
 
   int windowCoords[2];
   windowCoords[0] = atoi(iArgv[2]);
@@ -114,8 +114,8 @@ ToglManager::MouseDownCallback ( struct Togl* iTogl,
   // Mouse down event.
   mState.SetButtonDownEvent( atoi(iArgv[4]) );
 
-  ToglFrame::ID id = atoi( Togl_Ident( iTogl ));
-  ToglFrame* frame = mFrames[id];
+  WindowFrame::ID id = atoi( Togl_Ident( iTogl ));
+  WindowFrame* frame = mFrames[id];
 
   int windowCoords[2];
   windowCoords[0] = atoi(iArgv[2]);
@@ -142,8 +142,8 @@ ToglManager::MouseUpCallback ( struct Togl* iTogl, int iArgc, char* iArgv[] ) {
   // Mouse up event.
   mState.SetButtonUpEvent();
   
-  ToglFrame::ID id = atoi( Togl_Ident( iTogl ));
-  ToglFrame* frame = mFrames[id];
+  WindowFrame::ID id = atoi( Togl_Ident( iTogl ));
+  WindowFrame* frame = mFrames[id];
 
   int windowCoords[2];
   windowCoords[0] = atoi(iArgv[2]);
@@ -188,8 +188,8 @@ ToglManager::KeyDownCallback ( struct Togl* iTogl, int iArgc, char* iArgv[] ) {
     // Record the key.
     mState.msKey = sKey;
     
-    ToglFrame::ID id = atoi( Togl_Ident( iTogl ));
-    ToglFrame* frame = mFrames[id];
+    WindowFrame::ID id = atoi( Togl_Ident( iTogl ));
+    WindowFrame* frame = mFrames[id];
 
     int windowCoords[2];
     windowCoords[0] = atoi(iArgv[2]);
@@ -232,8 +232,8 @@ ToglManager::KeyUpCallback ( struct Togl* iTogl, int iArgc, char* iArgv[] ) {
     // Record the key.
     mState.msKey = sKey;
     
-    ToglFrame::ID id = atoi( Togl_Ident( iTogl ));
-    ToglFrame* frame = mFrames[id];
+    WindowFrame::ID id = atoi( Togl_Ident( iTogl ));
+    WindowFrame* frame = mFrames[id];
 
     int windowCoords[2];
     windowCoords[0] = atoi(iArgv[2]);
@@ -304,17 +304,3 @@ ToglManager::InitializeTogl ( Tcl_Interp* iInterp ) {
 }
 
 
-void 
-ToglFrame::Reshape( int iWidth, int iHeight ) {
-
-  mWidth = iWidth;
-  mHeight = iHeight;
-
-  glViewport( 0, 0, mWidth, mHeight );
-  glMatrixMode( GL_PROJECTION );
-  glLoadIdentity();
-  glOrtho( 0, mWidth, 0, mHeight, -1.0, 1.0 );
-  glMatrixMode( GL_MODELVIEW );
-
-  WindowFrame::Reshape( iWidth, iHeight );
-}

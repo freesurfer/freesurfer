@@ -50,6 +50,9 @@ ScubaLayer2DMRI::ScubaLayer2DMRI () {
   commandMgr.AddCommand( *this, "Set2DMRILayerVolumeCollection", 2, 
 			 "layerID collectionID",
 			 "Sets the volume collection for this layer." );
+  commandMgr.AddCommand( *this, "Get2DMRILayerVolumeCollection", 1, 
+			 "layerID",
+			 "Returns the volume collection for this layer." );
   commandMgr.AddCommand( *this, "Set2DMRILayerColorMapMethod", 2, 
 			 "layerID method",
 			 "Sets the color map method for this layer." );
@@ -425,6 +428,23 @@ ScubaLayer2DMRI::DoListenToTclCommand ( char* isCommand, int iArgc, char** iasAr
 	sResult = "bad collection ID, collection not found";
 	return error;
       }
+    }
+  }
+
+  // Get2DMRILayerVolumeCollection <layerID>
+  if( 0 == strcmp( isCommand, "Get2DMRILayerVolumeCollection" ) ) {
+    int layerID = strtol(iasArgv[1], (char**)NULL, 10);
+    if( ERANGE == errno ) {
+      sResult = "bad layer ID";
+      return error;
+    }
+    
+    if( mID == layerID ) {
+
+      stringstream ssReturnValues;
+      ssReturnValues << (int) (mVolume->GetID());
+      sReturnValues = ssReturnValues.str();
+      sReturnFormat = "i";
     }
   }
 
@@ -1437,6 +1457,7 @@ ScubaLayer2DMRI::GetPreferredInPlaneIncrements ( float oIncrements[3] ) {
   oIncrements[2] = mVolume->GetVoxelZSize();
 }
 
+					    
 
 // ======================================================================
 

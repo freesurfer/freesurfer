@@ -3,8 +3,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2004/09/08 16:42:02 $
-// Revision       : $Revision: 1.13 $
+// Revision Date  : $Date: 2004/10/04 01:49:34 $
+// Revision       : $Revision: 1.14 $
 
 #ifndef TclCommandManager_h
 #define TclCommandManager_h
@@ -115,6 +115,7 @@ class TclCommandManager : public DebugReporter, public TclCommandListener {
   // it's an unconvertible value. The exception's message will
   // specify what the problem with the value was.
   static int ConvertArgumentToInt ( std::string isArg );
+  static float ConvertArgumentToFloat ( std::string isArg );
   static bool ConvertArgumentToBoolean ( std::string isArg );
   static std::string ConvertBooleanToReturnValue ( bool ib );
 

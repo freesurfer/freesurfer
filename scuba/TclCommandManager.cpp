@@ -431,6 +431,18 @@ TclCommandManager::ConvertArgumentToInt ( std::string isArg ) {
   return theInteger;
 }
 
+float
+TclCommandManager::ConvertArgumentToFloat ( std::string isArg ) {
+
+  float theFloat = strtof(isArg.c_str(), (char**)NULL);
+  if( ERANGE == errno ) { 
+    string sResult = "non-float value";
+    throw runtime_error( sResult );
+  }
+
+  return theFloat;
+}
+
 bool
 TclCommandManager::ConvertArgumentToBoolean ( std::string isArg ) {
 

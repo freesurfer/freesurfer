@@ -4,6 +4,7 @@
 #include <stdexcept>
 #include "Matrix44.h"
 #include "VectorOps.h"
+#include "mkl.h"
 extern "C" {
   #include "macros.h"
 }
@@ -234,7 +235,7 @@ Matrix44::ExtractRotation () {
 void 
 Matrix44::MultiplyVector3 ( float const iVector[3], float oVector[3] ) {
 
-#if 0
+#if 1
   float iX = iVector[0];
   float iY = iVector[1];
   float iZ = iVector[2];
@@ -258,26 +259,23 @@ Matrix44::MultiplyVector3 ( float const iVector[3], float oVector[3] ) {
   float b = m12 * iY;
   float c = m13 * iZ;
   float sum0 = a + b + c + m14;
-  int sumI0 = (int) sum0;
   
   float d = m21 * iX;
   float e = m22 * iY;
   float f = m23 * iZ;
   float sum1 = d + e + f + m24;
-  int sumI1 = (int) sum1;
 
   float g = m31 * iX;
   float h = m32 * iY;
   float i = m33 * iZ;
   float sum2 = g + h + i + m34;
-  int sumI2 = (int) sum2;
 
-  oVector[0] = sumI0;
-  oVector[1] = sumI1;
-  oVector[2] = sumI2;
+  oVector[0] = sum0;
+  oVector[1] = sum1;
+  oVector[2] = sum2;
+#endif
 
-#else
-  
+#if 0
   oVector[0] =
     GetCR(0,0) * iVector[0] +
     GetCR(1,0) * iVector[1] +
@@ -293,6 +291,32 @@ Matrix44::MultiplyVector3 ( float const iVector[3], float oVector[3] ) {
     GetCR(1,2) * iVector[1] +
     GetCR(2,2) * iVector[2] +
     GetCR(3,2);
+#endif
+
+#if 0
+  float A[3], B[3], C[3];
+  float alpha = 1.0;
+  float beta = 2.0;
+
+  A[0] = iVector[0];
+  A[1] = iVector[1];
+  A[2] = iVector[2];
+  B[0] = GetCR(0,0);
+  B[1] = GetCR(1,0);
+  B[2] = GetCR(2,0);
+
+  // In case of row major, no transpose for A, B.
+  cblas_sgemm ( CblasRowMajor, CblasNoTrans, CblasNoTrans, 
+		3, 3, 3,
+		alpha, 
+		A, 3, 
+		B, 3, 
+		beta, 
+		C, 3 );
+
+  oVector[0] = C[0];
+  oVector[1] = C[1];
+  oVector[2] = C[2];
 #endif
 }
 
@@ -390,72 +414,11 @@ Matrix44::MultiplyVector3 ( int const iVector[3], float oVector[3] ) {
 void 
 Matrix44::MultiplyVector3 ( float const iVector[3], int oVector[3] ) {
 
-#if 0
-  float iX = iVector[0];
-  float iY = iVector[1];
-  float iZ = iVector[2];
-
-  float m11 = GetCR(0,0);
-  float m12 = GetCR(1,0);
-  float m13 = GetCR(2,0);
-  float m14 = GetCR(3,0);
-
-  float m21 = GetCR(0,1);
-  float m22 = GetCR(1,1);
-  float m23 = GetCR(2,1);
-  float m24 = GetCR(3,1);
-  
-  float m31 = GetCR(0,2);
-  float m32 = GetCR(1,2);
-  float m33 = GetCR(2,2);
-  float m34 = GetCR(3,2);
-  
-  float a = m11 * iX;
-  float b = m12 * iY;
-  float c = m13 * iZ;
-  float sum00 = a + b;
-  float sum01 = c + m14;
-#ifdef RINT
-  int sumI0 = (int) rintf(sum00 + sum01);
-#else
-  int sumI0 = (int) (sum00 + sum01);
-#endif
-
-  float d = m21 * iX;
-  float e = m22 * iY;
-  float f = m23 * iZ;
-  float sum10 = d + e;
-  float sum11 = f + m24;
-#ifdef RINT
-  int sumI1 = (int) rintf(sum10 + sum11);
-#else
-  int sumI1 = (int) (sum10 + sum11);
-#endif
-
-  float g = m31 * iX;
-  float h = m32 * iY;
-  float i = m33 * iZ;
-  float sum20 = g + h;
-  float sum21 = i + m34;
-#ifdef RINT
-  int sumI2 = (int) rintf(sum20 + sum21);
-#else
-  int sumI2 = (int) (sum20 + sum21);
-#endif
-
-  oVector[0] = sumI0;
-  oVector[1] = sumI1;
-  oVector[2] = sumI2;
-
-#else
-
   float vectorF[3];
   MultiplyVector3( iVector, vectorF );
   oVector[0] = (int) vectorF[0];
   oVector[1] = (int) vectorF[1];
   oVector[2] = (int) vectorF[2];
-
-#endif
 }
 
 inline Matrix44& operator*( Matrix44& m2, 
