@@ -14,6 +14,8 @@ function acf = fast_ar2acf(phi,nmax)
 %   the autocorreation function.
 %
 % Ref: Time Series Analysis by Hamilton, pg. 59.
+%
+% $Id: fast_ar2acf.m,v 1.2 2004/05/19 01:37:35 greve Exp $
 
 acf = [];
 
