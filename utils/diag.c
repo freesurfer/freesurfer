@@ -73,7 +73,7 @@ DiagInit(char *fname,
                   int (*vfprint)(FILE *fp, const char *fmt, va_list args),
                   int (*vprint)(const char *fmt, va_list args))
 {
-  char *cp ;
+  char *cp = 0;
   unsigned long diag = 0L ;
 
   if (fname)
