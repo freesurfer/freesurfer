@@ -3,8 +3,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2004/03/30 19:34:03 $
-// Revision       : $Revision: 1.115 $
+// Revision Date  : $Date: 2004/03/30 20:19:59 $
+// Revision       : $Revision: 1.116 $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -3512,12 +3512,13 @@ GCAtransformSamples(GCA *gca_src, GCA *gca_dst, GCA_SAMPLE *gcas, int nsamples)
   vscale = 1 ;
   mri_found = MRIalloc(gca_dst->node_width*vscale, gca_dst->node_height*vscale, 
                        gca_dst->node_depth*vscale, MRI_UCHAR) ;
-  // copy direction cosines
-  GCAcopyDCToMRI(gca_dst, mri_found);
   // change the voxel size
   mri_found->xsize = gca_dst->node_spacing*vscale;
   mri_found->ysize = gca_dst->node_spacing*vscale;
   mri_found->zsize = gca_dst->node_spacing*vscale;
+
+  // copy direction cosines
+  GCAcopyDCToMRI(gca_dst, mri_found);
 
   scale = gca_src->prior_spacing / gca_dst->prior_spacing ;
   min_y = 10000 ; min_y_i = -1 ;
@@ -3873,11 +3874,13 @@ GCAfindStableSamplesByLabel(GCA *gca, int nsamples, float min_prior)
 
     scale = gca->prior_spacing / spacing ;
     mri_found = MRIalloc(width*scale, height*scale, depth*scale, MRI_UCHAR);
-    GCAcopyDCToMRI(gca, mri_found);
+
     // change the size
     mri_found->xsize = gca->prior_spacing*scale;
     mri_found->ysize = gca->prior_spacing*scale;
     mri_found->zsize = gca->prior_spacing*scale;
+
+    GCAcopyDCToMRI(gca, mri_found);
 
     for (i = 0 ; i < total_found ; i++)
     {
@@ -4162,10 +4165,12 @@ GCAfindStableSamples(GCA *gca, int *pnsamples, int min_spacing,float min_prior, 
   mri_filled = MRIalloc(width*gca->prior_spacing,height*gca->prior_spacing, 
                         depth*gca->prior_spacing,MRI_UCHAR);
   // use the mri_prior_ header
-  GCAcopyDCToMRI(gca, mri_filled);
+
   mri_filled->xsize = gca->xsize;
   mri_filled->ysize = gca->ysize;
   mri_filled->zsize = gca->zsize;
+
+  GCAcopyDCToMRI(gca, mri_filled);
 
   prior_stride = (float)min_spacing / (float)gca->prior_spacing ;
   if (prior_stride >= 2.5)
@@ -4422,10 +4427,13 @@ GCAlabelMri(GCA *gca, MRI *mri, int label, TRANSFORM *transform)
   if (!mri)
   {
     mri = MRIallocSequence(gca->node_width, gca->node_height, gca->node_depth, MRI_UCHAR, gca->ninputs) ;
-    GCAcopyDCToMRI(gca, mri);
+
     mri->xsize = gca->node_spacing;
     mri->ysize = gca->node_spacing;
     mri->zsize = gca->node_spacing;
+    GCAcopyDCToMRI(gca, mri);       
+    // mri=NULL, then use the gca volume 
+    // mri!=NULL, then use the volume as it is to write the label
   }
   width = mri->width ; height = mri->height ; depth = mri->depth ;
   mri_norm = MRIalloc(width, height, depth, MRI_SHORT) ;
@@ -9558,10 +9566,12 @@ GCAmeanFilterConditionalDensities(GCA *gca, float navgs)
   float     prior ;
 
   mri_means = MRIallocSequence(gca->node_width, gca->node_height, gca->node_depth, MRI_FLOAT, gca->ninputs) ;
-  GCAcopyDCToMRI(gca, mri_means);
+
   mri_means->xsize = gca->node_spacing;
   mri_means->ysize = gca->node_spacing;
   mri_means->zsize = gca->node_spacing;
+
+  GCAcopyDCToMRI(gca, mri_means);
 
   /* compute overall mean for each class */
   for (max_label = 1, zn = 0 ; zn < gca->node_depth ; zn++)
