@@ -4,8 +4,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2004/03/26 17:45:09 $
-// Revision       : $Revision: 1.88 $
+// Revision Date  : $Date: 2004/04/26 16:31:24 $
+// Revision       : $Revision: 1.89 $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -130,7 +130,8 @@ int main(int argc, char *argv[])
   int DevXFM = 0;
   char devxfm_subject[STRLEN];
   MATRIX *T;
-	float scale_factor ;
+  float scale_factor ;
+  int nthframe=-1; 
 
   for(i=0;i<argc;i++) printf("%s ",argv[i]);
   printf("\n");
@@ -219,7 +220,7 @@ int main(int argc, char *argv[])
   nskip = 0;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_convert.c,v 1.88 2004/03/26 17:45:09 tosa Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_convert.c,v 1.89 2004/04/26 16:31:24 tosa Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -625,6 +626,10 @@ int main(int argc, char *argv[])
     {
       get_ints(argc, argv, &i, &no_scale_flag, 1);
       no_scale_flag = (no_scale_flag == 0 ? FALSE : TRUE);
+    }
+    else if (strcmp(argv[i], "-nth") == 0 || strcmp(argv[i], "--nth_frame") == 0)
+    {
+      get_ints(argc, argv, &i, &nthframe, 1);
     }
     else if(strcmp(argv[i], "--unwarp_gradient_nonlinearity") == 0){
       /* !@# start */
@@ -1141,8 +1146,12 @@ int main(int argc, char *argv[])
         //printf("MRIreadType()\n");
         mri = MRIreadType(in_name, in_volume_type);
       }
-      else{
-        mri = MRIread(in_name);
+      else
+      {
+	if (nthframe < 0)
+	  mri = MRIread(in_name);
+	else
+	  mri = MRIreadEx(in_name, nthframe);
       }
     }
 
