@@ -4,8 +4,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2004/07/30 18:57:44 $
-// Revision       : $Revision: 1.295 $
+// Revision Date  : $Date: 2004/07/30 20:27:16 $
+// Revision       : $Revision: 1.296 $
 //////////////////////////////////////////////////////////////////
 #include <stdio.h>
 #include <string.h>
@@ -1177,6 +1177,10 @@ MRISwrite(MRI_SURFACE *mris, char *name)
   /* write whether vertex data was using the real RAS rather than conformed RAS */
   fwriteInt(TAG_USEREALRAS, fp);
   fwriteInt(mris->useRealRAS, fp);
+  // volume info
+  fwriteInt(TAG_SURF_GEOM, fp);
+  writeVolGeom(fp, &mris->vg);
+
   fclose(fp);
   return(NO_ERROR) ;
 }
