@@ -32,6 +32,7 @@ static GCA_MORPH_PARMS  parms ;
 
 static char *mask_fname = NULL ;
 static char *norm_fname = NULL ;
+static int renormalize = 0 ;
 
 static float regularize = 0 ;
 static char *example_T1 = NULL ;
@@ -48,7 +49,7 @@ static char *transformed_sample_fname = NULL ;
 static char *normalized_transformed_sample_fname = NULL ;
 static char *ctl_point_fname = NULL ;
 static int novar = 1 ;
-static int relabel = 1 ;
+static int relabel = 0 ;
 
 static int use_contrast = 0 ;
 static float min_prior = MIN_PRIOR ;
@@ -89,14 +90,14 @@ int
 main(int argc, char *argv[])
 {
   char         *gca_fname, *in_fname, *out_fname, fname[STRLEN], **av ;
-  MRI          *mri_in, *mri_tmp ;
+  MRI          *mri_inputs, *mri_tmp ;
   GCA          *gca /*, *gca_tmp, *gca_reduced*/ ;
-  int          ac, nargs, ninputs, input ;
+  int          ac, nargs, ninputs, input, extra = 0 ;
   int          msec, minutes, seconds/*, min_left_cbm, min_right_cbm*/ ;
   struct timeb start ;
   GCA_MORPH    *gcam ;
 
-  parms.l_likelihood = 1.0f ;
+  parms.l_log_likelihood = 1.0f ;
   parms.niterations = 100 ;
   parms.levels = 3 ;
   parms.dt = 0.05 ;  /* was 5e-6 */
@@ -108,7 +109,7 @@ main(int argc, char *argv[])
 	parms.l_label = 1.0 ;
 	parms.l_map = 0.0 ;
 	parms.label_dist = 3.0 ;
-  parms.l_smoothness = 1 ;
+  parms.l_smoothness = 2 ;
   parms.start_t = 0 ;
   parms.max_grad = 0.3 ;
   parms.sigma = 2.0f ;
@@ -151,6 +152,51 @@ main(int argc, char *argv[])
   printf("logging results to %s.log\n", parms.base_name) ;
 
   TimerStart(&start) ;
+  printf("reading GCA '%s'...\n", gca_fname) ;
+  fflush(stdout) ;
+  gca = GCAread(gca_fname) ;
+  if (gca == NULL)
+    ErrorExit(ERROR_NOFILE, "%s: could not open GCA %s.\n",
+              Progname, gca_fname) ;
+	if (map_to_flash)
+	{
+		GCA *gca_tmp ;
+
+		printf("mapping GCA into %d-dimensional FLASH space...\n", mri_inputs->nframes) ;
+		gca_tmp = GCAcreateFlashGCAfromParameterGCA(gca, TRs, fas, TEs, mri_inputs->nframes) ;
+		GCAfree(&gca) ;
+		gca = gca_tmp ;
+		if (ninputs != gca->ninputs)
+			ErrorExit(ERROR_BADPARM, "%s: must specify %d inputs, not %d for this atlas\n",
+								Progname, gca->ninputs, ninputs) ;
+		GCAhistoScaleImageIntensities(gca, mri_inputs) ;
+		if (novar)
+			GCAunifyVariance(gca) ;
+	}
+	if (gca->type == GCA_FLASH)
+	{
+		GCA *gca_tmp ;
+
+		gca_tmp = GCAcreateFlashGCAfromFlashGCA(gca, TRs, fas, TEs, mri_inputs->nframes) ;
+		GCAfree(&gca) ;
+		gca = gca_tmp ;
+	}
+	if (gca->flags & GCA_XGRAD)
+		extra += ninputs ;
+	if (gca->flags & GCA_YGRAD)
+		extra += ninputs ;
+	if (gca->flags & GCA_ZGRAD)
+		extra += ninputs ;
+
+	if ((ninputs+extra) != gca->ninputs)
+		ErrorExit(ERROR_BADPARM, "%s: must specify %d inputs, not %d for this atlas\n",
+			Progname, gca->ninputs, ninputs) ;
+
+  printf("freeing gibbs priors...") ;
+  GCAfreeGibbs(gca) ;
+  printf("done.\n") ;
+
+	
 	for (input = 0 ; input < ninputs ; input++)
 	{
 		in_fname = argv[1+input] ;
@@ -188,51 +234,13 @@ main(int argc, char *argv[])
 			mri_tmp->te = TE ;
 		if (input == 0)
 		{
-			mri_in = MRIallocSequence(mri_tmp->width, mri_tmp->height, mri_tmp->depth,
-																mri_tmp->type, ninputs) ;
-			MRIcopyHeader(mri_tmp, mri_in) ;
+			mri_inputs = MRIallocSequence(mri_tmp->width, mri_tmp->height, mri_tmp->depth,
+																mri_tmp->type, ninputs+extra) ;
+			MRIcopyHeader(mri_tmp, mri_inputs) ;
 		}
-		MRIcopyFrame(mri_tmp, mri_in, 0, input) ;
+		MRIcopyFrame(mri_tmp, mri_inputs, 0, input) ;
 		MRIfree(&mri_tmp) ;
 	}
-  printf("reading GCA '%s'...\n", gca_fname) ;
-  fflush(stdout) ;
-  gca = GCAread(gca_fname) ;
-  if (gca == NULL)
-    ErrorExit(ERROR_NOFILE, "%s: could not open GCA %s.\n",
-              Progname, gca_fname) ;
-  if (novar)
-    GCAunifyVariance(gca) ;
-	if (map_to_flash)
-	{
-		GCA *gca_tmp ;
-
-		printf("mapping GCA into %d-dimensional FLASH space...\n", mri_in->nframes) ;
-		gca_tmp = GCAcreateFlashGCAfromParameterGCA(gca, TRs, fas, TEs, mri_in->nframes) ;
-		GCAfree(&gca) ;
-		gca = gca_tmp ;
-		if (ninputs != gca->ninputs)
-			ErrorExit(ERROR_BADPARM, "%s: must specify %d inputs, not %d for this atlas\n",
-								Progname, gca->ninputs, ninputs) ;
-		GCAhistoScaleImageIntensities(gca, mri_in) ;
-		if (novar)
-			GCAunifyVariance(gca) ;
-	}
-	if (gca->type == GCA_FLASH)
-	{
-		GCA *gca_tmp ;
-
-		gca_tmp = GCAcreateFlashGCAfromFlashGCA(gca, TRs, fas, TEs, mri_in->nframes) ;
-		GCAfree(&gca) ;
-		gca = gca_tmp ;
-	}
-	if (ninputs != gca->ninputs)
-		ErrorExit(ERROR_BADPARM, "%s: must specify %d inputs, not %d for this atlas\n",
-			Progname, gca->ninputs, ninputs) ;
-
-  printf("freeing gibbs priors...") ;
-  GCAfreeGibbs(gca) ;
-  printf("done.\n") ;
 
   if (renormalization_fname)
   {
@@ -290,20 +298,70 @@ main(int argc, char *argv[])
   }
 
   if (tissue_parms_fname)   /* use FLASH forward model */
-    GCArenormalizeToFlash(gca, tissue_parms_fname, mri_in) ;
+    GCArenormalizeToFlash(gca, tissue_parms_fname, mri_inputs) ;
 
   if (!transform_loaded)   /* wasn't preloaded */
     transform = TransformAlloc(LINEAR_VOX_TO_VOX, NULL) ;
 
+  if (novar)
+    GCAunifyVariance(gca) ;
+	if (gca->flags & GCA_GRAD)
+	{
+		int i, start = ninputs ;
+		MRI *mri_kernel, *mri_smooth, *mri_grad, *mri_tmp ;
+
+		mri_kernel = MRIgaussian1d(1.0, 30) ;
+		mri_smooth = MRIconvolveGaussian(mri_inputs, NULL, mri_kernel) ;
+				
+		if (mri_inputs->type != MRI_FLOAT)
+		{
+			mri_tmp = MRISeqchangeType(mri_inputs, MRI_FLOAT, 0, 0, 1) ;
+			MRIfree(&mri_inputs) ; mri_inputs = mri_tmp ;
+		}
+		start = ninputs ;
+		if (gca->flags & GCA_XGRAD)
+		{
+			for (i = 0 ; i < ninputs ; i++)
+			{
+				mri_grad = MRIxSobel(mri_smooth, NULL, i) ;
+				MRIcopyFrame(mri_grad, mri_inputs, 0, start+i) ;
+				MRIfree(&mri_grad) ;
+			}
+			start += ninputs ;
+		}
+		if (gca->flags & GCA_YGRAD)
+		{
+			for (i = 0 ; i < ninputs ; i++)
+			{
+				mri_grad = MRIySobel(mri_smooth, NULL, i) ;
+				MRIcopyFrame(mri_grad, mri_inputs, 0, start+i) ;
+				MRIfree(&mri_grad) ;
+			}
+			start += ninputs ;
+		}
+		if (gca->flags & GCA_ZGRAD)
+		{
+			for (i = 0 ; i < ninputs ; i++)
+			{
+				mri_grad = MRIzSobel(mri_smooth, NULL, i) ;
+				MRIcopyFrame(mri_grad, mri_inputs, 0, start+i) ;
+				MRIfree(&mri_grad) ;
+			}
+			start += ninputs ;
+		}
+		
+		MRIfree(&mri_kernel) ; MRIfree(&mri_smooth) ; 
+	}
+
 	if (remove_bright)
-		remove_bright_stuff(mri_in, gca, transform) ;
+		remove_bright_stuff(mri_inputs, gca, transform) ;
   if (!FZERO(blur_sigma))
   {
     MRI *mri_tmp, *mri_kernel ;
 
     mri_kernel = MRIgaussian1d(blur_sigma, 100) ;
-    mri_tmp = MRIconvolveGaussian(mri_in, NULL, mri_kernel) ;
-    MRIfree(&mri_in) ; mri_in = mri_tmp ;
+    mri_tmp = MRIconvolveGaussian(mri_inputs, NULL, mri_kernel) ;
+    MRIfree(&mri_inputs) ; mri_inputs = mri_tmp ;
   }
 
 
@@ -314,7 +372,7 @@ main(int argc, char *argv[])
 		TransformSample(transform, Gvx, Gvy, Gvz, &xf, &yf, &zf) ;
 		Gsx = nint(xf) ; Gsy = nint(yf) ; Gsz = nint(zf) ;
 		printf("mapping (%d, %d, %d) --> (%d, %d, %d) for rgb writing\n",
-					 Gvy, Gvy, Gvz, Gsx, Gsy, Gsz) ;
+					 Gvx, Gvy, Gvz, Gsx, Gsy, Gsz) ;
 	}
 
 	if (regularize > 0)
@@ -335,12 +393,12 @@ main(int argc, char *argv[])
 		if (!gca_tl)
 			ErrorExit(ERROR_NOFILE, "%s: could not temporal lobe gca %s",
 								Progname, tl_fname) ;
-		GCAMinit(gcam, mri_in, gca_tl, transform, 0) ;
+		GCAMinit(gcam, mri_inputs, gca_tl, transform, 0) ;
 		if (parms.write_iterations != 0)
 		{
 			char fname[STRLEN] ;
 			MRI  *mri_gca ;
-			mri_gca = MRIclone(mri_in, NULL) ;
+			mri_gca = MRIclone(mri_inputs, NULL) ;
 			GCAMbuildMostLikelyVolume(gcam, mri_gca) ;
 			sprintf(fname, "%s_target", parms.base_name) ;
 			MRIwriteImageViews(mri_gca, fname, IMAGE_SIZE) ;
@@ -349,43 +407,29 @@ main(int argc, char *argv[])
 			MRIwrite(mri_gca, fname) ;
 			MRIfree(&mri_gca) ;
 		}
-		GCAMregister(gcam, mri_in, &parms) ;
+		GCAMregister(gcam, mri_inputs, &parms) ;
 		printf("temporal lobe registration complete - registering whole brain...\n") ;
 		GCAfree(&gca_tl) ;
 	}
 
 	if (!xform_name)  /* only if the transform wasn't previously created */
-		GCAMinit(gcam, mri_in, gca, transform, relabel) ;
+		GCAMinit(gcam, mri_inputs, gca, transform, relabel) ;
 	else
 	{
 		gcam->gca = gca ;
 		GCAMcomputeOriginalProperties(gcam) ;
 		if (relabel)
-			GCAMcomputeLabels(mri_in, gcam) ;
+			GCAMcomputeLabels(mri_inputs, gcam) ;
 		else
 			GCAMcomputeMaxPriorLabels(gcam) ;
 	}
-  if (parms.write_iterations != 0)
-  {
-    char fname[STRLEN] ;
-    MRI  *mri_gca ;
-    mri_gca = MRIclone(mri_in, NULL) ;
-    GCAMbuildMostLikelyVolume(gcam, mri_gca) ;
-    sprintf(fname, "%s_target", parms.base_name) ;
-    MRIwriteImageViews(mri_gca, fname, IMAGE_SIZE) ;
-    sprintf(fname, "%s_target.mgh", parms.base_name) ;
-    printf("writing target volume to %s...\n", fname) ;
-    MRIwrite(mri_gca, fname) ;
-    MRIfree(&mri_gca) ;
-  }
-
 #if 0
   {
     GCA_SAMPLE *gcas ;
     int  nsamples ;
 
     gcas = GCAfindAllSamples(gca, &nsamples) ;
-    GCAtransformAndWriteSamples(gca, mri_in, gcas, nsamples, 
+    GCAtransformAndWriteSamples(gca, mri_inputs, gcas, nsamples, 
                                 "gcas_fsamples.mgh", transform) ;
     free(gcas) ;
   }
@@ -400,15 +444,38 @@ main(int argc, char *argv[])
 		GCAMsetLabelStatus(gcam, Right_Cerebellum_White_Matter, GCAM_USE_LIKELIHOOD) ;
 
 		printf("initial white matter registration...\n") ;
-		GCAMregister(gcam, mri_in, &parms) ;
+		GCAMregister(gcam, mri_inputs, &parms) ;
 		GCAMsetStatus(gcam, GCAM_USE_LIKELIHOOD) ; /* disable everything */
 		printf("initial white matter registration complete - full registration...\n") ;
 	}
-  GCAMregister(gcam, mri_in, &parms) ;
+	if (renormalize)
+		GCAmapRenormalize(gcam->gca, mri_inputs, transform) ;
+
+  if (parms.write_iterations != 0)
+  {
+    char fname[STRLEN] ;
+    MRI  *mri_gca ;
+    mri_gca = MRIclone(mri_inputs, NULL) ;
+    GCAMbuildMostLikelyVolume(gcam, mri_gca) ;
+    sprintf(fname, "%s_target", parms.base_name) ;
+    MRIwriteImageViews(mri_gca, fname, IMAGE_SIZE) ;
+    sprintf(fname, "%s_target.mgh", parms.base_name) ;
+    printf("writing target volume to %s...\n", fname) ;
+    MRIwrite(mri_gca, fname) ;
+    MRIfree(&mri_gca) ;
+  }
+
+  GCAMregister(gcam, mri_inputs, &parms) ;
+#if 0
+	parms.l_distance = 0 ;
+	gcam->relabel = 1 ;
+	GCAMcomputeLabels(mri_inputs, gcam) ;
+  GCAMregister(gcam, mri_inputs, &parms) ;
+#endif
 
   printf("writing output transformation to %s...\n", out_fname) ;
   if (vf_fname)
-    write_vector_field(mri_in, gcam, vf_fname) ;
+    write_vector_field(mri_inputs, gcam, vf_fname) ;
   if (GCAMwrite(gcam, out_fname) != NO_ERROR)
     ErrorExit(Gerror, "%s: GCAMwrite(%s) failed", Progname, out_fname) ;
 
@@ -417,8 +484,8 @@ main(int argc, char *argv[])
     GCAfree(&gca) ;
 #endif
   GCAMfree(&gcam) ;
-  if (mri_in)
-    MRIfree(&mri_in) ;
+  if (mri_inputs)
+    MRIfree(&mri_inputs) ;
   msec = TimerStop(&start) ;
   seconds = nint((float)msec/1000.0f) ;
   minutes = seconds / 60 ;
@@ -457,6 +524,16 @@ get_option(int argc, char *argv[])
     regularize = atof(argv[2]) ;
     printf("regularizing variance to be sigma+%2.1fC(noise)\n", regularize) ;
 		nargs = 1 ;
+  }
+  else if (!stricmp(option, "NOBRIGHT"))
+  {
+    remove_bright = 1 ;
+    printf("removing bright non-brain structures...\n") ;
+  }
+  else if (!stricmp(option, "renormalize"))
+  {
+    renormalize = 1 ;
+    printf("renormalizing GCA to MAP estimate of means\n") ;
   }
   else if (!strcmp(option, "SMOOTH") || !strcmp(option, "SMOOTHNESS"))
   {
@@ -663,6 +740,12 @@ get_option(int argc, char *argv[])
     parms.l_likelihood = atof(argv[2]) ;
     nargs = 1 ;
     printf("l_likelihood = %2.2f\n", parms.l_likelihood) ;
+  }
+  else if (!strcmp(option, "LOGLIKELIHOOD"))
+  {
+    parms.l_log_likelihood = atof(argv[2]) ;
+    nargs = 1 ;
+    printf("l_log_likelihood = %2.2f\n", parms.l_log_likelihood) ;
   }
   else if (!strcmp(option, "LABEL"))
   {
