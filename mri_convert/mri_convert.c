@@ -12,31 +12,34 @@
 #include "transform.h"
 #include "mrimorph.h"
 #include "fio.h"
+#include "mri_conform.h"
 
 int main(int argc, char *argv[]) ;
 static int get_option(int argc, char *argv[]) ;
+static void usage(int exit_val);
 
 char *Progname ;
 
-static int verbose = 0 ;
+static int verbose = 1 ;
+static int conform = 0;
 static int xdim = XDIM, ydim = YDIM, zdim = ZDIM ;
+static int raw_flag;
+static int raw_width, raw_height, raw_depth, raw_type;
 
-static int brueker = 0 ;
-static float scale = 1.0 ;
 static float blur_sigma = 0.0f ;
+static float scale = 1.0 ;
 static char *inverse_transform_fname = NULL ;
 static char *transform_fname = NULL ;
 
-
-MRI   *MRIreadBrueker(char *fname) ;
 
 int
 main(int argc, char *argv[])
 {
   char   **av ;
   int    ac, nargs ;
-  MRI    *mri, *mri_kernel ;
+  MRI    *mri, *mri2, *mri_kernel ;
   char   *in_fname, *out_fname ;
+  FILE   *fin;
 
   Progname = argv[0] ;
   ErrorInit(NULL, NULL, NULL) ;
@@ -63,10 +66,16 @@ main(int argc, char *argv[])
 
   if (verbose)
     fprintf(stderr, "reading from %s...", in_fname) ;
-  if (!brueker)
-    mri = MRIread(in_fname) ;
+  if(raw_flag)
+  {
+    if((fin = fopen(in_fname, "r")) == NULL)
+      ErrorExit(ERROR_NO_FILE, "%s: could not open source file %s", 
+              Progname, in_fname) ;
+    mri = MRIreadRaw(fin, raw_width, raw_height, raw_depth, raw_type);
+    fclose(fin);
+  }
   else
-    mri = MRIreadBrueker(in_fname) ;
+    mri = MRIread(in_fname) ;
 
   if (!mri)
     ErrorExit(ERROR_NO_FILE, "%s: could not open source file %s", 
@@ -91,13 +100,24 @@ main(int argc, char *argv[])
   {
     MRI *mri_smooth ;
 
+    if(verbose)
+      printf("smoothing volume with sigma = %2.3f\n", blur_sigma) ;
     mri_kernel = MRIgaussian1d(blur_sigma, 100) ;
-    fprintf(stderr, "smoothing volume with sigma = %2.3f\n", blur_sigma) ;
     mri_smooth = MRIclone(mri, NULL) ;
     MRIconvolveGaussian(mri, mri_smooth, mri_kernel) ;
     MRIfree(&mri_kernel) ; MRIfree(&mri) ; 
     mri = mri_smooth ;
   }
+
+  if (conform)
+  {
+    if(verbose)
+      printf("conforming volume...\n");
+    mri2 = MRIconform(mri);
+    mri = MRIcopy(mri2, NULL);
+    MRIfree(&mri2);
+  }
+
   if (verbose)
     fprintf(stderr, "done.\nwriting to %s...", out_fname) ;
 
@@ -154,7 +174,8 @@ main(int argc, char *argv[])
     mri = mri_tmp ;
   }
 
-  fprintf(stderr, "writing output to '%s'...\n", out_fname) ;
+  if(verbose)
+    printf("writing output to '%s'...\n", out_fname) ;
   MRIwrite(mri, out_fname) ;
   if (verbose)
     fprintf(stderr, "done.\n") ;
@@ -162,6 +183,30 @@ main(int argc, char *argv[])
   exit(0) ;
   return(0) ;
 }
+
+static void usage(int exit_val)
+{
+
+  FILE *fout;
+
+  fout = (exit_val ? stderr : stdout);
+
+  fprintf(fout, "usage: %s [options] input_file output_file\n", Progname) ;
+  fprintf(fout, "  options are:\n");
+  fprintf(fout, "  -u, -?          display usage and exit\n");
+  fprintf(fout, "  -v              verbose\n");
+  fprintf(fout, "  -conform        conform the volume to 256x256x256, uchar\n");
+  fprintf(fout, "  -r x y z        reorder dimensions\n");
+  fprintf(fout, "  -blur sigma     blur the volume\n");
+  fprintf(fout, "  -raw x y z type read a raw data file; type is one of:\n");
+  fprintf(fout, "                  uchar, int, long, float, short\n");
+  fprintf(fout, "  -x xdim -y ydim -z zdim\n");
+  fprintf(fout, "                  reorder the axes\n");
+  fprintf(fout, "  -T transform    apply a transform\n");
+
+  exit(exit_val) ;
+
+} /* end usage() */
 
 /*----------------------------------------------------------------------
             Parameters:
@@ -173,6 +218,7 @@ get_option(int argc, char *argv[])
 {
   int  nargs = 0, sign = 1 ;
   char *option, *cp ;
+  int i;
 
   option = argv[1] + 1 ;            /* past '-' */
   if (!stricmp(option, "blur"))
@@ -181,6 +227,36 @@ get_option(int argc, char *argv[])
     fprintf(stderr, "applying %2.2f standard deviation Gaussian kernel\n",
             blur_sigma) ;
     nargs = 1 ;
+  }
+  else if (!stricmp(option, "conform"))
+    conform = 1 ;
+  else if (!stricmp(option, "raw"))
+  {
+    for(i = 2;i <= 5;i++)
+    {
+      if(!argv[i])
+        usage(1);
+    }
+
+    raw_width = atoi(argv[2]);
+    raw_height = atoi(argv[3]);
+    raw_depth = atoi(argv[4]);
+
+    if(!stricmp(argv[5], "uchar"))
+      raw_type = MRI_UCHAR;
+    if(!stricmp(argv[5], "int"))
+      raw_type = MRI_INT;
+    if(!stricmp(argv[5], "long"))
+      raw_type = MRI_LONG;
+    if(!stricmp(argv[5], "float"))
+      raw_type = MRI_FLOAT;
+    if(!stricmp(argv[5], "short"))
+      raw_type = MRI_SHORT;
+    else
+      usage(1);
+
+    raw_flag = 1;
+    nargs = 4;
   }
   else switch (toupper(*option))
   {
@@ -195,9 +271,6 @@ get_option(int argc, char *argv[])
     fprintf(stderr, "inverting and applying transformation from %s before writing image.\n",
             inverse_transform_fname) ;
     nargs = 1 ;
-    break ;
-  case 'B':
-    brueker = 1 ;
     break ;
   case 'V':
     verbose = !verbose ;
@@ -284,64 +357,5 @@ get_option(int argc, char *argv[])
 
   return(nargs) ;
 }
-MRI *
-MRIreadBrueker(char *fname)
-{
-  MRI   *mri_tmp, *mri_short, *mri ;
-  FILE  *fp ;
-  int   nslices, imgsize = 256 * 256 * 2 ;  /* 16 bits per voxel */
-  int   filesize, x, y, z, vox, pad ;
-  float fmin, fmax, in_val, out_val ;
 
-  if (!(fp = fopen(fname, "rb"))) 
-    ErrorReturn(NULL, 
-                (ERROR_NOFILE, "%s: could not read Brueker image.\n", fname)) ;
-
-  fseek(fp, 0, SEEK_END) ;
-  filesize = ftell(fp) ;
-  fseek(fp, 0, SEEK_SET) ;
-
-  nslices = filesize / imgsize ;
-  fprintf(stderr, "reading %d slices...\n", nslices) ;
-  mri_short = MRIalloc(256, 256, nslices, MRI_SHORT) ;
-
-  for (z = 0 ; z < nslices ; z++)
-  {
-    for (y = 0 ; y < 256 ; y++)
-    {
-      for (x = 0 ; x < 256 ; x++)
-      {
-        fread2(&vox, fp) ;
-        MRISvox(mri_short, x, y, z) = (short)vox ;
-      }
-    }
-  }
-
-  MRIvalRange(mri_short, &fmin, &fmax) ;
-  mri_tmp = MRIalloc(256, 256, nslices, MRI_UCHAR) ;
-  for (z = 0 ; z < nslices ; z++)
-  {
-    for (y = 0 ; y < 256 ; y++)
-    {
-      for (x = 0 ; x < 256 ; x++)
-      {
-        in_val = (float)MRISvox(mri_short, x, y, z) ;
-        out_val = scale * (in_val - fmin) * 255.0 / (fmax-fmin) ;
-        if (out_val > 255.0f)
-          out_val = 255.0f ;
-        MRIvox(mri_tmp, x, y, z) = (BUFTYPE)nint(out_val) ;
-      }
-    }
-  }
-  MRIfree(&mri_short) ;
-
-  mri = MRIalloc(256, 256, 256, MRI_UCHAR) ;
-  if (nslices != 256)
-  {
-    pad = (256-nslices)/2 ;
-    MRIextractInto(mri_tmp, mri, 0, 0, 0, 256, 256, nslices, 0, 0, pad) ;
-  }
-  MRIfree(&mri_tmp) ;    
-  fclose(fp);
-  return(mri) ;
-}
+/* eof */
