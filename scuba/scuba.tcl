@@ -459,6 +459,8 @@ proc ScubaMouseMotionCallback { inX inY iButton } {
     UpdateLabelArea $labelValues
 }
 
+# INTERFACE CREATION ==================================================
+
 proc MakeLabelArea { ifwTop } {
     global gaWidget
 
@@ -503,6 +505,57 @@ proc MakeNavigationArea { ifwTop } {
     return $fwNavArea
 }
 
+proc MakeSubjectsLoaderPanel { ifwTop } {
+    global gaWidget
+    global gaSubject
+
+    set fwTop  $ifwTop.fwSubjects
+    set fwMenu $fwTop.fwMenu
+    set fwData $fwTop.fwData
+
+    frame $fwTop
+
+    frame $fwMenu
+    tixOptionMenu $fwMenu.menu \
+	-label "Subject:" \
+	-variable gaSubject(current,menuIndex) \
+	-command { SubjectsLoaderSubjectMenuCallback }
+    set gaWidget(subjectsLoader,subjectsMenu) $fwMenu.menu
+    pack $fwMenu.menu
+
+    frame $fwData
+    tixOptionMenu $fwData.volumesMenu \
+	-label "Volumes:"
+    set gaWidget(subjectsLoader,volumeMenu) $fwData.volumesMenu
+
+    button $fwData.volumesButton \
+	-text "Load" \
+	-command {LoadVolumeFromSubjectsLoader [$gaWidget(subjectsLoader,volumeMenu) cget -value]}
+
+    grid $fwData.volumesMenu   -column 0 -row 0 -sticky ew
+    grid $fwData.volumesButton -column 1 -row 0 -sticky e
+
+
+    tixOptionMenu $fwData.surfacesMenu \
+	-label "Surfaces:"
+    set gaWidget(subjectsLoader,surfaceMenu) $fwData.surfacesMenu
+
+    button $fwData.surfacesButton \
+	-text "Load" \
+	-command {LoadSurfaceFromSubjectsLoader [$gaWidget(subjectsLoader,surfaceMenu) cget -value]}
+    
+    grid $fwData.surfacesMenu   -column 0 -row 1 -sticky ew
+    grid $fwData.surfacesButton -column 1 -row 1 -sticky e
+
+
+    grid columnconfigure $fwData 0 -weight 1
+    grid columnconfigure $fwData 1 -weight 0
+    
+    pack $fwMenu $fwData -side top -expand yes -fill x
+
+    return $fwTop
+}
+
 proc MakePropertiesPanel { ifwTop } {
     global gaWidget
 
@@ -512,14 +565,18 @@ proc MakePropertiesPanel { ifwTop } {
     
     $fwTop add layerPanel -label Layers
     $fwTop add viewPanel -label Views
+    $fwTop add subjectsLoader -label Subjects
 
     set gaWidget(layerProperties) \
 	[MakeLayerPropertiesPanel [$fwTop subwidget layerPanel]]
     set gaWidget(viewProperties) \
 	[MakeViewPropertiesPanel [$fwTop subwidget viewPanel]]
+    set gaWidget(subjectsLoader) \
+	[MakeSubjectsLoaderPanel [$fwTop subwidget subjectsLoader]]
 
     pack $gaWidget(layerProperties)
     pack $gaWidget(viewProperties)
+    pack $gaWidget(subjectsLoader)
 
     return $fwTop
 }
@@ -633,67 +690,6 @@ proc MakeLayerPropertiesPanel { ifwTop } {
     return $fwTop
 }
 
-proc LayerPropertiesMenuCallback { inLayer } {
-    global gaLayer
-
-    # Get the ID at this index in the idList, then select that layer.
-    set layerID [lindex $gaLayer(idList) $inLayer]
-    SelectLayerInLayerProperties $layerID
-}
-
-proc SelectLayerInLayerProperties { iLayerID } {
-    global gaWidget
-    global gaLayer
-
-    # Unpack the type-specific panels.
-    pack forget $gaWidget(layerProperties,2DMRI)
-
-    # Get the general layer properties from the specific layer and
-    # load them into the 'current' slots.
-    set gaLayer(current,id) $iLayerID
-    set gaLayer(current,type) [GetLayerType $iLayerID]
-    set gaLayer(current,label) [GetLayerLabel $iLayerID]
-    set gaLayer(current,opacity) [GetLayerOpacity $iLayerID]
-     
-    # Make sure that this is the item selected in the menu. Disale the
-    # callback and set the value of the menu to the index of this
-    # layer ID in the layer ID list. Then reenable the callback.
-    $gaWidget(layerProperties,menu) config -disablecallback 1
-    $gaWidget(layerProperties,menu) config \
-	-value [lsearch $gaLayer(idList) $iLayerID]
-    $gaWidget(layerProperties,menu) config -disablecallback 0
-    
-    # Do the type specific stuff.
-    switch $gaLayer(current,type) {
-	2DMRI { 
-	    # Pack the type panel.
-	    grid $gaWidget(layerProperties,2DMRI) -column 0 -row 1 -sticky news
-
-	    # Configure the length of the value sliders.
-	    set gaLayer(current,minValue) [Get2DMRILayerMinValue $iLayerID]
-	    set gaLayer(current,maxValue) [Get2DMRILayerMaxValue $iLayerID]
-	    tkuUpdateSlidersRange $gaWidget(layerProperties,minMaxSliders) \
-		$gaLayer(current,minValue) $gaLayer(current,maxValue)
-
-	    # Get the type specific properties.
-	    set gaLayer(current,colorMapMethod) \
-		[Get2DMRILayerColorMapMethod $iLayerID]
-	    set gaLayer(current,clearZero) \
-		[Get2DMRILayerDrawZeroClear $iLayerID]
-	    set gaLayer(current,sampleMethod) \
-		[Get2DMRILayerSampleMethod $iLayerID]
-	    set gaLayer(current,brightness) [Get2DMRILayerBrightness $iLayerID]
-	    set gaLayer(current,contrast) [Get2DMRILayerContrast $iLayerID]
-	    set gaLayer(current,fileName) \
-		[Get2DMRILayerFileLUTFileName $iLayerID]
-	    set gaLayer(current,minVisibleValue) \
-		[Get2DMRILayerMinVisibleValue $iLayerID]
-	    set gaLayer(current,maxVisibleValue) \
-		[Get2DMRILayerMaxVisibleValue $iLayerID]
-	}
-    }
-}
-
 proc MakeViewPropertiesPanel { ifwTop } {
     global gaWidget
     global gaView
@@ -746,6 +742,139 @@ proc MakeViewPropertiesPanel { ifwTop } {
     return $fwTop
 }
 
+
+# LAYER PROPERTIES FUNCTIONS ===========================================
+
+proc LayerPropertiesMenuCallback { inLayer } {
+    global gaLayer
+
+    # Get the ID at this index in the idList, then select that layer.
+    set layerID [lindex $gaLayer(idList) $inLayer]
+    SelectLayerInLayerProperties $layerID
+}
+
+proc SelectLayerInLayerProperties { iLayerID } {
+    global gaWidget
+    global gaLayer
+
+    # Unpack the type-specific panels.
+    grid forget $gaWidget(layerProperties,2DMRI)
+
+    # Get the general layer properties from the specific layer and
+    # load them into the 'current' slots.
+    set gaLayer(current,id) $iLayerID
+    set gaLayer(current,type) [GetLayerType $iLayerID]
+    set gaLayer(current,label) [GetLayerLabel $iLayerID]
+    set gaLayer(current,opacity) [GetLayerOpacity $iLayerID]
+     
+    # Make sure that this is the item selected in the menu. Disale the
+    # callback and set the value of the menu to the index of this
+    # layer ID in the layer ID list. Then reenable the callback.
+    $gaWidget(layerProperties,menu) config -disablecallback 1
+    $gaWidget(layerProperties,menu) config \
+	-value [lsearch $gaLayer(idList) $iLayerID]
+    $gaWidget(layerProperties,menu) config -disablecallback 0
+    
+    # Do the type specific stuff.
+    switch $gaLayer(current,type) {
+	2DMRI { 
+	    # Pack the type panel.
+	    grid $gaWidget(layerProperties,2DMRI) -column 0 -row 1 -sticky news
+
+	    # Configure the length of the value sliders.
+	    set gaLayer(current,minValue) [Get2DMRILayerMinValue $iLayerID]
+	    set gaLayer(current,maxValue) [Get2DMRILayerMaxValue $iLayerID]
+	    tkuUpdateSlidersRange $gaWidget(layerProperties,minMaxSliders) \
+		$gaLayer(current,minValue) $gaLayer(current,maxValue)
+
+	    # Get the type specific properties.
+	    set gaLayer(current,colorMapMethod) \
+		[Get2DMRILayerColorMapMethod $iLayerID]
+	    set gaLayer(current,clearZero) \
+		[Get2DMRILayerDrawZeroClear $iLayerID]
+	    set gaLayer(current,sampleMethod) \
+		[Get2DMRILayerSampleMethod $iLayerID]
+	    set gaLayer(current,brightness) [Get2DMRILayerBrightness $iLayerID]
+	    set gaLayer(current,contrast) [Get2DMRILayerContrast $iLayerID]
+	    set gaLayer(current,fileName) \
+		[Get2DMRILayerFileLUTFileName $iLayerID]
+	    set gaLayer(current,minVisibleValue) \
+		[Get2DMRILayerMinVisibleValue $iLayerID]
+	    set gaLayer(current,maxVisibleValue) \
+		[Get2DMRILayerMaxVisibleValue $iLayerID]
+	}
+    }
+}
+
+# This builds the layer ID list and populates the menu that selects
+# the current layer in the layer props panel, and the menus in the
+# view props panel. It should be called whenever a layer is created or
+# deleted, or when a lyer is added to or removed from a view.
+proc UpdateLayerList {} {
+    global gaLayer
+    global gaWidget
+    global gaView
+
+    # We have two jobs here. First we need to populate the menu that
+    # selects the current layer in the layer props panel. Then we need
+    # to populate all the level-layer menus in the view props
+    # panel. First do the layer props.
+
+    # Get the layer ID list.
+    set err [catch { set gaLayer(idList) [GetLayerIDList] } sResult]
+    if { $err } { 
+	set gaLayer(idList) {} 
+    }
+
+    # Disable the menu callback.
+    $gaWidget(layerProperties,menu) config -disablecallback 1
+
+    # Get all the entries, delete them, then add commands for all the
+    # IDs in the layer ID list.
+    set lEntries [$gaWidget(layerProperties,menu) entries]
+    foreach entry $lEntries { 
+	$gaWidget(layerProperties,menu) delete $entry
+    }
+    foreach id $gaLayer(idList) {
+	$gaWidget(layerProperties,menu) add command $id \
+	    -label "$id: [GetLayerLabel $id]"
+    }
+    # Renable the menu.
+    $gaWidget(layerProperties,menu) config -disablecallback 0
+
+
+    # Populate the menus in the view props draw level menus.
+    for { set nLevel 0 } { $nLevel < 10 } { incr nLevel } {
+
+	# Disable callback.
+	$gaWidget(viewProperties,drawLevelMenu$nLevel) \
+	    config -disablecallback 1
+
+	# Delete all the entries and add ones for all the IDs in the
+	# ID list. Also add a command for 'none' with index of -1.
+	set lEntries [$gaWidget(viewProperties,drawLevelMenu$nLevel) entries]
+	foreach entry $lEntries { 
+	    $gaWidget(viewProperties,drawLevelMenu$nLevel) delete $entry
+	}
+	$gaWidget(viewProperties,drawLevelMenu$nLevel) \
+	    add command -1 -label "None"
+	foreach id $gaLayer(idList) {
+	    $gaWidget(viewProperties,drawLevelMenu$nLevel) add command $id \
+		-label "$id: [GetLayerLabel $id]"
+	}
+
+	# Renable the callback.
+	$gaWidget(viewProperties,drawLevelMenu$nLevel) \
+	    config -disablecallback 0
+    }
+
+    # Make sure the right layers are selected in the view draw level
+    # menus.
+    UpdateCurrentViewProperties
+}
+
+# VIEW PROPERTIES FUNCTIONS =============================================
+
 proc ViewPropertiesMenuCallback { inView } {
     global gaView
 
@@ -792,7 +921,184 @@ proc SelectViewInViewProperties { iViewID } {
     $gaWidget(viewProperties,menu) config \
 	-value [lsearch $gaView(idList) $iViewID]
     $gaWidget(viewProperties,menu) config -disablecallback 0
+
+    UpdateCurrentViewProperties
 }
+
+# This gets the layers at each level of the currently selected view
+# and makes sure the draw level menus are set properly. Call it
+# whenever a layer has been set in the current view.
+proc UpdateCurrentViewProperties {} {
+    global gaWidget
+    global gaView
+    global gaLayer
+
+    for { set nLevel 0 } { $nLevel < 10 } { incr nLevel } {
+
+	# Get the current value of this layer.
+	set layerID [GetLayerInViewAtLevel $gaView(current,id) $nLevel]
+	set gaView(current,draw$nLevel) $layerID
+
+	# Disable callback.
+	$gaWidget(viewProperties,drawLevelMenu$nLevel) \
+	    config -disablecallback 1
+
+	# Find the index of the layer ID at this draw level in the
+	# view, and set the menu appropriately.
+	$gaWidget(viewProperties,drawLevelMenu$nLevel) config \
+	    -value [lsearch $gaLayer(idList) $layerID]
+
+	# Renable the callback.
+	$gaWidget(viewProperties,drawLevelMenu$nLevel) \
+	    config -disablecallback 0
+    }
+}
+
+
+# This builds the view ID list from the current view configuration and
+# populates the menu that selects the view in the view props panel. It
+# should be called every time the view configuration changes.
+proc UpdateViewList {} {
+    global gaView
+    global gaWidget
+
+    set gaView(idList) {}
+
+    # Disable the menu.
+    $gaWidget(viewProperties,menu) config -disablecallback 1
+
+    # Build the ID list.
+    set err [catch { set cRows [GetNumberOfRowsInFrame [GetMainFrameID]] } sResult]
+    if { 0 != $err } { tkuErrorDlog "$sResult"; return }
+    for { set nRow 0 } { $nRow < $cRows } { incr nRow } {
+	
+	set err [catch { 
+	    set cCols [GetNumberOfColsAtRowInFrame [GetMainFrameID] $nRow]
+	} sResult]
+	if { 0 != $err } { tkuErrorDlog $sResult; return }
+	
+	for { set nCol 0 } { $nCol < $cCols } { incr nCol } {
+
+	    set err [catch { 
+		set viewID [GetViewIDFromFrameColRow [GetMainFrameID] $nCol $nRow] 
+	    } sResult]
+	    if { 0 != $err } { tkuErrorDlog $sResult; return }
+
+	    lappend gaView(idList) $viewID
+	}
+    }
+
+    # Empty the current view list.
+    set lEntries [$gaWidget(viewProperties,menu) entries]
+    foreach entry $lEntries { 
+	$gaWidget(viewProperties,menu) delete $entry
+    }
+    
+    # Add the entries from the view ID list to the menu.
+    foreach id $gaView(idList) {
+	set sLabel "[GetColumnOfViewInFrame [GetMainFrameID] $id], [GetRowOfViewInFrame [GetMainFrameID] $id]"
+	$gaWidget(viewProperties,menu) add command $id -label $sLabel
+    }
+
+    # Reenable the menu.
+    $gaWidget(viewProperties,menu) config -disablecallback 0
+}
+
+# SUBJECTS LOADER FUNCTIONS =============================================
+
+proc SubjectsLoaderSubjectMenuCallback { inSubject } {
+    global gaSubject
+
+    # Get the name at this index in the nameList, then select that
+    # subject.
+    set gaSubject(current) [lindex $gaSubject(nameList) $inSubject]
+    SelectSubjectInSubjectsLoader $gaSubject(current)
+}
+
+proc SelectSubjectInSubjectsLoader { isSubject } {
+    global gaWidget
+    global env
+
+    # We need to populate the data menus for this subject. 
+
+    # For volumes, look for all the $sSubject/mri/ subdirs except
+    # transforms.and tmp.
+    set lContents [dir -full $env(SUBJECTS_DIR)/$isSubject/mri]
+    foreach sItem $lContents {
+	if { [file isdirectory $env(SUBJECTS_DIR)/$isSubject/mri/$sItem ] } {
+	    set sVolume [string trim $sItem /]
+	    if { "$sVolume" != "transforms" &&
+		 "$sVolume" != "tmp" } {
+		$gaWidget(subjectsLoader,volumeMenu) add \
+		    command "$env(SUBJECTS_DIR)/$isSubject/mri/$sItem" \
+		    -label $sVolume
+	    }
+	}
+    }
+    
+    # For surfaces, look for all the $sSubject/surf/{l,r}h files.
+    set lContents [dir -full $env(SUBJECTS_DIR)/$isSubject/surf]
+    foreach sItem $lContents {
+	if { [string range $sItem 0 1] == "lh" ||
+	     [string range $sItem 0 1] == "rh" } {
+	    $gaWidget(subjectsLoader,surfaceMenu) add \
+		command "$env(SUBJECTS_DIR)/$isSubject/surf/$sItem" \
+		-label $sItem
+	}
+    }
+    
+}
+
+proc LoadVolumeFromSubjectsLoader { isVolume } {
+    global gaSubject
+
+    LoadVolume "$isVolume" 1 [GetMainFrameID]
+}
+
+proc LoadSurfaceFromSubjectsLoader { isSurface } {
+    global gaSubject
+
+    LoadSurface "$isSurface" 1 [GetMainFrameID]
+}
+
+# Builds the subject nameList by looking in SUBJECTS_DIR.
+proc UpdateSubjectList {} {
+    global gaSubject
+    global gaWidget
+    global env
+
+    set gaSubject(nameList) {}
+
+    # Disable the menu.
+    $gaWidget(subjectsLoader,subjectsMenu) config -disablecallback 1
+
+    # Build the ID list. Go through and make sure each is a
+    # directory. Trim slashes.
+    set lContents [dir -full $env(SUBJECTS_DIR)]
+    foreach sItem $lContents {
+	if { [file isdirectory $env(SUBJECTS_DIR)/$sItem] } {
+	    lappend gaSubject(nameList) [string trim $sItem /]
+	}
+    }
+
+    # Empty the current subject menu.
+    set lEntries [$gaWidget(subjectsLoader,subjectsMenu) entries]
+    foreach entry $lEntries { 
+	$gaWidget(subjectsLoader,subjectsMenu) delete $entry
+    }
+    
+    # Add the entries from the subject name list to the menu.
+    set nSubject 0
+    foreach sSubject $gaSubject(nameList) {
+	$gaWidget(subjectsLoader,subjectsMenu) add command $nSubject -label $sSubject
+	incr nSubject
+    }
+
+    # Reenable the menu.
+    $gaWidget(subjectsLoader,subjectsMenu) config -disablecallback 0
+}
+
+# LABEL AREA FUNCTIONS ==================================================
 
 proc ShowHideLabelArea { ibShow } {
     global gaWidget
@@ -853,6 +1159,44 @@ proc DrawLabelArea {} {
     }
 }
 
+# VIEW CONFIGURATION ==================================================
+
+proc AddLayerToAllViewsInFrame { iFrameID iLayerID } {
+
+    # For each view...
+    set err [catch { set cRows [GetNumberOfRowsInFrame $iFrameID] } sResult]
+    if { 0 != $err } { tkuErrorDlog "$sResult"; return }
+    for { set nRow 0 } { $nRow < $cRows } { incr nRow } {
+	
+	set err [catch { 
+	    set cCols [GetNumberOfColsAtRowInFrame $iFrameID $nRow]
+	} sResult]
+	if { 0 != $err } { tkuErrorDlog $sResult; return }
+	
+	for { set nCol 0 } { $nCol < $cCols } { incr nCol } {
+	    
+	    set err [catch { 
+		set viewID [GetViewIDFromFrameColRow $iFrameID $nCol $nRow] 
+	    } sResult]
+	    if { 0 != $err } { tkuErrorDlog $sResult; return }
+
+	    # Get the first unused draw level and add the layer to the
+	    # view at that level.
+	    set err [catch { 
+		set level [GetFirstUnusedDrawLevelInView $viewID] } sResult]
+	    if { 0 != $err } { tkuErrorDlog $sResult; return }
+
+	    set err [catch {
+		SetLayerInViewAtLevel $viewID $iLayerID $level } sResult]
+	    if { 0 != $err } { tkuErrorDlog $sResult; return }
+       }
+    }
+    
+    UpdateLayerList
+}
+
+# DATA LOADING =====================================================
+
 proc MakeVolumeCollection { ifnVolume } {
 
     set err [catch { set colID [MakeDataCollection Volume] } sResult]
@@ -863,6 +1207,23 @@ proc MakeVolumeCollection { ifnVolume } {
 
     # Get a good name for the collection.
     set sLabel [ExtractLabelFromFileName $ifnVolume]
+    
+    set err [catch { SetCollectionLabel $colID $sLabel } sResult]
+    if { 0 != $err } { tkuErrorDlog $sResult; return }
+
+    return $colID
+}
+
+proc MakeSurfaceCollection { ifnSurface } {
+
+    set err [catch { set colID [MakeDataCollection Surface] } sResult]
+    if { 0 != $err } { tkuErrorDlog $sResult; return }
+
+    set err [catch { SetSurfaceCollectionFileName $colID $ifnSurface } sResult]
+    if { 0 != $err } { tkuErrorDlog $sResult; return }
+
+    # Get a good name for the collection.
+    set sLabel [ExtractLabelFromFileName $ifnSurface]
     
     set err [catch { SetCollectionLabel $colID $sLabel } sResult]
     if { 0 != $err } { tkuErrorDlog $sResult; return }
@@ -883,140 +1244,17 @@ proc Make2DMRILayer { isLabel } {
     return $layerID
 }
 
-proc UpdateLayerList {} {
-    global gaLayer
-    global gaWidget
-    global gaView
+proc Make2DMRISLayer { isLabel } {
 
-    # We have two jobs here. First we need to populate the menu that
-    # selects the current layer in the layer props panel. Then we need
-    # to populate all the level-layer menus in the view props
-    # panel. First do the layer props.
+    set err [catch { set layerID [MakeLayer 2DMRIS] } sResult]
+    if { 0 != $err } { tkuErrorDlog $sResult; return }
 
-    # Get the layer ID list.
-    set gaLayer(idList) [GetLayerIDList]
+    set err [catch { SetLayerLabel $layerID $isLabel } sResult]
+    if { 0 != $err } { tkuErrorDlog $sResult; return }
 
-    # Disable the menu callback.
-    $gaWidget(layerProperties,menu) config -disablecallback 1
+    UpdateLayerList
 
-    # Get all the entries, delete them, then add commands for all the
-    # IDs in the layer ID list.
-    set lEntries [$gaWidget(layerProperties,menu) entries]
-    foreach entry $lEntries { 
-	$gaWidget(layerProperties,menu) delete $entry
-    }
-    foreach id $gaLayer(idList) {
-	$gaWidget(layerProperties,menu) add command $id \
-	    -label "$id: [GetLayerLabel $id]"
-    }
-    # Renable the menu.
-    $gaWidget(layerProperties,menu) config -disablecallback 0
-
-
-    # Populate the menus in the view props draw level menus.
-    for { set nLevel 0 } { $nLevel < 10 } { incr nLevel } {
-
-	# Disable callback.
-	$gaWidget(viewProperties,drawLevelMenu$nLevel) \
-	    config -disablecallback 1
-
-	# Get the current value of this layer.
-	set layerID $gaView(current,draw$nLevel)
-
-	# Delete all the entries and add ones for all the IDs in the
-	# ID list. Also add a command for 'none' with index of -1.
-	set lEntries [$gaWidget(viewProperties,drawLevelMenu$nLevel) entries]
-	foreach entry $lEntries { 
-	    $gaWidget(viewProperties,drawLevelMenu$nLevel) delete $entry
-	}
-	$gaWidget(viewProperties,drawLevelMenu$nLevel) \
-	    add command -1 -label "None"
-	foreach id $gaLayer(idList) {
-	    $gaWidget(viewProperties,drawLevelMenu$nLevel) add command $id \
-		-label "$id: [GetLayerLabel $id]"
-	}
-
-	# Find the index of the layer ID at this draw level in the
-	# view, and set the menu appropriately.
-	$gaWidget(viewProperties,drawLevelMenu$nLevel) config \
-	    -value [lsearch $gaLayer(idList) $layerID]
-
-	# Renable the callback.
-	$gaWidget(viewProperties,drawLevelMenu$nLevel) \
-	    config -disablecallback 0
-    }
-}
-
-proc UpdateViewList {} {
-    global gaView
-    global gaWidget
-
-    set gaView(idList) {}
-
-    $gaWidget(viewProperties,menu) config -disablecallback 1
-
-    set err [catch { set cRows [GetNumberOfRowsInFrame [GetMainFrameID]] } sResult]
-    if { 0 != $err } { tkuErrorDlog "$sResult"; return }
-    
-    for { set nRow 0 } { $nRow < $cRows } { incr nRow } {
-	
-	set err [catch { 
-	    set cCols [GetNumberOfColsAtRowInFrame [GetMainFrameID] $nRow]
-	} sResult]
-	if { 0 != $err } { tkuErrorDlog $sResult; return }
-	
-	for { set nCol 0 } { $nCol < $cCols } { incr nCol } {
-
-	    set err [catch { 
-		set viewID [GetViewIDFromFrameColRow [GetMainFrameID] $nCol $nRow] 
-	    } sResult]
-	    if { 0 != $err } { tkuErrorDlog $sResult; return }
-
-	    lappend gaView(idList) $viewID
-	}
-    }
-
-    set lEntries [$gaWidget(viewProperties,menu) entries]
-    foreach entry $lEntries { 
-	$gaWidget(viewProperties,menu) delete $entry
-    }
-
-    foreach id $gaView(idList) {
-	set sLabel "[GetColumnOfViewInFrame [GetMainFrameID] $id], [GetRowOfViewInFrame [GetMainFrameID] $id]"
-	$gaWidget(viewProperties,menu) add command $id -label $sLabel
-    }
-
-    $gaWidget(viewProperties,menu) config -disablecallback 0
-}
-
-proc AddLayerToAllViewsInFrame { iFrameID iLayerID } {
-
-    set err [catch { set cRows [GetNumberOfRowsInFrame $iFrameID] } sResult]
-    if { 0 != $err } { tkuErrorDlog "$sResult"; return }
-    
-    for { set nRow 0 } { $nRow < $cRows } { incr nRow } {
-	
-	set err [catch { 
-	    set cCols [GetNumberOfColsAtRowInFrame $iFrameID $nRow]
-	} sResult]
-	if { 0 != $err } { tkuErrorDlog $sResult; return }
-	
-	for { set nCol 0 } { $nCol < $cCols } { incr nCol } {
-	    
-	    set err [catch { 
-		set viewID [GetViewIDFromFrameColRow $iFrameID $nCol $nRow] 
-	    } sResult]
-	    if { 0 != $err } { tkuErrorDlog $sResult; return }
-
-	    set err [catch { 
-		set level [GetFirstUnusedDrawLevelInView $viewID] } sResult]
-	    if { 0 != $err } { tkuErrorDlog $sResult; return }
-
-	    set err [catch {
-		SetLayerInViewAtLevel $viewID $iLayerID $level } sResult]
-	    if { 0 != $err } { tkuErrorDlog $sResult; return }
-       }
-   }
+    return $layerID
 }
 
 proc LoadVolume { ifnVolume ibCreateLayer iFrameIDToAdd } {
@@ -1047,26 +1285,60 @@ proc LoadVolume { ifnVolume ibCreateLayer iFrameIDToAdd } {
     AddDirToShortcutDirsList [file dirname $ifnVolume]
 }
 
+proc LoadSurface { ifnSurface ibCreateLayer iFrameIDToAdd } {
+
+    set fnSurface [FindFile $ifnSurface]
+
+    set err [catch { set colID [MakeSurfaceCollection $fnSurface] } sResult]
+    if { 0 != $err } { tkuErrorDlog $sResult; return }
+
+    if { $ibCreateLayer } {
+
+	set sLabel [ExtractLabelFromFileName $ifnSurface]
+
+	set layerID [Make2DMRISLayer $sLabel]
+
+	set err [catch {
+	    Set2DMRISLayerSurfaceCollection $layerID $colID } sResult]
+	if { 0 != $err } { tkuErrorDlog $sResult; return }
+	
+	if { $iFrameIDToAdd != -1 } {
+	    AddLayerToAllViewsInFrame $iFrameIDToAdd $layerID
+	}
+
+	SelectLayerInLayerProperties $layerID
+    }
+
+    # Add this directory to the shortcut dirs if it isn't there already.
+    AddDirToShortcutDirsList [file dirname $ifnSurface]
+}
+
 proc DoLoadVolumeDlog {} {
     global glShortcutDirs
 
     tkuDoFileDlog -title "Load Volume" \
 	-prompt1 "Load Volume: " \
 	-defaultdir1 [GetDefaultFileLocation LoadVolume] \
+	-type2 checkbox \
+	-prompt2 "Automatically add new layer to all views" \
+	-defaultvalue2 1 \
 	-shortcuts $glShortcutDirs \
 	-okCmd { 
-	    LoadVolume %s1 1 $gFrameWidgetToID($gaWidget(scubaFrame))
+	    set frameID -1
+	    if { %s2 } {
+		set frameID $gFrameWidgetToID($gaWidget(scubaFrame))
+	    }
+	    LoadVolume %s1 1 $frameID
 	}
 
     # Future options.
 #       -type2 checkbox \
 #	-prompt2 "Automatically create new layer" \
 #	-defaultvalue2 1 \
-#	-type3 checkbox \
-#	-prompt3 "Automatically add new layer to all views" \
-#	-defaultvalue3 1 \
 }
 
+
+# MAIN =============================================================
 
 # Look at our command line args. For some we will want to process and
 # exit without bringing up all our windows. For some, we need to bring
@@ -1082,6 +1354,11 @@ while { $nArg < $argc } {
 	    incr nArg
 	    set fnVolume [lindex $argv $nArg]
 	    lappend lCommands "LoadVolume $fnVolume 1 [GetMainFrameID]"
+	}
+	r - surface {
+	    incr nArg
+	    set fnSurface [lindex $argv $nArg]
+	    lappend lCommands "LoadSurface $fnSurface 1 [GetMainFrameID]"
 	}
 	j - subject {
 	    incr nArg
@@ -1101,6 +1378,7 @@ while { $nArg < $argc } {
     incr nArg
 }
 
+# Do some startup stuff.
 BuildShortcutDirsList
 LoadImages
 
@@ -1164,31 +1442,14 @@ foreach command $lCommands {
     eval $command
 }
 
+# Let tkUtils finish up.
 tkuFinish
 
-
-proc test_ExtractLabelFromFileName {} {
-
-    foreach { fn sLabel } { 
-	/path/to/freesurfer/subjects/SUBJECT/mri/DATA
-	"SUBJECT DATA"
-	/path/to/some/data/SUBJECT/mri/DATA.mgh
-	"SUBJECT DATA"
-	/path/to/some/data/DATA.mgh
-	"DATA"
-    } {
-	set sFoundLabel [ExtractLabelFromFileName $fn]
-	if { $sFoundLabel != $sLabel } {
-	    puts "$fn FAILED, was $sFoundLabel"
-	}
-    }
-
-}
-
-test_ExtractLabelFromFileName
-
+# Set default view configuration and update/initialize the
+# menus. Select the view to set everything up.
 SetFrameViewConfiguration [GetMainFrameID] c1
 UpdateLayerList
 UpdateViewList
+UpdateSubjectList
 SelectViewInViewProperties 0
 

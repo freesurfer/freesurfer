@@ -13,7 +13,7 @@ DataLoader<T>::DataLoader() : DebugReporter() {
 template <typename T>
 T DataLoader<T>::GetData( string const& ifnData ) {
 
-  list<T>::iterator tData;
+  typename list<T>::iterator tData;
   string fnData( ifnData );
 
   for( tData = mlData.begin(); tData != mlData.end(); ++tData ) {
@@ -38,7 +38,7 @@ template <typename T>
 void
 DataLoader<T>::ReleaseData( T* ioData ) {
 
-  list<T>::iterator tData;
+  typename list<T>::iterator tData;
 
   for( tData = mlData.begin(); tData != mlData.end(); ++tData ) {
     T data = *tData;
@@ -64,7 +64,7 @@ template <typename T>
 int
 DataLoader<T>::CountReferences( T iData ) {
 
-  list<T>::iterator tData;
+  typename list<T>::iterator tData;
 
   for( tData = mlData.begin(); tData != mlData.end(); ++tData ) {
     T data = *tData;

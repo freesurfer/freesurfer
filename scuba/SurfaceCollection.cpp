@@ -9,6 +9,11 @@ SurfaceCollection::SurfaceCollection () :
   DataCollection() {
 
   mMRIS = NULL;
+
+  TclCommandManager& commandMgr = TclCommandManager::GetManager();
+  commandMgr.AddCommand( *this, "SetSurfaceCollectionFileName", 2, 
+			 "collectionID fileName", 
+			 "Sets the file name for a given surface collection.");
 }
 
 SurfaceCollection::~SurfaceCollection() {
@@ -53,3 +58,26 @@ SurfaceCollection::GetMRIS () {
 
   return mMRIS;
 }
+
+TclCommandListener::TclCommandResult 
+SurfaceCollection::DoListenToTclCommand ( char* isCommand,
+					 int iArgc, char** iasArgv ) {
+
+  // SetSurfaceCollectionFileName <collectionID> <fileName>
+  if( 0 == strcmp( isCommand, "SetSurfaceCollectionFileName" ) ) {
+    int collectionID = strtol(iasArgv[1], (char**)NULL, 10);
+    if( ERANGE == errno ) {
+      sResult = "bad collection ID";
+      return error;
+    }
+    
+    if( mID == collectionID ) {
+      
+      string fnSurface = iasArgv[2];
+      SetSurfaceFileName( fnSurface );
+    }
+  }
+  
+  return DataCollection::DoListenToTclCommand( isCommand, iArgc, iasArgv );
+}
+

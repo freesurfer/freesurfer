@@ -45,6 +45,13 @@ class ScubaView : public View, public ScubaWindowToRASTranslator {
   void TranslateWindowToRAS ( int iXWindow, int iYWindow, float oRAS[3] ) {
     TranslateWindowToRAS( iXWindow, iYWindow, oRAS[0], oRAS[1], oRAS[2] ); 
   }
+  void TranslateRASToWindow( float iXRAS, float iYRAS, float iZRAS,
+			     int& oXWindow, int& oYWindow );
+  void TranslateRASToWindow( float iRAS[3], 
+			     int& oXWindow, int& oYWindow ) {
+    TranslateRASToWindow( iRAS[0], iRAS[1], iRAS[2], oXWindow, oYWindow ); 
+  }
+
 
   int GetFirstUnusedDrawLevel ();
 
@@ -76,6 +83,8 @@ protected:
   // iState window coords to RAS coordinates based on the current
   // view port.
   float ConvertWindowToRAS ( float iWindow, float iRASCenter, 
+			     float iWindowDimension );
+  float ConvertRASToWindow ( float iRAS, float iRASCenter, 
 			     float iWindowDimension );
 
   // Sets a marker in the view.

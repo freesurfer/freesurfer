@@ -171,19 +171,13 @@ ScubaLayer2DMRI::DrawIntoBuffer ( GLubyte* iBuffer, int iWidth, int iHeight,
 	  float anaValue;
 	  anaValue = value;
 
-	  if( (value < mMinVisibleValue) ||
-	      (value > mMaxVisibleValue) ||
-	      (value == 0 && mbClearZero) ) {
-	    
-	    anaColor[0] = dest[0];
-	    anaColor[1] = dest[1];
-	    anaColor[2] = dest[2];
-
-	  } else {
+	  if( (mColorMapMethod == heatScale || value >= mMinVisibleValue) &&
+	      (mColorMapMethod == heatScale || value <= mMaxVisibleValue) &&
+	      (value != 0 && mbClearZero) ) {
 
 	    switch( mColorMapMethod ) { 
 	    case grayscale: {
-	      int nLUT = (int) floor( cGrayscaleLUTEntries * 
+	      int nLUT = (int) floor( (cGrayscaleLUTEntries-1) * 
 		      ((anaValue - mMinVisibleValue) /
 		       (mMaxVisibleValue - mMinVisibleValue)) );
 	      if( nLUT < 0 ) nLUT = 0;
@@ -194,45 +188,57 @@ ScubaLayer2DMRI::DrawIntoBuffer ( GLubyte* iBuffer, int iWidth, int iHeight,
 	      break;
 	    case heatScale:
 
-	      float tmp;
-	      if ( fabs(value) > mMinVisibleValue && fabs(value) < midValue ) {
-		tmp = fabs(value);
-		tmp = (1.0/(midValue-mMinVisibleValue)) *
-		  (tmp-mMinVisibleValue)*(tmp-mMinVisibleValue) + 
-		  mMinVisibleValue;
-		value = (value<0) ? -tmp : tmp;
-	      }
-  
-	      /* calc the color */
-	      float red, green, blue;
-	      if( value >= 0 ) {
-		red = ((value<mMinVisibleValue) ? 0.0 : 
-		       (value<midValue) ? 
-		       (value-mMinVisibleValue)/(midValue-mMinVisibleValue) :
-		       1.0);
-		green = ((value<midValue) ? 0.0 :
-			 (value<mMaxVisibleValue) ? 
-			 (value-midValue)/(mMaxVisibleValue-midValue) : 1.0);
-		blue = 0.0; 
-	      } else {
-		value = -value;
-		red = 0.0;
-		green = ((value<midValue) ? 0.0 :
-			 (value<mMaxVisibleValue) ? 
-			 (value-midValue)/(mMaxVisibleValue-midValue) : 1.0);
-		blue = ((value<mMinVisibleValue) ? 0.0 :
-			(value<midValue) ? 
-			(value-mMinVisibleValue)/(midValue-mMinVisibleValue) : 
-			1.0);
-	      }
-	      
-	      if( red > 1.0 )   red = 1.0;
-	      if( green > 1.0 ) green = 1.0;
-	      if( blue > 1.0 )  blue = 1.0;
+	      if( fabs(value) >= mMinVisibleValue &&
+		  fabs(value) <= mMaxVisibleValue ) {
 
-	      anaColor[0] = (GLubyte) (red * (float)kMaxPixelComponentValue);
-	      anaColor[1] = (GLubyte) (green * (float)kMaxPixelComponentValue);
-	      anaColor[2] = (GLubyte) (blue * (float)kMaxPixelComponentValue);
+		float tmp;
+		if ( fabs(value) > mMinVisibleValue &&
+		     fabs(value) < midValue ) {
+		  tmp = fabs(value);
+		  tmp = (1.0/(midValue-mMinVisibleValue)) *
+		    (tmp-mMinVisibleValue)*(tmp-mMinVisibleValue) + 
+		    mMinVisibleValue;
+		  value = (value<0) ? -tmp : tmp;
+		}
+		
+		/* calc the color */
+		float red, green, blue;
+		if( value >= 0 ) {
+		  red = ((value<mMinVisibleValue) ? 0.0 : 
+			 (value<midValue) ? 
+			 (value-mMinVisibleValue)/(midValue-mMinVisibleValue) :
+			 1.0);
+		  green = ((value<midValue) ? 0.0 :
+			   (value<mMaxVisibleValue) ? 
+			   (value-midValue)/(mMaxVisibleValue-midValue) : 1.0);
+		  blue = 0.0; 
+		} else {
+		  value = -value;
+		  red = 0.0;
+		  green = ((value<midValue) ? 0.0 :
+			   (value<mMaxVisibleValue) ? 
+			   (value-midValue)/(mMaxVisibleValue-midValue) : 1.0);
+		  blue = ((value<mMinVisibleValue) ? 0.0 :
+			  (value<midValue) ? 
+			(value-mMinVisibleValue)/(midValue-mMinVisibleValue) : 
+			  1.0);
+		}
+		
+		if( red > 1.0 )   red = 1.0;
+		if( green > 1.0 ) green = 1.0;
+		if( blue > 1.0 )  blue = 1.0;
+		
+		anaColor[0] = (GLubyte)
+		  (red * (float)kMaxPixelComponentValue);
+		anaColor[1] = (GLubyte) 
+		  (green * (float)kMaxPixelComponentValue);
+		anaColor[2] = (GLubyte) 
+		  (blue * (float)kMaxPixelComponentValue);
+	      } else {
+		anaColor[0] = dest[0];
+		anaColor[1] = dest[1];
+		anaColor[2] = dest[2];
+	      }
 	      break;
 	    case LUT:
 	      if( value > 0 && value < mcFileLUTEntries ) {
@@ -245,17 +251,17 @@ ScubaLayer2DMRI::DrawIntoBuffer ( GLubyte* iBuffer, int iWidth, int iHeight,
 	      }
 	      break;
 	    }
+
+	    // Write the RGB value to the buffer. Write a 255 in the
+	    // alpha byte.
+	    dest[0] = (GLubyte) (((float)dest[0] * (1.0 - mOpacity)) +
+				 ((float)anaColor[0] * mOpacity));
+	    dest[1] = (GLubyte) (((float)dest[1] * (1.0 - mOpacity)) +
+				 ((float)anaColor[1] * mOpacity));
+	    dest[2] = (GLubyte) (((float)dest[2] * (1.0 - mOpacity)) +
+				 ((float)anaColor[2] * mOpacity));
+	    dest[3] = (GLubyte)255;
 	  }
-	  
-	  // Write the RGB value to the buffer. Write a 255 in the alpha byte.
-	  dest[0] = (GLubyte) (((float)dest[0] * (1.0 - mOpacity)) +
-			       ((float)anaColor[0] * mOpacity));
-	  dest[1] = (GLubyte) (((float)dest[1] * (1.0 - mOpacity)) +
-			       ((float)anaColor[1] * mOpacity));
-	  dest[2] = (GLubyte) (((float)dest[2] * (1.0 - mOpacity)) +
-			       ((float)anaColor[2] * mOpacity));
-	  dest[3] = (GLubyte)255;
-	  
 	}
       }
 
@@ -292,27 +298,31 @@ ScubaLayer2DMRI::GetInfoAtRAS ( float inX, float inY, float inZ,
       index[1] >= 0 && index[1] < mri->height &&
       index[2] >= 0 && index[2] < mri->depth ) {
     
+    int index2[3];
+    index2[0] = (int) rint( index[0] );
+    index2[1] = (int) rint( index[1] );
+    index2[2] = (int) rint( index[2] );
     float anaValue;
     switch( mri->type ) {
     case MRI_UCHAR:
       anaValue = 
-	MRIvox( mri, (int)index[0], (int)index[1], (int)index[2] );
+	MRIvox( mri, index2[0], index2[1], index2[2] );
       break;
     case MRI_INT:
       anaValue = 
-	MRIIvox( mri, (int)index[0], (int)index[1], (int)index[2] );
+	MRIIvox( mri, index2[0], index2[1], index2[2] );
       break;
     case MRI_LONG:
       anaValue = 
-	MRILvox( mri, (int)index[0], (int)index[1], (int)index[2] );
+	MRILvox( mri, index2[0], index2[1], index2[2] );
       break;
     case MRI_FLOAT:
       anaValue = 
-	MRIFvox( mri, (int)index[0], (int)index[1], (int)index[2] );
+	MRIFvox( mri, index2[0], index2[1], index2[2] );
       break;
     case MRI_SHORT:
       anaValue = 
-	MRISvox( mri, (int)index[0], (int)index[1], (int)index[2] );
+	MRISvox( mri, index2[0], index2[1], index2[2] );
       break;
     default:
       anaValue = 0;

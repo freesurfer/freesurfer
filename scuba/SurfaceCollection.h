@@ -20,6 +20,9 @@ class SurfaceCollection : public DataCollection {
 
   MRIS* GetMRIS();
 
+  virtual TclCommandResult
+    DoListenToTclCommand ( char* isCommand, int iArgc, char** iasArgv );
+
  protected:
   std::string mfnMRIS;
   MRIS* mMRIS;

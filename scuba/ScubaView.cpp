@@ -738,6 +738,38 @@ ScubaView::ConvertWindowToRAS ( float iWindow, float iRASCenter,
     iRASCenter - (iWindowDimension / 2.0 / mViewState.mZoomLevel);
 }
 
+void
+ScubaView::TranslateRASToWindow ( float iXRAS, float iYRAS, float iZRAS,
+				  int& oXWindow, int& oYWindow ) {
+  
+  float xWindow, yWindow;
+  switch( mViewState.mInPlane ) {
+  case ViewState::X:
+    xWindow = ConvertRASToWindow( iYRAS, mViewState.mCenterRAS[1], mWidth );
+    yWindow = ConvertRASToWindow( iZRAS, mViewState.mCenterRAS[2], mHeight );
+    break;
+  case ViewState::Y:
+    xWindow = ConvertRASToWindow( iXRAS, mViewState.mCenterRAS[0], mWidth );
+    yWindow = ConvertRASToWindow( iZRAS, mViewState.mCenterRAS[2], mHeight );
+    break;
+  case ViewState::Z:
+    xWindow = ConvertRASToWindow( iXRAS, mViewState.mCenterRAS[0], mWidth );
+    yWindow = ConvertRASToWindow( iYRAS, mViewState.mCenterRAS[1], mHeight );
+    break;
+  }
+
+  oXWindow = (int) rint( xWindow );
+  oYWindow = (int) rint( yWindow );
+}
+
+float
+ScubaView::ConvertRASToWindow ( float iRAS, float iRASCenter, 
+				float iWindowDimension ) {
+
+  return ((iRAS - iRASCenter) * mViewState.mZoomLevel) +
+    (iWindowDimension / 2.0);
+}
+
 int
 ScubaView::GetFirstUnusedDrawLevel () {
 

@@ -1,5 +1,6 @@
 #include "ScubaLayerFactory.h"
 #include "ScubaLayer2DMRI.h"
+#include "ScubaLayer2DMRIS.h"
 
 using namespace std;
 
@@ -57,6 +58,11 @@ ScubaLayerFactory::MakeLayer ( string isType ) {
 
     layer = new ScubaLayer2DMRI();
     DebugOutputStatic( << "Made a ScubaLayer2DMRI" );
+
+  } else if( isType == "2DMRIS" ) {
+
+    layer = new ScubaLayer2DMRIS();
+    DebugOutputStatic( << "Made a ScubaLayer2DMRIS" );
 
   } else {
 

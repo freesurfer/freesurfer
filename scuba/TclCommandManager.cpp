@@ -86,7 +86,6 @@ TclCommandManager::Start( Tcl_Interp const* iInterp ) {
     Command* command = *tCommand;
     CreateCommand( *command );
   }
-  
 }
 
 void

@@ -61,6 +61,11 @@ ScubaDataCollectionFactory::MakeDataCollection ( string isType ) {
     col = new VolumeCollection();
     DebugOutputStatic( << "Made a VolumeCollection" );
 
+  } else if( isType == "Surface" ) {
+
+    col = new SurfaceCollection();
+    DebugOutputStatic( << "Made a SurfaceCollection" );
+
   } else {
 
     DebugOutputStatic( << "Unknown collection type " << isType );

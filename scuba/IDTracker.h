@@ -60,7 +60,7 @@ public:
   // Static function that will fill a list of active (non-NULL) IDs.
   static void GetIDList( std::list<int>& iList ) {
     
-    std::map<int,ClassType*>::iterator tIDObject;
+    typename std::map<int,ClassType*>::iterator tIDObject;
     for( tIDObject = mIDMap.begin(); tIDObject != mIDMap.end(); ++tIDObject ) {
       int id = (*tIDObject).first;
       ClassType* object = (*tIDObject).second;
