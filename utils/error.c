@@ -102,6 +102,7 @@ ErrorPrintf(int ecode, char *fmt, ...)
 
   va_start(args, fmt) ;
   (*error_vfprintf)(stderr, fmt, args) ;
+  (*error_vfprintf)(stderr, "\n", NULL) ;
   if (errno)
     perror(NULL) ;
   if (hipserrno)
