@@ -92,7 +92,7 @@ main(int argc, char *argv[])
   double rms ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_ms_fitparms.c,v 1.19 2004/01/02 22:15:41 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_ms_fitparms.c,v 1.20 2004/01/08 21:12:17 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -342,6 +342,9 @@ main(int argc, char *argv[])
     sprintf(fname,"%s/PD.mgh",out_dir);
     printf("writing PD estimates to %s...\n", fname) ;
     MRIwrite(mri_PD, fname) ;
+    sprintf(fname,"%s/T1.mgh",out_dir);
+    printf("writing T1 estimates to %s...\n", fname) ;
+    MRIwrite(mri_T1, fname) ;
 		mri_T2star = estimate_T2star(mri_all_flash, nvolumes_total, mri_T1, mri_PD) ;
 		if (mri_T2star)
 		{
@@ -355,9 +358,6 @@ main(int argc, char *argv[])
 			printf("writing T2star estimates to %s...\n", fname) ;
 			MRIwrite(mri_T2star, fname) ;
 		}
-    sprintf(fname,"%s/T1.mgh",out_dir);
-    printf("writing T1 estimates to %s...\n", fname) ;
-    MRIwrite(mri_T1, fname) ;
     sprintf(fname,"%s/sse.mgh",out_dir);
     printf("writing residual sse to %s...\n", fname) ;
     MRIwrite(mri_sse, fname) ;
