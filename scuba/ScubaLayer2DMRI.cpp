@@ -1104,7 +1104,7 @@ ScubaLayer2DMRI::HandleTool ( float iRAS[3], ViewState& iViewState,
 	      float newValue = iInput.Button() == 2 ? iTool.GetNewValue() : 0;
 
 	      // Set value and make undo item.
-	      mVolume->SetMRIValue( loc, iTool.GetNewValue() );
+	      mVolume->SetMRIValue( loc, newValue );
 	      action = new UndoVoxelEditAction( mVolume, newValue,
 						origValue, point.xyz() );
 
