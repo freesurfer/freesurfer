@@ -1,12 +1,12 @@
 // nmovie.c
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2003/09/05 04:45:45 $
-// Revision       : $Revision: 1.21 $
+// Revision Author: $Author: fischl $
+// Revision Date  : $Date: 2004/05/06 18:00:55 $
+// Revision       : $Revision: 1.22 $
 //
 ////////////////////////////////////////////////////////////////////
-char *NMOVIE_VERSION = "$Revision: 1.21 $";
+char *NMOVIE_VERSION = "$Revision: 1.22 $";
 #include <stdio.h>
 #include <image.h>
 #include <stdlib.h>
@@ -15,6 +15,7 @@ char *NMOVIE_VERSION = "$Revision: 1.21 $";
 #include "proto.h"
 #include "macros.h"
 #include "utils.h"
+#include "diag.h"
 #include "version.h"
 
 #include <X11/Xlib.h>
@@ -580,8 +581,11 @@ int main(int argc, char **argv)
   int     ac, nargs ;
   char    **av ;
 
+	ErrorInit(NULL, NULL, NULL) ;
+	DiagInit(NULL, NULL, NULL) ;
+
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: nmovie.c,v 1.21 2003/09/05 04:45:45 kteich Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: nmovie.c,v 1.22 2004/05/06 18:00:55 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
