@@ -71,7 +71,10 @@ typedef struct
 #include "mrisurf.h"
 
 SV        *StatReadVolume(char *prefix) ;
+SV        *StatReadTalairachVolume(char *prefix, char *xform_fname,
+                                   char *subject_name) ;
 fMRI_REG  *StatReadRegistration(char *fname) ;
+fMRI_REG  *StatReadTalairachRegistration(char *fname, char *subject_name) ;
 int       StatWriteVolume(SV *sv, char *prefix) ;
 int       StatWriteRegistration(fMRI_REG *reg, char *fname) ;
 
