@@ -9,14 +9,34 @@
  */
 #define DEFAULT_DESIRED_WHITE_MATTER_VALUE  110
 #define DEFAULT_SMOOTH_SIGMA                2.0f
-#define DEFAULT_WINDOWS_BELOW_T0            4
-#define DEFAULT_WINDOWS_ABOVE_T0            9
+#define DEFAULT_WINDOWS_BELOW_T0            9 /* 4*/
+#define DEFAULT_WINDOWS_ABOVE_T0            14 /* 9*/
 #define DEFAULT_WINDOW_SIZE                 10
+
+/* minimum size of peak, relative to total # of voxels in histogram
+   (excluding background voxels).
+*/
+#define MIN_HISTO_PCT   0.15f
+
+/* minimum separation of adjacent peaks */
+#define HISTO_WINDOW_SIZE  7
+
+/* amount be which window size decreases in superior direction 
+   via SIZE_MOD ^ (window # above t0)
+*/
+#define SIZE_MOD                            1.0f /* 0.95*/
+
+/* 20% more of brain behind (0,0,0) than in front */
+#define Z_OFFSET_SCALE                      .2
+
+/* 50% overlap in adjacent windows */
+#define OVERLAP                             0.5f
+
 
 #define HISTO_BINS                          0
 #define BACKGROUND_INTENSITY                30
 
-#define MAX_SPLINE_POINTS                   40
+#define MAX_SPLINE_POINTS                   80
 
 typedef struct
 {
