@@ -9,7 +9,7 @@
 #include "matrix.h"
 #include "proto.h"
 
-static char vcid[] = "$Id: mri_wmfilter.c,v 1.8 1999/07/26 16:55:56 fischl Exp $";
+static char vcid[] = "$Id: mri_wmfilter.c,v 1.9 1999/08/02 00:41:39 fischl Exp $";
 
 /*-------------------------------------------------------------------
                                 CONSTANTS
@@ -263,7 +263,7 @@ plane_filter(int niter)
     for (i=ws2;i<IMGSIZE-1-ws2;i++)
     for (j=ws2;j<IMGSIZE-1-ws2;j++)
     {
-      if (k == 127 && i == 46 && j == 114)
+      if (k == 64 && i == 163 && j == 157)
       {
         int kk = 0 ;
         kk++ ;
@@ -312,14 +312,11 @@ plane_filter(int niter)
            (numz>=(cfracz)*(wsize*wsize)) &&
            (im2[k][i][j] <= gray_hilim)))
       {
-        maxvar = -1000000;
-        minvar = 1000000;
-        maxi = mini = -1;
-        for (m=0;m<ncor;m++)
+        maxvar = -1000000; minvar = 1000000; maxi = mini = -1;
+        for (m=0;m<ncor;m++)    /* for each orientation */
         {
-          a = xcor[m];
-          b = ycor[m];
-          c = zcor[m];
+          /* (a,b,c) is normal (orientation) vector */
+          a = xcor[m]; b = ycor[m]; c = zcor[m];
           sum = sum2 = n = 0;
           for (u=0;u<wsize;u++)
             sumv[u] = sum2v[u] = nv[u] = 0;
@@ -328,24 +325,24 @@ plane_filter(int niter)
               for (dj = -ws2;dj<=ws2;dj++)
               {
                 u = ws2+floor(dk*c+di*b+dj*a+0.5);
-                u = (u<0)?0:(u>2*ws2+1-1)?2*ws2+1-1:u;
-                
+                u = (u<0) ? 0 : (u>=wsize) ? wsize-1 : u ;
+#if 0                
                 f = im[k+dk][i+di][j+dj];
+#else
+                f = im2[k+dk][i+di][j+dj];
+#endif
+                sum2v[u] += f*f ; sumv[u] += f;
+                nv[u] += 1; n += 1;
+                sum2 += f*f; sum += f;
                 
-/*
-  f = im2[k+dk][i+di][j+dj];
-*/
-                sum2v[u] += f*f;
-                sumv[u] += f;
-                nv[u] += 1;
-                sum2 += f*f;
-                sum += f;
-                n += 1;
               }
-          avg = sum/n;
-          var = sum2/n-avg*avg;
+          avg = sum/n; var = sum2/n-avg*avg;  /* total mean and variance */
           tvar = 0;
-          for (u=0;u<2*ws2+1;u++)
+#if 0
+          for (u=0;u<wsize;u++)
+#else
+            for (u=ws2;u <= ws2;u++)  /* only central plane */
+#endif
           {
             avgv[u] = sumv[u]/nv[u];
             varv[u] = sum2v[u]/nv[u]-avgv[u]*avgv[u];
@@ -356,9 +353,8 @@ plane_filter(int niter)
           if (tvar<minvar) {minvar=tvar;mini=m;}
         }
         
-        a = xcor[mini];
-        b = ycor[mini];
-        c = zcor[mini];
+        /* (a,b,c) now orientation vector for plane of least variance */
+        a = xcor[mini]; b = ycor[mini]; c = zcor[mini];
 /*
         printf(" -> %d,%d: (%f,%f) %f, %f, %f\n",mini,maxi,minvar,maxvar,a,b,c);
 */
@@ -392,6 +388,7 @@ plane_filter(int niter)
       f = (f>255)?255:(f<0)?0:f;
       fill[k][i][j] = f;
 */
+        /* count # of on voxels and # of off voxels in plane */
         numvox = numnz = numz = sum = sum2 = 0;
         for (dk = -ws2;dk<=ws2;dk++)
           for (di = -ws2;di<=ws2;di++)
@@ -400,7 +397,7 @@ plane_filter(int niter)
               f = im[k+dk][i+di][j+dj];
               f2 = im2[k+dk][i+di][j+dj];
               s = dk*c+di*b+dj*a;
-              if (fabs(s)<=0.5) 
+              if (fabs(s)<=0.5)  /* in central plane */
               {
                 numvox++;
                 sum2 += f2;
@@ -421,31 +418,11 @@ plane_filter(int niter)
           printf("%d %d %d %d %f\n",
           k,i,j,(int)f,(int)numvox,(int)numnz,(int)numz,numz/numvox);
         */
-        if (f!=0 && numz/numvox>cfracz && f<=gray_hilim) 
-        {
-/*
-        printf(" *** %d,%d,%d: %d->0 %d %d %d\n",
-               k,i,j,(int)f,(int)numvox,(int)numnz,(int)numz);
-*/
-          f=0;
-        }
+        if (f!=0 && numz/numvox>cfracz) 
+          f=0 ;   /* change preliminary classification white --> nonwhite */
         else if (f==0 && numnz/numvox>cfracnz) 
-/*
-      else if (f==0 && 
-               (numnz/numvox>cfracnz || (vec2[0]<-1.0 && f2>=white_lolim-5))) 
-*/
-        {
-/*
-        printf(" !!! %d,%d,%d: %d(%d)->%d %d %d %d %f\n",
-               k,i,j,(int)f,(int)f2,(int)sum,
-               (int)numvox,(int)numnz,(int)numz,vec2[0]);
-*/
-          f=sum;
-        }
-/*
-      f = sum2;
-*/
-        fill[k][i][j] = f2 /*f*/;
+          f=f2 ;  /* change preliminary classification nonwhite --> white */
+        fill[k][i][j] = f ;
       }
     }
   }
