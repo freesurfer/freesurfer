@@ -783,6 +783,8 @@ MRI *MRIreadHeader(char *fname, int type)
   int usetype;
   MRI *mri = NULL;
   char modFname[STRLEN];
+  char mgzFname[STRLEN];
+  char mghFname[STRLEN];
   struct stat stat_buf;
 
   usetype = type;
@@ -807,12 +809,30 @@ MRI *MRIreadHeader(char *fname, int type)
     usetype = mri_identify(modFname);
     if(usetype == MRI_VOLUME_TYPE_UNKNOWN)
     {
-      // just check again
-      if (stat(fname, &stat_buf) < 0)
-        printf("ERROR: cound not stat %s.  Does it exist?\n", fname);
-      else
-        printf("ERROR: could not determine type of %s\n",fname);
-      return(NULL);
+      sprintf(mgzFname,"%s.mgz",modFname);
+      usetype = mri_identify(mgzFname);
+      if(usetype == MRI_VOLUME_TYPE_UNKNOWN)
+	{
+	  sprintf(mghFname,"%s.mgh",modFname);
+	  usetype = mri_identify(mghFname);
+	  if(usetype == MRI_VOLUME_TYPE_UNKNOWN)
+	    {
+	      // just check again
+	      if (stat(fname, &stat_buf) < 0)
+		printf("ERROR: cound not stat %s.  Does it exist?\n", fname);
+	      else
+		printf("ERROR: could not determine type of %s\n",fname);
+	      return(NULL);
+	    } 
+	  else 
+	    {
+	      strcpy (modFname, mghFname);
+	    }
+	}
+      else 
+	{
+	  strcpy (modFname, mgzFname);
+	}
     }
   }
   mri = mri_read(modFname, usetype, FALSE, -1, -1);
