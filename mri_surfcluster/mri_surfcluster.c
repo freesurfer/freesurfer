@@ -4,7 +4,7 @@
   email:   analysis-bugs@nmr.mgh.harvard.edu
   Date:    2/27/02
   Purpose: Finds clusters on the surface.
-  $Id: mri_surfcluster.c,v 1.5 2002/06/24 22:49:10 greve Exp $
+  $Id: mri_surfcluster.c,v 1.6 2002/10/23 15:56:56 fischl Exp $
 */
 
 #include <stdio.h>
@@ -22,7 +22,7 @@
 #include "mri2.h"
 #include "mri_identify.h"
 #include "mrisurf.h"
-#include "MRIio.h"
+#include "MRIio_old.h"
 #include "fio.h"
 #include "volcluster.h"
 #include "surfcluster.h"
@@ -44,7 +44,7 @@ static MATRIX *LoadxfmMatrix(char *xfmfile);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_surfcluster.c,v 1.5 2002/06/24 22:49:10 greve Exp $";
+static char vcid[] = "$Id: mri_surfcluster.c,v 1.6 2002/10/23 15:56:56 fischl Exp $";
 char *Progname = NULL;
 
 char *subjectdir = NULL;
@@ -681,7 +681,7 @@ static void print_help(void)
 "summary file is shown below.\n"
 "\n"
 "Cluster Growing Summary (mri_surfcluster)\n"
-"$Id: mri_surfcluster.c,v 1.5 2002/06/24 22:49:10 greve Exp $\n"
+"$Id: mri_surfcluster.c,v 1.6 2002/10/23 15:56:56 fischl Exp $\n"
 "Input :      minsig-0-lh.w\n"
 "Frame Number:      0\n"
 "Minimum Threshold: 5\n"

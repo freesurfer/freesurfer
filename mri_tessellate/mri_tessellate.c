@@ -10,7 +10,7 @@
 #include "proto.h"
 #include "macros.h"
 #include "error.h"
-#include "MRIio.h"
+#include "MRIio_old.h"
 
 #define SQR(x) ((x)*(x))
 #define IMGSIZE     256
