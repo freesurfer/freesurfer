@@ -8487,6 +8487,9 @@ mghRead(char *fname, int read_volume, int frame)
     }
   fclose(fp) ;
 
+  // some software uses slice_direction flag
+  mri->slice_direction = MRI_UNDEFINED;
+
   return(mri) ;
 }
 
