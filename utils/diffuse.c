@@ -43,8 +43,8 @@ ImageDiffuse(IMAGE *inImage, IMAGE *outImage, double k, int niter,
   outImage->rows = inImage->rows ;
   outImage->cols = inImage->cols ;
 
-  fSrcImage = ImageAlloc(inImage->cols, inImage->rows, PFFLOAT, 1) ;
-  fDstImage = ImageAlloc(inImage->cols, inImage->rows, PFFLOAT, 1) ;
+  fSrcImage = ImageAlloc(inImage->rows, inImage->cols, PFFLOAT, 1) ;
+  fDstImage = ImageAlloc(inImage->rows, inImage->cols, PFFLOAT, 1) ;
 
   ImageCopy(inImage, fSrcImage) ;
 
@@ -134,13 +134,13 @@ ImageDiffuseCurvature(IMAGE *inImage,IMAGE *outImage, double A,
   {
     if (tmpImage)
       ImageFree(&tmpImage) ;
-    tmpImage = ImageAlloc(inImage->cols, inImage->rows, PFFLOAT, 1) ;
+    tmpImage = ImageAlloc(inImage->rows, inImage->cols, PFFLOAT, 1) ;
   }
   if (!ImageCheckSize(inImage, gradImage, 0, 0, 0))
   {
     if (gradImage)
       ImageFree(&gradImage) ;
-    gradImage = ImageAlloc(inImage->cols, inImage->rows, PFFLOAT, 1) ;
+    gradImage = ImageAlloc(inImage->rows, inImage->cols, PFFLOAT, 1) ;
   }
 
   /* build index tables for border */
@@ -387,14 +387,14 @@ ImageDiffuseHV(IMAGE *inImage, IMAGE *outImage, double k, int niter,
   {
     if (tmpImage)
       ImageFree(&tmpImage) ;
-    tmpImage = ImageAlloc(inImage->cols, inImage->rows, PFFLOAT, 1) ;
+    tmpImage = ImageAlloc(inImage->rows, inImage->cols, PFFLOAT, 1) ;
   }
 
   if (!ImageCheckSize(inImage, xImage, 0, 0, 0))
   {
     if (xImage)
       ImageFree(&xImage) ;
-    xImage = ImageAlloc(cols, rows, PFFLOAT, 1) ;
+    xImage = ImageAlloc(rows, cols, PFFLOAT, 1) ;
   }
   else
   {
@@ -405,7 +405,7 @@ ImageDiffuseHV(IMAGE *inImage, IMAGE *outImage, double k, int niter,
   {
     if (yImage)
       ImageFree(&yImage) ;
-    yImage = ImageAlloc(cols, rows, PFFLOAT, 1) ;
+    yImage = ImageAlloc(rows, cols, PFFLOAT, 1) ;
   }
   else
   {
@@ -596,13 +596,13 @@ ImageDiffusePerona(IMAGE *inImage, IMAGE *outImage, double k, int niter,
   {
     if (tmpImage)
       ImageFree(&tmpImage) ;
-    tmpImage = ImageAlloc(inImage->cols, inImage->rows, PFFLOAT, 1) ;
+    tmpImage = ImageAlloc(inImage->rows, inImage->cols, PFFLOAT, 1) ;
   }
   if (!ImageCheckSize(inImage, gradImage, 0, 0, 0))
   {
     if (gradImage)
       ImageFree(&gradImage) ;
-    gradImage = ImageAlloc(inImage->cols, inImage->rows, PFFLOAT, 1) ;
+    gradImage = ImageAlloc(inImage->rows, inImage->cols, PFFLOAT, 1) ;
   }
 
   /* build index tables for border */
@@ -763,7 +763,7 @@ static  IMAGE *tmpImage = NULL ;
   {
     if (tmpImage)
       ImageFree(&tmpImage) ;
-    tmpImage = ImageAlloc(inImage->cols, inImage->rows, PFFLOAT, 1) ;
+    tmpImage = ImageAlloc(inImage->rows, inImage->cols, PFFLOAT, 1) ;
   }
 
   ImageCopy(inImage, tmpImage) ;
@@ -860,7 +860,7 @@ ImageCurvature(IMAGE *inImage, float A, IMAGE *gradImage)
   {
     if (xImage)
       ImageFree(&xImage) ;
-    xImage = ImageAlloc(cols, rows, PFFLOAT, 1) ;
+    xImage = ImageAlloc(rows, cols, PFFLOAT, 1) ;
   }
   else
   {
@@ -871,7 +871,7 @@ ImageCurvature(IMAGE *inImage, float A, IMAGE *gradImage)
   {
     if (yImage)
       ImageFree(&yImage) ;
-    yImage = ImageAlloc(cols, rows, PFFLOAT, 1) ;
+    yImage = ImageAlloc(rows, cols, PFFLOAT, 1) ;
   }
   else
   {
