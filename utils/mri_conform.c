@@ -20,6 +20,13 @@ MRI *MRIconform(MRI *mri)
 
   res = MRIcopy(mri, NULL); /* don't mess with the input */
 
+  if(res->ras_good_flag == 0)
+  {
+    res->x_r = -1.0;  res->x_a =  0.0;  res->x_s =  0.0;
+    res->y_r =  0.0;  res->y_a =  0.0;  res->y_s = -1.0;
+    res->z_r =  0.0;  res->z_a =  1.0;  res->z_s =  0.0;
+  }
+
   templ = MRIallocHeader(256, 256, 256, MRI_UCHAR);
 
   templ->imnr0 = 1;
@@ -32,7 +39,7 @@ MRI *MRIconform(MRI *mri)
   templ->x_r = -1.0;      templ->x_a =  0.0;      templ->x_s =  0.0;
   templ->y_r =  0.0;      templ->y_a =  0.0;      templ->y_s = -1.0;
   templ->z_r =  0.0;      templ->z_a =  1.0;      templ->z_s =  0.0;
-  templ->c_r = mri->c_r;  templ->c_a = mri->c_a;  templ->c_s = mri->c_s;
+  templ->c_r = res->c_r;  templ->c_a = res->c_a;  templ->c_s = res->c_s;
   templ->slice_direction = MRI_CORONAL;
 
   /* ----- change type if necessary ----- */
@@ -50,8 +57,7 @@ MRI *MRIconform(MRI *mri)
      res->width != templ->width || res->height != templ->height || res->depth != templ->depth ||
      res->x_r != templ->x_r || res->x_a != templ->x_a || res->x_s != templ->x_s ||
      res->y_r != templ->y_r || res->y_a != templ->y_a || res->y_s != templ->y_s ||
-     res->z_r != templ->z_r || res->z_a != templ->z_a || res->z_s != templ->z_s ||
-     res->c_r != templ->c_r || res->c_a != templ->c_a || res->c_s != templ->c_s)
+     res->z_r != templ->z_r || res->z_a != templ->z_a || res->z_s != templ->z_s)
   {
     mri2 = MRIresample(res, templ, RESAMPLE_INTERPOLATE);
     MRIfree(&res);
