@@ -1,6 +1,6 @@
 #! /usr/bin/tixwish
 
-# $Id: tkm_functional.tcl,v 1.23 2004/01/28 22:05:55 kteich Exp $
+# $Id: tkm_functional.tcl,v 1.24 2004/12/19 02:21:05 kteich Exp $
 
 package require BLT;
 
@@ -48,6 +48,8 @@ set gnOverlayNumConditions 0
 set gsOverlayDataName ""
 set gfOverlayAlpha 1.0
 set gOverlaySampleType $FunD_tSampleType(nearest)
+set gFDRRate 0.05
+set gbFDMask 0
 
 set glAllColors {Red Green Blue Purple Brown Pink Gray LightBlue Yellow Orange}
 set gnMaxColors [llength $glAllColors]
@@ -467,6 +469,11 @@ proc Overlay_DoConfigDlog {} {
 	set fwThresholdSliders $fwThresholdSub.fwThresholdSliders
 	set fwThresholdSlope   $fwThresholdSub.fwThresholdSlope
 	
+	set fwFDR      $fwThresholdSub.fwFDR
+	set bwFDR      $fwFDR.bwFDR
+	set ewFDRRate  $fwFDR.ewFDRRate
+	set cbFDRMask  $fwFDR.cbFDRMask
+
 	tkm_MakeCheckboxes $fwIgnoreThresh y {
 	    { text "Ignore Threshold" gbIgnoreThreshold
 		"set gbIgnoreThreshold \$gbIgnoreThreshold" } }
@@ -479,8 +486,23 @@ proc Overlay_DoConfigDlog {} {
 		      -10000 10000 100 {} 1 0.25]]
 	
 	tkm_MakeEntry $fwThresholdSlope "Threshold slope" gfThreshold(slope) 6
-	
-	
+
+	frame $fwFDR
+	tkm_MakeButtons $bwFDR \
+	    [list \
+		 [list text "Set Threshold Using FDR" \
+		      {Overlay_SetThresholdUsingFDR $gFDRRate $gbFDRMask}]]
+
+	tkm_MakeEntry $ewFDRRate "Rate" gFDRRate 4 {}
+
+	tkm_MakeCheckboxes $cbFDRMask y {
+	    { text "Mask to brain" gbFDRMask
+		"set gbFDRMask \$gbFDRMask" } }
+		
+	pack $bwFDR $ewFDRRate $cbFDRMask \
+	    -side left \
+	    -expand yes \
+	    -fill x
 
 	tixLabelFrame $lfwAlpha \
 	    -label "Overlay Alpha" \
@@ -503,7 +525,7 @@ proc Overlay_DoConfigDlog {} {
 	pack $lfwLocation $fwTimePoint $fwCondition \
 	    $lfwDisplay $fwOptions $fwSampleType \
 	    $lfwThreshold $lfwAlpha $fwIgnoreThresh \
-	    $fwThresholdSliders $fwThresholdSlope $fwAlpha \
+	    $fwThresholdSliders $fwThresholdSlope $fwFDR $fwAlpha \
 	    $fwButtons \
 	    -side top \
 	    -anchor w \

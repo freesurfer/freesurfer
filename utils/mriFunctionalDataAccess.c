@@ -11,6 +11,8 @@
 #include "xVoxel.h"
 #include "xUtilities.h"
 #include "macros.h"
+#include "error.h"
+#include "mri2.h"
 
 #ifndef min
 #define min(x,y) x<y?x:y
@@ -51,6 +53,8 @@ char *FunD_ksaErrorString [FunD_tErr_knNumErrorCodes] = {
   "Invalid functional voxel, out of bounds.",
   "Invalid condition (is it zero-indexed?)",
   "Invalid time point (is it zero-indexed?)",
+  "Couldn't transform mask into local space.",
+  "Error performing FDR.",
   "Invalid error code."
 };
 
@@ -1794,6 +1798,102 @@ FunD_tErr FunD_GetPercentileOfValue ( mriFunctionalDataRef this,
 }
 #endif
 
+
+FunD_tErr FunD_CalcFDRThreshold ( mriFunctionalDataRef this,
+				  int                  iCondition,
+				  int                  iTimePoint,
+				  int                  iSign,
+				  float                iRate,
+				  MRI*                 iMaskVolume,
+				  float*               oThresholdMin ) {
+
+  FunD_tErr eResult       = FunD_tErr_NoError;
+  int       eMRI          = ERROR_NONE;
+  int       nFrame        = 0;
+  double    newMin        = 0;
+  MRI*      pLocalMaskVol = NULL;
+  MATRIX*   localToClient = NULL;
+  
+  DebugEnterFunction( ("FunD_CalcFDRThreshold( this=%p, iCondition=%d, "
+		       "iTimePoint=%d, iSign=%d, iRate=%f, iMaskVolume=%p,"
+		       "oThresholdMin=%p)", this, iCondition, iTimePoint,
+		       iSign, iRate, iMaskVolume, oThresholdMin) );
+
+  DebugNote( ("Checking parameters") );
+  DebugAssertThrowX( (NULL != this), eResult, FunD_tErr_InvalidParameter );
+  
+  DebugNote( ("Verifying object") );
+  eResult = FunD_Verify( this );
+  DebugAssertThrow( (eResult == FunD_tErr_NoError) );
+
+  /* We need to transform the mask into our space. Allocate an empty 1
+     frame volume with the same dimesnions as our data, then transform
+     the mask volume into it. To transform, we need the target->source
+     transform, which is local->client, which is the inverse of our
+     mIdxToIdxTransform, so create that too.*/
+  if( NULL != iMaskVolume ) {
+    DebugNote( ("Allocating local mask volume") );
+    pLocalMaskVol = MRIalloc( this->mpData->width, this->mpData->height,
+			      this->mpData->depth, this->mpData->type );
+    DebugAssertThrowX( (NULL != pLocalMaskVol),
+		       eResult, FunD_tErr_CouldntAllocateVolume );
+
+    DebugNote( ("Copying header") );
+    eMRI = MRIcopyHeader( this->mpData, pLocalMaskVol );
+    DebugAssertThrowX( (ERROR_NONE == eMRI),
+		       eResult, FunD_tErr_CouldntAllocateVolume );
+
+    DebugNote( ("Creating inverse of transform (for local->client)") );
+    localToClient = MatrixInverse( this->mIdxToIdxTransform->mAtoB, NULL );
+    DebugAssertThrowX( (NULL != localToClient),
+		       eResult, FunD_tErr_CouldntAllocateMatrix );
+
+    DebugNote( ("Converting client mask to local mask") );
+    eMRI = MRIvol2Vol( iMaskVolume, pLocalMaskVol, localToClient,
+		       SAMPLE_NEAREST, 0 );
+    DebugAssertThrowX( (ERROR_NONE == eMRI),
+		       eResult, FunD_tErr_CouldntTransformMask );
+  }
+
+  /* Get a frame number. */
+  FunD_GetDataFrameNumber( iCondition, iTimePoint, &nFrame );
+
+ /* Do the FDR */
+  DebugNote( ("Running MRIfdr2vwth") );
+  eMRI = MRIfdr2vwth( this->mpData, 
+		      nFrame,        /* 0-based frame number of input vol */
+		      iRate,         /* rate 0-1 */
+		      iSign,         /* 0=all, +1=only pos, -1=only neg */
+		      FALSE,         /* interp vals as -log10(p) */
+		      pLocalMaskVol, /* optional mask volume */
+		      &newMin,       /* voxel-wise thresh (vwth) 0-1, 
+					or if log10flag, -log10(vwth) */
+		      NULL );        /* option thresholded output */
+  DebugAssertThrowX( (ERROR_NONE == eMRI),
+		     eResult, FunD_tErr_ErrorPerformingFDR );
+
+
+  /* Return the new min. */
+  DebugNote( ("Returning threshold min") );
+  *oThresholdMin = newMin;
+
+  DebugCatch;
+  DebugCatchError( eResult, FunD_tErr_NoError, FunD_GetErrorString );
+  EndDebugCatch;
+
+  if( NULL != pLocalMaskVol ) {
+    DebugNote( ("Freeing local mask vol") );
+    MRIfree( &pLocalMaskVol );
+  }
+  if( NULL != localToClient ) {
+    DebugNote( ("Freeing local to client transform") );
+    MatrixFree( &localToClient );
+  }
+
+  DebugExitFunction;
+
+  return eResult;
+}
 
 FunD_tErr FunD_SaveRegistration ( mriFunctionalDataRef this ) {
   

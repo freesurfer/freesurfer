@@ -37,6 +37,8 @@ typedef enum {
   FunD_tErr_InvalidFunctionalVoxel,
   FunD_tErr_InvalidConditionIndex,
   FunD_tErr_InvalidTimePoint,
+  FunD_tErr_CouldntTransformMask,
+  FunD_tErr_ErrorPerformingFDR,
   FunD_tErr_InvalidErrorCode,
   FunD_tErr_knNumErrorCodes
 } FunD_tErr;
@@ -366,6 +368,15 @@ FunD_tErr FunD_ScaleRegistration            ( mriFunctionalDataRef this,
 					      tAxis                iAxis );
 
 
+/* Get the FDR threshold for a frame. */
+FunD_tErr FunD_CalcFDRThreshold ( mriFunctionalDataRef this,
+				  int                  iCondition,
+				  int                  iTimePoint,
+				  int                  iSign,
+				  float                iRate,
+				  MRI*                 iMaskVolume,
+				  float*               oThresholdMin );
+
 /* This function doesn't seem to work very well but is left here for
    reference . */
 #if 0
@@ -457,6 +468,13 @@ void FunD_ConvertClientToFloatFuncIdx_ ( mriFunctionalDataRef this,
 
 #else /* FUND_USE_MACROS */
 
+
+#define FunD_GetDataFrameNumber(iCondition,iTimePoint,oFrame) \
+  if( this->mbErrorDataPresent ) { \
+    *(oFrame) = ((iCondition) * 2 * this->mNumTimePoints) + (iTimePoint); \
+  } else { \
+    *(oFrame) = ((iCondition) * this->mNumTimePoints) + (iTimePoint); \
+  }
 
 #define FunD_GetValue_(this,iData,iIdx,inCondition,inTimePoint,oValue) \
   if( this->mbErrorDataPresent ) { \
