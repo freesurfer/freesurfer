@@ -103,7 +103,8 @@ typedef struct
 MATRIX *MRIxfmCRS2XYZ(MRI *mri, int base);
 MATRIX *MRIxfmCRS2XYZtkreg(MRI *mri);
 MATRIX *MRIfixTkReg(MRI *ref, MRI *mov, MATRIX *R);
-
+float MRIgetVoxVal(MRI *mri, int c, int r, int s, int f);
+int   MRIsetVoxVal(MRI *mri, int c, int r, int s, int f, float voxval);
 
 float  MRIfindNearestNonzero(MRI *mri, int wsize, Real x0, Real y0, Real z0) ;
 float  MRIfindNearestNonzeroLocation(MRI *mri, int wsize, Real xr, Real yr, Real zr,
