@@ -1338,8 +1338,12 @@ XVdrawPoint(XV_FRAME *xvf, int which, int x, int y, int color)
   xscale = dimage->xscale ;
   yscale = dimage->yscale ;
   x = nint(((float)(x-dimage->x0)+0.5f) * xscale) ;
-  y = nint((float)(((dimage->sourceImage->rows-1) - 
-                    (y-dimage->y0)) + 0.5f) * yscale) ;
+  if (xvf->ydir == -1)
+    y = nint((float)(((dimage->sourceImage->rows-1) - 
+                      (y-dimage->y0)) + 0.5f) * yscale) ;
+  else
+    y = nint(((float)(y-dimage->y0)+0.5f) * yscale) ;
+
   XSetLineAttributes(display, gc, 0, LineSolid, CapRound, JoinBevel) ;
   
   x0 = x - 4 ;
@@ -1411,9 +1415,12 @@ XVdrawBox(XV_FRAME *xvf, int which, int x, int y, int dx, int dy, int color)
   yscale = dimage->yscale ;
 
   x = nint((float)(x-dimage->x0) * xscale) ;
-  y = nint((float)(((dimage->zoomImage->rows) - (y-dimage->y0))) * yscale) ;
+  if (xvf->ydir == -1)
+    y = nint((float)(((dimage->zoomImage->rows) - (y-dimage->y0))) * yscale) ;
+  else
+    y = nint((float)(y-dimage->y0) * yscale) ;
   dx = nint((float)dx * xscale) ;
-  dy = nint((float)-dy * yscale) ;
+  dy = nint((float)(xvf->ydir*dy) * yscale) ;
 
   XSetLineAttributes(display, gc, 0, LineSolid, CapRound, JoinBevel) ;
 
@@ -1473,10 +1480,14 @@ XVdrawLine(XV_FRAME *xvf, int which, int x, int y, int dx, int dy, int color)
   xscale = dimage->xscale ;
   yscale = dimage->yscale ;
   x = nint(((float)(x-dimage->x0) +0.5f)* xscale) ;
-  y = nint((float)(((dimage->zoomImage->rows-1) - 
-                    (y-dimage->y0)) +0.5f)* yscale) ;
+  if (xvf->ydir < 0)
+    y = nint((float)(((dimage->zoomImage->rows-1) - 
+                      (y-dimage->y0)) +0.5f)* yscale) ;
+  else
+    y = nint(((float)(y-dimage->y0) +0.5f)* yscale) ;
+
   dx = nint((float)dx * xscale) ;
-  dy = nint((float)-dy * yscale) ;
+  dy = nint((float)(xvf->ydir*dy) * yscale) ;
 
   switch (color)
   {
@@ -1537,10 +1548,14 @@ XVdrawArrow(XV_FRAME *xvf, int which, int x, int y,float dx,float dy,int color)
   xscale = dimage->xscale ;
   yscale = dimage->yscale ;
   x = nint(((float)(x-dimage->x0)+0.5f) * xscale) ;
-  y = nint(((float)((dimage->zoomImage->rows-1) - 
-                    (y-dimage->y0)) + 0.5f) * yscale) ;
+  if (xvf->ydir < 0)
+    y = nint(((float)((dimage->zoomImage->rows-1) - 
+                      (y-dimage->y0)) + 0.5f) * yscale) ;
+  else
+    y = nint(((float)(y-dimage->y0)+0.5f) * yscale) ;
+
   dx = nint(dx * xscale) ;
-  dy = nint(-dy * yscale) ;
+  dy = nint(xvf->ydir * dy * yscale) ;
 
   switch (color)
   {
