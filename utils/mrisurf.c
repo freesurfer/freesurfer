@@ -2459,11 +2459,11 @@ MRISremoveNegativeVertices(MRI_SURFACE *mris, INTEGRATION_PARMS *parms,
 
     sprintf(fname, "%s.%s.out", 
             mris->hemisphere == RIGHT_HEMISPHERE ? "rh":"lh",parms->base_name);
-    if (Gdiag & DIAG_WRITE)
-    {
-      parms->fp = fopen(fname, "w") ;
-      mrisLogIntegrationParms(parms->fp, mris, parms) ;
-    }
+  }
+  if (Gdiag & DIAG_WRITE)
+  {
+    parms->fp = fopen(fname, "w") ;
+    mrisLogIntegrationParms(parms->fp, mris, parms) ;
   }
   if (Gdiag & DIAG_SHOW)
     mrisLogIntegrationParms(stderr, mris, parms) ;
@@ -3033,17 +3033,17 @@ MRISunfoldOnSphere(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int max_passes)
       if (nbrs[i])
         fprintf(stderr, "%d: %d | ", i, nbrs[i]) ;
     fprintf(stderr, "\n") ;
-    if (Gdiag & DIAG_WRITE)
-    {
-      sprintf(fname, "%s.out", parms->base_name) ;
-      if (!parms->start_t)
-        parms->fp = fopen(fname, "w") ;
-      mrisLogIntegrationParms(parms->fp, mris,parms) ;
-      for (i = mris->nsize+1 ; i <= parms->nbhd_size ; i++)
-        if (nbrs[i])
-          fprintf(parms->fp, "%d: %d | ", i, nbrs[i]) ;
-      fprintf(parms->fp, "\n") ;
-    }
+  }
+  if (Gdiag & DIAG_WRITE)
+  {
+    sprintf(fname, "%s.out", parms->base_name) ;
+    if (!parms->start_t)
+      parms->fp = fopen(fname, "w") ;
+    mrisLogIntegrationParms(parms->fp, mris,parms) ;
+    for (i = mris->nsize+1 ; i <= parms->nbhd_size ; i++)
+      if (nbrs[i])
+        fprintf(parms->fp, "%d: %d | ", i, nbrs[i]) ;
+    fprintf(parms->fp, "\n") ;
   }
   if (Gdiag & DIAG_SHOW)
     mrisLogIntegrationParms(stderr, mris, parms) ;
