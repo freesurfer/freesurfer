@@ -4,8 +4,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: ch $
-// Revision Date  : $Date: 2003/09/23 20:32:59 $
-// Revision       : $Revision: 1.65 $
+// Revision Date  : $Date: 2003/09/23 21:27:21 $
+// Revision       : $Revision: 1.66 $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -205,7 +205,7 @@ int main(int argc, char *argv[])
   nskip = 0;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_convert.c,v 1.65 2003/09/23 20:32:59 ch Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_convert.c,v 1.66 2003/09/23 21:27:21 ch Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -1070,7 +1070,12 @@ int main(int argc, char *argv[])
   else
   {
     if(read_only_flag && (in_info_flag || in_matrix_flag) && !in_stats_flag)
-      mri = MRIreadInfo(in_name);
+    {
+      if(force_in_type_flag)
+        mri = MRIreadHeader(in_name, in_volume_type);
+      else
+        mri = MRIreadInfo(in_name);
+    }
     else
     {
       if(force_in_type_flag){
