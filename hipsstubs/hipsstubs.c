@@ -1,3 +1,4 @@
+
 #if 1
 int h_copy(void) ;
 int h_copy(void) {return(-1);}
@@ -24,8 +25,6 @@ int free_hdrcon(void) ;
 int free_hdrcon(void) {return(-1);}
 int *memalloc(size_t, size_t)  ;
 int *memalloc(size_t a, size_t b){ return(calloc(a,b));}
-int init_header(void) ;
-int init_header(void) {return(-1);}
 int *halloc(size_t a, size_t b) ;
 int *halloc(size_t a, size_t b) { return(calloc(a,b)) ; }
 int free_header(void) ;
@@ -132,4 +131,6 @@ int getparam(void *hd, ...) { return(0) ; }
 int setparam(void *hd, ...) { return(0) ; }
 void *findparam(void *hd, char *name) { return(NULL) ; }
 int clearparam(void *hd, char *name) { return(0) ; }
+
+
 
