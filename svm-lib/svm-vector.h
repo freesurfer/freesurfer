@@ -15,7 +15,7 @@
 #define __SVM_VECTOR_H__
 
 #include <stdio.h>
-#include <iostream.h>
+#include <iostream>
 
 template <class E>
 class Vector {

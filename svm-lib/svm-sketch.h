@@ -26,7 +26,7 @@
 #define __SVM_SKETCH_H__ 
 
 #include <stdio.h>
-#include <iostream.h>
+#include <iostream>
 
 #include "svm-io-format.h"
 #include "svm-vector-types.h"
