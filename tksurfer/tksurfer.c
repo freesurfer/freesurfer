@@ -18140,7 +18140,7 @@ int main(int argc, char *argv[])   /* new main */
   /* end rkt */
   
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: tksurfer.c,v 1.56 2003/09/05 04:45:49 kteich Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: tksurfer.c,v 1.57 2003/09/08 19:44:23 kteich Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -22356,6 +22356,7 @@ int labl_import_annotation (char *fname)
   xColor3n color;
   int structure;
   int* done;
+  int num_labels;
   
   /* init our done array. */
   r = g = b = 255;
@@ -22365,7 +22366,8 @@ int labl_import_annotation (char *fname)
     printf( "calloc of size %d failed\n", annotation );
     return (ERROR_NO_MEMORY);
   }
-  
+  num_labels = 0;
+
   /* read the annotation. */
   for (vno = 0; vno < mris->nvertices; vno++)
     mris->vertices[vno].annotation = 0;
@@ -22376,7 +22378,7 @@ int labl_import_annotation (char *fname)
     {
       /* get the annotation. if there is one... */
       annotation = mris->vertices[annotation_vno].annotation;
-      
+
       if (annotation) 
 	{
 	  /* get the rgb colors. */
@@ -22388,7 +22390,8 @@ int labl_import_annotation (char *fname)
 	      
 	      /* mark it imported. */
 	      done[annotation] = 1;
-	      
+	      num_labels++;
+ 
 	      /* find out how many verts have this annotation value. */
 	      num_verts_in_annotation = 0;
 	      for (vno = 0; vno < mris->nvertices; vno++)
@@ -22489,20 +22492,30 @@ int labl_import_annotation (char *fname)
 	}
     }
 
-  /* if we have our own color table, now is the time to send it to the
-     tcl side of things. */
-  if (mris->ct) 
-    labl_send_color_table_info ();
+  /* any labels imported? */
+  if (num_labels > 0)
+    {
+      
+      /* if we have our own color table, now is the time to send it to the
+	 tcl side of things. */
+      if (mris->ct) 
+	labl_send_color_table_info ();
+      
+      free (done);
+      
+      /* show the label label in the interface. */
+      if (g_interp)
+	Tcl_Eval (g_interp, "ShowLabel kLabel_Label 1");
+      labl_draw_flag = 1;
+      if (g_interp)
+	Tcl_Eval (g_interp, "UpdateLinkedVarGroup label");
   
-  free (done);
-  
-  /* show the label label in the interface. */
-  if (g_interp)
-    Tcl_Eval (g_interp, "ShowLabel kLabel_Label 1");
-  labl_draw_flag = 1;
-  if (g_interp)
-    Tcl_Eval (g_interp, "UpdateLinkedVarGroup label");
-  
+    } 
+  else 
+    {
+      printf ("surfer: WARNING: no labels imported; annotation was empty\n" );
+    }
+
   return (ERROR_NONE);
 }
 
