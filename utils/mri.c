@@ -6648,7 +6648,7 @@ MRIlinearTransform(MRI *mri_src, MRI *mri_dst, MATRIX *mA)
     ErrorReturn(NULL, (ERROR_BADPARM,
                        "MRIlinearTransform: xform is singular")) ;
 
-  width = mri_src->width ; height = mri_src->height ; depth = mri_src->depth ;
+  width = mri_dst->width ; height = mri_dst->height ; depth = mri_dst->depth ;
   if (!mri_dst)
     mri_dst = MRIclone(mri_src, NULL) ;
   else
@@ -6683,12 +6683,27 @@ MRIlinearTransform(MRI *mri_src, MRI *mri_dst, MATRIX *mA)
           DiagBreak() ;
         }
 
-        if (x1 > -1 && x1 < width &&
-            x2 > -1 && x2 < height &&
-            x3 > -1 && x3 < depth)
+        MRIsampleVolume(mri_src, x1, x2, x3, &val);
+        switch (mri_dst->type)
         {
-          MRIsampleVolume(mri_src, x1, x2, x3, &val);
+        case MRI_UCHAR:
           MRIvox(mri_dst,y1,y2,y3) = (BUFTYPE)nint(val) ;
+          break ;
+        case MRI_SHORT:
+          MRISvox(mri_dst,y1,y2,y3) = (short)nint(val) ;
+          break ;
+        case MRI_FLOAT:
+          MRIFvox(mri_dst,y1,y2,y3) = (float)(val) ;
+          break ;
+        case MRI_INT:
+          MRIIvox(mri_dst,y1,y2,y3) = nint(val) ;
+          break ;
+        default:
+          ErrorReturn(NULL, 
+                      (ERROR_UNSUPPORTED, 
+                       "MRIlinearTransform: unsupported dst type %d",
+                       mri_dst->type)) ;
+          break ;
         }
       }
     }
@@ -8437,5 +8452,14 @@ MRIeraseBorderPlanes(MRI *mri)
       MRIvox(mri, x, 0, z) = MRIvox(mri, x, mri->height-1, z) = 0 ;
     }
 
+  return(NO_ERROR) ;
+}
+int
+MRIcopyPulseParameters(MRI *mri_src, MRI *mri_dst)
+{
+  mri_dst->flip_angle = mri_src->flip_angle ;
+  mri_dst->tr = mri_src->tr ;
+  mri_dst->te = mri_src->te ;
+  mri_dst->ti = mri_src->ti ;
   return(NO_ERROR) ;
 }
