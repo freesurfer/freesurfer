@@ -183,7 +183,7 @@ MRI   *MRIadd(MRI *mri1, MRI *mri2, MRI *mri_dst) ;
 MRI   *MRIaverage(MRI *mri_src, int dof, MRI *mri_dst) ;
 MRI   *MRIdivide(MRI *mri1, MRI *mri2, MRI *mri_dst) ;
 MRI   *MRImultiply(MRI *mri1, MRI *mri2, MRI *mri_dst) ;
-MRI   *MRIscaleAndmultiply(MRI *mri1, float scale, MRI *mri2, MRI *mri_dst) ;
+MRI   *MRIscaleAndMultiply(MRI *mri1, float scale, MRI *mri2, MRI *mri_dst) ;
 MRI   *MRIabs(MRI *mri, MRI *mri_dst) ;
 MRI   *MRIscalarMul(MRI *mri_src, MRI *mri_dst, float scalar) ;
 
