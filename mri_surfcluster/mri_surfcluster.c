@@ -1,0 +1,895 @@
+/*
+  Name:    mri_surfcluster.c
+  Author:  Douglas N. Greve 
+  email:   analysis-bugs@nmr.mgh.harvard.edu
+  Date:    2/27/02
+  Purpose: Finds clusters on the surface.
+  $Id: mri_surfcluster.c,v 1.1 2002/04/09 18:39:54 greve Exp $
+*/
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <math.h>
+#include <unistd.h>
+#include <string.h>
+
+#include "error.h"
+#include "diag.h"
+#include "proto.h"
+
+#include "matrix.h"
+#include "mri.h"
+#include "mri2.h"
+#include "mri_identify.h"
+#include "mrisurf.h"
+#include "MRIio.h"
+#include "fio.h"
+#include "volcluster.h"
+#include "surfcluster.h"
+#include "transform.h"
+
+static int  parse_commandline(int argc, char **argv);
+static void check_options(void);
+static void print_usage(void) ;
+static void usage_exit(void);
+static void print_help(void) ;
+static void print_version(void) ;
+static void argnerr(char *option, int n);
+static void dump_options(FILE *fp);
+static int  isflag(char *flag);
+static int  nth_is_arg(int nargc, char **argv, int nth);
+static int  singledash(char *flag);
+static int  stringmatch(char *str1, char *str2);
+static MATRIX *LoadxfmMatrix(char *xfmfile);
+
+int main(int argc, char *argv[]) ;
+
+static char vcid[] = "$Id: mri_surfcluster.c,v 1.1 2002/04/09 18:39:54 greve Exp $";
+char *Progname = NULL;
+
+char *subjectdir = NULL;
+char *hemi = NULL;
+
+char *srcid = NULL;
+char *srcfmt  = NULL;
+int   srcfmtid = MRI_VOLUME_TYPE_UNKNOWN;
+char *srcsurfid = "white";
+char *srcsubjid = NULL;
+int   srcframe = 0;
+float thmin = -1, thmax = -1;
+char *thsign = NULL;
+int   thsignid = 0; 
+float minarea = -1;
+
+char *maskid   = NULL;
+char *maskfmt  = NULL;
+int   maskfmtid = MRI_VOLUME_TYPE_UNKNOWN;
+char *masksubjid  = NULL;
+char *masksign  = NULL;
+float maskthresh = -1;
+
+char *labelfile = NULL;
+int  nth = -1;
+char *labelbase = NULL;
+char *labelsubjid  = NULL;
+
+char *omaskid = NULL;
+char *omaskfmt = "paint";
+char *omasksubjid = NULL;
+
+char *outid = NULL;
+char *outfmt = NULL;
+int   outfmtid = MRI_VOLUME_TYPE_UNKNOWN;
+char *ocnid = NULL;
+char *ocnfmt = NULL;
+int   ocnfmtid = MRI_VOLUME_TYPE_UNKNOWN;
+char *sumfile  = NULL;
+
+char *synthfunc  = NULL;
+char *subjectsdir = NULL;
+int debug = 0;
+
+MRI *srcval, *mritmp,  *cnsurf;
+MRI_SURFACE *srcsurf;
+int  reshape = 1;
+int  reshapefactor;
+
+char *xfmfile = "talairach.xfm";
+char xfmpath[2000];
+MATRIX *XFM;
+int FixMNI = 1;
+
+SURFCLUSTERSUM *scs;
+
+/*---------------------------------------------------------------*/
+int main(int argc, char **argv)
+{
+  char fname[2000];
+  int  n,NClusters,vtx;
+  FILE *fp;
+  float totarea;
+
+  Progname = argv[0] ;
+  argc --;
+  argv++;
+  ErrorInit(NULL, NULL, NULL) ;
+  DiagInit(NULL, NULL, NULL) ;
+
+  if(argc == 0) usage_exit();
+
+  parse_commandline(argc, argv);
+  check_options();
+
+  dump_options(stdout);
+
+  sprintf(xfmpath,"%s/%s/mri/transforms/%s",subjectsdir,srcsubjid,xfmfile);
+  XFM = LoadxfmMatrix(xfmpath);
+  if(XFM == NULL) exit(1);
+  printf("------------- XFM matrix (RAS2RAS) ---------------\n");
+  printf("%s\n",xfmpath);
+  MatrixPrint(stdout,XFM);
+  printf("----------------------------------------------------\n");
+
+  sprintf(fname,"%s/%s/surf/%s.%s",subjectsdir,srcsubjid,hemi,srcsurfid);
+  printf("Reading source surface %s\n",fname);
+  srcsurf = MRISread(fname) ;
+  if (!srcsurf)
+    ErrorExit(ERROR_NOFILE, "%s: could not read surface %s", Progname, fname) ;
+  printf("Done reading source surface\n");
+
+  printf("Computing metric properties\n");
+  MRIScomputeMetricProperties(srcsurf);
+
+  /* ------------------ load the source data ----------------------------*/
+  printf("Loading source values\n");
+  if(!strcmp(srcfmt,"curv")){ /* curvature file */
+    sprintf(fname,"%s/%s/surf/%s.%s",subjectsdir,srcsubjid,hemi,srcid);
+    printf("Reading curvature file %s\n",fname);
+    MRISreadCurvatureFile(srcsurf, fname);
+    srcval = MRIallocSequence(srcsurf->nvertices, 1, 1,MRI_FLOAT,1);
+    for(vtx = 0; vtx < srcsurf->nvertices; vtx++)
+      srcsurf->vertices[vtx].val = srcsurf->vertices[vtx].curv;
+  }
+  else if(!strcmp(srcfmt,"paint") || !strcmp(srcfmt,"w")){
+    MRISreadValues(srcsurf,srcid);
+    srcval = MRIallocSequence(srcsurf->nvertices, 1, 1,MRI_FLOAT,1);
+  }
+  else { 
+    /* ----------- Use MRIreadType -------------------*/
+    if(srcfmt == NULL){
+      srcval =  MRIread(srcid);
+      if(srcval == NULL){
+	printf("ERROR: could not read %s\n",srcid);
+	exit(1);
+      }
+    }
+    else{
+      srcfmtid = string_to_type(srcfmt); 
+      srcval =  MRIreadType(srcid,srcfmtid);
+      if(srcval == NULL){
+	printf("ERROR: could not read %s as type %s\n",srcid,srcfmt);
+	exit(1);
+      }
+    }
+    if(srcval->height != 1 || srcval->depth != 1){
+      reshapefactor = srcval->height * srcval->depth;
+      printf("Reshaping %d\n",reshapefactor);
+      mritmp = mri_reshape(srcval, reshapefactor*srcval->width, 
+			   1, 1, srcval->nframes);
+      MRIfree(&srcval);
+      srcval = mritmp;
+      reshapefactor = 0; /* reset for output */
+    }
+    
+    if(srcval->width != srcsurf->nvertices){
+      fprintf(stderr,"ERROR: dimesion inconsitency in source data\n");
+      fprintf(stderr,"       Number of surface vertices = %d\n",
+	      srcsurf->nvertices);
+      fprintf(stderr,"       Number of value vertices = %d\n",srcval->width);
+      exit(1);
+    }
+    for(vtx = 0; vtx < srcsurf->nvertices; vtx++)
+      srcsurf->vertices[vtx].val = MRIFseq_vox(srcval,vtx,0,0,srcframe);
+    MRIfree(&srcval);
+  }
+  printf("Done loading source values (nvtxs = %d)\n",srcsurf->nvertices);
+
+  /* Compute total cortex surface area */
+  totarea = 0.0;
+  for(vtx = 0; vtx < srcsurf->nvertices; vtx++)
+    totarea += srcsurf->vertices[vtx].area;
+  printf("Total Cortical Surface Area %g (mm^2)\n",totarea);
+
+  /*---------------------------------------------------------*/
+  /* This is where all the action is */
+  printf("Searching for Clusters ...\n");
+  scs = sclustMapSurfClusters(srcsurf,thmin,thmax,thsignid,
+			      minarea,&NClusters,XFM);
+  printf("Found %d clusters\n",NClusters);
+  /*---------------------------------------------------------*/
+
+  if(FixMNI){
+    printf("INFO: fixing MNI talairach coordinates\n");
+    for(n=0; n < NClusters; n++){
+      FixMNITal(scs[n].xxfm, scs[n].yxfm, scs[n].zxfm, 
+		&scs[n].xxfm, &scs[n].yxfm, &scs[n].zxfm); 
+    }
+  }
+
+
+  if(debug){
+    printf("-------------------------------------\n");
+    DumpSurfClusterSum(stdout, scs, NClusters);
+    printf("-------------------------------------\n");
+  }
+
+  /* ------ Print summary to a file ---------- */
+  if(sumfile != NULL){
+    fp = fopen(sumfile,"w");
+    if(fp == NULL){
+      printf("ERROR: could not open %s for writing\n",sumfile);
+      exit(1);
+    }
+    fprintf(fp,"Cluster Growing Summary (mri_surfcluster)\n");
+    fprintf(fp,"%s\n",vcid);
+    fprintf(fp,"Input :      %s\n",srcid);  
+    fprintf(fp,"Frame Number:      %d\n",srcframe);  
+    fprintf(fp,"Minimum Threshold: %g\n",thmin);  
+    if(thmax < 0) 
+      fprintf(fp,"Maximum Threshold: infinity\n");
+    else
+      fprintf(fp,"Maximum Threshold: %g\n",thmax);
+    fprintf(fp,"Threshold Sign:    %s\n",thsign);  
+
+    fprintf(fp,"Area Threshold:    %g mm^2\n",minarea);  
+    if(synthfunc != NULL)
+      fprintf(fp,"Synthesize:        %s\n",synthfunc);  
+    fprintf(fp,"NClusters          %d\n",NClusters);  
+    fprintf(fp,"Total Cortical Surface Area %g (mm^2)\n",totarea);
+    fprintf(fp,"FixMNI = %d\n",FixMNI);  
+    fprintf(fp,"\n");  
+    fprintf(fp,"ClusterNo   Max  VtxMax  Size(mm^2)   TalX   TalY   TalZ\n");
+    for(n=0; n < NClusters; n++){
+      fprintf(fp,"%4d     %6.1f  %6d  %8.2f   %6.1f %6.1f %6.1f\n",
+	     n+1, scs[n].maxval, scs[n].vtxmaxval, scs[n].area,
+	     scs[n].xxfm, scs[n].yxfm, scs[n].zxfm);
+
+    }
+
+    fclose(fp);
+  }
+
+
+  /* --- Save the output as the thresholded input --- */
+  if(outid != NULL){
+    printf("Saving thresholded output to  %s\n",outid);
+    sclustZeroSurfaceNonClusters(srcsurf);
+    if(!strcmp(outfmt,"paint") || !strcmp(outfmt,"w")){
+      MRISwriteValues(srcsurf,outid);
+      //srcval = MRIallocSequence(srcsurf->nvertices, 1, 1,MRI_FLOAT,1);
+    }
+  }
+
+  /* --- Save the cluster number output --- */
+  if(ocnid != NULL){
+    printf("Saving cluster numbers to %s\n",ocnid);
+    sclustSetSurfaceValToClusterNo(srcsurf);
+    if(!strcmp(ocnfmt,"paint") || !strcmp(ocnfmt,"w")){
+      MRISwriteValues(srcsurf,ocnid);
+      //srcval = MRIallocSequence(srcsurf->nvertices, 1, 1,MRI_FLOAT,1);
+    }
+  }
+
+
+  return(0);
+}
+/* ------------------------------------------------------------------ */
+static int parse_commandline(int argc, char **argv)
+{
+  int  nargc , nargsused;
+  char **pargv, *option ;
+
+  if(argc < 1) usage_exit();
+
+  nargc   = argc;
+  pargv = argv;
+  while(nargc > 0){
+
+    option = pargv[0];
+    if(debug) printf("%d %s\n",nargc,option);
+    nargc -= 1;
+    pargv += 1;
+
+    nargsused = 0;
+
+    if (!strcasecmp(option, "--help"))  print_help() ;
+    else if (!strcasecmp(option, "--version")) print_version() ;
+    else if (!strcasecmp(option, "--debug"))   debug = 1;
+    else if (!strcasecmp(option, "--fixmni"))   FixMNI = 1;
+    else if (!strcasecmp(option, "--nofixmni")) FixMNI = 0;
+
+    else if (!strcmp(option, "--hemi")){
+      if(nargc < 1) argnerr(option,1);
+      hemi = pargv[0];
+      if(!stringmatch(hemi,"lh") && !stringmatch(hemi,"rh")){
+	printf("ERROR: hemi = %s, must be lh or rh\n",hemi);
+	exit(1);
+      }
+      nargsused = 1;
+    }
+    else if (!strcmp(option, "--src")){
+      if(nargc < 1) argnerr(option,1);
+      srcid = pargv[0]; nargsused = 1;
+      if(nth_is_arg(nargc, pargv, 1)){
+	srcfmt = pargv[1]; nargsused ++;
+      }
+    }
+    else if (!strcmp(option, "--srcsubj")){
+      if(nargc < 1) argnerr(option,1);
+      srcsubjid = pargv[0];
+      nargsused = 1;
+    }
+    else if (!strcmp(option, "--srcframe")){
+      if(nargc < 1) argnerr(option,1);
+      sscanf(pargv[0],"%d",&srcframe);
+      nargsused = 1;
+    }
+    else if (!strcmp(option, "--xfm")){
+      if(nargc < 1) argnerr(option,1);
+      xfmfile = pargv[0]; nargsused = 1;
+    }
+    else if (!strcmp(option, "--thmin")){
+      if(nargc < 1) argnerr(option,1);
+      sscanf(pargv[0],"%f",&thmin);
+      if(thmin < 0) {
+	printf("ERROR: thmin = %g, must be >= 0\n",thmin);
+	printf("       use sign to set sign\n");
+	exit(1);
+      }
+      nargsused = 1;
+    }
+    else if (!strcmp(option, "--thmax")){
+      if(nargc < 1) argnerr(option,1);
+      sscanf(pargv[0],"%f",&thmax);
+      if(thmax < 0) {
+	printf("ERROR: thmax = %g, must be >= 0\n",thmax);
+	printf("       use sign to set sign\n");
+	exit(1);
+      }
+      nargsused = 1;
+    }
+    else if (!strcmp(option, "--thsign")){
+      if(nargc < 1) argnerr(option,1);
+      thsign = pargv[0];
+      if(!stringmatch(thsign,"abs") && 
+	 !stringmatch(thsign,"pos") && 
+	 !stringmatch(thsign,"neg") ){
+	printf("ERROR: thsign = %s, must be abs, pos, or neg\n",thsign);
+	exit(1);
+      }
+      nargsused = 1;
+    }
+    else if (!strcmp(option, "--minarea")){
+      if(nargc < 1) argnerr(option,1);
+      sscanf(pargv[0],"%f",&minarea);
+      nargsused = 1;
+    }
+
+
+    else if (!strcmp(option, "--mask")){
+      if(nargc < 1) argnerr(option,1);
+      maskid = pargv[0]; nargsused = 1;
+      if(nth_is_arg(nargc, pargv, 1)){
+	maskfmt = pargv[1]; nargsused ++;
+      }
+    }
+    else if (!strcmp(option, "--masksubj")){
+      if(nargc < 1) argnerr(option,1);
+      masksubjid = pargv[0];
+      nargsused = 1;
+    }
+    else if (!strcmp(option, "--masksign")){
+      if(nargc < 1) argnerr(option,1);
+      masksign = pargv[0];
+      if(!stringmatch(masksign,"abs") && 
+	 !stringmatch(masksign,"pos") && 
+	 !stringmatch(masksign,"neg") ){
+	printf("ERROR: masksign = %s, must be abs, pos, or neg\n",masksign);
+	exit(1);
+      }
+      nargsused = 1;
+    }
+    else if (!strcmp(option, "--maskthresh")){
+      if(nargc < 1) argnerr(option,1);
+      sscanf(pargv[0],"%f",&maskthresh);
+      if(maskthresh < 0) {
+	printf("ERROR: maskthresh = %g, must be >= 0\n",maskthresh);
+	printf("       use masksign to set sign\n");
+	exit(1);
+      }
+      nargsused = 1;
+    }
+
+    else if (!strcmp(option, "--label")){
+      if(nargc < 1) argnerr(option,1);
+      labelfile = pargv[0];
+      nargsused = 1;
+    }
+    else if (!strcmp(option, "--nth")){
+      if(nargc < 1) argnerr(option,1);
+      sscanf(pargv[0],"%d",&nth);
+      nargsused = 1;
+    }
+    else if (!strcmp(option, "--labelbase")){
+      if(nargc < 1) argnerr(option,1);
+      labelbase = pargv[0];
+      nargsused = 1;
+    }
+    else if (!strcmp(option, "--labelsubj")){
+      if(nargc < 1) argnerr(option,1);
+      labelsubjid = pargv[0];
+      nargsused = 1;
+    }
+
+    else if (!strcmp(option, "--omask")){
+      if(nargc < 1) argnerr(option,1);
+      omaskid = pargv[0]; nargsused = 1;
+      if(nth_is_arg(nargc, pargv, 1)){
+	omaskfmt = pargv[1]; nargsused ++;
+      }
+    }
+    else if (!strcmp(option, "--omasksubj")){
+      if(nargc < 1) argnerr(option,1);
+      omasksubjid = pargv[0];
+      nargsused = 1;
+    }
+
+    else if (!strcmp(option, "--sum")){
+      if(nargc < 1) argnerr(option,1);
+      sumfile = pargv[0];
+      nargsused = 1;
+    }
+    else if (!strcmp(option, "--o")){
+      if(nargc < 1) argnerr(option,1);
+      outid = pargv[0]; nargsused = 1;
+      if(nth_is_arg(nargc, pargv, 1)){
+	outfmt = pargv[1]; nargsused ++;
+      }
+    }
+    else if (!strcmp(option, "--ocn")){
+      if(nargc < 1) argnerr(option,1);
+      ocnid = pargv[0]; nargsused = 1;
+      if(nth_is_arg(nargc, pargv, 1)){
+	ocnfmt = pargv[1]; nargsused ++;
+      }
+    }
+
+    else if (!strcmp(option, "--synth")){
+      if(nargc < 1) argnerr(option,1);
+      synthfunc = pargv[0];
+      nargsused = 1;
+    }
+
+    else if (!strcmp(option, "--sd") || !strcmp(option, "--subjectsdir")){
+      if(nargc < 1) argnerr(option,1);
+      subjectsdir = pargv[0];
+      nargsused = 1;
+    }
+
+    else{
+      fprintf(stderr,"ERROR: Option %s unknown\n",option);
+      if(singledash(option))
+	fprintf(stderr,"       Did you really mean -%s ?\n",option);
+      exit(-1);
+    }
+    nargc -= nargsused;
+    pargv += nargsused;
+  }
+  return(0);
+}
+/* ------------------------------------------------------ */
+static void usage_exit(void)
+{
+  print_usage() ;
+  exit(1) ;
+}
+/* --------------------------------------------- */
+static void print_usage(void)
+{
+  printf("USAGE: %s \n",Progname) ;
+  printf("\n");
+  printf("   --hemi hemi : lh or rh \n");
+  printf("\n");
+  printf("   --src      srcid <fmt> : source of surface values    \n");
+  printf("   --srcsubj  subjid    : source surface subject (can be ico)\n");
+  printf("   --srcframe frameno   : 0-based frame number\n");
+  printf("   --thmin    threshold : minimum intensity threshold\n");
+  printf("   --thmax    threshold : maximum intensity threshold\n");
+  printf("   --sign     sign      : <abs>, pos, neg\n");
+  printf("   --minarea  area      : area threshold for a cluster (mm^2)\n");
+  printf("\n");
+  //  printf("   --mask       maskid <fmt> \n");
+  //  printf("   --maskthresh thresh \n");
+  //  printf("   --masksign   sign : <abs>, pos, or neg \n");
+  //  printf("   --masksubj   subjid : default that of src \n");
+  //  printf("\n");
+  //  printf("   --omask      omaskid <fmt> : o mask file id\n");
+  //  printf("   --omasksubj  subjid  : saved in subject's space\n");
+  //  printf("\n");
+  //  printf("   --label     labelfile : output nth cluster as a label\n");
+  //  printf("   --nth       nth       : nth for --label\n");
+  //  printf("   --labelbase labelbase : output all labels\n");
+  //  printf("   --labelsubj subjid    : default that of src \n");
+  //  printf("\n");
+  printf("   --sum sumfile     : text summary file\n");
+  printf("   --o outid <fmt>   : input with non-clusters set to 0\n");
+  printf("   --ocn ocnid <fmt> : value is cluster number \n");
+  printf("\n");
+  printf("   --xfm xfmfile     : talairach transform (def is talairach.xfm) \n");
+  printf("   --<no>fixmni      : <do not> fix MNI talairach coordinates\n");
+  printf("   --sd subjects_dir : (default is env SUBJECTS_DIR)\n");
+  //  printf("   --synth synthfunc : uniform,loguniform,gaussian\n");
+  printf("   --help : answers to ALL your questions\n");
+  printf("\n");
+}
+/* --------------------------------------------- */
+static void print_help(void)
+{
+  print_usage() ;
+
+  printf(
+"This program assigns each vertex on a cortical surface to a cluster \n"
+"based on the distribution of intensity values in the source file. \n"
+"A vertex must meet two criteria to be part of a cluster. First, \n"
+"its intensity must fall within a certain range (the intensity threshold \n"
+"criteria). Second, it must be part of a contiguous set of vertices \n"
+"that meet the threshold criteria and whose surface area is greater  \n"
+"than a minimum.  \n"
+"\n"
+"There are three types of output. (1) Summary file - simple text file\n"
+"with a list of clusters found including maximum value, area, and \n"
+"talairach coordinate. (2) Filtered - identical to the input except that\n"
+"vertices not assigned to a cluster are set to 0. (3) Cluster number\n"
+"surface - this has the same format as the input and filtered output\n"
+"except that the value at each vertex is the cluster number assigned\n"
+"to it. \n"
+"\n"
+"COMMAND-LINE ARGUMENTS\n"
+"\n"
+"--hemi hemi\n"
+"\n"
+"Specify the cortical hemisphere that the input represents. Valid values\n"
+"are lh and rh.\n"
+"\n"
+"--src srcid <fmt>\n"
+"\n"
+"This is the input data to the clustering program. Fmt is the format \n"
+"specification. Currently, only paint format is supported.\n"
+"\n"
+"--srcsubject subjectid\n"
+"\n"
+"This is the subject identifier as found in the FreeSurfer subjects\n"
+"directory (which can be changed with --sd).\n"
+"\n"
+"--srcframe frameno\n"
+"\n"
+"Zero-based frame number of the input file. Default is 0. For paint\n"
+"format, zero is the only possible value.\n"
+"\n"
+"--thmin minthresh\n"
+"\n"
+"Minimum threshold in the intensity threshold criteria. See \n"
+"SETTING THE CLUSTER INTENSITY THRESHOLD CRITERIA below.\n"
+"\n"
+"--thmax maxthresh\n"
+"\n"
+"Maximum threshold in the intensity threshold criteria. If negative,\n"
+"then the maximum threshold is infinity. See SETTING THE CLUSTER \n"
+"INTENSITY THRESHOLD CRITERIA below.\n"
+"\n"
+"--sign threshold sign\n"
+"\n"
+"This is used to control the sign of the threshold criteria. Legal\n"
+"values are pos, neg, and abs. See SETTING THE CLUSTER INTENSITY \n"
+"THRESHOLD CRITERIA below.\n"
+"\n"
+"--minarea area\n"
+"\n"
+"Minimum surface area (in mm^2) that a set of contiguous vertices\n"
+"must achieve in order to be considered a cluster.\n"
+"\n"
+"--sum summaryfile\n"
+"\n"
+"Text file in which to store the cluster summary. See SUMMARY FILE\n"
+"OUTPUT below.\n"
+"\n"
+"--o outputid <fmt>\n"
+"\n"
+"File in which to store the surface values after setting the\n"
+"non-cluster vertices to zero. Fmt is the format (currently, only\n"
+"paint format is supported). Note: make sure to put a ./ in front\n"
+"of outputid or else it will attempt to write the output to the\n"
+"subject's surf directory.\n"
+"\n"
+"--o outputid <fmt>\n"
+"\n"
+"File in which to store the cluster number of each vertex. This can be\n"
+"useful for determining to which cluster a particular vertex\n"
+"belongs. It can be viewed as with any other surface value file. Fmt is\n"
+"the format (currently, only paint format is supported). Note: make\n"
+"sure to put a ./ in front of outputid or else it will attempt to write\n"
+"the output to the subject's surf directory.\n"
+"\n"
+"--xfm xfmfile\n"
+"\n"
+"This is a transform file that is used to compute the Talairach \n"
+"coordinates of a vertex for the summary file. The file must be\n"
+"found in subjects_dir/subjectid/transforms. The default is\n"
+"talairach.xfm which is based on the MNI atlas (see --fixmni).\n"
+"\n"
+"--fixmni --nofixmni\n"
+"\n"
+"Fix (or do not fix) MNI Talairach coordinates based on Matthew Brett's\n"
+"transform. See http://www.mrc-cbu.cam.ac.uk/Imaging/mnispace.html.\n"
+"Default is to fix. The user may elect not to fix if the xfm file\n"
+"is not talairach.xfm (see --xfm).\n"
+"\n"
+"--sd subjects_dir\n"
+"\n"
+"This allows the user to change the FreeSurfer subjects's directory\n"
+"from the command-line. If unspecified, it will be set to the \n"
+"environment variable SUBJECTS_DIR\n"
+"\n"
+"SETTING THE CLUSTER INTENSITY THRESHOLD CRITERIA\n"
+"\n"
+"Vertices on the surface are excluded or included, in part, based on\n"
+"their intensity. For a vertex to be included, its value (ie,\n"
+"intensity) must be within a certain range (namely, between the minimum\n"
+"threshold, set with --thmin, and the maximum threshold, set with\n"
+"--thmax). While thmin and thmax must be positive values, the sign of\n"
+"the threshold can be set with --thsign. However, if thmax is negative,\n"
+"then the maximum threshold will be set to infinity. For example, if\n"
+"--thmin 2 --thmax 5 --thsign pos, then all vertices with values\n"
+"between (positive) 2 and 5 will be candidates for clustering. However,\n"
+"if --thsign abs is used instead, then all vertices between -2 and -5\n"
+"as well as between +2 and +5 will be candidates.\n"
+"\n"
+"SUMMARY FILE OUTPUT\n"
+"\n"
+"The summary file (the argument of the --sum flag) will contain a \n"
+"summary of the result of the clustering as well as a summary of the\n"
+"conditions under which the clustering was performed. It will list\n"
+"the clusters (1 to N) along with the maximum value found in the\n"
+"cluster (Max), the vertex at which this maximum value was found\n"
+"(VtxMax), the surface area of the cluster (Size), and the Talaiarach\n"
+"coordinates of the maximum (based on talairach.xfm). A sample \n"
+"summary file is shown below.\n"
+"\n"
+"Cluster Growing Summary (mri_surfcluster)\n"
+"$Id: mri_surfcluster.c,v 1.1 2002/04/09 18:39:54 greve Exp $\n"
+"Input :      minsig-0-lh.w\n"
+"Frame Number:      0\n"
+"Minimum Threshold: 5\n"
+"Maximum Threshold: infinity\n"
+"Threshold Sign:    pos\n"
+"Area Threshold:    40 mm^2\n"
+"NClusters          37\n"
+"Total Cortical Surface Area 115576 (mm^2)\n"
+"\n"
+"ClusterNo   Max  VtxMax  Size(mm^2)   TalX   TalY   TalZ\n"
+"   1       44.6    6370    636.79    -33.6  -69.8   49.2\n"
+"   2       40.3   48234    518.50     -2.9  -10.5   62.4\n"
+"   3       39.5   54239    103.19    -51.1  -13.3   45.3\n"
+"   4       39.5   55350     47.31    -50.1  -11.0   46.8\n"
+"\n"
+"BUGS\n"
+"\n"
+"Currently only supports paint (or w) format for input and output.\n"
+"\n"
+);
+
+
+
+  exit(1) ;
+}
+/* --------------------------------------------- */
+static void check_options(void)
+{
+
+  if(hemi == NULL){
+    printf("ERROR: hemi must be supplied\n");
+    exit(1);
+  }
+
+  if(srcid == NULL){
+    printf("ERROR: srcid must be supplied\n");
+    exit(1);
+  }
+  if(srcsubjid == NULL){
+    printf("ERROR: srcsubjid must be supplied\n");
+    exit(1);
+  }
+  if(thmin < 0){
+    printf("ERROR: thmin must be supplied\n");
+    exit(1);
+  }
+  if(minarea < 0){
+    printf("ERROR: minarea must be supplied\n");
+    exit(1);
+  }
+  if(thsign == NULL) thsign = "abs";
+  if(stringmatch(thsign,"pos")) thsignid = +1;
+  if(stringmatch(thsign,"abs")) thsignid =  0;
+  if(stringmatch(thsign,"neg")) thsignid = -1;
+
+
+  if(srcframe < 0) srcframe = 0; 
+
+  if(maskid != NULL){
+    if(maskthresh < 0){
+      printf("ERROR: must set mask thresh when specifying mask\n");
+      exit(1);
+    }
+    if(masksubjid == NULL) masksubjid = srcsubjid;
+    if(masksign == NULL) masksign = "abs";
+  }
+
+  if(labelsubjid == NULL) labelsubjid = srcsubjid;
+  if(omasksubjid == NULL) omasksubjid = srcsubjid;
+
+
+  /* check that the outputs can be written to */
+  if(sumfile != NULL){
+    if(! fio_DirIsWritable(sumfile,1)) {
+      printf("ERROR: cannot write to %s\n",sumfile);
+      exit(1);
+    }
+  }
+  if(outid != NULL){
+    if(! fio_DirIsWritable(outid,1)) {
+      printf("ERROR: cannot write to %s\n",outid);
+      exit(1);
+    }
+  }
+  if(omaskid != NULL){
+    if(! fio_DirIsWritable(omaskid,1)) {
+      printf("ERROR: cannot write to %s\n",omaskid);
+      exit(1);
+    }
+  }
+  if(ocnid != NULL){
+    if(! fio_DirIsWritable(ocnid,1)) {
+      printf("ERROR: cannot write to %s\n",ocnid);
+      exit(1);
+    }
+  }
+
+  if(subjectsdir == NULL){
+    subjectsdir = getenv("SUBJECTS_DIR");
+    if(subjectsdir == NULL){
+      fprintf(stderr,"ERROR: SUBJECTS_DIR not defined in environment\n");
+      exit(1);
+    }
+  }
+
+  return;
+}
+/* --------------------------------------------- */
+static void dump_options(FILE *fp)
+{
+  fprintf(fp,"version %s\n",vcid);
+  fprintf(fp,"hemi           = %s\n",hemi);
+  fprintf(fp,"srcid          = %s %s\n",srcid,srcfmt);
+  fprintf(fp,"srcsubjid      = %s\n",srcsubjid);
+  fprintf(fp,"srcframe       = %d\n",srcframe);
+  fprintf(fp,"thsign         = %s\n",thsign);
+  fprintf(fp,"thmin          = %g\n",thmin);
+  fprintf(fp,"thmax          = %g\n",thmax);
+  fprintf(fp,"minarea        = %g\n",minarea);
+  fprintf(fp,"xfmfile        = %s\n",xfmfile);
+  if(maskid != NULL){
+    fprintf(fp,"maskid         = %s %s\n",maskid, maskfmt);
+    fprintf(fp,"masksubjid     = %s\n",masksubjid);
+    fprintf(fp,"maskthresh     = %g\n",maskthresh);
+    fprintf(fp,"masksign       = %s\n",masksign);
+  }
+  if(labelfile != NULL)  fprintf(fp,"labelfile   = %s\n",labelfile);
+  if(labelsubjid != NULL)fprintf(fp,"labelsubjid = %s\n",labelsubjid);
+  if(labelbase != NULL)  fprintf(fp,"labelbase   = %s\n",labelbase);
+  if(labelbase != NULL)  fprintf(fp,"nth         = %d\n",nth);
+
+  if(outid != NULL)  fprintf(fp,"outid    = %s %s\n",outid, outfmt);
+
+  if(ocnid != NULL)  fprintf(fp,"ocnid    = %s %s\n",ocnid, ocnfmt);
+
+  if(sumfile != NULL) fprintf(fp,"sumfile  = %s\n",sumfile);
+  if(omaskid != NULL){
+    fprintf(fp,"omaskid    = %s %s\n",omaskid, omaskfmt);
+    fprintf(fp,"omasksubj  = %s\n",omasksubjid);
+  }
+  fprintf(fp,"subjectsdir    = %s\n",subjectsdir);
+
+  fprintf(fp,"FixMNI = %d\n",FixMNI);
+
+  if(synthfunc != NULL) fprintf(fp,"synthfunc = %s\n",synthfunc);
+
+  return;
+}
+/*---------------------------------------------------------------*/
+static int singledash(char *flag)
+{
+  int len;
+  len = strlen(flag);
+  if(len < 2) return(0);
+
+  if(flag[0] == '-' && flag[1] != '-') return(1);
+  return(0);
+}
+/*---------------------------------------------------------------*/
+static int isflag(char *flag)
+{
+  int len;
+  len = strlen(flag);
+  if(len < 2) return(0);
+
+  if(flag[0] == '-' && flag[1] == '-') return(1);
+  return(0);
+}
+/*---------------------------------------------------------------*/
+static int nth_is_arg(int nargc, char **argv, int nth)
+{
+  /* Checks that nth arg exists and is not a flag */
+  /* nth is 0-based */
+
+  /* check that there are enough args for nth to exist */
+  if(nargc <= nth) return(0); 
+
+  /* check whether the nth arg is a flag */
+  if(isflag(argv[nth])) return(0);
+
+  return(1);
+}
+/*------------------------------------------------------------*/
+static int stringmatch(char *str1, char *str2)
+{
+  if(! strcmp(str1,str2)) return(1);
+  return(0);
+}
+/* --------------------------------------------- */
+static void print_version(void)
+{
+  printf("%s\n", vcid) ;
+  exit(1) ;
+}
+/* --------------------------------------------- */
+static void argnerr(char *option, int n)
+{
+  if(n==1)
+    fprintf(stderr,"ERROR: %s flag needs %d argument\n",option,n);
+  else
+    fprintf(stderr,"ERROR: %s flag needs %d arguments\n",option,n);
+  exit(-1);
+}
+
+/* --------------------------------------------- */
+static MATRIX *LoadxfmMatrix(char *xfmfile)
+{
+  MATRIX *Mcor2tal;
+  LTA    *lta;
+  FILE *fp;
+
+  fp = fopen(xfmfile,"r");
+  if(fp == NULL){
+    printf("ERROR: could not open %s for reading \n",xfmfile);
+    exit(1);
+  }
+
+  lta = LTAread(xfmfile);
+  if(lta->type == LINEAR_VOX_TO_VOX){
+    printf("INFO: converting LTA to RAS\n");
+    LTAvoxelTransformToCoronalRasTransform(lta);
+  }
+  Mcor2tal = lta->xforms[0].m_L;
+
+  return(Mcor2tal);
+}
