@@ -1,4 +1,4 @@
-% $Id: unwarp_resample.m,v 1.1 2003/07/24 21:21:59 ebeth Exp $
+% $Id: unwarp_resample.m,v 1.2 2003/07/24 23:08:54 ebeth Exp $
 %
 % In this file:
 %
@@ -49,8 +49,9 @@ if unwarpflag %E%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
   fid = fopen(gradfilename,'rb','b');
   if(fid == -1)
-    qoe('could not open %s\n',gradfilename);
-    error('could not open %s\n',gradfilename);
+    msg = sprintf('could not open %s\n',gradfilename);
+    qoe(msg);
+    error(msg);
   end
   ncoords_x = fread(fid,1,'int32');
   ncoords_y = fread(fid,1,'int32');
