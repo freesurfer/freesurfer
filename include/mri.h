@@ -103,8 +103,14 @@ typedef struct
 MATRIX *MRIxfmCRS2XYZ(MRI *mri, int base);
 MATRIX *MRIxfmCRS2XYZtkreg(MRI *mri);
 MATRIX *MRIfixTkReg(MRI *ref, MRI *mov, MATRIX *R);
+MATRIX *MRItkRegMtx(MRI *ref, MRI *mov, MATRIX *D);
+
 float MRIgetVoxVal(MRI *mri, int c, int r, int s, int f);
 int   MRIsetVoxVal(MRI *mri, int c, int r, int s, int f, float voxval);
+
+char * MRIprecisionString(int PrecisionCode);
+int MRIprecisionCode(char *PrecisionString);
+
 
 float  MRIfindNearestNonzero(MRI *mri, int wsize, Real x0, Real y0, Real z0) ;
 float  MRIfindNearestNonzeroLocation(MRI *mri, int wsize, Real xr, Real yr, Real zr,
@@ -185,6 +191,9 @@ MRI   *MRIlinearTransform(MRI *mri_src, MRI *mri_dst, MATRIX *mA) ;
 MRI   *MRIapplyRASlinearTransform(MRI *mri_src, MRI *mri_dst, MATRIX *mA) ;
 MRI   *MRIapplyRASinverseLinearTransform(MRI *mri_src, MRI *mri_dst, 
                                          MATRIX *mA) ;
+
+int MRIinterpCode(char *InterpString);
+char * MRIinterpString(int InterpCode);
 MRI   *MRIinterpolate(MRI *mri_src, MRI *mri_dst) ;
 MRI   *MRIconfThresh(MRI *mri_src, MRI *mri_probs, MRI *mri_classes, 
                      MRI *mri_dst,float thresh, int min_target,int max_target);
@@ -408,6 +417,10 @@ int   MRIerasePlane(MRI *mri, float x0, float y0, float z0,
 int   MRIeraseBorders(MRI *mri, int width) ;
 int   MRIindexNotInVolume(MRI *mri, Real col, Real row, Real slice) ;
 int   MRIsampleVolume(MRI *mri, Real x, Real y, Real z, Real *pval) ;
+
+int   MRIsampleSeqVolume(MRI *mri, Real x, Real y, Real z, float *valvect,
+       int firstframe, int lastframe);
+
 int   MRIsampleVolumeType(MRI *mri, Real x, Real y, Real z, Real *pval, int type) ;
 int   MRIsampleLabeledVolume(MRI *mri, Real x, Real y, Real z, Real *pval, unsigned char ucharLabel);
 int   MRIsampleVolumeFrame(MRI *mri,Real x,Real y,Real z,int frame,Real *pval);
