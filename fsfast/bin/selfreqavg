@@ -1,7 +1,7 @@
 #!/bin/csh -f
 # fMRI selective frequency averaging (for phase-encoding analysis)
 
-set VERSION = '$Id: selfreqavg,v 1.1 2003/03/04 21:22:09 greve Exp $';
+set VERSION = '$Id: selfreqavg,v 1.2 2003/04/02 00:29:07 greve Exp $';
 set cmdargv = "$argv";
 
 set n = `echo $argv | grep version | wc -l` 
@@ -319,6 +319,12 @@ $TARGET <<EOF
   if(QuitOnError)  quit; end
   
 EOF
+
+set bhdr = $instems[1].bhdr
+if(-e $bhdr) then
+  cp $bhdr $outstem.bhdr
+endif
+
 
 echo "selfreqavg COMPLETED"
 
