@@ -521,6 +521,7 @@ double       MRISpercentDistanceError(MRI_SURFACE *mris) ;
 int          MRISscaleBrainArea(MRI_SURFACE *mris) ;
 
 MRI_SP       *MRISPcombine(MRI_SP *mrisp, MRI_SP *mrisp_template, int fno);
+MRI_SP       *MRISPaccumulate(MRI_SP *mrisp, MRI_SP *mrisp_template, int fno);
 int          MRISPcoordinate(MRI_SP *mrisp, float x, float y, float z,
                              int *pu, int *pv) ;
 double       MRISPfunctionVal(MRI_SURFACE_PARAMETERIZATION *mrisp, 
