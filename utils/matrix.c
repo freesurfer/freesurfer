@@ -31,12 +31,14 @@ MatrixCopy(MATRIX *mIn, MATRIX *mOut)
 
   return(mOut) ;
 }
+
+#define MAX_ELTS 10*1024
   
 MATRIX * 
 MatrixInverse(MATRIX *mIn, MATRIX *mOut)
 {
-  float  **a, **y, d, *col ;
-  int    i, j, *index, rows, cols ;
+  float  **a, **y, d, col[MAX_ELTS] ;
+  int    i, j, index[MAX_ELTS], rows, cols, alloced = 0 ;
   MATRIX *mTmp ;
 
   if (mIn->rows != mIn->cols)
@@ -49,7 +51,10 @@ MatrixInverse(MATRIX *mIn, MATRIX *mOut)
   cols = mIn->cols ;
 
   if (!mOut)
+  {
+    alloced = 1 ;
     mOut = MatrixAlloc(rows, cols, mIn->type) ;
+  }
     
   /* allocate temp matrix so as not to destory contents of mIn */
   if (mIn->type == MATRIX_COMPLEX)
@@ -108,13 +113,19 @@ MatrixInverse(MATRIX *mIn, MATRIX *mOut)
 
     a = mTmp->rptr ;
     y = mOut->rptr ;
-    
+
+#if 0    
     index = (int *)calloc(rows+1, sizeof(int)) ;
     col = (float *)calloc(rows+1, sizeof(float)) ;
+#endif
     if (ludcmp(a, rows, index, &d) < 0)
     {
+#if 0
+      free(index) ; free(col) ;
+#endif
       MatrixFree(&mTmp) ;
-      MatrixFree(&mOut) ;
+      if (alloced)
+        MatrixFree(&mOut) ;
       return(NULL) ;
     }
     
@@ -127,8 +138,9 @@ MatrixInverse(MATRIX *mIn, MATRIX *mOut)
       for (i = 1 ; i <= rows ; i++)
         y[i][j] = col[i] ;
     }
-    free(col) ;
-    free(index) ;
+#if 0
+    free(col) ; free(index) ;
+#endif
   }
 
   MatrixFree(&mTmp) ;
@@ -141,7 +153,8 @@ MatrixInverse(MATRIX *mIn, MATRIX *mOut)
       case MATRIX_REAL:
         if (!finite(*MATRIX_RELT(mOut, i, j)))
         {
-          MatrixFree(&mOut) ;
+          if (alloced)
+            MatrixFree(&mOut) ;
           return(NULL) ;   /* was singular */
         }
         break ;
@@ -149,7 +162,8 @@ MatrixInverse(MATRIX *mIn, MATRIX *mOut)
         if (!finite(MATRIX_CELT_REAL(mOut, i, j)) ||
              !finite(MATRIX_CELT_IMAG(mOut, i, j)))
         {
-          MatrixFree(&mOut) ;
+          if (alloced)
+            MatrixFree(&mOut) ;
           return(NULL) ;   /* was singular */
         }
         break ;
@@ -498,7 +512,6 @@ MatrixIdentity(int n, MATRIX *mat)
 
   for (i = 1 ; i <= n ; i++)
     mat->rptr[i][i] = 1 ;
-
 
   return(mat) ;
 }
@@ -2194,5 +2207,22 @@ MatrixPseudoInverse(MATRIX *m, MATRIX *m_pseudo_inv)
 
   MatrixFree(&mT) ; MatrixFree(&mTm) ; MatrixFree(&mTm_inv) ; 
   return(m_pseudo_inv) ;
+}
+
+int
+MatrixCheck(MATRIX *m)
+{
+  int  rows,  cols, r, c ;
+
+  rows = m->rows ; cols = m->cols ;
+  for (r = 1 ; r <= rows ; r++)
+  {
+    for (c = 1 ; c <= cols ; c++)
+    {
+      if (!finite(*MATRIX_RELT(m, r, c)))
+        return(ERROR_BADPARM) ;
+    }
+  }
+  return(NO_ERROR) ;
 }
 
