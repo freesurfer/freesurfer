@@ -53,6 +53,7 @@ typedef struct
   float       smooth_sigma ;      /* sigma of gaussian for smoothing histo */
   HISTOGRAM   histograms[MAX_SPLINE_POINTS] ;
   MRI_REGION  regions[MAX_SPLINE_POINTS] ;
+  float       max_gradient ;
 } MRI_NORM_INFO, MNI ;
   
 

@@ -31,6 +31,7 @@ main(int argc, char *argv[])
   ErrorInit(NULL, NULL, NULL) ;
   DiagInit(NULL, NULL, NULL) ;
 
+  mni.max_gradient = MAX_GRADIENT ;
   ac = argc ;
   av = argv ;
   for ( ; argc > 1 && ISOPTION(*argv[1]) ; argc--, argv++)
@@ -87,6 +88,11 @@ get_option(int argc, char *argv[])
   option = argv[1] + 1 ;            /* past '-' */
   switch (toupper(*option))
   {
+  case 'G':
+    mni.max_gradient = atof(argv[2]) ;
+    fprintf(stderr, "using max gradient = %2.3f\n", mni.max_gradient) ;
+    nargs = 1 ;
+    break ;
   case 'V':
     verbose = !verbose ;
     break ;

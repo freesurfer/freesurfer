@@ -306,6 +306,7 @@ MRInormInit(MRI *mri, MNI *mni, int windows_above_t0,int windows_below_t0,
             x0_tal, y0_tal, z0_tal) ;
     fprintf(stderr, "wsize %d, windows %d above, %d below\n", 
             wsize, mni->windows_above_t0, mni->windows_below_t0) ;
+    fprintf(stderr, "max gradient %2.3f\n", mni->max_gradient) ;
   }
 
   x = 0 ;
@@ -432,11 +433,17 @@ int
 MRInormCheckPeaks(MNI *mni, float *inputs, float *outputs, int npeaks)
 {
   int        starting_slice, slice, deleted[MAX_SPLINE_POINTS], old_slice,n ;
-  float      Iup, I, Idown, dI, dy, grad ;
+  float      Iup, I, Idown, dI, dy, grad, max_gradient ;
+
 
   /* rule of thumb - at least a third of the coefficients must be valid */
   if (npeaks < (mni->windows_above_t0+mni->windows_below_t0)/3) 
     return(0) ;
+
+  if (FZERO(mni->max_gradient))
+    max_gradient = MAX_GRADIENT ;
+  else
+    max_gradient = mni->max_gradient ;
 
   if (Gdiag & DIAG_SHOW)
     for (slice = 0 ; slice < npeaks ; slice++)
@@ -477,7 +484,7 @@ MRInormCheckPeaks(MNI *mni, float *inputs, float *outputs, int npeaks)
     dI = outputs[slice] - outputs[old_slice] ;
     dy = inputs[slice] - inputs[old_slice] ;
     grad = fabs(dI / dy) ;
-    deleted[slice] =  (grad > MAX_GRADIENT) ;
+    deleted[slice] =  (grad > max_gradient) ;
     if (!deleted[slice])
       old_slice = slice ;
     else if (Gdiag & DIAG_SHOW)
@@ -492,7 +499,7 @@ MRInormCheckPeaks(MNI *mni, float *inputs, float *outputs, int npeaks)
     dI = outputs[old_slice] - outputs[slice] ;
     dy = inputs[slice] - inputs[old_slice] ;
     grad = fabs(dI / dy) ;
-    deleted[slice] =  (grad > MAX_GRADIENT) ;
+    deleted[slice] =  (grad > max_gradient) ;
     if (!deleted[slice])
       old_slice = slice ;
     else if (Gdiag & DIAG_SHOW)
