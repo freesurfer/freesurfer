@@ -698,6 +698,7 @@ int  MRIcomputeClassStatistics(MRI *mri_T1, MRI *mri_labeled,
 
 MRI *MRIchangeType(MRI *src, int dest_type, float f_low, float f_high, int no_scale_option_flag);
 MRI *MRIresample(MRI *src, MRI *template_vol, int resample_type);
+MATRIX *MRIgetResampleMatrix(MRI *src, MRI *template_vol);
 int MRIlimits(MRI *mri, float *min, float *max);
 int MRIprintStats(MRI *mri, FILE *stream);
 int MRIstats(MRI *mri, float *min, float *max, int *n_voxels, float *mean, float *std);
