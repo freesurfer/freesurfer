@@ -1,6 +1,6 @@
 /* 
    fmriutils.c 
-   $Id: fmriutils.c,v 1.1 2002/10/29 17:45:54 greve Exp $
+   $Id: fmriutils.c,v 1.2 2002/10/30 01:07:03 greve Exp $
 */
 #include <stdio.h>
 #include <stdlib.h>
@@ -35,6 +35,7 @@ MRI *fMRImatrixMultiply(MRI *inmri, MATRIX *M, MRI *outmri)
       printf("ERROR: fMRImatrixMultiply: could not alloc\n");
       return(NULL);
     }
+    MRIcopyHeader(inmri,outmri);
   }
   else{
     if(outmri->width  != inmri->width || 
@@ -77,10 +78,11 @@ MRI *fMRIvariance(MRI *fmri, float DOF, int RmMean, MRI *var)
   if(var==NULL){
     var = MRIallocSequence(fmri->width, fmri->height, fmri->depth, 
 			      MRI_FLOAT, 1);
-    if(fmri==NULL){
+    if(var==NULL){
       printf("ERROR: fMRIvariance: could not alloc\n");
       return(NULL);
     }
+    MRIcopyHeader(fmri,var);
   }
   else{
     if(var->width  != fmri->width || 
@@ -114,6 +116,55 @@ MRI *fMRIvariance(MRI *fmri, float DOF, int RmMean, MRI *var)
 
   return(var);
 }
+/*--------------------------------------------------------
+  fMRIsumSquare() - computes the sum of the squares over the
+  frames. If the Update flag is set, then the sum of the 
+  squares is added to that already in sumsqr. If sumsqr
+  is NULL, it will be allocated.
+  --------------------------------------------------------*/
+MRI *fMRIsumSquare(MRI *fmri, int Update, MRI *sumsqr)
+{
+  int c, r, s, f;
+  float val,sumsqval;
+
+  if(sumsqr==NULL){
+    sumsqr = MRIallocSequence(fmri->width, fmri->height, fmri->depth, 
+			      MRI_FLOAT, 1);
+    if(sumsqr==NULL){
+      printf("ERROR: fMRIsumSquare: could not alloc\n");
+      return(NULL);
+    }
+    MRIcopyHeader(fmri,sumsqr);
+  }
+  else{
+    if(sumsqr->width  != fmri->width || 
+       sumsqr->height != fmri->height || 
+       sumsqr->depth  != fmri->depth){
+      printf("ERROR: fMRIsumsqriance: output dimension mismatch\n");
+      return(NULL);
+    }
+    if(sumsqr->type != MRI_FLOAT){
+      printf("ERROR: fMRIsumsqriance: structure passed is not MRI_FLOAT\n");
+      return(NULL);
+    }
+  }
+
+  for(c=0; c < fmri->width; c++){
+    for(r=0; r < fmri->height; r++){
+      for(s=0; s < fmri->depth; s++){
+	sumsqval = 0;
+	for(f=0; f < fmri->nframes; f++){
+	  val = MRIgetVoxVal(fmri, c, r, s, f);
+	  sumsqval += (val*val);
+	}
+	if(Update) MRIFseq_vox(sumsqr,c,r,s,0) += sumsqval;
+	else       MRIFseq_vox(sumsqr,c,r,s,0)  = sumsqval;
+      }
+    }
+  }
+
+  return(sumsqr);
+}
 /*--------------------------------------------------------------------*/
 MRI *fMRIcomputeT(MRI *ces, MATRIX *X, MATRIX *C, MRI *var, MRI *t)
 {
@@ -135,10 +186,11 @@ MRI *fMRIcomputeT(MRI *ces, MATRIX *X, MATRIX *C, MRI *var, MRI *t)
   if(t==NULL){
     t = MRIallocSequence(ces->width, ces->height, ces->depth, 
 			      MRI_FLOAT, 1);
-    if(ces==NULL){
+    if(t==NULL){
       printf("ERROR: fMRIcomputeT: could not alloc\n");
       return(NULL);
     }
+    MRIcopyHeader(ces,t);
   }
   else{
     if(t->width  != ces->width || 
@@ -195,10 +247,11 @@ MRI *fMRIsigT(MRI *t, float DOF, MRI *sig)
   if(sig==NULL){
     sig = MRIallocSequence(t->width, t->height, t->depth, 
 			   MRI_FLOAT, t->nframes);
-    if(t==NULL){
+    if(sig==NULL){
       printf("ERROR: fMRIsigT: could not alloc\n");
       return(NULL);
     }
+    MRIcopyHeader(t,sig);
   }
   else{
     if(t->width   != sig->width  || 
