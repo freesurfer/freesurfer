@@ -601,7 +601,9 @@ main(int argc, char *argv[])
       mri_norm = GCAnormalizeSamples(mri_in, gca, parms.gcas, nsamples,
                                      parms.lta, ctl_point_fname) ;
       printf("writing normalized volume to %s...\n", norm_fname) ;
-      MRIwrite(mri_norm, norm_fname) ;
+      if (MRIwrite(mri_norm, norm_fname)  != NO_ERROR)
+        ErrorExit(ERROR_BADFILE, "%s: could not write normalized volume to %s",
+                  Progname, norm_fname);
       MRIfree(&mri_norm) ;
     }
   }
