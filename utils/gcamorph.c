@@ -3,8 +3,8 @@
 //
 // 
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Date  : $Date: 2005/02/14 22:23:49 $
-// Revision       : $Revision: 1.62 $
+// Revision Date  : $Date: 2005/03/05 16:12:23 $
+// Revision       : $Revision: 1.63 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -418,7 +418,6 @@ GCAMregister(GCA_MORPH *gcam, MRI *mri, GCA_MORPH_PARMS *parms)
 					mri_smooth = MRIconvolveGaussian(mri, mri_smooth, mri_kernel) ;
         MRIfree(&mri_kernel) ;
       }
-			MRIwrite(mri_smooth, "bin_smooth.mgz") ;
 
       i = 0 ;
       do
