@@ -1,0 +1,8 @@
+#!/bin/tcsh -ef
+
+set ddir=$SUBJECTS_DIR/$1/label
+foreach hemi (rh lh)
+		foreach label (avg_superior_temporal_sulcus avg_central_sulcus avg_calcarine_sulcus)
+				mris_spherical_average -o $1 label ${hemi}-${label} $hemi sphere.reg average7 $ddir/${hemi}-${label}
+		end
+end

@@ -1,0 +1,105 @@
+#!/bin/csh -f
+#
+# Name: minc2seqinfo
+# $Id: minc2seqinfo,v 1.1 2004/01/30 23:22:30 kteich Exp $
+#
+# Author: Douglas Greve
+# Date:   10/28/00
+# Purpose: extracts the relevent information for the seq.info file
+#          that is part of the Sessions Database.
+#
+# The seq.info file has a tag-value following format.
+# Example, for a data set with 16 slices, each slice 64x64, with 100 TRs,
+# TR = 2 seconds, slice thickness of 5 mm, pixel size of 3.125 
+# collected with a sequence called ep2d_fid_ts_20b2604, then the 
+# seq.info file is shown below.  The order is actually unimportant. If there
+# is no temporal dimension, then there would be no "ntrs" and "TR" fields.
+# 
+# ------ cut here -------
+# sequencename     ep2d_fid_ts_20b2604
+# nrows            64
+# ncols            64
+# nslcs            16
+# rowpixelsize     3.125
+# colpixelsize     3.125
+# slcpixelsize     5.000
+# ntrs             100
+# TR               2.0
+# ------ cut here -------
+
+if($#argv != 1  && $#argv != 2  ) then
+  echo "Usage: minc2seqinfo mincfile <seqinfofile>"
+  exit 1;
+endif
+
+set TR   = ();
+set ntrs = ();
+
+set mnc     = $argv[1];
+
+if(! -e $mnc) then
+  echo "ERROR: $mnc does not exist"
+  exit 1;
+endif
+
+### Get the name of the sequnce ###
+set seq  = `mincinfo -attvalue acquisition:scanning_sequence $mnc`;
+set seq  = `basename $seq`;
+
+## Get the names of the dimensions ##
+set dimnames = `mincinfo -dimnames $mnc`;
+
+## If the first dimension is time, then extract the relevant
+## information and remove it from the list of dimension names
+if($dimnames[1] == time) then
+  set TR   = `mincinfo -attvalue  time:step $mnc`;
+  set ntrs = `mincinfo -dimlength time      $mnc`;
+  shift dimnames;
+endif
+
+## Get the number and size of each dimension  
+## vdim:  nslices, nrows, ncols
+## vsize: slice thicknes, row thickness, col thickness
+set vdim  = ();
+set vsize = ();
+foreach dim ($dimnames)
+  set n = `mincinfo -dimlength $dim      $mnc`;
+  set d = `mincinfo -attvalue  $dim\:step $mnc`;
+  set d = `echo "sqrt($d*$d)" | bc -l`; # absolute value
+  set vdim  = ($vdim  $n);
+  set vsize = ($vsize $d);
+end
+
+if($#argv == 2) then
+  # send to  seq.info file specified on command-line #
+  set seqinfo = $argv[2];
+  set seqinfodir  = `dirname  $seqinfo`;
+  mkdir -p $seqinfodir
+  rm -f $seqinfo
+  echo "sequencename $seq"      >> $seqinfo
+  echo "nrows        $vdim[2]"  >> $seqinfo
+  echo "ncols        $vdim[3]"  >> $seqinfo
+  echo "nslcs        $vdim[1]"  >> $seqinfo
+  echo "rowpixelsize $vsize[2]" >> $seqinfo
+  echo "colpixelsize $vsize[3]" >> $seqinfo
+  echo "slcpixelsize $vsize[1]" >> $seqinfo
+  if($#TR != 0) then
+    echo "ntrs         $ntrs"   >> $seqinfo
+    echo "TR           $TR"     >> $seqinfo
+  endif
+else
+  # no seq.info file specified, print to stdout #
+  echo "sequencename $seq"    
+  echo "nrows        $vdim[2]"
+  echo "ncols        $vdim[3]"
+  echo "nslcs        $vdim[1]"
+  echo "rowpixelsize $vsize[2]"
+  echo "colpixelsize $vsize[3]"
+  echo "slcpixelsize $vsize[1]"
+  if($#TR != 0) then
+    echo "ntrs         $ntrs"   
+    echo "TR           $TR"     
+  endif
+endif
+
+exit 0

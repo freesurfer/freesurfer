@@ -1,0 +1,15 @@
+#!/bin/tcsh -ef
+
+setenv GCA $MRI_DIR/average/talairach_children_b.gca
+setenv LTA talairach.lta
+
+setenv s $1
+
+set sdir = $SUBJECTS_DIR/$s/mri
+foreach d (fsamples norm transforms)
+	mkdir -p $sdir/$d ;\
+end
+
+
+mri_em_register -mask $sdir/brain -fsamples $sdir/fsamples -norm $sdir/norm $sdir/orig $GCA $sdir/transforms/$LTA
+

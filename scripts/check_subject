@@ -1,0 +1,85 @@
+#!/usr/bin/perl
+
+$subj=$ARGV[0];
+$dir=$ENV{SUBJECTS_DIR};
+$status=0;
+
+warn "CHECKING SUBJECT $subj\n";
+
+chdir("$dir/$subj") ||
+  die "ERROR: cannot cd to $dir/$subj\n";
+chdir("surf") ||
+  die "ERROR: $subj has no surf directory\n";
+
+%order = (
+  'orig' => 'qsphere',
+  'smoothwm' => 'orig',
+  'inflated' => 'smoothwm',
+  'sphere' => 'inflated',
+  'sphere.reg' => 'sphere',
+  'white' => 'inflated',
+  'pial' => 'white',
+  'sulc' => 'orig',
+  'curv' => 'orig',
+  'thickness' => 'orig',
+  'area' => 'orig',
+);
+
+$adds = undef;
+
+foreach $hemi ('rh','lh') {
+  if ( $hemi eq 'lh' ) {
+    $order{'rh.sphere.reg'} = 'sphere';
+    $adds = 'rh.sphere.reg';
+  }
+  foreach $ext (keys %order) {
+    $file = "$hemi.$ext";
+    if ( ! -s $file ) { 
+      warn "WARN: $file is empty/missing\n"; $status++;
+      next;
+    }
+    $pre = $hemi.'.'.$order{$ext};
+    if ( -s $pre ) {
+      if ((-M $file) > (-M $pre)) {
+        warn "WARN: time for $file is older than $pre\n"; $status++;
+      }
+    }
+  }
+
+  $last = undef;
+  $size = 0;
+  foreach $ext ('smoothwm','inflated','white','sphere','pial',
+		'sphere.reg',$adds) {
+    $file = "$hemi.$ext";
+    next unless ( -f $file );
+    if ($size) {
+      if ($size != (-s $file)) {
+	warn "WARN: file $file is not equal in size to $last\n";  $status++;
+      }
+    } else {
+      $size = ( -s $file );
+      $last = $file;
+    }
+  } 
+    
+  $last = undef;
+  $size = 0;
+  foreach $ext ('sulc','curv','thickness') {
+    $file = "$hemi.$ext";
+    next unless ( -f $file );
+    if ($size) {
+      if ($size != (-s $file)) {
+	warn "WARN: file $file is not equal in size to $last\n";  $status++;
+      }
+    } else {
+      $size = ( -s $file );
+      $last = $file;
+    }
+  } 
+    
+  if ((-s "$hemi.qsphere") == (-s "$hemi.orig")) {
+    warn "WARN: $hemi.qsphere is same size as $hemi.orig\n"; $status++;
+  }
+}
+
+exit $status;

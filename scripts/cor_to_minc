@@ -1,0 +1,26 @@
+#!/bin/sh
+
+progname=`basename $0`
+
+usage()
+{
+
+	echo "usage: $progname <cor directory> <minc file name>" >&2
+
+	exit 1
+
+} # end usage()
+
+if [ $# -ne 2 ] ; then usage ; fi
+
+if [ ! -d $1 ]
+then
+	echo "$progname: can't find directory $1" >&2
+	exit 1
+fi
+
+cat $1/COR-[0-9]* | rawtominc -unsigned -byte -coronal -xstep -1 -ystep -1 -zstep -1 -xdircos 1 0 0 -ydircos 0 -1 0 -zdircos 0 0 1 -xstart 128 -ystart 128 -zstart 128 -mri -range 0 255 -scan_range $2 256 256 256
+
+exit 0
+
+# eof

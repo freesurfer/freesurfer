@@ -1,0 +1,138 @@
+#!/bin/csh -f
+# evspatfil - front end for fast_evspatfil.m to filter
+# a functional data set by projecting out the eigenvectors
+# as computed from evfunc (fast_evfunc.m)
+#
+set VERSION = '$Id: mri_mergelabels,v 1.1 2004/01/30 23:22:30 kteich Exp $'
+set inputargs = ($argv);
+
+set PWDCMD = `getpwdcmd`;
+
+set inputlist = ();
+set outlabel  = ();
+
+set n = `echo $argv | grep version | wc -l` 
+if($n != 0) then
+  echo $VERSION
+  exit 0;
+endif
+
+if($#argv == 0) then
+  goto usage_exit;
+  exit 1;
+endif
+
+goto parse_args;
+parse_args_return:
+
+goto check_params;
+check_params_return:
+
+set outdir = `dirname $outlabel`;
+mkdir -p $outdir
+
+# Count the total number in the label #
+set nlabelsum = 0;
+foreach inlabel ($inputlist)
+  set nlabel = `head -2 $inlabel | tail -1`;
+  set nlabelsum = `echo "$nlabelsum + $nlabel" | bc -l`;
+end
+
+echo "#label , from subject ??" > $outlabel
+echo $nlabelsum >> $outlabel
+
+# Cat the data into the label #
+foreach inlabel ($inputlist)
+  tail +3 $inlabel >> $outlabel
+end
+
+echo "Done"
+
+exit 0;
+
+############--------------##################
+parse_args:
+set cmdline = ($argv);
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "-o"
+      if ( $#argv == 0) goto arg1err;
+      set outlabel = $argv[1]; shift;
+      breaksw
+
+    case "-i"
+      if ( $#argv == 0) goto arg1err;
+      set input = $argv[1];shift;
+      if(! -e $input) then
+        echo "ERROR: $input does not exist"
+        exit 1;
+      endif
+      set inputlist = ($inputlist $input); 
+      breaksw
+
+    case "-verbose":
+      set verbose = 1;
+      breaksw
+
+    case "-echo":
+      set echo = 1;
+      breaksw
+
+    case "-debug":
+      set verbose = 1;
+      set echo = 1;
+      breaksw
+
+    default:
+      echo "ERROR: $flag not regocnized"
+      exit 1;
+      breaksw
+  endsw
+
+end
+
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+
+  if($#inputlist < 2) then
+    echo "ERROR: not enough inputs specified"
+    exit 1;
+  endif
+
+  if($#outlabel == 0) then
+    echo "ERROR: no output specified"
+    exit 1;
+  endif
+
+goto check_params_return;
+############--------------##################
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+
+############--------------##################
+usage_exit:
+  echo ""
+  echo "USAGE: mri_mergelabels"
+  echo ""
+  echo "   -i label1 -i label2 ..."
+  echo "   -o outputlabel"
+  echo ""
+  echo "This is a simple script that will merge two or more label"
+  echo "files. It does this by catting the label files together"
+  echo "(after removing the first two lines). It inserts a new"
+  echo "header (the first two lines). The number of entries in"
+  echo "the new file (ie, the number on the second line), is "
+  echo "computed by summing those from the input files."
+  echo ""
+exit 1;

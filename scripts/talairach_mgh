@@ -1,0 +1,17 @@
+#!/bin/tcsh -ef
+
+setenv GCA $MRI_DIR/average/young_new_b.gca
+setenv GCA $MRI_DIR/average/talairach_young_new_b.gca
+setenv LTA talairach.xfm
+
+setenv s $1
+
+set sdir = $SUBJECTS_DIR/$s/mri
+foreach d (fsamples norm transforms)
+	mkdir -p $sdir/$d ;\
+end
+
+setenv bin $CSURF_DIR/bin/$OS/mri_em_register.old
+#$bin -mask $sdir/brain -fsamples $sdir/fsamples -norm $sdir/norm $sdir/orig $GCA $sdir/transforms/$LTA
+$bin -mask $sdir/brain $sdir/orig $GCA $sdir/transforms/$LTA
+

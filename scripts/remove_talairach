@@ -1,0 +1,12 @@
+#!/bin/tcsh -ef
+
+cd $SUBJECTS_DIR/$1/mri
+foreach d (orig T1 brain wm seg seg_edited cma_seg filled aseg fsamples temporal_lobe norm tmp)
+		if (-e $d/COR-.info == 1) then
+			  echo removing xform line from directory $d
+				rm -f $d/COR-.info.bak
+				mv -f $d/COR-.info $d/COR-.info.bak
+				grep -v ^xform $d/COR-.info.bak >$d/COR-.info
+		endif
+end
+

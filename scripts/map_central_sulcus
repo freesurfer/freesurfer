@@ -1,0 +1,15 @@
+#!/bin/tcsh -ef
+# 
+# $1 = subject name
+# $2 = hemisphere
+
+#mris_spherical_average -o $1 label $2-central_sulc $2 \
+#  sphere.reg margaret $SUBJECTS_DIR/$1/label/$2-central_sulc_margaret.label
+
+recon-all -s $1 -hemi $2 -avglabels
+
+
+exit $status
+
+
+

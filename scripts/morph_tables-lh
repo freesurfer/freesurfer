@@ -1,0 +1,25 @@
+#!/bin/tcsh -f
+pushd $SUBJECTS_DIR/$1/
+touch NOTES
+echo " " >> NOTES
+echo $0 $* >> NOTES
+whoami >> NOTES
+date >> NOTES
+hostname >> NOTES
+popd
+
+
+set hemi = lh
+
+set SVIT_DIR    = $SUBJECTS_DIR/$1/svit
+if (-e $SVIT_DIR == 0) \
+    mkdir $SVIT_DIR ;\
+endif
+
+set SLF = $SVIT_DIR/$hemi.sphere.reg.svit.log
+mri-structvits -subject $1 -umask 0 \
+		-hemi $hemi -outdir $SVIT_DIR -can sphere.reg | tee -a $SLF
+#mris_register -w 0 ../surf/$hemi.sphere $MRI_DIR/average/$hemi.average.tif ../surf/$hemi.sphere.dist_new
+
+popd
+
