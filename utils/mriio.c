@@ -8103,16 +8103,18 @@ mghWrite(MRI *mri, char *fname, int frame)
 MRI *
 MRIreorder(MRI *mri_src, MRI *mri_dst, int xdim, int ydim, int zdim)
 {
-  int  width, height, depth, xs, ys, zs, xd, yd, zd, x, y, z ;
+  int  width, height, depth, xs, ys, zs, xd, yd, zd, x, y, z, f ;
   float ras_sign;
 
   width = mri_src->width ; height = mri_src->height ; depth = mri_src->depth;
   if (!mri_dst)
     mri_dst = MRIclone(mri_src, NULL) ;
 
-  /* check that the source ras coordinates are good and that each direction is used once and only once */
+  /* check that the source ras coordinates are good and 
+     that each direction is used once and only once */
   if(mri_src->ras_good_flag)
-    if(abs(xdim) * abs(ydim) * abs(zdim) != 6 || abs(xdim) + abs(ydim) + abs(zdim) != 6)
+    if(abs(xdim) * abs(ydim) * abs(zdim) != 6 || 
+       abs(xdim) + abs(ydim) + abs(zdim) != 6)
       mri_dst->ras_good_flag = 0;
 
   xd = yd = zd = 0 ;
@@ -8196,70 +8198,65 @@ MRIreorder(MRI *mri_src, MRI *mri_dst, int xdim, int ydim, int zdim)
     break ;
   }
 
+  for(f = 0; f < mri_src->nframes; f++){
   for (zs = 0 ; zs < depth ; zs++)
   {
-    if (zdim < 0)
-      z = depth - zs - 1 ;
-    else
-      z = zs ;
+    if (zdim < 0) z = depth - zs - 1 ;
+    else          z = zs ;
     switch (abs(zdim))
     {
     case XDIM:  xd = z ; break ;
     case YDIM:  yd = z ; break ;
-    default:
-    case ZDIM:  zd = z ; break ;
+    case ZDIM:  
+    default:    zd = z ; break ;
     }
     for (ys = 0 ; ys < height ; ys++)
     {
-      if (ydim < 0)
-        y = height - ys - 1 ;
-      else
-        y = ys ;
+      if (ydim < 0) y = height - ys - 1 ;
+      else          y = ys ;
       switch (abs(ydim))
       {
       case XDIM: xd = y ; break ;
       case YDIM: yd = y ; break ;
-      default:
-      case ZDIM: zd = y ; break ;
-      }
+      case ZDIM: 
+      default: zd = y ; break ;
+           }
       for (xs = 0 ; xs < width ; xs++)
       {
-        if (xdim < 0)
-          x = width - xs - 1 ;
-        else
-          x = xs ;
+        if (xdim < 0) x = width - xs - 1 ;
+        else          x = xs ;
         switch (abs(xdim))
         {
           case XDIM: xd = x ; break ;
           case YDIM: yd = x ; break ;
-          default:
-          case ZDIM: zd = x ; break ;
+          case ZDIM: 
+          default:   zd = x ; break ;
         }
         switch (mri_src->type)
         {
         case MRI_SHORT:
-          MRISvox(mri_dst, xd, yd, zd) = MRISvox(mri_src, xs, ys, zs) ;
+          MRISseq_vox(mri_dst,xd,yd,zd,f) = MRISseq_vox(mri_src,xs,ys,zs,f) ;
           break ;
         case MRI_FLOAT:
-          MRIFvox(mri_dst, xd, yd, zd) = MRIFvox(mri_src, xs, ys, zs) ;
+          MRIFseq_vox(mri_dst,xd,yd,zd,f) = MRIFseq_vox(mri_src,xs,ys,zs,f);
           break ;
         case MRI_INT:
-          MRIIvox(mri_dst, xd, yd, zd) = MRIIvox(mri_src, xs, ys, zs) ;
+          MRIIseq_vox(mri_dst,xd,yd,zd,f) = MRIIseq_vox(mri_src,xs,ys,zs,f);
           break ;
         case MRI_UCHAR:
-          MRIvox(mri_dst, xd, yd, zd) = MRIvox(mri_src, xs, ys, zs) ;
+          MRIseq_vox(mri_dst,xd,yd,zd,f)  = MRIseq_vox(mri_src,xs,ys,zs,f);
           break ;
         default:
           errno = 0;
-          ErrorReturn(NULL,
-                      (ERROR_UNSUPPORTED, 
-                       "MRIreorder: unsupported voxel format %d",
-                       mri_src->type)) ;
+          ErrorReturn(NULL,(ERROR_UNSUPPORTED, 
+          "MRIreorder: unsupported voxel format %d",
+          mri_src->type)) ;
           break ;
         }
       }
     }
   }
+  }/* end loop over frames */
   return(mri_dst) ;
 }
 
