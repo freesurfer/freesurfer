@@ -2,8 +2,8 @@ function varargout = univarlab(varargin)
 % UNIVARLAB Application M-file for univarlab.fig
 %    FIG = UNIVARLAB launch univarlab GUI.
 %    UNIVARLAB('callback_name', ...) invoke the named callback.
-% Last Modified by GUIDE v2.0 08-Aug-2003 00:33:25
-% $Id: univarlab.m,v 1.4 2003/08/11 02:57:57 greve Exp $
+% Last Modified by GUIDE v2.0 10-Aug-2003 23:32:39
+% $Id: univarlab.m,v 1.5 2003/08/12 05:31:08 greve Exp $
 
 % To do:
 %   Closing/Quiting functions
@@ -21,6 +21,8 @@ function varargout = univarlab(varargin)
 %   Seed
 %   Gamma First Derivative
 %   Slice Timing Correction
+%   Save all schedules, re-gen only when asked
+%   Separate synthesis model for both conditions
 
 if(nargin == 0)  
   % LAUNCH GUI
@@ -57,6 +59,78 @@ return;
 %----------------- end of main ---------------------------%
 %----------------- end of main ---------------------------%
 %----------------- end of main ---------------------------%
+
+% --------------------------------------------------------------------
+function gd = InitGUIParams(gd)
+  % ---------- synthesis parameters ------------------%
+gd.TR = 2;
+gd.ntp = 120;
+gd.GamDeltaSynth = [2.25  0.00 5.00];
+gd.GamTauSynth   = [1.25  0.10 2.00];
+gd.C1AmpSynth    = [1.00 -2.00 2.00];
+gd.C2AmpSynth    = [1.00 -2.00 2.00];
+gd.ScheduleType  = 'rper';
+gd.schedule      = [];   % stimulus schedule, [t, id]
+gd.GamSynthFLA   = [];   % First level analysis struct for synth
+gd.NoiseStd      = [1.00  0.00 2.00];
+gd.NoiseAR1      = [0 -0.9 0.9];
+gd = PrepNoiseACF(gd);
+gd.FixACF = 0;
+gd.FIRFixACFMtx = [];
+gd.GamFixACFMtx = [];
+gd.ACFShowLagZero = 1;
+
+  % ---------- FIR Estimation parameters ------------------%
+gd.FIRPSDMin     = [-4.00 -8.00  0.00];
+gd.FIRPSDMax     = [20.00  4.00 40.00];
+gd.FIRTotWin     = gd.FIRPSDMax(1) - gd.FIRPSDMin(1);
+gd.FIRRStd       = 0.0; % Estimated value of Fir resid std
+gd.FIREstFLA        = [];  % First level analysis struct for est FIR
+
+  % ---------- Gamma Estimation parameters ------------------%
+gd.GamDeltaEst = gd.GamDeltaSynth; % Use this val in estimation model
+gd.GamTauEst   = gd.GamTauSynth;   % Use this val in estimation model
+gd.C1AmpEst    = 0.0;  % Estimated value of C1
+gd.C2AmpEst    = 0.0;  % Estimated value of C2
+gd.GamRStd     = 0.0;  % Estimated value of Gamma resid std
+gd.GamEstFLA   = [];   % First level analysis struct for est gamma
+
+  % ---------- Manual-Gamma Estimation parameters ------------------%
+gd.C1AmpMan    = [1.0 -2 2];  % Use this val to construct manual signal
+gd.C2AmpMan    = [1.0 -2 2];  % Use this val to construct manual signal
+
+gd.Whiten      = 0;    % Whitening flag (0 or 1)
+
+  % ---------- Raw Synthesized Vectors -----------------------%
+gd.t = gd.TR*[0:gd.ntp-1]';
+gd.ypar = [];
+gd.ynoise0 = []; % unscaled
+gd.ynoise = [];
+gd.yc1signal = [];
+gd.yc2signal = [];
+gd.ysignal = [];
+gd.yobserved = [];
+
+  % ---------- Raw Estimation Vectors -----------------------%
+gd.yhatfir = [];
+gd.resfir = [];
+gd.acffir = [];
+gd.yhatgam = [];
+gd.resgam = [];
+gd.acfgam = [];
+gd.yhatmangam = []; % Manual gamma
+gd.resmangam = [];  % Manual gamma
+
+gd.hXFIR = [];
+gd.hXGam = [];
+gd = SetGUIParams(gd);
+
+gd.ShowRaw = 1;
+gd.ShowRawSignal = 1;
+gd.ShowACF = 1;
+gd.ShowHRF = 1;
+
+return;
 
 % --------------------------------------------------------------------
 function varargout = RPER_menu_Callback(h, eventdata, gd, varargin)
@@ -389,30 +463,82 @@ return;
 
 %-------------------------------------------------%
 function gd = PlotHRF(gd)
+if(gd.ShowHRF==0) return; end
 if(~isfield(gd,'hHRF') | isempty(gd.hHRF) | ~ishandle(gd.hHRF)) 
   gd.hHRF = figure; 
+  set(gcf,'DeleteFcn','univarlab(''DeleteHRF'')');
   ud.hunivarlab = gd.hunivarlab;
-  set(gd.hRaw,'userdata',ud);
+  set(gd.hHRF,'userdata',ud);
 end
 figure(gd.hHRF);
 
-firpsd = fast_psdwin([gd.FIRPSDMin(1) gd.TR gd.FIRPSDMax(1)],'erftaxis');
-nperfir = length(firpsd);
-plot(firpsd,gd.FIRbeta(1:nperfir),firpsd,gd.FIRbeta(nperfir+1:end));
+gd.GamSynthFLA.nthfx = 1;
+GamSynthPSD = fast_fxcfg('irftaxis',gd.GamSynthFLA);
+GamSynthHRF = fast_fxcfg('irfmatrix',gd.GamSynthFLA);
+GamSynthHRF1 = GamSynthHRF * gd.C1AmpSynth(1);
+GamSynthHRF2 = GamSynthHRF * gd.C2AmpSynth(1);
+
+gd.FIREstFLA.nthfx = 1;
+FIRPSD = fast_fxcfg('irftaxis',gd.FIREstFLA);
+nPerFIR = length(FIRPSD);
+FIRHRF1 = gd.FIRbeta(1:nPerFIR);
+FIRHRF2 = gd.FIRbeta(nPerFIR+1:end);
+
+gd.GamEstFLA.nthfx = 1;
+GamEstPSD = fast_fxcfg('irftaxis',gd.GamEstFLA);
+GamEstHRF = fast_fxcfg('irfmatrix',gd.GamEstFLA);
+GamEstHRF1 = GamEstHRF * gd.Gambeta(1);
+GamEstHRF2 = GamEstHRF * gd.Gambeta(2);
+
+plot(GamSynthPSD,GamSynthHRF1,'+-',...
+     GamSynthPSD,GamSynthHRF2,'+-',...
+     FIRPSD,FIRHRF1,FIRPSD,FIRHRF2,...
+     GamEstPSD,GamEstHRF1,GamEstPSD,GamEstHRF2);
 title('Hemodynamic Responses');
+legend('Ideal1','Ideal2','FIR1','FIR2','Gam1','Gam2');
 xlabel('post-stimulus delay (sec)');
 figure(gd.hunivarlab);
 guidata(gd.hunivarlab,gd)
 return;
 
 %-------------------------------------------------%
+% Delete function for HRF window %
+function DeleteHRF
+ud = get(gcf,'userdata');
+gd = guidata(ud.hunivarlab);
+gd.ShowHRF = 0;
+gd.hHRF = [];
+set(gd.ShowHRF_pb,'enable','on');
+guidata(gd.hunivarlab,gd)
+return;
+
+% --------------------------------------------------------------------
+function varargout = ShowHRF_pb_Callback(h, eventdata, gd, varargin)
+gd.ShowHRF = 1;
+gd = PlotHRF(gd);
+set(gd.ShowHRF_pb,'enable','off');
+guidata(gd.hunivarlab,gd)
+return;
+
+%-------------------------------------------------%
 function gd = PlotRaw(gd)
+if(gd.ShowRaw == 0) return; end
 if(~isfield(gd,'hRaw') | isempty(gd.hRaw) | ~ishandle(gd.hRaw)) 
   gd.hRaw = figure; 
   set(gcf,'Interruptible','off'); % smooth animations %
   set(gcf,'DoubleBuffer','on');   % smooth animations %
   set(gcf,'BusyAction','cancel'); % dont build up a lot of events %
   set(gcf,'renderer','painters'); % seems to be the best
+  set(gcf,'DeleteFcn','univarlab(''DeleteRaw'')');
+  ud.hunivarlab = gd.hunivarlab;
+  set(gd.hRaw,'userdata',ud);
+  ud.hToggleRawSignal = ...
+      uicontrol('Style', 'checkbox', ...
+		'String', 'Signal',...
+		'Position', [1 1 50 25], ...
+		'Callback', 'univarlab(''ToggleRawTrace'',''signal'')',...
+		'tooltipstring','Toggle Display of Signal Raw Trace',...
+		'value',gd.ShowRawSignal);
   ud.hunivarlab = gd.hunivarlab;
   set(gd.hRaw,'userdata',ud);
 end
@@ -431,35 +557,70 @@ p2 = (ymin-.05*yrange)*ones(nind2,1);
 %p1 = gd.schedule(ind1,2) * (ymax-ymin)/2 + ymin;
 %p2 = gd.schedule(ind2,2) * (ymax-ymin)/2 + ymin;
 
+if(gd.ShowRawSignal)
 plot(gd.t,gd.ysignal,'+-', ...
      gd.t,gd.yobserved, 'o-', ...
      gd.t,gd.yhatfir, ...
      gd.t,gd.yhatgam, gd.t,gd.yhatmangam, ...
      gd.t(ind1),p1,'*', gd.t(ind2),p2,'d');
+legend('True Signal','Observed','FIR','Gamma','Man-Gamma','C1Stim','C2Stim');
+else
+plot(gd.t,gd.yobserved, 'o-', ...
+     gd.t,gd.yhatfir, ...
+     gd.t,gd.yhatgam, gd.t,gd.yhatmangam, ...
+     gd.t(ind1),p1,'*', gd.t(ind2),p2,'d');
+legend('Observed','FIR','Gamma','Man-Gamma','C1Stim','C2Stim');
+end
+
 title('Raw Time Courses');
 xlabel('time (sec)');
-legend('True','Observed','FIR','Gamma','Man-Gamma','C1Stim','C2Stim');
 figure(gd.hunivarlab);
 guidata(gd.hunivarlab,gd)
 return;
 
 %-------------------------------------------------%
-function gd = ShowLagZero
+% Delete function for Raw window %
+function DeleteRaw
 ud = get(gcf,'userdata');
 gd = guidata(ud.hunivarlab);
-gd.ACFShowLagZero = ~gd.ACFShowLagZero;
-gd = PlotACF(gd);
+gd.ShowRaw = 0;
+gd.hRaw = [];
+set(gd.ShowRaw_pb,'enable','on');
+guidata(gd.hunivarlab,gd)
+return;
+
+% --------------------------------------------------------------------
+function varargout = ShowRaw_pb_Callback(h, eventdata, gd, varargin)
+gd.ShowRaw = 1;
+gd = PlotRaw(gd);
+set(gd.ShowRaw_pb,'enable','off');
+guidata(gd.hunivarlab,gd)
+return;
+
+%-------------------------------------------------%
+% Callback for ACF figure toggle switch %
+function gd = ToggleRawTrace(traceid)
+ud = get(gcf,'userdata');
+gd = guidata(ud.hunivarlab);
+switch(traceid)
+ case 'signal'
+  gd.ShowRawSignal = ~gd.ShowRawSignal;
+end
+gd = PlotRaw(gd);
 guidata(gd.hunivarlab,gd)
 return;
 
 %-------------------------------------------------%
 function gd = PlotACF(gd)
+
+if(gd.ShowACF == 0) return; end
 if(~isfield(gd,'hACF') | isempty(gd.hACF) | ~ishandle(gd.hACF)) 
   gd.hACF = figure; 
   set(gcf,'Interruptible','off'); % smooth animations %
   set(gcf,'DoubleBuffer','on');   % smooth animations %
   set(gcf,'BusyAction','cancel'); % dont build up a lot of events %
   set(gcf,'renderer','painters'); % seems to be the best
+  set(gcf,'DeleteFcn','univarlab(''DeleteACF'')');
   ud.hShowLagZero = ...
       uicontrol('Style', 'checkbox', ...
 		'String', 'Show Lag Zero',...
@@ -509,77 +670,40 @@ plot(lag-1,gd.NoiseACF(lag), '+-', ...
      lag-1,z,'k-..');
 title('Autocorrelation Function');
 xlabel('lag (time points)');
-legend('True','FIR-Raw','FIR-AR1','Gamma-Raw','Gamma-AR1');
+legend('True ACF','FIR-Raw','FIR-AR1','Gamma-Raw','Gamma-AR1');
 guidata(gd.hunivarlab,gd)
 figure(gd.hunivarlab);
 return;
 
-% --------------------------------------------------------------------
-function gd = InitGUIParams(gd)
-  % ---------- synthesis parameters ------------------%
-gd.TR = 2;
-gd.ntp = 120;
-gd.GamDeltaSynth = [2.25  0.00 5.00];
-gd.GamTauSynth   = [1.25  0.10 2.00];
-gd.C1AmpSynth    = [1.00 -2.00 2.00];
-gd.C2AmpSynth    = [1.00 -2.00 2.00];
-gd.ScheduleType  = 'rper';
-gd.schedule      = [];   % stimulus schedule, [t, id]
-gd.GamSynthFLA   = [];   % First level analysis struct for synth
-gd.NoiseStd      = [1.00  0.00 2.00];
-gd.NoiseAR1      = [0 -0.9 0.9];
-gd = PrepNoiseACF(gd);
-gd.FixACF = 0;
-gd.FIRFixACFMtx = [];
-gd.GamFixACFMtx = [];
-gd.ACFShowLagZero = 1;
-
-  % ---------- FIR Estimation parameters ------------------%
-gd.FIRPSDMin     = [-4.00 -8.00  0.00];
-gd.FIRPSDMax     = [20.00  4.00 40.00];
-gd.FIRTotWin     = gd.FIRPSDMax(1) - gd.FIRPSDMin(1);
-gd.FIRRStd       = 0.0; % Estimated value of Fir resid std
-gd.FIREstFLA        = [];  % First level analysis struct for est FIR
-
-  % ---------- Gamma Estimation parameters ------------------%
-gd.GamDeltaEst = gd.GamDeltaSynth; % Use this val in estimation model
-gd.GamTauEst   = gd.GamTauSynth;   % Use this val in estimation model
-gd.C1AmpEst    = 0.0;  % Estimated value of C1
-gd.C2AmpEst    = 0.0;  % Estimated value of C2
-gd.GamRStd     = 0.0;  % Estimated value of Gamma resid std
-gd.GamEstFLA   = [];   % First level analysis struct for est gamma
-
-  % ---------- Manual-Gamma Estimation parameters ------------------%
-gd.C1AmpMan    = [1.0 -2 2];  % Use this val to construct manual signal
-gd.C2AmpMan    = [1.0 -2 2];  % Use this val to construct manual signal
-
-gd.Whiten      = 0;    % Whitening flag (0 or 1)
-
-  % ---------- Raw Synthesized Vectors -----------------------%
-gd.t = gd.TR*[0:gd.ntp-1]';
-gd.ypar = [];
-gd.ynoise0 = []; % unscaled
-gd.ynoise = [];
-gd.yc1signal = [];
-gd.yc2signal = [];
-gd.ysignal = [];
-gd.yobserved = [];
-
-  % ---------- Raw Estimation Vectors -----------------------%
-gd.yhatfir = [];
-gd.resfir = [];
-gd.acffir = [];
-gd.yhatgam = [];
-gd.resgam = [];
-gd.acfgam = [];
-gd.yhatmangam = []; % Manual gamma
-gd.resmangam = [];  % Manual gamma
-
-gd.hXFIR = [];
-gd.hXGam = [];
-gd = SetGUIParams(gd);
-
+%-------------------------------------------------%
+% Delete function for ACF window %
+function DeleteACF
+ud = get(gcf,'userdata');
+gd = guidata(ud.hunivarlab);
+gd.ShowACF = 0;
+gd.hACF = [];
+set(gd.ShowACF_pb,'enable','on');
+guidata(gd.hunivarlab,gd)
 return;
+
+% --------------------------------------------------------------------
+function varargout = ShowACF_pb_Callback(h, eventdata, gd, varargin)
+gd.ShowACF = 1;
+gd = PlotACF(gd);
+set(gd.ShowACF_pb,'enable','off');
+guidata(gd.hunivarlab,gd)
+return;
+
+%-------------------------------------------------%
+% Callback for ACF figure toggle switch %
+function gd = ShowLagZero
+ud = get(gcf,'userdata');
+gd = guidata(ud.hunivarlab);
+gd.ACFShowLagZero = ~gd.ACFShowLagZero;
+gd = PlotACF(gd);
+guidata(gd.hunivarlab,gd)
+return;
+
 
 %-----------------------------------------------------%
 function gd = SetGUIParams(gd)
@@ -794,4 +918,9 @@ gd.resmangamvar = sum(gd.resmangam.^2)/gd.GamDOF;
 gd.resmangamstd = sqrt(gd.resmangamvar);
 set(gd.ManGamRStdTxt,'string',sprintf('%3.2f',gd.resmangamstd));
 return;
+
+
+
+
+
 
