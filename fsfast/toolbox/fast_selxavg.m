@@ -1,8 +1,8 @@
 function r = fast_selxavg(varargin)
 % r = fast_selxavg(varargin)
-% '$Id: fast_selxavg.m,v 1.13 2004/05/21 16:58:13 greve Exp $'
+% '$Id: fast_selxavg.m,v 1.14 2004/06/01 16:15:15 greve Exp $'
 
-version = '$Id: fast_selxavg.m,v 1.13 2004/05/21 16:58:13 greve Exp $';
+version = '$Id: fast_selxavg.m,v 1.14 2004/06/01 16:15:15 greve Exp $';
 fprintf(1,'%s\n',version);
 r = 1;
 
@@ -572,7 +572,11 @@ for slice = firstslice:lastslice
 
   % Save Percent Signal Chanage %
   if(~isempty(pctstem))
-    tmp = 100 * tmp ./ repmat(hoffset, [1 1 size(tmp,3)]);
+    fprintf('Saving pct\n');
+    hofftmp = hoffset;
+    ind = find(hofftmp==0);
+    hofftmp(ind) = 1e10;
+    tmp = 100 * tmp ./ repmat(hofftmp, [1 1 size(tmp,3)]);
     fname = sprintf('%s_%03d.bfloat',pctstem,slice);
     fprintf(1,'  Saving Percent Signal Change to %s \n',fname);
     fmri_svbfile(tmp,fname);
@@ -1122,7 +1126,7 @@ function s = parse_args(varargin)
       case {'-svecovmtx','-sverrcovmtx','-svecvm','-svacf'},
         s.SaveErrCovMtx = 1;
 
-      case {'-psc','percent'},
+      case {'-psc','-percent'},
         arg1check(flag,narg,ninputargs);
         s.pscvol = inputargs{narg};
         narg = narg + 1;
