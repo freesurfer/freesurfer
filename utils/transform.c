@@ -78,6 +78,25 @@ void getVolGeom(const MRI *src, VOL_GEOM *dst)
   strcpy(dst->fname, src->fname);
 }
 
+void useVolGeomToMRI(const VOL_GEOM *src, MRI *dst)
+{
+  if (!dst)
+    ErrorExit(ERROR_BADPARM, "must have a valid MRI");
+
+  dst->ras_good_flag = 1;
+  dst->width = src->width;
+  dst->height = src->height;
+  dst->depth = src->depth;
+  dst->xsize = src->xsize;
+  dst->ysize = src->ysize;
+  dst->zsize = src->zsize;
+  dst->x_r = src->x_r; dst->x_a = src->x_a; dst->x_s = src->x_s;
+  dst->y_r = src->y_r; dst->y_a = src->y_a; dst->y_s = src->y_s;
+  dst->z_r = src->z_r; dst->z_a = src->z_a; dst->z_s = src->z_s;
+  dst->c_r = src->c_r; dst->c_a = src->c_a; dst->c_s = src->c_s;
+  strcpy(dst->fname, src->fname);
+}
+
 void copyVolGeom(const VOL_GEOM *src, VOL_GEOM *dst)
 {
   dst->valid = src->valid;
@@ -116,46 +135,64 @@ void readVolGeom(FILE *fp, VOL_GEOM *vg)
   char eq[2];
   char buf[256];
   int vgRead = 0;
-
-  while (fgets(line, sizeof(line), fp))
+  char *p = 0;
+  int counter = 0;
+  long pos = 0;
+  int     fail = 0;
+  while((p = fgets(line, sizeof(line), fp)) && counter < 8)
   {
     sscanf(line, "%s %s %*s", param, eq);
-    if (strcmp(param, "valid")!=0)
+    if (!strcmp(param, "valid"))
     {
       sscanf(line, "%s %s %d \n", param, eq, &vg->valid);
       vgRead = 1;
+      counter++;
     }
-    if (strcmp(param, "filename") != 0)
+    else if (!strcmp(param, "filename"))
     {
       sscanf(line, "%s %s %s\n", param, eq, buf);
       strcpy(vg->fname, buf);
+      counter++;
     }
-    if (strcmp(param, "volume")!= 0)
+    else if (!strcmp(param, "volume"))
     {
       // rescan again
       sscanf(line, "%s %s %d %d %d\n", param, eq, &vg->width, &vg->height, &vg->depth);
+      counter++;
     }
-    if (strcmp(param, "voxelsize")!= 0)
+    else if (!strcmp(param, "voxelsize"))
     {
       // rescan again
       sscanf(line, "%s %s %f %f %f\n", param, eq, &vg->xsize, &vg->ysize, &vg->zsize);
+      counter++;
     }
-    if (strcmp(param, "xras") != 0)
+    else if (!strcmp(param, "xras"))
     {
       sscanf(line, "%s %s %f %f %f\n", param, eq, &vg->x_r, &vg->x_a, &vg->x_s);
+      counter++;
     }
-    if (strcmp(param, "yras") != 0)
+    else if (!strcmp(param, "yras"))
     {
       sscanf(line, "%s %s %f %f %f\n", param, eq,  &vg->y_r, &vg->y_a, &vg->y_s);
+      counter++;
     }
-    if (strcmp(param, "zras")!=0)
+    else if (!strcmp(param, "zras"))
     {
       sscanf(line, "%s %s %f %f %f\n", param, eq, &vg->z_r, &vg->z_a, &vg->z_s);
+      counter++;
     }
-    if (strcmp(param, "cras")!=0)
+    else if (!strcmp(param, "cras"))
     {
       sscanf(line, "%s %s %f %f %f\n", param, eq, &vg->c_r, &vg->c_a, &vg->c_s);
+      counter++;
     }
+    // rememver the current position
+    pos = ftell(fp); // if fail = 0, then ok
+  };
+  if (p) // we read one more line
+  {
+    if (pos > 0 ) // if success in getting pos, then 
+      fail = fseek(fp, pos, SEEK_SET); // restore the position
   }
   if (!vgRead)
   {
@@ -877,22 +914,50 @@ ltaMNIwrite(LTA *lta, char *fname)
   fprintf(fp, "Transform_Type = Linear;\n") ;
   fprintf(fp, "Linear_Transform =\n") ;
 
-  m_L = lta->xforms[0].m_L ;
-  for (row = 1 ; row <= 3 ; row++)
+  if (lta->type == LINEAR_RAS_TO_RAS)
   {
-    fprintf(fp, "      %f       %f       %f       %f",
-           *MATRIX_RELT(m_L,row,1), *MATRIX_RELT(m_L,row,2), 
-           *MATRIX_RELT(m_L,row,3), *MATRIX_RELT(m_L,row,4)) ;
-    if (row == 3)
-      fprintf(fp, ";") ;
-    fprintf(fp, "\n") ;
+    m_L = lta->xforms[0].m_L ;
+    for (row = 1 ; row <= 3 ; row++)
+    {
+      fprintf(fp, "      %f       %f       %f       %f",
+	      *MATRIX_RELT(m_L,row,1), *MATRIX_RELT(m_L,row,2), 
+	      *MATRIX_RELT(m_L,row,3), *MATRIX_RELT(m_L,row,4)) ;
+      if (row == 3)
+	fprintf(fp, ";") ;
+      fprintf(fp, "\n") ;
+    }
   }
-#if 0
-  m_tmp = MatrixMultiply(lt->m_L, W, NULL) ;
-  MatrixMultiply(V, m_tmp, lt->m_L) ;
-  /*  MatrixAsciiWriteInto(stderr, lt->m_L) ;*/
-  MatrixFree(&V) ; MatrixFree(&W) ; MatrixFree(&m_tmp) ;
-#endif
+  else if (lta->type == LINEAR_VOX_TO_VOX)
+  {
+    // we use src and dst info to create RAS_TO_RAS xfm
+    MATRIX *voxFromRAS = 0;
+    MATRIX *rasFromVoxel = 0;
+    MATRIX *tmp = 0;
+    MATRIX *rasToRAS = 0;
+    MRI *src = 0;
+    MRI *dst = 0;
+    LT  *lt = 0;
+    lt = &lta->xforms[0];
+    src = MRIallocHeader(lt->src.width, lt->src.height, lt->src.depth, MRI_UCHAR);
+    useVolGeomToMRI(&lt->src, src);
+    dst = MRIallocHeader(lt->dst.width, lt->dst.height, lt->dst.depth, MRI_UCHAR);
+    useVolGeomToMRI(&lt->dst, dst);
+    voxFromRAS = extract_r_to_i(src);
+    tmp = MatrixMultiply(lta->xforms[0].m_L, voxFromRAS, NULL);
+    rasFromVoxel = extract_i_to_r(dst);
+    rasToRAS = MatrixMultiply(rasFromVoxel, tmp, NULL);
+    for (row = 1 ; row <= 3 ; row++)
+    {
+      fprintf(fp, "      %f       %f       %f       %f",
+	      *MATRIX_RELT(rasToRAS,row,1), *MATRIX_RELT(rasToRAS,row,2), 
+	      *MATRIX_RELT(rasToRAS,row,3), *MATRIX_RELT(rasToRAS,row,4)) ;
+      if (row == 3)
+	fprintf(fp, ";") ;
+      fprintf(fp, "\n") ;
+    }
+    MatrixFree(&voxFromRAS); MatrixFree(&rasFromVoxel); MatrixFree(&tmp); MatrixFree(&rasToRAS);
+    MRIfree(&src); MRIfree(&dst);
+  }
   fclose(fp) ;
   return(NO_ERROR);
 }
@@ -1847,10 +1912,13 @@ LTA *ltaReadFileEx(const char *fname)
     if (fgets(line, 199, fp))
     {
       if (strncmp(line, "src volume info", 15)==0)
+      {
+	char *p;
 	readVolGeom(fp, &lta->xforms[i].src);
-      fgets(line, 199, fp);
-      if (strncmp(line, "dst volume info", 15)==0)
-	readVolGeom(fp, &lta->xforms[i].dst);
+	p = fgets(line, 199, fp);
+	if (strncmp(line, "dst volume info", 15)==0)
+	  readVolGeom(fp, &lta->xforms[i].dst);
+      }
     }
   }
   fclose(fp) ;
