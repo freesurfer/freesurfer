@@ -10,7 +10,7 @@ if { $err } {
     load [file dirname [info script]]/libscuba[info sharedlibextension] scuba
 }
 
-DebugOutput "\$Id: scuba.tcl,v 1.96 2005/04/06 21:58:05 kteich Exp $"
+DebugOutput "\$Id: scuba.tcl,v 1.97 2005/04/06 22:06:06 kteich Exp $"
 
 # gTool
 #   current - current selected tool (nav,)
@@ -4965,7 +4965,7 @@ proc SaveSceneScript { ifnScene } {
     set f [open $ifnScene w]
 
     puts $f "\# Scene file generated "
-    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.96 2005/04/06 21:58:05 kteich Exp $"
+    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.97 2005/04/06 22:06:06 kteich Exp $"
     puts $f ""
 
     # Find all the data collections.
@@ -5498,7 +5498,6 @@ if { [llength $transformList] == 0 } {
     SetTransformLabel $transformID "Identity"
 }
 
-
 # Set default view configuration and update/initialize the
 # menus. Select the view to set everything up.
 SetFrameViewConfiguration [GetMainFrameID] c1
@@ -5521,11 +5520,13 @@ GetPreferences
 MakeScubaFrameBindings [GetMainFrameID]
 
 
-
 # Now execute all the commands we cached before.
 foreach command $lCommands {
     eval $command
 }
+
+# Reselect the current layer to show any changes to settings.
+SelectLayerInLayerProperties $gaLayer(current,id)
 
 
 
