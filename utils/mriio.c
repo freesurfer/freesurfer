@@ -160,6 +160,7 @@ MRIread(char *fpref)
     mri = MRIreadInfo(fpref) ;
     if (!mri)
       return(NULL) ;
+    MRIallocIndices(mri) ;
     mri->slices = (BUFTYPE ***)calloc(mri->depth, sizeof(BUFTYPE **)) ;
     if (!mri->slices)
       ErrorExit(ERROR_NO_MEMORY, 
