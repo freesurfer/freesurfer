@@ -81,6 +81,7 @@ ErrorExit(int ecode, char *fmt, ...)
 
   va_start(args, fmt) ;
   vfprintf(stderr, fmt, args) ;
+  fprintf(stderr, "\n") ;
   if (errno)
     perror(NULL) ;
   if (hipserrno)
