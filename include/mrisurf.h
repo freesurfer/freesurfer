@@ -510,6 +510,7 @@ int          MRIScountNegativeTriangles(MRI_SURFACE *mris) ;
 int          MRISstoreMeanCurvature(MRI_SURFACE *mris) ;
 int          MRISreadTetherFile(MRI_SURFACE *mris, char *fname, float radius) ;
 int          MRISreadVertexPositions(MRI_SURFACE *mris, char *fname) ;
+int          MRIScomputeNormals(MRI_SURFACE *mris) ;
 int          MRIScomputeMetricProperties(MRI_SURFACE *mris) ;
 int          MRISrestoreOldPositions(MRI_SURFACE *mris) ;
 int          MRISstoreCurrentPositions(MRI_SURFACE *mris) ;

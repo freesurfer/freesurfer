@@ -129,7 +129,6 @@ static int   mrisClipGradient(MRI_SURFACE *mris, float max_len) ;
 static int   mrisClipMomentumGradient(MRI_SURFACE *mris, float max_len) ;
 #endif
 static int   mrisFileNameType(char *fname) ;
-static int   mrisComputeNormals(MRI_SURFACE *mris) ;
 static int   mrisComputeSurfaceDimensions(MRI_SURFACE *mris) ;
 static int   mrisFindNeighbors(MRI_SURFACE *mris) ;
 static void  mrisNormalize(float v[3]) ;
@@ -643,7 +642,7 @@ MRISreadOverAlloc(char *fname, double pct_over)
   mris->yctr = (yhi+ylo)/2;
   mris->zctr = (zhi+zlo)/2;
   mrisFindNeighbors(mris);
-  mrisComputeNormals(mris);
+  MRIScomputeNormals(mris);
   mrisComputeVertexDistances(mris) ;
   mrisReadTransform(mris, fname) ;
   if (type == MRIS_ASCII_QUADRANGLE_FILE || type == MRIS_GEO_TRIANGLE_FILE)
@@ -932,7 +931,7 @@ MRISfastRead(char *fname)
   mris->yctr = (yhi+ylo)/2;
   mris->zctr = (zhi+zlo)/2;
   mrisFindNeighbors(mris);
-  mrisComputeNormals(mris);
+  MRIScomputeNormals(mris);
 #if 0
   mrisComputeVertexDistances(mris) ;
   mrisReadTransform(mris, fname) ;
@@ -2297,8 +2296,8 @@ MRISremoveRipped(MRI_SURFACE *mris)
 ------------------------------------------------------*/
 #define RAN   0.001   /* one thousandth of a millimeter */
 
-static int
-mrisComputeNormals(MRI_SURFACE *mris) 
+int
+MRIScomputeNormals(MRI_SURFACE *mris) 
 {
   int       k,n, num ;
   VERTEX    *v ;
@@ -4566,7 +4565,7 @@ mrisRemoveNegativeArea(MRI_SURFACE *mris, INTEGRATION_PARMS *parms,
     }
   }
 #if 0
-  mrisComputeNormals(mris) ;
+  MRIScomputeNormals(mris) ;
   mrisComputeVertexDistances(mris) ;
   MRIScomputeTriangleProperties(mris) ;  /* compute areas and normals */
   mrisOrientSurface(mris) ;
@@ -4674,7 +4673,7 @@ mrisIntegrationEpoch(MRI_SURFACE *mris, INTEGRATION_PARMS *parms,int base_averag
     }
   }
 #if 0
-  mrisComputeNormals(mris) ;
+  MRIScomputeNormals(mris) ;
   mrisComputeVertexDistances(mris) ;
   MRIScomputeTriangleProperties(mris) ;  /* compute areas and normals */
   mrisOrientSurface(mris) ;
@@ -7655,7 +7654,7 @@ MRISflattenPatch(MRI_SURFACE *mris)
   x = y = z = nx = ny = nz = 0; an = 0;
 
   /* calculate average normal and vertex position */
-  mrisComputeNormals(mris) ;
+  MRIScomputeNormals(mris) ;
   for (k=0;k<mris->nvertices;k++)  
   if (!mris->vertices[k].ripflag)
   {
@@ -9849,7 +9848,7 @@ MRISstoreMetricProperties(MRI_SURFACE *mris)
   FACE    *f ;
 
 #if 0
-  mrisComputeNormals(mris);              /* update vertex areas */
+  MRIScomputeNormals(mris);              /* update vertex areas */
   MRIScomputeTriangleProperties(mris) ;  /* update triangle properties */
 #endif
   nvertices = mris->nvertices ;
@@ -12709,7 +12708,7 @@ MRISreadVertexPositions(MRI_SURFACE *mris, char *name)
 int
 MRIScomputeMetricProperties(MRI_SURFACE *mris)
 {
-  mrisComputeNormals(mris) ;
+  MRIScomputeNormals(mris) ;
   mrisComputeVertexDistances(mris) ;
   mrisComputeSurfaceDimensions(mris) ;
   MRIScomputeTriangleProperties(mris) ;  /* compute areas and normals */
@@ -15029,7 +15028,7 @@ MRISpositionSurface(MRI_SURFACE *mris, MRI *mri_brain, MRI *mri_smooth,
   MRIScomputeMetricProperties(mris) ;
   MRISstoreMetricProperties(mris) ;
 
-  mrisComputeNormals(mris) ;
+  MRIScomputeNormals(mris) ;
   mrisClearDistances(mris) ;
 
   /* write out initial surface */
@@ -15224,7 +15223,7 @@ MRISmoveSurface(MRI_SURFACE *mris, MRI *mri_brain, MRI  *mri_smooth,
   MRIScomputeMetricProperties(mris) ;
   MRISstoreMetricProperties(mris) ;
 
-  mrisComputeNormals(mris) ;
+  MRIScomputeNormals(mris) ;
 
   rms_before = mrisRmsValError(mris, mri_brain) ;
   sse_before = mrisComputeSSE(mris, parms) ;
@@ -15711,7 +15710,7 @@ MRISmeasureCorticalThickness(MRI_SURFACE *mris)
 
   /* compute white matter vertex normals */
   MRISrestoreVertexPositions(mris, ORIGINAL_VERTICES) ;
-  mrisComputeNormals(mris);
+  MRIScomputeNormals(mris);
   MRISsmoothSurfaceNormals(mris, 10) ;
 
   /* must restore gray matter surface so self-intersection will work */
