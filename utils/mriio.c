@@ -519,11 +519,12 @@ MRI *MRIreadType(char *fname, int type)
 
 MRI *MRIread(char *fname)
 {
-
+  char  buf[STRLEN] ;
   MRI *mri = NULL;
 
   chklc() ;
 
+  FileNameFromWildcard(fname, buf) ; fname = buf ;
   mri = mri_read(fname, MRI_VOLUME_TYPE_UNKNOWN, TRUE, -1, -1);
 
   return(mri);
