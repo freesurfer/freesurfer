@@ -15,6 +15,7 @@
 #include "const.h"
 #include "mrishash.h"
 #include "icosahedron.h"
+#include "tritri.h"
 
 /*---------------------------- STRUCTURES -------------------------*/
 
@@ -53,6 +54,10 @@
 
 /*------------------------ STATIC PROTOTYPES -------------------------*/
 
+static int mrisDirectionTriangleIntersection(MRI_SURFACE *mris, float x0, 
+                                             float y0, float z0, float nx, 
+                                             float ny, float nz, MHT *mht, 
+                                             double *pdist) ;
 static int mrisComputeCurvatureValues(MRI_SURFACE *mris) ;
 static int mrisNormalDirectionTriangleIntersection(MRI_SURFACE *mris,VERTEX *v,
                                                    MHT *mht, double *pdist);
@@ -865,11 +870,13 @@ MRISalloc(int nvertices, int nfaces)
   mris->vertices = (VERTEX *)calloc(nvertices, sizeof(VERTEX)) ;
   if (!mris->vertices)
     ErrorExit(ERROR_NO_MEMORY, 
-              "MRISalloc(%d, %d): could not allocate vertices");
+              "MRISalloc(%d, %d): could not allocate vertices",
+              nvertices, sizeof(VERTEX));
   mris->faces = (FACE *)calloc(nfaces, sizeof(FACE)) ;
   if (!mris->faces)
     ErrorExit(ERROR_NO_MEMORY, 
-              "MRISalloc(%d, %d): could not allocate faces");
+              "MRISalloc(%d, %d): could not allocate faces",
+              nfaces, sizeof(FACE));
   return(mris) ;
 }
 /*-----------------------------------------------------
@@ -13283,9 +13290,9 @@ MRISpositionSurface(MRI_SURFACE *mris, MRI *mri_brain, MRI *mri_smooth,
       mrisWriteSnapshot(mris, parms, n+1) ;
   }
 
-  fprintf(stderr, "\nsurface positioning complete.\n") ;
   if (Gdiag & DIAG_SHOW)
   {
+    fprintf(stderr, "\nsurface positioning complete.\n") ;
     msec = TimerStop(&then) ;
     fprintf(stderr,"positioning took %2.1f minutes\n", 
             (float)msec/(60*1000.0f));
@@ -13583,6 +13590,8 @@ MRISmeasureCorticalThickness(MRI_SURFACE *mris)
     else
       v->curv = max_out_dist ;
   }
+
+  MHTfree(&mht) ;
   return(NO_ERROR) ;
 }
 /*-----------------------------------------------------
@@ -13620,7 +13629,76 @@ mrisFindNormalDistance(MRI_SURFACE *mris, MHT *mht, int vno, double max_dist)
            through vertex v intersects any of the triangles at the
            given location.
 ------------------------------------------------------*/
-#include "tritri.h"
+static int
+mrisDirectionTriangleIntersection(MRI_SURFACE *mris, float x0, float y0, 
+                                  float z0, float nx, float ny,
+                                  float nz, MHT *mht, double *pdist)
+{
+  double  dist, min_dist, U0[3], U1[3], U2[3], pt[3], dir[3], int_pt[3], dot ;
+  float   x, y, z, dx, dy, dz ;
+  MHBT    *bucket ;
+  MHB     *bin ;
+  int     i, found, fno, ret ;
+  static MHBT *last_bucket = NULL ;
+  static float lastx, lasty, lastz = -1 ;
+
+  dist = *pdist ;
+  dir[0] = nx ; dir[1] = ny ; dir[2] = nz ;
+  pt[0] = x0  ; pt[1] = y0  ; pt[2] = z0  ;
+  x = x0 + nx * dist ;
+  y = y0 + ny * dist ; 
+  z = z0 + nz * dist ;
+
+  min_dist = 10000.0f ;
+#if 1
+  bucket = MHTgetBucket(mht, x, y, z) ;
+  if (bucket == NULL)
+    return(0) ;
+
+#if 0
+  if (lastx == x0 && lasty == y0 && lastz == z0 && bucket == last_bucket)
+    return(0) ;
+#endif
+
+  lastx = x0 ; lasty = y0 ; lastz = z0 ; last_bucket = bucket ;
+
+  for (bin = bucket->bins, found = i = 0 ; i < bucket->nused ; i++, bin++)
+  {
+    fno = bin->fno ;
+    if (fno == 1287 || fno == 5038)
+      DiagBreak() ;
+#else
+  for (fno = 0 ; fno < mris->nfaces ; fno++)
+  {
+#endif
+    load_triangle_vertices(mris, fno, U0, U1, U2) ;
+    ret = triangle_ray_intersect(pt, dir, U0, U1, U2, int_pt) ;
+    if (ret)
+    {
+      dx = int_pt[0] - x0 ; 
+      dy = int_pt[1] - y0 ; 
+      dz = int_pt[2] - z0 ; 
+      dist = sqrt(dx*dx + dy*dy + dz*dz) ;
+      dot = dx*nx + dy*ny + dz*nz ;
+      if (dot >= 0 && dist < min_dist)
+      {
+        found = 1 ;
+        *pdist = min_dist = dist ;
+      }
+    }
+  }
+  return(found) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+           See if the line in the normal direction passing
+           through vertex v intersects any of the triangles at the
+           given location.
+------------------------------------------------------*/
 static int
 mrisNormalDirectionTriangleIntersection(MRI_SURFACE *mris, VERTEX *v, 
                                         MHT *mht, double *pdist)
@@ -17091,6 +17169,13 @@ VertexReplaceNeighbor(VERTEX *v, int vno_old, int vno_new)
 }
 #endif
 
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
 static int
 mrisComputeCurvatureValues(MRI_SURFACE *mris)
 {
@@ -17109,6 +17194,13 @@ mrisComputeCurvatureValues(MRI_SURFACE *mris)
   }
   return(NO_ERROR) ;
 }
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
 int
 MRISsetVals(MRI_SURFACE *mris, float val)
 {
@@ -17124,3 +17216,89 @@ MRISsetVals(MRI_SURFACE *mris, float val)
   }
   return(NO_ERROR) ;
 }
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
+float
+MRISdistanceToSurface(MRI_SURFACE *mris, MHT *mht,float x0,float y0,float z0,
+                      float nx, float ny, float nz)
+{
+  double   dist, len ;
+
+#if 0
+  {
+    FACE   *f = &mris->faces[0] ;
+    VERTEX *v0, *v1, *v2 ;
+
+    v0 = &mris->vertices[f->v[0]] ;
+    v1 = &mris->vertices[f->v[1]] ;
+    v2 = &mris->vertices[f->v[2]] ;
+    
+    x0 = (v1->x + v0->x) / 2 ;
+    y0 = (v1->y + v0->y) / 2 ;
+    z0 = (v1->z + v0->z) / 2 ;
+    x0 += (v2->x - x0) / 2 ;
+    y0 += (v2->y - y0) / 2 ;
+    z0 += (v2->z - z0) / 2 ;
+    x0 -= f->nx ; y0 -= f->ny ; z0 -= f->nz ;
+    nx = f->nx ; ny = f->ny ; nz = f->nz ;
+  }
+#endif
+
+  len = sqrt(nx*nx+ny*ny+nz*nz) ; nx /= len ; ny /= len ; nz /= len ;
+  for (dist = 0.0f ; dist < 128 ; dist += .25)
+  {
+    if (mrisDirectionTriangleIntersection(mris, x0, y0, z0, 
+                                          nx, ny, nz, mht, &dist))
+      return(dist) ;
+  }
+  
+  return(0.0) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
+int
+MRISexpandSurface(MRI_SURFACE *mris, float distance)
+{
+  int    vno ;
+  VERTEX *v ;
+
+  for (vno = 1 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    if (v->ripflag)
+      continue ;
+    v->x += distance*v->nx ; 
+    v->y += distance*v->ny ; 
+    v->z += distance*v->nz ; 
+  }
+  return(NO_ERROR) ;
+}
+
+int
+MRIStranslate(MRI_SURFACE *mris, float dx, float dy, float dz)
+{
+  int    vno ;
+  VERTEX *v ;
+
+  for (vno = 1 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    if (v->ripflag)
+      continue ;
+    v->x += dx ;
+    v->y += dy ;
+    v->z += dz ;
+  }
+  return(NO_ERROR) ;
+}
+

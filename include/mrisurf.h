@@ -102,15 +102,21 @@ typedef struct vertex_type_
   float d ;              /* for distance calculations */
   int nsize ;            /* size of neighborhood (e.g. 1, 2, 3) */
   float bnx,bny,obnx,obny;                       /* boundary normal */
+#if 0
   float *fnx ;           /* face normal - x component */
   float *fny ;           /* face normal - y component */
   float *fnz ;           /* face normal - z component */
+#endif
   float *tri_area ;      /* array of triangle areas - num long */
   float *orig_tri_area ; /* array of original triangle areas - num long */
+#if 0
   float *tri_angle ;     /* angles of each triangle this vertex belongs to */
   float *orig_tri_angle ;/* original values of above */
+#endif
   int   annotation;     /* area label (defunct--now from label file name!) */
+#if 0
   float stress;          /* explosion */
+#endif
   float logarat,ologarat,sqrtarat; /* for area term */
   float logshear,shearx,sheary,oshearx,osheary;  /* for shear term */
   float smx,smy,smz,osmx,osmy,osmz;            /* smoothed curr,last move */
@@ -583,6 +589,7 @@ int          MRISrestoreVertexPositions(MRI_SURFACE *mris, int which) ;
 #define REVERSE_Y     1
 #define REVERSE_Z     2
 
+int   MRIStranslate(MRI_SURFACE *mris, float dx, float dy, float dz) ;
 int   MRISpositionSurface(MRI_SURFACE *mris, MRI *mri_brain, 
                           MRI *mri_smooth, INTEGRATION_PARMS *parms);
 int   MRISsetVals(MRI_SURFACE *mris, float val) ;
@@ -643,6 +650,16 @@ int  MRISsmoothSurfaceNormals(MRI_SURFACE *mris, int niter) ;
 int  MRISsoapBubbleVals(MRI_SURFACE *mris, int niter) ;
 int  MRISreadBinaryAreas(MRI_SURFACE *mris, char *mris_fname) ;
 int  MRISwriteAreaErrorToValFile(MRI_SURFACE *mris, char *name) ;
+
+#if 1
+#include "mrishash.h"
+float  MRISdistanceToSurface(MRI_SURFACE *mris, MHT *mht,
+                             float x0, float y0, float z0,
+                             float nx, float ny, float nz) ;
+int    MRISexpandSurface(MRI_SURFACE *mris, float distance) ;
+
+#endif
+                             
 
 #define MRIS_BINARY_QUADRANGLE_FILE    0    /* homegrown */
 #define MRIS_ASCII_QUADRANGLE_FILE     1    /* homegrown */
