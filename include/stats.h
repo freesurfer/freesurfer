@@ -33,7 +33,7 @@ typedef struct
 #define ALLOC_DOFS         0x0004
 
 
-#define MAX_EVENTS       10
+#define MAX_EVENTS       100
 
 #define mri_pvals        mri_avgs
 
