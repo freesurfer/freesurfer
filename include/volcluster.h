@@ -67,4 +67,32 @@ LABEL *clustCluster2Label(VOLCLUSTER *vc, MRI *vol, int frame,
 int clustDumpClusterList(FILE *fp, VOLCLUSTER **vclist, int nlist, 
        MRI *vol, int frame);
 
+typedef struct {
+  int nsim; /* number of simulation runs to generate table */
+  int nvox; /* number of voxels/vertices in search area */
+  double totvol; /* total volume (mm^3) or area (mm^2) in search*/
+  double fwhm;   /* fwhm in mm */
+  int nsmooth;   /* number of smooth steps, surf only */
+  double   ithr_lo, ithr_hi; /* intensity threshold range */
+  int    n_ithr; /* Number ithreshs bet lo and hi*/
+  double  *ithr; /* intensity thresholds*/
+  char     ithr_sign[50]; /* abs, pos, neg*/
+  int      ithr_signid; /* 0=abs, 1=pos, -1=neg*/
+  double   vthr_lo, vthr_hi; /* volume threshold range */
+  int    n_vthr; /* Number vthreshs bet lo and hi*/
+  double  *vthr; /* volume thresholds*/
+  int **hits;  /* hit[ithr][vthr] */
+
+} CLUSTER_HIT_TABLE, CHT;
+
+CHT *CHTalloc(int n_ithr, double ithr_lo, double ithr_hi,
+	      int n_vthr, double vthr_lo, double vthr_hi);
+int CHTfree(CHT **ppcht);
+int CHTprint(FILE *fp, CHT *cht);
+int CHTwrite(char *fname, CHT *cht);
+CHT *CHTread(char *fname);
+
+
+
+
 #endif
