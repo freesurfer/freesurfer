@@ -45,6 +45,14 @@ typedef enum {
   FunD_tDataType_Float
 } FunD_tDataType;
 
+/* This should be kept in sync with the SAMPLE_* constants in mri.h */
+typedef enum {
+  FunD_tSampleType_Nearest = 0,
+  FunD_tSampleType_Trilinear,
+  FunD_tSampleType_Sinc,
+  FunD_knNumSampleTypes
+} FunD_tSampleType;
+
 /* methods of func idx conversion. this is the rounding method used to
    get the functional index from an ras coord. */
 typedef enum {
@@ -82,6 +90,9 @@ typedef struct {
 
   /* The data. */
   MRI* mpData;
+
+  /* Sample type to use. */
+  FunD_tSampleType mSampleType;
   
   float mMaxValue;
   float mMinValue;
@@ -122,6 +133,7 @@ typedef struct {
   xVoxel mTmpVoxel1;
   xVoxel mTmpVoxel2;
   int    mTmpFrame;
+  Real   mTmpReal;
 
 } mriFunctionalData, *mriFunctionalDataRef;
 
@@ -233,8 +245,21 @@ FunD_tErr FunD_SetClientCoordBounds ( mriFunctionalDataRef this,
 FunD_tErr FunD_SetConversionMethod ( mriFunctionalDataRef this,
 				     FunD_tConversionMethod iMethod );
 
+/* Gets and sets the sample type for interpolating data. Only is
+   used with the GetSampledData function. */
+FunD_tErr FunD_GetSampleType ( mriFunctionalDataRef this,
+			       FunD_tSampleType*    oType );
+
+FunD_tErr FunD_SetSampleType ( mriFunctionalDataRef this, 
+			       FunD_tSampleType     iType );
+
 /* Value accessors. */
 FunD_tErr FunD_GetData                 ( mriFunctionalDataRef this,
+					 xVoxelRef            iClientVox, 
+					 int                  iTimePoint, 
+					 int                  iCondition,
+					 float*               oData );
+FunD_tErr FunD_GetSampledData          ( mriFunctionalDataRef this,
 					 xVoxelRef            iClientVox, 
 					 int                  iTimePoint, 
 					 int                  iCondition,
@@ -391,6 +416,13 @@ void FunD_GetValue_ ( mriFunctionalDataRef this,
 		      int                  iTimePoint,
 		      float*               oValue );
 
+void FunD_GetSampledValue_ ( mriFunctionalDataRef this,
+			     MRI*                 iData,
+			     xVoxelRef            iIdx,
+			     int                  iCondition,
+			     int                  iTimePoint,
+			     float*               oValue );
+
 void FunD_SetValue_ ( mriFunctionalDataRef this,
 		      MRI*                 iData,
 		      xVoxelRef            iIdx,
@@ -398,9 +430,15 @@ void FunD_SetValue_ ( mriFunctionalDataRef this,
 		      int                  iTimePoint,
 		      float                oValue );
 
+/* This converts to functional index and performs the proper rounding
+   on the result. */
 void FunD_ConvertClientToFuncIdx_ ( mriFunctionalDataRef this,
 				    xVoxelRef            iClientVox,
 				    xVoxelRef            oFuncIdx );
+/* This converts to func idx with floating info intact. */
+void FunD_ConvertClientToFloatFuncIdx_ ( mriFunctionalDataRef this,
+					 xVoxelRef            iClientVox,
+					 xVoxelRef            oFuncIdx );
 
 #define FunD_GetDataFrameNumber(iCondition,iTimePoint,oFrame) \
   if( this->mbErrorDataPresent ) { \
@@ -459,6 +497,22 @@ void FunD_ConvertClientToFuncIdx_ ( mriFunctionalDataRef this,
       *oValue = 0; \
       break ; \
     }
+
+#define FunD_GetSampledValue_(this,iData,iIdx,inCondition,inTimePoint,oValue) \
+  if( this->mbErrorDataPresent ) { \
+    this->mTmpFrame = ((inCondition) * 2 * this->mNumTimePoints) + (inTimePoint); \
+  } else { \
+    this->mTmpFrame = (inCondition * this->mNumTimePoints) + inTimePoint; \
+  } \
+  MRIsampleVolumeFrameType( (iData), \
+			    xVoxl_GetFloatX((iIdx)),\
+			    xVoxl_GetFloatY((iIdx)),\
+			    xVoxl_GetFloatZ((iIdx)),\
+			    this->mTmpFrame, \
+			    (int)this->mSampleType, \
+			    &this->mTmpReal ); \
+  *(oValue) = this->mTmpReal;
+
 
 #define FunD_SetValue_(this,iData,iIdx,inCondition,inTimePoint,iValue) \
   if( this->mbErrorDataPresent ) { \
@@ -520,6 +574,9 @@ void FunD_ConvertClientToFuncIdx_ ( mriFunctionalDataRef this,
     break;\
   }
 
+#define FunD_ConvertClientToFloatFuncIdx_(this,iClientVox,oFuncIdx) \
+  Trns_ConvertAtoB( this->mIdxToIdxTransform, \
+		    (iClientVox), (oFuncIdx) );
 
 #endif
 

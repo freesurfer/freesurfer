@@ -97,6 +97,7 @@ FunD_tErr FunD_New ( mriFunctionalDataRef* opVolume,
   }
    
   /* Init values. */
+  this->mSampleType = FunD_tSampleType_Nearest;
   this->mConvMethod = FunD_tConversionMethod_FFF;
   this->mNumTimePoints = -1;
   this->mNumConditions = -1;
@@ -776,6 +777,63 @@ FunD_tErr FunD_SetConversionMethod ( mriFunctionalDataRef this,
   return eResult;
 }
 
+FunD_tErr FunD_GetSampleType ( mriFunctionalDataRef this,
+			       FunD_tSampleType* oType ) {
+
+  FunD_tErr eResult = FunD_tErr_NoError;
+  
+  DebugEnterFunction( ("FunD_GetSampleType( this=%p, "
+		       "oType=%p )", this, oType ) );
+  
+  DebugNote( ("Verifying volume") );
+  eResult = FunD_Verify( this );
+  DebugAssertThrow( (eResult == FunD_tErr_NoError) );
+  
+  DebugNote( ("Checking parameters") );
+  DebugAssertThrowX( (oType != NULL),
+                     eResult, FunD_tErr_InvalidParameter );
+  
+  /* return the type */
+  DebugNote( ("Returning the type") );
+  *oType = this->mSampleType;
+  
+  DebugCatch;
+  DebugCatchError( eResult, FunD_tErr_NoError, FunD_GetErrorString );
+  EndDebugCatch;
+  
+  DebugExitFunction;
+  
+  return eResult;
+}
+
+FunD_tErr FunD_SetSampleType ( mriFunctionalDataRef this, 
+			       FunD_tSampleType iType ) {
+
+  FunD_tErr eResult = FunD_tErr_NoError;
+  
+  DebugEnterFunction( ("FunD_SetSampleType( this=%p, iType=%d )",
+		       this, (int)iType ) );
+  
+  DebugNote( ("Verifying volume") );
+  eResult = FunD_Verify( this );
+  DebugAssertThrow( (eResult == FunD_tErr_NoError) );
+  
+  DebugNote( ("Checking parameters") );
+  DebugAssertThrowX( (iType >= 0 && iType < FunD_knNumSampleTypes),
+		     eResult, FunD_tErr_InvalidParameter );
+  
+  /* Set the sample type. */
+  this->mSampleType = iType;
+  
+  DebugCatch;
+  DebugCatchError( eResult, FunD_tErr_NoError, FunD_GetErrorString );
+  EndDebugCatch;
+  
+  DebugExitFunction;
+  
+  return eResult;
+}
+
 
 /* NOTE: I removed all the DebugEnter/ExitFunction and DebugNote calls
    because they make this call much slower. I wish there was a better
@@ -836,6 +894,77 @@ FunD_tErr FunD_GetData ( mriFunctionalDataRef this,
 #endif
   FunD_GetValue_ ( this, this->mpData, &funcIdx, 
 		   iCondition, iTimePoint, &fValue );
+
+#ifndef BE_SUPA_FAST
+  DebugNote( ("Setting return value") );
+#endif
+  *oValue = fValue;
+
+  DebugCatch;
+  DebugCatchError( eResult, FunD_tErr_NoError, FunD_GetErrorString );
+  EndDebugCatch;
+
+#ifndef BE_SUPA_FAST
+  DebugExitFunction;
+#endif
+
+  return eResult;
+}
+
+FunD_tErr FunD_GetSampledData ( mriFunctionalDataRef this,
+				xVoxelRef            iClientVox, 
+				int                  iCondition, 
+				int                  iTimePoint,
+				float*               oValue ) {
+  
+  FunD_tErr eResult = FunD_tErr_NoError;
+  xVoxel    funcIdx;
+  float     fValue  = 0;
+  
+#ifndef BE_SUPA_FAST
+  DebugEnterFunction( ("FunD_GetSampledData( this=%p, iClientVox=%p, "
+		       "iCondition=%d, iTimePoint=%d, oValue=%p)", 
+		       this, iClientVox, iCondition, iTimePoint, oValue) );
+#endif
+  
+#ifndef BE_SUPA_FAST
+  DebugNote( ("Checking parameters") );
+#endif
+  DebugAssertThrowX( (NULL != this && NULL != iClientVox && NULL != oValue),
+		     eResult, FunD_tErr_InvalidParameter );
+#ifndef BE_SUPA_FAST
+  DebugNote( ("Checking condition") );
+#endif
+  DebugAssertThrowX( (iCondition >= 0 && iCondition < this->mNumConditions),
+		     eResult, FunD_tErr_InvalidParameter );
+#ifndef BE_SUPA_FAST
+  DebugNote( ("Checking time point") );
+#endif
+  DebugAssertThrowX( (iTimePoint >= 0 && iTimePoint < this->mNumTimePoints),
+		     eResult, FunD_tErr_InvalidParameter );
+
+#ifndef BE_SUPA_FAST
+  DebugNote( ("Verifying object") );
+#endif
+  eResult = FunD_Verify( this );
+  DebugAssertThrow( (eResult == FunD_tErr_NoError) );
+
+#ifndef BE_SUPA_FAST
+  DebugNote( ("Converting client to func idx") );
+#endif
+  FunD_ConvertClientToFloatFuncIdx_( this, iClientVox, &funcIdx );
+
+#ifndef BE_SUPA_FAST
+  DebugNote( ("Verifying func idx") );
+#endif
+  eResult = FunD_VerifyFuncIdx_( this, &funcIdx );
+  DebugAssertThrow( (eResult == FunD_tErr_NoError) );
+
+#ifndef BE_SUPA_FAST
+  DebugNote( ("Getting value") );
+#endif
+  FunD_GetSampledValue_ ( this, this->mpData, &funcIdx, 
+			  iCondition, iTimePoint, &fValue );
 
 #ifndef BE_SUPA_FAST
   DebugNote( ("Setting return value") );
@@ -2210,6 +2339,33 @@ void FunD_ConvertClientToFuncIdx_ ( mriFunctionalDataRef this,
   DebugExitFunction;
 }
 
+void FunD_ConvertClientToFloatFuncIdx_ ( mriFunctionalDataRef this,
+					 xVoxelRef            iClientVox,
+					 xVoxelRef            oFuncIdx ) {
+  
+  Trns_tErr eTransform = Trns_tErr_NoErr;
+  
+  DebugEnterFunction( ("FunD_ConvertClientToFuncIdx_( this=%p, iClientVox=%p, "
+  		       "oFuncIdx=%p", this, iClientVox, oFuncIdx) );
+
+  DebugNote( ("Checking parameters") );
+  DebugAssertThrow( (NULL != this && NULL != iClientVox && NULL != oFuncIdx ));
+
+  DebugNote( ("Copying client voxel to temp1") );
+  xVoxl_Copy( &this->mTmpVoxel1, iClientVox );
+
+  DebugNote( ("Converting client to func idx") );
+  eTransform = Trns_ConvertAtoB( this->mIdxToIdxTransform, 
+				 &this->mTmpVoxel1, oFuncIdx );
+  DebugAssertThrow( (Trns_tErr_NoErr == eTransform) );
+
+  DebugCatch;
+  xVoxl_Set( oFuncIdx, -1, -1, -1 );
+  EndDebugCatch;
+
+  DebugExitFunction;
+}
+
 #endif
 
 
@@ -2401,6 +2557,28 @@ void FunD_GetValue_ ( mriFunctionalDataRef this,
       *oValue = 0;
       break ;
     }
+}
+
+void FunD_GetSampledValue_ ( mriFunctionalDataRef this,
+			     MRI*                 iData,
+			     xVoxelRef            iIdx,
+			     int                  inCondition,
+			     int                  inTimePoint,
+			     float*               oValue ) {
+  
+  int nFrame = 0;
+
+  FunD_GetDataFrameNumber(inCondition,inTimePoint,&nFrame);
+
+  MRIsampleVolumeFrameType( iData,
+			    xVoxl_GetFloatX(iIdx),
+			    xVoxl_GetFloatY(iIdx),
+			    xVoxl_GetFloatZ(iIdx),
+			    nFrame,
+			    (int)this->mSampleType,
+			    &this->mTmpReal );
+
+  *oValue = this->mTmpReal;
 }
 
 void FunD_SetValue_ ( mriFunctionalDataRef this,
