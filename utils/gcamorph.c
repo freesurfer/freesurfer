@@ -1452,7 +1452,7 @@ write_snapshot(GCA_MORPH *gcam, MRI *mri, GCA_MORPH_PARMS *parms, int iter)
   sprintf(fname, "%s.mgh", base_name) ;
   printf("writing snapshot to %s\n", fname) ;
   MRIwrite(mri_morphed, fname) ;
-  MRIwriteImageViews(mri_morphed, base_name, DEFAULT_IMAGE_SIZE) ;
+  MRIwriteImageViews(mri_morphed, base_name, IMAGE_SIZE) ;
   MRIfree(&mri_morphed) ;
 
   mri_samples = MRIclone(parms->mri, NULL) ;
