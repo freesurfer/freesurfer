@@ -7822,7 +7822,7 @@ sclv_read_bfile_values (char* fname, char* registration, int field)
   /* create volume. */
   volume_error = FunD_New (&volume, sclv_client_transform,
 			   fname, NULL, registration, 
-			   sclv_register_transform );
+			   sclv_register_transform, NULL);
   if (volume_error!=FunD_tErr_NoError)
     {
       printf("surfer: couldn't load %s\n",fname);
@@ -18163,7 +18163,7 @@ int main(int argc, char *argv[])   /* new main */
   /* end rkt */
   
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: tksurfer.c,v 1.69 2004/06/10 20:23:20 kteich Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: tksurfer.c,v 1.70 2004/06/16 20:19:04 kteich Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -21038,7 +21038,7 @@ int func_load_timecourse (char* fname, char* registration)
   /* create new volume */
   volume_error = FunD_New (&func_timecourse, sclv_client_transform,
 			   fname, NULL, registration, 
-			   sclv_register_transform);
+			   sclv_register_transform, NULL);
   if (volume_error!=FunD_tErr_NoError)
     {
       printf("### surfer: couldn't load %s\n",fname);
@@ -21088,7 +21088,7 @@ int func_load_timecourse_offset (char* fname, char* registration)
   /* create new volume */
   volume_error = FunD_New (&func_timecourse_offset, sclv_client_transform,
 			   fname, NULL, registration, 
-			   sclv_register_transform );
+			   sclv_register_transform, NULL);
   if (volume_error!=FunD_tErr_NoError)
     ErrorReturn(func_convert_error(volume_error),(func_convert_error(volume_error),"func_load_timecourse_offset: error in FunD_New\n"));
   
