@@ -35,13 +35,15 @@ function rt = fast_psdwin(psdwin,DoWhat)
 %      computed as erfpsdmax = psdmax + bcw, ie the IRF max
 %      after convolving with a boxcar of length bcw.
 %   'npsdwin' - the number of dpsds in the window, computed
+%   'irftaxis' - time axis for IRF 
+%   'erftaxis' - time axis for ERF 
 %   DoWhat is not case sensitive.
 %  
 % The psd window is checked regardless of what DoWhat is. If
 % there is an error and DoWhat is not 'check', then an empty
 % matrix is returned.
 %  
-% $Id: fast_psdwin.m,v 1.1 2003/03/18 06:21:01 greve Exp $
+% $Id: fast_psdwin.m,v 1.2 2003/03/19 07:02:09 greve Exp $
 
 rt = [];
 
@@ -111,6 +113,10 @@ switch(DoWhat)
    rt = npsdwin;
   case 'erfpsdmax'
    rt = erfpsdmax;
+  case 'irftaxis'
+   rt = [psdmin : dpsd : psdmax-dpsd]';
+  case 'erftaxis'
+   rt = [psdmin : dpsd : erfpsdmax-dpsd]';
  otherwise
   fprintf('ERROR: DoWhat=%s, unrecognized\n',DoWhat);
   fprintf(' Legal options are: check, erfpsdmax, and npsdwin\n');
