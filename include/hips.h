@@ -33,5 +33,7 @@ struct header *h_logmap_f(struct header *phd,float a,int R,int rows,int cols,
       int Fx,int Fy,float disk_size) ;
 int h_discedge(struct header *hdi, struct header *hdo,int size, float varcrit);
 int h_canny(IMAGE *Isrc, IMAGE *Idst, double sigma, int mask_size,double lfrac,double hfrac,int dothin);
+int h_morphdil(struct header *hdi, struct header *hde, struct header *hdo, int centerr, int centerc,
+               int gray) ;
 
 #endif
