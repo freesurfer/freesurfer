@@ -41,7 +41,7 @@ function X = fast_sched2Xfir(tPres,ntrs,TR,psdwin,tDelay,PerEvW)
 % 
 % See also: fast_psdwin
 %
-% $Id: fast_sched2Xfir.m,v 1.5 2003/03/21 05:21:53 greve Exp $ 
+% $Id: fast_sched2Xfir.m,v 1.6 2003/04/15 03:49:11 greve Exp $ 
 
 X = [];
 
@@ -70,9 +70,8 @@ TimeWindow = psdmax - psdmin;
 tmax = TR*(ntrs - 1);
 % Compute the resampling rate
 Rss = round(TR/dpsd);
-% Compute the Post Stimulus Delay at the start of the last 
-% point in the window, including BWC
-TLastPoint = fast_psdwin(psdwin,'erfpsdmax') - dpsd;
+% Compute the Post Stimulus Delay at each point in the window
+psdlist = fast_psdwin(psdwin,'erftaxis');
 
 % Number of presentations
 Npres = length(tPres);
@@ -96,7 +95,7 @@ tPres = tPres - tDelay;
 
 X = zeros(Rss*ntrs,Nh);
 h = 1;
-for d = psdmin:dpsd:TLastPoint,
+for d = psdlist'
    td = tPres+d;
    iok = find(td >= 0 & td <= tmax);
    td = td(iok);
