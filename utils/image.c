@@ -736,7 +736,8 @@ ImageResize(IMAGE *Isrc, IMAGE *Idst, int drows, int dcols)
         {
           int   reductions, i ;
       
-          reductions = (int)log2(scale) ;
+          reductions = nint(log2(scale)) ;
+
           fprintf(stderr, "reducing %d times\n", reductions) ;
           for (i = 0 ; i < reductions ; i++)
           {
@@ -2016,8 +2017,8 @@ ImageScaleDown(IMAGE *inImage, IMAGE *outImage, float scale)
         {
           int   reductions, i ;
           IMAGE *Itmp ;
-      
-          reductions = (int)log2(1.0f/scale) ;
+
+          reductions = nint(log2(1.0/scale)) ;
           for (i = 0 ; i < reductions ; i++)
           {
             Itmp = inImage ;
@@ -4140,11 +4141,11 @@ ImageZeroPad(IMAGE *Isrc, IMAGE *Idst)
 
   scols = Isrc->cols ;
   srows = Isrc->rows ;
-  logcols = (int)log2((double)scols) ;
-  logrows = (int)log2((double)srows) ;
+  logcols = nint(log2((double)scols)) ;
+  logrows = nint(log2((double)srows)) ;
 
-  dcols = (int)exp2((double)(logcols+1)) ;
-  drows = (int)exp2((double)(logrows+1)) ;
+  dcols = nint(exp2((double)(logcols+1))) ;
+  drows = nint(exp2((double)(logrows+1))) ;
 
   if (!Idst)
     Idst = ImageAlloc(drows, dcols, Isrc->pixel_format, Isrc->num_frame) ;
