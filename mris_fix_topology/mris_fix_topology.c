@@ -16,7 +16,7 @@
 #include "icosahedron.h"
 #include "mrishash.h"
 
-static char vcid[] = "$Id: mris_fix_topology.c,v 1.10 2000/02/28 12:21:33 fischl Exp $";
+static char vcid[] = "$Id: mris_fix_topology.c,v 1.11 2000/08/22 21:20:14 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -42,7 +42,7 @@ static int  write_inflated = 0 ;
 int
 main(int argc, char *argv[])
 {
-  char          **av, *hemi, *sname, sdir[400], *cp, fname[500] ;
+  char          **av, *hemi, *sname, sdir[STRLEN], *cp, fname[STRLEN] ;
   int           ac, nargs ;
   MRI_SURFACE   *mris, *mris_corrected ;
   int           msec, nvert, nfaces, nedges, eno ;
