@@ -3,8 +3,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2004/05/21 17:31:51 $
-// Revision       : $Revision: 1.102 $
+// Revision Date  : $Date: 2004/05/26 22:05:28 $
+// Revision       : $Revision: 1.103 $
 
 #include "tkmDisplayArea.h"
 #include "tkmMeditWindow.h"
@@ -2843,7 +2843,12 @@ DspA_tErr DspA_HandleMouseUp_ ( tkmDisplayAreaRef this,
   DspA_tSegBrushSettings segBrush;
   tBoolean     bSelect     = FALSE;
   xVoxel       lineVox;
-
+  xVoxel     lineVox1;
+  xVoxel     lineVox2;
+  xVoxel       lineIdx1;
+  xVoxel       lineIdx2;
+  xVoxel       lineRAS1;
+  xVoxel       lineRAS2;
   
   xVoxl_New( &pVolumeVox );
   
@@ -3056,11 +3061,27 @@ DspA_tErr DspA_HandleMouseUp_ ( tkmDisplayAreaRef this,
 	  this->mLineVertex2.mnY = xVoxl_GetY( &lineVox );;
 	}
 	
+
+	/* Calculate the distance. */
+	xVoxl_Set( &lineVox1, this->mLineVertex1.mnX,
+		   this->mLineVertex1.mnY, 0 );
+	DspA_UnnormalizeVoxel_( &lineVox1, this->mOrientation, &lineIdx1 );
+	Volm_ConvertIdxToRAS( this->mpVolume[tkm_tVolumeType_Main],
+			      &lineIdx1, &lineRAS1 );
+
+	xVoxl_Set( &lineVox2, this->mLineVertex2.mnX,
+		   this->mLineVertex2.mnY, 0 );
+	DspA_UnnormalizeVoxel_( &lineVox2, this->mOrientation, &lineIdx2 );
+	Volm_ConvertIdxToRAS( this->mpVolume[tkm_tVolumeType_Main],
+			      &lineIdx2, &lineRAS2 );
+
 	this->mLineDistance =
-	  sqrt( (this->mLineVertex2.mnX - this->mLineVertex1.mnX) *
-		(this->mLineVertex2.mnX - this->mLineVertex1.mnX) +
-		(this->mLineVertex2.mnY - this->mLineVertex1.mnY) *
-		(this->mLineVertex2.mnY - this->mLineVertex1.mnY) );
+	  sqrt( (xVoxl_GetFloatX(&lineRAS2) - xVoxl_GetFloatX(&lineRAS1)) *
+		(xVoxl_GetFloatX(&lineRAS2) - xVoxl_GetFloatX(&lineRAS1))  +
+		(xVoxl_GetFloatY(&lineRAS2) - xVoxl_GetFloatY(&lineRAS1)) *
+		(xVoxl_GetFloatY(&lineRAS2) - xVoxl_GetFloatY(&lineRAS1))  +
+		(xVoxl_GetFloatZ(&lineRAS2) - xVoxl_GetFloatZ(&lineRAS1)) *
+		(xVoxl_GetFloatZ(&lineRAS2) - xVoxl_GetFloatZ(&lineRAS1)) );
 
       } else if ( 3 == ipEvent->mButton ) {
 
