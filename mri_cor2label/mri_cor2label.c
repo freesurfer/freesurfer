@@ -1,6 +1,6 @@
 /*----------------------------------------------------------
   Name: mri_cor2label.c
-  $Id: mri_cor2label.c,v 1.1 2001/05/09 20:07:25 greve Exp $
+  $Id: mri_cor2label.c,v 1.2 2001/05/15 22:04:12 greve Exp $
   Author: Douglas Greve
   Purpose: Converts values in a COR file to a label.
   -----------------------------------------------------------*/
@@ -20,7 +20,7 @@ static void print_help(void) ;
 static void print_version(void) ;
 static void argnerr(char *option, int n);
 
-static char vcid[] = "$Id: mri_cor2label.c,v 1.1 2001/05/09 20:07:25 greve Exp $";
+static char vcid[] = "$Id: mri_cor2label.c,v 1.2 2001/05/15 22:04:12 greve Exp $";
 char *Progname ;
 int main(int argc, char *argv[]) ;
 
@@ -72,10 +72,10 @@ int main(int argc, char **argv)
     for(zi=0; zi < COR->height; zi++){
       for(yi=0; yi < COR->depth; yi++){
         c = (int) MRIvox(COR,xi,zi,yi);
-	/* The call to MRIvox is with arguments (COR,xi,zi,yi) instead
-	   of (COR,xi,yi,zi) becase
-	   MRIvox(mri,x,y,z) = (((BUFTYPE *)mri->slices[z][y])[x])
-	   but from mriio.c, L959ish,      mri->slices[y][z])[x])*/
+  /* The call to MRIvox is with arguments (COR,xi,zi,yi) instead
+     of (COR,xi,yi,zi) becase
+     MRIvox(mri,x,y,z) = (((BUFTYPE *)mri->slices[z][y])[x])
+     but from mriio.c, L959ish,      mri->slices[y][z])[x])*/
 
         doit = 0;
         if(synthlabel &&
@@ -88,18 +88,18 @@ int main(int argc, char **argv)
         if(doit){
           x = -xi + 128.0;
           y =  yi - 128.0;
-	  z = -zi + 128.0;
+    z = -zi + 128.0;
           if(verbose) 
-	    printf("%5d   %3d %3d %3d   %6.2f %6.2f %6.2f \n",
-		   nlabel,xi,yi,zi,x,y,z);
-	  lb->lv[nlabel].x = x;
-	  lb->lv[nlabel].y = y;
-	  lb->lv[nlabel].z = z;
+      printf("%5d   %3d %3d %3d   %6.2f %6.2f %6.2f \n",
+       nlabel,xi,yi,zi,x,y,z);
+    lb->lv[nlabel].x = x;
+    lb->lv[nlabel].y = y;
+    lb->lv[nlabel].z = z;
           nlabel ++;
           xsum += x;
           ysum += y;
           zsum += z;
-	}
+  }
       }
     }
   }
@@ -114,7 +114,7 @@ int main(int argc, char **argv)
   LabelWrite(lb,labelfile);
 
   fprintf(stderr,"Centroid: %6.2f  %6.2f  %6.2f \n",
-	  xsum/nlabel,ysum/nlabel,zsum/nlabel);
+    xsum/nlabel,ysum/nlabel,zsum/nlabel);
 
   fprintf(stderr,"mri_cor2label completed SUCCESSFULLY\n");
 
@@ -203,40 +203,39 @@ static void print_usage(void)
 static void print_help(void)
 {
   print_usage() ;
-  printf("
-Converts values in a COR volume to a label. The program searches the
-COR volume in directory 'cordir' for values equal to 'labelid'. The
-xyz values for each point are then computed assuming 1 mm^3 voxels and
-that xyz=0 at the center of the volume. The xyz values are then stored
-in 'labelfile' in the label file format; the vertex values are set to
-zero as is the statistic value.  While this program can be used with
-any COR volume, it was designed to convert parcellation volumes, which
-happen to be stored in COR format.  See tkmedit for more information
-on parcellations. The labelid must be within the range of 0 to 255.
-
-Bugs:
-
-  If the name of the label does not include a forward slash (ie, '/')
-  then the program will attempt to put the label files in
-  $SUBJECTS_DIR/subject/label.  So, if you want the labels to go into
-  the current directory, make sure to put a './' in front of the label.
-
-Example:
-
-mri_cor2label --c /space/final/frontier/myparcellation
-              --id 57 --l /home/brainmapper/spattemp/57.label
-
-This will load the COR volume found in the directory
-/space/final/frontier/myparcellation and then search the volume for
-values equaling 57.  The results are stored in 57.label in the directory 
-/home/brainmapper/spattemp, which must exist prior to execution.
-
-Hidden options:
-  --synth synthesizes a label (ignores values in COR volume)
-
-See also: tkmedit, mri_label2label.
-
-\n");
+  printf(
+"\n"
+"Converts values in a COR volume to a label. The program searches the\n"
+"COR volume in directory 'cordir' for values equal to 'labelid'. The\n"
+"xyz values for each point are then computed assuming 1 mm^3 voxels and\n"
+"that xyz=0 at the center of the volume. The xyz values are then stored\n"
+"in 'labelfile' in the label file format; the vertex values are set to\n"
+"zero as is the statistic value.  While this program can be used with\n"
+"any COR volume, it was designed to convert parcellation volumes, which\n"
+"happen to be stored in COR format.  See tkmedit for more information\n"
+"on parcellations. The labelid must be within the range of 0 to 255.\n"
+"\n"
+"Bugs:\n"
+"\n"
+"  If the name of the label does not include a forward slash (ie, '/')\n"
+"  then the program will attempt to put the label files in\n"
+"  $SUBJECTS_DIR/subject/label.  So, if you want the labels to go into\n"
+"  the current directory, make sure to put a './' in front of the label.\n"
+"\n"
+"Example:\n"
+"\n"
+"mri_cor2label --c /space/final/frontier/myparcellation\n"
+"              --id 57 --l /home/brainmapper/spattemp/57.label\n"
+"\n"
+"This will load the COR volume found in the directory\n"
+"/space/final/frontier/myparcellation and then search the volume for\n"
+"values equaling 57.  The results are stored in 57.label in the directory \n"
+"/home/brainmapper/spattemp, which must exist prior to execution.\n"
+"\n"
+"Hidden options:\n"
+"  --synth synthesizes a label (ignores values in COR volume)\n"
+"\n"
+"See also: tkmedit, mri_label2label\n\n");
 
   exit(1) ;
 }
