@@ -2,9 +2,7 @@ function rt = fast_fxcfg(DoWhat,thing)
 % rt = fast_fxcfg(DoWhat,thing)
 
 % Things to do:
-%   getfstempath
-%   getevschfile
-%   loadsesscfg
+%   loadsesscfg - load run weights
 %   
 
 rt = [];
@@ -42,6 +40,10 @@ switch(DoWhat)
  case 'getrunweight'
   if(isempty(flacfg)) pr_fla_needed(DoWhat); return; end
   rt = get_runweight(flacfg);
+ case 'loadsesscfg'
+  if(isempty(flacfg)) pr_fla_needed(DoWhat); return; end
+  rt = load_sesscfg(flacfg);
+ 
  case 'checkermid'
   % returns 1 if ok, 0 or [] otherwise
   if(isempty(flacfg)) pr_fla_needed(DoWhat); return; end
@@ -54,17 +56,28 @@ switch(DoWhat)
       fprintf('ERROR: line needed with parseline\n');
       return;
     end
+    model = sscanf(line,'%*s %*s %*s %s ',1);
+    if(isempty(model))
+      fprintf('ERROR: line is not formatted correctly (no model)\n');
+      fprintf('%s\n',line);
+      return;
+    end
   else
     if(isempty(flacfg)) pr_fla_needed(DoWhat); return; end
+    fxcfg = fast_fxcfg('getfxcfg',flacfg);
+    if(isempty(fxcfg)) return; end
+    model = fxcfg.model;
   end
-  fxcfg = fast_fxcfg('getfxcfg',flacfg);
-  if(isempty(fxcfg)) return; end
 
-  switch(fxcfg.model)
+  switch(model)
    case 'fir'
     rt = fast_fxcfg_fir(DoWhat,thing);
+   case 'gamma'
+    rt = fast_fxcfg_gamma(DoWhat,thing);
+   case 'polynomial'
+    rt = fast_fxcfg_poly(DoWhat,thing);
    otherwise
-    fprintf('ERROR: model %s unrecognized\n',fxcfg.model);
+    fprintf('ERROR: model %s unrecognized\n',model);
     return;
   end
  
@@ -190,23 +203,114 @@ ok = [];
 
 nfx = length(flacfg.fxlist);
 evidlist = [];
+evlabellist = '';
 for nthfx = 1:nfx
   flacfg.nthfx = nthfx;
   if(fast_fxcfg('iserm',flacfg))
     fxcfg = fast_fxcfg('getfxcfg',flacfg);
     if(isempty(fxcfg)) return; end
+    evidlist = [evidlist fxcfg.params(1)];
+    evlabellist = strvcat(evlabellist,fxcfg.label);
   end
-  evidlist = [evidlist fxcfg.params(1)];
 end
 
 evidlistunique = unique(evidlist);
 if(length(evidlist) ~= length(evidlistunique))
-  fprintf('ERROR: replications found int event id list\n');
+  fprintf('ERROR: replications found in event id list\n');
   fprintf('%d ',evidlist);
   fprintf('\n');
   ok = 0;
   return;
 end
 
+evlabellistunique = unique(evlabellist,'rows');
+if(size(evlabellist,1) ~= size(evlabellistunique,1))
+  fprintf('ERROR: replications found in event label list\n');
+  fprintf('%s ',evlabellist');
+  fprintf('\n');
+  ok = 0;
+  return;
+end
+
 ok = 1;
+return;
+%---------------------------------------------------------------%
+function sesscfg = load_sesscfg(flacfg)
+
+sesscfg = [];
+
+if(isempty(flacfg.funcstem))
+  fprintf('ERROR: flacfg.funcstem is empty\n');
+  return;
+end
+if(isempty(flacfg.sesspath))
+  fprintf('ERROR: flacfg.sesspath is empty\n');
+  return;
+end
+d = dir(flacfg.sesspath);
+if(isempty(d))
+  fprintf('ERROR: flacfg.sesspath %s does not exist\n',flacfg.sesspath);
+  return;
+end
+afsd = sprintf('%s/%s',flacfg.sesspath,flacfg.fsd);
+d = dir(afsd);
+if(isempty(d))
+  fprintf('ERROR: %s does not exist\n',afsd);
+  return;
+end
+
+if(isempty(flacfg.runlistfile))
+  runlist = fast_runlist(afsd);
+  if(isempty(runlist))
+    fprintf('ERROR: cannot find any runs in %s\n',afsd);
+    return;
+  end
+else
+  rlf = sprintf('%s/%s',afsd,flacfg.runlistfile);
+  runlist = fast_runlist(rlf);
+  if(isempty(runlist))
+    fprintf('ERROR: reading %s\n',rlf);
+    return;
+  end
+end
+
+sesscfg = fast_sesscfg_struct;
+sesscfg.runlist = runlist;
+sesscfg.fstemlist = '';
+
+% Need to read run weight file 
+% and check that each run is represented.
+
+for nthrun = 1:length(runlist)
+  rd = sprintf('%s/%s',afsd,runlist(nthrun,:));
+  d = dir(rd);
+  if(isempty(d))
+    fprintf('ERROR: %s does not exist\n',rd);
+    sesscfg = [];
+    return;
+  end
+
+  fstem = sprintf('%s/%s',rd,flacfg.funcstem);
+  [nslices nrows ncols ntp] = fmri_bvoldim(fstem);
+  if(isempty(nslices))
+    fprintf('ERROR: reading %s\n',fstem);
+    sesscfg = [];
+    return;
+  end
+  sesscfg.fstemlist = strvcat(sesscfg.fstemlist,fstem);
+  sesscfg.ntp(nthrun) = ntp;
+  % Could check spat dims here %
+
+  if(~isempty(flacfg.evschfname))
+    evschfile = sprintf('%s/%s',rd,flacfg.evschfname);
+    evsch = fmri_ldpar(evschfile);
+    if(isempty(evsch))
+      fprintf('ERROR: reading %s\n',evschfile);
+      sesscfg = [];
+    end
+    sesscfg.evschlist(nthrun).evsch = evsch;
+  end
+
+end
+  
 return;
