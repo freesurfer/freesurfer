@@ -18,7 +18,7 @@
 #include "label.h"
 #include "cma.h"
 
-static char vcid[] = "$Id: mri_twoclass.c,v 1.1 2001/06/07 15:18:09 fischl Exp $";
+static char vcid[] = "$Id: mri_twoclass.c,v 1.2 2001/06/19 17:46:40 fischl Exp $";
 
 
 /*-------------------------------- STRUCTURES ----------------------------*/
@@ -631,7 +631,17 @@ compute_voxel_statistics(VL ***voxel_labels_class1, VL ***voxel_labels_class2,
         if (dof > 1)
           DiagBreak() ;
         p = sigchisq(chisq, dof-1) ;
-        MRIFvox(mri_stats, x, y, z) = -log(p) ;
+        if (DZERO(p) || p < 0)
+        {
+          p = 1e-15 ;
+          MRIFvox(mri_stats, x, y, z) = 15 ;
+        }
+        else
+        {
+          if (!finite(-log(p)))
+            DiagBreak() ;
+          MRIFvox(mri_stats, x, y, z) = -log(p) ;
+        }
         if (chisq > max_chisq)
         {
           xc = x  ; yc = y ; zc = z ;
