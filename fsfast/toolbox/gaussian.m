@@ -4,7 +4,7 @@ function y = gaussian(x,mean,stddev)
 %
 % y = gaussian(x,mean,stddev)
 %
-% y = exp( -((x-mean).^2)/(2*(stddev.^2))) / stddev * sqrt(2*pi);
+% y = exp( -((x-mean).^2)/(2*(stddev.^2))) / (stddev * sqrt(2*pi));
 % y = y/sum(y);
 
 if(nargin ~= 3) 
@@ -12,6 +12,6 @@ if(nargin ~= 3)
   error(msg);
 end
 
-y = exp( -((x-mean).^2)/(2*(stddev.^2))) / stddev * sqrt(2*pi);
+y = exp( -((x-mean).^2)/(2*(stddev.^2))) / (stddev * sqrt(2*pi));
 
 return
