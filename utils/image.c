@@ -1320,6 +1320,25 @@ ImageCheckSize(IMAGE *inImage,IMAGE *outImage, int rows, int cols, int nframes)
             Parameters:
 
            Description:
+               change the size of an image
+----------------------------------------------------------------------*/
+int    
+ImageSetSize(IMAGE *I, int rows, int cols)
+{
+  if (!ImageCheckSize(I, I, rows, cols, 0))
+    return(0) ;
+
+  I->frow = I->fcol = 0 ;
+  I->rows = I->orows = rows ;
+  I->cols = I->ocols = cols ;
+  I->numpix = rows*cols ;
+  I->sizeimage = rows*cols*I->sizepix ;
+  return(1) ;
+}
+/*----------------------------------------------------------------------
+            Parameters:
+
+           Description:
 ----------------------------------------------------------------------*/
 int
 ImageCopyFrames(IMAGE *inImage, IMAGE *outImage,int start, int nframes, 
