@@ -742,7 +742,7 @@ ScubaLayer2DMRI::DoListenToTclCommand ( char* isCommand, int iArgc, char** iasAr
 	sResult = "bad value";
 	return error;
       }
-      
+
       SetMinVisibleValue( value );
       BuildGrayscaleLUT();
     }
@@ -985,7 +985,7 @@ ScubaLayer2DMRI::HandleTool ( float iRAS[3], ViewState& iViewState,
 	  if( iInput.Button() == 2 ) {
 	    flooder = new ScubaLayer2DMRIFloodVoxelEdit( iTool.GetNewValue() );
 	  } else if( iInput.Button() == 3 ) {
-	    flooder = new ScubaLayer2DMRIFloodVoxelEdit( 0 );
+	    flooder = new ScubaLayer2DMRIFloodVoxelEdit(iTool.GetEraseValue());
 	  }
 	} else if( ScubaToolState::roiEditing == iTool.GetMode() ) {
 	  if( iInput.Button() == 2 ) {
@@ -1110,7 +1110,8 @@ ScubaLayer2DMRI::HandleTool ( float iRAS[3], ViewState& iViewState,
 		continue; 
 
 	      // New value depends on voxel button.
-	      float newValue = iInput.Button() == 2 ? iTool.GetNewValue() : 0;
+	      float newValue = iInput.Button() == 2 ? 
+		iTool.GetNewValue() : iTool.GetEraseValue();
 
 	      // Set value and make undo item.
 	      mVolume->SetMRIValue( loc, newValue );
@@ -1147,10 +1148,12 @@ ScubaLayer2DMRI::HandleTool ( float iRAS[3], ViewState& iViewState,
       
       // Adjust the min/max visible value.
       if( iTool.GetMode() == ScubaToolState::voxelEditing ) {
-	if( iTool.GetNewValue() < mMinVisibleValue )
-	  mMinVisibleValue = iTool.GetNewValue();
-	if( iTool.GetNewValue() > mMaxVisibleValue )
-	  mMaxVisibleValue = iTool.GetNewValue();
+	float newValue = iInput.Button() == 2 ? 
+	  iTool.GetNewValue() : iTool.GetEraseValue();
+	if( newValue < mMinVisibleValue )
+	  mMinVisibleValue = newValue;
+	if( newValue > mMaxVisibleValue )
+	  mMaxVisibleValue = newValue;
       }
     }
 
