@@ -3609,6 +3609,10 @@ MRIScenter(MRI_SURFACE *mris_src, MRI_SURFACE *mris_dst)
         Returns value:
 
         Description
+
+The following function is broken, since it is applying a
+transform for surfaceRAS space.  If transform has c_(ras)
+values, the result would be different.
 ------------------------------------------------------*/
 MRI_SURFACE *
 MRIStalairachTransform(MRI_SURFACE *mris_src, MRI_SURFACE *mris_dst)
@@ -23440,7 +23444,7 @@ MRIStransform(MRI_SURFACE *mris, MRI *mri, LTA *lta, MRI *mri_dst)
   int    vno ;
   VERTEX *v ;
   Real   xw, yw, zw ;
-  MATRIX *m;
+  MATRIX *m=0;
   // for ras-to-ras transform
   MATRIX *RASFromSurfaceRAS = 0;
   MATRIX *surfaceRASFromRAS = 0;
@@ -23524,12 +23528,19 @@ MRIStransform(MRI_SURFACE *mris, MRI *mri, LTA *lta, MRI *mri_dst)
   }
   else if (!mri_dst)
   {
-    error = 1;
-    strcpy(errMsg, "INFO:When mri_dst == NULL, the transform must have the valid dst info.\n");
-    strcpy(errMsg, "INFO:If your target is average_305 and the transform is RAS-to-RAS,\n");
-    strcpy(errMsg, "INFO:then you can set environmental variable USE_AVERAGE305 to be true\n");
-    strcpy(errMsg, "INFO:and try again.\n");
-    goto mristransform_cleanup;
+    fprintf(stderr, "WARNING:*********************************************************\n");
+    fprintf(stderr, "WARNING: transform does not have valid destination volume.       \n");
+    fprintf(stderr, "WARNING: The standard CORONAL volume with c_(ras) = 0 is assumed.\n");
+    fprintf(stderr, "WARNING:*********************************************************\n");
+    mri_dst = MRIallocHeader(lt->dst.width, lt->dst.height, lt->dst.depth, MRI_UCHAR);
+    mri_dst->x_r = -1; mri_dst->y_r = 0; mri_dst->z_r = 0; 
+    mri_dst->c_r = 0;
+    mri_dst->x_a = 0; mri_dst->y_a =  0; mri_dst->z_a = 1; 
+    mri_dst->c_a = 0;
+    mri_dst->x_s = 0; mri_dst->y_s = -1; mri_dst->z_s = 0; 
+    mri_dst->c_s = 0;
+    mri_dst->xsize = 1; mri_dst->ysize = 1; mri_dst->zsize = 1;
+    mri_dst->ras_good_flag = 1;
   }
   /////////////////////////////////////////////////////////////////////////////
   // Now we can calculate
