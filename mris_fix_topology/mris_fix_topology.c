@@ -16,7 +16,7 @@
 #include "icosahedron.h"
 #include "mrishash.h"
 
-static char vcid[] = "$Id: mris_fix_topology.c,v 1.8 1999/08/31 03:06:38 fischl Exp $";
+static char vcid[] = "$Id: mris_fix_topology.c,v 1.9 2000/02/25 19:36:36 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -87,6 +87,10 @@ main(int argc, char *argv[])
   MRISprojectOntoSphere(mris, mris, 100.0f) ;
   MRISsaveVertexPositions(mris, CANONICAL_VERTICES) ;
 
+  if (MRISreadOriginalProperties(mris, orig_name) != NO_ERROR)
+    ErrorExit(ERROR_NOFILE, "%s: could not read original surface %s",
+              Progname, orig_name) ;
+
   if (MRISreadVertexPositions(mris, inflated_name) != NO_ERROR)
     ErrorExit(ERROR_NOFILE, "%s: could not read inflated surface %s",
               Progname, inflated_name) ;
@@ -94,10 +98,6 @@ main(int argc, char *argv[])
 
   MRISrestoreVertexPositions(mris, CANONICAL_VERTICES) ;
   MRIScomputeMetricProperties(mris) ;
-
-  if (MRISreadOriginalProperties(mris, orig_name) != NO_ERROR)
-    ErrorExit(ERROR_NOFILE, "%s: could not read original surface %s",
-              Progname, orig_name) ;
 
   fprintf(stderr, "using quasi-homeomorphic spherical map to tessellate "
           "cortical surface...\n") ;
