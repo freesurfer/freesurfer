@@ -4499,3 +4499,43 @@ GCAnormalizeSamples(MRI *mri_in, GCA *gca, GCA_SAMPLE *gcas, int nsamples,
   MRIfree(&mri_bias) ; MRIfree(&mri_ctrl) ;
   return(mri_dst) ;
 }
+int
+GCAnodeToSourceVoxel(GCA *gca, MRI *mri, MATRIX *m_L, int xn, int yn, int zn, 
+                    int *pxv, int *pyv, int *pzv)
+{
+  static VECTOR  *v_input, *v_canon = NULL ;
+  int   width, height, depth, xt, yt, zt, xv, yv, zv ;
+  static MATRIX  *m_L_inv = NULL ;
+
+  m_L_inv = MatrixInverse(m_L, m_L_inv) ;
+  if (!m_L_inv)
+  {
+    MatrixPrint(stderr, m_L) ;
+    ErrorExit(ERROR_BADPARM, 
+              "GCAcomputeLogSampleProbability: matrix is not invertible") ;
+  }
+
+  width = mri->width ; height = mri->height ;  depth = mri->depth ;
+  if (!v_canon)
+  {
+    v_input = VectorAlloc(4, MATRIX_REAL) ;
+    v_canon = VectorAlloc(4, MATRIX_REAL) ;
+    *MATRIX_RELT(v_input, 4, 1) = 1.0 ; *MATRIX_RELT(v_canon, 4, 1) = 1.0 ;
+  }
+  GCAnodeToVoxel(gca, mri, xn, yn, zn, &xt, &yt, &zt) ;
+  V3_X(v_canon) = (float)xt ; 
+  V3_Y(v_canon) = (float)yt ;
+  V3_Z(v_canon) = (float)zt ;
+  MatrixMultiply(m_L_inv, v_canon, v_input) ;
+  xv = nint(V3_X(v_input)); yv = nint(V3_Y(v_input)); zv = nint(V3_Z(v_input));
+  if (xv < 0) xv = 0 ;
+  if (yv < 0) yv = 0 ;
+  if (zv < 0) zv = 0 ;
+  if (xv >= width)  xv = width-1 ;
+  if (yv >= height) yv = height-1 ;
+  if (zv >= depth)  zv = depth-1 ;
+
+  *pxv = xv ; *pyv = yv ; *pzv = zv ;
+  return(NO_ERROR) ;
+}
+
