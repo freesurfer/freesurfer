@@ -34,7 +34,7 @@ main(int argc, char *argv[])
   MRI    *mri ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_label_vals.c,v 1.2 2003/09/05 04:45:34 kteich Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_label_vals.c,v 1.3 2003/09/15 15:18:55 tosa Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -75,7 +75,8 @@ main(int argc, char *argv[])
 		xw =  area->lv[i].x ;
 		yw =  area->lv[i].y ;
 		zw =  area->lv[i].z ;
-		MRIworldToVoxel(mri, xw, yw,  zw, &xv, &yv, &zv) ;
+		// MRIworldToVoxel(mri, xw, yw,  zw, &xv, &yv, &zv) ;
+		MRIsurfaceRASToVoxel(mri, xw, yw, zw, &xv, &yv, &zv);
 		MRIsampleVolumeType(mri, xv,  yv, zv, &val, SAMPLE_NEAREST) ;
 		printf("%f\n", val)  ;
 	}
