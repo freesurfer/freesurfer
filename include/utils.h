@@ -17,6 +17,11 @@
 
 #include <stdio.h>
 
+#define MATLAB_FILE   0
+#define HIPS_FILE     1
+#define LIST_FILE     2
+#define UNKNOWN_FILE  3
+
 double randomNumber(double low, double hi) ;
 double normAngle(double angle) ;
 double calcDeltaPhi(double target_phi, double robot_phi) ;
@@ -37,6 +42,10 @@ char *StrUpper(char *str) ;
 char *StrLower(char *str) ;
 char *FileName(char *str) ;
 int  FileExists(char *fname) ;
+int  FileType(char *fname) ;
+int  FileNumber(char *fname) ;
+int  FileNumberOfEntries(char *fname) ;
+char *FileFullName(char *full_name) ;
 
 
 #endif
