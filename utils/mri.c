@@ -9,9 +9,9 @@
  */
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2004/05/12 18:17:07 $
-// Revision       : $Revision: 1.270 $
-char *MRI_C_VERSION = "$Revision: 1.270 $";
+// Revision Date  : $Date: 2004/05/13 21:01:51 $
+// Revision       : $Revision: 1.271 $
+char *MRI_C_VERSION = "$Revision: 1.271 $";
 
 /*-----------------------------------------------------
   INCLUDE FILES
@@ -4351,6 +4351,10 @@ MRIallocHeader(int width, int height, int depth, int type)
   if (!mri)
     ErrorExit(ERROR_NO_MEMORY, "MRIalloc: could not allocate MRI\n") ;
 
+  mri->imnr0 = 1 ;
+  mri->imnr1 = depth;
+  mri->fov = width ;
+  mri->thick = 1.0 ;
   mri->scale = 1 ;
   mri->roi.dx = mri->width = width ;
   mri->roi.dy = mri->height = height ;
@@ -4361,9 +4365,26 @@ MRIallocHeader(int width, int height, int depth, int type)
   mri->nframes = 1 ;
   mri->xi = mri->yi = mri->zi = NULL ;
   mri->slices = NULL ;
-  mri->x_r = mri->x_a = mri->x_s = 0.0;
-  mri->y_r = mri->y_a = mri->y_s = 0.0;
-  mri->z_r = mri->z_a = mri->z_s = 0.0;
+  mri->ps = 1 ;
+  mri->xstart = -mri->width/2.0 ;
+  mri->xend = mri->width/2.0 ;
+  mri->ystart = -mri->height/2.0 ;
+  mri->yend = mri->height/2.0 ;
+  mri->zstart = -mri->depth/2.0 ;
+  mri->zend = mri->depth/2 ;
+  //
+  mri->x_r = -1;  
+  mri->x_a = 0.;
+  mri->x_s = 0.;
+  //
+  mri->y_r = 0.; 
+  mri->y_a = 0.;
+  mri->y_s = -1;
+  //
+  mri->z_r = 0.;
+  mri->z_a = 1.;
+  mri->z_s = 0.;
+  //
   mri->c_r = mri->c_a = mri->c_s = 0.0;
   mri->ras_good_flag = 0;
   mri->brightness = 1;
@@ -4371,8 +4392,15 @@ MRIallocHeader(int width, int height, int depth, int type)
   mri->subject_name[0] = '\0';
   mri->path_to_t1[0] = '\0';
   mri->fname_format[0] = '\0';
-  mri->i_to_r__ = 0;
-  mri->r_to_i__ = 0;
+  mri->gdf_image_stem[0] = '\0';
+  mri->tag_data = NULL;
+  mri->tag_data_size = 0;
+
+  if (!mri->i_to_r__)
+    mri->i_to_r__ = extract_i_to_r(mri);
+  if (!mri->r_to_i__)
+    mri->r_to_i__ = extract_r_to_i(mri);
+
   return(mri) ;
 }
 /*-----------------------------------------------------
