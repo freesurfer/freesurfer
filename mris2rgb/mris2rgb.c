@@ -29,7 +29,7 @@
 #include "tiffio.h"
 #include "label.h"
 
-static char vcid[] = "$Id: mris2rgb.c,v 1.18 1998/07/24 19:53:02 fischl Exp $";
+static char vcid[] = "$Id: mris2rgb.c,v 1.19 1998/09/22 02:45:11 fischl Exp $";
 
 /*-------------------------------- CONSTANTS -----------------------------*/
 
@@ -63,6 +63,7 @@ static void save_TIFF(char *fname, int width, int height, unsigned char *rgb);
 static void grabPixelsTIFF(unsigned int width, unsigned int height, 
          unsigned char *rgb);
 
+int MRISsoapBubble(MRI_SURFACE *mris, int niter) ;
 static void grabPixels(unsigned int width, unsigned int height,
                        unsigned short *red, unsigned short *green, 
                        unsigned short *blue) ;
@@ -97,6 +98,7 @@ static int frontal_flag = 0 ;
 static int dorsal_flag = 0 ;
 
 static int normalize_flag = 0 ;
+static int zero_flag = 0 ;
 static float angle_offset = 0.0f ;
 static float x_angle = 0.0f ;
 static float y_angle = 0.0f ;
@@ -126,7 +128,7 @@ static int         configuration[] =
 #endif
 static char *curvature_fname = NULL ;
 static char *coord_fname = NULL ;
-static float cslope = 5.0f ;
+static float cslope = 10.0f ;
 static int   patch_flag = 0 ;
 
 static int compile_flags = 0 ;
@@ -141,6 +143,8 @@ static int tiff_flag = 0;
 static int param_no = -1 ;
 static int normalize_param = 0 ;
 
+static char *wfile_name = NULL ;
+static int soap_bubble_iterations = 5 ;
 static char *output_name = NULL ;
 
 #define MAX_POINTS 100
@@ -244,6 +248,13 @@ main(int argc, char *argv[])
       if (!mris)
         ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s",
                   Progname, in_fname) ;
+    }
+
+    if (wfile_name)
+    {
+      MRISreadValues(mris, wfile_name) ;
+      MRISsoapBubble(mris, soap_bubble_iterations) ;
+      MRISclearMarks(mris) ;
     }
 
     if (output_name)     /* user specified stem for .rgb file name */
@@ -389,6 +400,8 @@ main(int argc, char *argv[])
 
     if (normalize_flag)
       MRISnormalizeCurvature(mris) ;
+    if (zero_flag)
+      MRISzeroMeanCurvature(mris) ;
 
     if (patch_flag || is_flat)
     {
@@ -666,6 +679,13 @@ get_option(int argc, char *argv[])
   option = argv[1] + 1 ;            /* past '-' */
   if (!stricmp(option, "-help"))
     print_help() ;
+  else if (!stricmp(option, "soap"))
+  {
+    soap_bubble_iterations = atoi(argv[2]) ;
+    fprintf(stderr, "performing soap bubble of values for %d iterations.\n",
+            soap_bubble_iterations) ;
+    nargs = 1 ;
+  }
   else if (!stricmp(option, "param"))
   {
     mrisp = MRISPread(argv[2]) ;
@@ -835,6 +855,12 @@ get_option(int argc, char *argv[])
   }
   else switch (toupper(*option))
   {
+  case 'W':
+    compile_flags |= VAL_FLAG ;
+    wfile_name = argv[2] ;
+    fprintf(stderr, "reading w file %s\n", wfile_name) ;
+    nargs = 1 ;
+    break ;
   case 'L':
   {
     LABEL *area ;
@@ -910,10 +936,16 @@ get_option(int argc, char *argv[])
     sscanf(argv[2], "%f", &y_angle) ;
     nargs = 1 ;
     break ;
+#if 0
   case 'Z':
     sscanf(argv[2], "%f", &z_angle) ;
     nargs = 1 ;
     break ;
+#else
+  case 'Z':
+    zero_flag = 1 ;
+    break ;
+#endif
   case 'B':   /* output both medial and lateral views */
     lateral_flag = medial_flag = 1 ;
     break ;
@@ -1207,3 +1239,41 @@ mark_centroids(MRI_SURFACE *mris, char *centroid_fnames[],
   return(NO_ERROR) ;
 }
 
+int
+MRISsoapBubble(MRI_SURFACE *mris, int niter)
+{
+  int     vno, n, i ;
+  VERTEX  *v, *vn ;
+  double  mean ;
+
+  for (i = 0 ; i < niter ; i++)
+  {
+    if (!(i % niter/10))
+      fprintf(stderr, ".") ;
+    for (vno = 0 ; vno < mris->nvertices ; vno++)
+    {
+      v = &mris->vertices[vno] ;
+      if (v->ripflag/* || v->marked*/)
+        continue ;
+
+      /* compute average of self and neighbors */
+      mean = v->val ;
+      for (n = 0 ; n < v->vnum ; n++)
+      {
+        vn = &mris->vertices[v->v[n]] ;
+        mean += vn->val ;
+      }
+      v->d = mean / (double)(v->vnum+1.0f) ;
+    }
+    for (vno = 0 ; vno < mris->nvertices ; vno++)
+    {
+      v = &mris->vertices[vno] ;
+      if (v->ripflag/* || v->marked*/)
+        continue ;
+      v->val = v->d ;
+    }
+  }
+
+  fprintf(stderr, "\n") ;
+  return(NO_ERROR) ;
+}

@@ -24,6 +24,7 @@ extern double oglu_fov ;
 #define BW_FLAG       0x0010   /* only use black and white */
 #define NEG_FLAG      0x0020   /* show negative vertices (flat maps only) */
 #define NOBORDER_FLAG 0x0040   /* don't draw a border */
+#define VAL_FLAG      0x0080   /* paint values on surface */
 
 #define LIGHT_OFFSET  0.25
 
