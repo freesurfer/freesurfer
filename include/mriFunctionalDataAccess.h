@@ -126,7 +126,8 @@ FunD_tErr FunD_New    ( mriFunctionalDataRef* outVolume,
 			char*                 inPathName, 
 			char*                 inStem,
 			char*                 inHeaderStem,
-			char*                 inRegistrationPath  );
+			char*                 inRegistrationPath,
+			MATRIX *tkregMat);
 FunD_tErr FunD_Delete ( mriFunctionalDataRef * ioVolume );
 
 /* looks in directory and guesses a stem. */
@@ -146,7 +147,8 @@ FunD_tErr FunD_ReadKeywordAndValue ( FILE* inFile,
 				     char* inAssign );
 
 /* reads the register.dat file, allocates and initializes matricies */
-FunD_tErr FunD_ParseRegistrationAndInitMatricies ( mriFunctionalDataRef this );
+FunD_tErr FunD_ParseRegistrationAndInitMatricies ( mriFunctionalDataRef this,
+						   MATRIX *tkregMat);
 
 /* smooths the data. uses the MRI lib routines. */
 FunD_tErr FunD_SmoothData ( mriFunctionalDataRef this,
