@@ -205,33 +205,36 @@ GCclassify(GCLASSIFY *gc, MATRIX *m_x, MATRIX *m_priors, float *prisk)
 {
   int     cno, class = -1 ;
   GCLASS  *gcl ;
-  MATRIX  *m_xT, *m_tmp, *m_tmp2, *m_tmp3 ;
+  static MATRIX  *m_xT = NULL, *m_tmp, *m_tmp2, *m_tmp3 ;
   float   log_p, max_p, sum_p, prior ;
 
   if (m_x->cols != 1 || m_x->rows != gc->nvars)
     ErrorReturn(ERROR_BADPARM,
                 (ERROR_BADPARM, "GCclassify: inappropriately sized m_x")) ;
-#if 0
-fprintf(stdout, "GCclassify(%2.3f)\n", m_x->rptr[1][1]) ;
-#endif
-
 /*
    see Duda and Hart page 30
 */
-  m_xT = MatrixTranspose(m_x, NULL) ;
+  if (m_xT && ((m_xT->rows != m_x->cols) || (m_xT->cols != m_x->rows)))
+  {
+    if (m_xT)
+      MatrixFree(&m_xT) ;
+    if (m_tmp)
+      MatrixFree(&m_tmp) ;
+    if (m_tmp2)
+      MatrixFree(&m_tmp2) ;
+    if (m_tmp3)
+      MatrixFree(&m_tmp3) ;
+  }
+  m_xT = MatrixTranspose(m_x, m_xT) ;
   max_p = -100000.0f ;
   class = -1 ;
   sum_p = 0.0f ;
-  m_tmp = m_tmp2 = m_tmp3 = NULL ;
   for (cno = 0 ; cno < gc->nclasses ; cno++)
   {
     gcl = &gc->classes[cno] ;
-#if 1
+
     /* check to see if covariance matrix was ill-conditioned */
     if (FZERO(gcl->w0) || gcl->nobs <= gc->nvars+1)  
-#else
-    if (gcl->ill_cond)
-#endif
     {
       gc->log_probabilities[cno] = -10000.0f ;
       continue ;
@@ -245,13 +248,9 @@ fprintf(stdout, "GCclassify(%2.3f)\n", m_x->rptr[1][1]) ;
     else
       prior = 1.0f ;
     log_p = log(prior) + gcl->w0 + m_tmp2->rptr[1][1] + m_tmp3->rptr[1][1] ;
-#if 0
-fprintf(stdout, "class %d: log(p) = %2.3f + %2.3f + %2.3f = %2.3f\n",
-        cno, gcl->w0, m_tmp2->rptr[1][1], m_tmp3->rptr[1][1], log_p) ;
-#endif
     gc->log_probabilities[cno] = log_p ;
     sum_p += exp(log_p) ;
-    if (log_p > max_p)
+    if (log_p > max_p)  /* tentatively set this as the most probable class */
     {
       max_p = log_p ;
       class = cno ;
@@ -261,14 +260,6 @@ fprintf(stdout, "class %d: log(p) = %2.3f + %2.3f + %2.3f = %2.3f\n",
   if (prisk && class >= 0 && !FZERO(sum_p))
     *prisk = exp(max_p) / sum_p ;
 
-  if (m_xT)
-    MatrixFree(&m_xT) ;
-  if (m_tmp)
-    MatrixFree(&m_tmp) ;
-  if (m_tmp2)
-    MatrixFree(&m_tmp2) ;
-  if (m_tmp3)
-    MatrixFree(&m_tmp3) ;
   return(class) ;
 }
 /*-----------------------------------------------------
