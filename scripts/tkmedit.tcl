@@ -1,6 +1,6 @@
 #! /usr/bin/tixwish
 
-# $Id: tkmedit.tcl,v 1.37 2003/04/21 16:32:19 kteich Exp $
+# $Id: tkmedit.tcl,v 1.38 2003/04/21 17:12:41 kteich Exp $
 
 source $env(MRI_DIR)/lib/tcl/tkm_common.tcl
 
@@ -3188,6 +3188,10 @@ proc CreateMenuBar { ifwMenuBar } {
 	    { command
 		"Select Contiguous Voxels by Func Value"
 		{ SelectVoxelsByFuncValue 0 }
+		tMenuGroup_OverlayOptions }
+	    { command
+		"Select Contiguous Voxels by Threshold"
+		{ SelectVoxelsByFuncValue 2 }
 		tMenuGroup_OverlayOptions }
 	    { command
 		"Select Functional Voxel"
