@@ -7809,10 +7809,11 @@ ICOreadOverAlloc(char *fname, double pct_over)
                 "ICOread: could not allocate list of %d "
                 "dists at v=%d", v->vnum, vno) ;
     v->dist_orig = (float *)calloc(v->vnum, sizeof(float)) ;
-      if (!v->dist_orig)
-        ErrorExit(ERROR_NOMEMORY,
-                  "ICOread: could not allocate list of %d "
-                  "dists at v=%d", v->vnum, vno) ;
+    if (!v->dist_orig)
+      ErrorExit(ERROR_NOMEMORY,
+                "ICOread: could not allocate list of %d "
+                "dists at v=%d", v->vnum, vno) ;
+    v->vtotal = v->vnum ;
   }
 
   /* fill in face indices in vertex structures */
