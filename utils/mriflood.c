@@ -23,6 +23,7 @@ int HemisphereVote(MRI *mri_cma,int i,int j,int k,int halfside);
 float distance(float x,float y,float z);
 void MRIerodecerebralcortex(MRI *mri_masked,MRI *mri_cma);
 int IllegalCorticalNeighbour(MRI *mri_masked,int i,int j,int k);
+void MRIcorrecthippocampus(MRI *mri_masked,MRI *mri_dst);
 
 /* MRIribbon determines the space between the inner and outer MRI surfaces provided, */
 /* and creates a volume in mri_dst corresponding to the input format mri_src */
@@ -533,7 +534,7 @@ MRI *MRISpartialribbon(MRI_SURFACE *inner_mris_lh,MRI_SURFACE *outer_mris_lh,MRI
     MRIbitwisenot(mri_inter2,mri_inter2);
 
     /* Create volume inside left outer surface as reference. */
-    printf("Creating full reference volume inside left outer shell...\n");
+    printf("Creating full reference volume outside left outer shell...\n");
     MRISshell(mri_src,outer_mris_lh,mri_inter3,0);
     MRISfloodoutside(mri_inter3,mri_inter3);
     printf("  - inverting volume...\n");
@@ -546,7 +547,12 @@ MRI *MRISpartialribbon(MRI_SURFACE *inner_mris_lh,MRI_SURFACE *outer_mris_lh,MRI
     MRImergecortexwhitecma(mri_inter1,mri_inter2,mri_mask,mri_inter3,mri_dst);
   }
   printf("Eroding cortex...\n");
-  MRIerodecerebralcortex(mri_dst,mri_mask);
+  MRIclear(mri_inter1);
+  MRIcopy(mri_dst,mri_inter1);
+  MRIerodecerebralcortex(mri_inter1,mri_mask);
+
+  printf("Correcting hippocampus...\n");
+  MRIcorrecthippocampus(mri_inter1,mri_dst);
 
   MRIfree(&mri_inter1);
   MRIfree(&mri_inter2);
@@ -763,5 +769,39 @@ int IllegalCorticalNeighbour(MRI *mri_masked,int i,int j,int k)
       }
 
   return illegalflag;
+}
+
+void MRIcorrecthippocampus(MRI *mri_masked,MRI *mri_dst)
+{
+  /* mri_dst must differ from mri_masked. */
+  int width,height,depth,i,j,k,vox,hippocount;
+
+  width=mri_masked->width;
+  height=mri_masked->height;
+  depth=mri_masked->depth;
+  hippocount=0;
+
+  for (k=2; k<depth-2; k++)
+    for (j=2; j<height-2; j++)
+      for (i=2; i<width-2; i++) {
+        vox=MRIvox(mri_masked,i,j,k);
+        MRIvox(mri_dst,i,j,k)=vox;
+        /* If this voxel is not cerebral cortex, copy it directly to the destination volume */
+        if ((vox==Left_Cerebral_Cortex)||(vox==Right_Cerebral_Cortex)) {
+          if (((MRIvox(mri_masked,i,j+1,k)==Left_Hippocampus)||(MRIvox(mri_masked,i,j+1,k)==Right_Hippocampus)||
+               (MRIvox(mri_masked,i,j+1,k)==Left_Cerebral_White_Matter)||(MRIvox(mri_masked,i,j+1,k)==Right_Cerebral_White_Matter)||
+               (MRIvox(mri_masked,i,j+2,k)==Left_Hippocampus)||(MRIvox(mri_masked,i,j+2,k)==Right_Hippocampus)||
+               (MRIvox(mri_masked,i,j+2,k)==Left_Cerebral_White_Matter)||(MRIvox(mri_masked,i,j+2,k)==Right_Cerebral_White_Matter)) &&
+              ((MRIvox(mri_masked,i,j-1,k)==Left_Hippocampus)||(MRIvox(mri_masked,i,j-1,k)==Right_Hippocampus)||
+               (MRIvox(mri_masked,i,j-2,k)==Left_Hippocampus)||(MRIvox(mri_masked,i,j-2,k)==Right_Hippocampus))) {
+            if (vox==Left_Cerebral_Cortex)
+              MRIvox(mri_dst,i,j,k)=Left_Cerebral_White_Matter;
+            else
+              MRIvox(mri_dst,i,j,k)=Right_Cerebral_White_Matter;
+            hippocount++;
+          }
+        }
+      }
+  printf("  - added %d white matter voxels.\n",hippocount);
 }
 
