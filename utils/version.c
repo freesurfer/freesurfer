@@ -158,6 +158,9 @@ handle_info_option (int argc, char** argv,
   struct tm broken_time;
   struct utsname kernel_info;
   int result;
+  char *begin;
+  char program_name[1024];
+  char arguments[1024];
   char time_stamp[1024];
   char user[1024];
   char machine[1024];
@@ -172,10 +175,26 @@ handle_info_option (int argc, char** argv,
 	  !strncmp(option,"-all-info",10))
 	{
 
-	  /* Print out the entire command line. */
-	  for (nnarg = 0; nnarg < argc; nnarg++)
-	    fprintf (stdout, "%s ", argv[nnarg]);
-	  fprintf (stdout, "\n");
+	  /* Copy argv[0] without the path into program_name. */
+	  begin = strrchr (argv[0], (int)'/');
+	  if (NULL == begin)
+	    {	
+	      begin = argv[0];
+	    } 
+	  else
+	    { 
+	      begin = begin + 1;
+	    }
+	  strcpy (program_name, begin);
+
+	  /* Copy the arguments to the arguments string. */
+	  strcpy (arguments, "");
+	  if (argc > 1)
+	    {
+	      strcpy (arguments, argv[1]);
+	      for (nnarg = 2; nnarg < argc; nnarg++)
+		sprintf (arguments, "%s %s", arguments, argv[nnarg]);
+	    }
 
 	  /* Find the time string. */
 	  seconds = time(NULL);
@@ -195,15 +214,16 @@ handle_info_option (int argc, char** argv,
 	    {
 	      fprintf (stderr, "uname() returned %d\n", result);
 	    }
-	  strcpy (machine, kernel_info.machine);
-	  strcpy (platform_version, kernel_info.version);
+	  strcpy (machine, kernel_info.nodename);
+	  strcpy (platform_version, kernel_info.release);
 
 	  /* Build the info string. */
-	  fprintf (stdout, "ProgramName: %s ProgramVersion: %s "
-		   "TimeStamp: %s CVS: %s User: %s Machine: %s "
-		   "Platform: %s PlatformVersion: %s CompilerName: %s "
-		   "CompilerVersion: %d\n",
-		   argv[0],
+	  fprintf (stdout, "ProgramName: %s ProgramArguments: %s "
+		   "ProgramVersion: %s TimeStamp: %s CVS: %s User: %s "
+		   "Machine: %s Platform: %s PlatformVersion: %s "
+		   "CompilerName: %s CompilerVersion: %d\n",
+		   program_name,
+		   arguments,
 		   version_string,
 		   time_stamp,
 		   id_string,
