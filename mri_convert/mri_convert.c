@@ -6,6 +6,8 @@
 #include "error.h"
 #include "mri_identify.h"
 #include "utils.h"
+#include "transform.h"
+#include "mrimorph.h"
 
 /* ----- determines tolerance of non-orthogonal basis vectors ----- */
 #define CLOSE_ENOUGH  (1e-4)
@@ -63,10 +65,18 @@ int main(int argc, char *argv[])
   int frame_flag;
   int frame;
   char in_name_only[STRLEN];
+  char transform_fname[STRLEN];
+  int transform_flag, invert_transform_flag;
+  LTA *lta_transform;
+  M3D *m3d_transform;
+  MRI *mri_transformed;
+  int transform_type;
+  MATRIX *inverse_transform_matrix;
 
   /* ----- keep the compiler quiet ----- */
   mri2 = NULL;
   forced_in_type = forced_out_type = MRI_VOLUME_TYPE_UNKNOWN;
+  invert_transform_flag = FALSE;
 
   /* ----- get the program name ----- */
   Progname = strrchr(argv[0], '/');
@@ -110,13 +120,17 @@ int main(int argc, char *argv[])
   subject_name[0] = '\0';
   reslice_like_flag = FALSE;
   frame_flag = FALSE;
+  transform_flag = FALSE;
 
   for(i = 1;i < argc;i++)
   {
     if(strcmp(argv[i], "-version2") == 0)
       exit(97);
     if(strcmp(argv[i], "-r") == 0 || strcmp(argv[i], "--reorder") == 0)
+    {
       get_ints(argc, argv, &i, reorder_vals, 3);
+      reorder_flag = TRUE;
+    }
     else if(strcmp(argv[i], "--invert_contrast") == 0)
       get_floats(argc, argv, &i, &invert_val, 1);
     else if(strcmp(argv[i], "-i") == 0 || strcmp(argv[i], "--input_volume") == 0)
@@ -141,6 +155,18 @@ int main(int argc, char *argv[])
       read_only_flag = TRUE;
     else if(strcmp(argv[i], "-nw") == 0 || strcmp(argv[i], "--no_write") == 0)
       no_write_flag = TRUE;
+    else if(strcmp(argv[i], "-at") == 0 || strcmp(argv[i], "--apply_transform") == 0 || strcmp(argv[i], "-T") == 0)
+    {
+      get_string(argc, argv, &i, transform_fname);
+      transform_flag = TRUE;
+      invert_transform_flag = FALSE;
+    }
+    else if(strcmp(argv[i], "-ait") == 0 || strcmp(argv[i], "--apply_inverse_transform") == 0)
+    {
+      get_string(argc, argv, &i, transform_fname);
+      transform_flag = TRUE;
+      invert_transform_flag = TRUE;
+    }
     else if(strcmp(argv[i], "-iis") == 0 || strcmp(argv[i], "--in_i_size") == 0)
     {
       get_floats(argc, argv, &i, &in_i_size, 1);
@@ -632,6 +658,88 @@ int main(int argc, char *argv[])
   if(in_stats_flag)
     MRIprintStats(mri, stdout);
 
+  /* ----- apply a transformation if requested ----- */
+  if(transform_flag)
+  {
+
+    printf("applying transformation from file %s...\n", transform_fname);
+
+    if(!FileExists(transform_fname))
+    {
+      fprintf(stderr, "can't find transform file %s\n", transform_fname);
+      exit(1);
+    }
+
+    transform_type = TransformFileNameType(transform_fname);
+    if(transform_type == MNI_TRANSFORM_TYPE || transform_type == TRANSFORM_ARRAY_TYPE)
+    {
+
+      if((lta_transform = LTAread(transform_fname)) == NULL)
+      {
+        fprintf(stderr, "error reading transform from file %s\n", transform_fname);
+        exit(1);
+      }
+
+      if(invert_transform_flag)
+      {
+
+        if((inverse_transform_matrix = MatrixInverse(lta_transform->xforms[0].m_L, NULL)) == NULL)
+        {
+          fprintf(stderr, "error inverting transform\n");
+          exit(1);
+        }
+
+        MatrixFree(&(lta_transform->xforms[0].m_L));
+        lta_transform->xforms[0].m_L = inverse_transform_matrix;
+
+      }
+
+      if((mri_transformed = LTAtransform(mri, NULL, lta_transform)) == NULL)
+      {
+        fprintf(stderr, "error applying transform to volume\n");
+        exit(1);
+      }
+
+      LTAfree(&lta_transform);
+
+      MRIfree(&mri);
+      mri = mri_transformed;
+
+    }
+    else if(transform_type == MORPH_3D_TYPE)
+    {
+
+      if((m3d_transform = MRI3DreadSmall(transform_fname)) == NULL)
+      {
+        fprintf(stderr, "error reading transform from file %s\n", transform_fname);
+        exit(1);
+      }
+
+      if(invert_transform_flag)
+        mri_transformed = MRIapplyInverse3DMorph(mri, m3d_transform, NULL);
+      else
+        mri_transformed = MRIapply3DMorph(mri, m3d_transform, NULL);
+
+      if(mri_transformed == NULL)
+      {
+        fprintf(stderr, "error applying transform\n");
+        exit(1);
+      }
+
+      MRI3DmorphFree(&m3d_transform);
+
+      MRIfree(&mri);
+      mri = mri_transformed;
+
+    }
+    else
+    {
+      fprintf(stderr, "unknown transform type in file %s\n", transform_fname);
+      exit(1);
+    }
+
+  }
+
   if(reslice_like_flag)
   {
 
@@ -799,9 +907,12 @@ int main(int argc, char *argv[])
   if(reorder_flag)
   {
     printf("reordering axes...\n");
-    MRIreorder(mri, mri2, reorder_vals[0], reorder_vals[1], reorder_vals[2]);
+    mri2 = MRIreorder(mri, NULL, reorder_vals[0], reorder_vals[1], reorder_vals[2]);
     if(mri2 == NULL)
+    {
+      fprintf(stderr, "error reordering axes\n");
       exit(1);
+    }
     MRIfree(&mri);
     mri = mri2;
   }
