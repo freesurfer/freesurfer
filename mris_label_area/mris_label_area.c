@@ -11,6 +11,7 @@
 #include "utils.h"
 #include "timer.h"
 #include "annotation.h"
+#include "version.h"
 
 int main(int argc, char *argv[]) ;
 static int get_option(int argc, char *argv[]) ;
@@ -35,6 +36,12 @@ main(int argc, char *argv[])
   struct timeb start ;
   MRIS   *mris ;
   FILE   *log_fp ;
+
+  /* rkt: check for and handle version tag */
+  nargs = handle_version_option (argc, argv, "$Id: mris_label_area.c,v 1.2 2003/04/17 18:40:32 kteich Exp $");
+  if (nargs && argc - nargs == 1)
+    exit (0);
+  argc -= nargs;
 
   Progname = argv[0] ;
   ErrorInit(NULL, NULL, NULL) ;

@@ -14,8 +14,9 @@
 #include "fio.h"
 #include "mrishash.h"
 #include "sig.h"
+#include "version.h"
 
-static char vcid[] = "$Id: mris_multiscale_stats.c,v 1.1 2000/05/09 14:41:09 fischl Exp $";
+static char vcid[] = "$Id: mris_multiscale_stats.c,v 1.2 2003/04/17 18:45:30 kteich Exp $";
 
 
 /*-------------------------------- CONSTANTS -----------------------------*/
@@ -141,6 +142,12 @@ main(int argc, char *argv[])
   double       **c1_thickness, **c2_thickness ;
   struct timeb start ;
   int          msec, minutes, seconds ;
+
+  /* rkt: check for and handle version tag */
+  nargs = handle_version_option (argc, argv, "$Id: mris_multiscale_stats.c,v 1.2 2003/04/17 18:45:30 kteich Exp $");
+  if (nargs && argc - nargs == 1)
+    exit (0);
+  argc -= nargs;
 
   if (write_flag && DIAG_VERBOSE_ON)
     fp = fopen("scalespace.dat", "w") ;

@@ -13,8 +13,9 @@
 #include "mri.h"
 #include "macros.h"
 #include "utils.h"
+#include "version.h"
 
-static char vcid[] = "$Id: mris_flatten.c,v 1.22 2001/01/12 19:16:47 fischl Exp $";
+static char vcid[] = "$Id: mris_flatten.c,v 1.23 2003/04/17 18:37:30 kteich Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -54,6 +55,12 @@ main(int argc, char *argv[])
                fname[STRLEN], path[STRLEN], *cp, hemi[10] ;
   int          ac, nargs ;
   MRI_SURFACE  *mris ;
+
+  /* rkt: check for and handle version tag */
+  nargs = handle_version_option (argc, argv, "$Id: mris_flatten.c,v 1.23 2003/04/17 18:37:30 kteich Exp $");
+  if (nargs && argc - nargs == 1)
+    exit (0);
+  argc -= nargs;
 
   Gdiag |= DIAG_SHOW ;
   Progname = argv[0] ;

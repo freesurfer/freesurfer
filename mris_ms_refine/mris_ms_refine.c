@@ -18,8 +18,9 @@
 #include "mri_conform.h"
 #include "cvector.h"
 #include "histo.h"
+#include "version.h"
 
-static char vcid[] = "$Id: mris_ms_refine.c,v 1.8 2002/06/01 03:16:23 fischl Exp $";
+static char vcid[] = "$Id: mris_ms_refine.c,v 1.9 2003/04/17 18:45:00 kteich Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -298,6 +299,12 @@ main(int argc, char *argv[])
   struct timeb  then ;
   LTA           *lta ;
   EXTRA_PARMS   ep ;
+
+  /* rkt: check for and handle version tag */
+  nargs = handle_version_option (argc, argv, "$Id: mris_ms_refine.c,v 1.9 2003/04/17 18:45:00 kteich Exp $");
+  if (nargs && argc - nargs == 1)
+    exit (0);
+  argc -= nargs;
 
   Gdiag |= DIAG_SHOW ;
   Progname = argv[0] ;

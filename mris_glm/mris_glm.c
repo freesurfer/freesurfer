@@ -4,7 +4,7 @@
   email:   analysis-bugs@nmr.mgh.harvard.edu
   Date:    2/27/02
   Purpose: Computes glm inferences on the surface.
-  $Id: mris_glm.c,v 1.16 2002/11/19 00:37:41 greve Exp $
+  $Id: mris_glm.c,v 1.17 2003/04/17 18:38:12 kteich Exp $
 
 Things to do:
   0. Documentation.
@@ -34,6 +34,7 @@ Things to do:
 #include "fmriutils.h"
 #include "fsgdf.h"
 #include "mri2.h"
+#include "version.h"
 
 #ifdef X
 #undef X
@@ -66,7 +67,7 @@ static char *getstem(char *bfilename);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mris_glm.c,v 1.16 2002/11/19 00:37:41 greve Exp $";
+static char vcid[] = "$Id: mris_glm.c,v 1.17 2003/04/17 18:38:12 kteich Exp $";
 char *Progname = NULL;
 
 char *hemi        = NULL;
@@ -162,6 +163,13 @@ int main(int argc, char **argv)
   char *subject;
   char *inputfname;
   FILE *fp;
+  int  nargs;
+
+  /* rkt: check for and handle version tag */
+  nargs = handle_version_option (argc, argv, "$Id: mris_glm.c,v 1.17 2003/04/17 18:38:12 kteich Exp $");
+  if (nargs && argc - nargs == 1)
+    exit (0);
+  argc -= nargs;
 
   Progname = argv[0];
 

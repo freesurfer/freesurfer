@@ -15,8 +15,9 @@
 #include "macros.h"
 #include "mrimorph.h"
 #include "mrinorm.h"
+#include "version.h"
 
-static char vcid[] = "$Id: mris_make_surfaces.c,v 1.42 2002/09/10 14:21:09 fischl Exp $";
+static char vcid[] = "$Id: mris_make_surfaces.c,v 1.43 2003/04/17 18:42:41 kteich Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -140,6 +141,12 @@ main(int argc, char *argv[])
   double        l_intensity, current_sigma ;
   struct timeb  then ;
   M3D           *m3d ;
+
+  /* rkt: check for and handle version tag */
+  nargs = handle_version_option (argc, argv, "$Id: mris_make_surfaces.c,v 1.43 2003/04/17 18:42:41 kteich Exp $");
+  if (nargs && argc - nargs == 1)
+    exit (0);
+  argc -= nargs;
 
   Gdiag |= DIAG_SHOW ;
   Progname = argv[0] ;
