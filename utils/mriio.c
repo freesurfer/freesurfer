@@ -2118,7 +2118,12 @@ printf("rewound\n");
           else
 #endif
           {
+/*
             xd = z + xoff ; yd = (height-y-1) + yoff ; zd = (width-x-1) + zoff;
+*/
+xd = x;
+yd = y;
+zd = z;
           }
           MRIvox(mri, xd, yd, zd) = b ;
 /*
@@ -2287,14 +2292,14 @@ write_analyze_image(char *fname, MRI *mri)
     {
       for (x = 0 ; x < width ; x++)
       {
+/* patch for spm visit -- converts cor to spm readable and oriented volume (left-right possibly reversed) */
         xd = z  ; yd = (height-y-1) ; zd = (width-x-1) ;
+zd = (height-y-1) ; xd = (width-x-1) ; yd = z;
+zd = y ; xd = x ; yd = (depth-z-1);
         if (mri->type == MRI_FLOAT)
           f = MRIFvox(mri, xd, yd, zd) ;
         else
-          f = MRIvox(mri, xd, yd, zd) ;
-#ifdef Linux
-        f = swapFloat(f) ;
-#endif
+          f = (float)MRIvox(mri, xd, yd, zd) ;
         switch (mri->type)
         {
         default:
@@ -2338,61 +2343,134 @@ MRI *
 MRIreorder(MRI *mri_src, MRI *mri_dst, int xdim, int ydim, int zdim)
 {
   int  width, height, depth, xs, ys, zs, xd, yd, zd, x, y, z ;
-  
+  float ras_sign;
+
   width = mri_src->width ; height = mri_src->height ; depth = mri_src->depth;
   if (!mri_dst)
     mri_dst = MRIclone(mri_src, NULL) ;
+printf("<%d, %d>\n", mri_src->ras_good_flag, mri_dst->ras_good_flag);
+  /* check that the source ras coordinates are good and that each direction is used once and only once */
+  if(mri_src->ras_good_flag)
+    if(abs(xdim) * abs(ydim) * abs(zdim) != 6 || abs(xdim) + abs(ydim) + abs(zdim) != 6)
+      mri_dst->ras_good_flag = 0;
 
   xd = yd = zd = 0 ;
+
+  ras_sign = (xdim < 0 ? -1.0 : 1.0);
   switch (abs(xdim))
   {
   default:
   case XDIM: 
     if (mri_dst->width != width)
       ErrorReturn(NULL,(ERROR_BADPARM, "MRIreorder: incorrect dst width"));
+    if(mri_dst->ras_good_flag)
+    {
+      mri_dst->x_r = mri_src->x_r * ras_sign;
+      mri_dst->x_a = mri_src->x_a * ras_sign;
+      mri_dst->x_s = mri_src->x_s * ras_sign;
+    }
     break ;
   case YDIM: 
     if (mri_dst->height != width)
       ErrorReturn(NULL,(ERROR_BADPARM, "MRIreorder: incorrect dst width"));
+    if(mri_dst->ras_good_flag)
+    {
+      mri_dst->y_r = mri_src->x_r * ras_sign;
+      mri_dst->y_a = mri_src->x_a * ras_sign;
+      mri_dst->y_s = mri_src->x_s * ras_sign;
+    }
     break ;
   case ZDIM: 
     if (mri_dst->depth != width)
       ErrorReturn(NULL,(ERROR_BADPARM, "MRIreorder: incorrect dst width"));
+    if(mri_dst->ras_good_flag)
+    {
+      mri_dst->z_r = mri_src->x_r * ras_sign;
+      mri_dst->z_a = mri_src->x_a * ras_sign;
+      mri_dst->z_s = mri_src->x_s * ras_sign;
+    }
     break ;
   }
+  ras_sign = (ydim < 0 ? -1.0 : 1.0);
   switch (abs(ydim))
   {
   default:
   case XDIM: 
     if (mri_dst->width != height)
       ErrorReturn(NULL,(ERROR_BADPARM, "MRIreorder: incorrect dst height"));
+    if(mri_dst->ras_good_flag)
+    {
+      mri_dst->x_r = mri_src->y_r * ras_sign;
+      mri_dst->x_a = mri_src->y_a * ras_sign;
+      mri_dst->x_s = mri_src->y_s * ras_sign;
+    }
     break ;
   case YDIM: 
     if (mri_dst->height != height)
       ErrorReturn(NULL,(ERROR_BADPARM, "MRIreorder: incorrect dst height"));
+    if(mri_dst->ras_good_flag)
+    {
+      mri_dst->y_r = mri_src->y_r * ras_sign;
+      mri_dst->y_a = mri_src->y_a * ras_sign;
+      mri_dst->y_s = mri_src->y_s * ras_sign;
+    }
     break ;
   case ZDIM: 
     if (mri_dst->depth != height)
       ErrorReturn(NULL,(ERROR_BADPARM, "MRIreorder: incorrect dst height"));
+    if(mri_dst->ras_good_flag)
+    {
+      mri_dst->z_r = mri_src->y_r * ras_sign;
+      mri_dst->z_a = mri_src->y_a * ras_sign;
+      mri_dst->z_s = mri_src->y_s * ras_sign;
+    }
     break ;
   }
+  ras_sign = (zdim < 0 ? -1.0 : 1.0);
   switch (abs(zdim))
   {
   default:
   case XDIM: 
     if (mri_dst->width != depth)
       ErrorReturn(NULL,(ERROR_BADPARM, "MRIreorder: incorrect dst depth"));
+    if(mri_dst->ras_good_flag)
+    {
+      mri_dst->x_r = mri_src->z_r * ras_sign;
+      mri_dst->x_a = mri_src->z_a * ras_sign;
+      mri_dst->x_s = mri_src->z_s * ras_sign;
+    }
     break ;
   case YDIM: 
     if (mri_dst->height != depth)
       ErrorReturn(NULL,(ERROR_BADPARM, "MRIreorder: incorrect dst depth"));
+    if(mri_dst->ras_good_flag)
+    {
+      mri_dst->y_r = mri_src->z_r * ras_sign;
+      mri_dst->y_a = mri_src->z_a * ras_sign;
+      mri_dst->y_s = mri_src->z_s * ras_sign;
+    }
     break ;
   case ZDIM: 
     if (mri_dst->depth != depth)
       ErrorReturn(NULL,(ERROR_BADPARM, "MRIreorder: incorrect dst depth"));
+    if(mri_dst->ras_good_flag)
+    {
+      mri_dst->z_r = mri_src->z_r * ras_sign;
+      mri_dst->z_a = mri_src->z_a * ras_sign;
+      mri_dst->z_s = mri_src->z_s * ras_sign;
+    }
     break ;
   }
-      
+
+printf("mr: %d %d %d\n", xdim, ydim, zdim);      
+printf("mr: %g %g %g\n", mri_src->x_r, mri_src->x_a, mri_src->x_s);
+printf("mr: %g %g %g\n", mri_src->y_r, mri_src->y_a, mri_src->y_s);
+printf("mr: %g %g %g\n", mri_src->z_r, mri_src->z_a, mri_src->z_s);
+printf("mr: %g %g %g\n", mri_dst->x_r, mri_dst->x_a, mri_dst->x_s);
+printf("mr: %g %g %g\n", mri_dst->y_r, mri_dst->y_a, mri_dst->y_s);
+printf("mr: %g %g %g\n", mri_dst->z_r, mri_dst->z_a, mri_dst->z_s);
+
+
   for (zs = 0 ; zs < depth ; zs++)
   {
     if (zdim < 0)
@@ -2456,7 +2534,6 @@ MRIreorder(MRI *mri_src, MRI *mri_dst, int xdim, int ydim, int zdim)
       }
     }
   }
-  mri_dst->ras_good_flag = 0;
   return(mri_dst) ;
 }
 
@@ -2756,6 +2833,31 @@ genesisRead(char *fname, int read_volume, int frame)
     /* must be each of 1, 2, and 3 in some order */
     if(xmax + ymax + zmax != 6 || xmax * ymax * zmax != 6)
       ErrorReturn(NULL, (ERROR_BADPARM, "genesisRead(%s): error interpreting slice direction", fname));
+    /* assign {xyz}_{ras} coordinates */
+/*
+    mri->x_r = x_vec[0] / mri->width;
+    mri->x_a = x_vec[1] / mri->width;
+    mri->x_s = x_vec[2] / mri->width;
+    mri->y_r = y_vec[0] / mri->depth;
+    mri->y_a = y_vec[1] / mri->depth;
+    mri->y_s = y_vec[2] / mri->depth;
+    mri->z_r = z_vec[0];
+    mri->z_a = z_vec[1];
+    mri->z_s = z_vec[2];
+*/
+    mri->x_r = x_vec[0] / mri->width;
+    mri->x_a = x_vec[1] / mri->width;
+    mri->x_s = x_vec[2] / mri->width;
+    mri->y_r = y_vec[0] / mri->height;
+    mri->y_a = y_vec[1] / mri->height;
+    mri->y_s = y_vec[2] / mri->height;
+    mri->z_r = z_vec[0];
+    mri->z_a = z_vec[1];
+    mri->z_s = z_vec[2];
+    mri->c_r = top_left[0][0] + x_vec[0] / 2 + y_vec[0] / 2 + z_vec[0] * mri->depth / 2;
+    mri->c_a = top_left[0][1] + x_vec[1] / 2 + y_vec[1] / 2 + z_vec[1] * mri->depth / 2;
+    mri->c_s = top_left[0][2] + x_vec[2] / 2 + y_vec[2] / 2 + z_vec[2] * mri->depth / 2;
+    mri->ras_good_flag = 1;
 
   } /* end if(read_volume) */
 
