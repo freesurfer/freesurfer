@@ -613,7 +613,7 @@ AC_CHECK_LIB([BLT],[Blt_Init],
     [LIB_BLT=-lBLT.2],
     [
 # check BLT24 (Fedora)
-      AC_CHECK_LIB([BLT24],[BLT_Init],
+      AC_CHECK_LIB([BLT24],[Blt_Init],
       [LIB_BLT=-lBLT24], 
           [AC_MSG_ERROR("FATAL: libBLT not found. check config.log.  Set LDFLAGS or --with-BLT-dir.")
       ])
