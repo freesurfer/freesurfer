@@ -16,17 +16,23 @@
 
 int main(int argc, char *argv[]) ;
 static int get_option(int argc, char *argv[]) ;
+static int postprocess(GCSA *gcsa, MRI_SURFACE *mris) ;
 
 char *Progname ;
 static void usage_exit(int code) ;
 
+static char *read_fname = NULL ;
 static int nbrs = 2 ;
-static int navgs = 25 ;
+static int filter = 10 ;
 static char *orig_name = "smoothwm" ;
 
+#if 0
+static int normalize_flag = 0 ;
+static int navgs = 5 ;
 static char *curv_name = "curv" ;
 static char *thickness_name = "thickness" ;
 static char *sulc_name = "sulc" ;
+#endif
 
 static char subjects_dir[STRLEN] ;
 extern char *gcsa_write_fname ;
@@ -37,7 +43,7 @@ main(int argc, char *argv[])
 {
   char         **av, fname[STRLEN], *out_fname, *subject_name, *cp,*hemi,
                *canon_surf_name ;
-  int          ac, nargs ;
+  int          ac, nargs, i ;
   int          msec, minutes, seconds ;
   struct timeb start ;
   MRI_SURFACE  *mris ;
@@ -90,6 +96,35 @@ main(int argc, char *argv[])
   if (MRISreadCanonicalCoordinates(mris, canon_surf_name) != NO_ERROR)
     ErrorExit(ERROR_NOFILE, "%s: could not read annot file %s for %s",
               Progname, canon_surf_name, subject_name) ;
+#if 1
+  for (i = gcsa->ninputs-1 ; i >= 0 ; i--)
+  {
+    printf("input %d: %s, flags %0x, avgs %d, name %s\n",
+           i, gcsa->inputs[i].type == GCSA_INPUT_CURV_FILE ? 
+           "CURVATURE FILE" : "MEAN CURVATURE", 
+           gcsa->inputs[i].flags, 
+           gcsa->inputs[i].navgs, gcsa->inputs[i].fname) ;
+    switch (gcsa->inputs[i].type)
+    {
+    case GCSA_INPUT_CURV_FILE:
+      if (MRISreadCurvature(mris, gcsa->inputs[i].fname) != NO_ERROR)
+        ErrorExit(ERROR_NOFILE, "%s: could not read curv file %s for %s",
+                  Progname, gcsa->inputs[i].fname, subject_name) ;
+      break ;
+    case GCSA_INPUT_CURVATURE:
+      MRISuseMeanCurvature(mris) ;
+      MRISaverageCurvatures(mris, gcsa->inputs[i].navgs) ;
+      break ;
+    }
+    if (gcsa->inputs[i].flags & GCSA_NORMALIZE)
+      MRISnormalizeCurvature(mris) ;
+    MRIScopyCurvatureToValues(mris) ;
+    if (i == 2)
+      MRIScopyCurvatureToImagValues(mris) ;
+    else if (i == 1)
+      MRIScopyValToVal2(mris) ;
+  }
+#else
   if (gcsa->ninputs > 2)
   {
     if (MRISreadCurvature(mris, thickness_name) != NO_ERROR)
@@ -97,7 +132,7 @@ main(int argc, char *argv[])
                 Progname, thickness_name, subject_name) ;
     MRIScopyCurvatureToImagValues(mris) ;
   }
-  if (gcsa->ninputs > 1)
+  if (gcsa->ninputs > 1 || sulconly)
   {
     if (MRISreadCurvature(mris, sulc_name) != NO_ERROR)
       ErrorExit(ERROR_NOFILE, "%s: could not read curv file %s for %s",
@@ -105,25 +140,46 @@ main(int argc, char *argv[])
     MRIScopyCurvatureToValues(mris) ;
     MRIScopyValToVal2(mris) ;
   }
-  
+
+  if (!sulconly)
+  {
 #if 0
-  if (MRISreadCurvature(mris, curv_name) != NO_ERROR)
-    ErrorExit(ERROR_NOFILE, "%s: could not read curv file %s for %s",
-              Progname, sulc_name, subject_name) ;
+    if (MRISreadCurvature(mris, curv_name) != NO_ERROR)
+      ErrorExit(ERROR_NOFILE, "%s: could not read curv file %s for %s",
+                Progname, sulc_name, subject_name) ;
 #else
-  MRISuseMeanCurvature(mris) ;
-  MRISaverageCurvatures(mris, navgs) ;
+    MRISuseMeanCurvature(mris) ;
+    MRISaverageCurvatures(mris, navgs) ;
 #endif
-  MRIScopyCurvatureToValues(mris) ;
+    MRIScopyCurvatureToValues(mris) ;
+  }
+#endif
+
+
   MRISrestoreVertexPositions(mris, CANONICAL_VERTICES) ;
   MRISprojectOntoSphere(mris, mris, DEFAULT_RADIUS) ;
   MRISsaveVertexPositions(mris, CANONICAL_VERTICES) ;
 
-  printf("labeling surface...\n") ;
-  GCSAlabel(gcsa, mris) ;
-  printf("relabeling using gibbs priors...\n") ;
-  GCSAreclassifyUsingGibbsPriors(gcsa, mris) ;
+  if (!read_fname)
+  {
+    printf("labeling surface...\n") ;
+    GCSAlabel(gcsa, mris) ;
+    printf("relabeling using gibbs priors...\n") ;
+    GCSAreclassifyUsingGibbsPriors(gcsa, mris) ;
+    postprocess(gcsa, mris) ;
+    if (gcsa_write_iterations != 0)
+    {
+      char fname[STRLEN] ;
+      sprintf(fname, "%s_post.annot", gcsa_write_fname) ;
+      printf("writing snapshot to %s...\n", fname) ;
+      MRISwriteAnnotation(mris, fname) ;
+    }
+  }
+  else
+    MRISreadAnnotation(mris, read_fname) ;
 
+  MRISmodeFilterAnnotations(mris, filter) ;
+    
   printf("writing output to %s...\n", out_fname) ;
   if (MRISwriteAnnotation(mris, out_fname) != NO_ERROR)
     ErrorExit(ERROR_NOFILE, "%s: could not write annot file %s for %s",
@@ -163,6 +219,18 @@ get_option(int argc, char *argv[])
     nargs = 1 ;
     printf("using %s as original surface\n", orig_name) ;
   }
+#if 0
+  else if (!stricmp(option, "NORM"))
+  {
+    normalize_flag = 1 ;
+    printf("normalizing sulc after reading...\n") ;
+  }
+  else if (!stricmp(option, "SULC"))
+  {
+    sulconly = 1 ;
+    printf("using sulc as only input....\n") ;
+  }
+#endif
   else if (!stricmp(option, "nbrs"))
   {
     nbrs = atoi(argv[2]) ;
@@ -171,9 +239,16 @@ get_option(int argc, char *argv[])
   }
   else switch (toupper(*option))
   {
+#if 0
   case 'A':
     navgs = atoi(argv[2]) ;
     nargs = 1 ;
+    break ;
+#endif
+  case 'F':
+    filter = atoi(argv[2]) ;
+    nargs = 1 ;
+    printf("applying mode filter %d times before writing...\n", filter) ;
     break ;
   case 'V':
     Gdiag_no = atoi(argv[2]) ;
@@ -185,6 +260,11 @@ get_option(int argc, char *argv[])
     nargs = 2 ;
     printf("writing out snapshots of gibbs process every %d iterations to %s\n"
            ,gcsa_write_iterations, gcsa_write_fname) ;
+    break ;
+  case 'R':
+    read_fname = argv[2] ;
+    nargs = 1 ;
+    printf("reading precomputed parcellation from %s...\n", read_fname) ;
     break ;
   case '?':
   case 'U':
@@ -210,3 +290,68 @@ usage_exit(int code)
          "<classifier> <output file>\n", Progname) ;
   exit(code) ;
 }
+static int
+postprocess(GCSA *gcsa, MRI_SURFACE *mris)
+{
+  LABEL       **larray, *area ;
+  int         nlabels, i, j, annotation, n, nchanged, niter = 0, deleted ;
+  double      max_area, label_area ;
+
+#define MAX_ITER 5
+
+  do
+  {
+    deleted = nchanged  = 0 ;
+    MRISsegmentAnnotated(mris, &larray, &nlabels, 0) ;
+    /*    printf("%d total segments in Gibbs annotation\n", nlabels) ;*/
+    MRISclearMarks(mris) ;
+    for (i = 0 ; i < nlabels ; i++)
+    {
+      area = larray[i] ;
+      if (!area)   /* already processed */
+        continue ;
+      annotation = mris->vertices[area->lv[0].vno].annotation ;
+      
+      /* find label with this annotation with max area */
+      max_area = LabelArea(area, mris) ;
+      for (n = 1, j = i+1 ; j < nlabels ; j++)
+      {
+        if (!larray[j])
+          continue ;
+        if (annotation != mris->vertices[larray[j]->lv[0].vno].annotation)
+          continue ;
+        n++ ;
+        label_area = LabelArea(larray[j], mris) ;
+        if (label_area > max_area)
+          max_area = label_area ;
+      }
+#if 0
+      printf("%03d: annotation %s (%d): %d segments, max area %2.1f\n", 
+             niter, annotation_to_name(annotation, NULL), 
+             annotation, n, max_area) ;
+#endif
+      for (j = i ; j < nlabels ; j++)
+      {
+        if (!larray[j])
+          continue ;
+        if (annotation != mris->vertices[larray[j]->lv[0].vno].annotation)
+          continue ;
+        
+#define MIN_AREA_PCT   0.1
+        label_area = LabelArea(larray[j], mris) ;
+        if (label_area < MIN_AREA_PCT*max_area)
+        {
+          /*          printf("relabeling annot %2.1f mm area...\n", label_area) ;*/
+          nchanged += GCSAreclassifyLabel(gcsa, mris, larray[j]) ;
+          deleted++ ;
+        }
+        LabelFree(&larray[j]) ;
+      }
+    }
+    free(larray) ;
+    printf("%03d: %d total segments, %d labels (%d vertices) changed\n",
+           niter, nlabels, deleted, nchanged) ;
+  } while (nchanged > 0 && niter++ < MAX_ITER) ;
+  return(NO_ERROR) ;
+}
+
