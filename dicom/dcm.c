@@ -86,9 +86,9 @@
 **	and convert the object to and from its "stream" representation.
 **	In addition, the package can parse a file which contains a stream
 **	and create its internal object.
-** Last Update:		$Author: tosa $, $Date: 2004/09/30 15:37:48 $
+** Last Update:		$Author: tosa $, $Date: 2004/12/16 21:35:26 $
 ** Source File:		$RCSfile: dcm.c,v $
-** Revision:		$Revision: 1.16 $
+** Revision:		$Revision: 1.17 $
 ** Status:		$State: Exp $
 */
 
@@ -4192,7 +4192,22 @@ swapInPlace(PRIVATE_OBJECT ** object, DCM_ELEMENT * e)
 	    p1 += 2;
 	    length -= 2;
 	}
-    } else if (e->representation == DCM_UL || e->representation == DCM_SL) {
+    } 
+    else if (e->representation == DCM_UL || e->representation == DCM_SL) {
+
+      // there are cases where the representaiton is UL but length were
+      // not divisible by 4!   In this way, at least it reads the length
+      // specified
+
+	while (length > 0) {
+	    tmp = p1[0];
+	    p1[0] = p1[1];
+	    p1[1] = tmp;
+	    p1 += 2;
+	    length -= 2;
+	}
+
+#if 0
 	while (length > 0) {
 	    tmp = p1[0];
 	    p1[0] = p1[3];
@@ -4203,6 +4218,7 @@ swapInPlace(PRIVATE_OBJECT ** object, DCM_ELEMENT * e)
 	    length -= 4;
 	    p1 += 4;
 	}
+#endif
     }
 }
 
