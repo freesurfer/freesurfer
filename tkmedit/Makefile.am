@@ -2,7 +2,7 @@
 ## Makefile.am 
 ##
 # Makefile.am specify i addtion to the standard
-AM_CPPFLAGS=$(GLUT_CFLAGS) $(tcl_includes) -I$(top_srcdir)/include -I$(top_srcdir)/dicom
+AM_CPPFLAGS=$(GLUT_CFLAGS) $(TCL_CFLAGS) $(tcl_includes) -I$(top_srcdir)/include -I$(top_srcdir)/dicom
 AM_LDFLAGS=-L$(top_srcdir)/lib
 
 bin_PROGRAMS = tkmedit
