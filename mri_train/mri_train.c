@@ -28,6 +28,7 @@ static int get_option(int argc, char *argv[]) ;
 #define NCLUSTERS  6
 
 static int nclusters = 0 ;
+static int train_cpolv = 0 ;
 
 static RBF_PARMS rbf_parms =
 {
@@ -38,7 +39,7 @@ main(int argc, char *argv[])
 {
   MRIC    *mric ;
   char    *training_file_name, *output_file_name ;
-  int     nargs ;
+  int     nargs, error ;
 
   Progname = argv[0] ;
   DiagInit(NULL, NULL, NULL) ;
@@ -64,11 +65,26 @@ main(int argc, char *argv[])
     rbf_parms.max_clusters[WHITE_MATTER] = nclusters ;
     rbf_parms.max_clusters[BORDER_MATTER] = nclusters ;
   }
+  else
+    nclusters = NCLUSTERS ;
+
+  if (train_cpolv)
+  {
+    rbf_parms.max_clusters[CSF] = nclusters ;
+    rbf_parms.max_clusters[GRAY_MATTER] = 0 ;
+    rbf_parms.max_clusters[WHITE_MATTER] = nclusters/2 ;
+    rbf_parms.max_clusters[BORDER_MATTER] = nclusters/2 ;
+    rbf_parms.max_clusters[BRIGHT_MATTER] = 0 ;
+  }
+
   mric = MRICalloc(1, &classifier, &features, (void *)&rbf_parms) ;
   if ((strlen(priors_fname) > 1) && stricmp(priors_fname, "none"))
-    MRICtrain(mric, training_file_name, priors_fname) ;
+    error = MRICtrain(mric, training_file_name, priors_fname) ;
   else
-    MRICtrain(mric, training_file_name, NULL) ;
+    error = MRICtrain(mric, training_file_name, NULL) ;
+
+  if (error != NO_ERROR)
+    ErrorExit(error, "training failed.\n") ;
 
   MRICwrite(mric, output_file_name) ;
   MRICfree(&mric) ;
@@ -86,7 +102,9 @@ get_option(int argc, char *argv[])
   char *option ;
   
   option = argv[1] + 1 ;            /* past '-' */
-  switch (toupper(*option))
+  if (!stricmp(option, "cpolv"))
+    train_cpolv = 1 ;
+  else switch (toupper(*option))
   {
   case 'V':
     verbose = !verbose ;
