@@ -485,7 +485,7 @@ XVshowImage(XV_FRAME *xvf, int which, IMAGE *image, int frame)
   dimage->xscale = xscale ;
   dimage->yscale = yscale ;
 
-  if (!ImageCheckSize(image, GtmpFloatImage, image->cols, image->rows, 1))
+  if (!ImageCheckSize(image, GtmpFloatImage, image->rows, image->cols, 1))
   {
     if (GtmpFloatImage)
       ImageFree(&GtmpFloatImage) ;
@@ -494,7 +494,7 @@ XVshowImage(XV_FRAME *xvf, int which, IMAGE *image, int frame)
   else
     ImageSetSize(GtmpFloatImage, image->rows, image->cols) ;
 
-  if (!ImageCheckSize(dimage->dispImage, GtmpByteImage, scols, srows, 1))
+  if (!ImageCheckSize(dimage->dispImage, GtmpByteImage, srows, scols, 1))
   {
     if (GtmpByteImage)
       ImageFree(&GtmpByteImage) ;
