@@ -17,6 +17,7 @@ typedef struct
   float      neck_dz ;
 } NECK_PARMS ;
 
+#define MAX_LEVELS 10
 typedef struct
 {
   double     l_intensity ;   /* coefficient of intensity term */
@@ -46,6 +47,15 @@ typedef struct
   int        morph_skull ;
   int        disable_neck ;
   MRI        *mri_red_in, *mri_red_ref ;  /* current (reduced) volumes */
+  MATRIX     *m_xform_mean ;        /* cross-subject mean of xform parms */
+  MATRIX     *m_xform_covariance ;  /* covariance matrix of xform parms */
+  MATRIX     *m_inv_cov ;           /* inverse of above */
+  double     l_priors ;             /* weighting given to priors term */
+  MATRIX     **m_xforms ;           /* one per subject in  priors */
+  int        nxforms ;              /* size of previous array */
+  int        max_levels ;
+  MRI        *mri_crop ;            /* boolean image 1=cropped region */
+  int        scout_flag ;
 } MORPH_PARMS, MP ;
 
 
