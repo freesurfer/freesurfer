@@ -14,7 +14,7 @@
 #include "version.h"
 #include "gcsa.h"
 
-static char vcid[] = "$Id: mris_register.c,v 1.23 2005/02/05 19:31:06 segonne Exp $";
+static char vcid[] = "$Id: mris_register.c,v 1.24 2005/02/05 23:37:59 segonne Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -56,6 +56,9 @@ static int multiframes = 0;
 #define NUMBER_OF_FRAMES NUMBER_OF_FIELDS_IN_VECTORIAL_REGISTRATION
 #define PARAM_FRAMES  (IMAGES_PER_SURFACE*NUMBER_OF_FRAMES)
 
+static void initParms(void);
+static void setParms(void);
+
 static int use_defaults = 1 ;
 
 static INTEGRATION_PARMS  parms ;
@@ -69,7 +72,7 @@ main(int argc, char *argv[])
   MRI_SP       *mrisp_template ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_register.c,v 1.23 2005/02/05 19:31:06 segonne Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_register.c,v 1.24 2005/02/05 23:37:59 segonne Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -124,36 +127,6 @@ main(int argc, char *argv[])
   surf_fname = argv[1] ;
   template_fname = argv[2] ;
   out_fname = argv[3] ;
-
-	if(multiframes){ /* vectorial registration */
-		parms.l_corr=parms.l_pcorr=0.0f; 
-		parms.flags |= IP_USE_MULTIFRAMES; 
-		parms.ncorrs=NUMBER_OF_FRAMES;
-		parms.corrfields[0]=INFLATED_CURV_CORR_FRAME ; parms.frames[0]=0;parms.l_corrs[0]=0.0f;parms.l_pcorrs[0]=0.0f;
-		parms.corrfields[1]=SULC_CORR_FRAME;parms.frames[1]=1;parms.l_corrs[1]=1.0f;parms.l_pcorrs[1]=0.0f;
-		parms.corrfields[2]=CURVATURE_CORR_FRAME;parms.frames[2]=2;parms.l_corrs[2]=1.0f;parms.l_pcorrs[2]=0.0f;
-		parms.corrfields[3]=GRAYMID_CORR_FRAME;parms.frames[3]=3;parms.l_corrs[3]=1.0f;parms.l_pcorrs[3]=0.0f;
-		parms.corrfields[4]=AMYGDALA_CORR_FRAME;parms.frames[4]=4;parms.l_corrs[4]=10.0f;parms.l_pcorrs[4]=0.0f;    /* amygdala */
-		parms.corrfields[5]=HIPPOCAMPUS_CORR_FRAME;parms.frames[5]=5;parms.l_corrs[5]=10.0f;parms.l_pcorrs[5]=0.0f; /* hippocampus */
-		parms.corrfields[6]=PALLIDUM_CORR_FRAME;parms.frames[6]=6;parms.l_corrs[6]=1.0f;parms.l_pcorrs[6]=0.0f;
-		parms.corrfields[7]=PUTAMEN_CORR_FRAME;parms.frames[7]=7;parms.l_corrs[7]=10.0f;parms.l_pcorrs[7]=0.0f;    /* putamen */
-		parms.corrfields[8]=CAUDATE_CORR_FRAME;parms.frames[8]=8;parms.l_corrs[8]=10.0f;parms.l_pcorrs[8]=0.0f;    /* caudate */
-		parms.corrfields[9]=LAT_VENTRICLE_CORR_FRAME;parms.frames[9]=9;parms.l_corrs[9]=1.0f;parms.l_pcorrs[9]=0.0f;
-		parms.corrfields[10]=INF_LAT_VENTRICLE_CORR_FRAME;parms.frames[10]=10;parms.l_corrs[10]=1.0f;parms.l_pcorrs[10]=0.0f;
-		
-
-#if 0
-		{ // TEST XXX 
-			int n;
-			for( n = 0 ; n < NUMBER_OF_FRAMES ; n++)
-				parms.l_corrs[n]=parms.l_pcorrs[n]=0.0f;
-			parms.l_corrs[2]=1.0f;parms.l_corrs[5]=100.0f; // curv only
-			parms.l_corrs[7]=100.0f;parms.l_corrs[6]=100.0f;
-			parms.l_corrs[8]=100.0f;parms.l_corrs[9]=100.0f;
-		}
-#endif
-	}
-
 
   if (parms.base_name[0] == 0)
   {
@@ -269,7 +242,48 @@ get_option(int argc, char *argv[])
 	else if (!stricmp(option, "vector"))
   {
     multiframes = 1 ;
+		setParms();
     fprintf(stderr, "using vectorial registration \n") ;
+  }
+	else if (!stricmp(option, "hippocampus"))
+  {
+		if(multiframes==0){
+			multiframes = 1 ;
+			initParms();
+		}
+		parms.l_corrs[5]=atof(argv[2]);
+    fprintf(stderr, "using hippocampus distance map\n") ;
+		nargs=1;
+  }
+	else if (!stricmp(option, "curvature"))
+  {
+		if(multiframes==0){
+			multiframes = 1 ;
+			initParms();
+		}
+		parms.l_corrs[2]=atof(argv[2]);
+    fprintf(stderr, "using curvature map \n") ;
+		nargs=1;
+  }
+	else if (!stricmp(option, "sulcus"))
+  {
+		if(multiframes==0){
+			multiframes = 1 ;
+			initParms();
+		}
+		parms.l_corrs[1]=atof(argv[2]);
+    fprintf(stderr, "using sulcal depth map \n") ;
+		nargs=1;
+  }
+	else if (!stricmp(option, "amygdala"))
+  {
+		if(multiframes==0){
+			multiframes = 1 ;
+			initParms();
+		}
+		parms.l_corrs[4]=atof(argv[2]);
+    fprintf(stderr, "using amygdala distance map \n") ;
+		nargs=1;
   }
   else if (!stricmp(option, "vnum") || !stricmp(option, "distances"))
   {
@@ -618,3 +632,41 @@ gcsaSSE(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
 	return(sse) ;
 }
 
+void initParms(void){
+	int n;
+	parms.l_corr=parms.l_pcorr=0.0f; 
+	parms.flags |= IP_USE_MULTIFRAMES; 
+	parms.ncorrs=NUMBER_OF_FRAMES;
+	parms.corrfields[0]=INFLATED_CURV_CORR_FRAME ; parms.frames[0]=0;
+	parms.corrfields[1]=SULC_CORR_FRAME;parms.frames[1]=1;
+	parms.corrfields[2]=CURVATURE_CORR_FRAME;parms.frames[2]=2;
+	parms.corrfields[3]=GRAYMID_CORR_FRAME;parms.frames[3]=3;
+	parms.corrfields[4]=AMYGDALA_CORR_FRAME;parms.frames[4]=4;
+	parms.corrfields[5]=HIPPOCAMPUS_CORR_FRAME;parms.frames[5]=5;
+	parms.corrfields[6]=PALLIDUM_CORR_FRAME;parms.frames[6]=6;
+	parms.corrfields[7]=PUTAMEN_CORR_FRAME;parms.frames[7]=7;
+	parms.corrfields[8]=CAUDATE_CORR_FRAME;parms.frames[8]=8;
+	parms.corrfields[9]=LAT_VENTRICLE_CORR_FRAME;parms.frames[9]=9;
+	parms.corrfields[10]=INF_LAT_VENTRICLE_CORR_FRAME;parms.frames[10]=10;
+	for(n = 0 ; n < NUMBER_OF_FRAMES;n++){
+		parms.frames[n]=n;
+		parms.l_corrs[n]=parms.l_pcorrs[n]=0.0f;
+	}
+}
+
+void setParms(void){
+	parms.l_corr=parms.l_pcorr=0.0f; 
+	parms.flags |= IP_USE_MULTIFRAMES; 
+	parms.ncorrs=NUMBER_OF_FRAMES;
+	parms.corrfields[0]=INFLATED_CURV_CORR_FRAME ; parms.frames[0]=0;parms.l_corrs[0]=0.0f;parms.l_pcorrs[0]=0.0f;
+		parms.corrfields[1]=SULC_CORR_FRAME;parms.frames[1]=1;parms.l_corrs[1]=1.0f;parms.l_pcorrs[1]=0.0f;
+		parms.corrfields[2]=CURVATURE_CORR_FRAME;parms.frames[2]=2;parms.l_corrs[2]=1.0f;parms.l_pcorrs[2]=0.0f;
+		parms.corrfields[3]=GRAYMID_CORR_FRAME;parms.frames[3]=3;parms.l_corrs[3]=1.0f;parms.l_pcorrs[3]=0.0f;
+		parms.corrfields[4]=AMYGDALA_CORR_FRAME;parms.frames[4]=4;parms.l_corrs[4]=10.0f;parms.l_pcorrs[4]=0.0f;    /* amygdala */
+		parms.corrfields[5]=HIPPOCAMPUS_CORR_FRAME;parms.frames[5]=5;parms.l_corrs[5]=10.0f;parms.l_pcorrs[5]=0.0f; /* hippocampus */
+		parms.corrfields[6]=PALLIDUM_CORR_FRAME;parms.frames[6]=6;parms.l_corrs[6]=1.0f;parms.l_pcorrs[6]=0.0f;
+		parms.corrfields[7]=PUTAMEN_CORR_FRAME;parms.frames[7]=7;parms.l_corrs[7]=10.0f;parms.l_pcorrs[7]=0.0f;    /* putamen */
+		parms.corrfields[8]=CAUDATE_CORR_FRAME;parms.frames[8]=8;parms.l_corrs[8]=10.0f;parms.l_pcorrs[8]=0.0f;    /* caudate */
+		parms.corrfields[9]=LAT_VENTRICLE_CORR_FRAME;parms.frames[9]=9;parms.l_corrs[9]=1.0f;parms.l_pcorrs[9]=0.0f;
+		parms.corrfields[10]=INF_LAT_VENTRICLE_CORR_FRAME;parms.frames[10]=10;parms.l_corrs[10]=1.0f;parms.l_pcorrs[10]=0.0f;
+}

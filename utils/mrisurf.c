@@ -4,8 +4,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: segonne $
-// Revision Date  : $Date: 2005/02/05 19:26:27 $
-// Revision       : $Revision: 1.324 $
+// Revision Date  : $Date: 2005/02/05 23:37:40 $
+// Revision       : $Revision: 1.325 $
 //////////////////////////////////////////////////////////////////
 #include <stdio.h>
 #include <string.h>
@@ -4543,6 +4543,8 @@ int MRISvectorRegister(MRI_SURFACE *mris, MRI_SP *mrisp_template,
 	}
 	if(!nframes) return NO_ERROR;
 
+	fprintf(stderr,"MRISvectorRegister will use %d fields\n",nframes);
+
 	indices =(int*)malloc(nframes*sizeof(int));
   frames=(int*)malloc(2*nframes*sizeof(int));
 	for ( nf = n = 0 ; n < parms->ncorrs ; n++ ) {
@@ -4569,7 +4571,7 @@ int MRISvectorRegister(MRI_SURFACE *mris, MRI_SP *mrisp_template,
 	/* load the fields into vertex->vp */
 	for(n = 0 ; n < ncorrs ; n++){
 		
-		fprintf(stderr,"loading field %d...\n",n);
+		fprintf(stderr,"loading field %d with correlation coefficiens ( %2.1f , %2.1f )...\n",n,parms->l_corrs[n],parms->l_pcorrs[n]);
 		if (FRAME_FIELD_NAMES[parms->corrfields[n]]){  /* read in precomputed curvature file */
 			sprintf(fname, "%s.%s", 
 							mris->hemisphere == RIGHT_HEMISPHERE ? "rh":"lh", 
@@ -4647,7 +4649,7 @@ int MRISvectorRegister(MRI_SURFACE *mris, MRI_SP *mrisp_template,
 	
 #if (!DEBUG_NO_BLURRING)
 		/* blurring only the used frames */
-		fprintf(stderr,"blurring target fields (means and variances)...\n");
+		fprintf(stderr,"blurring %d target fields (means and variances)...\n",nframes);
 		if (*IMAGEFseq_pix(mrisp_template->Ip, 0, 0, 2) <= 1.0)  /* 1st time */
 			MRISPblurFrames(mrisp_template, parms->mrisp_template, sigma, frames, nframes); /* means only */
 		else
@@ -4659,7 +4661,7 @@ int MRISvectorRegister(MRI_SURFACE *mris, MRI_SP *mrisp_template,
 		/* normalize mean (only) intensities for target */
 		MRISfromParameterizations(parms->mrisp_template, mris, frames,indices , nframes);
 		for( n = 0 ; n < nframes ; n++){
-			fprintf(stderr,"normalized target field %d...\n",n);
+			fprintf(stderr,"normalized target field %d (-> %d)...\n",n,indices[n]);
 			MRISsetValuesToCurvatures(mris,indices[n]);
 			MRISnormalizeField(mris,IS_DISTANCE_FIELD(parms->corrfields[indices[n]])) ;
 			MRISsetCurvaturesToValues(mris,indices[n]);
@@ -4682,7 +4684,7 @@ int MRISvectorRegister(MRI_SURFACE *mris, MRI_SP *mrisp_template,
 	  MRIStoParameterizations(mris, mrisp  , 1 , frames, indices, nframes);  
 #if (!DEBUG_NO_BLURRING)
 			/* blur source intensities for frame #n */
-		fprintf(stderr,"blurring source field (means only)...\n");
+		fprintf(stderr,"blurring %d source field (means only)...\n",nframes);
 		MRISPblurFrames(mrisp , parms->mrisp , sigma , frames, nframes) ; /* only mean fields */
 #else
 		parms->mrisp = MRISPclone(mrisp);
@@ -4692,7 +4694,7 @@ int MRISvectorRegister(MRI_SURFACE *mris, MRI_SP *mrisp_template,
 		/* normalize mean intensities for source */
 		MRISfromParameterizations(parms->mrisp, mris, frames,indices,nframes);
 		for( n = 0 ; n < nframes ; n++){
-			fprintf(stderr,"normalized source field %d...\n",n);
+			fprintf(stderr,"normalized source field %d (-> %d)...\n",n,indices[n]);
 			MRISsetValuesToCurvatures(mris,indices[n]);
 			MRISnormalizeField(mris,IS_DISTANCE_FIELD(parms->corrfields[indices[n]])) ;
 			MRISsetCurvaturesToValues(mris,indices[n]);
