@@ -304,6 +304,7 @@ int read_surface(char *fname) ;
 void show_orig_surface(void) ;
 void show_current_surface(void) ;
 int read_orig_vertex_positions(char *name) ;
+int read_canonical_vertex_positions(char *fname) ;
 int read_binary_surf(char *fname) ;
 int show_vertex(void) ;
 int dump_vertex(int vno) ;
@@ -3913,26 +3914,44 @@ show_orig_surface(void)
   redraw() ;
 }
 void
+show_canonical_surface(void)
+{
+  MRISrestoreVertexPositions(mris, CANONICAL_VERTICES) ;
+  redraw() ;
+}
+void
 show_current_surface(void)
 {
   MRISrestoreVertexPositions(mris, TMP_VERTICES) ;
   redraw() ;
 }
 
+int 
+read_canonical_vertex_positions(char *fname)
+{
+  if (!mris)
+    return(NO_ERROR) ;
+
+  if (MRISreadVertexPositions(mris, fname) != NO_ERROR)
+  {
+    fprintf(stderr, "could not read canonical vertex positions from %s\n",fname);
+    return(Gerror) ;
+  }
+  MRISsaveVertexPositions(mris, CANONICAL_VERTICES) ;
+  return(NO_ERROR) ;
+}
 int
 read_orig_vertex_positions(char *name)
 {
   if (!mris)
     return(NO_ERROR) ;
 
-  MRISsaveVertexPositions(mris, TMP_VERTICES) ;
   if (MRISreadVertexPositions(mris, name) != NO_ERROR)
   {
     fprintf(stderr, "could not read original vertex positions from %s\n",name);
     return(Gerror) ;
   }
   MRISsaveVertexPositions(mris, ORIG_VERTICES) ;
-  MRISrestoreVertexPositions(mris, TMP_VERTICES) ;
   return(NO_ERROR) ;
 }
 
@@ -4067,6 +4086,7 @@ read_binary_surface(char *fname)
   curvloaded = FALSE;
   fieldsignflag = FALSE;
   fieldsignloaded = FALSE;
+  MRISsaveVertexPositions(mris, TMP_VERTICES) ;
   return(0);
 }
 void
@@ -5431,9 +5451,17 @@ int                  W_read_orig_vertex_positions  WBEGIN
   ERR(2,"Wrong # args: read_orig_vertex_positions <surface file>")
                        read_orig_vertex_positions(argv[1]); WEND
 
+int                  W_read_canonical_vertex_positions  WBEGIN
+  ERR(2,"Wrong # args: read_canonical_vertex_positions <surface file>")
+                       read_canonical_vertex_positions(argv[1]); WEND
+
 int                  W_show_current_surface  WBEGIN
   ERR(1,"Wrong # args: show_current_surface ")
                        show_current_surface(); WEND
+
+int                  W_show_canonical_surface  WBEGIN
+  ERR(1,"Wrong # args: show_canonical_surface ")
+                       show_canonical_surface(); WEND
 
 int                  W_show_orig_surface  WBEGIN
   ERR(1,"Wrong # args: show_orig_surface ")
@@ -5593,9 +5621,12 @@ char **argv;
   Tcl_CreateCommand(interp, "read_surface",       W_read_surface,   REND);
   Tcl_CreateCommand(interp, "read_orig_vertex_positions",       
                     W_read_orig_vertex_positions,   REND);
+  Tcl_CreateCommand(interp, "read_canonical_vertex_positions",       
+                    W_read_canonical_vertex_positions,   REND);
 
   Tcl_CreateCommand(interp, "orig",               W_show_orig_surface,REND);
-  Tcl_CreateCommand(interp, "current",             W_show_current_surface,REND);
+  Tcl_CreateCommand(interp, "canonical",          W_show_canonical_surface,REND);
+  Tcl_CreateCommand(interp, "current",            W_show_current_surface,REND);
   
   Tcl_CreateCommand(interp, "wmfilter_corslice",  W_wmfilter_corslice,  REND);
   Tcl_CreateCommand(interp, "norm_slice",         W_norm_slice,         REND);
