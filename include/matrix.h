@@ -179,6 +179,9 @@ float MatrixTrace(MATRIX *M);
 MATRIX *MatrixVertCat(MATRIX *m1, MATRIX *m2, MATRIX *mcat);
 MATRIX *MatrixHorCat(MATRIX *m1, MATRIX *m2, MATRIX *mcat);
 
+MATRIX *MatrixConstVal(float val, int rows, int cols, MATRIX *X);
+MATRIX *MatrixZero(int rows, int cols, MATRIX *X);
+
 #endif
 
 
