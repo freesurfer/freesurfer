@@ -28,12 +28,12 @@ extern double oglu_fov ;
 #define LIGHT_OFFSET  0.25
 
 #define MARK_WHITE          1
-#define MARK_RED            2
-#define MARK_GREEN          3
-#define MARK_YELLOW         4
-#define MARK_BLUE           5
-#define MARK_PURPLE         6
-#define MARK_LIGHTGREEN     7
-#define MARK_ORANGE         8
+#define MARK_YELLOW         2
+#define MARK_BLUE           3
+#define MARK_PURPLE         4
+#define MARK_LIGHTGREEN     5
+#define MARK_ORANGE         6
+#define MARK_RED            7
+#define MARK_GREEN          8
 
 #endif
