@@ -6450,7 +6450,8 @@ m3dMorphSkull(MORPH_3D *m3d, MRI_SURFACE *mris_in_skull,
   mht_ref = MHTfillTable(mris_ref_skull, NULL) ;
 
   /* find morph coordinates of ref origin */
-  MRIworldToVoxel(mri, ref_x0, ref_y0, ref_z0, &xv, &yv, &zv) ;
+  // MRIworldToVoxel(mri, ref_x0, ref_y0, ref_z0, &xv, &yv, &zv) ;
+  MRIsurfaceRASToVoxel(mri, ref_x0, ref_y0, ref_z0, &xv, &yv, &zv) ;
   ref_v_x0 = xv * thick ; ref_v_y0 = yv * thick ; ref_v_z0 = zv * thick ;
   width = m3d->width ; height = m3d->height ; depth = m3d->depth ; 
   mean_scale = 0.0 ; n = 0 ;

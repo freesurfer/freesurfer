@@ -6,11 +6,11 @@
 //  
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2003/04/24 15:57:45 $
-// Revision       : $Revision: 1.15 $
+// Revision Date  : $Date: 2003/09/16 19:14:36 $
+// Revision       : $Revision: 1.16 $
 //
 ////////////////////////////////////////////////////////////////////
-char *MRIFLOOD_VERSION = "$Revision: 1.15 $";
+char *MRIFLOOD_VERSION = "$Revision: 1.16 $";
 
 #include <math.h>
 #include <stdlib.h>
@@ -207,8 +207,9 @@ MRI *MRISshell(MRI *mri_src,MRI_SURFACE *mris,MRI *mri_dst,int clearflag)
 //        imnr = (int)((py-yy0)/st+1.5-imnr0);
 //        i = (int)((xx1-px)/ps+0.5);
 //        j = (int)((zz1-pz)/ps+1.0);
-  MRIworldToVoxel(mri_src,px,py,pz,&fi,&fj,&fimnr);
-  i=nint(fi); j=nint(fj); imnr=nint(fimnr);
+	// MRIworldToVoxel(mri_src,px,py,pz,&fi,&fj,&fimnr);
+	MRIsurfaceRASToVoxel(mri_src,px,py,pz,&fi,&fj,&fimnr);
+	i=nint(fi); j=nint(fj); imnr=nint(fimnr);
         if (i>=0 && i<IMGSIZE && j>=0 && j<IMGSIZE && imnr>=0 && imnr<depth)
           MRIvox(mri_dst,i,j,imnr)=255;
       }
@@ -457,7 +458,8 @@ MRI *MRISpartialshell(MRI *mri_src,MRI_SURFACE *mris,MRI *mri_dst,int clearflag)
 //        i = (int)((xx1-px)/ps+0.5);
         /* Increasing the offset of 1.0 shifts shell in the inferior direction */
 //        j = (int)((zz1-pz)/ps+1.0);
-        MRIworldToVoxel(mri_src,px,py,pz,&fi,&fj,&fimnr);
+        // MRIworldToVoxel(mri_src,px,py,pz,&fi,&fj,&fimnr);
+        MRIsurfaceRASToVoxel(mri_src,px,py,pz,&fi,&fj,&fimnr);
         i=nint(fi); j=nint(fj); imnr=nint(fimnr);
         if (i>=0 && i<IMGSIZE && j>=0 && j<IMGSIZE && imnr>=0 && imnr<depth) 
         {
