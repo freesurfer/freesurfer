@@ -16,6 +16,9 @@ typedef struct
   Real   x ;
   Real   y ;
   Real   z ;
+	Real   xs ;
+	Real   ys ;
+	Real   zs ;
   int    xn ;         /* node coordinates */
   int    yn ;
   int    zn ;
@@ -29,6 +32,7 @@ typedef struct
   float  odx, ody, odz ; /* previous gradient */
   float  area ;
   float  orig_area ;
+	int    status ;       /* ignore likelihood term */
 } GCA_MORPH_NODE, GMN ;
 
 typedef struct
@@ -42,6 +46,7 @@ typedef struct
   MRI  *mri_xind ;    /* MRI->gca transform */
   MRI  *mri_yind ;
   MRI  *mri_zind ;
+	int  relabel ;
 } GCA_MORPH, GCAM ;
 
 typedef struct
@@ -56,6 +61,8 @@ typedef struct
   double l_jacobian ;
   double l_smoothness ;
   double l_distance ;
+	double l_label ;
+	double l_map ;
   double tol ;
   int    levels ;
   FILE   *log_fp ;
@@ -64,10 +71,12 @@ typedef struct
   float  max_grad ;
   double exp_k ;
   double sigma ;
+	int    navgs ;
+	double label_dist ;
 } GCA_MORPH_PARMS, GMP ;
 
 GCA_MORPH *GCAMalloc(int width, int height, int depth) ;
-int       GCAMinit(GCA_MORPH *gcam, MRI *mri, GCA *gca, TRANSFORM *transform) ;
+int       GCAMinit(GCA_MORPH *gcam, MRI *mri, GCA *gca, TRANSFORM *transform, int relabel) ;
 int       GCAMinitLookupTables(GCA_MORPH *gcam) ;
 int       GCAMwrite(GCA_MORPH *gcam, char *fname) ;
 GCA_MORPH *GCAMread(char *fname) ;
@@ -84,6 +93,19 @@ MRI       *GCAMbuildMostLikelyVolume(GCA_MORPH *gcam, MRI *mri) ;
 int       GCAMinvert(GCA_MORPH *gcam, MRI *mri) ;
 int       GCAMfreeInverse(GCA_MORPH *gcam) ;
 int       GCAMcomputeMaxPriorLabels(GCA_MORPH *gcam) ;
+int       GCAMcomputeOriginalProperties(GCA_MORPH *gcam) ;
+int       GCAMstoreMetricProperties(GCA_MORPH *gcam) ;
+int       GCAMcopyNodePositions(GCA_MORPH *gcam, int from, int to) ;
 
+#define GCAM_IGNORE_LIKELIHOOD 0x0001
+#define GCAM_USE_LIKELIHOOD    0x0000
+
+int GCAMsetLabelStatus(GCA_MORPH *gcam, int label, int status) ;
+int GCAMsetStatus(GCA_MORPH *gcam, int status) ;
+
+#define ORIGINAL_POSITIONS  0
+#define ORIG_POSITIONS      ORIGINAL_POSITIONS
+#define SAVED_POSITIONS     1
+#define CURRENT_POSITIONS   2
 
 #endif
