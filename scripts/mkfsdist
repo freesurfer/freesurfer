@@ -5,7 +5,7 @@
 # editing.
 #
 # mkfsdist
-# $Id: mkfsdist,v 1.24 2003/05/15 21:42:59 kteich Exp $
+# $Id: mkfsdist,v 1.25 2003/05/16 15:46:50 kteich Exp $
 #
 # Usage: mkfsdist sourcedir targetdir platform [options]
 #
@@ -71,7 +71,7 @@
 #  files found in tar-exclude-more and tar-exclude-gca.
 #
 # 
-set VERSION = '$Id: mkfsdist,v 1.24 2003/05/15 21:42:59 kteich Exp $';
+set VERSION = '$Id: mkfsdist,v 1.25 2003/05/16 15:46:50 kteich Exp $';
 
 # To include the autoseg in the distribution set environment varible
 # KEEPAUTOSEG to 1 before running mkfsdist (ie, setenv KEEPAUTOSEG 1)
@@ -508,11 +508,12 @@ if( $MINC ) then
     if( "$PLATFORM" == "Solaris" ) then
 	set mni_platform = Solaris
     endif
-    set mnidir = ./$mni_platform/packages/mni
+    set mnidir = $mni_platform/packages/mni
     if(! -e $mnidir) then
 	echo "WARNING: cannot find $mnidir" | tee -a $LF
     else
-	tar cvz -f $TF $mnidir >> $LF
+        pushd $mnidir > /dev/null
+	tar cvz -f $TF mni >> $LF
     endif
     date | tee -a $LF
 endif
