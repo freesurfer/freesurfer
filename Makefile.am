@@ -68,6 +68,7 @@ release:
 	    $(INSTALL_SCRIPT) $$d$$p $(DESTDIR)$(bindir)/$$f; \
 	  else :; fi; \
 	done
+	$(mkinstalldirs) $(DESTDIR)$(libdir)/tcl
 	@list=$(SCRIPTS_LIB); for p in $$list; do \
 	  d="$(srcdir)/scripts/"; \
 	  if test -f $$d$$p; then \
