@@ -201,19 +201,25 @@ Volm_tErr Volm_DeepClone  ( mriVolumeRef  this,
   eResult = Volm_New( &clone );
   DebugAssertThrow( (Volm_tErr_NoErr == eResult) );
   
-  /* set dimension */
-  DebugNote( ("Setting dimension") );
-  clone->mnDimensionX = this->mnDimensionX;
-  clone->mnDimensionY = this->mnDimensionY;
-  clone->mnDimensionZ = this->mnDimensionZ;
-  clone->mnDimensionFrame = this->mnDimensionFrame;
+  /* Copy simple data */
+  clone->mnDimensionX      = this->mnDimensionX;
+  clone->mnDimensionY      = this->mnDimensionY;
+  clone->mnDimensionZ      = this->mnDimensionZ;
+  clone->mnDimensionFrame  = this->mnDimensionFrame;
+  clone->mSampleType       = this->mSampleType;
+  clone->mfColorBrightness = this->mfColorBrightness;
+  clone->mfColorContrast   = this->mfColorContrast;
+  clone->mfColorMin        = this->mfColorMin;
+  clone->mfColorMax        = this->mfColorMax;
+  clone->mfMinValue        = this->mfMinValue;
+  clone->mfMaxValue        = this->mfMaxValue;
   
   /* copy mri volumes */
   DebugNote( ("Cloning normalized volume") );
   clone->mpMriValues = MRIcopy( this->mpMriValues, NULL );
   DebugAssertThrowX( (NULL != clone->mpMriValues),
 		     eResult, Volm_tErr_CouldntCopyVolume );
-  
+
   /* copy the transforms */
   if( NULL != this->mIdxToRASTransform ) {
     DebugNote( ("Copying index to RAS transform") );
@@ -253,24 +259,39 @@ Volm_tErr Volm_DeepClone  ( mriVolumeRef  this,
 		       eResult, Volm_tErr_CouldntCopyTransform );
   }
   
-  /* copy the string */
+  /* copy the strings */
   xUtil_strncpy( clone->msSubjectName, this->msSubjectName, 
 		 sizeof(clone->msSubjectName) );
   xUtil_strncpy( clone->msVolumeName, this->msVolumeName, 
 		 sizeof(clone->msVolumeName) );
   xUtil_strncpy( clone->msOriginalPath, this->msOriginalPath, 
 		 sizeof(clone->msOriginalPath) );
-  
-  /* copy color table information */
-  clone->mfColorBrightness = this->mfColorBrightness;
-  clone->mfColorContrast   = this->mfColorContrast;
-  
+
   /* allocate and copy color tables */
   memcpy( clone->mafColorTable, this->mafColorTable, 
 	  sizeof( this->manColorTable ));
   memcpy( clone->manColorTable, this->manColorTable, 
 	  sizeof( this->mafColorTable ));
-  
+
+  /* Copy the resample information then calc the resample matrices,
+     that will point the m_resample{} matrices to the right place in
+     the clone. */
+  clone->mResampleMethod = this->mResampleMethod;
+  clone->mResampleToRAS = 
+    MatrixCopy( this->mResampleToRAS, NULL );
+  clone->mResampleToRASOrig = 
+    MatrixCopy( this->mResampleToRASOrig, NULL );
+  clone->mResampleToRASInverse = 
+    MatrixCopy( this->mResampleToRASInverse, NULL );
+  clone->mResampleToSlice = 
+    MatrixCopy( this->mResampleToSlice, NULL );
+  clone->mResampleToSliceOrig = 
+    MatrixCopy( this->mResampleToSliceOrig, NULL );
+  clone->mResampleToSliceInverse = 
+    MatrixCopy( this->mResampleToSliceInverse, NULL );
+
+  Volm_SetResampleMethod( clone, clone->mResampleMethod );
+
   /* return the clone */
   *opVolume = clone;
   
@@ -1293,6 +1314,67 @@ Volm_tErr Volm_SetValueAtIdxFrame ( mriVolumeRef this,
   return eResult;
 }
 
+Volm_tErr Volm_GetValueAtMRIIdx ( mriVolumeRef this,
+				  xVoxelRef    iMRIIdx,
+				  float*       oValue ) {
+  
+  Volm_tErr eResult = Volm_tErr_NoErr;
+  
+  DebugEnterFunction( ("Volm_GetValueAtMRIIdx( this=%p, iMRIIdx=%p, "
+		       "oValue=%p )", this, iMRIIdx, oValue ) );
+  
+  DebugNote( ("Verifying volume") );
+  eResult = Volm_Verify( this );
+  DebugAssertThrow( (eResult == Volm_tErr_NoErr) );
+  
+  DebugNote( ("Checking parameters") );
+  DebugAssertThrowX( (iMRIIdx != NULL && oValue != NULL),
+		     eResult, Volm_tErr_InvalidParamater );
+  eResult = Volm_VerifyMRIIdx_( this, iMRIIdx );
+  DebugAssertThrow( (eResult == Volm_tErr_NoErr) );
+  
+  /* return the value */
+  Volm_GetValueAtMRIIdx_( this, iMRIIdx, oValue );
+
+  DebugCatch;
+  DebugCatchError( eResult, Volm_tErr_NoErr, Volm_GetErrorString );
+  EndDebugCatch;
+  
+  DebugExitFunction;
+  
+  return eResult;
+}
+
+
+Volm_tErr Volm_SetValueAtMRIIdx ( mriVolumeRef this,
+			       xVoxelRef    iMRIIdx,
+			       float        iValue ) {
+  
+  Volm_tErr eResult = Volm_tErr_NoErr;
+  
+  DebugEnterFunction( ("Volm_SetValueAtIdx( this=%p, iMRIIdx=%p, "
+		       "iValue=%d )", this, iMRIIdx, (int)iValue ) );
+  
+  DebugNote( ("Verifying volume") );
+  eResult = Volm_Verify( this );
+  DebugAssertThrow( (eResult == Volm_tErr_NoErr) );
+  
+  DebugNote( ("Checking parameters") );
+  DebugAssertThrowX( (iMRIIdx != NULL), eResult, Volm_tErr_InvalidParamater );
+  eResult = Volm_VerifyMRIIdx_( this, iMRIIdx );
+  DebugAssertThrow( (eResult == Volm_tErr_NoErr) );
+  
+  /* set the value */
+  Volm_SetValueAtMRIIdx_( this, iMRIIdx, iValue );
+  
+  DebugCatch;
+  DebugCatchError( eResult, Volm_tErr_NoErr, Volm_GetErrorString );
+  EndDebugCatch;
+  
+  DebugExitFunction;
+  
+  return eResult;
+}
 Volm_tErr Volm_ConvertIdxToRAS ( mriVolumeRef this,
 				 xVoxelRef    iIdx,
 				 xVoxelRef    oRAS ) {
@@ -1612,6 +1694,40 @@ Volm_tErr Volm_ConvertIdxToMRIIdx ( mriVolumeRef this,
   /* Convert the incoming screen idx to our local MRI idx. */
   DebugNote( ("Converting screen idx to MRI idx") );
   Volm_ConvertScreenIdxToMRIIdx_( this, iIdx, oMRIIdx );
+
+  DebugCatch;
+  DebugCatchError( eResult, Volm_tErr_NoErr, Volm_GetErrorString );
+  EndDebugCatch;
+  
+  DebugExitFunction;
+  
+  return eResult;
+}
+
+Volm_tErr Volm_ConvertMRIIdxToIdx  ( mriVolumeRef this,
+				     xVoxelRef    iMRIIdx,
+				     xVoxelRef    oIdx ) {
+  
+  Volm_tErr eResult = Volm_tErr_NoErr;
+  
+  DebugEnterFunction( ("Volm_ConvertMRIIdxToIdx( this=%p, iMRIIdx=%p, "
+		       "oIdx=%p )", this, iMRIIdx, oIdx) );
+  
+  DebugNote( ("Verifying volume") );
+  eResult = Volm_Verify( this );
+  DebugAssertThrow( (eResult == Volm_tErr_NoErr) );
+  
+#if 0  
+  DebugNote( ("Checking parameters") );
+  DebugAssertThrowX( (iIdx != NULL && oMRIIdx != NULL), 
+		     eResult, Volm_tErr_InvalidParamater );
+  eResult = Volm_VerifyIdx_( this, iIdx );
+  DebugAssertThrow( (eResult == Volm_tErr_NoErr) );
+#endif
+  
+  /* Convert the incoming local MRI to  screen idx. */
+  DebugNote( ("Converting MRI idx to screen idx") );
+  Volm_ConvertMRIIdxToScreenIdx_( this, iMRIIdx, oIdx );
 
   DebugCatch;
   DebugCatchError( eResult, Volm_tErr_NoErr, Volm_GetErrorString );
@@ -2411,7 +2527,7 @@ Volm_tErr Volm_SetAllValues ( mriVolumeRef this,
 			      float        iNewValue ) {
   
   Volm_tErr   eResult = Volm_tErr_NoErr;
-  
+
   DebugEnterFunction( ("Volm_SetAllValues( this=%p, iNewValue=%d )", 
 		       this, (int)iNewValue) );
   
@@ -2419,19 +2535,8 @@ Volm_tErr Volm_SetAllValues ( mriVolumeRef this,
   eResult = Volm_Verify( this );
   DebugAssertThrow( (eResult == Volm_tErr_NoErr) );
   
-#if 0
-  /* step through the volume and set everything to this value. */
-  xVoxl_Set( &idx, 0, 0, 0 );
-  DebugNote( ("Setting volume values") );
-  while( xVoxl_IncrementUntilLimits( &idx, this->mnDimensionX-1,
-                                     this->mnDimensionY-1, 
-				     this->mnDimensionZ-1) ) {
-    Volm_SetValueAtIdx_( this, &idx, iNewValue );
-  }
-#else
-  /* This is quicker, mriset.c uses memset to do this optimally. */
+  DebugNote( ("Calling MRIsetValues") );
   MRIsetValues( this->mpMriValues, nint(iNewValue) );
-#endif
 
   DebugCatch;
   DebugCatchError( eResult, Volm_tErr_NoErr, Volm_GetErrorString );
@@ -3222,6 +3327,24 @@ Volm_tErr Volm_VerifyIdx_ ( mriVolumeRef this,
 		      xVoxl_GetRoundY(&mriIdx) < this->mnDimensionY &&
 		      xVoxl_GetZ(&mriIdx) >= 0 &&
 		      xVoxl_GetRoundZ(&mriIdx) < this->mnDimensionZ),
+		     eResult, Volm_tErr_InvalidIdx );
+  
+  DebugCatch;
+  EndDebugCatch;
+  return eResult;
+}
+
+Volm_tErr Volm_VerifyMRIIdx_ ( mriVolumeRef this,
+			       xVoxelRef    iMRIIdx ) {
+  
+  Volm_tErr eResult = Volm_tErr_NoErr;
+
+  DebugAssertThrowX( (xVoxl_GetX(iMRIIdx) >= 0 &&
+		      xVoxl_GetRoundX(iMRIIdx) < this->mnDimensionX &&
+		      xVoxl_GetY(iMRIIdx) >= 0 &&
+		      xVoxl_GetRoundY(iMRIIdx) < this->mnDimensionY &&
+		      xVoxl_GetZ(iMRIIdx) >= 0 &&
+		      xVoxl_GetRoundZ(iMRIIdx) < this->mnDimensionZ),
 		     eResult, Volm_tErr_InvalidIdx );
   
   DebugCatch;
