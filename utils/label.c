@@ -26,7 +26,7 @@ LABEL *
 LabelRead(char *subject_name, char *label_name)
 {
   LABEL  *area ;
-  char   fname[200], *cp, line[200], subjects_dir[100] ;
+  char   fname[200], *cp, line[200], subjects_dir[100], lname[200] ;
   FILE   *fp ;
   int    vno, nlines ;
   float  x, y, z ;
@@ -36,6 +36,15 @@ LabelRead(char *subject_name, char *label_name)
     ErrorExit(ERROR_NOMEMORY, "%s: could not allocate LABEL struct.",Progname);
   if (subject_name)
   {
+    strcpy(lname, label_name) ;
+    cp = strstr(lname, ".label") ;
+    if (cp)
+      *cp = 0 ;
+    cp = strrchr(lname, '/') ;
+    if (cp)
+      label_name = cp+1 ;
+    else
+      label_name = lname ;
     cp = getenv("SUBJECTS_DIR") ;
     if (!cp)
       ErrorExit(ERROR_BADPARM, 
@@ -254,8 +263,21 @@ LabelWrite(LABEL *area, char *label_name)
 {
   FILE  *fp ;
   int  n, num ;
-  char   fname[200], *cp, subjects_dir[100] ;
+  char   fname[200], *cp, subjects_dir[100], lname[200] ;
 
+  strcpy(lname, label_name) ;
+  cp = strstr(lname, ".label") ;
+  if (cp)
+    *cp = 0 ;
+#if 0
+  cp = strrchr(lname, '/') ;
+  if (cp)
+    label_name = cp+1 ;
+  else
+    label_name = lname ;
+#else
+  label_name = lname ;
+#endif
   if (strlen(area->subject_name) > 0)
   {
     cp = getenv("SUBJECTS_DIR") ;
