@@ -129,7 +129,8 @@ MRI   *MRIreslice(MRI *mri_src, MRI *mri_dst, int slice_direction) ;
 int   MRIboundingBox(MRI *mri, int thresh, MRI_REGION *region) ;
 
 /* coordinate transforms */
-MRI   *MRItranslate(MRI *mri_src, MRI *mri_dst, int dx, int dy, int dz) ;
+MRI   *MRItranslate(MRI *mri_src, MRI *mri_dst, double dx, double dy, 
+                    double dz) ;
 MRI   *MRIrotateX(MRI *mri_src, MRI *mri_dst, float x_angle) ;
 MRI   *MRIrotateY(MRI *mri_src, MRI *mri_dst, float y_angle) ;
 MRI   *MRIrotateZ(MRI *mri_src, MRI *mri_dst, float z_angle) ;
@@ -320,8 +321,6 @@ int   MRItransformRegion(MRI *mri_src, MRI *mri_dst, MRI_REGION *src_region,
 MRI   *MRIextractTalairachPlane(MRI *mri_src, MRI *mri_dst, int orientation, 
                                 int x, int y, int z, int size) ;
 int   MRIeraseTalairachPlane(MRI *mri, MRI *mri_mask, int orientation, 
-                             int x, int y, int z,int size,int fill_val);
-int   MRIeraseTalairachPlaneNew(MRI *mri, MRI *mri_mask, int orientation, 
                              int x, int y, int z,int size,int fill_val);
 
 MRI   *MRIextractPlane(MRI *mri_src, MRI *mri_dst, int orientation,int where);
