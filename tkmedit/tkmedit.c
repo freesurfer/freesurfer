@@ -2047,6 +2047,11 @@ void GotoSurfaceVertex ( Surf_tVertexSet iSurface, int inVertex ) {
   if( MWin_tErr_NoErr != eWindow )
     goto error;
   
+  /* zoom around new cursor. */
+  eWindow = MWin_SetZoomCenterToCursor ( gMeditWindow, -1 );
+  if ( MWin_tErr_NoErr != eWindow )
+    goto error;
+
   goto cleanup;
   
  error:
@@ -2103,6 +2108,11 @@ void FindNearestSurfaceVertex ( Surf_tVertexSet iSet ) {
   if( MWin_tErr_NoErr != eWindow )
     goto error;
   
+  /* zoom around new cursor. */
+  eWindow = MWin_SetZoomCenterToCursor ( gMeditWindow, -1 );
+  if ( MWin_tErr_NoErr != eWindow )
+    goto error;
+
   goto cleanup;
   
  error:
@@ -2161,6 +2171,11 @@ void FindNearestInterpolatedSurfaceVertex ( Surf_tVertexSet iSet ) {
   if( MWin_tErr_NoErr != eWindow )
     goto error;
   
+  /* zoom around new cursor. */
+  eWindow = MWin_SetZoomCenterToCursor ( gMeditWindow, -1 );
+  if ( MWin_tErr_NoErr != eWindow )
+    goto error;
+
   goto cleanup;
   
  error:

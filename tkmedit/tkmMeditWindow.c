@@ -2903,6 +2903,11 @@ int MWin_TclSetCursor ( ClientData  iClientData,
   if ( MWin_tErr_NoErr != eResult )
     goto error;
 
+  /* zoom around new cursor. */
+  eResult = MWin_SetZoomCenterToCursor ( this, -1 );
+  if ( MWin_tErr_NoErr != eResult )
+    goto error;
+
   goto cleanup;
   
  error:

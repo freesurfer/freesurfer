@@ -1013,11 +1013,6 @@ DspA_tErr DspA_SetCursor ( tkmDisplayAreaRef this,
 				this->mOrientation, this->mpCursor );
   }
   
-  /* zoom around new cursor. */
-  eResult = DspA_SetZoomCenterToCursor ( this );
-  if ( DspA_tErr_NoErr != eResult )
-    goto error;
-
   /* if we're the currently focused display... */
   if( sFocusedDisplay == this ) {
     
