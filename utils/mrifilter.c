@@ -3170,7 +3170,7 @@ MRIreclassifyBorder(MRI *mri_src, MRI *mri_labeled, MRI *mri_border,
 
   for (ntested = nchanged = nw = ng = z = 0 ; z < depth ; z++)
   {
-    DiagHeartbeat((float)(z) / (float)(depth-1)) ;
+    DiagShowPctDone((float)(z) / (float)(depth-1), 5) ;
     for (y = 0 ; y < height ; y++)
     {
       psrc = &MRIvox(mri_src, 0, y, z) ;
@@ -3229,7 +3229,7 @@ MRIreclassify(MRI *mri_src, MRI *mri_labeled, MRI *mri_dst,
 
   for (nmulti = ntested = nchanged = nw = ng = z = 0 ; z < depth ; z++)
   {
-    DiagHeartbeat((float)(z) / (float)(depth-1)) ;
+    DiagShowPctDone((float)(z) / (float)(depth-1), 5) ;
     for (y = 0 ; y < height ; y++)
     {
       psrc = &MRIvox(mri_src, 0, y, z) ;
@@ -3302,7 +3302,7 @@ MRIclassifyAmbiguous(MRI *mri_src, MRI *mri_labeled, MRI *mri_border,
 
   for (ntested = nchanged = nw = ng = z = 0 ; z < depth ; z++)
   {
-    DiagHeartbeat((float)(z) / (float)(depth-1)) ;
+    DiagShowPctDone((float)(z) / (float)(depth-1), 5) ;
     for (y = 0 ; y < height ; y++)
     {
       psrc = &MRIvox(mri_src, 0, y, z) ;
@@ -3355,7 +3355,6 @@ MRIremoveBrightStuff(MRI *mri_src, MRI *mri_dst, int threshold)
 
   for (z = 0 ; z < depth ; z++)
   {
-    DiagHeartbeat((float)(z) / (float)(depth-1)) ;
     for (y = 0 ; y < height ; y++)
     {
       psrc = &MRIvox(mri_src, 0, y, z) ;

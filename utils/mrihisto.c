@@ -564,7 +564,7 @@ MRIhistoSegment(MRI *mri_src, MRI *mri_labeled, int wm_low, int wm_hi,
   }
   for (nlabeled = nvox = z = 0 ; z < depth ; z++)
   {
-    DiagHeartbeat((float)z / (float)(depth-1)) ;
+    DiagShowPctDone((float)z / (float)(depth-1), 5) ;
     for (y = 0 ; y < height ; y++)
     {
       pdst = &MRIvox(mri_labeled, 0, y, z) ;

@@ -4283,7 +4283,7 @@ MRIcpolvMedianCurveSegment(MRI *mri, MRI *mri_labeled, MRI *mri_dst,
   width = mri->width ; height = mri->height ; depth = mri->depth ;
   for (non = noff = nlabeled = z = 0 ; z < depth ; z++)
   {
-    DiagHeartbeat((float)z / (float)(depth-1)) ;
+    DiagShowPctDone((float)z / (float)(depth-1), 5) ;
     for (y = 0 ; y < height ; y++)
     {
       for (x = 0 ; x < width ; x++)
