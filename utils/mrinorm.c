@@ -2945,8 +2945,8 @@ mriSoapBubbleFloat(MRI *mri_src, MRI *mri_ctrl, MRI *mri_dst,int niter)
 {
   int     width, height, depth, x, y, z, xk, yk, zk, xi, yi, zi, i,
           *pxi, *pyi, *pzi ;
-  BUFTYPE ctrl, mean ;
-  float   *ptmp ;
+  BUFTYPE ctrl ;
+  float   *ptmp, mean ;
   MRI     *mri_tmp ;
 
   width = mri_src->width ; height = mri_src->height ; depth = mri_src->depth ; 
