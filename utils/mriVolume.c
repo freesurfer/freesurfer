@@ -17,10 +17,11 @@ char Volm_ksaErrorStrings[Volm_knNumErrorCodes][Volm_knErrStringLen] = {
   "Memory allocation failed.",
   "Couldn't read volume.",
   "Couldn't copy volume.",
+  "Couldn't read transform.",
   "Couldn't copy transform.",
   "Couldn't normalize volume.",
   "Couldn't export volume to COR format.",
-  "Normalized values not present.",
+  "MRI volume not present.",
   "Scanner transform not present.",
   "Index to RAS transform not present."
 };
@@ -278,15 +279,77 @@ Volm_tErr Volm_DeepClone  ( mriVolumeRef  this,
   return eResult;
 }
 
+Volm_tErr Volm_CreateFromVolume ( mriVolumeRef this,
+				  mriVolumeRef iVolume ) {
+  
+  Volm_tErr eResult          = Volm_tErr_NoErr;
+  int       nDimensionX      = 0;
+  int       nDimensionY      = 0;
+  int       nDimensionZ      = 0;
+  int       nType            = 0;
+  int       nDimensionFrames = 0;
+  MRI*      mriVolume        = NULL;
+  
+  DebugEnterFunction( ("Volm_CreateFromVolume( this=%p, iVolume=%p )",
+		       this, iVolume ) );
+  
+  DebugNote( ("Verifying volume") );
+  eResult = Volm_Verify( this );
+  DebugAssertThrow( (eResult == Volm_tErr_NoErr) );
+  
+  DebugNote( ("Checking parameters") );
+  DebugAssertThrowX( (NULL != iVolume), eResult, Volm_tErr_InvalidParamater );
+  
+  /* Get the necessary parameters we need to create a new MRI from the
+     volume we got passed in. */
+  DebugNote( ("Getting volume dimensions") );
+  eResult = Volm_GetDimensions( iVolume, 
+				&nDimensionX, &nDimensionY, &nDimensionZ );
+  DebugAssertThrow( (eResult == Volm_tErr_NoErr) );
+  DebugNote( ("Getting number of frames") );
+  eResult = Volm_GetNumberOfFrames( iVolume, &nDimensionFrames );
+  DebugAssertThrow( (eResult == Volm_tErr_NoErr) );
+  DebugNote( ("Getting volume type") );
+  eResult = Volm_GetType( iVolume, &nType );
+  DebugAssertThrow( (eResult == Volm_tErr_NoErr) );
+
+  /* Create a new MRI of that size. */
+  DebugNote( ("Creating the mri with dimensions %d,%d,%d type %d nframes %d",
+	      nDimensionX, nDimensionY, nDimensionZ, nType, nDimensionFrames));
+  mriVolume = MRIallocSequence( nDimensionX, nDimensionY, nDimensionZ,
+				nType, nDimensionFrames );
+  DebugAssertThrowX( (NULL != mriVolume), 
+		     eResult, Volm_tErr_CouldntReadVolume );
+
+  /* Set from the new MRI. */
+  DebugNote( ("Setting from MRI") );
+  eResult = Volm_SetFromMRI_( this, mriVolume );
+  DebugAssertThrow( (eResult == Volm_tErr_NoErr) );
+
+  /* Set the subject name from the original and set the volume name
+     and path to blanks. */
+  DebugNote( ("Copying original subject name") );
+  Volm_CopySubjectName( iVolume, this->msSubjectName,
+		 sizeof(this->msSubjectName) );
+  DebugNote( ("Setting volume name to empty") );
+  xUtil_strncpy( this->msVolumeName, "", sizeof(this->msVolumeName) );
+  DebugNote( ("Setting path to empty") );
+  xUtil_strncpy( this->msOriginalPath, "", sizeof(this->msOriginalPath));
+
+  DebugCatch;
+  DebugCatchError( eResult, Volm_tErr_NoErr, Volm_GetErrorString );
+  EndDebugCatch;
+  
+  DebugExitFunction;
+  
+  return eResult;
+}
+
 Volm_tErr Volm_ImportData ( mriVolumeRef this,
 			    char*        isSource ) {
   
   Volm_tErr eResult           = Volm_tErr_NoErr;
   MRI*      mriVolume        = NULL;
-  MATRIX*   identity          = NULL;
-  MATRIX*   scannerTransform  = NULL;
-  MATRIX*   idxToRASTransform = NULL;
-  MATRIX    *m_resample ;
   
   DebugEnterFunction( ("Volm_ImportData( this=%p, isSource=%s )",
 		       this, isSource ) );
@@ -303,11 +366,57 @@ Volm_tErr Volm_ImportData ( mriVolumeRef this,
   mriVolume = MRIread( isSource );
   DebugAssertThrowX( (NULL != mriVolume), 
 		     eResult, Volm_tErr_CouldntReadVolume );
-  MRIvalRange(mriVolume, &this->min_val, &this->max_val) ;
+
+  DebugNote( ("Setting from MRI") );
+  eResult = Volm_SetFromMRI_( this, mriVolume );
+  DebugAssertThrow( (eResult == Volm_tErr_NoErr) );
+
+  /* save the volume source */
+  DebugNote( ("Copying original path") );
+  xUtil_strncpy( this->msOriginalPath, isSource, 
+		 sizeof(this->msOriginalPath) );
+
+  /* get the subject and volume name */
+  eResult = Volm_ExtractAndSetSubjectName( this, isSource );
+  DebugAssertThrow( (Volm_tErr_NoErr == eResult) );
+  eResult = Volm_ExtractAndSetVolumeName( this, isSource );
+  DebugAssertThrow( (Volm_tErr_NoErr == eResult) );
+  
+
+  DebugCatch;
+  DebugCatchError( eResult, Volm_tErr_NoErr, Volm_GetErrorString );
+  EndDebugCatch;
+  
+  DebugExitFunction;
+  
+  return eResult;
+}
+
+
+Volm_tErr Volm_SetFromMRI_ ( mriVolumeRef this,
+			     MRI*        iMRI ) {
+  
+  Volm_tErr eResult           = Volm_tErr_NoErr;
+  MATRIX*   identity          = NULL;
+  MATRIX*   scannerTransform  = NULL;
+  MATRIX*   idxToRASTransform = NULL;
+  MATRIX    *m_resample ;
+  
+  DebugEnterFunction( ("Volm_SetFromMRI_( this=%p, iMRI=%p )", this, iMRI ) );
+  
+  DebugNote( ("Verifying volume") );
+  eResult = Volm_Verify( this );
+  DebugAssertThrow( (eResult == Volm_tErr_NoErr) );
+  
+  DebugNote( ("Checking parameters") );
+  DebugAssertThrowX( (NULL != iMRI), eResult, Volm_tErr_InvalidParamater );
+  
+  /* Get the reange. */
+  MRIvalRange(iMRI, &this->min_val, &this->max_val) ;
   
   /* find the resampling matrix */
   DebugNote( ("Computing norming matrix ") );
-  m_resample = MRIgetConformMatrix( mriVolume );
+  m_resample = MRIgetConformMatrix( iMRI );
   DebugAssertThrowX( (NULL != m_resample), 
                      eResult, Volm_tErr_CouldntNormalizeVolume );
 //#define _VID_DEBUG  
@@ -317,10 +426,10 @@ Volm_tErr Volm_ImportData ( mriVolumeRef this,
 #endif
   
   /* grab the end-start values as our dimension. also nframes. */
-  this->mnDimensionX = abs(mriVolume->xend - mriVolume->xstart);
-  this->mnDimensionY = abs(mriVolume->yend - mriVolume->ystart);
-  this->mnDimensionZ = abs(mriVolume->zend - mriVolume->zstart);
-  this->mnDimensionFrame = mriVolume->nframes;
+  this->mnDimensionX = abs(iMRI->xend - iMRI->xstart);
+  this->mnDimensionY = abs(iMRI->yend - iMRI->ystart);
+  this->mnDimensionZ = abs(iMRI->zend - iMRI->zstart);
+  this->mnDimensionFrame = iMRI->nframes;
 
   this->m_resample = m_resample ;
   this->m_resample_orig = MatrixCopy(m_resample, NULL) ;
@@ -328,7 +437,7 @@ Volm_tErr Volm_ImportData ( mriVolumeRef this,
   this->m_resample_inv = MatrixInverse( m_resample, NULL );
 
   /* set the volumes in this */
-  this->mpMriValues = mriVolume;
+  this->mpMriValues = iMRI;
   
   /* grab the scanner transform and copy it into our transform */
   if( NULL != this->mScannerTransform ) {
@@ -338,7 +447,7 @@ Volm_tErr Volm_ImportData ( mriVolumeRef this,
   DebugNote( ("Creating scanner transform") );
   Trns_New( &this->mScannerTransform );
   DebugNote( ("Getting scanner transform matrix") );
-  scannerTransform = MRIgetVoxelToRasXform( mriVolume );
+  scannerTransform = MRIgetVoxelToRasXform( iMRI );
   DebugAssertThrowX( (NULL != scannerTransform),
 		     eResult, Volm_tErr_AllocationFailed );
   DebugNote( ("Copying scanner transform matrix into transform") );
@@ -360,30 +469,30 @@ Volm_tErr Volm_ImportData ( mriVolumeRef this,
     kind of coronal) else check slice_direction - actually, what is
     that check for? */
 
-  //  if (mriVolume->slice_direction != MRI_CORONAL)
+  //  if (iMRI->slice_direction != MRI_CORONAL)
   if ( 
-      (mriVolume->ras_good_flag &&
-       ( mriVolume->x_r != -1.0 
-	 || mriVolume->x_a != 0.0
-	 || mriVolume->x_s != 0.0
-	 || mriVolume->y_r != 0.0
-	 || mriVolume->y_a != 0.0
-	 || mriVolume->y_s != -1.0
-	 || mriVolume->z_r != 0.0
-	 || mriVolume->z_a != 1.0
-	 || mriVolume->z_s != 0.0
-	 // || mriVolume->c_r != 0.0
-	 // || mriVolume->c_a != 0.0
-	 // || mriVolume->c_s != 0.0
+      (iMRI->ras_good_flag &&
+       ( iMRI->x_r != -1.0 
+	 || iMRI->x_a != 0.0
+	 || iMRI->x_s != 0.0
+	 || iMRI->y_r != 0.0
+	 || iMRI->y_a != 0.0
+	 || iMRI->y_s != -1.0
+	 || iMRI->z_r != 0.0
+	 || iMRI->z_a != 1.0
+	 || iMRI->z_s != 0.0
+	 // || iMRI->c_r != 0.0
+	 // || iMRI->c_a != 0.0
+	 // || iMRI->c_s != 0.0
 	 )
        )
-      || (!mriVolume->ras_good_flag && mriVolume->slice_direction != MRI_CORONAL)
+      || (!iMRI->ras_good_flag && iMRI->slice_direction != MRI_CORONAL)
       )
     {
       DebugNote( ("Creating idx to ras transform") );
       Trns_New( &this->mIdxToRASTransform );
       DebugNote( ("Getting idx to ras matrix") );
-      idxToRASTransform = MRIgetVoxelToRasXform( mriVolume );
+      idxToRASTransform = MRIgetVoxelToRasXform( iMRI );
       // that includes voxelsize
       DebugAssertThrowX( (NULL != idxToRASTransform),
                          eResult, Volm_tErr_AllocationFailed );
@@ -413,17 +522,6 @@ Volm_tErr Volm_ImportData ( mriVolumeRef this,
       Trns_CopyAtoRAS( this->mIdxToRASTransform, identity );
       Trns_CopyBtoRAS( this->mIdxToRASTransform, identity );
     }
-  
-  /* save the volume source */
-  DebugNote( ("Copying original path") );
-  xUtil_strncpy( this->msOriginalPath, isSource, 
-		 sizeof(this->msOriginalPath) );
-  
-  /* get the subject and volume name */
-  eResult = Volm_ExtractAndSetSubjectName( this, isSource );
-  DebugAssertThrow( (Volm_tErr_NoErr == eResult) );
-  eResult = Volm_ExtractAndSetVolumeName( this, isSource );
-  DebugAssertThrow( (Volm_tErr_NoErr == eResult) );
   
   DebugCatch;
   DebugCatchError( eResult, Volm_tErr_NoErr, Volm_GetErrorString );
@@ -939,6 +1037,65 @@ Volm_tErr Volm_GetDimensions ( mriVolumeRef this,
   *onDimensionX = this->mnDimensionX;
   *onDimensionY = this->mnDimensionY;
   *onDimensionZ = this->mnDimensionZ;
+  
+  DebugCatch;
+  DebugCatchError( eResult, Volm_tErr_NoErr, Volm_GetErrorString );
+  EndDebugCatch;
+  
+  DebugExitFunction;
+  
+  return eResult;
+}
+
+Volm_tErr Volm_GetNumberOfFrames ( mriVolumeRef this, 
+				   int* onDimensionFrames ) {
+
+  Volm_tErr eResult = Volm_tErr_NoErr;
+  
+  DebugEnterFunction( ("Volm_GetNumberOfFrames( this=%p, "
+		       "onDimensionFrames=%p )", this, onDimensionFrames ) );
+  
+  DebugNote( ("Verifying volume") );
+  eResult = Volm_Verify( this );
+  DebugAssertThrow( (eResult == Volm_tErr_NoErr) );
+  
+  DebugNote( ("Checking parameters") );
+  DebugAssertThrowX( (onDimensionFrames != NULL),
+                     eResult, Volm_tErr_InvalidParamater );
+  
+  /* return the dimension */
+  DebugNote( ("Returning the dimension") );
+  *onDimensionFrames = this->mnDimensionFrame;
+  
+  DebugCatch;
+  DebugCatchError( eResult, Volm_tErr_NoErr, Volm_GetErrorString );
+  EndDebugCatch;
+  
+  DebugExitFunction;
+  
+  return eResult;
+}
+
+Volm_tErr Volm_GetType ( mriVolumeRef this, int* onType ) {
+
+  Volm_tErr eResult = Volm_tErr_NoErr;
+  
+  DebugEnterFunction( ("Volm_GetType( this=%p, onType=%p )", this, onType ) );
+  
+  DebugNote( ("Verifying volume") );
+  eResult = Volm_Verify( this );
+  DebugAssertThrow( (eResult == Volm_tErr_NoErr) );
+  
+  DebugNote( ("Checking parameters") );
+  DebugAssertThrowX( (onType != NULL), eResult, Volm_tErr_InvalidParamater );
+  
+  /* Make sure we have a volume */
+  DebugAssertThrowX( ( NULL != this->mpMriValues ), 
+		     eResult, Volm_tErr_MRIVolumeNotPresent );
+
+  /* return the dimension */
+  DebugNote( ("Returning the type") );
+  *onType = this->mpMriValues->type;
   
   DebugCatch;
   DebugCatchError( eResult, Volm_tErr_NoErr, Volm_GetErrorString );
@@ -1554,7 +1711,7 @@ Volm_tErr Volm_FindMaxValues ( mriVolumeRef this ) {
   
   /* make sure we have our normalized volume */
   DebugAssertThrowX( (NULL != this->mpMriValues), 
-		     eResult, Volm_tErr_NormValuesNotPresent );
+		     eResult, Volm_tErr_MRIVolumeNotPresent );
   
   /* we need 3 slices worth of data. if we have some allocated, delete them,
      and reallocate them. */
