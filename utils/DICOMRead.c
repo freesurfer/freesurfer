@@ -984,32 +984,6 @@ int IsDICOM(char *fname)
    output: array of files listed in directory, and number of files
 *******************************************************/
 
-int ScanDir(char *PathName, char ***FileNames, int *NumberOfFiles)
-{
-  char **pfn;
-  struct dirent **NameList;
-  int i, length, pathlength;
-
-  pathlength=strlen(PathName);
-  /* select all directory entries, and sort them by name */
-  *NumberOfFiles = scandir(PathName, &NameList, 0, alphasort);
-
-  if (*NumberOfFiles < 0)
-    return -1;
-
-  pfn = (char **)calloc(*NumberOfFiles, sizeof(char *));
-  for (i=0; i<*NumberOfFiles; i++)
-    {
-      length=pathlength+strlen(NameList[i]->d_name)+1;
-      pfn[i]=(char *)calloc(length, sizeof(char));
-      sprintf(pfn[i], "%s%s", PathName, NameList[i]->d_name);
-    }
-
-  free(NameList);
-  *FileNames=pfn;
-  return 0;
-}
-
 #ifdef Solaris
 /* added by kteich for solaris, since it doesn't have them by default. */
 /* these funcs Copyright (c) Joerg-R. Hill, December 2000 */
@@ -1055,6 +1029,33 @@ int alphasort(const struct dirent **a, const struct dirent **b)
 }
 
 #endif
+
+int ScanDir(char *PathName, char ***FileNames, int *NumberOfFiles)
+{
+  char **pfn;
+  struct dirent **NameList;
+  int i, length, pathlength;
+
+  pathlength=strlen(PathName);
+  /* select all directory entries, and sort them by name */
+  *NumberOfFiles = scandir(PathName, &NameList, 0, alphasort);
+
+  if (*NumberOfFiles < 0)
+    return -1;
+
+  pfn = (char **)calloc(*NumberOfFiles, sizeof(char *));
+  for (i=0; i<*NumberOfFiles; i++)
+    {
+      length=pathlength+strlen(NameList[i]->d_name)+1;
+      pfn[i]=(char *)calloc(length, sizeof(char));
+      sprintf(pfn[i], "%s%s", PathName, NameList[i]->d_name);
+    }
+
+  free(NameList);
+  *FileNames=pfn;
+  return 0;
+}
+
 
 /*******************************************************
    CleanFileNames
