@@ -8,6 +8,6 @@ AM_LDFLAGS=-L$(top_srcdir)/lib
 
 bin_PROGRAMS = optseq2
 optseq2_SOURCES=optseq2.c
-optseq2_LDADD= $(addprefix $(top_srcdir)/, $(LIBS_MGH))
+optseq2_LDADD= $(addprefix $(top_srcdir)/, $(LIBS_MGH)) $(top_srcdir)/lib/$(OS)/libgsl.a
 optseq2_LDFLAGS=$(OS_LDFLAGS)
 
