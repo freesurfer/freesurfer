@@ -5,12 +5,12 @@
  *
  */
 #include  <stdio.h>
-#include  <gl/image.h>
+#include  "rgb_image.h"
 
 #undef getpix
 #undef putpix
 
-int getpix(IMAGE *image)
+int getpix(RGB_IMAGE *image)
 {
     if(--(image)->cnt>=0)
       return (int)(*(image)->ptr++);
@@ -18,7 +18,7 @@ int getpix(IMAGE *image)
   return ifilbuf(image);
 }
 
-unsigned int putpix(IMAGE *image, unsigned int pix)
+unsigned int putpix(RGB_IMAGE *image, unsigned int pix)
 {
     if(--(image)->cnt>=0)
         return (unsigned int)(*(image)->ptr++ = pix);

@@ -6,9 +6,9 @@
  *
  */
 #include  <stdio.h>
-#include  <gl/image.h>
+#include  "rgb_image.h"
 
-long img_getrowsize(IMAGE *image)
+long img_getrowsize(RGB_IMAGE *image)
 {
     switch(image->dim) {
   case 1:
@@ -20,7 +20,7 @@ long img_getrowsize(IMAGE *image)
     }
 }
 
-void img_setrowsize(IMAGE *image, long cnt, long y, long z)
+void img_setrowsize(RGB_IMAGE *image, long cnt, long y, long z)
 {
     int *sizeptr;
 

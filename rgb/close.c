@@ -6,9 +6,9 @@
  */
 #include  <stdio.h>
 #include  <stdlib.h>
-#include  <gl/image.h>
+#include  "rgb_image.h"
 
-int iclose(IMAGE *image)
+int iclose(RGB_IMAGE *image)
 {
     long tablesize, ret;
 
@@ -17,7 +17,7 @@ int iclose(IMAGE *image)
     if (image->flags&_IOWRT) {
   if(image->dorev)
       cvtimage(image);
-  if (img_write(image,(char *)image,sizeof(IMAGE)) != sizeof(IMAGE)) {
+  if (img_write(image,(char *)image,sizeof(RGB_IMAGE)) != sizeof(RGB_IMAGE)) {
       i_errhdlr("iclose: error on write of image header\n");
       return EOF;
   }
@@ -61,7 +61,7 @@ int iclose(IMAGE *image)
     return ret;
 }
 
-int iflush(IMAGE *image)
+int iflush(RGB_IMAGE *image)
 {
     unsigned short *base;
 

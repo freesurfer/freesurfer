@@ -5,9 +5,9 @@
  *
  */
 #include  <stdio.h>
-#include  <gl/image.h>
+#include  "rgb_image.h"
 
-int putrow(IMAGE *image, unsigned short *buffer,
+int putrow(RGB_IMAGE *image, unsigned short *buffer,
     unsigned int y, unsigned int z) 
 {
     register unsigned short   *sptr;
@@ -136,7 +136,7 @@ int putrow(IMAGE *image, unsigned short *buffer,
     return(-1);
 }
 
-int getrow(IMAGE *image, unsigned short *buffer,
+int getrow(RGB_IMAGE *image, unsigned short *buffer,
     unsigned int y, unsigned int z) 
 {
     register short i;

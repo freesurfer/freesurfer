@@ -5,11 +5,11 @@
  *
  */
 #include  <stdio.h>
-#include  <gl/image.h>
+#include  "rgb_image.h"
 
-unsigned long img_optseek(IMAGE *image, unsigned long offset);
+unsigned long img_optseek(RGB_IMAGE *image, unsigned long offset);
 
-unsigned long img_seek(IMAGE *image, unsigned int y, unsigned int z)
+unsigned long img_seek(RGB_IMAGE *image, unsigned int y, unsigned int z)
 {
     if(img_badrow(image,y,z)) {
   i_errhdlr("img_seek: row number out of range\n");
@@ -49,7 +49,7 @@ unsigned long img_seek(IMAGE *image, unsigned int y, unsigned int z)
     return((unsigned long)-1);
 }
 
-int img_badrow(IMAGE *image, unsigned int y, unsigned int z)
+int img_badrow(RGB_IMAGE *image, unsigned int y, unsigned int z)
 {
     if(y>=image->ysize || z>=image->zsize)
   return 1;
@@ -57,7 +57,7 @@ int img_badrow(IMAGE *image, unsigned int y, unsigned int z)
         return 0;
 }
 
-int img_write(IMAGE *image, char *buffer,int count)
+int img_write(RGB_IMAGE *image, char *buffer,int count)
 {
     int retval;
 
@@ -69,7 +69,7 @@ int img_write(IMAGE *image, char *buffer,int count)
     return retval;
 }
 
-int img_read(IMAGE *image, char *buffer, int count)
+int img_read(RGB_IMAGE *image, char *buffer, int count)
 {
     int retval;
 
@@ -81,7 +81,7 @@ int img_read(IMAGE *image, char *buffer, int count)
     return retval;
 }
 
-unsigned long img_optseek(IMAGE *image, unsigned long offset)
+unsigned long img_optseek(RGB_IMAGE *image, unsigned long offset)
 {
     if(image->offset != offset) {
        image->offset = offset;

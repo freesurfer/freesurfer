@@ -4,9 +4,9 @@
  *        Paul Haeberli - 1984
  *
  */
-#include  <gl/image.h>
+#include  "rgb_image.h"
 
-unsigned int iflsbuf(IMAGE *image, unsigned int c)
+unsigned int iflsbuf(RGB_IMAGE *image, unsigned int c)
 {
   register unsigned short *base;
   register n, rn;

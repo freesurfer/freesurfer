@@ -6,14 +6,14 @@
  */
 #include  <stdio.h>
 #include  <string.h>
-#include  <gl/image.h>
+#include  "rgb_image.h"
 
-void isetname(IMAGE *image, char *name)
+void isetname(RGB_IMAGE *image, char *name)
 {
     strncpy(image->name,name,80);
 }
 
-void isetcolormap(IMAGE *image, int colormap)
+void isetcolormap(RGB_IMAGE *image, int colormap)
 {
     image->colormap = colormap;
 }

@@ -7,33 +7,33 @@
  */
 #include  <stdio.h>
 #include  <stdlib.h>
-#include  <gl/image.h>
+#include  "rgb_image.h"
 
-IMAGE *imgopen(int, char *, char *,unsigned int, unsigned int,
+RGB_IMAGE *imgopen(int, char *, char *,unsigned int, unsigned int,
     unsigned int, unsigned int, unsigned int);
 
-IMAGE *iopen(char *file, char *mode, unsigned int type, unsigned int dim,
+RGB_IMAGE *iopen(char *file, char *mode, unsigned int type, unsigned int dim,
     unsigned int xsize, unsigned int ysize, unsigned int zsize)
 {
     return(imgopen(0, file, mode, type, dim, xsize, ysize, zsize));
 }
 
-IMAGE *fiopen(int f, char *mode, unsigned int type, unsigned int dim,
+RGB_IMAGE *fiopen(int f, char *mode, unsigned int type, unsigned int dim,
     unsigned int xsize, unsigned int ysize, unsigned int zsize)
 {
     return(imgopen(f, 0, mode, type, dim, xsize, ysize, zsize));
 }
 
-IMAGE *imgopen(int f, char *file, char *mode,
+RGB_IMAGE *imgopen(int f, char *file, char *mode,
     unsigned int type, unsigned int dim,
     unsigned int xsize, unsigned int ysize, unsigned int zsize)
 {
-  register IMAGE  *image;
+  register RGB_IMAGE  *image;
   register rw;
   int tablesize;
   register int i, max;
 
-  image = (IMAGE*)calloc(1,sizeof(IMAGE));
+  image = (RGB_IMAGE*)calloc(1,sizeof(RGB_IMAGE));
   if(!image ) {
       i_errhdlr("iopen: error on image struct alloc\n");
       return NULL;
@@ -76,7 +76,7 @@ IMAGE *imgopen(int f, char *file, char *mode,
     isetname(image,"no name"); 
     image->wastebytes = 0;
     image->dorev = 0;
-    if (write(f,image,sizeof(IMAGE)) != sizeof(IMAGE)) {
+    if (write(f,image,sizeof(RGB_IMAGE)) != sizeof(RGB_IMAGE)) {
         i_errhdlr("iopen: error on write of image header\n");
         return NULL;
     }
@@ -85,7 +85,7 @@ IMAGE *imgopen(int f, char *file, char *mode,
         f = open(file, rw? 2: 0);
     if (f < 0)
         return(NULL);
-    if (read(f,image,sizeof(IMAGE)) != sizeof(IMAGE)) {
+    if (read(f,image,sizeof(RGB_IMAGE)) != sizeof(RGB_IMAGE)) {
         i_errhdlr("iopen: error on read of image header\n");
         return NULL;
     }
@@ -152,7 +152,7 @@ IMAGE *imgopen(int f, char *file, char *mode,
   return(image);
 }
 
-unsigned short *ibufalloc(IMAGE *image)
+unsigned short *ibufalloc(RGB_IMAGE *image)
 {
     return (unsigned short *)malloc(IBUFSIZE(image->xsize));
 }

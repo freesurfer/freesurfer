@@ -4,9 +4,9 @@
  *        Paul Haeberli - 1984
  *
  */
-#include  <gl/image.h>
+#include  "rgb_image.h"
 
-int ifilbuf(IMAGE *image)
+int ifilbuf(RGB_IMAGE *image)
 {
   int size;
 
