@@ -12,7 +12,7 @@
 #include "mri.h"
 #include "macros.h"
 
-static char vcid[] = "$Id: mris_register.c,v 1.6 1998/10/28 15:34:45 fischl Exp $";
+static char vcid[] = "$Id: mris_register.c,v 1.7 1998/11/05 21:48:33 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -43,6 +43,7 @@ main(int argc, char *argv[])
   MRI_SURFACE  *mris ;
   MRI_SP       *mrisp_template ;
 
+  Gdiag = DIAG_SHOW ;
   Progname = argv[0] ;
   ErrorInit(NULL, NULL, NULL) ;
   DiagInit(NULL, NULL, NULL) ;
