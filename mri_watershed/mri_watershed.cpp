@@ -5,11 +5,11 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2004/06/09 19:16:44 $
-// Revision       : $Revision: 1.26 $
+// Revision Date  : $Date: 2004/06/09 22:47:12 $
+// Revision       : $Revision: 1.27 $
 //
 ////////////////////////////////////////////////////////////////////
-char *MRI_WATERSHED_VERSION = "$Revision: 1.26 $";
+char *MRI_WATERSHED_VERSION = "$Revision: 1.27 $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -40,6 +40,7 @@ extern "C" {
 #include "chklc.h"
 #include "diag.h"
 #include "version.h"
+#include "mrisegment.h"
 }
 
 #define SQR(x) ((x)*(x))
@@ -579,7 +580,7 @@ int main(int argc, char *argv[])
   /************* Command line****************/
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_watershed.cpp,v 1.26 2004/06/09 19:16:44 tosa Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_watershed.cpp,v 1.27 2004/06/09 22:47:12 tosa Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
