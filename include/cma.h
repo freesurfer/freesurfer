@@ -73,10 +73,15 @@
 #define   Right_Stellate  69/*                       120   62   43     0   */
 #define   Right_Porg  70/*                            74  155   60     0   */
 #define   Right_Aorg  71/*                          122  135   50     0*/
+#define   Bone        80 /*  100 100 100 0 */                         
+#define   Fat         81 /*  255 255 255 0 */
+#define   Bright_Unknown  82   /* 100 240 240 0 */
+#define   Dark_Unknown    83   /* 20  100  100     0  */
 
 
-#define IS_UNKNOWN(label)  (((label) == Unknown) || (label < 0))
 
-#define MAX_CMA_LABEL 71
+#define IS_UNKNOWN(label)  (((label) == Unknown) || (label < 0) || (label == Bright_Uknown) || (label == Dark_Unknown))
+
+#define MAX_CMA_LABEL 83
 
 #endif
