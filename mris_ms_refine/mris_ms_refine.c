@@ -19,7 +19,7 @@
 #include "cvector.h"
 #include "histo.h"
 
-static char vcid[] = "$Id: mris_ms_refine.c,v 1.3 2002/01/23 20:20:36 fischl Exp $";
+static char vcid[] = "$Id: mris_ms_refine.c,v 1.4 2002/01/23 20:23:41 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -184,7 +184,7 @@ static float base_dt_scale = BASE_DT_SCALE ;
 
 static int add = 0 ;
 
-static int orig_flag = 0 ;
+static int orig_flag = 1 ;
 static char *start_white_name = NULL ;
 static char *start_pial_name = NULL ;
 static int smooth_parms = 10 ;
