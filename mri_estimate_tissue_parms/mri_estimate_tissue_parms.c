@@ -70,7 +70,7 @@ static double
 computeVoxelSSE(MRI **mri_flash, int nflash, int x, 
                 int y, int z, double PD, double T1) ;
 
-static int write_iterations = 0, nsteps = 4 ; ;
+static int write_iterations = 0, nsteps = 4 ;
 static float        tr = 0, te = 0, fa = 0 ;
 
 int
