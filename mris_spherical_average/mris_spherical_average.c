@@ -16,7 +16,7 @@
 #include "icosahedron.h"
 #include "label.h"
 
-static char vcid[] = "$Id: mris_spherical_average.c,v 1.5 2002/05/21 17:00:54 fischl Exp $";
+static char vcid[] = "$Id: mris_spherical_average.c,v 1.6 2002/08/01 22:00:28 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -39,6 +39,7 @@ static char *orig_name = "orig" ;
 
 static int which_ic = 7 ;
 static char *sdir = NULL ;
+static int keep_stat = 0 ;
 
 int
 main(int argc, char *argv[])
@@ -149,6 +150,8 @@ main(int argc, char *argv[])
       if (!area)
         ErrorExit(ERROR_BADFILE,"%s: could not read label file %s for %s.\n",
                   Progname, data_fname, argv[i]);
+      if (keep_stat == 0)
+        LabelSetStat(area, 1.0f) ;
       area_avg = LabelSphericalCombine(mris, area, mht, mris_avg, area_avg) ;
       break ;
     case VERTEX_CURVATURE:
@@ -265,6 +268,9 @@ main(int argc, char *argv[])
     case VERTEX_CURV:
       MRISwriteCurvature(mris, out_fname) ;
       break ;
+    case VERTEX_COORDS:
+      MRISwrite(mris, out_fname) ;
+      break ;
     default:
       break ;
     }
@@ -296,6 +302,11 @@ get_option(int argc, char *argv[])
     ohemi = argv[2] ;
     fprintf(stderr, "output hemisphere = %s\n", ohemi) ;
     nargs = 1 ;
+  }
+  else if (!stricmp(option, "keep_stat"))
+  {
+    keep_stat = 1 ;
+    printf("retaining label statistics when averaging...\n") ;
   }
   else if (!stricmp(option, "ic"))
   {
