@@ -2,7 +2,7 @@
    DICOM 3.0 reading functions
    Author: Sebastien Gicquel and Douglas Greve
    Date: 06/04/2001
-   $Id: DICOMRead.c,v 1.32 2003/07/17 18:15:17 ebeth Exp $
+   $Id: DICOMRead.c,v 1.33 2003/07/17 20:00:34 tosa Exp $
 *******************************************************/
 
 #include <stdio.h>
@@ -665,7 +665,7 @@ int dcmGetVolRes(char *dcmfile, float *ColRes, float *RowRes, float *SliceRes)
       sscanf(e->d.string,"%f",SliceRes);
       if (*SliceRes == 0) return(1); //tag exists but zero
     }
-  fprintf(stderr, "SliceRes=%f\n",*SliceRes);
+  // fprintf(stderr, "SliceRes=%f\n",*SliceRes);
   FreeElementData(e); free(e);
 
   return(0);
@@ -3857,7 +3857,7 @@ int RASFromOrientation(MRI *mri, DICOMInfo *dcm)
    called-by: DICOMInfo2MRI
 *******************************************************/
 
-#define _RASFDEBUG
+// #define _RASFDEBUG
 #define _FIRSTMINUSLAST
 
 int RASFromOrientation(MRI *mri, DICOMInfo *dcm)
@@ -4225,6 +4225,8 @@ int DICOMInfo2MRI(DICOMInfo *dcm, void *data, MRI *mri)
    input: directory name, boolean 
    output: MRI structure, including the image if input boolean is true
    FileName points to a DICOM filename. All DICOM files in same directory will be read
+
+   This routine is used for non-Siemens DICOM files
 *******************************************************/
 
 int DICOMRead(char *FileName, MRI **mri, int ReadImage)
@@ -4239,7 +4241,10 @@ int DICOMRead(char *FileName, MRI **mri, int ReadImage)
   FILE *fp;
   int numFiles;
   int inputIndex;
+  int nextIndex;
   int inputImageNumber;
+  int *startIndices;
+  int count;
 
   for (i=0; i< NUMBEROFTAGS; i++)
     IsTagPresent[i]=false;
@@ -4256,38 +4261,46 @@ int DICOMRead(char *FileName, MRI **mri, int ReadImage)
       PathName[length+1] = '\0';
     }
 
+  // first check whether this is a siemens dicom file or not
+  if (IsSiemensDICOM(FileName))
+    *mri=sdcmLoadVolume(FileName, 1);
+
   // scan directory
   error=ScanDir(PathName, &FileNames, &NumberOfFiles);
 
   for (i=0, NumberOfDICOMFiles=0; i<NumberOfFiles; i++)
-    {
-      if (IsDICOM(FileNames[i]))
   {
-    NumberOfDICOMFiles++;
-  }
+    if (IsDICOM(FileNames[i]))
+    {
+      NumberOfDICOMFiles++;
     }
-  printf("%d DICOM 3.0 files in list\n", NumberOfDICOMFiles);
-
+  }
   // no DICOM files in directory
   if (NumberOfDICOMFiles==0)
-    {
-      printf("Sorry, no DICOM files found\n");
-      exit(1);
-    }
+  {
+    fprintf(stderr, "no DICOM files found. Exit\n");
+    exit(1);
+  }
+  else
+    printf("%d DICOM 3.0 files in list\n", NumberOfDICOMFiles);
+
 
   // remove non DICOM file names
   CleanFileNames(FileNames, NumberOfDICOMFiles, &CleanedFileNames);
   
   // sort DICOM files by study date, then image number
   SortFiles(CleanedFileNames, NumberOfDICOMFiles, &aDicomInfo, &nStudies);
-
   // if more than 1 studies in the file then do more work to create
   // a list of files which to make an output file.   Then use that
   // to print out the information.
   inputIndex = 0;
   inputImageNumber = 1;
+  count = 0;
   if (nStudies>1)
   {
+    // create an array of starting indices
+    startIndices = (int *) calloc(nStudies, sizeof(int));
+
     printf("Generating log file dicom.log\n");
     fp = fopen("dicom.log", "w");
     if (fp==NULL) {
@@ -4307,19 +4320,43 @@ int DICOMRead(char *FileName, MRI **mri, int ReadImage)
 	}
 	// print the starting filename for the studies
 	if (aDicomInfo[i]->ImageNumber ==1)
+	{
+	  startIndices[count]= i;
+	  count++;
 	  printf(" %s\n", aDicomInfo[i]->FileName);
+	}
       }
       fclose(fp);
     }
+    // ok found the Dicominfo for the input file and its image number.
+    // look for the starting index for this selected list
+    nextIndex = inputIndex;
+    for (i=0; i < count; i++)
+    {
+      if (startIndices[i] > inputIndex)
+      {
+	if (i > 0)
+	  inputIndex = startIndices[i-1];
+	nextIndex = startIndices[i];
+	break;
+      }
+    }
+    free((void *) startIndices);
   }
-  // ok found the Dicominfo for the input file and its image number.
-  // look for the starting index for this selected list
-  inputIndex -= inputImageNumber-1; // -1 is due to ImageNumber being counted from 1 not 0.
+  else // only 1 studies
+    nextIndex = inputIndex + NumberOfDICOMFiles;
+  // make sure that it is within the range
+  if (inputIndex < 0 || inputIndex > NumberOfDICOMFiles-1)
+  {
+    fprintf(stderr, "Failed to find the right starting index for the image %s.  Exit.\n", 
+	    FileName);
+    exit(1);
+  }
   // verify ImageNumber to be 1
   if (aDicomInfo[inputIndex]->ImageNumber != 1)
   {
-    fprintf(stderr, "Somehow the image number was not 1 for the list.  We will use the default\n");
-    inputIndex = 0;
+    fprintf(stderr, "The image number of the first image was not 1 for the list.  Exit.\n");
+    exit(1);
   }
   if (nStudies > 1)
   {
@@ -4330,8 +4367,12 @@ int DICOMRead(char *FileName, MRI **mri, int ReadImage)
   // the list has been sorted and thus look for the end.
   // numFiles = aDicomInfo[inputIndex]->NumberOfFrames; this is not reliable
   // use the ImageNumber directly
+  // Watch out!!!!!!
+  // Note that some dicom image consists of many images put into one
+  // the increment of image number can be 30
+  // If the image number increament is greater than one, we bail out
   numFiles = 1; // i=0
-  for (i=1; i < NumberOfDICOMFiles; ++i)
+  for (i=inputIndex; i < nextIndex; ++i)
   {
     if (aDicomInfo[i]->ImageNumber >= numFiles)
     {
@@ -4339,6 +4380,14 @@ int DICOMRead(char *FileName, MRI **mri, int ReadImage)
     }
     else
       break;
+  }
+  // non siemens dicom file cannot handle mosaic image
+  // nextIndex - inputIndex is the number of files.  numFiles is the one which
+  // counts subimages.
+  if (numFiles > (nextIndex- inputIndex))
+  {
+    fprintf(stderr, "Currently non-Siemens mosaic image cannot be handled.  Exit\n");
+    exit(1);
   }
   switch (aDicomInfo[inputIndex]->BitsAllocated)
   {
