@@ -616,7 +616,7 @@ ImageOffsetMedialAxis(IMAGE *Ioffset, IMAGE *Iedge)
 #endif
 
   /* assume everything is an edge */
-  ImageClearArea(Iout, -1, -1, -1, -1, 0.0f) ;  
+  ImageClearArea(Iout, -1, -1, -1, -1, 0.0f, -1) ;  
   dx_pix = IMAGEFpix(Ioffset, 0, 0) ;
   dy_pix = IMAGEFseq_pix(Ioffset, 0, 0, 1) ;
 
