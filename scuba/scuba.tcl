@@ -10,7 +10,7 @@ if { $err } {
     load [file dirname [info script]]/libscuba[info sharedlibextension] scuba
 }
 
-DebugOutput "\$Id: scuba.tcl,v 1.55 2004/09/12 03:28:18 kteich Exp $"
+DebugOutput "\$Id: scuba.tcl,v 1.56 2004/09/16 20:39:34 kteich Exp $"
 
 # gTool
 #   current - current selected tool (nav,)
@@ -180,6 +180,9 @@ proc GetDefaultFileLocation { iType } {
 		} else {
 		    set gsaDefaultLocation($iType) [exec pwd]
 		}	       
+	    }
+	    TIFF {
+		set gsaDefaultLocation($iType) [exec pwd]
 	    }
 	    ControlPoints {
 		if { [info exists env(SUBJECTS_DIR)] } {
@@ -452,7 +455,7 @@ proc MakeMenuBar { ifwTop } {
 	{command "Export Markers to Control Points..." 
 	    { DoExportMarkersToControlPointsDlog } }
 	{separator}
-	{command "Save RGB Capture..." { DoSaveRGBDlog } }
+	{command "Save TIFF Capture..." { DoSaveTIFFDlog } }
 	{separator}
 	{command "Save Scene Setup Script..." { DoSaveSceneSetupScriptDlog } }
 	{separator}
@@ -4039,15 +4042,15 @@ proc DoLoadTransformDlog {} {
 	}
 }
 
-proc DoSaveRGBDlog {} {
-    dputs "DoSaveRGBDlog  "
+proc DoSaveTIFFDlog {} {
+    dputs "DoSaveTIFFDlog  "
 
     global glShortcutDirs
 
-    tkuDoFileDlog -title "Save RGB Capture" \
-	-prompt1 "Save RGB: " \
-	-defaultdir1 [GetDefaultFileLocation RGB] \
-	-defaultvalue1 [GetDefaultFileLocation RGB] \
+    tkuDoFileDlog -title "Save TIFF Capture" \
+	-prompt1 "Save TIFF: " \
+	-defaultdir1 [GetDefaultFileLocation TIFF] \
+	-defaultvalue1 [GetDefaultFileLocation TIFF] \
 	-shortcuts $glShortcutDirs \
 	-okCmd { 
 	    CaptureFrameToFile [GetMainFrameID] %s1
@@ -4141,7 +4144,7 @@ proc SaveSceneScript { ifnScene } {
     set f [open $ifnScene w]
 
     puts $f "\# Scene file generated "
-    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.55 2004/09/12 03:28:18 kteich Exp $"
+    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.56 2004/09/16 20:39:34 kteich Exp $"
     puts $f ""
 
     # Find all the data collections.
