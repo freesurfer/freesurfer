@@ -1386,7 +1386,7 @@ MRI_SURFACE *
 MRISunfold(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
 {
   char    host_name[100], *cp ;
-  int     base_averages, n_averages, done ;
+  int     base_averages, n_averages, done, steps, total_steps ;
   float   base_tol ;
   INTEGRATION_PARMS _parms ;
 
@@ -1419,7 +1419,7 @@ MRISunfold(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
       parms->write_iterations = WRITE_ITERATIONS ;
   }
 
-  base_averages = n_averages = parms->n_averages ;
+  base_averages = parms->n_averages ;
   cp = getenv("HOST") ;
   if (cp)
     strcpy(host_name, cp) ;
@@ -1447,32 +1447,26 @@ MRISunfold(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
   }
 
   parms->start_t = 0 ;
+  parms->niterations = 1 ;
   base_tol = parms->tol ;
   do
   {
-    parms->tol = base_tol * sqrt((float)n_averages+1.0f) ;
-    fprintf(stderr, "integrating at scale = %d, tol = %2.1e\n", n_averages,
-            parms->tol) ;
-    parms->n_averages = n_averages ;     /* # of averages == scale */
-    parms->start_t += mrisIntegrate(mris, parms) ;
-    done = n_averages == 0 ;    /* finished integrating at smallest scale */
-    n_averages /= 2 ;           /* repeat integration at a finer scale */
-  } while (!done) ;
+    done = 0 ;
+    for (total_steps = 0, n_averages = base_averages ; !done ; n_averages /= 2)
+    {
+      parms->tol = base_tol * sqrt((float)n_averages+1.0f) ;
+#if 0
+      fprintf(stderr, "integrating at scale = %d, tol = %2.1e\n", n_averages,
+              parms->tol) ;
+#endif
+      parms->n_averages = n_averages ;     /* # of averages == scale */
+      steps = mrisIntegrate(mris, parms) ;
+      parms->start_t += steps ;
+      total_steps += steps ;
+      done = n_averages == 0 ;    /* finished integrating at smallest scale */
+    }
+  } while (total_steps > 0) ;
 
-  /* go through it again, starting from biggest scale */
-  n_averages = base_averages ;
-  do
-  {
-    parms->tol = base_tol * sqrt((float)n_averages+1.0f) ;
-    fprintf(stderr, "integrating at scale = %d, tol = %2.1e\n", n_averages,
-            parms->tol) ;
-    parms->n_averages = n_averages ;     /* # of averages == scale */
-    parms->start_t += mrisIntegrate(mris, parms) ;
-    done = n_averages == 0 ;    /* finished integrating at smallest scale */
-    n_averages /= 2 ;           /* repeat integration at a finer scale */
-  } while (!done) ;
-
-  parms->tol = base_tol ;
   if (Gdiag & DIAG_SHOW)
     fclose(parms->fp) ;
 
@@ -1549,16 +1543,16 @@ mrisIntegrate(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
     char fname[100] ;
 
     negative = mrisCountNegativeVertices(mris) ;
-    printf("%d of %d: dt: %2.3f, rms: %2.4f (%2.2f, %2.1f), neg: %d (%2.1f)"
-           ", avgs: %d\n", parms->start_t, niterations, delta_t, 
+    printf("%d: dt: %2.3f, rms: %2.4f (%2.3f, %2.1f), neg: %d (%2.1f)"
+           ", avgs: %d\n", parms->start_t, delta_t, 
            sqrt(sse/(float)num), sqrt(area_sse/(float)num), 
            DEGREES(sqrt(angle_sse/(float)num)), 
            negative, mris->neg_area, n_averages);
     if (Gdiag & DIAG_SHOW)
     {
       if (Gdiag & DIAG_SHOW)
-        fprintf(parms->fp, "%d of %d: dt: %2.3f, rms: %2.4f (%2.4f, %2.1f), "
-                "neg: %d (%2.1f) avgs: %d\n", parms->start_t, niterations, 
+        fprintf(parms->fp, "%d: dt: %2.3f, rms: %2.4f (%2.3f, %2.1f), "
+                "neg: %d (%2.1f) avgs: %d\n", parms->start_t, 
                 delta_t, sqrt(sse/(float)num), sqrt(area_sse/(float)num), 
                 DEGREES(sqrt(angle_sse/(float)num)), negative, mris->neg_area, 
                 n_averages);
@@ -1771,13 +1765,13 @@ if (DEBUG_VERTEX(vno))
     /* only print stuff out if we actually took a step */
     sse = mrisComputeError(mris,parms->l_area,parms->l_angle,&area_sse,
                            &angle_sse, &num);
-    if (FZERO(sse) || (fabs((sse-old_sse)/(sse+old_sse)) < parms->tol/10.0f))
+    if (FZERO(sse) || (fabs((sse-old_sse)/(old_sse)) < parms->tol))
       break ;
 
     old_sse = sse ;
     negative = mrisCountNegativeVertices(mris) ;
-    printf("%d of %d: dt: %2.3f, rms: %2.4f (%2.2f, %2.1f), neg: %d (%2.1f), "
-           "avgs: %d\n", t+1, niterations,  delta_t, 
+    printf("%d: dt: %2.3f, rms: %2.4f (%2.3f, %2.1f), neg: %d (%2.1f), "
+           "avgs: %d\n", t+1,   delta_t, 
            (float)sqrt(sse/(float)num), 
            (float)sqrt(area_sse/(float)num), 
            (float)DEGREES(sqrt(angle_sse/(float)num)), 
@@ -1786,8 +1780,8 @@ if (DEBUG_VERTEX(vno))
     if (Gdiag & DIAG_SHOW)
     {
       fprintf(parms->fp, 
-              "%d of %d: dt: %2.3f, rms: %2.4f (%2.2f, %2.1f), neg: %d (%2.1f)"
-              ", avgs: %d\n", t+1, niterations, delta_t, 
+              "%d: dt: %2.3f, rms: %2.4f (%2.3f, %2.1f), neg: %d (%2.1f)"
+              ", avgs: %d\n", t+1, delta_t, 
               (float)sqrt(sse/(float)num), 
               (float)sqrt(area_sse/(float)num), 
               (float)DEGREES(sqrt(angle_sse/(float)num)), 
@@ -2316,7 +2310,7 @@ mrisReadTriangleProperties(MRI_SURFACE *mris, char *mris_fname)
   FILE    *fp;
   char    fname[100], fpref[100], hemi[20], *cp ;
 
-  if (Gdiag & DIAG_SHOW)
+  if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
     fprintf(stderr, "reading triangle files...") ;
 
   cp = strrchr(mris_fname, '.') ;
@@ -2363,7 +2357,7 @@ mrisReadTriangleProperties(MRI_SURFACE *mris, char *mris_fname)
 
   /* hack to correct for overestimation of area in compute_normals */
   mris->orig_area /= 2; 
-  if (Gdiag & DIAG_SHOW)
+  if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
     fprintf(stderr, "total area = %2.0f.\n", mris->orig_area) ;
 
 
@@ -2530,7 +2524,8 @@ mrisCalculateTriangleProperties(MRI_SURFACE *mris)
 
         Description
 ------------------------------------------------------*/
-#define MAX_MM  (DEFAULT_A/10.0f)
+#define MAX_MM    (DEFAULT_A/100.0f)
+#define MAX_DT    1000000.0f
 
 static float
 mrisLineMinimize(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
@@ -2538,7 +2533,8 @@ mrisLineMinimize(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
   char    fname[100] ;
   FILE    *fp = NULL ;
   double  starting_sse, sse, min_sse, max_dt ;
-  float   delta_t, total_delta, min_delta, max_delta, dx, dy, dz, mag ;
+  float   delta_t, total_delta, min_delta, max_delta, dx, dy, dz, mag,
+          grad ;
   int     vno, done = 0, increasing ;
   VERTEX  *vertex ;
   static float last_max_delta_t = 0.0f ;
@@ -2562,16 +2558,22 @@ mrisLineMinimize(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
   min_sse = starting_sse = mrisComputeSSE(mris, parms->l_area, parms->l_angle);
 
   max_delta = 0.0f ;
+  grad = 0.0f ;
   for (vno = 0 ; vno < mris->nvertices ; vno++)
   {
     vertex = &mris->vertices[vno] ;
     dx = vertex->dx ; dy = vertex->dy ; dz = vertex->dz ;
     mag = sqrt(dx*dx+dy*dy+dz*dz) ;
+    grad += dx*dx+dy*dy+dz*dz ;
     if (mag > max_delta)
       max_delta = mag ;
   }
-
+  grad = sqrt(grad) ;
   max_dt = MAX_MM / max_delta ;
+#if 0
+  if (max_dt > MAX_DT)
+    max_dt = MAX_DT ;
+#endif
 
   /* pick starting step size */
   min_delta = 0.0f ; /* to get rid of compiler warning */
@@ -2614,8 +2616,8 @@ mrisLineMinimize(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
   }
 
   delta_t = min_delta ;
-  fprintf(stderr,"max_delta = %2.3f, max_dt = %2.1f, starting delta = %2.3f\n",
-          max_delta, max_dt, delta_t) ;
+  fprintf(stderr,"grad=%2.4f, max_delta = %2.3f, max_dt = %2.1f, "
+          "starting dt = %2.3f\n", grad, max_delta, max_dt, delta_t) ;
 
   /* now search for minimum in gradient direction */
   increasing = 1 ;
@@ -2646,11 +2648,11 @@ mrisLineMinimize(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
       fprintf(fp, "%2.8f   %2.8f\n", total_delta+delta_t, sse) ;
     if (sse <= min_sse)   /* new minimum found */
     {
+      if (total_delta+delta_t > max_dt)
+        increasing = 0 ;  /* limit size of largest time step */
       min_sse = sse ;
       total_delta += delta_t ;           /* keep track of total time step */
       last_max_delta_t = total_delta ;   /* best total time step */
-      if (total_delta+delta_t > max_dt)
-        increasing = 0 ;  /* limit size of largest time step */
     }
     else                 /* error increased - undo it and decrease time step */
     {
@@ -3663,9 +3665,10 @@ MRISwriteAngleError(MRI_SURFACE *mris, char *fname)
 static int
 mrisAverageAreas(MRI_SURFACE *mris, int num_avgs, int which)
 {
-  int    i, vno, vnb, *pnb, fno, num ;
+  int    i, vno, vnb, *pnb, fno, num, vf, nfno ;
   float  area ;
   VERTEX *v, *vn ;
+  FACE   *f ;
 
   for (i = 0 ; i < num_avgs ; i++)
   {
@@ -3675,54 +3678,46 @@ mrisAverageAreas(MRI_SURFACE *mris, int num_avgs, int which)
       for (vno = 0 ; vno < mris->nvertices ; vno++)
       {
         v = &mris->vertices[vno] ;
-        area = 0.0f ;
 
-        /* first include all the areas associated with this vertex */
-        for (fno = 0 ; fno < v->num ; fno++)
-          area += v->orig_tri_area[fno] ;
-
-        num = v->num ;
-
-        /* now include all the areas associated with its neighbors */
-        for (pnb = v->v, vnb = 0 ; vnb < v->vnum ; vnb++)
+        for (fno = 0 ; fno < v->num ; fno++) /* each face of this vertex */
         {
-          vn = &mris->vertices[*pnb++] ;    /* neighboring vertex pointer */
-          num += vn->num ;
-          for (fno = 0 ; fno < vn->num ; fno++)  /* for each face */
-            area += vn->orig_tri_area[fno] ;
-        }
+          f = &mris->faces[v->f[fno]] ;  /* pointer to the face */
+          area = 0.0f ;
 
-        /* first include all the areas associated with this vertex */
-        area /= (float)num ;
-        for (fno = 0 ; fno < v->num ; fno++)
+          /* now go through each vertex associated with this face */
+          for (vf = 0 ; vf < VERTICES_PER_FACE ; vf++)
+          {
+            vn = &mris->vertices[f->v[vf]] ;
+            num += vn->num ;
+            for (nfno = 0 ; nfno < vn->num ; nfno++)
+              area += vn->orig_tri_area[nfno] ;
+          }
+          area /= (float)num ;
           v->orig_tri_area[fno] = area ;
+        }
       }
       break ;
     case CURRENT_AREAS:
       for (vno = 0 ; vno < mris->nvertices ; vno++)
       {
         v = &mris->vertices[vno] ;
-        area = 0.0f ;
 
-        /* first include all the areas associated with this vertex */
-        for (fno = 0 ; fno < v->num ; fno++)
-          area += v->tri_area[fno] ;
-
-        num = v->num ;
-
-        /* now include all the areas associated with its neighbors */
-        for (pnb = v->v, vnb = 0 ; vnb < v->vnum ; vnb++)
+        for (fno = 0 ; fno < v->num ; fno++) /* each face of this vertex */
         {
-          vn = &mris->vertices[*pnb++] ;    /* neighboring vertex pointer */
-          num += vn->num ;
-          for (fno = 0 ; fno < vn->num ; fno++)  /* for each face */
-            area += vn->tri_area[fno] ;
-        }
+          f = &mris->faces[v->f[fno]] ;  /* pointer to the face */
+          area = 0.0f ;
 
-        /* first include all the areas associated with this vertex */
-        area /= (float)num ;
-        for (fno = 0 ; fno < v->num ; fno++)
+          /* now go through each vertex associated with this face */
+          for (vf = 0 ; vf < VERTICES_PER_FACE ; vf++)
+          {
+            vn = &mris->vertices[f->v[vf]] ;
+            num += vn->num ;
+            for (nfno = 0 ; nfno < vn->num ; nfno++)
+              area += vn->tri_area[nfno] ;
+          }
+          area /= (float)num ;
           v->tri_area[fno] = area ;
+        }
       }
       break ;
     }
