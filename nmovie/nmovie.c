@@ -1,12 +1,12 @@
 // nmovie.c
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2003/01/22 21:48:39 $
-// Revision       : $Revision: 1.18 $
+// Revision Author: $Author: vicka $
+// Revision Date  : $Date: 2003/02/06 20:28:28 $
+// Revision       : $Revision: 1.19 $
 //
 ////////////////////////////////////////////////////////////////////
-char *NMOVIE_VERSION = "$Revision: 1.18 $";
+char *NMOVIE_VERSION = "$Revision: 1.19 $";
 #include <stdio.h>
 #include <image.h>
 #include <stdlib.h>
@@ -92,7 +92,7 @@ int shmext,nframes;
 XImage *ximg;
 byte *imgdata;
 XCRUFT xi;
-int pfmt=0,rows=0,cols=0;
+int nm_pfmt=0,rows=0,cols=0;
 int running = 0;
 int direction = FORWARD;
 int curframe=0;
@@ -618,7 +618,7 @@ int main(int argc, char **argv)
       i-- ; argc-- ;
       continue ;
     }
-    pfmt = MAX(pfmt,I->pixel_format);
+    nm_pfmt = MAX(nm_pfmt,I->pixel_format);
     rows = MAX(rows,I->orows);
     cols = MAX(cols,I->ocols);
     ImageFree(&I);
