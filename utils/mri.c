@@ -9,9 +9,9 @@
  */
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2004/11/01 21:06:04 $
-// Revision       : $Revision: 1.279 $
-char *MRI_C_VERSION = "$Revision: 1.279 $";
+// Revision Date  : $Date: 2004/11/22 21:30:15 $
+// Revision       : $Revision: 1.280 $
+char *MRI_C_VERSION = "$Revision: 1.280 $";
 
 /*-----------------------------------------------------
   INCLUDE FILES
@@ -39,6 +39,7 @@ char *MRI_C_VERSION = "$Revision: 1.279 $";
 #include "utils.h"
 #include "matrix.h"
 #include "pdf.h"
+#include "cma.h"
 
 extern int errno;
 
@@ -11141,5 +11142,161 @@ MRIsampleVolumeSlice(MRI *mri, Real x, Real y, Real z, Real *pval, int slice_dir
     break ;
   }
   return(NO_ERROR) ;
+}
+
+float
+MRIvoxelsInLabelWithPartialVolumeEffects(MRI *mri, MRI *mri_vals, int label)
+{
+	float   volume, vox_vol ;
+	int     x, y, z, nbr_label_counts[MAX_CMA_LABELS],label_counts[MAX_CMA_LABELS], this_label, border, nbr_label, max_count,
+          vox_label ;
+	MRI     *mri_border ;
+	float   label_means[MAX_CMA_LABELS], pv, mean_label, mean_nbr, val ;
+
+	vox_vol = mri->xsize*mri->ysize*mri->zsize ;
+
+	/* first find border voxels */
+	mri_border = MRImarkLabelBorderVoxels(mri, NULL, label, 1, 1) ;
+	if (DIAG_VERBOSE_ON && (Gdiag & DIAG_WRITE))
+		MRIwrite(mri_border, "b.mgz") ;
+	volume = 0 ;
+	for (x = 0 ; x < mri->width ; x++)
+	{
+		for (y = 0 ; y < mri->height ; y++)
+		{
+			for (z = 0 ; z < mri->depth ; z++)
+			{
+				if (x == Gx && y == Gy && z == Gz)
+					DiagBreak() ;
+				vox_label = MRIgetVoxVal(mri, x, y, z, 0) ;
+				border = MRIgetVoxVal(mri_border, x, y, z, 0) ;
+				if ((vox_label != label) && (border == 0))
+					continue ;
+
+				if (border == 0)
+					volume += vox_vol ;
+				else /* compute partial volume */
+				{
+					MRIcomputeLabelNbhd(mri, mri_vals, x, y, z, nbr_label_counts, label_means, 1, MAX_CMA_LABELS) ;
+					MRIcomputeLabelNbhd(mri, mri_vals, x, y, z, label_counts, label_means, 7, MAX_CMA_LABELS) ;
+					val = MRIgetVoxVal(mri_vals, x, y, z, 0) ;  /* compute partial volume based on intensity */
+					mean_label = label_means[vox_label] ;
+					nbr_label = -1 ; max_count = 0 ;
+					/* look for a label that is a nbr and is on the other side of val from the label mean */
+					for (this_label = 0 ; this_label < MAX_CMA_LABELS ; this_label++)
+					{
+						if (this_label == vox_label)
+							continue ;
+						if (nbr_label_counts[this_label] == 0)   /* not a nbr */
+							continue ;
+
+						if ((label_counts[this_label] > max_count) && 
+								((label_means[this_label] - val) * (mean_label - val) < 0))
+						{
+							max_count = label_means[this_label] ;
+							nbr_label = this_label ;
+						}
+					}
+					if (vox_label != label && nbr_label != label)  /* this struct not in voxel */
+						continue ;
+
+					if (max_count == 0)  /* couldn't find an appropriate label */
+						volume += vox_vol ;
+					else    /* compute partial volume pct */
+					{
+						mean_nbr = label_means[nbr_label] ;
+						pv = (val - mean_nbr) / (mean_label - mean_nbr) ;
+						if (vox_label == label)
+							volume += vox_vol * pv ;
+						else
+							volume += vox_vol * (1-pv) ;
+						if (pv < 0 || pv > 1)
+							DiagBreak() ;
+					}
+				}
+			}
+		}
+	}
+
+	MRIfree(&mri_border) ;
+	return(volume) ;
+}
+
+MRI *
+MRImarkLabelBorderVoxels(MRI *mri_src, MRI *mri_dst, int label, int mark, int six_connected)
+{
+	int  x, y, z, xk, yk, zk, xi, yi, zi, this_label, that_label, border ;
+
+	if (mri_dst == NULL)
+		mri_dst = MRIclone(mri_src, NULL) ;
+
+	for (x = 0 ; x < mri_src->width ; x++)
+	{
+		for (y = 0 ; y < mri_src->height ; y++)
+		{
+			for (z = 0 ; z < mri_src->depth ; z++)
+			{
+				this_label = MRIgetVoxVal(mri_src, x, y, z, 0) ;
+				border = 0 ;
+				for (xk = -1 ; xk <= 1 && !border ; xk++)
+				{
+					xi = mri_src->xi[x+xk] ;
+					for (yk = -1 ; yk <= 1 && !border ; yk++)
+					{
+						yi = mri_src->yi[y+yk] ;
+						for (zk = -1 ; zk <= 1 ; zk++)
+						{
+							if (six_connected && (abs(xk)+abs(yk)+abs(zk) != 1))
+								continue ;
+							zi = mri_src->zi[z+zk] ;
+							that_label = MRIgetVoxVal(mri_src, xi, yi, zi, 0) ;
+							if (((this_label == label) && (that_label != label)) ||
+									((this_label != label) && (that_label == label)))
+							{
+								border = 1 ;
+								break ;
+							}
+						}
+					}
+				}
+				if (border)
+					MRIsetVoxVal(mri_dst, x, y, z, 0, mark) ;
+			}
+		}
+	}
+
+	return(mri_dst) ;
+}
+
+int
+MRIcomputeLabelNbhd(MRI *mri_labels, MRI *mri_vals, int x, int y, int z, int *label_counts, float *label_means, 
+										int whalf, int max_labels)
+{
+	int    xi, yi, zi, xk, yk, zk, label ;
+	float  val ;
+
+	memset(label_counts, 0, sizeof(label_counts[0])*max_labels) ;
+	memset(label_means, 0, sizeof(label_means[0])*max_labels) ;
+	for (xk = -whalf ; xk <= whalf ; xk++)
+	{
+		xi = mri_vals->xi[x+xk] ;
+		for (yk = -whalf ; yk <= whalf ; yk++)
+		{
+			yi = mri_vals->yi[y+yk] ;
+			for (zk = -whalf ; zk <= whalf ; zk++)
+			{
+				zi = mri_vals->zi[z+zk] ;
+				label = MRIgetVoxVal(mri_labels, xi, yi, zi, 0) ;
+				val = MRIgetVoxVal(mri_vals, xi, yi, zi, 0) ;
+				label_counts[label]++ ;
+				label_means[label] += val ;
+			}
+		}
+	}
+
+	for (label = 0 ; label < max_labels ; label++)
+		if (label_counts[label] > 0)
+			label_means[label] /= label_counts[label] ;
+	return(NO_ERROR) ;
 }
 
