@@ -44,6 +44,7 @@
 #include "math.h"
 #include "matrix.h"
 #include "diag.h"
+#include "anders.h"
 
 #define MM_PER_METER  1000.0f
 #define INFO_FNAME    "COR-.info"
@@ -247,6 +248,7 @@ MRI *MRIread(char *fname)
   MRI *mri = NULL;
   int int_type;
 
+  anders() ;
   if((int_type = mri_identify(fname)) < 0)
   {
     ErrorReturn(NULL, (ERROR_BADFILE, "unknown file type for file (%s)", fname));
@@ -370,6 +372,7 @@ int MRIwrite(MRI *mri, char *fname)
   int int_type = -1;
   int error;
 
+  anders() ;
   if((int_type = mri_identify(fname)) < 0)
   {
     ErrorReturn(ERROR_BADPARM, (ERROR_BADPARM, "unknown file type for file (%s)", fname));
