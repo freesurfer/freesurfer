@@ -576,7 +576,7 @@ GCarrayClassify(GCARRAY *gcarray, MRI *mri_src, MRI *mri_dst,
         }
         
         /* now classify this observation */
-        classno = GCclassify(gc, m_inputs, &prob) ;
+        classno = GCclassify(gc, m_inputs, NULL, &prob) ;
 
         if (pclasses)
           *pclasses++ = (BUFTYPE)classno ;
