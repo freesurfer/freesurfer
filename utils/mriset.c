@@ -1645,6 +1645,30 @@ MRIlabelOverlap(MRI *mri1, MRI *mri2, int label)
   }
   return(nvox) ;
 }
+int
+MRItotalVoxelsOn(MRI *mri, int thresh)
+{
+  int     width, height, depth, x, y, z, nvox ;
+  BUFTYPE *pbuf ;
+
+  width = mri->width ;
+  height = mri->height ;
+  depth = mri->depth ;
+
+  for (nvox = z = 0 ; z < depth ; z++)
+  {
+    for (y = 0 ; y < height ; y++)
+    {
+      pbuf = &MRIvox(mri, 0, y, z) ;
+      for (x = 0 ; x < width ; x++)
+      {
+        if (*pbuf++ > thresh)
+          nvox++ ;
+      }
+    }
+  }
+  return(nvox) ;
+}
 /*-----------------------------------------------------
         Parameters:
 
