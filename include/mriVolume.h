@@ -26,7 +26,7 @@ typedef enum {
   Volm_tErr_CouldntCopyTransform,
   Volm_tErr_CouldntNormalizeVolume,
   Volm_tErr_CouldntExportVolumeToCOR,
-  Volm_tErr_NormValuesNotPresent,
+  Volm_tErr_MRIVolumeNotPresent,
   Volm_tErr_ScannerTransformNotPresent,
   Volm_tErr_IdxToRASTransformNotPresent,
   
@@ -101,6 +101,8 @@ Volm_tErr Volm_Delete     ( mriVolumeRef* iopVolume );
 Volm_tErr Volm_DeepClone  ( mriVolumeRef  this, 
 			    mriVolumeRef* opVolume );
 
+Volm_tErr Volm_CreateFromVolume( mriVolumeRef this, 
+				 mriVolumeRef iVolume );
 Volm_tErr Volm_ImportData      ( mriVolumeRef this,
 				 char*        isSource );
 Volm_tErr Volm_ExportNormToCOR ( mriVolumeRef this,
@@ -135,6 +137,10 @@ Volm_tErr Volm_GetDimensions        ( mriVolumeRef this,
 				      int*         onDimensionX, 
 				      int*         onDimensionY, 
 				      int*         onDimensionZ );
+Volm_tErr Volm_GetNumberOfFrames    ( mriVolumeRef this,
+				      int*         onDimensionFrames );
+Volm_tErr Volm_GetType              ( mriVolumeRef this,
+				      int*         onType );
 
 /* Use the GetValue functions when you want the real value of the
    voxel. Before calling the unsafe version, make sure the volume is
@@ -238,6 +244,11 @@ Volm_tErr Volm_ExtractAndSetSubjectName ( mriVolumeRef this,
 					  char*        isSource );
 Volm_tErr Volm_ExtractAndSetVolumeName  ( mriVolumeRef this,
 					  char*        isSource );
+
+/* Sets up internal data structures from an MRI volume and starts
+   using the given MRI as its voxel values. */
+Volm_tErr Volm_SetFromMRI_ ( mriVolumeRef this,
+			     MRI*        iMRI );
 
 /* Note that the functions in this section are implemented as
    functions and macros. The functions are slower but safer, and the
