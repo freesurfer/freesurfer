@@ -1,10 +1,10 @@
 /*============================================================================
  Copyright (c) 1996 Martin Sereno and Anders Dale
 =============================================================================*/
-/*   $Id: tkregister2.c,v 1.7 2003/03/11 21:31:21 greve Exp $   */
+/*   $Id: tkregister2.c,v 1.8 2003/03/11 21:39:28 greve Exp $   */
 
 #ifndef lint
-static char vcid[] = "$Id: tkregister2.c,v 1.7 2003/03/11 21:31:21 greve Exp $";
+static char vcid[] = "$Id: tkregister2.c,v 1.8 2003/03/11 21:39:28 greve Exp $";
 #endif /* lint */
 
 #define TCL
@@ -1806,7 +1806,7 @@ void select_pixel(short sx, short sy)
 int do_one_gl_event(Tcl_Interp *interp)   /* tcl */
 {
   XEvent current, ahead;
-  char buf[1000], c;
+  char buf[1000], c=0;
   char command[NAME_LENGTH];
   KeySym ks;
   static int ctrlkeypressed = FALSE;
