@@ -562,13 +562,20 @@ proc DoConfigOverlayDisplayDlog {} {
   set fwThresholdSliders $fwThresholdSub.fwThresholdSliders
   set fwThresholdSlope   $fwThresholdSub.fwThresholdSlope
 
+#  tkm_MakeSliders $fwThresholdSliders [list \
+#    [list {"Threshold offset"} gaLinkedVars(foffset) \
+#   -10000 10000 100 {} 1 0.25] \
+#    [list {"Threshold minimum"} gaLinkedVars(fthresh) \
+#    $gaLinkedVars(fmin) $gaLinkedVars(fmax) 100 {} 1 0.25] \
+#    [list {"Threshold midpoint"} gaLinkedVars(fmid) \
+#    $gaLinkedVars(fmin) $gaLinkedVars(fmax) 100 {} 1 0.25]]
   tkm_MakeSliders $fwThresholdSliders [list \
     [list {"Threshold offset"} gaLinkedVars(foffset) \
     -10000 10000 100 {} 1 0.25] \
     [list {"Threshold minimum"} gaLinkedVars(fthresh) \
-    $gaLinkedVars(fmin) $gaLinkedVars(fmax) 100 {} 1 0.25] \
+    -10000 10000 100 {} 1 0.25] \
     [list {"Threshold midpoint"} gaLinkedVars(fmid) \
-    $gaLinkedVars(fmin) $gaLinkedVars(fmax) 100 {} 1 0.25]]
+    -10000 10000 100 {} 1 0.25]]
   tkm_MakeEntry $fwThresholdSlope "Threshold slope" \
     gaLinkedVars(fslope) 6
 
