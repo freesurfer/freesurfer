@@ -8,10 +8,10 @@
  *
  */
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2004/05/25 18:20:39 $
-// Revision       : $Revision: 1.273 $
-char *MRI_C_VERSION = "$Revision: 1.273 $";
+// Revision Author: $Author: tosa $
+// Revision Date  : $Date: 2004/06/08 15:48:58 $
+// Revision       : $Revision: 1.274 $
+char *MRI_C_VERSION = "$Revision: 1.274 $";
 
 /*-----------------------------------------------------
   INCLUDE FILES
@@ -2185,9 +2185,17 @@ MATRIX *surfaceRASFromVoxel_(MRI *mri)
   //                           [  0  0  1  -c_s]
   //                           [  0  0  0    1 ]
   //  
-  //  surfaceRASFromVoxel = surfaceRASFromRAS (x) RASFromVoxel
+  //  surfaceRASFromVoxel = surfaceRASFromRAS (x) rasFromVoxel
   //
   //  i.e.       applying translation on RASFromVoxel
+  //
+  // This means tha
+  //
+  //  if RASFromVoxel = (  X  | T ), then
+  //                    (  0  | 1 ) 
+  //
+  //    surfaceRASFromVoxel =  ( 1 | -C) * ( X | T ) = ( X | T - C )
+  //                           ( 0 | 1 )   ( 0 | 1 )   ( 0 |   1   )
   //
   MATRIX *rasFromVoxel;
   MATRIX *sRASFromVoxel;
@@ -2297,9 +2305,53 @@ int MRIvoxelToSurfaceRAS(MRI *mri, Real xv, Real yv, Real zv,
 
 MATRIX *voxelFromSurfaceRAS_(MRI *mri)
 {
+  //////////////////////////////////////////////////////////////////
+  // it turned out that this can be done easily without taking inverse
+  // Note the surfaceRASFromVoxel_ is given by
+  //
+  //       ( X | T - C)
+  //       ( 0 |  1   )
+  // Note, however, that we define C by
+  //
+  //      (  X | T ) (S/2) = ( C )  where S = (w/2, h/2, d/2)^t
+  //      (  0 | 1 ) ( 1 )   ( 1 )
+  // Thus
+  //        X*S/2 + T = C
+  // or
+  //        T - C = - X*S/2
+  // or
+  //     surfaceRASFromVoxel = ( X | - X*S/2 )
+  //                           ( 0 |    1    )
+  // whose inverse is given by
+  //
+  //     voxelFromSurfaceRAS = ( X ^(-1)| S/2 )
+  //                           (  0     |  1  )
+  //
+  // since
+  //           ( X^(-1)  S/2) ( X  -X*S/2) = ( 1   S/2 - S/2) = 1
+  //           (   0      1 ) ( 0     1  )   ( 0      1     ) 
+  //
+  // thus get r_to_i__ and set translation part to S/2 is the quickest way
+  /////////////////////////////////////////////////////////////////////
+  // if the transform is not cached yet, then
+  if (!mri->i_to_r__)
+    mri->i_to_r__ = extract_i_to_r(mri);
+  if (!mri->r_to_i__)
+    mri->r_to_i__ = extract_r_to_i(mri);
+
+  MATRIX *voxelFromSRAS = MatrixCopy(mri->r_to_i__, NULL);
+  // modify translation part
+  *MATRIX_RELT(voxelFromSRAS, 1,4) = mri->width/2;
+  *MATRIX_RELT(voxelFromSRAS, 2,4) = mri->height/2;
+  *MATRIX_RELT(voxelFromSRAS, 3,4) = mri->depth/2;
+
+#if 0
+  // no more expensive inverse
   MATRIX *sRASFromVoxel = surfaceRASFromVoxel_(mri);
   MATRIX *voxelFromSRAS = MatrixInverse(sRASFromVoxel, NULL);
   MatrixFree(&sRASFromVoxel) ;
+#endif
+
   return voxelFromSRAS;
 }
 
