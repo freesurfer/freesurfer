@@ -6013,7 +6013,7 @@ DspA_tErr DspA_SendPointInformationToTcl_ ( tkmDisplayAreaRef this,
   /* also convert to MRI idx and send those coords along. */
   Volm_ConvertIdxToMRIIdx( this->mpVolume, iAnaIdx, &voxel );
   sprintf( sTclArguments, "%s %d %d %d", 
-	   DspA_ksaDisplaySet[iSet], xVoxl_ExpandFloat( &voxel ) );
+	   DspA_ksaDisplaySet[iSet], xVoxl_ExpandInt( &voxel ) );
   tkm_SendTclCommand( tkm_tTclCommand_UpdateMRICursor, sTclArguments );
   
   /* also convert to RAS and send those coords along. */
