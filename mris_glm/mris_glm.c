@@ -4,7 +4,7 @@
   email:   analysis-bugs@nmr.mgh.harvard.edu
   Date:    2/27/02
   Purpose: Computes glm inferences on the surface.
-  $Id: mris_glm.c,v 1.5 2002/10/25 19:59:34 greve Exp $
+  $Id: mris_glm.c,v 1.6 2002/10/28 18:29:34 greve Exp $
 
 Things to do:
   0. Documentation.
@@ -66,7 +66,7 @@ MATRIX *ReadAsciiMatrix(char *asciimtxfname);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mris_glm.c,v 1.5 2002/10/25 19:59:34 greve Exp $";
+static char vcid[] = "$Id: mris_glm.c,v 1.6 2002/10/28 18:29:34 greve Exp $";
 char *Progname = NULL;
 
 char *hemi        = NULL;
@@ -507,14 +507,19 @@ static int parse_commandline(int argc, char **argv)
       ReadDesignMatrix(desmtxfname);
       Xcondition = MatrixNSConditionNumber(X);
       printf("INFO: Design Matrix Condition Number is %g\n",Xcondition);
+      if(xmatfile != NULL && debug) {
+	printf("INFO: Writing mat file to %s\n",xmatfile);
+	if(MatlabWrite(X,xmatfile,"X")){
+	  printf("ERROR: Writing mat file to %s\n",xmatfile);
+	  exit(1);
+	}
+      }
       if(Xcondition > 100000){
 	printf("ERROR: Design matrix is badly conditioned, check for linear\n"
 	       "dependency  between columns (ie, two or more columns \n"
 	       "that add up to another column).\n\n");
 	exit(1);
-  }
-
-
+      }
     }
     else if ( !strcmp(option, "--xmat") ){
       if(nargc < 1) argnerr(option,1);
