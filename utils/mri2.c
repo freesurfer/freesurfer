@@ -1,7 +1,7 @@
 /*-------------------------------------------------------------------
   Name: mri2.c
   Author: Douglas N. Greve
-  $Id: mri2.c,v 1.9 2004/11/03 22:36:00 greve Exp $
+  $Id: mri2.c,v 1.10 2004/11/04 17:56:59 greve Exp $
   Purpose: more routines for loading, saving, and operating on MRI 
   structures.
   -------------------------------------------------------------------*/
@@ -707,6 +707,10 @@ int MRIdimMismatch(MRI *v1, MRI *v2, int frameflag)
     1 - something went wrong
 
   Ref: http://www.sph.umich.edu/~nichols/FDR/FDR.m
+  Thresholding of Statistical Maps in Functional Neuroimaging Using
+  the False Discovery Rate.  Christopher R. Genovese, Nicole A. Lazar,
+  Thomas E. Nichols (2002).  NeuroImage 15:870-878.
+
   *----------------------------------------------------*/
 int MRIfdr2vwth(MRI *vol, int frame, double fdr, int signid, 
 		int log10flag, MRI *mask, double *vwth, MRI *ovol)

@@ -23,6 +23,9 @@
   Return: threshold between 0 and 1.
   Note: values in p will be changed (sorted ascending).
   Ref: http://www.sph.umich.edu/~nichols/FDR/FDR.m
+  Thresholding of Statistical Maps in Functional Neuroimaging Using
+  the False Discovery Rate.  Christopher R. Genovese, Nicole A. Lazar,
+  Thomas E. Nichols (2002).  NeuroImage 15:870-878.
   ---------------------------------------------------------*/
 double fdr2vwth(double *p, int np, double fdr)
 {

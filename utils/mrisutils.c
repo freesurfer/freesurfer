@@ -1325,6 +1325,10 @@ MRIS *MRISloadSurfSubject(char *subj, char *hemi, char *surfid,
     1 - no vertices met the mask and sign criteria
 
   Ref: http://www.sph.umich.edu/~nichols/FDR/FDR.m
+  Thresholding of Statistical Maps in Functional Neuroimaging Using
+  the False Discovery Rate.  Christopher R. Genovese, Nicole A. Lazar,
+  Thomas E. Nichols (2002).  NeuroImage 15:870-878.
+
   See also: fdr2vwth() in sig.c
   ---------------------------------------------------------------*/
 int MRISfdr2vwth(MRIS *surf, double fdr, int signid, 
