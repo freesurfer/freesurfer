@@ -2,7 +2,6 @@
 #define STATS_H
 
 #include "matrix.h"
-#include "volume_io.h"
 #include "mri.h"
 
 //These are included below
