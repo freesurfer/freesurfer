@@ -110,6 +110,7 @@ ErrorPrintf(int ecode, char *fmt, ...)
 
   fp = fopen(ERROR_FNAME, "a") ;
   (*error_vfprintf)(fp, fmt, args) ;
+  (*error_vfprintf)(fp, "\n", NULL) ;
   fclose(fp) ;     /* close file to flush changes */
   
   return(ecode) ;
