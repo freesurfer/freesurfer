@@ -3,9 +3,9 @@
 /* by Bruce Fischl                                                     */
 /*                                                                     */
 /* Warning: Do not edit the following four lines.  CVS maintains them. */
-/* Revision Author: $Author: fischl $                                           */
-/* Revision Date  : $Date: 2003/12/29 17:18:37 $                                             */
-/* Revision       : $Revision: 1.20 $                                         */
+/* Revision Author: $Author: tosa $                                           */
+/* Revision Date  : $Date: 2004/01/09 23:10:26 $                                             */
+/* Revision       : $Revision: 1.21 $                                         */
 /***********************************************************************/
 
 #include <stdio.h>
@@ -28,7 +28,7 @@
 int main(int argc, char *argv[]) ;
 static int get_option(int argc, char *argv[]) ;
 static int replaceLabels(MRI *mri_seg) ;
-static void modify_transform(TRANSFORM *transform, MRI *mri);
+static void modify_transform(TRANSFORM *transform, MRI *mri, GCA *gca);
 
 static int flash = 0 ;
 static int binarize = 0 ;
@@ -76,6 +76,7 @@ main(int argc, char *argv[])
   GCA          *gca, *gca_prune = NULL ;
   MRI          *mri_seg, *mri_tmp, *mri_eq = NULL, *mri_inputs ;
   TRANSFORM    *transform ;
+
   Progname = argv[0] ;
 
   ErrorInit(NULL, NULL, NULL) ;
@@ -148,6 +149,11 @@ main(int argc, char *argv[])
     gca = GCAalloc(gca_inputs, parms.prior_spacing, parms.node_spacing, DEFAULT_VOLUME_SIZE, 
                    DEFAULT_VOLUME_SIZE,DEFAULT_VOLUME_SIZE, gca_flags);
 
+    /////////////////////////////////////////////////////////////////////////
+    // weird way options and subject name are mixed here
+
+    //////////////////////////////////////////////////////////////////////////////////
+    // going through the subject one at a time
     for (nargs = i = 0 ; i < nsubjects+options ; i++)
     {
       subject_name = argv[i+1] ;
@@ -163,9 +169,9 @@ main(int argc, char *argv[])
         noint = 0 ; nargs++ ;
         continue ;
       }
+      // reading this subject segmentation
       sprintf(fname, "%s/%s/mri/%s", subjects_dir, subject_name, seg_dir) ;
-      if (DIAG_VERBOSE_ON)
-        printf("reading segmentation from %s...\n", fname) ;
+      fprintf(stderr, "Reading segmentation from %s...\n", fname) ;
       mri_seg = MRIread(fname) ;
       if (!mri_seg)
         ErrorExit(ERROR_NOFILE, "%s: could not read segmentation file %s",
@@ -228,39 +234,33 @@ main(int argc, char *argv[])
           printf("%d ", ordering[o]) ;
         printf("\n") ;
       }
-      
+
+      ////////////////////////////////////////////////////////////////////////////
+      fprintf(stderr, "Gather all input volumes for the subject %s.\n", subject_name);
+      // inputs must be coregistered
       for (input = 0 ; input < ninputs ; input++)
       {      
         sprintf(fname, "%s/%s/mri/%s", subjects_dir, subject_name,input_names[ordering[input]]);
         if (DIAG_VERBOSE_ON)
           printf("reading co-registered input from %s...\n", fname) ;
+	fprintf(stderr, "   reading input %d: %s\n", input, fname);
         mri_tmp = MRIread(fname) ;
         if (!mri_tmp)
           ErrorExit(ERROR_NOFILE, "%s: could not read image from file %s", Progname, fname) ;
-
-				// input check 1
-				if (getSliceDirection(mri_tmp) != MRI_CORONAL)
-				{
-					ErrorExit(ERROR_BADPARM,"%s: must be in coronal direction, but it is not\n", 
-										fname);
-				}
-				// input check 2
-				if (mri_tmp->xsize != 1 || mri_tmp->ysize != 1 || mri_tmp->zsize != 1)
-				{
-					ErrorExit(ERROR_BADPARM,"%s: must have 1mm voxel size, but have (%f, %f, %f)\n", 
-										fname, mri_tmp->xsize, mri_tmp->ysize, mri_tmp->ysize);
-				}
-				// input check 3
-				if (mri_tmp->c_r != 0 || mri_tmp->c_a != 0 || mri_tmp->c_s != 0)
-				{
-					printf("INFO: make input volume c_(r,a,s) = 0\n");
-					printf("INFO: %s has c_r = %f, c_a = %f, c_s = %f\n", fname, 
-								 mri_tmp->c_r, mri_tmp->c_a, mri_tmp->c_s);
-					mri_tmp->c_r = 0;
-					mri_tmp->c_a = 0;
-					mri_tmp->c_s = 0;
-				}
-				// input check 4
+	// input check 1
+	if (getSliceDirection(mri_tmp) != MRI_CORONAL)
+	{
+	  ErrorExit(ERROR_BADPARM,"%s: must be in coronal direction, but it is not\n", 
+		    fname);
+	}
+	// input check 2
+	if (mri_tmp->xsize != 1 || mri_tmp->ysize != 1 || mri_tmp->zsize != 1)
+	{
+	  ErrorExit(ERROR_BADPARM,"%s: must have 1mm voxel size, but have (%f, %f, %f)\n", 
+		    fname, mri_tmp->xsize, mri_tmp->ysize, mri_tmp->ysize);
+	}
+	// input check 3 is removed.  now we can handle c_(ras) != 0 case
+	// input check 4
         if (i == 0)
         {
           TRs[input] = mri_tmp->tr ;
@@ -274,7 +274,7 @@ main(int argc, char *argv[])
                     Progname, subject_name, fname, 
                     mri_tmp->tr, DEGREES(mri_tmp->flip_angle), mri_tmp->te,
                     TRs[input], DEGREES(FAs[input]), TEs[input]) ;
-        
+        // first time do the following
         if (input == 0)
         {
           int nframes = ninputs ;
@@ -285,6 +285,7 @@ main(int argc, char *argv[])
             nframes += ninputs ;
           if (gca_flags & GCA_ZGRAD)
             nframes += ninputs ;
+	  /////////////////////////////////////////////////////////////////////////
           mri_inputs = 
             MRIallocSequence(mri_tmp->width, mri_tmp->height, mri_tmp->depth,
                              mri_tmp->type, nframes) ;
@@ -321,28 +322,44 @@ main(int argc, char *argv[])
         GCAsetFlashParameters(gca, TRs, FAs, TEs) ;
       printf("processing subject %s, %d of %d...\n", subject_name,i+1-nargs,
              nsubjects);
-      
+
+      // input is ready now
+
+      ///////////////////////////////////////////////////////////////////////////////
+      // use the direction cosines etc from mri_inputs in gca
+      GCAreinit(mri_inputs, gca);
+      /////////////////////////////////////////////////////////////////////////////////
+      // xform_name is given
       if (xform_name)
       {
 				// we read talairach.xfm which is a RAS-to-RAS
         sprintf(fname, "%s/%s/mri/transforms/%s", 
                 subjects_dir, subject_name, xform_name) ;
-        if (DIAG_VERBOSE_ON)
-          printf("reading transform from %s...\n", fname) ;
+	printf("INFO: reading transform file %s...\n", fname);
+	if(!FileExists(fname))
+	{
+	  fprintf(stderr,"ERROR: cannot find transform file %s\n",fname);
+	  exit(1);
+	}
         transform = TransformRead(fname);
         if (!transform)
           ErrorExit(ERROR_NOFILE, "%s: could not read transform from file %s",
                     Progname, fname);
-				// change the transform to vox-to-vox
-				if (transform->type == LINEAR_RAS_TO_RAS)
-				{
-					modify_transform(transform, mri_inputs);
-				}
-				// TransformInvert(transform, mri_inputs) ;
+	// change the transform to vox-to-vox
+	if (transform->type == LINEAR_RAS_TO_RAS)
+	{
+	  // takes care of average_305 or transform dst c_(ras) value.
+	  modify_transform(transform, mri_inputs, gca);
+	  // we modified GCA global mri_node_ and mri_prior_ c_(ras) values
+	  // after this  transform->type = LINEAR_VOX_TO_VOX
+	}
+	// modify transform to store inverse also
+	TransformInvert(transform, mri_inputs) ;
       }
       else
         transform = TransformAlloc(LINEAR_VOXEL_TO_VOXEL, NULL) ;
 
+      ////////////////////////////////////////////////////////////////////////////////////
       if (map_to_flash)
       {
         MRI *mri_tmp ;
@@ -352,6 +369,7 @@ main(int argc, char *argv[])
         mri_inputs = mri_tmp ;
       }
       
+      ///////////////////////////////////////////////////////////////////////////////////
       if (gca_flags & GCA_GRAD)
       {
         MRI *mri_kernel, *mri_smooth, *mri_grad, *mri_tmp ;
@@ -400,12 +418,20 @@ main(int argc, char *argv[])
         
         MRIfree(&mri_kernel) ; MRIfree(&mri_smooth) ; 
       }
+
+      ////////////////////////////////////////////////////////////////////
+      // train gca 
+      ////////////////////////////////////////////////////////////////////
+      // segmentation is o
+      // inputs       is the volumes of all inputs
+      // transform    is for this subject
       GCAtrain(gca, mri_inputs, mri_seg, transform, gca_prune, noint) ;
       MRIfree(&mri_seg) ; MRIfree(&mri_inputs) ; TransformFree(&transform) ;
     }
     
     GCAcompleteMeanTraining(gca) ;
     
+    /////////////////////////////////////////////////////////////////////////////////////
     /* now compute covariances */
     for (nargs = i = 0 ; i < nsubjects+options ; i++)
     {
@@ -464,28 +490,19 @@ main(int argc, char *argv[])
           ErrorExit(ERROR_NOFILE, "%s: could not read T1 data from file %s",
                     Progname, fname) ;
         
-				// input check 1
-				if (getSliceDirection(mri_tmp) != MRI_CORONAL)
-				{
-					ErrorExit(ERROR_BADPARM,"%s: must be in coronal direction, but it is not\n", 
-										fname);
-				}
-				// input check 2
-				if (mri_tmp->xsize != 1 || mri_tmp->ysize != 1 || mri_tmp->zsize != 1)
-				{
-					ErrorExit(ERROR_BADPARM,"%s: must have 1mm voxel size, but have (%f, %f, %f)\n", 
-										fname, mri_tmp->xsize, mri_tmp->ysize, mri_tmp->ysize);
-				}
-				// input check 3
-				if (mri_tmp->c_r != 0 || mri_tmp->c_a != 0 || mri_tmp->c_s != 0)
-				{
-					printf("INFO: make input volume c_(r,a,s) = 0\n");
-					printf("INFO: %s has c_r = %f, c_a = %f, c_s = %f\n", fname, 
-								 mri_tmp->c_r, mri_tmp->c_a, mri_tmp->c_s);
-					mri_tmp->c_r = 0;
-					mri_tmp->c_a = 0;
-					mri_tmp->c_s = 0;
-				}
+	// input check 1
+	if (getSliceDirection(mri_tmp) != MRI_CORONAL)
+	{
+	  ErrorExit(ERROR_BADPARM,"%s: must be in coronal direction, but it is not\n", 
+		    fname);
+	}
+	// input check 2
+	if (mri_tmp->xsize != 1 || mri_tmp->ysize != 1 || mri_tmp->zsize != 1)
+	{
+	  ErrorExit(ERROR_BADPARM,"%s: must have 1mm voxel size, but have (%f, %f, %f)\n", 
+		    fname, mri_tmp->xsize, mri_tmp->ysize, mri_tmp->ysize);
+	}
+	// input check 3 is removed c_(ras) != 0 can be handled
         if (input == 0)
         {
           int nframes = ninputs ;
@@ -539,12 +556,21 @@ main(int argc, char *argv[])
         if (!transform)
           ErrorExit(ERROR_NOFILE, "%s: could not read transform from file %s",
                     Progname, fname) ;
-				// change the transform to vox-to-vox
-				if (transform->type == LINEAR_RAS_TO_RAS)
-				{
-					modify_transform(transform, mri_inputs);
-				}
-        // TransformInvert(transform, mri_inputs) ;
+        if (DIAG_VERBOSE_ON)
+          printf("reading transform from %s...\n", fname) ;
+        transform = TransformRead(fname);
+        if (!transform)
+          ErrorExit(ERROR_NOFILE, "%s: could not read transform from file %s",
+                    Progname, fname);
+	// change the transform to vox-to-vox
+	if (transform->type == LINEAR_RAS_TO_RAS)
+	{
+	  // takes care of average_305 or transform dst c_(ras) value.
+	  modify_transform(transform, mri_inputs, gca);
+	  // we modified GCA global mri_node_ and mri_prior_ c_(ras) values
+	  // after this  transform->type = LINEAR_VOX_TO_VOX
+	}
+        TransformInvert(transform, mri_inputs) ;
       }
       else
         transform = TransformAlloc(LINEAR_VOXEL_TO_VOXEL, NULL) ;
@@ -606,6 +632,7 @@ main(int argc, char *argv[])
         
         MRIfree(&mri_kernel) ; MRIfree(&mri_smooth) ; 
       }
+      //////////////////////////////////////////////////////////////////
       GCAtrainCovariances(gca, mri_inputs, mri_seg, transform) ;
       MRIfree(&mri_seg) ; MRIfree(&mri_inputs) ; TransformFree(&transform) ;
     }
@@ -910,12 +937,14 @@ usage_exit(int code)
          "\t-prior_spacing  - spacing of class priors in canonical space\n");
   exit(code) ;
 }
+
 static int input_labels[] = {  
   Left_Cerebral_Exterior,
   Right_Cerebral_Exterior,
   Left_Cerebellum_Exterior,
   Right_Cerebellum_Exterior
 } ;
+// replace the values above with the following
 static int output_labels[] = {  
   Left_Cerebral_Cortex,
   Right_Cerebral_Cortex,
@@ -934,7 +963,7 @@ replaceLabels(MRI *mri_seg)
 }
 
 // modify transform to vox-to-vox
-static void modify_transform(TRANSFORM *transform, MRI *mri_inputs)
+static void modify_transform(TRANSFORM *transform, MRI *mri_inputs, GCA *gca)
 {
   LTA *lta=0;
   MATRIX *i_to_r=0, *r_to_i=0, *tmpmat=0, *vox2vox;
@@ -966,6 +995,7 @@ static void modify_transform(TRANSFORM *transform, MRI *mri_inputs)
       warned = 1;
     }
   }
+  // if dst is invalid
   else if (getenv("NO_AVERAGE305"))
   {
     if (warned == 0)
@@ -980,9 +1010,15 @@ static void modify_transform(TRANSFORM *transform, MRI *mri_inputs)
     if (warned == 0)
     {
       fprintf(stderr, "INFO: modified c_(r,a,s) using average_305 value\n");
+      fprintf(stderr, "INFO: if this is not preferred, set environment variable NO_AVERAGE305\n");
       warned = 1;
     }
   }
+  /////////////////////////////////////////////////////////////////
+  // OK now we know what the target c_(ras) should be
+  // we reset c_(ras) value for GCA node and priors
+  GCAreinit(mri_buf, gca);
+  /////////////////////////////////////////////////////////////////
   printf("INFO: original RAS-to-RAS transform\n");
   MatrixPrint(stdout, lta->xforms[0].m_L);
   // going from vox->RAS->TalRAS
@@ -994,6 +1030,8 @@ static void modify_transform(TRANSFORM *transform, MRI *mri_inputs)
   MatrixPrint(stdout, vox2vox);
   // store it
   MatrixCopy(vox2vox, lta->xforms[0].m_L);
+  // now mark it as vox-to-vox
+  transform->type = LINEAR_VOX_TO_VOX;
   // free up memory
   MatrixFree(&r_to_i);
   MatrixFree(&i_to_r);
