@@ -189,7 +189,7 @@ int main(int argc, char *argv[])
   conform_min = FALSE;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_convert.c,v 1.52 2003/07/03 22:00:30 tosa Exp $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_convert.c,v 1.53 2003/07/03 22:07:56 tosa Exp $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -1368,7 +1368,7 @@ int main(int argc, char *argv[])
 	  template->thick = minSize;
 	  template->ps = minSize;
 	  template->xsize = template->ysize = template->zsize = minSize;
-	  printf("Data is conformed to %g size for all directin\n", minSize); 
+	  printf("Data is conformed to %g size for all directions\n", minSize); 
 	}
 	else
 	{
@@ -1816,6 +1816,8 @@ void usage(FILE *stream)
   printf("  -i, --input_volume\n");
   printf("  -o, --output_volume\n");
   printf("  -nc, --no_conform\n");
+  printf("  -cm, --conform_min\n");
+  printf("            conform to the src min direction size.\n");
   printf("  -po, --parse_only\n");
   printf("  -is, --in_stats\n");
   printf("  -os, --out_stats\n");
