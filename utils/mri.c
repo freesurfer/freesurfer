@@ -9,9 +9,9 @@
  */
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2005/01/26 20:07:39 $
-// Revision       : $Revision: 1.284 $
-char *MRI_C_VERSION = "$Revision: 1.284 $";
+// Revision Date  : $Date: 2005/01/26 20:09:20 $
+// Revision       : $Revision: 1.285 $
+char *MRI_C_VERSION = "$Revision: 1.285 $";
 
 /*-----------------------------------------------------
   INCLUDE FILES
@@ -11407,6 +11407,7 @@ MRImakeDensityMap(MRI *mri, MRI *mri_vals, int label, MRI *mri_dst)
 				if ((vox_label != label) && (border == 0))
 					continue ;
 
+				volume = vox_vol ;
 				if (border == 0)
 					volume = vox_vol ;
 				else  /* compute partial volume */
