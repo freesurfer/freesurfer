@@ -8,10 +8,10 @@
 
       Description:  
 
-  $Header: /space/repo/1/dev/dev/utils/backprop.c,v 1.5 1996/06/27 17:29:23 fischl Exp $
+  $Header: /space/repo/1/dev/dev/utils/backprop.c,v 1.6 1996/06/27 18:21:58 fischl Exp $
   $Log: backprop.c,v $
-  Revision 1.5  1996/06/27 17:29:23  fischl
-  windows compatability
+  Revision 1.6  1996/06/27 18:21:58  fischl
+  windows compatibility
 
 ----------------------------------------------------------------------*/
 
@@ -51,7 +51,7 @@
 
 #if SIGMOID
 
-#define f(net)      (1.0f / (1.0f + (float)exp(-net)))
+#define f(net)      (1.0f / (1.0f + (float)exp((double)-net)))
 #define fprime(o)   (o * (1.0f - o))
 
 #define SIG_MAX      0.75f
@@ -73,7 +73,7 @@
 #endif
 
 #define SIG_RANGE    (SIG_MAX - SIG_MIN)
-#define MIN_TRATE    0.01
+#define MIN_TRATE    0.01f
 
 /*----------------------------------------------------------------------
                 STRUCTURES
@@ -818,7 +818,7 @@ bpLayerFeedForward(float *I, LAYER *layer, int nlin)
     }
 
     if (nlin)
-      *px++ = f(net) ;
+      *px++ = (float)f(net) ;
     else
       *px++ = net ;
 #if 0

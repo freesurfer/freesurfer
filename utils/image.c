@@ -20,6 +20,7 @@
 #include <fcntl.h>
 #include <unistd.h>
 
+#include "hmem.h"
 #include <hipl_format.h>
 
 #include "hips.h"
@@ -30,7 +31,6 @@
 #include "matfile.h"
 #include "utils.h"
 #include "macros.h"
-#include "hmem.h"
 #include "machine.h"
 #include "proto.h"
 #include "diag.h"
@@ -273,9 +273,9 @@ ImageFRead(FILE *fp, char *fname, int start, int nframes)
   if (fmin < -10000.0f || fmax > 10000.0f)  /* wrong machine format */
   {
     float *fpix, fval ;
-    int   npix ;
+    long  npix ;
 
-    npix = I->numpix * I->num_frame ;
+    npix = (long)I->numpix * I->num_frame ;
 
     switch (I->pixel_format)
     {
@@ -2923,7 +2923,7 @@ ImageBuildExponentialFilter(IMAGE *gradImage, int wsize, float k,
             xc = cols - (xc - cols + 1) ;
           
           fpix = *IMAGEFpix(gradImage, xc, yc) ;
-          val = (double)exp((double)(-fpix*fpix / k))/*  * *g++ */ ;
+          val = (float)exp((double)(-fpix*fpix / k))/*  * *g++ */ ;
           norm += val ;
           *filterPix++ = val ;
         }
@@ -3462,7 +3462,7 @@ ImageAbs(IMAGE *inImage, IMAGE *outImage)
       fIn = IMAGEFpix(inImage, 0, 0) + pix_per_frame * frameno ;
       fOut = IMAGEFpix(outImage, 0, 0) + pix_per_frame * frameno  ;
       while (size--)
-        *fOut++ = fabs(*fIn++) ;
+        *fOut++ = (float)fabs(*fIn++) ;
       break ;
     case PFBYTE:
       cIn = IMAGEpix(inImage, 0, 0) + pix_per_frame * frameno ;
@@ -4075,7 +4075,8 @@ ImageGaussian(float xsigma, float ysigma)
     if (fabs(fx) <= xtwo_sigma)
       k = (float)exp((double)(-fx*fx/(xtwo_sigma*xsigma))) ; 
     else if (xtwo_sigma < (float)fabs(fx) && (float)fabs(fx) <= 4.0f*xsigma)
-      k = 1.0f / (16.0f * M_E * M_E) * pow(4.0f - fabs(fx)/xsigma, 4.0) ;
+      k = 1.0f / (16.0f * (float)(M_E * M_E)) * 
+        (float)pow(4.0 - fabs(fx)/(double)xsigma, 4.0) ;
     else
       k = 0 ;
 
@@ -4140,7 +4141,8 @@ ImageGaussian1d(float sigma, int max_len)
     if (fabs(fx) <= two_sigma)
       k = (float)exp((double)(-fx*fx/(two_sigma*sigma))) ;
     else if (two_sigma < fabs(fx) && fabs(fx) <= 4.0f*sigma)
-      k = 1.0f / (16.0f * (float)(M_E * M_E)) * pow(4.0f - fabs(fx)/(double)sigma, 4.0) ;
+      k = 1.0f / (16.0f * (float)(M_E * M_E)) * 
+        (float)pow(4.0f - fabs(fx)/(double)sigma, 4.0) ;
     else
       k = 0 ;
 
@@ -4812,7 +4814,7 @@ ImageNormalizeOffsetDistances(IMAGE *Isrc, IMAGE *Idst, int maxsteps)
       
       if (fabs(dx) > fabs(dy))  /* use unit steps in x direction */
       {
-        delta = dx / (float)fabs(dx) ;
+        delta = nint(dx / (float)fabs(dx)) ;
         slope = delta  * dy / dx ;
         for (i = 0, yf = (float)y0+slope, x = x0+delta; i <= maxsteps;
              x += delta, yf += slope, i++)
@@ -4832,7 +4834,7 @@ ImageNormalizeOffsetDistances(IMAGE *Isrc, IMAGE *Idst, int maxsteps)
       }
       else                     /* use unit steps in y direction */
       {
-        delta = dy / (float)fabs(dy) ;
+        delta = nint(dy / (float)fabs(dy)) ;
         slope = delta * dx /dy ;
         for (i = 0, xf = (float)x0+slope, y = y0+delta; i < maxsteps;
              y += delta, xf += slope, i++)
@@ -4935,7 +4937,7 @@ ImageSmoothOffsets(IMAGE *Isrc, IMAGE *Idst, int wsize)
       else
         if (fabs(dx) > fabs(dy))  /* use unit steps in x direction */
       {
-        delta = dx / (float)fabs(dx) ;
+        delta = nint(dx / (float)fabs(dx)) ;
         slope = delta  * dy / dx ;  /* orthogonal slope */
         
         yf = (float)y0-(float)whalf*slope    ;
@@ -4960,7 +4962,7 @@ ImageSmoothOffsets(IMAGE *Isrc, IMAGE *Idst, int wsize)
       }
       else                     /* use unit steps in y direction */
       {
-        delta = dy / (float)fabs(dy) ;
+        delta = nint(dy / (float)fabs(dy)) ;
         slope = delta * dx /dy ;          /* orthogonal slope */
         xf = (float)x0-(float)whalf*slope ;
         y = y0 - whalf * delta ;
