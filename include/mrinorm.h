@@ -66,7 +66,8 @@ typedef struct
 } MRI_NORM_INFO, MNI ;
   
 
-MRI *MRIhistoNormalize(MRI *mri_src,MRI *mri_norm, MRI *mri_template, int low);
+MRI *MRIhistoNormalize(MRI *mri_src,MRI *mri_norm, MRI *mri_template, int low,
+                       int high);
 MRI *MRIsplineNormalize(MRI *mri_src, MRI *mri_dst, MRI **pmri_bias,
                         float *inputs, float *outputs, int npoints) ;
 MRI *MRIadaptiveHistoNormalize(MRI *mri_src, MRI *mri_norm, MRI *mri_template, 
