@@ -4,7 +4,7 @@
   email:   analysis-bugs@nmr.mgh.harvard.edu
   Date:    2/27/02
   Purpose: Converts a label to a segmentation volume.
-  $Id: mri_label2vol.c,v 1.7 2005/01/25 21:55:31 greve Exp $
+  $Id: mri_label2vol.c,v 1.8 2005/03/01 18:04:58 greve Exp $
 */
 
 
@@ -34,6 +34,7 @@
 #define PROJ_TYPE_ABS  1
 #define PROJ_TYPE_FRAC 2
 
+
 static int  parse_commandline(int argc, char **argv);
 static void check_options(void);
 static void print_usage(void) ;
@@ -49,10 +50,11 @@ static int get_crs(MATRIX *Tras2vox, float x, float y, float z,
 		   int *c, int *r, int *s, MRI *vol);
 static int is_surface_label(LABEL *label);
 static int load_annotation(char *annotfile, MRIS *Surf);
+static int *NthLabelMap(MRI *aseg, int *nlabels);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_label2vol.c,v 1.7 2005/01/25 21:55:31 greve Exp $";
+static char vcid[] = "$Id: mri_label2vol.c,v 1.8 2005/03/01 18:04:58 greve Exp $";
 char *Progname = NULL;
 
 char *LabelList[100];
@@ -70,10 +72,12 @@ char *HitVolId = NULL;
 char *subject = NULL;
 char *hemi    = NULL;
 char *AnnotFile = NULL;
+char *ASegFSpec = NULL;
 char *SurfId  = "white";
 
 MRI_SURFACE *Surf=NULL;
 MRI *OutVol=NULL, *TempVol=NULL, *HitVol=NULL;
+MRI *ASeg=NULL;
 
 int debug;
 
@@ -89,6 +93,8 @@ char  fname[1000];
 double TempVoxVol;
 double LabelVoxVol = 1;
 double nHitsThresh;
+int *ASegLabelList;
+int LabelCode;
 
 
 /*---------------------------------------------------------------*/
@@ -102,7 +108,7 @@ int main(int argc, char **argv)
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option (argc, argv, 
-      "$Id: mri_label2vol.c,v 1.7 2005/01/25 21:55:31 greve Exp $", "$Name:  $");
+      "$Id: mri_label2vol.c,v 1.8 2005/03/01 18:04:58 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -175,7 +181,15 @@ int main(int argc, char **argv)
 	exit(1);
       }
     }
-
+  }
+  if(ASegFSpec != NULL){
+    ASeg = MRIread(ASegFSpec);
+    if(ASeg == NULL){
+      printf("ERROR: loading aseg %s\n",ASegFSpec);
+      exit(1);
+    }
+    ASegLabelList = NthLabelMap(ASeg, &nlabels);
+    printf("nlabels = %d\n",nlabels);
   }
 
   // Create hit volume based on template, one frame for each label
@@ -191,9 +205,10 @@ int main(int argc, char **argv)
   // Go through each label
   printf("nlabels = %d\n",nlabels);
   for(nthlabel = 0; nthlabel < nlabels; nthlabel++){
-    printf("nthlabel = %d\n",nthlabel);
+    printf("nthlabel = %d/%d\n",nthlabel,nlabels);
 
-    if(AnnotFile == NULL){
+    if(AnnotFile == NULL && ASegFSpec == NULL){
+      printf("Loading %s\n",LabelList[nthlabel]);
       srclabel = LabelRead(NULL, LabelList[nthlabel]);
       if(srclabel == NULL){
 	printf("ERROR reading %s\n",LabelList[nthlabel]);
@@ -203,6 +218,11 @@ int main(int argc, char **argv)
     if(AnnotFile != NULL){
       srclabel = annotation2label(nthlabel,Surf);
       if(srclabel == NULL) continue;
+    }
+    if(ASegFSpec != NULL){
+      printf("   ASeg Code: %d\n",ASegLabelList[nthlabel]);
+      srclabel = LabelfromASeg(ASeg, ASegLabelList[nthlabel]);
+      //LabelWrite(lb,"./tmp.label");
     }
 
     if(DoProj && !is_surface_label(srclabel)){
@@ -282,7 +302,11 @@ int main(int argc, char **argv)
 	    nhitsmax_label = nthlabel;
 	  }
 	}
-	MRIIseq_vox(OutVol,c,r,s,0) = nhitsmax_label + 1;
+	if(ASegFSpec == NULL || nhitsmax_label == -1)
+	  LabelCode = nhitsmax_label + 1;
+	else
+	  LabelCode = ASegLabelList[nhitsmax_label];
+	MRIIseq_vox(OutVol,c,r,s,0) = LabelCode;
 
       }
     }
@@ -329,6 +353,11 @@ static int parse_commandline(int argc, char **argv)
       if(nargc < 1) argnerr(option,1);
       AnnotFile = pargv[0];
       SurfNeeded = 1;
+      nargsused = 1;
+    }
+    else if (!strcmp(option, "--seg")){
+      if(nargc < 1) argnerr(option,1);
+      ASegFSpec = pargv[0];
       nargsused = 1;
     }
     else if (!strcmp(option, "--temp")){
@@ -420,6 +449,7 @@ static void print_usage(void)
   printf("\n");
   printf("   --label labelid <--label labelid>  \n");
   printf("   --annot annotfile : surface annotation file  \n");
+  printf("   --seg   segpath : segmentation\n");
   printf("\n");
   printf("   --temp tempvolid : template volume\n");
   printf("   --reg regmat : VolXYZ = R*LabelXYZ\n");
@@ -477,7 +507,8 @@ static void print_help(void)
 "Each following line contains data with 5 columns. The first column is\n"
 "the vertex number of the label point. The next 3 columns are the X, Y,\n"
 "and Z of the point. The last can be ignored. If the label is not a \n"
-"surface-based label, then the vertex number will be -1.\n"
+"surface-based label, then the vertex number will be -1. Not with --annot\n"
+"or --seg\n"
 "\n"
 "--annot annotfile\n"
 "\n"
@@ -490,7 +521,16 @@ static void print_help(void)
 "read in directly using --annot. The map of annotation numbers to \n"
 "annotation names can be found at Simple_surface_labels2002.txt \n"
 "in $FREESURFER_HOME. Note that you have to add 1 to the number in \n"
-"this file to get the number stored in the output volume.\n"
+"this file to get the number stored in the output volume. Not with\n"
+"--label or --seg\n"
+"\n"
+"--seg segpath\n"
+"\n"
+"Path to a segmentation. A segmentation is a volume in which each voxel\n"
+"is assigned a number indicating it's class. The output volume will keep\n"
+"the same numbering. Codes should not exceed 999. The registration in this\n"
+"case goes from the seg to the template volume. Not with --label or \n"
+"--annot.\n"
 "\n"
 "--temp tempvolid\n"
 "\n"
@@ -690,7 +730,7 @@ static void check_options(void)
 {
   if(DoProj) SurfNeeded = 1;
 
-  if(nlabels == 0 && AnnotFile == NULL){
+  if(nlabels == 0 && AnnotFile == NULL && ASegFSpec == NULL){
     printf("ERROR: you must spec at least one label or annot file\n");
     exit(1);
   }
@@ -845,4 +885,37 @@ static int load_annotation(char *annotfile, MRIS *Surf)
 
   printf("annotidmax = %d\n",annotidmax);
   return(annotidmax);
+}
+
+static int *NthLabelMap(MRI *aseg, int *nlabels)
+{
+  int *labelmap, *tmpmap;
+  int nthlabel;
+  int c,r,s,v;
+
+  tmpmap = (int *) calloc(1000,sizeof(int));
+  for(c=0; c < aseg->width; c++){
+    for(r=0; r < aseg->height; r++){
+      for(s=0; s < aseg->depth; s++){
+        v = (int)MRIgetVoxVal(aseg,c,r,s,0);
+	if(v > 0 && v < 999) tmpmap[v] = 1;
+      }
+    }
+  }
+
+  *nlabels = 0;
+  for(v=0;v<999;v++) if(tmpmap[v]) (*nlabels)++;
+  //printf("nlabels = %d\n",*nlabels);
+
+  labelmap = (int *) calloc(*nlabels,sizeof(int));
+  nthlabel = 0;
+  for(v=0;v<999;v++){
+    if(tmpmap[v]){
+      //printf("%2d %2d\n",nthlabel,v);
+      labelmap[nthlabel] = v;
+      nthlabel++;
+    }
+  }
+  free(tmpmap);
+  return(labelmap);
 }
