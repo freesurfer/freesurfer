@@ -513,7 +513,7 @@ MRI_SURFACE  *MRISunfold(MRI_SURFACE *mris, INTEGRATION_PARMS *parms,
 MRI_SURFACE  *MRISquickSphere(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, 
                          int max_passes) ;
 int          MRISregister(MRI_SURFACE *mris, MRI_SP *mrisp_template, 
-                           INTEGRATION_PARMS *parms, int max_passes) ;
+													INTEGRATION_PARMS *parms, int max_passes, float min_degrees, float max_degrees, int nangles) ;
 int          MRISrigidBodyAlignLocal(MRI_SURFACE *mris, 
                                      INTEGRATION_PARMS *parms) ;
 int          MRISrigidBodyAlignGlobal(MRI_SURFACE *mris, 
