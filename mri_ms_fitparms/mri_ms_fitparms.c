@@ -373,8 +373,15 @@ get_option(int argc, char *argv[])
 static void
 usage_exit(int code)
 {
-  printf("usage: %s [options] <volume> ... <output T1 volume> <output PD volume>\n", Progname) ;
-  printf("\t-a    rigid alignment of input volumes before averaging\n") ;
+  printf("usage: %s [options] <volume> ... <output directory>\n", Progname) ;
+	printf("this program takes an arbitrary # of FLASH images as input, and estimates\n"
+				 "the T1 and PD values of the data for voxel, as well as a linear transform\n"
+				 "aligning each of the images. The T1 and PD maps are written into <output directory>\n"
+				 "together with synthetic volumes names vol?.mgh, one for each of the input\n"
+				 "volumes. All the output volumes are generated in the common (motion-corrected) space.\n");
+	printf("Note that TR, TE and the flip angle are read directly from the image header.\n"
+				 "If this information is not available, it can be specified on the command line using\n"
+				 "-tr <TR in msec> -te <TE in msec> -fa <flip angle in degrees> before each volume.\n");
   exit(code) ;
 }
 
