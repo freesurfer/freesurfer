@@ -103,6 +103,7 @@ int main(int argc, char *argv[])
 
   for(i=0;i<argc;i++) printf("%s ",argv[i]);
   printf("\n");
+  fflush(stdout);
 
   for(i=0;i<argc;i++){
     if(strcmp(argv[i],"--debug")==0){
@@ -890,14 +891,16 @@ int main(int argc, char *argv[])
     if(!in_like_flag && !in_n_k_flag)
     {
       errno = 0;
-      ErrorPrintf(ERROR_BADPARM, "parcellation read: must specify a volume depth with either in_like or in_k_count");
+      ErrorPrintf(ERROR_BADPARM, "parcellation read: must specify"
+		  "a volume depth with either in_like or in_k_count");
       exit(1);
     }
 
     if(!color_file_flag)
     {
       errno = 0;
-      ErrorPrintf(ERROR_BADPARM, "parcellation read: must specify a color file name");
+      ErrorPrintf(ERROR_BADPARM, "parcellation read: must specify a"
+		  "color file name");
       if(in_like_flag)
         MRIfree(&mri_in_like);
       exit(1);
@@ -922,7 +925,8 @@ int main(int argc, char *argv[])
       read_otl_flags |= READ_OTL_ZERO_OUTLINES_FLAG;
 
     if(in_like_flag)
-      mri = MRIreadOtl(in_name, mri_in_like->width, mri_in_like->height, mri_in_like->depth, color_file_name, read_otl_flags);
+      mri = MRIreadOtl(in_name, mri_in_like->width, mri_in_like->height, 
+		       mri_in_like->depth, color_file_name, read_otl_flags);
     else
       mri = MRIreadOtl(in_name, 0, 0, in_n_k, color_file_name, read_otl_flags);
 
@@ -954,11 +958,11 @@ int main(int argc, char *argv[])
   }
   else if(roi_flag)
   {
-
     if(!in_like_flag && !in_n_k_flag)
     {
       errno = 0;
-      ErrorPrintf(ERROR_BADPARM, "roi read: must specify a volume depth with either in_like or in_k_count");
+      ErrorPrintf(ERROR_BADPARM, "roi read: must specify a volume"
+		  "depth with either in_like or in_k_count");
       if(in_like_flag)
         MRIfree(&mri_in_like);
       exit(1);
@@ -978,19 +982,20 @@ int main(int argc, char *argv[])
 
     resample_type_val = RESAMPLE_NEAREST;
     no_scale_flag = TRUE;
-
   }
   else
   {
-
     if(read_only_flag && (in_info_flag || in_matrix_flag) && !in_stats_flag)
       mri = MRIreadInfo(in_name);
     else
     {
-      if(force_in_type_flag)
+      if(force_in_type_flag){
+	//printf("MRIreadType()\n");
         mri = MRIreadType(in_name, in_volume_type);
-      else
+      }
+      else{
         mri = MRIread(in_name);
+      }
     }
 
   }
