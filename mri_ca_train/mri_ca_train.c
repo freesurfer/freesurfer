@@ -4,8 +4,8 @@
 /*                                                                     */
 /* Warning: Do not edit the following four lines.  CVS maintains them. */
 /* Revision Author: $Author: fischl $                                           */
-/* Revision Date  : $Date: 2005/04/04 19:41:36 $                                             */
-/* Revision       : $Revision: 1.39 $                                         */
+/* Revision Date  : $Date: 2005/04/06 15:15:54 $                                             */
+/* Revision       : $Revision: 1.40 $                                         */
 /***********************************************************************/
 
 #include <stdio.h>
@@ -94,7 +94,7 @@ main(int argc, char *argv[])
   parms.prior_spacing = 2.0f ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_ca_train.c,v 1.39 2005/04/04 19:41:36 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_ca_train.c,v 1.40 2005/04/06 15:15:54 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -397,8 +397,6 @@ main(int argc, char *argv[])
       printf("***************************************************************************\n");
       printf("processing subject %s, %d of %d...\n", subject_name,i+1-nargs,
              nsubjects);
-      printf("***************************************************************************\n");
-
 
       /////////////////////////////////////////////////////////////////////////////////
       // xform_name is given, then we can use the consistent c_(r,a,s) for gca
