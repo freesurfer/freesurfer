@@ -43,6 +43,7 @@
 #define XYELLOW   5
 #define XPURPLE   6
 
+#define MAX_COLORS       64
 
 typedef struct
 {
@@ -64,6 +65,7 @@ typedef struct
   int         which ;
   int         x, y ;        /* position on canvas */
   int         bshift ;      /* for modifying brightness of displayed image */
+  float       gamma[MAX_COLORS] ;
 } DISPLAY_IMAGE, DIMAGE ;
 
 typedef struct
@@ -125,6 +127,7 @@ int XVaddImageCol(XV_FRAME *xvf) ;
 int XVdeleteImageCol(XV_FRAME *xvf) ;
 int XVsetPrecision(XV_FRAME *xvf, int precision) ;
 int XVbrighten(XV_FRAME *xvf, int which, int offset) ;
+int XVgamma(XV_FRAME *xvf, int which, float beta) ;
 
 #define WINDOW_PAD          3
 
