@@ -13,7 +13,7 @@ class ScubaFrame : public ToglFrame, public TclCommandListener {
   friend class ScubaFrameTester;
 
 public:
-  ScubaFrame( ToglFrame::ID iID );
+  ScubaFrame( ID iID );
   virtual ~ScubaFrame();
   
   // View configurations. The cxx numbers spec the number of columns
@@ -89,7 +89,7 @@ protected:
 // created.
 class ScubaFrameFactory : public ToglFrameFactory {
 public:
-  virtual ToglFrame* NewToglFrame( ToglFrame::ID iID ) { 
+  virtual WindowFrame* NewWindowFrame( WindowFrame::ID iID ) { 
     ScubaFrame* frame = new ScubaFrame( iID );
     frame->SetOutputStreamToCerr();
     return frame;
