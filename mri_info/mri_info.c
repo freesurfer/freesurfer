@@ -3,11 +3,11 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: greve $
-// Revision Date  : $Date: 2004/10/04 22:12:07 $
-// Revision       : $Revision: 1.31 $
+// Revision Date  : $Date: 2004/10/04 22:18:50 $
+// Revision       : $Revision: 1.32 $
 //
 ////////////////////////////////////////////////////////////////////
-char *MRI_INFO_VERSION = "$Revision: 1.31 $";
+char *MRI_INFO_VERSION = "$Revision: 1.32 $";
 #include <stdio.h>
 #include <sys/stat.h>
 #include <unistd.h>
@@ -36,7 +36,7 @@ static void usage_exit(void);
 static void print_help(void) ;
 static void print_version(void) ;
 
-static char vcid[] = "$Id: mri_info.c,v 1.31 2004/10/04 22:12:07 greve Exp $";
+static char vcid[] = "$Id: mri_info.c,v 1.32 2004/10/04 22:18:50 greve Exp $";
 
 char *Progname ;
 
@@ -82,10 +82,6 @@ int main(int argc, char *argv[])
     if(debug) printf("%d %s ----- \n",n,inputlist[n]);
     do_file(inputlist[n]);
   }
-
-  //if(argc < 2) usage(argv[0], 1);
-  //for(argv++;*argv;argv++)
-  //  do_file(*argv);
 
   exit(0);
 
@@ -228,6 +224,10 @@ static void do_file(char *fname)
   MRI *mri ;
   MATRIX *m ;
 
+  if(PrintFormat){
+    printf("%s\n", type_to_string(mri_identify(fname)));
+    return;
+  }
   mri = MRIreadHeader(fname, MRI_VOLUME_TYPE_UNKNOWN) ;
   if(!mri) return;
 
@@ -273,10 +273,6 @@ static void do_file(char *fname)
   }
   if(PrintNFrames){
     printf("%d\n",mri->nframes);
-    return;
-  }
-  if(PrintFormat){
-    printf("%s\n", type_to_string(mri_identify(fname)));
     return;
   }
 
