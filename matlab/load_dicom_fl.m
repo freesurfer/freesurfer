@@ -1,11 +1,11 @@
-function [vol, M, dcmvolinfo] = load_dicom_fl(flist)
+function [vol, M, dcmvolinfo, dcminfo] = load_dicom_fl(flist)
 % [vol, M, dcmvolinfo] = load_dicom_fl(flist)
 %
 % Loads a volume from the dicom files in flist.
 %
 % The volume dimensions are arranged such that the
 % readout dimension is first, followed by the phase-encode,
-% followed by the slices.
+% followed by the slices (this is not implemented yet)
 %
 % M is the 4x4 vox2ras transform such that
 % vol(i1,i2,i3), xyz1 = M*[i1 i2 i3 1] where the
@@ -16,7 +16,7 @@ function [vol, M, dcmvolinfo] = load_dicom_fl(flist)
 %
 % Does not handle multiple frames correctly yet.
 %
-% $Id: load_dicom_fl.m,v 1.2 2002/12/15 06:33:06 greve Exp $
+% $Id: load_dicom_fl.m,v 1.3 2002/12/21 00:58:33 greve Exp $
 
 vol=[];
 M=[];
@@ -33,7 +33,7 @@ tic
 fprintf('Loading info\n');
 for n = 1:nfiles
   fname = deblank(flist(n,:));
-  %fprintf('n = %d, %s   %g\n',n,fname,toc);
+  fprintf('n = %d, %s   %g\n',n,fname,toc);
   tmpinfo = dicominfo(fname);
   if(isempty(tmpinfo)) 
     fprintf('ERROR: reading %s\n',fname);
@@ -67,7 +67,7 @@ Mdc(:,2) = dcminfo(1).ImageOrientationPatient(4:6);
 Mdc(:,3) = sdc;
 
 % Voxel resolution %
-delta = [dcminfo(1).PixelSpacing; dslice]
+delta = [dcminfo(1).PixelSpacing; dslice];
 D = diag(delta);
 
 % XYZ of first voxel in first slice %
@@ -76,6 +76,13 @@ P0 = dcminfo(1).ImagePositionPatient;
 % Change Siemens to be RAS %
 Manufacturer = dcminfo(1).Manufacturer;
 if(strcmpi(Manufacturer,'Siemens'))
+  % Lines below are for 
+  % correcting for if P0 is at corner of 
+  % the first voxel instead of at the center
+  % Pcrs0 = [-0.5 -0.5 0]'; %'
+  % P0 = P0 - Mdc*D*Pcrs0;
+
+  % Change to RAS
   Mdc(1,:) = -Mdc(1,:); 
   Mdc(2,:) = -Mdc(2,:); 
   P0(1)    = -P0(1);
@@ -108,7 +115,9 @@ for n = 1:nfiles
   vol(:,:,n) = x'; %'
 end
 
-if(~strcmpi(dcminfo(1).PhaseEncodingDirection,'ROW'))
+% Reorder dimensions so that ReadOut dim is first %
+if(0 & ~strcmpi(dcminfo(1).PhaseEncodingDirection,'ROW'))
+  % This does not work
   fprintf('INFO: permuting vol so that ReadOut is first dim\n');
   vol = permute(vol,[2 1 3]);
   Mtmp = M;
@@ -125,6 +134,8 @@ dcmvolinfo.Series      = dcminfo(1).SeriesNumber;
 dcmvolinfo.AcqType     = dcminfo(1).MRAcquisitionType;
 dcmvolinfo.FlipAngle   = dcminfo(1).FlipAngle;
 dcmvolinfo.EchoTime    = dcminfo(1).EchoTime;
+dcmvolinfo.VoxelSize   = delta;
+dcmvolinfo.PhaseEncodingDirection = dcminfo(1).PhaseEncodingDirection 
 
 return;
 
