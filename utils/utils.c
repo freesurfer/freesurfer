@@ -883,3 +883,58 @@ char *AppendString(char *src, char *app)
   return(tmp);
 }
 
+/* -1 if value is -inf, 1 if val is inf, 0 otherwise */
+int devIsinf(float value)
+{
+
+  unsigned long *c;
+  unsigned long s, e, f;
+
+  c = (unsigned long *)&value;
+
+  s = (*c & 0x80000000) >> 31;
+  e = (*c & 0x7f800000) >> 23;
+  f = (*c & 0x007fffff);
+
+  if(e == 255 && s == 0 && f == 0)
+    return(1);
+
+  if(e == 255 && s == 1 && f == 0)
+    return(-1);
+
+  return(0);
+
+} /* end devIsinf() */
+
+/* isnan non-zero if NaN, 0 otherwise */
+int devIsnan(float value)
+{
+
+  unsigned long *c;
+  unsigned long s, e, f;
+
+  c = (unsigned long *)&value;
+
+  s = (*c & 0x80000000) >> 31;
+  e = (*c & 0x7f800000) >> 23;
+  f = (*c & 0x007fffff);
+
+  if(e == 255 && f != 0)
+    return(1);
+
+  return(0);
+
+} /* end devIsnan() */
+
+/* non-zero if neither infinite nor NaN, 0 otherwise */
+int devFinite(float value)
+{
+
+  if(!devIsinf(value) && !devIsnan(value))
+    return(1);
+
+  return(0);
+
+} /* end devFinite() */
+
+/* eof */

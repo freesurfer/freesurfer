@@ -60,4 +60,8 @@ char *FileNameAbsolute(char *fname, char *absFname) ;
 char *FileNamePath(char *fname, char *pathName) ;
 char *AppendString(char *src, char *app);
 
+int devIsinf(float value);
+int devIsnan(float value);
+int devFinite(float value);
+
 #endif
