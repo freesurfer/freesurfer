@@ -82,13 +82,27 @@ for slice = s.firstslice:lastslice
        nRcols = size(R,1);
        z = zeros(nRcols,nv,ninvols);
     else
-      if(nr ~= nr0 | nc ~= nc0 | nc ~= nc0 | ...
+      if(nr ~= nr0 | nc ~= nc0 | nt ~= nt0 | ...
          (prod(size(hdrdat0)) ~= prod(size(hdrdat)) ))
         fprintf(1,'ERROR: %s is inconsistent with %s\n',...
               s.invols(1,:),invol);
-        error;
+	fprintf('\nIt may be that the analysis was redefined after\n');
+	fprintf('one of the sessions had been processed. Make sure\n');
+	fprintf('that each session has been processed using the\n');
+	fprintf('same analysis and that the resampling has been\n');
+	fprintf('done after running selxavg.\n\n');
+        return;
       end
     end % if(n == 1)
+
+    % Check consistency with contrast matrix %
+    if(size(R,2) ~= nt)
+      fprintf('\nERROR: contrast matrix size is inconsistent with\n');
+      fprintf('the number of parameters in the analysis. Check\n');
+      fprintf('whether the analysis was redifined without redefining\n');
+      fprintf('the contrast\n\n');
+      return;
+    end
 
     % Percent Signal Change %
     if(s.pctsigch)
