@@ -609,7 +609,7 @@ AC_CHECK_LIB([BLT],[Blt_Init],
   [LIB_BLT=-lBLT],
 # check BLT.2 (MacOSX)
   [
-    AC_CHECK_LIB([BLT.2],[BLT_Init],
+    AC_CHECK_LIB([BLT.2],[Blt_Init],
     [LIB_BLT=-lBLT.2],
     [
 # check BLT24 (Fedora)
