@@ -1,0 +1,451 @@
+#!/bin/csh -f
+# birn-glm-demo
+# $Id: birn-glm-demo,v 1.1 2003/01/08 18:02:26 greve Exp $
+set VERSION = '$Id: birn-glm-demo,v 1.1 2003/01/08 18:02:26 greve Exp $';
+
+set inputargs = ($argv);
+
+set QueryResultFile = ();
+set GLMResultFile = ();
+set ScatterJPGFile = ();
+
+set XCol = 1;
+set XName  = "MMSE";
+set DepVar = "left";
+set StructName = "Hippocampus";
+set Contrast = "slope";
+
+set PrintHelp = 0;
+set MLF = ();
+set monly = 0;
+
+if($#argv == 0) goto usage_exit;
+set n = `echo $argv | grep version | wc -l` 
+if($n != 0) then
+  echo $VERSION
+  exit 0;
+endif
+set n = `echo $argv | grep help | wc -l` 
+if($n != 0) then
+  set PrintHelp = 1;
+  goto usage_exit;
+endif
+
+goto parse_args;
+parse_args_return:
+
+goto check_params;
+check_params_return:
+
+switch($DepVar)
+  case "left":
+    set YName = "Left $StructName Volume (mm^3)";
+    breaksw;
+  case "right":
+    set YName = "Right $StructName Volume (mm^3)";
+    breaksw;
+  case "lravg":
+    set YName = "L/R Average $StructName Volume (mm^3)";
+    breaksw;
+  case "lrdiff":
+    set YName = "L-R Difference $StructName Volume (mm^3)";
+    breaksw;
+endsw
+
+echo $0
+echo $inputargs
+echo $VERSION
+date
+hostname
+
+# Create a temp file with just the relevant numbers #
+set qrftmp = /tmp/birn-glm-demo.tmp.$$
+if(-e $qrftmp) mv $qrftmp $qrftmp.bak
+cat $QueryResultFile | awk '{if(NR > 1) print $5 " "$8 " "$11}'| sed 's/,//g' > $qrftmp
+if(! -e $qrftmp) then
+  echo "ERROR: could not create $qrftmp"
+  exit 1;
+endif
+
+if($#MLF == 0) set MLF = /tmp/birn_glm_demo_$$.m
+if(-e $MLF) mv $MLF $MLF.bak
+echo "INFO: matlab file is $MLF"
+
+set ScatterDat = $MLF.scatter.dat.$$
+if(-e $ScatterDat) mv $ScatterDat $ScatterDat.bak
+echo "INFO: scatter plot data file is $ScatterDat"
+
+#------------- Construct matlab file -------------------#
+tee $MLF > /dev/null <<EOF
+
+qrf = '$qrftmp';
+grf = '$GLMResultFile';
+ScatterDat = '$ScatterDat';
+xcol = [$XCol];
+DepVar = '$DepVar';
+Contrast = '$Contrast';
+
+d = load(qrf);
+if(isempty(d))
+  fprintf('ERROR: loading %s\n',qrf);
+  return; quit;
+end
+
+grfid = fopen(grf,'w');
+if(grfid == -1)
+  fprintf('ERROR: cannot open %s\n',grf);
+  return; quit;
+end
+
+ncols = size(d,2);
+nsubjects = size(d,1);
+
+if(xcol > ncols) 
+  fprintf('ERROR: requested xcol %d is greater than number of cols %d\n',...
+          xcol,ncols);
+  return;quit;
+end
+
+switch(DepVar)
+  case 'left',
+    y = d(:,2);
+  case 'right',
+    y = d(:,3);
+  case 'lravg',
+    y = (d(:,2)+d(:,3))/2.0;
+  case 'lrdiff',
+    y = d(:,2)-d(:,3);
+end
+
+x = d(:,xcol);
+X = [ones(nsubjects,1) x];
+DOF = nsubjects - 2;
+
+%yn = y/sqrt(sum(y.^2));
+%xn = x/sqrt(sum(x.^2));
+%Xn = [ones(nsubjects,1) xn];
+
+switch(Contrast)
+  case 'offset',
+    C = [1 0];
+  case 'slope',
+    C = [0 1];
+end
+
+cX = cond(X);
+fprintf('INFO: X condition = %g\n',cX);
+if(cX > 10^6)
+  fprintf('WARNING: X is badly conditioned (%g)\n',cX);
+end
+
+B = inv(X'*X)*X'*y;
+yhat = X*B;
+res = y-yhat;
+resvar = sum(res.^2)/DOF;
+
+g = C*B;
+vrf = C*inv(X'*X)*C';
+gstd = sqrt(resvar*vrf);
+t = g/gstd;
+p = tTest(DOF,abs(t),300);
+
+fprintf(grfid,'offset = %g\n',B(1));
+fprintf(grfid,'slope = %g\n',B(2));
+fprintf(grfid,'resvar = %g\n',resvar);
+fprintf(grfid,'vrf = %g\n',vrf);
+fprintf(grfid,'ces = %g\n',g);
+fprintf(grfid,'cesstd = %g\n',gstd);
+fprintf(grfid,'t = %g\n',t);
+fprintf(grfid,'DOF = %g\n',DOF);
+fprintf(grfid,'p = %g\n',p);
+fclose(grfid);
+
+fid = fopen(ScatterDat,'w');
+tmp = [d(:,xcol) y yhat];
+fprintf(fid,'%g %g %g\n',tmp'); %'
+
+if(0)
+  % Cannot use this without a terminal %
+  xname = '$YName';
+  yname = '$YName';
+  plot(d(:,xcol),y,'+',d(:,xcol),yhat,'-');
+  legend('Data','Best Fit');
+  xlabel(xname);
+  ylabel(yname);
+  title(sprintf('r=%g, t=%g, p=%g\n',g,t,p));
+  print('-djpeg99',jpgfile);
+end
+
+return;quit;
+
+EOF
+#-------------------------------------------------------#
+
+set gnpfile = $MLF.gnp
+if(-e $gnpfile) mv $gnpfile $gnpfile.bak
+echo "INFO: gnuplot file is $gnpfile"
+#---------- construct gnuplot file ---------------------#
+tee $gnpfile > /dev/null <<EOF
+  set output "$ScatterJPGFile"
+  set term jpeg transparent large size 640,480;
+  set xlabel "$XName"
+  set ylabel "$YName"
+  plot \
+    "$ScatterDat" u 1:2 t "Data" w points, \
+    "$ScatterDat" u 1:3 t "Best Fit" w lines
+EOF
+#-------------------------------------------------------#
+
+if(! $monly) then
+  cat $MLF | matlab -nosplash -display iconic
+  rm $MLF
+  rm $qrftmp
+  if(! -e $GLMResultFile ) then
+    echo "ERROR: matlab failed to produce $GLMResultFile"
+    exit 1;
+  endif
+  if(! -e $ScatterDat ) then
+    echo "ERROR: matlab failed to produce $ScatterDat"
+    exit 1;
+  endif
+  cat $gnpfile | gnuplot
+  if(! -e $ScatterJPGFile ) then
+    echo "ERROR: gnuplot failed to produce $ScatterJPGFile"
+    exit 1;
+  endif
+  rm $ScatterDat
+  rm $gnpfile 
+endif
+
+echo ""
+echo ""
+date
+echo "done"
+echo ""
+
+exit 0
+
+############--------------##################
+parse_args:
+set cmdline = ($argv);
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "-qrf":
+      if ( $#argv == 0) goto arg1err;
+      set QueryResultFile = $argv[1]; shift;
+      breaksw
+
+    case "-glm":
+      if ( $#argv == 0) goto arg1err;
+      set GLMResultFile = $argv[1]; shift;
+      breaksw
+
+    case "-scatter":
+      if ( $#argv == 0) goto arg1err;
+      set ScatterJPGFile = $argv[1]; shift;
+      breaksw
+
+    case "-xcol":
+      if ( $#argv == 0) goto arg1err;
+      set XCol = $argv[1]; shift;
+      breaksw
+
+    case "-xname":
+      if ( $#argv == 0) goto arg1err;
+      set XName = $argv[1]; shift;
+      breaksw
+
+    case "-struct":
+      if ( $#argv == 0) goto arg1err;
+      set StructName = $argv[1]; shift;
+      breaksw
+
+    case "-test":
+      if ( $#argv == 0) goto arg1err;
+      set Contrast = $argv[1]; shift;
+      if($Contrast != "offset" && $Contrast != "slope") then
+        echo "ERROR: test must be either offset or slope"
+        exit 1; 
+      endif
+      breaksw
+
+#    case "-ycol":
+#      if ( $#argv == 0) goto arg1err;
+#      set YCol = $argv[1]; shift;
+#      breaksw
+#    case "-yname":
+#      if ( $#argv == 0) goto arg1err;
+#      set YName = $argv[1]; shift;
+#      breaksw
+
+    case "-monly":
+      if ( $#argv == 0) goto arg1err;
+      set MLF = $argv[1]; shift;
+      set monly = 1;
+      breaksw
+
+    case "-left":
+      set YName = "Left Hippocampal Volume (mm^3)";
+      breaksw
+
+    case "-right":
+      set DepVar = "right";
+      set YName = "Right Hippocampal Volume (mm^3)";
+      breaksw
+
+    case "-lravg":
+      set DepVar = "lravg";
+      set YName = "Left/Right Average Hippocampal Volume (mm^3)";
+      breaksw
+
+    case "-lrdiff":
+      set DepVar = "lrdiff";
+      set YName = "Left-Right Hippocampal Volume (mm^3)";
+      breaksw
+
+    case "-verbose":
+      set verbose = 1;
+      breaksw
+
+    case "-echo":
+      set echo = 1;
+      breaksw
+
+    case "-debug":
+      set verbose = 1;
+      set echo = 1;
+      breaksw
+
+    case "-umask":
+      if ( $#argv == 0) goto arg1err;
+      umask $1; shift;
+      breaksw
+
+    default:
+      echo ERROR: Flag $flag unrecognized. 
+      echo $cmdline
+      exit 1
+      breaksw
+  endsw
+
+end
+
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+
+  if($#QueryResultFile == 0) then
+    echo "ERROR: must specify an input Query Result File"
+    exit 1;
+  endif
+
+  if($#GLMResultFile == 0) then
+    echo "ERROR: must specify an output GLM Result File"
+    exit 1;
+  endif
+
+  if($#ScatterJPGFile == 0) then
+    echo "ERROR: must specify an output scatter plot file"
+    exit 1;
+  endif
+
+  if(! -e $QueryResultFile) then
+    echo "ERROR: $QueryResultFile does not exist"
+    exit 1;
+  endif
+
+  foreach outfile ($GLMResultFile $ScatterJPGFile)
+    set d = `dirname $outfile`;
+    mkdir -p $d
+    if($status) then
+      echo "ERROR: could not create $d"
+      exit 1;
+    endif
+    if(-e $outfile) mv $outfile $outfile.bak
+  end
+
+goto check_params_return;
+############--------------##################
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+
+############--------------##################
+usage_exit:
+  echo ""
+  echo "USAGE: birn-glm-demo"
+  echo ""  
+  echo "Required Arguments"
+  echo "  -qrf query result file"
+  echo "  -glm GLM result file"
+  echo "  -scatter jpeg scatter plot file"
+  echo ""
+  echo "Optional Arguments"
+  echo "  -test type : offset or slope (default slope)"
+  echo "  -struct name : name of structure (default hippocampus)"
+  echo "  -left   : use vol of left as dependent variable (default)"
+  echo "  -right  : use vol of right as dependent variable"
+  echo "  -lravg  : use average vol of left and right"
+  echo "  -lrdiff : use difference between left and right"
+  echo ""
+  echo "  -help"
+  echo ""
+
+  if($PrintHelp) then
+  echo ""
+  echo $VERSION
+  echo ""
+  cat $0 | awk 'BEGIN{prt=0}{if(prt) print $0; if($1 == "BEGINHELP") prt = 1 }'
+
+exit 1;
+
+
+#---- Everything below here is printed out as part of help -----#
+BEGINHELP
+
+Processes data for BIRN demo. Fits a slope+offset model to the
+input data, reports statistics, and generates a jpeg image of
+the scatter plot of the data. The input (-qrf) is the result of
+a query. The stats are written to the argument of -glm. The
+scatter plot is written to the argument of -scatter.
+
+The input file is assumed to have many colums of which 3 are actual
+data (namely columns 5, 8, and 11). Col 5 is the independent variable;
+Col 8 is the volume of the left side structure; Col 11 is the volume 
+of the right side structure. 
+
+By default, the structure name is assumed to be Hippocampus, but
+this can be changed with the -struct option. This only affects
+the axis label. 
+
+By default, the program tests the hypothesis that the slope fitted
+to the left side volume as a function of the independent variable is
+zero using a double-sided t-test. The dependent variable can be
+changed to the right side (with -right), the average of the left
+and right (with -lravg), or the difference betweent the left and right
+(with -lrdiff). The value tested can be changed to the offset instead
+of the slope with -test offset.
+
+The statistics are written to the file specified with -glm. This file
+will have 9 rows:
+
+  1. offset - best fit offset
+  2. slope  - best fit slope
+  3. resvar - variance of the residual error
+  4. vrf - variance reduction factor of contrast
+  5. ces - contrast effect size (same as either offset or slope)
+  6. cesstd - standard devation of ces
+  7. t - t ratio for t-test
+  9. DOF - degrees of freedom
+  8. p - significance of t-test
+
+
