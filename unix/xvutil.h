@@ -89,6 +89,7 @@ typedef struct
   char            msg_str[MSGS][STR_LEN] ;
   Panel_item      msg_item[MSGS] ;
   DIMAGE          **dimages ;
+  int             min_panel_width ;
 } XV_FRAME ;
 
 
@@ -115,6 +116,7 @@ void XVsetQuitFunc(void (*quit_func)(void)) ;
 void XVrepaintImage(XV_FRAME *xvf, int which) ;
 int XVsetMessagePosition(XV_FRAME *xvf, int which, int col, int row) ;
 int XVsetImageSize(XV_FRAME *xvf, int which, int rows, int cols) ;
+void XVsetMinPanelWidth(XV_FRAME *xvf, int min_panel_width) ;
 int XVresize(XV_FRAME *xvf) ;
 void buttonQuit(Panel_item item, Event *event) ;
 
