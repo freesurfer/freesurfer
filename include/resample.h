@@ -74,12 +74,7 @@ MRI *vol2roi_linear(MRI *SrcVol,
 MRI *label2mask_linear(MRI *SrcVol, 
            MATRIX *Qsrc, MATRIX *Fsrc, MATRIX *Wsrc, MATRIX *Dsrc, 
            MRI *SrcMskVol, MATRIX *Msrc2lbl, LABEL *Label, 
-           int float2int, int *nlabelhits, int *nfinalhits);
-
-MRI *label2mask_linear2(MRI *SrcVol, 
-           MATRIX *Qsrc, MATRIX *Fsrc, MATRIX *Wsrc, MATRIX *Dsrc, 
-           MRI *SrcMskVol, MATRIX *Msrc2lbl, LABEL *Label, 
-           int float2int, int *nlabelhits, int *nfinalhits);
+           float rszthresh, int float2int, int *nlabelhits, int *nfinalhits);
 
 MRI * vol2maskavg(MRI *SrcVol, MRI *SrcMskVol, int *nhits);
 
