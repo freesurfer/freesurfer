@@ -22,7 +22,7 @@
 #include "transform.h"
 #include "talairachex.h"
 
-static char vcid[] = "$Id: mri_fill.c,v 1.71 2003/12/18 16:37:13 tosa Exp $";
+static char vcid[] = "$Id: mri_fill.c,v 1.72 2003/12/18 17:14:44 tosa Exp $";
 
 
 /*-------------------------------------------------------------------
@@ -231,11 +231,13 @@ main(int argc, char *argv[])
   LT *lt;
   MATRIX *m_L;
   int row;
+  VOL_GEOM *dst;
+  VOL_GEOM *src;
 
   // Gdiag = 0xFFFFFFFF;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_fill.c,v 1.71 2003/12/18 16:37:13 tosa Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_fill.c,v 1.72 2003/12/18 17:14:44 tosa Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -369,8 +371,8 @@ main(int argc, char *argv[])
       }
       fprintf(stderr, "talairach transform\n");
       MatrixPrint(stderr, m_L);
-      VOL_GEOM *dst = &lt->dst;
-      VOL_GEOM *src = &lt->src;
+      dst = &lt->dst;
+      src = &lt->src;
       getVolGeom(mri_im, src);
       getVolGeom(mri_im, dst);
       if (getenv("NO_AVERAGE305")) // if this is set
@@ -1270,7 +1272,8 @@ find_cutting_plane(MRI *mri_tal, Real x_tal, Real y_tal,Real z_tal,int orientati
   int min_area, max_area, max_slices;
   int half_slices, cut_width, half_cut, search_step, max_offset;
   int slice_size;
-  int xoo, yoo;
+  int xoo=0;
+  int yoo=0;
 
   voxsize = findMinSize(mri_tal);
 
