@@ -17,7 +17,6 @@
      free($1);
 }
 
-
 extern FSGD *gdfRead(char *gdfname, int loaddata);
 extern int gdfPrintStdout(FSGD *gd);
 extern int gdfGetTitle(FSGD *gd, char *OUTSTRING);
