@@ -87,6 +87,7 @@ static void xvHipsCmdFrameInit(XV_FRAME *xvf) ;
 static void xvCreateImage(XV_FRAME *xvf, DIMAGE *dimage, int x, int y, 
                           int which) ;
 static void xvFreeDimage(DIMAGE *dimage) ;
+static Panel_setting xvFileNameCommand(Panel_item item, Event *event) ;
 
 /*----------------------------------------------------------------------
                               GLOBAL DATA
@@ -525,13 +526,36 @@ XVshowImage(XV_FRAME *xvf, int which, IMAGE *image, int frame)
   else
     ImageCopyFrames(image, GtmpFloatImage, frame, 1, 0) ;
 
-  /* scale range of values to be in byte display range (about 0-240) */
-  if (dimage->rescale_range || image->num_frame == 1)
-    ImageScale(GtmpFloatImage, GtmpFloatImage, 0, MAX_DISP_VAL) ;
-  else   /* use entire sequence to compute display range */
+  /* scale range of values to be in byte display range (about 0-60) */
+  if (!xvf->rescale)
   {
-    ImageValRange(image, &fmin, &fmax) ;
-    ImageScaleRange(GtmpFloatImage, fmin, fmax, 0, MAX_DISP_VAL) ;
+    if (dimage->rescale_range || image->num_frame == 1)
+      ImageScale(GtmpFloatImage, GtmpFloatImage, 0, MAX_DISP_VAL) ;
+    else   /* use entire sequence to compute display range */
+    {
+      ImageValRange(image, &fmin, &fmax) ;
+      ImageScaleRange(GtmpFloatImage, fmin, fmax, 0, MAX_DISP_VAL) ;
+    }
+  }
+  else   /* find min and max of all synced images of the same pixel format */
+  {
+    DIMAGE *dimage2 ;
+    float  sync_fmin, sync_fmax ;
+
+    ImageValRange(image, &sync_fmin, &sync_fmax) ;
+    for (i = 0 ; i < xvf->rows*xvf->cols ; i++)
+    {
+      dimage2 = xvGetDimage(xvf, i, 0) ;
+      if (dimage2&&(image->pixel_format == dimage2->sourceImage->pixel_format))
+      {
+        ImageValRange(dimage2->sourceImage, &fmin, &fmax) ;
+        if (fmin < sync_fmin)
+          sync_fmin = fmin ;
+        if (fmax > sync_fmax)
+          sync_fmax = fmax ;
+      }
+    }
+    ImageScaleRange(GtmpFloatImage, sync_fmin, sync_fmax, 0, MAX_DISP_VAL) ;
   }
 
   /* resize image to display area */
@@ -877,6 +901,66 @@ xv_dimage_event_handler(Xv_Window xv_window, Event *event)
     {
       switch ((char)event->ie_code)
       {
+      case '8':
+        if (xvf->get_next_image)
+        {
+          if (dimage->sync)
+          {
+            int    which2 ;
+
+            for (which2 = 0 ; which2 < xvf->rows*xvf->cols ; which2++)
+            {
+              dimage2 = xvGetDimage(xvf, which2, 0) ;
+              if (dimage2 && (dimage2->sync == dimage->sync))
+              {
+                dimage2->sourceImage = 
+                  (*xvf->get_next_image)(dimage2->sourceImage, which2, 1) ;
+                XVshowImage(xvf, which2, dimage2->sourceImage, dimage2->frame);
+              }
+            }
+          }
+          else
+          {
+            dimage->sourceImage = 
+              (*xvf->get_next_image)(dimage->sourceImage, which, 1) ;
+            XVshowImage(xvf, which, dimage->sourceImage, dimage->frame) ;
+          }
+        }
+        break ;
+      case '2':
+        if (xvf->get_next_image)
+        {
+          if (dimage->sync)
+          {
+            int    which2 ;
+
+            for (which2 = 0 ; which2 < xvf->rows*xvf->cols ; which2++)
+            {
+              dimage2 = xvGetDimage(xvf, which2, 0) ;
+              if (dimage2 && (dimage2->sync == dimage->sync))
+              {
+                dimage2->sourceImage = 
+                  (*xvf->get_next_image)(dimage2->sourceImage, which2, -1) ;
+                XVshowImage(xvf, which2, dimage2->sourceImage, dimage2->frame);
+              }
+            }
+          }
+          else
+          {
+            dimage->sourceImage = 
+              (*xvf->get_next_image)(dimage->sourceImage, which, -1) ;
+            XVshowImage(xvf, which, dimage->sourceImage, dimage->frame) ;
+          }
+        }
+        break ;
+      case 'r':
+        xvf->rescale = 0 ;
+        XVshowAll(xvf) ;
+        break ;
+      case 'R':
+        xvf->rescale = 1 ;
+        XVshowAll(xvf) ;
+        break ;
       case 'S':
         XVsyncAll(xvf, which) ;
         break ;
@@ -1089,6 +1173,27 @@ xvHipsCommand(Panel_item item, Event *event)
 static void
 xvHipsCmdFrameInit(XV_FRAME *xvf) 
 {
+  xvf->fname_frame = (Frame)
+    xv_create(xvf->frame, FRAME_CMD,
+              XV_HEIGHT, HIPS_CMD_ROWS,
+              XV_WIDTH,  HIPS_CMD_COLS,
+              XV_X,      600,
+              XV_Y,      310,
+              FRAME_LABEL, "FILE NAME",
+              XV_SHOW,   FALSE,
+              NULL);
+  xvf->fname_panel = 
+    (Panel)xv_create((Xv_opaque)xvf->fname_frame, PANEL, XV_X, 0, XV_Y,0,NULL);
+  xvf->fname_panel_item = (Panel_item)
+    xv_create((Xv_opaque)xvf->fname_panel, PANEL_TEXT,
+              PANEL_VALUE_STORED_LENGTH,   300,
+              PANEL_VALUE_DISPLAY_LENGTH,  40,
+              XV_SHOW,                     TRUE,
+              PANEL_NOTIFY_PROC,           xvFileNameCommand,
+              PANEL_LABEL_STRING,          "File Name: ",
+              PANEL_VALUE,                 xvf->file_name,
+              NULL) ;
+
   hips_cmd_frame = (Frame)
     xv_create(xvf->frame, FRAME_CMD,
               XV_HEIGHT, HIPS_CMD_ROWS,
@@ -1942,6 +2047,21 @@ XVsyncAll(XV_FRAME *xvf, int which)
   return(NO_ERROR) ;
 }
 int
+XVshowAll(XV_FRAME *xvf)
+{
+  DIMAGE *dimage ;
+  int    which ;
+
+  for (which = 0 ; which < xvf->rows*xvf->cols ; which++)
+  {
+    dimage = xvGetDimage(xvf, which, 0) ;
+    if (dimage)
+      XVshowImage(xvf, which, dimage->sourceImage, dimage->frame) ;
+  }
+  
+  return(NO_ERROR) ;
+}
+int
 XVunsyncAll(XV_FRAME *xvf, int which)
 {
   DIMAGE *dimage ;
@@ -1990,6 +2110,51 @@ int
 XVsetYDir(XV_FRAME *xvf, int ydir)
 {
   xvf->ydir = ydir ;
+  return(NO_ERROR) ;
+}
+
+int 
+XVgetFileName(XV_FRAME *xvf, char *default_fname,
+              int (*fname_func)(char *fname), ...)
+{
+  va_list  args ;
+  char     *fmt ;
+  int      len ;
+
+  va_start(args, fname_func) ;
+  fmt = va_arg(args, char *) ;
+  vsprintf(xvf->fname_prompt, fmt, args) ;
+  len = strlen(xvf->fname_prompt) ;
+
+  va_end(args) ;
+
+  xvf->fname_func = fname_func ;
+  strcpy(xvf->file_name, default_fname) ;
+  xv_set(xvf->fname_frame, FRAME_LABEL, xvf->fname_prompt, PANEL_VALUE, 
+         xvf->file_name, FRAME_CMD_PUSHPIN_IN, TRUE, XV_SHOW, TRUE, NULL) ;
+  return(len) ;
+}
+
+static Panel_setting
+xvFileNameCommand(Panel_item item, Event *event)
+{
+  strcpy(xvf->file_name, (char *)xv_get(xvf->fname_panel_item, PANEL_VALUE)) ;
+  xv_set(xvf->fname_frame, FRAME_CMD_PUSHPIN_IN, FALSE, XV_SHOW, FALSE, NULL) ;
+  XFlush(xvf->display); 
+
+  if (strlen(xvf->file_name) < 4)
+    return(0) ;
+
+  if (xvf->fname_func)
+    (*xvf->fname_func)(xvf->file_name) ;
+  return(0) ;
+}
+
+int
+XVsetDepthFunc(XV_FRAME *xvf,
+               IMAGE *(*get_image)(IMAGE *Iold,int which, int dir))
+{
+  xvf->get_next_image = get_image ;
   return(NO_ERROR) ;
 }
 

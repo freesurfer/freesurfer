@@ -110,6 +110,14 @@ typedef struct
   int             precision ;
   int             ydir ;        /* direction of y coord relative to xview */
   int             noprint ;     /* 1 --> don't do XVprintf in event_handler */
+  int         rescale ;     /* rescale range with all images of this format */
+  char            fname_prompt[30] ;
+  char            file_name[100] ;
+  Frame           fname_frame ;
+  Panel           fname_panel ;
+  Panel_item      fname_panel_item ;
+  int             (*fname_func)(char *fname) ;
+  IMAGE           *(*get_next_image)(IMAGE *Iold, int which, int dir) ;
 } XV_FRAME ;
 
 
@@ -152,6 +160,11 @@ int XVunsyncAll(XV_FRAME *xvf, int which) ;
 int XVshowAllSyncedImages(XV_FRAME *xvf, int which) ;
 int XVsetPrintStatus(XV_FRAME *xvf, int status) ;
 int XVsetYDir(XV_FRAME *xvf, int ydir) ;
+int XVshowAll(XV_FRAME *xvf) ;
+int XVgetFileName(XV_FRAME *xvf, char *default_fname, 
+                  int (*fname_func)(char *fname), ...) ;
+int XVsetDepthFunc(XV_FRAME *xvf, 
+                   IMAGE *(*get_image)(IMAGE *Iold, int which, int dir)) ;
 
 #define WINDOW_PAD          3
 
