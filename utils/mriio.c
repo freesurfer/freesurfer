@@ -700,7 +700,7 @@ MRI *MRIreadInfo(char *fname)
 
   MRI *mri = NULL;
 
-  mri = mri_read(fname, MRI_VOLUME_TYPE_UNKNOWN, TRUE, -1, -1);
+  mri = mri_read(fname, MRI_VOLUME_TYPE_UNKNOWN, FALSE, -1, -1);
 
   return(mri);
 
