@@ -1,7 +1,7 @@
 #!/bin/csh -f
 # surf-sess
 #
-set VERSION = '$Id: surf-sess,v 1.5 2004/05/04 18:16:24 greve Exp $'
+set VERSION = '$Id: surf-sess,v 1.6 2004/05/04 19:33:53 greve Exp $'
 set FASTVER = `cat $FMRI_ANALYSIS_DIR/docs/version`;
 set inputargs = ($argv);
 
@@ -83,7 +83,7 @@ if(! $nolog) then
     echo "ERROR: could not create $logdir"
     exit 1;
   endif
-  if($#rtopymode == 0) then
+  if($#rtopymode != 0) then
     set LF = $logdir/surf-sess.$analysis.$rtopymode.log
   else
     set LF = $logdir/surf-sess.$analysis.$contrast.log

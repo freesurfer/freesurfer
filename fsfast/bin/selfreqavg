@@ -1,7 +1,7 @@
 #!/bin/csh -f
 # fMRI selective frequency averaging (for phase-encoding analysis)
 
-set VERSION = '$Id: selfreqavg,v 1.6 2004/05/04 18:03:34 greve Exp $';
+set VERSION = '$Id: selfreqavg,v 1.7 2004/05/04 19:36:02 greve Exp $';
 set cmdargv = "$argv";
 
 set n = `echo $argv | grep version | wc -l` 
@@ -417,8 +417,8 @@ while( $#argv != 0 )
         echo "ERROR: direction must be either 'pos' or 'neg'"
         exit 1;
       endif
-      if($direction == pos) set directionlist = [$directionlist +1];
-      if($direction == neg) set directionlist = [$directionlist -1];
+      if($direction == pos) set directionlist = ($directionlist +1);
+      if($direction == neg) set directionlist = ($directionlist -1);
       breaksw
 
     case "-detrend":
