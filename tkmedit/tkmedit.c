@@ -4,9 +4,9 @@
 
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2003/09/05 04:45:48 $
-// Revision       : $Revision: 1.174 $
-char *VERSION = "$Revision: 1.174 $";
+// Revision Date  : $Date: 2003/09/08 15:44:13 $
+// Revision       : $Revision: 1.175 $
+char *VERSION = "$Revision: 1.175 $";
 
 #define TCL
 #define TKMEDIT 
@@ -1027,7 +1027,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
      shorten our argc and argv count. If those are the only args we
      had, exit. */
   /* rkt: check for and handle version tag */
-  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.174 2003/09/05 04:45:48 kteich Exp $", "$Name:  $");
+  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.175 2003/09/08 15:44:13 kteich Exp $", "$Name:  $");
   if (nNumProcessedVersionArgs && argc - nNumProcessedVersionArgs == 1)
     exit (0);
   argc -= nNumProcessedVersionArgs;
@@ -6181,7 +6181,6 @@ void SaveSelectionToLabelFile ( char * isFileName ) {
   int           nDimensionZ              = 0;
   float         value                    = 0;
   xVoxel        MRIIdx;
-  xVoxel        anaIdx;
   xVoxel        ras;
   LABEL*        pLabel                   = NULL;
   LABEL_VERTEX* pVertex                  = NULL;
@@ -6219,11 +6218,11 @@ void SaveSelectionToLabelFile ( char * isFileName ) {
     Volm_GetValueAtMRIIdx_( gSelectionVolume, &MRIIdx, &value );
     if( 0 != value ) {
       
-      /* convert mri idx to ras */
-      eVolume = Volm_ConvertMRIIdxToIdx( gSelectionVolume, &MRIIdx, &anaIdx );
-      DebugAssertThrowX( (Volm_tErr_NoErr == eVolume), 
-			 eResult, tkm_tErr_ErrorAccessingVolume );
-      eVolume = Volm_ConvertIdxToRAS( gSelectionVolume, &anaIdx, &ras );
+      /* convert mri idx to surface ras. note we use surface ras here
+	 because it ignores c_ras, which is what label files should to
+	 be comptaible with tksurfer.  */
+      eVolume = 
+	Volm_ConvertMRIIdxToSurfaceRAS( gSelectionVolume, &MRIIdx, &ras );
       DebugAssertThrowX( (Volm_tErr_NoErr == eVolume), 
 			 eResult, tkm_tErr_ErrorAccessingVolume );
       
@@ -6277,7 +6276,6 @@ tkm_tErr LoadSelectionFromLabelFile ( char* isFileName ) {
   int           nNumVoxels       = 0;
   int           nVoxel         = 0;
   xVoxel        ras;
-  xVoxel        anaIdx;
   xVoxel        MRIIdx;
   char          sError[tkm_knErrStringLen] = "";
   
@@ -6304,13 +6302,11 @@ tkm_tErr LoadSelectionFromLabelFile ( char* isFileName ) {
     /* only process verticies that arn't deleted. */
     if ( !(pVertex->deleted) ) {
       
-      /* transform from ras to voxel */
+      /* transform from ras to voxel. note we use surface ras here,
+	 see note in SaveSelectionToLabelFile. */
       xVoxl_SetFloat( &ras, pVertex->x, pVertex->y, pVertex->z );
-      eVolume = Volm_ConvertRASToIdx( gSelectionVolume, &ras, &anaIdx );
-      DebugAssertThrowX( (Volm_tErr_NoErr == eVolume), 
-			 eResult, tkm_tErr_ErrorAccessingVolume );
       eVolume = 
-	Volm_ConvertIdxToMRIIdx( gSelectionVolume, &anaIdx, &MRIIdx );
+	Volm_ConvertSurfaceRASToMRIIdx( gSelectionVolume, &ras, &MRIIdx );
       DebugAssertThrowX( (Volm_tErr_NoErr == eVolume), 
 			 eResult, tkm_tErr_ErrorAccessingVolume );
       
