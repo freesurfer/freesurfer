@@ -5,7 +5,7 @@
 # editing.
 #
 # mkfsdist
-# $Id: mkfsdist,v 1.6 2002/04/30 15:12:01 greve Exp $
+# $Id: mkfsdist,v 1.7 2002/04/30 15:14:11 greve Exp $
 #
 # Usage: mkfsdist targetdir
 #
@@ -49,11 +49,12 @@
 #  files found in freesurfer_alpha/tar-exclude-more.
 #
 # 
-set VERSION = '$Id: mkfsdist,v 1.6 2002/04/30 15:12:01 greve Exp $';
+set VERSION = '$Id: mkfsdist,v 1.7 2002/04/30 15:14:11 greve Exp $';
 
-# To include the autoseg in the distribution
-if(! $?KeepAutoSeg ) setenv KeepAutoSeg 0
-if($KeepAutoSeg) then
+# To include the autoseg in the distribution set environment varible
+# KEEPAUTOSEG to 1 before running mkfsdist (ie, setenv KEEPAUTOSEG 1)
+if(! $?KEEPAUTOSEG ) setenv KEEPAUTOSEG 0
+if($KEEPAUTOSEG) then
    echo "INFO: keeping autoseg"
 else
    echo "INFO: NOT keeping autoseg"
@@ -161,7 +162,7 @@ set TF = $TARGET_DIR/fsa.tar
 rm -f $TF
 set tarcmd = ( tar cv -f $TF --exclude-from $FSA_DIR/tar-exclude \
     --exclude-from $FSA_DIR/tar-exclude-more ./freesurfer_alpha)
-if(! $KeepAutoSeg) set tarcmd = ($tarcmd --exclude-from $FSA_DIR/tar-exclude-gca)
+if(! $KEEPAUTOSEG) set tarcmd = ($tarcmd --exclude-from $FSA_DIR/tar-exclude-gca)
 echo $tarcmd | tee -a $LF
 $tarcmd  >> $LF
 
