@@ -4139,7 +4139,7 @@ ctrlkeypressed = FALSE;
     VoxelToRAS ( xi, yi, zi, &x, &y, &z );
 
     // print out a bunch of coords
-    printf ( "\nCoords: Voxel (%d, %d, %d) Screen (%d, %d, %d) \n        RAS (%2.1f, %2.1f, %2.1f) ",
+    printf ( "\nCoords: Voxel (R/L, I/S, P/A) (%d, %d, %d) Screen (%d, %d, %d) \n        RAS (%2.1f, %2.1f, %2.1f) ",
              xi,yi,zi, jc,ic,imc, x,y,z );
 
     x_click = x; 
@@ -8503,9 +8503,6 @@ void CheckCenterVoxel () {
 
   int theEdge;
 
-  fprintf ( stderr, "Center (%d, %d, %d) -> ",
-            gCenterX, gCenterY, gCenterZ );
-
   // check left edge.
   theEdge = gCenterX - (xdim/zf/2/gLocalZoom);
   if ( theEdge < 0 )
@@ -8536,8 +8533,6 @@ void CheckCenterVoxel () {
   if ( theEdge >= xdim/zf )
     gCenterZ -= theEdge - xdim/zf;
 
-  fprintf ( stderr, "(%d, %d, %d)\n",
-            gCenterX, gCenterY, gCenterZ );
 }
 
 
