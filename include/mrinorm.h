@@ -13,10 +13,10 @@
 #define DEFAULT_WINDOWS_ABOVE_T0            9
 #define DEFAULT_WINDOW_SIZE                 10
 
-#define HISTO_BINS           0
-#define BACKGROUND_INTENSITY 30
+#define HISTO_BINS                          0
+#define BACKGROUND_INTENSITY                30
 
-#define MAX_SPLINE_POINTS    30
+#define MAX_SPLINE_POINTS                   40
 
 typedef struct
 {
@@ -42,6 +42,7 @@ int MRInormInit(MRI *mri, MNI *mni, int windows_above_t0, int windows_below_t0,
 int MRInormFillHistograms(MRI *mri, MNI *mni) ;
 int MRInormFindPeaks(MNI *mni, float *inputs, float *outputs) ;
 MRI *MRInormalize(MRI *mri_src, MRI *mri_dst, MNI *mni) ;
+int MRInormCheckPeaks(MNI *mni, float *inputs, float *outputs, int npeaks) ;
 
 
 #endif
