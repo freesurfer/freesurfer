@@ -189,6 +189,9 @@ Volm_tErr Volm_DeepClone  ( mriVolumeRef  this,
   Trns_tErr    eTransform = Trns_tErr_NoErr;
   mriVolumeRef clone      = NULL;
   
+  DebugEnterFunction( ("Volm_DeepClone( this=%p, opVolume=%p )",
+		       this, opVolume) );
+
   DebugNote( ("Verifying volume") );
   eResult = Volm_Verify( this );
   DebugAssertThrow( (eResult == Volm_tErr_NoErr) );

@@ -1,6 +1,7 @@
 #! /usr/bin/tixwish
 
-# $Id: tkmedit.tcl,v 1.54 2003/07/21 19:29:13 kteich Exp $
+# $Id: tkmedit.tcl,v 1.55 2003/07/25 20:38:22 kteich Exp $
+
 
 source $env(MRI_DIR)/lib/tcl/tkm_common.tcl
 
