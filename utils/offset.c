@@ -43,30 +43,43 @@
             Parameters:
 
            Description:
-             calculate an x and a y offset for each point in the image
-             using a modified Nitzberg-Shiota algorithm.
 ----------------------------------------------------------------------*/
+#define MAX_STEPS 6
 IMAGE *
 ImageCalculateOffset(IMAGE *Ix, IMAGE *Iy, int wsize, IMAGE *Ioffset)
 {
-  static IMAGE *Iorient = NULL ;
-#if 0
+  static IMAGE *Iorient = NULL, *Idir = NULL ;
   struct timeb then ;
   int  msec ;
 
-  TimerStart(&then) ;
-#endif
+  if (Gdiag & DIAG_TIMER)
+    TimerStart(&then) ;
   Iorient = ImageOffsetOrientation(Ix, Iy, wsize, Iorient) ;
-#if 0
-  msec = TimerStop(&then) ;
-  fprintf(stderr, "orientation took  %2.3f sec\n", (float)msec/1000.0f) ;
-  TimerStart(&then) ;
-#endif
-  Ioffset = ImageOffsetDirection(Ix, Iy, wsize, Iorient, Ioffset) ;
-#if 0
-  msec = TimerStop(&then) ;
-  fprintf(stderr, "direction took  %2.3f sec\n", (float)msec/1000.0f) ;
-#endif
+
+  if ((Gdiag & DIAG_WRITE) && (Gdiag & DIAG_VERBOSE))
+    ImageWrite(Iorient, "orient.hipl") ;
+
+  if (Gdiag & DIAG_TIMER)
+  {
+    msec = TimerStop(&then) ;
+    fprintf(stderr, "orientation took  %2.3f sec\n", (float)msec/1000.0f) ;
+    TimerStart(&then) ;
+  }
+
+  Idir = ImageOffsetDirection(Ix, Iy, wsize, Iorient, Idir) ;
+
+  if ((Gdiag & DIAG_WRITE) && (Gdiag & DIAG_VERBOSE))
+    ImageWrite(Idir, "dir.hipl") ;
+
+  if (Gdiag & DIAG_TIMER)
+  {
+    msec = TimerStop(&then) ;
+    fprintf(stderr, "direction took  %2.3f sec\n", (float)msec/1000.0f) ;
+  }
+
+  Ioffset = ImageOffsetMagnitude(Idir, Ioffset, MAX_STEPS) ;
+  if ((Gdiag & DIAG_WRITE) && (Gdiag & DIAG_VERBOSE))
+    ImageWrite(Ioffset, "offset.hipl") ;
 
   return(Ioffset) ;
 }
