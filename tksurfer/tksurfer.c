@@ -2676,6 +2676,7 @@ do_one_gl_event(Tcl_Interp *interp)   /* tcl */
 	  /* end rkt */
 	}
       }
+
       break;
       
     case ButtonRelease:
@@ -5268,6 +5269,7 @@ select_vertex(short sx,short sy)
   int vno;
   float d;
   VERTEX* v;
+  char command[NAME_LENGTH];
   
   /* sets d to the distance of the vertex found */
   find_vertex_at_screen_point(sx, sy, &vno, &d);
@@ -5294,12 +5296,18 @@ select_vertex(short sx,short sy)
   /* select the boundary at this vertex, if there is one. */
   fbnd_select_boundary_by_vno (vno);
   
+  /* let the tcl side of things respond. */
+  if ( g_interp ) {
+    sprintf(command,"SelectVertex %d", vno);
+    Tcl_Eval(g_interp,command);
+  }
+
   /* finally, update the labels. */
   if (vno>=0)
     {
       update_labels(LABELSET_CURSOR, vno, d);
     }
-  
+
   /* end rkt */
 }
 
