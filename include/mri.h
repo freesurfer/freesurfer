@@ -271,6 +271,8 @@ MRI   *MRIySobelRegion(MRI *mri_src, MRI *mri_y, int frame,MRI_REGION *region);
 MRI   *MRIzSobelRegion(MRI *mri_src, MRI *mri_z, int frame,MRI_REGION *region);
 
 MRI   *MRIreduce(MRI *mri_src, MRI *mri_dst) ;
+MRI   *MRIreduce2D(MRI *mri_src, MRI *mri_dst) ;
+MRI   *MRIreduceSlice(MRI *mri_src, MRI *mri_dst, float *k, int len, int axis) ;
 MRI   *MRIreduceByte(MRI *mri_src, MRI *mri_dst) ;
 MRI *MRIconvolve1dFloat(MRI *mri_src, MRI *mri_dst, float *k, int len, int axis,
 												int src_frame, int dst_frame);
@@ -625,8 +627,8 @@ int   MRIneighborsOff(MRI *mri, int x0, int y0, int z0, int min_val) ;
 int   MRIneighborsOn3x3(MRI *mri, int x0, int y0, int z0, int min_val) ;
 int   MRIneighborsOff3x3(MRI *mri, int x0, int y0, int z0, int min_val) ;
 
-MRI   *MRIreplaceValues(MRI *mri_src, MRI *mri_dst, 
-                       BUFTYPE in_val, BUFTYPE out_val) ;
+MRI *MRIresampleFill(MRI *src, MRI *template_vol, int resample_type, float fill_val) ;
+MRI   *MRIreplaceValues(MRI *mri_src, MRI *mri_dst, float in_val, float out_val) ;
 MRI   *MRImask(MRI *mri_src, MRI *mri_mask, MRI *mri_dst, int mask,
                float out_val) ;
 MRI   *MRImeanMask(MRI *mri_src, MRI *mri_mask, MRI *mri_dst,int mask, int wsize) ;
