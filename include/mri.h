@@ -100,6 +100,11 @@ typedef struct
   double        flip_angle ;  /* in radians */
 } MRI_IMAGE, MRI ;
 
+MATRIX *MRIxfmCRS2XYZ(MRI *mri, int base);
+MATRIX *MRIxfmCRS2XYZtkreg(MRI *mri);
+MATRIX *MRIfixTkReg(MRI *ref, MRI *mov, MATRIX *R);
+
+
 float  MRIfindNearestNonzero(MRI *mri, int wsize, Real x0, Real y0, Real z0) ;
 float  MRIfindNearestNonzeroLocation(MRI *mri, int wsize, Real xr, Real yr, Real zr,
                                      int *pxv, int *pyv, int *pzv) ;
@@ -496,8 +501,6 @@ extern float ic_z_vertices[]  ;
 #define MRI_ANALYZE4D_FILE            16 
 #define SIEMENS_DICOM_FILE            17
 
-
-
 int        MRImatch(MRI *mri1, MRI *mri2) ;
 int        MRIvalRange(MRI *mri, float *pmin, float *pmax) ;
 MRI        *MRIvalScale(MRI *mri_src, MRI *mri_dst, float fmin, float fmax) ;
@@ -536,6 +539,7 @@ MRI        *MRIextractInterior(MRI *mri_src, MRI *mri_distance,  MRI *mri_dst);
 MRI        *MRIbuildDistanceMap(MRI *mri_src, MRI *mri_distance,
                                 float x0, float y0, float z0, float r) ;
 MRI        *MRIupdateDistanceMap(MRI *mri_distance) ;
+int         MRIvalueFill(MRI *mri, float value);
 MRI        *MRIfill(MRI *mri_src, MRI *mri_dst, int seed_x, int seed_y, 
                     int seed_z, int threshold, int fill_val, int max_count) ;
 MRI        *MRIfillFG(MRI *mri_src, MRI *mri_dst, int seed_x, int seed_y, 
@@ -769,8 +773,6 @@ int MRIsincSampleVolume(MRI *mri, Real x, Real y, Real z, int hw, Real *pval);
 MRI *MRIsincTransform(MRI *mri_src, MRI *mri_dst, MATRIX *mA, int hw);
 int MRIlabelOverlap(MRI *mri1, MRI *mri2, int label) ;
 int MRIeraseBorderPlanes(MRI *mri) ;
-
-MATRIX *MRIxfmCRS2XYZ(MRI *mri, int base);
 
 /* Zero-padding for 3d analyze (ie, spm) format */
 #ifdef _MRIIO_SRC
