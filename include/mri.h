@@ -5,6 +5,10 @@
 #include "matrix.h"
 #include "volume_io.h"
 #include "box.h"
+#include "mrinorm.h"
+
+#define WM_MEAN   DEFAULT_DESIRED_WHITE_MATTER_VALUE
+#define WHITE_MATTER_MEAN  WM_MEAN
 
 #define BUFTYPE  unsigned char
 
