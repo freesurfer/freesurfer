@@ -185,7 +185,7 @@ int main(int argc, char *argv[])
   out_matrix_flag = FALSE;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_convert.c,v 1.50 2003/04/15 20:45:21 kteich Exp $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_convert.c,v 1.51 2003/05/28 18:26:24 ch Exp $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -1615,7 +1615,7 @@ void get_floats(int argc, char *argv[], int *pos, float *vals, int nvals)
 
   if(*pos + nvals >= argc)
   {
-    fprintf(stderr, "\n%s: argument %s expects %d integers; only %d arguments after flag\n", Progname, argv[*pos], nvals, argc - *pos - 1);
+    fprintf(stderr, "\n%s: argument %s expects %d floats; only %d arguments after flag\n", Progname, argv[*pos], nvals, argc - *pos - 1);
     usage_message(stdout);
     exit(1);
   }
@@ -1633,7 +1633,7 @@ void get_floats(int argc, char *argv[], int *pos, float *vals, int nvals)
 
     if(*ep != '\0')
     {
-      fprintf(stderr, "\n%s: error converting \"%s\" to an integer for %s flag\n", Progname, argv[*pos+i+1], argv[*pos]);
+      fprintf(stderr, "\n%s: error converting \"%s\" to an float for %s flag\n", Progname, argv[*pos+i+1], argv[*pos]);
       usage_message(stdout);
       exit(1);
     }
