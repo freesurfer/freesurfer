@@ -37,6 +37,7 @@ typedef struct
 #define MATRIX_COMPLEX     2
 
 MATRIX  *MatrixInverse(MATRIX *mIn, MATRIX *mOut) ;
+MATRIX  *MatrixPseudoInverse(MATRIX *m, MATRIX *m_pseudo_inv) ;
 MATRIX  *MatrixAlloc(int rows, int cols, int type) ;
 int     MatrixFree(MATRIX **pmat) ;
 MATRIX  *MatrixMultiply(MATRIX *m1, MATRIX *m2, MATRIX *m3) ;

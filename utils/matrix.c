@@ -2181,3 +2181,18 @@ MatrixWriteTxt(char *fname, MATRIX *mat)
   return(NO_ERROR) ;
 }
 
+MATRIX *
+MatrixPseudoInverse(MATRIX *m, MATRIX *m_pseudo_inv)
+{
+  MATRIX  *mT, *mTm, *mTm_inv ;
+
+  /* build (mT m)-1 mT */
+  mT = MatrixTranspose(m, NULL) ;
+  mTm = MatrixMultiply(mT, m, NULL) ;
+  mTm_inv = MatrixInverse(mTm, NULL) ;
+  m_pseudo_inv = MatrixMultiply(mTm_inv, mT, m_pseudo_inv) ;
+
+  MatrixFree(&mT) ; MatrixFree(&mTm) ; MatrixFree(&mTm_inv) ; 
+  return(m_pseudo_inv) ;
+}
+
