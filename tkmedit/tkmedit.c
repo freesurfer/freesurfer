@@ -6780,9 +6780,8 @@ char **argv;
 #ifdef USE_LICENSE
   checkLicense(envptr);
 #endif
-  //  sprintf(tkmedit_tcl,"%s/lib/tcl/%s",envptr,"tkmedit.tcl"); // kt
-  sprintf(tkmedit_tcl,"%s","tkmedit.tcl");
-  if ((fp=fopen(tkmedit_tcl,"r"))==NULL) {
+  sprintf(tkmedit_tcl,"%s/lib/tcl/%s",envptr,"tkmedit.tcl");
+    if ((fp=fopen(tkmedit_tcl,"r"))==NULL) {
     printf("tkmedit: script %s not found\n",tkmedit_tcl);
     exit(1);
   }
