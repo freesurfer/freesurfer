@@ -126,7 +126,7 @@ double LogMapDiffuse(LOGMAP_INFO *mi, IMAGE *inImage, IMAGE *outImage,
                      int time_type) ;
 double LogMapDiffusePerona(LOGMAP_INFO *lmi, IMAGE *inImage, 
                            IMAGE *outImage, double k, int niterations, 
-                           int doweightint time_type) ;
+                           int doweight, int time_type) ;
 double LogMapDiffuseCurvature(LOGMAP_INFO *lmi, IMAGE *inImage, 
                               IMAGE *outImage, double A, int niterations, 
                               int doweight, int time_type) ;
