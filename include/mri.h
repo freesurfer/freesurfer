@@ -737,6 +737,7 @@ int  MRIcomputeClassStatistics(MRI *mri_T1, MRI *mri_labeled,
 #define REMOVE_WRONG_DIR   3
 
 #define BASAL_GANGLIA_FILL   50
+#define MAX_WM_VAL           (THICKEN_FILL-1)
 #define THICKEN_FILL         200
 #define NBHD_FILL            210
 #define VENTRICLE_FILL       220
