@@ -13,7 +13,7 @@
 #include "timer.h"
 #include "cma.h"
 
-static char vcid[] = "$Id: mri_fill.c,v 1.54 2002/02/07 22:29:24 fischl Exp $";
+static char vcid[] = "$Id: mri_fill.c,v 1.55 2002/02/13 20:39:13 fischl Exp $";
 
 /*-------------------------------------------------------------------
                                 CONSTANTS
@@ -1419,7 +1419,7 @@ find_slice_center(MRI *mri,  int *pxo, int *pyo)
 
   xo = yo = 0 ;
   width = mri->width ; height = mri->height ;
-  min_total_dist = width*height*width*height ;
+  min_total_dist = -1 ;
   for (y = 0 ; y < height ; y++)
   {
     for (x = 0 ; x < width ; x++)
@@ -1439,7 +1439,7 @@ find_slice_center(MRI *mri,  int *pxo, int *pyo)
             }
           }
         }
-        if (total_dist < min_total_dist)
+        if (min_total_dist < 0 || total_dist < min_total_dist)
         {
           min_total_dist = total_dist ;
           xo = x ; yo = y ;
