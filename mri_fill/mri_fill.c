@@ -10,7 +10,7 @@
 #include "macros.h"
 #include "proto.h"
 
-static char vcid[] = "$Id: mri_fill.c,v 1.11 1997/10/27 17:35:04 fischl Exp $";
+static char vcid[] = "$Id: mri_fill.c,v 1.12 1998/01/25 21:54:24 fischl Exp $";
 
 /*-------------------------------------------------------------------
                                 CONSTANTS
@@ -661,7 +661,7 @@ print_help(void)
 
 /* aspect ratios are dy/dx */
 #define MIN_CC_AREA       350  /* smallest I've seen is 389 */
-#define MAX_CC_AREA       950  /* biggest I've seen is 873 */
+#define MAX_CC_AREA      1100  /* biggest I've seen is 960 */
 #define MIN_CC_ASPECT     0.1
 #define MAX_CC_ASPECT     0.65
 
