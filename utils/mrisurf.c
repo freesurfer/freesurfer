@@ -27397,7 +27397,8 @@ MRISsphericalCopy(MRI_SURFACE *mris_src, MRI_SURFACE *mris_dst,
     v = MHTfindClosestVertex(mht_src, mris_src, vdst) ;
     if (!v)
     {
-      ErrorPrintf(ERROR_BADPARM, "MRIScombine: cannot map dst vno %d", vno) ;
+      ErrorPrintf(ERROR_BADPARM, 
+                  "MRISsphericalCopy: cannot map dst vno %d", vno) ;
       continue ;
     }
     if (v-mris_src->vertices == Gdiag_no)
@@ -27483,7 +27484,8 @@ MRISsphericalCopy(MRI_SURFACE *mris_src, MRI_SURFACE *mris_dst,
     v = MHTfindClosestVertex(mht_src, mris_src, vdst) ;
     if (!v)
     {
-      ErrorPrintf(ERROR_BADPARM, "MRIScombine: cannot map dst vno %d", vno) ;
+      ErrorPrintf(ERROR_BADPARM, 
+                  "MRISsphericalCopy: cannot map dst vno %d", vno) ;
       continue ;
     }
     if (v-mris_src->vertices == Gdiag_no)
@@ -27506,7 +27508,7 @@ MRISsphericalCopy(MRI_SURFACE *mris_src, MRI_SURFACE *mris_dst,
     vdst = MHTfindClosestVertex(mht, mris_dst, v) ;
     if (!vdst)
     {
-      ErrorPrintf(ERROR_BADPARM, "MRIScombine: cannot map vno %d", vno) ;
+      ErrorPrintf(ERROR_BADPARM, "MRISsphericalCopy: cannot map vno %d", vno) ;
       continue ;
     }
     if (vdst-mris_dst->vertices == Gdiag_no)
@@ -27562,7 +27564,8 @@ MRISsphericalCopy(MRI_SURFACE *mris_src, MRI_SURFACE *mris_dst,
     v = MHTfindClosestVertex(mht_src, mris_src, vdst) ;
     if (!v)
     {
-      ErrorPrintf(ERROR_BADPARM, "MRIScombine: cannot map dst vno %d", vno) ;
+      ErrorPrintf(ERROR_BADPARM, 
+                  "MRISsphericalCopy: cannot map dst vno %d", vno) ;
       continue ;
     }
     if (v-mris_src->vertices == Gdiag_no)
