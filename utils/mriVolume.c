@@ -2425,32 +2425,45 @@ Volm_tErr Volm_MakeColorTable ( mriVolumeRef this ) {
   max = this->mfColorMax;
   thresh = this->mfColorBrightness;
   squash = this->mfColorContrast;
-  for( entry = 0; entry < Volm_knNumColorTableEntries; entry++ ) {
-    
-    /* Get the corresponding value for this entry, where entry 0 = min
-       and entry Volm_knNumColorTableEntries = max. */
-    value = ((entry * (max - min)) / Volm_knNumColorTableEntries) + min;
+  if( FEQUAL( min, max ) ) {
+    for( entry = 0; entry < Volm_knNumColorTableEntries; entry++ ) {
+      this->mafColorTable[entry].mfRed   = 0;
+      this->mafColorTable[entry].mfGreen = 0;
+      this->mafColorTable[entry].mfBlue  = 0;
+      this->manColorTable[entry].mnRed   = 0;
+      this->manColorTable[entry].mnGreen = 0;
+      this->manColorTable[entry].mnBlue  = 0;
+    }
+  } else {
 
-    /* This is a standard sigma 1 / (1+ exp((x-thresh)*-squash) )
-       where x=(value-min)/(max-min) to normalize it to 0-1 within the
-       range of min->max. This function will populate the 256
-       lookuptable entries with intensity values from min->max so
-       that by lowering the range of min->max, you increase the
-       granularity of intensities in the visible values. */
-    fComponent = (1.0 / (1.0 + exp( (((value-min)/(max-min))-thresh) * -squash )));
-
-    /* set the float color */
-    this->mafColorTable[entry].mfRed   = fComponent;
-    this->mafColorTable[entry].mfGreen = fComponent;
-    this->mafColorTable[entry].mfBlue  = fComponent;
-
-    /* normalize to 0 - 255 pixel value */
-    fComponent = (float)fComponent * 255.0;
-    
-    /* set the integer color */
-    this->manColorTable[entry].mnRed   = (int)fComponent;
-    this->manColorTable[entry].mnGreen = (int)fComponent;
-    this->manColorTable[entry].mnBlue  = (int)fComponent;
+    for( entry = 0; entry < Volm_knNumColorTableEntries; entry++ ) {
+      
+      /* Get the corresponding value for this entry, where entry 0 = min
+	 and entry Volm_knNumColorTableEntries = max. */
+      value = ((entry * (max - min)) / Volm_knNumColorTableEntries) + min;
+      
+      /* This is a standard sigma 1 / (1+ exp((x-thresh)*-squash) )
+	 where x=(value-min)/(max-min) to normalize it to 0-1 within the
+	 range of min->max. This function will populate the 256
+	 lookuptable entries with intensity values from min->max so
+	 that by lowering the range of min->max, you increase the
+	 granularity of intensities in the visible values. */
+      fComponent = (1.0 / (1.0 + exp( (((value-min)/(max-min))-thresh) * -squash )));
+      
+      /* set the float color */
+      this->mafColorTable[entry].mfRed   = fComponent;
+      this->mafColorTable[entry].mfGreen = fComponent;
+      this->mafColorTable[entry].mfBlue  = fComponent;
+      
+      /* normalize to 0 - 255 pixel value */
+      fComponent = (float)fComponent * 255.0;
+      
+      /* set the integer color */
+      this->manColorTable[entry].mnRed   = (int)fComponent;
+      this->manColorTable[entry].mnGreen = (int)fComponent;
+      this->manColorTable[entry].mnBlue  = (int)fComponent;
+      
+    }
   }
   
   DebugCatch;
