@@ -3,7 +3,7 @@
 # Performs motion correction of anatomicals. This should produce
 # the same output as mri_motion_correct
 
-set VERSION = '$Id: mri_motion_correct2,v 1.3 2003/08/28 20:45:37 tosa Exp $';
+set VERSION = '$Id: mri_motion_correct2,v 1.4 2003/08/28 21:04:57 tosa Exp $';
 
 set tmpdir      = /tmp;
 set inputlist   = ();
@@ -52,6 +52,16 @@ pwd               >> $LF
 uname -a           >> $LF
 date               >> $LF
 which mri_convert  >> $LF
+##### gather version info used in this script
+mri_convert --version 
+set prog = `which rawtominc`
+strings $prog | grep rawtominc.c 
+set prog = `which minctracc`
+strings $prog | grep minctracc.c 
+set prog = `which mincresample`
+strings $prog | grep mincresample.c
+set prog = `which mincaverage`
+strings $prog | grep mincaverage.c 
 
 set StartTime = `date`;
 
@@ -76,7 +86,6 @@ foreach input ($inputlist)
   if(0) then
     # rawtominc is MNI software without --version option, but it is cvs'ed.
     set cmd = (rawtominc)
-    strings rawtominc | grep rawtominc
     set cmd = ($cmd -coronal -byte -xstep 1 -ystep 1 -zstep 1 -xstart)
     set cmd = ($cmd -128 -ystart -128 -zstart -128 )
     set cmd = ($cmd $mncinput 256 256 256)
@@ -90,7 +99,6 @@ foreach input ($inputlist)
     endif
   endif
 
-  mri_convert --version
   set cmd = (mri_convert $input $mncinput)
   pwd >> $LF
   echo $cmd >> $LF
@@ -121,7 +129,6 @@ foreach mncinput ($mncinputlist)
   echo "Motion Correcting $mncinput" |& tee -a $LF
   date |& tee -a $LF
   # minctracc is MNI software without version option, but cvs'ed.
-  strings minctracc | grep minctracc.c
   set cmd = (minctracc -lsq6 $mncinput $mnctarget $xfm)
   pwd >> $LF
   echo $cmd >> $LF
@@ -137,7 +144,6 @@ foreach mncinput ($mncinputlist)
 
   rm -f $mncresampled
   # mincresample is MNI software without version option, but cvs'ed
-  strings mincresample | grep mincresample.c
   set cmd = (mincresample -like $mnctarget -transform $xfm)
   set cmd = ($cmd $mncinput $mncresampled)
   pwd >> $LF
@@ -159,7 +165,6 @@ date |& tee -a $LF
 set avgvol = $tmpdir/avgvol.mnc
 set CleanUpList = ($CleanUpList $avgvol);
 rm -f $avgvol
-strings mincaverage | grep mincaverage.c
 set cmd = (mincaverage $mncinputlist $avgvol);
 pwd >> $LF
 echo $cmd >> $LF
