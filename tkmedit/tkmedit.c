@@ -4,9 +4,9 @@
 
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2003/08/20 16:21:24 $
-// Revision       : $Revision: 1.171 $
-char *VERSION = "$Revision: 1.171 $";
+// Revision Date  : $Date: 2003/08/21 21:40:56 $
+// Revision       : $Revision: 1.172 $
+char *VERSION = "$Revision: 1.172 $";
 
 #define TCL
 #define TKMEDIT 
@@ -1027,7 +1027,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
      shorten our argc and argv count. If those are the only args we
      had, exit. */
   /* rkt: check for and handle version tag */
-  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.171 2003/08/20 16:21:24 kteich Exp $");
+  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.172 2003/08/21 21:40:56 kteich Exp $");
   if (nNumProcessedVersionArgs && argc - nNumProcessedVersionArgs == 1)
     exit (0);
   argc -= nNumProcessedVersionArgs;
@@ -11267,9 +11267,11 @@ void PrintCachedTclErrorDlogsToShell () {
 #ifndef Solaris
 #ifndef IRIX
   int nCommand = 0;
-  char sSpace[3] = " ";
   char sCommand[tkm_knTclCmdLen] = "";
-  char* pCommand = NULL;
+  char* pTitle = NULL;
+  char* pWhile = NULL;
+  char* pMessage = NULL;
+  char* pTmp = NULL;
   
   
   /* send all our cached commands */
@@ -11279,13 +11281,58 @@ void PrintCachedTclErrorDlogsToShell () {
     if( strstr( gCachedTclCommands[nCommand], 
     kTclCommands[tkm_tTclCommand_ErrorDlog] ) != NULL ) {
       
-      /* get the command, go to the first space, copy that into a string,
-   and print it to the shell. */
-      pCommand = gCachedTclCommands[nCommand];
-      strsep( &pCommand, sSpace );
-      xUtil_snprintf( sCommand, sizeof(sCommand), "%s\n", pCommand );
-      fprintf( stdout, sCommand );
-      fflush( stdout );
+      /* get the command, go to the first space, copy that into a
+	 string, and print it to the shell. we parse out the parts of
+	 the error message command string to make it look pretty. */
+      strcpy( sCommand, gCachedTclCommands[nCommand] );
+
+      pTitle = strchr( sCommand, (int)'\"' );
+      if( NULL != pTitle ) {
+
+	pTitle++;
+
+	pTmp = strchr( pTitle, (int)'\"' );
+	if( NULL != pTmp ) {
+
+	  *pTmp = '\0';
+	  pTmp++;
+
+	  pWhile = strchr( pTmp, (int)'\"' );
+	  if( NULL != pWhile ) {
+
+	    pWhile++;	    
+
+	    pTmp = strchr( pWhile, (int)'\"' );
+	    if( NULL != pTmp ) {
+
+	      *pTmp = '\0';
+	      pTmp++;
+	  
+	      pMessage = strchr( pTmp, (int)'\"' );
+	      if( NULL != pMessage ) {
+
+		pMessage++;
+	  
+		pTmp = strchr( pMessage, (int)'\"' );
+		if( NULL != pTmp ) {
+		  
+		  *pTmp = '\0';
+		  pTmp++;
+
+		  printf( "\n\n  Error: %s\n", pTitle );
+		  printf( "\n  %s\n", pWhile );
+		  printf( "\n  %s\n\n", pMessage );
+		  fflush( stdout );
+
+
+		}
+	      }
+	    }
+	  }
+	}
+      }
+      
+
     }
   }
 #endif
