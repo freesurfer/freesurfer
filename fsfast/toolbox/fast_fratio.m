@@ -1,15 +1,13 @@
-function [F, dof1, dof2, g] = fast_fratio(beta,X,rvar,C)
-% [F, dof1, dof2, g] = fast_fratio(beta,X,rvar,C)
-%
-% p = FTest(dof1, dof2, F, <dof2max>)
+function [F, Fsig, ces] = fast_fratio(beta,X,rvar,C,dof2max)
+% [F, Fsig, ces] = fast_fratio(beta,X,rvar,C,<dof2max>)
 %
 
-if(nargin ~= 4)
-  fprintf('[F, dof1, dof2, g] = fast_fratio(beta,X,rvar,C)\n');
+if(nargin < 4 | nargin > 5)
+  fprintf('[F, Fsig, ces] = fast_fratio(beta,X,rvar,C,<dof2max>)\n');
   return;
 end
+if(exist('dof2max') ~= 1) dof2max = []; end
 
-gcvm = inv(C*inv(X'*X)*C');
 J = size(C,1);
 nv = size(beta,2);
 dof1 = J;
@@ -22,15 +20,31 @@ if(~isempty(indz))
   rvar = rvar(:,indnz);
 end
 
-g = C*beta;
-if(J ~= 1) F = (sum(g .* (gcvm*g))./rvar)/J;
-else       F = ((g.^2)./rvar)*(gcvm/J);
+% Contast Effect Size
+ces = C*beta;
+
+% Covariance matrix of contrast effect size
+cescvm = inv(C*inv(X'*X)*C');
+
+if(J ~= 1) F = (sum(ces .* (cescvm*ces))./rvar)/J;
+else       F = ((ces.^2)./rvar)*(cescvm/J);
+end
+
+if(nargout > 1)
+  Fsig = FTest(dof1, dof2, F, dof2max);
 end
 
 if(~isempty(indz))
   F0 = zeros(1,nv);
   F0(indnz) = F;
   F = F0;
+  clear F0;
+  if(nargout > 1)
+    Fsig0 = ones(1,nv);
+    Fsig0(indnz) = Fsig;
+    Fsig = Fsig0;
+    clear Fsig0;
+  end
 end
 
 return;
