@@ -1,7 +1,7 @@
 function r = swapview(varargin)
 % r = swapview(varargin)
 
-version = '$Id: swapview.m,v 1.3 2003/08/01 00:04:05 greve Exp $';
+version = '$Id: swapview.m,v 1.4 2003/08/07 02:21:53 greve Exp $';
 r = 1;
 
 %% Print usage if there are no arguments %%
@@ -59,7 +59,7 @@ if(~isempty(strmatch(flag,'-init')) | isempty(hcurrentfig))
   set(gcf,'KeyPressFcn',          'swapview(''kbd'');');
   set(gcf,'WindowButtonDownFcn',  'swapview(''wbd'');');
   %set(gcf,'WindowButtonUpFcn',    'swapview(''wbu'');');
-  %set(gcf,'WindowButtonMotionFcn','swapview(''wbm'');');
+  set(gcf,'WindowButtonMotionFcn','swapview(''wbm'');');
 
   if(isempty(s.title)) s.title = 'SwapView'; end
   set(gcf,'Name',s.title);
@@ -92,7 +92,8 @@ if(~isempty(strmatch(flag,'-init')) | isempty(hcurrentfig))
 	    [1  50 50 50], 'Callback', 'swapview(''voltoggle'');');
   uicontrol('Style', 'pushbutton', 'String', 'State','Position', ...
 	    [1 100 50 50], 'Callback', 'swapview(''state'');');
-  s.curpostxt = uicontrol('Style', 'text','Position',[1 150 80 25]);
+  s.curpostxt = uicontrol('Style', 'text','Position',  [1 150 60 20]);
+  s.mousepostxt = uicontrol('Style', 'text','Position',[1 170 60 20]);
 
   nslices = size(s.vol1,3);
   d = 1/(nslices-1);
@@ -177,8 +178,13 @@ switch(flag)
   return;
   
  case {'setslice'}
-  s.displayimg1 = s.vol1(:,:,s.curvox(3),s.curvox(4));
-  s.displayimg2 = s.vol2(:,:,s.curvox(3),s.curvox(4));
+  if(~s.mosview) 
+    s.displayimg1 = s.vol1(:,:,s.curvox(3),s.curvox(4));
+    s.displayimg2 = s.vol2(:,:,s.curvox(3),s.curvox(4));
+  else
+    [r c] = volsub2mossub(s.curvox(1), s.curvox(2), s.curvox(3), size(s.vol1));
+    s.curpoint = [r c];
+  end
   redraw = 1;
    
  case{'upslice'}
@@ -214,25 +220,32 @@ switch(flag)
  case {'r'}, % refresh
   redraw = 1;
    
- case {'wbm'} % -------Window Button Move ------------ %
-  return;
-  
- case {'wbd'} % -------Window Button Down ------------ %
+ %case {'wbm'} % -------Window Button Move ------------ %
+ 
+ case {'wbd','wbm'} % -------Window Button Down ------------ %
   
   xyz = get(gca,'CurrentPoint');
   c = round(xyz(1,1));
   r = round(xyz(1,2));
   if(r < 1 | r > size(s.displayimg,1) | c < 1 | c > size(s.displayimg,2))
+    set(gcf,'pointer','arrow');
     return;
   end
-  s.curpoint = [r c];
+  set(gcf,'pointer','crosshair');
   if(~s.mosview)
-    s.curvox(1:2) = round([r c]);
+    curvox = [round([r c]) s.curvox(3) s.curvox(4) ];
   else
     [rv cv sv] = mossub2volsub(r, c, size(s.vol1));
     if(isempty(rv)) return; end % clicked zero padding
-    s.curvox(1:3) = [rv cv sv];
+    curvox = [rv cv sv s.curvox(4)];
   end
+  if(strcmp(flag,'wbm')) 
+    curvoxstr = sprintf('%d %d %d',curvox(1),curvox(2),curvox(3));
+    set(s.mousepostxt,'string',curvoxstr);
+    return;
+  end
+  s.curpoint = [r c]; 
+  s.curvox = curvox;
   if(s.verbose)
     fprintf('Current Point: ');
     fprintf('%2d ',s.curpoint);
@@ -343,13 +356,15 @@ if(redraw > 0)
   if(redraw == 1)
     set(s.himage,'CData',s.displayimg);
   else
+    if(ishandle(s.hMarker)) delete(s.hMarker);  end
     s.himage = image(s.displayimg);    
     axis image;
     s.hMarker = [];
   end
   if(s.MarkerOn)
     hold on;
-    if(~isempty(s.hMarker)) delete(s.hMarker);  end
+    %if(~isempty(s.hMarker)) delete(s.hMarker);  end
+    if(ishandle(s.hMarker)) delete(s.hMarker);  end
     s.hMarker = plot(s.curpoint(2),s.curpoint(1),'g+');
     %ud.hMarkerRow = plot(ud.CurPixel(2),1,'gv');
     %ud.hMarkerCol = plot(1,ud.CurPixel(1),'g>');
