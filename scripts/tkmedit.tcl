@@ -1,6 +1,6 @@
 #! /usr/bin/tixwish
 
-# $Id: tkmedit.tcl,v 1.80 2004/08/12 21:29:57 kteich Exp $
+# $Id: tkmedit.tcl,v 1.81 2004/11/06 02:00:05 kteich Exp $
 
 
 source $env(FREESURFER_HOME)/lib/tcl/tkm_common.tcl
@@ -1174,6 +1174,14 @@ set tDlogSpecs(SaveRGB) [list \
   -default1 [list GetDefaultLocation SaveRGB] \
   -presets1 $glShortcutDirs \
   -okCmd {SaveRGB %s1; SetDefaultLocation SaveRGB %s1} ]
+set tDlogSpecs(SaveTIFF) [list \
+  -title "Save TIFF" \
+  -prompt1 "Save TIFF File:" \
+  -note1 "The file name of the TIFF picture to create" \
+  -entry1 [list GetDefaultLocation SaveTIFF] \
+  -default1 [list GetDefaultLocation SaveTIFF] \
+  -presets1 $glShortcutDirs \
+  -okCmd {SaveTIFF %s1; SetDefaultLocation SaveTIFF %s1} ]
 set tDlogSpecs(WriteLineLabel) [list \
   -title "Write Line Label" \
   -prompt1 "Save Label As:" \
@@ -2744,6 +2752,53 @@ proc DoSaveRGBSeriesDlog {} {
     }
 }
 
+proc DoSaveTIFFSeriesDlog {} {
+
+    global gDialog
+    global gnVolSlice
+
+    set sDir ""
+    set sPrefix ""
+    set nBegin $gnVolSlice
+    set nEnd $gnVolSlice
+    set wwDialog .wwSaveTIFFSeriesDlog
+
+    # try to create the dlog...
+    if { [Dialog_Create $wwDialog "Save TIFF Series" {-borderwidth 10}] } {
+
+	set fwDir     $wwDialog.fwDir
+	set fwPrefix  $wwDialog.fwPrefix
+	set fwDirection $wwDialog.fwDirection
+	set fwBegin   $wwDialog.fwBegin
+	set fwEnd     $wwDialog.fwEnd
+	set fwButtons $wwDialog.fwButtons
+	
+	# the directory field
+	tkm_MakeDirectorySelector $fwDir \
+	    "Directory to save files in:" sDir
+	
+	# the file prefix
+	tkm_MakeEntry $fwPrefix "Prefix:" sPrefix
+	
+	# begin and end slices
+	tkm_MakeEntryWithIncDecButtons $fwBegin \
+	    "From slice" nBegin {} 1
+	tkm_MakeEntryWithIncDecButtons $fwEnd \
+	    "To slice" nEnd {} 1
+	
+	# ok and cancel buttons.
+	tkm_MakeCancelOKButtons $fwButtons $wwDialog \
+	    "SaveTIFFSeries \$sDir/\$sPrefix \$nBegin \$nEnd"
+	
+	pack $fwDir $fwPrefix $fwBegin $fwEnd $fwButtons \
+	    -side top       \
+	    -expand yes     \
+	    -fill x         \
+	    -padx 5         \
+	    -pady 5
+    }
+}
+
 proc DoLabelWriterHelperDlog {} {
 
     global gDialog glShortcutDirs
@@ -4112,6 +4167,12 @@ proc CreateMenuBar { ifwMenuBar } {
 	{ command
 	    "Save RGB Series..."
 	    DoSaveRGBSeriesDlog }
+	{ command
+	    "Save TIFF..."
+	    {DoFileDlog SaveTIFF} }
+	{ command
+	    "Save TIFF Series..."
+	    DoSaveTIFFSeriesDlog }
     }
 
     pack $mbwFile $mbwEdit $mbwView $mbwTools \

@@ -4,9 +4,9 @@
 
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2004/11/05 22:44:53 $
-// Revision       : $Revision: 1.230 $
-char *VERSION = "$Revision: 1.230 $";
+// Revision Date  : $Date: 2004/11/06 01:59:48 $
+// Revision       : $Revision: 1.231 $
+char *VERSION = "$Revision: 1.231 $";
 
 #define TCL
 #define TKMEDIT 
@@ -26,6 +26,7 @@ char *VERSION = "$Revision: 1.230 $";
 #include "transform.h"
 #include "version.h"
 #include "ctrpoints.h"
+#include "tiffio.h"
 
 #include "tkmedit.h"
 
@@ -907,6 +908,7 @@ void UpdateAndRedraw ();
 void pix_to_rgb(char *fname) ; // another method of saving a screenshot
 void scrsave_to_rgb(char *fname) ; // use scrsave to save a screen shot
 void save_rgb(char *fname) ; // saves a screen shot
+void save_tiff(char *fname) ;
 //void edit_pixel(int action);
 void write_dipoles(char *fname) ;
 void write_decimation(char *fname) ;
@@ -1068,7 +1070,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
      shorten our argc and argv count. If those are the only args we
      had, exit. */
   /* rkt: check for and handle version tag */
-  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.230 2004/11/05 22:44:53 kteich Exp $", "$Name:  $");
+  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.231 2004/11/06 01:59:48 kteich Exp $", "$Name:  $");
   if (nNumProcessedVersionArgs && argc - nNumProcessedVersionArgs == 1)
     exit (0);
   argc -= nNumProcessedVersionArgs;
@@ -2432,6 +2434,131 @@ void save_rgb( char* fname ) {
     free( blue );
 }
 
+void save_tiff (char* fname)
+{
+  GLint rowlength, skiprows, skippixels, alignment;
+  GLboolean swapbytes, lsbfirst;
+  GLubyte* pixel_data = NULL;
+  GLenum gl_error;
+  TIFF *tiff = NULL;
+  tsize_t line_bytes;
+  unsigned char* line_buffer = NULL;
+  int scan_line_size;
+  int strip_size;
+  int row;
+  int x, y, height, width;
+
+  if( NULL == gMeditWindow )
+    return;
+  
+  MWin_GetWindowSize( gMeditWindow,
+		      &x, &y, &width, &height );
+
+  /* Allocate a buffer for pixels. */
+  pixel_data = (GLubyte*) malloc (width * height * 3);
+  if (NULL == pixel_data) {
+    DebugPrint(("Couldn't allocate pixel data."));
+    goto error;
+  }
+
+  /* Read from the front buffer. */
+  glReadBuffer (GL_FRONT);
+  
+  /* Save our unpack attributes. */
+  glGetBooleanv (GL_PACK_SWAP_BYTES, &swapbytes);
+  glGetBooleanv (GL_PACK_LSB_FIRST, &lsbfirst);
+  glGetIntegerv (GL_PACK_ROW_LENGTH, &rowlength);
+  glGetIntegerv (GL_PACK_SKIP_ROWS, &skiprows);
+  glGetIntegerv (GL_PACK_SKIP_PIXELS, &skippixels);
+  glGetIntegerv (GL_PACK_ALIGNMENT, &alignment);
+  
+  /* Set them. */
+  glPixelStorei (GL_PACK_SWAP_BYTES, GL_FALSE);
+  glPixelStorei (GL_PACK_ROW_LENGTH, 0);
+  glPixelStorei (GL_PACK_SKIP_ROWS, 0);
+  glPixelStorei (GL_PACK_SKIP_PIXELS, 0);
+  glPixelStorei (GL_PACK_ALIGNMENT, 1);
+  
+  /* Read RGB pixel data. */
+  glReadPixels (0, 0, width, height, GL_RGB,
+		GL_UNSIGNED_BYTE, (GLvoid*)pixel_data);
+
+  /* Check error at this point. */
+  gl_error = glGetError ();
+
+  /* Restore the attributes. */
+  glPixelStorei (GL_PACK_SWAP_BYTES, swapbytes);
+  glPixelStorei (GL_PACK_LSB_FIRST, lsbfirst);
+  glPixelStorei (GL_PACK_ROW_LENGTH, rowlength);
+  glPixelStorei (GL_PACK_SKIP_ROWS, skiprows);
+  glPixelStorei (GL_PACK_SKIP_PIXELS, skippixels);
+  glPixelStorei (GL_PACK_ALIGNMENT, alignment);
+
+  /* Handle error now. We can bail safely as we've restored the GL
+     context. */
+  if (GL_NO_ERROR != gl_error) {
+      DebugPrint(("Error reading pixels."));
+      goto error;
+    }
+
+  /* Open a TIFF. */
+  tiff = TIFFOpen( fname, "w" );
+  if (NULL == tiff) {
+    DebugPrint(("Couldn't create file."));
+    goto error;
+  }
+  
+  /* Set the TIFF info. */
+  TIFFSetField (tiff, TIFFTAG_IMAGEWIDTH, width);
+  TIFFSetField (tiff, TIFFTAG_IMAGELENGTH, height);
+  TIFFSetField (tiff, TIFFTAG_SAMPLESPERPIXEL, 3);
+  TIFFSetField (tiff, TIFFTAG_BITSPERSAMPLE, 8);
+  TIFFSetField (tiff, TIFFTAG_ORIENTATION, ORIENTATION_TOPLEFT);
+  TIFFSetField (tiff, TIFFTAG_PLANARCONFIG, PLANARCONFIG_CONTIG);
+  TIFFSetField (tiff, TIFFTAG_PHOTOMETRIC, PHOTOMETRIC_RGB);
+  
+  /* Calculate some sizes and allocate a line buffer. */
+  line_bytes = 3 * width;
+  line_buffer = NULL;
+  scan_line_size = TIFFScanlineSize (tiff);
+  if (scan_line_size != line_bytes) {
+    fprintf (stderr,"surfer: scan_line_size %d, line_bytes %d\n",
+	     scan_line_size, (int)line_bytes);
+  }
+  
+  line_buffer = (unsigned char*) _TIFFmalloc( scan_line_size  );
+  if (NULL == line_buffer) {
+    DebugPrint(("Couldn't create tiff storage."));
+    goto error;
+  }
+  
+  /* Set the strip size to default. */
+  strip_size = TIFFDefaultStripSize (tiff, width * 3);
+  TIFFSetField (tiff, TIFFTAG_ROWSPERSTRIP, strip_size);
+  
+  /* Write line by line (bottom to top). */
+  for (row = 0; row < height; row++) {
+    memcpy (line_buffer, &pixel_data[(height-row-1) * line_bytes], 
+	    line_bytes);
+    TIFFWriteScanline (tiff, line_buffer, row, 0);
+  }
+  
+  goto cleanup;
+ error:
+  
+
+ cleanup:
+
+  if (NULL != pixel_data)
+    free (pixel_data);
+
+  /* Close the tiff file and free the line buffer. */
+  if (NULL != tiff)
+    TIFFClose (tiff);
+  if (NULL != line_buffer)
+    _TIFFfree (line_buffer);
+}
+
 
 void GotoSurfaceVertex ( Surf_tVertexSet iSurface, int inVertex ) {
   
@@ -3456,6 +3583,22 @@ int TclSaveRGB ( ClientData inClientData, Tcl_Interp* inInterp,
   
   if( gbAcceptingTclCommands ) {
     save_rgb ( argv[1] );
+  }
+  
+  return TCL_OK;
+}
+
+int TclSaveTIFF ( ClientData inClientData, Tcl_Interp* inInterp,
+		  int argc, char* argv[] ) {
+  
+  if ( argc != 2 ) {
+    Tcl_SetResult ( inInterp, "wrong # args: SaveTIFF filename:string",
+		    TCL_VOLATILE );
+    return TCL_ERROR;
+  }
+  
+  if( gbAcceptingTclCommands ) {
+    save_tiff ( argv[1] );
   }
   
   return TCL_OK;
@@ -5024,7 +5167,7 @@ int main ( int argc, char** argv ) {
     DebugPrint( ( "%s ", argv[nArg] ) );
   }
   DebugPrint( ( "\n\n" ) );
-  DebugPrint( ( "$Id: tkmedit.c,v 1.230 2004/11/05 22:44:53 kteich Exp $ $Name:  $\n" ) );
+  DebugPrint( ( "$Id: tkmedit.c,v 1.231 2004/11/06 01:59:48 kteich Exp $ $Name:  $\n" ) );
 
   
   /* init glut */
@@ -5478,6 +5621,10 @@ int main ( int argc, char** argv ) {
   
   Tcl_CreateCommand ( interp, "SaveRGB",
 		      (Tcl_CmdProc*) TclSaveRGB,
+		      (ClientData) 0, (Tcl_CmdDeleteProc*) NULL );
+  
+  Tcl_CreateCommand ( interp, "SaveTIFF",
+		      (Tcl_CmdProc*) TclSaveTIFF,
 		      (ClientData) 0, (Tcl_CmdDeleteProc*) NULL );
   
   Tcl_CreateCommand ( interp, "ThresholdVolume",
