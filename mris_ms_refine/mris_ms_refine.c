@@ -19,7 +19,7 @@
 #include "cvector.h"
 #include "histo.h"
 
-static char vcid[] = "$Id: mris_ms_refine.c,v 1.2 2002/01/23 20:17:59 fischl Exp $";
+static char vcid[] = "$Id: mris_ms_refine.c,v 1.3 2002/01/23 20:20:36 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -66,7 +66,7 @@ static float subsample_dist = 10.0 ;
 #define MIN_CSF_T1 1800
 #define MIN_CSF_PD 1500
 
-static int sample_type = SAMPLE_TRILINEAR ;
+static int sample_type = SAMPLE_NEAREST ;
 static double MIN_T1_CSF = 500.0, MAX_T1_CSF = MIN_CSF_T1 /*1400.0*/ ;
 static double MIN_PD_CSF = 600 ;
 
@@ -187,7 +187,7 @@ static int add = 0 ;
 static int orig_flag = 0 ;
 static char *start_white_name = NULL ;
 static char *start_pial_name = NULL ;
-static int smooth_parms = 5 ;
+static int smooth_parms = 10 ;
 static int smooth = 0 ;
 static int vavgs = 0 ;
 static int nwhite = 25 /*5*/ ;
@@ -212,7 +212,7 @@ static int min_averages = 0 ;
 static float sigma = 0.0f ;
 #else
 static int max_averages = 8 ;
-static int min_averages = 0 ;
+static int min_averages = 1 ;
 static float sigma = 1.0f ;
 #endif
 static float max_thickness = 5.0 ;
