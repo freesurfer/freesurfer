@@ -1,6 +1,6 @@
 #! /usr/bin/tixwish
 
-# $Id: tkmedit.tcl,v 1.66 2003/10/02 18:44:33 kteich Exp $
+# $Id: tkmedit.tcl,v 1.67 2003/10/08 21:26:53 tosa Exp $
 
 
 source $env(FREESURFER_HOME)/lib/tcl/tkm_common.tcl
@@ -3648,7 +3648,7 @@ proc CreateMenuBar { ifwMenuBar } {
 		{ SelectVoxelsByFuncValue 1 }
 		tMenuGroup_OverlayOptions }
 	    { command
-		"Register Functwional Overlay..."
+		"Register Functional Overlay..."
 		{ DoRegisterOverlayDlog }
 		tMenuGroup_Registration }
 	    { command
