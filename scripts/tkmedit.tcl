@@ -1,6 +1,6 @@
 #! /usr/bin/tixwish
 
-# $Id: tkmedit.tcl,v 1.61 2003/08/12 21:42:58 kteich Exp $
+# $Id: tkmedit.tcl,v 1.62 2003/08/20 16:22:11 kteich Exp $
 
 
 source $env(FREESURFER_HOME)/lib/tcl/tkm_common.tcl
@@ -247,7 +247,7 @@ foreach label $glLabel {
 # brush info
 set gBrushInfo(target)   $DspA_tBrushTarget_Main
 set gBrushInfo(radius)   1
-set gBrushInfo(shape)    $DspA_tBrushShape_Circle
+set gBrushInfo(shape)    $DspA_tBrushShape_Square
 set gBrushInfo(3d)       true
 
 foreach tool "$DspA_tBrush_EditOne $DspA_tBrush_EditTwo" {
@@ -1514,6 +1514,7 @@ proc DoEditBrushInfoDlog {} {
     global ksaBrushString
     global DspA_tBrush_EditOne DspA_tBrush_EditTwo
     global gEditBrush
+    global gVolume
 
     set wwDialog .wwEditBrushInfoDlog
 
@@ -1536,14 +1537,18 @@ proc DoEditBrushInfoDlog {} {
       set fwDefaults       $fw.fwDefaults
 
       # low, high, and new value sliders
-      tkm_MakeSliders $fwScales [list \
-        [list {"Low"} gEditBrush($tool,low) \
-        0 255 100 "SetEditBrushConfiguration" 1] \
-        [list {"High"} gEditBrush($tool,high) \
-        0 255 100 "SetEditBrushConfiguration" 1 ]\
-        [list {"New Value"} gEditBrush($tool,new) \
-        0 255 100 "SetEditBrushConfiguration" 1 ]]
-
+      tkm_MakeSliders $fwScales \
+	  [list \
+	       [list {"Low"} gEditBrush($tool,low) \
+		    $gVolume(0,minValue) $gVolume(0,maxValue) \
+		    100 "SetEditBrushConfiguration" 1] \
+	       [list {"High"} gEditBrush($tool,high) \
+		    $gVolume(0,minValue) $gVolume(0,maxValue) \
+		    100 "SetEditBrushConfiguration" 1 ]\
+	       [list {"New Value"} gEditBrush($tool,new) \
+		    $gVolume(0,minValue) $gVolume(0,maxValue) \
+		    100 "SetEditBrushConfiguration" 1 ]]
+      
       # defaults button
       tkm_MakeButtons $fwDefaults \
 	  [list \
@@ -2606,8 +2611,8 @@ proc SetEditBrushConfiguration { } {
     global DspA_tBrush_EditOne DspA_tBrush_EditTwo
 
     foreach tool "$DspA_tBrush_EditOne $DspA_tBrush_EditTwo" {
-  SetBrushInfo $tool $gEditBrush($tool,low) $gEditBrush($tool,high) \
-    $gEditBrush($tool,new)
+	SetBrushInfo $tool $gEditBrush($tool,low) $gEditBrush($tool,high) \
+	    $gEditBrush($tool,new)
     }
 }
 
