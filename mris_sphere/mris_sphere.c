@@ -15,7 +15,7 @@
 #include "utils.h"
 #include "timer.h"
 
-static char vcid[]="$Id: mris_sphere.c,v 1.24 2002/08/01 21:52:56 fischl Exp $";
+static char vcid[]="$Id: mris_sphere.c,v 1.25 2002/09/13 19:01:13 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -53,10 +53,10 @@ static float l_spring_norm = .1 ;
 static float l_sphere = 0.25 ;
 #else
 static int   inflate_avgs = 0 ;
-static int   inflate_iterations = 300 ;
+static int   inflate_iterations = 1000 ;
 static float l_convex = 1.0 ;
 static float l_spring_norm = 1.0 ;
-static float l_sphere = 0.1 ;
+static float l_sphere = 0.025 ;
 #endif
 
 static char *orig_name = "smoothwm" ;
@@ -183,7 +183,8 @@ main(int argc, char *argv[])
     inflation_parms.n_averages = inflate_avgs ;
     inflation_parms.l_sphere = l_sphere ;
     inflation_parms.l_convex = l_convex ;
-    inflation_parms.a = DEFAULT_RADIUS ;
+#define SCALE_UP 2
+    inflation_parms.a = SCALE_UP*DEFAULT_RADIUS ;
     inflation_parms.tol = inflate_tol ;
     inflation_parms.integration_type = INTEGRATE_MOMENTUM ;
     inflation_parms.momentum = 0.9 ;
@@ -195,6 +196,7 @@ main(int argc, char *argv[])
     /*    inflation_parms.l_repulse_ratio = .1 ;*/
     MRISsaveVertexPositions(mris, CANONICAL_VERTICES) ;
     MRISinflateToSphere(mris, &inflation_parms) ;
+		MRISscaleBrain(mris, mris, 1.0/SCALE_UP) ;
     parms.start_t = inflation_parms.start_t ;
   }
 
@@ -444,11 +446,12 @@ get_option(int argc, char *argv[])
     break ;
   case 'Q':
     quick = 1 ;
+		max_passes = 3 ;
     fprintf(stderr, "doing quick spherical unfolding.\n") ;
     nbrs = 1 ;
     parms.l_spring = parms.l_dist = parms.l_parea = parms.l_area = 0.0 ; 
     parms.l_nlarea = 1.0 ;
-    parms.tol = 1e-2 ;
+    parms.tol = 1e-1 ;
     parms.n_averages = 32 ;
     /*    parms.tol = 10.0f / (sqrt(33.0/1024.0)) ;*/
     break ;
