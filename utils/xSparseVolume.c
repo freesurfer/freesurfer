@@ -1,4 +1,5 @@
 #include <stdlib.h>
+#include <math.h>
 #include <string.h>
 #include "xSparseVolume.h"
 #include "xDebug.h"

@@ -1,4 +1,5 @@
 #include <stdlib.h>
+#include <math.h>
 #include "x3DList.h"
 #include "xList.h"
 #include "xDebug.h"

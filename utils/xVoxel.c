@@ -52,6 +52,8 @@ char xVoxl_IsEqualFloat ( xVoxelRef ipVox1, xVoxelRef ipVox2 ) {
     return FALSE;
 }
 
+/* declare non-macro versions of this stuff. */
+#ifndef XVOXL_USE_MACROS
 
 void xVoxl_Set ( xVoxelRef this, int x, int y, int z ) {
   
@@ -151,6 +153,8 @@ float xVoxl_GetFloatZ ( xVoxelRef this ) {
 
   return this->mfZ;
 }
+
+#endif /* XVOXL_USE_MACROS */
 
 tBoolean xVoxl_IncrementWithMinUntilLimit ( xVoxelRef this, 
               float inMin, float inLimit ) {
