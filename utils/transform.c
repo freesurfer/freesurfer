@@ -531,7 +531,7 @@ ltaMNIread(char *fname)
            MATRIX_RELT(m_L,row,1), MATRIX_RELT(m_L,row,2), 
            MATRIX_RELT(m_L,row,3), MATRIX_RELT(m_L,row,4)) ;
   }
-  MatrixAsciiWriteInto(stderr, lt->m_L) ;
+  /*  MatrixAsciiWriteInto(stderr, lt->m_L) ;*/
   fclose(fp) ;
   return(lta) ;
 }
