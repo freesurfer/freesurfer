@@ -57,6 +57,7 @@ DiagInit(char *fname,
                   int (*vprint)(const char *fmt, va_list args))
 {
   char *cp ;
+  unsigned long diag = 0L ;
 
   if (fname)
     strcpy(diag_fname, fname) ;
@@ -70,10 +71,12 @@ DiagInit(char *fname,
     Gdiag_no = atoi(cp) ;
   
   cp = getenv("diag") ;
-
   if (!cp) cp = getenv("DIAG") ;
-  if (cp) 
-    sscanf(cp, "0x%lx", &Gdiag) ;
+  if (cp)
+  {
+    sscanf(cp, "0x%lx", diag) ;
+    Gdiag |= diag ;
+  }
 
   if (getenv("DIAG_VERBOSE"))
     Gdiag |= DIAG_VERBOSE ;
