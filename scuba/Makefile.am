@@ -61,4 +61,4 @@ scuba_LDADD= $(addprefix $(top_srcdir)/,$(LIBS_MGH)) $(LIBS_TCL_OPENGL)
 scuba_LDFLAGS=
 
 foodir=$(prefix)/lib/tcl
-foo_SCRIPTS=scuba.tcl
+foo_SCRIPTS=scuba.tcl tkcon.tcl
