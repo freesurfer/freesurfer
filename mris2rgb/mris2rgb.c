@@ -29,7 +29,7 @@
 #include "tiffio.h"
 #include "label.h"
 
-static char vcid[] = "$Id: mris2rgb.c,v 1.10 1998/04/23 15:38:06 fischl Exp $";
+static char vcid[] = "$Id: mris2rgb.c,v 1.11 1998/05/12 20:50:59 fischl Exp $";
 
 /*-------------------------------- CONSTANTS -----------------------------*/
 
@@ -499,6 +499,18 @@ get_option(int argc, char *argv[])
     compile_flags |= BW_FLAG ;
   else if (!stricmp(option, "neg"))
     compile_flags |= NEG_FLAG ;
+  else if (!stricmp(option, "cparms"))
+  {
+    double coord_thickness, coord_spacing ;
+
+    coord_thickness = atof(argv[2]) ;
+    coord_spacing = atof(argv[3]) ;
+    fprintf(stderr, 
+          "spacing coordinate lines %f degrees apart, with thickness %2.1f\n",
+            coord_spacing, coord_thickness) ;
+    nargs = 2 ;
+    OGLUsetCoordParms(coord_thickness, coord_spacing) ;
+  }
   else if (!stricmp(option, "coord"))
   {
     compile_flags |= COORD_FLAG ;
