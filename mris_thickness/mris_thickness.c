@@ -13,7 +13,7 @@
 #include "mri.h"
 #include "macros.h"
 
-static char vcid[] = "$Id: mris_thickness.c,v 1.6 2000/01/18 13:40:22 fischl Exp $";
+static char vcid[] = "$Id: mris_thickness.c,v 1.7 2002/11/12 19:20:41 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -25,6 +25,7 @@ static void print_version(void) ;
 
 char *Progname ;
 static char pial_name[100] = "pial" ;
+static int write_vertices = 0 ;
 
 static int nbhd_size = 2 ;
 static float max_thick = 5.0 ;
@@ -79,13 +80,22 @@ main(int argc, char *argv[])
     ErrorExit(Gerror, "%s: could not read white matter surface", Progname) ;
   fprintf(stderr, "measuring gray matter thickness...\n") ;
 
-  MRISmeasureCorticalThickness(mris, nbhd_size, max_thick) ;
+	if (write_vertices)
+	{
+		MRISfindClosestOrigVertices(mris, nbhd_size) ;
+	}
+	else
+	{
+		MRISmeasureCorticalThickness(mris, nbhd_size, max_thick) ;
+	}
 
 #if 0
   sprintf(fname, "%s/%s/surf/%s", sdir, sname, out_fname) ;
   fprintf(stderr, "writing output surface to %s...\n", fname) ;
 #endif
-  fprintf(stderr, "writing thickness to curvature file %s...\n", out_fname) ;
+  fprintf(stderr, "writing %s to curvature file %s...\n", 
+					write_vertices ? "vertex correspondence" :
+					"thickness", out_fname) ;
   MRISwriteCurvature(mris, out_fname) ;
   exit(0) ;
   return(0) ;  /* for ansi */
@@ -122,6 +132,11 @@ get_option(int argc, char *argv[])
   }
   else switch (toupper(*option))
   {
+	case 'V':
+		write_vertices = 1 ;
+		printf("writing vertex correspondences instead of thickness\n") ;
+		nargs =  0 ;
+		break ;
   case 'N':
     nbhd_size = atoi(argv[2]) ;
     fprintf(stderr, "using neighborhood size=%d\n", nbhd_size) ;
