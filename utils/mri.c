@@ -8,10 +8,10 @@
  *
 */
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2003/06/13 15:29:54 $
-// Revision       : $Revision: 1.229 $
-char *MRI_C_VERSION = "$Revision: 1.229 $";
+// Revision Author: $Author: tosa $
+// Revision Date  : $Date: 2003/06/17 14:35:41 $
+// Revision       : $Revision: 1.230 $
+char *MRI_C_VERSION = "$Revision: 1.230 $";
 
 /*-----------------------------------------------------
                     INCLUDE FILES
@@ -1719,7 +1719,7 @@ MRItransformRegion(MRI *mri_src, MRI *mri_dst, MRI_REGION *src_region,
 {
   Real  xw, yw, zw, xt, yt, zt, xv, yv, zv ;
 
-  if (mri_src->slice_direction != mri_dst->slice_direction)
+  if (getSliceDirection(mri_src) != getSliceDirection(mri_dst))
     ErrorReturn(ERROR_UNSUPPORTED,
                 (ERROR_UNSUPPORTED, 
                  "MRItransformRegion(%s): slice directions must match",
@@ -1741,7 +1741,7 @@ MRItransformRegion(MRI *mri_src, MRI *mri_dst, MRI_REGION *src_region,
   yspace  coordinates run from patient posterior to anterior
   and positive zspace coordinates run from inferior to superior.
  */   
-  switch (mri_src->slice_direction)
+  switch (getSliceDirection(mri_src))
   {
   case MRI_CORONAL:
     break ;
@@ -1749,7 +1749,7 @@ MRItransformRegion(MRI *mri_src, MRI *mri_dst, MRI_REGION *src_region,
     ErrorReturn(ERROR_UNSUPPORTED,
                 (ERROR_UNSUPPORTED, 
                  "MRIregionToTalairachRegion: unsupported slice direction %d",
-                 mri_src->slice_direction)) ;
+                 getSliceDirection(mri_src))) ;
   }
 
   xv = (Real)src_region->x ;
@@ -1797,7 +1797,7 @@ MRIvoxelToVoxel(MRI *mri_src, MRI *mri_dst, Real xv, Real yv, Real zv,
   yspace  coordinates run from patient posterior to anterior
   and positive zspace coordinates run from inferior to superior.
  */   
-  switch (mri_src->slice_direction)
+  switch (getSliceDirection(mri_src))
   {
   case MRI_CORONAL:
     break ;
@@ -1805,7 +1805,7 @@ MRIvoxelToVoxel(MRI *mri_src, MRI *mri_dst, Real xv, Real yv, Real zv,
     ErrorReturn(ERROR_UNSUPPORTED,
                 (ERROR_UNSUPPORTED, 
                  "MRIvoxelToVoxel: unsupported slice direction %d",
-                 mri_src->slice_direction)) ;
+                 getSliceDirection(mri_src))) ;
   }
 
   if (!mri_src->linear_transform || !mri_dst->inverse_linear_transform)
@@ -1857,7 +1857,7 @@ MRIvoxelToTalairachVoxel(MRI *mri, Real xv, Real yv, Real zv,
   yspace  coordinates run from patient posterior to anterior
   and positive zspace coordinates run from inferior to superior.
  */   
-  switch (mri->slice_direction)
+  switch (getSliceDirection(mri))
   {
   case MRI_CORONAL:
     break ;
@@ -1865,7 +1865,7 @@ MRIvoxelToTalairachVoxel(MRI *mri, Real xv, Real yv, Real zv,
     ErrorReturn(ERROR_UNSUPPORTED,
                 (ERROR_UNSUPPORTED, 
                  "MRIvoxelToTalairachVoxel: unsupported slice direction %d",
-                 mri->slice_direction)) ;
+                 getSliceDirection(mri))) ;
   }
 
   MRIvoxelToWorld(mri, xv, yv, zv, &xw, &yw, &zw) ;
@@ -1899,7 +1899,7 @@ MRIvoxelToTalairach(MRI *mri, Real xv, Real yv, Real zv,
   yspace  coordinates run from patient posterior to anterior
   and positive zspace coordinates run from inferior to superior.
  */   
-  switch (mri->slice_direction)
+  switch (getSliceDirection(mri))
   {
   case MRI_CORONAL:
     break ;
@@ -1907,7 +1907,7 @@ MRIvoxelToTalairach(MRI *mri, Real xv, Real yv, Real zv,
     ErrorReturn(ERROR_UNSUPPORTED,
                 (ERROR_UNSUPPORTED, 
                  "MRIvoxelToTalairachVoxel: unsupported slice direction %d",
-                 mri->slice_direction)) ;
+                 getSliceDirection(mri))) ;
   }
 
   MRIvoxelToWorld(mri, xv, yv, zv, &xw, &yw, &zw) ;
@@ -1940,7 +1940,7 @@ MRItalairachToVoxel(MRI *mri, Real xt, Real yt, Real zt,
   yspace  coordinates run from patient posterior to anterior
   and positive zspace coordinates run from inferior to superior.
  */   
-  switch (mri->slice_direction)
+  switch (getSliceDirection(mri))
   {
   case MRI_CORONAL:
     break ;
@@ -1948,7 +1948,7 @@ MRItalairachToVoxel(MRI *mri, Real xt, Real yt, Real zt,
     ErrorReturn(ERROR_UNSUPPORTED,
                 (ERROR_UNSUPPORTED, 
                  "MRIvoxelToTalairachVoxel: unsupported slice direction %d",
-                 mri->slice_direction)) ;
+                 getSliceDirection(mri))) ;
   }
 
   if (mri->inverse_linear_transform)
@@ -1981,7 +1981,7 @@ MRItalairachVoxelToVoxel(MRI *mri, Real xtv, Real ytv, Real ztv,
   yspace  coordinates run from patient posterior to anterior
   and positive zspace coordinates run from inferior to superior.
  */   
-  switch (mri->slice_direction)
+  switch (getSliceDirection(mri))
   {
   case MRI_CORONAL:
     break ;
@@ -1989,7 +1989,7 @@ MRItalairachVoxelToVoxel(MRI *mri, Real xtv, Real ytv, Real ztv,
     ErrorReturn(ERROR_UNSUPPORTED,
                 (ERROR_UNSUPPORTED, 
                  "MRIvoxelToTalairachVoxel: unsupported slice direction %d",
-                 mri->slice_direction)) ;
+                 getSliceDirection(mri))) ;
   }
 
   MRIvoxelToWorld(mri, xtv, ytv, ztv, &xt, &yt, &zt) ;
@@ -2023,7 +2023,7 @@ MRItalairachVoxelToWorld(MRI *mri, Real xtv, Real ytv, Real ztv,
   yspace  coordinates run from patient posterior to anterior
   and positive zspace coordinates run from inferior to superior.
  */   
-  switch (mri->slice_direction)
+  switch (getSliceDirection(mri))
   {
   case MRI_CORONAL:
     break ;
@@ -2031,7 +2031,7 @@ MRItalairachVoxelToWorld(MRI *mri, Real xtv, Real ytv, Real ztv,
     ErrorReturn(ERROR_UNSUPPORTED,
                 (ERROR_UNSUPPORTED, 
                  "MRIvoxelToTalairachVoxel: unsupported slice direction %d",
-                 mri->slice_direction)) ;
+                 getSliceDirection(mri))) ;
   }
 
   MRIvoxelToWorld(mri, xtv, ytv, ztv, &xt, &yt, &zt) ;
@@ -2054,17 +2054,8 @@ MRIvoxelToWorld(MRI *mri, Real xv, Real yv, Real zv,
 {
   VECTOR *vw, *vv;
   MATRIX *RfromI;
-  int save;
-  if (mri->slice_direction==MRI_CORONAL)
-  {
-    save = mri->ras_good_flag ;
-    // temporarily change the value
-    mri->ras_good_flag = 0;
-    RfromI = extract_i_to_r(mri);
-    mri->ras_good_flag = save;
-  }
-  else
-    RfromI = extract_i_to_r(mri);
+
+  RfromI = extract_i_to_r(mri);
 
   vv = VectorAlloc(4, MATRIX_REAL) ;
   V4_LOAD(vv, xv, yv, zv, 1.) ;    
@@ -2095,7 +2086,7 @@ MRIworldToTalairachVoxel(MRI *mri, Real xw, Real yw, Real zw,
 int   MRIworldToVoxelIndex(MRI *mri, Real xw, Real yw, Real zw,
                 int *pxv, int *pyv, int *pzv)
 {
-  switch (mri->slice_direction)
+  switch (getSliceDirection(mri))
   {
   case MRI_CORONAL:
 #if 0
@@ -2113,7 +2104,7 @@ int   MRIworldToVoxelIndex(MRI *mri, Real xw, Real yw, Real zw,
     ErrorReturn(ERROR_UNSUPPORTED, 
                 (ERROR_UNSUPPORTED,
                  "MRIworldToVoxel: unsupported slice direction %d", 
-                 mri->slice_direction)) ;
+                 getSliceDirection(mri))) ;
     break ;
   }
   return(NO_ERROR) ;
@@ -2126,18 +2117,8 @@ MRIworldToVoxel(MRI *mri, Real xw, Real yw, Real zw,
 {
   VECTOR *vv, *vw;
   MATRIX *IfromR;
-  int save;
-  if (mri->slice_direction==MRI_CORONAL)
-  {
-    save = mri->ras_good_flag ;
-    // temporarily change the value
-    mri->ras_good_flag = 0;
-    IfromR = extract_r_to_i(mri);
-    // restore 
-    mri->ras_good_flag = save;
-  }
-  else
-    IfromR = extract_r_to_i(mri);
+
+  IfromR = extract_r_to_i(mri);
 
   vw = VectorAlloc(4, MATRIX_REAL) ;
   V4_LOAD(vw, xw, yw, zw, 1.) ;    
@@ -2361,7 +2342,8 @@ MRIreslice(MRI *mri_src, MRI *mri_dst, int slice_direction)
   int     width, height, depth, x1, x2, x3 ;
   BUFTYPE *psrc, val, *pdst ;
 
-  if (slice_direction == mri_src->slice_direction)
+  int src_slice_direction = getSliceDirection(mri_src);
+  if (slice_direction == src_slice_direction)
   {
     mri_dst = MRIcopy(mri_src, NULL) ;
     return(mri_dst) ;
@@ -2371,9 +2353,10 @@ MRIreslice(MRI *mri_src, MRI *mri_dst, int slice_direction)
   height = mri_src->height ;
   depth = mri_src->depth ;
 
-  if ((mri_src->slice_direction == MRI_SAGITTAL && 
+
+  if ((src_slice_direction == MRI_SAGITTAL && 
        slice_direction == MRI_CORONAL) || 
-      (mri_src->slice_direction == MRI_CORONAL && 
+      (src_slice_direction == MRI_CORONAL && 
        slice_direction == MRI_SAGITTAL))
   {
 /*
@@ -2413,9 +2396,9 @@ MRIreslice(MRI *mri_src, MRI *mri_dst, int slice_direction)
     }
   }
   else
-    if ((mri_src->slice_direction == MRI_HORIZONTAL && 
+    if ((src_slice_direction == MRI_HORIZONTAL && 
          slice_direction == MRI_CORONAL) || 
-        (mri_src->slice_direction == MRI_CORONAL && 
+        (src_slice_direction == MRI_CORONAL && 
          slice_direction == MRI_HORIZONTAL))
     {
 /*
@@ -2454,7 +2437,7 @@ MRIreslice(MRI *mri_src, MRI *mri_dst, int slice_direction)
     }
   }
   else
-    if ((mri_src->slice_direction == MRI_SAGITTAL && 
+    if ((src_slice_direction == MRI_SAGITTAL && 
          slice_direction == MRI_HORIZONTAL))
     {
 /*
@@ -2492,7 +2475,7 @@ MRIreslice(MRI *mri_src, MRI *mri_dst, int slice_direction)
     }
   }
   else
-    if (mri_src->slice_direction == MRI_HORIZONTAL && 
+    if (src_slice_direction == MRI_HORIZONTAL && 
          slice_direction == MRI_SAGITTAL)
     {
 /*
@@ -2530,14 +2513,14 @@ MRIreslice(MRI *mri_src, MRI *mri_dst, int slice_direction)
     }
   }
   else
-    switch (mri_src->slice_direction)
+    switch (src_slice_direction)
   {
   default:
     MRIfree(&mri_dst) ;
     ErrorReturn(NULL,
                 (ERROR_BADPARM, 
                  "MRIreslice: mri_src unknown slice direction %d", 
-                 mri_src->slice_direction)) ;
+                 src_slice_direction)) ;
     break ;
   case MRI_CORONAL:
 /*
@@ -2592,8 +2575,7 @@ MRIreslice(MRI *mri_src, MRI *mri_dst, int slice_direction)
 */
     break ;
   }
-
-  mri_dst->slice_direction = slice_direction ;
+  setDirectionCosine(mri_dst, slice_direction);
   mri_dst->ras_good_flag = 0;
   return(mri_dst) ;
 }
@@ -4117,9 +4099,6 @@ MRIallocHeader(int width, int height, int depth, int type)
   if (!mri)
     ErrorExit(ERROR_NO_MEMORY, "MRIalloc: could not allocate MRI\n") ;
 
-  mri->xdir = XDIM;
-  mri->ydir = YDIM;
-  mri->zdir = ZDIM;
   mri->scale = 1 ;
   mri->roi.dx = mri->width = width ;
   mri->roi.dy = mri->height = height ;
@@ -4140,7 +4119,6 @@ MRIallocHeader(int width, int height, int depth, int type)
   mri->subject_name[0] = '\0';
   mri->path_to_t1[0] = '\0';
   mri->fname_format[0] = '\0';
-  mri->slice_direction = MRI_CORONAL;
   return(mri) ;
 }
 /*-----------------------------------------------------
@@ -4277,7 +4255,6 @@ MRIdump(MRI *mri, FILE *fp)
   fprintf(fp, "%6.6s = %f\n", "zstart", mri->zstart); /* strtz */
   fprintf(fp, "%6.6s = %f\n", "zend", mri->zend); /* endz */
   fprintf(fp, "%6.6s = %d\n", "type", mri->type);
-  fprintf(fp, "%6.6s = %d\n", "sl dir", mri->slice_direction);
   fprintf(fp, "%6.6s = %f\n", "xsize", mri->xsize);
   fprintf(fp, "%6.6s = %f\n", "ysize", mri->ysize);
   fprintf(fp, "%6.6s = %f\n", "zsize", mri->zsize);
@@ -4286,9 +4263,6 @@ MRIdump(MRI *mri, FILE *fp)
   fprintf(fp, "%6.6s = %f %f %f\n", "z ras", mri->z_r, mri->z_a, mri->z_s);
   fprintf(fp, "%6.6s = %f %f %f\n", "c ras", mri->c_r, mri->c_a, mri->c_s);
   fprintf(fp, "%s = %d\n", "ras_good_flag", mri->ras_good_flag);
-  fprintf(fp, "%6.6s = %d\n", "xdir", mri->xdir);
-  fprintf(fp, "%6.6s = %d\n", "ydir", mri->ydir);
-  fprintf(fp, "%6.6s = %d\n", "zdir", mri->zdir);
   fprintf(fp, "%s = %d\n", "brightness", mri->brightness);
   fprintf(fp, "%s = %s\n", "subject_name", mri->subject_name);
   fprintf(fp, "%s = %s\n", "path_to_t1", mri->path_to_t1);
@@ -4460,7 +4434,6 @@ MRIcopyHeader(MRI *mri_src, MRI *mri_dst)
     mri_dst->free_transform = 1 ;
   }
   strcpy(mri_dst->transform_fname, mri_src->transform_fname) ;
-  mri_dst->slice_direction = mri_src->slice_direction ;
   if (mri_dst->depth == mri_src->depth)
   {
     mri_dst->imnr0 = mri_src->imnr0 ;
@@ -4482,9 +4455,6 @@ MRIcopyHeader(MRI *mri_src, MRI *mri_dst)
   mri_dst->te = mri_src->te ;
   mri_dst->ti = mri_src->ti ;
   strcpy(mri_dst->fname, mri_src->fname) ;
-  mri_dst->xdir = mri_src->xdir;
-  mri_dst->ydir = mri_src->ydir;
-  mri_dst->zdir = mri_src->zdir;
   mri_dst->x_r = mri_src->x_r;
   mri_dst->x_a = mri_src->x_a;
   mri_dst->x_s = mri_src->x_s;
@@ -5056,23 +5026,26 @@ MRItoImageView(MRI *mri, IMAGE *I, int slice, int view, int frame)
            xm, ym, zm, format ;
 	float    fmin, fmax ;
 	Real     val ;
+  int src_slice_direction;
 
   d = w = h = xm = ym = zm = 0 ;  /* silly compiler warnings */
   width = mri->width ;
   height = mri->height ;
   depth = mri->depth ;
-  if (view == mri->slice_direction)
+
+  src_slice_direction = getSliceDirection(mri);
+  if (view == src_slice_direction)
   {
     w = width ;
     h = height ;
     d = depth ;
   }
-  else if (mri->slice_direction != MRI_CORONAL)
+  else if (src_slice_direction != MRI_CORONAL)
   {
     ErrorReturn(NULL, 
                 (ERROR_UNSUPPORTED, 
                  "MRItoImageView(%d, %d): unsupported view/slice direction %d",
-                 slice, view, mri->slice_direction)) ;
+                 slice, view, src_slice_direction)) ;
   }
   else switch (view)
   {
@@ -5080,7 +5053,7 @@ MRItoImageView(MRI *mri, IMAGE *I, int slice, int view, int frame)
     ErrorReturn(NULL, 
                 (ERROR_UNSUPPORTED, 
                  "MRItoImageView(%d, %d): unsupported view/slice direction %d",
-                 slice, view, mri->slice_direction)) ;
+                 slice, view, src_slice_direction)) ;
     break ;
   case MRI_CORONAL:
     w = width ;
@@ -5123,7 +5096,7 @@ MRItoImageView(MRI *mri, IMAGE *I, int slice, int view, int frame)
     yp = h - (y+1) ;   /* hips coordinate system is inverted */
     for (x = 0 ; x < w ; x++)
     {
-      if (view == mri->slice_direction)
+      if (view == src_slice_direction)
       {
         xm = x ;
         ym = y ;
@@ -5164,7 +5137,7 @@ MRItoImageView(MRI *mri, IMAGE *I, int slice, int view, int frame)
     yp = h - (y+1) ;   /* hips coordinate system is inverted */
     for (x = 0 ; x < w ; x++)
     {
-      if (view == mri->slice_direction)
+      if (view == src_slice_direction)
       {
         xm = x ;
         ym = y ;
@@ -8599,11 +8572,11 @@ MATRIX *MRIgetResampleMatrix(MRI *src, MRI *template_vol)
   MATRIX *src_inv, *m;
 
   /* ----- fake the ras values if ras_good_flag is not set ----- */
-
+  int src_slice_direction = getSliceDirection(src);
   if(!src->ras_good_flag 
-     && (src->slice_direction != MRI_CORONAL)
-     && (src->slice_direction != MRI_SAGITTAL)
-     && (src->slice_direction == MRI_HORIZONTAL))
+     && (src_slice_direction != MRI_CORONAL)
+     && (src_slice_direction != MRI_SAGITTAL)
+     && (src_slice_direction != MRI_HORIZONTAL))
   {
     ErrorReturn(NULL, (ERROR_BADPARM, "MRIresample(): source volume orientation is unknown"));
   }
@@ -9562,7 +9535,6 @@ MATRIX *extract_r_to_i(MRI *mri)
   
 MATRIX *extract_i_to_r(MRI *mri)
 {
-
   MATRIX *m;
   float m11, m12, m13, m14;
   float m21, m22, m23, m24;
@@ -9575,49 +9547,18 @@ MATRIX *extract_i_to_r(MRI *mri)
     ErrorReturn(NULL, (ERROR_BADPARM, "extract_i_to_r(): error allocating matrix"));
   }
 
-  if(mri->ras_good_flag)
-  {
-    m11 = mri->xsize * mri->x_r;  m12 = mri->ysize * mri->y_r;  m13 = mri->zsize * mri->z_r;
-    m21 = mri->xsize * mri->x_a;  m22 = mri->ysize * mri->y_a;  m23 = mri->zsize * mri->z_a;
-    m31 = mri->xsize * mri->x_s;  m32 = mri->ysize * mri->y_s;  m33 = mri->zsize * mri->z_s;
+  m11 = mri->xsize * mri->x_r;  m12 = mri->ysize * mri->y_r;  m13 = mri->zsize * mri->z_r;
+  m21 = mri->xsize * mri->x_a;  m22 = mri->ysize * mri->y_a;  m23 = mri->zsize * mri->z_a;
+  m31 = mri->xsize * mri->x_s;  m32 = mri->ysize * mri->y_s;  m33 = mri->zsize * mri->z_s;
 
-    ci = (mri->width) / 2.0;
-    cj = (mri->height) / 2.0;
-    ck = (mri->depth) / 2.0;
-
-    m14 = mri->c_r - (m11 * ci + m12 * cj + m13 * ck);
-    m24 = mri->c_a - (m21 * ci + m22 * cj + m23 * ck);
-    m34 = mri->c_s - (m31 * ci + m32 * cj + m33 * ck);
-
-  }
-  else if(mri->slice_direction == MRI_CORONAL)
-  {
-    m11 = -mri->xsize;  m12 =  0.0;         m13 = 0.0;         m14 =  mri->xsize * mri->width / 2.0;
-    m21 =  0.0;         m22 =  0.0;         m23 = mri->zsize;  m24 = -mri->zsize * mri->depth / 2.0;
-    m31 =  0.0;         m32 = -mri->ysize;  m33 = 0.0;         m34 =  mri->ysize * mri->height / 2.0;
-  }
-  else if(mri->slice_direction == MRI_SAGITTAL)
-  {
-    m11 =  0.0;         m12 =  0.0;         m13 = mri->zsize;  m14 = -mri->zsize * mri->depth / 2.0;
-    m21 =  mri->xsize;  m22 =  0.0;         m23 = 0.0;         m24 = -mri->xsize * mri->width / 2.0;
-    m31 =  0.0;         m32 = -mri->ysize;  m33 = 0.0;         m34 =  mri->ysize * mri->height / 2.0;
-  }
-  else if(mri->slice_direction == MRI_HORIZONTAL)
-  {
-    m11 = -mri->xsize;  m12 =  0.0;         m13 = 0.0;         m14 =  mri->xsize * mri->width / 2.0;
-    m21 =  0.0;         m22 = -mri->ysize;  m23 = 0.0;         m24 =  mri->ysize * mri->height / 2.0;
-    m31 =  0.0;         m32 =  0.0;         m33 = mri->zsize;  m34 = -mri->zsize * mri->depth / 2.0;
-  }
-  else
-  {
-    m11 = -mri->xsize;  m12 =  0.0;         m13 = 0.0;         
-    m14 =  mri->xsize * mri->width / 2.0;
-    m21 =  0.0;         m22 = -mri->ysize;  m23 = 0.0;         
-    m24 =  mri->ysize * mri->height / 2.0;
-    m31 =  0.0;         m32 =  0.0;         m33 = mri->zsize;  
-    m34 = -mri->zsize * mri->depth / 2.0;
-  }
+  ci = (mri->width) / 2.0;
+  cj = (mri->height) / 2.0;
+  ck = (mri->depth) / 2.0;
   
+  m14 = mri->c_r - (m11 * ci + m12 * cj + m13 * ck);
+  m24 = mri->c_a - (m21 * ci + m22 * cj + m23 * ck);
+  m34 = mri->c_s - (m31 * ci + m32 * cj + m33 * ck);
+
   stuff_four_by_four(m, m11, m12, m13, m14, 
                         m21, m22, m23, m24, 
                         m31, m32, m33, m34, 
