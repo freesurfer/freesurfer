@@ -1,6 +1,6 @@
 % fast_selfreqavg.m - selective frequency averaging
 %
-% $Id: fast_selfreqavg.m,v 1.3 2003/08/02 01:01:01 greve Exp $
+% $Id: fast_selfreqavg.m,v 1.4 2003/08/04 01:43:46 greve Exp $
 %
 % Things to do:
 %  1. Save beta, var, and X
@@ -225,7 +225,8 @@ for nthsess = 1:nSess
     % -------- Read the MeanVal (make sure all exist) ------------ %
     if(inorm)
       for nthrun = 1:nruns
-	meanvalfile = sprintf('%s.meanval',funcpath);
+	runid = runlist(nthrun,:);
+	meanvalfile = sprintf('%s/%s/%s/%s.meanval',sess,fsd,runid,funcstem);
 	fid = fopen(meanvalfile,'r');
 	if(fid == -1)
 	  fprintf('ERROR: cannot open %s\n',meanvalfile);
