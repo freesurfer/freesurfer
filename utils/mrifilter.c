@@ -1766,7 +1766,7 @@ MRIstd(MRI *mri_src, MRI*mri_dst, MRI *mri_mean, int wsize)
 MRI *
 MRIconvolveGaussian(MRI *mri_src, MRI *mri_dst, MRI *mri_gaussian)
 {
-  int  width, height, depth, klen ;
+  int  width, height, depth, klen, frame ;
   MRI  *mtmp1 ;
   float *kernel ;
 
@@ -1783,17 +1783,79 @@ MRIconvolveGaussian(MRI *mri_src, MRI *mri_dst, MRI *mri_gaussian)
 
   if (!mri_dst)
     mri_dst = MRIclone(mri_src, NULL) ;
-  mtmp1 = MRIclone(mri_src, NULL) ;
-  MRIconvolve1d(mri_src, mtmp1, kernel, klen, MRI_WIDTH) ;
-  MRIconvolve1d(mtmp1, mri_dst, kernel, klen, MRI_HEIGHT) ;
-  MRIconvolve1d(mri_dst, mtmp1, kernel, klen, MRI_DEPTH) ;
+
+  for (frame = 0 ; frame < mri_src->nframes ; frame++)
+  {
+    mtmp1 = MRIcopyFrame(mri_src, NULL, frame, 0) ;
+    MRIconvolve1d(mri_src, mtmp1, kernel, klen, MRI_WIDTH, frame, 0) ;
+    MRIconvolve1d(mtmp1, mri_dst, kernel, klen, MRI_HEIGHT, 0, frame) ;
+    MRIconvolve1d(mri_dst, mtmp1, kernel, klen, MRI_DEPTH, frame, 0) ;
   
-  MRIcopy(mtmp1, mri_dst) ;    /* convert it back to UCHAR */
+    MRIcopyFrame(mtmp1, mri_dst, 0, frame) ;    /* convert it back to UCHAR */
+  }
 
   MRIcopyHeader(mri_src, mri_dst) ;
   
   MRIfree(&mtmp1) ;
 
+  return(mri_dst) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+          reduce a special type of MR image which contains
+          two frames. The first is a frame of means and
+          can be reduced normally. The second is a frame
+          of standard deviations, and must be turned into
+          variances, reduced, then back to stds and appended
+          to the mean image.
+------------------------------------------------------*/
+MRI *
+MRIreduceMeanAndStdByte(MRI *mri_src, MRI *mri_dst) 
+{
+  MRI   *mri_var, *mri_var_reduced, *mri_means_reduced, *mri_std_reduced ;
+  int   nframes ;
+
+  if (mri_src->nframes < 2)  /* just reduce it normally */
+    return(MRIreduceByte(mri_src, mri_dst)) ;
+
+  /* this is a hack, but only want to reduce the first frame of mri_src,
+     as the 2nd is stds which need to be convolved as variances. Not
+     doing this would work but would take twice as much time and memory.
+  */
+  nframes = mri_src->nframes ; mri_src->nframes = 1 ;
+  mri_means_reduced = MRIreduceByte(mri_src, NULL) ;
+  mri_src->nframes = nframes ;
+  mri_var = MRIstdsToVariances(mri_src, NULL, 1) ;
+  mri_var_reduced = MRIreduceByte(mri_var, NULL) ;
+  mri_std_reduced = MRIvariancesToStds(mri_var_reduced, NULL, 0) ;
+  mri_dst = MRIconcatenateFrames(mri_means_reduced, mri_std_reduced, mri_dst);
+
+  MRIfree(&mri_var) ; 
+  MRIfree(&mri_means_reduced) ; 
+  MRIfree(&mri_var_reduced) ;
+  MRIfree(&mri_std_reduced) ;
+
+  MRIcopyHeader(mri_src, mri_dst) ;
+  
+  mri_dst->thick = mri_src->thick * 2.0f ;
+  mri_dst->scale = mri_src->scale * 2 ;
+  mri_dst->xsize = mri_src->xsize * 2.0f ;
+  mri_dst->ysize = mri_src->ysize * 2.0f ;
+  mri_dst->zsize = mri_src->zsize * 2.0f ;
+
+  mri_dst->mean = MRImeanFrame(mri_dst, 1) ;
+#if 0
+  {
+    char fname[100] ;
+    sprintf(fname, "means_and_stds%d.mnc", (int)mri_dst->thick) ;
+    fprintf(stderr, "writing means and stds to %s\n", fname) ;
+    MRIwrite(mri_dst, fname) ;
+  }
+#endif
   return(mri_dst) ;
 }
 /*-----------------------------------------------------
@@ -1824,8 +1886,8 @@ MRIreduce(MRI *mri_src, MRI *mri_dst)
     ErrorExit(ERROR_BADPARM, "MRIreduce: insufficient dimension (%d, %d, %d)",
               width, height, depth) ;
 
-  mtmp1 = MRIconvolve1d(mri_src, NULL, kernel, KERNEL_SIZE, MRI_WIDTH) ;
-  mtmp2 = MRIconvolve1d(mtmp1, NULL, kernel, KERNEL_SIZE, MRI_HEIGHT) ;
+  mtmp1 = MRIconvolve1d(mri_src, NULL, kernel, KERNEL_SIZE, MRI_WIDTH, 0,0) ;
+  mtmp2 = MRIconvolve1d(mtmp1, NULL, kernel, KERNEL_SIZE, MRI_HEIGHT, 0,0) ;
   MRIfree(&mtmp1) ;
   mri_dst = MRIreduce1d(mtmp2, mri_dst, kernel, KERNEL_SIZE, MRI_DEPTH) ;
 
@@ -1841,6 +1903,14 @@ MRIreduce(MRI *mri_src, MRI *mri_dst)
   MRIfree(&mtmp2) ;
   return(mri_dst) ;
 }
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+          Sae as above, but produce a byte image as output.
+------------------------------------------------------*/
 MRI *
 MRIreduceByte(MRI *mri_src, MRI *mri_dst)
 {
@@ -1855,10 +1925,10 @@ MRIreduceByte(MRI *mri_src, MRI *mri_dst)
     ErrorExit(ERROR_BADPARM, "MRIreduce: insufficient dimension (%d, %d, %d)",
               width, height, depth) ;
 
-  mtmp1 = MRIclone(mri_src,NULL) ;
-  MRIconvolve1d(mri_src, mtmp1, kernel, KERNEL_SIZE, MRI_WIDTH) ;
-  mtmp2 = MRIclone(mri_src,NULL) ;
-  MRIconvolve1d(mtmp1, mtmp2, kernel, KERNEL_SIZE, MRI_HEIGHT) ;
+  mtmp1 = MRIalloc(width, height, depth, mri_src->type) ;
+  MRIconvolve1d(mri_src, mtmp1, kernel, KERNEL_SIZE, MRI_WIDTH, 0,0) ;
+  mtmp2 = MRIclone(mtmp1, NULL) ;
+  MRIconvolve1d(mtmp1, mtmp2, kernel, KERNEL_SIZE, MRI_HEIGHT, 0,0) ;
   MRIfree(&mtmp1) ;
   mri_dst = MRIreduce1dByte(mtmp2, mri_dst, kernel, KERNEL_SIZE, MRI_DEPTH) ;
 
@@ -1882,7 +1952,8 @@ MRIreduceByte(MRI *mri_src, MRI *mri_dst)
 
 ------------------------------------------------------*/
 MRI *
-MRIconvolve1d(MRI *mri_src, MRI *mri_dst, float *k, int len, int axis)
+MRIconvolve1d(MRI *mri_src, MRI *mri_dst, float *k, int len, int axis,
+              int src_frame, int dst_frame)
 {
   int           x, y, z, width, height, halflen, depth, *xi, *yi, *zi ;
   register int  i ;
@@ -1897,7 +1968,7 @@ MRIconvolve1d(MRI *mri_src, MRI *mri_dst, float *k, int len, int axis)
     mri_dst = MRIalloc(width, height, depth, MRI_FLOAT) ;
 
   if (mri_dst->type == MRI_UCHAR)
-    return(MRIconvolve1dByte(mri_src, mri_dst, k, len, axis)) ;
+    return(MRIconvolve1dByte(mri_src,mri_dst,k,len,axis,src_frame,dst_frame));
 
   if (mri_dst->type != MRI_FLOAT)
     ErrorReturn(NULL, 
@@ -1919,8 +1990,8 @@ MRIconvolve1d(MRI *mri_src, MRI *mri_dst, float *k, int len, int axis)
       {
         for (y = 0 ; y < height ; y++)
         {
-          inBase = &MRIvox(mri_src, 0, y, z) ;
-          foutPix = &MRIFvox(mri_dst, 0, y, z) ;
+          inBase = &MRIseq_vox(mri_src, 0, y, z, src_frame) ;
+          foutPix = &MRIFseq_vox(mri_dst, 0, y, z, dst_frame) ;
           for (x = 0 ; x < width ; x++)
           {
             total = 0.0f ;
@@ -1938,13 +2009,14 @@ MRIconvolve1d(MRI *mri_src, MRI *mri_dst, float *k, int len, int axis)
       {
         for (y = 0 ; y < height ; y++)
         {
-          foutPix = &MRIFvox(mri_dst, 0, y, z) ;
+          foutPix = &MRIFseq_vox(mri_dst, 0, y, z, dst_frame) ;
           for (x = 0 ; x < width ; x++)
           {
             total = 0.0f ;
 
             for (ki = k, i = 0 ; i < len ; i++)
-              total += *ki++ * (float)(MRIvox(mri_src, x,yi[y+i-halflen],z));
+              total += *ki++ * 
+                (float)(MRIseq_vox(mri_src, x,yi[y+i-halflen],z, src_frame));
             
             *foutPix++ = total ;
           }
@@ -1956,13 +2028,14 @@ MRIconvolve1d(MRI *mri_src, MRI *mri_dst, float *k, int len, int axis)
       {
         for (y = 0 ; y < height ; y++)
         {
-          foutPix = &MRIFvox(mri_dst, 0, y, z) ;
+          foutPix = &MRIFseq_vox(mri_dst, 0, y, z, dst_frame) ;
           for (x = 0 ; x < width ; x++)
           {
             total = 0.0f ;
             
             for (ki = k, i = 0 ; i < len ; i++)
-              total += *ki++ * (float)(MRIvox(mri_src, x,y,zi[z+i-halflen]));
+              total += *ki++ * 
+                (float)(MRIseq_vox(mri_src, x,y,zi[z+i-halflen], src_frame));
             
             *foutPix++ = total ;
           }
@@ -1979,8 +2052,8 @@ MRIconvolve1d(MRI *mri_src, MRI *mri_dst, float *k, int len, int axis)
       {
         for (y = 0 ; y < height ; y++)
         {
-          inBase_f = &MRIFvox(mri_src, 0, y, z) ;
-          foutPix = &MRIFvox(mri_dst, 0, y, z) ;
+          inBase_f = &MRIFseq_vox(mri_src, 0, y, z, src_frame) ;
+          foutPix = &MRIFseq_vox(mri_dst, 0, y, z, dst_frame) ;
           for (x = 0 ; x < width ; x++)
           {
             total = 0.0f ;
@@ -1998,13 +2071,14 @@ MRIconvolve1d(MRI *mri_src, MRI *mri_dst, float *k, int len, int axis)
       {
         for (y = 0 ; y < height ; y++)
         {
-          foutPix = &MRIFvox(mri_dst, 0, y, z) ;
+          foutPix = &MRIFseq_vox(mri_dst, 0, y, z, dst_frame) ;
           for (x = 0 ; x < width ; x++)
           {
             total = 0.0f ;
 
             for (ki = k, i = 0 ; i < len ; i++)
-              total += *ki++ * MRIFvox(mri_src, x,yi[y+i-halflen],z);
+              total += *ki++ * 
+                MRIFseq_vox(mri_src, x,yi[y+i-halflen],z, src_frame);
             
             *foutPix++ = total ;
           }
@@ -2016,13 +2090,14 @@ MRIconvolve1d(MRI *mri_src, MRI *mri_dst, float *k, int len, int axis)
       {
         for (y = 0 ; y < height ; y++)
         {
-          foutPix = &MRIFvox(mri_dst, 0, y, z) ;
+          foutPix = &MRIFseq_vox(mri_dst, 0, y, z, dst_frame) ;
           for (x = 0 ; x < width ; x++)
           {
             total = 0.0f ;
             
             for (ki = k, i = 0 ; i < len ; i++)
-              total += *ki++ * MRIFvox(mri_src, x,y,zi[z+i-halflen]);
+              total += *ki++ * 
+                MRIFseq_vox(mri_src, x,y,zi[z+i-halflen], src_frame);
             
             *foutPix++ = total ;
           }
@@ -2048,7 +2123,8 @@ MRIconvolve1d(MRI *mri_src, MRI *mri_dst, float *k, int len, int axis)
 
 ------------------------------------------------------*/
 MRI *
-MRIconvolve1dByte(MRI *mri_src, MRI *mri_dst, float *k, int len, int axis)
+MRIconvolve1dByte(MRI *mri_src, MRI *mri_dst, float *k, int len, int axis,
+                  int src_frame, int dst_frame)
 {
   int           x, y, z, width, height, halflen, depth, *xi, *yi, *zi ;
   register int  i ;
@@ -2083,8 +2159,8 @@ MRIconvolve1dByte(MRI *mri_src, MRI *mri_dst, float *k, int len, int axis)
       {
         for (y = 0 ; y < height ; y++)
         {
-          inBase = &MRIvox(mri_src, 0, y, z) ;
-          outPix = &MRIvox(mri_dst, 0, y, z) ;
+          inBase = &MRIseq_vox(mri_src, 0, y, z, src_frame) ;
+          outPix = &MRIseq_vox(mri_dst, 0, y, z, dst_frame) ;
           for (x = 0 ; x < width ; x++)
           {
             total = 0.0f ;
@@ -2102,13 +2178,14 @@ MRIconvolve1dByte(MRI *mri_src, MRI *mri_dst, float *k, int len, int axis)
       {
         for (y = 0 ; y < height ; y++)
         {
-          outPix = &MRIvox(mri_dst, 0, y, z) ;
+          outPix = &MRIseq_vox(mri_dst, 0, y, z, dst_frame) ;
           for (x = 0 ; x < width ; x++)
           {
             total = 0.0f ;
 
             for (ki = k, i = 0 ; i < len ; i++)
-              total += *ki++ * (float)(MRIvox(mri_src, x,yi[y+i-halflen],z));
+              total += *ki++ * 
+                (float)(MRIseq_vox(mri_src, x,yi[y+i-halflen],z,src_frame));
             
             *outPix++ = (BUFTYPE)nint(total) ;
           }
@@ -2120,13 +2197,14 @@ MRIconvolve1dByte(MRI *mri_src, MRI *mri_dst, float *k, int len, int axis)
       {
         for (y = 0 ; y < height ; y++)
         {
-          outPix = &MRIvox(mri_dst, 0, y, z) ;
+          outPix = &MRIseq_vox(mri_dst, 0, y, z, dst_frame) ;
           for (x = 0 ; x < width ; x++)
           {
             total = 0.0f ;
             
             for (ki = k, i = 0 ; i < len ; i++)
-              total += *ki++ * (float)(MRIvox(mri_src, x,y,zi[z+i-halflen]));
+              total += *ki++ * 
+                (float)(MRIseq_vox(mri_src, x,y,zi[z+i-halflen], src_frame));
             
             *outPix++ = (BUFTYPE)nint(total) ;
           }
@@ -2143,8 +2221,8 @@ MRIconvolve1dByte(MRI *mri_src, MRI *mri_dst, float *k, int len, int axis)
       {
         for (y = 0 ; y < height ; y++)
         {
-          inBase_f = &MRIvox(mri_src, 0, y, z) ;
-          outPix = &MRIvox(mri_dst, 0, y, z) ;
+          inBase_f = &MRIseq_vox(mri_src, 0, y, z, src_frame) ;
+          outPix = &MRIseq_vox(mri_dst, 0, y, z, dst_frame) ;
           for (x = 0 ; x < width ; x++)
           {
             total = 0.0f ;
@@ -2162,13 +2240,14 @@ MRIconvolve1dByte(MRI *mri_src, MRI *mri_dst, float *k, int len, int axis)
       {
         for (y = 0 ; y < height ; y++)
         {
-          outPix = &MRIvox(mri_dst, 0, y, z) ;
+          outPix = &MRIseq_vox(mri_dst, 0, y, z, dst_frame) ;
           for (x = 0 ; x < width ; x++)
           {
             total = 0.0f ;
 
             for (ki = k, i = 0 ; i < len ; i++)
-              total += *ki++ * MRIvox(mri_src, x,yi[y+i-halflen],z);
+              total += *ki++ * 
+                MRIseq_vox(mri_src, x,yi[y+i-halflen],z,src_frame);
             
             *outPix++ = (BUFTYPE)nint(total) ;
           }
@@ -2180,13 +2259,14 @@ MRIconvolve1dByte(MRI *mri_src, MRI *mri_dst, float *k, int len, int axis)
       {
         for (y = 0 ; y < height ; y++)
         {
-          outPix = &MRIvox(mri_dst, 0, y, z) ;
+          outPix = &MRIseq_vox(mri_dst, 0, y, z, dst_frame) ;
           for (x = 0 ; x < width ; x++)
           {
             total = 0.0f ;
             
             for (ki = k, i = 0 ; i < len ; i++)
-              total += *ki++ * MRIvox(mri_src, x,y,zi[z+i-halflen]);
+              total += *ki++ * 
+                MRIseq_vox(mri_src,x,y,zi[z+i-halflen],src_frame);
             
             *outPix++ = (BUFTYPE)nint(total) ;
           }
@@ -2763,5 +2843,138 @@ MRIremoveHoles(MRI *mri_src, MRI*mri_dst, int wsize, float pct)
       }
     }
   }
+  return(mri_dst) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+           turn a frame of standard deviations (byte) into
+           a frame of variances (also byte, but scaled down
+           by a factor of 20 to fit in a byte image (float
+           images are just too big).
+------------------------------------------------------*/
+#define VARIANCE_SCALING    15
+MRI *
+MRIstdsToVariances(MRI *mri_std, MRI *mri_var, int source_frame)
+{
+  int      x, y, z, width, height, depth ;
+  float    std, var ;
+  BUFTYPE  *pstd, *pvar ;
+
+  if (mri_var == NULL)
+    mri_var = MRIclone(mri_std, NULL) ;
+
+  width = mri_var->width ; height = mri_var->height ; depth = mri_var->depth ;
+
+  for (z = 0 ; z < depth ; z++)
+  {
+    for (y = 0 ; y < height ; y++)
+    {
+      pstd = &MRIseq_vox(mri_std, 0, y, z, source_frame) ;
+      pvar = &MRIvox(mri_var, 0, y, z) ;
+      for (x = 0 ; x < width ; x++)
+      {
+        std = (float)*pstd++ ;
+        var = (std * std) / VARIANCE_SCALING ;
+        if (var > 255)
+          var = 255 ;   /* can't help it - some clipping will occur */
+        *pvar++ = (BUFTYPE)nint(var) ;
+      }
+    }
+  }
+  return(mri_var) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+          Inverse of above procedure.
+------------------------------------------------------*/
+MRI *
+MRIvariancesToStds(MRI *mri_var, MRI *mri_std, int dst_frame)
+{
+  int      x, y, z, width, height, depth ;
+  float    std, var ;
+  BUFTYPE  *pstd, *pvar ;
+
+  if (mri_std == NULL)
+    mri_std = MRIclone(mri_var, NULL) ;
+
+  width = mri_var->width ; height = mri_var->height ; depth = mri_var->depth ;
+
+  for (z = 0 ; z < depth ; z++)
+  {
+    for (y = 0 ; y < height ; y++)
+    {
+      pstd = &MRIseq_vox(mri_std, 0, y, z, dst_frame) ;
+      pvar = &MRIvox(mri_var, 0, y, z) ;
+      for (x = 0 ; x < width ; x++)
+      {
+        var = (float)*pvar++ ;
+        std = sqrt(var * VARIANCE_SCALING) ;
+        if (std > 255)
+          std = 255 ;   /* can't help it - some clipping will occur */
+        *pstd++ = (BUFTYPE)nint(std) ;
+      }
+    }
+  }
+  return(mri_std) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+          convolve a special type of MR image which contains
+          two frames. The first is a frame of means and
+          can be convolved normally. The second is a frame
+          of standard deviations, and must be turned into
+          variances, convolved, then back to stds and appended
+          to the mean image.
+------------------------------------------------------*/
+MRI *
+MRIconvolveGaussianMeanAndStdByte(MRI *mri_src, MRI *mri_dst,
+                                   MRI *mri_gaussian) 
+{
+  MRI   *mri_var, *mri_var_blurred, *mri_means_blurred, *mri_std_blurred ;
+  int   nframes ;
+
+  if (mri_src->nframes < 2)  /* just convolve it normally */
+    return(MRIconvolveGaussian(mri_src, mri_dst, mri_gaussian)) ;
+
+  /* this is a hack, but only want to convolve the first frame of mri_src,
+     as the 2nd is stds which need to be convolved as variances. Not
+     doing this would work but would take twice as much time and memory.
+  */
+  nframes = mri_src->nframes ; mri_src->nframes = 1 ;
+  mri_means_blurred = MRIconvolveGaussian(mri_src, NULL, mri_gaussian) ;
+  mri_src->nframes = nframes ;
+  mri_var = MRIstdsToVariances(mri_src, NULL, 1) ;
+  mri_var_blurred = MRIconvolveGaussian(mri_var, NULL, mri_gaussian) ;
+  MRIfree(&mri_var) ; 
+  mri_std_blurred = MRIvariancesToStds(mri_var_blurred, NULL, 0) ;
+  MRIfree(&mri_var_blurred) ;
+  mri_dst = MRIconcatenateFrames(mri_means_blurred, mri_std_blurred, mri_dst);
+
+  MRIfree(&mri_means_blurred) ; 
+  MRIfree(&mri_std_blurred) ;
+
+  MRIcopyHeader(mri_src, mri_dst) ;
+
+  mri_dst->mean = MRImeanFrame(mri_dst, 1) ;
+  if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON && 0)
+  {
+    char fname[100] ;
+    sprintf(fname, "means_and_stds%d.mgh", (int)mri_dst->thick) ;
+    fprintf(stderr, "writing means and stds to %s\n", fname) ;
+    MRIwrite(mri_dst, fname) ;
+  }
+
   return(mri_dst) ;
 }
