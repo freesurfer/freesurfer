@@ -57,6 +57,9 @@
 #define FILTER_CPOLV_ZSCORE            41
 #define FILTER_WM_STRAND_SIZE          42
 #define FILTER_FILL                    43
+#define FILTER_LOG                     44
+#define FILTER_DOG                     45
+#define FILTER_EXTERNAL                46
 
 #define FILTER_OFFSET            0x0100
 
@@ -68,11 +71,14 @@
 #define FILTER_OFFSET_MEAN       FILTER_MEAN_OFFSET
 #define FILTER_OFFSET_GAUSSIAN   FILTER_GAUSSIAN_OFFSET
 
+
 #include "image.h"
 
 IMAGE    *ImageNitShiFilter(IMAGE *Isrc, IMAGE *Ix, IMAGE *Iy, int wsize, 
                            double sigma, IMAGE *Idst) ;
 IMAGE    *ImageGreyErode(IMAGE *Isrc, IMAGE *Idst) ;
 IMAGE    *ImageGreyDilate(IMAGE *Isrc, IMAGE *Idst) ;
+IMAGE    *ImageLOGFilter(IMAGE *Isrc, float sigma, IMAGE *Idst) ;
+IMAGE    *ImageDOGFilter(IMAGE *Isrc, float psigma, float nsigma,IMAGE *Idst) ;
 
 #endif
