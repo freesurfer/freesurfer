@@ -1492,6 +1492,7 @@ static MRI *mincRead(char *fname, int read_volume)
   int i, j, k, t;
   float xfov, yfov, zfov;
   Real f;
+  BOOLEAN sflag = TRUE ;
 
   /* ----- read the volume ----- */
   dim_names[0] = MIxspace;
@@ -1538,6 +1539,9 @@ printf("%d\n", vol->nc_data_type);
 printf("%d, %d, %d, %d, %d\n", ndims, dim_sizes[0], dim_sizes[1], dim_sizes[2], dim_sizes[3]);
 printf("%d\n", vol->nc_data_type);
 */
+
+  dtype = get_volume_nc_data_type(vol, &sflag) ;
+  dtype = orderIntBytes(vol->nc_data_type) ;
 
   /* ----- get the data type ----- */
   if(vol->nc_data_type == NC_BYTE || vol->nc_data_type == NC_CHAR)
@@ -3454,6 +3458,12 @@ static MRI *genesisRead(char *fname, int read_volume)
   n_r = n_r / nlength;
   n_a = n_a / nlength;
   n_s = n_s / nlength;
+
+  if (getenv("KILLIANY_SWAP") != NULL)
+  {
+    printf("WARNING - swapping normal direction!\n") ;
+    n_a *= -1 ;
+  }
 
   header->x_r = (tr_r - tl_r);  header->x_a = (tr_a - tl_a);  header->x_s = (tr_s - tl_s);
   header->y_r = (br_r - tr_r);  header->y_a = (br_a - tr_a);  header->y_s = (br_s - tr_s);
@@ -7330,6 +7340,8 @@ MRIunpackFileName(char *inFname, int *pframe, int *ptype, char *outFname)
       *ptype = SIEMENS_FILE;
     else if(is_analyze(outFname))
       *ptype = MRI_ANALYZE_FILE;
+    else if (is_signa(outFname))
+      *ptype = SIGNA_FILE ;
     else if(is_sdt(outFname))
       *ptype = SDT_FILE;
     else if(is_mgh(outFname))
@@ -7338,8 +7350,6 @@ MRIunpackFileName(char *inFname, int *pframe, int *ptype, char *outFname)
       *ptype = MRI_MINC_FILE;
     else if(is_bshort(outFname))
       *ptype = BSHORT_FILE;
-    else if (is_signa(outFname))
-      *ptype = SIGNA_FILE ;
     else 
     {
       if(stat(outFname, &stat_buf) < 0)
