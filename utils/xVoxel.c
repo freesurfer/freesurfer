@@ -63,19 +63,19 @@ void xVoxl_Set ( xVoxelRef this, int x, int y, int z ) {
 inline
 int xVoxl_GetX ( xVoxelRef this ) {
 
-  return this->mfX;
+  return (int)(floor( this->mfX + 0.5 ));
 }
 
 inline
 int xVoxl_GetY ( xVoxelRef this ) {
 
-  return this->mfY;
+  return (int)(floor( this->mfY + 0.5 ));
 }
 
 inline
 int xVoxl_GetZ ( xVoxelRef this ) {
 
-  return this->mfZ;
+  return (int)(floor( this->mfZ + 0.5 ));
 }
 
 inline
