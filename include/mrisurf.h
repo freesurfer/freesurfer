@@ -487,6 +487,8 @@ MRI_SP       *MRISgradientToParameterization(MRI_SURFACE *mris, MRI_SP *mrisp,
 MRI_SURFACE  *MRISgradientFromParameterization(MRI_SP*mrisp,MRI_SURFACE *mris);
 MRI_SP       *MRISPblur(MRI_SP *mrisp_src, MRI_SP *mrisp_dst, float sigma,
                         int fno) ;
+MRI_SP       *MRISPconvolveGaussian(MRI_SP *mrisp_src, MRI_SP *mrisp_dst, 
+                                    float sigma, float radius, int fno) ;
 MRI_SP       *MRISPalign(MRI_SP *mrisp_orig, MRI_SP *mrisp_src, 
                          MRI_SP *mrisp_tmp, MRI_SP *mrisp_dst) ;
 MRI_SP       *MRISPtranslate(MRI_SP *mrisp_src, MRI_SP *mrisp_dst, int du, 
@@ -498,6 +500,10 @@ MRI_SP       *MRISPread(char *fname) ;
 int          MRISPwrite(MRI_SP *mrisp, char *fname) ;
 int          MRISwriteArea(MRI_SURFACE *mris, char *mris_fname) ;
 
+#include "label.h"
+double       MRISParea(MRI_SP *mrisp) ;
+MRI_SP  *MRISPorLabel(MRI_SP *mrisp, MRI_SURFACE *mris, LABEL *area) ;
+MRI_SP  *MRISPandLabel(MRI_SP *mrisp, MRI_SURFACE *mris, LABEL *area) ;
 
 #define ORIGINAL_VERTICES   0
 #define ORIG_VERTICES       ORIGINAL_VERTICES
