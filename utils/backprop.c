@@ -8,10 +8,10 @@
 
       Description:  
 
-  $Header: /space/repo/1/dev/dev/utils/backprop.c,v 1.3 1996/06/25 16:27:44 fischl Exp $
+  $Header: /space/repo/1/dev/dev/utils/backprop.c,v 1.4 1996/06/26 11:05:09 fischl Exp $
   $Log: backprop.c,v $
-  Revision 1.3  1996/06/25 16:27:44  fischl
-  use proper diag codes
+  Revision 1.4  1996/06/26 11:05:09  fischl
+  made is machine independent
 
 ----------------------------------------------------------------------*/
 
@@ -44,7 +44,6 @@
 #define InsHfree         free
 #define far
 #define huge
-
 
 /*
   can use either sigmoid or hyperbolic tangent activation function.
@@ -101,9 +100,9 @@ static void bpUnnormalizeTargets(BACKPROP *backprop, float *targets) ;
 static void bpCopyLayer(LAYER *lsrc, LAYER *ldst) ;
 
 /* file maintainance stuff */
-static long bpFileNewEnd(FILE *fp, BPFILE_HEADER *hd) ;
-static long bpFileSeekEndPtr(FILE *fp, BPFILE_HEADER *hd) ;
-static long bpFileSeekNet(FILE *fp, BPFILE_HEADER *hd, int netno) ;
+static long bpFileNewEnd(FILE *fp, BPFILE_HEADER *hd, int swapped) ;
+static long bpFileSeekEndPtr(FILE *fp, BPFILE_HEADER *hd, int swapped) ;
+static long bpFileSeekNet(FILE *fp, BPFILE_HEADER *hd, int netno, int swapped);
 static int  bpChangeNumberOfNets(FILE *fp, int nnets) ;
 
 /*-----------------------------------------------------------------
@@ -211,6 +210,13 @@ BackpropFileNumberOfNets(char *fname)
   }
   DiagPrintf(DIAG_WRITE,"BackpropNumberOfNets(%s): %d nets, 1st at %ld\n",
               fname, hd.nnets, hd.first) ;
+  if (hd.magic != BP_MAGIC)  /* try changing byte order */
+  {
+    hd.magic = swapLong(hd.magic) ;
+    hd.nnets = swapLong(hd.nnets) ;
+    hd.first = swapLong(hd.first) ;
+  }
+
   if (hd.magic != BP_MAGIC)
   {
     fprintf(stderr, "BackpropFileNumberOfNets(%s): bad magic #\n", fname) ;
@@ -230,7 +236,7 @@ BACKPROP *
 BackpropRead(char *fname, int netno)
 {
   BACKPROP       *backprop ;
-  int            ninputs, noutputs, nhidden, ubytes ;
+  int            ninputs, noutputs, nhidden, ubytes, swapped = 0 ;
   FILE           *fp ;
   float          momentum, trate, *min_out, *max_out ;
   BPFILE_HEADER  hd ;
@@ -253,6 +259,13 @@ BackpropRead(char *fname, int netno)
     perror(NULL) ;
     return(NULL);
   }
+  if (hd.magic != BP_MAGIC)  /* try changing byte order */
+  {
+    hd.magic = swapLong(hd.magic) ;
+    hd.nnets = swapLong(hd.nnets) ;
+    hd.first = swapLong(hd.first) ;
+    swapped = 1 ;
+  }
   if (hd.magic != BP_MAGIC)
   {
     fprintf(stderr, "BackpropRead(%s): bad magic #\n", fname) ;
@@ -269,7 +282,7 @@ BackpropRead(char *fname, int netno)
     return(NULL) ;
   }
 
-  bpFileSeekNet(fp, &hd, netno) ;
+  bpFileSeekNet(fp, &hd, netno, swapped) ;
   DiagPrintf(DIAG_WRITE, "after bpFileSeekNet: fpos @ %ld\n", ftell(fp)) ;
   
   if (fscanf(fp, "%d %d %d %f %f %d\n", &ninputs, &noutputs, 
@@ -314,6 +327,11 @@ BackpropRead(char *fname, int netno)
     if (fp != stdin)
       fclose(fp) ;
     exit(-2) ;
+  }
+  if (swapped)
+  {
+    *min_out = swapFloat(*min_out) ;
+    *max_out = swapFloat(*max_out) ;
   }
   backprop = 
     BackpropAlloc(ninputs, noutputs, nhidden, momentum, trate,min_out,max_out);
@@ -484,7 +502,7 @@ BackpropWrite(BACKPROP *backprop, char *fname, int argc, char *argv[],
     break ;
   }
 
-  fpos = bpFileNewEnd(fp, &hd) ;  /* seek to the last net in the file */
+  fpos = bpFileNewEnd(fp, &hd, 0) ;/* seek to the last net in the file */
   DiagPrintf(DIAG_WRITE, "after bpFileNewEnd, fpos @ %ld\n", fpos) ;
 
   /* put NULL pointer to indicate the end of the ptr chain */
@@ -1197,7 +1215,6 @@ bpReadLayer(FILE *fp, LAYER *layer)
   
   fscanf(fp, "%d  %d\n", &layer->ninputs, &layer->nunits) ;
   bpInitLayer(layer, layer->ninputs, layer->nunits) ;
-
  
   fscanf(fp, "\n") ;
 
@@ -1412,7 +1429,7 @@ BackpropEpochComplete(BACKPROP *bp)
     Returns:   
 ----------------------------------------------------------------------*/
 static long
-bpFileNewEnd(FILE *fp, BPFILE_HEADER *hd)
+bpFileNewEnd(FILE *fp, BPFILE_HEADER *hd, int swapped)
 {
   long  end ;
   int   err ;
@@ -1424,7 +1441,7 @@ bpFileNewEnd(FILE *fp, BPFILE_HEADER *hd)
   }
   end = ftell(fp) ;
   
-  bpFileSeekEndPtr(fp, hd) ;
+  bpFileSeekEndPtr(fp, hd, swapped) ;
   DiagPrintf(DIAG_WRITE, "bpFileNewEnd: putting end %ld at %ld\n",
               end, ftell(fp)) ;
   fseek(fp, 0L, SEEK_CUR) ;
@@ -1447,7 +1464,7 @@ bpFileNewEnd(FILE *fp, BPFILE_HEADER *hd)
     Returns:   
 ----------------------------------------------------------------------*/
 static long
-bpFileSeekEndPtr(FILE *fp, BPFILE_HEADER *hd)
+bpFileSeekEndPtr(FILE *fp, BPFILE_HEADER *hd, int swapped)
 {
   long next ;
 
@@ -1470,6 +1487,8 @@ bpFileSeekEndPtr(FILE *fp, BPFILE_HEADER *hd)
       perror(NULL) ;
       exit(-1) ;
     }
+    if (swapped)
+      next = swapLong(next) ;
     DiagPrintf(DIAG_WRITE, "bpFileSeekEnd: next %ld @ %ld\n", next,
                 ftell(fp)-sizeof(long));
   }
@@ -1490,7 +1509,7 @@ bpFileSeekEndPtr(FILE *fp, BPFILE_HEADER *hd)
     Returns:   
 ----------------------------------------------------------------------*/
 static long
-bpFileSeekNet(FILE *fp, BPFILE_HEADER *hd, int netno)
+bpFileSeekNet(FILE *fp, BPFILE_HEADER *hd, int netno, int swapped)
 {
   int  index ;
   long next ;
@@ -1515,6 +1534,8 @@ bpFileSeekNet(FILE *fp, BPFILE_HEADER *hd, int netno)
       perror(NULL) ;
       exit(-1) ;
     }
+    if (swapped)
+      next = swapLong(next) ;
     DiagPrintf(DIAG_WRITE, "bpFileSeekNet: %d at %ld\n", index, next) ;
   }
   if (fseek(fp, next+sizeof(long), SEEK_SET))
