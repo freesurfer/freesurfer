@@ -292,6 +292,9 @@ MRIreadInfo(char *fpref)
         else
           strcpy(fname, mri->transform_fname) ; /* absolute path */
         FileNameAbsolute(fname, mri->transform_fname) ;
+        if (!FileExists(mri->transform_fname))  /* try typical location */
+          sprintf(mri->transform_fname,"%s/../transforms/talairach.xfm",fpref);
+
         if (input_transform_file(mri->transform_fname, &mri->transform) != OK)
           ErrorPrintf(ERROR_NO_MEMORY, 
                       "MRIreadInfo: could not read xform file '%s'\n", 
