@@ -3,12 +3,13 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2004/05/26 21:18:48 $
-// Revision       : $Revision: 1.136 $
+// Revision Date  : $Date: 2004/05/26 22:07:27 $
+// Revision       : $Revision: 1.137 $
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
+#include <errno.h>
 
 #include "mri.h"
 #include "error.h"
@@ -9867,8 +9868,8 @@ GCAhistoScaleImageIntensities(GCA *gca, MRI *mri)
       HISTOplot(h_smooth, "mri_smooth.histo") ;
     /* assume it is the right-most peak of image is supposed to be T1-weighted */
     if (gca->ninputs == 1 && 
-				(gca->type == GCA_UNKNOWN || gca->type == GCA_NORMAL ||
-				 (gca->type == GCA_FLASH && (DEGREES(mri->flip_angle)>15))))
+	(gca->type == GCA_UNKNOWN || gca->type == GCA_NORMAL ||
+	 (gca->type == GCA_FLASH && (DEGREES(mri->flip_angle)>15))))
       mri_peak = HISTOfindLastPeak(h_smooth, HISTO_WINDOW_SIZE,MIN_HISTO_PCT);
     else
       mri_peak = HISTOfindHighestPeakInRegion(h_smooth, 1, h_mri->nbins);
