@@ -283,6 +283,7 @@ typedef struct
   float   l_intensity ;       /* for settling surface at a specified val */
   float   l_sphere ;          /* for expanding the surface to a sphere */
   float   l_expand ;          /* for uniformly expanding the surface */
+  float   l_grad ;            /* gradient term */
   int     n_averages ;        /* # of averages */
   int     min_averages ;
   int     nbhd_size ;
