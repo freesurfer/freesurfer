@@ -16,7 +16,7 @@
 #define WHITE_MATTER                       2
 #define BRIGHT_MATTER                      3
 #define LO_LIM                             70
-#define HI_LIM                             150
+#define HI_LIM                             100
 #define DEFINITELY_BACKGROUND              50
 
 /* range for scatter matrix plotting */
@@ -104,6 +104,8 @@ int    MRICcomputeStatistics(MRIC *mric, int round) ;
 char   *MRICclassName(MRIC *mric, int round, int classno) ;
 int    MRICdump(FILE *fp, MRIC *mric) ;
 char   *MRICfeatureName(MRIC *mric, int round, int feature_number) ;
+int    MRICfeatureCode(MRIC *mric, int round, int feature_number) ;
+int    MRICfeatureNumberCode(int feature_number) ;
 int    MRICexamineTrainingSet(MRIC *mric, char *file_name, int round) ;
 int    MRICbuildScatterPlot(MRIC *mric, int class, MATRIX *m_scatter,
                  char *training_file_name) ;
