@@ -32,6 +32,7 @@ switch(cbflag)
       qoe(msg);error(msg);
     end
     ud.yvpltraw = 1;
+    ud.percent  = 0;
     ud.hdatfile = varargin{2};
     if(nargin == 3) ud.hparent = varargin{3};
     else ud.hparent = [];
@@ -124,6 +125,9 @@ switch(cbflag)
         ud.perrun = ~ud.perrun;
         [ud err] = load_voxel(ud);
         [ud err] = set_matrices(ud);
+      case {'c'}, % percent signal change
+        ud.percent = ~ud.percent;
+	[ud err] = load_voxel(ud);
       case {'f'},
         ud.fixaxes = ~ud.fixaxes;
         ud.axis = axis;
@@ -133,6 +137,24 @@ switch(cbflag)
         ud.showpmf = ~ud.showpmf;
         [ud err] = set_matrices(ud);
         if(err) return; end
+      case {'='}, % advance to the next run
+        ud.nthrun = ud.nthrun + 1;
+	if(ud.nthrun > length(ud.ad.runlist))
+	  ud.nthrun = 1;
+	end
+        [ud err] = set_stem(ud);
+        [ud err] = set_matrices(ud);
+        [ud err] = load_voxel(ud);
+        [ud err] = load_parfile(ud);
+      case {'-'}, % goto prev run
+        ud.nthrun = ud.nthrun - 1;
+	if(ud.nthrun < 1)
+	  ud.nthrun = length(ud.ad.runlist);
+	end
+        [ud err] = set_stem(ud);
+        [ud err] = set_matrices(ud);
+        [ud err] = load_voxel(ud);
+        [ud err] = load_parfile(ud);
       case {'p'},
         ud.showpar = ~ud.showpar;
       case {'r'},
@@ -339,8 +361,17 @@ function [ud, err] = load_voxel(ud)
     err = 1;
     return;
   end
+  if(~isempty(ud.rescale))
+    v = v*ud.rescale(ud.nthrun);
+  end
+  if(ud.percent)
+    mnstem = sprintf('%s/h-offset',ud.anadir);
+    vmn = fast_ldbvoxel(mnstem,ud.c,ud.r,ud.s,ud.base);
+    v = 100*(v-vmn)/vmn;
+  end
   ud.v = v;
   if(~ud.perrun) [ud err] = load_voxel_allruns(ud); end
+
   %fprintf('Time to load: %g\n',toc);
 return;
 
@@ -364,9 +395,14 @@ function [ud, err] = load_voxel_allruns(ud)
     if(~isempty(ud.rescale))
       v = v*ud.rescale(nthrun);
     end
-    
     vall = [vall; v];
   end
+  if(ud.percent)
+    mnstem = sprintf('%s/h-offset',ud.anadir);
+    vmn = fast_ldbvoxel(mnstem,ud.c,ud.r,ud.s,ud.base);
+    vall = 100*(vall-vmn)/vmn;
+  end
+    
   ud.vall = vall;
 return;
 
