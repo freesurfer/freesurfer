@@ -229,6 +229,10 @@ xListNodeRef xList_FindItem_ ( xListRef this, void *ipItem ) {
 
   xListNodeRef  pCurNode   = NULL;
 
+  // if no comparator, return null.
+  if( NULL == this->mComparator )
+    return NULL;
+
   // scan through the list.
   pCurNode = this->mpHead;
   while ( NULL != pCurNode ) {

@@ -208,9 +208,11 @@ void MakeFileName ( char*          isInput,
         tkm_tFileName  iType, 
         char*          osCompleteFileName);
 
-/* attempts to extract a subject name from the data */
+/* attempts to extract a name from the data */
 void ExtractSubjectName ( char* isDataSource,
         char* osSubjectName );
+void ExtractVolumeName  ( char* isDataSource,
+        char* osVolumeName );
 
 // ==========================================================================
 
@@ -369,10 +371,12 @@ General_transform gAuxAnaToTalTransform;
 tBoolean          gbAnaToTalTransformLoaded    = FALSE;
 tBoolean          gbAuxAnaToTalTransformLoaded = FALSE;
 
-char gSubjectName[256]      = "";
-char gAuxSubjectName[256]   = "";
-char gVolumeSrc[256]        = "";
-char gAuxVolumeSrc[256]     = "";
+char gSubjectName[256]            = ""; /* i.e. anders */
+char gAuxSubjectName[256]         = ""; 
+char gSubjectVolumeName[256]      = ""; /* i.e. T1 */
+char gAuxSubjectVolumeName[256]   = "";
+char gVolumeSrc[256]              = ""; /* i.e. /home/users/../anders/mri/T1 */
+char gAuxVolumeSrc[256]           = "";
 
 void          InitVolume            ( tVolumeRef*        ioVolume, 
               int                inDimension );
@@ -445,22 +449,23 @@ void LoadFunctionalTimeCourse ( char* isPathAndStem );
 
 // ===========================================================================
 
-// ============================================================== PARCELLATION
+// ================================================ PARCELLATION and ROI GROUPS
 
 #include "mriColorLookupTable.h"
+#include "mriROIGroup.h"
 
-static tVolumeRef             gParcellationVolume = NULL;
-static mriColorLookupTableRef gColorTable         = NULL;
+static mriROIGroupRef         gROIGroup    = NULL;
+static mriColorLookupTableRef gColorTable  = NULL;
 
 void LoadParcellationVolume ( char* inVolumeDirWithPrefix,
             char* inColorFileName );
 
-void GetParcellationColor    ( xVoxelRef   inVoxel, 
+void GetROIColorAtVoxel      ( xVoxelRef   inVoxel, 
              xColor3fRef oColor );
-void GetParcellationLabel    ( xVoxelRef   ipVoxel, 
+void GetROILabel             ( xVoxelRef   ipVoxel, 
              int*        onIndex,
              char*       osLabel );
-void SelectParcellationLabel ( int         inIndex );
+void SelectCurrentROI        ( int         inIndex );
 
 // ===========================================================================
 
@@ -1397,147 +1402,72 @@ void save_rgb( char* fname ) {
 }
 
 
-void GotoSurfaceVertex ( Surf_tVertexSet inSurface, int inVertex ) {
+void GotoSurfaceVertex ( Surf_tVertexSet iSurface, int inVertex ) {
 
-#if 0
+  Surf_tErr eSurface = Surf_tErr_NoErr;
+  MWin_tErr eWindow  = MWin_tErr_NoErr;
+  xVoxel    anaIdx;
+            
+  /* get the vertex */
+  eSurface = Surf_GetNthVertex( gSurface, iSurface, inVertex, &anaIdx );
+  if( Surf_tErr_NoErr != eSurface ) 
+    goto error;
 
-  VERTEX* theVertex;
-  int theVoxX, theVoxY, theVoxZ;
- xVoxelRef theVolumeVox;
-  
-  /* make sure surface is loaded. */
-  if ( !mris ) {
-    OutputPrint "Surface is not loaded.\n" EndOutputPrint;
-    return;
-  }
-
-  /* make sure this value is in bounds */
-  if ( inVertex < 0 
-       || inVertex >= mris->nvertices ) {
-
-    OutputPrint "%d is an invalid vertex number.\n", inVertex EndOutputPrint;
-    return;
-  }
-
-  /* get the vertex. */
-  theVertex = &(mris->vertices[inVertex]);
-  if ( NULL == theVertex ) {
-    DebugPrint "GotoSurfaceVertex( %d, %d ): Vertex was NULL.\n", 
-      (int)inSurface, inVertex EndDebugPrint;
-    OutputPrint "Error getting vertex from surface.\n" EndOutputPrint;
-    return;
-  }
-
-  /* convert the coords to volume voxel. */
-  switch ( inSurface ) {
-  case Surf_tVertexSet_Main:
-    RASToVoxel ( theVertex->x, theVertex->y, theVertex->z,
-     &theVoxX,     &theVoxY,     &theVoxZ ); 
-    break;
-  case Surf_tVertexSet_Original:
-    RASToVoxel ( theVertex->origx, theVertex->origy, theVertex->origz,
-     &theVoxX,         &theVoxY,         &theVoxZ ); 
-    break;
-  case Surf_tVertexSet_Pial:
-    RASToVoxel ( theVertex->cx, theVertex->cy, theVertex->cz,
-     &theVoxX,      &theVoxY,      &theVoxZ ); 
-    break;
-  default:
-    DebugPrint "GotoSurfaceVertex( %d, %d ): Invalid surface.\n",
-      (int)inSurface, inVertex EndDebugPrint;
-    OutputPrint "Error finding vertex.\n" EndOutputPrint;
-    return;
-  }
-
-  /* build a voxel */
-  xVoxl_New ( &theVolumeVox );
-  xVoxl_Set ( theVolumeVox, theVoxX, theVoxY, theVoxZ );
-         
   /* tell the window to go there. */
-  MWin_SetCursor ( gMeditWindow, -1, theVolumeVox );
+  eWindow = MWin_SetCursor ( gMeditWindow, -1, &anaIdx );
+  if( MWin_tErr_NoErr != eWindow )
+    goto error;
+
+  goto cleanup;
   
-  /* tell the window to hilite the vertex. */
-  MWin_HiliteSurfaceVertex ( gMeditWindow, -1, inSurface, inVertex );
-#endif
+ error:
+
+  DebugPrint "Error in GotoSurfaceVertex( %d, %d )\n",
+    (int)iSurface, inVertex EndDebugPrint;
+
+ cleanup:
+  return;
 }
 
-void FindNearestSurfaceVertex ( Surf_tVertexSet inSurface ) {
+void FindNearestSurfaceVertex ( Surf_tVertexSet iSurface ) {
 
-#if 0
+  Surf_tErr eSurface = Surf_tErr_NoErr;
+  MWin_tErr eWindow  = MWin_tErr_NoErr;
+  xVoxel    cursor;
+  xVoxel    anaIdx;
+  char      sResult[256];
+  char      sSetName[256];
 
-  VERTEX* theVertex;
- xVoxelRef theCursor = NULL;
-  Real theRASX, theRASY, theRASZ;
-  int theCurVertex, theClosestVertex;
-  float dx, dy, dz, theDistance, theMinDistance;
+  /* get the cursor */
+  eWindow = MWin_GetCursor ( gMeditWindow, &cursor );
+  if( MWin_tErr_NoErr != eWindow )
+    goto error;
 
-  /* make sure we have a surface */
-  if ( !mris ) {
-    OutputPrint "Surface is not loaded.\n" EndOutputPrint;
-    return;
-  }
-  /* get cursor and convert to RAS */
-  xVoxl_New ( &theCursor );
-  MWin_GetCursor ( gMeditWindow, theCursor );
-  VoxelToRAS ( xVoxl_ExpandInt(theCursor), 
-         &theRASX, &theRASY, &theRASZ );
-  xVoxl_Delete ( &theCursor );
+  /* get the vertex */
+  eSurface = Surf_GetClosestVertex( gSurface, iSurface, &cursor, &anaIdx,
+            sResult);
+  if( Surf_tErr_NoErr != eSurface ) 
+    goto error;
 
-  /* nothing yet */
-  theMinDistance = 1e9;
-  theClosestVertex = -1;
+  /* print the result string */
+  Surf_GetSurfaceSetName( iSurface, sSetName );
+  OutputPrint "Nearest %s vertex to %d, %d, %d:\n\t%s\n", 
+    sSetName, xVoxl_ExpandInt( &cursor ), sResult EndOutputPrint;
 
-  /* for all vertices... */
-  for ( theCurVertex = 0; theCurVertex < mris->nvertices; theCurVertex++ ) {
+  /* tell the window to go there. */
+  eWindow = MWin_SetCursor ( gMeditWindow, -1, &anaIdx );
+  if( MWin_tErr_NoErr != eWindow )
+    goto error;
 
-    /* the vertex */
-    theVertex = &(mris->vertices[theCurVertex]);
+  goto cleanup;
+  
+ error:
 
-    /* calc distance to cursor */
-    switch ( inSurface ) {
-    case Surf_tVertexSet_Main:
-      dx = theVertex->x - theRASX;
-      dy = theVertex->y - theRASY;
-      dz = theVertex->z - theRASZ;
-      break;
-    case Surf_tVertexSet_Original:
-      dx = theVertex->origx - theRASX;
-      dy = theVertex->origy - theRASY;
-      dz = theVertex->origz - theRASZ;
-      break;
-    case Surf_tVertexSet_Pial:
-      dx = theVertex->cx - theRASX;
-      dy = theVertex->cy - theRASY;
-      dz = theVertex->cz - theRASZ;
-      break;
-    default:
-      return;
-    }
+  DebugPrint "Error in FindNearestSurfaceVertex( %d )\n",
+    (int)iSurface EndDebugPrint;
 
-    theDistance = dx*dx + dy*dy + dz*dz;
-
-    /* if less than min, save it. */
-    if ( theDistance < theMinDistance ) {
-      theClosestVertex = theCurVertex;
-      theMinDistance = theDistance;
-    }
-  }
-
-  if ( theCurVertex != -1 ) {
-
-    theVertex = &(mris->vertices[theClosestVertex]);
-    OutputPrint "Found vertex %d @ (%2.1f, %2.1f, %2.1f), %2.1f mm away\n",
-      theClosestVertex, theVertex->x, theVertex->y, theVertex->z,
-      sqrt(theMinDistance) EndOutputPrint;
-    
-    /* tell window to hilite that vertex */
-    MWin_HiliteSurfaceVertex ( gMeditWindow, -1, inSurface, theClosestVertex );
-
-  } else {
-    
-    OutputPrint "Nothing found!\n" EndOutputPrint;
-  }
-#endif
+ cleanup:
+  return;
 }
 
 void WriteVoxelToControlFile ( xVoxelRef inVolumeVox ) {
@@ -1865,8 +1795,9 @@ read_images( char *isName ) {
     tkm_SendTclCommand( tkm_tTclCommand_AlertDlog, sTclArguments ); 
   }
 
-  /* get the subject name */
+  /* get the subject and volume name */
   ExtractSubjectName( gVolumeSrc, gSubjectName );
+  ExtractVolumeName( gVolumeSrc, gSubjectVolumeName );
 
   /* set data in window */
   if( NULL != gMeditWindow ) {
@@ -1924,6 +1855,7 @@ read_second_images( char *isName )
 
   /* get the subject name */
   ExtractSubjectName( gAuxVolumeSrc, gAuxSubjectName );
+  ExtractVolumeName( gAuxVolumeSrc, gAuxSubjectVolumeName );
 
 
   /* set data in window */
@@ -2094,9 +2026,13 @@ void LoadSurfaceVertexSet ( Surf_tVertexSet iSet,
     flag = DspA_tDisplayFlag_OriginalSurface;
     command = tkm_tTclCommand_ShowOriginalSurfaceViewingOptions;
   }
+
   /* turn flag on or off and enable or disable viewing optiosn */
   MWin_SetDisplayFlag( gMeditWindow, -1, flag, bLoaded );
   tkm_SendTclCommand( command, bLoaded?"1":"0" );
+
+  /* set the surface in the window to purge the cache */
+  MWin_SetSurface( gMeditWindow, -1, gSurface );
 }
 
 void UnloadSurface () {
@@ -5294,6 +5230,57 @@ void MakeFileName ( char*          isInput,
 void ExtractSubjectName ( char* isDataSource,
         char* osSubjectName ) {
 
+  int   nChar      = 0;
+  int   nWordChar  = 0;
+  char* sWord      = NULL;
+  char  sName[256] = "";
+  int   nLastSlash = 0;
+
+  /* look for 'subjects' in the title */
+  sWord = strstr( isDataSource, "subjects/" );
+  if( NULL != sWord ) {
+
+    /* we're at the s in subjects now. scoot ahead to the slash. */
+    nChar = 0;
+    while( sWord[nChar] != '/' &&
+     sWord[nChar] != '\0' ) {
+      nChar++;
+    }
+
+    /* if found, use the next part as the name */
+    nWordChar = 0;
+    nChar++; /* get past the slash */
+    while( sWord[nChar] != '/' &&
+     sWord[nChar] != '\0' ) {
+      sName[nWordChar] = sWord[nChar];
+      nWordChar++;
+      nChar++;
+    }
+
+  } else {
+    
+    /* else just use the last part */
+    nChar = 0;
+    while( isDataSource[nChar] != '\0' ) {
+      if( isDataSource[nChar] == '/' )
+  nLastSlash = nChar;
+      nChar++;
+    }
+
+    /* if we got it, use it, else use the whole source. */
+    if( isDataSource[nLastSlash] == '/' ) 
+      strcpy( sName, &(isDataSource[nLastSlash+1]) );
+    else 
+      strcpy( sName, isDataSource );
+  }
+
+  /* return the result */
+  strcpy( osSubjectName, sName );
+}
+
+void ExtractVolumeName ( char* isDataSource,
+       char* osVolumeName ) {
+
   int nChar      = 0;
   int nLastSlash = 0;
 
@@ -5307,9 +5294,9 @@ void ExtractSubjectName ( char* isDataSource,
   /* if we got one, everything from there+1 into the subjectname, 
      otherwise just use the whole name */
   if( isDataSource[nLastSlash] == '/' )
-    strcpy( osSubjectName, &(isDataSource[nLastSlash+1]) );
+    strcpy( osVolumeName, &(isDataSource[nLastSlash+1]) );
   else
-    strcpy( osSubjectName, isDataSource );
+    strcpy( osVolumeName, isDataSource );
 }
 
 // ===========================================================================
@@ -5712,7 +5699,7 @@ void LoadFunctionalTimeCourse( char* isFilename ) {
 }
 
 
-// ============================================================== PARCELLATION
+// ================================================= PARCELLATION and ROI GROUP
 
 void LoadParcellationVolume ( char* isVolumeDirWithPrefix,
             char* isColorFileName ) {
@@ -5720,6 +5707,7 @@ void LoadParcellationVolume ( char* isVolumeDirWithPrefix,
   char      sParcellationFileName[256] = "";
   char      sColorFileName[256]        = "";
   CLUT_tErr eColorTable                = CLUT_tErr_NoErr;
+  ROIG_tErr eROIGroup                  = ROIG_tErr_NoErr;
 
   /* make a file name */
   MakeFileName( isVolumeDirWithPrefix, tkm_tFileName_Parcellation, 
@@ -5734,47 +5722,57 @@ void LoadParcellationVolume ( char* isVolumeDirWithPrefix,
     goto error;
   }
 
-  /* free existing volume. */
-  if( NULL != gParcellationVolume ) {
-    free( gParcellationVolume );
-    gParcellationVolume = NULL;
+  /* free existing roi group if present. */
+  if( NULL != gROIGroup ) {
+    eROIGroup = ROIG_Delete( &gROIGroup );
+    if( ROIG_tErr_NoErr != eROIGroup )
+      goto error;
   }
 
   /* read in parcellation volume */
-  if( ReadVolumeWithMRIRead( &gParcellationVolume, 
-           NULL,
-           sParcellationFileName ) ) {
-    DebugPrint "LoadParcellationVolume: Couldn't open %s\n",
-      sParcellationFileName EndDebugPrint;
-    OutputPrint "Error finding parcellation data.\n" EndOutputPrint;
+  eROIGroup = ROIG_New( &gROIGroup );
+  if( ROIG_tErr_NoErr != eROIGroup )
     goto error;
-  }
+
+  eROIGroup = ROIG_ImportVolume( gROIGroup, sParcellationFileName, 
+         isColorFileName );
+  if( ROIG_tErr_NoErr != eROIGroup )
+    goto error;
 
   /* set parcellation volume in window */
   if( gMeditWindow ) {
-    MWin_SetParcellationVolume( gMeditWindow, -1, gParcellationVolume, 
-        knVolumeSize );
+    MWin_SetROIGroup( gMeditWindow, -1, gROIGroup );
   }
 
   goto cleanup;
 
  error:
 
-  DebugPrint "Error in LoadParcellationVolume.\n" EndDebugPrint;
+  if( ROIG_tErr_NoErr != eROIGroup ) {
+    DebugPrint "LoadParcellationVolume: Couldn't open %s\n",
+      sParcellationFileName EndDebugPrint;
+    OutputPrint "Error finding or opening parcellation data.\n" EndOutputPrint;
+  }
+
+  if( CLUT_tErr_NoErr != eColorTable ) {
+    DebugPrint "LoadParcellationVolume: Couldn't open %s\n",
+      sColorFileName EndDebugPrint;
+    OutputPrint "Error finding or opening color table.\n" EndOutputPrint;
+  }
 
  cleanup:
   return;
 }
 
-void GetParcellationColor (xVoxelRef ipVoxel, xColor3fRef oColor ) {
+void GetROIColorAtVoxel (xVoxelRef ipVoxel, xColor3fRef oColor ) {
 
-  tVolumeValue index        = 0;
-  CLUT_tErr    eColorTable  = CLUT_tErr_NoErr;
+  int         index        = 0;
+  CLUT_tErr   eColorTable  = CLUT_tErr_NoErr;
 
-  /* get the index from the volume */
-  index = GetVoxelValue( gParcellationVolume, xVoxl_ExpandInt(ipVoxel) );
+  /* get the index of this voxel */
+  GetROILabel( ipVoxel, &index, NULL );
 
-  /* if 0, skip */
+  /* If 0, skip */
   if( 0 == index ) {
     oColor->mfRed   = 0;
     oColor->mfGreen = 0;
@@ -5801,30 +5799,38 @@ void GetParcellationColor (xVoxelRef ipVoxel, xColor3fRef oColor ) {
   return;
 }
 
-void GetParcellationLabel (xVoxelRef ipVoxel, 
-         int*      onIndex,
-         char*     osLabel ) {
+void GetROILabel ( xVoxelRef ipVoxel, 
+       int*      onIndex,
+       char*     osLabel ) {
 
-  tVolumeValue index        = 0;
-  CLUT_tErr    eColorTable  = CLUT_tErr_NoErr;
+  int            index        = 0;
+  CLUT_tErr      eColorTable  = CLUT_tErr_NoErr;
+  ROIG_tErr      eROIGroup    = ROIG_tErr_NoErr;
+  mriROIVoxelRef voxel        = NULL;
 
-  /* get the index from the volume */
-  index = GetVoxelValue( gParcellationVolume, xVoxl_ExpandInt(ipVoxel) );
-
-  /* if 0, skip */
-  if( 0 == index ) {
-    *onIndex = -1;
-    strcpy( osLabel, "None" );
-    goto cleanup;
+  /* get the voxel at this location */
+  eROIGroup = ROIG_GetVoxel( gROIGroup, ipVoxel, &voxel );
+  if( NULL != voxel ) {
+    index = voxel->mLabelIndex;
+  } else {
+    index = 0;
   }
 
   /* get the label out of the table and return it and in the index */
-  eColorTable = CLUT_GetLabel( gColorTable, index, osLabel );
-  if( CLUT_tErr_NoErr != eColorTable )
-    goto error;
+  if( NULL != osLabel ) {
+    if( 0 == index ) {
+      strcpy( osLabel, "None" );
+    } else {
+      eColorTable = CLUT_GetLabel( gColorTable, index, osLabel );
+      if( CLUT_tErr_NoErr != eColorTable )
+  goto error;
+    }
+  }
 
   /* return the index */
-  *onIndex = index;
+  if( NULL != onIndex ) {
+    *onIndex = index;
+  }
 
   goto cleanup;
 
@@ -5832,18 +5838,21 @@ void GetParcellationLabel (xVoxelRef ipVoxel,
 
   DebugPrint "Error in GetParcellationColor.\n" EndDebugPrint;
 
-  *onIndex = -1;
-  strcpy( osLabel, "None" );
+  if( NULL != onIndex )
+    *onIndex = -1;
+  if( NULL != osLabel )
+    strcpy( osLabel, "None" );
 
  cleanup:
   return;
 }
 
-void SelectParcellationLabel ( int inIndex ) {
+void SelectCurrentROI ( int inIndex ) {
 
+#if 0
   xVoxel voxel;
   tVolumeValue index = 0;
-  
+
   OutputPrint "Selecting... 0%%" EndOutputPrint;
 
   /* go thru the volume */
@@ -5873,6 +5882,7 @@ void SelectParcellationLabel ( int inIndex ) {
 
   /* redraw */
   UpdateAndRedraw();
+#endif
 }
 
 // ============================================================== EDITING UNDO
@@ -6690,29 +6700,29 @@ char* tkm_GetSubjectName() {
 
 char* tkm_GetVolumeName() {
 
-  return gSubjectName;
+  return gSubjectVolumeName;
 }
 
 char* tkm_GetAuxVolumeName() {
 
-  return gAuxSubjectName;
+  return gAuxSubjectVolumeName;
 }
 
 
-void tkm_GetParcellationColor(xVoxelRef inVoxel, xColor3fRef oColor ) {
+void tkm_GetROIColorAtVoxel ( xVoxelRef inVoxel, xColor3fRef oColor ) {
   
-  GetParcellationColor( inVoxel, oColor );
+  GetROIColorAtVoxel( inVoxel, oColor );
 }
 
-void tkm_GetParcellationLabel ( xVoxelRef inVoxel, 
-        int* onIndex, char* osLabel ) {
+void tkm_GetROILabel ( xVoxelRef inVoxel, 
+           int* onIndex, char* osLabel ) {
 
-  GetParcellationLabel( inVoxel, onIndex, osLabel );
+  GetROILabel( inVoxel, onIndex, osLabel );
 }
 
-void tkm_SelectParcellationLabel ( int inIndex ) {
+void tkm_SelectCurrentROI ( int inIndex ) {
   
-  SelectParcellationLabel( inIndex );
+  SelectCurrentROI( inIndex );
 }
 
 char kTclCommands [tkm_knNumTclCommands][256] = {
@@ -6734,7 +6744,7 @@ char kTclCommands [tkm_knNumTclCommands][256] = {
   "UpdateBrush",
   "UpdateBrushThreshold",
   "UpdateVolumeColorScaleInfo",
-  "UpdateParcellationLabel",
+  "UpdateROILabel",
   "UpdateHeadPointLabel",
   
   /* display status */
@@ -6742,7 +6752,7 @@ char kTclCommands [tkm_knNumTclCommands][256] = {
   "ShowRASCoords",
   "ShowTalCoords",
   "ShowAuxValue",
-  "ShowParcellationLabel",
+  "ShowROILabel",
   "ShowHeadPointLabel",
   "ShowFuncCoords",
   "ShowFuncValue",

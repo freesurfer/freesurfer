@@ -29,6 +29,10 @@ inline void xVoxl_SetX ( xVoxelRef this, int x );
 inline void xVoxl_SetY ( xVoxelRef this, int y );
 inline void xVoxl_SetZ ( xVoxelRef this, int z );
 
+inline void xVoxl_SetFloatX ( xVoxelRef this, float x );
+inline void xVoxl_SetFloatY ( xVoxelRef this, float y );
+inline void xVoxl_SetFloatZ ( xVoxelRef this, float z );
+
 inline int xVoxl_GetX ( xVoxelRef this );
 inline int xVoxl_GetY ( xVoxelRef this );
 inline int xVoxl_GetZ ( xVoxelRef this );

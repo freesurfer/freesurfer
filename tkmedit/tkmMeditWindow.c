@@ -73,7 +73,7 @@ MWin_tErr MWin_New ( tkmMeditWindowRef* oppWindow,
 
   /* set the default configuration and position the displays */
   eResult =
-    MWin_SetDisplayConfiguration ( this, MWin_tDisplayConfiguration_1x1 );
+    MWin_SetDisplayConfiguration ( this, 1, 1, MWin_tLinkPolicy_None );
   if ( MWin_tErr_NoErr != eResult )
     goto error;
 
@@ -234,8 +234,10 @@ MWin_tErr MWin_GetWindowSize ( tkmMeditWindowRef this,
   return eResult;
 }
 
-MWin_tErr MWin_SetDisplayConfiguration ( tkmMeditWindowRef          this,
-           MWin_tDisplayConfiguration iConfig ) {
+MWin_tErr MWin_SetDisplayConfiguration ( tkmMeditWindowRef this,
+           int               inCols, 
+           int               inRows,
+           MWin_tLinkPolicy  iPolicy ) {
 
   MWin_tErr eResult     = MWin_tErr_NoErr;
 
@@ -244,8 +246,16 @@ MWin_tErr MWin_SetDisplayConfiguration ( tkmMeditWindowRef          this,
   if ( MWin_tErr_NoErr != eResult )
     goto error;
 
+  if( inCols < 0 || inRows < 0 ||
+      inCols * inRows > MWin_knMaxNumAreas ) {
+    eResult = MWin_tErr_InvalidDisplayConfiguration;
+    goto error;
+  }
+
   /* save the configuration */
-  this->mConfiguration = iConfig;
+  this->mnCols      = inCols;
+  this->mnRows      = inRows;
+  this->mLinkPolicy = iPolicy;
 
   /* position the subpanes */
   eResult = MWin_PositionDisplays_ ( this );
@@ -254,7 +264,7 @@ MWin_tErr MWin_SetDisplayConfiguration ( tkmMeditWindowRef          this,
 
   /* if config is 1x1, turn focus frame off, otherwise turn it on. */
   eResult = MWin_SetDisplayFlag( this, -1, DspA_tDisplayFlag_FocusFrame,
-         (iConfig==MWin_tDisplayConfiguration_1x1)?
+         (this->mnCols == 1 && this->mnRows == 1)?
          FALSE:TRUE );
   if ( MWin_tErr_NoErr != eResult )
     goto error;
@@ -279,35 +289,18 @@ MWin_tErr MWin_PositionDisplays_ ( tkmMeditWindowRef this ) {
   MWin_tErr eResult     = MWin_tErr_NoErr;
   DspA_tErr eDispResult = DspA_tErr_NoErr;
   int       nDisplay    = 0;
+  int       nMosaicHackedIndex    = 0;
   xPoint2n  location    = {0, 0};
   int       nZoomLevel  = 0;
   int       nX          = 0;
   int       nY          = 0;
   int       nWidth      = 0;
   int       nHeight     = 0;
-  int       nCols       = 0;
-  int       nRows       = 0;
   mri_tOrientation orientation = mri_tOrientation_Coronal;
-
-  switch ( this->mConfiguration ) {
-
-  case MWin_tDisplayConfiguration_1x1:
-    nRows = nCols = 1;
-    break;
-  case MWin_tDisplayConfiguration_2x2:
-    nRows = nCols = 2;
-    break;
-  case MWin_tDisplayConfiguration_4x4:
-    nRows = nCols = 4;
-    break;
-  default:
-    eResult = MWin_tErr_InvalidDisplayConfiguration;
-    goto error;
-  }
 
   /* if we're on 1x1, just make the focused one big and the rest
      little */
-  if( MWin_tDisplayConfiguration_1x1 == this->mConfiguration ) {
+  if( this->mnCols == 1 && this->mnRows == 1 ) {
 
     for( nDisplay = nDisplay; nDisplay < MWin_knMaxNumAreas; nDisplay++ ) {
       
@@ -347,56 +340,51 @@ MWin_tErr MWin_PositionDisplays_ ( tkmMeditWindowRef this ) {
   }
   
   nDisplay = 0;
-  for( nY = 0; nY < nRows; nY++ ) {
-    for( nX = 0; nX < nCols; nX++ ) {
+  for( nY = 0; nY < this->mnRows; nY++ ) {
+    for( nX = 0; nX < this->mnCols; nX++ ) {
       
       /* set its position and size */
-      location.mnX = (nX * this->mnWidth / nCols);
-      location.mnY = (nY * this->mnHeight / nRows);
+      location.mnX = (nX * this->mnWidth / this->mnCols);
+      location.mnY = (nY * this->mnHeight / this->mnRows);
       eDispResult = DspA_SetPosition ( this->mapDisplays[nDisplay],
                location, 
-               this->mnWidth / nCols, 
-               this->mnHeight / nRows);
-      if ( DspA_tErr_NoErr != eDispResult ) {
-  eResult = MWin_tErr_ErrorAccessingDisplay;
+               this->mnWidth / this->mnCols, 
+               this->mnHeight / this->mnRows);
+      if ( DspA_tErr_NoErr != eDispResult )
   goto error;
-      }
       
-      /* if 2x2, set different orientation on each */
-      if( MWin_tDisplayConfiguration_2x2 == this->mConfiguration ) {
+      /* if mult orienations, set different orientation on each */
+      if( MWin_tLinkPolicy_MultipleOrientations == this->mLinkPolicy ) {
   
   eDispResult = 
     DspA_SetOrientation ( this->mapDisplays[nDisplay], 
         nDisplay % mri_knNumOrientations );
-  if ( DspA_tErr_NoErr != eDispResult ) {
-    eResult = MWin_tErr_ErrorAccessingDisplay;
+  if ( DspA_tErr_NoErr != eDispResult )
     goto error;
-  }
       
-      } else if( MWin_tDisplayConfiguration_4x4 == this->mConfiguration ) {
+      } else if( MWin_tLinkPolicy_Mosaic == this->mLinkPolicy ) {
 
-  /* if 4x4, set same orientation and then set the slice */
-  eDispResult = DspA_SetOrientation ( this->mapDisplays[nDisplay], 
+  /* this is a yflip */
+  nMosaicHackedIndex = ((this->mnRows - 1) - nY) * this->mnCols + nX;
+
+  /* if mosaic, set same orientation and then set the slice */
+  eDispResult = DspA_SetOrientation ( this->mapDisplays[nMosaicHackedIndex], 
               orientation );
-  if ( DspA_tErr_NoErr != eDispResult ) {
-    eResult = MWin_tErr_ErrorAccessingDisplay;
+  if ( DspA_tErr_NoErr != eDispResult )
     goto error;
-  }
 
-  eDispResult = DspA_SetSlice ( this->mapDisplays[nDisplay], 
-              nDisplay * (255 / (nRows*nCols))  );
-  if ( DspA_tErr_NoErr != eDispResult ) {
-    eResult = MWin_tErr_ErrorAccessingDisplay;
+  eDispResult = DspA_SetSlice ( this->mapDisplays[nMosaicHackedIndex], 
+              nDisplay *
+              (255 / (this->mnRows*this->mnCols)) );
+  if ( DspA_tErr_NoErr != eDispResult )
     goto error;
-  }
       }
 
       /* set zoom level to that of the last clicked one */
       eDispResult = DspA_SetZoomLevel( this->mapDisplays[nDisplay], 
                nZoomLevel );
-      if ( DspA_tErr_NoErr != eDispResult ) {
-  DebugPrint "DspA error in MWin_PositionDisplays at DspA_SetZoomLevel for display %d\n", nDisplay EndDebugPrint;
-      }
+      if ( DspA_tErr_NoErr != eDispResult )
+    goto error;
       
       nDisplay++;
     }
@@ -418,6 +406,9 @@ MWin_tErr MWin_PositionDisplays_ ( tkmMeditWindowRef this ) {
   
  error:
   
+  if ( DspA_tErr_NoErr != eDispResult )
+    eResult = MWin_tErr_ErrorAccessingDisplay;
+ 
   /* print error message */
   if ( MWin_tErr_NoErr != eResult ) {
     DebugPrint "Error %d in MWin_PositionDisplays_: %s\n",
@@ -539,10 +530,9 @@ MWin_tErr MWin_SetAuxVolume ( tkmMeditWindowRef this,
   return eResult;
 }
 
-MWin_tErr MWin_SetParcellationVolume ( tkmMeditWindowRef this,
-               int               inDispIndex,
-               tVolumeRef        ipVolume,
-               int               inSize ) {
+MWin_tErr MWin_SetROIGroup ( tkmMeditWindowRef this,
+           int               inDispIndex,
+           mriROIGroupRef    iGroup ) {
 
   MWin_tErr eResult       = MWin_tErr_NoErr;
   DspA_tErr eDispResult   = DspA_tErr_NoErr;
@@ -571,8 +561,7 @@ MWin_tErr MWin_SetParcellationVolume ( tkmMeditWindowRef this,
   nDispIndex < nDispIndexMax; 
   nDispIndex++ ) {
 
-    eDispResult = DspA_SetParcellationVolume ( this->mapDisplays[nDispIndex],
-                 ipVolume, inSize );
+    eDispResult = DspA_SetROIGroup ( this->mapDisplays[nDispIndex], iGroup );
     if ( DspA_tErr_NoErr != eDispResult ) {
       eResult = MWin_tErr_ErrorAccessingDisplay;
       goto error;
@@ -585,7 +574,7 @@ MWin_tErr MWin_SetParcellationVolume ( tkmMeditWindowRef this,
 
   /* print error message */
   if ( MWin_tErr_NoErr != eResult ) {
-    DebugPrint "Error %d in MWin_SetParcellationVolume: %s\n",
+    DebugPrint "Error %d in MWin_SetROIGroup: %s\n",
       eResult, MWin_GetErrorString(eResult) EndDebugPrint;
   }
 
@@ -1044,6 +1033,7 @@ MWin_tErr MWin_SetOrientation ( tkmMeditWindowRef this,
   int       nDispIndex    = 0;
   int       nDispIndexMin = inDispIndex;
   int       nDispIndexMax = inDispIndex+1;
+  int       nSlice        = 0;
 
   /* verify us. */
   eResult = MWin_Verify ( this );
@@ -1066,11 +1056,21 @@ MWin_tErr MWin_SetOrientation ( tkmMeditWindowRef this,
   nDispIndex < nDispIndexMax; 
   nDispIndex++ ) {
 
+    /* if in mosiac mode, save the slice */
+    if( MWin_tLinkPolicy_Mosaic == this->mLinkPolicy ) {
+      DspA_GetSlice( this->mapDisplays[nDispIndex], &nSlice );
+    }
+
     eDispResult = DspA_SetOrientation ( this->mapDisplays[nDispIndex],
           iOrientation );
     if ( DspA_tErr_NoErr != eDispResult ) {
       eResult = MWin_tErr_ErrorAccessingDisplay;
       goto error;
+    }
+
+    /* if in mosiac mode, restore the slice */
+    if( MWin_tLinkPolicy_Mosaic == this->mLinkPolicy ) {
+      DspA_SetSlice( this->mapDisplays[nDispIndex], nSlice );
     }
   }
 
@@ -1187,6 +1187,59 @@ MWin_tErr MWin_SetZoomCenterToCursor ( tkmMeditWindowRef this,
   /* print error message */
   if ( MWin_tErr_NoErr != eResult ) {
     DebugPrint "Error %d in MWin_SetZoomCenterToCursor: %s\n",
+      eResult, MWin_GetErrorString(eResult) EndDebugPrint;
+  }
+
+ cleanup:
+
+  return eResult;
+}
+
+MWin_tErr MWin_SetZoomLevel ( tkmMeditWindowRef this, 
+            int               inDispIndex,
+            int               inLevel ) {
+
+  MWin_tErr eResult     = MWin_tErr_NoErr;
+  DspA_tErr eDispResult = DspA_tErr_NoErr;
+  int       nDispIndex    = 0;
+  int       nDispIndexMin = inDispIndex;
+  int       nDispIndexMax = inDispIndex+1;
+
+  /* verify us. */
+  eResult = MWin_Verify ( this );
+  if ( MWin_tErr_NoErr != eResult )
+    goto error;
+
+  /* verify the display index. */
+  eResult = MWin_VerifyDisplayIndex ( this, inDispIndex );
+  if ( MWin_tErr_NoErr != eResult )
+    goto error;
+
+  /* if working on all displays, set the iteration bounds. */
+  if ( MWin_kAllDisplayAreas == inDispIndex ) {
+    nDispIndexMin = 0;
+    nDispIndexMax = MWin_knMaxNumAreas;
+  }
+
+  /*  set the zoom cetner to the cursor */
+  for ( nDispIndex = nDispIndexMin; 
+  nDispIndex < nDispIndexMax; 
+  nDispIndex++ ) {
+
+    eDispResult = DspA_SetZoomLevel ( this->mapDisplays[nDispIndex], inLevel );
+    if ( DspA_tErr_NoErr != eDispResult ) {
+      eResult = MWin_tErr_ErrorAccessingDisplay;
+      goto error;
+    }
+  }
+
+  goto cleanup;
+
+ error:
+
+  /* print error message */
+  if ( MWin_tErr_NoErr != eResult ) {
+    DebugPrint "Error %d in MWin_SetZoomLevel: %s\n",
       eResult, MWin_GetErrorString(eResult) EndDebugPrint;
   }
 
@@ -1459,24 +1512,28 @@ MWin_tErr MWin_CursorChanged  ( tkmMeditWindowRef this,
   if( !this->mbLinkedCursor )
     goto cleanup;
 
-  /* for every display... */
-  for ( nDisplay = 0; nDisplay < MWin_knMaxNumAreas; nDisplay++ ) {
-
-    /* if this is the display that called us... */
-    if( ipDisplay != (this->mapDisplays[nDisplay]) ) {
-
-      /* set the cursor. */
-      eDispResult = DspA_SetCursor ( this->mapDisplays[nDisplay], ipCursor );
-      if ( DspA_tErr_NoErr != eDispResult ) {
-  eResult = MWin_tErr_ErrorAccessingDisplay;
-  goto error;
-      }
-
-      /* zoom around new cursor. */
-      eDispResult = DspA_SetZoomCenterToCursor ( this->mapDisplays[nDisplay] );
-      if ( DspA_tErr_NoErr != eDispResult ) {
-  eResult = MWin_tErr_ErrorAccessingDisplay;
-  goto error;
+  /* if we are in mult mode.. */
+  if( MWin_tLinkPolicy_MultipleOrientations == this->mLinkPolicy ) {
+    
+    /* for every display... */
+    for ( nDisplay = 0; nDisplay < MWin_knMaxNumAreas; nDisplay++ ) {
+      
+      /* if this is the display that called us... */
+      if( ipDisplay != (this->mapDisplays[nDisplay]) ) {
+  
+  /* set the cursor. */
+  eDispResult = DspA_SetCursor ( this->mapDisplays[nDisplay], ipCursor );
+  if ( DspA_tErr_NoErr != eDispResult ) {
+    eResult = MWin_tErr_ErrorAccessingDisplay;
+    goto error;
+  }
+  
+  /* zoom around new cursor. */
+  eDispResult = DspA_SetZoomCenterToCursor ( this->mapDisplays[nDisplay] );
+  if ( DspA_tErr_NoErr != eDispResult ) {
+    eResult = MWin_tErr_ErrorAccessingDisplay;
+    goto error;
+  }
       }
     }
   }
@@ -1513,18 +1570,23 @@ MWin_tErr MWin_ZoomLevelChanged  ( tkmMeditWindowRef this,
   if( !this->mbLinkedCursor )
     goto cleanup;
 
-  /* for every display... */
-  for ( nDisplay = 0; nDisplay < MWin_knMaxNumAreas; nDisplay++ ) {
-
-    /* if this is the display that called us... */
-    if( ipDisplay != (this->mapDisplays[nDisplay]) ) {
-
-      /* set the zoom level */
-      eDispResult = DspA_SetZoomLevel ( this->mapDisplays[nDisplay],
-          inZoomLevel );
-      if ( DspA_tErr_NoErr != eDispResult ) {
-  eResult = MWin_tErr_ErrorAccessingDisplay;
-  goto error;
+  /* if we're not in single or mult orientation mode.. */
+  if( MWin_tLinkPolicy_None == this->mLinkPolicy ||
+      MWin_tLinkPolicy_MultipleOrientations == this->mLinkPolicy ) {
+    
+    /* for every display... */
+    for ( nDisplay = 0; nDisplay < MWin_knMaxNumAreas; nDisplay++ ) {
+      
+      /* if this is not the display that called us... */
+      if( ipDisplay != (this->mapDisplays[nDisplay]) ) {
+  
+  /* set the zoom level */
+  eDispResult = DspA_SetZoomLevel ( this->mapDisplays[nDisplay],
+            inZoomLevel );
+  if ( DspA_tErr_NoErr != eDispResult ) {
+    eResult = MWin_tErr_ErrorAccessingDisplay;
+    goto error;
+  }
       }
     }
   }
@@ -1565,7 +1627,7 @@ MWin_tErr MWin_DisplayFlagChanged  ( tkmMeditWindowRef this,
   /* for every display... */
   for ( nDisplay = 0; nDisplay < MWin_knMaxNumAreas; nDisplay++ ) {
 
-    /* if this is the display that called us... */
+    /* if this is not the display that called us... */
     if( ipDisplay != (this->mapDisplays[nDisplay]) ) {
 
       /* set the flag. */
@@ -1593,6 +1655,118 @@ MWin_tErr MWin_DisplayFlagChanged  ( tkmMeditWindowRef this,
   return eResult;
 }
 
+MWin_tErr MWin_OrientationChanged  ( tkmMeditWindowRef this,
+             tkmDisplayAreaRef ipDisplay,
+             mri_tOrientation  iOrientation ) {
+
+  MWin_tErr  eResult      = MWin_tErr_NoErr;
+  DspA_tErr  eDispResult  = DspA_tErr_NoErr;
+  int        nDisplay     = 0;
+  int        nSlice       = 0;
+
+  /* verify us. */
+  eResult = MWin_Verify ( this );
+  if ( MWin_tErr_NoErr != eResult )
+    goto error;
+  
+  /* if we're not linking cursors, return. */
+  if( !this->mbLinkedCursor )
+    goto cleanup;
+
+  /* if we are in mosaic mode.. */
+  if( MWin_tLinkPolicy_Mosaic == this->mLinkPolicy ) {
+    
+    /* for every display... */
+    for ( nDisplay = 0; nDisplay < MWin_knMaxNumAreas; nDisplay++ ) {
+      
+      /* if this is not the display that called us... */
+      if( ipDisplay != (this->mapDisplays[nDisplay]) ) {
+  
+  /* get current slice */
+  DspA_GetSlice( this->mapDisplays[nDisplay], &nSlice );
+
+  /* set the orientation. */
+  eDispResult = DspA_SetOrientation ( this->mapDisplays[nDisplay], 
+              iOrientation );
+  if ( DspA_tErr_NoErr != eDispResult ) {
+    eResult = MWin_tErr_ErrorAccessingDisplay;
+    goto error;
+      }
+  
+  /* set slice */
+  DspA_SetSlice( this->mapDisplays[nDisplay], nSlice );
+  
+      }
+    }
+  }
+  
+  goto cleanup;
+  
+ error:
+  
+  /* print error message */
+  if ( MWin_tErr_NoErr != eResult ) {
+    DebugPrint "Error %d in MWin_OrientationChanged: %s\n",
+      eResult, MWin_GetErrorString(eResult) EndDebugPrint;
+  }
+  
+ cleanup:
+  
+  return eResult;
+}
+
+MWin_tErr MWin_SliceChanged  ( tkmMeditWindowRef this,
+             tkmDisplayAreaRef ipDisplay,
+             int               inDelta ) {
+
+  MWin_tErr  eResult      = MWin_tErr_NoErr;
+  DspA_tErr  eDispResult  = DspA_tErr_NoErr;
+  int        nDisplay     = 0;
+
+  /* verify us. */
+  eResult = MWin_Verify ( this );
+  if ( MWin_tErr_NoErr != eResult )
+    goto error;
+  
+  /* if we're not linking cursors, return. */
+  if( !this->mbLinkedCursor )
+    goto cleanup;
+
+  /* if we are in mosaic mode.. */
+  if( MWin_tLinkPolicy_Mosaic == this->mLinkPolicy ) {
+    
+    /* for every display... */
+    for ( nDisplay = 0; nDisplay < MWin_knMaxNumAreas; nDisplay++ ) {
+      
+      /* if this is not the display that called us... */
+      if( ipDisplay != (this->mapDisplays[nDisplay]) ) {
+  
+  /* change the slice */
+  eDispResult = DspA_ChangeSliceBy ( this->mapDisplays[nDisplay], 
+             inDelta );
+  if ( DspA_tErr_NoErr != eDispResult ) {
+    eResult = MWin_tErr_ErrorAccessingDisplay;
+    goto error;
+  }
+  
+      }
+    }
+  }
+  
+  goto cleanup;
+  
+ error:
+  
+  /* print error message */
+  if ( MWin_tErr_NoErr != eResult ) {
+    DebugPrint "Error %d in MWin_SliceChanged: %s\n",
+      eResult, MWin_GetErrorString(eResult) EndDebugPrint;
+  }
+  
+ cleanup:
+  
+  return eResult;
+}
 
 void MWin_EventCallback ( void* ipWindow,
         xGWin_tEventRef ipEvent ) {
@@ -1914,27 +2088,20 @@ MWin_tErr MWin_ChangeFocusedDisplayAreaBy_ ( tkmMeditWindowRef this,
   MWin_tErr eResult     = MWin_tErr_NoErr;
   DspA_tErr eDispResult = DspA_tErr_NoErr;
   int       nDispIndex  = 0;
+  int       nNumAreas   = 0;
 
   /* get the current display index */
   nDispIndex = this->mnLastClickedArea;
+  
+  /* how many areas do we have? */
+  nNumAreas = this->mnCols * this->mnRows;
 
-  /* get the next one */
-  switch( this->mConfiguration ) {
-  case MWin_tDisplayConfiguration_1x1:
-    /* no next one */
-    break;
-  case MWin_tDisplayConfiguration_2x2:
-  case MWin_tDisplayConfiguration_4x4:
-    /* inc. if more than max, set to 0. */
-    nDispIndex += inDelta;
-    while( nDispIndex >= MWin_knMaxNumAreas )
-      nDispIndex -= MWin_knMaxNumAreas;
-    while( nDispIndex < 0 ) 
-      nDispIndex += MWin_knMaxNumAreas;
-    break;
-  default:
-    break;
-  }
+  /* inc. if more than max, set to 0. */
+  nDispIndex += inDelta;
+  while( nDispIndex >= nNumAreas )
+    nDispIndex -= nNumAreas;
+  while( nDispIndex < 0 ) 
+    nDispIndex += MWin_knMaxNumAreas;
 
   /* if we changed... */
   if( this->mnLastClickedArea != nDispIndex ) {
@@ -2010,8 +2177,8 @@ MWin_tErr MWin_RegisterTclCommands ( tkmMeditWindowRef this,
   Tcl_CreateCommand ( ipInterp, "SetBrushThreshold",
           MWin_TclSetBrushThreshold,
           (ClientData) this, (Tcl_CmdDeleteProc*) NULL );
-  Tcl_CreateCommand ( ipInterp, "SelectCurrentParcellationLabel",
-          MWin_TclSelectCurrentParcellationLabel,
+  Tcl_CreateCommand ( ipInterp, "SelectCurrentROI",
+          MWin_TclSelectCurrentROI,
           (ClientData) this, (Tcl_CmdDeleteProc*) NULL );
   Tcl_CreateCommand ( ipInterp, "RedrawAll",
           MWin_TclRedrawAll,
@@ -2216,7 +2383,6 @@ int MWin_TclSetCursor ( ClientData  iClientData,
   tkmMeditWindowRef this               = NULL;
   int               eTclResult         = TCL_OK;
   MWin_tErr         eResult            = MWin_tErr_NoErr;
-  DspA_tErr         eDispResult        = DspA_tErr_NoErr;
   char              sError[256]        = "";       
   xVoxelRef         pCursor            = NULL;
   xVoxelRef         pConvertedCursor   = NULL;
@@ -2239,11 +2405,6 @@ int MWin_TclSetCursor ( ClientData  iClientData,
   if( !this->mbAcceptingTclCommands )
     goto cleanup;
 
- /* verify the last clicked display area index. */
-  eResult = MWin_VerifyDisplayIndex ( this, this->mnLastClickedArea );
-  if ( MWin_tErr_NoErr != eResult )
-    goto error;
-  
   /* verify the number of arguments. */
   if ( argc < 4 ) {
     eResult = MWin_tErr_WrongNumberArgs;
@@ -2257,20 +2418,14 @@ int MWin_TclSetCursor ( ClientData  iClientData,
   /* check bounds and convert if necessary */
   switch( coordSpace ) {
   case mri_tCoordSpace_VolumeIdx:
-
     xVoxl_Copy( pConvertedCursor, pCursor );
     break;
-
   case mri_tCoordSpace_RAS:
-
     tkm_ConvertRASToVolume( pCursor, pConvertedCursor );
     break;
-
   case mri_tCoordSpace_Talairach:
- 
     tkm_ConvertTalToVolume( pCursor, pConvertedCursor );
     break;
-
   default:
     eResult = MWin_tErr_InvalidCoordinateSpace;
     goto error;
@@ -2285,20 +2440,9 @@ int MWin_TclSetCursor ( ClientData  iClientData,
   }
  
   /* set the cursor of the last clicked display. */
-  eDispResult = DspA_SetCursor ( this->mapDisplays[this->mnLastClickedArea],
-         pConvertedCursor );
-  if ( DspA_tErr_NoErr != eDispResult ) {
-    eResult = MWin_tErr_ErrorAccessingDisplay;
+  eResult = MWin_SetCursor( this, this->mnLastClickedArea, pConvertedCursor );
+  if ( MWin_tErr_NoErr != eResult )
     goto error;
-  }
-
-  /* also center around that point */
-  eDispResult = 
-    DspA_SetZoomCenterToCursor ( this->mapDisplays[this->mnLastClickedArea] );
-  if ( DspA_tErr_NoErr != eDispResult ) {
-    eResult = MWin_tErr_ErrorAccessingDisplay;
-    goto error;
-  }
 
   goto cleanup;
   
@@ -2335,7 +2479,6 @@ int MWin_TclSetOrientation ( ClientData  ipClientData,
   tkmMeditWindowRef this         = NULL;
   int               eTclResult   = TCL_OK;
   MWin_tErr         eResult      = MWin_tErr_NoErr;
-  DspA_tErr         eDispResult  = DspA_tErr_NoErr;
   char              sError[256]  = "";       
   mri_tOrientation  orientation  = mri_tOrientation_None;
 
@@ -2351,11 +2494,6 @@ int MWin_TclSetOrientation ( ClientData  ipClientData,
   if( !this->mbAcceptingTclCommands )
     goto cleanup;
 
-  /* verify the last clicked display area index. */
-  eResult = MWin_VerifyDisplayIndex ( this, this->mnLastClickedArea );
-  if ( MWin_tErr_NoErr != eResult )
-    goto error;
-
   /* verify the number of arguments. */
   if ( argc < 2 ) {
     eResult = MWin_tErr_WrongNumberArgs;
@@ -2366,13 +2504,11 @@ int MWin_TclSetOrientation ( ClientData  ipClientData,
   orientation = (mri_tOrientation) atoi( argv[1] );
 
   /* set the zoom level of the last clicked display. */
-  eDispResult = 
-    DspA_SetOrientation ( this->mapDisplays[this->mnLastClickedArea],
-        orientation );
-  if ( DspA_tErr_NoErr != eDispResult ) {
-    eResult = MWin_tErr_ErrorAccessingDisplay;
+  eResult = MWin_SetOrientation ( this, this->mnLastClickedArea, orientation );
+  if ( MWin_tErr_NoErr != eResult ) {
     goto error;
   }
+
   goto cleanup;
 
  error:
@@ -2403,7 +2539,6 @@ int MWin_TclSetZoomLevel ( ClientData  ipClientData,
   tkmMeditWindowRef this         = NULL;
   int               eTclResult   = TCL_OK;
   MWin_tErr         eResult      = MWin_tErr_NoErr;
-  DspA_tErr         eDispResult  = DspA_tErr_NoErr;
   char              sError[256]  = "";       
   int               nZoomLevel   = 0;
 
@@ -2419,11 +2554,6 @@ int MWin_TclSetZoomLevel ( ClientData  ipClientData,
   if( !this->mbAcceptingTclCommands )
     goto cleanup;
 
-  /* verify the last clicked display area index. */
-  eResult = MWin_VerifyDisplayIndex ( this, this->mnLastClickedArea );
-  if ( MWin_tErr_NoErr != eResult )
-    goto error;
-
   /* verify the number of arguments. */
   if ( argc < 2 ) {
     eResult = MWin_tErr_WrongNumberArgs;
@@ -2434,13 +2564,10 @@ int MWin_TclSetZoomLevel ( ClientData  ipClientData,
   nZoomLevel = atoi( argv[1] );
 
   /* set the zoom level of the last clicked display. */
-  eDispResult = 
-    DspA_SetZoomLevel ( this->mapDisplays[this->mnLastClickedArea],
-      nZoomLevel );
-  if ( DspA_tErr_NoErr != eDispResult ) {
-    eResult = MWin_tErr_ErrorAccessingDisplay;
+  eResult = MWin_SetZoomLevel( this, this->mnLastClickedArea, nZoomLevel );
+  if ( MWin_tErr_NoErr != eResult )
     goto error;
-  }
+
   goto cleanup;
 
  error:
@@ -2472,7 +2599,6 @@ int MWin_TclSetZoomCenter ( ClientData  iClientData,
   tkmMeditWindowRef this         = NULL;
   int               eTclResult   = TCL_OK;
   MWin_tErr         eResult      = MWin_tErr_NoErr;
-  DspA_tErr         eDispResult  = DspA_tErr_NoErr;
   char              sError[256]  = "";       
  xVoxelRef          pCenter      = NULL;
 
@@ -2491,11 +2617,6 @@ int MWin_TclSetZoomCenter ( ClientData  iClientData,
   if( !this->mbAcceptingTclCommands )
     goto cleanup;
 
- /* verify the last clicked display area index. */
-  eResult = MWin_VerifyDisplayIndex ( this, this->mnLastClickedArea );
-  if ( MWin_tErr_NoErr != eResult )
-    goto error;
-  
   /* verify the number of arguments. */
   if ( argc < 4 ) {
     eResult = MWin_tErr_WrongNumberArgs;
@@ -2506,12 +2627,9 @@ int MWin_TclSetZoomCenter ( ClientData  iClientData,
   xVoxl_Set( pCenter, atoi( argv[1] ), atoi( argv[2] ), atoi( argv[3] ) );
 
   /* set the Center of the last clicked display. */
-  eDispResult = DspA_SetZoomCenter( this->mapDisplays[this->mnLastClickedArea],
-            pCenter );
-  if ( DspA_tErr_NoErr != eDispResult ) {
-    eResult = MWin_tErr_ErrorAccessingDisplay;
+  eResult = MWin_SetZoomCenter( this, this->mnLastClickedArea, pCenter );
+  if ( MWin_tErr_NoErr != eResult )
     goto error;
-  }
   
   goto cleanup;
   
@@ -2545,11 +2663,13 @@ int MWin_TclSetDisplayConfig ( ClientData  ipClientData,
              int         argc,
              char*       argv[] ) {
 
-  tkmMeditWindowRef          this          = NULL;
-  int                        eTclResult    = TCL_OK;
-  MWin_tErr                  eResult       = MWin_tErr_NoErr;
-  char                       sError[256]   = "";       
-  MWin_tDisplayConfiguration configuration = MWin_tDisplayConfiguration_None;
+  tkmMeditWindowRef  this          = NULL;
+  int                eTclResult    = TCL_OK;
+  MWin_tErr          eResult       = MWin_tErr_NoErr;
+  char               sError[256]   = "";       
+  int                nCols         = 0;
+  int                nRows         = 0;
+  MWin_tLinkPolicy   policy        = MWin_tLinkPolicy_None;
 
   /* grab us from the client data ptr */
   this = (tkmMeditWindowRef) ipClientData;
@@ -2564,16 +2684,18 @@ int MWin_TclSetDisplayConfig ( ClientData  ipClientData,
     goto cleanup;
 
   /* verify the number of arguments. */
-  if ( argc < 2 ) {
+  if ( argc < 4 ) {
     eResult = MWin_tErr_WrongNumberArgs;
     goto error;
   }
 
   /* parse the args and get an configuration. */
-  configuration = (MWin_tDisplayConfiguration) atoi( argv[1] );
+  nCols = atoi( argv[1] );
+  nRows = atoi( argv[2] );
+  policy = (MWin_tLinkPolicy) atoi( argv[3] );
 
   /* set our configuration */
-  eResult = MWin_SetDisplayConfiguration( this, configuration );
+  eResult = MWin_SetDisplayConfiguration( this, nCols, nRows, policy );
   if ( MWin_tErr_NoErr != eResult )
     goto error;
 
@@ -2608,7 +2730,6 @@ int MWin_TclSetDisplayFlag ( ClientData  ipClientData,
   tkmMeditWindowRef this         = NULL;
   int               eTclResult   = TCL_OK;
   MWin_tErr         eResult      = MWin_tErr_NoErr;
-  DspA_tErr         eDispResult  = DspA_tErr_NoErr;
   char              sError[256]  = "";       
   DspA_tDisplayFlag flag         = DspA_tDisplayFlag_None;
   tBoolean          bValue       = FALSE;
@@ -2625,11 +2746,6 @@ int MWin_TclSetDisplayFlag ( ClientData  ipClientData,
   if( !this->mbAcceptingTclCommands )
     goto cleanup;
 
-  /* verify the last clicked display area index. */
-  eResult = MWin_VerifyDisplayIndex ( this, this->mnLastClickedArea );
-  if ( MWin_tErr_NoErr != eResult )
-    goto error;
-
   /* verify the number of arguments. */
   if ( argc < 3 ) {
     eResult = MWin_tErr_WrongNumberArgs;
@@ -2641,13 +2757,10 @@ int MWin_TclSetDisplayFlag ( ClientData  ipClientData,
   bValue = (tBoolean) atoi( argv[2] );
 
   /* set the flag of the last clicked display. */
-  eDispResult = 
-    DspA_SetDisplayFlag ( this->mapDisplays[this->mnLastClickedArea],
-        flag, bValue );
-  if ( DspA_tErr_NoErr != eDispResult ) {
-    eResult = MWin_tErr_ErrorAccessingDisplay;
+  eResult = MWin_SetDisplayFlag( this, this->mnLastClickedArea, flag, bValue );
+  if ( MWin_tErr_NoErr != eResult )
     goto error;
-  }
+
   goto cleanup;
 
  error:
@@ -2886,10 +2999,10 @@ int MWin_TclSetBrushThreshold ( ClientData  ipClientData,
   return eTclResult;
 }
 
-int MWin_TclSelectCurrentParcellationLabel ( ClientData  iClientData, 
-               Tcl_Interp* ipInterp,
-               int         argc,
-               char*       argv[] ) {
+int MWin_TclSelectCurrentROI ( ClientData  iClientData, 
+             Tcl_Interp* ipInterp,
+             int         argc,
+             char*       argv[] ) {
 
   tkmMeditWindowRef this         = NULL;
   int               eTclResult   = TCL_OK;
@@ -2921,7 +3034,7 @@ int MWin_TclSelectCurrentParcellationLabel ( ClientData  iClientData,
   }
 
   /* pass on to the last clicked display. */
-  eDispResult = DspA_SelectCurrentParcellationLabel 
+  eDispResult = DspA_SelectCurrentROI
     ( this->mapDisplays[this->mnLastClickedArea] );
   if ( DspA_tErr_NoErr != eDispResult ) {
     eResult = MWin_tErr_ErrorAccessingDisplay;
@@ -2934,7 +3047,7 @@ int MWin_TclSelectCurrentParcellationLabel ( ClientData  iClientData,
   /* print error message */
   if ( MWin_tErr_NoErr != eResult ) {
 
-    sprintf ( sError, "Error %d in MWin_TclSelectCurrentParcellationLabel: %s\n",
+    sprintf ( sError, "Error %d in MWin_TclSelectCurrentROI: %s\n",
         eResult, MWin_GetErrorString(eResult) );
 
     DebugPrint sError EndDebugPrint;

@@ -115,6 +115,21 @@ inline void xVoxl_SetZ ( xVoxelRef this, int z ) {
   this->mfZ = (float)z;
 }
 
+inline void xVoxl_SetFloatX ( xVoxelRef this, float x ) {
+
+  this->mfX = x;
+}
+
+inline void xVoxl_SetFloatY ( xVoxelRef this, float y ) {
+
+  this->mfY = y;
+}
+
+inline void xVoxl_SetFloatZ ( xVoxelRef this, float z ) {
+
+  this->mfZ = z;
+}
+
 inline 
 float xVoxl_GetFloatX ( xVoxelRef this ) {
 

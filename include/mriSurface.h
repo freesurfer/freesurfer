@@ -114,7 +114,24 @@ Surf_tErr Surf_GetNextAndNeighborVertex  ( mriSurfaceRef   this,
              xVoxelRef       oNextVoxel,
              xVoxelRef       oNeighborVoxel );
 
-/* iteration implemetation functions */
+/* get a vertex by index in voxel space */
+Surf_tErr Surf_GetNthVertex ( mriSurfaceRef   this,
+            Surf_tVertexSet iSet,
+            int             inIndex,
+            xVoxelRef       oClientVoxel );
+
+/* find the closest vertex to the given location */
+Surf_tErr Surf_GetClosestVertex ( mriSurfaceRef   this,
+          Surf_tVertexSet iSet,
+          xVoxelRef       iClientVoxel,
+          xVoxelRef       oClientVoxel,
+          char*           osResult );
+
+Surf_tErr Surf_GetSurfaceSetName ( Surf_tVertexSet iSet,
+           char*           osName );
+
+
+/* helper functions */
 float Surf_GetVertexValue ( vertex_type*      iVertex,
           Surf_tVertexSet   iSet,
           Surf_tOrientation iOrientation );
@@ -123,6 +140,9 @@ void Surf_ConvertVertexToVoxel ( vertex_type*    iVertex,
          Surf_tVertexSet iSet,
          mriTransformRef iTransform,
          xVoxelRef       oVoxel );
+void Surf_ConvertVoxelToSurfaceSpace ( xVoxelRef       iVoxel,
+               mriTransformRef iTransform,
+               xVoxelRef       oSurfVox );
 
 Surf_tErr Surf_Verify ( mriSurfaceRef this );
 char* Surf_GetErrorString ( Surf_tErr ieCode );

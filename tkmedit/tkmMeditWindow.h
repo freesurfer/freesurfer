@@ -10,6 +10,7 @@
 #include "tkmFunctionalVolume.h"
 #include "mriSurface.h"
 #include "mriHeadPointList.h"
+#include "mriROIGroup.h"
 
 typedef enum {
 
@@ -33,12 +34,11 @@ typedef enum {
 
 typedef enum {
 
-  MWin_tDisplayConfiguration_None = -1,
-  MWin_tDisplayConfiguration_1x1  = 0,
-  MWin_tDisplayConfiguration_2x2,
-  MWin_tDisplayConfiguration_4x4
-
-} MWin_tDisplayConfiguration;
+  MWin_tLinkPolicy_None = 0,
+  MWin_tLinkPolicy_MultipleOrientations,
+  MWin_tLinkPolicy_Mosaic,
+  MWin_knNumLinkPolicies
+} MWin_tLinkPolicy;
 
 #define MWin_kSignature 0xffb21001
 
@@ -58,9 +58,11 @@ struct tkmMeditWindow {
   int              mnHeight;
 
   /* our display areas */
-  MWin_tDisplayConfiguration mConfiguration;
-  struct tkmDisplayArea*     mapDisplays [MWin_knMaxNumAreas];
-  int                        mnLastClickedArea;
+  int                    mnRows;
+  int                    mnCols;
+  MWin_tLinkPolicy    mLinkPolicy;
+  struct tkmDisplayArea* mapDisplays [MWin_knMaxNumAreas];
+  int                    mnLastClickedArea;
 
   /* linking the cursor? */
   tBoolean         mbLinkedCursor;
@@ -90,9 +92,11 @@ MWin_tErr MWin_GetWindowSize ( tkmMeditWindowRef ipWindow,
              int*              onHeight );
 
 /* configuration the display set up */
-MWin_tErr MWin_SetDisplayConfiguration ( tkmMeditWindowRef          this,
-           MWin_tDisplayConfiguration iConfig );
-MWin_tErr MWin_PositionDisplays_       ( tkmMeditWindowRef          this );
+MWin_tErr MWin_SetDisplayConfiguration ( tkmMeditWindowRef   this,
+           int                 inCols,
+           int                 inRows,
+           MWin_tLinkPolicy iPolicy );
+MWin_tErr MWin_PositionDisplays_       ( tkmMeditWindowRef this );
 
 /* setting display info. specify by display area index, starting from 0
    for the upper-left area. use -1 to specify all areas. */
@@ -104,10 +108,9 @@ MWin_tErr MWin_SetAuxVolume                  ( tkmMeditWindowRef this,
                  int               inDispIndex,
                  tVolumeRef        ipVolume,
                  int               inSize );
-MWin_tErr MWin_SetParcellationVolume         ( tkmMeditWindowRef this,
+MWin_tErr MWin_SetROIGroup                   ( tkmMeditWindowRef this,
                  int               inDispIndex,
-                 tVolumeRef        ipVolume,
-                 int               inSize );
+                 mriROIGroupRef    iGroup );
 MWin_tErr MWin_SetSurface                    ( tkmMeditWindowRef this, 
                  int               inDispIndex,
                  mriSurfaceRef     ipSurface );
@@ -141,6 +144,9 @@ MWin_tErr MWin_SetOrientation        ( tkmMeditWindowRef this,
 MWin_tErr MWin_SetZoomCenter         ( tkmMeditWindowRef this, 
                int               inDispIndex,
                xVoxelRef         ipCenter );
+MWin_tErr MWin_SetZoomLevel          ( tkmMeditWindowRef this, 
+               int               inDispIndex,
+               int               inLevel );
 MWin_tErr MWin_SetZoomCenterToCursor ( tkmMeditWindowRef this,
                int               inDispIndex );
 MWin_tErr MWin_HiliteSurfaceVertex   ( tkmMeditWindowRef this,
@@ -158,8 +164,7 @@ MWin_tErr MWin_SetVolumeColorScale   ( tkmMeditWindowRef this,
                int               inMax );
 
 /* get the viewing state of the last clicked display area */
-MWin_tErr MWin_GetCursor         ( tkmMeditWindowRef   
-this,
+MWin_tErr MWin_GetCursor         ( tkmMeditWindowRef   this,
            xVoxelRef           opCursor );
 MWin_tErr MWin_GetOrientation    ( tkmMeditWindowRef   this,
            mri_tOrientation*   oOrientation );
@@ -173,7 +178,7 @@ MWin_tErr MWin_GetSelectedHeadPt ( tkmMeditWindowRef   this,
    cursors or flags. */
 MWin_tErr MWin_CursorChanged       ( tkmMeditWindowRef this,
              tkmDisplayAreaRef ipDisplay,
-            xVoxelRef          ipCursor );
+             xVoxelRef         ipCursor );
 MWin_tErr MWin_ZoomLevelChanged    ( tkmMeditWindowRef this,
              tkmDisplayAreaRef ipDisplay,
              int               inZoomLevel );
@@ -181,6 +186,12 @@ MWin_tErr MWin_DisplayFlagChanged  ( tkmMeditWindowRef this,
              tkmDisplayAreaRef ipDisplay,
              DspA_tDisplayFlag iWhichFlag,
              tBoolean          ibNewValue );
+MWin_tErr MWin_OrientationChanged  ( tkmMeditWindowRef this,
+             tkmDisplayAreaRef ipDisplay,
+             mri_tOrientation  iOrientation );
+MWin_tErr MWin_SliceChanged        ( tkmMeditWindowRef this,
+             tkmDisplayAreaRef ipDisplay,
+             int               inDelta );
 
 /* callback for xGLutWindow. this just passes the ptr, a tkmMeditWindowRef,
    and the event to our normal event handler below. */
@@ -266,10 +277,10 @@ int MWin_TclSetBrushThreshold ( ClientData  iClientData,
         Tcl_Interp* ipInterp,
         int         argc,
         char*       argv[] );
-int MWin_TclSelectCurrentParcellationLabel ( ClientData  iClientData, 
-               Tcl_Interp* ipInterp,
-               int         argc,
-               char*       argv[] );
+int MWin_TclSelectCurrentROI ( ClientData  iClientData, 
+             Tcl_Interp* ipInterp,
+             int         argc,
+             char*       argv[] );
 int MWin_TclRedrawAll        ( ClientData  iClientData, 
              Tcl_Interp* ipInterp,
              int         argc,

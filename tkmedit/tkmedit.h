@@ -45,7 +45,7 @@ typedef enum {
   tkm_tTclCommand_UpdateBrush,
   tkm_tTclCommand_UpdateBrushThreshold,
   tkm_tTclCommand_UpdateVolumeColorScale,
-  tkm_tTclCommand_UpdateParcellationLabel,
+  tkm_tTclCommand_UpdateROILabel,
   tkm_tTclCommand_UpdateHeadPointLabel,
 
   /* display status */
@@ -53,7 +53,7 @@ typedef enum {
   tkm_tTclCommand_ShowRASCoords,
   tkm_tTclCommand_ShowTalCoords,
   tkm_tTclCommand_ShowAuxValue,
-  tkm_tTclCommand_ShowParcellationLabel,
+  tkm_tTclCommand_ShowROILabel,
   tkm_tTclCommand_ShowHeadPointLabel,
   tkm_tTclCommand_ShowFuncCoords,
   tkm_tTclCommand_ShowFuncValue,
@@ -113,15 +113,15 @@ tVolumeValue tkm_GetMaxIntProjValue( tVolumeRef       iVolume,
              mri_tOrientation iOrientation, 
              xVoxelRef        ipVoxel );
 
-/* parcellation value */
-void tkm_GetParcellationColor ( xVoxelRef   iWhere, 
-        xColor3fRef oColor );
-void tkm_GetParcellationLabel ( xVoxelRef   iWhere, 
-        int*        onIndex,
-        char*       osLabel );
+/* roi value */
+void tkm_GetROIColorAtVoxel ( xVoxelRef   iWhere, 
+            xColor3fRef oColor );
+void tkm_GetROILabel ( xVoxelRef   iWhere, 
+           int*        onIndex,
+           char*       osLabel );
 
 /* selects all the voxels in the label with the given index */
-void tkm_SelectParcellationLabel ( int inIndex );
+void tkm_SelectCurrentROI ( int inIndex );
 
 /* dealing with control points */
 void tkm_AddNearestCtrlPtToSelection      ( xVoxelRef        iAnaIdx, 

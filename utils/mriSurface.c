@@ -453,6 +453,129 @@ Surf_tErr Surf_GetNextAndNeighborVertex ( mriSurfaceRef    this,
   return eResult;
 }
 
+
+Surf_tErr Surf_GetNthVertex ( mriSurfaceRef   this,
+            Surf_tVertexSet iSet,
+            int             inIndex,
+            xVoxelRef       oVoxel ) {
+
+  Surf_tErr     eResult         = Surf_tErr_NoErr;
+  vertex_type*  vertex = NULL;
+
+  eResult = Surf_Verify( this );
+  if( Surf_tErr_NoErr != eResult ) 
+    goto error;
+
+  /* verify the index */
+  if( inIndex < 0 ||
+      inIndex >= this->mSurface->nvertices ) {
+    eResult = Surf_tErr_InvalidParameter;
+    goto error;
+  }
+
+  /* grab the voxel */
+  vertex = &(this->mSurface->vertices[inIndex]);
+  if( NULL == vertex ) {
+    eResult = Surf_tErr_ErrorAccesssingSurface;
+    goto error;
+  }
+
+  /* get the voxel in client space */
+  Surf_ConvertVertexToVoxel( vertex, iSet,
+           this->mTransform, oVoxel );
+  
+ 
+  goto cleanup;
+
+ error:
+
+   if( Surf_tErr_NoErr != eResult ) {
+    DebugPrint "Error %d in Surf_GetNthVertex: %s\n",
+      eResult, Surf_GetErrorString( eResult ) EndDebugPrint;
+  }
+
+ cleanup:
+
+  return eResult;
+
+}
+
+Surf_tErr Surf_GetClosestVertex ( mriSurfaceRef   this,
+          Surf_tVertexSet iSet,
+          xVoxelRef       iClientVoxel,
+          xVoxelRef       oClientVoxel,
+          char*           osResult ) {
+
+  Surf_tErr     eResult         = Surf_tErr_NoErr;
+  int           nVertex         = 0;
+  xVoxel        compareVoxel;
+  vertex_type*  currentVertex   = NULL;
+  int           nBestVertex     = 0;
+  float         dx              = 0;
+  float         dy              = 0;
+  float         dz              = 0;
+  float         fDistance       = 0;
+  float         fLowestDistance = 0;
+
+  eResult = Surf_Verify( this );
+  if( Surf_tErr_NoErr != eResult ) 
+    goto error;
+
+  /* since we want to return results with the vertex index, it is better
+     to search for the closest vertex in the surface space, not in client
+     space. so convert the target point to surface space */
+  Surf_ConvertVoxelToSurfaceSpace( iClientVoxel, this->mTransform,
+           &compareVoxel );
+
+  /* start high */
+  fLowestDistance = 256*256*256;
+
+  /* for every vertex... */
+  for( nVertex = 0; nVertex < this->mSurface->nvertices; nVertex++ ) {
+    
+    /* get the vertex */
+    currentVertex = &(this->mSurface->vertices[nVertex]);
+
+    /* calc distance */
+    dx = xVoxl_GetFloatX( &compareVoxel ) - 
+      Surf_GetVertexValue( currentVertex, iSet, Surf_tOrientation_X );
+    dy = xVoxl_GetFloatY( &compareVoxel ) - 
+      Surf_GetVertexValue( currentVertex, iSet, Surf_tOrientation_Y );
+    dz = xVoxl_GetFloatZ( &compareVoxel ) - 
+      Surf_GetVertexValue( currentVertex, iSet, Surf_tOrientation_Z );
+    fDistance = dx*dx + dy*dy + dz*dz;
+
+    /* save the lowest */
+    if( fDistance < fLowestDistance ) {
+      fLowestDistance = fDistance;
+      nBestVertex = nVertex;
+    }
+  }
+    
+  /* get the best vertex and convert it to client space */
+  currentVertex = &(this->mSurface->vertices[nBestVertex]);
+  Surf_ConvertVertexToVoxel( currentVertex, iSet, 
+           this->mTransform, oClientVoxel );
+  
+  /* make a string of info */
+  if( NULL != osResult ) {
+    sprintf( osResult, "Index: %d Distance: %.2f RAS Coords: %.2f %.2f %.2f", nBestVertex, fLowestDistance, Surf_GetVertexValue( currentVertex, iSet, Surf_tOrientation_X ), Surf_GetVertexValue( currentVertex, iSet, Surf_tOrientation_Y ), Surf_GetVertexValue( currentVertex, iSet, Surf_tOrientation_Z ) );
+  }
+
+  goto cleanup;
+
+ error:
+
+   if( Surf_tErr_NoErr != eResult ) {
+    DebugPrint "Error %d in Surf_GetClosestVertex: %s\n",
+      eResult, Surf_GetErrorString( eResult ) EndDebugPrint;
+  }
+
+ cleanup:
+
+  return eResult;
+}
+
 float Surf_GetVertexValue ( vertex_type*      iVertex,
           Surf_tVertexSet   iSet,
           Surf_tOrientation iOrientation ) {
@@ -508,6 +631,34 @@ float Surf_GetVertexValue ( vertex_type*      iVertex,
   }
 }
 
+Surf_tErr Surf_GetSurfaceSetName ( Surf_tVertexSet iSet,
+           char*           osName ) {
+
+  Surf_tErr eResult = Surf_tErr_NoErr;
+  
+  if( iSet < 0 || iSet >= Surf_knNumVertexSets ||
+      NULL == osName  ) {
+    eResult = Surf_tErr_InvalidParameter;
+    goto error;
+  }
+  
+  strcpy( osName, Surf_ksaVertexSets[iSet] );
+  
+  goto cleanup;
+
+ error:
+
+   if( Surf_tErr_NoErr != eResult ) {
+    DebugPrint "Error %d in Surf_GetSurfaceSetName: %s\n",
+      eResult, Surf_GetErrorString( eResult ) EndDebugPrint;
+  }
+
+ cleanup:
+
+  return eResult;
+}
+
+
 void Surf_ConvertVertexToVoxel ( vertex_type*    iVertex,
          Surf_tVertexSet iSet,
          mriTransformRef iTransform,
@@ -529,6 +680,21 @@ void Surf_ConvertVertexToVoxel ( vertex_type*    iVertex,
 
     /* transform voxel */
     Trns_ConvertBtoA( iTransform, &sTmpVertex, oVoxel );
+  }
+ 
+}
+
+void Surf_ConvertVoxelToSurfaceSpace ( xVoxelRef       iVoxel,
+               mriTransformRef iTransform,
+               xVoxelRef       oSurfVox ) {
+
+  /* if we don't have a transform, just copy vertex into voxel */
+  if( NULL == iTransform ) {
+    xVoxl_Copy( oSurfVox, iVoxel );
+  } else {
+
+    /* transform voxel */
+    Trns_ConvertAtoB( iTransform, iVoxel, oSurfVox );
   }
  
 }

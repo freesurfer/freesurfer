@@ -11,6 +11,7 @@
 #include "mriSurface.h"
 #include "xGrowableArray.h"
 #include "mriHeadPointList.h"
+#include "mriROIGroup.h"
 
 typedef enum {
 
@@ -52,7 +53,7 @@ typedef enum {
   DspA_tDisplayFlag_ControlPoints,
   DspA_tDisplayFlag_Selection,
   DspA_tDisplayFlag_FunctionalOverlay,
-  DspA_tDisplayFlag_ParcellationOverlay,
+  DspA_tDisplayFlag_ROIGroupOverlay,
   DspA_tDisplayFlag_FocusFrame,
   DspA_tDisplayFlag_Axes,
   DspA_tDisplayFlag_MaxIntProj,
@@ -120,7 +121,7 @@ struct tkmDisplayArea {
   tBoolean               mabDisplayFlags [DspA_knNumDisplayFlags];
   tBoolean               mbSliceChanged;
   HPtL_tHeadPointRef     mpSelectedHeadPoint;
-  int                    mnParcellationIndex;
+  int                    mnROIGroupIndex;
   
   /* surface lists */
   xGrowableArrayRef*     maSurfaceLists;
@@ -128,7 +129,7 @@ struct tkmDisplayArea {
   /* display data */
   tVolumeRef             mpVolume;
   tVolumeRef             mpAuxVolume;
-  tVolumeRef             mpParcellationVolume;
+  mriROIGroupRef         mROIGroup;
   mriSurfaceRef          mpSurface;
   tkmFunctionalVolumeRef mpFunctionalVolume;
   x3DListRef             mpControlPoints;
@@ -182,9 +183,8 @@ DspA_tErr DspA_SetVolume                     ( tkmDisplayAreaRef this,
 DspA_tErr DspA_SetAuxVolume                  ( tkmDisplayAreaRef this,
                  tVolumeRef        ipVolume,
                  int               inSize );
-DspA_tErr DspA_SetParcellationVolume         ( tkmDisplayAreaRef this,
-                 tVolumeRef        ipVolume,
-                 int               inSize );
+DspA_tErr DspA_SetROIGroup                   ( tkmDisplayAreaRef this,
+                 mriROIGroupRef    iGroup );
 DspA_tErr DspA_SetSurface                    ( tkmDisplayAreaRef this, 
                  mriSurfaceRef     ipSurface );
 DspA_tErr DspA_SetOverlayVolume              ( tkmDisplayAreaRef this,
@@ -228,7 +228,7 @@ DspA_tErr DspA_SetBrushThreshold     ( tkmDisplayAreaRef this,
                tVolumeValue      inLow,
                tVolumeValue      inHigh,
                tVolumeValue      inNewValue );
-DspA_tErr DspA_ChangeSliceBy_        ( tkmDisplayAreaRef this,
+DspA_tErr DspA_ChangeSliceBy         ( tkmDisplayAreaRef this,
                int               inDelta );
 
 /* only one display can be focused at a time. focusing on one will unfocus
@@ -241,6 +241,8 @@ DspA_tErr DspA_GetPosition ( tkmDisplayAreaRef this,
            xPoint2nRef       opLocation,
            int*              onWidth,
            int*              onHeight );
+DspA_tErr DspA_GetSlice              ( tkmDisplayAreaRef this,
+               int*              onSlice );
 
 /* routes events to specialized handlers */
 DspA_tErr DspA_HandleEvent ( tkmDisplayAreaRef this, 
@@ -263,8 +265,8 @@ DspA_tErr DspA_BrushVoxels_ ( tkmDisplayAreaRef this,
             void(*ipFunction)(xVoxelRef) );
 void DspA_BrushVoxelsInThreshold_ (xVoxelRef ipVoxel );
 
-/* select the currently clicked parcellation label */
-DspA_tErr DspA_SelectCurrentParcellationLabel ( tkmDisplayAreaRef this );
+/* select the currently clicked roi */
+DspA_tErr DspA_SelectCurrentROI ( tkmDisplayAreaRef this );
 
 /* for drawing the surface. */
 tBoolean xUtil_FaceIntersectsPlane( MRI_SURFACE*     ipSurface,

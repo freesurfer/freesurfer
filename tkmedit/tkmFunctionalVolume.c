@@ -1973,8 +1973,8 @@ FunV_tErr FunV_DrawGraph ( tkmFunctionalVolumeRef this ) {
   }
 
   /* find the number of time points. */
-  eVolume =FunD_GetNumTimePoints( this->mpTimeCourseVolume, 
-             &nNumTimePoints );
+  eVolume = FunD_GetNumTimePoints( this->mpTimeCourseVolume, 
+           &nNumTimePoints );
   if( FunD_tErr_NoError != eVolume ) {
     eResult = FunV_tErr_ErrorAccessingInternalVolume;
     goto error;
@@ -2300,7 +2300,8 @@ FunV_tErr FunV_CalcTimeCourseAverages_ ( tkmFunctionalVolumeRef this,
      values. */
   if( this->mabDisplayFlags[FunV_tDisplayFlag_TC_OffsetValues] 
       && NULL != this->mpOverlayOffsetVolume ) {
-    fOffset /= (float) nNumValues;
+    //    fOffset /= (float) nNumValues;
+    fOffset = fOffsetSum / (float) nNumValues;
   }
   
 
@@ -2339,7 +2340,7 @@ FunV_tErr FunV_CalcTimeCourseAverages_ ( tkmFunctionalVolumeRef this,
     
     /* if we have offset values... */
     if( this->mabDisplayFlags[FunV_tDisplayFlag_TC_OffsetValues] 
-  && NULL != this->mpOverlayOffsetVolume ) {
+  && NULL != this->mpTimeCourseOffsetVolume ) {
       
       /* divide all deviations by the offset and mult by 100 to 
    get a percent */

@@ -126,7 +126,7 @@ DspA_tErr DspA_New ( tkmDisplayAreaRef* oppWindow,
   this->mbSliceChanged         = TRUE;
   this->mnVolumeSize           = 0;
   this->mpSelectedHeadPoint     = NULL;
-  this->mnParcellationIndex    = -1;
+  this->mnROIGroupIndex        = -1;
 
   /* all our display flags start out false. */
   for ( nFlag = 0; nFlag < DspA_knNumDisplayFlags; nFlag++ )
@@ -135,7 +135,7 @@ DspA_tErr DspA_New ( tkmDisplayAreaRef* oppWindow,
   /* null ptrs for display data. */
   this->mpVolume                = NULL;
   this->mpAuxVolume             = NULL;
-  this->mpParcellationVolume    = NULL;
+  this->mROIGroup               = NULL;
   this->mpSurface               = NULL;
   this->mpFunctionalVolume      = NULL;
   this->mpControlPoints         = NULL;
@@ -255,8 +255,10 @@ DspA_tErr DspA_SetPosition ( tkmDisplayAreaRef this,
 
 DspA_tErr DspA_UpdateWindowTitle ( tkmDisplayAreaRef this ) {
 
-  DspA_tErr eResult     = DspA_tErr_NoErr;
-  char      sTitle[256] = "";
+  DspA_tErr eResult           = DspA_tErr_NoErr;
+  char      sTitle[256]       = "";
+  char      sSubjectName[256] = "";
+  char      sVolumeName[256]  = "";
 
   /* verify us. */
   eResult = DspA_Verify ( this );
@@ -264,13 +266,13 @@ DspA_tErr DspA_UpdateWindowTitle ( tkmDisplayAreaRef this ) {
     goto error;
 
   /* make a window title. */
+  strcpy( sSubjectName, tkm_GetSubjectName() );
   if( this->mabDisplayFlags[DspA_tDisplayFlag_AuxVolume] ) {
-    sprintf( sTitle, "Tkmedit: %s %s",
-       tkm_GetSubjectName(), tkm_GetAuxVolumeName() );
+    strcpy( sVolumeName, tkm_GetAuxVolumeName() );
   } else {
-    sprintf( sTitle, "Tkmedit: %s %s",
-       tkm_GetSubjectName(), tkm_GetVolumeName() );
+    strcpy( sVolumeName, tkm_GetVolumeName() );
   }
+  sprintf( sTitle, "%s: %s", sSubjectName, sVolumeName );
   
   /* set the window name. */
   MWin_SetWindowTitle( this->mpWindow, sTitle );
@@ -439,36 +441,35 @@ DspA_tErr DspA_SetAuxVolume ( tkmDisplayAreaRef this,
   return eResult;
 }
 
-DspA_tErr DspA_SetParcellationVolume ( tkmDisplayAreaRef this,
-               tVolumeRef        ipVolume,
-               int               inSize ) {
+DspA_tErr DspA_SetROIGroup ( tkmDisplayAreaRef this,
+           mriROIGroupRef    iGroup ) {
 
   DspA_tErr eResult            = DspA_tErr_NoErr;
-  tBoolean  bHaveVolume        = FALSE;
+  tBoolean  bHaveGroup         = FALSE;
   char      sTclArguments[256] = "";
-
+  
   /* verify us. */
   eResult = DspA_Verify ( this );
   if ( DspA_tErr_NoErr != eResult )
     goto error;
 
-  /* save the parcellation volume */
-  this->mpParcellationVolume = ipVolume;
+  /* save the group */
+  this->mROIGroup = iGroup;
 
   /* turn stuff on or off based on if we have one. */
-  if( this->mpParcellationVolume != NULL ) {
-    bHaveVolume = TRUE;
+  if( this->mROIGroup != NULL ) {
+    bHaveGroup = TRUE;
   }
 
-  /* turn parcellation on */
-  eResult = DspA_SetDisplayFlag( this, DspA_tDisplayFlag_ParcellationOverlay,
-         bHaveVolume );
+  /* turn roi group on */
+  eResult = DspA_SetDisplayFlag( this, DspA_tDisplayFlag_ROIGroupOverlay,
+         bHaveGroup );
   if ( DspA_tErr_NoErr != eResult )
     goto error;
   
-  /* show parc label */
-  sprintf( sTclArguments, "%d", (int)bHaveVolume );
-  tkm_SendTclCommand( tkm_tTclCommand_ShowParcellationLabel, sTclArguments );
+  /* show roi label */
+  sprintf( sTclArguments, "%d", (int)bHaveGroup );
+  tkm_SendTclCommand( tkm_tTclCommand_ShowROILabel, sTclArguments );
 
   /* redraw */
   this->mbSliceChanged = TRUE;
@@ -480,7 +481,7 @@ DspA_tErr DspA_SetParcellationVolume ( tkmDisplayAreaRef this,
 
   /* print error message */
   if ( DspA_tErr_NoErr != eResult ) {
-    DebugPrint "Error %d in DspA_SetAuxVolume: %s\n",
+    DebugPrint "Error %d in DspA_SetROIGroup: %s\n",
       eResult, DspA_GetErrorString(eResult) EndDebugPrint;
   }
 
@@ -799,14 +800,14 @@ DspA_tErr DspA_SetCursor ( tkmDisplayAreaRef this,
         sTclArguments );
     }
 
-    /* and the parcellation label if it's on */
-    if( this->mabDisplayFlags[DspA_tDisplayFlag_ParcellationOverlay] 
-  && NULL != this->mpParcellationVolume ) {
-      /* save the parcellation label so they may select it later. */
-      tkm_GetParcellationLabel( this->mpCursor, 
-        &this->mnParcellationIndex,
-        sTclArguments );
-      tkm_SendTclCommand( tkm_tTclCommand_UpdateParcellationLabel, 
+    /* and the roi label if it's on */
+    if( this->mabDisplayFlags[DspA_tDisplayFlag_ROIGroupOverlay] 
+  && NULL != this->mROIGroup ) {
+      /* save the roi label so they may select it later. */
+      tkm_GetROILabel( this->mpCursor, 
+           &this->mnROIGroupIndex,
+           sTclArguments );
+      tkm_SendTclCommand( tkm_tTclCommand_UpdateROILabel, 
         sTclArguments );
     }
 
@@ -972,6 +973,9 @@ DspA_tErr DspA_SetOrientation ( tkmDisplayAreaRef this,
   /* if we're the currently focused display... */
   if( sFocusedDisplay == this ) {
     
+    /* notify of change */
+    MWin_OrientationChanged( this->mpWindow, this, iOrientation );
+
     /* send the orientation */
     sprintf ( sTclArguments, "%d", (int)this->mOrientation );
     tkm_SendTclCommand( tkm_tTclCommand_UpdateOrientation, sTclArguments );
@@ -1041,7 +1045,7 @@ DspA_tErr DspA_SetZoomLevel ( tkmDisplayAreaRef this,
     /* notify the window that the zoom level has changed. */
     MWin_ZoomLevelChanged( this->mpWindow, this, this->mnZoomLevel );
 
-  /* send zoom level update. */
+    /* send zoom level update. */
     sprintf ( sTclArguments, "%d", (int)this->mnZoomLevel );
     tkm_SendTclCommand( tkm_tTclCommand_UpdateZoomLevel, sTclArguments );
   }
@@ -1228,10 +1232,10 @@ DspA_tErr DspA_SetDisplayFlag ( tkmDisplayAreaRef this,
 
     break;
 
-  case DspA_tDisplayFlag_ParcellationOverlay:
+  case DspA_tDisplayFlag_ROIGroupOverlay:
 
-    /* if no parcellation volume, set to false. */
-    if( NULL == this->mpParcellationVolume )
+    /* if no roi group, set to false. */
+    if( NULL == this->mROIGroup )
       bNewValue = FALSE;
 
     /* if the flag is different, set dirty flag */
@@ -1518,11 +1522,12 @@ DspA_tErr DspA_SetBrushThreshold ( tkmDisplayAreaRef this,
   return eResult;
 }
 
-DspA_tErr DspA_ChangeSliceBy_ ( tkmDisplayAreaRef this,
-         int               inDelta ) {
+DspA_tErr DspA_ChangeSliceBy ( tkmDisplayAreaRef this,
+             int               inDelta ) {
 
-  DspA_tErr eResult = DspA_tErr_NoErr;
- xVoxelRef  pCursor = NULL;
+  DspA_tErr  eResult = DspA_tErr_NoErr;
+  xVoxelRef  pCursor = NULL;
+  float      nSlice  = 0;
 
   xVoxl_New( &pCursor );
 
@@ -1531,29 +1536,24 @@ DspA_tErr DspA_ChangeSliceBy_ ( tkmDisplayAreaRef this,
   if ( DspA_tErr_NoErr != eResult )
     goto error;
 
-  /* copy the cursor. */
-  xVoxl_Copy( pCursor, this->mpCursor );
+  /* apply the increment to the proper part of the cursor. wrap around
+     if necessary. */
+  nSlice = DspA_GetCurrentSliceNumber_( this );
+  nSlice += inDelta;
+  while( nSlice < 0 ) 
+    nSlice += this->mnVolumeSize;
+  while( nSlice >= this->mnVolumeSize )
+    nSlice -= this->mnVolumeSize;
 
-  /* apply the increment to the proper part of the cursor */
-  switch ( this->mOrientation ) {
-  case mri_tOrientation_Coronal:
-    xVoxl_SetZ( pCursor, xVoxl_GetZ( pCursor ) + inDelta );
-    break;
-  case mri_tOrientation_Horizontal:
-    xVoxl_SetY( pCursor, xVoxl_GetY( pCursor ) + inDelta );
-    break;
-  case mri_tOrientation_Sagittal:
-    xVoxl_SetX( pCursor, xVoxl_GetX( pCursor ) + inDelta );
-    break;
-  default:
-    eResult = DspA_tErr_InvalidOrientation;
+  /* set the slice */
+  eResult = DspA_SetSlice( this, nSlice );
+  if ( DspA_tErr_NoErr != eResult )
     goto error;
+  
+  /* notify window of change if we're the currently focused display... */
+  if( sFocusedDisplay == this ) {
+    MWin_SliceChanged( this->mpWindow, this, inDelta );
   }
-
-  /* set the cursor. */
-  eResult = DspA_SetCursor( this, pCursor );
-   if ( DspA_tErr_NoErr != eResult )
-    goto error;
 
   goto cleanup;
 
@@ -1561,7 +1561,7 @@ DspA_tErr DspA_ChangeSliceBy_ ( tkmDisplayAreaRef this,
 
   /* print error message */
   if ( DspA_tErr_NoErr != eResult ) {
-    DebugPrint "Error %d in DspA_ChangeSliceBy_: %s\n",
+    DebugPrint "Error %d in DspA_ChangeSliceBy: %s\n",
       eResult, DspA_GetErrorString(eResult) EndDebugPrint;
   }
 
@@ -1673,6 +1673,39 @@ DspA_tErr DspA_GetPosition ( tkmDisplayAreaRef this,
 
   return eResult;
 
+}
+
+DspA_tErr DspA_GetSlice ( tkmDisplayAreaRef this,
+        int*              onSlice ) {
+  
+  DspA_tErr eResult = DspA_tErr_NoErr;
+  xVoxelRef  pCursor = NULL;
+  
+  xVoxl_New( &pCursor );
+
+  /* verify us. */
+  eResult = DspA_Verify ( this );
+  if ( DspA_tErr_NoErr != eResult )
+    goto error;
+
+  /* return current slice */
+  *onSlice = DspA_GetCurrentSliceNumber_( this );
+
+  goto cleanup;
+
+ error:
+
+  /* print error message */
+  if ( DspA_tErr_NoErr != eResult ) {
+    DebugPrint "Error %d in DspA_GetSlice: %s\n",
+      eResult, DspA_GetErrorString(eResult) EndDebugPrint;
+  }
+
+ cleanup:
+
+  xVoxl_Delete( &pCursor );
+
+  return eResult;
 }
 
 DspA_tErr DspA_HandleEvent ( tkmDisplayAreaRef this, 
@@ -2279,7 +2312,7 @@ DspA_tErr DspA_HandleKeyDown_ ( tkmDisplayAreaRef this,
   case xGWin_tKey_UpArrow:
   case xGWin_tKey_RightArrow:
     /* move up a slice */
-    eResult = DspA_ChangeSliceBy_( this, 1 );
+    eResult = DspA_ChangeSliceBy( this, 1 );
     if ( DspA_tErr_NoErr != eResult )
       goto error;
     DspA_Redraw_( this );
@@ -2288,7 +2321,7 @@ DspA_tErr DspA_HandleKeyDown_ ( tkmDisplayAreaRef this,
   case xGWin_tKey_DownArrow:
   case xGWin_tKey_LeftArrow:
     /* move down a slice */
-    eResult = DspA_ChangeSliceBy_( this, -1 );
+    eResult = DspA_ChangeSliceBy( this, -1 );
     if ( DspA_tErr_NoErr != eResult )
       goto error;
     DspA_Redraw_( this );
@@ -2438,7 +2471,7 @@ void DspA_BrushVoxelsInThreshold_ (xVoxelRef ipVoxel ) {
       snBrushNewValue );
 }
 
-DspA_tErr DspA_SelectCurrentParcellationLabel ( tkmDisplayAreaRef this ) {
+DspA_tErr DspA_SelectCurrentROI ( tkmDisplayAreaRef this ) {
 
   DspA_tErr eResult = DspA_tErr_NoErr;
 
@@ -2448,9 +2481,9 @@ DspA_tErr DspA_SelectCurrentParcellationLabel ( tkmDisplayAreaRef this ) {
     goto error;
 
   /* if we have the data and our index is good, tell tkmedit to select stuff */
-  if( NULL != this->mpParcellationVolume
-      && -1 != this->mnParcellationIndex ) {
-    tkm_SelectParcellationLabel( this->mnParcellationIndex );
+  if( NULL != this->mROIGroup
+      && -1 != this->mnROIGroupIndex ) {
+    tkm_SelectCurrentROI( this->mnROIGroupIndex );
   }
 
   goto cleanup;
@@ -2459,7 +2492,7 @@ DspA_tErr DspA_SelectCurrentParcellationLabel ( tkmDisplayAreaRef this ) {
 
   /* print error message */
   if ( DspA_tErr_NoErr != eResult ) {
-    DebugPrint "Error %d in DspA_SelectCurrentParcellationLabel: %s\n",
+    DebugPrint "Error %d in DspA_SelectCurrentROI: %s\n",
       eResult, DspA_GetErrorString(eResult) EndDebugPrint;
   }
 
@@ -3111,11 +3144,11 @@ DspA_tErr DspA_BuildCurrentFrame_ ( tkmDisplayAreaRef this ) {
       eResult = DspA_VerifyVolumexVoxl_( this, pVoxel );
       if( DspA_tErr_NoErr == eResult ) {
   
-  /* if we are showing parcellation... */
-  if( this->mabDisplayFlags[DspA_tDisplayFlag_ParcellationOverlay] ) {
+  /* if we are showing roi... */
+  if( this->mabDisplayFlags[DspA_tDisplayFlag_ROIGroupOverlay] ) {
     
-    /* get parcellation color. */
-    tkm_GetParcellationColor( pVoxel, &color );
+    /* get roi color. */
+    tkm_GetROIColorAtVoxel( pVoxel, &color );
 
     /* if it's not zero, pixel is set. */
     if ( color.mfRed != 0 || color.mfBlue != 0 || color.mfGreen != 0 ) {
@@ -3124,7 +3157,7 @@ DspA_tErr DspA_BuildCurrentFrame_ ( tkmDisplayAreaRef this ) {
 
   }
 
-  /* if we didn't set the pixel color from the parcellation... */
+  /* if we didn't set the pixel color from the roi group... */
   if ( !bPixelSet ) {
     
     /* get the plain anatomical value from the main or aux
@@ -3326,6 +3359,7 @@ DspA_tErr DspA_DrawControlPoints_ ( tkmDisplayAreaRef this ) {
   xList_tErr   eList      = xList_tErr_NoErr;
   x3Lst_tErr   e3DList    = x3Lst_tErr_NoErr;
   xVoxelRef    controlPt  = NULL;
+  xVoxel       convertedPt;
   tBoolean     bSelected  = FALSE;
   xPoint2n     bufferPt   = {0,0};
   float        faColor[3] = {0, 0, 0};
@@ -3384,8 +3418,17 @@ DspA_tErr DspA_DrawControlPoints_ ( tkmDisplayAreaRef this ) {
     faColor[2] = 0;
   }      
   
+  /* convert the control point to be in the middle of voxel */
+  xVoxl_Copy( &convertedPt, controlPt );
+  if( xVoxl_GetX( &convertedPt ) == xVoxl_GetFloatX( &convertedPt ) )
+    xVoxl_SetFloatX( &convertedPt, xVoxl_GetFloatX( &convertedPt ) + 0.5 );
+  if( xVoxl_GetY( &convertedPt ) == xVoxl_GetFloatY( &convertedPt ) )
+    xVoxl_SetFloatY( &convertedPt, xVoxl_GetFloatY( &convertedPt ) + 0.5 );
+  if( xVoxl_GetZ( &convertedPt ) == xVoxl_GetFloatZ( &convertedPt ) )
+    xVoxl_SetFloatZ( &convertedPt, xVoxl_GetFloatZ( &convertedPt ) + 0.5 );
+
   /* convert to buffer point. */
-  eResult = DspA_ConvertVolumeToBuffer_ ( this, controlPt, &bufferPt );
+  eResult = DspA_ConvertVolumeToBuffer_ ( this, &convertedPt, &bufferPt );
   if ( DspA_tErr_NoErr != eResult )
     goto error;
   
@@ -3695,7 +3738,7 @@ DspA_tErr DspA_BuildSurfaceDrawLists_ ( tkmDisplayAreaRef this ) {
       goto error;
     }
 
-    xUtil_StartTimer ();
+    //    xUtil_StartTimer ();
 
     /* make a voxel with our current slice in it and
        set the iterator to our view */
@@ -3795,7 +3838,7 @@ DspA_tErr DspA_BuildSurfaceDrawLists_ ( tkmDisplayAreaRef this ) {
     if( Surf_tErr_NoErr != eSurface )
       goto error;
     
-    xUtil_StopTimer( "build surface list" );
+    //    xUtil_StopTimer( "build surface list" );
 
   } /* for each surface... */
 
@@ -4479,14 +4522,11 @@ DspA_tErr DspA_SendViewStateToTcl_ ( tkmDisplayAreaRef this ) {
   sprintf( sTclArguments, "%d", ucVolumeValue );
   tkm_SendTclCommand( tkm_tTclCommand_UpdateVolumeValue, sTclArguments );
 
-  /* and the parcellation label if it's on */
-  if( this->mabDisplayFlags[DspA_tDisplayFlag_ParcellationOverlay] 
-      && NULL != this->mpParcellationVolume ) {
-    tkm_GetParcellationLabel( this->mpCursor, 
-            &this->mnParcellationIndex,
-            sTclArguments );
-    tkm_SendTclCommand( tkm_tTclCommand_UpdateParcellationLabel, 
-      sTclArguments );
+  /* and the roi label if it's on */
+  if( this->mabDisplayFlags[DspA_tDisplayFlag_ROIGroupOverlay] 
+      && NULL != this->mROIGroup ) {
+    tkm_GetROILabel( this->mpCursor, &this->mnROIGroupIndex, sTclArguments );
+    tkm_SendTclCommand( tkm_tTclCommand_UpdateROILabel, sTclArguments );
   }
 
   /* also see if we have functional data and can send a value for that

@@ -267,8 +267,8 @@ proc tkm_MakeEntryWithIncDecButtons { isFrame isText iVariable iSetFunc ifStep }
     tixControl $isFrame.control \
       -command $iSetFunc \
       -label $isText \
-      -selectmode immediate \
       -variable $iVariable \
+      -selectmode immediate \
       -step $ifStep
 
     $isFrame.control subwidget label configure -font $kNormalFont
@@ -465,7 +465,6 @@ proc tkm_MakeFileSelector { isTop isText iVariable } {
     tixFileEntry $isTop.few \
       -label $isText \
       -labelside top \
-      -selectmode immediate \
       -variable $iVariable \
       -options {
          entry.expand yes
@@ -480,7 +479,7 @@ proc tkm_MakeFileSelector { isTop isText iVariable } {
 
 proc tkm_UpdateFileSelectorVariable { isTop } {
 
-    $isTop.few invoke;
+    $isTop.few update;
 }
 
 proc tkm_MakeDirectorySelector { isTop isText iVariable } {
@@ -490,7 +489,6 @@ proc tkm_MakeDirectorySelector { isTop isText iVariable } {
     tixFileEntry $isTop.few \
       -label $isText \
       -labelside top \
-      -selectmode immediate \
       -variable $iVariable \
       -dialogtype tixDirSelectDialog \
       -options {
@@ -502,11 +500,12 @@ proc tkm_MakeDirectorySelector { isTop isText iVariable } {
       -side left \
       -expand yes \
       -fill x
+  DebugPrint "now %.2f\n", oafDeviations[nValue] EndDebugPrint;
 }
 
 proc tkm_UpdateDirectorySelectorVariable { isTop } {
 
-    $isTop.few invoke;
+    $isTop.few update;
 }
 
 proc tkm_AddItemToMenuGroup { isGroupName ifwMenuObject inMenuItemNum } {
