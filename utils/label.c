@@ -12,7 +12,8 @@
 #include "mrisurf.h"
 #include "label.h"
 
-
+static Transform *labelLoadTransform(char *subject_name, char *sdir,
+                                     General_transform *transform) ;
 
 /*-----------------------------------------------------
         Parameters:
@@ -25,7 +26,7 @@ LABEL *
 LabelRead(char *subject_name, char *label_name)
 {
   LABEL  *area ;
-  char   fname[100], *cp, line[200], subjects_dir[100] ;
+  char   fname[200], *cp, line[200], subjects_dir[100] ;
   FILE   *fp ;
   int    vno, nlines ;
   float  x, y, z ;
@@ -84,6 +85,13 @@ LabelRead(char *subject_name, char *label_name)
   fclose(fp) ;
   if (!nlines)
     ErrorExit(ERROR_BADFILE, "%s: no data in label file %s", Progname, fname);
+  if (subject_name)
+  {
+    area->linear_transform = 
+      labelLoadTransform(subject_name, subjects_dir, &area->transform) ;
+    area->inverse_linear_transform = 
+      get_inverse_linear_transform_ptr(&area->transform) ;
+  }
   return(area) ;
 }
 /*-----------------------------------------------------
@@ -218,7 +226,7 @@ LabelWrite(LABEL *area, char *label_name)
 {
   FILE  *fp ;
   int  n, num ;
-  char   fname[100], *cp, subjects_dir[100] ;
+  char   fname[200], *cp, subjects_dir[100] ;
 
   if (strlen(area->subject_name) > 0)
   {
@@ -409,7 +417,7 @@ LabelCurvFill(LABEL *area, int *vertex_list, int nvertices,
         if (vn->ripflag || vn->marked)
           continue ;
         if (((curv_thresh > 0) && (vn->curv > curv_thresh)) ||
-             ((curv_thresh < 0) && (vn->curv < curv_thresh)))
+            ((curv_thresh < 0) && (vn->curv < curv_thresh)))
         {
           vn->marked = 1 ;
           lvn = &area->lv[area->n_points+nfilled] ;
@@ -420,6 +428,8 @@ LabelCurvFill(LABEL *area, int *vertex_list, int nvertices,
         if (area->n_points+nfilled >= area->max_points)
           break ;
       }
+      if (area->n_points+nfilled >= area->max_points)
+        break ;
     }
     fprintf(stderr, "%d vertices added.\n", nfilled) ;
     area->n_points += nfilled ;
@@ -429,3 +439,151 @@ LabelCurvFill(LABEL *area, int *vertex_list, int nvertices,
   return(NO_ERROR) ;
 }
 
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
+static Transform *
+labelLoadTransform(char *subject_name, char *sdir,General_transform *transform)
+{
+  char xform_fname[200] ;
+
+  sprintf(xform_fname, "%s/%s/mri/transforms/talairach.xfm",
+          sdir, subject_name) ;
+  if (input_transform_file(xform_fname, transform) != OK)
+    ErrorExit(ERROR_NOFILE, "%s: could not load transform file '%s'", 
+              Progname, xform_fname) ;
+
+  return(get_linear_transform_ptr(transform)) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
+int
+LabelTalairachTransform(LABEL *area)
+{
+  int   n ;
+  LV    *lv ;
+  Real  x, y, z, xt, yt, zt ;
+
+  for (n = 0 ; n < area->n_points ; n++)
+  {
+    lv = &area->lv[n] ;
+    x = lv->x ; y = lv->y ; z = lv->z ;
+    transform_point(area->linear_transform, x, y, z, &xt, &yt, &zt) ;
+    lv->x = xt ; lv->y = yt ; lv->z = zt ;
+  }
+  return(NO_ERROR) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
+int
+LabelSphericalTransform(LABEL *area, MRI_SURFACE *mris)
+{
+  int     n ;
+  LV      *lv ;
+  VERTEX  *v ;
+
+  for (n = 0 ; n < area->n_points ; n++)
+  {
+    lv = &area->lv[n] ;
+    v = &mris->vertices[lv->vno] ;
+    lv->x = v->x ; lv->y = v->y ; lv->z = v->z ;
+  }
+  return(NO_ERROR) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
+MATRIX *
+LabelCovarianceMatrix(LABEL *area, MATRIX *mCov)
+{
+  MATRIX   *mInputs ;
+  int      i ;
+  LV       *lv ;
+
+  mInputs = MatrixAlloc(area->n_points, 3, MATRIX_REAL) ;
+  for (i = 0 ; i < area->n_points ; i++)
+  {
+    lv = &area->lv[i] ;
+    *MATRIX_RELT(mInputs,i+1, 1) = lv->x ;
+    *MATRIX_RELT(mInputs,i+1, 2) = lv->y ;
+    *MATRIX_RELT(mInputs,i+1, 3) = lv->z ;
+  }
+
+  mCov = MatrixCovariance(mInputs, mCov, NULL) ;
+
+  return(mCov) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
+LABEL *
+LabelCombine(LABEL *asrc, LABEL *adst)
+{
+  LABEL  *atmp ;
+  int    n ;
+  LV     *vsrc, *vdst ;
+
+  if (!adst)
+    adst = LabelClone(asrc) ;
+  if (adst->max_points < asrc->n_points+adst->n_points)/* won't fit - expand */
+  {
+    atmp = LabelAlloc(2*(asrc->n_points+adst->n_points),
+                      asrc->subject_name, asrc->name) ;
+    LabelCopy(adst, atmp) ;
+    LabelFree(&adst) ;
+    adst = atmp ;
+  }
+  
+  for (n = 0 ; n < asrc->n_points ; n++)
+  {
+    vsrc = &asrc->lv[n] ;
+    vdst = &adst->lv[n+adst->n_points] ;
+    memmove(vdst, vsrc, sizeof(LV)) ;
+  }
+  adst->n_points += asrc->n_points ;
+  return(adst) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
+LABEL *
+LabelCopy(LABEL *asrc, LABEL *adst)
+{
+  if (!adst)
+    adst = LabelAlloc(asrc->n_points, asrc->subject_name, asrc->name) ;
+  else
+  {
+    adst->n_points = asrc->n_points ;
+    strcpy(adst->name, asrc->name) ;
+    strcpy(adst->subject_name, asrc->subject_name) ;
+  }
+
+  memmove(adst->lv, asrc->lv, asrc->n_points*sizeof(LABEL_VERTEX)) ;
+  return(adst) ;
+}
