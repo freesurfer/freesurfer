@@ -15,7 +15,7 @@ function showfigxy(varargin)
 %
 % Note: this will take over keyboard and mousing callbacks!
 %
-% $Id: showfigxy.m,v 1.5 2004/03/22 22:11:41 greve Exp $
+% $Id: showfigxy.m,v 1.6 2005/01/05 22:04:25 greve Exp $
 %
 
 if(nargin == 0)  event = 'init'; 
@@ -162,9 +162,11 @@ function setxystring(hfig,type)
     y = ud.mvxy(2);
     htxt = ud.mvxytxt;
   end
+  r = round(y);
+  c = round(x);
 
   xystring = sprintf('x = %g, y = %g ',x,y);
-  if(~isempty(img))
+  if(~isempty(img) & r > 0 & r <= size(img,1) & c > 0 & c <= size(img,2) )
     v = img(round(y),round(x));
     xystring = sprintf('%s, v = %g',xystring,v);
   end
@@ -175,6 +177,7 @@ return;
 %---------------------------------------------------------%
 function img = isimage
   % Image if the current axis has an image in it.
+  % Bug: not correct for bar graphs
   img = [];
   
   chlist = get(gca,'children');
