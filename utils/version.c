@@ -75,79 +75,8 @@
     argc -= nargs;
 */
 int
-handle_version_option (int argc, char** argv, char* id_string) 
-{
-
-#if defined(__GNUC__)
-# if defined(__GNU_PATCHLEVEL__)
-#  define __GNUC_VERSION__ (__GNUC__ * 10000 \
-                            + __GNUC_MINOR__ * 100 \
-                            + __GNUC_PATCHLEVEL__)
-# else
-#  define __GNUC_VERSION__ (__GNUC__ * 10000 \
-                            + __GNUC_MINOR__ * 100)
-# endif
-#endif
-
-#ifdef Linux
-#  define __PLATFORM__ "Linux"
-#endif
-#ifdef Darwin
-#  define __PLATFORM__ "Darwin"
-#endif
-#ifdef IRIX
-#  define __PLATFORM__ "IRIX"
-#endif
-#ifdef Solaris
-#  define __PLATFORM__ "Solaris"
-#endif
-
-  int narg = 0;
-  int nnarg = 0;
-  int num_processed_args = 0;
-  char *option = NULL;
-
-  /* Go through each option looking for --version, or -version */
-  for (narg = 1; narg < argc; narg++) 
-    {
-      option = argv[narg];
-      
-      if (!strncmp(option,"--version",9) ||
-	  !strncmp(option,"-version",8))
-	{
-
-	  /* Print out the entire command line. */
-	  for (nnarg = 0; nnarg < argc; nnarg++)
-	    fprintf (stdout, "%s ", argv[nnarg]);
-	  fprintf (stdout, "\n");
-	  
-	  fprintf (stdout, "%s Platform: %s C lib: %d\n",
-		   id_string, __PLATFORM__, __GNUC_VERSION__);
-	  
-	  num_processed_args++;
-
-	  /* Copy later args one step back. */
-	  for (nnarg = narg; nnarg < argc - num_processed_args; nnarg++)
-	    {
-	      strcpy (argv[nnarg], argv[nnarg+1] );
-	    }
-	}
-    }
-  
-  /* Return the number of arguments processed. */
-  return num_processed_args;
-}
-
-/* This function does pretty much the same thing except it prints out
-   more information in the format necessary for the BIRN provenance
-   spec. Call it similarly, but also pass in the dollarNamedollar CVS
-   variable for the version_string. This will be the tag used to check
-   out this version of the code. 
-*/
-
-int
-handle_info_option (int argc, char** argv, 
-		    char* id_string, char* version_string) 
+handle_version_option (int argc, char** argv, 
+		       char* id_string, char* version_string) 
 {
 
   int narg = 0;
@@ -166,10 +95,33 @@ handle_info_option (int argc, char** argv,
   char machine[1024];
   char platform_version[1024];
 
-  /* Go through each option looking for --all-info, or -all-info */
+  /* Go through each option looking for --version, -version,
+     --all-info, or -all-info */
   for (narg = 1; narg < argc; narg++) 
     {
       option = argv[narg];
+      
+      if (!strncmp(option,"--version",9) ||
+	  !strncmp(option,"-version",8))
+	{
+
+	  /* Print out the entire command line. */
+	  for (nnarg = 0; nnarg < argc; nnarg++)
+	    fprintf (stdout, "%s ", argv[nnarg]);
+	  fprintf (stdout, "\n");
+	  
+	  fprintf (stdout, "%s Platform: %s C lib: %d\n",
+		   id_string, PLATFORM, COMPILER_VERSION);
+	  
+	  num_processed_args++;
+
+	  /* Copy later args one step back. */
+	  for (nnarg = narg; nnarg < argc - num_processed_args; nnarg++)
+	    {
+	      strcpy (argv[nnarg], argv[nnarg+1] );
+	    }
+	}
+      
       
       if (!strncmp(option,"--all-info",11) ||
 	  !strncmp(option,"-all-info",10))

@@ -13,7 +13,8 @@
    copy the remaining items in argv back, so the caller can shorten
    their own argc variable, like this:
 
-    nargs = handle_version_option (argc, argv, "dollarIDdollar");
+    nargs = handle_version_option (argc, argv, 
+                                   "dollarIDdollar", "dollarNamedollar");
     argc -= nargs ;
 
    (This is done so that it can easily be used with older programs
@@ -29,22 +30,18 @@
    The binary may also want to exit if there are no other options to
    handle, i.e.
 
-    nargs = handle_version_option (argc, argv, "dollarIDdollar");
+    nargs = handle_version_option (argc, argv, 
+                                   "dollarIDdollar", "dollarNamedollar");
     if (nargs && argc - nargs == 1)
       exit (0);
     argc -= nargs;
+
+   This will also handle the --all-info option which prints out
+   more information in the format necessary for the BIRN provenance
+   spec, including the version_string.
+
 */
 
-int handle_version_option (int argc, char** argv, char* id_string);
-
-/* This function does pretty much the same thing except it prints out
-   more information in the format necessary for the BIRN provenance
-   spec. Call it similarly, but also pass in the dollarNamedollar CVS
-   variable for the version_string. This will be the tag used to check
-   out this version of the code.
- */
-
-int
-handle_info_option (int argc, char** argv, 
-		    char* id_string, char* version_string);
+int handle_version_option (int argc, char** argv, 
+			   char* id_string, char* version_string);
 #endif
