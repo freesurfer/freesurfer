@@ -6206,3 +6206,48 @@ GCAmeanFilterConditionalDensities(GCA *gca, float navgs)
   return(NO_ERROR) ;
 }
 
+#define MIN_BIN  50
+#define OFFSET_SIZE  25
+#define BOX_SIZE   60   /* mm */
+#define HALF_BOX   (BOX_SIZE/2)
+int
+GCAhistoScaleImageIntensities(GCA *gca, MRI *mri)
+{
+  float      x0, y0, z0 ;
+  int        mri_peak ;
+  double     wm_mean ;
+  HISTOGRAM *h_mri, *h_smooth ;
+  MRI_REGION box ;
+
+  MRIfindApproximateSkullBoundingBox(mri, 50, &box) ;
+  x0 = box.x+box.dx/3 ; y0 = box.y+box.dy/3 ; z0 = box.z+box.dz/2 ;
+  printf("using (%.0f, %.0f, %.0f) as brain centroid...\n",x0, y0, z0) ;
+  box.x = x0 - HALF_BOX*mri->xsize ; box.dx = BOX_SIZE*mri->xsize ;
+  box.y = y0 - HALF_BOX*mri->ysize ; box.dy = BOX_SIZE*mri->ysize ;
+  box.z = z0 - HALF_BOX*mri->zsize ; box.dz = BOX_SIZE*mri->zsize ;
+  wm_mean = GCAlabelMean(gca, Left_Cerebral_White_Matter) ;
+  wm_mean = (wm_mean + GCAlabelMean(gca, Right_Cerebral_White_Matter))/2.0 ;
+  printf("mean wm in atlas = %2.0f, using box (%d,%d,%d) --> (%d, %d,%d) "
+         "to find MRI wm\n", wm_mean, box.x, box.y, box.z, 
+         box.x+box.dx-1,box.y+box.dy-1, box.z+box.dz-1) ;
+  
+  h_mri = MRIhistogramRegion(mri, 0, NULL, &box) ; 
+  HISTOclearBins(h_mri, h_mri, 0, MIN_BIN) ;
+  if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+    HISTOplot(h_mri, "mri.histo") ;
+  mri_peak = HISTOfindLastPeak(h_mri, HISTO_WINDOW_SIZE,MIN_HISTO_PCT);
+  mri_peak = h_mri->bins[mri_peak] ;
+  printf("before smoothing, mri peak at %d\n", mri_peak) ;
+  h_smooth = HISTOsmooth(h_mri, NULL, 2) ;
+  if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+    HISTOplot(h_smooth, "mri_smooth.histo") ;
+  mri_peak = HISTOfindLastPeak(h_smooth, HISTO_WINDOW_SIZE,MIN_HISTO_PCT);
+  mri_peak = h_mri->bins[mri_peak] ;
+  printf("after smoothing, mri peak at %d, scaling input intensities "
+         "by %2.1f\n", mri_peak, wm_mean/mri_peak) ;
+  HISTOfree(&h_smooth) ; HISTOfree(&h_mri) ;
+  MRIscalarMul(mri, mri, wm_mean/mri_peak) ;
+
+  return(NO_ERROR) ;
+}
+
