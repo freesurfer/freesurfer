@@ -5,6 +5,7 @@
 #include "error.h"
 #include "sig.h"
 #include "diag.h"
+#include "macros.h"
 #include "proto.h"
 
 #define ITMAX 100
