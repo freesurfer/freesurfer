@@ -1,12 +1,12 @@
 #!/bin/csh -f
 # selxavg-sess
 #
-# $Id: selxavg-sess,v 1.8 2004/02/17 22:02:56 greve Exp $
-set VERSION = '$Id: selxavg-sess,v 1.8 2004/02/17 22:02:56 greve Exp $';
+# $Id: selxavg-sess,v 1.9 2004/03/29 18:24:41 greve Exp $
+set VERSION = '$Id: selxavg-sess,v 1.9 2004/03/29 18:24:41 greve Exp $';
 set FASTVER = `cat $FMRI_ANALYSIS_DIR/docs/version`;
 
 set inputargs = ($argv);
-set DateStr = "`date '+%y%m%d%H%M'`"
+set DateStr = "`date '+%y%m%d%H%M%S'`"
 
 set new = 1;
 set analysis = ();
