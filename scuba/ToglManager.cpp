@@ -5,7 +5,7 @@
 using namespace std;
 
 map<ToglFrame::ID,ToglFrame*> ToglManager::mFrames;
-ToglFrameFactory* ToglManager::mFactory = NULL;
+WindowFrameFactory* ToglManager::mFactory = NULL;
 InputState ToglManager::mState;
 
 
@@ -23,7 +23,7 @@ ToglManager::CreateCallback ( struct Togl* iTogl ) {
 
   if( NULL != mFactory ) {
     ToglFrame::ID id = atoi( Togl_Ident( iTogl ));
-    ToglFrame* frame = mFactory->NewToglFrame( id );
+    ToglFrame* frame = (ToglFrame*) mFactory->NewWindowFrame( id );
     mFrames[id] = frame;
   }
 }
@@ -303,22 +303,6 @@ ToglManager::InitializeTogl ( Tcl_Interp* iInterp ) {
 }
 
 
-
-ToglFrame::ToglFrame( ID iID ) {
-
-  mID = iID;
-}
-
-ToglFrame::~ToglFrame() {
-
-}
-
-void 
-ToglFrame::Draw() {
-
-  this->DoDraw();
-}
-
 void 
 ToglFrame::Reshape( int iWidth, int iHeight ) {
 
@@ -331,104 +315,5 @@ ToglFrame::Reshape( int iWidth, int iHeight ) {
   glOrtho( 0, mWidth, 0, mHeight, -1.0, 1.0 );
   glMatrixMode( GL_MODELVIEW );
 
-  this->DoReshape();
-}
-
-void 
-ToglFrame::Timer() {
-
-  this->DoTimer();
-}
-
-void
-ToglFrame::MouseMoved( int iWindow[2], InputState& iInput ) {
-
-  if( iWindow[0] > 0 && iWindow[0] < mWidth-1 &&
-      iWindow[1] > 0 && iWindow[1] < mHeight-1 ) {
-    this->DoMouseMoved( iWindow, iInput );
-  }
-}
-
-void
-ToglFrame::MouseUp( int iWindow[2], InputState& iInput ) {
-
-  if( iWindow[0] > 0 && iWindow[0] < mWidth-1 &&
-      iWindow[1] > 0 && iWindow[1] < mHeight-1 ) {
-    this->DoMouseUp( iWindow, iInput );
-  }
-}
-
-void
-ToglFrame::MouseDown( int iWindow[2], InputState& iInput ) {
-
-  if( iWindow[0] > 0 && iWindow[0] < mWidth-1 &&
-      iWindow[1] > 0 && iWindow[1] < mHeight-1 ) {
-    this->DoMouseDown( iWindow, iInput );
-  }
-}
-
-void
-ToglFrame::KeyDown( int iWindow[2], InputState& iInput ) {
-
-  if( iWindow[0] > 0 && iWindow[0] < mWidth-1 &&
-      iWindow[1] > 0 && iWindow[1] < mHeight-1 ) {
-    this->DoKeyDown( iWindow, iInput );
-  }
-}
-
-void
-ToglFrame::KeyUp( int iWindow[2], InputState& iInput ) {
-
-  if( iWindow[0] > 0 && iWindow[0] < mWidth-1 &&
-      iWindow[1] > 0 && iWindow[1] < mHeight-1 ) {
-    this->DoKeyUp( iWindow, iInput );
-  }
-}
-
-void
-ToglFrame::DoDraw() {
-
-  DebugOutput( << "ToglFrame " << mID << ": DoDraw()" );
-}
-
-void
-ToglFrame::DoReshape() {
-
-  DebugOutput( << "ToglFrame " << mID << ": DoReshape()" );
-}
-
-void
-ToglFrame::DoTimer() {
-
-  DebugOutput( << "ToglFrame " << mID << ": DoTimer()" );
-}
-
-void
-ToglFrame::DoMouseMoved( int iWindow[2], InputState& iInput ) {
-
-  DebugOutput( << "ToglFrame " << mID << ": DoMouseMoved()" );
-}
-
-void
-ToglFrame::DoMouseUp( int iWindow[2], InputState& iInput ) {
-
-  DebugOutput( << "ToglFrame " << mID << ": DoMouseUp()" );
-}
-
-void
-ToglFrame::DoMouseDown( int iWindow[2], InputState& iInput ) {
-
-  DebugOutput( << "ToglFrame " << mID << ": DoMouseDown()" );
-}
-
-void
-ToglFrame::DoKeyDown( int iWindow[2], InputState& iInput ) {
-
-  DebugOutput( << "ToglFrame " << mID << ": DoKeyDown()" );
-}
-
-void
-ToglFrame::DoKeyUp( int iWindow[2], InputState& iInput ) {
-
-  DebugOutput( << "ToglFrame " << mID << ": DoKeyUp()" );
+  WindowFrame::Reshape( iWidth, iHeight );
 }
