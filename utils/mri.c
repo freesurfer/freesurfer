@@ -85,6 +85,7 @@ MRIscalarMul(MRI *mri_src, MRI *mri_dst, float scalar)
   int     width, height, depth, x, y, z, frame ;
   BUFTYPE *psrc, *pdst ;
   float   *pfsrc, *pfdst, dval ;
+  short   *pssrc, *psdst ;
 
   width = mri_src->width ;
   height = mri_src->height ;
@@ -115,14 +116,20 @@ MRIscalarMul(MRI *mri_src, MRI *mri_dst, float scalar)
           break ;
         case MRI_FLOAT:
           pfsrc = &MRIFseq_vox(mri_src, 0, y, z, frame) ;
-        pfdst = &MRIFseq_vox(mri_dst, 0, y, z, frame) ;
-        for (x = 0 ; x < width ; x++)
-          *pfdst++ = *pfsrc++ * scalar ;
-        break ;
+          pfdst = &MRIFseq_vox(mri_dst, 0, y, z, frame) ;
+          for (x = 0 ; x < width ; x++)
+            *pfdst++ = *pfsrc++ * scalar ;
+          break ;
+        case MRI_SHORT:
+          pssrc = &MRISseq_vox(mri_src, 0, y, z, frame) ;
+          psdst = &MRISseq_vox(mri_dst, 0, y, z, frame) ;
+          for (x = 0 ; x < width ; x++)
+            *psdst++ = (short)nint((float)*pssrc++ * scalar) ;
+          break ;
         default:
           ErrorReturn(NULL, 
                       (ERROR_UNSUPPORTED, 
-                     "MRIscalarMul: unsupported type %d", mri_src->type)) ;
+                       "MRIscalarMul: unsupported type %d", mri_src->type)) ;
         }
       }
     }
@@ -145,7 +152,7 @@ MRIvalRange(MRI *mri, float *pmin, float *pmax)
 
   width = mri->width ;
   height = mri->height ;
- depth = mri->depth ;
+  depth = mri->depth ;
 
   fmin = 10000.0f ;
   fmax = -10000.0f ;
@@ -343,6 +350,7 @@ MRIvalScale(MRI *mri_src, MRI *mri_dst, float flo, float fhi)
 {
   int      width, height, depth, x, y, z ;
   float    fmin, fmax, *pf_src, *pf_dst, val, scale ;
+  short    *ps_src, *ps_dst ;
   BUFTYPE  *pb_src, *pb_dst ;
 
   if (!mri_dst)
@@ -368,6 +376,21 @@ MRIvalScale(MRI *mri_src, MRI *mri_dst, float flo, float fhi)
         {
           val = *pf_src++ ;
           *pf_dst++ = (val - fmin) * scale + flo ;
+        }
+      }
+    }
+    break ;
+  case MRI_SHORT:
+    for (z = 0 ; z < depth ; z++)
+    {
+      for (y = 0 ; y < height ; y++)
+      {
+        ps_src = &MRISvox(mri_src, 0, y, z) ;
+        ps_dst = &MRISvox(mri_dst, 0, y, z) ;
+        for (x = 0 ; x < width ; x++)
+        {
+          val = (float)(*ps_src++) ;
+          *ps_dst++ = (short)nint((val - fmin) * scale + flo) ;
         }
       }
     }
@@ -8603,6 +8626,47 @@ MRIfindNearestNonzero(MRI *mri, int wsize, Real xr, Real yr, Real zr)
           dist = sqrt(dx*dx + dy*dy + dz*dz) ;
           if (dist < min_dist)
           {
+            min_dist = dist ;
+            min_val = MRIvox(mri, xi, yi, zi) ;
+          }
+        }
+      }
+    }
+  }
+  return(min_val) ;
+}
+float
+MRIfindNearestNonzeroLocation(MRI *mri, int wsize, Real xr, Real yr, Real zr,
+                              int *pxv, int *pyv, int *pzv)
+{
+  int   xk, yk, zk, xi, yi, zi, whalf, x, y, z ;
+  float dist, min_dist, min_val, dx, dy, dz ;
+
+  x = nint(xr) ; y = nint(yr) ; z = nint(zr) ;
+  if (MRIvox(mri, x, y, z) > 0)
+    return((float)MRIvox(mri, x, y, z)) ;
+
+  min_dist = 100000 ; min_val = 0 ;
+  whalf = (wsize-1)/2 ;
+  for (zk = -whalf ; zk <= whalf ; zk++)
+  {
+    zi = mri->zi[z+zk] ;
+    dz = zi-zr ;
+    for (yk = -whalf ; yk <= whalf ; yk++)
+    {
+      yi = mri->yi[y+yk] ;
+      dy = yi-yr ;
+      for (xk = -whalf ; xk <= whalf ; xk++)
+      {
+        xi = mri->xi[x+xk] ;
+        dx = xi-xr ;
+        if (MRIvox(mri, xi, yi, zi) > 0)
+        {
+          dist = sqrt(dx*dx + dy*dy + dz*dz) ;
+          if (dist < min_dist)
+          {
+            if (pxv)
+            { *pxv = xi ; *pyv = yi ; *pzv = zi ;}
             min_dist = dist ;
             min_val = MRIvox(mri, xi, yi, zi) ;
           }
