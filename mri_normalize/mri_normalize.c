@@ -25,6 +25,8 @@ static int num_3d_iter = 2 ;
 static float intensity_above = 20 ;
 static float intensity_below = 10 ;
 
+static char *control_point_fname ;
+
 int
 main(int argc, char *argv[])
 {
@@ -75,6 +77,8 @@ main(int argc, char *argv[])
   if (!mri_dst)
     ErrorExit(ERROR_BADPARM, "%s: normalization failed", Progname) ;
 
+  if (control_point_fname)
+    MRI3dUseFileControlPoints(mri_dst, control_point_fname) ;
   for (n = 0 ; n < num_3d_iter ; n++)
   {
     fprintf(stderr, "3d normalization pass %d of %d\n", n+1, num_3d_iter) ;
@@ -109,6 +113,12 @@ get_option(int argc, char *argv[])
   option = argv[1] + 1 ;            /* past '-' */
   switch (toupper(*option))
   {
+  case 'F':
+    control_point_fname = argv[2] ;
+    nargs = 1 ;
+    fprintf(stderr, "using control points from file %s...\n", 
+           control_point_fname) ;
+    break ;
   case 'A':
     intensity_above = atof(argv[2]) ;
     fprintf(stderr, "using control point with intensity %2.1f above target.\n",
