@@ -520,6 +520,7 @@ ImageInverseDFT(IMAGE *Isrc, IMAGE *Idst)
   if  (ecode != HIPS_OK)
     ErrorExit(ecode, "ImageInverseDFT: h_divscale failed (%d)\n", ecode) ;
 #endif
+  ImageFree(&Itmp) ;
   return(Idst) ;
 }
 /*-----------------------------------------------------
@@ -738,8 +739,8 @@ ImageCorrelate(IMAGE *Itemplate, IMAGE *Isrc, int zeropad, IMAGE *Icorr)
   int   ecode ;
 
   if (zeropad)
-    ErrorReturn(NULL, 
-  (ERROR_UNSUPPORTED, "ImageCorrelate: zero padding unsupported")) ;
+    ErrorReturn(NULL, (ERROR_UNSUPPORTED, 
+                       "ImageCorrelate: zero padding unsupported")) ;
 
   /* assumes the template as already been FTed */
   Iconj = ImageConjugate(Itemplate, NULL) ;
