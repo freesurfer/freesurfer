@@ -898,7 +898,7 @@ XVMRIsetView(XV_FRAME *xvf, int which, int view)
   {
     for (which2 = 0 ; which2 < xvf->rows*xvf->cols ; which2++)
     {
-      if (which2 == which) 
+      if (which2 == which || fixed[which2]) 
         continue ;
       dimage2 = XVgetDimage(xvf, which2, DIMAGE_IMAGE) ;
       mri2 = mris[which2] ;
