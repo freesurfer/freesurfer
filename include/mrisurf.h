@@ -527,7 +527,9 @@ MRI   *MRISwriteSurfaceIntoVolume(MRI_SURFACE *mris, MRI *mri_template,
                                   MRI *mri) ;
 int   MRISmeasureCorticalThickness(MRI_SURFACE *mris, MRI *mri_brain, 
                                    MRI *mri_wm, float nsigma) ;
+
 int   MRISmarkRandomVertices(MRI_SURFACE *mris, float prob_marked) ;
 int   MRISclearMarks(MRI_SURFACE *mris) ;
+int   MRISsequentialAverageVertexPositions(MRI_SURFACE *mris, int navgs) ;
 
 #endif
