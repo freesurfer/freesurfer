@@ -202,6 +202,7 @@ MRI   *MRIextractValues(MRI *mri_src, MRI *mri_dst, float min_val,
 /* morphology */
 MRI   *MRImorph(MRI *mri_src, MRI *mri_dst, int which) ;
 MRI   *MRIerode(MRI *mri_src, MRI *mri_dst) ;
+MRI   *MRIerodeRegion(MRI *mri_src, MRI *mri_dst,int wsize,MRI_REGION *region);
 MRI   *MRIdilate(MRI *mri_src, MRI *mri_dst) ;
 MRI   *MRIopen(MRI *mri_src, MRI *mri_dst) ;
 MRI   *MRIclose(MRI *mri_src, MRI *mri_dst) ;
