@@ -12,7 +12,7 @@
 #include "mri.h"
 #include "macros.h"
 
-static char vcid[] = "$Id: mris_make_template.c,v 1.5 2002/06/13 20:03:09 fischl Exp $";
+static char vcid[] = "$Id: mris_make_template.c,v 1.6 2002/10/23 15:57:53 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -119,8 +119,50 @@ main(int argc, char *argv[])
     if (!mris)
       ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s",
               Progname, surf_fname) ;
-    MRISsaveVertexPositions(mris, ORIGINAL_VERTICES) ;
+    MRISsaveVertexPositions(mris, CANONICAL_VERTICES) ;
     MRIScomputeMetricProperties(mris) ; MRISstoreMetricProperties(mris) ;
+
+    if (Gdiag & DIAG_WRITE)
+    {
+      char *cp1 ;
+      
+      FileNameOnly(template_fname, fname) ;
+      cp = strchr(fname, '.') ;
+      if (cp)
+      {
+        cp1 = strrchr(fname, '.') ;
+        if (cp1 && cp1 != cp)
+          strncpy(parms.base_name, cp+1, cp1-cp-1) ;
+        else
+          strcpy(parms.base_name, cp+1) ;
+      }
+      else
+        strcpy(parms.base_name, "template") ;
+      sprintf(fname, "%s.%s.out", hemi, parms.base_name);
+      parms.fp = fopen(fname, "w") ;
+      printf("writing output to '%s'\n", fname) ;
+    }
+		if (!no_rot && ino > 0)
+		{
+      sprintf(surf_fname, "%s/%s/surf/%s.%s", 
+              subjects_dir, subject, hemi, "sulc") ;
+      if (MRISreadCurvatureFile(mris, surf_fname) != NO_ERROR)
+        ErrorExit(Gerror, "%s: could not read curvature file '%s'\n",
+                  Progname, surf_fname) ;
+      parms.frame_no = 3 ;
+      parms.mrisp = MRIStoParameterization(mris, NULL, scale, 0) ;
+      parms.mrisp_template = mrisp_template ;
+      parms.l_corr = 1.0f ;
+
+      MRISrigidBodyAlignGlobal(mris, &parms, 1.0, 32.0, 8) ;
+			if (Gdiag & DIAG_WRITE)
+				MRISwrite(mris, "sphere.rot.global") ;
+      MRISrigidBodyAlignLocal(mris, &parms) ;
+			if (Gdiag & DIAG_WRITE)
+				MRISwrite(mris, "sphere.rot.local") ;
+      MRISPfree(&parms.mrisp) ;
+			MRISsaveVertexPositions(mris, CANONICAL_VERTICES) ;
+		}
 
     for (sno = 0; sno < SURFACES ; sno++)
     {
@@ -146,7 +188,7 @@ main(int argc, char *argv[])
         MRIScomputeSecondFundamentalForm(mris) ;
         MRISuseMeanCurvature(mris) ;
         MRISaverageCurvatures(mris, navgs) ;
-        MRISrestoreVertexPositions(mris, ORIGINAL_VERTICES) ;
+        MRISrestoreVertexPositions(mris, CANONICAL_VERTICES) ;
         MRISnormalizeCurvature(mris) ;
       }
       fprintf(stderr, "computing parameterization for surface %s...\n",
@@ -158,6 +200,7 @@ main(int argc, char *argv[])
     MRISfree(&mris) ;
   }
 
+#if 0
   if (mrisp_aligned)  /* new parameterization - use rigid alignment */
   {
     MRI_SP *mrisp_tmp ;
@@ -207,7 +250,12 @@ main(int argc, char *argv[])
       parms.mrisp_template = mrisp_template ;
       parms.l_corr = 1.0f ;
 
-      MRISrigidBodyAlignGlobal(mris, &parms, 4.0, 32.0, 8) ;
+      MRISrigidBodyAlignGlobal(mris, &parms, 1.0, 32.0, 8) ;
+			if (Gdiag & DIAG_WRITE)
+				MRISwrite(mris, "sphere.rot.global") ;
+      MRISrigidBodyAlignLocal(mris, &parms) ;
+			if (Gdiag & DIAG_WRITE)
+				MRISwrite(mris, "sphere.rot.local") ;
       MRISPfree(&parms.mrisp) ;
 
 #if 0
@@ -262,6 +310,7 @@ main(int argc, char *argv[])
     mrisp_template = mrisp_tmp ;
     MRISPfree(&mrisp_aligned) ;
   }
+#endif
   fprintf(stderr, "writing updated template to %s...\n", template_fname) ;
   MRISPwrite(mrisp_template, template_fname) ;
   MRISPfree(&mrisp_template) ;
