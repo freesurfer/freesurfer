@@ -7,6 +7,7 @@
  *       DATE:        2/5/96
  *
 */
+#ifndef OPEN_GL_CODE
 
 #ifndef IMAGE_H
 #define IMAGE_H
@@ -379,3 +380,4 @@ extern float sx[9], sy[9] ;  /* sobel coefficients */
 
 #endif
 
+#endif
