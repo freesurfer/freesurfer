@@ -47,7 +47,7 @@ main(int argc, char *argv[])
   struct timeb start ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_normalize.c,v 1.24 2003/09/05 04:45:35 kteich Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_normalize.c,v 1.25 2004/04/13 19:53:20 tosa Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -118,6 +118,7 @@ main(int argc, char *argv[])
   if (control_point_fname)
     MRI3dUseFileControlPoints(mri_dst, control_point_fname) ;
   if (control_volume_fname)
+    // this just setup writing control-point volume saving
     MRI3dWriteControlPoints(control_volume_fname) ;
   if (bias_volume_fname)
     MRI3dWriteBias(bias_volume_fname) ;
@@ -139,6 +140,10 @@ main(int argc, char *argv[])
     fprintf(stderr, "writing output to %s\n", out_fname) ;
   MRIwrite(mri_dst, out_fname) ;
   msec = TimerStop(&start) ;
+
+  MRIfree(&mri_src);
+  MRIfree(&mri_dst);
+
   seconds = nint((float)msec/1000.0f) ;
   minutes = seconds / 60 ;
   seconds = seconds % 60 ;
