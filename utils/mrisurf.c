@@ -26655,3 +26655,188 @@ MRISSfree(SMALL_SURFACE **pmriss)
   free(mriss) ;
   return(NO_ERROR) ;
 }
+int
+MRISextractCurvatureVector(MRI_SURFACE *mris, float *curvs)
+{
+  int     vno ;
+
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+    curvs[vno] = mris->vertices[vno].curv ;
+
+  return(NO_ERROR) ;
+}
+int
+MRISimportCurvatureVector(MRI_SURFACE *mris, float *curvs)
+{
+  int     vno ;
+
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+    mris->vertices[vno].curv = curvs[vno] ;
+
+  return(NO_ERROR) ;
+}
+
+int
+MRISimportValVector(MRI_SURFACE *mris, float *vals)
+{
+  int     vno ;
+
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+    mris->vertices[vno].val = vals[vno] ;
+
+  return(NO_ERROR) ;
+}
+int
+MRISmaskLabel(MRI_SURFACE *mris, LABEL *area)
+{
+  int     i ;
+  VERTEX  *v ;
+
+  for (i = 0 ; i < area->n_points ; i++)
+  {
+    v = &mris->vertices[area->lv[i].vno] ;
+    v->curv = v->stat = v->val = v->imag_val=v->val2=v->valbak=v->val2bak = 0.0;
+  }
+  return(NO_ERROR) ;
+}
+int
+MRISmaskNotLabel(MRI_SURFACE *mris, LABEL *area)
+{
+  int     i, vno ;
+  VERTEX  *v ;
+
+  for (i = 0 ; i < area->n_points ; i++)
+  {
+    v = &mris->vertices[area->lv[i].vno] ;
+    v->marked = 1 ;
+  }
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    if (v->marked)
+      continue ;
+    v->curv = v->stat = v->val = v->imag_val=v->val2=v->valbak=v->val2bak = 0.0;
+  }
+  for (i = 0 ; i < area->n_points ; i++)
+  {
+    v = &mris->vertices[area->lv[i].vno] ;
+    v->marked = 0 ;
+  }
+  return(NO_ERROR) ;
+}
+int
+MRISripLabel(MRI_SURFACE *mris, LABEL *area)
+{
+  int     i ;
+  VERTEX  *v ;
+
+  for (i = 0 ; i < area->n_points ; i++)
+  {
+    v = &mris->vertices[area->lv[i].vno] ;
+    v->ripflag = 1 ;
+  }
+  return(NO_ERROR) ;
+}
+int
+MRISripNotLabel(MRI_SURFACE *mris, LABEL *area)
+{
+  int     i, vno ;
+  VERTEX  *v ;
+
+  for (i = 0 ; i < area->n_points ; i++)
+  {
+    v = &mris->vertices[area->lv[i].vno] ;
+    v->marked = 1 ;
+  }
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    if (v->marked)
+      continue ;
+    v->ripflag = 1 ;
+  }
+  for (i = 0 ; i < area->n_points ; i++)
+  {
+    v = &mris->vertices[area->lv[i].vno] ;
+    v->marked = 0 ;
+  }
+  return(NO_ERROR) ;
+}
+int
+MRISsegmentMarked(MRI_SURFACE *mris, LABEL ***plabel_array, int *pnlabels,
+                  float min_label_area)
+{
+  int     vno, nfound, n, nlabels, *marks ;
+  VERTEX  *v ;
+  LABEL   *area = NULL, **tmp, **label_array ;
+
+  marks = (int *)calloc(mris->nvertices, sizeof(int)) ;
+  label_array = (LABEL **)calloc(mris->nvertices, sizeof(LABEL *)) ;
+  if (!label_array || !marks)
+    ErrorExit(ERROR_NOMEMORY, 
+              "%s: MRISsegmentMarked could not allocate tmp storage",
+              Progname) ;
+
+  /* save current marks */
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    marks[vno] = v->marked ;
+    if (v->marked != 0)
+      v->marked = 1 ;
+  }
+
+  nlabels = 0 ;
+  do
+  {
+    nfound = 0 ;
+
+    /* find a marked vertex */
+    for (vno = 0 ; vno < mris->nvertices ; vno++)
+    {
+      v = &mris->vertices[vno] ;
+      if (v->ripflag || v->marked != 1)
+        continue ;
+      break ;
+    }
+    if (vno < mris->nvertices)
+    {
+      area = LabelAlloc(mris->nvertices, NULL, NULL) ;
+      area->n_points = 1 ;
+      area->lv[0].x = v->x ; area->lv[0].y = v->y ;area->lv[0].z = v->z ;
+      area->lv[0].vno = vno ;
+      LabelFillMarked(area, mris) ;
+      if (LabelArea(area, mris) >= min_label_area)
+        label_array[nlabels++] = LabelCopy(area, NULL) ;
+      LabelFree(&area) ;
+      nfound = 1 ;
+    }
+    else
+      nfound = 0 ;
+
+  } while (nfound > 0) ;
+
+  /* restore original marks */
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    v->marked = marks[vno] ;
+  }
+
+  free(marks) ;
+
+  /* crunch label array down to a reasonable size */
+  tmp = label_array ;
+  label_array = (LABEL **)calloc(mris->nvertices, sizeof(LABEL *)) ;
+  if (!label_array)
+    ErrorExit(ERROR_NOMEMORY, 
+              "%s: MRISsegmentMarked could not allocate tmp storage",
+              Progname) ;
+  for (n = 0 ; n < nlabels ; n++)
+    label_array[n] = tmp[n] ;
+  free(tmp) ;
+  *plabel_array = label_array ;
+  *pnlabels = nlabels ;
+  return(NO_ERROR) ;
+}
+
