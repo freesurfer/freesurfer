@@ -1,7 +1,7 @@
 #! /bin/sh
 #
 # UpdateFromSnapshot.sh
-# $Id: UpdateFromSnapshot.sh,v 1.3 2003/08/04 16:22:51 kteich Exp $
+# $Id: UpdateFromSnapshot.sh,v 1.4 2004/01/29 20:56:43 kteich Exp $
 #
 
 # Purpose: Compares current directory recursively against a target
@@ -16,7 +16,7 @@
 # i.e. UpdateFromSnapshot.sh /home/freesurfer
 #
 
-ECHO=echo
+ECHO=
 DATE=`(set \`date +%y%m%d\`; echo $1)`
 
 if [ "${1}" = "" ] ; then
@@ -55,6 +55,7 @@ process_dir () {
     local CUR=$1
 
     # Make the destination directory path.
+    local DESTDIR
     if [ "${CUR}" == "." ] ; then
 	DESTDIR=${DEST}
     else
@@ -64,8 +65,7 @@ process_dir () {
     # Get the listing for this directory.
     local CONTENTS=`/bin/ls ${CUR}`
 
-    # For each file, look for the corresponding file in the
-    # destination and if found, update it.
+    # Update each file.
     for file in $CONTENTS; do
 	if [ -f ${CUR}/${file} ] ; then
 	    backup_and_update_file ${CUR}/${file} ${DESTDIR}/${file}
