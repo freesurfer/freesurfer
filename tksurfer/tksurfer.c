@@ -18332,7 +18332,7 @@ int main(int argc, char *argv[])   /* new main */
   /* end rkt */
   
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: tksurfer.c,v 1.88 2004/12/22 15:29:40 tosa Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: tksurfer.c,v 1.89 2004/12/22 22:26:30 kteich Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -22203,6 +22203,9 @@ int sclv_get_value_for_percentile (int field, float percentile, float* value)
 
 int sclv_set_threshold_using_fdr (int field, float rate, int only_marked)
 {
+  float *saved_val;
+  float *saved_val2;
+  float current_value;
   double threshold;
   int err;
   int sign;
@@ -22222,6 +22225,31 @@ int sclv_set_threshold_using_fdr (int field, float rate, int only_marked)
     else
       sign = 1;
   }
+
+  /* since the fdr function only works on val and overwrites val2, we
+     need to back up these fields, and then write our current field
+     into val. we'll restore everything later. */
+  saved_val = (float*) calloc (mris->nvertices, sizeof(float));
+  if (NULL == saved_val)
+    {
+      ErrorReturn(ERROR_NO_MEMORY,(ERROR_NO_MEMORY,"sclv_set_threshold_using_fdr: couldn't allocated saved_val array\n"));
+    }
+  saved_val2 = (float*) calloc (mris->nvertices, sizeof(float));
+  if (NULL == saved_val2)
+    {
+      ErrorReturn(ERROR_NO_MEMORY,(ERROR_NO_MEMORY,"sclv_set_threshold_using_fdr: couldn't allocated saved_val2 array\n"));
+    }
+  for (vno = 0; vno < mris->nvertices; vno++)
+    {
+      /* save val and val2. */
+      v = &mris->vertices[vno];
+      sclv_get_value (v, SCLV_VAL, &saved_val[vno]);
+      sclv_get_value (v, SCLV_VAL2, &saved_val2[vno]);
+
+      /* get the current value and put it into val. */
+      sclv_get_value (v, field, &current_value);
+      sclv_set_value (v, SCLV_VAL, current_value);
+    }
 
   /* if we're only doing marked verts, go through the surface. save
      undefval, set undefval to 1 if marked. */
@@ -22271,7 +22299,17 @@ int sclv_set_threshold_using_fdr (int field, float rate, int only_marked)
 	}
       free (saved_undefval);
     }
-  
+
+  /* restore val and val2 */
+  for (vno = 0; vno < mris->nvertices; vno++)
+    {
+      v = &mris->vertices[vno];
+      sclv_set_value (v, SCLV_VAL, saved_val[vno]);
+      sclv_set_value (v, SCLV_VAL2, saved_val2[vno]);
+    }
+  free (saved_val);
+  free (saved_val2);
+
   sclv_field_info[field].fthresh = threshold;
   sclv_field_info[field].fmid = threshold + 1.5; 
   sclv_field_info[field].fslope = 0.66; 
