@@ -3,10 +3,10 @@
   ===========================================================================*/
 
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2004/01/22 20:49:04 $
-// Revision       : $Revision: 1.194 $
-char *VERSION = "$Revision: 1.194 $";
+// Revision Author: $Author: kteich $
+// Revision Date  : $Date: 2004/01/22 21:18:30 $
+// Revision       : $Revision: 1.195 $
+char *VERSION = "$Revision: 1.195 $";
 
 #define TCL
 #define TKMEDIT 
@@ -1034,7 +1034,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
      shorten our argc and argv count. If those are the only args we
      had, exit. */
   /* rkt: check for and handle version tag */
-  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.194 2004/01/22 20:49:04 fischl Exp $", "$Name:  $");
+  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.195 2004/01/22 21:18:30 kteich Exp $", "$Name:  $");
   if (nNumProcessedVersionArgs && argc - nNumProcessedVersionArgs == 1)
     exit (0);
   argc -= nNumProcessedVersionArgs;
@@ -5043,7 +5043,7 @@ int main ( int argc, char** argv ) {
     DebugPrint( ( "%s ", argv[nArg] ) );
   }
   DebugPrint( ( "\n\n" ) );
-  DebugPrint( ( "$Id: tkmedit.c,v 1.194 2004/01/22 20:49:04 fischl Exp $ $Name:  $\n" ) );
+  DebugPrint( ( "$Id: tkmedit.c,v 1.195 2004/01/22 21:18:30 kteich Exp $ $Name:  $\n" ) );
 
   
   /* init glut */
@@ -6410,6 +6410,7 @@ void SaveSelectionToLabelFile ( char * isFileName ) {
   int           nDimensionX              = 0;
   int           nDimensionY              = 0;
   int           nDimensionZ              = 0;
+  float         selected                 = 0;
   float         value                    = 0;
   xVoxel        MRIIdx;
   xVoxel        ras;
@@ -6446,8 +6447,8 @@ void SaveSelectionToLabelFile ( char * isFileName ) {
   while( xVoxl_IncrementUntilLimits( &MRIIdx, nDimensionX-1, 
 				     nDimensionY-1, nDimensionZ-1 )) {
 
-    Volm_GetValueAtMRIIdx_( gSelectionVolume, &MRIIdx, &value );
-    if( 0 != value ) {
+    Volm_GetValueAtMRIIdx_( gSelectionVolume, &MRIIdx, &selected );
+    if( 0 != selected ) {
       
       /* convert mri idx to surface ras. note we may use surface ras
 	 here because it ignores c_ras, which is what label files
@@ -6473,10 +6474,12 @@ void SaveSelectionToLabelFile ( char * isFileName ) {
       pVertex->z = xVoxl_GetFloatZ( &ras );
       
       /* set the vno to -1, which is significant somewhere outside
-	 the realm of tkmedit. set stat value to something decent
+	 the realm of tkmedit. set stat value to the mri value
 	 and deleted to not */
+      Volm_GetValueAtIdx( gAnatomicalVolume[tkm_tVolumeType_Main], 
+			  &MRIIdx, &value );
       pVertex->vno = -1;
-      pVertex->stat = 0;
+      pVertex->stat = value;
       pVertex->deleted = FALSE;
       
       /* inc our global count. */
