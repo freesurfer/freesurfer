@@ -38,12 +38,15 @@ int            Gdiag_no   = -1 ;
 int Gx = -1 ;
 int Gy = -1 ;
 int Gz = -1 ;
+#define DEFAULT_IMAGE_SIZE       400
+int IMAGE_SIZE = DEFAULT_IMAGE_SIZE ;
+
 
 /*-----------------------------------------------------
                      STATIC DATA
 -------------------------------------------------------*/
 
-static char diag_fname[100] = "diag.log" ;
+static char diag_fname[STRLEN] = "diag.log" ;
 static int (*diag_vprintf)(const char *fmt, va_list args) = vprintf ;
 static int (*diag_vfprintf)(FILE *fp, const char *fmt, va_list args) =vfprintf;
 
@@ -78,6 +81,10 @@ DiagInit(char *fname,
   cp = getenv("DIAG_NO") ;
   if (cp)
     Gdiag_no = atoi(cp) ;
+
+  cp = getenv("IMAGE_SIZE") ;
+  if (cp)
+    IMAGE_SIZE = atoi(cp) ;
 
   cp = getenv("DIAGX") ;
   if (cp)
