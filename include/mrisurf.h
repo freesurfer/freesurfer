@@ -667,6 +667,12 @@ double MRIScomputeFaceAreaStats(MRI_SURFACE *mris, double *psigma,
 int MRISprintTessellationStats(MRI_SURFACE *mris, FILE *fp) ;
 int MRISmergeIcosahedrons(MRI_SURFACE *mri_src, MRI_SURFACE *mri_dst) ;
 int MRISinverseSphericalMap(MRI_SURFACE *mris, MRI_SURFACE *mris_ico) ;
+MRI_SURFACE *MRIScorrectTopology(MRI_SURFACE *mris, 
+                                 MRI_SURFACE *mris_corrected) ;
+int MRISripDefectiveFaces(MRI_SURFACE *mris) ;
+int MRISunrip(MRI_SURFACE *mris) ;
+int MRISmarkAmbiguousVertices(MRI_SURFACE *mris, int mark_retain, 
+                              int mark_discard) ;
 
 #if 1
 #include "mrishash.h"
