@@ -7421,8 +7421,10 @@ MRISreadPatchNoRemove(MRI_SURFACE *mris, char *pname)
 
   int         ix, iy, iz, k, i, j, npts ;
   FILE        *fp ;
-  char        fname[STRLEN], path[STRLEN], *cp ;
+  char        fname[STRLEN] ;
 
+#if 0
+  char        path[STRLEN], *cp ;
   cp = strchr(pname, '/') ;
   if (cp)
     strcpy(fname, pname) ;    /* path already specified */
@@ -7431,6 +7433,9 @@ MRISreadPatchNoRemove(MRI_SURFACE *mris, char *pname)
     FileNamePath(mris->fname, path) ;
     sprintf(fname, "%s/%s", path, pname) ;
   }
+#else
+  MRISbuildFileName(mris, pname, fname) ;
+#endif
   fp = fopen(fname, "rb") ;
   if (!fp)
     ErrorReturn(ERROR_NOFILE,(ERROR_NOFILE,
