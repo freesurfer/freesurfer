@@ -517,17 +517,24 @@ MRIreadInfo(char *fpref)
         if (!FileExists(mri->transform_fname))  /* try typical location */
           sprintf(mri->transform_fname,"%s/../transforms/talairach.xfm",fpref);
 
-        if (input_transform_file(mri->transform_fname, &mri->transform) != OK)
+        if (FileExists(mri->transform_fname))
+        {
+          if (input_transform_file(mri->transform_fname, &mri->transform)!=OK)
+            ErrorPrintf(ERROR_NO_MEMORY, 
+                        "MRIreadInfo: could not read xform file '%s'\n", 
+                        mri->transform_fname) ;
+          else
+          {
+            mri->linear_transform = get_linear_transform_ptr(&mri->transform) ;
+            mri->inverse_linear_transform = 
+              get_inverse_linear_transform_ptr(&mri->transform) ;
+            mri->free_transform = 1 ;
+          }
+        }
+        else
           ErrorPrintf(ERROR_NO_MEMORY, 
                       "MRIreadInfo: could not read xform file '%s'\n", 
                       mri->transform_fname) ;
-        else
-        {
-          mri->linear_transform = get_linear_transform_ptr(&mri->transform) ;
-          mri->inverse_linear_transform = 
-            get_inverse_linear_transform_ptr(&mri->transform) ;
-          mri->free_transform = 1 ;
-        }
       }
       else
         mri->linear_transform = NULL ;
