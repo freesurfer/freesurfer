@@ -2016,7 +2016,6 @@ static int
 mrisOrientPlane(MRI_SURFACE *mris)
 {
   int     fno, tno, ano ;
-  VERTEX  *v ;
   FACE    *face ;
 
   MRIScomputeTriangleProperties(mris) ;  /* recompute areas and normals */
@@ -2027,11 +2026,10 @@ mrisOrientPlane(MRI_SURFACE *mris)
       continue ;
       
     /* now give the area an orientation: if the unit normal is pointing
-       inwards on the ellipsoid then the area should be negative.
+       downwards in the plane then the area should be negative.
        */
     for (tno = 0 ; tno < TRIANGLES_PER_FACE ; tno++)
     {
-      v = tno == 0 ? &mris->vertices[face->v[0]]:&mris->vertices[face->v[2]] ;
       if (face->nz[tno] < 0.0f)   
       {
         /* not in same direction, area < 0 and reverse n */
@@ -4120,7 +4118,6 @@ mrisRipFaces(MRI_SURFACE *mris)
 /*-----------------------------------------------------
         Parameters:
 
-
         Returns value:
 
         Description
@@ -4128,9 +4125,9 @@ mrisRipFaces(MRI_SURFACE *mris)
 int
 MRISwritePatch(MRI_SURFACE *mris, char *fname)
 {
-  int   k, i, npts;
-  float x,y,z;
-  FILE  *fp;
+  int    k,i,npts;
+  float  x,y,z;
+  FILE   *fp;
 
   npts = 0;
   for (k=0;k<mris->nvertices;k++)
@@ -4292,7 +4289,7 @@ MRISflattenPatch(MRI_SURFACE *mris, char *dir)
 {
   float       x,y,z,d,d1,d2;
   float       nx,ny,nz ;
-  vertex_type *v;
+  VERTEX      *v;
   int         k, an;
   FILE        *fp;
   char        fname[200];
