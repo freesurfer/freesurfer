@@ -5741,16 +5741,47 @@ tkm_tErr LoadVolume ( tkm_tVolumeType iType,
          &gnAnatomicalDimensionX, &gnAnatomicalDimensionY, &gnAnatomicalDimensionZ  );
 
 
-#if 0
+#if 1
   /* is this right (BRF)? Are they supposed to be screen dimensions? */
   gnAnatomicalDimensionX = gnAnatomicalDimensionY = gnAnatomicalDimensionZ = 256 ;
 #else
   gnAnatomicalDimensionX = gAnatomicalVolume[iType]->mpMriValues->width ;
   gnAnatomicalDimensionY = gAnatomicalVolume[iType]->mpMriValues->height ;
   gnAnatomicalDimensionZ = gAnatomicalVolume[iType]->mpMriValues->depth ;
+  {
+    MATRIX *m_vox_to_ras ;
+    VECTOR *v_vox, *v_ras ;
+    int    r, c ;
+
+    printf("w = %d, h = %d, d = %d\n",
+           gAnatomicalVolume[iType]->mpMriValues->width,
+           gAnatomicalVolume[iType]->mpMriValues->height,
+           gAnatomicalVolume[iType]->mpMriValues->depth) ;
+           
+    m_vox_to_ras = MatrixInverse(gAnatomicalVolume[iType]->m_resample, NULL) ;
+    for (r = 1 ; r <= 3 ; r++)
+    {
+      *MATRIX_RELT(m_vox_to_ras, r, 4) = 0 ;
+      for (c = 1 ; c <= 3 ; c++)
+        if (!FZERO(*MATRIX_RELT(m_vox_to_ras, r, c)))
+          *MATRIX_RELT(m_vox_to_ras, r, c) = 1.0 ;
+    }
+
+    v_vox = VectorAlloc(4, 1) ;
+    v_vox->rptr[4][1] = 1.0 ;
+    V3_X(v_vox) = gAnatomicalVolume[iType]->mpMriValues->width ;
+    V3_Y(v_vox) = gAnatomicalVolume[iType]->mpMriValues->height ;
+    V3_Z(v_vox) = gAnatomicalVolume[iType]->mpMriValues->depth ;
+    v_ras = MatrixMultiply(m_vox_to_ras, v_vox,NULL) ;
+    gnAnatomicalDimensionX = fabs(V3_X(v_ras)) ;
+    gnAnatomicalDimensionY = fabs(V3_Y(v_ras)) ;
+    gnAnatomicalDimensionZ = fabs(V3_Z(v_ras)) ;
+    MatrixFree(&m_vox_to_ras) ; MatrixFree(&v_vox) ; MatrixFree(&v_ras) ;
+  }
+
 #endif
 
-  if (Gdiag & DIAG_SHOW)
+  /*  if (Gdiag & DIAG_SHOW)*/
     printf("setting anatomical dimensions to %d, %d, %d\n",
            gnAnatomicalDimensionX, gnAnatomicalDimensionY, gnAnatomicalDimensionZ  );
 
