@@ -14,7 +14,7 @@
 #include "version.h"
 #include "gcsa.h"
 
-static char vcid[] = "$Id: mris_register.c,v 1.21 2004/11/15 18:09:26 fischl Exp $";
+static char vcid[] = "$Id: mris_register.c,v 1.22 2004/11/16 15:34:49 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -65,7 +65,7 @@ main(int argc, char *argv[])
   MRI_SP       *mrisp_template ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_register.c,v 1.21 2004/11/15 18:09:26 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_register.c,v 1.22 2004/11/16 15:34:49 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -94,7 +94,7 @@ main(int argc, char *argv[])
   parms.error_ratio = 1.03 /*ERROR_RATIO */;
   parms.dt_increase = 1.0 ;
   parms.dt_decrease = 1.0 ;
-	parms.l_external = 10 ;   /* in case manual label is specified */
+	parms.l_external = 1000 ;   /* in case manual label is specified */
   parms.error_ratio = 1.1 /*ERROR_RATIO */;
   parms.integration_type = INTEGRATE_ADAPTIVE ;
   parms.integration_type = INTEGRATE_MOMENTUM /*INTEGRATE_LINE_MINIMIZE*/ ;
