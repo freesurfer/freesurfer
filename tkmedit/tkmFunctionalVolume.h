@@ -145,6 +145,7 @@ typedef enum {
   FunV_tFindStatsComp_Invalid = -1,
   FunV_tFindStatsComp_GTEoLTE = 0,
   FunV_tFindStatsComp_EQ,
+  FunV_tFindStatsComp_GTEThresholdMin,
   FunV_knNumFindStatsComp
 } FunV_tFindStatsComp;
 

@@ -3252,6 +3252,9 @@ void FunV_SelectAnaVoxelsByFuncValueIter_ ( tkmFunctionalVolumeRef this,
   case FunV_tFindStatsComp_EQ:
     bGood = (value == iParams->mStartValue);
     break;
+  case FunV_tFindStatsComp_GTEThresholdMin:
+    bGood = (value >= this->mThresholdMin);
+    break;
   default:
     bGood = FALSE;
   }
