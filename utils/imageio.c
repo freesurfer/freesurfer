@@ -51,6 +51,8 @@
 /*-----------------------------------------------------
                     STATIC PROTOTYPES
 -------------------------------------------------------*/
+
+static int    RGBwrite(IMAGE *I, char *fname, int frame) ;
 static IMAGE  *TiffReadImage(char *fname, int frame)  ;
 static IMAGE  *TiffReadHeader(char *fname, IMAGE *I)  ;
 static int    TiffWriteImage(IMAGE *I, char *fname, int frame) ;
@@ -127,6 +129,9 @@ ImageFWrite(IMAGE *I, FILE *fp, char *fname)
 
   switch (type)
   {
+  case RGBI_IMAGE:
+    RGBwrite(I, fname, frame) ;
+    break ;
   case TIFF_IMAGE:
     TiffWriteImage(I, fname, frame) ;
     break ;
@@ -1043,41 +1048,41 @@ TiffWriteImage(IMAGE *I, char *fname, int frame)
   timage = I->image;
 
   for(frames=0;frames<I->num_frame;frames++)
-    {
-      TIFFSetField(out, TIFFTAG_IMAGEWIDTH, (uint32) I->cols);
-      TIFFSetField(out, TIFFTAG_IMAGELENGTH, (uint32) I->rows);
-      TIFFSetField(out, TIFFTAG_ORIENTATION, ORIENTATION_BOTLEFT);
-      TIFFSetField(out, TIFFTAG_SAMPLESPERPIXEL, samples_per_pixel);
-      TIFFSetField(out, TIFFTAG_BITSPERSAMPLE, bits_per_sample);
-      TIFFSetField(out, TIFFTAG_PLANARCONFIG, PLANARCONFIG_CONTIG);
-      TIFFSetField(out, TIFFTAG_PHOTOMETRIC, PHOTOMETRIC_MINISBLACK);
-      /* write out the data, line by line */
-      for (row = 0; row < I->rows; row++) 
   {
+    TIFFSetField(out, TIFFTAG_IMAGEWIDTH, (uint32) I->cols);
+    TIFFSetField(out, TIFFTAG_IMAGELENGTH, (uint32) I->rows);
+    TIFFSetField(out, TIFFTAG_ORIENTATION, ORIENTATION_BOTLEFT);
+    TIFFSetField(out, TIFFTAG_SAMPLESPERPIXEL, samples_per_pixel);
+    TIFFSetField(out, TIFFTAG_BITSPERSAMPLE, bits_per_sample);
+    TIFFSetField(out, TIFFTAG_PLANARCONFIG, PLANARCONFIG_CONTIG);
+    TIFFSetField(out, TIFFTAG_PHOTOMETRIC, PHOTOMETRIC_MINISBLACK);
+    /* write out the data, line by line */
+    for (row = 0; row < I->rows; row++) 
+    {
     switch (I->pixel_format)
-      {
-      case PFBYTE:
-        buf = (tdata_t *)IMAGEpix(I,0,row);
-        break;
-      case PFFLOAT:
-        buf = (tdata_t *)IMAGEFpix(I,0,row);
-        break;
-      case PFDOUBLE:
-        buf = (tdata_t *)IMAGEDpix(I,0,row);
-        break;
-      default:
-        ErrorReturn(ERROR_UNSUPPORTED, 
+    {
+    case PFBYTE:
+      buf = (tdata_t *)IMAGEpix(I,0,row);
+      break;
+    case PFFLOAT:
+      buf = (tdata_t *)IMAGEFpix(I,0,row);
+      break;
+    case PFDOUBLE:
+      buf = (tdata_t *)IMAGEDpix(I,0,row);
+      break;
+    default:
+      ErrorReturn(ERROR_UNSUPPORTED, 
                   (ERROR_BADFILE,
                    "TiffWrite: unsupported pixel format %d",I->pixel_format));
-      }
+    }
     if (TIFFWriteScanline(out, buf, row, 0) < 0)
       ErrorReturn(ERROR_BADFILE, 
                   (ERROR_BADFILE,
                    "TiffWrite: TIFFWriteScanline returned error"));
-  }
-      TIFFWriteDirectory(out);
-      I->image += I->sizeimage;
     }
+    TIFFWriteDirectory(out);
+    I->image += I->sizeimage;
+  }
   TIFFClose(out) ;
   I->image = timage;
 
@@ -1434,5 +1439,35 @@ JPEGWriteImage(IMAGE *I, char *fname, int frame)
   fclose(outf);
   
   return NO_ERROR;
+}
+
+#include "rgb_image.h"
+
+static int
+RGBwrite(IMAGE *I, char *fname, int frame)
+{
+  RGB_IMAGE  *image ;
+  int    x, y ;
+  unsigned short *r ;
+
+#ifdef IRIX
+  image = iopen(fname,"w",RLE(1), 2, I->cols, I->rows, 1);
+#else
+  image = iopen(fname,"w",VERBATIM(1), 2, I->cols, I->rows, 1);
+#endif
+  r = (unsigned short *)calloc(I->cols, sizeof(unsigned short)) ;
+  for (y = 0 ; y < I->rows; y++) 
+  {
+    for (x = 0 ; x < I->cols ; x++)
+      r[x] = (unsigned short)(*IMAGEpix(I, x, y)) ;
+
+    /* fill rbuf, gbuf, and bbuf with pixel values */
+    putrow(image, r, y, 0);    /* red row */
+    putrow(image, r, y, 1);    /* green row */
+    putrow(image, r, y, 2);    /* blue row */
+  }
+  iclose(image);
+  free(r) ;
+  return(NO_ERROR) ;
 }
 
