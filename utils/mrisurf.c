@@ -21482,19 +21482,39 @@ MRIStransform(MRI_SURFACE *mris, MRI *mri, LTA *lta)
   v_X  = VectorAlloc(4, MATRIX_REAL) ;  /* input (src) coordinates */
   v_Y  = VectorAlloc(4, MATRIX_REAL) ;  /* transformed (dst) coordinates */
 
-  v_X->rptr[4][1] = 1.0f / mri->thick ;
-  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  if (mri)
   {
-    v = &mris->vertices[vno] ;
-    if (v->ripflag)
-      continue ;
-    MRISvertexToVoxel(v, mri, &xv, &yv, &zv) ;
-    V3_X(v_X) = xv ; V3_Y(v_X) = yv ; V3_Z(v_X) = zv ;
-    LTAtransformPoint(lta, v_X, v_Y) ;
-    xv = V3_X(v_Y) ; yv = V3_Y(v_Y) ; zv = V3_Z(v_Y) ;
-    MRIvoxelToWorld(mri, xv, yv, zv, &xw, &yw, &zw) ;
-    v->x = xw ; v->y = yw ; v->z = zw ;
+    v_X->rptr[4][1] = 1.0f / mri->thick ;
+    
+    for (vno = 0 ; vno < mris->nvertices ; vno++)
+    {
+      v = &mris->vertices[vno] ;
+      if (v->ripflag)
+        continue ;
+      MRISvertexToVoxel(v, mri, &xv, &yv, &zv) ;
+      V3_X(v_X) = xv ; V3_Y(v_X) = yv ; V3_Z(v_X) = zv ;
+      LTAtransformPoint(lta, v_X, v_Y) ;
+      xv = V3_X(v_Y) ; yv = V3_Y(v_Y) ; zv = V3_Z(v_Y) ;
+      MRIvoxelToWorld(mri, xv, yv, zv, &xw, &yw, &zw) ;
+      v->x = xw ; v->y = yw ; v->z = zw ;
+    }
   }
+  else
+  {
+    v_X->rptr[4][1] = 1.0f ;
+    
+    for (vno = 0 ; vno < mris->nvertices ; vno++)
+    {
+      v = &mris->vertices[vno] ;
+      if (v->ripflag)
+        continue ;
+      V3_X(v_X) = v->x ; V3_Y(v_X) = v->y ; V3_Z(v_X) = v->z ;
+      LTAtransformPoint(lta, v_X, v_Y) ;
+      v->x = V3_X(v_Y) ; v->y = V3_Y(v_Y) ; v->z = V3_Z(v_Y) ;
+    }
+  }
+
+  
   VectorFree(&v_X) ; VectorFree(&v_Y) ; 
   mrisComputeSurfaceDimensions(mris) ;
   return(NO_ERROR) ;
