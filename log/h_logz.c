@@ -929,10 +929,9 @@ LogMapGradient(LOGMAP_INFO *lmi, IMAGE *inImage,
   }
   else
   {
-    yImage->rows = xImage->rows = inImage->rows ;
-    yImage->cols = xImage->cols = inImage->cols ;
-    yImage->pixel_format = xImage->pixel_format = 
-      inImage->pixel_format ;
+    ImageSetSize(xImage, inImage->rows, inImage->cols) ;
+    ImageSetSize(yImage, inImage->rows, inImage->cols) ;
+    yImage->pixel_format = xImage->pixel_format = inImage->pixel_format ;
   }
 
   logFilterNbd(lmi, isx, inImage, xImage, doweight) ;
@@ -1005,8 +1004,8 @@ LogMapCurvature(LOGMAP_INFO *lmi, IMAGE *inImage, IMAGE *gradImage,
   }
   else
   {
-    yImage->rows = xImage->rows = inImage->rows ;
-    yImage->cols = xImage->cols = inImage->cols ;
+    ImageSetSize(xImage, inImage->rows, inImage->cols) ;
+    ImageSetSize(yImage, inImage->rows, inImage->cols) ;
   }
 
   logFilterNbd(lmi, isx, inImage, xImage, doweight) ;
@@ -1147,8 +1146,8 @@ LogMapDiffuse(LOGMAP_INFO *lmi, IMAGE *inImage, IMAGE *outImage,
   }
   else
   {
-    fDstImage->rows = fSrcImage->rows = inImage->rows ;
-    fDstImage->cols = fSrcImage->cols = inImage->cols ;
+    ImageSetSize(fDstImage, inImage->rows, inImage->cols) ;
+    ImageSetSize(fSrcImage, inImage->rows, inImage->cols) ;
   }
 
 #if DEBUG  
@@ -1267,12 +1266,17 @@ LogMapDiffusePerona(LOGMAP_INFO *lmi, IMAGE *inImage, IMAGE *outImage,
       ImageFree(&tmpImage) ;
     tmpImage = ImageAlloc(inImage->rows, inImage->cols, PFFLOAT, 1) ;
   }
+  else
+    ImageSetSize(tmpImage, inImage->rows, inImage->cols) ;
+
   if (!ImageCheckSize(inImage, gradImage, 0, 0, 0))
   {
     if (gradImage)
       ImageFree(&gradImage) ;
     gradImage = ImageAlloc(inImage->rows, inImage->cols, PFFLOAT, 1) ;
   }
+  else
+    ImageSetSize(gradImage, inImage->rows, inImage->cols) ;
 
   ImageCopy(inImage, tmpImage) ;
 
@@ -1387,6 +1391,9 @@ LogMapDiffusePerona(LOGMAP_INFO *lmi, IMAGE *inImage, IMAGE *outImage,
       ImageFree(&tmpImage) ;
     tmpImage = ImageAlloc(inImage->rows, inImage->cols, PFFLOAT, 1) ;
   }
+  else
+    ImageSetSize(tmpImage, inImage->rows, inImage->cols) ;
+
 
   ImageCopy(inImage, tmpImage) ;
   srcImage = tmpImage ;
@@ -1528,8 +1535,8 @@ LogMapDiffuseCurvature(LOGMAP_INFO *lmi,IMAGE *inImage,IMAGE *outImage,
   }
   else
   {
-    tmpImage->cols = gradImage->cols = inImage->cols ;
-    tmpImage->rows = gradImage->rows = inImage->rows ;
+    ImageSetSize(tmpImage, inImage->rows, inImage->cols) ;
+    ImageSetSize(gradImage, inImage->rows, inImage->cols) ;
   }
 
   ImageCopy(inImage, tmpImage) ;
