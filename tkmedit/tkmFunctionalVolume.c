@@ -3583,8 +3583,7 @@ int FunV_TclOlRestoreRegistration ( ClientData iClientData,
   if( this->mpOverlayVolume ) {
     
     /* restore the regsitration */
-    FunD_ParseRegistrationAndInitMatricies_( this->mpOverlayVolume, 
-					     this->tkregMat );
+    FunD_ParseRegistrationAndInitMatricies_( this->mpOverlayVolume );
     
     /* udpate the overlay */
     eResult = FunV_OverlayChanged_( this );
