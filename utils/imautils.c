@@ -484,7 +484,7 @@ IMAFILEINFO *imaLoadFileInfo(char *imafile)
   imaLoadValFromKey(fp,"G21_Rel1_CM_FoV_Width",&dtmp);
   FoVWidth = (float) dtmp;
   ifi->VolRes[0] = FoVWidth/ifi->VolDim[0]; /* col res */
-  ifi->VolRes[1] = FoVWidth/ifi->VolDim[1]; /* row res */
+  ifi->VolRes[1] = FoVHeight/ifi->VolDim[1]; /* row res */
 
   /* Slice Spacing */
   imaLoadValFromKey(fp,"G18_Acq_SliceThickness",&dtmp);
@@ -546,6 +546,58 @@ IMAFILEINFO *imaLoadFileInfo(char *imafile)
   fclose(fp);
 
   return(ifi);
+}
+/*--------------------------------------------------------------------*/
+short *imaReadPixelData(IMAFILEINFO *ifi, short *PixelData)
+{
+  FILE *fp;
+  int npixels, alloced = 0;
+  int nread, r;
+
+  fp = fopen(ifi->FileName,"r");
+  if(fp == NULL){
+    printf("ERROR: cannot open %s\n",ifi->FileName);
+    return(NULL);
+  }
+
+  npixels = ifi->NImageRows * ifi->NImageCols;
+
+  if(PixelData == NULL){
+    PixelData = (short *) calloc(npixels,sizeof(short));
+    if(PixelData == NULL){
+      printf("ERROR: could not alloc %d pixels\n",npixels);
+      fclose(fp);
+      return(NULL);
+    }
+    alloced = 1;
+  }
+
+  if( fseek(fp,6144,SEEK_SET) == -1){
+    printf("ERROR: could seek to 6144 in %s\n",ifi->FileName);
+    if(alloced) free(PixelData);
+    fclose(fp);
+    return(NULL);
+  }
+
+  nread = fread(PixelData,sizeof(short),npixels,fp);
+  if(nread != npixels){
+    printf("ERROR: only read %d of %d pixels in  %s\n",
+     nread, npixels,ifi->FileName);
+    if(alloced) free(PixelData);
+    fclose(fp);
+    return(NULL);
+  }
+  fclose(fp);
+
+  if(Arch486()){
+    r = ByteSwapBuf(PixelData,npixels,sizeof(short));
+    if(r != 0) {
+    if(alloced) free(PixelData);
+    return(NULL);
+    }
+  }
+
+  return(PixelData);
 }
 /*--------------------------------------------------------------------*/
 int imaDumpFileInfo(FILE *fp, IMAFILEINFO *ifi)

@@ -94,42 +94,6 @@ int imaCountFilesInSeries(char *imafile, int *FirstImageNo);
 
 IMAFILEINFO *imaLoadFileInfo(char *imafile);
 int imaDumpFileInfo(FILE *fp, IMAFILEINFO *ifi);
-
-#if 0 /*------------------------------------------------*/
-
-typedef struct {
-  int offset;
-  int type;
-  int nbytes;
-  int nitems;
-  int valgood;
-  short  sval;
-  int    ival;
-  long   lval;
-  float  fval;
-  double dval;
-  char  *string;
-  char  *descr;
-} IMAELEMENT;
-
-typedef struct {
-  char *filename;
-  int nelements;
-  IMAELEMENT **e;
-} IMAFILEINFO;
-
-int imaDumpElement(FILE *fp, IMAELEMENT *e);
-int imaPrintElementValue(FILE *fp, IMAELEMENT *e);
-int imaFreeElement(IMAELEMENT **ppe);
-IMAELEMENT *imaMakeElement(char *descr, int offset, int type, int nitems);
-IMAELEMENT *imaCopyElement(IMAELEMENT *esrc);
-IMAELEMENT *imaLoadElement(FILE *imafp, int offset, int type, char *descr,
-         int nitems);
-int imaLoadElementVal(FILE *imafp, IMAELEMENT *e);
-int imaAddElement(IMAFILEINFO *ifi, IMAELEMENT *e);
-int imaDumpFileInfo(FILE *fp, IMAFILEINFO *ifi);
-IMAFILEINFO *imaDefaultFileInfo(void);
-IMAFILEINFO *imaLoadDefaultFileInfo(char *imafile);
-#endif
+short *imaReadPixelData(IMAFILEINFO *ifi, short *PixelData);
 
 #endif /*#ifndef IMAUTILS_H*/
