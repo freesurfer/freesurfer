@@ -94,7 +94,7 @@ MRIpolvMean(MRI *mri_src, MRI *mri_dst, MRI *mri_polv, int wsize)
   int      width, height, depth, x, y, z, whalf, xk, yk, n, vertex,xi,yi,zi,
            *pxi, *pyi, *pzi  ;
   float    e1_x, e1_y, e1_z, e2_x, e2_y, e2_z, xbase, ybase, zbase, total ;
-  BUFTYPE  *psrc, *pdst, *pptr, plane_vals[MAXLEN], *pvals ;
+  BUFTYPE  *pdst, *pptr ;
 
   width = mri_src->width ;
   height = mri_src->height ;
@@ -169,7 +169,7 @@ MRIpolvMedian(MRI *mri_src, MRI *mri_dst, MRI *mri_polv, int wsize)
   int      width, height, depth, x, y, z, whalf, xk, yk, n, vertex,xi,yi,zi,
            *pxi, *pyi, *pzi ;
   float    e1_x, e1_y, e1_z, e2_x, e2_y, e2_z, xbase, ybase, zbase ;
-  BUFTYPE  *psrc, *pdst, *pptr, plane_vals[MAXLEN], *pvals ;
+  BUFTYPE  *pdst, *pptr, plane_vals[MAXLEN], *pvals ;
 
   width = mri_src->width ;
   height = mri_src->height ;
