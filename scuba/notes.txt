@@ -338,9 +338,34 @@ x fill source
 
 x fill but only set new values if was == 0
 
-- set brush radius increment to voxel size?
-
 x undo paths
+
+x undo
+  x make sure works for ROI editing
+  x multiple levels of undo
+
+======== HERE
+
+x fix brush radius
+  x be able to set radius < 0.1
+  - set radius increment based on voxel size
+
+- fill tool
+  - gradient option, cacls fuzziness per voxel instead of only on seed
+
+- histo tool
+  - redesign so that it can be left open
+    - specify ROI on the fly, click to rehisto
+    - preview function
+    - zoom
+  - Cancel OK -> Close Fill
+
+
+- brush
+  - simplify FindRASPointsInSquare/Circle 
+    - pass center and normal instead of square
+    - find square bounds within funtion
+    - should work on oblique view planes
 
 - autosave volume
 
@@ -349,20 +374,6 @@ x undo paths
   - load from file
   - auto-save to current working lines file so can restore on crash
   
-x undo
-  x make sure works for ROI editing
-  x multiple levels of undo
-
-x fix brush radius
-  x be able to set radius < 0.1
-  - be able to set by voxel radius instead of mm
-
-- brush
-  - simplify FindRASPointsInSquare/Circle 
-    - pass center and normal instead of square
-    - find square bounds within funtion
-    - should work on oblique view planes
-
 - autosave labels
 
 x button help balloons
@@ -374,6 +385,7 @@ x button help balloons
 - save scene setup script
   - get and set markers and cursor
 
+
 BRUCE'S LIST:::
 
 x data collection transform 
@@ -381,22 +393,18 @@ x markers
 - b/c controled by mouse, perhaps mod+mouse when nav tool is on
 x import/export control points
 
-- Segment Slice by Histogram
-  - get histogram on slice or selection in slice
+x Segment Slice by Histogram
+  x get histogram on slice or selection in slice
     x calcs bins and sends list of value-count pairs to histogram
     x ScubaView function will look for optional ROI 
-  - fill values in seg value
-    - c func takes list of range and values to fill
-    - undoable, counted as single action
-    - if roi was spec'd in the first place, only fill in ROI
-  - histolabel tcl code
+  x fill values in seg value
+    x c func takes list of range and values to fill
+    x undoable, counted as single action
+    x if roi was spec'd in the first place, only fill in ROI
+  x histolabel tcl code
     x tk histogram draws
     x tk histogram
     x tk histogram, choose seg vol, get table from it, assign values
-
-CURRENTLY:
- - if you give it a blank ROI, doesn't return correct range
-
 
 BUGS:::
 - tabbing when in console switches frame, disable?
@@ -408,6 +416,8 @@ BUGS:::
   - circle brush doesn't work in proper plane
   - fill not in view plane
 - new value stuff doesn't show up unless you click Tools panel first, then click voxelEditing button
+- sometimes readius jumps to 0
+
 
 FUTURE IDEAS:::
 
