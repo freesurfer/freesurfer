@@ -2817,3 +2817,18 @@ TransformCreateDensityMap(TRANSFORM *transform, MRI *mri_src, MRI *mri_dst)
 	return(mri_dst) ;
 }
 
+int
+TransformWrite(TRANSFORM *transform, char *fname)
+{
+	switch (transform->type)
+	{
+	case MORPH_3D_TYPE:
+		return(GCAMwrite((GCA_MORPH *)(transform->xform), fname)) ;
+		break ;
+	default:
+		return(LTAwrite((LTA *)(transform->xform), fname)) ;
+		break ;
+	}
+	return(NO_ERROR) ;  /* will never get here */
+}
+
