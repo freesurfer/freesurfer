@@ -1,8 +1,8 @@
 % fast_selfreqavg.m - selective frequency averaging
 %
-% $Id: fast_selfreqavg.m,v 1.5 2003/09/29 00:53:52 greve Exp $
+% $Id: fast_selfreqavg.m,v 1.6 2003/10/04 20:13:02 greve Exp $
 %
-% Things to do:
+% Things to do:   (nuisance)
 %  1. Save beta, var, and X
 %  2. Write ffx combiner
 %  3. Save F, ces, cesvar, cespct, cesvarpct, resvar, resstd
@@ -26,25 +26,27 @@
 %  12. PerRun
 %  13. JKRun - done
 
-tic;
 
+if(0)
 %d = '/autofs/space/greve_002/users/greve/birn-pilot';
 %d = '/autofs/space/greve_002/users/greve/fb-104.2';
 topdir = '/autofs/space/greve_002/users/greve/fbirn-hp-fsfast';
 
 sitelist = '';
+sitelist = strvcat(sitelist,'min');
 sitelist = strvcat(sitelist,'mgh');
 sitelist = strvcat(sitelist,'dunc');
-sitelist = strvcat(sitelist,'min');
 sitelist = strvcat(sitelist,'ucsd');
 sitelist = strvcat(sitelist,'nm');
+sitelist = strvcat(sitelist,'uci');
 
 sesslist = '';
 for site = 1:size(sitelist,1)
   siteid = deblank(sitelist(site,:));
   for subj = [1 3:6]
-    if(strcmp(siteid,'dunc') & subj > 1) continue; end
     for visit = 1:2
+      % uci does not have bh and rest for 103.2 %
+      if(strcmp(siteid,'uci') & subj==3 & visit==2) continue; end
       if(strcmp(siteid,'mgh')==0)
 	sessid = sprintf('%s-data/%s-10%d.%d',siteid,siteid,subj,visit);
       else
@@ -55,27 +57,21 @@ for site = 1:size(sitelist,1)
   end
 end
 
-%sesslist  = strvcat(sesslist,'mgh-101.1');
-%sesslist  = strvcat(sesslist,'mgh-103.1');
-%sesslist  = strvcat(sesslist,'mgh-104.1');
-%sesslist  = strvcat(sesslist,'mgh-105.1');
-%sesslist  = strvcat(sesslist,'mgh-106.1');
-%sesslist  = strvcat(sesslist,'min-data/min-101.2');
-%sesslist  = strvcat(sesslist,'mgh-103.2');
-%sesslist  = strvcat(sesslist,'mgh-104.2');
-%sesslist  = strvcat(sesslist,'mgh-105.2');
-%sesslist  = strvcat(sesslist,'mgh-106.2');
-
-
-
 TR = 3; % Will be needed for tpx
 fsd = 'bold';
-ananame = 'sm-sm5-per';
-runlistfile = 'sm.rlf';
-%runlistfile = '';
-conname = 'omnibus';
+runlistfile = 'rest.rlf';
+
+ananame = 'rest-sm5-per';
 funcstem = 'fmcsm5';
 inorm = 1;
+doperrun = 1;
+
+%ananame = 'sm-mc-per';
+%funcstem = 'mcextreg';
+%inorm = 0;
+
+%runlistfile = '';
+conname = 'omnibus';
 inormtarg = 1000;
 Tcycle = 30; % Period of cycle in seconds
 nharmonics = 1; % plus 1 for fundamental 
@@ -84,10 +80,12 @@ extregstem = '';
 %extregstem = 'mcextreg';
 phsigthresh = 2;
 dojkrun = 0;
-doperrun = 1;
 condXthresh = 10e5;
+end
+
 
 %---------------------------------------------------%
+tic;
 nSess = size(sesslist,1);
 nTask = 2*(nharmonics+1);
 
@@ -102,9 +100,10 @@ jkrun = [];
 for nthsess = 1:nSess
 
   sess = deblank(sesslist(nthsess,:));  
-  fprintf('nthsess = %d, sess = %s (%g)\n',nthsess,sess,toc);
+  fprintf('nthsess = %d/%d, sess = %s (%g)---------------\n',...
+	  nthsess,nSess,sess,toc);
   
-  fsdpath = sprintf('%s/%s/%s',topdir,sess,fsd);
+  fsdpath = sprintf('%s/%s',sess,fsd);
   runlist0 = fast_runlist(fsdpath,runlistfile);
   if(isempty(runlist0))
     fprintf('ERROR: could not get run list from %s\n',fsdpath);
@@ -116,7 +115,16 @@ for nthsess = 1:nSess
   if(dojkrun | doperrun) nextruns = nruns0;
   else                   nextruns = 1;
   end
-    
+
+  % Load the mask, if needed (used to create summary) 
+  mask = [];
+  if(~isempty(maskstem))
+    maskpath = sprintf('%s/%s/masks/%s',sess,fsd,maskstem);
+    mask = fast_ldbslice(maskpath);
+    if(isempty(mask)) return; end
+    nmask = length(find(mask));
+  end
+  
   % Loop over external runs (if needed) %
   for nthextrun = 1:nextruns
 
@@ -128,29 +136,32 @@ for nthsess = 1:nSess
       perrun = nthextrun;
       runid = runlist0(perrun,:);
       anapath = sprintf('%s/%s-%s',fsdpath,ananame,runid);
-      fprintf('Per Run Loop: nthextrun = %d (%g)\n',nthextrun,toc);
+      fprintf(' Per Run Loop: nthextrun = %d (%g)\n',nthextrun,toc);
+      fprintf('   Sess = %s\n',sess);
       runlist = runlist0(nthextrun,:);
     elseif(dojkrun)
       jkrun = nthextrun;
       runid = runlist0(jkrun,:);
       anapath = sprintf('%s/%s-jk%s',fsdpath,ananame,runid);
-      fprintf('JK Run Loop: nthextrun = %d (%g)\n',nthextrun,toc);
+      fprintf('  JK Run Loop: nthextrun = %d (%g)\n',nthextrun,toc);
       ind = find([1:nruns0] ~= jkrun);
       runlist = runlist0(ind,:);
     end
     conpath = sprintf('%s/%s',anapath,conname);
+    estsnrpath = sprintf('%s/estsnr',anapath);
     mkdirp(anapath);
     mkdirp(conpath);
+    mkdirp(estsnrpath);
     nruns = size(runlist,1);
-    
-    fprintf('Run List: ');
+
+    fprintf('   Run List: ');
     for nthrun = 1:nruns
       fprintf('%s ',runlist(nthrun,:));
     end
     fprintf('\n');
     
     % This is needed to get the number of slices %
-    funcpath0 = sprintf('%s/%s/%s/%s/%s',topdir,sess,fsd,runlist(1,:),funcstem);
+    funcpath0 = sprintf('%s/%s/%s/%s',sess,fsd,runlist(1,:),funcstem);
     [nrows ncols nframes fs nslices endian bext] = ...
 	fmri_bfiledim(funcpath0);
     if(isempty(nrows))
@@ -160,7 +171,7 @@ for nthsess = 1:nSess
     nvslice = nrows*ncols;
     
     %----------- Create design matrix ----------------------%
-    fprintf('Creating design matrix (%g)\n',toc);
+    fprintf('   Creating design matrix (%g)\n',toc);
 
     % Load all the information for the design matrix %
     X = [];
@@ -170,7 +181,7 @@ for nthsess = 1:nSess
     for nthrun = 1:nruns
 
       % Get the number of frames for the nth run %
-      funcpath = sprintf('%s/%s/%s/%s/%s',topdir,sess,fsd,...
+      funcpath = sprintf('%s/%s/%s/%s',sess,fsd,...
 			 runlist(nthrun,:),funcstem);
       [nrows ncols nframes fs nslices e bext] = ...
 	  fmri_bfiledim(funcpath);
@@ -200,7 +211,7 @@ for nthsess = 1:nSess
       Xpoly = fast_polytrendmtx(1,nframes,1,polyfit);
       extreg = [];
       if(~isempty(extregstem))
-	extregpath = sprintf('%s/%s/%s/%s/%s',topdir,sess,fsd,...
+	extregpath = sprintf('%s/%s/%s/%s',sess,fsd,...
 			     runlist(nthrun,:),extregstem);
 	extreg = fmri_ldbvolume(extregpath);
 	if(isempty(extreg))
@@ -210,7 +221,7 @@ for nthsess = 1:nSess
 	if(size(extreg,3)~=1) extreg = squeeze(extreg)'; %'
 	else                  extreg = squeeze(extreg);
 	end
-	% Normalize External Regressor %
+	% Demean and Normalize External Regressor %
 	extreg = extreg - repmat(mean(extreg), [nframes 1]);
 	extreg = extreg./repmat(std(extreg), [nframes 1]);
       end
@@ -239,7 +250,7 @@ for nthsess = 1:nSess
 
     XtX = X'*X;
     condX = cond(XtX);
-    fprintf('Design Condition: %g\n',condX);
+    fprintf('   Design Condition: %g\n',condX);
     if(condX > condXthresh)
       fprintf('ERROR: design is badly conditioned\n');
       return;
@@ -247,10 +258,10 @@ for nthsess = 1:nSess
     d = diag(inv(XtX));
     d = d(1:nTask);
     eff = 1/sum(d);
-    fprintf('Design Efficiency: %g\n',eff);
+    fprintf('   Design Efficiency: %g\n',eff);
     vrf = 1./d;
     vrfmn = mean(vrf);
-    fprintf('VRF: Mean = %g, Min = %g, Max = %g\n',...
+    fprintf('   VRF: Mean = %g, Min = %g, Max = %g\n',...
 	    mean(vrf),min(vrf),max(vrf));
 
     % Total number of regressors 
@@ -261,7 +272,7 @@ for nthsess = 1:nSess
 
     % Save info to X.mat
     xmatpath = sprintf('%s/X.mat',anapath);
-    save(xmatpath,'X','topdir','sess','fsd','funcstem',...
+    save(xmatpath,'X','sess','fsd','funcstem',...
 	 'runlist','nTask','C','inorm','inormtarg','Tcycle',...
 	 'nharmonics','polyfit','extregstem','phsigthresh',...
 	 'dojkrun','doperrun','condXthresh');
@@ -270,7 +281,8 @@ for nthsess = 1:nSess
     if(inorm)
       for nthrun = 1:nruns
 	runid = runlist(nthrun,:);
-	meanvalfile = sprintf('%s/%s/%s/%s/%s.meanval',topdir,sess,fsd,runid,funcstem);
+	meanvalfile = sprintf('%s/%s/%s/%s.meanval',...
+			      sess,fsd,runid,funcstem);
 	fid = fopen(meanvalfile,'r');
 	if(fid == -1)
 	  fprintf('ERROR: cannot open %s\n',meanvalfile);
@@ -282,21 +294,26 @@ for nthsess = 1:nSess
       end
     end
 
-    fprintf('\n\n');
+    fprintf('\n');
     
     % Start whitening loop here (can be more than 2)
     % --------- Process each slice separately ---------- %
-    fprintf('Processing data (%g)\n',toc);
+    fprintf('  Processing data (%g)\n   ',toc);
+    rvarpctsum = 0;
+    ar1sum    = 0;
+    nover     = 0;
+    cnrsum    = 0;
+    magpctsum = 0;
     for nthslice = 0:nslices-1
       %fprintf('nth slice = %d (%g)\n',nthslice,toc);
       %fprintf('%2d (%g) ',nthslice,toc);
       fprintf('%2d ',nthslice);
-      if(rem(nthslice,5)==0) fprintf('\n'); end
+      if(rem(nthslice+1,15)==0) fprintf('\n   '); end
       
       % Load data for all runs %
       y = [];
       for nthrun = 1:nruns
-	funcpath = sprintf('%s/%s/%s/%s/%s',topdir,...
+	funcpath = sprintf('%s/%s/%s/%s',...
 			   sess,fsd,runlist(nthrun,:),funcstem);
 	[frun mristruct] = fast_ldbslice(funcpath,nthslice);
 	if(isempty(frun))
@@ -316,7 +333,7 @@ for nthsess = 1:nSess
 
       % Analyze %
       % Multiply X by Wall %
-      [beta rvar vdof] = fast_glmfit(y,X);
+      [beta rvar vdof r] = fast_glmfit(y,X);
       % If whiten and not last whitening loop
       %  get residuals
       %  compute acf (unless last whitening loop) 
@@ -338,8 +355,18 @@ for nthsess = 1:nSess
       fast_svbslice(tmp,betapath,nthslice,'',mristruct);
       
       % Residual error variance %
-      rvarpath = sprintf('%s/rvar',anapath);
-      fast_svbslice(reshape(rvar,[nrows ncols]),rvarpath,nthslice,'',mristruct);
+      rvarpath = sprintf('%s/rvar',estsnrpath);
+      tmp = reshape(rvar,[nrows ncols]);
+      fast_svbslice(tmp,rvarpath,nthslice,'',mristruct);
+      
+      % Residual error ar1 %
+      rar0 = mean(r.*r);
+      indz = find(rar0==0);
+      rar0(indz) = eps;
+      rar1 = mean( r(1:end-1,:) .* r(2:end,:) ) ./ rar0;
+      rar1path = sprintf('%s/ar1',estsnrpath);
+      tmp = reshape(rar1,[nrows ncols]);
+      fast_svbslice(tmp,rar1path,nthslice,'',mristruct);
       
       % Signifiance of F-test %
       fsigpath = sprintf('%s/fsig',conpath);
@@ -351,9 +378,10 @@ for nthsess = 1:nSess
       fast_svbslice(reshape(F,[nrows ncols]),fpath,nthslice,'',mristruct);
     
       % Magnitude of fundamental
-      magpct = 100*sqrt( beta(1,:).^2 + beta(2,:).^2 )  ./ ymn;
+      magpct = 100*sqrt( beta(1,:).^2 + beta(2,:).^2 ) ./ ymn;
       magpath = sprintf('%s/magpct',conpath);
-      fast_svbslice(reshape(magpct,[nrows ncols]),magpath,nthslice,'',mristruct);
+      tmp = reshape(magpct,[nrows ncols]);
+      fast_svbslice(tmp,magpath,nthslice,'',mristruct);
       
       % Phase of fundamental %
       ph = 180*atan2(beta(2,:),beta(1,:))/pi;
@@ -362,6 +390,26 @@ for nthsess = 1:nSess
       phpath = sprintf('%s/phase',conpath);
       fast_svbslice(reshape(ph,[nrows ncols]),phpath,nthslice,'',mristruct);
     
+      % Create summary table %
+      if(~isempty(mask))
+	indmask_in  = find(mask(:,:,nthslice+1));
+	indmask_out = find(~mask(:,:,nthslice+1));
+
+	rvarpct = 100*rvar./ymn;
+	rvarpctsum = rvarpctsum + sum(rvarpct(indmask_in));
+
+	ar1sum = ar1sum + sum(rar1(indmask_in));
+
+	pomni = -log10(Fsig);
+	pomni(indmask_out) = 0;
+	pthresh = 3;
+	indover = find(abs(pomni) > pthresh);
+	nover = nover + length(indover);
+
+	cnrsum = cnrsum + sum(F(indover));
+	magpctsum = magpctsum + sum(magpct(indover));
+      end
+        
     end % slice
 
     % If whiten and not last whitening loop
@@ -369,6 +417,20 @@ for nthsess = 1:nSess
 
     % End whitening loop here 
   
+    if(~isempty(mask))
+      rstdpctmn = sqrt(rvarpctsum/nmask);
+      ar1mn     = ar1sum/nmask;
+      cnrmn     = cnrsum/nover;
+      magpctmn  = magpctsum/nover;
+      pctover   = 100*nover/nmask;
+      outfile = sprintf('%s/table.sum',anapath);
+      fprintf('Saving summary table to %s\n',outfile);
+      fp = fopen(outfile,'w');
+      fprintf(fp,'%5d  %5.2f  %5.2f  %5.2f  %4.2f  %4.2f\n',...
+	      nmask,pctover,magpctmn,cnrmn,rstdpctmn,ar1mn);
+      fclose(fp);
+    end
+    
     fprintf('\n\n');
   end % external run loop 
 
