@@ -150,6 +150,7 @@ long  MRIcorrelate(MRI *mri_ref, MRI *mri_in, int xoff, int yoff, int zoff) ;
 
 int   MRIpeak(MRI *mri, int *px, int *py, int *pz) ;
 int   MRIcopyHeader(MRI *mri_src, MRI *mri_dst) ;
+int   MRIcopyPulseParameters(MRI *mri_src, MRI *mri_dst) ;
 MRI   *MRIcopy(MRI *mri_src, MRI *mri_dst) ;
 MRI   *MRIreslice(MRI *mri_src, MRI *mri_dst, int slice_direction) ;
 int   MRIboundingBox(MRI *mri, int thresh, MRI_REGION *region) ;
@@ -400,6 +401,9 @@ int   MRIsampleVolumeDerivative(MRI *mri, Real x, Real y, Real z,
 int   MRIsampleVolumeDerivativeScale(MRI *mri, Real x, Real y, Real z,
                                      Real dx, Real dy, Real dz, Real *pmag,
                                      double sigma) ;
+int   MRIsampleVolumeDirectionScale(MRI *mri, Real x, Real y, Real z,
+                                    Real dx, Real dy, Real dz, Real *pmag,
+                                    double sigma) ;
 float MRIsampleCardinalDerivative(MRI *mri, int x, int y, int z,
                                   int xk, int yk, int zk) ;
 float MRIsampleXDerivative(MRI *mri, int x, int y, int z, int dir) ;
