@@ -41,7 +41,7 @@ function X = fast_sched2Xfir(tPres,ntrs,TR,psdwin,tDelay,PerEvW)
 % 
 % See also: fast_psdwin
 %
-% $Id: fast_sched2Xfir.m,v 1.6 2003/04/15 03:49:11 greve Exp $ 
+% $Id: fast_sched2Xfir.m,v 1.7 2003/04/18 22:09:17 greve Exp $ 
 
 X = [];
 
@@ -51,7 +51,8 @@ if(nargin < 4 & nargin > 6)
   return;
 end
 
-if(exist('tDelay') ~= 1) tDelay = 0; end
+if(exist('tDelay') ~= 1) tDelay = []; end
+if(isempty(tDelay)) tDelay = 0; end
 
 % Compute number of columns of X
 Nh = fast_psdwin(psdwin,'npsdwin');
