@@ -166,7 +166,10 @@ LTAread(char *fname)
     m_tmp = MatrixMultiply(lta->xforms[0].m_L, W, NULL) ;
     MatrixMultiply(V, m_tmp, lta->xforms[0].m_L) ;
     MatrixFree(&V) ; MatrixFree(&W) ; MatrixFree(&m_tmp) ;
+    lta->type = LINEAR_RAS_TO_RAS ;
     break ;
+  case LINEAR_VOX_TO_VOX:
+  case LINEAR_RAS_TO_RAS:
   case TRANSFORM_ARRAY_TYPE:
   default:
     lta = ltaReadFile(fname) ;
@@ -198,6 +201,7 @@ ltaReadFile(char *fname)
   cp = fgetl(line, 199, fp) ; sscanf(cp, "type      = %d\n", &type) ;
   cp = fgetl(line, 199, fp) ; sscanf(cp, "nxforms   = %d\n", &nxforms) ;
   lta = LTAalloc(nxforms, NULL) ;
+  lta->type = type ;
   for (i = 0 ; i < lta->num_xforms ; i++)
   {
     lt = &lta->xforms[i] ;
@@ -809,7 +813,43 @@ LTAtoVoxelCoords(LTA *lta, MRI *mri)
     MatrixFree(&lta->xforms[0].m_L) ;
     lta->xforms[0].m_L = m_L ;
   }
+  lta->type = LINEAR_VOX_TO_VOX ;
   return(NO_ERROR) ;
 }
 
 
+int
+LTAvoxelToRasXform(LTA *lta, MRI *mri_src, MRI *mri_dst)
+{
+
+  MATRIX *m_L ;
+  int    i ;
+
+  for (i = 0 ; i < lta->num_xforms ; i++)
+  {
+    m_L = MRIvoxelXformToRasXform(mri_src, mri_dst, lta->xforms[i].m_L, NULL) ;
+    MatrixFree(&lta->xforms[0].m_L) ;
+    lta->xforms[0].m_L = m_L ;
+  }  
+
+  lta->type = LINEAR_RAS_TO_RAS ;
+  return(NO_ERROR) ;
+}
+
+int
+LTArasToVoxelXform(LTA *lta, MRI *mri_src, MRI *mri_dst)
+{
+
+  MATRIX *m_L ;
+  int    i ;
+
+  for (i = 0 ; i < lta->num_xforms ; i++)
+  {
+    m_L = MRIrasXformToVoxelXform(mri_src, mri_dst, lta->xforms[i].m_L, NULL) ;
+    MatrixFree(&lta->xforms[0].m_L) ;
+    lta->xforms[0].m_L = m_L ;
+  }  
+
+  lta->type = LINEAR_VOX_TO_VOX ;
+  return(NO_ERROR) ;
+}
