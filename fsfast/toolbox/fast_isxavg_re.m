@@ -161,7 +161,7 @@ for slice = s.firstslice:lastslice
   zstd(indzstd0) = 10^(-10);
 
   % Compute stats and sigs %%
-  t = zavg./(zstd/sqrt(s.dof));
+  t = zavg./(zstd/sqrt(ninvols)); % Not dof
   p = tTest(s.dof, t, 100);
 
   % put the zero back %
