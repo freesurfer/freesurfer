@@ -17,7 +17,7 @@
 #include "mrimorph.h"
 #include "mrinorm.h"
 
-static char vcid[] = "$Id: mris_make_surfaces.c,v 1.15 1999/06/06 02:46:04 fischl Exp $";
+static char vcid[] = "$Id: mris_make_surfaces.c,v 1.16 1999/06/14 17:29:49 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -27,6 +27,8 @@ static void print_usage(void) ;
 static void print_help(void) ;
 static void print_version(void) ;
 static int  mrisFindMiddleOfGray(MRI_SURFACE *mris) ;
+static MRI  *MRIsmoothMasking(MRI *mri_src, MRI *mri_mask, MRI *mri_dst, 
+                              int mask_val, int wsize) ;
 MRI *MRIfillVentricle(MRI *mri_inv_lv, MRI *mri_T1, float thresh,
                       int out_label, MRI *mri_dst);
 
@@ -37,6 +39,7 @@ static int create = 1 ;
 static int smoothwm = 0 ;
 static float sigma = 0.5f ;  /* should be around 1 */
 static int white_only = 0 ;
+static int overlay = 0 ;
 
 static INTEGRATION_PARMS  parms ;
 #define BASE_DT_SCALE    1.0
@@ -183,18 +186,31 @@ main(int argc, char *argv[])
     MRIfree(&mri_inv_lv) ;
     MRIunion(mri_lv, mri_T1, mri_T1) ;
     MRIfree(&mri_lv) ;
-    sprintf(fname, "%s/%s/mri/T1_filled", sdir, sname) ;
-    MRIwrite(mri_T1, fname) ;
+    if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+    {
+      sprintf(fname, "%s/%s/mri/T1_filled", sdir, sname) ;
+      MRIwrite(mri_T1, fname) ;
+    }
   }
   MRImask(mri_T1, mri_filled, mri_T1, replace_val,65) ; /* remove other hemi */
   MRIfree(&mri_filled) ;
 
-  sprintf(fname, "%s/%s/mri/wm", sdir, sname) ;
-  fprintf(stderr, "reading volume %s...\n", fname) ;
-  mri_wm = MRIread(fname) ;
-  if (!mri_wm)
-    ErrorExit(ERROR_NOFILE, "%s: could not read input volume %s",
-              Progname, fname) ;
+  if (overlay)
+  {
+    fprintf(stderr, "overlaying editing into T1 volume...\n") ;
+    sprintf(fname, "%s/%s/mri/wm", sdir, sname) ;
+    fprintf(stderr, "reading volume %s...\n", fname) ;
+    mri_wm = MRIread(fname) ;
+    if (!mri_wm)
+      ErrorExit(ERROR_NOFILE, "%s: could not read input volume %s",
+                Progname, fname) ;
+    MRImask(mri_T1, mri_wm, mri_T1, 
+            WM_EDITED_ON_VAL, DEFAULT_DESIRED_WHITE_MATTER_VALUE);
+    MRIsmoothMasking(mri_T1, mri_wm, mri_T1, WM_EDITED_ON_VAL, 15) ;
+    sprintf(fname, "%s/%s/mri/T1_overlay", sdir, sname) ;
+    MRIwrite(mri_T1, fname) ;
+    MRIfree(&mri_wm) ;
+  }
 
   sprintf(fname, "%s/%s/surf/%s.%s%s", sdir, sname, hemi, orig_name, suffix) ;
   fprintf(stderr, "reading original surface position from %s...\n", fname) ;
@@ -426,6 +442,12 @@ get_option(int argc, char *argv[])
   {
     white_only = 1 ;
     fprintf(stderr,  "only generating white matter surface\n") ;
+  }
+  else if (!stricmp(option, "overlay"))
+  {
+    overlay = !overlay ;
+    fprintf(stderr,  "%soverlaying T1 volume with edited white matter\n",
+            overlay ? "" : "not") ;
   }
   else if (!stricmp(option, "pial"))
   {
@@ -727,3 +749,81 @@ MRIfillVentricle(MRI *mri_inv_lv, MRI *mri_T1, float thresh,
 #endif
   return(mri_dst) ;
 }
+
+static MRI *
+MRIsmoothMasking(MRI *mri_src, MRI *mri_mask, MRI *mri_dst, int mask_val,
+                 int wsize)
+{
+  int      width, height, depth, x, y, z, xi, yi, zi, xk, yk, zk, whalf,
+           nvox, mean, avg ;
+  BUFTYPE  *psrc, *pdst ;
+
+  whalf = (wsize-1) / 2 ;
+  width = mri_src->width ; height = mri_src->height ; depth = mri_src->depth ; 
+  if (!mri_dst)
+    mri_dst = MRIcopy(mri_src, NULL) ;
+
+  for ( z = 0 ; z < depth ; z++)
+  {
+    for (y = 0 ; y < height ; y++)
+    {
+      psrc = &MRIvox(mri_src, 0, y, z) ;
+      pdst = &MRIvox(mri_dst, 0, y, z) ;
+      for (x = 0 ; x < width ; x++)
+      {
+        mean = *psrc++ ; nvox = 1 ;
+        
+        /* this is a hack to prevent smoothing of non-white values */
+        if (MRIvox(mri_mask, x, y, z) > WM_MIN_VAL) 
+        {
+          avg = 0 ;  /* only average if a masked value is close to this one */
+          for (zk = -whalf ; zk <= whalf ; zk++)
+          {
+            zi = mri_mask->zi[z+zk] ;
+            for (yk = -whalf ; yk <= whalf ; yk++)
+            {
+              yi = mri_mask->yi[y+yk] ;
+              for (xk = -whalf ; xk <= whalf ; xk++)
+              {
+                xi = mri_mask->xi[x+xk] ;
+                if (MRIvox(mri_mask, xi, yi, zi) == mask_val)
+                {
+                  avg = 1 ;
+                  break ;
+                }
+              }
+              if (avg)
+                break ;
+            }
+            if (avg)
+              break ;
+          }
+          if (avg)
+          {
+            for (zk = -whalf ; zk <= whalf ; zk++)
+            {
+              zi = mri_mask->zi[z+zk] ;
+              for (yk = -whalf ; yk <= whalf ; yk++)
+              {
+                yi = mri_mask->yi[y+yk] ;
+                for (xk = -whalf ; xk <= whalf ; xk++)
+                {
+                  xi = mri_mask->xi[x+xk] ;
+                  if (MRIvox(mri_mask, xi, yi, zi) >= WM_MIN_VAL)
+                  {
+                    mean += MRIvox(mri_src, xi, yi, zi) ;
+                    nvox++ ;
+                  }
+                }
+              }
+            }
+          }
+
+        }
+        *pdst++ = (BUFTYPE)nint((float)mean/(float)nvox) ;
+      }
+    }
+  }
+  return(mri_dst) ;
+}
+
