@@ -1,0 +1,273 @@
+#!/bin/csh -f
+# conmask-sess - masks a contrast map with the brain mask
+#
+
+set VERSION = '$Id: conmask-sess,v 1.1 2004/07/02 20:41:09 greve Exp $';
+set analysis = ();
+set conlist = ();
+set maplist = ();
+set mask = brain;
+set monly = ();
+set MLF = ();
+set PrintHelp = 0;
+
+set cmdargs = ($argv);
+
+if($#argv == 0)  goto usage_exit;
+set n = `echo $argv | grep -e -help | wc -l` 
+if($n != 0) then
+  set PrintHelp = 1;
+  goto usage_exit;
+  exit 1;
+endif
+
+set SessList = `getsesspath $argv`;
+if($status || $#SessList == 0) then
+  getsesspath $argv 
+  exit 1;
+endif
+
+goto parse_args;
+parse_args_return:
+
+goto check_params;
+check_params_return:
+
+set cfgfile  = $analysis/analysis.cfg
+set infofile = $analysis/analysis.info
+if(! -e $infofile) then
+  echo "ERROR: cannot find $infofile"
+  exit 1;
+endif
+## Get parameters from the info file ##
+set fsd       = `cat $infofile | awk '{if($1 == "fsd") print $2}'`;
+
+set LF = log/conmask-$analysis.log
+if(-e $LF) mv $LF $LF.bak
+
+date | tee -a $LF
+pwd  | tee -a $LF
+echo $0  | tee -a $LF
+echo $cmdargs | tee -a $LF
+echo $VERSION | tee -a $LF
+hostname  | tee -a $LF
+
+if(! $monly) set MLF = /tmp/conmask-sess.$$.m
+rm -f $MLF
+
+set MLFtmp = /tmp/conmask-sess.tmp.$$.m
+
+#------------------------------------------------------------------#
+foreach sess ($SessList)
+  set sessid = `basename $sess`;
+
+  set maskstem = $sess/$fsd/masks/$mask
+  set tmp = $maskstem"_000.hdr"
+  if(! -e $tmp) then
+    echo "ERROR: cannot find map $mask in $sess/$fsd/masks"
+    exit 1;
+  endif
+
+  set anadir = $sess/$fsd/$analysis
+  if(! -d $anadir) then
+    echo "ERROR: $anadir does not exist"   | tee -a $LF
+    exit 1;
+  endif
+
+  foreach con ($conlist)
+    set condir = $anadir/$con
+    if(! -d $condir) then
+      echo "ERROR: $condir does not exist"   | tee -a $LF
+      exit 1;
+    endif
+
+    foreach map ($maplist)
+      set mapstem = $condir/$map
+      set tmp = $mapstem"_000.hdr"
+      if(! -e $tmp) then
+        echo "ERROR: cannot find map $map in $condir"
+        exit 1;
+      endif
+      set outstem = $mapstem-$mask
+
+#---------------------------------------#
+tee $MLFtmp > /dev/null <<EOF
+
+clear all;
+mapstem  = '$mapstem';
+maskstem = '$maskstem';
+outstem  = '$outstem';
+
+[map mristruct] = fast_ldbslice(mapstem);
+mask = fast_ldbslice(maskstem);
+
+map = map .* mask;
+fast_svbslice(map,outstem,-1,'',mristruct);
+
+EOF
+#---------------------------------------#
+
+    cat $MLFtmp >> $MLF
+
+    end # Loop over map
+  end # Loop over con
+end # Loop over sessions #
+
+rm -f $MLFtmp
+
+set StartTime = `date`;
+if(! $monly) then
+  cat $MLF | matlab -display iconic | tee -a $LF
+  rm -f $MLF
+endif
+
+echo ""
+echo "Started at $StartTime" | tee -a $LF
+echo "Ended   at `date`"     | tee -a $LF
+echo "conmask-sess Done"    | tee -a $LF
+echo ""
+
+exit 0;
+###############################################
+
+
+############--------------##################
+parse_args:
+set cmdline = "$argv";
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "-analysis":
+    case "-a":
+      if ( $#argv == 0) goto arg1err;
+      set analysis = $argv[1]; shift;
+      breaksw
+
+    case "-c":
+      if ( $#argv == 0) goto arg1err;
+      set conlist = ($conlist $argv[1]); shift;
+      breaksw
+
+    case "-map":
+    case "-m":
+      if ( $#argv == 0) goto arg1err;
+      set maplist = ($maplist $argv[1]); shift;
+      breaksw
+
+    case "-monly":
+      if ( $#argv == 0) goto arg1err;
+      set MLF = $argv[1]; shift;
+      set monly = 1;
+      breaksw
+
+    case "-g":
+    case "-s":
+    case "-sf":
+    case "-d":
+    case "-df":
+      shift;
+      # ignore getsesspath arguments 
+      breaksw
+
+    case "-cwd":
+      # ignore getsesspath arguments 
+      breaksw
+
+    case "-umask":
+      if ( $#argv == 0) goto arg1err;
+      setenv MRI_UMASK $1; shift;
+      breaksw
+
+    case "-debug":
+      set verbose = 1;
+      set echo = 1; # turns on terminal echoing
+      breaksw
+
+    default:
+      echo ERROR: Flag $flag unrecognized. 
+      echo $cmdline
+      exit 1
+      breaksw
+  endsw
+
+end
+
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+
+if($#analysis == 0) then
+  echo "ERROR: must spec analysis"
+  exit 1;
+endif
+
+if($#conlist == 0) then
+  echo "ERROR: must specify at least one contrast"
+  exit 1;
+endif
+
+if($#maplist == 0) set maplist = sig
+
+goto check_params_return;
+############--------------##################
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+
+############--------------##################
+usage_exit:
+  echo ""
+  echo "USAGE: conmask-sess"
+  echo ""
+  echo " -a analysis"
+  echo " -c contrast <-c contrast>"
+  echo " -m map <-m map> : default is sig"
+  echo ""
+  echo "Session Arguments (Required)"
+  echo "   -sf sessidfile  "
+  echo "   -df srchdirfile "
+  echo "   -s  sessid      "
+  echo "   -d  srchdir     "
+  echo ""
+  echo "Other Arguments"
+  echo "   -umask umask    : set unix file permission mask"
+  echo "   -version        : print version and exit"
+  echo "   -help           : print help and exit"
+  echo ""
+
+  if(! $PrintHelp) exit 1;
+
+  echo $VERSION
+
+  echo "------------------------------------------------------------"
+  cat $0 | awk 'BEGIN{prt=0}{if(prt) print $0; if($1 == "BEGINHELP") prt = 1 }'
+
+  echo "------------------------------------------------------------"
+
+exit 1;
+
+#---- Everything below here is printed out as part of help -----#
+BEGINHELP
+
+FS-FAST routine to mask out regions from a contrast that are not 
+in the brain. You can specify multiple contrasts and multiple maps
+inside a contrast (all maps must exist inside all contrasts).
+
+The routine will use the brain mask as found in bold/masks. This
+can be created with mkbrainmask-sess. All voxels outside of this
+region will be set to 0. The resulting map will be called map-brain
+and can be accessed with all the commands that would normally be
+used to viewed maps (eg, sliceview, tkmedit, etc).
+
+Example:
+
+conmask-sess -a fn-sm5 -c repvfix -c novvfix -m sig -m fsig -s AMN_01
+
