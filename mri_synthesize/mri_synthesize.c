@@ -14,7 +14,7 @@
 #include "mrinorm.h"
 #include "version.h"
 
-static char vcid[] = "$Id: mri_synthesize.c,v 1.9 2003/10/30 19:51:40 fischl Exp $";
+static char vcid[] = "$Id: mri_synthesize.c,v 1.10 2004/02/09 21:55:21 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -74,7 +74,7 @@ main(int argc, char *argv[])
   float       TR, TE, alpha ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_synthesize.c,v 1.9 2003/10/30 19:51:40 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_synthesize.c,v 1.10 2004/02/09 21:55:21 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -151,7 +151,7 @@ main(int argc, char *argv[])
       discard_PD(mri_PD, 250, 1500) ;
     if (nl_remap_T1)
       remap_T1(mri_T1, nl_mean, nl_scale) ;
-		if (faf_coefs > 0)
+		if (nfaf > 0)
 			mri_out = MRIsynthesizeWithFAF(mri_T1, mri_PD, NULL, TR, RADIANS(alpha), TE, nfaf, faf_coefs) ;
 		else
 			mri_out = MRIsynthesize(mri_T1, mri_PD, NULL, TR, RADIANS(alpha), TE) ;
@@ -428,11 +428,15 @@ MRIsynthesize(MRI *mri_T1, MRI *mri_PD, MRI *mri_dst, double TR, double alpha, d
         if (x == Gx && y == Gy && z == Gz)
           DiagBreak() ;
 				MRIsampleVolume(mri_T1, x, y, z, &T1) ;
+				if (T1 <= 0)
+					T1 = 1 ;
         if (T1 < 900 && T1 > 600)
           DiagBreak() ;
 				MRIsampleVolume(mri_PD, x, y, z, &PD) ;
         flash = FLASHforwardModel(alpha, TR, PD, T1) ;
         MRIsetVoxVal(mri_dst, x, y, z, 0, flash) ;
+				if (!finite(flash))
+					DiagBreak() ;
       }
     }
   }
@@ -674,6 +678,8 @@ transform_T1_values_using_joint_pdf(MRI *mri_T1, char *jpdf_name, int invert)
 				if (x == Gx && y == Gy && z == Gz)
 					DiagBreak()  ;
 				MRIsampleVolume(mri_T1, x, y, z, &T1) ;
+				if (T1 <= 0)
+					T1 = 1 ;
 				if (invert)
 				{
 					i = nint((T1-fmin)/fstep) ;
@@ -780,6 +786,8 @@ MRIsynthesizeWithFAF(MRI *mri_T1, MRI *mri_PD, MRI *mri_dst, double TR, double a
         if (x == Gx && y == Gy && z == Gz)
           DiagBreak() ;
 				MRIsampleVolume(mri_T1, x, y, z, &T1) ;
+				if (T1 <= 0)
+					T1 = 1 ;
         if (T1 < 900 && T1 > 600)
           DiagBreak() ;
 				MRIsampleVolume(mri_PD, x, y, z, &PD) ;
