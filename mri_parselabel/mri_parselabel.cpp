@@ -4,7 +4,14 @@
 //
 #include <iostream>
 #include <iomanip>
+
+// workaround for gcc2.96
+#if (__GNUC__ < 3)
+#include "/usr/include/g++-3/alloc.h"
+#endif
+
 #include <string>
+
 #include <fstream>
 #include <vector>
 #include <algorithm>
@@ -80,7 +87,7 @@ int main(int argc, char *argv[])
   int nargs;
   Progname=argv[0];
 
-  nargs = handle_version_option (argc, argv, "$Id: mri_parselabel.cpp,v 1.9 2004/06/10 16:52:10 tosa Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_parselabel.cpp,v 1.10 2004/06/10 16:53:57 tosa Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
