@@ -20,7 +20,6 @@
 #include "gcamorph.h"
 #include "transform.h"
 #include "mrisegment.h"
-#include "version.h"
 
 static int remove_bright =0 ;
 static int map_to_flash = 0 ;
@@ -34,6 +33,7 @@ static GCA_MORPH_PARMS  parms ;
 static char *mask_fname = NULL ;
 static char *norm_fname = NULL ;
 
+static float regularize = 0 ;
 static char *example_T1 = NULL ;
 static char *example_segmentation = NULL ;
 static int register_wm_flag = 0 ;
@@ -52,12 +52,6 @@ static int relabel = 0 ;
 
 static int use_contrast = 0 ;
 static float min_prior = MIN_PRIOR ;
-static double tx = 0.0 ;
-static double ty = 0.0 ;
-static double tz = 0.0 ;
-static double rzrot = 0.0 ;
-static double rxrot = 0.0 ;
-static double ryrot = 0.0 ;
 
 static FILE *diag_fp = NULL ;
 
@@ -102,15 +96,9 @@ main(int argc, char *argv[])
   struct timeb start ;
   GCA_MORPH    *gcam ;
 
-  /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_ca_register.c,v 1.8 2003/04/15 20:18:27 kteich Exp $");
-  if (nargs && argc - nargs == 1)
-    exit (0);
-  argc -= nargs;
-
   parms.l_likelihood = 1.0f ;
   parms.niterations = 100 ;
-  parms.levels = 4 ;
+  parms.levels = 3 ;
   parms.dt = 0.05 ;  /* was 5e-6 */
 	parms.momentum = 0.9 ;
   parms.tol = .1 ;  /* at least 1% decrease in sse */
@@ -120,12 +108,12 @@ main(int argc, char *argv[])
 	parms.l_label = 1.0 ;
 	parms.l_map = 0.0 ;
 	parms.label_dist = 3.0 ;
-  parms.l_smoothness = 0.05 ;
+  parms.l_smoothness = 1 ;
   parms.start_t = 0 ;
   parms.max_grad = 0.3 ;
   parms.sigma = 2.0f ;
   parms.exp_k = 5 ;
-	parms.navgs = 256 ;
+	parms.navgs = 64 ;
 	parms.noneg = True ;
 	parms.ratio_thresh = 0.125 ;
 	parms.nsmall = 1 ;
@@ -230,6 +218,18 @@ main(int argc, char *argv[])
 		if (novar)
 			GCAunifyVariance(gca) ;
 	}
+	if (gca->type == GCA_FLASH)
+	{
+		GCA *gca_tmp ;
+
+		gca_tmp = GCAcreateFlashGCAfromFlashGCA(gca, TRs, fas, TEs, mri_in->nframes) ;
+		GCAfree(&gca) ;
+		gca = gca_tmp ;
+	}
+	if (ninputs != gca->ninputs)
+		ErrorExit(ERROR_BADPARM, "%s: must specify %d inputs, not %d for this atlas\n",
+			Progname, gca->ninputs, ninputs) ;
+
   printf("freeing gibbs priors...") ;
   GCAfreeGibbs(gca) ;
   printf("done.\n") ;
@@ -292,51 +292,6 @@ main(int argc, char *argv[])
   if (tissue_parms_fname)   /* use FLASH forward model */
     GCArenormalizeToFlash(gca, tissue_parms_fname, mri_in) ;
 
-  if (!FZERO(tx) || !FZERO(ty) || !FZERO(tz))
-  {
-    MRI *mri_tmp ;
-    
-    printf("translating second volume by (%2.1f, %2.1f, %2.1f)\n",
-            tx, ty, tz) ;
-    mri_tmp = MRItranslate(mri_in, NULL, tx, ty, tz) ;
-    MRIfree(&mri_in) ;
-    mri_in = mri_tmp ;
-  }
-
-  if (!FZERO(rzrot))
-  {
-    MRI *mri_tmp ;
-    
-    printf(
-            "rotating second volume by %2.1f degrees around Z axis\n",
-            (float)DEGREES(rzrot)) ;
-    mri_tmp = MRIrotateZ_I(mri_in, NULL, rzrot) ;
-    MRIfree(&mri_in) ;
-    mri_in = mri_tmp ;
-  }
-  if (!FZERO(rxrot))
-  {
-    MRI *mri_tmp ;
-    
-    printf(
-            "rotating second volume by %2.1f degrees around X axis\n",
-            (float)DEGREES(rxrot)) ;
-    mri_tmp = MRIrotateX_I(mri_in, NULL, rxrot) ;
-    MRIfree(&mri_in) ;
-    mri_in = mri_tmp ;
-  }
-  if (!FZERO(ryrot))
-  {
-    MRI *mri_tmp ;
-    
-    printf(
-            "rotating second volume by %2.1f degrees around Y axis\n",
-            (float)DEGREES(ryrot)) ;
-    mri_tmp = MRIrotateY_I(mri_in, NULL, ryrot) ;
-    MRIfree(&mri_in) ;
-    mri_in = mri_tmp ;
-  }
-
   if (!transform_loaded)   /* wasn't preloaded */
     transform = TransformAlloc(LINEAR_VOX_TO_VOX, NULL) ;
 
@@ -352,7 +307,18 @@ main(int argc, char *argv[])
   }
 
 
+	if (transform && Gvx > 0)
+	{
+		float xf, yf, zf ;
 
+		TransformSample(transform, Gvx, Gvy, Gvz, &xf, &yf, &zf) ;
+		Gsx = nint(xf) ; Gsy = nint(yf) ; Gsz = nint(zf) ;
+		printf("mapping (%d, %d, %d) --> (%d, %d, %d) for rgb writing\n",
+					 Gvy, Gvy, Gvz, Gsx, Gsy, Gsz) ;
+	}
+
+	if (regularize > 0)
+		GCAregularizeCovariance(gca, regularize) ;
 	if (xform_name)
 	{
 		gcam = GCAMread(xform_name) ;
@@ -482,6 +448,12 @@ get_option(int argc, char *argv[])
     parms.l_distance = atof(argv[2]) ;
     nargs = 1 ;
     printf("l_dist = %2.2f\n", parms.l_distance) ;
+  }
+  else if (!stricmp(option, "REGULARIZE"))
+  {
+    regularize = atof(argv[2]) ;
+    printf("regularizing variance to be sigma+%2.1fC(noise)\n", regularize) ;
+		nargs = 1 ;
   }
   else if (!strcmp(option, "SMOOTH") || !strcmp(option, "SMOOTHNESS"))
   {
@@ -722,7 +694,6 @@ get_option(int argc, char *argv[])
     nargs = 3 ;
     printf("debugging node (%d, %d, %d)\n", Gx, Gy, Gz) ;
   }
-
   else if (!stricmp(option, "DEBUG_VOXEL"))
   {
     Gvx = atoi(argv[2]) ;
@@ -771,21 +742,11 @@ get_option(int argc, char *argv[])
 		nargs = 1 ;
 		printf("reading previous transform from %s...\n", xform_name) ;
 		break ;
-  case 'D':
-    tx = atof(argv[2]) ; ty = atof(argv[3]) ; tz = atof(argv[4]) ;
-    nargs = 3 ;
-    break ;
   case 'K':
     parms.exp_k = atof(argv[2]) ;
     printf("setting exp_k to %2.2f (default=%2.2f)\n",
            parms.exp_k, EXP_K) ;
     nargs = 1 ;
-    break ;
-  case 'R':
-    rxrot = RADIANS(atof(argv[2])) ; 
-    ryrot = RADIANS(atof(argv[3])) ;
-    rzrot = RADIANS(atof(argv[4])) ; 
-    nargs = 3 ;
     break ;
   case 'T':
     transform = TransformRead(argv[2]) ;
