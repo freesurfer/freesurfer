@@ -89,6 +89,32 @@ catch {
     }
 }
 
+catch {
+    if { [string compare $env(TKM_FONT_FAMILY) helvetica] == 0 } {
+
+  set kNormalFont -*-helvetica-medium-r-normal-*-12-*-*-*-*-*-*-*
+  set kSmallFont -*-helvetica-medium-i-normal-*-10-*-*-*-*-*-*-*
+  set kLabelFont -*-helvetica-bold-r-normal-*-14-*-*-*-*-*-*-*
+  set kHighlightBgColor white
+
+  catch {
+      if { [string compare $env(TKM_FONT_SIZE) small] == 0 } {
+    set kNormalFont -*-helvetica-medium-r-normal-*-11-*-*-*-*-*-*-*
+    set kSmallFont -*-helvetica-medium-i-normal-*-10-*-*-*-*-*-*-*
+    set kLabelFont -*-helvetica-medium-r-normal-*-11-*-*-*-*-*-*-*
+      }
+  }
+
+  catch {
+      if { [string compare $env(TKM_FONT_SIZE) large] == 0 } {
+    set kNormalFont -*-helvetica-medium-r-normal-*-14-*-*-*-*-*-*-*
+    set kSmallFont -*-helvetica-medium-i-normal-*-10-*-*-*-*-*-*-*
+    set kLabelFont -*-helvetica-medium-r-normal-*-14-*-*-*-*-*-*-*
+      }
+  }
+    }
+}
+
 set knBalloonWait 500
 
 proc tkm_MakeBigLabel { isFrame isText {inWrapLength 0} } {
