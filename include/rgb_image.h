@@ -1,6 +1,5 @@
 #ifndef __GL_RGB_IMAGE_H__
 #define __GL_RGB_IMAGE_H__
-
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -127,8 +126,12 @@ int putrow_uc(RGB_IMAGE *image, unsigned char *buffer,
     unsigned int y, unsigned int z)  ;
 int getrow(RGB_IMAGE *image, unsigned short *buffer,unsigned int y,unsigned int z);
 
+/* removed at tosa's request
 RGB_IMAGE *iopen();
 RGB_IMAGE *icreate();
+
+*/
+
 unsigned short *ibufalloc();
 
 #define IMAGEDEF    /* for backwards compatibility */
