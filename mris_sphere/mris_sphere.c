@@ -14,7 +14,7 @@
 #include "macros.h"
 #include "utils.h"
 
-static char vcid[]="$Id: mris_sphere.c,v 1.4 1998/01/08 22:36:09 fischl Exp $";
+static char vcid[]="$Id: mris_sphere.c,v 1.5 1998/01/10 17:12:52 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -56,7 +56,7 @@ main(int argc, char *argv[])
   parms.dt = .1 ;
   parms.projection = PROJECT_ELLIPSOID ;
   parms.tol = 1e-2 ;
-  parms.n_averages = 1024 ;
+  parms.n_averages = 4096 ;
   parms.min_averages = 0 ;
   parms.l_angle = 0.0 /* L_ANGLE */ ;
   parms.l_area = 0.0 /* L_AREA */ ;
