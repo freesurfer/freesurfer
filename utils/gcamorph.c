@@ -3,8 +3,8 @@
 //
 // 
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Date  : $Date: 2004/05/28 21:06:19 $
-// Revision       : $Revision: 1.45 $
+// Revision Date  : $Date: 2004/06/01 14:37:44 $
+// Revision       : $Revision: 1.46 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -2681,6 +2681,7 @@ gcamLimitGradientMagnitude(GCA_MORPH *gcam, GCA_MORPH_PARMS *parms, MRI *mri)
   {
     float vals[MAX_GCA_INPUTS] ;
     int   r ;
+    int memoryUsed = 0;
     gcamn = &gcam->nodes[xmax][ymax][zmax] ;
     // print the info at this position
     load_vals(mri, gcamn->x, gcamn->y, gcamn->z, vals, gcam->gca->ninputs) ;
@@ -2693,7 +2694,10 @@ gcamLimitGradientMagnitude(GCA_MORPH *gcam, GCA_MORPH_PARMS *parms, MRI *mri)
     for (r = 0 ; r < gcam->gca->ninputs ; r++)
       printf("%2.1f (%2.1f)  ", vals[r], gcamn->gc ? gcamn->gc->means[r] :-0.0);
     fflush(stdout);
-    printf("memory used: %d Kbytes\n", getMemoryUsed());
+#if 0
+    if (memoryUsed=getMemoryUsed() != -1)
+      printf("memory used: %d Kbytes\n", getMemoryUsed());
+#endif 
     printf("\n") ;
   }
 
