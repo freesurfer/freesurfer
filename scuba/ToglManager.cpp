@@ -75,6 +75,8 @@ int
 ToglManager::MouseMotionCallback ( struct Togl* iTogl, 
 				   int iArgc, char* iArgv[] ) {
 
+  int eTcl = TCL_OK;
+
   // widget MouseMotionCallback x y button
   if( iArgc != 5 ) {
     return TCL_ERROR;
@@ -91,7 +93,19 @@ ToglManager::MouseMotionCallback ( struct Togl* iTogl,
   int windowCoords[2];
   windowCoords[0] = atoi(iArgv[2]);
   windowCoords[1] = YFlip(frame, atoi(iArgv[3]));
-  frame->MouseMoved( windowCoords, mState );
+  try {
+    frame->MouseMoved( windowCoords, mState );
+  }
+  catch(runtime_error e) {
+    char sError[1024];
+    strcpy( sError, e.what() );
+    Tcl_SetResult( Togl_Interp(iTogl), sError, TCL_VOLATILE );
+    eTcl = TCL_ERROR;
+  }
+  catch(...) {
+    cerr << "Uncaught exception in MouseMotionCallback" << endl;
+    eTcl = TCL_ERROR;
+  }
 
   // Post a redisplay if the frame wants one. 
   if( frame->WantRedisplay() ) {
@@ -99,12 +113,14 @@ ToglManager::MouseMotionCallback ( struct Togl* iTogl,
     frame->RedisplayPosted();
   }
 
-  return TCL_OK;
+  return eTcl;
 }
 
 int
 ToglManager::MouseDownCallback ( struct Togl* iTogl, 
 				 int iArgc, char* iArgv[] ) {
+
+  int eTcl = TCL_OK;
 
   // widget MouseDownCallback x y button
   if( iArgc != 5 ) {
@@ -120,7 +136,19 @@ ToglManager::MouseDownCallback ( struct Togl* iTogl,
   int windowCoords[2];
   windowCoords[0] = atoi(iArgv[2]);
   windowCoords[1] = YFlip(frame, atoi(iArgv[3]));
-  frame->MouseDown( windowCoords, mState );
+  try {
+    frame->MouseDown( windowCoords, mState );
+  }
+  catch(runtime_error e) {
+    char sError[1024];
+    strcpy( sError, e.what() );
+    Tcl_SetResult( Togl_Interp(iTogl), sError, TCL_VOLATILE );
+    eTcl = TCL_ERROR;
+  }
+  catch(...) {
+    cerr << "Uncaught exception in MouseDownCallback" << endl;
+    eTcl = TCL_ERROR;
+  }
 
   // Post a redisplay if the frame wants one. 
   if( frame->WantRedisplay() ) {
@@ -128,11 +156,13 @@ ToglManager::MouseDownCallback ( struct Togl* iTogl,
     frame->RedisplayPosted();
   }
 
-  return TCL_OK;
+  return eTcl;
 }
 
 int
 ToglManager::MouseUpCallback ( struct Togl* iTogl, int iArgc, char* iArgv[] ) {
+
+  int eTcl = TCL_OK;
 
   // widget MouseUpCallback x y button
   if( iArgc != 5 ) {
@@ -148,7 +178,19 @@ ToglManager::MouseUpCallback ( struct Togl* iTogl, int iArgc, char* iArgv[] ) {
   int windowCoords[2];
   windowCoords[0] = atoi(iArgv[2]);
   windowCoords[1] = YFlip(frame, atoi(iArgv[3]));
-  frame->MouseUp( windowCoords, mState );
+  try {
+    frame->MouseUp( windowCoords, mState );
+  }
+  catch(runtime_error e) {
+    char sError[1024];
+    strcpy( sError, e.what() );
+    Tcl_SetResult( Togl_Interp(iTogl), sError, TCL_VOLATILE );
+    eTcl = TCL_ERROR;
+  }
+  catch(...) {
+    cerr << "Uncaught exception in MouseUpCallback" << endl;
+    eTcl = TCL_ERROR;
+  }
 
   // Clear the mouse events.
   mState.ClearEvents();
@@ -159,11 +201,13 @@ ToglManager::MouseUpCallback ( struct Togl* iTogl, int iArgc, char* iArgv[] ) {
     frame->RedisplayPosted();
   }
 
-  return TCL_OK;
+  return eTcl;
 }
 
 int
 ToglManager::KeyDownCallback ( struct Togl* iTogl, int iArgc, char* iArgv[] ) {
+
+  int eTcl = TCL_OK;
 
   // widget KeyDownCallback x y key
   if( iArgc != 5 ) {
@@ -199,8 +243,20 @@ ToglManager::KeyDownCallback ( struct Togl* iTogl, int iArgc, char* iArgv[] ) {
     int windowCoords[2];
     windowCoords[0] = atoi(iArgv[2]);
     windowCoords[1] = YFlip(frame, atoi(iArgv[3]));
-    frame->KeyDown( windowCoords, mState );
-    
+    try {
+      frame->KeyDown( windowCoords, mState );
+    }
+    catch(runtime_error e) {
+      char sError[1024];
+      strcpy( sError, e.what() );
+      Tcl_SetResult( Togl_Interp(iTogl), sError, TCL_VOLATILE );
+      eTcl = TCL_ERROR;
+    }
+    catch(...) {
+      cerr << "Uncaught exception in KeyDownCallback" << endl;
+      eTcl = TCL_ERROR;
+    }
+
     // Post a redisplay if the frame wants one. 
     if( frame->WantRedisplay() ) {
       Togl_PostRedisplay( iTogl );
@@ -208,14 +264,16 @@ ToglManager::KeyDownCallback ( struct Togl* iTogl, int iArgc, char* iArgv[] ) {
     }
   }
 
-  return TCL_OK;
+  return eTcl;
 }
 
 int
 ToglManager::KeyUpCallback ( struct Togl* iTogl, int iArgc, char* iArgv[] ) {
 
-   // widget KeyDownCallback x y key
- if( iArgc != 5 ) {
+  int eTcl = TCL_OK;
+
+  // widget KeyDownCallback x y key
+  if( iArgc != 5 ) {
     return TCL_ERROR;
   }
   // Look for modifiers. If it's shift (Shift_L or Shift_R), alt
@@ -243,7 +301,19 @@ ToglManager::KeyUpCallback ( struct Togl* iTogl, int iArgc, char* iArgv[] ) {
     int windowCoords[2];
     windowCoords[0] = atoi(iArgv[2]);
     windowCoords[1] = YFlip(frame, atoi(iArgv[3]));
-    frame->KeyUp( windowCoords, mState );
+    try {
+      frame->KeyUp( windowCoords, mState );
+    }
+    catch(runtime_error e) {
+      char sError[1024];
+      strcpy( sError, e.what() );
+      Tcl_SetResult( Togl_Interp(iTogl), sError, TCL_VOLATILE );
+      eTcl = TCL_ERROR;
+    }
+    catch(...) {
+      cerr << "Uncaught exception in KeyUpCallback" << endl;
+      eTcl = TCL_ERROR;
+    }
     
     // Clear this in the keyboard state.
     mState.msKey = "";
@@ -255,7 +325,7 @@ ToglManager::KeyUpCallback ( struct Togl* iTogl, int iArgc, char* iArgv[] ) {
     }
   }
 
-  return TCL_OK;
+  return eTcl;
 }
 
 int

@@ -92,17 +92,8 @@ WindowFrame::MouseMoved( int iWindow[2], InputState& iInput ) {
 	} 
       } 
     } else {
-
-      try {
-	this->DoMouseMoved( iWindow, iInput );
-      }
-      catch(runtime_error e) {
-	cerr << "Uncaught exception in WindowFrame::MouseMoved: " 
-	     << e.what() << endl;
-      }
-      catch(...) {
-	cerr << "Uncaught exception in WindowFrame::MouseMoved" << endl;
-      }
+      
+      this->DoMouseMoved( iWindow, iInput );
     }
 
     // Save this position.
@@ -117,16 +108,7 @@ WindowFrame::MouseUp( int iWindow[2], InputState& iInput ) {
 
   if( iWindow[0] > 0 && iWindow[0] < mWidth-1 &&
       iWindow[1] > 0 && iWindow[1] < mHeight-1 ) {
-    try {
-      this->DoMouseUp( iWindow, iInput );
-    }
-    catch(runtime_error e) {
-      cerr << "Uncaught exception in WindowFrame::MouseUp: " 
-	   << e.what() << endl;
-    }
-    catch(...) {
-      cerr << "Uncaught exception in WindowFrame::MouseUp" << endl;
-    }
+    this->DoMouseUp( iWindow, iInput );
   }
 }
 
@@ -135,18 +117,7 @@ WindowFrame::MouseDown( int iWindow[2], InputState& iInput ) {
 
   if( iWindow[0] > 0 && iWindow[0] < mWidth-1 &&
       iWindow[1] > 0 && iWindow[1] < mHeight-1 ) {
-    try {
-      this->DoMouseDown( iWindow, iInput );
-      mLastMoved[0] = iWindow[0];
-      mLastMoved[1] = iWindow[1];
-    }
-    catch(runtime_error e) {
-      cerr << "Uncaught exception in WindowFrame::MouseDown: " 
-	   << e.what() << endl;
-    }
-    catch(...) {
-      cerr << "Uncaught exception in WindowFrame::MouseDown" << endl;
-    }
+    this->DoMouseDown( iWindow, iInput );
   }
 }
 
@@ -155,16 +126,7 @@ WindowFrame::KeyDown( int iWindow[2], InputState& iInput ) {
 
   if( iWindow[0] > 0 && iWindow[0] < mWidth-1 &&
       iWindow[1] > 0 && iWindow[1] < mHeight-1 ) {
-    try {
-      this->DoKeyDown( iWindow, iInput );
-    }
-    catch(runtime_error e) {
-      cerr << "Uncaught exception in WindowFrame::KeyDown: " 
-	   << e.what() << endl;
-    }
-    catch(...) {
-      cerr << "Uncaught exception in WindowFrame::KeyDown" << endl;
-    }
+    this->DoKeyDown( iWindow, iInput );
   }
 }
 
@@ -173,16 +135,7 @@ WindowFrame::KeyUp( int iWindow[2], InputState& iInput ) {
 
   if( iWindow[0] > 0 && iWindow[0] < mWidth-1 &&
       iWindow[1] > 0 && iWindow[1] < mHeight-1 ) {
-    try {
-      this->DoKeyUp( iWindow, iInput );
-    }
-    catch(runtime_error e) {
-      cerr << "Uncaught exception in WindowFrame::KeyUp: " 
-	   << e.what() << endl;
-    }
-    catch(...) {
-      cerr << "Uncaught exception in WindowFrame::KeyUp" << endl;
-    }
+    this->DoKeyUp( iWindow, iInput );
   }
 }
 

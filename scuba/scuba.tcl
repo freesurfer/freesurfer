@@ -10,7 +10,7 @@ if { $err } {
     load [file dirname [info script]]/libscuba[info sharedlibextension] scuba
 }
 
-DebugOutput "\$Id: scuba.tcl,v 1.92 2005/03/18 21:42:37 kteich Exp $"
+DebugOutput "\$Id: scuba.tcl,v 1.93 2005/03/22 23:01:35 kteich Exp $"
 
 # gTool
 #   current - current selected tool (nav,)
@@ -199,7 +199,7 @@ proc GetDefaultFileLocation { iType } {
 		set gsaDefaultLocation($iType) [exec pwd]
 	    }
 	    default { 
-		if { [info exists env(SUBJECTS_DIR)] } {
+		if { [info exists gSubject(homeDir)] } {
 		    set gsaDefaultLocation($iType) $gSubject(homeDir)
 		} else {
 		    set gsaDefaultLocation($iType) [exec pwd]
@@ -4767,7 +4767,7 @@ proc SaveSceneScript { ifnScene } {
     set f [open $ifnScene w]
 
     puts $f "\# Scene file generated "
-    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.92 2005/03/18 21:42:37 kteich Exp $"
+    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.93 2005/03/22 23:01:35 kteich Exp $"
     puts $f ""
 
     # Find all the data collections.

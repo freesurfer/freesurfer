@@ -501,9 +501,9 @@ x ROI dlog
   x shows 2 ROIs when there is only one
 
 - data col interface
-  - volume
-    - use RAS transform
-    - use transform
+  x volume
+    x use RAS transform
+    x use transform
   - surface
     - use transform
     - transform to volume

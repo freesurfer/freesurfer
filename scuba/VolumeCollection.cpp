@@ -1284,6 +1284,9 @@ VolumeCollection::NewROIFromLabel ( string ifnLabel ) {
     RASToMRIIndex( ras, index );
 
     volumeROI->SelectVoxel( index );
+
+    // Also mark this in the selection voxel.
+    mSelectedVoxels->Set_Unsafe( index[0], index[1], index[2], true );
   }
  
   LabelFree( &label );
