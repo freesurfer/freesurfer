@@ -1343,7 +1343,8 @@ int MRISfdr2vwth(MRIS *surf, double fdr, int signid,
   p = (double *) calloc(surf->nvertices,sizeof(double));
   np = 0;
   for(vtxno = 0; vtxno < surf->nvertices; vtxno++){
-    if(maskflag && !surf->vertices[vtxno].undefval) continue;
+    if((maskflag && !surf->vertices[vtxno].undefval) ||
+       surf->vertices[vtxno].ripflag) continue;
     val = surf->vertices[vtxno].val;
     if(signid == -1 && val > 0) continue;
     if(signid == +1 && val < 0) continue;
@@ -1366,7 +1367,8 @@ int MRISfdr2vwth(MRIS *surf, double fdr, int signid,
 
   // Perform the thresholding
   for(vtxno = 0; vtxno < surf->nvertices; vtxno++){
-    if(maskflag && !surf->vertices[vtxno].undefval){
+    if((maskflag && !surf->vertices[vtxno].undefval) ||
+       surf->vertices[vtxno].ripflag){
       // Set to null if masking and not in the mask 
       surf->vertices[vtxno].val2 = val2null;
       continue;
