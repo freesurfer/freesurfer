@@ -3,8 +3,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2004/04/08 14:51:42 $
-// Revision       : $Revision: 1.124 $
+// Revision Date  : $Date: 2004/04/09 19:26:59 $
+// Revision       : $Revision: 1.125 $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -9789,6 +9789,7 @@ GCAhistoScaleImageIntensities(GCA *gca, MRI *mri)
       HISTOclearBins(h_mri, h_mri, 0, min_real_val) ;
     if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
       HISTOplot(h_mri, "mri.histo") ;
+		HISTOclearZeroBin(h_mri) ;
     if (gca->ninputs == 1)   /* assume it is T1-weighted */
       mri_peak = HISTOfindLastPeak(h_mri, 2*HISTO_WINDOW_SIZE,MIN_HISTO_PCT);
     else
