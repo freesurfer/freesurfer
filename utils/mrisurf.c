@@ -145,6 +145,8 @@ static MRI_SURFACE *mrisReadTriangleFile(char *fname, double pct_over) ;
 static int         mrisReadTriangleFilePositions(MRI_SURFACE*mris,
                                                   char *fname) ;
 
+static SMALL_SURFACE *mrisReadTriangleFileVertexPositionsOnly(char *fname) ;
+
 /*static int   mrisReadFieldsign(MRI_SURFACE *mris, char *fname) ;*/
 static double mrisComputeSSE(MRI_SURFACE *mris, INTEGRATION_PARMS *parms) ;
 static double mrisComputeNonlinearAreaSSE(MRI_SURFACE *mris) ;
@@ -19294,6 +19296,78 @@ MRISwriteTriangularSurface(MRI_SURFACE *mris, char *fname)
 
         Description
 ------------------------------------------------------*/
+static SMALL_SURFACE *
+mrisReadTriangleFileVertexPositionsOnly(char *fname)
+{
+  SMALL_VERTEX   *v ;
+  int            nvertices, nfaces, magic, vno, fno, n ;
+  char           line[STRLEN] ;
+  FILE           *fp ;
+  SMALL_SURFACE  *mriss ;
+
+  fp = fopen(fname, "rb") ;
+  if (!fp)
+    ErrorReturn(NULL,(ERROR_NOFILE,
+                      "mrisReadTriangleFile(%s): could not open file",fname));
+
+  fread3(&magic, fp) ;
+  fgets(line, 200, fp) ;
+  fscanf(fp, "\n") ;
+  /*  fscanf(fp, "\ncreated by %s on %s\n", user, time_str) ;*/
+  nvertices = freadInt(fp);
+  nfaces = freadInt(fp);  
+  
+  if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
+    fprintf(stderr,"surface %s: %d vertices and %d faces.\n",
+            fname, nvertices,nfaces);
+  
+  mriss = (SMALL_SURFACE *)calloc(1, sizeof(SMALL_SURFACE)) ;
+  if (!mriss)
+    ErrorReturn(NULL, 
+                (ERROR_NOMEMORY, 
+                 "MRISreadVerticesOnly: could not allocate surface")) ;
+  
+  mriss->nvertices = nvertices ;
+  mriss->vertices = (SMALL_VERTEX *)calloc(nvertices, sizeof(SMALL_VERTEX)) ;
+  if (!mriss->nvertices)
+  {
+    free(mriss) ;
+    ErrorReturn(NULL, 
+                (ERROR_NOMEMORY, 
+                 "MRISreadVerticesOnly: could not allocate surface")) ;
+  }
+  for (vno = 0 ; vno < nvertices ; vno++)
+  {
+    v = &mriss->vertices[vno] ;
+    if (vno == Gdiag_no)
+      DiagBreak() ;
+    v->x = freadFloat(fp);
+    v->y = freadFloat(fp);
+    v->z = freadFloat(fp);
+#if 0
+    v->label = NO_LABEL ;
+#endif
+    if (fabs(v->x) > 10000 || !finite(v->x))
+      ErrorExit(ERROR_BADFILE, "%s: vertex %d x coordinate %f!",
+                Progname, vno, v->x) ;
+    if (fabs(v->y) > 10000 || !finite(v->y))
+      ErrorExit(ERROR_BADFILE, "%s: vertex %d y coordinate %f!",
+                Progname, vno, v->y) ;
+    if (fabs(v->z) > 10000 || !finite(v->z))
+      ErrorExit(ERROR_BADFILE, "%s: vertex %d z coordinate %f!",
+                Progname, vno, v->z) ;
+  }
+  
+  fclose(fp);
+  return(mriss) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
 static int
 mrisReadTriangleFilePositions(MRI_SURFACE *mris, char *fname)
 {
@@ -26095,3 +26169,114 @@ MRISmulVal(MRI_SURFACE *mris, float mul)
 }
 
 
+SMALL_SURFACE *
+MRISreadVerticesOnly(char *fname)
+{
+  SMALL_SURFACE *mriss ;
+  int           type, magic, version, ix, iy, iz, nquads, nvertices, vno ;
+  SMALL_VERTEX  *vertex ;
+  FILE          *fp ;
+
+  type = mrisFileNameType(fname) ;
+  switch (type)
+  {
+  case MRIS_ASCII_QUADRANGLE_FILE:
+  case MRIS_ICO_FILE:
+  case MRIS_GEO_TRIANGLE_FILE:
+    ErrorReturn(NULL, 
+                (ERROR_UNSUPPORTED, 
+                 "MRISreadVerticesOnly: file type %d not supported",type)) ;
+    break ;  /* not used */
+  default:
+    break ;
+  }
+    
+  fp = fopen(fname, "rb") ;
+  if (!fp)
+    ErrorReturn(NULL,(ERROR_NOFILE,"MRISread(%s): could not open file",
+                      fname));
+  
+  fread3(&magic, fp) ;
+  if (magic == QUAD_FILE_MAGIC_NUMBER) 
+  {
+    version = -1;
+    if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
+      fprintf(stderr, "new surface file format\n");
+  }
+  else if (magic == NEW_QUAD_FILE_MAGIC_NUMBER) 
+  {
+    version = -2 ;
+  }
+  else if (magic == TRIANGLE_FILE_MAGIC_NUMBER)
+  {
+    fclose(fp) ;
+    mriss = mrisReadTriangleFileVertexPositionsOnly(fname) ;
+    if (!mriss)
+      ErrorReturn(NULL, (Gerror, "mrisReadTriangleFile failed.\n")) ;
+    version = -3 ;
+  }
+  else
+  {
+    rewind(fp);
+    version = 0;
+    if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
+      printf("surfer: old surface file format\n");
+  }
+  if (version >= -2)  /* some type of quadrangle file */
+  {
+    fread3(&nvertices, fp);
+    fread3(&nquads, fp);   /* # of qaudrangles - not triangles */
+    
+    if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
+      fprintf(stderr,"reading %d vertices and %d faces.\n",
+      nvertices,2*nquads);
+    
+    mriss = (SMALL_SURFACE *)calloc(1, sizeof(SMALL_SURFACE)) ;
+    if (!mriss)
+      ErrorReturn(NULL, 
+                  (ERROR_NOMEMORY, 
+                   "MRISreadVerticesOnly: could not allocate surface")) ;
+  
+    mriss->nvertices = nvertices ;
+    mriss->vertices = (SMALL_VERTEX *)calloc(nvertices, sizeof(SMALL_VERTEX)) ;
+    if (!mriss->nvertices)
+    {
+      free(mriss) ;
+      ErrorReturn(NULL, 
+                  (ERROR_NOMEMORY, 
+                   "MRISreadVerticesOnly: could not allocate surface")) ;
+    }
+    for (vno = 0 ; vno < nvertices ; vno++)
+    {
+      vertex = &mriss->vertices[vno] ;
+      if (version == -1)
+      {
+        fread2(&ix,fp);
+        fread2(&iy,fp);
+        fread2(&iz,fp);
+        vertex->x = ix/100.0;
+        vertex->y = iy/100.0;
+        vertex->z = iz/100.0;
+      }
+      else  /* version == -2 */
+      {
+        vertex->x = freadFloat(fp) ;
+        vertex->y = freadFloat(fp) ;
+        vertex->z = freadFloat(fp) ;
+      }
+    }
+  }
+
+  return(mriss) ;
+}
+int
+MRISSfree(SMALL_SURFACE **pmriss)
+{
+  SMALL_SURFACE *mriss ;
+
+  mriss = *pmriss ;
+  *pmriss = NULL ;
+  free(mriss->vertices) ;
+  free(mriss) ;
+  return(NO_ERROR) ;
+}
