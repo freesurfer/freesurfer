@@ -333,6 +333,7 @@ int          MRISwritePatch(MRI_SURFACE *mris, char *fname) ;
 int          MRISwriteValues(MRI_SURFACE *mris, char *fname) ;
 int          MRISwriteTriangleProperties(MRI_SURFACE *mris, char *mris_fname);
 int          MRISaverageCurvatures(MRI_SURFACE *mris, int navgs) ;
+int          MRISaverageVertexPositions(MRI_SURFACE *mris, int navgs) ;
 
 MRI_SURFACE  *MRISalloc(int nvertices, int nfaces) ;
 int          MRISfree(MRI_SURFACE **pmris) ;
@@ -454,6 +455,7 @@ MRI_SP       *MRISPalloc(float scale, int nfuncs) ;
 int          MRISPfree(MRI_SP **pmrisp) ;
 MRI_SP       *MRISPread(char *fname) ;
 int          MRISPwrite(MRI_SP *mrisp, char *fname) ;
+int          MRISwriteArea(MRI_SURFACE *mris, char *mris_fname) ;
 
 
 #define ORIGINAL_VERTICES   0
