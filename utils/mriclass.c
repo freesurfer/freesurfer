@@ -657,6 +657,7 @@ MRICcomputeInputs(MRI *mri, int x,int y,int z,float *inputs,int features)
   static MRI  *mri_prev = NULL, *mri_zscore3 = NULL, *mri_zscore5 = NULL ,
               *mri_direction = NULL, *mri_mean3 = NULL, *mri_mean5 = NULL ;
   int         i ;
+  MRI_REGION  rbig ;
 
   if (!mri_prev || mri_prev != mri || 
       (REGIONinside(&region,x,y,z) == REGION_OUTSIDE))
@@ -692,7 +693,7 @@ MRICcomputeInputs(MRI *mri, int x,int y,int z,float *inputs,int features)
       mri_mean = MRImeanRegion(mri, NULL, 3, &region) ;
       mri_std = MRIstdRegion(mri, NULL, mri_mean, 3, &region) ;
       mri_zscore3 = MRIzScoreRegion(mri, NULL, mri_mean, mri_std, &region);
-      if (first)
+      if (Gdiag & DIAG_WRITE && first)
       {
         first = 0 ;
         MRIwrite(mri_mean, "mean.mnc") ;
@@ -708,7 +709,7 @@ MRICcomputeInputs(MRI *mri, int x,int y,int z,float *inputs,int features)
       mri_mean = MRImeanRegion(mri, NULL, 5, &region) ;
       mri_std = MRIstdRegion(mri, NULL, mri_mean, 5, &region) ;
       mri_zscore5 = MRIzScoreRegion(mri, NULL, mri_mean, mri_std, &region);
-      if (first)
+      if (Gdiag & DIAG_WRITE && first)
       {
         first = 0 ;
         MRIwrite(mri_mean, "mean.mnc") ;
@@ -720,17 +721,35 @@ MRICcomputeInputs(MRI *mri, int x,int y,int z,float *inputs,int features)
     }
     if (features & FEATURE_DIRECTION)
     {
-      static int first = 0 ;
-      mri_region = MRIextractRegion(mri, NULL, &region) ;
+      static int first = 1 ;
+      MRI        *mri_tmp ;
+      int        x0, y0, z0 ;
+
+      REGIONexpand(&region, &rbig, 1) ; /* expand region by 1 pix */
+      MRIclipRegion(mri, &rbig, &rbig) ;
+      mri_region = MRIextractRegion(mri, NULL, &rbig) ;
       mri_grad = MRIsobel(mri_region, NULL, NULL) ;
-      mri_direction = MRIdirectionMap(mri_grad, NULL, 3) ;
-      if (first)
+      mri_tmp = MRIdirectionMap(mri_grad, NULL, 3) ;
+      x0 = region.x - rbig.x ;
+      y0 = region.y - rbig.y ;
+      z0 = region.z - rbig.z ;
+
+      if (z)
+        DiagBreak() ;
+
+      mri_direction = 
+        MRIextract(mri_tmp, NULL, x0,y0,z0,region.dx,region.dy, region.dz) ;
+      if (Gdiag & DIAG_WRITE && first)
       {
         first = 0 ;
         MRIwrite(mri_direction, "dir.mnc") ;
+        MRIwrite(mri_region, "region.mnc") ;
+        MRIwrite(mri_grad, "grad.mnc") ;
+        MRIwrite(mri_tmp, "tmp.mnc") ;
       }
       MRIfree(&mri_region) ;
       MRIfree(&mri_grad) ;
+      MRIfree(&mri_tmp) ;
     }
     if (features & FEATURE_MEAN3)
       mri_mean3 = MRImeanRegion(mri, NULL, 3, &region) ;
