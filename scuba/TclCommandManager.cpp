@@ -108,7 +108,7 @@ TclCommandManager::CreateCommand( Command& iCommand ) {
   char sCommand[1024];
   strcpy( sCommand,  iCommand.msCommand.c_str() );
   Tcl_CreateCommand( mInterp, sCommand,
-		     TclCommandManager::HandleCommand,
+		     (Tcl_CmdProc *) TclCommandManager::HandleCommand,
 		     (ClientData)NULL, (Tcl_CmdDeleteProc*)NULL );
 }
 
@@ -392,7 +392,7 @@ TclCommandManager::SendCommand ( string isCommand ) {
   if( mInterp ) {
     char* sCommand = strdup( isCommand.c_str() );
     int rTcl = Tcl_Eval( mInterp, sCommand );
-    char* sTclResult = Tcl_GetStringResult( mInterp );
+    char* sTclResult = const_cast<char *>(Tcl_GetStringResult( mInterp ));
     if( TCL_OK != rTcl ) {
       DebugOutput( << "Error on cmd: \"" << sCommand << "\", " << sTclResult );
     }
