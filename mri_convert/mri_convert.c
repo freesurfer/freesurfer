@@ -65,7 +65,7 @@ main(int argc, char *argv[])
   out_fname = argv[2] ;
 
   if (verbose)
-    fprintf(stderr, "reading from %s...", in_fname) ;
+    fprintf(stderr, "reading from %s...\n", in_fname) ;
   if(raw_flag)
   {
     if((fin = fopen(in_fname, "r")) == NULL)
@@ -119,7 +119,7 @@ main(int argc, char *argv[])
   }
 
   if (verbose)
-    fprintf(stderr, "done.\nwriting to %s...", out_fname) ;
+    fprintf(stderr, "writing to %s...\n", out_fname) ;
 
   if (transform_fname || inverse_transform_fname)
   {
@@ -177,8 +177,6 @@ main(int argc, char *argv[])
   if(verbose)
     printf("writing output to '%s'...\n", out_fname) ;
   MRIwrite(mri, out_fname) ;
-  if (verbose)
-    fprintf(stderr, "done.\n") ;
   MRIfree(&mri) ;
   exit(0) ;
   return(0) ;
