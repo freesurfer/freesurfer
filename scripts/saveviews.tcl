@@ -18,7 +18,8 @@ if [info exists justvars] {
 
 #### show lat even when nothing set
 if { ![info exists lat] && ![info exists med] && ![info exists ven] && \
-     ![info exists dor] && ![info exists pos] && ![info exists all] } {
+     ![info exists dor] && ![info exists pos] && ![info exists all] && \
+     [info vars custom*] == "" } {
   set lat 1
 }
 
