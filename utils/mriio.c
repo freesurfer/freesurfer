@@ -8291,7 +8291,7 @@ static MRI *
 mghRead(char *fname, int read_volume, int frame)
 {
   MRI  *mri ;
-  FILE  *fp ;
+  FILE  *fp = 0;
   int   start_frame, end_frame, width, height, depth, nframes, type, x, y, z,
     bpv, dof, bytes, version, ival, unused_space_size, good_ras_flag, i ;
   BUFTYPE *buf ;
