@@ -89,9 +89,13 @@ typedef struct {
 
 /* transformer should be a->b client->surface coordinate system */
 Surf_tErr Surf_New    ( mriSurfaceRef*  opSurface,
-			char*           isFileName,
-			mriTransformRef iTransform );
+			char*           isFileName );
 Surf_tErr Surf_Delete ( mriSurfaceRef* iopSurface );
+
+/* Set the transform and precalc all the vertex positions in client
+   space. */
+Surf_tErr Surf_SetTransform ( mriSurfaceRef this,
+			      mriTransformRef iTransform );
 
 /* ==================================================================== IO */
 
@@ -180,6 +184,9 @@ Surf_tErr Surf_GetMRIS ( mriSurfaceRef this,
 Surf_tErr Surf_GetSurfaceSetName ( Surf_tVertexSet iSet,
 				   char*           osName );
 
+
+Surf_tErr Surf_UsesRealRAS ( mriSurfaceRef this,
+			     tBoolean*     obUseRealRAS );
 
 /* ============================================================== Processing */
 
