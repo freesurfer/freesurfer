@@ -505,6 +505,7 @@ LTAtransform(MRI *mri_src, MRI *mri_dst, LTA *lta)
   VECTOR      *v_X, *v_Y ;/* original and transformed coordinate systems */
   Real        x1, x2, x3 ;
   MATRIX      *m_L, *m_L_inv ;
+  LT *tran = &lta->xforms[0];
 
   if (lta->num_xforms == 1)
   {
@@ -512,7 +513,6 @@ LTAtransform(MRI *mri_src, MRI *mri_dst, LTA *lta)
     {
       if (!mri_dst) 
 	mri_dst = MRIclone(mri_src, NULL) ;
-      LT *tran = &lta->xforms[0];
       if (tran->dst.valid == 1) // transform dst is valid
       {
 	// modify dst c_(r,a,s) using the transform dst value
