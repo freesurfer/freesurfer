@@ -125,7 +125,7 @@ typedef struct vertex_type_
   float coords[3];
 #endif
   float theta, phi ;     /* parameterization */
-  char   marked;          /* for a variety of uses */
+  short  marked;          /* for a variety of uses */
   char   ripflag ;
   char   border;          /* flag */
   float area,origarea ;
@@ -189,9 +189,10 @@ typedef struct
   float        beta ;             /* rotation around y-axis */
   float        gamma ;            /* rotation around x-axis */
   float        da, db, dg ;       /* old deltas */
-  int          type ;             /* what type of surface was this initially */
+  int          type ;             /* what type of surface was this initially*/
   int          max_vertices ;     /* may be bigger than nvertices */
   int          max_faces ;        /* may be bigger than nfaces */
+  char         subject_name[100] ;/* name of the subject */
 } MRI_SURFACE, MRIS ;
 
 
@@ -628,8 +629,10 @@ int   MRIScopyCurvatureFromValues(MRI_SURFACE *mris) ;
 int   MRIScopyCurvatureFromImagValues(MRI_SURFACE *mris) ;
 int   MRIScopyImaginaryMeansToValues(MRI_SURFACE *mris) ;
 int   MRIScopyStandardErrorsToValues(MRI_SURFACE *mris) ;
+int   MRIScopyImagValuesToCurvature(MRI_SURFACE *mris) ;
+int   MRIScopyValuesToCurvature(MRI_SURFACE *mris) ;
 int   MRISaccumulateMeansInVolume(MRI_SURFACE *mris, MRI *mri, int mris_dof, 
-                                  int mri_dof, int coordinate_system, int sno);
+                                  int mri_dof, int coordinate_system,int sno);
 int   MRISaccumulateStandardErrorsInVolume(MRI_SURFACE *mris, MRI *mri, 
                                            int mris_dof, int mri_dof, 
                                            int coordinate_system, int sno) ;
@@ -643,8 +646,8 @@ int   MRIScomputeAverageCircularPhaseGradient(MRI_SURFACE *mris, LABEL *area,
                                             float *pdx,float *pdy,float *pdz);
 
 int   MRIScomputeBorderValues(MRI_SURFACE *mris,MRI *mri_brain,
-                              MRI *mri_smooth, Real inside_hi, Real inside_low,
-                              Real outside_low) ;
+                              MRI *mri_smooth, Real inside_hi, 
+                              Real inside_low, Real outside_low) ;
 int  MRIScomputeWhiteSurfaceValues(MRI_SURFACE *mris, MRI *mri_brain, 
                                    MRI *mri_smooth);
 int  MRIScomputeGraySurfaceValues(MRI_SURFACE *mris, MRI *mri_brain, 
@@ -672,8 +675,6 @@ MRI_SURFACE *MRIScorrectTopology(MRI_SURFACE *mris,
                                  MRI_SURFACE *mris_corrected) ;
 int MRISripDefectiveFaces(MRI_SURFACE *mris) ;
 int MRISunrip(MRI_SURFACE *mris) ;
-int MRISmarkAmbiguousVertices(MRI_SURFACE *mris, int mark_retain, 
-                              int mark_discard) ;
 
 #if 1
 #include "mrishash.h"
