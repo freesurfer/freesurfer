@@ -506,7 +506,7 @@ ltaMNIread(char *fname)
 {
   LTA              *lta ;
   LINEAR_TRANSFORM *lt ;
-  char             *cp, line[300] ;
+  char             *cp, line[1000] ;
   FILE             *fp ;
   int              row ;
   MATRIX           *m_L, *V, *W, *m_tmp ;
@@ -534,16 +534,16 @@ ltaMNIread(char *fname)
   lt = &lta->xforms[0] ;
   lt->sigma = lt->x0 = lt->y0 = lt->z0 = 0 ;
 
-  fgetl(line, 200, fp) ;
-  fgetl(line, 200, fp) ;
-  fgetl(line, 200, fp) ;
-  fgetl(line, 200, fp) ;
-  fgetl(line, 200, fp) ;
+  fgetl(line, 900, fp) ;
+  fgetl(line, 900, fp) ;
+  fgetl(line, 900, fp) ;
+  fgetl(line, 900, fp) ;
+  /*  fgetl(line, 900, fp) ;*/
 
   m_L = lt->m_L ;
   for (row = 1 ; row <= 3 ; row++)
   {
-    cp = fgetl(line, 200, fp) ;
+    cp = fgetl(line, 900, fp) ;
     sscanf(cp, "%f %f %f %f",
            MATRIX_RELT(m_L,row,1), MATRIX_RELT(m_L,row,2), 
            MATRIX_RELT(m_L,row,3), MATRIX_RELT(m_L,row,4)) ;
