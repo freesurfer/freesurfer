@@ -49,6 +49,7 @@ typedef struct
   MRI  *mri_zind ;
   VOL_GEOM   src;            /* src for the transform       */
   VOL_GEOM   dst;            /* dst for the transform       */
+	int        ninputs ;
 } GCA_MORPH, GCAM ;
 
 typedef struct
@@ -65,6 +66,7 @@ typedef struct
   double l_smoothness ;
   double l_distance ;
   double l_label ;
+	double l_binary ;
   double l_map ;
   double tol ;
   int    levels ;
@@ -83,6 +85,7 @@ typedef struct
   int    relabel ;    /* are we relabeling (i.e. using MAP label, or just max prior label) */
   int    relabel_avgs ; /* what level to start relabeling at */
   int    reset_avgs ;   /* what level to reset metric properties at */
+	MRI    *mri_binary ;
 } GCA_MORPH_PARMS, GMP ;
 
 GCA_MORPH *GCAMalloc(int width, int height, int depth) ;
@@ -112,6 +115,7 @@ int       GCAMstoreMetricProperties(GCA_MORPH *gcam) ;
 int       GCAMcopyNodePositions(GCA_MORPH *gcam, int from, int to) ;
 MRI       *GCAMextract_density_map(MRI *mri_seg, MRI *mri_intensity, GCA_MORPH *gcam, int label, MRI *mri_out) ;
 int       GCAMsample(GCA_MORPH *gcam, float xv, float yv, float zv, float *px, float *py, float *pz) ;
+int      GCAMinitLabels(GCA_MORPH *gcam, MRI *mri_labeled) ;
 
 #define GCAM_IGNORE_LIKELIHOOD 0x0001
 #define GCAM_USE_LIKELIHOOD    0x0000
