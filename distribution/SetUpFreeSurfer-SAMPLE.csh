@@ -5,7 +5,7 @@
 # it with just a few modiciations.
 
 # Set this to the location of freesrfer/.
-if (! $?FREESRFER_HOME) then 
+if (! $?FREESURFER_HOME) then 
     setenv FREESURFER_HOME REPLACE_WITH_PREFIX
 endif    
  
