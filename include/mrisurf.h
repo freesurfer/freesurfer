@@ -536,6 +536,7 @@ int          MRISupdateSurface(MRI_SURFACE *mris) ;
 double       MRISpercentDistanceError(MRI_SURFACE *mris) ;
 int          MRISscaleBrainArea(MRI_SURFACE *mris) ;
 
+
 MRI_SP       *MRISPcombine(MRI_SP *mrisp, MRI_SP *mrisp_template, int fno);
 MRI_SP       *MRISPaccumulate(MRI_SP *mrisp, MRI_SP *mrisp_template, int fno);
 int          MRISPcoordinate(MRI_SP *mrisp, float x, float y, float z,
@@ -816,6 +817,23 @@ int           MRISSfree(SMALL_SURFACE **pmriss) ;
 int  MRISsubsampleDist(MRI_SURFACE *mris, float spacing) ;
 int  MRISwriteDecimation(MRI_SURFACE *mris, char *fname) ;
 int  MRISreadDecimation(MRI_SURFACE *mris, char *fname) ;
+
+
+#define VERTEX_COORDS    0
+#define VERTEX_VALS      1
+#define VERTEX_VAL       VERTEX_VALS
+#define VERTEX_AREA      2
+#define VERTEX_CURV      3
+#define VERTEX_CURVATURE VERTEX_CURV
+
+int MRISclearOrigArea(MRI_SURFACE *mris) ;
+int MRIScombine(MRI_SURFACE *mris_src, MRI_SURFACE *mris_total, 
+                MRIS_HASH_TABLE *mht, int which) ;
+int MRISsphericalCopy(MRI_SURFACE *mris_src, MRI_SURFACE *mris_total, 
+                MRIS_HASH_TABLE *mht, int which) ;
+int   MRISorigAreaToCurv(MRI_SURFACE *mris) ;
+int   MRISclear(MRI_SURFACE *mris, int which) ;
+int   MRISnormalize(MRI_SURFACE *mris, int dof, int which) ;
 
 #endif
 
