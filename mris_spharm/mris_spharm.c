@@ -6,10 +6,12 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: pengyu $
-// Revision Date  : $Date: 2005/01/26 22:52:12 $
-// Revision       : $Revision: 1.3 $
+// Revision Date  : $Date: 2005/01/28 01:36:31 $
+// Revision       : $Revision: 1.4 $
 ////////////////////////////////////////////
+#include "ANN.h"
 
+extern "C" {
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -31,9 +33,9 @@
 #include "version.h"
 #include "error.h"
 #include "matrix.h"
+}
 
-
-//static char vcid[] = "$Id: mris_spharm.c,v 1.3 2005/01/26 22:52:12 pengyu Exp $";
+//static char vcid[] = "$Id: mris_spharm.c,v 1.4 2005/01/28 01:36:31 pengyu Exp $";
 
 
 int             main(int argc, char *argv[]) ; 
@@ -45,6 +47,8 @@ static double   factorial(int L, int M) ;
 static MATRIX   *ComplexMatrixTranspose(MATRIX *mIn, MATRIX *mOut);
 static MATRIX   *ComplexMatrixPseudoInverse(MATRIX *m, MATRIX *m_pseudo_inv);
 static MRI_SURFACE *center_brain(MRI_SURFACE *mris_src, MRI_SURFACE *mris_dst) ;
+static MRI_SURFACE *sample_origposition(MRI_SURFACE *mris_src, MRI_SURFACE *mris_dst) ;
+static double   v_to_f_distance(VERTEX *P0, MRI_SURFACE *mri_surf, int face_number, int debug) ;
 static int      LEVEL = 7;
 static double   REAL, IMAG;
 static float    threshold = 1;
@@ -59,7 +63,7 @@ main(int argc, char *argv[])
 	float         phi, d, theta, area;
 	struct timeb  then ;
 	MRIS          *mris_in, *mris_out; 
-	MRI_SP        *mrisp ;
+	//MRI_SP        *mrisp ;
 	MATRIX        *m_Z, *m_V, *m_c, *m_Z_inv, *m_V_new;
 	VERTEX        *v;
 
@@ -94,15 +98,17 @@ main(int argc, char *argv[])
 	/*Sample the original surface*/
 
 	mris_out = ReadIcoByOrder(LEVEL, 100);
+	//MRISwrite(mris_out, "/space/xrt/1/users/btquinn/buckner_paper/010223_61223/surf/lh.ic7") ; 
 	for (i = 0; i<mris_out->nvertices; i++)
 		mris_out->vertices[i].nsize=1;
-	mrisp = MRISPalloc(1, 3); 
+	//mrisp = MRISPalloc(1, 3); 
 #if 1
-	MRIScoordsToParameterization(mris_in, mrisp, 1) ;
+	//MRIScoordsToParameterization(mris_in, mrisp, 1) ;
 	//MRISPblur(mrisp, mrisp, 0.5, 0);
 	//MRISPblur(mrisp, mrisp, 0.5, 1);
 	//MRISPblur(mrisp, mrisp, 0.5, 2);
-	MRIScoordsFromParameterization(mrisp, mris_out) ;
+	//MRIScoordsFromParameterization(mrisp, mris_out) ;
+	sample_origposition(mris_in, mris_out) ;
 #else
 	MRISreadOriginalProperties(mris_out, argv[2]) ;
 #endif
@@ -110,6 +116,7 @@ main(int argc, char *argv[])
 	MRISsaveVertexPositions(mris_out, TMP_VERTICES) ;
 	MRISrestoreVertexPositions(mris_out, ORIGINAL_VERTICES) ;
 	MRISupdateSurface(mris_out);
+	MRISwrite(mris_out, "/space/xrt/1/users/btquinn/buckner_paper/010223_61223/surf/lh.sampled") ; 
 	fprintf(stderr, "original area becomes %f\n", mris_out->total_area);
 	center_brain(mris_out, mris_out);
 	MRISscaleBrain(mris_out, mris_out, sqrt(100000.0f/mris_out->total_area)) ;
@@ -117,7 +124,6 @@ main(int argc, char *argv[])
 	for (fno=0; fno<mris_out->nfaces; fno++)
 		area += mris_out->faces[fno].area;
 	fprintf(stderr, "original area becomes %f\n", area);
-	//MRISwrite(mris_out, "/space/xrt/1/users/btquinn/buckner_paper/011121_vc8048/surf/lh.sampled") ; 
 	MRISsaveVertexPositions(mris_out, ORIGINAL_VERTICES) ;
 	MRISrestoreVertexPositions(mris_out, TMP_VERTICES) ;
 #endif	
@@ -167,13 +173,14 @@ main(int argc, char *argv[])
 		mris_out = ReadIcoByOrder(LEVEL, 100);
 		for (i = 0; i<mris_out->nvertices; i++)
 			mris_out->vertices[i].nsize=1;
-		mrisp = MRISPalloc(1, 3); 
+		//mrisp = MRISPalloc(1, 3); 
 #if 1
-		MRIScoordsToParameterization(mris_in, mrisp, 1) ;
+		//MRIScoordsToParameterization(mris_in, mrisp, 1) ;
 		//MRISPblur(mrisp, mrisp, 0.5, 0);
 		//MRISPblur(mrisp, mrisp, 0.5, 1);
 		//MRISPblur(mrisp, mrisp, 0.5, 2);
-		MRIScoordsFromParameterization(mrisp, mris_out) ;
+		//MRIScoordsFromParameterization(mrisp, mris_out) ;
+		sample_origposition(mris_in, mris_out) ;
 #else
 		MRISreadOriginalProperties(mris_out, cfname) ;
 #endif
@@ -275,7 +282,7 @@ main(int argc, char *argv[])
 	MatrixFree(&m_Z) ;
 	MatrixFree(&m_V) ;
 	MatrixFree(&m_c) ;
-	MRISPfree(&mrisp) ; 
+	//MRISPfree(&mrisp) ; 
 	MRISfree(&mris_in) ;
 	MRISfree(&mris_out);
 	msec = TimerStop(&then) ; 
@@ -401,7 +408,7 @@ ComplexMatrixTranspose(MATRIX *mIn, MATRIX *mOut)
 }
 
 
-MRI_SURFACE *
+static MRI_SURFACE *
 center_brain(MRI_SURFACE *mris_src, MRI_SURFACE *mris_dst)
 {
   int         fno, vno ;
@@ -413,7 +420,7 @@ center_brain(MRI_SURFACE *mris_src, MRI_SURFACE *mris_dst)
     mris_dst = MRISclone(mris_src) ;
 
   x0 = y0 = z0 = 0 ;   /* silly compiler warning */
-
+	MRISupdateSurface(mris_dst);
   for (fno = 0 ; fno < mris_src->nfaces ; fno++)
   {
     face = &mris_dst->faces[fno] ;
@@ -430,6 +437,7 @@ center_brain(MRI_SURFACE *mris_src, MRI_SURFACE *mris_dst)
     z += mris_dst->vertices[face->v[2]].z;
 		x /= face->area; y/= face->area; z/= face->area;
 		x0 += x; y0 += y; z0 += z;
+		if (face->area == 0) fprintf(stdout, "%d %f\n", fno, face->area);
   }
   x0 /= mris_dst->total_area ;  y0 /= mris_dst->total_area  ; z0 /= mris_dst->total_area ;
  
@@ -445,6 +453,198 @@ center_brain(MRI_SURFACE *mris_src, MRI_SURFACE *mris_dst)
   return(mris_dst) ;
 }
 
+static MRI_SURFACE *
+sample_origposition(MRI_SURFACE *mris_src, MRI_SURFACE *mris_dst)
+{
+	int index, vno, fno, fnum;
+	VERTEX *vertex;
+	double nearest, dist, x1, y1, z1, x2, y2, z2, r, s, t;
+  ANNpointArray pa = annAllocPts(mris_src->nvertices, 3);
+
+  for(index = 0; index < mris_src->nvertices; index++){
+    pa[index][0] = mris_src->vertices[index].x;
+    pa[index][1] = mris_src->vertices[index].y;
+    pa[index][2] = mris_src->vertices[index].z;
+  }
+
+  ANNkd_tree *annkdTree = new ANNkd_tree(pa, mris_src->nvertices, 3);
+  ANNidxArray annIndex = new ANNidx[1];
+  ANNdistArray annDist = new ANNdist[1];
+  //  ANNpoint query_pt = annAllocPt(3);
+  ANNpointArray QueryPt;
+
+  //if(mris_dst == NULL)
+	// mris_dst = MRIScopy(mris_src, NULL);
+  
+  QueryPt = annAllocPts(1,3);
+
+  for(index = 0; index < mris_dst->nvertices; index++){
+    if(mris_dst->vertices[index].border == 1) continue;
+
+    QueryPt[0][0] = mris_dst->vertices[index].x;
+    QueryPt[0][1] = mris_dst->vertices[index].y;
+    QueryPt[0][2] = mris_dst->vertices[index].z;
+
+    annkdTree->annkSearch(	// search
+			  QueryPt[0],	     	// query point
+			  1,			// number of near neighbors
+			  annIndex,		// nearest neighbors (returned)
+			  annDist,		// distance (returned)
+			  0);			// error bound
+  
+		vertex = &mris_src->vertices[annIndex]; nearest = 100000;
+		for (i=0; i<vertex->num; i++)
+		{
+			fno = vertex->f[i];
+			dist = v_to_f_distance(mris_dst->vertices[index], mris_src, fno, 0);
+			if (dist<nearest) {
+				nearest = dist; fnum = fno;}
+		}
+
+		x1 = mris_src->vertices[mris_src->faces[fnum].v[1]].x - mris_dst->vertices[index].x;
+		y1 = mris_src->vertices[mris_src->faces[fnum].v[1]].y - mris_dst->vertices[index].y;
+		z1 = mris_src->vertices[mris_src->faces[fnum].v[1]].z - mris_dst->vertices[index].z;
+		x2 = mris_src->vertices[mris_src->faces[fnum].v[2]].x - mris_dst->vertices[index].x;
+		y2 = mris_src->vertices[mris_src->faces[fnum].v[2]].y - mris_dst->vertices[index].y;
+		z2 = mris_src->vertices[mris_src->faces[fnum].v[2]].z - mris_dst->vertices[index].z;
+		r = 0.5*fabs(x1*x2+y1*y2+z1*z2);
+
+		x1 = mris_src->vertices[mris_src->faces[fnum].v[0]].x - mris_dst->vertices[index].x;
+		y1 = mris_src->vertices[mris_src->faces[fnum].v[0]].y - mris_dst->vertices[index].y;
+		z1 = mris_src->vertices[mris_src->faces[fnum].v[0]].z - mris_dst->vertices[index].z;
+		x2 = mris_src->vertices[mris_src->faces[fnum].v[2]].x - mris_dst->vertices[index].x;
+		y2 = mris_src->vertices[mris_src->faces[fnum].v[2]].y - mris_dst->vertices[index].y;
+		z2 = mris_src->vertices[mris_src->faces[fnum].v[2]].z - mris_dst->vertices[index].z;
+		s = 0.5*fabs(x1*x2+y1*y2+z1*z2);
+
+		x1 = mris_src->vertices[mris_src->faces[fnum].v[1]].x - mris_dst->vertices[index].x;
+		y1 = mris_src->vertices[mris_src->faces[fnum].v[1]].y - mris_dst->vertices[index].y;
+		z1 = mris_src->vertices[mris_src->faces[fnum].v[1]].z - mris_dst->vertices[index].z;
+		x2 = mris_src->vertices[mris_src->faces[fnum].v[0]].x - mris_dst->vertices[index].x;
+		y2 = mris_src->vertices[mris_src->faces[fnum].v[0]].y - mris_dst->vertices[index].y;
+		z2 = mris_src->vertices[mris_src->faces[fnum].v[0]].z - mris_dst->vertices[index].z;
+		t = 0.5*fabs(x1*x2+y1*y2+z1*z2);
+		r = r/(r+s+t); s = s/(r+s+t); t = t/(r+s+t);
+
+		mris_dst->vertices[index].origx = r*mris_src->vertices[mris_src->faces[fnum].v[0]].origx + s*mris_src->vertices[mris_src->faces[fnum].v[1]].origx + t*mris_src->vertices[mris_src->faces[fnum].v[2]].origx;
+		mris_dst->vertices[index].origy = r*mris_src->vertices[mris_src->faces[fnum].v[0]].origy + s*mris_src->vertices[mris_src->faces[fnum].v[1]].origy + t*mris_src->vertices[mris_src->faces[fnum].v[2]].origy;
+		mris_dst->vertices[index].origz = r*mris_src->vertices[mris_src->faces[fnum].v[0]].origz + s*mris_src->vertices[mris_src->faces[fnum].v[1]].origz + t*mris_src->vertices[mris_src->faces[fnum].v[2]].origz;
+		if(index == 69894)       
+			printf("src index %d dst index %d face %d r %f s %f t %f\n", index, annIndex[0], fnum, r, s, t);
+	}
+ return(mris_dst) ;
+}
+
+
+static double 
+v_to_f_distance(VERTEX *P0, MRI_SURFACE *mri_surf, int face_number, int debug)
+{
+  double a, b, c, d, e, f, det, s, t, invDet;
+  double numer, denom, tmp0, tmp1;
+  VERTEX *V1, *V2, *V3;
+  FACE *face;
+  
+  VERTEX E0, E1, D;
+  
+  face = &mri_surf->faces[face_number];
+  V1 = &mri_surf->vertices[face->v[0]];
+  V2 = &mri_surf->vertices[face->v[1]];
+  V3 = &mri_surf->vertices[face->v[2]];
+
+  E0.x = V2->x - V1->x; E0.y = V2->y - V1->y; E0.z = V2->z - V1->z; 
+  E1.x = V3->x - V1->x; E1.y = V3->y - V1->y; E1.z = V3->z - V1->z;
+  D.x = V1->x - P0->x;  D.y = V1->y - P0->y; D.z = V1->z - P0->z;
+  
+  a = E0.x *E0.x + E0.y * E0.y + E0.z *E0.z;
+  b = E0.x *E1.x + E0.y * E1.y + E0.z *E1.z;
+  c = E1.x *E1.x + E1.y * E1.y + E1.z *E1.z;
+  d = E0.x *D.x + E0.y * D.y + E0.z *D.z;
+  e = E1.x *D.x + E1.y * D.y + E1.z *D.z;
+  f = D.x *D.x + D.y * D.y + D.z *D.z;  
+  
+  det = a*c - b*b; s = b*e - c*d; t = b*d - a*e;
+
+  if(debug) printf("det = %g\n", det);
+  if(s + t <= det){
+    if(s < 0){
+      if(t<0){
+	/* Region 4 */
+	tmp0 = b + d; tmp1 = c + e;
+	if(tmp1 > tmp0){
+	  numer = tmp1 - tmp0;
+	  denom = a - b - b +c;
+	  s = (numer >= denom ? 1 : numer/denom);
+	  t = 1-s;
+
+	}else {
+	  s = 0;
+	  /* t = (e >= 0 ? 0 : (-e >= c ? 0 > = c + e = tmp1) */
+	  t = (tmp1 <= 0 ? 1 : (e >= 0 ? 0 : -e/c));
+	}
+	if(debug) printf("region 4, s =%g, t =%g\n", s, t);	
+      }else{
+	/* Region 3 */
+	s = 0;
+	t = ( e >= 0 ? 0 : (-e >= c ? 1 : (-e/c)));
+	if(debug) printf("region 3, s =%g, t =%g\n", s, t);
+      }	
+    }
+    else if (t < 0){
+      /* Region 5 */
+      t = 0;
+      s = (d >= 0 ? 0 :(-d >= a ? 1 : (-d/a)));
+      if(debug) printf("region 5, s =%g, t =%g\n", s, t);
+    }else{
+      /* Region 0 */
+      invDet = 1/det;
+      s *= invDet; t *= invDet;	
+      if(debug) printf("region 0, s =%g, t =%g\n", s, t);
+    }
+    
+  }else{
+    if( s < 0 ){
+      /* Region 2 */
+      if( d < 0){ /* Minimum on edge t = 0 */
+	s = (-d >= a ? 1 : -d/a); t = 0;
+      }else if (e < 0){ /* Minimum on edge s = 0 */
+	t = (-e >= c ? 1 : -e/c); s = 0;
+      }else { s = 0; t = 0;}
+      if(debug) printf("region 2, s =%g, t =%g\n", s, t);
+    }else if( t < 0){
+      /* Region 6 */
+      tmp0 = b + e; tmp1 = a + d;
+      if(tmp1 > tmp0){ /* Minimum at line s + t = 1 */
+	numer = tmp1 - tmp0; /* Positive */
+	denom = a + c - b -b;
+	t = (numer >= denom ? 1 : (numer/denom));
+	s = 1 - t;
+      }else{ /* Minimum at line t = 0 */
+	s = (tmp1 <= 0 ? 1 : (d >= 0 ? 0 : -d/a));
+	t = 0;
+      }
+      if(debug) printf("region 6, s =%g, t =%g\n", s, t);
+    }else{
+      /* Region 1 */
+      numer = c + e - b - d;
+      if(numer <= 0){ s = 0;}
+      else{
+	denom = a + c - b - b; /* denom is positive */
+	s = (numer >= denom ? 1 : (numer/denom));
+      }
+      t = 1-s;
+      if(debug) printf("region 1, s =%g, t =%g\n", s, t);
+    }
+  }
+  
+  if( s < 0  || s > 1 || t < 0 || t > 1){
+    printf("Error in computing s and t \n");
+  }
+  
+  
+  /* return (sqrt(a*s*s + 2*b*s*t + c*t*t + 2*d*s + 2*e*t + f)); */
+  /* The square-root will be taken later to save time */
+  return (a*s*s + 2*b*s*t + c*t*t + 2*d*s + 2*e*t + f); 
+} 
 
 /*----------------------------------------------------------------------
 	
