@@ -1,7 +1,7 @@
 /*-------------------------------------------------------------------
   Name: mri2.c
   Author: Douglas N. Greve
-  $Id: mri2.c,v 1.5 2002/07/18 19:18:14 greve Exp $
+  $Id: mri2.c,v 1.6 2004/08/11 23:23:28 greve Exp $
   Purpose: more routines for loading, saving, and operating on MRI 
   structures.
   -------------------------------------------------------------------*/
@@ -566,6 +566,92 @@ MRI *mri_reshape(MRI *vol, int ncols, int nrows, int nslices, int nframes)
   }
 
   return(outvol);
+}
+
+/*---------------------------------------------------------------
+  MRIvol2Vol() - samples the values of one volume into that of
+  another. Handles multiple frames. Can do nearest-neighbor,
+  trilinear, and sinc interpolation (sinc may be flaky).
+  Use this function instead of vol2vol_linear() in resample.c.
+
+  Vt2s is the 4x4 matrix which converts CRS in the target to
+  CRS in the source (ie, it is a vox2vox).
+
+  InterpCode is either: SAMPLE_NEAREST, SAMPLE_TRILINEAR, or
+  SAMPLE_SINC.
+
+  param is a generic parameter. For sinc, param is the hw parameter,
+  otherwise, it currently has no meaning.
+  ---------------------------------------------------------------*/
+int MRIvol2Vol(MRI *src, MRI *targ, MATRIX *Vt2s, 
+	       int InterpCode, float param)
+{
+  int   ct,  rt,  st,  f;
+  int   ics, irs, iss;
+  float fcs, frs, fss;
+  float *valvect;
+  int sinchw;
+  Real rval;
+
+  if(src->nframes != targ->nframes){
+    printf("ERROR: MRIvol2vol: source and target have different number "
+	   "of frames\n");
+    return(1);
+  }
+
+  sinchw = nint(param);
+  valvect = (float *) calloc(sizeof(float),src->nframes);
+
+  for(ct=0; ct < targ->width; ct++){
+    for(rt=0; rt < targ->height; rt++){
+      for(st=0; st < targ->depth; st++){
+	
+	/* Column in source corresponding to CRS in Target */
+	fcs = Vt2s->rptr[1][1] * ct + Vt2s->rptr[1][2] * rt +
+	      Vt2s->rptr[1][3] * st + Vt2s->rptr[1][4] ;
+	ics = nint(fcs);
+	if(ics < 0 || ics >= src->width) continue;
+
+	/* Row in source corresponding to CRS in Target */
+	frs = Vt2s->rptr[2][1] * ct + Vt2s->rptr[2][2] * rt +
+	      Vt2s->rptr[2][3] * st + Vt2s->rptr[2][4] ;
+	irs = nint(frs);
+	if(irs < 0 || irs >= src->height) continue;
+
+	/* Slice in source corresponding to CRS in Target */
+	fss = Vt2s->rptr[3][1] * ct + Vt2s->rptr[3][2] * rt +
+	      Vt2s->rptr[3][3] * st + Vt2s->rptr[3][4] ;
+	iss = nint(fss);
+	if(iss < 0 || iss >= src->depth) continue;
+
+	/* Assign output volume values */
+	if(InterpCode == SAMPLE_TRILINEAR)
+	  MRIsampleSeqVolume(src, fcs, frs, fss, valvect, 
+			     0, src->nframes-1) ;
+	else{
+	  for(f=0; f < src->nframes ; f++){
+	    switch(InterpCode){
+	    case SAMPLE_NEAREST:
+	      valvect[f] = MRIgetVoxVal(src,ics,irs,iss,f);
+	      break ;
+	    case SAMPLE_SINC:      /* no multi-frame */
+	      MRIsincSampleVolume(src, fcs, frs, fss, sinchw, &rval) ;
+	      valvect[f] = rval;
+	      break ;
+	    }
+	  }
+	}
+
+	for(f=0; f < src->nframes; f++)
+	  MRIsetVoxVal(targ,ct,rt,st,f,valvect[f]);
+
+      } /* target col */
+    } /* target row */
+  } /* target slice */
+
+  free(valvect);
+
+  return(0);
 }
 
 

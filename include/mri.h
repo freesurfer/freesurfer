@@ -627,6 +627,9 @@ int   MRIneighborsOff(MRI *mri, int x0, int y0, int z0, int min_val) ;
 int   MRIneighborsOn3x3(MRI *mri, int x0, int y0, int z0, int min_val) ;
 int   MRIneighborsOff3x3(MRI *mri, int x0, int y0, int z0, int min_val) ;
 
+int MRIvol2Vol(MRI *src, MRI *targ, MATRIX *Vt2s, 
+	       int InterpCode, float param);
+
 MRI *MRIresampleFill(MRI *src, MRI *template_vol, int resample_type, float fill_val) ;
 MRI   *MRIreplaceValues(MRI *mri_src, MRI *mri_dst, float in_val, float out_val) ;
 MRI   *MRIreplaceValuesUchar(MRI *mri_src, MRI *mri_dst, BUFTYPE in_val, BUFTYPE out_val) ;
