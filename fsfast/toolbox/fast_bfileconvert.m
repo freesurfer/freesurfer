@@ -2,9 +2,9 @@ function r = fast_bfileconvert(varargin)
 % r = fast_bfileconvert(varargin)
 % Converts a bfile into another bfile. Eg, bfloat into bshort,
 % Little endian into big endian, etc.
-% '$Id: fast_bfileconvert.m,v 1.1 2003/03/04 20:47:37 greve Exp $'
+% '$Id: fast_bfileconvert.m,v 1.2 2003/10/02 19:15:10 greve Exp $'
 
-version = '$Id: fast_bfileconvert.m,v 1.1 2003/03/04 20:47:37 greve Exp $';
+version = '$Id: fast_bfileconvert.m,v 1.2 2003/10/02 19:15:10 greve Exp $';
 fprintf(1,'%s\n',version);
 r = 1;
 
@@ -25,17 +25,22 @@ if(s.verbose)
 end
 
 % ---------- Go through each slice -------------- %
+nthslice = 1;
 for slice = s.firstslice:s.lastslice
   fprintf(1,'%2d ',slice);
   if(rem(slice+1,10)==0) fprintf(1,'\n'); end
 
   %% Load the data %%
-  fname = sprintf('%s_%03d.%s',s.invol,slice,s.involext);
-  yi = fmri_ldbfile(fname);
+  %fname = sprintf('%s_%03d.%s',s.invol,slice,s.involext);
+  %yi = fmri_ldbfile(fname);
+  [yi mristruct] = fast_ldbslice(s.invol,slice);
   yi = yi([s.firstrow:s.lastrow]+1,...
           [s.firstcol:s.lastcol]+1,...
           [s.firstplane:s.lastplane]+1);
-
+  if(~isempty(mristruct))
+    mristruct.voldim(3) = s.lastslice-s.firstslice+1;
+  end
+  
   if(s.ln2log10) 
     p = sign(yi) .* exp(-abs(yi));
     iz = find(p==0); % do not take log of zero
@@ -46,9 +51,11 @@ for slice = s.firstslice:s.lastslice
 
 
   %% Save the data %%
-  outfname = sprintf('%s_%03d.%s',s.outvol,slice,s.outvolext);
-  fmri_svbfile(yi,outfname,s.outvolendian);
+  %outfname = sprintf('%s_%03d.%s',s.outvol,nthslice-1,s.outvolext);
+  %fmri_svbfile(yi,outfname,s.outvolendian);
+  fast_svbslice(yi,s.outvol,nthslice-1,s.outvolext,mristruct);
 
+  nthslice = nthslice + 1;
 end
 
 r = 0;
