@@ -12,13 +12,13 @@
 #include "const.h"
 #include "proto.h"
 #include "mrisurf.h"
+#include "label.h"
 #include "macros.h"
 #include "fio.h"
 #include "mrishash.h"
 #include "sig.h"
-#include "label.h"
 
-static char vcid[] = "$Id: mris_twoclass.c,v 1.4 2001/09/28 15:56:58 fischl Exp $";
+static char vcid[] = "$Id: mris_twoclass.c,v 1.5 2002/06/25 20:33:05 fischl Exp $";
 
 
 /*-------------------------------- CONSTANTS -----------------------------*/
@@ -26,15 +26,18 @@ static char vcid[] = "$Id: mris_twoclass.c,v 1.4 2001/09/28 15:56:58 fischl Exp 
 #define STAT_T           0
 #define STAT_F           1
 #define STAT_MEAN        2
+#define STAT_PCT         3
+#define STAT_PSEUDO_T    4
 
 /*-------------------------------- PROTOTYPES ----------------------------*/
 
-
+static float sigma = 0.0f ;
 static int stat_type = STAT_T ;
 static int true_class = 1 ;    
 static int condition_0 = -1 ;
 static int condition_1 = -1 ;
 static int wfile_flag = 0 ;
+static double conf = 0.0 ;
 
 int main(int argc, char *argv[]) ;
 
@@ -47,6 +50,7 @@ static void print_version(void) ;
 static int write_vertex_data(char *fname, int index, float **v, int num) ;
 
 static int   cvector_scalar_mul(float *v, float m, int num) ;
+static float find_t_for_confidence_interval(float conf, int dof) ;
 static double   cvector_compute_pvalues(float *c1_mean, float *c1_var, 
                                         float *c2_mean, float *c2_var, 
                                         int num_class1, int num_class2, 
@@ -59,11 +63,19 @@ static int   cvector_normalize(float *v, float norm, int num) ;
 static int   cvector_accumulate(float *v, float *vtotal, int num) ;
 static int   cvector_accumulate_square(float *v, float *vtotal, int num) ;
 static int   cvector_compute_variance(float *var,float *mean,int norm,int num);
+#if 0
+static int   cvector_combine_variances(float *c1_var, float *c2_var, int num_class1, 
+                                       int num_class2, int nvertices, float *c_var) ;
+#endif
+static int   cvector_combine_variances_into_stderrs(float *c1_var, float *c2_var, int num_class1, 
+                                                    int num_class2, int nvertices, float *c_var) ;
 static double   cvector_compute_t_test(float *c1_mean, float *c1_var, 
                                        float *c2_mean, float *c2_var, 
                                        int num_class1, int num_class2, 
                                        float *pvals, int num, int *pvno) ;
 static double   cvector_compute_mean_diff(float *c1_mean, float *c2_mean, 
+                                          float *pvals, int num, int *pvno) ;
+static double   cvector_compute_pct_diff(float *c1_mean, float *c2_mean, 
                                           float *pvals, int num, int *pvno) ;
 #if 0
 static int  segment_and_write_labels(char *subject, char *fname, 
@@ -106,6 +118,7 @@ static int   cvector_mark_low_prob_vertices(float *pvals, float pthresh,
 static float *cvector_alloc(int num) ;
 static int   cvector_clear(float *v, int num) ;
 static int   cvector_set(float *v, float val, int num) ;
+static int   cvector_add(float *v1, float *v2, float *vdst, int num) ;
 static int   cvector_add_variances(float *c1_var, float *c2_var, 
                                    int num_class1, int num_class2,
                                    float *total_var, int nvertices) ;
@@ -181,7 +194,7 @@ main(int argc, char *argv[])
   MRI_SURFACE  *mris ;
   char         **av, *curv_name, *surf_name, *hemi, fname[STRLEN],
                *cp, *subject_name, subjects_dir[STRLEN], *out_prefix,
-               **c1_subjects, **c2_subjects ;
+               **c1_subjects, **c2_subjects, *stat_suffix ;
   int          ac, nargs, n, num_class1, num_class2, i, nvertices,
                avgs, max_snr_avgs, nlabels = 0, num_found, total_found,
                num_above_thresh ;
@@ -248,6 +261,15 @@ main(int argc, char *argv[])
   curv_name = argv[3] ;
   out_prefix = argv[4] ;
 
+  switch (stat_type)
+  {
+  default:
+  case STAT_T: stat_suffix = "t" ; break ;
+  case STAT_F: stat_suffix = "F" ; break ;
+  case STAT_MEAN: stat_suffix = "m" ; break ;
+  case STAT_PCT: stat_suffix = "p" ; break ;
+  case STAT_PSEUDO_T: stat_suffix = "pt" ; break ;
+  }
 #define ARGV_OFFSET 5
 
   /* first determine the number of subjects in each class */
@@ -715,17 +737,43 @@ main(int argc, char *argv[])
   if (find_optimal_scale)
   {
     MRISimportValVector(mris, vbest_avgs) ;
-    sprintf(fname, "%s_optimal_scale_%s-%s.w", out_prefix, 
-            stat_type == STAT_T ? "t" : 
-            stat_type == STAT_MEAN ? "m" :"f",
-            hemi) ; 
+    sprintf(fname, "%s_optimal_scale_%s-%s.w", out_prefix, stat_suffix, hemi) ;
     MRISwriteValues(mris, fname) ;
   }
   MRISimportValVector(mris, pvals) ;  /* was vbest_pvalues */
-  sprintf(fname, "%s_%s-%s.w", out_prefix, 
-          stat_type == STAT_T ? "t" : 
-          stat_type == STAT_MEAN ? "m" :"f", hemi) ; 
+  sprintf(fname, "%s_%s-%s.w", out_prefix, stat_suffix, hemi) ;
   MRISwriteValues(mris, fname) ;
+  if (conf > 0)
+  {
+    float  *c_stderr, *c_mean_diff, *c_conf_interval, tconf ;
+
+    c_conf_interval = cvector_alloc(nvertices) ;
+    c_stderr = cvector_alloc(nvertices) ;
+    c_mean_diff = cvector_alloc(nvertices) ;
+
+    cvector_compute_mean_diff(c1_best_mean, c2_best_mean, c_mean_diff, nvertices,NULL) ;
+    cvector_combine_variances_into_stderrs(c1_best_var, c2_best_var, num_class1,
+                                           num_class2,nvertices,c_stderr);
+    tconf = find_t_for_confidence_interval(conf/2, num_class1+num_class2-2) ;
+    printf("using t thresh of %2.2f\n", tconf) ;
+
+    /* add sigma stderrs to mean diff */
+    cvector_scalar_mul(c_stderr, tconf, nvertices) ;
+    cvector_add(c_mean_diff, c_stderr, c_conf_interval, nvertices) ;
+    MRISimportValVector(mris, c_conf_interval) ; 
+    sprintf(fname, "%s_%s_p%2.1fsigma-%s.w", out_prefix, stat_suffix, sigma, hemi) ;
+    printf("writing mean diff + %2.1f sigma to %s...\n", sigma, fname) ;
+    MRISwriteValues(mris, fname) ;
+
+    /* subtract sigma stderrs to mean diff */
+    cvector_scalar_mul(c_stderr, -1, nvertices) ;
+    cvector_add(c_mean_diff, c_stderr, c_conf_interval, nvertices) ;
+    MRISimportValVector(mris, c_conf_interval) ;  /* was vbest_pvalues */
+    sprintf(fname, "%s_%s_m%2.1fsigma-%s.w", out_prefix, stat_suffix, sigma, hemi) ;
+    printf("writing mean diff - %2.1f sigma to %s...\n", sigma, fname) ;
+    MRISwriteValues(mris, fname) ;
+  }
+
   if (labels_fp)
   {
     char   line[STRLEN] ;
@@ -1182,6 +1230,21 @@ get_option(int argc, char *argv[])
     fprintf(stderr, "writing test.dat for subject %s\n", test_subject) ;
     nargs = 1 ;
   }
+  else if (!stricmp(option, "sigma"))
+  {
+    sigma = atof(argv[2]) ;
+    fprintf(stderr, "writing out confidence intervals of +-%2.1f*stderr\n",sigma) ;
+    nargs = 1 ;
+  }
+  else if (!stricmp(option, "conf"))
+  {
+    conf = atof(argv[2]) ;
+    if (conf > 1)
+      conf /= 100 ;   /* assume user used %% */
+    fprintf(stderr, "writing out confidence intervals of %%%2.1f confidence interval\n",100*conf) ;
+    conf = 1-conf ;
+    nargs = 1 ;
+  }
   else if (!stricmp(option, "labels"))
   {
     labels_fp = fopen(argv[2], "r") ;
@@ -1221,6 +1284,11 @@ get_option(int argc, char *argv[])
   {
     stat_type = STAT_MEAN ;
     fprintf(stderr, "computing mean difference between groups\n") ;
+  }
+  else if (!stricmp(option, "pct"))
+  {
+    stat_type = STAT_PCT ;
+    fprintf(stderr, "computing pct difference between groups\n") ;
   }
   else if (!stricmp(option, "wt") || !stricmp(option, "write"))
   {
@@ -1948,6 +2016,8 @@ cvector_compute_pvalues(float *c1_mean, float *c1_var, float *c2_mean,
     break ;
   case STAT_MEAN:
     return(cvector_compute_mean_diff(c1_mean, c2_mean, pvals, num,pvno)) ;
+  case STAT_PCT:
+    return(cvector_compute_pct_diff(c1_mean, c2_mean, pvals, num,pvno)) ;
   }
   return(NO_ERROR) ;
 }
@@ -1972,5 +2042,86 @@ cvector_set(float *v, float val, int num)
     v[i] = val ;
 
   return(NO_ERROR) ;
+}
+
+static double
+cvector_compute_pct_diff(float *c1_mean, float *c2_mean, float *vpct_diff, int num, int *pvno)
+{
+  int    i ;
+  double max_diff, denom ;
+
+  max_diff = 0 ;
+  for (i = 0 ; i < num ; i++)
+  {
+    if (i == Gdiag_no)
+      DiagBreak() ;
+    denom = (fabs(c1_mean[i]) + fabs(c2_mean[i])) / 2 ;
+    if (FZERO(denom))
+      denom = 1 ;
+    vpct_diff[i] = (c1_mean[i] - c2_mean[i]) / denom  ;
+    if (fabs(vpct_diff[i]) > fabs(max_diff))
+    {
+      if (pvno)
+        *pvno = i ;
+      max_diff = vpct_diff[i] ;
+    }
+  }
+  return(max_diff) ;
+}
+
+#if 0
+static int
+cvector_combine_variances(float *c1_var, float *c2_var, int num_class1, 
+                          int num_class2, int nvertices, float *c_var)
+{
+  int   i ;
+
+  for (i = 0 ; i < nvertices ; i++)
+  {
+    c_var[i] = (c1_var[i] * num_class1 + c2_var[i]*num_class2) / (num_class1 + num_class2) ;
+  }
+  return(NO_ERROR) ;
+}
+#endif
+
+static int
+cvector_combine_variances_into_stderrs(float *c1_var, float *c2_var, int num_class1, 
+                                       int num_class2, int nvertices, float *c_stderr)
+{
+  int   i ;
+
+  for (i = 0 ; i < nvertices ; i++)
+  {
+    c_stderr[i] = sqrt((c1_var[i] * (num_class1-1) + c2_var[i]*(num_class2-1)) / 
+      (num_class1 + num_class2 - 2)) ;
+    c_stderr[i] = c_stderr[i] * sqrt(1.0f/(float)num_class1 + 1.0f / (float)num_class2) ;
+  }
+  return(NO_ERROR) ;
+}
+
+static int
+cvector_add(float *v1, float *v2, float *vdst, int num)
+{
+  int   i ;
+  
+  for (i = 0 ; i < num ; i++)
+  {
+    vdst[i] = v1[1] + v2[i] ;
+  }
+  return(NO_ERROR) ;
+}
+
+static float
+find_t_for_confidence_interval(float conf, int dof)
+{
+  double t, p ;
+
+  for (t = 0.0 ; t += 0.01 ; t++)
+  {
+    p = sigt(t, dof) ;
+    if (p < conf)
+      return(p) ;
+  }
+  return(0.0) ;
 }
 
