@@ -96,7 +96,7 @@ main(int argc, char *argv[])
       else if (!stricmp(argv[i]+1, "tr"))
         tr = atof(argv[i+1]) ;
       else if (!stricmp(argv[i]+1, "fa"))
-        fa = atof(argv[i+1]) ;
+        fa = RADIANS(atof(argv[i+1])) ;
       else
         ErrorExit(ERROR_BADPARM, "%s: unsupported MR parameter %s",
                   Progname, argv[i]+1) ;
