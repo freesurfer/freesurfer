@@ -6,8 +6,8 @@
 // 
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2004/12/01 21:38:35 $
-// Revision       : $Revision: 1.45 $
+// Revision Date  : $Date: 2005/03/16 15:00:42 $
+// Revision       : $Revision: 1.46 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -139,7 +139,7 @@ main(int argc, char *argv[])
   float        old_log_p, log_p ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_em_register.c,v 1.45 2004/12/01 21:38:35 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_em_register.c,v 1.46 2005/03/16 15:00:42 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -1084,21 +1084,17 @@ find_optimal_transform(MRI *mri, GCA *gca, GCA_SAMPLE *gcas, int nsamples,
     /* search a finer nbhd (if do-while continues) */
     if ((max_log_p < old_max-tol*old_max)) /* couldn't take a step */
     {
-      if (good_step)
-      {
-				scale *= 0.25 ;
-				if (scale < min_search_scale)
-					break ;
-				mean = (max_scale + min_scale)/2 ;
-				delta = (max_scale - min_scale)/2 ;
-				max_scale = 1.0 + delta*scale ;
-				min_scale = 1.0 - delta*scale ;
-				good_step = 0 ;
-				printf("reducing scale to %2.4f\n", scale) ;
-				nscales++ ;
-      }
-      else
-				done = 1 ;
+			scale *= 0.25 ;
+			if (scale < min_search_scale)
+				break ;
+			mean = (max_scale + min_scale)/2 ;
+			delta = (max_scale - min_scale)/2 ;
+			max_scale = 1.0 + delta*scale ;
+			min_scale = 1.0 - delta*scale ;
+			good_step = 0 ;
+			printf("reducing scale to %2.4f\n", scale) ;
+			nscales++ ;
+      done = (good_step == 0) ;
     }
     else
       good_step = 1 ; /* took at least one good step at this scale */
