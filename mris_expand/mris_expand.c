@@ -58,7 +58,7 @@ main(int argc, char *argv[])
   mris = MRISread(in_fname) ;
   if (!mris)
     ErrorExit(ERROR_NOFILE, "%s: MRISread(%s) failed", Progname, in_fname);
-  MRISexpandSurface(mris, mm_out) ;
+  MRISexpandSurface(mris, mm_out, NULL) ;
   printf("writing expanded surface to %s...\n", out_fname) ;
   MRISwrite(mris, out_fname) ;
   msec = TimerStop(&start) ;
