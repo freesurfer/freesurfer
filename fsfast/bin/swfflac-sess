@@ -2,7 +2,7 @@
 # swfflac-sess
 #
 
-set VERSION = '$Id: swfflac-sess,v 1.2 2004/12/08 23:35:52 greve Exp $';
+set VERSION = '$Id: swfflac-sess,v 1.3 2004/12/10 00:30:39 greve Exp $';
 
 set cmdargs = ($argv);
 
@@ -20,6 +20,7 @@ set rcslist = ();
 set contrast = ();
 set targflacname = ();
 set targflacfile = ();
+set nswf = 0;
 
 if($#argv == 0)  goto usage_exit;
 set n = `echo $argv | grep -e -help | wc -l` 
@@ -69,6 +70,7 @@ foreach sess ($SessList)
 tee -a $MLF > /dev/null <<EOF
 
 flacfile = '$flacfile';
+nswf     = $nswf;
 sesspath = '$sess';
 outfspec = '$outfspec';
 alpha = $alpha;
@@ -85,7 +87,11 @@ fprintf('-----------------------------------------------------\n');
 fprintf('Session: %s \n',sesspath);
 fprintf('%g ',clock);fprintf('\n');
 
-fast_swfflac_sess;
+if(~nswf)
+  fast_swfflac_sess;
+else
+  fast_nswfflac_sess;
+end
 tmp = ls(okfile);
 if(isempty(tmp)) 
   fprintf('ERROR: %s\n',sesspath);
@@ -182,6 +188,10 @@ while( $#argv != 0 )
       set synthtarg = 1;
       breaksw
 
+    case "-nswf":
+      set nswf = 1;
+      breaksw
+
     case "-monly":
       if ( $#argv == 0) goto arg1err;
       set MLF = $argv[1]; shift;
@@ -267,6 +277,7 @@ usage_exit:
   echo "   -targflac flacfile : defaullt is input flac"
   echo "   -rcs r c s <-rcs r c s> : create outfspec-wrcs-{in,out}"
   echo "   -synth : synthesize the target with wgn"
+  echo "   -nswf  : estimate noise components with SWF and remove"
   echo "   -debug"
   echo "   -umask umask    : set unix file permission mask"
   echo "   -version        : print version and exit"
