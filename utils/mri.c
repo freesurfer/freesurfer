@@ -84,7 +84,7 @@ MRIscalarMul(MRI *mri_src, MRI *mri_dst, float scalar)
 {
   int     width, height, depth, x, y, z, frame ;
   BUFTYPE *psrc, *pdst ;
-  float   *pfsrc, *pfdst ;
+  float   *pfsrc, *pfdst, dval ;
 
   width = mri_src->width ;
   height = mri_src->height ;
@@ -104,7 +104,14 @@ MRIscalarMul(MRI *mri_src, MRI *mri_dst, float scalar)
           psrc = &MRIseq_vox(mri_src, 0, y, z, frame) ;
           pdst = &MRIseq_vox(mri_dst, 0, y, z, frame) ;
           for (x = 0 ; x < width ; x++)
-            *pdst++ = *psrc++ * scalar ;
+          {
+            dval = *psrc++ * scalar ;
+            if (dval < 0)
+              dval = 0 ;
+            if (dval > 255)
+              dval = 255 ;
+            *pdst++ = dval ;
+          }
           break ;
         case MRI_FLOAT:
           pfsrc = &MRIFseq_vox(mri_src, 0, y, z, frame) ;
