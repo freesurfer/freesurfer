@@ -29,6 +29,7 @@ static MORPH_PARMS  parms ;
 
 static void usage_exit(int code) ;
 
+static int sqr_images = 0 ;
 static double tx = 0.0 ;
 static double ty = 0.0 ;
 static double tz = 0.0 ;
@@ -42,18 +43,73 @@ static int sinc_flag = 1;
 static int sinchalfwindow = 3;
 static float scale_factor = 0.0 ;
 
+int  MRIsqrtAndNormalize(MRI *mri, float num) ;
+MRI  *MRIsumSquare(MRI *mri1, MRI *mri2, MRI *mri_dst) ;
+
+int
+MRIsqrtAndNormalize(MRI *mri, float num)
+{
+	int   x, y, z ;
+	Real  val ;
+
+
+	for (x = 0 ; x < mri->width ; x++)
+	{
+		for (y = 0 ; y < mri->height ; y++)
+		{
+			for (z = 0 ; z < mri->depth ; z++)
+			{
+				val = MRIgetVoxVal(mri, x, y, z,0) ;
+				val = sqrt(val/num) ;
+				MRIsetVoxVal(mri, x, y, z, 0, val);
+			}
+		}
+	}
+
+	return(NO_ERROR) ;
+}
+MRI  *
+MRIsumSquare(MRI *mri1, MRI *mri2, MRI *mri_dst)
+{
+	int   x, y, z ;
+	Real  val1, val2, val_dst ;
+
+	if (!mri_dst)
+		mri_dst = MRIclone(mri1, NULL) ;
+
+	for (x = 0 ; x < mri1->width ; x++)
+	{
+		for (y = 0 ; y < mri1->height ; y++)
+		{
+			for (z = 0 ; z < mri1->depth ; z++)
+			{
+				val1 = MRIgetVoxVal(mri1, x, y, z,0) ;
+				if (mri2)
+					val2 = MRIgetVoxVal(mri2, x, y, z, 0) ;
+				else
+					val2 = 0 ;
+				val_dst = val1*val1 + val2 ;
+				MRIsetVoxVal(mri_dst, x, y, z, 0, val_dst);
+			}
+		}
+	}
+
+	return(mri_dst) ;
+}
+
+
 int
 main(int argc, char *argv[])
 {
-  char   **av, fname[100] ;
-  int    ac, nargs, i ;
+  char   **av, fname[STRLEN] ;
+  int    ac, nargs, i, num ;
   MRI    *mri_src, *mri_avg = NULL, *mri_tmp ;
   char   *in_fname, *out_fname ;
   int          msec, minutes, seconds ;
   struct timeb start ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_average.c,v 1.23 2003/09/15 14:32:11 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_average.c,v 1.24 2004/08/04 20:39:41 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -85,7 +141,7 @@ main(int argc, char *argv[])
   FileNameRemoveExtension(fname, fname) ;
   strcpy(parms.base_name, fname) ;
 
-  for (i = 1 ; i < argc-1 ; i++)
+  for (num = 0, i = 1 ; i < argc-1 ; i++)
   {
     in_fname = argv[i] ;
     fprintf(stderr, "reading %s...\n", in_fname) ;
@@ -192,9 +248,16 @@ main(int argc, char *argv[])
       mri_src = mri_tmp ;
     }
 
-    mri_avg = MRIaverage(mri_src, i-1, mri_avg) ;
+		num++ ;
+		if (sqr_images)
+			mri_avg = MRIsumSquare(mri_src, mri_avg, mri_avg) ;
+		else
+			mri_avg = MRIaverage(mri_src, i-1, mri_avg) ;
     MRIfree(&mri_src) ;
   }
+	if (sqr_images)
+		MRIsqrtAndNormalize(mri_avg, num) ;
+
   fprintf(stderr, "writing to %s...\n", out_fname) ;
   MRIwrite(mri_avg, out_fname) ;
   MRIfree(&mri_avg) ;
@@ -230,6 +293,11 @@ get_option(int argc, char *argv[])
     parms.tol = atof(argv[2]) ;
     nargs = 1 ;
     fprintf(stderr, "using tol = %2.3e\n", parms.tol) ;
+  }
+  else if (!stricmp(option, "sqr"))
+  {
+    sqr_images = 1 ;
+    fprintf(stderr, "making sqrt of sum of squares instead of average...\n") ;
   }
   else if (!stricmp(option, "conform"))
   {
