@@ -296,7 +296,8 @@ xvInitColors(XV_FRAME *xvf)
   int           i, shift ;
   unsigned long *pix_vals ;
 
-  shift = MAX_COLORS == 64 ? 10 : MAX_COLORS == 128 ? 9 : 8 ;
+  shift = MAX_COLORS == 32 ? 11 : MAX_COLORS == 64 ? 10 : 
+    MAX_COLORS == 128 ? 9 : 8 ;
 
   for (i = 0 ; i < MAX_COLORS ; i++)
   {
