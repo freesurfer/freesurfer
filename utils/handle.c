@@ -170,7 +170,7 @@ static void
 growHandleTable(void)
 {
   HandleInfo  *newTable ;
-  int     newMaxHandles ;
+  int     newMaxHandles = 0 ;
 
   if (!maxHandles) newMaxHandles = DEFAULT_MAX_HANDLES ;
   else if (maxHandles < MAX_HANDLES) newMaxHandles = maxHandles << 1 ;

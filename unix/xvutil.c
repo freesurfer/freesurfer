@@ -16,11 +16,14 @@
 #include <stdarg.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <ctype.h>
 
 #include "image.h"
 #include "utils.h"
 #include "macros.h"
 #include "xvutil.h"
+#include "proto.h"
+#include "hipsh.h"
 
 /*----------------------------------------------------------------------
                            MACROS AND CONSTANTS
@@ -252,7 +255,6 @@ XVprintf(XV_FRAME *xvf, int which, ...)
 #define BLUE_INDEX   254
 #define RED_INDEX    255
 
-static int           ncolors = 0 ;
 static Xv_singlecolor        xcolors[MAX_COLORS] ;
 
 static void
@@ -486,7 +488,6 @@ XVshowImage(XV_FRAME *xvf, int which, IMAGE *image, int frame)
 {
   float     scale, fmin, fmax ;
   DIMAGE    *dimage ;
-  IMAGE *dispImage ;
 
   dimage = xvGetDimage(which, 1) ;
   if (!dimage)
@@ -555,7 +556,7 @@ ImageWrite(dimage->dispImage, "i3.hipl") ;
 static void
 xv_dimage_repaint(Canvas canvas, Xv_Window window, Rectlist *repaint_area)
 {
-  int    row, col, which ;
+  int    row, col, which = -1 ;
   DIMAGE *dimage ;
 
   dimage = NULL ;
@@ -610,9 +611,9 @@ static void
 xv_dimage_event_handler(Xv_Window xv_window, Event *event)
 {
   int    x, y ;
-  float  val ;
+  float  val = 0.0f ;
   Window window ;
-  int    row, col, which ;
+  int    row, col, which = -1 ;
   DIMAGE *dimage ;
   char   *str ;
 
@@ -803,7 +804,6 @@ xvCreateXimage(XV_FRAME *xvf, IMAGE *image)
 static Panel_setting
 xvHipsCommand(Panel_item item, Event *event)
 {
-  int     row, col ;
   DIMAGE  *dimage ;
 
   strcpy(hips_cmd_str, (char *)xv_get(hips_cmd_panel_item, PANEL_VALUE)) ;
@@ -811,7 +811,7 @@ xvHipsCommand(Panel_item item, Event *event)
 
   dimage = xvGetDimage(hips_cmd_source, 0) ;
   if (!dimage)
-    return ;
+    return(0) ;
 #if 1
   ImageWrite(dimage->sourceImage, "out.hipl") ;
 #else
