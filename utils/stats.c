@@ -10,6 +10,7 @@
 #include "proto.h"
 #include "utils.h"
 #include "machine.h"
+#include "mrinorm.h"
 
 #define REG_ROWS      4
 #define REG_COLS      4
@@ -517,7 +518,7 @@ StatAccumulateSurfaceVolume(SV *sv_surf, SV *sv, MRI_SURFACE *mris)
   float  mean, surf_mean, std, surf_std, surf_dof, dof, xoff, yoff, zoff, 
          sxoff, syoff, szoff, xs, ys, zs ;
   VECTOR *v_struct, *v_func ;
-  MRI    *mri_avg, *mri_std ;
+  MRI    *mri_avg, *mri_std, *mri_ctrl ;
   VERTEX *vertex ;
 
   v_func = VectorAlloc(4, MATRIX_REAL) ;
@@ -540,6 +541,7 @@ StatAccumulateSurfaceVolume(SV *sv_surf, SV *sv, MRI_SURFACE *mris)
   syoff = (float)(sv->slice_height-1)/2.0f ;
   szoff = (float)(sv->nslices-1)/2.0f ;
 
+  mri_ctrl = MRIalloc(width, height, depth, MRI_UCHAR) ;
   mri_avg = MRIallocSequence(width, height, depth, MRI_FLOAT, 2) ;
   MRIcopyHeader(sv_surf->mri_avgs[0], mri_avg) ;
   mri_std = MRIallocSequence(width, height, depth, MRI_FLOAT, 2) ;
@@ -561,7 +563,7 @@ StatAccumulateSurfaceVolume(SV *sv_surf, SV *sv, MRI_SURFACE *mris)
 
     for (t = 0 ; t < sv_surf->time_per_event ; t++)
     {
-      MRIclear(mri_avg) ; MRIclear(mri_std) ;
+      MRIclear(mri_avg) ; MRIclear(mri_std) ; MRIclear(mri_ctrl) ;
 /* 
    sample from the surface, through the strucural space, into the functional 
    one. 
@@ -618,6 +620,7 @@ StatAccumulateSurfaceVolume(SV *sv_surf, SV *sv, MRI_SURFACE *mris)
           surf_mean = (surf_mean * surf_dof + mean) / (surf_dof+1) ;
           MRIFseq_vox(mri_avg, x, y, z, 0) = surf_mean ;
           MRIFseq_vox(mri_avg, x, y, z, 1) = ++surf_dof ;
+          MRIvox(mri_ctrl, x, y, z) = CONTROL_MARKED ;
 
 #if 0         
           if (x == 15 && y == 20 && z == 3 && t == 0)
@@ -635,6 +638,18 @@ StatAccumulateSurfaceVolume(SV *sv_surf, SV *sv, MRI_SURFACE *mris)
           MRIFseq_vox(mri_std, x, y, z, 0) = surf_std ;
           MRIFseq_vox(mri_std, x, y, z, 1) = ++surf_dof ;
         }
+      }
+      if (getenv("SOAP_STATS"))
+      {
+        int niter = atoi(getenv("SOAP_STATS")) ;
+
+        fprintf(stderr, "performing soap bubble for %d iterations...\n", niter) ;
+        /*        MRIsoapBubbleExpand(mri_avg, mri_ctrl, mri_avg, 1) ;*/
+        MRIbuildVoronoiDiagram(mri_avg, mri_ctrl, mri_avg) ;
+        MRIsoapBubble(mri_avg, mri_ctrl, mri_avg, niter) ;
+        MRIbuildVoronoiDiagram(mri_avg, mri_ctrl, mri_avg) ;
+        /*        MRIsoapBubbleExpand(mri_std, mri_ctrl, mri_std, 1) ;*/
+        MRIsoapBubble(mri_std, mri_ctrl, mri_std, niter) ;
       }
 
 /* 
