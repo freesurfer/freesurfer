@@ -6,6 +6,7 @@
 
 class InputState {
   friend class ToglManager;
+  friend class GLUTManager;
   friend class InputStateTester;
  public:
   InputState ();
