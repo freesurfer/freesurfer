@@ -108,7 +108,7 @@ main(int argc, char *argv[])
   TRANSFORM     *transform ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_ca_label.c,v 1.44 2004/02/26 19:01:51 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_ca_label.c,v 1.45 2004/02/27 21:47:37 tosa Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -136,8 +136,8 @@ main(int argc, char *argv[])
     fprintf(stderr, "reading gca from %s...\n", argv[1]) ;
     gca = GCAread(argv[1]) ;
     if (!gca)
-    ErrorExit(ERROR_NOFILE, "%s: could not read classifier array from %s",
-              Progname, argv[1]) ;
+      ErrorExit(ERROR_NOFILE, "%s: could not read classifier array from %s",
+		Progname, argv[1]) ;
 
 
     if (gca->flags & GCA_NO_MRF)
@@ -163,7 +163,7 @@ main(int argc, char *argv[])
   xform_fname = argv[argc-3];
   gca_fname = argv[argc-2] ;
   out_fname = argv[argc-1] ;
-	ninputs = argc-4 ;
+  ninputs = argc-4 ;
 
   printf("reading %d input volumes...\n", ninputs) ;
 
@@ -188,7 +188,8 @@ main(int argc, char *argv[])
   
   if (avgs)
     GCAmeanFilterConditionalDensities(gca, avgs) ;
-  
+
+  // gathering inputs
   for (input = 0 ; input < ninputs ; input++)
   {
     in_fname = argv[1+input] ;
@@ -252,7 +253,7 @@ main(int argc, char *argv[])
     MRIcopyFrame(mri_tmp, mri_inputs, 0, input) ;
     MRIfree(&mri_tmp) ;
   }
-  
+  // -example fname  option
   if (example_T1)
   {
     MRI *mri_T1, *mri_seg ;
@@ -270,16 +271,17 @@ main(int argc, char *argv[])
     GCArenormalizeToExample(gca, mri_seg, mri_T1) ;
     MRIfree(&mri_seg) ; MRIfree(&mri_T1) ;
   }
-
+  // -flash_parms fname option
   if (tissue_parms_fname)   /* use FLASH forward model */
     GCArenormalizeToFlash(gca, tissue_parms_fname, mri_inputs) ;
-
+  //  -mri fname option
   if (mri_fname)
   {
     GCAbuildMostLikelyVolume(gca, mri_inputs) ;
     MRIwrite(mri_inputs, mri_fname) ;
     exit(0) ;
   }
+  // -renorm fname option
   if (renormalization_fname)
   {
     FILE   *fp ;
@@ -315,7 +317,7 @@ main(int argc, char *argv[])
     GCArenormalizeIntensities(gca, labels, intensities, nlines) ;
     free(labels) ; free(intensities) ;
   }
-
+  // 
   if (gca->type == GCA_FLASH)
   {
     GCA *gca_tmp ;
@@ -328,7 +330,7 @@ main(int argc, char *argv[])
     gca = gca_tmp ;
     GCAhistoScaleImageIntensities(gca, mri_inputs) ;
   }
-  
+  // -flash option
   if (map_to_flash)
   {
     GCA *gca_tmp ;
@@ -430,7 +432,7 @@ main(int argc, char *argv[])
     }
   }
 
-	GCAfixSingularCovarianceMatrices(gca) ;
+  GCAfixSingularCovarianceMatrices(gca) ;
   if (read_flag)
   {
     mri_labeled = MRIread(read_fname) ;
@@ -441,7 +443,9 @@ main(int argc, char *argv[])
   else
   {
     printf("labeling volume...\n") ;
+    // create labeled volume
     mri_labeled = GCAlabel(mri_inputs, gca, NULL, transform) ;
+    // -wm fname option
     if (wm_fname)
     {
       MRI *mri_wm ;
@@ -450,6 +454,7 @@ main(int argc, char *argv[])
       if (!mri_wm)
         ErrorExit(ERROR_NOFILE, "%s: could not read wm segmentation from %s",
                   Progname, wm_fname) ;
+      // put wm into fixed
       mri_fixed = insert_wm_segmentation(mri_labeled,mri_wm,parcellation_type,
                                          fixed_flag, gca, transform);
       if (DIAG_VERBOSE_ON)
@@ -460,6 +465,7 @@ main(int argc, char *argv[])
       MRIfree(&mri_wm) ;
     }
     else
+      // just clone the labeled one
       mri_fixed = MRIclone(mri_labeled, NULL) ;
 
     if (gca_write_iterations != 0)
@@ -479,6 +485,7 @@ main(int argc, char *argv[])
       GCAlabel(mri_inputs, gca, mri_labeled, transform) ;
     }
 #else
+    // renormalize iteration 
     if (renormalize_iter > 0)
     {
       GCAmapRenormalize(gca, mri_inputs, transform) ;
@@ -538,7 +545,7 @@ main(int argc, char *argv[])
   }
 
   GCAconstrainLabelTopology(gca, mri_inputs, mri_labeled, mri_labeled, transform) ;
-	/*  GCAfree(&gca) ; */MRIfree(&mri_inputs) ;
+  /*  GCAfree(&gca) ; */MRIfree(&mri_inputs) ;
 #if 0
   if (filter)
   {
@@ -560,7 +567,7 @@ main(int argc, char *argv[])
   minutes = seconds / 60 ;
   seconds = seconds % 60 ;
   printf("auto-labeling took %d minutes and %d seconds.\n", 
-          minutes, seconds) ;
+	 minutes, seconds) ;
   exit(0) ;
   return(0) ;
 }
@@ -672,17 +679,17 @@ get_option(int argc, char *argv[])
   {
     regularize = atof(argv[2]) ;
     printf("regularizing covariance to be %2.2f Cclass + %2.2f Cpooled\n",(1-regularize),regularize) ;
-		nargs = 1 ;
+    nargs = 1 ;
   }
   else if (!stricmp(option, "cross-sequence") || !stricmp(option, "cross_sequence"))
   {
     regularize = .5 ;
-		renormalize_iter = 1 ;
-		renormalize_wsize = 9 ;
-		avgs = 2 ;
+    renormalize_iter = 1 ;
+    renormalize_wsize = 9 ;
+    avgs = 2 ;
     printf("labeling across sequences, equivalent to:\n") ;
-		printf("\t-renormalize %d %d\n\t-a %d\n\t-regularize %2.3f\n",renormalize_iter, renormalize_wsize,
-					 avgs, regularize) ;
+    printf("\t-renormalize %d %d\n\t-a %d\n\t-regularize %2.3f\n",renormalize_iter, renormalize_wsize,
+	   avgs, regularize) ;
   }
   else if (!stricmp(option, "nohippo"))
   {
@@ -718,7 +725,7 @@ get_option(int argc, char *argv[])
   }
   else if (!stricmp(option, "FLASH"))
   {
-		map_to_flash = 1 ;
+    map_to_flash = 1 ;
     printf("using FLASH forward model to predict intensity values...\n") ;
   }
   else if (!stricmp(option, "FLASH_PARMS"))
