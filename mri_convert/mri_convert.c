@@ -96,6 +96,7 @@ int main(int argc, char *argv[])
   FILE *fptmp;
   int j,translate_labels_flag;
   int force_ras_good = FALSE;
+  char gdf_image_stem[STRLEN];
 
   for(i=0;i<argc;i++) printf("%s ",argv[i]);
   printf("\n");
@@ -172,6 +173,7 @@ int main(int argc, char *argv[])
   no_scale_flag = FALSE;
   roi_flag = FALSE;
   translate_labels_flag = TRUE;
+  gdf_image_stem[0] = '\0';
 
   for(i = 1;i < argc;i++)
   {
@@ -468,6 +470,16 @@ int main(int argc, char *argv[])
     else if(strcmp(argv[i], "-sn") == 0 || strcmp(argv[i], "--subject_name") == 0)
     {
       get_string(argc, argv, &i, subject_name);
+    }
+    else if(strcmp(argv[i], "-gis") == 0 || strcmp(argv[i], "--gdf_image_stem") == 0)
+    {
+      get_string(argc, argv, &i, gdf_image_stem);
+      if(strlen(gdf_image_stem) == 0)
+      {
+        fprintf(stderr, "\n%s: zero length GDF image stem given\n", Progname);
+        usage_message(stdout);
+        exit(1);
+      }
     }
     else if(strcmp(argv[i], "-rl") == 0 || strcmp(argv[i], "--reslice_like") == 0)
     {
@@ -815,6 +827,13 @@ int main(int argc, char *argv[])
   else
     out_volume_type = forced_out_type;
 
+  /* ----- check for a gdf image stem if the output type is gdf ----- */
+  if(out_volume_type == GDF_FILE && strlen(gdf_image_stem) == 0)
+  {
+    fprintf(stderr, "%s: GDF output type, but no GDF image file stem\n", Progname);
+    exit(1);
+  }
+
   /* ----- read the in_like volume ----- */
   if(in_like_flag)
   {
@@ -856,8 +875,6 @@ int main(int argc, char *argv[])
     {
       errno = 0;
       ErrorPrintf(ERROR_BADPARM, "parcellation read: must specify a volume depth with either in_like or in_k_count");
-      if(in_like_flag)
-        MRIfree(&mri_in_like);
       exit(1);
     }
 
@@ -1082,10 +1099,6 @@ int main(int argc, char *argv[])
 
     mri->fov = (fov_x > fov_y ? (fov_x > fov_z ? fov_x : fov_z) : (fov_y > fov_z ? fov_y : fov_z) );
 
-  }
-
-  if(in_i_size_flag || in_j_size_flag || in_k_size_flag)
-  {
   }
 
   /* ----- give a warning for non-orthogonal directions ----- */
@@ -1437,6 +1450,9 @@ int main(int argc, char *argv[])
     mri = mri2;
   }
 
+  /* ----- store the gdf file stem ----- */
+  strcpy(mri->gdf_image_stem, gdf_image_stem);
+
   /* ----- catch the out info flag ----- */
   if(out_info_flag){
     printf("output structure:\n");
@@ -1658,7 +1674,7 @@ void usage(FILE *stream)
   "  sdt           - Varian (?)\n"
   "  outline       - MGH-NMR Outline format\n"
   "  otl           - same as outline\n"
-  "  gdf           - ???\n"
+  "  gdf           - GDF volume (requires image stem for output; use -gis)\n"
   "\n"
   "CONVERTING TO SPM-ANALYZE FORMAT \n"
   "\n"
@@ -1700,13 +1716,14 @@ void usage(FILE *stream)
   printf("  -f,  --frame\n");
   printf("  -il, --in_like\n");
   printf("  -roi\n");
-  printf("  -fp, --file_parcellation\n");
+  printf("  -fp, --fill_parcellation\n");
   printf("  -sp, --smooth_parcellation\n");
   printf("  -cf, --color_file\n");
   printf("  -nt, --no_translate\n");
   printf("  --status (status file for DICOM conversion)\n");
   printf("  --sdcmlist (list of DICOM files for conversion)\n");
   printf("  -ti, --template_info : dump info about template\n");
+  printf("  -gis <gdf image file stem>\n");
   printf("\n");
   printf("Notes: \n");
   printf("\n");
