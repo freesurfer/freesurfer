@@ -1,9 +1,9 @@
 #!/bin/csh -f
 # spatialsmooth-sess
 #
-# $Id: spatialsmooth-sess,v 1.4 2003/10/01 21:54:43 greve Exp $
+# $Id: spatialsmooth-sess,v 1.5 2004/03/16 17:04:04 greve Exp $
 
-set VERSION = '$Id: spatialsmooth-sess,v 1.4 2003/10/01 21:54:43 greve Exp $';
+set VERSION = '$Id: spatialsmooth-sess,v 1.5 2004/03/16 17:04:04 greve Exp $';
 
 set cmdargs = ($argv);
 
@@ -14,7 +14,7 @@ set RunList0 = ();
 set RunListFile = ();
 set PrintHelp = 0;
 set HPF = ();
-set inorm = 0;
+set inorm = 1;
 
 if($#argv == 0) then
   goto usage_exit;
@@ -217,6 +217,10 @@ while( $#argv != 0 )
       set RunListFile = $argv[1]; shift;
       breaksw
 
+    case "-noinorm":
+      set inorm = 0;
+      breaksw
+
     case "-inorm":
       set inorm = 1;
       breaksw
@@ -314,7 +318,7 @@ usage_exit:
   echo "   -fsd fsdir      (optional)"
   echo ""
   echo "Other Arguments"
-  echo "   -inorm          : intensity norm smoothed volume"
+  echo "   -noinorm        : do not intensity norm smoothed volume"
   echo "   -umask umask    : set unix file permission mask"
   echo "   -version        : print version and exit"
   echo "   -help           : print help and exit"
@@ -335,7 +339,9 @@ usage_exit:
   echo "This will smooth the motion corrected volume with a gaussian "
   echo "kernel with FWHM of 5 mm. The result will be placed in the volume"
   echo "fmcsm5. This is the stem that should be referenced when creating"
-  echo "the anlysis."
+  echo "the anlysis. It will also automatically run intensity normalization"
+  echo "(ie, inorm-sess) for the smoothed volume unless -noinorm is "
+  echo "specified."
   echo ""
   echo "$VERSION"
   echo ""
