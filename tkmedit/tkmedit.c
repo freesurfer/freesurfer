@@ -4,9 +4,9 @@
 
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2004/10/28 20:21:47 $
-// Revision       : $Revision: 1.229 $
-char *VERSION = "$Revision: 1.229 $";
+// Revision Date  : $Date: 2004/11/05 22:44:53 $
+// Revision       : $Revision: 1.230 $
+char *VERSION = "$Revision: 1.230 $";
 
 #define TCL
 #define TKMEDIT 
@@ -1068,7 +1068,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
      shorten our argc and argv count. If those are the only args we
      had, exit. */
   /* rkt: check for and handle version tag */
-  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.229 2004/10/28 20:21:47 kteich Exp $", "$Name:  $");
+  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.230 2004/11/05 22:44:53 kteich Exp $", "$Name:  $");
   if (nNumProcessedVersionArgs && argc - nNumProcessedVersionArgs == 1)
     exit (0);
   argc -= nNumProcessedVersionArgs;
@@ -5024,7 +5024,7 @@ int main ( int argc, char** argv ) {
     DebugPrint( ( "%s ", argv[nArg] ) );
   }
   DebugPrint( ( "\n\n" ) );
-  DebugPrint( ( "$Id: tkmedit.c,v 1.229 2004/10/28 20:21:47 kteich Exp $ $Name:  $\n" ) );
+  DebugPrint( ( "$Id: tkmedit.c,v 1.230 2004/11/05 22:44:53 kteich Exp $ $Name:  $\n" ) );
 
   
   /* init glut */
@@ -9425,9 +9425,9 @@ tkm_tErr LoadSegmentationColorTable ( tkm_tSegType iVolume,
       xUtil_strncpy( sLabel, "None", sizeof(sLabel) );
     DebugNote( ("Making tcl command") );
     xUtil_snprintf( sTclArguments, sizeof(sTclArguments),
-        "%d \"%s\"", nEntry, sLabel );
+		    "%d \"%s\"", nEntry, sLabel );
     tkm_SendTclCommand( tkm_tTclCommand_AddSegColorTableEntry,
-      sTclArguments );
+			sTclArguments );
   }
 
   tkm_SendTclCommand( tkm_tTclCommand_UpdateSegmentationColorTable,
@@ -9934,13 +9934,13 @@ void SetSegmentationValues ( tkm_tSegType iVolume,
 }
 
 
-tkm_tErr FloodFillSegmentation ( tkm_tSegType    iVolume,
-				 xVoxelRef       iAnaIdx,
-				 int             inIndex,
-				 tBoolean        ib3D,
-				 tkm_tVolumeType iSrc,
-				 float           iFuzzy,
-				 float           iDistance ) {
+tkm_tErr FloodFillSegmentation ( tkm_tSegType      iVolume,
+				 xVoxelRef         iAnaIdx,
+				 int               inIndex,
+				 tBoolean          ib3D,
+				 tkm_tVolumeTarget iSrc,
+				 float             iFuzzy,
+				 float             iDistance ) {
   
   tkm_tErr                    eResult      = tkm_tErr_NoErr;
   Volm_tFloodParams           params;
@@ -11747,13 +11747,13 @@ void tkm_EditSegmentationArray ( tkm_tSegType iVolume,
 }
 
 
-void tkm_FloodFillSegmentation ( tkm_tSegType    iVolume,
-				 xVoxelRef       iAnaIdx,
-				 int             inIndex,
-				 tBoolean        ib3D,
-				 tkm_tVolumeType iSrc,
-				 float           iFuzzy,
-				 float           iDistance ) {
+void tkm_FloodFillSegmentation ( tkm_tSegType      iVolume,
+				 xVoxelRef         iAnaIdx,
+				 int               inIndex,
+				 tBoolean          ib3D,
+				 tkm_tVolumeTarget iSrc,
+				 float             iFuzzy,
+				 float             iDistance ) {
  
   FloodFillSegmentation( iVolume, iAnaIdx, inIndex, ib3D, iSrc,
 			 iFuzzy, iDistance );
