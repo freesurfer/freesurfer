@@ -13,7 +13,7 @@ function y = trapezoid(t,Tru,Tft,Trd,Td)
 % For times before Td and after the end, the result is 0.
 % The amplitude at the flat top is 1.
 %
-% $Id: trapezoid.m,v 1.1 2003/09/16 03:23:27 greve Exp $
+% $Id: trapezoid.m,v 1.2 2003/09/16 07:57:06 greve Exp $
 
 y = [];
 if(nargin ~= 4 & nargin ~= 5)
@@ -33,14 +33,17 @@ tEnd     = Tru + Tft + Trd; % End of Ramp Down
 
 y = zeros(size(t));
 
-ind = find(t > 0 & t < tFTStart);
+%ind = find(t > 0 & t < tFTStart);
+ind = find(t <= tFTStart);
 if(~isempty(ind)) y(ind) = t(ind)/Tru; end
 
 ind = find(t > tFTStart & t < tRDStart);
 if(~isempty(ind)) y(ind) = 1; end
 
-ind = find(t > tRDStart & t < tEnd);
+%ind = find(t > tRDStart & t < tEnd);
+ind = find(t >= tRDStart );
 if(~isempty(ind)) y(ind) = -(t(ind)-tEnd)/Trd; end
+
 
 return;
 
