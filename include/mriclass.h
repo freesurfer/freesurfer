@@ -11,6 +11,7 @@
 #define NCLASSES                           5
 #define GAUSSIAN_NCLASSES                  NCLASSES
 #define BACKGROUND                         0
+#define CSF                                BACKGROUND
 #define GREY_MATTER                        1
 #define GRAY_MATTER                        GREY_MATTER
 #define BORDER_MATTER                      2
