@@ -4,9 +4,9 @@
 
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2003/05/07 17:35:55 $
-// Revision       : $Revision: 1.145 $
-char *VERSION = "$Revision: 1.145 $";
+// Revision Date  : $Date: 2003/05/12 17:29:51 $
+// Revision       : $Revision: 1.146 $
+char *VERSION = "$Revision: 1.146 $";
 
 #define TCL
 #define TKMEDIT 
@@ -86,6 +86,7 @@ char *tkm_ksaErrorStrings [tkm_knNumErrorCodes] = {
   "Couldn't load the surface.",
   "Couldn't load the label.",
   "Couldn't load the surface vertex set.",
+  "Couldn't load the surface annotationx[.",
   "Couldn't load the color table.",
   "Couldn't load the head points list.",
   "Couldn't import the segmentation volume.",
@@ -254,20 +255,25 @@ xList_tCompare CompareVoxels ( void* inVoxelA, void* inVoxelB );
 mriSurfaceRef gSurface[tkm_knNumSurfaceTypes];
 
 tkm_tErr LoadSurface          ( tkm_tSurfaceType iType, 
-				char*     isName );
+				char*            isName );
 tkm_tErr LoadSurfaceVertexSet ( tkm_tSurfaceType iType, 
-				Surf_tVertexSet   iSet,
-				char*     fname );
+				Surf_tVertexSet  iSet,
+				char*            fname );
 void   UnloadSurface          ( tkm_tSurfaceType iType );
 
+
+tkm_tErr LoadSurfaceAnnoation ( tkm_tSurfaceType iType, 
+				char*            isName );
+
 void   WriteSurfaceValues     ( tkm_tSurfaceType iType, 
-				char*     isFileName );
+				char*            isFileName );
+
 
 void GotoSurfaceVertex                    ( Surf_tVertexSet iSurface, 
-					    int inVertex );
+					    int             inVertex );
 void FindNearestSurfaceVertex             ( Surf_tVertexSet iSet );
 void FindNearestInterpolatedSurfaceVertex ( Surf_tVertexSet iSet );
-void AverageSurfaceVertexPositions        ( int inNumAverages );
+void AverageSurfaceVertexPositions        ( int             inNumAverages );
 
 // ===========================================================================
 
@@ -998,7 +1004,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
      shorten our argc and argv count. If those are the only args we
      had, exit. */
   /* rkt: check for and handle version tag */
-  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.145 2003/05/07 17:35:55 kteich Exp $");
+  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.146 2003/05/12 17:29:51 kteich Exp $");
   if (nNumProcessedVersionArgs && argc - nNumProcessedVersionArgs == 1)
     exit (0);
   argc -= nNumProcessedVersionArgs;
@@ -2967,6 +2973,42 @@ void WriteSurfaceValues ( tkm_tSurfaceType iType,
   DebugExitFunction;
 }
 
+tkm_tErr LoadSurfaceAnnoation ( tkm_tSurfaceType iType,
+				char*            isName ) {
+  
+  tkm_tErr      eResult  = tkm_tErr_NoErr;
+  Surf_tErr     eSurface = Surf_tErr_NoErr;
+  
+  DebugEnterFunction( ("LoadSurfaceAnnoation( iType=%d, isName=%s )", 
+		       (int)iType, isName) );
+  
+  DebugAssertThrowX( (NULL != isName),
+		     eResult, tkm_tErr_InvalidParameter );
+  DebugAssertThrowX( (iType >= 0 && iType < tkm_knNumSurfaceTypes),
+		     eResult, tkm_tErr_InvalidParameter );
+  DebugAssertThrowX( (NULL != gSurface[iType]),
+		     eResult, tkm_tErr_SurfaceNotLoaded );
+  
+  /* Load the annotation. */
+  DebugNote( ("Loading annotation %s", isName) );
+  eSurface = Surf_LoadAnnotation( gSurface[iType], isName );
+  DebugAssertThrowX( (Surf_tErr_NoErr == eSurface),
+		     eResult, tkm_tErr_CouldntLoadSurfaceAnnotation );
+  
+  /* Set the surface in the window to purge the cache */
+  DebugNote( ("Setting surface in window") );
+  MWin_SetSurface( gMeditWindow, -1, tkm_tSurfaceType_Main, 
+		   gSurface[tkm_tSurfaceType_Main] );
+  
+  DebugCatch;
+  DebugCatchError( eResult, tkm_tErr_NoErr, tkm_GetErrorString );
+  EndDebugCatch;
+  
+  DebugExitFunction;
+  
+  return eResult;
+}
+
 // ===========================================================================
 
 
@@ -3870,6 +3912,25 @@ int TclUnloadAllSurfaces ( ClientData inClientData, Tcl_Interp* inInterp,
   if( gbAcceptingTclCommands ) {
     UnloadSurface ( tkm_tSurfaceType_Main );
     UnloadSurface ( tkm_tSurfaceType_Aux );
+  }  
+  
+  return TCL_OK;
+}
+
+int TclLoadSurfaceAnnotation ( ClientData inClientData, Tcl_Interp* inInterp,
+			       int argc, char* argv[] ) {
+  
+  tkm_tSurfaceType type = tkm_tSurfaceType_Main;
+
+  if ( argc != 3 ) {
+    Tcl_SetResult ( inInterp, "wrong # args: LoadSurfaceAnnoation "
+		    "0=main,1=aux file_name:string", TCL_VOLATILE );
+    return TCL_ERROR;
+  }
+  
+  if( gbAcceptingTclCommands ) {
+    type = atoi( argv[1] );
+    LoadSurfaceAnnoation( type, argv[2] );
   }  
   
   return TCL_OK;
@@ -5229,6 +5290,10 @@ int main ( int argc, char** argv ) {
   Tcl_CreateCommand ( interp, "UnloadSurface",
           TclUnloadSurface,
           (ClientData) NULL, (Tcl_CmdDeleteProc*) NULL );
+  
+  Tcl_CreateCommand ( interp, "LoadSurfaceAnnotation",
+		      TclLoadSurfaceAnnotation,
+		      (ClientData) NULL, (Tcl_CmdDeleteProc*) NULL );
   
   Tcl_CreateCommand ( interp, "UnloadAllSurfaces",
           TclUnloadAllSurfaces,

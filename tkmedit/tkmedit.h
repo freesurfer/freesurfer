@@ -47,6 +47,7 @@ typedef enum {
   tkm_tErr_CouldntLoadSurface,
   tkm_tErr_CouldntLoadLabel,  
   tkm_tErr_CouldntLoadSurfaceVertexSet,
+  tkm_tErr_CouldntLoadSurfaceAnnotation,
   tkm_tErr_CouldntLoadColorTable,
   tkm_tErr_CouldntLoadHeadPointsList,
   tkm_tErr_CouldntLoadSegmentation,
