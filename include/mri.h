@@ -315,9 +315,9 @@ IMAGE *MRItoImage(MRI *mri, IMAGE *I, int slice) ;
 IMAGE *MRItoImageView(MRI *mri, IMAGE *I, int slice, int view, int frame) ;
 
 /* bitmap image access macros */
-#define MRIset_bit(mri,x,y,z)    MRIvox(mri,x/8,y,z) |= (0x001 << ((x)%8))
-#define MRItest_bit(mri,x,y,z)   (MRIvox(mri,x/8,y,z) & (0x001 << ((x)%8)))
-#define MRIclear_bit(mri,x,y,z)  MRIvox(mri,x/8,y,z) &= ~(0x001 << ((x)%8))
+#define MRIset_bit(mri,x,y,z)    MRIvox(mri,(x)/8,y,z) |= (0x001 << ((x)%8))
+#define MRItest_bit(mri,x,y,z)   (MRIvox(mri,(x)/8,(y),(z))&(0x001 << ((x)%8)))
+#define MRIclear_bit(mri,x,y,z)  MRIvox(mri,(x)/8,y,z) &= ~(0x001 << ((x)%8))
 
 #define MRISvox(mri,x,y,z)  (((short *)mri->slices[z][y])[x])
 #define MRIFvox(mri,x,y,z)  (((float *)(mri->slices[z][y]))[x])
@@ -405,6 +405,10 @@ MRI        *MRIfillFG(MRI *mri_src, MRI *mri_dst, int seed_x, int seed_y,
 
 int   MRIneighborsOn(MRI *mri, int x0, int y0, int z0, int min_val) ;
 int   MRIneighborsOff(MRI *mri, int x0, int y0, int z0, int min_val) ;
+
+MRI   *MRIreplaceValues(MRI *mri_src, MRI *mri_dst, 
+                       BUFTYPE in_val, BUFTYPE out_val) ;
+MRI   *MRImask(MRI *mri_src, MRI *mri_mask, MRI *mri_dst, BUFTYPE mask) ;
 
 /* constants used in mri_dir of MRIoffsetDirection and for MRIminmax filter */
 #define OFFSET_NEGATIVE_GRADIENT_DIRECTION    0
