@@ -30,7 +30,6 @@ typedef struct
   int    yp ;
   int    zp ;
   int    label ;
-  int    n ;          /* index in gcan structure */
   float  prior ;
   float  var ;
   float  mean ;

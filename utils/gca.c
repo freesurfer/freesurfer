@@ -1813,7 +1813,7 @@ GCAremoveOutlyingSamples(GCA *gca, GCA_SAMPLE *gcas, MRI *mri_inputs,
                          TRANSFORM *transform,int nsamples, float nsigma)
 {
   int        x, y, z, xt, yt, zt, width, height, depth, val,
-             xn, yn, zn, i, nremoved, xp, yp, zp ;
+             i, nremoved, xp, yp, zp ;
   GC1D       *gc ;
   double     dist ;
 
@@ -1834,15 +1834,14 @@ GCAremoveOutlyingSamples(GCA *gca, GCA_SAMPLE *gcas, MRI *mri_inputs,
       continue ;
 
     xp = gcas[i].xp ; yp = gcas[i].yp ; zp = gcas[i].zp ; 
-    GCApriorToVoxel(gca, mri_inputs, xn, yn, zn, &xt, &yt, &zt) ;
+    GCApriorToVoxel(gca, mri_inputs, xp, yp, zp, &xt, &yt, &zt) ;
     TransformSampleInverseVoxel(transform, width, height, depth, xt, yt, zt, &x, &y, &z) ;
     val = MRIvox(mri_inputs, x, y, z) ;
 
-    GCApriorToNode(gca, xp, yp, zp, &xn, &yn, &zn) ;
-    if (xn == Ggca_x && yn == Ggca_y && zn == Ggca_z)
+    if (xp == Ggca_x && yp == Ggca_y && zp == Ggca_z)
       DiagBreak() ;
     
-    gc = gcaFindGC(gca, xn, yn, zn, gcas[i].label) ;
+    gc = GCAfindPriorGC(gca, xp, yp, zp, gcas[i].label) ;
     if (gc == NULL)
     {
       ErrorPrintf(ERROR_BADPARM, "gc %d not found in GCAremoveOutlyingSamples!", i) ;
@@ -1928,8 +1927,8 @@ GCAnormalizedLogSampleProbability(GCA *gca, GCA_SAMPLE *gcas,
     if (!finite(total_log_p))
     {
       fprintf(stderr, 
-              "total log p not finite at (%d, %d, %d) n = %d, "
-              "var=%2.2f\n", x, y, z, gcas[i].n, gc->var) ;
+              "total log p not finite at (%d, %d, %d) var=%2.2f\n", 
+              x, y, z, gc->var) ;
       DiagBreak() ;
     }
   }
@@ -1995,8 +1994,8 @@ GCAcomputeLogSampleProbability(GCA *gca, GCA_SAMPLE *gcas,
     if (!finite(total_log_p))
     {
       fprintf(stderr, 
-              "total log p not finite at (%d, %d, %d) n = %d, "
-              "var=%2.2f\n", x, y, z, gcas[i].n, gc->var) ;
+              "total log p not finite at (%d, %d, %d) var=%2.2f\n", 
+                                    x, y, z, gc->var) ;
       DiagBreak() ;
     }
   }
@@ -2061,8 +2060,8 @@ GCAcomputeLogSampleProbabilityUsingCoords(GCA *gca, GCA_SAMPLE *gcas,
     {
       DiagBreak() ;
       fprintf(stderr, 
-              "total log p not finite at (%d, %d, %d) n = %d, "
-              "var=%2.2f\n", x, y, z, gcas[i].n, gc->var) ;
+              "total log p not finite at (%d, %d, %d) var=%2.2f\n", 
+              x, y, z, gc->var) ;
     }
   }
 
@@ -2258,7 +2257,6 @@ GCAtransformSamples(GCA *gca_src, GCA *gca_dst, GCA_SAMPLE *gcas, int nsamples)
               min_v = gc->var ;
               max_p = prior ;
               gcas[i].xp = xd ; gcas[i].yp = yd ; gcas[i].zp = zd ; 
-              gcas[i].n = n ;
             }
           }
         }
@@ -2280,8 +2278,8 @@ GCAtransformSamples(GCA *gca_src, GCA *gca_dst, GCA_SAMPLE *gcas, int nsamples)
   }
 
   i = min_y_i ;
-  fprintf(stderr, "min_y = (%d, %d, %d) at i=%d, label=%d, n=%d\n",
-          gcas[i].xp, gcas[i].yp, gcas[i].zp, i, gcas[i].label, gcas[i].n) ;
+  fprintf(stderr, "min_y = (%d, %d, %d) at i=%d, label=%d\n",
+          gcas[i].xp, gcas[i].yp, gcas[i].zp, i, gcas[i].label) ;
   MRIfree(&mri_found) ;
   return(NO_ERROR) ;
 }
@@ -2503,7 +2501,6 @@ GCAfindStableSamplesByLabel(GCA *gca, int nsamples, float min_prior)
         ordered_labels[label][i].xp = x ;
         ordered_labels[label][i].yp = y ;
         ordered_labels[label][i].zp = z ;
-        ordered_labels[label][i].n = n ;
         ordered_labels[label][i].label = label ;
         ordered_labels[label][i].prior = gcap->priors[n] ;
         ordered_labels[label][i].var = gc->var ;
@@ -3042,7 +3039,6 @@ GCAfindStableSamples(GCA *gca, int *pnsamples, int min_spacing,float min_prior)
           gcas[nfound].xp = best_x ; gcas[nfound].yp = best_y ;
           gcas[nfound].zp = best_z ;
           gcas[nfound].label = best_label ;
-          gcas[nfound].n = best_n ;
           gcas[nfound].var = best_gc->var ;
           gcas[nfound].mean = best_gc->mean ;
           gcas[nfound].prior = gcap->priors[best_n] ;
@@ -3390,7 +3386,7 @@ gcaFindBestSample(GCA *gca, int x, int y, int z,int label,int wsize,
   if (best_x == 145/4 && best_y == 89/4 && best_z == 125/4)
     DiagBreak() ;
   gcas->xp = best_x ; gcas->yp = best_y ; gcas->zp = best_z ;
-  gcas->label = label ; gcas->n = best_n ; gcas->mean = best_gc->mean ;
+  gcas->label = label ; gcas->mean = best_gc->mean ;
   gcas->var = best_gc->var ; gcas->prior = max_prior ;
 
   return(NO_ERROR) ;
@@ -3456,14 +3452,14 @@ gcaFindClosestMeanSample(GCA *gca, float mean, float min_prior, int x, int y,
                          int z, int label, int wsize, GCA_SAMPLE *gcas)
 {
   int        xk, yk, zk, xi, yi, zi, width, height, depth, n,
-             best_n, best_x, best_y, best_z ;
+             best_x, best_y, best_z ;
   GCA_NODE   *gcan  ;
   GC1D       *gc, *best_gc ;
   float      min_dist, best_prior, prior ;
 
   width = gca->node_width ; height = gca->node_height ; depth = gca->node_depth ;
   min_dist = 1000000.0f ; best_gc = NULL ; best_prior = 0.0 ;
-  best_x = best_y = best_z = -1 ; best_n = -1 ;
+  best_x = best_y = best_z = -1 ;
   for (xk = -wsize ; xk <= wsize ; xk++)
   {
     xi = x+xk ;
@@ -3494,7 +3490,7 @@ gcaFindClosestMeanSample(GCA *gca, float mean, float min_prior, int x, int y,
           {
             min_dist = abs(gc->mean-mean) ;
             best_gc = gc ; best_x = xi ; best_y = yi ; best_z = zi ; 
-            best_n = n ; best_prior = prior ;
+            best_prior = prior ;
           }
         }
       }
@@ -3511,7 +3507,7 @@ gcaFindClosestMeanSample(GCA *gca, float mean, float min_prior, int x, int y,
   if (best_x == 141/4 && best_y == 37*4 && best_z == 129*4)
     DiagBreak() ;
   gcas->xp = best_x ; gcas->yp = best_y ; gcas->zp = best_z ;
-  gcas->label = label ; gcas->n = best_n ; gcas->mean = best_gc->mean ;
+  gcas->label = label ; gcas->mean = best_gc->mean ;
   gcas->var = best_gc->var ; gcas->prior = best_prior ;
 
   return(NO_ERROR) ;
@@ -7665,7 +7661,6 @@ GCAfindAllSamples(GCA *gca, int *pnsamples)
         gcas[i].y = y*gca->prior_spacing ; 
         gcas[i].z = z*gca->prior_spacing ;
         gcas[i].label = max_label ;
-        gcas[i].n = max_n ;
         gcas[i].prior = max_p ;
         gc = GCAfindPriorGC(gca, x, y, z, max_label) ;
         if (gc)
