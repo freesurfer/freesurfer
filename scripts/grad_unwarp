@@ -1,8 +1,8 @@
 #!/bin/csh -f
 # grad_unwarp - convert, unwarp, and resample dicom files
 #
-# $Id: grad_unwarp,v 1.5 2004/01/18 07:00:27 ebeth Exp $
-set VERSION = '$Id: grad_unwarp,v 1.5 2004/01/18 07:00:27 ebeth Exp $';
+# $Id: grad_unwarp,v 1.6 2004/01/18 07:05:51 ebeth Exp $
+set VERSION = '$Id: grad_unwarp,v 1.6 2004/01/18 07:05:51 ebeth Exp $';
 
 set inputargs = ($argv);
 
@@ -334,6 +334,9 @@ usage_exit:
 #   echo "            : scale output to 0-255 (invokes it --no_scale 1 --no_conform)"
   echo "   -interp  : method (<cubic>,linear,nearest,spline)"
   echo "   -o outfile  : MGH formatted by default (unless -cor is specified)"
+  echo "   -matlab matlab_binary  : default is /space/lyon/6/pubsw/common/matlab/6.5/bin/matlab"
+  echo "                          : grad_unwarp needs at least version 6.5 to handle the long."
+  echo "                          : filenames.  And this installation has crucial dicom patches."
   echo "   -version : print version string"
   echo "   -help    : print help text"
   echo ""
@@ -430,8 +433,8 @@ There are three ways to use -unwarp <type>.
   (Note for developers: to have it use your personal $DEV directory
   instead, invoke grad_unwarp -mydev.  The matlab session will be sent
   "addpath $DEV/matlab" and your matlab routines will be called and
-  your gradwarp tables used - possibly depending on your cwd: dot is
-  in matlab's path)
+  your gradwarp tables used - possibly depending on your cwd: in
+  matlab, dot may be in your path)
 
 A jacobian brightness correction is applied by default - areas of the
 image that spread out (increase in volume) should dim (decrease in
