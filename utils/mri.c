@@ -4533,8 +4533,8 @@ MRIupsample2(MRI *mri_src, MRI *mri_dst)
 MRI *
 MRIdownsample2LabeledVolume(MRI *mri_src, MRI *mri_dst)
 {
-  int     width, depth, height, x, y, z, x1, y1, z1, counts[255], label, max_count,
-          out_label ;
+  int     width, depth, height, x, y, z, x1, y1, z1, counts[256], label, 
+          max_count, out_label ;
   BUFTYPE *psrc ;
   
   if (mri_src->type != MRI_UCHAR)
@@ -4560,6 +4560,8 @@ MRIdownsample2LabeledVolume(MRI *mri_src, MRI *mri_dst)
       for (x = 0 ; x < width ; x++)
       {
         memset(counts, 0, sizeof(counts)) ;
+        if (x == 96 && y == 66 && z == 56)
+          DiagBreak() ;
         for (z1 = 2*z ; z1 <= 2*z+1 ; z1++)
         {
           for (y1 = 2*y ; y1 <= 2*y+1 ; y1++)
