@@ -51,7 +51,8 @@ typedef struct
   Panel_item  title_item ;
   char        title_string[STR_LEN] ;
   IMAGE       *dispImage ;    /* image displayed on screen */
-  IMAGE       *sourceImage ;  /* source image passed to XVshowImage */
+  IMAGE       *sourceImage ;  /* copy of source image passed to XVshowImage */
+  IMAGE       *oSourceImage ; /* source image passed to XVshowImage */
   XImage      *ximage ;
   Window      window ;
   GC          clearGC, greenGC, blueGC, redGC, 
