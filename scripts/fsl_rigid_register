@@ -1,0 +1,277 @@
+#!/bin/csh -f
+#
+# 
+# $Id: fsl_rigid_register,v 1.1 2003/05/08 17:39:34 greve Exp $
+set VERSION = '$Id';
+
+set refvol = ();
+set invol = ();
+set outvol = ();
+set interp = trilinear;
+set debug = 0;
+set tmpdir = /tmp/fsl_rigid_register.$$;
+set cleanup = 1;
+set PrintHelp = 0;
+set applyxfm = ();
+
+if($#argv == 0) goto usage_exit;
+set n = `echo $argv | grep version | wc -l` 
+if($n != 0) then
+  echo $VERSION
+  exit 0;
+endif
+set n = `echo $argv | grep help | wc -l` 
+if($n != 0) then
+  set PrintHelp = 1;
+  goto usage_exit;
+endif
+
+goto parse_args;
+parse_args_return:
+goto check_params;
+check_params_return:
+
+set StartTime = `date`;
+
+# make the temporary directory
+mkdir -p $tmpdir
+
+# create the output directory
+echo $outvol
+set outdir = `dirname $outvol`;
+mkdir -p $outdir
+
+
+if($#applyxfm == 0 || 1) then
+  # Still need ref to get mat file #
+  # Convert ref to analyze #
+  set refvolbase = $tmpdir/refvol.fsl_rigid_register
+  set refvolimg  = $refvolbase.img
+  set cmd = (mri_convert $refvol $refvolimg)
+  echo "--------------------------------------"
+  pwd
+  echo $cmd
+  $cmd
+  if($status) exit 1;
+endif
+
+# Convert input to analyze #
+set involbase = $tmpdir/invol.fsl_rigid_register
+set involimg  = $involbase.img
+set cmd = (mri_convert $invol $involimg)
+echo "--------------------------------------"
+pwd
+echo $cmd
+$cmd
+if($status) exit 1;
+
+set outvolbase = $tmpdir/outvol.fsl_rigid_register
+set outvolimg  = $outvolbase.img
+
+# Run flirt
+set cmd = (flirt -in $involbase.hdr)
+set cmd = ($cmd -out $outvolbase.hdr)
+set cmd = ($cmd -bins 256 -cost corratio )
+set cmd = ($cmd -searchrx -90 90 -searchry -90 90 -searchrz -90 90)
+set cmd = ($cmd  -dof 6 -interp $interp)
+set cmd = ($cmd -ref $refvolbase.hdr -omat $outvolbase.fslmat)
+if($#applyxfm != 0) then
+  set cmd = ($cmd -init $applyxfm -applyxfm)
+endif
+
+echo "--------------------------------------"
+pwd
+echo $cmd
+$cmd
+if($status) then
+  echo "ERROR: running flirt"
+  exit 1;
+endif
+
+# Copy .mat from ref to output
+cp $refvolbase.mat $outvolbase.mat
+
+# Convert to the output format
+set cmd = (mri_convert $outvolbase.img $outvol);
+echo "--------------------------------------"
+pwd
+echo $cmd
+$cmd
+if($status) exit 1;
+
+if($#applyxfm == 0) then
+  # Copy registration matrix
+  cp $outvolbase.fslmat $outvol.fslmat
+endif
+
+# Cleanup
+if($cleanup) then
+  echo "Cleaning up"
+  rm $involbase.* $outvolbase.* $refvolbase.*
+endif
+
+echo " "
+echo "Started at $StartTime "
+echo "Ended   at `date`"
+echo " "
+echo "fsl_rigid_register Done"
+echo " "
+
+exit 0;
+###############################################
+
+############--------------##################
+parse_args:
+set cmdline = ($argv);
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "-r":
+      if ( $#argv < 1) goto arg1err;
+      set refvol = $argv[1]; shift;
+      breaksw
+
+    case "-i":
+      if ( $#argv < 1) goto arg1err;
+      set invol = $argv[1]; shift;
+      breaksw
+
+    case "-o":
+      if ( $#argv < 1) goto arg1err;
+      set outvol = $argv[1]; shift;
+      breaksw
+
+    case "-interp":
+      if ( $#argv < 1) goto arg1err;
+      set interp = $argv[1]; shift;
+      breaksw
+
+    case "-tmp":
+      if ( $#argv < 1) goto arg1err;
+      set tmpdir = $argv[1]; shift;
+      breaksw
+
+    case "-applyxfm":
+      if ( $#argv < 1) goto arg1err;
+      set applyxfm = $argv[1]; shift;
+      if(! -e $applyxfm) then
+        echo "ERROR: cannot find $applyxfm"
+        exit 1;
+      endif
+      breaksw
+
+    case "-verbose":
+      set verbose = 1;
+      breaksw
+
+    case "-echo":
+      set echo = 1;
+      breaksw
+
+    case "-debug":
+      set verbose = 1;
+      set echo = 1;
+      breaksw
+
+    case "-umask":
+      if ( $#argv == 0) goto arg1err;
+      umask $1; shift;
+      breaksw
+
+    default:
+      echo ERROR: Flag $flag unrecognized. 
+      echo $cmdline
+      exit 1
+      breaksw
+  endsw
+
+end
+
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+
+  if($#refvol == 0) then
+    # Need ref even with -applyxfm to get mat file #
+    echo "ERROR: must spec a ref vol"
+    exit 1;
+  endif
+
+  if($#invol == 0) then
+    echo "ERROR: must spec an input vol"
+    exit 1;
+  endif
+
+  if($#outvol == 0) then
+    echo "ERROR: must spec an output vol"
+    exit 1;
+  endif
+
+goto check_params_return;
+############--------------##################
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+
+############--------------##################
+arg2err:
+  echo "ERROR: flag $flag requires two arguments"
+  exit 1
+############--------------##################
+
+############--------------##################
+usage_exit:
+  echo ""
+  echo "USAGE: fsl_rigid_register"
+  echo ""
+  echo "Required Arguments:";
+  echo "   -r refvol    : reference/target volume"
+  echo "   -i inputvol  : input/moveable volume"
+  echo "   -o outputvol : input resampled to reference"
+  echo ""
+  echo "Optional Arguments"
+  echo "   -applyxfm xfmfile : do not reg, just apply xfm to input"
+  echo "   -interp method : <trilinear>, nearestneighbour, sinc"
+  echo "   -tmp  tmpdir (default is $tmpdir)"
+  echo ""
+  echo "   -version : print version and exit"
+  echo "   -help    : print help and exit"
+  echo ""
+
+  if($PrintHelp) \
+  cat $0 | awk 'BEGIN{prt=0}{if(prt) print $0; if($1 == "BEGINHELP") prt = 1 }'
+
+exit 1;
+
+#---- Everything below here is printed out as part of help -----#
+BEGINHELP
+
+This is a front-end for the FSL (www.fmrib.ox.ac.uk/fsl/index.html)
+flirt program. Computes the registration matrix that transforms
+inputvol to refvol and resamples inputvol to outputvol using that
+matrix. The matrix is stored in outputvol.fslmat. The registration is
+constrained to be rigid (ie, 6 dof). The input and ref volumes are
+automatically converted to analyze, and the output volume is
+automatically converted from analyze to the output format. Note: if
+using COR as output, the COR directory must exist prior to running
+this script.
+
+When the -applyxfm flag is is used, the input is resampled to the
+output using the FSL mat file supplied as the argument to the
+-applyxfm.  The ref volume is still needed in order to get the proper
+geometry for the output file.
+
+
+BUGS: 
+
+If using COR as output, the COR directory must exist prior to running
+this script.
+
