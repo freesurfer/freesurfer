@@ -14,7 +14,7 @@
 #include "mrinorm.h"
 #include "version.h"
 
-static char vcid[] = "$Id: mri_synthesize.c,v 1.8 2003/09/05 04:45:38 kteich Exp $";
+static char vcid[] = "$Id: mri_synthesize.c,v 1.9 2003/10/30 19:51:40 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -26,9 +26,12 @@ static void print_usage(void) ;
 static void print_help(void) ;
 static int  transform_T1_values_using_joint_pdf(MRI *mri_T1, char *jpdf_name, int invert) ;
 static void print_version(void) ;
+static int  apply_bias_field(MRI *mri, int nbias, float *bias_coefs[3][2]) ;
 static double FLASHforwardModel(double flip_angle, double TR, double PD, 
                                 double T1) ;
 
+static MRI *MRIsynthesizeWithFAF(MRI *mri_T1, MRI *mri_PD, MRI *mri_dst, double TR, double alpha, double TE, 
+																 int nfaf, float *faf_coefs[3][2]) ;
 MRI *MRIsynthesizeWeightedVolume(MRI *mri_T1, MRI *mri_PD, float w5, float TR5,
                                  float w30, float TR30, float target_wm, float TE) ;
 static MRI *MRIsynthesize(MRI *mri_T1, MRI *mri_PD, MRI *mri_dst, double TR, double alpha, double TE) ;
@@ -42,6 +45,14 @@ static float nl_scale = 0.01 ;
 static float nl_mean = 950 ;
 static char *jpdf_name = NULL ;
 static int invert = 0 ;
+
+static int extract = 0 ;
+
+static int nbias = 0 ;
+static float *bias_coefs[3][2] ;
+
+static int nfaf = 0 ;
+static float *faf_coefs[3][2] ;
 
 /* optimal class separation (sort of) */
 #if 0
@@ -63,7 +74,7 @@ main(int argc, char *argv[])
   float       TR, TE, alpha ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_synthesize.c,v 1.8 2003/09/05 04:45:38 kteich Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_synthesize.c,v 1.9 2003/10/30 19:51:40 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -96,7 +107,16 @@ main(int argc, char *argv[])
   if (!mri_T1)
     ErrorExit(ERROR_NOFILE, "%s: could not read T1 volume %s", Progname, 
               T1_fname) ;
+	if (extract)
+	{
+		MRI *mri_tmp ;
+		int dx, dy, dz ;
 
+		dx = mri_T1->width/2 ; dy = mri_T1->height/2 ; dz = mri_T1->depth/2 ;
+		printf("extracting interior %dx%dx%d\n", dx, dy, dz) ;
+		mri_tmp = MRIextract(mri_T1, NULL, dx/2, dy/2, dz/2, dx, dy, dz) ;
+		MRIfree(&mri_T1) ; mri_T1 = mri_tmp ;
+	}
 	if (jpdf_name)
 	{
 		transform_T1_values_using_joint_pdf(mri_T1, jpdf_name, invert) ;
@@ -108,6 +128,15 @@ main(int argc, char *argv[])
     ErrorExit(ERROR_NOFILE, "%s: could not read PD volume %s", Progname, 
               PD_fname) ;
 
+	if (extract)
+	{
+		MRI *mri_tmp ;
+		int dx, dy, dz ;
+
+		dx = mri_PD->width/2 ; dy = mri_PD->height/2 ; dz = mri_PD->depth/2 ;
+		mri_tmp = MRIextract(mri_PD, NULL, dx/2, dy/2, dz/2, dx, dy, dz) ;
+		MRIfree(&mri_PD) ; mri_PD = mri_tmp ;
+	}
   if (use_weighting)
   {
     mri_out = MRIsynthesizeWeightedVolume(mri_T1, mri_PD, w5, TR, w30, TR, 110,TE);
@@ -122,9 +151,14 @@ main(int argc, char *argv[])
       discard_PD(mri_PD, 250, 1500) ;
     if (nl_remap_T1)
       remap_T1(mri_T1, nl_mean, nl_scale) ;
-    mri_out = MRIsynthesize(mri_T1, mri_PD, NULL, TR, RADIANS(alpha), TE) ;
+		if (faf_coefs > 0)
+			mri_out = MRIsynthesizeWithFAF(mri_T1, mri_PD, NULL, TR, RADIANS(alpha), TE, nfaf, faf_coefs) ;
+		else
+			mri_out = MRIsynthesize(mri_T1, mri_PD, NULL, TR, RADIANS(alpha), TE) ;
   }
 
+	if (nbias > 0)
+		apply_bias_field(mri_out, nbias, bias_coefs) ;
   printf("writing output to %s.\n", out_fname) ;
   MRIwrite(mri_out, out_fname) ;
 
@@ -157,6 +191,104 @@ get_option(int argc, char *argv[])
            nl_mean, nl_scale, nl_mean) ;
     nargs = 2 ;
   }
+	else if (!stricmp(option, "bias"))
+	{
+		int i, j ;
+
+		nbias = atoi(argv[2]) ;
+		nargs = 2*3*nbias+1 ;
+		for (i = 0 ; i < 3 ; i++)
+			for (j = 0 ; j < 2 ; j++)
+			{
+				bias_coefs[i][j] = (float *)calloc(nbias, sizeof(float)) ;
+				if (!bias_coefs[i][j])
+					ErrorExit(ERROR_NOMEMORY, "%s: could not allocate bias coefficient array (%d, %d)", Progname,i, j) ;
+			}
+
+		for (j = 3, i = 0 ; i < nbias ; i++)
+		{
+			bias_coefs[0][0][i] = atof(argv[j++]) ;
+			bias_coefs[0][1][i] = atof(argv[j++]) ;
+			printf("%2.3f cos(%d w0 x) + %2.3f sin(%d w0 x)\n",
+						 bias_coefs[0][0][i], i+1, bias_coefs[0][1][i], i+1) ;
+		}
+		for (i = 0 ; i < nbias ; i++)
+		{
+			bias_coefs[1][0][i] = atof(argv[j++]) ;
+			bias_coefs[1][1][i] = atof(argv[j++]) ;
+			printf("%2.3f cos(%d w0 y) + %2.3f sin(%d w0 y)\n",
+						 bias_coefs[1][0][i], i+1, bias_coefs[1][1][i], i+1) ;
+		}
+		for (i = 0 ; i < nbias ; i++)
+		{
+			bias_coefs[2][0][i] = atof(argv[j++]) ;
+			bias_coefs[2][1][i] = atof(argv[j++]) ;
+			printf("%2.3f cos(%d w0 z) + %2.3f sin(%d w0 z)\n",
+						 bias_coefs[2][0][i], i+1, bias_coefs[2][1][i], i+1) ;
+		}
+	}
+	else if (!stricmp(option, "faf"))
+	{
+		int i, j ;
+
+		nfaf = atoi(argv[2]) ;
+		nargs = 2*3*nfaf+1 ;
+		for (i = 0 ; i < 3 ; i++)
+			for (j = 0 ; j < 2 ; j++)
+			{
+				faf_coefs[i][j] = (float *)calloc(nfaf, sizeof(float)) ;
+				if (!faf_coefs[i][j])
+					ErrorExit(ERROR_NOMEMORY, "%s: could not allocate faf coefficient array (%d, %d)", Progname,i, j) ;
+			}
+
+		for (j = 3, i = 0 ; i < nfaf ; i++)
+		{
+			faf_coefs[0][0][i] = atof(argv[j++]) ;
+			faf_coefs[0][1][i] = atof(argv[j++]) ;
+			printf("%2.3f cos(%d w0 x) + %2.3f sin(%d w0 x)\n",
+						 faf_coefs[0][0][i], i+1, faf_coefs[0][1][i], i+1) ;
+		}
+		for (i = 0 ; i < nfaf ; i++)
+		{
+			faf_coefs[1][0][i] = atof(argv[j++]) ;
+			faf_coefs[1][1][i] = atof(argv[j++]) ;
+			printf("%2.3f cos(%d w0 y) + %2.3f sin(%d w0 y)\n",
+						 faf_coefs[1][0][i], i+1, faf_coefs[1][1][i], i+1) ;
+		}
+		for (i = 0 ; i < nfaf ; i++)
+		{
+			faf_coefs[2][0][i] = atof(argv[j++]) ;
+			faf_coefs[2][1][i] = atof(argv[j++]) ;
+			printf("%2.3f cos(%d w0 z) + %2.3f sin(%d w0 z)\n",
+						 faf_coefs[2][0][i], i+1, faf_coefs[2][1][i], i+1) ;
+		}
+	}
+#if 0
+	else if (!stricmp(option, "faf"))
+	{
+		int i ;
+
+		nfaf = atoi(argv[2]) ;
+		nargs = 3*nfaf+1 ;
+		faf_coefs[0][0] = (float *)calloc(nfaf, sizeof(float)) ;
+		faf_coefs[0][1] = (float *)calloc(nfaf, sizeof(float)) ;
+		faf_coefs[1][0] = (float *)calloc(nfaf, sizeof(float)) ;
+		faf_coefs[1][1] = (float *)calloc(nfaf, sizeof(float)) ;
+		faf_coefs[1][2] = (float *)calloc(nfaf, sizeof(float)) ;
+		faf_coefs[2][2] = (float *)calloc(nfaf, sizeof(float)) ;
+		if (!faf_coefs[0][0] || !faf_coefs[1][0] || !faf_coefs[2][0] ||
+				!faf_coefs[0][1] || !faf_coefs[1][1] || !faf_coefs[2][1])
+			ErrorExit(ERROR_NOMEMORY, "%s: could not allocate faf coefficient array", Progname) ;
+		for (i = 0 ; i < nfaf ; i++)
+		{
+			faf_coefs[0][i] = atof(argv[3+3*i]) ;
+			faf_coefs[1][i] = atof(argv[3+3*i+1]) ;
+			faf_coefs[2][i] = atof(argv[3+3*i+2]) ;
+			printf("%2.3f cos(%d w0 x), %2.3f cos(%d w0 y), %2.3f cos(%d w0 z)\n",
+						 faf_coefs[0][i], i+1, faf_coefs[1][i], i+1, faf_coefs[2][i], i+1) ;
+		}
+	}
+#endif
   else if (!stricmp(option, "jpdf"))
   {
 		jpdf_name = argv[2] ;
@@ -192,6 +324,10 @@ get_option(int argc, char *argv[])
   }
   else switch (toupper(*option))
   {
+	case 'X':
+		printf("extracting middle half of images\n") ;
+		extract = 1 ;
+		break ;
   case 'W':
     use_weighting = 1 ;
     break ;
@@ -582,3 +718,76 @@ transform_T1_values_using_joint_pdf(MRI *mri_T1, char *jpdf_name, int invert)
 	return(NO_ERROR) ;
 }
 
+static int
+apply_bias_field(MRI *mri, int nbias, float *bias_coefs[3][2])
+{
+	int    x, y, z, n ;
+	double xb, yb, zb, x0, y0, z0, w0x, w0y, w0z ;
+	float  val ;
+
+	x0 = mri->width/2 ; y0 = mri->height/2 ; z0 = mri->depth/2 ;
+	w0x = 2/x0 ; w0y = 2/y0 ; w0z = 2/z0 ;
+	for (x = 0 ; x < mri->width ; x++)
+	{
+		for (xb = 1.0, n=1 ; n <= nbias ; n++)
+			xb += bias_coefs[0][0][n-1] * cos(w0x*n*(x-x0)) + bias_coefs[0][1][n-1] * sin(w0x*n*(x-x0)) ;
+		for (y = 0 ; y < mri->height ; y++)
+		{
+			for (yb = 1.0, n=1 ; n <= nbias ; n++)
+				yb += bias_coefs[1][0][n-1] * cos(w0y*n*(y-y0)) + bias_coefs[1][1][n-1] * sin(w0y*n*(y-y0)) ;
+			for (z = 0 ; z < mri->depth ; z++)
+			{
+				for (zb = 1.0, n=1 ; n <= nbias ; n++)
+					zb += bias_coefs[2][0][n-1] * cos(w0z*n*(z-z0)) + bias_coefs[2][1][n-1] * sin(w0z*n*(z-z0)) ;
+				val = MRIgetVoxVal(mri, x, y, z, 0) ;
+				val = val * xb * yb * zb ;
+				MRIsetVoxVal(mri, x, y, z, 0, val) ;
+			}
+		}
+	}
+
+	return(NO_ERROR) ;
+}
+
+static MRI *
+MRIsynthesizeWithFAF(MRI *mri_T1, MRI *mri_PD, MRI *mri_dst, double TR, double alpha, double TE, int nfaf, 
+										 float *faf_coefs[3][2])
+{
+  int   x, y, z, width, height, depth, n ;
+  Real flash, T1, PD ;
+	double xb, yb, zb, x0, y0, z0, w0x, w0y, w0z ;
+
+	x0 = mri_T1->width/2 ; y0 = mri_T1->height/2 ; z0 = mri_PD->depth/2 ;
+	w0x = 2/x0 ; w0y = 2/y0 ; w0z = 2/z0 ;
+
+  if (!mri_dst)
+    mri_dst = MRIclone(mri_T1, NULL) ;
+
+	mri_dst->tr = TR ; mri_dst->flip_angle = alpha ; mri_dst->te = TE ; mri_dst->ti = 0 ;
+  width = mri_T1->width ; height = mri_T1->height ; depth = mri_T1->depth ;
+  for (x = 0 ; x < width ; x++)
+  {
+		for (xb = 1.0, n=1 ; n <= nfaf ; n++)
+			xb += faf_coefs[0][0][n-1] * cos(w0x*n*(x-x0)) + faf_coefs[0][1][n-1] * sin(w0x*n*(x-x0)) ;
+    for (y = 0 ; y < height ; y++)
+    {
+			for (yb = 1.0, n=1 ; n <= nfaf ; n++)
+				yb += faf_coefs[1][0][n-1] * cos(w0y*n*(y-y0)) + faf_coefs[1][1][n-1] * sin(w0y*n*(y-y0)) ;
+      for (z = 0 ; z < depth ; z++)
+      {
+				for (zb = 1.0, n=1 ; n <= nfaf ; n++)
+					zb += faf_coefs[2][0][n-1] * cos(w0z*n*(z-z0)) + faf_coefs[2][1][n-1] * sin(w0z*n*(z-z0)) ;
+        if (x == Gx && y == Gy && z == Gz)
+          DiagBreak() ;
+				MRIsampleVolume(mri_T1, x, y, z, &T1) ;
+        if (T1 < 900 && T1 > 600)
+          DiagBreak() ;
+				MRIsampleVolume(mri_PD, x, y, z, &PD) ;
+        flash = FLASHforwardModel(xb*yb*zb*alpha, TR, PD, T1) ;
+        MRIsetVoxVal(mri_dst, x, y, z, 0, flash) ;
+      }
+    }
+  }
+
+  return(mri_dst) ;
+}
