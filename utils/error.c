@@ -40,6 +40,12 @@ static int (*error_vfprintf)(FILE *fp,const char *fmt,va_list args) = vfprintf;
 static void (*error_exit)(int ecode) = (void *)(int)exit ;
 
 /*-----------------------------------------------------
+                      GLOBAL DATA
+-------------------------------------------------------*/
+
+int Gerror = NO_ERROR ;
+
+/*-----------------------------------------------------
                     GLOBAL FUNCTIONS
 -------------------------------------------------------*/
 
@@ -79,6 +85,7 @@ ErrorExit(int ecode, char *fmt, ...)
 {
   va_list  args ;
 
+  Gerror = ecode ;
   va_start(args, fmt) ;
   vfprintf(stderr, fmt, args) ;
   fprintf(stderr, "\n") ;
@@ -103,6 +110,7 @@ ErrorPrintf(int ecode, char *fmt, ...)
   va_list  args ;
   FILE     *fp ;
 
+  Gerror = ecode ;
   va_start(args, fmt) ;
   (*error_vfprintf)(stderr, fmt, args) ;
   (*error_vfprintf)(stderr, "\n", NULL) ;
