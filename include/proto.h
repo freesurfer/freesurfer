@@ -11,6 +11,11 @@
 /*----------- SunOS -----------------------*/
 #ifdef SunOS
 
+/* should be in stdlib.h */
+#ifndef EXIT_FAILURE
+#define EXIT_FAILURE  1
+#endif
+
 /* needed for select */
 #include <sys/types.h>
 #include <sys/time.h>
