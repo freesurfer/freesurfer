@@ -971,7 +971,7 @@ int main(int argc, char *argv[])
     }
 
   printf("TR=%2.2f, te=%2.2f, flip angle=%2.2f\n",
-         mri->tr, mri->te, mri->flip_angle) ;
+         mri->tr, mri->te, DEGREES(mri->flip_angle)) ;
   if(in_volume_type != OTL_FILE)
   {
   if(fill_parcellation_flag)
