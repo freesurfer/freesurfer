@@ -215,7 +215,6 @@ protected:
   float mInPlaneMovementIncrements[3];
 
   // The buffer for this view.
-  void DrawBuffer ();
   GLubyte* mBuffer;
 
   // Key assignments.

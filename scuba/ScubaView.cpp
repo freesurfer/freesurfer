@@ -1363,6 +1363,7 @@ ScubaView::DoDraw() {
     TclCommandManager& mgr = TclCommandManager::GetManager();
     mgr.SendCommand( ssCommand.str() );
   }
+  
 }
 
 void
@@ -2486,12 +2487,6 @@ ScubaView::DrawFrameBuffer () {
   glGetError(); // clear error
 #endif  
 
-  DrawBuffer();
-}
-
-void
-ScubaView::DrawBuffer () {
-  
   glRasterPos2i( 0, 0 );
   glDrawPixels( mWidth, mHeight, GL_RGBA, GL_UNSIGNED_BYTE, mBuffer );
 }
