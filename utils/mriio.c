@@ -45,6 +45,8 @@
 #include "matrix.h"
 #include "diag.h"
 
+#define MM_PER_METER  1000.0f
+#define INFO_FNAME    "COR-.info"
 
 #ifdef Linux
 extern void swab(const void *from, void *to, size_t n);
@@ -82,8 +84,8 @@ static void long_buffer_to_image(long *buf, MRI *mri, int slice, int frame) ;
 static void float_buffer_to_image(float *buf, MRI *mri, int slice, int frame) ;
 static void buffer_to_image(BUFTYPE *buf, MRI *mri, int slice, int frame) ;
 static MRI *sdtRead(char *fname, int read_volume);
-static MRI *mghRead(char *fname, int read_volume) ;
-static int mghWrite(MRI *mri, char *fname) ;
+static MRI *mghRead(char *fname, int read_volume, int frame) ;
+static int mghWrite(MRI *mri, char *fname, int frame) ;
 int MRIwriteInfo(MRI *mri, char *fpref);
 
 /********************************************/
@@ -182,7 +184,7 @@ MRI *MRIread(char *fname)
   }
   else if(int_type == MRI_MGH_FILE)
   {
-    mri = mghRead(fname, 1);
+    mri = mghRead(fname, 1, 0);
   }
   else
   {
@@ -272,7 +274,7 @@ MRI *MRIreadInfo(char *fname)
   }
   else if(int_type == MRI_MGH_FILE)
   {
-    mri = mghRead(fname, 0);
+    mri = mghRead(fname, 0, 0);
   }
   else
   {
@@ -320,7 +322,7 @@ int MRIwrite(MRI *mri, char *fname)
   }
   else if(int_type == MRI_MGH_FILE)
   {
-    error = mghWrite(mri, fname);
+    error = mghWrite(mri, fname, 0);
   }
   else
   {
@@ -4089,6 +4091,13 @@ mghRead(char *fname, int read_volume, int frame)
   float  fval, xsize, ysize, zsize, x_r, x_a, x_s, y_r, y_a, y_s,
          z_r, z_a, z_s, c_r, c_a, c_s ;
   short  sval ;
+
+  /* keep the compiler quiet */
+  xsize = ysize = zsize = 0;
+  x_r = x_a = x_s = 0;
+  y_r = y_a = y_s = 0;
+  z_r = z_a = z_s = 0;
+  c_r = c_a = c_s = 0;
 
   fp = fopen(fname, "rb") ;
   if (!fp)
