@@ -19,7 +19,7 @@
 #include "cma.h"
 #include "vlabels.h"
 
-static char vcid[] = "$Id: mri_twoclass.c,v 1.3 2001/06/22 18:40:01 fischl Exp $";
+static char vcid[] = "$Id: mri_twoclass.c,v 1.4 2001/06/27 21:50:38 fischl Exp $";
 
 
 /*-------------------------------- STRUCTURES ----------------------------*/
@@ -255,7 +255,7 @@ main(int argc, char *argv[])
   }
   if (vl2_name && stricmp(vl2_name, "none"))
   {
-    printf("writing voxel labels for group 1 to %s...\n", vl1_name) ;
+    printf("writing voxel labels for group 2 to %s...\n", vl2_name) ;
     VLwrite(vli2, vl2_name) ;
   }
 
