@@ -913,9 +913,9 @@ MRIclassUpdateMeans(MRIC *mric, MRI *mris[], MRI *mri_target, int nimages)
         gcl->m_u->rptr[2][1] += *pzscore++ ;
         if (mric->nvars > 2)
         {
-          gcl->m_u->rptr[3][1] += (float)x ;
-          gcl->m_u->rptr[4][1] += (float)y ;
-          gcl->m_u->rptr[5][1] += (float)z ;
+          gcl->m_u->rptr[3][1] += (float)xt ;
+          gcl->m_u->rptr[4][1] += (float)yt ;
+          gcl->m_u->rptr[5][1] += (float)zt ;
         }
       }
     }
@@ -939,7 +939,7 @@ MRIclassUpdateCovariances(MRIC *mric, MRI *mris[],MRI *mri_target,int nimages)
   int        x, y, z, xc, yc, zc, width, depth, height, scale, classno, 
              nclasses, swidth, sheight, sdepth, overlap, col, row ;
   BUFTYPE    *psrc, *ptarget, src, target ;
-  float      *pzscore, obs[6] ;
+  float      *pzscore, obs[6], covariance ;
   Real       xt, yt, zt ;
   MRI        *mri_src ;
 
@@ -1017,14 +1017,18 @@ MRIclassUpdateCovariances(MRIC *mric, MRI *mris[],MRI *mri_target,int nimages)
         obs[2] = *pzscore++ - gcl->m_u->rptr[2][1] ;
         if (mric->nvars > 2)
         {
-          obs[3] = (float)x - gcl->m_u->rptr[3][1] ;
-          obs[4] = (float)y - gcl->m_u->rptr[4][1] ;
-          obs[5] = (float)z - gcl->m_u->rptr[5][1] ;
+          obs[3] = (float)xt - gcl->m_u->rptr[3][1] ;
+          obs[4] = (float)yt - gcl->m_u->rptr[4][1] ;
+          obs[5] = (float)zt - gcl->m_u->rptr[5][1] ;
         }
         for (row = 1 ; row <= gcl->m_covariance->rows ; row++)
         {
-          for (col = 1 ; col <= gcl->m_covariance->cols ; col++)
-            gcl->m_covariance->rptr[row][col] += obs[row] * obs[col] ;
+          for (col = 1 ; col <= row ; col++)
+          {
+            covariance = obs[row] * obs[col] ;
+            gcl->m_covariance->rptr[row][col] += covariance;
+            gcl->m_covariance->rptr[col][row] += covariance;
+          }
         }
       }
     }
@@ -1097,7 +1101,7 @@ MRIclassComputeCovariances(MRIC *mric)
   GCLASSIFY  *gc, **pgc ;
   GCLASS     *gcl ;
   int        x, y, z, width, depth, height, classno, nclasses, row,col ;
-  float      nobs ;
+  float      nobs, covariance ;
 
   width = mric->width ;
   height = mric->height ;
@@ -1127,8 +1131,12 @@ MRIclassComputeCovariances(MRIC *mric)
           {
             for (row = 1 ; row <= gcl->m_covariance->rows ; row++)
             {
-              for (col = 1 ; col <= gcl->m_covariance->cols ; col++)
-                gcl->m_covariance->rptr[row][col] /= nobs ;
+              for (col = 1 ; col <= row ; col++)
+              {
+                covariance = gcl->m_covariance->rptr[row][col] / nobs ;
+                gcl->m_covariance->rptr[row][col] = covariance ;
+                gcl->m_covariance->rptr[col][row] = covariance ;
+              }
             }
           }
           GCinit(gc, classno) ;
