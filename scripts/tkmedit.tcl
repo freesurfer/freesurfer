@@ -1,6 +1,6 @@
 #! /usr/bin/tixwish
 
-# $Id: tkmedit.tcl,v 1.45 2003/05/07 16:41:19 kteich Exp $
+# $Id: tkmedit.tcl,v 1.46 2003/05/12 18:34:17 kteich Exp $
 
 source $env(MRI_DIR)/lib/tcl/tkm_common.tcl
 
@@ -740,6 +740,15 @@ set tDlogSpecs(LoadPialSurface) [list \
   -presets1 $glShortcutDirs \
   -okCmd {LoadPialSurface %s1; \
   SetDefaultLocation LoadPialSurface %s1} ]
+set tDlogSpecs(LoadSurfaceAnnotation) [list \
+  -title "Load Annotation" \
+  -prompt1 "Load Annoation:" \
+  -note1 "The file name of the annotation to load (*.annot)" \
+  -entry1 [list GetDefaultLocation LoadSurfaceAnnotation] \
+  -default1 [list GetDefaultLocation LoadSurfaceAnnotation] \
+  -presets1 $glShortcutDirs \
+  -okCmd {LoadSurfaceAnnotation 0 %s1; \
+  SetDefaultLocation LoadSurfaceAnnotation %s1} ]
 set tDlogSpecs(LoadMainAuxSurface) [list \
   -title "Load Aux Main Surface" \
   -prompt1 "Load Surface:" \
@@ -766,6 +775,15 @@ set tDlogSpecs(LoadPialAuxSurface) [list \
   -presets1 $glShortcutDirs \
   -okCmd {LoadPialSurface 1 %s1; \
   SetDefaultLocation LoadPialAuxSurface %s1} ]
+set tDlogSpecs(LoadAuxSurfaceAnnotation) [list \
+  -title "Load Annotation" \
+  -prompt1 "Load Annoation:" \
+  -note1 "The file name of the annotation to load (*.annot)" \
+  -entry1 [list GetDefaultLocation LoadAuxSurfaceAnnotation] \
+  -default1 [list GetDefaultLocation LoadAuxSurfaceAnnotation] \
+  -presets1 $glShortcutDirs \
+  -okCmd {LoadSurfaceAnnotation 1 %s1; \
+  SetDefaultLocation LoadAuxSurfaceAnnotation %s1} ]
 set tDlogSpecs(WriteSurfaceValues) [list \
   -title "Write Surface Values" \
   -prompt1 "Save Values As:" \
@@ -2685,6 +2703,10 @@ proc CreateMenuBar { ifwMenuBar } {
 		tMenuGroup_SurfaceLoading } 
 	}}
 	{ command
+	    "Load Annotation"
+	    {DoFileDlog LoadSurfaceAnnotation}
+	    tMenuGroup_SurfaceLoading }
+	{ command
 	    "Unload Surface"
 	    {UnloadSurface 0}
 	    tMenuGroup_SurfaceLoading }
@@ -2707,6 +2729,10 @@ proc CreateMenuBar { ifwMenuBar } {
 		    {DoFileDlog LoadPialAuxSurface}
 		    tMenuGroup_SurfaceLoading }
 	    }}
+	    { commandcd 
+		"Load Aux Annotation"
+		{DoFileDlog LoadAuxSurfaceAnnotation}
+		tMenuGroup_SurfaceLoading }
 	    { command
 		"Unload Aux Surface"
 		{UnloadSurface 1}
