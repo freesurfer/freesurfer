@@ -10,9 +10,12 @@
 #include "proto.h"
 #include "mrisurf.h"
 #include "volume_io.h"
+
 #include "stats.h"
 
-static char vcid[] = "$Id: stat_normalize.c,v 1.4 2002/03/07 20:41:45 greve Exp $";
+extern int float2int_code(char *float2int_string);
+
+static char vcid[] = "$Id: stat_normalize.c,v 1.5 2002/04/03 21:01:08 greve Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -158,6 +161,7 @@ get_option(int argc, char *argv[])
   int  nargs = 0 ;
   char *option ;
   extern char *stats_talxfm;
+  extern int  statnorm_float2int;
   
   option = argv[1] + 1 ;            /* past '-' */
   if (!stricmp(option, "-help"))         print_help() ;
@@ -183,12 +187,21 @@ get_option(int argc, char *argv[])
     break ;
   case 'R':
     sscanf(argv[2], "%f", &resolution) ;
-    printf("INFO: using resolution %f\n",resolution);
+    printf("INFO: settting resolution to %f\n",resolution);
     nargs = 1 ;
     break ;
   case 'X':
     stats_talxfm = argv[2];
     printf("INFO: using %s\n",stats_talxfm);
+    nargs = 1 ;
+    break ;
+  case 'C':
+    statnorm_float2int = float2int_code(argv[2]);
+    if(statnorm_float2int < 0){
+      printf("ERROR: float2int code %s unrecognized\n",argv[2]);
+      exit(1);
+    }
+    printf("INFO: using %s float2int\n",argv[2]);
     nargs = 1 ;
     break ;
   case 'f':
@@ -226,7 +239,8 @@ print_usage(void)
         "\t-S <hemisphere> <surface>  - average in spherical coordinates\n");
   fprintf(stderr,
         "\t-x xfmfile - use subjid/mri/transforms/xfmfile instead of\n");
-  fprintf(stderr,"                     talaiarch.xfm\n");
+  fprintf(stderr,
+        "\t-c float2int - <tkregister>, round\n");
 }
 
 static void

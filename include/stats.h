@@ -5,6 +5,10 @@
 #include "volume_io.h"
 #include "mri.h"
 
+//These are included below
+//#include "mrisurf.h"
+//#include "resample.h"
+
 typedef struct
 {
   float   in_plane_res ;
@@ -36,15 +40,6 @@ typedef struct
 #define MAX_EVENTS       100
 
 #define mri_pvals        mri_avgs
-
-/* This is so applications can specify different xforms */
-/* StatReadTransform() will read in this file */
-#ifdef _STATS_SRC
-  char *stats_talxfm = "talairach.xfm";
-#else
-  extern char *stats_talxfm;
-#endif
-
 
 
 typedef struct
@@ -81,6 +76,18 @@ typedef struct
   
 /* can't include this before structure, as mrisurf.h includes this file. */
 #include "mrisurf.h"
+#include "resample.h"
+
+/* This is so applications can specify different xforms */
+/* StatReadTransform() will read in this file */
+#ifdef _STATS_SRC
+  char *stats_talxfm = "talairach.xfm";
+  int  statnorm_float2int = FLT2INT_TKREG;
+#else
+  extern char *stats_talxfm;
+  extern int  statnorm_float2int;
+#endif
+
 
 SV        *StatReadVolume(char *prefix);
 SV        *StatReadTalairachVolume(char *prefix, char *xform_fname,
