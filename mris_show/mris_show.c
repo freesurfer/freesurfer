@@ -16,7 +16,7 @@
 #include "oglutil.h"
 #include "label.h"
 
-static char vcid[] = "$Id: mris_show.c,v 1.31 2001/03/12 16:15:44 fischl Exp $";
+static char vcid[] = "$Id: mris_show.c,v 1.32 2001/03/12 16:30:42 fischl Exp $";
 
 
 /*-------------------------------- CONSTANTS -----------------------------*/
@@ -301,7 +301,7 @@ main(int argc, char *argv[])
 
   if (compile_flags & TP_FLAG)
   {
-    MRISsetNeighborhoodSize(mris, 2) ;
+    MRISsetNeighborhoodSize(mris, nbrs) ;
     MRIScomputeSecondFundamentalForm(mris) ;
   }
     
@@ -309,7 +309,15 @@ main(int argc, char *argv[])
   glNewList(current_list, GL_COMPILE) ;
   compiled[current_list] = 1 ;
   for (i = 0 ; i < nmarked ; i++)
-    mris->vertices[marked_vertices[i]].marked = 1 ;
+  {
+    if (marked_vertices[i] >= mris->nvertices)
+    {
+      nmarked = i ;
+      marked_vertices[i] = -1 ;
+    }
+    else
+      mris->vertices[marked_vertices[i]].marked = 1 ;
+  }
   OGLUcompile(mris, marked_vertices, compile_flags, cslope) ;
   glEndList() ;
 
