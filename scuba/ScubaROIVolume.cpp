@@ -31,10 +31,6 @@ ScubaROIVolume::SetROIBounds ( int const iBounds[3] ) {
   if( iBounds[0] <= 0 || iBounds[1] <= 0 || iBounds[2] <= 0 ) 
     throw runtime_error( "out of bounds" );
 
-  mBounds[0] = iBounds[0];
-  mBounds[1] = iBounds[1];
-  mBounds[2] = iBounds[2];
-
   if( NULL != mVoxels ) {
     for( int nZ = 0; nZ < mBounds[2]; nZ++ ) {
       for( int nY = 0; nY < mBounds[1]; nY++ ) {
@@ -44,6 +40,10 @@ ScubaROIVolume::SetROIBounds ( int const iBounds[3] ) {
     }
     free( mVoxels );
   }
+
+  mBounds[0] = iBounds[0];
+  mBounds[1] = iBounds[1];
+  mBounds[2] = iBounds[2];
 
   mVoxels = (bool***) calloc( mBounds[2], sizeof(bool**) );
   for( int nZ = 0; nZ < mBounds[2]; nZ++ ) {

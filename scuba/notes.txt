@@ -408,8 +408,6 @@ BRUCE'S LIST:::
 
 - alt-c behavior but lock in a layer
 
-- unload volume
-
 - goto vertex
 
 - writeable coords for goto

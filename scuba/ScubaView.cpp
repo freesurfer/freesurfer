@@ -2805,8 +2805,8 @@ ScubaView::RebuildLabelValueInfo ( float  iRAS[3],
   map<string,string> labelValueMap;
 
   stringstream sID;
-  sID << GetLabel() << " (" << GetID() << ")";
-  labelValueMap["View"] = sID.str();
+  //  sID << GetLabel() << " (" << GetID() << ")";
+  //  labelValueMap["View"] = sID.str();
 
   // Get the RAS coords into a string and set that label/value.
   stringstream ssRASCoords;

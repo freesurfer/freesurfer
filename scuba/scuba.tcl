@@ -10,7 +10,7 @@ if { $err } {
     load [file dirname [info script]]/libscuba[info sharedlibextension] scuba
 }
 
-DebugOutput "\$Id: scuba.tcl,v 1.72 2005/02/03 23:11:56 kteich Exp $"
+DebugOutput "\$Id: scuba.tcl,v 1.73 2005/02/03 23:15:57 kteich Exp $"
 
 # gTool
 #   current - current selected tool (nav,)
@@ -1005,6 +1005,7 @@ proc ScubaKeyDownCallback { inX inY iState iKey } {
 
 proc GotoCoordsInputCallback {} {
 
+    global gaView
     global gCoordsInput
 
     # Get the input string.
@@ -1022,7 +1023,7 @@ proc GotoCoordsInputCallback {} {
     } else {
 
 	# Set the cursor.
-	SetViewRASCenter 0 \
+	SetViewRASCenter $gaView(current,id) \
 	    [lindex $sFiltered 0] [lindex $sFiltered 1] [lindex $sFiltered 2]
 	RedrawFrame [GetMainFrameID]
     }
@@ -4438,7 +4439,7 @@ proc SaveSceneScript { ifnScene } {
     set f [open $ifnScene w]
 
     puts $f "\# Scene file generated "
-    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.72 2005/02/03 23:11:56 kteich Exp $"
+    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.73 2005/02/03 23:15:57 kteich Exp $"
     puts $f ""
 
     # Find all the data collections.
