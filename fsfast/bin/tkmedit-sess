@@ -1,7 +1,7 @@
 #!/bin/csh -f
 # tkmedit-sess
 #
-set VERSION = '$Id: tkmedit-sess,v 1.5 2003/08/23 00:23:43 greve Exp $';
+set VERSION = '$Id: tkmedit-sess,v 1.6 2003/09/17 02:08:04 greve Exp $';
 set inputargs = ($argv);
 
 which pawd > /dev/null
@@ -344,6 +344,7 @@ set cmd = ($TKMEDIT $anatoption $mapoption $hdroption $offsetoption)
 set cmd = ($cmd -fthresh $fthresh -fmid $fmid -fslope $fslope )
 set cmd = ($cmd $segoption);
 echo "------------------------"|& tee -a $LF
+echo "SUBJECTS_DIR $SUBJECTS_DIR"|& tee -a $LF
 $PWDCMD|& tee -a $LF
 echo $cmd|& tee -a $LF
 echo "------------------------"|& tee -a $LF
