@@ -8,4 +8,10 @@
 #define near
 #define hmemmove(dst,src,n)  memcpy(dst,src,n)
 
+short  swapShort(short s) ;
+long   swapLong(long l) ;
+float   swapFloat(float l) ;
+double swapDouble(double dval) ;
+int    swapInt(int i) ;
+
 #endif
