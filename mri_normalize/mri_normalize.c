@@ -20,7 +20,7 @@ static MRI *compute_bias(MRI *mri_src, MRI *mri_dst, MRI *mri_bias) ;
 static int conform = 0 ;
 static int gentle_flag = 0 ;
 
-static float bias_sigma = 4.0 ;
+static float bias_sigma = 8.0 ;
 
 static char *mask_fname ;
 char *Progname ;
@@ -53,7 +53,7 @@ main(int argc, char *argv[])
   struct timeb start ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_normalize.c,v 1.33 2004/09/15 13:39:24 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_normalize.c,v 1.34 2004/10/13 13:53:51 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -152,7 +152,13 @@ main(int argc, char *argv[])
 	}
   else
   {
-    mri_dst = MRIcopy(mri_src, NULL) ;
+		if (file_only)
+			mri_dst = MRIcopy(mri_src, NULL) ;
+		else
+		{
+			printf("computing initial normalization using SNR...\n") ;
+			mri_dst = MRInormalizeHighSignalLowStd(mri_src, NULL, bias_sigma, DEFAULT_DESIRED_WHITE_MATTER_VALUE) ;
+		}
     if (!mri_dst)
       ErrorExit(ERROR_BADPARM, "%s: could not allocate volume", Progname) ;
   }
@@ -255,10 +261,7 @@ get_option(int argc, char *argv[])
   {
 		no1d = 1 ;
     num_3d_iter = 1 ;
-    gentle_flag = 1 ;
-		bias_sigma = 10 ;
-		
-    printf("disabling 1D normalization and setting niter=1, sigma=10, gentle=1, make sure to use -f to specify control points\n") ;
+    printf("disabling 1D normalization and setting niter=1, make sure to use -f to specify control points\n") ;
   }
   else if (!stricmp(option, "sigma"))
   {

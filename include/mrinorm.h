@@ -87,6 +87,8 @@ int MRInormCheckPeaks(MNI *mni, float *inputs, float *outputs, int npeaks) ;
 MRI *MRInormFindControlPoints(MRI *mri_src, int wm_target, 
                               float intensity_above, float intensity_below,
                               MRI *mri_ctrl, int which) ;
+MRI *MRInormalizeHighSignalLowStd(MRI *mri_src, MRI *mri_dst, float bias_sigma, float wm_target) ;
+MRI *MRInormFindHighSignalLowStdControlPoints(MRI *mri_src, MRI *mri_ctrl) ;
 MRI *MRInormGentlyFindControlPoints(MRI *mri_src, int wm_target, 
                                     float intensity_above, 
                                     float intensity_below, MRI *mri_ctrl) ;

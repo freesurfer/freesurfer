@@ -114,6 +114,8 @@ MRIhistogramRegion(MRI *mri, int nbins, HISTOGRAM *histo, MRI_REGION *region)
   bmin = (BUFTYPE)fmin ; bmax = (BUFTYPE)fmax ;
   if (!nbins)
     nbins = nint(fmax - fmin + 1.0) ;
+	if (nbins <= 0)
+		nbins = 255 ;
 
   if (!histo)
     histo = HISTOalloc(nbins) ;

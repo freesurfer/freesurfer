@@ -1538,7 +1538,6 @@ MRIstdRegion(MRI *mri_src, MRI*mri_dst, MRI *mri_mean, int wsize,
           xk, yk, zk, xi, yi, zi ;
   float   *pdst, wcubed, mean, *pmean, variance, f ;
 
-  wcubed = (float)(wsize*wsize*wsize) ;
   whalf = wsize/2 ;
   width = region->x + region->dx ;
   if (width > mri_src->width)
@@ -1584,22 +1583,32 @@ MRIstdRegion(MRI *mri_src, MRI*mri_dst, MRI *mri_mean, int wsize,
       pmean = &MRIFvox(mri_mean, 0, y-y0, z-z0) ;
       for (x = x0 ; x < width ; x++)
       {
-        mean = *pmean++ ;
+        mean = *pmean++ ; wcubed = 0 ;
         for (variance = 0.0f, zk = -whalf ; zk <= whalf ; zk++)
         {
-          zi = mri_src->zi[z+zk] ;
+          zi = z+zk ;
+					if (zi < 0 || zi >= depth)
+						continue ;
           for (yk = -whalf ; yk <= whalf ; yk++)
           {
-            yi = mri_src->yi[y+yk] ;
+            yi = y+yk ;
+						if (yi < 0 || yi >= height)
+							continue ;
             for (xk = -whalf ; xk <= whalf ; xk++)
             {
-              xi = mri_src->xi[x+xk] ;
+              xi = x+xk ;
+							if (xi < 0 || xi >= width)
+								continue ;
+							wcubed++ ;
               f = (float)MRIvox(mri_src, xi, yi, zi) - mean ;
               variance += (f * f) ;
             }
           }
         }
-        *pdst++ = sqrt(variance / wcubed) ;
+				if (FZERO(wcubed))
+					*pdst = 0.0 ;
+				else
+					*pdst++ = sqrt(variance / wcubed) ;
       }
     }
   }
@@ -1996,9 +2005,8 @@ MRIgaussian1d(float sigma, int max_len)
 MRI *
 MRIstd(MRI *mri_src, MRI*mri_dst, MRI *mri_mean, int wsize)
 {
-  int     width, height, depth, x, y, z, whalf, x0, y0, z0 ;
-  BUFTYPE *psrc ;
-  float   *pdst, wcubed, mean, *pmean, variance, f ;
+  int     width, height, depth, x, y, z, whalf, x0, y0, z0, xi, yi, zi ;
+  float   wcubed, mean, variance, f ;
 
   width = mri_src->width ;
   height = mri_src->height ;
@@ -2013,31 +2021,44 @@ MRIstd(MRI *mri_src, MRI*mri_dst, MRI *mri_mean, int wsize)
     ErrorReturn(mri_dst, 
                 (ERROR_UNSUPPORTED, "MRIstd: dst must be MRI_FLOAT")) ;
 
-  wcubed = (float)(wsize*wsize*wsize) ;
   whalf = wsize/2 ;
 
-  for (z = whalf ; z < depth-whalf ; z++)
+  for (z = 0 ; z < depth ; z++)
   {
-    for (y = whalf ; y < height-whalf ; y++)
+    for (y = 0 ; y < height ; y++)
     {
-      pdst = &MRIFvox(mri_dst, whalf, y, z) ;
-      pmean = &MRIFvox(mri_mean, whalf, y, z) ;
-      for (x = whalf ; x < width-whalf ; x++)
+      for (x = 0 ; x < width ; x++)
       {
-        mean = *pmean++ ;
+				if (x == Gx && y == Gy && z == Gz)
+					DiagBreak() ;
+        mean = MRIgetVoxVal(mri_mean, x, y, z, 0) ;
+				wcubed = 0 ;
         for (variance = 0.0f, z0 = -whalf ; z0 <= whalf ; z0++)
         {
+					zi = z+z0 ;
+					if (zi < 0 || zi >= depth)
+						continue ;
           for (y0 = -whalf ; y0 <= whalf ; y0++)
           {
-            psrc = &MRIvox(mri_src, x-whalf, y+y0, z+z0) ;
+						yi = y + y0 ;
+						if (yi < 0 || yi >= height)
+							continue ;
             for (x0 = -whalf ; x0 <= whalf ; x0++)
             {
-              f = (float)*psrc++ - mean ;
+							xi = x + x0 ;
+							if (x < 0 || x > width)
+								continue ;
+							wcubed++ ;
+							f = MRIgetVoxVal(mri_src, xi, yi, zi, 0) ;
+              f -= mean ;
               variance += (f * f) ;
             }
           }
         }
-        *pdst++ = variance / wcubed ;
+				if (wcubed == 0)
+					MRIsetVoxVal(mri_dst, x, y, z, 0, 0) ;
+				else
+					MRIsetVoxVal(mri_dst, x, y, z, 0, sqrt(variance/wcubed)) ;
       }
     }
   }

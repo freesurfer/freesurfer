@@ -1,5 +1,6 @@
 #include "string_fixed.h"
 #include <stdlib.h>
+#include <math.h>
 #include <stdexcept>
 #include <iomanip>
 #include "GL/glut.h"

@@ -109,7 +109,7 @@ main(int argc, char *argv[])
   struct timeb start ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_average.c,v 1.24 2004/08/04 20:39:41 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_average.c,v 1.25 2004/10/13 13:53:48 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -402,6 +402,7 @@ usage_exit(int code)
   printf("\t-r <x> <y> <z>  rotation of second volume around each axis in degrees\n");
   printf("\t-m <float n>    use momentum n (default=0)\n");
   printf("\t-a              align volumes before averaging\n");
+	printf("\t-sqr            take sum of squares instead of average\n") ;
   printf("\t-u              print usage\n");
   exit(code) ;
 }

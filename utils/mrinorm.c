@@ -1716,6 +1716,11 @@ MRI3dNormalize(MRI *mri_orig, MRI *mri_src, int wm_target, MRI *mri_norm,
 			MRIcopyHeader(mri_src, mri_ctrl) ;
 			nctrl = MRInormAddFileControlPoints(mri_ctrl, 255) ;
 			fprintf(stderr, "only using %d control points from file...\n", nctrl) ;
+			if (getenv("WRITE_CONTROL_POINTS") != NULL)
+			{
+				printf("writing control point volume to c.mgz\n") ;
+				MRIwrite(mri_ctrl, "c.mgz") ;
+			}
 		}
       
 		if (control_volume_fname)
@@ -1826,6 +1831,11 @@ MRI3dGentleNormalize(MRI *mri_src, MRI *mri_bias, int wm_target, MRI *mri_norm,
 			MRIcopyHeader(mri_src, mri_ctrl) ;
       nctrl = MRInormAddFileControlPoints(mri_ctrl, 255) ;
       fprintf(stderr, "only using %d control points from file...\n", nctrl) ;
+			if (getenv("WRITE_CONTROL_POINTS") != NULL)
+			{
+				printf("writing control point volume to c.mgz\n") ;
+				MRIwrite(mri_ctrl, "c.mgz") ;
+			}
     }
       
     if (control_volume_fname)
@@ -4008,3 +4018,141 @@ find_tissue_intensities(MRI *mri_src, MRI *mri_ctrl, float *pwm, float *pgm, flo
 	MRIfree(&mri_ctrl) ;  /* copy of mri_ctrl, NOT the passed in one */
 	return(csf_thresh) ;
 }
+
+#ifdef WSIZE
+#undef WSIZE
+#endif
+#define WSIZE(mri)  ((((int)((7.0/mri->thick)/2))*2)+1)   /* make sure it's odd */
+#define MIN_WM_SNR   20
+
+MRI *
+MRInormFindHighSignalLowStdControlPoints(MRI *mri_src, MRI *mri_ctrl)
+{
+	MRI              *mri_ratio, *mri_mean, *mri_std/*, *mri_tmp = NULL */;
+	MRI_SEGMENTATION *mriseg ;
+	int              s1, s2, b ;
+	HISTOGRAM        *h ;
+	float            total, num ;
+
+	if (mri_ctrl == NULL)
+	{
+		mri_ctrl = MRIalloc(mri_src->width, mri_src->height, mri_src->depth, MRI_UCHAR) ;
+		MRIcopyHeader(mri_src, mri_ctrl) ;
+	}
+
+	mri_mean = MRImean(mri_src, NULL, WSIZE(mri_src)) ;
+	mri_std = MRIstd(mri_src, NULL, mri_mean, WSIZE(mri_src)) ;
+	mri_ratio = MRIdivide(mri_mean, mri_std, NULL) ;
+	MRImask(mri_ratio, mri_std, mri_ratio, 0, 0) ;
+	if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+	{
+		MRIwrite(mri_mean, "m.mgz") ;	MRIwrite(mri_std, "s.mgz") ;
+	}
+
+	MRIfree(&mri_mean) ; MRIfree(&mri_std) ;
+
+	h = MRIhistogram(mri_ratio, 0) ;
+
+	/* don't count background voxels */
+	for (total = 0.0f, b = 1 ; b < h->nbins ; b++)
+		total += h->counts[b] ;
+	for (num = 0.0f, b = h->nbins-1 ; b >= 1 ; b--)
+	{
+		num += h->counts[b] ;
+		if (num > 20000)   /* use voxels that are in the top .5% of SNR */
+			break ;
+	}
+	printf("using SNR threshold %2.3f at bin %d\n", h->bins[b], b) ;
+
+	if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+	{
+		HISTOplot(h, "h.plt") ;
+		MRIwrite(mri_ratio, "rb.mgz") ;
+	}
+	mriseg = MRIsegment(mri_ratio, h->bins[b], 2*h->bins[h->nbins-1]);
+	HISTOfree(&h) ;
+	s1 = MRIsegmentMax(mriseg) ;
+	MRIsegmentToImage(mri_ratio, mri_ctrl, mriseg, s1) ;
+	num = mriseg->segments[s1].nvoxels ;
+	mriseg->segments[s1].nvoxels = 0 ;
+	s2 = MRIsegmentMax(mriseg) ;
+	MRIsegmentToImage(mri_ratio, mri_ctrl, mriseg, s2) ;
+	mriseg->segments[s1].nvoxels = num ;
+
+	printf("using segments %d and %d with %d and %d voxels, centroids (%2.0f, %2.0f, %2.0f) and (%2.0f, %2.0f, %2.0f)\n", 
+				 s1, s2, mriseg->segments[s1].nvoxels,
+				 mriseg->segments[s2].nvoxels,
+				 mriseg->segments[s1].cx, mriseg->segments[s1].cy, mriseg->segments[s1].cz,
+				 mriseg->segments[s2].cx, mriseg->segments[s2].cy, mriseg->segments[s2].cz) ;
+	MRIbinarize(mri_ctrl, mri_ctrl, 1, CONTROL_NONE, CONTROL_MARKED) ;
+#if 0
+	while (MRIvoxelsInLabel(mri_ctrl, CONTROL_MARKED) > 10000)
+	{
+		mri_tmp = MRIerode(mri_ctrl, mri_tmp) ;
+		if (MRIvoxelsInLabel(mri_tmp, CONTROL_MARKED) < 100)
+			break ;
+		MRIcopy(mri_tmp, mri_ctrl) ;
+	}
+#endif
+	if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+	{
+		MRIwrite(mri_ctrl, "csnr.mgz") ;
+	}
+	if (Gx >= 0)
+		printf("(%d, %d, %d) is %san control point\n", Gx, Gy, Gz, MRIvox(mri_ctrl, Gx, Gy,Gz) ? "" : "NOT ") ;
+
+	MRIsegmentFree(&mriseg) ;
+	MRIfree(&mri_ratio) ; /*MRIfree(&mri_tmp) ;*/
+	return(mri_ctrl) ;
+}
+
+MRI *
+MRInormalizeHighSignalLowStd(MRI *mri_src, MRI *mri_norm, float bias_sigma, float wm_target)
+{
+	int      nctrl, x, y, z, width, depth, height ;
+	MRI      *mri_ctrl, *mri_bias ;
+	float    norm, src, bias ;
+	
+	width = mri_src->width ; height = mri_src->height ; depth = mri_src->depth ;
+
+	if (mri_norm == NULL)
+	{
+		mri_norm = MRIclone(mri_src, NULL) ;
+	}
+
+	mri_ctrl = MRInormFindHighSignalLowStdControlPoints(mri_src, NULL) ;
+	nctrl = MRInormAddFileControlPoints(mri_ctrl, 255) ;
+	MRIbinarize(mri_ctrl, mri_ctrl, 1, CONTROL_NONE, CONTROL_MARKED) ;
+	mri_bias = MRIbuildBiasImage(mri_src, mri_ctrl, NULL, bias_sigma) ;
+	MRIfree(&mri_ctrl) ;
+  for (z = 0 ; z < depth ; z++)
+  {
+    for (y = 0 ; y < height ; y++)
+    {
+      for (x = 0 ; x < width ; x++)
+      {
+				if (x == Gx && y == Gy && z == Gz)
+					DiagBreak() ;
+        src = MRIgetVoxVal(mri_src, x, y, z, 0) ;
+				bias = MRIgetVoxVal(mri_bias, x, y, z, 0) ;
+        if (!bias)   /* should never happen */
+          norm = src ;
+        else
+          norm = src * wm_target / bias ;
+        if (norm > 255.0f && mri_norm->type == MRI_UCHAR)
+          norm = 255.0f ;
+        MRIsetVoxVal(mri_norm, x, y, z, 0, norm) ;
+      }
+    }
+  }
+	if (Gdiag & DIAG_WRITE && DIAG_VERBOSE)
+	{
+		MRIwrite(mri_bias, "bsnr.mgz") ;
+		MRIwrite(mri_norm, "nsnr.mgz") ;
+	}
+
+	MRIfree(&mri_bias) ; 
+
+  return(mri_norm) ;
+}
+

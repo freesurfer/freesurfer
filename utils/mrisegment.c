@@ -333,9 +333,9 @@ MRIsegment(MRI *mri, float low_val, float hi_val)
   MRI_SEGMENTATION  *mriseg ;
   MRI_SEGMENT       *mseg, *mseg2 ;
   int               x, y, z, width, height, depth, xi, yi, zi, xk, yk, zk,
-                    val, border_labels[NBR_VOX], nlabels, label, nvox ;
+		                border_labels[NBR_VOX], nlabels, label, nvox ;
   MRI               *mri_labeled ;
-  float             voxel_size ;
+  float             voxel_size, val ;
   int max;
   int count =0; 
 
@@ -363,13 +363,13 @@ MRIsegment(MRI *mri, float low_val, float hi_val)
     {
       for (x = 0 ; x < width ; x++)
       {
-        val = MRIvox(mri, x, y, z) ;
-	// if within the range
+        val = MRIgetVoxVal(mri, x, y, z, 0) ;
+				// if within the range
         if (val >= low_val && val <= hi_val)
         {
-	  count++;
+					count++;
 
-	  // initializer for border_labels
+					// initializer for border_labels
           memset(border_labels, -1, NBR_VOX*sizeof(int)) ;
           for (nvox = 0, zk = -1 ; zk <= 1 ; zk++)
           {
@@ -381,7 +381,7 @@ MRIsegment(MRI *mri, float low_val, float hi_val)
               yi = y+yk ; 
               if ((yi < 0) || (yi >= height))
                 continue ;
-	      // increment nvox count here
+							// increment nvox count here
               for (xk = -1 ; xk <= 1 ; xk++, nvox++)
               {
 #if 1
@@ -392,14 +392,14 @@ MRIsegment(MRI *mri, float low_val, float hi_val)
                 xi = x+xk ; 
                 if ((xi < 0) || (xi >= width))
                   continue ;
-		// get the neighbor label
+								// get the neighbor label
                 label = MRISvox(mri_labeled, xi, yi, zi) ;
                 if (label >= 0)
                   border_labels[nvox] = label ;
               }
             }
           }
-	  // count nonzero labels in nbrs
+					// count nonzero labels in nbrs
           for (nlabels = nvox = 0 ; nvox < NBR_VOX ; nvox++)
           {
             label = border_labels[nvox] ;
@@ -409,16 +409,16 @@ MRIsegment(MRI *mri, float low_val, float hi_val)
               nlabels++ ;
             }
           }
-	  // reset found
+					// reset found
           for (nvox = 0 ; nvox < NBR_VOX ; nvox++)
           {
             label = border_labels[nvox] ;
             if (label >= 0)
               mriseg->segments[label].found = 0 ; /* for next time */
           }
-	  //
+					//
           label = 0 ;
-	  // create labels for those points which are not connected
+					// create labels for those points which are not connected
           switch (nlabels)
           {
           case 0:          /* allocate a new segment */
@@ -435,7 +435,7 @@ MRIsegment(MRI *mri, float low_val, float hi_val)
                 label = border_labels[nvox] ;
                 break ;
               }
-	    // points to the same label position
+						// points to the same label position
             mseg = &mriseg->segments[label] ;
             break ;
           default:         /* merge segments and assign to lowest number */
@@ -444,26 +444,26 @@ MRIsegment(MRI *mri, float low_val, float hi_val)
             {
               if (border_labels[nvox] >= 0)
               {
-		// the 1st encountered label case
+								// the 1st encountered label case
                 if (!mseg)
                 {
-		  // set the first index position
+									// set the first index position
                   label = border_labels[nvox] ;
                   mseg = &mriseg->segments[label] ;
                   mseg->found = 1 ;
                 }
-		// the rest
+								// the rest
                 else
                 {
                   mseg2 = &mriseg->segments[border_labels[nvox]] ;
                   if (mseg2->found == 0)
                   {
                     mseg2->found = 1 ;  /* prevent merging more than once */
-		    // merge to the label position
+										// merge to the label position
                     if (mriSegmentMerge(mriseg, label, border_labels[nvox],
                                         mri_labeled)  != NO_ERROR)
                     {
-		      // nsegments decreased by one
+											// nsegments decreased by one
                       MRIsegmentFree(&mriseg) ;
                       return(NULL) ;
                     }
@@ -472,7 +472,7 @@ MRIsegment(MRI *mri, float low_val, float hi_val)
                   
               }
             }
-	    // reset found
+						// reset found
             for (nvox = 0 ; nvox < NBR_VOX ; nvox++)
               if (border_labels[nvox] >= 0)
                 mriseg->segments[border_labels[nvox]].found = 0 ;
@@ -481,9 +481,9 @@ MRIsegment(MRI *mri, float low_val, float hi_val)
           /* add it to the existing list */
           if (mseg->nvoxels >= mseg->max_voxels)
           {
-	    // this max could be the same as mseg->max_voxels
-	    // this is taken care in mriSegmentReallocateVoxels()
-	    max = nint(mseg->max_voxels*VOX_INCREASE);
+						// this max could be the same as mseg->max_voxels
+						// this is taken care in mriSegmentReallocateVoxels()
+						max = nint(mseg->max_voxels*VOX_INCREASE);
             // if (mriSegmentReallocateVoxels(mriseg, label, 
             //                                nint(mseg->max_voxels*VOX_INCREASE))
             //    != NO_ERROR)
@@ -499,7 +499,7 @@ MRIsegment(MRI *mri, float low_val, float hi_val)
           mseg->nvoxels++ ;
           mseg->area += voxel_size ; // voxel_size = volume
 #if 0   
-	  // this is for only 1mm voxel case
+					// this is for only 1mm voxel case
           if (mseg->nvoxels != (int)mseg->area)
             DiagBreak() ;
 #endif
@@ -743,7 +743,7 @@ MRIsegmentToImage(MRI *mri_src, MRI *mri_dst, MRI_SEGMENTATION *mriseg, int s)
   for (v = 0 ; v < mseg->nvoxels ; v++)
   {
     x = mseg->voxels[v].x ; y = mseg->voxels[v].y ; z = mseg->voxels[v].z ; 
-    MRIvox(mri_dst, x, y, z) = MRIvox(mri_src, x, y, z) ;
+    MRIsetVoxVal(mri_dst, x, y, z,0, MRIgetVoxVal(mri_src, x, y, z, 0)) ;
   }
 
   return(mri_dst) ;

@@ -1,4 +1,5 @@
 #include "ScubaFrame.h"
+#include <math.h>
 #include "PreferencesManager.h"
 extern "C" {
 #include "GL/glut.h"

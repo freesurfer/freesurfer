@@ -1495,7 +1495,6 @@ MRI *
 MRImask(MRI *mri_src, MRI *mri_mask, MRI *mri_dst,int mask,float out_val)
 {
   int     width, height, depth, x, y, z, mask_val;
-  BUFTYPE *pmask ;
   float   val ;
 
   width = mri_src->width ;
@@ -1513,7 +1512,6 @@ MRImask(MRI *mri_src, MRI *mri_mask, MRI *mri_dst,int mask,float out_val)
   {
     for (y = 0 ; y < height ; y++)
     {
-      pmask = &MRIvox(mri_mask, 0, y, z) ;
       for (x = 0 ; x < width ; x++)
       {
 				if (x == Gx && y == Gy && z == Gz)
