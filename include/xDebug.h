@@ -138,6 +138,11 @@ extern int                  xDbg_gLineNumberOfError;
                                     } \
                                  } while(0)
 
+#define DebugQuietThrow() \
+                                 do { \
+                                    goto cleanup; \
+                                 } while(0)
+
 /* start and end the 'catch block' */
 #define DebugCatch               goto cleanup; \
                                  error: \
