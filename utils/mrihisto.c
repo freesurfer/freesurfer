@@ -100,7 +100,7 @@ MRIhistogramRegion(MRI *mri, int nbins, HISTOGRAM *histo, MRI_REGION *region)
   float             fmin, fmax, bin_size ;
   BUFTYPE           bmin, bmax ;
   static MRI        *mri_prev = NULL ;
-  static HISTOGRAM  h_prev ;
+  static HISTOGRAM  *h_prev ;
   static MRI_REGION reg_prev ;
 
 #if 0
@@ -124,7 +124,8 @@ MRIhistogramRegion(MRI *mri, int nbins, HISTOGRAM *histo, MRI_REGION *region)
 
   if (!mri_prev)   /* first invocation, initialize state machine */
   {
-    HISTOclear(&h_prev, &h_prev) ;
+    h_prev = HISTOcopy(histo, NULL) ;
+    HISTOclear(h_prev, h_prev) ;
     REGIONclear(&reg_prev) ;
   }
 
@@ -154,14 +155,14 @@ MRIhistogramRegion(MRI *mri, int nbins, HISTOGRAM *histo, MRI_REGION *region)
     reg_right.dx = region->x + region->dx - reg_right.x ;
     mriHistogramRegion(mri, 0, &histo_right, &reg_right) ;
 
-    HISTOsubtract(&h_prev, &histo_left, histo) ;
+    HISTOsubtract(h_prev, &histo_left, histo) ;
     HISTOadd(histo, &histo_right, histo) ;
   }
   else
     mriHistogramRegion(mri, nbins, histo, region) ;
   
   mri_prev = mri ;
-  HISTOcopy(histo, &h_prev) ;
+  HISTOcopy(histo, h_prev) ;
   REGIONcopy(region, &reg_prev) ;
   return(histo) ;
 }
