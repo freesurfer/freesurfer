@@ -13,6 +13,7 @@ typedef struct {
   char *FileName;
   char *PatientName;
   char *PatientDOB;
+  char  PatientGender[7];
   char *StudyDate;
   char *StudyTime;
   char *PulseSequence;
