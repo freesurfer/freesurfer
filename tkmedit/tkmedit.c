@@ -3,10 +3,10 @@
   ===========================================================================*/
 
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2004/06/13 17:34:03 $
-// Revision       : $Revision: 1.208 $
-char *VERSION = "$Revision: 1.208 $";
+// Revision Author: $Author: fischl $
+// Revision Date  : $Date: 2004/06/24 16:23:28 $
+// Revision       : $Revision: 1.209 $
+char *VERSION = "$Revision: 1.209 $";
 
 #define TCL
 #define TKMEDIT 
@@ -1051,7 +1051,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
      shorten our argc and argv count. If those are the only args we
      had, exit. */
   /* rkt: check for and handle version tag */
-  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.208 2004/06/13 17:34:03 kteich Exp $", "$Name:  $");
+  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.209 2004/06/24 16:23:28 fischl Exp $", "$Name:  $");
   if (nNumProcessedVersionArgs && argc - nNumProcessedVersionArgs == 1)
     exit (0);
   argc -= nNumProcessedVersionArgs;
@@ -2140,6 +2140,8 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
   /* If we're scaling up, do it now. Re-allocate the selection volume too. */
   if( bScaleUpVolume ) {
     Volm_SetMinVoxelSizeToOne( gAnatomicalVolume[tkm_tVolumeType_Main] );
+		Volm_GetIdxToRASTransform( gAnatomicalVolume[tkm_tVolumeType_Main],
+															 &gIdxToRASTransform );
     AllocateSelectionVolume();
 
     /* This changes when you resize the volume like that, so get it
@@ -2175,6 +2177,8 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
     }
     if( bScaleUpVolume ) {
       Volm_SetMinVoxelSizeToOne( gAnatomicalVolume[tkm_tVolumeType_Aux] );
+      Volm_GetIdxToRASTransform( gAnatomicalVolume[tkm_tVolumeType_Aux],
+				 &gIdxToRASTransform );
     }
   }
   
@@ -5005,7 +5009,7 @@ int main ( int argc, char** argv ) {
     DebugPrint( ( "%s ", argv[nArg] ) );
   }
   DebugPrint( ( "\n\n" ) );
-  DebugPrint( ( "$Id: tkmedit.c,v 1.208 2004/06/13 17:34:03 kteich Exp $ $Name:  $\n" ) );
+  DebugPrint( ( "$Id: tkmedit.c,v 1.209 2004/06/24 16:23:28 fischl Exp $ $Name:  $\n" ) );
 
   
   /* init glut */
@@ -7153,6 +7157,8 @@ tkm_tErr LoadVolume ( tkm_tVolumeType iType,
   
   if( gbScaleUpVolume ) {
     Volm_SetMinVoxelSizeToOne( newVolume );
+		Volm_GetIdxToRASTransform( newVolume,
+				 &gIdxToRASTransform );
   }
 
   /* if the volume exists, get the brightness and contrast to restore
