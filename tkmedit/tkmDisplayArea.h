@@ -173,11 +173,24 @@ typedef struct {
 typedef struct {
 
   tBoolean mbVertex;
+
+  /* the original vertex. */
   int      mnOriginalVertexIndex;
   xVoxel   mOriginalVertex;
-  xVoxel   mInterpVertex;
+
+  /* the neighboring vertex. */
+  int      mnNeighborVertexIndex;
+  xVoxel   mNeighborVertex;
+
+  /* the original vertex projected onto the viewing plane. */
   xPoint2f mIntersectionPoint;
+  
+  /* the intersection of the edge between the original and neighboring
+     vertices with the viewing plane. */
   xPoint2f mInterpIntersectionPoint;
+
+  /* the interpIntersectionPoint in 3D space. */
+  xVoxel   mInterpVertex;
 
 } DspA_tSurfaceListNode, *DspA_tSurfaceListNodeRef;
 

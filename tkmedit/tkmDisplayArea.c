@@ -4865,14 +4865,18 @@ DspA_tErr DspA_BuildSurfaceDrawLists_ ( tkmDisplayAreaRef this,
 	/* fill out a node. */
 	drawListNode.mbVertex = TRUE;
 	drawListNode.mnOriginalVertexIndex = nVertexIndex;
+	drawListNode.mnNeighborVertexIndex = nNeighborVertexIndex;
 	drawListNode.mIntersectionPoint = intersectionPt;
 	drawListNode.mInterpIntersectionPoint = interpIntersectionPt;
 
 	/* the original vertex is just the (unnormalized) anatomical
-	   vertex. */
+	   vertex. same with the neighbor vertex. */
 	DspA_UnnormalizeVoxel_( anaVertex,
 				this->mOrientation,
 				&drawListNode.mOriginalVertex );
+	DspA_UnnormalizeVoxel_( anaNeighborVertex,
+				this->mOrientation,
+				&drawListNode.mNeighborVertex );
 
 	/* the interp vertex is a normalized point with x/y coords of
 	   the intersection point and the z coord of the cur slice,
@@ -5234,20 +5238,23 @@ DspA_tErr DspA_GetClosestInterpSurfVoxel ( tkmDisplayAreaRef this,
 					   xVoxelRef         oInterpAnaIdx,
 					   char*             osDescription ) {
 
-  DspA_tErr             eResult         = DspA_tErr_NoErr;
-  xGArr_tErr            eList           = xGArr_tErr_NoErr;
-  int                   nSlice          = 0;
-  xGrowableArrayRef     list            = NULL;
+  DspA_tErr             eResult               = DspA_tErr_NoErr;
+  xGArr_tErr            eList                 = xGArr_tErr_NoErr;
+  int                   nSlice                = 0;
+  xGrowableArrayRef     list                  = NULL;
   DspA_tSurfaceListNode drawListNode;
-  float                 dx              = 0;
-  float                 dy              = 0;
-  float                 dz              = 0;
-  float                 fDistance       = 0;
-  float                 fLowestDistance = 0;
-  int                   nClosestIndex   = 0;
+  float                 dx                    = 0;
+  float                 dy                    = 0;
+  float                 dz                    = 0;
+  float                 fDistance             = 0;
+  float                 fLowestDistance       = 0;
+  int                   nClosestIndex         = 0;
+  int                   nClosestNeighborIndex = 0;
   xVoxel                closestAnaIdx;
+  xVoxel                closestNeighborAnaIdx;
   xVoxel                closestInterpAnaIdx;
   xVoxel                closestRAS;
+  xVoxel                closestNeighborRAS;
   xVoxel                closestInterpRAS;
 
   
@@ -5303,8 +5310,10 @@ DspA_tErr DspA_GetClosestInterpSurfVoxel ( tkmDisplayAreaRef this,
 
       if ( fDistance < fLowestDistance ) {
 	nClosestIndex = drawListNode.mnOriginalVertexIndex;
+	nClosestNeighborIndex = drawListNode.mnNeighborVertexIndex;
 	xVoxl_Copy( &closestInterpAnaIdx, &drawListNode.mInterpVertex );
 	xVoxl_Copy( &closestAnaIdx, &drawListNode.mOriginalVertex );
+	xVoxl_Copy( &closestNeighborAnaIdx, &drawListNode.mNeighborVertex );
 	fLowestDistance = fDistance;
       }
     }
@@ -5332,13 +5341,17 @@ DspA_tErr DspA_GetClosestInterpSurfVoxel ( tkmDisplayAreaRef this,
     Volm_ConvertIdxToRAS( this->mpVolume, 
 			  &closestAnaIdx, &closestRAS );
     Volm_ConvertIdxToRAS( this->mpVolume, 
+			  &closestNeighborAnaIdx, &closestNeighborRAS );
+    Volm_ConvertIdxToRAS( this->mpVolume, 
 			  &closestInterpAnaIdx, &closestInterpRAS );
 
     sprintf( osDescription, "Index: %d Distance: %.2f\n"
-	     "\t    Original vertex RAS Coords: %.2f %.2f %.2f\n"
-	     "\tInterpolated vertex RAS Coords: %.2f %.2f %.2f", 
+	     "\t    Original vertex index: %d RAS: %.2f %.2f %.2f\n"
+	     "\t    Neighbor vertex index: %d RAS: %.2f %.2f %.2f\n"
+	     "\tIntersection vertex RAS: %.2f %.2f %.2f", 
 	     nClosestIndex, fLowestDistance, 
-	     xVoxl_ExpandFloat( &closestRAS ),
+	     nClosestIndex, xVoxl_ExpandFloat( &closestRAS ),
+	     nClosestNeighborIndex, xVoxl_ExpandFloat( &closestNeighborRAS ),
 	     xVoxl_ExpandFloat( &closestInterpRAS ) );
   }
   
