@@ -494,11 +494,17 @@ GCAMinit(GCA_MORPH *gcam, MRI *mri, GCA *gca, TRANSFORM *transform, int relabel)
         gcap = &gca->priors[x][y][z] ;
         max_p = 0 ;  max_n = -1 ; max_label = 0 ;
 
+	// find the label which has the max p
         for (n = 0 ; n < gcap->nlabels ; n++)
         {
           label = gcap->labels[n] ;   // get prior label
           if (label == Gdiag_no)
             DiagBreak() ;
+	  if (label >= MAX_CMA_LABEL)
+	  {
+	    printf("invalid label %d at (%d, %d, %d) in prior volume\n",
+		   label, x, y, z);
+	  }
           if (gcap->priors[n] >= max_p) // update the max_p and max_label
           {
             max_n = n ;
@@ -539,9 +545,9 @@ GCAMinit(GCA_MORPH *gcam, MRI *mri, GCA *gca, TRANSFORM *transform, int relabel)
 	  gcamn->x = gcamn->origx = 0 ; 
 	  gcamn->y = gcamn->origy = 0 ; 
 	  gcamn->z = gcamn->origz = 0 ;
-	  gcamn->label = max_label ;
-	  gcamn->n = max_n ;
-	  gcamn->prior = max_p ;
+	  gcamn->label = 0 ; // unknown
+	  gcamn->n = 0;
+	  gcamn->prior = 1.;
 	  gcamn->gc = 0 ;
 	  gcamn->log_p = 0 ;
 	}
