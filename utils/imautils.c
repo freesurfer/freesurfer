@@ -10,7 +10,7 @@
 #undef IMAUTILS_SRC
 
 static int imaSetDictEntry(int nthEntry, char *key, int offset, 
-			   char *typestring, int nitems);
+         char *typestring, int nitems);
 static int imaGetKeyEntryNo(char *key);
 
 /*--------------------------------------------------------------------
@@ -43,7 +43,7 @@ void *imaLoadVal(FILE *imafp, int offset, int nbytes, int nitems, void *pval)
   r = fread(pval,nbytes,nitems,imafp);
   if(r != nitems) {
     printf("ERROR: imaLoadVal: could not read %d items of %d bytes from offset %d\n",
-	   nitems,nbytes,offset);
+     nitems,nbytes,offset);
     return(NULL);
   }
   /* If this is a 486 arch, swap bytes because ima's are always
@@ -141,7 +141,7 @@ void MkImaDictionary(void)
 /*--------------------------------------------------------------------
   --------------------------------------------------------------------*/
 static int imaSetDictEntry(int nthEntry, char *key, int offset, 
-			   char *typestring, int nitems)
+         char *typestring, int nitems)
 {
   extern IMA_DICTIONARY_ENTRY ImaDictionary[NMAX_IMA_DICTIONARY];
   int type;
@@ -180,8 +180,8 @@ void DumpImaDictionary(FILE *fp)
   for(n=0; n < nImaDictionary; n++){
     ide = &ImaDictionary[n];
     fprintf(fp,"%3d %-40s  %5d  %-7s %d  %3d\n",
-	    n, ide->key, ide->offset, ide->typestring, ide->typesize, 
-	    ide->nitems);
+      n, ide->key, ide->offset, ide->typestring, ide->typesize, 
+      ide->nitems);
   }
   return;
 }
@@ -220,7 +220,7 @@ int DumpImaDictionaryVal(FILE *fp, char *imafile)
     typestring = ImaDictionary[n].typestring;
     nitems     = ImaDictionary[n].nitems;
     fprintf(fp,"%3d %-40s  %5d  %-7s  %3d   ",
-	    n, key, offset, typestring, nitems);
+      n, key, offset, typestring, nitems);
 
     switch(type){
     case IMA_TYPE_SHORT:  
@@ -860,8 +860,8 @@ IMAFILEINFO *imaDefaultFileInfo(void)
 int imaDumpElement(FILE *fp, IMAELEMENT *e)
 {
   fprintf(fp,"%-28s %5d %-6s %2d : ",
-	  e->descr, e->offset,
-	  imaTypeString[e->type], e->nbytes*e->nitems);
+    e->descr, e->offset,
+    imaTypeString[e->type], e->nbytes*e->nitems);
 
   if(e->valgood) imaPrintElementValue(fp, e);
   fprintf(fp,"\n");
@@ -978,7 +978,7 @@ IMAELEMENT *imaCopyElement(IMAELEMENT *esrc)
 }
 /*--------------------------------------------------------------------*/
 IMAELEMENT *imaLoadElement(FILE *imafp, int offset, int type, char *descr,
-			   int nitems)
+         int nitems)
 {
   IMAELEMENT *e;
   int err;
