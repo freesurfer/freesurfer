@@ -381,6 +381,11 @@ x markers
 - b/c controled by mouse, perhaps mod+mouse when nav tool is on
 x import/export control points
 
+- fill by histogram
+  - get region with histogram
+  - define min max
+  - fill values in other (seg) volume with label (value)
+
 BUGS:::
 - tabbing when in console switches frame, disable?
 - brings up tkcon window briefly when booting
