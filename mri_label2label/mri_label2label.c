@@ -1,6 +1,6 @@
 /*----------------------------------------------------------
   Name: mri_label2label.c
-  $Id: mri_label2label.c,v 1.2 2001/05/08 17:38:23 greve Exp $
+  $Id: mri_label2label.c,v 1.3 2001/05/08 22:58:14 greve Exp $
   Author: Douglas Greve
   Purpose: Converts a label in one subject's space to a label
   in another subject's space using either talairach or spherical
@@ -55,7 +55,7 @@ static int  singledash(char *flag);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_label2label.c,v 1.2 2001/05/08 17:38:23 greve Exp $";
+static char vcid[] = "$Id: mri_label2label.c,v 1.3 2001/05/08 22:58:14 greve Exp $";
 char *Progname = NULL;
 
 char  *srclabelfile = NULL;
@@ -127,6 +127,7 @@ int main(int argc, char **argv)
   }
 
   /*--- Load in Source Label ------*/
+  printf("Loading source label.\n");
   srclabel = LabelRead(NULL, srclabelfile);
   if(srclabel == NULL){
     fprintf(stderr,"ERROR reading %s\n",srclabelfile);
@@ -417,20 +418,20 @@ static void usage_exit(void)
 /* --------------------------------------------- */
 static void print_usage(void)
 {
-  fprintf(stderr, "USAGE: %s \n",Progname) ;
-  fprintf(stderr, "\n");
-  fprintf(stderr, "   --srclabel   input label file \n");
-  fprintf(stderr, "   --srcsubject source subject\n");
-  fprintf(stderr, "   --trgsubject target subject\n");
-  fprintf(stderr, "   --trglabel   output label file \n");
-  fprintf(stderr, "   --regmethod  registration method (surface, volume) \n");
-  fprintf(stderr, "\n");
-  fprintf(stderr, "   --hemi        hemisphere (lh or rh) (with surface)\n");
-  fprintf(stderr, "   --srcicoorder when srcsubject=ico\n");
-  fprintf(stderr, "   --trgicoorder when trgsubject=ico\n");
-  fprintf(stderr, "   --trgsurf     get xyz from this surface (white)\n");
-  fprintf(stderr, "   --surfreg     surface registration (sphere.reg)  \n");
-  fprintf(stderr, "\n");
+  fprintf(stdout, "USAGE: %s \n",Progname) ;
+  fprintf(stdout, "\n");
+  fprintf(stdout, "   --srclabel   input label file \n");
+  fprintf(stdout, "   --srcsubject source subject\n");
+  fprintf(stdout, "   --trgsubject target subject\n");
+  fprintf(stdout, "   --trglabel   output label file \n");
+  fprintf(stdout, "   --regmethod  registration method (surface, volume) \n");
+  fprintf(stdout, "\n");
+  fprintf(stdout, "   --hemi        hemisphere (lh or rh) (with surface)\n");
+  fprintf(stdout, "   --srcicoorder when srcsubject=ico\n");
+  fprintf(stdout, "   --trgicoorder when trgsubject=ico\n");
+  fprintf(stdout, "   --trgsurf     get xyz from this surface (white)\n");
+  fprintf(stdout, "   --surfreg     surface registration (sphere.reg)  \n");
+  fprintf(stdout, "\n");
 }
 /* --------------------------------------------- */
 static void dump_options(FILE *fp)
@@ -441,9 +442,11 @@ static void dump_options(FILE *fp)
   fprintf(fp,"trglabel = %s\n",  trglabelfile);
   fprintf(fp,"regmethod = %s\n",regmethod);
   fprintf(fp,"\n");
-  fprintf(fp,"hemi = %s\n",hemi);
-  fprintf(fp,"trgsurface = %s\n",trgsurface);
-  fprintf(fp,"surfreg = %s\n",surfreg);
+  if(!strcmp(regmethod,"surface")){
+    fprintf(fp,"hemi = %s\n",hemi);
+    fprintf(fp,"trgsurface = %s\n",trgsurface);
+    fprintf(fp,"surfreg = %s\n",surfreg);
+  }
   fprintf(fp,"srcicoorder = %d\n",srcicoorder);
   fprintf(fp,"trgicoorder = %d\n",trgicoorder);
   fprintf(fp,"\n");
@@ -454,7 +457,53 @@ static void dump_options(FILE *fp)
 static void print_help(void)
 {
   print_usage() ;
-  fprintf(stderr, "\nThis program will resample a label into another subject. \n") ;
+
+  printf("
+  Purpose: Converts a label in one subject's space to a label
+  in another subject's space using either talairach or spherical
+  as an intermediate registration space. 
+
+  Example 1: If you have a label from subject fred called
+    broca-fred.label defined on fred's left hemispherical 
+    surface and you want to convert it to sally's surface, then
+
+    mri_label2label --srclabel broca-fred.label  --srcsubject fred 
+                    --trglabel broca-sally.label --trgsubject sally
+                    --regmethod surface --hemi lh
+
+    This will map from fred to sally using sphere.reg. The registration
+    surface can be changed with --surfreg.
+
+  Example 2: You could also do the same mapping using talairach 
+    space as an intermediate:
+
+    mri_label2label --srclabel broca-fred.label  --srcsubject fred 
+                    --trglabel broca-sally.label --trgsubject sally
+                    --regmethod volume
+
+    Note that no hemisphere is specified with --regmethod volume.
+
+  Notes:
+
+  1. A label can be converted to/from talairach space by specifying
+     the target/source subject as 'talairach'.
+  2. A label can be converted to/from the icosahedron by specifying
+     the target/source subject as 'ico'. When the source or target
+     subject is specified as 'ico', then the order of the icosahedron
+     must be specified with --srcicoorder/--trgicoorder.
+  3. When the surface registration method is used, the xyz coordinates
+     in the target label file are derived from the xyz coordinates
+     from the target subject's white surface. This can be changed
+     using the --trgsurf option.
+  4. When the volume registration method is used, the xyz coordinates
+     in the target label file are computed as xyzTrg = inv(Ttrg)*Tsrc*xyzSrc
+     where Tsrc is the talairach transform in 
+     srcsubject/mri/transforms/talairach.xfm, and where Ttrg is the talairach 
+     transform in trgsubject/mri/transforms/talairach.xfm.
+\n");
+
+
+
   exit(1) ;
 }
 /* --------------------------------------------- */
