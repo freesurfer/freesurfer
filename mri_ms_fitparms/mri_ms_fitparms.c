@@ -5,8 +5,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2004/06/01 21:07:43 $
-// Revision       : $Revision: 1.32 $
+// Revision Date  : $Date: 2004/06/10 15:28:35 $
+// Revision       : $Revision: 1.33 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -120,7 +120,7 @@ main(int argc, char *argv[])
   int    modified;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_ms_fitparms.c,v 1.32 2004/06/01 21:07:43 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_ms_fitparms.c,v 1.33 2004/06/10 15:28:35 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -290,19 +290,19 @@ main(int argc, char *argv[])
 			
       if ((write_iterations>0) && (iter%write_iterations==0))
       {
-				sprintf(fname,"%s/T1-%d.mgh",out_dir,iter);
+				sprintf(fname,"%s/T1-%d.mgz",out_dir,iter);
 				printf("writing T1 estimates to %s...\n", fname) ;
 				MRIwrite(mri_T1, fname) ;
-				sprintf(fname,"%s/PD-%d.mgh",out_dir,iter);
+				sprintf(fname,"%s/PD-%d.mgz",out_dir,iter);
 				printf("writing PD estimates to %s...\n", fname) ;
 				MRIwrite(mri_PD, fname) ;
-				sprintf(fname,"%s/sse-%d.mgh",out_dir,iter);
+				sprintf(fname,"%s/sse-%d.mgz",out_dir,iter);
 				printf("writing residual sse to %s...\n", fname) ;
 				MRIwrite(mri_sse, fname) ;
 				
 				for (j=0;j<nvolumes;j++)
 				{
-					sprintf(fname,"%s/vol%d-%d.mgh",out_dir,j,iter);
+					sprintf(fname,"%s/vol%d-%d.mgz",out_dir,j,iter);
 					printf("writing synthetic images to %s...\n", fname);
 					MRIwrite(mri_flash_synth[j], fname) ;
 					sprintf(fname,"%s/vol%d-%d.lta",out_dir,j,iter); 
@@ -349,7 +349,7 @@ main(int argc, char *argv[])
 #endif
       }
       rms = estimate_ms_params_with_faf(mri_flash, mri_flash_synth, nvolumes, mri_T1, mri_PD, mri_sse, M_reg, mri_faf) ;
-      sprintf(fname,  "%s/faf%d.mgh", out_dir, iter);
+      sprintf(fname,  "%s/faf%d.mgz", out_dir, iter);
       printf("writing flip angle field estimates to %s...\n", fname) ;
       MRIwrite(mri_faf, fname);
       MRIfree(&mri_faf);
@@ -365,16 +365,16 @@ main(int argc, char *argv[])
 		if (nvolumes > 1)
 		{
 			resetTRTEFA(mri_PD, TR, TE, FA);
-			sprintf(fname,"%s/PD.mgh",out_dir);
+			sprintf(fname,"%s/PD.mgz",out_dir);
 			printf("writing PD estimates to %s...\n", fname) ;
 			MRIwrite(mri_PD, fname) ;
 			resetTRTEFA(mri_T1, TR, TE, FA);
-			sprintf(fname,"%s/T1.mgh",out_dir);
+			sprintf(fname,"%s/T1.mgz",out_dir);
 			printf("writing T1 estimates to %s...\n", fname) ;
 			MRIwrite(mri_T1, fname) ;
 			MRIfree(&mri_T1) ;
 			
-			sprintf(fname,"%s/sse.mgh",out_dir);
+			sprintf(fname,"%s/sse.mgz",out_dir);
 			printf("writing residual sse to %s...\n", fname) ;
 			MRIwrite(mri_sse, fname) ;
 			MRIfree(&mri_sse) ;
@@ -383,7 +383,7 @@ main(int argc, char *argv[])
     if (mri_faf)
     {
       resetTRTEFA(mri_faf, TR, TE, FA);
-      sprintf(fname,"%s/faf.mgh",out_dir);
+      sprintf(fname,"%s/faf.mgz",out_dir);
       printf("writing faf map to %s...\n", fname) ;
       MRIwrite(mri_faf, fname) ;
     }
@@ -391,7 +391,7 @@ main(int argc, char *argv[])
     {
       for (j=0;j<nvolumes;j++)
       {
-				sprintf(fname,"%s/vol%d.mgh",out_dir,j);
+				sprintf(fname,"%s/vol%d.mgz",out_dir,j);
 				printf("writing synthetic images to %s...\n", fname);
 				MRIwrite(mri_flash_synth[j], fname) ;
 				sprintf(fname,"%s/vol%d.lta",out_dir,j);
@@ -412,11 +412,11 @@ main(int argc, char *argv[])
 		resetTRTEFA(mri_T2star, TR, TE, FA);
 		if  (correct_PD && nvolumes > 1)
 		{
-			sprintf(fname,"%s/PDcorrected.mgh",out_dir);
+			sprintf(fname,"%s/PDcorrected.mgz",out_dir);
 			printf("writing corrected PD estimates to %s...\n", fname) ;
 			MRIwrite(mri_PD, fname) ;
 		}
-		sprintf(fname,"%s/T2star.mgh",out_dir);
+		sprintf(fname,"%s/T2star.mgz",out_dir);
 		printf("writing T2star estimates to %s...\n", fname) ;
 		MRIwrite(mri_T2star, fname) ;
 	}
@@ -680,7 +680,7 @@ usage_exit(int code)
   printf("this program takes an arbitrary # of FLASH images as input, and estimates\n"
 	 "the T1 and PD values of the data for voxel, as well as a linear transform\n"
 	 "aligning each of the images. The T1 and PD maps are written into <output directory>\n"
-	 "together with synthetic volumes names vol?.mgh, one for each of the input\n"
+	 "together with synthetic volumes names vol?.mgz, one for each of the input\n"
 	 "volumes. All the output volumes are generated in the common (motion-corrected) space.\n");
   printf("Note that TR, TE and the flip angle are read directly from the image header.\n"
 	 "If this information is not available, it can be specified on the command line using\n"
