@@ -855,6 +855,7 @@ MRI   *MRISpartialfloodoutside(MRI *mri_src,MRI *mri_dst);
 
 #define MRIS_BINARY_QUADRANGLE_FILE    0    /* homegrown */
 #define MRIS_ASCII_TRIANGLE_FILE       1    /* homegrown */
+#define MRIS_ASCII_FILE MRIS_ASCII_TRIANGLE_FILE
 #define MRIS_GEO_TRIANGLE_FILE         2    /* movie.byu format */
 #define MRIS_ICO_SURFACE               3
 #define MRIS_TRIANGULAR_SURFACE        MRIS_ICO_SURFACE
@@ -925,6 +926,7 @@ int  MRISsetFlags(MRI_SURFACE *mris, int flags) ;
 int MRISmedianFilterVals(MRI_SURFACE *mris, int nmedians) ;
 int MRISmedianFilterVal2s(MRI_SURFACE *mris, int nmedians) ;
 int MRISmedianFilterVal2baks(MRI_SURFACE *mris, int nmedians) ;
+int MRISfileNameType(char *fname) ;
 
 
 /* Some utility functions to handle reading and writing annotation
