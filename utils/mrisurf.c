@@ -10097,7 +10097,6 @@ MRISzeroNegativeAreas(MRI_SURFACE *mris)
   }
   return(NO_ERROR) ;
 }
-
 /*-----------------------------------------------------
         Parameters:
 
@@ -10106,7 +10105,38 @@ MRISzeroNegativeAreas(MRI_SURFACE *mris)
         Description
 ------------------------------------------------------*/
 int
-MRISfindClosestCannonicalVertex(MRI_SURFACE *mris, float x, float y, float z)
+MRISfindClosestVertex(MRI_SURFACE *mris, float x, float y, float z)
+{
+  int    vno, min_v = -1 ;
+  VERTEX *v ;
+  float  d, min_d, dx, dy, dz ;
+
+  min_d = 10000.0f ;
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    if (v->ripflag)
+      continue ;
+    dx = v->x - x ; dy = v->y - y ; dz = v->z - z ;
+    d = sqrt(dx*dx + dy*dy + dz*dz) ;
+    if (d < min_d)
+    {
+      min_d = d ;
+      min_v = vno ;
+    }
+  }
+
+  return(min_v) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
+int
+MRISfindClosestCanonicalVertex(MRI_SURFACE *mris, float x, float y, float z)
 {
   int    vno, min_v = -1 ;
   VERTEX *v ;
