@@ -3,7 +3,7 @@
 # Performs motion correction of anatomicals. This should produce
 # the same output as mri_motion_correct
 
-set VERSION = '$Id: mri_motion_correct2,v 1.6 2003/10/03 14:16:33 tosa Exp $';
+set VERSION = '$Id: mri_motion_correct2,v 1.7 2004/01/16 20:25:10 tosa Exp $';
 
 set tmpdir      = /tmp;
 set inputlist   = ();
@@ -190,12 +190,159 @@ endif
 goto cleanup;
 cleanup_return:
 
+
+#------  Add info about TR, TE, TI, and Flip Angle --#
+################# initialize
+set trlist = ()
+set telist = ()
+set tilist = ()
+set falist = ()
+
+##### create lists for tr, te, flip_angle
+################ TR
+foreach input ($inputlist)
+  set tr = `awk '{ if ($1 == "tr") print $2}' $input/COR-.info`
+  if ($#tr != 0) then 
+    echo $input " TR vlaue is " $tr |& tee -a $LF
+    set trlist = ($trlist $tr)
+  else
+    echo $input " TR not found" |& tee -a $LF
+  endif
+################# TE
+  set te = `awk '{ if ($1 == "te") print $2}' $input/COR-.info`  
+  if ($#te != 0) then
+    echo $input " TE vlaue is " $te |& tee -a $LF
+    set telist = ($telist $te)
+  else
+    echo $input " TE not found" |& tee -a $LF
+  endif
+################# TI
+  set ti = `awk '{ if ($1 == "ti") print $2}' $input/COR-.info`  
+  if ($#ti != 0) then
+    echo $input " TI vlaue is " $ti |& tee -a $LF
+    set tilist = ($tilist $te)
+  else
+    echo $input " TI not found" |& tee -a $LF
+  endif
+################# Flip angle
+  set fa = `awk '{ if ($1 == "flip") if ($2=="angle") print $3}' $input/COR-.info` 
+  if ($#fa != 0) then
+    echo $input " Flip angle is " $fa |& tee -a $LF
+    set falist = ($falist $fa)
+  else
+    echo $input " Flip angle not found" |& tee -a $LF
+  endif
+end
+
+##### check the uniqueness ######
+################################# TR
+@ count = 0
+set tr1=0
+foreach elem ($trlist)
+  @ count = $count + 1
+  if ($count == 1) then
+    set tr1 = $elem
+  else if ($tr1 != $elem) then
+    set tr1 = 0
+  endif
+end
+
+echo "TR is set to " $tr1 |& tee -a $LF
+
+################################# TE
+@ count = 0
+set te1=0
+foreach elem ($telist)
+  @ count = $count + 1
+  if ($count == 1) then
+    set te1 = $elem
+  else if ($te1 != $elem) then
+    set te1 = 0
+  endif
+end
+
+echo "TE is set to " $te1 |& tee -a $LF
+
+################################# TI
+@ count = 0
+set ti1=0
+foreach elem ($tilist)
+  @ count = $count + 1
+  if ($count == 1) then
+    set ti1 = $elem
+  else if ($ti1 != $elem) then
+    set ti1 = 0
+  endif
+end
+
+echo "TI is set to " $ti1 |& tee -a $LF
+
+
+################################# Flip angle
+@ count = 0
+set fa1=0
+foreach elem ($falist)
+  @ count = $count + 1
+  if ($count == 1) then
+    set fa1 = $elem
+  else if ($fa1 != $elem) then
+    set fa1 = 0
+  endif
+end
+
+echo "Flip angle is set to " $fa1 |& tee -a $LF
+
+################################ write tr, te, ti, fa
+cp $outdir/COR-.info $outdir/tmp
+# check whether tr is present
+echo "Writing TR value " $tr1
+set tr = `awk '{ if ($1 == "tr") print $2}' $outdir/COR-.info`
+if ($#tr != 0) then 
+  echo "found tr field"
+  awk -v trval=$tr1 '{ if ($1 == "tr") print $1, trval; else print }' $outdir/tmp > $outdir/tmp2
+else
+  echo "tr " $tr1 >> $outdir/COR-.info
+endif 
+
+echo "Writing TE value " $te1
+set te = `awk '{ if ($1 == "te") print $2}' $outdir/COR-.info` 
+if ($#te != 0) then
+  echo "found te field"
+  awk -v teval=$te1 '{ if ($1 == "te") print $1, teval; else print }' $outdir/tmp2 > $outdir/tmp3
+else
+  echo "te " $te1 >> $outdir/COR-.info
+endif
+
+echo "Writing TI value " $ti1
+set ti = `awk '{ if ($1 == "ti") print $2}' $outdir/COR-.info`  
+if ($#ti != 0) then
+  echo "found ti field"
+  awk -v tival=$ti1 '{ if ($1 == "ti") print $1, tival; else print }' $outdir/tmp3 > $outdir/tmp4
+else  
+  echo "ti " $ti1 >> $outdir/COR-.info
+endif
+
+echo "Writing Flip angle (degrees) " $fa1
+set fa = `awk '{ if ($1 == "flip") if ($2=="angle") print $3}' $outdir/COR-.info` 
+if ($#fa != 0) then
+  echo "found flip angle field"
+  awk -v faval=$fa1 '{ if ($1 == "flip") print "flip angle", faval; else print }' $outdir/tmp4 > $outdir/tmp5
+else
+  echo "flip angle " $fa1 >> $outdir/COR-.info
+endif
+
+mv $outdir/tmp5 $outdir/COR-.info
+rm -f $outdir/tmp?
+
+#---------------- end processing--------------------#
 echo "Started at: $StartTime"    |& tee -a $LF
 echo "Ended at:   `date`"        |& tee -a $LF
 echo "mri_motion_correct2: done" |& tee -a $LF
 
-
 exit 0;
+
+################# subroutines #######################
+#################             #######################
 
 ############--------------##################
 parse_args:
