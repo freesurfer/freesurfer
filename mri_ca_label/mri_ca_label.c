@@ -33,11 +33,13 @@ static int filter = 0 ;
 static float thresh = 0.5 ;
 #endif
 static int read_flag = 0 ;
+static char *read_fname =  NULL ;
 
 static char *wm_fname = NULL ;
 static int fixed_flag = 0 ;
 static char *heq_fname = NULL ;
 static int max_iter = 200 ;
+static int mle_niter = 4 ;
 static int no_gibbs = 0 ;
 static int anneal = 0 ;
 static char *mri_fname = NULL ;
@@ -158,7 +160,7 @@ main(int argc, char *argv[])
 
   if (read_flag)
   {
-    mri_labeled = MRIread(out_fname) ;
+    mri_labeled = MRIread(read_fname) ;
     if (!mri_labeled)
       ErrorExit(ERROR_NOFILE, "%s: could not read parcellation from %s",
                 Progname, out_fname) ;
@@ -186,7 +188,17 @@ main(int argc, char *argv[])
     }
     else
       mri_fixed = MRIclone(mri_labeled, NULL) ;
+    
+    if (gca_write_iterations != 0)
+    {
+      char fname[STRLEN] ;
+      sprintf(fname, "%s_pre.mgh", gca_write_fname) ;
+      printf("writing snapshot to %s...\n", fname) ;
+      MRIwrite(mri_labeled, fname) ;
+    }
     preprocess(mri_in, mri_labeled, gca, lta, mri_fixed) ;
+    if (fixed_flag == 0)
+      MRIfree(&mri_fixed) ;
     if (!no_gibbs)
     {
       if (anneal)
@@ -195,6 +207,27 @@ main(int argc, char *argv[])
         GCAreclassifyUsingGibbsPriors(mri_in, gca, mri_labeled, lta, max_iter,
                                       mri_fixed);
     }
+  }
+  GCAmaxLikelihoodBorders(gca, mri_in, mri_labeled, mri_labeled,lta,mle_niter,
+                          5.0);
+  if (expand_flag)
+  {
+    GCAexpandVentricle(gca, mri_in, mri_labeled, mri_labeled, lta,   
+                       Left_Lateral_Ventricle) ;
+    GCAexpandVentricle(gca, mri_in, mri_labeled, mri_labeled, lta,   
+                       Left_Inf_Lat_Vent) ;
+    GCAexpandVentricle(gca, mri_in, mri_labeled, mri_labeled, lta,   
+                       Right_Lateral_Ventricle) ;
+    GCAexpandVentricle(gca, mri_in, mri_labeled, mri_labeled, lta,   
+                       Right_Inf_Lat_Vent) ;
+  }
+
+  if (gca_write_iterations != 0)
+  {
+    char fname[STRLEN] ;
+    sprintf(fname, "%s_post.mgh", gca_write_fname) ;
+    printf("writing snapshot to %s...\n", fname) ;
+    MRIwrite(mri_labeled, fname) ;
   }
   GCAconstrainLabelTopology(gca, mri_in, mri_labeled, mri_labeled, lta) ;
   GCAfree(&gca) ; MRIfree(&mri_in) ;
@@ -245,6 +278,12 @@ get_option(int argc, char *argv[])
     nargs = 1 ;
     printf("inserting white matter segmentation from %s...\n", wm_fname) ;
   }
+  else if (!stricmp(option, "NITER"))
+  {
+    mle_niter = atoi(argv[2]) ;
+    nargs = 1 ;
+    printf("applying max likelihood for %d iterations...\n", mle_niter) ;
+  }
   else if (!stricmp(option, "nohippo"))
   {
     hippocampus_flag = 0 ;
@@ -274,6 +313,8 @@ get_option(int argc, char *argv[])
   {
   case 'R':
     read_flag = 1 ;
+    read_fname = argv[2] ;
+    nargs = 1 ;
     break ;
   case 'A':
     anneal = 1 ;
@@ -442,15 +483,21 @@ MRIcountNbhdLabels(MRI *mri, int x, int y, int z, int label)
 
 static int cma_expandable_labels[] = 
 {
-  Left_Pallidum,
-  Right_Pallidum,
 #if 0
   Left_Putamen,
   Right_Putamen,
   Left_Amygdala,
   Right_Amygdala,
   Left_Caudate,
-  Right_Caudate
+  Right_Caudate,
+#endif
+  Left_Pallidum,
+  Right_Pallidum
+#if 0
+  Left_Lateral_Ventricle,
+  Left_Inf_Lat_Vent,
+  Right_Lateral_Ventricle,
+  Right_Inf_Lat_Vent
 #endif
 } ;
 #define NEXPANDABLE_LABELS sizeof(cma_expandable_labels) / sizeof(cma_expandable_labels[0])
@@ -462,11 +509,27 @@ preprocess(MRI *mri_in, MRI *mri_labeled, GCA *gca, LTA *lta,
   int i ;
 
   
-  if (expand_flag) for (i = 0 ; i < NEXPANDABLE_LABELS ; i++)
-    GCAexpandLabelIntoWM(gca, mri_in, mri_labeled, mri_labeled, lta,mri_fixed,
-                         cma_expandable_labels[i]) ;
   if (hippocampus_flag)
     edit_hippocampus(mri_in, mri_labeled, gca, lta, mri_fixed) ;
+  if (expand_flag) 
+  {
+    for (i = 0 ; i < NEXPANDABLE_LABELS ; i++)
+      GCAexpandLabelIntoWM(gca, mri_in, mri_labeled, mri_labeled, lta,
+                           mri_fixed, cma_expandable_labels[i]) ;
+#if 0
+    GCAexpandVentricleIntoWM(gca, mri_in, mri_labeled, mri_labeled, lta,
+                             mri_fixed,Left_Lateral_Ventricle) ;
+    GCAexpandVentricleIntoWM(gca, mri_in, mri_labeled, mri_labeled, lta,
+                             mri_fixed,Left_Inf_Lat_Vent) ;
+    GCAexpandVentricleIntoWM(gca, mri_in, mri_labeled, mri_labeled, lta,
+                             mri_fixed,Right_Lateral_Ventricle) ;
+    GCAexpandVentricleIntoWM(gca, mri_in, mri_labeled, mri_labeled, lta,
+                             mri_fixed, Right_Inf_Lat_Vent) ;
+#endif
+  }
+#if 0
+  GCAmaxLikelihoodBorders(gca, mri_in, mri_labeled, mri_labeled, lta,2,2.0) ;
+#endif
   return(NO_ERROR) ;
 }
 
@@ -495,6 +558,7 @@ edit_hippocampus(MRI *mri_in, MRI *mri_labeled, GCA *gca, LTA *lta,
   int   width, height, depth, x, y, z, label, val, nchanged, dleft, 
         dright, dpos, dant, dup, ddown, dup_hippo, ddown_gray, i ;
   MRI   *mri_tmp ;
+  float phippo, pwm ;
 
   mri_tmp = MRIcopy(mri_labeled, NULL) ;
 
@@ -506,13 +570,20 @@ edit_hippocampus(MRI *mri_in, MRI *mri_labeled, GCA *gca, LTA *lta,
     {
       for (x = 0 ; x < width ; x++)
       {
-        if (x == 150 && y == 129 && z == 130)
+        if (x == 96 && y == 123 && z == 132)  /* wm should be pallidum */
           DiagBreak() ;
         label = MRIvox(mri_labeled, x, y, z) ;
         val = MRIvox(mri_in, x, y, z) ;
 
         if (label == Left_Hippocampus)
         {
+          pwm = GCAlabelProbability(mri_in, gca, lta, x, y, z, 
+                                    Left_Cerebral_White_Matter) ;
+          phippo = GCAlabelProbability(mri_in, gca, lta, x, y, z, 
+                                       Left_Hippocampus) ;
+          if (phippo > 2*pwm)
+            continue ;  /* don't let it change */
+
           dleft = distance_to_label(mri_labeled, Left_Cerebral_White_Matter,
                                     x,y,z,-1,0,0,3);
           dright = distance_to_label(mri_labeled, Left_Cerebral_White_Matter,
@@ -536,6 +607,13 @@ edit_hippocampus(MRI *mri_in, MRI *mri_labeled, GCA *gca, LTA *lta,
         }
         else if (label == Right_Hippocampus)
         {
+          pwm = GCAlabelProbability(mri_in, gca, lta, x, y, z, 
+                                    Right_Cerebral_White_Matter) ;
+          phippo = GCAlabelProbability(mri_in, gca, lta, x, y, z, 
+                                       Right_Hippocampus) ;
+          if (phippo > 2*pwm)
+            continue ;  /* don't let it change */
+
           dleft = distance_to_label(mri_labeled, Right_Cerebral_White_Matter,
                                     x,y,z,-1,0,0,3);
           dright = distance_to_label(mri_labeled, Right_Cerebral_White_Matter,
@@ -568,7 +646,7 @@ edit_hippocampus(MRI *mri_in, MRI *mri_labeled, GCA *gca, LTA *lta,
       {
         for (x = 0 ; x < width ; x++)
         {
-          if (x == 95 && y == 124 && z == 123)
+          if (x == 96 && y == 123 && z == 132)  
             DiagBreak() ;
           label = MRIvox(mri_tmp, x, y, z) ;
           val = MRIvox(mri_in, x, y, z) ;
