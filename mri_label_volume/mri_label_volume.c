@@ -19,6 +19,7 @@ static int get_option(int argc, char *argv[]) ;
 
 char *Progname ;
 static char *log_fname = NULL ;
+static char *brain_fname = NULL ;
 static void usage_exit(int code) ;
 
 static int in_label = -1 ;
@@ -70,6 +71,19 @@ main(int argc, char *argv[])
         continue ;
       brain_volume += MRIvoxelsInLabel(mri, label) ;
     }
+  }
+  else if (brain_fname)
+  {
+    MRI *mri_brain ;
+
+    mri_brain = MRIread(brain_fname) ;
+    if (!mri_brain)
+      ErrorExit(ERROR_NOFILE, "%s: could not read brain volume from %s",
+                Progname, brain_fname) ;
+    MRIbinarize(mri_brain, mri_brain, 1, 0, 255) ;
+    brain_volume = MRIvoxelsInLabel(mri_brain, 255) ;
+    MRIfree(&mri_brain) ;
+    compute_pct = 1 ; /* use this brain volume to normalize */
   }
   else
     brain_volume = 1 ;
@@ -149,6 +163,10 @@ get_option(int argc, char *argv[])
     nargs = 2 ;
     printf("translating label %d to label %d\n", in_label, out_label) ;
     break ;
+  case 'B':
+    brain_fname = argv[2] ;
+    nargs = 1 ;
+    break ;
   case 'L':
     log_fname = argv[2] ;
     nargs = 1 ;
@@ -177,10 +195,11 @@ get_option(int argc, char *argv[])
 static void
 usage_exit(int code)
 {
-  printf("usage: %s [options] <volume 1> <volume 2>",
-         Progname) ;
+  printf("usage: %s [options] <volume> <label 1> <label 2> ...\n", Progname) ;
   printf(
-         "\tf <f low> <f hi> - apply specified filter (not implemented yet)\n"
+       "\tp             - compute brain volume as a pct of all brain labels\n"
+       "\tl <log fname> - log results to file (note %%d will include label #)\n"
+       "\tb <brain vol> - load brain vol and use it to normalize volumes\n"
          );
   exit(code) ;
 }
