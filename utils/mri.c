@@ -6679,6 +6679,7 @@ MRIcopyFrame(MRI *mri_src, MRI *mri_dst, int src_frame, int dst_frame)
     {
       switch (mri_src->type)
       {
+      default:  /* already handled above */
       case MRI_UCHAR:
         psrc = &MRIseq_vox(mri_src, 0, y, z, src_frame) ;
         pdst = &MRIseq_vox(mri_dst, 0, y, z, dst_frame) ;
