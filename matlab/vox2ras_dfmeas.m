@@ -6,7 +6,7 @@ function [M_V] = vox2ras_dfmeas(str_filename, varargin)
 %%
 %% AUTHOR, VERSION
 %%
-%%	Rudolph Pienaar, $Id: vox2ras_dfmeas.m,v 1.1 2004/05/26 20:14:24 rudolph Exp $
+%%	Rudolph Pienaar, $Id: vox2ras_dfmeas.m,v 1.2 2004/05/26 20:16:28 rudolph Exp $
 %%
 %% SYNOPSIS
 %%
@@ -14,6 +14,7 @@ function [M_V] = vox2ras_dfmeas(str_filename, varargin)
 %%				voxelDimension spaceSize)
 %%
 %% ARGUMENTS
+%%
 %%	str_filename	in      string specifying meas.asc to parse
 %%	ch_override	in/opt	character string specifying override behaviour
 %%	voxelDimension	in/opt	row vector specifying the data set's voxel mm

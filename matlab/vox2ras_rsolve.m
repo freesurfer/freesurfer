@@ -6,13 +6,14 @@ function [M_v1, M_v2, M_Ru1, M_Ru2] = vox2ras_rsolve(Vc_C, inPlaneRotation)
 %%
 %% AUTHOR, VERSION
 %%
-%%	Rudolph Pienaar, $Id: vox2ras_rsolve.m,v 1.1 2004/05/26 20:14:24 rudolph Exp $
+%%	Rudolph Pienaar, $Id: vox2ras_rsolve.m,v 1.2 2004/05/26 20:16:28 rudolph Exp $
 %%
 %% SYNOPSIS
 %%
 %%     [M_v1 M_v2 M_Ru1 M_Ru2] = vox2ras_rsolve(Vc_C, inPlaneRotation)
 %%
 %% ARGUMENTS
+%%
 %%      Vc_C		in      column vector defining a direction cosine for
 %%					a volume
 %%	inPlaneRotation	in	scalar float defining the in plane rotation as

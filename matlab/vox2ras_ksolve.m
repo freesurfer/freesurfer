@@ -6,13 +6,14 @@ function [M_V] = vox2ras_ksolve(M_R, Vc_Ps, varargin)
 %%
 %% AUTHOR, VERSION
 %%
-%%	Rudolph Pienaar, $Id: vox2ras_ksolve.m,v 1.1 2004/05/26 20:14:24 rudolph Exp $
+%%	Rudolph Pienaar, $Id: vox2ras_ksolve.m,v 1.2 2004/05/26 20:16:28 rudolph Exp $
 %%
 %% SYNOPSIS
 %%
 %%     [M_V] = vox2ras_ksolve(M_R, Vc_Ps, Vr_logicalSpace)
 %%
 %% ARGUMENTS
+%%
 %%	M_R		in	4x4 vox2ras candidate matrix with correct
 %%					direction cosines, but invalid
 %%					k-space column
