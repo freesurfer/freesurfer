@@ -384,6 +384,9 @@ Volm_tErr Volm_ExtractAndSetSubjectName ( mriVolumeRef this,
 Volm_tErr Volm_ExtractAndSetVolumeName  ( mriVolumeRef this,
 					  char*        isSource );
 
+/* Sets the mri voxel size and fov so that the smallest dimension is 1. */
+Volm_tErr Volm_SetMinVoxelSizeToOne ( mriVolumeRef this );
+
 /* Sets up internal data structures from an MRI volume and starts
    using the given MRI as its voxel values. */
 Volm_tErr Volm_SetFromMRI_ ( mriVolumeRef this,
