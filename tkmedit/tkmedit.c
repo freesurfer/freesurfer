@@ -1755,13 +1755,13 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
     
     /* check to see if we don't have a subject */
     Volm_CopySubjectName( gAnatomicalVolume[tkm_tVolumeType_Main],
-        sSubjectTest, sizeof(sSubjectTest) );
+			  sSubjectTest, sizeof(sSubjectTest) );
     if( strcmp( sSubjectTest, "" ) == 0 ) {
       /* manually set the subject and image name */
       Volm_SetSubjectName( gAnatomicalVolume[tkm_tVolumeType_Main], 
-         sSubject );
+			   sSubject );
       Volm_SetVolumeName( gAnatomicalVolume[tkm_tVolumeType_Main], 
-        sImageDir );
+			  sImageDir );
     }
   }
   
@@ -2415,6 +2415,8 @@ void UnloadSurface ( tkm_tSurfaceType iType ) {
   tkm_tErr  eResult  = tkm_tErr_NoErr;
   Surf_tErr eSurface = Surf_tErr_NoErr;
   
+  printf( "UnloadSurface %d\n", (int)iType );
+    
   DebugAssertThrowX( (NULL != gSurface[iType]),
          eResult, tkm_tErr_InvalidParameter );
   if( !gSurface[iType] )
@@ -3314,10 +3316,10 @@ int TclLoadOriginalSurface ( ClientData inClientData, Tcl_Interp* inInterp,
   return TCL_OK;
 }
 
-int TclUnloadAllSurfaces ( ClientData inClientData, Tcl_Interp* inInterp,
-         int argc, char* argv[] ) {
+int TclUnloadSurface ( ClientData inClientData, Tcl_Interp* inInterp,
+		       int argc, char* argv[] ) {
   
-  tkm_tSurfaceType type        = tkm_tSurfaceType_Main;
+  tkm_tSurfaceType type = tkm_tSurfaceType_Main;
   
   switch( argc ) {
   case 1:
@@ -3328,12 +3330,29 @@ int TclUnloadAllSurfaces ( ClientData inClientData, Tcl_Interp* inInterp,
     break;
   default:
     Tcl_SetResult ( inInterp, "wrong # args: UnloadSurface [0=main|1=aux]",
-        TCL_VOLATILE );
+		    TCL_VOLATILE );
     return TCL_ERROR;
   }
   
   if( gbAcceptingTclCommands ) {
     UnloadSurface ( type );
+  }  
+  
+  return TCL_OK;
+}
+
+int TclUnloadAllSurfaces ( ClientData inClientData, Tcl_Interp* inInterp,
+			   int argc, char* argv[] ) {
+  
+  if ( argc != 1 ) {
+    Tcl_SetResult ( inInterp, "wrong # args: UnloadAllSurfaces",
+		    TCL_VOLATILE );
+    return TCL_ERROR;
+  }
+  
+  if( gbAcceptingTclCommands ) {
+    UnloadSurface ( tkm_tSurfaceType_Main );
+    UnloadSurface ( tkm_tSurfaceType_Aux );
   }  
   
   return TCL_OK;
@@ -4541,6 +4560,10 @@ int main ( int argc, char** argv ) {
           (ClientData) NULL, (Tcl_CmdDeleteProc*) NULL );
   
   Tcl_CreateCommand ( interp, "UnloadSurface",
+          TclUnloadSurface,
+          (ClientData) NULL, (Tcl_CmdDeleteProc*) NULL );
+  
+  Tcl_CreateCommand ( interp, "UnloadAllSurfaces",
           TclUnloadAllSurfaces,
           (ClientData) NULL, (Tcl_CmdDeleteProc*) NULL );
   
