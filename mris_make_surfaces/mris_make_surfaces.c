@@ -16,7 +16,7 @@
 #include "mrimorph.h"
 #include "mrinorm.h"
 
-static char vcid[] = "$Id: mris_make_surfaces.c,v 1.33 2000/03/07 12:14:24 fischl Exp $";
+static char vcid[] = "$Id: mris_make_surfaces.c,v 1.34 2000/03/20 15:26:00 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -47,6 +47,7 @@ static int create = 1 ;
 static int smoothwm = 0 ;
 static int white_only = 0 ;
 static int overlay = 0 ;
+static int auto_detect_stats = 1 ;
 
 static int in_out_in_flag = 0 ;  /* for Arthur (as are most things) */
 static int apply_median_filter = 0 ;
@@ -92,12 +93,12 @@ static float max_thickness = 5.0 ;
 #define MAX_WHITE             120
 #define MAX_BORDER_WHITE      105
 #define MIN_BORDER_WHITE       85
-#define MIN_WHITE_BORDER_GRAY  70
+#define MIN_GRAY_AT_WHITE_BORDER  70
 
 #define MAX_GRAY               95
-#define MIN_CSF_BORDER_GRAY    40
-#define MID_GRAY               ((MAX_GRAY + MIN_CSF_BORDER_GRAY) / 2)
-#define MAX_CSF_BORDER_GRAY    75
+#define MIN_GRAY_AT_CSF_BORDER    40
+#define MID_GRAY               ((MAX_GRAY + MIN_GRAY_AT_CSF_BORDER) / 2)
+#define MAX_GRAY_AT_CSF_BORDER    75
 #define MIN_CSF                10
 
 int
@@ -109,7 +110,15 @@ main(int argc, char *argv[])
   MRI           *mri_wm, *mri_kernel = NULL, *mri_smooth = NULL, 
                 *mri_filled, *mri_T1, *mri_labeled ;
   float         max_len ;
+  float         white_mean, white_std, gray_mean, gray_std ;
   double        l_intensity, current_sigma ;
+  float         max_border_white = MAX_BORDER_WHITE,
+                min_border_white = MIN_BORDER_WHITE,
+                min_gray_at_white_border = MIN_GRAY_AT_WHITE_BORDER,
+                max_gray = MAX_GRAY,
+                max_gray_at_csf_border = MAX_GRAY_AT_CSF_BORDER,
+                min_gray_at_csf_border = MIN_GRAY_AT_CSF_BORDER,
+                min_csf = MIN_CSF ;
   struct timeb  then ;
   M3D           *m3d ;
 
@@ -259,6 +268,35 @@ main(int argc, char *argv[])
     MRIwrite(mri_T1, fname) ;
   }
 
+  if (auto_detect_stats)
+  {
+    MRI *mri_tmp ;
+
+    mri_tmp = MRIbinarize(mri_wm, NULL, WM_MIN_VAL, MRI_NOT_WHITE, MRI_WHITE) ;
+    fprintf(stderr, "computing class statistics...\n");
+    MRIcomputeClassStatistics(mri_T1, mri_tmp, 30, WHITE_MATTER_MEAN,
+                              &white_mean, &white_std, &gray_mean,
+                              &gray_std) ;
+    min_gray_at_white_border = gray_mean-gray_std ;
+    max_border_white = white_mean+white_std ;
+    min_border_white = gray_mean ;
+    fprintf(stderr, "setting MIN_GRAY_AT_WHITE_BORDER to %2.1f (was %d)\n",
+            min_gray_at_white_border, MIN_GRAY_AT_WHITE_BORDER) ;
+    fprintf(stderr, "setting MAX_BORDER_WHITE to %2.1f (was %d)\n",
+            max_border_white, MAX_BORDER_WHITE) ;
+    fprintf(stderr, "setting MIN_BORDER_WHITE to %2.1f (was %d)\n",
+            min_border_white, MIN_BORDER_WHITE) ;
+
+    max_gray = white_mean-white_std ;
+    max_gray_at_csf_border = gray_mean-0.5*gray_std ;
+    fprintf(stderr, "setting MAX_GRAY to %2.1f (was %d)\n",
+            max_gray, MAX_GRAY) ;
+    fprintf(stderr, "setting MAX_GRAY_AT_CSF_BORDER to %2.1f (was %d)\n",
+            max_gray_at_csf_border, MAX_GRAY_AT_CSF_BORDER) ;
+    fprintf(stderr, "setting MIN_GRAY_AT_CSF_BORDER to %2.1f (was %d)\n",
+            min_gray_at_csf_border, MIN_GRAY_AT_CSF_BORDER) ;
+    MRIfree(&mri_tmp) ;
+  }
   MRIfree(&mri_wm) ;
   sprintf(fname, "%s/%s/surf/%s.%s%s", sdir, sname, hemi, orig_name, suffix) ;
   fprintf(stderr, "reading original surface position from %s...\n", fname) ;
@@ -329,11 +367,10 @@ main(int argc, char *argv[])
 
     parms.n_averages = n_averages ; 
     MRISprintTessellationStats(mris, stderr) ;
-    MRIScomputeBorderValues(mris, mri_T1, mri_smooth, MAX_WHITE, 
-                            MAX_BORDER_WHITE, MIN_BORDER_WHITE, 
-                            MIN_WHITE_BORDER_GRAY,
-                            current_sigma, 2*max_thickness,
-                            parms.fp) ;
+    MRIScomputeBorderValues(mris, mri_T1, mri_smooth, 
+                            MAX_WHITE, max_border_white, min_border_white,
+                            min_gray_at_white_border, current_sigma, 
+                            2*max_thickness, parms.fp) ;
     MRISfindExpansionRegions(mris) ;
     if (vavgs)
     {
@@ -490,9 +527,9 @@ main(int argc, char *argv[])
       parms.l_intensity = 0.1 ;
 #endif
     parms.n_averages = n_averages ; parms.l_tsmooth = l_tsmooth ;
-    MRIScomputeBorderValues(mris, mri_T1, mri_smooth, MAX_GRAY, 
-                            MAX_CSF_BORDER_GRAY, MIN_CSF_BORDER_GRAY, MIN_CSF,
-                            current_sigma, max_thickness+1, parms.fp) ;
+    MRIScomputeBorderValues(mris, mri_T1, mri_smooth, max_gray, 
+                            max_gray_at_csf_border, min_gray_at_csf_border,
+                            min_csf,current_sigma, max_thickness+1, parms.fp) ;
     if (vavgs)
     {
       fprintf(stderr, "averaging target values for %d iterations...\n",vavgs) ;
@@ -570,7 +607,7 @@ main(int argc, char *argv[])
       MRISprintTessellationStats(mris, stderr) ;
       MRIScomputeBorderValues(mris, mri_T1, mri_smooth, MAX_WHITE, 
                               MAX_BORDER_WHITE, MIN_BORDER_WHITE, 
-                              MIN_WHITE_BORDER_GRAY,
+                              MIN_GRAY_AT_WHITE_BORDER,
                               current_sigma, 2*max_thickness, parms.fp) ;
       MRISfindExpansionRegions(mris) ;
       if (vavgs)
