@@ -13,7 +13,7 @@
 #include "mri.h"
 #include "macros.h"
 
-static char vcid[] = "$Id: mris_inflate.c,v 1.1 1997/11/01 22:47:17 fischl Exp $";
+static char vcid[] = "$Id: mris_inflate.c,v 1.2 1997/11/02 00:02:50 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -26,11 +26,12 @@ static void print_version(void) ;
 char *Progname ;
 
 static INTEGRATION_PARMS  parms ;
+static int patch_flag = 0 ;
 
 int
 main(int argc, char *argv[])
 {
-  char         **av, *in_fname, *out_fname ;
+  char         **av, *in_fname, *out_fname, path[100], fname[100],*cp,hemi[10];
   int          ac, nargs ;
   MRI_SURFACE  *mris ;
 
@@ -40,7 +41,7 @@ main(int argc, char *argv[])
 
   parms.projection = NO_PROJECTION ;
   parms.tol = 1000*TOL ;
-  parms.dt = DELTA_T ;
+  parms.base_dt = DELTA_T ;
   parms.n_averages = N_AVERAGES ;
   parms.l_angle = 0.0 /* L_ANGLE */ ;
   parms.l_area = 0.0 /* L_AREA */ ;
@@ -66,13 +67,40 @@ main(int argc, char *argv[])
   in_fname = argv[1] ;
   out_fname = argv[2] ;
 
-  mris = MRISread(in_fname) ;
-  if (!mris)
-    ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s",
-              Progname, in_fname) ;
+  if (patch_flag)
+  {
+    FileNamePath(in_fname, path) ;
+    FileNameOnly(in_fname, fname) ;
+    cp = strchr(fname, '.') ;
+    if (cp)
+    {
+      strncpy(hemi, cp-2, 2) ;
+      hemi[2] = 0 ;
+    }
+    else
+      strcpy(hemi, "lh") ;
+    sprintf(fname, "%s/%s.orig", path, hemi) ;
+    mris = MRISread(fname) ;
+    if (!mris)
+      ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s",
+                Progname, fname) ;
 
+    MRISreadTriangleProperties(mris, fname) ;
+    FileNameOnly(in_fname, fname) ;
+    if (MRISreadPatch(mris, fname) != NO_ERROR)
+      ErrorExit(ERROR_NOFILE, "%s: could not read patch file %s",
+                Progname, in_fname) ;
+    MRIScomputeTriangleProperties(mris) ;  /* recompute areas and normals */
+  }
+  else
+  {
+    mris = MRISread(in_fname) ;
+    if (!mris)
+      ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s",
+                Progname, in_fname) ;
 
-  MRISreadTriangleProperties(mris, in_fname) ;
+    MRISreadTriangleProperties(mris, in_fname) ;
+  }
 
   if (parms.niterations > 0)
   {
@@ -157,9 +185,9 @@ get_option(int argc, char *argv[])
   else if (!stricmp(option, "dt"))
   {
     parms.integration_type = INTEGRATE_MOMENTUM ;
-    parms.dt = atof(argv[2]) ;
+    parms.base_dt = atof(argv[2]) ;
     nargs = 1 ;
-    fprintf(stderr, "using momentum with dt = %2.2f\n", parms.dt) ;
+    fprintf(stderr, "using momentum with dt = %2.2f\n", parms.base_dt) ;
   }
   else switch (toupper(*option))
   {
@@ -168,6 +196,9 @@ get_option(int argc, char *argv[])
     parms.momentum = atof(argv[2]) ;
     nargs = 1 ;
     fprintf(stderr, "using momentum = %2.2f\n", parms.momentum) ;
+    break ;
+  case 'P':
+    patch_flag = 1 ;
     break ;
   case 'V':
     Gdiag_no = atoi(argv[2]) ;
