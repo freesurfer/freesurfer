@@ -34,36 +34,47 @@
                                 FEATURE_CPOLV_MEDIAN3 | FEATURE_CPOLV_MEDIAN5)
 #define MAX_FEATURE            FEATURE_CPOLV_MEDIAN5
 
+#define MAX_ROUNDS             5
+
+typedef union
+{
+  BACKPROP   *bp ;
+  ARTMAP     *artmap ;
+  GCLASSIFY  *gc ;
+} CL_UNION ;
+
 typedef struct
 {
-  int         features ;    /* bit field of above features */
-  int         type ;        /* what kind of classifier are we using */
-  int         ninputs ;     /* # of inputs to the classifier */
-  void        *parms ;      /* classifier specific parameters */
-  GCLASSIFY   *gc ;         /* if type == CLASSIFIER_GAUSSIAN */
-  BACKPROP    *bp ;         /* if type == CLASSIFIER_BACKPROP */
-  ARTMAP      *artmap ;     /* if type == CLASSIFIER_ARTMAP */
-  MRI         *mri_priors ; /* prior probabilities */
+  int         features[MAX_ROUNDS] ;  /* bit field of above features */
+  int         type[MAX_ROUNDS] ;      /* what kind of classifier are we using */
+  int         ninputs[MAX_ROUNDS] ;   /* # of inputs to the classifier */
+  int         nrounds ;               /* # of times to apply classifier */
+  void        *parms ;                /* classifier specific parameters */
+  CL_UNION    classifier[MAX_ROUNDS] ;/* pointer to appropriate classifier */
+  MRI         *mri_priors ;           /* prior probabilities */
   char        prior_fname[100] ;
 } MRI_CLASSIFIER, MRIC ;
 
-MRIC   *MRICalloc(int type, int features, void *parms) ;
+MRIC   *MRICalloc(int nrounds, int types[], int features[], void *parms) ;
 int    MRICfree(MRIC **pmri) ;
 int    MRICtrain(MRIC *mric, char *file_name, char *prior_fname) ;
-/*int    MRICclassify(MRIC *mric, MRI *mri_src, float *pprob) ;*/
 MRIC   *MRICread(char *fname) ;
 int    MRICwrite(MRIC *mric, char *fname) ;
-MRI    *MRICclassify(MRIC *mric, MRI *mri_src, MRI *mri_dst, float conf, 
-                     MRI *mri_probs, MRI *mri_classes) ;
-int    MRICupdateMeans(MRIC *mric, MRI *mri_src, MRI *mri_target, BOX *bbox) ;
-int    MRICcomputeMeans(MRIC *mric) ;  
-int    MRICupdateCovariances(MRIC *mric, MRI *mri_src, MRI *mri_target, 
-                             BOX *bbox) ;
-int    MRICcomputeCovariances(MRIC *mric) ;
+MRI    *MRICclassify(MRIC *mric, MRI *mri_src, 
+                     MRI *mri_dst, float conf,MRI *mri_probs,MRI *mri_classes);
+int    MRICupdateMeans(MRIC *mric, int round, 
+                       MRI *mri_src, MRI *mri_target, BOX *bbox) ;
+int    MRICcomputeMeans(MRIC *mric, int round) ;  
+int    MRICupdateCovariances(MRIC *mric, int round, MRI *mri_src, 
+                             MRI *mri_target, BOX *bbox) ;
+int    MRICcomputeCovariances(MRIC *mric, int round) ;
 int    MRICcomputeInputs(MRI *mri, int x,int y,int z,float *obs, int features);
 MRI    *MRICbuildTargetImage(MRI *mri_src, MRI *mri_target, MRI *mri_wm,
                              int lo_lim, int hi_lim) ;
 MRI    *MRICupdatePriors(MRI *mri_target, MRI *mri_priors, int scale) ;
 int    MRInormalizePriors(MRI *mri_priors) ;
+int    MRICupdateStatistics(MRIC *mric, int round, MRI *mri_src, 
+                            MRI *mri_target, BOX *box) ;
+int    MRICcomputeStatistics(MRIC *mric, int round) ;
 
 #endif
