@@ -738,14 +738,18 @@ xv_dimage_event_handler(Xv_Window xv_window, Event *event)
           dimage->dy1 = dimage->sourceImage->rows - dimage->y0 - 1 ;
         if ((dimage->dx1 >= 2) || (dimage->dy1 >= 2))
         {
+          float rscale, cscale ;
+
           rows = xvf->display_rows ;
           cols = xvf->display_cols ;
+          rscale = (float)rows / (float)dimage->dy1 ;
+          cscale = (float)cols / (float)dimage->dx1 ;
           aspect = (float)dimage->dy1 / (float)dimage->dx1 ;
           dimage->dx = dimage->dx1 ;
           dimage->dy = dimage->dy1 ;
           if (dimage->sync)
             XVdoSync(xvf, which) ;
-          if (aspect > 1.0f)
+          if (rscale < cscale)
             XVsetImageSize(xvf, which, rows, nint((float)rows / aspect)) ;
           else
             XVsetImageSize(xvf, which, nint((float)cols * aspect),cols) ;
@@ -864,11 +868,9 @@ xv_dimage_event_handler(Xv_Window xv_window, Event *event)
       switch ((char)event->ie_code)
       {
       case 'S':
-        fprintf(stderr, "syncing all\n") ;
         XVsyncAll(xvf, which) ;
         break ;
       case 's':
-        fprintf(stderr, "unsyncing all\n") ;
         XVunsyncAll(xvf, which) ;
         break ;
       case 'm':
@@ -879,7 +881,9 @@ xv_dimage_event_handler(Xv_Window xv_window, Event *event)
         rows = nint((float)dimage->dispImage->rows*scale) ;
         cols = nint((float)dimage->dispImage->cols*scale) ;
         XVsetImageSize(xvf, which, rows, cols) ;
+#if 1
         if (rows > xvf->display_rows || cols > xvf->display_cols)
+#endif
           XVresize(xvf) ;
         XVshowAllSyncedImages(xvf, which) ;
         break;
