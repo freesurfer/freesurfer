@@ -47,12 +47,24 @@ int
 VLfree(VLI **pvli)
 {
   VLI *vli ;
-  int x, y ;
+  int x, y, z ;
   VL   ***vl ;
+  VL   *v;
 
   vli = *pvli ; *pvli = NULL ;
   vl = vli->vl ;
 
+  // freeup labels and counts first
+  for (x =0; x < vli->width; x++)
+    for (y=0; y < vli->height; y++)
+      for (z=0; z < vli->depth; z++)
+      {
+        v = &vli->vl[x][y][z] ;
+        free(v->labels);
+        free(v->counts);
+      }	
+
+  // then free up arrays
   for (x = 0 ; x < vli->width ; x++)
   {
     for (y = 0 ; y < vli->height ; y++)
