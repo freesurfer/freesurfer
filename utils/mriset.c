@@ -195,10 +195,8 @@ MRIxor(MRI *mri1, MRI *mri2, MRI *mri_dst, int t1, int t2)
       {
         v1 = *p1++ ;
         v2 = *p2++ ;
-        if (v1 > t1)
-          v1 = 1 ;
-        if (v2 > t2)
-          v2 = 1 ;
+        v1 = ((v1 >= t1) && (v1 <= t2)) ;
+        v2 = ((v2 >= t1) && (v2 <= t2)) ;
         *pdst++ = v1 ^ v2 ;
       }
     }
@@ -604,6 +602,60 @@ MRIerodeRegion(MRI *mri_src, MRI *mri_dst, int wsize, MRI_REGION *region)
           }
         }
         *pdst++ = min_val ;
+      }
+    }
+  }
+  return(mri_dst) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
+MRI *
+MRIcomputeResidual(MRI *mri1, MRI *mri2, MRI *mri_dst, int t1, int t2)
+{
+  int     width, height, depth, x, y, z ;
+  BUFTYPE *p1, *p2, *pdst, v1, v2, out ;
+
+  if ((mri1->type != MRI_UCHAR) || (mri2->type != MRI_UCHAR))
+    ErrorReturn(NULL, 
+                (ERROR_UNSUPPORTED, "MRIxor: inputs must be UCHAR")) ;
+
+  width = mri1->width ;
+  height = mri1->height ;
+  depth = mri1->depth ;
+
+  if (!mri_dst)
+    mri_dst = MRIclone(mri1, NULL) ;
+  else if (mri_dst->type != MRI_UCHAR)
+    ErrorReturn(NULL, 
+                (ERROR_UNSUPPORTED, 
+                 "MRIcomputeResidual: destination must be UCHAR")) ;
+
+
+  for (z = 0 ; z < depth ; z++)
+  {
+    for (y = 0 ; y < height ; y++)
+    {
+      pdst = &MRIvox(mri_dst, 0, y, z) ;
+      p1 = &MRIvox(mri1, 0, y, z) ;
+      p2 = &MRIvox(mri2, 0, y, z) ;
+      for (x = 0 ; x < width ; x++)
+      {
+        v1 = *p1++ ;
+        v2 = *p2++ ;
+        v1 = ((v1 >= t1) && (v1 <= t2)) ;
+        v2 = ((v2 >= t1) && (v2 <= t2)) ;
+        if (v1 && !v2)
+          out = 255 ;   /* v2 off and v1 on - make it 'positive' */
+        else if (!v1 && v2)
+          out = 0 ;     /* v2 on and v1 off - make it 'negative' */
+        else
+          out = 128 ;   /* both on or both off */
+        *pdst++ = out ;
       }
     }
   }
