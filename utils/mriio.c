@@ -31,6 +31,7 @@
 
 #define MM_PER_METER  1000.0f
 #define INFO_FNAME    "COR-.info"
+#define MAX_DIM       4
 
 /*-----------------------------------------------------
                     STATIC DATA
@@ -486,8 +487,8 @@ MRIfromVolume(Volume volume, int start_frame, int end_frame)
 {
   MRI   *mri ;
   int   type, width, height, depth, x, y, z, ystep, y1, ndim, nframes,
-        sizes[4], frame ;
-  Real  separations[4] ;
+        sizes[MAX_DIM], frame ;
+  Real  separations[MAX_DIM] ;
 
 /*
    the MNC coordinate system is related to coronal slices in the following way:
@@ -505,6 +506,8 @@ MRIfromVolume(Volume volume, int start_frame, int end_frame)
     nframes = 1 ;
   if (start_frame < 0)
     start_frame = 0 ;
+  else if (start_frame >= nframes)
+    start_frame = nframes-1 ;
   if (end_frame >= nframes)
     end_frame = nframes - 1 ;
 
@@ -519,17 +522,17 @@ MRIfromVolume(Volume volume, int start_frame, int end_frame)
   case NC_FLOAT: type = MRI_FLOAT ; break ;
   default:  
     ErrorReturn(NULL, 
-                (ERROR_UNSUPPORTED, "mncRead: unsupported MNC type %d",
+                (ERROR_UNSUPPORTED, "MRIfromVolume: unsupported MNC type %d",
                  volume->nc_data_type)) ;
     break ;
   }
   if (volume_is_alloced(volume))
-    mri = MRIallocSequence(width, height, depth, type, nframes) ;
+    mri = MRIallocSequence(width, height, depth, type,end_frame-start_frame+1);
   else
     mri = MRIallocHeader(width, height, depth, type) ;
 
   if (!mri)
-    ErrorExit(ERROR_NO_MEMORY, "mncRead: could not allocate MRI\n") ;
+    ErrorExit(ERROR_NO_MEMORY, "MRIfromVolume: could not allocate MRI\n") ;
 
   if (volume_is_alloced(volume)) switch (type)
   {
@@ -618,9 +621,9 @@ MRItoVolume(MRI *mri)
 {
   Volume        volume ;
   int           ndim, width, height, depth, type, sgned, x, y, z,
-                sizes[4], y1, frame ;
-  char          *dim_names[4] ;
-  Real          separations[4], voxel[4], world_vox[4] ;
+                sizes[MAX_DIM], y1, frame ;
+  char          *dim_names[MAX_DIM] ;
+  Real          separations[MAX_DIM], voxel[MAX_DIM], world_vox[MAX_DIM] ;
   
   if (mri->slice_direction != MRI_CORONAL)
     ErrorReturn(NULL, 
@@ -791,9 +794,9 @@ static MRI *
 mncRead(char *fname, int read_volume, int frame)
 {
   MRI                 *mri ;
-  char                *dim_names[4] ;
+  char                *dim_names[MAX_DIM] ;
   Volume              volume ;
-  int                 error, start_frame, end_frame ;
+  int                 error, start_frame, end_frame, sizes[MAX_DIM] ;
   volume_input_struct input_info ;
 
   dim_names[0] = MIxspace ;
@@ -812,11 +815,22 @@ mncRead(char *fname, int read_volume, int frame)
 
   if (frame < 0)
   {
+    get_volume_sizes(volume, sizes) ;
     start_frame = 0 ;
-    end_frame = 0 ;
+    end_frame = sizes[3]-1 ;
   }
   else
+  {
+    get_volume_sizes(volume, sizes) ;
+    if (frame >= sizes[3])
+    {
+      delete_volume(volume) ;
+      ErrorReturn(NULL,
+                  (ERROR_BADPARM, 
+                   "mncRead: specified frame %d out of bounds",frame));
+    }
     start_frame = end_frame = frame ;
+  }
   mri = MRIfromVolume(volume, start_frame, end_frame) ;
   strncpy(mri->fname, fname, STR_LEN-1) ;
   delete_volume(volume) ;
@@ -865,7 +879,10 @@ mncWrite(MRI *mri, char *fname, int frame)
 
   error = output_volume(fname, type, sgned, 0.0, 0.0, volume,"mncWrite", NULL);
   if (error)
+  {
+    delete_volume(volume) ;
     ErrorReturn(error, (error, "mncWrite: output volume failed")) ;
+  }
 
   delete_volume(volume) ;
   return(NO_ERROR) ;
