@@ -93,7 +93,7 @@ MRI *MRInormGentlyFindControlPoints(MRI *mri_src, int wm_target,
 MRI *MRIbuildBiasImage(MRI *mri_src,MRI *mri_ctrl, MRI *mri_bias);
 MRI *MRI3dNormalize(MRI *mri_orig, MRI *mri_src, int wm_target, MRI *mri_norm,
                     float intensity_above, float intensity_below,
-                    int only_file);
+                    int only_file, int prune);
 MRI *MRI3dGentleNormalize(MRI *mri_src, MRI *mri_bias, int wm_target, 
                           MRI *mri_norm, float intensity_above, 
                           float intensity_below, int only_file);
@@ -104,5 +104,7 @@ int MRI3dUseFileControlPoints(MRI *mri, char *fname) ;
 int MRI3dWriteControlPoints(char *control_volume_fname) ;
 int MRI3dWriteBias(char *bias_volume_fname) ;
 int MRInormAddFileControlPoints(MRI *mri_ctrl, int value) ;
+MRI *MRInormFindControlPointsInWindow(MRI *mri_src, int wm_target, float intensity_above, 
+																			float intensity_below, MRI *mri_ctrl, float whalf_mm, char *debug_str, int *pnctrl);
 
 #endif
