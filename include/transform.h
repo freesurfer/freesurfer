@@ -3,8 +3,8 @@
 /*                                                                     */
 /* Warning: Do not edit the following four lines.  CVS maintains them. */
 /* Revision Author: $Author: fischl $                                           */
-/* Revision Date  : $Date: 2005/01/19 14:37:22 $                                             */
-/* Revision       : $Revision: 1.36 $                                         */
+/* Revision Date  : $Date: 2005/02/01 15:13:11 $                                             */
+/* Revision       : $Revision: 1.37 $                                         */
 /*                                                                     */
 /***********************************************************************/
 
@@ -113,7 +113,7 @@ int      LTAprint(FILE *fp, const LTA *lta);
 
 int      TransformFileNameType(char *fname) ;
 int      LTAvoxelToRasXform(LTA *lta, MRI *mri_src, MRI *mri_dst) ;
-int      LTAvoxelToRasXform(LTA *lta, MRI *mri_src, MRI *mri_dst) ;
+int      LTArasToVoxelXform(LTA *lta, MRI *mri_src, MRI *mri_dst) ;
 int      LTAvoxelTransformToCoronalRasTransform(LTA *lta) ;
 
 int FixMNITal(float  xmni, float  ymni, float  zmni,
@@ -121,6 +121,7 @@ int FixMNITal(float  xmni, float  ymni, float  zmni,
 MATRIX *DevolveXFM(char *subjid, MATRIX *XFM, char *xfmname);
 
 TRANSFORM *TransformRead(char *fname) ;
+int       TransformWrite(TRANSFORM *transform, char *fname) ;
 TRANSFORM *TransformIdentity(void) ;
 int       TransformFree(TRANSFORM **ptrans) ;
 int       TransformSample(TRANSFORM *transform, float xv, float yv, float zv, float *px, float *py, float *pz) ;
