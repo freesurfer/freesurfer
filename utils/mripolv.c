@@ -968,9 +968,15 @@ MRIcentralPlaneOfLeastVarianceNormal(MRI *mri_src, MRI *mri_dst, int wsize)
     {
       if (Gdiag & DIAG_SHOW)
         fprintf(stderr, "reading previously calculated cpolv %s\n", fname) ;
-      mri_dst = MRIcopy(mri_tmp, NULL) ;
+      if (mri_tmp->width == mri_src->width && 
+          mri_tmp->height == mri_src->height &&
+          mri_tmp->depth == mri_src->depth)
+      {
+        mri_dst = MRIcopy(mri_tmp, NULL) ;
+        MRIfree(&mri_tmp) ;
+        return(mri_dst) ;
+      }
       MRIfree(&mri_tmp) ;
-      return(mri_dst) ;
     }
   }
 
