@@ -12,9 +12,6 @@
 #include "mriSurface.h"
 #include "mriVolume.h"
 
-typedef unsigned char tVolumeValue;
-typedef tVolumeValue* tVolumeRef;
-
 #define knMinVolumeValue 0
 #define knMaxVolumeValue 255
 
@@ -271,15 +268,15 @@ void tkm_WriteControlFile             ();
 /* editing */
 void tkm_EditAnatomicalVolumeInRange( tkm_tVolumeType  iVolume, 
 				      xVoxelRef        iMRIIdx, 
-				      tVolumeValue     inLow, 
-				      tVolumeValue     inHigh, 
-				      tVolumeValue     inNewValue );
+				      Volm_tValue      inLow, 
+				      Volm_tValue      inHigh, 
+				      Volm_tValue      inNewValue );
 void tkm_EditAnatomicalVolumeInRangeArray( tkm_tVolumeType  iVolume, 
 					   xVoxelRef        iaMRIIdx, 
 					   int              inCount,
-					   tVolumeValue     inLow, 
-					   tVolumeValue     inHigh, 
-					   tVolumeValue     inNewValue );
+					   Volm_tValue      inLow, 
+					   Volm_tValue      inHigh, 
+					   Volm_tValue      inNewValue );
 
 /* Sets a region in the anatomical volume to a new value. */
 void tkm_SetAnatomicalVolumeRegion ( tkm_tVolumeType iVolume,

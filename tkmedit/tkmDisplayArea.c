@@ -3,8 +3,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2003/08/11 14:00:31 $
-// Revision       : $Revision: 1.82 $
+// Revision Date  : $Date: 2003/08/20 16:21:24 $
+// Revision       : $Revision: 1.83 $
 
 #include "tkmDisplayArea.h"
 #include "tkmMeditWindow.h"
@@ -214,7 +214,7 @@ DspA_tErr DspA_New ( tkmDisplayAreaRef* oppWindow,
   
   /* set default brush info */
   sBrush.mnRadius = 1;
-  sBrush.mShape   = DspA_tBrushShape_Circle;
+  sBrush.mShape   = DspA_tBrushShape_Square;
   sBrush.mb3D     = FALSE;
   DspA_SetBrushInfoToDefault( this, DspA_tBrush_EditOne );
   DspA_SetBrushInfoToDefault( this, DspA_tBrush_EditTwo );
@@ -1986,11 +1986,11 @@ DspA_tErr DspA_SetBrushInfo ( tkmDisplayAreaRef this,
   if( sFocusedDisplay == this ) {
     
     /* send the tcl update. */
-    sprintf ( sTclArguments, "%d %d %d %d",
+    sprintf ( sTclArguments, "%d %f %f %f",
 	      (int)iBrush,
-	      (int)sBrush.mInfo[iBrush].mnLow,
-	      (int)sBrush.mInfo[iBrush].mnHigh,
-	      (int)sBrush.mInfo[iBrush].mnNewValue );
+	      sBrush.mInfo[iBrush].mLow,
+	      sBrush.mInfo[iBrush].mHigh,
+	      sBrush.mInfo[iBrush].mNewValue );
     tkm_SendTclCommand( tkm_tTclCommand_UpdateBrushInfo, sTclArguments );
   }
   
@@ -3647,14 +3647,14 @@ DspA_tErr DspA_SetBrushInfoToDefault ( tkmDisplayAreaRef this,
   /* set the brush theshold info */
   switch( iBrush ) {
   case DspA_tBrush_EditOne:
-    sBrush.mInfo[iBrush].mnLow = tkm_knEditToWhiteLow;
-    sBrush.mInfo[iBrush].mnHigh = tkm_knEditToWhiteHigh;
-    sBrush.mInfo[iBrush].mnNewValue = tkm_knEditToWhiteNewValue;
+    sBrush.mInfo[iBrush].mLow = tkm_knEditToWhiteLow;
+    sBrush.mInfo[iBrush].mHigh = tkm_knEditToWhiteHigh;
+    sBrush.mInfo[iBrush].mNewValue = tkm_knEditToWhiteNewValue;
     break;
   case DspA_tBrush_EditTwo:
-    sBrush.mInfo[iBrush].mnLow = tkm_knEditToBlackLow;
-    sBrush.mInfo[iBrush].mnHigh = tkm_knEditToBlackHigh;
-    sBrush.mInfo[iBrush].mnNewValue = tkm_knEditToBlackNewValue;
+    sBrush.mInfo[iBrush].mLow = tkm_knEditToBlackLow;
+    sBrush.mInfo[iBrush].mHigh = tkm_knEditToBlackHigh;
+    sBrush.mInfo[iBrush].mNewValue = tkm_knEditToBlackNewValue;
     break;
   default:
     eResult = DspA_tErr_InvalidParameter;
@@ -3667,9 +3667,9 @@ DspA_tErr DspA_SetBrushInfoToDefault ( tkmDisplayAreaRef this,
     /* send the tcl update. */
     sprintf ( sTclArguments, "%d %d %d %d",
 	      (int)iBrush,
-	      (int)sBrush.mInfo[iBrush].mnLow,
-	      (int)sBrush.mInfo[iBrush].mnHigh,
-	      (int)sBrush.mInfo[iBrush].mnNewValue );
+	      (int)sBrush.mInfo[iBrush].mLow,
+	      (int)sBrush.mInfo[iBrush].mHigh,
+	      (int)sBrush.mInfo[iBrush].mNewValue );
     tkm_SendTclCommand( tkm_tTclCommand_UpdateBrushInfo, sTclArguments );
   }
   
@@ -3847,21 +3847,21 @@ void DspA_BrushVoxelsInThreshold_ ( xVoxelRef ipaVoxel, int inCount,
   case DspA_tBrushTarget_Main:
     tkm_EditAnatomicalVolumeInRangeArray( tkm_tVolumeType_Main, 
 					  ipaVoxel, inCount,
-					  sBrush.mInfo[brush].mnLow,
-					  sBrush.mInfo[brush].mnHigh,
-					  sBrush.mInfo[brush].mnNewValue );
+					  sBrush.mInfo[brush].mLow,
+					  sBrush.mInfo[brush].mHigh,
+					  sBrush.mInfo[brush].mNewValue );
     break;
     case DspA_tBrushTarget_MainAux:
       tkm_EditAnatomicalVolumeInRangeArray( tkm_tVolumeType_Main,
 					    ipaVoxel, inCount,
-					    sBrush.mInfo[brush].mnLow,
-					    sBrush.mInfo[brush].mnHigh,
-					    sBrush.mInfo[brush].mnNewValue );
+					    sBrush.mInfo[brush].mLow,
+					    sBrush.mInfo[brush].mHigh,
+					    sBrush.mInfo[brush].mNewValue );
       tkm_EditAnatomicalVolumeInRangeArray( tkm_tVolumeType_Aux,
 					    ipaVoxel, inCount,
-					    sBrush.mInfo[brush].mnLow,
-					    sBrush.mInfo[brush].mnHigh,
-					    sBrush.mInfo[brush].mnNewValue );
+					    sBrush.mInfo[brush].mLow,
+					    sBrush.mInfo[brush].mHigh,
+					    sBrush.mInfo[brush].mNewValue );
       break;
   default:
     break;
@@ -6681,9 +6681,9 @@ DspA_tErr DspA_SendViewStateToTcl_ ( tkmDisplayAreaRef this ) {
   for( brush = 0; brush < DspA_knNumBrushes; brush++ ) {
     sprintf ( sTclArguments, "%d %d %d %d",
 	      (int)brush,
-	      (int)sBrush.mInfo[brush].mnLow, 
-	      (int)sBrush.mInfo[brush].mnHigh,
-	      (int)sBrush.mInfo[brush].mnNewValue );
+	      (int)sBrush.mInfo[brush].mLow, 
+	      (int)sBrush.mInfo[brush].mHigh,
+	      (int)sBrush.mInfo[brush].mNewValue );
     tkm_SendTclCommand( tkm_tTclCommand_UpdateBrushInfo, sTclArguments );
   }
   

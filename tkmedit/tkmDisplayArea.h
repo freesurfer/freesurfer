@@ -103,9 +103,9 @@ typedef enum {
 
 /* the threshold settings for a brush */
 typedef struct {
-  int mnLow;
-  int mnHigh;
-  int mnNewValue;
+  Volm_tValue mLow;
+  Volm_tValue mHigh;
+  Volm_tValue mNewValue;
 } DspA_tBrushInfo, *DspA_tBrushInfoRef;
 
 typedef enum {

@@ -4,9 +4,9 @@
 
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2003/08/05 21:42:04 $
-// Revision       : $Revision: 1.170 $
-char *VERSION = "$Revision: 1.170 $";
+// Revision Date  : $Date: 2003/08/20 16:21:24 $
+// Revision       : $Revision: 1.171 $
+char *VERSION = "$Revision: 1.171 $";
 
 #define TCL
 #define TKMEDIT 
@@ -1027,7 +1027,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
      shorten our argc and argv count. If those are the only args we
      had, exit. */
   /* rkt: check for and handle version tag */
-  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.170 2003/08/05 21:42:04 kteich Exp $");
+  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.171 2003/08/20 16:21:24 kteich Exp $");
   if (nNumProcessedVersionArgs && argc - nNumProcessedVersionArgs == 1)
     exit (0);
   argc -= nNumProcessedVersionArgs;
@@ -6986,7 +6986,7 @@ tkm_tErr LoadVolume ( tkm_tVolumeType iType,
       /* get a ptr to the idx to ras transform */
       DebugNote( ("Getting a pointer to the idx to RAS transform") );
       Volm_GetIdxToRASTransform( gAnatomicalVolume[iType],
-         &gIdxToRASTransform );
+				 &gIdxToRASTransform );
       break;
     case tkm_tVolumeType_Aux:
       MWin_SetAuxVolume( gMeditWindow, -1, gAnatomicalVolume[iType],
@@ -7626,7 +7626,7 @@ void EditAnatomicalVolumeInRangeArray ( tkm_tVolumeType iVolume,
     /* get the value at this point. */
     Volm_GetValueAtMRIIdx( gAnatomicalVolume[iVolume], 
 			   &(iaMRIIdx[nVoxel]), &value );
-    newValue = (int)value;
+    newValue = (Volm_tValue)value;
   
     /* if it's in the range... */
     if( value >= inLow && value <= inHigh ) {
@@ -10876,9 +10876,9 @@ void tkm_WriteControlFile () {
 
 void tkm_EditAnatomicalVolumeInRange( tkm_tVolumeType  iVolume, 
 				      xVoxelRef        inVolumeVox, 
-				      tVolumeValue     inLow, 
-				      tVolumeValue     inHigh, 
-				      tVolumeValue     inNewValue ) {
+				      Volm_tValue      inLow, 
+				      Volm_tValue      inHigh, 
+				      Volm_tValue      inNewValue ) {
   
   EditAnatomicalVolumeInRangeArray( iVolume, inVolumeVox, 1,
 				    inLow, inHigh, inNewValue );
@@ -10888,9 +10888,9 @@ void tkm_EditAnatomicalVolumeInRange( tkm_tVolumeType  iVolume,
 void tkm_EditAnatomicalVolumeInRangeArray( tkm_tVolumeType  iVolume, 
 					   xVoxelRef        iaVolumeVox, 
 					   int              inCount,
-					   tVolumeValue     inLow, 
-					   tVolumeValue     inHigh, 
-					   tVolumeValue     inNewValue ) {
+					   Volm_tValue      inLow, 
+					   Volm_tValue      inHigh, 
+					   Volm_tValue      inNewValue ) {
   
   EditAnatomicalVolumeInRangeArray( iVolume, iaVolumeVox, inCount,
 				    inLow, inHigh, inNewValue );

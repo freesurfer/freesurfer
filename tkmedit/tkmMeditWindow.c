@@ -3817,10 +3817,10 @@ int MWin_TclSetBrushInfo ( ClientData  ipClientData,
   MWin_tErr         eResult      = MWin_tErr_NoErr;
   DspA_tErr         eDispResult  = DspA_tErr_NoErr;
   char              sError[256]  = "";       
-  int               nBrush       = 0;
-  int               nLow         = 0;
-  int               nHigh        = 0;
-  int               nNewValue    = 0;
+  int               brush        = 0;
+  Volm_tValue       low          = 0;
+  Volm_tValue       high         = 0;
+  Volm_tValue       newValue     = 0;
   DspA_tBrushInfo   brushInfo;
 
   /* grab us from the client data ptr */
@@ -3847,20 +3847,20 @@ int MWin_TclSetBrushInfo ( ClientData  ipClientData,
   }
 
   /* parse the args and get a low, high, and new value */
-  nBrush    = (int) atoi( argv[1] );
-  nLow      = (int) atoi( argv[2] );
-  nHigh     = (int) atoi( argv[3] );
-  nNewValue = (int) atoi( argv[4] );
+  brush     = (int) atoi( argv[1] );
+  low       = (Volm_tValue) atof( argv[2] );
+  high      = (Volm_tValue) atof( argv[3] );
+  newValue  = (Volm_tValue) atof( argv[4] );
 
   /* make a struct */
-  brushInfo.mnLow      = nLow;
-  brushInfo.mnHigh     = nHigh;
-  brushInfo.mnNewValue = nNewValue;
+  brushInfo.mLow      = low;
+  brushInfo.mHigh     = high;
+  brushInfo.mNewValue = newValue;
 
   /* set the brush of the last clicked display. */
   eDispResult = 
     DspA_SetBrushInfo ( this->mapDisplays[this->mnLastClickedArea],
-      nBrush, &brushInfo );
+      brush, &brushInfo );
   if ( DspA_tErr_NoErr != eDispResult ) {
     eResult = MWin_tErr_ErrorAccessingDisplay;
     goto error;
