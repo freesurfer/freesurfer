@@ -3,8 +3,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2004/05/20 17:43:01 $
-// Revision       : $Revision: 1.131 $
+// Revision Date  : $Date: 2004/05/25 15:50:31 $
+// Revision       : $Revision: 1.132 $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -1693,15 +1693,22 @@ GCAread(char *fname)
           gcan = &gca->nodes[x][y][z] ;
           gcan->nlabels = freadInt(fp) ;
           gcan->total_training = freadInt(fp) ;
-          gcan->labels = (unsigned char *)calloc(gcan->nlabels, sizeof(unsigned char)) ;
-          if (!gcan->labels)
-            ErrorExit(ERROR_NOMEMORY, "GCAread(%s): could not allocate %d "
-                      "labels @ (%d,%d,%d)", fname, gcan->nlabels, x, y, z) ;
-          gcan->gcs = alloc_gcs(gcan->nlabels, flags, gca->ninputs) ;
-          if (!gcan->gcs)
-            ErrorExit(ERROR_NOMEMORY, "GCAread(%s); could not allocated %d gcs "
-                      "@ (%d,%d,%d)", fname, gcan->nlabels, x, y, z) ;
-          
+	  if (gcan->nlabels)
+	  {
+	    gcan->labels = (unsigned char *)calloc(gcan->nlabels, sizeof(unsigned char)) ;
+	    if (!gcan->labels)
+	      ErrorExit(ERROR_NOMEMORY, "GCAread(%s): could not allocate %d "
+			"labels @ (%d,%d,%d)", fname, gcan->nlabels, x, y, z) ;
+	    gcan->gcs = alloc_gcs(gcan->nlabels, flags, gca->ninputs) ;
+	    if (!gcan->gcs)
+	      ErrorExit(ERROR_NOMEMORY, "GCAread(%s); could not allocated %d gcs "
+			"@ (%d,%d,%d)", fname, gcan->nlabels, x, y, z) ;
+          }
+	  else // no labels assigned to this node
+	  {
+	    gcan->labels = 0;
+	    gcan->gcs = 0;
+	  }
           for (n = 0 ; n < gcan->nlabels ; n++)
           {
 	    int r, c;
@@ -1773,15 +1780,22 @@ GCAread(char *fname)
           gcan = &gca->nodes[x][y][z] ;
           gcan->nlabels = freadInt(fp) ;
           gcan->total_training = freadInt(fp) ;
-          gcan->labels = (unsigned char *)calloc(gcan->nlabels, sizeof(unsigned char)) ;
-          if (!gcan->labels)
-            ErrorExit(ERROR_NOMEMORY, "GCAread(%s): could not allocate %d "
-                      "labels @ (%d,%d,%d)", fname, gcan->nlabels, x, y, z) ;
-          gcan->gcs = alloc_gcs(gcan->nlabels, flags, gca->ninputs) ;
-          if (!gcan->gcs)
-            ErrorExit(ERROR_NOMEMORY, "GCAread(%s); could not allocated %d gcs "
-                      "@ (%d,%d,%d)", fname, gcan->nlabels, x, y, z) ;
-          
+	  if (gcan->nlabels)
+	  {
+	    gcan->labels = (unsigned char *)calloc(gcan->nlabels, sizeof(unsigned char)) ;
+	    if (!gcan->labels)
+	      ErrorExit(ERROR_NOMEMORY, "GCAread(%s): could not allocate %d "
+			"labels @ (%d,%d,%d)", fname, gcan->nlabels, x, y, z) ;
+	    gcan->gcs = alloc_gcs(gcan->nlabels, flags, gca->ninputs) ;
+	    if (!gcan->gcs)
+	      ErrorExit(ERROR_NOMEMORY, "GCAread(%s); could not allocated %d gcs "
+			"@ (%d,%d,%d)", fname, gcan->nlabels, x, y, z) ;
+          }
+	  else // no labels at this node
+	  {
+	    gcan->labels = 0;
+	    gcan->gcs = 0;
+	  }
           for (n = 0 ; n < gcan->nlabels ; n++)
           {
 	    int  r, c ;
@@ -1836,15 +1850,22 @@ GCAread(char *fname)
 	    continue;
           gcap->nlabels = freadInt(fp) ;
           gcap->total_training = freadInt(fp) ;
-
-          gcap->labels = (unsigned char *)calloc(gcap->nlabels, sizeof(unsigned char)) ;
-          if (!gcap->labels)
-            ErrorExit(ERROR_NOMEMORY, "GCAread(%s): could not allocate %d "
-                      "labels @ (%d,%d,%d)", fname, gcap->nlabels, x, y, z) ;
-          gcap->priors = (float *)calloc(gcap->nlabels, sizeof(float)) ;
-          if (!gcap->priors)
-            ErrorExit(ERROR_NOMEMORY, "GCAread(%s): could not allocate %d "
-                      "priors @ (%d,%d,%d)", fname, gcap->nlabels, x, y, z) ;
+	  if (gcap->nlabels)
+	  {
+	    gcap->labels = (unsigned char *)calloc(gcap->nlabels, sizeof(unsigned char)) ;
+	    if (!gcap->labels)
+	      ErrorExit(ERROR_NOMEMORY, "GCAread(%s): could not allocate %d "
+			"labels @ (%d,%d,%d)", fname, gcap->nlabels, x, y, z) ;
+	    gcap->priors = (float *)calloc(gcap->nlabels, sizeof(float)) ;
+	    if (!gcap->priors)
+	      ErrorExit(ERROR_NOMEMORY, "GCAread(%s): could not allocate %d "
+			"priors @ (%d,%d,%d)", fname, gcap->nlabels, x, y, z) ;
+	  }
+	  else // no lables assigned to this priors
+	  {
+	    gcap->labels = 0;
+	    gcap->priors = 0;
+	  }
           for (n = 0 ; n < gcap->nlabels ; n++)
           {
             gcap->labels[n] = (unsigned char)fgetc(fp) ;
@@ -10508,6 +10529,7 @@ alloc_gcs(int nlabels, int flags, int ninputs)
   }
   return(gcs) ;
 }
+
 static int
 free_gcs(GC1D *gcs, int nlabels, int ninputs)
 {
