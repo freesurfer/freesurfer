@@ -1,4 +1,4 @@
-% $Id: convert_unwarp_resample.m,v 1.4 2003/08/12 18:14:25 ebeth Exp $
+% $Id: convert_unwarp_resample.m,v 1.5 2004/01/17 05:21:48 ebeth Exp $
 %
 %% convert_unwarp_resample.m contains: 
 % convert_unwarp_resample()
@@ -51,8 +51,8 @@ tic;
 
 %%% check arguments %%%
 if(nargin > 9 | nargin < 3)
-  qoe('convert_unwarp_resample(infile,serno,outfile,corfovflag,unwarpflag,jacflag,interp_method,gradwarpfile) - 3-9 arguments required.');
-  error('convert_unwarp_resample(infile,serno,outfile,corfovflag,unwarpflag,jacflag,interp_method,gradwarpfile) - 3-9 arguments required.');
+  qoe('convert_unwarp_resample(infile,serno,outfile,corfovflag,unwarpflag,jacflag,interp_method,gradwarpfile,called_by_script) - 3-9 arguments required.');
+  error('convert_unwarp_resample(infile,serno,outfile,corfovflag,unwarpflag,jacflag,interp_method,gradwarpfile,called_by_script) - 3-9 arguments required.');
 end
 
 if (~exist('corfovflag') | isempty(corfovflag)) corfovflag=0; end
@@ -64,58 +64,73 @@ end
 if (~exist('interp_method') | isempty(interp_method))
   interp_method='';
 else
-  if strcmp(interp_method,'trilinear') interp_method ='linear'; end
+  if (strcmp(interp_method,'trilinear')|strcmp(interp_method,'interpolate')) interp_method ='linear'; end
   fprintf('Interp method is %s\n',interp_method);
 end
 
 if ((corfovflag | unwarpflag) & strcmp(interp_method,''))
-  qoe('convert_unwarp_resample(infile,serno,outfile,corfovflag,unwarpflag,jacflag,interp_method,gradwarpfile) - If unwarping or resampling, must specify interpolation method');
-  error('convert_unwarp_resample(infile,serno,outfile,corfovflag,unwarpflag,jacflag,interp_method,gradwarpfile) - If unwarping or resampling, must specify interpolation method');
+  qoe('convert_unwarp_resample(infile,serno,outfile,corfovflag,unwarpflag,jacflag,interp_method,gradwarpfile,called_by_script) - If unwarping or resampling, must specify interpolation method');
+  error('convert_unwarp_resample(infile,serno,outfile,corfovflag,unwarpflag,jacflag,interp_method,gradwarpfile,called_by_script) - If unwarping or resampling, must specify interpolation method');
 end
-
 %%% end check arguments %%%
 
 %% load file, dicom or mgh %% 
-if(isdicomfile(infile) | isdir(infile))
+if((exist(infile,'file')) & (strcmp(infile(end-3:end),'.mgh')))
+  % Good enough test for mgh file, mildly cheesy
+  fprintf('INFO: loading mgh-format infile %s\n',infile);
+  % So now we know it's an mgh file - dewarping an mgh file requires
+  % user-supplied gradwarpfile or gradwarptype - don't bother loading
+  % if args are wrong:
+  if(unwarpflag & strcmp(user_gradwarpfile,''))
+    qoe('convert_unwarp_resample(infile,serno,outfile,corfovflag,unwarpflag,jacflag,interp_method,gradwarpfile,called_by_script) - for unwarping an mgh file, user must supply gradwarpfilename or type');
+    error('convert_unwarp_resample(infile,serno,outfile,corfovflag,unwarpflag,jacflag,interp_method,gradwarpfile,called_by_script) - for unwarping an mgh file, user must supply gradwarpfilename or type');
+  end
+  fprintf('INFO: loading mgh volume %s\n',infile);
+  [vol, M0, mr_parms, Mdc] = load_mgh(infile);
+  if(isempty(vol))
+    qoe('error loading mgh file.');
+    error('error loading mgh file.');
+  end
+elseif (isdicomfile(infile) | isdir(infile))
+  % dicom file or dicom directory
   fprintf('INFO: loading dicom volume at %s\n',infile);
   [vol, M0, mr_parms, Mdc, gradwarpfile] = load_dicom_plus(series,infile);
   if(isempty(vol))
     qoe('error loading dicom file.');
     error('error loading dicom file.');
   end
-else % mgh
-  fprintf('INFO: loading mgh-format infile %s\n',infile);
-  % So now we know it's an mgh file - don't bother loading if args are wrong:
-  if(unwarpflag & strcmp(user_gradwarpfile,''))
-    qoe('convert_unwarp_resample(infile,serno,outfile,corfovflag,unwarpflag,jacflag,interp_method,gradwarpfile) - for unwarping an mgh file, user must supply gradwarpfilename or type');
-    error('convert_unwarp_resample(infile,serno,outfile,corfovflag,unwarpflag,jacflag,interp_method,gradwarpfile) - for unwarping an mgh file, user must supply gradwarpfilename or type');
-  end
-  [vol, M0, mr_parms, Mdc] = load_mgh(infile);
-  if(isempty(vol))
-    qoe('error loading mgh file.');
-    error('error loading mgh file.');
-  end
+else
+  qoe('convert_unwarp_resample: infile was neither dicom nor mgh?');
+  error('convert_unwarp_resample: infile was neither dicom nor mgh?');
 end
 %% end load file %% 
 
 % That did or didn't give us a gradwarp file.  See if there's an override: % 
 if(unwarpflag)
   if ~strcmp(user_gradwarpfile,'')
+    % Minor kludge: suggests user supplied a dewarp type (e.g. sonata)
+    % instead of path (e.g. /space/dijon/foo/etc).  If it's not a
+    % dewarp type, type2map will notice
     if (isempty(strfind(user_gradwarpfile,'/')))
-      % minor kludge: suggests user supplied a dewarp type (e.g. sonata)
-      % instead of path (e.g. /space/dijon/foo/etc)
       gradwarpfile = type2map(user_gradwarpfile);
     else
       gradwarpfile = user_gradwarpfile;
     end
   elseif (~exist('gradwarpfile') | isempty(gradwarpfile) | strcmp(gradwarpfile,''))
-    qoe('convert_unwarp_resample(infile,serno,outfile,corfovflag,unwarpflag,jacflag,interp_method,gradwarpfile) - no gradwarpfile found - user must supply gradwarpfile or type');
-    error('convert_unwarp_resample(infile,serno,outfile,corfovflag,unwarpflag,jacflag,interp_method,gradwarpfile) - no gradwarpfile found - user must supply gradwarpfile or type');
+    qoe('convert_unwarp_resample(infile,serno,outfile,corfovflag,unwarpflag,jacflag,interp_method,gradwarpfile,called_by_script) - no gradwarpfile found - user must supply gradwarpfile or type');
+    error('convert_unwarp_resample(infile,serno,outfile,corfovflag,unwarpflag,jacflag,interp_method,gradwarpfile,called_by_script) - no gradwarpfile found - user must supply gradwarpfile or type');
   end
-  [placeholder,inflag,thruflag]=map2manuf(gradwarpfile);
+
+  % if unwarping, have to figure out whether inplane or thruplane or not
+  % no matter where the gradwarpfile came from
+  % (user-supplied filename, user-supplied type, dicom headers)
+  % - so look it up in table.mat
+  [manuf_dontcare,inflag,thruflag]=map2manuf(gradwarpfile);
+else
+  inflag=0; thruflag=0; gradwarpfile='';
 end
 
-% If there wasn't much to do:
+% If there wasn't much to do (e.g. just converting dicom to mgh):
 if(~corfovflag & ~unwarpflag)
   fprintf('Writing MGH output file %s\n',outfile);
   save_mgh(vol,outfile,M0,mr_parms);
@@ -127,7 +142,15 @@ M = vox2ras_0to1(M0);
 
 % Setup the output geometry %
 if(corfovflag)
-  % This might need to be modified so as to center the volume
+  %%%%%
+  % Q: This might need to be modified so as to center the volume
+  % A: Yeah, this centers it on c_ras = 0,0,0 - scanner isocenter!
+  %%%%%
+  % Q: Maybe I messed up Anders's code to the point where this no
+  % longer ensures cor orientation - but it surely does not.  However,
+  % if you want COR format, you're probably mri_converting anyway, and
+  % you can start with this matrix and mri_convert will take care of
+  % it with no interpolation, no problem.
   Mout = [0    -1     0   129;...
           0     0     1  -129;...
          -1     0     0   129;...
@@ -197,8 +220,10 @@ end;
 
 if(isempty(vol)) return; end
 
-if isfield(dcminfo(1),'ScannerSerialNo')
+if (isfield(dcminfo(1),'ScannerSerialNo') & ~isempty(dcminfo(1).ScannerSerialNo))
   SSN = dcminfo(1).ScannerSerialNo;
+elseif (isfield(dcminfo(1),'DeviceSerialNumber') & ~isempty(dcminfo(1).DeviceSerialNumber))
+  SSN = dcminfo(1).DeviceSerialNumber;
 else SSN = ''; end
 
 if isfield(dcminfo(1),'InstitutionName')
@@ -210,7 +235,7 @@ if isfield(dcminfo(1),'StationName')
 else SN = ''; end
 
 gradfilename = header2map(dcminfo(1).Manufacturer,dcminfo(1).ManufacturersModelName,SSN,IN,SN);
-
+fprintf('load_dicom_plus: INFO: gradwarpfile is %s\n',gradfilename); %EDEBUG%
 Mdc = mdc(dcminfo);
 
 return;
@@ -235,21 +260,25 @@ return
 
 function gradfilename = header2map(M,MMN,SSN,IN,SN)
 
-global TABLE
+global GRADWARPPATH;
+global TABLE;
 load(TABLE);
 
 INSN = sprintf('%s %s',IN,SN);
 
+gradfilename='';
 for ii=[1:length(m)]
   if (strcmpi(m(ii).Manufacturer,M) & any(strcmpi(m(ii).ManufacturersModelName,MMN)))
     if(strcmpi(m(ii).Manufacturer,'siemens'))
-      % For Siemens, M and MMN fully determine the gradfilename
-      gradfilename = m(ii).filename;
+      % For Siemens, M and MMN fully determine the gradfilename.  So far.  We think.
+      % gradfilename = m(ii).filename;
+      gradfilename = sprintf('%s/%s',GRADWARPPATH,m(ii).filename);
       return;
     end
     if (any(strcmpi(m(ii).ScannerSerialNo,SSN)) | any(strcmpi(m(ii).InstitutionStation,INSN)))
       % For GE, need either of these to narrow it down.
-      gradfilename = m(ii).filename;
+      % gradfilename = m(ii).filename;
+      gradfilename = sprintf('%s/%s',GRADWARPPATH,m(ii).filename);
       return;
     end
   end
@@ -263,7 +292,8 @@ return;
 
 function gradfilename = type2map(type)
 
-global TABLE
+global GRADWARPPATH;
+global TABLE;
 load(TABLE);
 
 % This didnt work:
@@ -272,7 +302,8 @@ load(TABLE);
 
 for ii=[1:length(m)]
   if (strcmp(m(ii).nickname,type))
-    gradfilename = m(ii).filename;
+    % gradfilename = m(ii).filename;
+    gradfilename = sprintf('%s/%s',GRADWARPPATH,m(ii).filename);
     return
   end
 end
@@ -284,14 +315,16 @@ return;
 
 function [manuf, inflag, thruflag] = map2manuf(gradfilename)
 
-global TABLE
+global GRADWARPPATH;
+global TABLE;
 load(TABLE);
 
 manuf = ''; inflag = []; thruflag = [];
 gfn = gradfilename(max(strfind(gradfilename,'/'))+1:end);  % i.e. after last "/"
 
 for ii=[1:length(m)]
-  testgfn = m(ii).filename(max(strfind(gradfilename,'/'))+1:end);
+  % testgfn = m(ii).filename(max(strfind(gradfilename,'/'))+1:end);
+  testgfn = m(ii).filename;
   if (strcmpi(testgfn,gfn))
     manuf = lower(m(ii).Manufacturer);
     if strcmpi(manuf,'siemens')
