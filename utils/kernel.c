@@ -57,6 +57,7 @@ KernelImageAlloc(int rows, int cols, int krows, int kcols)
   kimage->kcols = kcols ;
   kimage->rows = rows ;
   kimage->cols = cols ;
+  kimage->fname = NULL ;
 
   for (row = 0 ; row < rows ; row++)
   {
@@ -669,6 +670,8 @@ KernelImageFromSeq(IMAGE *image)
     return(NULL) ;
   }
 
+  if (image->orig_name)
+    kimage->fname = STRCPALLOC(image->orig_name) ;
   for (row = 0 ; row < rows ; row++)
   {
     for (col = 0 ; col < cols ; col++)
