@@ -101,7 +101,7 @@ class ScubaLayer2DMRI : public Layer {
   
   // The volume data set.
   VolumeCollection* mVolume;
-  
+
   // General drawing settings.
   SampleMethod mSampleMethod;
   ColorMapMethod mColorMapMethod;

@@ -167,7 +167,6 @@ ScubaLayer2DMRI::DrawIntoBuffer ( GLubyte* iBuffer, int iWidth, int iHeight,
       case magnitude:value = mVolume->GetMRIMagnitudeValueAtRAS( RAS );break;
       }
       
-      //      memset (color, 0, sizeof(int) * 3);
       switch( mColorMapMethod ) { 
       case grayscale: GetGrayscaleColorForValue( value, dest, color );break;
       case heatScale: GetHeatscaleColorForValue( value, dest, color );break;
@@ -180,9 +179,8 @@ ScubaLayer2DMRI::DrawIntoBuffer ( GLubyte* iBuffer, int iWidth, int iHeight,
 	aColorTimesOpacity[color[1]];
       dest[2] = aColorTimesOneMinusOpacity[dest[2]] + 
 	aColorTimesOpacity[color[2]];
-      //      dest[3] = (GLubyte) 255;
       
-      dest += 3;
+      dest += mBytesPerPixel;
     }
   }
 
@@ -216,7 +214,7 @@ ScubaLayer2DMRI::DrawIntoBuffer ( GLubyte* iBuffer, int iWidth, int iHeight,
       }
       
       // Advance our pixel buffer pointer.
-      dest += 3;
+      dest += mBytesPerPixel;
       
     }
   }

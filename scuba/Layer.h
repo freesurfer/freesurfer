@@ -40,6 +40,8 @@ class Layer : public DebugReporter,
   Layer();
   virtual ~Layer();
 
+  void SetBytesPerPixel ( int icBytes ) { mBytesPerPixel = icBytes; }
+
   // Tell the layer to draw its contents into a GL frame buffer.
   virtual void DrawIntoBuffer( GLubyte* iBuffer, int iWidth, int iHeight,
 			       ViewState& iViewState,
@@ -66,8 +68,8 @@ class Layer : public DebugReporter,
   void SetOpacity( float iOpacity ) { mOpacity = iOpacity; }
   float GetOpacity() { return mOpacity; }
 
-  void SetWidth( int iWidth ) { mWidth = iWidth; }
-  void SetHeight( int iHeight ) { mHeight = iHeight; }
+  void SetWidth( int iWidth );
+  void SetHeight( int iHeight );
 
   virtual void HandleTool ( float iRAS[3], ViewState& iViewState,
 			    ScubaWindowToRASTranslator& iTranslator,
@@ -108,7 +110,7 @@ class Layer : public DebugReporter,
   // Redisplay requested flag.
   bool mbPostRedisplay;
 
-  static int const kBPP;
+  int mBytesPerPixel;
 };
 
 

@@ -14,7 +14,7 @@
 
 using namespace std;
 
-int const ScubaView::kBytesPerPixel = 3;
+int const ScubaView::kBytesPerPixel = 4;
 map<int,bool> ScubaView::mViewIDLinkedList;
 Point3<float> ScubaView::mCursor( 0, 0, 0 );
 int ScubaView::mcMarkers = 0;
@@ -359,6 +359,9 @@ ScubaView::SetLayerAtLevel ( int iLayerID, int iLevel ) {
       // Set the layer's width and height.
       layer.SetWidth( mWidth );
       layer.SetHeight( mHeight );
+
+      // Set pixel size.
+      layer.SetBytesPerPixel( kBytesPerPixel );
 
       // If this is level 0, get our in plane increments from it.
       if( 0 == iLevel ) {
@@ -1992,7 +1995,7 @@ ScubaView::DrawFrameBuffer () {
 #endif  
 
   glRasterPos2i( 0, 0 );
-  glDrawPixels( mWidth, mHeight, GL_RGB, GL_UNSIGNED_BYTE, mBuffer );
+  glDrawPixels( mWidth, mHeight, GL_RGBA, GL_UNSIGNED_BYTE, mBuffer );
 }
 
 void 
