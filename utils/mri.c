@@ -2923,6 +2923,108 @@ MRIbinarize(MRI *mri_src, MRI *mri_dst, BUFTYPE threshold, BUFTYPE low_val,
 
   return(mri_dst) ;
 }
+/*-----------------------------------------------------*/
+MRI *MRIsubtract(MRI *mri1, MRI *mri2, MRI *mri_dst)
+{
+  int     nframes, width, height, depth, x, y, z, f, s ;
+  float v1, v2, v=0.0;
+  BUFTYPE *p1=NULL, *p2=NULL, *pdst=NULL ;
+  short *ps1=NULL, *ps2=NULL, *psdst=NULL ;
+  int   *pi1=NULL, *pi2=NULL, *pidst=NULL ;
+  long  *pl1=NULL, *pl2=NULL, *pldst=NULL ;
+  float *pf1=NULL, *pf2=NULL, *pfdst=NULL ;
+
+  width = mri1->width ;
+  height = mri1->height ;
+  depth = mri1->depth ;
+  nframes = mri1->nframes ;
+  if(nframes == 0) nframes = 1;
+
+  if (!mri_dst){
+    mri_dst = MRIallocSequence(width, height, depth, mri1->type,nframes) ;
+    MRIcopyHeader(mri1, mri_dst) ;
+  }
+
+  if(mri1->type != mri2->type){
+    /* Generic but slow */
+    for (f = 0 ; f < nframes ; f++){
+      for (z = 0 ; z < depth ; z++){
+	for (y = 0 ; y < height ; y++){
+	  for (x = 0 ; x < width ; x++){
+	    v1 = MRIgetVoxVal(mri1,x,y,z,f);
+	    v2 = MRIgetVoxVal(mri2,x,y,z,f);
+	    v = v1-v2;
+	    MRIsetVoxVal(mri_dst,x,y,z,f,v);
+	  }
+	}
+      }
+    }
+    return(mri_dst) ;
+  }
+
+
+  s = 0;
+  for (f = 0 ; f < nframes ; f++){
+    for (z = 0 ; z < depth ; z++){
+      for (y = 0 ; y < height ; y++){
+
+	switch(mri_dst->type){
+	case MRI_UCHAR: pdst  =           mri_dst->slices[s][y] ; break;
+	case MRI_SHORT: psdst = (short *) mri_dst->slices[s][y] ; break;
+	case MRI_INT:   pidst = (int *)   mri_dst->slices[s][y] ; break;
+	case MRI_LONG:  pldst = (long *)  mri_dst->slices[s][y] ; break;
+	case MRI_FLOAT: pfdst = (float *) mri_dst->slices[s][y] ; break;
+	}
+	switch(mri1->type){
+	case MRI_UCHAR:
+	  p1 = mri1->slices[s][y] ;
+	  p2 = mri2->slices[s][y] ;
+	  break;
+	case MRI_SHORT:
+	  ps1 = (short *) mri1->slices[s][y] ;
+	  ps2 = (short *) mri2->slices[s][y] ;
+	  break;
+	case MRI_INT:
+	  pi1 = (int *) mri1->slices[s][y] ;
+	  pi2 = (int *) mri2->slices[s][y] ;
+	  break;
+	case MRI_LONG:
+	  pl1 = (long *) mri1->slices[s][y] ;
+	  pl2 = (long *) mri2->slices[s][y] ;
+	  break;
+	case MRI_FLOAT:
+	  pf1 = (float *) mri1->slices[s][y] ;
+	  pf2 = (float *) mri2->slices[s][y] ;
+	  break;
+	}
+
+	for (x = 0 ; x < width ; x++){
+
+	  switch(mri1->type){
+	  case MRI_UCHAR: v = (float)(*p1++)  - (float)(*p2++);  break;
+	  case MRI_SHORT: v = (float)(*ps1++) - (float)(*ps2++); break;
+	  case MRI_INT:   v = (float)(*pi1++) - (float)(*pi2++); break;
+	  case MRI_LONG:  v = (float)(*pl1++) - (float)(*pl2++); break;
+	  case MRI_FLOAT: v = (float)(*pf1++) - (float)(*pf2++); break;
+	  }
+
+	  switch(mri_dst->type){
+	  case MRI_UCHAR: (*pdst++)  = (BUFTYPE) v; break;
+	  case MRI_SHORT: (*psdst++) = (short)   v; break;
+	  case MRI_INT:   (*pidst++) = (int)     v; break;
+	  case MRI_LONG:  (*pldst++) = (long)    v; break;
+	  case MRI_FLOAT: (*pfdst++) = (float)   v; break;
+	  }
+
+	}
+      }
+      s++;
+    }
+  }
+
+  return(mri_dst) ;
+}
+#if 0
 /*------------------------------------------------------
   MRIsubtract(mri1,mri2,mridiff) - computes mri1-mri2.
   ------------------------------------------------------*/
@@ -2956,13 +3058,8 @@ MRI *MRIsubtract(MRI *mri1, MRI *mri2, MRI *mri_dst)
   }
   return(mri_dst) ;
 }
+#endif
 /*-----------------------------------------------------
-        Parameters:
-
-        Returns value:
-
-        Description
-
 ------------------------------------------------------*/
 MRI *
 MRIabsdiff(MRI *mri1, MRI *mri2, MRI *mri_dst)
@@ -3001,12 +3098,6 @@ MRIabsdiff(MRI *mri1, MRI *mri2, MRI *mri_dst)
   return(mri_dst) ;
 }
 /*-----------------------------------------------------
-        Parameters:
-
-        Returns value:
-
-        Description
-
 ------------------------------------------------------*/
 MRI *
 MRIabs(MRI *mri_src, MRI *mri_dst)
@@ -3042,9 +3133,13 @@ MRIabs(MRI *mri_src, MRI *mri_dst)
 /*-----------------------------------------------------*/
 MRI * MRIadd(MRI *mri1, MRI *mri2, MRI *mri_dst)
 {
-  int     nframes, width, height, depth, x, y, z, f ;
-  float v1, v2, vsum;
-  //BUFTYPE *p1, *p2, *pdst ;
+  int     nframes, width, height, depth, x, y, z, f, s ;
+  float v1, v2, v=0.0;
+  BUFTYPE *p1=NULL, *p2=NULL, *pdst=NULL ;
+  short *ps1=NULL, *ps2=NULL, *psdst=NULL ;
+  int   *pi1=NULL, *pi2=NULL, *pidst=NULL ;
+  long  *pl1=NULL, *pl2=NULL, *pldst=NULL ;
+  float *pf1=NULL, *pf2=NULL, *pfdst=NULL ;
 
   width = mri1->width ;
   height = mri1->height ;
@@ -3057,31 +3152,114 @@ MRI * MRIadd(MRI *mri1, MRI *mri2, MRI *mri_dst)
     MRIcopyHeader(mri1, mri_dst) ;
   }
 
-  for (z = 0 ; z < depth ; z++){
-    for (y = 0 ; y < height ; y++){
-      for (x = 0 ; x < width ; x++){
-	for (f = 0 ; f < nframes ; f++){
-	  v1 = MRIgetVoxVal(mri1,x,y,z,f);
-	  v2 = MRIgetVoxVal(mri2,x,y,z,f);
-	  vsum = v1+v2;
-	  MRIsetVoxVal(mri_dst,x,y,z,f,vsum);
+  if(mri1->type != mri2->type){
+    /* Generic but slow */
+    for (f = 0 ; f < nframes ; f++){
+      for (z = 0 ; z < depth ; z++){
+	for (y = 0 ; y < height ; y++){
+	  for (x = 0 ; x < width ; x++){
+	    v1 = MRIgetVoxVal(mri1,x,y,z,f);
+	    v2 = MRIgetVoxVal(mri2,x,y,z,f);
+	    v = v1+v2;
+	    MRIsetVoxVal(mri_dst,x,y,z,f,v);
+	  }
 	}
       }
     }
+    return(mri_dst) ;
   }
 
-#if 0 /* This is what it used to be, only worked
-	 with nframes = 1 and for type BUF_TYPE */
-  for (z = 0 ; z < depth ; z++){
-    for (y = 0 ; y < height ; y++){
-      p1 = mri1->slices[z][y] ;
-      p2 = mri2->slices[z][y] ;
-      pdst = mri_dst->slices[z][y] ;
-      for (x = 0 ; x < width ; x++)
-	*pdst++ = *p1++ + *p2++ ;
+
+  s = 0;
+  for (f = 0 ; f < nframes ; f++){
+    for (z = 0 ; z < depth ; z++){
+      for (y = 0 ; y < height ; y++){
+
+	switch(mri_dst->type){
+	case MRI_UCHAR: pdst  = mri_dst->slices[s][y] ; break;
+	case MRI_SHORT: psdst = (short *) mri_dst->slices[s][y] ; break;
+	case MRI_INT:   pidst = (int *)   mri_dst->slices[s][y] ; break;
+	case MRI_LONG:  pldst = (long *)  mri_dst->slices[s][y] ; break;
+	case MRI_FLOAT: pfdst = (float *) mri_dst->slices[s][y] ; break;
+	}
+
+	switch(mri1->type){
+	case MRI_UCHAR:
+	  p1 = mri1->slices[s][y] ;
+	  p2 = mri2->slices[s][y] ;
+	  break;
+	case MRI_SHORT:
+	  ps1 = (short *) mri1->slices[s][y] ;
+	  ps2 = (short *) mri2->slices[s][y] ;
+	  break;
+	case MRI_INT:
+	  pi1 = (int *) mri1->slices[s][y] ;
+	  pi2 = (int *) mri2->slices[s][y] ;
+	  break;
+	case MRI_LONG:
+	  pl1 = (long *) mri1->slices[s][y] ;
+	  pl2 = (long *) mri2->slices[s][y] ;
+	  break;
+	case MRI_FLOAT:
+	  pf1 = (float *) mri1->slices[s][y] ;
+	  pf2 = (float *) mri2->slices[s][y] ;
+	  break;
+	}
+
+	for (x = 0 ; x < width ; x++){
+
+	  switch(mri_dst->type){
+	  case MRI_UCHAR:
+	    switch(mri1->type){
+	    case MRI_UCHAR: (*pdst++) = (BUFTYPE) ((*p1++)+(*p2++));   break;
+	    case MRI_SHORT: (*pdst++) = (BUFTYPE) ((*ps1++)+(*ps2++)); break;
+	    case MRI_INT:   (*pdst++) = (BUFTYPE) ((*pi1++)+(*pi2++)); break;
+	    case MRI_LONG:  (*pdst++) = (BUFTYPE) ((*pl1++)+(*pl2++)); break;
+	    case MRI_FLOAT: (*pdst++) = (BUFTYPE) ((*pf1++)+(*pf2++)); break;
+	    }
+	    break;
+	  case MRI_SHORT:
+	    switch(mri1->type){
+	    case MRI_UCHAR: (*psdst++) = ((short)(*p1++)+(*p2++));   break;
+	    case MRI_SHORT: (*psdst++) = (short) ((*ps1++)+(*ps2++)); break;
+	    case MRI_INT:   (*psdst++) = (short) ((*pi1++)+(*pi2++)); break;
+	    case MRI_LONG:  (*psdst++) = (short) ((*pl1++)+(*pl2++)); break;
+	    case MRI_FLOAT: (*psdst++) = (short) ((*pf1++)+(*pf2++)); break;
+	    }
+	    break;
+	  case MRI_INT:
+	    switch(mri1->type){
+	    case MRI_UCHAR: (*pidst++) = ((int)(*p1++)+(*p2++));   break;
+	    case MRI_SHORT: (*pidst++) = ((int)(*ps1++)+(*ps2++)); break;
+	    case MRI_INT:   (*pidst++) = (int) ((*pi1++)+(*pi2++)); break;
+	    case MRI_LONG:  (*pidst++) = (int) ((*pl1++)+(*pl2++)); break;
+	    case MRI_FLOAT: (*pidst++) = (int) ((*pf1++)+(*pf2++)); break;
+	    }
+	    break;
+	  case MRI_LONG:
+	    switch(mri1->type){
+	    case MRI_UCHAR: (*pldst++) = ((long)(*p1++)+(*p2++));   break;
+	    case MRI_SHORT: (*pldst++) = ((long)(*ps1++)+(*ps2++)); break;
+	    case MRI_INT:   (*pldst++) = ((long)(*pi1++)+(*pi2++)); break;
+	    case MRI_LONG:  (*pldst++) = (long) ((*pl1++)+(*pl2++)); break;
+	    case MRI_FLOAT: (*pldst++) = (long) ((*pf1++)+(*pf2++)); break;
+	    }
+	    break;
+	  case MRI_FLOAT:
+	    switch(mri1->type){
+	    case MRI_UCHAR: (*pfdst++) = ((float)(*p1++)+(*p2++)); break;
+	    case MRI_SHORT: (*pfdst++) = ((float)(*ps1++)+(*ps2++)); break;
+	    case MRI_INT:   (*pfdst++) = ((float)(*pi1++)+(*pi2++)); break;
+	    case MRI_LONG:  (*pfdst++) = ((float)(*pl1++)+(*pl2++)); break;
+	    case MRI_FLOAT: (*pfdst++) =         (*pf1++)+(*pf2++);  break;
+	    }
+	    break;
+	  }
+	}
+      }
+      s++;
     }
   }
-#endif
 
   return(mri_dst) ;
 }
@@ -7738,8 +7916,6 @@ MRI *MRIchangeType(MRI *src, int dest_type, float f_low,
     return(dest);
   }
 
-  MRIlimits(src, &src_min, &src_max);
-
   if(src->type == MRI_UCHAR && (dest_type == MRI_SHORT || dest_type == MRI_INT || dest_type == MRI_LONG || dest_type == MRI_FLOAT))
     no_scale_flag = TRUE;
   else if(src->type == MRI_SHORT && (dest_type == MRI_INT || dest_type == MRI_LONG || dest_type == MRI_FLOAT))
@@ -7750,6 +7926,8 @@ MRI *MRIchangeType(MRI *src, int dest_type, float f_low,
     no_scale_flag = TRUE;
   else
   {
+    MRIlimits(src, &src_min, &src_max);
+
     if(no_scale_option_flag)
     {
       if(dest_type == MRI_UCHAR && src_min >= UCHAR_MIN && src_max <= UCHAR_MAX)
@@ -7770,9 +7948,9 @@ MRI *MRIchangeType(MRI *src, int dest_type, float f_low,
     MRIcopyHeader(src, dest);
     dest->type = dest_type;
 
-    for(i = 0;i < src->width;i++)
+    for(k = 0;k < src->depth;k++)
       for(j = 0;j < src->height;j++)
-        for(k = 0;k < src->depth;k++)
+	for(i = 0;i < src->width;i++)
         {
 
           if(src->type == MRI_UCHAR)
@@ -9551,14 +9729,76 @@ MRI *MRIrandn(int ncols, int nrows, int nslices, int nframes,
     }
   }
 
-  for(c=0; c<ncols; c++){
-    for(r=0; r<nrows; r++){
-      for(s=0; s<nslices; s++){
-	for(f=0; f<nframes; f++){
+  for(f=0; f<nframes; f++){
+    for(s=0; s<nslices; s++){
+      for(r=0; r<nrows; r++){
+	for(c=0; c<ncols; c++){
 	  MRIFseq_vox(mri,c,r,s,f) = 
 	    stddev*PDFgaussian() + avg;
 	}
       }
+    }
+  }
+
+  return(mri);
+}
+/*---------------------------------------------------------------------
+  MRIdrand48() - fills an MRI structure with values sampled from a 
+  the drand48 uniform random number generator. The user must specify
+  the min and max. Note: the stddev = (max-min)*0.289. If mri is NULL,
+  it will alloc a MRI_FLOAT volume, otherwise, it will use the type
+  as specified in mri.
+  --------------------------------------------------------*/
+MRI *MRIdrand48(int ncols, int nrows, int nslices, int nframes,
+		float min, float max, MRI *mri)
+{
+  int c, r, s, f, n;
+  float range, v;
+  BUFTYPE *pmri=NULL;
+  short   *psmri=NULL;
+  int     *pimri=NULL;
+  long    *plmri=NULL;
+  float   *pfmri=NULL;
+
+  if(mri==NULL){
+    mri = MRIallocSequence(ncols, nrows, nslices, MRI_FLOAT, nframes);
+    if(mri==NULL){
+      printf("ERROR: MRIdrand48: could not alloc\n");
+      return(NULL);
+    }
+  }
+  else{
+    if(mri->width != ncols   || mri->height != nrows || 
+       mri->depth != nslices || mri->nframes != nframes){
+      printf("ERROR: MRIdrand48: dimension mismatch\n");
+      return(NULL);
+    }
+  }
+
+  range = max-min;
+  n = 0;
+  for(f=0; f<nframes; f++){
+    for(s=0; s<nslices; s++){
+      for(r=0; r<nrows; r++){
+	switch(mri->type){
+	case MRI_UCHAR: pmri  =           mri->slices[n][r]; break;
+	case MRI_SHORT: psmri = (short *) mri->slices[n][r]; break;
+	case MRI_INT:   pimri = (int *)   mri->slices[n][r]; break;
+	case MRI_LONG:  plmri = (long *)  mri->slices[n][r]; break;
+	case MRI_FLOAT: pfmri = (float *) mri->slices[n][r]; break;
+	}
+	for(c=0; c<ncols; c++) {
+	  v = range*drand48() + min;
+	  switch(mri->type){
+	  case MRI_UCHAR: *pmri++  = (BUFTYPE) v; break;
+	  case MRI_SHORT: *psmri++ = (short) v; break;
+	  case MRI_INT:   *pimri++ = (int)   v; break;
+	  case MRI_LONG:  *plmri++ = (long)  v; break;
+	  case MRI_FLOAT: *pfmri++ = (float) v; break;
+	  }
+	}
+      }
+      n++;
     }
   }
 
