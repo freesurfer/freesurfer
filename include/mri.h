@@ -66,6 +66,7 @@ MRI   *MRIreadInfo(char *fpref) ;
 /* memory allocation routines */
 int   MRIfree(MRI **pmri) ;
 MRI   *MRIalloc(int width, int height, int depth, int type) ;
+MRI   *MRIallocSequence(int width, int height,int depth,int type,int nframes);
 
 
 /* correlation routines */
@@ -119,6 +120,12 @@ MRI   *MRIdiffusePerona(MRI *mri_src, MRI *mri_dst,
                              double k, int niter,double slope);
 
 
+/* offset stuff */
+MRI   *MRIoffsetDirection(MRI *mri_x, MRI *mri_y, MRI *mri_z, int wsize, 
+                          MRI *mri_direction);
+MRI   *MRIoffsetMagnitude(MRI *mri_src, MRI *mri_dst, int maxsteps) ;
+MRI   *MRIapplyOffset(MRI *mri_src, MRI *mri_dst, MRI *mri_offset) ;
+
 
 MRI   *MRIclone(MRI *mri_src, MRI *mri_dst) ;
 MRI   *MRIthreshold(MRI *mri_src, MRI *mri_dst, BUFTYPE threshold) ;
@@ -159,6 +166,8 @@ int   MRIvoxelToTalairachVoxel(MRI *mri, Real xv, Real yv, Real zv,
                                Real *pxt, Real *pyt, Real *pzt) ;
 int   MRItalairachVoxelToVoxel(MRI *mri, Real xt, Real yt, Real zt,
                                Real *pxv, Real *pyv, Real *pzv) ;
+int   MRIvoxelToTalairach(MRI *mri, Real xv, Real yv, Real zv,
+                               Real *pxt, Real *pyt, Real *pzt) ;
 
 
 #include "image.h"
@@ -173,6 +182,12 @@ IMAGE *MRItoImageView(MRI *mri, IMAGE *I, int slice, int view) ;
 #define MRIvox(mri,x,y,z)   (((BUFTYPE *)mri->slices[z][y])[x])
 #define MRIIvox(mri,x,y,z)  (((int *)mri->slices[z][y])[x])
 #define MRILvox(mri,x,y,z)  (((long *)mri->slices[z][y])[x])
+
+#define MRISseq_vox(mri,x,y,z,n)  (((short *)mri->slices[z+n*mri->depth][y])[x])
+#define MRIFseq_vox(mri,x,y,z,n)  (((float *)mri->slices[z+n*mri->depth][y])[x])
+#define MRIseq_vox(mri,x,y,z,n)   (((BUFTYPE *)mri->slices[z+n*mri->depth][y])[x])
+#define MRIIseq_vox(mri,x,y,z,n)  (((int *)mri->slices[z+n*mri->depth][y])[x])
+#define MRILseq_vox(mri,x,y,z,n)  (((long *)mri->slices[z+n*mri->depth][y])[x])
 
 #define MRI_HEIGHT      0
 #define MRI_WIDTH       1
