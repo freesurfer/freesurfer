@@ -4,8 +4,8 @@
 /*                                                                     */
 /* Warning: Do not edit the following four lines.  CVS maintains them. */
 /* Revision Author: $Author: fischl $                                           */
-/* Revision Date  : $Date: 2004/11/09 20:39:46 $                                             */
-/* Revision       : $Revision: 1.35 $                                         */
+/* Revision Date  : $Date: 2005/02/03 01:47:14 $                                             */
+/* Revision       : $Revision: 1.36 $                                         */
 /***********************************************************************/
 
 #include <stdio.h>
@@ -94,7 +94,7 @@ main(int argc, char *argv[])
   parms.prior_spacing = 2.0f ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_ca_train.c,v 1.35 2004/11/09 20:39:46 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_ca_train.c,v 1.36 2005/02/03 01:47:14 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -1093,11 +1093,11 @@ static void modify_transform(TRANSFORM *transform, MRI *mri_inputs, GCA *gca)
   if (transform->type == MORPH_3D_TYPE)
   {
     gcam = (GCA_MORPH *) transform->xform;
-    if (gcam->dst.valid) // means it contains the dst volume information
+    if (gcam->atlas.valid) // means it contains the dst volume information
     {
-      mri_buf->c_r = gcam->dst.c_r;
-      mri_buf->c_a = gcam->dst.c_a;
-      mri_buf->c_s = gcam->dst.c_s;
+      mri_buf->c_r = gcam->atlas.c_r;
+      mri_buf->c_a = gcam->atlas.c_a;
+      mri_buf->c_s = gcam->atlas.c_s;
       if (warned == 0)
       {
 	fprintf(stderr, "INFO: modified c_(r,a,s) using the non-linear transform dst value.\n");
