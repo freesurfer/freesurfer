@@ -1014,7 +1014,7 @@ unsigned long MRISeraseOutsideOfSurface(float h,MRI* mri_dst,MRIS *mris,unsigned
 #define MRISRGBToAnnot(r,g,b,annot) \
      annot = ((r) & 0xff) | (((g) & 0xff) << 8) | (((b) & 0xff) << 16);
 
-#endif
+
 
 
 
@@ -1029,3 +1029,7 @@ int MRISgaussianWeights(MRIS *surf, MRI *dist, double GStd);
 MRI *MRISspatialFilter(MRI *Src, MRI *wdist, MRI *Targ);
 
 MATRIX *surfaceRASToSurfaceRAS_(MRI *src, MRI *dst, LTA *lta);
+
+int MRISsurf2surf(MRIS *mris, MRI *dst, LTA *lta);
+
+#endif

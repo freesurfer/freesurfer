@@ -4,8 +4,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2004/12/10 21:41:27 $
-// Revision       : $Revision: 1.314 $
+// Revision Date  : $Date: 2004/12/14 18:29:08 $
+// Revision       : $Revision: 1.315 $
 //////////////////////////////////////////////////////////////////
 #include <stdio.h>
 #include <string.h>
@@ -8441,8 +8441,9 @@ MRISripFaces(MRI_SURFACE *mris)
     f = &mris->faces[k];
     for (n=0;n<VERTICES_PER_FACE;n++)
       if (mris->vertices[f->v[n]].ripflag)
-        f->ripflag = TRUE;
+	f->ripflag = TRUE;
   }
+
   for (k=0;k<mris->nvertices;k++)
     mris->vertices[k].border = FALSE;
   for (k=0;k<mris->nfaces;k++)
@@ -41766,3 +41767,46 @@ MATRIX *getSRASToTalSRAS(LT *lt)
 
   return SRASToTalSRAS;
 } 
+
+// transform surface vertices to the dst volume surface
+int MRISsurf2surf(MRIS *mris, MRI *dst, LTA *lta)
+{
+  VECTOR *sX = 0;
+  VECTOR *dX = 0;
+  MATRIX *surf2surf = 0;
+  MRI *src = 0;
+  int i;
+
+  src = MRIallocHeader(mris->vg.width, mris->vg.height, mris->vg.depth, MRI_VOLUME_TYPE_UNKNOWN);
+  if (mris->vg.valid ==0)
+  {
+    fprintf(stderr, "INFO: surface does not contain the volume geometry info\n");
+    fprintf(stderr, "INFO: surf2surf conversion may be incorrect.\n");
+  }
+  useVolGeomToMRI(&mris->vg, src);
+  
+  sX = VectorAlloc(4, MATRIX_REAL);
+  dX = VectorAlloc(4, MATRIX_REAL);
+  surf2surf = surfaceRASFromSurfaceRAS_(dst, src, lta);
+  // now get all the vertex points and change them to 
+  //    the corresponding dst surface vertices
+  for (i = 0; i < mris->nvertices; i++)
+  {
+    V4_LOAD(sX, mris->vertices[i].x, mris->vertices[i].y, mris->vertices[i].z, 1.);
+    MatrixMultiply(surf2surf, sX,  dX);
+    mris->vertices[i].x = VECTOR_ELT(dX, 1);
+    mris->vertices[i].y = VECTOR_ELT(dX, 2);
+    mris->vertices[i].z = VECTOR_ELT(dX, 3);
+  }
+  // modify the geometry stored
+  getVolGeom(dst, &mris->vg);
+  // recalculate properties
+  MRIScomputeNormals(mris);
+  
+  MRIfree(&src); src = 0;
+  VectorFree(&sX); sX = 0;
+  VectorFree(&dX); dX = 0;
+  MatrixFree(&surf2surf); surf2surf = 0;
+
+  return 0;
+}
