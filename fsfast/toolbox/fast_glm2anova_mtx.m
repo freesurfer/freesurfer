@@ -21,7 +21,7 @@ function M = fast_glm2anova_mtx(cflmap,nlevels,ncond,vr,nesttot)
 % If unspecified, the number of conditions is the maximum
 % condition number found in the cfl map.
 %
-% $Id: fast_glm2anova_mtx.m,v 1.1 2003/05/03 01:09:07 greve Exp $
+% $Id: fast_glm2anova_mtx.m,v 1.2 2003/05/05 04:31:39 greve Exp $
 
 M = [];
 
@@ -35,6 +35,11 @@ if(~ok) return; end
 
 if(exist('ncond')~=1) ncond = []; end
 if(isempty(ncond))    ncond = max(cflmap(:,1)); end
+if(max(cflmap(:,1)) > ncond)
+  fprintf('ERROR: cfl cond number exceeds number of conditions\n');
+  return;
+end
+
 
 if(exist('vr')~=1) vr = []; end
 if(isempty(vr))    vr = 1; end
@@ -118,7 +123,7 @@ for n = 1:npopmeans
 	return;
       end
       popcid(n) = cfltmp(ind,1);
-      fprintf('%2d ',n); fprintf('%d ',bv); fprintf('  %d\n',cfltmp(ind,1));
+      %fprintf('%2d ',n); fprintf('%d ',bv); fprintf('  %d\n',cfltmp(ind,1));
     end
     cfltmp = cfltmp(ind,:); 
   end
