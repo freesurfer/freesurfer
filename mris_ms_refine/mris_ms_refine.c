@@ -19,7 +19,7 @@
 #include "cvector.h"
 #include "histo.h"
 
-static char vcid[] = "$Id: mris_ms_refine.c,v 1.7 2002/04/08 14:42:36 fischl Exp $";
+static char vcid[] = "$Id: mris_ms_refine.c,v 1.8 2002/06/01 03:16:23 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -33,9 +33,20 @@ static int MIN_VNO = 0 ;
 #define EPSILON             0.25
 
 #define IS_CSF(T1, PD)  (!((PD > MIN_NONBRAIN_PD) && (T1 > MIN_NONBRAIN_T1 && T1 < MIN_CSF_T1)))
+#define IS_PV_CSF(T1,PD) (T1 > MIN_PARTIAL_VOLUMED_CSF_T1)
+#if 0
 #define IS_WM(T1,PD)   ((T1 >= MIN_WM_T1) && (T1 <= MAX_WM_T1) && (PD <= MAX_WM_PD) && (PD >= MIN_WM_PD))
 #define IS_GM(T1,PD)   ((T1 >= MIN_GM_T1) && (T1 <= MAX_GM_T1) && (PD >= MIN_GM_PD))
 #define IS_BRAIN(T1,PD)  (IS_GM(T1,PD) || IS_WM(T1,PD))
+
+#else
+
+#define IS_WM(T1,PD,vno,ep)   ((T1 >= MIN_WM_T1) && (T1 <= MAX_WM_T1) && (PD <= ep->cv_max_wm_PD[vno]) && (PD >= ep->cv_min_wm_PD[vno]))
+#define IS_GM(T1,PD,vno,ep)   ((T1 >= MIN_GM_T1) && (T1 <= MAX_GM_T1) && (PD >= ep->cv_min_gm_PD[vno]))
+#define IS_BRAIN(T1,PD,vno,ep)  (IS_GM(T1,PD,vno,ep) || IS_WM(T1,PD,vno,ep))
+
+#endif
+
 #define WM_PARM_DIST(T1,PD)   (T1 > MAX_WM_T1 ? (T1-MAX_WM_T1) : T1 < MIN_WM_T1 ? MIN_WM_T1-T1 : 0)
 #define CSF_PARM_DIST(T1,PD)   (fabs(MIN_CSF_T1-T1))
 
@@ -55,6 +66,10 @@ typedef struct
   float *cv_last_whitex ;
   float *cv_last_whitey ;
   float *cv_last_whitez ;
+  float *cv_min_wm_PD ;
+  float *cv_max_wm_PD ;
+  float *cv_min_gm_PD ;
+  float *cv_max_gm_PD ;
   MRI   **mri_flash ;
   int   nvolumes ;
   int   *nearest_pial_vertices ;
@@ -70,7 +85,9 @@ typedef struct
 } EXTRA_PARMS ;
 
 
+static int   compute_PD_limits(MRI_SURFACE *mris, EXTRA_PARMS *ep, int navgs) ;
 static int   plot_stuff = 0 ;
+static int min_max_scale = 100 ;
 #if 0
 static float histo_sigma = 1.0f ;
 #endif
@@ -91,6 +108,7 @@ static double lookup_flash_value(double TR, double flip_angle, double PD, double
 static float subsample_dist = 10.0 ;
 #endif
 
+#define PD_STD          125
 #define MIN_T1          10
 #define MAX_T1          10000
 #define T1_STEP_SIZE    5
@@ -99,8 +117,10 @@ static float subsample_dist = 10.0 ;
 #define MAX_WM_T1  1200
 #define MIN_GM_T1  900
 #define MAX_GM_T1  1700
+#if 1
 #define MIN_WM_PD  500
-#define MIN_GM_PD  700  /* 600*/
+#define MIN_GM_PD  400
+#endif
 #define MAX_WM_PD  1300
 #define MIN_CSF_T1 1900
 #define MIN_PARTIAL_VOLUMED_CSF_T1  1500
@@ -109,7 +129,7 @@ static float subsample_dist = 10.0 ;
 
 static int sample_type = SAMPLE_NEAREST ;
 static double MIN_NONBRAIN_T1 = 500.0 ;
-static double MIN_NONBRAIN_PD = 600 ;
+static double MIN_NONBRAIN_PD = 550 ;
 static double MIN_RELIABLE_PD = 150 ;
 
 #define BRIGHT_LABEL         130
@@ -158,7 +178,7 @@ static int compute_maximal_distances(MRI_SURFACE *mris, float sigma, MRI **mri_f
                                      float *cv_outward_dists, int *nearest_pial_vertices,
                                      int *nearest_white_vertices, double dstep,
                                      double max_inward_dist, double max_outward_dist,
-                                     MRI *mri_T1, MRI *mri_PD) ;
+                                     MRI *mri_T1, MRI *mri_PD, EXTRA_PARMS *ep) ;
 static int find_nearest_pial_vertices(MRI_SURFACE *mris, int *nearest_pial_vertices,
                                       int  *nearest_white_vertices) ;
 static int find_nearest_white_vertices(MRI_SURFACE *mris, int *nearest_white_vertices) ;
@@ -200,7 +220,7 @@ static double compute_vertex_sse(EXTRA_PARMS *ep, Real image_vals[MAX_FLASH_VOLU
                                  int max_j,
                                  double white_dist, double cortical_dist, double T1_wm, double PD_wm, 
                                  double T1_gm, double PD_gm, double T1_csf, double PD_csf, int debug,
-                                 Real *T1_vals, Real *PD_vals) ;
+                                 Real *T1_vals, Real *PD_vals, int vno) ;
 char *Progname ;
 static char *gSdir = NULL ;
 
@@ -512,6 +532,11 @@ main(int argc, char *argv[])
   ep.cv_last_whitey = cvector_alloc(mris->max_vertices) ;
   ep.cv_last_whitez = cvector_alloc(mris->max_vertices) ;
 
+  ep.cv_min_wm_PD = cvector_alloc(mris->max_vertices) ;
+  ep.cv_max_wm_PD = cvector_alloc(mris->max_vertices) ;
+  ep.cv_min_gm_PD = cvector_alloc(mris->max_vertices) ;
+  ep.cv_max_gm_PD = cvector_alloc(mris->max_vertices) ;
+
   ep.cv_wm_T1 = cv_wm_T1 = cvector_alloc(mris->max_vertices) ;
   ep.cv_wm_PD = cv_wm_PD = cvector_alloc(mris->max_vertices) ;
   ep.cv_gm_T1 = cv_gm_T1 = cvector_alloc(mris->max_vertices) ;
@@ -522,9 +547,22 @@ main(int argc, char *argv[])
   ep.nearest_white_vertices = (int *)calloc(mris->max_vertices, sizeof(int)) ;
   if (!cv_inward_dists || !cv_outward_dists || !cv_wm_T1 || !cv_wm_PD
       || !cv_gm_T1 || !cv_gm_PD || !cv_csf_T1 || !cv_csf_PD || !ep.nearest_pial_vertices
-      || !ep.nearest_white_vertices)
+      || !ep.nearest_white_vertices || !ep.cv_min_wm_PD  || !ep.cv_max_wm_PD  || !ep.cv_min_gm_PD 
+      || !ep.cv_max_gm_PD)
     ErrorExit(ERROR_NOMEMORY, "%s: could allocate %d len cvector arrays",
               Progname, mris->nvertices) ;
+  ep.nvertices = mris->nvertices ;
+  ep.dstep = MAX_DSTEP ;
+  if (orig_flag)
+  {
+    ep.max_outward_dist = 3*MAX_DIST ;
+    ep.max_inward_dist = 1.5*MAX_DIST ;
+  }
+  else
+  {
+    ep.max_outward_dist = MAX_DIST ;
+    ep.max_inward_dist = MAX_DIST ;
+  }
   ep.scale = scale_all_images(mri_flash, nvolumes, mris, MEAN_WM_PD, &ep) ;
   if (smooth)
   {
@@ -552,21 +590,16 @@ main(int argc, char *argv[])
     printf("computing parameter maps...\n") ;
     compute_parameter_maps(mri_flash, nvolumes, &mri_T1, &mri_PD) ;
     printf("done.\n") ;
+    if (Gdiag & DIAG_WRITE)
+    {
+      printf("writing parameter maps to file...\n") ;
+      MRIwrite(mri_T1, "T1.mgh") ;
+      MRIwrite(mri_PD, "PD.mgh") ;
+    }
   }
-
   ep.mri_T1 = mri_T1 ; ep.mri_PD = mri_PD ;
-  ep.nvertices = mris->nvertices ;
-  ep.dstep = MAX_DSTEP ;
-  if (orig_flag)
-  {
-    ep.max_outward_dist = 3*MAX_DIST ;
-    ep.max_inward_dist = 1.5*MAX_DIST ;
-  }
-  else
-  {
-    ep.max_outward_dist = MAX_DIST ;
-    ep.max_inward_dist = MAX_DIST ;
-  }
+
+  compute_PD_limits(mris, &ep, min_max_scale) ;
   current_sigma = sigma ;
   for (n_averages = max_averages, i = 0 ; 
        n_averages >= min_averages ; 
@@ -588,7 +621,7 @@ main(int argc, char *argv[])
                               cv_inward_dists, cv_outward_dists,
                               ep.nearest_pial_vertices, ep.nearest_white_vertices,
                               ep.dstep, ep.max_inward_dist, ep.max_outward_dist,
-                              ep.mri_T1, ep.mri_PD) ;
+                              ep.mri_T1, ep.mri_PD, &ep) ;
 #if 0
     if (orig_flag && start_t == 0)
     {
@@ -769,6 +802,12 @@ get_option(int argc, char *argv[])
   {
     fix_T1 = 1 ;
     printf( "fixing T1 values of gray and white matter\n");
+  }
+  else if (!stricmp(option, "min_max_scale"))
+  {
+    min_max_scale = atoi(argv[2]) ;
+    nargs = 1 ;
+    printf( "using min/max filter size %d (%2.3f mm)\n", min_max_scale,sqrt((float)min_max_scale));
   }
   else if (!stricmp(option, "orig"))
   {
@@ -1181,7 +1220,7 @@ ms_errfunc_gradient(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
                             ep->cv_inward_dists, ep->cv_outward_dists,
                             ep->nearest_pial_vertices, ep->nearest_white_vertices, 
                             ep->dstep, ep->max_inward_dist, ep->max_outward_dist,
-                            ep->mri_T1, ep->mri_PD) ;
+                            ep->mri_T1, ep->mri_PD, ep) ;
 #endif
   sse = 0.0 ;
   for (vno = MIN_VNO ; vno < mris->nvertices ; vno++)
@@ -1330,7 +1369,7 @@ ms_errfunc_sse(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
                             ep->cv_inward_dists, ep->cv_outward_dists,
                             ep->nearest_pial_vertices, ep->nearest_white_vertices,ep->dstep,
                             ep->max_inward_dist, ep->max_outward_dist,
-                            ep->mri_T1, ep->mri_PD);
+                            ep->mri_T1, ep->mri_PD, ep);
 #endif 
   wm_total = pial_total = total_sse = 0.0 ;
   for (vno = MIN_VNO ; vno < mris->nvertices ; vno++)
@@ -1496,7 +1535,8 @@ vertex_error(MRI_SURFACE *mris, int vno, EXTRA_PARMS *ep, double *prms)
     }
   }
   sse = compute_vertex_sse(ep, image_vals, max_j, inward_dist, cortical_dist, 
-                           T1_wm, PD_wm, T1_gm, PD_gm, T1_csf, PD_csf, plot_stuff && vno == Gdiag_no) ;
+                           T1_wm, PD_wm, T1_gm, PD_gm, T1_csf, PD_csf, plot_stuff && vno == Gdiag_no,
+                           vno) ;
   if (prms)
     *prms = sqrt(sse) ;
 
@@ -1651,7 +1691,7 @@ compute_maximal_distances(MRI_SURFACE *mris, float sigma, MRI **mri_flash, int n
                           float *cv_inward_dists, float *cv_outward_dists,
                           int *nearest_pial_vertices, int *nearest_white_vertices,
                           double dstep, double max_inward_dist, double max_outward_dist_total,
-                          MRI *mri_T1, MRI *mri_PD)
+                          MRI *mri_T1, MRI *mri_PD, EXTRA_PARMS *ep)
 {
   int    vno, i, found_csf, j, max_j = 0, found_wm, past_wm, wm_dist, csf_dist, min_j, low_pd_csf;
   /*  int    nreversed, max_reversed,done;*/
@@ -1723,21 +1763,21 @@ compute_maximal_distances(MRI_SURFACE *mris, float sigma, MRI **mri_flash, int n
       T1 = T1_vals[j] ; PD = PD_vals[j] ;
       if (found_wm)
       {
-        if (found_wm > 1 && IS_GM(T1,PD))
+        if (found_wm > 1 && IS_GM(T1,PD,vno,ep))
           break ;
-        else if (!IS_GM(T1,PD))
+        else if (!IS_GM(T1,PD,vno,ep))
           found_wm = 2 ;
-        if (!IS_WM(T1,PD))
+        if (!IS_WM(T1,PD,vno,ep))
           break ;
 #if 0
         if (++wm_dist >= 5)
           break ;
 #endif
       }
-      else if (IS_WM(T1,PD))
+      else if (IS_WM(T1,PD,vno,ep))
       {
         found_wm = 1 ;
-        if (!IS_GM(T1,PD))
+        if (!IS_GM(T1,PD,vno,ep))
           found_wm=2 ;
       }
     }
@@ -1829,9 +1869,9 @@ compute_maximal_distances(MRI_SURFACE *mris, float sigma, MRI **mri_flash, int n
     for (j = found_csf = 0 ; j <= max_j ; j++)
     {
       T1 = T1_vals[j] ; PD = PD_vals[j] ;
-      if (past_wm && IS_WM(T1,PD))  /* don't go through wm twice */
+      if (past_wm && IS_WM(T1,PD,vno,ep))  /* don't go through wm twice */
         break ;
-      if (!IS_WM(T1,PD))
+      if (!IS_WM(T1,PD,vno,ep))
         past_wm = 1 ;
       if (found_csf)
       {
@@ -1855,7 +1895,7 @@ compute_maximal_distances(MRI_SURFACE *mris, float sigma, MRI **mri_flash, int n
         if (++csf_dist >= 5)
           break ;
       }
-      else if (!IS_BRAIN(T1,PD))  /* not brain */
+      else if (!IS_BRAIN(T1,PD,vno,ep))  /* not brain */
       {
         if (PD < MIN_NONBRAIN_PD)
           low_pd_csf = 1 ;
@@ -1864,13 +1904,47 @@ compute_maximal_distances(MRI_SURFACE *mris, float sigma, MRI **mri_flash, int n
         found_csf = 1 ;
       }
     }
+    if (!found_csf)   /* look for partial-volumed csf */
+    {
+      if (vno == Gdiag_no)
+        printf("couldn't find unambiguous csf - searching for partial volumed csf...") ;
+      csf_dist = 0 ; min_parm_dist = MAX_T1*MAX_T1 ; min_j = 0 ;
+      past_wm = 0 ;
+      for (j = 0 ; j <= max_j ; j++)
+      {
+        T1 = T1_vals[j] ; PD = PD_vals[j] ;
+        if (!IS_WM(T1,PD,vno,ep))
+          past_wm = 1 ;
+        
+        if (past_wm && (IS_WM(T1,PD,vno,ep) || (!IS_CSF(T1,PD) && !IS_GM(T1,PD,vno,ep))))
+          break ;   /* don't cross through wm to get to csf */
+        parm_dist = CSF_PARM_DIST(T1,PD) ;
+        if (parm_dist < min_parm_dist && IS_PV_CSF(T1,PD))
+        {
+          found_csf = 1 ;
+          min_parm_dist = parm_dist ;
+          min_j = j ;
+        }
+      }
+      min_outward_dist = ((float)min_j+1)*dstep ;
+      if (vno == Gdiag_no)
+      {
+        if (found_csf)
+          printf("csf found at distance %2.1f\n", min_outward_dist) ;
+        else
+          printf("couldn't find pv csf.\n") ;
+      }
+    }
+
+
 #if 1
     if (!found_csf)
     {
-      for (j = 0 ; j < max_j ; j++)
+      for (j = 0 ; j < max_j ; j++)    /* assume T1 and PD are monotonically increasing */
       {
-        if ((T1_vals[j+1] < T1_vals[j]) ||   /* assume T1 and PD are monotonically increasing */
-            (PD_vals[j+1] < PD_vals[j]))
+        if ((T1_vals[j+1] < .99*T1_vals[j]) 
+            /*            ||(PD_vals[j+1] < .99*PD_vals[j])*/
+            )
           break ;
       }
     }
@@ -1913,7 +1987,7 @@ compute_maximal_distances(MRI_SURFACE *mris, float sigma, MRI **mri_flash, int n
 #if 0
       /* ????????????????? */
       T1 = T1_vals[j] ; PD = PD_vals[j] ;
-      if (!IS_BRAIN(T1,PD))
+      if (!IS_BRAIN(T1,PD,vno,ep))
         break ;
 #endif
     }
@@ -1927,10 +2001,10 @@ compute_maximal_distances(MRI_SURFACE *mris, float sigma, MRI **mri_flash, int n
       for (j = 0 ; j <= max_j ; j++)
       {
         T1 = T1_vals[j] ; PD = PD_vals[j] ;
-        if (!IS_WM(T1,PD))
+        if (!IS_WM(T1,PD,vno,ep))
           past_wm = 1 ;
           
-        if (past_wm && (IS_WM(T1,PD) || (!IS_CSF(T1,PD) && !IS_GM(T1,PD))))
+        if (past_wm && (IS_WM(T1,PD,vno,ep) || (!IS_CSF(T1,PD) && !IS_GM(T1,PD,vno,ep))))
           break ;   /* don't cross through wm to get to csf */
         parm_dist = CSF_PARM_DIST(T1,PD) ;
         if (parm_dist < min_parm_dist)
@@ -2668,7 +2742,11 @@ compute_optimal_parameters(MRI_SURFACE *mris, int vno,
   best_white_index = orig_white_index ; best_pial_index = orig_pial_index ;
   best_csf_len = outward_dist*ep->dstep ;
   best_white_dist = orig_white_index*ep->dstep; best_pial_dist = orig_pial_index*ep->dstep;
+#if 0
   max_white_index = nint((inward_dist + orig_cortical_dist/2)/ep->dstep) ;
+#else
+  max_white_index = max_j - 1/ep->dstep ;
+#endif
   cortical_dist = best_pial_dist - best_white_dist ;
   best_sse = -1 ;
   best_T1_wm = WM_T1 ; best_PD_wm = WM_PD ;
@@ -2707,8 +2785,13 @@ compute_optimal_parameters(MRI_SURFACE *mris, int vno,
             T1 = MIN_WM_T1 ;
           if (T1 > MAX_WM_T1)
             T1 = MAX_WM_T1 ;
+#if 0
           if (PD < MIN_WM_PD)
             PD = MIN_WM_PD ;
+#else
+          if (PD < ep->cv_min_wm_PD[vno]) 
+            PD = ep->cv_min_wm_PD[vno] ;
+#endif
           T1_wm += T1 ; PD_wm += PD ;
         }
         
@@ -2734,8 +2817,13 @@ compute_optimal_parameters(MRI_SURFACE *mris, int vno,
             T1 = MIN_GM_T1 ;
           if (T1 > MAX_GM_T1)
             T1 = MAX_GM_T1 ;
+#if 0
           if (PD < MIN_GM_PD)
             PD = MIN_GM_PD ;
+#else
+          if (PD < ep->cv_min_gm_PD[vno])
+            PD = ep->cv_min_gm_PD[vno] ;
+#endif
           T1_gm += T1 ; PD_gm += PD ;
         }
         T1_gm /= (double)(pial_index-white_index-1) ;
@@ -2761,8 +2849,13 @@ compute_optimal_parameters(MRI_SURFACE *mris, int vno,
         continue ;
     
       /* do some bounds checking */
+#if 0
       if (PD_wm < MIN_WM_PD)
         PD_wm = MIN_WM_PD ;
+#else
+      if (PD_wm < ep->cv_min_wm_PD[vno])
+        PD_wm = ep->cv_min_wm_PD[vno] ;
+#endif
       if (T1_wm < MIN_WM_T1)
         T1_wm = MIN_WM_T1 ;
       if (T1_wm > MAX_WM_T1)
@@ -2773,8 +2866,13 @@ compute_optimal_parameters(MRI_SURFACE *mris, int vno,
         T1_gm = MAX_GM_T1 ;
       if (PD_csf > MIN_NONBRAIN_PD && T1_csf < MIN_CSF_T1)
         T1_csf = MIN_CSF_T1 ;
+#if 0
       if (PD_gm < MIN_GM_PD)
         PD_gm = MIN_GM_PD ;
+#else
+      if (PD_gm < ep->cv_min_gm_PD[vno])
+        PD_gm = ep->cv_min_gm_PD[vno] ;
+#endif
       if ((PD_csf > MIN_NONBRAIN_PD) && (T1_gm > T1_csf*.9))
         T1_csf = T1_gm/0.9 ;
       if (T1_wm > T1_gm*.9)
@@ -2782,7 +2880,7 @@ compute_optimal_parameters(MRI_SURFACE *mris, int vno,
       sse = compute_vertex_sse(ep, image_vals, max_j, white_dist, 
                                cortical_dist,
                                T1_wm, PD_wm, T1_gm, PD_gm, T1_csf, PD_csf, 0,
-                               T1_vals, PD_vals) ;
+                               T1_vals, PD_vals, vno) ;
       
       /* do some bounds checking */
       if (T1_wm < MIN_WM_T1 || T1_wm > MAX_WM_T1 ||
@@ -2890,7 +2988,7 @@ compute_optimal_parameters(MRI_SURFACE *mris, int vno,
     sse = compute_vertex_sse(ep, image_vals, max_j, best_white_dist, 
                              cortical_dist, best_T1_wm, best_PD_wm, 
                              best_T1_gm, best_PD_gm, best_T1_csf, 
-                             best_PD_csf, plot_stuff, T1_vals, PD_vals) ;
+                             best_PD_csf, plot_stuff, T1_vals, PD_vals, vno) ;
     if (!finite(sse))
       ErrorPrintf(ERROR_BADPARM, "sse not finite at v %d", vno) ;
     
@@ -2920,7 +3018,7 @@ static double
 compute_vertex_sse(EXTRA_PARMS *ep, Real image_vals[MAX_FLASH_VOLUMES][MAX_SAMPLES], int max_j,
                    double white_dist, double cortical_dist, double T1_wm, double PD_wm, 
                    double T1_gm, double PD_gm, double T1_csf, double PD_csf, int debug,
-                   double *T1_vals, double *PD_vals)
+                   double *T1_vals, double *PD_vals, int vno)
 {
   double sse, dist, predicted_val, error, scale, T1, PD ;
   MRI    *mri, *mri_T1, *mri_PD ;
@@ -2954,7 +3052,7 @@ compute_vertex_sse(EXTRA_PARMS *ep, Real image_vals[MAX_FLASH_VOLUMES][MAX_SAMPL
     {
       dist = (double)j*ep->dstep-white_dist ;
       T1 = T1_vals[j] ; PD = PD_vals[j] ;
-      if (dist < (cortical_dist-.5) && !IS_BRAIN(T1,PD))
+      if (dist < (cortical_dist-.5) && !IS_BRAIN(T1,PD,vno,ep))
         scale = 10 ;
       else
         scale = 1 ;
@@ -3391,12 +3489,17 @@ compute_optimal_vertex_positions(MRI_SURFACE *mris, int vno, EXTRA_PARMS *ep,
   total_dist = outward_dist + orig_cortical_dist + inward_dist ;
   best_white_index = orig_white_index ; best_pial_index = orig_pial_index ;
   best_white_dist = orig_white_index*ep->dstep; best_pial_dist = orig_pial_index*ep->dstep;
+#if 0
   max_white_index = nint((inward_dist + orig_cortical_dist/2)/ep->dstep) ;
+#else
+  max_white_index = nint(max_j - 1/ep->dstep) ;
+#endif
+
   cortical_dist = best_pial_dist - best_white_dist ;
   best_sse = 
     compute_vertex_sse(ep, image_vals, max_j, best_white_dist, cortical_dist, 
                        T1_wm, PD_wm, T1_gm, PD_gm, T1_csf, PD_csf, 0,
-                       T1_vals, PD_vals) ;
+                       T1_vals, PD_vals, vno) ;
   for (white_index = 0 ; white_index <= max_white_index ; white_index++)
   {
     white_dist = white_index * ep->dstep ;
@@ -3406,7 +3509,7 @@ compute_optimal_vertex_positions(MRI_SURFACE *mris, int vno, EXTRA_PARMS *ep,
       cortical_dist = pial_dist - white_dist ;
       sse = compute_vertex_sse(ep, image_vals, max_j, white_dist, cortical_dist, 
                                T1_wm, PD_wm, T1_gm, PD_gm, T1_csf, PD_csf, 0,
-                               T1_vals, PD_vals) ;
+                               T1_vals, PD_vals, vno) ;
       if (sse < best_sse)
       {
         best_white_index = white_index ;
@@ -3599,7 +3702,7 @@ compute_optimal_vertex_positions(MRI_SURFACE *mris, int vno, EXTRA_PARMS *ep,
     cortical_dist = best_pial_dist - best_white_dist ;
     sse = compute_vertex_sse(ep, image_vals, max_j, best_white_dist, cortical_dist, 
                                T1_wm, PD_wm, T1_gm, PD_gm, T1_csf, PD_csf, plot_stuff,
-                             T1_vals, PD_vals) ;
+                             T1_vals, PD_vals, vno) ;
     
   }
 
@@ -3794,6 +3897,7 @@ scale_all_images(MRI **mri_flash, int nvolumes, MRI_SURFACE *mris, float target_
   MRISsaveVertexPositions(mris, TMP_VERTICES) ;
   MRISrestoreVertexPositions(mris, ORIGINAL_VERTICES) ;
   MRIScomputeMetricProperties(mris) ;  /* recompute white surface normals */
+  MRISsmoothSurfaceNormals(mris, 5) ;
   T1_wm_total = PD_wm_total = 0 ;
   T1_gm_total = PD_gm_total = 0 ;
   for (vno = 0 ; vno < mris->nvertices ; vno++)
@@ -4092,3 +4196,138 @@ ms_errfunc_rip_vertices(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
   return(NO_ERROR) ;
 }
 
+#if 0
+static int
+compute_PD_limits(MRI *mri_flash[], int nvolumes, MRI_SURFACE *mris, EXTRA_PARMS *ep, int navgs)
+{
+  int    vno ;
+
+  MRISimportCurvatureVector(mris, ep->cv_wm_PD) ;
+  MRISaverageCurvatures(mris, 25) ;   /* reduce effects of outliers */
+  MRISextractCurvatureVector(mris, ep->cv_wm_PD) ;
+  MRISminFilterCurvatures(mris, navgs) ;
+  MRISextractCurvatureVector(mris, ep->cv_min_wm_PD) ;
+
+  MRISimportCurvatureVector(mris, ep->cv_wm_PD) ;
+  MRISmaxFilterCurvatures(mris, navgs) ;
+  MRISextractCurvatureVector(mris, ep->cv_max_wm_PD) ;
+
+  MRISimportCurvatureVector(mris, ep->cv_gm_PD) ;
+  MRISaverageCurvatures(mris, 25) ;   /* reduce effects of outliers */
+  MRISextractCurvatureVector(mris, ep->cv_gm_PD) ;
+  MRISminFilterCurvatures(mris, navgs) ;
+  MRISextractCurvatureVector(mris, ep->cv_min_gm_PD) ;
+
+  MRISimportCurvatureVector(mris, ep->cv_gm_PD) ;
+  MRISmaxFilterCurvatures(mris, navgs) ;
+  MRISextractCurvatureVector(mris, ep->cv_max_gm_PD) ;
+
+  if (Gdiag_no > 0)
+  {
+    printf("%d: WM PD limits %2.0f: (%2.0f --> %2.0f), GM PD limits %2.0f: (%2.0f --> %2.0f)\n",
+           Gdiag_no, ep->cv_wm_PD[Gdiag_no], ep->cv_min_wm_PD[Gdiag_no], ep->cv_max_wm_PD[Gdiag_no],
+           ep->cv_gm_PD[Gdiag_no], ep->cv_min_gm_PD[Gdiag_no], ep->cv_max_gm_PD[Gdiag_no]) ;
+  }
+
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    ep->cv_min_gm_PD[vno] = ep->cv_gm_PD[vno]-2*PD_STD ;
+    ep->cv_max_gm_PD[vno] = ep->cv_gm_PD[vno]+2*PD_STD ;
+
+    ep->cv_min_wm_PD[vno] = ep->cv_wm_PD[vno]-2*PD_STD ;  /* do something smarter than this */
+    ep->cv_max_wm_PD[vno] = ep->cv_wm_PD[vno]+2*PD_STD ;
+  }
+  return(NO_ERROR) ;
+}
+#else
+static int
+compute_PD_limits(MRI_SURFACE *mris, EXTRA_PARMS *ep, int navgs)
+{
+  int    vno, n, found ;
+  VERTEX *v ;
+  Real   x, y, z, T1, PD, PD_min, PD_max ;
+
+  MRISsaveVertexPositions(mris, TMP_VERTICES) ;
+  MRISrestoreVertexPositions(mris, ORIGINAL_VERTICES) ;
+  MRIScomputeMetricProperties(mris) ;  /* recompute white surface normals */
+  MRISsmoothSurfaceNormals(mris, 5) ;
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    if (v->ripflag)
+      continue ;
+    if (vno == Gdiag_no)
+      DiagBreak() ;
+
+    PD_min = 100000 ; PD_max = 0 ;
+    for (found = n = 0 ; n < ep->max_inward_dist ; n++)
+    {
+      MRIworldToVoxel(ep->mri_PD, v->x-n*v->nx, v->y-n*v->ny, v->z-n*v->nz, &x, &y, &z) ;
+      MRIsampleVolumeType(ep->mri_PD, x, y, z, &PD, sample_type) ;
+      MRIsampleVolumeType(ep->mri_T1, x, y, z, &T1, sample_type) ;
+      if (T1 < MIN_WM_T1 || T1 > MAX_WM_T1)
+        continue ;
+      if (PD < PD_min)
+        PD_min = PD ;
+      if (PD > PD_max)
+        PD_max = PD ;
+      found = 1 ;
+    }
+    if (!found)
+    {
+      PD_min = MIN_WM_PD ; PD_max = MAX_WM_PD ;
+    }
+    else
+    { 
+      PD_min -= PD_STD ; PD_max += PD_STD ;
+    }
+    ep->cv_min_wm_PD[vno] = PD_min ; ep->cv_max_wm_PD[vno] = PD_max ; 
+    if (vno == Gdiag_no)
+      printf("wm PD: (%2.3f --> %2.3f)\n", PD_min, PD_max) ;
+
+    PD_min = 100000 ; PD_max = 0 ;
+    /* try not to go into non-brain regions. If we don't get out of the wm, it doesn't
+     really matter, as it has a lower PD than gray in any case, so will be a reasonable lower
+    bound. */
+    for (found = n = 0 ; n < ep->max_outward_dist ; n++)  
+    {
+      MRIworldToVoxel(ep->mri_PD, v->x+n*v->nx, v->y+n*v->ny, v->z+n*v->nz, &x, &y, &z) ;
+      MRIsampleVolumeType(ep->mri_PD, x, y, z, &PD, sample_type) ;
+      MRIsampleVolumeType(ep->mri_T1, x, y, z, &T1, sample_type) ;
+      if (T1 < MIN_GM_T1 || T1 > MAX_GM_T1 || PD < MIN_GM_PD)
+        continue ;
+      if (PD < PD_min)
+        PD_min = PD ;
+      if (PD > PD_max)
+        PD_max = PD ;
+      found = 1 ;
+      break ;   /* just find one point in the gray - don't want to wander into CSF */
+    }
+    if (!found)
+    {
+      PD_min = ep->cv_min_wm_PD[vno] ; PD_max = ep->cv_max_wm_PD[vno] ;
+    }
+    else
+    {
+      PD_min -= PD_STD ; PD_max += PD_STD ;
+    }
+    ep->cv_min_gm_PD[vno] = PD_min ; ep->cv_max_gm_PD[vno] = PD_max ; 
+    if (vno == Gdiag_no)
+      printf("gm PD: (%2.3f --> %2.3f)\n", PD_min, PD_max) ;
+
+
+  }
+  smooth_map(mris, ep->cv_min_wm_PD, navgs) ;
+  smooth_map(mris, ep->cv_max_wm_PD, navgs) ;
+  smooth_map(mris, ep->cv_min_gm_PD, navgs) ;
+  smooth_map(mris, ep->cv_max_gm_PD, navgs) ;
+  if (Gdiag_no >= 0)
+    printf("after smoothing, wm PD %2.1f --> %2.1f, gm PD %2.1f --> %2.1f\n",
+           ep->cv_min_wm_PD[Gdiag_no], ep->cv_max_wm_PD[Gdiag_no], 
+           ep->cv_min_gm_PD[Gdiag_no], ep->cv_max_gm_PD[Gdiag_no]) ;
+
+  MRISrestoreVertexPositions(mris, TMP_VERTICES) ;
+  MRIScomputeMetricProperties(mris) ;
+  return(NO_ERROR) ;
+}
+#endif
