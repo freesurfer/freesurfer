@@ -17,6 +17,7 @@
 #include "const.h"
 #include "version.h"
 #include "fsgdf_wrap.h"
+#include "tiffio.h"
 //////////////////////////////////////////////////////
 
 static void resize_brain(float surface_area) ;
@@ -1751,6 +1752,8 @@ typedef struct {
 int fill_flood_from_seed (int vno, FILL_PARAMETERS* params);
 
 /* ---------------------------------------------------------------------- */
+
+int save_tiff (char* fname);
 
 /* end rkt */
 
@@ -16965,6 +16968,7 @@ int W_clear_vertex_marks PARM;
 int W_swap_vertex_fields PARM;
 int W_undo_last_action PARM;
 int W_get_marked_vnos PARM;
+int W_save_tiff PARM;
 /* end rkt */
 
 #define TkCreateMainWindow Tk_CreateMainWindow
@@ -18140,6 +18144,10 @@ int W_get_marked_vnos ( ClientData clientData, Tcl_Interp *interp,
   return TCL_OK;
 }
 
+     int W_save_tiff WBEGIN
+     ERR(2,"Wrong # args: save_tiff filename")
+     save_tiff(argv[1]); WEND
+
 /* end rkt */
 /*=======================================================================*/
 
@@ -18229,7 +18237,7 @@ int main(int argc, char *argv[])   /* new main */
   /* end rkt */
   
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: tksurfer.c,v 1.82 2004/11/03 23:07:40 kteich Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: tksurfer.c,v 1.83 2004/11/06 01:17:52 kteich Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -18965,6 +18973,9 @@ int main(int argc, char *argv[])   /* new main */
 
   Tcl_CreateCommand(interp, "get_marked_vnos",
                     (Tcl_CmdProc*) W_get_marked_vnos, REND);
+  
+  Tcl_CreateCommand(interp, "save_tiff",
+                    (Tcl_CmdProc*) W_save_tiff, REND);
   
 
 
@@ -24621,6 +24632,125 @@ int fill_flood_from_seed (int seed_vno, FILL_PARAMETERS* params)
 }
 
 /* ---------------------------------------------------------------------- */
+
+int save_tiff (char* fname)
+{
+  GLint rowlength, skiprows, skippixels, alignment;
+  GLboolean swapbytes, lsbfirst;
+  GLubyte* pixel_data = NULL;
+  GLenum gl_error;
+  TIFF *tiff;
+  tsize_t line_bytes;
+  unsigned char* line_buffer;
+  int scan_line_size;
+  int strip_size;
+  int row;
+  int height, width;
+
+  width = frame_xdim;
+  height = frame_ydim;
+
+  /* Allocate a buffer for pixels. */
+  pixel_data = (GLubyte*) malloc (width * height * 3);
+  if (NULL == pixel_data)
+    ErrorReturn(ERROR_NOMEMORY,(ERROR_NOMEMORY,"Error allocating pixel storage."));
+
+  /* Read from the front buffer. */
+  glReadBuffer (GL_FRONT);
+  
+  /* Save our unpack attributes. */
+  glGetBooleanv (GL_PACK_SWAP_BYTES, &swapbytes);
+  glGetBooleanv (GL_PACK_LSB_FIRST, &lsbfirst);
+  glGetIntegerv (GL_PACK_ROW_LENGTH, &rowlength);
+  glGetIntegerv (GL_PACK_SKIP_ROWS, &skiprows);
+  glGetIntegerv (GL_PACK_SKIP_PIXELS, &skippixels);
+  glGetIntegerv (GL_PACK_ALIGNMENT, &alignment);
+  
+  /* Set them. */
+  glPixelStorei (GL_PACK_SWAP_BYTES, GL_FALSE);
+  glPixelStorei (GL_PACK_ROW_LENGTH, 0);
+  glPixelStorei (GL_PACK_SKIP_ROWS, 0);
+  glPixelStorei (GL_PACK_SKIP_PIXELS, 0);
+  glPixelStorei (GL_PACK_ALIGNMENT, 1);
+  
+  /* Read RGB pixel data. */
+  glReadPixels (0, 0, width, height, GL_RGB,
+		GL_UNSIGNED_BYTE, (GLvoid*)pixel_data);
+
+  /* Check error at this point. */
+  gl_error = glGetError ();
+
+  /* Restore the attributes. */
+  glPixelStorei (GL_PACK_SWAP_BYTES, swapbytes);
+  glPixelStorei (GL_PACK_LSB_FIRST, lsbfirst);
+  glPixelStorei (GL_PACK_ROW_LENGTH, rowlength);
+  glPixelStorei (GL_PACK_SKIP_ROWS, skiprows);
+  glPixelStorei (GL_PACK_SKIP_PIXELS, skippixels);
+  glPixelStorei (GL_PACK_ALIGNMENT, alignment);
+
+  /* Handle error now. We can bail safely as we've restored the GL
+     context. */
+  if (GL_NO_ERROR != gl_error)
+    {
+      free (pixel_data);
+      ErrorReturn(ERROR_NOMEMORY,(ERROR_NOMEMORY,"Error reading pixels."));
+    }
+
+  /* Open a TIFF. */
+  tiff = TIFFOpen( fname, "w" );
+  if (NULL == tiff)
+    {
+      free (pixel_data);
+      ErrorReturn(ERROR_NOFILE,(ERROR_NOFILE,"Couldn't create file."));
+    }
+
+  /* Set the TIFF info. */
+  TIFFSetField (tiff, TIFFTAG_IMAGEWIDTH, width);
+  TIFFSetField (tiff, TIFFTAG_IMAGELENGTH, height);
+  TIFFSetField (tiff, TIFFTAG_SAMPLESPERPIXEL, 3);
+  TIFFSetField (tiff, TIFFTAG_BITSPERSAMPLE, 8);
+  TIFFSetField (tiff, TIFFTAG_ORIENTATION, ORIENTATION_TOPLEFT);
+  TIFFSetField (tiff, TIFFTAG_PLANARCONFIG, PLANARCONFIG_CONTIG);
+  TIFFSetField (tiff, TIFFTAG_PHOTOMETRIC, PHOTOMETRIC_RGB);
+  
+  /* Calculate some sizes and allocate a line buffer. */
+  line_bytes = 3 * width;
+  line_buffer = NULL;
+  scan_line_size = TIFFScanlineSize (tiff);
+  if (scan_line_size != line_bytes) 
+    {
+      fprintf (stderr,"surfer: scan_line_size %d, line_bytes %d\n",
+	       scan_line_size, (int)line_bytes);
+    }
+  
+  line_buffer = (unsigned char*) _TIFFmalloc( scan_line_size  );
+  if (NULL == line_buffer)
+    {
+      free (pixel_data);
+      TIFFClose (tiff);
+      ErrorReturn(ERROR_NOMEMORY,(ERROR_NOMEMORY,"Couldn't create tiff storage."));
+    }
+  
+  /* Set the strip size to default. */
+  strip_size = TIFFDefaultStripSize (tiff, width * 3);
+  TIFFSetField (tiff, TIFFTAG_ROWSPERSTRIP, strip_size);
+  
+  /* Write line by line (bottom to top). */
+  for (row = 0; row < height; row++)
+    {
+      memcpy (line_buffer, &pixel_data[(height-row-1) * line_bytes], 
+	      line_bytes);
+      TIFFWriteScanline (tiff, line_buffer, row, 0);
+    }
+
+  /* Close the tiff file and free the line buffer. */
+  TIFFClose (tiff);
+  _TIFFfree (line_buffer);
+    
+  free (pixel_data);
+
+  return (NO_ERROR);
+}
 
 /* end rkt */
 

@@ -1,6 +1,6 @@
 #! /usr/bin/tixwish
 
-# $Id: tksurfer.tcl,v 1.62 2004/11/03 23:08:28 kteich Exp $
+# $Id: tksurfer.tcl,v 1.63 2004/11/06 01:18:45 kteich Exp $
 
 package require BLT;
 
@@ -67,6 +67,7 @@ array set gaFileNameDefDirs [list \
     kFileName_BEM       "$home/$subject/bem" \
     kFileName_FMRI      "$home/$subject/fmri" \
     kFileName_RGB       "$home/$subject/rgb" \
+    kFileName_TIFF      "$home/$subject/rgb" \
     kFileName_Home      "$home/$subject" \
     kFileName_PWD       "$env(PWD)" \
     kFileName_CSURF     "$env(FREESURFER_HOME)" \
@@ -2696,6 +2697,8 @@ proc CreateMenuBar { ifwMenuBar } {
 	{ separator }
 	{ command "Save RGB As..."
 	    { DoFileDlog SaveRGBAs } }
+	{ command "Save TIFF As..."
+	    { DoFileDlog SaveTIFFAs } }
 	{ command "Make Frame"
 	    { save_rgb_cmp_frame } }
     }
@@ -4372,6 +4375,10 @@ proc GetDefaultLocation { iType } {
 		set gsaDefaultLocation($iType) \
 		    [ExpandFileName "" kFileName_RGB]
 	    }
+	    SaveTIFFAs {
+		set gsaDefaultLocation($iType) \
+		    [ExpandFileName "" kFileName_TIFF]
+	    }
 	    default { 
 		set gsaDefaultLocation($iType) [ExpandFileName "" $iType]
 	    } 
@@ -4949,6 +4956,18 @@ set tDlogSpecs(SaveRGBAs) \
 	 -okCmd {
 	     SetDefaultLocation SaveRGBAs %s1;
 	     set rgb [ExpandFileName %s1 kFileName_RGB]; save_rgb} ]
+
+set tDlogSpecs(SaveTIFFAs) \
+    [list \
+	 -title "Save TIFF" \
+	 -prompt1 "Save TIFF As:" \
+	 -default1 [list GetDefaultLocation SaveTIFFAs] \
+	 -entry1 [list GetDefaultLocation SaveTIFFAs] \
+	 -presets1 $glShortcutDirs \
+	 -note1 "The file name of the TIFF file to save" \
+	 -okCmd {
+	     SetDefaultLocation SaveTIFFAs %s1;
+	     save_tiff [ExpandFileName %s1 kFileName_TIFF]} ]
 
 set tDlogSpecs(WriteMarkedVerticesTCSummary) \
     [list \
