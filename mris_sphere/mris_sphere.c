@@ -15,7 +15,7 @@
 #include "utils.h"
 #include "timer.h"
 
-static char vcid[]="$Id: mris_sphere.c,v 1.14 1999/04/06 18:47:20 fischl Exp $";
+static char vcid[]="$Id: mris_sphere.c,v 1.15 1999/06/07 06:57:11 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -359,7 +359,7 @@ get_option(int argc, char *argv[])
     nargs = 1 ;
     fprintf(stderr, "nldist = %2.3f\n", parms.l_nldist) ;
   }
-  else if (!stricmp(option, "vnum"))
+  else if (!stricmp(option, "vnum") || !stricmp(option, "distances"))
   {
     parms.nbhd_size = atof(argv[2]) ;
     parms.max_nbrs = atof(argv[3]) ;
