@@ -347,6 +347,10 @@ typedef struct
 #define PPM_IMAGE      5 /* Write not yet implemented */
 #define PBM_IMAGE      6 /* Write not yet implemented */
 
+#define END_UNDEF 0
+#define END_BIG   1
+#define END_SMALL 2
+
 #define IMAGE_REFLECT_AROUND_X_AXIS   0
 #define IMAGE_REFLECT_AROUND_Y_AXIS   1
 
