@@ -11,7 +11,7 @@ function [tbl, rowid, colid] = fast_ldtable(tablefile)
 %   4. Blank lines are ignored
 %   5. Any line begining with a # is ignored
 %
-% $Id: fast_ldtable.m,v 1.1 2003/05/22 19:40:21 greve Exp $
+% $Id: fast_ldtable.m,v 1.2 2004/11/14 22:32:46 greve Exp $
 %
 
 tbl=[];
@@ -69,15 +69,11 @@ while(1)
 
   % Read the values in the row %
   rowvals = [];
-  fmt0 = '%*s';
   for c = 1:count
-    fmt = [fmt0 '%f'];
-    valcol = sscanf(tline,fmt,1);
+    valcol = str2num(sscanfitem(tline,c+1));
     rowvals = [rowvals valcol];
-    fmt0 = [fmt0 '%*f'];
   end
   tbl = [tbl; rowvals];
-  
 end % while (1)
 
 fclose(fid);
