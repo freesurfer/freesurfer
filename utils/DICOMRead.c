@@ -2,7 +2,7 @@
    DICOM 3.0 reading functions
    Author: Sebastien Gicquel and Douglas Greve
    Date: 06/04/2001
-   $Id: DICOMRead.c,v 1.45 2003/09/09 17:49:44 tosa Exp $
+   $Id: DICOMRead.c,v 1.46 2003/09/22 21:55:38 tosa Exp $
 *******************************************************/
 
 #include <stdio.h>
@@ -4329,7 +4329,7 @@ int DICOMRead(char *FileName, MRI **mri, int ReadImage)
 	  printf(" %s\n", aDicomInfo[i]->FileName);
 	}
 	// get a different studies
-	else if (i != 0 && aDicomInfo[i]->AcquisitionTime != aDicomInfo[i-1]->AcquisitionTime)
+	else if (i != 0 && strcmp(aDicomInfo[i]->AcquisitionTime,aDicomInfo[i-1]->AcquisitionTime)!=0)
 	{
 	  startIndices[count] = i;
 	  count++;
