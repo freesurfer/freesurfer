@@ -13,17 +13,12 @@ function acf = fast_ar2acf(phi,nmax)
 % nmax is the number of delays over which to compute
 %   the autocorreation function.
 %
-% Unstable if abs of either pole is > 1
-% a = rho(1);
-% b = rho(2);
-% c = rho(3);
-% d = b.^2-4*a*c;
-% r1 = (-b + sqrt(d))/2*a;
-% r2 = (-b - sqrt(d))/2*a;
+% Unstable if abs of abs(pole) is > 1
+% poles = roots(phi);
 % 
 % Ref: Time Series Analysis by Hamilton, pg. 59.
 %
-% $Id: fast_ar2acf.m,v 1.3 2004/05/19 02:48:02 greve Exp $
+% $Id: fast_ar2acf.m,v 1.4 2004/05/24 00:09:53 greve Exp $
 
 acf = [];
 
