@@ -4682,18 +4682,19 @@ static MRI *analyzeRead(char *fname, int read_volume)
       k = slice + mri->depth * frame;
 
       /* --------- Row Loop ------------------*/
-      for(row = 0; row < mri->height; row++){
-  
+      for(row = 0; row < mri->height; row++)
+      {
+        
         nread = fread(buf, bytes_per_voxel, mri->width, fp);
         if(nread != mri->width){
-    MRIfree(&mri);free(buf);fclose(fp);
           errno = 0;
-    printf("frame = %d, slice = %d, k=%d, row = %d\n",
-     frame,slice,k,row);
-    printf("nread = %d, nexpected = %d\n",nread,mri->width);
-    fflush(stdout);
+          printf("frame = %d, slice = %d, k=%d, row = %d\n",
+                 frame,slice,k,row);
+          printf("nread = %d, nexpected = %d\n",nread,mri->width);
+          fflush(stdout);
+          MRIfree(&mri);free(buf);fclose(fp);
           ErrorReturn(NULL, (ERROR_BADFILE, "analyzeRead2(): error reading "
-           "from file %s\n", imgfile));
+                             "from file %s\n", imgfile));
         }
   
         if(swap){
