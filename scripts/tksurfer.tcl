@@ -1828,7 +1828,7 @@ proc DoDecimationDlog {} {
   # make file name selector
   set sFileName [GetDefaultLocation WriteDecimation]
   tkm_MakeFileSelector $fwFileName \
-      "Write Decimation File:" sFileName {} \
+      "Write Decimation File:" sFileName \
       [list GetDefaultLocation WriteDecimation] \
       $glShortcutDirs
 
@@ -1838,7 +1838,7 @@ proc DoDecimationDlog {} {
 
   # buttons.
   set okCmd { 
-      SetDefaultLocation $sFileName;
+      SetDefaultLocation WriteDecimation $sFileName;
       DoDecimation $sFileName $fSpacing;
       UpdateAndRedraw }
   tkm_MakeCancelOKButtons $fwButtons $wwDialog \
@@ -4311,7 +4311,7 @@ proc GetDefaultLocation { iType } {
 		set gsaDefaultLocation($iType) \
 		    [ExpandFileName "" kFileName_Script]
 	    }
-	    SaveGraphToPS - 
+	    WriteDecimation - SaveGraphToPS - 
 	    WriteMarkedVerticesTCSummary - WriteLabelTCSummary -
 	    SaveGDFPlotToPS - SaveGDFPlotToTable -
 	    LoadGDF {
