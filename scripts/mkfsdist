@@ -5,7 +5,7 @@
 # editing.
 #
 # mkfsdist
-# $Id: mkfsdist,v 1.8 2002/05/10 22:55:24 greve Exp $
+# $Id: mkfsdist,v 1.9 2002/05/11 17:55:26 greve Exp $
 #
 # Usage: mkfsdist targetdir
 #
@@ -50,7 +50,7 @@
 #  files found in tar-exclude-more and tar-exclude-gca.
 #
 # 
-set VERSION = '$Id: mkfsdist,v 1.8 2002/05/10 22:55:24 greve Exp $';
+set VERSION = '$Id: mkfsdist,v 1.9 2002/05/11 17:55:26 greve Exp $';
 
 # To include the autoseg in the distribution set environment varible
 # KEEPAUTOSEG to 1 before running mkfsdist (ie, setenv KEEPAUTOSEG 1)
@@ -183,7 +183,6 @@ tar cvz -f $TF \
   ./average7/surf/lh.rh.sphere.reg \
   ./average7/surf/?h.sulc >> $LF
 date | tee -a $LF  
-exit 
 
 # ---- Tar up freesurfer_alpha ------- #
 cd $FSA_DIR
