@@ -4,9 +4,9 @@
 
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2003/12/08 18:19:11 $
-// Revision       : $Revision: 1.186 $
-char *VERSION = "$Revision: 1.186 $";
+// Revision Date  : $Date: 2003/12/09 18:07:17 $
+// Revision       : $Revision: 1.187 $
+char *VERSION = "$Revision: 1.187 $";
 
 #define TCL
 #define TKMEDIT 
@@ -1049,7 +1049,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
      shorten our argc and argv count. If those are the only args we
      had, exit. */
   /* rkt: check for and handle version tag */
-  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.186 2003/12/08 18:19:11 kteich Exp $", "$Name:  $");
+  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.187 2003/12/09 18:07:17 kteich Exp $", "$Name:  $");
   if (nNumProcessedVersionArgs && argc - nNumProcessedVersionArgs == 1)
     exit (0);
   argc -= nNumProcessedVersionArgs;
@@ -2579,23 +2579,19 @@ void AverageSurfaceVertexPositions ( int inNumAverages ) {
 void SetUseRealRAS ( tBoolean ibUseRealRAS ) {
 
 
-  if( gbUseRealRAS != ibUseRealRAS ||
-      gbSetFirstUseRealRAS ) {
-
-    gbUseRealRAS = ibUseRealRAS;
-    tkm_SendTclCommand( tkm_tTclCommand_UpdateUseRealRAS, 
-			gbUseRealRAS ? "1" : "0" );
-
-    /* Recalc the surface transform. */
-    CalcAndSetSurfaceClientTransformation( tkm_tSurfaceType_Main );
-    
-    /* Mark the surface dirty. */
-    MWin_SetSurface( gMeditWindow, -1, tkm_tSurfaceType_Main, 
-		     gSurface[tkm_tSurfaceType_Main] );
-
-    /* redraw the window. */
-    MWin_RedrawAll( gMeditWindow );
-  }
+  gbUseRealRAS = ibUseRealRAS;
+  tkm_SendTclCommand( tkm_tTclCommand_UpdateUseRealRAS, 
+		      gbUseRealRAS ? "1" : "0" );
+  
+  /* Recalc the surface transform. */
+  CalcAndSetSurfaceClientTransformation( tkm_tSurfaceType_Main );
+  
+  /* Mark the surface dirty. */
+  MWin_SetSurface( gMeditWindow, -1, tkm_tSurfaceType_Main, 
+		   gSurface[tkm_tSurfaceType_Main] );
+  
+  /* redraw the window. */
+  MWin_RedrawAll( gMeditWindow );
 }
 
 
@@ -2973,14 +2969,15 @@ tkm_tErr LoadSurface ( tkm_tSurfaceType iType,
   DebugNote( ("Setting surface in main window") );
   MWin_SetSurface( gMeditWindow, -1, iType, gSurface[iType] );
   
-  /* If this is not the first time we're setting gbUseRealRAS, make
-     sure the useRealRAS flags match up. If not, prompt the user. If
-     it is the first time, just set it. This will also set the surface
-     transform accordingly. */
+
+  /* If the useRealRAS are the same or this is the first time we're
+     setting it, call SetUseRealRAS automatically. If not, prompt the
+     user which they want to use. */
   Surf_UsesRealRAS( gSurface[iType], &bUseRealRAS );
-  if( gbSetFirstUseRealRAS ) {
+  if( gbUseRealRAS == bUseRealRAS || 
+      gbSetFirstUseRealRAS ) {
     SetUseRealRAS( bUseRealRAS );
-    gbSetFirstUseRealRAS = FALSE;
+    gbSetFirstUseRealRAS = TRUE;
   } else if( bUseRealRAS != gbUseRealRAS ) {
     tkm_SendTclCommand( tkm_tTclCommand_DoResolveUseRealRASDlog, "" );
   }
@@ -4986,7 +4983,7 @@ int main ( int argc, char** argv ) {
     DebugPrint( ( "%s ", argv[nArg] ) );
   }
   DebugPrint( ( "\n\n" ) );
-  DebugPrint( ( "$Id: tkmedit.c,v 1.186 2003/12/08 18:19:11 kteich Exp $ $Name:  $\n" ) );
+  DebugPrint( ( "$Id: tkmedit.c,v 1.187 2003/12/09 18:07:17 kteich Exp $ $Name:  $\n" ) );
 
   
   /* init glut */
