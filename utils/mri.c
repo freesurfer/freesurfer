@@ -8,10 +8,10 @@
  *
  */
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2005/01/27 20:14:43 $
-// Revision       : $Revision: 1.290 $
-char *MRI_C_VERSION = "$Revision: 1.290 $";
+// Revision Author: $Author: tosa $
+// Revision Date  : $Date: 2005/01/28 20:30:49 $
+// Revision       : $Revision: 1.291 $
+char *MRI_C_VERSION = "$Revision: 1.291 $";
 
 /*-----------------------------------------------------
   INCLUDE FILES
@@ -11650,3 +11650,54 @@ void MRIcalcCRASforExtractedVolume(MRI *src, MRI *dst, int x0, int y0, int z0, i
 	    *pr, *pa, *ps, src->c_r, src->c_a, src->c_s);
 }
 
+// transform is the hires to lowres vox-to-vox transform
+void MRIcalcCRASforHiresVolume(MRI *hires, MRI *lowres, MATRIX *vox_xform, Real *pr, Real *pa, Real *ps)
+{
+  // get where the center of hires volume goes to in the lowres volume
+  Real cx, cy, cz;
+  Real dx, dy, dz;
+  cx = hires->width/2; cy = hires->height/2; cz = hires->depth/2;
+  TransformWithMatrix(vox_xform, cx, cy, cz, &dx, &dy, &dz);
+  // get the c_ras values for this position
+  TransformWithMatrix(lowres->i_to_r__, dx, dy, dz, pr, pa, ps);
+  // if we use this c_ras value for the transformed hires volume, then 
+  // the volume will be containing the original points
+}
+
+// transform is src to dst vox to vox transform
+// return rotated src whose center is at the right place
+// Just rotating the original volume make the non-zero voxels go
+// outside of the rotated volume.  This routine will keep the
+// center of the rotated volume at the right location.
+MRI *MRIsrcTransformedCentered(MRI *src, MRI *dst, MATRIX *stod_voxtovox)
+{
+  Real cr, ca, cs;
+  MRI *rotated;
+  MATRIX *stosrotVox;
+  MATRIX *tmp;
+
+  // get the c_ras value for the rotated volume
+  MRIcalcCRASforHiresVolume(src, dst, stod_voxtovox, &cr, &ca, &cs);
+  rotated = MRIclone(src, NULL);
+  // reset the rotated volume
+  rotated->c_r = cr;
+  rotated->c_a = ca;
+  rotated->c_s = cs;
+  MRIreInitCache(rotated); // recalculate the transform
+  // the map is the following
+  //     
+  //     src -->    RAS
+  //       |         |
+  //       |given    |
+  //       V         V
+  //     dst -->    RAS
+  //       |         |
+  //       |       (identity)
+  //       V         |
+  //     src'  -->  RAS      // new rotated src volume whose center is at the right location    
+  //
+  tmp = MatrixMultiply(rotated->r_to_i__, dst->i_to_r__, NULL);
+  stosrotVox = MatrixMultiply(tmp, stod_voxtovox, NULL);
+  MRIlinearTransformInterp(src, rotated, stosrotVox, SAMPLE_NEAREST);
+  return rotated;
+}

@@ -301,6 +301,8 @@ void  MRIcalcCRASforSampledVolume(MRI *src, MRI *sampled, Real *pr, Real *pa, Re
 void  MRIcalcCRASforExtractedVolume(MRI *src, MRI *dst, int x0, int y0, int z0, int x1, int y1, int z1, 
 				    Real *pr, Real *pa, Real *ps); // 0 is the src extract position start
                                                                    // 1 is the dst extracted region start
+MRI   *MRIsrcTransformedCentered(MRI *src, MRI *dst, MATRIX *stod_vox2vox);
+
 /* offset stuff */
 MRI   *MRIoffsetDirection(MRI *mri_grad, int wsize, MRI *mri_direction,
                           MRI *mri_dir);
