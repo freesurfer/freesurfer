@@ -15,7 +15,7 @@
 #include "utils.h"
 #include "timer.h"
 
-static char vcid[]="$Id: mris_sphere.c,v 1.20 1999/11/21 09:57:48 fischl Exp $";
+static char vcid[]="$Id: mris_sphere.c,v 1.21 2000/02/28 12:22:05 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -53,10 +53,10 @@ static float l_spring_norm = .1 ;
 static float l_sphere = 0.25 ;
 #else
 static int   inflate_avgs = 0 ;
-static int   inflate_iterations = 200 ;
+static int   inflate_iterations = 300 ;
 static float l_convex = 1.0 ;
 static float l_spring_norm = 1.0 ;
-static float l_sphere = 0.25 ;
+static float l_sphere = 0.01 ;
 #endif
 
 static char *orig_name = "smoothwm" ;
@@ -176,6 +176,11 @@ main(int argc, char *argv[])
     inflation_parms.momentum = 0.9 ;
     inflation_parms.dt = 0.9 ;
     
+    /* store the inflated positions in the v->c? field so that they can
+       be used in the repulsive term.
+    */
+    /*    inflation_parms.l_repulse_ratio = .1 ;*/
+    MRISsaveVertexPositions(mris, CANONICAL_VERTICES) ;
     MRISinflateToSphere(mris, &inflation_parms) ;
     parms.start_t = inflation_parms.start_t ;
   }
@@ -195,21 +200,6 @@ main(int argc, char *argv[])
       MRISprintTessellationStats(mris, stderr) ;
       MRISquickSphere(mris, &parms, max_passes) ;  
     }
-#if 0
-    MRISripDefectiveFaces(mris) ;
-    MRISprintTessellationStats(mris, stderr) ;
-    parms.nbhd_size = 1 ; parms.max_nbrs = 8 ;
-    parms.l_parea = 1 ; parms.l_nlarea = 0 ; parms.l_dist = 1 ;
-    /* was parms->l_dist = 0.1 */
-    /*    parms.n_averages = 256 ;*/
-    MRISquickSphere(mris, &parms, max_passes) ;  
-    MRISresetNeighborhoodSize(mris, 1) ;
-    parms.n_averages = 32 ; parms.tol = 1 ;
-    MRISprintTessellationStats(mris, stderr) ;
-    parms.l_parea = 0.01 ; parms.l_nlarea = 1 ; parms.l_dist = 0.01 ;
-    MRISquickSphere(mris, &parms, max_passes) ;  
-    MRISprintTessellationStats(mris, stderr) ;
-#endif
   }
   else
     MRISunfold(mris, &parms, max_passes) ;  
