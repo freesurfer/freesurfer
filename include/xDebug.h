@@ -130,10 +130,24 @@ extern int                  xDbg_gLineNumberOfError;
                                     goto error; \
                                  } while(0)
 
+#define DebugThrow() \
+                                 do { \
+                                    xDbg_gLineNumberOfError = __LINE__; \
+                                    goto error; \
+                                 } while(0)
+
 /* Throw without going through the error reporting code. */
 #define DebugAssertQuietThrow(test) \
                                  do { \
                                     if( !(test) ) { \
+                                        goto cleanup; \
+                                    } \
+                                 } while(0)
+
+#define DebugAssertQuietThrowX(test,var,errorCode) \
+                                 do { \
+                                    if( !(test) ) { \
+                                        var = errorCode; \
                                         goto cleanup; \
                                     } \
                                  } while(0)
@@ -167,6 +181,7 @@ extern int                  xDbg_gLineNumberOfError;
      } else { \
         DebugPrint( ("\tNo error code.\n") ); \
      } \
+     xDbg_PrintStack (); \
      } while(0) 
 
 #define DebugGotoCleanup         goto cleanup
@@ -179,25 +194,78 @@ extern int                  xDbg_gLineNumberOfError;
 #define DebugRegisterSegfaultHandler(s)
 #define DisableDebuggingOutput  
 #define EnableDebuggingOutput
+#define GetDebuggingState(x)
+#define SetDebuggingState(x)
+#define IsDebugging   0
 #define DebugCode
 #define EndDebugCode
 #define DebugPrint(ARGS)
 #define Here(n)
-#define GetDebuggingState(x)
-#define SetDebuggingState(x)
-#define IsDebugging
 #define DebugNote(ARGS)
+#define DebugGetNote
+#define DebugGetFunction
+#define DebugPrintStack
 #define DebugEnterFunction(ARGS)
 #define DebugExitFunction    
-#define DebugAssertThrow(test)
-#define DebugAssertThrowX(test,var,errorCode) 
-#define DebugCatchError(errorCode,kNoError,errorStringFunc)
 
-       /* have to define them here such that the cleanup label is here
-    but that nothing else happens. */
-#define DebugCatch               goto cleanup
+/* use these only if you are going to catch them with the DebugCatch macros
+   below. the first just takes a test. the second will set var to errorCode
+   if the test is true. the third throws without a test. */
+#define DebugAssertThrow(test) \
+                                 do { \
+                                    if( !(test) ) { \
+                                        goto error; \
+                                    } \
+                                 } while(0)
+
+#define DebugAssertThrowX(test,var,errorCode) \
+                                 do { \
+                                    if( !(test) ) { \
+                                        var = errorCode; \
+                                        goto error; \
+                                    } \
+                                 } while(0)
+
+#define DebugThrowX(var,errorCode) \
+                                 do { \
+                                    var = errorCode; \
+                                    goto error; \
+                                 } while(0)
+
+#define DebugThrow() \
+                                 do { \
+                                    goto error; \
+                                 } while(0)
+
+/* Throw without going through the error reporting code. */
+#define DebugAssertQuietThrow(test) \
+                                 do { \
+                                    if( !(test) ) { \
+                                        goto cleanup; \
+                                    } \
+                                 } while(0)
+
+#define DebugAssertQuietThrowX(test,var,errorCode) \
+                                 do { \
+                                    if( !(test) ) { \
+                                        var = errorCode; \
+                                        goto cleanup; \
+                                    } \
+                                 } while(0)
+
+#define DebugQuietThrow() \
+                                 do { \
+                                    goto cleanup; \
+                                 } while(0)
+
+/* start and end the 'catch block' */
+#define DebugCatch               goto cleanup; \
+                                 error: \
+                                 do {} while(0)
 #define EndDebugCatch            cleanup: \
                                  do {} while(0)
+
+#define DebugCatchError(errorCode,kNoError,errorStringFunc)
 #define DebugGotoCleanup         goto cleanup
 
 #endif
