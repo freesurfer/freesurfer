@@ -27,7 +27,7 @@ function [err, racfexp] = fast_arnw_fiterr(p,racf,R,w,modeltype)
 % 
 % See also: fast_arnw_acf
 %
-% $Id: fast_arnw_fiterr.m,v 1.4 2004/05/29 02:59:56 greve Exp $
+% $Id: fast_arnw_fiterr.m,v 1.5 2004/05/29 03:27:07 greve Exp $
 %
 % (c) Douglas N. Greve, 2004
 %
@@ -55,8 +55,7 @@ if(alpha < 0 | alpha > 1)
 end
 
 % Penalize for poles close to the unit circle
-phi = [1 -phi(:)'];
-poles = roots(phi);
+poles = roots([1 -phi(:)']);
 if(~isempty(find(abs(poles) > .95)))
   err = nf;
   return;
