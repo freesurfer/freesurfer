@@ -30,19 +30,13 @@ int Scuba_Init ( Tcl_Interp* iInterp ) {
     ScubaFrame::SetViewFactory( new ScubaViewFactory );
 
     TclCommandManager& commandMgr = TclCommandManager::GetManager();
-    commandMgr.SetOutputStreamToCerr();
     commandMgr.Start( iInterp );
 
-    ScubaLayerFactory& layerFactory = 
-      ScubaLayerFactory::GetFactory();
-    layerFactory.SetOutputStreamToCerr();
-
-    ScubaDataCollectionFactory& dataFactory = 
-      ScubaDataCollectionFactory::GetFactory();
-    dataFactory.SetOutputStreamToCerr();
+    ScubaLayerFactory::GetFactory();
+    
+    ScubaDataCollectionFactory::GetFactory();
 
     PreferencesManager& prefsMgr = PreferencesManager::GetManager();
-    //    prefsMgr.SetOutputStreamToCerr();
     prefsMgr.UseFile( ".scuba" );
 
     ScubaGlobalPreferences preferences =
@@ -94,7 +88,6 @@ int main ( int argc, char** argv ) {
 
     
     TclCommandManager& commandMgr = TclCommandManager::GetManager();
-    commandMgr.SetOutputStreamToCerr();
     commandMgr.Start( interp );
     commandMgr.SetCommandLineParameters( argc, argv );
 
@@ -104,16 +97,11 @@ int main ( int argc, char** argv ) {
 
     ScubaFrame::SetViewFactory( new ScubaViewFactory );
 
-    ScubaLayerFactory& layerFactory = 
-      ScubaLayerFactory::GetFactory();
-    layerFactory.SetOutputStreamToCerr();
-
-    ScubaDataCollectionFactory& dataFactory = 
-      ScubaDataCollectionFactory::GetFactory();
-    dataFactory.SetOutputStreamToCerr();
+    ScubaLayerFactory::GetFactory();
+    
+    ScubaDataCollectionFactory::GetFactory();
 
     PreferencesManager& prefsMgr = PreferencesManager::GetManager();
-    //    prefsMgr.SetOutputStreamToCerr();
     prefsMgr.UseFile( ".scuba" );
 
     ScubaGlobalPreferences preferences =
@@ -123,7 +111,7 @@ int main ( int argc, char** argv ) {
     // Look for the script, first in the local dir, then in
     // ../scripts, then in $FREESURFER_HOME/lib/tcl.
    struct stat info;
-   string fnScuba( "scuba.tcl" );
+   string fnScuba( "./scuba.tcl" );
    int rStat = stat( fnScuba.c_str(), &info );
    if( !S_ISREG(info.st_mode) ) {
      fnScuba = "../scripts/scuba.tcl";
@@ -150,7 +138,7 @@ int main ( int argc, char** argv ) {
    if( TCL_OK != rTcl ) {
      stringstream ssError;
      char* sResult = Tcl_GetStringResult( interp );
-     ssError <<  "Reading scuba.tcl returned not TCL_OK: " << sResult;
+     ssError <<  "Reading " << fnScuba << " returned not TCL_OK: " << sResult;
      throw runtime_error( ssError.str() );
    }
    free( fnScubaC );
