@@ -56,8 +56,8 @@ MRI *
 MRIsplineNormalize(MRI *mri_src,MRI *mri_dst, MRI **pmri_field,
                    float *inputs,float *outputs, int npoints)
 {
-  int       width, height, depth, x, y, z, i ;
-  BUFTYPE   *psrc, *pdst, sval, dval, *pfield = NULL ;
+  int       width, height, depth, x, y, z, i, dval ;
+  BUFTYPE   *psrc, *pdst, sval, *pfield = NULL ;
   float     outputs_2[MAX_SPLINE_POINTS], frac ;
   MRI       *mri_field = NULL ;
   double    d ;
@@ -104,7 +104,11 @@ MRIsplineNormalize(MRI *mri_src,MRI *mri_dst, MRI **pmri_field,
       {
         sval = *psrc++ ;
         dval = nint((float)sval * frac + randomNumber(0.0,d)) ;
-        *pdst++ = dval ;
+        if (dval > 255)
+          dval = 255 ;
+        else if (dval < 0)
+          dval = 0 ;
+        *pdst++ = (BUFTYPE)dval ;
       }
     }
   }
