@@ -8,10 +8,10 @@
  *
 */
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2004/03/29 17:03:31 $
-// Revision       : $Revision: 1.263 $
-char *MRI_C_VERSION = "$Revision: 1.263 $";
+// Revision Author: $Author: tosa $
+// Revision Date  : $Date: 2004/03/29 17:50:33 $
+// Revision       : $Revision: 1.264 $
+char *MRI_C_VERSION = "$Revision: 1.264 $";
 
 /*-----------------------------------------------------
                     INCLUDE FILES
@@ -2058,8 +2058,12 @@ MRIvoxelToWorld(MRI *mri, Real xv, Real yv, Real zv,
   VECTOR *vw, *vv;
   MATRIX *RfromI;
 
-  if (!mri->i_to_r__)
+  // if the transform is not cached yet, then 
+  if (!mri->i_to_r__) 
     mri->i_to_r__ = extract_i_to_r(mri);
+  if (!mri->r_to_i__)
+    mri->r_to_i__ = extract_r_to_i(mri);
+
   RfromI = mri->i_to_r__; // extract_i_to_r(mri);
 
   vv = VectorAlloc(4, MATRIX_REAL) ;
@@ -2175,9 +2179,14 @@ MATRIX *surfaceRASFromVoxel_(MRI *mri)
   MATRIX *sRASFromVoxel;
   double m14, m24, m34;
 
+  // if the transform is not cached yet, then
   if (!mri->i_to_r__)
     mri->i_to_r__ = extract_i_to_r(mri);
+  if (!mri->r_to_i__)
+    mri->r_to_i__ = extract_r_to_i(mri);
+
   rasFromVoxel = mri->i_to_r__; // extract_i_to_r(mri);
+ 
   sRASFromVoxel = MatrixCopy(rasFromVoxel, NULL);
   // MatrixFree(&rasFromVoxel);
   // modify 
@@ -2308,8 +2317,12 @@ MRIworldToVoxel(MRI *mri, Real xw, Real yw, Real zw,
   VECTOR *vv, *vw;
   MATRIX *IfromR;
 
+  // if transform is not cached yet, then
   if (!mri->r_to_i__)
     mri->r_to_i__ = extract_r_to_i(mri);
+  if (!mri->i_to_r__)
+    mri->i_to_r__ = extract_i_to_r(mri);
+
   IfromR = mri->r_to_i__;
   vw = VectorAlloc(4, MATRIX_REAL) ;
   V4_LOAD(vw, xw, yw, zw, 1.) ;    
@@ -3254,7 +3267,7 @@ MRIbinarize(MRI *mri_src, MRI *mri_dst, BUFTYPE threshold, BUFTYPE low_val,
             BUFTYPE hi_val)
 {
   int     width, height, depth, x, y, z, f ;
-	Real    val ;
+  Real    val ;
 
   if (!mri_dst)
     mri_dst = MRIclone(mri_src, NULL) ;
@@ -3263,21 +3276,21 @@ MRIbinarize(MRI *mri_src, MRI *mri_dst, BUFTYPE threshold, BUFTYPE low_val,
   height = mri_src->height ;
   depth = mri_src->depth ;
 
-	for (f = 0 ; f < mri_src->nframes ; f++)
+  for (f = 0 ; f < mri_src->nframes ; f++)
+  {
+    for (z = 0 ; z < depth ; z++)
+    {
+      for (y = 0 ; y < height ; y++)
+      {
+	for (x = 0 ; x < width ; x++)
 	{
-		for (z = 0 ; z < depth ; z++)
-		{
-			for (y = 0 ; y < height ; y++)
-			{
-				for (x = 0 ; x < width ; x++)
-				{
-					MRIsampleVolumeFrameType(mri_src, x, y, z, f, SAMPLE_NEAREST, &val) ;
-					if (val < threshold)
-						val = low_val ;
-					else
-						val = hi_val ;
-					MRIsetVoxVal(mri_dst, x, y, z, f, val) ;
-				}
+	  MRIsampleVolumeFrameType(mri_src, x, y, z, f, SAMPLE_NEAREST, &val) ;
+	  if (val < threshold)
+	    val = low_val ;
+	  else
+	    val = hi_val ;
+	  MRIsetVoxVal(mri_dst, x, y, z, f, val) ;
+	}
       }
     }
   }
@@ -3631,7 +3644,7 @@ MRI *
 MRIaverage(MRI *mri_src, int dof, MRI *mri_dst)
 {
   int     width, height, depth, x, y, z, f ;
-	Real    src, dst ;
+  Real    src, dst ;
 
   width = mri_src->width ;
   height = mri_src->height ;
@@ -3653,18 +3666,18 @@ MRIaverage(MRI *mri_src, int dof, MRI *mri_dst)
                  "MRISaverage: unsupported voxel format %d",mri_src->type));
 #endif
 
-	for (f = 0 ; f < mri_src->nframes ; f++)
+  for (f = 0 ; f < mri_src->nframes ; f++)
+  {
+    for (z = 0 ; z < depth ; z++)
+    {
+      for (y = 0 ; y < height ; y++)
+      {
+	for (x = 0 ; x < width ; x++)
 	{
-		for (z = 0 ; z < depth ; z++)
-		{
-			for (y = 0 ; y < height ; y++)
-			{
-				for (x = 0 ; x < width ; x++)
-				{
-					MRIsampleVolumeFrameType(mri_src, x,  y, z, f, SAMPLE_NEAREST, &src) ;
-					MRIsampleVolumeFrameType(mri_dst, x,  y, z, f, SAMPLE_NEAREST, &dst) ;
-					MRIsetVoxVal(mri_dst, x, y, z, f, (dst*dof+src)/(Real)(dof+1))  ;
-				}
+	  MRIsampleVolumeFrameType(mri_src, x,  y, z, f, SAMPLE_NEAREST, &src) ;
+	  MRIsampleVolumeFrameType(mri_dst, x,  y, z, f, SAMPLE_NEAREST, &dst) ;
+	  MRIsetVoxVal(mri_dst, x, y, z, f, (dst*dof+src)/(Real)(dof+1))  ;
+	}
       }
     }
   }
@@ -6982,8 +6995,8 @@ MRIsampleVolumeFrame(MRI *mri,Real x,Real y,Real z,int frame,Real *pval)
   int  xm, xp, ym, yp, zm, zp, width, height, depth ;
   Real val, xmd, ymd, zmd, xpd, ypd, zpd ;  /* d's are distances */
 
-	if (FEQUAL((int)x,x) && FEQUAL((int)y,y) && FEQUAL((int)z, z))
-		return(MRIsampleVolumeFrameType(mri, x, y, z, frame, SAMPLE_NEAREST, pval)) ;
+  if (FEQUAL((int)x,x) && FEQUAL((int)y,y) && FEQUAL((int)z, z))
+    return(MRIsampleVolumeFrameType(mri, x, y, z, frame, SAMPLE_NEAREST, pval)) ;
 
   if (frame >= mri->nframes)
   {
@@ -7050,7 +7063,7 @@ MRIsampleVolumeFrame(MRI *mri,Real x,Real y,Real z,int frame,Real *pval)
       xmd * ymd * zpd * (Real)MRIFseq_vox(mri, xp, yp, zm, frame) +
       xmd * ymd * zmd * (Real)MRIFseq_vox(mri, xp, yp, zp, frame) ;
     break ;
-   case MRI_SHORT:
+  case MRI_SHORT:
     *pval = val = 
       xpd * ypd * zpd * (Real)MRISseq_vox(mri, xm, ym, zm, frame) +
       xpd * ypd * zmd * (Real)MRISseq_vox(mri, xm, ym, zp, frame) +
@@ -7083,7 +7096,7 @@ MRIsampleVolumeFrame(MRI *mri,Real x,Real y,Real z,int frame,Real *pval)
       xmd * ymd * zpd * (Real)MRILseq_vox(mri, xp, yp, zm, frame) +
       xmd * ymd * zmd * (Real)MRILseq_vox(mri, xp, yp, zp, frame) ;
     break ;
- default:
+  default:
     ErrorReturn(ERROR_UNSUPPORTED, 
                 (ERROR_UNSUPPORTED, 
                  "MRIsampleVolumeFrame: unsupported type %d", mri->type)) ;
