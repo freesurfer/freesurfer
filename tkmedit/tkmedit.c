@@ -10,6 +10,7 @@
 #include <sys/types.h>
 #include <unistd.h>
 /*#endif */
+#include <fcntl.h>
 #include "error.h"
 #include "utils.h"
 
@@ -233,6 +234,10 @@ Transform         *linear_transform = NULL ;
 Transform         *inverse_linear_transform = NULL ;
 int               transform_loaded = 0 ;
 /*--------------------- prototypes ------------------------------*/
+#ifdef Linux
+extern void scale2x(int, int, unsigned char *);
+#endif
+
 #ifdef TCL
 void do_one_gl_event(Tcl_Interp *interp) ;
 int Medit(ClientData clientData, Tcl_Interp *interp, int argc, char *argv[]);
@@ -446,9 +451,8 @@ float swapFVFloat(float value)
   return fliess.f;
 }
 
-void transformFV(float x, float y, float z, float* x_1, float* y_1, float* z_1)
+void transformFV(float x, float y, float z, float* x_1, float* y_1,float* z_1)
 {
-  float ggx;
 
   *x_1 = x*mri2fmritm[0][0]+y*mri2fmritm[0][1]+z*mri2fmritm[0][2]+mri2fmritm[0][3];
   *y_1 = x*mri2fmritm[1][0]+y*mri2fmritm[1][1]+z*mri2fmritm[1][2]+mri2fmritm[1][3];
@@ -466,11 +470,9 @@ void readFVVolume(const char* prefixname)
 {
   int fvi;
   int fvj;
-  int fvoffset;
   int fvsize;
   int fvl;
   char fvfname[255];
-  FILE *fp;
   int fvfile;
   float *fvptr;
 
@@ -487,13 +489,13 @@ void readFVVolume(const char* prefixname)
       fvl=read(fvfile,fvptr,fvsize);
       printf("slice %d read %d bytes\n",fvi,fvl);
       if( fvl<fvsize ) {
-	printf("Scheisse: %s\n",strerror(errno));
+  printf("Scheisse: %s\n",strerror(errno));
       }
       close(fvfile);
       rawFVData[fvi]=fvptr;
 #ifdef Linux      
       for(fvj=0; fvj<fvwidth*fvheight*fvframes; fvj++) {
-	fvptr[fvj]=swapFVFloat(fvptr[fvj]);
+  fvptr[fvj]=swapFVFloat(fvptr[fvj]);
       }
 #endif
       
@@ -575,6 +577,8 @@ void loadFV()
 #define V110(o) rawFVData[unten][hinten+rechts+o]
 #define V111(o) rawFVData[oben][hinten+rechts+o]
 
+#define NO_VALUE  -30000.0f
+
 float sampleData(float x, float y, float z,int frame)
 {
   int ux,lx,uy,ly,uz,lz; /* Koordinaten der Nachbarvoxel */
@@ -603,7 +607,7 @@ float sampleData(float x, float y, float z,int frame)
 
   if(ux >= fvwidth || uz >= fvheight || uy >= fvslices || lx < 0 || ly < 0 || lz < 0) {
      
-      return -30000;
+      return NO_VALUE;
   }
     
   v= V000(offset)*(1-x)*(1-z)*(1-y) +
@@ -627,7 +631,7 @@ float lookupInParametricSpace(float u, float v, int frame)
     y = u*fuy + v*fvy + fcy;
     z = u*fuz + v*fvz + fcz;
     if(x >= fvwidth || y >= fvslices || z >= fvheight || x< 0 || y < 0 || z < 0)
-      return -30000;
+      return NO_VALUE;
     
     if(do_interpolate==1)
       return sampleData(x,y,z,frame); 
@@ -635,14 +639,15 @@ float lookupInParametricSpace(float u, float v, int frame)
       return rawFVData[(int)floor(y)][(int)floor(fvheight-z)*fvwidth+(int)floor(x)+frame*fvwidth*fvheight];
       
   } else {
-    return -30000;
+    return NO_VALUE;
   }
 }
+
 
 float lookupInVoxelSpace(float x, float y, float z, int frame)
 {
   float x1,y1,z1;
-  float v;
+
   if(frame<fvframes) {
     if(hot)
       printf("lookup got: %f, %f, %f\n",x,y,z);
@@ -651,13 +656,14 @@ float lookupInVoxelSpace(float x, float y, float z, int frame)
       printf("resulting functional coord is: %f %f %f\n",x1,y1,z1);
     
     if(x1 >= fvwidth || x1 < 0 || y1 >=fvslices || y1 < 0 || z1 >= fvheight || z1 <= 0)
-      return -30000;
+      return NO_VALUE ;
     
     if(do_interpolate == 1)
       return sampleData(x1,y1,z1,overlay_frame);
     else
       return rawFVData[(int)floor(y1)][(int)floor(63-z1)*fvwidth+(int)floor(x1)+frame*fvwidth*fvheight];
   }
+  return(NO_VALUE) ; 
 }
   
 void printOutFunctionalCoordinate(float x, float y, float z)
@@ -677,9 +683,9 @@ void printOutFunctionalCoordinate(float x, float y, float z)
     /*printf("resulting functional coordinate: %f, %f, %f\n",x2,y2,z2);
       printf("resulting voxel coordinate is: (%f, %f, %f)\n",y2,63-z2,x2);*/
     printf("p-value: %f\n",
-	   (x2 >= fvwidth || x2 < 0 || y2 >=fvslices || y2 < 0 
-	    || z2 >= fvheight || z2 <= 0)?-30000:rawFVData[(int)floor(y2)]
-	   [(int)floor(63-z2)*fvwidth+(int)floor(x2)+overlay_frame*fvwidth*fvheight]); 
+     (x2 >= fvwidth || x2 < 0 || y2 >=fvslices || y2 < 0 
+      || z2 >= fvheight || z2 <= 0)?NO_VALUE:rawFVData[(int)floor(y2)]
+     [(int)floor(63-z2)*fvwidth+(int)floor(x2)+overlay_frame*fvwidth*fvheight]); 
   }
 }
 #endif 
@@ -721,7 +727,7 @@ void initCache()
   fcache=(float*)malloc(512*512*sizeof(float));
 
   for(i=0; i<512*512; i++)
-    fcache[i]=-30000;
+    fcache[i]=NO_VALUE;
 }
 
 void setupSpans()
@@ -854,12 +860,12 @@ void getPlane(char* fbuffer, int zf, int xoff, int yoff)
     z = auz + avz + cz;
     for(w=0; w<256*zf; ++w) {
       if(z<0 || z > 255 || x <0 || x>255 || y<0 || y>255) {
-	dhcache[myoff+w]=0;
-	continue;
+  dhcache[myoff+w]=0;
+  continue;
       }
       /* this sucks on a sgi !!!
-	 floating point calculation is to slow on R5000 and
-	 this cast during memory access kills the remaining speed
+   floating point calculation is to slow on R5000 and
+   this cast during memory access kills the remaining speed
       */
       dhcache[myoff+w] = im[(int)z][(int)(256-1-y)][(int)x];
       x += sux;
@@ -882,9 +888,9 @@ void getPlane(char* fbuffer, int zf, int xoff, int yoff)
   if(statsloaded && do_overlay==1){ 
     for(h=0; h <256*ozf; ++h) {
       for(w=0; w<256*ozf; ++w) {
-	
-	fcache[myoff+w] = lookupInParametricSpace(u,v,overlay_frame); 
-	u += ostep; 
+  
+  fcache[myoff+w] = lookupInParametricSpace(u,v,overlay_frame); 
+  u += ostep; 
       }
       u = -1;
       v += ostep;
@@ -913,7 +919,7 @@ void getMaximumProjection(int zf, int xoff, int yoff)
 }
 
 void setStatColor(float f, unsigned char *rp, unsigned char *gp, unsigned char *bp,
-		  float tmpoffset)
+      float tmpoffset)
 {
 
   float r,g,b;
@@ -1015,13 +1021,13 @@ void compose(unsigned char* stbuffer, unsigned char* outbuffer)
   for(h=0; h<ydim; h++) {
     for(w=0; w<xdim; w++) {
       if(do_overlay == 1) { 
-	if(fcache[h*512+w]!=-30000)
-	  setStatColor(fcache[h*512+w],&red,&green,&blue,stbuffer[h*512+w]/255.0);
-	else {
-	  red = green = blue = stbuffer[h*512+w];
-	}
+  if(fcache[h*512+w]!=NO_VALUE)
+    setStatColor(fcache[h*512+w],&red,&green,&blue,stbuffer[h*512+w]/255.0);
+  else {
+    red = green = blue = stbuffer[h*512+w];
+  }
       } else {
-	red = green = blue = stbuffer[h*512+w];
+  red = green = blue = stbuffer[h*512+w];
       }
       outbuffer[4*h*xdim+4*w]=red;
       outbuffer[4*h*xdim+4*w+1]=green;
@@ -1033,9 +1039,9 @@ void compose(unsigned char* stbuffer, unsigned char* outbuffer)
   if(all3flag || plane==SAGITTAL) {
     for (i=ic-curs;i<=ic+curs;i++) {
       if (all3flag) 
-	k = 4*(i/2*xdim/2+imc/2 + i/2*hax);
+  k = 4*(i/2*xdim/2+imc/2 + i/2*hax);
       else if(plane==SAGITTAL)        
-	k = 4*(i*xdim+imc);
+  k = 4*(i*xdim+imc);
       outbuffer[k] = ccolor1 ; outbuffer[k+1] = ccolor2;
       outbuffer[k+2] = ccolor2;
       outbuffer[k+3]=255;
@@ -1043,7 +1049,7 @@ void compose(unsigned char* stbuffer, unsigned char* outbuffer)
     for (imnr=imc-curs;imnr<=imc+curs;imnr++) {
       if (all3flag) k = 4*(ic/2*xdim/2+imnr/2 + ic/2*hax);
       else if(plane==SAGITTAL)
-	k = 4*(ic*xdim+imnr);
+  k = 4*(ic*xdim+imnr);
       outbuffer[k] = ccolor1; 
       outbuffer[k+1] = ccolor2;
       outbuffer[k+2] = ccolor2;
@@ -1054,14 +1060,14 @@ void compose(unsigned char* stbuffer, unsigned char* outbuffer)
     for (i=ic-curs;i<=ic+curs;i++) {
       if (all3flag) k = 4*(xdim*hay + i/2*xdim/2+jc/2 + i/2*hax);
       else if(plane==CORONAL)      
-	k = 4*(i*xdim+jc);
+  k = 4*(i*xdim+jc);
       vidbuf[k] = ccolor1; vidbuf[k+1] = vidbuf[k+2] = ccolor2; 
       vidbuf[k+3]= 255;
     }
     for (j=jc-curs;j<=jc+curs;j++) {
       if (all3flag) k = 4*(xdim*hay + ic/2*xdim/2+j/2 + ic/2*hax);
       else if(plane==CORONAL)
-	k = 4*(ic*xdim+j);
+  k = 4*(ic*xdim+j);
       vidbuf[k] = ccolor1; vidbuf[k+1] = vidbuf[k+2] = ccolor2; 
       vidbuf[k+3]= 255;
     }
@@ -1070,14 +1076,14 @@ void compose(unsigned char* stbuffer, unsigned char* outbuffer)
     for (imnr=imc-curs;imnr<=imc+curs;imnr++) {
       if (all3flag) k = 4*(xdim*hay+hax + imnr/2*xdim/2+jc/2 + imnr/2*hax);
       else if(plane == HORIZONTAL)
-	k = 4*(imnr*xdim+jc);
+  k = 4*(imnr*xdim+jc);
       vidbuf[k] = ccolor1; vidbuf[k+1] = vidbuf[k+2] = ccolor2;
       vidbuf[k+3]=255;
     }
     for (j=jc-curs;j<=jc+curs;j++) {
       if (all3flag) k = 4*(xdim*hay + hax + imc/2*xdim/2+j/2 + imc/2*hax);
       else if(plane == HORIZONTAL)
-	k = 4*(imc*xdim+j);
+  k = 4*(imc*xdim+j);
       vidbuf[k] = ccolor1; vidbuf[k+1] = vidbuf[k+2] = ccolor2;
       vidbuf[k+3]=255;
     }
@@ -3471,6 +3477,8 @@ int
 read_binary_surface(char *fname)
 {
 #if 1
+  if (mris)
+    MRISfree(&mris) ;
   mris = MRISread(fname) ;
   if (!mris)
     return(ERROR_NOFILE) ;
