@@ -2935,11 +2935,10 @@ MATRIX *MatrixNormalizeCol(MATRIX *m, MATRIX *mcnorm)
 
   }
 
-  printf("m ----------------------------\n");
-  MatrixPrint(stdout,m);
-  printf("mcnorm ----------------------------\n");
-  MatrixPrint(stdout,mcnorm);
-
+  //printf("m ----------------------------\n");
+  //MatrixPrint(stdout,m);
+  //printf("mcnorm ----------------------------\n");
+  //MatrixPrint(stdout,mcnorm);
   
   return(mcnorm);
 }
