@@ -1,6 +1,6 @@
 % fast_selfreqavg.m - selective frequency averaging
 %
-% $Id: fast_selfreqavg.m,v 1.7 2003/12/02 03:32:31 greve Exp $
+% $Id: fast_selfreqavg.m,v 1.8 2004/03/22 20:23:45 greve Exp $
 %
 % Things to do:   (nuisance)
 %  1. Save beta, var, and X
@@ -150,9 +150,11 @@ for nthsess = 1:nSess
       runlist = runlist0(ind,:);
     end
     conpath = sprintf('%s/%s',anapath,conname);
+    fundconpath = sprintf('%s/%s',anapath,'fund');
     estsnrpath = sprintf('%s/estsnr',anapath);
     mkdirp(anapath);
     mkdirp(conpath);
+    mkdirp(fundconpath);
     mkdirp(estsnrpath);
 
     if(sveres)
@@ -190,6 +192,7 @@ for nthsess = 1:nSess
     nNuis = 0;
     nFramesTot = 0;
     MeanVal = zeros(nruns,1);
+    nextregtot = 0;
     for nthrun = 1:nruns
 
       % Get the number of frames for the nth run %
@@ -221,6 +224,7 @@ for nthsess = 1:nSess
       % Nuisance Regressors - poly drift and external reg%
       % Could have multiple extreg here %
       Xpoly = fast_polytrendmtx(1,nframes,1,polyfit);
+      DM(nthrun).poly = Xpoly;
       extreg = [];
       if(~isempty(extregstem))
 	extregpath = sprintf('%s/%s/%s/%s',sess,fsd,...
@@ -233,17 +237,33 @@ for nthsess = 1:nSess
 	if(size(extreg,3)~=1) extreg = squeeze(extreg)'; %'
 	else                  extreg = squeeze(extreg);
 	end
+	if(~isempty(nextreg)) extreg = extreg(:,1:nextreg); end
+	nextregtot = nextregtot + size(extreg,2);
+	
 	% Demean and Normalize External Regressor %
 	extreg = extreg - repmat(mean(extreg), [nframes 1]);
 	extreg = extreg./repmat(std(extreg), [nframes 1]);
+	DM(nthrun).extreg = extreg;
+	DM(nthrun).Rextreg = eye(nframes) - extreg*inv(extreg'*extreg)*extreg';
+      
+	if(extregorthog & 0)
+	  fprintf('   Orthognalizing design wrt external regressor\n');
+	  Xtask = DM(nthrun).Rextreg*Xtask;
+	  DM(nthrun).task = Xtask;
+	end
       end
-      Xnuis = [Xpoly extreg];
-      % Orthog Nuisance wrt Self Here - need to keep mean %
-      % Orthog Nuisance wrt Task Here - need to keep mean some how %
+
+      if(extregorthog)
+	Xnuis = Xpoly;
+      else
+	Xnuis = [Xpoly extreg];
+      end
+
       DM(nthrun).nuis = Xnuis;
       nNuis = nNuis + size(Xnuis,2);
       nFramesTot = nFramesTot + nframes;
-    end % collecting data across runs
+    
+    end % collecting design info across runs
     
     % Now create the full design matrix %
     X = [];
@@ -282,12 +302,16 @@ for nthsess = 1:nSess
     % Omnibus Contrast %
     C = [eye(nTask) zeros(nTask,nBeta-nTask)]; 
 
+    % Fundamental Contrast %
+    Cfund = zeros(1,nBeta);
+    Cfund(1:2) = 1; % Real and Imag
+
     % Save info to X.mat
     xmatpath = sprintf('%s/X.mat',anapath);
-    save(xmatpath,'X','sess','fsd','funcstem',...
+    save(xmatpath,'X','DM','sess','fsd','funcstem',...
 	 'runlist','nTask','C','inorm','inormtarg','Tcycle',...
-	 'nharmonics','polyfit','extregstem','phsigthresh',...
-	 'dojkrun','doperrun','condXthresh');
+	 'nharmonics','polyfit','extregstem','nextreg','extregorthog',...
+	 'phsigthresh','dojkrun','doperrun','condXthresh');
     
     % -------- Read the MeanVal (make sure all exist) ------------ %
     if(inorm)
@@ -337,6 +361,10 @@ for nthsess = 1:nSess
 	nframes = size(frun,3);
 	nframes_per_run(nthrun) = nframes;
 	frun = reshape(frun,[nvslice nframes])';
+	if(extregorthog)
+	  %fprintf('   Orthognalizing design wrt external regressor\n');
+	  frun = DM(nthrun).Rextreg*frun;
+	end
 	% Multiply frun by Wrun %
 	y = [y; frun];
       end 
@@ -349,6 +377,9 @@ for nthsess = 1:nSess
       % Multiply X by Wall %
       [beta rvar vdof r] = fast_glmfit(y,X);
 
+      % Adjust the DOF if ExtReg were projected out
+      if(extregorthog)	vdof = vdof - nextregtot;  end
+      
       if(sveres)
 	i1 = 1;
 	for nthrun = 1:nruns
@@ -381,8 +412,25 @@ for nthsess = 1:nSess
       
       % Compute Omnibus Contrast (if last whitening loop)%
       % Multiply X by Wall %
-      [F, Fsig, ces] = fast_fratio(beta,X,rvar,C);
+      [F, Fsig, ces] = fast_fratio(beta,X,rvar,C,[],[],vdof);
 
+      % Signifiance of F-test %
+      fsigpath = sprintf('%s/fsig',conpath);
+      tmp = -log10(Fsig) .* sign(beta(2,:));
+      fast_svbslice(reshape(tmp,[nrows ncols]),fsigpath,nthslice,'',mristruct);
+    
+      % F-test ratio %
+      fpath = sprintf('%s/f',conpath);
+      fast_svbslice(reshape(F,[nrows ncols]),fpath,nthslice,'',mristruct);
+    
+      % F Test for the fundamental
+      [Ffund, Fsigfund, cesfund] = fast_fratio(beta,X,rvar,Cfund,[],[],vdof);
+      fsigpath = sprintf('%s/fsig',fundconpath);
+      tmp = -log10(Fsigfund) .* sign(beta(2,:));
+      fast_svbslice(reshape(tmp,[nrows ncols]),fsigpath,nthslice,'',mristruct);
+      fpath = sprintf('%s/f',fundconpath);
+      fast_svbslice(reshape(Ffund,[nrows ncols]),fpath,nthslice,'',mristruct);
+    
       % Save results to disk (if last whitening loop)%
 
       % Mean offset %
@@ -408,15 +456,6 @@ for nthsess = 1:nSess
       tmp = reshape(rar1,[nrows ncols]);
       fast_svbslice(tmp,rar1path,nthslice,'',mristruct);
       
-      % Signifiance of F-test %
-      fsigpath = sprintf('%s/fsig',conpath);
-      tmp = -log10(Fsig) .* sign(beta(2,:));
-      fast_svbslice(reshape(tmp,[nrows ncols]),fsigpath,nthslice,'',mristruct);
-    
-      % F-test ratio %
-      fpath = sprintf('%s/f',conpath);
-      fast_svbslice(reshape(F,[nrows ncols]),fpath,nthslice,'',mristruct);
-    
       % Magnitude of fundamental
       magpct = 100*sqrt( beta(1,:).^2 + beta(2,:).^2 ) ./ ymn;
       magpath = sprintf('%s/magpct',conpath);
