@@ -2670,7 +2670,7 @@ MRISrotate(MRI_SURFACE *mris_src, MRI_SURFACE *mris_dst, float dphi,
     if (vno == DEBUG_VNO)
       DiagBreak() ;
 
-    vertex = &mris_src->vertices[vno] ;
+    vertex = &mris_dst->vertices[vno] ;
     x = vertex->x ; y = vertex->y ; z = vertex->z ;
     theta = atan2(y/b, x/a) ;
     if (theta < 0.0f)
