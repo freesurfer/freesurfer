@@ -17230,7 +17230,7 @@ ERR(1,"Wrong # args: swap_buffers")
      plot_marked(argv[1]);  WEND
      
      int                  W_plot_curv  WBEGIN
-     ERR(1,"Wrong # args: plot_curv <0=open,1=closed>")
+     ERR(2,"Wrong # args: plot_curv <0=open,1=closed>")
      plot_curv(atoi(argv[1]));  WEND
      
      int                  W_draw_fundus  WBEGIN
@@ -18151,7 +18151,7 @@ int main(int argc, char *argv[])   /* new main */
   /* end rkt */
   
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: tksurfer.c,v 1.60 2003/11/28 18:26:27 kteich Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: tksurfer.c,v 1.61 2004/01/05 20:36:23 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
