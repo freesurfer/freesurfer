@@ -7100,6 +7100,112 @@ MRISwriteValues(MRI_SURFACE *mris, char *sname)
         Description
 ------------------------------------------------------*/
 int
+MRISreadAnnotation(MRI_SURFACE *mris, char *sname)
+{
+  int   i,j,vno,num;
+  FILE  *fp;
+  char  *cp, fname[STRLEN], path[STRLEN];
+#if 0
+  int   numannothist;
+  float f;
+  char  histfname[STRLEN], freqfname[STRLEN];
+#endif
+
+  cp = strchr(sname, '/') ;
+  if (!cp)                 /* no path - use same one as mris was read from */
+  {
+    cp = strchr(sname, '.') ;
+    FileNamePath(mris->fname, path) ;
+    if (cp)
+      sprintf(fname, "%s/../label/%s", path, sname) ;
+    else   /* no hemisphere specified */
+      sprintf(fname, "%s/../label/%s.%s", path, 
+              mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh", sname) ;
+  }
+  else
+    strcpy(fname, sname) ;  /* full path specified */
+
+  fp = fopen(fname,"r");
+  if (fp==NULL) 
+    ErrorReturn(ERROR_NOFILE, (ERROR_NOFILE, "could not read annot file %s",
+                                fname)) ;
+  MRISclearAnnotations(mris) ;
+  num = freadInt(fp) ;
+  for (j=0;j<num;j++)
+  {
+    vno = freadInt(fp) ; i = freadInt(fp) ;
+    if (vno>=mris->nvertices||vno<0)
+      printf("MRISreadAnnotation: vertex index out of range: %d i=%d\n",vno,i);
+    else
+      mris->vertices[vno].annotation = i;
+  }
+  fclose(fp);
+
+#if 0
+  for (vno=0;vno<vertex_index;vno++)
+    vertex[vno].annotfreq=1;
+
+  sprintf(freqfname,"%s.freq",fname);
+  fp = fopen(freqfname,"r");
+  if (fp!=NULL)
+  {
+    printf("file %s read\n",freqfname);
+    for (vno=0;vno<vertex_index;vno++)
+      vertex[vno].annotfreq=0;
+    fread(&num,1,sizeof(int),fp);
+    printf("surfer: num=%d\n",num);
+    for (j=0;j<num;j++)
+    {
+      fread(&vno,1,sizeof(int),fp);
+      fread(&f,1,sizeof(float),fp);
+      if (vno>=vertex_index||vno<0)
+        printf("surfer: vertex index out of range: %d f=%f\n",vno,f);
+      else
+        vertex[vno].annotfreq = f;
+    }
+    fclose(fp);
+  }
+
+  sprintf(histfname,"%s.hist",fname);
+  fp = fopen(histfname,"r");
+  if (fp!=NULL)
+  {
+    printf("file %s read\n",histfname);
+    for (vno=0;vno<vertex_index;vno++)
+      vertex[vno].numannothist=0;
+    fread(&num,1,sizeof(int),fp);
+    printf("surfer: num=%d\n",num);
+    for (j=0;j<num;j++)
+    {
+      fread(&vno,1,sizeof(int),fp);
+      fread(&numannothist,1,sizeof(int),fp);
+      if (vno>=vertex_index||vno<0)
+        printf("surfer: vertex index out of range: %d f=%f\n",vno,f);
+      else
+      {
+        vertex[vno].numannothist = numannothist;
+        vertex[vno].annothistlabel = calloc(numannothist,sizeof(int));
+        vertex[vno].annothistcount = calloc(numannothist,sizeof(int));
+        for (i=0;i<numannothist;i++)
+          fread(&vertex[vno].annothistlabel[i],1,sizeof(int),fp);
+        for (i=0;i<numannothist;i++)
+          fread(&vertex[vno].annothistcount[i],1,sizeof(int),fp);
+      }
+    }
+    fclose(fp);
+  }
+#endif
+
+  return(NO_ERROR) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
+int
 MRISreadValues(MRI_SURFACE *mris, char *fname)
 {
   int i,k,num,ilat;
