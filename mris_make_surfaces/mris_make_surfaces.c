@@ -15,8 +15,9 @@
 #include "mrimorph.h"
 #include "mrinorm.h"
 #include "version.h"
+#include "label.h"
 
-static char vcid[] = "$Id: mris_make_surfaces.c,v 1.50 2004/05/28 17:34:19 tosa Exp $";
+static char vcid[] = "$Id: mris_make_surfaces.c,v 1.51 2004/07/02 21:23:18 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -38,6 +39,7 @@ int MRISfindExpansionRegions(MRI_SURFACE *mris) ;
 int MRIsmoothBrightWM(MRI *mri_T1, MRI *mri_wm) ;
 MRI *MRIfindBrightNonWM(MRI *mri_T1, MRI *mri_wm) ;
 
+static LABEL *highres_label = NULL ;
 static char T1_name[STRLEN] = "brain" ;
 
 static char *white_fname = NULL ;
@@ -144,7 +146,7 @@ main(int argc, char *argv[])
   M3D           *m3d ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_make_surfaces.c,v 1.50 2004/05/28 17:34:19 tosa Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_make_surfaces.c,v 1.51 2004/07/02 21:23:18 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -393,6 +395,10 @@ main(int argc, char *argv[])
     ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s",
               Progname, fname) ;
 
+	if (highres_label)
+	{
+		LabelRipRestOfSurface(highres_label, mris) ;
+	}
   if (smooth && !nowhite)
   {
     printf("smoothing surface for %d iterations...\n", smooth) ;
@@ -813,6 +819,13 @@ get_option(int argc, char *argv[])
     printf("using %s as volume for white matter deformation...\n", white_fname) ;
     nargs = 1 ;
   }
+	else if (!stricmp(option, "hires") || !stricmp(option, "highres"))
+	{
+		highres_label = LabelRead(NULL, argv[2]) ;
+		if (!highres_label)
+			ErrorExit(ERROR_NOFILE, "%s: could not read highres label %s", Progname, argv[2]) ;
+		nargs = 1 ;
+	}
   else if (!stricmp(option, "SDIR"))
   {
     strcpy(sdir, argv[2]) ;
