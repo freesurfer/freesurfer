@@ -288,7 +288,7 @@ fi
 ACX_PTHREAD
 
 AC_MSG_NOTICE(Checking directory for MNI, BLT, Tiff and Jpeg)
-mghdir=/usr/pubsw/packages
+#mghdir=/usr/pubsw/packages
 #############################################################
 # MNI
 #############################################################
@@ -299,11 +299,11 @@ mni_libraries=""
 mni_includes=""
 AC_MSG_CHECKING(cheking MNI directory)
 # default is to use MGH installation
-if test -d $mghdir/mni/current ; then
-  ac_mni_includes=$mghdir/mni/current/include
-  ac_mni_libraries=$mghdir/mni/current/lib
-  ac_mni_bin=$mghdir/mni/current/bin
-fi
+#if test -d $mghdir/mni/current ; then
+#  ac_mni_includes=$mghdir/mni/current/include
+#  ac_mni_libraries=$mghdir/mni/current/lib
+#  ac_mni_bin=$mghdir/mni/current/bin
+#fi
 # modify when --with-mni-dir option given
 ################################################################
 AC_ARG_WITH(mni-dir,
@@ -342,11 +342,11 @@ blt_libraries=""
 AC_MSG_CHECKING(cheking BLT directory)
 # default is to use MGH installation
 # MGH installs BLT in tcl directory
-if test -d $mghdir/tcl/current ; then
-  ac_blt_includes=$mghdir/tcl/current/include
-  ac_blt_libraries=$mghdir/tcl/current/lib
-  ac_blt_bindir=$mghdir/tcl/current/bin
-fi
+#if test -d $mghdir/tcl/current ; then
+#  ac_blt_includes=$mghdir/tcl/current/include
+#  ac_blt_libraries=$mghdir/tcl/current/lib
+#  ac_blt_bindir=$mghdir/tcl/current/bin
+#fi
 
 AC_ARG_WITH(BLT-dir,
   [  --with-BLT-dir=DIR      where the root of Blt/Tk is installed.],
@@ -380,11 +380,11 @@ tiff_includes=""
 tiff_libraries=""
 AC_MSG_CHECKING(cheking Tiff directory)
 # default is to use MGH installation
-if test -d $mghdir/tiff/current ; then
-  ac_tiff_includes=$mghdir/tiff/current/include
-  ac_tiff_libraries=$mghdir/tiff/current/lib
-  ac_tiff_bindir=$mghdir/tiff/current/bin
-fi
+#if test -d $mghdir/tiff/current ; then
+#  ac_tiff_includes=$mghdir/tiff/current/include
+#  ac_tiff_libraries=$mghdir/tiff/current/lib
+#  ac_tiff_bindir=$mghdir/tiff/current/bin
+#fi
 
 AC_ARG_WITH(tiff-dir,
   [  --with-tiff-dir=DIR     where the root of Tiff is installed.],
@@ -416,11 +416,11 @@ jpeg_includes=""
 jpeg_libraries=""
 AC_MSG_CHECKING(cheking Jpeg directory)
 # default is to use MGH installation
-if test -d $mghdir/jpeg/current ; then
-  ac_jpeg_includes=$mghdir/jpeg/current/include
-  ac_jpeg_libraries=$mghdir/jpeg/current/lib
-  ac_jpeg_bindir=$mghdir/jpeg/current/bin
-fi
+#if test -d $mghdir/jpeg/current ; then
+#  ac_jpeg_includes=$mghdir/jpeg/current/include
+#  ac_jpeg_libraries=$mghdir/jpeg/current/lib
+#  ac_jpeg_bindir=$mghdir/jpeg/current/bin
+#fi
 
 AC_ARG_WITH(jpeg-dir,
   [  --with-jpeg-dir=DIR     where the root of Jpeg is installed.],
@@ -482,12 +482,11 @@ else
 
 # check for MGH style
 # default is to use MGH installation
-  if test -d $mghdir/tcl/current ; then
-    ac_tcl_includes=$mghdir/tcl/current/include
-    ac_tcl_libraries=$mghdir/tcl/current/lib
-    ac_tcl_bindir=$mghdir/tcl/current/bin
-  
-  fi
+#  if test -d $mghdir/tcl/current ; then
+#    ac_tcl_includes=$mghdir/tcl/current/include
+#    ac_tcl_libraries=$mghdir/tcl/current/lib
+#    ac_tcl_bindir=$mghdir/tcl/current/bin
+#  fi
 
   AC_ARG_WITH(tcl-dir,
     [  --with-tcl-dir=DIR      where the root of Tcl/Tk is installed.],
