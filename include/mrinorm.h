@@ -86,5 +86,6 @@ MRI *MRI3dNormalize(MRI *mri_src, MRI *mri_bias, int wm_target, MRI *mri_norm,
 MRI *MRIbuildVoronoiDiagram(MRI *mri_src, MRI *mri_ctrl, MRI *mri_dst);
 MRI *MRIsoapBubble(MRI *mri_src, MRI *mri_ctrl, MRI *mri_dst,int niter);
 MRI *MRIsoapBubbleExpand(MRI *mri_src, MRI *mri_ctrl, MRI *mri_dst,int niter);
+int MRI3dUseFileControlPoints(MRI *mri, char *fname) ;
 
 #endif
