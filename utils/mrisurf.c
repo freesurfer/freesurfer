@@ -3794,16 +3794,6 @@ MRISquickSphere(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int max_passes)
         MRISstoreAnalyticDistances(mris, MRIS_PLANE) ;
     }
 
-    if (!passno && 0)
-    {
-      double tol = parms->tol ;
-      parms->tol = 0.5 ;
-      if (niter > 30)
-        parms->niterations = 30 ;
-      mrisRemoveNegativeArea(mris, parms, base_averages, MAX_NEG_AREA_PCT, 2);
-      parms->niterations = niter ; parms->tol = tol ;
-    }
-
     mrisIntegrationEpoch(mris, parms, base_averages) ;
   } while (++passno < max_passes) ;
 
@@ -5343,10 +5333,12 @@ mrisAsynchronousTimeStep(MRI_SURFACE *mris, float momentum,
     for (fno = 0 ; fno < vertex->num ; fno++)
       mrisEraseFace(mris, mri_filled, vertex->f[fno]) ;
 #else
-    MHTremoveAllFaces(mht, mris, vertex) ;
+    if (mht)
+      MHTremoveAllFaces(mht, mris, vertex) ;
 #endif
 
-    mrisLimitGradientDistance(mris, mht, vno) ;
+    if (mht)
+      mrisLimitGradientDistance(mris, mht, vno) ;
 
     vertex->x += vertex->odx ; 
     vertex->y += vertex->ody ;
@@ -5365,7 +5357,8 @@ mrisAsynchronousTimeStep(MRI_SURFACE *mris, float momentum,
     for (fno = 0 ; fno < vertex->num ; fno++)
       mrisFillFace(mris, mri_filled, vertex->f[fno]) ;
 #else
-    MHTaddAllFaces(mht, mris, vertex) ;
+    if (mht)
+      MHTaddAllFaces(mht, mris, vertex) ;
 #endif
 
   }
@@ -6133,7 +6126,7 @@ MRISwriteAreaError(MRI_SURFACE *mris, char *name)
 int
 MRISwriteAreaErrorToValFile(MRI_SURFACE *mris, char *name)
 {
-  int    vno, fno, i ;
+  int    vno, fno ;
   float  area, orig_area ;
   FACE   *face ;
   VERTEX *v ;
@@ -6402,7 +6395,7 @@ MRISwriteValues(MRI_SURFACE *mris, char *sname)
 {
   int k,num;                   /* loop counters */
   float f;
-  char  fname[200], *cp, path[200], name[100] ;
+  char  fname[200], *cp ;
   FILE *fp;
   double sum=0,sum2=0,max= -1000,min=1000;
 
@@ -13031,7 +13024,8 @@ MRISpositionSurface(MRI_SURFACE *mris, MRI *mri_brain, MRI *mri_smooth,
       if (Gdiag & DIAG_WRITE)
         fprintf(parms->fp, "setting l_spring to %2.2f\n", parms->l_spring) ;
     }
-    mht = MHTfillTable(mris, mht) ;
+    if (!(parms->flags & IPFLAG_NO_SELF_INT_TEST))
+      mht = MHTfillTable(mris, mht) ;
     mrisClearGradient(mris) ;
     mrisComputeIntensityTerm(mris, l_intensity, mri_brain, mri_smooth);
     mrisComputeIntensityGradientTerm(mris, parms->l_grad,mri_brain,mri_smooth);
@@ -13066,7 +13060,8 @@ MRISpositionSurface(MRI_SURFACE *mris, MRI *mri_brain, MRI *mri_smooth,
 #else
     /*    mrisClipMomentumGradient(mris, 0.2f) ;*/
     delta_t = mrisAsynchronousTimeStep(mris, parms->momentum, dt,mht) ;
-    MHTcheckFaces(mris, mht) ;
+    if (!(parms->flags & IPFLAG_NO_SELF_INT_TEST))
+      MHTcheckFaces(mris, mht) ;
 #endif
     mrisTrackTotalDistance(mris) ;  /* update thickness measure */
     MRIScomputeMetricProperties(mris) ; 
@@ -13099,7 +13094,8 @@ MRISpositionSurface(MRI_SURFACE *mris, MRI *mri_brain, MRI *mri_smooth,
     fclose(parms->fp) ;
 
   /*  MHTcheckSurface(mris, mht) ;*/
-  MHTfree(&mht) ;
+  if (!(parms->flags & IPFLAG_NO_SELF_INT_TEST))
+    MHTfree(&mht) ;
   return(NO_ERROR) ;
 }
 /*-----------------------------------------------------
