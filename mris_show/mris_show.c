@@ -15,7 +15,7 @@
 #include "macros.h"
 #include "oglutil.h"
 
-static char vcid[] = "$Id: mris_show.c,v 1.12 1997/10/30 23:48:12 fischl Exp $";
+static char vcid[] = "$Id: mris_show.c,v 1.13 1997/10/31 23:43:25 fischl Exp $";
 
 
 /*-------------------------------- CONSTANTS -----------------------------*/
@@ -33,7 +33,7 @@ static char vcid[] = "$Id: mris_show.c,v 1.12 1997/10/30 23:48:12 fischl Exp $";
 #define GLUT_ESCAPE_KEY  27
 #endif
 
-#define MAX_MARKED       100
+#define MAX_MARKED       5000
 
 /*-------------------------------- PROTOTYPES ----------------------------*/
 
@@ -63,7 +63,7 @@ char *Progname ;
 static char *surf_fname ;
 static MRI_SURFACE  *mris, *mris_ellipsoid = NULL ;
 static int nmarked = 0 ;
-static int marked_vertices[MAX_MARKED] = { -1 } ;
+static int marked_vertices[MAX_MARKED+1] = { -1 } ;
 static long frame_xdim = FRAME_SIZE;
 static long frame_ydim = FRAME_SIZE;
 
@@ -100,7 +100,7 @@ main(int argc, char *argv[])
 {
   char         **av, *in_fname, *out_fname, wname[200], fname[100], hemi[10],
                *cp, path[100], name[100] ;
-  int          ac, nargs ;
+  int          ac, nargs, i, vno ;
   float        angle ;
 
   Progname = argv[0] ;
@@ -201,6 +201,12 @@ main(int argc, char *argv[])
     oglu_fov = 0.0 ;
 
   /* now compile the surface tessellation */
+  for (i = 0 ; i < nmarked ; i++)
+  {
+    vno = marked_vertices[i] ;
+    if (vno >= 0 && vno < mris->nvertices)
+      mris->vertices[vno].marked = 1 ;
+  }
   glNewList(ORIG_SURFACE_LIST, GL_COMPILE) ;
   OGLUcompile(mris, marked_vertices, compile_flags, cslope) ;
   glEndList() ;
@@ -294,10 +300,20 @@ get_option(int argc, char *argv[])
     nargs = 1 ;
     break ;
   case 'V':
-    if (nmarked >= MAX_MARKED-1)
+    if (nmarked >= MAX_MARKED)
       ErrorExit(ERROR_NOMEMORY, "%s: too many vertices marked (%d)",
                 Progname, nmarked) ;
-    sscanf(argv[2], "%d", &marked_vertices[nmarked++]) ;
+    if (*argv[2] == '#' || *argv[2] == ':')
+    {
+      int  skip, vno, vindex ;
+
+      sscanf(argv[2], "#%d", &skip) ;
+      for (vindex = vno = 0 ; vindex < MAX_MARKED ; vindex++, vno += skip)
+        marked_vertices[vindex] = vno ;
+      nmarked = MAX_MARKED ;
+    }
+    else
+      sscanf(argv[2], "%d", &marked_vertices[nmarked++]) ;
     marked_vertices[nmarked] = -1 ;  /* terminate list */
     nargs = 1 ;
     break ;
