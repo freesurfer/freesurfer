@@ -4,7 +4,7 @@
   email:   analysis-bugs@nmr.mgh.harvard.edu
   Date:    2/27/02
   Purpose: Computes glm inferences on the surface.
-  $Id: mris_glm.c,v 1.22 2004/03/05 07:42:06 greve Exp $
+  $Id: mris_glm.c,v 1.23 2004/03/08 23:03:15 greve Exp $
 
 Things to do:
   0. Documentation.
@@ -68,7 +68,7 @@ static char *getstem(char *bfilename);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mris_glm.c,v 1.22 2004/03/05 07:42:06 greve Exp $";
+static char vcid[] = "$Id: mris_glm.c,v 1.23 2004/03/08 23:03:15 greve Exp $";
 char *Progname = NULL;
 
 char *hemi        = NULL;
@@ -133,6 +133,7 @@ char *tfmt = NULL;
 int   tfmtid = MRI_VOLUME_TYPE_UNKNOWN;
 char *tmaxfile = NULL;
 float tmax;
+int nsim = 1, nthsim;
 
 char *sigid  = NULL;
 char *sigfmt = NULL;
@@ -178,7 +179,7 @@ int main(int argc, char **argv)
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option (argc, argv, 
-      "$Id: mris_glm.c,v 1.22 2004/03/05 07:42:06 greve Exp $", "$Name:  $");
+      "$Id: mris_glm.c,v 1.23 2004/03/08 23:03:15 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -243,181 +244,25 @@ int main(int argc, char **argv)
   }
   fflush(stdout);
 
-  if(beta_in_id == NULL){
-    /* Compute beta and reserr from data (real or synth) */
-
-    if(stringmatch(trgsubject,"ico")){
-      /* Use Icosahedron as target surface */
-      printf("INFO: loading ico (order = %d)\n",IcoOrder);
-      fflush(stdout);
-      IcoSurf = ReadIcoByOrder(IcoOrder, IcoRadius);
-    }
-    else{
-      /* Use target subject (still called IcoSurf) */
-      IcoSurf = MRISloadSurfSubject(trgsubject,hemi,surfregid,SUBJECTS_DIR);
-      if(IcoSurf == NULL){
-	printf("ERROR: could not load registration surface\n");
-	exit(1);
-      }
-    }
-
-    /* Alloc enough data for all the subjects */
-    SrcVals = MRIallocSequence(IcoSurf->nvertices, 1, 1,MRI_FLOAT,nsubjects);
-    
-    if(SynthPDF == 0){
-
-      /* Load in all the subjects' data, one at a time */      
-      for(nthsubj = 0; nthsubj < nsubjects; nthsubj++){
-	
-	subject = subjectlist[nthsubj];
-	printf("nthsubj = %d/%d, %s ---------------------------------------\n",
-	       nthsubj+1,nsubjects,subject);
-	fflush(stdout);
-	
-	/* Read in the spherical registration surface */
-	SurfReg = MRISloadSurfSubject(subject,hemi,surfregid,SUBJECTS_DIR);
-	if(SurfReg == NULL){
-	  printf("ERROR: could not load registration surface\n");
-	  exit(1);
-	}
-        strcpy(SurfReg->subject_name,subject);
-        //SurfReg->hemi = hemi;
-	
-	if(surfmeasure != NULL) inputfname = surfmeasure;
-	else                    inputfname = inputlist[nthsubj];
-
-	/* Read in the input for this subject. */
-	/* If the input is a volume, then read in the registration file,
-	   check the subject name, load white surface, load thickness
-	   for projection, resample to the white surface, save in tmpmri */
-
-	printf("  INFO: loading input %s \n",inputfname);fflush(stdout);
-	if(stringmatch(inputfmt,"curv"))
-	  tmpmri = MRISloadSurfVals(inputfname,"curv",SurfReg,
-				    subject,hemi,SUBJECTS_DIR);
-	else if(stringmatch(inputfmt,"paint") || stringmatch(inputfmt,"w") ||
-		stringmatch(inputfmt,"wfile")){
-	  MRISreadValues(SurfReg,inputfname);
-	  tmpmri = MRIcopyMRIS(NULL, SurfReg, 0, "val");
-	}
-	else{
-	  if(inputfmt != NULL) tmpmri = MRIreadType(inputfname,inputfmtid);
-	  else                 tmpmri = MRIread(inputfname);
-	}
-	if(tmpmri == NULL){
-	  printf("ERROR: could not load %s\n",inputfname);
-	  exit(1);
-	}
-
-	/* Extract frame (Future: compute derived variable) */
-	if(tmpmri->nframes <= frame){
-	  printf("ERROR: nframes (%d) <= frame (%d)\n",
-		 tmpmri->nframes,frame);
-	  exit(1);
-	}
-	if(tmpmri->nframes > 0){
-	  /* extract frame */
-	  tmpmri2 = MRIallocSequence(SurfReg->nvertices,1,1,MRI_FLOAT,1);
-	  for(vtx=0; vtx < SurfReg->nvertices; vtx++)
-	    MRIFseq_vox(tmpmri2,vtx,0,0,0) = MRIFseq_vox(tmpmri,vtx,0,0,frame);
-	  MRIfree(&tmpmri);
-	  tmpmri = tmpmri2;
-	}
-	
-	/* Smooth on the native surface */
-	if(nsmooth > 0)
-	  MRISsmoothMRI(SurfReg, tmpmri, nsmooth, tmpmri);
-
-	/*------- Resample to target subject -------------------*/
-	if(!stringmatch(trgsubject,subject)){
-	  printf("  INFO: resampling to %s\n",trgsubject);fflush(stdout);
-	  tmpmri2 = surf2surf_nnfr(tmpmri, SurfReg, IcoSurf,
-				   &SrcHits,&SrcDist,&TrgHits,&TrgDist,1,1);
-	  if(tmpmri2 == NULL){
-	    printf("ERROR: could not resample to %s.\n",trgsubject);
-	    exit(1);
-	  }
-	  MRIfree(&SrcHits);
-	  MRIfree(&SrcDist);
-	  MRIfree(&TrgHits);
-	  MRIfree(&TrgDist);
-	  MRIfree(&tmpmri);
-	  tmpmri = tmpmri2;
-	}
-	
-	/* Copy into SrcVals structure */
-	for(vtx = 0; vtx < IcoSurf->nvertices; vtx++)
-	  MRIFseq_vox(SrcVals,vtx,0,0,nthsubj)=MRIFseq_vox(tmpmri2,vtx,0,0,0);
-	
-	MRIfree(&tmpmri);
-	MRISfree(&SurfReg);
-	
-	printf("\n\n");
-	fflush(stdout);
-      }
-    }
-    else{
-      if(SynthSeed < 0) SynthSeed = PDFtodSeed();
-      printf("INFO: synthesizing, pdf = %d, seed = %d\n",
-	     SynthPDF,SynthSeed);
-      srand48(SynthSeed);
-      if(SynthPDF == 1)
-	MRIrandn(IcoSurf->nvertices, 1, 1,nsubjects, 
-		 SynthGaussianMean, SynthGaussianStd, SrcVals);
-      if(SynthPDF == 2)
-	MRIsampleCDF(IcoSurf->nvertices, 1, 1,nsubjects, 
-		 SynthXCDF, SynthCDF, SynthNCDF,SrcVals);
-
-      if(nsmooth > 0) MRISsmoothMRI(IcoSurf, SrcVals, nsmooth, SrcVals);
-    }
-
-    if(yid != NULL){
-      if(MRIwriteAnyFormat(SrcVals,yid,yfmt,-1,NULL)) exit(1);
-      if(fsgd != NULL){
-	sprintf(tmpstr,"%s.fsgd",getstem(yid));
-	strcpy(fsgd->measname,surfmeasure);
-	sprintf(fsgd->datafile,"%s_000.bfloat",getstem(yid));
-	sprintf(fsgd->DesignMatFile,"%s.X.mat",getstem(yid));
-        MatlabWrite(X,fsgd->DesignMatFile,"X");
-	fp = fopen(tmpstr,"w");
-	gdfPrintHeader(fp,fsgd);
-	fprintf(fp,"Creator          %s\n",Progname);
-	fprintf(fp,"SmoothSteps      %d\n",nsmooth);
-	fprintf(fp,"SUBECTS_DIR      %s\n",SUBJECTS_DIR);
-	fprintf(fp,"SynthSeed        %d\n",SynthSeed);
-	fclose(fp);
-      }
-    }
-
-    /* Future: run permutation loop here to get null dist of t */
-    /* Must be done in one shot with estimation */
-
-    printf("INFO: computing beta \n");fflush(stdout);
-    beta = fMRImatrixMultiply(SrcVals, Q, NULL);
-    if(betaid != NULL) 
-      if(MRIwriteAnyFormat(beta,betaid,betafmt,-1,NULL)) exit(1);
-
-    printf("INFO: computing eres \n");fflush(stdout);
-    eres = fMRImatrixMultiply(SrcVals, R, NULL);
-    if(eresid != NULL)
-      if(MRIwriteAnyFormat(eres,eresid,eresfmt,-1,NULL)) exit(1);
-
-    if(yhatid != NULL){
-      printf("INFO: computing yhat \n");fflush(stdout);
-      yhat = fMRImatrixMultiply(SrcVals, T, NULL);
-      if(MRIwriteAnyFormat(yhat,yhatid,yhatfmt,-1,NULL)) exit(1);
-      MRIfree(&yhat);
-    }
-    MRIfree(&SrcVals);
-
-    printf("INFO: computing var \n");fflush(stdout);
-    eresvar = fMRIvariance(eres,DOF,0,NULL);
-    if(eresvarid != NULL)
-      if(MRIwriteAnyFormat(eresvar,eresvarid,eresvarfmt,0,IcoSurf)) exit(1);
-    MRIfree(&eres);
+  /* ------- Load the reg surf for target subject --------- */
+  if(stringmatch(trgsubject,"ico")){
+    /* Use Icosahedron as target surface */
+    printf("INFO: loading ico (order = %d)\n",IcoOrder);
+    fflush(stdout);
+    IcoSurf = ReadIcoByOrder(IcoOrder, IcoRadius);
   }
   else{
-    /*--- Load previously computed beta and res err var ----*/
+    /* Use target subject (still called IcoSurf) */
+    IcoSurf = MRISloadSurfSubject(trgsubject,hemi,surfregid,SUBJECTS_DIR);
+    if(IcoSurf == NULL){
+      printf("ERROR: could not load registration surface\n");
+      exit(1);
+    }
+  }
+  printf("nvertices %d\n",IcoSurf->nvertices);
+
+  /*--- Load previously computed beta and res err var ----*/
+  if(beta_in_id != NULL){
     printf("INFO: loading beta_in %s\n",beta_in_id);fflush(stdout);
     if(beta_in_fmt != NULL) beta = MRIreadType(beta_in_id,beta_in_fmtid);
     else                    beta = MRIread(beta_in_id);
@@ -456,47 +301,232 @@ int main(int argc, char **argv)
     }
   }
 
+  /* Alloc enough data for the data for all the subjects */
+  if(beta_in_id == NULL)
+    SrcVals = MRIallocSequence(IcoSurf->nvertices, 1, 1,MRI_FLOAT,nsubjects);
 
-  if(tid != NULL || sigid != NULL || cesid != NULL ||tmaxfile != NULL){
-    printf("INFO: computing contrast effect size \n");fflush(stdout);
-    ces = fMRImatrixMultiply(beta,C,NULL);
-    if(cesid != NULL){
-      if(IsSurfFmt(cesfmt) && IcoSurf == NULL)
-	IcoSurf = MRISloadSurfSubject(trgsubject,hemi,surfregid,SUBJECTS_DIR);
-      if(MRIwriteAnyFormat(ces,cesid,cesfmt,0,IcoSurf)) exit(1);
-    }
-  }
+  /* ----------------- Load real data --------------- */
+  if(beta_in_id == NULL && SynthPDF == 0){
 
-  if(tid != NULL || sigid != NULL || tmaxfile != NULL){
-    printf("INFO: computing t \n"); fflush(stdout);
-    t = fMRIcomputeT(ces, X, C, eresvar, NULL);
-    if(tid != NULL) {
-      if(IsSurfFmt(tfmt) && IcoSurf == NULL)
-	IcoSurf = MRISloadSurfSubject(trgsubject,hemi,surfregid,SUBJECTS_DIR);
-      if(MRIwriteAnyFormat(t,tid,tfmt,0,IcoSurf)) exit(1);
-    }
-    if(tmaxfile != NULL){
-      tmax = fabs(MRIFseq_vox(t,0,0,0,0));
-      for(vtx = 0; vtx < t->width; vtx++){
-	if(tmax < fabs(MRIFseq_vox(t,vtx,0,0,0)) )
-	  tmax = fabs(MRIFseq_vox(t,vtx,0,0,0));
+    for(nthsubj = 0; nthsubj < nsubjects; nthsubj++){
+      
+      subject = subjectlist[nthsubj];
+      printf("nthsubj = %d/%d, %s ---------------------------------------\n",
+	     nthsubj+1,nsubjects,subject);
+      fflush(stdout);
+      
+      /* Read in the spherical registration surface */
+      SurfReg = MRISloadSurfSubject(subject,hemi,surfregid,SUBJECTS_DIR);
+      if(SurfReg == NULL){
+	printf("ERROR: could not load registration surface\n");
+	exit(1);
       }
-      fp = fopen(tmaxfile,"a");
-      fprintf(fp,"%f %f\n",tmax,-log10(sigt(tmax,DOF)));
-      fclose(fp);
+      strcpy(SurfReg->subject_name,subject);
+      //SurfReg->hemi = hemi;
+      
+      if(surfmeasure != NULL) inputfname = surfmeasure;
+      else                    inputfname = inputlist[nthsubj];
+      
+      /* Read in the input for this subject. */
+      /* If the input is a volume, then read in the registration file,
+	 check the subject name, load white surface, load thickness
+	 for projection, resample to the white surface, save in tmpmri */
+      
+      printf("  INFO: loading input %s \n",inputfname);fflush(stdout);
+      if(stringmatch(inputfmt,"curv"))
+	tmpmri = MRISloadSurfVals(inputfname,"curv",SurfReg,
+				  subject,hemi,SUBJECTS_DIR);
+      else if(stringmatch(inputfmt,"paint") || stringmatch(inputfmt,"w") ||
+	      stringmatch(inputfmt,"wfile")){
+	MRISreadValues(SurfReg,inputfname);
+	tmpmri = MRIcopyMRIS(NULL, SurfReg, 0, "val");
+      }
+      else{
+	if(inputfmt != NULL) tmpmri = MRIreadType(inputfname,inputfmtid);
+	else                 tmpmri = MRIread(inputfname);
+      }
+      if(tmpmri == NULL){
+	printf("ERROR: could not load %s\n",inputfname);
+	exit(1);
+      }
+      
+      /* Extract frame (Future: compute derived variable) */
+      if(tmpmri->nframes <= frame){
+	printf("ERROR: nframes (%d) <= frame (%d)\n",
+	       tmpmri->nframes,frame);
+	exit(1);
+      }
+      if(tmpmri->nframes > 0){
+	/* extract frame */
+	tmpmri2 = MRIallocSequence(SurfReg->nvertices,1,1,MRI_FLOAT,1);
+	for(vtx=0; vtx < SurfReg->nvertices; vtx++)
+	  MRIFseq_vox(tmpmri2,vtx,0,0,0) = MRIFseq_vox(tmpmri,vtx,0,0,frame);
+	MRIfree(&tmpmri);
+	tmpmri = tmpmri2;
+      }
+      
+      /* Smooth on the native surface */
+      if(nsmooth > 0)
+	MRISsmoothMRI(SurfReg, tmpmri, nsmooth, tmpmri);
+
+      /*------- Resample to target subject -------------------*/
+      if(!stringmatch(trgsubject,subject)){
+	printf("  INFO: resampling to %s\n",trgsubject);fflush(stdout);
+	tmpmri2 = surf2surf_nnfr(tmpmri, SurfReg, IcoSurf,
+				 &SrcHits,&SrcDist,&TrgHits,&TrgDist,1,1);
+	if(tmpmri2 == NULL){
+	  printf("ERROR: could not resample to %s.\n",trgsubject);
+	  exit(1);
+	}
+	MRIfree(&SrcHits);
+	MRIfree(&SrcDist);
+	MRIfree(&TrgHits);
+	MRIfree(&TrgDist);
+	MRIfree(&tmpmri);
+	tmpmri = tmpmri2;
+      }
+      
+      /* Copy into SrcVals structure */
+      for(vtx = 0; vtx < IcoSurf->nvertices; vtx++)
+	MRIFseq_vox(SrcVals,vtx,0,0,nthsubj)=MRIFseq_vox(tmpmri2,vtx,0,0,0);
+      
+      MRIfree(&tmpmri);
+      MRISfree(&SurfReg);
+      
+      printf("\n\n");
+      fflush(stdout);
     }
+  } /* End: load real data */
+
+
+  if(SynthPDF != 0){
+    if(SynthSeed < 0) SynthSeed = PDFtodSeed();
+    printf("INFO: synthesizing, pdf = %d, seed = %d\n",SynthPDF,SynthSeed);
+    printf("INFO: simulating over %d loops\n",nsim);
+    srand48(SynthSeed);
   }
 
-  if(sigid != NULL){
-    printf("INFO: computing t significance \n");fflush(stdout);
-    sig = fMRIsigT(t, DOF, NULL);
-    MRIlog10(sig,sig,1);
-    if(sigfmt != NULL){
-      if(IsSurfFmt(sigfmt) && IcoSurf == NULL)
-      IcoSurf = MRISloadSurfSubject(trgsubject,hemi,surfregid,SUBJECTS_DIR);
-      if(MRIwriteAnyFormat(sig,sigid,sigfmt,0,IcoSurf)) exit(1);
+  /* ------- Start simulation loop -- only one pass for non-sim runs -------- */
+  for(nthsim = 0; nthsim <= nsim; nthsim++){
+
+    if(SynthPDF != 0) {
+      if(nthsim%100==0) {printf(" %d",nthsim); fflush(stdout);}
+      if(nthsim%1000==999) {printf("\n");fflush(stdout);}
     }
-  }
+
+    /* ------ Synthesize data ------ */
+    if(beta_in_id == NULL && SynthPDF != 0){
+      if(SynthPDF == 1)
+	MRIrandn(IcoSurf->nvertices, 1, 1,nsubjects, 
+		 SynthGaussianMean, SynthGaussianStd, SrcVals);
+      if(SynthPDF == 2)
+	MRIsampleCDF(IcoSurf->nvertices, 1, 1,nsubjects, 
+		     SynthXCDF, SynthCDF, SynthNCDF,SrcVals);
+      
+      if(nsmooth > 0) MRISsmoothMRI(IcoSurf, SrcVals, nsmooth, SrcVals);
+    } /*End syntheisze */
+    
+    /* Save the input data */
+    if(beta_in_id == NULL && yid != NULL){
+      if(MRIwriteAnyFormat(SrcVals,yid,yfmt,-1,NULL)) exit(1);
+      if(fsgd != NULL){
+	sprintf(tmpstr,"%s.fsgd",getstem(yid));
+	strcpy(fsgd->measname,surfmeasure);
+	sprintf(fsgd->datafile,"%s_000.bfloat",getstem(yid));
+	sprintf(fsgd->DesignMatFile,"%s.X.mat",getstem(yid));
+	MatlabWrite(X,fsgd->DesignMatFile,"X");
+	fp = fopen(tmpstr,"w");
+	gdfPrintHeader(fp,fsgd);
+	fprintf(fp,"Creator          %s\n",Progname);
+	fprintf(fp,"SmoothSteps      %d\n",nsmooth);
+	fprintf(fp,"SUBECTS_DIR      %s\n",SUBJECTS_DIR);
+	fprintf(fp,"SynthSeed        %d\n",SynthSeed);
+	fclose(fp);
+      }
+    }/* End save the input data */
+    
+    
+    /*-------- Compute beta ----------- */
+    if(beta_in_id == NULL){
+      
+      /* Do permutation here. */
+      
+      if(nsim == 1) printf("INFO: computing beta \n");fflush(stdout);
+      beta = fMRImatrixMultiply(SrcVals, Q, NULL);
+      if(betaid != NULL) 
+	if(MRIwriteAnyFormat(beta,betaid,betafmt,-1,NULL)) exit(1);
+      
+      if(nsim == 1) printf("INFO: computing eres \n");fflush(stdout);
+      eres = fMRImatrixMultiply(SrcVals, R, NULL);
+      if(eresid != NULL)
+	if(MRIwriteAnyFormat(eres,eresid,eresfmt,-1,NULL)) exit(1);
+      
+      if(yhatid != NULL){
+	if(nsim == 1) printf("INFO: computing yhat \n");fflush(stdout);
+	yhat = fMRImatrixMultiply(SrcVals, T, NULL);
+	if(MRIwriteAnyFormat(yhat,yhatid,yhatfmt,-1,NULL)) exit(1);
+	MRIfree(&yhat);
+      }
+      
+      if(nsim == 1) printf("INFO: computing var \n");fflush(stdout);
+      eresvar = fMRIvariance(eres,DOF,0,NULL);
+      if(eresvarid != NULL)
+	if(MRIwriteAnyFormat(eresvar,eresvarid,eresvarfmt,0,IcoSurf)) exit(1);
+      MRIfree(&eres);
+    }/* end compute beta */
+    
+
+    /* Compute contrast-effect size */
+    if(tid != NULL || sigid != NULL || cesid != NULL ||tmaxfile != NULL){
+      if(nsim == 1) printf("INFO: computing contrast effect size \n");fflush(stdout);
+      ces = fMRImatrixMultiply(beta,C,NULL);
+      if(cesid != NULL){
+	if(IsSurfFmt(cesfmt) && IcoSurf == NULL)
+	  IcoSurf = MRISloadSurfSubject(trgsubject,hemi,surfregid,SUBJECTS_DIR);
+	if(MRIwriteAnyFormat(ces,cesid,cesfmt,0,IcoSurf)) exit(1);
+      }
+    }
+    
+    /* Compute t-ratio  */
+    if(tid != NULL || sigid != NULL || tmaxfile != NULL){
+      if(nsim == 1) printf("INFO: computing t \n"); fflush(stdout);
+      t = fMRIcomputeT(ces, X, C, eresvar, NULL);
+      if(tid != NULL) {
+	if(IsSurfFmt(tfmt) && IcoSurf == NULL)
+	  IcoSurf = MRISloadSurfSubject(trgsubject,hemi,surfregid,SUBJECTS_DIR);
+	if(MRIwriteAnyFormat(t,tid,tfmt,0,IcoSurf)) exit(1);
+      }
+      if(tmaxfile != NULL){
+	tmax = fabs(MRIFseq_vox(t,0,0,0,0));
+	for(vtx = 0; vtx < t->width; vtx++){
+	  if(tmax < fabs(MRIFseq_vox(t,vtx,0,0,0)) )
+	    tmax = fabs(MRIFseq_vox(t,vtx,0,0,0));
+	}
+	fp = fopen(tmaxfile,"a");
+	fprintf(fp,"%f %f\n",tmax,-log10(sigt(tmax,DOF)));
+	fclose(fp);
+      }
+    }
+
+    /* Compute significance of t-ratio  */
+    if(sigid != NULL){
+      if(nsim == 1) printf("INFO: computing t significance \n");fflush(stdout);
+      sig = fMRIsigT(t, DOF, NULL);
+      MRIlog10(sig,sig,1);
+      if(sigfmt != NULL || 1){
+	if(IsSurfFmt(sigfmt) && IcoSurf == NULL)
+	  IcoSurf = MRISloadSurfSubject(trgsubject,hemi,surfregid,SUBJECTS_DIR);
+	if(MRIwriteAnyFormat(sig,sigid,sigfmt,0,IcoSurf)) exit(1);
+      }
+    }
+
+    /* Do clustering here */
+
+
+  } /*End simulation loop*/
+  if(nsim > 1) printf("%d \n",nthsim);
+
+  if(SrcVals) MRIfree(&SrcVals);
 
   printf("done \n");
   return(0);
@@ -636,6 +666,11 @@ static int parse_commandline(int argc, char **argv)
     else if (!strcmp(option, "--frame")){
       if(nargc < 1) argnerr(option,1);
       sscanf(pargv[0],"%d",&frame);
+      nargsused = 1;
+    }
+    else if (!strcmp(option, "--nsim")){
+      if(nargc < 1) argnerr(option,1);
+      sscanf(pargv[0],"%d",&nsim);
       nargsused = 1;
     }
     else if (!strcmp(option, "--contrast")){
@@ -828,12 +863,13 @@ static void print_usage(void)
   printf("   --ces     name <fmt> : contrast effect size  \n");
   printf("   --t       name <fmt> : t-ratio of contrast \n");
   printf("   --sigt    name <fmt> : signficance of t-ratio (ie, t-Test) \n");
-  printf("   --tmax fname : append max t (and min p) to fname \n");
   printf("\n");
-  printf("Synthesis Options\n");
+  printf("Synthesis and Simulation Options\n");
   printf("   --gaussian mean std : synthesize data with guassian\n");
   printf("   --cdf cdffile : synthesize data with given cdf\n");
   printf("   --seed seed : random number seed when synth data (-1 for auto)\n");
+  printf("   --tmax fname : append max t (and min p) to fname \n");
+  printf("   --nsim nsim : run simulation loop nsim times.\n");
   printf("\n");
   printf("   --force              : force processing with badly cond X\n");
   printf("   --sd    subjectsdir : default is env SUBJECTS_DIR\n");
