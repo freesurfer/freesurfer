@@ -126,7 +126,6 @@ typedef struct {
   Volm_tSampleType mSampleType;  /* How to sample the volume */
   
   mriTransformRef    mIdxToRASTransform;           /* idx -> ras (by MRI) */
-  //  LTA*               mDisplayTransform;            /* buf -> index */
   mriTransformRef    mDisplayTransform;            /* buf -> index */
   mriTransformRef    mMNITalLtzToRealTalTransform; /* tal (z<0) -> real tal */
   mriTransformRef    mMNITalGtzToRealTalTransform; /* tal (z>0) -> real tal */
