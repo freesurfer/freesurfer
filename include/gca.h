@@ -3,6 +3,13 @@
 
 #include "mri.h"
 #include "transform.h"
+#define MIN_PRIOR  0.5
+#define MAX_GCA_INPUTS 100
+#define GCA_FLASH      1
+
+#define FILE_TAG        0xab2c
+#define TAG_PARAMETERS  0x0001
+#define TAG_GCA_TYPE    0x0002
 
 /* the volume that the classifiers are distributed within */
 #define DEFAULT_VOLUME_SIZE   256
@@ -31,8 +38,8 @@ typedef struct
   int    zp ;
   int    label ;
   float  prior ;
-  float  var ;
-  float  mean ;
+  float  *covars ;
+  float  *means ;
   float  log_p ;      /* current log probability of this sample */
   int    x ;          /* image coordinates */
   int    y ;
@@ -44,8 +51,8 @@ typedef struct
 #define MAX_NBR_LABELS       9
 typedef struct
 {
-  float   mean ;
-  float   var ;
+  float   *means ;
+  float   *covars ;
   float   **label_priors ;
   unsigned char    **labels ;
   short   *nlabels;
@@ -98,9 +105,14 @@ typedef struct
   int       ninputs ;
   GCA_TISSUE_PARMS tissue_parms[MAX_GCA_LABELS] ;
   int    flags ;
+	int       type ;
+	double    TRs[MAX_GCA_INPUTS] ;  /* TR of training data (in msec) */
+	double    FAs[MAX_GCA_INPUTS] ;  /* flip angles of training data (in radians) */
+	double    TEs[MAX_GCA_INPUTS] ;  /* TE  of training data (in msec) */
 } GAUSSIAN_CLASSIFIER_ARRAY, GCA ;
 
 
+int  GCAsetFlashParameters(GCA *gca, double *TRs, double *FAs, double *TEs) ;
 int  GCAunifyVariance(GCA *gca) ;
 int  GCAvoxelToPrior(GCA *gca, MRI *mri,
                     int xv, int yv, int zv, int *pxp,int *pyp,int *pzp);
@@ -108,12 +120,14 @@ int  GCAvoxelToNode(GCA *gca, MRI *mri,
                     int xv, int yv, int zv, int *pxn,int *pyn,int *pzn);
 GCA  *GCAalloc(int ninputs, float prior_spacing, float node_spacing, int width, int height, int depth, int flags) ;
 int  GCAfree(GCA **pgca) ;
-int  GCANfree(GCA_NODE *gcan) ;
+int  GCANfree(GCA_NODE *gcan, int ninputs) ;
 int  GCAtrain(GCA *gca, MRI *mri_inputs, MRI *mri_labels, TRANSFORM *transform, 
               GCA *gca_prune, int noint) ;
+int  GCAtrainCovariances(GCA *gca, MRI *mri_inputs, MRI *mri_labels, TRANSFORM *transform) ;
 int  GCAwrite(GCA *gca, char *fname) ;
 GCA  *GCAread(char *fname) ;
-int  GCAcompleteTraining(GCA *gca) ;
+int  GCAcompleteMeanTraining(GCA *gca) ;
+int  GCAcompleteCovarianceTraining(GCA *gca) ;
 MRI  *GCAlabel(MRI *mri_src, GCA *gca, MRI *mri_dst, TRANSFORM *transform) ;
 MRI  *GCAclassify(MRI *mri_src,GCA *gca,MRI *mri_dst,TRANSFORM *transform,int max_labels);
 MRI  *GCAreclassifyUsingGibbsPriors(MRI *mri_inputs, GCA *gca, MRI *mri_dst,
@@ -186,10 +200,9 @@ MRI  *GCAlabelProbabilities(MRI *mri_inputs, GCA *gca, MRI *mri_dst, TRANSFORM *
 MRI  *GCAcomputeProbabilities(MRI *mri_inputs, GCA *gca, MRI *mri_labels, 
                               MRI *mri_dst, TRANSFORM *transform);
 
-int
-GCAcomputeMAPlabelAtLocation(GCA *gca, int xp, int yp, int zp, float val, 
+int   GCAcomputeMAPlabelAtLocation(GCA *gca, int xp, int yp, int zp, float *vals,
                              int *pmax_n, float *plog_p) ;
-int   GCAcomputeMLElabelAtLocation(GCA *gca, int x, int y, int z, float val, int *pmax_n,float *plog_p);
+int   GCAcomputeMLElabelAtLocation(GCA *gca, int x, int y, int z, float *vals, int *pmax_n,float *plog_p);
 MRI   *GCAconstrainLabelTopology(GCA *gca, MRI *mri_inputs, MRI *mri_src, 
                                  MRI *mri_dst, TRANSFORM *transform) ;
 MRI   *GCAexpandLabelIntoWM(GCA *gca, MRI *mri_inputs, MRI *mri_src,
@@ -227,7 +240,8 @@ int GCArenormalizeIntensitiesAbsolute(GCA *gca, int *labels,
                                       float *intensities, int num) ;
 int GCArenormalizeToExample(GCA *gca, MRI *mri_seg, MRI *mri_T1) ;
 
-double  GCAlabelMean(GCA *gca, int label) ;
+int     GCAlabelMean(GCA *gca, int label, float *means) ;
+MATRIX  *GCAlabelCovariance(GCA *gca, int label, MATRIX *m_total) ;
 int     GCAregularizeConditionalDensities(GCA *gca, float smooth) ;
 int     GCAmeanFilterConditionalDensities(GCA *gca, float navgs) ;
 int     GCArenormalizeToFlash(GCA *gca, char *tissue_parms_fname, MRI *mri) ;
@@ -247,10 +261,30 @@ int  GCApriorToSourceVoxelFloat(GCA *gca, MRI *mri, TRANSFORM *transform,
                                 float *pxv, float *pyv, float *pzv) ;
 int GCArenormalizeFromAtlas(GCA *gca, GCA *gca_template) ;
 GC1D *GCAfindGC(GCA *gca, int x, int y, int z,int label) ;
-double GCAlabelVar(GCA *gca, int label) ;
+GC1D *GCAfindSourceGC(GCA *gca, MRI *mri, TRANSFORM *transform, int x, int y, int z, int label) ;
+int GCAlabelExists(GCA *gca, MRI *mri, TRANSFORM *transform, int x, int y, int z, int label) ;
+
+VECTOR *load_mean_vector(GC1D *gc, VECTOR *v_means, int ninputs) ;
+MATRIX *load_covariance_matrix(GC1D *gc, MATRIX *m_cov, int ninputs) ;
+MATRIX *load_inverse_covariance_matrix(GC1D *gc, MATRIX *m_cov, int ninputs) ;
+double covariance_determinant(GC1D *gc, int ninputs) ;
+void load_vals(MRI *mri_inputs, float x, float y, float z, float *vals, int ninputs) ;
+double GCAcomputePosteriorDensity(GCA_PRIOR *gcap, GCA_NODE *gcan, int n, float *vals, int ninputs) ;
+double GCAcomputeConditionalDensity(GC1D *gc, float *vals, int ninputs, int label) ;
+double GCAmahDistIdentityCovariance(GC1D *gc, float *vals, int ninputs) ;
+double GCAmahDist(GC1D *gc, float *vals, int ninputs) ;
+int    GCAfreeSamples(GCA_SAMPLE **pgcas, int nsamples) ;
+double GCAsampleMahDist(GCA_SAMPLE *gcas, float *vals, int ninputs) ;
+int GCAnormalizePD(GCA *gca, MRI *mri_inputs, TRANSFORM *transform) ;
+GCA *GCAcreateFlashGCAfromParameterGCA(GCA *gca_parms, double *TR, double *fa, double *TE, int nflash);
+GCA *GCAcreateFlashGCAfromFlashGCA(GCA *gca_parms, double *TR, double *fa, double *TE, int nflash);
+int GCAfixSingularCovarianceMatrices(GCA *gca) ;
+int GCAregularizeCovariance(GCA *gca, float regularize) ;
+int GCAnormalizeMeans(GCA *gca, float target) ;
+double GCAcomputeConditionalLogDensity(GC1D *gc, float *vals, int ninputs, int label) ;
 
 
-#define MIN_PRIOR  0.5
+
 
 extern int Ggca_x, Ggca_y, Ggca_z, Ggca_label ;
 

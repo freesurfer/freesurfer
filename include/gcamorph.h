@@ -25,8 +25,7 @@ typedef struct
   int    label ;
   int    n ;          /* index in gcan structure */
   float  prior ;
-  float  std ;
-  float  mean ;
+	GC1D   *gc ;
   float  log_p ;         /* current log probability of this sample */
   float  dx, dy, dz;     /* current gradient */
   float  odx, ody, odz ; /* previous gradient */
@@ -73,6 +72,10 @@ typedef struct
   double sigma ;
 	int    navgs ;
 	double label_dist ;
+	int    noneg ;
+	double ratio_thresh ;
+	int    integration_type ;
+	int    nsmall ;
 } GCA_MORPH_PARMS, GMP ;
 
 GCA_MORPH *GCAMalloc(int width, int height, int depth) ;
@@ -99,6 +102,7 @@ int       GCAMcopyNodePositions(GCA_MORPH *gcam, int from, int to) ;
 
 #define GCAM_IGNORE_LIKELIHOOD 0x0001
 #define GCAM_USE_LIKELIHOOD    0x0000
+#define GCAM_LABEL_NODE        0x0002
 
 int GCAMsetLabelStatus(GCA_MORPH *gcam, int label, int status) ;
 int GCAMsetStatus(GCA_MORPH *gcam, int status) ;
@@ -107,5 +111,10 @@ int GCAMsetStatus(GCA_MORPH *gcam, int status) ;
 #define ORIG_POSITIONS      ORIGINAL_POSITIONS
 #define SAVED_POSITIONS     1
 #define CURRENT_POSITIONS   2
+
+#define GCAM_INTEGRATE_OPTIMAL 0
+#define GCAM_INTEGRATE_FIXED   1
+#define GCAM_INTEGRATE_BOTH    2
+
 
 #endif

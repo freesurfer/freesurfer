@@ -63,6 +63,7 @@ int      LTAtoVoxelCoords(LTA *lta, MRI *mri) ;
 #define MATLAB_ASCII_TYPE       13
 #define LINEAR_CORONAL_RAS_TO_CORONAL_RAS       21
 #define LINEAR_COR_TO_COR       LINEAR_CORONAL_RAS_TO_CORONAL_RAS
+#define REGISTER_DAT            14
 
 int      TransformFileNameType(char *fname) ;
 int      LTAvoxelToRasXform(LTA *lta, MRI *mri_src, MRI *mri_dst) ;
