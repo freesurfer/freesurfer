@@ -1,7 +1,8 @@
 /*
  *       FILE NAME:   mriclass.c
  *
- *       DESCRIPTION: utilities for MRI classification
+ *       DESCRIPTION: utilities for MRI classification using
+ *                    a variety of classifiers
  *
  *       AUTHOR:      Bruce Fischl
  *       DATE:        1/8/97
@@ -22,25 +23,29 @@
 #include "mri.h"
 #include "macros.h"
 #include "diag.h"
+#include "backprop.h"
+#include "artmap.h"
+#include "gclass.h"
 #include "mriclass.h"
-#include "matrix.h"
 
 /*-----------------------------------------------------
                     MACROS AND CONSTANTS
 -------------------------------------------------------*/
 
+#define GAUSSIAN_NCLASSES    4
+#define BACKGROUND           0
+#define GREY_MATTER          1
+#define WHITE_MATTER         2
+#define BRIGHT_MATTER        3
+#define LO_LIM               70
+#define HI_LIM               150
 
-#define NCLASSES      4
-#define BACKGROUND    0
-#define GREY_MATTER   1
-#define WHITE_MATTER  2
-#define BRIGHT_MATTER 3
+#define MAX_INPUTS           4
 
 /*-----------------------------------------------------
                     STATIC DATA
 -------------------------------------------------------*/
-
-static char *class_names[NCLASSES] =
+static char *gaussian_class_names[GAUSSIAN_NCLASSES] =
 {
   "BACKGROUND",
   "GREY MATTER",
@@ -56,124 +61,25 @@ static char *class_names[NCLASSES] =
 /*-----------------------------------------------------
                     GLOBAL FUNCTIONS
 -------------------------------------------------------*/
-int     MRIclassUpdate(MRIC *mric, MRI *mri_src,MRI *mri_norm,MRI *mri_target);
-int     MRIclassFinish(MRIC *mric) ;
-/*-----------------------------------------------------
-        Parameters:
-
-        Returns value:
-
-        Description
-          Allocate an MRI structure, spacing the classifiers every
-          scale pixels, with scale/2 at the left margin.
-
-------------------------------------------------------*/
-MRIC *
-MRIclassAlloc(MRI *mri_template, int scale, int nvars)
-{
-  MRIC *mric ;
-  int  x, y, z, width, height, depth ;
-  Real xw, yw, zw ;
-
-  width = mri_template->width ;
-  height = mri_template->height ;
-  depth = mri_template->depth ;
-  mric = (MRIC *)calloc(1, sizeof(MRIC)) ;
-  if (!mric)
-    ErrorReturn(NULL, 
-                (ERROR_NO_MEMORY, "MRIclassAlloc: could not alloc struct")) ;
-
-  MRIvoxelToWorld(mri_template, 0, 0, 0, &xw, &yw, &zw) ;
-  mric->xstart = xw ;
-  mric->ystart = yw ;
-  mric->zstart = zw ;
-  mric->swidth = width ;
-  mric->sheight = height ;
-  mric->sdepth = depth ;
-
-  width = nint((float)(width - scale/2) / (float)scale + 0.99f) ;
-  height = nint((float)(height - scale/2) / (float)scale + 0.99f) ;
-  depth = nint((float)(depth - scale/2) / (float)scale + 0.99f) ;
-        
-  mric->scale = scale ;
-  mric->width = width ;
-  mric->height = height ;
-  mric->depth = depth ;
-  mric->nvars = nvars ;
-
-  mric->gcs = (GCLASSIFY ****)calloc(height, sizeof(GCLASSIFY ***)) ;
-  if (!mric->gcs)
-    ErrorExit(ERROR_NO_MEMORY, "MRIclassAlloc: could not allocate gcs") ;
-
-  for (z = 0 ; z < depth ; z++)
-  {
-    mric->gcs[z] = (GCLASSIFY ***)calloc(height, sizeof(GCLASSIFY **)) ;
-    if (!mric->gcs[z])
-      ErrorExit(ERROR_NO_MEMORY, 
-                "MRIclassAlloc: could not allocate gcs[%d]", z) ;
-
-    for (y = 0 ; y < height ; y++)
-    {
-      mric->gcs[z][y] = (GCLASSIFY **)calloc(width, sizeof(GCLASSIFY *)) ;
-      if (!mric->gcs[z][y])
-        ErrorExit(ERROR_NO_MEMORY,
-                  "GCalloc(%d,%d,%d,%d): could not allocate gc[%d][%d]",
-                  width, height, depth, scale, y, z) ;
-
-      for (x = 0 ; x < width ; x++)
-      {
-        mric->gcs[z][y][x] = GCalloc(NCLASSES, nvars, class_names) ;
-        if (!mric->gcs[z][y][x])
-          ErrorExit(ERROR_NO_MEMORY,
-                    "GCalloc(%d,%d,%d,%d): could not allocate gc[%d][%d][%d]",
-                    width, height, depth, scale, x, y, z) ;
-
-      }
-    }
-  }
-
-  return(mric) ;
-}
-/*-----------------------------------------------------
-        Parameters:
-
-        Returns value:
-
-        Description
-
-------------------------------------------------------*/
 int
-MRIclassFree(MRIC **pmric)
+MRICfree(MRIC **pmric)
 {
   MRIC  *mric ;
-  int  x, y, z ;
 
   mric = *pmric ;
   *pmric = NULL ;
-
-
-  for (z = 0 ; z < mric->depth ; z++)
+  if (mric)
   {
-    if (mric->gcs[z])
+    switch (mric->type)
     {
-      for (y = 0 ; y < mric->height ; y++)
-      {
-        if (mric->gcs[z][y])
-        {
-          for (x = 0 ; x < mric->width ; x++)
-          {
-            if (mric->gcs[z][y][x])
-              GCfree(&mric->gcs[z][y][x]) ;
-          }
-          free(mric->gcs[z][y]) ;
-        }
-      }
-      free(mric->gcs[z]) ;
+    case CLASSIFIER_GAUSSIAN:
+      GCfree(&mric->gc) ;
+      break ;
+    default:
+      break ;
     }
+    free(mric) ;
   }
-
-  free(mric->gcs) ;
-  free(mric) ;
   return(NO_ERROR) ;
 }
 /*-----------------------------------------------------
@@ -182,26 +88,64 @@ MRIclassFree(MRIC **pmric)
         Returns value:
 
         Description
-          Do iterative training of a classifier. First go through each
-          training pair and compute the means for the inputs, then
-          go through again and compute the covariance matrices.
-
 ------------------------------------------------------*/
 MRIC *
-MRIclassTrainAll(MRIC *mric, char *training_file_name, int scale, int ninputs)
+MRICalloc(int type, int ninputs, void *parms)
+{
+  MRIC  *mric ;
+
+  if (ninputs < 1 || ninputs > MAX_INPUTS)
+    ErrorReturn(NULL, (ERROR_BADPARM,
+                       "MRICalloc(%d, %d): bad # of inputs", type, ninputs)) ;
+
+  mric = (MRIC *)calloc(1, sizeof(MRIC)) ;
+  if (!mric)
+    ErrorExit(ERROR_NO_MEMORY, "MRICalloc(%d, %d): could not allocate struct",
+              type, ninputs) ;
+
+  mric->type = type ;
+  mric->ninputs = ninputs ;
+  switch (type)
+  {
+  case CLASSIFIER_GAUSSIAN:
+    mric->gc = GCalloc(GAUSSIAN_NCLASSES, ninputs, gaussian_class_names);
+    if (!mric->gc)
+    {
+      free(mric) ;
+      return(NULL) ;
+    }
+    break ;
+  default:
+    MRICfree(&mric) ;
+    ErrorReturn(NULL, 
+                (ERROR_UNSUPPORTED, "MRICalloc: classifier %d not supported",
+                 type)) ;
+    break ;
+  }
+  return(mric) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
+int
+MRICtrain(MRIC *mric, char *file_name)
 {
   char  source_fname[100], target_fname[100], line[300], *cp ;
   FILE  *fp ;
   int   fno, nfiles ;
-  MRI   *mri_src, *mri_target, *mri_std, *mri_zscore, *mri_mean, *mris[10] ;
+  MRI   *mri_src, *mri_target ;
+  BOX   bounding_box ;
 
   /* first figure out the total # of files */
-  fp = fopen(training_file_name, "r") ;
+  fp = fopen(file_name, "r") ;
   if (!fp)
-    ErrorReturn(NULL, 
-                (ERROR_NO_FILE,
-                 "MRIclassTrainAll(%s): could not open file",
-                 training_file_name)) ;
+    ErrorReturn(ERROR_NO_FILE, 
+                (ERROR_NO_FILE, "MRICtrain(%s): could not open file",
+                 file_name)) ;
 
   nfiles = 0 ;
   while ((cp = fgetl(line, 299, fp)) != NULL)
@@ -223,37 +167,24 @@ MRIclassTrainAll(MRIC *mric, char *training_file_name, int scale, int ninputs)
       continue ;
     }
 
-    if (!fno && !mric)   /* allocate the MRIC */
-      mric = MRIclassAlloc(mri_src, scale, ninputs) ;
-
-    mri_mean = MRImean(mri_src, NULL, 3) ;
-    mri_std = MRIstd(mri_src, NULL, mri_mean, 3) ;
-    mri_zscore = MRInorm(mri_src, NULL, mri_mean, mri_std) ;
-
-    mris[0] = mri_src ;
-    mris[1] = mri_zscore ;
-
-    MRIfree(&mri_mean) ;
-    MRIfree(&mri_std) ;
-
     mri_target = MRIread(target_fname) ;
     if (!mri_target)
     {
       fprintf(stderr, "could not read MR image %s\n", target_fname) ;
       MRIfree(&mri_src) ;
-      MRIfree(&mri_zscore) ;
       continue ;
     }
 
-    MRIclassUpdateMeans(mric, mris, mri_target, 2) ;
+    MRIboundingBox(mri_target, 1, &bounding_box) ;
+    BoxExpand(&bounding_box, &bounding_box, 10, 10, 10) ;
+    MRICupdateMeans(mric, mri_src, mri_target, &bounding_box) ;
 
     MRIfree(&mri_src) ;
     MRIfree(&mri_target) ;
-    MRIfree(&mri_zscore) ;
     fno++ ;
   }
 
-  MRIclassComputeMeans(mric) ;  /* divide by # of observations */
+  MRICcomputeMeans(mric) ;  /* divide by # of observations */
   rewind(fp) ;
 
   /* now calculate covariances */
@@ -270,34 +201,80 @@ MRIclassTrainAll(MRIC *mric, char *training_file_name, int scale, int ninputs)
       continue ;
     }
 
-    mri_mean = MRImean(mri_src, NULL, 3) ;
-    mri_std = MRIstd(mri_src, NULL, mri_mean, 3) ;
-    mri_zscore = MRInorm(mri_src, NULL, mri_mean, mri_std) ;
-    mris[0] = mri_src ;
-    mris[1] = mri_zscore ;
-    MRIfree(&mri_mean) ;
-    MRIfree(&mri_std) ;
-
     mri_target = MRIread(target_fname) ;
     if (!mri_target)
     {
       fprintf(stderr, "could not read MR image %s\n", target_fname) ;
-      MRIfree(&mri_zscore) ;
       MRIfree(&mri_src) ;
       continue ;
     }
 
-    MRIclassUpdateCovariances(mric, mris, mri_target, 2) ;
+    MRIboundingBox(mri_target, 1, &bounding_box) ;
+    BoxExpand(&bounding_box, &bounding_box, 10, 10, 10) ;
+    MRICupdateCovariances(mric, mri_src, mri_target, &bounding_box) ;
 
     MRIfree(&mri_src) ;
     MRIfree(&mri_target) ;
-    MRIfree(&mri_zscore) ;
     fno++ ;
   }
 
-  MRIclassComputeCovariances(mric) ;
+  MRICcomputeCovariances(mric) ;
 
   fclose(fp) ;
+  return(NO_ERROR) ;
+}
+#if 0
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
+int
+MRICclassify(MRIC *mric, MRI *mri_src, float *pprob)
+{
+  return(NO_ERROR) ;
+}
+#endif
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
+MRIC *
+MRICread(char *fname)
+{
+  MRIC  *mric ;
+  int   ninputs, type ;
+  FILE  *fp ;
+
+  fp = fopen(fname, "r") ;
+  if (!fp)
+    ErrorReturn(NULL, 
+                (ERROR_NO_FILE,"MRICread(%s): could not open file", fname));
+
+  if (fscanf(fp, "%d %d\n", &type, &ninputs) != 2)
+  {
+    fclose(fp) ;
+    ErrorReturn(NULL, (ERROR_BADFILE, "MRICread(%s): could not scan parms",
+                fname)) ;
+  }
+
+  mric = MRICalloc(type, ninputs, NULL) ;
+  switch (type)
+  {
+  case CLASSIFIER_GAUSSIAN:
+    GCasciiReadFrom(fp, mric->gc) ;
+    break ;
+  default:
+    break ;
+  }
+
+  fclose(fp) ;
+
   return(mric) ;
 }
 /*-----------------------------------------------------
@@ -306,168 +283,28 @@ MRIclassTrainAll(MRIC *mric, char *training_file_name, int scale, int ninputs)
         Returns value:
 
         Description
-          Do iterative training of a classifier. First go through
-
-          allow each classifier to be trained on a part of 
-          the space that it's neighbor is responsible (i.e. 
-          use overlapping training regions). The overlap is
-          defined to be MAX(1, scale/4) on each side of the
-          region.
 ------------------------------------------------------*/
 int
-MRIclassUpdate(MRIC *mric, MRI *mri_src,MRI *mri_norm,MRI *mri_target)
+MRICwrite(MRIC *mric, char *fname)
 {
-  return(NO_ERROR) ;
-}
-/*-----------------------------------------------------
-        Parameters:
+  FILE  *fp ;
 
-        Returns value:
+  fp = fopen(fname, "wb") ;
+  if (!fp)
+    ErrorReturn(ERROR_NO_FILE, 
+              (ERROR_NO_FILE,"MRICwrite(%s): could not open file",fname));
 
-        Description
-          allow each classifier to be trained on a part of 
-          the space that it's neighbor is responsible (i.e. 
-          use overlapping training regions). The overlap is
-          defined to be MAX(1, scale/4) on each side of the
-          region.
-------------------------------------------------------*/
-int     
-MRIclassFinish(MRIC *mric)
-{
-  return(NO_ERROR) ;
-}
-/*-----------------------------------------------------
-        Parameters:
-
-        Returns value:
-
-        Description
-          allow each classifier to be trained on a part of 
-          the space that it's neighbor is responsible (i.e. 
-          use overlapping training regions). The overlap is
-          defined to be MAX(1, scale/4) on each side of the
-          region.
-------------------------------------------------------*/
-#define LO_LIM  60
-#define HI_LIM  150
-
-int
-MRIclassTrain(MRIC *mric, MRI *mri_src, MRI *mri_zscore, MRI *mri_target)
-{
-  MATRIX     *m_inputs[NCLASSES] ;
-  GCLASSIFY  *gc, **pgc ;
-  int        x, y, z, x0, y0, z0, x1, y1, z1, xm, ym, zm, xv, yv, zv,
-             width, depth, height, scale, classno, nclasses, nobs[NCLASSES],
-             swidth, sheight, sdepth, overlap, ninputs ;
-  BUFTYPE    src, target ;
-  Real       xrv, yrv, zrv, xt, yt, zt ;
-
-  scale = mric->scale ;
-  overlap = MAX(1, scale/4) ;
-  ninputs = scale +2*overlap+1 ;
-  ninputs = ninputs * ninputs * ninputs ;
-  for (classno = 0 ; classno < NCLASSES ; classno++)
-    m_inputs[classno] = MatrixAlloc(ninputs,mric->nvars,MATRIX_REAL);
-
-  width = mric->width ;
-  height = mric->height ;
-  depth = mric->depth ;
-  nclasses = NCLASSES ;
-
-  swidth = mri_src->width ;
-  sheight = mri_src->height ;
-  sdepth = mri_src->depth ;
-
-/*
-   the classifiers are distributed in Talairach space, whereas the
-   input MR images are not (necessarily). Therefore we have to
-   transform the voxel coordinates into Tal. space before selecting
-   the training values.
-
-   train each classifier, x,y,z are in classifier space, xm, ym, and
-   zm are pixel coordinates in Talairach space
-*/
-  for (z = 0 ; z < depth ; z++)
+  fprintf(fp, "%d %d\n", mric->type, mric->ninputs) ;
+  switch (mric->type)
   {
-    z0 = MAX(0,z*scale - overlap) ;
-    z1 = MIN(sdepth-1,(z+1)*scale+overlap) ;
-    for (y = 0 ; y < height ; y++)
-    {
-      y0 = MAX(0,y*scale-overlap) ;
-      y1 = MIN(sheight-1,(y+1)*scale+overlap) ;
-      pgc = mric->gcs[z][y] ;
-      for (x = 0 ; x < width ; x++)
-      {
-        gc = *pgc++ ;
-        x0 = MAX(0,x*scale-overlap);
-        x1 = MIN(swidth-1,(x+1)*scale+overlap) ;
-        
-        memset(nobs, 0, NCLASSES*sizeof(nobs[0])) ;
-        for (zm = z0 ; zm <= z1 ; zm++)
-        {
-          for (ym = y0 ; ym <= y1 ; ym++)
-          {
-            for (xm = x0 ; xm <= x1 ; xm++)
-            {
-              /* convert to Talairach coords, then to voxel coords of src */
-              /* convert from natural axes of coronal slices  Talairach axes */
-              xt = (Real)xm + mric->xstart ;   /* voxel to world */
-              yt = (Real)zm + mric->ystart ; 
-              zt = (Real)-ym + mric->zstart ; 
-              MRItalairachToVoxel(mri_src, xt, yt, zt, &xrv, &yrv, &zrv) ;
-              xv = nint(xrv) ;
-              yv = nint(yrv) ;
-              zv = nint(zrv) ;
-              if (xv < 0 || xv >= swidth ||
-                  yv < 0 || yv >= sheight ||
-                  zv < 0 || zv >= sdepth)
-                continue ;
-                                       
-              src = MRIvox(mri_src, xv, yv, zv) ;
-              target = MRIvox(mri_target, xv, yv, zv) ;
-              
-              /* decide what class it is */
-              if (target)
-                classno = WHITE_MATTER ;
-              else
-              {
-                if (src < LO_LIM)
-                  classno = BACKGROUND ;
-                else if (src > HI_LIM)
-                  classno = BRIGHT_MATTER ;
-                else
-                  classno = GREY_MATTER ;
-              }
-
-              m_inputs[classno]->rptr[nobs[classno]+1][1] = src ;
-              m_inputs[classno]->rptr[nobs[classno]+1][2] = 
-                MRIFvox(mri_zscore, xv, yv, zv) ;
-              if (mric->nvars > 2)
-              {
-                m_inputs[classno]->rptr[nobs[classno]+1][3] = xt ;
-                m_inputs[classno]->rptr[nobs[classno]+1][4] = yt ;
-                m_inputs[classno]->rptr[nobs[classno]+1][5] = zt ;
-              }
-              nobs[classno]++ ;
-            }
-          }
-        }
-
-        /* now apply training vectors */
-        for (classno = 0 ; classno < nclasses ; classno++)
-        {
-          m_inputs[classno]->rows = nobs[classno] ;
-          GCtrain(gc, classno, m_inputs[classno]) ;
-          m_inputs[classno]->rows = scale*scale*scale ;
-        }
-      }
-    }
+  case CLASSIFIER_GAUSSIAN:
+    GCasciiWriteInto(fp, mric->gc) ;
+    break ;
+  default:
+    break ;
   }
-
-  for (classno = 0 ; classno < NCLASSES ; classno++)
-    MatrixFree(&m_inputs[classno]) ;
-
-  return(ERROR_NONE) ;
+  fclose(fp) ;
+  return(NO_ERROR) ;
 }
 /*-----------------------------------------------------
         Parameters:
@@ -478,18 +315,15 @@ MRIclassTrain(MRIC *mric, MRI *mri_src, MRI *mri_zscore, MRI *mri_target)
 
 ------------------------------------------------------*/
 #define PRETTY_SURE   .90f
-
 MRI *
-MRIclassify(MRIC *mric, MRI *mri_src, MRI *mri_zscore, MRI *mri_dst, 
+MRICclassify(MRIC *mric, MRI *mri_src, MRI *mri_dst, 
             float conf, MRI *mri_probs, MRI *mri_classes)
 {
   MATRIX     *m_inputs ;
   GCLASSIFY  *gc ;
-  int        x, y, z, xc, yc, zc, width, depth, height, scale, classno, 
-             nclasses, swidth, sheight, sdepth ;
+  int        x, y, z, width, depth, height, classno, nclasses, row ;
   BUFTYPE    *psrc, src, *pdst, *pclasses ;
-  float      *pzscore, prob, *pprobs = NULL ;
-  Real       xt, yt, zt, xv, yv, zv ;
+  float      prob, *pprobs = NULL, obs[10] ;
 
   if (conf < 0.0f || conf >= 1.0f)
     conf = PRETTY_SURE ;
@@ -497,32 +331,20 @@ MRIclassify(MRIC *mric, MRI *mri_src, MRI *mri_zscore, MRI *mri_dst,
   if (!mri_dst)
     mri_dst = MRIclone(mri_src, NULL) ;
 
-  m_inputs = MatrixAlloc(mric->nvars, 1, MATRIX_REAL) ;
+  m_inputs = MatrixAlloc(mric->ninputs, 1, MATRIX_REAL) ;
 
-  width = mric->width ;
-  height = mric->height ;
-  depth = mric->depth ;
-  swidth = mri_src->width ;
-  sheight = mri_src->height ;
-  sdepth = mri_src->depth ;
-  scale = mric->scale ;
-  nclasses = NCLASSES ;
+  width = mri_src->width ;
+  height = mri_src->height ;
+  depth = mri_src->depth ;
+  gc = mric->gc ;
+  nclasses = gc->nclasses ;
 
-/* 
-   x, y, and z are in the MR image space. To get the appropriate classifier
-   for each spatial location we must convert to Talairach voxel coords.,
-   then find the classifier assigned to that location in Talairach space.
-   
-   xc, yc, and zc are in classifier space, while xvt, yvt and zvt are
-   in Talairach voxel coords.
-*/
-  for (z = 0 ; z < sdepth ; z++)
+  for (z = 0 ; z < depth ; z++)
   {
-    for (y = 0 ; y < sheight ; y++)
+    for (y = 0 ; y < height ; y++)
     {
       psrc = &MRIvox(mri_src, 0, y, z) ;
       pdst = &MRIvox(mri_dst, 0, y, z) ;
-      pzscore = &MRIFvox(mri_zscore, 0, y, z) ;
       if (mri_probs)
         pprobs = &MRIFvox(mri_probs, 0, y, z) ;
       else
@@ -531,43 +353,12 @@ MRIclassify(MRIC *mric, MRI *mri_src, MRI *mri_zscore, MRI *mri_dst,
         pclasses = &MRIvox(mri_classes, 0, y, z) ;
       else
         pclasses = NULL ;
-      for (x = 0 ; x < swidth ; x++)
+      for (x = 0 ; x < width ; x++)
       {
-
-        /* find the appropriate classifier for this location */
-        MRIvoxelToTalairach(mri_src, (Real)x, (Real)y, (Real)z, &xt, &yt, &zt);
-
-        /* convert from Talairach axes to natural axes of coronal slice data */
-        xv = (xt - (Real)mric->xstart) ;
-        zv = (yt - (Real)mric->ystart) ;
-        yv = (-zt + (Real)mric->zstart);
-        xc = nint(((xv) - scale/2) / scale) ;
-        if (xc < 0)
-          xc = 0 ;
-        else if (xc >= width)
-          xc = width - 1 ;
-        yc = nint(((yv) - scale/2) / scale) ;
-        if (yc < 0)
-          yc = 0 ;
-        else if (yc >= height)
-          yc = height-1 ;
-        zc = nint(((zv) - scale/2) / scale) ;
-        if (zc < 0)
-          zc = 0 ;
-        else if (zc >= depth)
-          zc = depth-1 ;
-        gc = mric->gcs[zc][yc][xc] ;
         src = *psrc++ ;
-if (x == 110 && y == 31 && z == 52)
-  DiagBreak() ;
-        m_inputs->rptr[1][1] = src ;
-        m_inputs->rptr[2][1] = *pzscore++ ;
-        if (mric->nvars > 2)
-        {
-          m_inputs->rptr[3][1] = xt ;
-          m_inputs->rptr[4][1] = yt ;
-          m_inputs->rptr[5][1] = zt ;
-        }
+        MRICcomputeInputs(mri_src, (float)src, x, y, z, obs, mric->ninputs) ;
+        for (row = 1 ; row <= mric->ninputs ; row++)
+          m_inputs->rptr[row][1] = obs[row] ;
         
         /* now classify this observation */
         classno = GCclassify(gc, m_inputs, &prob) ;
@@ -597,285 +388,20 @@ if (x == 110 && y == 31 && z == 52)
 
 ------------------------------------------------------*/
 int
-MRIclassToVoxel(MRIC *mric, int xc, int yc, int zc,
-                int *pxv, int *pyv, int *pzv)
-{
-  int scale ;
-
-  scale = mric->scale ;
-  *pxv = xc*scale + scale/2 ;
-  *pyv = yc*scale + scale/2 ;
-  *pzv = zc*scale + scale/2 ;
-  return(NO_ERROR) ;
-}
-/*-----------------------------------------------------
-        Parameters:
-
-        Returns value:
-
-        Description
-
-------------------------------------------------------*/
-int
-MRIvoxelToClass(MRIC *mric, int xv, int yv, int zv,
-                int *pxc, int *pyc, int *pzc)
-{
-  int scale ;
-
-  scale = mric->scale ;
-  *pxc = nint((float)(xv - scale/2) / (float)scale + .99f) ;
-  *pyc = nint((float)(yv - scale/2) / (float)scale + .99f) ;
-  *pzc = nint((float)(zv - scale/2) / (float)scale + .99f) ;
-  return(NO_ERROR) ;
-}
-/*-----------------------------------------------------
-        Parameters:
-
-        Returns value:
-
-        Description
-
-------------------------------------------------------*/
-int
-MRIclassSetTransform(MRIC *mric, Transform *transform, 
-                     Transform *inverse_transform)
-{
-  mric->transform = transform ;
-  mric->inverse_transform = inverse_transform ;
-  return(NO_ERROR) ;
-}
-/*-----------------------------------------------------
-        Parameters:
-
-        Returns value:
-
-        Description
-
-------------------------------------------------------*/
-MRIC *
-MRIclassRead(char *fname)
-{
-  MRIC  *mric ;
-  FILE  *fp ;
-  int   width, height, depth, nvars, scale, x, y, z ;
-  MRI   mri ;
-
-  fp = fopen(fname, "r") ;
-  if (!fp)
-    ErrorReturn(NULL, 
-                (ERROR_NO_FILE,"MRIclassRead(%s): could not open file",fname));
-
-  if (fscanf(fp, "%d %d %d %d %d %d %d %d %f %f %f\n", 
-             &scale, &width, &height, &depth, &mri.width, &mri.height, 
-             &mri.depth, &nvars, &mri.xstart, &mri.ystart, &mri.zstart) != 11)
-  {
-    fclose(fp) ;
-    ErrorReturn(NULL, 
-                (ERROR_BADFILE, 
-                 "MRIclassRead(%s): could scanf parms from file",fname));
-  }
-
-  mri.slice_direction = MRI_CORONAL ;
-  mri.xsize = mri.ysize = mri.zsize = 1 ;
-  mric = MRIclassAlloc(&mri, scale, nvars) ;
-  if (!mric)
-  {
-    fclose(fp) ;
-    ErrorReturn(NULL,
-                (ERROR_BADPARM, "MRIclassRead(%s): mric allocation failed",
-                 fname)) ;
-  }
-  mric->xstart = mri.xstart ;  /* a hack, I know, but what the hell... */
-  mric->ystart = mri.ystart ;
-  mric->zstart = mri.zstart ;
-
-  for (z = 0 ; z < mric->depth ; z++)
-  {
-    for (y = 0 ; y < mric->height ; y++)
-    {
-      for (x = 0 ; x < mric->width ; x++)
-      {
-        GCasciiReadFrom(fp, mric->gcs[z][y][x]) ;
-      }
-    }
-  }
-  fclose(fp) ;
-  return(mric) ;
-}
-/*-----------------------------------------------------
-        Parameters:
-
-        Returns value:
-
-        Description
-
-------------------------------------------------------*/
-int
-MRIclassWrite(MRIC *mric, char *fname)
-{
-  FILE  *fp ;
-  int   x, y, z ;
-
-  fp = fopen(fname, "wb") ;
-  if (!fp)
-    ErrorReturn(ERROR_NO_FILE, 
-              (ERROR_NO_FILE,"MRIclassWrite(%s): could not open file",fname));
-
-  fprintf(fp, "%d %d %d %d %d %d %d %d %2.3f %2.3f %2.3f\n",
-          mric->scale,
-          mric->width,
-          mric->height,
-          mric->depth,
-          mric->swidth,
-          mric->sheight,
-          mric->sdepth,
-          mric->nvars,
-          mric->xstart,
-          mric->ystart,
-          mric->zstart) ;
-
-  for (z = 0 ; z < mric->depth ; z++)
-  {
-    for (y = 0 ; y < mric->height ; y++)
-    {
-      for (x = 0 ; x < mric->width ; x++)
-      {
-        GCasciiWriteInto(fp, mric->gcs[z][y][x]) ;
-      }
-    }
-  }
-  fclose(fp) ;
-  return(NO_ERROR) ;
-}
-/*-----------------------------------------------------
-        Parameters:
-
-        Returns value:
-
-        Description
-
-------------------------------------------------------*/
-MRI *
-MRIclassThreshold(MRIC *mric, MRI *mri_probs, MRI *mri_classes,
-                  MRI *mri_dst, float threshold)
-{
-  int      x, y, z, width, height, depth, class ;
-  float    *pprobs, prob ;
-  BUFTYPE  *pclasses, *pdst ;
-
-  if (!mri_dst)
-    mri_dst = MRIclone(mri_classes, NULL) ;
-
-  width = mri_classes->width ;
-  height = mri_classes->height ;
-  depth = mri_classes->depth ;
-
-  for (z = 0 ; z < depth ; z++)
-  {
-    for (y = 0 ; y < height ; y++)
-    {
-      pprobs = &MRIFvox(mri_probs, 0, y, z) ;
-      pclasses = &MRIvox(mri_classes, 0, y, z) ;
-      pdst = &MRIvox(mri_dst, 0, y, z) ;
-      for (x = 0 ; x < width ; x++)
-      {
-        prob = *pprobs++ ;
-        class = (int)*pclasses++ ;
-        if (prob >= threshold && class == WHITE_MATTER)
-          *pdst++ = 255 ;
-        else if (class == WHITE_MATTER)
-          *pdst++ = 128 ;
-        else
-          *pdst++ = 0 ;
-      }
-    }
-  }
-  return(mri_dst) ;
-}
-/*-----------------------------------------------------
-        Parameters:
-
-        Returns value:
-
-        Description
-
-------------------------------------------------------*/
-GCLASSIFY *
-MRIgetClassifier(MRIC *mric, MRI *mri, int x, int y, int z)
-{
-  GCLASSIFY  *gc ;
-  Real       xt, yt, zt ;
-  int        width, depth, height, scale, xc, yc, zc, xv, yv, zv ;
-
-  width = mric->width ;
-  height = mric->height ;
-  depth = mric->depth ;
-  scale = mric->scale ;
-
-  /* find the appropriate classifier for this location */
-  MRIvoxelToTalairach(mri, (Real)x, (Real)y, (Real)z, &xt, &yt, &zt);
-
-  /* convert from Talairach axes to natural axes of coronal slice data */
-  xv = (xt - (Real)mric->xstart) ;
-  zv = (yt - (Real)mric->ystart) ;
-  yv = (-zt + (Real)mric->zstart);
-  xc = nint(((xv) - scale/2) / scale) ;
-  if (xc < 0)
-    xc = 0 ;
-  else if (xc >= width)
-    xc = width - 1 ;
-  yc = nint(((yv) - scale/2) / scale) ;
-  if (yc < 0)
-    yc = 0 ;
-  else if (yc >= height)
-    yc = height-1 ;
-  zc = nint(((zv) - scale/2) / scale) ;
-  if (zc < 0)
-    zc = 0 ;
-  else if (zc >= depth)
-    zc = depth-1 ;
-  gc = mric->gcs[zc][yc][xc] ;
-#if 1
-fprintf(stderr, 
-        "classifier at (%d, %d, %d) --> (%d, %d, %d) is (%d, %d, %d)\n",
-        xv, yv, zv, (int)xt, (int)yt, (int)zt, xc, yc, zc) ;
-#endif
-
-  return(gc) ;
-}
-/*-----------------------------------------------------
-        Parameters:
-
-        Returns value:
-
-        Description
-          update the means using this set of images
-------------------------------------------------------*/
-int
-MRIclassUpdateMeans(MRIC *mric, MRI *mris[], MRI *mri_target, int nimages)
+MRICupdateMeans(MRIC *mric, MRI *mri_src, MRI *mri_target, BOX *box)
 {
   GCLASSIFY  *gc ;
   GCLASS     *gcl ;
-  int        x, y, z, xc, yc, zc, width, depth, height, scale, classno, 
-             nclasses, swidth, sheight, sdepth, overlap ;
+  int        x, y, z, classno, nclasses, width, height, depth, row ;
   BUFTYPE    *psrc, *ptarget, src, target ;
-  float      *pzscore ;
-  Real       xt, yt, zt, xv, yv, zv ;
-  MRI        *mri_src ;
+  float      obs[10] ;
 
-  mri_src = mris[0] ;
+  nclasses = mric->gc->nclasses ;
+  gc = mric->gc ;
 
-  scale = mric->scale ;
-  overlap = MAX(1, scale/4) ;
-
-  width = mric->width ;
-  height = mric->height ;
-  depth = mric->depth ;
-  nclasses = NCLASSES ;
-
-  swidth = mri_src->width ;
-  sheight = mri_src->height ;
-  sdepth = mri_src->depth ;
+  width = mri_src->width ;
+  height = mri_src->height ;
+  depth = mri_src->depth ;
 
 /*
    the classifiers are distributed in Talairach space, whereas the
@@ -888,39 +414,18 @@ MRIclassUpdateMeans(MRIC *mric, MRI *mris[], MRI *mri_target, int nimages)
    for each point in the image, find the its Talairach coordinates and
    therefore the classifier responsible for it, and update it's mean.
 */
-  for (z = 0 ; z < sdepth ; z++)
+  for (z = box->z0 ; z <= box->z1 ; z++)
   {
-    for (y = 0 ; y < sheight ; y++)
+    for (y = box->y0 ; y <= box->y1 ; y++)
     {
-      psrc = &MRIvox(mris[0], 0, y, z) ;
-      ptarget = &MRIvox(mri_target, 0, y, z) ;
-      pzscore = &MRIFvox(mris[1], 0, y, z) ;
-      for (x = 0 ; x < swidth ; x++)
+      psrc = &MRIvox(mri_src, box->x0, y, z) ;
+      ptarget = &MRIvox(mri_target, box->x0, y, z) ;
+      for (x = box->x0 ; x <= box->x1 ; x++)
       {
-        /* find the appropriate classifier for this location */
-        MRIvoxelToTalairach(mri_src, (Real)x, (Real)y, (Real)z, &xt, &yt, &zt);
-        xv = (xt - (Real)mric->xstart) ;
-        zv = (yt - (Real)mric->ystart) ;
-        yv = (-zt + (Real)mric->zstart);
-        xc = nint(((xv) - scale/2) / scale) ;
-        if (xc < 0)
-          xc = 0 ;
-        else if (xc >= width)
-          xc = width - 1 ;
-        yc = nint(((yv) - scale/2) / scale) ;
-        if (yc < 0)
-          yc = 0 ;
-        else if (yc >= height)
-          yc = height-1 ;
-        zc = nint(((zv) - scale/2) / scale) ;
-        if (zc < 0)
-          zc = 0 ;
-        else if (zc >= depth)
-          zc = depth-1 ;
-
         src = *psrc++ ;
         target = *ptarget++ ;
-              /* decide what class it is */
+        
+        /* decide what class it is */
         if (target)
           classno = WHITE_MATTER ;
         else
@@ -932,23 +437,18 @@ MRIclassUpdateMeans(MRIC *mric, MRI *mris[], MRI *mri_target, int nimages)
           else
             classno = GREY_MATTER ;
         }
-        
-        gc = mric->gcs[zc][yc][xc] ;
+
         gcl = &gc->classes[classno] ;
         gcl->nobs++ ;
-        gcl->m_u->rptr[1][1] += (float)src ;
-        gcl->m_u->rptr[2][1] += *pzscore++ ;
-        if (mric->nvars > 2)
-        {
-          gcl->m_u->rptr[3][1] += (float)xt ;
-          gcl->m_u->rptr[4][1] += (float)yt ;
-          gcl->m_u->rptr[5][1] += (float)zt ;
-        }
+
+        MRICcomputeInputs(mri_src, (float)src, x, y, z, obs, mric->ninputs) ;
+        for (row = 1 ; row <= mric->ninputs ; row++)
+          gcl->m_u->rptr[row][1] += obs[row] ;
       }
     }
   }
 
-  return(ERROR_NONE) ;
+  return(NO_ERROR) ;
 }
 /*-----------------------------------------------------
         Parameters:
@@ -956,34 +456,14 @@ MRIclassUpdateMeans(MRIC *mric, MRI *mris[], MRI *mri_target, int nimages)
         Returns value:
 
         Description
-           update the covariance estimates based on new observations
+
 ------------------------------------------------------*/
 int
-MRIclassUpdateCovariances(MRIC *mric, MRI *mris[],MRI *mri_target,int nimages)
+MRICcomputeMeans(MRIC *mric)
 {
   GCLASSIFY  *gc ;
   GCLASS     *gcl ;
-  int        x, y, z, xc, yc, zc, width, depth, height, scale, classno, 
-             nclasses, swidth, sheight, sdepth, overlap, col, row ;
-  BUFTYPE    *psrc, *ptarget, src, target ;
-  float      *pzscore, obs[6], covariance ;
-  Real       xt, yt, zt, xv, yv, zv ;
-  MRI        *mri_src ;
-
-  mri_src = mris[0] ;
-
-
-  scale = mric->scale ;
-  overlap = MAX(1, scale/4) ;
-
-  width = mric->width ;
-  height = mric->height ;
-  depth = mric->depth ;
-  nclasses = NCLASSES ;
-
-  swidth = mri_src->width ;
-  sheight = mri_src->height ;
-  sdepth = mri_src->depth ;
+  int        classno, nclasses, nobs, row ;
 
 /*
    the classifiers are distributed in Talairach space, whereas the
@@ -991,41 +471,53 @@ MRIclassUpdateCovariances(MRIC *mric, MRI *mris[],MRI *mri_target,int nimages)
    transform the voxel coordinates into Tal. space before selecting
    the training values.
 */
-
-/* 
-   for each point in the image, find the its Talairach coordinates and
-   therefore the classifier responsible for it, and update it's mean.
-*/
-  for (z = 0 ; z < sdepth ; z++)
+  gc = mric->gc ;
+  nclasses = gc->nclasses ;
+  for (classno = 0 ; classno < nclasses ; classno++)
   {
-    for (y = 0 ; y < sheight ; y++)
+    gcl = &gc->classes[classno] ;
+    nobs = gcl->nobs ;
+    if (nobs)
     {
-      psrc = &MRIvox(mris[0], 0, y, z) ;
-      ptarget = &MRIvox(mri_target, 0, y, z) ;
-      pzscore = &MRIFvox(mris[1], 0, y, z) ;
-      for (x = 0 ; x < swidth ; x++)
-      {
-        /* find the appropriate classifier for this location */
-        MRIvoxelToTalairach(mri_src, (Real)x, (Real)y, (Real)z, &xt, &yt, &zt);
-        xv = (xt - (Real)mric->xstart) ;
-        zv = (yt - (Real)mric->ystart) ;
-        yv = (-zt + (Real)mric->zstart);
-        xc = nint(((xv) - scale/2) / scale) ;
-        if (xc < 0)
-          xc = 0 ;
-        else if (xc >= width)
-          xc = width - 1 ;
-        yc = nint(((yv) - scale/2) / scale) ;
-        if (yc < 0)
-          yc = 0 ;
-        else if (yc >= height)
-          yc = height-1 ;
-        zc = nint(((zv) - scale/2) / scale) ;
-        if (zc < 0)
-          zc = 0 ;
-        else if (zc >= depth)
-          zc = depth-1 ;
+      for (row = 1 ; row <= gcl->m_u->rows ; row++)
+        gcl->m_u->rptr[row][1] /= (float)nobs ;
+    }
+  }
+  return(NO_ERROR) ;
+}
+/*-----------------------------------------------------
+        Parameters:
 
+        Returns value:
+
+        Description
+
+------------------------------------------------------*/
+int
+MRICupdateCovariances(MRIC *mric, MRI *mri_src, MRI *mri_target, BOX *box)
+{
+  GCLASSIFY  *gc ;
+  GCLASS     *gcl ;
+  int        x, y, z, width, depth, height, classno, 
+             nclasses, col, row ;
+  BUFTYPE    *psrc, *ptarget, src, target ;
+  float      obs[10], covariance ;
+
+  gc = mric->gc ;
+  nclasses = gc->nclasses ;
+
+  width = mri_src->width ;
+  height = mri_src->height ;
+  depth = mri_src->depth ;
+
+  for (z = box->z0 ; z <= box->z1 ; z++)
+  {
+    for (y = box->y0 ; y <= box->y1 ; y++)
+    {
+      psrc = &MRIvox(mri_src, box->x0, y, z) ;
+      ptarget = &MRIvox(mri_target, box->x0, y, z) ;
+      for (x = box->x0 ; x <= box->x1 ; x++)
+      {
         src = *psrc++ ;
         target = *ptarget++ ;
               /* decide what class it is */
@@ -1040,17 +532,12 @@ MRIclassUpdateCovariances(MRIC *mric, MRI *mris[],MRI *mri_target,int nimages)
           else
             classno = GREY_MATTER ;
         }
-        
-        gc = mric->gcs[zc][yc][xc] ;
+
         gcl = &gc->classes[classno] ;
-        obs[1] = (float)src - gcl->m_u->rptr[1][1] ;
-        obs[2] = *pzscore++ - gcl->m_u->rptr[2][1] ;
-        if (mric->nvars > 2)
-        {
-          obs[3] = (float)xt - gcl->m_u->rptr[3][1] ;
-          obs[4] = (float)yt - gcl->m_u->rptr[4][1] ;
-          obs[5] = (float)zt - gcl->m_u->rptr[5][1] ;
-        }
+
+        MRICcomputeInputs(mri_src, (float)src, x, y, z, obs, mric->ninputs) ;
+        for (row = 1 ; row <= mric->ninputs ; row++)  /* subtract means */
+          obs[row] -= gcl->m_u->rptr[row][1] ;
         for (row = 1 ; row <= gcl->m_covariance->rows ; row++)
         {
           for (col = 1 ; col <= row ; col++)
@@ -1064,116 +551,67 @@ MRIclassUpdateCovariances(MRIC *mric, MRI *mris[],MRI *mri_target,int nimages)
     }
   }
 
-  return(ERROR_NONE) ;
-}
-/*-----------------------------------------------------
-        Parameters:
-
-        Returns value:
-
-        Description
-           compute the means for each class
-------------------------------------------------------*/
-int
-MRIclassComputeMeans(MRIC *mric)
-{
-  GCLASSIFY  *gc, **pgc ;
-  GCLASS     *gcl ;
-  int        x, y, z, width, depth, height, classno, nclasses, nobs, row ;
-
-  width = mric->width ;
-  height = mric->height ;
-  depth = mric->depth ;
-
-/*
-   the classifiers are distributed in Talairach space, whereas the
-   input MR images are not (necessarily). Therefore we have to
-   transform the voxel coordinates into Tal. space before selecting
-   the training values.
-*/
-  /* train each classifier, x,y,z are in classifier space */
-  for (z = 0 ; z < depth ; z++)
-  {
-    for (y = 0 ; y < height ; y++)
-    {
-      pgc = mric->gcs[z][y] ;
-      for (x = 0 ; x < width ; x++)
-      {
-        gc = *pgc++ ;
-        nclasses = gc->nclasses ;
-        for (classno = 0 ; classno < nclasses ; classno++)
-        {
-          gcl = &gc->classes[classno] ;
-          nobs = gcl->nobs ;
-          if (nobs)
-          {
-            for (row = 1 ; row <= gcl->m_u->rows ; row++)
-              gcl->m_u->rptr[row][1] /= (float)nobs ;
-          }
-        }
-      }
-    }
-  }
   return(NO_ERROR) ;
 }
-
 /*-----------------------------------------------------
         Parameters:
 
         Returns value:
 
         Description
-           compute the means for each class
+
 ------------------------------------------------------*/
 int
-MRIclassComputeCovariances(MRIC *mric)
+MRICcomputeCovariances(MRIC *mric)
 {
-  GCLASSIFY  *gc, **pgc ;
+  GCLASSIFY  *gc ;
   GCLASS     *gcl ;
-  int        x, y, z, width, depth, height, classno, nclasses, row,col ;
+  int        classno, nclasses, row,col ;
   float      nobs, covariance ;
 
-  width = mric->width ;
-  height = mric->height ;
-  depth = mric->depth ;
-
-/*
-   the classifiers are distributed in Talairach space, whereas the
-   input MR images are not (necessarily). Therefore we have to
-   transform the voxel coordinates into Tal. space before selecting
-   the training values.
-*/
-  /* train each classifier, x,y,z are in classifier space */
-  for (z = 0 ; z < depth ; z++)
+  gc = mric->gc ;
+  nclasses = gc->nclasses ;
+  for (classno = 0 ; classno < nclasses ; classno++)
   {
-    for (y = 0 ; y < height ; y++)
+    gcl = &gc->classes[classno] ;
+    nobs = (float)(gcl->nobs-1) ;  /* ML estimate of covariance */
+    if (nobs > 0.0f)
     {
-      pgc = mric->gcs[z][y] ;
-      for (x = 0 ; x < width ; x++)
+      for (row = 1 ; row <= gcl->m_covariance->rows ; row++)
       {
-        gc = *pgc++ ;
-        nclasses = gc->nclasses ;
-        for (classno = 0 ; classno < nclasses ; classno++)
+        for (col = 1 ; col <= row ; col++)
         {
-          gcl = &gc->classes[classno] ;
-          nobs = (float)(gcl->nobs-1) ;  /* ML estimate of covariance */
-          if (nobs > 0.0f)
-          {
-            for (row = 1 ; row <= gcl->m_covariance->rows ; row++)
-            {
-              for (col = 1 ; col <= row ; col++)
-              {
-                covariance = gcl->m_covariance->rptr[row][col] / nobs ;
-                gcl->m_covariance->rptr[row][col] = covariance ;
-                gcl->m_covariance->rptr[col][row] = covariance ;
-              }
-            }
-          }
-          GCinit(gc, classno) ;
+          covariance = gcl->m_covariance->rptr[row][col] / nobs ;
+          gcl->m_covariance->rptr[row][col] = covariance ;
+          gcl->m_covariance->rptr[col][row] = covariance ;
         }
       }
     }
+    GCinit(gc, classno) ;
   }
   return(NO_ERROR) ;
 }
+/*-----------------------------------------------------
+        Parameters:
 
+        Returns value:
+
+        Description
+
+------------------------------------------------------*/
+int
+MRICcomputeInputs(MRI *mri,float src, int x,int y,int z,float *obs,int ninputs)
+{
+  int   i ;
+
+  i = 1 ;
+  obs[i++] = src ;
+  if (ninputs > 1)
+    obs[i++] = MRIvoxelZscore(mri, x, y, z, 3) ;
+  if (ninputs > 2)
+    obs[i++] = MRIvoxelZscore(mri, x, y, z, 5) ;
+  if (ninputs > 3)
+    obs[i++] = MRIvoxelDirection(mri, x, y, z, 3) ;
+
+  return(NO_ERROR) ;
+}
