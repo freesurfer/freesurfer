@@ -50,6 +50,8 @@ typedef struct
   /* from register.dat file */
   fMRI_REG  *reg ;
   
+  int       voltype; /* 0 = raw, 1 = selavg, 2 = selxavg */
+
   /* stuff from the .dat file */
   float     tr ;
   float     timewindow ;
@@ -70,7 +72,7 @@ typedef struct
 /* can't include this before structure, as mrisurf.h includes this file. */
 #include "mrisurf.h"
 
-SV        *StatReadVolume(char *prefix) ;
+SV        *StatReadVolume(char *prefix);
 SV        *StatReadTalairachVolume(char *prefix, char *xform_fname,
                                    char *subject_name) ;
 fMRI_REG  *StatReadRegistration(char *fname) ;
