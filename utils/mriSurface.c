@@ -722,8 +722,6 @@ Surf_tErr Surf_SetVertexValue ( mriSurfaceRef   this,
   switch( iValueSet ) {
   case Surf_tValueSet_Val:
     vertex->val = iValue;
-    printf( "vertex %f,%f,%f val set to %f\n", 
-	    vertex->x, vertex->y, vertex->z, iValue );
     break;
   default:
     return Surf_tErr_InvalidParameter;
@@ -1008,55 +1006,6 @@ void Surf_GetClosestVertex ( mriSurfaceRef   this,
 }
 
 
-Trns_tErr Trns_ConvertBRAStoB ( mriTransformRef this,
-           xVoxelRef       iAVoxel,
-           xVoxelRef       oBVoxel ) 
-{
-  MATRIX *tmp;
-
-  Trns_tErr eResult = Trns_tErr_NoErr;
-
-  eResult = Trns_Verify( this );
-  if( Trns_tErr_NoErr != eResult )
-    goto error;
-
-  /* if we don't have our trans matricies, return an error. */
-  if( NULL == this->mBtoRAS ) {
-    eResult = Trns_tErr_TransformationMatrixNotInited;
-    goto error;
-  }
-  // get transform which makes 
-  tmp = MatrixInverse(this->mBtoRAS, NULL);
-  /* set our coord matrix */
-  *MATRIX_RELT(this->mCoord1,1,1) = xVoxl_GetFloatX( iAVoxel );
-  *MATRIX_RELT(this->mCoord1,2,1) = xVoxl_GetFloatY( iAVoxel );
-  *MATRIX_RELT(this->mCoord1,3,1) = xVoxl_GetFloatZ( iAVoxel );
-  *MATRIX_RELT(this->mCoord1,4,1) = 1;
-
-  /* do the transform */
-  MatrixMultiply(tmp, this->mCoord1, this->mCoord2 );
-  MatrixFree(&tmp);
-  /* set the voxel to the matrix */
-  xVoxl_SetFloat( oBVoxel,
-      *MATRIX_RELT(this->mCoord2,1,1), 
-      *MATRIX_RELT(this->mCoord2,2,1), 
-      *MATRIX_RELT(this->mCoord2,3,1) );
-
-  goto cleanup;
-
- error:
-
-  if( Trns_tErr_NoErr != eResult ) {
-    DebugPrint( ("Error %d in Trns_ConvertAtoB: %s\n",
-      eResult, Trns_GetErrorString( eResult ) ) );
-  }
-
- cleanup:
-
-  return eResult;
-}
-
-
 void Surf_ConvertVertexToVoxel ( vertex_type*    iVertex,
 				 Surf_tVertexSet iSet,
 				 mriTransformRef iTransform,
@@ -1100,14 +1049,12 @@ void Surf_ConvertVertexToVoxel ( vertex_type*    iVertex,
 		      iVertex->cz );
 
     /* transform voxel */
-    // Trns_ConvertBtoA( iTransform, &sTmpVertex, oVoxel );
-    // do it by hand
     Trns_ConvertBRAStoB(iTransform, &sTmpVertex, oVoxel);
-    ///////////////////////////////////////////////////////////////////////
+#if 0
     printf("vertex: (%.2f, %.2f, %.2f), localVox: (%.2f, %.2f, %.2f)\n",
 	   sTmpVertex.mfX, sTmpVertex.mfY, sTmpVertex.mfZ,
 	   oVoxel->mfX, oVoxel->mfY, oVoxel->mfZ);
-
+#endif
 
   }
   
