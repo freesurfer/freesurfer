@@ -16,7 +16,7 @@
 #include "oglutil.h"
 #include "label.h"
 
-static char vcid[] = "$Id: mris_show.c,v 1.29 1998/11/16 20:24:49 fischl Exp $";
+static char vcid[] = "$Id: mris_show.c,v 1.30 1998/11/17 20:37:31 fischl Exp $";
 
 
 /*-------------------------------- CONSTANTS -----------------------------*/
@@ -124,8 +124,6 @@ static char title[200] ;
 static double starting_mse = 0.0f ;
 
 static float scale = 1.0f ;
-
-static int ic = 0 ;
 
 static float lighting_offset = 0.25f ;
 static float light = 0.0f ;
