@@ -13,6 +13,11 @@
 #include "evschutils.h"
 
 /* Things to do:
+   1. Automatically compute Ntp such that Null has as much time 
+      as the average of the non-null stimuli, or, automatically
+      compute the number of stimuli based on the nomial values
+      such that, given the Ntp, the Null has as much time at
+      the non-null.
    1. Assume HRF
    2. Temporal Filtering
    3. Higher order PolyFit
@@ -41,7 +46,7 @@ Can something be done to affect the off-diagonals?
   #undef X
 #endif
 
-static char vcid[] = "$Id: optseq2.c,v 1.2 2002/08/22 00:05:45 greve Exp $";
+static char vcid[] = "$Id: optseq2.c,v 1.3 2002/08/27 00:09:32 greve Exp $";
 char *Progname = NULL;
 
 static int  parse_commandline(int argc, char **argv);
@@ -57,6 +62,7 @@ static int  nth_is_arg(int nargc, char **argv, int nth);
 static int  singledash(char *flag);
 static int  stringmatch(char *str1, char *str2);
 static int PrintUpdate(FILE *fp, int n);
+static int CheckIntMult(float val, float res, float tol);
 
 int debug = 0;
 
@@ -67,8 +73,7 @@ float TPreScan = 0.0;
 int   PSDSpeced = 0;
 float PSDMin;
 float PSDMax;
-float dPSD;
-float dPSDfTR; /* dPSD expressed as a fraction of the TR */
+float dPSD = -1;
 float PSDWindow;
 int   nPSDWindow;
 
@@ -120,14 +125,15 @@ int UpdateNow;
 int main(int argc, char **argv)
 {
   EVSCH *EvSch;
-  MATRIX *Xfir=NULL, *Xpoly=NULL, *X=NULL, *XtXIdeal;
+  MATRIX *Xfir=NULL, *Xpoly=NULL, *X=NULL, *Xt=NULL, 
+    *XtX=NULL, *XtXIdeal=NULL;
   int m,n, nthhit=0;
   //float eff, cb1err, vrfavg, vrfstd, vrfmin, vrfmax, vrfrange;
   char fname[2000];
   FILE *fpsum, *fplog;
   struct timeval tod;
   long tNow, tStart;
-  float ftmp=0;
+  float ftmp=0, effxtxideal=0;
   int Singular;
 
   infilelist[0] = NULL;
@@ -159,24 +165,38 @@ int main(int argc, char **argv)
 
   /* To do: Create Temporal Filter Matrix */
 
-  /* Check that the PSDMin and PSDMax are integer mults of dPSD */
-  if( fabs(PSDMax/dPSD - rint(PSDMax/dPSD)) > dPSD/100 ){
-    printf("ERROR: PSDMax is not an integer multiple of dPSD\n");
-    exit(1);
-  }
-  if( fabs(PSDMin/dPSD - rint(PSDMin/dPSD)) > dPSD/100 ){
+  /* Check that PSDMin, PSDMax, and EvDur are integer mults of dPSD */
+  if(! CheckIntMult(PSDMin,dPSD,dPSD/100)){
     printf("ERROR: PSDMin is not an integer multiple of dPSD\n");
     exit(1);
   }
+  if(! CheckIntMult(PSDMax,dPSD,dPSD/100)){
+    printf("ERROR: PSDMax is not an integer multiple of dPSD\n");
+    exit(1);
+  }
+  for(n=0; n < nEvTypes; n++){
+    if(! CheckIntMult(EvDuration[n],dPSD,dPSD/100)){
+      printf("ERROR: Duration of EventType %d (%g sec) is not an integer multiple "
+	     "of the dPSD (%g sec)\n",n+1,EvDuration[n],dPSD);
+      exit(1);
+    }
+  }
+
+  /* Check DOF constraint */
   PSDWindow = PSDMax-PSDMin;
   nPSDWindow = rint(PSDWindow/dPSD);
   nTaskAvgs = nPSDWindow*nEvTypes; /* for FIR only */
   printf("nTaskAvgs = %d\n",nTaskAvgs);
-
-
-  XtXIdeal = EVSfirXtXIdeal(nEvTypes, EvRepsNom, EvDuration, TR, Ntp,
-			    PSDMin, PSDMax, dPSD);
-  //MatlabWrite(XtXIdeal,"xtxideal.mat","xtxideal");
+  if(nTaskAvgs >= Ntp){
+    printf("\nERROR: DOF Constraint Violation: number of estimates (%d)\n"
+	   "  is greater than or equal to the number of time points (%d).\n",
+	   nTaskAvgs,Ntp);
+    printf("  To fix: (1) increase the number of time points to %d, or\n" 
+	   "  (2) decrease the number of event types, or, (3) reduce \n"
+	   "  the size of the PSD window, or (4) increase the dPSD.\n\n",
+	   nTaskAvgs+1);
+    exit(1);
+  }
 
   /* Alloc the event list and load inputs */
   EvSchList = (EVSCH **) calloc(sizeof(EVSCH*),nKeep);
@@ -194,11 +214,10 @@ int main(int argc, char **argv)
       //printf("%g %g %g %g %g %g %g\n",stats[0],EvSchList[n]->cb1err,
       //     stats[1],stats[2], stats[3],stats[4],stats[5]);
     }
-    EvSchSort(EvSchList,nInFiles);
+    EVSsort(EvSchList,nInFiles);
   }
 
   if(NoSearch) goto PastSearch;
-
 
   /* Check that the scan time is sufficient based on max possible */
   TScanTot = Ntp*TR + TPreScan;
@@ -206,13 +225,24 @@ int main(int argc, char **argv)
   for(n=0; n < nEvTypes; n++)
     TStimTot += ( (1.0+PctVarEvReps/100)*EvRepsNom[n] * EvDuration[n]);
   if(TStimTot >= TScanTot){
-    printf("ERROR: the total amount of stimulation time (%g sec) exceeds\n"
-	   "the total amount of scanning time (%g sec).\n",TStimTot,TScanTot);
+    printf("ERROR: Time Constraint Violation: the total amount of  \n"
+	   " stimulation time (%g sec) equals or exceeds the total amount \n"
+	   " of scanning time (%g sec).\n",
+	   TStimTot,TScanTot);
     exit(1);
   }
   for(n=0; n < nEvTypes; n++) EvReps[n] = EvRepsNom[n];
 
   /* Need to warn if scan time is close to insufficient */
+
+  /* Compute the Ideal XtX for the Nominal Ev Reps */
+  XtXIdeal = EVSfirXtXIdeal(nEvTypes, EvRepsNom, EvDuration, TR, Ntp,
+			    PSDMin, PSDMax, dPSD);
+  if(outstem != NULL){
+    sprintf(fname,"%s.xtxideal.mat",outstem);
+    MatlabWrite(XtXIdeal,fname,"xtxideal");
+  }
+  effxtxideal = 1.0/MatrixTrace(MatrixInverse(XtXIdeal,NULL)); /* need dealloc */
 
   /* --------- Prep for Search --------------*/
   nthhit = 0;
@@ -263,6 +293,9 @@ int main(int argc, char **argv)
 	if(VarEvRepsPerCond) ftmp = 1.0+2*(drand48()-0.5)*PctVarEvReps/100;
 	EvReps[m] = (int)nint(ftmp*EvRepsNom[m]);
       }
+      MatrixFree(&XtXIdeal);
+      XtXIdeal = EVSfirXtXIdeal(nEvTypes, EvReps, EvDuration, 
+				TR, Ntp, PSDMin, PSDMax, dPSD);
     }
 
     /* Synthesize a Sequence and Schedule */
@@ -272,6 +305,19 @@ int main(int argc, char **argv)
 
     /* Construct the FIR Design Matrix */
     Xfir = EVSfirMtxAll(EvSch, 0, TR, Ntp, PSDMin, PSDMax, dPSD);
+
+    /* Compute XtXIdeal Error */
+    Xt = MatrixTranspose(Xfir,Xt);
+    XtX = MatrixMultiply(Xt,Xfir,XtX);
+
+    EvSch->idealxtxerr = 0;
+    for(m=1; m <= Xfir->cols; m++){
+      for(n=1; n <= Xfir->cols; n++){
+	EvSch->idealxtxerr += fabs(XtX->rptr[m][n]-XtXIdeal->rptr[m][n]);
+      }
+    }
+    MatrixFree(&Xt);
+    MatrixFree(&XtX);
 
     Singular = EVSdesignMtxStats(Xfir, Xpoly, EvSch);
     MatrixFree(&Xfir);
@@ -287,9 +333,9 @@ int main(int argc, char **argv)
 
     /* Save data on each iteration to a file */
     if(SvAllFile != NULL){
-      fprintf(fpSvAll,"%g  %g  %g  %g  %g  %g  %g ",
+      fprintf(fpSvAll,"%g  %g  %g  %g  %g  %g  %g %g",
 	      EvSch->cost,EvSch->eff,EvSch->cb1err,EvSch->vrfavg,
-	      EvSch->vrfstd,EvSch->vrfmin,EvSch->vrfmax);
+	      EvSch->vrfstd,EvSch->vrfmin,EvSch->vrfmax,EvSch->idealxtxerr);
       if(PctVarEvReps > 0.0)
 	for(m=0; m < nEvTypes; m++) fprintf(fpSvAll,"%d ",EvReps[m]);
       fprintf(fpSvAll,"\n");
@@ -297,7 +343,7 @@ int main(int argc, char **argv)
 
     if(nthhit < nKeep && nInFiles == 0){
       EvSchList[nthhit] = EvSch;
-      if(nthhit == nKeep-1) EvSchSort(EvSchList,nKeep);
+      if(nthhit == nKeep-1) EVSsort(EvSchList,nKeep);
     }
     else{
       if(EvSch->cost > EvSchList[nKeep-1]->cost){
@@ -307,7 +353,7 @@ int main(int argc, char **argv)
 
 	EVSfree(&EvSchList[nKeep-1]);
 	EvSchList[nKeep-1] = EvSch;
-	EvSchSort(EvSchList,nKeep);
+	EVSsort(EvSchList,nKeep);
 	nSince = 0;
 
 	PrintUpdate(fplog,0);
@@ -401,33 +447,35 @@ int main(int argc, char **argv)
     }
     fprintf(fpsum,"Number of iterations since last substitution %d\n",nSince);
     fprintf(fpsum,"Cost Avg/Std: %g %g\n",CostAvg,CostStd);
-    fprintf(fpsum,"Max Eff:    %g\n",EffMax);
-    fprintf(fpsum,"Max VRFAvg: %g\n",VRFAvgMax);
+    fprintf(fpsum,"Max Eff Encountered:    %g\n",EffMax);
+    fprintf(fpsum,"Max VRFAvg Encountered: %g\n",VRFAvgMax);
   }
   else{
     fprintf(fpsum,"No search was performed.\n");
     CostAvg=0;CostStd=-1000;
   }
+  fprintf(fpsum,"Eff of Nominal Ideal XtX: %g\n",effxtxideal);
   fprintf(fpsum,"\n");
-  fprintf(fpsum,"Rank     Cost   ZCost NthIter  Eff   CB1Err   VRFAvg VRFStd VRFMin VRFMax VRFRng   ");
+  fprintf(fpsum,"Rank     Cost   ZCost NthIter  Eff   CB1Err   VRFAvg VRFStd VRFMin VRFMax VRFRng IXtXErr  ");
   if(PctVarEvReps > 0.0) fprintf(fpsum,"NReps"); 
   fprintf(fpsum,"\n");
 
   for(n=0;n<nKeep;n++){
     fprintf(fpsum,
-	    "%3d %9.4f   %5.3f %5d %7.3f %7.6f %6.2f %6.2f %6.2f %6.2f %6.2f ",
+	    "%3d %9.4f   %5.3f %5d %7.3f %7.6f %6.2f %6.2f %6.2f %6.2f %6.2f   %6.2f",
 	    n+1,EvSchList[n]->cost,(EvSchList[n]->cost-CostAvg)/CostStd,
 	    EvSchList[n]->nthsearched,
 	    EvSchList[n]->eff,EvSchList[n]->cb1err,
 	    EvSchList[n]->vrfavg,EvSchList[n]->vrfstd,
-	    EvSchList[n]->vrfmin,EvSchList[n]->vrfmax,EvSchList[n]->vrfrange);
+	    EvSchList[n]->vrfmin,EvSchList[n]->vrfmax,EvSchList[n]->vrfrange,
+	    EvSchList[n]->idealxtxerr);
     if(PctVarEvReps > 0.0)
       for(m=0; m < nEvTypes; m++) 
 	fprintf(fpsum,"%3d ",EvSchList[n]->nEvReps[m]);
     fprintf(fpsum,"\n");
 
     sprintf(fname,"%s-%03d.par",outstem,n+1);
-    EVSwritePar(fname,EvSchList[n],NULL,TR,TR*Ntp);
+    EVSwritePar(fname,EvSchList[n],EvLabel,TPreScan,TR*Ntp);
 
     if(mtxstem != NULL){
       sprintf(fname,"%s_%03d.mat",mtxstem,n+1);
@@ -534,11 +582,10 @@ static int parse_commandline(int argc, char **argv)
       sscanf(pargv[0],"%f",&PSDMin);
       sscanf(pargv[1],"%f",&PSDMax);
       nargsused = 2;
-      if(nth_is_arg(2,pargv,nargc)){
-	sscanf(pargv[2],"%f",&dPSDfTR);
+      if(nth_is_arg(nargc,pargv,2)){
+	sscanf(pargv[2],"%f",&dPSD);
 	nargsused++;
       }
-      else dPSDfTR = 1.0;
       PSDSpeced = 1;
     }
     else if (stringmatch(option, "--ev")){
@@ -558,7 +605,7 @@ static int parse_commandline(int argc, char **argv)
       if(nargc < 1) argnerr(option,1);
       sscanf(pargv[0],"%f",&PctVarEvReps);
       nargsused = 1;
-      if(nth_is_arg(1,pargv,nargc)){
+      if(nth_is_arg(nargc,pargv,1)){
 	VarEvRepsPerCond = 1;
 	nargsused++;
       }
@@ -665,7 +712,7 @@ static void print_usage(void)
   printf("\n");
   printf("Event Response and Nuisance Descriptors\n");
   printf("\n");
-  printf("  --psdwin psdmin psdmax <TRfraction> : PSD window specifications\n");
+  printf("  --psdwin psdmin psdmax <dPSD> : PSD window specifications\n");
   printf("  --ev label duration nrepetitions\n");
   printf("  --repvar pct <per-evt>: allow nrepetitions to vary by +/- percent\n");
   printf("  --polyfit order  \n");
@@ -683,7 +730,7 @@ static void print_usage(void)
   printf("Output Options\n");
   printf("\n");
   printf("  --nkeep   n : keep n schedules\n");
-  printf("  --o outstem  : save schedules in oustem-RRR.par\n");
+  printf("  --o outstem  : save schedules in outstem-RRR.par\n");
   printf("  --mtx mtxstem  : save deisgn matrices in mtxstem_RRR.mat\n");
   printf("  --sum file : save summary in file (outstem.sum)\n");
   printf("  --log file : save log in file (outstem.log)\n");
@@ -716,11 +763,15 @@ static void print_help(void)
 "rapid-presentation event-related (RPER) fMRI experiments (the schedule\n"
 "is the order and timing of events). Events in RPER are presented\n"
 "closely enough in time that their hemodynamic responses will\n"
-"overlap. RPER is highly resistant to habituation, expectation, and set\n"
+"overlap. This requires that the onset times of the events be jittered\n"
+"in order to remove the overlap from the estimate of the hemodynamic \n"
+"response. RPER is highly resistant to habituation, expectation, and set\n"
 "because the subject does not know when the next stimulus will appear\n"
 "or which stimulus type it will be. RPER is also more efficient than\n"
 "fixed-interval event related (FIER) because more stimuli can be\n"
-"presented. \n"
+"presented within a given scanning interval at the cost of assuming \n"
+"that the overlap in the hemodynamic responses will be linear. In SPM\n"
+"parlance, RPER is referred to as 'stochastic design'.\n"
 "\n"
 "The flexibility of RPER means that there are a huge number of possible\n"
 "schedules, and they are not equal. optseq2 randomly samples the space\n"
@@ -729,7 +780,7 @@ static void print_help(void)
 "efficiency, average variance reduction factor (VRF), and a weighted\n"
 "combination of average and stddev of the VRF. The user can also\n"
 "specify that the first order counter-balancing of the sequence of \n"
-"stimuli be pre-optimized.\n"
+"event-types be pre-optimized.\n"
 "\n"
 "COMMAND-LINE ARGUMENTS\n"
 "\n"
@@ -749,21 +800,19 @@ static void print_help(void)
 "Time before the acquisition of the first volume to be processed to\n"
 "begin stimulation.\n"
 "\n"
-"--psdwin PSDMin PSDMax <dPSD_fTR>\n"
+"--psdwin PSDMin PSDMax <dPSD>\n"
 "\n"
-"Specifications for the event response window. It will be assumed that \n"
-"the entire response can be catured within this window. PSDMin is the \n"
-"minimum PostStimulus Delay (PSD), PSDMax is the maximum PSD. dPSD_fTR \n"
-"is the fraction of the TR to use as the sampling interval within the \n"
-"window. dPSD is this fraction times the TR.  dPSD_fTR is optional; if \n"
-"left unset, it will default to 1 (ie, the TR).  If specified, dPSD_fTR \n"
-"must be between 0 and 1. dPSD_fTR controls how finely spaced the event \n"
-"onsets can be scheduled (ie, the onsets will only appear at integer \n"
-"multiples of the dPSD). \n"
+"Specifications for the FIR event response window. It will be assumed that \n"
+"the entire response can be captured within this window. PSDMin is the \n"
+"minimum PostStimulus Delay (PSD), PSDMax is the maximum PSD. dPSD \n"
+"is the sampling interval within the window. dPSD is optional; if \n"
+"left unset, it will default to the TR. dPSD controls how finely spaced  \n"
+"the event onsets can be scheduled (ie, the onsets will only appear at  \n"
+"integer multiples of the dPSD). \n"
 "\n"
 "--ev label duration nrepetitions \n"
 "\n"
-"Event Type specifation. The label is just a text label (which may be \n"
+"Event Type specification. The label is just a text label (which may be \n"
 "more informative than a numeric id). Duration is the number of seconds \n"
 "that the stimulus will be presented; it should be an integer multiple \n"
 "of the dPSD (see --psdwin). Nrepetitions is the number of times that \n"
@@ -813,7 +862,7 @@ static void print_help(void)
 "sequence. This will cause optseq2 to construct nCB1Opt random \n"
 "sequences and keep the one with the best FOCB properties. This will be \n"
 "done for each iteration. Counter balance optimization is not allowed \n"
-"when there is one event type. \n"
+"when there is only one event type. \n"
 " \n"
 "--cost costname <params> \n"
 " \n"
@@ -847,6 +896,7 @@ static void print_help(void)
 " \n"
 "Save schedules in outstem-RRR.par, where RRR is the 3-digit \n"
 "zero-padded schedule rank number (there will be nKeep of them). \n"
+"The schedules will be saved in the Paradigm File Format (see below).\n"
 " \n"
 "--mtx mtxstem \n"
 " \n"
@@ -857,7 +907,7 @@ static void print_help(void)
 " \n"
 "optseq2 will create a file which summarizes the search, including \n"
 "all the input parameters as well as characteristics of each of \n"
-"the schedules kept. By default, the summary file will be oustem.sum, \n"
+"the schedules kept. By default, the summary file will be outstem.sum, \n"
 "but it can be specified explicitly using this flag. See THE SUMMARY  \n"
 "FILE below. \n"
 " \n"
@@ -901,7 +951,7 @@ static void print_help(void)
 " \n"
 "--in input-schedule <--in input-schedule > \n"
 " \n"
-"This does the same thing as --i except that each file is specfied \n"
+"This does the same thing as --i except that each file is specified \n"
 "separately.  \n"
 " \n"
 "--nosearch \n"
@@ -915,7 +965,7 @@ static void print_help(void)
 "on the command-line and keeps the ones that maximize the given cost \n"
 "function.  Each search iteration begins by creating a random order of \n"
 "events with the appropriate number of repetitions for each event \n"
-"type. First order counter-balancing optimziation, if done, is \n"
+"type. First order counter-balancing optimization, if done, is \n"
 "performed here. Next, the timing is generated by inserting random \n"
 "amounts of NULL stimulus so that the total stimulation time plus null \n"
 "time is equal to the total scan time.  Event onset times are \n"
@@ -960,22 +1010,22 @@ static void print_help(void)
 "the efficiency is optimized. \n"
 " \n"
 "Average/StdDev Variance Reduction Factor (vrfavgstd). The cost is defined \n"
-"as cost = vrfavg - W*vrfstd, where vrfstd is the standard devation of  \n"
+"as cost = vrfavg - W*vrfstd, where vrfstd is the standard deviation of  \n"
 "the VRFs and W is a weighting factor specified as a parameter on the  \n"
-"command-line.  This peanlizes schedules that result in large variations \n"
+"command-line.  This penalizes schedules that result in large variations \n"
 "in the individual VRFs of the estimators. There is currently a bug in \n"
 "the implementation that causes it to mis-state the cost when the number \n"
 "of repetitions are different for different event types. Also, only use \n"
 "this cost when using a prescan window equal to or greater than the  \n"
-"PSD window (otherwise there will be a tendancy not to schedule events \n"
+"PSD window (otherwise there will be a tendency not to schedule events \n"
 "near the end of the run). \n"
 " \n"
 "THE SUMMARY FILE \n"
 " \n"
-"The summary file summarizes the conditions underwhich the search was  \n"
+"The summary file summarizes the conditions under which the search was  \n"
 "performed as well as the properties of each schedule found. It also \n"
 "includes the number of iterations searched and the time it took to \n"
-"search them as well as the average and standard devation of the cost \n"
+"search them as well as the average and standard deviation of the cost \n"
 "measured over all schedules. It also includes the maximum efficiency \n"
 "and average VRF over all schedules (these will be the same as the  \n"
 "best schedule if the eff or vrfavg cost functions were chosen). \n"
@@ -986,7 +1036,7 @@ static void print_help(void)
 "(7) StdDev VRF (VRFStd), \n"
 "(8) Minimum VRF (VRFMin), (9) Maximum VRF (VRFMax), and (10) VRF \n"
 "Range (VRFRng). Many of these measures have been described above. \n"
-"ZCost is the number of standard devations from the average cost \n"
+"ZCost is the number of standard deviations from the average cost \n"
 "(over all schedules). The Iteration Number is the search iteration that \n"
 "that schedule was found on. The first-order counter-balancing  \n"
 "measures come after this table. First, the ideal FOCB probability \n"
@@ -1007,9 +1057,10 @@ static void print_help(void)
 " \n"
 "                sum(tEv*nReps) <= Ntp*TR+tPreScan                   (1) \n"
 " \n"
-"The total amount of time dedicated to the Null stimulus (tNullTot) is  \n"
-"equal to the difference between the total scan time and the total \n"
-"stimulation time: \n"
+"If this constraint is not met, you will receive a 'Time Constraint \n"
+"Violation' Error. The total amount of time dedicated to the Null stimulus \n"
+"(tNullTot) is equal to the difference between the total scan time and \n"
+"the total stimulation time: \n"
 " \n"
 "          tNullTot = Ntp*TR+tPreScan - sum(tEv*nReps)               (2) \n"
 " \n"
@@ -1026,6 +1077,16 @@ static void print_help(void)
 "where nEv is the number of event types. The schedule can be optimized \n"
 "around this point by allowing the number of repetitions to vary around \n"
 "this nominal value. \n"
+" \n"
+"There is also a DOF constraint which requires that the number of parameters \n"
+"estimated be less than the number of time points, ie \n"
+" \n"
+"       Nbeta = nPSD*nEv+(PolyOrder+1) < Ntp\n"
+" \n"
+"where Nbeta is the number of parameters, nPSD is the number of elements \n"
+"in the post-stimulus time window (ie, (PSDMax-PSDMin)/dPSD), and PolyOrder \n"
+"is the order of the nuisance polynomial specified with -polyfit. If this \n"
+"constraint is not met, you will receive a 'DOF Constraint Violation' Error. \n"
 " \n"
 "CHOOSING THE SEARCH TERMINATION CRITERIA \n"
 " \n"
@@ -1044,6 +1105,11 @@ static void print_help(void)
 "This can be used to judge how long a 'long time' is. The same information \n"
 "can be extracted from the NthIter column of the summary table. At a minimum \n"
 "let it run for 10000 iterations. \n"
+" \n"
+"PARADIGM FILE FORMAT\n"
+"The schedules will be saved in 'paradigm file' format. This format has four \n"
+"columns: time, numeric event id, event duration, and event label. A numeric \n"
+"id of 0 indicates the Null Stimulus. \n"
 " \n"
 "BUGS \n"
 " \n"
@@ -1161,11 +1227,12 @@ static void check_options(void)
     printf("ERROR: must specify the post-stimulus delay window (--psdwin)\n");
     exit(1);
   }
-  if(dPSDfTR <= 0.0 || dPSDfTR > 1.0){
-    printf("ERROR: PSD TRfraction %g is out of range (0,1] \n",dPSDfTR);
+  if(dPSD < 0.0) dPSD = TR;
+  if(! CheckIntMult(TR,dPSD,dPSD/100)){
+    printf("ERROR: TR (%g) must be a multiple of dPSD (%g)\n",TR,dPSD);
     exit(1);
   }
-  dPSD = TR*dPSDfTR;
+
   if(outstem == NULL && infilelist[0] == NULL){
     printf("ERROR: must specify either an input or an output\n");
     exit(1);
@@ -1241,7 +1308,6 @@ static void dump_options(FILE *fp)
   fprintf(fp,"Ntp  = %d\n",Ntp);
   fprintf(fp,"TR   = %g\n",TR);
   fprintf(fp,"TPreScan   = %g\n",TPreScan);
-  fprintf(fp,"PSD TRfraction = %g\n",dPSDfTR);
   fprintf(fp,"PSD Window   = %g %g %g\n",PSDMin,PSDMax,dPSD);
   fprintf(fp,"nEvTypes = %d\n",nEvTypes);
   fprintf(fp,"EvNo    Label Duration nRepsNom\n");
@@ -1291,10 +1357,16 @@ static int nth_is_arg(int nargc, char **argv, int nth)
   /* nth is 0-based */
 
   /* check that there are enough args for nth to exist */
-  if(nargc <= nth) return(0); 
+  if(nargc <= nth){
+    //printf("nthisarg: not enough %d %d\n",nargc,nth);
+    return(0); 
+  }
 
   /* check whether the nth arg is a flag */
-  if(isflag(argv[nth])) return(0);
+  if(isflag(argv[nth])){
+    //printf("nthisarg: %s is a flag\n",argv[nth]);
+    return(0);
+  }
 
   return(1);
 }
@@ -1308,15 +1380,25 @@ static int stringmatch(char *str1, char *str2)
 static int PrintUpdate(FILE *fp, int n)
 {
   fprintf(fp,
-	  "%2.0f %7d  %6.1f   %g  %g  %6.4f  %g  %g  %g  %g  %g %d\n",
+	  "%2.0f %7d  %6.1f   %g  %g  %6.4f  %g  %g  %g  %g  %g %g %d\n",
 	  PctDone, nSearched, tSearched*60,
 	  EvSchList[n]->cost,EvSchList[n]->eff,
 	  EvSchList[n]->cb1err,EvSchList[n]->vrfavg,
 	  EvSchList[n]->vrfstd,EvSchList[n]->vrfmin,
 	  EvSchList[n]->vrfmax,EvSchList[n]->vrfrange,
+	  EvSchList[n]->idealxtxerr,
 	  nSince);
   fflush(fp);
   return(0);
 }
 
-
+/*------------------------------------------------------------
+  CheckIntMult() - checks that val is an integer multiple
+  of res (to within tolerance tol). Returns 1 if it is an
+  integer multiple and 0 otherwise.
+  ------------------------------------------------------------*/
+static int CheckIntMult(float val, float res, float tol)
+{
+  if( fabs( val/res - rint(val/res) ) > tol ) return(0);
+  return(1);
+}
