@@ -10,16 +10,44 @@
 #include "macros.h"
 #include "proto.h"
 
+/*-------------------------------------------------------------------
+                                CONSTANTS
+-------------------------------------------------------------------*/
+
+/* min # of neighbors which must be on to retain a point */
+#define DEFAULT_NEIGHBOR_THRESHOLD      8
+
+/* seed values */
 #define LEFT_HEMISPHERE_WHITE_MATTER    127
 #define RIGHT_HEMISPHERE_WHITE_MATTER   255
 
-#define MAXSEED 20
-#define IMAGE_DIR "/usr3/people/dale/MRI/IMAGES"
+/* distance to search in each direction for a valid wm seed point */
+#define SEED_SEARCH_SIZE                9
 
-#define SEED_SEARCH_SIZE    9
-#define SLICE_SIZE          128
+/* size of various orthogonal slices */
+#define SLICE_SIZE                      128
 
-#define WM_MIN_VAL    2.0 /* anything below this is not white matter */
+/* anything below this is not white matter */
+#define WM_MIN_VAL                       2 
+
+/* Talairach seed points - only used if heuristics fail */
+#define CORPUS_CALLOSUM_TAL_X            0.0
+#define CORPUS_CALLOSUM_TAL_Y            0.0
+#define CORPUS_CALLOSUM_TAL_Z            27.0
+
+#define PONS_TAL_X                      -2.0
+#define PONS_TAL_Y                      -15.0  /* was -22.0 */
+#define PONS_TAL_Z                      -17.0
+
+/* # if iterations for filling */
+#define MAX_ITERATIONS  1000  /* was 10 */
+
+/* min # of holes filled before quitting */
+#define MIN_FILLED      0     /* was 100 */
+
+/*-------------------------------------------------------------------
+                                GLOBAL DATA
+-------------------------------------------------------------------*/
 
 static int ilim0,ilim1,jlim0,jlim1;
 static int fill_holes_flag = TRUE;
@@ -34,16 +62,17 @@ static Real wm_rh_tal_y = -12.0 ;
 static Real wm_rh_tal_z = 28.0 ;
 
 /* corpus callosum seed point in Talairach coords */
-#if 1
-static Real cc_tal_x = -1.0 ;
-static Real cc_tal_y = -1.0 ;
+
+static Real cc_tal_x = 0.0 ;
+static Real cc_tal_y = 0.0 ;
 static Real cc_tal_z = 27.0 ;
 
 static Real pons_tal_x = -2.0 ;
-static Real pons_tal_y = -22.0 ;
+static Real pons_tal_y = -15.0 /* -22.0 */ ;
 static Real pons_tal_z = -17.0 ;
-#else
 
+
+#if 0
 /* test coords - not very close */
 static Real cc_tal_x = -4.0 ;
 static Real cc_tal_y = -32.0 ;
@@ -60,42 +89,46 @@ static int pons_seed_set = 0 ;
 
 char *Progname ;
 
-#define MAX_ITERATIONS  1000  /* was 10 */
-#define MIN_FILLED      0     /* was 100 */
+static int min_filled = 0 ;
 
+static int neighbor_threshold = DEFAULT_NEIGHBOR_THRESHOLD ;
+
+static MRI *mri_fill, *mri_im ;
+
+/*-------------------------------------------------------------------
+                             STATIC PROTOTYPES
+-------------------------------------------------------------------*/
 
 static int get_option(int argc, char *argv[]) ;
 static void print_version(void) ;
 static void print_help(void) ;
 void main(int argc, char *argv[]) ;
 
-/* used in fill_holes */
-#define DEFAULT_NEIGHBOR_THRESHOLD    8
-static int neighbor_threshold = DEFAULT_NEIGHBOR_THRESHOLD ;
-
-static MRI *mri_fill, *mri_im ;
-
 static int fill_holes(void) ;
-static int fill_brain(float threshold) ;
+static int fill_brain(int threshold) ;
 void main(int argc, char *argv[]) ;
 static MRI *find_cutting_plane(MRI *mri, Real x_tal, Real y_tal,Real z_tal,
                               int orientation, int *pxv, int *pvy, int *pzv) ;
 static int find_slice_center(MRI *mri,  int *pxo, int *pyo) ;
+static int find_corpus_callosum(MRI *mri, Real *ccx, Real *ccy, Real *ccz) ;
+static int find_pons(MRI *mri, Real *p_ponsx, Real *p_ponsy, Real *p_ponsz) ;
+
+/*-------------------------------------------------------------------
+                                FUNCTIONS
+-------------------------------------------------------------------*/
 
 void
 main(int argc, char *argv[])
 {
-  int     i,j,k,snum, xd, yd, zd, xnew, ynew, znew ;
-  int     imnr_seed[MAXSEED],i_seed[MAXSEED],j_seed[MAXSEED],val_seed[MAXSEED];
-  int     nseed, nargs, wm_lh_x, wm_lh_y, wm_lh_z, wm_rh_x, wm_rh_y, wm_rh_z ;
+  int     i,j,k, xd, yd, zd, xnew, ynew, znew ;
+  int     nargs, wm_lh_x, wm_lh_y, wm_lh_z, wm_rh_x, wm_rh_y, wm_rh_z ;
   char    input_fname[200],out_fname[200],*data_dir;
   Real    x, y, z, dist, min_dist ;
   MRI     *mri_cc, *mri_pons ;
   int     x_pons, y_pons, z_pons, x_cc, y_cc, z_cc, xi, yi, zi ;
 #if 0
-  int     timin ;
-  char    fname[200];
-  FILE    *fp;
+  int     imnr_seed[MAXSEED],i_seed[MAXSEED],j_seed[MAXSEED],val_seed[MAXSEED];
+  int     snum, nseed ;
 #endif
 
   DiagInit(NULL, NULL, NULL) ;
@@ -110,17 +143,15 @@ main(int argc, char *argv[])
     argv += nargs ;
   }
   
-  if (argc < 2)
-  {
-    printf("Usage: %s <name> <seed_number>\n",argv[0]);
-    exit(0);
-  }
+  if (argc < 3)
+    print_help() ;   /* will exit */
+
 #if 0
   if (argc > 2)
     snum = atoi(argv[2]);
   else
-#endif
     snum = 0 ;
+#endif
   
   data_dir = getenv("SUBJECTS_DIR");
   if (data_dir==NULL)
@@ -142,21 +173,40 @@ main(int argc, char *argv[])
 
   mri_im = MRIread(input_fname) ;
   if (!mri_im)
-    ErrorExit(ERROR_NOFILE, "%s: could not read %s", input_fname) ;
+    ErrorExit(ERROR_NOFILE, "%s: could not read %s", Progname, input_fname) ;
   mri_fill = MRIclone(mri_im, NULL) ;
 
-  /* 
-     note: must do CC first to avoid disconnecting brainstem. Otherwise,
-     if the seed point winds up in the brainstem it may be mistaken
-     for the CC (it will be an in-plane-disconnected structure in
-     about the right place, with about the right area.
-     */
-  mri_cc = 
-    find_cutting_plane(mri_im, cc_tal_x, cc_tal_y, cc_tal_z, MRI_SAGITTAL,
-                       &x_cc, &y_cc, &z_cc) ;
+  find_pons(mri_im, &pons_tal_x, &pons_tal_y, &pons_tal_z) ;
   mri_pons = 
     find_cutting_plane(mri_im, pons_tal_x,pons_tal_y, pons_tal_z,
                        MRI_HORIZONTAL, &x_pons, &y_pons, &z_pons);
+  if (!mri_pons) /* heuristic failed to find the pons - try Talairach coords */
+  {
+    pons_tal_x = PONS_TAL_X ; pons_tal_y = PONS_TAL_Y; pons_tal_z = PONS_TAL_Z;
+    mri_pons = 
+      find_cutting_plane(mri_im, pons_tal_x,pons_tal_y, pons_tal_z,
+                         MRI_HORIZONTAL, &x_pons, &y_pons, &z_pons);
+    if (!mri_pons)
+      ErrorExit(ERROR_BADPARM, "%s: could not find pons", Progname);
+  }
+
+  if (find_corpus_callosum(mri_im,&cc_tal_x,&cc_tal_y,&cc_tal_z) != NO_ERROR)
+    mri_cc = NULL ;
+  else
+    mri_cc =
+      find_cutting_plane(mri_im, cc_tal_x, cc_tal_y, cc_tal_z, MRI_SAGITTAL,
+                         &x_cc, &y_cc, &z_cc) ;
+  if (!mri_cc)  /* heuristic failed - use Talairach coordinates */
+  {
+    cc_tal_x = CORPUS_CALLOSUM_TAL_X ; 
+    cc_tal_y = CORPUS_CALLOSUM_TAL_Y; 
+    cc_tal_z = CORPUS_CALLOSUM_TAL_Z;
+    mri_cc = 
+      find_cutting_plane(mri_im, cc_tal_x, cc_tal_y, cc_tal_z, MRI_SAGITTAL,
+                         &x_cc, &y_cc, &z_cc) ;
+    if (!mri_cc)
+      ErrorExit(ERROR_BADPARM, "%s: could not find corpus callosum", Progname);
+  }
 
   MRIeraseTalairachPlane(mri_im, mri_cc, MRI_SAGITTAL, x_cc, y_cc, z_cc, 
                          SLICE_SIZE);
@@ -170,43 +220,7 @@ main(int argc, char *argv[])
   MRIfree(&mri_cc) ;
   MRIfree(&mri_pons) ;
 
-#if 0
-  sprintf(fname,"fill.dat");
-  fp = fopen(fname,"r");
-  if (fp==NULL)
-  {
-    printf("file %s not found.\n",fname);
-    exit(0);
-  }
-  
-  fscanf(fp,"%*s %d",&nseed);
-  for (i=0;i<nseed;i++)
-  {
-    fscanf(fp,"%*s %d %d %d %d",
-           &imnr_seed[i],&i_seed[i],&j_seed[i],&val_seed[i]);
-    imnr_seed[i] += mri_im->zstart ;
-    j_seed[i] += mri_im->xstart ;
-    i_seed[i] = mri_im->yend-i_seed[i]+1;
-  }
-
-  fscanf(fp,"%*s %d %d",&immin1,&immax1);
-  fscanf(fp,"%*s %d %d",&imin1,&imax1);
-  fscanf(fp,"%*s %d %d",&jmin1,&jmax1);
-  fscanf(fp,"%*s %d %d",&immin2,&immax2);
-  fscanf(fp,"%*s %d %d",&imin2,&imax2);
-  fscanf(fp,"%*s %d %d",&jmin2,&jmax2);
-  timin = imin1;
-  imin1 = 255-imax1+mri_im->ystart;
-  imax1 = 255-timin+mri_im->ystart;
-  timin = imin2;
-  imin2 = 255-imax2+mri_im->ystart ;
-  imax2 = 255-timin+mri_im->ystart;
-  jmin1 += mri_im->xstart ; jmin2 += mri_im->xstart ;
-  jmax1 += mri_im->xstart ; jmax2 += mri_im->xstart ;
-  immin1 += mri_im->zstart ; immin2 += mri_im->zstart ;
-  immax1 += mri_im->zstart ; immax2 += mri_im->zstart ;
-#endif
-
+  /* find bounding box for valid data */
   ilim0 = mri_im->height ; jlim0 = mri_im->width ;
   ilim1 = jlim1 = 0;
   for (k = 0 ; k < mri_im->depth ; k++)
@@ -226,6 +240,7 @@ main(int argc, char *argv[])
     }
   }
 
+  /* find white matter seed point for the left hemisphere */
   MRItalairachToVoxel(mri_im, wm_lh_tal_x, wm_lh_tal_y, wm_lh_tal_z,&x, &y,&z);
   wm_lh_x = nint(x) ; wm_lh_y = nint(y) ; wm_lh_z = nint(z) ;
   if (!MRIvox(mri_im, wm_lh_x, wm_lh_y, wm_lh_z))
@@ -261,6 +276,7 @@ main(int argc, char *argv[])
       fprintf(stderr, "found at (%d, %d, %d)\n", xnew, ynew, znew) ;
   }
 
+  /* find white matter seed point for the right hemisphere */
   MRItalairachToVoxel(mri_im, wm_rh_tal_x, wm_rh_tal_y, wm_rh_tal_z,&x, &y,&z);
   wm_rh_x = nint(x) ; wm_rh_y = nint(y) ; wm_rh_z = nint(z) ;
   if (!MRIvox(mri_im, wm_rh_x, wm_rh_y, wm_rh_z))
@@ -296,23 +312,10 @@ main(int argc, char *argv[])
     wm_rh_x = xnew ; wm_rh_y = ynew ; wm_rh_z = znew ; 
   }
 
+  /* initialize the fill with the detected seed points */
   MRIvox(mri_fill, wm_rh_x, wm_rh_y, wm_rh_z) = RIGHT_HEMISPHERE_WHITE_MATTER ;
   MRIvox(mri_fill, wm_lh_x, wm_lh_y, wm_lh_z) = LEFT_HEMISPHERE_WHITE_MATTER ;
 
-  i_seed[0] = wm_rh_y ; j_seed[0] = wm_rh_x ; imnr_seed[0] = wm_rh_z ;
-  val_seed[0] = RIGHT_HEMISPHERE_WHITE_MATTER ;
-  i_seed[1] = wm_lh_y ; j_seed[1] = wm_lh_x ; imnr_seed[1] = wm_lh_z ;
-  val_seed[1] = LEFT_HEMISPHERE_WHITE_MATTER ;
-  nseed = 2 ;
-
-#if 0
-  for (i=0;i<nseed;i++)
-    if (snum==0 || snum==i+1)
-    {
-      MRIvox(mri_fill, j_seed[i], i_seed[i], imnr_seed[i]) = val_seed[i];
-    }
-#endif
-  
   fill_brain(WM_MIN_VAL);    /* fill from 2 seeds in wm outwards */
 
   /*MRIwrite(mri_fill, "fill1.mnc") ;*/
@@ -389,13 +392,13 @@ main(int argc, char *argv[])
   MRIwrite(mri_fill, out_fname) ;
 }
 static int 
-fill_brain(float threshold)
+fill_brain(int threshold)
 {
   int dir = -1, nfilled = 10000, ntotal = 0,iter = 0;
   int im0,im1,j0,j1,i0,i1,imnr,i,j;
   int v1,v2,v3,vmax;
 
-  while (nfilled>MIN_FILLED && iter<MAX_ITERATIONS)
+  while (nfilled>min_filled && iter<MAX_ITERATIONS)
   {
     iter++;
     nfilled = 0;
@@ -555,6 +558,10 @@ get_option(int argc, char *argv[])
     }
     nargs = 1 ;
     break ;
+  case 'F':
+    min_filled = atoi(argv[2]) ;
+    nargs = 1 ;
+    break ;
   case '?':
   case 'U':
     print_help() ;
@@ -585,16 +592,16 @@ print_help(void)
           "\t-T <threshold> - specify fill_holes threshold (default=%d)\n",
           DEFAULT_NEIGHBOR_THRESHOLD) ;
   fprintf(stderr, 
-          "\t-L <x,y,z>     - the Talairach coords of the wm seed for the "
-          "left hemisphere") ;
+          "\t-L <x,y,z>     - the Talairach coords of the wm seed for the\n"
+          "\t                 left hemisphere\n") ;
   fprintf(stderr, 
-          "\t-R <x,y,z>     - the Talairach coords of the wm seed for the "
-          "right hemisphere") ;
+          "\t-R <x,y,z>     - the Talairach coords of the wm seed for the\n"
+          "\t                 right hemisphere\n") ;
   fprintf(stderr, 
           "\t-P <x,y,z>     - the Talairach coords of the seed for the pons") ;
   fprintf(stderr, 
-          "\t-C <x,y,z>     - the Talairach coords of the seed for the "
-          "corpus callosum") ;
+          "\t-C <x,y,z>     - the Talairach coords of the seed for the\n"
+          "\t                 corpus callosum\n") ;
   exit(0) ;
 }
 
@@ -612,13 +619,13 @@ print_help(void)
 #define MAX_OFFSET        50
 
 /* aspect ratios are dy/dx */
-#define MIN_CC_AREA       600
-#define MAX_CC_AREA       1500
+#define MIN_CC_AREA       350
+#define MAX_CC_AREA       850
 #define MIN_CC_ASPECT     0.1
 #define MAX_CC_ASPECT     0.575
 
-#define MIN_PONS_AREA     500
-#define MAX_PONS_AREA     1500
+#define MIN_PONS_AREA     400
+#define MAX_PONS_AREA     800
 #define MIN_PONS_ASPECT   0.8
 #define MAX_PONS_ASPECT   1.2
 
@@ -666,8 +673,7 @@ find_cutting_plane(MRI *mri, Real x_tal, Real y_tal,Real z_tal,int orientation,
   xv = nint(x) ; yv = nint(y) ; zv = nint(z) ;
   mri_slices[0] = 
     MRIextractTalairachPlane(mri, NULL, orientation, xv, yv, zv, SLICE_SIZE);
-  mri_filled[0] = MRIfillFG(mri_slices[0],NULL,xo,yo, 0, (int)WM_MIN_VAL,127,
-                            &area[0]);
+  mri_filled[0] =MRIfillFG(mri_slices[0],NULL,xo,yo,0,WM_MIN_VAL,127,&area[0]);
   MRIboundingBox(mri_filled[0], 1, &region) ;
 
 #if 0
@@ -724,8 +730,9 @@ find_cutting_plane(MRI *mri, Real x_tal, Real y_tal,Real z_tal,int orientation,
   {
     offset += SEARCH_STEP ;   /* search at a greater radius */
     if (offset >= MAX_OFFSET)
-      ErrorExit(ERROR_BADPARM, "%s: could not find valid seed for the %s",
-                Progname, name) ;
+      ErrorReturn(NULL,
+                  (ERROR_BADPARM, "%s: could not find valid seed for the %s",
+                   Progname, name)) ;
     for (z0 = zv-offset ; !done && z0 <= zv+offset ; z0 += offset)
     {
       zi = mri->zi[z0] ;
@@ -739,8 +746,7 @@ find_cutting_plane(MRI *mri, Real x_tal, Real y_tal,Real z_tal,int orientation,
             MRIextractTalairachPlane(mri, NULL, orientation, xi, yi, zi, 
                                      SLICE_SIZE);
           mri_filled[0] = 
-            MRIfillFG(mri_slices[0], NULL, xo, yo, 0, (int)WM_MIN_VAL,127,
-                      &area[0]);
+            MRIfillFG(mri_slices[0], NULL, xo, yo, 0,WM_MIN_VAL,127, &area[0]);
           MRIboundingBox(mri_filled[0], 1, &region) ;
 
           if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
@@ -801,8 +807,7 @@ find_cutting_plane(MRI *mri, Real x_tal, Real y_tal,Real z_tal,int orientation,
     mri_slices[slice] = 
       MRIextractTalairachPlane(mri, NULL, orientation, xv, yv, zv, SLICE_SIZE);
     mri_filled[slice] = 
-      MRIfillFG(mri_slices[slice], NULL, xo, yo, 0, (int)WM_MIN_VAL, 127,
-                &area[slice]);
+      MRIfillFG(mri_slices[slice], NULL, xo, yo,0,WM_MIN_VAL,127,&area[slice]);
     MRIboundingBox(mri_filled[slice], 1, &region) ;
 
     /* don't trust slices that extend to the border of the image */
@@ -849,8 +854,9 @@ find_cutting_plane(MRI *mri, Real x_tal, Real y_tal,Real z_tal,int orientation,
   }
 
   if (min_slice < 0)
-    ErrorExit(ERROR_BADPARM, "%s: could not find valid seed for the %s",
-              Progname, name);
+    ErrorReturn(NULL, 
+                (ERROR_BADPARM, "%s: could not find valid seed for the %s",
+                 Progname, name));
   if (Gdiag & DIAG_WRITE)
   {
     sprintf(fname, "%s_slice.mnc", orientation == MRI_SAGITTAL ? "cc":"pons");
@@ -945,6 +951,167 @@ find_slice_center(MRI *mri,  int *pxo, int *pyo)
   }
 
   *pxo = xo ; *pyo = yo ;
+  return(NO_ERROR) ;
+}
+
+#define CC_SPREAD       17
+#define MIN_THICKNESS   3
+#define MAX_THICKNESS   20
+
+static int
+find_corpus_callosum(MRI *mri, Real *pccx, Real *pccy, Real *pccz)
+{
+  MRI  *mri_slice ;
+  int  xv, yv, zv, xo, yo, max_y, thickness, y1, xcc, ycc, x, y ;
+  Real xr, yr, zr ;
+
+  MRItalairachToVoxel(mri, 0.0, 0.0, 0.0, &xr, &yr, &zr);
+  xv = nint(xr) ; yv = nint(yr) ; zv = nint(zr) ;
+  mri_slice = 
+    MRIextractTalairachPlane(mri, NULL, MRI_CORONAL,xv,yv,zv,SLICE_SIZE) ;
+  if (Gdiag & DIAG_WRITE)
+  {
+    MRIwrite(mri_slice, "cor.mnc") ;
+  }
+
+  xo = mri_slice->width/2 ;  yo = mri_slice->height/2 ;
+
+  /* find the column with the lowest starting y value of any sign. thick. */
+  xcc = ycc = max_y = 0 ; 
+  for (x = xo-CC_SPREAD ; x <= xo+CC_SPREAD ; x++)
+  {
+    /* search for first non-zero pixel */
+    for (y = 0 ; y < SLICE_SIZE ; y++)
+    {
+      if (MRIvox(mri_slice, x, y, 0))
+        break ;
+    }
+    
+    /* check to make sure it as reasonably thick */
+    if ((y < SLICE_SIZE) && (y > max_y))
+    {
+      for (y1 = y, thickness = 0 ; y1 < SLICE_SIZE ; y1++, thickness++)
+        if (!MRIvox(mri_slice, x, y1, 0))
+          break ;
+      if ((thickness > MIN_THICKNESS) && (thickness < MAX_THICKNESS))
+      {
+        xcc = x ; ycc = y+thickness/2 ;  /* in middle of cc */
+        max_y = y ;
+        if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
+          fprintf(stderr, "potential cc found at (%d, %d), thickness = %d\n",
+                  xcc, ycc, thickness) ;
+      }
+    }
+  }
+
+  MRIfree(&mri_slice) ;
+  if (!max_y)
+    return(ERROR_BADPARM) ;
+
+  /* now convert the in-plane coords to Talairach coods */
+  xv += xcc - xo ; yv += ycc - yo ;
+  if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
+    fprintf(stderr, "cc found at (%d, %d, %d)\n", xv, yv, zv) ;
+  xr = (Real)xv ; yr = (Real)yv ; zr = (Real)zv ;
+  MRIvoxelToTalairach(mri, xr, yr, zr, pccx, pccy, pccz) ;
+  return(NO_ERROR) ;
+}
+
+#define MIN_BRAINSTEM_THICKNESS    15
+#define MAX_BRAINSTEM_THICKNESS    35
+#define MIN_DELTA_THICKNESS         3
+
+static int
+find_pons(MRI *mri, Real *p_ponsx, Real *p_ponsy, Real *p_ponsz)
+{
+  MRI   *mri_slice, *mri_filled ;
+  Real  xr, yr, zr ;
+  int   xv, yv, zv, x, y, width, height, thickness, xstart, xo, yo, area ;
+
+  thickness = xstart = 0 ;  /* for compiler warning */
+  MRItalairachToVoxel(mri, 0.0, 0.0, 0.0, &xr, &yr, &zr);
+  xv = nint(xr) ; yv = nint(yr) ; zv = nint(zr) ;
+  mri_slice = 
+    MRIextractTalairachPlane(mri, NULL, MRI_SAGITTAL,xv,yv,zv,SLICE_SIZE) ;
+
+  if (Gdiag & DIAG_WRITE)
+    MRIwrite(mri_slice, "pons.mnc") ;
+
+/*
+   search from the front of the head at the bottom of a sagittal slice
+   for the first significantly thick slice of white matter, which will
+   be the brainstem. Then, follow the contour of the brainstem upwards
+   until the first 'backwards' indentation which is about where we
+   want to make the cut.
+*/
+
+  /* first find the brainstem */
+  width = mri->width ; height = mri->height ;
+  for (y = height-1 ; y >= 0 ; y--)
+  {
+    for (x = width-1 ; x >= 0 ; x--)
+    {
+      thickness = 0 ;
+      while (MRIvox(mri_slice, x, y, 0) && x >= 0)
+      {
+        if (!thickness)
+          xstart = x ;
+        thickness++ ; x-- ;
+      }
+      if (thickness >= MIN_BRAINSTEM_THICKNESS && 
+          thickness <= MAX_BRAINSTEM_THICKNESS)
+        break ;
+      else
+        thickness = 0 ;
+    }
+    if (thickness > 0)   /* found the slice */
+      break ;
+  }
+
+  mri_filled = 
+    MRIfillFG(mri_slice, NULL,xstart-(thickness-1)/2,y,0,WM_MIN_VAL,127,&area);
+
+  if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
+    fprintf(stderr, "found brainstem at y=%d, x = %d --> %d, area=%d\n",
+            y, xstart, xstart-thickness+1, area) ;
+
+  if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+    MRIwrite(mri_filled, "pons_filled.mnc") ;
+
+/* 
+   now, starting from that slice, proceed upwards until we find a
+   'cleft', which is about where we want to cut.
+*/
+  x = xstart ;  /* needed for initialization */
+  do
+  {
+    xstart = x ;
+    y-- ;
+    for (x = width-1 ; !MRIvox(mri_filled,x,y,0) && (x >= 0) ; x--)
+    {}
+
+    if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
+      fprintf(stderr, "slice %d, xstart %d\n", y, x) ;
+  } while ((xstart - x < MIN_DELTA_THICKNESS) && (y >0)) ;
+
+  /* now search forward to find center of slice */
+  for (thickness = 0, xstart = x ; 
+       (x >= 0) && 
+       (thickness < MAX_BRAINSTEM_THICKNESS) &&
+       MRIvox(mri_slice, x, y, 0) ; 
+       x--)
+    thickness++ ;
+  x = xstart - (thickness-1)/2 ;
+  xo = mri_slice->width/2 ;  yo = mri_slice->height/2 ;
+  zv += x - xo ; yv += y - yo ;  /* convert to voxel coordinates */
+  xr = (Real)xv ; yr = (Real)yv ; zr = (Real)zv ;
+  MRIvoxelToTalairach(mri, xr, yr, zr, p_ponsx, p_ponsy, p_ponsz) ;
+  if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
+    fprintf(stderr, "pons found at (%d, %d) --> (%d, %d, %d)\n", 
+            xstart-thickness/2, y, xv, yv, zv) ;
+
+  MRIfree(&mri_slice) ;
+  MRIfree(&mri_filled) ;
   return(NO_ERROR) ;
 }
 
