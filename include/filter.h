@@ -45,6 +45,12 @@
 #define FILTER_POLV_MEAN               29
 #define FILTER_POLV_NORMAL_CURVATURE   30
 #define FILTER_POLV_CURVATURE          31
+#define FILTER_CENTRAL_PLANE_OF_LEAST_VARIANCE 32
+#define FILTER_CPOLV_MEDIAN            33
+#define FILTER_CPOLV_STD               34
+#define FILTER_CPOLV_MEAN              35 
+#define FILTER_CPOLV_NORMAL_CURVATURE  36
+#define FILTER_CPOLV_CURVATURE         37
 
 #define FILTER_OFFSET            0x0100
 
