@@ -19300,7 +19300,7 @@ static SMALL_SURFACE *
 mrisReadTriangleFileVertexPositionsOnly(char *fname)
 {
   SMALL_VERTEX   *v ;
-  int            nvertices, nfaces, magic, vno, fno, n ;
+  int            nvertices, nfaces, magic, vno ;
   char           line[STRLEN] ;
   FILE           *fp ;
   SMALL_SURFACE  *mriss ;
@@ -26172,7 +26172,7 @@ MRISmulVal(MRI_SURFACE *mris, float mul)
 SMALL_SURFACE *
 MRISreadVerticesOnly(char *fname)
 {
-  SMALL_SURFACE *mriss ;
+  SMALL_SURFACE *mriss = NULL ;
   int           type, magic, version, ix, iy, iz, nquads, nvertices, vno ;
   SMALL_VERTEX  *vertex ;
   FILE          *fp ;
