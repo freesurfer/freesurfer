@@ -12,7 +12,7 @@
 #include "mrimorph.h"
 #include "timer.h"
 
-static char vcid[] = "$Id: mri_fill.c,v 1.33 1999/08/23 18:03:48 fischl Exp $";
+static char vcid[] = "$Id: mri_fill.c,v 1.34 1999/08/25 20:29:52 fischl Exp $";
 
 /*-------------------------------------------------------------------
                                 CONSTANTS
@@ -37,7 +37,7 @@ static char vcid[] = "$Id: mri_fill.c,v 1.33 1999/08/23 18:03:48 fischl Exp $";
 #define WM_MIN_VAL                       2 
 
 /* the min # of neighbors on for a point to be allowed to be a seed point */
-#define MIN_NEIGHBORS                    3
+#define MIN_NEIGHBORS                    4
 
 /* Talairach seed points - only used if heuristics fail */
 #define CORPUS_CALLOSUM_TAL_X            0.0
@@ -640,9 +640,7 @@ fill_brain(MRI *mri_fill, MRI *mri_im, int threshold)
       {
         for (j=j0;j!=j1;j+=dir)
         {
-          if ((j == 119 || j == 120) &&
-              (i == 93 || i == 94) &&
-              (imnr == 127 || imnr == 128))
+          if ((j == 143) && (i == 106) && (imnr == 128))
               DiagBreak() ;
           if (MRIvox(mri_fill, j, i, imnr) ==0)   /* not filled yet */
           {
