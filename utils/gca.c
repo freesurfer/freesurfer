@@ -12,6 +12,7 @@
 #include "transform.h"
 #include "macros.h"
 #include "utils.h"
+#include "cma.h"
 
 /* this is the hack section */
 double PRIOR_FACTOR = 0.1 ;
@@ -56,7 +57,7 @@ static double gcaGibbsImageLogLikelihood(GCA *gca, MRI *mri_labels,
 
 static int mriFillRegion(MRI *mri, int x,int y,int z,int fill_val,int whalf);
 static int gcaFindMaxPriors(GCA *gca, float *max_priors) ;
-static int dump_gcan(GCA_NODE *gcan, FILE *fp) ;
+static int dump_gcan(GCA_NODE *gcan, FILE *fp, int verbose) ;
 
 /* arrays for indexing 6-connected neighbors */
 static int xnbr_offset[] = { 1, -1, 0, 0,  0, 0} ;
@@ -64,7 +65,7 @@ static int ynbr_offset[] = { 0, 0,  1, -1, 0, 0} ;
 static int znbr_offset[] = { 0, 0,  0, 0,  1, -1} ;
 
 static int
-dump_gcan(GCA_NODE *gcan, FILE *fp)
+dump_gcan(GCA_NODE *gcan, FILE *fp, int verbose)
 {
   int       n, i, j ;
   GC1D      *gc ;
@@ -74,7 +75,7 @@ dump_gcan(GCA_NODE *gcan, FILE *fp)
     gc = &gcan->gcs[n] ;
     fprintf(fp, "%d: label %d, mean %2.1f, std %2.1f, prior %2.3f\n",
             n, gcan->labels[n], gc->mean, sqrt(gc->var), gc->prior) ;
-    for (i = 0 ; i < GIBBS_NEIGHBORS ; i++)
+    if (verbose) for (i = 0 ; i < GIBBS_NEIGHBORS ; i++)
     {
       fprintf(fp, "\tnbr %d (%d,%d,%d): %d labels\n",
               i, xnbr_offset[i], ynbr_offset[i], znbr_offset[i], 
@@ -121,12 +122,11 @@ GCAvoxelToNode(GCA *gca, MRI *mri, int xv, int yv, int zv, int *pxn,
 }
 
 int
-GCAsourceVoxelToNodePoint(GCA *gca, MRI *mri, LTA *lta,
-                          Real xv, Real yv, Real zv, 
-                          Real *pxn, Real *pyn, Real *pzn)
+GCAsourceVoxelToNode(GCA *gca, MRI *mri, LTA *lta,int xv, int yv, int zv, 
+                     int *pxn, int *pyn, int *pzn)
 {
   static VECTOR *v_input, *v_canon = NULL ;
-  float   xscale, yscale, zscale, xt, yt, zt ;
+  float   xt, yt, zt ;
 
   if (!v_canon)
   {
@@ -136,30 +136,11 @@ GCAsourceVoxelToNodePoint(GCA *gca, MRI *mri, LTA *lta,
     *MATRIX_RELT(v_canon, 4, 1) = 1.0 ;
   }
 
-  V3_X(v_input) = xv ; V3_Y(v_input) = yv ; V3_Z(v_input) = zv ; 
+  V3_X(v_input) = (float)xv ; V3_Y(v_input) = (float)yv ; 
+  V3_Z(v_input) = (float)zv ; 
   MatrixMultiply(lta->xforms[0].m_L, v_input, v_canon) ;
   xt = V3_X(v_canon) ; yt = V3_Y(v_canon) ; zt = V3_Z(v_canon) ; 
-
-  xscale = mri->xsize / gca->spacing ;
-  yscale = mri->ysize / gca->spacing ;
-  zscale = mri->zsize / gca->spacing ;
-  *pxn = (xt * xscale) ;
-  if (*pxn < 0)
-    *pxn = 0 ;
-  else if (*pxn >= gca->width)
-    *pxn = gca->width-1 ;
-
-  *pyn = (yv * yscale) ;
-  if (*pyn < 0)
-    *pyn = 0 ;
-  else if (*pyn >= gca->height)
-    *pyn = gca->height-1 ;
-
-  *pzn = (zv * zscale) ;
-  if (*pzn < 0)
-    *pzn = 0 ;
-  else if (*pzn >= gca->depth)
-    *pzn = gca->depth-1 ;
+  GCAvoxelToNode(gca, mri, xt, yt, zt, pxn, pyn, pzn) ;
 
   return(NO_ERROR) ;
 }
@@ -403,7 +384,7 @@ GCAwrite(GCA *gca, char *fname)
     {
       for (z = 0 ; z < gca->depth ; z++)
       {
-        if (x == 25 && y == 59 && z == 35)
+        if (x == 139 && y == 103 && z == 139)  /* wm should be pallidum */
           DiagBreak() ;
         gcan = &gca->nodes[x][y][z] ;
         fwriteInt(gcan->nlabels, fp) ;
@@ -623,7 +604,7 @@ GCAcompleteTraining(GCA *gca)
           gc->prior /= (float)gcan->total_training ;
         }
         if (x == 63 && y == 107 && z == 120 && DIAG_VERBOSE_ON)
-          dump_gcan(gcan, stdout) ;
+          dump_gcan(gcan, stdout, 0) ;
       }
     }
   }
@@ -677,7 +658,13 @@ GCAlabel(MRI *mri_inputs, GCA *gca, MRI *mri_dst, LTA *lta)
       V3_Y(v_input) = (float)y ;
       for (z = 0 ; z < depth ; z++)
       {
-        if (x == 63 && y == 107 && z == 120)
+        if (x == 139 && y == 103 && z == 139)  /* wm should be pallidum */
+          DiagBreak() ;
+        if (x == 156 && y == 124 && z == 135)  /* wm should be amygdala(1428)*/
+          DiagBreak() ; 
+        if (x == 151 && y == 117 && z == 121)  /* wm should be hippo(1428)*/
+          DiagBreak() ; 
+        if (x == 92 && y == 115 && z == 117)  /* was 79 */
           DiagBreak() ; 
 
         V3_Z(v_input) = (float)z ;
@@ -1355,7 +1342,7 @@ GCAcomputeLogSampleProbability(GCA *gca, GCA_SAMPLE *gcas,
   GCA_NODE   *gcan ;
   GC1D       *gc ;
   float      dist ;
-  double     total_log_p ;
+  double     total_log_p, log_p ;
 
   m_L_inv = MatrixInverse(m_L, NULL) ;
   if (!m_L_inv)
@@ -1403,17 +1390,19 @@ GCAcomputeLogSampleProbability(GCA *gca, GCA_SAMPLE *gcas,
 #define TRIM_DIST 20
     if (abs(dist) > TRIM_DIST)
       dist = TRIM_DIST ;
-    total_log_p +=
+    log_p =
       -log(sqrt(gc->var)) - 
       0.5 * (dist*dist/gc->var) +
       log(gc->prior) ;
 #else
     dist = (val-gcas[i].mean) ;
-    total_log_p +=
+    log_p +=
       -log(sqrt(gcas[i].var)) - 
       0.5 * (dist*dist/gcas[i].var) +
       log(gcas[i].prior) ;
 #endif
+    total_log_p += log_p ;
+    gcas[i].log_p = log_p ;
 
     if (!finite(total_log_p))
     {
@@ -2831,7 +2820,7 @@ GCAtransformAndWriteSamples(GCA *gca, MRI *mri, GCA_SAMPLE *gcas,
       label = gcas[n].label ;
     else
       label = 29 ;  /* Left undetermined - visible */
-    mriFillRegion(mri_dst, xv, yv, zv, label, 1) ;
+    mriFillRegion(mri_dst, xv, yv, zv, label, 0) ;
 #endif
     if (DIAG_VERBOSE_ON && Gdiag & DIAG_SHOW)
       printf("label %d: (%d, %d, %d) <-- (%d, %d, %d)\n",
@@ -3049,6 +3038,7 @@ GCAreclassifyUsingGibbsPriors(MRI *mri_inputs, GCA *gca, MRI *mri_dst,LTA *lta,
         for (z = 0 ; z < depth ; z++)
           MRIvox(mri_changed,x,y,z) = 1 ;
 
+#if 0
   {
     MRI   *mri_cma ;
     char  fname[STRLEN], *cp ;
@@ -3071,6 +3061,7 @@ GCAreclassifyUsingGibbsPriors(MRI *mri_inputs, GCA *gca, MRI *mri_dst,LTA *lta,
       }
     }
   }
+#endif
 
   do
   {
@@ -3123,7 +3114,7 @@ GCAreclassifyUsingGibbsPriors(MRI *mri_inputs, GCA *gca, MRI *mri_dst,LTA *lta,
       if (x == 141 && y == 62 && z == 126 && iter == 0)
       {
         printf("val = %d\n", val) ;
-        dump_gcan(gcan, stdout) ;
+        dump_gcan(gcan, stdout, 0) ;
       }
 #endif
       for (n = 0 ; n < gcan->nlabels ; n++)
@@ -3204,7 +3195,7 @@ GCAreclassifyUsingGibbsPriors(MRI *mri_inputs, GCA *gca, MRI *mri_dst,LTA *lta,
         if (label == 51)
         {
           if (DIAG_VERBOSE_ON)
-            dump_gcan(gcan, stderr) ;
+            dump_gcan(gcan, stderr, 1) ;
           DiagBreak() ;
         }
       }
@@ -3237,7 +3228,7 @@ GCAreclassifyUsingGibbsPriors(MRI *mri_inputs, GCA *gca, MRI *mri_dst,LTA *lta,
     ll = gcaGibbsImageLogLikelihood(gca, mri_dst, mri_inputs, m_L) ;
     ll /= (double)(width*depth*height) ;
     printf("pass %d: %d changed. image ll: %2.3f (CMA=%2.3f)\n", 
-           iter, nchanged, ll, lcma) ;
+           iter+1, nchanged, ll, lcma) ;
     MRIdilate(mri_changed, mri_changed) ;
 
   } while (nchanged > 0 && iter++ < max_iter) ;
@@ -3313,6 +3304,7 @@ GCAanneal(MRI *mri_inputs, GCA *gca, MRI *mri_dst,LTA *lta,
 
   old_ll = gcaGibbsImageLogLikelihood(gca, mri_dst, mri_inputs, m_L) ;
   old_ll /= (double)(width*depth*height) ;
+#if 0
   {
     MRI   *mri_cma ;
     char  fname[STRLEN], *cp ;
@@ -3333,6 +3325,7 @@ GCAanneal(MRI *mri_inputs, GCA *gca, MRI *mri_dst,LTA *lta,
       }
     }
   }
+#endif
 
   do
   {
@@ -3414,7 +3407,7 @@ GCAanneal(MRI *mri_inputs, GCA *gca, MRI *mri_dst,LTA *lta,
         if (label == 53)
         {
           if (DIAG_VERBOSE_ON && old_label != label)
-            dump_gcan(gcan, stderr) ;
+            dump_gcan(gcan, stderr, 0) ;
           DiagBreak() ;
         }
       }
@@ -3426,10 +3419,10 @@ GCAanneal(MRI *mri_inputs, GCA *gca, MRI *mri_dst,LTA *lta,
       ll = gcaGibbsImageLogLikelihood(gca, mri_dst, mri_inputs, m_L) ;
       ll /= (double)(width*depth*height) ;
       printf("pass %d: %d changed. image ll: %2.3f (CMA=%2.3f)\n", 
-             iter, nchanged, ll, lcma) ;
+             iter+1, nchanged, ll, lcma) ;
     }
     else
-      printf("pass %d: %d changed.\n", iter, nchanged) ;
+      printf("pass %d: %d changed.\n", iter+1, nchanged) ;
     MRIdilate(mri_changed, mri_changed) ;
 
   } while (nchanged > 0 && iter++ < max_iter) ;
@@ -3445,13 +3438,19 @@ GCAanneal(MRI *mri_inputs, GCA *gca, MRI *mri_dst,LTA *lta,
   return(mri_dst) ;
 }
 
+char *gca_write_fname = NULL ;
+int gca_write_iterations = 0 ;
+
+#define MAX_PRIOR_FACTOR 0.5
+#define MIN_PRIOR_FACTOR 0.0001
+
 MRI  *
 GCAreclassifyUsingGibbsPriors(MRI *mri_inputs, GCA *gca, MRI *mri_dst,LTA *lta,
                             int max_iter, MRI *mri_fixed)
 {
   int      x, y, z, xt, yt, zt, width, height, depth, label, val, iter,
            xn, yn, zn, n, nchanged,
-           index, nindices, old_label ;
+           index, nindices, old_label, fixed = 1 ;
   short    *x_indices, *y_indices, *z_indices ;
   MATRIX   *m_L ;
   VECTOR   *v_input, *v_canon ;
@@ -3522,6 +3521,7 @@ GCAreclassifyUsingGibbsPriors(MRI *mri_inputs, GCA *gca, MRI *mri_dst,LTA *lta,
 
   old_ll = gcaGibbsImageLogLikelihood(gca, mri_dst, mri_inputs, m_L) ;
   old_ll /= (double)(width*depth*height) ;
+#if 0
   {
     MRI   *mri_cma ;
     char  fname[STRLEN], *cp ;
@@ -3541,19 +3541,28 @@ GCAreclassifyUsingGibbsPriors(MRI *mri_inputs, GCA *gca, MRI *mri_dst,LTA *lta,
       }
     }
   }
+#endif
 
-  PRIOR_FACTOR = 1.0 ;
+  PRIOR_FACTOR = MAX_PRIOR_FACTOR ;
   do
   {
     if (iter == 0)
     {
       char  fname[STRLEN], *cp ;
-      int   nfixed ;
+      /*      int   nfixed ;*/
 
+      if (gca_write_iterations)
+      {
+        char fname[STRLEN] ;
+        sprintf(fname, "%s%03d.mgh", gca_write_fname, iter) ;
+        printf("writing snapshot to %s...\n", fname) ;
+        MRIwrite(mri_dst, fname) ;
+      }
       strcpy(fname, mri_inputs->fname) ;
       cp = strrchr(fname, '/') ;
       strcpy(cp+1, "probs") ;
       mri_probs = GCAlabelProbabilities(mri_inputs, gca, NULL, lta) ;
+#if 0
       for (nfixed = x = 0 ; x < width ; x++)
         for (y = 0 ; y < height ; y++)
           for (z = 0 ; z < depth ; z++)
@@ -3565,9 +3574,12 @@ GCAreclassifyUsingGibbsPriors(MRI *mri_inputs, GCA *gca, MRI *mri_dst,LTA *lta,
             }
           }
       
-      fprintf(stderr, "writing label probabilities to %s...\n", fname) ;
       fprintf(stderr, "%d new fixed points added\n", nfixed) ;
+#endif
+#if 0
+      fprintf(stderr, "writing label probabilities to %s...\n", fname) ;
       MRIwrite(mri_probs, fname) ;
+#endif
       MRIorderIndices(mri_probs, x_indices, y_indices, z_indices) ;
       MRIfree(&mri_probs) ;
     }
@@ -3582,7 +3594,9 @@ GCAreclassifyUsingGibbsPriors(MRI *mri_inputs, GCA *gca, MRI *mri_dst,LTA *lta,
       V3_X(v_input) = (float)x ; 
       V3_Y(v_input) = (float)y ;
       V3_Z(v_input) = (float)z ;
-      if (x == 155 && y == 126 && z == 128)
+      if (x == 139 && y == 103 && z == 139)  /* wm should be pallidum */
+        DiagBreak() ;
+      if (x == 92 && y == 115 && z == 117)
         DiagBreak() ;
       if (mri_fixed && MRIvox(mri_fixed, x, y, z))
         continue ;
@@ -3590,7 +3604,7 @@ GCAreclassifyUsingGibbsPriors(MRI *mri_inputs, GCA *gca, MRI *mri_dst,LTA *lta,
       if (MRIvox(mri_changed, x, y, z) == 0)
         continue ;
 
-      if (x == 63 && y == 107 && z == 120)
+      if (x == 156 && y == 124 && z == 135)  /* wm should be amygdala */
         DiagBreak() ; 
           
       val = MRIvox(mri_inputs, x, y, z) ;
@@ -3640,8 +3654,8 @@ GCAreclassifyUsingGibbsPriors(MRI *mri_inputs, GCA *gca, MRI *mri_dst,LTA *lta,
         MRIvox(mri_changed, x, y, z) = 0 ;
       MRIvox(mri_dst, x, y, z) = label ;
       
-#if 0
-      if (x == 92 && y == 120 && z == 122)
+#if 1
+      if (x == 156 && y == 124 && z == 135)  /* wm should be amygdala */
       {
         printf("(%d, %d, %d): old label %d, new label %d (p=%2.3f)\n",
                x, y, z, old_label, label, min_ll) ;
@@ -3656,10 +3670,10 @@ GCAreclassifyUsingGibbsPriors(MRI *mri_inputs, GCA *gca, MRI *mri_dst,LTA *lta,
       ll = gcaGibbsImageLogLikelihood(gca, mri_dst, mri_inputs, m_L) ;
       ll /= (double)(width*depth*height) ;
       printf("pass %d: %d changed. image ll: %2.3f (CMA=%2.3f), PF=%2.3f\n", 
-             iter, nchanged, ll, lcma, PRIOR_FACTOR) ;
+             iter+1, nchanged, ll, lcma, PRIOR_FACTOR) ;
     }
     else
-      printf("pass %d: %d changed.\n", iter, nchanged) ;
+      printf("pass %d: %d changed.\n", iter+1, nchanged) ;
     MRIdilate(mri_changed, mri_changed) ;
 
 #if 0
@@ -3681,16 +3695,43 @@ GCAreclassifyUsingGibbsPriors(MRI *mri_inputs, GCA *gca, MRI *mri_dst,LTA *lta,
       }
     }
 #endif
-    if (!nchanged)
+#define MIN_CHANGED 2000
+    if (nchanged <= MIN_CHANGED)
     {
       for (x = 0 ; x < width ; x++)
         for (y = 0 ; y < height ; y++)
           for (z = 0 ; z < depth ; z++)
             MRIvox(mri_changed,x,y,z) = 1 ;
-      PRIOR_FACTOR *= 2 ;
-      fprintf(stderr, "setting PRIOR_FACTOR to %2.3f\n", PRIOR_FACTOR) ;
+      if (fixed)
+      {
+        printf("removing fixed flag...\n") ;
+        MRIclear(mri_fixed) ;
+        fixed = 0 ;
+      }
+      else
+      {
+        PRIOR_FACTOR /= 2 ;
+        fprintf(stderr, "setting PRIOR_FACTOR to %2.4f\n", PRIOR_FACTOR) ;
+      }
+      if (gca_write_iterations < 0)
+      {
+        char fname[STRLEN] ;
+        static int fno = 0 ;
+
+        sprintf(fname, "%s%03d.mgh", gca_write_fname, fno+1) ; fno++ ;
+        printf("writing snapshot to %s...\n", fname) ;
+        MRIwrite(mri_dst, fname) ;
+      }
     }
-  } while (!(nchanged == 0 && PRIOR_FACTOR > 0.5) && (iter++ < max_iter)) ;
+    if ((gca_write_iterations > 0) && !(iter % gca_write_iterations))
+    {
+      char fname[STRLEN] ;
+      sprintf(fname, "%s%03d.mgh", gca_write_fname, iter+1) ;
+      printf("writing snapshot to %s...\n", fname) ;
+      MRIwrite(mri_dst, fname) ;
+    }
+  } while ((nchanged > MIN_CHANGED || PRIOR_FACTOR > MIN_PRIOR_FACTOR) && 
+           (iter++ < max_iter)) ;
 
 #if 0
   {
@@ -3859,7 +3900,7 @@ static double
 gcaVoxelGibbsLogLikelihood(GCA *gca, MRI *mri_labels, MRI *mri_inputs, int x, 
                       int y, int z, MATRIX *m_L)
 {
-  double    log_likelihood, dist, prior ;
+  double    log_likelihood, dist, nbr_prior ;
   int       xt, yt, zt, xn, yn, zn, xnbr, ynbr, znbr, nbr_label, label, val,
             i,j, n;
   GCA_NODE *gcan ;
@@ -3908,7 +3949,7 @@ gcaVoxelGibbsLogLikelihood(GCA *gca, MRI *mri_labels, MRI *mri_inputs, int x,
   log_likelihood = 
     -log(sqrt(gc->var)) - .5*(dist*dist/gc->var) ;
 
-  prior = log(gc->prior) ;
+  nbr_prior = 0.0 ;
   for (i = 0 ; i < GIBBS_NEIGHBORS ; i++)
   {
     xnbr = mri_labels->xi[x+xnbr_offset[i]] ;
@@ -3923,18 +3964,18 @@ gcaVoxelGibbsLogLikelihood(GCA *gca, MRI *mri_labels, MRI *mri_inputs, int x,
     if (j < gc->nlabels[i])
     {
       if (!FZERO(gc->label_priors[i][j]))
-        prior += log(gc->label_priors[i][j]) ;
+        nbr_prior += log(gc->label_priors[i][j]) ;
       else
-        prior += BIG_AND_NEGATIVE ;
+        nbr_prior += BIG_AND_NEGATIVE ;
     }
-    else
+    else   /* never occurred - make it unlikely */
     {
-      if (x == 141 && y == 62 && z == 126)
+      if (x == 92 && y == 115 && z == 117)
         DiagBreak() ;
-      prior += BIG_AND_NEGATIVE ;   /* never occurred - make it unlikely */
+      nbr_prior += BIG_AND_NEGATIVE ;
     }
   }
-  log_likelihood += PRIOR_FACTOR*(prior) ;
+  log_likelihood += (PRIOR_FACTOR * nbr_prior + log(gc->prior)) ;
 
   return(log_likelihood) ;
 }
@@ -4178,4 +4219,256 @@ gcaReclassifyVoxel(GCA *gca, MRI *mri_inputs, MRI *mri_labels,
   MRIvox(mri_labels, x, y, z) = new_label ;
   return(NO_ERROR) ;
 }
+MRI   *
+GCAexpandLabelIntoWM(GCA *gca, MRI *mri_inputs, MRI *mri_src,
+               MRI *mri_dst, LTA *lta, MRI *mri_fixed, int target_label)
+{
+  int      nchanged, x, y, z, width, height, depth, xn, yn, zn, xi, yi, zi,
+           xk, yk, zk, nbr_label, n, label, val, total_changed, i ;
+  GCA_NODE *gcan, *gcan_nbr ;
+  float    label_mean, wm_mean, prior ;
+  MRI      *mri_tmp ;
 
+  if (mri_src != mri_dst)
+    mri_dst = MRIcopy(mri_src, mri_dst) ;
+
+  mri_tmp = MRIcopy(mri_dst, NULL) ;
+
+  width = mri_src->width ; height = mri_src->height ; depth = mri_src->depth ;
+
+  i = total_changed = 0 ;
+  do
+  {
+    nchanged = 0 ;
+    for (z = 0 ; z < depth ; z++)
+    {
+      for (y = 0 ; y < height ; y++)
+      {
+        for (x = 0 ; x < width ; x++)
+        {
+          if (x == 140 && y == 111 && z == 139)
+            DiagBreak() ;  /* should be wm */
+          if (x == 138 && y == 103 && z == 139)
+            DiagBreak() ;  /* should be pallidum */
+          
+          label = MRIvox(mri_dst, x, y, z) ;
+          GCAsourceVoxelToNode(gca, mri_dst, lta, x, y, z, &xn, &yn, &zn) ;
+          gcan = &gca->nodes[xn][yn][zn] ;
+          
+          if (label == target_label)
+          {
+            label_mean = wm_mean = 0.0 ;
+            for (n = 0 ; n < gcan->nlabels ; n++)
+            {
+              if (gcan->labels[n] == target_label)
+                label_mean = gcan->gcs[n].mean ;
+              else if 
+                ((gcan->labels[n] == Left_Cerebral_White_Matter) ||
+                 (gcan->labels[n] == Right_Cerebral_White_Matter))
+                wm_mean = gcan->gcs[n].mean ;
+            }
+            
+            for (zk = -1 ; zk <= 1 ; zk++)
+            {
+              for (yk = -1 ; yk <= 1 ; yk++)
+              {
+                for (xk = -1 ; xk <= 1 ; xk++)
+                {
+                  if (fabs(xk) + fabs(yk) + fabs(zk) > 1)
+                    continue ;
+                  xi = mri_src->xi[x+xk] ;
+                  yi = mri_src->yi[y+yk] ;
+                  zi = mri_src->zi[z+zk] ;
+                  nbr_label = MRIvox(mri_dst, xi, yi, zi) ;
+                  if ((nbr_label == Right_Cerebral_White_Matter) ||
+                      (nbr_label == Left_Cerebral_White_Matter))
+                  {
+                    if (xi == 140 && yi == 111 && zi == 139)
+                      DiagBreak() ;  /* should be wm */
+                    if (xi == 138 && yi == 103 && zi == 139)
+                      DiagBreak() ;  /* should be pallidum */
+                    val = MRIvox(mri_inputs, xi, yi, zi) ;
+                    if (fabs(val-wm_mean) > fabs(val-label_mean))
+                    {
+          
+                      GCAsourceVoxelToNode(gca, mri_dst, lta, xi, yi, zi, 
+                                           &xn, &yn, &zn) ;
+                      gcan_nbr = &gca->nodes[xn][yn][zn] ;
+                      for (prior = 0.0f, n = 0 ; n < gcan_nbr->nlabels ; n++)
+                      {
+                        if (gcan_nbr->labels[n] == target_label)
+                        {
+                          prior = gcan_nbr->gcs[n].prior ;
+                          break ;
+                        }
+                      }
+#define PRIOR_THRESH 0.01
+                      if (prior >= PRIOR_THRESH)  /* target is possible */
+                      {
+                        nchanged++ ;
+                        MRIvox(mri_tmp, xi, yi, zi) = target_label ;
+                        /*                        MRIvox(mri_fixed, xi, yi, zi) = 0 ;*/
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          } 
+        }
+      }
+    }
+    MRIcopy(mri_tmp, mri_dst) ;
+    total_changed += nchanged ;
+    if (i++ >= 2)
+      break ;
+  } while (nchanged > 0) ;
+
+  MRIfree(&mri_tmp) ;
+  printf("%d labels changed to %d...\n", total_changed, target_label) ;
+  return(mri_dst) ;
+}
+
+
+int
+GCArankSamples(GCA *gca, GCA_SAMPLE *gcas, int nsamples, int *ordered_indices)
+{
+  LABEL_PROB  *label_probs ;
+  int         i ;
+
+  label_probs = (LABEL_PROB *)calloc(nsamples, sizeof(LABEL_PROB)) ;
+  for (i = 0 ; i < nsamples ; i++)
+  {
+    label_probs[i].label = i ; label_probs[i].prob =  gcas[i].log_p ;
+  }
+
+  /* now sort the samples by probability */
+  qsort(label_probs, nsamples, sizeof(LABEL_PROB), 
+              compare_sort_probabilities) ;
+
+  for (i = 0 ; i < nsamples ; i++)
+  {
+    ordered_indices[i] = label_probs[nsamples-(i+1)].label ;
+  }
+
+  free(label_probs) ;
+  return(NO_ERROR) ;
+}
+
+#include "mrinorm.h"
+MRI *
+GCAnormalizeSamples(MRI *mri_in, GCA *gca, GCA_SAMPLE *gcas, int nsamples, 
+                    LTA *lta)
+{
+  MRI    *mri_dst, *mri_ctrl, *mri_bias ;
+  int    xv, yv, zv, n, x, y, z, width, height, depth, out_val ;
+  MATRIX *m_L_inv ;
+  VECTOR *v_input, *v_canon ;
+  float   bias ;
+
+  m_L_inv = MatrixInverse(lta->xforms[0].m_L, NULL) ;
+  if (!m_L_inv)
+  {
+    MatrixPrint(stderr, lta->xforms[0].m_L) ;
+    ErrorExit(ERROR_BADPARM, 
+              "GCAcomputeLogSampleProbability: matrix is not invertible") ;
+  }
+  mri_dst = MRIclone(mri_in, NULL) ;
+  mri_ctrl = MRIclone(mri_in, NULL) ;
+  v_input = VectorAlloc(4, MATRIX_REAL) ;
+  v_canon = VectorAlloc(4, MATRIX_REAL) ;
+  *MATRIX_RELT(v_input, 4, 1) = 1.0 ; *MATRIX_RELT(v_canon, 4, 1) = 1.0 ;
+  mri_bias = MRIalloc(mri_in->width,mri_in->height,mri_in->depth,MRI_SHORT);
+  if (!mri_bias)
+    ErrorExit(ERROR_NOMEMORY, 
+              "GCAnormalize: could not allocate (%d,%d,%d,2) bias image",
+              mri_in->width,mri_in->height,mri_in->depth) ;
+              
+
+  width = mri_in->width ; height = mri_in->height ; depth = mri_in->depth ;
+  for (z = 0 ; z < depth ; z++)
+  {
+    for (y = 0 ; y < height ; y++)
+    {
+      for (x = 0 ; x < width ; x++)
+      {
+        MRISvox(mri_bias, x,y,z) = 1000 ;
+      }
+    }
+  }
+  for (n = 0 ; n < nsamples ; n++)
+  {
+    GCAnodeToVoxel(gca, mri_dst, gcas[n].xn, gcas[n].yn, gcas[n].zn, 
+                   &xv, &yv, &zv) ;
+    V3_X(v_canon) = (float)xv ; V3_Y(v_canon) = (float)yv ;
+    V3_Z(v_canon) = (float)zv ;
+    MatrixMultiply(m_L_inv, v_canon, v_input) ;
+    xv = nint(V3_X(v_input)); yv = nint(V3_Y(v_input)); zv=nint(V3_Z(v_input));
+    if (xv < 0) xv = 0 ;
+    if (xv >= mri_in->width) xv = mri_in->width-1 ;
+    if (yv < 0) xv = 0 ;
+    if (yv >= mri_in->height) xv = mri_in->height-1 ;
+    if (zv < 0) xv = 0 ;
+    if (zv >= mri_in->depth) xv = mri_in->depth-1 ;
+
+    if (xv == 181 && yv == 146 && zv == 128)
+      DiagBreak() ;
+    if (xv == 181 && yv == 135 && zv == 121)
+      DiagBreak() ;
+    if (gcas[n].label == 29 || gcas[n].label == 61)
+    {
+      gcas[n].label = 0 ;
+      DiagBreak() ;
+    }
+    if (gcas[n].label > 0)
+    {
+      MRIvox(mri_ctrl, xv, yv, zv) = CONTROL_MARKED ;
+      bias = 1000.0f*((float)gcas[n].mean/MRIvox(mri_in, xv, yv, zv)) ;
+      if (bias < 900)
+        bias = 900 ;
+      if (bias > 1100)
+        bias = 1100 ;
+      MRISvox(mri_bias, xv, yv, zv) = (short)nint(bias) ;
+    }
+    else
+      MRIvox(mri_ctrl, xv, yv, zv) = CONTROL_NONE ;
+  }
+
+  MRIbuildVoronoiDiagram(mri_bias, mri_ctrl, mri_bias) ;
+  /*  MRIwrite(mri_bias, "bias.mgh") ;*/
+#if 0
+  {
+    MRI *mri_kernel, *mri_smooth ;
+
+    mri_kernel = MRIgaussian1d(2.0f, 100) ;
+    mri_smooth = MRIconvolveGaussian(mri_bias, NULL, mri_kernel) ;
+    MRIfree(&mri_bias) ; mri_bias = mri_smooth ; MRIfree(&mri_kernel) ;
+  }
+#else
+  MRIsoapBubble(mri_bias, mri_ctrl, mri_bias, 10) ;
+#endif
+  /*  MRIwrite(mri_bias, "smooth_bias.mgh") ;*/
+
+
+  width = mri_in->width ; height = mri_in->height ; depth = mri_in->depth ;
+  for (z = 0 ; z < depth ; z++)
+  {
+    for (y = 0 ; y < height ; y++)
+    {
+      for (x = 0 ; x < width ; x++)
+      {
+        bias = MRISvox(mri_bias, x, y, z)/1000.0f ;
+        out_val = nint((float)MRIvox(mri_in, x, y, z)*bias) ;
+        if (out_val < 0)
+          out_val = 0 ;
+        else if (out_val > 255)
+          out_val = 255 ;
+        MRIvox(mri_dst, x, y, z) = (BUFTYPE)out_val ;
+      }
+    }
+  }
+
+  MatrixFree(&m_L_inv) ; MatrixFree(&v_canon) ; MatrixFree(&v_input) ;
+  MRIfree(&mri_bias) ; MRIfree(&mri_ctrl) ;
+  return(mri_dst) ;
+}

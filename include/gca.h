@@ -89,9 +89,9 @@ int   GCArankSamples(GCA *gca, GCA_SAMPLE *gcas, int nsamples,
                      int *ordered_indices) ;
 MRI  *GCAanneal(MRI *mri_inputs, GCA *gca, MRI *mri_dst,LTA *lta, 
                 int max_iter);
-int    GCAsourceVoxelToNodePoint(GCA *gca, MRI *mri, LTA *lta,
-                                 Real xv, Real yv, Real zv, 
-                                 Real *pxn, Real *pyn, Real *pzn) ;
+int    GCAsourceVoxelToNode(GCA *gca, MRI *mri, LTA *lta,
+                                 int xv, int yv, int zv, 
+                                 int *pxn, int *pyn, int *pzn) ;
 #if 0
 int    GCAsampleStats(GCA *gca, MRI *mri, LTA *lta, int class, 
                       Real x, Real y, Real z, 
@@ -122,6 +122,9 @@ MRI  *GCAcomputeProbabilities(MRI *mri_inputs, GCA *gca, MRI *mri_labels,
 
 MRI   *GCAconstrainLabelTopology(GCA *gca, MRI *mri_inputs, MRI *mri_src, 
                                  MRI *mri_dst, LTA *lta) ;
+MRI   *GCAexpandLabelIntoWM(GCA *gca, MRI *mri_inputs, MRI *mri_src,
+                            MRI *mri_dst, LTA *lta,MRI *mri_fixed,
+                            int target_label) ;
 MRI   *GCAnormalizeSamples(MRI *mri_in, GCA *gca, GCA_SAMPLE *gcas, 
                            int nsamples, LTA *lta) ;
 
