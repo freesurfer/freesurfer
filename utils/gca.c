@@ -85,8 +85,9 @@ dump_gcan(GCA_NODE *gcan, FILE *fp, int verbose)
   for (n = 0 ; n < gcan->nlabels ; n++)
   {
     gc = &gcan->gcs[n] ;
-    fprintf(fp, "%d: label %d, mean %2.1f, std %2.1f, prior %2.3f\n",
-            n, gcan->labels[n], gc->mean, sqrt(gc->var), gc->prior) ;
+    fprintf(fp, "%d: label %s, mean %2.1f, std %2.1f, prior %2.3f\n",
+            n, cma_label_to_name(gcan->labels[n]), gc->mean, sqrt(gc->var), 
+            gc->prior) ;
     if (verbose) for (i = 0 ; i < GIBBS_NEIGHBORS ; i++)
     {
       fprintf(fp, "\tnbr %d (%d,%d,%d): %d labels\n",
@@ -94,7 +95,8 @@ dump_gcan(GCA_NODE *gcan, FILE *fp, int verbose)
               gc->nlabels[i]) ;
       for (j = 0 ; j < gc->nlabels[i] ; j++)
       {
-        fprintf(fp, "\t\tlabel %d, prior %2.3f\n", gc->labels[i][j],
+        fprintf(fp, "\t\tlabel %s, prior %2.3f\n", 
+                cma_label_to_name(gc->labels[i][j]),
                 gc->label_priors[i][j]) ;
       }
     }
@@ -5100,3 +5102,15 @@ GCArelabel_cortical_gray_and_white(GCA *gca, MRI *mri_inputs,
          100.0f*(float)new_wm/total_changed) ;
   return(mri_dst) ;
 }
+int
+GCAdump(GCA *gca,MRI *mri,int x, int y, int z, LTA *lta, FILE *fp, int verbose)
+{
+  int      xn, yn, zn ;
+  GCA_NODE *gcan ;
+
+  GCAsourceVoxelToNode(gca, mri, lta, x, y, z, &xn, &yn, &zn) ;
+  gcan = &gca->nodes[xn][yn][zn] ;
+  dump_gcan(gcan, fp, verbose) ;
+  return(NO_ERROR) ;
+}
+
