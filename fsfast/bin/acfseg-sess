@@ -1,9 +1,9 @@
 #!/bin/csh -f
 # acfseg-sess
 #
-# $Id: acfseg-sess,v 1.4 2004/11/20 00:22:11 greve Exp $
+# $Id: acfseg-sess,v 1.5 2004/12/10 00:34:04 greve Exp $
 
-set VERSION = '$Id: acfseg-sess,v 1.4 2004/11/20 00:22:11 greve Exp $';
+set VERSION = '$Id: acfseg-sess,v 1.5 2004/12/10 00:34:04 greve Exp $';
 
 set cmdargs = ($argv);
 
@@ -103,7 +103,7 @@ tee -a $MLF > /dev/null <<EOF
 tic;
 funcstem   = '$funcpath$fmtext';
 maskstem   = '$maskpath$fmtext';
-acfsegstem = '$acfsegpath$fmtext';
+acfsegstem = '$acfsegpath.mgh';
 nbins = $nbins;
 monly = $monly;
 
