@@ -14,7 +14,7 @@
 #include "macros.h"
 #include "utils.h"
 
-static char vcid[] = "$Id: mris_flatten.c,v 1.10 1998/02/13 18:01:38 fischl Exp $";
+static char vcid[] = "$Id: mris_flatten.c,v 1.11 1998/02/13 23:46:30 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -74,8 +74,7 @@ main(int argc, char *argv[])
   parms.error_ratio = 1.03 /*ERROR_RATIO */;
   parms.integration_type = INTEGRATE_LINE_MINIMIZE ;
   parms.momentum = 0.9 ;
-  parms.fi_desired = -1.0 ;
-  parms.ici_desired = -1.0 ;
+  parms.desired_rms_height = -1.0 ;
   parms.base_name[0] = 0 ;
   parms.Hdesired = 0.0 ;   /* a flat surface */
   parms.nbhd_size = 4 ;    /* out to 4-connected neighbors */
