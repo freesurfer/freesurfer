@@ -1825,12 +1825,7 @@ MRIstd(MRI *mri_src, MRI*mri_dst, MRI *mri_mean, int wsize)
   return(mri_dst) ;
 }
 /*-----------------------------------------------------
-        Parameters:
-
-        Returns value:
-
-        Description
-
+MRIconvolveGaussian() - see also MRIgaussianSmooth();
 ------------------------------------------------------*/
 MRI *
 MRIconvolveGaussian(MRI *mri_src, MRI *mri_dst, MRI *mri_gaussian)
@@ -1869,6 +1864,138 @@ MRIconvolveGaussian(MRI *mri_src, MRI *mri_dst, MRI *mri_gaussian)
 
   return(mri_dst) ;
 }
+/*---------------------------------------------------------------------
+  MRIgaussianSmooth() - performs isotropic gaussian spatial smoothing.
+  The standard deviation of the gaussian is std. If norm is set to 1,
+  then the mean is preserved. Can be done in-place. Handles multiple
+  frames. See also MRIconvolveGaussian().
+  ---------------------------------------------------------------*/
+MRI *MRIgaussianSmooth(MRI *src, float std, int norm, MRI *targ)
+{
+  int c,r,s,f;
+  MATRIX *v, *vg, *G;
+
+  if(targ == NULL){
+    targ = MRIcopy(src,NULL);
+    if(targ == NULL){
+      printf("ERROR: MRIgaussianSmooth: could not alloc\n");
+      return(NULL);
+    }
+  }
+  else {
+    if(src->width != targ->width){
+      printf("ERROR: MRIgaussianSmooth: width dimension mismatch\n");
+      return(NULL);
+    }
+    if(src->height != targ->height){
+      printf("ERROR: MRIgaussianSmooth: height dimension mismatch\n");
+      return(NULL);
+    }
+    if(src->depth != targ->depth){
+      printf("ERROR: MRIgaussianSmooth: depth dimension mismatch\n");
+      return(NULL);
+    }
+    if(src->nframes != targ->nframes){
+      printf("ERROR: MRIgaussianSmooth: frames dimension mismatch\n");
+      return(NULL);
+    }
+    if(src != targ) MRIcopy(src,targ);
+  }
+
+  /* Smooth the columns */
+  if(Gdiag_no > 0) printf("Smoothing columns\n");
+  G = GaussianMatrix(src->width, std/src->xsize, norm, NULL);
+  v  = MatrixAlloc(src->width,1,MATRIX_REAL);
+  vg = MatrixAlloc(src->width,1,MATRIX_REAL);
+  for(r=0; r < src->height; r++){
+    if(Gdiag_no > 0){
+      printf("%d ",r);
+      if(r%10==0) printf("\n");
+    }
+
+    for(s=0; s < src->depth; s++){
+      for(f=0; f < src->nframes; f++){
+
+	for(c=0; c < src->width; c++) 
+	  v->rptr[c+1][1] = MRIFseq_vox(targ,c,r,s,f);
+
+	MatrixMultiply(G,v,vg);
+
+	for(c=0; c < src->width; c++) 
+	  MRIFseq_vox(targ,c,r,s,f) = vg->rptr[c+1][1];
+
+      }
+    }
+  }
+  if(Gdiag_no > 0) printf("\n");
+  MatrixFree(&G);
+  MatrixFree(&v);
+  MatrixFree(&vg);
+
+
+  /* Smooth the rows */
+  if(Gdiag_no > 0) printf("Smoothing rows\n");
+  G = GaussianMatrix(src->height, std/src->ysize, norm, NULL);
+  v  = MatrixAlloc(src->height,1,MATRIX_REAL);
+  vg = MatrixAlloc(src->height,1,MATRIX_REAL);
+  for(c=0; c < src->width; c++){ 
+    if(Gdiag_no > 0) {
+      printf("%d ",c);
+      if(c%10==0) printf("\n");
+    }
+
+    for(s=0; s < src->depth; s++){
+      for(f=0; f < src->nframes; f++){
+
+	for(r=0; r < src->height; r++)
+	  v->rptr[r+1][1] = MRIFseq_vox(targ,c,r,s,f);
+	
+	MatrixMultiply(G,v,vg);
+	
+	for(r=0; r < src->height; r++)
+	  MRIFseq_vox(targ,c,r,s,f) = vg->rptr[r+1][1];
+	  
+      }
+    }
+  }
+  if(Gdiag_no > 0) printf("\n");
+  MatrixFree(&G);
+  MatrixFree(&v);
+  MatrixFree(&vg);
+
+  /* Smooth the slices */
+  if(Gdiag_no > 0) printf("Smoothing slices\n");
+  G = GaussianMatrix(src->depth, std/src->zsize, norm, NULL);
+  v  = MatrixAlloc(src->depth,1,MATRIX_REAL);
+  vg = MatrixAlloc(src->depth,1,MATRIX_REAL);
+  for(c=0; c < src->width; c++) {
+    if(Gdiag_no > 0) {
+      printf("%d ",c);
+      if(c%10==0) printf("\n");
+    }
+    for(r=0; r < src->height; r++){
+      for(f=0; f < src->nframes; f++){
+
+	for(s=0; s < src->depth; s++)
+	  v->rptr[s+1][1] = MRIFseq_vox(targ,c,r,s,f);
+
+	MatrixMultiply(G,v,vg);
+
+	for(s=0; s < src->depth; s++)
+	  MRIFseq_vox(targ,c,r,s,f) = vg->rptr[s+1][1];
+
+      }
+    }
+  }
+  if(Gdiag_no > 0) printf("\n");
+  MatrixFree(&G);
+  MatrixFree(&v);
+  MatrixFree(&vg);
+
+  return(targ);
+}
+
+
 /*-----------------------------------------------------
         Parameters:
 
