@@ -86,13 +86,13 @@
 **  and convert the object to and from its "stream" representation.
 **  In addition, the package can parse a file which contains a stream
 **  and create its internal object.
-** Last Update:    $Author: inverse $, $Date: 2001/06/27 21:13:43 $
+** Last Update:    $Author: inverse $, $Date: 2001/06/27 21:58:53 $
 ** Source File:    $RCSfile: dcm.c,v $
-** Revision:    $Revision: 1.3 $
+** Revision:    $Revision: 1.4 $
 ** Status:    $State: Exp $
 */
 
-static char rcsid[] = "$Revision: 1.3 $ $RCSfile: dcm.c,v $";
+static char rcsid[] = "$Revision: 1.4 $ $RCSfile: dcm.c,v $";
 
 #include <stdio.h>
 #include <errno.h>
@@ -122,6 +122,10 @@ static char rcsid[] = "$Revision: 1.3 $ $RCSfile: dcm.c,v $";
 #elif defined _MSC_VER
 #include <fcntl.h>
 #elif defined SOLARIS
+#include <sys/fcntl.h>
+#endif
+
+#ifdef Solaris
 #include <fcntl.h>
 #endif
 
