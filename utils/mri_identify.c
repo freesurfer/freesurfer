@@ -158,7 +158,7 @@ int is_cor(char *fname)
     return(1);
 
   /* if the first four letters are COR- */
-  if(strncmp(fname,"COR-",4))
+  if(strncmp(fname,"COR-",4) == 0)
     return(1);
 
   return(0);
