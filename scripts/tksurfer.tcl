@@ -55,11 +55,11 @@ set initdelay $blinkdelay
 
 ### misc defaults
 set surfcolor 1
-set colscale 0
+#set colscale 0
+#set fthresh 0.1
 set shrinksteps 5
 set smoothsteps 5
 set smoothtype curv
-set fthresh 0.1
 
 ### source standard widget wrapper code
 source $env(CSURF_DIR)/lib/tcl/wrappers.tcl
@@ -1062,8 +1062,8 @@ buttons $f "FILL" { floodfill_marked_patch 0; redrawbutton } row 1 2
 buttons $f "PLANE" { cut_plane; redrawbutton } row 1 2
 buttons $f "LINE" { cut_line 0; redrawbutton } row 1 2
 buttons $f "UNDO" { restore_ripflags 1; redrawbutton } row 1 2
-#buttons $f "INIT" { restore_ripflags 2; redrawbutton } row 1 2
-buttons $f "INIT" { restore_ripflags 2; read_binary_surf; read_binary_curv; \
+buttons $f "INIT" { restore_ripflags 2; redrawbutton } row 1 2
+#buttons $f "INIT" { restore_ripflags 2; read_binary_surf; read_binary_curv; \
                     set flag2d 0; restore; redrawbutton } row 1 2
 buttons $f "FLAT" { flatten; set flag2d 1; restore; redrawbutton } row 1 2
 ### shrink smooth row
