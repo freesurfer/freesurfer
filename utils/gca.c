@@ -3,8 +3,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2005/02/18 20:54:05 $
-// Revision       : $Revision: 1.158 $
+// Revision Date  : $Date: 2005/03/22 14:02:57 $
+// Revision       : $Revision: 1.159 $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -73,7 +73,6 @@ static double gcaVoxelGibbsLogLikelihood(GCA *gca, MRI *mri_labels,
                                          TRANSFORM *transform, double gibbs_coef) ;
 static int copy_gcs(int nlabels, GC1D *gcs_src, GC1D *gcs_dst, int ninputs) ;
 static int free_gcs(GC1D *gcs, int nlabels, int ninputs) ;
-static GC1D *alloc_gcs(int nlabels, int flags, int ninputs) ;
 static double gcaNbhdGibbsLogLikelihood(GCA *gca, MRI *mri_labels, 
                                         MRI *mri_inputs, int x, int y, int z, 
                                         TRANSFORM *transform, double gibbs_coef) ;
@@ -8395,6 +8394,49 @@ cma_label_to_name(int label)
   if (label == Teeth)
     return("Teeth") ;
 
+  if (label == alveus)
+		return("alveus") ;
+  if (label == perforant_pathway	  )
+		return("perforant_pathway") ;
+  if (label == parasubiculum	  )
+		return("parasubiculum") ;
+  if (label == presubiculum		  )
+		return("presubiculum") ;
+  if (label == subiculum		  )
+		return("subiculum") ;
+  if (label == CA1			  )
+		return("CA1") ;
+  if (label == CA2			  )
+		return("CA2") ;
+  if (label == CA3			  )
+		return("CA3") ;
+  if (label == CA4			  )
+		return("CA4") ;
+	if (label == GC_DG		  )
+		return("GC_DG") ;
+	if (label == HATA			  )
+		return("HATA") ;
+	if (label == fimbria  )
+		return("fimbria") ;
+	if (label == lateral_ventricle	  )
+		return("lateral_ventricle") ;
+	if (label == molecular_layer_HP  )
+		return("molecular_layer_HP") ;
+	if (label == hippocampal_fissure  )
+		return("hippocampal_fissure") ;
+	if (label == entorhinal_cortex  )
+		return("entorhinal_cortex") ;
+	if (label == molecular_layer_subiculum)
+		return("molecular_layer_subiculum") ;
+	 if (label == Amygdala)
+		 return("Amygdala") ;
+ if (label == Cerebral_White_Matter  )
+	 return("Cerebral_White_Matter") ;
+ if (label == Cerebral_Cortex  )
+	 return("Cerebral_Cortex") ;
+ if (label == Inf_Lat_Vent  )
+	 return("Inf_Lat_Vent") ;
+
   return(name) ;
 }
 MRI *
@@ -10540,7 +10582,7 @@ GCAcomputeMLElabelAtLocation(GCA *gca, int xp, int yp, int zp, float *vals,
     *pmax_n = max_n ;
   return(max_label) ;
 }
-static GC1D *
+GC1D *
 alloc_gcs(int nlabels, int flags, int ninputs)
 {
   GC1D  *gcs ;
@@ -12422,10 +12464,41 @@ GCAmapRenormalize(GCA *gca, MRI *mri, TRANSFORM *transform)
 						 cma_label_to_name(l), l, peak, smooth_peak, num,
 						 label_scales[l]) ;
       bin = nint((means[frame] - fmin)/hsmooth->bin_size) ;
-      bin = HISTOfindCurrentPeak(hsmooth, bin, 11, .2) ;
+#ifdef WSIZE
+#undef WSIZE
+#endif
+#define WSIZE 11
+#define WHALF ((WSIZE-1)/2)
+      bin = HISTOfindCurrentPeak(hsmooth, bin, WSIZE, .2) ;
       smooth_peak = hsmooth->bins[bin] ;
       if (bin < 0 || smooth_peak <= 0)
 				continue ;
+			if (num < 200 && hsmooth->counts[bin] < 5)   /* not very much data - check more */
+			{
+				int other_bin ;
+				other_bin = HISTOfindPreviousPeak(hsmooth, bin, WHALF) ;
+				if (other_bin >= 0)
+				{
+					if ((hsmooth->counts[other_bin] / hsmooth->counts[bin]) > 0.9)
+					{
+						printf("!!!!!!!!!additional peak detected at %2.1f (was %2.1f) - unreliable estimate...\n",
+									 hsmooth->bins[other_bin], hsmooth->bins[bin]) ;
+						label_scales[l] = 1.0 ;
+						continue ;
+					}
+				}
+				other_bin = HISTOfindNextPeak(hsmooth, bin, WHALF) ;
+				if (other_bin >= 0)
+				{
+					if (hsmooth->counts[other_bin] / hsmooth->counts[bin] > 0.9)
+					{
+						printf("!!!!!!!!!additional peak detected at %2.1f (was %2.1f) - unreliable estimate...\n",
+									 hsmooth->bins[other_bin], hsmooth->bins[bin]) ;
+						label_scales[l] = 1.0 ;
+						continue ;
+					}
+				}
+			}
       label_scales[l] = (float)smooth_peak / label_means[l] ;
       printf("%s (%d): AFTER PRIOR: peak at %2.2f, smooth at %2.2f (%d voxels), scaling by %2.2f\n", 
 						 cma_label_to_name(l), l, peak, smooth_peak, num,
