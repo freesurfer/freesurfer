@@ -1,6 +1,6 @@
 /*----------------------------------------------------------
-  Name: mri_vol2surf.c
-  $Id: mri_surf2surf.c,v 1.4 2001/09/25 23:09:04 greve Exp $
+  Name: mri_surf2surf.c
+  $Id: mri_surf2surf.c,v 1.5 2002/02/18 19:55:48 greve Exp $
   Author: Douglas Greve
   Purpose: Resamples data from one surface onto another. If
   both the source and target subjects are the same, this is
@@ -12,6 +12,7 @@
 #include <math.h>
 #include <string.h>
 
+#include "mri.h"
 #include "icosahedron.h"
 #include "fio.h"
 
@@ -19,13 +20,14 @@
 #include "error.h"
 #include "diag.h"
 #include "mrisurf.h"
-#include "mri.h"
 #include "mri2.h"
+#include "mri_identify.h"
 
 #include "bfileio.h"
 #include "registerio.h"
 #include "resample.h"
 #include "selxavgio.h"
+#include "prime.h"
 
 static int  parse_commandline(int argc, char **argv);
 static void check_options(void);
@@ -43,7 +45,7 @@ int GetNVtxsFromValFile(char *filename, char *fmt);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_surf2surf.c,v 1.4 2001/09/25 23:09:04 greve Exp $";
+static char vcid[] = "$Id: mri_surf2surf.c,v 1.5 2002/02/18 19:55:48 greve Exp $";
 char *Progname = NULL;
 
 char *surfreg = "sphere.reg";
@@ -51,7 +53,8 @@ char *hemi    = NULL;
 
 char *srcsubject = NULL;
 char *srcvalfile = NULL;
-char *srcfmt     = "bvolume";
+char *srctypestring = NULL;
+int   srctype = MRI_VOLUME_TYPE_UNKNOWN;
 MRI  *SrcVals, *SrcHits, *SrcDist;
 MRI_SURFACE *SrcSurfReg;
 char *SrcHitFile = NULL;
@@ -61,12 +64,17 @@ int SrcIcoOrder;
 
 char *trgsubject = NULL;
 char *trgvalfile = NULL;
-char *trgfmt     = "bvolume";
+char *trgtypestring = NULL;
+int   trgtype = MRI_VOLUME_TYPE_UNKNOWN;
 MRI  *TrgVals, *TrgValsSmth, *TrgHits, *TrgDist;
 MRI_SURFACE *TrgSurfReg;
 char *TrgHitFile = NULL;
 char *TrgDistFile = NULL;
 int TrgIcoOrder;
+
+MRI  *mritmp;
+int  reshape = 1;
+int  reshapefactor;
 
 char *mapmethod = "nnfr";
 
@@ -121,8 +129,8 @@ int main(int argc, char **argv)
   }
 
   /* --------- Load the registration surface for source subject --------- */
-  if(!strcmp(srcsubject,"ico")){
-    SrcIcoOrder = GetICOOrderFromValFile(srcvalfile,srcfmt);
+  if(!strcmp(srcsubject,"ico")){ /* source is ico */
+    SrcIcoOrder = GetICOOrderFromValFile(srcvalfile,srctypestring);
     sprintf(fname,"%s/lib/bem/ic%d.tri",MRI_DIR,SrcIcoOrder);
     SrcSurfReg = ReadIcoByOrder(SrcIcoOrder, IcoRadius);
     printf("Source Ico Order = %d\n",SrcIcoOrder);
@@ -138,7 +146,7 @@ int main(int argc, char **argv)
 
   /* ------------------ load the source data ----------------------------*/
   printf("Loading source data\n");
-  if(!strcmp(srcfmt,"curv")){
+  if(!strcmp(srctypestring,"curv")){ /* curvature file */
     sprintf(fname,"%s/%s/surf/%s.%s",SUBJECTS_DIR,srcsubject,hemi,srcvalfile);
     printf("Reading curvature file %s\n",fname);
     MRISreadCurvatureFile(SrcSurfReg, fname);
@@ -153,14 +161,29 @@ int main(int argc, char **argv)
       }
     }
   }
-  else if(!strcmp(srcfmt,"paint") || !strcmp(srcfmt,"w")){
+  else if(!strcmp(srctypestring,"paint") || !strcmp(srctypestring,"w")){
     MRISreadValues(SrcSurfReg,srcvalfile);
     SrcVals = MRIallocSequence(SrcSurfReg->nvertices, 1, 1,MRI_FLOAT,1);
     for(vtx = 0; vtx < SrcSurfReg->nvertices; vtx++)
       MRIFseq_vox(SrcVals,vtx,0,0,0) = SrcSurfReg->vertices[vtx].val;
   }
-  else {
-    SrcVals = mri_load_bvolume(srcvalfile); 
+  else { /* Use MRIreadType */
+    //SrcVals = mri_load_bvolume(srcvalfile); 
+    SrcVals =  MRIreadType(srcvalfile,srctype);
+    if(SrcVals == NULL){
+      printf("ERROR: could not read %s as type %d\n",srcvalfile,srctype);
+      exit(1);
+    }
+    if(SrcVals->height != 1 || SrcVals->depth != 1){
+      reshapefactor = SrcVals->height * SrcVals->depth;
+      printf("Reshaping %d\n",reshapefactor);
+      mritmp = mri_reshape(SrcVals, reshapefactor*SrcVals->width, 
+         1, 1, SrcVals->nframes);
+      MRIfree(&SrcVals);
+      SrcVals = mritmp;
+      reshapefactor = 0; /* reset for output */
+    }
+
     if(SrcVals->width != SrcSurfReg->nvertices){
       fprintf(stderr,"ERROR: dimesion inconsitency in source data\n");
       fprintf(stderr,"       Number of surface vertices = %d\n",
@@ -194,6 +217,7 @@ int main(int argc, char **argv)
     if(!strcmp(trgsubject,"ico")){
       sprintf(fname,"%s/lib/bem/ic%d.tri",MRI_DIR,TrgIcoOrder);
       TrgSurfReg = ReadIcoByOrder(TrgIcoOrder, IcoRadius);
+      reshapefactor = 6;
     }
     else{
       sprintf(fname,"%s/%s/surf/%s.%s",SUBJECTS_DIR,trgsubject,hemi,surfreg);
@@ -201,7 +225,8 @@ int main(int argc, char **argv)
       TrgSurfReg = MRISread(fname) ;
     }
     if (!TrgSurfReg)
-      ErrorExit(ERROR_NOFILE, "%s: could not read surface %s", Progname, fname) ;
+      ErrorExit(ERROR_NOFILE, "%s: could not read surface %s", 
+    Progname, fname) ;
     printf("Done\n");
     
     if(!strcmp(mapmethod,"nnfr")) ReverseMapFlag = 1;
@@ -323,13 +348,28 @@ int main(int argc, char **argv)
 
   /* ------------ save the target data -----------------------------*/
   printf("Saving target data\n");
-  if(!strcmp(trgfmt,"paint") || !strcmp(trgfmt,"w")){
+  if(!strcmp(trgtypestring,"paint") || !strcmp(trgtypestring,"w")){
     for(vtx = 0; vtx < TrgSurfReg->nvertices; vtx++)
       TrgSurfReg->vertices[vtx].val = MRIFseq_vox(TrgVals,vtx,0,0,framesave);
     MRISwriteValues(TrgSurfReg,trgvalfile);
   }
   else {
-    mri_save_as_bvolume(TrgVals,trgvalfile,0,BF_FLOAT); 
+    /*mri_save_as_bvolume(TrgVals,trgvalfile,0,BF_FLOAT); */
+    if(reshape){
+      if(reshapefactor == 0) 
+  reshapefactor = GetClosestPrimeFactor(TrgVals->width,6);
+
+      printf("Reshaping %d (nvertices = %d)\n",reshapefactor,TrgVals->width);
+      mritmp = mri_reshape(TrgVals, TrgVals->width / reshapefactor, 
+         1, reshapefactor,TrgVals->nframes);
+      if(mritmp == NULL){
+  printf("ERROR: mri_reshape could not alloc\n");
+  return(1);
+      }
+      MRIfree(&TrgVals);
+      TrgVals = mritmp;
+    }
+    MRIwriteType(TrgVals,trgvalfile,trgtype);
     if(is_sxa_volume(srcvalfile)) sv_sxadat_by_stem(sxa,trgvalfile);
   }
 
@@ -363,6 +403,8 @@ static int parse_commandline(int argc, char **argv)
     else if (!strcasecmp(option, "--hash")) UseHash = 1;
     else if (!strcasecmp(option, "--dontusehash")) UseHash = 0;
     else if (!strcasecmp(option, "--nohash")) UseHash = 0;
+    else if (!strcasecmp(option, "--noreshape")) reshape = 0;
+    else if (!strcasecmp(option, "--reshape"))   reshape = 1;
 
     /* -------- source value inputs ------ */
     else if (!strcmp(option, "--srcsubject")){
@@ -375,9 +417,11 @@ static int parse_commandline(int argc, char **argv)
       srcvalfile = pargv[0];
       nargsused = 1;
     }
-    else if (!strcmp(option, "--srcfmt")){
+    else if (!strcmp(option, "--srcfmt") ||
+       !strcmp(option, "--src_type")){
       if(nargc < 1) argnerr(option,1);
-      srcfmt = pargv[0];
+      srctypestring = pargv[0];
+      srctype = string_to_type(srctypestring);
       nargsused = 1;
     }
     else if (!strcmp(option, "--nsmooth")){
@@ -406,13 +450,15 @@ static int parse_commandline(int argc, char **argv)
       trgvalfile = pargv[0];
       nargsused = 1;
     }
-    else if (!strcmp(option, "--trgfmt")){
+    else if (!strcmp(option, "--trgfmt") ||
+       !strcmp(option, "--trg_type")){
       if(nargc < 1) argnerr(option,1);
-      trgfmt = pargv[0];
-      if(!strcmp(trgfmt,"curv")){
+      trgtypestring = pargv[0];
+      if(!strcmp(trgtypestring,"curv")){
   fprintf(stderr,"ERROR: Cannot select curv as target format\n");
   exit(1);
       }
+      trgtype = string_to_type(trgtypestring);
       nargsused = 1;
     }
 
@@ -485,39 +531,180 @@ static void print_usage(void)
   fprintf(stderr, "\n");
   fprintf(stderr, "   --srcsubject source subject\n");
   fprintf(stderr, "   --srcsurfval path of file with input values \n");
-  fprintf(stderr, "   --srcfmt     source format\n");
+  fprintf(stderr, "   --src_type   source format\n");
   fprintf(stderr, "   --trgsubject target subject\n");
   fprintf(stderr, "   --trgicoorder when trgsubject=ico\n");
   fprintf(stderr, "   --trgsurfval path of file in which to store output values\n");
-  fprintf(stderr, "   --trgfmt     target format\n");
+  fprintf(stderr, "   --trg_type   target format\n");
+  fprintf(stderr, "   --hemi       hemisphere (lh or rh) \n");
   fprintf(stderr, "   --surfreg    surface registration (sphere.reg)  \n");
   fprintf(stderr, "   --mapmethod  nnfr or nnf\n");
-  fprintf(stderr, "   --hemi       hemisphere (lh or rh) \n");
-  fprintf(stderr, "   --frame      save only nth frame (with --ofmt paint)\n");
+  fprintf(stderr, "   --frame      save only nth frame (with --trg_type paint)\n");
   fprintf(stderr, "   --nsmooth    number of smoothing steps\n");  
+  fprintf(stderr, "   --noreshape  do not reshape output to multiple 'slices'\n");  
 
   fprintf(stderr, "\n");
-}
-/* --------------------------------------------- */
-static void dump_options(FILE *fp)
-{
-  fprintf(fp,"srcsubject = %s\n",srcsubject);
-  fprintf(fp,"srcval = %s\n",srcvalfile);
-  fprintf(fp,"srcfmt = %s\n",srcfmt);
-  fprintf(fp,"trgsubject = %s\n",trgsubject);
-  fprintf(fp,"trgval = %s\n",trgvalfile);
-  fprintf(fp,"trgfmt = %s\n",trgfmt);
-  fprintf(fp,"surfreg = %s\n",surfreg);
-  fprintf(fp,"hemi = %s\n",hemi);
-  fprintf(fp,"frame = %d\n",framesave);
-  return;
+  printf("%s\n", vcid) ;
+  printf("\n");
+
 }
 /* --------------------------------------------- */
 static void print_help(void)
 {
   print_usage() ;
-  fprintf(stderr, "\nThis program will resample one surface onto another. \n") ;
+  printf(
+
+"This program will resample one surface onto another. The source and \n"
+"target subjects can be any subject in $SUBJECTS_DIR and/or the  \n"
+"icosahedron (ico). The source and target file formats can be anything \n"
+"supported by mri_convert. The source format can also be a curvature \n"
+"file or a paint (.w) file. The user also has the option of smoothing \n"
+"on the surface. \n"
+"\n"
+"OPTIONS\n"
+"\n"
+"  --srcsubject subjectname\n"
+"\n"
+"    Name of source subject as found in $SUBJECTS_DIR or ico for icosahedron.\n"
+"    The input data must have been sampled onto this subject's surface (eg, \n"
+"    using mri_vol2surf)\n"
+"\n"
+"  --srcsurfval sourcefile\n"
+"\n"
+"    Name of file where the data on the source surface is located.\n"
+"\n"
+"  --src_type typestring\n"
+"\n"
+"    Format type string. Can be either curv (for FreeSurfer curvature file), \n"
+"    paint or w (for FreeSurfer paint files), or anything accepted by \n"
+"    mri_convert. If no type string  is given, then the type is determined \n"
+"    from the sourcefile (if possible).\n"
+"\n"
+"  --trgsubject subjectname\n"
+"\n"
+"    Name of target subject as found in $SUBJECTS_DIR or ico for icosahedron.\n"
+"\n"
+"  --trgicoorder order\n"
+"\n"
+"    Icosahedron order number. This specifies the size of the\n"
+"    icosahedron according to the following table: \n"
+"              Order  Number of Vertices\n"
+"                0              12 \n"
+"                1              42 \n"
+"                2             162 \n"
+"                3             642 \n"
+"                4            2562 \n"
+"                5           10242 \n"
+"                6           40962 \n"
+"                7          163842 \n"
+"    In general, it is best to use the largest size available.\n"
+"\n"
+"  --trgsurfval targetfile\n"
+"\n"
+"    Name of file where the data on the target surface will be stored.\n"
+"    BUG ALERT: for trg_type w or paint, use the full path.\n"
+"\n"
+"  --trg_type typestring\n"
+"\n"
+"    Format type string. Can be paint or w (for FreeSurfer paint files) or anything\n"
+"    accepted by mri_convert. NOTE: output cannot be stored in curv format\n"
+"    If no type string  is given, then the type is determined from the sourcefile\n"
+"    (if possible). If using paint or w, see also --frame.\n"
+"\n"
+"  --hemi hemifield (lh or rh)\n"
+"\n"
+"  --surfreg registration_surface"
+"\n"
+"    If the source and target subjects are not the same, this surface is used \n"
+"    to register the two surfaces. sphere.reg is used as the default. Don't change\n"
+"    this unless you know what you are doing.\n"
+"\n"
+"  --mapmethod methodname\n"
+"\n"
+"    Method used to map from the vertices in one subject to those of another.\n"
+"    Legal values are: nnfr (neighest-neighbor, forward and reverse) and nnf\n"
+"    (neighest-neighbor, forward only). Default is nnfr. The mapping is done\n"
+"    in the following way. For each vertex on the target surface, the closest\n"
+"    vertex in the source surface is found, based on the distance in the \n"
+"    registration space (this is the forward map). If nnf is chosen, then the\n"
+"    the value at the target vertex is set to that of the closest source vertex.\n"
+"    This, however, can leave some source vertices unrepresented in target (ie,\n"
+"    'holes'). If nnfr is chosen, then each hole is assigned to the closest\n"
+"    target vertex. If a target vertex has multiple source vertices, then the\n"
+"    source values are averaged together. It does not seem to make much difference. \n"
+"\n"
+"  --nsmooth niterations\n"
+"\n"
+"    Number of smoothing iterations. Each iteration consists of averaging each\n"
+"    vertex with its neighbors. When only smoothing is desired, just set the \n"
+"    the source and target subjects to the same subject.\n"
+"\n"
+"  --frame framenumber\n"
+"\n"
+"    When using paint/w output format, this specifies which frame to output. This\n"
+"    format can store only one frame. The frame number is zero-based (default is 0).\n"
+"\n"
+"  --noreshape"
+"\n"
+"    By default, mri_surf2surf will save the output as multiple\n"
+"    'slices'; has no effect for paint/w output format. For ico, the output\n"
+"    will appear to be a 'volume' with Nv/R colums, 1 row, R slices and Nf \n"
+"    frames, where Nv is the number of vertices on the surface. For icosahedrons, \n"
+"    R=6. For others, R will be the prime factor of Nv closest to 6. Reshaping \n"
+"    is for logistical purposes (eg, in the analyze format the size of a dimension \n"
+"    cannot exceed 2^15). Use this flag to prevent this behavior. This has no \n"
+"    effect when the output type is paint.\n"
+"\n"
+"EXAMPLES:\n"
+"\n"
+"1. Resample a subject's thickness of the left cortical hemisphere on to a \n"
+"   7th order icosahedron and save in analyze4d format:\n"
+"\n"
+"   mri_surf2surf --hemi lh --srcsubject bert \n"
+"      --srcsurfval $SUBJECTS_DIR/bert/surf/lh.thickness --src_type curv \n"
+"      --trgsubject ico --trgicoorder 7 \n"
+"      --trgsurfval bert-thickness-lh.img --trg_type analyze4d \n"
+"\n"
+"2. Resample data on the icosahedron to the right hemisphere of subject bert.\n"
+"   Save in paint so that it can be viewed as an overlay in tksurfer. The \n"
+"   source data is stored in bfloat format (ie, icodata_000.bfloat, ...)\n"
+"\n"
+"   mri_surf2surf --hemi rh --srcsubject ico \n"
+"      --srcsurfval icodata-rh --src_type bfloat \n"
+"      --trgsubject bert \n"
+"      --trgsurfval ./bert-ico-rh.w --trg_type paint \n"
+"\n"
+"BUG REPORTS: send bugs to analysis-bugs@nmr.mgh.harvard.edu. Make sure \n"
+"    to include the version and full command-line and enough information to\n"
+"    be able to recreate the problem. Not that anyone does.\n"
+"\n"
+"\n"
+"BUGS:\n"
+"\n"
+"  When the output format is paint, the output file must be specified with\n"
+"  a partial path (eg, ./data-lh.w) or else the output will be written into\n"
+"  the subject's anatomical directory.\n"
+"\n"
+"\n"
+"AUTHOR: Douglas N. Greve, Ph.D., MGH-NMR Center (greve@nmr.mgh.harvard.edu)\n"
+"\n");
+
   exit(1) ;
+}
+
+/* --------------------------------------------- */
+static void dump_options(FILE *fp)
+{
+  fprintf(fp,"srcsubject = %s\n",srcsubject);
+  fprintf(fp,"srcval     = %s\n",srcvalfile);
+  fprintf(fp,"srctype    = %s\n",srctypestring);
+  fprintf(fp,"trgsubject = %s\n",trgsubject);
+  fprintf(fp,"trgval     = %s\n",trgvalfile);
+  fprintf(fp,"trgtype    = %s\n",trgtypestring);
+  fprintf(fp,"surfreg    = %s\n",surfreg);
+  fprintf(fp,"hemi       = %s\n",hemi);
+  fprintf(fp,"frame      = %d\n",framesave);
+  return;
 }
 /* --------------------------------------------- */
 static void print_version(void)
@@ -545,8 +732,22 @@ static void check_options(void)
     fprintf(stderr,"A source value path must be supplied\n");
     exit(1);
   }
-  if(srcfmt == NULL) srcfmt = "bvolume";
-  check_format(srcfmt);
+
+  if(srctypestring == NULL){
+    srctypestring = "bfloat";
+    srctype = BFLOAT_FILE;
+  }
+  if( strcasecmp(srctypestring,"w") != 0 &&
+      strcasecmp(srctypestring,"curv") != 0 &&
+      strcasecmp(srctypestring,"paint") != 0 ){
+    if(srctype == MRI_VOLUME_TYPE_UNKNOWN) {
+  srctype = mri_identify(srcvalfile);
+  if(srctype == MRI_VOLUME_TYPE_UNKNOWN){
+    fprintf(stderr,"ERROR: could not determine type of %s\n",srcvalfile);
+    exit(1);
+  }
+    }
+  }
 
   if(trgsubject == NULL){
     fprintf(stderr,"ERROR: no target subject specified\n");
@@ -556,8 +757,22 @@ static void check_options(void)
     fprintf(stderr,"A target value path must be supplied\n");
     exit(1);
   }
-  if(trgfmt == NULL) trgfmt = "bvolume";
-  check_format(trgfmt);
+
+  if(trgtypestring == NULL){
+    trgtypestring = "bfloat";
+    trgtype = BFLOAT_FILE;
+  }
+  if( strcasecmp(trgtypestring,"w") != 0 &&
+      strcasecmp(trgtypestring,"curv") != 0 &&
+      strcasecmp(trgtypestring,"paint") != 0 ){
+    if(trgtype == MRI_VOLUME_TYPE_UNKNOWN) {
+  trgtype = mri_identify(trgvalfile);
+  if(trgtype == MRI_VOLUME_TYPE_UNKNOWN){
+    fprintf(stderr,"ERROR: could not determine type of %s\n",trgvalfile);
+    exit(1);
+  }
+    }
+  }
 
   if(hemi == NULL){
     fprintf(stderr,"ERROR: no hemifield specified\n");
@@ -630,31 +845,34 @@ int GetNVtxsFromWFile(char *wfile)
 
   return(nvertices);
 }
+//MRI *MRIreadHeader(char *fname, int type);
 /*---------------------------------------------------------------*/
-int GetNVtxsFromValFile(char *filename, char *fmt)
+int GetNVtxsFromValFile(char *filename, char *typestring)
 {
+  //int err,nrows, ncols, nslcs, nfrms, endian;
   int nVtxs=0;
-  int err,nrows, ncols, nslcs, nfrms, endian, type;
+  int type;
+  MRI *mri;
 
-  if(!strcmp(fmt,"curv")){
+  printf("GetNVtxs: %s %s\n",filename,typestring);
+
+  if(!strcmp(typestring,"curv")){
     fprintf(stderr,"ERROR: cannot get nvertices from curv format\n");
     exit(1);
   }
 
-  if(!strcmp(fmt,"paint") || !strcmp(fmt,"w"))
+  if(!strcmp(typestring,"paint") || !strcmp(typestring,"w")){
     nVtxs = GetNVtxsFromWFile(filename);
-
-  if(!strcmp(fmt,"bvolume") || !strcmp(fmt,"bfloat") ||
-     !strcmp(fmt,"bshort")  || !strcmp(fmt,"bfile")){
-    err = bf_getvoldim(filename,&nrows,&ncols,
-           &nslcs,&nfrms,&endian,&type);
-    if(err) exit(1);
-    if(nrows != 1 || nslcs != 1){
-      fprintf(stderr,"ERROR: bvolume %s not a surface value file\n",filename);
-      exit(1);
-    }
-    nVtxs = ncols;
+    return(nVtxs);
   }
+
+  type = string_to_type(typestring);
+  mri = MRIreadHeader(filename, type);
+  if(mri == NULL) exit(1);
+  
+  nVtxs = mri->width*mri->height*mri->depth;
+
+  MRIfree(&mri);
 
   return(nVtxs);
 }
