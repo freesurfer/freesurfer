@@ -7,6 +7,9 @@
 #include "mri_identify.h"
 #include "utils.h"
 
+/* ----- determines tolerance of non-orthogonal basis vectors ----- */
+#define CLOSE_ENOUGH  (1e-4)
+
 void get_ints(int argc, char *argv[], int *pos, int *vals, int nvals);
 void get_floats(int argc, char *argv[], int *pos, float *vals, int nvals);
 void get_string(int argc, char *argv[], int *pos, char *val);
@@ -50,9 +53,15 @@ int main(int argc, char *argv[])
   char out_data_type_string[STRLEN];
   int out_n_i, out_n_j, out_n_k;
   int out_n_i_flag, out_n_j_flag, out_n_k_flag;
+  float fov_x, fov_y, fov_z;
+  int force_in_type_flag, force_out_type_flag;
+  int forced_in_type, forced_out_type;
+  char in_type_string[STRLEN], out_type_string[STRLEN];
+  char subject_name[STRLEN];
 
   /* ----- keep the compiler quiet ----- */
   mri2 = NULL;
+  forced_in_type = forced_out_type = MRI_VOLUME_TYPE_UNKNOWN;
 
   /* ----- get the program name ----- */
   Progname = strrchr(argv[0], '/');
@@ -92,6 +101,8 @@ int main(int argc, char *argv[])
   out_n_i_flag = out_n_j_flag = out_n_k_flag = FALSE;
   template_info_flag = FALSE;
   out_volume_type = MRI_CORONAL_SLICE_DIRECTORY;
+  force_in_type_flag = force_out_type_flag = FALSE;
+  subject_name[0] = '\0';
 
   for(i = 1;i < argc;i++)
   {
@@ -332,6 +343,22 @@ int main(int argc, char *argv[])
         exit(1);
       }
     }
+    else if(strcmp(argv[i], "-it") == 0 || strcmp(argv[i], "--in_type") == 0)
+    {
+      get_string(argc, argv, &i, in_type_string);
+      forced_in_type = string_to_type(in_type_string);
+      force_in_type_flag = TRUE;
+    }
+    else if(strcmp(argv[i], "-ot") == 0 || strcmp(argv[i], "--out_type") == 0)
+    {
+      get_string(argc, argv, &i, out_type_string);
+      forced_out_type = string_to_type(out_type_string);
+      force_out_type_flag = TRUE;
+    }
+    else if(strcmp(argv[i], "-sn") == 0 || strcmp(argv[i], "--subject_name") == 0)
+    {
+      get_string(argc, argv, &i, subject_name);
+    }
     else if(strcmp(argv[i], "-u") == 0 || strcmp(argv[i], "--usage") == 0)
     {
       usage(stdout);
@@ -414,6 +441,20 @@ int main(int argc, char *argv[])
     exit(1);
   }
 
+  /* ----- catch unknown volume types ----- */
+  if(force_in_type_flag && forced_in_type == MRI_VOLUME_TYPE_UNKNOWN)
+  {
+    fprintf(stderr, "\n%s: unknown input volume type %s\n", Progname, in_type_string);
+    usage_message(stderr);
+    exit(1);
+  }
+
+  /* ----- warn if read only is desired and an output volume is specified or the output info flag is set ----- */
+  if(read_only_flag && out_name[0] != '\0')
+    fprintf(stderr, "%s: warning: read only flag is set; nothing will be written to %s", Progname, out_name);
+  if(read_only_flag && out_info_flag)
+    fprintf(stderr, "%s: warning: read only flag is set; no output information will be printed", Progname);
+
   /* ----- catch the parse-only flag ----- */
   if(parse_only_flag)
   {
@@ -424,6 +465,14 @@ int main(int argc, char *argv[])
     printf("conform_flag = %d\n", conform_flag);
     printf("in_info_flag = %d\n", in_info_flag);
     printf("out_info_flag = %d\n", out_info_flag);
+
+    if(force_in_type_flag)
+      printf("input type is %d\n", forced_in_type);
+    if(force_out_type_flag)
+      printf("output type is %d\n", forced_out_type);
+
+    if(subject_name[0] != '\0')
+      printf("subject name is %s\n", subject_name);
 
     if(invert_val >= 0)
       printf("inversion, value is %g\n", invert_val);
@@ -436,19 +485,27 @@ int main(int argc, char *argv[])
   }
 
   /* ----- get the type of the output ----- */
-  if(!read_only_flag && !no_write_flag)
+  if(!force_out_type_flag)
   {
-    out_volume_type = mri_identify(out_name);
-    if(out_volume_type < 0)
+    if(!read_only_flag && !no_write_flag)
     {
-      fprintf(stderr, "%s: can't determine type of output volume\n", Progname);
-      exit(1);
+      out_volume_type = mri_identify(out_name);
+      if(out_volume_type == MRI_VOLUME_TYPE_UNKNOWN)
+      {
+        fprintf(stderr, "%s: can't determine type of output volume\n", Progname);
+        exit(1);
+      }
     }
   }
+  else
+    out_volume_type = forced_out_type;
 
   /* ----- read the volume ----- */
-  in_volume_type = mri_identify(in_name);
-  if(in_volume_type < 0)
+  if(force_in_type_flag)
+    in_volume_type = forced_in_type;
+  else
+    in_volume_type = mri_identify(in_name);
+  if(in_volume_type == MRI_VOLUME_TYPE_UNKNOWN)
   {
     ErrorPrintf(ERROR_BADFILE, "unknown file type for file %s", in_name);
     exit(1);
@@ -457,7 +514,12 @@ int main(int argc, char *argv[])
   if(read_only_flag && in_info_flag && !in_stats_flag)
     mri = MRIreadInfo(in_name);
   else
-    mri = MRIread(in_name);
+  {
+    if(force_in_type_flag)
+      mri = MRIreadType(in_name, in_volume_type);
+    else
+      mri = MRIread(in_name);
+  }
   if(mri == NULL)
     exit(1);
 
@@ -465,7 +527,7 @@ int main(int argc, char *argv[])
   if(mri->ras_good_flag == 0)
   {
     printf("warning: volume may be incorrectly oriented\n");
-    if(mri_identify(in_name) == MRI_CORONAL_SLICE_DIRECTORY)
+    if(in_volume_type == MRI_CORONAL_SLICE_DIRECTORY)
       printf("(but as a COR- volume, it should be okay...)\n");
   }
 
@@ -500,12 +562,37 @@ int main(int argc, char *argv[])
     mri->c_a = in_center[1];
     mri->c_s = in_center[2];
   }
+  if(subject_name[0] != '\0')
+    strcpy(mri->subject_name, subject_name);
+
+  /* ----- correct starts, ends, and fov if necessary ----- */
+  if(in_i_size_flag || in_j_size_flag || in_k_size_flag)
+  {
+
+    fov_x = mri->xsize * mri->width;
+    fov_y = mri->ysize * mri->height;
+    fov_z = mri->zsize * mri->depth;
+
+    mri->xend = fov_x / 2.0;
+    mri->xstart = -mri->xend;
+    mri->yend = fov_y / 2.0;
+    mri->ystart = -mri->yend;
+    mri->zend = fov_z / 2.0;
+    mri->zstart = -mri->zend;
+
+    mri->fov = (fov_x > fov_y ? (fov_x > fov_z ? fov_x : fov_z) : (fov_y > fov_z ? fov_y : fov_z) );
+
+  }
+
+  if(in_i_size_flag || in_j_size_flag || in_k_size_flag)
+  {
+  }
 
   /* ----- give a warning for non-orthogonal directions ----- */
   i_dot_j = mri->x_r * mri->y_r + mri->x_a * mri->y_a + mri->x_s * mri->y_s;
   i_dot_k = mri->x_r * mri->z_r + mri->x_a * mri->z_a + mri->x_s * mri->z_s;
   j_dot_k = mri->y_r * mri->z_r + mri->y_a * mri->z_a + mri->y_s * mri->z_s;
-  if(i_dot_j != 0.0 || i_dot_k != 0.0 || i_dot_k != 0.0)
+  if(fabs(i_dot_j) > CLOSE_ENOUGH || fabs(i_dot_k) > CLOSE_ENOUGH || fabs(i_dot_k) > CLOSE_ENOUGH)
   {
     printf("warning: input volume axes are not orthogonal\n");
     printf("i_ras = (%g, %g, %g)\n", mri->x_r, mri->x_a, mri->x_s);
@@ -523,9 +610,6 @@ int main(int argc, char *argv[])
   /* ----- catch the in stats flag ----- */
   if(in_stats_flag)
     MRIprintStats(mri, stdout);
-
-  if(read_only_flag)
-    exit(0);
 
   template = MRIallocHeader(mri->width, mri->height, mri->depth, mri->type);
   MRIcopyHeader(mri, template);
@@ -588,6 +672,26 @@ int main(int argc, char *argv[])
     template->c_s = out_center[2];
   }
 
+  /* ----- correct starts, ends, and fov if necessary ----- */
+  if(out_i_size_flag || out_j_size_flag || out_k_size_flag ||
+     out_n_i_flag    || out_n_j_flag    || out_n_k_flag)
+  {
+
+    fov_x = template->xsize * template->width;
+    fov_y = template->ysize * template->height;
+    fov_z = template->zsize * template->depth;
+
+    template->xend = fov_x / 2.0;
+    template->xstart = -template->xend;
+    template->yend = fov_y / 2.0;
+    template->ystart = -template->yend;
+    template->zend = fov_z / 2.0;
+    template->zstart = -template->zend;
+
+    template->fov = (fov_x > fov_y ? (fov_x > fov_z ? fov_x : fov_z) : (fov_y > fov_z ? fov_y : fov_z) );
+
+  }
+
   /* ----- give a warning for non-orthogonal directions ----- */
   i_dot_j = template->x_r * template->y_r + template->x_a * template->y_a + template->x_s * template->y_s;
   i_dot_k = template->x_r * template->z_r + template->x_a * template->z_a + template->x_s * template->z_s;
@@ -602,6 +706,17 @@ int main(int argc, char *argv[])
   if(out_data_type >= 0)
     template->type = out_data_type;
 
+  /* ----- catch the template info flag ----- */
+  if(template_info_flag)
+  {
+    printf("template structure:\n");
+    MRIdump(template, stdout);
+  }
+
+  /* ----- exit here if read only is desired ----- */
+  if(read_only_flag)
+    exit(0);
+
   /* ----- change type if necessary ----- */
   if(mri->type != template->type)
   {
@@ -611,13 +726,6 @@ int main(int argc, char *argv[])
       exit(1);
     MRIfree(&mri);
     mri = mri2;
-  }
-
-  /* ----- catch the template info flag ----- */
-  if(template_info_flag)
-  {
-    printf("template structure:\n");
-    MRIdump(template, stdout);
   }
 
   /* ----- reslice if necessary ----- */
@@ -673,7 +781,10 @@ int main(int argc, char *argv[])
   if(!no_write_flag)
   {
     printf("writing to %s...\n", out_name);
-    MRIwrite(mri, out_name);
+    if(force_out_type_flag)
+      MRIwriteType(mri, out_name, out_volume_type);
+    else
+      MRIwrite(mri, out_name);
   }
 
   exit(0);
