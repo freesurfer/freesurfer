@@ -2863,18 +2863,34 @@ LogMapForwardFilter(LOGMAP_INFO *lmi, IMAGE *Isrc, IMAGE *Idst)
 {
   register int i, ring, spoke;
   register LOGPIX *lpix, **plpix ;
-  int    rows, cols, row, col, npix ;
-  IMAGE  *Iout ;
-  CP     *cp ;
-  CMI    *cmi ;
-  float  *spix ;
+  IMAGE           *Iin, *Iout ;
+  int             rows, cols, row, col, npix ;
+  CP              *cp ;
+  CMI             *cmi ;
+  float           *spix ;
 
   if (!Idst)
     Idst = ImageAlloc(lmi->nspokes,lmi->nrings, Isrc->pixel_format,1);
   else
     ImageClearArea(Idst, 0, 0, Idst->rows, Idst->cols, 0.0f) ;
 
-  if (Idst->pixel_format != Isrc->pixel_format)
+#if 1
+  /* non-float stuff not working yet - I don't know why */
+  if ((Idst->pixel_format != PFFLOAT) || (Isrc->pixel_format != PFFLOAT))
+    ErrorReturn(NULL,
+                (ERROR_BADPARM, 
+                 "LogMapForwardFilter: src and dst must be PFFLOAT")) ;
+#endif
+
+  if (Isrc->pixel_format != PFFLOAT)
+  {
+    Iin = ImageAlloc(Isrc->rows, Isrc->cols, PFFLOAT, 1) ;
+    ImageCopy(Isrc, Iin) ;
+  }
+  else
+    Iin = Isrc ;
+
+  if (Idst->pixel_format != PFFLOAT)
     Iout = ImageAlloc(lmi->nspokes, lmi->nrings, Isrc->pixel_format,1);
   else
     Iout = Idst ;
@@ -2884,7 +2900,7 @@ LogMapForwardFilter(LOGMAP_INFO *lmi, IMAGE *Isrc, IMAGE *Idst)
   cmi = &lmi->cmi ;
 
   cp = cmi->pix ;
-  spix = IMAGEFpix(Isrc, 0, 0) ;
+  spix = IMAGEFpix(Iin, 0, 0) ;
   for (row = 0 ; row < rows ; row++)
   {
     for (col = 0 ; col < cols ; col++, cp++, spix++)
@@ -2910,6 +2926,9 @@ LogMapForwardFilter(LOGMAP_INFO *lmi, IMAGE *Isrc, IMAGE *Idst)
       *IMAGEFpix(Iout, ring, spoke) /= (float)lpix->ncpix ;
     lpix++ ;
   }
+
+  if (Iin != Isrc)
+    ImageFree(&Iin) ;
 
   if (Iout != Idst)
   {
