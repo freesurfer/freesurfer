@@ -861,7 +861,7 @@ char *AppendString(char *src, char *app)
   if(src) sz1 = strlen(src);
   sz2 = strlen(app);
 
-  tmp = (char *) realloc(src, sizeof(char)*(sz1+sz2));
+  tmp = (char *) realloc(src, sizeof(char)*(sz1+sz2+1));
 
   if(!tmp){
     fprintf(stderr,"ERROR: AppendString: \n");
