@@ -148,6 +148,7 @@ static int   mrisLogStatus(MRI_SURFACE *mris, INTEGRATION_PARMS *parms,
                            FILE *fp, float dt) ;
 static int   mrisWriteSnapshot(MRI_SURFACE *mris, INTEGRATION_PARMS *parms,
                                int t) ;
+static int   mrisTrackTotalDistance(MRI_SURFACE *mris) ;
 
 /*--------------------------------------------------------------------*/
 
@@ -4194,9 +4195,8 @@ MRIScomputeTriangleProperties(MRI_SURFACE *mris, int no_angles)
   VECTOR  *v_a, *v_b, *v_c, *v_d, *v_n ;
   VERTEX  *v0, *v1, *v2, *v3, *va, *vb, *vo, *v ;
   FACE    *face ;
-  int     tno, fno, ano, min_fno, min_tno, vno  ;
-  float   area, angle, dot, cross, min_p, dz ;
-  static  int first = 1 ;
+  int     tno, fno, ano, vno  ;
+  float   area, angle, dot, cross, dz ;
 
   v_a = VectorAlloc(3, MATRIX_REAL) ;
   v_b = VectorAlloc(3, MATRIX_REAL) ;
@@ -4204,7 +4204,6 @@ MRIScomputeTriangleProperties(MRI_SURFACE *mris, int no_angles)
   v_d = VectorAlloc(3, MATRIX_REAL) ;
   v_n = VectorAlloc(3, MATRIX_REAL) ;       /* normal vector */
 
-  min_p = 1000.0f ; min_fno = min_tno = -1 ;
   mris->total_area = 0.0f ;
   for (fno = 0 ; fno < mris->nfaces ; fno++)
   {
@@ -4248,12 +4247,6 @@ MRIScomputeTriangleProperties(MRI_SURFACE *mris, int no_angles)
         dz = fabs(V3_Y(v_n)) ;
       else
         dz = fabs(V3_Z(v_n)) ;
-      if (dz < min_p)
-      {
-        min_p = dz ;
-        min_fno = fno ;
-        min_tno = tno ;
-      }
       for (ano = 0 ; ano < ANGLES_PER_TRIANGLE ; ano++)
       {
         if (tno == 0) switch (ano)   /* vertices for triangle 1 */
@@ -4299,14 +4292,6 @@ MRIScomputeTriangleProperties(MRI_SURFACE *mris, int no_angles)
         v->area += mris->faces[v->f[fno]].area[tno] ;
     }
     v->area /= 2.0 ;
-  }
-
-  if (first)
-  {
-    first = 0 ;
-    if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
-      fprintf(stderr, "max planar triangle at face %d, tri %d (%2.3f)\n", 
-              min_fno, min_tno, min_p) ;
   }
 
   VectorFree(&v_a) ;
@@ -5324,11 +5309,17 @@ MRISreadCanonicalCoordinates(MRI_SURFACE *mris, char *sname)
   int         nvertices, magic, version, ix, iy, iz, vno, n, nfaces, crap ;
   FILE        *fp ;
   VERTEX      *vertex ;
-  char        fname[100], path[100] ;
+  char        fname[100], path[100], *cp ;
   float       d, x, y, z, r, theta, phi ;
 
-  FileNamePath(mris->fname, path) ;
-  sprintf(fname, "%s/%s", path, sname) ;
+  cp = strchr(sname, '/') ;
+  if (!cp)                  /* no path - use same one as mris was read from */
+  {
+    FileNamePath(mris->fname, path) ;
+    sprintf(fname, "%s/%s", path, sname) ;
+  }
+  else   
+    strcpy(fname, sname) ;  /* path specified explcitly */
   fp = fopen(fname, "rb") ;
   if (!fp)
     ErrorReturn(ERROR_NOFILE,(ERROR_NOFILE,
@@ -6966,6 +6957,7 @@ MRISinflateBrain(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
     fflush(parms->fp) ;
   }
 
+  MRISclearCurvature(mris) ;   /* curvature will be used to calculate sulc */
   for (n = 0 ; n < niterations ; n++)
   {
     mrisClearGradient(mris) ;
@@ -6989,6 +6981,7 @@ MRISinflateBrain(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
       mrisAdaptiveTimeStep(mris, parms);
       break ;
     }
+    mrisTrackTotalDistance(mris) ;  /* update sulc */
     /*
       only compute the second fundamental form (called from 
       MRISupdateSurface) every 5th iteration as it is the most
@@ -9441,4 +9434,49 @@ MRISnonmaxSuppress(MRI_SURFACE *mris)
   MRISPfree(&mrisp) ;
   return(NO_ERROR) ;
 }
+/*-----------------------------------------------------
+        Parameters:
 
+        Returns value:
+
+        Description
+------------------------------------------------------*/
+static int
+mrisTrackTotalDistance(MRI_SURFACE *mris)
+{
+  int    vno ;
+  VERTEX *v ;
+  float  nc ;
+
+  for (vno = 1 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    if (v->ripflag)
+      continue ;
+    nc = v->dx*v->nx + v->dy*v->ny + v->dz*v->nz ;
+    v->curv += nc ;
+  }
+  return(NO_ERROR) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
+int
+MRISclearCurvature(MRI_SURFACE *mris)
+{
+  int    vno ;
+  VERTEX *v ;
+
+  for (vno = 1 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    if (v->ripflag)
+      continue ;
+    v->curv = 0 ;
+  }
+  return(NO_ERROR) ;
+}
