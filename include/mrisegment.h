@@ -49,5 +49,6 @@ int              MRIremoveSmallSegments(MRI_SEGMENTATION *mriseg,
                                         int min_voxels) ;
 int              MRIsegmentMax(MRI_SEGMENTATION *mriseg) ;
 int              MRIsegmentClearIgnoreFlags(MRI_SEGMENTATION *mriseg) ;
+int              MRIfindMaxSegmentNumber(MRI_SEGMENTATION *mriseg) ;
 
 #endif
