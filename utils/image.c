@@ -217,6 +217,7 @@ ImageFRead(FILE *fp, char *fname, int start, int nframes)
   int    ecode, end_frame, frame ;
   IMAGE  *I ;
   byte   *startpix ;
+  float  fmin, fmax ;
 
   if (!fname)
     fname = "ImageFRead" ;
@@ -266,6 +267,28 @@ ImageFRead(FILE *fp, char *fname, int start, int nframes)
     I->image += I->sizeimage ;
   }
   I->image = startpix ;
+
+  ImageValRange(I, &fmin, &fmax) ;
+  if (fmin < -10000.0f || fmax > 10000.0f)  /* wrong machine format */
+  {
+    float *fpix, fval ;
+    int   npix ;
+
+    npix = I->numpix * I->num_frame ;
+
+    switch (I->pixel_format)
+    {
+    case PFFLOAT:
+      fpix = IMAGEFpix(I, 0, 0) ;
+      while (npix--)
+      {
+        fval = *fpix ;
+        *fpix++ = swapFloat(fval) ;
+      }
+      break ;
+    }
+  }
+  
   return(I) ;
 }
 /*-----------------------------------------------------
@@ -2182,16 +2205,22 @@ int
 ImageValRange(IMAGE *image, float *pfmin, float *pfmax)
 {
   float  fmax, fmin, *fpix ;
-  int    size ;
+  int    size, imax, imin, *ipix ;
+  byte   bmin, bmax, *bpix ;
 
   size = image->rows * image->cols * image->num_frame ;
   switch (image->pixel_format)
   {
   case PFFLOAT:
     fpix = IMAGEFpix(image, 0, 0) ;
-    fmax = fmin = *fpix ;
+    if (!isnan(*fpix))
+      fmax = fmin = *fpix ;
+    else
+      fmax = fmin = 0.0f ;
     while (size--)
     {
+      if (isnan((double)*fpix))
+        continue ;
       if (*fpix > fmax)
         fmax = *fpix ;
       if (*fpix < fmin)
@@ -2200,6 +2229,34 @@ ImageValRange(IMAGE *image, float *pfmin, float *pfmax)
     }
     *pfmax = fmax ;
     *pfmin = fmin ;
+    break ;
+  case PFINT:
+    ipix = IMAGEIpix(image, 0, 0) ;
+    imax = imin = *ipix ;
+    while (size--)
+    {
+      if (*ipix > imax)
+        imax = *ipix ;
+      if (*ipix < imin)
+        imin = *ipix ;
+      ipix++ ;
+    }
+    *pfmax = (float)imax ;
+    *pfmin = (float)imin ;
+    break ;
+  case PFBYTE:
+    bpix = IMAGEpix(image, 0, 0) ;
+    bmax = bmin = *bpix ;
+    while (size--)
+    {
+      if (*bpix > bmax)
+        bmax = *bpix ;
+      if (*bpix < bmin)
+        bmin = *bpix ;
+      bpix++ ;
+    }
+    *pfmax = (float)bmax ;
+    *pfmin = (float)bmin ;
     break ;
   default:
     fprintf(stderr, "ImageValRange: unsupported pixel format %d\n",
