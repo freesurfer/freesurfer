@@ -15,7 +15,7 @@
 #include "mrishash.h"
 #include "sig.h"
 
-static char vcid[] = "$Id: mris_compute_acorr.c,v 1.2 2000/04/18 14:30:55 fischl Exp $";
+static char vcid[] = "$Id: mris_compute_acorr.c,v 1.3 2000/05/03 13:45:04 fischl Exp $";
 
 
 /*-------------------------------- CONSTANTS -----------------------------*/
@@ -42,10 +42,7 @@ static double *MRIScomputeCurvatureAutocorrelation(MRI_SURFACE *mris,
                                                   float bin_size, 
                                                   float max_dist, int *pn) ;
 #endif
-static int   MRISextractCurvatureVector(MRI_SURFACE *mris, float *curvs) ;
 
-static int   MRISimportCurvatureVector(MRI_SURFACE *mris, float *curvs) ;
-static int   MRISimportValVector(MRI_SURFACE *mris, float *vals) ;
 
 
 static int   cvector_normalize(float *v, float norm, int num) ;
@@ -78,7 +75,6 @@ static int   write_acorr(char *fname, double *acorr, double *counts, int n,
                          float bin_size) ;
 
 static int   fill_acorr_holes(double *acorr, double *counts, int nbins) ;
-static int   MRISmaskLabel(MRI_SURFACE *mris, LABEL *area) ;
 
 /*-------------------------------- DATA ----------------------------*/
 
@@ -284,7 +280,7 @@ main(int argc, char *argv[])
                 Progname, fname) ;
     MRISfromParameterization(mrisp, mris, 0) ;
     if (label_name)
-      MRISmaskLabel(mris, area) ;
+      MRISmaskNotLabel(mris, area) ;
     curvs = (n < num_class1) ? c1_curvs[n] : c2_curvs[n-num_class1] ;
     class_mean = (n < num_class1) ? c1_mean : c2_mean ;
     class_var = (n < num_class1) ? c1_var : c2_var ;
@@ -745,16 +741,6 @@ MRIScomputeCurvatureAutocorrelation(MRI_SURFACE *mris, float bin_size,
 #endif
 
 static int
-MRISextractCurvatureVector(MRI_SURFACE *mris, float *curvs)
-{
-  int     vno ;
-
-  for (vno = 0 ; vno < mris->nvertices ; vno++)
-    curvs[vno] = mris->vertices[vno].curv ;
-
-  return(NO_ERROR) ;
-}
-static int
 cvector_compute_variance(float *var,float *mean,int norm,int num)
 {
   int   i ;
@@ -870,47 +856,7 @@ fill_acorr_holes(double *acorr, double *counts, int nbins)
   }
   return(NO_ERROR) ;
 }
-static int
-MRISimportCurvatureVector(MRI_SURFACE *mris, float *curvs)
-{
-  int     vno ;
 
-  for (vno = 0 ; vno < mris->nvertices ; vno++)
-    mris->vertices[vno].curv = curvs[vno] ;
-
-  return(NO_ERROR) ;
-}
-
-static int
-MRISimportValVector(MRI_SURFACE *mris, float *vals)
-{
-  int     vno ;
-
-  for (vno = 0 ; vno < mris->nvertices ; vno++)
-    mris->vertices[vno].val = vals[vno] ;
-
-  return(NO_ERROR) ;
-}
-
-static int
-MRISmaskLabel(MRI_SURFACE *mris, LABEL *area)
-{
-  int     vno ;
-  VERTEX  *v ;
-
-  MRISclearMarks(mris) ;
-  LabelMarkSurface(area, mris) ;  /* mark all points in label */
-
-  for (vno = 0 ; vno < mris->nvertices ; vno++)
-  {
-    v = &mris->vertices[vno] ;
-    if (v->marked || v->ripflag)
-      continue ;
-    v->stat = v->val = v->imag_val = v->val2 = v->valbak = v->val2bak = 0.0 ;
-  }
-  MRISclearMarks(mris) ;
-  return(NO_ERROR) ;
-}
 
 static int
 cvector_mark_low_prob_vertices(float *pvals, float pthresh, MRI_SURFACE *mris)
