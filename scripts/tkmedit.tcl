@@ -1,6 +1,6 @@
 #! /usr/bin/tixwish
 
-# $Id: tkmedit.tcl,v 1.81 2004/11/06 02:00:05 kteich Exp $
+# $Id: tkmedit.tcl,v 1.82 2004/12/20 02:05:58 kteich Exp $
 
 
 source $env(FREESURFER_HOME)/lib/tcl/tkm_common.tcl
@@ -4245,13 +4245,13 @@ proc CreateLabelFrame { ifwTop iSet } {
 
 	if { $label == "kLabel_Coords_Vol" && $iSet == "cursor" } {
 	    tkm_MakeEntry $fwValue "" gsaLabelContents($label,value,$iSet) 18 \
-		"set l \[set gsaLabelContents($label,value,$iSet)\]; SetCursor $mri_tCoordSpace_VolumeIdx \[lindex \$l 0\] \[lindex \$l 1\] \[lindex \$l 2\]"
+		"SetCursorFromLabelContents $label $iSet $mri_tCoordSpace_VolumeIdx"
 	} elseif { $label == "kLabel_Coords_Vol_RAS" && $iSet == "cursor" } {
 	    tkm_MakeEntry $fwValue "" gsaLabelContents($label,value,$iSet) 18 \
-		"set l \[set gsaLabelContents($label,value,$iSet)\]; SetCursor $mri_tCoordSpace_RAS \[lindex \$l 0\] \[lindex \$l 1\] \[lindex \$l 2\]"
+		"SetCursorFromLabelContents $label $iSet $mri_tCoordSpace_RAS"
 	} elseif { $label == "kLabel_Coords_Vol_Tal" && $iSet == "cursor" } {
 	    tkm_MakeEntry $fwValue "" gsaLabelContents($label,value,$iSet) 18 \
-		"set l \[set gsaLabelContents($label,value,$iSet)\]; SetCursor $mri_tCoordSpace_Talairach \[lindex \$l 0\] \[lindex \$l 1\] \[lindex \$l 2\]"
+		"SetCursorFromLabelContents $label $iSet $mri_tCoordSpace_Talairach"
 	} else {
 	    tkm_MakeActiveLabel $fwValue "" gsaLabelContents($label,value,$iSet) 18
 	}
@@ -4264,6 +4264,28 @@ proc CreateLabelFrame { ifwTop iSet } {
     ShowLabel kLabel_Coords_Vol_RAS 1
     ShowLabel kLabel_Coords_Vol_Tal 1
     ShowLabel kLabel_Value_Vol 1
+}
+
+proc SetCursorFromLabelContents { iLabel iSet iSpace } {
+    global gsaLabelContents
+    
+    # Get the input string.
+    set sCoords $gsaLabelContents($iLabel,value,$iSet)
+
+    # [-+]? matches the leading - or +
+    # \d+ matches a series of digits like 12
+    # \d+\.\d+ matches floating point numbers like 12.34
+    set sFiltered [regexp -inline -all -- {[-+]?\d+|[-+]?\d+\.\d+} $sCoords]
+
+    # Make sure we have three elements.
+    if { [llength $sFiltered] != 3 } {
+	ErrorDlog {Invalid coordinate string. Make sure there are three numbers.}
+	return;
+    }
+
+    # Set the cursor.
+    SetCursor $iSpace \
+	[lindex $sFiltered 0] [lindex $sFiltered 1] [lindex $sFiltered 2]
 }
 
 proc CreateToolBar { ifwToolBar } {
