@@ -689,8 +689,15 @@ MRICupdatePriors(MRI *mri_target, MRI *mri_priors, int scale)
    # of pixels mapped to that location.
    */
   if (!mri_priors)
+  {
     mri_priors = 
       MRIallocSequence(w, h, d, MRI_FLOAT, GAUSSIAN_NCLASSES+1) ;
+    MRIcopyHeader(mri_target, mri_priors) ;
+    mri_priors->xsize *= scale ;
+    mri_priors->ysize *= scale ;
+    mri_priors->zsize *= scale ;
+    mri_priors->linear_transform = mri_priors->inverse_linear_transform = NULL;
+  }
 
   for (z = 0 ; z < depth ; z++)
   {
