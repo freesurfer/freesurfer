@@ -18,6 +18,7 @@
 #include <math.h>
 #include <string.h>
 #include <memory.h>
+#include <errno.h>
 
 #include "error.h"
 #include "proto.h"
@@ -32,6 +33,8 @@
 #include "mritransform.h"
 #include "utils.h"
 #include "matrix.h"
+
+extern int errno;
 
 /*-----------------------------------------------------
                     MACROS AND CONSTANTS
@@ -6472,6 +6475,7 @@ and for dest
 
   if(src_det == 0.0)
   {
+    errno = 0;
     ErrorPrintf(ERROR_BADPARM, "MRIresample(): source matrix has zero determinant; matrix is:");
     MatrixPrint(stderr, src_mat);
     MatrixFree(&src_mat);
@@ -6481,6 +6485,7 @@ and for dest
 
   if(dest_det == 0.0)
   {
+    errno = 0;
     ErrorPrintf(ERROR_BADPARM, "MRIresample(): destination matrix has zero determinant; matrix is:");
     MatrixPrint(stderr, dest_mat);
     MatrixFree(&src_mat);
@@ -6492,6 +6497,7 @@ and for dest
 
   if(src_inv == NULL)
   {
+    errno = 0;
     ErrorPrintf(ERROR_BADPARM, "MRIresample(): error inverting matrix; determinant is %g, matrix is:", src_det);
     MatrixPrint(stderr, src_mat);
     MatrixFree(&src_mat);
