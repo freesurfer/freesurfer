@@ -1,7 +1,7 @@
 function flac = fast_ldflac(flacfile)
 % flac = fast_ldflac(flacfile)
 %
-% $Id: fast_ldflac.m,v 1.7 2004/11/14 22:30:54 greve Exp $
+% $Id: fast_ldflac.m,v 1.8 2004/11/17 01:02:18 greve Exp $
 
 flac = [];
 if(nargin > 1)
@@ -19,6 +19,7 @@ flac.mask = '';
 flac.inorm = [];
 flac.whiten = 0;
 flac.fixacf = 0;
+flac.acfsegstem = '';
 flac.format = '';
 flac.formatext = '';
 %flac.ev = []; % Leave commented
@@ -72,6 +73,7 @@ while(1)
    case 'whiten',      flac.whiten      = sscanf(tline,'%*s %d',1);
    case 'acfbins',     flac.acfbins     = sscanf(tline,'%*s %d',1);
    case 'fixacf',      flac.fixacf      = sscanf(tline,'%*s %d',1);
+   case 'ACFSEG',      flac.acfsegstem  = sscanf(tline,'%*s %s',1);
    case 'FORMAT',      
     flac.format  = sscanf(tline,'%*s %s',1);
     if(strcmp(flac.format,'bvolume')) flac.formatext = ''; 
@@ -101,6 +103,8 @@ if(isempty(flac.funcstem))
   fprintf('ERROR: no funcstem specified in %s\n',flacfile);
   flac = [];
 end
+
+if(isempty(flac.acfsegstem)) flac.acfsegstem = 'acfseg'; end 
 
 nevs = length(flac.ev);
 if(nevs == 0)
