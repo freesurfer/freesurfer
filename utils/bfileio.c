@@ -4,7 +4,7 @@ Purpose: Routines for handling bfile (bshort and bfloat) I/O.
 Author:  Douglas Greve
 Date:    11/22/00
 
-$Id: bfileio.c,v 1.3 2001/08/03 19:14:00 greve Exp $
+$Id: bfileio.c,v 1.4 2001/10/17 15:38:47 greve Exp $
 
 Bfile names are assumed to have the following format:
   stem_%03d.bext 
@@ -34,9 +34,6 @@ errors and non-0 if there were errors.
 #include "bfileio.h"
 
 extern int errno;
-
-int byteswapbuffloat(void *buf, long int nbufbytes);
-int byteswapbufshort(void *buf, long int nbufbytes);
 
 /* ------------------------- */
 int byteswapbuffloat(void *buf, long int nbufbytes)

@@ -65,7 +65,7 @@ int bf_svslice(BF_DATA *bfd, char *stem, int slice, int svendian, int svtype);
 
 float * bf_ldbfile(char * bfname, int *nrows, int *ncols, int *nfrms);
 int bf_svbfile(float *bfdata, char *bfname, int nrows, int ncols, 
-	       int nfrms, int svendian);
+         int nfrms, int svendian);
 
 int bf_getnslices(char *stem);
 
@@ -74,15 +74,15 @@ int bf_delete_volume(char *stem);
 
 int bf_getarchendian(void);
 int bf_readheader(char * hdrfile, int *nrows, int *ncols, 
-		  int *nfrms, int *endian);
+      int *nfrms, int *endian);
 int bf_writeheader(char * hdrfile, int nrows, int ncols, 
-		   int nfrms, int endian);
+       int nfrms, int endian);
 int bf_getbfiledim(char * bfname, int *nrows, 
-		   int *ncols, int *nfrms,
-		   int *endian, int *type);
+       int *ncols, int *nfrms,
+       int *endian, int *type);
 int bf_getvoltype(char *stem);
 int bf_getvoldim(char *stem, int *nrows,  int *ncols, int *nslcs, 
-		 int *nfrms, int *endian, int *type);
+     int *nfrms, int *endian, int *type);
 
 BF_DATA * bf_preallocbfd(int nrows, int ncols, int nslcs, int nfrms);
 
@@ -93,6 +93,9 @@ int bf_dumpvolinfo(FILE *fp, BF_DATA *bfd);
 
 int bf_rcf2index(BF_DATA *bfd, int r, int c, int f);
 int bf_index2rcf(BF_DATA *bfd, int index, int *r, int *c, int *f);
+
+int byteswapbuffloat(void *buf, long int nbufbytes);
+int byteswapbufshort(void *buf, long int nbufbytes);
 
 
 #endif /*BF_H_INC*/
