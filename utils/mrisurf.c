@@ -1278,10 +1278,14 @@ MRISclone(MRI_SURFACE *mris_src)
       {
         vdst->n[n] = vsrc->n[n] ;
         vdst->f[n] = vsrc->f[n] ;
-        vdst->tri_area[n] = vsrc->tri_area[n] ;
-        vdst->orig_tri_area[n] = vsrc->orig_tri_area[n] ;
-        vdst->tri_angle[n] = vsrc->tri_angle[n] ;
-        vdst->orig_tri_angle[n] = vsrc->orig_tri_angle[n] ;
+        if (vsrc->tri_area)
+          vdst->tri_area[n] = vsrc->tri_area[n] ;
+        if (vsrc->orig_tri_area)
+          vdst->orig_tri_area[n] = vsrc->orig_tri_area[n] ;
+        if (vsrc->tri_angle)
+          vdst->tri_angle[n] = vsrc->tri_angle[n] ;
+        if (vsrc->orig_tri_angle)
+          vdst->orig_tri_angle[n] = vsrc->orig_tri_angle[n] ;
       }
     }
 
@@ -2583,15 +2587,66 @@ MRISreadFromVolume(MRI *mri, MRI_SURFACE *mris)
 
         Description
 ------------------------------------------------------*/
+#define DEBUG_VNO 79221
+#define DEBUG_U  -10  /* -10 25*/
+#define DEBUG_V  0  /* 2 */
+
+MRI_SURFACE *
+MRISrotate(MRI_SURFACE *mris_src, MRI_SURFACE *mris_dst, float dphi, 
+                float dtheta)
+{
+  int      vno ;
+  VERTEX   *vertex ;
+  float    phi, theta, x, y, z, a, b, c ;
+
+  if (!mris_dst)
+    mris_dst = MRISclone(mris_src) ;
+
+  if (FZERO(mris_src->a))
+  {
+    a = DEFAULT_A ;
+    b = DEFAULT_B ;
+    c = DEFAULT_C ;
+  }
+  else
+  {
+    a = mris_src->a ;
+    b = mris_src->b ;
+    c = mris_src->c ;
+  }
+  for (vno = 0 ; vno < mris_src->nvertices ; vno++)
+  {
+    if (vno == DEBUG_VNO)
+      DiagBreak() ;
+
+    vertex = &mris_src->vertices[vno] ;
+    x = vertex->x ; y = vertex->y ; z = vertex->z ;
+    theta = atan2(y/b, x/a) ;
+    if (theta < 0.0f)
+      theta = 2.0f * M_PI + theta ;  /* make it 0 --> 2*PI */
+    phi = atan2(sqrt(c*c-z*z), z) ;
+    phi += dphi ;
+    theta += dtheta ;
+    x = a*sin(phi)*cos(theta) ;
+    y = b*sin(phi)*sin(theta) ;
+    z = c*cos(phi) ;
+    vertex->x = x ; vertex->y = y ; vertex->z = z ;
+  }
+  return(mris_dst) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
 
 #define BIG            100000.0
 
 /* something of a hack... */
 #define UNFILLED_ELT   0
 #define FILLED_ELT     1
-
-#define DU  -10  /* -10 25*/
-#define DV  0  /* 2 */
 
 MRI_SP *
 MRIStoParameterization(MRI_SURFACE *mris, MRI_SP *mrisp, float scale)
@@ -2645,8 +2700,9 @@ MRIStoParameterization(MRI_SURFACE *mris, MRI_SP *mrisp, float scale)
     phi = atan2(sqrt(c*c-z*z), z) ;
     if (phi < RADIANS(1))
       DiagBreak() ;
-    if (vno == 60935)
+    if (vno == DEBUG_VNO)
       DiagBreak() ;
+    vertex->phi = phi ; vertex->theta = theta ;
     uf = PHI_DIM(mrisp) * phi / PHI_MAX ;
     vf = THETA_DIM(mrisp) * theta / THETA_MAX ;
     u0 = floor(uf) ; u1 = ceil(uf+0.00001f) ;
@@ -2669,7 +2725,7 @@ MRIStoParameterization(MRI_SURFACE *mris, MRI_SP *mrisp, float scale)
     if (v1 >= V_DIM(mrisp))
       v1 -= V_DIM(mrisp) ;
 
-    if ((u0 == DU || u1 == DU) && (v0 == DV || v1 == DV))
+    if ((u0 == DEBUG_U || u1 == DEBUG_U) && (v0 == DEBUG_V || v1 == DEBUG_V))
       DiagBreak() ;
 
 #if 0
@@ -2686,7 +2742,7 @@ MRIStoParameterization(MRI_SURFACE *mris, MRI_SP *mrisp, float scale)
       DiagBreak() ;
     filled[u0][v0] = vno ;
     distances[u0][v0] += d ;
-    if ((u0 == DU) && (v0 == DV))
+    if ((u0 == DEBUG_U) && (v0 == DEBUG_V))
       fprintf(stderr, "v = %6.6d (%2.1f, %2.1f, %2.1f), d = %2.3f, "
               "curv = %2.3f\n", vno, x, y, z, d, vertex->curv) ;
 
@@ -2703,7 +2759,7 @@ MRIStoParameterization(MRI_SURFACE *mris, MRI_SP *mrisp, float scale)
 #endif
     distances[u0][v1] += d ;         /* keep track of total distance */
     filled[u0][v1] = vno ;
-    if ((u0 == DU) && (v1 == DV))
+    if ((u0 == DEBUG_U) && (v1 == DEBUG_V))
       fprintf(stderr, "v = %6.6d (%2.1f, %2.1f, %2.1f), d = %2.3f, "
               "curv = %2.3f\n", vno, x, y, z, d, vertex->curv) ;
 
@@ -2721,7 +2777,7 @@ MRIStoParameterization(MRI_SURFACE *mris, MRI_SP *mrisp, float scale)
 
     distances[u1][v0] += d ;         /* keep track of total distance */
     filled[u1][v0] = vno ;
-    if ((u1 == DU) && (v0 == DV))
+    if ((u1 == DEBUG_U) && (v0 == DEBUG_V))
       fprintf(stderr, "v = %6.6d (%2.1f, %2.1f, %2.1f), d = %2.3f, "
               "curv = %2.3f\n", vno, x, y, z, d, vertex->curv) ;
 
@@ -2738,14 +2794,14 @@ MRIStoParameterization(MRI_SURFACE *mris, MRI_SP *mrisp, float scale)
 #endif
     distances[u1][v1] += d ;         /* keep track of total distance */
     filled[u1][v1] = vno ;
-    if ((u1 == DU) && (v1 == DV))
+    if ((u1 == DEBUG_U) && (v1 == DEBUG_V))
       fprintf(stderr, "v = %6.6d (%2.1f, %2.1f, %2.1f), d = %2.3f, "
               "curv = %2.3f\n", vno, x, y, z, d, vertex->curv) ;
   }
 
-  if (DU >= 0)
+  if (DEBUG_U >= 0)
     fprintf(stderr,"\ndistance[%d][%d] = %2.3f\n\n",
-            DU, DV, distances[DU][DV]);
+            DEBUG_U, DEBUG_V, distances[DEBUG_U][DEBUG_V]);
 
   /* now add in curvatures proportional to their distance from the point */
   for (vno = 0 ; vno < mris->nvertices ; vno++)
@@ -2761,7 +2817,7 @@ MRIStoParameterization(MRI_SURFACE *mris, MRI_SP *mrisp, float scale)
     u0 = floor(uf) ; u1 = ceil(uf+0.00001f) ;
     v0 = floor(vf) ; v1 = ceil(vf+0.00001f) ;
     du = uf - (float)u0 ; dv = vf - (float)v0 ;
-    if ((u0 == DU || u1 == DU) && (v0 == DV || v1 == DV))
+    if ((u0 == DEBUG_U || u1 == DEBUG_U) && (v0 == DEBUG_V || v1 == DEBUG_V))
       DiagBreak() ;
     if (u0 < 0)  /* enforce spherical topology  */
       u0 += U_DIM(mrisp) ;
@@ -2794,7 +2850,7 @@ MRIStoParameterization(MRI_SURFACE *mris, MRI_SP *mrisp, float scale)
     total_d = distances[u0][v0] ;
     d /= total_d ;
     *IMAGEFpix(mrisp->Ip, u0,v0) += d*vertex->curv ;  /* weight by distance */
-    if ((u0 == DU) && (v0 == DV))
+    if ((u0 == DEBUG_U) && (v0 == DEBUG_V))
       fprintf(stderr, "v = %6.6d (%2.1f, %2.1f, %2.1f), curv = %2.3f, "
               "proportion = %2.3f\n", vno, x, y, z, vertex->curv, d) ;
 
@@ -2813,7 +2869,7 @@ MRIStoParameterization(MRI_SURFACE *mris, MRI_SP *mrisp, float scale)
     total_d = distances[u1][v0] ;
     d = d / total_d ;
     *IMAGEFpix(mrisp->Ip, u1, v0) += d*vertex->curv ;  /* weight by distance */
-    if ((u1 == DU) && (v0 == DV))
+    if ((u1 == DEBUG_U) && (v0 == DEBUG_V))
       fprintf(stderr, "v = %6.6d (%2.1f, %2.1f, %2.1f), curv = %2.3f, "
               "proportion = %2.3f\n", vno, x, y, z, vertex->curv, d) ;
 
@@ -2832,7 +2888,7 @@ MRIStoParameterization(MRI_SURFACE *mris, MRI_SP *mrisp, float scale)
     total_d = distances[u0][v1] ;
     d = d / total_d ;
     *IMAGEFpix(mrisp->Ip, u0, v1) += d*vertex->curv ;  /* weight by distance */
-    if ((u0 == DU) && (v1 == DV))
+    if ((u0 == DEBUG_U) && (v1 == DEBUG_V))
       fprintf(stderr, "v = %6.6d (%2.1f, %2.1f, %2.1f), curv = %2.3f, "
               "proportion = %2.3f\n", vno, x, y, z, vertex->curv, d) ;
 
@@ -2851,15 +2907,15 @@ MRIStoParameterization(MRI_SURFACE *mris, MRI_SP *mrisp, float scale)
     total_d = distances[u1][v1] ;
     d = d / total_d ;
     *IMAGEFpix(mrisp->Ip, u1, v1) += d*vertex->curv ;  /* weight by distance */
-    if ((u1 == DU) && (v1 == DV))
+    if ((u1 == DEBUG_U) && (v1 == DEBUG_V))
       fprintf(stderr, "v = %6.6d (%2.1f, %2.1f, %2.1f), curv = %2.3f, "
               "proportion = %2.3f\n", vno, x, y, z, vertex->curv, d) ;
 
   }
 
-  if (DU >= 0)
-    fprintf(stderr,"curv[%d][%d] = %2.3f\n\n", DU, DV, 
-            *IMAGEFpix(mrisp->Ip, DU, DV));
+  if (DEBUG_U >= 0)
+    fprintf(stderr,"curv[%d][%d] = %2.3f\n\n", DEBUG_U, DEBUG_V, 
+            *IMAGEFpix(mrisp->Ip, DEBUG_U, DEBUG_V));
 
 #if 0
   /* normalize by total distances */
@@ -2867,7 +2923,7 @@ MRIStoParameterization(MRI_SURFACE *mris, MRI_SP *mrisp, float scale)
   {
     for (v = 0 ; v <= V_MAX_INDEX ; v++)
     {
-      if (u == DU && v == DV)
+      if (u == DEBUG_U && v == DEBUG_V)
         DiagBreak() ;
       if (filled[u][v] >= 0)
       {
@@ -3121,7 +3177,7 @@ MRISPblur(MRI_SP *mrisp_src, MRI_SP *mrisp_dst, float sigma)
     for (v = 0 ; v < V_DIM(mrisp_src) ; v++)
     {
       /*      theta = (double)v*THETA_MAX / THETA_DIM(mrisp_src) ;*/
-      if (u == DU && v == DV)
+      if (u == DEBUG_U && v == DEBUG_V)
         DiagBreak() ;
 
       total = ktotal = 0.0 ;
@@ -3155,7 +3211,7 @@ MRISPblur(MRI_SP *mrisp_src, MRI_SP *mrisp_dst, float sigma)
           total += k**IMAGEFpix(mrisp_src->Ip, u1, v1) ;
         }
       }
-      if (u == DU && v == DV)
+      if (u == DEBUG_U && v == DEBUG_V)
         DiagBreak() ;
       total /= ktotal ;   /* normalize weights to 1 */
       *IMAGEFpix(mrisp_dst->Ip, u, v) = total ;
@@ -3229,14 +3285,18 @@ MRISPalign(MRI_SP *mrisp_orig, MRI_SP *mrisp_src, MRI_SP *mrisp_tmp,
 {
   IMAGE  *Icorr = NULL ;
   int    u_peak, v_peak ;
-  float  peak_val ;
+  float  peak_val, delta_theta, delta_phi ;
 
   Icorr = ImageCorrelate(mrisp_src->Ip, mrisp_tmp->Ip, 0, NULL) ;
   ImageFindPeak(Icorr, &v_peak, &u_peak, &peak_val) ;
   u_peak -= U_DIM(mrisp_src)/2 ; v_peak -= V_DIM(mrisp_src)/2 ;
-  fprintf(stderr, "peak found at (%d, %d)\n", u_peak, v_peak) ;
+  delta_phi = u_peak * PHI_MAX / PHI_DIM(mrisp_src) ;
+  delta_theta = v_peak * THETA_MAX / THETA_DIM(mrisp_src) ;
+  fprintf(stderr, "peak found at (%d, %d) (%2.2f, %2.2f)\n", 
+          u_peak, v_peak, DEGREES(delta_phi), DEGREES(delta_theta)) ;
 
   mrisp_dst = MRISPtranslate(mrisp_orig, NULL, u_peak, v_peak) ;
+  MRISrotate(mrisp_orig->mris, mrisp_orig->mris, delta_phi, delta_theta) ;
 
 #if 0 
   ImageWrite(mrisp_src->Ip, "Isrc.hipl") ;
