@@ -1213,6 +1213,7 @@ LabelFillUnassignedVertices(MRI_SURFACE *mris, LABEL *area)
   MHB     *bin ;
   VERTEX  *v ;
   float   dx, dy, dz, x, y, z, dist, min_dist ;
+  int     num_not_found;
 
   for (i = n = 0 ; n < area->n_points ; n++)
   {
@@ -1230,6 +1231,7 @@ LabelFillUnassignedVertices(MRI_SURFACE *mris, LABEL *area)
   /* if we can't find a vertex within 10 mm of the point, something is wrong */
   mht = MHTfillVertexTableRes(mris, NULL, ORIGINAL_VERTICES, 10.0) ;
   fprintf(stderr, "assigning vertex numbers to label...\n") ;
+  num_not_found = 0;
   for (n = 0 ; n < area->n_points ; n++)
   {
     lv = &area->lv[n] ;
@@ -1258,10 +1260,18 @@ LabelFillUnassignedVertices(MRI_SURFACE *mris, LABEL *area)
         }
       }
     }
-    lv->vno = min_vno ;
+    if (min_vno == -1) 
+      num_not_found++;
+    else
+      lv->vno = min_vno ;
   }
   LabelRemoveDuplicates(area) ;
   MHTfree(&mht) ;
+
+  if (num_not_found > 0)
+    fprintf (stderr, "Couldn't assign %d vertices.\n", num_not_found);
+
+
   return(nfilled) ;
 }
 
