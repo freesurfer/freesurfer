@@ -12,7 +12,7 @@
 #include "macros.h"
 #include "utils.h"
 
-static char vcid[]="$Id: mris_errors.c,v 1.3 1997/12/10 23:23:11 fischl Exp $";
+static char vcid[]="$Id: mris_errors.c,v 1.4 1997/12/11 17:51:15 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -22,6 +22,7 @@ static void print_usage(void) ;
 static void print_help(void) ;
 static void print_version(void) ;
 int MRISareaErrors(MRI_SURFACE *mris) ;
+int MRISangleErrors(MRI_SURFACE *mris) ;
 
 char *Progname ;
 static MRI_SURFACE  *mris ;
@@ -32,7 +33,7 @@ static int write_flag = 0 ;
 int
 main(int argc, char *argv[])
 {
-  char         *cp, **av, *in_fname, *out_fname, fname[100], path[100], 
+  char         *cp, **av, *in_fname, fname[100], path[100], 
                name[100], hemi[100] ;
   int          ac, nargs ;
 
