@@ -13,7 +13,7 @@
 #include "transform.h"
 #include "mrinorm.h"
 
-static char vcid[] = "$Id: mri_synthesize.c,v 1.2 2002/07/05 22:13:29 fischl Exp $";
+static char vcid[] = "$Id: mri_synthesize.c,v 1.3 2002/07/19 15:24:22 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -40,8 +40,13 @@ static float nl_scale = 0.01 ;
 static float nl_mean = 950 ;
 
 /* optimal class separation (sort of) */
+#if 0
 static double w30 = 0.7718 ;
 static double w5 = -0.6359 ;
+#else
+static double w30 = 2* 0.9527 ;
+static double w5 =  2*-0.3039 ;
+#endif
 
 static int use_weighting = 0 ;
 
@@ -90,8 +95,7 @@ main(int argc, char *argv[])
 
   if (use_weighting)
   {
-    mri_out = MRIsynthesizeWeightedVolume(mri_T1, mri_PD, w5, 20,w30, 20, 
-                                          110,TE);
+    mri_out = MRIsynthesizeWeightedVolume(mri_T1, mri_PD, w5, TR, w30, TR, 110,TE);
   }
   else
   {
@@ -103,9 +107,9 @@ main(int argc, char *argv[])
       discard_PD(mri_PD, 250, 1500) ;
     if (nl_remap_T1)
       remap_T1(mri_T1, nl_mean, nl_scale) ;
+    mri_out = MRIsynthesize(mri_T1, mri_PD, NULL, TR, RADIANS(alpha), TE) ;
   }
 
-  mri_out = MRIsynthesize(mri_T1, mri_PD, NULL, TR, RADIANS(alpha), TE) ;
   printf("writing output to %s.\n", out_fname) ;
   MRIwrite(mri_out, out_fname) ;
 
@@ -353,7 +357,7 @@ MRIsynthesizeWeightedVolume(MRI *mri_T1, MRI *mri_PD, float w5, float TR5,
   int        mri_peak, n, min_real_bin, x, y, z, width, height, depth ;
   MRI       *mri30, *mri5 ;
   double    mean_PD ;
-  Real      val30, val5, val ;
+  Real      val30, val5, val, min_val ;
 
   mean_PD = MRImeanFrame(mri_PD, 0) ;
   /*  MRIscalarMul(mri_PD, mri_PD, 1000.0f/mean_PD) ;*/
@@ -400,7 +404,7 @@ MRIsynthesizeWeightedVolume(MRI *mri_T1, MRI *mri_PD, float w5, float TR5,
   printf("after smoothing, mri peak at %d\n", mri_peak) ;
   HISTOfree(&h_smooth) ; HISTOfree(&h_mri) ;
 
-
+  min_val = 0 ;
   for (x = 0 ; x < width ; x++)
   {
     for (y = 0 ; y < height ; y++)
@@ -413,6 +417,21 @@ MRIsynthesizeWeightedVolume(MRI *mri_T1, MRI *mri_PD, float w5, float TR5,
         MRIsampleVolumeType(mri5, x, y, z, &val5, SAMPLE_NEAREST) ;
         val = w30*val30 + w5*val5 ;
         MRIFvox(mri_dst, x, y, z) = val ;
+        if (val < min_val)
+          min_val = val ;
+      }
+    }
+  }
+
+  for (x = 0 ; x < width ; x++)
+  {
+    for (y = 0 ; y < height ; y++)
+    {
+      for (z = 0 ; z < depth ; z++)
+      {
+        if (x == Gx && y == Gy && z == Gz)
+          DiagBreak() ;
+        MRIFvox(mri_dst, x, y, z) += min_val ;
       }
     }
   }
