@@ -103,11 +103,11 @@ update_optimal_transform(MRI *mri, GCA *gca, GCA_SAMPLE *gcas, int nsamples,
 static MATRIX *find_optimal_transform(MRI *mri_in, GCA *gca, GCA_SAMPLE *gcas,
                                       int nsamples, MATRIX *m_L, int passno,
                                       int write_iterations, int spacing) ;
-#if 0
 static double find_optimal_translation(GCA *gca, GCA_SAMPLE *gcas, MRI *mri, 
                                        int nsamples, MATRIX *m_L, 
                                        float min_trans, float max_trans, 
                                        float trans_steps, int nreductions) ;
+#if 0
 static double find_optimal_scaling(GCA *gca, GCA_SAMPLE *gcas, MRI *mri, 
                                    int nsamples, MATRIX *m_L, MATRIX *m_origin,
                                    float min_scale, float max_scale, 
@@ -211,7 +211,7 @@ main(int argc, char *argv[])
   DiagInit(NULL, NULL, NULL) ;
   ErrorInit(NULL, NULL, NULL) ;
 
-  nargs = handle_version_option (argc, argv, "$Id: mri_deface.c,v 1.5 2003/03/19 18:00:45 kteich Exp $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_deface.c,v 1.6 2003/03/19 18:45:43 fischl Exp $");
   argc -= nargs ;
   argv += nargs ;
   if (1 == argc)
@@ -611,13 +611,18 @@ find_optimal_transform(MRI *mri, GCA *gca, GCA_SAMPLE *gcas, int nsamples,
 {
   MATRIX   *m_origin ;
   MRI      *mri_gca  ;
-  double   in_means[3], gca_means[3], dx, dy, dz, max_log_p, old_max,
+  double   gca_means[3], max_log_p, old_max,
            max_angle, angle_steps, min_scale, max_scale, scale_steps, scale,
            delta, mean ;
-  int      niter, good_step, done, nscales, min_real_bin, mri_peak, scale_samples ;
-  float      min_real_val, fmax, fmin, min_search_scale ;
+  int      niter, good_step, done, nscales, scale_samples ;
+  float    min_search_scale ;
+#if  0
+  float      min_real_val, fmax, fmin ;
+	int        min_real_bin, mri_peak ;
+	double     in_means[3], dx, dy, dz ;
   MRI_REGION box, gca_box ;
   HISTOGRAM *h_mri, *h_smooth ;
+#endif
 
 
 #define MIN_SEARCH_SCALE 0.1
@@ -680,7 +685,8 @@ find_optimal_transform(MRI *mri, GCA *gca, GCA_SAMPLE *gcas, int nsamples,
 		}
 
 		printf("initial log_p = %2.1f\n", max_log_p) ;
-		
+
+#if 0		
 		MRIvalRange(mri, &fmin, &fmax) ;
 		h_mri = MRIhistogram(mri, nint(fmax-fmin+1)) ; h_mri->counts[0] = 0 ; /* ignore background */
 		h_smooth = HISTOsmooth(h_mri, NULL, 2) ;
@@ -730,6 +736,13 @@ find_optimal_transform(MRI *mri, GCA *gca, GCA_SAMPLE *gcas, int nsamples,
 		max_log_p = local_GCAcomputeLogSampleProbability(gca, gcas, mri, m_L,nsamples) ;
 		printf("initial translation: (%2.1f, %2.1f, %2.1f): log p = %2.1f\n",
 					 dx,dy,dz, max_log_p) ;
+#else
+    max_log_p = find_optimal_translation(gca, gcas, mri, nsamples, m_L,
+                                         -100, 100, 11, 3) ;
+		max_log_p = local_GCAcomputeLogSampleProbability(gca, gcas, mri, m_L,nsamples) ;
+		printf("after initial translation: (%2.1f, %2.1f, %2.1f): log p = %2.1f\n",
+					 *MATRIX_RELT(m_L, 1, 4),*MATRIX_RELT(m_L, 2, 4), *MATRIX_RELT(m_L, 3, 4), max_log_p) ;
+#endif
 		
 		if (write_iterations != 0)
 		{
@@ -1038,6 +1051,7 @@ find_optimal_scaling(GCA *gca, GCA_SAMPLE *gcas, MRI *mri, int nsamples,
   return(max_log_p) ;
 }
 
+#endif
 static double
 find_optimal_translation(GCA *gca, GCA_SAMPLE *gcas, MRI *mri, int nsamples, 
                          MATRIX *m_L, float min_trans, float max_trans, 
@@ -1116,7 +1130,6 @@ find_optimal_translation(GCA *gca, GCA_SAMPLE *gcas, MRI *mri, int nsamples,
   MatrixFree(&m_trans) ;
   return(max_log_p) ;
 }
-#endif
 /*----------------------------------------------------------------------
             Parameters:
 
