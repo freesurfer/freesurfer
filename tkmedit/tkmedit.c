@@ -2040,6 +2040,9 @@ void FindNearestSurfaceVertex ( Surf_tVertexSet iSurface ) {
   if( MWin_tErr_NoErr != eWindow )
     goto error;
 
+  OutputPrint "Nearest %s vertex to %d, %d, %d:\n",
+    sSetName, xVoxl_ExpandInt( &cursor ) EndOutputPrint;
+
   /* first unadjust the point. */
   eWindow = MWin_UnadjustSurfaceAnaIdx( gMeditWindow, &cursor );
   if( MWin_tErr_NoErr != eWindow )
@@ -2053,8 +2056,7 @@ void FindNearestSurfaceVertex ( Surf_tVertexSet iSurface ) {
 
   /* print the result string */
   Surf_GetSurfaceSetName( iSurface, sSetName );
-  OutputPrint "Nearest %s vertex to %d, %d, %d:\n\t%s\n", 
-    sSetName, xVoxl_ExpandInt( &cursor ), sDescription EndOutputPrint;
+  OutputPrint "\t%s\n", sDescription EndOutputPrint;
 
   /* adjust it so it aligns to the surface. */
   eWindow = MWin_AdjustSurfaceAnaIdx( gMeditWindow, &anaIdx );
