@@ -33,13 +33,15 @@ LABEL   *LabelRead(char *subject_name, char *label_name) ;
 int     LabelWrite(LABEL *area, char *fname) ;
 int     LabelToCanonical(LABEL *area, MRI_SURFACE *mris) ;
 int     LabelFromCanonical(LABEL *area, MRI_SURFACE *mris) ;
+int     LabelFromTalairach(LABEL *area, MRI_SURFACE *mris) ;
 int     LabelToFlat(LABEL *area, MRI_SURFACE *mris) ;
 int     LabelRipRestOfSurface(LABEL *area, MRI_SURFACE *mris) ;
 int     LabelRemoveOverlap(LABEL *area1, LABEL *area2) ;
+int     LabelRemoveDuplicates(LABEL *area) ;
 LABEL   *LabelAlloc(int max_points, char *subject_name, char *label_name) ;
 int     LabelCurvFill(LABEL *area, int *vertex_list, int nvertices, 
                     int max_vertices, MRI_SURFACE *mris) ;
-int     LabelTalairachTransform(LABEL *area) ;
+int     LabelTalairachTransform(LABEL *area, MRI_SURFACE *mris) ;
 int     LabelSphericalTransform(LABEL *area, MRI_SURFACE *mris) ;
 MATRIX  *LabelCovarianceMatrix(LABEL *area, MATRIX *mat) ;
 LABEL   *LabelCombine(LABEL *area, LABEL *area_dst) ;
