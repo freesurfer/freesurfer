@@ -11,7 +11,7 @@ function err = fast_svbslice(y,stem,sliceno,bext,mristruct)
 %
 % See also fast_ldbslice, fast_mri_struct, fast_svbhdr.
 % 
-% $Id: fast_svbslice.m,v 1.11 2004/01/12 02:29:40 greve Exp $
+% $Id: fast_svbslice.m,v 1.12 2004/03/22 20:24:35 greve Exp $
 
 err = 1;
 
@@ -20,6 +20,7 @@ if(nargin < 2 | nargin > 5)
   return;
 end
 
+if(exist('sliceno') ~= 1) sliceno = -1; end
 if(exist('bext') ~= 1) bext = ''; end
 if(isempty(bext)) bext = 'bfloat'; end
 
