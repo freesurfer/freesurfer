@@ -3882,6 +3882,13 @@ MRISregister(MRI_SURFACE *mris, MRI_SP *mrisp_template,
   MRISnormalizeCurvature(mris) ;
   MRISstoreMeanCurvature(mris) ;
 
+  if (parms->nbhd_size > 0)  /* compute long-range distances */
+  {
+    int i, nbrs[MAX_NBHD_SIZE] ;
+    for (i = mris->nsize+1 ; i <= parms->nbhd_size ; i++)
+      nbrs[i] = parms->max_nbrs ;
+  }
+
   for (sno = 1 ; sno < SURFACES ; sno++)
   {
     if (!first && ((parms->flags & IP_USE_CURVATURE) == 0))
@@ -3950,6 +3957,16 @@ MRISregister(MRI_SURFACE *mris, MRI_SP *mrisp_template,
       if (Gdiag & DIAG_WRITE)
         fprintf(parms->fp,"\ncorrelating surfaces with with sigma=%2.2f\n",
                 sigma) ;
+      if (Gdiag & DIAG_WRITE && !i && !parms->start_t)
+      {
+        MRISfromParameterization(mrisp_template, mris, ino);
+        sprintf(fname, "%s/%s.target", path, mris->hemisphere == RIGHT_HEMISPHERE ? "rh":"lh") ;
+        if (Gdiag & DIAG_SHOW)
+          fprintf(stdout, "writing curvature file %s...", fname) ;
+        MRISwriteCurvature(mris, fname) ;
+        if (Gdiag & DIAG_SHOW)
+          fprintf(stdout, "done.\n") ;
+      }
       MRISuseMeanCurvature(mris) ;
       mrisp = MRIStoParameterization(mris, NULL, 1, 0) ;
       parms->mrisp = MRISPblur(mrisp, NULL, sigma, 0) ;
@@ -4019,7 +4036,9 @@ MRISregister(MRI_SURFACE *mris, MRI_SP *mrisp_template,
             fprintf(stdout, "finding optimal rigid alignment\n") ;
           if (Gdiag & DIAG_WRITE)
             fprintf(parms->fp, "finding optimal rigid alignment\n") ;
-          MRISrigidBodyAlignGlobal(mris, parms, 4.0f, 32.0f, 8) ;
+          MRISrigidBodyAlignGlobal(mris, parms, 0.5f, 32.0f, 8) ;
+           if (Gdiag & DIAG_WRITE && parms->write_iterations != 0)
+             MRISwrite(mris, "rotated") ;
         }
       }
 
