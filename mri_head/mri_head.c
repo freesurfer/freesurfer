@@ -27,10 +27,10 @@ void dummy_read(void);
 
 char *Progname;
 
-char *prog_name, *short_prog_name;
-char *file_name = NULL;
+static char *prog_name, *short_prog_name;
+static char *fname = NULL;
 
-int action = ACTION_NONE;
+static int action = ACTION_NONE;
 
 int main(int argc, char *argv[])
 {
@@ -69,7 +69,7 @@ void get_options(int argc, char *argv[])
     else if(strcmp(argv[i], "-read") == 0)
       action = ACTION_READ;
     else
-      file_name = argv[i];
+      fname = argv[i];
     }
 
 }  /*  end get_options()  */
@@ -95,17 +95,17 @@ void dummy_identify(void)
   int type;
   struct stat stat_buf;
 
-  if(file_name == NULL)
+  if(fname == NULL)
     usage(1);
 
-  if(stat(file_name, &stat_buf) < 0)
+  if(stat(fname, &stat_buf) < 0)
     {
     printf("fail\n");
-    printf("can't stat file %s\n",file_name);
+    printf("can't stat file %s\n",fname);
     exit(1);
     }
 
-  type = mri_identify(file_name);
+  type = mri_identify(fname);
 
   if(type < 0)
     {
@@ -147,17 +147,17 @@ void dummy_read(void)
 
   MRI *mri;
 
-  if(file_name == NULL)
+  if(fname == NULL)
     usage(1);
 
   freopen("/dev/null", "w", stderr);
 
-  mri = MRIreadInfo(file_name);
+  mri = MRIreadInfo(fname);
 
   if(mri == NULL)
     {
     printf("fail\n");
-    printf("couldn't open or determine file type of %s\n", file_name);
+    printf("couldn't open or determine file type of %s\n", fname);
     exit(1);
     }
 
