@@ -6,7 +6,7 @@
 #                -i instem1 -i instem2 -o outstem
 ############################################################
 
-set ISXAVG_FE_VER = '$Id: isxavg-fe,v 1.1 2003/03/04 21:22:08 greve Exp $';
+set ISXAVG_FE_VER = '$Id: isxavg-fe,v 1.2 2003/10/14 18:07:40 greve Exp $';
 
 set fmrianalver = `cat $FMRI_ANALYSIS_DIR/docs/version`;
 
@@ -105,9 +105,13 @@ set OutBaseStem = `basename $outstem`;
 mkdir -p $OutDir;
 
 ## Get path for log-file ##
-set LF = $outstem"_isxavg.log"
-rm -f $LF;
-touch $LF;
+if(-w $OutDir) then
+  set LF = $outstem"_isxavg.log"
+  rm -f $LF;
+  touch $LF;
+else
+  set LF = /dev/null
+endif
 echo ------------------------------------------ >> $LF
 echo "isxavg-fe $ISXAVG_FE_VER" >> $LF
 echo "Comments or questions: analysis-bugs@nmr.mgh.harvard.edu" >> $LF
@@ -116,6 +120,9 @@ echo "firstslice: $firstslice" >> $LF
 echo "nslices:    $nslices" >> $LF
 echo "outdir:    $OutDir" >> $LF
 echo "weight:    $weight" >> $LF
+
+set okfile = /tmp/isxavg-fe-$$.ok
+rm -f $okfile
 
 ## Set path for matlab file ##
 if(! $monly) then
@@ -138,12 +145,13 @@ echo "InStemList = [];"   >> $MLF
 foreach stem ($instem)
   echo "InStemList = strvcat(InStemList, '$stem');" >> $MLF
 end
-echo "OutStem    = '$outstem';"    >> $MLF
-echo "FirstSlice = $firstslice;" >>  $MLF
-echo "NSlices    = $nslices;" >>  $MLF
-echo "pctsigch   = $pctsigch;" >>  $MLF
-echo "weight     = [$weight];"   >>  $MLF
+echo "OutStem    = '$outstem';"   >> $MLF
+echo "FirstSlice = $firstslice;"  >>  $MLF
+echo "NSlices    = $nslices;"     >>  $MLF
+echo "pctsigch   = $pctsigch;"    >>  $MLF
+echo "weight     = [$weight];"    >>  $MLF
 echo "truncsign  = '$truncsign';" >>  $MLF
+echo "okfile     = '$okfile';"    >>  $MLF
 echo "fmri_isxavg_fe;" >> $MLF
 
 if(! $monly ) echo "quit;" >> $MLF
@@ -157,6 +165,11 @@ if(! $monly) then
   cat $MLF | $MATLAB -display iconic | tee -a $LF
   echo  ---- matlab done ----- >> $LF
   rm -f $MLF;
+  if(! -e $okfile) then
+    echo "fmri_isxavg_fe.m failed" | tee -a $LF
+    exit 1;
+  endif
+  rm $okfile
 
   set bhdr0 = $instem[1].bhdr
   if(-e $bhdr0)  cp $bhdr0 $outstem.bhdr

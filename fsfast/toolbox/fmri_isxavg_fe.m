@@ -3,7 +3,7 @@
 %          for output of selxavg
 % Author: Douglas Greve
 % Questions or Comments: analysis-bugs@nmr.mgh.harvard.edu
-% Version: $Id: fmri_isxavg_fe.m,v 1.1 2003/03/04 20:47:39 greve Exp $
+% Version: $Id: fmri_isxavg_fe.m,v 1.2 2003/10/14 18:07:05 greve Exp $
 
 %%%% These variables must be specified %%%%%%%%
 % InStemList
@@ -41,8 +41,27 @@ for slice = FirstSlice:LastSlice
     InHOffset  = sprintf('%s-offset_%03d.bfloat',InStem,slice);
     
     [hAvg eVar hd] = fast_ldsxabfile(InSA);
+    if(session == 1)
+      hd0 = hd;
+    else
+      if(hd0.Nnnc ~= hd.Nnnc)
+	fprintf('\n\nERROR: session %d has a different number of\n',session);
+	fprintf('  conditions than session 1\n\n\n');
+	return;
+      end
+      if(size(hAvg,1) ~= size(hAvgSum,1) | ...
+	size(hAvg,2) ~= size(hAvgSum,2)  | ...
+	size(hAvg,3) ~= size(hAvgSum,3) )
+	fprintf(['ERROR: dimension mismatch between session '...
+		 'number %d and previous sessions\n'],session);
+	fprintf(['This usually happens when an analysis has been '...
+		 'redefined but selxavg has not been re-run on all '...
+		 'the subjects.\n']);
+	return;
+      end
+    end
     %hAvg = randn(size(hAvg));
-
+      
     % Truncate all values of the specified sign to 0
     if( ~isempty(truncsign) )
       if( strcmpi(truncsign,'pos') )
@@ -99,6 +118,7 @@ for slice = FirstSlice:LastSlice
 end % Loop over slices %
 fprintf('\n');
 
+fmri_touch(okfile);
 fprintf(1,'fmri_isavg_fe completed \n\n');
 
 
