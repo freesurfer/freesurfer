@@ -1,6 +1,6 @@
 #! /usr/bin/tixwish
 
-# $Id: tkm_functional.tcl,v 1.22 2003/09/10 22:31:42 kteich Exp $
+# $Id: tkm_functional.tcl,v 1.23 2004/01/28 22:05:55 kteich Exp $
 
 package require BLT;
 
@@ -54,9 +54,9 @@ set gnMaxColors [llength $glAllColors]
 set nCondition 0
 foreach dataSet $glAllColors {
     if { 0 == $nCondition } {
-  set gGraphSetting($dataSet,visible)  0
+	set gGraphSetting($dataSet,visible)  0
     } else {
-  set gGraphSetting($dataSet,visible)  1
+	set gGraphSetting($dataSet,visible)  1
     }
     set gGraphSetting($dataSet,condition) $nCondition
     set gGraphSetting($dataSet,label) "Condition $nCondition"
@@ -892,16 +892,25 @@ proc TimeCourse_UpdateNumConditions { inNumConditions } {
     # set the graph colors to the first num_conditions possible colors
     set nLastColorToUse [expr $gnNumTimeCourseConditions - 1]
     if { $nLastColorToUse > [expr $gnMaxColors - 1] } {
-  set nLastColorToUse [expr $gnMaxColors - 1]
+	set nLastColorToUse [expr $gnMaxColors - 1]
     }
     set glGraphColors [lrange $glAllColors 0 $nLastColorToUse]
     
     # make sure none of our graph setting conditions are invalid
     foreach dataSet $glGraphColors {
-  if { $gGraphSetting($dataSet,condition) >= $gnNumTimeCourseConditions } {
-      set gGraphSetting($dataSet,condition) 0
-      set gGraphSetting($dataSet,visible)   0
-  }
+      if { $gGraphSetting($dataSet,condition) >= $gnNumTimeCourseConditions } {
+	    set gGraphSetting($dataSet,condition) 0
+	    set gGraphSetting($dataSet,visible)   0
+	}
+    }
+
+    # If there is only 1 condition, make it condition 0
+    # visible. Otherwise make condition 0 not visible.
+    set dataSet [lindex $glGraphColors 0]
+    if { $inNumConditions == 1 } {
+	set gGraphSetting($dataSet,visible) 1
+    } else {
+	set gGraphSetting($dataSet,visible) 0
     }
 }
 
