@@ -802,7 +802,7 @@ int MRIwriteType(MRI *mri, char *fname, int type)
           type == XIMG_FILE)
   {
     errno = 0;
-    ErrorReturn(ERROR_BADPARM, (ERROR_BADPARM, "MRIwriteType(): reading of file type not supported"));
+    ErrorReturn(ERROR_BADPARM, (ERROR_BADPARM, "MRIwriteType(): writing of file type not supported"));
   }
   else
   {
