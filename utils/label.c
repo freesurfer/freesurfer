@@ -36,7 +36,14 @@ LabelRead(char *subject_name, char *label_name)
   area = (LABEL *)calloc(1, sizeof(LABEL)) ;
   if (!area)
     ErrorExit(ERROR_NOMEMORY,"%s: could not allocate LABEL struct.",Progname);
-  if (subject_name)
+
+  cp = getenv("SUBJECTS_DIR") ;
+  if (!cp)
+    ErrorExit(ERROR_BADPARM, 
+              "%s: no subject's directory specified in environment "
+              "(SUBJECTS_DIR)", Progname) ;
+  strcpy(subjects_dir, cp) ;
+  if (subject_name && !strchr(label_name, '/'))
   {
     strcpy(lname, label_name) ;
     cp = strstr(lname, ".label") ;
@@ -47,12 +54,6 @@ LabelRead(char *subject_name, char *label_name)
       label_name = cp+1 ;
     else
       label_name = lname ;
-    cp = getenv("SUBJECTS_DIR") ;
-    if (!cp)
-      ErrorExit(ERROR_BADPARM, 
-                "%s: no subject's directory specified in environment "
-                "(SUBJECTS_DIR)", Progname) ;
-    strcpy(subjects_dir, cp) ;
     sprintf(fname, "%s/%s/label/%s.label", subjects_dir,subject_name,
             label_name);
     strcpy(area->subject_name, subject_name) ;
@@ -70,10 +71,12 @@ LabelRead(char *subject_name, char *label_name)
 
   cp = fgetl(line, 199, fp) ;
   if (!cp)
-    ErrorExit(ERROR_BADFILE, "%s: empty label file %s", Progname, fname) ;
+    ErrorReturn(NULL,
+                (ERROR_BADFILE, "%s: empty label file %s", Progname, fname)) ;
   if (!sscanf(cp, "%d", &area->n_points))
-    ErrorExit(ERROR_BADFILE, "%s: could not scan # of lines from %s",
-              Progname, fname) ;
+    ErrorReturn(NULL,
+                (ERROR_BADFILE, "%s: could not scan # of lines from %s",
+                 Progname, fname)) ;
   area->max_points = area->n_points ;
   area->lv = (LABEL_VERTEX *)calloc(area->n_points, sizeof(LABEL_VERTEX)) ;
   if (!area->lv)
@@ -84,8 +87,8 @@ LabelRead(char *subject_name, char *label_name)
   while ((cp = fgetl(line, 199, fp)) != NULL)
   {
     if (sscanf(cp, "%d %f %f %f %f", &vno, &x, &y, &z, &stat) != 5)
-      ErrorExit(ERROR_BADFILE, "%s: could not parse %dth line in %s",
-                Progname, area->n_points, fname) ;
+      ErrorReturn(NULL, (ERROR_BADFILE, "%s: could not parse %dth line in %s",
+                Progname, area->n_points, fname)) ;
     area->lv[nlines].x = x ;
     area->lv[nlines].y = y ;
     area->lv[nlines].z = z ;
@@ -96,7 +99,9 @@ LabelRead(char *subject_name, char *label_name)
 
   fclose(fp) ;
   if (!nlines)
-    ErrorExit(ERROR_BADFILE, "%s: no data in label file %s", Progname, fname);
+    ErrorReturn(NULL,
+                (ERROR_BADFILE, 
+                 "%s: no data in label file %s", Progname, fname));
   if (subject_name)
   {
     area->linear_transform = 
@@ -696,8 +701,9 @@ labelLoadTransform(char *subject_name, char *sdir,General_transform *transform)
   sprintf(xform_fname, "%s/%s/mri/transforms/talairach.xfm",
           sdir, subject_name) ;
   if (input_transform_file(xform_fname, transform) != OK)
-    ErrorExit(ERROR_NOFILE, "%s: could not load transform file '%s'", 
-              Progname, xform_fname) ;
+    ErrorReturn(NULL,
+                (ERROR_NOFILE, "%s: could not load transform file '%s'", 
+                 Progname, xform_fname)) ;
 
   return(get_linear_transform_ptr(transform)) ;
 }
