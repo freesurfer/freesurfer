@@ -1,6 +1,6 @@
 #! /usr/bin/tixwish
 
-# $Id: tkmedit.tcl,v 1.63 2003/09/03 18:09:36 kteich Exp $
+# $Id: tkmedit.tcl,v 1.64 2003/09/18 21:50:50 kteich Exp $
 
 
 source $env(FREESURFER_HOME)/lib/tcl/tkm_common.tcl
@@ -95,8 +95,9 @@ set ksaBrushString(0) "Button 2"
 set ksaBrushString(1) "Button 3"
 
 # DspA_tBrushTarget
-set DspA_tBrushTarget_Main    0
-set DspA_tBrushTarget_MainAux 1
+set DspA_tBrushTarget(main)    0
+set DspA_tBrushTarget(aux)     1
+set DspA_tBrushTarget(mainaux) 2
 
 # DspA_tBrushShape
 set DspA_tBrushShape_Circle 0
@@ -256,7 +257,7 @@ foreach label $glLabel {
 
 
 # brush info
-set gBrushInfo(target)   $DspA_tBrushTarget_Main
+set gBrushInfo(target)   $DspA_tBrushTarget(main)
 set gBrushInfo(radius)   1
 set gBrushInfo(shape)    $DspA_tBrushShape_Square
 set gBrushInfo(3d)       true
@@ -1451,7 +1452,7 @@ proc DoBrushInfoDlog {} {
 
     global gDialog
     global DspA_tBrushShape_Square DspA_tBrushShape_Circle
-    global DspA_tBrushTarget_Main DspA_tBrushTarget_MainAux
+    global DspA_tBrushTarget
     global gBrushInfo
 
     set wwDialog .wwBrushInfoDlog
@@ -1468,6 +1469,7 @@ proc DoBrushInfoDlog {} {
 	set fwRadiusScale        $fwTop.fwRadiusScale
 	set fwTargetLabel        $fwTop.fwTargetLabel
 	set fwMain               $fwTop.fwMain
+	set fwAux                $fwTop.fwAux
 	set fwMainAux            $fwTop.fwMainAux
 	set fwShapeLabel         $fwTop.fwShapeLabel
 	set fwCircle             $fwTop.fwCircle
@@ -1476,11 +1478,14 @@ proc DoBrushInfoDlog {} {
 	
  	# target radio buttons
 	tkm_MakeNormalLabel $fwTargetLabel "Target"
-	tkm_MakeRadioButton $fwMain "Main volume only" \
-	    gBrushInfo(target) $DspA_tBrushTarget_Main \
+	tkm_MakeRadioButton $fwMain "Main volume" \
+	    gBrushInfo(target) $DspA_tBrushTarget(main) \
+	    "SetBrushConfiguration"
+	tkm_MakeRadioButton $fwAux "Aux volume" \
+	    gBrushInfo(target) $DspA_tBrushTarget(aux) \
 	    "SetBrushConfiguration"
 	tkm_MakeRadioButton $fwMainAux "Main and aux volume" \
-	    gBrushInfo(target) $DspA_tBrushTarget_MainAux \
+	    gBrushInfo(target) $DspA_tBrushTarget(mainaux) \
 	    "SetBrushConfiguration"
 
 	# radius
@@ -1501,7 +1506,7 @@ proc DoBrushInfoDlog {} {
 	      { text "3D" gBrushInfo(3d) "SetBrushConfiguration" } }
 	
 	# pack them in a column
-	pack $fwTargetLabel $fwMain $fwMainAux \
+	pack $fwTargetLabel $fwMain $fwAux $fwMainAux \
 	    $fwRadiusScale $fwShapeLabel $fwCircle \
 	    $fwSquare $fw3DCheckbox             \
 	    -side top                           \
