@@ -529,3 +529,84 @@ MRIclose6(MRI *mri_src, MRI *mri_dst)
   MRIfree(&mri_tmp) ;
   return(mri_dst) ;
 }
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
+MRI *
+MRIerodeRegion(MRI *mri_src, MRI *mri_dst, int wsize, MRI_REGION *region)
+{
+  int     width, height, depth, x, y, z, whalf, x0, y0, z0, val,
+          xk, yk, zk, xi, yi, zi, min_val ;
+  BUFTYPE *pdst ;
+
+  whalf = wsize/2 ;
+  width = region->x + region->dx ;
+  if (width > mri_src->width)
+    width = mri_src->width ;
+  height = region->y + region->dy ;
+  if (height > mri_src->height)
+    height = mri_src->height ;
+  depth = region->z + region->dz ;
+  if (depth > mri_src->depth)
+    depth = mri_src->depth ;
+  x0 = region->x ;
+  if (x0 < 0)
+    x0 = 0 ;
+  y0 = region->y ;
+  if (y0 < 0)
+    y0 = 0 ;
+  z0 = region->z ;
+  if (z0 < 0)
+    z0 = 0 ;
+
+  if (!mri_dst)
+  {
+    int  w, h, d ;
+    
+    w = width - region->x ;
+    h = height - region->y ;
+    d = depth - region->z ;
+    mri_dst = MRIalloc(w, h, d, MRI_UCHAR) ;
+    MRIcopyHeader(mri_src, mri_dst) ;
+    mri_dst->xstart = mri_src->xstart + region->x * mri_src->xsize ;
+    mri_dst->ystart = mri_src->ystart + region->y * mri_src->ysize ;
+    mri_dst->zstart = mri_src->zstart + region->z * mri_src->zsize ;
+    mri_dst->xend = mri_src->xstart + w * mri_src->xsize ;
+    mri_dst->yend = mri_src->ystart + h * mri_src->ysize ;
+    mri_dst->zend = mri_src->zstart + d * mri_src->zsize ;
+  }
+
+  for (z = z0 ; z < depth ; z++)
+  {
+    for (y = y0 ; y < height ; y++)
+    {
+      pdst = &MRIvox(mri_dst, 0, y-y0, z-z0) ;
+      for (x = x0 ; x < width ; x++)
+      {
+        min_val = 255 ;
+        for (zk = -whalf ; zk <= whalf ; zk++)
+        {
+          zi = mri_src->zi[z+zk] ;
+          for (yk = -whalf ; yk <= whalf ; yk++)
+          {
+            yi = mri_src->yi[y+yk] ;
+            for (xk = -whalf ; xk <= whalf ; xk++)
+            {
+              xi = mri_src->xi[x+xk] ;
+              val = (int)MRIvox(mri_src, xi, yi, zi) ;
+              if (val < min_val)
+                min_val = val ;
+            }
+          }
+        }
+        *pdst++ = min_val ;
+      }
+    }
+  }
+  return(mri_dst) ;
+}
+
