@@ -22,7 +22,7 @@
 #include "transform.h"
 #include "talairachex.h"
 
-static char vcid[] = "$Id: mri_fill.c,v 1.78 2004/07/27 15:56:06 tosa Exp $";
+static char vcid[] = "$Id: mri_fill.c,v 1.79 2004/07/29 15:07:24 tosa Exp $";
 
 
 /*-------------------------------------------------------------------
@@ -204,8 +204,8 @@ int verifyLRSplit(MRI *mri_fill, LTA *lta, Real cc_tal_x, int *pbadRH, int *pbad
 	    if (val == rh_fill_val)
 	    {
 	      badRH++;
-	      if (badRH < 10)
-		fprintf(stderr, "badRH: (%d, %d, %d)\n", x, y, z);
+	      // if (badRH < 10)
+	      //   fprintf(stderr, "badRH: (%d, %d, %d)\n", x, y, z);
 	    }
 	  }
 	  else if (tal_x > cc_tal_x) // talairach coordinate greater means right
@@ -214,12 +214,16 @@ int verifyLRSplit(MRI *mri_fill, LTA *lta, Real cc_tal_x, int *pbadRH, int *pbad
 	    if (val == lh_fill_val)
 	    {
 	      badLH++;
-	      if (badLH < 10)
-		fprintf(stderr, "badLH: (%d, %d, %d)\n", x, y, z);
+	      // if (badLH < 10)
+	      //   fprintf(stderr, "badLH: (%d, %d, %d)\n", x, y, z);
 	    }
 	  }
 	}
       }
+
+  // if (badRH > 10 || badLH > 10)
+  //   fprintf(stderr, "...\n");
+
   *pbadRH = badRH;
   *pbadLH = badLH;
   *ptotRH = RH;
@@ -304,7 +308,7 @@ main(int argc, char *argv[])
   // Gdiag = 0xFFFFFFFF;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_fill.c,v 1.78 2004/07/27 15:56:06 tosa Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_fill.c,v 1.79 2004/07/29 15:07:24 tosa Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
