@@ -12,7 +12,15 @@
 #include "timer.h"
 #include "gca.h"
 #include "transform.h"
+#include "cma.h"
 
+static int distance_to_label(MRI *mri_labeled, int label, int x, 
+                             int y, int z, int dx, int dy, 
+                             int dz, int max_dist) ;
+static int preprocess(MRI *mri_in, MRI *mri_labeled, GCA *gca, LTA *lta, 
+                      MRI *mri_fixed) ;
+static int edit_hippocampus(MRI *mri_in, MRI *mri_labeled, GCA *gca, LTA *lta, 
+                      MRI *mri_fixed) ;
 static int MRIcountNbhdLabels(MRI *mri, int x, int y, int z, int label) ;
 int main(int argc, char *argv[]) ;
 static int get_option(int argc, char *argv[]) ;
@@ -21,20 +29,28 @@ char *Progname ;
 static void usage_exit(int code) ;
 
 static int filter = 0 ;
+#if 0
 static float thresh = 0.5 ;
+#endif
 static int read_flag = 0 ;
 
 static char *wm_fname = NULL ;
+static int fixed_flag = 0 ;
 static char *heq_fname = NULL ;
-static int max_iter = 25 ;
+static int max_iter = 200 ;
 static int no_gibbs = 0 ;
 static int anneal = 0 ;
 static char *mri_fname = NULL ;
+static int hippocampus_flag = 1 ;
 
 #define CMA_PARCELLATION  0
 static int parcellation_type = CMA_PARCELLATION ;
 static MRI *insert_wm_segmentation(MRI *mri_labeled, MRI *mri_wm, 
-                                  int parcellation_type) ;
+                                  int parcellation_type, int fixed_flag,
+                                   GCA *gca, LTA *lta) ;
+
+extern char *gca_write_fname ;
+extern int gca_write_iterations ;
 
 int
 main(int argc, char *argv[])
@@ -76,6 +92,28 @@ main(int argc, char *argv[])
     ErrorExit(ERROR_NOFILE, "%s: could not read input MR volume from %s",
               Progname, in_fname) ;
 
+  if (filter)
+  {
+    MRI *mri_dir, /**mri_grad,*/ *mri_kernel, *mri_smooth ;
+
+    mri_kernel = MRIgaussian1d(1, 15) ;
+    mri_smooth = MRIconvolveGaussian(mri_in, NULL, mri_kernel) ;
+    MRIfree(&mri_kernel) ;
+#if 0
+    mri_grad = MRIsobel(mri_smooth, NULL, NULL) ;
+    mri_dir = MRIdirectionMapUchar(mri_grad, NULL, 5) ;
+    MRIfree(&mri_grad) ; 
+    MRIwrite(mri_dir, "dir.mgh") ;
+#else
+    mri_dir = MRIgradientDir2ndDerivative(mri_in, NULL, 5) ;
+    MRIscaleAndMultiply(mri_in, 128.0, mri_dir, mri_in) ;
+    MRIwrite(mri_dir, "lap.mgh") ;
+    MRIwrite(mri_in, "filtered.mgh") ;
+#endif
+    MRIfree(&mri_dir) ; MRIfree(&mri_smooth) ;
+    exit(1) ;
+  }
+
   /*  fprintf(stderr, "mri_in read: xform %s\n", mri_in->transform_fname) ;*/
   printf("reading classifier array from %s...\n", gca_fname) ;
   gca = GCAread(gca_fname) ;
@@ -108,9 +146,12 @@ main(int argc, char *argv[])
                 "%s: could not read histogram equalization volume %s", 
                 Progname, heq_fname) ;
     MRIhistoEqualize(mri_in, mri_eq, mri_in, 30, 170) ;
-    fprintf(stderr, "writing equalized volume to %s...\n", out_fname) ;
     MRIfree(&mri_eq) ;
-    MRIwrite(mri_in, out_fname) ;
+    if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+    {
+      fprintf(stderr, "writing equalized volume to %s...\n", "heq.mgh") ;
+      MRIwrite(mri_in, "heq.mgh") ;
+    }
   }
 
   if (read_flag)
@@ -132,7 +173,8 @@ main(int argc, char *argv[])
       if (!mri_wm)
         ErrorExit(ERROR_NOFILE, "%s: could not read wm segmentation from %s",
                   Progname, wm_fname) ;
-      mri_fixed = insert_wm_segmentation(mri_labeled,mri_wm,parcellation_type);
+      mri_fixed = insert_wm_segmentation(mri_labeled,mri_wm,parcellation_type,
+                                         fixed_flag, gca, lta);
       if (DIAG_VERBOSE_ON)
       {
         fprintf(stderr, "writing patched labeling to %s...\n", out_fname) ;
@@ -140,6 +182,9 @@ main(int argc, char *argv[])
       }
       MRIfree(&mri_wm) ;
     }
+    else
+      mri_fixed = MRIclone(mri_labeled, NULL) ;
+    preprocess(mri_in, mri_labeled, gca, lta, mri_fixed) ;
     if (!no_gibbs)
     {
       if (anneal)
@@ -151,6 +196,7 @@ main(int argc, char *argv[])
   }
   GCAconstrainLabelTopology(gca, mri_in, mri_labeled, mri_labeled, lta) ;
   GCAfree(&gca) ; MRIfree(&mri_in) ;
+#if 0
   if (filter)
   {
     MRI *mri_tmp ;
@@ -160,6 +206,7 @@ main(int argc, char *argv[])
     MRIfree(&mri_labeled) ;
     mri_labeled = mri_tmp ;
   }
+#endif
 
   printf("writing labeled volume to %s...\n", out_fname) ;
   MRIwrite(mri_labeled, out_fname) ;
@@ -194,7 +241,19 @@ get_option(int argc, char *argv[])
   {
     wm_fname = argv[2] ;
     nargs = 1 ;
-    printf("reading white matter segmentation from %s...\n", wm_fname) ;
+    printf("inserting white matter segmentation from %s...\n", wm_fname) ;
+  }
+  else if (!stricmp(option, "nohippo"))
+  {
+    hippocampus_flag = 0 ;
+    printf("disabling auto-editting of hippocampus\n") ;
+  }
+  else if (!stricmp(option, "FWM"))
+  {
+    fixed_flag = 1 ;
+    wm_fname = argv[2] ;
+    nargs = 1 ;
+    printf("inserting fixed white matter segmentation from %s...\n",wm_fname);
   }
   else if (!stricmp(option, "MRI"))
   {
@@ -218,17 +277,28 @@ get_option(int argc, char *argv[])
     anneal = 1 ;
     fprintf(stderr, "using simulated annealing to find optimum\n") ;
     break ;
+  case 'W':
+    gca_write_iterations = atoi(argv[2]) ;
+    gca_write_fname = argv[3] ;
+    nargs = 2 ;
+    printf("writing out snapshots of gibbs process every %d iterations to %s\n",
+           gca_write_iterations, gca_write_fname) ;
+    break ;
   case 'N':
     max_iter = atoi(argv[2]) ;
     nargs = 1 ;
     printf("setting max iterations to %d...\n", max_iter) ;
     break ;
   case 'F':
+#if 0
     filter = atoi(argv[2]) ;
     thresh = atof(argv[3]) ;
     nargs = 2 ;
     printf("applying thresholded (%2.2f) mode filter %d times to output of "
            "labelling\n",thresh,filter);
+#else
+    filter = 1 ;
+#endif
     break ;
   case '?':
   case 'U':
@@ -255,36 +325,31 @@ usage_exit(int code)
   exit(code) ;
 }
 
-#define LEFT_HIPPOCAMPUS               17
-#define RIGHT_HIPPOCAMPUS              53
-#define LEFT_CEREBRAL_CORTEX           3
-#define LEFT_CEREBRAL_WHITE_MATTTER    2
-#define RIGHT_CEREBRAL_CORTEX          42
-#define RIGHT_CEREBRAL_WHITE_MATTTER   41
-#define LEFT_AMYGDALA                  18
-#define RIGHT_AMYGDALA                 54
-
 
 static int cma_editable_labels[] = 
 {
-  LEFT_HIPPOCAMPUS,
-  RIGHT_HIPPOCAMPUS,
-  LEFT_CEREBRAL_CORTEX,
-  LEFT_CEREBRAL_WHITE_MATTTER,
-  RIGHT_CEREBRAL_CORTEX,
-  RIGHT_CEREBRAL_WHITE_MATTTER,
-  LEFT_AMYGDALA,
-  RIGHT_AMYGDALA
+  Left_Hippocampus,
+  Right_Hippocampus,
+  Left_Cerebral_Cortex,
+  Left_Cerebral_White_Matter,
+  Right_Cerebral_Cortex,
+  Right_Cerebral_White_Matter,
+#if 1
+  Left_Amygdala,
+  Right_Amygdala
+#endif
 } ;
 #define NEDITABLE_LABELS sizeof(cma_editable_labels) / sizeof(cma_editable_labels[0])
 
 static MRI *
-insert_wm_segmentation(MRI *mri_labeled, MRI *mri_wm, 
-                                  int parcellation_type)
+insert_wm_segmentation(MRI *mri_labeled, MRI *mri_wm, int parcellation_type, 
+                       int fixed_flag, GCA *gca,LTA *lta)
 {
   int      x, y, z, width, depth, height, change_label[1000], n, label,
-           nchanged, rh, lh ;
+           nchanged, rh, lh, xn, yn, zn ;
   MRI      *mri_fixed ;
+  GCA_NODE *gcan ;
+  double   wm_prior ;
 
   mri_fixed = MRIclone(mri_wm, NULL) ;
 
@@ -299,7 +364,7 @@ insert_wm_segmentation(MRI *mri_labeled, MRI *mri_wm,
     {
       for (x = 0 ; x < width ; x++)
       {
-        if (x == 153 && y == 127 && z == 128)
+        if (x == 103 && y == 121 && z == 122)
           DiagBreak() ;
         if (MRIvox(mri_wm, x, y, z) < WM_MIN_VAL || MRIvox(mri_wm,x,y,z)>=200)
           continue ;
@@ -307,23 +372,36 @@ insert_wm_segmentation(MRI *mri_labeled, MRI *mri_wm,
         if (!change_label[label])
           continue ;
         
+        GCAsourceVoxelToNode(gca, mri_labeled, lta, x, y, z, &xn, &yn, &zn) ;
+        gcan = &gca->nodes[xn][yn][zn] ;
+        wm_prior = 0.0 ;
+        for (n = 0 ; n < gcan->nlabels ; n++)
+          if (gcan->labels[n] == Right_Cerebral_White_Matter ||
+              gcan->labels[n] == Left_Cerebral_White_Matter)
+            wm_prior = gcan->gcs[n].prior ;
+#define PRIOR_THRESH 0.1
+#define FIXED_PRIOR  0.5
+        if (wm_prior < PRIOR_THRESH)
+          continue ;
         lh = MRIcountNbhdLabels(mri_labeled, x, y, z, 
-                                LEFT_CEREBRAL_WHITE_MATTTER) ;
+                                Left_Cerebral_White_Matter) ;
         lh += MRIcountNbhdLabels(mri_labeled, x, y, z, 
-                                LEFT_CEREBRAL_CORTEX) ;
+                                Left_Cerebral_Cortex) ;
         rh = MRIcountNbhdLabels(mri_labeled, x, y, z, 
-                                RIGHT_CEREBRAL_WHITE_MATTTER) ;
+                                Right_Cerebral_White_Matter) ;
         rh += MRIcountNbhdLabels(mri_labeled, x, y, z, 
-                                RIGHT_CEREBRAL_CORTEX) ;
+                                Right_Cerebral_Cortex) ;
         if (rh > lh)
-          label = RIGHT_CEREBRAL_WHITE_MATTTER ;
+          label = Right_Cerebral_White_Matter ;
         else
-          label = LEFT_CEREBRAL_WHITE_MATTTER ;
+          label = Left_Cerebral_White_Matter ;
         if (label != MRIvox(mri_labeled, x, y, z))
           nchanged++ ;
         MRIvox(mri_labeled, x, y, z) = label ;
+#if 0
         if (MRIvox(mri_wm, x, y, z) < 140)
-          MRIvox(mri_fixed, x, y, z) = 1 ;
+#endif
+          MRIvox(mri_fixed, x, y, z) = fixed_flag ;
       }
     }
   }
@@ -355,3 +433,183 @@ MRIcountNbhdLabels(MRI *mri, int x, int y, int z, int label)
   return(total) ;
 }
 
+
+static int cma_expandable_labels[] = 
+{
+  Left_Pallidum,
+  Right_Pallidum,
+  Left_Putamen,
+  Right_Putamen,
+  Left_Amygdala,
+  Right_Amygdala,
+  Left_Caudate,
+  Right_Caudate
+} ;
+#define NEXPANDABLE_LABELS sizeof(cma_expandable_labels) / sizeof(cma_expandable_labels[0])
+
+static int
+preprocess(MRI *mri_in, MRI *mri_labeled, GCA *gca, LTA *lta,
+           MRI *mri_fixed)
+{
+  int i ;
+
+  for (i = 0 ; i < NEXPANDABLE_LABELS ; i++)
+    GCAexpandLabelIntoWM(gca, mri_in, mri_labeled, mri_labeled, lta,mri_fixed,
+                         cma_expandable_labels[i]) ;
+  if (hippocampus_flag)
+    edit_hippocampus(mri_in, mri_labeled, gca, lta, mri_fixed) ;
+  return(NO_ERROR) ;
+}
+
+static int
+distance_to_label(MRI *mri_labeled, int label, int x, int y, int z, int dx, 
+                  int dy, int dz, int max_dist)
+{
+  int   xi, yi, zi, d ;
+
+  for (d = 1 ; d <= max_dist ; d++)
+  {
+    xi = x + d * dx ; yi = y + d * dy ; zi = z + d * dz ;
+    xi = mri_labeled->xi[xi] ; 
+    yi = mri_labeled->yi[yi] ; 
+    zi = mri_labeled->zi[zi];
+    if (MRIvox(mri_labeled, xi, yi, zi) == label)
+      break ;
+  }
+
+  return(d) ;
+}
+static int
+edit_hippocampus(MRI *mri_in, MRI *mri_labeled, GCA *gca, LTA *lta, 
+                 MRI *mri_fixed)
+{
+  int   width, height, depth, x, y, z, label, val, nchanged, dleft, 
+        dright, dpos, dant, dup, ddown, dup_hippo, ddown_gray, i ;
+  MRI   *mri_tmp ;
+
+  mri_tmp = MRIcopy(mri_labeled, NULL) ;
+
+  width = mri_in->width ; height = mri_in->height ; depth = mri_in->depth ;
+
+  for (nchanged = z = 0 ; z < depth ; z++)
+  {
+    for (y = 0 ; y < height ; y++)
+    {
+      for (x = 0 ; x < width ; x++)
+      {
+        if (x == 150 && y == 129 && z == 130)
+          DiagBreak() ;
+        label = MRIvox(mri_labeled, x, y, z) ;
+        val = MRIvox(mri_in, x, y, z) ;
+
+        if (label == Left_Hippocampus)
+        {
+          dleft = distance_to_label(mri_labeled, Left_Cerebral_White_Matter,
+                                    x,y,z,-1,0,0,3);
+          dright = distance_to_label(mri_labeled, Left_Cerebral_White_Matter,
+                                     x,y,z,1,0,0,3);
+          ddown = distance_to_label(mri_labeled,
+                                  Left_Cerebral_White_Matter,x,y,z,0,1,0,2);
+          dup = distance_to_label(mri_labeled,
+                                   Left_Cerebral_White_Matter,x,y,z,0,-1,0,2);
+          dpos = distance_to_label(mri_labeled,
+                                   Left_Cerebral_White_Matter,x,y,z,0,0,-1,3);
+          dant = distance_to_label(mri_labeled,
+                                   Left_Cerebral_White_Matter,x,y,z,0,0,1,3);
+
+          if ((dpos <= 2 && dant <= 2) ||
+              (dleft <= 2 && dright <= 2) ||
+              (dup <= 1 && (dleft == 1 || dright == 1)))
+          {
+            nchanged++ ;
+            MRIvox(mri_tmp, x, y, z) = Left_Cerebral_White_Matter ;
+          }
+        }
+        else if (label == Right_Hippocampus)
+        {
+          dleft = distance_to_label(mri_labeled, Right_Cerebral_White_Matter,
+                                    x,y,z,-1,0,0,3);
+          dright = distance_to_label(mri_labeled, Right_Cerebral_White_Matter,
+                                     x,y,z,1,0,0,3);
+          ddown = distance_to_label(mri_labeled,
+                                  Right_Cerebral_White_Matter,x,y,z,0,1,0,2);
+          dup = distance_to_label(mri_labeled,
+                                   Right_Cerebral_White_Matter,x,y,z,0,-1,0,2);
+          dpos = distance_to_label(mri_labeled,
+                                   Right_Cerebral_White_Matter,x,y,z,0,0,-1,3);
+          dant = distance_to_label(mri_labeled,
+                                   Right_Cerebral_White_Matter,x,y,z,0,0,1,3);
+          if ((dpos <= 2 && dant <= 2) ||
+              (dleft <= 2 && dright <= 2) ||
+              (dup <= 1 && (dleft == 1 || dright == 1)))
+          {
+            nchanged++ ;
+            MRIvox(mri_tmp, x, y, z) = Right_Cerebral_White_Matter ;
+          }
+        }
+      }
+    }
+  }
+
+  for (i = 0 ; i < 2 ; i++)
+  {
+    for (z = 0 ; z < depth ; z++)
+    {
+      for (y = 0 ; y < height ; y++)
+      {
+        for (x = 0 ; x < width ; x++)
+        {
+          if (x == 95 && y == 124 && z == 123)
+            DiagBreak() ;
+          label = MRIvox(mri_tmp, x, y, z) ;
+          val = MRIvox(mri_in, x, y, z) ;
+          
+          if (label == Left_Hippocampus)
+          {
+            ddown = distance_to_label(mri_tmp, Left_Cerebral_White_Matter,
+                                      x,y,z,0,1,0,2);
+            dup = distance_to_label(mri_tmp,
+                                    Left_Cerebral_White_Matter,x,y,z,0,-1,0,3);
+            
+            ddown_gray = distance_to_label(mri_tmp,Left_Cerebral_Cortex,
+                                           x,y,z,0,1,0,2);
+            dup_hippo = distance_to_label(mri_tmp,
+                                          Left_Hippocampus,x,y,z,0,-1,0,3);
+            
+            /* closer to superior white matter than hp and gray below */
+            if (((dup < dup_hippo) && ddown > ddown_gray))
+            {
+              nchanged++ ;
+              MRIvox(mri_tmp, x, y, z) = Left_Cerebral_Cortex ;
+            }
+          }
+          else if (label == Right_Hippocampus)
+          {
+            ddown = distance_to_label(mri_tmp,Right_Cerebral_White_Matter,
+                                      x,y,z,0,1,0,3);
+            dup = distance_to_label(mri_tmp,Right_Cerebral_White_Matter,
+                                    x,y,z,0,-1,0,3);
+            
+            ddown_gray = distance_to_label(mri_tmp,
+                                           Right_Cerebral_Cortex,
+                                           x,y,z,0,1,0,2);
+            dup_hippo = distance_to_label(mri_tmp,
+                                          Right_Hippocampus,x,y,z,0,-1,0,3);
+            
+            /* closer to superior white matter than hp and gray below */
+            if (((dup < dup_hippo) && ddown > ddown_gray))
+            {
+              nchanged++ ;
+              MRIvox(mri_tmp, x, y, z) = Right_Cerebral_Cortex ;
+            }
+          }
+        }
+      }
+    }
+  }
+
+  MRIcopy(mri_tmp, mri_labeled) ;
+  MRIfree(&mri_tmp) ;
+  printf("%d hippocampal voxels changed.\n", nchanged) ;
+  return(NO_ERROR) ;
+}
