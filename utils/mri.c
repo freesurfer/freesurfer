@@ -8,10 +8,10 @@
  *
 */
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: greve $
-// Revision Date  : $Date: 2003/05/09 20:20:50 $
-// Revision       : $Revision: 1.223 $
-char *MRI_C_VERSION = "$Revision: 1.223 $";
+// Revision Author: $Author: fischl $
+// Revision Date  : $Date: 2003/05/13 19:33:39 $
+// Revision       : $Revision: 1.224 $
+char *MRI_C_VERSION = "$Revision: 1.224 $";
 
 /*-----------------------------------------------------
                     INCLUDE FILES
@@ -3068,8 +3068,8 @@ MRI *
 MRIbinarize(MRI *mri_src, MRI *mri_dst, BUFTYPE threshold, BUFTYPE low_val,
             BUFTYPE hi_val)
 {
-  int     width, height, depth, x, y, z ;
-  BUFTYPE *psrc, *pdst, val ;
+  int     width, height, depth, x, y, z, f ;
+	Real    val ;
 
   if (!mri_dst)
     mri_dst = MRIclone(mri_src, NULL) ;
@@ -3078,20 +3078,21 @@ MRIbinarize(MRI *mri_src, MRI *mri_dst, BUFTYPE threshold, BUFTYPE low_val,
   height = mri_src->height ;
   depth = mri_src->depth ;
 
-  for (z = 0 ; z < depth ; z++)
-  {
-    for (y = 0 ; y < height ; y++)
-    {
-      psrc = &MRIvox(mri_src, 0, y, z) ;
-      pdst = &MRIvox(mri_dst, 0, y, z) ;
-      for (x = 0 ; x < width ; x++)
-      {
-        val = *psrc++ ;
-        if (val < threshold)
-          val = low_val ;
-        else
-          val = hi_val ;
-        *pdst++ = val ;
+	for (f = 0 ; f < mri_src->nframes ; f++)
+	{
+		for (z = 0 ; z < depth ; z++)
+		{
+			for (y = 0 ; y < height ; y++)
+			{
+				for (x = 0 ; x < width ; x++)
+				{
+					MRIsampleVolumeFrameType(mri_src, x, y, z, f, SAMPLE_NEAREST, &val) ;
+					if (val < threshold)
+						val = low_val ;
+					else
+						val = hi_val ;
+					MRIsetVoxVal(mri_dst, x, y, z, f, val) ;
+				}
       }
     }
   }
