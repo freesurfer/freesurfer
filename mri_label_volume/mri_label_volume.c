@@ -26,6 +26,7 @@ static int out_label = -1 ;
 
 static int all_flag = 0 ;
 static int compute_pct = 0 ;
+static char *brain_fname = NULL ;
 
 int
 main(int argc, char *argv[])
@@ -35,6 +36,7 @@ main(int argc, char *argv[])
   struct timeb start ;
   MRI    *mri ;
   FILE   *log_fp ;
+	double  vox_volume ;
 
   Progname = argv[0] ;
   ErrorInit(NULL, NULL, NULL) ;
@@ -60,6 +62,8 @@ main(int argc, char *argv[])
     ErrorExit(ERROR_NOFILE, "%s: could not read volume from %s",Progname,
               argv[1]) ;
 
+	vox_volume = mri->xsize * mri->ysize * mri->zsize ;
+
   if (in_label >= 0)
     MRIreplaceValues(mri, mri, in_label, out_label) ;
 
@@ -68,7 +72,7 @@ main(int argc, char *argv[])
 		int   nvox ;
 		float volume ;
 		
-		nvox = MRItotalVoxelsOn(mri, 0) ;
+		nvox = MRItotalVoxelsOn(mri, WM_MIN_VAL) ;
 		volume = nvox * mri->xsize * mri->ysize * mri->zsize ;
 		printf("total volume = %d voxels, %2.1f mm^3\n", nvox, volume) ;
 		exit(0) ;
@@ -83,7 +87,16 @@ main(int argc, char *argv[])
       brain_volume += MRIvoxelsInLabel(mri, label) ;
     }
   }
-  else
+  else if (brain_fname)
+	{
+		MRI *mri_brain = MRIread(brain_fname) ;
+		if (mri_brain == NULL)
+			ErrorExit(ERROR_BADPARM, "%s: could not read brain volume from %s\n", Progname,brain_fname) ;
+
+		brain_volume = MRItotalVoxelsOn(mri_brain, WM_MIN_VAL) ;
+		MRIfree(&mri_brain) ;
+	}
+	else
     brain_volume = 1 ;
 
   for (i = 2 ; i < argc ; i++)
@@ -109,21 +122,22 @@ main(int argc, char *argv[])
 
     if (compute_pct)
     {
-      printf("%d voxels in label %d, %%%2.6f of brain volume (%d)\n", 
-             volume, label, 100.0*(float)volume/(float)brain_volume,
+      printf("%d voxels (%2.1f mm^3) in label %d, %%%2.6f of brain volume (%d)\n", 
+             volume, volume*vox_volume,label, 100.0*(float)volume/(float)brain_volume,
              brain_volume) ;
       if (log_fp)
       {
-        fprintf(log_fp,"%2.6f\n", 100.0*(float)volume/(float)brain_volume) ;
+        fprintf(log_fp,"%2.6f\n", 100.0*(float)volume*vox_volume/(float)brain_volume) ;
         fclose(log_fp) ;
       }
     }
     else
     {
-      printf("%d voxels in label %d\n", volume, label) ;
+      printf("%d (%2.1f mm^3)voxels in label %d\n", volume, 
+						 volume*vox_volume, label) ;
       if (log_fp)
       {
-        fprintf(log_fp,"%d\n", volume) ;
+        fprintf(log_fp,"%2.1f\n", vox_volume*(float)volume) ;
         fclose(log_fp) ;
       }
     }
@@ -165,6 +179,11 @@ get_option(int argc, char *argv[])
     nargs = 2 ;
     printf("translating label %d to label %d\n", in_label, out_label) ;
     break ;
+	case 'B':
+		brain_fname = argv[2] ;
+		nargs = 1 ;
+		printf("reading brain volume from %s...\n", brain_fname) ;
+		break ;
   case 'L':
     log_fname = argv[2] ;
     nargs = 1 ;
