@@ -2,9 +2,9 @@
 % for use with the time-domain reconstruction method. The
 % reconstruction matrix is not computed here.
 %
-% $Id: tdr_fidmat.m,v 1.4 2003/10/28 04:34:37 greve Exp $
+% $Id: tdr_fidmat.m,v 1.5 2003/11/06 19:41:58 greve Exp $
 
-addpath /homes/4/greve/sg2/dale-matlab/utils; % for smoother
+%addpath /homes/4/greve/sg2/dale-matlab/utils; % for smoother
 
 if(0)
 
@@ -110,7 +110,7 @@ for acqsliceno = 1:nslices
     fidimg = Rcol * kfid_echo * Rrow;
 
     if(fidfwhm > 0)
-      fidimg = smooth2d(fidimg,fidfwhm,fidfwhm);
+      fidimg = tdr_smooth2d(fidimg,fidfwhm,fidfwhm);
     end
 
     fid(:,:,nthFIDEcho)  = fidimg;
