@@ -54,10 +54,10 @@ function rt = fast_fxcfg(DoWhat,thing)
 %
 % See also FX Models:
 % fast_fxcfg_poly, fast_fxcfg_fir, fast_fxcfg_extreg,
-% fast_fxcfg_gamma, fast_fxcfg_spmhrf
+% fast_fxcfg_gamma, fast_fxcfg_spmhrf, fast_fxcfg_fourier
 %
 %
-% $Id: fast_fxcfg.m,v 1.8 2003/08/28 04:29:33 greve Exp $
+% $Id: fast_fxcfg.m,v 1.9 2003/08/28 05:12:53 greve Exp $
 
 % Things to do:
 %   nregressorstot - total number of regressors
@@ -166,6 +166,8 @@ switch(DoWhat)
     rt = fast_fxcfg_spmhrf(DoWhat,thing);
    case 'polynomial'
     rt = fast_fxcfg_poly(DoWhat,thing);
+   case 'fourier'
+    rt = fast_fxcfg_fourier(DoWhat,thing);
    case 'extreg'
     rt = fast_fxcfg_extreg(DoWhat,thing);
    otherwise
