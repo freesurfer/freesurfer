@@ -14,21 +14,49 @@ MRI *conform_direction(MRI *mri);
 MRI *MRIconform(MRI *mri)
 {
 
-  MRI *mri2, *mri3, *mri4;
+  MRI *temp;
+  int copied_flag = 0;
 
-  mri3 = conform_type(mri);
+  /* conform data type if needed */
+  if(mri->type != MRI_UCHAR)
+  {
+    temp = conform_type(mri);
+    MRIfree(&mri);
+    mri = temp;
+    copied_flag = 1;
+  }
 
-  mri4 = conform_voxels(mri3);
-  MRIfree(&mri3);
-  mri2 = conform_direction(mri4);
-  MRIfree(&mri4);
+  /* conform voxel sizes if needed */
+  if(!(mri->xsize == 1 && mri->ysize == 1 && mri->zsize == 1))
+  {
+    temp = conform_voxels(mri);
+    MRIfree(&mri);
+    mri = temp;
+    copied_flag = 1;
+  }
 
-  return(mri2);
+  /* conform slice direction if needed */
+  if(mri->slice_direction != MRI_CORONAL)
+  {
+    temp = conform_direction(mri);
+    MRIfree(&mri);
+    mri = temp;
+    copied_flag = 1;
+  }
+
+  /* don't return the same structure that was passed */
+  if(!copied_flag)
+  {
+    temp = mri;
+    mri = MRIcopy(temp, NULL);
+  }
+
+  return(mri);
 
 }  /*  end MRIconform()  */
 
 #define N_BINS 256
-#define FRACTION_SCALE 0.01
+#define FRACTION_SCALE 0.0001
 
 MRI *conform_type(MRI *mri)
 {
@@ -44,12 +72,8 @@ MRI *conform_type(MRI *mri)
   int bin;
   int nv, nv_needed;
   float e1, e2;
-
-  if(mri->type == MRI_UCHAR)
-  {
-    mri2 = MRIcopy(mri, NULL);
-    return(mri2);
-  }
+  float e1d, e2d;
+  float that;
 
   for(i = 0;i < N_BINS;i++)
     counts[i] = 0;
@@ -154,7 +178,10 @@ MRI *conform_type(MRI *mri)
 
   e2 = (i+1) * bin_size + min;
 
-  scale = 255.0 / (e2 - e1);
+  e1d = FRACTION_SCALE * 255;
+  e2d = 255 - e1d;
+
+  scale = (e2d - e1d) / (e2 - e1);
 
   mri2 = MRIallocSequence(mri->width, mri->height, mri->depth, MRI_UCHAR, 1);
   MRIcopyHeader(mri, mri2);
@@ -174,12 +201,14 @@ MRI *conform_type(MRI *mri)
       if(mri->type == MRI_SHORT)
         this = (float)MRISvox(mri, x, y, z);
 
-      if(this <= e1)
+      that = scale * (this - e1) + e1d;
+
+      if(that < 0)
         MRIvox(mri2, x, y, z) = 0;
-      else if(this >= e2)
+      else if (that > 255)
         MRIvox(mri2, x, y, z) = 255;
       else
-        MRIvox(mri2, x, y, z) = (unsigned char)(scale * (this - e1));
+        MRIvox(mri2, x, y, z) = (unsigned char)that;
 
       }
 
@@ -225,6 +254,7 @@ MRI *conform_voxels(MRI *mri)
   mri2->xdir = mri->xdir;
   mri2->ydir = mri->ydir;
   mri2->zdir = mri->zdir;
+  mri2->slice_direction = mri->slice_direction;
 
   mri2->fov = max_fov;
   mri2->xstart = mri2->ystart = mri2->zstart = -128 * min_size;
