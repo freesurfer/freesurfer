@@ -1005,7 +1005,6 @@ ScubaLayer2DMRI::HandleTool ( float iRAS[3], ViewState& iViewState,
 	      undoList.AddAction( action );
 	    }
 	  }
-	  undoList.EndAction();
 	}
 	  break;
 	case 3:{
