@@ -101,7 +101,7 @@ main(int argc, char *argv[])
 
   parms.l_log_likelihood = 1.0f ;
   parms.niterations = 100 ;
-  parms.levels = 4 ;
+  parms.levels = 5 ;
 	parms.relabel_avgs = 1 ;  /* relabel when navgs=1 */
 	parms.reset_avgs = 0 ;  /* reset metric properties when navgs=0 */
   parms.dt = 0.05 ;  /* was 5e-6 */
@@ -627,7 +627,7 @@ get_option(int argc, char *argv[])
   {
     parms.reset_avgs = atoi(argv[2]) ;
     nargs = 1 ;
-    printf("resetting metric properties at avgs=%d\n", parms.relabel_avgs) ;
+    printf("resetting metric properties at avgs=%d\n", parms.reset_avgs) ;
   }
   else if (!stricmp(option, "RESET"))
   {
