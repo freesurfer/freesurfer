@@ -1,8 +1,8 @@
 function r = fast_selxavg(varargin)
 % r = fast_selxavg(varargin)
-% '$Id: fast_selxavg.m,v 1.15 2004/08/17 18:49:28 greve Exp $'
+% '$Id: fast_selxavg.m,v 1.16 2004/08/23 23:40:55 greve Exp $'
 
-version = '$Id: fast_selxavg.m,v 1.15 2004/08/17 18:49:28 greve Exp $';
+version = '$Id: fast_selxavg.m,v 1.16 2004/08/23 23:40:55 greve Exp $';
 fprintf(1,'%s\n',version);
 r = 1;
 
@@ -385,8 +385,19 @@ for slice = firstslice:lastslice
       if(SynthSeed == 0)
         % Load the data for this slice %
         [nrows ncols ntp fs ns endian bext] = fmri_bfiledim(instem);
-        fname = sprintf('%s_%03d.%s',instem,slice,bext);
-        %fprintf(1,'       Loading data from %s \n',fname);
+	if(~isempty(s.TauMaxWhiten))
+	  if(run == 1) ntprun = ntp;
+	  else
+	    if(ntp ~= ntprun)
+	      fprintf(['ERROR: when using temporal whitening, all ' ...
+		       'runs must have the same number of time ' ...
+		       'points. Run 1 has %d time points whereas ' ...
+		       'Run %d has %d time points.\n'],ntprun,run,ntp);
+	      return;
+	    end
+	  end
+	end
+	fname = sprintf('%s_%03d.%s',instem,slice,bext);
         y = fmri_ldbfile(fname);
       else
         %fprintf(1,'       Synthesizing Data for Slice %d \n',slice);
