@@ -4,8 +4,8 @@
 /*                                                                     */
 /* Warning: Do not edit the following four lines.  CVS maintains them. */
 /* Revision Author: $Author: fischl $                                           */
-/* Revision Date  : $Date: 2005/03/24 17:28:14 $                                             */
-/* Revision       : $Revision: 1.37 $                                         */
+/* Revision Date  : $Date: 2005/04/01 20:37:32 $                                             */
+/* Revision       : $Revision: 1.38 $                                         */
 /***********************************************************************/
 
 #include <stdio.h>
@@ -94,7 +94,7 @@ main(int argc, char *argv[])
   parms.prior_spacing = 2.0f ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_ca_train.c,v 1.37 2005/03/24 17:28:14 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_ca_train.c,v 1.38 2005/04/01 20:37:32 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -190,7 +190,8 @@ main(int argc, char *argv[])
       }
       // reading this subject segmentation
       sprintf(fname, "%s/%s/mri/%s", subjects_dir, subject_name, seg_dir) ;
-      fprintf(stderr, "Reading segmentation from %s...\n", fname) ;
+			if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
+				fprintf(stderr, "Reading segmentation from %s...\n", fname) ;
       mri_seg = MRIread(fname) ;
       if (!mri_seg)
         ErrorExit(ERROR_NOFILE, "%s: could not read segmentation file %s",
@@ -407,7 +408,8 @@ main(int argc, char *argv[])
 				// we read talairach.xfm which is a RAS-to-RAS
         sprintf(fname, "%s/%s/mri/transforms/%s", 
                 subjects_dir, subject_name, xform_name) ;
-				printf("INFO: reading transform file %s...\n", fname);
+				if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
+					printf("INFO: reading transform file %s...\n", fname);
 				if(!FileExists(fname))
 				{
 					fprintf(stderr,"ERROR: cannot find transform file %s\n",fname);
@@ -935,7 +937,15 @@ get_option(int argc, char *argv[])
   {
     Ggca_label = atoi(argv[2]) ;
     nargs = 1 ;
-    printf("debugging label %d\n", Ggca_label) ;
+    printf("debugging label %s (%d)\n", cma_label_to_name(Ggca_label),
+					 Ggca_label) ;
+  }
+  else if (!stricmp(option, "DEBUG_NBR"))
+  {
+    Ggca_nbr_label = atoi(argv[2]) ;
+    nargs = 1 ;
+    printf("debugging nbr label %s (%d)\n", 
+					 cma_label_to_name(Ggca_nbr_label), Ggca_nbr_label) ;
   }
   else if (!stricmp(option, "INSERT"))
   {
