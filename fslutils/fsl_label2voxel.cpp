@@ -8,6 +8,9 @@
 
 #include <iostream>
 #include <iomanip>
+#if (__GNU_C__ < 3)
+#include "/usr/include/g++-3/alloc.h"
+#endif
 #include <string>
 #include <fstream>
 #include <vector>
