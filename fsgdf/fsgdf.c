@@ -1,7 +1,7 @@
 /*
   fsgdf.c
   Utilities for reading freesurfer group descriptor file format 
-  $Id: fsgdf.c,v 1.9 2002/11/13 15:39:57 kteich Exp $
+  $Id: fsgdf.c,v 1.10 2002/11/13 19:29:05 kteich Exp $
 
   See:   http://surfer.nmr.mgh.harvard.edu/docs/fsgdf.txt
 
@@ -176,6 +176,8 @@ FSGD *gdfRead(char *gdfname, int LoadData)
   int version=0;
   int nv;
   MRI *mritmp;
+  char *dirname;
+  char datafilename[1000];
 
   printf("gdfReadHeader: reading %s\n",gdfname);
 
@@ -203,7 +205,22 @@ FSGD *gdfRead(char *gdfname, int LoadData)
 
   /* load the MRI containing our raw data. */
   if(LoadData && strlen(gd->datafile) > 0){
-    gd->data = MRIread(gd->datafile);
+
+    /* start with the datafile name  we got. extract the path from the
+       file name of the gdf we  got, then prepend that to the datafile
+       name. */
+    dirname = (char*)fio_dirname(gdfname);
+    if(NULL != dirname)
+      {
+	sprintf(datafilename,"%s/%s",dirname,gd->datafile);
+      }
+    else
+      {
+	printf("ERROR: Couldn't extract dirname from GDF header name.\n");
+	strcpy(datafilename,gd->datafile);
+      }
+
+    gd->data = MRIread(datafilename);
     if(NULL == gd->data){
       printf("ERROR: Couldn't read raw data at %s \n",gd->datafile);
       gdfFree(&gd);

@@ -208,7 +208,7 @@ SWIG_TypeClientData(swig_type_info *ti, void *clientdata) {
 #endif
 
 /*
- * $Header: /space/repo/1/dev/dev/fsgdf/fsgdf_wrap.c,v 1.2 2002/11/13 15:39:57 kteich Exp $
+ * $Header: /space/repo/1/dev/dev/fsgdf/fsgdf_wrap.c,v 1.3 2002/11/13 19:29:05 kteich Exp $
  * 
  * swigtcl8.swg
  */
@@ -1412,7 +1412,8 @@ _wrap_gdfGetTitle(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *
     
     Tcl_SetObjResult(interp,Tcl_NewIntObj((long) result));
     {
-        Tcl_Obj *o = Tcl_NewStringObj(arg2,256);
+        int len = strlen(arg2);
+        Tcl_Obj *o = Tcl_NewStringObj(arg2,len);
         Tcl_ListObjAppendElement(interp,(Tcl_GetObjResult(interp)),o);
     }
     {
@@ -1435,7 +1436,8 @@ _wrap_gdfGetMeasurementName(ClientData clientData, Tcl_Interp *interp, int objc,
     
     Tcl_SetObjResult(interp,Tcl_NewIntObj((long) result));
     {
-        Tcl_Obj *o = Tcl_NewStringObj(arg2,256);
+        int len = strlen(arg2);
+        Tcl_Obj *o = Tcl_NewStringObj(arg2,len);
         Tcl_ListObjAppendElement(interp,(Tcl_GetObjResult(interp)),o);
     }
     {
@@ -1471,7 +1473,8 @@ _wrap_gdfGetDataFileName(ClientData clientData, Tcl_Interp *interp, int objc, Tc
     
     Tcl_SetObjResult(interp,Tcl_NewIntObj((long) result));
     {
-        Tcl_Obj *o = Tcl_NewStringObj(arg2,256);
+        int len = strlen(arg2);
+        Tcl_Obj *o = Tcl_NewStringObj(arg2,len);
         Tcl_ListObjAppendElement(interp,(Tcl_GetObjResult(interp)),o);
     }
     {
@@ -1517,7 +1520,8 @@ _wrap_gdfGetNthClassLabel(ClientData clientData, Tcl_Interp *interp, int objc, T
     
     Tcl_SetObjResult(interp,Tcl_NewIntObj((long) result));
     {
-        Tcl_Obj *o = Tcl_NewStringObj(arg3,256);
+        int len = strlen(arg3);
+        Tcl_Obj *o = Tcl_NewStringObj(arg3,len);
         Tcl_ListObjAppendElement(interp,(Tcl_GetObjResult(interp)),o);
     }
     {
@@ -1541,7 +1545,8 @@ _wrap_gdfGetNthClassMarker(ClientData clientData, Tcl_Interp *interp, int objc, 
     
     Tcl_SetObjResult(interp,Tcl_NewIntObj((long) result));
     {
-        Tcl_Obj *o = Tcl_NewStringObj(arg3,256);
+        int len = strlen(arg3);
+        Tcl_Obj *o = Tcl_NewStringObj(arg3,len);
         Tcl_ListObjAppendElement(interp,(Tcl_GetObjResult(interp)),o);
     }
     {
@@ -1565,7 +1570,8 @@ _wrap_gdfGetNthClassColor(ClientData clientData, Tcl_Interp *interp, int objc, T
     
     Tcl_SetObjResult(interp,Tcl_NewIntObj((long) result));
     {
-        Tcl_Obj *o = Tcl_NewStringObj(arg3,256);
+        int len = strlen(arg3);
+        Tcl_Obj *o = Tcl_NewStringObj(arg3,len);
         Tcl_ListObjAppendElement(interp,(Tcl_GetObjResult(interp)),o);
     }
     {
@@ -1611,7 +1617,8 @@ _wrap_gdfGetNthVariableLabel(ClientData clientData, Tcl_Interp *interp, int objc
     
     Tcl_SetObjResult(interp,Tcl_NewIntObj((long) result));
     {
-        Tcl_Obj *o = Tcl_NewStringObj(arg3,256);
+        int len = strlen(arg3);
+        Tcl_Obj *o = Tcl_NewStringObj(arg3,len);
         Tcl_ListObjAppendElement(interp,(Tcl_GetObjResult(interp)),o);
     }
     {
@@ -1634,7 +1641,8 @@ _wrap_gdfGetDefaultVariable(ClientData clientData, Tcl_Interp *interp, int objc,
     
     Tcl_SetObjResult(interp,Tcl_NewIntObj((long) result));
     {
-        Tcl_Obj *o = Tcl_NewStringObj(arg2,256);
+        int len = strlen(arg2);
+        Tcl_Obj *o = Tcl_NewStringObj(arg2,len);
         Tcl_ListObjAppendElement(interp,(Tcl_GetObjResult(interp)),o);
     }
     {
@@ -1702,7 +1710,8 @@ _wrap_gdfGetNthSubjectID(ClientData clientData, Tcl_Interp *interp, int objc, Tc
     
     Tcl_SetObjResult(interp,Tcl_NewIntObj((long) result));
     {
-        Tcl_Obj *o = Tcl_NewStringObj(arg3,256);
+        int len = strlen(arg3);
+        Tcl_Obj *o = Tcl_NewStringObj(arg3,len);
         Tcl_ListObjAppendElement(interp,(Tcl_GetObjResult(interp)),o);
     }
     {

@@ -1,11 +1,21 @@
 #! /usr/bin/tixwish
 source "fsgdfPlot.tcl"
 
+set fnTestDataDir ""
+if { [info exists env(FSDEV_TEST_DATA)] } {
+    set fnTestDataDir $env(FSDEV_TEST_DATA)
+} else {
+    set fnTestDataDir /space/lyon/1/fsdev/test_data
+}
+
 FsgdfPlot_Init
-FsgdfPlot_ParseHeader "/home/kteich/fsgdf_data/y-lh.fsgd"
+FsgdfPlot_ParseHeader "$fnTestDataDir/fsgdf/y-lh.fsgd"
 FsgdfPlot_ShowWindow
 FsgdfPlot_SetPoint 10000 0 0
 FsgdfPlot_SetInfo "vno 10000"
+
+FsgdfPlot_SaveToTable test.table
+FsgdfPlot_SaveToPostscript test.ps
 
 if { 0 } {
 after 5000 {

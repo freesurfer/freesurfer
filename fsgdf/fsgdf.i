@@ -9,7 +9,8 @@
      $1 = (char*)calloc(256,sizeof(char));
 }
 %typemap(argout) char *OUTSTRING {
-     Tcl_Obj *o = Tcl_NewStringObj($1,256);
+     int len = strlen($1);
+     Tcl_Obj *o = Tcl_NewStringObj($1,len);
      Tcl_ListObjAppendElement(interp,$result,o);
 }
 %typemap(freearg) char *OUTSTRING {
