@@ -4,7 +4,7 @@
   email:   analysis-bugs@nmr.mgh.harvard.edu
   Date:    2/27/02
   Purpose: converts values in one volume to another volume
-  $Id: mri_vol2vol.c,v 1.1 2004/05/19 17:30:41 greve Exp $
+  $Id: mri_vol2vol.c,v 1.2 2004/07/23 15:43:18 greve Exp $
 
   Things to do:
     1. Add ability to spec output center XYZ.
@@ -57,7 +57,7 @@ static int istringnmatch(char *str1, char *str2, int n);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_vol2vol.c,v 1.1 2004/05/19 17:30:41 greve Exp $";
+static char vcid[] = "$Id: mri_vol2vol.c,v 1.2 2004/07/23 15:43:18 greve Exp $";
 char *Progname = NULL;
 
 int debug = 0, gdiagno = -1;
@@ -200,10 +200,11 @@ int main(int argc, char **argv)
 	  printf("ERROR: SUBJECTS_DIR undefined. Use setenv or --sd\n");
 	  exit(1);
 	}
-	sprintf(talxfmpath,"%s/%s/mri/transforms/%s",
-		subjectsdir,trgsubject,talxfmfile);
-	err = regio_read_mincxfm(talxfmpath, &Xtal);
-	if(err) exit(1);
+	//sprintf(talxfmpath,"%s/%s/mri/transforms/%s",
+	//subjectsdir,trgsubject,talxfmfile);
+	//err = regio_read_mincxfm(talxfmpath, &Xtal);
+	//if(err) exit(1);
+	Xtal = DevolveXFM(trgsubject, NULL, NULL);
 	invX = MatrixInverse(X,NULL);
         MatrixMultiply(Xtal,invX,X); 
 	printf("Xtal: ------------------------------\n");
@@ -225,6 +226,16 @@ int main(int argc, char **argv)
   }
   else X = MatrixIdentity(4,NULL);
 
+  if(force_outvoxres){
+    TempVol->xsize = outvoxres[0];
+    TempVol->ysize = outvoxres[1];
+    TempVol->zsize = outvoxres[2];
+  }
+  if(force_outvoxdim){
+    TempVol->width  = outvoxdim[0];
+    TempVol->height = outvoxdim[1];
+    TempVol->depth  = outvoxdim[2];
+  }
 
   /*---------- Allocate the output volume ------------------*/
   OutVol = MRIallocSequence(TempVol->width, TempVol->height, 
