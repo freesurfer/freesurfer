@@ -4,9 +4,9 @@
 
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2004/01/07 20:49:52 $
-// Revision       : $Revision: 1.189 $
-char *VERSION = "$Revision: 1.189 $";
+// Revision Date  : $Date: 2004/01/09 22:34:20 $
+// Revision       : $Revision: 1.190 $
+char *VERSION = "$Revision: 1.190 $";
 
 #define TCL
 #define TKMEDIT 
@@ -173,23 +173,6 @@ static char gsTkTimerFileName[tkm_knPathLen] = "tktimer.data";
 tkm_tErr SetSubjectHomeDirFromEnv ( char* isSubject );
 tkm_tErr SetSubjectHomeDir    ( char* isHomeDir );
 tkm_tErr FindUserHomeDir    ();
-
-typedef enum {
-  tkm_tFileName_Functional = 0,
-  tkm_tFileName_Segmentation,
-  tkm_tFileName_HeadPoints,
-  tkm_tFileName_Surface,
-  tkm_tFileName_Volume,
-  tkm_tFileName_VolumeTransform,
-  tkm_tFileName_Label,
-  tkm_tFileName_GCA,
-  tkm_tFileName_VLI,
-  tkm_tFileName_RGB,
-  tkm_tFileName_ControlPoints,
-  tkm_tFileName_Edit,
-  tkm_tFileName_TclScript,
-  tkm_knNumFileNameTypes
-} tkm_tFileName;
 
 /* subdirectories local to subject's home dir */
 char *ksaFileNameSubDirs[tkm_knNumFileNameTypes] = {
@@ -1050,7 +1033,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
      shorten our argc and argv count. If those are the only args we
      had, exit. */
   /* rkt: check for and handle version tag */
-  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.189 2004/01/07 20:49:52 kteich Exp $", "$Name:  $");
+  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.190 2004/01/09 22:34:20 kteich Exp $", "$Name:  $");
   if (nNumProcessedVersionArgs && argc - nNumProcessedVersionArgs == 1)
     exit (0);
   argc -= nNumProcessedVersionArgs;
@@ -4996,7 +4979,7 @@ int main ( int argc, char** argv ) {
     DebugPrint( ( "%s ", argv[nArg] ) );
   }
   DebugPrint( ( "\n\n" ) );
-  DebugPrint( ( "$Id: tkmedit.c,v 1.189 2004/01/07 20:49:52 kteich Exp $ $Name:  $\n" ) );
+  DebugPrint( ( "$Id: tkmedit.c,v 1.190 2004/01/09 22:34:20 kteich Exp $ $Name:  $\n" ) );
 
   
   /* init glut */
@@ -6396,7 +6379,7 @@ void SaveSelectionToLabelFile ( char * isFileName ) {
       
       /* convert mri idx to surface ras. note we may use surface ras
 	 here because it ignores c_ras, which is what label files
-	 should to be comptaible with tksurfer.  */
+	 should to surfacebe comptaible with tksurfer.  */
       if( gbUseRealRAS ) {
 	eVolume = 
 	  Volm_ConvertMRIIdxToRAS( gSelectionVolume, &MRIIdx, &ras );
@@ -11115,6 +11098,14 @@ void tkm_DisplayAlert ( char* isAction, char* isMsg, char* isDesc ) {
   fflush( stdout );
   
   DebugPrint( ("ALERT: %s\n%s\n", isAction, isMsg) );
+}
+
+void tkm_MakeFileName ( char*         isInput,
+			tkm_tFileName iType, 
+			char*         osCompleteFileName,
+			int           inDestSize ) {
+  
+  MakeFileName( isInput, iType, osCompleteFileName, inDestSize );
 }
 
 void tkm_MakeControlPoint ( xVoxelRef iMRIIdx ) {

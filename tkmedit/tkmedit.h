@@ -209,6 +209,24 @@ typedef enum {
   tkm_knNumAxes
 } tkm_tAxis;
 
+typedef enum {
+  tkm_tFileName_Functional = 0,
+  tkm_tFileName_Segmentation,
+  tkm_tFileName_HeadPoints,
+  tkm_tFileName_Surface,
+  tkm_tFileName_Volume,
+  tkm_tFileName_VolumeTransform,
+  tkm_tFileName_Label,
+  tkm_tFileName_GCA,
+  tkm_tFileName_VLI,
+  tkm_tFileName_RGB,
+  tkm_tFileName_ControlPoints,
+  tkm_tFileName_Edit,
+  tkm_tFileName_TclScript,
+  tkm_knNumFileNameTypes
+} tkm_tFileName;
+
+
 // ==================================================================== OUTPUT
 
 #define InitOutput
@@ -227,6 +245,12 @@ void tkm_FinishProgressBar ( char* isName );
 void tkm_DisplayMessage ( char* isMessage );
 void tkm_DisplayError   ( char* isAction, char* isError, char* isDesc );
 void tkm_DisplayAlert   ( char* isAction, char* isMsg, char* isDesc );
+
+/* make a file name */
+void tkm_MakeFileName ( char*         isInput,
+			tkm_tFileName iType, 
+			char*         osCompleteFileName,
+			int           inDestSize );
 
 /* volume value */
 void tkm_GetAnatomicalVolume ( tkm_tVolumeType iVolume,
