@@ -52,7 +52,7 @@ typedef struct {
         char descrip[80];               /*Will be displayed when loading*/
         char aux_file[24];
         char orient;
-        char originator[10];
+        unsigned char originator[10];
         char generated[10];
         char scannum[10];
         char patient_id[10];
