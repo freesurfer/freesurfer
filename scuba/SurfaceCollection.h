@@ -23,13 +23,31 @@ class SurfaceCollection : public DataCollection {
   virtual TclCommandResult
     DoListenToTclCommand ( char* isCommand, int iArgc, char** iasArgv );
 
+  virtual void
+    DoListenToMessage ( std::string isMessage, void* iData );
+
   virtual ScubaROI* DoNewROI ();
 
+  void RASToSurface  ( float iRAS[3], float oSurface[3] );
+  void SurfaceToRAS  ( float iSurface[3], float oRAS[3] );
+
+  // Surface access functions.
+  int GetNumFaces ();
+  int GetNumVerticesPerFace_Unsafe ( int inFace );
+  void GetNthVertexInFace_Unsafe ( int inFace, int inVertex, float oRAS[3] );
 
  protected:
   std::string mfnMRIS;
   MRIS* mMRIS;
 
+  // We're dealing with two transforms here, data->world which is
+  // defined in DataCollection, and surface->data which is defined
+  // here. Actually it goes world->data->surface and
+  // surface->data->world. We composite these in the last transform.
+  Transform44 mDataToSurfaceTransform;
+  Transform44 mWorldToSurfaceTransform;
+
+  void CalcWorldToSurfaceTransform ();
 };
 
 

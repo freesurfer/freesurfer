@@ -78,10 +78,31 @@ VolumeCollection::GetMRI() {
     }
 
 
-    MATRIX* dataToIndex = voxelFromSurfaceRAS_( mMRI );
-    mDataToIndexTransform.SetMainTransform( dataToIndex );
-    MatrixFree( &dataToIndex );
+    // Get our surfaceRAS -> index transform.
+    Matrix44 m;
+    //    MATRIX* voxelFromSurfaceRAS = voxelFromSurfaceRAS_( mMRI );
+    MATRIX* voxelFromSurfaceRAS = extract_r_to_i( mMRI );
+    m.SetMatrix( voxelFromSurfaceRAS );
+    MatrixFree( &voxelFromSurfaceRAS );
+
+#if 0
+    // This is our RAS -> surfaceRAS transform.
+    Matrix44 n;
+    n.SetMatrix( 1, 0, 0, -mMRI->c_r,
+		 0, 1, 0, -mMRI->c_a,
+		 0, 0, 1, -mMRI->c_s,
+		 0, 0, 0, 1 );
+
+
+    // Apply the former to the latter to get RAS -> index
+    m.ApplyTransformMatrix( n );
+#endif
+
+    mDataToIndexTransform.SetMainTransform( m );
+
     CalcWorldToIndexTransform();
+
+
 
     UpdateMRIValueRange();
 
@@ -101,7 +122,6 @@ VolumeCollection::GetMRI() {
     InitEdgeVolume();
     InitSelectionVolume();
 
-    UpdateRASBounds();
 
     mVoxelSize[0] = mMRI->xsize;
     mVoxelSize[1] = mMRI->ysize;
@@ -145,32 +165,6 @@ VolumeCollection::GetMRIMagnitudeMaxValue () {
   return mMRIMagMaxValue; 
 }
 
-
-void
-VolumeCollection::UpdateRASBounds () {
-
-  if( NULL != mMRI ) {
-    
-    int minIndex[3];
-    minIndex[0] = 0;
-    minIndex[1] = 0;
-    minIndex[2] = 0;
-    int maxIndex[3];
-    maxIndex[0] = mMRI->width - 1;
-    maxIndex[1] = mMRI->height - 1;
-    maxIndex[2] = mMRI->depth - 1;
-    float rasCorner1[3];
-    float rasCorner2[3];
-    MRIIndexToRAS( minIndex, rasCorner1 );
-    MRIIndexToRAS( maxIndex, rasCorner2 );
-    mMinRASBounds[0] = MIN( rasCorner1[0], rasCorner2[0] );
-    mMinRASBounds[1] = MIN( rasCorner1[1], rasCorner2[1] );
-    mMinRASBounds[2] = MIN( rasCorner1[2], rasCorner2[2] );
-    mMaxRASBounds[0] = MAX( rasCorner1[0], rasCorner2[0] );
-    mMaxRASBounds[1] = MAX( rasCorner1[1], rasCorner2[1] );
-    mMaxRASBounds[2] = MAX( rasCorner1[2], rasCorner2[2] );
-  }
-}
 
 void
 VolumeCollection::RASToMRIIndex ( float iRAS[3], int oIndex[3] ) {
@@ -907,11 +901,16 @@ VolumeCollection::CalcWorldToIndexTransform () {
 
   // This makes it look like tkmedit when it loads a display
   // transform, is this right???
+  //  mWorldToIndexTransform = mDataToIndexTransform;
+  //  mWorldToIndexTransform.ApplyTransform( mDataToWorldTransform->Inverse() );
+  
+  //mWorldToIndexTransform = mDataToWorldTransform->Inverse();
+  //mWorldToIndexTransform.ApplyTransform( mDataToIndexTransform );
+  
   mWorldToIndexTransform =
     mDataToIndexTransform * mDataToWorldTransform->Inverse();
 
   DataChanged();
-  UpdateRASBounds();
 }
 
 #if 0

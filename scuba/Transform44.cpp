@@ -57,6 +57,19 @@ Transform44::LoadFromLTAFile ( string ifnLTA ) {
     throw runtime_error( "Couldn't load LTA." );
   }
 
+  switch( lta->type ) {
+  case LINEAR_VOX_TO_VOX:
+    cerr << "LTA type is LINEAR_VOX_TO_VOX" << endl;
+    break;
+  case LINEAR_RAS_TO_RAS:
+    cerr << "LTA type is LINEAR_RAS_TO_RAS" << endl;
+    break;
+  default:
+    cerr << "LTA type is unkown" << endl;
+    break;
+  }
+
+
   LT* transform = &lta->xforms[0];
 
   MATRIX* matrix = transform->m_L;

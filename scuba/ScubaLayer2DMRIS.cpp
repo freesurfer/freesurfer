@@ -36,6 +36,8 @@ void
 ScubaLayer2DMRIS::SetSurfaceCollection ( SurfaceCollection& iSurface ) {
 
   mSurface = &iSurface;
+
+  mSurface->GetMRIS();
 }
 
 void
@@ -48,47 +50,47 @@ ScubaLayer2DMRIS::DrawIntoBuffer ( GLubyte* iBuffer, int iWidth, int iHeight,
     return;
   }
 
-  MRIS* surf = mSurface->GetMRIS();
-
   list<int> drawList;
   int cIntersectionsInFace = 0;
   int intersectionPair[2][2];
 
   // We need to look for intersections of edges in a face and the
   // current plane.
-  for( int nFace = 0; nFace < surf->nfaces; nFace++ ) {
+  int cFaces = mSurface->GetNumFaces();
+  for( int nFace = 0; nFace < cFaces; nFace++ ) {
 
     cIntersectionsInFace = 0;
 
     // Look at each edge in this face...
-    FACE* face = &(surf->faces[nFace]);
-    for( int nVertex = 0; nVertex < VERTICES_PER_FACE; nVertex++ ) {
+    int cVerticesPerFace = mSurface->GetNumVerticesPerFace_Unsafe( nFace );
+    for( int nVertex = 0; nVertex < cVerticesPerFace; nVertex++ ) {
 
       int nNextVertex = nVertex + 1;
-      if( nNextVertex >= VERTICES_PER_FACE ) nNextVertex = 0;
+      if( nNextVertex >= cVerticesPerFace ) nNextVertex = 0;
 
       // Get the vertices.
-      VERTEX* vertex = &(surf->vertices[face->v[nVertex]]);
-      VERTEX* nextVertex = &(surf->vertices[face->v[nNextVertex]]);
+      Point3<float> vRAS, vnRAS;
+      mSurface->GetNthVertexInFace_Unsafe( nFace, nVertex, vRAS.xyz() );
+      mSurface->GetNthVertexInFace_Unsafe( nFace, nNextVertex, vnRAS.xyz() );
 
       // Get the coordinate we need to compare for this plane. We look
       // at the inplane coordinates in each vertex.
       float vertexCoord, nextVertexCoord, planeCoord;
       switch( iViewState.mInPlane ) {
       case 0: // X
-	vertexCoord     = vertex->x;
-	nextVertexCoord = nextVertex->x;
+	vertexCoord     = vRAS.x();
+	nextVertexCoord = vnRAS.x();
 	planeCoord      = iViewState.mCenterRAS[0];
 	break;
       case 1: // Y
-	vertexCoord     = vertex->y;
-	nextVertexCoord = nextVertex->y;
+	vertexCoord     = vRAS.y();
+	nextVertexCoord = vnRAS.y();;
 	planeCoord      = iViewState.mCenterRAS[1];
 	break;
       case 2: // Z
       default:
-	vertexCoord     = vertex->z;
-	nextVertexCoord = nextVertex->z;
+	vertexCoord     = vRAS.z();
+	nextVertexCoord = vnRAS.z();
 	planeCoord      = iViewState.mCenterRAS[2];
 	break;
       }
@@ -104,17 +106,17 @@ ScubaLayer2DMRIS::DrawIntoBuffer ( GLubyte* iBuffer, int iWidth, int iHeight,
 	switch( iViewState.mInPlane ) {
 	case 0: // X
 	  world[0] = iViewState.mCenterRAS[0];
-	  world[1] = vertex->y + f * (nextVertex->y - vertex->y);
-	  world[2] = vertex->z + f * (nextVertex->z - vertex->z);
+	  world[1] = vRAS.y() + f * (vnRAS.y() - vRAS.y());
+	  world[2] = vRAS.z() + f * (vnRAS.z() - vRAS.z());
 	  break;
 	case 1: // Y
-	  world[0] = vertex->x + f * (nextVertex->x - vertex->x);
+	  world[0] = vRAS.x() + f * (vnRAS.x() - vRAS.x());
 	  world[1] = iViewState.mCenterRAS[1];
-	  world[2] = vertex->z + f * (nextVertex->z - vertex->z);
+	  world[2] = vRAS.z() + f * (vnRAS.z() - vRAS.z());
 	  break;
 	case 2: // Z
-	  world[0] = vertex->x + f * (nextVertex->x - vertex->x);
-	  world[1] = vertex->y + f * (nextVertex->y - vertex->y);
+	  world[0] = vRAS.x() + f * (vnRAS.x() - vRAS.x());
+	  world[1] = vRAS.y() + f * (vnRAS.y() - vRAS.y());
 	  world[2] = iViewState.mCenterRAS[2];
 	  break;
 	}

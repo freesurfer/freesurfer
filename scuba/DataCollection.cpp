@@ -31,7 +31,6 @@ DataCollection::DataCollection() {
       DebugOutput( << "Couldn't make default transform!" );
     }
   }
-  
 
   TclCommandManager& commandMgr = TclCommandManager::GetManager();
   commandMgr.AddCommand( *this, "SetCollectionLabel", 2, "collectionID label",

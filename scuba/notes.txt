@@ -290,7 +290,14 @@ x     - display text, progress, have buttons on right
 - use transform.h TransformRead to load transforms
   - need TransformCompose to get single matrix
 
-- add 'selectable' flag to layer
+x add 'selectable' flag to layer
+
+- surfaceRAS problem
+  - need to transform volume and surface from surfaceRAS space into real RAS space
+  - on volume, read in c_r,a,s and compose with index->dataRAS transform
+  - on surface, user MRIreadHeader to read ../mri/orig/COR-.info to read in c_r,a,s
+    - if not found, print error message
+
 
 DRAWING TOOLS:::
 
@@ -326,3 +333,36 @@ nav tools draw onscreen sliders for feedback
 
 
  
+-10.24      0      0 252.06
+     0 -10.24      0 192.67
+     0      0     10 164.819
+     0      0      0      1
+
+2.20863 -8.91588 -0.833334 272.035
+10.8348 2.3259 3.83109 198.361
+-3.47596 -1.88695 10.976 187.85
+     0      0      0      1
+
+
+-10.24      0      0 252.06
+     0 -10.24      0 192.67
+     0      0     10 164.819
+     0      0      0      1
+
+2.20863 -8.91588 0.833334 120.81
+10.8348 2.3259 -3.83109 -330.683
+3.47595 1.88695 10.976 71.8314
+     0      0      0      1
+
+
+2.20863 -11.3346 -1.07944 456.601
+8.52271 2.3259 3.90353 250.945
+-2.68347 -1.85193 10.976 395.132
+     0      0      0      1
+
+hi cras 
+
+    1      0      0 3.93991
+     0      1      0 -0.670391
+     0      0      1 4.81862
+     0      0      0      1

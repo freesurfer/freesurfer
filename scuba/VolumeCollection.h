@@ -47,8 +47,6 @@ class VolumeCollection : public DataCollection {
   float GetVoxelYSize () { return mVoxelSize[1]; }
   float GetVoxelZSize () { return mVoxelSize[2]; }
 
-  void UpdateRASBounds ();
-
   void RASToMRIIndex ( float iRAS[3], int oIndex[3] );
   void RASToMRIIndex ( float iRAS[3], float oIndex[3] );
   void MRIIndexToRAS ( int iIndex[3], float oRAS[3] );
@@ -98,9 +96,6 @@ class VolumeCollection : public DataCollection {
   int  NewROIFromLabel ( std::string ifnLabel );
   void WriteROIsToSegmentation ( std::string ifnVolume );
 
-  float* GetMinRASBounds () { return mMinRASBounds; }
-  float* GetMaxRASBounds () { return mMaxRASBounds; }
-
   virtual void SetDataToWorldTransform ( int iTransformID ) {
     DataCollection::SetDataToWorldTransform( iTransformID );
     CalcWorldToIndexTransform();
@@ -135,9 +130,6 @@ protected:
   Volume3<bool>* mEdgeVoxels;
 
   Volume3<bool>* mSelectedVoxels;
-
-  float mMinRASBounds[3];
-  float mMaxRASBounds[3];
 };
 
 class VolumeCollectionFlooder {
