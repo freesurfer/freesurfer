@@ -21,3 +21,8 @@ libtclfsgdf$(DYNAMIC_LIB_EXT): fsgdf_wrap.c fsgdf.c
 	rm fsgdf.o
 
 fsgdf_wrap.c: fsgdf.i
+
+check_PROGRAMS=test
+test_SOURCES=test.c
+test_LDADD=libfsgdf.a $(addprefix $(top_srcdir)/, $(LIBS_MGH))
+TESTS=test
