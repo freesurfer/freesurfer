@@ -10,7 +10,7 @@ if { $err } {
     load [file dirname [info script]]/libscuba[info sharedlibextension] scuba
 }
 
-DebugOutput "\$Id: scuba.tcl,v 1.49 2004/08/23 03:11:44 kteich Exp $"
+DebugOutput "\$Id: scuba.tcl,v 1.50 2004/08/27 20:45:21 kteich Exp $"
 
 # gTool
 #   current - current selected tool (nav,)
@@ -423,7 +423,9 @@ proc MakeMenuBar { ifwTop } {
     tkuMakeMenu -menu $gaMenu(file) -label "File" -items {
 	{command "New Volume..." { DoNewVolumeDlog } }
 	{command "Load Volume..." { DoLoadVolumeDlog } }
-	{command "Save Volume..." { DoSaveVolumeDlog } }
+	{command "Save Volume..." { DoSaveVolume } }
+	{command "Save Volume As..." { DoSaveVolumeAsDlog } }
+	{command "Save Copy of Volume As..." { DoSaveCopyOfVolumeAsDlog } }
 	{separator}
 	{command "Load Label..." { DoLoadLabelDlog } }
 	{command "Save Label..." { DoSaveLabelDlog } }
@@ -3659,6 +3661,27 @@ proc LoadTransform { ifnLTA } {
     SetStatusBarText "Loaded $ifnLTA."
 }
 
+proc DoSaveVolume {} {
+    dputs "DoSaveVolume "
+
+    global gaCollection
+
+    if { [info exists gaCollection(current,id)] &&
+	 $gaCollection(current,id) >= -1 &&
+	 "$gaCollection(current,type)" == "Volume" } {
+	
+	tkuDoFileDlog -title "Save Volume" \
+	    -prompt1 "Will save the volume \"$gaCollection(current,label)\" as\n $gaCollection(current,fileName)" \
+	    -type1 note \
+	    -okCmd { 
+		SaveVolume $gaCollection(current,id)
+	    }
+	
+    } else {
+	tkuErrorDlog "You must first select a volume to save. Please select one in the data collections panel."
+    }
+}
+
 proc DoNewVolumeDlog {} {
     dputs "DoNewVolumeDlog  "
 
@@ -3710,8 +3733,8 @@ proc DoLoadVolumeDlog {} {
 }
 
 
-proc DoSaveVolumeDlog {} {
-    dputs "DoSaveVolumeDlog  "
+proc DoSaveVolumeAsDlog {} {
+    dputs "DoSaveVolumeAsDlog  "
 
     global glShortcutDirs
     global gaCollection
@@ -3720,16 +3743,51 @@ proc DoSaveVolumeDlog {} {
 	 $gaCollection(current,id) >= -1 &&
 	 "$gaCollection(current,type)" == "Volume" } {
 
-	tkuDoFileDlog -title "Save Volume" \
+	tkuDoFileDlog -title "Save Volume As" \
 	    -prompt1 "Will save volume \"$gaCollection(current,label)\"." \
 	    -type1 note \
-	    -prompt2 "Save Volume: " \
-	    -defaultvalue2 [GetDefaultFileLocation SaveVolume] \
-	    -defaultdir2 [GetDefaultFileLocation SaveVolume] \
+	    -prompt2 "This sets the volume's file name and saves it." \
+	    -type2 note \
+	    -prompt3 "Save Volume As: " \
+	    -defaultvalue3 [GetDefaultFileLocation SaveVolume] \
+	    -defaultdir3 [GetDefaultFileLocation SaveVolume] \
 	    -shortcuts $glShortcutDirs \
 	    -okCmd { 
 		set err [catch {
-		    SaveVolumeWithFileName $gaCollection(current,id) %s2
+		    SetVolumeCollectionFileName $gaCollection(current,id) %s3
+		    SaveVolume $gaCollection(current,id)
+		} sResult]
+		if { 0 != $err } { tkuErrorDlog $sResult }
+	    }
+	
+    } else {
+	tkuErrorDlog "You must first select a volume to save. Please select one in the data collections panel."
+    }
+}
+
+
+proc DoSaveCopyOfVolumeAsDlog {} {
+    dputs "DoSaveCopyOfVolumeAsDlog  "
+
+    global glShortcutDirs
+    global gaCollection
+
+    if { [info exists gaCollection(current,id)] &&
+	 $gaCollection(current,id) >= -1 &&
+	 "$gaCollection(current,type)" == "Volume" } {
+
+	tkuDoFileDlog -title "Save Copy of Volume" \
+	    -prompt1 "Will save a copy of volume \"$gaCollection(current,label)\"." \
+	    -type1 note \
+	    -prompt2 "This saves the volume somewhere but doesn't change its file name."
+	    -type2 note \
+	    -prompt3 "Save Volume: " \
+	    -defaultvalue3 [GetDefaultFileLocation SaveVolume] \
+	    -defaultdir3 [GetDefaultFileLocation SaveVolume] \
+	    -shortcuts $glShortcutDirs \
+	    -okCmd { 
+		set err [catch {
+		    SaveVolumeWithFileName $gaCollection(current,id) %s3
 		} sResult]
 		if { 0 != $err } { tkuErrorDlog $sResult }
 	    }
@@ -3937,6 +3995,7 @@ while { $nArg < $argc } {
 	    puts "                      the subject's directory specified with -s."
 	    puts "-t, --transform FILE  Load a transform file Can be a file name or a file in"
 	    puts "                      the subject's mri/transforms directory specified with -s."
+	    puts "-c, --script FILE     Run the tcl script FILE after loading."
 	    exit
 	}
     }
