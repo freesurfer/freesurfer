@@ -15,7 +15,7 @@ function [vol, M, dcminfo, mr_parms] = load_dicom_fl(flist)
 %
 % Does not handle multiple frames correctly yet.
 %
-% $Id: load_dicom_fl.m,v 1.7 2003/07/21 16:20:51 ebeth Exp $
+% $Id: load_dicom_fl.m,v 1.8 2003/07/24 21:16:08 ebeth Exp $
 
 vol=[];
 M=[];
@@ -126,9 +126,21 @@ end
 % Lines below correct for the Z-offset in GE machines - ebeth %
 % We're told ge machines recenter along superior/inferior axis but
 % don't update c_ras - but now c_s should be zero.
-if(strcmpi(Manufacturer,'ge medical systems')) 
-  M(3,4) = 0;
+if(strcmpi(Manufacturer,'ge medical systems'))
+  % Lines below correct for the Z-offset in GE machines
+  firstZ = dcminfo(1).ImagePositionPatient(3);
+  lastXYZ = M*[size(vol)';1]; %'
+  % size(imvol) = number of slices in all 3 dirs
+  lastZ = lastXYZ(3);
+  offsetZ = (lastZ + firstZ)/2.0;
+  % Z0 = Z + offsetZ;  [XYZ1]' = M*[CRS1]', need to add to M(3,4)(?)
+  M(3,4) = M(3,4) - offsetZ;
 end
+return;
+
+% if(strcmpi(Manufacturer,'ge medical systems')) 
+%   M(3,4) = 0; % Wow - that was actually completely wrong!
+% end
 
 % Pull out some info from the header %
 if(isfield(dcminfo(1),'FlipAngle')) FlipAngle = pi*dcminfo(1).FlipAngle/180; 
