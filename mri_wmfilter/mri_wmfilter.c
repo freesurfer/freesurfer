@@ -4,12 +4,13 @@
 #include <ctype.h>
 
 #include "macros.h"
+#include "const.h"
 #include "MRIio.h"
 /*#include "typedefs.h"*/  /* not needed without matrix stuff */
 #include "matrix.h"
 #include "proto.h"
 
-static char vcid[] = "$Id: mri_wmfilter.c,v 1.9 1999/08/02 00:41:39 fischl Exp $";
+static char vcid[] = "$Id: mri_wmfilter.c,v 1.10 1999/08/06 14:37:49 fischl Exp $";
 
 /*-------------------------------------------------------------------
                                 CONSTANTS
@@ -36,16 +37,15 @@ unsigned char **fill[MAXIM];
 unsigned char *buf;  /* scratch memory  */
 int imnr0,imnr1,numimg;
 int wx0=100,wy0=100;
-float white_hilim = 130;
-float white_lolim = 90;
+float white_hilim = 125;  /* new smaller range goes with improved */
+float white_lolim = 95;   /* intensity normalization */
 float gray_hilim = 100;
-float threshold = 30;
 float xmin,xmax;
 float ymin,ymax;
 float zmin,zmax;
 float st,ps,fov,xx0,xx1,yy0,yy1,zz0,zz1;
 float ctrx,ctry,ctrz;
-float dfrac;
+
 #if 0
 FLOATTYPE **mat,**mati,*vec,*vec2;
 #endif
@@ -53,6 +53,12 @@ float xcor[MAXCOR],ycor[MAXCOR],zcor[MAXCOR];
 int nver,ncor;
 
 char *Progname ;
+
+static int central_plane = 0 ;
+static int grayscale_plane = 0 ;
+static char *output_name = "wm" ;
+static float slope = 0.00f ;  /* 0 mimic original behavior */
+static float lslope = 0.0f ;  /* slope for planar laplacian threshold mod */
 
 /*-------------------------------------------------------------------
                              STATIC PROTOTYPES
@@ -123,7 +129,7 @@ main(int argc,char *argv[])
   
   sprintf(fpref,"%s/%s",data_dir,pname);
   sprintf(mfname,"%s/mri/brain/COR-",fpref);
-  sprintf(pfname,"%s/mri/wm/COR-",fpref);
+  sprintf(pfname,"%s/mri/%s/COR-", fpref,output_name);
   sprintf(dfname,"wmfilter.dat");
   read_image_info(mfname);
   read_images(mfname);
@@ -139,7 +145,7 @@ main(int argc,char *argv[])
   }
   else
     printf("File %s not found - using defaults.\n",fname);
-  printf("white_hilim = %f, white_lolim = %f, gray_hilim = %f\n",
+  printf("white_hilim = %2.1f, white_lolim = %2.1f, gray_hilim = %2.1f\n",
          white_hilim,white_lolim,gray_hilim);
   fflush(stdout) ;
 
@@ -161,6 +167,7 @@ main(int argc,char *argv[])
   printf("%d unique orientations\n",ncor);
   fflush(stdout) ;
   plane_filter(option);
+  fprintf(stderr, "writing output to %s...\n", pfname) ;
   write_images(pfname);
   exit(0) ;
   return(0) ;
@@ -206,18 +213,21 @@ read_image_info(char *fpref)
   ctrz = (zz0+zz1)/2.0;
 }
 
+#define DEFAULT_FRAC  0.6
+
 static void
 plane_filter(int niter)
 {
-  int    i,j,k,di,dj,dk,m,n,u,ws2=2,maxi,mini, wsize, probably_white ;
-  float  numvox,numnz,numz;
+  int    i,j,k,di,dj,dk,m,n,u,ws2=2,maxi,mini, wsize ;
+  float  numvox,numnz,numz, probably_white ;
   float  f,f2,a,b,c,s;
   double sum2,sum,var,avg,tvar,maxvar,minvar;
-  double sum2v[MAXLEN],sumv[MAXLEN],avgv[MAXLEN],varv[MAXLEN],nv[MAXLEN];
-  float  cfracz = 0.6;
-  float  cfracnz = 0.6;
+  double sum2v[MAXLEN],sumv[MAXLEN],avgv[MAXLEN],varv[MAXLEN],nv[MAXLEN],
+         tlaplacian, laplacian ;
+  float  cfrac ;
   
-  probably_white = (white_lolim + gray_hilim) / 2 ;
+  cfrac = DEFAULT_FRAC ;
+  probably_white = (white_lolim + gray_hilim) / 2.0 ;
 /*
   printf("plane_filter(%d)\n",niter);
 */
@@ -258,12 +268,13 @@ plane_filter(int niter)
       int kk = 0 ;
       kk++ ;
     }
-    printf("processing slice %d\n",k+1);
+    if (!((k+1)%10))
+      printf("processing slice %d\n",k+1);
     fflush(stdout) ;
     for (i=ws2;i<IMGSIZE-1-ws2;i++)
     for (j=ws2;j<IMGSIZE-1-ws2;j++)
     {
-      if (k == 64 && i == 163 && j == 157)
+      if (k == 80 && i == 140 && j == 145)
       {
         int kk = 0 ;
         kk++ ;
@@ -305,14 +316,15 @@ plane_filter(int niter)
       */
       if (
           ((im[k][i][j]==0 && 
-            numnz>=(cfracnz)*(wsize*wsize)) &&
+            numnz>=(DEFAULT_FRAC)*(wsize*wsize)) &&
            (im2[k][i][j] >= white_lolim))
           || 
           (im[k][i][j]!=0 && 
-           (numz>=(cfracz)*(wsize*wsize)) &&
+           (numz>=(DEFAULT_FRAC)*(wsize*wsize)) &&
            (im2[k][i][j] <= gray_hilim)))
       {
-        maxvar = -1000000; minvar = 1000000; maxi = mini = -1;
+        tlaplacian = laplacian = 0.0;
+        maxvar = -1000000; minvar = 1000000; maxi = mini = -1; 
         for (m=0;m<ncor;m++)    /* for each orientation */
         {
           /* (a,b,c) is normal (orientation) vector */
@@ -326,11 +338,10 @@ plane_filter(int niter)
               {
                 u = ws2+floor(dk*c+di*b+dj*a+0.5);
                 u = (u<0) ? 0 : (u>=wsize) ? wsize-1 : u ;
-#if 0                
-                f = im[k+dk][i+di][j+dj];
-#else
-                f = im2[k+dk][i+di][j+dj];
-#endif
+                if (!grayscale_plane)
+                  f = im[k+dk][i+di][j+dj];   /* segmented image */
+                else
+                  f = im2[k+dk][i+di][j+dj];  /* gray-scale image */
                 sum2v[u] += f*f ; sumv[u] += f;
                 nv[u] += 1; n += 1;
                 sum2 += f*f; sum += f;
@@ -338,19 +349,36 @@ plane_filter(int niter)
               }
           avg = sum/n; var = sum2/n-avg*avg;  /* total mean and variance */
           tvar = 0;
-#if 0
-          for (u=0;u<wsize;u++)
-#else
-            for (u=ws2;u <= ws2;u++)  /* only central plane */
-#endif
+          if (central_plane)  /* only consider variance in central plane */
           {
+            u = ws2 ;
             avgv[u] = sumv[u]/nv[u];
             varv[u] = sum2v[u]/nv[u]-avgv[u]*avgv[u];
-            tvar += varv[u];
+            tvar = varv[u];
+            tlaplacian = 0.0f ; /* only doing central plane - no laplacian */
           }
-          tvar /= (wsize);
+          else  /* variance in all planes in stack */
+          {
+            for (u=0;u<wsize;u++) 
+            {
+              avgv[u] = sumv[u]/nv[u];
+              varv[u] = sum2v[u]/nv[u]-avgv[u]*avgv[u];
+              tvar += varv[u];
+              tvar /= (wsize);
+            }
+            /* compute planar 'laplacian' */
+            for (tlaplacian = 0.0, u=0;u<wsize;u++)  
+            {
+              if (u == ws2)
+                continue ;
+              if (avgv[u] > avgv[ws2])
+                tlaplacian += 1.0f ;  /* darker than surround - concave */
+              else
+                tlaplacian -= 1.0f ;  /* brighter than surround - convex */
+            }
+          }
           if (tvar>maxvar) {maxvar=tvar;maxi=m;}
-          if (tvar<minvar) {minvar=tvar;mini=m;}
+          if (tvar<minvar) {minvar=tvar;mini=m; laplacian = tlaplacian ; }
         }
         
         /* (a,b,c) now orientation vector for plane of least variance */
@@ -418,9 +446,22 @@ plane_filter(int niter)
           printf("%d %d %d %d %f\n",
           k,i,j,(int)f,(int)numvox,(int)numnz,(int)numz,numz/numvox);
         */
-        if (f!=0 && numz/numvox>cfracz) 
+        /* 
+           a positive laplacian means that the central plane is darker
+           than the surrounding planes in the same orientation. This should
+           bias the voxel to being classified as nonwhite. Conversely, a
+           negative laplacian means that the central plane is brighter than
+           the surrounding planes and that the voxel should be more likely
+           to be white.
+        */
+        cfrac = DEFAULT_FRAC ;
+        if (f != 0)  /* compute fraction needed to change it to nonwhite */
+          cfrac += (float)(f2 - probably_white)*slope - laplacian*lslope ;
+        else
+          cfrac += (float)(probably_white - f2)*slope + laplacian*lslope ;
+        if (f!=0 && numz/numvox>cfrac) 
           f=0 ;   /* change preliminary classification white --> nonwhite */
-        else if (f==0 && numnz/numvox>cfracnz) 
+        else if (f==0 && numnz/numvox>cfrac) 
           f=f2 ;  /* change preliminary classification nonwhite --> white */
         fill[k][i][j] = f ;
       }
@@ -534,8 +575,55 @@ get_option(int argc, char *argv[])
     print_help() ;
   else if (!strcmp(option, "-version"))
     print_version() ;
+  else if (!strcmp(option, "grayscale"))
+  {
+    grayscale_plane = 1 ;
+    fprintf(stderr, "using grayscale data to compute polv\n") ;
+  }
+  else if (!strcmp(option, "slope"))
+  {
+    slope = atof(argv[2])/100.0f ;
+    fprintf(stderr, "modifying voting fraction by %2.1f%%/intensity\n",
+            slope*100.0f) ;
+    nargs = 1 ;
+  }
+  else if (!strcmp(option, "lslope"))
+  {
+    lslope = atof(argv[2])/100.0f ;
+    fprintf(stderr,"modifying voting fraction by %2.1f%% * binary laplacian\n",
+            lslope*100.0f) ;
+    nargs = 1 ;
+  }
+  else if (!strcmp(option, "central"))
+  {
+    central_plane = 1 ;
+    fprintf(stderr, "only using planes through origin\n") ;
+  }
+  else if (!strcmp(option, "wlo"))
+  {
+    white_lolim = atoi(argv[2]) ;
+    nargs = 1 ;
+    fprintf(stderr, "using white lolim %2.1f\n", white_lolim) ;
+  }
+  else if (!strcmp(option, "ghi"))
+  {
+    gray_hilim = atoi(argv[2]) ;
+    nargs = 1 ;
+    fprintf(stderr, "using gray hilim %2.1f\n", gray_hilim) ;
+  }
+  else if (!strcmp(option, "whi"))
+  {
+    white_hilim = atoi(argv[2]) ;
+    nargs = 1 ;
+    fprintf(stderr, "using white hilim %2.1f\n", white_hilim) ;
+  }
   else switch (toupper(*option))
   {
+  case 'O':
+    output_name = argv[2] ;
+    fprintf(stderr, "outputting results to %s\n", output_name) ;
+    nargs = 1 ;
+    break ;
   case '?':
   case 'U':
     print_help() ;
