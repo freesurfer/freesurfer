@@ -442,6 +442,7 @@ extern float ic_z_vertices[]  ;
 
 #include "histo.h"
 
+#define MRI_VOLUME_TYPE_UNKNOWN      -1
 #define MRI_CORONAL_SLICE_DIRECTORY   0
 #define MRI_MINC_FILE                 1
 #define MRI_ANALYZE_FILE              2
@@ -673,15 +674,25 @@ int MRIlimits(MRI *mri, float *min, float *max);
 int MRIprintStats(MRI *mri, FILE *stream);
 int MRIstats(MRI *mri, float *min, float *max, int *n_voxels, float *mean, float *std);
 
+float MRIvolumeDeterminant(MRI *mri);
+
 #define RESAMPLE_INTERPOLATE  0
 #define RESAMPLE_NEAREST  1
 #define RESAMPLE_WEIGHTED  2
 
 int mriio_command_line(int argc, char *argv[]);
+int mriio_set_subject_name(char *name);
 MRI *MRIread(char *fname);
+MRI *MRIreadType(char *fname, int type);
 MRI *MRIreadInfo(char *fname);
 int MRIwrite(MRI *mri, char *fname);
+int MRIwriteType(MRI *mri, char *fname, int type);
 MRI *MRIreadRaw(FILE *fp, int width, int height, int depth, int type);
 MRI *MRIreorder(MRI *mri_src, MRI *mri_dst, int xdim, int ydim, int zdim);
+
+int stuff_four_by_four(MATRIX *m, float m11, float m12, float m13, float m14, 
+                                  float m21, float m22, float m23, float m24, 
+                                  float m31, float m32, float m33, float m34, 
+                                  float m41, float m42, float m43, float m44);
 
 #endif
