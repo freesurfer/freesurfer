@@ -16,7 +16,7 @@
 #include "icosahedron.h"
 #include "mrishash.h"
 
-static char vcid[] = "$Id: mris_fix_topology.c,v 1.11 2000/08/22 21:20:14 fischl Exp $";
+static char vcid[] = "$Id: mris_fix_topology.c,v 1.12 2001/05/07 21:13:15 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -28,23 +28,28 @@ static void print_version(void) ;
 
 char *Progname ;
 
+static int exit_after_diag = 0 ;
 
+static char *T1_name = "T1" ;
 static char *sphere_name = "qsphere" ;
 static char *inflated_name = "inflated" ;
 static char *orig_name = "orig" ;
 static char suffix[STRLEN] = "" ;
 static int  add = 1 ;
 static int  write_inflated = 0 ;
+static int nsmooth = 10 ;
 
 #define MAX_VERTICES  0
 #define MAX_FACES     0
+static char sdir[STRLEN] = "" ;
 
 int
 main(int argc, char *argv[])
 {
-  char          **av, *hemi, *sname, sdir[STRLEN], *cp, fname[STRLEN] ;
+  char          **av, *hemi, *sname, *cp, fname[STRLEN] ;
   int           ac, nargs ;
   MRI_SURFACE   *mris, *mris_corrected ;
+  MRI           *mri ;
   int           msec, nvert, nfaces, nedges, eno ;
   float         max_len ;
   struct timeb  then ;
@@ -69,11 +74,14 @@ main(int argc, char *argv[])
   TimerStart(&then) ;
   sname = argv[1] ;
   hemi = argv[2] ;
-  cp = getenv("SUBJECTS_DIR") ;
-  if (!cp)
-    ErrorExit(ERROR_BADPARM, 
-              "%s: SUBJECTS_DIR not defined in environment.\n", Progname) ;
-  strcpy(sdir, cp) ;
+  if (strlen(sdir) == 0)
+  {
+    cp = getenv("SUBJECTS_DIR") ;
+    if (!cp)
+      ErrorExit(ERROR_BADPARM, 
+                "%s: SUBJECTS_DIR not defined in environment.\n", Progname) ;
+    strcpy(sdir, cp) ;
+  }
 
   sprintf(fname, "%s/%s/surf/%s.%s", sdir, sname, hemi, sphere_name) ;
   fprintf(stderr, "reading input surface %s...\n", fname) ;
@@ -87,6 +95,13 @@ main(int argc, char *argv[])
           " g=%d)\n", eno, nvert, nfaces, nedges, (2-eno)/2) ;
   MRISprojectOntoSphere(mris, mris, 100.0f) ;
   MRISsaveVertexPositions(mris, CANONICAL_VERTICES) ;
+
+  sprintf(fname, "%s/%s/mri/%s", sdir, sname, T1_name) ;
+  printf("reading T1 volume from %s...\n", T1_name) ;
+  mri = MRIread(fname) ;
+  if (!mri)
+    ErrorExit(ERROR_NOFILE,
+              "%s: could not read T1 volume from %s", Progname, T1_name) ;
 
   if (MRISreadOriginalProperties(mris, orig_name) != NO_ERROR)
     ErrorExit(ERROR_NOFILE, "%s: could not read original surface %s",
@@ -103,13 +118,13 @@ main(int argc, char *argv[])
   fprintf(stderr, "using quasi-homeomorphic spherical map to tessellate "
           "cortical surface...\n") ;
 
-  mris_corrected = MRIScorrectTopology(mris, NULL) ;
+  mris_corrected = MRIScorrectTopology(mris, NULL, mri, nsmooth) ;
   MRISfree(&mris) ;
   eno = MRIScomputeEulerNumber(mris_corrected, &nvert, &nfaces, &nedges) ;
   fprintf(stderr, "after topology correction, eno=%d (nv=%d, nf=%d, ne=%d,"
           " g=%d)\n", eno, nvert, nfaces, nedges, (2-eno)/2) ;
 
-  if (!mris_corrected)  /* for now */
+  if (!mris_corrected || exit_after_diag)  /* for now */
     exit(0) ;
 
   MRISrestoreVertexPositions(mris_corrected, ORIGINAL_VERTICES) ;
@@ -187,6 +202,23 @@ get_option(int argc, char *argv[])
     fprintf(stderr,"reading inflated coordinates from '%s'\n",inflated_name);
     nargs = 1 ;
   }
+  else if (!stricmp(option, "diag"))
+  {
+    printf("saving diagnostic information....\n") ;
+    Gdiag |= DIAG_SAVE_DIAGS ;
+  }
+  else if (!stricmp(option, "diagonly"))
+  {
+    printf("saving diagnostic information and exiting....\n") ;
+    Gdiag |= DIAG_SAVE_DIAGS ;
+    exit_after_diag = 1 ;
+  }
+  else if (!stricmp(option, "sdir"))
+  {
+    strcpy(sdir, argv[2]) ;
+    fprintf(stderr,"using %s as subjects_dir\n", sdir);
+    nargs = 1 ;
+  }
   else if (!stricmp(option, "wi"))
   {
     write_inflated = 1 ;
@@ -216,6 +248,11 @@ get_option(int argc, char *argv[])
   }
   else switch (toupper(*option))
   {
+  case 'S':
+    nsmooth = atoi(argv[2]) ;
+    nargs = 1 ;
+    printf("smoothing corrected surface for %d iterations\n", nsmooth) ;
+    break ;
   case '?':
   case 'U':
     print_usage() ;
