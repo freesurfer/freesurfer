@@ -3,8 +3,8 @@
 //
 // 
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Date  : $Date: 2004/06/08 16:39:02 $
-// Revision       : $Revision: 1.49 $
+// Revision Date  : $Date: 2004/06/10 15:29:00 $
+// Revision       : $Revision: 1.50 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -411,7 +411,6 @@ GCAMread(char *fname)
   GCA_MORPH_NODE  *gcamn ;
   float           version ;
   int             tag;
-  int             numread;
 
   if (strstr(fname, ".m3z"))
   {
@@ -438,12 +437,7 @@ GCAMread(char *fname)
     ErrorReturn(NULL, (ERROR_BADPARM, "GCAMread(%s): could not open file",
 		       fname)) ;
 
-  // version = freadFloat(fp) ;
-  numread = freadFloatEx(&version, fp);
-  if (numread != sizeof(float))
-    ErrorReturn(NULL, (ERROR_BADPARM, "GCAMread(%s): could not read file",
-		       fname)) ;
-
+  version = freadFloat(fp) ;
   if (version != GCAM_VERSION)
   {
     // fclose(fp) ;
@@ -492,10 +486,13 @@ GCAMread(char *fname)
     {
       fprintf(stderr, "GCAMORPH_GEOM tag found.  Reading src and dst information.\n");
       GCAMreadGeom(gcam, fp);
-      fprintf(stderr, "src geometry:\n");
-      writeVolGeom(stderr, &gcam->src);
-      fprintf(stderr, "dst geometry:\n");
-      writeVolGeom(stderr, &gcam->dst);
+			if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
+			{
+				fprintf(stderr, "src geometry:\n");
+				writeVolGeom(stderr, &gcam->src);
+				fprintf(stderr, "dst geometry:\n");
+				writeVolGeom(stderr, &gcam->dst);
+			}
     }
     else
     {
@@ -507,6 +504,8 @@ GCAMread(char *fname)
   // fclose(fp) ;
   myclose(fp);
 
+	GCAMcomputeOriginalProperties(gcam) ;
+	gcamComputeMetricProperties(gcam) ;
   return(gcam) ;
 }
 
@@ -2558,12 +2557,12 @@ GCAMsampleMorph(GCA_MORPH *gcam, float x, float y, float z,
   zpd = (1.0f - zmd) ;
 	if (
 			(gcam->nodes[xm][ym][zm].invalid == GCAM_POSITION_INVALID) ||
-    (gcam->nodes[xm][ym][zp].invalid == GCAM_POSITION_INVALID) ||
-    (gcam->nodes[xm][yp][zm].invalid == GCAM_POSITION_INVALID) ||
-    (gcam->nodes[xm][yp][zp].invalid == GCAM_POSITION_INVALID) ||
-    (gcam->nodes[xp][ym][zm].invalid == GCAM_POSITION_INVALID) ||
-    (gcam->nodes[xp][ym][zp].invalid == GCAM_POSITION_INVALID) ||
-    (gcam->nodes[xp][yp][zm].invalid == GCAM_POSITION_INVALID) ||
+			(gcam->nodes[xm][ym][zp].invalid == GCAM_POSITION_INVALID) ||
+			(gcam->nodes[xm][yp][zm].invalid == GCAM_POSITION_INVALID) ||
+			(gcam->nodes[xm][yp][zp].invalid == GCAM_POSITION_INVALID) ||
+			(gcam->nodes[xp][ym][zm].invalid == GCAM_POSITION_INVALID) ||
+			(gcam->nodes[xp][ym][zp].invalid == GCAM_POSITION_INVALID) ||
+			(gcam->nodes[xp][yp][zm].invalid == GCAM_POSITION_INVALID) ||
 			(gcam->nodes[xp][yp][zp].invalid == GCAM_POSITION_INVALID))
 		return(ERROR_BADPARM) ;
 
@@ -2763,6 +2762,9 @@ gcamLimitGradientMagnitude(GCA_MORPH *gcam, GCA_MORPH_PARMS *parms, MRI *mri)
   {
     float vals[MAX_GCA_INPUTS] ;
     int   r ;
+#if 0
+    int memoryUsed = 0;
+#endif
     gcamn = &gcam->nodes[xmax][ymax][zmax] ;
     // print the info at this position
     load_vals(mri, gcamn->x, gcamn->y, gcamn->z, vals, gcam->gca->ninputs) ;
@@ -2770,9 +2772,15 @@ gcamLimitGradientMagnitude(GCA_MORPH *gcam, GCA_MORPH_PARMS *parms, MRI *mri)
            max_norm, xmax, ymax, zmax,
            gcam->nodes[xmax][ymax][zmax].area,
            gcam->nodes[xmax][ymax][zmax].area/gcam->nodes[xmax][ymax][zmax].orig_area) ;
+    fflush(stdout);
     printf("vals(means) = ") ;
     for (r = 0 ; r < gcam->gca->ninputs ; r++)
       printf("%2.1f (%2.1f)  ", vals[r], gcamn->gc ? gcamn->gc->means[r] :-0.0);
+    fflush(stdout);
+#if 0
+    if (memoryUsed=getMemoryUsed() != -1)
+      printf("memory used: %d Kbytes\n", getMemoryUsed());
+#endif 
     printf("\n") ;
   }
 

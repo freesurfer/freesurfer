@@ -1627,6 +1627,21 @@ TransformInvert(TRANSFORM *transform, MRI *mri)
   return(NO_ERROR) ;
 }
 MRI *
+TransformApplyType(TRANSFORM *transform, MRI *mri_src, MRI *mri_dst, int interp_type)
+{
+  switch (transform->type)
+  {
+  case MORPH_3D_TYPE:
+    mri_dst = GCAMmorphToAtlasType(mri_src, (GCA_MORPH*)transform->xform, NULL, -1, interp_type) ;
+    break ;
+  default:
+    mri_dst = MRIlinearTransformInterp(mri_src, NULL, ((LTA *)transform->xform)->xforms[0].m_L, interp_type);
+    break ;
+  }
+  return(mri_dst) ;
+}
+
+MRI *
 TransformApply(TRANSFORM *transform, MRI *mri_src, MRI *mri_dst)
 {
   switch (transform->type)
