@@ -390,6 +390,7 @@ string
 TclCommandManager::SendCommand ( string isCommand ) {
 
   if( mInterp ) {
+    
     char* sCommand = strdup( isCommand.c_str() );
     int rTcl = Tcl_Eval( mInterp, sCommand );
     const char* sTclResult = Tcl_GetStringResult( mInterp );
