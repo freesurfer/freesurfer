@@ -681,8 +681,7 @@ GCarrayRead(char *fname)
                 (ERROR_BADFILE, 
                  "GCarrayRead(%s): could scanf parms from file",fname));
   }
-
-  mri.slice_direction = MRI_CORONAL ;
+  setDirectionCosine(&mri, MRI_CORONAL);
   mri.xsize = mri.ysize = mri.zsize = 1 ;
   gcarray = GCarrayAlloc(&mri, scale, nvars) ;
   if (!gcarray)
