@@ -5218,6 +5218,11 @@ MRIsampleVolumeFrame(MRI *mri,Real x,Real y,Real z,int frame,Real *pval)
   int  xm, xp, ym, yp, zm, zp, width, height, depth ;
   Real val, xmd, ymd, zmd, xpd, ypd, zpd ;  /* d's are distances */
 
+  if (frame >= mri->nframes)
+  {
+    *pval = 1.0 ;
+    return(NO_ERROR) ;
+  }
   width = mri->width ; height = mri->height ; depth = mri->depth ; 
   if (x >= width)
     x = width - 1.0 ;
@@ -6045,6 +6050,9 @@ MRIcopyFrame(MRI *mri_src, MRI *mri_dst, int src_frame, int dst_frame)
 {
   int       width, height, depth, y, z ;
   BUFTYPE   *psrc, *pdst ;
+
+  if (src_frame >= mri_src->nframes || dst_frame >= mri_dst->nframes)
+    ErrorReturn(NULL, (ERROR_BADPARM, "MRIcopyFrame: frame # out of bounds"));
 
   width = mri_src->width ; 
   height = mri_src->height ;
