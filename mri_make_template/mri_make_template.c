@@ -62,6 +62,7 @@ main(int argc, char *argv[])
   MRI    *mri, *mri_mean = NULL, *mri_std, *mri_T1,*mri_binary,*mri_dof=NULL,
          *mri_priors = NULL ;
   char   *subject_name, *out_fname, fname[STRLEN] ;
+  TRANSFORM *transform ;
 
   Progname = argv[0] ;
   ErrorInit(NULL, NULL, NULL) ;
@@ -123,52 +124,20 @@ main(int argc, char *argv[])
         MRIbinarize(mri_binary, mri_binary, WM_MIN_VAL, 0, 100) ;
         if (transform_fname && no_transform-- <= 0)
         {
-          int       type ;
-          MORPH_3D  *m3d ;
-          LTA       *lta ;
           MRI       *mri_tmp ;
           
           sprintf(fname, "%s/%s/mri/transforms/%s", 
                   subjects_dir, subject_name, transform_fname) ;
           
           fprintf(stderr, "reading transform %s...\n", fname) ;
-          type = TransformFileNameType(fname) ;
-          switch (type)
-          {
-          default:
-          case TRANSFORM_ARRAY_TYPE:
-            lta = LTAread(fname) ;
-            if (!lta)
+          transform = TransformRead(fname) ;
+          if (!transform)
               ErrorExit(ERROR_NOFILE, 
                         "%s: could not open transform file %s\n",
                         Progname, fname) ;
-            /*            LTAtoVoxelCoords(lta, mri_T1) ;*/
-            if (which != BUILD_PRIORS)
-            {
-              mri_tmp = LTAtransform(mri_T1, NULL, lta) ;
-              MRIfree(&mri_T1) ; mri_T1 = mri_tmp ;
-            }
-            mri_tmp = LTAtransform(mri_binary, NULL, lta) ;
-            MRIfree(&mri_binary) ; mri_binary = mri_tmp ;
-            LTAfree(&lta) ;
-            break ;
-          case MORPH_3D_TYPE:
-            m3d = MRI3DreadSmall(fname) ;
-            if (!m3d)
-              ErrorExit(ERROR_NOFILE, 
-                        "%s: could not open transform file %s\n",
-                        Progname, transform_fname) ;
-            fprintf(stderr, "applying transform...\n") ;
-            if (which != BUILD_PRIORS)
-            {
-              mri_tmp = MRIapply3DMorph(mri_T1, m3d, NULL) ;
-              MRIfree(&mri_T1) ; mri_T1 = mri_tmp ;
-            }
-            mri_tmp = MRIapply3DMorph(mri_binary, m3d, NULL) ;
-            MRIfree(&mri_binary) ; mri_binary = mri_tmp ;
-            MRI3DmorphFree(&m3d) ;
-            break ;
-          }
+          mri_tmp = TransformApply(transform, mri_T1, NULL) ;
+          MRIfree(&mri_T1) ; mri_T1 = mri_tmp ;
+          TransformFree(&transform) ;
           fprintf(stderr, "transform application complete.\n") ;
         }
         if (which == BUILD_PRIORS)
@@ -264,52 +233,20 @@ main(int argc, char *argv[])
         ErrorExit(ERROR_NOFILE,"%s: could not open volume %s",Progname,fname);
       if (transform_fname && no_transform-- <= 0)
       {
-        int       type ;
-        MORPH_3D  *m3d ;
-        LTA       *lta ;
         MRI       *mri_tmp ;
         
         sprintf(fname, "%s/%s/mri/transforms/%s", 
                 subjects_dir, subject_name, transform_fname) ;
         
         fprintf(stderr, "reading transform %s...\n", fname) ;
-        type = TransformFileNameType(fname) ;
-        switch (type)
-        {
-        default:
-        case MNI_TRANSFORM_TYPE:
-        case TRANSFORM_ARRAY_TYPE:
-          lta = LTAread(fname) ;
-          if (!lta)
-            ErrorExit(ERROR_NOFILE, "%s: could not open transform file %s\n",
-                      Progname, fname) ;
-          /*          LTAtoVoxelCoords(lta, mri_T1) ;*/
-          if (xform_mean_fname)
-          {
-            MATRIX *m_ras ;
-
-            m_ras = MRIvoxelXformToRasXform(mri_T1,mri_T1,lta->xforms[0].m_L,
-                                            NULL);
-            m_xforms[sno] = m_ras ;
-            MatrixAdd(m_xform_mean, m_xforms[sno], m_xform_mean) ;
-            sno++ ;
-          }
-          if (stats_only)
-            continue ;
-          mri_tmp = LTAtransform(mri_T1, NULL, lta) ;
-          LTAfree(&lta) ;
-          break ;
-        case MORPH_3D_TYPE:
-          m3d = MRI3DreadSmall(fname) ;
-          if (!m3d)
-            ErrorExit(ERROR_NOFILE, "%s: could not open transform file %s\n",
-                      Progname, transform_fname) ;
-          fprintf(stderr, "applying transform...\n") ;
-          mri_tmp = MRIapply3DMorph(mri_T1, m3d, NULL) ;
-          MRI3DmorphFree(&m3d) ;
-          break ;
-        }
+        transform = TransformRead(fname) ;
+        if (!transform)
+          ErrorExit(ERROR_NOFILE, 
+                    "%s: could not open transform file %s\n",
+                    Progname, fname) ;
+        mri_tmp = TransformApply(transform, mri_T1, NULL) ;
         MRIfree(&mri_T1) ; mri_T1 = mri_tmp ;
+        TransformFree(&transform) ;
         fprintf(stderr, "transform application complete.\n") ;
       }
       if (!mri_mean)
