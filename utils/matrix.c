@@ -694,6 +694,75 @@ MatrixSquareElts(MATRIX *mIn, MATRIX *mOut)
   return(mOut) ;
 }
 
+
+MATRIX *
+MatrixSqrtElts(MATRIX *mIn, MATRIX *mOut)
+{
+  int    row, col, rows, cols ;
+  float  val ;
+
+  if (!mOut)
+  {
+    mOut = MatrixAlloc(mIn->rows, mIn->cols, mIn->type) ;
+    if (!mOut)
+      return(NULL) ;
+  }
+
+  rows = mIn->rows ;
+  cols = mIn->cols ;
+
+  if ((rows != mOut->rows) || (cols != mOut->cols))
+    ErrorReturn(NULL,
+              (ERROR_BADPARM,
+               "MatrixSquareElts: incompatable matrices %d x %d != %d x %d\n",
+               rows, cols, mOut->rows, mOut->cols)) ;
+
+
+  for (row = 1 ; row <= rows ; row++)
+  {
+    for (col = 1 ; col <= cols ; col++)
+    {
+      val = mIn->rptr[row][col] ;
+      mOut->rptr[row][col] = sqrt(val) ;
+    }
+  }
+  return(mOut) ;
+}
+
+MATRIX *
+MatrixSignedSquareElts(MATRIX *mIn, MATRIX *mOut)
+{
+  int    row, col, rows, cols ;
+  float  val ;
+
+  if (!mOut)
+  {
+    mOut = MatrixAlloc(mIn->rows, mIn->cols, mIn->type) ;
+    if (!mOut)
+      return(NULL) ;
+  }
+
+  rows = mIn->rows ;
+  cols = mIn->cols ;
+
+  if ((rows != mOut->rows) || (cols != mOut->cols))
+    ErrorReturn(NULL,
+              (ERROR_BADPARM,
+               "MatrixSquareElts: incompatable matrices %d x %d != %d x %d\n",
+               rows, cols, mOut->rows, mOut->cols)) ;
+
+
+  for (row = 1 ; row <= rows ; row++)
+  {
+    for (col = 1 ; col <= cols ; col++)
+    {
+      val = mIn->rptr[row][col] ;
+      mOut->rptr[row][col] = val * val * (val < 0) ? -1 : 1 ;
+    }
+  }
+  return(mOut) ;
+}
+
 MATRIX *
 MatrixMakeDiagonal(MATRIX *mSrc, MATRIX *mDst)
 {
@@ -2243,4 +2312,46 @@ MatrixCheck(MATRIX *m)
   }
   return(NO_ERROR) ;
 }
+
+MATRIX  *
+MatrixReshape(MATRIX *m_src, MATRIX *m_dst, int rows, int cols)
+{
+  int   r1, c1, r2, c2 ;
+
+  if (m_dst)
+  {
+    rows = m_dst->rows ; cols = m_dst->cols ;
+  }
+
+#if 0
+  if (rows*cols > m_src->rows*m_src->cols)
+    ErrorReturn(NULL, (ERROR_BADPARM, 
+                       "MatrixReshape: (%d,%d) -> (%d,%d), lengths must be"
+                       " equal", m_src->rows, m_src->cols, rows,cols)) ;
+#endif
+  if (!m_dst)
+    m_dst = MatrixAlloc(rows, cols, m_src->type) ;
+
+  for (r2 = c2 = r1 = 1 ; r1 <= m_src->rows ; r1++)
+  {
+    for (c1 = 1 ; c1 <= m_src->cols ; c1++)
+    {
+      *MATRIX_RELT(m_dst, r2, c2) = *MATRIX_RELT(m_src, r1, c1) ;
+      if (++c2 > m_dst->cols)
+      {
+        c2 = 1 ;
+        r2++ ;
+      }
+      if (r2 > rows)  /* only extract first rowsxcols elements */
+        break ;
+    }
+    if (r2 > rows)
+      break ;
+  }
+
+
+  
+  return(m_dst) ;
+}
+
 
