@@ -105,6 +105,7 @@ MATRIX *MatrixAsciiReadFrom(FILE *fp, MATRIX *m) ;
 #define VECTOR_LOAD   VECTOR3_LOAD
 
 float  VectorLen(VECTOR *v) ;
+float  VectorAngle(VECTOR *v1, VECTOR *v2) ;
 float  VectorDot(VECTOR *v1, VECTOR *v2) ;
 float  VectorNormalizedDot(VECTOR *v1, VECTOR *v2) ;
 float  VectorDistance(VECTOR *v1, VECTOR *v2) ;
