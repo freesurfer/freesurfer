@@ -526,8 +526,13 @@ static MRI *mri_read(char *fname, int type, int volume_flag, int start_frame, in
   if (mri == NULL)
     return(NULL) ;
 
-  // cache the transform
+  // update/cache the transform
+  if (mri->i_to_r__)
+    MatrixFree(&(mri->i_to_r__));
   mri->i_to_r__ = extract_i_to_r(mri);
+
+  if (mri->r_to_i__)
+    MatrixFree(&(mri->i_to_r__));
   mri->r_to_i__ = extract_r_to_i(mri);
 
   if(start_frame == -1)
