@@ -10,6 +10,7 @@
 #include "proto.h"
 #include "fio.h"
 #include "transform.h"
+#include "macros.h"
 
 #define GCA_VERSION         1.0
 #define DEFAULT_MAX_LABELS  4
