@@ -1,7 +1,7 @@
 function r = swapview(varargin)
 % r = swapview(varargin)
 
-version = '$Id: swapview.m,v 1.5 2003/09/08 21:23:46 greve Exp $';
+version = '$Id: swapview.m,v 1.6 2003/09/20 03:28:09 greve Exp $';
 r = 1;
 
 %% Print usage if there are no arguments %%
@@ -21,15 +21,39 @@ if(~isempty(strmatch(flag,'-init')) | isempty(hcurrentfig))
   s = check_params(s);
   if(isempty(s)) return; end
 
+  if(~isempty(s.stem1))
+    fprintf('Loading %s\n',s.stem1);
+    s.vol1 = fast_ldbslice(s.stem1,-1);
+    if(isempty(s.vol1))
+      fprintf('ERROR: could not load %s\n',s.stem1);
+      return;
+    end
+    s.vol1 = s.vol1(:,:,:,1); % first frame
+  end
+  
+  if(~isempty(s.stem2))
+    fprintf('Loading %s\n',s.stem2);
+    s.vol2 = fast_ldbslice(s.stem2,-1);
+    if(isempty(s.vol2))
+      fprintf('ERROR: could not load %s\n',s.stem2);
+      return;
+    end
+    s.vol2 = s.vol2(:,:,:,1); % first frame
+  end
+  
   % Rescale Vol1 to be between 1 and (s.ncmap-1) %
   minbase = min(reshape1d(s.vol1));
   maxbase = max(reshape1d(s.vol1));
-  s.vol1 = floor((s.ncmap-2)*(s.vol1-minbase)/(maxbase-minbase)) + 1;
-
+  if(s.rescale)
+    s.vol1 = floor((s.ncmap-2)*(s.vol1-minbase)/(maxbase-minbase)) + 1;
+  end
+  
   % Rescale Vol2 to be between 1 and (s.ncmap-1) %
   minbase = min(reshape1d(s.vol2));
   maxbase = max(reshape1d(s.vol2));
-  s.vol2 = floor((s.ncmap-2)*(s.vol2-minbase)/(maxbase-minbase)) + 1;
+  if(s.rescale)
+    s.vol2 = floor((s.ncmap-2)*(s.vol2-minbase)/(maxbase-minbase)) + 1;
+  end
   
   % Create the color map
   s.cmap = gray(s.ncmap); % Start with gray
@@ -94,6 +118,7 @@ if(~isempty(strmatch(flag,'-init')) | isempty(hcurrentfig))
 	    [1 100 50 50], 'Callback', 'swapview(''state'');');
   s.curpostxt = uicontrol('Style', 'text','Position',  [1 150 60 20]);
   s.mousepostxt = uicontrol('Style', 'text','Position',[1 170 60 20]);
+  s.curvoltxt = uicontrol('Style', 'text','Position',  [1 190 60 20]);
 
   nslices = size(s.vol1,3)
   if(nslices > 1) 
@@ -101,7 +126,7 @@ if(~isempty(strmatch(flag,'-init')) | isempty(hcurrentfig))
     s.sliceslider = uicontrol('Style','slider','Min',1,'Max',nslices,...
 			      'SliderStep',[d 3*d],...
 			      'value',s.curvox(3),...
-			      'position', [1 200 20 120],...
+			      'position', [1 250 20 120],...
 			      'callback','swapview(''sliceslider'');');
   else 
     s.sliceslider = [];
@@ -117,10 +142,17 @@ if(~isempty(strmatch(flag,'-init')) | isempty(hcurrentfig))
   printstate(s);
   fprintf('\n');
 
+  if(~isempty(s.twfstemlist))
+    s.htwf = rawplot;
+    rawplot('AddVolumes',s.twfstemlist,s.htwf);
+  end
+
   set(gcf,'UserData',s);
 
   % force an event to get things rolling %
   swapview('r');
+  
+
   
   return;
 end
@@ -255,6 +287,9 @@ switch(flag)
     fprintf('%2d ',s.curpoint);
     fprintf('\n');
   end
+  if(~isempty(s.htwf)) 
+    rawplot('SetCurPoint',s.curvox(1),s.curvox(2),s.curvox(3),s.htwf);
+  end
   redraw = 1;
   
  case {'kbd'} %----------- Keyboard -------------%
@@ -379,7 +414,9 @@ end
 
 curvoxstr = sprintf('%d %d %d',s.curvox(1),s.curvox(2),s.curvox(3));
 set(s.curpostxt,'string',curvoxstr);
-  
+if(s.curvol == 1)  set(s.curvoltxt,'string','Vol1');
+else               set(s.curvoltxt,'string','Vol2');
+end
   
 set(gcf,'UserData',s);
 
@@ -397,7 +434,10 @@ function print_usage(dummy)
   fprintf(1,'     -init \n');
   fprintf(1,'     -v1  volume1  \n');
   fprintf(1,'     -v2  volume2\n');
+  fprintf(1,'     -stem1  volume1  \n');
+  fprintf(1,'     -stem2  volume2\n');
   fprintf(1,'     -title  title\n');
+  fprintf(1,'     -norescale\n');
 return
 %--------------------------------------------------%
 
@@ -408,6 +448,8 @@ function s = main_struct
   s.hMarker        = [];
   s.vol1           = [];
   s.vol2           = [];
+  s.stem1           = [];
+  s.stem2           = [];
   s.hfig           = [];
   s.haxis          = [];
   s.himage         = [];
@@ -424,7 +466,10 @@ function s = main_struct
   s.mosviewprev    = 0; % previous mosview
   s.zoomstate      = 0;
   s.ncmap          = 64;
+  s.twfstemlist    = ''; % list of twf volumes to plot
+  s.htwf           = [];
   s.verbose        = 0;
+  s.rescale        = 1;
   s.title          = '';
 return;
 
@@ -462,13 +507,34 @@ function s = parse_args(varargin)
         s.vol2 = inputargs{narg};
         narg = narg + 1;
 
+      case {'-stem1'},
+        arg1check(flag,narg,ninputargs);
+        s.stem1 = inputargs{narg};
+        narg = narg + 1;
+
+      case {'-stem2'},
+        arg1check(flag,narg,ninputargs);
+        s.stem2 = inputargs{narg};
+        narg = narg + 1;
+
       case {'-title'},
         arg1check(flag,narg,ninputargs);
         s.title = inputargs{narg};
         narg = narg + 1;
 
+      case {'-twf'},
+        arg1check(flag,narg,ninputargs);
+        s.twfstemlist = strvcat(s.twfstemlist,inputargs{narg});
+        narg = narg + 1;
+
       case '-verbose',
         s.verbose = 1;
+     
+     case '-rescale',
+        s.rescale = 1;
+
+     case '-norescale',
+        s.rescale = 0;
 
       case {'-debug','-echo','-init'}, % ignore
 
@@ -498,15 +564,17 @@ return;
 function s = check_params(s)
 %fprintf(1,'Checking Parameters\n');
 
-if( isempty(s.vol1) )
+if( isempty(s.vol1) & isempty(s.stem1) )
   fprintf(2,'ERROR: No volume 1 specified\n');
   s=[]; return;
 end
 
-if( isempty(s.vol2) )
+if( isempty(s.vol2) & isempty(s.stem2) )  
   fprintf(2,'ERROR: No volume 2 specified\n');
   s=[]; return;
 end
+
+if( isempty(s.vol1) & isempty(s.vol2)) return; end
 
 for n = 1:length(size(s.vol1))
   if( size(s.vol1,n) ~= size(s.vol2,n) )
@@ -517,7 +585,7 @@ for n = 1:length(size(s.vol1))
   end
 end
   
-  return;
+return;
 
 %--------------------------------------------------%
 function printstate(s)
