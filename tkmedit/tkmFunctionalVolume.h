@@ -392,6 +392,10 @@ int FunV_TclTCSetDisplayFlag      ( ClientData iClientData,
 int FunV_TclTCPrintSelectionRangeToFile ( ClientData iClientData, 
 					  Tcl_Interp *ipInterp, 
 					  int argc, char *argv[] );
+int FunV_TclTCPrintTimeCourseData ( ClientData iClientData,
+				    Tcl_Interp *ipInterp,
+				    int argc, char *argv[] );
+
 /* misc */
 FunV_tErr FunV_SendViewStateToTcl  ( tkmFunctionalVolumeRef this );
 FunV_tErr FunV_RegisterTclCommands ( tkmFunctionalVolumeRef this,

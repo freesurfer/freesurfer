@@ -2863,7 +2863,6 @@ FunV_tErr FunV_CalcTimeCourseAverages_ ( tkmFunctionalVolumeRef this,
      values. */
   if( this->mabDisplayFlags[FunV_tDisplayFlag_TC_OffsetValues] 
       && NULL != this->mpOverlayOffsetVolume ) {
-    //    fOffset /= (float) nNumValues;
     fOffset = fOffsetSum / (float) nNumValues;
   }
   
@@ -2893,33 +2892,49 @@ FunV_tErr FunV_CalcTimeCourseAverages_ ( tkmFunctionalVolumeRef this,
   /* if there is error data present.. */
   FunD_IsErrorDataPresent( this->mpTimeCourseVolume, &bPresent );
   if( bPresent ) {
-    
-    /* get the deviations at all time points */
-    eVolume = FunD_GetDeviationForAllTimePoints( this->mpTimeCourseVolume,
-						 inCondition, oafDeviations );
-    if( FunD_tErr_NoError != eVolume ) {
-      eResult = FunV_tErr_ErrorAccessingInternalVolume;
-      goto error;
-    }
-    
-    /* if we have offset values... */
-    if( this->mabDisplayFlags[FunV_tDisplayFlag_TC_OffsetValues] 
-	&& NULL != this->mpTimeCourseOffsetVolume ) {
+
+    /* Go through the voxel list again. */
+    xList_ResetPosition( this->mpSelectedVoxels );
+    eList = xList_tErr_NoErr;
+    while ( xList_tErr_NoErr == eList ) {
       
-      /* divide all deviations by the offset and mult by 100 to 
-	 get a percent */
-      for( nValue = 0; nValue < nNumTimePoints; nValue++ ) {
-	oafDeviations[nValue] = (oafDeviations[nValue] / fOffset) * 100.0;
+      /* try to get a voxel */
+      eList = xList_GetNextItemFromPosition( this->mpSelectedVoxels, 
+					     (void**)&pVoxel );
+      
+      /* if we got one */
+      if( NULL != pVoxel ) {
+	
+	/* get the deviations at all time points */
+	eVolume = FunD_GetDeviationForAllTimePoints( this->mpTimeCourseVolume,
+						     pVoxel, inCondition,
+						     oafDeviations );
+	if( FunD_tErr_NoError != eVolume ) {
+	  eResult = FunV_tErr_ErrorAccessingInternalVolume;
+	  goto error;
+	}
+	
+	/* if we have offset values... */
+	if( this->mabDisplayFlags[FunV_tDisplayFlag_TC_OffsetValues] 
+	    && NULL != this->mpTimeCourseOffsetVolume ) {
+	  
+	  /* divide all deviations by the offset and mult by 100 to 
+	     get a percent */
+	  for( nValue = 0; nValue < nNumTimePoints; nValue++ ) {
+	    oafDeviations[nValue] = (oafDeviations[nValue] / fOffset) * 100.0;
+	  }
+	}
+      } else {
+	
+	/* fill deviations with 0s */
+	for( nValue = 0; nValue < nNumTimePoints; nValue++ ) {
+	  oafDeviations[nValue] = 0;
+	}
       }
-    }
-  } else {
-    
-    /* fill deviations with 0s */
-    for( nValue = 0; nValue < nNumTimePoints; nValue++ ) {
-      oafDeviations[nValue] = 0;
     }
   }
   
+
   /* return the number of values */
   *onNumValues = nNumValues;
   
@@ -3105,7 +3120,6 @@ FunV_tErr FunV_PrintSelectionRangeToFile ( tkmFunctionalVolumeRef this,
   return eResult;
   
 }
-
 
 FunV_tErr FunV_FloodSelect ( tkmFunctionalVolumeRef this,
 			     xVoxelRef              iSeedMRIIdx,
@@ -4082,6 +4096,122 @@ int FunV_TclTCPrintSelectionRangeToFile ( ClientData iClientData,
   return eTclResult;
 }
 
+int FunV_TclTCPrintTimeCourseData ( ClientData iClientData, 
+				    Tcl_Interp *ipInterp, 
+				    int argc, char *argv[] ){
+  
+  tkmFunctionalVolumeRef this         = NULL;
+  FunV_tErr              eResult      = FunV_tErr_NoError;
+  FunD_tErr              eVolume         = FunD_tErr_NoError;
+  xVoxel                 idx;
+  xVoxel                 client;
+  int                    nCondition      = 0;
+  int                    eTclResult   = TCL_OK;
+  char                   sError[256]  = "";       
+  int                    nNumTimePoints  = 0;
+  int                    nTimePoint       = 0;
+  float*                 afValues        = NULL;
+  float*                 afDeviations    = NULL;
+
+  
+  /* grab us from the client data ptr */
+  this = (tkmFunctionalVolumeRef) iClientData;
+  
+  /* verify us. */
+  eResult = FunV_Verify ( this );
+  if ( FunV_tErr_NoError != eResult )
+    goto error;
+  
+  /* verify the number of arguments. */
+  if ( argc < 5 ) {
+    eResult = FunV_tErr_WrongNumberArgs;
+    goto error;
+  }
+  
+  /* parse args */
+  nCondition = atoi(argv[1]);
+  xVoxl_Set( &idx, atoi(argv[2]), atoi(argv[3]), atoi(argv[4]));
+  
+
+  /* we got func idx, but we have to convert to our client space to
+     pass to the function. */
+  FunD_ConvertFuncIdxToClient_( this->mpTimeCourseVolume, &idx, &client );
+
+  /* find the number of time points. */
+  eVolume = FunD_GetNumTimePoints( this->mpTimeCourseVolume, 
+				   &nNumTimePoints );
+  if( FunD_tErr_NoError != eVolume ) {
+    eResult = FunV_tErr_ErrorAccessingInternalVolume;
+    goto error;
+  }
+  
+  /* alllocate our arrays to hold values. this will be the array we use
+     to get all the values at a specific voxel. */
+  afValues = (float*) malloc( nNumTimePoints *  sizeof(float) );
+  if( NULL == afValues ) {
+    eResult = FunV_tErr_AllocationFailed;
+    goto error;
+  }
+  
+  /* this will hold the deviations at a certain voxel */
+  afDeviations = (float*) malloc( nNumTimePoints * sizeof(float) );
+  if( NULL == afDeviations ) {
+    eResult = FunV_tErr_AllocationFailed;
+    goto error;
+  }
+  
+  eVolume = FunD_GetDataForAllTimePoints( this->mpTimeCourseVolume,
+					  &client, nCondition, afValues );
+  if( FunD_tErr_NoError != eVolume ) {
+    eResult = FunV_tErr_ErrorAccessingInternalVolume;
+    goto error;
+  }
+
+  eVolume = FunD_GetDeviationForAllTimePoints( this->mpTimeCourseVolume,
+					  &client, nCondition, afDeviations );
+  if( FunD_tErr_NoError != eVolume ) {
+    eResult = FunV_tErr_ErrorAccessingInternalVolume;
+    goto error;
+  }
+    
+  printf( "condition %d, %d,%d,%d (%.2f,%.2f,%.2f) \n tp, val, dev\n", 
+	  nCondition, xVoxl_ExpandInt(&idx), xVoxl_ExpandFloat(&client) );
+
+  /* for each time point.. */
+  for( nTimePoint = 0; nTimePoint < nNumTimePoints; nTimePoint++ ) {
+    
+    /* print a line */
+    printf( "%d\t%f\t%f\n",
+	    nTimePoint, afValues[nTimePoint], afDeviations[nTimePoint] );
+  }
+  
+  goto cleanup;
+  
+  goto error;
+  
+ error:
+  
+  /* print error message if debugging is enabled. otherwise, the user got
+     their error message already. */
+  if ( IsDebugging && FunV_tErr_NoError != eResult ) {
+    
+    sprintf ( sError, "Error %d in FunV_TclTCPrintTimeCourseData: %s\n",
+	      eResult, FunV_GetErrorString(eResult) );
+    
+    DebugPrint( (sError ) );
+    
+    /* set tcl result, volatile so tcl will make a copy of it. */
+    Tcl_SetResult( ipInterp, sError, TCL_VOLATILE );
+    
+    eTclResult = TCL_ERROR;
+  }
+  
+ cleanup:
+  
+  return eTclResult;
+}
+
+
 FunV_tErr FunV_SendViewStateToTcl ( tkmFunctionalVolumeRef this ) {
   
   FunV_tErr  eResult            = FunV_tErr_NoError;
@@ -4273,6 +4403,9 @@ FunV_tErr FunV_RegisterTclCommands ( tkmFunctionalVolumeRef this,
 		     (ClientData) this, (Tcl_CmdDeleteProc *) NULL );
   Tcl_CreateCommand( pInterp, "TimeCourse_PrintSelectionRangeToFile",
 		     FunV_TclTCPrintSelectionRangeToFile,
+		     (ClientData) this, (Tcl_CmdDeleteProc *) NULL );
+  Tcl_CreateCommand( pInterp, "TimeCourse_PrintTimeCourseData",
+		     FunV_TclTCPrintTimeCourseData,
 		     (ClientData) this, (Tcl_CmdDeleteProc *) NULL );
   
   /* send view state for good measure */

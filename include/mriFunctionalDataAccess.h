@@ -7,7 +7,7 @@
 #include "mriTransform.h"
 
 /* Enable this to turn macros on, see details below. */
-#define FUND_USE_MACROS
+// #define FUND_USE_MACROS
 
 
 /* error constants. */
@@ -364,8 +364,8 @@ void FunD_ConvertClientToFuncRAS_ ( mriFunctionalDataRef this,
 
 
 void FunD_GetSigma_ ( mriFunctionalDataRef this,
-		      int                  iCondition,
-		      xVoxelRef             iFuncIdx,
+		      xVoxelRef            iFuncIdx,
+		      int                  iTimePoint,
 		      float*               oSigma );
 
 /* Note that the functions in this section are implemented as
