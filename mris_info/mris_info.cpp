@@ -26,7 +26,7 @@ int main(int argc, char *argv[])
   type.push_back("MRIS_BINARY_QUADRANGLE_FILE");
   type.push_back("MRIS_ASCII_TRIANGLE_FILE");
   type.push_back("MRIS_GEO_TRIANGLE_FILE");
-  type.push_back("MRIS_ICO_SURFACE");
+  type.push_back("MRIS_TRIANGULAR_SURFACE=MRIS_ICO_SURFACE");
   type.push_back("MRIS_ICO_FILE");
   type.push_back("MRIS_VTK_FILE");
   
