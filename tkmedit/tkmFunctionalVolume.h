@@ -35,6 +35,7 @@ typedef enum {
   FunV_tErr_InvalidThreshold,
   FunV_tErr_InvalidDisplayFlag,
   FunV_tErr_WrongNumberArgs,
+  FunV_tErr_ErrorAccessingAnatomicalVolume,
   FunV_tErr_InvalidErrorCode,
   FunV_tErr_knNumErrorCodes
 } FunV_tErr;
@@ -151,14 +152,6 @@ typedef enum {
   FunV_tFindStatsComp_GTEThresholdMin,
   FunV_knNumFindStatsComp
 } FunV_tFindStatsComp;
-
-typedef struct {
-  FunV_tFunctionalValue mStartValue;
-  xVoxel                mStart;
-  int                   mnIterationCount;
-  int                   mnTotalSelected;
-  FunV_tFindStatsComp   compareType;
-} FunV_tFindStatsParams;
 
 #define FunV_kSignature 0x00666000
 
@@ -343,13 +336,26 @@ FunV_tErr FunV_SetLocationString ( tkmFunctionalVolumeRef this,
 
 /* gets value at a point and then selects all voxels around it with a
    value >= to the starting value. */
-FunV_tErr FunV_SelectAnaVoxelsByFuncValue ( tkmFunctionalVolumeRef this,
-					    xVoxelRef              iAnaIdx,
-					    FunV_tFindStatsComp    iCompare );
-void FunV_SelectAnaVoxelsByFuncValueIter_ ( tkmFunctionalVolumeRef this,
-					    xVoxelRef              iAnaIdx,
-					    FunV_tFindStatsParams* iParams,
-					    tBoolean*              iVisited );
+typedef struct {
+  tkmFunctionalVolumeRef mThis;
+  FunV_tFunctionalValue  mStartValue;
+  FunV_tFindStatsComp    mCompareType;
+  int                    mnCount;
+} FunV_tFloodSelectCallbackData;
+
+FunV_tErr FunV_FloodSelect ( tkmFunctionalVolumeRef this,
+			     xVoxelRef              iSeedMRIIdx,
+			     tkm_tVolumeType        iVolume,
+			     int                    inDistance,
+			     FunV_tFindStatsComp    iCompare );
+
+tBoolean FunV_CompareMRIAndFuncValues ( xVoxelRef  iMRIIdx,
+					float      iValue,
+					void*      ipData );
+
+Volm_tVisitCommand FunV_FloodSelectCallback ( xVoxelRef iMRIIdx,
+					      float     iValue,
+					      void*     iData );
 
 
 /* tcl commands */

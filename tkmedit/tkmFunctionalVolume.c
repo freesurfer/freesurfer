@@ -3106,6 +3106,171 @@ FunV_tErr FunV_PrintSelectionRangeToFile ( tkmFunctionalVolumeRef this,
   
 }
 
+
+FunV_tErr FunV_FloodSelect ( tkmFunctionalVolumeRef this,
+			     xVoxelRef              iSeedMRIIdx,
+			     tkm_tVolumeType        iVolume,
+			     int                    inDistance,
+			     FunV_tFindStatsComp    iCompare ) {
+  
+  FunV_tErr                     eResult      = FunV_tErr_NoError;
+  Volm_tFloodParams             params;
+  FunV_tFloodSelectCallbackData callbackData;
+  mriVolumeRef                  sourceVolume = NULL;
+  Volm_tErr                     eVolume      = Volm_tErr_NoErr;
+  FunV_tFunctionalValue         funcValue    = 0;
+
+  DebugEnterFunction( ("FunV_FloodSelect( this=%p, iSeedMRIIdx=%p, "
+		       "iVolume=%d, inDistance=%d, iCompare=%d )", 
+		       this, iSeedMRIIdx, iVolume, inDistance,(int)iCompare) );
+  
+  DebugNote( ("Checking parameters") );
+  DebugAssertThrowX( (NULL != iSeedMRIIdx), 
+		     eResult, tkm_tErr_InvalidParameter );
+
+  DebugNote( ("Verifying this") );
+  eResult = FunV_Verify( this );
+  DebugAssertThrow( (FunV_tErr_NoError == eResult) );
+  
+  xVoxl_Copy( &params.mSourceIdx, iSeedMRIIdx );
+  params.mfSourceValue           = 0;
+  params.mfFuzziness             = 0;
+  params.mfMaxDistance           = inDistance;
+  params.mb3D                    = TRUE;
+
+  /* Set the callback function data. Tell it to use the callback data
+     we just initialized. */
+  params.mpFunction     = FunV_FloodSelectCallback;
+  params.mpFunctionData = (void*)&callbackData;
+
+  /* Also pass in a comparator function because we want to do the
+     value comparing ourselves, and use the the same callback data. */
+  params.mComparatorFunc         = FunV_CompareMRIAndFuncValues;
+  params.mComparatorFuncData     = (void*)&callbackData;
+
+  /* Get the value at the starting voxel */
+  eResult = FunV_GetValueAtAnaIdx( this, iSeedMRIIdx, &funcValue );
+  DebugAssertThrow( (FunV_tErr_NoError == eResult) );
+
+  /* Initialize the callback data. */
+  callbackData.mThis        = this;
+  callbackData.mStartValue  = funcValue;
+  callbackData.mCompareType = iCompare;
+  callbackData.mnCount      = 0;
+
+  /* Get the source functional volume. */
+  tkm_GetAnatomicalVolume( iVolume, &sourceVolume );
+  DebugAssertThrowX( (NULL != sourceVolume),
+		     eResult, FunV_tErr_ErrorAccessingAnatomicalVolume );
+  
+  /* Start listening for a cancel. */
+  xUtil_StartListeningForUserCancel();
+
+  /* Do it! */
+  eVolume = Volm_Flood( sourceVolume, &params );
+  
+  /* If we selected more than 1000 voxels, we printed a message and
+     started printing update dots. Now close off the message. */
+  if( callbackData.mnCount > 1000 ) {
+    printf( "done. %d voxels selected. \n", callbackData.mnCount );
+  }
+
+  /* Stop listening for the cancel. */
+  xUtil_StopListeningForUserCancel();
+
+  /* update the overlay */
+  eResult = FunV_OverlayChanged_( this );
+  DebugAssertThrow( FunV_tErr_NoError == eResult );
+  
+  DebugCatch;
+  DebugCatchError( eResult, FunV_tErr_NoError, FunV_GetErrorString );
+  EndDebugCatch;
+
+  DebugExitFunction;
+
+  return eResult;
+}
+
+tBoolean FunV_CompareMRIAndFuncValues ( xVoxelRef  iMRIIdx,
+					float      iValue,
+					void*      ipData ) {
+
+  FunV_tErr                      eResult      = FunV_tErr_NoError;
+  tkmFunctionalVolumeRef         this         = NULL;
+  FunV_tFunctionalValue          funcValue    = 0;
+  tBoolean                       ebGood       = FALSE;
+  FunV_tFloodSelectCallbackData* callbackData = NULL;
+
+  callbackData = (FunV_tFloodSelectCallbackData*)ipData;
+  this = callbackData->mThis;
+
+  /* Get the functional value at this voxel. */
+  DisableDebuggingOutput;
+  eResult = FunV_GetValueAtAnaIdx( this, iMRIIdx, &funcValue );
+  DebugAssertThrow( (FunV_tErr_NoError == eResult) );
+  EnableDebuggingOutput;
+  
+  /* Do the comparison and return the result. */
+  switch( callbackData->mCompareType ) {
+  case FunV_tFindStatsComp_GTEoLTE:
+    if( callbackData->mStartValue > 0 ) {
+      ebGood = (funcValue >= callbackData->mStartValue);
+    } else {
+      ebGood = (funcValue <= callbackData->mStartValue);
+    }
+    break;
+  case FunV_tFindStatsComp_EQ:
+    ebGood = (funcValue == callbackData->mStartValue);
+    break;
+  case FunV_tFindStatsComp_GTEThresholdMin:
+    ebGood = (funcValue >= this->mThresholdMin);
+    break;
+  default:
+    ebGood = FALSE;
+  }
+
+  DebugCatch;
+  DebugCatchError( eResult, FunV_tErr_NoError, FunV_GetErrorString );
+  EndDebugCatch;
+
+  return ebGood;
+}
+
+Volm_tVisitCommand FunV_FloodSelectCallback ( xVoxelRef iMRIIdx,
+					      float     iValue,
+					      void*     iData ) {
+
+  FunV_tFloodSelectCallbackData* callbackData;
+
+  callbackData = (FunV_tFloodSelectCallbackData*)iData;
+
+ /* Incremenet our count. If it's over 1000, print a message saying
+     the user can cancel and start printing update dots. */
+  callbackData->mnCount++;
+  if( callbackData->mnCount == 1000 ) {
+    printf( "Selecting (press ctrl-c to cancel) " );
+  }
+  if( callbackData->mnCount > 1000 && 
+      callbackData->mnCount % 100 == 0 ) {
+    printf( "." );
+    fflush( stdout );
+  }
+  
+  /* We only get here if our comparator, defined above, said this
+     voxel was good, so just add it to the selection. */
+  tkm_SelectVoxel( iMRIIdx );
+
+  /* Check the user cancel. If they canceled, stop. */
+  if( xUtil_DidUserCancel() ) {
+    return Volm_tVisitComm_Stop;
+  }
+
+  return Volm_tVisitComm_Continue;
+}
+
+
+#if 0
+
 FunV_tErr FunV_SelectAnaVoxelsByFuncValue ( tkmFunctionalVolumeRef this,
 					    xVoxelRef              iAnaIdx,
 					    FunV_tFindStatsComp    iCompare ) {
@@ -3255,7 +3420,7 @@ void FunV_SelectAnaVoxelsByFuncValueIter_ ( tkmFunctionalVolumeRef this,
   }
   if( !bGood )
     goto cleanup;
-  
+   
   /* check the distance */
   fDistance = sqrt(((xVoxl_GetX(iAnaIdx) - xVoxl_GetX(&(iParams->mStart))) * 
 		    (xVoxl_GetX(iAnaIdx) - xVoxl_GetX(&(iParams->mStart)))) +
@@ -3309,6 +3474,8 @@ void FunV_SelectAnaVoxelsByFuncValueIter_ ( tkmFunctionalVolumeRef this,
   
   iParams->mnIterationCount--;
 }
+
+#endif
 
 int FunV_TclOlSaveRegistration ( ClientData iClientData, 
 				 Tcl_Interp *ipInterp, 
