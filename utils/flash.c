@@ -68,7 +68,7 @@ MRIparameterMapsToFlash(MRI *mri_src, MRI *mri_dst, double *TRs, double *TEs, do
 				for (n = 0 ; n < nflash ; n++)
 				{
 					val = FLASHforwardModel(T1, PD, TRs[n], FAs[n], TEs[n]) ;
-					MRISseq_vox(mri_dst, x, y, z, n) = val ;
+					MRISseq_vox(mri_dst, x, y, z, n) = (short)nint(val) ;
 				}
 			}
 		}
