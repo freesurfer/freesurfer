@@ -17,6 +17,10 @@
 #define DEFAULT_WINDOWS_ABOVE_T0            14 /* 9*/
 #define DEFAULT_WINDOW_SIZE                 10
 
+#define WM_MEAN   DEFAULT_DESIRED_WHITE_MATTER_VALUE
+#define WHITE_MATTER_MEAN  WM_MEAN
+
+
 /* minimum size of peak, relative to total # of voxels in histogram
    (excluding background voxels).
 */
