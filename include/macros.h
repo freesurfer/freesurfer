@@ -66,6 +66,7 @@
 #define DZERO(d)     (fabs(d) < 1e-15)
 #define iszero(f)   (FZERO(f))
 #define FEQUAL(f1,f2) (FZERO(f1-f2))
+#define DEQUAL(d1,d2) (DZERO(d1-d2))
 
 #define ISINT(f)      ((float)((int)f) == f)
 
