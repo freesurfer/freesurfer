@@ -4,9 +4,9 @@
 // by Bruce Fischl
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2004/06/03 18:15:01 $
-// Revision       : $Revision: 1.28 $
+// Revision Author: $Author: xhan $
+// Revision Date  : $Date: 2005/03/31 21:54:12 $
+// Revision       : $Revision: 1.29 $
 
 
 #include <math.h>
@@ -140,7 +140,7 @@ main(int argc, char *argv[])
   DiagInit(NULL, NULL, NULL) ;
   ErrorInit(NULL, NULL, NULL) ;
 
-  nargs = handle_version_option (argc, argv, "$Id: mri_ca_register.c,v 1.28 2004/06/03 18:15:01 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_ca_register.c,v 1.29 2005/03/31 21:54:12 xhan Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -250,12 +250,30 @@ main(int argc, char *argv[])
   else if (gca->type == GCA_FLASH)
   {
     GCA *gca_tmp ;
+
+    int need_map_flag = 0;
+    int n;
     
-    gca_tmp = GCAcreateFlashGCAfromFlashGCA(gca, TRs, fas, TEs, mri_inputs->nframes) ;
-    GCAfree(&gca) ;
-    gca = gca_tmp ;
+    if(gca->ninputs != ninputs) need_map_flag = 1;
+    else{
+      for (n = 0 ; n < mri_inputs->nframes; n++){
+	if(!FZERO(gca->TRs[n] - TRs[n])) need_map_flag = 1;
+	if(!FZERO(gca->FAs[n] - fas[n])) need_map_flag = 1;
+	if(!FZERO(gca->TEs[n] - TEs[n])) need_map_flag = 1;
+      }
+    }
+    
+    if(need_map_flag){
+      printf("mapping %d-dimensional flash atlas into %d-dimensional input space\n", gca->ninputs, ninputs) ;
+      
+      gca_tmp = GCAcreateFlashGCAfromFlashGCA(gca, TRs, fas, TEs, mri_inputs->nframes) ;
+      GCAfree(&gca) ;
+      gca = gca_tmp ;
+    }
+    
     GCAhistoScaleImageIntensities(gca, mri_inputs) ;// added by tosa
   }
+  
   if (gca->flags & GCA_XGRAD)
     extra += ninputs ;
   if (gca->flags & GCA_YGRAD)

@@ -108,7 +108,7 @@ main(int argc, char *argv[])
   TRANSFORM     *transform ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_ca_label.c,v 1.49 2004/12/01 21:39:47 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_ca_label.c,v 1.50 2005/03/31 21:56:53 xhan Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -321,13 +321,29 @@ main(int argc, char *argv[])
   if (gca->type == GCA_FLASH)
   {
     GCA *gca_tmp ;
+    int need_map_flag = 0;
+    int n;
+    
+    if(gca->ninputs != mri_inputs->nframes) need_map_flag = 1;
+    else{
+      for (n = 0 ; n < mri_inputs->nframes; n++){
+	if(!FZERO(gca->TRs[n] - TRs[n])) need_map_flag = 1;
+	if(!FZERO(gca->FAs[n] - fas[n])) need_map_flag = 1;
+	if(!FZERO(gca->TEs[n] - TEs[n])) need_map_flag = 1;
+      }
+    }
+    
+    if(need_map_flag){
+      printf("mapping %d-dimensional flash atlas into %d-dimensional input space\n", gca->ninputs, ninputs) ;
+      
+      gca_tmp = GCAcreateFlashGCAfromFlashGCA(gca, TRs, fas, TEs, mri_inputs->nframes) ;
+      GCAfree(&gca) ;
+      gca = gca_tmp ;
+    }
     
     if (novar)
       GCAunifyVariance(gca) ;
     
-    gca_tmp = GCAcreateFlashGCAfromFlashGCA(gca, TRs, fas, TEs, mri_inputs->nframes) ;
-    GCAfree(&gca) ;
-    gca = gca_tmp ;
     GCAhistoScaleImageIntensities(gca, mri_inputs) ;
   }
   // -flash option
