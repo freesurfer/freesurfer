@@ -1,6 +1,6 @@
 #! /usr/bin/tixwish
 
-# $Id: tkmedit.tcl,v 1.71 2004/01/09 22:34:52 kteich Exp $
+# $Id: tkmedit.tcl,v 1.72 2004/01/15 06:59:48 kteich Exp $
 
 
 source $env(FREESURFER_HOME)/lib/tcl/tkm_common.tcl
@@ -2142,6 +2142,57 @@ proc DoVolumeColorScaleInfoDlog { } {
 	# brightness and contrast for main and aux sliders
 	tkm_MakeSliders $fwSliders [list \
 		[list {"Brightness"} gVolume(0,colorScale,brightness) \
+		     1 0 100 "SendVolumeBrightnessContrast" 1 0.01] \
+		[list {"Contrast"} gVolume(0,colorScale,contrast) \
+		     0 30 100 "SendVolumeBrightnessContrast" 1] \
+		[list {"Min"} gVolume(0,colorScale,min) \
+		     $gVolume(0,minValue) $gVolume(0,maxValue) \
+		     100 "SendVolumeMinMax" 1] \
+		[list {"Max"} gVolume(0,colorScale,max) \
+		     $gVolume(0,minValue) $gVolume(0,maxValue) \
+		     100 "SendVolumeMinMax" 1] \
+					\
+	        [list {"Aux Brightness"} gVolume(1,colorScale,brightness) \
+		     1 0 100 "SendVolumeBrightnessContrast" 1 0.01] \
+		[list {"Aux Contrast"} gVolume(1,colorScale,contrast)  \
+		     0 30 100 "SendVolumeBrightnessContrast" 1] \
+	        [list {"Aux Min"} gVolume(1,colorScale,min)  \
+		     $gVolume(1,minValue) $gVolume(1,maxValue) \
+		     100 "SendVolumeMinMax" 1] \
+		[list {"Aux Max"} gVolume(1,colorScale,max) \
+		     $gVolume(1,minValue) $gVolume(1,maxValue) \
+		     100 "SendVolumeMinMax" 1 ] ]
+	
+	# buttons
+	tkm_MakeCloseButton $fwButtons $wwDialog
+	
+	pack $fwSliders $fwButtons  \
+	    -side top    \
+	    -expand yes     \
+	    -fill x         \
+	    -padx 5         \
+	    -pady 5
+    }
+}
+
+
+proc OLDDoVolumeColorScaleInfoDlogOLD { } {
+
+    global gDialog
+    global gVolume
+
+    set wwDialog .wwVolumeColorScaleInfoDlog
+
+    # try to create the dlog...
+    if { [Dialog_Create $wwDialog \
+	      "Brightness / Contrast" {-borderwidth 10}] } {
+
+	set fwSliders    $wwDialog.fwSliders
+	set fwButtons    $wwDialog.fwButtons
+	
+	# brightness and contrast for main and aux sliders
+	tkm_MakeSliders $fwSliders [list \
+		[list {"Brightness"} gVolume(0,colorScale,brightness) \
 		     1 0 100 "SendVolumeColorScale" 1 0.01] \
 		[list {"Contrast"} gVolume(0,colorScale,contrast) \
 		     0 30 100 "SendVolumeColorScale" 1] \
@@ -2818,6 +2869,30 @@ proc SendVolumeColorScale { } {
 	    $gVolume($volume,colorScale,contrast) \
 	    $gVolume($volume,colorScale,min) \
 	    $gVolume($volume,colorScale,max) 
+    }
+}
+
+proc SendVolumeBrightnessContrast { } {
+
+    global tkm_tVolumeType
+    global gVolume
+
+    foreach volume "$tkm_tVolumeType(main) $tkm_tVolumeType(aux)" {
+	SetVolumeBrightnessContrast $volume \
+	    $gVolume($volume,colorScale,brightness) \
+	    $gVolume($volume,colorScale,contrast)
+    }
+}
+
+proc SendVolumeMinMax { } {
+
+    global tkm_tVolumeType
+    global gVolume
+
+    foreach volume "$tkm_tVolumeType(main) $tkm_tVolumeType(aux)" {
+	SetVolumeMinMax $volume \
+	    $gVolume($volume,colorScale,min) \
+	    $gVolume($volume,colorScale,max)
     }
 }
 
