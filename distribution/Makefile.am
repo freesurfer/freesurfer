@@ -11,3 +11,6 @@ foo_DATA=surface_labels.txt tkmeditColorsCMA tkmeditParcColorsCMA Simple_surface
 # nothing here goto docs directory
 release:
 	$(MAKE) release -C docs
+
+uninstall-release:
+	$(MAKE) uninstall-release -C docs
