@@ -1384,6 +1384,8 @@ GCAMregisterLevel(GCA_MORPH *gcam, MRI *mri, MRI *mri_smooth, GCA_MORPH_PARMS *p
         parms->dt *= .5 ;
         gcamUndoGradient(gcam) ;
       }
+      else
+        parms->dt = orig_dt ;
     } while ((gcam->neg > 0) && (niter++ < 5));
     if (parms->write_iterations > 0 &&
         !((n+1) % parms->write_iterations) && (Gdiag & DIAG_WRITE))
@@ -1597,6 +1599,17 @@ gcamLimitGradientMagnitude(GCA_MORPH *gcam, GCA_MORPH_PARMS *parms)
         if (x == Gx && y == Gy && z == Gz)
           DiagBreak() ;
         norm = dt*sqrt(gcamn->dx*gcamn->dx+gcamn->dy*gcamn->dy+gcamn->dz*gcamn->dz) ;
+        if (norm > 3*parms->max_grad)
+        {
+          scale = 3*parms->max_grad / norm ;
+          if (x == Gx && y == Gy && z == Gz)
+            DiagBreak() ;
+          gcamn->dx *= scale ;
+          gcamn->dy *= scale ;
+          gcamn->dz *= scale ;
+          norm = dt*sqrt(gcamn->dx*gcamn->dx+gcamn->dy*gcamn->dy+gcamn->dz*gcamn->dz) ;
+        }
+
         if (norm > max_norm)
         {
           max_norm = norm ;
