@@ -1085,6 +1085,12 @@ TransformSampleInverse(TRANSFORM *transform, int xv, int yv, int zv, float *px, 
   {
     gcam = (GCA_MORPH *)transform->xform ;
     xn = nint(xv/gcam->spacing) ; yn = nint(yv/gcam->spacing) ; zn = nint(zv/gcam->spacing) ;
+    if (xn >= gcam->width)
+      xn = gcam->width-1 ;
+    if (yn >= gcam->height)
+      yn = gcam->height-1 ;
+    if (zn >= gcam->depth)
+      yn = gcam->depth-1 ;
     gcamn = &gcam->nodes[xn][yn][zn] ;
     xt = gcamn->x ; yt = gcamn->y ; zt = gcamn->z ; 
   }
