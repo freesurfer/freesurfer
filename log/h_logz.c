@@ -73,7 +73,8 @@ static inv_func  inverse_func_array[MAX_RUN_LENGTH+1] ;
                            FUNCTION PROTOTYPES
 ----------------------------------------------------------------------*/
 
-int   debug(void) ;
+static int lmConvolve1d(LOGMAP_INFO *lmi, IMAGE *Isrc, IMAGE *Igaussian, 
+                        IMAGE *Idst, int which);
 static void  mapCalculateLogmap(LOGMAP_INFO *mi) ;
 static void  mapCalculateLogmapQuadrant(LOGMAP_INFO *mi,
                                         CMAP *mTvToSpoke, CMAP *mTvToRing) ;
@@ -967,14 +968,12 @@ wscale = 1.0 ;
   lmi->min_rho = min_rho ;
   lmi->max_rho = max_rho ;
 }
-
-
 /*----------------------------------------------------------------------
             Parameters:
 
            Description:
 ----------------------------------------------------------------------*/
-static int isy[NBD_SIZE] = { 1, 2, 1,   0, 0, 0,   -1, -2, -1} ;
+static int isy[NBD_SIZE] = { -1, -2, -1,   0, 0, 0,   1, 2, 1} ;
 static int isx[NBD_SIZE] = {-1, 0, 1,  -2, 0, 2,   -1,  0,  1} ;
 
 int
@@ -982,13 +981,6 @@ LogMapGradient(LOGMAP_INFO *lmi, IMAGE *inImage,
                IMAGE *gradImage, int doweight, int start_ring, int end_ring)
 {
   static IMAGE *xImage = NULL, *yImage = NULL ;
-  int              ring, spoke, val, xval, yval ;
-  float            fval, fxval, fyval ;
-
-  if (start_ring < 0)
-    start_ring = 0 ;
-  if (end_ring <= 0)
-    end_ring = lmi->nrings-1 ;
 
   if (!ImageCheckSize(inImage, xImage, 0, 0, 0))
   {
@@ -1007,42 +999,75 @@ LogMapGradient(LOGMAP_INFO *lmi, IMAGE *inImage,
     yImage->pixel_format = xImage->pixel_format = inImage->pixel_format ;
   }
 
-  logFilterNbd(lmi, isx, inImage, xImage, doweight, start_ring, end_ring) ;
-  logFilterNbd(lmi, isy, inImage, yImage, doweight, start_ring, end_ring) ;
+  LogMapSobel(lmi, inImage, gradImage, xImage, yImage, doweight, 
+              start_ring, end_ring);
+  return(0) ;
+}
+/*----------------------------------------------------------------------
+            Parameters:
 
-  switch (inImage->pixel_format)
+           Description:
+----------------------------------------------------------------------*/
+int
+LogMapSobel(LOGMAP_INFO *lmi, IMAGE *Isrc, IMAGE *gradImage, 
+            IMAGE *Ix, IMAGE *Iy, int doweight, int start_ring, int end_ring)
+{
+  int              ring, spoke, val = 0, xval = 0, yval = 0 ;
+  float            fval = 0.0f, fxval = 0.0f, fyval = 0.0f ;
+
+  if (start_ring < 0)
+    start_ring = 0 ;
+  if (end_ring <= 0)
+    end_ring = lmi->nrings-1 ;
+
+  if (!ImageCheckSize(Isrc, Ix, 0, 0, 0))
+    ErrorReturn(-1, (ERROR_NO_MEMORY, "LogMapSobel: x image not big enough"));
+  if (!ImageCheckSize(Isrc, Iy, 0, 0, 0))
+    ErrorReturn(-1, (ERROR_NO_MEMORY, "LogMapSobel: y image not big enough"));
+
+  ImageSetSize(Ix, Isrc->rows, Isrc->cols) ;
+  ImageSetSize(Iy, Isrc->rows, Isrc->cols) ;
+  Iy->pixel_format = Ix->pixel_format = Isrc->pixel_format ;
+
+  logFilterNbd(lmi, isx, Isrc, Ix, doweight, start_ring, end_ring) ;
+  logFilterNbd(lmi, isy, Isrc, Iy, doweight, start_ring, end_ring) ;
+
+  if (gradImage)
   {
-  case PFINT:
-    for_each_ring(lmi, ring, spoke, start_ring, end_ring)
+    switch (Isrc->pixel_format)
     {
-      xval = *IMAGEIpix(xImage, ring, spoke) ;
-      yval = *IMAGEIpix(yImage, ring, spoke) ;
-      val = (int)sqrt(((double)(xval*xval) + (double)(yval*yval))/4.0) ;
-      *IMAGEIpix(gradImage, ring, spoke) = val ;
-    }
-    break ;
-  case PFFLOAT:
-    for_each_ring(lmi, ring, spoke, start_ring, end_ring)
-    {
-      fxval = *IMAGEFpix(xImage, ring, spoke) ;
-      fyval = *IMAGEFpix(yImage, ring, spoke) ;
-      fval = (float)sqrt((double)(fxval*fxval) + (double)(fyval*fyval)) / 4.0f;
-      *IMAGEFpix(gradImage, ring, spoke) = fval ;
-    }
-    break ;
+    case PFINT:
+      for_each_ring(lmi, ring, spoke, start_ring, end_ring)
+        {
+          xval = *IMAGEIpix(Ix, ring, spoke) ;
+          yval = *IMAGEIpix(Iy, ring, spoke) ;
+          val = (int)sqrt(((double)(xval*xval) + (double)(yval*yval))/4.0) ;
+          *IMAGEIpix(gradImage, ring, spoke) = val ;
+        }
+      break ;
+    case PFFLOAT:
+      for_each_ring(lmi, ring, spoke, start_ring, end_ring)
+        {
+          fxval = *IMAGEFpix(Ix, ring, spoke) ;
+          fyval = *IMAGEFpix(Iy, ring, spoke) ;
+          fval = (float)sqrt((double)(fxval*fxval)+(double)(fyval*fyval))/4.0f;
+          *IMAGEFpix(gradImage, ring, spoke) = fval ;
+        }
+      break ;
 
-  default:
-    fprintf(stderr, "LogMapGradient: unsupported log pixel format %d\n",
-            inImage->pixel_format) ;
-    exit(2) ;
-    break ;
+    default:
+      fprintf(stderr, "LogMapGradient: unsupported log pixel format %d\n",
+              Isrc->pixel_format) ;
+      exit(2) ;
+      break ;
+    }
   }
 
 #if DEBUG_FILTER
   if (Gdiag & DIAG_WRITE)
   {
-    ImageWrite(xImage, "x.hipl") ;
-    ImageWrite(yImage, "y.hipl") ;
+    ImageWrite(Ix, "x.hipl") ;
+    ImageWrite(Iy, "y.hipl") ;
     ImageWrite(gradImage, "grad.hipl") ;
   }
 #endif
@@ -1056,12 +1081,14 @@ LogMapGradient(LOGMAP_INFO *lmi, IMAGE *inImage,
 static int mean_kernel[NBD_SIZE] = { 1, 1, 1, 1, 1, 1, 1, 1, 1 } ;
 
 IMAGE *
-LogMapSmooth(LOGMAP_INFO *lmi, IMAGE *Isrc, IMAGE *Idst)
+LogMapMeanFilter(LOGMAP_INFO *lmi, IMAGE *Isrc, IMAGE *Idst)
 {
   if (!ImageCheckSize(Isrc, Idst, 0, 0, 0))
   {
     if (Idst)
       ImageFree(&Idst) ;
+    Idst = ImageAlloc(Isrc->rows,Isrc->cols,Isrc->pixel_format,
+                      Isrc->num_frame);
   }
 
   logFilterNbd(lmi, mean_kernel, Isrc, Idst, 0, 0, lmi->nrings-1) ;
@@ -2044,19 +2071,6 @@ logPatchHoles(LOGMAP_INFO *lmi)
 
            Description:
 ----------------------------------------------------------------------*/
-int in_debug = 0 ;
-
-int
-debug(void)
-{
-  in_debug = 1 ;
-  return(0) ;
-}
-/*----------------------------------------------------------------------
-            Parameters:
-
-           Description:
-----------------------------------------------------------------------*/
 IMAGE *
 LogMapNormalize(LOGMAP_INFO *lmi, IMAGE *Isrc, IMAGE *Idst, float low,float hi)
 {
@@ -2309,6 +2323,8 @@ writeTimes(char *fname, LOGMAP_INFO *lmi, int niter)
 
 #define FSCALE  1000.0f
 
+#define ISZERO(f)   FZERO(f/100000.0f)
+
 static int imageOffsetDirection(IMAGE *Ix, IMAGE *Iy, int wsize, 
                                 IMAGE *Iorient, int x0,int y0) ;
 static int
@@ -2361,7 +2377,7 @@ imageOffsetDirection(IMAGE *Ix, IMAGE *Iy, int wsize, IMAGE *Iorient,
     }
   }
   
-  if (ISSMALL(dir))
+  if (ISZERO(dir))
     d = 0 ;
   else if (dir > 0.0f)   /* flip by 180 */
     d = -1 ;
@@ -2388,7 +2404,7 @@ static int compare_sort_barray(const void *pb1, const void *pb2) ;
 #endif
 
 
- IMAGE *Icalculated = NULL, *Ioffset = NULL, *Iorient = NULL,
+ IMAGE *Icalculated = NULL, *ImapOffset = NULL, *ImapOrient = NULL,
          *Ix = NULL, *Iy = NULL;
 IMAGE *
 LogMapNonlocal(LOGMAP_INFO *lmi, IMAGE *Isrc, IMAGE *Ismooth, IMAGE *Idst)
@@ -2414,10 +2430,10 @@ LogMapNonlocal(LOGMAP_INFO *lmi, IMAGE *Isrc, IMAGE *Ismooth, IMAGE *Idst)
   {
     if (Icalculated)
       ImageFree(&Icalculated) ;
-    if (Ioffset)
-      ImageFree(&Ioffset) ;
-    if (Iorient)
-      ImageFree(&Iorient) ;
+    if (ImapOffset)
+      ImageFree(&ImapOffset) ;
+    if (ImapOrient)
+      ImageFree(&ImapOrient) ;
     if (Ix)
       ImageFree(&Ix) ;
     if (Iy)
@@ -2425,8 +2441,8 @@ LogMapNonlocal(LOGMAP_INFO *lmi, IMAGE *Isrc, IMAGE *Ismooth, IMAGE *Idst)
     Icalculated = ImageAlloc(rows, cols, PFBYTE, 1) ;
     Ix = ImageAlloc(rows, cols, PFFLOAT, 1) ;
     Iy = ImageAlloc(rows, cols, PFFLOAT, 1) ;
-    Ioffset = ImageAlloc(rows, cols, PFFLOAT, 2) ;
-    Iorient = ImageAlloc(rows, cols, PFFLOAT, 2) ;
+    ImapOffset = ImageAlloc(rows, cols, PFFLOAT, 2) ;
+    ImapOrient = ImageAlloc(rows, cols, PFFLOAT, 2) ;
   }
   else
     ImageClear(Icalculated) ;
@@ -2442,10 +2458,10 @@ LogMapNonlocal(LOGMAP_INFO *lmi, IMAGE *Isrc, IMAGE *Ismooth, IMAGE *Idst)
     TimerStart(&then) ;
   }
 #if 0
-  Iorient = ImageOffsetOrientation(Ix, Iy, 3, Iorient) ;
+  ImapOrient = ImageOffsetOrientation(Ix, Iy, 3, ImapOrient) ;
 #else
-  ImageCopyFrames(Ix, Iorient, 0, 1, 0) ;
-  ImageCopyFrames(Iy, Iorient, 0, 1, 1) ;
+  ImageCopyFrames(Ix, ImapOrient, 0, 1, 0) ;
+  ImageCopyFrames(Iy, ImapOrient, 0, 1, 1) ;
 #endif
   if (Gdiag & DIAG_TIMER)
   {
@@ -2473,20 +2489,20 @@ LogMapNonlocal(LOGMAP_INFO *lmi, IMAGE *Isrc, IMAGE *Ismooth, IMAGE *Idst)
     if (y1 != UNDEFINED && x1 != UNDEFINED)
     {
       calculated = IMAGEpix(Icalculated, x1, y1) ;
-      src_xpix = IMAGEFpix(Iorient, x1, y1) ;
-      src_ypix = IMAGEFseq_pix(Iorient, x1, y1, 1) ;
+      src_xpix = IMAGEFpix(ImapOrient, x1, y1) ;
+      src_ypix = IMAGEFseq_pix(ImapOrient, x1, y1, 1) ;
 
       /* do a Bresenham algorithm do find the offset line at this point */
       if (*calculated == 0)
       {
-        dir = imageOffsetDirection(Ix, Iy, wsize, Iorient, x1, y1) ;
+        dir = imageOffsetDirection(Ix, Iy, wsize, ImapOrient, x1, y1) ;
         fdir = (float)dir ;
         *calculated = 1 ;
-        *IMAGEFpix(Ioffset, x1, y1) = *src_xpix * fdir ;
-        *IMAGEFseq_pix(Ioffset, x1, y1, 1) = *src_ypix * fdir ;
+        *IMAGEFpix(ImapOffset, x1, y1) = *src_xpix * fdir ;
+        *IMAGEFseq_pix(ImapOffset, x1, y1, 1) = *src_ypix * fdir ;
       }
-      dx = nint(*IMAGEFpix(Ioffset,x1,y1) * FSCALE) ;
-      dy = nint(*IMAGEFseq_pix(Ioffset,x1,y1,1) * FSCALE) ;
+      dx = nint(*IMAGEFpix(ImapOffset,x1,y1) * FSCALE) ;
+      dy = nint(*IMAGEFseq_pix(ImapOffset,x1,y1,1) * FSCALE) ;
       x = x1 ;
       y = y1 ;
       ax = ABS(dx) << 1 ;
@@ -2504,14 +2520,14 @@ LogMapNonlocal(LOGMAP_INFO *lmi, IMAGE *Isrc, IMAGE *Ismooth, IMAGE *Idst)
         {
           if (!*IMAGEpix(Icalculated, x, y))
           {
-            dir = imageOffsetDirection(Ix, Iy, wsize, Iorient, x, y) ;
+            dir = imageOffsetDirection(Ix, Iy, wsize, ImapOrient, x, y) ;
             fdir = (float)dir ;
             *IMAGEpix(Icalculated, x, y) = 1 ;
-            *IMAGEFpix(Ioffset, x, y) = *oxpix * fdir ;
-            *IMAGEFseq_pix(Ioffset, x, y, 1) = *oypix * fdir ;
+            *IMAGEFpix(ImapOffset, x, y) = *oxpix * fdir ;
+            *IMAGEFseq_pix(ImapOffset, x, y, 1) = *oypix * fdir ;
           }
-          odx = nint(*IMAGEFpix(Ioffset,x,y) * FSCALE) ;
-          ody = nint(*IMAGEFseq_pix(Ioffset,x,y,1) * FSCALE) ;
+          odx = nint(*IMAGEFpix(ImapOffset,x,y) * FSCALE) ;
+          ody = nint(*IMAGEFseq_pix(ImapOffset,x,y,1) * FSCALE) ;
           dot = odx * dx + ody * dy ;
           if (dot <= 0)
             break ;
@@ -2544,14 +2560,14 @@ LogMapNonlocal(LOGMAP_INFO *lmi, IMAGE *Isrc, IMAGE *Ismooth, IMAGE *Idst)
         {
           if (!*IMAGEpix(Icalculated, x, y))
           {
-            dir = imageOffsetDirection(Ix, Iy, wsize, Iorient, x, y) ;
+            dir = imageOffsetDirection(Ix, Iy, wsize, ImapOrient, x, y) ;
             fdir = (float)dir ;
             *IMAGEpix(Icalculated, x, y) = 1 ;
-            *IMAGEFpix(Ioffset, x, y) = *oxpix * fdir ;
-            *IMAGEFseq_pix(Ioffset, x, y, 1) = *oypix * fdir ;
+            *IMAGEFpix(ImapOffset, x, y) = *oxpix * fdir ;
+            *IMAGEFseq_pix(ImapOffset, x, y, 1) = *oypix * fdir ;
           }
-          odx = nint(*IMAGEFpix(Ioffset,x,y) * FSCALE) ;
-          ody = nint(*IMAGEFseq_pix(Ioffset,x,y,1) * FSCALE) ;
+          odx = nint(*IMAGEFpix(ImapOffset,x,y) * FSCALE) ;
+          ody = nint(*IMAGEFseq_pix(ImapOffset,x,y,1) * FSCALE) ;
           dot = odx * dx + ody * dy ;
           if (dot <= 0)
             break ;
@@ -2580,8 +2596,8 @@ LogMapNonlocal(LOGMAP_INFO *lmi, IMAGE *Isrc, IMAGE *Ismooth, IMAGE *Idst)
 
       dx = (x - x1) ;
       dy = (y - y1) ;
-      *IMAGEFpix(Ioffset, x1, y1) = (float)dx ;         /* for diagnostics */
-      *IMAGEFseq_pix(Ioffset, x1, y1, 1) = (float)dy ;  /* for diagnostics */
+      *IMAGEFpix(ImapOffset, x1, y1) = (float)dx ;        /* for diagnostics */
+      *IMAGEFseq_pix(ImapOffset, x1, y1, 1) = (float)dy ; /* for diagnostics */
 
       switch (Isrc->pixel_format)
       {
@@ -2657,7 +2673,7 @@ LogMapNonlocal(LOGMAP_INFO *lmi, IMAGE *Isrc, IMAGE *Ismooth, IMAGE *Idst)
   }
 #if 0
 ImageWrite(Icalculated, "calc.hipl") ;
-ImageWrite(Ioffset, "offset_bad.hipl") ;
+ImageWrite(ImapOffset, "offset_bad.hipl") ;
 #endif
 
   if (Iout != Idst)
@@ -2898,3 +2914,610 @@ LogMapForwardFilter(LOGMAP_INFO *lmi, IMAGE *Isrc, IMAGE *Idst)
   return(Idst) ;
 }
 
+/*----------------------------------------------------------------------
+            Parameters:
+
+           Description:
+----------------------------------------------------------------------*/
+IMAGE *
+LogMapFilter(LOGMAP_INFO *lmi, int which, int wsize, IMAGE *Isrc, IMAGE *Idst)
+{
+  IMAGE  *Iout ;
+
+  if (wsize != 3)
+    ErrorReturn(NULL, (ERROR_UNSUPPORTED,
+                       "LogMapFilter: unsupported window size %d", wsize)) ;
+
+  if (!Idst)
+    Idst = ImageAlloc(lmi->nspokes,lmi->nrings, Isrc->pixel_format,1);
+  else
+    ImageClearArea(Idst, 0, 0, Idst->rows, Idst->cols, 0.0f) ;
+
+  if (Idst->pixel_format != Isrc->pixel_format)
+    Iout = ImageAlloc(lmi->nspokes, lmi->nrings, Isrc->pixel_format,1);
+  else
+    Iout = Idst ;
+
+  if (Iout != Idst)
+  {
+    ImageCopy(Iout, Idst) ;
+    ImageFree(&Iout) ;
+  }
+  return(Idst) ;
+}
+/*----------------------------------------------------------------------
+            Parameters:
+
+           Description:
+----------------------------------------------------------------------*/
+IMAGE *
+LogMapOffsetOrientation(LOGMAP_INFO *lmi, int wsize,IMAGE *Isrc,IMAGE *Iorient)
+{
+  IMAGE  *Iout, *Ix, *Iy ;
+  int    rows, cols ;
+
+  rows = Isrc->rows ;
+  cols = Isrc->cols ;
+
+  if (!Iorient)
+    Iorient = ImageAlloc(lmi->nspokes,lmi->nrings, Isrc->pixel_format,2);
+  else
+    ImageClearArea(Iorient, 0, 0, Iorient->rows, Iorient->cols, 0.0f) ;
+
+  if (Iorient->pixel_format != Isrc->pixel_format)
+    Iout = ImageAlloc(lmi->nspokes, lmi->nrings, Isrc->pixel_format,2);
+  else
+    Iout = Iorient ;
+
+  Ix = ImageAllocHeader(rows, cols, PFFLOAT, 1) ;
+  Iy = ImageAllocHeader(rows, cols, PFFLOAT, 1) ;
+  Ix->image = Iorient->image ;
+  Iy->image = Iorient->image + Ix->sizeimage ;
+
+  LogMapSobel(lmi, Isrc, NULL, Ix, Iy, 0, 0, lmi->nrings-1) ;
+
+  ImageFree(&Ix) ;
+  ImageFree(&Iy) ;
+  if (Iout != Iorient)
+  {
+    ImageCopy(Iout, Iorient) ;
+    ImageFree(&Iout) ;
+  }
+  return(Iorient) ;
+}
+/*----------------------------------------------------------------------
+            Parameters:
+
+           Description:
+----------------------------------------------------------------------*/
+IMAGE *
+LogMapOffsetDirection(LOGMAP_INFO *lmi, IMAGE *Iorient, IMAGE *Ioffset)
+{
+  IMAGE  *Iout ;
+  float  phi, rho, sin_phi, cos_phi, e_to_the_rho, ox=0.0f, oy=0.0f, dx, dy ;
+  int    x0, y0, rows, cols, x, y, whalf, k, ring, spoke ;
+  float  *xpix, *ypix, ldx, ldy, *or_xpix,*or_ypix, *oxpix, *oypix, dir, lox, 
+         loy, nrho, nphi = 0.0f, sin_nphi, cos_nphi, e_to_the_nrho, dot ;
+  LOGPIX *npix ;
+
+
+  rows = Iorient->rows ;
+  cols = Iorient->cols ;
+
+  if (!Ioffset)
+    Ioffset = ImageAlloc(rows, cols, Iorient->pixel_format, 2) ;
+  else
+    ImageClearArea(Ioffset, 0, 0, rows, cols, 0.0f) ;
+
+  if (Ioffset->pixel_format != Iorient->pixel_format)
+    Iout = ImageAlloc(rows, cols, Iorient->pixel_format, 2) ;
+  else
+    Iout = Ioffset ;
+
+  whalf = (3-1)/2 ;                       /* fix window size to 3x3 */
+  xpix = IMAGEFpix(Iorient, 0, 0) ;
+  ypix = IMAGEFseq_pix(Iorient, 0, 0, 1) ;
+  or_xpix = IMAGEFpix(Iorient, 0, 0) ;
+  or_ypix = IMAGEFseq_pix(Iorient, 0, 0, 1) ;
+  oxpix = IMAGEFpix(Iout, 0, 0) ;
+  oypix = IMAGEFseq_pix(Iout, 0, 0, 1) ;
+  for (y0 = 0 ; y0 < rows ; y0++)
+  {
+    for (x0 = 0 ; x0 < cols ; x0++, xpix++, ypix++, oxpix++, oypix++)
+    {
+/*
+  Now calculate the orientation for this point by averaging local gradient
+  orientation within the specified window.
+
+  x and y are in window coordinates, while xc and yc are in image
+  coordinates.
+*/
+      /* calculate orientation vector */
+      lox = *or_xpix++ ;   /* vector in log space */
+      loy = *or_ypix++ ;
+      if (LOG_PIX_AREA(lmi, x0, y0) <= 0)
+        continue ;
+
+      rho = LOG_PIX_RHO(lmi, x0, y0) ;
+      phi = LOG_PIX_PHI(lmi, x0, y0) ;
+#define USE_JACOBIAN 1
+#if USE_JACOBIAN
+      sin_phi = sin(phi) ;
+      cos_phi = cos(phi) ;
+      e_to_the_rho = exp(rho) ;
+#else
+      sin_phi = 0.0f ;
+      cos_phi = 1.0f ;
+      e_to_the_rho = 1.0f ;
+#endif
+
+      /* use Jacobian to convert to Cartesian vector */
+      ox = e_to_the_rho * (lox * cos_phi - loy * sin_phi) ;
+      oy = e_to_the_rho * (lox * sin_phi + loy * cos_phi) ;
+      dir = 0.0f ;
+      for (k = 0, y = -whalf ; y <= whalf ; y++)
+      {
+        for (x = -whalf ; x <= whalf ; x++, k++)
+        {
+          npix = LOG_PIX_NBD(lmi, x0, y0, k) ;
+          ring = npix->ring ; spoke = npix->spoke ;
+          nrho = npix->rho ; nphi = npix->phi ;
+#if USE_JACOBIAN
+          cos_nphi = cos(nphi) ; sin_nphi = sin(nphi) ;
+          e_to_the_nrho = exp(nrho) ;
+#else
+          e_to_the_nrho = 1.0f ;
+          cos_nphi = 1.0f ; sin_nphi = 0.0f ;
+#endif
+          ldx = *IMAGEFpix(Iorient, ring, spoke) ;
+          ldy = *IMAGEFseq_pix(Iorient, ring, spoke, 1) ;
+
+          /* use Jacobian of mapping to transform to Cartesian vectors */
+          dx = e_to_the_nrho * (ldx * cos_nphi - ldy * sin_nphi) ;
+          dy = e_to_the_nrho * (ldx * sin_nphi + ldy * cos_nphi) ;
+          dot = dx*ox + dy*oy ;
+          if (dot < 0.0f)
+            dot = 0.0f ;
+          dir += (x*ox + y*oy) * dot ;
+        }
+      }
+
+      if (ISZERO(dir))
+        lox = loy = 0.0f ;
+      else if (dir > 0.0f)   /* flip by 180 */
+      {
+        lox = -lox ;
+        loy = -loy ;
+      }
+      *oxpix = lox ;
+      *oypix = loy ;
+    }
+  }
+
+  if (Iout != Ioffset)
+  {
+    ImageCopy(Iout, Ioffset) ;
+    ImageFree(&Iout) ;
+  }
+  return(Ioffset) ;
+}
+/*----------------------------------------------------------------------
+            Parameters:
+
+           Description:
+----------------------------------------------------------------------*/
+IMAGE *
+LogMapOffsetMagnitude(LOGMAP_INFO *lmi,IMAGE *Isrc,IMAGE *Idst,int maxsteps)
+{
+  int     rows, cols, x, y, ax, ay, sx, sy, x1, y1, dx, dy, odx, ody, d,
+          steps, dot, xoff, yoff, k, xold, yold ;
+  float   *src_xpix, *src_ypix, *dst_xpix, *dst_ypix, *oxpix, *oypix ;
+  LOGPIX  *pix, *npix = NULL ;
+
+  if (!Idst)
+    Idst = ImageAlloc(Isrc->rows, Isrc->cols,Isrc->pixel_format,
+                      Isrc->num_frame);
+
+  rows = Isrc->rows ;
+  cols = Isrc->cols ;
+
+  src_xpix = IMAGEFpix(Isrc, 0, 0) ;
+  src_ypix = IMAGEFseq_pix(Isrc, 0, 0, 1) ;
+  dst_xpix = IMAGEFpix(Idst, 0, 0) ;
+  dst_ypix = IMAGEFseq_pix(Idst, 0, 0, 1) ;
+  for (y1 = 0 ; y1 < rows ; y1++)
+  {
+    for (x1 = 0 ; x1 < cols ; x1++)
+    {
+      /* do a Bresenham algorithm do find the offset line at this point */
+      dx = nint(*src_xpix++ * FSCALE) ;
+      dy = nint(*src_ypix++ * FSCALE) ;
+      xold = x = x1 ;
+      yold = y = y1 ;
+      ax = ABS(dx) << 1 ;
+      sx = SGN(dx) ;
+      ay = ABS(dy) << 1 ;
+      sy = SGN(dy) ;
+      
+      pix = LOG_PIX(lmi, x1, y1) ;
+      if (ax > ay)  /* x dominant, move sx in x each time step, check for y */
+      {
+        d = ay - (ax >> 1) ;
+        for (steps = 0 ; steps < maxsteps ; steps++)
+        {
+          oxpix = IMAGEFpix(Isrc, x, y) ;
+          oypix = IMAGEFseq_pix(Isrc, x, y, 1) ;
+          odx = nint(*oxpix * FSCALE) ;
+          ody = nint(*oypix * FSCALE) ;
+          dot = odx * dx + ody * dy ;
+
+          if (dot <= 0)
+            break ;
+          if (d >= 0)               /* move in x and y */
+          {
+            yoff = sy ;
+            d -= ax ;
+          }
+          else                      /* move only in x */
+            yoff = 0 ;
+
+          k = 4+3*yoff + sx ;         /* find index of appropriate neighbor */
+          npix = pix->nbd[k] ;
+
+          xold = x ;
+          yold = y ;
+          x = npix->ring ;
+          y = npix->spoke ;
+          d += ay ;
+          pix = npix ;
+        }
+      }
+      else    /* y dominant, move sy in y each time step, check for x */
+      {
+        d = ax - (ay >> 1) ;
+        for (steps = 0 ; steps < maxsteps ; steps++)
+        {
+          oxpix = IMAGEFpix(Isrc, x, y) ;
+          oypix = IMAGEFseq_pix(Isrc, x, y, 1) ;
+          odx = nint(*oxpix * FSCALE) ;
+          ody = nint(*oypix * FSCALE) ;
+          dot = odx * dx + ody * dy ;
+          if (dot <= 0)
+            break ;
+          if (d >= 0)   /* move one in x direction */
+          {
+            xoff = sx ;
+            d -= ay ;
+          }
+          else         /* only move in y */
+            xoff = 0 ;
+
+          k = 4+3*(sy) + xoff ;      /* find index of appropriate neighbor */
+          npix = pix->nbd[k] ;
+
+          xold = x ;
+          yold = y ;
+          x = npix->ring ;
+          y = npix->spoke ;
+          d += ax ;
+          pix = npix ;
+        }
+      }
+
+      *dst_xpix++ = (float)(xold - x1) ;
+      *dst_ypix++ = (float)(yold - y1) ;
+    }
+  }
+
+  return(Idst) ;
+}
+/*----------------------------------------------------------------------
+            Parameters:
+
+           Description:
+----------------------------------------------------------------------*/
+IMAGE *
+LogMapApplyOffset(LOGMAP_INFO *lmi, IMAGE *Isrc, IMAGE *Ioffset, IMAGE *Idst)
+{
+  return(ImageApplyOffset(Isrc, Ioffset, Idst)) ;
+}
+/*----------------------------------------------------------------------
+            Parameters:
+
+           Description:
+----------------------------------------------------------------------*/
+static int compare_sort_array(const void *pf1, const void *pf2) ;
+IMAGE *
+LogMapMedianFilter(LOGMAP_INFO *lmi, IMAGE *Isrc, int wsize, IMAGE *Ioffset, 
+                   IMAGE *Idst)
+{
+  static float *sort_array = NULL ;
+  static int   sort_size = 0 ;
+  int    x0, y0, rows, cols, whalf, dx, dy, frame,wsq,
+         median_index, k, nring, nspoke ;
+  float  *sptr, *outPix ;
+  LOGPIX   *npix ;
+#define OVERLAPPING_FAST_MEDIAN 0
+#if OVERLAPPING_FAST_MEDIAN
+  float  min_val, max_val ;
+  int    ecode ;
+  byte   *in_image, *out_image ;
+  IMAGE  *Iout, *Iin ;
+#endif
+
+  rows = Isrc->rows ;
+  cols = Isrc->cols ;
+
+  if (ImageCheckSize(Isrc, Idst, 0, 0, 0))
+  {
+    if (Idst)
+      ImageFree(&Idst) ;
+    Idst = ImageAlloc(rows, cols, PFFLOAT, 1) ;
+  }
+  else
+    ImageSetSize(Idst, rows, cols) ;
+
+#if OVERLAPPING_FAST_MEDIAN
+  if (!Ioffset)
+  {
+    /* h_median only takes byte formatted input and output images */
+    if (Isrc->pixel_format != PFBYTE)
+    {
+      Iin = ImageAlloc(rows, cols,PFBYTE, Isrc->num_frame);
+      ImageValRange(Isrc, &min_val, &max_val) ;
+      ImageScale(Isrc, Isrc, 0.0f, 255.0f) ;
+      ImageCopy(Isrc, Iin) ;
+      ImageScale(Isrc, Isrc, min_val, max_val) ;  /* restore old image */
+    }
+    else
+      Iin = Isrc ;
+
+    if (Isrc->pixel_format != PFBYTE)
+      Iout = ImageAlloc(rows, cols, PFBYTE, Idst->num_frame);
+    else
+      Iout = Idst ;
+
+    out_image = Iout->image ;
+    in_image = Iin->image ;
+    for (frame = 0 ; frame < Isrc->num_frame ; frame++)
+    {
+      ecode = h_median(Iin, Iout, wsize) ;
+      if (ecode != HIPS_OK)
+        ErrorReturn(NULL, (ecode, 
+                           "LogMapMedianFilter: h_median failed (%d)", ecode));
+
+      Iout->firstpix += Iout->sizeimage ;
+      Iout->image += Iout->sizeimage ;
+
+      Iin->firstpix += Iin->sizeimage ;
+      Iin->image += Iin->sizeimage ;
+    }
+
+    Iout->firstpix = Iout->image = out_image ;
+    Iin->firstpix = Iin->image = in_image ;
+    if (Iin != Isrc)
+      ImageFree(&Iin) ;
+    if (Idst != Iout)
+    {
+      ImageCopy(Iout, Idst) ;
+      ImageScale(Idst, Idst, min_val, max_val) ;
+      ImageFree(&Iout) ;
+    }
+    return(NO_ERROR) ;
+  }
+#endif
+
+  median_index = wsize*wsize/2 ;
+  wsq = wsize*wsize ;
+  whalf = (wsize-1)/2 ;
+
+  /* create a static array for sorting pixels in */
+  if (wsize > sort_size)
+  {
+    sort_size = wsize ;
+    if (sort_array)
+      sort_array = NULL ;
+  }
+
+  if (!sort_array)
+    sort_array = (float *)calloc(wsq, sizeof(float)) ;
+
+  for (frame = 0 ; frame < Isrc->num_frame ; frame++)
+  {
+    outPix = IMAGEFseq_pix(Idst, 0, 0, frame) ;
+    for (y0 = 0 ; y0 < rows ; y0++)
+    {
+      for (x0 = 0 ; x0 < cols ; x0++, outPix++)
+      {
+        if (LOG_PIX_AREA(lmi, x0, y0) <= 0)
+          continue ;
+
+        if (Ioffset)
+        {
+          dx = nint(*IMAGEFpix(Ioffset, x0, y0)) ;
+          dy = nint(*IMAGEFseq_pix(Ioffset, x0, y0, 1)) ;
+        }
+        else
+          dx = dy = 0 ;
+        
+        for (sptr = sort_array, k = 0 ; k < NBD_SIZE ; k++)
+        {
+          npix = LOG_PIX_NBD(lmi, x0+dx, y0+dy, k) ;
+          if (!npix)
+            continue ;   /* should never happen */
+          nring = npix->ring ;
+          nspoke = npix->spoke ;
+          *sptr++ = *IMAGEFpix(Isrc, nring, nspoke) ;
+        }
+        qsort(sort_array, wsq, sizeof(float), compare_sort_array) ;
+        *outPix = sort_array[median_index] ;
+      }
+    }
+  }
+  return(Idst) ;
+}
+/*----------------------------------------------------------------------
+            Parameters:
+
+           Description:
+----------------------------------------------------------------------*/
+static int
+compare_sort_array(const void *pf1, const void *pf2)
+{
+  register float f1, f2 ;
+
+  f1 = *(float *)pf1 ;
+  f2 = *(float *)pf2 ;
+
+/*  return(f1 > f2 ? 1 : f1 == f2 ? 0 : -1) ;*/
+  if (f1 > f2)
+    return(1) ;
+  else if (f1 < f2)
+    return(-1) ;
+
+  return(0) ;
+}
+/*----------------------------------------------------------------------
+            Parameters:
+
+           Description:
+              convolve a logmap with a Gaussian kernel using
+              2 one dimensional convolutions
+----------------------------------------------------------------------*/
+IMAGE *
+LogMapGaussianFilter(LOGMAP_INFO *lmi, IMAGE *Isrc, 
+                       IMAGE *Igaussian, IMAGE *Idst)
+{
+  int    rows, cols ;
+  IMAGE  *Iout, *Itmp ;
+
+  rows = Isrc->rows ;
+  cols = Isrc->cols ;
+  if (!ImageCheckSize(Isrc, Idst, 0, 0, 0))
+  {
+    if (Idst)
+      ImageFree(&Idst) ;
+    Idst = ImageAlloc(lmi->nspokes,lmi->nrings, Isrc->pixel_format,1);
+  }
+  else
+  {
+    ImageSetSize(Idst, rows, cols) ;
+    ImageClearArea(Idst, 0, 0, Idst->rows, Idst->cols, 0.0f) ;
+  }
+
+  if (Idst->pixel_format != Isrc->pixel_format)
+    Iout = ImageAlloc(lmi->nspokes, lmi->nrings, Isrc->pixel_format,1);
+  else
+    Iout = Idst ;
+
+  Itmp = ImageAlloc(rows, cols, PFFLOAT, 1) ;
+  lmConvolve1d(lmi, Isrc, Igaussian, Itmp, IMAGE_VERTICAL) ;
+  lmConvolve1d(lmi, Itmp, Igaussian, Iout, IMAGE_HORIZONTAL) ;
+
+
+  ImageFree(&Itmp) ;
+  if (Iout != Idst)
+  {
+    ImageCopy(Iout, Idst) ;
+    ImageFree(&Iout) ;
+  }
+  return(Idst) ;
+}
+/*----------------------------------------------------------------------
+            Parameters:
+
+           Description:
+              convolve a logmap with a Gaussian kernel using
+              2 one dimensional convolutions
+----------------------------------------------------------------------*/
+static int 
+lmConvolve1d(LOGMAP_INFO *lmi, IMAGE *Isrc, IMAGE *Igaussian, IMAGE *Idst, 
+             int which)
+{
+  int    rows, cols, ring, spoke, klen, khalf, nx, ny, k ;
+  LOGPIX *pix, *npix ;
+  float  *fdst, *kernel, out ;
+
+  klen = Igaussian->cols ;
+  khalf = (klen-1) / 2 ;
+  rows = Isrc->rows ;
+  cols = Isrc->cols ;
+  pix = LOG_PIX(lmi, 0, 0) ;
+  fdst = IMAGEFpix(Idst, 0, 0) ;
+  if (which == IMAGE_VERTICAL)
+  {
+    for (spoke = 0 ; spoke < rows ; spoke++)
+    {
+      for (ring = 0 ; ring < cols ; ring++, pix++, fdst++)
+      {
+        if (pix->area <= 0)
+          continue ;    /* not a real pixel */
+        out = 0.0f ;
+
+        /* first track from central pixel leftwards */
+        kernel = IMAGEFpix(Igaussian, khalf, 0) ;
+        npix = pix ;
+        for (k = khalf ; k >= 0 ; k--)
+        {
+          nx = npix->ring ;
+          ny = npix->spoke ;
+          out += *IMAGEFpix(Isrc, nx, ny) * *kernel-- ;
+          npix = npix->nbd[N_S] ;
+        }
+
+        /* now track rightwards */
+        kernel = IMAGEFpix(Igaussian, khalf+1, 0) ;
+        npix = pix->nbd[N_N] ;
+        for (k = khalf+1 ; k < klen ; k++)
+        {
+          nx = npix->ring ;
+          ny = npix->spoke ;
+          out += *IMAGEFpix(Isrc, nx, ny) * *kernel++ ;
+          npix = npix->nbd[N_N] ;
+        }
+
+        *fdst = out ;
+      }
+    }
+  }
+  else     /* horizontal convolution */
+  {
+    for (spoke = 0 ; spoke < rows ; spoke++)
+    {
+      for (ring = 0 ; ring < cols ; ring++, pix++, fdst++)
+      {
+        if (pix->area <= 0)
+          continue ;    /* not a real pixel */
+
+        out = 0.0f ;
+
+        /* first track from central pixel leftwards */
+        kernel = IMAGEFpix(Igaussian, khalf, 0) ;
+        npix = pix ;
+        for (k = khalf ; k >= 0 ; k--)
+        {
+          nx = npix->ring ;
+          ny = npix->spoke ;
+          out += *IMAGEFpix(Isrc, nx, ny) * *kernel-- ;
+          npix = npix->nbd[N_W] ;
+        }
+
+        /* now track rightwards */
+        kernel = IMAGEFpix(Igaussian, khalf+1, 0) ;
+        npix = pix ;
+        for (k = khalf+1 ; k < klen ; k++)
+        {
+          nx = npix->ring ;
+          ny = npix->spoke ;
+          out += *IMAGEFpix(Isrc, nx, ny) * *kernel++ ;
+          npix = npix->nbd[N_E] ;
+        }
+
+        *fdst = out ;
+      }
+
+    }
+  }
+
+  return(NO_ERROR) ;
+}
