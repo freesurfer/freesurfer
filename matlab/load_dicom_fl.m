@@ -15,7 +15,7 @@ function [vol, M, dcminfo, mr_parms] = load_dicom_fl(flist)
 %
 % Does not handle multiple frames correctly yet.
 %
-% $Id: load_dicom_fl.m,v 1.6 2003/04/30 19:32:53 greve Exp $
+% $Id: load_dicom_fl.m,v 1.7 2003/07/21 16:20:51 ebeth Exp $
 
 vol=[];
 M=[];
@@ -72,19 +72,22 @@ D = diag(delta);
 P0 = dcminfo(1).ImagePositionPatient;
 
 % Change Siemens to be RAS %
+% GE is also LPS - change it to be RAS, too - ebeth %
 Manufacturer = dcminfo(1).Manufacturer;
-if(strcmpi(Manufacturer,'Siemens'))
+if(strcmpi(Manufacturer,'Siemens') | strcmpi(Manufacturer,'ge medical systems'))
   % Change to RAS
   Mdc(1,:) = -Mdc(1,:); 
   Mdc(2,:) = -Mdc(2,:); 
   P0(1)    = -P0(1);
   P0(2)    = -P0(2);
+end
+
+% Compute vox2ras transform %
+M = [Mdc*D P0; 0 0 0 1];
+if (0&strcmpi(Manufacturer,'Siemens'))
   % Correcting for P0 being at corner of 
   % the first voxel instead of at the center
-  M = [Mdc*D P0; 0 0 0 1];
   M = M*[[eye(3) [0.5 0.5 0]']; 0 0 0 1];  %'
-else
-  M = [Mdc*D P0; 0 0 0 1];
 end
 
 % Pre-allocate vol. Note: column and row designations do
@@ -118,6 +121,13 @@ if(0 & ~strcmpi(dcminfo(1).PhaseEncodingDirection,'ROW'))
   Mtmp = M;
   M(:,1) = Mtmp(:,2);
   M(:,2) = Mtmp(:,1);
+end
+
+% Lines below correct for the Z-offset in GE machines - ebeth %
+% We're told ge machines recenter along superior/inferior axis but
+% don't update c_ras - but now c_s should be zero.
+if(strcmpi(Manufacturer,'ge medical systems')) 
+  M(3,4) = 0;
 end
 
 % Pull out some info from the header %
