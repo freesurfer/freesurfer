@@ -672,4 +672,7 @@ int    MRISexpandSurface(MRI_SURFACE *mris, float distance) ;
 
 #define MRISPvox(m,u,v)   (*IMAGEFpix(m->Ip,u,v))
 
+#define MRI_LEFT_HEMISPHERE    255
+#define MRI_RIGHT_HEMISPHERE   127
+
 #endif
