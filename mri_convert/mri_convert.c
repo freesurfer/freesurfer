@@ -3,9 +3,9 @@
 // original: written by Bruce Fischl (Apr 16, 1997)
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: greve $
-// Revision Date  : $Date: 2004/10/04 21:18:26 $
-// Revision       : $Revision: 1.95 $
+// Revision Author: $Author: tosa $
+// Revision Date  : $Date: 2004/11/23 17:13:17 $
+// Revision       : $Revision: 1.96 $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -226,7 +226,7 @@ int main(int argc, char *argv[])
   nskip = 0;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_convert.c,v 1.95 2004/10/04 21:18:26 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_convert.c,v 1.96 2004/11/23 17:13:17 tosa Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -1379,7 +1379,8 @@ int main(int argc, char *argv[])
     transform_type = TransformFileNameType(transform_fname);
     if(transform_type == MNI_TRANSFORM_TYPE || 
        transform_type == TRANSFORM_ARRAY_TYPE ||
-       transform_type == REGISTER_DAT)
+       transform_type == REGISTER_DAT ||
+       transform_type == FSLREG_TYPE)
     {
       printf("Reading transform\n");
       // lta_transform = LTAread(transform_fname);
@@ -1388,6 +1389,33 @@ int main(int argc, char *argv[])
         fprintf(stderr, "ERROR: Reading transform from file %s\n", 
                 transform_fname);
         exit(1);
+      }
+      
+      if (transform_type == FSLREG_TYPE)
+      {
+	MRI *tmp = 0;
+	if (out_like_flag == 0)
+	{
+	  fprintf(stderr, "ERROR: fslmat does not have the information on the dst volume\n");
+	  fprintf(stderr, "ERROR: you must give option '--like volume' to specify the dst volume info\n");
+	  exit(1);
+	}
+	// now setup dst volume info
+	lt = &lta_transform->xforms[0];
+	lt->dst.valid = 1;
+	tmp = MRIreadHeader(out_like_name, MRI_VOLUME_TYPE_UNKNOWN);	// flsmat does not contain src and dst info
+	lt->dst.width = tmp->width;
+	lt->dst.height = tmp->height;
+	lt->dst.depth = tmp->depth;
+	lt->dst.xsize = tmp->xsize;
+	lt->dst.ysize = tmp->ysize;
+	lt->dst.zsize = tmp->zsize;
+	lt->dst.x_r = tmp->x_r; lt->dst.x_a = tmp->x_a; lt->dst.x_s = tmp->x_s;
+	lt->dst.y_r = tmp->y_r; lt->dst.y_a = tmp->y_a; lt->dst.y_s = tmp->y_s;
+	lt->dst.z_r = tmp->z_r; lt->dst.z_a = tmp->z_a; lt->dst.z_s = tmp->z_s;
+	lt->dst.c_r = tmp->c_r; lt->dst.c_a = tmp->c_a; lt->dst.c_s = tmp->c_s;
+	strcpy(lt->dst.fname, tmp->fname);
+	MRIfree(&tmp);
       }
 
       if(DevXFM){
