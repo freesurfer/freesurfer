@@ -119,6 +119,8 @@ int XVsetImageSize(XV_FRAME *xvf, int which, int rows, int cols) ;
 void XVsetMinPanelWidth(XV_FRAME *xvf, int min_panel_width) ;
 int XVresize(XV_FRAME *xvf) ;
 void buttonQuit(Panel_item item, Event *event) ;
+int XVaddImageCol(XV_FRAME *xvf) ;
+int XVdeleteImageCol(XV_FRAME *xvf) ;
 
 #define WINDOW_PAD          3
 

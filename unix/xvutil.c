@@ -95,6 +95,9 @@ static void xv_dimage_event_handler(Xv_Window window, Event *event) ;
 static XImage *xvCreateXimage(XV_FRAME *xvf, IMAGE *image) ;
 static Panel_setting xvHipsCommand(Panel_item item, Event *event) ;
 static void xvHipsCmdFrameInit(void) ;
+static void xvCreateImage(XV_FRAME *xvf, DIMAGE *dimage, int x, int y, 
+                          int which) ;
+static void xvFreeDimage(DIMAGE *dimage) ;
 
 /*----------------------------------------------------------------------
                               GLOBAL DATA
@@ -363,7 +366,6 @@ xvInitColors(XV_FRAME *xvf)
 static void
 xvInitImages(XV_FRAME *xvf)
 {
-  XGCValues   GCvalues ;
   DIMAGE     *dimage ;
   int        row, col, x, y ;
 
@@ -374,90 +376,7 @@ xvInitImages(XV_FRAME *xvf)
     for (col = 0 ; col < xvf->cols ; col++)
     {
       dimage = &xvf->dimages[row][col] ;
-      dimage->which = row * xvf->cols + col ;
-      dimage->x = x ;
-      dimage->y = y ;
-
-      dimage->canvas =
-        (Canvas)xv_create((Xv_opaque)xvf->frame, CANVAS,
-                          XV_X,                  x,
-                          XV_Y,                  y,
-                          XV_HEIGHT,             xvf->display_rows,
-                          XV_WIDTH,              xvf->display_cols,
-                          CANVAS_X_PAINT_WINDOW, TRUE,
-                          CANVAS_REPAINT_PROC,   xv_dimage_repaint,
-                          CANVAS_RETAINED,       FALSE,
-                          WIN_CMS,               xvf->cms,
-                          NULL);
-
-      dimage->title_item = (Panel_item)
-        xv_create((Xv_opaque)xvf->panel, PANEL_MESSAGE,
-                  PANEL_LABEL_BOLD, TRUE,
-                  XV_X, x,
-                  XV_Y, y-CHAR_HEIGHT+CHAR_PAD,
-                  PANEL_LABEL_STRING, 
-                  dimage->title_string,
-                  NULL);
-
-      dimage->dispImage = ImageAlloc(xvf->display_rows, xvf->display_cols, 
-                                    PFBYTE, 1) ;
-      dimage->ximage = xvCreateXimage(xvf, dimage->dispImage) ;
-      xv_set(canvas_paint_window(dimage->canvas),
-             WIN_EVENT_PROC, xv_dimage_event_handler,
-             WIN_CONSUME_EVENTS,  MS_LEFT, LOC_DRAG, MS_RIGHT, MS_MIDDLE, 
-                     WIN_ASCII_EVENTS, NULL,
-             NULL);
-      dimage->window = 
-        (Window)xv_get(canvas_paint_window(dimage->canvas),XV_XID);
-
-      dimage->clearGC = 
-        XCreateGC(xvf->display, dimage->window, (unsigned long )0, &GCvalues);
-      XSetFunction(xvf->display, dimage->clearGC, GXclear);
-      dimage->xorGC = 
-        XCreateGC(xvf->display, dimage->window, (unsigned long)0, &GCvalues);
-      XSetFunction(xvf->display, dimage->xorGC, GXinvert);
-
-      dimage->greenGC = 
-        XCreateGC(xvf->display, dimage->window,(unsigned long )0, &GCvalues);
-      XSetFunction(xvf->display, dimage->greenGC, GXcopy) ;
-      XSetBackground(xvf->display, dimage->greenGC, xvf->green_pixel) ;
-      XSetForeground(xvf->display, dimage->greenGC, xvf->green_pixel) ;
-
-      dimage->blueGC = 
-        XCreateGC(xvf->display, dimage->window,(unsigned long )0, &GCvalues);
-      XSetFunction(xvf->display, dimage->blueGC, GXcopy) ;
-      XSetBackground(xvf->display, dimage->blueGC, xvf->blue_pixel) ;
-      XSetForeground(xvf->display, dimage->blueGC, xvf->blue_pixel) ;
-
-      dimage->purpleGC = 
-        XCreateGC(xvf->display, dimage->window,(unsigned long )0, &GCvalues);
-      XSetFunction(xvf->display, dimage->purpleGC, GXcopy) ;
-      XSetBackground(xvf->display, dimage->purpleGC, xvf->purple_pixel) ;
-      XSetForeground(xvf->display, dimage->purpleGC, xvf->purple_pixel) ;
-
-      dimage->yellowGC = 
-        XCreateGC(xvf->display, dimage->window,(unsigned long )0, &GCvalues);
-      XSetFunction(xvf->display, dimage->yellowGC, GXcopy) ;
-      XSetBackground(xvf->display, dimage->yellowGC, xvf->yellow_pixel) ;
-      XSetForeground(xvf->display, dimage->yellowGC, xvf->yellow_pixel) ;
-
-      dimage->cyanGC = 
-        XCreateGC(xvf->display, dimage->window,(unsigned long )0, &GCvalues);
-      XSetFunction(xvf->display, dimage->cyanGC, GXcopy) ;
-      XSetBackground(xvf->display, dimage->cyanGC, xvf->cyan_pixel) ;
-      XSetForeground(xvf->display, dimage->cyanGC, xvf->cyan_pixel) ;
-
-      dimage->redGC = 
-        XCreateGC(xvf->display, dimage->window,(unsigned long )0, &GCvalues);
-      XSetFunction(xvf->display, dimage->redGC, GXcopy) ;
-      XSetBackground(xvf->display, dimage->redGC, xvf->red_pixel) ;
-      XSetForeground(xvf->display, dimage->redGC, xvf->red_pixel) ;
-
-      dimage->whiteGC = 
-        XCreateGC(xvf->display, dimage->window,(unsigned long )0, &GCvalues);
-      XSetForeground(xvf->display, dimage->whiteGC, xvf->white_pixel);
-      XSetBackground(xvf->display, dimage->whiteGC, xvf->white_pixel);
-
+      xvCreateImage(xvf, dimage, x, y, row * xvf->cols + col) ;
       x += WINDOW_PAD + xvf->display_cols ;
     }
     y += CHAR_HEIGHT + xvf->display_rows ;
@@ -1404,3 +1323,158 @@ XVsetMinPanelWidth(XV_FRAME *xvf, int min_panel_width)
   xv_set(xvf->frame, XV_WIDTH, min_panel_width, NULL) ;
 }
 
+int
+XVaddImageCol(XV_FRAME *xvf)
+{
+  int     row, col, which, x, y ;
+  DIMAGE  *dimages ;
+
+  col = xvf->cols++ ;
+
+  x = col * (WINDOW_PAD + xvf->display_cols) ;
+  y = PANEL_HEIGHT ;
+  for (row = 0 ; row < xvf->rows ; row++)
+  {
+    dimages = (DIMAGE *)calloc(xvf->cols, sizeof(DIMAGE)) ;
+    for (col = 0 ; col < xvf->cols ; col++)
+    {
+      if (col < xvf->cols-1)
+        memcpy(&dimages[col], &xvf->dimages[row][col], sizeof(DIMAGE)) ;
+      else
+      {
+        which = row * xvf->cols + col ;
+        xvCreateImage(xvf, &dimages[col], x, y, which) ;
+      }
+    }
+    free(xvf->dimages[row]) ;
+    xvf->dimages[row] = dimages ;
+    y += CHAR_HEIGHT + xvf->display_rows ;
+  }
+
+  return(0) ;
+}
+
+int
+XVdeleteImageCol(XV_FRAME *xvf)
+{
+  int     row, col ;
+  DIMAGE  *dimages ;
+
+  xvf->cols-- ;
+  
+  for (row = 0 ; row < xvf->rows ; row++)
+  {
+    dimages = (DIMAGE *)calloc(xvf->cols, sizeof(DIMAGE)) ;
+    for (col = 0 ; col < xvf->cols ; col++)
+      memcpy(&dimages[col], &xvf->dimages[row][col], sizeof(DIMAGE)) ;
+
+    xvFreeDimage(&xvf->dimages[row][xvf->cols]) ;
+    free(xvf->dimages[row]) ;
+    xvf->dimages[row] = dimages ;
+  }
+
+  XVresize(xvf) ;
+
+  return(0) ;
+}
+
+static void
+xvCreateImage(XV_FRAME *xvf, DIMAGE *dimage, int x, int y, int which)
+{
+  XGCValues   GCvalues ;
+
+  dimage->which = which ;
+  dimage->x = x ;
+  dimage->y = y ;
+  
+  dimage->canvas =
+    (Canvas)xv_create((Xv_opaque)xvf->frame, CANVAS,
+                      XV_X,                  x,
+                      XV_Y,                  y,
+                      XV_HEIGHT,             xvf->display_rows,
+                      XV_WIDTH,              xvf->display_cols,
+                      CANVAS_X_PAINT_WINDOW, TRUE,
+                      CANVAS_REPAINT_PROC,   xv_dimage_repaint,
+                      CANVAS_RETAINED,       FALSE,
+                      WIN_CMS,               xvf->cms,
+                      NULL);
+  
+  dimage->title_item = (Panel_item)
+    xv_create((Xv_opaque)xvf->panel, PANEL_MESSAGE,
+              PANEL_LABEL_BOLD, TRUE,
+              XV_X, x,
+              XV_Y, y-CHAR_HEIGHT+CHAR_PAD,
+              PANEL_LABEL_STRING, 
+              dimage->title_string,
+              NULL);
+  
+  dimage->dispImage = ImageAlloc(xvf->display_rows, xvf->display_cols, 
+                                 PFBYTE, 1) ;
+  dimage->ximage = xvCreateXimage(xvf, dimage->dispImage) ;
+  xv_set(canvas_paint_window(dimage->canvas),
+         WIN_EVENT_PROC, xv_dimage_event_handler,
+         WIN_CONSUME_EVENTS,  MS_LEFT, LOC_DRAG, MS_RIGHT, MS_MIDDLE, 
+         WIN_ASCII_EVENTS, NULL,
+         NULL);
+  dimage->window = 
+    (Window)xv_get(canvas_paint_window(dimage->canvas),XV_XID);
+  
+  dimage->clearGC = 
+    XCreateGC(xvf->display, dimage->window, (unsigned long )0, &GCvalues);
+  XSetFunction(xvf->display, dimage->clearGC, GXclear);
+  dimage->xorGC = 
+    XCreateGC(xvf->display, dimage->window, (unsigned long)0, &GCvalues);
+  XSetFunction(xvf->display, dimage->xorGC, GXinvert);
+  
+  dimage->greenGC = 
+    XCreateGC(xvf->display, dimage->window,(unsigned long )0, &GCvalues);
+  XSetFunction(xvf->display, dimage->greenGC, GXcopy) ;
+  XSetBackground(xvf->display, dimage->greenGC, xvf->green_pixel) ;
+  XSetForeground(xvf->display, dimage->greenGC, xvf->green_pixel) ;
+  
+  dimage->blueGC = 
+    XCreateGC(xvf->display, dimage->window,(unsigned long )0, &GCvalues);
+  XSetFunction(xvf->display, dimage->blueGC, GXcopy) ;
+  XSetBackground(xvf->display, dimage->blueGC, xvf->blue_pixel) ;
+  XSetForeground(xvf->display, dimage->blueGC, xvf->blue_pixel) ;
+  
+  dimage->purpleGC = 
+    XCreateGC(xvf->display, dimage->window,(unsigned long )0, &GCvalues);
+  XSetFunction(xvf->display, dimage->purpleGC, GXcopy) ;
+  XSetBackground(xvf->display, dimage->purpleGC, xvf->purple_pixel) ;
+  XSetForeground(xvf->display, dimage->purpleGC, xvf->purple_pixel) ;
+  
+  dimage->yellowGC = 
+    XCreateGC(xvf->display, dimage->window,(unsigned long )0, &GCvalues);
+  XSetFunction(xvf->display, dimage->yellowGC, GXcopy) ;
+  XSetBackground(xvf->display, dimage->yellowGC, xvf->yellow_pixel) ;
+  XSetForeground(xvf->display, dimage->yellowGC, xvf->yellow_pixel) ;
+  
+  dimage->cyanGC = 
+    XCreateGC(xvf->display, dimage->window,(unsigned long )0, &GCvalues);
+  XSetFunction(xvf->display, dimage->cyanGC, GXcopy) ;
+  XSetBackground(xvf->display, dimage->cyanGC, xvf->cyan_pixel) ;
+  XSetForeground(xvf->display, dimage->cyanGC, xvf->cyan_pixel) ;
+  
+  dimage->redGC = 
+    XCreateGC(xvf->display, dimage->window,(unsigned long )0, &GCvalues);
+  XSetFunction(xvf->display, dimage->redGC, GXcopy) ;
+  XSetBackground(xvf->display, dimage->redGC, xvf->red_pixel) ;
+  XSetForeground(xvf->display, dimage->redGC, xvf->red_pixel) ;
+  
+  dimage->whiteGC = 
+    XCreateGC(xvf->display, dimage->window,(unsigned long )0, &GCvalues);
+  XSetForeground(xvf->display, dimage->whiteGC, xvf->white_pixel);
+  XSetBackground(xvf->display, dimage->whiteGC, xvf->white_pixel);
+}
+
+static void
+xvFreeDimage(DIMAGE *dimage)
+{
+  ImageFree(&dimage->dispImage) ;
+  xv_destroy_safe(dimage->canvas) ;
+  xv_destroy_safe(dimage->title_item) ;
+
+/*  (*dimage->ximage->destroy_image)(dimage->ximage)*/
+  /* lots of other stuff needed here */
+}
