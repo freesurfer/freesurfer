@@ -21,10 +21,14 @@ int MRIaccumulateMeansAndVariances(MRI *mri, MRI *mri_mean, MRI *mri_std) ;
 int MRIcomputeMeansAndStds(MRI *mri_mean, MRI *mri_std, int ndof) ;
 MRI *MRIfloatToChar(MRI *mri_src, MRI *mri_dst) ;
 
+static char *wm_name = "wm" ;
+static char *filled_name = "filled" ;
+
 static int use_wm = 1 ;
 static int use_filled = 1 ;
 static int make_edit_volume = 0 ;
 static char *transform_fname = NULL ;
+static char *T1_name = "T1" ;
 
 /* reading the filled volumes twice to do left and right hemisphere is a 
    hack, but I don't have enough memory to hold two means and stds at the
@@ -76,9 +80,9 @@ main(int argc, char *argv[])
     if ((which > 0 && !use_wm) || (which >= FILLED_VOLUME && !use_filled) ||
         (which >= EDIT_VOLUME  && !make_edit_volume))
       break ;
-    volume_name = which == T1_VOLUME ? "T1" : 
+    volume_name = which == T1_VOLUME ? T1_name : 
       (which == LH_FILLED_VOLUME || which == RH_FILLED_VOLUME) ? 
-      "filled" : "wm" ;
+      filled_name : wm_name ;
 
     /* for each subject specified on cmd line */
     no_transform = first_transform ;
@@ -206,6 +210,24 @@ get_option(int argc, char *argv[])
   {
     use_filled = use_wm = make_edit_volume = 0 ;
     fprintf(stderr, "making single mean/variance image\n") ;
+  }
+  else if (!stricmp(option, "filled"))
+  {
+    filled_name = argv[2] ;
+    fprintf(stderr,"reading filled volume from directory '%s'\n",filled_name) ;
+    nargs = 1 ;
+  }
+  else if (!stricmp(option, "T1"))
+  {
+    T1_name = argv[2] ;
+    fprintf(stderr,"reading T1 volume from directory '%s'\n",T1_name) ;
+    nargs = 1 ;
+  }
+  else if (!stricmp(option, "wm"))
+  {
+    wm_name = argv[2] ;
+    fprintf(stderr, "reading wm volume from directory '%s'\n", wm_name) ;
+    nargs = 1 ;
   }
   else switch (toupper(*option))
   {
