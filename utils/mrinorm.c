@@ -446,65 +446,65 @@ MRInormCheckPeaks(MNI *mni, float *inputs, float *outputs, int npeaks)
     backward_dy[0] = backward_dy[1] ;
 
     if (Gdiag & DIAG_SHOW)
-    {
       fprintf(stderr, "avg = %2.5f, sigma = %2.5f\n", avg_dy, sigma_dy) ;
-      for (i = 0 ; i < npeaks ; i++)
-      {
-        bdy = fabs(backward_dy[i]) ;
-        fdy = fabs(forward_dy[i]) ;
-        sbdy = (bdy - avg_dy) / sigma_dy ;
-        sfdy = (fdy - avg_dy) / sigma_dy ;
-        fprintf(stderr, "%d:  fwd = %2.3f (%2.3f), backwd = %2.3f (%2.3f)\n",
-                i, fdy, sfdy, bdy, sbdy) ;
-      }
-      
-      /* now check for deletions */
-      maxi = -1 ;
-      max_dy = 0.0f ;
-      for (i = 0 ; i < npeaks ; i++)
-      {
-        bdy = fabs(backward_dy[i]) ;
-        fdy = fabs(forward_dy[i]) ;
-        if (fdy + bdy > max_dy)
-        {
-          max_dy = fdy + bdy ;
-          maxi = i ;
-        }
 
-      }
-      bdy = fabs(backward_dy[maxi]) ;
-      fdy = fabs(forward_dy[maxi]) ;
+    for (i = 0 ; i < npeaks ; i++)
+    {
+      bdy = fabs(backward_dy[i]) ;
+      fdy = fabs(forward_dy[i]) ;
       sbdy = (bdy - avg_dy) / sigma_dy ;
       sfdy = (fdy - avg_dy) / sigma_dy ;
-      /*
-        Delete the max point if the slope is too high, or it is in the 
-        ambiguous region (MIN_ABS < slope < MAX_ABS) but it is an outlier.
-        */
-      if (((bdy > MAX_ABSOLUTE_SLOPE) || (fdy > MAX_ABSOLUTE_SLOPE) ||
-          (sbdy > MAX_RELATIVE_SLOPE) || (sfdy > MAX_RELATIVE_SLOPE)) &&
-          ((bdy > MIN_ABSOLUTE_SLOPE) || (fdy > MIN_ABSOLUTE_SLOPE)))
-      {
-        int nelts ;
-
-        /*        if (Gdiag & DIAG_SHOW)*/
-          fprintf(stderr, "deleting peak %d = %2.1f\n", maxi, outputs[maxi]) ;
-        deleted = 1 ;
-        nelts = npeaks - maxi - 1 ;
-        if (nelts)  /* not the last item in the list */
-        {
-          memmove(inputs+maxi, inputs+maxi+1, nelts*sizeof(inputs[0])) ;
-          memmove(outputs+maxi, outputs+maxi+1, nelts*sizeof(outputs[0])) ;
-        }
-        npeaks-- ;
-      }
-      else
-        deleted = 0 ;
+      if (Gdiag & DIAG_SHOW)
+        fprintf(stderr, "%d:  fwd = %2.3f (%2.3f), backwd = %2.3f (%2.3f)\n",
+                i, fdy, sfdy, bdy, sbdy) ;
     }
+    
+    /* now check for deletions */
+    maxi = -1 ;
+    max_dy = 0.0f ;
+    for (i = 0 ; i < npeaks ; i++)
+    {
+      bdy = fabs(backward_dy[i]) ;
+      fdy = fabs(forward_dy[i]) ;
+      if (fdy + bdy > max_dy)
+      {
+        max_dy = fdy + bdy ;
+        maxi = i ;
+      }
+      
+    }
+    bdy = fabs(backward_dy[maxi]) ;
+    fdy = fabs(forward_dy[maxi]) ;
+    sbdy = (bdy - avg_dy) / sigma_dy ;
+    sfdy = (fdy - avg_dy) / sigma_dy ;
+    /*
+      Delete the max point if the slope is too high, or it is in the 
+      ambiguous region (MIN_ABS < slope < MAX_ABS) but it is an outlier.
+      */
+    if (((bdy > MAX_ABSOLUTE_SLOPE) || (fdy > MAX_ABSOLUTE_SLOPE) ||
+         (sbdy > MAX_RELATIVE_SLOPE) || (sfdy > MAX_RELATIVE_SLOPE)) &&
+        ((bdy > MIN_ABSOLUTE_SLOPE) || (fdy > MIN_ABSOLUTE_SLOPE)))
+    {
+      int nelts ;
+      
+      if (Gdiag & DIAG_SHOW)
+        fprintf(stderr, "deleting peak %d = %2.1f\n", maxi, outputs[maxi]) ;
+      deleted = 1 ;
+      nelts = npeaks - maxi - 1 ;
+      if (nelts)  /* not the last item in the list */
+      {
+        memmove(inputs+maxi, inputs+maxi+1, nelts*sizeof(inputs[0])) ;
+        memmove(outputs+maxi, outputs+maxi+1, nelts*sizeof(outputs[0])) ;
+      }
+      npeaks-- ;
+    }
+    else
+      deleted = 0 ;
   } while (deleted > 0) ;
-
+  
   if (Gdiag & DIAG_SHOW)
     fflush(stderr) ;
-
+  
   return(npeaks) ;
 }
 /*-----------------------------------------------------
