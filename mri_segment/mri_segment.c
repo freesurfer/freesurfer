@@ -5,14 +5,16 @@
 
 #include "diag.h"
 #include "error.h"
-#include "mriclass.h"
 #include "macros.h"
 #include "utils.h"
 #include "proto.h"
 #include "classify.h"
+#include "mri.h"
 
 static int extract = 0 ;
 static int  verbose = 0 ;
+static int wsize = 5 ;
+static float pct = 0.8 ;
 
 char *Progname ;
 
@@ -22,9 +24,8 @@ static int get_option(int argc, char *argv[]) ;
 void 
 main(int argc, char *argv[])
 {
-  MRIC    *mric ;
-  MRI     *mri_input, *mri_output ;
-  char    *classifier_file_name, *input_file_name, *output_file_name ;
+  MRI     *mri_src, *mri_dst, *mri_cpolv, *mri_tmp ;
+  char    *input_file_name, *output_file_name ;
   int     nargs ;
 
   Progname = argv[0] ;
@@ -38,29 +39,31 @@ main(int argc, char *argv[])
     argv += nargs ;
   }
 
-  if (argc < 4)
+  if (argc < 3)
     ErrorExit(ERROR_BADPARM,
-              "usage: %s <classifier file> <input volume> <output volume>",
-              Progname);
+              "usage: %s <input volume> <output volume>", Progname);
 
-  classifier_file_name = argv[1] ;
-  input_file_name = argv[2] ;
-  output_file_name = argv[3] ;
+  input_file_name = argv[1] ;
+  output_file_name = argv[2] ;
 
-  mric = MRICread(classifier_file_name) ;
-  if (!mric)
-    ErrorExit(ERROR_NOFILE, "%s: could not read classifier from %s",
-              Progname, classifier_file_name) ;
-  mri_input = MRIread(input_file_name) ;
-  if (!mri_input)
+  mri_src = MRIread(input_file_name) ;
+  if (!mri_src)
     ErrorExit(ERROR_NOFILE, "%s: could not read source volume from %s",
               Progname, input_file_name) ;
 
-  mri_output = MRICclassify(mric, mri_input, NULL, 0.0f, NULL, NULL) ;
-  MRIwrite(mri_output, output_file_name) ;
-  MRICfree(&mric) ;
-  MRIfree(&mri_input) ;
-  MRIfree(&mri_output) ;
+  fprintf(stderr, "computing orientation of gray/white interface...\n") ;
+  mri_cpolv = MRIcentralPlaneOfLeastVarianceNormal(mri_src, NULL, wsize) ;
+  fprintf(stderr, "labelling white matter...\n") ;
+  mri_tmp = MRIwmfilter(mri_src, mri_cpolv, NULL) ;
+  mri_dst = MRIremoveHoles(mri_tmp, NULL, 3, pct) ;
+
+  fprintf(stderr, "writing output to %s...", output_file_name) ;
+  MRIwrite(mri_dst, output_file_name) ;
+  fprintf(stderr, "done.\n") ;
+
+  MRIfree(&mri_cpolv) ;
+  MRIfree(&mri_src) ;
+  MRIfree(&mri_dst) ;
   exit(0) ;
 }
 /*----------------------------------------------------------------------
@@ -80,11 +83,19 @@ get_option(int argc, char *argv[])
   case 'V':
     verbose = !verbose ;
     break ;
+  case 'P':
+    pct = atof(argv[2]) ;
+    fprintf(stderr, "using %2.0f%% threshold\n", pct*100.0f) ;
+    break ;
   case 'X':
     if (sscanf(argv[2], "%d", &extract) != 1)
       ErrorExit(ERROR_BADPARM, "%s: could not scan option from '%s'",
                 Progname, argv[2]) ;
     nargs = 1 ;
+    break ;
+  case 'W':
+    wsize = atoi(argv[2]) ;
+    fprintf(stderr, "using wsize = %d\n", wsize) ;
     break ;
   case '?':
   case 'U':
