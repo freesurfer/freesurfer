@@ -129,21 +129,21 @@ normAngle(double angle)
         nothing.
 ------------------------------------------------------------------------*/
 double
-calcDeltaPhi(double target_phi, double robot_phi)
+calcDeltaPhi(double phi1, double phi2)
 {
    double delta_phi ;
 
-   if (target_phi < 0.0)
-      target_phi += 2.0 * PI ;
-   else if (target_phi > 2.0 * PI)
-      target_phi -= 2.0 * PI ;
+   if (phi1 < 0.0)
+      phi1 += 2.0 * PI ;
+   else if (phi1 > 2.0 * PI)
+      phi1 -= 2.0 * PI ;
    
-   if (robot_phi < 0.0)
-      robot_phi += 2.0 * PI ;
-   else if (robot_phi > 2.0 * PI)
-      robot_phi -= 2.0 * PI ;
+   if (phi2 < 0.0)
+      phi2 += 2.0 * PI ;
+   else if (phi2 > 2.0 * PI)
+      phi2 -= 2.0 * PI ;
    
-   delta_phi = (target_phi - robot_phi) ;
+   delta_phi = (phi1 - phi2) ;
 
    
    while (delta_phi > PI)
@@ -169,9 +169,10 @@ latan2(double y, double x)
    double val ;
    
    oerr = errno ;
-   val = atan2(y, x) ;
    if (FZERO(x) && FZERO(y))
       val = 0.0 ;
+   else
+     val = atan2(y, x) ;
    if (val < -PI)
       val += 2.0 * PI ;
    if (val > PI)
@@ -585,4 +586,23 @@ FileRename(char *inName, char *outName)
   sprintf(cmd_string, "mv %s %s", inName, outName) ;
   system(cmd_string) ;
 }
+/*------------------------------------------------------------------------
+       Parameters:
 
+      Description:
+         calculate the distance between 2 angles.
+
+    Return Values:
+        the distance.
+------------------------------------------------------------------------*/
+float
+angleDistance(float theta1, float theta2)
+{
+  float adist ;
+
+  adist = fabs(theta1 - theta2) ;
+  if (adist >= PI)
+    adist -= PI ;
+
+  return(adist) ;
+}
