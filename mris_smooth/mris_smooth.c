@@ -13,7 +13,7 @@
 #include "mri.h"
 #include "macros.h"
 
-static char vcid[] = "$Id: mris_smooth.c,v 1.1 1998/03/26 05:19:26 fischl Exp $";
+static char vcid[] = "$Id: mris_smooth.c,v 1.2 1998/03/30 19:42:48 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -75,7 +75,7 @@ main(int argc, char *argv[])
   fprintf(stderr, "smoothing complete - recomputing first and second "
           "fundamental forms...\n") ;
   MRIScomputeMetricProperties(mris) ;
-  MRISscaleBrainArea(mris) ;
+  /*  MRISscaleBrainArea(mris) ;*/
   MRIScomputeSecondFundamentalForm(mris) ;
   MRISuseMeanCurvature(mris) ;
   MRISaverageCurvatures(mris, navgs) ;
