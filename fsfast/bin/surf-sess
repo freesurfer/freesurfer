@@ -1,11 +1,12 @@
 #!/bin/csh -f
 # surf-sess
 #
-set VERSION = '$Id: surf-sess,v 1.1 2003/03/04 21:22:09 greve Exp $'
+set VERSION = '$Id: surf-sess,v 1.2 2004/02/10 22:33:56 greve Exp $'
 set FASTVER = `cat $FMRI_ANALYSIS_DIR/docs/version`;
 set inputargs = ($argv);
 
 set analysis     = ();
+set anapend      = ();
 set contrast     = ();
 set rtopymode    = ();
 set rtopy        = 0;
@@ -200,7 +201,7 @@ foreach sess ($SessList)
 
     ## Construct the path to the map ##
     ## contrast will = () for rtopy ##
-    set mapdir = $sess/$fsd/$analysis/$spacesubdir/$contrast
+    set mapdir = $sess/$fsd/$analysis$anapend/$spacesubdir/$contrast
     if(! -d $mapdir) then
       echo "ERROR: $mapdir does not exist"   |& tee -a $LF
       exit 1;
@@ -485,6 +486,11 @@ while( $#argv != 0 )
     case "-analysis":
       if ( $#argv == 0) goto arg1err;
       set analysis = $argv[1]; shift;
+      breaksw
+
+    case "-anapend":
+      if ( $#argv == 0) goto arg1err;
+      set anapend = $argv[1]; shift;
       breaksw
 
 

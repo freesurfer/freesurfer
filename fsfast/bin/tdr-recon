@@ -1,7 +1,7 @@
 #!/bin/tcsh -f
 # tdr-fidmat
 
-set VERSION = '$Id: tdr-recon,v 1.7 2004/01/12 02:32:02 greve Exp $';
+set VERSION = '$Id: tdr-recon,v 1.8 2004/02/10 22:33:56 greve Exp $';
 
 set inputargs = ($argv);
 
@@ -34,21 +34,6 @@ set nrows      = 64;
 set nkcols     = 128;
 set npcns      = 3;
 
-# for martin
-if(0) then
-  echo ""
-  echo "INFO: Using martins parameters"
-  echo ""
-  set nslices    = 23; 
-  set nrows      = 128; 
-  set nkcols      = 256;
-  set epidelsamp = 60;      # us
-  set epitdwell = 1.6;      # us
-  set tRampUp    = 190; 
-  set tFlat      = 150; 
-  set tRampDown  = 190; 
-endif
-
 set PrintHelp = 0;
 if($#argv == 0) goto usage_exit;
 set n = `echo $argv | grep -e -help | wc -l` 
@@ -60,6 +45,38 @@ set n = `echo $argv | grep -e -version | wc -l`
 if($n != 0) then
   echo $VERSION
   exit 0;
+endif
+
+# for martin
+if(1) then
+  echo ""
+  echo "INFO: Using martins parameters"
+  echo ""
+  set nslices    = 23; 
+  set nrows      = 128; 
+  set nkcols      = 256;
+  set epiechospacing = 530;   # us
+  set epitdwell      = 1.6;      # us
+  set epidelsamp     = 60;      # us
+  set tRampUp    = 190; 
+  set tFlat      = 150; 
+  set tRampDown  = 190; 
+endif
+
+# for p41-7T
+if(0) then
+  echo ""
+  echo "INFO: Using p41-7T parameters"
+  echo ""
+  set nslices        = 12; 
+  set nrows          = 64; 
+  set nkcols         = 128;
+  set epitdwell      =  2.7;      # us
+  set epidelsamp     = 27;      # us
+  set epiechospacing = 400;   # us
+  set tRampUp        = 100; 
+  set tFlat          = 200; 
+  set tRampDown      = 100; 
 endif
 
 goto parse_args;
@@ -227,6 +244,7 @@ while( $#argv != 0 )
       set MLF = $argv[1]; shift;
       breaksw
 
+    case "--notdr":
     case "--nofid":
       set usefid = 0;
       breaksw
@@ -338,7 +356,7 @@ usage_exit:
   echo "  --rawk    dir"
   echo "  --rcol    rcolmat"
   echo "  --echo    nthecho"
-  echo "  --nofid   don't compensate for decay"
+  echo "  --notdr   don't compensate for decay"
   echo "  --nofixpedrift  don't compensate for PE drift"
   echo "  --nframes nframes : actual number of frames"
   echo "  --nframesrecon nframesrecon : only recon this number of frames"

@@ -1,7 +1,7 @@
 #!/bin/csh -f
 # tkmedit-sess
 #
-set VERSION = '$Id: tkmedit-sess,v 1.9 2004/01/12 22:19:28 greve Exp $';
+set VERSION = '$Id: tkmedit-sess,v 1.10 2004/02/10 22:33:56 greve Exp $';
 set inputargs = ($argv);
 
 which pawd > /dev/null
@@ -182,6 +182,14 @@ if(! $nohdr) then
     echo "ERROR: cannot find $regfile"
     exit 1;
   endif
+
+  # get the full path the regfile
+  set d = `dirname $regfile`;
+  pushd $d > /dev/null
+  set d = `pwd`;
+  popd > /dev/null
+  set regfile = $d/`basename $regfile`;
+
   #cp $regfile $hdrdir
   set hdrregfile = $regfile
 
@@ -227,9 +235,14 @@ if(! $nosig) then
     echo "ERROR: cannot find $regfile"
     exit 1;
   endif
-  #cp $regfile $mapdir
+
+  set d = `dirname $regfile`;
+  pushd $d > /dev/null
+  set d = `pwd`;
+  popd > /dev/null
+  set regfile = $d/`basename $regfile`;
+
   set mapregfile = $regfile
-  #echo "mapregfile is $mapregfile"
 endif
 
 if($#subject == 0) set subject = `cat $regfile | head -n 1`;

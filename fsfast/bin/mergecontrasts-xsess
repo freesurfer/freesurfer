@@ -2,7 +2,7 @@
 # mergecontrasts-sess - AND conjunction of two contrasts
 #
 
-set VERSION = '$Id: mergecontrasts-xsess,v 1.1 2003/04/01 19:02:05 greve Exp $';
+set VERSION = '$Id: mergecontrasts-xsess,v 1.2 2004/02/10 22:33:56 greve Exp $';
 set FASTVER = `cat $FSFAST_HOME/docs/version`;
 
 set inputargs = ($argv);
@@ -131,6 +131,8 @@ set ovlpfile = $outstem.ovlp
 
 if(! $monly ) set MLF = $outdir/mergcon-$$.m
 rm -f $MLF  
+
+echo $instems
 
 #----------------------------------------------------------#
 tee $MLF > /dev/null <<EOF

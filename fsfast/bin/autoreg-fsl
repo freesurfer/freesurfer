@@ -1,6 +1,6 @@
 #!/bin/tcsh -f
 
-set VERSION = '$Id: autoreg-fsl,v 1.1 2003/03/04 21:22:07 greve Exp $';
+set VERSION = '$Id: autoreg-fsl,v 1.2 2004/02/10 22:33:56 greve Exp $';
 
 set inputargs = ($argv);
 
@@ -8,9 +8,11 @@ set funcstem  = ();
 set t1epistem = ();
 set subjectid = ();
 set regfile   = ();
-set corvol    = orig;
+set t1epiregfile = ();
+set corvol    = brain;
 set tmpdir    = ();
 set cleanup   = 1;
+set nobet     = 0;
 
 set PrintHelp = 0;
 
@@ -59,6 +61,31 @@ date            >> $LF
 
 set StartTime = `date`;
 
+# Create identity Matrix for t1epi->func init #
+set idreg = $tmpdir/identity.reg
+rm -f $idreg
+echo "1 0 0 0" >> $idreg
+echo "0 1 0 0" >> $idreg
+echo "0 0 1 0" >> $idreg
+echo "0 0 0 1" >> $idreg
+
+# Create initial reg matrix for t1epi->ref
+t1epi2anat.fsl
+set t1epi2anatfsl = $tmpdir/t1epi2ref.init.mat
+set t1epi2anattkr = $tmpdir/t1epi2anat.fsl.tkreg # needed for temp
+echo "----------------------------------------" |& tee -a $LF
+echo "Creating initial t1epi to anat ref matrix" |& tee -a $LF
+date |& tee -a $LF
+set cmd = (tkregister2 --targ $cordir --mov $t1epistem $t1epiext \
+     --regheader --reg $t1epi2anattkr --fslregout $t1epi2anatfsl \
+    --noedit --subject $subjectid);
+echo $cmd |& tee -a $LF
+$cmd |& tee -a $LF
+if($status) then
+  echo "ERROR: tkregister2 failed" |& tee -a $LF
+  exit 1;
+endif
+
 # Convert func to .img
 set funcimg = $tmpdir/func
 set cmd = (mri_convert $funcstem --in_type $funcext -f 0 \
@@ -102,41 +129,54 @@ if($status) then
 endif
 
 # Extract Brains
+if($nobet) echo "INFO: skipping brain extraction"
 foreach img ($funcimg $t1epiimg $corimg)
-  echo "----------------------------------------" |& tee -a $LF
-  echo "Betting $img" |& tee -a $LF
-  date |& tee -a $LF
-  set cmd = (bet $img.img $img-brain.img);
-  echo $cmd |& tee -a $LF
-  $cmd |& tee -a $LF
-  if($status) then
-    echo "ERROR: bet failed" |& tee -a $LF
-    exit 1;
+  if($nobet) then
+    cp $img.img $img-brain.img;
+    cp $img.hdr $img-brain.hdr;
+  else
+    echo "----------------------------------------" |& tee -a $LF
+    echo "Betting $img" |& tee -a $LF
+    date |& tee -a $LF
+    set cmd = (bet $img.img $img-brain.img);
+    echo $cmd |& tee -a $LF
+    $cmd |& tee -a $LF
+    set st = $status;
+    if($st) then
+      echo "ERROR: bet failed with status $st" |& tee -a $LF
+      exit 1;
+    endif
   endif
+  cp $img.mat $img-brain.mat # In general, not necessary
 end
 
 echo "----------------------------------------" |& tee -a $LF
 echo "Registering func to t1epi" |& tee -a $LF
 date |& tee -a $LF
-set cmd = (flirt -in $funcimg-brain.img -ref $t1epiimg-brain.img \
+set cmd = (flirt -init $idreg -in $funcimg-brain.img \
+           -ref $t1epiimg-brain.img \
            -omat $tmpdir/func2t1epi.mat -dof 7)
 echo $cmd |& tee -a $LF
 $cmd |& tee -a $LF
-if($status) then
-  echo "ERROR: flirt failed" |& tee -a $LF
+set st = $status;
+if($st) then
+  echo "ERROR: flirt failed with status $st" |& tee -a $LF
   exit 1;
 endif
 
 echo "----------------------------------------" |& tee -a $LF
 echo "Registering t1epi to anat ref" |& tee -a $LF
 date |& tee -a $LF
-# To add initialization, -init initreg.mat
-set cmd = (flirt -in $t1epiimg-brain.img -ref $corimg-brain.img \
-           -omat $tmpdir/t1epi2ref.mat -dof 12)
+#set cmd = (flirt -init $t1epi2anatfsl \
+set cmd = (flirt \
+           -in $t1epiimg-brain.img -ref $corimg-brain.img \
+           -omat $tmpdir/t1epi2ref.mat -dof 12 \
+           -searchrx -180 180 -searchry -180 180 -searchrz -180 180)
 echo $cmd |& tee -a $LF
 $cmd |& tee -a $LF
-if($status) then
-  echo "ERROR: flirt failed" |& tee -a $LF
+set st = $status;
+if($st) then
+  echo "ERROR: flirt failed with status $st" |& tee -a $LF
   exit 1;
 endif
 
@@ -153,15 +193,29 @@ if($status) then
 endif
 
 echo "----------------------------------------" |& tee -a $LF
-echo "Constructing registration file" |& tee -a $LF
-set cmd = (fslmat2register --fvol $funcimg.img \
-           --subject $subjectid --fslmat $tmpdir/func2ref.mat \
-           --o $regfile)
+echo "Constructing registration file for functional" |& tee -a $LF
+set cmd = (tkregister2 --mov $funcimg.img \
+           --subject $subjectid --fslreg $tmpdir/func2ref.mat \
+           --reg $regfile --noedit)
 echo $cmd |& tee -a $LF
 $cmd |& tee -a $LF
 if($status) then
-  echo "ERROR: fslmat2register failed" |& tee -a $LF
+  echo "ERROR: tkregister2 failed" |& tee -a $LF
   exit 1;
+endif
+
+if($#t1epiregfile != 0) then
+  echo "----------------------------------------" |& tee -a $LF
+  echo "Constructing registration file for t1epi" |& tee -a $LF
+  set cmd = (tkregister2 --mov $t1epiimg.img \
+             --subject $subjectid --fslreg $tmpdir/func2ref.mat \
+             --reg $t1epiregfile --noedit)
+  echo $cmd |& tee -a $LF
+  $cmd |& tee -a $LF
+  if($status) then
+    echo "ERROR: tkregister2 failed" |& tee -a $LF
+    exit 1;
+  endif
 endif
 
 if($cleanup) then
@@ -174,7 +228,7 @@ set EndTime = `date`;
 echo "Started at $StartTime" |& tee -a $LF
 echo "Ended   at $EndTime"   |& tee -a $LF
 
-echo "acorfunc-sess done"
+echo "autoreg-fsl done"
 
 exit 0
 
@@ -207,8 +261,19 @@ while( $#argv != 0 )
       breaksw
 
     case "-r":
+    case "-rf":
       if ( $#argv < 1) goto arg1err;
       set regfile = $argv[1]; shift;
+      breaksw
+
+    case "-rt":
+      if ( $#argv < 1) goto arg1err;
+      set t1epiregfile = $argv[1]; shift;
+      breaksw
+
+    case "-corvol":
+      if ( $#argv < 1) goto arg1err;
+      set corvol = $argv[1]; shift;
       breaksw
 
     case "-sd":
@@ -219,6 +284,10 @@ while( $#argv != 0 )
     case "-tmpdir":
       if ( $#argv < 1) goto arg1err;
       set tmpdir = $argv[1]; shift;
+      breaksw
+
+    case "-nobet":
+      set nobet = 1;
       breaksw
 
     case "-nocleanup":
@@ -306,7 +375,7 @@ check_params:
     exit 1;
   endif
 
-  if($#tmpdir == NULL) set tmpdir = /tmp/autoreg-fsl-$$
+  if($#tmpdir == 0) set tmpdir = /tmp/autoreg-fsl-$$
   mkdir -p $tmpdir
   if( ! -e $tmpdir) then
     echo "ERROR: cannot find tmp dir $tmpdir"
@@ -342,9 +411,12 @@ usage_exit:
   echo "   -f funcstem  : functional stem"
   echo "   -t t1epistem : t1epi stem"
   echo "   -s subjectid : subject to register to"
-  echo "   -r regfile   : registration file"
+  echo "   -rf regfile   : registration file for functional"
+  echo "   -rt regfile   : registration file for t1epi"
   echo ""
   echo "More options"
+  echo "   -corvol volid : use volid instead of brain"
+  echo "   -nobet  : do not do brain extraction prior to reg"
   echo "   -sd subjectsdir : default is to use env SUBJECTS_DIR"
   echo "   -tmpdir tmpdir : set directory for temporary file"
   echo "   -nocleanup     : don't remove temporary files"

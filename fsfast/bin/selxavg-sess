@@ -1,8 +1,8 @@
 #!/bin/csh -f
 # selxavg-sess
 #
-# $Id: selxavg-sess,v 1.5 2003/09/08 17:40:09 greve Exp $
-set VERSION = '$Id: selxavg-sess,v 1.5 2003/09/08 17:40:09 greve Exp $';
+# $Id: selxavg-sess,v 1.6 2004/02/10 22:33:56 greve Exp $
+set VERSION = '$Id: selxavg-sess,v 1.6 2004/02/10 22:33:56 greve Exp $';
 set FASTVER = `cat $FMRI_ANALYSIS_DIR/docs/version`;
 
 set inputargs = ($argv);
@@ -71,6 +71,7 @@ set fsd       = `cat $infofile | awk '{if($1 == "fsd") print $2}'`;
 set funcstem  = `cat $infofile | awk '{if($1 == "funcstem") print $2}'`;
 set maskstem  = `cat $infofile | awk '{if($1 == "maskstem") print $2}'`;
 set parname   = `cat $infofile | awk '{if($1 == "parname") print $2}'`;
+set ncond     = `cat $infofile | awk '{if($1 == "nconditions") print $2}'`;
 set tpexclude = `cat $infofile | awk '{if($1 == "tpexclude") print $2}'`;
 set runlistfile = `cat $infofile | awk '{if($1 == "runlistfile") print $2}'`;
 set designtype = `cat $infofile | awk '{if($1 == "designtype") print $2}'`;
@@ -218,6 +219,7 @@ foreach sess ($SessList)
   set whtnmtx = ();
   foreach run ($RunList)  
     set instem = $run/$funcstem
+    set pars = ($pars $run/$parname);
 
     set tpexarg = ();
     if($#tpexclude != 0) then
@@ -233,7 +235,18 @@ foreach sess ($SessList)
     if($WhitenFlag) set whtnmtx = ($whtnmtx -whtnmtx $analysis/tcvm$run.mat)
 
     set instems = ($instems -i $instem $tpexarg);
-  end
+  end # loop over runs
+
+  # Count number of conditions, compare with analysis
+  set ncondact = `cat $pars | awk '{print $2}' | sort | uniq | wc -l`
+  @ ncondact = $ncondact - 1;
+  if($ncondact != $ncond) then
+    echo "ERROR: there are $ncondact non-null conditions in the "
+    echo "paradigm file. However, $ncond non-null conditions were"
+    echo "specified when mkanalysis was run. These must be made"
+    echo "consistent in order to run selxavg-sess."
+    exit 1;
+  endif
 
   if($new) then
     set cmd = "selxavg2"

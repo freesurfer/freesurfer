@@ -1,11 +1,11 @@
 #!/bin/tcsh -f
-# tdr-fidmat
+# tdr-rcolmat
 
-set VERSION = '$Id: tdr-rcolmat,v 1.3 2003/12/19 21:56:21 greve Exp $';
+set VERSION = '$Id: tdr-rcolmat,v 1.4 2004/02/10 22:33:56 greve Exp $';
 
 set inputargs = ($argv);
 
-set fidmat     = ();
+set fidmatlist = ();
 set rcolmat    = ();
 set dnorm      = 1;
 set rsegthresh = 0.2;
@@ -68,7 +68,7 @@ endif
 
 #---------------------------------------------#
 tee -a > /dev/null $MLF  <<EOF
-  fidmatfile  = '$fidmat';
+  fidmatfilelist  = splitstring('$fidmatlist');
   rcolmatfile = '$rcolmat';
   dnorm = [$dnorm];
   boldweight = [$boldweight];
@@ -107,7 +107,7 @@ while( $#argv != 0 )
 
     case "--fid":
       if ( $#argv == 0) goto arg1err;
-      set fidmat = $argv[1]; shift;
+      set fidmatlist = ($fidmatlist $argv[1]); shift;
       breaksw
 
     case "--rcol":
@@ -151,6 +151,7 @@ while( $#argv != 0 )
       if ( $#argv == 0) goto arg1err;
       set MLF = $argv[1]; shift;
       set monly = 1;
+      rm -f $MLF
       breaksw
 
     case "--verbose":
@@ -181,14 +182,16 @@ goto parse_args_return;
 ############--------------##################
 check_params:
 
-  if($#fidmat == 0) then
+  if($#fidmatlist == 0) then
     echo "ERROR: must specify fidmat"
     exit 1;
   endif
-  if(! -e $fidmat ) then
-    echo "ERROR: $fidmat does not exist"
-    exit 1;
-  endif
+  foreach fidmat ($fidmatlist)
+    if(! -e $fidmat ) then
+      echo "ERROR: $fidmat does not exist"
+      exit 1;
+    endif
+  end
 
   if($#rcolmat == 0) then
     echo "ERROR: must specify rcolmat"
@@ -216,7 +219,7 @@ usage_exit:
   echo ""
   echo "USAGE: tdr-rcolmat"
   echo ""
-  echo "  --fid     fidmat"
+  echo "  --fid fidmat <--fid fidmat>"
   echo "  --rcol    rcolmat"
   echo "  --nodnorm"
   echo "  --bold"
