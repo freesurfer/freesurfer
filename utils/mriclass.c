@@ -473,7 +473,7 @@ MRICclassify(MRIC *mric, MRI *mri_src, MRI *mri_dst,
               m_priors->rptr[classno+1][1] = 
                 MRIFseq_vox(mri_priors, xt, yt, zt, classno) ;
           }
-          MRICcomputeInputs(mri_in, x, y, z, v_inputs, mric->features[round]) ;
+          MRICcomputeInputs(mric,mri_in,x,y,z, v_inputs, mric->features[round]);
 
           switch (type)  /* now classify this observation */
           {
@@ -537,7 +537,8 @@ MRICclassify(MRIC *mric, MRI *mri_src, MRI *mri_dst,
 ------------------------------------------------------*/
 #define REGION_SIZE 8
 int
-MRICcomputeInputs(MRI *mri, int x,int y,int z,VECTOR *v_inputs,int features)
+MRICcomputeInputs(MRIC *mric, MRI *mri, int x,int y,int z,VECTOR *v_inputs,
+                  int features)
 {
   static int         old_features = 0 ;
   static MRI_REGION  region = {0,0, 0, 0,0,0} ;
@@ -757,6 +758,20 @@ MRICcomputeInputs(MRI *mri, int x,int y,int z,VECTOR *v_inputs,int features)
     VECTOR_ELT(v_inputs, index++) = (float)y ;
   if (features & FEATURE_Z_POSITION)
     VECTOR_ELT(v_inputs, index++) = (float)z ;
+  if ((features & FEATURE_PRIORS) && mric->mri_priors)
+  {
+    Real xrt, yrt, zrt ;
+    int  xt, yt, zt ;
+    MRI  *mri_priors ;
+
+    mri_priors = mric->mri_priors ;
+    MRIvoxelToVoxel(mri, mri_priors, (Real)x, (Real)y, (Real)z,&xrt, &yrt,&zrt);
+    xt = mri_priors->xi[nint(xrt)] ;
+    yt = mri_priors->yi[nint(yrt)] ;
+    zt = mri_priors->zi[nint(zrt)] ;
+    VECTOR_ELT(v_inputs, index++) = 
+      MRIFseq_vox(mric->mri_priors, xt, yt, zt, WHITE_MATTER) ;
+  }
   return(NO_ERROR) ;
 }
 /*-----------------------------------------------------
@@ -969,7 +984,7 @@ MRICupdateStatistics(MRIC *mric, int round, MRI *mri_src, MRI *mri_wm,
         gcl = &gc->classes[classno] ;
         gcl->nobs++ ;
 
-        MRICcomputeInputs(mri_src, x, y, z, v_inputs, mric->features[round]) ;
+        MRICcomputeInputs(mric,mri_src, x, y, z, v_inputs,mric->features[round]);
         for (row = 1 ; row <= mric->ninputs[round] ; row++)
           gcl->m_u->rptr[row][1] += VECTOR_ELT(v_inputs, row);
         for (row = 1 ; row <= gcl->m_covariance->rows ; row++)
@@ -1310,7 +1325,7 @@ MRIvox(mri_wm, 63, 63, 63) = 0 ;
     return(ERROR_BADPARM) ;
   y = (obs_no - z * width * height) / width ;
   x = obs_no % width ;
-  MRICcomputeInputs(mri_src, x, y, z, v_inputs, mric->features[round]) ;
+  MRICcomputeInputs(mric,mri_src, x, y, z, v_inputs, mric->features[round]) ;
   *pclass = MRIvox(mri_target, x, y, z) ;
   return(NO_ERROR) ;
 }

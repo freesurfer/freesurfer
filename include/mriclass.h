@@ -50,8 +50,9 @@ typedef struct
 #define FEATURE_X_POSITION     0x04000
 #define FEATURE_Y_POSITION     0x08000
 #define FEATURE_Z_POSITION     0x10000
+#define FEATURE_PRIORS         0x20000
 #define FEATURE_POSITION       (FEATURE_X_POSITION | \
-                                FEATURE_X_POSITION | FEATURE_X_POSITION)
+                                FEATURE_Y_POSITION | FEATURE_Y_POSITION)
 
 #define FEATURE_CPOLV          (FEATURE_CPOLV_MEAN3 | FEATURE_CPOLV_MEAN5 | \
                                 FEATURE_CPOLV_MEDIAN3 | FEATURE_CPOLV_MEDIAN5)
@@ -87,7 +88,8 @@ MRIC   *MRICquickRead(char *fname) ;
 int    MRICwrite(MRIC *mric, char *fname) ;
 MRI    *MRICclassify(MRIC *mric, MRI *mri_src, 
                      MRI *mri_dst, float conf,MRI *mri_probs,MRI *mri_classes);
-int    MRICcomputeInputs(MRI *mri, int x,int y,int z,VECTOR *v_obs,int features);
+int    MRICcomputeInputs(MRIC *mric, MRI *mri, int x,int y,int z,VECTOR *v_obs,
+                         int features);
 MRI    *MRICbuildTargetImage(MRI *mri_src, MRI *mri_target, MRI *mri_wm,
                              int lo_lim, int hi_lim) ;
 MRI    *MRICupdatePriors(MRI *mri_target, MRI *mri_priors, int scale) ;
