@@ -1,4 +1,3 @@
-
 #ifndef tkmFunctionalDataAccess_H
 #define tkmFunctionalDataAccess_H
 
@@ -73,9 +72,9 @@ typedef struct {
   int mNumRows, mNumCols, mNumSlices;  // volume dimensions
   int mNumTimePoints;
   int mNumConditions;                  // number of conditions,
-               // inclduing null condition if present.
+  // inclduing null condition if present.
   tBoolean mNullConditionPresent;
-
+  
   // information about the functional volume.
   float mPixelSize, mSliceThickness, mBrightnessScale;
   float mMaxValue, mMinValue;
@@ -108,7 +107,7 @@ typedef struct {
   // used to calculate quintiles
   int * mFrequencies;
   int mNumBins;
-
+  
   // temp storage in conversions
   xVoxelRef mpAnaRAS;
   xVoxelRef mpFuncRAS;
@@ -121,10 +120,10 @@ typedef struct {
    except for reading in the volume data. */
 
 FunD_tErr FunD_New    ( mriFunctionalDataRef* outVolume,
-      char*                 inPathName, 
-      char*                 inStem,
-      char*                 inHeaderStem,
-      char*                 inRegistrationPath  );
+			char*                 inPathName, 
+			char*                 inStem,
+			char*                 inHeaderStem,
+			char*                 inRegistrationPath  );
 FunD_tErr FunD_Delete ( mriFunctionalDataRef * ioVolume );
 
 /* looks in directory and guesses a stem. */
@@ -137,23 +136,23 @@ FunD_tErr FunD_ParseBFileHeader   ( mriFunctionalDataRef this );
 
 /* parsing support for reading keywords and values. */
 FunD_tErr FunD_ReadKeywordAndValue ( FILE* inFile, 
-             char* inExpectedKeyword, 
-             char* inValueType, 
-             int   inNumValues, 
-             int   inValueSize, 
-             char* inAssign );
+				     char* inExpectedKeyword, 
+				     char* inValueType, 
+				     int   inNumValues, 
+				     int   inValueSize, 
+				     char* inAssign );
 
 /* reads the register.dat file, allocates and initializes matricies */
 FunD_tErr FunD_ParseRegistrationAndInitMatricies ( mriFunctionalDataRef this );
 
 /* smooths the data. uses the MRI lib routines. */
 FunD_tErr FunD_SmoothData ( mriFunctionalDataRef this,
-          int                  inTimePoint,
-          int                  inCondition,
-          float                ifSigma );
+			    int                  inTimePoint,
+			    int                  inCondition,
+			    float                ifSigma );
 
 FunD_tErr FunD_SetConversionMethod ( mriFunctionalDataRef this,
-             FunD_tConversionMethod iMethod );
+				     FunD_tConversionMethod iMethod );
 
 /* saves the registration to file, making a backup if it already
    exists */
@@ -179,112 +178,112 @@ FunD_tErr FunD_CalcDeviations ( mriFunctionalDataRef this );
 /* applies a transformation to the registration, which can later be
    saved out as a new registration */
 FunD_tErr FunD_ApplyTransformToRegistration ( mriFunctionalDataRef this,
-                MATRIX*             iTransform );
+					      MATRIX*             iTransform );
 FunD_tErr FunD_TranslateRegistration        ( mriFunctionalDataRef this,
-                float                ifDistance,
-                tAxis                iAxis );
+					      float                ifDistance,
+					      tAxis                iAxis );
 FunD_tErr FunD_RotateRegistration           ( mriFunctionalDataRef this,
-                float                ifDegrees,
-                tAxis                iAxis,
-                xVoxelRef   iCenterFuncRAS );
+					      float                ifDegrees,
+					      tAxis                iAxis,
+					      xVoxelRef   iCenterFuncRAS );
 FunD_tErr FunD_ScaleRegistration            ( mriFunctionalDataRef this,
-                float                ifFactor,
-                tAxis                iAxis );
+					      float                ifFactor,
+					      tAxis                iAxis );
 
 FunD_tErr FunD_GetDataAtAnaIdx ( mriFunctionalDataRef this,
-         xVoxelRef             inVoxel, 
-         int                  inPlane, 
-         int                  inCondition,
-         float*               outData );
+				 xVoxelRef             inVoxel, 
+				 int                  inPlane, 
+				 int                  inCondition,
+				 float*               outData );
 FunD_tErr FunD_GetDataAtRAS    ( mriFunctionalDataRef this,
-         xVoxelRef             inVoxel, 
-         int                  inPlane, 
-         int                  inCondition,
-         float*               outData );
+				 xVoxelRef             inVoxel, 
+				 int                  inPlane, 
+				 int                  inCondition,
+				 float*               outData );
 
 FunD_tErr FunD_GetDataAtAnaIdxForAllTimePoints ( mriFunctionalDataRef this,
-             xVoxelRef            inVoxel, 
-             int              inCondition, 
-             float*              outData );
+						 xVoxelRef            inVoxel, 
+						 int              inCondition, 
+						 float*              outData );
 FunD_tErr FunD_GetDataAtRASForAllTimePoints    ( mriFunctionalDataRef this,
-             xVoxelRef            inVoxel, 
-             int              inCondition, 
-             float*              outData );
+						 xVoxelRef            inVoxel, 
+						 int              inCondition, 
+						 float*              outData );
 
 /* deviations are calced by multplying sigma by the square root of the
    diagonal of the CovMtx, then indexing in by time major (time,cond
    0,0, 1,0, 2,0...) */
 FunD_tErr FunD_GetDeviation ( mriFunctionalDataRef this,
-            int                  inCondition, 
-            int                  inTimePoint,
-            float*               outValue );
+			      int                  inCondition, 
+			      int                  inTimePoint,
+			      float*               outValue );
 
 FunD_tErr FunD_GetDeviationForAllTimePoints ( mriFunctionalDataRef this, 
-                int                 inCondition, 
-                float*               outData );
+					      int                 inCondition, 
+					      float*               outData );
 
 /* converts a time point index to a second based on the time
    resolution and time resolution */
 FunD_tErr FunD_ConvertTimePointToSecond ( mriFunctionalDataRef this,
-            int                  inTimePoint,
-            float*               outSecond );
+					  int                  inTimePoint,
+					  float*               outSecond );
 FunD_tErr FunD_ConvertSecondToTimePoint ( mriFunctionalDataRef this,
-            float                inSecond,
-            int*                 outTimePoint );
+					  float                inSecond,
+					  int*                 outTimePoint );
 
 /* setting these values changes the way time points are converted to
    seconds. */
 FunD_tErr FunD_SetTimeResolution       ( mriFunctionalDataRef this, 
-           float                inTimeRes );
+					 float                inTimeRes );
 FunD_tErr FunD_SetNumPreStimTimePoints ( mriFunctionalDataRef this,
-           int                  inNumPoints );
+					 int                  inNumPoints );
 
 /* accessors for volume information. */
 FunD_tErr FunD_GetPath                 ( mriFunctionalDataRef this, 
-           char*                out );
+					 char*                out );
 FunD_tErr FunD_GetStem                 ( mriFunctionalDataRef this, 
-           char*                out );
+					 char*                out );
 FunD_tErr FunD_GetSubjectName          ( mriFunctionalDataRef this,
-           char*                out );
+					 char*                out );
 FunD_tErr FunD_GetNumRows              ( mriFunctionalDataRef this, 
-           int*                 out );
+					 int*                 out );
 FunD_tErr FunD_GetNumCols              ( mriFunctionalDataRef this, 
-           int*                 out );
+					 int*                 out );
 FunD_tErr FunD_GetNumSlices            ( mriFunctionalDataRef this, 
-           int*                 out );
+					 int*                 out );
 FunD_tErr FunD_GetNumTimePoints        ( mriFunctionalDataRef this, 
-           int*                 out );
+					 int*                 out );
 FunD_tErr FunD_GetNumConditions        ( mriFunctionalDataRef this, 
-           int*                 out );
+					 int*                 out );
 FunD_tErr FunD_GetTimeResolution       ( mriFunctionalDataRef this, 
-           float*               out );
+					 float*               out );
 FunD_tErr FunD_GetNumPreStimTimePoints ( mriFunctionalDataRef this, 
-           int*                 out );
+					 int*                 out );
 FunD_tErr FunD_GetNumDataValues        ( mriFunctionalDataRef this, 
-           int*                 out );
+					 int*                 out );
 FunD_tErr FunD_GetValueRange           ( mriFunctionalDataRef this,
-           float*               outMin,
-           float*               outMax );
+					 float*               outMin,
+					 float*               outMax );
 /* gets bounds in anatomical index coords.  this is actually a
    bounding box in anatomical space. if the functional data is oblique
    to the anatomical, it will have coords that arn't valid in
    functional space, but it is a good place to start iterating for the
    in anatomical space. */
 FunD_tErr FunD_GetBoundsInAnatomical ( mriFunctionalDataRef this, 
-               xVoxelRef             outBeginCorner,
-               xVoxelRef             outEndCorner );
+				       xVoxelRef             outBeginCorner,
+				       xVoxelRef             outEndCorner );
 
 /* Gets the value at a quintile. Assumes quintile is within 0-100. */
 FunD_tErr FunD_GetValueAtPercentile ( mriFunctionalDataRef this,
-              float                inPercent,
-              float*               outValue );
+				      float                inPercent,
+				      float*               outValue );
 
 /* This function doesn't seem to work very well but is left here for
    reference . */
 #if 0
 FunD_tErr FunD_GetPercentileOfValue ( mriFunctionalDataRef this,
-              float                inValue,
-              float*               outPercentile );
+				      float                inValue,
+				      float*               outPercentile );
 #endif
 
 FunD_tErr FunD_DebugPrint ( mriFunctionalDataRef this );
@@ -296,7 +295,7 @@ char* FunD_GetErrorString ( FunD_tErr inErr );
 /* Calculate a histogram for the data, dividing it up into a number of
    bins. Allocates internal memory. */
 FunD_tErr FunD_CalcFrequencies ( mriFunctionalDataRef this,
-         int                  inNumBins );
+				 int                  inNumBins );
 
 /* true if we can calc and return deviations. */
 tBoolean FunD_IsErrorDataPresent ( mriFunctionalDataRef this );
@@ -314,23 +313,23 @@ void FunD_ConvertAnaIdxToFuncRAS ( mriFunctionalDataRef this,
 
 /* convert between ras and func idx coords */
 void FunD_ConvertRASToFuncIdx    ( mriFunctionalDataRef this,
-           xVoxelRef             inRAS,
-           xVoxelRef             outFunctionalIdx );
+				   xVoxelRef             inRAS,
+				   xVoxelRef             outFunctionalIdx );
 void FunD_ConvertFuncIdxToFuncRAS ( mriFunctionalDataRef this,
-            xVoxelRef            iFuncIdx,
-            xVoxelRef            oFuncRAS );
+				    xVoxelRef            iFuncIdx,
+				    xVoxelRef            oFuncRAS );
 
 /* convert between functional voxel coordinates and an index into the
    storage array. */
 inline int FunD_CoordsToIndex  ( mriFunctionalDataRef this,
-         xVoxelRef            inFunctionalVoxel,
-         int                  inConditionIndex, 
-         int                  inTimePoint );
+				 xVoxelRef            inFunctionalVoxel,
+				 int                  inConditionIndex, 
+				 int                  inTimePoint );
 inline void FunD_IndexToCoords ( mriFunctionalDataRef this,
-         int                  inIndex,
-         xVoxelRef            outFunctionVoxel,
-         int*                 outConditionIndex, 
-         int*                 outTimePoint );
+				 int                  inIndex,
+				 xVoxelRef            outFunctionVoxel,
+				 int*                 outConditionIndex, 
+				 int*                 outTimePoint );
 
 
 /* makes slice file names out of pathnames and stems, and tries to
@@ -340,16 +339,16 @@ int FunD_CountSliceFiles ( mriFunctionalDataRef this );
 
 /* builds a slice file name */
 void FunD_MakeSliceFileName       ( mriFunctionalDataRef this, 
-            int                  inSliceNumber,
-            char*                inFileNameToSet );
+				    int                  inSliceNumber,
+				    char*                inFileNameToSet );
 void FunD_MakeBShortSliceFileName ( char*                inPath, 
-            char*                inStem, 
-            int                  inSliceNumber, 
-            char*                ioFileName );
+				    char*                inStem, 
+				    int                  inSliceNumber, 
+				    char*                ioFileName );
 void FunD_MakeBFloatSliceFileName ( char*                inPath, 
-            char*                inStem, 
-            int                  inSliceNumber, 
-            char*                ioFileName );
+				    char*                inStem, 
+				    int                  inSliceNumber, 
+				    char*                ioFileName );
 
 /* counts how many average data values are in a plane so we can do
    quick index -> coord conversions with mod and division. */
@@ -358,31 +357,31 @@ void FunD_CalcDataPlaneSizes ( mriFunctionalDataRef this );
 /* basic access functions, using coordinates in functional
    space. assumes all index values are valid. */
 inline float FunD_GetValue ( mriFunctionalDataRef this,
-           xVoxelRef             inFunctionalVoxel,
-           int                  inConditionIndex, 
-           int                  inTimePoint );
+			     xVoxelRef             inFunctionalVoxel,
+			     int                  inConditionIndex, 
+			     int                  inTimePoint );
 inline void FunD_SetValue  ( mriFunctionalDataRef this,
-           xVoxelRef             inFunctionalVoxel,
-           int                  inConditionIndex, 
-           int                  inTimePoint, 
-           float                inValue);
+			     xVoxelRef             inFunctionalVoxel,
+			     int                  inConditionIndex, 
+			     int                  inTimePoint, 
+			     float                inValue);
 
 /* performs basic sanity checks. */
 FunD_tErr  FunD_AssertIsValid ( mriFunctionalDataRef this );
 
 /* bounds checking */
 tBoolean FunD_IsTimeResolutionValid       ( mriFunctionalDataRef this, 
-              float                inTimeRes );
+					    float                inTimeRes );
 tBoolean FunD_IsNumPreStimTimePointsValid ( mriFunctionalDataRef this, 
-              int                inNumPoints );
+					    int                inNumPoints );
 tBoolean FunD_IsFunctionalVoxelValid      ( mriFunctionalDataRef this,
-              xVoxelRef             inVoxel );
+					    xVoxelRef             inVoxel );
 tBoolean FunD_IsConditionIndexValid       ( mriFunctionalDataRef this, 
-              int            inConditionIndex );
+					    int            inConditionIndex );
 tBoolean FunD_IsTimePointValid            ( mriFunctionalDataRef this, 
-              int                  inTimePoint );
+					    int                  inTimePoint );
 tBoolean FunD_IsIndexValid                ( mriFunctionalDataRef this, 
-              int                  inIndex );
+					    int                  inIndex );
 
 
 

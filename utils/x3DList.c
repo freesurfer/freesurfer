@@ -181,9 +181,8 @@ x3Lst_tErr x3Lst_AddItem ( x3DListRef this,
 }
   
 x3Lst_tErr x3Lst_RemoveItem ( x3DListRef this,
-            xVoxelRef  iWhere,
-            void**     iopItemToRemove ) {
-
+			      xVoxelRef  iWhere,
+			      void**     iopItemToRemove ) {
 
   x3Lst_tErr eResult       = x3Lst_tErr_NoErr;
   xList_tErr eList         = xList_tErr_NoErr;
@@ -200,19 +199,19 @@ x3Lst_tErr x3Lst_RemoveItem ( x3DListRef this,
   /* remove it from every plane at the approriate voxel */
   pItemToRemove = *iopItemToRemove;
   eList = xList_RemoveItem( this->mPlane[x3Lst_tPlane_X][xVoxl_GetX(iWhere)],
-          &pItemToRemove );
+			    &pItemToRemove );
   if( xList_tErr_NoErr != eList )
     goto error;
 
   pItemToRemove = *iopItemToRemove;
   eList = xList_RemoveItem( this->mPlane[x3Lst_tPlane_Y][xVoxl_GetY(iWhere)],
-          &pItemToRemove );
+			    &pItemToRemove );
   if( xList_tErr_NoErr != eList )
     goto error;
 
   pItemToRemove = *iopItemToRemove;
   eList = xList_RemoveItem( this->mPlane[x3Lst_tPlane_Z][xVoxl_GetZ(iWhere)],
-          &pItemToRemove );
+			    &pItemToRemove );
   if( xList_tErr_NoErr != eList )
     goto error;
 
