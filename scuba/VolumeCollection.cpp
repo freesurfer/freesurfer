@@ -126,7 +126,7 @@ VolumeCollection::GetMRI() {
     mOneOverVoxelSize[2] = 1.0 / mVoxelSize[2];
 
     try { 
-      CalcWorldToIndexCache(); 
+      //      CalcWorldToIndexCache(); 
     }
     catch(...) { 
       DebugOutput( << "Failed while calcing world to index cache  " );
