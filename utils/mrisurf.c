@@ -13770,7 +13770,7 @@ MRIScomputeAverageCircularPhaseGradient(MRI_SURFACE *mris, LABEL *area,
   dx = dy = dz = 0.0 ;
   for (i = 0 ; i < area->n_points ; i++)
   {
-    vno = area->vno[i] ;
+    vno = area->lv[i].vno ;
     v = &mris->vertices[vno] ;
     x0 = v->x ; y0 = v->y ; z0 = v->z ; f0 = atan2(v->imag_val, v->val) ;
 
