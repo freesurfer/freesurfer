@@ -559,9 +559,12 @@ ImageCopy(IMAGE *Isrc, IMAGE *Idst)
       }
     }
     Isrc->firstpix += Isrc->sizeimage ;
-    Idst->firstpix += Idst->sizeimage ;
     Isrc->image += Isrc->sizeimage ;
-    Idst->image += Idst->sizeimage ;
+    if (Idst != Isrc)
+    {
+      Idst->firstpix += Idst->sizeimage ;
+      Idst->image += Idst->sizeimage ;
+    }
   }
 
   Isrc->firstpix = Isrc->image = src_image ;
@@ -1141,9 +1144,12 @@ ImageScale(IMAGE *Isrc, IMAGE *Idst, float new_min, float new_max)
       ErrorExit(ecode, "ImageScale: h_linscale failed (%d)\n", ecode) ;
 
     Isrc->firstpix += Isrc->sizeimage ;
-    Iout->firstpix += Iout->sizeimage ;
     Isrc->image += Isrc->sizeimage ;
-    Iout->image += Iout->sizeimage ;
+    if (Isrc != Iout)
+    {
+      Iout->firstpix += Iout->sizeimage ;
+      Iout->image += Iout->sizeimage ;
+    }
   }
 
   Isrc->firstpix = Isrc->image = src_image ;
@@ -1541,8 +1547,11 @@ ImageScaleDown(IMAGE *inImage, IMAGE *outImage, float scale)
     }
     inImage->image += inImage->sizeimage ;
     inImage->firstpix += inImage->sizeimage ;
-    outImage->image += outImage->sizeimage ;
-    outImage->firstpix += outImage->sizeimage ;
+    if (inImage != outImage)
+    {
+      outImage->image += outImage->sizeimage ;
+      outImage->firstpix += outImage->sizeimage ;
+    }
   }
   inImage->image = inImage->firstpix = in_image ;
   outImage->image = outImage->firstpix = out_image ;
@@ -1700,8 +1709,11 @@ ImageScaleUp(IMAGE *inImage, IMAGE *outImage, float scale)
     }
     inImage->image += inImage->sizeimage ;
     inImage->firstpix += inImage->sizeimage ;
-    outImage->image += outImage->sizeimage ;
-    outImage->firstpix += outImage->sizeimage ;
+    if (inImage != outImage)
+    {
+      outImage->image += outImage->sizeimage ;
+      outImage->firstpix += outImage->sizeimage ;
+    }
   }
 
   inImage->image = inImage->firstpix = in_image ;
