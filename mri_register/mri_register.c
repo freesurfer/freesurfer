@@ -116,21 +116,6 @@ main(int argc, char *argv[])
   fprintf(stderr, "done.\n") ;
   fflush(stderr) ;
 
-  if (mri_in->width > 128)
-  {
-    mri_in_reduced = MRIreduceByte(mri_in, NULL) ;
-    /*    MRIfree(&mri_in) ;*/
-  }
-  else
-    mri_in_reduced = mri_in ;
-  if (mri_ref->width > 128)
-  {
-    mri_ref_reduced = MRIreduceMeanAndStdByte(mri_ref, NULL) ;
-    /*    MRIfree(&mri_ref) ;*/
-  }
-  else
-    mri_ref_reduced = mri_ref ;
-
   if (linear || !parms.lta)    /* find optimal linear transformation */
   {
     MRI *mri_in_red, *mri_ref_red ;
@@ -150,9 +135,28 @@ main(int argc, char *argv[])
     LTAwrite(parms.lta, fname) ;
   }
 
+#if 1
+  if (mri_in->width > 128)
+  {
+    mri_in_reduced = MRIreduceByte(mri_in, NULL) ;
+    /*    MRIfree(&mri_in) ;*/
+  }
+  else
+    mri_in_reduced = mri_in ;
+  if (mri_ref->width > 128)
+  {
+    mri_ref_reduced = MRIreduceMeanAndStdByte(mri_ref, NULL) ;
+    /*    MRIfree(&mri_ref) ;*/
+  }
+  else
+    mri_ref_reduced = mri_ref ;
+
   parms.mri_ref = mri_ref ; parms.mri_in = mri_in ;
   m3d = MRI3Dmorph(mri_in_reduced, mri_ref_reduced, &parms) ;
   MRIfree(&mri_ref_reduced) ; MRIfree(&mri_in_reduced) ;
+#else
+  m3d = MRI3Dmorph(mri_in, mri_ref, &parms) ;
+#endif
 
   if (Gdiag & DIAG_SHOW)
     fprintf(stderr, "writing 3d morph transform to %s...\n", out_fname) ;
