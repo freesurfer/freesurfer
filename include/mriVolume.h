@@ -220,12 +220,15 @@ Volm_tErr Volm_GetValueMinMax       ( mriVolumeRef this,
 				      float*       ofMin,
 				      float*       ofMax );
 
-Volm_tErr Volm_SetResampleMethod  ( mriVolumeRef         this,
-				    Volm_tResampleMethod iMethod );
+Volm_tErr Volm_GetResampleMethod    ( mriVolumeRef          this,
+				      Volm_tResampleMethod* oMethod );
+Volm_tErr Volm_SetResampleMethod    ( mriVolumeRef          this,
+				      Volm_tResampleMethod  iMethod );
 
-
-Volm_tErr Volm_SetSampleType  ( mriVolumeRef     this,
-				Volm_tSampleType iType );
+Volm_tErr Volm_GetSampleType  ( mriVolumeRef       this,
+				Volm_tSampleType*  oType );
+Volm_tErr Volm_SetSampleType  ( mriVolumeRef       this,
+				Volm_tSampleType   iType );
 
 /* Use the GetValue functions when you want the real value of the
    voxel. Before calling the unsafe version, make sure the volume is

@@ -967,7 +967,9 @@ void Volm_GetMaxIntColorAtXYSlice ( mriVolumeRef     this,
 }
 
 Volm_tErr Volm_GetDimensions ( mriVolumeRef this,
-			       int*         onDimensionX, int*  onDimensionY, int* onDimensionZ ) {
+			       int*         onDimensionX, 
+			       int*         onDimensionY, 
+			       int*         onDimensionZ ) {
   
   Volm_tErr eResult = Volm_tErr_NoErr;
   
@@ -1088,6 +1090,35 @@ Volm_tErr Volm_GetValueMinMax ( mriVolumeRef this,
   return eResult;
 }
 
+Volm_tErr Volm_GetResampleMethod ( mriVolumeRef          this,
+				   Volm_tResampleMethod* oMethod ) {
+
+  Volm_tErr eResult = Volm_tErr_NoErr;
+  
+  DebugEnterFunction( ("Volm_GetResampleMethod( this=%p, "
+		       "oMethod=%p )", this, oMethod ) );
+  
+  DebugNote( ("Verifying volume") );
+  eResult = Volm_Verify( this );
+  DebugAssertThrow( (eResult == Volm_tErr_NoErr) );
+  
+  DebugNote( ("Checking parameters") );
+  DebugAssertThrowX( (oMethod != NULL),
+                     eResult, Volm_tErr_InvalidParamater );
+  
+  /* return the method */
+  DebugNote( ("Returning the method") );
+  *oMethod = this->mResampleMethod;
+  
+  DebugCatch;
+  DebugCatchError( eResult, Volm_tErr_NoErr, Volm_GetErrorString );
+  EndDebugCatch;
+  
+  DebugExitFunction;
+  
+  return eResult;
+}
+
 Volm_tErr Volm_SetResampleMethod ( mriVolumeRef         this, 
 				   Volm_tResampleMethod iMethod ) {
 
@@ -1127,6 +1158,35 @@ Volm_tErr Volm_SetResampleMethod ( mriVolumeRef         this,
   /* Recalc the idxtoras transform. */
   Volm_CalculateIdxToRAS_( this );
 
+  DebugCatch;
+  DebugCatchError( eResult, Volm_tErr_NoErr, Volm_GetErrorString );
+  EndDebugCatch;
+  
+  DebugExitFunction;
+  
+  return eResult;
+}
+
+Volm_tErr Volm_GetSampleType ( mriVolumeRef      this,
+			       Volm_tSampleType* oType ) {
+
+  Volm_tErr eResult = Volm_tErr_NoErr;
+  
+  DebugEnterFunction( ("Volm_GetSampleType( this=%p, "
+		       "oType=%p )", this, oType ) );
+  
+  DebugNote( ("Verifying volume") );
+  eResult = Volm_Verify( this );
+  DebugAssertThrow( (eResult == Volm_tErr_NoErr) );
+  
+  DebugNote( ("Checking parameters") );
+  DebugAssertThrowX( (oType != NULL),
+                     eResult, Volm_tErr_InvalidParamater );
+  
+  /* return the type */
+  DebugNote( ("Returning the type") );
+  *oType = this->mSampleType;
+  
   DebugCatch;
   DebugCatchError( eResult, Volm_tErr_NoErr, Volm_GetErrorString );
   EndDebugCatch;
