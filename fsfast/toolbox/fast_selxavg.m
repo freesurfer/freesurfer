@@ -1,8 +1,8 @@
 function r = fast_selxavg(varargin)
 % r = fast_selxavg(varargin)
-% '$Id: fast_selxavg.m,v 1.12 2004/05/13 21:48:11 greve Exp $'
+% '$Id: fast_selxavg.m,v 1.13 2004/05/21 16:58:13 greve Exp $'
 
-version = '$Id: fast_selxavg.m,v 1.12 2004/05/13 21:48:11 greve Exp $';
+version = '$Id: fast_selxavg.m,v 1.13 2004/05/21 16:58:13 greve Exp $';
 fprintf(1,'%s\n',version);
 r = 1;
 
@@ -276,7 +276,21 @@ for slice = firstslice:lastslice
       
       % Load paradigm for this run %
       par = fmri_ldpar(deblank(parfilelist(run,:)));
-
+      if(s.autostimdur)
+	par = parboxcar(par,TER,[],ntrs*TR);
+	if(isempty(par))
+	  fprintf('ERROR: applying auto stimulus duration\n');
+	  return;
+	end
+      end
+      if(~isempty(s.stimdur))
+	par = parboxcar(par,TER,s.stimdur);
+	if(isempty(par))
+	  fprintf('ERROR: applying stimulus duration\n');
+	  return;
+	end
+      end
+      
       % Compute Offset for Slice Timing %
       if(~isempty(AcqOrder))
         SliceDelay = fast_slicedelay(TR,nslices,slice,AcqOrder);
@@ -673,11 +687,13 @@ tPreStim = s.PreStimWin;
 TimeWindow = TW;
 nyqreg = s.nyqreg;
 spmhrf = s.spmhrf;
+autostimdur = s.autostimdur;
+stimdur = s.stimdur;
 fprintf('INFO: saving meta to %s\n',xfile);
 save(xfile,'Xfinal','Nnnc','pfOrder','nExtReg',...
      'nruns','Navgs_per_cond','TimeWindow','tPreStim','TR','TER',...
      'gfDelta','gfTau','gfAlpha','tpxlist','RescaleFactor',...
-     'RescaleTarget','nyqreg','spmhrf','-v4');
+     'RescaleTarget','nyqreg','spmhrf','autostimdur','stimdur','-v4');
 
 %-- Save ECovMtx for each run individually --%
 if(s.SaveErrCovMtx) 
@@ -887,6 +903,8 @@ return
 function s = sxa_struct
   s.invollist      = '';
   s.parlist        = '';
+  s.autostimdur    = 0; % extract stim durations from par
+  s.stimdur        = []; % stimulus duration
   s.nruns          = 0;
   s.parname        = '';
   s.extregfile     = '';
@@ -1031,6 +1049,14 @@ function s = parse_args(varargin)
         arg1check(flag,narg,ninputargs);
         s.parname = inputargs{narg};
         narg = narg + 1;
+
+      case '-stimdur',
+        arg1check(flag,narg,ninputargs);
+        s.stimdur = sscanf(inputargs{narg},'%g',1);
+        narg = narg + 1;
+
+      case {'-autostimdur'},
+        s.autostimdur = 1;
 
       case {'-tpx','-tpexclfile'}
         arg1check(flag,narg,ninputargs);
@@ -1438,6 +1464,14 @@ function s = check_params(s)
     s.HanRad = pi*s.FWHM/(2*s.InPlaneRes*acos(.5));
   end
 
+  fprintf('AutoStimDur: %d\n',s.autostimdur);
+  fprintf('StimDur: %g\n',s.stimdur);
+  
+  if(s.autostimdur & ~isempty(s.stimdur))
+    fprintf('ERROR: cannot specify both autostimdur and stimdur\n');
+    s = []; return;
+  end
+    
 return;
 
 %--------------------------------------------------%
