@@ -14,7 +14,7 @@
 #include "macros.h"
 #include "fio.h"
 
-static char vcid[] = "$Id: mris_anatomical_stats.c,v 1.6 2000/09/19 20:07:32 fischl Exp $";
+static char vcid[] = "$Id: mris_anatomical_stats.c,v 1.7 2002/04/25 20:42:49 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -280,7 +280,7 @@ main(int argc, char *argv[])
   }
   if (log_fp)
   {
-    fprintf(log_fp, "%% <wm vol> <surf area> <gray vol> <thick mean> <thick var> <integ rect. Gauss curv> <fold index> <intr curv ind>\n") ;
+    fprintf(log_fp, "%% %s: <wm vol> <surf area> <gray vol> <thick mean> <thick var> <integ rect. Gauss curv> <fold index> <intr curv ind>\n",sname) ;
     fprintf(log_fp, "%2.0f\t%2.0f\t%2.0f\t%2.3f\t%2.3f\t%2.3f\t%2.3f\t%2.3f\n", 
             wm_volume,
             mris->total_area,
