@@ -101,7 +101,6 @@ scuba_LDFLAGS=
 scuba2_SOURCES=$(UTILITIES_SRCS) $(BASIC_SRCS) $(FSDATA_SRCS) $(GUI_SRCS) $(LAYER_SRCS) $(MOC_SRCS) $(SCUBA2_SRCS) $(FORMS) $(UICDECLS) $(UICIMPLS) $(SRCMOC) $(OBJMOC) .ui/image_collection.cpp main.cpp
 scuba2_LDFLAGS=-L/$(QTDIR)/lib -lqt-mt
 scuba2_CXXFLAGS=-DQT_SHARED -DQT_NO_DEBUG -DQT_THREAD_SUPPORT -I$(QTDIR)/include -I.ui/ 
-scuba2_DEPENDENCIES=moc_dir ui_dir
 
 #if SCUBA_BUNDLE
 #scuba2_DEPENDENCIES=scuba2.app
@@ -194,68 +193,68 @@ testScubaROIVolume_SOURCES=test_ScubaROIVolume.cpp \
 #endif
 
 # All the scuba2 stuff.
-.ui/mainwindow.h: mainwindow.ui
+.ui/mainwindow.h: ui_dir mainwindow.ui
 	$(UIC) mainwindow.ui -o .ui/mainwindow.h
-.ui/mainwindow.cpp: .ui/mainwindow.h .ui/toolsettingsdlog.h .ui/viewlayersdlog.h .ui/roisettingsdlog.h mainwindow.ui
+.ui/mainwindow.cpp: ui_dir .ui/mainwindow.h .ui/toolsettingsdlog.h .ui/viewlayersdlog.h .ui/roisettingsdlog.h mainwindow.ui
 	$(UIC) mainwindow.ui -i mainwindow.h -o .ui/mainwindow.cpp
-.obj/mainwindow.o: .ui/mainwindow.cpp mainwindow.ui.h .ui/mainwindow.h
+.obj/mainwindow.o: obj_dir .ui/mainwindow.cpp mainwindow.ui.h .ui/mainwindow.h
 	$(CXX) $(CXXFLAGS) -o .obj/mainwindow.o .ui/mainwindow.cpp
 
-.ui/toolsettingsdlog.h: toolsettingsdlog.ui
+.ui/toolsettingsdlog.h: ui_dir toolsettingsdlog.ui
 	$(UIC) toolsettingsdlog.ui -o .ui/toolsettingsdlog.h
-.ui/toolsettingsdlog.cpp: .ui/mainwindow.h .ui/toolsettingsdlog.h .ui/viewlayersdlog.h .ui/roisettingsdlog.h  toolsettingsdlog.ui
+.ui/toolsettingsdlog.cpp: ui_dir .ui/mainwindow.h .ui/toolsettingsdlog.h .ui/viewlayersdlog.h .ui/roisettingsdlog.h  toolsettingsdlog.ui
 	$(UIC) toolsettingsdlog.ui -i toolsettingsdlog.h -o .ui/toolsettingsdlog.cpp
-.obj/toolsettingsdlog.o: .ui/toolsettingsdlog.cpp toolsettingsdlog.ui.h .ui/toolsettingsdlog.h
+.obj/toolsettingsdlog.o: obj_dir .ui/toolsettingsdlog.cpp toolsettingsdlog.ui.h .ui/toolsettingsdlog.h
 	$(CXX) $(CXXFLAGS) -o .obj/toolsettingsdlog.o .ui/toolsettingsdlog.cpp
 
-.ui/viewlayersdlog.h: viewlayersdlog.ui
+.ui/viewlayersdlog.h: ui_dir viewlayersdlog.ui
 	$(UIC) viewlayersdlog.ui -o .ui/viewlayersdlog.h
-.ui/viewlayersdlog.cpp: .ui/mainwindow.h .ui/toolsettingsdlog.h .ui/viewlayersdlog.h .ui/roisettingsdlog.h viewlayersdlog.ui
+.ui/viewlayersdlog.cpp: ui_dir .ui/mainwindow.h .ui/toolsettingsdlog.h .ui/viewlayersdlog.h .ui/roisettingsdlog.h viewlayersdlog.ui
 	$(UIC) viewlayersdlog.ui -i viewlayersdlog.h -o .ui/viewlayersdlog.cpp
-.obj/viewlayersdlog.o: .ui/viewlayersdlog.cpp viewlayersdlog.ui.h .ui/viewlayersdlog.h
+.obj/viewlayersdlog.o: obj_dir .ui/viewlayersdlog.cpp viewlayersdlog.ui.h .ui/viewlayersdlog.h
 	$(CXX) $(CXXFLAGS) -o .obj/viewlayersdlog.o .ui/viewlayersdlog.cpp
 
-.ui/roisettingsdlog.h: roisettingsdlog.ui
+.ui/roisettingsdlog.h: ui_dir roisettingsdlog.ui
 	$(UIC) roisettingsdlog.ui -o .ui/roisettingsdlog.h
-.ui/roisettingsdlog.cpp: .ui/mainwindow.h .ui/toolsettingsdlog.h .ui/viewlayersdlog.h .ui/roisettingsdlog.h roisettingsdlog.ui
+.ui/roisettingsdlog.cpp: ui_dir .ui/mainwindow.h .ui/toolsettingsdlog.h .ui/viewlayersdlog.h .ui/roisettingsdlog.h roisettingsdlog.ui
 	$(UIC) roisettingsdlog.ui -i roisettingsdlog.h -o .ui/roisettingsdlog.cpp
-.obj/roisettingsdlog.o: .ui/roisettingsdlog.cpp roisettingsdlog.ui.h .ui/roisettingsdlog.h
+.obj/roisettingsdlog.o: obj_dir .ui/roisettingsdlog.cpp roisettingsdlog.ui.h .ui/roisettingsdlog.h
 	$(CXX) $(CXXFLAGS) -o .obj/roisettingsdlog.o .ui/roisettingsdlog.cpp
 
-.obj/moc_QtVolumeHistogram.o: .moc/moc_QtVolumeHistogram.cpp
+.obj/moc_QtVolumeHistogram.o: obj_dir .moc/moc_QtVolumeHistogram.cpp
 	$(CXX) $(CXXFLAGS) -o .obj/moc_QtVolumeHistogram.o
-.moc/moc_QtVolumeHistogram.cpp: QtVolumeHistogram.h
+.moc/moc_QtVolumeHistogram.cpp: moc_dir QtVolumeHistogram.h
 	$(MOC) QtVolumeHistogram.h -o .moc/moc_QtVolumeHistogram.cpp
 
-.obj/moc_QTScubaWidget.o: .moc/moc_QTScubaWidget.cpp
+.obj/moc_QTScubaWidget.o: obj_dir .moc/moc_QTScubaWidget.cpp
 	$(CXX) $(CXXFLAGS) -o .obj/moc_QTScubaWidget.o
-.moc/moc_QTScubaWidget.cpp: QTScubaWidget.h
+.moc/moc_QTScubaWidget.cpp: moc_dir QTScubaWidget.h
 	$(MOC) QTScubaWidget.h -o .moc/moc_QTScubaWidget.cpp
 
-.obj/moc_mainwindow.o: .moc/moc_mainwindow.cpp
+.obj/moc_mainwindow.o: obj_dir .moc/moc_mainwindow.cpp
 	$(CXX) $(CXXFLAGS) -o .obj/moc_mainwindow.o
-.moc/moc_mainwindow.cpp: .ui/mainwindow.h
+.moc/moc_mainwindow.cpp: moc_dir .ui/mainwindow.h
 	$(MOC) .ui/mainwindow.h -o .moc/moc_mainwindow.cpp
 
-.obj/moc_viewlayersdlog.o: .moc/moc_viewlayersdlog.cpp
+.obj/moc_viewlayersdlog.o: obj_dir .moc/moc_viewlayersdlog.cpp
 	$(CXX) $(CXXFLAGS) -o .obj/moc_viewlayersdlog.o
-.moc/moc_viewlayersdlog.cpp: .ui/viewlayersdlog.h
+.moc/moc_viewlayersdlog.cpp: moc_dir .ui/viewlayersdlog.h
 	$(MOC) .ui/viewlayersdlog.h -o .moc/moc_viewlayersdlog.cpp
 
-.obj/moc_toolsettingsdlog.o: .moc/moc_toolsettingsdlog.cpp
+.obj/moc_toolsettingsdlog.o: obj_dir .moc/moc_toolsettingsdlog.cpp
 	$(CXX) $(CXXFLAGS) -o .obj/moc_toolsettingsdlog.o
-.moc/moc_toolsettingsdlog.cpp: .ui/toolsettingsdlog.h
+.moc/moc_toolsettingsdlog.cpp: moc_dir .ui/toolsettingsdlog.h
 	$(MOC) .ui/toolsettingsdlog.h -o .moc/moc_toolsettingsdlog.cpp
 
-.obj/moc_roisettingsdlog.o: .moc/moc_roisettingsdlog.cpp
+.obj/moc_roisettingsdlog.o: obj_dir .moc/moc_roisettingsdlog.cpp
 	$(CXX) $(CXXFLAGS) -o .obj/moc_roisettingsdlog.o
-.moc/moc_roisettingsdlog.cpp: .ui/roisettingsdlog.h
+.moc/moc_roisettingsdlog.cpp: moc_dir .ui/roisettingsdlog.h
 	$(MOC) .ui/roisettingsdlog.h -o .moc/moc_roisettingsdlog.cpp
 
-.obj/image_collection.o: .ui/image_collection.cpp
+.obj/image_collection.o: obj_dir .ui/image_collection.cpp
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o .obj/image_collection.o .ui/image_collection.cpp
 
-.ui/image_collection.cpp: images/filenew \
+.ui/image_collection.cpp: ui_dir images/filenew \
 		images/fileopen \
 		images/filesave \
 		images/print \
@@ -359,6 +358,9 @@ scuba2.app/Contents/MacOS/scuba2: scuba2
 	@test -d scuba2.app/Contents/MacOS/ || mkdir -p scuba2.app/Contents/MacOS/
 	@rm -f scuba2.app/Contents/MacOS/scuba2
 	@cp scuba2 scuba2.app/Contents/MacOS/
+
+obj_dir:
+	@test -d .obj || mkdir -p .obj
 
 moc_dir:
 	@test -d .moc || mkdir -p .moc
