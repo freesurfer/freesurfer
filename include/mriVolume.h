@@ -73,7 +73,8 @@ typedef struct {
   
   float mfColorBrightness;                 /* threshold */
   float mfColorContrast;                   /* squash */
-  xColor3f maColorTable[Volm_knNumValues]; /* color for each value */
+  xColor3f mafColorTable[Volm_knNumValues]; /* color for each value */
+  xColor3n manColorTable[Volm_knNumValues]; /* color for each value */
   MATRIX   *m_resample_orig ;              /* 256^3->original volume */
   MATRIX   *m_resample ;                   /* 256^3->original volume */
   MATRIX   *m_resample_inv ;               /* original volume->256^3 */
@@ -115,23 +116,23 @@ Volm_tErr Volm_UnloadDisplayTransform ( mriVolumeRef this );
 
 /* Use the GetColor functions when you just need to display a color on
    the screen. */
-void Volm_GetColorAtIdx        ( mriVolumeRef     this,
-				 xVoxelRef        iIdx,
-				 xColor3fRef      oColor );
-void Volm_GetColorAtXYSlice    ( mriVolumeRef     this,
-				 mri_tOrientation iOrientation,
-				 xPoint2nRef      iPoint,
-				 int              inSlice,
-				 xColor3fRef      oColor );
-void Volm_GetMaxColorAtIdx     ( mriVolumeRef     this,
-				 xVoxelRef        iIdx,
-				 mri_tOrientation iOrientation,
-				 xColor3fRef      oColor );
-void Volm_GetMaxColorAtXYSlice ( mriVolumeRef     this,
-				 mri_tOrientation iOrientation,
-				 xPoint2nRef      iPoint,
-				 int              inSlice,
-				 xColor3fRef      oColor );
+void Volm_GetIntColorAtIdx        ( mriVolumeRef     this,
+				    xVoxelRef        iIdx,
+				    xColor3nRef      oColor );
+void Volm_GetIntColorAtXYSlice    ( mriVolumeRef     this,
+				    mri_tOrientation iOrientation,
+				    xPoint2nRef      iPoint,
+				    int              inSlice,
+				    xColor3nRef      oColor );
+void Volm_GetMaxIntColorAtIdx     ( mriVolumeRef     this,
+				    xVoxelRef        iIdx,
+				    mri_tOrientation iOrientation,
+				    xColor3nRef      oColor );
+void Volm_GetMaxIntColorAtXYSlice ( mriVolumeRef     this,
+				    mri_tOrientation iOrientation,
+				    xPoint2nRef      iPoint,
+				    int              inSlice,
+				    xColor3nRef      oColor );
 
 Volm_tErr Volm_GetDimensions        ( mriVolumeRef this,
 				      int*         onDimensionX, 
