@@ -50,6 +50,9 @@ typedef enum {
   DspA_tDisplayFlag_Selection,
   DspA_tDisplayFlag_FunctionalOverlay,
   DspA_tDisplayFlag_ParcellationOverlay,
+  DspA_tDisplayFlag_FocusFrame,
+  DspA_tDisplayFlag_Axes,
+  DspA_tDisplayFlag_MaxIntProj,
   DspA_knNumDisplayFlags
   
 } DspA_tDisplayFlag;
@@ -75,6 +78,13 @@ typedef enum {
   DspA_knNumBrushShapes
 
 } DspA_tBrushShape;
+
+typedef enum {
+
+  DspA_tVolumeType_Main = 0,
+  DspA_tVolumeType_Aux,
+  DspA_knNumVolumeTypes
+} DspA_tVolumeType;
 
 /* for stashing tons of surface draw lists. */
 #define DspA_knMaxPointsPerPointListNode 1000
@@ -279,11 +289,13 @@ DspA_tErr DspA_ParsePointList_( tkmDisplayAreaRef this,
 DspA_tErr DspA_Redraw_ ( tkmDisplayAreaRef this );
 
 /* do the actual drawing */
-DspA_tErr DspA_HandleDraw_        ( tkmDisplayAreaRef this );
-DspA_tErr DspA_DrawFrameBuffer_   ( tkmDisplayAreaRef this );
-DspA_tErr DspA_DrawSurface_       ( tkmDisplayAreaRef this );
-DspA_tErr DspA_DrawSurfaceDirect_ ( tkmDisplayAreaRef this );
-DspA_tErr DspA_DrawCursor_        ( tkmDisplayAreaRef this );
+DspA_tErr DspA_HandleDraw_             ( tkmDisplayAreaRef this );
+DspA_tErr DspA_DrawFrameBuffer_        ( tkmDisplayAreaRef this );
+DspA_tErr DspA_DrawSurface_            ( tkmDisplayAreaRef this );
+DspA_tErr DspA_DrawSurfaceDirect_      ( tkmDisplayAreaRef this );
+DspA_tErr DspA_DrawCursor_             ( tkmDisplayAreaRef this );
+DspA_tErr DspA_DrawFrameAroundDisplay_ ( tkmDisplayAreaRef this );
+DspA_tErr DspA_DrawAxes_               ( tkmDisplayAreaRef this );
 
 /* build the frame buffer */
 DspA_tErr DspA_BuildCurrentFrame_            ( tkmDisplayAreaRef this );
@@ -297,12 +309,20 @@ DspA_tErr DspA_DrawCrosshairIntoFrame_ ( tkmDisplayAreaRef this,
            float*            ifaColor,
            xPoint2nRef       ipWhere,
            int               inSize );
+void DspA_DrawVerticalArrow_ ( xPoint2nRef iStart,
+             int         inLength,
+             char*       isLabel );
+void DspA_DrawHorizontalArrow_ ( xPoint2nRef iStart,
+         int         inLength,
+         char*       isLabel );
 
 /* get info about the drawing state */
 DspA_tErr DspA_GetCursor        ( tkmDisplayAreaRef this, 
           VoxelRef          opCursor );
 DspA_tErr DspA_GetOrientation   ( tkmDisplayAreaRef this, 
           tkm_tOrientation* oOrientation );
+DspA_tErr DspA_GetZoomLevel     ( tkmDisplayAreaRef this, 
+          int*              oZoomLevel );
 int DspA_GetCurrentSliceNumber_ ( tkmDisplayAreaRef this );
 
 /* handles the lists of surface points */
@@ -348,6 +368,12 @@ DspA_tErr DspA_ConvertScreenToBuffer_ ( tkmDisplayAreaRef this,
           xPoint2nRef       opScreenPt,
           xPoint2nRef       ipBufferPt );
 
+DspA_tErr DspA_ConvertPlaneToVolume_ ( tkmDisplayAreaRef this,
+               xPoint2nRef       ipPlanePt,
+               int               inSlice,
+               tkm_tOrientation  iOrientation,
+               VoxelRef          opVolumeVox );
+
 /* send all viewing info to tcl */
 DspA_tErr DspA_SendViewStateToTcl_ ( tkmDisplayAreaRef this );
 
@@ -366,7 +392,6 @@ void DspA_SetUpOpenGLPort_ ( tkmDisplayAreaRef this );
 void DspA_DebugPrint_ ( tkmDisplayAreaRef this );
 void DspA_Signal ( char* isFuncName, int inLineNum, DspA_tErr ieCode );
 char* DspA_GetErrorString ( DspA_tErr ieCode );
-
 
 
 #endif

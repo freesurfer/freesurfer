@@ -11,18 +11,15 @@
 #define FALSE 0
 #endif
 
+#ifndef kDebugging
 #define kDebugging          1 
+#endif
 
-/* these can be redefined to do anything, or nothing at all. they can be used
-   to print to an error log file, to print with a specfic prefix or suffix,
-   print line numbers, etc. debugging output can be enabled or disabled in
-   the middle of the code. use InitDebugging to do any one-time set up work
-   and DeleteDebugging to take it down. */
-#ifdef kDebugging
+#if kDebugging
 
 extern char gDebuggingOn;
 
-// regular cerr debugging output.
+/* print debugging stuff to stderr */
 #define InitDebugging           if (getenv("XDEBUG")) gDebuggingOn = TRUE;
 #define DeleteDebugging
 #define DisableDebuggingOutput  gDebuggingOn = FALSE;
@@ -36,15 +33,15 @@ extern char gDebuggingOn;
 
 #else
 
-// no debugging output.
+/* to do: find a way to make these not print any debugging output. */
 #define InitDebugging       
 #define DisableDebuggingOutput  
 #define EnableDebuggingOutput
 #define DeleteDebugging
-#define DebugCode               /*
-#define EndDebugCode            */
-#define DebugPrint              /*
-#define EndDebugPrint           */
+#define DebugCode               
+#define EndDebugCode            
+#define DebugPrint              
+#define EndDebugPrint           
 #define Here(n)
 #endif
 

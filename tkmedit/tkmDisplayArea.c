@@ -86,9 +86,9 @@ char DspA_ksaSurface [tkm_knNumSurfaceTypes][256] = {
 DspA_tErr DspA_New ( tkmDisplayAreaRef* oppWindow,
          tkmMeditWindowRef  ipWindow ) {
 
-  DspA_tErr         eResult   = DspA_tErr_NoErr;
-  tkmDisplayAreaRef this      = NULL;
-  int               nFlag     = 0;
+  DspA_tErr         eResult      = DspA_tErr_NoErr;
+  tkmDisplayAreaRef this         = NULL;
+  int               nFlag        = 0;
 
   /* allocate us. */
   this = (tkmDisplayAreaRef) malloc ( sizeof(tkmDisplayArea) );
@@ -159,8 +159,8 @@ DspA_tErr DspA_New ( tkmDisplayAreaRef* oppWindow,
 
 DspA_tErr DspA_Delete ( tkmDisplayAreaRef* ioppWindow ) {
   
-  DspA_tErr         eResult = DspA_tErr_NoErr;
-  tkmDisplayAreaRef this    = NULL;
+  DspA_tErr         eResult      = DspA_tErr_NoErr;
+  tkmDisplayAreaRef this         = NULL;
 
   /* get us */
   this = *ioppWindow;
@@ -169,6 +169,10 @@ DspA_tErr DspA_Delete ( tkmDisplayAreaRef* ioppWindow ) {
   eResult = DspA_Verify ( this );
   if ( DspA_tErr_NoErr != eResult )
     goto error;
+
+  /* delete frame buffer */
+  if( NULL != this->mpFrameBuffer )
+    free( this->mpFrameBuffer );
 
   /* delete our voxels */
   Voxel_Delete ( &this->mpCursor );
@@ -313,6 +317,10 @@ DspA_tErr DspA_SetVolume ( tkmDisplayAreaRef this,
   this->mpFrameBuffer = (GLubyte*) malloc ( this->mnVolumeSize *
               this->mnVolumeSize * 
               DspA_knNumBytesPerPixel );
+  if( NULL == this->mpFrameBuffer ) {
+    eResult = DspA_tErr_AllocationFailed;
+    goto error;
+  }
 
   /* set inital values for our buffer scale */
   this->mfFrameBufferScaleX = 
@@ -420,26 +428,31 @@ DspA_tErr DspA_SetParcellationVolume ( tkmDisplayAreaRef this,
                int               inSize ) {
 
   DspA_tErr eResult            = DspA_tErr_NoErr;
+  tBoolean  bHaveVolume        = FALSE;
+  char      sTclArguments[256] = "";
 
   /* verify us. */
   eResult = DspA_Verify ( this );
   if ( DspA_tErr_NoErr != eResult )
     goto error;
 
-  /* make sure this size is the same as the main volume size. */
-  if( inSize != this->mnVolumeSize ) {
-    eResult = DspA_tErr_InvalidParameter;
-    goto error;
-  }
-
   /* save the parcellation volume */
   this->mpParcellationVolume = ipVolume;
 
+  /* turn stuff on or off based on if we have one. */
+  if( this->mpParcellationVolume != NULL ) {
+    bHaveVolume = TRUE;
+  }
+
   /* turn parcellation on */
   eResult = DspA_SetDisplayFlag( this, DspA_tDisplayFlag_ParcellationOverlay,
-         TRUE );
+         bHaveVolume );
   if ( DspA_tErr_NoErr != eResult )
     goto error;
+  
+  /* show parc label */
+  sprintf( sTclArguments, "%d", (int)bHaveVolume );
+  tkm_SendTclCommand( tkm_tTclCommand_ShowParcellationLabel, sTclArguments );
 
   /* redraw */
   this->mbSliceChanged = TRUE;
@@ -464,7 +477,9 @@ DspA_tErr DspA_SetSurface ( tkmDisplayAreaRef this,
           MRI_SURFACE*      ipSurface ) {
 
   DspA_tErr        eResult = DspA_tErr_NoErr;
+#if 0
   tkm_tSurfaceType surface = tkm_tSurfaceType_None;
+#endif 
 
   /* verify us. */
   eResult = DspA_Verify ( this );
@@ -778,16 +793,25 @@ DspA_tErr DspA_SetCursor ( tkmDisplayAreaRef this,
     if( NULL != this->mpAuxVolume ) {
       ucVolumeValue = tkm_GetVolumeValue( this->mpAuxVolume, this->mpCursor );
       sprintf( sTclArguments, "%d", ucVolumeValue );
-      tkm_SendTclCommand( tkm_tTclCommand_UpdateAuxVolumeValue, sTclArguments );
+      tkm_SendTclCommand( tkm_tTclCommand_UpdateAuxVolumeValue, 
+        sTclArguments );
+    }
+
+    /* and the parcellation label if it's on */
+    if( this->mabDisplayFlags[DspA_tDisplayFlag_ParcellationOverlay] 
+  && NULL != this->mpParcellationVolume ) {
+      tkm_GetParcellationLabel( this->mpCursor, sTclArguments );
+      tkm_SendTclCommand( tkm_tTclCommand_UpdateParcellationLabel, 
+        sTclArguments );
     }
 
     /* also see if we have functional data and can send a value for that
        as well. */     
     if ( NULL != this->mpFunctionalVolume ) {
       DisableDebuggingOutput;
-      eFunctional = FunV_GetValueAtAnatomicalVoxel( this->mpFunctionalVolume,
-                this->mpCursor, 
-                &functionalValue );
+      eFunctional = FunV_GetValueAtAnaIdx( this->mpFunctionalVolume,
+             this->mpCursor, 
+             &functionalValue );
       EnableDebuggingOutput;
       if( FunV_tErr_NoError == eFunctional ) {
   sprintf( sTclArguments, "%f", functionalValue );
@@ -921,7 +945,10 @@ DspA_tErr DspA_SetZoomLevel ( tkmDisplayAreaRef this,
   /* if we're the currently focused display... */
   if( sFocusedDisplay == this ) {
     
-    /* send zoom level update. */
+    /* notify the window that the zoom level has changed. */
+    MWin_ZoomLevelChanged( this->mpWindow, this, this->mnZoomLevel );
+
+  /* send zoom level update. */
     sprintf ( sTclArguments, "%d", (int)this->mnZoomLevel );
     tkm_SendTclCommand( tkm_tTclCommand_UpdateZoomLevel, sTclArguments );
   }
@@ -1162,6 +1189,14 @@ DspA_tErr DspA_SetDisplayFlag ( tkmDisplayAreaRef this,
     /* if the flag is different, set dirty flag */
     if( this->mabDisplayFlags[iWhichFlag] != bNewValue )
       this->mbSliceChanged = TRUE;
+
+  case DspA_tDisplayFlag_MaxIntProj:
+
+    /* if the flag is different, set dirty flag */
+    if( this->mabDisplayFlags[iWhichFlag] != bNewValue )
+      this->mbSliceChanged = TRUE;
+
+    break;
 
   default:
     break;
@@ -1970,6 +2005,7 @@ DspA_tErr DspA_HandleKeyDown_ ( tkmDisplayAreaRef this,
 
   DspA_tErr eResult       = DspA_tErr_NoErr;
   MWin_tErr eWindowResult = MWin_tErr_NoErr;
+  FunV_tErr eFunctional   = FunV_tErr_NoError;
 
   switch ( ipEvent->mKey ) {
 
@@ -2015,6 +2051,17 @@ DspA_tErr DspA_HandleKeyDown_ ( tkmDisplayAreaRef this,
           DspA_tDisplayFlag_FunctionalOverlay );
       if ( DspA_tErr_NoErr != eResult )
   goto error;
+    }
+    break;
+
+  case 'h':
+
+    FunV_UseOverlayCache( this->mpFunctionalVolume, 
+        !this->mpFunctionalVolume->mbUseOverlayCache );
+    if( this->mpFunctionalVolume->mbUseOverlayCache ) {
+      DebugPrint "Cache enabled.\n" EndDebugPrint;
+    } else {
+      DebugPrint "Cache disabled.\n" EndDebugPrint;
     }
     break;
 
@@ -2136,7 +2183,29 @@ DspA_tErr DspA_HandleKeyDown_ ( tkmDisplayAreaRef this,
     DspA_Redraw_( this );
     break;
     
-  }
+  case '+':
+    if( NULL != this->mpFunctionalVolume ) {
+      /* move the time point up */
+      eFunctional = FunV_ChangeTimePointBy( this->mpFunctionalVolume, 1 );
+      if( FunV_tErr_NoError != eFunctional ) {
+  eResult = DspA_tErr_ErrorAccessingFunctionalVolume;
+  goto error;
+      }
+    }
+    break;
+
+  case '-':
+    if( NULL != this->mpFunctionalVolume ) {
+      /* move the time point down */
+      eFunctional = FunV_ChangeTimePointBy( this->mpFunctionalVolume, -1 );
+      if( FunV_tErr_NoError != eFunctional ) {
+  eResult = DspA_tErr_ErrorAccessingFunctionalVolume;
+  goto error;
+      }
+    }
+    break;
+
+   }
 
   goto cleanup;
 
@@ -2297,52 +2366,87 @@ DspA_tErr DspA_HandleDraw_ ( tkmDisplayAreaRef this ) {
   /* if the slice changed, build the current frame buffer */
   if( this->mbSliceChanged ) {
     eResult = DspA_BuildCurrentFrame_ ( this );
-    if ( DspA_tErr_NoErr != eResult )
-      goto error;
+    if ( DspA_tErr_NoErr != eResult ) {
+      DspA_Signal( "DspA_HandleDraw_", __LINE__, eResult );
+      eResult = DspA_tErr_NoErr;
+    }
   }
 
   /* draw the selection */
   if( this->mabDisplayFlags[DspA_tDisplayFlag_Selection] ) {
     eResult = DspA_DrawSelectionToFrame_( this );
-    if ( DspA_tErr_NoErr != eResult )
-      goto error;
+    if ( DspA_tErr_NoErr != eResult ) {
+      DspA_Signal( "DspA_HandleDraw_", __LINE__, eResult );
+      eResult = DspA_tErr_NoErr;
+    }
   }
 
   /* draw functional overlay. */
   if( this->mabDisplayFlags[DspA_tDisplayFlag_FunctionalOverlay] ) {
     eResult = DspA_DrawFunctionalOverlayToFrame_( this );
-    if ( DspA_tErr_NoErr != eResult )
-      goto error;
+    if ( DspA_tErr_NoErr != eResult ) {
+      DspA_Signal( "DspA_HandleDraw_", __LINE__, eResult );
+      eResult = DspA_tErr_NoErr;
+    }
   }
 
   /* draw the frame buffer */
   eResult = DspA_DrawFrameBuffer_ ( this );
-  if ( DspA_tErr_NoErr != eResult )
-    goto error;
+  if ( DspA_tErr_NoErr != eResult ) {
+    DspA_Signal( "DspA_HandleDraw_", __LINE__, eResult );
+    eResult = DspA_tErr_NoErr;
+  }
 
   /* draw the control points */
   if( this->mabDisplayFlags[DspA_tDisplayFlag_ControlPoints] ) {
     eResult = DspA_DrawControlPointsToFrame_( this );
-    if ( DspA_tErr_NoErr != eResult )
-      goto error;
+    if ( DspA_tErr_NoErr != eResult ) {
+      DspA_Signal( "DspA_HandleDraw_", __LINE__, eResult );
+      eResult = DspA_tErr_NoErr;
+    }
   }
 
   /* draw the surface */
   eResult = DspA_DrawSurface_ ( this );
-  if ( DspA_tErr_NoErr != eResult )
-    goto error;
+  if ( DspA_tErr_NoErr != eResult ) {
+    DspA_Signal( "DspA_HandleDraw_", __LINE__, eResult );
+    eResult = DspA_tErr_NoErr;
+  }
 
   /* draw the cursor */
   if( this->mabDisplayFlags[DspA_tDisplayFlag_Cursor] ) {
     eResult = DspA_DrawCursor_ ( this );
-    if ( DspA_tErr_NoErr != eResult )
-      goto error;
+    if ( DspA_tErr_NoErr != eResult ) {
+      DspA_Signal( "DspA_HandleDraw_", __LINE__, eResult );
+      eResult = DspA_tErr_NoErr;
+    }
+  }
+
+  /* if we're focused and our focus frame flag is on... */
+  if( this == sFocusedDisplay
+      && TRUE == this->mabDisplayFlags[DspA_tDisplayFlag_FocusFrame] ) {
+    /* draw a frame around us. */
+    eResult = DspA_DrawFrameAroundDisplay_( this );
+    if ( DspA_tErr_NoErr != eResult ) {
+      DspA_Signal( "DspA_HandleDraw_", __LINE__, eResult );
+      eResult = DspA_tErr_NoErr;
+    }
+  }
+
+ if( this->mabDisplayFlags[DspA_tDisplayFlag_Axes] ) {
+    eResult = DspA_DrawAxes_ ( this );
+    if ( DspA_tErr_NoErr != eResult ) {
+      DspA_Signal( "DspA_HandleDraw_", __LINE__, eResult );
+      eResult = DspA_tErr_NoErr;
+    }
   }
 
   /* rebuilt all our slice changes, so we can clear this flag. */
   this->mbSliceChanged = FALSE;
 
   goto cleanup;
+
+  goto error;
 
  error:
 
@@ -2577,6 +2681,216 @@ DspA_tErr DspA_DrawCursor_ ( tkmDisplayAreaRef this ) {
   return eResult;
 }
 
+DspA_tErr DspA_DrawFrameAroundDisplay_ ( tkmDisplayAreaRef this ) {
+
+  DspA_tErr eResult      = DspA_tErr_NoErr;
+
+  DspA_SetUpOpenGLPort_( this );
+
+  /* draw a green box around us */
+  glColor3f ( 0.0, 1.0, 0.0 );
+  
+  glBegin( GL_LINE_STRIP );
+  glVertex2d( 1, 1 );
+  glVertex2d( this->mnVolumeSize-1, 1 );
+  glVertex2d( this->mnVolumeSize-1, this->mnVolumeSize-1 );
+  glVertex2d( 1, this->mnVolumeSize-1 );
+  glVertex2d( 1, 1 );
+  glEnd ();
+  
+  goto cleanup;
+
+  goto error;
+
+ error:
+
+  /* print error message */
+  if ( DspA_tErr_NoErr != eResult ) {
+    DebugPrint "Error %d in DspA_DrawFrameAroundDisplay_: %s\n",
+      eResult, DspA_GetErrorString(eResult) EndDebugPrint;
+  }
+
+ cleanup:
+
+  return eResult;
+}
+
+DspA_tErr DspA_DrawAxes_ ( tkmDisplayAreaRef this ) {
+
+  DspA_tErr eResult     = DspA_tErr_NoErr;
+  xPoint2n  volumePt    = {0, 0};
+  VoxelRef  pVoxel      = NULL;
+
+#if 0
+
+  int       nY          = 0;
+  char      sLabel[256] = "";
+  int       nLength     = 0;
+  int       nChar       = 0;
+
+  Voxel_New( &pVoxel );
+
+  DspA_SetUpOpenGLPort_( this );
+
+  glColor3f ( 0.0, 1.0, 0.0 );
+
+  volumePt.mnX = 0;
+
+  /* all down the side, every size / 5 pixels */
+  for ( nY = 0; nY < this->mnVolumeSize; nY += this->mnVolumeSize/5 ) {
+      
+    /* y flip the volume pt to flip the image over. */
+    //volumePt.mnY = BUFFER_Y_FLIP(nY);
+    volumePt.mnY = nY;
+
+    /* get a volume voxel.*/
+    eResult = DspA_ConvertBufferToVolume_ ( this, &volumePt, pVoxel );
+    if ( DspA_tErr_NoErr != eResult )
+      goto error;
+    
+    /* if this is good... */
+    eResult = DspA_VerifyVolumeVoxel_( this, pVoxel );
+    if( DspA_tErr_NoErr == eResult ) {
+      
+      /* convert the voxel coords to a string */
+      sprintf( sLabel, "%d,%d,%d", EXPAND_VOXEL_INT(pVoxel) );
+      
+      /* draw a line here. */
+      glBegin( GL_LINES );
+      glVertex2d( 0, nY );
+      glVertex2d( 10, nY );
+      glEnd();
+      
+      /* get length of the string */
+      nLength = strlen( sLabel );
+      
+      /* go to right place */
+      glRasterPos2i( 0, nY + 5 );
+
+      /* for every cahr in the string.. */
+      for( nChar = 0; nChar < nLength; nChar++ ) {
+  
+  /* draw the char */
+  glutBitmapCharacter( GLUT_BITMAP_8_BY_13, sLabel[nChar] );
+      }
+    }
+
+    eResult = DspA_tErr_NoErr;
+  }
+  
+#endif
+
+  DspA_SetUpOpenGLPort_( this );
+
+  /* draw arrows */
+  switch( this->mOrientation ) {
+
+  case tkm_tOrientation_Coronal:
+    volumePt.mnX = 40; 
+    volumePt.mnY = this->mnVolumeSize - 20;
+    DspA_DrawHorizontalArrow_( &volumePt, -20, "R" );
+    volumePt.mnX = this->mnVolumeSize - 20;
+    volumePt.mnY = 40; 
+    DspA_DrawVerticalArrow_( &volumePt, -20, "S" );
+    break;
+  case tkm_tOrientation_Horizontal:
+    volumePt.mnX = 40; 
+    volumePt.mnY = this->mnVolumeSize - 20;
+    DspA_DrawHorizontalArrow_( &volumePt, -20, "R" );
+    volumePt.mnX = this->mnVolumeSize - 20;
+    volumePt.mnY = 40; 
+    DspA_DrawVerticalArrow_( &volumePt, -20, "A" );
+    break;
+  case tkm_tOrientation_Sagittal:
+   volumePt.mnX = this->mnVolumeSize - 40; 
+    volumePt.mnY = this->mnVolumeSize - 20;
+    DspA_DrawHorizontalArrow_( &volumePt, 20, "A" );
+    volumePt.mnX = 20;
+    volumePt.mnY = 40; 
+    DspA_DrawVerticalArrow_( &volumePt, -20, "S" );
+    break;
+  default:
+    break;
+  }
+
+  
+  goto cleanup;
+
+  goto error;
+ error:
+
+  /* print error message */
+  if ( DspA_tErr_NoErr != eResult ) {
+    DebugPrint "Error %d in DspA_DrawAxes_: %s\n",
+      eResult, DspA_GetErrorString(eResult) EndDebugPrint;
+  }
+
+ cleanup:
+
+  Voxel_Delete( &pVoxel );
+
+  return eResult;
+}
+
+void DspA_DrawVerticalArrow_ ( xPoint2nRef iStart,
+             int         inLength,
+             char*       isLabel ) {
+
+  int nChar = 0;
+  int nStrLength = 0;
+  int nHeadOffset = 0;
+
+  if( inLength > 0 ) {
+    nHeadOffset = 3;
+  } else {
+    nHeadOffset = -3;
+  }
+
+  glBegin( GL_LINE_STRIP );
+  glVertex2d( iStart->mnX, iStart->mnY );
+  glVertex2d( iStart->mnX, iStart->mnY + inLength );
+  glVertex2d( iStart->mnX - nHeadOffset,iStart->mnY + inLength - nHeadOffset );
+  glVertex2d( iStart->mnX, iStart->mnY + inLength );
+  glVertex2d( iStart->mnX + nHeadOffset,iStart->mnY + inLength - nHeadOffset );
+  glEnd();
+
+  glRasterPos2i( iStart->mnX + 2, iStart->mnY + 7 );
+  nStrLength = strlen( isLabel );
+  for( nChar = 0; nChar < nStrLength; nChar++ ) 
+    glutBitmapCharacter( GLUT_BITMAP_8_BY_13, isLabel[nChar] );
+
+}
+
+void DspA_DrawHorizontalArrow_ ( xPoint2nRef iStart,
+         int         inLength,
+         char*       isLabel ) {
+
+  int nChar = 0;
+  int nStrLength = 0;
+  int nHeadOffset = 0;
+
+  if( inLength > 0 ) {
+    nHeadOffset = 3;
+  } else {
+    nHeadOffset = -3;
+  }
+
+  glBegin( GL_LINE_STRIP );
+  glVertex2d( iStart->mnX, iStart->mnY );
+  glVertex2d( iStart->mnX + inLength, iStart->mnY );
+  glVertex2d( iStart->mnX + inLength - nHeadOffset,iStart->mnY - nHeadOffset );
+  glVertex2d( iStart->mnX + inLength, iStart->mnY );
+  glVertex2d( iStart->mnX + inLength - nHeadOffset,iStart->mnY + nHeadOffset );
+  glEnd();
+
+  glRasterPos2i( iStart->mnX + 2, iStart->mnY + 7 );
+  nStrLength = strlen( isLabel );
+  for( nChar = 0; nChar < nStrLength; nChar++ ) 
+    glutBitmapCharacter( GLUT_BITMAP_8_BY_13, isLabel[nChar] );
+
+}
+
+
 
 DspA_tErr DspA_BuildCurrentFrame_ ( tkmDisplayAreaRef this ) {
 
@@ -2585,23 +2899,30 @@ DspA_tErr DspA_BuildCurrentFrame_ ( tkmDisplayAreaRef this ) {
   GLubyte*              pDest       = NULL;
   unsigned char         ucValue     = 0;
   VoxelRef              pVoxel      = NULL;
-  VoxelRef              pFuncRASVox = NULL;
-  Real                  rRASX       = 0;
-  Real                  rRASY       = 0;
-  Real                  rRASZ       = 0;
+  VoxelRef              pFuncMin    = NULL;
+  VoxelRef              pFuncMax    = NULL;
   FunV_tErr             eFunctional = FunV_tErr_NoError;
   FunV_tFunctionalValue funcValue   = 0.0;
-  float                 fRed        = 0;
-  float                 fGreen      = 0;
-  float                 fBlue      = 0;
+  xColor3f              color       = {0,0,0};
+  xColor3f              funcColor   = {0,0,0};
   tBoolean              bPixelSet   = FALSE;
   int                   nY          = 0;
 
   xUtil_StartTimer();
 
-  /* make our voxel */
+  /* make our voxels */
   Voxel_New ( &pVoxel );
-  Voxel_New ( &pFuncRASVox );
+  Voxel_New ( &pFuncMin );
+  Voxel_New ( &pFuncMax );
+
+  /* if we have and are showing functional data... */
+  if( this->mabDisplayFlags[DspA_tDisplayFlag_FunctionalOverlay] 
+      && NULL != this->mpFunctionalVolume ) {
+
+    /* get our overlay func bounds in antomical space */
+    Volume_GetBoundsInAnatomical( this->mpFunctionalVolume->mpOverlayVolume, 
+          pFuncMin, pFuncMax );
+  }
 
   /* if we're in zoom level one, set zoom center to 128,128,128 */
   if( 1 == this->mnZoomLevel ) {
@@ -2621,9 +2942,9 @@ DspA_tErr DspA_BuildCurrentFrame_ ( tkmDisplayAreaRef this ) {
   DisableDebuggingOutput;
 
   /* go thru the buffer... */
-  //  for ( volumePt.mnY = 0; volumePt.mnY < this->mnVolumeSize; volumePt.mnY++ ) {
   for ( nY = 0; nY < this->mnVolumeSize; nY ++ ) {
-    for ( volumePt.mnX = 0; volumePt.mnX < this->mnVolumeSize; volumePt.mnX ++ ) {
+    for ( volumePt.mnX = 0; 
+    volumePt.mnX < this->mnVolumeSize; volumePt.mnX ++ ) {
 
       /* haven't set this pixel yet. */
       bPixelSet = FALSE;
@@ -2640,90 +2961,99 @@ DspA_tErr DspA_BuildCurrentFrame_ ( tkmDisplayAreaRef this ) {
       eResult = DspA_VerifyVolumeVoxel_( this, pVoxel );
       if( DspA_tErr_NoErr == eResult ) {
   
-  /* if we have and are showing functional data... */
-  if( this->mabDisplayFlags[DspA_tDisplayFlag_FunctionalOverlay] 
-      && NULL != this->mpFunctionalVolume ) {
-           
-    /* convert to ras */
-    trans_VoxelIndexToRAS( EXPAND_VOXEL_INT(pVoxel), 
-         &rRASX, &rRASY, &rRASZ );
-    Voxel_Set( pFuncRASVox, rRASX, rRASY, rRASZ );
-
-    /* get a functional value. */
-    eFunctional = FunV_GetValueAtRASVoxel( this->mpFunctionalVolume,
-             pFuncRASVox, &funcValue );
-
-    /* if it was a valid voxel */
-    if( FunV_tErr_NoError == eFunctional ) {
-
-      /* get the anatomical value for the offset color */
-      ucValue = tkm_GetVolumeValue ( this->mpVolume, pVoxel );
-      tkm_GetAnatomicalVolumeColor( ucValue, &fRed, &fGreen, &fBlue );
-      
-      /* get a color value. */
-      eFunctional = FunV_GetColorForValue ( this->mpFunctionalVolume,
-              funcValue, fRed,
-              &fRed, &fGreen, &fBlue );
-
-      /* if the color is not all black.. */
-      if( fRed != 0 || fBlue != 0 || fGreen != 0 ) {
-        
-        /* pixel is set. */
-        bPixelSet = TRUE;
-      }
-    } 
-  } 
-  
   /* if we are showing parcellation... */
   if( this->mabDisplayFlags[DspA_tDisplayFlag_ParcellationOverlay] ) {
     
     /* get parcellation color. */
-    tkm_GetParcellationColor( pVoxel, &fRed, &fGreen, &fBlue );
+    tkm_GetParcellationColor( pVoxel, &color );
 
-    /* if it's not zero... */
-    if ( fRed != 0 || fBlue != 0 || fGreen != 0 ) {
-      
-      /* pixel is set. */
+    /* if it's not zero, pixel is set. */
+    if ( color.mfRed != 0 || color.mfBlue != 0 || color.mfGreen != 0 ) {
       bPixelSet = TRUE;
     }
+
   }
 
-  /* if we didn't set the pixel color from functional data... */
+  /* if we didn't set the pixel color from the parcellation... */
   if ( !bPixelSet ) {
     
     /* get the plain anatomical value from the main or aux
        volume. */
     if( this->mabDisplayFlags[DspA_tDisplayFlag_AuxVolume] ) {
-      ucValue = tkm_GetVolumeValue ( this->mpAuxVolume, pVoxel );
+      if( this->mabDisplayFlags[DspA_tDisplayFlag_MaxIntProj] )
+        ucValue = tkm_GetMaxIntProjValue( this->mpAuxVolume,
+            this->mOrientation,
+            pVoxel );
+        else
+    ucValue = tkm_GetVolumeValue ( this->mpAuxVolume, pVoxel );
     } else {
-      ucValue = tkm_GetVolumeValue ( this->mpVolume, pVoxel );
+      if( this->mabDisplayFlags[DspA_tDisplayFlag_MaxIntProj] )
+        ucValue = tkm_GetMaxIntProjValue( this->mpVolume,
+            this->mOrientation,
+            pVoxel );
+      else
+        ucValue = tkm_GetVolumeValue ( this->mpVolume, pVoxel );
     }
 
     /* get the color */
-    tkm_GetAnatomicalVolumeColor( ucValue, &fRed, &fGreen, &fBlue );
-
-    /* pixel is set. */
-    bPixelSet = TRUE;
+    tkm_GetAnatomicalVolumeColor( ucValue, &color );
   }
 
+
+  /* if we have and are showing functional data... */
+  if( this->mabDisplayFlags[DspA_tDisplayFlag_FunctionalOverlay] 
+      && NULL != this->mpFunctionalVolume ) {
+           
+    /* if this voxel is in our func bounds... */
+    if( Voxel_GetX(pVoxel) >= Voxel_GetX(pFuncMin)
+        && Voxel_GetX(pVoxel) <= Voxel_GetX(pFuncMax)
+        && Voxel_GetY(pVoxel) >= Voxel_GetY(pFuncMin)
+        && Voxel_GetY(pVoxel) <= Voxel_GetY(pFuncMax)
+        && Voxel_GetZ(pVoxel) >= Voxel_GetZ(pFuncMin)
+        && Voxel_GetZ(pVoxel) <= Voxel_GetZ(pFuncMax) ) {
+
+      /* get a functional value. */
+      eFunctional = 
+        FunV_GetValueAtAnaIdx( this->mpFunctionalVolume,
+             pVoxel, &funcValue );
+      
+      /* if it was a valid voxel */
+      if( FunV_tErr_NoError == eFunctional ) {
+        
+        /* get a color value. use the red compoonent for
+           base value. */
+        eFunctional = FunV_GetColorForValue ( this->mpFunctionalVolume,
+                funcValue, 
+                &color, &funcColor );
+        
+        /* if the color is not all black.. */
+        if( funcColor.mfRed != 0 || funcColor.mfGreen != 0 || funcColor.mfBlue  != 0 ) {
+    
+    /* set the color to this func color */
+    color = funcColor;
+        }
+      }
+    } 
+  }
+  
       } else {
 
   /* voxel was out of bounds, set to out of bounds color. */
-  fRed   = (GLubyte)0;
-  fGreen = (GLubyte)0;
-  fBlue  = (GLubyte)0;
+  color.mfRed   = 0;
+  color.mfGreen = 0;
+  color.mfBlue  = 0;
 
   /* clear error flag. */
   eResult = DspA_tErr_NoErr;
-      }  
+      }
 
       /* set the pixel */
       pDest[DspA_knRedPixelCompIndex]   = 
-  (GLubyte)(fRed * (float)DspA_knMaxPixelValue);
+  (GLubyte)(color.mfRed * (float)DspA_knMaxPixelValue);
       pDest[DspA_knGreenPixelCompIndex] = 
-  (GLubyte)(fGreen * (float)DspA_knMaxPixelValue);
+  (GLubyte)(color.mfGreen * (float)DspA_knMaxPixelValue);
       pDest[DspA_knBluePixelCompIndex]  = 
-  (GLubyte)(fBlue * (float)DspA_knMaxPixelValue);
+  (GLubyte)(color.mfBlue * (float)DspA_knMaxPixelValue);
       pDest[DspA_knAlphaPixelCompIndex] = DspA_knMaxPixelValue;
 
       /* advance our pointer. */
@@ -2747,7 +3077,8 @@ DspA_tErr DspA_BuildCurrentFrame_ ( tkmDisplayAreaRef this ) {
 
   /* delete the voxel. */
   Voxel_Delete ( &pVoxel );
-  Voxel_Delete ( &pFuncRASVox );
+  Voxel_Delete ( &pFuncMin );
+  Voxel_Delete ( &pFuncMax );
 
   xUtil_StopTimer( "build frame buffer" );
 
@@ -2762,9 +3093,8 @@ DspA_tErr DspA_DrawFunctionalOverlayToFrame_ ( tkmDisplayAreaRef this ) {
   xPoint2n              bufferPt    = {0,0};
   FunV_tFunctionalValue max         = 0;
   FunV_tFunctionalValue funcValue   = 0.0;
-  float                 fRed        = 0;
-  float                 fGreen      = 0;
-  float                 fBlue       = 0;
+  xColor3f              color       = {0,0,0};
+  xColor3f              funcColor   = {0,0,0};
   GLubyte*              pFrame      = NULL;
   
   /* draw the color scale bar. get threshold max. */
@@ -2785,8 +3115,7 @@ DspA_tErr DspA_DrawFunctionalOverlayToFrame_ ( tkmDisplayAreaRef this ) {
       
       /* get the functional color for this value */
     eFunctional = FunV_GetColorForValue( this->mpFunctionalVolume,
-           funcValue, 0,
-           &fRed, &fGreen, &fBlue );
+           funcValue, &color, &funcColor );
     if( FunV_tErr_NoError != eFunctional ) {
       eResult = DspA_tErr_ErrorAccessingFunctionalVolume;
       goto error;
@@ -2800,12 +3129,13 @@ DspA_tErr DspA_DrawFunctionalOverlayToFrame_ ( tkmDisplayAreaRef this ) {
       pFrame = this->mpFrameBuffer + 
   ( (bufferPt.mnY * this->mnVolumeSize) + bufferPt.mnX ) * 
   DspA_knNumBytesPerPixel;
+
       pFrame[DspA_knRedPixelCompIndex]   = 
-   (GLubyte)(fRed * DspA_knMaxPixelValue);
+   (GLubyte)(funcColor.mfRed * DspA_knMaxPixelValue);
       pFrame[DspA_knGreenPixelCompIndex] = 
-  (GLubyte)(fGreen * DspA_knMaxPixelValue);
+  (GLubyte)(funcColor.mfGreen * DspA_knMaxPixelValue);
       pFrame[DspA_knBluePixelCompIndex]  = 
-  (GLubyte)(fBlue * DspA_knMaxPixelValue);
+  (GLubyte)(funcColor.mfBlue * DspA_knMaxPixelValue);
       pFrame[DspA_knAlphaPixelCompIndex] = DspA_knMaxPixelValue;
     }
   }
@@ -3068,14 +3398,16 @@ DspA_tErr DspA_BuildSurfaceDrawLists_ ( tkmDisplayAreaRef this ) {
   DspA_tErr        eResult         = DspA_tErr_NoErr;
   xListRef         pList           = NULL;
   xList_tErr       eList           = xList_tErr_NoErr;
-  xPoint2n         volumePt        = {0,0};
   VoxelRef         pAnatomicalVox  = NULL;
+#if 0
+  xPoint2n         volumePt        = {0,0};
   VoxelRef         pRASVox         = NULL;
   Real             rRASX           = 0;
   Real             rRASY           = 0;
   Real             rRASZ           = 0;
   MHBT*            pBucket         = NULL;
   int              nBin            = 0;
+#endif
   int              nSlice          = 0;
   tkm_tSurfaceType surface         = tkm_tSurfaceType_Current;
   int              nFace           = 0;
@@ -3091,7 +3423,9 @@ DspA_tErr DspA_BuildSurfaceDrawLists_ ( tkmDisplayAreaRef this ) {
   tBoolean         bPointsInThisFace = FALSE;
 
   Voxel_New( &pAnatomicalVox );
+#if 0
   Voxel_New( &pRASVox );
+#endif
   Voxel_New( &pVertexVox );
   Voxel_New( &pNeighborVox );
 
@@ -3160,9 +3494,7 @@ DspA_tErr DspA_BuildSurfaceDrawLists_ ( tkmDisplayAreaRef this ) {
     goto error;
 
   /* trans to ras */
-  trans_VoxelIndexToRAS( EXPAND_VOXEL_INT(pAnatomicalVox), 
-             &rRASX, &rRASY, &rRASZ );
-  Voxel_Set( pRASVox, rRASX, rRASY, rRASZ );
+  tkm_ConvertVolumeToRAS( pAnatomicalVox, pRASVox );
 
 
   /* get the bucket at this point */
@@ -3177,11 +3509,13 @@ DspA_tErr DspA_BuildSurfaceDrawLists_ ( tkmDisplayAreaRef this ) {
 
       /* get the face number. */
       nFace = (pBucket->bins[nBin]).fno;
-#endif
+#else
       
     /* for each face... */
     for ( nFace = 0; nFace < this->mpSurface->nfaces; nFace++ ) {
-        
+  
+#endif
+      
       /* get the face. */
       pFace = &(this->mpSurface->faces[nFace]);
       if( NULL == pFace ) {
@@ -3317,7 +3651,9 @@ DspA_tErr DspA_BuildSurfaceDrawLists_ ( tkmDisplayAreaRef this ) {
  cleanup:
 
   Voxel_Delete( &pAnatomicalVox );
+#if 0
   Voxel_Delete( &pRASVox );
+#endif
   Voxel_Delete( &pVertexVox );
   Voxel_Delete( &pNeighborVox );
 
@@ -3558,6 +3894,34 @@ DspA_tErr DspA_GetOrientation ( tkmDisplayAreaRef this,
   /* print error message */
   if ( DspA_tErr_NoErr != eResult ) {
     DebugPrint "Error %d in DspA_GetOrientation: %s\n",
+      eResult, DspA_GetErrorString(eResult) EndDebugPrint;
+  }
+
+ cleanup:
+
+  return eResult;
+}
+
+DspA_tErr DspA_GetZoomLevel ( tkmDisplayAreaRef this, 
+            int*              oZoomLevel ) {
+
+  DspA_tErr eResult = DspA_tErr_NoErr;
+
+  /* verify us. */
+  eResult = DspA_Verify ( this );
+  if ( DspA_tErr_NoErr != eResult )
+    goto error;
+
+  /* return the zoom level */
+  *oZoomLevel = this->mnZoomLevel;
+
+  goto cleanup;
+
+ error:
+
+  /* print error message */
+  if ( DspA_tErr_NoErr != eResult ) {
+    DebugPrint "Error %d in DspA_GetZoomLevel: %s\n",
       eResult, DspA_GetErrorString(eResult) EndDebugPrint;
   }
 
@@ -3841,6 +4205,57 @@ DspA_tErr DspA_ConvertBufferToVolume_ ( tkmDisplayAreaRef this,
 
   /* copy into the outgoing voxel to return it */
   Voxel_Copy( opVolumeVox, pVolumeVox );
+  
+  goto cleanup;
+  
+ error:
+  
+  /* print error message */
+  if ( DspA_tErr_NoErr != eResult ) {
+    DebugPrint "Error %d in DspA_DspA_ConvertBufferToVolume_: %s\n",
+      eResult, DspA_GetErrorString(eResult) EndDebugPrint;
+  }
+
+ cleanup:
+
+  Voxel_Delete ( &pVolumeVox );
+  
+  return eResult;
+}
+
+DspA_tErr DspA_ConvertPlaneToVolume_ ( tkmDisplayAreaRef this,
+               xPoint2nRef       ipPlanePt,
+               int               inSlice,
+               tkm_tOrientation  iOrientation,
+               VoxelRef          opVolumeVox ) {
+  
+  DspA_tErr eResult     = DspA_tErr_NoErr;
+  VoxelRef  pVolumeVox  = NULL;
+
+  Voxel_New ( &pVolumeVox );
+
+  /* build a voxel out of these two coords and the slice */
+  switch ( iOrientation ) {
+  case tkm_tOrientation_Coronal:
+    Voxel_Set( pVolumeVox, 
+         ipPlanePt->mnX, ipPlanePt->mnY, inSlice );
+    break;
+  case tkm_tOrientation_Horizontal:
+    Voxel_Set( pVolumeVox, 
+         ipPlanePt->mnX, inSlice, ipPlanePt->mnY );
+    break;
+  case tkm_tOrientation_Sagittal:
+    Voxel_Set( pVolumeVox, 
+         inSlice, ipPlanePt->mnY, ipPlanePt->mnX );
+    break;
+  default:
+    eResult = DspA_tErr_InvalidOrientation;
+    goto error;
+    break;
+  }
+
+  /* copy into the outgoing voxel to return it */
+  Voxel_Copy( opVolumeVox, pVolumeVox );
 
   goto cleanup;
 
@@ -3848,7 +4263,7 @@ DspA_tErr DspA_ConvertBufferToVolume_ ( tkmDisplayAreaRef this,
 
   /* print error message */
   if ( DspA_tErr_NoErr != eResult ) {
-    DebugPrint "Error %d in DspA_DspA_ConvertBufferToVolume_: %s\n",
+    DebugPrint "Error %d in DspA_ConvertPlaneToVolume_: %s\n",
       eResult, DspA_GetErrorString(eResult) EndDebugPrint;
   }
 
@@ -3996,12 +4411,20 @@ DspA_tErr DspA_SendViewStateToTcl_ ( tkmDisplayAreaRef this ) {
   sprintf( sTclArguments, "%d", ucVolumeValue );
   tkm_SendTclCommand( tkm_tTclCommand_UpdateVolumeValue, sTclArguments );
 
+  /* and the parcellation label if it's on */
+  if( this->mabDisplayFlags[DspA_tDisplayFlag_ParcellationOverlay] 
+      && NULL != this->mpParcellationVolume ) {
+    tkm_GetParcellationLabel( this->mpCursor, sTclArguments );
+    tkm_SendTclCommand( tkm_tTclCommand_UpdateParcellationLabel, 
+      sTclArguments );
+  }
+
   /* also see if we have functional data and can send a value for that
      as well. */     
-  if ( NULL != this->mpFunctionalVolume ) {
-    eFunctional = FunV_GetValueAtAnatomicalVoxel( this->mpFunctionalVolume,
-              this->mpCursor, 
-              &functionalValue );
+  if ( this->mabDisplayFlags[DspA_tDisplayFlag_FunctionalOverlay] ) {
+    eFunctional = FunV_GetValueAtAnaIdx( this->mpFunctionalVolume,
+           this->mpCursor, 
+           &functionalValue );
     if( FunV_tErr_NoError == eFunctional ) {
       sprintf( sTclArguments, "%f", functionalValue );
       tkm_SendTclCommand( tkm_tTclCommand_UpdateFunctionalValue, sTclArguments );
@@ -4257,26 +4680,34 @@ void xUtil_NormalizeVertexToVoxel( vertex_type*     ipVertex,
            tkm_tOrientation iOrientation,
            VoxelRef         opVoxel ) {
 
+  VoxelRef pRASVox = NULL;
+  VoxelRef pAnatomicalVox = NULL;
   Real rXVox = 0;
   Real rYVox = 0;
   Real rZVox = 0;
+
+  Voxel_New( &pRASVox );
+  Voxel_New( &pAnatomicalVox );
   
   switch( iSurface ) {
   case tkm_tSurfaceType_Current:
-    trans_RASToVoxel( ipVertex->x, ipVertex->y, ipVertex->z,
-          &rXVox,      &rYVox,      &rZVox );
+    Voxel_SetFloat( pRASVox, ipVertex->x, ipVertex->y, ipVertex->z );
     break;
   case tkm_tSurfaceType_Canonical:
-    trans_RASToVoxel( ipVertex->cx, ipVertex->cy, ipVertex->cz,
-          &rXVox,       &rYVox,       &rZVox );
+    Voxel_SetFloat( pRASVox, ipVertex->cx, ipVertex->cy, ipVertex->cz );
     break;
   case tkm_tSurfaceType_Original:
-    trans_RASToVoxel( ipVertex->origx, ipVertex->origy, ipVertex->origz,
-          &rXVox,          &rYVox,          &rZVox );
+    Voxel_SetFloat( pRASVox, ipVertex->origx, ipVertex->origy, ipVertex->origz );
     break;
   default:
     break;
   }
+
+  tkm_ConvertRASToVolume( pRASVox, pAnatomicalVox );
+  rXVox = Voxel_GetFloatX( pAnatomicalVox );
+  rYVox = Voxel_GetFloatY( pAnatomicalVox );
+  rZVox = Voxel_GetFloatZ( pAnatomicalVox );
+
 
   switch( iOrientation ) {
   case tkm_tOrientation_Horizontal:
@@ -4291,6 +4722,9 @@ void xUtil_NormalizeVertexToVoxel( vertex_type*     ipVertex,
   default:
     break;
   }
+
+  Voxel_Delete( &pRASVox );
+  Voxel_Delete( &pAnatomicalVox );
 }
 
 tBoolean xUtil_LineIntersectsPlane( VoxelRef         ipLineVoxA,

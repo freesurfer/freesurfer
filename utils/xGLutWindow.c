@@ -346,8 +346,9 @@ void xGWin_GLutKeyboardCallback ( unsigned char icKey,
           int           inX, 
           int           inY ) {
 
-  xGWin_tEventRef pEvent = NULL;
-  int             nState = 0;
+  xGWin_tEventRef pEvent        = NULL;
+  int             nState        = 0;
+  unsigned char   ucModifiedKey = 0;
 
   /* in all these funcs, we just create an event, set the relevant fields,
      and pass it to the event sender */
@@ -371,7 +372,11 @@ void xGWin_GLutKeyboardCallback ( unsigned char icKey,
      a special character. so we'll add the value of a minus the value of
      ctrl-a. */
   if( pEvent->mbCtrlKey ) {
-    pEvent->mKey = (unsigned char)((int)icKey + ((int)'a' - xGWin_knCtrlA));
+    ucModifiedKey = (unsigned char)((int)icKey + ((int)'a' - xGWin_knCtrlA));
+    if ( (ucModifiedKey >= 'a' && ucModifiedKey <= 'z')
+   || (ucModifiedKey >= 'A' && ucModifiedKey <= 'Z') ) {
+    pEvent->mKey = ucModifiedKey;
+    }
   }
 
   xGWin_PassEventToCurrentWindow ( pEvent );
@@ -649,7 +654,7 @@ void xGWin_DebugPrintEvent ( xGWin_tEventRef this ) {
   DebugPrint "\tWhere: %d %d\n", this->mWhere.mnX, this->mWhere.mnY
     EndDebugPrint;
   DebugPrint "\tButton: %d\n", this->mButton EndDebugPrint;
-  DebugPrint "\tKey: %c\n", this->mKey EndDebugPrint;
+  DebugPrint "\tKey: %c (%d)\n", this->mKey, (int)this->mKey EndDebugPrint;
   DebugPrint "\tModifiers: ctrl %d alt %d shift %d\n",
     (int)(this->mbCtrlKey), (int)(this->mbAltKey), (int)(this->mbShiftKey)
     EndDebugPrint;

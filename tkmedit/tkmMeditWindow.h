@@ -172,6 +172,9 @@ MWin_tErr MWin_GetOrientation ( tkmMeditWindowRef         this,
 MWin_tErr MWin_CursorChanged       ( tkmMeditWindowRef this,
              tkmDisplayAreaRef ipDisplay,
              VoxelRef          ipCursor );
+MWin_tErr MWin_ZoomLevelChanged    ( tkmMeditWindowRef this,
+             tkmDisplayAreaRef ipDisplay,
+             int               inZoomLevel );
 MWin_tErr MWin_DisplayFlagChanged  ( tkmMeditWindowRef this,
              tkmDisplayAreaRef ipDisplay,
              DspA_tDisplayFlag iWhichFlag,
@@ -199,6 +202,10 @@ MWin_tErr MWin_HandleDraw_ ( tkmMeditWindowRef this );
 
 /* move the tool window directly under the medit window */
 MWin_tErr MWin_PlaceToolWindow_ ( tkmMeditWindowRef this );
+
+/* focus on a different display area */
+MWin_tErr MWin_ChangeFocusedDisplayAreaBy_( tkmMeditWindowRef this,
+              int               inDelta );  
 
 /* register tcl commands */
 MWin_tErr MWin_RegisterTclCommands ( tkmMeditWindowRef this,

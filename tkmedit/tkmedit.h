@@ -14,7 +14,10 @@ typedef tVolumeValue* tVolumeRef;
 #define knMaxVolumeValue 255
 
 #define WM_EDITED_OFF 1
-#define WM_MIN_VAL    2 /* 1 is used for voxels that are edited to off */
+
+#ifndef WM_MIN_VAL
+#define WM_MIN_VAL    5 /* 1 is used for voxels that are edited to off */
+#endif
 
 #define tkm_knEditToWhiteLow      knMinVolumeValue
 #define tkm_knEditToWhiteHigh     WM_MIN_VAL
@@ -63,16 +66,21 @@ typedef enum {
   tkm_tTclCommand_UpdateBrush,
   tkm_tTclCommand_UpdateBrushThreshold,
   tkm_tTclCommand_UpdateVolumeColorScale,
+  tkm_tTclCommand_UpdateParcellationLabel,
 
   /* display status */
   tkm_tTclCommand_ShowVolumeCoords,
   tkm_tTclCommand_ShowRASCoords,
   tkm_tTclCommand_ShowTalCoords,
   tkm_tTclCommand_ShowAuxValue,
+  tkm_tTclCommand_ShowParcellationLabel,
   tkm_tTclCommand_ShowFuncCoords,
   tkm_tTclCommand_ShowFuncValue,
   tkm_tTclCommand_ShowFuncOverlayOptions,
   tkm_tTclCommand_ShowFuncTimeCourseOptions,
+  tkm_tTclCommand_ShowSurfaceLoadingOptions,
+  tkm_tTclCommand_ShowOriginalSurfaceViewingOptions,
+  tkm_tTclCommand_ShowCanonicalSurfaceViewingOptions,
 
   /* interface configuration */
   tkm_tTclCommand_MoveToolWindow,
@@ -83,20 +91,21 @@ typedef enum {
 
 /* convesion functions */
 void tkm_ConvertVolumeToRAS ( VoxelRef inVolumeVox, VoxelRef outRASVox );
+void tkm_ConvertRASToVolume ( VoxelRef inRASVox, VoxelRef outVolumeVox );
 void tkm_ConvertVolumeToTal ( VoxelRef inVolumeVox, VoxelRef outTalVox );
 
 /* interfaces for accessing current volume state */
-unsigned char tkm_GetVolumeValue ( tVolumeRef, VoxelRef );
-void tkm_GetAnatomicalVolumeColor( tVolumeValue inValue,
-           float* outRed,
-           float* outGreen, 
-           float* outBlue );
+tVolumeValue tkm_GetVolumeValue ( tVolumeRef, VoxelRef );
+void tkm_GetAnatomicalVolumeColor( tVolumeValue inValue, xColor3fRef oColor );
+
+/* getting the maximum intensity projection */
+tVolumeValue tkm_GetMaxIntProjValue( tVolumeRef iVolume, 
+             tkm_tOrientation iOrientation, 
+             VoxelRef pVoxel );
 
 /* parcellation value */
-void tkm_GetParcellationColor( VoxelRef, 
-             float* outRed,
-             float* outGreen, 
-             float* outBlue );
+void tkm_GetParcellationColor( VoxelRef, xColor3fRef oColor );
+void tkm_GetParcellationLabel( VoxelRef, char* osLabel );
 
 /* dealing with control points */
 void tkm_AddNearestCtrlPtToSelection ( VoxelRef inVolumeVox, 

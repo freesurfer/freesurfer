@@ -43,9 +43,6 @@ source $env(MRI_DIR)/lib/tcl/tkm_wrappers.tcl
 
 # constants
 set ksWindowName "TkMedit Tools"
-set kLabelFont   $pfont
-set kNormalFont  $mfont
-set kHighlightBgColor white
 
 # DspA_tOrientation
 set DspA_tOrientation_Coronal    0
@@ -64,6 +61,9 @@ set DspA_tDisplayFlag_ControlPoints               8
 set DspA_tDisplayFlag_Selection                   9
 set DspA_tDisplayFlag_FunctionalOverlay          10
 set DspA_tDisplayFlag_ParcellationOverlay        11
+set DspA_tDisplayFlag_FocusFrame                 12
+set DspA_tDisplayFlag_Axes                       13
+set DspA_tDisplayFlag_MaxIntProj                 14
 
 # DspA_tTool
 set DspA_tTool_Select     0
@@ -116,6 +116,8 @@ set gfwVolValue ""
 set gsAuxVolName ""
 set gnAuxVolValue 0
 set gfwAuxVolValue ""
+set gsParcellationLabel ""
+set gfwParcellationLabel ""
 set gsFuncCoords ""
 set gfwFuncCoords ""
 set gfFuncValue 0
@@ -129,6 +131,8 @@ set gbSelection 0
 set gbControlPoints 0
 set gbFunctional 0
 set gbParcellation 0
+set gbAxes 0
+set gbMaxIntProj 0
 set gbMainSurface 0
 set gbOriginalSurface 0
 set gbCanonicalSurface 0
@@ -143,6 +147,11 @@ set gnBrushNewValue 0
 set gfVolumeColorScaleThresh 0
 set gfVolumeColorScaleSquash 0
 set gbVolumeDirty 0
+
+foreach lMenuGroup {SurfaceLoading} {
+
+    set glMenuGroups($lMenuGroup) {}
+}
 
 # ========================================================= UPDATES FROM MEDIT
 
@@ -209,6 +218,12 @@ proc UpdateAuxVolumeValue { inValue } {
     set gnAuxVolValue $inValue
 }
 
+proc UpdateParcellationLabel { isLabel } {
+
+    global gsParcellationLabel
+    set gsParcellationLabel $isLabel
+}
+
 proc UpdateFunctionalValue { ifValue } {
 
     global gfFuncValue
@@ -246,12 +261,13 @@ proc UpdateDisplayFlag { iFlag ibValue } {
     global DspA_tDisplayFlag_ControlPoints
     global DspA_tDisplayFlag_Selection DspA_tDisplayFlag_FunctionalOverlay
     global DspA_tDisplayFlag_ParcellationOverlay
+    global DspA_tDisplayFlag_Axes DspA_tDisplayFlag_MaxIntProj
     global MWin_tVolumeType_Main MWin_tVolumeType_Aux
 
     global gDisplayedVolume gb3DDisplay gbCursor gbSelection gbControlPoints
     global gbFunctional gbMainSurface gbOriginalSurface gbCanonicalSurface
     global gbDisplaySurfaceVertices gbInterpolateSurfaceVertices
-    global gbParcellation
+    global gbParcellation gbAxes gbMaxIntProj
     
 
     if { $DspA_tDisplayFlag_AuxVolume == $iFlag } {
@@ -290,6 +306,12 @@ proc UpdateDisplayFlag { iFlag ibValue } {
     }
     if { $DspA_tDisplayFlag_ParcellationOverlay == $iFlag } {
   set gbParcellation $ibValue
+    }
+    if { $DspA_tDisplayFlag_Axes == $iFlag } {
+  set gbAxes $ibValue
+    }
+    if { $DspA_tDisplayFlag_MaxIntProj == $iFlag } {
+  set gbMaxIntProj $ibValue
     }
 }
 
@@ -333,12 +355,41 @@ proc UpdateVolumeDirty { ibDirty } {
 
 # =============================================================== DIALOG BOXES
 
-proc DoLoadAuxVolumeDlog {} {
+proc DoLoadVolumeDlog {} {
 
-    global kLabelFont kNormalFont
     global gDialog
 
     set sVolumeName ""
+    
+    set wwDialog .wwLoadVolumeDialog
+
+    # try to create the dlog...
+    if { [Dialog_Create $wwDialog "Load Volume" {-borderwidth 10}] } {
+
+  set fwMain    $wwDialog.fwMain
+  set fwButtons $wwDialog.fwButtons
+
+  # prompt and entry field
+  tkm_MakeEntry $fwMain "Enter a volume name:" sVolumeName 10
+
+  # ok and cancel buttons.
+  tkm_MakeCancelOKButtons $fwButtons $wwDialog \
+    { LoadVolume $sVolumeName } {}
+
+  pack $fwMain $fwButtons \
+    -side top       \
+    -expand yes     \
+    -fill x         \
+    -padx 5         \
+    -pady 5
+   }
+}
+
+proc DoLoadAuxVolumeDlog {} {
+
+    global gDialog
+
+    set sAuxVolumeName ""
     
     set wwDialog .wwLoadAuxVolumeDialog
 
@@ -346,42 +397,14 @@ proc DoLoadAuxVolumeDlog {} {
     if { [Dialog_Create $wwDialog "Load Aux Volume" {-borderwidth 10}] } {
 
   set fwMain    $wwDialog.fwMain
-  set lwPrompt  $fwMain.lwPrompts
-  set ewName    $fwMain.ewName
-
   set fwButtons $wwDialog.fwButtons
-  set bwOK      $fwButtons.bwOK
-  set bwCancel  $fwButtons.bwCancel
 
   # prompt and entry field
-  frame $fwMain
-  label $lwPrompt -text "Enter a volume name:" \
-    -font $kLabelFont
-  entry $ewName -textvariable sVolumeName \
-    -font $kNormalFont
-  pack $lwPrompt         \
-    -side top      \
-    -anchor w
-  pack $ewName           \
-    -side top      \
-    -anchor w      \
-    -expand yes    \
-    -fill x
+  tkm_MakeEntry $fwMain "Enter a volume name:" sAuxVolumeName 10
 
-  # ok and cancel buttons. the ok button will actually call the
-  # important function here.
-  frame $fwButtons
-  button $bwOK -text "OK"     \
-    -font $kNormalFont  \
-    -command { LoadAuxVolume $sVolumeName; \
-    Dialog_Close .wwLoadAuxVolumeDialog }
-  button $bwCancel -text "Cancel" \
-    -font $kNormalFont      \
-    -command { Dialog_Close .wwLoadAuxVolumeDialog }
-  pack $bwOK $bwCancel \
-    -side right  \
-    -padx 5      \
-    -pady 5
+  # ok and cancel buttons.
+  tkm_MakeCancelOKButtons $fwButtons $wwDialog \
+    { LoadAuxVolume $sAuxVolumeName } {}
 
   pack $fwMain $fwButtons \
     -side top       \
@@ -389,60 +412,29 @@ proc DoLoadAuxVolumeDlog {} {
     -fill x         \
     -padx 5         \
     -pady 5
-
-  bind $wwDialog <Return> { .wwLoadAuxVolumeDialog.fwButtons.bwOK flash; .wwLoadAuxVolumeDialog.fwButtons.bwOK invoke }
-   bind $wwDialog <Escape> { .wwLoadAuxVolumeDialog.fwButtons.bwCancel flash; .wwLoadAuxVolumeDialog.fwButtons.bwCancel invoke }
    }
 }
 
 proc DoSaveVolumeAsDlog {} {
 
-    global kLabelFont kNormalFont
     global gDialog
 
-    set sVolumeName ""
+    set sVolumeDir ""
     set wwDialog .wwSaveVolumeAsDlog
 
     # try to create the dlog...
     if { [Dialog_Create $wwDialog "Save Volume As..." {-borderwidth 10}] } {
 
   set fwMain    $wwDialog.fwMain
-  set lwPrompt  $fwMain.lwPrompt
-  set ewName    $fwMain.ewName
-
   set fwButtons $wwDialog.fwButtons
-  set bwOK      $fwButtons.bwOK
-  set bwCancel  $fwButtons.bwCancel
 
   # prompt and entry field
-  frame $fwMain
-  label $lwPrompt -text "Path to save this volume in:" \
-    -font $kLabelFont
-  entry $ewName -textvariable sVolumeName \
-    -font $kNormalFont
-  pack $lwPrompt         \
-    -side top      \
-    -anchor w
-  pack $ewName           \
-    -side top      \
-    -anchor w      \
-    -expand yes    \
-    -fill x
+  tkm_MakeDirectorySelector $fwMain "Path to save this volume in:" \
+    sVolumeDir
 
-  # ok and cancel buttons. the ok button will actually call the
-  # important function here.
-  frame $fwButtons
-  button $bwOK -text "OK"     \
-    -font $kNormalFont  \
-    -command { SaveVolumeAs $sVolumeName; \
-    Dialog_Close .wwSaveVolumeAsDlog }
-  button $bwCancel -text "Cancel" \
-    -font $kNormalFont      \
-    -command { Dialog_Close .wwSaveVolumeAsDlog }
-  pack $bwOK $bwCancel \
-    -side right  \
-    -padx 5      \
-    -pady 5
+  # ok and cancel buttons.
+  tkm_MakeCancelOKButtons $fwButtons $wwDialog \
+    { SaveVolumeAs $sVolumeName } {}
 
   pack $fwMain $fwButtons \
     -side top       \
@@ -450,15 +442,11 @@ proc DoSaveVolumeAsDlog {} {
     -fill x         \
     -padx 5         \
     -pady 5
-
-  bind $wwDialog <Return> { .wwSaveVolumeAsDlog.fwButtons.bwOK flash; .wwSaveVolumeAsDlog.fwButtons.bwOK invoke }
-  bind $wwDialog <Escape> { .wwSaveLabelDlog.fwButtons.bwCancel flash; .wwSaveLabelDlog.fwButtons.bwCancel invoke }
     }
 }
 
 proc DoSaveLabelDlog {} {
 
-    global kLabelFont kNormalFont
     global gDialog
 
     set sLabelName ""
@@ -468,42 +456,14 @@ proc DoSaveLabelDlog {} {
     if { [Dialog_Create $wwDialog "Save Label" {-borderwidth 10}] } {
 
   set fwMain    $wwDialog.fwMain
-  set lwPrompt  $fwMain.lwPrompt
-  set ewName    $fwMain.ewName
-
   set fwButtons $wwDialog.fwButtons
-  set bwOK      $fwButtons.bwOK
-  set bwCancel  $fwButtons.bwCancel
 
   # prompt and entry field
-  frame $fwMain
-  label $lwPrompt -text "Save this label as:" \
-    -font $kLabelFont
-  entry $ewName -textvariable sLabelName \
-    -font $kNormalFont
-  pack $lwPrompt         \
-    -side top      \
-    -anchor w
-  pack $ewName           \
-    -side top      \
-    -anchor w      \
-    -expand yes    \
-    -fill x
+  tkm_MakeFileSelector $fwMain "Save this label as:" sLabelName
 
-  # ok and cancel buttons. the ok button will actually call the
-  # important function here.
-  frame $fwButtons
-  button $bwOK -text "OK"     \
-    -font $kNormalFont  \
-    -command { SaveLabel $sLabelName; \
-    Dialog_Close .wwSaveLabelDlog }
-  button $bwCancel -text "Cancel" \
-    -font $kNormalFont      \
-    -command { Dialog_Close .wwSaveLabelDlog }
-  pack $bwOK $bwCancel \
-    -side right  \
-    -padx 5      \
-    -pady 5
+  # ok and cancel buttons.
+  tkm_MakeCancelOKButtons $fwButtons $wwDialog \
+    { SaveLabel $sLabelName } {}
 
   pack $fwMain $fwButtons \
     -side top       \
@@ -511,15 +471,11 @@ proc DoSaveLabelDlog {} {
     -fill x         \
     -padx 5         \
     -pady 5
-
-  bind $wwDialog <Return> { .wwSaveLabelDlog.fwButtons.bwOK flash; .wwSaveLabelDlog.fwButtons.bwOK invoke }
-  bind $wwDialog <Escape> { .wwSaveLabelDlog.fwButtons.bwCancel flash; .wwSaveLabelDlog.fwButtons.bwCancel invoke }
     }
 }
 
 proc DoLoadLabelDlog {} {
 
-    global kLabelFont kNormalFont
     global gDialog
 
     set sLabelName ""
@@ -529,42 +485,14 @@ proc DoLoadLabelDlog {} {
     if { [Dialog_Create $wwDialog "Load Label" {-borderwidth 10}] } {
 
   set fwMain    $wwDialog.fwMain
-  set lwPrompt  $fwMain.lwPrompt
-  set ewName    $fwMain.ewName
-
   set fwButtons $wwDialog.fwButtons
-  set bwOK      $fwButtons.bwOK
-  set bwCancel  $fwButtons.bwCancel
 
   # prompt and entry field
-  frame $fwMain
-  label $lwPrompt -text "Enter a label name:" \
-    -font $kLabelFont
-  entry $ewName -textvariable sLabelName \
-    -font $kNormalFont
-  pack $lwPrompt         \
-    -side top      \
-    -anchor w
-  pack $ewName           \
-    -side top      \
-    -anchor w      \
-    -expand yes    \
-    -fill x
-
-  # ok and cancel buttons. the ok button will actually call the
-  # important function here.
-  frame $fwButtons
-  button $bwOK -text "OK"     \
-    -font $kNormalFont  \
-    -command { LoadLabel $sLabelName; \
-    Dialog_Close .wwLoadLabelDlog }
-  button $bwCancel -text "Cancel" \
-    -font $kNormalFont      \
-    -command { Dialog_Close .wwLoadLabelDlog }
-  pack $bwOK $bwCancel \
-    -side right  \
-    -padx 5      \
-    -pady 5
+  tkm_MakeFileSelector $fwMain "Enter a label name:" sLabelName
+  
+  # ok and cancel buttons.
+  tkm_MakeCancelOKButtons $fwButtons $wwDialog \
+    { LoadLabel $sLabelName } {}
 
   pack $fwMain $fwButtons \
     -side top       \
@@ -572,9 +500,6 @@ proc DoLoadLabelDlog {} {
     -fill x         \
     -padx 5         \
     -pady 5
-
-  bind $wwDialog <Return> { .wwLoadLabelDlog.fwButtons.bwOK flash; .wwLoadLabelDlog.fwButtons.bwOK invoke }
-  bind $wwDialog <Escape> { .wwLoadLabelDlog.fwButtons.bwCancel flash; .wwLoadLabelDlog.fwButtons.bwCancel invoke }
     }
 }
 
@@ -599,7 +524,6 @@ proc LoadSurface { isSurfaceName } {
 
 proc DoLoadSurfaceDlog { iSurface } {
 
-    global kLabelFont kNormalFont
     global gDialog
     global gLoadingSurface
  
@@ -611,42 +535,14 @@ proc DoLoadSurfaceDlog { iSurface } {
     if { [Dialog_Create $wwDialog "Load Surface" {-borderwidth 10}] } {
 
   set fwMain    $wwDialog.fwMain
-  set lwPrompt  $fwMain.lwPrompt
-  set ewName    $fwMain.ewName
-
   set fwButtons $wwDialog.fwButtons
-  set bwOK      $fwButtons.bwOK
-  set bwCancel  $fwButtons.bwCancel
 
   # prompt and entry field
-  frame $fwMain
-  label $lwPrompt -text "Enter a surface name:" \
-    -font $kLabelFont
-  entry $ewName -textvariable sSurfaceName \
-    -font $kNormalFont
-  pack $lwPrompt         \
-    -side top      \
-    -anchor w
-  pack $ewName           \
-    -side top      \
-    -anchor w      \
-    -expand yes    \
-    -fill x
+  tkm_MakeFileSelector $fwMain "Enter a surface name:" sSurfaceName
 
-  # ok and cancel buttons. the ok button will actually call the
-  # important function here.
-  frame $fwButtons
-  button $bwOK -text "OK"     \
-    -font $kNormalFont  \
-    -command { LoadSurface $sSurfaceName; \
-    Dialog_Close .wwLoadSurfaceDlog }
-  button $bwCancel -text "Cancel" \
-    -font $kNormalFont      \
-    -command { Dialog_Close .wwLoadSurfaceDlog }
-  pack $bwOK $bwCancel \
-    -side right  \
-    -padx 5      \
-    -pady 5
+  # ok and cancel buttons.
+  tkm_MakeCancelOKButtons $fwButtons $wwDialog \
+    { LoadSurface $sSurfaceName } {}
 
   pack $fwMain $fwButtons \
     -side top       \
@@ -654,9 +550,6 @@ proc DoLoadSurfaceDlog { iSurface } {
     -fill x         \
     -padx 5         \
     -pady 5
-
-  bind $wwDialog <Return> { .wwLoadSurfaceDlog.fwButtons.bwOK flash; .wwLoadSurfaceDlog.fwButtons.bwOK invoke }
-  bind $wwDialog <Escape> { .wwLoadSurfaceDlog.fwButtons.bwCancel flash; .wwLoadSurfaceDlog.fwButtons.bwCancel invoke }
     }
 }
 
@@ -679,7 +572,6 @@ proc FindVertex { inVertex } {
 
 proc DoFindVertexDlog { iSurface } {
 
-    global kLabelFont kNormalFont
     global gDialog
     global gFindingSurface
 
@@ -699,34 +591,11 @@ proc DoFindVertexDlog { iSurface } {
   set bwCancel  $fwButtons.bwCancel
 
   # prompt and entry field
-  frame $fwMain
-  label $lwPrompt -text "Enter a vertex number:" \
-    -font $kLabelFont
-  entry $ewName -textvariable nVertex \
-    -font $kNormalFont
-  pack $lwPrompt         \
-    -side top      \
-    -anchor w
-  pack $ewName           \
-    -side top      \
-    -anchor w      \
-    -expand yes    \
-    -fill x
-
-  # ok and cancel buttons. the ok button will actually call the
-  # important function here.
-  frame $fwButtons
-  button $bwOK -text "OK"     \
-    -font $kNormalFont  \
-    -command { FindVertex $nVertex; \
-    Dialog_Close .wwFindVertexDlog }
-  button $bwCancel -text "Cancel" \
-    -font $kNormalFont      \
-    -command { Dialog_Close .wwFindVertexDlog }
-  pack $bwOK $bwCancel \
-    -side right  \
-    -padx 5      \
-    -pady 5
+  tkm_MakeEntry $fwMain "Enter a vertex number:" nVertex 6
+  
+  # ok and cancel buttons.
+  tkm_MakeCancelOKButtons $fwButtons $wwDialog \
+    { FindVertex $nVertex } {}
 
   pack $fwMain $fwButtons \
     -side top       \
@@ -734,9 +603,6 @@ proc DoFindVertexDlog { iSurface } {
     -fill x         \
     -padx 5         \
     -pady 5
-
-  bind $wwDialog <Return> { .wwFindVertexDlog.fwButtons.bwOK flash; .wwFindVertexDlog.fwButtons.bwOK invoke }
-  bind $wwDialog <Escape> { .wwFindVertexDlog.fwButtons.bwCancel flash; .wwFindVertexDlog.fwButtons.bwCancel invoke }
     }
 }
 
@@ -755,7 +621,6 @@ proc LoadFunctionalVolume { isPath isStem } {
 
 proc DoLoadFunctionalDlog { iVolume } {
 
-    global kLabelFont kNormalFont
     global tFunctionalVolume_Overlay tFunctionalVolume_TimeCourse
     global gDialog
     global gLoadingVolume
@@ -765,82 +630,35 @@ proc DoLoadFunctionalDlog { iVolume } {
     set sStem ""
     set wwDialog .wwLoadFunctionalDlog
 
-    # this doesn't work the second+ time the dlog is loaded
-#    if { $iVolume == $tFunctionalVolume_Overlay } {
-#  set sWindowName "Load Overlay Data"
-#    } else {
-#  set sWindowName "Load Time Course Data"
-#    }
     set sWindowName "Load Functional Volume"
 
     # try to create the dlog...
     if { [Dialog_Create $wwDialog $sWindowName {-borderwidth 10}] } {
 
-#  wm title $wwDialog $sWindowName
-
-  set fwMain    $wwDialog.fwMain
-  set lwPrompt  $fwMain.lwPrompt
-  set ewPath    $fwMain.ewPath
-  set ewStem    $fwMain.ewStem
-
+  set fwPath    $wwDialog.fwPath
+  set fwStem    $wwDialog.fwStem
   set fwButtons $wwDialog.fwButtons
-  set bwOK      $fwButtons.bwOK
-  set bwCancel  $fwButtons.bwCancel
 
-  # prompt and entry fields
-  frame $fwMain
-  label $lwPrompt -text "Enter a path and stem:" \
-    -font $kLabelFont
-  entry $ewPath -textvariable sPath \
-    -font $kNormalFont
-  entry $ewStem -textvariable sStem \
-    -font $kNormalFont        \
-    -width 8
-  pack $lwPrompt         \
-    -side top      \
-    -anchor w
-  pack $ewPath           \
-    -side left     \
-    -anchor w      \
-    -expand yes    \
-    -fill x
-  pack $ewStem           \
-    -side left     \
-    -anchor e      \
-    -expand no
+  # stem and path
+  tkm_MakeDirectorySelector $fwPath \
+    "Enter the directory the data is in:" sPath
+  tkm_MakeEntry $fwStem "Enter the stem of the data:" sStem 10
 
-  # ok and cancel buttons. the ok button will actually call the
-  # important function here.
-  frame $fwButtons
-  button $bwOK -text "OK"     \
-    -font $kNormalFont  \
-    -command { LoadFunctionalVolume $sPath $sStem; \
-    Dialog_Close .wwLoadFunctionalDlog }
-  button $bwCancel -text "Cancel" \
-    -font $kNormalFont      \
-    -command { Dialog_Close .wwLoadFunctionalDlog }
-  pack $bwOK $bwCancel \
-    -side right  \
-    -padx 5      \
-    -pady 5
+  # ok and cancel buttons.
+  tkm_MakeCancelOKButtons $fwButtons $wwDialog \
+    { LoadFunctionalVolume $sPath $sStem }
 
-  pack $fwMain $fwButtons \
+  pack $fwPath $fwStem $fwButtons \
     -side top       \
     -expand yes     \
     -fill x         \
     -padx 5         \
     -pady 5
-
-   bind $wwDialog <Return> { .wwLoadFunctionalDlog.fwButtons.bwOK flash; .wwLoadFunctionalDlog.fwButtons.bwOK invoke }
-   bind $wwDialog <Escape> { .wwFindVertexDlog.fwButtons.bwCancel flash; .wwFindVertexDlog.fwButtons.bwCancel invoke }
    }
-
-
 }
 
 proc DoSaveDlog {} {
 
-    global kLabelFont kNormalFont
     global gDialog
 
     set wwDialog .wwSaveDlog
@@ -849,34 +667,15 @@ proc DoSaveDlog {} {
     if { [Dialog_Create $wwDialog "Save Volume" {-borderwidth 10}] } {
 
   set fwMain    $wwDialog.fwMain
-  set lwPrompt  $fwMain.lwPrompt
-
   set fwButtons $wwDialog.fwButtons
-  set bwOK      $fwButtons.bwOK
-  set bwCancel  $fwButtons.bwCancel
 
-  # prompt and entry field
-  frame $fwMain
-  label $lwPrompt -text "Are you sure you wish to save changes to the volume?" \
-    -font $kLabelFont
-  pack $lwPrompt         \
-    -side top      \
-    -anchor w
+  # prompt
+  tkm_MakeNormalLabel $fwMain\
+    "Are you sure you wish to save changes to the volume?"
 
-  # ok and cancel buttons. the ok button will actually call the
-  # important function here.
-  frame $fwButtons
-  button $bwOK -text "OK"     \
-    -font $kNormalFont  \
-    -command { SaveVolume; \
-    Dialog_Close .wwSaveDlog; }
-  button $bwCancel -text "Cancel" \
-    -font $kNormalFont      \
-    -command { Dialog_Close .wwSaveDlog }
-  pack $bwOK $bwCancel \
-    -side right  \
-    -padx 5      \
-    -pady 5
+  # ok and cancel buttons.
+  tkm_MakeCancelOKButtons $fwButtons $wwDialog \
+    { SaveVolume }
 
   pack $fwMain $fwButtons \
     -side top       \
@@ -884,15 +683,11 @@ proc DoSaveDlog {} {
     -fill x         \
     -padx 5         \
     -pady 5
-
-   bind $wwDialog <Return> { .wwSaveDlog.fwButtons.bwOK flash; .wwSaveDlog.fwButtons.bwOK invoke }
-   bind $wwDialog <Escape> { .wwSaveDlog.fwButtons.bwCancel flash; .wwSaveDlog.fwButtons.bwCancel invoke }
     }
 }
 
 proc DoBrushInfoDlog {} {
 
-    global kLabelFont kNormalFont kHighlightBgColor
     global gDialog
     global DspA_tBrushShape_Square DspA_tBrushShape_Circle
     global gnBrushRadius gBrushShape gbBrush3D
@@ -906,115 +701,39 @@ proc DoBrushInfoDlog {} {
 
     # try to create the dlog...
     if { [Dialog_Create $wwDialog "Brush Size" {-borderwidth 10}] } {
-
-  set fwLabel              $wwDialog.fwLabel
-  set lwLabel              $fwLabel.lwLabel
   
-  set fwRadiusLabel        $wwDialog.fwRadiusLabel
-  set lwRadius             $fwRadiusLabel.lwRadius
-    
   set fwRadiusScale        $wwDialog.fwRadiusScale
-  set swRadius             $fwRadiusScale.swRadius
-  set ewRadius             $fwRadiusScale.ewRadius
-  
-  set fwShapeRadios        $wwDialog.fwShapeRadios
-  set rwCircle             $fwShapeRadios.rwCircle
-  set rwSquare             $fwShapeRadios.rwSquare
-  
+  set fwShapeLabel         $wwDialog.fwShapeLabel
+  set fwCircle             $wwDialog.fwCircle
+  set fwSquare             $wwDialog.fwSquare
   set fw3DCheckbox         $wwDialog.fw3DCheckbox
-  set cw3D                 $fw3DCheckbox.cw3D
-    
   set fwButtons            $wwDialog.fwButtons
-  set bwOK                 $fwButtons.bwOK
-  set bwApply              $fwButtons.bwApply
-  set bwCancel             $fwButtons.bwCancel
   
-  # the label that goes at the top of the frame
-  frame $fwLabel
-  label $lwLabel -text "Brush" \
-    -font $kLabelFont
-  pack $lwLabel -side left \
-    -anchor w
-  
-  # Radius label
-  frame $fwRadiusLabel
-  label $lwRadius -text "Radius" \
-    -font $kNormalFont
-  pack $lwRadius -side left \
-    -anchor w
-  
-  # radius slider
-  frame $fwRadiusScale
-  scale $swRadius -orient horizontal          \
-    -variable gnBrushRadius             \
-    -from 1                             \
-    -to 100                             \
-    -showvalue false 
-  entry $ewRadius -textvariable gnBrushRadius \
-    -width 3
-  pack $swRadius      \
-    -side left  \
-    -anchor w   \
-    -fill x
-  pack $ewRadius     \
-    -side left \
-    -anchor w  \
-    -expand no
-  
-  # sahpe radio buttons
-  frame $fwShapeRadios
-  radiobutton $rwCircle -text "Circle"  \
-    -variable gBrushShape         \
-    -font $kNormalFont   \
-    -highlightbackground $kHighlightBgColor \
-    -relief flat                  \
-    -value $DspA_tBrushShape_Circle
-  radiobutton $rwSquare -text "Square " \
-    -variable gBrushShape         \
-    -font $kNormalFont   \
-    -highlightbackground $kHighlightBgColor \
-    -relief flat                  \
-    -value $DspA_tBrushShape_Square
-  pack $rwCircle $rwSquare              \
-    -side top                     \
-    -anchor w
-  
+  # radius
+  tkm_MakeSlider $fwRadiusScale "Radius" gnBrushRadius 1 100 100 "" 1
+    
+  # shape radio buttons
+  tkm_MakeNormalLabel $fwShapeLabel "Shape"
+  tkm_MakeRadioButton $fwCircle "Circle" \
+    gBrushShape $DspA_tBrushShape_Circle ""
+  tkm_MakeRadioButton $fwSquare "Square" \
+    gBrushShape $DspA_tBrushShape_Square ""
+
   # 3d checkbox
-  frame $fw3DCheckbox
-  checkbutton $cw3D -text "3D"    \
-    -variable gbBrush3D     \
-    -font $kNormalFont      \
-    -highlightbackground $kHighlightBgColor
-  pack $cw3D        \
-    -side top \
-    -anchor w
+  tkm_MakeCheckbox $fw3DCheckbox "3D" gbBrush3D ""
   
   # pack them in a column
-  pack $fwLabel $fwRadiusLabel $fwRadiusScale \
-    $fwShapeRadios $fw3DCheckbox        \
+  pack $fwRadiusScale $fwShapeLabel $fwCircle \
+    $fwSquare $fw3DCheckbox             \
     -side top                           \
     -anchor w                           \
     -expand yes                         \
     -fill x
   
-  # ok and cancel buttons. the ok button will actually call the
-  # important function here.
-  frame $fwButtons
-  button $bwOK -text "OK"     \
-    -font $kNormalFont  \
-    -command { SetBrush $gnBrushRadius $gBrushShape $gbBrush3D; \
-    Dialog_Close .wwBrushInfoDlog }
-  button $bwApply -text "Apply"     \
-    -font $kNormalFont  \
-    -command { SetBrush $gnBrushRadius $gBrushShape $gbBrush3D; }
-  button $bwCancel -text "Cancel" \
-    -font $kNormalFont      \
-    -command { SetBrush $gnSavedBrushRadius $gSavedBrushShape $gbSavedBrush3D; \
-    Dialog_Close .wwBrushInfoDlog }
-  pack $bwOK $bwApply $bwCancel \
-    -side right  \
-    -padx 5      \
-    -pady 5
+  # buttons. 
+  tkm_MakeCancelApplyOKButtons $fwButtons $wwDialog \
+    { SetBrush $gnBrushRadius $gBrushShape $gbBrush3D } \
+    { SetBrush $gnSavedBrushRadius $gSavedBrushShape $gbSavedBrush3D }
 
   pack $fwButtons \
     -side top       \
@@ -1022,15 +741,11 @@ proc DoBrushInfoDlog {} {
     -fill x         \
     -padx 5         \
     -pady 5
-
-    bind $wwDialog <Return> { .wwBrushInfoDlog.fwButtons.bwOK flash; .wwBrushInfoDlog.fwButtons.bwOK invoke }
-    bind $wwDialog <Escape> { .wwBrushInfoDlog.fwButtons.bwCancel flash; .wwBrushInfoDlog.fwButtons.bwCancel invoke }
    }
 }
 
 proc DoCustomBrushDlog {} {
 
-    global kLabelFont kNormalFont kHighlightBgColor
     global gDialog
     global gnBrushLow gnBrushHigh gnBrushNewValue
     global gnSavedBrushLow gnSavedBrushHigh gnSavedBrushNewValue
@@ -1044,147 +759,28 @@ proc DoCustomBrushDlog {} {
     # try to create the dlog...
     if { [Dialog_Create $wwDialog "Custom Brush" {-borderwidth 10}] } {
 
-  set fwLabel              $wwDialog.fwLabel
-  set lwLabel              $fwLabel.lwLabel
-  
-  set fwLowLabel        $wwDialog.fwLowLabel
-  set lwLow             $fwLowLabel.lwLow
-
   set fwLowScale        $wwDialog.fwLowScale
-  set swLow             $fwLowScale.swLow
-  set ewLow             $fwLowScale.ewLow
-  
-  set fwHighLabel        $wwDialog.fwHighLabel
-  set lwHigh             $fwHighLabel.lwHigh
-
   set fwHighScale        $wwDialog.fwHighScale
-  set swHigh             $fwHighScale.swHigh
-  set ewHigh             $fwHighScale.ewHigh
-  
-  set fwNewValueLabel        $wwDialog.fwNewValueLabel
-  set lwNewValue             $fwNewValueLabel.lwNewValue
-
   set fwNewValueScale        $wwDialog.fwNewValueScale
-  set swNewValue             $fwNewValueScale.swNewValue
-  set ewNewValue             $fwNewValueScale.ewNewValue
-  
   set fwButtons            $wwDialog.fwButtons
-  set bwOK                 $fwButtons.bwOK
-  set bwApply              $fwButtons.bwApply
-  set bwCancel             $fwButtons.bwCancel
   
-  # the label that goes at the top of the frame
-  frame $fwLabel
-  label $lwLabel -text "Custom Brush" \
-    -font $kLabelFont
-  pack $lwLabel -side left \
-    -anchor w
-  
-  # label
-  frame $fwLowLabel
-  label $lwLow -text "Low" \
-    -font $kNormalFont
-  pack $lwLow -side left \
-    -anchor w
-  
-  # scale
-  frame $fwLowScale
-  scale $swLow -orient horizontal       \
-    -variable gnBrushLow          \
-    -from 0                             \
-    -to 255                             \
-    -showvalue false 
-  entry $ewLow -textvariable gnBrushLow \
-    -width 3
-  pack $swLow   \
-    -side left  \
-    -anchor w   \
-    -expand yes \
-    -fill x
-  pack $ewLow  \
-    -side left \
-    -anchor w  \
-    -expand no
-
-  # label
-  frame $fwHighLabel
-  label $lwHigh -text "High" \
-    -font $kNormalFont
-  pack $lwHigh -side left \
-    -anchor w
-  
-  # scale
-  frame $fwHighScale
-  scale $swHigh -orient horizontal       \
-    -variable gnBrushHigh          \
-    -from 0                             \
-    -to 255                             \
-    -showvalue false 
-  entry $ewHigh -textvariable gnBrushHigh \
-    -width 3
-  pack $swHigh   \
-    -side left  \
-    -anchor w   \
-    -expand yes \
-    -fill x
-  pack $ewHigh  \
-    -side left \
-    -anchor w  \
-    -expand no
-
-  # label
-  frame $fwNewValueLabel
-  label $lwNewValue -text "New Value" \
-    -font $kNormalFont
-  pack $lwNewValue -side left \
-    -anchor w
-  
-  # scale
-  frame $fwNewValueScale
-  scale $swNewValue -orient horizontal       \
-    -variable gnBrushNewValue          \
-    -from 0                             \
-    -to 255                             \
-    -showvalue false 
-  entry $ewNewValue -textvariable gnBrushNewValue \
-    -width 3
-  pack $swNewValue   \
-    -side left  \
-    -anchor w   \
-    -expand yes \
-    -fill x
-  pack $ewNewValue  \
-    -side left \
-    -anchor w  \
-    -expand no
+  # low, high, and new value sliders
+  tkm_MakeSlider $fwLowScale "Low" gnBrushLow 0 255 200 "" 1
+  tkm_MakeSlider $fwHighScale "High" gnBrushHigh 0 255 200 "" 1
+  tkm_MakeSlider $fwNewValueScale "New Value" gnBrushNewValue \
+    0 255 200 "" 1
 
   # pack them in a column
-  pack $fwLabel $fwLowLabel $fwLowScale \
-    $fwHighLabel $fwHighScale \
-    $fwNewValueLabel $fwNewValueScale \
+  pack $fwLowScale $fwHighScale $fwNewValueScale \
     -side top                           \
     -anchor w                           \
     -expand yes                         \
     -fill x
   
-  # ok and cancel buttons. the ok button will actually call the
-  # important function here.
-  frame $fwButtons
-  button $bwOK -text "OK"     \
-    -font $kNormalFont  \
-    -command { SetBrushThreshold $gnBrushLow $gnBrushHigh $gnBrushNewValue; \
-    Dialog_Close .wwCustomBrushDlog }
-  button $bwApply -text "Apply"     \
-    -font $kNormalFont  \
-    -command { SetBrushThreshold $gnBrushLow $gnBrushHigh $gnBrushNewValue; }
-  button $bwCancel -text "Cancel" \
-    -font $kNormalFont      \
-    -command { SetBrushThreshold $gnSavedBrushLow $gnSavedBrushHigh $gnSavedBrushNewValue; \
-    Dialog_Close .wwCustomBrushDlog }
-  pack $bwOK $bwApply $bwCancel \
-    -side right  \
-    -padx 5      \
-    -pady 5
+  # buttons. 
+  tkm_MakeCancelApplyOKButtons $fwButtons $wwDialog \
+    { SetBrushThreshold $gnBrushLow $gnBrushHigh $gnBrushNewValue } \
+    {SetBrushThreshold $gnSavedBrushLow $gnSavedBrushHigh $gnSavedBrushNewValue  }
 
   pack $fwButtons \
     -side top       \
@@ -1192,137 +788,58 @@ proc DoCustomBrushDlog {} {
     -fill x         \
     -padx 5         \
     -pady 5
-
-    bind $wwDialog <Return> { .wwCustomBrushDlog.fwButtons.bwOK flash; .wwCustomBrushDlog.fwButtons.bwOK invoke }
-    bind $wwDialog <space> { .wwCustomBrushDlog.fwButtons.bwApply flash; .wwCustomBrushDlog.fwButtons.bwApply invoke }
-    bind $wwDialog <Escape> { .wwCustomBrushDlog.fwButtons.bwCancel flash; .wwCustomBrushDlog.fwButtons.bwCancel invoke }
    }
 }
 
 proc DoVolumeColorScaleInfoDlog {} {
 
-    global kLabelFont kNormalFont
     global gDialog
     global gfVolumeColorScaleThresh gfVolumeColorScaleSquash 
+    global gfSavedVolumeColorScaleThresh gfSavedVolumeColorScaleSquash 
  
     set wwDialog .wwVolumeColorScaleInfoDlog
+
+    set gfSavedVolumeColorScaleSquash $gfVolumeColorScaleSquash
+    set gfSavedVolumeColorScaleThresh $gfVolumeColorScaleThresh
 
     # try to create the dlog...
     if { [Dialog_Create $wwDialog "Brightness / Contrast" {-borderwidth 10}] } {
 
-  set fwTop                $wwDialog.fwTop
-
-  set fwLeft               $fwTop.fwLeft
-  set lwThresh             $fwLeft.lwThresh
-  set lwSquash             $fwLeft.lwSquash
+  set fwBrightness $wwDialog.fwBrightness
+  set fwContrast   $wwDialog.fwContrast
+  set fwButtons    $wwDialog.fwButtons
   
-  set fwRight              $fwTop.fwRight
-  set fwScales             $fwRight.fwScales
-  set swSquash             $fwScales.swSquash
-  set swThresh             $fwScales.swThresh
+  # brightness and contrast sliders
+  tkm_MakeSlider $fwBrightness "Brightness" gfVolumeColorScaleThresh \
+    1 0 100 "" 1 0.01
+  tkm_MakeSlider $fwContrast "Constrast" gfVolumeColorScaleSquash \
+    0 20 100 "" 1
 
-  set fwEntries            $fwRight.fwEntries
-  set ewSquash             $fwEntries.ewSquash
-  set ewThresh             $fwEntries.ewThresh
-  
-  set fwButtons            $wwDialog.fwButtons
-  set bwOK                 $fwButtons.bwOK
-  
-  frame $fwTop
-  
-  # labels
-  frame $fwLeft
-  label $lwThresh -text "Brightness" \
-    -font $kNormalFont
-  label $lwSquash -text "Contrast" \
-    -font $kNormalFont
-  pack $lwThresh $lwSquash \
-    -side top        \
-    -pady 5          \
-    -anchor w
-
-  frame $fwRight
-
-  # scales
-  frame $fwScales
-  scale $swThresh -orient horizontal         \
-    -command { SetVolumeColorScale $gfVolumeColorScaleThresh $gfVolumeColorScaleSquash } \
-    -variable gfVolumeColorScaleThresh \
-    -from 1                            \
-    -to 0                              \
-    -length 100                        \
-    -resolution 0.01                   \
-    -showvalue false
-  scale $swSquash -orient horizontal         \
-    -command { SetVolumeColorScale $gfVolumeColorScaleThresh $gfVolumeColorScaleSquash } \
-    -variable gfVolumeColorScaleSquash \
-    -from 0                            \
-    -to 20                             \
-    -length 100                        \
-    -resolution 1                      \
-    -showvalue false
-  pack $swThresh $swSquash \
-    -side top        \
-    -pady 5          \
-    -expand yes      \
-    -anchor w
-
-  # entries
-  frame $fwEntries
-  entry $ewThresh                                \
-    -textvariable gfVolumeColorScaleThresh \
-    -font $kNormalFont                     \
-    -width 5
-  bind $ewThresh <Return> { SetVolumeColorScale $gfVolumeColorScaleThresh $gfVolumeColorScaleSquash }
-  entry $ewSquash                                \
-    -textvariable gfVolumeColorScaleSquash \
-    -font $kNormalFont                     \
-    -width 5
-  bind $ewSquash <Return> { SetVolumeColorScale $gfVolumeColorScaleThresh $gfVolumeColorScaleSquash }
-  pack $ewThresh $ewSquash \
-    -side top        \
-    -pady 5          \
-    -expand yes      \
-    -anchor w
-  
-  # pack scales and entries
-  pack $fwScales $fwEntries  \
-    -side left         \
-    -padx 5            \
-    -anchor w          \
-    -expand yes        \
+  # pack them in a column
+  pack $fwBrightness $fwContrast \
+    -side top                \
+    -anchor w                \
+    -expand yes              \
     -fill x
+  
+  # buttons
+  tkm_MakeCancelApplyOKButtons $fwButtons $wwDialog \
+    { SetVolumeColorScale $gfVolumeColorScaleThresh \
+    $gfVolumeColorScaleSquash } \
+    { SetVolumeColorScale $gfSavedVolumeColorScaleThresh \
+    $gfSavedVolumeColorScaleSquash }
 
-  # pack left and right
-  pack $fwLeft $fwRight    \
-    -side left       \
-    -padx 5          \
-    -expand yes      \
-    -anchor w
-
-  # ok and cancel buttons. the ok button will actually call the
-  # important function here.
-  frame $fwButtons
-  button $bwOK -text "OK"     \
-    -font $kNormalFont  \
-    -command { Dialog_Close .wwVolumeColorScaleInfoDlog }
-  pack $bwOK              \
-    -side right
-
-  pack $fwTop $fwButtons  \
+  pack $fwButtons  \
     -side top    \
     -expand yes     \
     -fill x         \
     -padx 5         \
     -pady 5
-
-    bind $wwDialog <Return> { .wwVolumeColorScaleInfoDlog.fwButtons.bwOK flash; .wwVolumeColorScaleInfoDlog.fwButtons.bwOK invoke }
     }
 }
 
 proc DoThresholdDlog {} {
 
-    global kLabelFont kNormalFont kHighlightBgColor
     global gDialog
     
     set wwDialog .wwThresholdDlog
@@ -1330,102 +847,144 @@ proc DoThresholdDlog {} {
     # try to create the dlog...
     if { [Dialog_Create $wwDialog "Threshold" {-borderwidth 10}] } {
 
-  set fwTop                $wwDialog.fwTop
-
+  set fwLabel       $wwDialog.fwLabel
+  set fwAbove       $wwDialog.fwAbove
+  set fwBelow       $wwDialog.fwBelow
   set fwThresh      $wwDialog.fwThresh
-  set lwThresh      $fwThresh.lwThresh
-  set ewThresh      $fwThresh.ewThresh
-  
-  set fwDirection   $wwDialog.fwDirection
-  set rwAbove       $fwDirection.rwAbove
-  set rwBelow       $fwDirection.rwBelow
-
   set fwNewValue    $wwDialog.fwNewValue
-  set lwNewValue    $fwNewValue.lwNewValue
-  set ewNewValue    $fwNewValue.ewNewValue
-
   set fwButtons     $wwDialog.fwButtons
-  set bwCancel      $fwButtons.bwCancel
-  set bwApply       $fwButtons.bwApply
-  set bwOK          $fwButtons.bwOK
+
+  # label 
+  tkm_MakeNormalLabel $fwLabel "Change all values"
   
+  # direction radios
+  tkm_MakeRadioButton $fwAbove "above" bAbove 1
+  tkm_MakeRadioButton $fwBelow "below" bAbove 0
+
   # threshold value
-  frame $fwThresh
-  label $lwThresh -text "Threshold:" \
-    -font $kNormalFont
-  entry $ewThresh -textvariable nThreshold \
-    -font $kNormalFont
-  pack $lwThresh     \
-    -side left      \
-    -anchor w
-  pack  $ewThresh     \
-    -side right      \
-    -anchor e
-  
-  #direction radios
-  frame $fwDirection
-  radiobutton $rwBelow -text "Below"              \
-    -variable bAbove                        \
-    -font $kNormalFont                      \
-    -highlightbackground $kHighlightBgColor \
-    -relief flat                            \
-    -value 0
-  radiobutton $rwAbove -text "Above"              \
-    -variable bAbove                        \
-    -font $kNormalFont                      \
-    -highlightbackground $kHighlightBgColor \
-    -relief flat                            \
-    -value 1
-  pack $rwBelow $rwAbove \
-    -side left     \
-    -anchor w
+  tkm_MakeSlider $fwThresh "this value" nThreshold 0 255 200 "" 1
 
-  # new value
-  frame $fwNewValue
-  label $lwNewValue -text "New Value:" \
-    -font $kNormalFont
-  entry $ewNewValue -textvariable nNewValue \
-    -font $kNormalFont
-  pack $lwNewValue     \
-    -side left      \
-    -anchor w
-  pack  $ewNewValue     \
-    -side right      \
-    -anchor e
+  #$fwBelow new value
+  tkm_MakeSlider $fwNewValue "to this value" nNewValue 0 255 200 "" 1
 
-  # buttons. the ok button will actually call the
-  # important function here.
-  frame $fwButtons
-  button $bwOK -text "OK"     \
-    -font $kNormalFont  \
-    -command { ThresholdVolume $nThreshold $bAbove $nNewValue; \
-    Dialog_Close .wwThresholdDlog }
-  button $bwApply -text "Apply"  \
-    -font $kNormalFont     \
-    -command { ThresholdVolume $nThreshold $bAbove $nNewValue }
-  button $bwCancel -text "Close" \
-    -font $kNormalFont      \
-    -command { Dialog_Close .wwThresholdDlog }
-  pack $bwOK $bwApply $bwCancel \
-    -side right  \
-    -padx 5      \
-    -pady 5
-  
-  pack $fwThresh $fwDirection $fwNewValue $fwButtons \
+  # pack them in a column
+  pack $fwLabel $fwAbove $fwBelow \
+    $fwThresh $fwNewValue     \
+    -side top                \
+    -anchor w                \
+    -expand yes              \
+    -fill x
+
+  # buttons.
+  tkm_MakeCancelOKButtons $fwButtons $wwDialog \
+    { Threshold $nThreshold $bAbove $nNewValue }
+
+  pack  $fwButtons \
     -side top       \
     -expand yes     \
     -fill x         \
     -padx 5         \
     -pady 5
-
-    bind $wwDialog <Return> { .wwThresholdDlog.fwButtons.bwOK flash; .wwThresholdDlog.fwButtons.bwOK invoke }
-    bind $wwDialog <space> { .wwThresholdDlog.fwButtons.bwApply flash; .wwThresholdDlog.fwButtons.bwApply invoke }
-   bind $wwDialog <Escape> { .wwThresholdDlog.fwButtons.bwCancel flash; .wwThresholdDlog.fwButtons.bwCancel invoke }    }
+    }
 }
 
+proc DoRotateDlog {} {
+
+    global gDialog
+    
+    set wwDialog .wwRotateDlog
+
+    # try to create the dlog...
+    if { [Dialog_Create $wwDialog "Rotate" {-borderwidth 10}] } {
+
+  set fwDegrees     $wwDialog.fwDegrees
+  set fwDirection   $wwDialog.fwDirection
+  set fwX           $wwDialog.fwX
+  set fwY           $wwDialog.fwY
+  set fwZ           $wwDialog.fwZ
+  set fwButtons     $wwDialog.fwButtons
+
+  set fDegrees 0
+  set sDirection x
+
+  # degrees
+  tkm_MakeEntryWithIncDecButtons \
+    $fwDegrees "Degrees" \
+    fDegrees \
+    "set fDegrees \$fDegrees" \
+    "set fDegrees \[expr \$fDegrees - 0.5\]" \
+    "set fDegrees \[expr \$fDegrees + 0.5\]" \
+    5
+
+  # direction radios
+  tkm_MakeNormalLabel $fwDirection "Direction:"
+  tkm_MakeRadioButton $fwX "X" sDirection x
+  tkm_MakeRadioButton $fwY "Y" sDirection y
+  tkm_MakeRadioButton $fwZ "Z" sDirection z
+
+  # buttons. 
+  tkm_MakeCancelOKButtons $fwButtons $wwDialog \
+    { RotateBrain $fDegrees $sDirection }
+
+  pack $fwDegrees $fwDirection $fwX $fwY $fwZ $fwButtons \
+    -side top       \
+    -anchor w       \
+    -expand yes     \
+    -fill x         \
+    -padx 5         \
+    -pady 5
+    }
+}
+
+proc DoTranslateDlog {} {
+
+    global gDialog
+    
+    set wwDialog .wwTranslateDlog
+
+    # try to create the dlog...
+    if { [Dialog_Create $wwDialog "Translate" {-borderwidth 10}] } {
+
+  set fwDistance    $wwDialog.fwDistance
+  set fwDirection   $wwDialog.fwDirection
+  set fwX           $wwDialog.fwX
+  set fwY           $wwDialog.fwY
+  set fwZ           $wwDialog.fwZ
+  set fwButtons     $wwDialog.fwButtons
+
+  set fDirection 0
+  set sDirection x
+
+  # degrees
+  tkm_MakeEntryWithIncDecButtons \
+    $fwDistance "Distance" \
+    fDistance \
+    "set fDistance \$fDistance" \
+    "set fDistance \[expr \$fDistance - 0.5\]" \
+    "set fDistance \[expr \$fDistance + 0.5\]" \
+    5
+
+  # direction radios
+  tkm_MakeNormalLabel $fwDirection "Direction:"
+  tkm_MakeRadioButton $fwX "X" sDirection x
+  tkm_MakeRadioButton $fwY "Y" sDirection y
+  tkm_MakeRadioButton $fwZ "Z" sDirection z
+
+  # buttons. 
+  tkm_MakeCancelOKButtons $fwButtons $wwDialog \
+    { Translate $fDistance $sDirection }
+
+  pack $fwDistance $fwDirection $fwX $fwY $fwZ $fwButtons \
+    -side top       \
+    -anchor w       \
+    -expand yes     \
+    -fill x         \
+    -padx 5         \
+    -pady 5
+    }
+}
 proc DoLoadParcellationDlog {} {
 
-    global kLabelFont kNormalFont
     global gDialog
 
     set sVolume ""
@@ -1435,75 +994,34 @@ proc DoLoadParcellationDlog {} {
     # try to create the dlog...
     if { [Dialog_Create $wwDialog "Load Parcellation" {-borderwidth 10}] } {
 
-  set fwMain    $wwDialog.fwMain
-  set lwVolume  $fwMain.lwVolume
-  set ewVolume  $fwMain.ewVolume
-  set lwColor   $fwMain.lwColor
-  set ewColor   $fwMain.ewColor
-
-  set fwButtons $wwDialog.fwButtons
-  set bwOK      $fwButtons.bwOK
-  set bwCancel  $fwButtons.bwCancel
+  set fwPath      $wwDialog.fwPath
+  set fwColorFile $wwDialog.fwColorFile
+  set fwButtons   $wwDialog.fwButtons
 
   # volume prompt and entry field
-  frame $fwMain
-  label $lwVolume -text "Enter a volume path with prefix (i.e. /COR-):" \
-    -font $kLabelFont
-  entry $ewVolume -textvariable sVolume \
-    -font $kNormalFont
-  pack $lwVolume         \
-    -side top      \
-    -anchor w
-  pack $ewVolume         \
-    -side top      \
-    -anchor w      \
-    -expand yes    \
-    -fill x
+  tkm_MakeDirectorySelector $fwPath \
+    "Enter a volume path" \
+    sVolume
 
   # color prompt and entry field
-  label $lwColor -text "Enter a color file name:" \
-    -font $kLabelFont
-  entry $ewColor -textvariable sColorFile \
-    -font $kNormalFont
-  pack $lwColor          \
-    -side top      \
-    -anchor w
-  pack $ewColor          \
-    -side top      \
-    -anchor w      \
-    -expand yes    \
-    -fill x
+  tkm_MakeFileSelector $fwColorFile \
+    "Enter a color file name:" sColorFile
 
-  # ok and cancel buttons. the ok button will actually call the
-  # important function here.
-  frame $fwButtons
-  button $bwOK -text "OK"     \
-    -font $kNormalFont  \
-    -command { LoadParcellationVolume $sVolume $sColorFile; \
-    Dialog_Close .wwLoadParcellationDlog }
-  button $bwCancel -text "Cancel" \
-    -font $kNormalFont      \
-    -command { Dialog_Close .wwLoadParcellationDlog }
-  pack $bwOK $bwCancel \
-    -side right  \
-    -padx 5      \
-    -pady 5
+  # ok and cancel buttons. 
+  tkm_MakeCancelOKButtons $fwButtons $wwDialog \
+    { LoadParcellationVolume $sVolume $sColorFile }
 
-  pack $fwMain $fwButtons \
+  pack $fwPath $fwColorFile $fwButtons \
     -side top       \
     -expand yes     \
     -fill x         \
     -padx 5         \
     -pady 5
-
-    bind $wwDialog <Return> { .wwLoadParcellationDlog.fwButtons.bwOK invoke }
-    bind $wwDialog <Escape> { .wwLoadParcellationDlog.fwButtons.bwCancel invoke }
     }
 }
 
 proc DoSaveRGBDlog {} {
 
-    global kLabelFont kNormalFont
     global gDialog
 
     set sRGBName ""
@@ -1513,42 +1031,15 @@ proc DoSaveRGBDlog {} {
     if { [Dialog_Create $wwDialog "Save RGB" {-borderwidth 10}] } {
 
   set fwMain    $wwDialog.fwMain
-  set lwPrompt  $fwMain.lwPrompt
-  set ewName    $fwMain.ewName
-
   set fwButtons $wwDialog.fwButtons
-  set bwOK      $fwButtons.bwOK
-  set bwCancel  $fwButtons.bwCancel
 
   # prompt and entry field
-  frame $fwMain
-  label $lwPrompt -text "Save RGB as:" \
-    -font $kLabelFont
-  entry $ewName -textvariable sRGBName \
-    -font $kNormalFont
-  pack $lwPrompt         \
-    -side top      \
-    -anchor w
-  pack $ewName           \
-    -side top      \
-    -anchor w      \
-    -expand yes    \
-    -fill x
+  tkm_MakeFileSelector $fwMain \
+    "Save RGB as:" sRGBName
 
-  # ok and cancel buttons. the ok button will actually call the
-  # important function here.
-  frame $fwButtons
-  button $bwOK -text "OK"     \
-    -font $kNormalFont  \
-    -command { Dialog_Close .wwSaveRGBDlog; \
-               SaveRGB $sRGBName; }
-  button $bwCancel -text "Cancel" \
-    -font $kNormalFont      \
-    -command { Dialog_Close .wwSaveRGBDlog }
-  pack $bwOK $bwCancel \
-    -side right  \
-    -padx 5      \
-    -pady 5
+  # ok and cancel buttons.
+  tkm_MakeCancelOKButtons $fwButtons $wwDialog \
+    { SaveRGB $sRGBName }
 
   pack $fwMain $fwButtons \
     -side top       \
@@ -1556,9 +1047,6 @@ proc DoSaveRGBDlog {} {
     -fill x         \
     -padx 5         \
     -pady 5
-
-    bind $wwDialog <Return> { .wwSaveRGBDlog.fwButtons.bwOK flash; .wwSaveRGBDlog.fwButtons.bwOK invoke }
-    bind $wwDialog <Escape> { .wwSaveRGBDlog.fwButtons.bwCancel flash; .wwSaveRGBDlog.fwButtons.bwCancel invoke }
     }
 }
 
@@ -1657,7 +1145,29 @@ proc ShowAuxValue { ibShow } {
       return;
   }
     } else {
-  pack forget $gfwTalCoords
+  pack forget $gfwAuxVolValue
+    }
+}
+
+proc ShowParcellationLabel { ibShow } {
+
+    global gfwVolValue gfwAuxVolValue gfwParcellationLabel
+
+    if { $ibShow == 1 } {
+  if {[catch { pack $gfwParcellationLabel  \
+    -after $gfwAuxVolValue      \
+    -side top                \
+    -anchor w } sResult] } {
+      if {[catch { pack $gfwParcellationLabel  \
+        -after $gfwVolValue      \
+        -side top                \
+        -anchor w } sResult] } {
+    puts "ShowParcellationLabel pack failed: $sResult"
+    return;
+      }
+  }
+    } else {
+  pack forget $gfwParcellationLabel
     }
 }
 
@@ -1723,33 +1233,7 @@ proc ShowFuncValue { ibShow } {
   SetDisplayFlag $DspA_tDisplayFlag_FunctionalOverlay 1
 
     } else {
-  pack forget $gfwTalCoords
-    }
-}
-
-proc ShowOverlayOptions { ibShow } {
-    global gDisplayMenu gnFunctionalOverlayMenuIndex
-
-    #  enable or disable menu item
-    if { $ibShow == 0 } {
-  $gDisplayMenu entryconfigure $gnFunctionalOverlayMenuIndex \
-    -state disabled
-    } else {
-  $gDisplayMenu entryconfigure $gnFunctionalOverlayMenuIndex \
-    -state normal
-    }
-}
-
-proc ShowTimeCourseOptions { ibShow } {
-    global gDisplayMenu gnTimeCourseMenuIndex
-
-    # enable or disable menu item
-    if { $ibShow == 0 } {
-  $gDisplayMenu entryconfigure $gnTimeCourseMenuIndex \
-    -state disabled
-    } else {
-  $gDisplayMenu entryconfigure $gnTimeCourseMenuIndex \
-    -state normal
+  pack forget $gfwFuncValue
     }
 }
 
@@ -1765,7 +1249,6 @@ proc CreateWindow { iwwTop } {
 
 proc CreateMenuBar { ifwMenuBar } {
 
-    global kLabelFont kNormalFont
     global DspA_tOrientation_Sagittal DspA_tOrientation_Horizontal 
     global DspA_tOrientation_Coronal
     global DspA_tTool_Select DspA_tTool_Edit DspA_tTool_CtrlPts 
@@ -1774,313 +1257,345 @@ proc CreateMenuBar { ifwMenuBar } {
     global gb3D gbCursor gbSelection gbControlPoints gbFunctional
     global gbMainSurface gbOriginalSurface gbCanonicalSurface
     global gbDisplaySurfaceVertices gbInterpolateSurfaceVertices
-    global gbParcellation
+    global gbParcellation gbAxes gbMaxIntProj
     global gTool
     global gDisplayMenu gnFunctionalOverlayMenuIndex gnTimeCourseMenuIndex
 
-
     frame $ifwMenuBar
-
     set mbwVolume      $ifwMenuBar.mbwVolume
-    set mwVolume       $mbwVolume.mwVolume
-
     set mbwSelection   $ifwMenuBar.mbwSelection
-    set mwSelection    $mbwSelection.mwSelection
-
     set mbwEdit        $ifwMenuBar.mbwEdit
-    set mwEdit         $mbwEdit.mwEdit
-
     set mbwDisplay     $ifwMenuBar.mbwDisplay
-    set mwDisplay      $mbwDisplay.mwDisplay
-
     set mbwTools       $ifwMenuBar.mbwTools
-    set mwTools        $mbwTools.mwTools
-
     set mbwCtrlPts     $ifwMenuBar.mbwCtrlPts
-    set mwCtrlPts      $mbwCtrlPts.mwCtrlPts
-
     set mbwSurface     $ifwMenuBar.mbwSurface
-    set mwSurface      $mbwSurface.mwSurface
- 
     set mbwFunctional  $ifwMenuBar.mbwFunctional
-    set mwFunctional   $mbwFunctional.mwFunctional
 
     # volume menu button
-    menubutton $mbwVolume -text "File" \
-      -menu $mwVolume              \
-      -underline 0                 \
-      -font $kNormalFont
+    tkm_MakeMenu $mbwVolume "File" \
+      { \
+      \
+      { command \
+      "Load Main Volume..." \
+      DoLoadVolumeDlog } \
+      \
+      { command \
+      "Load Aux Volume..." \
+      DoLoadAuxVolumeDlog } \
+      \
+      { command \
+      "Save Volume" \
+      DoSaveDlog } \
+      \
+      { command \
+      "Save Volume As..." \
+      DoSaveVolumeAsDlog } \
+      \
+      { separator } \
+      \
+      { command \
+      "Save Point" \
+      SendCursor } \
+      \
+      { command \
+      "Goto Point" \
+      ReadCursor } \
+      \
+      { separator } \
+      \
+      { command \
+      "Load Label..." \
+      DoLoadLabelDlog } \
+      \
+      { command \
+      "Save Label..." \
+      DoSaveLabelDlog } \
+      \
+      { separator } \
+      \
+      { command \
+      "Load Main Surface..." \
+      "DoLoadSurfaceDlog $tkm_tSurfaceType_Current" } \
+      \
+      { command \
+      "Load Original Surface..." \
+      "DoLoadSurfaceDlog $tkm_tSurfaceType_Original" \
+      tMenuGroup_SurfaceLoading } \
+      \
+      { command \
+      "Load Pial Surface..." \
+      "DoLoadSurfaceDlog $tkm_tSurfaceType_Canonical" \
+      tMenuGroup_SurfaceLoading } \
+      \
+      { command \
+      "Unload Surface" \
+      UnloadSurface \
+      SurfaceLoading } \
+      \
+      { separator } \
+      \
+      { command \
+      "Load Overlay Data..." \
+      "DoLoadFunctionalDlog $tFunctionalVolume_Overlay" } \
+      \
+      { command \
+      "Load Time Course Data..." \
+      "DoLoadFunctionalDlog $tFunctionalVolume_TimeCourse" } \
+      \
+      { separator } \
+      \
+      { command \
+      "Load Parcellation..." \
+      DoLoadParcellationDlog } \
+      \
+      { separator } \
+      \
+      { command \
+      "Save RGB..." \
+      DoSaveRGBDlog } \
+      \
+      { separator } \
+      \
+      { command \
+      "Quit" \
+      QuitMedit } }
     
-    # volume menu items
-    menu $mwVolume
-    $mwVolume add command -label "Load Aux Volume..." \
-      -command { DoLoadAuxVolumeDlog }          \
-      -underline 1                              \
-      -font $kNormalFont
-    $mwVolume add command -label "Save Volume" \
-      -command { DoSaveDlog }            \
-      -underline 0                       \
-      -font $kNormalFont
-    $mwVolume add command -label "Save Volume As..." \
-      -command { DoSaveVolumeAsDlog }          \
-      -font $kNormalFont
-    $mwVolume add separator
-    $mwVolume add command -label "Save Point" \
-      -command { SendCursor }                         \
-      -underline 20                                   \
-      -font $kNormalFont
-    $mwVolume add command -label "Goto Point" \
-      -command { ReadCursor }                           \
-      -underline 0                                      \
-      -font $kNormalFont
-    $mwVolume add separator
-    $mwVolume add command -label "Load Label..." \
-      -command { DoLoadLabelDlog }            \
-      -underline 0                            \
-      -font $kNormalFont
-    $mwVolume add command -label "Save Label..." \
-      -command { DoSaveLabelDlog }            \
-      -underline 2                            \
-      -font $kNormalFont
-    $mwVolume add separator
-    $mwVolume add command -label "Load Surface..." \
-      -command { DoLoadSurfaceDlog $tkm_tSurfaceType_Current } \
-      -underline 5                            \
-      -font $kNormalFont
-    $mwVolume add command -label "Unload Surface" \
-      -command { UnloadSurface }             \
-      -underline 0                           \
-      -font $kNormalFont
-    $mwVolume add separator
-    $mwVolume add command -label "Load Overlay Data..." \
-      -command { DoLoadFunctionalDlog $tFunctionalVolume_Overlay } \
-      -underline 7                                    \
-      -font $kNormalFont                              
-    $mwVolume add command -label "Load Time Course Data..." \
-      -command { DoLoadFunctionalDlog $tFunctionalVolume_TimeCourse } \
-      -underline 5                                        \
-      -font $kNormalFont
-    $mwVolume add separator
-    $mwVolume add command -label "Load Parcellation..." \
-      -command { DoLoadParcellationDlog }         \
-      -font $kNormalFont
-    $mwVolume add separator
-    $mwVolume add command -label "Save RGB..." \
-      -command { DoSaveRGBDlog }         \
-      -font $kNormalFont
-    $mwVolume add separator
-    $mwVolume add command -label "Quit" \
-      -command { QuitMedit }      \
-      -underline 0                \
-      -font $kNormalFont
-
     # edit menu button
-    menubutton $mbwEdit -text "Edit" \
-      -menu $mwEdit            \
-      -underline 0             \
-      -font $kNormalFont
-    
-    # edit menu items
-    menu $mwEdit
-    $mwEdit add command -label "Undo Last Edit" \
-      -command { UndoLastEdit }           \
-      -font $kNormalFont
-    $mwEdit add separator
-    $mwEdit add command -label "Take Snapshot of Volume" \
-      -command { SnapshotVolume }                  \
-      -font $kNormalFont
-    $mwEdit add command -label "Restore Volume from Snapshot" \
-      -command { RestoreVolumeFromSnapshot }            \
-      -font $kNormalFont
-    $mwEdit add separator
-    $mwEdit add command -label "Clear Selection" \
-      -command { ClearSelection }          \
-      -font $kNormalFont
-    $mwEdit add command -label "Graph Selected Region" \
-      -command { GraphSelectedRegion }                 \
-      -underline 4                                     \
-      -font $kNormalFont
-  
-    # display menu button
-    menubutton $mbwDisplay -text "Display" \
-      -menu $mwDisplay         \
-      -underline 0             \
-      -font $kNormalFont
-    
-    # display items
-    menu $mwDisplay
-    $mwDisplay add command -label "Brightness / Contrast..." \
-      -command { DoVolumeColorScaleInfoDlog }       \
-      -font $kNormalFont
-    $mwDisplay add command -label "Configure Functional Overlay..." \
-      -command { Overlay_DoConfigDlog }       \
-      -font $kNormalFont                 \
-      -state disabled
-    $mwDisplay add command -label "Configure Time Course Graph..." \
-      -command { TimeCourse_DoConfigDlog }       \
-      -font $kNormalFont                 \
-      -state disabled
-    # save the location of this menu item so we can enable it later
-    set gDisplayMenu                 $mwDisplay
-    set gnFunctionalOverlayMenuIndex 2
-    set gnTimeCourseMenuIndex 3
-    $mwDisplay add separator
-    $mwDisplay add radio -label "Main Volume" \
-      -command { SetDisplayFlag $DspA_tDisplayFlag_AuxVolume $MWin_tVolumeType_Main } \
-      -variable gDisplayedVolume        \
-      -font $kNormalFont                \
-      -value 0
-    $mwDisplay add radio -label "Aux Volume" \
-      -command { SetDisplayFlag $DspA_tDisplayFlag_AuxVolume $MWin_tVolumeType_Aux } \
-      -variable gDisplayedVolume       \
-      -font $kNormalFont               \
-      -value 1
-    $mwDisplay add separator
-    $mwDisplay add check -label "3D Multiple Views" \
-      -command { SetDisplayConfig $gb3D }     \
-      -underline 0                            \
-      -variable gb3D                          \
-      -font $kNormalFont
-    $mwDisplay add check -label "Cursor" \
-      -command { SetDisplayFlag $DspA_tDisplayFlag_Cursor $gbCursor } \
-      -underline 0                 \
-      -variable gbCursor           \
-      -font $kNormalFont 
-    $mwDisplay add check -label "Selection / Label" \
-      -command { SetDisplayFlag $DspA_tDisplayFlag_Selection $gbSelection } \
-      -underline 12                           \
-      -variable gbSelection                   \
-      -font $kNormalFont
-    $mwDisplay add check -label "Control Points" \
-      -command { SetDisplayFlag $DspA_tDisplayFlag_ControlPoints $gbControlPoints } \
-      -underline 3                         \
-      -variable gbControlPoints            \
-      -font $kNormalFont
-    $mwDisplay add check -label "Functional Overlay" \
-      -command { SetDisplayFlag $DspA_tDisplayFlag_FunctionalOverlay $gbFunctional } \
-      -variable gbFunctional                   \
-      -underline 0                             \
-      -font $kNormalFont
-    $mwDisplay add check -label "Parcellation Overlay" \
-      -command { SetDisplayFlag $DspA_tDisplayFlag_ParcellationOverlay $gbParcellation } \
-      -variable gbParcellation                 \
-      -underline 2                             \
-      -font $kNormalFont
-    $mwDisplay add check -label "Main Surface" \
-      -command { SetDisplayFlag $DspA_tDisplayFlag_MainSurface $gbMainSurface } \
-      -underline 0                       \
-      -variable gbMainSurface            \
-      -font $kNormalFont
-    $mwDisplay add check -label "Original Surface" \
-      -command { SetDisplayFlag $DspA_tDisplayFlag_OriginalSurface $gbOriginalSurface } \
-      -underline 0                           \
-      -variable gbOriginalSurface            \
-      -font $kNormalFont
-    $mwDisplay add check -label "Pial Surface" \
-      -command { SetDisplayFlag $DspA_tDisplayFlag_CanonicalSurface $gbCanonicalSurface } \
-      -underline 0                       \
-      -variable gbCanonicalSurface       \
-      -font $kNormalFont
-    $mwDisplay add check -label "Surface Vertices" \
-      -command { SetDisplayFlag $DspA_tDisplayFlag_DisplaySurfaceVertices $gbDisplaySurfaceVertices } \
-      -underline 8                           \
-      -variable gbDisplaySurfaceVertices     \
-      -font $kNormalFont
-    $mwDisplay add check -label "Interpolate Surface Vertices" \
-      -command { SetDisplayFlag $DspA_tDisplayFlag_InterpolateSurfaceVertices $gbInterpolateSurfaceVertices } \
-      -underline 0                                       \
-      -variable gbInterpolateSurfaceVertices             \
-      -font $kNormalFont
+    tkm_MakeMenu $mbwEdit "Edit" \
+      { \
+      \
+      { command \
+      "Undo Last Edit" \
+      UndoLastEdit } \
+      \
+      { separator } \
+      \
+      { command \
+      "Take Snapshot of Volume" \
+      SnapshotVolume } \
+      \
+      { command \
+      "Restore Volume from Snapshot" \
+      RestoreVolumeFromSnapshot } \
+      \
+      { separator } \
+      \
+      { command \
+      "Clear Selection" \
+      ClearSelection } \
+      \
+      { command \
+      "Graph Selected Region" \
+      GraphSelectedRegion } }
+
+    # display menu
+    tkm_MakeMenu $mbwDisplay "Display" \
+      { { command \
+      "Brightness / Contrast..." \
+      DoVolumeColorScaleInfoDlog } \
+      \
+      { command \
+      "Configure Functional Overlay..." \
+      Overlay_DoConfigDlog \
+      tMenuGroup_OverlayOptions } \
+      \
+      { command \
+      "Configure Time Course Graph..." \
+      TimeCourse_DoConfigDlog \
+      tMenuGroup_TimeCourseOptions } \
+       \
+      { separator } \
+       \
+      { radio  \
+      "Main Volume" \
+      "SetDisplayFlag $DspA_tDisplayFlag_AuxVolume \
+      $MWin_tVolumeType_Main"  \
+      gDisplayedVolume  \
+      0 } \
+       \
+      { radio  \
+      "Aux Volume" \
+      "SetDisplayFlag $DspA_tDisplayFlag_AuxVolume \
+      $MWin_tVolumeType_Aux"  \
+      gDisplayedVolume  \
+      1 } \
+       \
+      { separator } \
+       \
+      { check  \
+      "3D Multiple Views" \
+      "SetDisplayConfig \$gb3D" \
+      gb3D } \
+      \
+      { check \
+      "Cursor" \
+      "SetDisplayFlag $DspA_tDisplayFlag_Cursor \$gbCursor" \
+      gbCursor } \
+      \
+      { check \
+      "Axes" \
+      "SetDisplayFlag $DspA_tDisplayFlag_Axes \
+      \$gbAxes" \
+      gbAxes } \
+      \
+      { check \
+      "Maximum Intensity Projection" \
+      "SetDisplayFlag $DspA_tDisplayFlag_MaxIntProj \
+      \$gbMaxIntProj" \
+      gbMaxIntProj } \
+      \
+      { check \
+      "Selection / Label" \
+      "SetDisplayFlag $DspA_tDisplayFlag_Selection \$gbSelection" \
+      gbSelection } \
+      \
+      { check \
+      "Control Points" \
+      "SetDisplayFlag $DspA_tDisplayFlag_ControlPoints \
+      \$gbControlPoints" \
+      gbControlPoints } \
+      \
+      { check \
+      "Functional Overlay" \
+      "SetDisplayFlag $DspA_tDisplayFlag_FunctionalOverlay \
+      \$gbFunctional" \
+      gbFunctional } \
+      \
+      { check \
+      "Parcellation Overlay" \
+      "SetDisplayFlag $DspA_tDisplayFlag_ParcellationOverlay \
+      \$gbParcellation" \
+      gbParcellation } \
+      \
+      { check \
+      "Main Surface" \
+      "SetDisplayFlag $DspA_tDisplayFlag_MainSurface \$gbMainSurface" \
+      gbMainSurface \
+      tMenuGroup_SurfaceViewing } \
+      \
+      { check \
+      "Original Surface" \
+      "SetDisplayFlag $DspA_tDisplayFlag_OriginalSurface \
+      \$gbOriginalSurface"  \
+      gbOriginalSurface \
+      tMenuGroup_OriginalSurfaceViewing } \
+      \
+      { check \
+      "Pial Surface" \
+      "SetDisplayFlag $DspA_tDisplayFlag_CanonicalSurface \
+      \$gbCanonicalSurface"  \
+      gbCanonicalSurface \
+      tMenuGroup_CanonicalSurfaceViewing } \
+      \
+      { check \
+      "Surface Vertices" \
+      "SetDisplayFlag $DspA_tDisplayFlag_DisplaySurfaceVertices \
+      \$gbDisplaySurfaceVertices" \
+      gbDisplaySurfaceVertices } \
+      \
+      { check \
+      "Interpolate Surface Vertices" \
+      "SetDisplayFlag $DspA_tDisplayFlag_InterpolateSurfaceVertices \
+      \$gbInterpolateSurfaceVertices"  \
+      gbInterpolateSurfaceVertices }}
 
     # tools menu buttonx
-    menubutton $mbwTools -text "Tools" \
-      -menu $mwTools             \
-      -underline 0               \
-      -font $kNormalFont
+    tkm_MakeMenu $mbwTools "Tools" \
+      { { radio \
+      "Select Voxels" \
+      "SetTool $DspA_tTool_Select" \
+      gTool \
+      0 } \
+      \
+      { radio \
+      "Edit Voxels" \
+      "SetTool $DspA_tTool_Edit" \
+      gTool \
+      1 } \
+      \
+      { radio \
+      "Select Ctrl Pts" \
+      "SetTool $DspA_tTool_CtrlPts" \
+      gTool \
+      2 } \
+      \
+      { radio \
+      "Edit Voxels w/ Custom Brush" \
+      "SetTool $DspA_tTool_CustomEdit" \
+      gTool \
+      3 } \
+      \
+      { separator } \
+      \
+      { command \
+      "Brush Size..." \
+      DoBrushInfoDlog } \
+      \
+      { command \
+      "Custom Brush..." \
+      DoCustomBrushDlog } \
+      \
+      { separator } \
+      \
+      { command \
+      "Threshold..." \
+      DoThresholdDlog } \
+      \
+      { command \
+      "Mirror" \
+      Mirror } \
+      \
+      { command \
+      "Translate..." \
+      DoTranslateDlog } \
+      \
+      { command \
+      "Rotate..." \
+      DoRotateDlog } }
     
-    # tool menu items
-    menu $mwTools
-    $mwTools add radio -label "Select Voxels"       \
-      -command { SetTool $DspA_tTool_Select } \
-      -variable gTool                         \
-      -font $kNormalFont                      \
-      -value $DspA_tTool_Select
-    $mwTools add radio -label "Edit Voxels"        \
-      -command { SetTool $DspA_tTool_Edit }  \
-      -variable gTool                        \
-      -font $kNormalFont                     \
-      -value $DspA_tTool_Edit
-    $mwTools add radio -label "Select Ctrl Pts"      \
-      -command { SetTool $DspA_tTool_CtrlPts } \
-      -variable gTool                          \
-      -font $kNormalFont                       \
-      -value $DspA_tTool_CtrlPts
-    $mwTools add radio -label "Edit Voxels w/ Custom Brush" \
-      -command { SetTool $DspA_tTool_CustomEdit }     \
-      -variable gTool                                 \
-      -font $kNormalFont                              \
-      -value $DspA_tTool_CustomEdit
-    $mwTools add separator
-    $mwTools add command -label "Brush Size..." \
-      -command { DoBrushInfoDlog }       \
-      -font $kNormalFont
-    $mwTools add command -label "Custom Brush..." \
-      -command { DoCustomBrushDlog }       \
-      -font $kNormalFont
-    $mwTools add separator
-    $mwTools add command -label "Threshold..." \
-      -command { DoThresholdDlog }       \
-      -font $kNormalFont
+    # ctrl pts menu
+    tkm_MakeMenu $mbwCtrlPts "Control Points" \
+      { { command \
+      "New" \
+      { NewControlPoint $gnVolX $gnVolY $gnVolZ } } \
+      \
+      { command \
+      "Select None" \
+      DeselectAllControlPoints } \
+      \
+      { command \
+      "Delete Selected" \
+      DeleteSelectedControlPoints } \
+      \
+      { command \
+      "Save" \
+      WriteControlPointFile } }
 
-    # ctrl pts menu button
-    menubutton $mbwCtrlPts -text "Control Points" \
-      -menu $mwCtrlPts                      \
-      -underline 0                          \
-      -font $kNormalFont
-    
-    # ctrl pts menu items
-    menu $mwCtrlPts
-    $mwCtrlPts add command -label "New"                          \
-      -command { NewControlPoint $gnVolX $gnVolY $gnVolZ } \
-      -font $kNormalFont
-    $mwCtrlPts add command -label "Select None"   \
-      -command { DeselectAllControlPoints } \
-      -underline 8                          \
-      -font $kNormalFont
-    $mwCtrlPts add command -label "Delete Selected"  \
-      -command { DeleteSelectedControlPoints } \
-      -underline 0                             \
-      -font $kNormalFont
-    $mwCtrlPts add command -label "Save"       \
-      -command { WriteControlPointFile } \
-      -font $kNormalFont
-     
-    # surface menu button
-    menubutton $mbwSurface -text "Surface" \
-      -menu $mwSurface               \
-      -underline 1                   \
-      -font $kNormalFont
-    
-    # surface menu items
-    menu $mwSurface
-    $mwSurface add command -label "Show Nearest Main Vertex" \
-      -command { ShowNearestMainVertex }               \
-      -font $kNormalFont
-    $mwSurface add command -label "Show Nearest Original Vertex" \
-      -command { ShowNearestOriginalVertex }               \
-      -font $kNormalFont
-    $mwSurface add command -label "Show Nearest Pial Vertex" \
-      -command { ShowNearestCanonicalVertex }               \
-      -font $kNormalFont
-    $mwSurface add command -label "Find Main Vertex..."             \
-      -command { DoFindVertexDlog $tkm_tSurfaceType_Current } \
-      -font $kNormalFont
-    $mwSurface add command -label "Find Original Vertex..."          \
-      -command { DoFindVertexDlog $tkm_tSurfaceType_Original } \
-      -font $kNormalFont
-    $mwSurface add command -label "Find Pial Vertex..."          \
-      -command { DoFindVertexDlog $tkm_tSurfaceType_Canonical } \
-      -font $kNormalFont
+    # surface menu
+    tkm_MakeMenu $mbwSurface "Surface" \
+      { { command  \
+      "Show Nearest Main Vertex" \
+      ShowNearestMainVertex }\
+      \
+      { command \
+      "Show Nearest Original Vertex" \
+      ShowNearestOriginalVertex } \
+      \
+      { command \
+      "Show Nearest Pial Vertex" \
+      ShowNearestCanonicalVertex } \
+      \
+      { command \
+      "Find Main Vertex..." \
+      { DoFindVertexDlog $tkm_tSurfaceType_Current } } \
+      \
+      { command \
+      "Find Original Vertex..." \
+      { DoFindVertexDlog $tkm_tSurfaceType_Original } } \
+      \
+      { command \
+      "Find Pial Vertex..." \
+      { DoFindVertexDlog $tkm_tSurfaceType_Canonical } } }
      
     pack $mbwVolume $mbwEdit $mbwDisplay $mbwTools \
       $mbwCtrlPts $mbwSurface  \
@@ -2089,12 +1604,12 @@ proc CreateMenuBar { ifwMenuBar } {
 
 proc CreateCursorFrame { ifwCursor } {
 
-    global kLabelFont kNormalFont kHighlightBgColor
     global gfwVolCoords gfwRASCoords gfwTalCoords gfwVolValue
     global gfwAuxVolValue gfwFuncValue
     global gbLinkedCursor gsVolCoords gsRASCoords 
     global gsTalCoords gsVolName gnVolValue  gsFuncCoords
     global gsAuxVolValue gnAuxVolValue gfwFuncCoords gfFuncValue
+    global gsParcellationLabel gfwParcellationLabel
 
     frame $ifwCursor
 
@@ -2105,144 +1620,54 @@ proc CreateCursorFrame { ifwCursor } {
     set cwLink              $fwLinkCheckbox.cwLink
     
     set gfwVolCoords        $ifwCursor.fwVolCoords
-    set ewVolCoordsLabel    $gfwVolCoords.ewVolCoordsLabel
-    set ewVolCoords         $gfwVolCoords.ewVolCoords
-
     set gfwRASCoords        $ifwCursor.fwRASCoords
-    set ewRASCoordsLabel    $gfwRASCoords.ewRASCoordsLabel
-    set ewRASCoords         $gfwRASCoords.ewRASCoords
-
     set gfwTalCoords        $ifwCursor.fwTalCoords
-    set ewTalCoordsLabel    $gfwTalCoords.ewTalCoordsLabel
-    set ewTalCoords         $gfwTalCoords.ewTalCoords
 
     set gfwVolValue         $ifwCursor.fwVolValue
-    set ewVolValueLabel     $gfwVolValue.ewVolValueLabel
-    set ewVolValue          $gfwVolValue.ewVolValue
+    set fwVolValueLabel     $gfwVolValue.fwVolValueLabel
+    set fwVolValue          $gfwVolValue.fwVolValue
 
     set gfwAuxVolValue      $ifwCursor.fwAuxVolValue
-    set ewAuxVolValueLabel  $gfwAuxVolValue.ewAuxVolValueLabel
-    set ewAuxVolValue       $gfwAuxVolValue.ewAuxVolValue
+    set fwAuxVolValueLabel  $gfwAuxVolValue.fwAuxVolValueLabel
+    set fwAuxVolValue       $gfwAuxVolValue.fwAuxVolValue
+
+    set gfwParcellationLabel $ifwCursor.fwParcellationLabel
 
     set gfwFuncCoords       $ifwCursor.fwFuncCoords
 
     set gfwFuncValue        $ifwCursor.fwFuncValue
-    set ewFuncValueLabel    $gfwFuncValue.ewFuncValueLabel
-    set ewFuncValue         $gfwFuncValue.ewFuncValue
 
     # the label that goes at the top of the frame
-    frame $fwLabel
-    label $lwLabel -text "Cursor" \
-      -font $kLabelFont
-    pack $lwLabel -side left \
-      -anchor w
+    tkm_MakeBigLabel $fwLabel "Cursor"
 
     # link checkbox
-    frame $fwLinkCheckbox
-    checkbutton $cwLink -text "Linked Cursors"    \
-      -command { SetLinkedCursorFlag $gbLinkedCursor } \
-      -variable gbLinkedCursor          \
-      -font $kNormalFont      \
-      -highlightbackground $kHighlightBgColor
-    pack $cwLink -side left
+    tkm_MakeCheckbox $fwLinkCheckbox "Linked Cursors" \
+      gbLinkedCursor { SetLinkedCursorFlag $gbLinkedCursor }
 
     # the volume coords
-    frame $gfwVolCoords
-    label $ewVolCoordsLabel -text "Volume" \
-      -font $kNormalFont
-    entry $ewVolCoords                 \
-      -textvariable gsVolCoords  \
-      -width 26                  \
-      -font $kNormalFont         \
-      -state disabled            \
-      -highlightbackground $kHighlightBgColor \
-      -relief flat 
-    pack $ewVolCoordsLabel $ewVolCoords -side left \
-      -anchor w
+    tkm_MakeActiveLabel $gfwVolCoords "Volume" gsVolCoords
 
     # the RAS coords
-    frame $gfwRASCoords
-    label $ewRASCoordsLabel -text "RAS" \
-      -font $kNormalFont
-    entry $ewRASCoords                 \
-      -textvariable gsRASCoords  \
-      -width 26                  \
-      -font $kNormalFont         \
-      -state disabled            \
-      -highlightbackground $kHighlightBgColor \
-      -relief flat 
-    pack $ewRASCoordsLabel $ewRASCoords -side left \
-      -anchor w
+    tkm_MakeActiveLabel $gfwRASCoords "RAS" gsRASCoords
 
     # the Talairach coords
-    frame $gfwTalCoords
-    label $ewTalCoordsLabel -text "Talairach" \
-      -font $kNormalFont
-    entry $ewTalCoords                 \
-      -textvariable gsTalCoords  \
-      -width 26                  \
-      -font $kNormalFont         \
-      -state disabled            \
-      -highlightbackground $kHighlightBgColor \
-      -relief flat 
-    pack $ewTalCoordsLabel $ewTalCoords -side left \
-      -anchor w
+    tkm_MakeActiveLabel $gfwTalCoords "Talairach" gsTalCoords
 
-     # the volume value
+    # the volume value
     frame $gfwVolValue
-    entry $ewVolValueLabel             \
-      -textvariable gsVolName    \
-      -width 0                   \
-      -font $kNormalFont         \
-      -state disabled            \
-      -highlightbackground $kHighlightBgColor \
-      -relief flat
-    entry $ewVolValue                  \
-      -textvariable gnVolValue   \
-      -width 5                   \
-      -font $kNormalFont         \
-      -state disabled            \
-      -highlightbackground $kHighlightBgColor \
-      -relief flat 
-    pack $ewVolValueLabel $ewVolValue -side left \
+    tkm_MakeActiveLabel $fwVolValueLabel "" gsVolName
+    tkm_MakeActiveLabel $fwVolValue "" gnVolValue
+    pack $fwVolValueLabel $fwVolValue -side left \
       -anchor w
 
-     # the aux volume value
-    frame $gfwAuxVolValue
-    entry $ewAuxVolValueLabel          \
-      -textvariable gsAuxVolName \
-      -width 0                   \
-      -font $kNormalFont         \
-      -state disabled            \
-      -highlightbackground $kHighlightBgColor \
-      -relief flat
-    entry $ewAuxVolValue                     \
-      -textvariable gnAuxVolValue   \
-      -width 5                      \
-      -font $kNormalFont            \
-      -state disabled               \
-      -highlightbackground $kHighlightBgColor    \
-      -relief flat 
-    pack $ewAuxVolValueLabel $ewAuxVolValue -side left \
-      -anchor w
+    # the parcellation label
+    tkm_MakeActiveLabel $gfwParcellationLabel "Parcellation: " gsParcellationLabel
 
-    # the Funcairach coords
-    tkm_MakeActiveLabel $gfwFuncCoords \
-      "Overlay" gsFuncCoords
+    # the Func coords
+    tkm_MakeActiveLabel $gfwFuncCoords "Overlay" gsFuncCoords
 
     # the functional value
-    frame $gfwFuncValue
-    label $ewFuncValueLabel -text "Overlay value" \
-      -font $kNormalFont
-    entry $ewFuncValue                 \
-      -textvariable gfFuncValue  \
-      -width 5                   \
-      -font $kNormalFont         \
-      -state disabled            \
-      -highlightbackground $kHighlightBgColor \
-      -relief flat 
-    pack $ewFuncValueLabel $ewFuncValue -side left \
-      -anchor w
+    tkm_MakeActiveLabel $gfwFuncValue "Overlay value" gfFuncValue
 
     # pack the subframes in a column. don't pack vol coords, aux value,
     # or func value. these can be explicity shown later.
@@ -2255,7 +1680,6 @@ proc CreateCursorFrame { ifwCursor } {
 
 proc CreateDisplayFrame { ifwDisplay } {
 
-    global kLabelFont kNormalFont kHighlightBgColor
     global DspA_tOrientation_Sagittal DspA_tOrientation_Horizontal 
     global DspA_tOrientation_Coronal
     global gOrientation gnVolX gnVolY gnVolZ gnZoomLevel
@@ -2266,183 +1690,57 @@ proc CreateDisplayFrame { ifwDisplay } {
     frame $ifwDisplay
 
     set fwLabel            $ifwDisplay.fwLabel
-    set lwLabel            $fwLabel.lwLabel
-
     set fwSagittalButton   $ifwDisplay.fwSagittalButton
-    set rwSagittal         $fwSagittalButton.rwSagittal
-
     set fwSagittalScale    $ifwDisplay.fwSagittalScale
-    set swSagittal         $fwSagittalScale.swSagittal
-    set ewSagittal         $fwSagittalScale.ewSagittal
-    
     set fwHorizontalButton $ifwDisplay.fwHorizontalButton
-    set rwHorizontal       $fwHorizontalButton.rwHorizontal
-
     set fwHorizontalScale  $ifwDisplay.fwHorizontalScale
-    set swHorizontal       $fwHorizontalScale.swHorizontal
-    set ewHorizontal       $fwHorizontalScale.ewHorizontal
-    
     set fwCoronalButton    $ifwDisplay.fwCoronalButton
-    set rwCoronal          $fwCoronalButton.rwCoronal
-
     set fwCoronalScale     $ifwDisplay.fwCoronalScale
-    set swCoronal          $fwCoronalScale.swCoronal
-    set ewCoronal          $fwCoronalScale.ewCoronal
-    
     set fwZoomLabel        $ifwDisplay.fwZoomLabel
-    set lwZoom             $fwZoomLabel.lwZoom
-    
     set fwZoomScale        $ifwDisplay.fwZoomScale
-    set swZoom             $fwZoomScale.swZoom
-    set ewZoom             $fwZoomScale.ewZoom
 
     # the label that goes at the top of the frame
-    frame $fwLabel
-    label $lwLabel -text "Display" \
-      -font $kLabelFont
-    pack $lwLabel -side left \
-      -anchor w
+    tkm_MakeBigLabel $fwLabel "Display"
 
     # sagittal orientation radio button
-    frame $fwSagittalButton
-    radiobutton $rwSagittal -text "Sagittal" \
-      -command { SetOrientation $gOrientation } \
-      -font $kNormalFont \
-      -highlightbackground $kHighlightBgColor \
-      -variable gOrientation           \
-      -relief flat                     \
-      -value $DspA_tOrientation_Sagittal
-    pack $rwSagittal -side left \
-      -anchor w
+    tkm_MakeRadioButton $fwSagittalButton \
+      "Sagittal (R -- L)" gOrientation $DspA_tOrientation_Sagittal \
+      { SetOrientation $gOrientation }
 
     # sagittal slice slider
-    frame $fwSagittalScale
-    scale $swSagittal -orient horizontal \
-      -variable gnVolX             \
-      -from 0                      \
-      -to 255                      \
-      -length 200                  \
-      -showvalue false
-    bind $swSagittal <ButtonRelease> { SetCursor $gnVolX $gnVolY $gnVolZ }
-    bind $swSagittal <B1-Motion>     { SetCursor $gnVolX $gnVolY $gnVolZ }
-    entry $ewSagittal -textvariable gnVolX \
-      -width 3                       \
-      -selectbackground green        \
-      -insertbackground black
-    bind $ewSagittal <Return> { SetCursor $gnVolX $gnVolY $gnVolZ }
-    pack $swSagittal    \
-      -side left  \
-      -anchor w   \
-      -expand yes \
-      -fill x
-    pack $ewSagittal   \
-      -side left \
-      -anchor w  \
-      -expand no
+    tkm_MakeSlider $fwSagittalScale "" gnVolX 0 255 200 \
+      { SetCursor $gnVolX $gnVolY $gnVolZ }       \
+      1
 
     # horizontal orientaiton radio button
-    frame $fwHorizontalButton
-    radiobutton $rwHorizontal -text "Horizontal" \
-      -command { SetOrientation $gOrientation } \
-      -font $kNormalFont   \
-      -highlightbackground $kHighlightBgColor \
-      -variable gOrientation               \
-      -relief flat                         \
-      -value $DspA_tOrientation_Horizontal
-    pack $rwHorizontal -side left \
-      -anchor w
+    tkm_MakeRadioButton $fwHorizontalButton \
+      "Horizontal (Sup -- Inf)" gOrientation \
+      $DspA_tOrientation_Horizontal \
+      { SetOrientation $gOrientation }
 
     # horiontal slice slider
-    frame $fwHorizontalScale
-    scale $swHorizontal -orient horizontal \
-      -variable gnVolY               \
-      -from 0                        \
-      -to 255                        \
-      -showvalue false
-    bind $swHorizontal <ButtonRelease> { SetCursor $gnVolX $gnVolY $gnVolZ }
-    bind $swHorizontal <B1-Motion>     { SetCursor $gnVolX $gnVolY $gnVolZ }
-    entry $ewHorizontal -textvariable gnVolY  \
-      -selectbackground green           \
-      -insertbackground black           \
-      -width 3
-    bind $ewHorizontal <Return> { SetCursor $gnVolX $gnVolY $gnVolZ }
-    pack $swHorizontal    \
-      -side left  \
-      -anchor w   \
-      -expand yes \
-      -fill x
-    pack $ewHorizontal   \
-      -side left \
-      -anchor w  \
-      -expand no
+    tkm_MakeSlider $fwHorizontalScale "" gnVolY 0 255 200 \
+      { SetCursor $gnVolX $gnVolY $gnVolZ }       \
+      1
 
-    # coronal orientation radio button
-    frame $fwCoronalButton
-    radiobutton $rwCoronal -text "Coronal" \
-      -command { SetOrientation $gOrientation } \
-      -variable gOrientation         \
-      -font $kNormalFont   \
-      -highlightbackground $kHighlightBgColor \
-      -relief flat                   \
-      -value $DspA_tOrientation_Coronal
-    pack $rwCoronal -side left \
-      -anchor w
+    # coronal orientaiton radio button
+    tkm_MakeRadioButton $fwCoronalButton \
+      "Coronal (Post -- Ant)" gOrientation \
+      $DspA_tOrientation_Coronal \
+      { SetOrientation $gOrientation }
 
     # coronal slice slider
-    frame $fwCoronalScale
-    scale $swCoronal -orient horizontal \
-      -variable gnVolZ            \
-      -from 0                     \
-      -to 255                     \
-      -showvalue false
-    bind $swCoronal <ButtonRelease> { SetCursor $gnVolX $gnVolY $gnVolZ }
-    bind $swCoronal <B1-Motion>     { SetCursor $gnVolX $gnVolY $gnVolZ }
-    entry $ewCoronal -textvariable gnVolZ \
-      -selectbackground green       \
-      -insertbackground black       \
-      -width 3
-    bind $ewCoronal <Return> { SetCursor $gnVolX $gnVolY $gnVolZ }
-    pack $swCoronal     \
-      -side left  \
-      -anchor w   \
-      -expand yes \
-      -fill x
-    pack $ewCoronal    \
-      -side left \
-      -anchor w  \
-      -expand no
+    tkm_MakeSlider $fwCoronalScale "" gnVolZ 0 255 200 \
+      { SetCursor $gnVolX $gnVolY $gnVolZ }       \
+      1
 
     # zoom label
-    frame $fwZoomLabel
-    label $lwZoom -text "Zoom" \
-      -font $kNormalFont
-    pack $lwZoom -side left \
-      -anchor w
+    tkm_MakeNormalLabel $fwZoomLabel "Zoom (Out -- In)"
 
-    # zoom slider
-    frame $fwZoomScale
-    scale $swZoom -orient horizontal \
-      -command { SetZoomLevel $gnZoomLevel } \
-      -variable gnZoomLevel    \
-      -from 1                  \
-      -to 16                   \
-      -showvalue false
-    bind $swZoom <ButtonRelease> { SetZoomLevel $gnZoomLevel }
-    bind $swZoom <B1-Motion>     { SetZoomLevel $gnZoomLevel }
-    entry $ewZoom -textvariable gnZoomLevel \
-      -selectbackground green         \
-      -insertbackground black         \
-      -width 3
-    bind $ewZoom <Return> { SetZoomLevel $gnZoomLevel }
-    pack $swZoom    \
-      -side left  \
-      -anchor w   \
-      -expand yes \
-      -fill x
-    pack $ewZoom   \
-      -side left \
-      -anchor w  \
-      -expand no
+    # zoom slice slider
+    tkm_MakeSlider $fwZoomScale "" gnZoomLevel 1 16 200 \
+      { SetZoomLevel $gnZoomLevel } \
+      1
 
     # pack them all together in a column
     pack $fwLabel $fwSagittalButton $fwSagittalScale   \
@@ -2457,28 +1755,17 @@ proc CreateDisplayFrame { ifwDisplay } {
 
 proc CreateToolbarFrame { ifwToolBar } {
 
-    global kLabelFont kNormalFont
-
     frame $ifwToolBar
 
     set fwButtons   $ifwToolBar.fwButtons
-    set bwSend      $fwButtons.bwSend
-    set bwRead      $fwButtons.bwRead
 
-    frame $fwButtons
-    button $bwSend -text "Save Point" \
-      -font $kNormalFont          \
-      -command { SendCursor }
-    button $bwRead -text "Goto Point" \
-      -font $kNormalFont         \
-      -command { ReadCursor }
-
-    pack $bwSend $bwRead \
-      -side left
+    tkm_MakeButtons $fwButtons \
+      { {"Save Point" SendCursor}  \
+      {"Goto Point" ReadCursor} }
 
     pack $fwButtons   \
       -side top \
-      -fill y   \
+      -fill x   \
       -expand yes
 }
 
@@ -2529,20 +1816,15 @@ pack $wwTop
 
 proc CsurfInterface {} {
 
-    .w.fwMenuBar.mbwVolume.mwVolume delete 15 17
-    .w.fwMenuBar.mbwEdit.mwEdit delete 7
-    .w.fwMenuBar.mbwTools.mwTools delete 3
-    .w.fwMenuBar.mbwDisplay.mwDisplay delete 13
-    .w.fwMenuBar.mbwDisplay.mwDisplay delete 17 18
-    pack forget .w.fwMenuBar.mbwCtrlPts    
-    pack forget .w.fwMenuBar.mbwSurface
+#    .w.fwMenuBar.mbwVolume.mwVolume delete 15 17
+#    .w.fwMenuBar.mbwEdit.mwEdit delete 7
+#    .w.fwMenuBar.mbwTools.mwTools delete 3
+#    .w.fwMenuBar.mbwDisplay.mwDisplay delete 13
+#    .w.fwMenuBar.mbwDisplay.mwDisplay delete 17 18
+#    pack forget .w.fwMenuBar.mbwCtrlPts    
+#    pack forget .w.fwMenuBar.mbwSurface
 
 }
-
-
-
-
-
 
 
 proc ErrorDlog { isMsg } {
@@ -2555,3 +1837,4 @@ proc ErrorDlog { isMsg } {
       -title "Error" \
       -parent $gwwTop
 }
+

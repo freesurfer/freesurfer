@@ -44,17 +44,19 @@ set kNormalFont  $mfont
 set gsGraphName      "timeCourse"
 
 # FunV_tDisplayFlag
-set FunV_tDisplayFlag_Ol_TruncateOverlay 0
-set FunV_tDisplayFlag_Ol_ReversePhase    1
-set FunV_tDisplayFlag_TC_GraphWindowOpen 2
-set FunV_tDisplayFlag_Ol_OffsetValues    3
-set FunV_tDisplayFlag_TC_OffsetValues    4
+set FunV_tDisplayFlag_Ol_TruncateNegative  0
+set FunV_tDisplayFlag_Ol_ReversePhase     1
+set FunV_tDisplayFlag_TC_GraphWindowOpen  2
+set FunV_tDisplayFlag_Ol_OffsetValues     3
+set FunV_tDisplayFlag_TC_OffsetValues     4
+set FunV_tDisplayFlag_Ol_TruncatePositive 5
 
 # our global vars
 set gnTimePoint      0
 set gnTimeSecond     0
 set gnCondition      0
-set gbTruncate       0
+set gbTruncateNegative 0
+set gbTruncatePositive 0
 set gbReverse        0
 set gbOverlayOffset  0
 set gbShowOverlayOffsetOptions   0
@@ -67,7 +69,7 @@ set gsOverlayDataName ""
 
 set glAllColors {Red Green Blue Purple Yellow Orange Brown Pink Gray LightBlue}
 set gnMaxColors [llength $glAllColors]
-set nCondition 1
+set nCondition 0
 foreach dataSet $glAllColors {
     set gGraphSetting($dataSet,visible)  1
     set gGraphSetting($dataSet,condition) $nCondition
@@ -420,11 +422,12 @@ proc HideFunctionalWindow {} {
 proc Overlay_DoConfigDlog {} { 
 
     global gDialog
-    global FunV_tDisplayFlag_Ol_TruncateOverlay 
+    global FunV_tDisplayFlag_Ol_TruncateNegative 
+    global FunV_tDisplayFlag_Ol_TruncatePositive 
     global FunV_tDisplayFlag_Ol_ReversePhase
     global gnOverlayNumTimePoints gnOverlayNumConditions
     global gnTimePoint gnCondition gbOverlayOffset gbShowOverlayOffsetOptions
-    global gbTruncate gbReverse
+    global gbTruncateNegative gbReverse gbTruncatePositive
     global gfThreshold
 
     set wwDialog .wwOverlayConfigDlog
@@ -434,6 +437,7 @@ proc Overlay_DoConfigDlog {} {
   set fwTimePoint       $wwDialog.fwTimePoint
   set fwCondition       $wwDialog.fwCondition
   set fwTruncate        $wwDialog.fwTruncate
+  set fwTruncateNeg     $wwDialog.fwTruncateNeg
   set fwReverse         $wwDialog.fwReverse
   set fwOffset          $wwDialog.fwOffset
   set fwThresholdMin    $wwDialog.fwThresholdMin
@@ -449,26 +453,31 @@ proc Overlay_DoConfigDlog {} {
   tkm_MakeEntryWithIncDecButtons \
     $fwTimePoint "Time Point (0-$nMaxTimePoint)" \
     gnTimePoint \
-    {set gnTimePoint $gnTimePoint} \
-    {set gnTimePoint [expr $gnTimePoint - 1]} \
-    {set gnTimePoint [expr $gnTimePoint + 1]}
+    "set gnTimePoint \$gnTimePoint" \
+    "set gnTimePoint \[expr \$gnTimePoint - 1\]" \
+    "set gnTimePoint \[expr \$gnTimePoint + 1\]"
 
   tkm_MakeEntryWithIncDecButtons \
     $fwCondition "Condition (0-$nMaxCondition)" \
     gnCondition \
-    {set gnCondition $gnCondition} \
-    {set gnCondition  [expr $gnCondition - 1]} \
-    {set gnCondition  [expr $gnCondition + 1]}
+    "set gnCondition \$gnCondition" \
+    "set gnCondition \[expr \$gnCondition - 1\]" \
+    "set gnCondition \[expr \$gnCondition + 1\]"
 
-  tkm_MakeCheckbox $fwTruncate "Truncate values" gbTruncate \
-    {set gbTruncate $gbTruncate}
+  tkm_MakeCheckbox $fwTruncate "Truncate negative values" \
+    gbTruncateNegative \
+    "set gbTruncateNegative \$gbTruncateNegative"
+
+  tkm_MakeCheckbox $fwTruncateNeg "Truncate positive values" \
+    gbTruncatePositive \
+    "set gbTruncatePositive \$gbTruncatePositive"
 
   tkm_MakeCheckbox $fwReverse "Reverse values" gbReverse \
-    {set gbReverse $gbReverse}
+    "set gbReverse \$gbReverse"
 
   if { $gbShowOverlayOffsetOptions == 1 } {
       tkm_MakeCheckbox $fwOffset "Show percent change" gbOverlayOffset \
-        {set gbOverlayOffset $gbOverlayOffset}
+        "set gbOverlayOffset \$gbOverlayOffset"
   } else {
       frame $fwOffset
   }
@@ -481,7 +490,8 @@ proc Overlay_DoConfigDlog {} {
     { Overlay_SetConfiguration; } \
     { Overlay_RestoreConfiguration; }
   
-  pack $fwTimePoint $fwCondition $fwTruncate $fwReverse $fwOffset \
+  pack $fwTimePoint $fwCondition $fwTruncate $fwTruncateNeg \
+    $fwReverse $fwOffset \
     $fwThresholdMin $fwThresholdMid $fwThresholdSlope \
     $fwButtons \
     -side top \
@@ -584,10 +594,8 @@ proc TimeCourse_DoConfigDlog {} {
     $fwTimeRes "Time resolution" gnTimeResolution
 
   tkm_MakeCancelApplyOKButtons $fwButtons $wwDialog \
-    { TimeCourse_SetConfiguration; \
-    TimeCourse_DrawGraph } \
-    { TimeCourse_RestoreConfiguration; \
-    TimeCourse_DrawGraph }
+    { TimeCourse_SetConfiguration; TimeCourse_DrawGraph } \
+    { TimeCourse_RestoreConfiguration; TimeCourse_DrawGraph }
 
   pack $fwConditions $fwErrorBars $fwAutoRange $fwOffset \
     $fwPreStimPoints $fwTimeRes $fwButtons \
@@ -620,16 +628,17 @@ proc TimeCourse_SetGraphSetting { iColor iType iValue } {
 
 proc Overlay_SaveConfiguration {} {
 
-    global gnTimePoint gnCondition gbTruncate gbReverse gfThreshold 
-    global gbOverlayOffset
-    global gnSavedTimePoint gnSavedCondition gbSavedTruncate
+    global gnTimePoint gnCondition gbTruncateNegative gbReverse gfThreshold 
+    global gbOverlayOffset gbTruncatePositive
+    global gnSavedTimePoint gnSavedCondition gbSavedTruncateNegative 
+    global gbSavedTruncatePositive
     global gbSavedReverse gfSavedThreshold gbSavedOverlayOffset
     
     set gnSavedTimePoint $gnTimePoint
     set gnSavedCondition $gnCondition
-    set gbSavedTruncate $gbTruncate
+    set gbSavedTruncateNegative $gbTruncateNegative
+    set gbSavedTruncatePositive $gbTruncatePositive
     set gbSavedReverse $gbReverse
-    set gbSavedTruncate $gbTruncate
     set gbSavedOverlayOffset $gbOverlayOffset
     foreach entry {min mid slope} {
   set gfSavedThreshold($entry) $gfThreshold($entry)
@@ -640,16 +649,18 @@ proc Overlay_SaveConfiguration {} {
 
 proc Overlay_RestoreConfiguration {} {
 
-    global gnTimePoint gnCondition gbTruncate gbReverse gfThreshold
-    global gbOverlayOffset
-    global gnSavedTimePoint gnSavedCondition gbSavedTruncate
+    global gnTimePoint gnCondition gbTruncateNegative gbReverse gfThreshold
+    global gbOverlayOffset gbTruncatePositive
+    global gnSavedTimePoint gnSavedCondition gbSavedTruncateNegative
+    global gbSavedTruncatePositive
     global gbSavedReverse gfSavedThreshold gbSavedOverlayOffset
     
     set gnTimePoint $gnSavedTimePoint
     set gnCondition $gnSavedCondition
-    set gnTruncate $gbSavedTruncate
+    set gbTruncateNegative $gbSavedTruncateNegative
+    set gbTruncatePositive $gbSavedTruncatePositive
     set gbReverse $gbSavedReverse
-    set gbTruncate $gbSavedTruncate
+    set gbTruncateNegative $gbSavedTruncateNegative
     set gbOverlayOffset $gbSavedOverlayOffset
     foreach entry {min mid slope} {
   set gfThreshold($entry) $gfSavedThreshold($entry)
@@ -660,16 +671,18 @@ proc Overlay_RestoreConfiguration {} {
 
 proc Overlay_SetConfiguration {} {
 
-    global gnTimePoint gnCondition gbTruncate gbReverse gfThreshold
-    global gbOverlayOffset
-    global FunV_tDisplayFlag_Ol_TruncateOverlay
+    global gnTimePoint gnCondition gbTruncateNegative gbReverse gfThreshold
+    global gbOverlayOffset gbTruncatePositive
+    global FunV_tDisplayFlag_Ol_TruncateNegative
+    global FunV_tDisplayFlag_Ol_TruncatePositive
     global FunV_tDisplayFlag_Ol_ReversePhase
     global FunV_tDisplayFlag_Ol_OffsetValues
 
     Overlay_SetTimePoint $gnTimePoint
     Overlay_SetCondition $gnCondition
-    Overlay_SetDisplayFlag $FunV_tDisplayFlag_Ol_TruncateOverlay $gbTruncate
+    Overlay_SetDisplayFlag $FunV_tDisplayFlag_Ol_TruncateNegative $gbTruncateNegative
     Overlay_SetDisplayFlag $FunV_tDisplayFlag_Ol_ReversePhase $gbReverse
+    Overlay_SetDisplayFlag $FunV_tDisplayFlag_Ol_TruncatePositive $gbTruncatePositive
     Overlay_SetDisplayFlag $FunV_tDisplayFlag_Ol_OffsetValues $gbOverlayOffset
     Overlay_SetThreshold $gfThreshold(min) $gfThreshold(mid) $gfThreshold(slope)
 }
@@ -740,15 +753,19 @@ proc Overlay_UpdateNumConditions { inNumConditions } {
 proc Overlay_UpdateDisplayFlag { iFlag ibNewValue } { 
     
     global FunV_tDisplayFlag_Ol_ReversePhase 
-    global FunV_tDisplayFlag_Ol_TruncateOverlay
+    global FunV_tDisplayFlag_Ol_TruncateNegative
+    global FunV_tDisplayFlag_Ol_TruncatePositive
 
-    global gbTruncate gbReverse
+    global gbTruncateNegative gbReverse gbTruncatePositive
 
     if { $FunV_tDisplayFlag_Ol_ReversePhase == $iFlag } {
   set gbReverse $ibNewValue
     }
-    if { $FunV_tDisplayFlag_Ol_TruncateOverlay == $iFlag } {
-  set gbTruncate $ibNewValue
+    if { $FunV_tDisplayFlag_Ol_TruncateNegative == $iFlag } {
+  set gbTruncateNegative $ibNewValue
+    }
+    if { $FunV_tDisplayFlag_Ol_TruncatePositive == $iFlag } {
+  set gbTruncatePositive $ibNewValue
     }
 }
 
@@ -794,7 +811,6 @@ proc TimeCourse_UpdateNumConditions { inNumConditions } {
     }
     set glGraphColors [lrange $glAllColors 0 $nLastColorToUse]
     
-
     # make sure none of our graph setting conditions are invalid
     foreach dataSet $glGraphColors {
   if { $gGraphSetting($dataSet,condition) >= $gnNumTimeCourseConditions } {

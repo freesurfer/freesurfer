@@ -18,6 +18,7 @@ typedef enum {
   FunV_tErr_ErrorAccessingInternalVolume,
   FunV_tErr_ErrorAccessingSelectionList,
   FunV_tErr_ErrorConvertingSecondToTimePoint,
+  FunV_tErr_ErrorAllocatingOverlayCache,
   FunV_tErr_OverlayNotLoaded,
   FunV_tErr_TimeCourseNotLoaded,
   FunV_tErr_GraphWindowAlreadyInited,
@@ -38,15 +39,16 @@ typedef enum {
 
 typedef enum {
   FunV_tDisplayFlag_None = -1,
-  FunV_tDisplayFlag_Ol_TruncateOverlay = 0,
+  FunV_tDisplayFlag_Ol_TruncateNegative = 0,
   FunV_tDisplayFlag_Ol_ReversePhase,
   FunV_tDisplayFlag_TC_GraphWindowOpen,
   FunV_tDisplayFlag_Ol_OffsetValues,
   FunV_tDisplayFlag_TC_OffsetValues,
+  FunV_tDisplayFlag_Ol_TruncatePositive,
   FunV_knNumDisplayFlags
 } FunV_tDisplayFlag;
 
-#define FunV_knFirstOverlayDisplayFlag    FunV_tDisplayFlag_Ol_TruncateOverlay
+#define FunV_knFirstOverlayDisplayFlag    FunV_tDisplayFlag_Ol_TruncateNegative
 #define FunV_knLastOverlayDisplayFlag     FunV_tDisplayFlag_Ol_ReversePhase
 #define FunV_knFirstTimeCourseDisplayFlag FunV_tDisplayFlag_TC_GraphWindowOpen
 #define FunV_knLastTimeCourseDisplayFlag  FunV_tDisplayFlag_TC_GraphWindowOpen
@@ -79,6 +81,10 @@ typedef enum {
 } FunV_tTclCommand;
 
 typedef float FunV_tFunctionalValue;
+typedef float* FunV_tOverlayCache;
+
+#define FunV_knColorCacheSize 1000
+
 
 /* main class structure */
 struct tkmFunctionalVolume {
@@ -90,6 +96,20 @@ struct tkmFunctionalVolume {
   VolumeRef  mpTimeCourseVolume;
   VolumeRef  mpOverlayOffsetVolume;
   VolumeRef  mpTimeCourseOffsetVolume;
+
+  /* overlay cache. this looks just like an anatomical volume. */
+  FunV_tOverlayCache mOverlayCache;
+  int                manCacheDimensions[3];
+  int                manCacheOffsets[3];
+  tBoolean           mbUseOverlayCache;
+  int                mnCachedTimePoint;
+  int                mnCachedCondition;
+
+  /* color cache. */
+  float                  mafColorCache[FunV_knColorCacheSize][3];
+  FunV_tFunctionalValue  mCachedThresholdMin;
+  FunV_tFunctionalValue  mCachedThresholdMid;
+  FunV_tFunctionalValue  mCachedThresholdSlope;
 
   /* current drawing state, what section is being displayed */
   xListRef               mpSelectedVoxels;
@@ -132,11 +152,30 @@ FunV_tErr FunV_LoadFunctionalVolume_ ( tkmFunctionalVolumeRef this,
                char*                  isHeaderStem,
                char*                  isRegPath );
 
+/* this takes a functional volume and converts it into an anatomical
+   space volume, so it can be indexed with anatomical coords. */
+FunV_tErr FunV_InitOverlayCache_ ( tkmFunctionalVolumeRef this );
+FunV_tErr FunV_SetOverlayCacheValue_ ( tkmFunctionalVolumeRef this,
+               VoxelRef               ipAnaIdx,
+               FunV_tFunctionalValue  iValue );
+FunV_tErr FunV_GetOverlayCacheValue_ ( tkmFunctionalVolumeRef this,
+               VoxelRef               ipAnaIdx,
+               FunV_tFunctionalValue* oValue );
+FunV_tErr FunV_UseOverlayCache ( tkmFunctionalVolumeRef this,
+         tBoolean               ibUseCache );
+
+/* builds a cache table for calculating color values for functional
+   values based on the current threshold data */
+FunV_tErr FunV_InitColorCache_ ( tkmFunctionalVolumeRef this );
+
 /* get status of loadedness */
-FunV_tErr FunV_IsOverlayPresent    ( tkmFunctionalVolumeRef this,
-             tBoolean*              obIsLoaded );
-FunV_tErr FunV_IsTimeCoursePresent ( tkmFunctionalVolumeRef this,
-             tBoolean*              obIsLoaded );
+FunV_tErr FunV_IsOverlayPresent     ( tkmFunctionalVolumeRef this,
+              tBoolean*              obIsLoaded );
+FunV_tErr FunV_IsTimeCoursePresent  ( tkmFunctionalVolumeRef this,
+              tBoolean*              obIsLoaded );
+FunV_tErr FunV_IsOverlayCacheLoaded ( tkmFunctionalVolumeRef this,
+              tBoolean*              obIsLoaded );
+
 
 
 /* settors. these check values and if valid, sets internal vars. generates
@@ -159,6 +198,10 @@ FunV_tErr FunV_SetDisplayFlag      ( tkmFunctionalVolumeRef this,
              FunV_tDisplayFlag      iFlag,
              tBoolean               iNewValue );
 
+/* moving time point */
+FunV_tErr FunV_ChangeTimePointBy   ( tkmFunctionalVolumeRef this,
+             int                    inDelta );
+
 /* allows functional volume to respond to a click. */
 FunV_tErr FunV_AnatomicalVoxelClicked ( tkmFunctionalVolumeRef this,
                       VoxelRef          ipAnatomicalVoxel );
@@ -168,20 +211,15 @@ FunV_tErr FunV_AnatomicalVoxelClicked ( tkmFunctionalVolumeRef this,
 
 /* basic accessors to values, based on current plane position if
    applicable */
-FunV_tErr FunV_GetValueAtAnatomicalVoxel ( tkmFunctionalVolumeRef this,
-             VoxelRef               ipVoxel,
-             FunV_tFunctionalValue* opValue );
-FunV_tErr FunV_GetValueAtRASVoxel        ( tkmFunctionalVolumeRef this,
-             VoxelRef               ipVoxel,
-             FunV_tFunctionalValue* opValue );
+FunV_tErr FunV_GetValueAtAnaIdx ( tkmFunctionalVolumeRef this,
+          VoxelRef               ipVoxel,
+          FunV_tFunctionalValue* opValue );
 
 /* calculate the rgb values for a color */
 FunV_tErr FunV_GetColorForValue ( tkmFunctionalVolumeRef this,
           FunV_tFunctionalValue  iValue,
-          float                  ifBaseValue,
-          float*                 ofRed,
-          float*                 ofGreen,
-          float*                 ofBlue );
+          xColor3fRef            iBaseColor,
+          xColor3fRef            oColor );
 
 
 /* time course graph access */

@@ -251,6 +251,13 @@ MWin_tErr MWin_SetDisplayConfiguration ( tkmMeditWindowRef          this,
   if ( MWin_tErr_NoErr != eResult )
     goto error;
 
+  /* if config is 1x1, turn focus frame off, otherwise turn it on. */
+  eResult = MWin_SetDisplayFlag( this, -1, DspA_tDisplayFlag_FocusFrame,
+         (iConfig==MWin_tDisplayConfiguration_1x1)?
+         FALSE:TRUE );
+  if ( MWin_tErr_NoErr != eResult )
+    goto error;
+
   goto cleanup;
 
  error:
@@ -273,26 +280,31 @@ MWin_tErr MWin_PositionDisplays_ ( tkmMeditWindowRef this ) {
   int       nDisplay    = 0;
   xPoint2n  location    = {0, 0};
   tkm_tOrientation orientation = tkm_tOrientation_None;
+  int       nZoomLevel  = 0;
 
   switch ( this->mConfiguration ) {
 
   case MWin_tDisplayConfiguration_1x1:
 
-    /* put the first one in the upper left corner */
     location.mnX = 0;
     location.mnY = 0;
-    eDispResult = DspA_SetPosition ( this->mapDisplays[0],
-             location, this->mnWidth, this->mnHeight );
-    if ( DspA_tErr_NoErr != eDispResult ) {
-      eResult = MWin_tErr_ErrorAccessingDisplay;
-      goto error;
-    }
 
-    /* set the other ones to 0 width and height */
-    for ( nDisplay = 1; nDisplay < MWin_knMaxNumAreas; nDisplay++ ) {
+    /* go thru each display... */
+    for ( nDisplay = 0; nDisplay < MWin_knMaxNumAreas; nDisplay++ ) {
       
-      eDispResult = DspA_SetPosition ( this->mapDisplays[nDisplay],
-               location, 0, 0 );
+      if( this->mnLastClickedArea == nDisplay ) {
+
+  /* put the last clicked one in the upper left corner */
+  eDispResult = DspA_SetPosition ( this->mapDisplays[nDisplay],
+           location, this->mnWidth, 
+           this->mnHeight );
+      } else {
+  
+  /* set the other ones to 0 width and height */
+  eDispResult = DspA_SetPosition ( this->mapDisplays[nDisplay],
+           location, 0, 0 );
+      }
+
       if ( DspA_tErr_NoErr != eDispResult ) {
   eResult = MWin_tErr_ErrorAccessingDisplay;
   goto error;
@@ -303,6 +315,15 @@ MWin_tErr MWin_PositionDisplays_ ( tkmMeditWindowRef this ) {
     break;
 
   case MWin_tDisplayConfiguration_2x2:
+
+    /* get the zoom level of the last clicked pane */
+    eDispResult =
+      DspA_GetZoomLevel( this->mapDisplays[this->mnLastClickedArea], 
+       &nZoomLevel );
+    if ( DspA_tErr_NoErr != eDispResult ) {
+      eResult = MWin_tErr_ErrorAccessingDisplay;
+      goto error;
+    }
 
     /* put them in the four corners, with width and height of half of the
        window width and height */
@@ -331,6 +352,7 @@ MWin_tErr MWin_PositionDisplays_ ( tkmMeditWindowRef this ) {
   break;
       }
       
+      /* set position */
       eDispResult = 
   DspA_SetPosition ( this->mapDisplays[nDisplay],
          location, this->mnWidth / 2, this->mnHeight / 2);
@@ -347,6 +369,13 @@ MWin_tErr MWin_PositionDisplays_ ( tkmMeditWindowRef this ) {
   goto error;
       }
       
+      /* set zoom level to that of the last clicked one */
+      eDispResult =
+  DspA_SetZoomLevel( this->mapDisplays[nDisplay], nZoomLevel );
+      if ( DspA_tErr_NoErr != eDispResult ) {
+  eResult = MWin_tErr_ErrorAccessingDisplay;
+  goto error;
+      }
     }
     break;
 
@@ -1314,6 +1343,13 @@ MWin_tErr MWin_CursorChanged  ( tkmMeditWindowRef this,
   eResult = MWin_tErr_ErrorAccessingDisplay;
   goto error;
       }
+
+      /* zoom around new cursor. */
+      eDispResult = DspA_SetZoomCenterToCursor ( this->mapDisplays[nDisplay] );
+      if ( DspA_tErr_NoErr != eDispResult ) {
+  eResult = MWin_tErr_ErrorAccessingDisplay;
+  goto error;
+      }
     }
   }
   
@@ -1324,6 +1360,54 @@ MWin_tErr MWin_CursorChanged  ( tkmMeditWindowRef this,
   /* print error message */
   if ( MWin_tErr_NoErr != eResult ) {
     DebugPrint "Error %d in MWin_CursorChanged: %s\n",
+      eResult, MWin_GetErrorString(eResult) EndDebugPrint;
+  }
+  
+ cleanup:
+  
+  return eResult;
+}
+
+MWin_tErr MWin_ZoomLevelChanged  ( tkmMeditWindowRef this,
+           tkmDisplayAreaRef ipDisplay,
+           int               inZoomLevel ) {
+
+  MWin_tErr        eResult      = MWin_tErr_NoErr;
+  DspA_tErr        eDispResult  = DspA_tErr_NoErr;
+  int              nDisplay     = 0;
+
+  /* verify us. */
+  eResult = MWin_Verify ( this );
+  if ( MWin_tErr_NoErr != eResult )
+    goto error;
+  
+  /* if we're not linking cursors, return. */
+  if( !this->mbLinkedCursor )
+    goto cleanup;
+
+  /* for every display... */
+  for ( nDisplay = 0; nDisplay < MWin_knMaxNumAreas; nDisplay++ ) {
+
+    /* if this is the display that called us... */
+    if( ipDisplay != (this->mapDisplays[nDisplay]) ) {
+
+      /* set the zoom level */
+      eDispResult = DspA_SetZoomLevel ( this->mapDisplays[nDisplay],
+          inZoomLevel );
+      if ( DspA_tErr_NoErr != eDispResult ) {
+  eResult = MWin_tErr_ErrorAccessingDisplay;
+  goto error;
+      }
+    }
+  }
+  
+  goto cleanup;
+  
+ error:
+  
+  /* print error message */
+  if ( MWin_tErr_NoErr != eResult ) {
+    DebugPrint "Error %d in MWin_ZoomLevelChanged: %s\n",
       eResult, MWin_GetErrorString(eResult) EndDebugPrint;
   }
   
@@ -1394,6 +1478,7 @@ void MWin_HandleEvent ( tkmMeditWindowRef   this,
 
   MWin_tErr eResult            = MWin_tErr_NoErr;
   DspA_tErr eDispResult        = DspA_tErr_NoErr;
+  tBoolean  bWasHit            = FALSE;
   int       nDispIndex         = 0;
   int       nFlippedY          = 0;
   xPoint2n  location           = {0,0};
@@ -1427,6 +1512,17 @@ void MWin_HandleEvent ( tkmMeditWindowRef   this,
       goto cleanup;
     }
 
+    /* look for tab. if so, change focus. */
+    if( xGWin_tEventType_KeyDown == ipEvent->mType
+  && xGWin_tKey_Tab == ipEvent->mKey ) {
+      if( ipEvent->mbShiftKey ) {
+  MWin_ChangeFocusedDisplayAreaBy_( this, -1 );
+      } else {
+  MWin_ChangeFocusedDisplayAreaBy_( this, 1 );
+      }
+      goto cleanup;
+    }
+
     /* flip the y. i hate this. */
     nFlippedY = this->mnHeight - ipEvent->mWhere.mnY;
     
@@ -1437,22 +1533,45 @@ void MWin_HandleEvent ( tkmMeditWindowRef   this,
     nDispIndex < MWin_knMaxNumAreas; 
     nDispIndex++ ) {
       
-      /* get the size and location */
-      eDispResult = DspA_GetPosition ( this->mapDisplays[nDispIndex],
-               &location, &nWidth, &nHeight );
-      if ( DspA_tErr_NoErr != eDispResult ) {
-  eResult = MWin_tErr_ErrorAccessingDisplay;
-  goto error;
-      }
-      
-      /* find if it was hit. note we're using the flipped y here. */
-      if ( ( ipEvent->mWhere.mnX    >= location.mnX 
-       && ipEvent->mWhere.mnX <= location.mnX + nWidth ) &&
-     ( nFlippedY              >= location.mnY
-       && nFlippedY           <= location.mnY + nHeight ) ) {
+      /* assume not hit */
+      bWasHit = FALSE;
 
-  /* if this was a mouse event, see if this was not the last clicked
-     area... */
+      /* if this was a mouse event... */
+      if( xGWin_tEventType_MouseMoved == ipEvent->mType
+    || xGWin_tEventType_MouseDown == ipEvent->mType
+    || xGWin_tEventType_MouseUp == ipEvent->mType ) {
+
+  /* get the size and location */
+  eDispResult = DspA_GetPosition ( this->mapDisplays[nDispIndex],
+           &location, &nWidth, &nHeight );
+  if ( DspA_tErr_NoErr != eDispResult ) {
+    eResult = MWin_tErr_ErrorAccessingDisplay;
+    goto error;
+  }
+      
+  /* find if it was hit. note we're using the flipped y here. */
+  if ( ( ipEvent->mWhere.mnX    >= location.mnX 
+         && ipEvent->mWhere.mnX <= location.mnX + nWidth ) &&
+       ( nFlippedY              >= location.mnY
+         && nFlippedY           <= location.mnY + nHeight ) ) {
+
+    /* pass event to this pane. */
+    bWasHit = TRUE;
+  }
+
+  /* else if it was a key event.. */
+      } else if( xGWin_tEventType_KeyDown == ipEvent->mType ) {
+
+  /* was hit if this is the focused pane */
+  if( nDispIndex == this->mnLastClickedArea ) {
+    bWasHit = TRUE;
+  }
+      }
+
+      /* if this was hit... */
+      if( bWasHit ) {
+  
+  /* if this was not the last clicked area... */
   if( nDispIndex != this->mnLastClickedArea ) {
 
     /* focus on this display. */
@@ -1461,11 +1580,11 @@ void MWin_HandleEvent ( tkmMeditWindowRef   this,
       eResult = MWin_tErr_ErrorAccessingDisplay;
       goto error;
     }
+
+    /* save new focused display. */
+    this->mnLastClickedArea = nDispIndex;
   }
 
-  /* save new focused display. */
-  this->mnLastClickedArea = nDispIndex;
-  
   /* pass the event along */
   eDispResult = DspA_HandleEvent ( this->mapDisplays[nDispIndex],
            ipEvent );
@@ -1660,6 +1779,66 @@ MWin_tErr MWin_PlaceToolWindow_ ( tkmMeditWindowRef this ) {
   return eResult;
 
 }
+
+MWin_tErr MWin_ChangeFocusedDisplayAreaBy_ ( tkmMeditWindowRef this,
+               int               inDelta ) {
+
+  MWin_tErr eResult     = MWin_tErr_NoErr;
+  DspA_tErr eDispResult = DspA_tErr_NoErr;
+  int       nDispIndex  = 0;
+
+  /* get the current display index */
+  nDispIndex = this->mnLastClickedArea;
+
+  /* get the next one */
+  switch( this->mConfiguration ) {
+  case MWin_tDisplayConfiguration_1x1:
+    /* no next one */
+    break;
+  case MWin_tDisplayConfiguration_2x2:
+    /* inc. if more than max, set to 0. */
+    nDispIndex += inDelta;
+    while( nDispIndex >= MWin_knMaxNumAreas )
+      nDispIndex -= MWin_knMaxNumAreas;
+    while( nDispIndex < 0 ) 
+      nDispIndex += MWin_knMaxNumAreas;
+    break;
+  default:
+    break;
+  }
+
+  /* if we changed... */
+  if( this->mnLastClickedArea != nDispIndex ) {
+    
+    /* focus on this display. */
+    this->mnLastClickedArea = nDispIndex;
+    eDispResult = DspA_Focus( this->mapDisplays[this->mnLastClickedArea] );
+    if ( DspA_tErr_NoErr != eDispResult ) {
+      eResult = MWin_tErr_ErrorAccessingDisplay;
+      goto error;
+    }
+    
+    /* redraw */
+    MWin_Redraw( this );
+  }
+
+  goto cleanup;
+
+ error:
+
+  /* print error message */
+  if ( MWin_tErr_NoErr != eResult ) {
+    DebugPrint "Error %d in MWin_ChangeFocusedDisplayAreaBy_: %s\n",
+      eResult, MWin_GetErrorString(eResult) EndDebugPrint;
+  }
+
+ cleanup:
+
+  return eResult;
+
+}
+
+
 
 MWin_tErr MWin_RegisterTclCommands ( tkmMeditWindowRef this,
              Tcl_Interp*       ipInterp ) {

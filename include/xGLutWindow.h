@@ -37,7 +37,8 @@ typedef unsigned char xGWin_tKey;
   /* special keys */
 enum {
 
-  xGWin_tKey_UpArrow = 1,
+  xGWin_tKey_Tab = 9,  /* 9 myst remain hardcoded */
+  xGWin_tKey_UpArrow = 10,
   xGWin_tKey_DownArrow,
   xGWin_tKey_LeftArrow,
   xGWin_tKey_RightArrow,
@@ -46,8 +47,8 @@ enum {
   xGWin_tKey_End,
   xGWin_tKey_Insert,
   xGWin_tKey_Home
-
 };
+
 #define xGWin_knCtrlA 1
 
 typedef struct {
