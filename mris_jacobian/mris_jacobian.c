@@ -12,7 +12,7 @@
 #include "mri.h"
 #include "macros.h"
 
-static char vcid[] = "$Id: mris_jacobian.c,v 1.1 2002/05/01 17:26:28 fischl Exp $";
+static char vcid[] = "$Id: mris_jacobian.c,v 1.2 2002/05/01 20:00:00 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -183,6 +183,8 @@ compute_area_ratios(MRI_SURFACE *mris, int noscale)
     if (v->origarea < SMALL)
       v->origarea = SMALL ;
     v->curv = v->area / (v->origarea*area_scale) ;
+    if (!finite(v->curv))
+      ErrorPrintf(ERROR_BADPARM, "vertex %d not finite (area %2.1f, origarea %2.1f, scale %2.1f", vno, v->area, v->origarea, area_scale) ;
   }
 
   return(NO_ERROR) ;
@@ -202,7 +204,11 @@ log_ratios(MRI_SURFACE *mris)
     if (v->ripflag)
       continue ;
 
+    if (v->curv < SMALL)
+      v->curv = SMALL ;
     v->curv = log10(v->curv) ;
+    if (!finite(v->curv))
+      ErrorPrintf(ERROR_BADPARM, "vertex %d log not finite", vno) ;
   }
 
   return(NO_ERROR) ;
