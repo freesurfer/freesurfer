@@ -373,6 +373,7 @@ int   MRIerasePlane(MRI *mri, float x0, float y0, float z0,
 
 int   MRIeraseBorders(MRI *mri, int width) ;
 int   MRIsampleVolume(MRI *mri, Real x, Real y, Real z, Real *pval) ;
+int   MRIsampleLabeledVolume(MRI *mri, Real x, Real y, Real z, Real *pval, unsigned char ucharLabel);
 int   MRIsampleVolumeFrame(MRI *mri,Real x,Real y,Real z,int frame,Real *pval);
 int   MRIsampleVolumeGradient(MRI *mri, Real x, Real y, Real z, 
                               Real *pdx, Real *pdy, Real *pdz) ;
