@@ -5,6 +5,7 @@
 #include <sys/stat.h>
 #include <unistd.h>
 #include <ctype.h>
+#include <errno.h>
 
 #include "mri.h"
 #include "const.h"
@@ -22,7 +23,7 @@
 #include "transform.h"
 #include "talairachex.h"
 
-static char vcid[] = "$Id: mri_fill.c,v 1.80 2004/07/29 15:57:39 tosa Exp $";
+static char vcid[] = "$Id: mri_fill.c,v 1.81 2004/07/30 13:39:17 tosa Exp $";
 
 
 /*-------------------------------------------------------------------
@@ -308,7 +309,7 @@ main(int argc, char *argv[])
   // Gdiag = 0xFFFFFFFF;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_fill.c,v 1.80 2004/07/29 15:57:39 tosa Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_fill.c,v 1.81 2004/07/30 13:39:17 tosa Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
