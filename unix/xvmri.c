@@ -64,6 +64,7 @@ static int            talairach = 0 ; /* show image or Talairach coords */
 static void viewMenuItem(Menu menu, Menu_item menu_item) ;
 static IMAGE *get_next_slice(IMAGE *Iold, int which, int dir) ;
 static void repaint_handler(XV_FRAME *xvf, DIMAGE *dimage) ;
+static int mri_write_func(Event *event, DIMAGE *dimage, char *fname) ;
 
 /*----------------------------------------------------------------------
                               FUNCTIONS
@@ -411,6 +412,7 @@ XVMRIinit(XV_FRAME *xvf_init, int view_row, int view_col)
   XVsetDepthFunc(xvf, get_next_slice) ;
   XVsetPrintStatus(xvf, 0) ;
   XVsetYDir(xvf, 1) ;
+  XVsetWriteFunc(xvf, "WRITE MRI", "MR image file name", mri_write_func) ;
   sprintf(view_str, "view: CORONAL") ;
   view_menu = (Menu)
     xv_create((Xv_opaque)NULL, MENU,
@@ -586,5 +588,23 @@ int
 XVMRIsetView(XV_FRAME *xvf, int which, int view)
 {
   mri_views[which] = view ;
+  return(NO_ERROR) ;
+}
+/*----------------------------------------------------------------------
+            Parameters:
+
+           Description:
+----------------------------------------------------------------------*/
+static int
+mri_write_func(Event *event, DIMAGE *dimage, char *fname)
+{
+  int  which ;
+  MRI  *mri ;
+
+  which = dimage->which ;
+  mri = mris[which] ;
+  if (!mri)
+    return(ERROR_BADPARM) ;
+  MRIwrite(mri, fname) ;
   return(NO_ERROR) ;
 }
