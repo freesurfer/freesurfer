@@ -21,11 +21,8 @@
 //    int IDTracker<myClass>::mNextID = 0;
 //    std::map<int,myClass*> IDTracker<myClass>::mIDMap;
 
-#define DeclareIDTracker(ClassType) \
-template IDTracker<ClassType>; \
-int IDTracker<ClassType>::mNextID = 0; \
-map<int,ClassType*> IDTracker<ClassType>::mIDMap; 
-
+#define DeclareIDTracker(ClassType)
+//template IDTracker<ClassType>;
 
 template <typename ClassType> class IDTracker {
 
@@ -95,5 +92,9 @@ protected:
   static int mNextID;
   static int GetNextID () { return mNextID++; }
 };
+
+
+template <typename T> int IDTracker<T>::mNextID = 0;
+template <typename T> std::map<int,T*> IDTracker<T>::mIDMap; 
 
 #endif
