@@ -490,16 +490,12 @@ x get the new layers window working
 
 x default dirs for file dlogs if subject is loaded
 
-
 - when current layer/data collection change, update menus
-  - Save Volume <VolumeName>
+  x Save Volume <VolumeName>
   - disable invalid items
 
-int curLayer
-int curROIp
+- fix surface drawing
 
-SetCurrentLayer
- - update menu items
 
 NewVolume
  - get template volume ID
@@ -513,6 +509,10 @@ SaveVolumeAs
  - get filename
  - layer->Volume()->SetFileName
  - SaveVolume
+
+- ROI interface
+
+
 LoadLabel
  - get file name, LoadLabel( fn )
 LoadLabel( fn )
@@ -556,3 +556,22 @@ SetShowCoordinates
 SetShowFPS
 SetShowMarkers
 SetShowPlaneIntersections
+
+
+Signals
+
+mainWindow
+CurrentViewLayersChanged -> viewLayersDlog.UpdateLayersList
+TransformsListChanged    -> viewLayersDlog.UpdateTransformMenu
+LUTListChanged           -> viewLayersDlog.UpdateLUTMenu
+ToolChanged              -> toolSettingsDlog.UpdateToolSettings
+
+toolSettingsDlog
+
+viewLayersDlog
+ScubaFrameChanged        -> mainWindow.UpdateScubaFrame
+CurrentViewChanged       -> mainWindow.UpdateCurrentView
+TargetLayerChanged       -> toolSettingsDlog.LayerTargetChanged()
+
+scubaFrame
+UpdateLabelArea          -> mainWindow.UpdateLabelArea

@@ -10,7 +10,7 @@ if { $err } {
     load [file dirname [info script]]/libscuba[info sharedlibextension] scuba
 }
 
-DebugOutput "\$Id: scuba.tcl,v 1.83 2005/02/17 20:21:45 kteich Exp $"
+DebugOutput "\$Id: scuba.tcl,v 1.84 2005/02/18 21:51:22 kteich Exp $"
 
 # gTool
 #   current - current selected tool (nav,)
@@ -2964,7 +2964,6 @@ proc UpdateCurrentViewProperties {} {
 	}
     }
 
-
     # Put the title of the top layer in the window title bar.
     wm title $gaWidget(window) "scuba: $sHighestLabel"
 }
@@ -4604,7 +4603,7 @@ proc SaveSceneScript { ifnScene } {
     set f [open $ifnScene w]
 
     puts $f "\# Scene file generated "
-    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.83 2005/02/17 20:21:45 kteich Exp $"
+    puts $f "\# by scuba.tcl version \$Id: scuba.tcl,v 1.84 2005/02/18 21:51:22 kteich Exp $"
     puts $f ""
 
     # Find all the data collections.

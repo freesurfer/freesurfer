@@ -4,6 +4,7 @@
 #include "SurfaceCollection.h"
 #include "DataManager.h"
 #include "VolumeCollection.h"
+#include "error.h"
 
 using namespace std;
 
@@ -111,19 +112,8 @@ SurfaceCollection::LoadSurface () {
       throw logic_error( "Couldn't load MRIS" );
     }
 
-    // Check the volume geometry info in the surface. If it's there,
-    // get our transform from there.
-    if( mMRIS->vg.valid ) {
-
-      mDataToSurfaceTransform.SetMainTransform
-	( mMRIS->vg.x_r, mMRIS->vg.y_r, mMRIS->vg.z_r, mMRIS->vg.c_r,
-	  mMRIS->vg.x_a, mMRIS->vg.y_a, mMRIS->vg.z_a, mMRIS->vg.c_a,
-	  mMRIS->vg.x_s, mMRIS->vg.y_s, mMRIS->vg.z_s, mMRIS->vg.c_s,
-	               0,            0,             0,             1 );
-
-
-      // Otherwise look for it in the lta field.
-    } else if( NULL != mMRIS->lta ) {
+    // Get transform.
+    if( NULL != mMRIS->lta ) {
 
       // This is our RAS -> surfaceRAS transform.
       mDataToSurfaceTransform.SetMainTransform
@@ -379,17 +369,43 @@ SurfaceCollection::SetDataToSurfaceTransformFromVolume( VolumeCollection&
   if( NULL == mri ) {
     throw runtime_error( "Couldn't get MRI from volume" );
   }
+
   
+  VOL_GEOM  surfaceGeometry;
+  VOL_GEOM  volumeGeometry;
+
+  memcpy( &surfaceGeometry, &(mMRIS->vg), sizeof(VOL_GEOM) );
+  getVolGeom( mri, &volumeGeometry );
+
+  if( surfaceGeometry.valid ) {
+    if( !vg_isEqual( &volumeGeometry, &surfaceGeometry ) ) {
+      printf( "Transforming surface to match volume geometry.\n" );
+
+      
+      MRI* transformMRI = 
+	MRIallocHeader( volumeGeometry.width, volumeGeometry.height, 
+			volumeGeometry.depth, MRI_VOLUME_TYPE_UNKNOWN);
+      
+      useVolGeomToMRI( &volumeGeometry, transformMRI );
+
+      int eMRIS = MRISsurf2surf( mMRIS, transformMRI, NULL );
+      if (ERROR_NONE != eMRIS) { }
+
+      MRIfree( &transformMRI );
+    }
+  }
+
+#if 0  
   MATRIX* RASToSurfaceRASMatrix = surfaceRASFromRAS_( mri );
   if( NULL == RASToSurfaceRASMatrix ) {
     throw runtime_error( "Couldn't get SurfaceRASFromRAS_ from MRI" );
   }
   
   mDataToSurfaceTransform.SetMainTransform( RASToSurfaceRASMatrix );
+  MatrixFree( &RASToSurfaceRASMatrix );
+#endif
 
   CalcWorldToSurfaceTransform();
-
-  MatrixFree( &RASToSurfaceRASMatrix );
   
   mbIsUsingVolumeForTransform = true;
   mTransformVolume = &iVolume;
