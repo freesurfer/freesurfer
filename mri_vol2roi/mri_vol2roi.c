@@ -6,7 +6,7 @@
   Purpose: averages the voxels within an ROI. The ROI
            can be constrained structurally (with a label file)
            and/or functionally (with a volumetric mask)
-  $Id: mri_vol2roi.c,v 1.9 2002/03/10 21:54:56 greve Exp $
+  $Id: mri_vol2roi.c,v 1.10 2002/06/21 18:11:21 greve Exp $
 */
 
 #include <stdio.h>
@@ -47,11 +47,12 @@ static int  check_format(char *fmt);
 int CompleteResFOVDim(float **trgres, float **trgfov, int **trgdim);
 int CountLabelHits(MRI *SrcVol, MATRIX *Qsrc, MATRIX *Fsrc, 
        MATRIX *Wsrc, MATRIX *Dsrc, 
-       MATRIX *Msrc2lbl, LABEL *Label, int float2int);
+       MATRIX *Msrc2lbl, LABEL *Label, float labelfillthresh,
+       int float2int);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_vol2roi.c,v 1.9 2002/03/10 21:54:56 greve Exp $";
+static char vcid[] = "$Id: mri_vol2roi.c,v 1.10 2002/06/21 18:11:21 greve Exp $";
 char *Progname = NULL;
 
 char *roifile    = NULL;
@@ -86,8 +87,6 @@ LABEL *Label;
 char  *float2int_string = NULL;
 int    float2int = -1;
 
-int   UseNewL2M = 0;
-
 int debug = 0;
 
 MATRIX *Dsrc, *Wsrc, *Fsrc, *Qsrc;
@@ -107,6 +106,7 @@ int nmskhits, nlabelhits, nfinalhits;
 
 char tmpstr[2000];
 int float2int_src, float2int_msk;
+float labelfillthresh = .0000001;
 
 int main(int argc, char **argv)
 {
@@ -284,16 +284,10 @@ int main(int argc, char **argv)
 
   /*--------- Prepare the final mask ------------------------*/
   if(Label != NULL){
-    if(UseNewL2M)
-      mFinalMskVol = label2mask_linear2(mSrcVol, Qsrc, Fsrc, Wsrc, 
-          Dsrc, mSrcMskVol,
-          Msrc2lbl, Label, float2int, 
-          &nlabelhits, &nfinalhits);
-    else
-      mFinalMskVol = label2mask_linear(mSrcVol, Qsrc, Fsrc, Wsrc, 
-               Dsrc, mSrcMskVol,
-               Msrc2lbl, Label, float2int, 
-               &nlabelhits, &nfinalhits);
+    mFinalMskVol = label2mask_linear(mSrcVol, Qsrc, Fsrc, Wsrc, 
+             Dsrc, mSrcMskVol,
+             Msrc2lbl, Label, labelfillthresh, float2int, 
+             &nlabelhits, &nfinalhits);
 
     if(mFinalMskVol == NULL) exit(1);
   }
@@ -316,7 +310,7 @@ int main(int argc, char **argv)
     if(Label != NULL)
       nlabelhits = CountLabelHits(mSrcVol, Qsrc, Fsrc, 
           Wsrc, Dsrc, Msrc2lbl, 
-          Label, float2int);
+          Label, labelfillthresh,float2int);
     else  nlabelhits = 0;
   }
 
@@ -415,7 +409,6 @@ static int parse_commandline(int argc, char **argv)
 
     else if (!strcasecmp(option, "--oldtxtstyle"))    oldtxtstyle = 1;
     else if (!strcasecmp(option, "--plaintxtstyle"))  plaintxtstyle = 1;
-    else if (!strcasecmp(option, "--usenewl2m"))  UseNewL2M = 1;
 
     /* -------- ROI output file ------ */
     else if (!strcmp(option, "--roiavgtxt")){
@@ -464,6 +457,11 @@ static int parse_commandline(int argc, char **argv)
     else if (!strcmp(option, "--labelreg")){
       if(nargc < 1) argnerr(option,1);
       src2lblregfile = pargv[0];
+      nargsused = 1;
+    }
+    else if (!strcmp(option, "--labelfillthresh")){
+      if(nargc < 1) argnerr(option,1);
+      sscanf(pargv[0],"%f",&labelfillthresh);
       nargsused = 1;
     }
 
@@ -556,6 +554,7 @@ static void print_usage(void)
   fprintf(stderr, "\n");
   fprintf(stderr, "   --label     path to label file \n");
   fprintf(stderr, "   --labelreg  label registration (LabelXYZ = L*AnatXYZ) \n");
+  fprintf(stderr, "   --labelfillthresh thresh : fraction of voxel\n");
   fprintf(stderr, "\n");
   fprintf(stderr, "   --mskvol     mask volume path \n");
   fprintf(stderr, "   --mskfmt     mask volume format \n");
@@ -575,7 +574,7 @@ static void print_usage(void)
 static void print_help(void)
 {
   print_usage() ;
-  fprintf(stderr, "\nThis program will resample one volume into an ROI. \n") ;
+  printf("\nThis program will resample one volume into an ROI. \n") ;
   exit(1) ;
 }
 /* --------------------------------------------- */
@@ -659,9 +658,12 @@ static void dump_options(FILE *fp)
   if(srcwarp != NULL) fprintf(fp,"srcwarp = %s\n",srcwarp);
   else                   fprintf(fp,"srcwarp unspecified\n");
 
-  fprintf(fp,"label file = %s\n",labelfile);
-  if(src2lblregfile != NULL) fprintf(fp,"labelreg = %s\n",src2lblregfile);
-  else                     fprintf(fp,"labelreg unspecified\n");
+  if(labelfile != NULL){
+    fprintf(fp,"label file = %s\n",labelfile);
+    if(src2lblregfile != NULL) fprintf(fp,"labelreg = %s\n",src2lblregfile);
+    else                     fprintf(fp,"labelreg unspecified\n");
+    fprintf(fp,"label fill thresh = %g\n",labelfillthresh);
+  }
 
   if(mskvolid != NULL) fprintf(fp,"mskvol = %s\n",mskvolid);
   else                  fprintf(fp,"mskvol unspecified\n");
@@ -772,7 +774,8 @@ LABEL   *LabelReadFile(char *labelfile)
   ------------------------------------------------------------*/
 int CountLabelHits(MRI *SrcVol, MATRIX *Qsrc, MATRIX *Fsrc, 
        MATRIX *Wsrc, MATRIX *Dsrc, 
-       MATRIX *Msrc2lbl, LABEL *Label, int float2int)
+       MATRIX *Msrc2lbl, LABEL *Label, float labelfillthresh,
+       int float2int)
 {
   MRI * LabelMskVol;
   int nlabelhits, nfinalhits;
@@ -781,7 +784,7 @@ int CountLabelHits(MRI *SrcVol, MATRIX *Qsrc, MATRIX *Fsrc,
 
   LabelMskVol = label2mask_linear(mSrcVol, Qsrc, Fsrc, Wsrc, 
           Dsrc, NULL, Msrc2lbl,
-          Label, float2int, 
+          Label, labelfillthresh, float2int, 
           &nlabelhits, &nfinalhits);
 
   nlabelhits = 0;
