@@ -1176,7 +1176,14 @@ ImageNormalizePix(IMAGE *Isrc, IMAGE *Idst)
     ErrorReturn(NULL, (ecode,"ImageNormalize: h_minmax failed (%d)\n", ecode));
 
   if (FEQUAL(fmax, fmin))
+#if 1
+    {
+      ImageCopy(Isrc, Idst) ;
+      return(Idst) ;
+    }
+#else
     ErrorReturn(NULL, (ERROR_BADPARM, "ImageNormalize: constant image")) ;
+#endif
 
   scale = 1.0f / (fmax - fmin) ;
   fmin = -fmin * scale ;
@@ -1444,13 +1451,20 @@ ImageScale(IMAGE *Isrc, IMAGE *Idst, float new_min, float new_max)
   IMAGE  *Iout ;
   byte   *src_image, *out_image ;
 
-  if (FEQUAL(new_max, new_min))
-    ErrorReturn(NULL, 
-            (ERROR_BADPARM, "ImageScale: specified min and max are equal"));
-
   if (!Idst)
     Idst = ImageAlloc(Isrc->rows, Isrc->cols, Isrc->pixel_format, 
                       Isrc->num_frame) ;
+
+  if (FEQUAL(new_max, new_min))
+#if 1
+    {
+      ImageCopy(Isrc, Idst) ;
+      return(Idst) ;
+    }
+#else
+    ErrorReturn(NULL, 
+            (ERROR_BADPARM, "ImageScale: specified min and max are equal"));
+#endif
 
   old_min = old_max = 0.0f ;  /* remove warning */
 
@@ -1492,7 +1506,14 @@ ImageScale(IMAGE *Isrc, IMAGE *Idst, float new_min, float new_max)
       ErrorExit(ecode, "ImageScale: h_minmax failed (%d)\n", ecode) ;
 
     if (FEQUAL(old_max, old_min))
+#if 1
+      {
+        ImageCopy(Isrc, Idst) ;
+        return(Idst) ;
+      }
+#else
       ErrorReturn(NULL, (ERROR_BADPARM, "ImageScale: constant image")) ;
+#endif
     
     scale = (new_max - new_min) / (old_max - old_min) ;
 
