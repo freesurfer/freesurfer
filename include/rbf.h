@@ -33,8 +33,6 @@ typedef struct
   MATRIX       **m_delta_sigma_inv ;/* for use in momentum */
   VECTOR       **v_delta_means ;   /* for use in momentum */
   VECTOR       **v_z ;            /* zero-mean vectors */
-  VECTOR       *v_biases ;        /* biases of linear classifier */
-  VECTOR       *v_delta_biases ;  /* delta biases of linear classifier */
   VECTOR       *v_outputs ;       /* outputs of the RBF */
   VECTOR       *v_hidden ;        /* activation of hidden layer */
   void         *parm ;            /* for clustering */
