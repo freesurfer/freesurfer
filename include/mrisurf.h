@@ -569,7 +569,7 @@ int          MRISrestoreVertexPositions(MRI_SURFACE *mris, int which) ;
 #define DEFAULT_B  122.0f
 #define DEFAULT_C  122.0f
 #endif
-#define DEFAULT_RADIUS  128.0f
+#define DEFAULT_RADIUS  100.0f
 
 #define MAX_DIM    DEFAULT_B
 
