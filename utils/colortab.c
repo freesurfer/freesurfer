@@ -133,13 +133,13 @@ CTABcolorToIndex(COLOR_TABLE *pct, int r, int g, int b, int*index)
     {
       bin = &(pct->bins[nbin]);
       if (bin->r == r &&
-					bin->g == g &&
-					bin->b == b)
-			{
-				*index = nbin;
-				return(NO_ERROR);
-			}
-
+	  bin->g == g &&
+	  bin->b == b)
+	{
+	  *index = nbin;
+	  return(NO_ERROR);
+	}
+      
       nbin++;
     }
   

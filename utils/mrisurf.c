@@ -7550,8 +7550,9 @@ MRISreadAnnotation(MRI_SURFACE *mris, char *sname)
       DiagBreak() ;
     if (vno>=mris->nvertices||vno<0)
       fprintf(stderr, "MRISreadAnnotation: vertex index out of range: %d i=%d\n",vno,i);
-    else
+    else {
       mris->vertices[vno].annotation = i;
+    }
   }
 
 	while (!feof(fp))
