@@ -14,7 +14,7 @@
 #include "macros.h"
 #include "annotation.h"
 
-static char vcid[] = "$Id: mris_sample_parc.c,v 1.4 2002/03/29 20:43:41 fischl Exp $";
+static char vcid[] = "$Id: mris_sample_parc.c,v 1.5 2002/09/17 17:23:57 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -225,6 +225,12 @@ get_option(int argc, char *argv[])
     strcpy(sdir, argv[2]) ;
     nargs = 1 ;
     printf("using %s as SUBJECTS_DIR\n", sdir) ;
+  }
+  else if (!stricmp(option, "file"))
+  {
+    translation_fname = argv[2] ;
+    nargs = 1 ;
+    printf("using %s as translation fname\n", sdir) ;
   }
   else switch (toupper(*option))
   {
