@@ -917,12 +917,22 @@ int main(int argc, char *argv[])
 
     if(fill_parcellation_flag)
       read_otl_flags |= READ_OTL_FILL_FLAG;
+    else
+    {
+      printf("notice: unfilled parcellaions currently unimplemented\n");
+      printf("notice: filling outlines\n");
+      read_otl_flags |= READ_OTL_FILL_FLAG;
+    }
 
     if(translate_labels_flag)
       read_otl_flags |= READ_OTL_TRANSLATE_LABELS_FLAG;
 
     if(zero_outlines_flag)
-      read_otl_flags |= READ_OTL_ZERO_OUTLINES_FLAG;
+    {
+      printf("notice: zero outlines currently unimplemented\n");
+      printf("notice: outlines won't be cleared\n");
+/*      read_otl_flags |= READ_OTL_ZERO_OUTLINES_FLAG;*/
+    }
 
     if(in_like_flag)
       mri = MRIreadOtl(in_name, mri_in_like->width, mri_in_like->height, 
