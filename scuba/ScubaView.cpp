@@ -1292,7 +1292,8 @@ ScubaView::DoListenToMessage ( string isMessage, void* iData ) {
   }
 
   if( isMessage == "DrawCoordinateOverlay" ||
-      isMessage == "DrawPlaneIntersections" ) {
+      isMessage == "DrawPlaneIntersections" ||
+      isMessage == "DrawMarkers") {
     RebuildOverlayDrawList(); // our overlay will be different
     RequestRedisplay();
   }
@@ -2685,48 +2686,50 @@ ScubaView::BuildOverlay () {
     }
   }
 
-
-  // Draw our markers.
-  float range = 1.0;
-  switch( mViewState.mInPlane ) {
-  case ViewState::X:
-    range = mInPlaneMovementIncrements[0] / 2.0;
-    break;
-  case ViewState::Y:
-    range = mInPlaneMovementIncrements[1] / 2.0;
-    break;
-  case ViewState::Z:
-    range = mInPlaneMovementIncrements[2] / 2.0;
-    break;
-  }
-
-  if( mViewState.IsRASVisibleInPlane( mCursor.xyz(), range ) ) {
-
-    int cursorWindow[2];
-    TranslateRASToWindow( mCursor.xyz(), cursorWindow );
-    glLineWidth( 1 );
-    glColor3f( 1,0,0 );
-    glBegin( GL_LINES );
-    glVertex2d( cursorWindow[0] - 5, cursorWindow[1] );
-    glVertex2d( cursorWindow[0] + 6, cursorWindow[1] );
-    glVertex2d( cursorWindow[0], cursorWindow[1] - 5 );
-    glVertex2d( cursorWindow[0], cursorWindow[1] + 6 );
-    glEnd();
-  }
-
-  for( int nMarker = 0; nMarker < mcMarkers; nMarker++ ) {
-    if( mMarkerVisible[nMarker] &&
-	mViewState.IsRASVisibleInPlane( mMarkerRAS[nMarker].xyz(), range ) ) {
-      int markerWindow[2];
-      TranslateRASToWindow( mMarkerRAS[nMarker].xyz(), markerWindow );
+  if( prefs.GetPrefAsBool( ScubaGlobalPreferences::DrawMarkers )) {
+    
+    // Draw our markers.
+    float range = 1.0;
+    switch( mViewState.mInPlane ) {
+    case ViewState::X:
+      range = mInPlaneMovementIncrements[0] / 2.0;
+      break;
+    case ViewState::Y:
+      range = mInPlaneMovementIncrements[1] / 2.0;
+      break;
+    case ViewState::Z:
+      range = mInPlaneMovementIncrements[2] / 2.0;
+      break;
+    }
+    
+    if( mViewState.IsRASVisibleInPlane( mCursor.xyz(), range ) ) {
+      
+      int cursorWindow[2];
+      TranslateRASToWindow( mCursor.xyz(), cursorWindow );
       glLineWidth( 1 );
-      glColor3f( 0,1,0 );
+      glColor3f( 1,0,0 );
       glBegin( GL_LINES );
-      glVertex2d( markerWindow[0] - 5, markerWindow[1] );
-      glVertex2d( markerWindow[0] + 6, markerWindow[1] );
-      glVertex2d( markerWindow[0], markerWindow[1] - 5 );
-      glVertex2d( markerWindow[0], markerWindow[1] + 6 );
+      glVertex2d( cursorWindow[0] - 5, cursorWindow[1] );
+      glVertex2d( cursorWindow[0] + 6, cursorWindow[1] );
+      glVertex2d( cursorWindow[0], cursorWindow[1] - 5 );
+      glVertex2d( cursorWindow[0], cursorWindow[1] + 6 );
       glEnd();
+    }
+    
+    for( int nMarker = 0; nMarker < mcMarkers; nMarker++ ) {
+      if( mMarkerVisible[nMarker] &&
+	  mViewState.IsRASVisibleInPlane( mMarkerRAS[nMarker].xyz(), range ) ) {
+	int markerWindow[2];
+	TranslateRASToWindow( mMarkerRAS[nMarker].xyz(), markerWindow );
+	glLineWidth( 1 );
+	glColor3f( 0,1,0 );
+	glBegin( GL_LINES );
+	glVertex2d( markerWindow[0] - 5, markerWindow[1] );
+	glVertex2d( markerWindow[0] + 6, markerWindow[1] );
+	glVertex2d( markerWindow[0], markerWindow[1] - 5 );
+	glVertex2d( markerWindow[0], markerWindow[1] + 6 );
+	glEnd();
+      }
     }
   }
 
