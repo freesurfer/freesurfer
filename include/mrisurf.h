@@ -426,13 +426,6 @@ extern int (*gMRISexternalClearSSEStatus)(MRI_SURFACE *mris) ;
 extern int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris, double pct) ;
 
 
-#define IP_USE_CURVATURE      0x0001
-#define IP_NO_RIGID_ALIGN     0x0002
-#define IP_RETRY_INTEGRATION  0x0004
-
-/* VECTORIAL_REGISTRATION*/
-#define IP_USE_MULTIFRAMES    0x0008
-
 #define NUMBER_OF_FIELDS_IN_VECTORIAL_REGISTRATION 11
 /* field code: definition of the field type*/
 #define INFLATED_CURV_CORR_FRAME       0
