@@ -734,63 +734,59 @@ proc DestroySessionInfoView {} \
 #----------------------------       CreateAlertDialog      -----------------------------------#
 # general purpose dialog for displaying informationl strings
 # some limited ability to expand according to string size, to wrap & stuff like that
-proc CreateAlertDialog {title alertMessage} \
-    {
-        global  dialog session alertDialogClosed archBin
-        set ad .alertDialog
-        set longestLine 0
-        set numberOfLines 30
+proc CreateAlertDialog {title alertMessage} {
+  global  dialog session alertDialogClosed archBin
+  set ad .alertDialog
+  set longestLine 0
+  set numberOfLines 30
 
 # -- determine size  ---#
   set textLines [ split $alertMessage \n ]
-        foreach line $textLines \
-      {
+  foreach line $textLines {
     set lineLength [string length $line ]
     if { $lineLength > 60} { set lineLength 60 }
-                if { $lineLength > $longestLine } { set longestLine $lineLength }
-      }
+    if { $lineLength > $longestLine } { set longestLine $lineLength }
+  }
   if { $numberOfLines > [llength $textLines ] } { set numberOfLines [llength $textLines ] }
 
-        if {[Dialog_Create $ad $title -borderwidth 10 ] } \
-     {
-                             
-              set ad .alertDialog
-              set msgFrame [ frame $ad.msgFrame ]
-              set t [ text $msgFrame.t -setgrid true -wrap word \
-                     -width [expr $longestLine + 2] \
-                                       -height [expr $numberOfLines + 1] \
-               -yscrollcommand "$msgFrame.sy set" ]
-              scrollbar $msgFrame.sy -orient vert -command "$msgFrame.t yview"
+  if {[Dialog_Create $ad $title -borderwidth 10 ] } {
+     set ad .alertDialog
+     set msgFrame [ frame $ad.msgFrame ]
+     set h [expr $numberOfLines + 1]
+     if {$h < 6} {set h 6}
+     set t [ text $msgFrame.t -setgrid true -wrap word \
+             -width [expr $longestLine + 2] -height $h \
+             -yscrollcommand "$msgFrame.sy set" ]
+     scrollbar $msgFrame.sy -orient vert -command "$msgFrame.t yview"
 
-              button $ad.closeButton -text Close -command { DestroyAlertDialog }
+     button $ad.closeButton -text Close -command { DestroyAlertDialog }
 
 # -- pack  ---#
-              pack $msgFrame.sy -side right -fill y
-              pack $msgFrame.t -side left -fill both -expand true
+     pack $msgFrame.sy -side right -fill y
+     pack $msgFrame.t -side left -fill both -expand true
 
-              pack $msgFrame
-              pack $ad.closeButton
+     pack $msgFrame -side left -fill both -expand true
+     pack $ad.closeButton
 
 # -- bind  ---#
-              bind $ad <Control-c> DestroyAlertDialog
-              bind $ad <Alt-w>     DestroyAlertDialog
-              bind $ad <Return>     DestroyAlertDialog
+     bind $ad <Control-c> DestroyAlertDialog
+     bind $ad <Alt-w>     DestroyAlertDialog
+     bind $ad <Return>     DestroyAlertDialog
 # -- tags  ---#
-              $t tag configure bold -font {times 12 bold}
+     $t tag configure bold -font {times 12 bold}
 
 
 #--  print msg in text box  ---#
 
 
-              foreach line $textLines \
-      {  
-
-                    $t insert end "$line\n"
+     foreach line $textLines {
+        $t insert end "$line\n"
+     }
+     ::tk::PlaceWindow $ad
+     #end of dialog create
     }
-           #end of dialog create
-    }
-     #end of function
-    }
+  #end of function
+}
 
 proc DestroyAlertDialog {} \
   { 
@@ -1814,7 +1810,7 @@ proc CheckTargetDirOK {} \
           {
              tk_messageBox -type ok -default ok -title "Error" \
                        -message "$targetDir is not a directory" -icon error 
-        set targetDir [pwd]
+             set targetDir [pwd]
              return 0
           }
 
@@ -1853,8 +1849,15 @@ proc CheckSourceDirOK {} \
 
   if { ! [ file isdirectory $sourceDir ] }\
               {
-                  tk_messageBox -type ok -default ok -title "Error" \
-                       -message "$sourceDir is not a directory" -icon error 
+                 set errmsg \
+"$sourceDir is not a directory.  It is possible if this data is over one \
+year old that the archive is no longer online.  You will need to either use \
+the CD made at the time the data was taken or contact \
+support@nmr.mgh.harvard.edu and ask that $sourceDir be recovered from \
+the archive tapes"
+      CreateAlertDialog {ERROR: missing source} $errmsg
+                  #tk_messageBox -type ok -default ok -title "Error" \
+                  #     -message $errmsg -icon error 
                   set sourceDir $archiveDir
                   return 0
          }
@@ -1867,8 +1870,9 @@ proc CheckSourceDirOK {} \
                   return 0
          }
 
-   if { [ string match {*allegra-20002*} $sourceDir ] 
-  || [ string match {*sonata-21006*} $sourceDir ] } {
+   if { ! ( [ string match {*/Sonata*} $sourceDir ] 
+    || [ string match {*/Allegra*} $sourceDir ] 
+    || [ string match {*/TRIO*} $sourceDir ] ) } {
   return 1
    } else {
   set errmsg {\
