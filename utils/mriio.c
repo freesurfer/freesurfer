@@ -175,7 +175,7 @@ int decideSliceDirection(MRI *mri)
   else if (isOne(mri->x_r) && isOne(mri->y_a) && isOne( mri->z_s))
     direction = MRI_HORIZONTAL;
   if (mri->slice_direction != direction)
-    fprintf(stderr, "slice_direciton changed from %d to %d\n",
+    fprintf(stderr, "slice_direction changed from %d to %d\n",
 	    mri->slice_direction, direction);
   return direction;
 }

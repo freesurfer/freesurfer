@@ -8,10 +8,10 @@
  *
 */
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2003/05/23 20:21:08 $
-// Revision       : $Revision: 1.228 $
-char *MRI_C_VERSION = "$Revision: 1.228 $";
+// Revision Author: $Author: fischl $
+// Revision Date  : $Date: 2003/06/13 15:29:54 $
+// Revision       : $Revision: 1.229 $
+char *MRI_C_VERSION = "$Revision: 1.229 $";
 
 /*-----------------------------------------------------
                     INCLUDE FILES
@@ -4802,13 +4802,14 @@ MRIscale(MRI *mri_src, MRI *mri_dst, float sx, float sy, float sz)
     MRIcopyHeader(mri_src, mri_dst) ;
   }
 
-  m = MatrixAlloc(3, 3, MATRIX_REAL) ;
+  m = MatrixAlloc(4, 4, MATRIX_REAL) ;
 
   /* build rotation matrix */
   m->rptr[1][1] = sx ;
   m->rptr[2][2] = sy ;
   m->rptr[3][3] = sz ;
-  mri_dst = MRIaffine(mri_src, NULL, m, NULL) ;
+  m->rptr[4][4] = 1.0 ;
+  mri_dst = MRIlinearTransform(mri_src, NULL, m) ;
   MatrixFree(&m) ;
 
   mri_dst->ras_good_flag = 0;
@@ -5353,6 +5354,7 @@ MRIupsample2(MRI *mri_src, MRI *mri_dst)
   int     width, depth, height, x, y, z ;
   BUFTYPE *pdst ;
 	short   *psdst ;
+	float   *pfdst ;
   
   if (mri_dst && mri_src->type != mri_dst->type)
     ErrorReturn(NULL, 
@@ -5383,6 +5385,11 @@ MRIupsample2(MRI *mri_src, MRI *mri_dst)
 				psdst = &MRISvox(mri_dst, 0, y, z) ; 
 				for (x = 0 ; x < width ; x++)
 					*psdst++ = MRISvox(mri_src, x/2, y/2, z/2) ;
+				break ;
+			case MRI_FLOAT:
+				pfdst = &MRIFvox(mri_dst, 0, y, z) ; 
+				for (x = 0 ; x < width ; x++)
+					*pfdst++ = MRIFvox(mri_src, x/2, y/2, z/2) ;
 				break ;
 			default:
 				ErrorReturn(NULL,
@@ -7765,6 +7772,38 @@ MRIneighborsOn3x3(MRI *mri, int x, int y, int z, int min_val)
         if (!zk && !yk && !xk)
           continue ;
         if (MRIvox(mri, xi, yi, zi) > min_val)
+          nbrs++ ;
+      }
+    }
+  }
+  return(nbrs) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
+int
+MRIneighborsInWindow(MRI *mri, int x, int y, int z, int wsize, int val)
+{
+  int   xk, yk, zk, xi, yi, zi, nbrs, whalf ;
+
+	whalf = (wsize-1)/2 ;
+
+  for (nbrs = 0, zk = -whalf ; zk <= whalf ; zk++)
+  {
+    zi = mri->zi[z+zk] ;
+    for (yk = -whalf ; yk <= whalf ; yk++)
+    {
+      yi = mri->yi[y+yk] ;
+      for (xk = -whalf ; xk <= whalf ; xk++)
+      {
+        xi = mri->xi[x+xk] ;
+        if (!zk && !yk && !xk)
+          continue ;
+        if (MRIvox(mri, xi, yi, zi) == val)
           nbrs++ ;
       }
     }

@@ -1773,7 +1773,7 @@ GCAlabel(MRI *mri_inputs, GCA *gca, MRI *mri_dst, TRANSFORM *transform)
 					int i ;
           printf("(%d, %d, %d): inputs=", x, y, z) ;
 					for (i = 0 ; i < gca->ninputs ; i++)
-						printf("%2.0f ", vals[i]) ;
+						printf("%2.1f ", vals[i]) ;
 				
           printf("label %s (%d), log(p)=%2.2e, node (%d, %d, %d)\n",
                  cma_label_to_name(label), label, max_p, xn, yn, zn) ;
@@ -5764,7 +5764,7 @@ GCAexpandCortex(GCA *gca, MRI *mri_inputs, MRI *mri_src,
                 MRI *mri_dst, TRANSFORM *transform)
 {
   int      nchanged, x, y, z, width, height, depth, xn, yn, zn, xi, yi, zi,
-           xk, yk, zk, label, total_changed, i, wm_nbr, gray_nbr ;
+           xk, yk, zk, label, total_changed, i, wm_nbr, gray_nbr, left ;
   GCA_NODE *gcan ;
   float    wm_means[MAX_GCA_INPUTS], wm_var, gray_means[MAX_GCA_INPUTS], gray_var, ldist, wdist, gdist ;
   MRI      *mri_tmp ;
@@ -5805,7 +5805,7 @@ GCAexpandCortex(GCA *gca, MRI *mri_inputs, MRI *mri_src,
             DiagBreak() ; 
           
           label = MRIvox(mri_dst, x, y, z) ;
-          
+
           if (label == Unknown ||
               label == Left_Cerebral_Cortex ||
               label == Right_Cerebral_Cortex ||
@@ -5813,8 +5813,40 @@ GCAexpandCortex(GCA *gca, MRI *mri_inputs, MRI *mri_src,
               label == Right_Cerebral_White_Matter
               )
           {
-            gc_wm = gc_gm = NULL ; gray_nbr = wm_nbr = 0 ;
-            for (zk = -1 ; zk <= 1 ; zk++)
+						if (label != Unknown)
+							left = (label == Left_Cerebral_Cortex || label == Left_Cerebral_White_Matter) ;
+						else
+						{
+							left = -1 ;
+							for (zk = -1 ; left < 0 && zk <= 1 ; zk++)
+							{
+								for (yk = -1 ; left < 0 && yk <= 1 ; yk++)
+								{
+									for (xk = -1 ; left < 0 && xk <= 1 ; xk++)
+									{
+										xi = mri_src->xi[x+xk] ;
+										yi = mri_src->yi[y+yk] ;
+										zi = mri_src->zi[z+zk] ;
+										label = MRIvox(mri_dst, xi, yi, zi) ;
+										if (label == Left_Cerebral_Cortex || label == Left_Cerebral_White_Matter)
+											left = 1 ;
+										else if (label == Right_Cerebral_Cortex || label == Right_Cerebral_White_Matter)
+											left = 0 ;
+									}
+								}
+							}
+						}
+
+            gray_nbr = wm_nbr = 0 ;
+						gc_wm = GCAfindSourceGC(gca, mri_src, transform, x, y, z, 
+																		left ? Left_Cerebral_White_Matter : Right_Cerebral_White_Matter) ;
+						gc_gm = GCAfindSourceGC(gca, mri_src, transform, x, y, z, 
+																		left ? Left_Cerebral_Cortex : Right_Cerebral_Cortex) ;
+						if (gc_gm)
+							gray_nbr = left ? Left_Cerebral_Cortex : Right_Cerebral_Cortex ;
+						if (gc_wm)
+							wm_nbr = left ? Left_Cerebral_White_Matter : Right_Cerebral_White_Matter ;
+            if (gc_gm == NULL || gc_wm == NULL) for (zk = -1 ; zk <= 1 ; zk++)
             {
               for (yk = -1 ; yk <= 1 ; yk++)
               {
@@ -5826,8 +5858,8 @@ GCAexpandCortex(GCA *gca, MRI *mri_inputs, MRI *mri_src,
                   yi = mri_src->yi[y+yk] ;
                   zi = mri_src->zi[z+zk] ;
                   label = MRIvox(mri_dst, xi, yi, zi) ;
-                  if (label ==  Left_Cerebral_Cortex ||
-                      label ==  Right_Cerebral_Cortex)
+                  if ((label ==  Left_Cerebral_Cortex ||
+											 label ==  Right_Cerebral_Cortex) && (gc_gm == NULL))
 									{
 										gray_nbr = label ;
                     gc_gm = GCAfindSourceGC(gca, mri_src, transform, xi, yi, zi, label) ;
@@ -5835,8 +5867,8 @@ GCAexpandCortex(GCA *gca, MRI *mri_inputs, MRI *mri_src,
 											gray_nbr = 0 ;  /* shouldn't ever happen */
 									}
                   else
-                  if (label ==  Left_Cerebral_White_Matter ||
-                      label ==  Right_Cerebral_White_Matter)
+                  if ((label ==  Left_Cerebral_White_Matter ||
+											 label ==  Right_Cerebral_White_Matter) && (gc_wm == NULL))
 									{
                     wm_nbr = label ;
                     gc_wm = GCAfindSourceGC(gca, mri_src, transform, xi, yi, zi, label) ;
@@ -5880,7 +5912,7 @@ GCAexpandCortex(GCA *gca, MRI *mri_inputs, MRI *mri_src,
                 if (x == Ggca_x && y == Ggca_y && z == Ggca_z)
                 {
                   int olabel = MRIvox(mri_tmp, x, y, z) ;
-                  if (olabel != wm_nbr)
+                  if (olabel != MRIvox(mri_src,x, y,z))
                     printf("voxel (%d, %d, %d) changed from %s (%d) "
                            "to %s (%d)\n", x, y, z,
                            cma_label_to_name(olabel), olabel,
@@ -5897,7 +5929,7 @@ GCAexpandCortex(GCA *gca, MRI *mri_inputs, MRI *mri_src,
 								int olabel = MRIvox(mri_tmp, x, y, z) ;
                 if (x == Ggca_x && y == Ggca_y && z == Ggca_z)
                 {
-                  if (olabel != gray_nbr)
+                  if (olabel != MRIvox(mri_src,x,y,z))
                     printf("voxel (%d, %d, %d) changed from %s (%d) "
                            "to %s (%d)\n", x, y, z,
                            cma_label_to_name(olabel), olabel,
@@ -5909,7 +5941,7 @@ GCAexpandCortex(GCA *gca, MRI *mri_inputs, MRI *mri_src,
                 MRIvox(mri_tmp, x, y, z) = gray_nbr ;
               }
             }
-          } 
+          }
         }
       }
     }
@@ -8243,11 +8275,12 @@ GCAlabelMean(GCA *gca, int label, float *means)
       }
     }
   }
+	if (FZERO(wt))
+		return(NO_ERROR) ;
 	for (r = 0 ; r < gca->ninputs ; r++)
 		means[r] /= wt ;
   return(NO_ERROR) ;
 }
-
 int
 GCAregularizeConditionalDensities(GCA *gca, float smooth)
 {
@@ -8332,7 +8365,6 @@ GCAregularizeConditionalDensities(GCA *gca, float smooth)
   free(wts) ; free(means) ;
   return(NO_ERROR) ;
 }
-
 int
 GCArenormalizeToFlash(GCA *gca, char *tissue_parms_fname, MRI *mri)
 {
@@ -8374,16 +8406,14 @@ int
 GCAmeanFilterConditionalDensities(GCA *gca, float navgs)
 {
 	/* won't work for covariances */
-#if 0
-  int       xn, yn, zn, xn1, yn1, zn1, n, label, max_label, niter ;
+  int       xn, yn, zn, xn1, yn1, zn1, n, label, max_label, niter, f ;
   GCA_NODE  *gcan ;
   GC1D      *gc ;
-  double    mean, wt, var ;
-  MRI       *mri_means, *mri_vars ;
+  double    means[MAX_GCA_INPUTS], wt ;
+  MRI       *mri_means ;
   float     prior ;
 
-  mri_means = MRIalloc(gca->node_width, gca->node_height, gca->node_depth, MRI_FLOAT) ;
-  mri_vars = MRIalloc(gca->node_width, gca->node_height, gca->node_depth, MRI_FLOAT) ;
+  mri_means = MRIallocSequence(gca->node_width, gca->node_height, gca->node_depth, MRI_FLOAT, gca->ninputs) ;
 
   /* compute overall mean for each class */
   for (max_label = 1, zn = 0 ; zn < gca->node_depth ; zn++)
@@ -8419,7 +8449,9 @@ GCAmeanFilterConditionalDensities(GCA *gca, float navgs)
         {
           for (xn = 0 ; xn < gca->node_width ; xn++)
           {
-            mean = var = wt = 0.0 ;
+						wt = 0.0 ;
+						for (f = 0 ; f < gca->ninputs ; f++)
+							means[f] = 0 ;
             for (xn1 = xn-1 ; xn1 <= xn+1 ; xn1++)
             {
               if (xn1 < 0 || xn1 >= gca->node_width)
@@ -8443,13 +8475,13 @@ GCAmeanFilterConditionalDensities(GCA *gca, float navgs)
                   
                     gc = &gcan->gcs[n] ;
                     prior = get_node_prior(gca, label, xn1, yn1, zn1) ;
-                    mean += prior*gc->mean ;
-                    var += prior*gc->var ;
+										for (f = 0 ; f < gca->ninputs ; f++)
+										{
+											means[f] += prior*gc->means[f] ;
+											if (!finite(means[f] / wt))
+												DiagBreak() ;
+										}
                     wt += prior ;
-                    if (!finite(mean / wt))
-                      DiagBreak() ;
-                    if (!finite(var / wt))
-                      DiagBreak() ;
                     break ;
                   }
                 }
@@ -8457,16 +8489,14 @@ GCAmeanFilterConditionalDensities(GCA *gca, float navgs)
             }
             if (FZERO(wt))
               continue ;   /* label didn't occur here */
-            if (!finite(mean / wt))
-              DiagBreak() ;
-            if (!finite(var / wt))
-              DiagBreak() ;
-            MRIFvox(mri_means, xn, yn, zn) = mean / wt ;
-            MRIFvox(mri_vars, xn, yn, zn) = var / wt ;
-            if (!finite(MRIFvox(mri_means,xn,yn,zn)))
-              DiagBreak() ;
-            if (!finite(MRIFvox(mri_vars, xn, yn, zn)))
-              DiagBreak() ;
+						for (f = 0 ; f < gca->ninputs ; f++)
+						{
+							if (!finite(means[f] / wt))
+								DiagBreak() ;
+							MRIFseq_vox(mri_means, xn, yn, zn, f) = means[f] / wt ;
+							if (!finite(MRIFseq_vox(mri_means,xn,yn,zn,f)))
+								DiagBreak() ;
+						}
           }
         }
       }
@@ -8483,12 +8513,12 @@ GCAmeanFilterConditionalDensities(GCA *gca, float navgs)
               if (gcan->labels[n] != label)
                 continue ;
               gc = &gcan->gcs[n] ;
-              gc->mean = MRIFvox(mri_means, xn, yn, zn) ;
-              gc->var = MRIFvox(mri_vars, xn, yn, zn) ;
-              if (!finite(gc->mean))
-                DiagBreak() ;
-              if (!finite(gc->var))
-                DiagBreak() ;
+							for (f = 0 ; f < gca->ninputs ; f++)
+							{
+								gc->means[f] = MRIFseq_vox(mri_means, xn, yn, zn, f) ;
+								if (!finite(gc->means[f]))
+									DiagBreak() ;
+							}
               break ;
             }
           }
@@ -8497,8 +8527,7 @@ GCAmeanFilterConditionalDensities(GCA *gca, float navgs)
     }
   }
 
-  MRIfree(&mri_vars) ; MRIfree(&mri_means) ;
-#endif
+  MRIfree(&mri_means) ;
   return(NO_ERROR) ;
 }
 
@@ -8824,6 +8853,33 @@ GCAcomputeConditionalDensity(GC1D *gc, float *vals, int ninputs, int label)
 		p = (1.0 / (pow(2*M_PI,ninputs/2.0)*sqrt(covariance_determinant(gc, ninputs)))) * exp(-dist) ;
   }
   return(p) ;
+}
+double
+GCAcomputeNormalizedConditionalDensity(GCA *gca, int xp, int yp, int zp, float *vals, int label)
+{
+  GCA_PRIOR  *gcap ;
+  GC1D       *gc ;
+  int        n ;
+  double      p, total, plabel ;
+
+  gcap = &gca->priors[xp][yp][zp] ;
+  if (gcap->nlabels <= 1)
+		return(1.0) ;
+
+  for (plabel = total = 0.0, n = 0 ; n < gcap->nlabels ; n++)
+  {
+    gc = GCAfindPriorGC(gca, xp, yp, zp, gcap->labels[n]) ; 
+    if (!gc)
+      continue ;
+    p = GCAcomputeConditionalDensity(gc,vals,gca->ninputs,gcap->labels[n]);
+		if (gcap->labels[n] == label)
+			plabel = p ;
+		total += p ;
+  }
+
+	if (!FZERO(total))
+		plabel /= total ;
+  return(plabel) ;
 }
 
 static double 
@@ -10433,6 +10489,9 @@ GCAlabelCovariance(GCA *gca, int label, MATRIX *m_total)
     }
   }
 
+	if (m_total == NULL)
+		return(NULL) ;
+
 	if (FZERO(wt))
 		wt = 1 ;
 	MatrixScalarMul(m_total, 1/wt, m_total) ;
@@ -10485,5 +10544,156 @@ GCAlabelMeanFromImage(GCA *gca, TRANSFORM *transform, MRI *mri, int label, float
 	for (r = 0 ; r < gca->ninputs ; r++)
 		means[r] /= wt ;
   return(NO_ERROR) ;
+}
+
+int
+GCAmapRenormalize(GCA *gca, MRI *mri, TRANSFORM *transform)
+{
+	HISTOGRAM *h, *hsmooth ;
+	int       l, xp, yp, zp, x, y, z, nbins, i, xn, yn, zn, num, frame, bin ;
+	float     fmin, fmax, prior, label_scales[MAX_GCA_LABELS], label_means[MAX_GCA_LABELS], 
+            means[MAX_GCA_INPUTS],std, peak, smooth_peak ;
+	Real      val/*, scale*/ ;
+	GCA_PRIOR *gcap ;
+	GCA_NODE  *gcan ;
+	GC1D      *gc ;
+	MATRIX    *m_cov ;
+
+	/* for each class, build a histogram of values (weighted by priors) to determine
+		 p(I|u,c) p(c).
+	*/
+
+
+#if 0
+	if (gca->ninputs > 1)
+		ErrorReturn(ERROR_UNSUPPORTED, 
+								(ERROR_UNSUPPORTED, "GCAmapRenormalize: not implemented for ninputs > 1")) ;
+#endif
+
+	for (frame = 0 ; frame < mri->nframes ; frame++)
+	{
+		printf("renormalizing input #%d\n", frame) ;
+		MRIvalRangeFrame(mri, &fmin, &fmax, frame) ;
+		nbins = 256 ; h = HISTOalloc(nbins) ;
+		
+		hsmooth = HISTOcopy(h, NULL) ;
+		for (l = 0 ; l <= MAX_GCA_LABELS ; l++)
+		{
+			label_scales[l] = 0 ;  /* mark it as unusable */
+			GCAlabelMean(gca, l, means) ;
+			m_cov = GCAlabelCovariance(gca, l, NULL) ;
+			if (m_cov == NULL)
+				continue ;
+			std = 4*sqrt(*MATRIX_RELT(m_cov, frame+1,frame+1)) ;
+			MatrixFree(&m_cov) ;
+			label_means[l] = means[frame] ;
+			printf("label %s: mean = %2.3f +- %2.1f\n", cma_label_to_name(l), label_means[l], std) ;
+			if (l == Gdiag_no)
+				DiagBreak() ;
+			if (FZERO(label_means[l]))
+				continue ;
+			HISTOclear(h, h) ;
+			h->bin_size = (fmax-fmin)/255.0 ;
+			for (i = 0 ; i < nbins ; i++)
+				h->bins[i] = (i+1)*h->bin_size ;
+
+			for (num = xp = 0 ; xp < gca->prior_width ; xp++)
+			{
+				for (yp = 0 ; yp < gca->prior_height ; yp++)
+				{
+					for (zp = 0 ; zp < gca->prior_depth ; zp++)
+					{
+						if (xp == Gx && yp == Gy && zp == Gz)
+							DiagBreak() ;
+						gcap = &gca->priors[xp][yp][zp] ;
+						prior = getPrior(gcap, l) ;
+						if (prior < 0.5)
+							continue ;
+						GCApriorToSourceVoxel(gca, mri, transform, xp, yp, zp, &x, &y, &z) ;
+						MRIsampleVolumeFrame(mri, x, y, z, frame, &val) ;
+						bin = nint((val - fmin)/h->bin_size) ;
+						if (bin >= h->nbins)
+							bin = h->nbins-1 ;
+						else if (bin < 0)
+							bin = 0 ;
+							
+						h->counts[bin] += prior ; num++ ;
+					}
+				}
+			}
+			if (num <= 50)  /* not enough to reliably estimate density */
+				continue ;
+			if (l == Gdiag_no)
+				DiagBreak() ;
+			HISTOsmooth(h, hsmooth, 2) ;
+			peak = h->bins[HISTOfindHighestPeakInRegion(h, 0, h->nbins)] ;
+			smooth_peak = hsmooth->bins[HISTOfindHighestPeakInRegion(hsmooth, 0, hsmooth->nbins)] ;
+			label_scales[l] = (float)smooth_peak / label_means[l] ;
+			printf("%s (%d): peak at %2.2f, smooth at %2.2f (%d voxels), scaling by %2.2f\n", 
+						 cma_label_to_name(l), l, peak, smooth_peak, num,
+						 label_scales[l]) ;
+			bin = nint((means[frame] - fmin)/hsmooth->bin_size) ;
+			bin = HISTOfindCurrentPeak(hsmooth, bin, 11) ;
+			smooth_peak = hsmooth->bins[bin] ;
+			if (bin < 0 || smooth_peak <= 0)
+				continue ;
+			label_scales[l] = (float)smooth_peak / label_means[l] ;
+			printf("%s (%d): AFTER PRIOR: peak at %2.2f, smooth at %2.2f (%d voxels), scaling by %2.2f\n", 
+						 cma_label_to_name(l), l, peak, smooth_peak, num,
+						 label_scales[l]) ;
+
+#if 0			
+			for (i = 0 ; i < nbins ; i++)
+			{
+				val = h->bins[i] ;
+				scale = exp(-(val - label_means[l])*(val - label_means[l]) / (2*std*std)) ;
+				h->counts[i] *= scale ;
+			}
+
+			HISTOsmooth(h, hsmooth, 2) ;
+			printf("after gaussian prior...\n") ;
+			peak = h->bins[HISTOfindHighestPeakInRegion(h, 0, h->nbins)] ;
+			smooth_peak = hsmooth->bins[HISTOfindHighestPeakInRegion(hsmooth, 0, hsmooth->nbins)] ;
+			if (smooth_peak <= 0)
+				continue ;
+			printf("%s (%d): peak at %2.2f, smooth at %2.2f (%d voxels), scaling by %2.2f\n", 
+						 cma_label_to_name(l), l, peak, smooth_peak, num,
+						 label_scales[l]) ;
+			label_scales[l] = (float)smooth_peak / label_means[l] ;
+#endif
+			if (l == Gdiag_no)
+				DiagBreak() ;
+		}
+
+		for (xn = 0 ; xn < gca->node_width ; xn++)
+		{
+			for (yn = 0 ; yn < gca->node_height ; yn++)
+			{
+				for (zn = 0 ; zn < gca->node_depth ; zn++)
+				{
+					if (xn == Ggca_x && yn == Ggca_y && zn == Ggca_z)
+						DiagBreak() ;
+					gcan = &gca->nodes[xn][yn][zn] ;
+					for (i = 0 ; i < gcan->nlabels ; i++)
+					{
+						if (FZERO(label_scales[gcan->labels[i]]))
+							continue ;
+						gc = &gcan->gcs[i] ;
+						if ((xn == Ggca_x && yn == Ggca_y && zn == Ggca_z) &&
+								(Ggca_label == gcan->labels[i] || Ggca_label < 0))
+						{
+							printf("scaling gc for label %s at (%d, %d, %d) from %2.1f to %2.1f\n",
+										 cma_label_to_name(gcan->labels[i]), xn, yn, zn,
+										 gc->means[frame], label_scales[gcan->labels[i]]*gc->means[frame]) ;
+							DiagBreak() ;
+						}
+						gc->means[frame] *= label_scales[gcan->labels[i]] ;
+					}
+				}
+			}
+		}
+	}
+
+	return(NO_ERROR) ;
 }
 

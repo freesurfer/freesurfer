@@ -18,10 +18,15 @@
 #define MIN_STD (2.0)
 #define MIN_VAR (MIN_STD*MIN_STD)
 
+#define GCAM_X_GRAD 0
+#define GCAM_Y_GRAD 1
+#define GCAM_Z_GRAD 2
+
 #ifndef FSIGN
 #define FSIGN(f)  (((f) < 0) ? -1 : 1)
 #endif
 
+static MRI *gcamWriteMRI(GCA_MORPH *gcam, MRI *mri, int which) ;
 static int gcamClearMomentum(GCA_MORPH *gcam) ;
 static int gcamRemoveNegativeNodes(GCA_MORPH *gcam, MRI *mri, GCA_MORPH_PARMS *parms) ;
 static int gcamMLElabelAtLocation(GCA_MORPH *gcam, int x, int y, int z, float *vals) ;
@@ -40,8 +45,10 @@ static int  log_integration_parms(FILE *fp, GCA_MORPH_PARMS *parms) ;
 static int gcamLimitGradientMagnitude(GCA_MORPH *gcam, GCA_MORPH_PARMS *parms, MRI *mri) ;
 static int gcamComputeGradient(GCA_MORPH *gcam, MRI *mri, MRI *mri_smooth, 
                                GCA_MORPH_PARMS *parms) ;
+static int gcamLogLikelihoodTerm(GCA_MORPH *gcam, MRI *mri, MRI *mri_smooth,
+                              double l_log_likelihood) ;
 static int gcamLikelihoodTerm(GCA_MORPH *gcam, MRI *mri, MRI *mri_smooth,
-                              double l_likelihood) ;
+                              double l_likelihood, GCA_MORPH_PARMS *parms) ;
 static double gcamMapEnergy(GCA_MORPH *gcam, MRI *mri) ;
 static double gcamLabelEnergy(GCA_MORPH *gcam, MRI *mri, double label_dist) ;
 static int gcamMapTerm(GCA_MORPH *gcam, MRI *mri, MRI *mri_smooth, double l_map) ;
@@ -49,7 +56,7 @@ static int gcamLabelTerm(GCA_MORPH *gcam, MRI *mri, double l_label, double label
 static int gcamDistanceTerm(GCA_MORPH *gcam, MRI *mri, double l_distance) ;
 static int gcamClearGradient(GCA_MORPH *gcam) ;
 static int gcamComputeMetricProperties(GCA_MORPH *gcam) ;
-static double gcamLikelihoodEnergy(GCA_MORPH *gcam, MRI *mri) ;
+static double gcamLogLikelihoodEnergy(GCA_MORPH *gcam, MRI *mri) ;
 
 static int gcamDistanceTerm(GCA_MORPH *gcam, MRI *mri, double l_distance) ;
 static double gcamDistanceEnergy(GCA_MORPH *gcam, MRI *mri) ;
@@ -123,9 +130,9 @@ GCAMregister(GCA_MORPH *gcam, MRI *mri, GCA_MORPH_PARMS *parms)
   char   fname[STRLEN] ;
   int    level, i, level_steps, navgs, l2 ;
   MRI    *mri_smooth = NULL, *mri_kernel ;
-  double sigma, pct_change, rms, last_rms, orig_dt ;
+  double base_sigma, pct_change, rms, last_rms, orig_dt,l_smooth ;
   
-  navgs = parms->navgs ; orig_dt = parms->dt ;
+  navgs = parms->navgs ; orig_dt = parms->dt ; l_smooth = parms->l_smoothness;
   if (FZERO(parms->exp_k))
     parms->exp_k = EXP_K ;
   if (parms->levels < 0)
@@ -146,24 +153,30 @@ GCAMregister(GCA_MORPH *gcam, MRI *mri, GCA_MORPH_PARMS *parms)
   else
     parms->log_fp = NULL ;
 
-  sigma = parms->sigma ;
+  base_sigma = parms->sigma ;
 	if (gcam->relabel)
 		GCAMcomputeLabels(mri, gcam) ;
 	else
 		GCAMcomputeMaxPriorLabels(gcam) ;
   for (level = parms->levels-1 ; level >= 0 ; level--)
   {
-	  sigma = parms->sigma ;
+	  parms->sigma = base_sigma ;
+#if 0
+		parms->l_smoothness = l_smooth / (sqrt(parms->navgs)+1) ;
+#else
+		parms->l_smoothness = l_smooth / ((parms->navgs)+1) ;
+#endif
+		printf("setting smoothness coefficient to %2.2f\n", parms->l_smoothness);
 		for (l2 = 0 ; l2 < parms->levels ; l2++)
 		{
-			if (sigma < 0.4)
+			if (parms->sigma < 0.4)
 				break ;
-	    if (FZERO(sigma))
+	    if (FZERO(parms->sigma))
   	    mri_smooth = MRIcopy(mri, mri_smooth) ;
     	else
 	    {
-  	    printf("blurring input image with Gaussian with sigma=%2.3f...\n", sigma) ;
-    	  mri_kernel = MRIgaussian1d(sigma, 100) ;
+  	    printf("blurring input image with Gaussian with sigma=%2.3f...\n", parms->sigma) ;
+    	  mri_kernel = MRIgaussian1d(parms->sigma, 100) ;
       	mri_smooth = MRIconvolveGaussian(mri, NULL, mri_kernel) ;
 	      MRIfree(&mri_kernel) ;
   	  }
@@ -202,12 +215,13 @@ GCAMregister(GCA_MORPH *gcam, MRI *mri, GCA_MORPH_PARMS *parms)
     	  if (i++ >= 0)  /* don't bother iterating */
       	  break ;
 	    } while (pct_change > parms->tol) ;
-	    sigma /= 4 ; 
+	    parms->sigma /= 4 ; 
 		}
     parms->navgs /= 4 ;
   }
   MRIfree(&mri_smooth) ;
 
+	parms->sigma = base_sigma ;
   if (parms->log_fp)
   {
     fclose(parms->log_fp) ;
@@ -409,16 +423,16 @@ GCAMfree(GCA_MORPH **pgcam)
   where delI(r) = 3xn, C=nxn, and I(r)=nx1
 */
 static int
-gcamLikelihoodTerm(GCA_MORPH *gcam, MRI *mri, MRI *mri_smooth, double l_likelihood)
+gcamLogLikelihoodTerm(GCA_MORPH *gcam, MRI *mri, MRI *mri_smooth, double l_log_likelihood)
 {
-  int             x, y, z, n ;
+  int             x, y, z, n /*,label*/ ;
   Real            dx, dy, dz, norm;
 	float           vals[MAX_GCA_INPUTS] ;
   GCA_MORPH_NODE  *gcamn ;
 	MATRIX          *m_delI, *m_inv_cov ;
 	VECTOR          *v_means, *v_grad ;
 
-  if (FZERO(l_likelihood))
+  if (FZERO(l_log_likelihood))
     return(NO_ERROR) ;
 
 	m_delI = MatrixAlloc(3, gcam->gca->ninputs, MATRIX_REAL) ;
@@ -446,6 +460,12 @@ gcamLikelihoodTerm(GCA_MORPH *gcam, MRI *mri, MRI *mri_smooth, double l_likeliho
 				}
 				else
 				{
+#if 0
+					label = 
+						GCAcomputeMAPlabelAtLocation(gcam->gca, x,y,z,vals,&n,&gcamn->log_p);
+					if (label == gcamn->label)  /* already correct label - don't move anywhere */
+						continue ;
+#endif
 					load_mean_vector(gcamn->gc, v_means, gcam->gca->ninputs) ;
 					load_inverse_covariance_matrix(gcamn->gc, m_inv_cov, gcam->gca->ninputs) ;
 				}
@@ -460,7 +480,7 @@ gcamLikelihoodTerm(GCA_MORPH *gcam, MRI *mri, MRI *mri_smooth, double l_likeliho
 					*MATRIX_RELT(m_delI, 2, n+1) = dy ;
 					*MATRIX_RELT(m_delI, 3, n+1) = dz ;
 					VECTOR_ELT(v_means, n+1) -= vals[n] ;
-#define MAX_ERROR 10
+#define MAX_ERROR 100
 					if (fabs(VECTOR_ELT(v_means, n+1)) > MAX_ERROR)
 						VECTOR_ELT(v_means, n+1) = MAX_ERROR * FSIGN(VECTOR_ELT(v_means, n+1)) ;
 				}
@@ -468,9 +488,9 @@ gcamLikelihoodTerm(GCA_MORPH *gcam, MRI *mri, MRI *mri_smooth, double l_likeliho
 				MatrixMultiply(m_inv_cov, v_means, v_means) ;
 				MatrixMultiply(m_delI, v_means, v_grad) ;
 
-        gcamn->dx += l_likelihood*V3_X(v_grad) ;
-        gcamn->dy += l_likelihood*V3_Y(v_grad) ;
-        gcamn->dz += l_likelihood*V3_Z(v_grad) ;
+        gcamn->dx += l_log_likelihood*V3_X(v_grad) ;
+        gcamn->dy += l_log_likelihood*V3_Y(v_grad) ;
+        gcamn->dz += l_log_likelihood*V3_Z(v_grad) ;
         if (x == Gx && y == Gy && z == Gz)
           printf("l_like: node(%d,%d,%d): dI=(%2.1f,%2.1f,%2.1f), grad=(%2.2f,%2.2f,%2.2f), "
                  "node %2.2f+-%2.2f, MRI=%2.1f\n",
@@ -483,10 +503,126 @@ gcamLikelihoodTerm(GCA_MORPH *gcam, MRI *mri, MRI *mri_smooth, double l_likeliho
   return(NO_ERROR) ;
 }
 
+/*
+*/
+#define MAX_LEN 15
+#define IND0    ((MAX_LEN-1)/2)
+
+static int
+gcamLikelihoodTerm(GCA_MORPH *gcam, MRI *mri, MRI *mri_smooth, double l_likelihood, GCA_MORPH_PARMS *parms)
+{
+  int             x, y, z, len, xk, yk, zk, xi, yi, zi ;
+  Real            dx, dy, dz, norm, wts[MAX_LEN][MAX_LEN][MAX_LEN], 
+		              p_I_given_c[MAX_LEN][MAX_LEN][MAX_LEN], dist, xp1, xm1, yp1, ym1, zp1, zm1;
+	float           vals[MAX_GCA_INPUTS] ;
+  GCA_MORPH_NODE  *gcamn ;
+
+  if (FZERO(l_likelihood))
+    return(NO_ERROR) ;
+
+  len = (int)nint(2.0f * parms->sigma)+1 ;
+	if (2*len >= MAX_LEN)
+		len = (MAX_LEN-1)/2 ;
+  if (ISEVEN(len))   /* ensure it's odd */
+    len++ ;
+
+	/* precompute Gaussian convolution weights */
+	for (norm = 0.0, x = IND0-len ; x <= IND0+len ; x++)
+	{
+		for (y = IND0-len ; y <= IND0+len ; y++)
+		{
+			for (z = IND0-len ; z <= IND0+len ; z++)
+			{
+				dist = sqrt(SQR(x-IND0)+SQR(y-IND0)+SQR(z-IND0)) ;
+				wts[x][y][z] = exp(-0.5*dist*dist / (parms->sigma*parms->sigma)) ;
+				norm += wts[x][y][z] ;
+			}
+		}
+	}
+	
+	for (x = IND0-len ; x <= IND0+len ; x++)
+	{
+		for (y = IND0-len ; y <= IND0+len ; y++)
+		{
+			for (z = IND0-len ; z <= IND0+len ; z++)
+			{
+				wts[x][y][z] /= norm ;
+			}
+		}
+	}
+
+  for (x = 0 ; x < gcam->width ; x++)
+    for (y = 0 ; y < gcam->height ; y++)
+      for (z = 0 ; z < gcam->depth ; z++)
+      {
+        if (x == Gx && y == Gy && z == Gz)
+          DiagBreak() ;
+        gcamn = &gcam->nodes[x][y][z] ;
+				if (fabs(gcamn->x-Gvx)<1 && fabs(gcamn->y-Gvy)<1  && fabs(gcamn->z-Gvz)<1)
+					DiagBreak() ;
+				if (gcamn->status & GCAM_IGNORE_LIKELIHOOD || (gcamn->gc == NULL))
+					continue ;
+
+				len++ ;   /* include enough so we can do convolution at +-1 for derivative calculation */
+				for (xk = -len ; xk <= len ; xk++)
+				{
+					xi = xk+IND0 ;
+					for (yk = -len ; yk <= len ; yk++)
+					{
+						yi = yk+IND0 ;
+						for (zk = -len ; zk <= len ; zk++)
+						{
+							zi = zk+IND0 ;
+							load_vals(mri, gcamn->x+xk, gcamn->y+yk, gcamn->z+zk, vals, gcam->gca->ninputs) ;
+							p_I_given_c[xi][yi][zi] = 
+								GCAcomputeConditionalDensity(gcamn->gc, vals, gcam->gca->ninputs,gcamn->label) ;
+						}
+					}
+				}
+				len-- ;
+
+				/* now do gaussian convolution */
+				xp1 = xm1 = yp1 = ym1 = zp1 = zm1 = 0 ;
+				for (xk = -len ; xk <= len ; xk++)
+				{
+					xi = xk+IND0 ;
+					for (yk = -len ; yk <= len ; yk++)
+					{
+						yi = yk+IND0 ;
+						for (zp1 = 0, zk = -len ; zk <= len ; zk++)
+						{
+							zi = zk+IND0 ;
+							xp1 += wts[xi][yi][zi]*p_I_given_c[xi+1][yi][zi] ;
+							xm1 += wts[xi][yi][zi]*p_I_given_c[xi-1][yi][zi] ;
+							yp1 += wts[xi][yi][zi]*p_I_given_c[xi][yi+1][zi] ;
+							ym1 += wts[xi][yi][zi]*p_I_given_c[xi][yi-1][zi] ;
+							zp1 += wts[xi][yi][zi]*p_I_given_c[xi][yi][zi+1] ;
+							zm1 += wts[xi][yi][zi]*p_I_given_c[xi][yi][zi-1] ;
+						}
+					}
+				}
+
+				dx = (xp1 - xm1)/2 ;
+				dy = (yp1 - ym1)/2 ;
+				dz = (zp1 - zm1)/2 ;
+        gcamn->dx += l_likelihood*dx ;
+        gcamn->dy += l_likelihood*dy ;
+        gcamn->dz += l_likelihood*dz ;
+        if (x == Gx && y == Gy && z == Gz)
+          printf("l_like: node(%d,%d,%d): dp=(%2.2f,%2.2f,%2.2f)"
+                 "node %2.2f+-%2.2f, MRI=%2.1f\n",
+                 x, y, z, gcamn->dx, gcamn->dy, gcamn->dz,
+                 gcamn->gc ? gcamn->gc->means[0] : 0.0, 
+								 gcamn->gc ? sqrt(covariance_determinant(gcamn->gc, gcam->gca->ninputs)) : 0.0, vals[0]) ;
+      }
+
+  return(NO_ERROR) ;
+}
+
 static float last_sse[128][128][128];
 
 static double
-gcamLikelihoodEnergy(GCA_MORPH *gcam, MRI *mri)
+gcamLogLikelihoodEnergy(GCA_MORPH *gcam, MRI *mri)
 {
   double          sse = 0.0, error ;
   int             x, y, z, max_x, max_y, max_z ;
@@ -1497,8 +1633,8 @@ log_integration_parms(FILE *fp, GCA_MORPH_PARMS *parms)
 	  fprintf(fp,"l_label=%2.2f ", parms->l_label) ;
 	if (!FZERO(parms->l_distance))
 	  fprintf(fp,"l_dist=%2.2f ", parms->l_distance) ;
-	if (!FZERO(parms->l_likelihood))
-	  fprintf(fp,"l_likelihood=%2.2f ", parms->l_likelihood) ;
+	if (!FZERO(parms->l_log_likelihood))
+	  fprintf(fp,"l_likelihood=%2.2f ", parms->l_log_likelihood) ;
 	if (!FZERO(parms->l_smoothness))
 	  fprintf(fp,"l_smoothness=%2.2f ", parms->l_smoothness) ;
 	if (!FZERO(parms->l_area))
@@ -1683,6 +1819,16 @@ GCAMregisterLevel(GCA_MORPH *gcam, MRI *mri, MRI *mri_smooth, GCA_MORPH_PARMS *p
 				printf("pct change decreased\n") ;
 			increasing = 0 ;
 		}
+		if (pct_change < 0)
+		{
+			printf("rms increased - undoing step...\n") ;
+			done = 1 ;
+			increasing = 0 ;
+			gcamUndoGradient(gcam) ;
+			gcamComputeMetricProperties(gcam) ;
+			rms = gcamComputeRMS(gcam, mri, parms) ;
+		}
+
     if (parms->log_fp)
     {
       fprintf(parms->log_fp, "%03d: dt=%2.3f, rms=%2.3f (%2.3f%%), neg=%d\n",
@@ -1694,12 +1840,6 @@ GCAMregisterLevel(GCA_MORPH *gcam, MRI *mri, MRI *mri_smooth, GCA_MORPH_PARMS *p
       printf("%03d: dt=%2.3f, rms=%2.3f (%2.3f%%), neg=%d\n",
              n+1, min_dt, rms, pct_change, gcam->neg) ;
 
-
-		if (pct_change < 0)
-		{
-			done = 1 ;
-			increasing = 0 ;
-		}
 
     if (pct_change < tol && !increasing)
     {
@@ -1937,8 +2077,8 @@ gcamComputeSSE(GCA_MORPH *gcam, MRI *mri, GCA_MORPH_PARMS *parms)
   label_sse = map_sse = a_sse = sse = l_sse = s_sse = j_sse = d_sse = 0.0;
 
   gcamComputeMetricProperties(gcam) ;
-	if (!FZERO(parms->l_likelihood))
-		l_sse = parms->l_likelihood * gcamLikelihoodEnergy(gcam, mri) ;
+	if (!FZERO(parms->l_log_likelihood) || !FZERO(parms->l_likelihood))
+		l_sse = MAX(parms->l_log_likelihood, parms->l_likelihood) * gcamLogLikelihoodEnergy(gcam, mri) ;
 	if (!FZERO(parms->l_label))
 		label_sse = parms->l_label * gcamLabelEnergy(gcam, mri, parms->label_dist) ;
 	if (!FZERO(parms->l_map))
@@ -1956,7 +2096,7 @@ gcamComputeSSE(GCA_MORPH *gcam, MRI *mri, GCA_MORPH_PARMS *parms)
 	{
 		if (!FZERO(parms->l_map))
 			printf("map_sse = %2.2f ", map_sse/nvox) ;
-		if (!FZERO(parms->l_likelihood))
+		if (!FZERO(parms->l_log_likelihood))
 			printf("l_sse = %2.2f ", l_sse/nvox) ;
 		if (!FZERO(parms->l_distance))
 			printf("d_sse = %2.2f ", d_sse/nvox) ;
@@ -1975,15 +2115,46 @@ gcamComputeSSE(GCA_MORPH *gcam, MRI *mri, GCA_MORPH_PARMS *parms)
 static int
 gcamComputeGradient(GCA_MORPH *gcam, MRI *mri, MRI *mri_smooth, GCA_MORPH_PARMS *parms)
 {
+	static int i = 0 ;
+
 	gcamClearGradient(gcam) ;
 	gcamComputeMetricProperties(gcam) ;
   gcamMapTerm(gcam, mri, mri_smooth, parms->l_map)  ;
   gcamLabelTerm(gcam, mri, parms->l_label, parms->label_dist)  ;
-  gcamLikelihoodTerm(gcam, mri, mri_smooth, parms->l_likelihood)  ;
+  gcamLikelihoodTerm(gcam, mri, mri_smooth, parms->l_likelihood, parms)  ;
+  gcamLogLikelihoodTerm(gcam, mri, mri_smooth, parms->l_log_likelihood)  ;
   gcamDistanceTerm(gcam, mri, parms->l_distance)  ;
   gcamAreaTerm(gcam, mri, parms->l_area)  ;
   gcamSmoothnessTerm(gcam, mri, parms->l_smoothness)  ;
+	if (parms->write_iterations > 0 && (Gdiag & DIAG_WRITE) && getenv("GCAM_YGRAD") != NULL)
+	{
+		char fname[STRLEN] ;
+		MRI *mri_grad, *mri_tmp ;
+
+		mri_tmp = gcamWriteMRI(gcam, NULL, GCAM_Y_GRAD) ;
+		mri_grad = MRIupsample2(mri_tmp, NULL) ;
+		MRIfree(&mri_tmp) ;
+		sprintf(fname, "%s_ygrad_before_%3.3d.mgh", parms->base_name, i) ;
+		printf("writing smoothed y gradient to %s...\n", fname) ;
+		MRIwrite(mri_grad, fname) ;
+		MRIfree(&mri_grad) ;
+
+	}
   gcamSmoothGradient(gcam, parms->navgs) ;
+	if (parms->write_iterations > 0 && (Gdiag & DIAG_WRITE) && getenv("GCAM_YGRAD") != NULL)
+	{
+		char fname[STRLEN] ;
+		MRI *mri_grad, *mri_tmp ;
+
+		mri_tmp = gcamWriteMRI(gcam, NULL, GCAM_Y_GRAD) ;
+		mri_grad = MRIupsample2(mri_tmp, NULL) ;
+		MRIfree(&mri_tmp) ;
+		sprintf(fname, "%s_ygrad_after_%3.3d.mgh", parms->base_name, i++) ;
+		printf("writing smoothed y gradient to %s...\n", fname) ;
+		MRIwrite(mri_grad, fname) ;
+		MRIfree(&mri_grad) ;
+
+	}
   gcamJacobianTerm(gcam, mri, parms->l_jacobian,parms->ratio_thresh)  ;
 
   gcamLimitGradientMagnitude(gcam, parms, mri) ;
@@ -2286,6 +2457,7 @@ GCAMcomputeLabels(MRI *mri, GCA_MORPH *gcam)
         label = 
           GCAcomputeMAPlabelAtLocation(gcam->gca, x,y,z,vals,&n,&gcamn->log_p);
         gcap = &gcam->gca->priors[x][y][z] ;
+
         if (n >= 0)
         {
           if (label != gcamn->label)
@@ -2593,10 +2765,6 @@ gcamUndoGradient(GCA_MORPH *gcam)
   return(NO_ERROR) ;
 }
 
-#define GCAM_X_GRAD 0
-#define GCAM_Y_GRAD 1
-#define GCAM_Z_GRAD 2
-
 static int
 gcamReadMRI(GCA_MORPH *gcam, MRI *mri, int which)
 {
@@ -2732,7 +2900,7 @@ gcamSmoothGradient(GCA_MORPH *gcam, int navgs)
 							{
 								zi = z+zk ; if (zi < 0) zi = 0 ; if (zi >= gcam->depth) zi = gcam->depth-1 ;
 								gcamn_nbr = &gcam->nodes[xi][yi][zi] ;
-#if 0
+#if 1
 								if (gcamn_nbr->label != gcamn->label)
 									continue ;
 #endif
@@ -3051,6 +3219,11 @@ gcamLabelTerm(GCA_MORPH *gcam, MRI *mri, double l_label, double label_dist)
 				gcamn->status = GCAM_USE_LIKELIHOOD ;
         if (x == Gx && y == Gy && z == Gz)
           DiagBreak() ;
+        if (x == Gx && y == (Gy-1) && z == Gz)
+          DiagBreak() ;
+        if (x == Gx && y == (Gy+1) && z == Gz)
+          DiagBreak() ;
+
 				if ((y == gcam->height-1) || (y == 0))
 					continue ;
 				if ((fabs(gcamn->x-Gvx)<=gcam->spacing) &&
@@ -3094,11 +3267,11 @@ gcamLabelTerm(GCA_MORPH *gcam, MRI *mri, double l_label, double label_dist)
 				dy = 0 ; 
 				min_wm_dist = IS_WM(gcamn->label) ? -.5 : -.5 ;
 				max_dist = 0 ; max_log_p = -1e20;
-				for (yk = min_wm_dist ; yk <= label_dist ; yk += 0.1)
+				for (yk = -label_dist ; yk <= label_dist ; yk += 0.1)
 				{
 					yi = gcamn->y-yk ;   /* sample superiorly */
 					yi = gcamn->y+yk ;   /* sample inferiorly */
-					if (yi >= mri->height)
+					if ((yi >= (mri->height-1)) || (yi <= 0))
 						break ;
 #if 0
 					gcamn_sup = &gcam->nodes[x][y-nint((float)yk/gcam->spacing)][z] ;
@@ -3125,25 +3298,25 @@ gcamLabelTerm(GCA_MORPH *gcam, MRI *mri, double l_label, double label_dist)
 				if (!FZERO(max_dist))
 				{	
 					gcamn->status = (GCAM_IGNORE_LIKELIHOOD | GCAM_LABEL_NODE) ; 
-					if (max_dist >= 1) 
+					if (fabs(max_dist) >= 1) 
 						num++ ; 
 					if (IS_WM(gcamn_inf->label) && ((gcamn_inf->status & GCAM_LABEL_NODE)==0))
 					{
 						gcamn_inf->status = (GCAM_IGNORE_LIKELIHOOD & GCAM_LABEL_NODE) ;
 						gcamn_inf->dy += (l_label)*dy ;
-						if (max_dist >= 1) 
+						if (fabs(max_dist) >= 1) 
 							num++ ;
 						if (x == Gx && (y+1) == Gy && z == Gz)
-							printf("l_label: node(%d,%d,%d): dy = %2.2f\n", x, y+1, z, gcamn->dy)  ;
+							printf("l_label: node(%d,%d,%d): dy = %2.2f\n", x, y+1, z, gcamn_inf->dy)  ;
 					}
 					if (IS_HIPPO(gcamn_sup->label) && ((gcamn_sup->status & GCAM_LABEL_NODE)==0))
 					{
 						gcamn_sup->status = (GCAM_IGNORE_LIKELIHOOD & GCAM_LABEL_NODE) ;
 						gcamn_sup->dy += (l_label)*dy ;
-						if (max_dist >= 1) 
+						if (fabs(max_dist) >= 1) 
 							num++ ;
 						if (x == Gx && (y-1) == Gy && z == Gz)
-							printf("l_label: node(%d,%d,%d): dy = %2.2f\n", x, y-1, z, gcamn->dy)  ;
+							printf("l_label: node(%d,%d,%d): dy = %2.2f\n", x, y-1, z, gcamn_sup->dy)  ;
 					}
 				}
         gcamn->dy += (l_label)*dy ;
@@ -3151,6 +3324,7 @@ gcamLabelTerm(GCA_MORPH *gcam, MRI *mri, double l_label, double label_dist)
           printf("l_label: node(%d,%d,%d): dy = %2.2f\n", x, y, z, gcamn->dy)  ;
 			}
 
+#if 0
   for (x = 0 ; x < gcam->width ; x++)
     for (y = 0 ; y < gcam->height ; y++)
       for (z = 0 ; z < gcam->depth ; z++)
@@ -3174,6 +3348,7 @@ gcamLabelTerm(GCA_MORPH *gcam, MRI *mri, double l_label, double label_dist)
 					continue ;
 				gcamn_sup = &gcam->nodes[x][y-1][z] ;
 			}
+#endif
 
 
 	if (Gdiag & DIAG_SHOW)
@@ -3427,7 +3602,7 @@ gcamRemoveNegativeNodes(GCA_MORPH *gcam, MRI *mri, GCA_MORPH_PARMS *parms)
 		return(NO_ERROR) ;
 
 	parms->noneg = 0 ;
-	parms->l_distance = parms->l_likelihood = parms->l_area = parms->l_smoothness = parms->l_label = 0.0 ;
+	parms->l_distance = parms->l_log_likelihood = parms->l_area = parms->l_smoothness = parms->l_label = 0.0 ;
 	parms->navgs = 0 ; parms->l_area = 0.0 ; 
 	parms->l_jacobian = 1 ; parms->dt = 0.1 ;
 

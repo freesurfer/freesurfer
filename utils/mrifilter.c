@@ -977,6 +977,12 @@ MRIxSobel(MRI *mri_src, MRI *mri_x, int frame)
     MRIcopyHeader(mri_src, mri_x) ;
   }
 
+	if (mri_src->type != MRI_UCHAR || mri_x->type != MRI_FLOAT)
+		ErrorReturn(NULL, 
+								(ERROR_UNSUPPORTED, "MRIxSobel: unsupported src or dst type (%d or %d)",
+								 mri_src->type, mri_x->type)) ;
+
+
 /* applying sobel in x-y plane, don't worry about boundary conditions in z  */
   /* don't apply sobel to outer ring to pixels to avoid border effects */
   width-- ; height-- ; 
@@ -1029,6 +1035,10 @@ MRIySobel(MRI *mri_src, MRI *mri_y, int frame)
     MRIcopyHeader(mri_src, mri_y) ;
   }
 
+	if (mri_src->type != MRI_UCHAR || mri_y->type != MRI_FLOAT)
+		ErrorReturn(NULL, 
+								(ERROR_UNSUPPORTED, "MRIySobel: unsupported src or dst type (%d or %d)",
+								 mri_src->type, mri_y->type)) ;
 /* applying sobel in x-y plane, don't worry about boundary conditions in z  */
   /* don't apply sobel to outer ring of pixels to avoid border effects */
   width-- ; height-- ; 
@@ -1079,6 +1089,11 @@ MRIzSobel(MRI *mri_src, MRI *mri_z, int frame)
     mri_z = MRIalloc(width, height, depth, MRI_FLOAT) ;
     MRIcopyHeader(mri_src, mri_z) ;
   }
+
+	if (mri_src->type != MRI_UCHAR || mri_z->type != MRI_FLOAT)
+		ErrorReturn(NULL, 
+								(ERROR_UNSUPPORTED, "MRIzSobel: unsupported src or dst type (%d or %d)",
+								 mri_src->type, mri_z->type)) ;
 
 /* applying sobel in x-z plane, don't worry about boundary conditions in y  */
   /* don't apply sobel to outer ring of pixels to avoid border effects */

@@ -71,7 +71,7 @@ HISTOrealloc(HISTOGRAM *histo, int nbins)
   histo->bins = (float *)calloc(nbins, sizeof(float)) ;
   histo->counts = (float *)calloc(nbins, sizeof(float)) ;
   if (!histo->counts || !histo->bins)
-    ErrorExit(ERROR_NOMEMORY, "HISTOalloc(%d): could not allocate histogram",nbins) ;
+    ErrorExit(ERROR_NOMEMORY, "HISTOrealloc(%d): could not allocate histogram",nbins) ;
   histo->nbins = nbins ;
   return(histo) ;
 }
@@ -1088,5 +1088,70 @@ HISTOfindEndOfPeak(HISTOGRAM *h, int b0, float pct_peak)
       return(b) ;
   }
   return(b) ;
+}
+
+int
+HISTOfindCurrentPeak(HISTOGRAM *histo, int b0, int wsize)
+{
+  int  b, whalf, bw, peak, nbins = histo->nbins ;
+	float next_count, prev_count, other_val, center_val ;
+
+  whalf = (wsize-1)/2 ;
+	for (next_count = prev_count = 0, bw = b0-whalf ; bw <= b0+whalf ; bw++)
+	{
+		if (bw < 0)
+			continue ;
+		if (bw >= nbins)
+			continue ;
+		if (bw < b0)
+			prev_count += histo->counts[bw] ;
+		else if (bw > b0)
+			next_count += histo->counts[bw] ;
+	}
+
+	if (next_count > prev_count)  /* search forwards */
+	{
+		for (b = b0+1 ; b < histo->nbins ; b++)
+		{
+			center_val = histo->counts[b] ;
+			peak = 1 ;
+			for (bw = b-whalf ; bw <= b+whalf ; bw++)
+			{
+				if (bw < 0 || bw >= nbins)
+					continue ;
+				other_val = histo->counts[bw] ;
+				if (other_val > center_val)
+				{
+					peak = 0 ;
+					break ;
+				}
+			}
+			if (peak)
+				return(b) ;
+		}
+	}
+	else   /* search backwards */
+	{
+		for (b = b0-1 ; b >= 0 ; b--)
+		{
+			center_val = histo->counts[b] ;
+			peak = 1 ;
+			for (bw = b-whalf ; bw <= b+whalf ; bw++)
+			{
+				if (bw < 0 || bw >= nbins)
+					continue ;
+				other_val = histo->counts[bw] ;
+				if (other_val > center_val)
+				{
+					peak = 0 ;
+					break ;
+				}
+			}
+			if (peak)
+				return(b) ;
+		}
+	}
+
+  return(-1) ;
 }
 
