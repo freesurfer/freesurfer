@@ -5,7 +5,7 @@
 # editing.
 #
 # mkfsdist
-# $Id: mkfsdist,v 1.13 2003/03/24 21:12:38 kteich Exp $
+# $Id: mkfsdist,v 1.14 2003/04/21 18:57:50 kteich Exp $
 #
 # Usage: mkfsdist targetdir
 #
@@ -54,7 +54,7 @@
 #  files found in tar-exclude-more and tar-exclude-gca.
 #
 # 
-set VERSION = '$Id: mkfsdist,v 1.13 2003/03/24 21:12:38 kteich Exp $';
+set VERSION = '$Id: mkfsdist,v 1.14 2003/04/21 18:57:50 kteich Exp $';
 
 # To include the autoseg in the distribution set environment varible
 # KEEPAUTOSEG to 1 before running mkfsdist (ie, setenv KEEPAUTOSEG 1)
@@ -135,6 +135,14 @@ foreach option ($argv)
       breaksw
     case "--no-bert-func":
       set BERT_FUNC = 0
+      breaksw
+    case "--no-data":
+      set AVERAGE = 0
+      set MINC = 0
+      set TALAIRACH = 0
+      set BERT_FUNC = 0
+      set BERT_RAW = 0
+      set BERT_RECON = 0
       breaksw
   endsw
 end
