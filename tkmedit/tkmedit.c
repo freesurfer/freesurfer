@@ -3,10 +3,10 @@
   ===========================================================================*/
 
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2003/03/17 22:52:11 $
-// Revision       : $Revision: 1.134 $
-char *VERSION = "$Revision: 1.134 $";
+// Revision Author: $Author: kteich $
+// Revision Date  : $Date: 2003/03/18 17:16:37 $
+// Revision       : $Revision: 1.135 $
+char *VERSION = "$Revision: 1.135 $";
 
 #define TCL
 #define TKMEDIT 
@@ -2629,10 +2629,13 @@ tkm_tErr LoadSurface ( tkm_tSurfaceType iType,
   DebugAssertThrowX( (NULL != conformMatrix),
 		     eResult, tkm_tErr_CouldntAllocate );
 
-  fprintf(stderr,"conform:\n");
+#if 0
+  fprintf(stderr,"conform (from MRIgetConformMatrix), will be BtoRAS:\n");
   MatrixPrint(stderr,conformMatrix);
+#endif
 
-  DebugNote( ("Cloning gIdxToRASTransform to surfaceTransform") );
+
+  DebugNote( ("Cloning gIdxToRASTransform to get surfaceTransform") );
   eTrns = Trns_DeepClone( gIdxToRASTransform, &surfaceTransform );
   DebugAssertThrowX( (Trns_tErr_NoErr == eTrns),
 		     eResult, tkm_tErr_CouldntAllocate );
@@ -2653,11 +2656,17 @@ tkm_tErr LoadSurface ( tkm_tSurfaceType iType,
   // eTrns = Trns_CopyBtoRAS( surfaceTransform, conformMatrix );
   // DebugAssertThrowX( (Trns_tErr_NoErr == eTrns),eResult, tkm_tErr_CouldntAllocate );
 
+#if 0
+  fprintf(stderr,"composed a to b:\n");
+  MatrixPrint(stderr,surfaceTransform->mAtoB);
+#endif
+
   /* create the surface */
   DebugNote( ("Creating surface") );
   eSurface = Surf_New( &gSurface[iType], sName, surfaceTransform);
   DebugAssertThrowX( (Surf_tErr_NoErr == eSurface),
          eResult, tkm_tErr_CouldntLoadSurface );
+#if 0
   printf("Surf_New gIdxToRASTransform================================\n");
   printf("AtoRAS\n");
   MatrixPrint(stdout, gIdxToRASTransform->mAtoRAS);
@@ -2675,7 +2684,8 @@ tkm_tErr LoadSurface ( tkm_tSurfaceType iType,
   MatrixPrint(stdout, gIdxToRASTransform->mAtoB);
   printf("BToA\n");
   MatrixPrint(stdout, gIdxToRASTransform->mBtoA);
-  
+#endif
+ 
   /* see if it was loaded */
   DebugNote( ("Loading main vertex set") );
   eSurface = Surf_IsVertexSetLoaded( gSurface[iType], Surf_tVertexSet_Main, 
