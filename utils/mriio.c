@@ -429,10 +429,10 @@ static MRI *mri_read(char *fname, int type, int volume_flag, int start_frame, in
   {
     mri = siemensRead(fname_copy, volume_flag);
   }
-	else if (type == MRI_GCA_FILE)
-	{
-		mri = readGCA(fname_copy) ;
-	}
+  else if (type == MRI_GCA_FILE)
+  {
+    mri = readGCA(fname_copy) ;
+  }
   else if(type == BSHORT_FILE)
   {
     //mri = bshortRead(fname_copy, volume_flag);
@@ -2384,26 +2384,26 @@ static int mincWrite2(MRI *mri, char *fname)
   }
 
   GetMINCInfo(mri, dim_names, dim_sizes, separations, dircos,  
-        VolCenterVox,VolCenterWorld);
+	      VolCenterVox,VolCenterWorld);
 
   if(mri->nframes > 1) ndim = 4;
   else                 ndim = 3;
 
   minc_volume = create_volume(ndim, dim_names, nc_data_type, 
-            signed_flag, min, max);
+			      signed_flag, min, max);
   set_volume_sizes(minc_volume, dim_sizes);
   alloc_volume_data(minc_volume);
 
   for(i=0;i<3;i++){
     printf("%d %s %4d %7.3f  %7.3f %7.3f %7.3f \n",
-     i,dim_names[i],dim_sizes[i],separations[i],
-     dircos[i][0],dircos[i][1],dircos[i][2]);
+	   i,dim_names[i],dim_sizes[i],separations[i],
+	   dircos[i][0],dircos[i][1],dircos[i][2]);
     set_volume_direction_cosine(minc_volume, i, dircos[i]);
   }
   printf("Center Voxel: %7.3f %7.3f %7.3f\n",
-   VolCenterVox[0],VolCenterVox[1],VolCenterVox[2]);
+	 VolCenterVox[0],VolCenterVox[1],VolCenterVox[2]);
   printf("Center World: %7.3f %7.3f %7.3f\n",
-   VolCenterWorld[0],VolCenterWorld[1],VolCenterWorld[2]);
+	 VolCenterWorld[0],VolCenterWorld[1],VolCenterWorld[2]);
 
   set_volume_separations(minc_volume, separations);
   set_volume_translation(minc_volume, VolCenterVox, VolCenterWorld);
@@ -2427,14 +2427,14 @@ static int mincWrite2(MRI *mri, char *fname)
       for(r = 0; r < mri->height;  r++) {     /* rows */
         for(s = 0; s < mri->depth;   s++) {     /* slices */
 
-    switch(mri->type){
+	  switch(mri->type){
           case MRI_UCHAR: VoxVal = (Real)MRIseq_vox(mri,  c, r, s, f);break;
           case MRI_SHORT: VoxVal = (Real)MRISseq_vox(mri, c, r, s, f);break;
           case MRI_INT:   VoxVal = (Real)MRIIseq_vox(mri, c, r, s, f);break;
           case MRI_LONG:  VoxVal = (Real)MRILseq_vox(mri, c, r, s, f);break;
           case MRI_FLOAT: VoxVal = (Real)MRIFseq_vox(mri, c, r, s, f);break;
-    }
-    set_volume_voxel_value(minc_volume, c, r, s, f, 0, VoxVal);
+	  }
+	  set_volume_voxel_value(minc_volume, c, r, s, f, 0, VoxVal);
         }
       }
     }
@@ -2442,7 +2442,7 @@ static int mincWrite2(MRI *mri, char *fname)
 
   printf("Writing Volume\n");
   status = output_volume((STRING)fname, nc_data_type, signed_flag, min, max, 
-       minc_volume, (STRING)"", NULL);
+			 minc_volume, (STRING)"", NULL);
   printf("Cleaning Up\n");
   delete_volume(minc_volume);
 
@@ -3583,7 +3583,7 @@ static MRI *bvolumeRead(char *fname_passed, int read_volume, int type)
       ErrorReturn(NULL, (ERROR_BADFILE, 
        "bvolumeRead(): error opening file %s", fname));
     }
-
+    fprintf(stderr, "Reading %s ... \n", fname);
     /* Loop through the frames */
     for(frame = 0; frame < mri->nframes; frame ++){
       k = slice + mri->depth*frame; 
@@ -10255,14 +10255,14 @@ static void nflip(unsigned char *buf, int b, int n)
 static MRI *
 readGCA(char *fname)
 {
-	GCA *gca ;
-	MRI *mri ;
-
-	gca = GCAread(fname) ;
-	if (!gca)
-		return(NULL) ;
-	mri = GCAbuildMostLikelyVolume(gca, NULL) ;
-	GCAfree(&gca) ;
-	return(mri) ;
+  GCA *gca ;
+  MRI *mri ;
+  
+  gca = GCAread(fname) ;
+  if (!gca)
+    return(NULL) ;
+  mri = GCAbuildMostLikelyVolume(gca, NULL) ;
+  GCAfree(&gca) ;
+  return(mri) ;
 }
 
