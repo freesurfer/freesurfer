@@ -48,7 +48,8 @@ typedef enum {
   tkm_tErr_CouldntLoadSurfaceVertexSet,
   tkm_tErr_CouldntLoadColorTable,
   tkm_tErr_CouldntLoadHeadPointsList,
-  tkm_tErr_CouldntLoadParcellation,
+  tkm_tErr_CouldntLoadSegmentation,
+  tkm_tErr_CouldntLoadTensor,
   tkm_tErr_CouldntLoadOverlay,
   tkm_tErr_CouldntLoadTimeCourse,
   tkm_tErr_CouldntLoadTransform,
@@ -56,14 +57,14 @@ typedef enum {
   tkm_tErr_CouldntLoadVLI,
   tkm_tErr_ErrorAccessingFile,
   tkm_tErr_ErrorAccessingVolume,
-  tkm_tErr_ErrorAccessingROIGroup,
+  tkm_tErr_ErrorAccessingSegmentationVolume,
   tkm_tErr_ErrorAccessingFunctionalVolume,
   tkm_tErr_ErrorAccessingList,
   tkm_tErr_CouldntWriteFile,
   tkm_tErr_CouldntAllocate,
   tkm_tErr_SurfaceNotLoaded,
   tkm_tErr_OverlayNotLoaded,
-  tkm_tErr_ROIGroupNotLoaded,
+  tkm_tErr_SegmentationNotLoaded,
   tkm_tErr_CouldntCacheScriptName,
   tkm_tErr_InvalidScriptName,
   tkm_tErr_GetTimeOfDayFailed,
@@ -130,8 +131,9 @@ typedef enum {
   tkm_tTclCommand_ShowHeadPointLabelEditingOptions,
   tkm_tTclCommand_ShowROIGroupOptions,
   tkm_tTclCommand_ShowVLIOptions,
+  tkm_tTclCommand_ShowGCAOptions,
   tkm_tTclCommand_ShowOverlayRegistrationOptions,
-  tkm_tTclCommand_ShowParcellationOptions,
+  tkm_tTclCommand_ShowSegmentationOptions,
   tkm_tTclCommand_ClearParcColorTable,
   tkm_tTclCommand_AddParcColorTableEntry,
 
@@ -193,7 +195,7 @@ void tkm_GetValueAtAnaIdx ( tkm_tVolumeType iVolume,
           xVoxelRef       iAnaIdx,
           tVolumeValue*   oValue );
 void tkm_GetAnaDimension  ( tkm_tVolumeType iVolume,
-          int*            onDimension );
+          int*            onDimensionX, int*  onDimensionY, int* onDimensionZ );
 tBoolean tkm_IsValidAnaIdx ( tkm_tVolumeType iVolume,
            xVoxelRef       iAnaIdx );
 
@@ -215,9 +217,9 @@ void tkm_CalcROIVolume ( xVoxelRef iAnaIdx,
        int*      onVolume );
 
 /* editing the parcellation */
-void tkm_EditParcellation      ( xVoxelRef       iAnaIdx,
+void tkm_EditSegmentation      ( xVoxelRef       iAnaIdx,
          int             inIndex );
-void tkm_FloodFillParcellation ( xVoxelRef       iAnaIdx,
+void tkm_FloodFillSegmentation ( xVoxelRef       iAnaIdx,
          int             inIndex,
          tBoolean        ib3D,
          tkm_tVolumeType iSrc,
