@@ -3,9 +3,9 @@
 // written by Bruce Fischl
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2004/11/04 16:01:33 $
-// Revision       : $Revision: 1.305 $
+// Revision Author: $Author: greve $
+// Revision Date  : $Date: 2004/11/12 22:08:52 $
+// Revision       : $Revision: 1.306 $
 //////////////////////////////////////////////////////////////////
 #include <stdio.h>
 #include <string.h>
@@ -5909,7 +5909,9 @@ mrisOrientPlane(MRI_SURFACE *mris)
       face = &mris->faces[v->f[fno]] ;
       v->area += face->area ;
     }
-    v->area /= 2 ;
+    // DNG Changed from /=2 to /=3. 
+    // See also MRIScomputeTriangleProperties()
+    v->area /= 3.0; 
   }
 
   return(NO_ERROR) ;
@@ -6375,7 +6377,8 @@ MRIScomputeTriangleProperties(MRI_SURFACE *mris)
 			if (face->ripflag == 0)
 				v->area += face->area ;
 		}
-    v->area /= 2.0 ;
+    // DNG Changed from /=2 to /=3. 
+    v->area /= 3.0 ;
   }
 
   VectorFree(&v_a) ;
