@@ -1049,6 +1049,7 @@ void Surf_ConvertVertexToVoxel ( vertex_type*    iVertex,
 		      iVertex->cz );
 
     /* transform voxel */
+    //    Trns_ConvertBtoA(iTransform, &sTmpVertex, oVoxel);
     Trns_ConvertBRAStoB(iTransform, &sTmpVertex, oVoxel);
 #if 0
     printf("vertex: (%.2f, %.2f, %.2f), localVox: (%.2f, %.2f, %.2f)\n",
@@ -1064,9 +1065,11 @@ void Surf_ConvertVoxelToSurfaceSpace ( xVoxelRef       iVoxel,
 				       mriTransformRef iTransform,
 				       xVoxelRef       oSurfVox ) {
   
+#if 0
   static MATRIX * BtoRAS = NULL;
   static MATRIX * tmp1   = NULL;
   static MATRIX * tmp2   = NULL;
+#endif
 
   /* if we don't have a transform, just copy vertex into voxel */
   if( NULL == iTransform ) {
@@ -1074,19 +1077,27 @@ void Surf_ConvertVoxelToSurfaceSpace ( xVoxelRef       iVoxel,
   } else {
     
     /* transform voxel */
-    //    Trns_ConvertAtoB( iTransform, iVoxel, oSurfVox );
     /* RKT: In the opposite of this function, CovertVertexToVoxel, we
-    use CovertBRAStoB, so we'll use ConverBtoRAS here. Even though at
-    some point we should probably fix this. */
+       use CovertBRAStoB, so we'll use ConvertBtoRAS here. Even though
+       at some point we should probably fix this. */
+    //    Trns_ConvertAtoB( iTransform, iVoxel, oSurfVox );
     Trns_ConvertBtoRAS( iTransform, iVoxel, oSurfVox );
 
 
+#if 0
     /* RKT: This doesn't work because tkmedit.c messes with the BtoRAS
        of the conversion matrix, so we'll calc it here manually. */
+    /* RKT: Somehow I got it working with needing to calc a new
+       BtoRAS. */
     if( NULL == BtoRAS ) {
       BtoRAS = MatrixInverse( iTransform->mRAStoB, NULL );
       tmp1 = MatrixAlloc( 4, 1, MATRIX_REAL );
       tmp2 = MatrixAlloc( 4, 1, MATRIX_REAL );
+
+      DebugPrint(("iTransform->mBtoRAS\n"));
+      MatrixPrint(stderr,iTransform->mBtoRAS);
+      DebugPrint(("calc'd BtoRAS\n"));
+      MatrixPrint(stderr,BtoRAS);
     }
 
     *MATRIX_RELT(tmp1,1,1) = xVoxl_GetFloatX( iVoxel );
@@ -1099,7 +1110,7 @@ void Surf_ConvertVoxelToSurfaceSpace ( xVoxelRef       iVoxel,
     xVoxl_SetFloat( oSurfVox,
 		    *MATRIX_RELT(tmp2,1,1), 
 		    *MATRIX_RELT(tmp2,2,1), 
-		    *MATRIX_RELT(tmp2,3,1) );
+#endif		    *MATRIX_RELT(tmp2,3,1) );
   }
   
 }

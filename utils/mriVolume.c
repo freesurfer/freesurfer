@@ -423,7 +423,7 @@ Volm_tErr Volm_SetFromMRI_ ( mriVolumeRef this,
   m_resample = MRIgetConformMatrix( iMRI );
   DebugAssertThrowX( (NULL != m_resample), 
                      eResult, Volm_tErr_CouldntNormalizeVolume );
-//#define _VID_DEBUG  
+  //#define _VID_DEBUG  
 #ifdef _VID_DEBUG
   fprintf(stderr, "m_resample = \n");
   MatrixPrint(stderr, m_resample);
@@ -473,87 +473,38 @@ Volm_tErr Volm_SetFromMRI_ ( mriVolumeRef this,
     Trns_Delete( &(this->mIdxToRASTransform) );
   }
   
-  /*E* dangerous to check slice_direction - for .mgh at least this
-    shoule break unless this changes to if(ras_good_flag and not that
-    kind of coronal) else check slice_direction - actually, what is
-    that check for? */
-
-  //  if (iMRI->slice_direction != MRI_CORONAL)
-#define FORCE_USE_EMBEDDED_CRAS
-#ifndef FORCE_USE_EMBEDDED_CRAS
-  if ( 
-      (iMRI->ras_good_flag &&
-       ( iMRI->x_r != -1.0 
-	 || iMRI->x_a != 0.0
-	 || iMRI->x_s != 0.0
-	 || iMRI->y_r != 0.0
-	 || iMRI->y_a != 0.0
-	 || iMRI->y_s != -1.0
-	 || iMRI->z_r != 0.0
-	 || iMRI->z_a != 1.0
-	 || iMRI->z_s != 0.0
-	 // || iMRI->c_r != 0.0
-	 // || iMRI->c_a != 0.0
-	 // || iMRI->c_s != 0.0
-	 )
-       )
-      || (!iMRI->ras_good_flag && iMRI->slice_direction != MRI_CORONAL)
-      )
-    {
-#endif
-      DebugNote( ("Creating idx to ras transform") );
-      Trns_New( &this->mIdxToRASTransform );
-      DebugNote( ("Getting idx to ras matrix") );
-      // we set four matrices
-      // AtoRAS, AtoB, BtoRAS, ARStoBRAS
-      // this is AtoRAS ////////////////////////////////
-      idxToRASTransform = extract_i_to_r( iMRI );
-      // that includes voxelsize
-
+  
+  /* Build the idxToRAS transform. */
+  DebugNote( ("Creating idx to ras transform") );
+  Trns_New( &this->mIdxToRASTransform );
+  
+  /* AtoRAS is extract_i_to_r. This includes the voxel size
+     calculation. */
+  DebugNote( ("Getting idx to ras matrix") );
+  idxToRASTransform = extract_i_to_r( iMRI );
+  DebugAssertThrowX( (NULL != idxToRASTransform),
+		     eResult, Volm_tErr_AllocationFailed );
+  DebugNote( ("Copying idx to ras transform matrix into AtoRAS") );
+  Trns_CopyAtoRAS( this->mIdxToRASTransform, idxToRASTransform );
+  
+  /* ARSToBRAS is identity */
+  DebugNote( ("Copying identity matrix into ARAStoBRAS") );
+  Trns_CopyARAStoBRAS( this->mIdxToRASTransform, identity );
+  
+  /* BtoRAS = AtoRAS * m_resample */
+  /*        = extract_i_to_r * m_resample */
+  DebugNote( ("Copying calc'd matrix into BtoRAS") );
+  BtoRAS = MatrixMultiply(idxToRASTransform, this->m_resample, NULL);
+  Trns_CopyBtoRAS(this->mIdxToRASTransform, BtoRAS);
+  
+  DebugNote( ("Freeing BtoRAS tmp matrix") );
+  MatrixFree(&BtoRAS);
+  
 #if 0
-      fprintf(stderr,"mriVolume: idxToRAS (from extract_i_to_r), will be AtoRAS:\n");
-      MatrixPrint(stderr,idxToRASTransform);
+  DebugPrint( ("mIdxToRASTransform-----\n") );
+  Trns_DebugPrint_( this->mIdxToRASTransform );
 #endif
 
-      DebugAssertThrowX( (NULL != idxToRASTransform),
-                         eResult, Volm_tErr_AllocationFailed );
-      DebugNote( ("Copying idx to ras transform matrix into transform") );
-      Trns_CopyAtoRAS( this->mIdxToRASTransform, idxToRASTransform );
-      DebugNote( ("Copying identity matrix into idx to ras transform") );
-      // ARSToBRAS should be identity
-      Trns_CopyARAStoBRAS( this->mIdxToRASTransform, identity ); /* no display xform */
-      // AtoB is resample_inv
-      Trns_CopyAtoB(this->mIdxToRASTransform, this->m_resample_inv);
-      // BtoRAS is calculated
-      // BtoRAS = AtoRAS*(inv AtoB) = AtoRAS*(this->m_resampe)
-      BtoRAS = MatrixMultiply(idxToRASTransform, this->m_resample, NULL);
-      Trns_CopyBtoRAS(this->mIdxToRASTransform, BtoRAS);
-      MatrixFree(&BtoRAS);
-      // Trns_CopyBtoRAS( this->mIdxToRASTransform, identity );
-
-#ifndef FORCE_USE_EMBEDDED_CRAS
-    }
-  else 
-    {
-      idxToRASTransform = MatrixAlloc( 4, 4, MATRIX_REAL );
-      MatrixClear( idxToRASTransform );
-      *MATRIX_RELT(idxToRASTransform,1,1) = -1.0;
-      *MATRIX_RELT(idxToRASTransform,2,3) = 1.0;
-      *MATRIX_RELT(idxToRASTransform,3,2) = -1.0;
-      *MATRIX_RELT(idxToRASTransform,1,4) = 128;
-      *MATRIX_RELT(idxToRASTransform,2,4) = -128;
-      *MATRIX_RELT(idxToRASTransform,3,4) = 128;
-      *MATRIX_RELT(idxToRASTransform,4,4) = 1.0;
-      
-      DebugNote( ("Creating idx to ras transform") );
-      Trns_New( &this->mIdxToRASTransform );
-      DebugNote( ("Copying idx to ras transform matrix into transform") );
-      Trns_CopyARAStoBRAS( this->mIdxToRASTransform, idxToRASTransform );
-      DebugNote( ("Copying identity matrix into idx to ras transform") );
-      Trns_CopyAtoRAS( this->mIdxToRASTransform, identity );
-      Trns_CopyBtoRAS( this->mIdxToRASTransform, identity );
-    }
-#endif
 
   DebugCatch;
   DebugCatchError( eResult, Volm_tErr_NoErr, Volm_GetErrorString );
@@ -2051,7 +2002,7 @@ Volm_tErr Volm_Threshold ( mriVolumeRef this,
   Volm_tErr   eResult = Volm_tErr_NoErr;
   float        value   = 0;
   xVoxel      idx;
-  
+
   DebugEnterFunction( ("Volm_Threshold( this=%p, iThreshold=%d, ibAbove=%d, "
 		       "iNewValue=%d )", this, (int)iThreshold, (int)ibAbove,
 		       (int)iNewValue) );
@@ -2064,9 +2015,9 @@ Volm_tErr Volm_Threshold ( mriVolumeRef this,
   xVoxl_Set( &idx, 0, 0, 0 );
   DebugNote( ("Thresholding normalized volume") );
   while( xVoxl_IncrementUntilLimits( &idx, this->mnDimensionX-1,
-                                     this->mnDimensionY-1, 
+				     this->mnDimensionY-1, 
 				     this->mnDimensionZ-1) ) {
-    
+
     Volm_GetValueAtIdx_( this, &idx, &value );
     
     /* if we're going above and this value is above the thresh, or if we're

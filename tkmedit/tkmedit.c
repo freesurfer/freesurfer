@@ -4,9 +4,9 @@
 
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2003/05/05 18:16:18 $
-// Revision       : $Revision: 1.143 $
-char *VERSION = "$Revision: 1.143 $";
+// Revision Date  : $Date: 2003/05/06 21:10:08 $
+// Revision       : $Revision: 1.144 $
+char *VERSION = "$Revision: 1.144 $";
 
 #define TCL
 #define TKMEDIT 
@@ -998,7 +998,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
      shorten our argc and argv count. If those are the only args we
      had, exit. */
   /* rkt: check for and handle version tag */
-  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.143 2003/05/05 18:16:18 kteich Exp $");
+  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.144 2003/05/06 21:10:08 kteich Exp $");
   if (nNumProcessedVersionArgs && argc - nNumProcessedVersionArgs == 1)
     exit (0);
   argc -= nNumProcessedVersionArgs;
@@ -2719,24 +2719,58 @@ tkm_tErr LoadSurface ( tkm_tSurfaceType iType,
   DebugAssertThrowX( (Trns_tErr_NoErr == eTrns),
 		     eResult, tkm_tErr_CouldntAllocate );
 
+
   /* RKT: Why was this happening? This makes BtoRAS be _not_ the
-     inverse of RAStoB, which is bad. */
+     inverse of RAStoB, which is bad. It seems necessary to make it
+     work, but this should be fixed some times soon. */
+
   // modify surfaceTransform->mBtoRAS
   *MATRIX_RELT(surfaceTransform->mBtoRAS, 1, 4) = 128;
   *MATRIX_RELT(surfaceTransform->mBtoRAS, 2, 4) = -128;
   *MATRIX_RELT(surfaceTransform->mBtoRAS, 3, 4) = 128;
+
   // modify surfaceTransform->mARAStoBRAS
+#if 0
   tmp1 = MatrixInverse(surfaceTransform->mAtoRAS, NULL);
   tmp2 = MatrixMultiply(surfaceTransform->mAtoB, tmp1, NULL);
-  surfaceTransform->mARAStoBRAS = MatrixMultiply(surfaceTransform->mBtoRAS, tmp2, 
-						 surfaceTransform->mARAStoBRAS);
-  MatrixFree(&tmp1);
-  MatrixFree(&tmp2);
+  surfaceTransform->mARAStoBRAS = 
+    MatrixMultiply(surfaceTransform->mBtoRAS, tmp2,
+		   surfaceTransform->mARAStoBRAS);
 
 #if 0
-  fprintf(stderr,"composed a to b:\n");
+  DebugPrint(("AtoRAS-1\n"));
+  MatrixPrint(stderr,tmp1);
+  DebugPrint(("AtoB\n"));
   MatrixPrint(stderr,surfaceTransform->mAtoB);
+  DebugPrint(("tmp2\n"));
+  MatrixPrint(stderr,tmp2);
+  DebugPrint(("BtoRAS\n"));
+  MatrixPrint(stderr,surfaceTransform->mBtoRAS);
+  DebugPrint(("ARAStoBRAS\n"));
+  MatrixPrint(stderr,surfaceTransform->mARAStoBRAS);
 #endif
+
+  MatrixFree(&tmp1);
+  MatrixFree(&tmp2);
+#endif
+
+  /* RKT: So at this point, AtoRAS is the same as it was in
+     gIdxToRASTransform, which is extract_i_to_r. BtoRAS is almost the
+     same as it was, except the transformation part of the matrix is
+     128, -128, 128. ARAStoBRAS is all weird. BUT, much of this
+     doesn't matter, since in mriSurface, only ConvertBtoRAS and
+     ConvertBRAStoB is called on this transform, so we're only really
+     using BtoRAS and BRAStoB. BRAStoB is still the calculated inverse
+     of the original BtoRAS.
+
+     Note that at this point, surfaceTransform is in an invalid
+     state. Whenever Trns_CopyAtoRAS, Trns_CopyBtoRAS, or
+     Trns_CopyARAStoBRAS are called, mriTransform automatically
+     calculates the inverse and compositions of these matrices (namely
+     ARAStoA, BRAStoB, BRAStoARAS, AtoB, and BtoA). But, since this
+     code modified the member matrices directly, that automatic
+     calculation has never been done. */
+
 
   /* create the surface */
   DebugNote( ("Creating surface") );
@@ -2744,24 +2778,10 @@ tkm_tErr LoadSurface ( tkm_tSurfaceType iType,
   DebugAssertThrowX( (Surf_tErr_NoErr == eSurface),
          eResult, tkm_tErr_CouldntLoadSurface );
 
+
 #if 0
-  printf("Surf_New surfaceTransform================================\n");
-  printf("AtoRAS\n");
-  MatrixPrint(stdout, surfaceTransform->mAtoRAS);
-  printf("BToRAS\n");
-  MatrixPrint(stdout, surfaceTransform->mBtoRAS);
-  printf("ARASToBRAS\n");
-  MatrixPrint(stdout, surfaceTransform->mARAStoBRAS);
-  printf("RASToA\n");
-  MatrixPrint(stdout, surfaceTransform->mRAStoA);
-  printf("RASToB\n");
-  MatrixPrint(stdout, surfaceTransform->mRAStoB);
-  printf("BRASToARAS\n");
-  MatrixPrint(stdout, surfaceTransform->mBRAStoARAS);
-  printf("AToB\n");
-  MatrixPrint(stdout, surfaceTransform->mAtoB);
-  printf("BToA\n");
-  MatrixPrint(stdout, surfaceTransform->mBtoA);
+  printf("LoadSurface surfaceTransform================================\n");
+  Trns_DebugPrint_( surfaceTransform );
 #endif
  
   /* see if it was loaded */
@@ -4259,7 +4279,7 @@ int TclLoadFunctionalOverlay ( ClientData inClientData,
   char sPathAndStem[tkm_knPathLen] = "";
   char sRegistration[tkm_knPathLen] = "";
   
-  if ( argc != 3 && argc != 4 ) {
+  if ( argc != 2 && argc != 3 && argc != 4 ) {
     Tcl_SetResult ( inInterp,
         "wrong # args: LoadFunctionalOverlay directory "
         "stem [registration]",
@@ -4269,13 +4289,19 @@ int TclLoadFunctionalOverlay ( ClientData inClientData,
   
   if( gbAcceptingTclCommands ) {
     
-    /* first concatenate the first two arguments to make a stem and path.
-       then, if we have a third argument, pass it as the registration,
-       else pass null. */
-    xUtil_snprintf( sPathAndStem, sizeof(sPathAndStem),
-        "%s/%s", argv[1], argv[2] );
+    /* if we have a path and a stem, first concatenate the first two
+       arguments to make a stem and path.  then, if we have a third
+       argument, pass it as the registration, else pass null. */
+    if( argc >= 3 && argv[2][0] != '\0' ) {
+      xUtil_snprintf( sPathAndStem, sizeof(sPathAndStem),
+		      "%s/%s", argv[1], argv[2] );
+    } else {
+      /* no path and stem, just use the file name. */
+      xUtil_strncpy( sPathAndStem, argv[1], sizeof(sPathAndStem) );
+    }
+
     if( argc == 4 &&
-  argv[3][0] != '\0' ) {
+	argv[3][0] != '\0' ) {
       xUtil_strncpy( sRegistration, argv[3], sizeof(sRegistration) );
       LoadFunctionalOverlay( sPathAndStem, NULL, sRegistration );
     } else {

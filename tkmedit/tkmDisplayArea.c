@@ -3,8 +3,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2003/05/05 16:41:36 $
-// Revision       : $Revision: 1.65 $
+// Revision Date  : $Date: 2003/05/06 21:10:08 $
+// Revision       : $Revision: 1.66 $
 
 #include "tkmDisplayArea.h"
 #include "tkmMeditWindow.h"
@@ -3285,6 +3285,16 @@ DspA_tErr DspA_HandleKeyDown_ ( tkmDisplayAreaRef this,
     case 'z':
       tkm_RestoreUndoList();
       break;
+    case '+':
+      if( this->mnZoomLevel < DspA_knMaxZoomLevel ) {
+	eResult = DspA_SetZoomLevel( this, this->mnZoomLevel * 2 );
+      }
+      break;
+    case '-':
+      if( this->mnZoomLevel > 1 ) {
+	eResult = DspA_SetZoomLevel( this, this->mnZoomLevel / 2 );
+      }
+      break;
     }
   }
 
@@ -3393,6 +3403,12 @@ DspA_tErr DspA_HandleKeyDown_ ( tkmDisplayAreaRef this,
       break;
     case 'z':
       eResult = DspA_SetOrientation( this, mri_tOrientation_Coronal );
+      break;
+    case '+':
+      eResult = DspA_SetZoomLevel( this, DspA_knMaxZoomLevel );
+      break;
+    case '-':
+      eResult = DspA_SetZoomLevel( this, 1 );
       break;
     }
   }
