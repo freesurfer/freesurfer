@@ -4,7 +4,7 @@
 #ifndef RESAMPLE_H_INC
 #define RESAMPLE_H_INC
 
-#include "MRIio.h"
+#include "MRIio_old.h"
 #include "mrisurf.h"
 #include "label.h"
 
