@@ -28,13 +28,15 @@ static int   mrisReadTriangleProperties(MRI_SURFACE *mris, char *mris_fname) ;
 /*static int   mrisReadFieldsign(MRI_SURFACE *mris, char *fname) ;*/
 static double mrisComputeSSE(MRI_SURFACE *mris, float l_area,float l_angle);
 static int   mrisScaleEllipsoidArea(MRI_SURFACE *mris) ;
-static int   mrisOrientEllipsoidArea(MRI_SURFACE *mris) ;
 static int   mrisCountNegativeVertices(MRI_SURFACE *mris) ;
 static int   mrisAverageGradients(MRI_SURFACE *mris, int num_avgs) ;
 static int   mrisCalculateTriangleProperties(MRI_SURFACE *mris) ;
 static int   mrisIntegrate(MRI_SURFACE *mris, INTEGRATION_PARMS *parms);
 static float mrisLineMinimize(MRI_SURFACE *mris, INTEGRATION_PARMS *parms);
 static float deltaAngle(float angle1, float angle2) ;
+#if 0
+static int   mrisOrientEllipsoidArea(MRI_SURFACE *mris) ;
+#endif
 
 /*--------------------------------------------------------------------*/
 
@@ -1873,6 +1875,7 @@ mrisScaleEllipsoidArea(MRI_SURFACE *mris)
   }
   return(NO_ERROR) ;
 }
+#if 0
 /*-----------------------------------------------------
         Parameters:
 
@@ -1909,6 +1912,7 @@ mrisOrientEllipsoidArea(MRI_SURFACE *mris)
   }
   return(negative) ;
 }
+#endif
 /*-----------------------------------------------------
         Parameters:
 
