@@ -85,7 +85,9 @@ Layer::DoListenToTclCommand( char* isCommand, int iArgc, char** iasArgv ) {
     
     if( mID == layerID ) {
       sReturnFormat = "s";
-      sReturnValues = GetLabel();
+      stringstream ssReturnValues;
+      ssReturnValues << "\"" << GetLabel() << "\"";
+      sReturnValues = ssReturnValues.str();
     }
   }
 

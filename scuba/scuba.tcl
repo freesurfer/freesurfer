@@ -43,6 +43,19 @@ foreach sSourceFileName { tkUtils.tcl tkcon.tcl } {
 # gView
 #   config - 
 
+# gLayer
+#   current - currently displayed layer in props panel
+#     id
+#     type
+#     label
+#     opacity
+#     colorMapMethod  - 2DMRI only
+#     sampleMethod - 2DMRI only
+#     brightness - 2DMRI only
+#     contrast - 2DMRI only
+#   idList - list of IDs in layer props listbox
+
+
 proc dputs { isMsg } {
     global gbDebugOutput
     if { $gbDebugOutput } {
@@ -98,6 +111,13 @@ proc GetDefaultFileLocation { iType } {
 	    LoadVolume {
 		if { [info exists env(SUBJECTS_DIR)] } {
 		    set gsaDefaultLocation($iType) $env(SUBJECTS_DIR)
+		} else {
+		    set gsaDefaultLocation($iType) [exec pwd]
+		}	       
+	    }
+	    LUT {
+		if { [info exists env(FREESURFER_HOME)] } {
+		    set gsaDefaultLocation($iType) $env(FREESURFER_HOME)
 		} else {
 		    set gsaDefaultLocation($iType) [exec pwd]
 		}	       
@@ -346,12 +366,27 @@ proc MakeToolBar { ifwTop } {
 
     set gView(config) c1
 
-    pack $fwToolBar.fwTool $fwToolBar.fwView -side left
+    tkuMakeToolbar $fwToolBar.fwInPlane \
+	-allowzero false \
+	-radio true \
+	-variable gView(inPlane) \
+	-command {ToolBarWrapper} \
+	-buttons {
+	    { -type image -name r -image icon_orientation_sagittal }
+	    { -type image -name a -image icon_orientation_coronal }
+	    { -type image -name s -image icon_orientation_horizontal }
+	}
+
+    set gView(inPlane) r
+
+    pack $fwToolBar.fwTool $fwToolBar.fwView $fwToolBar.fwInPlane \
+	-side left
 
     return $fwToolBar
 }
 
 proc ToolBarWrapper { isName iValue } {
+    global gaLayer
     if { $iValue == 1 } {
 	switch $isName {
 	    nav {
@@ -359,6 +394,21 @@ proc ToolBarWrapper { isName iValue } {
 	    }
 	    c1 - c22 - c13 {
 		SetFrameViewConfiguration [GetMainFrameID] $isName
+		UpdateViewList
+	    }
+	    r - a - s {
+		SetViewInPlane [GetSelectedViewID [GetMainFrameID]] $isName
+		RedrawFrame [GetMainFrameID]
+	    }
+	    grayscale - heatScale - lut {
+		Set2DMRILayerColorMapMethod \
+		    $gaLayer(current,id) $gaLayer(current,colorMapMethod)
+		RedrawFrame [GetMainFrameID]
+	    }
+	    nearest - trilinear - sinc {
+		Set2DMRILayerSampleMethod \
+		    $gaLayer(current,id) $gaLayer(current,sampleMethod)
+		RedrawFrame [GetMainFrameID]
 	    }
 	}
     }
@@ -380,7 +430,7 @@ proc MakeScubaFrame { ifwTop } {
     set fwScuba $ifwTop.fwScuba
     
     set frameID [GetNewFrameID]
-    togl $fwScuba -width 300 -height 300 -rgba true -ident $frameID
+    togl $fwScuba -width 512 -height 512 -rgba true -ident $frameID
 
     bind $fwScuba <Motion> \
 	"%W MouseMotionCallback %x %y %b; ScubaMouseMotionCallback %x %y %b"
@@ -397,10 +447,13 @@ proc MakeScubaFrame { ifwTop } {
 
 proc ScubaMouseMotionCallback { inX inY iButton } {
 
-    set err [catch { set viewID [GetViewIDAtFrameLocation [GetMainFrameID] $inX $inY] } sResult]
+    set err [catch { 
+	set viewID [GetViewIDAtFrameLocation [GetMainFrameID] $inX $inY] 
+    } sResult]
     if { 0 != $err } { tkuErrorDlog $sResult; return }
 
-    set err [catch { set labelValues [GetLabelValuesSet $viewID cursor] } sResult]
+    set err [catch { 
+	set labelValues [GetLabelValuesSet $viewID cursor] } sResult]
     if { 0 != $err } { tkuErrorDlog $sResult; return }
 
     UpdateLabelArea $labelValues
@@ -417,6 +470,328 @@ proc MakeLabelArea { ifwTop } {
     set gaWidget(labelArea,numberOfLabels) 0
 
     return $fwLabelArea
+}
+
+proc MakeNavigationArea { ifwTop } {
+    global gaWidget
+
+    set fwNavArea $ifwTop.fwNavArea
+    set fwPan     $fwNavArea.fwPan
+    set fwPlane   $fwNavArea.fwPlane
+    set fwCenter  $fwNavArea.fwCenter
+    set fwInPlane $fwCenter.fwInPlane
+    set fwZoom    $fwNavArea.fwZoom
+    
+    frame $fwNavArea
+
+    frame $fwPan
+    button $fwPan.bwUp    -image icon_arrow_up -command { MoveUp }
+    button $fwPan.bwDown  -image icon_arrow_down -command { MoveDown }
+    button $fwPan.bwLeft  -image icon_arrow_left -command { MoveLeft }
+    button $fwPan.bwRight -image icon_arrow_right -command { MoveRight }
+    grid $fwPan.bwUp    -column 1 -row 0
+    grid $fwPan.bwDown  -column 1 -row 2
+    grid $fwPan.bwLeft  -column 0 -row 1
+    grid $fwPan.bwRight -column 2 -row 1
+
+    frame $fwPlane
+    button $fwPlane.bwIn   -image icon_arrow_up -command { MoveIn }
+    button $fwPlane.bwOut  -image icon_arrow_down -command { MoveOut }
+
+    pack $fwPan
+
+    return $fwNavArea
+}
+
+proc MakePropertiesPanel { ifwTop } {
+    global gaWidget
+
+    set fwTop  $ifwTop.fwProps
+    
+    tixNoteBook $fwTop
+    
+    $fwTop add layerPanel -label Layers
+    $fwTop add viewPanel -label Views
+
+    set gaWidget(layerProperties) \
+	[MakeLayerPropertiesPanel [$fwTop subwidget layerPanel]]
+    set gaWidget(viewProperties) \
+	[MakeViewPropertiesPanel [$fwTop subwidget viewPanel]]
+
+    pack $gaWidget(layerProperties)
+    pack $gaWidget(viewProperties)
+
+    return $fwTop
+}
+
+proc MakeLayerPropertiesPanel { ifwTop } {
+    global gaWidget
+    global gaLayer
+    global glShortcutDirs
+
+    set fwTop        $ifwTop.fwLayerProps
+    set fwMenu       $fwTop.fwMenu
+    set fwProps      $fwTop.fwProps
+
+    frame $fwTop
+
+    frame $fwMenu
+    tixOptionMenu $fwMenu.menu \
+	-label "Layer:" \
+	-variable gaLayer(current,menuIndex) \
+	-command { LayerPropertiesMenuCallback }
+    set gaWidget(layerProperties,menu) $fwMenu.menu
+    pack $fwMenu.menu
+
+    frame $fwProps
+    set fwPropsCommon $fwProps.fwPropsCommon
+    set fwProps2DMRI  $fwProps.fwProps2DMRI
+
+    frame $fwPropsCommon
+    tkuMakeActiveLabel $fwPropsCommon.ewID \
+	-variable gaLayer(current,id) -width 2
+    tkuMakeActiveLabel $fwPropsCommon.ewType \
+	-variable gaLayer(current,type) -width 5
+    tkuMakeEntry $fwPropsCommon.ewLabel \
+	-variable gaLayer(current,label) \
+	-command {SetLayerLabel $gaLayer(current,id) $gaLayer(current,label); UpdateLayerList}
+    tkuMakeSliders $fwPropsCommon.swOpacity -sliders {
+	{-label "Opacity" -variable gaLayer(current,opacity) 
+	    -min 0 -max 1 -resolution 0.1
+	    -command {SetLayerOpacity $gaLayer(current,id) $gaLayer(current,opacity); RedrawFrame [GetMainFrameID]}}
+    }
+
+    grid $fwPropsCommon.ewID      -column 0 -row 0               -sticky nw
+    grid $fwPropsCommon.ewType    -column 1 -row 0               -sticky new
+    grid $fwPropsCommon.ewLabel   -column 0 -row 1 -columnspan 2 -sticky we
+    grid $fwPropsCommon.swOpacity -column 0 -row 2 -columnspan 2 -sticky we
+
+    frame $fwProps2DMRI
+    tkuMakeToolbar $fwProps2DMRI.tbwColorMapMethod \
+	-allowzero 0 -radio 1 \
+	-variable gaLayer(current,colorMapMethod) \
+	-command ToolBarWrapper \
+	-buttons {
+	    {-type text -name grayscale -label "Grayscale"}
+	    {-type text -name heatScale -label "Heat scale"}
+	    {-type text -name lut -label "LUT"}
+	}
+    tkuMakeFileSelector $fwProps2DMRI.fwLUT \
+	-text "LUT" \
+	-variable gaLayer(current,fileName) \
+	-shortcutdirs [list $glShortcutDirs] \
+	-defaultdir [GetDefaultFileLocation LUT] \
+	-command {Set2DMRILayerFileLUTFileName $gaLayer(current,id) $gaLayer(current,fileName); RedrawFrame [GetMainFrameID]}
+    tkuMakeToolbar $fwProps2DMRI.tbwSampleMethod \
+	-allowzero 0 -radio 1 \
+	-variable gaLayer(current,sampleMethod) \
+	-command ToolBarWrapper \
+	-buttons {
+	    {-type text -name nearest -label "Nearest"}
+	    {-type text -name trilinear -label "Trilinear"}
+	    {-type text -name sinc -label "Sinc"}
+	}
+    tkuMakeCheckboxes $fwProps2DMRI.cbwClearZero \
+	-font [tkuNormalFont] \
+	-checkboxes { 
+	    {-type text -label "Draw 0 values clear" 
+		-variable gaLayer(current,clearZero) 
+		-command {Set2DMRILayerDrawZeroClear $gaLayer(current,id) $gaLayer(current,clearZero); RedrawFrame [GetMainFrameID]} }
+	}
+    tkuMakeSliders $fwProps2DMRI.swBC -sliders {
+	{-label "Brightness" -variable gaLayer(current,brightness) 
+	    -min 1 -max 0 -resolution 0.01 
+	    -command {Set2DMRILayerBrightness $gaLayer(current,id) $gaLayer(current,brightness); RedrawFrame [GetMainFrameID]}}
+	{-label "Contrast" -variable gaLayer(current,contrast) 
+	    -min 0 -max 30 -resolution 1
+	    -command {Set2DMRILayerContrast $gaLayer(current,id) $gaLayer(current,contrast); RedrawFrame [GetMainFrameID]}}
+    }
+    tkuMakeSliders $fwProps2DMRI.swMinMax -sliders {
+	{-label "Min" -variable gaLayer(current,minVisibleValue) 
+	    -min 0 -max 1 -entry 1
+	    -command {Set2DMRILayerMinVisibleValue $gaLayer(current,id) $gaLayer(current,minVisibleValue); RedrawFrame [GetMainFrameID]}}
+	{-label "Max" -variable gaLayer(current,maxVisibleValue) 
+	    -min 0 -max 1 -entry 1
+	    -command {Set2DMRILayerMaxVisibleValue $gaLayer(current,id) $gaLayer(current,maxVisibleValue); RedrawFrame [GetMainFrameID]}}
+    }
+    set gaWidget(layerProperties,minMaxSliders) $fwProps2DMRI.swMinMax
+
+
+    grid $fwProps2DMRI.tbwColorMapMethod -column 0 -row 0 -sticky ew
+    grid $fwProps2DMRI.fwLUT             -column 0 -row 1 -sticky ew
+    grid $fwProps2DMRI.cbwClearZero      -column 0 -row 2 -sticky ew
+    grid $fwProps2DMRI.tbwSampleMethod   -column 0 -row 3 -sticky ew
+    grid $fwProps2DMRI.swBC              -column 0 -row 4 -sticky ew
+    grid $fwProps2DMRI.swMinMax          -column 0 -row 5 -sticky ew
+    set gaWidget(layerProperties,2DMRI) $fwProps2DMRI
+
+    grid $fwPropsCommon -column 0 -row 0 -sticky news
+
+    grid $fwMenu -column 0 -row 0 -sticky new
+    grid $fwProps -column 0 -row 1 -sticky news
+
+    return $fwTop
+}
+
+proc LayerPropertiesMenuCallback { inLayer } {
+    global gaLayer
+
+    # Get the ID at this index in the idList, then select that layer.
+    set layerID [lindex $gaLayer(idList) $inLayer]
+    SelectLayerInLayerProperties $layerID
+}
+
+proc SelectLayerInLayerProperties { iLayerID } {
+    global gaWidget
+    global gaLayer
+
+    # Unpack the type-specific panels.
+    pack forget $gaWidget(layerProperties,2DMRI)
+
+    # Get the general layer properties from the specific layer and
+    # load them into the 'current' slots.
+    set gaLayer(current,id) $iLayerID
+    set gaLayer(current,type) [GetLayerType $iLayerID]
+    set gaLayer(current,label) [GetLayerLabel $iLayerID]
+    set gaLayer(current,opacity) [GetLayerOpacity $iLayerID]
+     
+    # Make sure that this is the item selected in the menu. Disale the
+    # callback and set the value of the menu to the index of this
+    # layer ID in the layer ID list. Then reenable the callback.
+    $gaWidget(layerProperties,menu) config -disablecallback 1
+    $gaWidget(layerProperties,menu) config \
+	-value [lsearch $gaLayer(idList) $iLayerID]
+    $gaWidget(layerProperties,menu) config -disablecallback 0
+    
+    # Do the type specific stuff.
+    switch $gaLayer(current,type) {
+	2DMRI { 
+	    # Pack the type panel.
+	    grid $gaWidget(layerProperties,2DMRI) -column 0 -row 1 -sticky news
+
+	    # Configure the length of the value sliders.
+	    set gaLayer(current,minValue) [Get2DMRILayerMinValue $iLayerID]
+	    set gaLayer(current,maxValue) [Get2DMRILayerMaxValue $iLayerID]
+	    tkuUpdateSlidersRange $gaWidget(layerProperties,minMaxSliders) \
+		$gaLayer(current,minValue) $gaLayer(current,maxValue)
+
+	    # Get the type specific properties.
+	    set gaLayer(current,colorMapMethod) \
+		[Get2DMRILayerColorMapMethod $iLayerID]
+	    set gaLayer(current,clearZero) \
+		[Get2DMRILayerDrawZeroClear $iLayerID]
+	    set gaLayer(current,sampleMethod) \
+		[Get2DMRILayerSampleMethod $iLayerID]
+	    set gaLayer(current,brightness) [Get2DMRILayerBrightness $iLayerID]
+	    set gaLayer(current,contrast) [Get2DMRILayerContrast $iLayerID]
+	    set gaLayer(current,fileName) \
+		[Get2DMRILayerFileLUTFileName $iLayerID]
+	    set gaLayer(current,minVisibleValue) \
+		[Get2DMRILayerMinVisibleValue $iLayerID]
+	    set gaLayer(current,maxVisibleValue) \
+		[Get2DMRILayerMaxVisibleValue $iLayerID]
+	}
+    }
+}
+
+proc MakeViewPropertiesPanel { ifwTop } {
+    global gaWidget
+    global gaView
+
+    set fwTop        $ifwTop.fwViewProps
+    set fwMenu       $fwTop.fwMenu
+    set fwProps      $fwTop.fwProps
+
+    frame $fwTop
+
+    frame $fwMenu
+    tixOptionMenu $fwMenu.menu \
+	-label "View:" \
+	-variable gaView(current,menuIndex) \
+	-command { ViewPropertiesMenuCallback }
+    set gaWidget(viewProperties,menu) $fwMenu.menu
+    pack $fwMenu.menu
+
+    frame $fwProps
+    tkuMakeActiveLabel $fwProps.ewID \
+	-label "ID: " \
+	-variable gaView(current,id) -width 2
+    tkuMakeActiveLabel $fwProps.ewCol \
+	-label "Column: " \
+	-variable gaView(current,col) -width 2
+    tkuMakeActiveLabel $fwProps.ewRow \
+	-label "Row: " \
+	-variable gaView(current,row) -width 2
+
+    for { set nLevel 0 } { $nLevel < 10 } { incr nLevel } {
+	tixOptionMenu $fwProps.mwDraw$nLevel \
+	    -label "Draw Level $nLevel:" \
+	    -variable gaView(current,draw$nLevel) \
+	    -command "ViewPropertiesDrawLevelMenuCallback $nLevel"
+	set gaWidget(viewProperties,drawLevelMenu$nLevel) \
+	    $fwProps.mwDraw$nLevel
+    }
+
+    grid $fwProps.ewID    -column 0 -row 0 -sticky nw
+    grid $fwProps.ewCol   -column 1 -row 0 -sticky e
+    grid $fwProps.ewRow   -column 2 -row 0 -sticky e
+    for { set nLevel 0 } { $nLevel < 10 } { incr nLevel } {
+	grid $fwProps.mwDraw$nLevel \
+	    -column 0 -row [expr $nLevel + 1] -sticky ew -columnspan 3
+    }
+    
+    grid $fwMenu -column 0 -row 0 -sticky new
+    grid $fwProps -column 0 -row 1 -sticky news
+
+    return $fwTop
+}
+
+proc ViewPropertiesMenuCallback { inView } {
+    global gaView
+
+    # Get the ID at this index in the idList, then select that layer.
+    set viewID [lindex $gaView(idList) $inView]
+    SelectViewInViewProperties $viewID
+}
+
+proc ViewPropertiesDrawLevelMenuCallback { iLevel inLayer } {
+    global gaView
+    global gaLayer
+    
+    # If we didn't get -1, find the layer ID from the list of
+    # indices. Otherwise we'll set it to ID -1.
+    set layerID -1
+    if { $inLayer > -1 } {
+	set layerID [lindex $gaLayer(idList) [expr $inLayer]]
+    }
+
+    # Set the layer in this view and redraw.
+    SetLayerInViewAtLevel $gaView(current,id) $layerID $iLevel
+    RedrawFrame [GetMainFrameID]
+}
+
+proc SelectViewInViewProperties { iViewID } {
+    global gaWidget
+    global gaView
+
+    # Get the general view properties from the specific view and
+    # load them into the 'current' slots.
+    set gaView(current,id) $iViewID
+    set gaView(current,col) [GetColumnOfViewInFrame [GetMainFrameID] $iViewID]
+    set gaView(current,row) [GetRowOfViewInFrame [GetMainFrameID] $iViewID]
+ 
+    for { set nLevel 0 } { $nLevel < 10 } { incr nLevel } {
+	set gaView(current,draw$nLevel) \
+	    [GetLayerInViewAtLevel $iViewID $nLevel]
+    }
+    
+    # Make sure that this is the item selected in the menu. Disale the
+    # callback and set the value of the menu to the index of this
+    # view ID in the view ID list. Then reenable the callback.
+    $gaWidget(viewProperties,menu) config -disablecallback 1
+    $gaWidget(viewProperties,menu) config \
+	-value [lsearch $gaView(idList) $iViewID]
+    $gaWidget(viewProperties,menu) config -disablecallback 0
 }
 
 proc ShowHideLabelArea { ibShow } {
@@ -441,29 +816,25 @@ proc DrawLabelArea {} {
     global gaWidget
     global glLabelValues
 
-    foreach fw $gaWidget(labelArea,labelValueWidgets) {
-#	grid forget $fw
-    }
-
     set nLabel 0
     foreach lLabelValue $glLabelValues {
 	
 	set label [lindex $lLabelValue 0]
 	set value [lindex $lLabelValue 1]
 
-	set ewLabel $gaWidget(labelArea).ewLabel$nLabel
-	set ewValue $gaWidget(labelArea).ewValue$nLabel
+	set fw $gaWidget(labelArea).fw$nLabel
+	set ewLabel $fw.ewLabel
+	set ewValue $fw.ewValue
 	
 	if { $nLabel >= $gaWidget(labelArea,numberOfLabels) } {
 
-	    tkuMakeNormalLabel $ewLabel -label $label
-	    tkuMakeNormalLabel $ewValue -label $value
+	    frame $fw
 	    
-	    grid $ewLabel -column 0 -row $nLabel -sticky ew
-	    grid $ewValue -column 1 -row $nLabel -sticky ew
+	    tkuMakeNormalLabel $ewLabel -label $label -width 20
+	    tkuMakeNormalLabel $ewValue -label $value -width 20
 	    
-	    lappend gaWidget(labelArea,labelValueWidgets) $ewLabel
-	    lappend gaWidget(labelArea,labelValueWidgets) $ewValue
+	    pack $ewLabel $ewValue -side left -anchor w
+	    pack $fw
 
 	} else {
 	    
@@ -507,7 +878,115 @@ proc Make2DMRILayer { isLabel } {
     set err [catch { SetLayerLabel $layerID $isLabel } sResult]
     if { 0 != $err } { tkuErrorDlog $sResult; return }
 
-     return $layerID
+    UpdateLayerList
+
+    return $layerID
+}
+
+proc UpdateLayerList {} {
+    global gaLayer
+    global gaWidget
+    global gaView
+
+    # We have two jobs here. First we need to populate the menu that
+    # selects the current layer in the layer props panel. Then we need
+    # to populate all the level-layer menus in the view props
+    # panel. First do the layer props.
+
+    # Get the layer ID list.
+    set gaLayer(idList) [GetLayerIDList]
+
+    # Disable the menu callback.
+    $gaWidget(layerProperties,menu) config -disablecallback 1
+
+    # Get all the entries, delete them, then add commands for all the
+    # IDs in the layer ID list.
+    set lEntries [$gaWidget(layerProperties,menu) entries]
+    foreach entry $lEntries { 
+	$gaWidget(layerProperties,menu) delete $entry
+    }
+    foreach id $gaLayer(idList) {
+	$gaWidget(layerProperties,menu) add command $id \
+	    -label "$id: [GetLayerLabel $id]"
+    }
+    # Renable the menu.
+    $gaWidget(layerProperties,menu) config -disablecallback 0
+
+
+    # Populate the menus in the view props draw level menus.
+    for { set nLevel 0 } { $nLevel < 10 } { incr nLevel } {
+
+	# Disable callback.
+	$gaWidget(viewProperties,drawLevelMenu$nLevel) \
+	    config -disablecallback 1
+
+	# Get the current value of this layer.
+	set layerID $gaView(current,draw$nLevel)
+
+	# Delete all the entries and add ones for all the IDs in the
+	# ID list. Also add a command for 'none' with index of -1.
+	set lEntries [$gaWidget(viewProperties,drawLevelMenu$nLevel) entries]
+	foreach entry $lEntries { 
+	    $gaWidget(viewProperties,drawLevelMenu$nLevel) delete $entry
+	}
+	$gaWidget(viewProperties,drawLevelMenu$nLevel) \
+	    add command -1 -label "None"
+	foreach id $gaLayer(idList) {
+	    $gaWidget(viewProperties,drawLevelMenu$nLevel) add command $id \
+		-label "$id: [GetLayerLabel $id]"
+	}
+
+	# Find the index of the layer ID at this draw level in the
+	# view, and set the menu appropriately.
+	$gaWidget(viewProperties,drawLevelMenu$nLevel) config \
+	    -value [lsearch $gaLayer(idList) $layerID]
+
+	# Renable the callback.
+	$gaWidget(viewProperties,drawLevelMenu$nLevel) \
+	    config -disablecallback 0
+    }
+}
+
+proc UpdateViewList {} {
+    global gaView
+    global gaWidget
+
+    set gaView(idList) {}
+
+    $gaWidget(viewProperties,menu) config -disablecallback 1
+
+    set err [catch { set cRows [GetNumberOfRowsInFrame [GetMainFrameID]] } sResult]
+    if { 0 != $err } { tkuErrorDlog "$sResult"; return }
+    
+    for { set nRow 0 } { $nRow < $cRows } { incr nRow } {
+	
+	set err [catch { 
+	    set cCols [GetNumberOfColsAtRowInFrame [GetMainFrameID] $nRow]
+	} sResult]
+	if { 0 != $err } { tkuErrorDlog $sResult; return }
+	
+	for { set nCol 0 } { $nCol < $cCols } { incr nCol } {
+
+	    set err [catch { 
+		set viewID [GetViewIDFromFrameColRow [GetMainFrameID] $nCol $nRow] 
+	    } sResult]
+	    if { 0 != $err } { tkuErrorDlog $sResult; return }
+
+	    lappend gaView(idList) $viewID
+	}
+    }
+
+    set lEntries [$gaWidget(viewProperties,menu) entries]
+    foreach entry $lEntries { 
+	$gaWidget(viewProperties,menu) delete $entry
+    }
+
+    foreach id $gaView(idList) {
+	set sLabel "[GetColumnOfViewInFrame [GetMainFrameID] $id], [GetRowOfViewInFrame [GetMainFrameID] $id]"
+	$gaWidget(viewProperties,menu) add command $id -label $sLabel
+    }
+
+    $gaWidget(viewProperties,menu) config -disablecallback 0
 }
 
 proc AddLayerToAllViewsInFrame { iFrameID iLayerID } {
@@ -529,7 +1008,12 @@ proc AddLayerToAllViewsInFrame { iFrameID iLayerID } {
 	    } sResult]
 	    if { 0 != $err } { tkuErrorDlog $sResult; return }
 
-	    set err [catch { AddLayerToView $viewID $iLayerID 0 } sResult]
+	    set err [catch { 
+		set level [GetFirstUnusedDrawLevelInView $viewID] } sResult]
+	    if { 0 != $err } { tkuErrorDlog $sResult; return }
+
+	    set err [catch {
+		SetLayerInViewAtLevel $viewID $iLayerID $level } sResult]
 	    if { 0 != $err } { tkuErrorDlog $sResult; return }
        }
    }
@@ -544,15 +1028,19 @@ proc LoadVolume { ifnVolume ibCreateLayer iFrameIDToAdd } {
 
     if { $ibCreateLayer } {
 
-	set err [catch { set layerID [Make2DMRILayer volume] } sResult]
-	if { 0 != $err } { tkuErrorDlog $sResult; return }
+	set sLabel [ExtractLabelFromFileName $ifnVolume]
 
-	set err [catch { SetVolumeCollection $layerID $colID } sResult]
+	set layerID [Make2DMRILayer $sLabel]
+
+	set err [catch {
+	    Set2DMRILayerVolumeCollection $layerID $colID } sResult]
 	if { 0 != $err } { tkuErrorDlog $sResult; return }
 	
 	if { $iFrameIDToAdd != -1 } {
 	    AddLayerToAllViewsInFrame $iFrameIDToAdd $layerID
 	}
+
+	SelectLayerInLayerProperties $layerID
     }
 
     # Add this directory to the shortcut dirs if it isn't there already.
@@ -600,6 +1088,9 @@ while { $nArg < $argc } {
 	    set sSubject [lindex $argv $nArg]
 	    lappend lCommands "SetSubjectName $sSubject"
 	}
+	s - segmentation - seg {
+	    
+	}
 	help - default {
 	    if {$sOption != "help"} {puts "Option $sOption not recognized."}
 	    puts ""
@@ -637,27 +1128,30 @@ set gaWidget(menuBar) [MakeMenuBar $gaWidget(window)]
 set gaWidget(toolBar) [MakeToolBar $gaWidget(window)]
 set gaWidget(scubaFrame) [MakeScubaFrame $gaWidget(window)]
 set gaWidget(labelArea) [MakeLabelArea $gaWidget(window)]
+set gaWidget(properties) [MakePropertiesPanel $gaWidget(window)]
 
 # Set the grid coords of our areas and the grid them in.
 set gaWidget(menuBar,column)    0; set gaWidget(menuBar,row)    0
 set gaWidget(toolBar,column)    0; set gaWidget(toolBar,row)    1
 set gaWidget(scubaFrame,column) 0; set gaWidget(scubaFrame,row) 2
 set gaWidget(labelArea,column)  0; set gaWidget(labelArea,row)  3
+set gaWidget(properties,column)  1; set gaWidget(properties,row) 2
 
-grid $gaWidget(menuBar) \
-    -column $gaWidget(menuBar,column) -row $gaWidget(menuBar,row) \
-    -sticky ew
-grid $gaWidget(toolBar) \
-    -column $gaWidget(toolBar,column) -row $gaWidget(toolBar,row) \
-    -sticky ew
+grid $gaWidget(menuBar) -sticky ew -columnspan 2 \
+    -column $gaWidget(menuBar,column) -row $gaWidget(menuBar,row)
+grid $gaWidget(toolBar) -sticky ew -columnspan 2 \
+    -column $gaWidget(toolBar,column) -row $gaWidget(toolBar,row)
 grid $gaWidget(scubaFrame) \
     -column $gaWidget(scubaFrame,column) -row $gaWidget(scubaFrame,row) \
     -sticky news
 grid $gaWidget(labelArea) \
     -column $gaWidget(labelArea,column) -row $gaWidget(labelArea,row) \
     -sticky ew
+grid $gaWidget(properties) -sticky n \
+    -column $gaWidget(properties,column) -row $gaWidget(properties,row)
 
 grid columnconfigure $gaWidget(window) 0 -weight 1
+grid columnconfigure $gaWidget(window) 1 -weight 0
 grid rowconfigure $gaWidget(window) 0 -weight 0
 grid rowconfigure $gaWidget(window) 1 -weight 0
 grid rowconfigure $gaWidget(window) 2 -weight 1
@@ -692,3 +1186,9 @@ proc test_ExtractLabelFromFileName {} {
 }
 
 test_ExtractLabelFromFileName
+
+SetFrameViewConfiguration [GetMainFrameID] c1
+UpdateLayerList
+UpdateViewList
+SelectViewInViewProperties 0
+

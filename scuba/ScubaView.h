@@ -46,6 +46,8 @@ class ScubaView : public View, public ScubaWindowToRASTranslator {
     TranslateWindowToRAS( iXWindow, iYWindow, oRAS[0], oRAS[1], oRAS[2] ); 
   }
 
+  int GetFirstUnusedDrawLevel ();
+
 protected:
 
   // Tells all the layers to draw in the correct order to the frame
@@ -102,6 +104,13 @@ protected:
   
   // Current view information for this view.
   ViewState mViewState;
+
+  // For keeping track of mouse movement navigation;
+  float mMouseMoveDelta[2];
+  int mLastMouseMoved[2];
+  int mLastMouseDown[2];
+  float mOriginalCenterRAS[3];
+  float mOriginalZoom;
 
   // The buffer for this view.
   GLubyte* mBuffer;

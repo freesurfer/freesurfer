@@ -40,6 +40,12 @@ ScubaFrame::ScubaFrame( ToglFrame::ID iID )
   commandMgr.AddCommand( *this, "GetViewIDAtFrameLocation", 3, 
 			 "frameID windowX windowY", 
 			 "Return the view ID at a window location." );
+  commandMgr.AddCommand( *this, "GetColumnOfViewInFrame", 2, "frameID viewID", 
+			 "Return the column of the view ID in a frame." );
+  commandMgr.AddCommand( *this, "GetRowOfViewInFrame", 2, "frameID viewID", 
+			 "Return the row of the view ID in a frame." );
+  commandMgr.AddCommand( *this, "RedrawFrame", 1, "frameID", 
+			 "Tells a frame to redraw." );
 
   PreferencesManager& prefsMgr = PreferencesManager::GetManager();
   prefsMgr.UseFile( ".scuba" );
@@ -220,6 +226,86 @@ ScubaFrame::DoListenToTclCommand( char* isCommand, int iArgc, char** iasArgv ) {
     }
   }
 
+  // GetColumnOfViewInFrame <frameID> <viewID> 
+  if( 0 == strcmp( isCommand, "GetColumnOfViewInFrame" ) ) {
+    int frameID = strtol(iasArgv[1], (char**)NULL, 10);
+    if( ERANGE == errno ) {
+      sResult = "bad frame ID";
+      return error;
+    }
+    
+    if( mID == frameID ) {
+      
+      int viewID = strtol(iasArgv[2], (char**)NULL, 10);
+      if( ERANGE == errno ) {
+	sResult = "bad view ID";
+	return error;
+      }
+      
+      for( int nRow = 0; nRow < mcRows; nRow++ ) {
+	int cCols = mcCols[nRow];
+	for( int nCol = 0; nCol < cCols; nCol++ ) {
+	  
+	  try {
+	    View* view = GetViewAtColRow( nCol, nRow );
+	    if( view->GetID() == viewID ) {
+	      stringstream ssReturn;
+	      ssReturn << nCol;
+	      sReturnFormat = "i";
+	      sReturnValues = ssReturn.str();
+	      return ok;
+	    }
+	  } 
+	  catch(...) {
+	  }
+	}
+      }
+
+      sResult = "bad view ID";
+      return error;
+    }
+  }
+
+  // GetRowOfViewInFrame <frameID> <viewID> 
+  if( 0 == strcmp( isCommand, "GetRowOfViewInFrame" ) ) {
+    int frameID = strtol(iasArgv[1], (char**)NULL, 10);
+    if( ERANGE == errno ) {
+      sResult = "bad frame ID";
+      return error;
+    }
+    
+    if( mID == frameID ) {
+      
+      int viewID = strtol(iasArgv[2], (char**)NULL, 10);
+      if( ERANGE == errno ) {
+	sResult = "bad view ID";
+	return error;
+      }
+      
+      for( int nRow = 0; nRow < mcRows; nRow++ ) {
+	int cCols = mcCols[nRow];
+	for( int nCol = 0; nCol < cCols; nCol++ ) {
+	  
+	  try {
+	    View* view = GetViewAtColRow( nCol, nRow );
+	    if( view->GetID() == viewID ) {
+	      stringstream ssReturn;
+	      ssReturn << nRow;
+	      sReturnFormat = "i";
+	      sReturnValues = ssReturn.str();
+	      return ok;
+	    }
+	  } 
+	  catch(...) {
+	  }
+	}
+      }
+
+      sResult = "bad view ID";
+      return error;
+    }
+  }
+
   // GetViewIDAtFrameLocation <frameID> <windowX> <windowY>
   if( 0 == strcmp( isCommand, "GetViewIDAtFrameLocation" ) ) {
     int frameID = strtol(iasArgv[1], (char**)NULL, 10);
@@ -249,13 +335,18 @@ ScubaFrame::DoListenToTclCommand( char* isCommand, int iArgc, char** iasArgv ) {
       }
 	
       try { 
-	View* view = FindViewAtWindowLoc( windowX, windowY, NULL, NULL );
-	int id = view->GetID();
-	stringstream sID;
-	sID << id;
-	sReturnFormat = "i";
-	sReturnValues = sID.str();
-	return ok;
+	// We need to y flip this since we're getting the coords right
+	// from Tcl, just like we y flip them in ToglFrame.
+	View* view = FindViewAtWindowLoc( windowX, (mHeight - windowY),
+					  NULL, NULL );
+	if( NULL != view ) {
+	  int id = view->GetID();
+	  stringstream sID;
+	  sID << id;
+	  sReturnFormat = "i";
+	  sReturnValues = sID.str();
+	  return ok;
+	}
       }
       catch(...) {
 	stringstream sError;
@@ -268,6 +359,21 @@ ScubaFrame::DoListenToTclCommand( char* isCommand, int iArgc, char** iasArgv ) {
     }
   }
 
+  // RedrawFrame <frameID>
+  if( 0 == strcmp( isCommand, "RedrawFrame" ) ) {
+    int frameID = strtol(iasArgv[1], (char**)NULL, 10);
+    if( ERANGE == errno ) {
+      sResult = "bad frame ID";
+      return error;
+    }
+    
+    if( mID == frameID ) {
+      
+      RequestRedisplay();
+    }
+  }
+
+  return ok;
 }
 
 void
@@ -383,8 +489,12 @@ void
 ScubaFrame::DoMouseMoved( int inX, int inY, InputState& iState ) {
 
   try {
-    View* view = FindViewAtWindowLoc( inX, inY, NULL, NULL );
-    view->MouseMoved( inX, inY, iState );
+    int nRow, nCol;
+    View* view = FindViewAtWindowLoc( inX, inY, &nCol, &nRow );
+    int width = mWidth / mcCols[nRow];
+    int height = mHeight / mcRows;
+    view->MouseMoved( inX - (nCol * width), 
+		      inY - ((mcRows-1 - nRow) * height), iState );
   }
   catch(...) {
   }
@@ -443,7 +553,8 @@ ScubaFrame::DoKeyDown( int inX, int inY, InputState& iState ) {
       RequestRedisplay();  
     }
 
-    View* view = FindViewAtWindowLoc( inX, inY, NULL, NULL );
+    View* view = GetViewAtColRow( mnSelectedViewCol, mnSelectedViewRow );
+    //    View* view = FindViewAtWindowLoc( inX, inY, NULL, NULL );
     view->KeyDown( inX, inY, iState );
   }
   catch(...) {
@@ -454,7 +565,8 @@ void
 ScubaFrame::DoKeyUp( int inX, int inY, InputState& iState ) {
 
   try {
-    View* view = FindViewAtWindowLoc( inX, inY, NULL, NULL );
+    View* view = GetViewAtColRow( mnSelectedViewCol, mnSelectedViewRow );
+    //    View* view = FindViewAtWindowLoc( inX, inY, NULL, NULL );
     view->KeyUp( inX, inY, iState );
   }
   catch(...) {
@@ -555,7 +667,7 @@ ScubaFrame::FindViewAtWindowLoc( int iWindowX, int iWindowY,
 
   try {
 
-    int nRow = (int)floor( (float)iWindowY / 
+    int nRow = (int)floor( (float)(mHeight - iWindowY) / 
 			   ((float)mHeight / (float)mcRows) );
     int nCol = (int)floor( (float)iWindowX / 
 			   ((float)mWidth / (float)mcCols[nRow]) );

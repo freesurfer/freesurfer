@@ -25,7 +25,6 @@ tkuMakeCheckboxes .cb \
 	{ -type text -label "label1" -variable bValue1 -command "puts 1" }
 	{ -type text -label "label2" -variable bValue2 -command "puts 2" }
     }
-
 pack .cb
 
 tkuMakeCheckboxes .cb2 \
@@ -34,8 +33,18 @@ tkuMakeCheckboxes .cb2 \
 	{ -type text -label "label1" -variable bValue1 -command "puts 1" }
 	{ -type text -label "label2" -variable bValue2 -command "puts 2" }
     }
-
 pack .cb2
+
+tkuMakeSliders .sw \
+    -sliders {
+	{ -label "10-20" -variable slider1 -min 10 -max 20 \
+	      -command { puts $slider1 } }
+	{ -label "00-20(.5)" -variable slider2 -min 0 -max 20 -resolution 0.5 \
+	      -command { puts $slider2 } }
+	{ -label "-10-10e" -variable slider3 -min -10 -max 10 \
+	      -command { puts $slider3 } -entry 1 }
+    }
+pack .sw
 
 tkuMakeToolbar .tb \
     -allowzero false \
@@ -49,6 +58,14 @@ tkuMakeToolbar .tb \
 set toolbar tb2
 
 pack .tb
+
+tkuMakeFileSelector .fsw \
+    -text "Choose a file" \
+    -variable fileName \
+    -command {puts "got $fileName"}
+set fileName /tmp/blah
+
+pack .fsw
 
 proc tbWrapper { isName iValue } {
     puts "tbWrapper: $isName = $iValue"

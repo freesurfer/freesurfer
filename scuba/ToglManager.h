@@ -122,7 +122,7 @@ class ToglManager {
 
  protected:
 
-#if 0
+#if 1
   static inline int YFlip ( ToglFrame* iFrame, int iY ) {
     return (iFrame->GetHeight() - iY); }
 #else

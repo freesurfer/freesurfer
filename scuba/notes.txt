@@ -253,20 +253,21 @@ x fix overlay drawing bugs
 set view state dlog
 
 
-b/c, LUT color map support
-opacity
+x b/c, LUT color map support
+x opacity
 
 
-label/value display panel
-   function takes an array of stuff
-   for each, puts the key in the left column and value in the right
-   if new key, create a new row
-   if key exists, replace value
+x label/value display panel
 
-Volume Info interface
- - change b/c or LUT
- - change opactiy
+x Layer Info interface
+x - change b/c or LUT
+x - change opactiy
 
+x replace mbClearZero with min/max
+
+View Props panel
+ - menu of views
+ - draw level slots, each with menu of layers
 
 ScubaFrame:
 tool
@@ -338,6 +339,11 @@ Frame Info
  - special views like mosaic
 
 
+BUGS:::
+
+- grayscale val 255 draws as black
+
+
 future ideas:
 
 Load Subject
@@ -349,5 +355,7 @@ Save Scene
 tkconn pull out window
 
 nav tools draw onscreen sliders for feedback
-
+ - on mouse down with right tool, draw scale bar
+ - function to translate v position into modifcation value
+ - start at mouse point, use expo scale towards edge for min/max values
 

@@ -1,6 +1,6 @@
 # tkUtils.tcl (tku)
 
-# $Id: tkUtils.tcl,v 1.4 2003/04/07 20:02:53 kteich Exp $
+# $Id: tkUtils.tcl,v 1.5 2004/02/09 17:17:38 kteich Exp $
 
 # tkuMakeMenu isMenuButton "Menu Name" {item...}
 # item = { command   "Item Name" command                [group_name] }
@@ -9,7 +9,7 @@
 # item = { cascade   "Item Name" {item...}              [group_name] }
 # item = { separator }
 
-set kLabelFont -*-lucida-medium-r-normal-*-12-*-*-*-*-*-*-*
+set kLabelFont -*-lucida-bold-r-normal-*-14-*-*-*-*-*-*-*
 set kNormalFont -*-lucida-medium-r-normal-*-12-*-*-*-*-*-*-*
 
 proc tkuLabelFont {} {
@@ -99,6 +99,7 @@ proc tkuMakeNormalLabel { ifwTop args } {
     set aArgs(-width) 0
     set aArgs(-font) $kNormalFont
     set aArgs(-justify) left
+    set aArgs(-anchor) w
 
     # Set arg items and make sure we have the ones we require,
     array set aArgs $args
@@ -136,7 +137,7 @@ proc tkuMakeEntry { ifwTop args } {
     set aArgs(-width) 0
     set aArgs(-font) $kLabelFont
     set aArgs(-labelwidth) 0
-    set aArgs(-setCmd) ""
+    set aArgs(-command) ""
 
     # Set arg items and make sure we have the ones we require,
     array set aArgs $args
@@ -171,8 +172,8 @@ proc tkuMakeEntry { ifwTop args } {
       -expand yes \
       -fill x
 
-    if { $aArgs(-setCmd) != "" } {
-	bind $ifwTop.ewEntry <Return> "$aArgs(-setCmd) [set $aArgs(-variable)]"
+    if { $aArgs(-command) != "" } {
+	bind $ifwTop.ewEntry <Return> "$aArgs(-command)"
     }
 
 }
@@ -332,6 +333,347 @@ proc tkuSetMenuItemGroupStatus { isGroupName ibEnable } {
 }
 
 
+# tkuMakeCheckboxes
+# -orientation : orientation of checkboxes (h, v)
+# -font : overall font
+# -labelwidth : overall label width
+# -labelheight : overall label height
+# -checkboxes : list of checkbox data (required)
+#    -type : type of checkbox label (text, image)
+#    -label : text label
+#    -image : image label
+#    -variable : variable to set (required)
+#    -font : font for this checkbox label
+#    -command : command to run when clicked
+proc tkuMakeCheckboxes { ifwTop args } {
+
+    # set default arguments for all fields
+    set aArgs(-orientation) v
+    set aArgs(-font) [tkuLabelFont]
+    set aArgs(-labelwidth) 0
+    set aArgs(-labelheight) 0
+
+    # Set arg items and make sure we have the ones we require,
+    array set aArgs $args
+    foreach arg {-checkboxes} {
+	if {![info exists aArgs($arg)]} {
+	    puts "tkuMakeCheckboxes: no $arg specified"
+	    return
+	}
+    }
+
+    frame $ifwTop
+    
+    # for each checkbox...
+    set nCheckbox 0
+    foreach lCheckbox $aArgs(-checkboxes) {
+	
+	# Set arg items and make sure we have the ones we require,
+	set aCheckbox(-type) text
+	set aCheckbox(-label) ""
+	set aCheckbox(-font) $aArgs(-font)
+	set aCheckbox(-labelwidth) $aArgs(-labelwidth)
+	set aCheckbox(-labelheight) $aArgs(-labelheight)
+	set aCheckbox(-command) ""
+	array set aCheckbox $lCheckbox
+	foreach arg {-variable} {
+	    if {![info exists aCheckbox($arg)]} {
+    	     puts "tkuMakeCheckboxes: no $arg specified in checkbox $nCheckbox"
+		return
+	    }
+	}
+
+	# make names for the checkbox and the label.
+	set cbw $ifwTop.cb$nCheckbox
+	set lw  $ifwTop.lw$nCheckbox
+	
+	# text or image?
+	switch $aCheckbox(-type) {
+	    
+	    text {
+		
+		# text. make a normal checkbox and label.
+		checkbutton $cbw \
+		    -variable $aCheckbox(-variable) \
+		    -command $aCheckbox(-command)
+		label $lw \
+		    -font $aCheckbox(-font) \
+		    -text $aCheckbox(-label)
+		
+		# if horizontal, pack all in the same row. if vertical.
+		# pack the checkbox, than the label, in the
+		# same row as the number of this checkbox.
+		switch $aArgs(-orientation) {
+		    h - x { 
+			grid $cbw -column [expr 2 * $nCheckbox] -row 0
+			grid $lw -column [expr 1 + [expr 2 *$nCheckbox]] \
+			    -row 0 -sticky w
+		    }
+		    v - y { 
+			grid $cbw -column 0 -row $nCheckbox
+			grid $lw -column 1 -row $nCheckbox -sticky w
+		    }
+		}
+	    }
+	    
+	    image { 
+		# image. create a checkbox with an image label. no text label.
+		checkbutton $cbw \
+		    -image $aCheckbox(-image) \
+		    -variable $aCheckbox(-variable) \
+		    -command $aCheckbox(-command) \
+		    -indicatoron false \
+		    -selectcolor gray
+		
+		# if horizontal, pack in increasing columns. if vertical,
+		# pack in increasing rows.
+		switch $isDirection {
+		    h - x { 
+			grid $cbw -column $nCheckbox -row 0
+		    }
+		    v - y { 
+			grid $cbw -column 0 -row $nCheckbox
+		    }
+		}
+	    }
+	    
+	    default { continue }
+	}
+	
+	incr nCheckbox
+    }
+    
+    grid columnconfigure $ifwTop 0 -weight 0
+    grid columnconfigure $ifwTop 1 -weight 1
+}
+
+# tkuMakeSliders
+# -font : overall font
+# -sliders : list of slider data (required)
+#    -orientation : orientation of this slider (h, v)
+#    -label : label to left of slider
+#    -postlabel : label to right of slider
+#    -font : font for this slider
+#    -variable  : variable to set (required)
+#    -min : min value
+#    -max : max value
+#    -resolution : numerical resolution of slider
+#    -length : length of slider
+#    -command : command to call when changed
+#    -entry : whether to include a text entry
+proc tkuMakeSliders { ifwTop args } {
+
+    # set default arguments for all fields
+    set aArgs(-font) [tkuLabelFont]
+
+    # Set arg items and make sure we have the ones we require,
+    array set aArgs $args
+    foreach arg {-sliders} {
+	if {![info exists aArgs($arg)]} {
+	    puts "tkuMakeSliders: no $arg specified"
+	    return
+	}
+    }
+
+    frame $ifwTop
+    
+    # for each slider...
+    set nSlider 0
+    foreach lSlider $aArgs(-sliders) {
+	
+	# Set arg items and make sure we have the ones we require,
+	set aSlider(-orientation) h
+	set aSlider(-label) ""
+	set aSlider(-postlabel) ""
+	set aSlider(-font) $aArgs(-font)
+	set aSlider(-min) 0
+	set aSlider(-max) 10
+	set aSlider(-resolution) 1.0
+	set aSlider(-length) 100
+	set aSlider(-entry) 0
+	set aSlider(-command) ""
+	array set aSlider $lSlider
+	foreach arg {-variable} {
+	    if {![info exists aSlider($arg)]} {
+    	     puts "tkuMakeSlider: no $arg specified in slider $nSlider"
+		return
+	    }
+	}
+
+	tkuMakeNormalLabel $ifwTop.lw$nSlider -label $aSlider(-label)
+	tkuMakeNormalLabel $ifwTop.lwPost$nSlider -label $aSlider(-postlabel)
+
+	scale $ifwTop.sw$nSlider \
+	    -orient $aSlider(-orientation) \
+	    -variable $aSlider(-variable) \
+	    -from $aSlider(-min) \
+	    -to $aSlider(-max) \
+	    -length $aSlider(-length) \
+	    -resolution $aSlider(-resolution) \
+	    -showvalue false
+	bind $ifwTop.sw$nSlider <ButtonRelease> $aSlider(-command)
+	bind $ifwTop.sw$nSlider <B1-Motion> $aSlider(-command)
+
+	if { $aSlider(-entry) } {
+	    entry $ifwTop.ew$nSlider \
+		-textvariable $aSlider(-variable) \
+		-width 4 \
+		-selectbackground green \
+		-insertbackground black
+	    bind $ifwTop.ew$nSlider <Return> $aSlider(-command)
+	}
+
+	# if horizontal, pack all in the same row. if vertical.
+	# pack the checkbox, than the label, in the
+	# same row as the number of this checkbox.
+	grid $ifwTop.lw$nSlider     -column 0 -row $nSlider -sticky w
+	grid $ifwTop.sw$nSlider     -column 1 -row $nSlider -sticky ew
+	if { $aSlider(-entry) } {
+	    grid $ifwTop.ew$nSlider -column 2 -row $nSlider -sticky w
+	    grid $ifwTop.lwPost$nSlider -column 3 -row $nSlider -sticky w
+	} else {
+	    grid $ifwTop.lwPost$nSlider -column 2 -row $nSlider -sticky w
+	}		
+	
+	incr nSlider
+    }
+
+    grid columnconfigure $ifwTop 0 -weight 0
+    grid columnconfigure $ifwTop 1 -weight 1
+    grid columnconfigure $ifwTop 2 -weight 0
+    grid columnconfigure $ifwTop 3 -weight 0
+}
+
+# Based on new min and max, will change -from and -to of all sliders
+# in this group and recalculate a decent resolution.
+proc tkuUpdateSlidersRange { ifwTop iMin iMax } {
+
+    # See what our value range is and set a good resolution.
+    set diff [expr $iMax - $iMin]
+    if { $diff > 1000 } {
+	set newResolution 10
+    } elseif { $diff > 100 } {
+	set newResolution 1
+    } elseif { $diff > 10 } {
+	set newResolution .1
+    } elseif { $diff > 1 } {
+	set newResolution .001
+    } elseif { $diff > 0.1 } {
+	set newResolution .0001
+    } elseif { $diff > 0.01 } {
+	set newResolution .00001
+    } elseif { $diff > 0.001 } {
+	set newResolution .000001
+    } elseif { $diff > 0.0001 } {
+	set newResolution .0000001
+    } elseif { $diff > 0.00001 } {
+	set newResolution .00000001
+    } elseif { $diff > 0.000001 } {
+	set newResolution .000000001
+    } else {
+	set newResolution .0000000001
+    }
+
+    set nSlider 0
+    set err 0
+    while { $err == 0 } {
+
+	set err [catch { 
+	    $ifwTop.sw$nSlider config -from $iMin -to $iMax \
+		-resolution $newResolution}]
+
+	incr nSlider
+    }
+}
+
+# tkuMakeToolbar
+# -allowzero : whether or not the toolbar can have no buttons on
+# -radio : whether or not the toolbar can only have one button on
+# -variable : variable to set (required)
+# -command : command to call when value changes
+# -font : font for all buttons
+# -buttons : list of button arrays
+#    -type : type of button (text,image)
+#    -name : name and value of this button
+#    -label : text label for text button
+#    -image : image for image button
+#    -font : font for this button
+proc tkuMakeToolbar { ifwTop args } {
+    
+    # set default arguments for all fields
+    set aArgs(-allowzero) false
+    set aArgs(-radio) true
+    set aArgs(-command) ""
+    set aArgs(-font) [tkuNormalFont]
+
+    # Set arg items and make sure we have the ones we require,
+    array set aArgs $args
+    foreach arg {-variable -buttons} {
+	if {![info exists aArgs($arg)]} {
+	    puts "tkuMakeToolbar: no $arg specified"
+	    return
+	}
+    }
+
+    frame $ifwTop
+    
+    tixSelect $ifwTop.tbw \
+	-allowzero $aArgs(-allowzero) \
+	-radio $aArgs(-radio) \
+	-command $aArgs(-command) \
+	-disablecallback true
+    
+    tkuEnableLater $ifwTop.tbw
+    
+    foreach lButton $aArgs(-buttons) {
+	
+	# set default arguments for all fields
+	set aButton(-type) text
+	set aButton(-label) ""
+	set aButton(-font) $aArgs(-font)
+	array set aButton $lButton
+	foreach arg {-name} {
+	    if {![info exists aButton($arg)]} {
+		puts "tkuMakeToolbar: no $arg specified for toolbar button"
+		return
+	    }
+	}
+
+	switch $aButton(-type) {
+
+	    text {
+		$ifwTop.tbw  \
+		    add $aButton(-name) \
+		    -text $aButton(-label) \
+		    -font $aButton(-font)
+	    } 
+	    image {
+		$ifwTop.tbw \
+		    add $aButton(-name) \
+		    -image $aButton(-image)
+	    }
+	    default {
+		puts "didn't handle type $aButton(-type)"
+	    }
+	} 
+    }
+    
+    $ifwTop.tbw config -variable $aArgs(-variable)
+    
+    pack $ifwTop.tbw
+}
+
+proc tkuEnableLater { ifwWidget } {
+    global glDisabledWidgets
+    lappend glDisabledWidgets $ifwWidget
+}
+
+proc tkuFinish { } {
+    global glDisabledWidgets
+    foreach widget $glDisabledWidgets {
+	$widget config -disablecallback false
+    }
+}
 
 # replaces the percent symbols in a string with a substitution string:
 # i.e. tkuDoSubPercent { %s1 "Hello %s1" "World" }
@@ -345,6 +687,27 @@ proc tkuDoSubPercent { isPercent isString isSubstitution } {
     return $sResult
 }
 
+# tkuDoSubPercent
+# -title : dlog title
+# -okCmd : cmd to execute on OK
+# -cancel : cmd to execute on cancel
+# -promptN : prompt for item N (required to make this item active)
+# -noteN : note for item N
+# -typeN : type for item N (file,dir,text,checkbutton)
+# -defaultfuncN : func to return default dir for item N
+# -defaultdirN : default dir for item N
+# -shortcutdirs :  shortcut list for all file and dir itmes
+# -shortcutdirsN : shortcut list for item N (will override above)
+# -defaultvalueN : initial value for item N
+
+# USAGE:
+# tkuDoFileDlog -title "Save File" \
+#  -prompt1 "Save File As:" \
+#  -note1 "The file name to write" \
+#  -defaultfunc1 [list GetDefaultLocation SaveFile] \
+#  -shortcutdirs {/usr /usr/bin ~/documents} \
+#  -okCmd {SaveFile %s1; \
+#          SetDefaultLocation SaveFile %s1}
 proc tkuDoFileDlog { args } {
 
     global gDialog
@@ -361,7 +724,6 @@ proc tkuDoFileDlog { args } {
 	set aArgs(-prompt$nField) ""
 	set aArgs(-type$nField) "file"
 	set aArgs(-note$nField) ""
-	set aArgs(-default$nField) ""
 	set sFileName$nField ""
     }
     
@@ -386,12 +748,35 @@ proc tkuDoFileDlog { args } {
 	    # create a variable for this prompt. even if we don't use this
 	    # field, we'll need it later (ugh)
 	    set fwPrompt$nField  $wwDialog.fwPrompt$nField
-	
-	    puts "sFileName$nField is ${sFileName$nField}"
-    
+	    
 	    # if they didn't enter a prompt, skip this field
 	    if { [string match "$aArgs(-prompt$nField)" ""] == 1 } {
-		continue;
+		continue
+	    }
+	    
+	    set sDefaultDirOption ""
+	    set sDefaultDirValue ""
+	    if { [info exists aArgs(-defaultfunc$nField)] } {
+		set sDefaultDirOption -defaultfunc
+		set sDefaultDirValue $aArgs(-defaultfunc$nField)
+	    }
+	    if { [info exists aArgs(-defaultdir$nField)] } {
+		set sDefaultDirOption -defaultdir
+		set sDefaultDirValue $aArgs(-defaultdir$nField)
+	    }
+	    set sShortcutDirsOption ""
+	    set sShortcutDirsValue ""
+	    if { [info exists aArgs(-shortcutdirs$nField)] } {
+		set sShortcutDirsOption -shortcutdirs
+		set sShortcutDirsValue $aArgs(-shortcutdirs$nField)
+	    }
+	    if { [info exists aArgs(-shortcutdirs)] } {
+		set sShortcutDirsOption -shortcutdirs
+		set sShortcutDirsValue $aArgs(-shortcutdirs)
+	    }
+
+	    if { [info exists aArgs(-defaultvalue$nField)] } {
+		set sFileName$nField $aArgs(-defaultvalue$nField)
 	    }
 	    
 	    # switch on the type for this field and create the approriate
@@ -401,18 +786,28 @@ proc tkuDoFileDlog { args } {
 		    tkuMakeFileSelector [set fwPrompt$nField] \
 			-text "$aArgs(-prompt$nField)" \
 			-variable sFileName$nField \
-			-getdefaultdir $aArgs(-default$nField) 
+			$sDefaultDirOption $sDefaultDirValue \
+			$sShortcutDirsOption $sShortcutDirsValue
 		}
 		dir { 
 		    tkuMakeDirectorySelector [set fwPrompt$nField] \
 			-text "$aArgs(-prompt$nField)" \
 			-variable sFileName$nField \
-			-getdefaultdir $aArgs(-default$nField) 
+			$sDefaultDirOption $sDefaultDirValue \
+			$sShortcutDirsOption $sShortcutDirsValue
 		}
 		text { 
 		    tkuMakeEntry [set fwPrompt$nField] \
 			-label "$aArgs(-prompt$nField)" \
 			-variable sFileName$nField 
+		}
+		checkbox { 
+		    tkuMakeCheckboxes [set fwPrompt$nField] \
+			-orientation h \
+			-checkboxes [list \
+                           [list -type text -label "$aArgs(-prompt$nField)" \
+				-variable sFileName$nField]
+		       ] 
 		}
 		default { continue; }
 	    }
@@ -460,13 +855,15 @@ proc tkuDoFileDlog { args } {
 
 # ============================================================ FILE SELECTORS
 
-# tkuMakeFile
-# -variable : variable name of the entry value (required)
-# -text : text for the prompt
-# -getdefaultdir : a function that returns the default directory
-# -defaultdir : the default directory
+# tkuMakeFileSelector
+# -variable : variable to set with filename (required)
+# -text : text prompt
+# -command : command to execute when file is chosen
+# -defaultfunc : function to call to get default dir
+# -defaultdir : default dir
+# -shortcutdirs : dirs to go in shortcut menu
 proc tkuMakeFileSelector { ifwTop args } {
-
+    
     # set default arguments for all fields
     set aArgs(-text) "Choose a file:"
 
@@ -479,50 +876,123 @@ proc tkuMakeFileSelector { ifwTop args } {
 	}
     }
 
-    # create the frame
     frame $ifwTop -width 200
     
-    upvar $aArgs(-variable) theVar 
-
-    tixFileEntry $ifwTop.few \
+    # the entry
+    tixLabelEntry $ifwTop.ew \
 	-label $aArgs(-text) \
-	-labelside top \
-	-variable $aArgs(-variable) \
-	-options {
-	    entry.expand yes
-	    entry.fill x
+	-labelside acrosstop \
+	-options "entry.textVariable $aArgs(-variable) \
+                  entry.expand yes \
+                  entry.fill x \
+                  label.font [tkuLabelFont]"
+    
+    [$ifwTop.ew subwidget entry] icursor end
+
+    set sDefaultDirOption ""
+    if { [info exists aArgs(-defaultfunc)] } {
+	set sDefaultDirOption "-defaultfunc $aArgs(-defaultfunc)"
+    }
+    if { [info exists aArgs(-defaultdir)] } {
+	set sDefaultDirOption "-defaultdir $aArgs(-defaultdir)"
+    }
+    set sShortcutDirsOption ""
+    if { [info exists aArgs(-shortcutdirs)] } {
+	set sShortcutDirsOption "-shortcutdirs $aArgs(-shortcutdirs)"
+    }
+    set sCommandOption ""
+    if { [info exists aArgs(-command)] } {
+	set sCommandOption "-command [list $aArgs(-command)]"
+    }
+
+    # the browse button
+    button $ifwTop.bw \
+	-text "Browse..." \
+	-command "tkuBrowseFile -variable $aArgs(-variable) $sDefaultDirOption $sShortcutDirsOption $sCommandOption"
+    
+    # pack it in a grid
+    grid $ifwTop.ew -column 0 -row 0 -sticky ew
+    grid $ifwTop.bw -column 1 -row 0
+    grid columnconfigure $ifwTop 0 -weight 1
+    grid columnconfigure $ifwTop 1 -weight 0
+}
+
+# tkuBrowseFile
+# -variable : variable name to set (required)
+# -command : command to execute when file is chosen
+# -defaultfunc : function to call to get default dir
+# -defaultdir : default dir
+# -shortcutdirs : dirs to go in shortcut menu
+proc tkuBrowseFile { args } {
+    global gPostHandleSelectFileCommand
+
+    # Set menu items and make sure we have the ones we require,
+    set aArgs(-command) ""    
+    array set aArgs $args
+    foreach arg {-variable} {
+	if {![info exists aArgs($arg)]} {
+	    puts "tkuBrowseFile: no $arg specified"
+	    return
 	}
-    
-    # set the value of the field to the value of the variable
-    $ifwTop.few config -value $theVar
-    
-    # set the default location 
-    if {[info exists aArgs(-getdefaultdir)]} {
-	$ifwTop.few filedialog subwidget fsbox \
-	    configure -directory [eval $aArgs(-getdefaultdir)]
-    }
-    if {[info exists aArgs(-defaultdir)]} {
-	$ifwTop.few filedialog subwidget fsbox \
-	    configure -directory $aArgs(-defaultdir)
     }
 
-    pack $ifwTop.few \
-      -side left \
-      -expand yes \
-      -fill x
+    # create the dialog box if it doesn't already exist
+    set wwDirDlog [tix filedialog tixFileSelectDialog]
+    
+    # set the default location. if it's actually returning a file
+    # name, get just the directory portion instead.
+    set fnDefaultDir ""
+    if { [info exists aArgs(-defaultfunc)] } {
+	set fnDefaultDir [$aArgs(-defaultfunc)]
+    }
+    if { [info exists aArgs(-defaultdir)] } {
+	set fnDefaultDir $aArgs(-defaultdir)
+    }
+    if { $fnDefaultDir != "" } {
+	if { [file isfile $fnDefaultDir] } {
+	    set fnDefaultDir [file dirname $fnDefaultDir]
+	}
+	[$wwDirDlog subwidget fsbox] configure -directory $fnDefaultDir
+    }
+
+    # add shortcuts
+    if { [info exists aArgs(-shortcutdirs)] } {
+	foreach sDirectory $aArgs(-shortcutdirs) {
+	    [[$wwDirDlog subwidget fsbox] subwidget filter] \
+		appendhistory $sDirectory
+	}
+    }
+    
+    # when they click ok, call the tkuHandleSelectDirectory function,
+    # passing in the variable from the parent dialog.
+    $wwDirDlog config -command "tkuHandleSelectFile $aArgs(-variable)"
+    
+    $wwDirDlog popup
+
+    set gPostHandleSelectFileCommand $aArgs(-command)
 }
 
-proc tkuUpdateFileSelectorVariable { ifwTop } {
-
-    $ifwTop.few update
+proc tkuHandleSelectFile { iVariable ifnFile } {
+    global gPostHandleSelectFileCommand
+    # set the variable.
+    upvar $iVariable theVar 
+    set theVar $ifnFile
+    if { $gPostHandleSelectFileCommand != "" } {
+	uplevel #0 {eval $gPostHandleSelectFileCommand}
+    }
 }
 
-# tkuMakeDirectorySelector
-# -variable : variable name of the entry value (required)
-# -text : text for the prompt
-# -getdefaultdir : a function that returns the default directory
-# -defaultdir : the default directory
-proc tkuMakeDirectorySelector { isFrame args } {
+proc tkuUpdateFileSelectorVariable { ifwSelector } {
+    $ifwSelector.ew update;
+}
+
+# tkuMakeDirectorySelector:
+# -variable : variable to set with dirname (required)
+# -text : text prompt
+# -defaultfunc : function to call to get default dir
+# -defaultdir : default dir
+# -shortcutdirs : dirs to go in shortcut menu
+proc tkuMakeDirectorySelector { ifwTop args } {
     
     # set default arguments for all fields
     set aArgs(-text) "Choose a directory:"
@@ -536,43 +1006,106 @@ proc tkuMakeDirectorySelector { isFrame args } {
 	}
     }
 
-    frame $isFrame -width 200
+    frame $ifwTop -width 200
     
-    upvar $aArgs(-variable) theVar 
+    # the entry
+    tixLabelEntry $ifwTop.ew \
+	-label $aArgs(-text) \
+	-labelside acrosstop \
+	-options "entry.textVariable $aArgs(-variable) \
+                  entry.expand yes \
+                  entry.fill x \
+                  label.font [tkuLabelFont]"
+    
+    [$ifwTop.ew subwidget entry] icursor end
 
-    tixFileEntry $isFrame.few \
-	    -label $aArgs(-text) \
-	    -labelside top \
-	    -variable $aArgs(-variable) \
-	    -dialogtype tixDirSelectDialog \
-	    -options {
-	entry.expand yes
-	entry.fill x
+    set sDefaultDirOption ""
+    if { [info exists aArgs(-defaultfunc)] } {
+	set sDefaultDirOption "-defaultfunc $aArgs(-defaultfunc)"
     }
-    
-    # set the value of the field to the value of the variable
-    $isFrame.few config -value $theVar
+    if { [info exists aArgs(-defaultdir)] } {
+	set sDefaultDirOption "-defaultdir $aArgs(-defaultdir)"
+    }
+    set sShortcutDirsOption ""
+    if { [info exists aArgs(-shortcutdirs)] } {
+	set sShortcutDirsOption "-shortcutdirs $aArgs(-shortcutdirs)"
+    }
 
-    # set the default location 
-    if { [info exists aArgs(-getdefaultdir)] } {
-	[$isFrame.few filedialog subwidget dirbox] \
-	       subwidget dirlist configure -value [eval $aArgs(-getdefaultdir)]
-    }
-    if {[info exists aArgs(-defaultdir)]} {
-	$ifwTop.few filedialog subwidget fsbox \
-		configure -directory $aArgs(-defaultdir)
-    }
+    # the browse button
+    button $ifwTop.bw \
+	-text "Browse..." \
+	-command "tkuBrowseDirectory -variable $aArgs(-variable) $sDefaultDirOption $sShortcutDirsOption"
     
-    pack $isFrame.few \
-	    -side left \
-	    -expand yes \
-	    -fill x
+    # pack it in a grid
+    grid $ifwTop.ew -column 0 -row 0 -sticky ew
+    grid $ifwTop.bw -column 1 -row 0
+    grid columnconfigure $ifwTop 0 -weight 1
+    grid columnconfigure $ifwTop 1 -weight 0
 }
 
-proc tkuUpdateDirectorySelectorVariable { isFrame } {
+# tkuBrowseDirectory
+# -variable : variable name to set (required)
+# -defaultfunc : function to call to get default dir
+# -defaultdir : default dir
+# -shortcutdirs : dirs to go in shortcut menu
+proc tkuBrowseDirectory { args } {
+    
+    # Set menu items and make sure we have the ones we require,
+    array set aArgs $args
+    foreach arg {-variable} {
+	if {![info exists aArgs($arg)]} {
+	    puts "tkuBrowseDirectory: no $arg specified"
+	    return
+	}
+    }
 
-    $isFrame.few update;
+    # create the dialog box if it doesn't already exist
+    set wwDirDlog .wwDirDlog
+    if ![winfo exists $wwDirDlog] {
+	tixDirSelectDialog $wwDirDlog
+    }
+    
+    # set the default location. if it's actually returning a file
+    # name, get just the directory portion instead.
+    set fnDefaultDir ""
+    if { [info exists aArgs(-defaultfunc)] } {
+	set fnDefaultDir [$aArgs(-defaultfunc)]
+    }
+    if { [info exists aArgs(-defaultdir)] } {
+	set fnDefaultDir $aArgs(-defaultdir)
+    }
+    if { $fnDefaultDir != "" } {
+	if { [file isfile $fnDefaultDir] } {
+	    set fnDefault [file dirname $fnDefaultDir]
+	}
+	[$wwDirDlog subwidget dirbox] configure -value $fnDefaultDir
+    }
+    
+    # add shortcuts
+    if { [info exists aArgs(-shortcutdirs)] } {
+	foreach sDirectory $aArgs(-shortcutdirs) {
+	    [[[$wwDirDlog subwidget dirbox] subwidget dircbx] subwidget combo]\
+		appendhistory $sDirectory
+	}
+    }
+    
+    # when they click ok, call the tkuHandleSelectDirectory function,
+    # passing in the variable from the parent dialog.
+    $wwDirDlog config -command "tkuHandleSelectDirectory $aArgs(-variable)"
+    
+    $wwDirDlog popup
 }
+
+proc tkuHandleSelectDirectory { iVariable ifnDir } {
+    # set the variable.
+    upvar $iVariable theVar 
+    set theVar $ifnDir
+}
+
+proc tkuUpdateDirectorySelectorVariable { ifwSelector } {
+    $ifwSelector.ew update;
+}
+
 
 # ============================================================ BUTTON GROUPS
 
@@ -607,6 +1140,33 @@ proc tkuMakeCancelOKButtons { ifwTop iwwTop args } {
       "$ifwTop.bwCancel flash; $ifwTop.bwCancel invoke"
 
     pack $ifwTop.bwOK $ifwTop.bwCancel \
+      -side right \
+      -padx 5 \
+      -pady 5
+}
+
+# tkuMakeCloseButton
+# -closeCmd : command to execute when Cancel button is pressed
+proc tkuMakeCloseButton { ifwTop iwwTop args } {
+
+    global kLabelFont
+
+    # Set menu items and make sure we have the ones we require,
+    array set aArgs $args
+
+    set closeCmd ""
+    if {[info exists aArgs(-closeCmd)]} { set closeCmd $aArgs(-closeCmd) }
+
+    frame $ifwTop
+    
+    button $ifwTop.bwClose \
+      -text "Close" \
+      -command "$closeCmd; tkuCloseDialog $iwwTop"
+
+    bind $iwwTop <Escape> \
+      "$ifwTop.bwClose flash; $ifwTop.bwClose invoke"
+
+    pack $ifwTop.bwClose \
       -side right \
       -padx 5 \
       -pady 5
@@ -712,3 +1272,57 @@ proc tkuDestroyMsgDlog { iTop } {
 
     destroy $iTop
 }
+
+proc tkuErrorDlog { isMsg } {
+
+    tk_messageBox -type ok \
+      -icon error \
+      -message $isMsg \
+      -title "Error"
+}
+
+proc tkuFormattedErrorDlog { isTitle isMsg isDesc } {
+
+    global gDialog
+
+    set wwDialog .wwFormattedErrorDlog
+
+    # try to create the dlog...
+    if { [tkuCreateDialog $wwDialog "Error" {-borderwidth 10}] } {
+	
+	set fwText       $wwDialog.fwText
+	set fwButtons    $wwDialog.fwButtons
+	
+	text $fwText -width 40 \
+	    -height 10 \
+	    -spacing3 10 \
+	    -relief flat \
+	    -wrap word
+	$fwText insert end "Error: $isTitle \n" {tTitle}
+	$fwText insert end "$isMsg \n" {tMsg}
+	$fwText insert end "$isDesc \n" {tDesc}
+	$fwText tag configure tTitle -font [tkuLabelFont]
+	$fwText tag configure tMsg -font [tkuNormalFont]
+	$fwText tag configure tDesc -font [tkuNormalFont]
+	$fwText configure -state disabled
+	
+	# button.
+	tkuMakeCloseButton $fwButtons $wwDialog
+	
+	pack $fwText $fwButtons \
+	    -side top       \
+	    -expand yes     \
+	    -fill x         \
+	    -padx 5         \
+	    -pady 5
+    }
+}
+
+proc tkuAlertDlog { isMsg } {
+
+    tk_messageBox -type ok \
+      -icon info \
+      -message $isMsg \
+      -title "Note"
+}
+

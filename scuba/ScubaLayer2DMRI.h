@@ -31,11 +31,54 @@ class ScubaLayer2DMRI : public Layer {
   virtual TclCommandResult
     DoListenToTclCommand ( char* iCommand, int iArgc, char** iArgv );
 
+  enum ColorMapMethod { grayscale, heatScale, LUT };
+  void SetColorMapMethod ( ColorMapMethod iMethod ) { 
+    mColorMapMethod = iMethod; }
+  ColorMapMethod GetColorMapMethod () { return mColorMapMethod; }
+
+  enum SampleMethod { nearest, trilinear, sinc };
+  void SetSampleMethod ( SampleMethod iSampleMethod ) {
+    mSampleMethod = iSampleMethod; }
+  SampleMethod GetSampleMethod () { return mSampleMethod; }
+
+  static int const cGrayscaleLUTEntries;
+  static int const kMaxPixelComponentValue;  
+  void BuildGrayscaleLUT ();
+  void SetBrightness ( float iBrightness ) { mBrightness = iBrightness; }
+  void SetContrast ( float iContrast ) { mContrast = iContrast; }
+
+  static int const cDefaultFileLUTEntries;  
+  void BuildLUTFromFile ();
+  void SetLUTFileName ( std::string ifn ) { mfnLUT = ifn; }
+
+  void SetMinVisibleValue ( float iValue ) { mMinVisibleValue = iValue; }
+  float GetMinVisibleValue () { return mMinVisibleValue; }
+  void SetMaxVisibleValue ( float iValue ) { mMaxVisibleValue = iValue; }
+  float GetMaxVisibleValue () { return mMaxVisibleValue; }
+
+  float GetMinValue () { return mMinValue; }
+  float GetMaxValue () { return mMaxValue; }
+
  protected:
   VolumeCollection* mVolume;
   MATRIX* mWorldToIndexMatrix;
   VECTOR* mWorldCoord;
   VECTOR* mIndexCoord;
+  
+  SampleMethod mSampleMethod;
+  ColorMapMethod mColorMapMethod;
+
+  float mBrightness, mContrast;
+  std::map<int,float> mGrayscaleLUT; // 0-255
+
+  std::string mfnLUT;
+  int mcFileLUTEntries;
+  struct LUTEntry { std::string msLabel; float r; float g; float b; };
+  std::map<int,LUTEntry> mFileLUT; 
+
+  bool mbClearZero;
+  float mMinVisibleValue, mMaxVisibleValue;
+  float mMinValue, mMaxValue;
 };
 
 
