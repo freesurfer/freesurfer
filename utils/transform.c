@@ -602,7 +602,7 @@ LTAdivide(LTA *lta, MRI *mri)
 MRI*
 LTAtransform(MRI *mri_src, MRI *mri_dst, LTA *lta)
 {
-  return LTAtransformInterp(mri_src, mri_dst, lta, -1);
+  return LTAtransformInterp(mri_src, mri_dst, lta, SAMPLE_TRILINEAR);
 }
 
 MRI *
