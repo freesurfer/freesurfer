@@ -355,6 +355,7 @@ typedef struct
 #define PGM_IMAGE      4 
 #define PPM_IMAGE      5 /* Write not yet implemented */
 #define PBM_IMAGE      6 /* Write not yet implemented */
+#define RGBI_IMAGE     7 
 
 #define END_UNDEF 0
 #define END_BIG   1
