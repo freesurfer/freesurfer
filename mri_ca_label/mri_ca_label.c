@@ -97,6 +97,7 @@ main(int argc, char *argv[])
   GCA          *gca ;
   TRANSFORM     *transform ;
 
+  setRandomSeed(-1L) ;
   Progname = argv[0] ;
   ErrorInit(NULL, NULL, NULL) ;
   DiagInit(NULL, NULL, NULL) ;
