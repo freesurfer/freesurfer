@@ -453,7 +453,7 @@ txfGetStringMetrics(
   int *max_ascent,
   int *max_descent)
 {
-  TexGlyphVertexInfo *tgvi;
+  TexGlyphVertexInfo *tgvi = NULL;
   int w, i;
 
   w = 0;
@@ -486,7 +486,7 @@ txfGetStringMetrics(
 void
 txfRenderGlyph(TexFont * txf, int c)
 {
-  TexGlyphVertexInfo *tgvi;
+  TexGlyphVertexInfo *tgvi = NULL ;  /* mysterious compiler warning */
 
   tgvi = getTCVI(txf, c);
   glBegin(GL_QUADS);
@@ -525,7 +525,7 @@ txfRenderFancyString(
   char *string,
   int len)
 {
-  TexGlyphVertexInfo *tgvi;
+  TexGlyphVertexInfo *tgvi = NULL ;
   GLubyte c[4][3];
   int mode = MONO;
   int i;
