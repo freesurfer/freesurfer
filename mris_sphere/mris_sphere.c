@@ -15,7 +15,7 @@
 #include "utils.h"
 #include "timer.h"
 
-static char vcid[]="$Id: mris_sphere.c,v 1.21 2000/02/28 12:22:05 fischl Exp $";
+static char vcid[]="$Id: mris_sphere.c,v 1.22 2001/01/12 19:17:41 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -66,7 +66,7 @@ int
 main(int argc, char *argv[])
 {
   char         **av, *in_surf_fname, *out_fname, 
-               fname[100], *cp ;
+               fname[STRLEN], *cp ;
   int          ac, nargs, msec ;
   MRI_SURFACE  *mris ;
   struct timeb  then ;
