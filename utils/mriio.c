@@ -48,9 +48,12 @@ static char MIfspace[] = "frame space" ;
 static void buffer_to_image(BUFTYPE *buf, MRI *mri, int slice) ;
 static void image_to_buffer(BUFTYPE *buf, MRI *mri, int slice) ;
 static MRI *mncRead(char *fname, int read_volume, int frame) ;
-static MRI *analyzeRead(char *fname, int read_volume, int frame) ;
 static int mncWrite(MRI *mri, char *fname, int frame) ;
+static MRI *analyzeRead(char *fname, int read_volume, int frame) ;
+static int analyzeWrite(MRI *mri, char *fname, int frame) ;
 static int read_analyze_header(char *fpref, dsr *bufptr) ;
+static int write_analyze_header(char *fpref, MRI *mri) ;
+static int write_analyze_image(char *fpref, MRI *mri) ;
 static int read_float_analyze_image(char *fname, MRI *mri, dsr *hdr) ;
 static int read_byte_analyze_image(char *fname, MRI *mri, dsr *hdr) ;
 
@@ -369,6 +372,8 @@ MRIwrite(MRI *mri, char *fpref)
   MRIunpackFileName(fpref, &frame, &type, fname) ;
   if (type == MRI_MINC_FILE)
     return(mncWrite(mri, fname, frame)) ;
+  else if (type == MRI_ANALYZE_FILE)
+    return(analyzeWrite(mri, fname, frame)) ;
 
   MRIwriteInfo(mri, fpref) ;
   bytes = (long)mri->width * (long)mri->height ;
@@ -1040,6 +1045,47 @@ MRIflipByteOrder(MRI *mri_src, MRI *mri_dst)
 
         Description
 ------------------------------------------------------*/
+static int
+analyzeWrite(MRI *mri, char *fname, int frame)
+{
+  int   type, start_frame, end_frame ;
+
+  if (frame < 0)
+  {
+    start_frame = 0 ;
+    end_frame = mri->nframes-1 ;
+  }
+  else
+    start_frame = end_frame = frame ;
+
+  if (mri->slice_direction != MRI_CORONAL)
+    ErrorReturn(ERROR_UNSUPPORTED, 
+                (ERROR_UNSUPPORTED,"analyzeWrite: unsupported slice direction %d", 
+                mri->slice_direction)) ;
+
+  switch (mri->type)
+  {
+  case MRI_UCHAR: type = DT_UNSIGNED_CHAR ; break ;
+  case MRI_FLOAT: type = DT_FLOAT ;         break ;
+  default:
+    ErrorReturn(ERROR_UNSUPPORTED, 
+                (ERROR_UNSUPPORTED, "analyzeWrite: unsupported MRI type %d",
+                 mri->type)) ;
+    break ;
+  }
+
+  write_analyze_header(fname, mri) ;
+  write_analyze_image(fname, mri) ;
+
+  return(NO_ERROR) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
 static MRI *
 analyzeRead(char *fname, int read_volume, int frame)
 {
@@ -1212,7 +1258,13 @@ read_analyze_header(char *fname, dsr *bufptr)
   }
   return(NO_ERROR) ;
 }
+/*-----------------------------------------------------
+        Parameters:
 
+        Returns value:
+
+        Description
+------------------------------------------------------*/
 static int
 read_float_analyze_image(char *fname, MRI *mri, dsr *hdr)
 {
@@ -1295,7 +1347,13 @@ read_float_analyze_image(char *fname, MRI *mri, dsr *hdr)
   free(buf) ;
   return(NO_ERROR) ;
 }
+/*-----------------------------------------------------
+        Parameters:
 
+        Returns value:
+
+        Description
+------------------------------------------------------*/
 static int
 read_byte_analyze_image(char *fname, MRI *mri, dsr *hdr)
 {
@@ -1374,7 +1432,197 @@ read_byte_analyze_image(char *fname, MRI *mri, dsr *hdr)
   free(buf) ;
   return(NO_ERROR) ;
 }
+/*-----------------------------------------------------
+        Parameters:
 
+        Returns value:
+
+        Description
+------------------------------------------------------*/
+static int
+write_analyze_header(char *fname, MRI *mri)
+{
+  FILE  *fp;
+  char  hdr_fname[STRLEN], *dot ;
+  int   nread, i ;
+  dsr   hdr ;
+  float fmin, fmax ;
+
+  memset(&hdr, 0, sizeof(hdr)) ;
+  hdr.hk.sizeof_hdr = sizeof(hdr) ;
+  hdr.hk.extents = 0 ;
+  hdr.hk.session_error = 0 ;
+  for (i=0;i<8;i++)
+    hdr.dime.dim[i] = 0 ;
+  hdr.dime.dim[3] = mri->width ; 
+  hdr.dime.dim[2] = mri->height ;
+  hdr.dime.dim[1] = mri->depth ;
+  hdr.dime.dim[4] = mri->nframes ;
+
+  switch (mri->type)
+  {
+  case MRI_FLOAT:
+    hdr.dime.datatype = DT_FLOAT ;
+    hdr.dime.bitpix = sizeof(float) * 8 ;
+    break ;
+  case MRI_UCHAR:
+    hdr.dime.datatype = DT_UNSIGNED_CHAR ;
+    hdr.dime.bitpix = sizeof(unsigned char) * 8 ;
+    break ;
+  default:
+    ErrorReturn(ERROR_UNSUPPORTED, 
+                (ERROR_UNSUPPORTED, 
+                 "write_analyze_header: unsupported volume type %d", mri->type));
+  }
+  hdr.dime.dim_un0 = 0 ;
+  for (i=0;i<8;i++)
+    hdr.dime.pixdim[i] = 0 ;
+  hdr.dime.pixdim[4] = 1.0 ;
+  hdr.dime.pixdim[3] = mri->xsize ;
+  hdr.dime.pixdim[2] = mri->ysize ;
+  hdr.dime.pixdim[1] = mri->zsize ;
+
+  hdr.dime.compressed = 0 ;
+  hdr.dime.verified = 0 ;
+  MRIvalRange(mri, &fmin, &fmax) ;
+  hdr.dime.glmax = nint(fmax) ;
+  hdr.dime.glmin = nint(fmin) ;
+  hdr.hist.views = 0 ;
+  hdr.hist.vols_added = 0 ;
+  hdr.hist.start_field = 0 ;
+  hdr.hist.field_skip = 0 ;
+  hdr.hist.omax = 0 ;
+  hdr.hist.omin = 0 ;
+  hdr.hist.smax = 0 ;
+  hdr.hist.smin = 0 ;
+  
+  strcpy(hdr_fname, fname) ;
+  dot = strrchr(hdr_fname, '.') ;
+  if (dot)
+    *dot = 0 ;
+  strcat(hdr_fname, ".hdr") ;
+  fp = fopen(hdr_fname,"wb");
+  if (fp==NULL) 
+    ErrorReturn(ERROR_NO_FILE, 
+                (ERROR_NO_FILE, "File %s not found\n", hdr_fname)) ;
+
+#ifdef Linux
+  hdr.hk.sizeof_hdr = swapInt(hdr.hk.sizeof_hdr) ;
+  hdr.hk.extents = swapInt(hdr.hk.extents) ;
+  hdr.hk.session_error = swapInt(hdr.hk.session_error) ;
+  for (i=0;i<8;i++)
+    hdr.dime.dim[i] = swapShort(hdr.dime.dim[i]) ;
+
+  hdr.dime.datatype = swapShort(hdr.dime.datatype) ;
+  hdr.dime.bitpix = swapShort(hdr.dime.bitpix) ;
+  hdr.dime.dim_un0 = swapShort(hdr.dime.dim_un0) ;
+  for (i=0;i<8;i++)
+    hdr.dime.pixdim[i] = swapFloat(hdr.dime.pixdim[i]) ;
+
+  hdr.dime.compressed = swapFloat(hdr.dime.compressed) ;
+  hdr.dime.verified = swapFloat(hdr.dime.verified) ;
+  hdr.dime.glmax = swapInt(hdr.dime.glmax) ;
+  hdr.dime.glmin = swapInt(hdr.dime.glmin) ;
+  hdr.hist.views = swapInt(hdr.hist.views) ;
+  hdr.hist.vols_added = swapInt(hdr.hist.vols_added) ;
+  hdr.hist.start_field = swapInt(hdr.hist.start_field) ;
+  hdr.hist.field_skip = swapInt(hdr.hist.field_skip) ;
+  hdr.hist.omax = swapInt(hdr.hist.omax) ;
+  hdr.hist.omin = swapInt(hdr.hist.omin) ;
+  hdr.hist.smax = swapInt(hdr.hist.smax) ;
+  hdr.hist.smin = swapInt(hdr.hist.smin) ;
+#endif
+  nread = fwrite(&hdr, sizeof(char), sizeof(dsr),fp);
+  fclose(fp);
+  if (nread != sizeof(dsr))
+    ErrorReturn(ERROR_BADFILE, 
+                (ERROR_BADFILE,
+                 "write_analyze_header: could write read %d of %d bytes",
+                 nread, sizeof(dsr))) ;
+  return(NO_ERROR) ;
+}
+
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
+static int
+write_analyze_image(char *fname, MRI *mri)
+{
+  int    x, y, z, bufsize, bytes_per_pix, width, height, depth, xd, yd, zd ;
+  FILE   *fp;
+  int    nread ;
+  char   *buf ;
+  float  f ;
+
+  bytes_per_pix = mri->type == MRI_FLOAT ? sizeof(float) : sizeof(char) ;
+  width = mri->depth ;
+  height = mri->height ;
+  depth = mri->width ;
+  bufsize = width * height ;
+
+  fp = fopen(fname,"wb");
+  if (fp==NULL) 
+    ErrorReturn(ERROR_NOFILE, (ERROR_NOFILE, "File %s not found\n",fname)) ;
+
+  buf = (char *)calloc(bufsize, bytes_per_pix) ;
+  if (!buf)
+  {
+    fclose(fp) ;
+    ErrorReturn(ERROR_NOMEMORY, 
+                (ERROR_NOMEMORY, 
+                 "read_analyze_image: could not allocate %d x %d x %d buffer",
+                 width, height, bytes_per_pix)) ;
+  }
+
+  for (z = 0 ; z < depth ; z++)
+  {
+    for (y = 0 ; y < height ; y++)
+    {
+      for (x = 0 ; x < width ; x++)
+      {
+        xd = z  ; yd = (height-y-1) ; zd = (width-x-1) ;
+        if (mri->type == MRI_FLOAT)
+          f = MRIFvox(mri, xd, yd, zd) ;
+        else
+          f = MRIvox(mri, xd, yd, zd) ;
+#ifdef Linux
+        f = swapFloat(f) ;
+#endif
+        switch (mri->type)
+        {
+        default:
+          printf("data type %d not supported\n",mri->type);
+          exit(1);
+          break;
+        case MRI_UCHAR:
+          *(unsigned char *)(buf+bytes_per_pix*(y*width+x)) = (char)nint(f) ;
+          break;
+        case MRI_FLOAT:
+          *(float *)(buf+bytes_per_pix*(y*width+x)) = f ;
+          break;
+        }
+      }
+    }
+    nread = fwrite(buf, bytes_per_pix, bufsize, fp) ;
+    if (nread != bufsize)
+    {
+      free(buf) ;
+      fclose(fp) ;
+      ErrorReturn(ERROR_BADFILE, 
+                  (ERROR_BADFILE, 
+                   "write_analyze_image: could not write slice %d (%d items read)",
+                   z, bufsize)) ;
+    }
+
+  }
+  fclose(fp);
+  free(buf) ;
+  return(NO_ERROR) ;
+}
   c = header->hist.originator[8]; header->hist.originator[8] = header->hist.originator[9]; header->hist.originator[9] = c;
 
 }  /*  end flipAnalyzeHeader()  */
