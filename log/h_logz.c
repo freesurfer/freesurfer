@@ -97,6 +97,7 @@ static void  bnormalize(LOGMAP_INFO *lmi, IMAGE *Isrc, IMAGE *Idst,
 static void logBuildRhoList(LOGMAP_INFO *lmi) ;
 static void logBuildValidSpokeList(LOGMAP_INFO *lmi) ;
 static void writeIterations(char *fname, LOGMAP_INFO *lmi, float end_time) ;
+static void writeTimes(char *fname, LOGMAP_INFO *lmi, int niter) ;
 
 /*----------------------------------------------------------------------
                            FUNCTIONS
@@ -1378,7 +1379,10 @@ LogMapDiffusePerona(LOGMAP_INFO *lmi, IMAGE *inImage, IMAGE *outImage,
 
   if (Gdiag & DIAG_LOGDIFF)
   {
-    writeIterations("niter.dat", lmi, end_time) ;
+    if (time_type == DIFFUSION_TIME_LOG)
+      writeTimes("etimes.dat", lmi, niterations) ;
+    else
+      writeIterations("niter.dat", lmi, end_time) ;
     if (Gdiag & DIAG_WRITE)
       fprintf(stderr, "end time = %2.3f, niter = %d\n", end_time,niterations);
   }
@@ -2214,3 +2218,37 @@ writeIterations(char *fname, LOGMAP_INFO *lmi, float end_time)
   if (fp != stdout)
     fclose(fp) ;
 }
+static void
+writeTimes(char *fname, LOGMAP_INFO *lmi, int niter)
+{
+  int    ring, spoke ;
+  float  rho, end_time ;
+  FILE   *fp ;
+
+  if (!strcmp(fname, "stdout"))
+    fp = stdout ;
+  else
+    fp = fopen(fname, "w") ;
+
+  for (spoke = 0 ; spoke < lmi->nspokes ; spoke++)
+  {
+    for (ring = 0 ; ring < lmi->nrings ; ring++)
+    {
+      if (LOG_PIX_AREA(lmi, ring, spoke) <= 0)
+      {
+        end_time = 0.0f ;
+      }
+      else
+      {
+        rho = LOG_PIX_RHO(lmi, ring, spoke) ;
+        end_time = niter * (exp(2.0f * rho) * KERNEL_MUL) ;
+      }
+      fprintf(fp, "%3.3f ", end_time) ;
+    }
+    fprintf(fp, "\n") ;
+  }
+
+  if (fp != stdout)
+    fclose(fp) ;
+}
+
