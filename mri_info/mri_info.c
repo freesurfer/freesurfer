@@ -3,6 +3,7 @@
 #include <unistd.h>
 #include <string.h>
 #include <ctype.h>
+#include <time.h>
 #include "machine.h"
 #include "fio.h"
 #include "utils.h"
@@ -387,6 +388,10 @@ static void read_ge_5x_file(char *fname, struct stat stat_buf)
   printf("patient sex: %hd\n", s);
   read_string(fp, header.exam_header_offset + 305, string, 3);
   printf("exam type: %s\n", string);
+  read_int(fp, header.exam_header_offset + 208, &i);
+  strcpy(string, ctime((time_t *)&i));
+  string[strlen(string)-1] = '\0';
+  printf("exam date: %s\n", string);
 
   read_string(fp, header.exam_header_offset + 10, string, 33);
   printf("hospital name: %s\n", string);
@@ -413,6 +418,10 @@ static void read_ge_5x_file(char *fname, struct stat stat_buf)
   printf("series description: %s\n", string);
   read_short(fp, header.series_header_offset + 140, &s);
   printf("number of acquisitions: %hd\n", s);
+  read_int(fp, header.series_header_offset + 16, &i);
+  strcpy(string, ctime((time_t *)&i));
+  string[strlen(string)-1] = '\0';
+  printf("series date: %s\n", string);
 
   read_short(fp, header.image_header_offset + 12, &s);
   printf("image number: %hd\n", s);
@@ -438,6 +447,10 @@ static void read_ge_5x_file(char *fname, struct stat stat_buf)
   printf("pulse sequence name: %s\n",string);
   read_string(fp, header.image_header_offset + 362, string, 17);
   printf("coil name: %s\n",string);
+  read_int(fp, header.image_header_offset + 18, &i);
+  strcpy(string, ctime((time_t *)&i));
+  string[strlen(string)-1] = '\0';
+  printf("image date: %s\n", string);
 
   read_float(fp, header.image_header_offset + 130, &f);
   printf("center R: %g\n", f);
