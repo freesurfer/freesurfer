@@ -1189,15 +1189,13 @@ TiffWriteImage(IMAGE *I, char *fname, int frame)
   {
     TIFFSetField(out, TIFFTAG_IMAGEWIDTH, (uint32) I->cols);
     TIFFSetField(out, TIFFTAG_IMAGELENGTH, (uint32) I->rows);
+    // orientation is bot-left
     TIFFSetField(out, TIFFTAG_ORIENTATION, ORIENTATION_BOTLEFT);
     TIFFSetField(out, TIFFTAG_SAMPLESPERPIXEL, samples_per_pixel);
     TIFFSetField(out, TIFFTAG_BITSPERSAMPLE, bits_per_sample);
     TIFFSetField(out, TIFFTAG_PLANARCONFIG, PLANARCONFIG_CONTIG);
     TIFFSetField(out, TIFFTAG_PHOTOMETRIC, PHOTOMETRIC_MINISBLACK);
     /* write out the data, line by line */
-    // here these are wrong
-    // TIFF writes image from the bottom
-    // thus row should be changed to height-row-1
     for (row = 0; row < I->rows; row++) 
     {
     switch (I->pixel_format)
