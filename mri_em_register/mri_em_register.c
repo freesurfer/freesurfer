@@ -157,7 +157,7 @@ main(int argc, char *argv[])
   float        old_log_p, log_p ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_em_register.c,v 1.27 2003/04/15 20:48:16 kteich Exp $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_em_register.c,v 1.28 2003/04/16 16:44:07 fischl Exp $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -213,10 +213,6 @@ main(int argc, char *argv[])
   if (gca == NULL)
     ErrorExit(ERROR_NOFILE, "%s: could not open GCA %s.\n",
               Progname, gca_fname) ;
-	if (ninputs != gca->ninputs && !map_to_flash)
-		ErrorExit(ERROR_BADPARM, "%s: must specify %d inputs, not %d for this atlas\n",
-			Progname, gca->ninputs, ninputs) ;
-
   if (novar)
     GCAunifyVariance(gca) ;
 	
@@ -333,6 +329,10 @@ main(int argc, char *argv[])
 		else
 			GCAhistoScaleImageIntensities(gca, mri_in) ;
 	}
+	if (ninputs != gca->ninputs)
+		ErrorExit(ERROR_BADPARM, "%s: must specify %d inputs, not %d for this atlas\n",
+			Progname, gca->ninputs, ninputs) ;
+
 	parms.vgca = (void *)gca ;
   printf("freeing gibbs priors...") ;
   GCAfreeGibbs(gca) ;
