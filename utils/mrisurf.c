@@ -4550,6 +4550,8 @@ mrisComputeTangentPlanes(MRI_SURFACE *mris)
   for (vno = 0 ; vno < mris->nvertices ; vno++)
   {
     vertex = &mris->vertices[vno] ;
+    if (vno == 288)
+      DiagBreak() ;
     if (vno == 4013)
       DiagBreak() ;
     VECTOR_LOAD(v_n, vertex->nx, vertex->ny, vertex->nz) ;
@@ -4563,6 +4565,14 @@ mrisComputeTangentPlanes(MRI_SURFACE *mris)
     VECTOR_LOAD(v, vertex->ny, vertex->nz, vertex->nx) ;
 #endif
     V3_CROSS_PRODUCT(v_n, v, v_e1) ;
+    if (!V3_LEN(v_e1))  /* happened to pick a parallel vector */
+    {
+      VECTOR_LOAD(v, vertex->ny, -vertex->nz, vertex->nx) ;
+      V3_CROSS_PRODUCT(v_n, v, v_e1) ;
+    }
+
+    if (!V3_LEN(v_e1))  /* happened to pick a parallel vector */
+      fprintf(stderr, "vertex %d: degenerate tangent plane\n", vno) ;
     V3_CROSS_PRODUCT(v_n, v_e1, v_e2) ;
     V3_NORMALIZE(v_e1, v_e1) ;
     V3_NORMALIZE(v_e2, v_e2) ;
@@ -5100,7 +5110,7 @@ MRIScomputeSecondFundamentalForm(MRI_SURFACE *mris)
     m_U = MatrixAlloc(neighbors, 3, MATRIX_REAL) ;
     v_z = VectorAlloc(neighbors, MATRIX_REAL) ;
 
-    if (vno == 30424 || vno == 25815)
+    if (vno == 102 || vno == 288)
       DiagBreak() ;
 
     /* fit a quadratic form to the surface at this vertex */
