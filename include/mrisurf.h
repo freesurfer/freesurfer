@@ -923,6 +923,19 @@ int  MRISsetFlags(MRI_SURFACE *mris, int flags) ;
 int MRISmedianFilterVals(MRI_SURFACE *mris, int nmedians) ;
 int MRISmedianFilterVal2s(MRI_SURFACE *mris, int nmedians) ;
 int MRISmedianFilterVal2baks(MRI_SURFACE *mris, int nmedians) ;
+
+
+/* Some utility functions to handle reading and writing annotation
+   values. MRISRGBToAnnot stuffs an r,g,b tuple into an annotation
+   value and MRISAnnotToRGB separates an annotation value into an
+   r,g,b tuple. */
+#define MRISAnnotToRGB(annot,r,g,b)  \
+     r = annot & 0xff ;         \
+     g = (annot >> 8) & 0xff ;  \
+     b = (annot >> 16) & 0xff ;
+#define MRISRGBToAnnot(r,g,b,annot) \
+     annot = ((r) & 0xff) | (((g) & 0xff) << 8) | (((b) & 0xff) << 16);
+
 #endif
 
 
