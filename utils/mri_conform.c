@@ -28,7 +28,8 @@ MATRIX *MRIgetConformMatrix(MRI *mri)
     mri->y_r =  0.0;  mri->y_a =  0.0;  mri->y_s = -1.0;
     mri->z_r =  0.0;  mri->z_a =  1.0;  mri->z_s =  0.0;
     mri->c_r =  0.0;  mri->c_a =  0.0;  mri->c_s =  0.0;
- } 
+    mri->slice_direction = MRI_CORONAL;
+  } 
 
   templ = MRIallocHeader(256, 256, 256, MRI_UCHAR);
 
@@ -68,6 +69,7 @@ MRI *MRIconform(MRI *mri)
     res->y_r =  0.0;  res->y_a =  0.0;  res->y_s = -1.0;
     res->z_r =  0.0;  res->z_a =  1.0;  res->z_s =  0.0;
     res->c_r =  0.0;  res->c_a =  0.0;  res->c_s =  0.0;
+    res->slice_direction = MRI_CORONAL;
   } 
 
   templ = MRIallocHeader(256, 256, 256, MRI_UCHAR);
