@@ -10,7 +10,7 @@ if { $err } {
     load [file dirname [info script]]/libscuba[info sharedlibextension] scuba
 }
 
-DebugOutput "\$Id: scuba.tcl,v 1.42 2004/07/23 13:57:13 kteich Exp $"
+DebugOutput "\$Id: scuba.tcl,v 1.43 2004/07/30 04:59:33 kteich Exp $"
 
 # gTool
 #   current - current selected tool (nav,)
@@ -1168,6 +1168,25 @@ proc MakeDataCollectionsPropertiesPanel { ifwTop } {
     grid $fwPropsSurface.fwSurface -column 0 -row 0 -sticky ew
     set gaWidget(collectionProperties,surface) $fwPropsSurface
 
+    tkuMakeCheckboxes $fwPropsSurface.cbTransformFromVolume \
+	-font [tkuNormalFont] \
+	-checkboxes { 
+	    {-type text -label "Set RAS Transform from Volume" 
+		-variable gaCollection(current,surfaceTransformFromVolume)
+		-command { SetSurfaceTransformVolume; UpdateTransformList }}
+	}
+
+    grid $fwPropsSurface.cbTransformFromVolume -column 0 -row 1 -sticky ew
+
+    tixOptionMenu $fwPropsSurface.owTransformVolume \
+	-label "Volume:" \
+	-variable gaTransform(current,surfaceTransformVolume) \
+	-command { SurfaceTransformVolumeMenuCallback }
+    set gaWidget(collectionProperties,surfaceTransformMenu) \
+	$fwPropsSurface.owTransformVolume
+
+    grid $fwPropsSurface.owTransformVolume -column 0 -row 2 -sticky ew
+
 
     frame $fwROIs -relief ridge -border 2
     tixOptionMenu $fwROIs.menu \
@@ -1813,6 +1832,14 @@ proc CollectionPropertiesMenuCallback { iColID } {
 proc SelectCollectionInCollectionProperties { iColID } {
     dputs "SelectCollectionInCollectionProperties  $iColID  "
 
+    global gaCollection
+
+    set gaCollection(current,id) $iColID
+    UpdateCurrentCollectionInCollectionProperites
+}
+
+proc UpdateCurrentCollectionInCollectionProperites {} {
+
     global gaWidget
     global gaCollection
 
@@ -1822,17 +1849,17 @@ proc SelectCollectionInCollectionProperties { iColID } {
 
     # Get the general collection properties from the collection and
     # load them into the 'current' slots.
-    set gaCollection(current,id) $iColID
-    set gaCollection(current,type) [GetCollectionType $iColID]
-    set gaCollection(current,label) [GetCollectionLabel $iColID]
-    set gaCollection(current,transformID) [GetDataTransform $iColID]
+    set colID $gaCollection(current,id)
+    set gaCollection(current,type) [GetCollectionType $colID]
+    set gaCollection(current,label) [GetCollectionLabel $colID]
+    set gaCollection(current,transformID) [GetDataTransform $colID]
     tkuRefreshEntryNotify $gaWidget(collectionProperties,labelEntry)
 
     # Make sure that this is the item selected in the menu. Disale the
     # callback and set the value of the menu to collection ID. Then
     # reenable the callback.
     $gaWidget(collectionProperties,menu) config -disablecallback 1
-    $gaWidget(collectionProperties,menu) config -value $iColID
+    $gaWidget(collectionProperties,menu) config -value $colID
     $gaWidget(collectionProperties,menu) config -disablecallback 0
     
     # Select the right transform in the transform menu
@@ -1850,7 +1877,7 @@ proc SelectCollectionInCollectionProperties { iColID } {
 
 	    # Get the type specific properties.
 	    set gaCollection(current,fileName) \
-		[GetVolumeCollectionFileName $iColID]
+		[GetVolumeCollectionFileName $colID]
 	}
 	Surface {
 	    # Pack the type panel.
@@ -1859,7 +1886,19 @@ proc SelectCollectionInCollectionProperties { iColID } {
 
 	    # Get the type specific properties.
 	    set gaCollection(current,fileName)\
-		[GetSurfaceCollectionFileName $iColID]
+		[GetSurfaceCollectionFileName $colID]
+	    set gaCollection(current,surfaceTransformFromVolume) \
+		[IsSurfaceUsingDataToSurfaceTransformFromVolume $colID]
+	    set gaCollection(current,surfaceTransformVolume) \
+		[GetSurfaceDataToSurfaceTransformVolume $colID]
+
+	    # Select the right in the surface transform menu
+	    $gaWidget(collectionProperties,surfaceTransformMenu) config \
+		-disablecallback 1
+	    $gaWidget(collectionProperties,surfaceTransformMenu) config \
+		-value $gaCollection(current,surfaceTransformVolume)
+	    $gaWidget(collectionProperties,surfaceTransformMenu) config \
+		-disablecallback 0    
 	}
     }
 
@@ -1887,16 +1926,41 @@ proc UpdateCollectionList {} {
 	SelectCollectionInCollectionProperties $gaCollection(current,id)
     }
 
-
     # Build source and dest menus in transforms.
     FillMenuFromList $gaWidget(transformProperties,regSourceMenu) \
 	$gaCollection(idList) "GetCollectionLabel %s" {} false
     FillMenuFromList $gaWidget(transformProperties,regDestMenu) \
 	$gaCollection(idList) "GetCollectionLabel %s" {} false
-	
+
+    FillMenuFromList $gaWidget(collectionProperties,surfaceTransformMenu) \
+	$gaCollection(idList) "GetCollectionLabel %s" {} false
 
     UpdateROIList
 }
+
+proc SurfaceTransformVolumeMenuCallback { iCollectionID } {
+    global gaCollection
+
+    set gaCollection(current,surfaceTransformVolume) $iCollectionID
+    SetSurfaceTransformVolume
+    UpdateCurrentCollectionInCollectionProperites
+}
+
+proc SetSurfaceTransformVolume {} {
+    
+    global gaCollection
+
+    if { $gaCollection(current,surfaceTransformFromVolume) } {
+
+	SetSurfaceDataToSurfaceTransformFromVolume $gaCollection(current,id) \
+	    $gaCollection(current,surfaceTransformVolume)
+
+    } else {
+
+	SetSurfaceDataToSurfaceTransformToDefault $gaCollection(current,id)
+    }
+}
+
 
 # ROI PROPERTIES FUNCTIONS ===============================================
 
@@ -3680,6 +3744,7 @@ foreach command $lCommands {
 
 
 
+bind $gaWidget(window) <Destroy> "Quit"
 bind $gaWidget(window) <Alt-Key-q> "Quit"
 bind $gaWidget(window) <Alt-Key-n> {
     if { $gaView(tkcon,visible) } {
