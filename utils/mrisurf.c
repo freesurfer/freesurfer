@@ -4890,50 +4890,31 @@ MRISreadFromVolume(MRI *mri, MRI_SURFACE *mris)
 
         Description
 ------------------------------------------------------*/
-#define GDIAG_NO 79221
-#define DEBUG_U  -10  /* -10 25*/
-#define DEBUG_V  0  /* 2 */
-
 MRI_SURFACE *
-MRISrotate(MRI_SURFACE *mris_src, MRI_SURFACE *mris_dst, float dphi, 
-                float dtheta)
+MRISrotate(MRI_SURFACE *mris_src, MRI_SURFACE *mris_dst, 
+           float alpha, float beta, float gamma)
 {
   int      vno ;
   VERTEX   *vertex ;
-  float    phi, theta, x, y, z, a, b, c ;
+  float    x, y, z, ca, cb, cg, sa, sb, sg, xp, yp, zp ;
 
   if (!mris_dst)
     mris_dst = MRISclone(mris_src) ;
 
-  if (FZERO(mris_src->a))
-  {
-    a = DEFAULT_A ;
-    b = DEFAULT_B ;
-    c = DEFAULT_C ;
-  }
-  else
-  {
-    a = mris_src->a ;
-    b = mris_src->b ;
-    c = mris_src->c ;
-  }
+  sa = sin(alpha) ; sb = sin(beta) ; sg = sin(gamma) ;
+  ca = cos(alpha) ; cb = cos(beta) ; cg = cos(gamma) ;
+
   for (vno = 0 ; vno < mris_src->nvertices ; vno++)
   {
-    if (vno == GDIAG_NO)
+    if (vno == Gdiag_no)
       DiagBreak() ;
 
     vertex = &mris_src->vertices[vno] ;
     x = vertex->x ; y = vertex->y ; z = vertex->z ;
-    theta = atan2(y/b, x/a) ;
-    if (theta < 0.0f)
-      theta = 2.0f * M_PI + theta ;  /* make it 0 --> 2*PI */
-    phi = atan2(sqrt(c*c-z*z), z) ;
-    phi += dphi ;
-    theta += dtheta ;
-    x = a*sin(phi)*cos(theta) ;
-    y = b*sin(phi)*sin(theta) ;
-    z = c*cos(phi) ;
-    vertex->x = x ; vertex->y = y ; vertex->z = z ;
+    xp = x*ca*cb + z*(-ca*cg*sb - sa*sg) + y*(cg*sa-ca*sb*sg) ;
+    yp = -x*cb*sa + z*(cg*sa*sb-ca*sg) + y*(ca*cg+sa*sb*sg) ;
+    zp = z*cb*cg + x*sb + y*cb*sg ;
+    vertex->x = xp ; vertex->y = yp ; vertex->z = zp ;
   }
   return(mris_dst) ;
 }
