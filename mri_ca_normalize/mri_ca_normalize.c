@@ -94,7 +94,7 @@ main(int argc, char *argv[])
   TRANSFORM    *transform = NULL ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_ca_normalize.c,v 1.18 2004/03/15 21:31:59 tosa Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_ca_normalize.c,v 1.19 2004/03/17 18:28:16 tosa Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -179,8 +179,6 @@ main(int argc, char *argv[])
     free(labels) ; free(intensities) ;
   }
 
-
-
   for (input = 0 ; input < ninputs ; input++)
   {
     in_fname = argv[1+input] ;
@@ -232,8 +230,20 @@ main(int argc, char *argv[])
     MRIcopyFrame(mri_tmp, mri_in, 0, input) ;
     MRIfree(&mri_tmp) ;
   }
-
-  if (gca->type == GCA_FLASH)
+  //
+  if (gca->type == GCA_PARAM)
+  {
+    GCA *gca_tmp ;
+    
+    printf("mapping T1/PD atlas into %d-dimensional FLASH space atlas\n", mri_in->nframes) ;
+    // that means gca->ninputs = nframes
+    gca_tmp = GCAcreateFlashGCAfromParameterGCA(gca, TRs, fas, TEs, mri_in->nframes, 100) ;
+    // now the type is set gca->type = GCA_FLASH
+    GCAfree(&gca) ;
+    gca = gca_tmp ;
+    GCAhistoScaleImageIntensities(gca, mri_in) ;
+  }
+  else if (gca->type == GCA_FLASH)
   {
     GCA *gca_tmp ;
 
