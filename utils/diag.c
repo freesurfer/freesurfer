@@ -16,6 +16,8 @@
 
 #include "image.h"
 #include "diag.h"
+#include "window.h"
+#include "proto.h"
 
 /*-----------------------------------------------------
                     MACROS AND CONSTANTS
@@ -50,8 +52,8 @@ DiagInit(void)
   if (!cp) cp = getenv("DIAG") ;
   if (cp) 
   {
-    sscanf(cp, "0x%x", &Gdiag) ;
-    fprintf(stderr, "diagnostics set to 0x%x\n", Gdiag) ;
+    sscanf(cp, "0x%lx", &Gdiag) ;
+    fprintf(stderr, "diagnostics set to 0x%lx\n", Gdiag) ;
   }
 
 #if 0
@@ -90,8 +92,10 @@ DiagShowImage(unsigned long diag_bits, int win, int which, IMAGE *I,
 
   WinShowImage(win, I, which) ;
   WinSetName(win, which, name) ;
+#if 1
   if (diag_bits & DIAG_WAIT)     /* wait for a keystroke before continuing */
-    getchar() ;    
+    fgetc(stdin) ;    
+#endif
 
   return(win) ;
 }
@@ -110,7 +114,7 @@ DiagDrawBox(unsigned long diag_bits, int win, int row0, int col,
     return(-1) ;
 
   if (diag_bits & DIAG_WAIT)     /* wait for a keystroke before continuing */
-    getchar() ;    
+    fgetc(stdin) ;    
 
   return(0) ;
 }
