@@ -4,9 +4,9 @@
 
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2003/03/12 19:10:01 $
-// Revision       : $Revision: 1.132 $
-char *VERSION = "$Revision: 1.132 $";
+// Revision Date  : $Date: 2003/03/14 20:26:40 $
+// Revision       : $Revision: 1.133 $
+char *VERSION = "$Revision: 1.133 $";
 
 #define TCL
 #define TKMEDIT 
@@ -327,6 +327,8 @@ static tBoolean         gbAnatomicalVolumeDirty[tkm_knNumVolumeTypes];
 
 tkm_tErr LoadVolume    ( tkm_tVolumeType iType,
 			 char*     isFileName );
+
+tkm_tErr UnloadVolume  ( tkm_tVolumeType iType );
 
 /* saves the anatomical volume. if isPath is null, saves over the original. */
 tkm_tErr SaveVolume    ( tkm_tVolumeType iType,
@@ -2627,6 +2629,9 @@ tkm_tErr LoadSurface ( tkm_tSurfaceType iType,
   DebugAssertThrowX( (NULL != conformMatrix),
 		     eResult, tkm_tErr_CouldntAllocate );
 
+  fprintf(stderr,"conform:\n");
+  MatrixPrint(stderr,conformMatrix);
+
   DebugNote( ("Cloning gIdxToRASTransform to surfaceTransform") );
   eTrns = Trns_DeepClone( gIdxToRASTransform, &surfaceTransform );
   DebugAssertThrowX( (Trns_tErr_NoErr == eTrns),
@@ -3214,6 +3219,22 @@ int TclLoadAuxVolume ( ClientData inClientData, Tcl_Interp* inInterp,
     /* show the aux volume */
     MWin_SetDisplayFlag( gMeditWindow, -1, DspA_tDisplayFlag_AuxVolume, 
        TRUE );
+  }
+  
+  return TCL_OK;
+}
+
+int TclUnloadVolume ( ClientData inClientData, Tcl_Interp* inInterp,
+		      int argc, char* argv[] ) {
+  
+  if ( argc != 2 ) {
+    Tcl_SetResult ( inInterp, "wrong # args: UnloadVolume 1=aux",
+		    TCL_VOLATILE );
+    return TCL_ERROR;
+  }
+  
+  if( gbAcceptingTclCommands ) {
+    UnloadVolume( atoi(argv[1]) );
   }
   
   return TCL_OK;
@@ -4966,6 +4987,10 @@ int main ( int argc, char** argv ) {
           TclLoadAuxVolume,
           (ClientData) NULL, (Tcl_CmdDeleteProc*) NULL );
   
+  Tcl_CreateCommand ( interp, "UnloadVolume",
+		      TclUnloadVolume,
+		      (ClientData) NULL, (Tcl_CmdDeleteProc*) NULL );
+  
   Tcl_CreateCommand ( interp, "SaveVolume",
           TclSaveVolume,
           (ClientData) NULL, (Tcl_CmdDeleteProc*) NULL );
@@ -6538,6 +6563,49 @@ tkm_tErr LoadVolume ( tkm_tVolumeType iType,
         "recognized, or it couldn't find the proper header, "
         "or the file(s) were unreadable." );
   
+  EndDebugCatch;
+  
+  DebugExitFunction;
+  
+  return eResult;
+}
+
+
+tkm_tErr UnloadVolume ( tkm_tVolumeType iType ) {
+
+  tkm_tErr  eResult = tkm_tErr_NoErr;
+  
+  DebugEnterFunction( ("UnloadVolume( iType=%d )", (int)iType) );
+  
+  DebugAssertThrowX( (iType >= 0 && iType < tkm_knNumVolumeTypes),
+		     eResult, tkm_tErr_InvalidParameter );
+
+  /* Can't unload the main volume. */
+  DebugAssertThrowX( (tkm_tVolumeType_Main != iType),
+		     eResult, tkm_tErr_InvalidParameter );
+
+
+  switch( iType ) {
+  case tkm_tVolumeType_Aux:
+    tkm_SendTclCommand( tkm_tTclCommand_ShowAuxVolumeOptions, "0" );
+    tkm_SendTclCommand( tkm_tTclCommand_ShowAuxVolumeDirtyOptions, "0" );
+    tkm_SendTclCommand( tkm_tTclCommand_ShowAuxTransformLoadedOptions, "0" );
+    MWin_SetAuxVolume( gMeditWindow, -1, NULL, 
+		       gnAnatomicalDimensionX, gnAnatomicalDimensionY,
+		       gnAnatomicalDimensionZ );
+    break;
+  default:
+    break;
+  }
+
+  /* If the volume exists, delete it */
+  if( NULL != gAnatomicalVolume[iType] ) {
+    UnloadDisplayTransform( iType );
+    Volm_Delete( &gAnatomicalVolume[iType] );
+  }
+  
+  DebugCatch;
+  DebugCatchError( eResult, tkm_tErr_NoErr, tkm_GetErrorString );
   EndDebugCatch;
   
   DebugExitFunction;

@@ -3,8 +3,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2003/03/12 19:10:00 $
-// Revision       : $Revision: 1.54 $
+// Revision Date  : $Date: 2003/03/14 20:26:40 $
+// Revision       : $Revision: 1.55 $
 
 #include "tkmDisplayArea.h"
 #include "tkmMeditWindow.h"
@@ -330,17 +330,22 @@ DspA_tErr DspA_UpdateWindowTitle ( tkmDisplayAreaRef this ) {
   char      sVolumeName[STRLEN]  = "";
   char      sAuxVolumeName[STRLEN]  = "";
   
+  DebugEnterFunction( ("DspA_UpdateWindowTitle( this=%p )", this) );
+
   /* verify us. */
   eResult = DspA_Verify( this );
   if( DspA_tErr_NoErr != eResult )
     goto error;
   
   /* get the title information */
+  DebugNote( ("Getting main subject name") );
   Volm_CopySubjectName( this->mpVolume[tkm_tVolumeType_Main], 
 			sSubjectName, sizeof(sSubjectName) );
+  DebugNote( ("Getting main volume name") );
   Volm_CopyVolumeName( this->mpVolume[tkm_tVolumeType_Main],
 		       sVolumeName, sizeof(sVolumeName) );
   if( NULL != this->mpVolume[tkm_tVolumeType_Aux] ) {
+    DebugNote( ("Getting aux volume name") );
     Volm_CopyVolumeName( this->mpVolume[tkm_tVolumeType_Aux], 
 			 sAuxVolumeName, sizeof(sAuxVolumeName) );
   }
@@ -365,6 +370,7 @@ DspA_tErr DspA_UpdateWindowTitle ( tkmDisplayAreaRef this ) {
   }
   
   /* set the window name. */
+  DebugNote( ("Setting composed window name") );
   MWin_SetWindowTitle( this->mpWindow, sTitle );
   
   goto cleanup;
@@ -379,6 +385,8 @@ DspA_tErr DspA_UpdateWindowTitle ( tkmDisplayAreaRef this ) {
   
  cleanup:
   
+  DebugExitFunction;
+
   return eResult;
 }
 
@@ -517,6 +525,10 @@ DspA_tErr DspA_SetAuxVolume ( tkmDisplayAreaRef this,
   char      sVolumeName[tkm_knNameLen]     = "";
   char      sTclArguments[tkm_knTclCmdLen] = "";
   
+  DebugEnterFunction( ("DspA_SetAuxVolume( this=%p, ipVolume=%p, "
+		       "inSizeX=%d, inSizeY=%d, inSizeZ=%d)",
+		       this, ipVolume, inSizeX, inSizeY, inSizeZ) );
+  
   /* verify us. */
   eResult = DspA_Verify( this );
   if( DspA_tErr_NoErr != eResult )
@@ -583,6 +595,8 @@ DspA_tErr DspA_SetAuxVolume ( tkmDisplayAreaRef this,
   }
   
  cleanup:
+
+  DebugExitFunction;
   
   return eResult;
 }
