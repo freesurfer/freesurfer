@@ -23,7 +23,9 @@ if(~isempty(indz))
 end
 
 g = C*beta;
-F = (sum(g .* (gcvm*g))./rvar)/J;
+if(J ~= 1) F = (sum(g .* (gcvm*g))./rvar)/J;
+else       F = ((g.^2)./rvar)*(gcvm/J);
+end
 
 if(~isempty(indz))
   F0 = zeros(1,nv);
