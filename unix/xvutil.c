@@ -271,7 +271,6 @@ XVprintf(XV_FRAME *xvf, int which, ...)
 #define MAX_DISP_VAL     MAX_GRAY
 #define RESERVED_COLORS  6
 #define MAX_GRAY         (MAX_COLORS-RESERVED_COLORS-1)
-#define MAX_COLORS       64
 
 
 #define PURPLE_INDEX     (MAX_COLORS-6)
@@ -452,8 +451,8 @@ XVshowImage(XV_FRAME *xvf, int which, IMAGE *image, int frame)
   float         xscale, yscale, scale, fmin, fmax ;
   DIMAGE        *dimage ;
   unsigned long *substtable ;
-  byte          bytelut[MAX_COLORS] ;
   int           i, rows, cols, srows, scols, c ;
+  byte          lut[MAX_COLORS] ;
 
   dimage = xvGetDimage(which, 1) ;
   if (!dimage)
@@ -535,18 +534,18 @@ XVshowImage(XV_FRAME *xvf, int which, IMAGE *image, int frame)
   substtable = (unsigned long *) xv_get(xvf->cms,CMS_INDEX_TABLE);
   for (i=0;i<MAX_COLORS;i++)
   {
-    c = i + dimage->bshift ;
+    c = (dimage->gamma[i] + dimage->bshift)  ;
     if (c < 0)
       c = 0 ;
     if (c > MAX_GRAY)
       c = MAX_GRAY ;
-    bytelut[i] = (byte)substtable[c];
+    lut[i] = (byte)substtable[c];
   }
 #if 0
   if (MAX_COLORS == 64)
     h_shift_b(dimage->dispImage, dimage->dispImage, -2);
 #endif
-  h_applylut(dimage->dispImage, dimage->dispImage, MAX_COLORS, bytelut);
+  h_applylut(dimage->dispImage, dimage->dispImage, MAX_COLORS, lut);
 
   XVrepaintImage(xvf, which) ;
   XFlush(xvf->display); 
@@ -717,6 +716,12 @@ xv_dimage_event_handler(Xv_Window xv_window, Event *event)
     {
       switch ((char)event->ie_code)
       {
+      case '*':
+        XVgamma(xvf, which, 0.02f) ;
+        break ;
+      case '/':
+        XVgamma(xvf, which, -0.02f) ;
+        break ;
       case '+':
         XVbrighten(xvf, which, 1) ;
         break ;
@@ -725,8 +730,14 @@ xv_dimage_event_handler(Xv_Window xv_window, Event *event)
         break ;
       case '\n':
       case '\r':
+      {
+        int i ;
+        for (i = 0 ; i < MAX_COLORS ; i++)
+          dimage->gamma[i] = (float)i ;
+        
         XVbrighten(xvf, which, dimage->bshift = 0) ;
         break ;
+      }
       }
     }
     break ;
@@ -1447,6 +1458,10 @@ static void
 xvCreateImage(XV_FRAME *xvf, DIMAGE *dimage, int x, int y, int which)
 {
   XGCValues   GCvalues ;
+  int         i ;
+
+  for (i = 0 ; i < MAX_COLORS ; i++)
+    dimage->gamma[i] = (float)i ;
 
   dimage->which = which ;
   dimage->x = x ;
@@ -1550,5 +1565,66 @@ XVsetPrecision(XV_FRAME *xvf, int precision)
 {
   xvf->precision = precision ;
   return(0) ;
+}
+
+int
+XVgamma(XV_FRAME *xvf, int which, float beta)
+{
+  float         gamma ;
+  int           i ;
+  DIMAGE        *dimage ;
+  double        dval ;
+FILE *fp ;
+
+  dimage = xvGetDimage(which, 0) ;
+  if (!dimage)
+    return(NO_ERROR) ;
+
+  if (beta < -0.9999f)
+    beta = -0.9999f ;
+  else if (beta > 1.0f)
+    beta = 1.0f ;
+
+
+  if (beta > 0)
+    gamma = 1 - beta ;
+  else
+    gamma = 1 / (1+beta) ;
+
+{
+  fp = fopen("lut.dat", "w") ;
+  for (i = 0 ; i < MAX_COLORS ; i++)
+    fprintf(fp, "[%d]:  %2.1f\n", i, dimage->gamma[i]) ;
+  fprintf(fp, "\n\n") ;
+}
+
+  /* use current colormap */
+#if 0
+  min_val = max_val = dimage->lut[0] ;
+  for (i=1;i<MAX_COLORS;i++)
+  {
+    if (max_val < dimage->lut[i])
+      max_val = dimage->lut[i] ;
+    if (min_val > dimage->lut[i])
+      min_val = dimage->lut[i] ;
+  }
+#endif
+    
+  for (i=0;i<MAX_COLORS;i++)
+  {
+    dval = dimage->gamma[i] / (float)MAX_GRAY ;
+    dval = pow(dval, gamma) ;
+    dimage->gamma[i] = dval * (float)MAX_GRAY ;
+  }
+
+{
+  for (i = 0 ; i < MAX_COLORS ; i++)
+    fprintf(fp, "[%d]:  %2.1f\n", i, dimage->gamma[i]) ;
+  fclose(fp) ;
+}
+
+  XVshowImage(xvf, which, dimage->sourceImage, dimage->frame) ;
+
+  return(NO_ERROR) ;
 }
 
