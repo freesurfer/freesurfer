@@ -6,7 +6,7 @@
   Purpose: averages the voxels within an ROI. The ROI
            can be constrained structurally (with a label file)
            and/or functionally (with a volumetric mask)
-  $Id: mri_vol2roi.c,v 1.13 2003/04/16 18:58:57 kteich Exp $
+  $Id: mri_vol2roi.c,v 1.14 2003/08/29 22:54:23 greve Exp $
 */
 
 #include <stdio.h>
@@ -53,7 +53,7 @@ int CountLabelHits(MRI *SrcVol, MATRIX *Qsrc, MATRIX *Fsrc,
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_vol2roi.c,v 1.13 2003/04/16 18:58:57 kteich Exp $";
+static char vcid[] = "$Id: mri_vol2roi.c,v 1.14 2003/08/29 22:54:23 greve Exp $";
 char *Progname = NULL;
 
 char *roifile    = NULL;
@@ -86,9 +86,6 @@ char  *finalmskvolid = NULL;
 
 LABEL *Label;
 
-char  *float2int_string = NULL;
-int    float2int = -1;
-
 int debug = 0;
 
 MATRIX *Dsrc, *Wsrc, *Fsrc, *Qsrc;
@@ -110,6 +107,10 @@ char tmpstr[2000];
 int float2int_src, float2int_msk;
 float labelfillthresh = .0000001;
 
+int fixxfm = 0;
+int labeltal  = 0;
+char *talxfm = "talairach.xfm";
+
 int main(int argc, char **argv)
 {
   int n,err, f, nhits, r,c,s;
@@ -124,7 +125,7 @@ int main(int argc, char **argv)
   int nargs;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_vol2roi.c,v 1.13 2003/04/16 18:58:57 kteich Exp $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_vol2roi.c,v 1.14 2003/08/29 22:54:23 greve Exp $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -163,6 +164,9 @@ int main(int argc, char **argv)
     colres_src = ipr; /* in-plane resolution */
     rowres_src = ipr; /* in-plane resolution */
     slcres_src = bpr; /* between-plane resolution */
+    printf("srcreg Dsrc -------------\n");
+    MatrixPrint(stdout,Dsrc);
+    printf("----------------------------------\n");
   }
   else{
     Dsrc = NULL;
@@ -176,7 +180,10 @@ int main(int argc, char **argv)
   Fsrc = NULL;
   /* Qsrc: Compute the quantization matrix for src volume */
   Qsrc = FOVQuantMatrix(ncols_src,  nrows_src,  nslcs_src, 
-      colres_src, rowres_src, slcres_src); 
+			colres_src, rowres_src, slcres_src); 
+  printf("ras2vox src (tkreg) Qsrc -------------\n");
+  MatrixPrint(stdout,Qsrc);
+  printf("----------------------------------\n");
 
   /* ----------- load in the label ----------------- */
   if(labelfile != NULL){
@@ -188,15 +195,22 @@ int main(int argc, char **argv)
       //if(err) exit(1);
       lta = LTAread(src2lblregfile);
       if(lta->type == LINEAR_VOX_TO_VOX){
-  printf("INFO: converting LTA to RAS\n");
-  LTAvoxelTransformToCoronalRasTransform(lta);
+	printf("INFO: converting LTA to RAS\n");
+	LTAvoxelTransformToCoronalRasTransform(lta);
       }
-      Msrc2lbl = lta->xforms[0].m_L;
-      printf("-- Source2Label %s \n---- \n",src2lblregfile);
+      Msrc2lbl = MatrixCopy(lta->xforms[0].m_L,NULL);
+    }
+    else if(labeltal){
+      /* Load the talairach.xfm and make it approp for reg.dat*/
+      Msrc2lbl = DevolveXFM(srcsubject,NULL,talxfm);
+      if(Msrc2lbl==NULL) exit(1);
+    }
+    else Msrc2lbl = NULL;
+    if(Msrc2lbl != NULL){
+      printf("-- Source2Label %s ---- \n",src2lblregfile);
       MatrixPrint(stdout,Msrc2lbl);
       printf("-------------------------------\n");
     }
-    else Msrc2lbl = NULL;
   }
   else{
     Label = NULL;
@@ -255,7 +269,7 @@ int main(int argc, char **argv)
       mSrcMskVol = vol2vol_linear(mMskVol, Qmsk, NULL, NULL, Dmsk, 
           Qsrc, Fsrc, Wsrc, Dsrc, 
           nrows_src, ncols_src, nslcs_src, 
-          Mmsk2src, INTERP_NEAREST, float2int);
+          Mmsk2src, INTERP_NEAREST, float2int_msk);
       if(mSrcMskVol == NULL) exit(1);
     }
     else mSrcMskVol = mMskVol;
@@ -269,10 +283,11 @@ int main(int argc, char **argv)
 
   /* --------- load in the (possibly 4-D) source volume --------------*/
   printf("Loading volume %s ...",srcvolid); fflush(stdout);
-  mSrcVol = mri_load_bvolume(srcvolid);
-  mSrcVol->xsize = colres_src;
-  mSrcVol->ysize = rowres_src;
-  mSrcVol->zsize = slcres_src;
+  //mSrcVol = mri_load_bvolume(srcvolid);
+  //mSrcVol->xsize = colres_src;
+  //mSrcVol->ysize = rowres_src;
+  //mSrcVol->zsize = slcres_src;
+  mSrcVol = MRIreadType(srcvolid,BFLOAT_FILE);
   
   if(mSrcVol == NULL) exit(1);
   printf("done\n");
@@ -296,7 +311,7 @@ int main(int argc, char **argv)
   if(Label != NULL){
     mFinalMskVol = label2mask_linear(mSrcVol, Qsrc, Fsrc, Wsrc, 
              Dsrc, mSrcMskVol,
-             Msrc2lbl, Label, labelfillthresh, float2int, 
+             Msrc2lbl, Label, labelfillthresh, float2int_src, 
              &nlabelhits, &nfinalhits);
 
     if(mFinalMskVol == NULL) exit(1);
@@ -311,16 +326,16 @@ int main(int argc, char **argv)
     nfinalhits = 0;
     for(r=0;r<mFinalMskVol->height;r++){
       for(c=0;c<mFinalMskVol->width;c++){
-  for(s=0;s<mFinalMskVol->depth;s++){
-    val = MRIFseq_vox(mFinalMskVol,c,r,s,0); 
+	for(s=0;s<mFinalMskVol->depth;s++){
+	  val = MRIFseq_vox(mFinalMskVol,c,r,s,0); 
           if(val > 0.5) nfinalhits ++;
-  }
+	}
       }
     }    
     if(Label != NULL)
       nlabelhits = CountLabelHits(mSrcVol, Qsrc, Fsrc, 
-          Wsrc, Dsrc, Msrc2lbl, 
-          Label, labelfillthresh,float2int);
+			  Wsrc, Dsrc, Msrc2lbl, 
+			  Label, labelfillthresh,float2int_src);
     else  nlabelhits = 0;
   }
 
@@ -334,7 +349,8 @@ int main(int argc, char **argv)
 
   /* ------- Save the final mask ------------------ */
   if(finalmskvolid != 0){
-    mri_save_as_bvolume(mFinalMskVol,finalmskvolid,endian,BF_FLOAT); 
+    //mri_save_as_bvolume(mFinalMskVol,finalmskvolid,endian,BF_FLOAT); 
+    MRIwriteAnyFormat(mFinalMskVol,finalmskvolid,"bfloat",-1,NULL);
   }
 
   /* If this is a statistical volume, lower each frame to it's appropriate
@@ -420,6 +436,8 @@ static int parse_commandline(int argc, char **argv)
     else if (!strcasecmp(option, "--oldtxtstyle"))    oldtxtstyle = 1;
     else if (!strcasecmp(option, "--plaintxtstyle"))  plaintxtstyle = 1;
     else if (!strcasecmp(option, "--mskinvert"))  mskinvert = 1;
+    else if (!strcmp(option, "--fixxfm"))   fixxfm = 1; 
+    else if (!strcmp(option, "--nofixxfm")) fixxfm = 0; 
 
     /* -------- ROI output file ------ */
     else if (!strcmp(option, "--roiavgtxt")){
@@ -470,6 +488,18 @@ static int parse_commandline(int argc, char **argv)
       src2lblregfile = pargv[0];
       nargsused = 1;
     }
+    else if (!strcmp(option, "--labeltal")){
+      labeltal = 1;
+      fixxfm = 1;
+      nargsused = 0;
+    }
+    else if (!strcmp(option, "--talxfm")){
+      if(nargc < 1) argnerr(option,1);
+      talxfm = pargv[0];
+      labeltal = 1;
+      fixxfm = 1;
+      nargsused = 1;
+    }
     else if (!strcmp(option, "--labelfillthresh")){
       if(nargc < 1) argnerr(option,1);
       sscanf(pargv[0],"%f",&labelfillthresh);
@@ -502,11 +532,11 @@ static int parse_commandline(int argc, char **argv)
       msktail = pargv[0];
       nargsused = 1;
       if(strncasecmp(msktail,"abs",3) &&
-   strncasecmp(msktail,"pos",3) &&
-   strncasecmp(msktail,"neg",3)){
-  fprintf(stderr,"ERROR: msk tail = %s, must be abs, pos, or neg\n",
-    msktail);
-  exit(1);
+	 strncasecmp(msktail,"pos",3) &&
+	 strncasecmp(msktail,"neg",3)){
+	fprintf(stderr,"ERROR: msk tail = %s, must be abs, pos, or neg\n",
+		msktail);
+	exit(1);
       }
     }
 
@@ -528,16 +558,11 @@ static int parse_commandline(int argc, char **argv)
       nargsused = 1;
     }
 
-    else if (!strcmp(option, "--float2int")){
-      if(nargc < 1) argnerr(option,1);
-      float2int_string = pargv[0];
-      nargsused = 1;
-    }
     else{
       fprintf(stderr,"ERROR: Option %s unknown\n",option);
       if(singledash(option))
-  fprintf(stderr,"       Did you really mean -%s ?\n",option);
-      printf("Match %d\n",strcmp(option, "--roiavgtxt"));
+	fprintf(stderr,"       Did you really mean -%s ?\n",option);
+      //printf("Match %d\n",strcmp(option, "--roiavgtxt"));
       exit(-1);
     }
     nargc -= nargsused;
@@ -554,46 +579,176 @@ static void usage_exit(void)
 /* --------------------------------------------- */
 static void print_usage(void)
 {
-  fprintf(stderr, "USAGE: %s \n",Progname) ;
-  fprintf(stderr, "\n");
-  fprintf(stderr, "   --roiavg    output path for ROI average\n");
-  fprintf(stderr, "\n");
-  fprintf(stderr, "   --srcvol    input volume path \n");
-  fprintf(stderr, "   --srcfmt    input volume format \n");
-  fprintf(stderr, "   --srcreg    source registration (SrcXYZ = R*AnatXYZ) \n");
-  fprintf(stderr, "   --srcoldreg interpret srcreg as old-style reg.dat \n");
-  fprintf(stderr, "   --srcwarp   source scanner warp table\n");
-  fprintf(stderr, "\n");
-  fprintf(stderr, "   --label     path to label file \n");
-  fprintf(stderr, "   --labelreg  label registration (LabelXYZ = L*AnatXYZ) \n");
-  fprintf(stderr, "   --labelfillthresh thresh : fraction of voxel\n");
-  fprintf(stderr, "\n");
-  fprintf(stderr, "   --mskvol     mask volume path \n");
-  fprintf(stderr, "   --mskfmt     mask volume format \n");
-  fprintf(stderr, "   --mskreg     mask registration  (MaskXYZ = M*AnatXYZ)\n");
-  //fprintf(stderr, "   --msksamesrc mask volume has same FOV as source \n");
-  fprintf(stderr, "\n");
-  fprintf(stderr, "   --mskthresh threshold (0.5) mask threshold\n");
-  fprintf(stderr, "   --msktail   <abs>, pos, or neg (mask tail) \n");
-  fprintf(stderr, "   --mskframe  0-based mask frame <0> \n");
-  fprintf(stderr, "   --mskinvert : invert the mask \n");
-  fprintf(stderr, "\n");
-  fprintf(stderr, "   --finalmskvol path in which to save final mask\n");
-  fprintf(stderr, "\n");
-  fprintf(stderr, "   --float2int float-to-int conversion method (<round>, floor, or tkreg )\n");
-  fprintf(stderr, "\n");
+  printf("USAGE: %s \n",Progname) ;
+  printf("\n");
+  printf("   --help : documentation and bug information\n");
+  printf("\n");
+  printf("   --srcvol    input volume path \n");
+  //printf("   --srcfmt    input volume format \n");
+  printf("   --srcreg    source registration (SrcXYZ = R*AnatXYZ) \n");
+  //printf("   --srcoldreg interpret srcreg as old-style reg.dat \n");
+  //printf("   --srcwarp   source scanner warp table\n");
+  printf("\n");
+  printf("   --label     path to label file \n");
+  printf("   --labelreg  label registration (LabelXYZ = L*AnatXYZ) \n");
+  printf("                  See warning before using this option.\n");
+  printf("   --labeltal  use tal xfm for labelreg\n");
+  printf("   --talxfm    use talxfm intead of talairach.xfm\n");
+  printf("   --labelfillthresh thresh : fraction of voxel\n");
+  printf("\n");
+  printf("   --mskvol     mask volume path \n");
+  //printf("   --mskfmt     mask volume format \n");
+  //printf("   --mskreg     mask registration  (MaskXYZ = M*AnatXYZ)\n");
+  printf("\n");
+  printf("   --mskthresh threshold (0.5) mask threshold\n");
+  printf("   --msktail   <abs>, pos, or neg (mask tail) \n");
+  printf("   --mskframe  0-based mask frame <0> \n");
+  printf("   --mskinvert : invert the mask \n");
+  printf("\n");
+  printf("   --roiavgtxt fname :output text file for ROI average\n");
+  printf("   --roiavg    stem : output bfloat stem for ROI average\n");
+  printf("   --finalmskvol path in which to save final mask\n");
+  printf("\n");
 }
 /* --------------------------------------------- */
 static void print_help(void)
 {
   print_usage() ;
-  printf("\nThis program will resample one volume into an ROI. \n") ;
+  printf("\n%s\n\n", vcid) ;
+  printf("
+
+This program will extract a region-of-interest (ROI) from a
+volume. The ROI can be defined in one of three ways: (1) as set of
+voxels in a mask volume the same size as the source volume, (2) as a
+set of label points (defined in a label file), or (3) the intersection
+of (1) and (2).
+
+The result is a text file (argument of --roiavgtxt) with the following 
+rows of information. (1) The number of source voxels in the label (0
+if no label is used). (2) The number of voxels in the final ROI. (3)
+the average of the ROI voxels in the source volume. If the source
+volume has multiple frames, then there will be a row for each frame.
+
+In addition, a final ROI mask volume can be saved. This volume is
+the same size as the source volume (one frame only). The value of
+a voxel is 1 if it was in the final ROI or 0 if it was out.
+
+--srcvol srcvolstem
+
+Specify the bfloat/bshort stem of the volume from which the ROI is to
+be extracted.
+
+--srcreg regfile
+
+Registration between src volume and subject's anatomical (ie, a
+register.dat). This is only needed when using a label.
+
+--label labelfile
+
+Path to FreeSurfer label file. Make sure to give full path. The label
+file has, among other things, xyz coorindates of the points in the
+label. Each point has an extent of 1mm^3. These xyz coorindates have
+to be mapped into the source volume. This is done with the
+registration matrix (--srcreg) and (possibly) with the label
+registration (see --labelreg and --labeltal).
+
+--labelreg labelregfile
+
+File with matrix that maps label xyz coordinates to subject's
+anatomical coordinates. Note: this matrix should map to the subject's
+anatomical coordinates in 'tkregister' space. IMPORTANT: passing the
+talairach.xfm file with this option can result in a MISINTERPRETATION
+of the transform.
+
+--labeltal
+
+The label is in talairach space. In this case, the talairach.xfm file
+for the subject in the register.dat (--srcreg) is loaded. This matrix
+is modified to make it appropriate for use with the register.dat (ie,
+it will be interpreted correctly). See also --talxfm and --labelreg.
+
+--talxfm xfmfile
+
+Use xfmfile in subject/mri/transforms for talairach transfrom
+instead of talairach.xfm. This forces --labeltal.
+
+--labelfillthresh thresh
+
+Each label point represents 1mm^3, so it is possible that a source
+voxel is not entirely filled by label points. This option allows the
+user to choose the extent to which a voxel must be filled for it to be
+considered part of the label. thresh is a number between 0 and 1 and
+represents the fraction of the volume of a voxel that must be filled
+in order for that voxel to be part of the label. Setting thresh=0
+will force all voxels to be in the label regardless of what's in
+the label file. Default is a small value just above 0.
+
+--mskvol maskstem
+
+Stem of the bshort/bfloat mask volume. This volume should be the
+same dimension as the source volume (the number of frames can differ). 
+The mask volume will be thresholded to determine which voxels will
+be included in the ROI. See --mskthresh, --msktail, --mskframe, and
+--mskinvert for thresholding criteria.
+
+--mskthresh mskthresh 
+
+Voxels value magnitude must be above mskthresh to be included. Default
+is 0.5.
+
+--msktail tail
+
+Tail is the sign that a voxel must have in order to be included.
+Tail can be abs, pos, or neg. Abs means that the sign should be
+ignored (the default), pos means that the sign must be positive,
+neg means that the sign must be negative.
+
+--mskframe nthframe
+
+Use the nthframe in the mask volume to derive the mask. nthframe is
+0-based (ie, --mskframe 5 indicates the 6th frame). Default is 0
+(ie, the first frame).
+
+--mskinvert 
+
+After selecting voxels based on the threshold criteria (ie, mskthresh,
+msktail, mskframe), invert the mask (ie, the non-selected voxels
+become selected and vise versa).
+
+--roiavgtxt fname
+
+Save output in text format. See introduction.
+
+--roiavg stem
+
+Save output as a bfloat 'volume'. This flag is actually necessary
+even if you are not going to use this output.
+
+--finalmskvol finalmaskstem
+
+Save the final set of voxels selected for the ROI in this volume. See
+introduction for more info.
+
+BUGS
+
+The matrix used with --labelreg must map to the subject's
+anatomical coordinates in 'tkregister' space. IMPORTANT: passing the
+talairach.xfm file with this option can result in a MISINTERPRETATION
+of the transform.
+
+The source, mask, and finalmask volumes must be in bshort/bfloat
+format.
+
+A roiavgstem must be specified even if you do not want this format.
+The roiavgtxt can be specified independently.
+
+") ;
   exit(1) ;
 }
 /* --------------------------------------------- */
 static void print_version(void)
 {
-  fprintf(stderr, "%s\n", vcid) ;
+  printf("%s\n", vcid) ;
   exit(1) ;
 }
 /* --------------------------------------------- */
@@ -624,16 +779,14 @@ static void check_options(void)
 
   if(msksamesrc) mskregfile = srcregfile;
 
-  if(float2int_string == NULL) float2int_string = "round";
-  float2int = float2int_code(float2int_string);
-  if(float2int == -1){
-    fprintf(stderr,"ERROR: float2int = %s\n",float2int_string);
-    fprintf(stderr,"  must be either round, floor, or tkreg\n");
+  if(srcfmt == NULL) srcfmt = "bvolume";
+  check_format(srcfmt);
+
+  if(src2lblregfile != NULL && labeltal){
+    printf("ERROR: cannot specify --labelreg and --labeltal\n");
     exit(1);
   }
 
-  if(srcfmt == NULL) srcfmt = "bvolume";
-  check_format(srcfmt);
 
   return;
 }
@@ -693,9 +846,6 @@ static void dump_options(FILE *fp)
     fprintf(fp,"msk invert = %d\n",mskinvert); 
     fprintf(fp,"msk frame = %d\n",mskframe); 
   }
-
-  if(float2int_string != NULL) fprintf(fp,"float2int = %s\n",float2int_string);
-  else                  fprintf(fp,"float2int unspecified\n");
 
   return;
 }
