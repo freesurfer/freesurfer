@@ -1,7 +1,3 @@
-#ifndef STATS_INCLUDED
-#define STATS_INCLUDED
-#include "stats.h"
-#endif
 #ifndef MRI_H
 #define MRI_H
 
@@ -40,7 +36,6 @@ typedef struct
   int           height ;
   int           depth ;     /* # of slices */
   int           type ;      /* data type for slices below */
-  int           slice_direction ;   /* initially coronal, but may change */
   int           imnr0 ;     /* starting image # */
   int           imnr1 ;     /* ending image # */
   int           ptype ;     /* not used */
@@ -61,17 +56,12 @@ typedef struct
   float         te ;        /* time to echo */
   float         ti ;        /* time to inversion */
   char          fname[STR_LEN] ;
-  int           xdir ;      /* these are the actual directions of the structure axes, */
-  int           ydir ;      /* set when the volume is read, to be used to orient the  */
-  int           zdir ;      /* structure (if needed) with                             */
-                            /* MRIreorder(src, dest, src->xdir, src->ydir, src->zdir) */
 
   float         x_r, x_a, x_s; /* these are the RAS distances across the whole volume */
   float         y_r, y_a, y_s; /* in x, y, and z                                      */
   float         z_r, z_a, z_s; /* c_r, c_a, and c_s are the center ras coordinates    */
   float         c_r, c_a, c_s; /* ras_good_flag tells if these coordinates are set    */
   int           ras_good_flag; /* and accurate for the volume                         */
-                               /* these will hopefully replace xdir, ydir, and zdir   */
 
   /*  for bshorts and bfloats */
   int           brightness;
@@ -836,6 +826,9 @@ MRI *MRIrandn(int ncols, int nrows, int nslices, int nframes,
 MRI *MRIdrand48(int ncols, int nrows, int nslices, int nframes,
 		float min, float max, MRI *mri);
 int MRInormalizeSequence(MRI *mri, float target) ;
+
+int setDirectionCosine(MRI *mri, int orientation);
+int getSliceDirection(MRI *mri);
 
 /* Zero-padding for 3d analyze (ie, spm) format */
 #ifdef _MRIIO_SRC
