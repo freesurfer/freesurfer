@@ -553,9 +553,9 @@ XVshowImage(XV_FRAME *xvf, int which, IMAGE *image, int frame)
       ImageFree(&GtmpByteImage) ;
     if (GtmpByteImage2)
       ImageFree(&GtmpByteImage2) ;
-    GtmpFloatImage = ImageAlloc(image->cols, image->rows, PFFLOAT, 1) ;
-    GtmpByteImage = ImageAlloc(image->cols, image->rows, PFBYTE, 1) ;
-    GtmpByteImage2 = ImageAlloc(image->cols, image->rows, PFBYTE, 1) ;
+    GtmpFloatImage = ImageAlloc(image->rows, image->cols, PFFLOAT, 1) ;
+    GtmpByteImage = ImageAlloc(image->rows, image->cols, PFBYTE, 1) ;
+    GtmpByteImage2 = ImageAlloc(image->rows, image->cols, PFBYTE, 1) ;
   }
   else
   {
