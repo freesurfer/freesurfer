@@ -269,14 +269,18 @@ int MWin_TclSetTool          ( ClientData  iClientData,
              Tcl_Interp* ipInterp,
              int         argc,
              char*       argv[] );
-int MWin_TclSetBrush         ( ClientData  iClientData, 
+int MWin_TclSetBrushShape    ( ClientData  iClientData, 
              Tcl_Interp* ipInterp,
              int         argc,
              char*       argv[] );
-int MWin_TclSetBrushThreshold ( ClientData  iClientData, 
+int MWin_TclSetBrushInfo     ( ClientData  iClientData, 
         Tcl_Interp* ipInterp,
         int         argc,
         char*       argv[] );
+int MWin_TclSetBrushInfoToDefaults ( ClientData  ipClientData, 
+             Tcl_Interp* ipInterp,
+             int         argc,
+             char*       argv[] );
 int MWin_TclSelectCurrentROI ( ClientData  iClientData, 
              Tcl_Interp* ipInterp,
              int         argc,

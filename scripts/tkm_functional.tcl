@@ -48,9 +48,11 @@ set FunV_tDisplayFlag_Ol_TruncateNegative 0
 set FunV_tDisplayFlag_Ol_TruncatePositive 1
 set FunV_tDisplayFlag_Ol_ReversePhase     2
 set FunV_tDisplayFlag_Ol_OffsetValues     3
-set FunV_tDisplayFlag_TC_GraphWindowOpen  4
-set FunV_tDisplayFlag_TC_OffsetValues     5
-set FunV_tDisplayFlag_TC_PreStimOffset    6
+set FunV_tDisplayFlag_Ol_IgnoreThreshold  4
+set FunV_tDisplayFlag_Ol_Grayscale        5
+set FunV_tDisplayFlag_TC_GraphWindowOpen  6
+set FunV_tDisplayFlag_TC_OffsetValues     7
+set FunV_tDisplayFlag_TC_PreStimOffset    8
 
 # our global vars
 set gnTimePoint      0
@@ -59,11 +61,15 @@ set gnCondition      0
 set gbTruncateNegative 0
 set gbTruncatePositive 0
 set gbReverse        0
+set gbIgnoreThreshold      0
+set gbGrayscale      0
 set gbOverlayOffset  0
 set gbShowOverlayOffsetOptions   0
 set gfThreshold(min)   0
 set gfThreshold(mid)   0
 set gfThreshold(slope) 0
+set gfOverlayRange(max) 0
+set gfOverlayRange(min) 0
 set gnOverlayNumTimePoints 0
 set gnOverlayNumConditions 0
 set gsOverlayDataName ""
@@ -432,27 +438,33 @@ proc Overlay_DoConfigDlog {} {
     global FunV_tDisplayFlag_Ol_TruncateNegative 
     global FunV_tDisplayFlag_Ol_TruncatePositive 
     global FunV_tDisplayFlag_Ol_ReversePhase
+    global FunV_tDisplayFlag_Ol_Grayscale
     global gnOverlayNumTimePoints gnOverlayNumConditions
     global gnTimePoint gnCondition gbOverlayOffset gbShowOverlayOffsetOptions
-    global gbTruncateNegative gbReverse gbTruncatePositive
-    global gfThreshold
+    global gbTruncateNegative gbReverse gbIgnoreThreshold 
+    global gbGrayscale gbTruncatePositive
+    global gfThreshold gfOverlayRange
 
     set wwDialog .wwOverlayConfigDlog
 
     if { [Dialog_Create $wwDialog "Configure Functional Overlay" {-borderwidth 10}] } {
 
-  set fwTimePoint       $wwDialog.fwTimePoint
-  set fwCondition       $wwDialog.fwCondition
-  set fwTruncate        $wwDialog.fwTruncate
-  set fwTruncateNeg     $wwDialog.fwTruncateNeg
-  set fwReverse         $wwDialog.fwReverse
-  set fwOffset          $wwDialog.fwOffset
-  set fwThresholdMin    $wwDialog.fwThresholdMin
-  set fwThresholdMid    $wwDialog.fwThresholdMid
-  set fwThresholdSlope  $wwDialog.fwThresholdSlope
+  set lfwLocation       $wwDialog.lfwLocation
+  set lfwDisplay        $wwDialog.lfwDisplay
+  set lfwThreshold      $wwDialog.lfwThreshold
   set fwButtons         $wwDialog.fwButtons
 
   Overlay_SaveConfiguration;
+
+
+  tixLabelFrame $lfwLocation \
+    -label "Location" \
+    -labelside acrosstop \
+    -options { label.padX 5 }
+
+  set fwLocationSub    [$lfwLocation subwidget frame]
+  set fwTimePoint      $fwLocationSub.fwTimePoint
+  set fwCondition      $fwLocationSub.fwCondition
 
   set nMaxCondition [expr $gnOverlayNumConditions - 1]
   set nMaxTimePoint [expr $gnOverlayNumTimePoints - 1]
@@ -467,6 +479,19 @@ proc Overlay_DoConfigDlog {} {
     gnCondition \
     {} 1
 
+
+  tixLabelFrame $lfwDisplay \
+    -label "Display" \
+    -labelside acrosstop \
+    -options { label.padX 5 }
+
+  set fwDisplaySub    [$lfwDisplay subwidget frame]
+  set fwTruncate      $fwDisplaySub.fwTruncate
+  set fwTruncateNeg   $fwDisplaySub.fwTruncateNeg
+  set fwReverse       $fwDisplaySub.fwReverse
+  set fwGrayscale     $fwDisplaySub.fwGrayscale
+  set fwOffset        $fwDisplaySub.fwOffset
+
   tkm_MakeCheckbox $fwTruncate "Truncate negative values" \
     gbTruncateNegative \
     "set gbTruncateNegative \$gbTruncateNegative"
@@ -478,6 +503,9 @@ proc Overlay_DoConfigDlog {} {
   tkm_MakeCheckbox $fwReverse "Reverse values" gbReverse \
     "set gbReverse \$gbReverse"
 
+  tkm_MakeCheckbox $fwGrayscale "Grayscale" gbGrayscale \
+    "set gbGrayscale \$gbGrayscale"
+
   if { $gbShowOverlayOffsetOptions == 1 } {
       tkm_MakeCheckbox $fwOffset "Show percent change" gbOverlayOffset \
         "set gbOverlayOffset \$gbOverlayOffset"
@@ -485,16 +513,36 @@ proc Overlay_DoConfigDlog {} {
       frame $fwOffset
   }
 
-  tkm_MakeEntry $fwThresholdMin "Threshold minimum" gfThreshold(min) 6
-  tkm_MakeEntry $fwThresholdMid "Threshold midpoint" gfThreshold(mid) 6
+  
+
+  tixLabelFrame $lfwThreshold \
+    -label "Threshold" \
+    -labelside acrosstop \
+    -options { label.padX 5 }
+
+  set fwThresholdSub    [$lfwThreshold subwidget frame]
+  set fwIgnoreThresh    $fwThresholdSub.fwIgnoreThresh
+  set fwThresholdMin    $fwThresholdSub.fwThresholdMin
+  set fwThresholdMid    $fwThresholdSub.fwThresholdMid
+  set fwThresholdSlope  $fwThresholdSub.fwThresholdSlope
+
+  tkm_MakeCheckbox $fwIgnoreThresh "Ignore Threshold" gbIgnoreThreshold \
+    "set gbIgnoreThreshold \$gbIgnoreThreshold"
+
+  tkm_MakeSlider $fwThresholdMin {"Threshold minimum"} gfThreshold(min) $gfOverlayRange(min) $gfOverlayRange(max) 100 {} 1
+  tkm_MakeSlider $fwThresholdMid {"Threshold midpoint"} gfThreshold(mid) $gfOverlayRange(min) $gfOverlayRange(max) 100 {} 1
   tkm_MakeEntry $fwThresholdSlope "Threshold slope" gfThreshold(slope) 6
+
 
   tkm_MakeCancelApplyOKButtons $fwButtons $wwDialog \
     { Overlay_SetConfiguration; } \
     { Overlay_RestoreConfiguration; }
   
-  pack $fwTimePoint $fwCondition $fwTruncate $fwTruncateNeg \
-    $fwReverse $fwOffset \
+
+  pack $lfwLocation $fwTimePoint $fwCondition \
+    $lfwDisplay $fwTruncate $fwTruncateNeg $fwReverse \
+    $fwGrayscale $fwOffset \
+    $lfwThreshold $fwIgnoreThresh \
     $fwThresholdMin $fwThresholdMid $fwThresholdSlope \
     $fwButtons \
     -side top \
@@ -521,12 +569,7 @@ proc TimeCourse_DoConfigDlog {} {
   set fwLabels              $fwConditions.fwLabels
   set fwVisibleLabel        $fwLabels.fwVisibleLabel
   set fwConditionLabel      $fwLabels.fwConditionLabel
-  set fwErrorBars           $wwDialog.fwErrorBars
-  set fwAutoRange           $wwDialog.fwAutoRange
-  set fwOffset              $wwDialog.fwOffset
-  set fwPreStimOffset       $wwDialog.fwPreStimOffset
-  set fwPreStimPoints       $wwDialog.fwPreStimPoints
-  set fwTimeRes             $wwDialog.fwTimeRes
+  set lfwDisplay            $wwDialog.lfwDisplay
   set fwButtons             $wwDialog.fwButtons
 
   TimeCourse_SaveConfiguration;
@@ -572,6 +615,20 @@ proc TimeCourse_DoConfigDlog {} {
   }
 
 
+
+  tixLabelFrame $lfwDisplay \
+    -label "Display" \
+    -labelside acrosstop \
+    -options { label.padX 5 }
+
+  set fwDisplaySub    [$lfwDisplay subwidget frame]
+  set fwErrorBars           $fwDisplaySub.fwErrorBars
+  set fwAutoRange           $fwDisplaySub.fwAutoRange
+  set fwOffset              $fwDisplaySub.fwOffset
+  set fwPreStimOffset       $fwDisplaySub.fwPreStimOffset
+  set fwPreStimPoints       $fwDisplaySub.fwPreStimPoints
+  set fwTimeRes             $fwDisplaySub.fwTimeRes
+
   tkm_MakeCheckbox \
     $fwErrorBars "Show error bars" gbErrorBars \
     {set gbErrorBars $gbErrorBars}
@@ -599,11 +656,14 @@ proc TimeCourse_DoConfigDlog {} {
   tkm_MakeActiveLabel \
     $fwTimeRes "Time resolution" gnTimeResolution
 
+
   tkm_MakeCancelApplyOKButtons $fwButtons $wwDialog \
     { TimeCourse_SetConfiguration; TimeCourse_DrawGraph } \
     { TimeCourse_RestoreConfiguration; TimeCourse_DrawGraph }
 
-  pack $fwConditions $fwErrorBars $fwAutoRange $fwOffset \
+
+  pack $fwConditions \
+    $lfwDisplay $fwErrorBars $fwAutoRange $fwOffset \
     $fwPreStimOffset $fwPreStimPoints $fwTimeRes $fwButtons \
     -side top \
     -anchor w \
@@ -634,10 +694,11 @@ proc TimeCourse_SetGraphSetting { iColor iType iValue } {
 
 proc Overlay_SaveConfiguration {} {
 
-    global gnTimePoint gnCondition gbTruncateNegative gbReverse gfThreshold 
+    global gnTimePoint gnCondition gbTruncateNegative gbReverse
+    global gbIgnoreThreshold gfThreshold gbGrayscale
     global gbOverlayOffset gbTruncatePositive
     global gnSavedTimePoint gnSavedCondition gbSavedTruncateNegative 
-    global gbSavedTruncatePositive
+    global gbSavedGrayscale gbSavedIgnoreThreshold gbSavedTruncatePositive
     global gbSavedReverse gfSavedThreshold gbSavedOverlayOffset
     
     set gnSavedTimePoint $gnTimePoint
@@ -645,6 +706,7 @@ proc Overlay_SaveConfiguration {} {
     set gbSavedTruncateNegative $gbTruncateNegative
     set gbSavedTruncatePositive $gbTruncatePositive
     set gbSavedReverse $gbReverse
+    set gbSavedIgnoreThreshold $gbIgnoreThreshold
     set gbSavedOverlayOffset $gbOverlayOffset
     foreach entry {min mid slope} {
   set gfSavedThreshold($entry) $gfThreshold($entry)
@@ -656,9 +718,9 @@ proc Overlay_SaveConfiguration {} {
 proc Overlay_RestoreConfiguration {} {
 
     global gnTimePoint gnCondition gbTruncateNegative gbReverse gfThreshold
-    global gbOverlayOffset gbTruncatePositive
+    global gbOverlayOffset gbTruncatePositive gbIgnoreThreshold
     global gnSavedTimePoint gnSavedCondition gbSavedTruncateNegative
-    global gbSavedTruncatePositive
+    global gbSavedTruncatePositive gbSavedGrayscale gbIgnoreThreshold
     global gbSavedReverse gfSavedThreshold gbSavedOverlayOffset
     
     set gnTimePoint $gnSavedTimePoint
@@ -666,6 +728,8 @@ proc Overlay_RestoreConfiguration {} {
     set gbTruncateNegative $gbSavedTruncateNegative
     set gbTruncatePositive $gbSavedTruncatePositive
     set gbReverse $gbSavedReverse
+    set gbIgnoreThreshold $gbSavedIgnoreThreshold
+    set gbGrayscale $gbSavedGrayscale
     set gbTruncateNegative $gbSavedTruncateNegative
     set gbOverlayOffset $gbSavedOverlayOffset
     foreach entry {min mid slope} {
@@ -678,16 +742,20 @@ proc Overlay_RestoreConfiguration {} {
 proc Overlay_SetConfiguration {} {
 
     global gnTimePoint gnCondition gbTruncateNegative gbReverse gfThreshold
-    global gbOverlayOffset gbTruncatePositive
+    global gbOverlayOffset gbTruncatePositive gbIgnoreThreshold gbGrayscale
     global FunV_tDisplayFlag_Ol_TruncateNegative
     global FunV_tDisplayFlag_Ol_TruncatePositive
     global FunV_tDisplayFlag_Ol_ReversePhase
     global FunV_tDisplayFlag_Ol_OffsetValues
+    global FunV_tDisplayFlag_Ol_IgnoreThreshold
+    global FunV_tDisplayFlag_Ol_Grayscale
 
     Overlay_SetTimePoint $gnTimePoint
     Overlay_SetCondition $gnCondition
     Overlay_SetDisplayFlag $FunV_tDisplayFlag_Ol_TruncateNegative $gbTruncateNegative
     Overlay_SetDisplayFlag $FunV_tDisplayFlag_Ol_ReversePhase $gbReverse
+    Overlay_SetDisplayFlag $FunV_tDisplayFlag_Ol_IgnoreThreshold $gbIgnoreThreshold
+    Overlay_SetDisplayFlag $FunV_tDisplayFlag_Ol_Grayscale $gbGrayscale
     Overlay_SetDisplayFlag $FunV_tDisplayFlag_Ol_TruncatePositive $gbTruncatePositive
     Overlay_SetDisplayFlag $FunV_tDisplayFlag_Ol_OffsetValues $gbOverlayOffset
     Overlay_SetThreshold $gfThreshold(min) $gfThreshold(mid) $gfThreshold(slope)
@@ -767,11 +835,19 @@ proc Overlay_UpdateDisplayFlag { iFlag ibNewValue } {
     global FunV_tDisplayFlag_Ol_ReversePhase 
     global FunV_tDisplayFlag_Ol_TruncateNegative
     global FunV_tDisplayFlag_Ol_TruncatePositive
-
-    global gbTruncateNegative gbReverse gbTruncatePositive
+    global FunV_tDisplayFlag_Ol_IgnoreThreshold
+    global FunV_tDisplayFlag_Ol_Grayscale
+    global gbTruncateNegative gbReverse gbTruncatePositive gbIgnoreThreshold
+    global gbGrayscale
 
     if { $FunV_tDisplayFlag_Ol_ReversePhase == $iFlag } {
   set gbReverse $ibNewValue
+    }
+    if { $FunV_tDisplayFlag_Ol_IgnoreThreshold == $iFlag } {
+  set gbIgnoreThreshold $ibNewValue
+    }
+    if { $FunV_tDisplayFlag_Ol_Grayscale == $iFlag } {
+  set gbGrayscale $ibNewValue
     }
     if { $FunV_tDisplayFlag_Ol_TruncateNegative == $iFlag } {
   set gbTruncateNegative $ibNewValue
@@ -807,6 +883,12 @@ proc Overlay_UpdateThreshold { ifMin ifMid ifSlope } {
     set gfThreshold(min) $ifMin
     set gfThreshold(mid) $ifMid
     set gfThreshold(slope) $ifSlope
+}
+
+proc Overlay_UpdateRange { ifMin ifMax } {
+    global gfOverlayRange
+    set gfOverlayRange(min) $ifMin
+    set gfOverlayRange(max) $ifMax
 }
 
 proc Overlay_ShowOffsetOptions { ibShow } {
@@ -977,8 +1059,3 @@ proc TestData {} {
     TimeCourse_UpdateGraphData 7 {1 8 2 -1 3 -8 4 5 5 -1}
     TimeCourse_UpdateNumConditions 7
 }
-
-
-
-
-

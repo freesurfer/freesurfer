@@ -1,4 +1,5 @@
 source $env(MRI_DIR)/lib/tcl/wrappers.tcl
+source $env(MRI_DIR)/lib/tcl/tkm_dialog.tcl
 
 set kNormalFont -*-lucida-medium-r-normal-*-13-*-*-*-*-*-*-*
 set kSmallFont -*-lucida-medium-i-normal-*-10-*-*-*-*-*-*-*
@@ -161,16 +162,35 @@ proc tkm_MakeButtons { isFrame ilButtons } {
 
     frame $isFrame
 
+# { text label command }
+# { image image command }
+
     set nButton 0
     foreach lButton $ilButtons {
   
-  button $isFrame.bw$nButton \
-    -font $kNormalFont \
-    -text [lindex $lButton 0] \
-    -command [lindex $lButton 1]
-    
-  pack $isFrame.bw$nButton \
-    -side left
+  set sType [lindex $lButton 0]
+
+  if { [string compare $sType "text"] == 0 } {
+
+      button $isFrame.bw$nButton \
+        -font $kNormalFont \
+        -text [lindex $lButton 1] \
+        -command [lindex $lButton 2]
+      
+      pack $isFrame.bw$nButton \
+        -side left
+
+  } 
+  if { [string compare $sType "image"] == 0 } {
+
+      button $isFrame.bw$nButton \
+        -image [lindex $lButton 1] \
+        -command [lindex $lButton 2]
+      
+      pack $isFrame.bw$nButton \
+        -side left
+
+  }
 
   incr nButton
     }
@@ -195,12 +215,32 @@ proc tkm_MakeMenu { isMenuButton isMenuName ilMenuItems } {
 
     # start an underline list for this menu
 
-    menu $isMenuButton.mw
+    tkm_AddMenuItemsToMenu $isMenuButton.mw $ilMenuItems
+}
+
+# { command   "Item Name" command_to_execute                group_name }
+# { radio     "Item Name" command_to_execute variable value group_name }
+# { check     "Item Name" command_to_execute variable       group_name }
+# { cascade   "Item Name" {items list}                      group_name }
+# { separator }
+
+proc tkm_AddItemsToCascade { isCascadeMenuItem ilMenuItems } {
+
+    tkm_AddMenuItemsToMenu $isCascadeMenuItem $ilMenuItems
+}
+
+proc tkm_AddMenuItemsToMenu { isMenu ilMenuItems } {
+
+    global kLabelFont kNormalFont glUnderlineList
+
+    menu $isMenu
     set nItemNum 1
 
     foreach lItem $ilMenuItems {
 
   set sType [lindex $lItem 0]
+
+  set bProcessed 0
 
   if { [string compare $sType "command"] == 0 } {
 
@@ -210,7 +250,7 @@ proc tkm_MakeMenu { isMenuButton isMenuName ilMenuItems } {
       # underline this index.
       # if no letters left, underline nothing.
 
-      $isMenuButton.mw add command \
+      $isMenu add command \
         -label [lindex $lItem 1] \
         -command [lindex $lItem 2] \
         -font $kNormalFont
@@ -218,12 +258,13 @@ proc tkm_MakeMenu { isMenuButton isMenuName ilMenuItems } {
 
       set sGroupName [lindex $lItem 3]
       if { [string compare $sGroupName ""] != 0 } {
-    tkm_AddItemToMenuGroup $sGroupName $isMenuButton.mw $nItemNum
+    tkm_AddItemToMenuGroup $sGroupName $isMenu $nItemNum
       }
-      
+     
+      set bProcessed 1
   }
   if { [string compare $sType "radio" ] == 0 } {
-      $isMenuButton.mw add radio \
+      $isMenu add radio \
         -label [lindex $lItem 1] \
         -command [lindex $lItem 2] \
         -variable [lindex $lItem 3] \
@@ -232,12 +273,13 @@ proc tkm_MakeMenu { isMenuButton isMenuName ilMenuItems } {
 
       set sGroupName [lindex $lItem 5]
       if { [string compare $sGroupName ""] != 0 } {
-    tkm_AddItemToMenuGroup $sGroupName $isMenuButton.mw $nItemNum
+    tkm_AddItemToMenuGroup $sGroupName $isMenu $nItemNum
       }
       
+      set bProcessed 1
   }
   if { [string compare $sType "check" ] == 0 } {
-      $isMenuButton.mw add check \
+      $isMenu add check \
         -label [lindex $lItem 1] \
         -command [lindex $lItem 2] \
         -variable [lindex $lItem 3] \
@@ -245,15 +287,38 @@ proc tkm_MakeMenu { isMenuButton isMenuName ilMenuItems } {
 
       set sGroupName [lindex $lItem 4]
       if { [string compare $sGroupName ""] != 0 } {
-    tkm_AddItemToMenuGroup $sGroupName $isMenuButton.mw $nItemNum
+    tkm_AddItemToMenuGroup $sGroupName $isMenu $nItemNum
       }
       
+      set bProcessed 1
   }
   if { [string compare $sType "separator"] == 0 } {
-      $isMenuButton.mw add separator
+      $isMenu add separator
+      set bProcessed 1
+  }
+  if { [string compare $sType "cascade"] == 0 } {
+      $isMenu add cascade \
+        -label [lindex $lItem 1] \
+        -menu $isMenu.cmw$nItemNum \
+        -font $kNormalFont      
+
+      set lCascadeItems [lindex $lItem 2]
+      tkm_AddMenuItemsToMenu $isMenu.cmw$nItemNum $lCascadeItems
+
+      set sGroupName [lindex $lItem 3]
+      if { [string compare $sGroupName ""] != 0 } {
+    tkm_AddItemToMenuGroup $sGroupName $isMenu $nItemNum
+      }
+      set bProcessed 1
   }
 
-  incr nItemNum
+  if { $bProcessed == 0 } {
+      puts "Error!!!!! $sType not recognized"
+  }
+
+  if { $bProcessed == 1 } {
+      incr nItemNum
+  }
     }
 }
 
@@ -316,6 +381,8 @@ proc nothing {} {
       -anchor e
 }
 
+# tkm_MakeSlider fwFrame {"prefix" "suffix"} var 0 100 50 {} 1 
+
 proc tkm_MakeSlider { isFrame ilsText iVariable inMin inMax inLength iSetFunc ibIncludeEntry {ifResolution 1.0} } {
 
     frame $isFrame
@@ -358,7 +425,7 @@ proc tkm_MakeSlider { isFrame ilsText iVariable inMin inMax inLength iSetFunc ib
   
   entry $isFrame.ew                \
     -textvariable $iVariable \
-    -width 4                 \
+    -width 6                 \
     -selectbackground green  \
     -insertbackground black
   bind $isFrame.ew <Return> $iSetFunc
@@ -529,9 +596,92 @@ proc tkm_SetMenuItemGroupStatus { isGroupName ibEnable } {
   set nMenuItem [lindex $lMenuItemPair 1]
 
   if { $ibEnable == 0 } {
-      $mbwMenu entryconfigure $nMenuItem -state disabled
+      if { [catch {$mbwMenu entryconfigure $nMenuItem -state disabled} sResult] } {
+    set sType [$mbwMenu type $nMenuItem]
+    puts "error, $isGroupName: $mbwMenu $nMenuItem $sType\n\t$sResult"
+    
+      }
   } else {
-      $mbwMenu entryconfigure $nMenuItem -state normal
+      if { [catch {$mbwMenu entryconfigure $nMenuItem -state normal} sResult] } {
+    puts "error, $isGroupName: $mbwMenu $nMenuItem\n\t$sResult"
+      }
   }
     }
 }
+
+
+proc tkm_MakeToolbar { isFrame ibRadio isVariable iCommand ilButtons } {
+
+    global kNormalFont
+
+    frame $isFrame
+
+    if { $ibRadio == 1 } {
+  set bAllowZero false
+    } else {
+  set bAllowZero true
+    }
+
+    tixSelect $isFrame.tbw \
+      -allowzero $bAllowZero \
+      -radio $ibRadio \
+      -command $iCommand
+
+# { text   name text   }
+# { bitmap name bitmap }
+
+    foreach lButton $ilButtons {
+
+  set sType [lindex $lButton 0]
+
+  if { [string compare $sType "text"] == 0 } {
+      set sName [lindex $lButton 1]
+      set sText [lindex $lButton 2]
+      $isFrame.tbw add $sName -text $sText \
+        -font $kNormalFont
+  } 
+  if { [string compare $sType "image"] == 0 } {
+      set sName [lindex $lButton 1]
+      set sBitmap [lindex $lButton 2]
+      $isFrame.tbw add $sName -image $sBitmap
+  } 
+    }
+
+    $isFrame.tbw config -variable $isVariable
+
+    pack $isFrame.tbw
+}
+
+proc tkm_MakeProgressDlog { isName isMessage } {
+
+    global gProgressDlog
+
+    set wwDialog .wwProgressDlog
+
+    # try to create the dlog...
+    toplevel $wwDialog
+    wm title $wwDialog $isName
+    wm deiconify $wwDialog
+
+    set fwLabel $wwDialog.fwLabel
+    set fwTime  $wwDialog.fwTime
+    
+    tkm_MakeBigLabel $fwLabel $isMessage
+    tkm_MakeNormalLabel $fwTime "0 / 100"
+    
+    pack $fwLabel $fwTime -side top
+}
+
+proc tkm_UpdateProgressDlog { isMessage inCurrent } {
+
+    global gProgressDlog
+
+    .wwProgressDlog.fwTime.label config -label "$inCurrent / 100"
+}
+
+proc tkm_DestroyProgressDlog { } {
+
+    wm withdraw .wwProgressDlog
+}
+
+

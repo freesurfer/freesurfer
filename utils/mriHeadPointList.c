@@ -327,7 +327,7 @@ HPtL_tErr HPtL_CreateTransform_ ( mriHeadPointListRef this,
     }
   }
 
-  /* use a identity matrix as our a->b */
+  /* use an identity matrix as our a->b */
   MatrixIdentity( 4, mTmp );
   eTransform = Trns_CopyARAStoBRAS( transform, mTmp );
   if( Trns_tErr_NoErr != eTransform ) {

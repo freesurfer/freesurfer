@@ -42,8 +42,8 @@ typedef enum {
   tkm_tTclCommand_UpdateOrientation,
   tkm_tTclCommand_UpdateDisplayFlag,
   tkm_tTclCommand_UpdateTool,
-  tkm_tTclCommand_UpdateBrush,
-  tkm_tTclCommand_UpdateBrushThreshold,
+  tkm_tTclCommand_UpdateBrushShape,
+  tkm_tTclCommand_UpdateBrushInfo,
   tkm_tTclCommand_UpdateVolumeColorScale,
   tkm_tTclCommand_UpdateROILabel,
   tkm_tTclCommand_UpdateHeadPointLabel,
@@ -64,12 +64,18 @@ typedef enum {
   tkm_tTclCommand_ShowOriginalSurfaceViewingOptions,
   tkm_tTclCommand_ShowCanonicalSurfaceViewingOptions,
   tkm_tTclCommand_ShowHeadPointLabelEditingOptions,
+  tkm_tTclCommand_ShowOverlayRegistrationOptions,
 
   /* interface configuration */
   tkm_tTclCommand_MoveToolWindow,
   tkm_tTclCommand_CsurfInterface,
+
+  /* misc */
   tkm_tTclCommand_ErrorDlog,  
   tkm_tTclCommand_AlertDlog,
+  tkm_tTclCommand_MakeProgressDlog,
+  tkm_tTclCommand_UpdateProgressDlog,
+  tkm_tTclCommand_DestroyProgressDlog,
   tkm_knNumTclCommands
 } tkm_tTclCommand;
 

@@ -164,7 +164,7 @@ double ffrac3=1.0,ffrac2=1.0,ffrac1=1.0,ffrac0=1.0;
 #define InitOutput
 #define DeleteOutput
 #define OutputPrint            fprintf ( stdout,
-#define EndOutputPrint         );
+#define EndOutputPrint         ); fflush( stdout );
 
 // ===========================================================================
 
@@ -231,6 +231,9 @@ void RASToVoxel ( Real x, Real y, Real z,        // incoming ras coords
 
 void VoxelToRAS ( int xi, int yi, int zi,        // incoming voxel coords
                   Real *x, Real *y, Real *z );   // outgoing RAS coords
+
+void VoxelToRASMatrix ( MATRIX* iAnaMatrix,
+      MATRIX* oRASMatrix );
 
 // ===========================================================================
 
@@ -446,6 +449,10 @@ tkmFunctionalVolumeRef gFunctionalVolume = NULL;
 
 void LoadFunctionalOverlay    ( char* isPathAndStem );
 void LoadFunctionalTimeCourse ( char* isPathAndStem );
+
+void TranslateOverlayRegisgtration ( float ifDistance, char isDirection );
+void RotateOverlayRegistration     ( float ifDegrees, char isDirection );
+void ScaleOverlayRegisgtration     ( float ifDistance, char isDirection );
 
 // ===========================================================================
 
@@ -710,6 +717,7 @@ int Medit(ClientData clientData, Tcl_Interp *interp, int argc, char *argv[]) {
   char                    sOverlayPathAndStem[256]    = "";
   tBoolean                bLoadingTimeCourse          = FALSE;
   char                    sTimeCoursePathAndStem[256] = "";
+  tBoolean                bEnablingRegistration       = FALSE;
   tBoolean                bLoadingParcellation        = FALSE;
   char                    sParcellationPath[256]      = "";
   char                    sParcellationColorFile[256] = "";
@@ -895,6 +903,12 @@ printf("   tkmedit anders T1 -overlay /path/to/bfile/overlay/data/stem -timecour
         EndOutputPrint;
       nCurrentArg ++;
     }
+
+  } else if( MATCH( sArg, "-register" ) ) {
+
+    /* set our flag */
+    bEnablingRegistration = TRUE;
+    nCurrentArg ++;
 
   } else if( MATCH( sArg, "-parcellation" ) ) {
 
@@ -1273,13 +1287,9 @@ printf("   tkmedit anders T1 -overlay /path/to/bfile/overlay/data/stem -timecour
       }
     }
 
-    /* now build max intensity projection */
-    BuildVolumeMaxIntProj( gAnatomicalVolume, &gAnatomicalMaxIntProj );
-
     /* if reading in an aux image... */
     if( bLoadingAuxVolume ) {
       read_second_images( sAuxVolume );
-      BuildVolumeMaxIntProj( gAuxAnatomicalVolume, &gAuxAnatomicalMaxIntProj );
     }
 
     /* create our transformation object */
@@ -1312,6 +1322,9 @@ printf("   tkmedit anders T1 -overlay /path/to/bfile/overlay/data/stem -timecour
       LoadFunctionalTimeCourse( sTimeCoursePathAndStem );
     }
 
+    /* set registration */
+    FunV_EnableRegistration( gFunctionalVolume, bEnablingRegistration );
+
     /* set functional color scale stuff */
     if( bThresh || bMid || bThresh ) {
       eFunctional = FunV_SetThreshold( gFunctionalVolume, min, mid, slope );
@@ -1336,12 +1349,16 @@ printf("   tkmedit anders T1 -overlay /path/to/bfile/overlay/data/stem -timecour
 
 void save_rgb( char* fname ) {
 
-  GLint swapbytes, lsbfirst, rowlength;
-  GLint skiprows, skippixels, alignment;
+  GLint rowlength, skiprows, skippixels, alignment;
+  GLboolean swapbytes, lsbfirst;
+  int nNumBytes = 0;
+  GLenum eGL;
   RGB_IMAGE *image;
   int y,xloc,yloc,width,height,size;
   unsigned short *r,*g,*b;
-  unsigned short  *red, *green, *blue;
+  unsigned short  *red = NULL;
+  unsigned short  *green = NULL;
+  unsigned short  *blue = NULL;
   FILE *fp;
 
   if( NULL == gMeditWindow )
@@ -1349,15 +1366,30 @@ void save_rgb( char* fname ) {
 
   MWin_GetWindowSize( gMeditWindow,
           &xloc, &yloc, &width, &height );
-
+  
   size = width*height;
+  nNumBytes = sizeof( unsigned short ) * size;
 
-  red = (unsigned short *)calloc(size, sizeof(unsigned short));
-  green = (unsigned short *)calloc(size, sizeof(unsigned short));
-  blue = (unsigned short *)calloc(size, sizeof(unsigned short));
+  red   = (unsigned short*) malloc( nNumBytes );
+  if( NULL == red ) {
+    DebugPrint "save_rgb: allocation of red buffer failed.\n" EndDebugPrint;
+    goto cleanup;
+  }
+  green = (unsigned short*) malloc( nNumBytes );
+  if( NULL == green ) {
+    DebugPrint "save_rgb: allocation of green buffer failed.\n" EndDebugPrint;
+    goto cleanup;
+  }
+  blue  = (unsigned short*) malloc( nNumBytes );
+  if( NULL == blue ) {
+    DebugPrint "save_rgb: allocation of blue buffer failed.\n" EndDebugPrint;
+    goto cleanup;
+  }
 
-  glGetIntegerv(GL_UNPACK_SWAP_BYTES, &swapbytes);
-  glGetIntegerv(GL_UNPACK_LSB_FIRST, &lsbfirst);
+  glReadBuffer( GL_FRONT );
+
+  glGetBooleanv(GL_UNPACK_SWAP_BYTES, &swapbytes);
+  glGetBooleanv(GL_UNPACK_LSB_FIRST, &lsbfirst);
   glGetIntegerv(GL_UNPACK_ROW_LENGTH, &rowlength);
   glGetIntegerv(GL_UNPACK_SKIP_ROWS, &skiprows);
   glGetIntegerv(GL_UNPACK_SKIP_PIXELS, &skippixels);
@@ -1367,14 +1399,29 @@ void save_rgb( char* fname ) {
   glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
   glPixelStorei(GL_UNPACK_SKIP_ROWS, 0);
   glPixelStorei(GL_UNPACK_SKIP_PIXELS, 0);
-  glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+  glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
 
   glReadPixels(0, 0, width, height, GL_RED,  
          GL_UNSIGNED_SHORT, (GLvoid *)red);
+  eGL = glGetError ();
+  if( GL_NO_ERROR != eGL ) {
+    DebugPrint "glReadPixels got error %d\n", eGL EndDebugPrint;
+    goto cleanup;
+  }
   glReadPixels(0, 0, width, height, GL_GREEN,
          GL_UNSIGNED_SHORT, (GLvoid *)green);
+  eGL = glGetError ();
+  if( GL_NO_ERROR != eGL ) {
+    DebugPrint "glReadPixels got error %d\n", eGL EndDebugPrint;
+    goto cleanup;
+  }
   glReadPixels(0, 0, width, height, GL_BLUE, 
          GL_UNSIGNED_SHORT, (GLvoid *)blue);
+  eGL = glGetError ();
+  if( GL_NO_ERROR != eGL ) {
+    DebugPrint "glReadPixels got error %d\n", eGL EndDebugPrint;
+    goto cleanup;
+  }
 
   glPixelStorei(GL_UNPACK_SWAP_BYTES, swapbytes);
   glPixelStorei(GL_UNPACK_LSB_FIRST, lsbfirst);
@@ -1396,9 +1443,15 @@ void save_rgb( char* fname ) {
     putrow(image, b, y, 2);
   }
   iclose(image);
-  free(red); free(green); free(blue);
 
-  printf("medit: file %s written\n",fname);
+ cleanup:
+
+  if( NULL != red ) 
+    free( red ); 
+  if( NULL != green ) 
+    free( green ); 
+  if( NULL != blue ) 
+    free( blue );
 }
 
 
@@ -1805,6 +1858,9 @@ read_images( char *isName ) {
         gAnatomicalVolume, gVolumeDimension );
   }
 
+  /* now build max intensity projection */
+  BuildVolumeMaxIntProj( gAnatomicalVolume, &gAnatomicalMaxIntProj );
+
   return 0;
 }
 
@@ -1857,12 +1913,14 @@ read_second_images( char *isName )
   ExtractSubjectName( gAuxVolumeSrc, gAuxSubjectName );
   ExtractVolumeName( gAuxVolumeSrc, gAuxSubjectVolumeName );
 
-
   /* set data in window */
   if( NULL != gMeditWindow ) {
     MWin_SetAuxVolume( gMeditWindow, -1, 
         gAuxAnatomicalVolume, gVolumeDimension );
   }
+
+  /* build the maximum intensity projection */
+  BuildVolumeMaxIntProj( gAuxAnatomicalVolume, &gAuxAnatomicalMaxIntProj );
 
   return 0;
 }
@@ -2752,7 +2810,7 @@ void RotateVolume ( tVolumeRef iVolume,
         float      ifRadians ) {
 
   tVolumeRef   tmpVolume = NULL;
-  float        fDegrees = 0;
+  float        fRadians = 0;
   int          nX        = 0;
   int          nY        = 0;
   int          nZ        = 0;
@@ -2761,9 +2819,14 @@ void RotateVolume ( tVolumeRef iVolume,
   xVoxel       srcCoord;
   xVoxel       dstCoord;
   tVolumeValue value     = 0;
+  char         sTclArguments[256] = "";
+  
+  /* make a progress dlog */
+  strcpy( sTclArguments, "\"Rotating\" \"Rotating the volume...\"" );
+  tkm_SendTclCommand( tkm_tTclCommand_MakeProgressDlog, sTclArguments );
 
   /* convert to degrees */
-  fDegrees = ifRadians * (PI / 180.0);
+  fRadians = ifRadians * (PI / 180.0);
 
   /* allocate a new volume */
   InitVolume( &tmpVolume, gVolumeDimension );
@@ -2778,7 +2841,7 @@ void RotateVolume ( tVolumeRef iVolume,
   Trns_CopyAtoRAS( transform, mTransform );
   Trns_CopyBtoRAS( transform, mTransform );
   MatrixFree( &mTransform );
-  mTransform = MatrixAllocRotation( 4, fDegrees, (int)iAxis);
+  mTransform = MatrixAllocRotation( 4, fRadians, (int)iAxis);
   Trns_CopyARAStoBRAS( transform, mTransform );
   MatrixFree( &mTransform );
 
@@ -2794,12 +2857,11 @@ void RotateVolume ( tVolumeRef iVolume,
   SetVoxelValue( iVolume, nX, nY, nZ, value );
       }
     }
-    fprintf( stdout, "\rRotating: %.2f%% done", 
-       ((float)nZ / (float)gVolumeDimension) * 100.0 );
-    fflush( stdout );
-  }
+    sprintf( sTclArguments, "\"\" %d", (int)(((float)nZ / (float)gVolumeDimension) * 100.0) ); 
+    tkm_SendTclCommand( tkm_tTclCommand_UpdateProgressDlog, sTclArguments );
+ }
   
-  fprintf( stdout, "\rRotating: 100%% done     \n" );
+  tkm_SendTclCommand( tkm_tTclCommand_DestroyProgressDlog, "" );
 
   DeleteVolume( &tmpVolume );
   Trns_Delete( &transform );
@@ -2827,6 +2889,60 @@ alloc_second_im(void)
 
 /* =========================================================== TCL WRAPPERS */
 
+int TclTranslateOverlayRegistration ( ClientData inClientData, 
+              Tcl_Interp* inInterp,
+              int argc, char* argv[] ) {
+  
+  if ( argc != 3 ) {
+    Tcl_SetResult ( inInterp,
+        "wrong#args: TranslateOverlayRegisgtration distance x,y,z",
+        TCL_VOLATILE );
+    return TCL_ERROR;
+  }
+
+  if( gbAcceptingTclCommands ) {
+    TranslateOverlayRegisgtration ( atof(argv[1]), argv[2][0] ); 
+  }
+
+  return TCL_OK;
+}
+
+int TclRotateOverlayRegistration ( ClientData inClientData, 
+           Tcl_Interp* inInterp,
+           int argc, char* argv[] ) {
+  
+  if ( argc != 3 ) {
+    Tcl_SetResult ( inInterp,
+        "wrong # args: RotateOverlayRegistration degrees x,y,z",
+        TCL_VOLATILE );
+    return TCL_ERROR;
+  }
+
+  if( gbAcceptingTclCommands ) {
+    RotateOverlayRegistration ( atof(argv[1]), argv[2][0] ); 
+  }
+
+  return TCL_OK;
+}
+
+int TclScaleOverlayRegistration ( ClientData inClientData, 
+          Tcl_Interp* inInterp,
+          int argc, char* argv[] ) {
+  
+  if ( argc != 3 ) {
+    Tcl_SetResult ( inInterp,
+        "wrong#args: ScaleOverlayRegisgtration distance x,y,z",
+        TCL_VOLATILE );
+    return TCL_ERROR;
+  }
+
+  if( gbAcceptingTclCommands ) {
+    ScaleOverlayRegisgtration ( atof(argv[1]), argv[2][0] ); 
+  }
+
+  return TCL_OK;
+}
+
 int TclLoadHeadPts ( ClientData inClientData, Tcl_Interp* inInterp,
          int argc, char* argv[] ) {
   
@@ -2837,8 +2953,6 @@ int TclLoadHeadPts ( ClientData inClientData, Tcl_Interp* inInterp,
   }
 
   if( gbAcceptingTclCommands ) {
-    DebugPrint "LoadHeadPts %s %s\n",
-      argv[1], argv[2] EndDebugPrint;
     LoadHeadPts ( argv[1], argv[2] ); 
   }
 
@@ -3130,6 +3244,11 @@ int TclLoadAuxVolume ( ClientData inClientData, Tcl_Interp* inInterp,
   if( gbAcceptingTclCommands ) {
     //    DebugPrint "Called LoadAuxVolume %s\n", argv[1] EndDebugPrint;
     read_second_images ( argv[1] );
+    
+    /* show the aux volume */
+    MWin_SetDisplayFlag( gMeditWindow, -1, DspA_tDisplayFlag_AuxVolume, 
+       TRUE );
+
   }
 
   return TCL_OK;
@@ -3934,6 +4053,18 @@ char **argv;
 
   /*=======================================================================*/
   /* register wrapped surfer functions with interpreter */
+
+  Tcl_CreateCommand ( interp, "RotateOverlayRegistration",
+          TclRotateOverlayRegistration,
+          (ClientData) NULL, (Tcl_CmdDeleteProc*) NULL );
+
+  Tcl_CreateCommand ( interp, "TranslateOverlayRegistration",
+          TclTranslateOverlayRegistration,
+          (ClientData) NULL, (Tcl_CmdDeleteProc*) NULL );
+
+  Tcl_CreateCommand ( interp, "ScaleOverlayRegistration",
+          TclScaleOverlayRegistration,
+          (ClientData) NULL, (Tcl_CmdDeleteProc*) NULL );
 
   Tcl_CreateCommand ( interp, "LoadHeadPts",
           TclLoadHeadPts,
@@ -5385,12 +5516,29 @@ void VoxelToRAS ( int xi, int yi, int zi,        // incoming voxel coords
   *z = xVoxl_GetFloatZ( &gCoordB );
 }
 
-/* ===================================================== General utilities */
+void VoxelToRASMatrix ( MATRIX* iAnaMatrix,
+      MATRIX* oRASMatrix ) {
 
-void SendUpdateMessageToTKWindow () {
+  Trns_tErr eTransform = Trns_tErr_NoErr;
 
-  Tcl_Eval ( GetTclInterp(), "unzoomcoords; sendupdate;" );
+  eTransform = Trns_ConvertMatrixAtoB( gRASTransform, iAnaMatrix, oRASMatrix );
+  if( Trns_tErr_NoErr != eTransform )
+    goto error;
+
+  goto cleanup;
+
+ error:
+  
+  if( Trns_tErr_NoErr != eTransform )
+    DebugPrint "Error %d in VoxelToRASMatrix: %s\n",
+      eTransform, Trns_GetErrorString( eTransform ) EndDebugPrint;
+
+ cleanup:
+
+  return;
 }
+
+/* ===================================================== General utilities */
 
 void SetTclInterp ( Tcl_Interp * inInterp ) {
 
@@ -5641,12 +5789,16 @@ void BuildVolumeMaxIntProj( tVolumeRef iVolume,
   *iopMaxIntProjVolume = volume;
 }
 
-tVolumeValue GetVolumeMaxIntProjValue( tVolumeRef iMaxIntProjVolume, 
+tVolumeValue GetVolumeMaxIntProjValue( tVolumeRef       iMaxIntProjVolume, 
                mri_tOrientation iOrientation,
-              xVoxelRef iVoxel ) {
+               xVoxelRef        iVoxel ) {
 
   int nX = 0;
   int nY = 0;
+
+  if( NULL == iMaxIntProjVolume ) {
+    return 0;
+  }
 
   switch( iOrientation ) {
   case mri_tOrientation_Coronal:
@@ -5698,6 +5850,511 @@ void LoadFunctionalTimeCourse( char* isFilename ) {
   }
 }
 
+
+
+void RotateOverlayRegistration ( float ifDegrees, 
+         char  isAxis ) {
+
+  mri_tOrientation orientation;
+  xVoxel           cursor;
+
+  MWin_GetOrientation ( gMeditWindow, &orientation );
+
+  /* first translate it to the cursor */
+#if 0
+  MWin_GetCursor( gMeditWindow, &cursor );
+  switch( orientation ) {
+  case mri_tOrientation_Coronal:
+    FunV_TranslateOverlayRegistration( gFunctionalVolume, 
+               xVoxl_GetX(&cursor), tAxis_X );
+    FunV_TranslateOverlayRegistration( gFunctionalVolume, 
+               xVoxl_GetY(&cursor), tAxis_Y );
+    break;
+  case mri_tOrientation_Horizontal:
+    FunV_TranslateOverlayRegistration( gFunctionalVolume, 
+               xVoxl_GetX(&cursor), tAxis_X );
+    FunV_TranslateOverlayRegistration( gFunctionalVolume, 
+               xVoxl_GetZ(&cursor), tAxis_Y );
+    break;
+  case mri_tOrientation_Sagittal:
+    FunV_TranslateOverlayRegistration( gFunctionalVolume, 
+               xVoxl_GetZ(&cursor), tAxis_X );
+    FunV_TranslateOverlayRegistration( gFunctionalVolume, 
+               xVoxl_GetY(&cursor), tAxis_Y );
+    break;
+  default: goto cleanup;
+    break;
+  }
+#endif
+
+  switch( isAxis ) {
+  case 'x':
+    switch( orientation ) {
+    case mri_tOrientation_Coronal:
+      FunV_RotateOverlayRegistration( gFunctionalVolume, 
+              ifDegrees, tAxis_X );
+      break;
+    case mri_tOrientation_Horizontal:
+      FunV_RotateOverlayRegistration( gFunctionalVolume, 
+              -ifDegrees, tAxis_X );
+      break;
+    case mri_tOrientation_Sagittal:
+      FunV_RotateOverlayRegistration( gFunctionalVolume, 
+              -ifDegrees, tAxis_Y );
+      break;
+    default: goto cleanup;
+      break;
+    }
+    break;
+  case 'y':
+    switch( orientation ) {
+    case mri_tOrientation_Coronal:
+      FunV_RotateOverlayRegistration( gFunctionalVolume, 
+              ifDegrees, tAxis_Z );
+      break;
+    case mri_tOrientation_Horizontal:
+      FunV_RotateOverlayRegistration( gFunctionalVolume, 
+              ifDegrees, tAxis_Y );
+      break;
+    case mri_tOrientation_Sagittal:
+      FunV_RotateOverlayRegistration( gFunctionalVolume, 
+              ifDegrees, tAxis_Z );
+      break;
+    default: goto cleanup;
+      break;
+    }
+    break;
+  case 'z':
+    switch( orientation ) {
+    case mri_tOrientation_Coronal:
+      FunV_RotateOverlayRegistration( gFunctionalVolume, 
+              -ifDegrees, tAxis_Y );
+      break;
+    case mri_tOrientation_Horizontal:
+      FunV_RotateOverlayRegistration( gFunctionalVolume, 
+              ifDegrees, tAxis_Z );
+      break;
+    case mri_tOrientation_Sagittal:
+      FunV_RotateOverlayRegistration( gFunctionalVolume, 
+              -ifDegrees, tAxis_X );
+      break;
+    default: goto cleanup;
+      break;
+    }
+    break;
+  }
+
+#if 0
+  /* translate it back */
+  switch( orientation ) {
+  case mri_tOrientation_Coronal:
+    FunV_TranslateOverlayRegistration( gFunctionalVolume, 
+               -xVoxl_GetX(&cursor), tAxis_X );
+    FunV_TranslateOverlayRegistration( gFunctionalVolume, 
+               -xVoxl_GetY(&cursor), tAxis_Y );
+    break;
+  case mri_tOrientation_Horizontal:
+    FunV_TranslateOverlayRegistration( gFunctionalVolume, 
+               -xVoxl_GetX(&cursor), tAxis_X );
+    FunV_TranslateOverlayRegistration( gFunctionalVolume, 
+               -xVoxl_GetZ(&cursor), tAxis_Y );
+    break;
+  case mri_tOrientation_Sagittal:
+    FunV_TranslateOverlayRegistration( gFunctionalVolume, 
+               -xVoxl_GetZ(&cursor), tAxis_X );
+    FunV_TranslateOverlayRegistration( gFunctionalVolume, 
+               -xVoxl_GetY(&cursor), tAxis_Y );
+    break;
+  default: goto cleanup;
+    break;
+  }
+#endif
+
+  UpdateAndRedraw();
+
+ cleanup:
+  return;
+
+#if 0
+
+  MATRIX*   mRotation    = NULL;
+  FunV_tErr eFunctional  = FunV_tErr_NoError;
+  float     fRadians     = 0;
+  mri_tOrientation orientation;
+
+  /* convert to radians */
+  fRadians = ifDegrees * (PI / 180.0);
+
+  /* get the orientation */
+  MWin_GetOrientation ( gMeditWindow, &orientation );
+
+  /* create the proper rotate matrix for this orientation */
+  switch( isAxis ) {
+  case 'x':
+    switch( orientation ) {
+    case mri_tOrientation_Coronal:
+      mRotation = MatrixAllocRotation( 4, fRadians, X_ROTATION );
+      break;
+    case mri_tOrientation_Horizontal:
+      mRotation = MatrixAllocRotation( 4, fRadians, X_ROTATION );
+      break;
+    case mri_tOrientation_Sagittal:
+      mRotation = MatrixAllocRotation( 4, -fRadians, Y_ROTATION );
+      break;
+    default: goto cleanup;
+      break;
+    }
+    break;
+  case 'y':
+    switch( orientation ) {
+    case mri_tOrientation_Coronal:
+      mRotation = MatrixAllocRotation( 4, fRadians, Z_ROTATION );
+      break;
+    case mri_tOrientation_Horizontal:
+      mRotation = MatrixAllocRotation( 4, -fRadians, Y_ROTATION );
+      break;
+    case mri_tOrientation_Sagittal:
+       mRotation = MatrixAllocRotation( 4, fRadians, Z_ROTATION );
+      break;
+    default: goto cleanup;
+      break;
+    }
+    break;
+  case 'z':
+    switch( orientation ) {
+    case mri_tOrientation_Coronal:
+      mRotation = MatrixAllocRotation( 4, -fRadians, Y_ROTATION );
+      break;
+    case mri_tOrientation_Horizontal:
+      mRotation = MatrixAllocRotation( 4, -fRadians, Z_ROTATION );
+      break;
+    case mri_tOrientation_Sagittal:
+      mRotation = MatrixAllocRotation( 4, -fRadians, X_ROTATION );
+      break;
+    default: goto cleanup;
+      break;
+    }
+    break;
+  default:
+    goto cleanup;
+  }
+
+  /* apply the transformation */
+  eFunctional = FunV_ApplyTransformToOverlay( gFunctionalVolume, mRotation );
+  if ( FunV_tErr_NoError != eFunctional ) {
+    DebugPrint "HPtL error %d in RotateOverlayRegistration: %s\n",
+      eFunctional, FunV_GetErrorString( eFunctional ) EndDebugPrint;
+    goto cleanup;
+  }
+
+  UpdateAndRedraw();
+
+ cleanup:
+
+  if( NULL != mRotation ) 
+    MatrixFree( &mRotation );
+#endif
+}
+
+void TranslateOverlayRegisgtration ( float ifDistance, 
+             char  isDirection ) {
+ 
+  mri_tOrientation orientation;
+
+  MWin_GetOrientation ( gMeditWindow, &orientation );
+
+  switch( isDirection ) {
+  case 'x':
+    switch( orientation ) {
+    case mri_tOrientation_Coronal:
+      FunV_TranslateOverlayRegistration( gFunctionalVolume,
+           ifDistance, tAxis_X );
+      break;
+    case mri_tOrientation_Horizontal:
+      FunV_TranslateOverlayRegistration( gFunctionalVolume,
+           ifDistance, tAxis_X );
+      break;
+    case mri_tOrientation_Sagittal:
+      FunV_TranslateOverlayRegistration( gFunctionalVolume,
+           -ifDistance, tAxis_Y );
+      break;
+    default: goto cleanup;
+      break;
+    }
+    break;
+  case 'y':
+    switch( orientation ) {
+    case mri_tOrientation_Coronal:
+      FunV_TranslateOverlayRegistration( gFunctionalVolume,
+           ifDistance, tAxis_Z );
+      break;
+    case mri_tOrientation_Horizontal:
+      FunV_TranslateOverlayRegistration( gFunctionalVolume,
+           ifDistance, tAxis_Y );
+      break;
+    case mri_tOrientation_Sagittal:
+      FunV_TranslateOverlayRegistration( gFunctionalVolume,
+           ifDistance, tAxis_Z );
+      break;
+    default: goto cleanup;
+      break;
+    }
+    break;
+  case 'z':
+    switch( orientation ) {
+    case mri_tOrientation_Coronal:
+      FunV_TranslateOverlayRegistration( gFunctionalVolume,
+           -ifDistance, tAxis_Y );
+      break;
+    case mri_tOrientation_Horizontal:
+      FunV_TranslateOverlayRegistration( gFunctionalVolume,
+           -ifDistance, tAxis_Z );
+      break;
+    case mri_tOrientation_Sagittal:
+       FunV_TranslateOverlayRegistration( gFunctionalVolume,
+            -ifDistance, tAxis_X );
+      break;
+    default: goto cleanup;
+      break;
+    }
+    break;
+  }
+
+  UpdateAndRedraw();
+
+ cleanup:
+  return;
+
+#if 0
+
+  MATRIX*   mTranslation = NULL;
+  FunV_tErr eFunctional  = FunV_tErr_NoError;
+  mri_tOrientation orientation;
+
+  mTranslation = MatrixIdentity( 4, NULL );
+
+  /* get the orientation */
+  MWin_GetOrientation ( gMeditWindow, &orientation );
+
+  /* create the proper translation matrix for this orientation */
+  switch( isDirection ) {
+  case 'x':
+    switch( orientation ) {
+    case mri_tOrientation_Coronal:
+      *MATRIX_RELT(mTranslation,1,4) = ifDistance; /* ana x */
+      break;
+    case mri_tOrientation_Horizontal:
+      *MATRIX_RELT(mTranslation,1,4) = ifDistance; /* ana x */
+      break;
+    case mri_tOrientation_Sagittal:
+      *MATRIX_RELT(mTranslation,2,4) = -ifDistance; /* ana y */
+      break;
+    default: goto cleanup;
+      break;
+    }
+    break;
+  case 'y':
+    switch( orientation ) {
+    case mri_tOrientation_Coronal:
+      *MATRIX_RELT(mTranslation,3,4) = ifDistance; /* ana z */
+      break;
+    case mri_tOrientation_Horizontal:
+      *MATRIX_RELT(mTranslation,2,4) = ifDistance; /* ana y */
+      break;
+    case mri_tOrientation_Sagittal:
+      *MATRIX_RELT(mTranslation,3,4) = ifDistance; /* ana z */
+      break;
+    default: goto cleanup;
+      break;
+    }
+    break;
+  case 'z':
+    switch( orientation ) {
+    case mri_tOrientation_Coronal:
+      *MATRIX_RELT(mTranslation,2,4) = -ifDistance; /* ana y */
+      break;
+    case mri_tOrientation_Horizontal:
+      *MATRIX_RELT(mTranslation,3,4) = -ifDistance; /* ana z */
+      break;
+    case mri_tOrientation_Sagittal:
+      *MATRIX_RELT(mTranslation,1,4) = -ifDistance; /* ana x */
+      break;
+    default: goto cleanup;
+      break;
+    }
+    break;
+  default:
+    goto cleanup;
+  }
+  
+  /* apply the transformation */
+  eFunctional = FunV_ApplyTransformToOverlay( gFunctionalVolume, 
+                mTranslation );
+  if ( FunV_tErr_NoError != eFunctional ) {
+    DebugPrint "FunV error %d in TranslateOverlayRegisgtration: %s\n",
+      eFunctional, FunV_GetErrorString( eFunctional ) EndDebugPrint;
+    goto cleanup;
+  }
+
+  UpdateAndRedraw();
+
+ cleanup:
+
+  if( NULL != mTranslation ) 
+    MatrixFree( &mTranslation );
+#endif
+}
+
+void ScaleOverlayRegisgtration ( float ifFactor, 
+         char  isDirection ) {
+ 
+  mri_tOrientation orientation;
+
+  MWin_GetOrientation ( gMeditWindow, &orientation );
+
+  switch( isDirection ) {
+  case 'x':
+    switch( orientation ) {
+    case mri_tOrientation_Coronal:
+      FunV_ScaleOverlayRegistration( gFunctionalVolume,
+             ifFactor, tAxis_X );
+      break;
+    case mri_tOrientation_Horizontal:
+      FunV_ScaleOverlayRegistration( gFunctionalVolume,
+             ifFactor, tAxis_X );
+      break;
+    case mri_tOrientation_Sagittal:
+      FunV_ScaleOverlayRegistration( gFunctionalVolume,
+             ifFactor, tAxis_Y );
+      break;
+    default: goto cleanup;
+      break;
+    }
+    break;
+  case 'y':
+    switch( orientation ) {
+    case mri_tOrientation_Coronal:
+      FunV_ScaleOverlayRegistration( gFunctionalVolume,
+             ifFactor, tAxis_Z );
+      break;
+    case mri_tOrientation_Horizontal:
+      FunV_ScaleOverlayRegistration( gFunctionalVolume,
+             ifFactor, tAxis_Y );
+      break;
+    case mri_tOrientation_Sagittal:
+      FunV_ScaleOverlayRegistration( gFunctionalVolume,
+             ifFactor, tAxis_Z );
+      break;
+    default: goto cleanup;
+      break;
+    }
+    break;
+  case 'z':
+    switch( orientation ) {
+    case mri_tOrientation_Coronal:
+      FunV_ScaleOverlayRegistration( gFunctionalVolume,
+             ifFactor, tAxis_Y );
+
+    case mri_tOrientation_Horizontal:
+      FunV_ScaleOverlayRegistration( gFunctionalVolume,
+             ifFactor, tAxis_Z );
+      break;
+    case mri_tOrientation_Sagittal:
+      FunV_ScaleOverlayRegistration( gFunctionalVolume,
+             ifFactor, tAxis_X );
+      break;
+    default: goto cleanup;
+      break;
+    }
+    break;
+  default:
+    goto cleanup;
+  }
+
+  UpdateAndRedraw();
+
+ cleanup:
+  return;
+
+#if 0
+
+  MATRIX*   mScale        = NULL;
+  FunV_tErr eFunctional  = FunV_tErr_NoError;
+  mri_tOrientation orientation;
+
+  mScale = MatrixIdentity( 4, NULL );
+
+  /* get the orientation */
+  MWin_GetOrientation ( gMeditWindow, &orientation );
+
+  /* create the proper translation matrix for this orientation */
+  switch( isDirection ) {
+  case 'x':
+    switch( orientation ) {
+    case mri_tOrientation_Coronal:
+      *MATRIX_RELT(mScale,1,1) = ifFactor; /* ana x */
+      break;
+    case mri_tOrientation_Horizontal:
+      *MATRIX_RELT(mScale,1,1) = ifFactor; /* ana x */
+      break;
+    case mri_tOrientation_Sagittal:
+      *MATRIX_RELT(mScale,2,2) = /*-*/ifFactor; /* ana y */
+      break;
+    default: goto cleanup;
+      break;
+    }
+    break;
+  case 'y':
+    switch( orientation ) {
+    case mri_tOrientation_Coronal:
+      *MATRIX_RELT(mScale,3,3) = ifFactor; /* ana z */
+      break;
+    case mri_tOrientation_Horizontal:
+      *MATRIX_RELT(mScale,2,2) = ifFactor; /* ana y */
+      break;
+    case mri_tOrientation_Sagittal:
+      *MATRIX_RELT(mScale,3,3) = ifFactor; /* ana z */
+      break;
+    default: goto cleanup;
+      break;
+    }
+    break;
+  case 'z':
+    switch( orientation ) {
+    case mri_tOrientation_Coronal:
+      *MATRIX_RELT(mScale,2,2) = /*-*/ifFactor; /* ana y */
+      break;
+    case mri_tOrientation_Horizontal:
+      *MATRIX_RELT(mScale,3,3) = /*-*/ifFactor; /* ana z */
+      break;
+    case mri_tOrientation_Sagittal:
+      *MATRIX_RELT(mScale,1,1) = /*-*/ifFactor; /* ana x */
+      break;
+    default: goto cleanup;
+      break;
+    }
+    break;
+  default:
+    goto cleanup;
+  }
+  
+  /* apply the transformation */
+  eFunctional = FunV_ApplyTransformToOverlay( gFunctionalVolume, 
+                mScale );
+  if ( FunV_tErr_NoError != eFunctional ) {
+    DebugPrint "FunV error %d in ScaleOverlayRegisgtration: %s\n",
+      eFunctional, FunV_GetErrorString( eFunctional ) EndDebugPrint;
+    goto cleanup;
+  }
+
+  UpdateAndRedraw();
+
+ cleanup:
+
+  if( NULL != mScale ) 
+    MatrixFree( &mScale );
+#endif
+}
 
 // ================================================= PARCELLATION and ROI GROUP
 
@@ -6037,9 +6694,9 @@ void DeleteUndoEntryWrapper ( xUndL_tEntryPtr* inEntryToDelete ) {
   *inEntryToDelete = NULL;
 }
 
-void UndoActionWrapper      ( xUndL_tEntryPtr  inUndoneEntry, 
-            xUndL_tEntryPtr* outNewEntry ) {
-
+void UndoActionWrapper ( xUndL_tEntryPtr  inUndoneEntry, 
+       xUndL_tEntryPtr* outNewEntry ) {
+  
   UndoEntryRef theEntryToUndo, theUndoneEntry;
   tVolumeValue theVoxelValue;
 
@@ -6171,11 +6828,11 @@ void RotateHeadPts ( float ifRadians,
 
   MATRIX*   mRotation = NULL;
   HPtL_tErr eHeadPts  = HPtL_tErr_NoErr;
-  float     fDegrees  = 0;
+  float     fRadians  = 0;
   mri_tOrientation orientation;
 
-  /* convert to degrees */
-  fDegrees = ifRadians * (PI / 180.0);
+  /* convert to radians */
+  fRadians = ifRadians * (PI / 180.0);
 
   /* get the orientation */
   MWin_GetOrientation ( gMeditWindow, &orientation );
@@ -6185,13 +6842,13 @@ void RotateHeadPts ( float ifRadians,
   case 'x':
     switch( orientation ) {
     case mri_tOrientation_Coronal:
-      mRotation = MatrixAllocRotation( 4, fDegrees, X_ROTATION );
+      mRotation = MatrixAllocRotation( 4, fRadians, X_ROTATION );
       break;
     case mri_tOrientation_Horizontal:
-      mRotation = MatrixAllocRotation( 4, fDegrees, X_ROTATION );
+      mRotation = MatrixAllocRotation( 4, fRadians, X_ROTATION );
       break;
     case mri_tOrientation_Sagittal:
-      mRotation = MatrixAllocRotation( 4, -fDegrees, Y_ROTATION );
+      mRotation = MatrixAllocRotation( 4, -fRadians, Y_ROTATION );
       break;
     default: goto cleanup;
       break;
@@ -6200,13 +6857,13 @@ void RotateHeadPts ( float ifRadians,
   case 'y':
     switch( orientation ) {
     case mri_tOrientation_Coronal:
-      mRotation = MatrixAllocRotation( 4, fDegrees, Z_ROTATION );
+      mRotation = MatrixAllocRotation( 4, fRadians, Z_ROTATION );
       break;
     case mri_tOrientation_Horizontal:
-      mRotation = MatrixAllocRotation( 4, -fDegrees, Y_ROTATION );
+      mRotation = MatrixAllocRotation( 4, -fRadians, Y_ROTATION );
       break;
     case mri_tOrientation_Sagittal:
-       mRotation = MatrixAllocRotation( 4, fDegrees, Z_ROTATION );
+       mRotation = MatrixAllocRotation( 4, fRadians, Z_ROTATION );
       break;
     default: goto cleanup;
       break;
@@ -6215,13 +6872,13 @@ void RotateHeadPts ( float ifRadians,
   case 'z':
     switch( orientation ) {
     case mri_tOrientation_Coronal:
-      mRotation = MatrixAllocRotation( 4, -fDegrees, Y_ROTATION );
+      mRotation = MatrixAllocRotation( 4, -fRadians, Y_ROTATION );
       break;
     case mri_tOrientation_Horizontal:
-      mRotation = MatrixAllocRotation( 4, -fDegrees, Z_ROTATION );
+      mRotation = MatrixAllocRotation( 4, -fRadians, Z_ROTATION );
       break;
     case mri_tOrientation_Sagittal:
-      mRotation = MatrixAllocRotation( 4, -fDegrees, X_ROTATION );
+      mRotation = MatrixAllocRotation( 4, -fRadians, X_ROTATION );
       break;
     default: goto cleanup;
       break;
@@ -6404,8 +7061,6 @@ void AlignSelectedHeadPointToAnaIdx ( xVoxelRef iAnaIdx ) {
   return;
  
 }
-
-
 
 /* ============================================================ ACCESS FUNCS */
 
@@ -6741,8 +7396,8 @@ char kTclCommands [tkm_knNumTclCommands][256] = {
   "UpdateOrientation",
   "UpdateDisplayFlag",
   "UpdateTool",
-  "UpdateBrush",
-  "UpdateBrushThreshold",
+  "UpdateBrushShape",
+  "UpdateBrushInfo",
   "UpdateVolumeColorScaleInfo",
   "UpdateROILabel",
   "UpdateHeadPointLabel",
@@ -6763,12 +7418,18 @@ char kTclCommands [tkm_knNumTclCommands][256] = {
   "tkm_SetMenuItemGroupStatus tMenuGroup_OriginalSurfaceViewing",
   "tkm_SetMenuItemGroupStatus tMenuGroup_CanonicalSurfaceViewing",
   "tkm_SetMenuItemGroupStatus tMenuGroup_EditHeadPointLabel",
+  "tkm_SetMenuItemGroupStatus tMenuGroup_Registration",
 
   /* interface configuration */
   "raise .; wm geometry .",
   "CsurfInterface",
+
+  /* misc */
   "ErrorDlog",
-  "AlertDlog"
+  "AlertDlog",
+  "tkm_MakeProgressDlog",
+  "tkm_UpdateProgressDlog",
+  "tkm_DestroyProgressDlog"
 };
 
 void tkm_SendTclCommand ( tkm_tTclCommand inCommand,

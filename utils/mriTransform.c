@@ -1,5 +1,7 @@
 #include <stdlib.h>
+#include <math.h>
 #include "mriTransform.h"
+#include "macros.h"
 
 char Trns_ksaErrorStrings [Trns_knNumErrorCodes][256] = {
 
@@ -293,48 +295,97 @@ Trns_tErr Trns_GetARAStoBRAS ( mriTransformRef this,
   return eResult;
 }
 
+#define mp(l,m) DebugPrint "%s\n", l EndDebugPrint; MatrixPrint(stderr,m);
+
 Trns_tErr Trns_ApplyTransform ( mriTransformRef this,
         MATRIX*         iTransform ) {
 
   Trns_tErr eResult         = Trns_tErr_NoErr;
   MATRIX*   mTranslation    = NULL;
+  MATRIX*   mTranslationInv = NULL;
   MATRIX*   mRotation       = NULL;
+  MATRIX*   mRotationInv    = NULL;
   MATRIX*   mScale          = NULL;
   MATRIX*   mNewTranslation = NULL;
   MATRIX*   mNewRotation    = NULL;
   MATRIX*   mNewScale       = NULL;
+  MATRIX*   mTmp1           = NULL;
+  MATRIX*   mTmp2           = NULL;
   MATRIX*   mNew            = NULL;
 
   eResult = Trns_Verify( this );
   if( Trns_tErr_NoErr != eResult )
     goto error;
 
+  //  mp("\nTrns_ApplyTransform (",iTransform);
+  //  DebugPrint ")\n" EndDebugPrint;
+
   /* init our matricies */
   mTranslation    = MatrixAlloc( 4, 4, MATRIX_REAL );
+  mTranslationInv = MatrixAlloc( 4, 4, MATRIX_REAL );
   mRotation       = MatrixAlloc( 4, 4, MATRIX_REAL );
+  mRotationInv    = MatrixAlloc( 4, 4, MATRIX_REAL );
   mScale          = MatrixAlloc( 4, 4, MATRIX_REAL );
   mNewTranslation = MatrixAlloc( 4, 4, MATRIX_REAL );
   mNewRotation    = MatrixAlloc( 4, 4, MATRIX_REAL );
-  mNewScale       = MatrixAlloc( 4, 4, MATRIX_REAL );
   mNew            = MatrixAlloc( 4, 4, MATRIX_REAL );
+  mTmp1           = MatrixAlloc( 4, 4, MATRIX_REAL );
+  mTmp2           = MatrixAlloc( 4, 4, MATRIX_REAL );
+  mNewScale       = MatrixAlloc( 4, 4, MATRIX_REAL );
+
+  //  mp("orig",this->mARAStoBRAS);
 
   /* get our matrix components */
   Trns_ExtractTranslationMatrix( this->mARAStoBRAS, mTranslation );
   Trns_ExtractRotationMatrix(    this->mARAStoBRAS, mRotation );
   Trns_ExtractScaleMatrix(       this->mARAStoBRAS, mScale );
-  Trns_ExtractTranslationMatrix( iTransform,        mNewTranslation );
-  Trns_ExtractRotationMatrix(    iTransform,        mNewRotation );
-  Trns_ExtractScaleMatrix(       iTransform,        mNewScale );
+  //  mp("t",mTranslation);
+  //  mp("r",mRotation);
+  //  mp("s",mScale);
 
-  /* compose them back together in the proper order with the
-     new transforms */
+  /* we find the inverse rotation so we can apply our new transforms in a
+     screen-relative space instead of local space. */
+  /* find the inverse rotation */
+  MatrixInverse( mRotation, mRotationInv );
+  MatrixInverse( mTranslation, mTranslationInv );
+
+  /* new_t = r * new_t * inv_r */
+  Trns_ExtractTranslationMatrix( iTransform, mNewTranslation );
+  MatrixMultiply( mNewTranslation, mRotationInv, mTmp1 );
+  MatrixMultiply( mRotation, mTmp1, mNewTranslation );
+  //  mp("new_t",mNewTranslation);
+
+  /* new_r = r * new_r * inv_r */
+  Trns_ExtractRotationMatrix( iTransform, mNewRotation );
+  MatrixMultiply( mNewRotation, mRotationInv, mTmp1 );
+  MatrixMultiply( mRotation, mTmp1, mNewRotation );
+  //  mp("new_r",mNewRotation);
+
+  Trns_ExtractScaleMatrix( iTransform, mNewScale );
+  /*
+  MatrixMultiply( mRotation, mNewScale, mTmp1 );
+  MatrixMultiply( mTmp1, mRotationInv, mNewScale );
+  */
+  //  mp("new_s",mNewScale);
+
+  /* compose them back together in the proper order with the new ones */
   MatrixIdentity( 4, mNew );
-  MatrixMultiply( mNewTranslation, mNew, mNew );
-  MatrixMultiply( mTranslation,    mNew, mNew );
-  MatrixMultiply( mNewScale,       mNew, mNew );
-  MatrixMultiply( mScale,          mNew, mNew );
-  MatrixMultiply( mNewRotation,    mNew, mNew );
-  MatrixMultiply( mRotation,       mNew, mNew );
+
+  /* new_t t new_r r new_s s */
+  MatrixMultiply( mNewScale, mScale, mTmp1 );
+  MatrixMultiply( mRotation, mTmp1, mTmp2 );
+  MatrixMultiply( mNewRotation, mTmp2, mTmp1 );
+  MatrixMultiply( mTranslation, mTmp1, mTmp2 );
+  MatrixMultiply( mNewTranslation, mTmp2, mNew );
+
+  /* new_t t new_s s new_r r */
+  MatrixMultiply( mNewRotation, mRotation, mTmp1 );
+  MatrixMultiply( mScale, mTmp1, mTmp2 );
+  MatrixMultiply( mNewScale, mTmp2, mTmp1 );
+  MatrixMultiply( mTranslation, mTmp1, mTmp2 );
+  MatrixMultiply( mNewTranslation, mTmp2, mNew );
+
+  mp("final",mNew);
 
   /* set the new matrix */
   eResult = Trns_CopyARAStoBRAS( this, mNew );
@@ -354,8 +405,12 @@ Trns_tErr Trns_ApplyTransform ( mriTransformRef this,
 
   if( mTranslation ) 
     MatrixFree( &mTranslation );
+  if( mTranslationInv ) 
+    MatrixFree( &mTranslationInv );
   if( mRotation ) 
     MatrixFree( &mRotation );
+  if( mRotationInv ) 
+    MatrixFree( &mRotationInv );
   if( mScale ) 
     MatrixFree( &mScale );
   if( mNewTranslation ) 
@@ -366,6 +421,10 @@ Trns_tErr Trns_ApplyTransform ( mriTransformRef this,
     MatrixFree( &mNewScale );
   if( mNew ) 
     MatrixFree( &mNew );
+  if( mTmp1 ) 
+    MatrixFree( &mTmp1 );
+  if( mTmp2 ) 
+    MatrixFree( &mTmp2 );
 
   return eResult;
 }
@@ -389,10 +448,9 @@ Trns_tErr Trns_ExtractTranslationMatrix ( MATRIX* iTransform,
 Trns_tErr Trns_ExtractRotationMatrix    ( MATRIX* iTransform,
             MATRIX* oRotation ) {
 
+  MATRIX* mScale  = NULL;
   MATRIX* mTmp    = NULL;
-  MATRIX* mTmp2   = NULL;
-  VECTOR* vTmp    = NULL;
-  float   fFactor = 0;
+  int     n       = 0;
 
   if( NULL == iTransform
       || NULL == oRotation ) 
@@ -404,30 +462,28 @@ Trns_tErr Trns_ExtractRotationMatrix    ( MATRIX* iTransform,
   *MATRIX_RELT(mTmp,2,4) = 0;
   *MATRIX_RELT(mTmp,3,4) = 0;
 
-  /* create a 1,0,0 vector and compose it. */
-  vTmp = VectorAlloc(4,MATRIX_REAL);
-  VECTOR_ELT(vTmp,1) = 1.0; VECTOR_ELT(vTmp,2) = 0;
-  VECTOR_ELT(vTmp,3) = 0;   VECTOR_ELT(vTmp,4) = 1.0;
-  MatrixMultiply(mTmp,vTmp,vTmp);
-  
-  /* create a matrix with 1/length in the diagonal */
-  fFactor = 1.0 / VectorLen( vTmp );
-  mTmp2 = MatrixIdentity( 4, mTmp2 );
-  *MATRIX_RELT(mTmp2,1,1) = fFactor;
-  *MATRIX_RELT(mTmp2,2,2) = fFactor;
-  *MATRIX_RELT(mTmp2,3,3) = fFactor;
+  /* we want to cancel out the scale portion of this matrix. so now we'll
+     extract the scale matrix from this matrix */
+  mScale = MatrixAlloc( 4, 4, MATRIX_REAL );
+  Trns_ExtractScaleMatrix( mTmp, mScale );
+
+  /* now modify it so that all the factors are one-overed. */
+  for( n = 1; n <= 3; n ++ )
+    if( !FZERO(*MATRIX_RELT(mScale,n,n)) )
+      *MATRIX_RELT(mScale,n,n) = 1.0 / *MATRIX_RELT(mScale,n,n);
+    else
+      *MATRIX_RELT(mScale,n,n) = 1.0;
 
   /* rotation is that matrix composed with original matrix sans translation */
-  MatrixMultiply( mTmp2, mTmp, oRotation );
+  MatrixMultiply( mTmp, mScale, oRotation );
 
   MatrixFree( &mTmp );
-  MatrixFree( &mTmp2 );
-  VectorFree( &vTmp );
+  MatrixFree( &mScale );
 
   return Trns_tErr_NoErr;
 }
 
-Trns_tErr Trns_ExtractScaleMatrix       ( MATRIX* iTransform,
+Trns_tErr Trns_ExtractScaleMatrix ( MATRIX* iTransform,
             MATRIX* oScale ) {
 
   MATRIX* mTmp    = NULL;
@@ -444,17 +500,29 @@ Trns_tErr Trns_ExtractScaleMatrix       ( MATRIX* iTransform,
   *MATRIX_RELT(mTmp,2,4) = 0;
   *MATRIX_RELT(mTmp,3,4) = 0;
 
-  /* create a 1,0,0 vector and compose it. */
+  /* find the x component. create a 1,0,0 vector and compose it. */
   vTmp = VectorAlloc(4,MATRIX_REAL);
   VECTOR_ELT(vTmp,1) = 1.0; VECTOR_ELT(vTmp,2) = 0;
-  VECTOR_ELT(vTmp,3) = 0;   VECTOR_ELT(vTmp,4) = 1.0;
+  VECTOR_ELT(vTmp,3) = 0;   VECTOR_ELT(vTmp,4) = 0.0;
   MatrixMultiply(mTmp,vTmp,vTmp);
 
-  /* the scale is an identity matrix with the length in the diagonal */
+  /* the x scale factor is the lengh of the transformed vector */
   fFactor = VectorLen( vTmp );
   MatrixIdentity( 4, oScale );
-  *MATRIX_RELT(oScale,1,1) = fFactor;
+  *MATRIX_RELT(oScale,1,1) = fFactor; 
+
+  /* do the same for y with a 0,1,0 vector */
+  VECTOR_ELT(vTmp,1) = 0; VECTOR_ELT(vTmp,2) = 1.0;
+  VECTOR_ELT(vTmp,3) = 0; VECTOR_ELT(vTmp,4) = 0.0;
+  MatrixMultiply(mTmp,vTmp,vTmp);
+  fFactor = VectorLen( vTmp );
   *MATRIX_RELT(oScale,2,2) = fFactor;
+
+  /* do the same for z with a 0,0,1 vector */
+  VECTOR_ELT(vTmp,1) = 0;    VECTOR_ELT(vTmp,2) = 0;
+  VECTOR_ELT(vTmp,3) = 1.00; VECTOR_ELT(vTmp,4) = 0.0;
+  MatrixMultiply(mTmp,vTmp,vTmp);
+  fFactor = VectorLen( vTmp );
   *MATRIX_RELT(oScale,3,3) = fFactor;
 
   MatrixFree( &mTmp );
@@ -462,6 +530,179 @@ Trns_tErr Trns_ExtractScaleMatrix       ( MATRIX* iTransform,
 
   return Trns_tErr_NoErr;
 }
+
+
+Trns_tErr Trns_Translate ( mriTransformRef this,
+         float           ifAmount,
+         tAxis           iAxis ) {
+      
+
+  Trns_tErr eResult    = Trns_tErr_NoErr;
+  MATRIX*   mTransform = NULL;
+  MATRIX*   mOld       = NULL;
+  MATRIX*   mNew       = NULL;
+
+  eResult = Trns_Verify( this );
+  if( Trns_tErr_NoErr != eResult )
+    goto error;
+
+  mTransform = MatrixAlloc( 4, 4, MATRIX_REAL );
+  mOld = MatrixAlloc( 4, 4, MATRIX_REAL );
+  mNew = MatrixAlloc( 4, 4, MATRIX_REAL );
+
+  /* create the matrix */
+  mTransform = MatrixIdentity( 4, NULL );
+  switch( iAxis ) {
+  case tAxis_X:
+    *MATRIX_RELT( mTransform, 1, 4 ) = ifAmount;
+    break;
+  case tAxis_Y:
+    *MATRIX_RELT( mTransform, 2, 4 ) = ifAmount;
+    break;
+  case tAxis_Z:
+    *MATRIX_RELT( mTransform, 3, 4 ) = ifAmount;
+    break;
+  }
+
+  /* compose the new matrix with the old one */
+  MatrixCopy( this->mARAStoBRAS, mOld );
+  MatrixMultiply( mOld, mTransform, mNew );
+
+  /* set the new matrix */
+  eResult = Trns_CopyARAStoBRAS( this, mNew );
+  if( Trns_tErr_NoErr != eResult )
+    goto error;
+
+  goto cleanup;
+
+ error:
+
+  if( Trns_tErr_NoErr != eResult ) {
+    DebugPrint "Error %d in Trns_Translate: %s\n",
+      eResult, Trns_GetErrorString( eResult ) EndDebugPrint;
+  }
+
+ cleanup:
+
+  if( mTransform != NULL )
+    MatrixFree( &mTransform );
+  if( mOld != NULL )
+    MatrixFree( &mNew );
+  if( mNew != NULL )
+    MatrixFree( &mNew );
+
+  return eResult;
+}
+
+Trns_tErr Trns_Rotate ( mriTransformRef this,
+      float           ifDegrees,
+      tAxis           iAxis ) {
+
+  Trns_tErr eResult = Trns_tErr_NoErr;
+  MATRIX*   mTransform = NULL;
+  MATRIX*   mOld       = NULL;
+  MATRIX*   mNew       = NULL;
+  float     fRadians  = 0;
+
+  eResult = Trns_Verify( this );
+  if( Trns_tErr_NoErr != eResult )
+    goto error;
+
+  mTransform = MatrixAlloc( 4, 4, MATRIX_REAL );
+  mOld = MatrixAlloc( 4, 4, MATRIX_REAL );
+  mNew = MatrixAlloc( 4, 4, MATRIX_REAL );
+
+  /* create the matrix */
+  fRadians = ifDegrees * M_PI / 180.0;
+  switch( iAxis ) {
+  case tAxis_X:
+    mTransform = MatrixAllocRotation( 4, fRadians, X_ROTATION );
+    break;
+  case tAxis_Y:
+    mTransform = MatrixAllocRotation( 4, fRadians, Y_ROTATION );
+    break;
+  case tAxis_Z:
+    mTransform = MatrixAllocRotation( 4, fRadians, Z_ROTATION );
+    break;
+  }
+
+  /* compose the new matrix with the old one */
+  MatrixCopy( this->mARAStoBRAS, mOld );
+  MatrixMultiply( mOld, mTransform, mNew );
+
+  /* set the new matrix */
+  eResult = Trns_CopyARAStoBRAS( this, mNew );
+  if( Trns_tErr_NoErr != eResult )
+    goto error;
+
+  goto cleanup;
+
+ error:
+
+  if( Trns_tErr_NoErr != eResult ) {
+    DebugPrint "Error %d in Trns_Rotate: %s\n",
+      eResult, Trns_GetErrorString( eResult ) EndDebugPrint;
+  }
+
+ cleanup:
+
+  return eResult;
+}
+
+Trns_tErr Trns_Scale ( mriTransformRef this,
+           float           ifFactor,
+           tAxis           iAxis ) {
+
+  Trns_tErr eResult = Trns_tErr_NoErr;
+  MATRIX*   mTransform = NULL;
+  MATRIX*   mOld       = NULL;
+  MATRIX*   mNew       = NULL;
+
+  eResult = Trns_Verify( this );
+  if( Trns_tErr_NoErr != eResult )
+    goto error;
+
+  mTransform = MatrixAlloc( 4, 4, MATRIX_REAL );
+  mOld = MatrixAlloc( 4, 4, MATRIX_REAL );
+  mNew = MatrixAlloc( 4, 4, MATRIX_REAL );
+
+  /* create the matrix */
+  mTransform = MatrixIdentity( 4, NULL );
+  switch( iAxis ) {
+  case tAxis_X:
+    *MATRIX_RELT( mTransform, 1, 1 ) = ifFactor;
+    break;
+  case tAxis_Y:
+    *MATRIX_RELT( mTransform, 2, 2 ) = ifFactor;
+    break;
+  case tAxis_Z:
+    *MATRIX_RELT( mTransform, 3, 3 ) = ifFactor;
+    break;
+  }
+
+  /* compose the new matrix with the old one */
+  MatrixCopy( this->mARAStoBRAS, mOld );
+  MatrixMultiply( mOld, mTransform, mNew );
+  
+  /* set the new matrix */
+  eResult = Trns_CopyARAStoBRAS( this, mNew );
+  if( Trns_tErr_NoErr != eResult )
+    goto error;
+
+  goto cleanup;
+
+ error:
+
+  if( Trns_tErr_NoErr != eResult ) {
+    DebugPrint "Error %d in Trns_Scale: %s\n",
+      eResult, Trns_GetErrorString( eResult ) EndDebugPrint;
+  }
+
+ cleanup:
+
+  return eResult;
+}
+
 
 Trns_tErr Trns_ConvertAtoB ( mriTransformRef this,
            xVoxelRef       iAVoxel,

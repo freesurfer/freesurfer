@@ -2171,11 +2171,14 @@ MWin_tErr MWin_RegisterTclCommands ( tkmMeditWindowRef this,
   Tcl_CreateCommand ( ipInterp, "SetTool",
           MWin_TclSetTool,
           (ClientData) this, (Tcl_CmdDeleteProc*) NULL );
-  Tcl_CreateCommand ( ipInterp, "SetBrush",
-          MWin_TclSetBrush,
+  Tcl_CreateCommand ( ipInterp, "SetBrushShape",
+          MWin_TclSetBrushShape,
           (ClientData) this, (Tcl_CmdDeleteProc*) NULL );
-  Tcl_CreateCommand ( ipInterp, "SetBrushThreshold",
-          MWin_TclSetBrushThreshold,
+  Tcl_CreateCommand ( ipInterp, "SetBrushInfo",
+          MWin_TclSetBrushInfo,
+          (ClientData) this, (Tcl_CmdDeleteProc*) NULL );
+  Tcl_CreateCommand ( ipInterp, "SetBrushInfoToDefaults",
+          MWin_TclSetBrushInfoToDefaults,
           (ClientData) this, (Tcl_CmdDeleteProc*) NULL );
   Tcl_CreateCommand ( ipInterp, "SelectCurrentROI",
           MWin_TclSelectCurrentROI,
@@ -2853,10 +2856,10 @@ int MWin_TclSetTool ( ClientData  ipClientData,
   return eTclResult;
 }
 
-int MWin_TclSetBrush ( ClientData  ipClientData, 
-           Tcl_Interp* ipInterp,
-           int         argc,
-           char*       argv[] ) {
+int MWin_TclSetBrushShape ( ClientData  ipClientData, 
+          Tcl_Interp* ipInterp,
+          int         argc,
+          char*       argv[] ) {
 
   tkmMeditWindowRef this         = NULL;
   int               eTclResult   = TCL_OK;
@@ -2897,8 +2900,8 @@ int MWin_TclSetBrush ( ClientData  ipClientData,
 
   /* set the brush of the last clicked display. */
   eDispResult = 
-    DspA_SetBrush ( this->mapDisplays[this->mnLastClickedArea],
-        nRadius, shape, b3D );
+    DspA_SetBrushShape ( this->mapDisplays[this->mnLastClickedArea],
+       nRadius, shape, b3D );
   if ( DspA_tErr_NoErr != eDispResult ) {
     eResult = MWin_tErr_ErrorAccessingDisplay;
     goto error;
@@ -2910,7 +2913,7 @@ int MWin_TclSetBrush ( ClientData  ipClientData,
   /* print error message */
   if ( MWin_tErr_NoErr != eResult ) {
 
-    sprintf ( sError, "Error %d in MWin_TclSetBrush: %s\n",
+    sprintf ( sError, "Error %d in MWin_TclSetBrushShape: %s\n",
         eResult, MWin_GetErrorString(eResult) );
 
     DebugPrint sError EndDebugPrint;
@@ -2926,19 +2929,21 @@ int MWin_TclSetBrush ( ClientData  ipClientData,
   return eTclResult;
 }
 
-int MWin_TclSetBrushThreshold ( ClientData  ipClientData, 
-        Tcl_Interp* ipInterp,
-        int         argc,
-        char*       argv[] ) {
+int MWin_TclSetBrushInfo ( ClientData  ipClientData, 
+         Tcl_Interp* ipInterp,
+         int         argc,
+         char*       argv[] ) {
 
   tkmMeditWindowRef this         = NULL;
   int               eTclResult   = TCL_OK;
   MWin_tErr         eResult      = MWin_tErr_NoErr;
   DspA_tErr         eDispResult  = DspA_tErr_NoErr;
   char              sError[256]  = "";       
+  int               nBrush       = 0;
   int               nLow         = 0;
   int               nHigh        = 0;
   int               nNewValue    = 0;
+  DspA_tBrushInfo   brushInfo;
 
   /* grab us from the client data ptr */
   this = (tkmMeditWindowRef) ipClientData;
@@ -2958,20 +2963,26 @@ int MWin_TclSetBrushThreshold ( ClientData  ipClientData,
     goto error;
 
   /* verify the number of arguments. */
-  if ( argc < 4 ) {
+  if ( argc < 5 ) {
     eResult = MWin_tErr_WrongNumberArgs;
     goto error;
   }
 
   /* parse the args and get a low, high, and new value */
-  nLow      = (int) atoi( argv[1] );
-  nHigh     = (int) atoi( argv[2] );
-  nNewValue = (int) atoi( argv[3] );
+  nBrush    = (int) atoi( argv[1] );
+  nLow      = (int) atoi( argv[2] );
+  nHigh     = (int) atoi( argv[3] );
+  nNewValue = (int) atoi( argv[4] );
+
+  /* make a struct */
+  brushInfo.mnLow      = nLow;
+  brushInfo.mnHigh     = nHigh;
+  brushInfo.mnNewValue = nNewValue;
 
   /* set the brush of the last clicked display. */
   eDispResult = 
-    DspA_SetBrushThreshold ( this->mapDisplays[this->mnLastClickedArea],
-           nLow, nHigh, nNewValue );
+    DspA_SetBrushInfo ( this->mapDisplays[this->mnLastClickedArea],
+      nBrush, &brushInfo );
   if ( DspA_tErr_NoErr != eDispResult ) {
     eResult = MWin_tErr_ErrorAccessingDisplay;
     goto error;
@@ -2983,7 +2994,76 @@ int MWin_TclSetBrushThreshold ( ClientData  ipClientData,
   /* print error message */
   if ( MWin_tErr_NoErr != eResult ) {
 
-    sprintf ( sError, "Error %d in MWin_TclSetBrushThreshold: %s\n",
+    sprintf ( sError, "Error %d in MWin_TclSetBrushInfo: %s\n",
+        eResult, MWin_GetErrorString(eResult) );
+
+    DebugPrint sError EndDebugPrint;
+
+    /* set tcl result, volatile so tcl will make a copy of it. */
+    Tcl_SetResult( ipInterp, MWin_GetErrorString(eResult), TCL_VOLATILE );
+  }
+
+  eTclResult = TCL_ERROR;
+
+ cleanup:
+
+  return eTclResult;
+}
+
+int MWin_TclSetBrushInfoToDefaults ( ClientData  ipClientData, 
+             Tcl_Interp* ipInterp,
+             int         argc,
+             char*       argv[] ) {
+  
+  tkmMeditWindowRef this         = NULL;
+  int               eTclResult   = TCL_OK;
+  MWin_tErr         eResult      = MWin_tErr_NoErr;
+  DspA_tErr         eDispResult  = DspA_tErr_NoErr;
+  char              sError[256]  = "";       
+  int               nBrush       = 0;
+
+  /* grab us from the client data ptr */
+  this = (tkmMeditWindowRef) ipClientData;
+
+  /* verify us. */
+  eResult = MWin_Verify ( this );
+  if ( MWin_tErr_NoErr != eResult )
+    goto error;
+
+  /* if not accepting commands yet, return. */
+  if( !this->mbAcceptingTclCommands )
+    goto cleanup;
+
+  /* verify the last clicked display area index. */
+  eResult = MWin_VerifyDisplayIndex ( this, this->mnLastClickedArea );
+  if ( MWin_tErr_NoErr != eResult )
+    goto error;
+
+  /* verify the number of arguments. */
+  if ( argc < 2 ) {
+    eResult = MWin_tErr_WrongNumberArgs;
+    goto error;
+  }
+
+  /* parse the args and get a brush */
+  nBrush    = (int) atoi( argv[1] );
+
+  /* call on the last clicked display. */
+  eDispResult = 
+    DspA_SetBrushInfoToDefault ( this->mapDisplays[this->mnLastClickedArea],
+         nBrush  );
+  if ( DspA_tErr_NoErr != eDispResult ) {
+    eResult = MWin_tErr_ErrorAccessingDisplay;
+    goto error;
+  }
+  goto cleanup;
+
+ error:
+
+  /* print error message */
+  if ( MWin_tErr_NoErr != eResult ) {
+
+    sprintf ( sError, "Error %d in MWin_TclSetBrushInfoToDefaults: %s\n",
         eResult, MWin_GetErrorString(eResult) );
 
     DebugPrint sError EndDebugPrint;

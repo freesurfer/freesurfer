@@ -42,6 +42,7 @@ char FunD_ksaErrorString [FunD_tErr_knNumErrorCodes][256] = {
   "Couldn't allocate matrix (not my fault).",
   "Couldn't read register file.",
   "Couldn't calculate deviations.",
+  "Error performing an operation on a transform.",
   "Invalid time resolution, number of time points must be evenly divisble by it.",
   "Invalid number of pre stim time points.",
   "Invalid functional voxel, out of bounds.",
@@ -61,12 +62,14 @@ FunD_tErr FunD_New ( mriFunctionalDataRef* outVolume,
   mriFunctionalDataRef this;
   FunD_tErr theError;
 
+  /*
   DebugPrint "\nFunD_New: path=%s stem=%s", inPathName, inStem EndDebugPrint;
   if( inHeaderStem ) 
     DebugPrint " header=%s", inHeaderStem EndDebugPrint;
   if( inRegistration ) 
     DebugPrint " registration=%s", inRegistration EndDebugPrint;
   DebugPrint "\n" EndDebugPrint;
+  */
 
   // check to see if the path exists.
 
@@ -110,6 +113,8 @@ FunD_tErr FunD_New ( mriFunctionalDataRef* outVolume,
   this->mCovMtx = NULL;
   this->mSigma = 0;
   this->mIsErrorDataPresent = FALSE;
+  this->mMaxValue = -100000;
+  this->mMinValue = 100000;
 
   // init our transform objects.
   Trns_New( &(this->mIdxToIdxTransform) );
@@ -117,22 +122,13 @@ FunD_tErr FunD_New ( mriFunctionalDataRef* outVolume,
   
   // try parsing a stem header.
   theError = FunD_ParseStemHeader ( this );
-  if( FunD_tErr_NoError != theError ) {
-    DebugPrint "FunD_New(): Failed to parse stem.dat\n" EndDebugPrint;
-  } else {
-    DebugPrint "FunD_New(): Using stem.dat header for functional data.\n" EndDebugPrint;
-  }
+
 
   // if we couldn't find it...
   if ( FunD_tErr_HeaderNotFound == theError ) {
 
     // try the analyse.dat header
     theError = FunD_ParseAnalyseHeader ( this );
-    if( FunD_tErr_NoError != theError ) {
-      DebugPrint "FunD_New(): Failed to parse analyse.dat\n" EndDebugPrint;
-    } else {
-      DebugPrint "FunD_New(): Using analyse.dat header for functional data.\n" EndDebugPrint;
-    }
   }
 
   // still couldn't find it?
@@ -140,18 +136,11 @@ FunD_tErr FunD_New ( mriFunctionalDataRef* outVolume,
 
     // try a bfile header.
     theError = FunD_ParseBFileHeader ( this );
-    if( FunD_tErr_NoError != theError ) {
-      DebugPrint "FunD_New(): Failed to parse bfile header\n" EndDebugPrint;
-    } else {
-      DebugPrint "FunD_New(): Using bfile header for functional data.\n" EndDebugPrint;
-    }
   }
 
   // if we have any errors now, abort
   if ( FunD_tErr_NoError != theError ) {
     free ( this );
-    DebugPrint "FunD_New(): Couldn't parse any header files.\n" 
-      EndDebugPrint;
     return theError;
   }
 
@@ -269,11 +258,8 @@ FunD_tErr FunD_ParseStemHeader ( mriFunctionalDataRef this ) {
   
   /* try to open the file. */
   pHeader = fopen ( sFileName, "r" );
-  if ( NULL == pHeader ) {
-    DebugPrint "FunD_ParseStemHeader (): Didn't find %s\n",
-      sFileName EndDebugPrint;
+  if ( NULL == pHeader )
     return FunD_tErr_HeaderNotFound;
-  }
 
   /* start scanning for keywords... */
   while( !feof( pHeader ) ) {
@@ -345,11 +331,13 @@ FunD_tErr FunD_ParseStemHeader ( mriFunctionalDataRef this ) {
     }
   }
 
+  /*
   DebugPrint "FunD_ParseStemHeader(): Successfully parsed %s\n", 
     sFileName EndDebugPrint;
   DebugPrint "FunD_ParseStemHeader(): cols = %d rows = %d num conds = %d num time points = %d\n", 
     this->mNumCols, this->mNumRows, this->mNumConditions, this->mNumTimePoints 
     EndDebugPrint;
+  */
 
   // in this format we have error data.
   this->mIsErrorDataPresent = TRUE;
@@ -384,11 +372,8 @@ FunD_tErr FunD_ParseBFileHeader ( mriFunctionalDataRef this ) {
 
   // try to open the file.
   theHeaderFile = fopen ( theFileName, "r" );
-  if ( NULL == theHeaderFile ) {
-    DebugPrint "FunD_ParseBFileHeader(): Didn't find %s\n",
-      theFileName EndDebugPrint;
+  if ( NULL == theHeaderFile )
     return FunD_tErr_HeaderNotFound;
-  }
 
   // we just have four numbers in this file. read them in.
   fscanf ( theHeaderFile, "%d %d %d %*f",
@@ -405,10 +390,11 @@ FunD_tErr FunD_ParseBFileHeader ( mriFunctionalDataRef this ) {
   this->mIsErrorDataPresent = FALSE;
   this->mCovMtx = NULL;
   
+  /*
   DebugPrint "FunD_ParseBFileHeader(): Successfully parsed %s\n", 
     theFileName EndDebugPrint;
   DebugPrint "FunD_ParseBFileHeader(): cols = %d rows = %d num time points = %d\n", this->mNumCols, this->mNumRows, this->mNumTimePoints EndDebugPrint;
-
+  */
 
   return FunD_tErr_NoError;
 }
@@ -485,6 +471,7 @@ FunD_tErr FunD_ParseRegistrationAndInitMatricies ( mriFunctionalDataRef this ) {
   // grab the info we need from it.
   this->mPixelSize = theRegInfo->in_plane_res;
   this->mSliceThickness = theRegInfo->slice_thickness;
+  this->mBrightnessScale = theRegInfo->brightness_scale;
   strcpy ( this->mSubjectName, theRegInfo->name );
 
   // get our stats as floats
@@ -540,6 +527,69 @@ FunD_tErr FunD_ParseRegistrationAndInitMatricies ( mriFunctionalDataRef this ) {
   return FunD_tErr_NoError;
 }
 
+FunD_tErr FunD_SaveRegistration ( mriFunctionalDataRef this ) {
+
+  fMRI_REG* regInfo;
+  MATRIX*   mRegistration;
+  char      sFileName[256];
+  char      sBackupFileName[256];
+  FILE*     pFile;
+  int       nBackup = 1;
+
+  /* make a reg info struct */
+  regInfo = (fMRI_REG*) malloc( sizeof( fMRI_REG ));
+
+  /* fill out the fmri registration struct */
+  regInfo->in_plane_res = this->mPixelSize;
+  regInfo->slice_thickness = this->mSliceThickness;
+  regInfo->brightness_scale = this->mBrightnessScale;
+  strcpy( regInfo->name, this->mSubjectName );
+
+  /* allocate matrices and copy */
+  Trns_GetARAStoBRAS( this->mIdxToIdxTransform, &mRegistration );
+  regInfo->fmri2mri = MatrixCopy( mRegistration, NULL );
+  regInfo->mri2fmri = MatrixInverse( regInfo->fmri2mri, NULL );
+
+  /* if a registration already exists... */
+  sprintf( sFileName, "%s/%s", this->mRegistration, kFileName_Register ); 
+  pFile = fopen( sFileName, "r" );
+  if( NULL != pFile ) {
+
+    while( NULL != pFile ) {
+      
+      fclose( pFile );
+      
+      /* keep appending an increasing number to the end */
+      sprintf( sBackupFileName, "%s.%d", sFileName, nBackup++ );
+      pFile = fopen( sBackupFileName, "r" );
+    }
+
+    /* copy the registration file to backup */
+  }
+
+  /* write it to disk */
+  StatWriteRegistration( regInfo, sFileName );
+
+  StatFreeRegistration( &regInfo );
+
+  return FunD_tErr_NoError;
+}
+
+FunD_tErr FunD_SetRegistrationToIdentity ( mriFunctionalDataRef this ) {
+
+  MATRIX* mID;
+
+  mID = MatrixAlloc( 4, 4, MATRIX_REAL );
+  MatrixIdentity( 4, mID );
+  
+  Trns_CopyARAStoBRAS( this->mIdxToIdxTransform, mID );
+  Trns_CopyARAStoBRAS( this->mRASToIdxTransform, mID );
+
+  MatrixFree( &mID );
+
+  return FunD_tErr_NoError;
+}
+
 FunD_tErr FunD_DetermineDataType ( mriFunctionalDataRef this ) {
 
   char theFileName [128];
@@ -552,7 +602,6 @@ FunD_tErr FunD_DetermineDataType ( mriFunctionalDataRef this ) {
   if ( NULL != theFile ) {
 
     fclose ( theFile );
-    DebugPrint "Found a BShort file.\n" EndDebugPrint;
     return FunD_tErr_NoError;
   }
 
@@ -563,12 +612,10 @@ FunD_tErr FunD_DetermineDataType ( mriFunctionalDataRef this ) {
   if ( NULL != theFile ) {
 
     fclose ( theFile );
-    DebugPrint "Found a BFloat file.\n" EndDebugPrint;
     return FunD_tErr_NoError;
   }
 
-  // we're screwed.
-  DebugPrint "FunD_DetermineDataType(): Couldn't find BFloat or BShort file.\n" EndDebugPrint;
+  // couldn't find anything
   return FunD_tErr_CouldntDetermineDataType;
 }
 
@@ -585,8 +632,6 @@ FunD_tErr FunD_ParseData ( mriFunctionalDataRef this ) {
   float theFloatValue;
   short theShortValue;
 
-  DebugPrint "FunD_ParseData():\n" EndDebugPrint;
-
   // getting compiler warnings because these weren't initialized...??
   theRowIndex = 0;
   theColIndex = 0;
@@ -598,7 +643,6 @@ FunD_tErr FunD_ParseData ( mriFunctionalDataRef this ) {
   // size is rows * cols * slices * time points * conditions
   theNumDataValues = this->mNumRows * this->mNumCols * this->mNumSlices *
     this->mNumTimePoints * this->mNumConditions;
-  DebugPrint "\tNumber of data values = %d\n", theNumDataValues EndDebugPrint;
 
   // figure out how big our storage should be and then allocate it. also
   // point our value ptr to the right value variable.
@@ -633,8 +677,6 @@ FunD_tErr FunD_ParseData ( mriFunctionalDataRef this ) {
   // calculate the num values in a plane.
   theNumValuesInPlane = this->mNumRows * this->mNumCols;
   thePlaneSize = theNumValuesInPlane * theDataSize;
-  DebugPrint"\tNum values in plane = %d\n\tPlane size in bytes: %d\n",
-    theNumValuesInPlane, thePlaneSize EndDebugPrint;
 
   // for each slice...
   for ( theSliceIndex = 0; theSliceIndex < this->mNumSlices; theSliceIndex++ ){
@@ -749,14 +791,14 @@ FunD_tErr FunD_ParseData ( mriFunctionalDataRef this ) {
       case FunD_tDataType_Short:
         theShortValue = orderShortBytes ( theShortValue ); 
         FunD_SetValue ( this, theFunctionalVoxel,
-        theCondIndex, theTimePointIndex, 
-        theShortValue );
+            theCondIndex, theTimePointIndex, 
+            theShortValue );
         break;
       case FunD_tDataType_Float:
         theFloatValue = orderFloatBytes ( theFloatValue ); 
         FunD_SetValue ( this, theFunctionalVoxel,
-        theCondIndex, theTimePointIndex,
-        theFloatValue );
+            theCondIndex, theTimePointIndex,
+            theFloatValue );
         break;
       }
     }
@@ -887,7 +929,103 @@ FunD_tErr FunD_CalcDeviations ( mriFunctionalDataRef this ) {
   return FunD_tErr_NoError;
 }
 
-   
+FunD_tErr FunD_ApplyTransformToRegistration( mriFunctionalDataRef this,
+               MATRIX*              iTransform ){
+
+  FunD_tErr eResult    = FunD_tErr_NoError;
+  Trns_tErr eTransform = Trns_tErr_NoErr;
+  MATRIX*   invTransform = NULL;
+
+  // make sure we're valid.
+  eResult = FunD_AssertIsValid ( this );
+  if ( FunD_tErr_NoError != eResult )
+    return eResult;
+
+  /* we're getting the matrix in ras space. */
+  invTransform = MatrixInverse( iTransform, NULL );
+
+  /* apply the transform to both transformations */
+  eTransform = Trns_ApplyTransform( this->mIdxToIdxTransform, invTransform );
+  if( Trns_tErr_NoErr != eTransform )
+    return FunD_tErr_ErrorAccessingTransform;
+  eTransform = Trns_ApplyTransform( this->mRASToIdxTransform, invTransform );
+  if( Trns_tErr_NoErr != eTransform )
+    return FunD_tErr_ErrorAccessingTransform;
+
+  MatrixFree( &invTransform );
+
+  return FunD_tErr_NoError;
+}
+
+FunD_tErr FunD_TranslateRegistration ( mriFunctionalDataRef this,
+               float                ifDistance,
+               tAxis                iAxis ) {
+  
+  FunD_tErr eResult    = FunD_tErr_NoError;
+  Trns_tErr eTransform = Trns_tErr_NoErr;
+
+  // make sure we're valid.
+  eResult = FunD_AssertIsValid ( this );
+  if ( FunD_tErr_NoError != eResult )
+    return eResult;
+
+  /* do the inverse of this action */
+  eTransform = Trns_Translate( this->mIdxToIdxTransform, -ifDistance, iAxis );
+  if( Trns_tErr_NoErr != eTransform )
+    return FunD_tErr_ErrorAccessingTransform;
+  eTransform = Trns_Translate( this->mRASToIdxTransform, -ifDistance, iAxis );
+  if( Trns_tErr_NoErr != eTransform )
+    return FunD_tErr_ErrorAccessingTransform;
+
+  return FunD_tErr_NoError;
+}
+
+FunD_tErr FunD_RotateRegistration ( mriFunctionalDataRef this,
+            float                ifDegrees,
+            tAxis                iAxis ) {
+
+  FunD_tErr eResult    = FunD_tErr_NoError;
+  Trns_tErr eTransform = Trns_tErr_NoErr;
+
+  // make sure we're valid.
+  eResult = FunD_AssertIsValid ( this );
+  if ( FunD_tErr_NoError != eResult )
+    return eResult;
+
+  /* do the inverse of this action */
+  eTransform = Trns_Rotate( this->mIdxToIdxTransform, -ifDegrees, iAxis );
+  if( Trns_tErr_NoErr != eTransform )
+    return FunD_tErr_ErrorAccessingTransform;
+  eTransform = Trns_Rotate( this->mRASToIdxTransform, -ifDegrees, iAxis );
+  if( Trns_tErr_NoErr != eTransform )
+    return FunD_tErr_ErrorAccessingTransform;
+
+  return FunD_tErr_NoError;
+}
+
+FunD_tErr FunD_ScaleRegistration ( mriFunctionalDataRef this,
+           float                ifFactor,
+           tAxis                iAxis ) {
+
+  FunD_tErr eResult    = FunD_tErr_NoError;
+  Trns_tErr eTransform = Trns_tErr_NoErr;
+
+  // make sure we're valid.
+  eResult = FunD_AssertIsValid ( this );
+  if ( FunD_tErr_NoError != eResult )
+    return eResult;
+
+  /* do the inverse of this action */
+  eTransform = Trns_Scale( this->mIdxToIdxTransform, 1.0 / ifFactor, iAxis );
+  if( Trns_tErr_NoErr != eTransform )
+    return FunD_tErr_ErrorAccessingTransform;
+  eTransform = Trns_Scale( this->mRASToIdxTransform, 1.0 / ifFactor, iAxis );
+  if( Trns_tErr_NoErr != eTransform )
+    return FunD_tErr_ErrorAccessingTransform;
+
+  return FunD_tErr_NoError;
+}
+
 FunD_tErr FunD_GetDataAtAnaIdx ( mriFunctionalDataRef this,
          xVoxelRef inVoxel, 
          int inCondition, 
@@ -895,8 +1033,8 @@ FunD_tErr FunD_GetDataAtAnaIdx ( mriFunctionalDataRef this,
          float *outData ) {
 
   FunD_tErr theErr             = FunD_tErr_NoError;
- xVoxelRef         theFunctionalVoxel = NULL;
-  float theValue;
+  xVoxelRef theFunctionalVoxel = NULL;
+  float     theValue           = 0;
 
   xVoxl_New ( &theFunctionalVoxel );
 
@@ -929,21 +1067,23 @@ FunD_tErr FunD_GetDataAtAnaIdx ( mriFunctionalDataRef this,
 
   // get the data at this point.
   theValue = FunD_GetValue ( this, theFunctionalVoxel, 
-             inCondition, inTimePoint );
+           inCondition, inTimePoint );
 
   // return it.
   *outData = theValue;
   
-  cleanup:
+ cleanup:
   
   xVoxl_Delete ( &theFunctionalVoxel );
 
   return theErr;
 }
 
-FunD_tErr FunD_GetDataAtRAS
-        ( mriFunctionalDataRef this,xVoxelRef inVoxel, int inCondition, int inTimePoint,
-    float *outData ) {
+FunD_tErr FunD_GetDataAtRAS ( mriFunctionalDataRef this,
+            xVoxelRef            inVoxel, 
+            int                  inCondition, 
+            int                  inTimePoint,
+            float*               outData ) {
 
   FunD_tErr theErr             = FunD_tErr_NoError;
  xVoxelRef         theFunctionalVoxel = NULL;
@@ -1357,6 +1497,23 @@ FunD_tErr FunD_GetNumDataValues ( mriFunctionalDataRef this, int* out ) {
   return FunD_tErr_NoError;
 }
 
+FunD_tErr FunD_GetValueRange ( mriFunctionalDataRef this,
+             float*               outMin,
+             float*               outMax ) {
+
+  FunD_tErr theErr;
+  
+  // make sure we're valid.
+  theErr = FunD_AssertIsValid ( this );
+  if ( FunD_tErr_NoError != theErr )
+    return theErr;
+
+  *outMin = this->mMinValue;
+  *outMax = this->mMaxValue;
+
+  return FunD_tErr_NoError;
+}
+
 
 FunD_tErr FunD_DebugPrint ( mriFunctionalDataRef this ) {
 
@@ -1585,9 +1742,9 @@ FunD_tErr FunD_GetBoundsInAnatomical ( mriFunctionalDataRef this,
   xVoxl_Set( theMax, -500, -500, -500 );
 
   /* we want to check all combinations of the extremes in our indices */
-  for( nZ = 0; nZ < this->mNumSlices; nZ += this->mNumSlices-1 ) {
-    for( nY = 0; nY < this->mNumRows; nY += this->mNumRows-1 ) {
-      for( nX = 0; nX < this->mNumCols; nX += this->mNumCols-1 ) {
+  for( nZ = -10; nZ <= this->mNumSlices; nZ += this->mNumSlices+10 ) {
+    for( nY = -10; nY <= this->mNumRows; nY += this->mNumRows+10 ) {
+      for( nX = -10; nX <= this->mNumCols; nX += this->mNumCols+10 ) {
 
   /* set func index vox. */
   xVoxl_Set( theVox, nX, nY, nZ );
@@ -1654,9 +1811,6 @@ int FunD_CountSliceFiles ( mriFunctionalDataRef this ) {
   FILE * theTestFile;
   char isDone = FALSE;
 
-  // enable to see what slices are found.
-  DebugPrint "FunD_CountSliceFiles():\n" EndDebugPrint;
-
   // start looking for slice 0
   this->mNumSlices = 0;
 
@@ -1685,9 +1839,6 @@ int FunD_CountSliceFiles ( mriFunctionalDataRef this ) {
       isDone = TRUE;
     }
   }
-
-  DebugPrint "\texiting with %d found slices.\n", 
-    this->mNumSlices EndDebugPrint;
 
   return this->mNumSlices;
 }
@@ -1867,6 +2018,12 @@ void FunD_SetValue ( mriFunctionalDataRef this,
     ((float*)this->mData)[theIndex] = inValue;
     break;
   }
+  
+  /* update our min and max */
+  if( inValue < this->mMinValue )
+    this->mMinValue = inValue;
+  if( inValue > this->mMaxValue )
+    this->mMaxValue = inValue;
 }
 
 // bounds checking
@@ -1887,14 +2044,27 @@ tBoolean FunD_IsNumPreStimTimePointsValid ( mriFunctionalDataRef this, int inNum
   return TRUE;
 }
 
-tBoolean FunD_IsFunctionalVoxelValid ( mriFunctionalDataRef this,xVoxelRef inVoxel ) {
+tBoolean FunD_IsFunctionalVoxelValid ( mriFunctionalDataRef this,
+               xVoxelRef            inVoxel ) {
 
+  /*
   // i should be within the col bounds...
   if ( xVoxl_GetI(inVoxel) >= 0 && xVoxl_GetI(inVoxel) < this->mNumCols &&
        // j in the row bounds..
        xVoxl_GetJ(inVoxel) >= 0 && xVoxl_GetJ(inVoxel) < this->mNumRows &&
        // and k in the slice bounds.
        xVoxl_GetK(inVoxel) >= 0 && xVoxl_GetK(inVoxel) < this->mNumSlices )
+  */
+
+  // i should be within the col bounds...
+  if ( xVoxl_GetFloatX(inVoxel) >= 0 && 
+       xVoxl_GetFloatX(inVoxel) < this->mNumCols &&
+       // j in the row bounds..
+       xVoxl_GetFloatY(inVoxel) >= 0 && 
+       xVoxl_GetFloatY(inVoxel) < this->mNumRows &&
+       // and k in the slice bounds.
+       xVoxl_GetFloatZ(inVoxel) >= 0 && 
+       xVoxl_GetFloatZ(inVoxel) < this->mNumSlices )
 
     return TRUE;
   else 

@@ -8,27 +8,41 @@
    we should flip when not in horizontal view. when using regular gl drawing 
    commands to draw to the screen, only do it in horizontal orientation. */
 #define BUFFER_Y_FLIP(y) ( this->mOrientation != mri_tOrientation_Horizontal? \
-                          (this->mnVolumeSize - y) : y )
+                          (this->mnVolumeSize - (y)) : (y) )
 #define GLDRAW_Y_FLIP(y) ( this->mOrientation == mri_tOrientation_Horizontal? \
-                          (this->mnVolumeSize - y) : y )
+                          (this->mnVolumeSize - (y)) : (y) )
 #define GLDRAW_Y_FLIP_FLOAT(y) \
                          ( this->mOrientation == mri_tOrientation_Horizontal? \
-                          ((float)this->mnVolumeSize - y) : y )
+                          ((float)this->mnVolumeSize - (y)) : (y) )
 
 //#define BUFFER_Y_FLIP(y) y
 //#define GLDRAW_Y_FLIP(y) y
 
-#define Y_FLIP(y)        (this->mnVolumeSize - y)
+#define Y_FLIP(y)        (this->mnVolumeSize - (y))
+
+/* these describe the direction a volume voxel goes in the buffer in the y
+   direction. to handle stuff like:
+
+   bufferPt.mnY = Y_FLIP(bufferPt.mnY);
+   for( nY = bufferPt.mnY; nY < bufferPt.mnY + this->mnZoomLevel; nY++ ) ...
+
+   use
+
+  bufferPt.mnY = Y_FLIP(bufferPt.mnY);
+  for( nY = bufferPt.mnY; 
+       BUFFER_Y_LT(nY,BUFFER_Y_INC(bufferPt.mnY,this->mnZoomLevel));
+       nY = BUFFER_Y_INC(bufferPt.mnY,1) )...
+*/
+
+#define BUFFER_Y_LT(y,i)  (this->mOrientation != mri_tOrientation_Horizontal? \
+                          ( (y) > (i) ) : ( (y) < (i) ))
+#define BUFFER_Y_INC(y,i) (this->mOrientation != mri_tOrientation_Horizontal? \
+                           ( (y) - (i) ) : ( (y) + (i) ) )
 
 
 /* tool and brush info is static */
-static DspA_tTool        sTool                = DspA_tTool_SelectVoxels;
-static int               snBrushRadius        = 1;
-static DspA_tBrushShape  sBrushShape          = DspA_tBrushShape_Circle;
-static tBoolean          sbBrush3D            = FALSE;
-static tVolumeValue      snBrushThresholdLow  = knMinVolumeValue;
-static tVolumeValue      snBrushThresholdHigh = knMaxVolumeValue;
-static tVolumeValue      snBrushNewValue      = knMaxVolumeValue/2;
+static DspA_tTool          sTool  = DspA_tTool_SelectVoxels;
+static DspA_tBrushSettings sBrush;
 
 /* static focused display. */
 static tkmDisplayAreaRef sFocusedDisplay = NULL;
@@ -142,6 +156,13 @@ DspA_tErr DspA_New ( tkmDisplayAreaRef* oppWindow,
   this->mpSelectedControlPoints = NULL;
   this->mpSelection             = NULL;
   this->maSurfaceLists          = NULL;
+
+  /* set default brush info */
+  sBrush.mnRadius = 1;
+  sBrush.mShape   = DspA_tBrushShape_Circle;
+  sBrush.mb3D     = FALSE;
+  DspA_SetBrushInfoToDefault( this, DspA_tBrush_EditOne );
+  DspA_SetBrushInfoToDefault( this, DspA_tBrush_EditTwo );
 
   /* return window. */
   *oppWindow = this;
@@ -259,6 +280,7 @@ DspA_tErr DspA_UpdateWindowTitle ( tkmDisplayAreaRef this ) {
   char      sTitle[256]       = "";
   char      sSubjectName[256] = "";
   char      sVolumeName[256]  = "";
+  char      sAuxVolumeName[256]  = "";
 
   /* verify us. */
   eResult = DspA_Verify ( this );
@@ -267,12 +289,27 @@ DspA_tErr DspA_UpdateWindowTitle ( tkmDisplayAreaRef this ) {
 
   /* make a window title. */
   strcpy( sSubjectName, tkm_GetSubjectName() );
-  if( this->mabDisplayFlags[DspA_tDisplayFlag_AuxVolume] ) {
-    strcpy( sVolumeName, tkm_GetAuxVolumeName() );
+  strcpy( sVolumeName, tkm_GetVolumeName() ); 
+  strcpy( sAuxVolumeName, tkm_GetAuxVolumeName() );
+
+  /* if we don't have an aux volume */
+  if( NULL == this->mpAuxVolume ) {
+
+    /* just use the subject and volume name */
+    sprintf( sTitle, "%s: %s", sSubjectName, sVolumeName );
+
   } else {
-    strcpy( sVolumeName, tkm_GetVolumeName() );
+
+    /* else see which one is displayed. use that name first and then
+       the other name in parens. */
+    if( this->mabDisplayFlags[DspA_tDisplayFlag_AuxVolume] ) {
+      sprintf( sTitle, "%s: %s (%s)", 
+         sSubjectName, sAuxVolumeName, sVolumeName );
+    } else {
+      sprintf( sTitle, "%s: %s (%s)", 
+         sSubjectName, sVolumeName, sAuxVolumeName );
+    }
   }
-  sprintf( sTitle, "%s: %s", sSubjectName, sVolumeName );
   
   /* set the window name. */
   MWin_SetWindowTitle( this->mpWindow, sTitle );
@@ -344,6 +381,9 @@ DspA_tErr DspA_SetVolume ( tkmDisplayAreaRef this,
   sprintf( sTclArguments, "\"%s value\"", tkm_GetVolumeName() );
   tkm_SendTclCommand( tkm_tTclCommand_UpdateVolumeName, sTclArguments );
    
+  /* update window title */
+  DspA_UpdateWindowTitle( this );
+
   /* get the center of the volume */
   xVoxl_Set( pCenter, this->mnVolumeSize/2, 
        this->mnVolumeSize/2, this->mnVolumeSize/2 );
@@ -418,13 +458,15 @@ DspA_tErr DspA_SetAuxVolume ( tkmDisplayAreaRef this,
 
     /* hide the volume value */
     tkm_SendTclCommand( tkm_tTclCommand_ShowAuxValue, "0" );
+
+    /* don't show the aux volume */
+    eResult = DspA_SetDisplayFlag( this, DspA_tDisplayFlag_AuxVolume, FALSE );
+    if ( DspA_tErr_NoErr != eResult )
+      goto error;
   }    
 
-  /* need to redraw if we're currently showing the aux volume */
-  if( this->mabDisplayFlags[DspA_tDisplayFlag_AuxVolume] ) {
-    this->mbSliceChanged = TRUE;
-    DspA_Redraw_( this );
-  }
+  /* update window title */
+  DspA_UpdateWindowTitle( this );
 
   goto cleanup;
 
@@ -736,7 +778,7 @@ DspA_tErr DspA_SetCursor ( tkmDisplayAreaRef this,
     goto error;
 
   /* verify the cursor */
-  eResult = DspA_VerifyVolumexVoxl_ ( this, ipCursor );
+  eResult = DspA_VerifyVolumeVoxel_ ( this, ipCursor );
   if ( DspA_tErr_NoErr != eResult )
     goto error;
 
@@ -1081,7 +1123,7 @@ DspA_tErr DspA_SetZoomCenter ( tkmDisplayAreaRef this,
     goto error;
 
   /* verify the center */
-  eResult = DspA_VerifyVolumexVoxl_ ( this, ipCenter );
+  eResult = DspA_VerifyVolumeVoxel_ ( this, ipCenter );
   if ( DspA_tErr_NoErr != eResult )
     goto error;
   
@@ -1276,10 +1318,10 @@ DspA_tErr DspA_SetDisplayFlag ( tkmDisplayAreaRef this,
     break;
     
   case DspA_tDisplayFlag_FunctionalOverlay:
+  case DspA_tDisplayFlag_MaskToFunctionalOverlay:
 
     /* if no func data, set to false. */
     if( NULL == this->mpFunctionalVolume ) {
-      DebugPrint "DspA_SetDisplayFlag ( DspA_tDisplayFlag_FunctionalOverlay, true ): func data wasn't loaded.\n" EndDebugPrint;
       bNewValue = FALSE;
     }
 
@@ -1320,7 +1362,6 @@ DspA_tErr DspA_SetDisplayFlag ( tkmDisplayAreaRef this,
 
   /* if it was the aux volume flag, change the window title. */
   if( DspA_tDisplayFlag_AuxVolume == iWhichFlag ) {
-
     DspA_UpdateWindowTitle( this );
   }
 
@@ -1429,10 +1470,10 @@ DspA_tErr DspA_SetTool ( tkmDisplayAreaRef this,
   return eResult;
 }
 
-DspA_tErr DspA_SetBrush ( tkmDisplayAreaRef this,
-        int               inRadius,
-        DspA_tBrushShape  iShape,
-        tBoolean          ib3D ) {
+DspA_tErr DspA_SetBrushShape ( tkmDisplayAreaRef this,
+             int               inRadius,
+             DspA_tBrushShape  iShape,
+             tBoolean          ib3D ) {
 
   DspA_tErr eResult            = DspA_tErr_NoErr;
   char      sTclArguments[256] = "";
@@ -1450,18 +1491,17 @@ DspA_tErr DspA_SetBrush ( tkmDisplayAreaRef this,
   }
 
   /* Set the brush info */
-  snBrushRadius = inRadius;
-  sBrushShape   = iShape;
-  sbBrush3D     = ib3D;
+  sBrush.mnRadius = inRadius;
+  sBrush.mShape   = iShape;
+  sBrush.mb3D     = ib3D;
 
   /* if we're the currently focused display... */
   if( sFocusedDisplay == this ) {
     
     /* send the tcl update. */
     sprintf ( sTclArguments, "%d %d %d",
-        (int)snBrushRadius, (int)sBrushShape, 
-        (int)sbBrush3D );
-    tkm_SendTclCommand( tkm_tTclCommand_UpdateBrush, sTclArguments );
+        (int)sBrush.mnRadius, (int)sBrush.mShape, (int)sBrush.mb3D );
+    tkm_SendTclCommand( tkm_tTclCommand_UpdateBrushShape, sTclArguments );
   }
 
   goto cleanup;
@@ -1479,10 +1519,9 @@ DspA_tErr DspA_SetBrush ( tkmDisplayAreaRef this,
   return eResult;
 }
 
-DspA_tErr DspA_SetBrushThreshold ( tkmDisplayAreaRef this,
-           tVolumeValue      inLow,
-           tVolumeValue      inHigh,
-           tVolumeValue      inNewValue ) {
+DspA_tErr DspA_SetBrushInfo ( tkmDisplayAreaRef this,
+            DspA_tBrush       iBrush,
+            DspA_tBrushInfoRef iInfo ) {
 
   DspA_tErr eResult            = DspA_tErr_NoErr;
   char      sTclArguments[256] = "";
@@ -1492,19 +1531,26 @@ DspA_tErr DspA_SetBrushThreshold ( tkmDisplayAreaRef this,
   if ( DspA_tErr_NoErr != eResult )
     goto error;
 
+  /* make sure the brush is in bounds */
+  if( iBrush < 0 ||
+      iBrush >= DspA_knNumBrushes ) {
+    eResult = DspA_tErr_InvalidParameter;
+    goto error;
+  }
+
   /* set the brush theshold info */
-  snBrushThresholdLow  = inLow;
-  snBrushThresholdHigh = inHigh;
-  snBrushNewValue      = inNewValue;
+  sBrush.mInfo[ iBrush ] = *iInfo;
 
   /* if we're the currently focused display... */
   if( sFocusedDisplay == this ) {
     
     /* send the tcl update. */
-    sprintf ( sTclArguments, "%d %d %d",
-        (int)snBrushThresholdLow, (int)snBrushThresholdHigh, 
-        (int)snBrushNewValue );
-    tkm_SendTclCommand( tkm_tTclCommand_UpdateBrushThreshold, sTclArguments );
+    sprintf ( sTclArguments, "%d %d %d %d",
+        (int)iBrush,
+        (int)sBrush.mInfo[iBrush].mnLow,
+        (int)sBrush.mInfo[iBrush].mnHigh,
+        (int)sBrush.mInfo[iBrush].mnNewValue );
+    tkm_SendTclCommand( tkm_tTclCommand_UpdateBrushInfo, sTclArguments );
   }
 
   goto cleanup;
@@ -1513,7 +1559,7 @@ DspA_tErr DspA_SetBrushThreshold ( tkmDisplayAreaRef this,
 
   /* print error message */
   if ( DspA_tErr_NoErr != eResult ) {
-    DebugPrint "Error %d in DspA_SetBrushThreshold: %s\n",
+    DebugPrint "Error %d in DspA_SetBrushInfo: %s\n",
       eResult, DspA_GetErrorString(eResult) EndDebugPrint;
   }
 
@@ -1805,16 +1851,20 @@ DspA_tErr DspA_HandleMouseUp_ ( tkmDisplayAreaRef this,
   if ( DspA_tErr_NoErr != eResult )
     goto error;
   
-  /*
-  DebugPrint "Mouse up screen x %d y %d buffer x %d y %d volume %d %d %d\n",
-    ipEvent->mWhere.mnX, ipEvent->mWhere.mnY, bufferPt.mnX, bufferPt.mnY,
-    xVoxl_ExpandInt( pVolumeVox ) EndDebugPrint;
-  */
+#if 0
+  DebugPrint "Mouse up screen x %d y %d buffer x %d y %d volume %f %f %f\n",
+    ipEvent->mWhere.mnX, ipEvent->mWhere.mnY, bufferPt.mnX, bufferPt.mnY, 
+    xVoxl_ExpandFloat( pVolumeVox ) EndDebugPrint;
+#endif
 
-  /* set the cursor. */
-  eResult = DspA_SetCursor( this, pVolumeVox );
-  if ( DspA_tErr_NoErr != eResult )
-    goto error;
+  /* if not navigating... */
+  if( DspA_tTool_Navigate != sTool ) {
+    
+    /* set the cursor. */
+    eResult = DspA_SetCursor( this, pVolumeVox );
+    if ( DspA_tErr_NoErr != eResult )
+      goto error;
+  }
 
   /* allow the functional display to respond. */
   if( NULL != this->mpFunctionalVolume ) {
@@ -1903,10 +1953,12 @@ DspA_tErr DspA_HandleMouseUp_ ( tkmDisplayAreaRef this,
 
 DspA_tErr DspA_HandleMouseDown_ ( tkmDisplayAreaRef this, 
           xGWin_tEventRef   ipEvent ) {
-
-  DspA_tErr   eResult = DspA_tErr_NoErr;
-  xPoint2n    bufferPt    = {0,0};
- xVoxelRef    pVolumeVox  = NULL;
+ 
+  DspA_tErr          eResult      = DspA_tErr_NoErr;
+  xPoint2n           bufferPt     = {0,0};
+  xVoxelRef          pVolumeVox   = NULL;
+  DspA_tBrush        brushAction  = DspA_tBrush_None;
+  DspA_tSelectAction selectAction = DspA_tSelectAction_None;
 
   xVoxl_New( &pVolumeVox );
   
@@ -1924,61 +1976,32 @@ DspA_tErr DspA_HandleMouseDown_ ( tkmDisplayAreaRef this,
     xVoxl_ExpandInt( pVolumeVox ) EndDebugPrint;
 #endif
 
-  /* edit mode with no modifiers: */
-  if( DspA_tTool_EditVoxels == sTool 
+  /* if nav tool... */
+  if( DspA_tTool_Navigate == sTool ) {
+
+    this->mLastClick = ipEvent->mWhere;
+
+  }
+
+  /* button 2 or 3 edit tool with no modifiers: */
+  if( ( 2 == ipEvent->mButton
+  || 3 == ipEvent->mButton )
+      && DspA_tTool_EditVoxels == sTool 
       && !ipEvent->mbCtrlKey
       && !ipEvent->mbAltKey ) {
     
     /* clear the undo list. */
     tkm_ClearUndoList();
     
-    /* if button 2, do a brush to white. */
+    /* button determines the brush action */
     if( 2 == ipEvent->mButton ) {
-      
-      /* set our brush up for this to white stuff */
-      DspA_SetBrushThreshold( this, tkm_knEditToWhiteLow, 
-            tkm_knEditToWhiteHigh, 
-            tkm_knEditToWhiteNewValue );
-
-      eResult = DspA_BrushVoxels_( this, pVolumeVox, 
-           DspA_BrushVoxelsInThreshold_ );
-      if( DspA_tErr_NoErr != eResult )
-  goto error;
-    
-      /* editing requires us to rebuild buffer. */
-      this->mbSliceChanged = TRUE;
-      DspA_Redraw_( this );
-
-    /* if button 3, do a brush to black. */
+      brushAction = DspA_tBrush_EditOne;
     } else if ( 3 == ipEvent->mButton ) {
-
-      /* set our brush up for this to black stuff */
-      DspA_SetBrushThreshold( this, tkm_knEditToBlackLow, 
-            tkm_knEditToBlackHigh, 
-            tkm_knEditToBlackNewValue );
-
-      eResult = DspA_BrushVoxels_( this, pVolumeVox, 
-           DspA_BrushVoxelsInThreshold_ );
-      if( DspA_tErr_NoErr != eResult )
-  goto error;
-
-      /* editing requires us to rebuild buffer. */
-      this->mbSliceChanged = TRUE;
-      DspA_Redraw_( this );
+      brushAction = DspA_tBrush_EditTwo;
     }
-  }
-
-  /* custom edit mode with no modifiers */
-  if( DspA_tTool_CustomEditVoxels == sTool 
-      && !ipEvent->mbCtrlKey
-      && !ipEvent->mbAltKey
-      && (2 == ipEvent->mButton || 3 == ipEvent->mButton) ) {
-
-    /* clear the undo list. */
-    tkm_ClearUndoList();
-    
-    /* brush the voxels with the current threshold setting */
-    eResult = DspA_BrushVoxels_( this, pVolumeVox, 
+      
+    /* brush the voxels */
+    eResult = DspA_BrushVoxels_( this, pVolumeVox, (void*)&brushAction,
          DspA_BrushVoxelsInThreshold_ );
     if( DspA_tErr_NoErr != eResult )
       goto error;
@@ -1986,6 +2009,7 @@ DspA_tErr DspA_HandleMouseDown_ ( tkmDisplayAreaRef this,
     /* editing requires us to rebuild buffer. */
     this->mbSliceChanged = TRUE;
     DspA_Redraw_( this );
+      
   }
 
   /* select mode with no modfiers */
@@ -1993,26 +2017,23 @@ DspA_tErr DspA_HandleMouseDown_ ( tkmDisplayAreaRef this,
       && !ipEvent->mbCtrlKey
       && !ipEvent->mbAltKey ) {
     
-    /* if button 2, do a brush select. */
-    if ( 2 == ipEvent->mButton ) {
-      eResult = DspA_BrushVoxels_( this, pVolumeVox, tkm_SelectVoxel );
-      if( DspA_tErr_NoErr != eResult )
-  goto error;
-      
-      /* selecting requires us to rebuild buffer. */
-      this->mbSliceChanged = TRUE;
-      DspA_Redraw_( this );
-
-      /* if button 3, do a brush unselect. */
+    /* button determines the select action */
+    if( 2 == ipEvent->mButton ) {
+      selectAction = DspA_tSelectAction_Select;
     } else if ( 3 == ipEvent->mButton ) {
-      eResult = DspA_BrushVoxels_( this, pVolumeVox, tkm_DeselectVoxel );
-      if( DspA_tErr_NoErr != eResult )
-  goto error;
-
-      /* selecting requires us to rebuild buffer. */
-      this->mbSliceChanged = TRUE;
-      DspA_Redraw_( this );
+      selectAction = DspA_tSelectAction_Deselect;
     }
+
+    /* brush the voxels */
+    eResult = DspA_BrushVoxels_( this, pVolumeVox, (void*)&selectAction,
+         DspA_SelectVoxels_ );
+    if( DspA_tErr_NoErr != eResult )
+      goto error;
+    
+    /* selecting requires us to rebuild buffer. */
+    this->mbSliceChanged = TRUE;
+    DspA_Redraw_( this );
+
   }
 
   goto cleanup;
@@ -2034,9 +2055,11 @@ DspA_tErr DspA_HandleMouseDown_ ( tkmDisplayAreaRef this,
 
 DspA_tErr DspA_HandleMouseMoved_ ( tkmDisplayAreaRef this, 
            xGWin_tEventRef   ipEvent ) {
-  DspA_tErr   eResult = DspA_tErr_NoErr;
-  xPoint2n    bufferPt    = {0,0};
- xVoxelRef    pVolumeVox  = NULL;
+  DspA_tErr          eResult      = DspA_tErr_NoErr;
+  xPoint2n           bufferPt     = {0,0};
+  xVoxelRef          pVolumeVox   = NULL;
+  DspA_tBrush        brushAction  = DspA_tBrush_None;
+  DspA_tSelectAction selectAction = DspA_tSelectAction_None;
 
   xVoxl_New( &pVolumeVox );
   
@@ -2054,43 +2077,33 @@ DspA_tErr DspA_HandleMouseMoved_ ( tkmDisplayAreaRef this,
     xVoxl_ExpandInt( pVolumeVox ) EndDebugPrint;
 #endif
 
-  /* edit mode with no modifiers: */
-  if( DspA_tTool_EditVoxels == sTool 
+  /* if nav tool... */
+  if( DspA_tTool_Navigate == sTool ) {
+
+    /* find current offset from last click */
+
+    /* add to the center */
+
+    /* get the voxel */
+
+  }
+
+  /* button 2 or 3 edit tool with no modifiers: */
+  if( ( 2 == ipEvent->mButton
+  || 3 == ipEvent->mButton )
+      && DspA_tTool_EditVoxels == sTool 
       && !ipEvent->mbCtrlKey
       && !ipEvent->mbAltKey ) {
     
-    /* if button 2, do a brush to white. */
-    if ( 2 == ipEvent->mButton ) {
-      eResult = DspA_BrushVoxels_( this, pVolumeVox, 
-           DspA_BrushVoxelsInThreshold_ );
-      if( DspA_tErr_NoErr != eResult )
-  goto error;
-      
-      /* editing requires us to rebuild the buffer. */
-      this->mbSliceChanged = TRUE;
-      DspA_Redraw_( this );
-    
-      /* if button 3, do a brush to black. */
+    /* button determines the brush action */
+    if( 2 == ipEvent->mButton ) {
+      brushAction = DspA_tBrush_EditOne;
     } else if ( 3 == ipEvent->mButton ) {
-      eResult = DspA_BrushVoxels_( this, pVolumeVox, 
-           DspA_BrushVoxelsInThreshold_ );
-      if( DspA_tErr_NoErr != eResult )
-  goto error;
-
-      /* editing requires us to rebuild the buffer. */
-      this->mbSliceChanged = TRUE;
-      DspA_Redraw_( this );
+      brushAction = DspA_tBrush_EditTwo;
     }
-  }
-
-  /* custom edit mode with no modifiers and button 2 or 3 */
-  if( DspA_tTool_CustomEditVoxels == sTool 
-      && !ipEvent->mbCtrlKey
-      && !ipEvent->mbAltKey
-      && (2 == ipEvent->mButton || 3 == ipEvent->mButton) ) {
-
-    /* brush the voxels with the current threshold setting */
-    eResult = DspA_BrushVoxels_( this, pVolumeVox, 
+      
+    /* brush the voxels */
+    eResult = DspA_BrushVoxels_( this, pVolumeVox, (void*)&brushAction,
          DspA_BrushVoxelsInThreshold_ );
     if( DspA_tErr_NoErr != eResult )
       goto error;
@@ -2098,6 +2111,7 @@ DspA_tErr DspA_HandleMouseMoved_ ( tkmDisplayAreaRef this,
     /* editing requires us to rebuild buffer. */
     this->mbSliceChanged = TRUE;
     DspA_Redraw_( this );
+      
   }
 
   /* select mode with no modfiers */
@@ -2105,26 +2119,23 @@ DspA_tErr DspA_HandleMouseMoved_ ( tkmDisplayAreaRef this,
       && !ipEvent->mbCtrlKey
       && !ipEvent->mbAltKey ) {
     
-    /* if button 2, do a brush select. */
-    if ( 2 == ipEvent->mButton ) {
-      eResult = DspA_BrushVoxels_( this, pVolumeVox, tkm_SelectVoxel );
-      if( DspA_tErr_NoErr != eResult )
-  goto error;
-      
-      /* selecting requires us to rebuild the buffer. */
-      this->mbSliceChanged = TRUE;
-      DspA_Redraw_( this );
-      
-      /* if button 3, do a brush unselect. */
+    /* button determines the select action */
+    if( 2 == ipEvent->mButton ) {
+      selectAction = DspA_tSelectAction_Select;
     } else if ( 3 == ipEvent->mButton ) {
-      eResult = DspA_BrushVoxels_( this, pVolumeVox, tkm_DeselectVoxel );
-      if( DspA_tErr_NoErr != eResult )
-  goto error;
-      
-      /* selecting requires us to rebuild the buffer. */
-      this->mbSliceChanged = TRUE;
-      DspA_Redraw_( this );
+      selectAction = DspA_tSelectAction_Deselect;
     }
+
+    /* brush the voxels */
+    eResult = DspA_BrushVoxels_( this, pVolumeVox, (void*)&selectAction,
+         DspA_SelectVoxels_ );
+    if( DspA_tErr_NoErr != eResult )
+      goto error;
+    
+    /* selecting requires us to rebuild buffer. */
+    this->mbSliceChanged = TRUE;
+    DspA_Redraw_( this );
+
   }
   
   goto cleanup;
@@ -2366,10 +2377,72 @@ DspA_tErr DspA_HandleKeyDown_ ( tkmDisplayAreaRef this,
   return eResult;
 }
 
+DspA_tErr DspA_SetBrushInfoToDefault ( tkmDisplayAreaRef this,
+               DspA_tBrush       iBrush ) {
+
+  DspA_tErr eResult            = DspA_tErr_NoErr;
+  char      sTclArguments[256] = "";
+
+  /* verify us. */
+  eResult = DspA_Verify ( this );
+  if ( DspA_tErr_NoErr != eResult )
+    goto error;
+
+  /* make sure the brush is in bounds */
+  if( iBrush < 0 ||
+      iBrush >= DspA_knNumBrushes ) {
+    eResult = DspA_tErr_InvalidParameter;
+    goto error;
+  }
+
+  /* set the brush theshold info */
+  switch( iBrush ) {
+  case DspA_tBrush_EditOne:
+    sBrush.mInfo[iBrush].mnLow = tkm_knEditToWhiteLow;
+    sBrush.mInfo[iBrush].mnHigh = tkm_knEditToWhiteHigh;
+    sBrush.mInfo[iBrush].mnNewValue = tkm_knEditToWhiteNewValue;
+    break;
+  case DspA_tBrush_EditTwo:
+    sBrush.mInfo[iBrush].mnLow = tkm_knEditToBlackLow;
+    sBrush.mInfo[iBrush].mnHigh = tkm_knEditToBlackHigh;
+    sBrush.mInfo[iBrush].mnNewValue = tkm_knEditToBlackNewValue;
+    break;
+  default:
+    eResult = DspA_tErr_InvalidParameter;
+    goto error;
+  }
+
+  /* if we're the currently focused display... */
+  if( sFocusedDisplay == this ) {
+    
+    /* send the tcl update. */
+    sprintf ( sTclArguments, "%d %d %d %d",
+        (int)iBrush,
+        (int)sBrush.mInfo[iBrush].mnLow,
+        (int)sBrush.mInfo[iBrush].mnHigh,
+        (int)sBrush.mInfo[iBrush].mnNewValue );
+    tkm_SendTclCommand( tkm_tTclCommand_UpdateBrushInfo, sTclArguments );
+  }
+
+  goto cleanup;
+
+ error:
+
+  /* print error message */
+  if ( DspA_tErr_NoErr != eResult ) {
+    DebugPrint "Error %d in DspA_SetBrushInfoToDefault: %s\n",
+      eResult, DspA_GetErrorString(eResult) EndDebugPrint;
+  }
+
+ cleanup:
+
+  return eResult;
+}
 
 DspA_tErr DspA_BrushVoxels_ ( tkmDisplayAreaRef this,
-           xVoxelRef          ipCenterVox,
-            void(*ipFunction)(xVoxelRef) ) {
+            xVoxelRef         ipCenterVox,
+            void*             ipData,
+            void(*ipFunction)(xVoxelRef,void*) ) {
 
   DspA_tErr        eResult     = DspA_tErr_NoErr;
   int              nXCenter    = 0;
@@ -2392,13 +2465,13 @@ DspA_tErr DspA_BrushVoxels_ ( tkmDisplayAreaRef this,
 
   /* set all radii to the brush radius. we subtract one because of our 
      looping bounds. */
-  nXRadius = snBrushRadius - 1;
-  nYRadius = snBrushRadius - 1;
-  nZRadius = snBrushRadius - 1;
+  nXRadius = sBrush.mnRadius - 1;
+  nYRadius = sBrush.mnRadius - 1;
+  nZRadius = sBrush.mnRadius - 1;
 
   /* if we're not in 3d, set the same radius of the same plane as our
      current orientation to 0. */
-  if( !sbBrush3D ) {
+  if( !sBrush.mb3D ) {
     switch( this->mOrientation ) {
     case mri_tOrientation_Coronal:
       nZRadius = 0;
@@ -2426,19 +2499,19 @@ DspA_tErr DspA_BrushVoxels_ ( tkmDisplayAreaRef this,
 
   /* if it's valid... */
   if( DspA_tErr_InvalidVolumeVoxel != 
-      DspA_VerifyVolumexVoxl_( this, pVolumeVox ) ) {
+      DspA_VerifyVolumeVoxel_( this, pVolumeVox ) ) {
 
     /* if we're circular, check the radius. if no good, continue. */
-    if( DspA_tBrushShape_Circle == sBrushShape 
+    if( DspA_tBrushShape_Circle == sBrush.mShape 
         && ( (nXCenter-nX)*(nXCenter-nX) +
        (nYCenter-nY)*(nYCenter-nY) +
        (nZCenter-nZ)*(nZCenter-nZ) >
-       (snBrushRadius-1)*(snBrushRadius-1) ) ) {
+       (sBrush.mnRadius-1)*(sBrush.mnRadius-1) ) ) {
       continue;
     }
 
     /* run the function on this voxel. */
-    ipFunction( pVolumeVox );
+    ipFunction( pVolumeVox, ipData );
   }
       }
     }
@@ -2463,12 +2536,50 @@ DspA_tErr DspA_BrushVoxels_ ( tkmDisplayAreaRef this,
 
 }
 
-void DspA_BrushVoxelsInThreshold_ (xVoxelRef ipVoxel ) {
+void DspA_BrushVoxelsInThreshold_ ( xVoxelRef ipVoxel, void* ipData ) {
 
+  DspA_tBrush brush = DspA_tBrush_None;
+
+  /* make sure the brush is in bounds */
+  brush = *(DspA_tBrush*)ipData;
+  if( brush < 0 ||
+      brush >= DspA_knNumBrushes ) {
+    return;
+  }
+
+  /* edit the voxel */
   tkm_EditVoxelInRange( ipVoxel, 
-      snBrushThresholdLow,
-      snBrushThresholdHigh,
-      snBrushNewValue );
+      sBrush.mInfo[brush].mnLow,
+      sBrush.mInfo[brush].mnHigh,
+      sBrush.mInfo[brush].mnNewValue );
+}
+
+void DspA_SelectVoxels_ ( xVoxelRef ipVoxel, void* ipData ) {
+
+  DspA_tSelectAction selectAction = DspA_tSelectAction_None;
+
+  /* make sure the action is in bounds */
+  selectAction = *(DspA_tSelectAction*)ipData;
+  if( selectAction < 0 ||
+      selectAction >= DspA_knNumSelectActions ) {
+    return;
+  }
+
+  /* select or deselect the voxel */
+  switch( selectAction ) {
+  case DspA_tSelectAction_Select:
+
+    tkm_SelectVoxel( ipVoxel );
+    break;
+
+  case DspA_tSelectAction_Deselect:
+
+    tkm_DeselectVoxel( ipVoxel );
+    break;
+
+  default:
+    break;
+  }
 }
 
 DspA_tErr DspA_SelectCurrentROI ( tkmDisplayAreaRef this ) {
@@ -2798,6 +2909,7 @@ DspA_tErr DspA_DrawCursor_ ( tkmDisplayAreaRef this ) {
 
   DspA_tErr eResult      = DspA_tErr_NoErr;
   xPoint2n  bufferPt     = {0, 0};
+  float     faColor[3];
   int       nWidth       = 0;
   int       nHeight      = 0;
 
@@ -2813,22 +2925,20 @@ DspA_tErr DspA_DrawCursor_ ( tkmDisplayAreaRef this ) {
   /* calculate width and height using scale */
   nWidth  = ((float) DspA_knCursorCrosshairSize / this->mfFrameBufferScaleX);
   nHeight = ((float) DspA_knCursorCrosshairSize / this->mfFrameBufferScaleY);
+  
+  nWidth = MAX( nWidth, 1 );
+  nHeight = MAX( nHeight, 1 );
+
+  /* draw the crosshair */
+  faColor[0] = 1.0; faColor[1] = faColor[2] = 0.0;
+  DspA_DrawMarker_( this, DspA_tMarker_Crosshair, faColor, &bufferPt, 
+        DspA_knCursorCrosshairSize );
 
   DspA_SetUpOpenGLPort_( this );
 
-  /* draw the cursor */
+  /* draw the edge markers */
   glColor3f ( 1.0, 0.0, 0.0 );
   
-  glBegin ( GL_LINES );
-  glVertex2d ( bufferPt.mnX, bufferPt.mnY-nHeight );
-  glVertex2d ( bufferPt.mnX, bufferPt.mnY+nHeight );
-  glEnd ();
-  
-  glBegin ( GL_LINES );
-  glVertex2d ( bufferPt.mnX-nWidth, bufferPt.mnY );
-  glVertex2d ( bufferPt.mnX+nWidth, bufferPt.mnY );
-  glEnd ();
-
   glBegin( GL_LINES );
   glVertex2d( bufferPt.mnX, 0 );
   glVertex2d( bufferPt.mnX, 3*nHeight );
@@ -2932,7 +3042,7 @@ DspA_tErr DspA_DrawAxes_ ( tkmDisplayAreaRef this ) {
       goto error;
     
     /* if this is good... */
-    eResult = DspA_VerifyVolumexVoxl_( this, pVoxel );
+    eResult = DspA_VerifyVolumeVoxel_( this, pVoxel );
     if( DspA_tErr_NoErr == eResult ) {
       
       /* convert the voxel coords to a string */
@@ -2964,6 +3074,8 @@ DspA_tErr DspA_DrawAxes_ ( tkmDisplayAreaRef this ) {
 #endif
 
   DspA_SetUpOpenGLPort_( this );
+
+  glColor3f ( 0.0, 1.0, 0.0 );
 
   /* draw arrows */
   switch( this->mOrientation ) {
@@ -3141,7 +3253,7 @@ DspA_tErr DspA_BuildCurrentFrame_ ( tkmDisplayAreaRef this ) {
   goto error;
 
       /* check it. */
-      eResult = DspA_VerifyVolumexVoxl_( this, pVoxel );
+      eResult = DspA_VerifyVolumeVoxel_( this, pVoxel );
       if( DspA_tErr_NoErr == eResult ) {
   
   /* if we are showing roi... */
@@ -3193,9 +3305,11 @@ DspA_tErr DspA_BuildCurrentFrame_ ( tkmDisplayAreaRef this ) {
   }
 
 
-  /* if we have and are showing functional data... */
-  if( this->mabDisplayFlags[DspA_tDisplayFlag_FunctionalOverlay] 
-      && NULL != this->mpFunctionalVolume ) {
+  /* if we have and are showing functional data, or our
+     mask arg is on... */
+  if( ( this->mabDisplayFlags[DspA_tDisplayFlag_FunctionalOverlay] ||
+         this->mabDisplayFlags[DspA_tDisplayFlag_MaskToFunctionalOverlay] ) &&
+      NULL != this->mpFunctionalVolume ) {
            
     /* if this voxel is in our func bounds... */
     if( xVoxl_GetX(pVoxel) >= xVoxl_GetX(pFuncMin)
@@ -3227,10 +3341,21 @@ DspA_tErr DspA_BuildCurrentFrame_ ( tkmDisplayAreaRef this ) {
     /* set the color to this func color */
     color = funcColor;
         }
-      }
-    } 
+      } 
+    } else {
+      eFunctional = FunV_tErr_InvalidAnatomicalVoxel;
+    }
+
+    /* if we are out of functional bounds and our mask arg is on, then 
+       this pixel is black. */
+    if( FunV_tErr_InvalidAnatomicalVoxel == eFunctional &&
+    this->mabDisplayFlags[DspA_tDisplayFlag_MaskToFunctionalOverlay]) {
+        color.mfRed   = 0;
+        color.mfGreen = 0;
+        color.mfBlue  = 0;
+    }
+
   }
-  
       } else {
 
   /* voxel was out of bounds, set to out of bounds color. */
@@ -3540,8 +3665,10 @@ DspA_tErr DspA_DrawSelectionToFrame_ ( tkmDisplayAreaRef this ) {
   /* y flip the volume pt to flip the image over. */
   bufferPt.mnY = Y_FLIP(bufferPt.mnY);
   
-  /* write it back to the buffer. */
-  for( nY = bufferPt.mnY; nY < bufferPt.mnY + this->mnZoomLevel; nY++ ) {
+  /* write it back to the buffe */
+  for( nY = bufferPt.mnY; 
+       BUFFER_Y_LT(nY,BUFFER_Y_INC(bufferPt.mnY,this->mnZoomLevel));
+       nY = BUFFER_Y_INC(nY,1) ) {
     for( nX = bufferPt.mnX; nX < bufferPt.mnX + this->mnZoomLevel;nX++) {
       
       pFrame = this->mpFrameBuffer + 
@@ -3884,6 +4011,9 @@ DspA_tErr DspA_DrawMarker_ ( tkmDisplayAreaRef this,
     nWidth  = ((float)inSize / this->mfFrameBufferScaleX);
     nHeight = ((float)inSize / this->mfFrameBufferScaleY);
     
+    nWidth = MAX( nWidth, 1 );
+    nHeight = MAX( nHeight, 1 );
+
     DspA_SetUpOpenGLPort_( this );
     
     /* draw the crosshair */
@@ -4222,7 +4352,7 @@ DspA_tErr DspA_ConvertVolumeToBuffer_ ( tkmDisplayAreaRef this,
   float     fVolumeSize = (float) this->mnVolumeSize;
 
   /* verify the voxel */
-  eResult = DspA_VerifyVolumexVoxl_( this, ipVolumeVox );
+  eResult = DspA_VerifyVolumeVoxel_( this, ipVolumeVox );
   if ( DspA_tErr_NoErr != eResult )
     goto error;
 
@@ -4258,8 +4388,8 @@ DspA_tErr DspA_ConvertVolumeToBuffer_ ( tkmDisplayAreaRef this,
     (fVolumeSize/2.0);
 
   /* return the point */
-  opBufferPt->mnX = (int) rint( fX );
-  opBufferPt->mnY = (int) rint( fY );
+  opBufferPt->mnX = (int) floor( fX );
+  opBufferPt->mnY = (int) floor( fY );
 
   goto cleanup;
 
@@ -4427,6 +4557,8 @@ DspA_tErr DspA_ConvertScreenToBuffer_ ( tkmDisplayAreaRef this,
 
   DspA_tErr eResult = DspA_tErr_NoErr;
   xPoint2n  localPt = {0, 0};
+  float     fX      = 0;
+  float     fY      = 0;
   int       nX      = 0;
   int       nY      = 0;
 
@@ -4435,7 +4567,7 @@ DspA_tErr DspA_ConvertScreenToBuffer_ ( tkmDisplayAreaRef this,
      system flipped, but the displays are flipped in the medit window. this
      just kind of works, at least for 2x2. */
   localPt.mnX = ipScreenPt->mnX - this->mLocationInSuper.mnX;
-  localPt.mnY = ((ipScreenPt->mnY + this->mnHeight) % this->mnHeight);
+  localPt.mnY = (((int)(ipScreenPt->mnY + this->mnHeight)) % this->mnHeight);
 
   /* verify the screen pt */
   eResult = DspA_VerifyScreenPoint_( this, &localPt );
@@ -4443,8 +4575,11 @@ DspA_tErr DspA_ConvertScreenToBuffer_ ( tkmDisplayAreaRef this,
     goto error;
   
   /* use the frame scale factor to convert */
-  nX = (float)localPt.mnX / this->mfFrameBufferScaleX;
-  nY = (float)localPt.mnY / this->mfFrameBufferScaleY;
+  fX = (float)localPt.mnX / this->mfFrameBufferScaleX;
+  fY = (float)localPt.mnY / this->mfFrameBufferScaleY;
+
+  nX = (int) floor( fX );
+  nY = (int) floor( fY );
 
   /* y flip */
   nY = GLDRAW_Y_FLIP(nY);
@@ -4477,6 +4612,7 @@ DspA_tErr DspA_SendViewStateToTcl_ ( tkmDisplayAreaRef this ) {
   FunV_tErr             eFunctional        = FunV_tErr_NoError;
   FunV_tFunctionalValue functionalValue    = 0;
   int                   nFlag              = 0;
+  int                   brush              = 0;
 
   xVoxl_New( &pVoxel );
 
@@ -4562,15 +4698,19 @@ DspA_tErr DspA_SendViewStateToTcl_ ( tkmDisplayAreaRef this ) {
 
   /* send brush info */
   sprintf ( sTclArguments, "%d %d %d",
-      (int)snBrushRadius, (int)sBrushShape, 
-      (int)sbBrush3D );
-  tkm_SendTclCommand( tkm_tTclCommand_UpdateBrush, sTclArguments );
+      (int)sBrush.mnRadius, (int)sBrush.mShape, 
+      (int)sBrush.mb3D );
+  tkm_SendTclCommand( tkm_tTclCommand_UpdateBrushShape, sTclArguments );
 
   /* send the threshold info. */
-  sprintf ( sTclArguments, "%d %d %d",
-      (int)snBrushThresholdLow, (int)snBrushThresholdHigh, 
-      (int)snBrushNewValue );
-  tkm_SendTclCommand( tkm_tTclCommand_UpdateBrushThreshold, sTclArguments );
+  for( brush = 0; brush < DspA_knNumBrushes; brush++ ) {
+    sprintf ( sTclArguments, "%d %d %d %d",
+        (int)brush,
+        (int)sBrush.mInfo[brush].mnLow, 
+        (int)sBrush.mInfo[brush].mnHigh,
+        (int)sBrush.mInfo[brush].mnNewValue );
+    tkm_SendTclCommand( tkm_tTclCommand_UpdateBrushInfo, sTclArguments );
+  }
 
   xVoxl_Delete( &pVoxel );
 
@@ -4598,7 +4738,7 @@ DspA_tErr DspA_Verify ( tkmDisplayAreaRef this ) {
   return eResult;
 }
 
-DspA_tErr DspA_VerifyVolumexVoxl_  ( tkmDisplayAreaRef this,
+DspA_tErr DspA_VerifyVolumeVoxel_  ( tkmDisplayAreaRef this,
             xVoxelRef          ipVoxel ) {
   DspA_tErr eResult = DspA_tErr_NoErr;
 

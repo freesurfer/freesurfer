@@ -83,6 +83,17 @@ Trns_tErr Trns_ExtractRotationMatrix    ( MATRIX* iTransform,
 Trns_tErr Trns_ExtractScaleMatrix       ( MATRIX* iTransform,
             MATRIX* oScale );
 
+/* */
+Trns_tErr Trns_Translate  ( mriTransformRef this,
+          float           ifAmount,
+          tAxis           iAxis );
+Trns_tErr Trns_Rotate     ( mriTransformRef this,
+          float           ifDegrees,
+          tAxis           iAxis );
+Trns_tErr Trns_Scale      ( mriTransformRef this,
+          float           ifFactor,
+          tAxis           iAxis );
+
 /* converts from a voxel in A space to one in B space, i.e. 
    A -> A_RAS, A_RAS -> B_RAS, B_RAS -> B */
 Trns_tErr Trns_ConvertAtoB   ( mriTransformRef this,

@@ -43,6 +43,7 @@ source $env(MRI_DIR)/lib/tcl/tkm_wrappers.tcl
 
 # constants
 set ksWindowName "TkMedit Tools"
+set ksImageDir   "$env(MRI_DIR)/lib/images/"
 
 # mri_tOrientation
 set mri_tOrientation_Coronal    0
@@ -60,30 +61,54 @@ set DspA_tDisplayFlag_DisplaySurfaceVertices      7
 set DspA_tDisplayFlag_ControlPoints               8
 set DspA_tDisplayFlag_Selection                   9
 set DspA_tDisplayFlag_FunctionalOverlay          10
-set DspA_tDisplayFlag_ROIGroupOverlay            11
-set DspA_tDisplayFlag_FocusFrame                 12
-set DspA_tDisplayFlag_Axes                       13
-set DspA_tDisplayFlag_MaxIntProj                 14
-set DspA_tDisplayFlag_HeadPoints                 15
+set DspA_tDisplayFlag_MaskToFunctionalOverlay    11
+set DspA_tDisplayFlag_ROIGroupOverlay            12
+set DspA_tDisplayFlag_FocusFrame                 13
+set DspA_tDisplayFlag_Axes                       14
+set DspA_tDisplayFlag_MaxIntProj                 15
+set DspA_tDisplayFlag_HeadPoints                 16
 
 # DspA_tTool
-set DspA_tTool_Select     0
-set DspA_tTool_Edit       1
-set DspA_tTool_CtrlPts    2
-set DspA_tTool_CustomEdit 3
+set DspA_tTool_Navigate   0
+set DspA_tTool_Select     1
+set DspA_tTool_Edit       2
+set DspA_tTool_CtrlPts    3
+
+set ksaToolString(0) "navigate"
+set ksaToolString(1) "select"
+set ksaToolString(2) "edit"
+set ksaToolString(3) "ctrlpts"
+
+# DspA_tBrush
+set DspA_tBrush_EditOne 0
+set DspA_tBrush_EditTwo 1
+
+set ksaBrushString(0) "Button 2"
+set ksaBrushString(1) "Button 3"
 
 # DspA_tBrushShape
 set DspA_tBrushShape_Circle 0
 set DspA_tBrushShape_Square 1
 
-# MWin_tLinkPolicy
+# view presets
 set MWin_tLinkPolicy_None                  0
 set MWin_tLinkPolicy_MultipleOrientations  1
 set MWin_tLinkPolicy_Mosaic                2
 
+set tViewPreset_Single   0
+set tViewPreset_Multiple 1
+set tViewPreset_Mosaic   2
+
+set ksaViewPresetString(0) "single"
+set ksaViewPresetString(1) "multiple"
+set ksaViewPresetString(2) "mosaic"
+
 # tkm_tVolumeType
 set tkm_tVolumeType_Main 0
 set tkm_tVolumeType_Aux  1
+
+set ksaDisplayedVolumeString(0) "main"
+set ksaDisplayedVolumeString(1) "aux"
 
 # Surf_tVertexSet
 set Surf_tVertexSet_Main      0
@@ -99,9 +124,13 @@ set mri_tCoordSpace_VolumeIdx 0
 set mri_tCoordSpace_RAS       1
 set mri_tCoordSpace_Talairach 2
 
+set ksaLinkedCursorString(0) notlinked
+set ksaLinkedCursorString(1) linked
+
 # our global vars
 set gOrientation 0
 set gbLinkedCursor 1
+set gbLinkedCursorString $ksaLinkedCursorString($gbLinkedCursor)
 set gnVolX 0
 set gnVolY 0
 set gnVolZ 0
@@ -133,14 +162,18 @@ set gfFuncValue 0
 set gfwFuncValue ""
 set gnZoomLevel 0
 set gTool $DspA_tTool_Select
+set gToolString $ksaToolString($gTool)
 set gDisplayedVolume 0
+set gDisplayedVolumeString $ksaDisplayedVolumeString($gDisplayedVolume)
 set gDisplayCols 1
 set gDisplayRows 1
-set gDisplayLinkPolicy $MWin_tLinkPolicy_None
+set gViewPreset $tViewPreset_Single
+set gViewPresetString $ksaViewPresetString($gViewPreset)
 set gbCursor 0
 set gbSelection 0
 set gbControlPoints 0
 set gbFunctional 0
+set gbMaskFunctional 0
 set gbROIGroup 0
 set gbAxes 0
 set gbMaxIntProj 0
@@ -150,16 +183,25 @@ set gbCanonicalSurface 0
 set gbDisplaySurfaceVertices 0
 set gbInterpolateSurfaceVertices 0
 set gbHeadPoints 0
-set gnBrushRadius 1
-set gBrushShape $DspA_tBrushShape_Circle
-set gbBrush3D true
-set gnBrushLow 0
-set gnBrushHigh 0
-set gnBrushNewValue 0
+set gfwaToolBar(main)  ""
+set gfwaToolBar(brush) ""
+
+# brush info
+set gBrush(radius)         1
+set gBrush(shape)          $DspA_tBrushShape_Circle
+set gBrush(3d)             true
+foreach tool "$DspA_tBrush_EditOne $DspA_tBrush_EditTwo" {
+    set gBrush(low,$tool)  0
+    set gBrush(high,$tool) 0
+    set gBrush(new,$tool)  0
+}
+
+# volume color scale
 set gfVolumeColorScaleThresh($tkm_tVolumeType_Main) 0
 set gfVolumeColorScaleSquash($tkm_tVolumeType_Main) 0
 set gfVolumeColorScaleThresh($tkm_tVolumeType_Aux) 0
 set gfVolumeColorScaleSquash($tkm_tVolumeType_Aux) 0
+
 set gbVolumeDirty 0
 set gbTalTransformPresent 0
 
@@ -167,8 +209,9 @@ set gbTalTransformPresent 0
 
 proc UpdateLinkedCursorFlag { ibLinked } {
 
-    global gbLinkedCursor
+    global gbLinkedCursor gbLinkedCursorString ksaLinkedCursorString
     set gbLinkedCursor $ibLinked
+#    set gbLinkedCursorString $ksaLinkedCursorString($gbLinkedCursor)
 }
 
 proc UpdateVolumeCursor { inX inY inZ } {
@@ -276,22 +319,26 @@ proc UpdateDisplayFlag { iFlag ibValue } {
     global DspA_tDisplayFlag_DisplaySurfaceVertices 
     global DspA_tDisplayFlag_ControlPoints
     global DspA_tDisplayFlag_Selection DspA_tDisplayFlag_FunctionalOverlay
+    global DspA_tDisplayFlag_MaskToFunctionalOverlay
     global DspA_tDisplayFlag_ROIGroupOverlay
     global DspA_tDisplayFlag_Axes DspA_tDisplayFlag_MaxIntProj
     global DspA_tDisplayFlag_HeadPoints
     global tkm_tVolumeType_Main tkm_tVolumeType_Aux
 
-    global gDisplayedVolume gbCursor gbSelection gbControlPoints
+    global gDisplayedVolume gDisplayedVolumeString ksaDisplayedVolumeString
+    global gbCursor gbSelection gbControlPoints
     global gbFunctional gbMainSurface gbOriginalSurface gbCanonicalSurface
     global gbDisplaySurfaceVertices gbInterpolateSurfaceVertices
-    global gbROIGroup gbAxes gbMaxIntProj gbHeadPoints
+    global gbROIGroup gbAxes gbMaxIntProj gbHeadPoints gbMaskFunctional
     
 
     if { $DspA_tDisplayFlag_AuxVolume == $iFlag } {
   if { $ibValue == 0 } {
       set gDisplayedVolume $tkm_tVolumeType_Main
+#      set gDisplayedVolumeString $ksaDisplayedVolumeString($tkm_tVolumeType_Main)
   } else {
       set gDisplayedVolume $tkm_tVolumeType_Aux
+#      set gDisplayedVolumeString $ksaDisplayedVolumeString($tkm_tVolumeType_Aux)
   }
     }
     if { $DspA_tDisplayFlag_Cursor == $iFlag } {
@@ -321,6 +368,9 @@ proc UpdateDisplayFlag { iFlag ibValue } {
     if { $DspA_tDisplayFlag_FunctionalOverlay == $iFlag } {
   set gbFunctional $ibValue
     }
+    if { $DspA_tDisplayFlag_MaskToFunctionalOverlay == $iFlag } {
+  set gbMaskFunctional $ibValue
+    }
     if { $DspA_tDisplayFlag_ROIGroupOverlay == $iFlag } {
   set gbROIGroup $ibValue
     }
@@ -337,26 +387,28 @@ proc UpdateDisplayFlag { iFlag ibValue } {
 
 proc UpdateTool { iTool } {
 
-    global gTool
+    global gTool ksaToolString gToolString
     set gTool $iTool
+#    set gToolString $ksaToolString($gTool)
+    
 }
 
-proc UpdateBrush { inRadius iShape ib3D } {
+proc UpdateBrushShape { inRadius iShape ib3D } {
 
-    global gnBrushRadius gBrushShape gbBrush3D
+    global gBrush
 
-    set gnBrushRadius $inRadius
-    set gBrushShape   $iShape
-    set gbBrush3D     $ib3D
+    set gBrush(radius) $inRadius
+    set gBrush(shape)  $iShape
+    set gBrush(3d)     $ib3D
 }
 
-proc UpdateBrushThreshold { inLow inHigh inNewValue } {
+proc UpdateBrushInfo { inBrush inLow inHigh inNewValue } {
 
-    global gnBrushLow gnBrushHigh gnBrushNewValue
+    global gBrush
 
-    set gnBrushLow      $inLow
-    set gnBrushHigh     $inHigh
-    set gnBrushNewValue $inNewValue
+    set gBrush(low,$inBrush)  $inLow
+    set gBrush(high,$inBrush) $inHigh
+    set gBrush(new,$inBrush)  $inNewValue
 }
 
 proc UpdateVolumeColorScaleInfo { inVolume inThresh inSquash } {
@@ -390,11 +442,12 @@ proc DoLoadVolumeDlog {} {
   set fwButtons $wwDialog.fwButtons
 
   # prompt and entry field
-  tkm_MakeEntry $fwMain "Enter a volume name:" sVolumeName 10
+  tkm_MakeDirectorySelector $fwMain "Volume directory:" sVolumeName
 
   # ok and cancel buttons.
   tkm_MakeCancelOKButtons $fwButtons $wwDialog \
-    { LoadVolume $sVolumeName } {}
+    "tkm_UpdateDirectorySelectorVariable $fwMain; \
+    LoadVolume $sVolumeName" {}
 
   pack $fwMain $fwButtons \
     -side top       \
@@ -420,7 +473,8 @@ proc DoLoadAuxVolumeDlog {} {
   set fwButtons $wwDialog.fwButtons
 
   # prompt and entry field
-  tkm_MakeDirectorySelector $fwMain "Enter a volume dir or name:" sAuxVolumeName
+  tkm_MakeDirectorySelector $fwMain "Aux volume directory:" \
+    sAuxVolumeName
 
   # ok and cancel buttons.
   tkm_MakeCancelOKButtons $fwButtons $wwDialog \
@@ -450,7 +504,7 @@ proc DoSaveVolumeAsDlog {} {
   set fwButtons $wwDialog.fwButtons
 
   # prompt and entry field
-  tkm_MakeDirectorySelector $fwMain "Path to save this volume in:" \
+  tkm_MakeDirectorySelector $fwMain "Directory to save volume in:" \
     sVolumeDir
 
   # ok and cancel buttons.
@@ -510,7 +564,7 @@ proc DoLoadLabelDlog {} {
   set fwButtons $wwDialog.fwButtons
 
   # prompt and entry field
-  tkm_MakeFileSelector $fwMain "Enter a label name" sFileName
+  tkm_MakeFileSelector $fwMain "Label file:" sFileName
 
   # ok and cancel buttons.
   tkm_MakeCancelOKButtons $fwButtons $wwDialog \
@@ -561,7 +615,7 @@ proc DoLoadSurfaceDlog { iSurface } {
   set fwButtons $wwDialog.fwButtons
 
   # prompt and entry field
-  tkm_MakeFileSelector $fwMain "Enter a surface name:" sSurfaceName
+  tkm_MakeFileSelector $fwMain "Surface file:" sSurfaceName
 
   # ok and cancel buttons.
   tkm_MakeCancelOKButtons $fwButtons $wwDialog \
@@ -615,7 +669,7 @@ proc DoFindVertexDlog { iSurface } {
   set bwCancel  $fwButtons.bwCancel
 
   # prompt and entry field
-  tkm_MakeEntry $fwMain "Enter a vertex number:" nVertex 6
+  tkm_MakeEntry $fwMain "Find vertex number:" nVertex 6
   
   # ok and cancel buttons.
   tkm_MakeCancelOKButtons $fwButtons $wwDialog \
@@ -686,7 +740,7 @@ proc DoPrintTimeCourseDlog {} {
 
     global gDialog
 
-    set sFileName ""
+    set sSummaryName ""
     set wwDialog .wwPrintTimeCourseDlog
 
     # try to create the dlog...
@@ -696,12 +750,12 @@ proc DoPrintTimeCourseDlog {} {
   set fwButtons $wwDialog.fwButtons
 
   # prompt and entry field
-  tkm_MakeFileSelector $fwMain "Save this file as:" sFileName
+  tkm_MakeFileSelector $fwMain "Time course summary file:" sSummaryName
 
   # ok and cancel buttons.
   tkm_MakeCancelOKButtons $fwButtons $wwDialog \
     "tkm_UpdateFileSelectorVariable $fwMain; \
-    TimeCourse_PrintSelectionRangeToFile $sFileName"
+    TimeCourse_PrintSelectionRangeToFile \$sSummaryName"
 
   pack $fwMain $fwButtons \
     -side top       \
@@ -709,6 +763,135 @@ proc DoPrintTimeCourseDlog {} {
     -fill x         \
     -padx 5         \
     -pady 5
+    }
+}
+
+proc DoRegisterOverlayDlog {} {
+
+    global gDialog
+    global fScaleFactor
+
+    set wwDialog .wwRegisterOverlayDlog
+
+    # try to create the dlog...
+    if { [Dialog_Create $wwDialog "Register Functional Overlay" {-borderwidth 10}] } {
+
+  set fwTop        $wwDialog.fwTop
+  set lfwTranslate $fwTop.lfwTranslate
+  set lfwRotate    $fwTop.lfwRotate
+  set lfwScale     $fwTop.lfwScale
+  set fwButtons    $fwTop.fwButtons
+  
+  frame $fwTop
+
+  # make the label frames and get their subs.
+  tixLabelFrame $lfwTranslate \
+    -label "Translate" \
+    -labelside acrosstop \
+    -options { label.padX 5 }
+
+  set fwTranslateSub     [$lfwTranslate subwidget frame]
+  set fwTranslateButtons $fwTranslateSub.fwTranslateButtons
+  set fwTranslateAmt     $fwTranslateSub.fwTranslateAmt
+
+  # puts buttons in them
+  tkm_MakeButtons $fwTranslateButtons { \
+    { image icon_arrow_up \
+    "TranslateOverlayRegistration $fTranslateDistance y" } \
+    { image icon_arrow_down \
+    "TranslateOverlayRegistration -$fTranslateDistance y" } \
+    { image icon_arrow_left \
+    "TranslateOverlayRegistration $fTranslateDistance x" } \
+    { image icon_arrow_right \
+    "TranslateOverlayRegistration -$fTranslateDistance x" } }
+
+  tkm_MakeEntryWithIncDecButtons \
+    $fwTranslateAmt "Distance" \
+    fTranslateDistance \
+    {} \
+    0.5
+
+  pack $fwTranslateButtons $fwTranslateAmt \
+    $lfwTranslate \
+    -side top                           \
+    -anchor w                           \
+    -expand yes                         \
+    -fill x
+
+  # rotate frame
+  tixLabelFrame $lfwRotate \
+    -label "Rotate" \
+    -labelside acrosstop \
+    -options { label.padX 5 }
+
+  set fwRotateSub     [$lfwRotate subwidget frame]
+  set fwRotateButtons $fwRotateSub.fwRotateButtons
+  set fwRotateAmt     $fwRotateSub.fwRotateAmt
+
+  # puts buttons in them
+  tkm_MakeButtons $fwRotateButtons { \
+    { image icon_arrow_ccw \
+    "RotateOverlayRegistration $fRotateDegrees z" } \
+    { image icon_arrow_cw \
+    "RotateOverlayRegistration -$fRotateDegrees z" } }
+
+  tkm_MakeEntryWithIncDecButtons \
+    $fwRotateAmt "Degrees" \
+    fRotateDegrees \
+    {} \
+    0.5
+
+  pack $fwRotateButtons $fwRotateAmt \
+    $lfwRotate \
+    -side top                     \
+    -anchor w                     \
+    -expand yes                   \
+    -fill x
+  
+  # scale frame
+  tixLabelFrame $lfwScale \
+    -label "Scale" \
+    -labelside acrosstop \
+    -options { label.padX 5 }
+
+  set fwScaleSub     [$lfwScale subwidget frame]
+  set fwScaleButtons $fwScaleSub.fwScaleButtons
+  set fwScaleAmt     $fwScaleSub.fwScaleAmt
+
+  # puts buttons in them
+  tkm_MakeButtons $fwScaleButtons { \
+    { image icon_arrow_expand_x \
+    "ScaleOverlayRegistration $fScaleFactor x" } \
+    { image icon_arrow_shrink_x \
+    "ScaleOverlayRegistration [expr 1.0 / $fScaleFactor] x" }
+    { image icon_arrow_expand_y \
+    "ScaleOverlayRegistration $fScaleFactor y" } \
+    { image icon_arrow_shrink_y \
+    "ScaleOverlayRegistration [expr 1.0 / $fScaleFactor] y" } }
+
+  set fScaleFactor 1.0
+  tkm_MakeEntryWithIncDecButtons \
+    $fwScaleAmt "Scale Factor" \
+    fScaleFactor \
+    {} \
+    0.05
+
+  pack $fwScaleButtons $fwScaleAmt \
+    $lfwScale \
+    -side top                           \
+    -anchor w                           \
+    -expand yes                         \
+    -fill x
+
+  # just a close button here
+  tkm_MakeButtons $fwButtons { \
+    { text "Close" {Dialog_Close .wwRegisterOverlayDlog} } }
+
+  pack $fwButtons \
+    -side right \
+    -anchor e
+
+  pack $fwTop
     }
 }
 
@@ -741,41 +924,51 @@ proc DoSaveDlog {} {
     }
 }
 
+
 proc DoBrushInfoDlog {} {
 
     global gDialog
+    global ksaBrushString
     global DspA_tBrushShape_Square DspA_tBrushShape_Circle
-    global gnBrushRadius gBrushShape gbBrush3D
-    global gnSavedBrushRadius gSavedBrushShape gbSavedBrush3D
+    global DspA_tBrush_EditOne DspA_tBrush_EditTwo
+    global gBrush
 
     set wwDialog .wwBrushInfoDlog
-
-    set gnSavedBrushRadius $gnBrushRadius
-    set gSavedBrushShape   $gBrushShape
-    set gbSavedBrush3D     $gbBrush3D
 
     # try to create the dlog...
     if { [Dialog_Create $wwDialog "Brush Size" {-borderwidth 10}] } {
   
-  set fwRadiusScale        $wwDialog.fwRadiusScale
-  set fwShapeLabel         $wwDialog.fwShapeLabel
-  set fwCircle             $wwDialog.fwCircle
-  set fwSquare             $wwDialog.fwSquare
-  set fw3DCheckbox         $wwDialog.fw3DCheckbox
+  set fwTop                $wwDialog.fwTop
+  set fwShape              $fwTop.fwShape
+  set fwInfo               $fwTop.fwInfo
   set fwButtons            $wwDialog.fwButtons
   
+  frame $fwTop
+  
+  tixLabelFrame $fwShape \
+    -label "Shape" \
+    -labelside acrosstop \
+    -options { label.padX 5 }
+  
+  set fwShapeSubFrame [$fwShape subwidget frame]
+  set fwRadiusScale        $fwShapeSubFrame.fwRadiusScale
+  set fwShapeLabel         $fwShapeSubFrame.fwShapeLabel
+  set fwCircle             $fwShapeSubFrame.fwCircle
+  set fwSquare             $fwShapeSubFrame.fwSquare
+  set fw3DCheckbox         $fwShapeSubFrame.fw3DCheckbox
+  
   # radius
-  tkm_MakeSlider $fwRadiusScale "Radius" gnBrushRadius 1 100 100 "" 1
+  tkm_MakeSlider $fwRadiusScale "Radius" gBrush(radius) 1 20 50 "" 1
     
   # shape radio buttons
   tkm_MakeNormalLabel $fwShapeLabel "Shape"
   tkm_MakeRadioButton $fwCircle "Circle" \
-    gBrushShape $DspA_tBrushShape_Circle ""
+    gBrush(shape) $DspA_tBrushShape_Circle ""
   tkm_MakeRadioButton $fwSquare "Square" \
-    gBrushShape $DspA_tBrushShape_Square ""
+    gBrush(shape) $DspA_tBrushShape_Square ""
 
   # 3d checkbox
-  tkm_MakeCheckbox $fw3DCheckbox "3D" gbBrush3D ""
+  tkm_MakeCheckbox $fw3DCheckbox "3D" gBrush(3d) ""
   
   # pack them in a column
   pack $fwRadiusScale $fwShapeLabel $fwCircle \
@@ -785,64 +978,61 @@ proc DoBrushInfoDlog {} {
     -expand yes                         \
     -fill x
   
-  # buttons. 
-  tkm_MakeCancelApplyOKButtons $fwButtons $wwDialog \
-    { SetBrush $gnBrushRadius $gBrushShape $gbBrush3D } \
-    { SetBrush $gnSavedBrushRadius $gSavedBrushShape $gbSavedBrush3D }
+  tixLabelFrame $fwInfo \
+    -label "Edit Tool" \
+    -labelside acrosstop \
+    -options { label.padX 5 }
+  
+  set fwInfoSubFrame [$fwInfo subwidget frame]
+  set nbwInfo $fwInfoSubFrame.nbwInfo
 
-  pack $fwButtons \
+  tixNoteBook $nbwInfo
+  foreach tool "$DspA_tBrush_EditOne $DspA_tBrush_EditTwo" {
+
+      $nbwInfo add pane$tool -label $ksaBrushString($tool)
+
+      set fw [$nbwInfo subwidget pane$tool]
+      set fwLowScale        $fw.fwLowScale
+      set fwHighScale       $fw.fwHighScale
+      set fwNewValueScale   $fw.fwNewValueScale
+      set fwDefaults        $fw.fwDefaults
+
+      # low, high, and new value sliders
+      tkm_MakeSlider $fwLowScale "Low" gBrush(low,$tool) \
+        0 255 100 "" 1
+      tkm_MakeSlider $fwHighScale "High" gBrush(high,$tool) \
+        0 255 100 "" 1
+      tkm_MakeSlider $fwNewValueScale {"New Value"} gBrush(new,$tool) \
+        0 255 100 "" 1
+
+      # defaults button
+      tkm_MakeButtons $fwDefaults \
+        { {text "Restore Defaults" "SetBrushInfoToDefaults $tool"} }
+
+      # pack them in a column
+      pack $fwLowScale $fwHighScale $fwNewValueScale $fwDefaults \
+        -side top                           \
+        -anchor w                           \
+        -expand yes                         \
+        -fill x
+  }
+
+  pack $nbwInfo
+
+  # pack the sides
+  pack $fwShape $fwInfo \
+    -side left \
+    -padx 2 \
+    -anchor nw 
+
+  # buttons. 
+  tkm_MakeApplyCloseButtons $fwButtons $wwDialog \
+    { SetBrushConfiguration } 
+
+  pack $fwTop $fwButtons \
     -side top       \
     -expand yes     \
-    -fill x         \
-    -padx 5         \
-    -pady 5
-   }
-}
-
-proc DoCustomBrushDlog {} {
-
-    global gDialog
-    global gnBrushLow gnBrushHigh gnBrushNewValue
-    global gnSavedBrushLow gnSavedBrushHigh gnSavedBrushNewValue
-
-    set wwDialog .wwCustomBrushDlog
-
-    set gnSavedBrushLow      $gnBrushLow
-    set gnSavedBrushHigh     $gnBrushHigh
-    set gnSavedBrushNewValue $gnBrushNewValue
-
-    # try to create the dlog...
-    if { [Dialog_Create $wwDialog "Custom Brush" {-borderwidth 10}] } {
-
-  set fwLowScale        $wwDialog.fwLowScale
-  set fwHighScale        $wwDialog.fwHighScale
-  set fwNewValueScale        $wwDialog.fwNewValueScale
-  set fwButtons            $wwDialog.fwButtons
-  
-  # low, high, and new value sliders
-  tkm_MakeSlider $fwLowScale "Low" gnBrushLow 0 255 200 "" 1
-  tkm_MakeSlider $fwHighScale "High" gnBrushHigh 0 255 200 "" 1
-  tkm_MakeSlider $fwNewValueScale "New Value" gnBrushNewValue \
-    0 255 200 "" 1
-
-  # pack them in a column
-  pack $fwLowScale $fwHighScale $fwNewValueScale \
-    -side top                           \
-    -anchor w                           \
-    -expand yes                         \
     -fill x
-  
-  # buttons. 
-  tkm_MakeCancelApplyOKButtons $fwButtons $wwDialog \
-    { SetBrushThreshold $gnBrushLow $gnBrushHigh $gnBrushNewValue } \
-    {SetBrushThreshold $gnSavedBrushLow $gnSavedBrushHigh $gnSavedBrushNewValue  }
-
-  pack $fwButtons \
-    -side top       \
-    -expand yes     \
-    -fill x         \
-    -padx 5         \
-    -pady 5
    }
 }
 
@@ -878,14 +1068,7 @@ proc DoVolumeColorScaleInfoDlog { } {
     gfVolumeColorScaleSquash(0) \
     0 20 100 "" 1
 
-  # pack them in a column
-  pack $fwBrightness $fwContrast \
-    -side top                \
-    -anchor w                \
-    -expand yes              \
-    -fill x
-  
-  # brightness and contrast sliders
+  # aux brightness and contrast sliders
   tkm_MakeSlider $fwAuxBrightness "\"Aux Brightness\"" \
     gfVolumeColorScaleThresh(1) \
     1 0 100 "" 1 0.01
@@ -894,26 +1077,21 @@ proc DoVolumeColorScaleInfoDlog { } {
     0 20 100 "" 1
 
   # pack them in a column
-  pack $fwAuxBrightness $fwAuxContrast \
+  pack $fwBrightness $fwContrast          \
+    $fwAuxBrightness $fwAuxContrast \
     -side top                \
     -anchor w                \
     -expand yes              \
     -fill x
   
   # buttons
-  tkm_MakeCancelApplyOKButtons $fwButtons $wwDialog \
+  tkm_MakeApplyCloseButtons $fwButtons $wwDialog \
     { SetVolumeColorScale 0 \
     $gfVolumeColorScaleThresh(0) \
     $gfVolumeColorScaleSquash(0);\
     SetVolumeColorScale 1 \
     $gfVolumeColorScaleThresh(1) \
-    $gfVolumeColorScaleSquash(1) } \
-    { SetVolumeColorScale 0 \
-    $gfSavedVolumeColorScaleThresh(0) \
-    $gfSavedVolumeColorScaleSquash(0);\
-    SetVolumeColorScale 1 \
-    $gfSavedVolumeColorScaleThresh(1) \
-    $gfSavedVolumeColorScaleSquash(1); }
+    $gfVolumeColorScaleSquash(1) }
 
   pack $fwButtons  \
     -side top    \
@@ -948,10 +1126,10 @@ proc DoThresholdDlog {} {
   tkm_MakeRadioButton $fwBelow "below" bAbove 0
 
   # threshold value
-  tkm_MakeSlider $fwThresh "this value" nThreshold 0 255 200 "" 1
+  tkm_MakeSlider $fwThresh "\"this value\"" nThreshold 0 255 200 "" 1
 
   #$fwBelow new value
-  tkm_MakeSlider $fwNewValue "to this value" nNewValue 0 255 200 "" 1
+  tkm_MakeSlider $fwNewValue "\"to this value\"" nNewValue 0 255 200 "" 1
 
   # pack them in a column
   pack $fwLabel $fwAbove $fwBelow \
@@ -962,7 +1140,7 @@ proc DoThresholdDlog {} {
     -fill x
 
   # buttons.
-  tkm_MakeCancelApplyOKButtons $fwButtons $wwDialog \
+  tkm_MakeCancelOKButtons $fwButtons $wwDialog \
     { Threshold $nThreshold $bAbove $nNewValue }
 
   pack  $fwButtons \
@@ -1014,7 +1192,7 @@ proc DoRotateVolumeDlog {} {
     -fill x 
 
   # buttons. 
-  tkm_MakeApplyCloseButtons $fwButtons $wwDialog \
+  tkm_MakeCancelOKButtons $fwButtons $wwDialog \
     { RotateVolume $sRotateDirection $fRotateDegrees }
 
   pack $fwDegrees $fwDirection $fwAxesRads $fwButtons \
@@ -1049,7 +1227,7 @@ proc DoFlipVolumeDlog {} {
   tkm_MakeCheckbox $fwFlipZ "Flip around Z axis" bFlipZ {}
 
   # buttons. 
-  tkm_MakeApplyCloseButtons $fwButtons $wwDialog \
+  tkm_MakeCancelOKButtons $fwButtons $wwDialog \
     { FlipVolume $bFlipX $bFlipY $bFlipZ }
 
   pack $fwFlipX $fwFlipY $fwFlipZ $fwButtons \
@@ -1211,12 +1389,11 @@ proc DoLoadParcellationDlog {} {
 
   # volume prompt and entry field
   tkm_MakeDirectorySelector $fwPath \
-    "Enter a volume path" \
-    sVolume
+    "Volume directory" sVolume
 
   # color prompt and entry field
   tkm_MakeFileSelector $fwColorFile \
-    "Enter a color file name:" sColorFile
+    "Color look up table file:" sColorFile
 
   # ok and cancel buttons. 
   tkm_MakeCancelOKButtons $fwButtons $wwDialog \
@@ -1248,7 +1425,7 @@ proc DoSaveRGBDlog {} {
 
   # prompt and entry field
   tkm_MakeFileSelector $fwMain \
-    "Save RGB as:" sRGBName
+    "RGB file:" sRGBName
 
   # ok and cancel buttons.
   tkm_MakeCancelOKButtons $fwButtons $wwDialog \
@@ -1365,6 +1542,19 @@ proc DoEditHeadPointLabelDlog {} {
     -pady 5
     }
 }
+
+proc SetBrushConfiguration { } {
+
+    global gBrush
+    global DspA_tBrush_EditOne DspA_tBrush_EditTwo
+
+    SetBrushShape $gBrush(radius) $gBrush(shape) $gBrush(3d)
+    foreach tool "$DspA_tBrush_EditOne $DspA_tBrush_EditTwo" {
+  SetBrushInfo $tool $gBrush(low,$tool) $gBrush(high,$tool) $gBrush(new,$tool)
+    }
+    
+}
+
 # ======================================================== INTERFACE MODIFIERS
 
 proc ShowVolumeCoords { ibShow } {
@@ -1586,6 +1776,30 @@ proc ShowFuncValue { ibShow } {
     }
 }
 
+# =============================================================== VIEW PRESETS
+
+proc SetViewPreset { iPreset } {
+
+    global gViewPreset gViewPresetString ksaViewPresetString
+    global tViewPreset_Single tViewPreset_Multiple tViewPreset_Mosaic
+    global MWin_tLinkPolicy_None MWin_tLinkPolicy_MultipleOrientations
+    global MWin_tLinkPolicy_Mosaic
+
+    set gViewPreset $iPreset
+#    set gViewPresetString $ksaViewPresetString($gViewPreset)
+
+    if { $iPreset == $tViewPreset_Single } {
+  SetDisplayConfig 1 1 $MWin_tLinkPolicy_None
+    }
+    if { $iPreset == $tViewPreset_Multiple } {
+  SetDisplayConfig 2 2 $MWin_tLinkPolicy_MultipleOrientations
+    }
+    if { $iPreset == $tViewPreset_Mosaic } {
+  SetDisplayConfig 4 4 $MWin_tLinkPolicy_Mosaic
+    }
+
+}
+
 # ========================================================= BUILDING INTERFACE
 
 proc CreateWindow { iwwTop } {
@@ -1600,36 +1814,26 @@ proc CreateMenuBar { ifwMenuBar } {
 
     global mri_tOrientation_Sagittal mri_tOrientation_Horizontal 
     global mri_tOrientation_Coronal
-    global DspA_tTool_Select DspA_tTool_Edit DspA_tTool_CtrlPts 
-    global DspA_tTool_CustomEdit
-    global MWin_tLinkPolicy_None MWin_tLinkPolicy_MultipleOrientations
-    global MWin_tLinkPolicy_Mosaic
+    global DspA_tTool_Navigate DspA_tTool_Select
+    global DspA_tTool_Edit DspA_tTool_CtrlPts 
     global gnVolX gnVolY gnVolZ
-    global gDisplayCols gDisplayRows gDisplayLinkPolicy
-    global gbCursor gbSelection gbControlPoints gbFunctional
+    global gDisplayCols gDisplayRows gViewPreset
+    global tViewPreset_Single tViewPreset_Multiple tViewPreset_Mosaic    
+    global gbCursor gbSelection gbControlPoints gbFunctional gbMaskFunctional
     global gbMainSurface gbOriginalSurface gbCanonicalSurface
     global gbDisplaySurfaceVertices gbInterpolateSurfaceVertices
     global gbROIGroup gbAxes gbMaxIntProj gbHeadPoints
     global gTool
-    global gDisplayMenu gnFunctionalOverlayMenuIndex gnTimeCourseMenuIndex
 
-    set mbwVolume      $ifwMenuBar.mbwVolume
-    set mbwSelection   $ifwMenuBar.mbwSelection
-    set mbwEdit        $ifwMenuBar.mbwEdit
-    set mbwDisplay     $ifwMenuBar.mbwDisplay
-    set mbwTools       $ifwMenuBar.mbwTools
-    set mbwTimeCourse  $ifwMenuBar.mbwTimeCourse
-    set mbwCtrlPts     $ifwMenuBar.mbwCtrlPts
-    set mbwHeadPts     $ifwMenuBar.mbwHeadPts
-    set mbwSurface     $ifwMenuBar.mbwSurface
-    set mbwFunctional  $ifwMenuBar.mbwFunctional
+    set mbwFile   $ifwMenuBar.mbwFile
+    set mbwEdit   $ifwMenuBar.mbwEdit
+    set mbwView   $ifwMenuBar.mbwView
+    set mbwTools  $ifwMenuBar.mbwTools
 
     frame $ifwMenuBar -border 2 -relief raised
 
-    # volume menu button
-    tkm_MakeMenu $mbwVolume "File" \
-      { \
-      \
+    # file menu button
+    tkm_MakeMenu $mbwFile "File" { \
       { command \
       "Load Main Volume..." \
       DoLoadVolumeDlog } \
@@ -1649,38 +1853,19 @@ proc CreateMenuBar { ifwMenuBar } {
       { separator } \
       \
       { command \
-      "Save Point" \
-      SendCursor } \
-      \
-      { command \
-      "Goto Saved Point" \
-      ReadCursor } \
-      \
-      { separator } \
-      \
-      { command \
-      "Load Label..." \
-      DoLoadLabelDlog } \
-      \
-      { command \
-      "Save Label..." \
-      DoSaveLabelDlog } \
-      \
-      { separator } \
-      \
-      { command \
       "Load Main Surface..." \
       "DoLoadSurfaceDlog $Surf_tVertexSet_Main" } \
       \
+      { cascade "Load Vertex Set..." { \
       { command \
-      "Load Original Surface..." \
+      "Original Verticies" \
       "DoLoadSurfaceDlog $Surf_tVertexSet_Original" \
       tMenuGroup_SurfaceLoading } \
       \
       { command \
-      "Load Pial Surface..." \
+      "Pial Verticies " \
       "DoLoadSurfaceDlog $Surf_tVertexSet_Canonical" \
-      tMenuGroup_SurfaceLoading } \
+      tMenuGroup_SurfaceLoading } } } \
       \
       { command \
       "Unload Surface" \
@@ -1697,11 +1882,30 @@ proc CreateMenuBar { ifwMenuBar } {
       "Load Time Course Data..." \
       "DoLoadFunctionalDlog $tFunctionalVolume_TimeCourse" } \
       \
+      { command \
+      "Save Overlay Registration" \
+      Overlay_SaveRegistration \
+      tMenuGroup_Registration } \
+      \
       { separator } \
       \
       { command \
       "Load Parcellation..." \
       DoLoadParcellationDlog } \
+      \
+      { command \
+      "Load ROI Group..." \
+      DoLoadParcellationDlog } \
+      \
+      { separator } \
+      \
+      { command \
+      "Load Label..." \
+      DoLoadLabelDlog } \
+      \
+      { command \
+      "Save Label As..." \
+      DoSaveLabelDlog } \
       \
       { separator } \
       \
@@ -1722,19 +1926,17 @@ proc CreateMenuBar { ifwMenuBar } {
       { separator } \
       \
       { command \
-      "Save RGB..." \
-      DoSaveRGBDlog } \
+      "Save Control Points" \
+      WriteControlPointFile } \
       \
       { separator } \
       \
       { command \
       "Quit" \
       QuitMedit } }
-    
-    # edit menu button
-    tkm_MakeMenu $mbwEdit "Edit" \
-      { \
-      \
+   
+    # edit menu 
+    tkm_MakeMenu $mbwEdit "Edit" { \
       { command \
       "Undo Last Edit" \
       UndoLastEdit } \
@@ -1752,129 +1954,82 @@ proc CreateMenuBar { ifwMenuBar } {
       { separator } \
       \
       { command \
-      "Clear Selection" \
+      "Clear Label Selection" \
       ClearSelection } \
       \
-      { separator } \
-      \
       { command \
-      "Threshold Volume..." \
-      DoThresholdDlog } \
-      \
-      { command \
-      "Flip Volume..." \
-      DoFlipVolumeDlog } \
-      \
-      { command \
-      "Rotate Volume..." \
-      DoRotateVolumeDlog } }
+      "Clear Control Points Selection" \
+      DeselectAllControlPoints }   }
 
-    # display menu
-    tkm_MakeMenu $mbwDisplay "Display" \
-      { { radio  \
+    # view menu
+    tkm_MakeMenu $mbwView "View" { \
+      { cascade \
+      "View Configurations" { \
+      { radio  \
       "Single View" \
-      "SetDisplayConfig 1 1 $MWin_tLinkPolicy_None" \
-      gDisplayLinkPolicy \
+      "SetViewPreset $tViewPreset_None" \
+      gViewPreset \
       0 } \
       \
       { radio  \
       "Multiple Orientations" \
-      "SetDisplayConfig 2 2 $MWin_tLinkPolicy_MultipleOrientations" \
-      gDisplayLinkPolicy \
+      "SetViewPreset $tViewPreset_Multiple" \
+      gViewPreset \
       1 } \
       \
       { radio  \
       "Mosaic" \
-      "SetDisplayConfig 4 4 $MWin_tLinkPolicy_Mosaic" \
-      gDisplayLinkPolicy \
-      2 } \
+      "SetViewPreset $tViewPreset_Mosaic" \
+      gViewPreset \
+      2 } } } \
       \
       { separator } \
       \
+      { check \
+      "Brush Tool Bar" \
+      "ShowToolBar brush $gbShowToolBar" \
+      gbShowToolBar } \
+      \
+      { separator } \
+      \
+      { cascade "Configure..." { \
       { command \
       "Brightness / Contrast..." \
       DoVolumeColorScaleInfoDlog } \
       \
       { command \
-      "Configure Functional Overlay..." \
+      "Functional Overlay..." \
       Overlay_DoConfigDlog \
       tMenuGroup_OverlayOptions } \
       \
       { command \
-      "Configure Time Course Graph..." \
+      "Time Course Graph..." \
       TimeCourse_DoConfigDlog \
-      tMenuGroup_TimeCourseOptions } \
-       \
+      tMenuGroup_TimeCourseOptions } } }\
+      \
       { separator } \
-       \
-       { command \
-       "Goto Point..." \
-       DoGotoPointDlog } \
-       \
-      { separator } \
-       \
+      \
       { radio  \
       "Main Volume" \
       "SetDisplayFlag $DspA_tDisplayFlag_AuxVolume \
       $tkm_tVolumeType_Main"  \
       gDisplayedVolume  \
       0 } \
-       \
-      { radio  \
+      \
+      { radio \
       "Aux Volume" \
       "SetDisplayFlag $DspA_tDisplayFlag_AuxVolume \
       $tkm_tVolumeType_Aux"  \
       gDisplayedVolume  \
       1 } \
-       \
+      \
       { separator } \
-      \
-      { check \
-      "Cursor" \
-      "SetDisplayFlag $DspA_tDisplayFlag_Cursor \$gbCursor" \
-      gbCursor } \
-      \
-      { check \
-      "Axes" \
-      "SetDisplayFlag $DspA_tDisplayFlag_Axes \
-      \$gbAxes" \
-      gbAxes } \
       \
       { check \
       "Maximum Intensity Projection" \
       "SetDisplayFlag $DspA_tDisplayFlag_MaxIntProj \
       \$gbMaxIntProj" \
       gbMaxIntProj } \
-      \
-      { check \
-      "Selection / Label" \
-      "SetDisplayFlag $DspA_tDisplayFlag_Selection \$gbSelection" \
-      gbSelection } \
-      \
-      { check \
-      "Control Points" \
-      "SetDisplayFlag $DspA_tDisplayFlag_ControlPoints \
-      \$gbControlPoints" \
-      gbControlPoints } \
-      \
-      { check \
-      "Head Points" \
-      "SetDisplayFlag $DspA_tDisplayFlag_HeadPoints \
-      \$gbHeadPoints" \
-      gbHeadPoints \
-      tMenuGroup_HeadPoints } \
-      \
-      { check \
-      "Functional Overlay" \
-      "SetDisplayFlag $DspA_tDisplayFlag_FunctionalOverlay \
-      \$gbFunctional" \
-      gbFunctional } \
-      \
-      { check \
-      "ROI Group Overlay" \
-      "SetDisplayFlag $DspA_tDisplayFlag_ROIGroupOverlay \
-      \$gbROIGroup" \
-      gbROIGroup } \
       \
       { check \
       "Main Surface" \
@@ -1900,105 +2055,130 @@ proc CreateMenuBar { ifwMenuBar } {
       "Surface Vertices" \
       "SetDisplayFlag $DspA_tDisplayFlag_DisplaySurfaceVertices \
       \$gbDisplaySurfaceVertices" \
-      gbDisplaySurfaceVertices } \
+      gbDisplaySurfaceVertices \
+      tMenuGroup_SurfaceViewing } \
       \
       { check \
       "Interpolate Surface Vertices" \
       "SetDisplayFlag $DspA_tDisplayFlag_InterpolateSurfaceVertices \
       \$gbInterpolateSurfaceVertices"  \
-      gbInterpolateSurfaceVertices }}
+      gbInterpolateSurfaceVertices \
+      tMenuGroup_SurfaceViewing } \
+      \
+      { check \
+      "Functional Overlay" \
+      "SetDisplayFlag $DspA_tDisplayFlag_FunctionalOverlay \
+      \$gbFunctional" \
+      gbFunctional \
+      tMenuGroup_OverlayOptions } \
+      \
+      { check \
+      "Mask to Functional Overlay" \
+      "SetDisplayFlag $DspA_tDisplayFlag_MaskToFunctionalOverlay \
+      \$gbMaskFunctional" \
+      gbMaskFunctional \
+      tMenuGroup_OverlayOptions } \
+      \
+      { check \
+      "ROI Group Overlay" \
+      "SetDisplayFlag $DspA_tDisplayFlag_ROIGroupOverlay \
+      \$gbROIGroup" \
+      gbROIGroup } \
+      \
+      { check \
+      "Selection / Label" \
+      "SetDisplayFlag $DspA_tDisplayFlag_Selection \$gbSelection" \
+      gbSelection } \
+      \
+      { check \
+      "Head Points" \
+      "SetDisplayFlag $DspA_tDisplayFlag_HeadPoints \
+      \$gbHeadPoints" \
+      gbHeadPoints \
+      tMenuGroup_HeadPoints } \
+      \
+      { check \
+      "Control Points" \
+      "SetDisplayFlag $DspA_tDisplayFlag_ControlPoints \
+      \$gbControlPoints" \
+      gbControlPoints } \
+      \
+      { check \
+      "Cursor" \
+      "SetDisplayFlag $DspA_tDisplayFlag_Cursor \$gbCursor" \
+      gbCursor } \
+      \
+      { check \
+      "Axes" \
+      "SetDisplayFlag $DspA_tDisplayFlag_Axes \
+      \$gbAxes" \
+      gbAxes } }
 
-    # tools menu buttonx
-    tkm_MakeMenu $mbwTools "Tools" \
-      { { radio \
+#      { radio \
+#      "Navigate" \
+#      "SetTool $DspA_tTool_Navigate" \
+#      gTool \
+#      0 } \
+#      \
+    # tools menu
+    tkm_MakeMenu $mbwTools "Tools" { \
+      { radio \
       "Select Voxels" \
       "SetTool $DspA_tTool_Select" \
       gTool \
-      0 } \
+      1 } \
       \
       { radio \
       "Edit Voxels" \
       "SetTool $DspA_tTool_Edit" \
       gTool \
-      1 } \
+      2 } \
       \
       { radio \
       "Select Ctrl Pts" \
       "SetTool $DspA_tTool_CtrlPts" \
-      gTool \
-      2 } \
-      \
-      { radio \
-      "Edit Voxels w/ Custom Brush" \
-      "SetTool $DspA_tTool_CustomEdit" \
       gTool \
       3 } \
       \
       { separator } \
       \
       { command \
-      "Brush Size..." \
+      "Configure Brush..." \
       DoBrushInfoDlog } \
       \
-      { command \
-      "Custom Brush..." \
-      DoCustomBrushDlog } }
-    
-    # time course menu
-    tkm_MakeMenu $mbwTimeCourse "Time Course" \
-      { { command \
-      "Graph Selection" \
-      { GraphSelectedRegion }\
-      tMenuGroup_TimeCourseOptions } \
+      { separator } \
       \
       { command \
-      "Print Summary to File.." \
-      { DoPrintTimeCourseDlog } \
-      tMenuGroup_TimeCourseOptions } }
-
-    # ctrl pts menu
-    tkm_MakeMenu $mbwCtrlPts "Control Points" \
-      { { command \
-      "New" \
-      { NewControlPoint } } \
+      "Save Point" \
+      SendCursor } \
       \
       { command \
-      "Select None" \
-      DeselectAllControlPoints } \
+      "Goto Saved Point" \
+      ReadCursor } \
+      \
+      { separator } \
       \
       { command \
-      "Delete Selected" \
-      DeleteSelectedControlPoints } \
+      "Goto Point..." \
+      DoGotoPointDlog } \
+      \
+      { separator } \
+      \
+      { cascade "Volume" { \
+      { command \
+      "Threshold Volume..." \
+      DoThresholdDlog } \
       \
       { command \
-      "Save" \
-      WriteControlPointFile } }
-
-    # head pts menu
-    tkm_MakeMenu $mbwHeadPts "Head Points" \
-      { { command \
-      "Return to Original Position" \
-      RestoreHeadPts \
-      tMenuGroup_HeadPoints } \
+      "Flip Volume..." \
+      DoFlipVolumeDlog } \
       \
       { command \
-      "Edit Current Label..." \
-      DoEditHeadPointLabelDlog \
-      tMenuGroup_HeadPoints } \
+      "Rotate Volume..." \
+      DoRotateVolumeDlog } } } \
       \
-      { command \
-      "Translate..." \
-      DoTranslateHeadPtsDlog \
-      tMenuGroup_HeadPoints } \
-      \
-      { command \
-      "Rotate..." \
-      DoRotateHeadPtsDlog \
-      tMenuGroup_HeadPoints } }
-
-    # surface menu
-    tkm_MakeMenu $mbwSurface "Surface" \
-      { { command  \
+      { cascade "Surface" { \
+      { command  \
       "Show Nearest Main Vertex" \
       ShowNearestMainVertex \
       tMenuGroup_SurfaceViewing }\
@@ -2026,10 +2206,74 @@ proc CreateMenuBar { ifwMenuBar } {
       { command \
       "Find Pial Vertex..." \
       { DoFindVertexDlog $Surf_tVertexSet_Canonical } \
-      tMenuGroup_CanonicalSurfaceViewing } }
-     
-    pack $mbwVolume $mbwEdit $mbwDisplay $mbwTools \
-      $mbwTimeCourse $mbwCtrlPts $mbwHeadPts $mbwSurface  \
+      tMenuGroup_CanonicalSurfaceViewing } } } \
+      \
+      { cascade "fMRI" { \
+      { command \
+      "Register Functional Overlay" \
+      { DoRegisterOverlayDlog }\
+      tMenuGroup_Registration } \
+      \
+      { command \
+      "Restore Overlay Registration" \
+      { Overlay_RestoreRegistration }\
+      tMenuGroup_Registration } \
+      \
+      { command \
+      "Set Registration to Identity" \
+      { Overlay_SetRegistrationToIdentity }\
+      tMenuGroup_Registration } \
+      \
+      { command \
+      "Graph Current ROI Time Course" \
+      { GraphSelectedRegion }\
+      tMenuGroup_TimeCourseOptions } \
+      \
+      { command \
+      "Print Time Course Summary to File.." \
+      { DoPrintTimeCourseDlog } \
+      tMenuGroup_TimeCourseOptions } } } \
+      \
+      { cascade "ROI Group" { \
+      { command "Edit ROI Label" {} } \
+      { command "Select Current ROI" {} } } } \
+      \
+      { cascade "Head Points" { \
+      { command \
+      "Restore Head Points" \
+      RestoreHeadPts \
+      tMenuGroup_HeadPoints } \
+      \
+      { command \
+      "Edit Current Head Point Label..." \
+      DoEditHeadPointLabelDlog \
+      tMenuGroup_HeadPoints } \
+      \
+      { command \
+      "Translate Head Points..." \
+      DoTranslateHeadPtsDlog \
+      tMenuGroup_HeadPoints } \
+      \
+      { command \
+      "Rotate Head Points..." \
+      DoRotateHeadPtsDlog \
+      tMenuGroup_HeadPoints } } } \
+      \
+      { cascade "Control Points" { \
+      { command \
+      "New Control Point" \
+      { NewControlPoint } } \
+      \
+      { command \
+      "Delete Selected Control Point" \
+      DeleteSelectedControlPoints } } } \
+      \
+      { command \
+      "Save RGB..." \
+      DoSaveRGBDlog } }
+
+
+    pack $mbwFile $mbwEdit $mbwView $mbwTools \
       -side left
 }
 
@@ -2197,55 +2441,216 @@ proc CreateDisplayFrame { ifwDisplay } {
       -fill x
 }
 
-proc CreateToolbarFrame { ifwToolBar } {
+proc CreateToolBar { ifwToolBar } {
+
+    global gfwaToolBar
+    global gDisplayedVolumeString ksaDisplayedVolume
+    global gToolString ksaToolString
+    global gViewPresetString ksaViewPresetString
+    global gbLinkedCursor
+    global gBrush DspA_tBrushShape_Square DspA_tBrushShape_Circle
 
     frame $ifwToolBar
 
-    set fwButtons   $ifwToolBar.fwButtons
+    set gfwaToolBar(main)  $ifwToolBar.fwMainBar
+    set fwTools            $gfwaToolBar(main).fwTools
+    set fwViews            $gfwaToolBar(main).fwViews
+    set fwPoint            $gfwaToolBar(main).fwPoint
+    set fwVolumeToggles    $gfwaToolBar(main).fwVolumeToggles
+    set fwLinkedCursor     $gfwaToolBar(main).fwLinkedCursor
 
-    tkm_MakeButtons $fwButtons \
-      { {"Save Point" SendCursor}  \
-      {"Goto Point" ReadCursor} }
+    set gfwaToolBar(brush) $ifwToolBar.fwBrushBar
+    set fwCircle           $gfwaToolBar(brush).fwCircle
+    set fwSquare           $gfwaToolBar(brush).fwSquare
+    set fw3D               $gfwaToolBar(brush).fw3D
+    set fwRadius           $gfwaToolBar(brush).fwRadius
 
-    pack $fwButtons   \
+    frame $gfwaToolBar(main) -border 2 -relief raised
+    
+    tkm_MakeToolbar $fwTools \
+      1 \
+      gToolString \
+      UpdateToolWrapper { \
+      { image select icon_edit_label } \
+      { image edit icon_edit_volume } \
+      { image ctrlpts icon_control_point } }
+
+    tkm_MakeToolbar $fwViews \
+      1 \
+      gViewPresetString \
+      UpdateViewPresetWrapper { \
+      { image single icon_view_single } \
+      { image multiple icon_view_multiple } \
+      { image mosaic icon_view_mosaic } }
+    
+    tkm_MakeButtons $fwPoint { \
+      { image icon_cursor_save {SendCursor} } \
+      { image icon_cursor_goto {ReadCursor} } }
+
+    tkm_MakeToolbar $fwVolumeToggles \
+      1 \
+      gDisplayedVolumeString \
+      UpdateVolumeToggleWrapper { \
+      { image main icon_main_volume } \
+      { image aux icon_aux_volume } }
+
+#    image create photo icon_linked_cursors -file icon_linked_cursors.gif
+    
+    #    tkm_MakeToolbar $fwLinkedCursor \
+      #      0 \
+      #      gbLinkedCursorString \
+      #      UpdateLinkedCursorWrapper { \
+      #      { image linked icon_linked_cursors } }
+    
+    frame $gfwaToolBar(brush) -border 2 -relief raised
+
+    tkm_MakeRadioButton $fwCircle "Circle" \
+    gBrush(shape) $DspA_tBrushShape_Circle "SetBrushConfiguration"
+    tkm_MakeRadioButton $fwSquare "Square" \
+      gBrush(shape) $DspA_tBrushShape_Square "SetBrushConfiguration"
+
+    tkm_MakeCheckbox $fw3D "3D" gBrush(3d) "SetBrushConfiguration"
+
+    tkm_MakeSlider $fwRadius "Radius" gBrush(radius) 1 20 80 "SetBrushConfiguration" 1
+
+    pack $fwTools $fwViews $fwPoint $fwVolumeToggles \
+      -side left \
+      -anchor w \
+      -padx 5
+
+    pack $fwCircle $fwSquare $fw3D $fwRadius \
+      -side left \
+      -anchor w \
+      -padx 5
+
+    pack $gfwaToolBar(main) $gfwaToolBar(brush) \
       -side top \
-      -fill x   \
+      -fill x \
       -expand yes
+}
+
+proc ShowToolBar { isWhich ibShow } {
+
+    global gfwaToolBar
+
+    if { $ibShow == 1 } {   
+
+  pack $gfwaToolBar($isWhich) \
+      -side top \
+      -fill x \
+      -expand yes \
+      -after $gfwaToolBar(main)
+
+    } else {
+
+  pack forget $gfwaToolBar($isWhich)
+    }
+}
+
+
+proc CreateImages {} {
+
+    global ksImageDir
+
+    foreach image_name { icon_edit_label icon_edit_volume \
+      icon_control_point \
+      icon_view_single icon_view_multiple icon_view_mosaic \
+      icon_cursor_goto icon_cursor_save \
+      icon_main_volume icon_aux_volume \
+      icon_arrow_up icon_arrow_down icon_arrow_left icon_arrow_right \
+      icon_arrow_cw icon_arrow_ccw \
+      icon_arrow_expand_x icon_arrow_expand_y \
+      icon_arrow_shrink_x icon_arrow_shrink_y } {
+
+  image create photo  $image_name -file \
+    [ file join $ksImageDir $image_name.gif ]
+    }
+}
+
+proc UpdateVolumeToggleWrapper { iValue ibStatus } {
+
+    global DspA_tDisplayFlag_AuxVolume
+    global ksaDisplayedVolumeString tkm_tVolumeType_Main tkm_tVolumeType_Aux
+
+    if { $ibStatus == 1 } {
+  foreach volume "$tkm_tVolumeType_Aux $tkm_tVolumeType_Main" {
+      if { [string compare $iValue $ksaDisplayedVolumeString($volume)] == 0 } {
+    SetDisplayFlag $DspA_tDisplayFlag_AuxVolume $volume
+      }
+  }
+    }
+}
+
+proc UpdateToolWrapper { iValue ibStatus } {
+
+    global ksaToolString
+    global DspA_tTool_Navigate DspA_tTool_Select DspA_tTool_Edit
+    global DspA_tTool_CtrlPts 
+
+    if { $ibStatus == 1 } {
+  foreach tool "$DspA_tTool_Navigate $DspA_tTool_Select \
+    $DspA_tTool_Edit $DspA_tTool_CtrlPts" {
+      if { [string compare $iValue $ksaToolString($tool)] == 0 } {
+    SetTool $tool
+      }
+  }
+    }
+}
+
+proc UpdateViewPresetWrapper { iValue ibStatus } {
+
+    global ksaViewPresetString
+    global tViewPreset_Single tViewPreset_Multiple tViewPreset_Mosaic
+
+    if { $ibStatus == 1 } {
+  foreach preset "$tViewPreset_Single $tViewPreset_Multiple $tViewPreset_Mosaic" {
+      if { [string compare $iValue $ksaViewPresetString($preset)] == 0 } {
+    SetViewPreset $preset
+      }
+  }
+    }
+}
+
+proc UpdateLinkedCursorWrapper { iValue ibStatus } {
+
+    SetLinkedCursorFlag $iValue
 }
 
 # = ====================================================================== MAIN
 
 fixcolors
 
+CreateImages
+
 # build the window
 set wwTop        .w
 set fwMenuBar    $wwTop.fwMenuBar
+set fwToolBar    $wwTop.fwToolBar
 set fwLeft       $wwTop.fwLeft
 set fwRight      $wwTop.fwRight
 set fwCursor     $fwLeft.fwCursor
-set fwToolbar    $fwLeft.fwToolbar
 
 CreateWindow         $wwTop
 
 frame $fwLeft
 
 CreateMenuBar        $fwMenuBar
+CreateToolBar        $fwToolBar
 CreateCursorFrame    $fwCursor
-CreateToolbarFrame   $fwToolbar
 CreateDisplayFrame   $fwRight
 
 # pack the window
-pack $fwMenuBar      \
+pack $fwMenuBar $fwToolBar \
   -side top    \
   -expand true \
   -fill x      \
   -anchor w
 
-pack $fwCursor $fwToolbar \
+pack $fwCursor \
   -side top         \
   -expand true      \
   -fill x           \
-  -anchor w
+  -anchor nw
 
 pack $fwLeft $fwRight \
   -side left    \
@@ -2258,18 +2663,8 @@ pack $fwLeft $fwRight \
 
 pack $wwTop
 
-proc CsurfInterface {} {
-
-#    .w.fwMenuBar.mbwVolume.mwVolume delete 15 17
-#    .w.fwMenuBar.mbwEdit.mwEdit delete 7
-#    .w.fwMenuBar.mbwTools.mwTools delete 3
-#    .w.fwMenuBar.mbwDisplay.mwDisplay delete 13
-#    .w.fwMenuBar.mbwDisplay.mwDisplay delete 17 18
-#    pack forget .w.fwMenuBar.mbwCtrlPts    
-#    pack forget .w.fwMenuBar.mbwSurface
-
-}
-
+# start out with the brush toolbar disabled
+ShowToolBar brush 0
 
 proc ErrorDlog { isMsg } {
 

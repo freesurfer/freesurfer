@@ -29,4 +29,10 @@ typedef struct {
   float mfRed, mfGreen, mfBlue;
 } xColor3f, *xColor3fRef;
 
+typedef enum {
+  tAxis_X = 0,
+  tAxis_Y,
+  tAxis_Z
+} tAxis;
+
 #endif

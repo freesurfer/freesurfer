@@ -14,7 +14,6 @@
 #include "mriROIGroup.h"
 
 typedef enum {
-
   DspA_tErr_NoErr = 0,
   DspA_tErr_AllocationFailed,
   DspA_tErr_InvalidPtr,
@@ -36,12 +35,10 @@ typedef enum {
   DspA_tErr_ErrorAccessingHeadPointList,
   DspA_tErr_InvalidErrorCode,
   DspA_knNumErrorCodes
-
 } DspA_tErr;
 
 /* synced to tkm_interface.tcl */
 typedef enum {
-
   DspA_tDisplayFlag_None = 0, 
   DspA_tDisplayFlag_AuxVolume,
   DspA_tDisplayFlag_Cursor,
@@ -53,39 +50,71 @@ typedef enum {
   DspA_tDisplayFlag_ControlPoints,
   DspA_tDisplayFlag_Selection,
   DspA_tDisplayFlag_FunctionalOverlay,
+  DspA_tDisplayFlag_MaskToFunctionalOverlay,
   DspA_tDisplayFlag_ROIGroupOverlay,
   DspA_tDisplayFlag_FocusFrame,
   DspA_tDisplayFlag_Axes,
   DspA_tDisplayFlag_MaxIntProj,
   DspA_tDisplayFlag_HeadPoints,
   DspA_knNumDisplayFlags
-  
 } DspA_tDisplayFlag;
 
 /* synced to tkm_interface.tcl */
 typedef enum {
-
   DspA_tTool_None         = -1,
-  DspA_tTool_SelectVoxels =  0,
+  DspA_tTool_Navigate     =  0,
+  DspA_tTool_SelectVoxels,
   DspA_tTool_EditVoxels,
   DspA_tTool_SelectCtrlPts,
-  DspA_tTool_CustomEditVoxels,
   DspA_knNumTools
-
 } DspA_tTool;
 
 /* synced to tkm_interface.tcl */
 typedef enum {
-
   DspA_tBrushShape_None   = -1,
   DspA_tBrushShape_Circle =  0,
   DspA_tBrushShape_Square,
   DspA_knNumBrushShapes
-
 } DspA_tBrushShape;
 
+/* the number of different brush settings we have. they all share the
+   same shape tho */
 typedef enum {
-  
+  DspA_tBrush_None    = -1,
+  DspA_tBrush_EditOne = 0,
+  DspA_tBrush_EditTwo,
+  DspA_knNumBrushes
+} DspA_tBrush;
+
+/* the threshold settings for a brush */
+typedef struct {
+  tVolumeValue mnLow;
+  tVolumeValue mnHigh;
+  tVolumeValue mnNewValue;
+} DspA_tBrushInfo, *DspA_tBrushInfoRef;
+
+/* the combined brush settings. all use the same shape, but there can be
+   different threshold settings (for different mouse buttons). */
+typedef struct {
+
+  /* shape */
+  int mnRadius;
+  DspA_tBrushShape mShape;
+  tBoolean mb3D;
+
+  /* thresholds */
+  DspA_tBrushInfo mInfo[ DspA_knNumBrushes ];
+
+} DspA_tBrushSettings;
+
+typedef enum {
+  DspA_tSelectAction_None   = -1,
+  DspA_tSelectAction_Select = 0,
+  DspA_tSelectAction_Deselect,
+  DspA_knNumSelectActions
+} DspA_tSelectAction;
+
+typedef enum {
   DspA_tMarker_Crosshair = 0,
   DspA_tMarker_Diamond,
   DspA_knNumMarkers
@@ -122,6 +151,9 @@ struct tkmDisplayArea {
   tBoolean               mbSliceChanged;
   HPtL_tHeadPointRef     mpSelectedHeadPoint;
   int                    mnROIGroupIndex;
+
+  /* for navigation tool */
+  xPoint2n               mLastClick;
   
   /* surface lists */
   xGrowableArrayRef*     maSurfaceLists;
@@ -220,14 +252,13 @@ DspA_tErr DspA_ToggleDisplayFlag     ( tkmDisplayAreaRef this,
                DspA_tDisplayFlag iWhichFlag );
 DspA_tErr DspA_SetTool               ( tkmDisplayAreaRef this,
                DspA_tTool        iTool );
-DspA_tErr DspA_SetBrush              ( tkmDisplayAreaRef this,
+DspA_tErr DspA_SetBrushShape         ( tkmDisplayAreaRef this,
                int               inRadius,
                DspA_tBrushShape  iShape,
                tBoolean          ib3D );
-DspA_tErr DspA_SetBrushThreshold     ( tkmDisplayAreaRef this,
-               tVolumeValue      inLow,
-               tVolumeValue      inHigh,
-               tVolumeValue      inNewValue );
+DspA_tErr DspA_SetBrushInfo          ( tkmDisplayAreaRef this,
+               DspA_tBrush       iBrush,
+               DspA_tBrushInfoRef iInfo ); 
 DspA_tErr DspA_ChangeSliceBy         ( tkmDisplayAreaRef this,
                int               inDelta );
 
@@ -258,12 +289,20 @@ DspA_tErr DspA_HandleMouseMoved_ ( tkmDisplayAreaRef this,
 DspA_tErr DspA_HandleKeyDown_    ( tkmDisplayAreaRef this, 
            xGWin_tEventRef   ipEvent );
 
+/* set brush to default values */
+DspA_tErr DspA_SetBrushInfoToDefault ( tkmDisplayAreaRef this,
+               DspA_tBrush       iBrush );
+
 /* uses the current brush settings to run the input function on a bunch
    of voxels based on the input point. */
 DspA_tErr DspA_BrushVoxels_ ( tkmDisplayAreaRef this,
-            xVoxelRef          ipStartingVox,
-            void(*ipFunction)(xVoxelRef) );
-void DspA_BrushVoxelsInThreshold_ (xVoxelRef ipVoxel );
+            xVoxelRef         ipStartingVox,
+            void*             ipData,
+            void(*ipFunction)(xVoxelRef,void*) );
+/* parameter here is a DspA_tBrush */
+void DspA_BrushVoxelsInThreshold_ ( xVoxelRef ipVoxel, void* );
+/* parameter here is a DspA_tSelectAction */
+void DspA_SelectVoxels_           ( xVoxelRef ipVoxel, void* );
 
 /* select the currently clicked roi */
 DspA_tErr DspA_SelectCurrentROI ( tkmDisplayAreaRef this );
@@ -274,20 +313,20 @@ tBoolean xUtil_FaceIntersectsPlane( MRI_SURFACE*     ipSurface,
             int              inPlane,
             Surf_tVertexSet iSurface,
             mri_tOrientation iOrientation );
-void     xUtil_NormalizeVertexToVoxel( vertex_type*     ipVertex,
-               Surf_tVertexSet iSurface,
-               mri_tOrientation iOrientation,
-              xVoxelRef         opVoxel );
-tBoolean xUtil_LineIntersectsPlane(xVoxelRef         ipLineVoxA,
-           xVoxelRef         ipLineVoxB,
-            int              inPlane,
-            tBoolean         ibInterpolate,
-            xPoint2fRef      opIntersectionPt );
-DspA_tErr DspA_AdjustSurfaceDrawPoint_( tkmDisplayAreaRef this,
-          xPoint2fRef       ipPoint );
-DspA_tErr DspA_ParsePointList_( tkmDisplayAreaRef this,
-        GLenum            inMode,
-        xGrowableArrayRef ipList );
+void     xUtil_NormalizeVertexToVoxel ( vertex_type*     ipVertex,
+          Surf_tVertexSet iSurface,
+          mri_tOrientation iOrientation,
+          xVoxelRef         opVoxel );
+tBoolean xUtil_LineIntersectsPlane ( xVoxelRef         ipLineVoxA,
+             xVoxelRef         ipLineVoxB,
+             int              inPlane,
+             tBoolean         ibInterpolate,
+             xPoint2fRef      opIntersectionPt );
+DspA_tErr DspA_AdjustSurfaceDrawPoint_ ( tkmDisplayAreaRef this,
+           xPoint2fRef       ipPoint );
+DspA_tErr DspA_ParsePointList_ ( tkmDisplayAreaRef this,
+         GLenum            inMode,
+         xGrowableArrayRef ipList );
 
 /* schedule a redraw */
 DspA_tErr DspA_Redraw_ ( tkmDisplayAreaRef this );
@@ -382,7 +421,7 @@ DspA_tErr DspA_ConvertPlaneToVolume_ ( tkmDisplayAreaRef  this,
 DspA_tErr DspA_SendViewStateToTcl_ ( tkmDisplayAreaRef this );
 
 DspA_tErr DspA_Verify       ( tkmDisplayAreaRef this );
-DspA_tErr DspA_VerifyVolumexVoxl_  ( tkmDisplayAreaRef this,
+DspA_tErr DspA_VerifyVolumeVoxel_ ( tkmDisplayAreaRef this,
             xVoxelRef          ipVoxel );
 DspA_tErr DspA_VerifyScreenPoint_ ( tkmDisplayAreaRef this,
              xPoint2nRef       ipScreenPt );

@@ -557,6 +557,9 @@ Surf_tErr Surf_GetClosestVertex ( mriSurfaceRef   this,
   Surf_ConvertVertexToVoxel( currentVertex, iSet, 
            this->mTransform, oClientVoxel );
   
+  /* find the real distance */
+  fDistance = sqrt( fDistance );
+
   /* make a string of info */
   if( NULL != osResult ) {
     sprintf( osResult, "Index: %d Distance: %.2f RAS Coords: %.2f %.2f %.2f", nBestVertex, fLowestDistance, Surf_GetVertexValue( currentVertex, iSet, Surf_tOrientation_X ), Surf_GetVertexValue( currentVertex, iSet, Surf_tOrientation_Y ), Surf_GetVertexValue( currentVertex, iSet, Surf_tOrientation_Z ) );

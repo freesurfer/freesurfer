@@ -28,6 +28,7 @@ typedef enum {
   FunV_tErr_ErrorParsingScriptTclFile,
   FunV_tErr_InvalidPointer,
   FunV_tErr_InvalidSignature,
+  FunV_tErr_InvalidParameter,
   FunV_tErr_InvalidTimePoint,
   FunV_tErr_InvalidCondition,
   FunV_tErr_InvalidAnatomicalVoxel,
@@ -44,6 +45,8 @@ typedef enum {
   FunV_tDisplayFlag_Ol_TruncatePositive,
   FunV_tDisplayFlag_Ol_ReversePhase,
   FunV_tDisplayFlag_Ol_OffsetValues,
+  FunV_tDisplayFlag_Ol_IgnoreThreshold,
+  FunV_tDisplayFlag_Ol_Grayscale,
   FunV_tDisplayFlag_TC_GraphWindowOpen,
   FunV_tDisplayFlag_TC_OffsetValues,
   FunV_tDisplayFlag_TC_PreStimOffset,
@@ -51,7 +54,7 @@ typedef enum {
 } FunV_tDisplayFlag;
 
 #define FunV_knFirstOverlayDisplayFlag    FunV_tDisplayFlag_Ol_TruncateNegative
-#define FunV_knLastOverlayDisplayFlag     FunV_tDisplayFlag_Ol_OffsetValues
+#define FunV_knLastOverlayDisplayFlag     FunV_tDisplayFlag_Ol_IgnoreThreshold
 #define FunV_knFirstTimeCourseDisplayFlag FunV_tDisplayFlag_TC_GraphWindowOpen
 #define FunV_knLastTimeCourseDisplayFlag  FunV_tDisplayFlag_TC_PreStimOffset
 
@@ -64,6 +67,7 @@ typedef enum {
   FunV_tTclCommand_Ol_UpdateTimePoint,
   FunV_tTclCommand_Ol_UpdateCondition,
   FunV_tTclCommand_Ol_UpdateThreshold,
+  FunV_tTclCommand_Ol_UpdateRange,
   FunV_tTclCommand_Ol_ShowOffsetOptions,
   FunV_tTclCommand_TC_DoConfigDlog,
   FunV_tTclCommand_TC_BeginDrawingGraph,
@@ -122,7 +126,8 @@ struct tkmFunctionalVolume {
   FunV_tFunctionalValue  mThresholdSlope;
   tBoolean               mabDisplayFlags[FunV_knNumDisplayFlags];
   tBoolean               mbGraphInited;
-  
+  tBoolean               mbRegistrationEnabled;
+
   /* functions to access the outside world */
   void       (*mpOverlayChangedFunction)(void);
   void       (*mpSendTkmeditTclCmdFunction)(tkm_tTclCommand,char*);
@@ -200,6 +205,8 @@ FunV_tErr FunV_SetThreshold        ( tkmFunctionalVolumeRef this,
 FunV_tErr FunV_SetDisplayFlag      ( tkmFunctionalVolumeRef this,
              FunV_tDisplayFlag      iFlag,
              tBoolean               iNewValue );
+FunV_tErr FunV_EnableRegistration  ( tkmFunctionalVolumeRef this,
+             tBoolean               iNewValue );
 
 /* moving time point */
 FunV_tErr FunV_ChangeTimePointBy   ( tkmFunctionalVolumeRef this,
@@ -207,9 +214,20 @@ FunV_tErr FunV_ChangeTimePointBy   ( tkmFunctionalVolumeRef this,
 
 /* allows functional volume to respond to a click. */
 FunV_tErr FunV_AnatomicalVoxelClicked ( tkmFunctionalVolumeRef this,
-                     xVoxelRef          ipAnatomicalVoxel );
+          xVoxelRef          ipAnatomicalVoxel );
 
-
+/* modify the overlay registration */
+FunV_tErr FunV_ApplyTransformToOverlay      ( tkmFunctionalVolumeRef this,
+                MATRIX*             iTransform );
+FunV_tErr FunV_TranslateOverlayRegistration ( tkmFunctionalVolumeRef this,
+                float                ifDistance,
+                tAxis                  iAxis );
+FunV_tErr FunV_RotateOverlayRegistration    ( tkmFunctionalVolumeRef this,
+                float                  ifDegrees,
+                tAxis                  iAxis );
+FunV_tErr FunV_ScaleOverlayRegistration     ( tkmFunctionalVolumeRef this,
+                float                  ifFactor,
+                tAxis                  iAxis );
 /* overlay access */
 
 /* basic accessors to values, based on current plane position if
@@ -264,6 +282,15 @@ FunV_tErr FunV_SendGraphErrorBars_ ( tkmFunctionalVolumeRef this,
 
 /* tcl commands */
 int FunV_TclOlLoadData            ( ClientData iClientData, 
+            Tcl_Interp *ipInterp, 
+            int argc, char *argv[] );
+int FunV_TclOlSaveRegistration    ( ClientData iClientData, 
+            Tcl_Interp *ipInterp, 
+            int argc, char *argv[] );
+int FunV_TclOlSetRegistrationToIdentity ( ClientData iClientData, 
+            Tcl_Interp *ipInterp, 
+            int argc, char *argv[] );
+int FunV_TclOlRestoreRegistration ( ClientData iClientData, 
             Tcl_Interp *ipInterp, 
             int argc, char *argv[] );
 int FunV_TclOlSetTimePoint        ( ClientData iClientData, 

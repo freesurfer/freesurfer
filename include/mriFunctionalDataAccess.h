@@ -25,6 +25,7 @@ typedef enum {
   FunD_tErr_CouldntAllocateMatrix,
   FunD_tErr_CouldntReadRegisterFile,
   FunD_tErr_CouldntCalculateDeviations,
+  FunD_tErr_ErrorAccessingTransform,
   FunD_tErr_InvalidTimeResolution,
   FunD_tErr_InvalidNumPreStimTimePoints,
   FunD_tErr_InvalidFunctionalVoxel,
@@ -57,7 +58,8 @@ typedef struct {
                                        // that 0 is a non-null condition.
 
   // information about the functional volume.
-  float mPixelSize, mSliceThickness;
+  float mPixelSize, mSliceThickness, mBrightnessScale;
+  float mMaxValue, mMinValue;
 
   // optional values that may not be used in every volume.
   int mTimeResolution;                 // num seconds between time points.
@@ -126,6 +128,14 @@ FunD_tErr FunD_ReadKeywordAndValue ( FILE* inFile,
               and initializes matricies */
 FunD_tErr FunD_ParseRegistrationAndInitMatricies ( mriFunctionalDataRef this );
 
+                                   /* saves the registration to file, making
+              a backup if it already exists */
+FunD_tErr FunD_SaveRegistration ( mriFunctionalDataRef this );
+
+                                   /* sets registration to identity matrix */
+FunD_tErr FunD_SetRegistrationToIdentity ( mriFunctionalDataRef this );
+
+
                                    /* looks for data files to determine the
               data type.*/
 FunD_tErr FunD_DetermineDataType ( mriFunctionalDataRef this );
@@ -143,6 +153,19 @@ FunD_tErr FunD_ParseData ( mriFunctionalDataRef this );
               the header _and_ data files.*/
 FunD_tErr FunD_CalcDeviations ( mriFunctionalDataRef this );
 
+/* applies a transformation to the registration, which can later be
+   saved out as a new registration */
+FunD_tErr FunD_ApplyTransformToRegistration ( mriFunctionalDataRef this,
+                MATRIX*             iTransform );
+FunD_tErr FunD_TranslateRegistration        ( mriFunctionalDataRef this,
+                float                ifDistance,
+                tAxis                iAxis );
+FunD_tErr FunD_RotateRegistration           ( mriFunctionalDataRef this,
+                float                ifDegrees,
+                tAxis                iAxis );
+FunD_tErr FunD_ScaleRegistration            ( mriFunctionalDataRef this,
+                float                ifFactor,
+                tAxis                iAxis );
 
 FunD_tErr FunD_GetDataAtAnaIdx ( mriFunctionalDataRef this,
         xVoxelRef             inVoxel, 
@@ -213,7 +236,9 @@ FunD_tErr FunD_GetNumPreStimTimePoints ( mriFunctionalDataRef this,
            int*                 out );
 FunD_tErr FunD_GetNumDataValues        ( mriFunctionalDataRef this, 
            int*                 out );
-
+FunD_tErr FunD_GetValueRange           ( mriFunctionalDataRef this,
+           float*               outMin,
+           float*               outMax );
                                    /* gets bounds in anatomical index coords.
               this is actually a bounding box in 
               anatomical space. if the functional
