@@ -710,12 +710,11 @@ int    MRISexpandSurface(MRI_SURFACE *mris, float distance) ;
    ((mris->type == MRIS_BINARY_QUADRANGLE_FILE) || \
     (mris->type == MRIS_ASCII_QUADRANGLE_FILE))
 
-#define RH_LABEL           127
-#define LH_LABEL           255
+
+/* actual constants are in mri.h */
+#define RH_LABEL           MRI_RIGHT_HEMISPHERE
+#define LH_LABEL           MRI_LEFT_HEMISPHERE
 
 #define MRISPvox(m,u,v)   (*IMAGEFpix(m->Ip,u,v))
-
-#define MRI_LEFT_HEMISPHERE    255
-#define MRI_RIGHT_HEMISPHERE   127
 
 #endif
