@@ -12,7 +12,7 @@
 #include "mri.h"
 #include "macros.h"
 
-static char vcid[] = "$Id: mris_add_template.c,v 1.1 1997/09/12 21:49:33 fischl Exp $";
+static char vcid[] = "$Id: mris_add_template.c,v 1.2 1998/01/24 15:53:45 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -24,17 +24,24 @@ static void print_version(void) ;
 
 char *Progname ;
 
-static int nsurfaces=0 ;   /* total # of surfaces currently in average brain */
+static char curvature_fname[100] = "" ;
+
+#define IMAGES_PER_SURFACE   3   /* mean, variance, and dof */
+#define SURFACES             2   /* smoothwm and inflated */
+#define PARAM_IMAGES         (IMAGES_PER_SURFACE*SURFACES)
+
+static int nbrs = 2 ;
+static int navgs = 0 ;
+static float scale = 1 ;
 
 int
 main(int argc, char *argv[])
 {
-  char         **av, *surf_fname, *template_fname ;
+  char         **av, surf_fname[100], *template_fname, *out_fname, *surf_dir,
+               *hemi ;
   int          ac, nargs ;
   MRI_SURFACE  *mris ;
-  MRI          *mri ;
-  MRI_SP       *mrisp, *mrisp_blur ;
-  float        sigma ;
+  MRI_SP       *mrisp, *mrisp_template ;
 
   Progname = argv[0] ;
   ErrorInit(NULL, NULL, NULL) ;
@@ -49,52 +56,85 @@ main(int argc, char *argv[])
     argv += nargs ;
   }
 
-  if (argc < 3)
+  if (argc < 4)
     usage_exit() ;
 
-  surf_fname = argv[1] ;
-  template_fname = argv[2] ;
-  if (argc > 3)
-    sigma = atof(argv[3]) ;
-  else
-    sigma = 5.0f ;
+  surf_dir = argv[1] ;
+  hemi = argv[2] ;
+  out_fname = template_fname = argv[3] ;
+  if (argc > 4)
+    out_fname = argv[4] ;
 
+  sprintf(surf_fname, "%s/%s.%s", surf_dir, hemi, SPHERE_NAME) ;
+  fprintf(stderr, "reading new surface %s...\n", surf_fname) ;
   mris = MRISread(surf_fname) ;
   if (!mris)
     ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s",
               Progname, surf_fname) ;
+  MRISsaveVertexPositions(mris, ORIGINAL_VERTICES) ;
 
-  mrisp = MRIStoParameterization(mris, NULL, 1) ;
-  MRISfromParameterization(mrisp, mris) ;
-  MRISwriteCurvature(mris, "surf/lh.curv") ;
-#if 1
-  mrisp_blur = MRISPblur(mrisp, NULL, sigma) ;
-  MRISfromParameterization(mrisp_blur, mris) ;
-  MRISwriteCurvature(mris, "surf/lh.curv_blur") ;
-#endif
-  exit(0) ;
-  fprintf(stderr, "current average consists of %d surfaces\n", nsurfaces) ;
-
-  if (!nsurfaces)  /* first time - create average surface */
+  if (!FileExists(template_fname))  /* first time - create it */
   {
-    mri = MRIalloc(256, 256, 256, MRI_FLOAT) ;
-    if (!mri)
-      ErrorExit(ERROR_NOFILE, "%s: could not allocate template brain") ;
+    fprintf(stderr, "creating new parameterization...\n") ;
+    mrisp_template = MRISPalloc(scale, PARAM_IMAGES); 
   }
   else
   {
-    mri = MRIread(template_fname) ;
-    if (!mri)
-      ErrorExit(ERROR_NOFILE, "%s: could not read template brain %s",
-                template_fname) ;
+    fprintf(stderr, "reading template parameterization from %s...\n",
+            template_fname) ;
+    mrisp_template = MRISPread(template_fname) ;
+    if (!mrisp_template)
+      ErrorExit(ERROR_NOFILE, "%s: could not open template file %s",
+                Progname, template_fname) ;
   }
+  /*
+    first read in inflated surface and use it to build the first template
+    set.
+    */
+  sprintf(surf_fname, "%s/%s.%s", surf_dir, hemi, INFLATED_NAME) ;
+  if (MRISreadVertexPositions(mris, surf_fname) != NO_ERROR)
+    ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s",
+              Progname, surf_fname) ;
 
-  fprintf(stderr, "averaging surface %s into %d averages %s\n",
-          surf_fname, nsurfaces, template_fname) ;
-  MRIwrite(mri, template_fname) ;
+  MRISsetNeighborhoodSize(mris, nbrs) ;
+  MRIScomputeMetricProperties(mris) ;
+  MRIScomputeSecondFundamentalForm(mris) ;
+  MRISuseMeanCurvature(mris) ;
+  MRISaverageCurvatures(mris, navgs) ;
+  MRISrestoreVertexPositions(mris, ORIGINAL_VERTICES) ;
+  MRISnormalizeCurvature(mris) ;
+  fprintf(stderr, "computing parameterization for surface %s...\n",surf_fname);
+  mrisp = MRIStoParameterization(mris, NULL, scale, 0) ;
+  MRISPcombine(mrisp, mrisp_template, 0) ;
+  MRISPfree(&mrisp) ;
+
+  /*
+    now do the same thing with the smoothwm curvatures.
+    */
+  sprintf(surf_fname, "%s/%s.%s", surf_dir, hemi, SMOOTH_NAME) ;
+  if (MRISreadVertexPositions(mris, surf_fname) != NO_ERROR)
+    ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s",
+              Progname, surf_fname) ;
+  MRIScomputeMetricProperties(mris) ;
+  if (curvature_fname[0])
+    MRISreadCurvatureFile(mris, curvature_fname) ;
+  else
+  {
+    MRIScomputeSecondFundamentalForm(mris) ;
+    MRISuseMeanCurvature(mris) ;
+    MRISaverageCurvatures(mris, navgs) ;
+  }
+  MRISrestoreVertexPositions(mris, ORIGINAL_VERTICES) ;
+  fprintf(stderr, "computing parameterization for surface %s...\n",surf_fname);
+  MRISnormalizeCurvature(mris) ;
+  mrisp = MRIStoParameterization(mris, NULL, scale, 0) ;
+  MRISPcombine(mrisp, mrisp_template, 3) ;
+
+  fprintf(stderr, "writing updated template to %s...\n", out_fname) ;
+  MRISPwrite(mrisp_template, out_fname) ;
 
   MRISPfree(&mrisp) ;
-  MRIfree(&mri) ;
+  MRISPfree(&mrisp_template) ;
   MRISfree(&mris) ;
   exit(0) ;
   return(0) ;  /* for ansi */
@@ -116,10 +156,26 @@ get_option(int argc, char *argv[])
     print_help() ;
   else if (!stricmp(option, "-version"))
     print_version() ;
+  else if (!stricmp(option, "nbrs"))
+  {
+    nbrs = atoi(argv[2]) ;
+    nargs = 1 ;
+    fprintf(stderr, "using neighborhood size = %d\n", nbrs) ;
+  }
   else switch (toupper(*option))
   {
-  case 'N':
-    sscanf(argv[2], "%d", &nsurfaces) ;
+  case 'S':
+    scale = atof(argv[2]) ;
+    fprintf(stderr, "scaling parameterization by %2.1f\n", scale) ;
+    nargs = 1 ;
+    break ;
+  case 'A':
+    navgs = atoi(argv[2]) ;
+    fprintf(stderr, "averaging curvature patterns %d times.\n", navgs) ;
+    nargs = 1 ;
+    break ;
+  case 'C':
+    strcpy(curvature_fname, argv[2]) ;
     nargs = 1 ;
     break ;
   case '?':
@@ -147,7 +203,7 @@ static void
 print_usage(void)
 {
   fprintf(stderr, 
-          "usage: %s [options] <surface file> <average surface>\n",
+          "usage: %s [options] <surface dir> <hemisphere> <average surface>\n",
           Progname) ;
 }
 
