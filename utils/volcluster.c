@@ -727,3 +727,198 @@ static int ConvertCRS2XYZ(int col, int row, int slc, MATRIX *CRS2XYZ,
 
   return(0);
 }
+
+/*----------------------------------------------------*/
+CHT *CHTalloc(int n_ithr, double ithr_lo, double ithr_hi,
+	      int n_vthr, double vthr_lo, double vthr_hi)
+{
+  CHT *cht;
+  double dithr, dvthr;
+  int i,v;
+  
+  cht = (CHT *) calloc(1,sizeof(CHT));
+
+  cht->n_ithr = n_ithr;
+  cht->ithr = (double *) calloc(n_ithr,sizeof(double));
+  if(n_ithr != 1) dithr = (ithr_hi - ithr_lo)/(n_ithr-1);
+  else            dithr = 0;
+  for(i=0; i < n_ithr; i++) cht->ithr[i] = ithr_lo + dithr*i;
+  cht->ithr_lo = ithr_lo;
+  cht->ithr_hi = ithr_hi;
+
+  cht->n_vthr = n_vthr;
+  cht->vthr = (double *) calloc(n_vthr,sizeof(double));
+  if(n_vthr != 1) dvthr = (vthr_hi - vthr_lo)/(n_vthr-1);
+  else            dvthr = 0;
+  for(v=0; v < n_vthr; v++) cht->vthr[v] = vthr_lo + dvthr*v;
+  cht->vthr_lo = vthr_lo;
+  cht->vthr_hi = vthr_hi;
+
+  cht->hits = (int **) calloc(n_ithr,sizeof(int*));
+  for(i=0; i < n_ithr; i++)    
+    cht->hits[i] = (int *) calloc(n_vthr,sizeof(int));
+
+  return(cht);
+}
+
+/*----------------------------------------------------*/
+int CHTfree(CHT **ppcht)
+{
+  CHT *cht;
+  int i;
+
+  cht = *ppcht;
+  for(i=0; i < cht->n_ithr; i++) free(cht->hits[i]);
+  free(cht->hits);
+  free(cht->ithr);
+  free(cht->vthr);
+  free(*ppcht);
+  *ppcht = NULL;
+
+  return(0);
+}
+/*----------------------------------------------------*/
+int CHTprint(FILE *fp, CHT *cht)
+{
+  int i,v;
+
+  fprintf(fp,"# CHT 1\n");
+  fprintf(fp,"# nsim        %d\n",cht->nsim);
+  fprintf(fp,"# nvox        %d\n",cht->nvox);
+  fprintf(fp,"# totvol      %lf\n",cht->totvol);
+  fprintf(fp,"# fwhm        %lf\n",cht->fwhm);
+  fprintf(fp,"# nsmooth     %d\n",cht->nsmooth);
+  fprintf(fp,"# n_ithr      %d\n",cht->n_ithr);
+  fprintf(fp,"# ithr_lo     %lf\n",cht->ithr_lo);
+  fprintf(fp,"# ithr_hi     %lf\n",cht->ithr_hi);
+  fprintf(fp,"# ithr_sign   %s\n",cht->ithr_sign);
+  fprintf(fp,"# n_vthr      %d\n",cht->n_vthr);
+  fprintf(fp,"# vthr_lo     %lf\n",cht->vthr_lo);
+  fprintf(fp,"# vthr_hi     %lf\n",cht->vthr_hi);
+  //fprintf(fp,"# STARTDATA\n");
+
+  fprintf(fp,"     ");
+  for(v=0; v < cht->n_vthr; v++) 
+    fprintf(fp,"%4.2lf ",cht->vthr[v]);
+  fprintf(fp,"\n");
+
+  for(i=0; i < cht->n_ithr; i++) {
+    fprintf(fp,"%4.2lf ",cht->ithr[i]);
+    for(v=0; v < cht->n_vthr; v++) 
+      fprintf(fp,"%5d ",cht->hits[i][v]);
+    fprintf(fp,"\n");
+  }
+
+  return(0);
+}
+/*----------------------------------------------------*/
+int CHTwrite(char *fname, CHT *cht)
+{
+  FILE *fp;
+
+  fp = fopen(fname,"w");
+  if(fp == NULL){
+    printf("ERROR: could not open %s for writing\n",fname);
+    return(1);
+  }
+
+  CHTprint(fp,cht);
+
+  fclose(fp);
+
+  return(0);
+}
+/*----------------------------------------------------*/
+CHT *CHTread(char *fname)
+{
+  CHT *cht;
+  FILE *fp;
+  char tag[1000];
+  char tmpstr[1000];
+  int nsim; /* number of simulation runs to generate table */
+  int nvox; /* number of voxels/vertices in search area */
+  double totvol; /* total volume (mm^3) or area (mm^2) in search*/
+  double fwhm;   /* fwhm in mm */
+  int nsmooth;   /* number of smooth steps, surf only */
+  double   ithr_lo, ithr_hi; /* intensity threshold range */
+  int    n_ithr; /* Number ithreshs bet lo and hi*/
+  char     ithr_sign[50]; /* abs, pos, neg*/
+  double   vthr_lo, vthr_hi; /* volume threshold range */
+  int    n_vthr; /* Number vthreshs bet lo and hi*/
+  int i,v;
+  double dummy;
+
+  fp = fopen(fname,"r");
+  if(fp == NULL){
+    printf("ERROR: could not open %s for reading\n",fname);
+    return(NULL);
+  }
+
+  fgets(tmpstr,1000,fp);
+  if(tmpstr[0] != '#'){
+    printf("ERROR: %s is not formatted correctly (#)\n",fname);
+    return(NULL);
+  }
+
+  sscanf(tmpstr,"%*s %s",tag);
+  if(strcmp(tag,"CHT")){
+    printf("ERROR: %s is not formatted correctly (CHT)\n",fname);
+    return(NULL);
+  }
+
+  while(1){
+
+    // Grab a line
+    fgets(tmpstr,1000,fp);
+
+    // Test whether still in the TAG section
+    if(tmpstr[0] != '#') break;
+
+    // Scan the tag
+    sscanf(tmpstr,"%*s %s",tag);
+    //printf("%s \n",tag);
+
+    if(!strcmp(tag,"nsim"))    sscanf(tmpstr,"%*s %*s %d", &nsim);
+    if(!strcmp(tag,"nvox"))    sscanf(tmpstr,"%*s %*s %d", &nvox);
+    if(!strcmp(tag,"totvol"))  sscanf(tmpstr,"%*s %*s %lf",&totvol);
+    if(!strcmp(tag,"fwhm"))    sscanf(tmpstr,"%*s %*s %lf",&fwhm);
+    if(!strcmp(tag,"nsmooth")) sscanf(tmpstr,"%*s %*s %d", &nsmooth);
+    if(!strcmp(tag,"n_ithr"))  sscanf(tmpstr,"%*s %*s %d", &n_ithr);
+    if(!strcmp(tag,"ithr_lo")) sscanf(tmpstr,"%*s %*s %lf",&ithr_lo);
+    if(!strcmp(tag,"ithr_hi")) sscanf(tmpstr,"%*s %*s %lf",&ithr_hi);
+    if(!strcmp(tag,"ithr_sign")) sscanf(tmpstr,"%*s %*s %s",ithr_sign);
+    if(!strcmp(tag,"n_vthr"))  sscanf(tmpstr,"%*s %*s %d", &n_vthr);
+    if(!strcmp(tag,"vthr_lo")) sscanf(tmpstr,"%*s %*s %lf",&vthr_lo);
+    if(!strcmp(tag,"vthr_hi")) sscanf(tmpstr,"%*s %*s %lf",&vthr_hi);
+  }
+  
+  cht = CHTalloc(n_ithr, ithr_lo, ithr_hi, n_vthr, vthr_lo, vthr_hi);
+  cht->nsim    = nsim;
+  cht->nvox    = nvox;
+  cht->totvol  = totvol;
+  cht->fwhm    = fwhm;
+  cht->nsmooth = nsmooth;
+  strcpy(cht->ithr_sign,ithr_sign);
+  if(!strcasecmp(ithr_sign,"pos"))      cht->ithr_signid = +1;
+  else if(!strcasecmp(ithr_sign,"abs")) cht->ithr_signid =  0;
+  else if(!strcasecmp(ithr_sign,"neg")) cht->ithr_signid = -1;
+  else{
+    printf("ERROR: ithr_sign = %s, unrecognized.\n",ithr_sign);
+    printf("       ithr_sign must be pos, neg, or abs.\n");
+    return(NULL);
+  }
+
+  // The first data line has already been skipped by the fgets above
+  
+  // Read in the hit table
+  for(i=0; i < cht->n_ithr; i++) {
+    // Skip first column as it is the ithr for that row
+    fscanf(fp,"%lf ",&dummy); 
+    for(v=0; v < cht->n_vthr; v++) 
+      fscanf(fp,"%d ",&(cht->hits[i][v]));
+  }
+
+  fclose(fp);
+
+  return(cht);
+}
