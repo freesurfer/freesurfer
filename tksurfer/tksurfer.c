@@ -5839,8 +5839,11 @@ read_talairach(char *fname)    /* marty: ignore abs paths in COR-.info */
   lta = LTAread(fname) ;
   if (lta==NULL)
     printf("surfer: Talairach xform file not found (ignored)\n");
-  else  
+  else
+    {
       transform_loaded = TRUE;
+      lta->xforms[0].m_L = DevolveXFM(pname, lta->xforms[0].m_L, fname);
+    }
 }
 
 void
@@ -18137,7 +18140,7 @@ int main(int argc, char *argv[])   /* new main */
   /* end rkt */
   
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: tksurfer.c,v 1.53 2003/08/25 22:40:02 kteich Exp $");
+  nargs = handle_version_option (argc, argv, "$Id: tksurfer.c,v 1.54 2003/09/02 16:17:01 kteich Exp $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
