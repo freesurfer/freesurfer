@@ -4,7 +4,7 @@
   email:   analysis-bugs@nmr.mgh.harvard.edu
   Date:    2/27/02
   Purpose: Finds clusters on the surface.
-  $Id: mri_surfcluster.c,v 1.11 2004/07/09 16:54:13 greve Exp $
+  $Id: mri_surfcluster.c,v 1.12 2004/10/04 16:39:23 greve Exp $
 */
 
 #include <stdio.h>
@@ -44,7 +44,7 @@ static int  stringmatch(char *str1, char *str2);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_surfcluster.c,v 1.11 2004/07/09 16:54:13 greve Exp $";
+static char vcid[] = "$Id: mri_surfcluster.c,v 1.12 2004/10/04 16:39:23 greve Exp $";
 char *Progname = NULL;
 
 char *subjectdir = NULL;
@@ -107,17 +107,20 @@ int FixMNI = 1;
 
 SURFCLUSTERSUM *scs;
 
+int overallmaxvtx,overallminvtx;
+float overallmax,overallmin;
+
 /*---------------------------------------------------------------*/
 int main(int argc, char **argv)
 {
   char fname[2000];
-  int  n,NClusters,vtx;
+  int  n,NClusters,vtx, rt;
   FILE *fp;
   float totarea;
   int nargs;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_surfcluster.c,v 1.11 2004/07/09 16:54:13 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_surfcluster.c,v 1.12 2004/10/04 16:39:23 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -160,13 +163,15 @@ int main(int argc, char **argv)
   if(!strcmp(srcfmt,"curv")){ /* curvature file */
     sprintf(fname,"%s/%s/surf/%s.%s",subjectsdir,srcsubjid,hemi,srcid);
     printf("Reading curvature file %s\n",fname);
-    MRISreadCurvatureFile(srcsurf, fname);
+    rt = MRISreadCurvatureFile(srcsurf, fname);
+    if(rt != NO_ERROR) exit(1);
     srcval = MRIallocSequence(srcsurf->nvertices, 1, 1,MRI_FLOAT,1);
     for(vtx = 0; vtx < srcsurf->nvertices; vtx++)
       srcsurf->vertices[vtx].val = srcsurf->vertices[vtx].curv;
   }
   else if(!strcmp(srcfmt,"paint") || !strcmp(srcfmt,"w")){
-    MRISreadValues(srcsurf,srcid);
+    rt = MRISreadValues(srcsurf,srcid);
+    if(rt != NO_ERROR) exit(1);
     srcval = MRIallocSequence(srcsurf->nvertices, 1, 1,MRI_FLOAT,1);
   }
   else { 
@@ -214,7 +219,28 @@ int main(int argc, char **argv)
       srcsurf->vertices[vtx].val = MRIFseq_vox(srcval,vtx,0,0,srcframe);
     MRIfree(&srcval); 
   }
+
+  /* Compute the overall max and min */
+  for(vtx = 0; vtx < srcsurf->nvertices; vtx++){
+    if(vtx == 0){
+      overallmax = srcsurf->vertices[vtx].val;
+      overallmaxvtx = vtx;
+      overallmin = srcsurf->vertices[vtx].val;
+      overallminvtx = vtx;
+    }
+    else if(overallmax < srcsurf->vertices[vtx].val){
+      overallmax = srcsurf->vertices[vtx].val;
+      overallmaxvtx = vtx;
+    }
+    else if(overallmin > srcsurf->vertices[vtx].val){
+      overallmin = srcsurf->vertices[vtx].val;
+      overallminvtx = vtx;
+    }
+  }
   printf("Done loading source values (nvtxs = %d)\n",srcsurf->nvertices);
+  printf("overall max = %g at vertex %d\n",overallmax,overallmaxvtx);
+  printf("overall min = %g at vertex %d\n",overallmin,overallminvtx);
+
 
   /* Compute total cortex surface area */
   totarea = 0.0;
@@ -266,13 +292,15 @@ int main(int argc, char **argv)
     fprintf(fp,"Area Threshold:    %g mm^2\n",minarea);  
     if(synthfunc != NULL)
       fprintf(fp,"Synthesize:        %s\n",synthfunc);  
+    fprintf(fp,"Overall max %g at vertex %d\n",overallmax,overallmaxvtx);
+    fprintf(fp,"Overall min %g at vertex %d\n",overallmin,overallminvtx);
     fprintf(fp,"NClusters          %d\n",NClusters);  
     fprintf(fp,"Total Cortical Surface Area %g (mm^2)\n",totarea);
     fprintf(fp,"FixMNI = %d\n",FixMNI);  
     fprintf(fp,"\n");  
-    fprintf(fp,"ClusterNo   Max  VtxMax  Size(mm^2)   TalX   TalY   TalZ\n");
+    fprintf(fp,"ClusterNo    Max   VtxMax  Size(mm^2)   TalX   TalY   TalZ\n");
     for(n=0; n < NClusters; n++){
-      fprintf(fp,"%4d     %6.1f  %6d  %8.2f   %6.1f %6.1f %6.1f\n",
+      fprintf(fp,"%4d     %8.3f  %6d  %8.2f   %6.1f %6.1f %6.1f\n",
        n+1, scs[n].maxval, scs[n].vtxmaxval, scs[n].area,
        scs[n].xxfm, scs[n].yxfm, scs[n].zxfm);
     }
@@ -361,7 +389,7 @@ static int parse_commandline(int argc, char **argv)
       if(nargc < 1) argnerr(option,1);
       srcid = pargv[0]; nargsused = 1;
       if(nth_is_arg(nargc, pargv, 1)){
-  srcfmt = pargv[1]; nargsused ++;
+	srcfmt = pargv[1]; nargsused ++;
       }
     }
     else if (!strcmp(option, "--srcsubj")){
@@ -725,7 +753,7 @@ static void print_help(void)
 "summary file is shown below.\n"
 "\n"
 "Cluster Growing Summary (mri_surfcluster)\n"
-"$Id: mri_surfcluster.c,v 1.11 2004/07/09 16:54:13 greve Exp $\n"
+"$Id: mri_surfcluster.c,v 1.12 2004/10/04 16:39:23 greve Exp $\n"
 "Input :      minsig-0-lh.w\n"
 "Frame Number:      0\n"
 "Minimum Threshold: 5\n"
