@@ -573,7 +573,7 @@ ImageOffsetMedialAxis(IMAGE *Ioffset, IMAGE *Iedge)
 
 #if 0
   if (!ImageCheckSize(Ioffset, Iout, 0, 0, 1))
-    ErrorReturn(NULL,(ERROR_SIZE,"ImageOffsetEdgeDetect: dst not big enough"));
+    ErrorReturn(NULL,(ERROR_SIZE,"ImageOffsetMedialAxis: dst not big enough"));
 #endif
 
   /* assume everything is an edge */
@@ -1228,11 +1228,13 @@ ImageOffsetMagnitude(IMAGE *Isrc, IMAGE *Idst, int maxsteps)
         }
       }
 
+#if 0
       if (dot == 0)  /* zero of vector field, not reversal */
       {
         xold = x ;
         yold = y ;
       }
+#endif
       *dst_xpix++ = (float)(xold - x1) ;
       *dst_ypix++ = (float)(yold - y1) ;
     }
