@@ -41,6 +41,10 @@ typedef struct
   int        navgs ;         /* # of iterations of gradient averaging */
   NECK_PARMS ref_np ;     /* position and orientation of reference neck */
   NECK_PARMS in_np ;      /* position and orientation of input neck */
+  int        rigid ;      /* 1 if doing rigid alignment */
+  float      trans_mul ;  /* scaling of translation gradient */
+  int        morph_skull ;
+  int        disable_neck ;
 } MORPH_PARMS, MP ;
 
 
@@ -101,6 +105,7 @@ MRI       *MRIfindNeck(MRI *mri_src, MRI *mri_dst, int thresh_low,
 int       MRIlabelAreas(MRI *mri_label, float *areas, int nlabels) ;
 int       MRIlabelCentroid(MRI *mri_label,int l,float *px,float *py,float *pz);
 int       MRIlinearAlign(MRI *mri_in, MRI *mri_ref, MORPH_PARMS *parms);
+int       MRIrigidAlign(MRI *mri_in,MRI *mri_ref, MORPH_PARMS *parms);
 int       MRIinitTranslation(MRI *mri_in, MRI *mri_ref, MATRIX *m_L) ;
 int       MRIinitScaling(MRI *mri_in, MRI *mri_ref, MATRIX *m_L) ;
 int       MRIfindMeans(MRI *mri, float *means) ;
