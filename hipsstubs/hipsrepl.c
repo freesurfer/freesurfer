@@ -33,8 +33,8 @@ init_header(IMAGE *I,char *onm,char *snm,int nfr,char *odt,int rw,int cl,int pfm
   int bytes ;
 
   I->num_frame = nfr ;
-  I->rows = rw ;
-  I->cols = cl ;
+  I->orows = I->rows = rw ;
+  I->ocols = I->cols = cl ;
   I->pixel_format = pfmt ;
   bytes = rw*cl*nfr ;
   switch (pfmt)
@@ -44,23 +44,22 @@ init_header(IMAGE *I,char *onm,char *snm,int nfr,char *odt,int rw,int cl,int pfm
     I->sizepix = sizeof(char) ;
     break ;
   case PFFLOAT:
-    bytes *= sizeof(float) ;
     I->sizepix = sizeof(float) ;
     break ;
   case PFDOUBLE:
-    bytes *= sizeof(double) ;
     I->sizepix = sizeof(double) ;
     break ;
   case PFINT:
-    bytes *= sizeof(int) ;
     I->sizepix = sizeof(int) ;
     break ;
   case PFSHORT:
-    bytes *= sizeof(short) ;
     I->sizepix = sizeof(short) ;
     break ;
   }
+  bytes *= I->sizepix ;
   I->numpix = I->rows * I->cols ;
+  I->sizeimage = I->numpix * I->sizepix ;
+  I->firstpix = I->image ;
   I->image = (char *)calloc(bytes, sizeof(char)) ;
   if (!I->image)
     ErrorExit(ERROR_NOMEMORY, "init_header: could not allocate %d bytes",
@@ -77,3 +76,12 @@ h_copy(IMAGE *Isrc, IMAGE *Idst)
   memmove(Idst->image, Isrc->image, bytes) ;
   return(NO_ERROR) ;
 }
+int
+free_header(IMAGE *I) 
+{
+  if (I->image)
+    free(I->image) ;
+  free(I) ;
+  return(0) ;
+}
+
