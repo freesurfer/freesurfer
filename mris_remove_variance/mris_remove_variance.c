@@ -13,7 +13,7 @@
 #include "mri.h"
 #include "macros.h"
 
-static char vcid[] = "$Id: mris_remove_variance.c,v 1.2 1998/07/25 18:21:51 fischl Exp $";
+static char vcid[] = "$Id: mris_remove_variance.c,v 1.3 1998/07/29 21:45:14 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -51,7 +51,7 @@ main(int argc, char *argv[])
     argv += nargs ;
   }
 
-  if (argc < 2)
+  if (argc < 4)
     usage_exit() ;
 
   in_fname = argv[1] ;
@@ -170,8 +170,21 @@ MRISremoveValueVarianceFromCurvature(MRI_SURFACE *mris)
 {
   int      vno ;
   VERTEX   *v ;
-  double   len, dot ;
-  float    min_curv, max_curv, mean_curv ;
+  double   len, dot, mean_curv, mean_val, n, val ;
+  float    min_curv, max_curv ;
+
+  /* compute means of two vectors */
+  n = (double)mris->nvertices ;
+  for (mean_val = mean_curv = 0.0, vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    if (v->ripflag)
+      continue ;
+    mean_val += v->val ;
+    mean_curv += v->curv ;
+  }
+
+  mean_val /= n ; mean_curv /= n ;
 
   /* first build normalize vector in vertex->val field */
 
@@ -181,7 +194,8 @@ MRISremoveValueVarianceFromCurvature(MRI_SURFACE *mris)
     v = &mris->vertices[vno] ;
     if (v->ripflag)
       continue ;
-    len += (double)v->val*(double)v->val ;
+    val = (double)v->val - mean_val ;
+    len += val*val ;
   }
 
   if (FZERO(len))
@@ -195,8 +209,8 @@ MRISremoveValueVarianceFromCurvature(MRI_SURFACE *mris)
     v = &mris->vertices[vno] ;
     if (v->ripflag)
       continue ;
-    v->d = v->val / len ;
-    dot += (double)v->curv * (double)v->d ;
+    v->d = (v->val-mean_val) / len ;
+    dot += (double)(v->curv-mean_curv) * (double)v->d ;
   }
 
   /* now subtract the the scaled val vector from the curvature vector */
@@ -214,7 +228,7 @@ MRISremoveValueVarianceFromCurvature(MRI_SURFACE *mris)
     v = &mris->vertices[vno] ;
     if (v->ripflag)
       continue ;
-    dot += (double)v->curv * (double)v->val ;
+    dot += (double)(v->curv-mean_curv) * (double)(v->val-mean_val) ;
   }
 
   /* recompute min, max and mean curvature */
@@ -247,7 +261,7 @@ MRIScomputeCurvatureValueCorrelationCoefficient(MRI_SURFACE *mris)
   int      vno ;
   VERTEX   *v ;
 
-  /* first build normalize vector in vertex->val field */
+  /* first build normalized vector in vertex->val field */
   n = (double)mris->nvertices ;
   for (mean_val = mean_curv = 0.0, vno = 0 ; vno < mris->nvertices ; vno++)
   {
