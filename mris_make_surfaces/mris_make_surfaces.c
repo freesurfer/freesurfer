@@ -17,7 +17,7 @@
 #include "mrimorph.h"
 #include "mrinorm.h"
 
-static char vcid[] = "$Id: mris_make_surfaces.c,v 1.17 1999/08/06 14:42:49 fischl Exp $";
+static char vcid[] = "$Id: mris_make_surfaces.c,v 1.18 1999/08/16 19:25:41 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -251,7 +251,7 @@ main(int argc, char *argv[])
 #if 0
     MRIScomputeWhiteSurfaceValues(mris, mri_T1, mri_smooth) ;
 #else
-    MRIScomputeBorderValues(mris, mri_T1, mri_smooth, 120, 95, 70) ;
+    MRIScomputeBorderValues(mris, mri_T1, mri_smooth, 120, 100, 90, 70) ;
 #endif
 
     /*
@@ -367,7 +367,7 @@ main(int argc, char *argv[])
 #if 0
     MRIScomputeGraySurfaceValues(mris, mri_T1, mri_smooth, gray_surface) ;
 #else
-    MRIScomputeBorderValues(mris, mri_T1, mri_smooth, 90, 60, 0) ;
+    MRIScomputeBorderValues(mris, mri_T1, mri_smooth, 90, 65, 55, 0) ;
 #endif
     if (write_vals)
     {
