@@ -1765,7 +1765,7 @@ m3dCorrelationSSE(MRI *mri_in, MRI *mri_ref,MORPH_3D *m3d, NECK_PARMS *np)
   int        width, height, depth, x, y, z, xsi, ysi, zsi, *pxi, *pyi, *pzi ;
   MORPH_NODE *mn ;
   float      x1, x2, x3, scale, dot, nx, ny, nz, ndx, ndy, ndz, thick,
-             pdx, pdy, pdz, len ;
+             pdx, pdy, pdz ;
   Real       ref_val, in_val, delta, xd, yd, zd, ref_std, mean_std ;
 
   mean_std = mri_ref->mean ; thick = mri_in->thick ;
@@ -1806,13 +1806,10 @@ m3dCorrelationSSE(MRI *mri_in, MRI *mri_ref,MORPH_3D *m3d, NECK_PARMS *np)
           ref_std = 1.0 ;   /* don't let morph be driven by background */
         in_val = (double)MRIvox(mri_in,xsi,ysi,zsi) ;
         pdx = (x*thick-nx) ; pdy = (y*thick-ny) ; pdz = (z*thick-nz) ; 
-        len = sqrt(pdx*pdx+pdy*pdy+pdz*pdz) ;
-        if (!FZERO(len))
-        { pdx /= len ; pdy /= len ; pdz /= len ; }
         dot = pdx*ndx + pdy*ndy + pdz*ndz ;
         if (dot >= 0)
           DiagBreak() ;
-        dot = 1 / (1 + exp(10*(dot-.25))) ;  /* 'don't care' weighting */
+        dot = 1 / (1 + exp(.25*(dot-10))) ;  /* 'don't care' weighting */
         delta = (in_val - ref_val) / ref_std ;
         delta *= dot ;
         sse += delta * delta * mri_in->thick ;  /* delta^2 dx */
@@ -3707,7 +3704,7 @@ m3dIntegrationStep(MRI *mri_in, MRI *mri_ref, MRI *mri_ref_blur,
                      MORPH_PARMS *parms, MORPH_3D *m3d, double dt)
 {
   double     dx, dy, dz, xgrad, ygrad, zgrad, dot,nx,ny,nz,ndx,ndy,ndz,thick,
-             pdx, pdy, pdz, len ;
+             pdx, pdy, pdz ;
   int        width, height, depth, x, y, z, xsi, ysi, zsi, *pxi, *pyi, *pzi ;
   MORPH_NODE *mn ;
   MNP        *mnp ;
@@ -3747,13 +3744,10 @@ m3dIntegrationStep(MRI *mri_in, MRI *mri_ref, MRI *mri_ref_blur,
         if (x == 3*width/4 && y == 4*height/4 && z == 3*depth/4)
           DiagBreak() ;
         pdx = (x*thick-nx) ; pdy = (y*thick-ny) ; pdz = (z*thick-nz) ; 
-        len = sqrt(pdx*pdx+pdy*pdy+pdz*pdz) ;
-        if (!FZERO(len))
-        { pdx /= len ; pdy /= len ; pdz /= len ; }
         dot = pdx*ndx + pdy*ndy + pdz*ndz ;
         if (dot >= 0)
           DiagBreak() ;
-        dot = 1 / (1 + exp(10*(dot-.25))) ;  /* 'don't care' weighting */
+        dot = 1 / (1 + exp(.25*(dot-10))) ;  /* 'don't care' weighting */
         dx *= dot ; dy *= dot ; dz *= dot ;
         if (!finitep(dz) || !finitep(dy) || !finitep(dx))
           DiagBreak() ;
