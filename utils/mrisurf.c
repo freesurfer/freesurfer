@@ -3760,10 +3760,14 @@ mrisAverageAreas(MRI_SURFACE *mris, int num_avgs, int which)
       for (vno = 0 ; vno < mris->nvertices ; vno++)
       {
         v = &mris->vertices[vno] ;
+        if (v->ripflag)
+          continue ;
 
         for (fno = 0 ; fno < v->num ; fno++) /* each face of this vertex */
         {
           f = &mris->faces[v->f[fno]] ;  /* pointer to the face */
+          if (f->ripflag)
+            continue ;
           area = 0.0f ;
 
           /* now go through each vertex associated with this face */
@@ -3783,10 +3787,14 @@ mrisAverageAreas(MRI_SURFACE *mris, int num_avgs, int which)
       for (vno = 0 ; vno < mris->nvertices ; vno++)
       {
         v = &mris->vertices[vno] ;
+        if (v->ripflag)
+          continue ;
 
         for (fno = 0 ; fno < v->num ; fno++) /* each face of this vertex */
         {
           f = &mris->faces[v->f[fno]] ;  /* pointer to the face */
+          if (f->ripflag)
+            continue ;
           area = 0.0f ;
 
           /* now go through each vertex associated with this face */
