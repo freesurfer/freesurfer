@@ -28,15 +28,18 @@ typedef struct
   float         thick ;
   float         ps ;   
   float         location ;  /* not used */
-  float         xx0 ;       /* start x */
-  float         xx1 ;       /* end x */
-  float         yy0 ;    /* start y */  
-  float         yy1 ;    /* end y */
-  float         zz0 ;    /* start z */  
-  float         zz1 ;    /* end z */
-  float         tr ;     /* not used */
-  float         te ;     /* not used */
-  float         ti ;     /* not used */
+  float         xsize ;     /* size of a voxel in the x direction */ 
+  float         ysize ;     /* size of a voxel in the y direction */ 
+  float         zsize ;     /* size of a voxel in the z direction */ 
+  float         xstart ;    /* start x (in xsize units) */
+  float         xend ;      /* end x  (in xsize units) */
+  float         ystart ;    /* start y   (in ysize units) */  
+  float         yend ;      /* end y (in ysize units) */ 
+  float         zstart ;    /* start z */  
+  float         zend ;      /* end z */
+  float         tr ;        /* time to recovery */
+  float         te ;        /* time to echo */
+  float         ti ;        /* time to inversion */
   char          fname[STR_LEN] ;
 
 /* 
@@ -45,6 +48,10 @@ typedef struct
 */
   BUFTYPE       ***slices ;
   int           scale ;
+  char          transform_fname[STR_LEN] ;
+  General_transform transform ;   /* the next two are from this struct */
+  Transform         *linear_transform ;
+  Transform         *inverse_linear_transform ;
 } MRI_IMAGE, MRI ;
 
 /* I/O functions */
@@ -123,10 +130,14 @@ MRI   *MRIstd(MRI *mri_src, MRI*mri_dst, MRI *mri_mean, int wsize) ;
 MRI   *MRInorm(MRI *mri_src, MRI*mri_dst, MRI *mri_mean, MRI *mri_std) ;
 MRI   *MRIreadRaw(FILE *fp, int width, int height, int depth, int type) ;
 int   MRIinitHeader(MRI *mri) ;
-void  MRIvoxelToWorld(MRI *mri, Real xv, Real yv, Real zv, 
+int   MRIvoxelToWorld(MRI *mri, Real xv, Real yv, Real zv, 
                       Real *xw, Real *yw, Real *zw) ;
-void  MRIworldToVoxel(MRI *mri, Real xw, Real yw, Real zw,
+int   MRIworldToVoxel(MRI *mri, Real xw, Real yw, Real zw,
                 Real *pxv, Real *pyv, Real *pzv) ;
+int   MRIvoxelToTalairachVoxel(MRI *mri, Real xv, Real yv, Real zv,
+                               Real *pxt, Real *pyt, Real *pzt) ;
+int   MRItalairachVoxelToVoxel(MRI *mri, Real xt, Real yt, Real zt,
+                               Real *pxv, Real *pyv, Real *pzv) ;
 
 
 #include "image.h"
