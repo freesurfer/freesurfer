@@ -72,19 +72,8 @@ WindowFrame::MouseMoved( int iWindow[2], InputState& iInput ) {
 	// While we're not at the current location...  NOTE - this
 	// should work, but jc can't handle simple float comparison,
 	// so we have to do wacky 0 comparison instead.
-#if 0
 	while( !(  fabsf((float)iWindow[0] - windowF[0]) < 1.0 && 
 		   fabsf((float)iWindow[1] - windowF[1]) < 1.0) ) {
-#endif
-	  while( ((iWindow[0] >= mLastMoved[0] && 
-		   windowF[0] - (float)iWindow[0] < 0.0) ||
-		  (iWindow[0] < mLastMoved[0] && 
-		   windowF[0] - (float)iWindow[0] > 0.0))  &&
-
-		 ((iWindow[1] >= mLastMoved[1] && 
-		   windowF[1] - (float)iWindow[1] < 0.0) ||
-		  (iWindow[1] < mLastMoved[1] && 
-		   windowF[1] - (float)iWindow[1] > 0.0)) ) {
 	  
 	  // Get an integer value and send it to the frame.
 	  windowI[0] = (int) rint( windowF[0] );
