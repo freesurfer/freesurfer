@@ -77,8 +77,8 @@ double drand48(void);
 #define drand48()   randomNumber(0.0, 1.0)
 #endif
 void srand48(long seed); 
-#define log2(d)  log10(d)/log10(2)
-#define exp2(d)  pow(2.0, d)
+/* #define log2(d)  log10(d)/log10(2) */
+/* #define exp2(d)  pow(2.0, d) */
 int ftime(struct timeb *tp) ;
 
 #endif
