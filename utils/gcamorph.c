@@ -3,8 +3,8 @@
 //
 // 
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Date  : $Date: 2004/11/09 20:39:58 $
-// Revision       : $Revision: 1.55 $
+// Revision Date  : $Date: 2005/01/19 14:36:19 $
+// Revision       : $Revision: 1.56 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -44,6 +44,7 @@
 #define FSIGN(f)  (((f) < 0) ? -1 : 1)
 #endif
 
+static MRI *gcamCreateJacobianImage(GCA_MORPH *gcam) ;
 static int different_neighbor_labels(GCA_MORPH *gcam, int x,int y,int z,int whalf) ;
 static int zero_vals(float *vals, int nvals) ;
 #if 0
@@ -2012,30 +2013,81 @@ GCAMmorphToAtlas(MRI *mri_src, GCA_MORPH *gcam, MRI *mri_morphed, int frame)
     {
       for (z = 0 ; z < depth ; z++)
       {
-	if (x == Gx && y == Gy && z == Gz)
-	  DiagBreak() ;
+				if (x == Gx && y == Gy && z == Gz)
+					DiagBreak() ;
 
-	if (!GCAMsampleMorph(gcam, (float)x*mri_src->thick, 
-			     (float)y*mri_src->thick, (float)z*mri_src->thick, 
-			     &xd, &yd, &zd))
-	{
-	  xd /= mri_src->thick ; yd /= mri_src->thick ; zd /= mri_src->thick ; 
-	  for (frame = start_frame ; frame <= end_frame ; frame++)
-	  {
-	    if (xd > -1 && yd > -1 && zd > 0 &&
-		xd < width && yd < height && zd < depth)
-	      MRIsampleVolumeFrameType(mri_src, xd, yd, zd, frame, SAMPLE_TRILINEAR, &val) ;
-	    else
-	      val = 0.0 ;
-	    MRIsetVoxVal(mri_morphed, x, y, z, frame-start_frame, val) ;
-	  }
-	}
+				if (!GCAMsampleMorph(gcam, (float)x*mri_src->thick, 
+														 (float)y*mri_src->thick, (float)z*mri_src->thick, 
+														 &xd, &yd, &zd))
+				{
+					xd /= mri_src->thick ; yd /= mri_src->thick ; zd /= mri_src->thick ; 
+					for (frame = start_frame ; frame <= end_frame ; frame++)
+					{
+						if (xd > -1 && yd > -1 && zd > 0 &&
+								xd < width && yd < height && zd < depth)
+							MRIsampleVolumeFrameType(mri_src, xd, yd, zd, frame, SAMPLE_TRILINEAR, &val) ;
+						else
+							val = 0.0 ;
+						MRIsetVoxVal(mri_morphed, x, y, z, frame-start_frame, val) ;
+					}
+				}
       }
     }
   }
 
   // copy the gcam dst information to the morphed volume
   useVolGeomToMRI(&gcam->dst, mri_morphed);
+
+  return(mri_morphed) ;
+}
+MRI *
+GCAMmorphToAtlasWithDensityCorrection(MRI *mri_src, GCA_MORPH *gcam, MRI *mri_morphed, int frame)
+{
+  int        width, height, depth, x, y, z, start_frame, end_frame ;
+  float      xd, yd, zd ;
+  Real       val, jacobian ;
+	MRI        *mri_jacobian ;
+
+	mri_morphed = GCAMmorphToAtlas(mri_src, gcam, mri_morphed, frame) ;
+	if (!mri_morphed)
+		return(NULL) ;
+
+  if (frame >= 0 && frame < mri_src->nframes)
+    start_frame = end_frame = frame ;
+  else
+  {
+    start_frame = 0 ; end_frame = mri_src->nframes-1 ;
+  }
+	mri_jacobian = gcamCreateJacobianImage(gcam) ;
+	MRIwrite(mri_jacobian, "jac.mgz") ;
+  for (x = 0 ; x < width ; x++)
+  {
+    for (y = 0 ; y < height ; y++)
+    {
+      for (z = 0 ; z < depth ; z++)
+      {
+				if (x == Gx && y == Gy && z == Gz)
+					DiagBreak() ;
+
+				xd = (float)x/gcam->spacing ;
+				yd = (float)y/gcam->spacing ;
+				zd = (float)z/gcam->spacing ;
+				if (MRIindexNotInVolume(mri_jacobian, xd, yd, zd))
+					continue ;
+				if (MRIsampleVolume(mri_jacobian, xd, yd, zd, &jacobian) == NO_ERROR)
+				{
+					for (frame = start_frame ; frame <= end_frame ; frame++)
+					{
+						val = MRIgetVoxVal(mri_src, x, y, z, frame) ;
+						val *= jacobian ;
+						MRIsetVoxVal(mri_morphed, x, y, z, frame-start_frame, val) ;
+					}
+				}
+      }
+    }
+  }
+
+	MRIfree(&mri_jacobian) ;
 
   return(mri_morphed) ;
 }
@@ -4599,13 +4651,13 @@ GCAMapplyTransform(GCA_MORPH *gcam, TRANSFORM *transform)
       for (z = 0 ; z < gcam->depth ; z++)
       {
         gcamn = &gcam->nodes[x][y][z] ;
-	TransformSample(transform, (float)gcamn->x, (float)gcamn->y, (float)gcamn->z, 
-			&xf, &yf, &zf) ;
-	gcamn->x = xf ; gcamn->y = yf ; gcamn->z = zf ; 
+				TransformSample(transform, (float)gcamn->x, (float)gcamn->y, (float)gcamn->z, 
+												&xf, &yf, &zf) ;
+				gcamn->x = xf ; gcamn->y = yf ; gcamn->z = zf ; 
 
-	TransformSample(transform, (float)gcamn->origx, (float)gcamn->origy, (float)gcamn->origz, 
-			&xf, &yf, &zf) ;
-	gcamn->origx = xf ; gcamn->origy = yf ; gcamn->origz = zf ; 
+				TransformSample(transform, (float)gcamn->origx, (float)gcamn->origy, (float)gcamn->origz, 
+												&xf, &yf, &zf) ;
+				gcamn->origx = xf ; gcamn->origy = yf ; gcamn->origz = zf ; 
       }
     }
   }
@@ -4675,4 +4727,42 @@ different_neighbor_labels(GCA_MORPH *gcam, int x,int y,int z,int whalf)
   return(num) ;
 }
 
+
+static MRI *
+gcamCreateJacobianImage(GCA_MORPH *gcam)
+{
+	GCA_MORPH_NODE *gcamn ;
+	MRI            *mri ;
+	int            x, y, z ;
+	float          jacobian ;
+
+	gcamComputeMetricProperties(gcam) ;
+	mri = MRIalloc(gcam->width, gcam->height, gcam->depth, MRI_FLOAT) ;
+	MRIsetResolution(mri, gcam->spacing, gcam->spacing, gcam->spacing) ;
+	for (x = 0 ; x < gcam->width ; x++)
+	{
+		for (y = 0 ; y < gcam->height ; y++)
+		{
+			for (z = 0 ; z < gcam->depth ; z++)
+			{
+				gcamn = &gcam->nodes[x][y][z] ;
+				if (!FZERO(gcamn->area))
+					jacobian = gcamn->orig_area / gcamn->area ;
+				else
+				{
+					if (FZERO(gcamn->orig_area))
+						jacobian = 1 ;
+					else
+						jacobian = .001 ;
+				}
+				
+				if (x == Gx && y == Gy && z == Gz)
+					printf("jacobian(%d, %d, %d) = %2.3f\n", x, y, z, jacobian) ;
+				MRIsetVoxVal(mri, x, y, z, 0, jacobian) ;
+			}
+		}
+	}
+
+	return(mri) ;
+}
 

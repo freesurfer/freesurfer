@@ -2797,3 +2797,23 @@ MATRIX *surfaceRASFromSurfaceRAS_(MRI *dst, MRI *src, LTA *lta)
   return res;
 }
 
+MRI *
+TransformCreateDensityMap(TRANSFORM *transform, MRI *mri_src, MRI *mri_dst)
+{
+	if (transform->type == MORPH_3D_TYPE)
+	{
+		GCA_MORPH *gcam = (GCA_MORPH *)(transform->xform) ;
+		mri_dst = GCAMmorphToAtlasWithDensityCorrection(mri_src, gcam, mri_dst, 0);
+	}
+	else  /* compute determinant of jacobian and apply it everywhere */
+	{
+		double det ;
+
+		mri_dst = TransformApply(transform, mri_src, mri_dst) ;
+		det = MatrixDeterminant(((LTA *)(transform->xform))->xforms[0].m_L) ;
+		printf("scaling volume by %2.3f...\n", det) ;
+		MRIscalarMul(mri_dst, mri_dst, det) ;
+	}
+	return(mri_dst) ;
+}
+
