@@ -4,13 +4,13 @@
 #          stream: unpacking, functional, structural, and visualization.
 # Usage:   source nmr-std-env
 #
-# $Id: nmr-std-env,v 1.1 2003/05/07 21:52:04 kteich Exp $
+# $Id: nmr-std-env,v 1.2 2005/01/07 22:12:40 kteich Exp $
 #
 # NOTE: this file is under version control. Make sure to use the
 # proper check-out/check-in procedures when modifying it!
 #############################################################################
 
-set NSE_VERSION = '$Id: nmr-std-env,v 1.1 2003/05/07 21:52:04 kteich Exp $';
+set NSE_VERSION = '$Id: nmr-std-env,v 1.2 2005/01/07 22:12:40 kteich Exp $';
 echo $NSE_VERSION
 
 ## Turn on verboseness if desired ##
@@ -19,7 +19,7 @@ if($?NMR_STD_VERBOSE) then
   set verbose
 endif
 
-set VERSION = '$Id: nmr-std-env,v 1.1 2003/05/07 21:52:04 kteich Exp $';
+set VERSION = '$Id: nmr-std-env,v 1.2 2005/01/07 22:12:40 kteich Exp $';
 
 ## ------- Set up a working path ---------- ##
 set path = ( . /bin /usr/bin /usr/local/bin /usr/bsd /usr/ucb )
@@ -42,26 +42,9 @@ setenv SUBJECTS_DIR    /space/sake/3/users/inverse/subjects
 unsetenv NO_FSFAST
 setenv FSFAST_HOME     /space/lyon/1/fsdev/freesurfer_dev/fsfast
 unsetenv NO_MINC
-### OS-Dependent Settings ###
-switch($os)
 
-  case "Linux":
-    setenv MINC_BIN_DIR /space/lyon/9/pubsw/Linux2/packages/mni/current/bin
-    setenv MINC_LIB_DIR /space/lyon/9/pubsw/Linux2/packages/mni/current/lib
-    breaksw
-
-  case "IRIX":
-  case "IRIX64":
-    setenv MINC_BIN_DIR /space/lyon/9/pubsw/$os/packages/mni/current/bin
-    setenv MINC_LIB_DIR /space/lyon/9/pubsw/$ospackages/mni/current/lib
-    breaksw
-
-  case "SunOS":
-    setenv MINC_BIN_DIR /space/lyon/9/pubsw/SunOS5/packages/mni/current/bin
-    setenv MINC_LIB_DIR /space/lyon/9/pubsw/SunOS5/packages/mni/current/lib
-    breaksw
-
-endsw
+setenv MINC_BIN_DIR /usr/pubsw/packages/mni/current/bin
+setenv MINC_LIB_DIR /usr/pubsw/packages/mni/current/lib
 
 # Source the FreeSurfer Environment File
 set FS_ENV_FILE = $FREESURFER_HOME/FreeSurferEnv.csh
