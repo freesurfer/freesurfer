@@ -47,6 +47,12 @@ typedef struct
 #define FEATURE_MIN3           0x00800
 #define FEATURE_MIN5           0x01000
 #define FEATURE_MIN7           0x02000
+#define FEATURE_X_POSITION     0x04000
+#define FEATURE_Y_POSITION     0x08000
+#define FEATURE_Z_POSITION     0x10000
+#define FEATURE_POSITION       (FEATURE_X_POSITION | \
+                                FEATURE_X_POSITION | FEATURE_X_POSITION)
+
 #define FEATURE_CPOLV          (FEATURE_CPOLV_MEAN3 | FEATURE_CPOLV_MEAN5 | \
                                 FEATURE_CPOLV_MEDIAN3 | FEATURE_CPOLV_MEDIAN5)
 #define MAX_FEATURE            FEATURE_MIN7
