@@ -122,6 +122,7 @@ MRI   *MRIrotateZ(MRI *mri_src, MRI *mri_dst, float z_angle) ;
 MRI   *MRIrotate(MRI *mri_src, MRI *mri_dst, MATRIX *mR, MATRIX *mO) ;
 MRI   *MRIscale(MRI *mri_src, MRI *mri_dst, float sx, float sy, float sz) ;
 MRI   *MRIaffine(MRI *mri_src, MRI *mri_dst, MATRIX *mA, MATRIX *mB) ;
+MRI   *MRIinterpolate(MRI *mri_src, MRI *mri_dst) ;
 MRI   *MRIconfThresh(MRI *mri_src, MRI *mri_probs, MRI *mri_classes, 
                      MRI *mri_dst,float thresh, int min_target,int max_target);
 
@@ -338,6 +339,7 @@ extern float ic_z_vertices[]  ;
 
 #define MRI_CORONAL_SLICE_DIRECTORY   0
 #define MRI_MINC_FILE                 1
+#define MRI_ANALYZE_FILE              2
 
 int        MRImatch(MRI *mri1, MRI *mri2) ;
 int        MRIvalRange(MRI *mri, float *pmin, float *pmax) ;
