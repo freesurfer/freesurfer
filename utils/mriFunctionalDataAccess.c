@@ -1835,7 +1835,7 @@ void FunD_ConvertAnaIdxToFuncIdx ( mriFunctionalDataRef this,
   
   Trns_tErr eTransform = Trns_tErr_NoErr;
   
-  xVoxl_SetFloat( &sCoord1, xVoxl_ExpandFloat(inAnaIdx) );
+  xVoxl_Copy( &sCoord1, inAnaIdx );
   
   eTransform = Trns_ConvertAtoB( this->mIdxToIdxTransform, 
          &sCoord1, &sCoord2 );
@@ -1874,7 +1874,7 @@ void FunD_ConvertAnaIdxToFuncRAS ( mriFunctionalDataRef this,
   
   Trns_tErr eTransform = Trns_tErr_NoErr;
   
-  xVoxl_SetFloat( &sCoord1, xVoxl_ExpandFloat(inAnaIdx) );
+  xVoxl_Copy( &sCoord1, inAnaIdx );
   
   eTransform = Trns_ConvertAtoB( this->mIdxToIdxTransform, 
          &sCoord1, &sCoord2 );
@@ -1890,11 +1890,7 @@ void FunD_ConvertAnaIdxToFuncRAS ( mriFunctionalDataRef this,
     return;
   }
   
-  
-  xVoxl_SetFloat( outFuncRAS, 
-      xVoxl_GetFloatX(&sCoord1),
-      xVoxl_GetFloatY(&sCoord1),
-      xVoxl_GetFloatZ(&sCoord1) );
+  xVoxl_Copy( outFuncRAS, &sCoord1 );
 }
 
 
@@ -1904,7 +1900,7 @@ void FunD_ConvertFuncIdxToAnaIdx ( mriFunctionalDataRef this,
   
   Trns_tErr eTransform = Trns_tErr_NoErr;
   
-  xVoxl_SetFloat( &sCoord1, xVoxl_ExpandFloat(inFuncIdx) );
+  xVoxl_Copy( &sCoord1, inFuncIdx );
   
   eTransform = Trns_ConvertBtoA( this->mIdxToIdxTransform, 
          &sCoord1, &sCoord2 );
@@ -1913,7 +1909,7 @@ void FunD_ConvertFuncIdxToAnaIdx ( mriFunctionalDataRef this,
     return;
   }
   
-  xVoxl_SetFloat( outAnaIdx, xVoxl_ExpandFloat(&sCoord2) );
+  xVoxl_Copy( outAnaIdx, &sCoord2 );
 }
 
 void FunD_ConvertRASToFuncIdx ( mriFunctionalDataRef this,
@@ -1922,7 +1918,7 @@ void FunD_ConvertRASToFuncIdx ( mriFunctionalDataRef this,
   
   Trns_tErr eTransform = Trns_tErr_NoErr;
   
-  xVoxl_SetFloat( &sCoord1, xVoxl_ExpandFloat(inRAS) );
+  xVoxl_Copy( &sCoord1, inRAS );
   
   eTransform = Trns_ConvertAtoB( this->mRASToIdxTransform, 
          &sCoord1, &sCoord2 );
@@ -1960,7 +1956,7 @@ void FunD_ConvertFuncIdxToFuncRAS ( mriFunctionalDataRef this,
   
   Trns_tErr eTransform = Trns_tErr_NoErr;
   
-  xVoxl_SetFloat( &sCoord1, xVoxl_ExpandFloat(iFuncIdx) );
+  xVoxl_Copy( &sCoord1, iFuncIdx );
   
   eTransform = Trns_ConvertBtoRAS( this->mRASToIdxTransform, 
            &sCoord1, &sCoord2 );
@@ -1969,7 +1965,7 @@ void FunD_ConvertFuncIdxToFuncRAS ( mriFunctionalDataRef this,
     return;
   }
   
-  xVoxl_SetFloat( oFuncRAS, xVoxl_ExpandFloat(&sCoord2) );
+  xVoxl_Copy( oFuncRAS, &sCoord2 );
 }
 
 FunD_tErr FunD_GetBoundsInAnatomical ( mriFunctionalDataRef this, 
@@ -2237,9 +2233,9 @@ int FunD_CoordsToIndex ( mriFunctionalDataRef this,
   // are one based, so we subtract one from them.
   return ( ( inConditionIndex * this->mDataPlaneSizes[4] ) +
      ( inTimePoint*  this->mDataPlaneSizes[3] ) +
-     ( xVoxl_GetK(inFunctionalVoxel) * this->mDataPlaneSizes[2] ) +
-     ( xVoxl_GetJ(inFunctionalVoxel) * this->mDataPlaneSizes[1] ) +
-     ( xVoxl_GetI(inFunctionalVoxel) * this->mDataPlaneSizes[0] ) ) ;
+     ( xVoxl_GetZ(inFunctionalVoxel) * this->mDataPlaneSizes[2] ) +
+     ( xVoxl_GetY(inFunctionalVoxel) * this->mDataPlaneSizes[1] ) +
+     ( xVoxl_GetX(inFunctionalVoxel) * this->mDataPlaneSizes[0] ) ) ;
 }
 
 inline 
@@ -2404,11 +2400,11 @@ tBoolean FunD_IsFunctionalVoxelValid ( mriFunctionalDataRef this,
   
   /*
   // i should be within the col bounds...
-  if ( xVoxl_GetI(inVoxel) >= 0 && xVoxl_GetI(inVoxel) < this->mNumCols &&
+  if ( xVoxl_GetX(inVoxel) >= 0 && xVoxl_GetX(inVoxel) < this->mNumCols &&
   // j in the row bounds..
-  xVoxl_GetJ(inVoxel) >= 0 && xVoxl_GetJ(inVoxel) < this->mNumRows &&
+  xVoxl_GetY(inVoxel) >= 0 && xVoxl_GetY(inVoxel) < this->mNumRows &&
   // and k in the slice bounds.
-  xVoxl_GetK(inVoxel) >= 0 && xVoxl_GetK(inVoxel) < this->mNumSlices )
+  xVoxl_GetZ(inVoxel) >= 0 && xVoxl_GetZ(inVoxel) < this->mNumSlices )
   */
   
   // i should be within the col bounds...
