@@ -17283,7 +17283,14 @@ MRISexpandSurface(MRI_SURFACE *mris, float distance)
   }
   return(NO_ERROR) ;
 }
+/*-----------------------------------------------------
+        Parameters:
 
+        Returns value:
+
+        Description
+           Translate a surface by (dx, dy, dz) 
+------------------------------------------------------*/
 int
 MRIStranslate(MRI_SURFACE *mris, float dx, float dy, float dz)
 {
@@ -17308,6 +17315,10 @@ MRIStranslate(MRI_SURFACE *mris, float dx, float dy, float dz)
         Returns value:
 
         Description
+           Apply a linear transform (possibly octree) to a surface.
+           Note that the LT is given in MRI coordinates, so the
+           surface must be transformed into that coordinate system
+           before applying the linear transform
 ------------------------------------------------------*/
 int
 MRIStransform(MRI_SURFACE *mris, MRI *mri, LTA *lta)
@@ -17337,4 +17348,35 @@ MRIStransform(MRI_SURFACE *mris, MRI *mri, LTA *lta)
   mrisComputeSurfaceDimensions(mris) ;
   return(NO_ERROR) ;
 }
+/*-----------------------------------------------------
+        Parameters:
 
+        Returns value:
+
+        Description
+          Scale a surface anisotropically.
+------------------------------------------------------*/
+int
+MRISanisotropicScale(MRI_SURFACE *mris, float sx, float sy, float sz)
+{
+  VERTEX  *v;
+  int     k;
+  float   x0, y0, z0 ;
+
+  mrisComputeSurfaceDimensions(mris) ;
+  /* scale around the center */
+  x0 = mris->xctr ; y0 = mris->yctr ; z0 = mris->zctr ;
+
+  for (k=0;k<mris->nvertices;k++) 
+  {
+    v = &mris->vertices[k];
+    if (v->ripflag)
+      continue ;
+    v->x = (v->x - x0) * sx + x0 ; 
+    v->y = (v->y - y0) * sy + y0 ; 
+    v->z = (v->z - z0) * sz + z0 ;
+  }
+
+  mrisComputeSurfaceDimensions(mris) ;
+  return(NO_ERROR) ;
+}

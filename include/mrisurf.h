@@ -643,6 +643,7 @@ int  MRISsoapBubbleVals(MRI_SURFACE *mris, int niter) ;
 int  MRISreadBinaryAreas(MRI_SURFACE *mris, char *mris_fname) ;
 int  MRISwriteAreaErrorToValFile(MRI_SURFACE *mris, char *name) ;
 int  MRIStransform(MRI_SURFACE *mris, MRI *mri, LTA *lta) ;
+int  MRISanisotropicScale(MRI_SURFACE *mris, float sx, float sy, float sz) ;
 
 #if 1
 #include "mrishash.h"
