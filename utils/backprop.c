@@ -8,8 +8,11 @@
 
       Description:  
 
-  $Header: /space/repo/1/dev/dev/utils/backprop.c,v 1.7 1996/06/28 18:29:05 fischl Exp $
+  $Header: /space/repo/1/dev/dev/utils/backprop.c,v 1.8 2002/05/28 21:00:30 fischl Exp $
   $Log: backprop.c,v $
+  Revision 1.8  2002/05/28 21:00:30  fischl
+  added BP_ prefix.
+
   Revision 1.7  1996/06/28 18:29:05  fischl
   don't use fprintf or exit
 
@@ -147,9 +150,9 @@ BackpropAlloc(int ninputs, int noutputs, int nhidden, float trate,
   backprop->nhidden = nhidden ;
   backprop->old_momentum = backprop->momentum = momentum ;
   backprop->mean_out = (float *)calloc(noutputs, sizeof(float)) ;
-  backprop->error_ratio = ERROR_RATIO ;
-  backprop->trate_up = TRATE_INCREASE ;
-  backprop->trate_down = TRATE_DECREASE ;
+  backprop->error_ratio = BP_ERROR_RATIO ;
+  backprop->trate_up = BP_TRATE_INCREASE ;
+  backprop->trate_down = BP_TRATE_DECREASE ;
   if (!backprop->mean_out)
     ErrorExit(ERROR_BAD_FILE,  "BackpropAlloc: could not output range vector\n") ;
   backprop->std_out = (float *)calloc(noutputs, sizeof(float)) ;

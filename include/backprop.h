@@ -8,8 +8,11 @@
 
       Description:  
 
-  $Header: /space/repo/1/dev/dev/include/backprop.h,v 1.2 1996/06/27 16:57:42 fischl Exp $
+  $Header: /space/repo/1/dev/dev/include/backprop.h,v 1.3 2002/05/28 21:00:19 fischl Exp $
   $Log: backprop.h,v $
+  Revision 1.3  2002/05/28 21:00:19  fischl
+  added BP_ prefix.
+
   Revision 1.2  1996/06/27 16:57:42  fischl
   made constants floats
 
@@ -53,9 +56,9 @@ typedef struct
 */
 
 
-#define TRATE_DECREASE  0.7f
-#define TRATE_INCREASE  1.05f
-#define ERROR_RATIO     1.04f
+#define BP_TRATE_DECREASE  0.7f
+#define BP_TRATE_INCREASE  1.05f
+#define BP_ERROR_RATIO     1.04f
 
 typedef struct
 {
