@@ -15,7 +15,7 @@
 #include "cma.h"
 #include "version.h"
 
-static char vcid[] = "$Id: mri_fill.c,v 1.61 2003/04/15 20:52:52 kteich Exp $";
+static char vcid[] = "$Id: mri_fill.c,v 1.62 2003/07/10 22:42:10 tosa Exp $";
 
 /*-------------------------------------------------------------------
                                 CONSTANTS
@@ -189,7 +189,7 @@ main(int argc, char *argv[])
   struct timeb  then ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_fill.c,v 1.61 2003/04/15 20:52:52 kteich Exp $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_fill.c,v 1.62 2003/07/10 22:42:10 tosa Exp $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -388,7 +388,7 @@ main(int argc, char *argv[])
       }
     }
     else
-      mri_tmp = mri_tal ;
+      mri_tmp = MRIcopy(mri_tal, NULL);
     MRIfree(&mri_tal) ; mri_tal = MRItoTalairach(mri_tmp, NULL) ;
     MRIbinarize(mri_tal, mri_tal, DEFAULT_DESIRED_WHITE_MATTER_VALUE/2-1, 0, 110) ;
     find_pons(mri_tmp, &pons_tal_x, &pons_tal_y, &pons_tal_z,x_cc,y_cc,z_cc,1);
