@@ -20,11 +20,15 @@
 
 char         *Progname ;
 
+static double TRs[MAX_GCA_INPUTS] ;
+static double fas[MAX_GCA_INPUTS] ;
+static double TEs[MAX_GCA_INPUTS] ;
+
+static int file_only = 0 ;
 static char *normalized_transformed_sample_fname = NULL ;
 static char *mask_fname = NULL ;
 static char *sample_fname = NULL ;
 static char *ctl_point_fname = NULL ;
-static int ctl_points_only = 0 ;
 static int novar = 0 ;
 
 static float min_prior = 0.6 ;
@@ -47,7 +51,9 @@ static GCA_SAMPLE *find_control_points(GCA *gca, GCA_SAMPLE *gcas, int total_nsa
 static GCA_SAMPLE *gcas_concatenate(GCA_SAMPLE *gcas1, GCA_SAMPLE *gcas2, int n1, int n2);
 static int  gcas_bounding_box(GCA_SAMPLE *gcas, int nsamples, int *pxmin, int *pymin, int *pzmin, 
                               int *pxmax, int *pymax, int *pzmax, int label) ;
-static int  uniform_region(MRI *mri, int x, int y, int z, int wsize, GCA_SAMPLE *gcas) ;
+static int  uniform_region(GCA *gca, MRI *mri, TRANSFORM *transform, int x, int y, int z, int wsize, GCA_SAMPLE *gcas, float nsigma) ;
+static int  discard_unlikely_control_points(GCA *gca, GCA_SAMPLE *gcas_struct, int struct_samples, 
+																						MRI *mri_in, TRANSFORM *transform, char *name) ;
 
 /* 
    command line consists of three inputs:
@@ -78,9 +84,9 @@ int
 main(int argc, char *argv[])
 {
   char         *gca_fname, *in_fname, *out_fname, **av, *xform_fname ;
-  MRI          *mri_in, *mri_norm = NULL ;
+  MRI          *mri_in, *mri_norm = NULL, *mri_tmp ;
   GCA          *gca ;
-  int          ac, nargs, nsamples, msec, minutes, seconds, i, struct_samples, norm_samples, n ;
+  int          ac, nargs, nsamples, msec, minutes, seconds, i, struct_samples, norm_samples, n, input, ninputs ;
   struct timeb start ;
   GCA_SAMPLE   *gcas, *gcas_norm = NULL, *gcas_struct ;
   TRANSFORM    *transform = NULL ;
@@ -106,13 +112,15 @@ main(int argc, char *argv[])
               "usage: %s <in brain> <atlas> <transform file> <output file name>\n",
               Progname) ;
 
+	ninputs = (argc - 3) / 2 ;
+	printf("reading %d input volume\n", ninputs) ;	
   in_fname = argv[1] ;
-  gca_fname = argv[2] ;
-  xform_fname = argv[3] ;
-  out_fname = argv[4] ;
+  gca_fname = argv[1+ninputs] ;
+  xform_fname = argv[2+ninputs] ;
+  out_fname = argv[3+ninputs] ;
 
   TimerStart(&start) ;
-  printf("reading '%s'...\n", gca_fname) ;
+  printf("reading atlas from '%s'...\n", gca_fname) ;
   fflush(stdout) ;
   gca = GCAread(gca_fname) ;
   if (gca == NULL)
@@ -166,37 +174,74 @@ main(int argc, char *argv[])
 
 
 
+	for (input = 0 ; input < ninputs ; input++)
+	{
+		in_fname = argv[1+input] ;
+		printf("reading input volume from %s...\n", in_fname) ;
+		mri_tmp = MRIread(in_fname) ;
+		if (!mri_tmp)
+			ErrorExit(ERROR_NOFILE, "%s: could not read input MR volume from %s",
+								Progname, in_fname) ;
+		
+		if (alpha > 0)
+			mri_tmp->flip_angle = alpha ;
+		if (TR > 0)
+			mri_tmp->tr = TR ;
+		if (TE > 0)
+			mri_tmp->te = TE ;
 
-  printf("reading '%s'...\n", in_fname) ;
-  fflush(stdout) ;
-  mri_in = MRIread(in_fname) ;
-  if (!mri_in)
-    ErrorExit(ERROR_NOFILE, "%s: could not open input volume %s.\n",
-              Progname, in_fname) ;
+		TRs[input] = mri_tmp->tr ;
+		fas[input] = mri_tmp->flip_angle ;
+		TEs[input] = mri_tmp->te ;
 
-	GCAhistoScaleImageIntensities(gca, mri_in) ;
-  if (mask_fname)
-  {
-		int i ;
-    MRI *mri_mask ;
+		if (input == 0)
+		{
+			mri_in = 
+				MRIallocSequence(mri_tmp->width, mri_tmp->height, mri_tmp->depth,
+												 mri_tmp->type, ninputs) ;
+			if (!mri_in)
+				ErrorExit(ERROR_NOMEMORY, 
+									"%s: could not allocate input volume %dx%dx%dx%d",
+									mri_tmp->width, mri_tmp->height, mri_tmp->depth,ninputs) ;
+			MRIcopyHeader(mri_tmp, mri_in) ;
+		}
 
-    mri_mask = MRIread(mask_fname) ;
-    if (!mri_mask)
-      ErrorExit(ERROR_NOFILE, "%s: could not open mask volume %s.\n",
-                Progname, mask_fname) ;
+	  if (mask_fname)
+  	{
+			int i ;
+	    MRI *mri_mask ;
+
+  	  mri_mask = MRIread(mask_fname) ;
+    	if (!mri_mask)
+	      ErrorExit(ERROR_NOFILE, "%s: could not open mask volume %s.\n",
+  	              Progname, mask_fname) ;
 
 		
-		for (i = 1 ; i < WM_MIN_VAL ; i++)
-			MRIreplaceValues(mri_mask, mri_mask, i, 0) ;
-    MRImask(mri_in, mri_mask, mri_in, 0, 0) ;
-    MRIfree(&mri_mask) ;
-  }
-  if (alpha > 0)
-    mri_in->flip_angle = alpha ;
-  if (TR > 0)
-    mri_in->tr = TR ;
-  if (TE > 0)
-    mri_in->te = TE ;
+			for (i = 1 ; i < WM_MIN_VAL ; i++)
+				MRIreplaceValues(mri_mask, mri_mask, i, 0) ;
+    	MRImask(mri_tmp, mri_mask, mri_tmp, 0, 0) ;
+	    MRIfree(&mri_mask) ;
+  	}
+		MRIcopyFrame(mri_tmp, mri_in, 0, input) ;
+		MRIfree(&mri_tmp) ;
+	}
+
+	if (gca->type == GCA_FLASH)
+	{
+		GCA *gca_tmp ;
+
+		printf("mapping %d-dimensional flash atlas into %d-dimensional input space\n",
+			gca->ninputs, ninputs) ;
+		if (novar)
+			GCAunifyVariance(gca) ;
+
+		gca_tmp = GCAcreateFlashGCAfromFlashGCA(gca, TRs, fas, TEs, mri_in->nframes) ;
+		GCAfree(&gca) ;
+		gca = gca_tmp ;
+		GCAhistoScaleImageIntensities(gca, mri_in) ;
+	}
+	else
+		GCAhistoScaleImageIntensities(gca, mri_in) ;
 
   if (example_T1)
   {
@@ -219,9 +264,6 @@ main(int argc, char *argv[])
   if (tissue_parms_fname)   /* use FLASH forward model */
     GCArenormalizeToFlash(gca, tissue_parms_fname, mri_in) ;
 
-#if 0
-  GCAhistoScaleImageIntensities(gca, mri_in) ;
-#endif
   gcas = GCAfindAllSamples(gca, &nsamples, NULL) ;
   printf("using %d sample points...\n", nsamples) ;
   GCAcomputeSampleCoords(gca, mri_in, gcas, nsamples, transform) ;
@@ -233,12 +275,12 @@ main(int argc, char *argv[])
   {
     for (norm_samples = i = 0 ; i < NSTRUCTURES ; i++)
     {
-			if (ctl_points_only)
-				break  ;
       printf("finding control points in %s....\n", cma_label_to_name(normalization_structures[i])) ;
       gcas_struct = find_control_points(gca, gcas, nsamples, &struct_samples, n,
                                         normalization_structures[i], mri_in, transform, min_prior,
                                         ctl_point_pct) ;
+			discard_unlikely_control_points(gca, gcas_struct, struct_samples, mri_in, transform,
+																			cma_label_to_name(normalization_structures[i])) ;
       if (i)
       {
         GCA_SAMPLE *gcas_tmp ;
@@ -252,16 +294,14 @@ main(int argc, char *argv[])
         gcas_norm = gcas_struct ; norm_samples = struct_samples ;
       }
     }
-    
+
     printf("using %d total control points for intensity normalization...\n", norm_samples) ;
     if (normalized_transformed_sample_fname)
       GCAtransformAndWriteSamples(gca, mri_in, gcas_norm, norm_samples, 
                                   normalized_transformed_sample_fname, 
                                   transform) ;
 
-    if (mri_norm)
-      MRIfree(&mri_norm) ;
-    mri_norm = GCAnormalizeSamples(mri_in, gca, gcas_norm, norm_samples,
+    mri_norm = GCAnormalizeSamples(mri_in, gca, gcas_norm, file_only ? 0 :norm_samples,
                                    transform, ctl_point_fname) ;
     if (Gdiag & DIAG_WRITE)
     {
@@ -274,21 +314,28 @@ main(int argc, char *argv[])
                                   fname, transform) ;
 
     }
-    MRIcopy(mri_norm, mri_in) ;
+    MRIcopy(mri_norm, mri_in) ;  /* for next pass through */
+    MRIfree(&mri_norm) ;
   }
 
-  printf("writing normalized volume to %s...\n", out_fname) ;
-  if (MRIwrite(mri_norm, out_fname)  != NO_ERROR)
-    ErrorExit(ERROR_BADFILE, "%s: could not write normalized volume to %s",
-              Progname, out_fname);
+	for (input = 0 ; input < ninputs ; input++)
+	{
+		out_fname  = argv[3+ninputs+input] ;
+	  printf("writing normalized volume to %s...\n", out_fname) ;	
+		mri_in->tr = TRs[input] ; mri_in->flip_angle = fas[input] ; mri_in->te = TEs[input] ;
+	  if (MRIwriteFrame(mri_in, out_fname, input)  != NO_ERROR)
+	    ErrorExit(ERROR_BADFILE, "%s: could not write normalized volume to %s",
+	              Progname, out_fname);
+	}
+  MRIfree(&mri_in) ;
 
-  MRIfree(&mri_norm) ;
 
-
-#if 0
+#if 1
+	printf("freeing GCA...") ;
   if (gca)
     GCAfree(&gca) ;
 #endif
+	printf("done.\n") ;
   if (mri_in)
     MRIfree(&mri_in) ;
   msec = TimerStop(&start) ;
@@ -331,8 +378,10 @@ get_option(int argc, char *argv[])
   }
   else if (!strcmp(option, "FONLY"))
   {
-		ctl_points_only = 1 ;
-    printf("only using control points from file\n") ;
+    ctl_point_fname = argv[2] ;
+    nargs = 1 ;
+		file_only = 1 ;
+    printf("only using control points from file %s\n", ctl_point_fname) ;
   }
   else if (!strcmp(option, "DIAG"))
   {
@@ -349,6 +398,14 @@ get_option(int argc, char *argv[])
     Gy = atoi(argv[3]) ;
     Gz = atoi(argv[4]) ;
     printf("debugging voxel (%d, %d, %d)\n", Gx, Gy, Gz) ;
+    nargs = 3 ;
+  }
+  else if (!strcmp(option, "DEBUG_NODE"))
+  {
+    Ggca_x = atoi(argv[2]) ;
+    Ggca_y = atoi(argv[3]) ;
+    Ggca_z = atoi(argv[4]) ;
+    printf("debugging node (%d, %d, %d)\n", Ggca_x, Ggca_y, Ggca_z) ;
     nargs = 3 ;
   }
   else if (!strcmp(option, "TR"))
@@ -455,11 +512,13 @@ find_control_points(GCA *gca, GCA_SAMPLE *gcas_total,
                     MRI *mri_in, TRANSFORM *transform, double min_prior, double ctl_point_pct)
 {
   int        i, j, *ordered_indices, nsamples, xmin, ymin, zmin, xmax, ymax, zmax, xv,yv,zv,
-             x, y, z, xi, yi, zi, region_samples, used_in_region, wsize=3, histo_peak ;
+             x, y, z, xi, yi, zi, region_samples, used_in_region, wsize=3, histo_peak, n,
+             nbins ;
   GCA_SAMPLE *gcas, *gcas_region, *gcas_norm ;
-  double     mean, var, val ;
+  double     means[MAX_GCA_INPUTS], vars[MAX_GCA_INPUTS], val, nsigma ;
   HISTOGRAM  *histo, *hsmooth ;
   GC1D       *gc ;
+	float      fmin, fmax ;
 	MRI        *mri_T1 = NULL ;
 
 #if 0
@@ -474,7 +533,9 @@ find_control_points(GCA *gca, GCA_SAMPLE *gcas_total,
 	}
 #endif
 
-  histo = HISTOalloc(256) ; hsmooth = HISTOalloc(256) ;
+	MRIvalRange(mri_in, &fmin, &fmax) ;
+	nbins = (int)(fmax-fmin+1);
+  histo = HISTOalloc(nbins) ; hsmooth = HISTOalloc(nbins) ;
   for (nsamples = i = 0 ; i < total_samples ; i++)
   {
     if (gcas_total[i].label != label)
@@ -509,100 +570,112 @@ find_control_points(GCA *gca, GCA_SAMPLE *gcas_total,
       for (z = 0 ; z < nregions ; z++)
       {
         /* only process samples in this region */
-        for (region_samples = i = 0 ; i < nsamples ; i++)
-        {
-          xi = (int)(nregions*(gcas[i].x - xmin) / (xmax-xmin+1)) ;
-          yi = (int)(nregions*(gcas[i].y - ymin) / (ymax-ymin+1)) ;
-          zi = (int)(nregions*(gcas[i].z - zmin) / (zmax-zmin+1)) ;
-          if ((xi < 0 || xi >= nregions) ||
-              (yi < 0 || yi >= nregions) ||
-              (zi < 0 || zi >= nregions))
-            DiagBreak() ;
-          xv = gcas[i].x ; yv = gcas[i].y ; zv = gcas[i].z ;
-          if (xv == Gx && yv == Gy && zv == Gz)
-            DiagBreak() ;
-          if (sqrt(SQR(xv-Gx)+SQR(yv-Gy)+SQR(zv-Gz)) < 4)
-            DiagBreak() ;
-          if (xi != x || yi != y || zi != z || gcas[i].prior < min_prior)
-            continue ;
-
-          if (min_region_prior(gca, gcas[i].xp, gcas[i].yp, gcas[i].zp, wsize, label) < min_prior)
-            continue ;
-          if (uniform_region(mri_in, xv, yv, zv, wsize, &gcas[i]) == 0)
-            continue ;
-          memmove(&gcas_region[region_samples], &gcas[i], sizeof(GCA_SAMPLE)) ;
-          region_samples++ ;
-          if (gcas[i].x == Gx && gcas[i].y == Gy && gcas[i].z == Gz)
-            DiagBreak() ;
-        }
-
-        printf("\t%d total samples found in region (%d, %d, %d)\n", 
-               region_samples,x, y,z) ;
-        if (region_samples < 8) /* can't reliably estimate statistics */
-          continue ;
-        HISTOclear(histo, histo) ;
-        /* compute mean and variance of label within this region */
-        for (mean = var = 0.0, i = 0 ; i < region_samples ; i++)
-        {
-          val = MRIvox(mri_in, gcas_region[i].x,gcas_region[i].y,gcas_region[i].z) ;
-          histo->counts[(int)val]++ ;
-          mean += val ;
-          var += (val*val) ;
-#if 0
-					if (mri_T1)
+				nsigma = 1.0 ;
+				do
+				{
+					for (region_samples = i = 0 ; i < nsamples ; i++)
 					{
-						val = MRIvox(mri_T1, gcas_region[i].x,gcas_region[i].y,gcas_region[i].z) ;
-						if (val < 85 || val > 130)
-						{
-							FILE *fp ;
-							fp = fopen("badpoints.log", "a") ;
-							fprintf(fp, "%s: (%d, %d, %d): %f\n",
-											mri_in->fname, (int)gcas_region[i].x,(int)gcas_region[i].y,(int)gcas_region[i].z,val) ;
-							fclose(fp) ;
-							printf("!!!!!!!!!!!!!!!!!!!!!!! %s: (%d, %d, %d): %f !!!!!!!!!!!!!!!!!!!!!!!!!!!\n",
-										 mri_in->fname, (int)gcas_region[i].x,(int)gcas_region[i].y,(int)gcas_region[i].z,val) ;
-						}
+						xi = (int)(nregions*(gcas[i].x - xmin) / (xmax-xmin+1)) ;
+						yi = (int)(nregions*(gcas[i].y - ymin) / (ymax-ymin+1)) ;
+						zi = (int)(nregions*(gcas[i].z - zmin) / (zmax-zmin+1)) ;
+						if ((xi < 0 || xi >= nregions) ||
+								(yi < 0 || yi >= nregions) ||
+								(zi < 0 || zi >= nregions))
+							DiagBreak() ;
+						xv = gcas[i].x ; yv = gcas[i].y ; zv = gcas[i].z ;
+						if (xi != x || yi != y || zi != z || gcas[i].prior < min_prior)
+							continue ;
+						
+						if (xv == Gx && yv == Gy && zv == Gz)
+							DiagBreak() ;
+						if (sqrt(SQR(xv-Gx)+SQR(yv-Gy)+SQR(zv-Gz)) < 2)
+							DiagBreak() ;
+						if (min_region_prior(gca, gcas[i].xp, gcas[i].yp, gcas[i].zp, wsize, label) < min_prior)
+							continue ;
+						if (uniform_region(gca, mri_in, transform, xv, yv, zv, wsize, &gcas[i], nsigma) == 0)
+							continue ;
+						memmove(&gcas_region[region_samples], &gcas[i], sizeof(GCA_SAMPLE)) ;
+						region_samples++ ;
+						if (gcas[i].x == Gx && gcas[i].y == Gy && gcas[i].z == Gz)
+							DiagBreak() ;
 					}
+					nsigma *= 1.1 ;
+				} while (region_samples < 8 && nsigma < 3) ;
+					
+				if (region_samples < 8)    /* can't reliably estimate statistics */
+					continue ;
+				if (DIAG_VERBOSE_ON)
+					printf("\t%d total samples found in region (%d, %d, %d)\n", 
+								 region_samples,x, y,z) ;
+        /* compute mean and variance of label within this region */
+				for (n = 0 ; n < gca->ninputs ; n++)
+				{
+					HISTOclear(histo, histo) ;
+					histo->bin_size = 1 ;
+					for (means[n] = vars[n] = 0.0, i = 0 ; i < region_samples ; i++)
+					{
+						MRIsampleVolumeFrame(mri_in, gcas_region[i].x,gcas_region[i].y,gcas_region[i].z, n, &val) ;
+						histo->counts[(int)val]++ ;
+						means[n] += val ;
+						vars[n] += (val*val) ;
+#if 0
+						if (mri_T1)
+						{
+							val = MRIvox(mri_T1, gcas_region[i].x,gcas_region[i].y,gcas_region[i].z) ;
+							if (val < 85 || val > 130)
+							{
+								FILE *fp ;
+								fp = fopen("badpoints.log", "a") ;
+								fprintf(fp, "%s: (%d, %d, %d): %f\n",
+												mri_in->fname, (int)gcas_region[i].x,(int)gcas_region[i].y,(int)gcas_region[i].z,val) ;
+								fclose(fp) ;
+								printf("!!!!!!!!!!!!!!!!!!!!!!! %s: (%d, %d, %d): %f !!!!!!!!!!!!!!!!!!!!!!!!!!!\n",
+											 mri_in->fname, (int)gcas_region[i].x,(int)gcas_region[i].y,(int)gcas_region[i].z,val) ;
+							}
+						}
 #endif
+					}
+					
+					HISTOsmooth(histo, hsmooth, 2) ;
+					histo_peak = HISTOfindHighestPeakInRegion(hsmooth, 1, hsmooth->nbins) ;
+					if (histo_peak < 0)   /* couldn't find a valid peak? */
+						break ;
+
+					for (means[n] = vars[n] = 0.0, i = 0 ; i < region_samples ; i++)
+					{
+						MRIsampleVolumeFrame(mri_in, gcas_region[i].x,gcas_region[i].y,gcas_region[i].z, n, &val) ;
+						means[n] += val ;
+						vars[n] += (val*val) ;
+					}
+					means[n] /= (double)region_samples ;
+					vars[n] = vars[n] / (double)region_samples - means[n]*means[n] ;
+
+					means[n] = histo_peak ;
+					if (DIAG_VERBOSE_ON)
+						printf("\tlabel %s[%d]: %2.1f +- %2.1f\n", cma_label_to_name(label), n, means[n], sqrt(vars[n])) ;
+				}
+				
+				/* ignore GCA mean and variance - use image instead (otherwise bias field will mess us up) */
+				for (i = 0 ; i < region_samples ; i++)
+				{
+					int r ;
+					
+					for (r = 0 ; r < gca->ninputs ; r++)
+						gcas_region[i].means[r] = means[r] ;
+					/*          gcas_region[i].var = var ;*/
 				}
 
-        HISTOsmooth(histo, hsmooth, 2) ;
-        histo_peak = HISTOfindLastPeakRelative(hsmooth, 3, .25) ;
-
-          
-        if (histo_peak < 0)
-          continue ;
-
-        for (mean = var = 0.0, i = 0 ; i < region_samples ; i++)
-        {
-          val = MRIvox(mri_in, gcas_region[i].x,gcas_region[i].y,gcas_region[i].z) ;
-          mean += val ;
-          var += (val*val) ;
-        }
-
-        mean /= (double)region_samples ;
-        var = var / (double)region_samples - mean*mean ;
-        mean = histo_peak ;
-        printf("\tlabel %s: %2.1f +- %2.1f\n", cma_label_to_name(label), mean, sqrt(var)) ;
-
-        /* ignore GCA mean and variance - use image instead (otherwise bias field will mess us up) */
-        for (i = 0 ; i < region_samples ; i++)
-        {
-          gcas_region[i].mean = mean ;
-          /*          gcas_region[i].var = var ;*/
-        }
-
-        GCAcomputeLogSampleProbability(gca, gcas_region, mri_in, transform, region_samples) ;
-        GCArankSamples(gca, gcas_region, region_samples, ordered_indices) ;
+				GCAcomputeLogSampleProbability(gca, gcas_region, mri_in, transform, region_samples) ;
+				GCArankSamples(gca, gcas_region, region_samples, ordered_indices) ;
 #if 0
-        /* use detected peak as normalization value for whole region */
-        used_in_region = 1 ; j = ordered_indices[0] ;
-        MRIvox(mri_in, gcas_region[j].x, gcas_region[j].y, gcas_region[j].z) = histo_peak ;
-        memmove(&gcas_norm[*pnorm_samples], &gcas_region[j], sizeof(GCA_SAMPLE)) ;
-        (*pnorm_samples)++ ;
+				/* use detected peak as normalization value for whole region */
+				used_in_region = 1 ; j = ordered_indices[0] ;
+				MRIvox(mri_in, gcas_region[j].x, gcas_region[j].y, gcas_region[j].z) = histo_peak ;
+				memmove(&gcas_norm[*pnorm_samples], &gcas_region[j], sizeof(GCA_SAMPLE)) ;
+				(*pnorm_samples)++ ;
 #else
 #if 1
-        GCAremoveOutlyingSamples(gca, gcas_region, mri_in, transform, region_samples, 2.0) ;
+				GCAremoveOutlyingSamples(gca, gcas_region, mri_in, transform, region_samples, 2.0) ;
 #endif
         for (used_in_region = i = 0 ; i < region_samples ; i++)
         {
@@ -622,7 +695,8 @@ find_control_points(GCA *gca, GCA_SAMPLE *gcas_total,
           (*pnorm_samples)++ ; used_in_region++ ;
         }
 #endif
-        printf("\t%d samples used in region\n", used_in_region) ;
+				if (DIAG_VERBOSE_ON)
+					printf("\t%d samples used in region\n", used_in_region) ;
       }
     }
   }
@@ -634,8 +708,16 @@ find_control_points(GCA *gca, GCA_SAMPLE *gcas_total,
                         gcas_norm[i].label) ; 
     if (gc)
     {
-      gcas_norm[i].mean = gc->mean ;
-      gcas_norm[i].var = gc->var ;
+			int r, c, v ;
+
+			for (v = r = 0 ; r < gca->ninputs ; r++)
+			{
+				for (c = r ; c < gca->ninputs ; c++, v++)
+				{
+					gcas_norm[i].means[v] = gc->means[v] ;
+					gcas_norm[i].covars[v] = gc->covars[v] ;
+				}
+			}
     }
   }
   HISTOfree(&histo) ; HISTOfree(&hsmooth) ;
@@ -730,41 +812,98 @@ min_region_prior(GCA *gca, int xp, int yp, int zp, int wsize, int label)
 }
 
 static int
-uniform_region(MRI *mri, int x, int y, int z, int wsize, GCA_SAMPLE *gcas)
+uniform_region(GCA *gca, MRI *mri, TRANSFORM *transform, int x, int y, int z, int wsize, GCA_SAMPLE *gcas,
+							 float nsigma)
 {
-  int   xk, yk, zk, whalf, xi, yi, zi ;
+  int   xk, yk, zk, whalf, xi, yi, zi, n ;
   Real   val0, val, sigma, min_val,max_val, thresh ;
+	MATRIX *m ;
+	GC1D   *gc ;
+	
+	gc = GCAfindSourceGC(gca, mri, transform, x, y, z, gcas->label) ;
+	if (!gc)
+		return(0) ;
+	m = load_covariance_matrix(gc, NULL, gca->ninputs) ;
 
   whalf = (wsize-1)/2 ;
-  sigma = sqrt(gcas->var) ;
-  val0 = (float)MRIvox(mri, x, y, z) ;
-  if (sigma < 0.05*val0)   /* don't let it be too small */
-    sigma = 0.05*val0 ;
-  if (sigma > 0.1*val0)    /* don't let it be too big */
-    sigma = 0.1*val0 ;
-	min_val = max_val = val0 ;
-	thresh = 1.0*sigma ;
-
-  for (xk = -whalf ; xk <= whalf ; xk++)
-  {
-    xi = mri->xi[x+xk] ;
-    for (yk = -whalf ; yk <= whalf ; yk++)
-    {
-      yi = mri->yi[y+yk] ;
-      for (zk = -whalf ; zk <= whalf ; zk++)
-      {
-        zi = mri->zi[z+zk] ;
-				MRIsampleVolume(mri, (Real)xi, (Real)yi, (Real)zi, &val) ;
-				if (val < min_val)
-					min_val = val ;
-				if (val > max_val)
-					max_val = val ;
-				if (fabs(val-val0) > thresh || fabs(max_val-min_val) > thresh)
-					return(0) ;
-      }
-    }
-  }
+	for (n = 0 ; n < gca->ninputs ; n++)
+	{
+		sigma = sqrt(*MATRIX_RELT(m, n+1, n+1)) ;
+		MRIsampleVolumeFrame(mri, (Real)x, (Real)y, (Real)z, n, &val0) ;
+		if (sigma < 0.05*val0)   /* don't let it be too small */
+			sigma = 0.05*val0 ;
+		if (sigma > 0.1*val0)    /* don't let it be too big */
+			sigma = 0.1*val0 ;
+		min_val = max_val = val0 ;
+		thresh = nsigma*sigma ;
+		
+		for (xk = -whalf ; xk <= whalf ; xk++)
+		{
+			xi = mri->xi[x+xk] ;
+			for (yk = -whalf ; yk <= whalf ; yk++)
+			{
+				yi = mri->yi[y+yk] ;
+				for (zk = -whalf ; zk <= whalf ; zk++)
+				{
+					zi = mri->zi[z+zk] ;
+					MRIsampleVolumeFrame(mri, (Real)xi, (Real)yi, (Real)zi, n, &val) ;
+					if (val < min_val)
+						min_val = val ;
+					if (val > max_val)
+						max_val = val ;
+					if (fabs(val-val0) > thresh || fabs(max_val-min_val) > thresh)
+						return(0) ;
+				}
+			}
+		}
+	}
   
+	MatrixFree(&m) ;
   return(1) ;
+}
+
+static int
+discard_unlikely_control_points(GCA *gca, GCA_SAMPLE *gcas, int nsamples, 
+																MRI *mri_in, TRANSFORM *transform, char *name)
+{
+	int    i, xv, yv, zv, n, peak, start, end, num ;
+	HISTO *h, *hsmooth ;
+	float  fmin, fmax ;
+	Real   val ;
+
+	for (num = n = 0 ; n < gca->ninputs ; n++)
+	{
+		MRIvalRangeFrame(mri_in, &fmin, &fmax, n) ;
+		h = HISTOalloc(nint(fmax-fmin)+1) ;
+		for (i = 0 ; i < nsamples ; i++)
+		{
+			xv = gcas[i].x ; yv = gcas[i].y ; zv = gcas[i].z ;
+			if (xv == Gx && yv == Gy && zv == Gz)
+				DiagBreak() ;
+			MRIsampleVolumeFrame(mri_in, gcas[i].x,gcas[i].y,gcas[i].z, n, &val) ;
+			h->counts[nint(val-fmin)]++ ;
+		}
+
+		hsmooth = HISTOsmooth(h, NULL, 2) ;
+		peak = HISTOfindHighestPeakInRegion(hsmooth, 0, h->nbins-1) ;
+		end = HISTOfindEndOfPeak(hsmooth, peak, 0.01) ;
+		start = HISTOfindStartOfPeak(hsmooth, peak, 0.01) ;
+		printf("%s: limiting intensities to %2.1f --> %2.1f\n", name, fmin+start, fmin+end) ;
+		for (i = 0 ; i < nsamples ; i++)
+		{
+			xv = gcas[i].x ; yv = gcas[i].y ; zv = gcas[i].z ;
+			if (xv == Gx && yv == Gy && zv == Gz)
+				DiagBreak() ;
+			MRIsampleVolumeFrame(mri_in, gcas[i].x,gcas[i].y,gcas[i].z, n, &val) ;
+			if (val-fmin < start || val-fmin > end)
+			{
+				num++ ; gcas[i].label = 0 ;
+			}
+		}
+		HISTOfree(&h) ; HISTOfree(&hsmooth) ;
+	}
+
+	printf("%d of %d (%2.1f%%) samples deleted\n", num, nsamples, 100.0f*(float)num/(float)nsamples) ;
+	return(NO_ERROR) ;
 }
 
