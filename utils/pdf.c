@@ -29,8 +29,8 @@ double PDFgaussian(void)
  * Name:    PDFerlang(order)
  * Purpose: generates random numbers that obey an erlang
  *          distribution with mean=1 and stddev = mean/sqrt(order):
- *   pdf(x) = r*mu*((r*mu*x)^(r-1)) * exp(-r*mu*x) / (r-1)!
- *     mu = 1/mean
+ *   pdf(x) = r*((r*(x-avg))^(r-1)) * exp(-r*(x-avg)) / (r-1)!
+ * when order=1, this generates an exponential distribution.
  ************************************************************/
 double PDFerlang(int order)
 {
