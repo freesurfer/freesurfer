@@ -162,10 +162,40 @@ static short cma_field[512][512];
 static char unknown_labels[MAX_UNKNOWN_LABELS][STRLEN];
 static int n_unknown_labels;
 
+//////////////////////////////////////////////////////////////////////
+// this is a one way of setting direction cosine
+// when the direction cosine is not provided in the volume.
+// may not agree with the volume. what can we do?  Let them set by themselves.
+int setDirectionCosine(MRI *mri, int orientation)
+{
+  switch(orientation)
+  {
+  case MRI_CORONAL: // x is from right to left. y is from top to neck, z is from back to front
+    mri->x_r = -1; mri->y_r =  0; mri->z_r =  0; mri->c_r = 0;
+    mri->x_a =  0; mri->y_a =  0; mri->z_a =  1; mri->c_a = 0;
+    mri->x_s =  0; mri->y_s = -1; mri->z_s =  0; mri->c_s = 0;
+    break;
+  case MRI_SAGITTAL: // x is frp, back to front, y is from top to neck, z is from left to right
+    mri->x_r =  0; mri->y_r =  0; mri->z_r =  1; mri->c_r = 0;
+    mri->x_a =  1; mri->y_a =  0; mri->z_a =  0; mri->c_a = 0;
+    mri->x_s =  0; mri->y_s = -1; mri->z_s =  0; mri->c_s = 0;
+    break;
+  case MRI_HORIZONTAL: // x is from right to left, y is from front to back, z is from neck to top
+    mri->x_r = -1; mri->y_r =  0; mri->z_r =  0; mri->c_r = 0;
+    mri->x_a =  0; mri->y_a = -1; mri->z_a =  0; mri->c_a = 0;
+    mri->x_s =  0; mri->y_s =  0; mri->z_s =  1; mri->c_s = 0;
+    break;
+  default:
+    ErrorReturn(ERROR_BADPARM, (ERROR_BADPARM, "setDirectionCosine():unknown slice direction"));
+    break; // should not reach here (handled at the conversion)
+  }
+  return (NO_ERROR);
+}
+
 #define isOne(a)  FZERO(fabs(a)-1)
 
 // here I take the narrow view of slice_direction
-int decideSliceDirection(MRI *mri)
+int getSliceDirection(MRI *mri)
 {
   int direction = MRI_UNDEFINED;
   if (isOne(mri->x_r) && isOne(mri->y_s) && isOne(mri->z_a))
@@ -174,9 +204,6 @@ int decideSliceDirection(MRI *mri)
     direction = MRI_SAGITTAL;
   else if (isOne(mri->x_r) && isOne(mri->y_a) && isOne( mri->z_s))
     direction = MRI_HORIZONTAL;
-  if (mri->slice_direction != direction)
-    fprintf(stderr, "slice_direction changed from %d to %d\n",
-	    mri->slice_direction, direction);
   return direction;
 }
 
@@ -1041,10 +1068,17 @@ printf("%g, %g, %g\n", z_r, z_a, z_s);
 */
 if(x_r == 0.0 && x_a == 0.0 && x_s == 0.0 && y_r == 0.0 && y_a == 0.0 && y_s == 0.0 && z_r == 0.0 && z_a == 0.0 && z_s == 0.0)
 {
+  fprintf(stderr,
+	  "-----------------------------------------------------------------\n"
+	  "Could not find the direction cosine information.\n"
+	  "Will use the CORONAL orientation.\n"
+	  "If not suitable, please provide the information in COR-.info file\n"
+	  "-----------------------------------------------------------------\n" 
+	  );
   x_r = -1.0;
   y_s = -1.0;
   z_a = 1.0;
-  mri->slice_direction = MRI_CORONAL;
+  ras_good_flag = 0;
 }
 
   mri->imnr0 = imnr0;
@@ -1071,8 +1105,6 @@ if(x_r == 0.0 && x_a == 0.0 && x_s == 0.0 && y_r == 0.0 && y_a == 0.0 && y_s == 
   mri->y_r = y_r;  mri->y_a = y_a;  mri->y_s = y_s;
   mri->z_r = z_r;  mri->z_a = z_a;  mri->z_s = z_s;
   mri->c_r = c_r;  mri->c_a = c_a;  mri->c_s = c_s;
-
-  mri->slice_direction = decideSliceDirection(mri);
 
   if(strlen(xform) > 0)
   {
@@ -1546,6 +1578,8 @@ static MRI *siemensRead(char *fname, int read_volume_flag)
   fseek(fp, 3760, SEEK_SET);
   fread(&i, 4, 1, fp);
   i = orderIntBytes(i);
+
+#if 0 
   if(i == 1 || i == 2)
     mri->slice_direction = MRI_HORIZONTAL;
   else if(i == 3 || i == 5)
@@ -1553,6 +1587,8 @@ static MRI *siemensRead(char *fname, int read_volume_flag)
   else if(i == 4 || i == 6)
     mri->slice_direction = MRI_SAGITTAL;
   else
+#endif
+  if (i < 1 || i > 6)
   {
     errno = 0;
     ErrorReturn(NULL, (ERROR_BADFILE, "siemensRead(): bad slice direction (%d) in file %s", i, fname_use));
@@ -1833,7 +1869,6 @@ static MRI *mincRead(char *fname, int read_volume)
   delete_volume_input(&input_info);
   delete_volume(vol);
 
-  mri->slice_direction = decideSliceDirection(mri);
   printf("Done reading minc\n");
 
   return(mri);
@@ -2236,9 +2271,7 @@ static int mincWrite2(MRI *mri, char *fname)
 
   /* Assign default direction cosines, if needed */
   if(mri->ras_good_flag == 0){
-    mri->x_r = -1;  mri->x_a = 0;  mri->x_s =  0;
-    mri->y_r =  0;  mri->y_a = 0;  mri->y_s = -1;
-    mri->z_r =  0;  mri->z_a = 1;  mri->z_s =  0;
+    setDirectionCosine(mri, MRI_CORONAL);
   }
 
   GetMINCInfo(mri, dim_names, dim_sizes, separations, dircos,  
@@ -2361,9 +2394,7 @@ static int mincWrite(MRI *mri, char *fname)
   /* ----- get the orientation of the volume ----- */
   if(mri->ras_good_flag == 0)
   {
-    mri->x_r = -1;  mri->x_a = 0;  mri->x_s =  0;
-    mri->y_r =  0;  mri->y_a = 0;  mri->y_s = -1;
-    mri->z_r =  0;  mri->z_a = 1;  mri->z_s =  0;
+    setDirectionCosine(mri, MRI_CORONAL);
   }
 
   r = 0;
@@ -2800,11 +2831,7 @@ static int bvolumeWrite(MRI *vol, char *fname_passed, int type)
   {
     if(subject_info->ras_good_flag == 0)
     {
-      subject_info->x_r = -1.0;  subject_info->x_a = 0.0;  subject_info->x_s =  0.0;
-      subject_info->y_r =  0.0;  subject_info->y_a = 0.0;  subject_info->y_s = -1.0;
-      subject_info->z_r =  0.0;  subject_info->z_a = 1.0;  subject_info->z_s =  0.0;
-      subject_info->c_r =  0.0;  subject_info->c_a = 0.0;  subject_info->c_s =  0.0;
-      subject_info->slice_direction = MRI_CORONAL;
+      setDirectionCosine(subject_info, MRI_CORONAL);
     }
   }
 
@@ -3207,7 +3234,6 @@ static MRI *get_b_info(char *fname_passed, int read_volume, char *directory, cha
       }
 
       strcpy(mri->fname, fname_passed);
-      mri->slice_direction = MRI_UNDEFINED;
       mri->imnr0 = 1;
       mri->imnr1 = nslices;
       mri->xsize = mri->ysize = mri->ps = ipr;
@@ -3259,7 +3285,8 @@ static MRI *get_b_info(char *fname_passed, int read_volume, char *directory, cha
 
   /* ----- try to read the stem.bhdr ----- */
   sprintf(bhdr_name, "%s/%s.bhdr", directory, stem);
-  if((fp = fopen(bhdr_name, "r")) != NULL){
+  if((fp = fopen(bhdr_name, "r")) != NULL)
+  {
     read_bhdr(mri, fp);
     sprintf(fname, "%s/%s_000.hdr", directory, stem);
     if((fp = fopen(fname, "r")) == NULL){
@@ -3271,12 +3298,18 @@ static MRI *get_b_info(char *fname_passed, int read_volume, char *directory, cha
     mri->nframes = nt;
     fclose(fp);
   }
-  else{ /* ----- get defaults ----- */
-
-    fprintf(stderr, "INFO: using geometry defaults for %s\n", stem);
-
+  else
+  { /* ----- get defaults ----- */
+    fprintf(stderr,
+	  "-----------------------------------------------------------------\n"
+	  "Could not find the direction cosine information.\n"
+	  "Will use the CORONAL orientation.\n"
+	  "If not suitable, please provide the information in %s file\n"
+	    "-----------------------------------------------------------------\n", 
+	  bhdr_name);
     sprintf(fname, "%s/%s_000.hdr", directory, stem);
-    if((fp = fopen(fname, "r")) == NULL){
+    if((fp = fopen(fname, "r")) == NULL)
+    {
       MRIfree(&mri);
       errno = 0;
       ErrorReturn(NULL, (ERROR_BADFILE, "can't find file %s (last resort);"
@@ -3304,12 +3337,14 @@ static MRI *get_b_info(char *fname_passed, int read_volume, char *directory, cha
 
     mri->imnr0 = 1;
     mri->imnr1 = nslices;
-    mri->slice_direction = MRI_HORIZONTAL;
 
     mri->thick = mri->ps = 1.0;
     mri->xsize = mri->ysize = mri->zsize = 1.0;
 
+    setDirectionCosine(mri, MRI_CORONAL);
+
     mri->ras_good_flag = 0;
+
     strcpy(mri->fname, fname_passed);
 
   }
@@ -3514,13 +3549,8 @@ static int orient_with_register(MRI *mri)
     subject_mri->fov = 256.0;
     subject_mri->thick = subject_mri->ps = 1.0;
     subject_mri->xsize = subject_mri->ysize = subject_mri->zsize = 1.0;
-    subject_mri->x_r = -1.0;  subject_mri->x_a =  0.0;  subject_mri->x_s =  0.0;
-    subject_mri->y_r =  0.0;  subject_mri->y_a =  0.0;  subject_mri->y_s = -1.0;
-    subject_mri->z_r =  0.0;  subject_mri->z_a =  1.0;  subject_mri->z_s =  0.0;
-    subject_mri->c_r =  0.0;  subject_mri->c_a =  0.0;  subject_mri->c_s =  0.0;
+    setDirectionCosine(subject_mri, MRI_CORONAL);
     subject_mri->ras_good_flag = 1;
-    subject_mri->slice_direction = MRI_CORONAL;
-
   }
 
   det = MatrixDeterminant(mri->register_mat);
@@ -3948,7 +3978,6 @@ int read_bhdr(MRI *mri, FILE *fp)
 
   mri->ras_good_flag = 1;
 
-  mri->slice_direction = MRI_UNDEFINED;
   mri->thick = mri->zsize;
   mri->ps = mri->xsize;
 
@@ -4678,7 +4707,7 @@ static MRI *analyzeRead(char *fname, int read_volume)
 
   /* Read the matfile, if there */
   if(FileExists(matfile)){
-    T1 = MatlabRead(matfile);
+    T1 = MatlabRead(matfile); // orientation info
     if(T1 == NULL){
       printf("ERROR: analyzeRead(): matfile %s exists but could "
        "       not read\n",matfile);
@@ -4703,6 +4732,15 @@ static MRI *analyzeRead(char *fname, int read_volume)
     T->rptr[2][4] = -mri->ysize*(mri->height/2.0);
     T->rptr[3][3] =  mri->zsize;
     T->rptr[3][4] = -mri->zsize*(mri->depth/2.0);
+    fprintf(stderr,
+	    "-----------------------------------------------------------------\n"
+	    "Could not find the direction cosine information.\n"
+	    "Will use the HORIZONTAL orientation.\n"
+	    "If not suitable, please provide the information in %s file\n"
+	    "-----------------------------------------------------------------\n",
+	    matfile
+	    );
+
   }
 
   /* ---- Assign the Geometric Paramaters -----*/
@@ -4761,9 +4799,9 @@ static MRI *analyzeRead(char *fname, int read_volume)
       sprintf(imgfile,fmt,frame+1,"img");
       fp = fopen(imgfile,"r");
       if(fp == NULL){
-  printf("ERROR: analyzeRead(): could not open %s\n",imgfile);
-  MRIfree(&mri);
-  return(NULL);
+	printf("ERROR: analyzeRead(): could not open %s\n",imgfile);
+	MRIfree(&mri);
+	return(NULL);
       }
       fseek(fp, (int)(hdr->dime.vox_offset), SEEK_SET);
     }
@@ -6132,9 +6170,9 @@ static int afniWrite(MRI *mri, char *fname)
 
 } /* end afniWrite() */
 
+#if 0
 static int bad_ras_fill(MRI *mri)
 {
-
   if(mri->slice_direction == MRI_CORONAL)
   {
     mri->x_r = -1.0;  mri->y_r =  0.0;  mri->z_r =  0.0;
@@ -6165,8 +6203,10 @@ static int bad_ras_fill(MRI *mri)
   return(NO_ERROR);
 
 } /* end bad_ras_fill() */
+#endif 
 
-#ifdef VT_TO_CV
+#if 0
+// #ifdef VT_TO_CV
 
 static int voxel_center_to_center_voxel(MRI *mri, float *x, float *y, float *z)
 {
@@ -6226,7 +6266,7 @@ static int voxel_center_to_center_voxel(MRI *mri, float *x, float *y, float *z)
 
 } /* end voxel_center_to_center_voxel() */
 
-#endif
+// #endif
 
 static int center_voxel_to_voxel_center(MRI *mri, float x, float y, float z)
 {
@@ -6252,6 +6292,7 @@ static int center_voxel_to_voxel_center(MRI *mri, float x, float y, float z)
   return(NO_ERROR);
 
 } /* end center_voxel_to_voxel_center() */
+#endif // if 0
 
 static MRI *gdfRead(char *fname, int read_volume)
 {
@@ -6519,15 +6560,25 @@ static MRI *gdfRead(char *fname, int read_volume)
   
   strcpy(mri->fname, fname);
 
-  mri->slice_direction = orientation;
-  if(bad_ras_fill(mri) != NO_ERROR)
-    return(NULL);
+  /* 
+     direction cosine is not set.  we pick a particular kind
+     of direction cosine.  If the volume is different you have
+     to modify (how?)
+  */
+  if (setDirectionCosine(mri, orientation) != NO_ERROR)
+    return NULL;
 
+  // if(bad_ras_fill(mri) != NO_ERROR)
+  //  return(NULL);
+
+  // I set c_(r,a,s) above and thus no need to do the following
+#if 0
   /* ----- hack ----- */
-  center[0] = (mri->width  - 1.0) / 2.0;
-  center[1] = (mri->height - 1.0) / 2.0;
+  center[0] = (mri->width  - 1.0) / 2.0;  // -1 is wrong.  our convention is to 
+  center[1] = (mri->height - 1.0) / 2.0;  // have center voxel to be integers.
   center[2] = (mri->depth  - 1.0) / 2.0;
   center_voxel_to_voxel_center(mri, center[0], center[1], center[2]);
+#endif
 
   printf("warning: gdf volume may be incorrectly oriented or centered\n");
 
@@ -7335,6 +7386,7 @@ static int read_otl_file(FILE *fp, MRI *mri, int slice, mriColorLookupTableRef c
       fgets(line, STRLEN, fp);
       if(strncmp(line, "END GDF HEADER", 14) == 0)
         gdf_header_flag = FALSE;
+      // getting rows, cols, type
       if(strncmp(line, "ROW_NUM", 7) == 0)
         sscanf(line, "%*s %d", &n_rows);
       if(strncmp(line, "COL_NUM", 7) == 0)
@@ -7677,7 +7729,6 @@ MRI *MRIreadOtl(char *fname, int width, int height, int slices, char *color_file
     }
     return(mri);
   }
-
   mri = MRIalloc(width, height, slices, MRI_SHORT);
   if(mri == NULL)
   {
@@ -7722,6 +7773,10 @@ MRI *MRIreadOtl(char *fname, int width, int height, int slices, char *color_file
     print_unknown_labels("  ");
   }
   clear_unknown_labels();
+
+  // default direction cosine set here to be CORONAL
+  // no orientation info is given and thus set to coronal
+  setDirectionCosine(mri, MRI_CORONAL);
 
   return(mri);
 
@@ -8009,27 +8064,7 @@ static MRI *sdtRead(char *fname, int read_volume)
   mri->ysize = ysize;
   mri->zsize = zsize;
 
-  mri->slice_direction = orientation;
-
-  if(orientation == MRI_CORONAL)
-  {
-    mri->xdir = XDIM;
-    mri->ydir = YDIM;
-    mri->zdir = ZDIM;
-  }
-  if(orientation == MRI_SAGITTAL)
-  {
-    mri->xdir = ZDIM;
-    mri->ydir = YDIM;
-    mri->zdir = XDIM;
-  }
-  if(orientation == MRI_HORIZONTAL)
-  {
-    mri->xdir = XDIM;
-    mri->ydir = -ZDIM;
-    mri->zdir = YDIM;
-
-  }
+  setDirectionCosine(mri, orientation);
 
   mri->thick = mri->zsize;
   mri->xend = mri->xsize * mri->width / 2.;
@@ -8376,7 +8411,6 @@ mghRead(char *fname, int read_volume, int frame)
     z_r = freadFloat(fp) ; z_a = freadFloat(fp) ; z_s = freadFloat(fp) ;
     c_r = freadFloat(fp) ; c_a = freadFloat(fp) ; c_s = freadFloat(fp) ;
   }
-
   /* so stuff can be added to the header in the future */
   fread(unused_buf, sizeof(char), unused_space_size, fp) ;
 
@@ -8503,6 +8537,18 @@ mghRead(char *fname, int read_volume, int frame)
     if (good_ras_flag > 0)
       mri->ras_good_flag = 1 ;
   }
+  else
+  {
+    fprintf(stderr,
+	  "-----------------------------------------------------------------\n"
+	  "Could not find the direction cosine information.\n"
+	  "Will use the CORONAL orientation.\n"
+	  "If not suitable, please provide the information in %s.\n"
+	  "-----------------------------------------------------------------\n",
+	  fname  
+	  );
+    setDirectionCosine(mri, MRI_CORONAL);
+  }
 #if 0
   // feof(fp) check does not work, since feof is not signaled until you read
   if (!feof(fp))
@@ -8522,9 +8568,6 @@ mghRead(char *fname, int read_volume, int frame)
     }
   fclose(fp) ;
 
-  // some software uses slice_direction flag
-  mri->slice_direction = decideSliceDirection(mri);
-  
   return(mri) ;
 }
 
@@ -8842,7 +8885,7 @@ MRIwriteInfo(MRI *mri, char *fpref)
 {
   FILE    *fp;
   char    fname[STRLEN];
-
+  int     slice_direction;
   sprintf(fname,"%s/%s",fpref, INFO_FNAME);
   fp = fopen(fname,"w");
   if (fp == NULL) 
@@ -8855,9 +8898,10 @@ MRIwriteInfo(MRI *mri, char *fpref)
 
   fprintf(fp, "%s %d\n", "imnr0", mri->imnr0);
   fprintf(fp, "%s %d\n", "imnr1", mri->imnr1);
+  slice_direction = getSliceDirection(mri);
   fprintf(fp, "%s %d\n", "ptype", 
-          mri->slice_direction == MRI_CORONAL ? 2 :
-          mri->slice_direction == MRI_HORIZONTAL ? 0 : 1) ;
+          slice_direction == MRI_CORONAL ? 2 :
+          slice_direction == MRI_HORIZONTAL ? 0 : 1) ;
   fprintf(fp, "%s %d\n", "x", mri->width);
   fprintf(fp, "%s %d\n", "y", mri->height);
   fprintf(fp, "%s %f\n", "fov", mri->fov/MM_PER_METER);
