@@ -12,10 +12,10 @@
 #include "classify.h"
 #include "gcarray.h"
 
-static int features = FEATURE_INTENSITY | FEATURE_ZSCORE3 | FEATURE_MEAN3 | FEATURE_DIRECTION ;
+static int features = FEATURE_INTENSITY | FEATURE_MEAN3 | FEATURE_DIRECTION ;
 
 static int extract = 0 ;
-static int classifier = CLASSIFIER_GAUSSIAN ;
+static int classifier = CLASSIFIER_RBF ;
 static char priors_fname[100] = "priors.mnc" ;
 static int  verbose = 0 ;
 
@@ -24,6 +24,14 @@ char *Progname ;
 void main(int argc, char *argv[]) ;
 static int get_option(int argc, char *argv[]) ;
 
+#define NCLUSTERS  4
+
+static int nclusters = 0 ;
+
+static RBF_PARMS rbf_parms =
+{
+{ 2, NCLUSTERS, NCLUSTERS, 1}
+} ;
 void 
 main(int argc, char *argv[])
 {
@@ -49,8 +57,17 @@ main(int argc, char *argv[])
   training_file_name = argv[1] ;
   output_file_name = argv[2] ;
 
-  mric = MRICalloc(1, &classifier, &features, NULL) ;
-  MRICtrain(mric, training_file_name, priors_fname) ;
+  if (nclusters > 0)
+  {
+    rbf_parms.max_clusters[GRAY_MATTER] = nclusters ;
+    rbf_parms.max_clusters[WHITE_MATTER] = nclusters ;
+  }
+  mric = MRICalloc(1, &classifier, &features, (void *)&rbf_parms) ;
+  if ((strlen(priors_fname) > 1) && stricmp(priors_fname, "none"))
+    MRICtrain(mric, training_file_name, priors_fname) ;
+  else
+    MRICtrain(mric, training_file_name, NULL) ;
+
   MRICwrite(mric, output_file_name) ;
   MRICfree(&mric) ;
   exit(0) ;
@@ -72,6 +89,12 @@ get_option(int argc, char *argv[])
   case 'V':
     verbose = !verbose ;
     break ;
+  case 'N':
+    if (sscanf(argv[2], "%d", &nclusters) != 1)
+      ErrorExit(ERROR_BADPARM, "%s: could not scan option from '%s'",
+                Progname, argv[2]) ;
+    nargs = 1 ;
+    break ;
   case 'F':
     if (sscanf(argv[2], "0x%x", &features) != 1)
       ErrorExit(ERROR_BADPARM, "%s: could not scan option from '%s'",
@@ -91,14 +114,6 @@ get_option(int argc, char *argv[])
                 Progname, argv[2]) ;
     nargs = 1 ;
     break ;
-  case 'N':
-#if 0
-    if (sscanf(argv[2], "%d", &ninputs) != 1)
-      ErrorExit(ERROR_BADPARM, "%s: could not scan option from '%s'",
-                Progname, argv[2]) ;
-    nargs = 1 ;
-    break ;
-#endif
   case '?':
   case 'U':
     printf("usage: %s <training file> <output file>\n", Progname) ;
