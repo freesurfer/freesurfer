@@ -15,12 +15,15 @@
 #define BIG            100000.0
 
 /* something of a hack... */
-#define UNFILLED_ELT   0
+#define UNFILLED_ELT   -2
+#define FILLING_ELT    -1
 #define FILLED_ELT     1
 
+#define DEFAULT_UDIM   256
+
 #define DEBUG_VNO -1
-#define DEBUG_U  -1  /* -10 25*/
-#define DEBUG_V  -1  /* 2 */
+#define DEBUG_U  -1 /*117  */
+#define DEBUG_V  -1 /* 396  */
 
 /*-----------------------------------------------------
         Parameters:
@@ -45,7 +48,10 @@ float *dp ;
   if (!mrisp)
     mrisp = MRISPalloc(scale, 1) ;
 
-  a = b = c = mris->radius ;
+  if (FZERO(mris->radius))
+    a = b = c = MRISaverageRadius(mris) ;
+  else
+    a = b = c = mris->radius ;
 
   filled = (int **)calloc(U_DIM(mrisp), sizeof(int *)) ;
   distances = (float **)calloc(U_DIM(mrisp), sizeof(float *)) ;
@@ -337,8 +343,8 @@ MRI_SP *
 MRIStoParameterization(MRI_SURFACE *mris, MRI_SP *mrisp, float scale,int fno)
 {
   float     a, b, c, phi, theta, x, y, z, uf, vf, d, total_d,
-            **distances, sigma, two_sigma_sq ;
-  int       vno, u, v, unfilled, **filled ;
+            **distances, *fp ;
+  int       vno, u, v, unfilled, **filled, npasses, nfilled ;
   VERTEX    *vertex ;
 
   if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
@@ -348,8 +354,11 @@ MRIStoParameterization(MRI_SURFACE *mris, MRI_SP *mrisp, float scale,int fno)
     mrisp = MRISPalloc(scale, 1) ;
   else
     ImageClearArea(mrisp->Ip, -1, -1, -1, -1, 0, fno) ;
-
-  a = b = c = mris->radius ;
+  
+  if (FZERO(mris->radius))
+    a = b = c = MRISaverageRadius(mris) ;
+  else
+    a = b = c = mris->radius ;
 
   filled = (int **)calloc(U_DIM(mrisp), sizeof(int *)) ;
   distances = (float **)calloc(U_DIM(mrisp), sizeof(float *)) ;
@@ -362,14 +371,14 @@ MRIStoParameterization(MRI_SURFACE *mris, MRI_SP *mrisp, float scale,int fno)
       filled[u][v] = UNFILLED_ELT ;
   }
 
-  sigma = scale / 4.0f ;
-  two_sigma_sq = 2*sigma*sigma ;
-
+  fp = IMAGEFseq_pix(mrisp->Ip, DEBUG_U, DEBUG_V,fno) ;
   /* first calculate total distances to a point in parameter space */
   for (vno = 0 ; vno < mris->nvertices ; vno++)
   {
     vertex = &mris->vertices[vno] ;
     x = vertex->x ; y = vertex->y ; z = vertex->z ;
+    if (vno == Gdiag_no || vno == 1126)
+      DiagBreak() ;
     theta = atan2(y/b, x/a) ;
     if (theta < 0.0f)
       theta = 2 * M_PI + theta ;  /* make it 0 --> 2*PI */
@@ -454,7 +463,7 @@ if ((total_d > 10000.0) || (vertex->curv > 1000.0))
     fprintf(stderr,"curv[%d][%d] = %2.3f\n\n", DEBUG_U, DEBUG_V, 
             *IMAGEFseq_pix(mrisp->Ip, DEBUG_U, DEBUG_V, fno));
 
-#if 1
+#if 0
   /* fill in values which were unmapped by sampling back onto surface */
   for (unfilled = u = 0 ; u <= U_MAX_INDEX(mrisp) ; u++)
   {
@@ -494,24 +503,32 @@ if ((total_d > 10000.0) || (vertex->curv > 1000.0))
     fprintf(stderr, "%d holes in parameterization filled\n", unfilled) ;
 #else
   /* fill in values which were unmapped using soap bubble */
-  for (npasses = 0 ; npasses < 10 ; npasses++)
+  nfilled = npasses = 0 ;
+  do
   {
+    IMAGE *Ip, *Itmp ;
+    int   u1, v1, uk, vk, n ;
+    float total ;
+
+    Ip = mrisp->Ip ;
+    Itmp = ImageClone(Ip) ;
     unfilled = 0 ; ;
     for (u = 0 ; u <= U_MAX_INDEX(mrisp) ; u++)
     {
       for (v = 0 ; v <= V_MAX_INDEX(mrisp) ; v++)
       {
+        if ((u == DEBUG_U) && (v == DEBUG_V))
+          DiagBreak() ;
         if (filled[u][v] == UNFILLED_ELT)
         {
-          unfilled++ ;
           for (total = 0.0f, n = 0, uk = -1 ; uk <= 1 ; uk++)
           {
             u1 = u + uk ;
             if (u1 < 0)  /* enforce spherical topology  */
               u1 = -u1 ;
             else if (u1 >= U_DIM(mrisp))
-              u1 = (u1-U_DIM(mrisp)+1)
-            for (vk = -1 ; vk <= 1 ; vk++, n++)
+              u1 = (u1-U_DIM(mrisp)+1) ;
+            for (vk = -1 ; vk <= 1 ; vk++)
             {
               v1 = v + vk ;
               if (v1 < 0)  /* enforce spherical topology  */
@@ -519,15 +536,41 @@ if ((total_d > 10000.0) || (vertex->curv > 1000.0))
               else if (v1 >= V_DIM(mrisp))
                 v1 -= V_DIM(mrisp) ;
               
-              total += *IMAGEFseq_pix(mrisp->Ip, u1, v1, fno) ;
+              if (filled[u1][v1] >= 0)
+              {
+                total += *IMAGEFseq_pix(Ip, u1, v1, fno) ;
+                n++ ;
+              }
             }
           }
-          total /= (float)n ;
-          *IMAGEFseq_pix(mrisp->Ip, u, v, fno) = total ;
+          if (n > 0)
+          {
+            total /= (float)n ;
+            *IMAGEFseq_pix(Itmp, u, v, fno) = total ;
+            filled[u][v] = FILLING_ELT ;
+            nfilled++ ;
+          }
+          else
+            unfilled++ ;
         }
+        else
+          *IMAGEFseq_pix(Itmp, u, v, fno) = *IMAGEFseq_pix(Ip, u, v, fno) ;
       }
-    } 
-  }
+    }
+    for (u = 0 ; u <= U_MAX_INDEX(mrisp) ; u++)
+    {
+      for (v = 0 ; v <= V_MAX_INDEX(mrisp) ; v++)
+      {
+        if (filled[u][v] == FILLING_ELT)
+          filled[u][v] = FILLED_ELT ;
+      }
+    }
+    mrisp->Ip = Itmp ;
+    ImageFree(&Ip) ;
+    npasses++ ;
+  } while (unfilled > 0) ;
+  fprintf(stderr, "filling %d elements took %d passes\n",
+          nfilled, npasses) ;
 #endif
 
   for (u = 0 ; u <= U_MAX_INDEX(mrisp) ; u++)
@@ -563,7 +606,10 @@ MRISfromParameterization(MRI_SP *mrisp, MRI_SURFACE *mris, int fno)
   if (!mris)
     mris = MRISclone(mrisp->mris) ;
 
-  a = b = c = mris->radius ;
+  if (FZERO(mris->radius))
+    a = b = c = MRISaverageRadius(mris) ;
+  else
+    a = b = c = mris->radius ;
 
   for (vno = 0 ; vno < mris->nvertices ; vno++)
   {
@@ -674,7 +720,10 @@ MRISgradientToParameterization(MRI_SURFACE *mris, MRI_SP *mrisp, float scale)
   else
     ImageClearArea(mrisp->Ip, -1, -1, -1, -1, 0, -1) ;
 
-  a = b = c = mris->radius ;
+  if (FZERO(mris->radius))
+    a = b = c = MRISaverageRadius(mris) ;
+  else
+    a = b = c = mris->radius ;
 
   filled = (int **)calloc(U_DIM(mrisp), sizeof(int *)) ;
   distances = (float **)calloc(U_DIM(mrisp), sizeof(float *)) ;
@@ -780,6 +829,9 @@ MRISgradientToParameterization(MRI_SURFACE *mris, MRI_SP *mrisp, float scale)
     double min_d, radius = mris->radius, xd, yd, zd ;
     int    min_v = -1 ;
 
+    if (FZERO(radius))
+      radius = MRISaverageRadius(mris) ;
+
     for (v = 0 ; v <= V_MAX_INDEX(mrisp) ; v++)
     {
       if (filled[u][v] == UNFILLED_ELT)
@@ -847,7 +899,10 @@ MRISgradientFromParameterization(MRI_SP *mrisp, MRI_SURFACE *mris)
   if (!mris)
     mris = MRISclone(mrisp->mris) ;
 
-  a = b = c = mris->radius ;
+  if (FZERO(mris->radius))
+    a = b = c = MRISaverageRadius(mris) ;
+  else
+    a = b = c = mris->radius ;
 
   for (vno = 0 ; vno < mris->nvertices ; vno++)
   {
@@ -1189,7 +1244,7 @@ MRISPalloc(float scale, int nfuncs)
   if (FZERO(scale))
     scale = 1.0f ;
 
-  u_dim = nint(scale*64) ; /* for fft */
+  u_dim = nint(scale*DEFAULT_UDIM) ; /* for fft */
   v_dim = 2*u_dim ;
   if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
     fprintf(stderr, "allocating %d by %d parameterization\n",u_dim,v_dim) ;
@@ -1233,6 +1288,7 @@ MRI_SP *
 MRISPalign(MRI_SP *mrisp_orig, MRI_SP *mrisp_src, MRI_SP *mrisp_tmp, 
            MRI_SP *mrisp_dst)
 {
+#if 0
   IMAGE  *Icorr = NULL ;
   int    u_peak, v_peak ;
   float  peak_val, delta_theta, delta_phi ;
@@ -1257,6 +1313,9 @@ MRISPalign(MRI_SP *mrisp_orig, MRI_SP *mrisp_src, MRI_SP *mrisp_tmp,
   ImageWrite(mrisp_dst->Ip, "Ialign.hipl") ;
 
   return(mrisp_dst) ;
+#else
+  ErrorReturn(NULL, (ERROR_UNSUPPORTED, "MRISPalign: not implemented.")) ;
+#endif
 }
 /*-----------------------------------------------------
         Parameters:
