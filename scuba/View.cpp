@@ -21,3 +21,27 @@ View::Draw() {
   }
 }
 
+void
+View::MouseMoved( int inX, int inY, int iButton, int iModifiers ) {
+}
+
+void
+View::MouseUp( int inX, int inY, int iButton, int iModifers ) {
+
+}
+
+void
+View::MouseDown( int inX, int inY, int iButton, int iModifers ) {
+  cerr << msID << ": click " << endl;
+}
+
+void
+View::KeyDown( int inX, int inY, std::string isKey, int iModifers ) {
+
+}
+
+void
+View::KeyUp( int inX, int inY, std::string isKey, int iModifers ) {
+
+}
+
