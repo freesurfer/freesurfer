@@ -2,35 +2,21 @@
 % reconstruction according to the time-domain reconstruction
 % algorithm 
 %
-% $Id: tdr_recon.m,v 1.5 2003/11/06 19:43:41 greve Exp $
+% $Id: tdr_recon.m,v 1.6 2003/12/19 22:24:38 greve Exp $
 tic;
 
 
 if(0)
-  %topdir = '/space/greve/2/users/greve/dng072203';
-  topdir = '/space/greve/2/users/greve/fb-105.2/';
-  TE0 = 50;
-  run = 1;
-  usefid = 1;
-  nframes = 85;
-  %nframes = 1;
-  
-  if(TE0 == 30)
-    kepidir = sprintf('%s/rawk/sing-echo-r%d/mgh',topdir,run);
-    epiecho = 1;
-  else
-    kepidir = sprintf('%s/sm%d/mgh',topdir,run);
-    if(TE0 == 20) epiecho = 1;
-    else          epiecho = 2;
-    end
-  end
-  
-  %rcolmatfile = sprintf('%s/R%2d.1.mat',topdir,TE0);
-  rcolmatfile = sprintf('%s/tdr/R%2d.1.mat',topdir,TE0);
+  topdir = '/space/greve/1/users/greve/dng072203';
+  kepidir = sprintf('%s/rawk/230855/mgh',topdir);
+  rcolmatfile  = sprintf('%s/tdr2/R20.mat',topdir);  
+  epiecho = 1;
 
-  sessdir = sprintf('%s/tdr-te%2d-r%d',topdir,TE0,run);
-  %bhdrfile = sprintf('%s/siemens-te30/bold/001/f.bhdr',topdir);
-  bhdrfile = [];
+  nframes = 80;
+  usefid = 1;
+
+  sessdir = sprintf('%s/dng-tdr20b',topdir);
+  bhdrfile = 'dng-tdr/bold/001/f.bhdr';
   
   funcdir = sprintf('%s/bold/001',sessdir);
   funcstem = sprintf('%s/f',funcdir);
@@ -39,6 +25,15 @@ if(0)
   fidoutdir = sprintf('%s/fid/001',sessdir);
   mkdirp(fidoutdir);
   fidstem = sprintf('%s/f',fidoutdir);
+
+  % EPI gradient and ADC timing
+  tDwell     = 3.2; % usec
+  tRampUp    = 140; % usec
+  tFlat      = 190; % usec
+  tRampDown  = 140; % usec
+  tDelSamp   = 30;  % usec
+  tdelay     = 1.0;
+  
 end
 
 if(~isempty(bhdrfile))
@@ -51,13 +46,6 @@ else
   mristruct = [];
 end
 
-% EPI gradient and ADC timing
-tDwell     = 3.2; % usec
-tRampUp    = 140; % usec
-tFlat      = 190; % usec
-tRampDown  = 140; % usec
-tDelSamp   = 30;  % usec
-tdelay     = 1.0;
 
 %----------------------------------------------------%
 
@@ -67,19 +55,20 @@ fprintf('Done (%g)\n',toc);
 [nrows ncols nslices] = size(fidvol1);
 nv = prod([nrows ncols nslices]);
 sliceorder = [1:2:nslices 2:2:nslices];
+nkcols = 2*ncols;
 
-[kvec0 gvec0] = kspacevector2(ncols,tDwell,tRampUp,tFlat,...
-			      tRampDown,tDelSamp,tdelay);
-kvec = kvec0;
+kvec = kspacevector2(nkcols,tDwell,tRampUp,tFlat,...
+		     tRampDown,tDelSamp,tdelay);
 if(perev) kvec = fliplr(kvec); end
 
 % Compute the Ideal col and row DFT reconstruction matrices
 Frow = fast_dftmtx(kvec);
-Frow = fast_svdregpct(Frow,90);
-Rrow = transpose(inv(Frow));
+Frow = Frow(:,colkeep);
+Rrow = transpose(inv(Frow'*Frow)*Frow');
+%Frow = fast_svdregpct(Frow,90);
+%Rrow = transpose(inv(Frow));
 Fcol = fast_dftmtx(nrows);
 Rcol = inv(Fcol);
-
 
 nn = 1:ncols;
 nnrev = ncols:-1:1;
@@ -89,32 +78,44 @@ evenrows = 2:2:nrows;
 kepi_rfile = sprintf('%s/echo%03dr.mgh',kepidir,epiecho);
 kepi_ifile = sprintf('%s/echo%03di.mgh',kepidir,epiecho);
 
-% Get Phase Encode Shift for all frames %
-fprintf('Estimating shift in phase encode at each frame (%g)\n',toc);
-nthecho = find(TEList == TE);
-vref = epiref_dist(:,:,:,nthecho);
-pevoxshift = zeros(nframes,1);
-for frame = 1:nframes
-  kr = load_mgh(kepi_rfile,[],frame);
-  kr = permute(kr,[2 1 3]);
-  ki = load_mgh(kepi_ifile,[],frame);
-  ki = permute(ki,[2 1 3]);
-  kvol = kr + i*ki;
-  [krvol, dgbeta] = tdr_recon_rows(kvol,Rrow,perev);
-  ind = 40:87;
-  pevoxshift(frame) = tdr_peshift(vref(:,ind,:),krvol(:,ind,:));
+if(fixpedrift)
+  % Get Phase Encode Shift for all frames %
+  fprintf('Estimating shift in phase encode at each frame (%g)\n',toc);
+  vref = epiref_dist;
+  pevoxshift = zeros(nframes,1);
+  for frame = 1:nframes
+    if(nframes > 100) 
+      fprintf('  frame = %d (%g)  pevoxshift\n',frame,toc);
+    end
+    kr = load_mgh(kepi_rfile,[],frame);
+    kr = permute(kr,[2 1 3]);
+    ki = load_mgh(kepi_ifile,[],frame);
+    ki = permute(ki,[2 1 3]);
+    kvol = kr + i*ki;
+    [krvol, dgbeta] = tdr_recon_rows(kvol,Rrow,perev);
+    c1 = round(ncols/4);
+    c2 = c1 + round(ncols/2) - 1;
+    ind = c1:c2;
+    pevoxshift(frame) = tdr_peshift(vref(:,ind,:),krvol(:,ind,:));
+  end
+  clear kr ki kvol;
+  fprintf('   done (%g).\n',toc);
+  fname = sprintf('%s-peshift.dat',funcstem);
+  fp = fopen(fname,'w');
+  fprintf(fp,'%g\n',pevoxshift);
+  fclose(fp);
 end
-fprintf('   done (%g).\n',toc);
-fname = sprintf('%s-peshift.dat',funcstem);
-fp = fopen(fname,'w');
-fprintf(fp,'%g\n',pevoxshift);
-fclose(fp);
 
-vol = zeros(nrows,ncols/2,nslices,nframes);
+vol = zeros(nrows,ncols,nslices,nframes);
+%vol = zeros(nrows,ncols,nslices,nframes);
 for nthAcqSlice = 1:nslices
-  fprintf('nthAcqSlice = %d, toc = %g\n',nthAcqSlice,toc);
-  Rtdrslice = Rtdr(:,:,:,nthAcqSlice);
+  sliceno = sliceorder(nthAcqSlice);
+  fprintf('nthAcqSlice = %d, slice = %d, toc = %g\n',...
+	  nthAcqSlice,sliceno,toc);
+  %Rtdrslice = Rtdr(:,:,:,nthAcqSlice);
+  Rtdrslice = Rtdr(:,:,:,sliceno);
   
+  %fslice = zeros(nrows,ncols,nframes);
   for frame = 1:nframes
   
     kepi_r = load_mgh(kepi_rfile,nthAcqSlice,frame);
@@ -126,7 +127,9 @@ for nthAcqSlice = 1:nslices
     kepi_i = kepi_i';
     
     kepi = kepi_r + i * kepi_i;
-    kepi = tdr_kshift(kepi,pevoxshift(frame));
+    if(fixpedrift)
+      kepi = tdr_kshift(kepi,pevoxshift(frame));
+    end
     
     % Apply transforms to make EPI k-space image match the 
     % that of the first echo of the FID. These same transforms
@@ -142,7 +145,8 @@ for nthAcqSlice = 1:nslices
     if(~usefid)
       img = abs(Rcol * kepi2);
     else
-      img = zeros(64,128);
+      %img = zeros(64,128);
+      img = zeros(nrows,ncols);
       for imgcol = 1:ncols
 	Rtdrcol = Rtdrslice(:,:,imgcol);
 	img(:,imgcol) = abs(Rtdrcol*kepi2(:,imgcol));
@@ -150,16 +154,44 @@ for nthAcqSlice = 1:nslices
     end
     
     % Extract the center, and flip
-    img2 = flipud(img(:,33:end-32));
+    %img2 = flipud(img(:,33:end-32));
+    img2 = flipud(img);
     
     % Shift so that it matches the siemens recon %
-    img3(2:64,:) = img2(1:63,:);
-    sliceno = sliceorder(nthAcqSlice);
+    img3 = img2;
+    img3(2:end,:) = img2(1:end-1,:);
     vol(:,:,sliceno,frame) = img3;
+    %fslice(:,:,frame) = img3 * 1e5;
   
   end % frame
   
+  %fprintf('Saving slice to %s (%g)\n',funcstem,toc);
+  %fast_svbslice(fslice,funcstem,sliceno-1,'bfloat',mristruct);
 end
+
+if(~isempty(fidstem))
+  if(0)
+    % Prep the fidimg
+    fidvol10 = fidvol1;
+    fidvol1 = fidvol10;
+    fidvol1 = flipdim( fidvol1(:,33:end-32,:,:), 1);
+    fidvol1(2:64,:,:) = fidvol1(1:63,:,:);
+    
+    h = ceil(nslices/2);
+    a = [1:h]';
+    b = [h+1:2*h]';
+    c = reshape1d([a b]');
+    s = c(1:nslices);
+    fidvol1 = fidvol1(:,:,s);
+  else
+    fidvol1 = flipdim(fidvol1,1);
+    fidvol1(2:end,:,:) = fidvol1(1:end-1,:,:);
+  end
+  
+  % Save the fidimg
+  fast_svbslice(fidvol1,fidstem,-1,[],mristruct);
+end
+
 
 % Rescale for bshort, save scaling
 volmin = min(reshape1d(vol));
@@ -174,30 +206,11 @@ fclose(fp);
 % Save the functional volume
 fast_svbslice(vol,funcstem,-1,'bshort',mristruct);
 
-if(~isempty(fidstem))
-  % Prep the fidimg
-  fidvol10 = fidvol1;
-  fidvol1 = fidvol10;
-  fidvol1 = flipdim( fidvol1(:,33:end-32,:,:), 1);
-  fidvol1(2:64,:,:) = fidvol1(1:63,:,:);
-  
-  h = ceil(nslices/2);
-  a = [1:h]';
-  b = [h+1:2*h]';
-  c = reshape1d([a b]');
-  s = c(1:nslices);
-  fidvol1 = fidvol1(:,:,s);
-  
-  % Save the fidimg
-  fast_svbslice(fidvol1,fidstem,-1,[],mristruct);
-end
-
 fprintf('tdr_recon done %g\n',toc);
-
 return;
 
 
-tit = sprintf('tdr-vs-fid: TE=%g, usefid=%d',TE0,usefid);
+tit = sprintf('tdr-vs-fid: TE=%g, usefid=%d',TE,usefid);
 swapview('-init','-v1',vol(:,:,:,1),'-v2',fidvol1,'-title',tit);
 
 
