@@ -610,8 +610,8 @@ MRIfromVolume(Volume volume, int start_frame, int end_frame)
   mri->xend = mri->xstart + width * mri->xsize ;
   mri->yend = mri->ystart + height * mri->ysize ;
   mri->zend = mri->zstart + depth * mri->zsize ;
-  mri->thick = mri->zsize ;   /* arbitrary */
-  mri->fov = mri->xsize ;
+  mri->ps = mri->thick = mri->zsize ; 
+  mri->fov = (mri->xend - mri->xstart) / mri->xsize ;
   return(mri) ;
 }
 /*-----------------------------------------------------
