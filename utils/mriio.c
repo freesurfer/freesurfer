@@ -670,13 +670,7 @@ MRI *MRIread(char *fname)
   if (mri==NULL) 
     return NULL;
 
-  if (mri->depth==1)
-  {
-		/*    MRIfree(&mri);*/
-    ErrorPrintf(ERROR_BADPARM, 
-                       "Read one slice only. Did you put all the slices in the same directory?");
-  }
-	return(mri);
+  return(mri);
 
 } /* end MRIread() */
 
@@ -1786,6 +1780,7 @@ static MRI *mincRead(char *fname, int read_volume)
   dim_names[0] = MIxspace;
   dim_names[1] = MIyspace;
   dim_names[2] = MIzspace;
+  dim_names[3] = MItime;
 
 #if 0
   dim_names[0] = MIzspace;
