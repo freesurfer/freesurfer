@@ -47,12 +47,15 @@ int main(int argc, char *argv[])
   cout << "num faces   : " << mris->nfaces << endl;
   cout << "num stripgs : " << mris->nstrips << endl;
   cout << "ctr         : (" << mris->xctr << ", " << mris->yctr << ", " << mris->zctr << ")" << endl;
-  cout << "talairch.xfm: " << endl;
-  MatrixPrint(stdout, mris->lta->xforms[0].m_L);
-  cout << "surfaceRAS to talaraiched surfaceRAS: " << endl;
-  MatrixPrint(stdout, mris->SRASToTalSRAS_);
-  cout << "talairached surfaceRAS to surfaceRAS: " << endl;
-  MatrixPrint(stdout, mris->TalSRASToSRAS_);
+  if (mris->lta)
+  {
+    cout << "talairch.xfm: " << endl;
+    MatrixPrint(stdout, mris->lta->xforms[0].m_L);
+    cout << "surfaceRAS to talaraiched surfaceRAS: " << endl;
+    MatrixPrint(stdout, mris->SRASToTalSRAS_);
+    cout << "talairached surfaceRAS to surfaceRAS: " << endl;
+    MatrixPrint(stdout, mris->TalSRASToSRAS_);
+  }
   vg_print(&mris->vg); 
 
   MRISfree(&mris);
