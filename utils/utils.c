@@ -78,11 +78,18 @@ double drand48(void) ;
     Return Values:
         nothing.
 ------------------------------------------------------------------------*/
+static long idum = 0L ;
+int
+setRandomSeed(long seed)
+{
+  idum = seed ;
+  return(NO_ERROR) ;
+}
+
 double
 randomNumber(double low, double hi)
 {
   double val, range ;
-  static long idum = -1L ;
 
   if (low > hi)
   {
@@ -91,7 +98,7 @@ randomNumber(double low, double hi)
     hi = val ;
   }
 
-  if (idum <= 0L)     /* change seed from run to run */
+  if (idum == 0L)     /* change seed from run to run */
     idum = -1L * (long)(abs((int)time(NULL))) ; 
 
   range = hi - low ;

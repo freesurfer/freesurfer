@@ -85,6 +85,7 @@ main(int argc, char *argv[])
   TRANSFORM    *transform = NULL ;
 
 
+  setRandomSeed(-1L) ;
   Progname = argv[0] ;
 
   DiagInit(NULL, NULL, NULL) ;

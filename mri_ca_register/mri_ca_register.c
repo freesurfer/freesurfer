@@ -105,6 +105,7 @@ main(int argc, char *argv[])
   parms.exp_k = 20 ;
 
   Progname = argv[0] ;
+  setRandomSeed(-1L) ;
 
   DiagInit(NULL, NULL, NULL) ;
   ErrorInit(NULL, NULL, NULL) ;
