@@ -9,6 +9,7 @@
 #define GE_COMPRESSION_COMPRESSED_AND_PACKED 4
 
 int string_to_type(char *string);
+char *type_to_string(int type);
 
 int mri_identify(char *fname);
 
