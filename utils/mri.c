@@ -8,10 +8,10 @@
  *
  */
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2005/01/28 20:30:49 $
-// Revision       : $Revision: 1.291 $
-char *MRI_C_VERSION = "$Revision: 1.291 $";
+// Revision Author: $Author: fischl $
+// Revision Date  : $Date: 2005/01/29 00:58:35 $
+// Revision       : $Revision: 1.292 $
+char *MRI_C_VERSION = "$Revision: 1.292 $";
 
 /*-----------------------------------------------------
   INCLUDE FILES
@@ -3675,18 +3675,20 @@ MRI * MRIadd(MRI *mri1, MRI *mri2, MRI *mri_dst)
     MRIcopyHeader(mri1, mri_dst) ;
   }
 
-  if(mri1->type != mri2->type){
+  if(mri1->type == MRI_UCHAR || (mri1->type != mri2->type)){
     /* Generic but slow */
     for (f = 0 ; f < nframes ; f++){
       for (z = 0 ; z < depth ; z++){
-	for (y = 0 ; y < height ; y++){
-	  for (x = 0 ; x < width ; x++){
-	    v1 = MRIgetVoxVal(mri1,x,y,z,f);
-	    v2 = MRIgetVoxVal(mri2,x,y,z,f);
-	    v = v1+v2;
-	    MRIsetVoxVal(mri_dst,x,y,z,f,v);
-	  }
-	}
+				for (y = 0 ; y < height ; y++){
+					for (x = 0 ; x < width ; x++){
+						v1 = MRIgetVoxVal(mri1,x,y,z,f);
+						v2 = MRIgetVoxVal(mri2,x,y,z,f);
+						v = v1+v2;
+						if (mri_dst->type == MRI_UCHAR && v > 255)
+							v = 255 ;
+						MRIsetVoxVal(mri_dst,x,y,z,f,v);
+					}
+				}
       }
     }
     return(mri_dst) ;
@@ -11669,7 +11671,9 @@ void MRIcalcCRASforHiresVolume(MRI *hires, MRI *lowres, MATRIX *vox_xform, Real 
 // Just rotating the original volume make the non-zero voxels go
 // outside of the rotated volume.  This routine will keep the
 // center of the rotated volume at the right location.
-MRI *MRIsrcTransformedCentered(MRI *src, MRI *dst, MATRIX *stod_voxtovox)
+MRI *
+MRIsrcTransformedCentered(MRI *src, MRI *dst, MATRIX *stod_voxtovox,
+													int interp_method)
 {
   Real cr, ca, cs;
   MRI *rotated;
@@ -11698,6 +11702,6 @@ MRI *MRIsrcTransformedCentered(MRI *src, MRI *dst, MATRIX *stod_voxtovox)
   //
   tmp = MatrixMultiply(rotated->r_to_i__, dst->i_to_r__, NULL);
   stosrotVox = MatrixMultiply(tmp, stod_voxtovox, NULL);
-  MRIlinearTransformInterp(src, rotated, stosrotVox, SAMPLE_NEAREST);
+  MRIlinearTransformInterp(src, rotated, stosrotVox, interp_method);
   return rotated;
 }
