@@ -202,7 +202,7 @@ classify_all(RBF *rbf, FILE *fp)
   float  sse, error, rms ;
 
   v_obs = VectorAlloc(NINPUTS, MATRIX_REAL) ;
-  v_error = VectorAlloc(NINPUTS, MATRIX_REAL) ;
+  v_error = VectorAlloc(nclasses, MATRIX_REAL) ;
 
   fprintf(stderr, "classifying inputs...\n") ;
   obs_no = 0 ;
