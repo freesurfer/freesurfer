@@ -127,6 +127,7 @@ int   MRIcopyHeader(MRI *mri_src, MRI *mri_dst) ;
 MRI   *MRIcopy(MRI *mri_src, MRI *mri_dst) ;
 MRI   *MRIreslice(MRI *mri_src, MRI *mri_dst, int slice_direction) ;
 int   MRIboundingBox(MRI *mri, int thresh, MRI_REGION *region) ;
+int   MRIboundingBoxNbhd(MRI *mri, int thresh, int wsize,MRI_REGION *region) ;
 
 /* coordinate transforms */
 MRI   *MRItranslate(MRI *mri_src, MRI *mri_dst, double dx, double dy, double dz) ;
@@ -160,7 +161,7 @@ MRI   *MRIscalarMul(MRI *mri_src, MRI *mri_dst, float scalar) ;
 
 /* filtering */
 int   MRIcpolvAllQuadrantsFilled(MRI *mri, int x, int y, int z,int vertex,
-																 int wsize) ;
+                                 int wsize) ;
 MRI   *MRIremoveIslands(MRI *mri_src, MRI*mri_dst, int wsize, int thresh) ;
 MRI   *MRIresegmentThinWMStrands(MRI *mri_src, MRI *mri_dst, int thickness);
 MRI   *MRIthickenThinWMStrands(MRI *mri_src, MRI *mri_dst, int thickness,
