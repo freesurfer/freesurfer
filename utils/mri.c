@@ -2551,6 +2551,8 @@ MRIthresholdRangeInto(MRI *mri_src,MRI *mri_dst,BUFTYPE low_val,BUFTYPE hi_val)
           val = *psrc++ ;
           if (val >=  low_val && val <= hi_val)
             *pdst = val ;
+          else
+            *pdst = 0 ;
         }
       }
     }
@@ -2567,6 +2569,8 @@ MRIthresholdRangeInto(MRI *mri_src,MRI *mri_dst,BUFTYPE low_val,BUFTYPE hi_val)
           fval = *pfsrc++ ;
           if (fval >=  low_val && fval <= hi_val)
             *pfdst = fval ;
+          else
+            *pfdst = 0 ;
         }
       }
     }
