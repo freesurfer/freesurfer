@@ -64,7 +64,7 @@ typedef struct {
   float mMaxValue, mMinValue;
 
   // optional values that may not be used in every volume.
-  int mTimeResolution;                 // num seconds between time points.
+  float mTimeResolution;               // num seconds between time points.
   int mNumPreStimTimePoints;           // num of time points before stimuleus
   int mNumDataValues;                  // num of data points
 
@@ -204,15 +204,15 @@ FunD_tErr FunD_GetDeviationForAllTimePoints ( mriFunctionalDataRef this,
               resolution */
 FunD_tErr FunD_ConvertTimePointToSecond ( mriFunctionalDataRef this,
             int                  inTimePoint,
-            int*                 outSecond );
+            float*               outSecond );
 FunD_tErr FunD_ConvertSecondToTimePoint ( mriFunctionalDataRef this,
-            int                  inSecond,
+            float                inSecond,
             int*                 outTimePoint );
 
                                    /* setting these values changes the way
               time points are converted to seconds. */
 FunD_tErr FunD_SetTimeResolution       ( mriFunctionalDataRef this, 
-           int                  inTimeRes );
+           float                inTimeRes );
 FunD_tErr FunD_SetNumPreStimTimePoints ( mriFunctionalDataRef this,
            int                  inNumPoints );
 
@@ -234,7 +234,7 @@ FunD_tErr FunD_GetNumTimePoints        ( mriFunctionalDataRef this,
 FunD_tErr FunD_GetNumConditions        ( mriFunctionalDataRef this, 
            int*                 out );
 FunD_tErr FunD_GetTimeResolution       ( mriFunctionalDataRef this, 
-           int*                 out );
+           float*               out );
 FunD_tErr FunD_GetNumPreStimTimePoints ( mriFunctionalDataRef this, 
            int*                 out );
 FunD_tErr FunD_GetNumDataValues        ( mriFunctionalDataRef this, 
@@ -286,12 +286,12 @@ void FunD_ConvertFuncIdxToFuncRAS ( mriFunctionalDataRef this,
               coordinates and an index into the
               storage array. */
 inline int FunD_CoordsToIndex  ( mriFunctionalDataRef this,
-        xVoxelRef             inFunctionalVoxel,
+         xVoxelRef            inFunctionalVoxel,
          int                  inConditionIndex, 
          int                  inTimePoint );
 inline void FunD_IndexToCoords ( mriFunctionalDataRef this,
          int                  inIndex,
-        xVoxelRef             outFunctionVoxel,
+         xVoxelRef            outFunctionVoxel,
          int*                 outConditionIndex, 
          int*                 outTimePoint );
              
@@ -340,11 +340,11 @@ FunD_tErr  FunD_AssertIsValid ( mriFunctionalDataRef this );
 
                                    /* bounds checking */
 tBoolean FunD_IsTimeResolutionValid       ( mriFunctionalDataRef this, 
-              int                  inTimeRes );
+              float                inTimeRes );
 tBoolean FunD_IsNumPreStimTimePointsValid ( mriFunctionalDataRef this, 
-              int                  inNumPoints );
+              int                inNumPoints );
 tBoolean FunD_IsFunctionalVoxelValid      ( mriFunctionalDataRef this,
-             xVoxelRef             inVoxel );
+              xVoxelRef             inVoxel );
 tBoolean FunD_IsConditionIndexValid       ( mriFunctionalDataRef this, 
               int            inConditionIndex );
 tBoolean FunD_IsTimePointValid            ( mriFunctionalDataRef this, 

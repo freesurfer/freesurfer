@@ -210,7 +210,7 @@ FunV_tErr FunV_IsOverlayCacheLoaded ( tkmFunctionalVolumeRef this,
 /* settors. these check values and if valid, sets internal vars. generates
    proper update msgs for tcl */
 FunV_tErr FunV_SetTimeResolution   ( tkmFunctionalVolumeRef this,
-             int                    inTimeResolution );
+             float                  inTimeResolution );
 FunV_tErr FunV_SetNumPreStimPoints ( tkmFunctionalVolumeRef this,
              int                    inNumPoints );
 FunV_tErr FunV_SetTimeSecond       ( tkmFunctionalVolumeRef this,
@@ -318,6 +318,10 @@ FunV_tErr FunV_SendGraphErrorBars_ ( tkmFunctionalVolumeRef this,
              int                    inCondition,
              int                    inNumValues,
              float*                 iafBars );
+
+/* manually set the location string in the graph */
+FunV_tErr FunV_SetLocationString ( tkmFunctionalVolumeRef this,
+           char*                  isLabel );
 
 /* gets value at a point and then selects all voxels around it with a
    value >= to the starting value. */

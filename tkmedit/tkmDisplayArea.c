@@ -1143,6 +1143,7 @@ DspA_tErr DspA_SetZoomLevel ( tkmDisplayAreaRef this,
     goto error;
 
   /* verify the zoom level. */
+  nNewLevel = this->mnZoomLevel;
   if( inLevel >= DspA_knMinZoomLevel 
        && inLevel <= DspA_knMaxZoomLevel ) {
     nNewLevel = inLevel;
@@ -2838,6 +2839,15 @@ DspA_tErr DspA_HandleKeyDown_ ( tkmDisplayAreaRef this,
     }
     break;
 
+  case 'g':
+
+    /* g sets tool to edit segmentation */
+    eResult = DspA_SetTool( this, DspA_tTool_EditParcellation );
+    if ( DspA_tErr_NoErr != eResult )
+      goto error;
+
+    break;
+
   case 'h':
 
     FunV_UseOverlayCache( this->mpFunctionalVolume, 
@@ -3260,6 +3270,36 @@ DspA_tErr DspA_SelectCurrentROI ( tkmDisplayAreaRef this ) {
   /* print error message */
   if ( DspA_tErr_NoErr != eResult ) {
     DebugPrint( ("Error %d in DspA_SelectCurrentROI: %s\n",
+      eResult, DspA_GetErrorString(eResult) ) );
+  }
+
+ cleanup:
+
+  return eResult;
+}
+
+DspA_tErr DspA_GraphCurrentROIAvg ( tkmDisplayAreaRef this ) {
+
+  DspA_tErr eResult = DspA_tErr_NoErr;
+
+  /* verify us. */
+  eResult = DspA_Verify ( this );
+  if ( DspA_tErr_NoErr != eResult )
+    goto error;
+
+  /* if we have the data and our index is good, tell tkmedit to handle it */
+  if( NULL != this->mROIGroup
+      && -1 != this->mnROIGroupIndex ) {
+    tkm_GraphCurrentROIAvg( this->mnROIGroupIndex );
+  }
+
+  goto cleanup;
+
+ error:
+
+  /* print error message */
+  if ( DspA_tErr_NoErr != eResult ) {
+    DebugPrint( ("Error %d in DspA_GraphCurrentROIAvg: %s\n",
       eResult, DspA_GetErrorString(eResult) ) );
   }
 
@@ -5385,6 +5425,7 @@ DspA_tErr DspA_SendPointInformationToTcl_ ( tkmDisplayAreaRef this,
   xVoxel                funcRAS;
   FunV_tFunctionalValue funcValue          = 0;
   tBoolean              bFuncSelection     = FALSE;
+  int                   nROIIndex          = 0;
   char                  sLabel[256]        = "";
   int                   nValue             = 0;
 
@@ -5482,16 +5523,25 @@ DspA_tErr DspA_SendPointInformationToTcl_ ( tkmDisplayAreaRef this,
       sTclArguments );
   }
   
-  /* and the roi label if it's on */
-  if( this->mabDisplayFlags[DspA_tDisplayFlag_ROIGroupOverlay] 
-      && NULL != this->mROIGroup ) {
-    tkm_GetROILabel( iAnaIdx, &this->mnROIGroupIndex, sLabel );
+  /* and the roi label if we have one */
+  if( NULL != this->mROIGroup ) {
+    tkm_GetROILabel( iAnaIdx, &nROIIndex, sLabel );
+
+    /* if this is a click, set the index */
+    if( DspA_tDisplaySet_Cursor == iSet ) {
+      this->mnROIGroupIndex = nROIIndex;
+    }
+
+    /* if this is a click with the edit tool and the volume count flag is
+       on, calc and display the volume */
     if( DspA_tDisplaySet_Cursor == iSet &&
   DspA_tTool_EditParcellation == sTool &&
   this->mabDisplayFlags[DspA_tDisplayFlag_ROIVolumeCount] ) {
       tkm_CalcROIVolume( iAnaIdx, &nValue );
       sprintf( sTclArguments, "%s \"%s (%d)\"",
          DspA_ksaDisplaySet[iSet], sLabel, nValue );
+
+      /* else just the label */
     } else {
       sprintf( sTclArguments, "%s \"%s\"",
          DspA_ksaDisplaySet[iSet], sLabel );

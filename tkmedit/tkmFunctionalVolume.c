@@ -10,7 +10,7 @@
 #define ksDir_LibraryPath          getenv ( "MRI_DIR" )
 #define ksDir_LibrarySubPath       "/lib/tcl/"
 
-#define knLengthOfGraphDataItem              16 // for "100 1000.12345 "
+#define knLengthOfGraphDataItem              18 // for "100.1 1000.12345 "
 #define knLengthOfGraphDataHeader            20 // for header + cond + {}
 #define knMaxCommandLength                   50
 
@@ -857,11 +857,11 @@ FunV_tErr FunV_IsTimeCoursePresent ( tkmFunctionalVolumeRef this,
 
 
 FunV_tErr FunV_SetTimeResolution ( tkmFunctionalVolumeRef this,
-           int                    inTimeResolution ) {
-
+           float                  inTimeResolution ) {
+  
   FunV_tErr         eResult            = FunV_tErr_NoError;
-  FunD_tErr  eVolume            = FunD_tErr_NoError;
-  int               nTimeRes           = 0;
+  FunD_tErr         eVolume            = FunD_tErr_NoError;
+  float             nTimeRes           = 0;
   char              sTclArguments[256] = "";
 
   /* verify us */
@@ -871,7 +871,7 @@ FunV_tErr FunV_SetTimeResolution ( tkmFunctionalVolumeRef this,
 
   /* set value in volume */
   eVolume = FunD_SetTimeResolution( this->mpTimeCourseVolume,
-              inTimeResolution );
+            inTimeResolution );
   if( FunD_tErr_NoError != eVolume 
       && FunD_tErr_InvalidTimeResolution != eVolume ) {
     eResult = FunV_tErr_ErrorAccessingInternalVolume;
@@ -880,7 +880,7 @@ FunV_tErr FunV_SetTimeResolution ( tkmFunctionalVolumeRef this,
 
   /* get the new time res. */
   eVolume = FunD_GetTimeResolution( this->mpTimeCourseVolume,
-              &nTimeRes );
+            &nTimeRes );
   if( FunD_tErr_NoError != eVolume ) {
     eResult = FunV_tErr_ErrorAccessingInternalVolume;
     goto error;
@@ -888,13 +888,14 @@ FunV_tErr FunV_SetTimeResolution ( tkmFunctionalVolumeRef this,
 
   /* if they weren't equal, display an error message. */
   if( nTimeRes != inTimeResolution ) {
-    sprintf( sTclArguments, "\"%d is not a valid time resolution.\"", inTimeResolution );
+    sprintf( sTclArguments, "\"%f is not a valid time resolution.\"", 
+       inTimeResolution );
     FunV_SendTkmeditTclCommand_( this, tkm_tTclCommand_ErrorDlog,
          sTclArguments );
   }
 
   /* send the new value to tcl */
-  sprintf( sTclArguments, "%d", nTimeRes );
+  sprintf( sTclArguments, "%f", nTimeRes );
   FunV_SendTclCommand_( this, FunV_tTclCommand_TC_UpdateTimeResolution,
       sTclArguments );
   
@@ -943,7 +944,7 @@ FunV_tErr FunV_SetNumPreStimPoints ( tkmFunctionalVolumeRef this,
 
   /* get the new num pts. */
   eVolume = FunD_GetNumPreStimTimePoints( this->mpTimeCourseVolume,
-              &nNumPreStimPoints );
+            &nNumPreStimPoints );
   if( FunD_tErr_NoError != eVolume ) {
     eResult = FunV_tErr_ErrorAccessingInternalVolume;
     goto error;
@@ -1031,10 +1032,10 @@ FunV_tErr FunV_SetTimeSecond ( tkmFunctionalVolumeRef this,
 
 FunV_tErr FunV_SetTimePoint ( tkmFunctionalVolumeRef this,
             int                    inTimePoint ) {
-
+  
   FunV_tErr         eResult            = FunV_tErr_NoError;
-  FunD_tErr  eVolume            = FunD_tErr_NoError;
-  int               nSecond            = 0;
+  FunD_tErr         eVolume            = FunD_tErr_NoError;
+  float             fSecond            = 0;
   int               nNumTimePoints     = 0;
   char              sTclArguments[256] = "";
 
@@ -1065,12 +1066,12 @@ FunV_tErr FunV_SetTimePoint ( tkmFunctionalVolumeRef this,
   }
  
 
-  /* convert to a second */
-  eVolume = FunD_ConvertTimePointToSecond( this->mpOverlayVolume,
-               this->mnTimePoint, &nSecond );
+  /* convert to a second in the time course volume */
+  eVolume = FunD_ConvertTimePointToSecond( this->mpTimeCourseVolume,
+             this->mnTimePoint, &fSecond );
 
   /* send the new value to tcl */
-  sprintf( sTclArguments, "%d %d", this->mnTimePoint, nSecond );
+  sprintf( sTclArguments, "%d %f", this->mnTimePoint, fSecond );
   FunV_SendTclCommand_( this, FunV_tTclCommand_Ol_UpdateTimePoint, 
       sTclArguments );
  
@@ -2512,17 +2513,14 @@ FunV_tErr FunV_SendGraphData_ ( tkmFunctionalVolumeRef this,
         int                    inCondition,
         int                    inNumValues,
         float*                 iafValues ) {
-
+  
   FunV_tErr        eResult       = FunV_tErr_NoError;
   char*            sTclArguments = NULL;
   int              nTimePoint    = 0;
-  int              nTimeSecond   = 0;
-  FunD_tErr eVolume       = FunD_tErr_NoError;
+  float            fTimeSecond   = 0;
+  FunD_tErr        eVolume       = FunD_tErr_NoError;
 
-  /* allocate the argument string.  we limit the float to print .5, so 
-     allocate 10 + two spaces + 3 chars for index per value so we can 
-     handle an entry like '100 1234.12345 ' and then another few for 
-     the braces. */
+  /* allocate the argument string.  */
   sTclArguments = (char*) malloc( sizeof(char) *
           ((inNumValues * knLengthOfGraphDataItem) +
            knLengthOfGraphDataHeader) );
@@ -2539,11 +2537,11 @@ FunV_tErr FunV_SendGraphData_ ( tkmFunctionalVolumeRef this,
 
     /* convert to a second. */
     eVolume = FunD_ConvertTimePointToSecond( this->mpTimeCourseVolume,
-                 nTimePoint, &nTimeSecond );
+               nTimePoint, &fTimeSecond );
 
     /* write the second and value to the arg list */
-    sprintf( sTclArguments, "%s %d %2.5f", sTclArguments,
-       nTimeSecond, iafValues[nTimePoint] );
+    sprintf( sTclArguments, "%s %1.1f %2.5f", sTclArguments,
+       fTimeSecond, iafValues[nTimePoint] );
   }
 
   /* write the last brace */
@@ -2579,10 +2577,7 @@ FunV_tErr FunV_SendGraphErrorBars_ ( tkmFunctionalVolumeRef this,
   char*     sTclArguments = NULL;
   int       nTimePoint    = 0;
 
-  /* allocate the argument string.  we limit the float to print .5, so 
-     allocate 10 + two spaces + 3 chars for index per value so we can 
-     handle an entry like '100 1234.12345 ' and then another few for 
-     the braces. */
+  /* allocate the argument string. */
   sTclArguments = (char*) malloc( sizeof(char) *
           ((inNumValues * knLengthOfGraphDataItem) +
            knLengthOfGraphDataHeader) );
@@ -2820,6 +2815,47 @@ FunV_tErr FunV_CalcTimeCourseAverages_ ( tkmFunctionalVolumeRef this,
   /* dispose of float arrays */
   if( NULL != afSums )
     free( afSums );
+
+  return eResult;
+}
+
+FunV_tErr FunV_SetLocationString ( tkmFunctionalVolumeRef this,
+           char*                  isLabel ) {
+
+   FunV_tErr eResult                        = FunV_tErr_NoError;
+   char      sTclArguments[tkm_knTclCmdLen] = "";
+
+   /* verify us */
+   eResult = FunV_Verify( this );
+   if( FunV_tErr_NoError != eResult )
+    goto error;
+
+   /* check the label */
+   if( NULL == isLabel ) {
+     eResult = FunV_tErr_InvalidParameter;
+     goto error;
+   }
+   
+   /* check the graph */
+   if( !this->mbGraphInited )
+     goto cleanup;
+
+   /* set the label */
+   xUtil_strncpy( sTclArguments, isLabel, sizeof(sTclArguments) );
+   FunV_SendTclCommand_( this, FunV_tTclCommand_TC_UpdateLocationName,
+       sTclArguments );    
+
+   goto cleanup;
+
+   error:
+
+  /* print error message */
+  if( FunV_tErr_NoError != eResult ) {
+    DebugPrint( ("Error %d in FunV_SetLocationString_: %s\n",
+      eResult, FunV_GetErrorString(eResult) ) );
+  }
+
+ cleanup:
 
   return eResult;
 }
@@ -3099,9 +3135,31 @@ void FunV_SelectAnaVoxelsByFuncValueIter_ ( tkmFunctionalVolumeRef this,
   iParams->mnTotalSelected++;
 
   /* check the surrounding voxels */
-  for( nZ = xVoxl_GetZ(iAnaIdx)-1; nZ <= xVoxl_GetZ(iAnaIdx)+1; nZ++ ) {
-    for( nY = xVoxl_GetY(iAnaIdx)-1; nY <= xVoxl_GetY(iAnaIdx)+1; nY++ ) {
-      for( nX = xVoxl_GetX(iAnaIdx)-1; nX <= xVoxl_GetX(iAnaIdx)+1; nX++ ) {
+  for( nZ = xVoxl_GetZ(iAnaIdx)-1; nZ <= xVoxl_GetZ(iAnaIdx)+1; nZ+=2 ) {
+    xVoxl_Copy( &anaIdx, iAnaIdx );
+    xVoxl_SetZ( &anaIdx, nZ );
+    if( tkm_IsValidAnaIdx( tkm_tVolumeType_Main, &anaIdx ) ) {
+      FunV_SelectAnaVoxelsByFuncValueIter_( this, &anaIdx, iParams, iVisited );
+    }
+  }
+  for( nY = xVoxl_GetY(iAnaIdx)-1; nY <= xVoxl_GetY(iAnaIdx)+1; nY+=2 ) {
+    xVoxl_Copy( &anaIdx, iAnaIdx );
+    xVoxl_SetY( &anaIdx, nY );
+    if( tkm_IsValidAnaIdx( tkm_tVolumeType_Main, &anaIdx ) ) {
+      FunV_SelectAnaVoxelsByFuncValueIter_( this, &anaIdx, iParams, iVisited );
+    }
+  }
+  for( nX = xVoxl_GetX(iAnaIdx)-1; nX <= xVoxl_GetX(iAnaIdx)+1; nX+=2 ) {
+    xVoxl_Copy( &anaIdx, iAnaIdx );
+    xVoxl_SetX( &anaIdx, nX );
+    if( tkm_IsValidAnaIdx( tkm_tVolumeType_Main, &anaIdx ) ) {
+      FunV_SelectAnaVoxelsByFuncValueIter_( this, &anaIdx, iParams, iVisited );
+    }
+  }
+#if 0
+  for( nZ = xVoxl_GetZ(iAnaIdx)-1; nZ <= xVoxl_GetZ(iAnaIdx)+1; nZ+=2 ) {
+    for( nY = xVoxl_GetY(iAnaIdx)-1; nY <= xVoxl_GetY(iAnaIdx)+1; nY+=2 ) {
+      for( nX = xVoxl_GetX(iAnaIdx)-1; nX <= xVoxl_GetX(iAnaIdx)+1; nX+=2 ) {
   xVoxl_Set( &anaIdx, nX, nY, nZ );
   if( tkm_IsValidAnaIdx( tkm_tVolumeType_Main, &anaIdx ) ) {
     FunV_SelectAnaVoxelsByFuncValueIter_( this, &anaIdx, 
@@ -3110,7 +3168,7 @@ void FunV_SelectAnaVoxelsByFuncValueIter_ ( tkmFunctionalVolumeRef this,
       }
     }
   }
-
+#endif
  cleanup:
 
   iParams->mnIterationCount--;
@@ -3580,7 +3638,7 @@ int FunV_TclTCSetTimeResolution ( ClientData iClientData,
 
   tkmFunctionalVolumeRef this         = NULL;
   FunV_tErr              eResult      = FunV_tErr_NoError;
-  int                    nTimeRes     = 0;
+  float                  fTimeRes     = 0;
   int                    eTclResult   = TCL_OK;
   char                   sError[256]  = "";       
 
@@ -3599,8 +3657,8 @@ int FunV_TclTCSetTimeResolution ( ClientData iClientData,
   }
 
   /* parse args */
-  nTimeRes = atoi( argv[1] );
-  eResult = FunV_SetTimeResolution( this, nTimeRes );
+  fTimeRes = atof( argv[1] );
+  eResult = FunV_SetTimeResolution( this, fTimeRes );
   if( FunV_tErr_NoError != eResult )
     goto error;
 
@@ -3725,6 +3783,7 @@ FunV_tErr FunV_SendViewStateToTcl ( tkmFunctionalVolumeRef this ) {
   FunV_tErr  eResult            = FunV_tErr_NoError;
   xList_tErr eList             = xList_tErr_NoErr;
   int        nValue             = 0;
+  float      fValue             = 0;
   int        nFlag              = 0;
   char       sValue[256]        = "";
   char       sValue2[256]       = "";
@@ -3774,8 +3833,8 @@ FunV_tErr FunV_SendViewStateToTcl ( tkmFunctionalVolumeRef this ) {
     /* send the current time point */
     sprintf( sTclArguments, "%d", this->mnTimePoint );
     FunD_ConvertTimePointToSecond( this->mpOverlayVolume,
-             this->mnTimePoint, &nValue );
-    sprintf( sTclArguments, "%s %d", sTclArguments, nValue );
+           this->mnTimePoint, &fValue );
+    sprintf( sTclArguments, "%s %f", sTclArguments, fValue );
     FunV_SendTclCommand_( this, FunV_tTclCommand_Ol_UpdateTimePoint,
         sTclArguments );
     
@@ -3783,7 +3842,7 @@ FunV_tErr FunV_SendViewStateToTcl ( tkmFunctionalVolumeRef this ) {
     sprintf( sTclArguments, "%d", this->mnCondition );
     FunV_SendTclCommand_( this, FunV_tTclCommand_Ol_UpdateCondition,
         sTclArguments );
-
+    
     /* send the threshold data */
     sprintf( sTclArguments, "%f %f %f",
        (float)(this->mThresholdMin),
@@ -3815,8 +3874,8 @@ FunV_tErr FunV_SendViewStateToTcl ( tkmFunctionalVolumeRef this ) {
         sTclArguments );
     
     /* send the time resolution */
-    FunD_GetTimeResolution( this->mpTimeCourseVolume, &nValue );
-    sprintf( sTclArguments, "%d", nValue );
+    FunD_GetTimeResolution( this->mpTimeCourseVolume, &fValue );
+    sprintf( sTclArguments, "%f", fValue );
     FunV_SendTclCommand_( this, FunV_tTclCommand_TC_UpdateTimeResolution,
         sTclArguments );
     

@@ -362,6 +362,9 @@ void DspA_EditParcellationVoxels_ ( xVoxelRef ipVoxel, void* );
 /* select the currently clicked roi */
 DspA_tErr DspA_SelectCurrentROI ( tkmDisplayAreaRef this );
 
+/* graph the avg of the currently clicked roi */
+DspA_tErr DspA_GraphCurrentROIAvg ( tkmDisplayAreaRef this );
+
 /* gets current mouse position, translates to volume idx, and sends
    info to tcl as mouseover info. */
 DspA_tErr DspA_SendMouseInfoToTcl ( tkmDisplayAreaRef this );

@@ -253,6 +253,7 @@ FunD_tErr FunD_GuessStem ( char* inPathName, char* outStem ) {
 FunD_tErr FunD_ParseStemHeader ( mriFunctionalDataRef this ) {
 
   FunD_tErr eResult        = FunD_tErr_NoError;
+  float     fPreStimSecs   = 0;
   FILE*     pHeader        = NULL;
   char      sFileName[256] = "";
   tBoolean  bGood          = FALSE;
@@ -286,11 +287,11 @@ FunD_tErr FunD_ParseStemHeader ( mriFunctionalDataRef this ) {
 
     /* look at the keyword */
     if( strcmp( sKeyword, "TER" ) == 0 ) { 
-      nValuesRead = fscanf( pHeader, "%d", &this->mTimeResolution );
+      nValuesRead = fscanf( pHeader, "%f", &this->mTimeResolution );
       bGood = (1 == nValuesRead);
 
     } else if( strcmp( sKeyword, "TPreStim" ) == 0 ) { 
-      nValuesRead = fscanf( pHeader, "%d", &this->mNumPreStimTimePoints );
+      nValuesRead = fscanf( pHeader, "%f", &fPreStimSecs );
       bGood = (1 == nValuesRead);
 
     } else if( strcmp( sKeyword, "nCond" ) == 0 ) { 
@@ -344,7 +345,7 @@ FunD_tErr FunD_ParseStemHeader ( mriFunctionalDataRef this ) {
 
   /* divide the num prestim points by the time res. do it here because
      we might not have gotten the timeres when we red TPreStim up there. */
-  this->mNumPreStimTimePoints /= this->mTimeResolution;
+  this->mNumPreStimTimePoints = fPreStimSecs / this->mTimeResolution;
 
   // in this format we have error data.
   this->mIsErrorDataPresent = TRUE;
@@ -393,7 +394,7 @@ FunD_tErr FunD_ParseBFileHeader ( mriFunctionalDataRef this ) {
   // other time data.
   this->mNumConditions = 1;
   this->mNumPreStimTimePoints = 0;
-  this->mTimeResolution = 1;
+  this->mTimeResolution = 1.0;
   this->mIsErrorDataPresent = FALSE;
   this->mCovMtx = NULL;
   
@@ -1162,10 +1163,11 @@ FunD_tErr FunD_GetDeviationForAllTimePoints
 
 
 FunD_tErr FunD_ConvertTimePointToSecond ( mriFunctionalDataRef this,
-               int inTimePoint,
-               int* outSecond ) {
+            int inTimePoint,
+            float* outSecond ) {
 
-  int theTimeResolution, theFirstTimePoint;
+  float theTimeResolution;
+  float theFirstTimePoint;
   FunD_tErr theErr;
   
   // make sure we're valid.
@@ -1175,17 +1177,16 @@ FunD_tErr FunD_ConvertTimePointToSecond ( mriFunctionalDataRef this,
 
   // calc the time second
   theTimeResolution = this->mTimeResolution;
-  theFirstTimePoint = -(this->mNumPreStimTimePoints
-      * theTimeResolution); 
+  theFirstTimePoint = -((float)(this->mNumPreStimTimePoints) *
+      theTimeResolution); 
   *outSecond = theFirstTimePoint + (inTimePoint* theTimeResolution);
  
-
   return FunD_tErr_NoError;
 }
 
 FunD_tErr FunD_ConvertSecondToTimePoint ( mriFunctionalDataRef this,
-               int inSecond,
-               int* outTimePoint ) {
+            float inSecond,
+            int* outTimePoint ) {
 
   FunD_tErr theErr;
   
@@ -1201,7 +1202,8 @@ FunD_tErr FunD_ConvertSecondToTimePoint ( mriFunctionalDataRef this,
   return FunD_tErr_NoError;
 }
 
-FunD_tErr FunD_SetTimeResolution ( mriFunctionalDataRef this, int inTimeRes ) {
+FunD_tErr FunD_SetTimeResolution ( mriFunctionalDataRef this, 
+           float inTimeRes ) {
 
   FunD_tErr theErr;
   
@@ -1220,7 +1222,7 @@ FunD_tErr FunD_SetTimeResolution ( mriFunctionalDataRef this, int inTimeRes ) {
 }
 
 FunD_tErr FunD_SetNumPreStimTimePoints ( mriFunctionalDataRef this,
-              int inNumPoints ) {
+           int inNumPoints ) {
 
   FunD_tErr theErr;
   
@@ -1380,7 +1382,7 @@ FunD_tErr FunD_GetNumConditions ( mriFunctionalDataRef this, int* out ) {
   return FunD_tErr_NoError;
 }
 
-FunD_tErr FunD_GetTimeResolution ( mriFunctionalDataRef this, int* out ) {
+FunD_tErr FunD_GetTimeResolution ( mriFunctionalDataRef this, float* out ) {
 
   FunD_tErr theErr;
   
@@ -1394,7 +1396,8 @@ FunD_tErr FunD_GetTimeResolution ( mriFunctionalDataRef this, int* out ) {
   return FunD_tErr_NoError;
 }
 
-FunD_tErr FunD_GetNumPreStimTimePoints ( mriFunctionalDataRef this, int* out ) {
+FunD_tErr FunD_GetNumPreStimTimePoints ( mriFunctionalDataRef this, 
+           int* out ) {
 
   FunD_tErr theErr;
   
@@ -1589,8 +1592,8 @@ static xVoxel sCoord1;
 static xVoxel sCoord2;
 
 void FunD_ConvertAnaIdxToFuncIdx ( mriFunctionalDataRef this,
-            xVoxelRef inAnaIdx,
-            xVoxelRef outFuncIdx ) {
+           xVoxelRef inAnaIdx,
+           xVoxelRef outFuncIdx ) {
 
   Trns_tErr eTransform = Trns_tErr_NoErr;
 
@@ -1607,8 +1610,8 @@ void FunD_ConvertAnaIdxToFuncIdx ( mriFunctionalDataRef this,
 }
 
 void FunD_ConvertFuncIdxToAnaIdx ( mriFunctionalDataRef this,
-            xVoxelRef inFuncIdx,
-            xVoxelRef outAnaIdx ) {
+           xVoxelRef inFuncIdx,
+           xVoxelRef outAnaIdx ) {
 
   Trns_tErr eTransform = Trns_tErr_NoErr;
 
@@ -1804,8 +1807,8 @@ void FunD_CalcDataPlaneSizes ( mriFunctionalDataRef this ) {
 
 inline 
 int FunD_CoordsToIndex ( mriFunctionalDataRef this,
-        xVoxelRef inFunctionalVoxel,
-         int inConditionIndex, int inTimePoint ) {
+       xVoxelRef inFunctionalVoxel,
+       int inConditionIndex, int inTimePoint ) {
 
   // the i,j,k coords are zero based but the condition and time point index
   // are one based, so we subtract one from them.
@@ -1926,14 +1929,6 @@ float FunD_GetValue ( mriFunctionalDataRef this,
     theValue = 0;
   }
   
-  /*
-  DebugPrint( ("getting (%d, %d, %d) cond: %d time: %d index: %d is %2.2f\n",
-    xVoxl_GetI(inFunctionalVoxel), 
-    xVoxl_GetJ(inFunctionalVoxel),
-    xVoxl_GetK(inFunctionalVoxel),
-    inConditionIndex, inTimePoint, theIndex, theValue ) );
-  */
-
   return theValue;
 
 }
@@ -1944,14 +1939,6 @@ void FunD_SetValue ( mriFunctionalDataRef this,
   int theIndex;
   theIndex = FunD_CoordsToIndex ( this, inFunctionalVoxel,
             inConditionIndex, inTimePoint );
-
-  /*
-  DebugPrint( ("setting (%d, %d, %d) cond: %d time: %d index: %d to %2.2f\n",
-    xVoxl_GetI(inFunctionalVoxel), 
-    xVoxl_GetJ(inFunctionalVoxel),
-    xVoxl_GetK(inFunctionalVoxel),
-    inConditionIndex, inTimePoint, theIndex, inValue ) );
-  */
 
   switch ( this->mDataType ) {
   case FunD_tDataType_Short:
@@ -1970,7 +1957,8 @@ void FunD_SetValue ( mriFunctionalDataRef this,
 }
 
 // bounds checking
-tBoolean FunD_IsTimeResolutionValid ( mriFunctionalDataRef this, int inTimeRes ) {
+tBoolean FunD_IsTimeResolutionValid ( mriFunctionalDataRef this, 
+              float inTimeRes ) {
 
   if ( inTimeRes <= 0 )
     return FALSE;
@@ -1978,7 +1966,8 @@ tBoolean FunD_IsTimeResolutionValid ( mriFunctionalDataRef this, int inTimeRes )
   return TRUE;
 }
 
-tBoolean FunD_IsNumPreStimTimePointsValid ( mriFunctionalDataRef this, int inNumPoints ) {
+tBoolean FunD_IsNumPreStimTimePointsValid ( mriFunctionalDataRef this, 
+              int inNumPoints ) {
 
   // must be above 0 and less than num time points
   if ( inNumPoints < 0 || inNumPoints >= this->mNumTimePoints )

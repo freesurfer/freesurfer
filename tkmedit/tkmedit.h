@@ -56,10 +56,12 @@ typedef enum {
   tkm_tErr_ErrorAccessingFile,
   tkm_tErr_ErrorAccessingVolume,
   tkm_tErr_ErrorAccessingROIGroup,
+  tkm_tErr_ErrorAccessingFunctionalVolume,
   tkm_tErr_ErrorAccessingList,
   tkm_tErr_CouldntWriteFile,
   tkm_tErr_CouldntAllocate,
   tkm_tErr_SurfaceNotLoaded,
+  tkm_tErr_ROIGroupNotLoaded,
   tkm_tErr_CouldntCacheScriptName,
   tkm_tErr_InvalidScriptName,
   tkm_tErr_GetTimeOfDayFailed,
@@ -102,6 +104,7 @@ typedef enum {
   tkm_tTclCommand_UpdateHeadPointLabel,
   tkm_tTclCommand_UpdateTimerStatus,
   tkm_tTclCommand_UpdateHomeDirectory,
+  tkm_tTclCommand_UpdateVolumeDirty,
 
   /* display status */
   tkm_tTclCommand_ShowVolumeCoords,
@@ -113,6 +116,9 @@ typedef enum {
   tkm_tTclCommand_ShowFuncCoords,
   tkm_tTclCommand_ShowFuncValue,
   tkm_tTclCommand_ShowAuxVolumeOptions,
+  tkm_tTclCommand_ShowVolumeDirtyOptions,
+  tkm_tTclCommand_ShowMainTransformLoadedOptions,
+  tkm_tTclCommand_ShowAuxTransformLoadedOptions,
   tkm_tTclCommand_ShowFuncOverlayOptions,
   tkm_tTclCommand_ShowFuncTimeCourseOptions,
   tkm_tTclCommand_ShowSurfaceLoadingOptions,
@@ -194,7 +200,9 @@ void tkm_GetROILabel        ( xVoxelRef   iAnaIdx,
             char*       osLabel );
 
 /* selects all the voxels in the label with the given index */
-void tkm_SelectCurrentROI   ( int inIndex );
+void tkm_SelectCurrentROI     ( int inIndex );
+/* graphs the avg of all the voxels in the label with the given index */
+void tkm_GraphCurrentROIAvg   ( int inIndex );
 
 /* get the volume of an roi */
 void tkm_CalcROIVolume ( xVoxelRef iAnaIdx,

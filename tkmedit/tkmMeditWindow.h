@@ -318,6 +318,10 @@ int MWin_TclSelectCurrentROI ( ClientData  iClientData,
              Tcl_Interp* ipInterp,
              int         argc,
              char*       argv[] );
+int MWin_TclGraphCurrentROIAvg ( ClientData  iClientData, 
+             Tcl_Interp* ipInterp,
+             int         argc,
+             char*       argv[] );
 int MWin_TclRedrawAll        ( ClientData  iClientData, 
              Tcl_Interp* ipInterp,
              int         argc,

@@ -8,7 +8,7 @@ foreach sSourceFileName { tkm_wrappers.tcl } {
 
     set lPath [list "." "$env(MRI_DIR)/lib/tcl"]
     set bFound 0
-
+    
     foreach sPath $lPath {
   
   if { $bFound == 0 } {
@@ -20,7 +20,7 @@ foreach sSourceFileName { tkm_wrappers.tcl } {
       }
   }
     }
-
+    
     if { $bFound == 0 } {
   dputs "Couldn't load $sSourceFileName: Not found in $lPath"
     }
@@ -75,6 +75,7 @@ foreach dataSet $glAllColors {
   set gGraphSetting($dataSet,visible)  1
     }
     set gGraphSetting($dataSet,condition) $nCondition
+    set gGraphSetting($dataSet,label) "Condition $nCondition"
     incr nCondition
 }
 set glGraphColors [lrange $glAllColors 0 end]
@@ -193,7 +194,7 @@ proc TimeCourse_DrawGraph {} {
   $gwGraph element create line$dataSet \
     -data $lGraphData \
     -color $dataSet \
-    -label "Condition $nCondition" \
+    -label $gGraphSetting($dataSet,label) \
     -pixels 2 \
     -linewidth 2
   
@@ -339,6 +340,7 @@ proc Graph_HandleClick { iwGraph inX inY } {
     # get the x coord of the graph and send it to the c code.
     set nSecond [$iwGraph axis invtransform x $inX]
     set nTimePoint [expr [expr $nSecond / $gnTimeResolution] + $gnPreStimPoints]
+
     Overlay_SetTimePoint $nTimePoint
 
 }
@@ -371,9 +373,9 @@ proc Overlay_DoConfigDlog {} {
     global gbTruncateNegative gbReverse gbIgnoreThreshold 
     global gbGrayscale gbOpaque gbTruncatePositive
     global gfThreshold gfOverlayRange
-
+    
     set wwDialog .wwOverlayConfigDlog
-
+    
     if { [Dialog_Create $wwDialog "Configure Functional Overlay" {-borderwidth 10}] } {
 
   set lfwLocation       $wwDialog.lfwLocation
@@ -480,73 +482,70 @@ proc Overlay_DoConfigDlog {} {
 }
 
 proc TimeCourse_DoConfigDlog {} {
-
+    
     global gDialog gbShowTimeCourseOffsetOptions
     global gbErrorBars gnPreStimPoints gnTimeResolution gbTimeCourseOffset
     global gGraphSetting gnNumTimeCourseConditions glGraphColors 
     global gbPreStimOffset
-
+    
     set wwDialog .wwTimeCourseConfigDlog
-
+    
     if { [Dialog_Create $wwDialog "Configure Time Course" {-borderwidth 10}] } {
-
+  
   set nMaxCondition [expr $gnNumTimeCourseConditions - 1]
-
+  
   set fwConditions          $wwDialog.fwConditions
-  set fwLabels              $fwConditions.fwLabels
-  set fwVisibleLabel        $fwLabels.fwVisibleLabel
-  set fwConditionLabel      $fwLabels.fwConditionLabel
   set lfwDisplay            $wwDialog.lfwDisplay
   set fwButtons             $wwDialog.fwButtons
-
+  
   TimeCourse_SaveConfiguration;
-
+  
   frame $fwConditions
+  
+  tkm_MakeBigLabel $fwConditions.fwNameLabel "Label"
+  tkm_MakeBigLabel $fwConditions.fwVisibleLabel "Visible"
+  tkm_MakeBigLabel $fwConditions.fwColorLabel "Color"
+  tkm_MakeBigLabel $fwConditions.fwConditionLabel "Condition Shown"
+  grid $fwConditions.fwNameLabel -column 0 -row 0 -padx 5
+  grid configure $fwConditions.fwNameLabel -sticky w
+  grid $fwConditions.fwColorLabel -column 1 -row 0 -padx 5
+  grid configure $fwConditions.fwColorLabel -sticky w
+  grid $fwConditions.fwVisibleLabel -column 2 -row 0 -padx 5
+  grid configure $fwConditions.fwVisibleLabel -sticky w
+  grid $fwConditions.fwConditionLabel -column 3 -row 0 -padx 5
+  grid configure $fwConditions.fwConditionLabel -sticky w
 
-  frame $fwLabels
-  tkm_MakeBigLabel $fwVisibleLabel "Visible"
-  pack $fwVisibleLabel \
-    -side left \
-    -anchor w
-  tkm_MakeBigLabel $fwConditionLabel "Condition Shown"
-  pack $fwConditionLabel \
-    -side right \
-    -anchor e
-  pack $fwLabels \
-    -side top \
-    -expand yes \
-    -fill x
-
+  set nRow 1
   foreach dataSet $glGraphColors {
-
-      set fw $fwConditions.fwCondition$dataSet
-      frame $fw
-      # this is what makes me hate tcl. tkm_MakeCheckboxes wants a
-      # lists of lists, but since this list has to evaluate variables
-      # before the func is called, we have to do it in quotes. so 
+      
+      set fw $fwConditions
+      
+      # entry for the name
+      tkm_MakeEntry $fw.fwEntry$dataSet "" gGraphSetting($dataSet,label) 20
+      
       # make a list of the args, then make a list of that list. 
-      tkm_MakeCheckboxes $fw.cbVisible y \
-        [list [list text $dataSet gGraphSetting($dataSet,visible) \
+      tkm_MakeNormalLabel $fw.fwLabel$dataSet "$dataSet"
+      tkm_MakeCheckboxes $fw.cbVisible$dataSet y \
+        [list [list text "" gGraphSetting($dataSet,visible) \
         "TimeCourse_SetGraphSetting $dataSet visible \
         \$gGraphSetting($dataSet,visible)"]]
-
+      
       # this goes on the right, an entry for the condition this
       # color is displaying.
       tkm_MakeEntryWithIncDecButtons \
-        $fw.fwControl \
+        $fw.fwControl$dataSet \
         "Condition (0-$nMaxCondition)" \
         gGraphSetting($dataSet,condition) \
         "TimeCourse_SetGraphSetting $dataSet condition" \
         1
+      
+      grid $fw.fwEntry$dataSet -column 0 -row $nRow -padx 5
+      grid $fw.fwLabel$dataSet -column 1 -row $nRow -padx 5
+      grid configure $fw.fwLabel$dataSet -sticky w -padx 5
+      grid $fw.cbVisible$dataSet -column 2 -row $nRow -padx 5
+      grid $fw.fwControl$dataSet -column 3 -row $nRow -padx 5
 
-      pack $fw.cbVisible \
-        -side left \
-        -anchor w
-      pack $fw.fwControl \
-        -side right
-      pack $fw \
-        -expand yes \
-        -fill x
+      incr nRow
   }
 
   tixLabelFrame $lfwDisplay \
@@ -598,6 +597,18 @@ proc TimeCourse_DoConfigDlog {} {
     }
 }
 
+proc TimeCourse_UpdateGraphLabel { isDataSet isLabel } {
+
+    global glAllColors gGraphSetting
+
+    set nDataSet [lsearch -exact $glAllColors $isDataSet]
+    if { $nDataSet == -1 } {
+  puts "TimeCourse_UpdateGraphLabel: Couldn't find $isDataSet\n"
+  return;
+    }
+
+    set gGraphSetting($isDataSet,label) $isLabel
+}
 
 # ================================================== MANAGING INTERNAL STUFF
 
@@ -989,7 +1000,7 @@ proc TestData {} {
     for { set cn 0 } { $cn < $kNumConditions } { incr cn } {
   set lData {}
   for { set tp 0 } { $tp < $kNumTimePoints } { incr tp } {
-      lappend lData $tp 1
+      lappend lData $tp [expr $tp / [expr $cn + 1]]
   }
   TimeCourse_UpdateGraphData $cn $lData
   puts "$cn: $lData"

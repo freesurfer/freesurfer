@@ -189,8 +189,8 @@ set gsaLabelContents(kLabel_Coords_Vol_Tal,name) "Talairach"
 set gsaLabelContents(kLabel_Coords_Func,name) "Functional index"
 set gsaLabelContents(kLabel_Coords_Func_RAS,name) "Functional RAS"
 set gsaLabelContents(kLabel_Value_Func,name) "Functional value"
-set gsaLabelContents(kLabel_Label_ROI,name) "ROI: "
-set gsaLabelContents(kLabel_Label_Head,name) "Head Point: "
+set gsaLabelContents(kLabel_Label_ROI,name) "Sgmtn label"
+set gsaLabelContents(kLabel_Label_Head,name) "Head Point"
 
 foreach label $glLabel {
     set gsaLabelContents($label,value,cursor) "none"
@@ -481,7 +481,11 @@ proc SendCursorConfiguration {} {
 proc GetDefaultLocation { iType } {
     global gsaDefaultLocation gsHomeDirectory
     if { [info exists gsaDefaultLocation($iType)] == 0 } {
-  set gsaDefaultLocation($iType) $gsHomeDirectory
+  switch $iType {
+      LoadHeadPts_Points { set gsaDefaultLocation($iType) [exec pwd] }
+      LoadHeadPts_Transform { set gsaDefaultLocation($iType) [exec pwd] }
+      default { set gsaDefaultLocation($iType) $gsHomeDirectory }
+  }
     }
     return $gsaDefaultLocation($iType)
 }
@@ -615,8 +619,8 @@ set tDlogSpecs(SaveTimeCourseToPS) [list \
   -okCmd {TimeCourse_SaveGraphToPS %s1; \
   SetDefaultLocation SaveTimeCourseToPS %s1} ]
 set tDlogSpecs(ImportParcellation) [list \
-  -title "Import Parcellation" \
-  -prompt1 "Import COR Volume:" \
+  -title "Load Segmentation" \
+  -prompt1 "Load COR Volume:" \
   -type1 dir \
   -note1 "The volume containing the COR volume files" \
   -default1 [list GetDefaultLocation ImportParcellation_Volume] \
@@ -627,7 +631,7 @@ set tDlogSpecs(ImportParcellation) [list \
   SetDefaultLocation ImportParcellation_Volume %s1; \
   SetDefaultLocation ImportParcellation_ColorTable %s2} ]
 set tDlogSpecs(SaveParcellationAs) [list \
-  -title "Save Parcellation As" \
+  -title "Save Segmenation As" \
   -prompt1 "Save COR Volume:" \
   -type1 dir \
   -note1 "The directory in which to write the COR volume files" \
@@ -695,6 +699,36 @@ proc DoSaveDlog {} {
   # ok and cancel buttons.
   tkm_MakeCancelOKButtons $fwButtons $wwDialog \
     { SaveVolume }
+
+  pack $fwMain $fwButtons \
+    -side top       \
+    -expand yes     \
+    -fill x         \
+    -padx 5         \
+    -pady 5
+    }
+}
+
+proc DoAskSaveChangesDlog {} {
+
+    global gDialog
+
+    set wwDialog .wwSaveDlog
+
+    # try to create the dlog...
+    if { [Dialog_Create $wwDialog "Save Changes" {-borderwidth 10}] } {
+
+  set fwMain    $wwDialog.fwMain
+  set fwButtons $wwDialog.fwButtons
+
+  # prompt
+  tkm_MakeNormalLabel $fwMain\
+    "Do you wish to save changes to the volume?"
+
+  # ok and cancel buttons.
+  tkm_MakeButtons $fwButtons { \
+    {text "Yes" {SaveVolume; QuitMedit} } \
+    {text "No" { QuitMedit }} }
 
   pack $fwMain $fwButtons \
     -side top       \
@@ -830,7 +864,7 @@ proc DoROIGroupDisplayInfoDlog { } {
     set wwDialog .wwROIGroupDisplay
 
     # try to create the dlog...
-    if { [Dialog_Create $wwDialog "ROI Group Display" {-borderwidth 10}] } {
+    if { [Dialog_Create $wwDialog "Segmentation Display" {-borderwidth 10}] } {
   
   set fwSlider             $wwDialog.fwSlider
   set fwButtons            $wwDialog.fwButtons
@@ -933,7 +967,7 @@ proc DoSurfaceInfoDlog { } {
     set wwDialog .wwSurfaceInfoDlog
 
     # try to create the dlog...
-    if { [Dialog_Create $wwDialog "Cursor Info" {-borderwidth 10}] } {
+    if { [Dialog_Create $wwDialog "Surface Info" {-borderwidth 10}] } {
   
   set fwTop     $wwDialog.fwTop 
   set fwButtons $wwDialog.fwButtons
@@ -986,7 +1020,7 @@ proc DoEditParcBrushInfoDlog { } {
     set wwDialog .wwEditParcBrushInfoDlog
 
    # try to create the dlog...
-    if { [Dialog_Create $wwDialog "Parcellation Brush Info" {-borderwidth 10}] } {
+    if { [Dialog_Create $wwDialog "Segmentation Brush Info" {-borderwidth 10}] } {
 
   set lfwColor     $wwDialog.lfwColor
   set lfwFill      $wwDialog.lfwFill
@@ -1049,7 +1083,7 @@ proc DoEditParcBrushInfoDlog { } {
     gParcBrush(src) $tkm_tVolumeType_Main "SendParcBrushInfo"
   tkm_MakeRadioButton $fwAuxSrc "Aux Anatomical" \
     gParcBrush(src) $tkm_tVolumeType_Aux "SendParcBrushInfo"
-  tkm_MakeRadioButton $fwParcSrc "Parcellation" \
+  tkm_MakeRadioButton $fwParcSrc "Segmentation" \
     gParcBrush(src) $tkm_tVolumeType_Parc "SendParcBrushInfo"
   
   # fuzziness and max distance
@@ -1189,11 +1223,10 @@ proc DoRotateVolumeDlog {} {
   set sRotateDirection x
 
   # degrees
-  tkm_MakeEntryWithIncDecButtons \
+  tkm_MakeEntry \
     $fwDegrees "Degrees" \
-    fRotateDegrees \
-    {} \
-    0.5
+    fRotateDegrees 5
+
 
   # direction radios
   tkm_MakeNormalLabel $fwDirection "Around anatomical axis:"
@@ -1906,19 +1939,23 @@ proc CreateMenuBar { ifwMenuBar } {
       \
       { command \
       "Unload Transform for Main Volume" \
-      {UnloadVolumeDisplayTransform 0} } \
+      {UnloadVolumeDisplayTransform 0} \
+      tMenuGroup_VolumeMainTransformLoadedOptions } \
       \
       { command \
       "Unload Transform for Aux Volume" \
-      {UnloadVolumeDisplayTransform 1} } \
+      {UnloadVolumeDisplayTransform 1} \
+      tMenuGroup_VolumeAuxTransformLoadedOptions } \
       \
       { command \
       "Save Main Volume" \
-      DoSaveDlog } \
+      DoSaveDlog \
+      tMenuGroup_DirtyAnatomicalVolume } \
       \
       { command \
       "Save Main Volume As..." \
-      {DoFileDlog SaveVolumeAs} } \
+      {DoFileDlog SaveVolumeAs} \
+      tMenuGroup_DirtyAnatomicalVolume } \
       \
       { separator } \
       \
@@ -1960,22 +1997,18 @@ proc CreateMenuBar { ifwMenuBar } {
       { separator } \
       \
       { command \
-      "Import Parcellation..." \
+      "Load Segmentation..." \
       {DoFileDlog ImportParcellation} } \
       \
       { command \
-      "Save Parcellation" \
+      "Save Segmentation" \
       "SaveParcellationVolume" \
       tMenuGroup_Parcellation } \
       \
       { command \
-      "Export Parcellation..." \
+      "Save Segmentation As..." \
       {DoFileDlog SaveParcellationAs} \
       tMenuGroup_Parcellation } \
-      \
-      { command \
-      "Load ROI Group..." \
-      {DoFileDlog ImportParcellation} } \
       \
       { separator } \
       \
@@ -2013,7 +2046,7 @@ proc CreateMenuBar { ifwMenuBar } {
       \
       { command \
       "Quit" \
-      QuitMedit } }
+      AllowSaveThenQuit } }
    
     # edit menu 
     tkm_MakeMenu $mbwEdit "Edit" { \
@@ -2126,7 +2159,7 @@ proc CreateMenuBar { ifwMenuBar } {
       gbShowLabel(kLabel_Value_Func) \
       tMenuGroup_OverlayOptions } \
       { check \
-      "ROI Label" \
+      "Segmentation Label" \
       "ShowLabel kLabel_Label_ROI $gbShowLabel(kLabel_Label_ROI)"\
       gbShowLabel(kLabel_Label_ROI) \
       tMenuGroup_ROIGroupOptions } \
@@ -2163,7 +2196,7 @@ proc CreateMenuBar { ifwMenuBar } {
       tMenuGroup_TimeCourseOptions } \
       \
       { command \
-      "ROI Group Display..." \
+      "Segmentation Display..." \
       DoROIGroupDisplayInfoDlog \
       tMenuGroup_ROIGroupOptions } } }\
       \
@@ -2238,13 +2271,13 @@ proc CreateMenuBar { ifwMenuBar } {
       tMenuGroup_OverlayOptions } \
       \
       { check \
-      "ROI Group Overlay" \
+      "Segmentation Overlay" \
       "SendDisplayFlagValue flag_ROIGroupOverlay" \
       gbDisplayFlag(flag_ROIGroupOverlay)  \
       tMenuGroup_ROIGroupOptions } \
       \
       { check \
-      "ROI Volume Count" \
+      "Segmentation Label Volume Count" \
       "SendDisplayFlagValue flag_ROIVolumeCount" \
       gbDisplayFlag(flag_ROIVolumeCount)  \
       tMenuGroup_ROIGroupOptions } \
@@ -2301,7 +2334,7 @@ proc CreateMenuBar { ifwMenuBar } {
       2 } \
       \
       { radio \
-      "Edit Parcellation" \
+      "Edit Segmentation" \
       "SetTool $DspA_tTool_EditParc" \
       gTool \
       3 } \
@@ -2323,7 +2356,7 @@ proc CreateMenuBar { ifwMenuBar } {
       DoEditBrushInfoDlog } \
       \
       { command \
-      "Configure Parcellation Brush..." \
+      "Configure Segmentation Brush..." \
       DoEditParcBrushInfoDlog\
       tMenuGroup_Parcellation } \
       \
@@ -2430,7 +2463,19 @@ proc CreateMenuBar { ifwMenuBar } {
       { DoFileDlog SaveTimeCourseToPS } \
       tMenuGroup_TimeCourseOptions } } } \
       \
+      { cascade "Segmentation" { \
+      { command \
+      "Select Current Label" \
+      SelectCurrentROI \
+      tMenuGroup_Parcellation } \
+      \
+      { command \
+      "Graph Current Label Average" \
+      GraphCurrentROIAvg \
+      tMenuGroup_Parcellation } } } \
+      \
       { cascade "Head Points" { \
+      \
       { command \
       "Restore Head Points" \
       RestoreHeadPts \
@@ -2562,7 +2607,7 @@ proc CreateToolBar { ifwToolBar } {
       { image 0 icon_navigate "Navigate Tool (n)" } \
       { image 1 icon_edit_label "Select Voxels Tool (s)" } \
       { image 2 icon_edit_volume "Edit Voxels Tool (e)" } \
-      { image 3 icon_edit_parc "Edit Parcellation Tool (p)" } \
+      { image 3 icon_edit_parc "Edit Segmentation Tool (g)" } \
       { image 4 icon_edit_ctrlpts "Edit Ctrl Pts Tool (c)" } }
 
     tkm_MakeToolbar $fwViews \
@@ -2783,13 +2828,22 @@ proc UpdateLinkedCursorWrapper { iValue ibStatus } {
 
 proc SetZoomLevelWrapper { inLevel } {
     global gnZoomLevel
-    if { $inLevel > 0 } {
-  set gnZoomLevel $inLevel
-  SetZoomLevel $gnZoomLevel
-    }
+    set gnZoomLevel $inLevel
+    SetZoomLevel $gnZoomLevel
 }
 
 # ================================================================== FUNCTIONS
+
+proc AllowSaveThenQuit {} {
+    
+    global gbVolumeDirty
+
+    if { $gbVolumeDirty == 1 } {
+  DoAskSaveChangesDlog;
+    } else {
+  QuitMedit;
+    }
+}
 
 proc SaveRGBSeries { isPrefix inBegin inEnd } {
 
@@ -2838,34 +2892,33 @@ proc ErrorDlog { isMsg } {
 proc FormattedErrorDlog { isTitle isMsg isDesc } {
 
     global gDialog
+    global kLabelFont kNormalFont kSmallFont
 
     set wwDialog .wwFormattedErrorDlog
 
     # try to create the dlog...
     if { [Dialog_Create $wwDialog "Error" {-borderwidth 10}] } {
 
-  set fwMain    $wwDialog.fwMain
-  set fwTitle   $wwDialog.fwTitle
-  set fwMsg     $wwDialog.fwMsg
-  set fwDesc    $wwDialog.fwDesc
-  set fwButtons $wwDialog.fwButtons
+  set fwText       $wwDialog.fwText
+  set fwButtons    $wwDialog.fwButtons
 
-  frame $fwMain
+  text $fwText -width 40 \
+    -height 10 \
+    -spacing3 10 \
+    -relief flat \
+    -wrap word
+  $fwText insert end "Error: $isTitle \n" {tTitle}
+  $fwText insert end "$isMsg \n" {tMsg}
+  $fwText insert end "$isDesc \n" {tDesc}
+  $fwText tag configure tTitle -font $kLabelFont
+  $fwText tag configure tMsg -font $kNormalFont
+  $fwText tag configure tDesc -font $kNormalFont
+  $fwText configure -state disabled
 
-  tkm_MakeBigLabel $fwTitle $isTitle 400
-  tkm_MakeNormalLabel $fwMsg $isMsg 400
-  tkm_MakeNormalLabel $fwDesc $isDesc 400
-
-  pack $fwTitle $fwMsg $fwDesc \
-    -side top \
-    -expand yes \
-    -fill x \
-    -pady 5
-
-  # buttons.
+  # button.
   tkm_MakeCloseButton $fwButtons $wwDialog
 
-  pack $fwMain $fwButtons \
+  pack $fwText $fwButtons \
     -side top       \
     -expand yes     \
     -fill x         \

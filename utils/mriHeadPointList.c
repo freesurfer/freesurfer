@@ -760,7 +760,6 @@ HPtL_tErr HPtL_FindFlattenedNearestPoint ( mriHeadPointListRef  this,
              HPtL_tHeadPointRef*  opPoint ) {
 
   HPtL_tErr          eResult    = HPtL_tErr_NoErr;
-  xPoint2f           searchPoint={0,0};
   float              fDistance  = 0;
   HPtL_tHeadPointRef pNearestPoint = NULL;
   float              fNearestDistance = 0;
