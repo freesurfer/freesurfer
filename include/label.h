@@ -61,6 +61,7 @@ int     LabelMark(LABEL *area, MRI_SURFACE *mris) ;
 LABEL   *LabelFromMarkedSurfaces(MRI_SURFACE *mris) ;
 int     LabelUnmark(LABEL *area, MRI_SURFACE *mris) ;
 LABEL   *LabelFromMarkedSurface(MRI_SURFACE *mris) ;
+int     LabelNormalizeStats(LABEL *area, float norm) ;
 
 #include "mrishash.h"
 LABEL   *LabelSphericalCombine(MRI_SURFACE *mris, LABEL *area, 

@@ -16,7 +16,7 @@
 #include "icosahedron.h"
 #include "label.h"
 
-static char vcid[] = "$Id: mris_spherical_average.c,v 1.2 2001/03/12 23:04:10 fischl Exp $";
+static char vcid[] = "$Id: mris_spherical_average.c,v 1.3 2001/03/13 17:01:57 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -246,6 +246,8 @@ main(int argc, char *argv[])
     case VERTEX_LABEL:
       printf("writing label with %d points to %s...\n", area->n_points,
              out_fname) ;
+      if (normalize_flag)
+        LabelNormalizeStats(area, (float)nsubjects) ;
       LabelWrite(area, out_fname) ;
       break ;
     case VERTEX_AREA:

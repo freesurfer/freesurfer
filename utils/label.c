@@ -1319,3 +1319,17 @@ LabelSphericalCombine(MRI_SURFACE *mris, LABEL *asrc, MRIS_HASH_TABLE *mht,
   return(adst) ;
 }
 
+int
+LabelNormalizeStats(LABEL *area, float norm)
+{
+  LABEL_VERTEX   *lv ;
+  int            n ;
+
+  for (n = 0 ; n < area->n_points ; n++)
+  {
+    lv = &area->lv[n] ;
+    lv->stat /= norm ;
+  }
+  return(NO_ERROR) ;
+}
+
