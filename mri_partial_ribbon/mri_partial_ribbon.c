@@ -5,6 +5,7 @@
 #include "mri.h"
 #include "mrisurf.h"
 #include "macros.h"
+#include "version.h"
 
 #define IMGSIZE 256
 
@@ -15,6 +16,13 @@ int main(int argc, char *argv[])
   char *inner_mris_fname_lh,*outer_mris_fname_lh,*inner_mris_fname_rh,*outer_mris_fname_rh,*input_mri_pref,*output_mri_pref,*mask_mri_pref;
   MRI *mri,*mri_src,*mri_mask;
   MRI_SURFACE *inner_mris_lh,*outer_mris_lh,*inner_mris_rh,*outer_mris_rh;
+  int nargs;
+
+  /* rkt: check for and handle version tag */
+  nargs = handle_version_option (argc, argv, "$Id: mri_partial_ribbon.c,v 1.6 2003/04/15 21:19:57 kteich Exp $");
+  if (nargs && argc - nargs == 1)
+    exit (0);
+  argc -= nargs;
 
   /* Set command-line parameters */
   if ((argc!=7)&&(argc!=8)) {

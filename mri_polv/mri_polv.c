@@ -9,7 +9,7 @@
 #include "diag.h"
 #include "proto.h"
 #include "mrinorm.h"
-
+#include "version.h"
 
 int main(int argc, char *argv[]) ;
 static void print_help(void) ;
@@ -29,6 +29,12 @@ main(int argc, char *argv[])
   int    ac, nargs ;
   MRI    *mri_src, *mri_dst = NULL ;
   char   *in_fname, *out_fname ;
+
+  /* rkt: check for and handle version tag */
+  nargs = handle_version_option (argc, argv, "$Id: mri_polv.c,v 1.3 2003/04/15 21:21:24 kteich Exp $");
+  if (nargs && argc - nargs == 1)
+    exit (0);
+  argc -= nargs;
 
   Progname = argv[0] ;
   ErrorInit(NULL, NULL, NULL) ;

@@ -14,6 +14,7 @@
 #include "utils.h"
 #include "transform.h"
 #include "timer.h"
+#include "version.h"
 
 int main(int argc, char *argv[]) ;
 static int get_option(int argc, char *argv[]) ;
@@ -32,6 +33,12 @@ main(int argc, char *argv[])
   int          msec, minutes, seconds ;
   struct timeb start ;
   MRI    *mri_src, *mri_template, *mri_eq ;
+
+  /* rkt: check for and handle version tag */
+  nargs = handle_version_option (argc, argv, "$Id: mri_histo_eq.c,v 1.3 2003/04/15 21:02:54 kteich Exp $");
+  if (nargs && argc - nargs == 1)
+    exit (0);
+  argc -= nargs;
 
   Progname = argv[0] ;
   ErrorInit(NULL, NULL, NULL) ;

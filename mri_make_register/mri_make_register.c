@@ -14,6 +14,7 @@
 #include "mri_identify.h"
 #include "matrix.h"
 #include "error.h"
+#include "version.h"
 
 float fct_c_r, fct_c_a, fct_c_s;
 float fct_n_r, fct_n_a, fct_n_s;
@@ -62,6 +63,13 @@ int main(int argc, char *argv[])
   char register_name[STRLEN];
   char analyse_name[STRLEN];
   int i;
+  int nargs;
+
+  /* rkt: check for and handle version tag */
+  nargs = handle_version_option (argc, argv, "$Id: mri_make_register.c,v 1.6 2003/04/15 21:11:09 kteich Exp $");
+  if (nargs && argc - nargs == 1)
+    exit (0);
+  argc -= nargs;
 
   Progname = strrchr(argv[0], '/');
   Progname = (Progname == NULL ? argv[0] : Progname + 1);

@@ -1,6 +1,6 @@
 /*----------------------------------------------------------
   Name: mri_label2label.c
-  $Id: mri_label2label.c,v 1.14 2003/02/20 20:33:57 greve Exp $
+  $Id: mri_label2label.c,v 1.15 2003/04/15 21:05:53 kteich Exp $
   Author: Douglas Greve
   Purpose: Converts a label in one subject's space to a label
   in another subject's space using either talairach or spherical
@@ -43,6 +43,7 @@
 #include "registerio.h"
 #include "mri.h"
 #include "mri2.h"
+#include "version.h"
 
 static int  parse_commandline(int argc, char **argv);
 static void check_options(void);
@@ -58,7 +59,7 @@ static int  nth_is_arg(int nargc, char **argv, int nth);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_label2label.c,v 1.14 2003/02/20 20:33:57 greve Exp $";
+static char vcid[] = "$Id: mri_label2label.c,v 1.15 2003/04/15 21:05:53 kteich Exp $";
 char *Progname = NULL;
 
 char  *srclabelfile = NULL;
@@ -121,7 +122,13 @@ int main(int argc, char **argv)
   float SubjRadius, Scale;
   char fname[2000];
   int nSrcLabel, nTrgLabel;
-  
+  int nargs;
+
+  /* rkt: check for and handle version tag */
+  nargs = handle_version_option (argc, argv, "$Id: mri_label2label.c,v 1.15 2003/04/15 21:05:53 kteich Exp $");
+  if (nargs && argc - nargs == 1)
+    exit (0);
+  argc -= nargs;
 
   printf("\n");
 

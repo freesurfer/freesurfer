@@ -13,6 +13,7 @@
 #include "error.h"
 #include "const.h"
 #include "icosahedron.h"
+#include "version.h"
 
 /* prototypes */
 /* static void read_datfile(char *fname) ; */
@@ -157,6 +158,13 @@ main(int argc,char *argv[])
     char fpref[STRLEN];
     char *data_dir,*mri_dir;
     /* struct stat buf; */
+    int nargs;
+    
+    /* rkt: check for and handle version tag */
+    nargs = handle_version_option (argc, argv, "$Id: mri_make_bem_surfaces.c,v 1.6 2003/04/15 21:09:04 kteich Exp $");
+    if (nargs && argc - nargs == 1)
+      exit (0);
+    argc -= nargs;
 
     Progname = argv[0] ;
     DiagInit(NULL, NULL, NULL) ;

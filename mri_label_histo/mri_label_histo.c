@@ -12,6 +12,7 @@
 #include "mri_conform.h"
 #include "utils.h"
 #include "timer.h"
+#include "version.h"
 
 int main(int argc, char *argv[]) ;
 static int get_option(int argc, char *argv[]) ;
@@ -33,6 +34,12 @@ main(int argc, char *argv[])
   MRI    *mri_T1, *mri_labeled ;
   FILE   *log_fp ;
   HISTOGRAM *histo ;
+
+  /* rkt: check for and handle version tag */
+  nargs = handle_version_option (argc, argv, "$Id: mri_label_histo.c,v 1.2 2003/04/15 21:06:37 kteich Exp $");
+  if (nargs && argc - nargs == 1)
+    exit (0);
+  argc -= nargs;
 
   Progname = argv[0] ;
   ErrorInit(NULL, NULL, NULL) ;

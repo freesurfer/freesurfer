@@ -8,6 +8,7 @@
 #include "mri.h"
 #include "matrix.h"
 #include "matfile.h"
+#include "version.h"
 
 #define IN_OUT_NAMES  100
 
@@ -44,6 +45,13 @@ int main(int argc, char *argv[])
   int in_names[IN_OUT_NAMES], n_in = 0;
   int out_names[IN_OUT_NAMES], n_out = 0;
   MATRIX *in_mat, *result;
+  int nargs;
+
+  /* rkt: check for and handle version tag */
+  nargs = handle_version_option (argc, argv, "$Id: mri_matrix_multiply.c,v 1.3 2003/04/15 21:13:26 kteich Exp $");
+  if (nargs && argc - nargs == 1)
+    exit (0);
+  argc -= nargs;
 
   /* ----- get the base executable name ----- */
   prog_name = strrchr(argv[0], '/');

@@ -14,6 +14,7 @@
 #include "timer.h"
 #include "matrix.h"
 #include "transform.h"
+#include "version.h"
 
 MRI *MRIsadd(MRI *mri1, MRI *mri2, MRI *mri_dst) ;
 MRI *MRIsscalarMul(MRI *mri_src, MRI *mri_dst, float scalar) ;
@@ -65,6 +66,12 @@ main(int argc, char *argv[])
   struct timeb start ;
   MATRIX *M_reg[MAX_IMAGES];
   double rms ;
+
+  /* rkt: check for and handle version tag */
+  nargs = handle_version_option (argc, argv, "$Id: mri_ms_fitparms.c,v 1.11 2003/04/15 21:14:02 kteich Exp $");
+  if (nargs && argc - nargs == 1)
+    exit (0);
+  argc -= nargs;
 
   Progname = argv[0] ;
   ErrorInit(NULL, NULL, NULL) ;

@@ -10,8 +10,9 @@
 #include "proto.h"
 #include "mrisurf.h"
 #include "transform.h"
+#include "version.h"
 
-static char vcid[] = "$Id: mri_paint.c,v 1.1 2001/09/18 15:51:31 fischl Exp $";
+static char vcid[] = "$Id: mri_paint.c,v 1.2 2003/04/15 21:18:31 kteich Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -40,6 +41,12 @@ main(int argc, char *argv[])
   MRI         *mri ;
   LTA         *lta ;
   MATRIX      *m ;
+
+  /* rkt: check for and handle version tag */
+  nargs = handle_version_option (argc, argv, "$Id: mri_paint.c,v 1.2 2003/04/15 21:18:31 kteich Exp $");
+  if (nargs && argc - nargs == 1)
+    exit (0);
+  argc -= nargs;
 
   Progname = argv[0] ;
   ErrorInit(NULL, NULL, NULL) ;

@@ -19,10 +19,11 @@
 #include "mri2.h"
 #include "imautils.h"
 #include "machine.h"
+#include "version.h"
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_probe_ima.c,v 1.8 2002/11/12 19:53:38 brucefis Exp $";
+static char vcid[] = "$Id: mri_probe_ima.c,v 1.9 2003/04/15 21:24:44 kteich Exp $";
 char *Progname = NULL;
 
 static int  parse_commandline(int argc, char **argv);
@@ -60,6 +61,13 @@ int main(int argc, char **argv)
 {
   void *pVal;
   IMAFILEINFO *ifi;
+  int nargs;
+
+  /* rkt: check for and handle version tag */
+  nargs = handle_version_option (argc, argv, "$Id: mri_probe_ima.c,v 1.9 2003/04/15 21:24:44 kteich Exp $");
+  if (nargs && argc - nargs == 1)
+    exit (0);
+  argc -= nargs;
 
   tmpstr[0] = 'a'; /* to stop compiler warning */
 

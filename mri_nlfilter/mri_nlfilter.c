@@ -12,8 +12,9 @@
 #include "utils.h"
 #include "mri.h"
 #include "region.h"
+#include "version.h"
 
-static char vcid[] = "$Id: mri_nlfilter.c,v 1.7 1998/03/04 23:55:10 fischl Exp $";
+static char vcid[] = "$Id: mri_nlfilter.c,v 1.8 2003/04/15 21:14:45 kteich Exp $";
 
 int main(int argc, char *argv[]) ;
 static int get_option(int argc, char *argv[]) ;
@@ -58,6 +59,12 @@ main(int argc, char *argv[])
          *mri_tmp, *mri_blur, *mri_src, *mri_filtered, *mri_direction,
          *mri_offset, *mri_up, *mri_polv, *mri_dir, *mri_clip, *mri_full ;
   MRI_REGION  region, clip_region ;
+
+  /* rkt: check for and handle version tag */
+  nargs = handle_version_option (argc, argv, "$Id: mri_nlfilter.c,v 1.8 2003/04/15 21:14:45 kteich Exp $");
+  if (nargs && argc - nargs == 1)
+    exit (0);
+  argc -= nargs;
 
   Progname = argv[0] ;
   ErrorInit(NULL, NULL, NULL) ;

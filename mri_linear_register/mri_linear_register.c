@@ -16,6 +16,7 @@
 #include "mri_conform.h"
 #include "utils.h"
 #include "matrix.h"
+#include "version.h"
 
 char         *Progname ;
 static MORPH_PARMS  parms ;
@@ -83,6 +84,12 @@ main(int argc, char *argv[])
   int          ac, nargs, i, msec, minutes, seconds ;
   struct timeb start ;
   MATRIX       *m_L ;
+
+  /* rkt: check for and handle version tag */
+  nargs = handle_version_option (argc, argv, "$Id: mri_linear_register.c,v 1.8 2003/04/15 21:08:17 kteich Exp $");
+  if (nargs && argc - nargs == 1)
+    exit (0);
+  argc -= nargs;
 
   parms.mri_crop = NULL ;
   parms.l_intensity = 1.0f ;
