@@ -298,4 +298,32 @@ int is_bshort(char *fname)
 
 }  /*  end is_bshort()  */
 
+int is_sdt(char *fname)
+{
+
+  char header_fname[STR_LEN];
+  char *dot;
+  FILE *fp;
+
+  if((fp = fopen(fname, "r")) == NULL)
+    return(0);
+
+  fclose(fp);
+
+  strcpy(header_fname, fname);
+
+  if((dot = strrchr(header_fname, '.')))
+    sprintf(dot+1, "spr");
+  else
+    strcat(header_fname, ".spr");
+
+  if((fp = fopen(header_fname, "r")) == NULL)
+    return(0);
+
+  fclose(fp);
+
+  return(1);
+
+} /* end is_sdt() */
+
 /* EOF */
