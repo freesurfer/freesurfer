@@ -28,6 +28,9 @@ static int all_flag = 0 ;
 
 static int in_label = -1 ;
 static int out_label = -1 ;
+
+static int isSeg = 0;
+
 int
 main(int argc, char *argv[])
 {
@@ -41,7 +44,7 @@ main(int argc, char *argv[])
   float  nvox_mean ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_compute_overlap.c,v 1.9 2004/05/14 17:43:23 tosa Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_compute_overlap.c,v 1.10 2004/05/14 17:58:19 tosa Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -94,16 +97,13 @@ main(int argc, char *argv[])
   {
     MRI *mri1_label = NULL, *mri2_label = NULL ;
     int lnoLimit = 1000;
-    int isSeg = 0;
-
-    if (strstr(argv[1], "seg"))  // if segmented label volume
-    {
-      lnoLimit = MAX_CMA_LABEL;
-      isSeg = 1;
-    }
 
     mri1_label = MRIclone(mri1, NULL) ;
     mri2_label = MRIclone(mri2, NULL) ;
+
+    if (isSeg)
+      lnoLimit = MAX_CMA_LABEL;
+
     for (lno = 0 ; lno < lnoLimit ; lno++)
     {
 #if 1
@@ -237,12 +237,17 @@ get_option(int argc, char *argv[])
     break ;
   case 'A':
     all_flag = 1 ;
+    fprintf(stderr, "print all labels\n");
     break ;
   case 'L':
     log_fname = argv[2] ;
     nargs = 1 ;
     fprintf(stderr, "logging results to %s\n", log_fname) ;
     break ;
+  case 'S':
+    isSeg = 1;
+    fprintf(stderr, "show segmentation label names\n");
+    break;
   case '?':
   case 'U':
     usage_exit(0) ;
@@ -266,6 +271,7 @@ usage_exit(int code)
   printf("usage: %s [options] <volume 1> <volume 2>\n", Progname) ;
   printf(
          "\ta           - compute overlap of all lables\n"
+	 "\ts           - show label name for segmentation \n"
          );
   exit(code) ;
 }
