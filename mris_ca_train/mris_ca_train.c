@@ -16,7 +16,9 @@
 #include "version.h"
 
 #define MAX_LABELS  1000
+#if 0
 static int write_ptable(char *fname, int *ptable, int nparcs) ;
+#endif
 static int find_parc_index(int parc, int *ptable, int nparcs) ;
 static int  add_to_ptable(MRI_SURFACE *mris, int *ptable, int nparcs) ;
 static int *ptable = NULL ;
@@ -62,7 +64,7 @@ main(int argc, char *argv[])
   GCSA         *gcsa ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_ca_train.c,v 1.9 2003/09/05 04:45:40 kteich Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_ca_train.c,v 1.10 2004/05/25 18:19:08 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -199,8 +201,10 @@ main(int argc, char *argv[])
       GCSAnormalizeCovariances(gcsa) ;
   }
 
-  // if (ptable)
-  //   write_ptable(fname, ptable, nparcs) ;
+#if 0
+ if (ptable)
+	 write_ptable(fname, ptable, nparcs) ;
+#endif
   printf("writing classifier array to %s...\n", out_fname) ;
 	gcsa->ptable_fname = ptable_fname ;
   GCSAwrite(gcsa, out_fname) ;
@@ -315,6 +319,7 @@ usage_exit(int code)
          Progname) ;
   exit(code) ;
 }
+#if 0
 static int
 write_ptable(char *fname, int *ptable, int nparcs)
 {
@@ -332,6 +337,7 @@ write_ptable(char *fname, int *ptable, int nparcs)
   fclose(fp) ;
   return(NO_ERROR) ;
 }
+#endif
 static int
 add_to_ptable(MRI_SURFACE *mris, int *ptable, int nparcs)
 {
