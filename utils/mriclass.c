@@ -214,6 +214,12 @@ MRIclassTrainAll(MRIC *mric, char *training_file_name)
       fprintf(stderr, "could not read MR image %s\n", source_fname) ;
       continue ;
     }
+    if (!fno)
+    {
+      mric->xstart = nint(mri_src->xstart) ;
+      mric->ystart = nint(mri_src->ystart) ;
+      mric->zstart = nint(mri_src->zstart) ;
+    }
     mri_target = MRIread(target_fname) ;
     if (!mri_target)
     {
@@ -350,6 +356,10 @@ MRIclassTrain(MRIC *mric, MRI *mri_src, MRI *mri_zscore, MRI *mri_target)
   for (classno = 0 ; classno < NCLASSES ; classno++)
     m_inputs[classno] = MatrixAlloc(ninputs,mric->nvars,MATRIX_REAL);
 
+  MRItalairachVoxelToVoxel(mri_src, 0, 0, 0, &xrv, &yrv, &zrv) ;
+  mric->xstart = (float)xrv ;
+  mric->ystart = (float)yrv ;
+  mric->zstart = (float)zrv ;
   width = mric->width ;
   height = mric->height ;
   depth = mric->depth ;
@@ -472,7 +482,7 @@ MRIclassify(MRIC *mric, MRI *mri_src, MRI *mri_zscore, MRI *mri_dst,
              nclasses, swidth, sheight, sdepth ;
   BUFTYPE    *psrc, src, *pdst, *pclasses ;
   float      *pzscore, prob, *pprobs = NULL ;
-  Real       xt, yt, zt ;
+  Real       xt, yt, zt, xoff, yoff, zoff ;
 
 #if 0
   if (mric->swidth != mri_src->width || mric->sheight != mri_src->height ||
@@ -490,6 +500,10 @@ MRIclassify(MRIC *mric, MRI *mri_src, MRI *mri_zscore, MRI *mri_dst,
     mri_dst = MRIclone(mri_src, NULL) ;
 
   m_inputs = MatrixAlloc(mric->nvars, 1, MATRIX_REAL) ;
+
+  xoff = (Real)mri_src->xstart - (Real)mric->xstart ;
+  yoff = (Real)mri_src->ystart - (Real)mric->ystart ;
+  zoff = (Real)mri_src->zstart - (Real)mric->zstart ;
 
   width = mric->width ;
   height = mric->height ;
@@ -528,30 +542,23 @@ MRIclassify(MRIC *mric, MRI *mri_src, MRI *mri_zscore, MRI *mri_dst,
         /* find the appropriate classifier for this location */
         MRIvoxelToTalairachVoxel(mri_src, (Real)x, (Real)y, (Real)z,
                                  &xt, &yt, &zt) ;
-        xc = nint((xt - scale/2) / scale) ;
+        xc = nint(((xt+xoff) - scale/2) / scale) ;
         if (xc < 0)
           xc = 0 ;
         else if (xc >= width)
           xc = width - 1 ;
-        yc = nint((yt - scale/2) / scale) ;
+        yc = nint(((yt+yoff) - scale/2) / scale) ;
         if (yc < 0)
           yc = 0 ;
         else if (yc >= height)
           yc = height-1 ;
-        zc = nint((zt - scale/2) / scale) ;
+        zc = nint(((zt+zoff) - scale/2) / scale) ;
         if (zc < 0)
           zc = 0 ;
         else if (zc >= depth)
           zc = depth-1 ;
         gc = mric->gcs[zc][yc][xc] ;
         src = *psrc++ ;
-#if 0
-        if ((x == 22 && y == 26 && z == 31) ||
-            (x == 22 && y == 27 && z == 31))
-fprintf(stderr, 
-    "(%d, %d, %d) --> (%2.0f, %2.0f, %2.0f) --> (%d, %d, %d) = %d, %2.3f\n",
-    x, y, z, xt, yt, zt, xc, yc, zc, src, *pzscore) ;
-#endif
         m_inputs->rptr[1][1] = src ;
         m_inputs->rptr[2][1] = *pzscore++ ;
         if (mric->nvars > 2)
@@ -648,16 +655,17 @@ MRIclassRead(char *fname)
 {
   MRIC  *mric ;
   FILE  *fp ;
-  int   width, height, depth, swidth, sheight, sdepth, nvars, scale ;
-  int   x, y, z ;
+  int   width, height, depth, swidth, sheight, sdepth, nvars, scale, x, y, z,
+        xstart, ystart, zstart ;
 
   fp = fopen(fname, "r") ;
   if (!fp)
     ErrorReturn(NULL, 
                 (ERROR_NO_FILE,"MRIclassRead(%s): could not open file",fname));
 
-  if (fscanf(fp, "%d %d %d %d %d %d %d %d\n", &scale, &width, &height, &depth,
-             &swidth, &sheight, &sdepth, &nvars) != 8)
+  if (fscanf(fp, "%d %d %d %d %d %d %d %d %d %d %d\n", 
+             &scale, &width, &height, &depth, &swidth, &sheight, &sdepth, 
+             &nvars, &xstart, &ystart, &zstart) != 11)
   {
     fclose(fp) ;
     ErrorReturn(NULL, 
@@ -674,6 +682,9 @@ MRIclassRead(char *fname)
                  fname)) ;
   }
 
+  mric->xstart = xstart ;
+  mric->ystart = ystart ;
+  mric->zstart = zstart ;
   for (z = 0 ; z < mric->depth ; z++)
   {
     for (y = 0 ; y < mric->height ; y++)
@@ -706,7 +717,7 @@ MRIclassWrite(MRIC *mric, char *fname)
     ErrorReturn(ERROR_NO_FILE, 
               (ERROR_NO_FILE,"MRIclassWrite(%s): could not open file",fname));
 
-  fprintf(fp, "%d %d %d %d %d %d %d %d\n",
+  fprintf(fp, "%d %d %d %d %d %d %d %d %d %d %d\n",
           mric->scale,
           mric->width,
           mric->height,
@@ -714,7 +725,10 @@ MRIclassWrite(MRIC *mric, char *fname)
           mric->swidth,
           mric->sheight,
           mric->sdepth,
-          mric->nvars) ;
+          mric->nvars,
+          mric->xstart,
+          mric->ystart,
+          mric->zstart) ;
 
   for (z = 0 ; z < mric->depth ; z++)
   {
@@ -835,10 +849,14 @@ MRIclassUpdateMeans(MRIC *mric, MRI *mris[], MRI *mri_target, int nimages)
              nclasses, swidth, sheight, sdepth, overlap ;
   BUFTYPE    *psrc, *ptarget, src, target ;
   float      *pzscore ;
-  Real       xt, yt, zt ;
+  Real       xt, yt, zt, xoff, yoff, zoff ;
   MRI        *mri_src ;
 
   mri_src = mris[0] ;
+
+  xoff = (Real)mri_src->xstart - (Real)mric->xstart ;
+  yoff = (Real)mri_src->ystart - (Real)mric->ystart ;
+  zoff = (Real)mri_src->zstart - (Real)mric->zstart ;
 
   scale = mric->scale ;
   overlap = MAX(1, scale/4) ;
@@ -873,19 +891,19 @@ MRIclassUpdateMeans(MRIC *mric, MRI *mris[], MRI *mri_target, int nimages)
       for (x = 0 ; x < swidth ; x++)
       {
         /* find the appropriate classifier for this location */
-        MRIvoxelToTalairachVoxel(mri_src, (Real)x, (Real)y, (Real)z,
+        MRIvoxelToTalairachVoxel(mri_src, (Real)x, (Real)y, (Real)z, 
                                  &xt, &yt, &zt) ;
-        xc = nint((xt - scale/2) / scale) ;
+        xc = nint(((xt+xoff) - scale/2) / scale) ;
         if (xc < 0)
           xc = 0 ;
         else if (xc >= width)
           xc = width - 1 ;
-        yc = nint((yt - scale/2) / scale) ;
+        yc = nint(((yt+yoff) - scale/2) / scale) ;
         if (yc < 0)
           yc = 0 ;
         else if (yc >= height)
           yc = height-1 ;
-        zc = nint((zt - scale/2) / scale) ;
+        zc = nint(((zt+zoff) - scale/2) / scale) ;
         if (zc < 0)
           zc = 0 ;
         else if (zc >= depth)
@@ -940,10 +958,14 @@ MRIclassUpdateCovariances(MRIC *mric, MRI *mris[],MRI *mri_target,int nimages)
              nclasses, swidth, sheight, sdepth, overlap, col, row ;
   BUFTYPE    *psrc, *ptarget, src, target ;
   float      *pzscore, obs[6], covariance ;
-  Real       xt, yt, zt ;
+  Real       xt, yt, zt, xoff, yoff, zoff ;
   MRI        *mri_src ;
 
   mri_src = mris[0] ;
+
+  xoff = (Real)mri_src->xstart - (Real)mric->xstart ;
+  yoff = (Real)mri_src->ystart - (Real)mric->ystart ;
+  zoff = (Real)mri_src->zstart - (Real)mric->zstart ;
 
   scale = mric->scale ;
   overlap = MAX(1, scale/4) ;
@@ -978,19 +1000,19 @@ MRIclassUpdateCovariances(MRIC *mric, MRI *mris[],MRI *mri_target,int nimages)
       for (x = 0 ; x < swidth ; x++)
       {
         /* find the appropriate classifier for this location */
-        MRIvoxelToTalairachVoxel(mri_src, (Real)x, (Real)y, (Real)z,
+        MRIvoxelToTalairachVoxel(mri_src, (Real)x, (Real)y, (Real)z, 
                                  &xt, &yt, &zt) ;
-        xc = nint((xt - scale/2) / scale) ;
+        xc = nint(((xt+xoff) - scale/2) / scale) ;
         if (xc < 0)
           xc = 0 ;
         else if (xc >= width)
           xc = width - 1 ;
-        yc = nint((yt - scale/2) / scale) ;
+        yc = nint(((yt+yoff) - scale/2) / scale) ;
         if (yc < 0)
           yc = 0 ;
         else if (yc >= height)
           yc = height-1 ;
-        zc = nint((zt - scale/2) / scale) ;
+        zc = nint(((zt+zoff) - scale/2) / scale) ;
         if (zc < 0)
           zc = 0 ;
         else if (zc >= depth)
