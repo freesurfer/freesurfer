@@ -79,6 +79,10 @@ int string_to_type(char *string)
     type = GENESIS_FILE;
   if(strcmp(ls, "gelx") == 0 || strcmp(ls, "lx") == 0)
     type = GE_LX_FILE;
+  if(strcmp(ls, "bshort") == 0)
+    type = BSHORT_FILE;
+  if(strcmp(ls, "bfloat") == 0)
+    type = BFLOAT_FILE;
   if(strcmp(ls, "siemens") == 0 || strcmp(ls, "ima") == 0)
     type = SIEMENS_FILE;
   if(strcmp(ls, "dicom") == 0)
@@ -87,10 +91,6 @@ int string_to_type(char *string)
     type = SIEMENS_DICOM_FILE;
   if(strcmp(ls, "brik") == 0 || strcmp(ls, "afni") == 0)
     type = BRIK_FILE;
-  if(strcmp(ls, "bshort") == 0)
-    type = BSHORT_FILE;
-  if(strcmp(ls, "bfloat") == 0)
-    type = BFLOAT_FILE;
   if(strcmp(ls, "sdt") == 0 || strcmp(ls, "varian") == 0)
     type = SDT_FILE;
   if(strcmp(ls, "otl") == 0 || strcmp(ls, "outline") == 0)
@@ -111,6 +111,10 @@ int mri_identify(char *fname_passed)
 
   if(is_cor(fname))
     return(MRI_CORONAL_SLICE_DIRECTORY);
+  else if(is_bshort(fname))
+    return(BSHORT_FILE);
+  else if(is_bfloat(fname))
+    return(BFLOAT_FILE);
   else if (IsSiemensDICOM(fname))
     return(SIEMENS_DICOM_FILE);
   else if (IsDICOM(fname))
@@ -133,10 +137,6 @@ int mri_identify(char *fname_passed)
     return(SIEMENS_FILE);
   else if(is_brik(fname))
     return(BRIK_FILE);
-  else if(is_bshort(fname))
-    return(BSHORT_FILE);
-  else if(is_bfloat(fname))
-    return(BFLOAT_FILE);
   else if(is_otl(fname))
     return(OTL_FILE);
   else if(is_gdf(fname))
