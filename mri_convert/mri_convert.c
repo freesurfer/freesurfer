@@ -423,6 +423,8 @@ int main(int argc, char *argv[])
         resample_type_val = RESAMPLE_NEAREST;
       else if(strcmp(StrLower(resample_type), "weighted") == 0)
         resample_type_val = RESAMPLE_WEIGHTED;
+      else if(strcmp(StrLower(resample_type), "sinc") == 0)
+        resample_type_val = RESAMPLE_SINC;
       else
       {
         fprintf(stderr, "\n%s: unknown resample type \"%s\"\n", Progname, argv[i]);
@@ -1312,7 +1314,8 @@ int main(int argc, char *argv[])
   {
     printf("reslicing (%s)...\n", (resample_type_val == RESAMPLE_INTERPOLATE ? "interpolate" : 
                                   (resample_type_val == RESAMPLE_NEAREST     ? "nearest" : 
-                                  (resample_type_val == RESAMPLE_WEIGHTED    ? "weighted" : "unknown"))));
+                                  (resample_type_val == RESAMPLE_SINC        ? "sinc" : 
+                                  (resample_type_val == RESAMPLE_WEIGHTED    ? "weighted" : "unknown")))));
     mri2 = MRIresample(mri, template, resample_type_val);
     if(mri2 == NULL)
       exit(1);
@@ -1516,6 +1519,8 @@ void usage(FILE *stream)
   fprintf(stream, "  -oc, --out_center <R coordinate> <A coordinate> <S coordinate>\n");
   fprintf(stream, "\n");
   fprintf(stream, "  -odt, --out_data_type <uchar|short|int|float>\n");
+  fprintf(stream, "\n");
+  fprintf(stream, "  -rt, --resample_type <interpolate|nearest|sinc> (default is interpolate)\n");
   fprintf(stream, "\n");
   fprintf(stream, "  -tr TR : TR in seconds\n");
   fprintf(stream, "\n");
