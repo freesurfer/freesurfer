@@ -3,8 +3,8 @@
 //
 // 
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Date  : $Date: 2004/05/27 14:42:59 $
-// Revision       : $Revision: 1.39 $
+// Revision Date  : $Date: 2004/05/27 16:15:56 $
+// Revision       : $Revision: 1.40 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -215,6 +215,12 @@ GCAMwrite(GCA_MORPH *gcam, char *fname)
     strcpy(command, "gzip -f -c > " );
     strcat(command, fname);
     fp = popen(command, "w");
+    if (errno)
+    {
+      pclose(fp);
+      ErrorReturn(NULL, (ERROR_BADPARM, "GCAMwrite(%s): gzip encountered error.",
+			 fname)) ;
+    }
   }
   else
   {
@@ -4522,43 +4528,43 @@ GCAMmarkNegativeNodesInvalid(GCA_MORPH *gcam)
 static int
 zero_vals(float *vals, int nvals)
 {
-	int n, z ;
+  int n, z ;
 
-	for (z = 1, n = 0 ; n < nvals ; n++)
-		if (!FZERO(vals[n]))
-		{
-			z = 0 ; break ;
-		}
+  for (z = 1, n = 0 ; n < nvals ; n++)
+    if (!FZERO(vals[n]))
+    {
+      z = 0 ; break ;
+    }
 
-	return(z) ;
+  return(z) ;
 }
 
 static int
 different_neighbor_labels(GCA_MORPH *gcam, int x,int y,int z,int whalf)
 {
-	int        label, num, i, j, k ;
+  int        label, num, i, j, k ;
 
-	label = gcam->nodes[x][y][z].label ;
-	for (num = 0, i = x-whalf ; i <= x+whalf ; i++)
-	{
-		if (i < 0 || i >= gcam->width)
-			continue ;
-		for (j = y-whalf ; j <= y+whalf ; j++)
-		{
-			if (j < 0 || j >= gcam->height)
-				continue ;
-			for (k = z-whalf ; k <= z+whalf ; k++)
-			{
-				if (k < 0 || k >= gcam->height)
-					continue ;
-				if (i == 0 && j == 0 && k == 0)
-					continue ;
-				if (label != gcam->nodes[i][j][k].label)
-					num++ ;
-			}
-		}
-	}
-	return(num) ;
+  label = gcam->nodes[x][y][z].label ;
+  for (num = 0, i = x-whalf ; i <= x+whalf ; i++)
+  {
+    if (i < 0 || i >= gcam->width)
+      continue ;
+    for (j = y-whalf ; j <= y+whalf ; j++)
+    {
+      if (j < 0 || j >= gcam->height)
+	continue ;
+      for (k = z-whalf ; k <= z+whalf ; k++)
+      {
+	if (k < 0 || k >= gcam->height)
+	  continue ;
+	if (i == 0 && j == 0 && k == 0)
+	  continue ;
+	if (label != gcam->nodes[i][j][k].label)
+	  num++ ;
+      }
+    }
+  }
+  return(num) ;
 }
 
 
