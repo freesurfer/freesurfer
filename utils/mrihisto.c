@@ -6,11 +6,11 @@
  *       AUTHOR:      Bruce Fischl
  *       DATE:        1/8/97
  *
-*/
+ */
 
 /*-----------------------------------------------------
-                    INCLUDE FILES
--------------------------------------------------------*/
+  INCLUDE FILES
+  -------------------------------------------------------*/
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
@@ -30,32 +30,32 @@
 #include "mrinorm.h"
 
 /*-----------------------------------------------------
-                    MACROS AND CONSTANTS
--------------------------------------------------------*/
+  MACROS AND CONSTANTS
+  -------------------------------------------------------*/
 
 #define DEBUG_POINT(x,y,z)  (((x) == 15)&&((y)==6)&&((z)==15))
 
 /*-----------------------------------------------------
-                    STATIC DATA
--------------------------------------------------------*/
+  STATIC DATA
+  -------------------------------------------------------*/
 
 /*-----------------------------------------------------
-                    STATIC PROTOTYPES
--------------------------------------------------------*/
+  STATIC PROTOTYPES
+  -------------------------------------------------------*/
 static HISTOGRAM *mriHistogramRegion(MRI *mri, int nbins, HISTOGRAM *histo,
                                      MRI_REGION *region);
 static HISTOGRAM *mriHistogramLabel(MRI *mri, int nbins, HISTOGRAM *histo,
-                                     LABEL *label);
+				    LABEL *label);
 /*-----------------------------------------------------
-                    GLOBAL FUNCTIONS
--------------------------------------------------------*/
+  GLOBAL FUNCTIONS
+  -------------------------------------------------------*/
 /*-----------------------------------------------------
-        Parameters:
+  Parameters:
 
-        Returns value:
+  Returns value:
 
-        Description
-------------------------------------------------------*/
+  Description
+  ------------------------------------------------------*/
 MRI *
 MRIapplyHistogram(MRI *mri_src, MRI *mri_dst, HISTOGRAM *histo)
 {
@@ -88,12 +88,12 @@ MRIapplyHistogram(MRI *mri_src, MRI *mri_dst, HISTOGRAM *histo)
   return(mri_dst) ;
 }
 /*-----------------------------------------------------
-        Parameters:
+  Parameters:
 
-        Returns value:
+  Returns value:
 
-        Description
-------------------------------------------------------*/
+  Description
+  ------------------------------------------------------*/
 HISTOGRAM *
 MRIhistogramRegion(MRI *mri, int nbins, HISTOGRAM *histo, MRI_REGION *region)
 {
@@ -118,11 +118,16 @@ MRIhistogramRegion(MRI *mri, int nbins, HISTOGRAM *histo, MRI_REGION *region)
   if (!histo)
     histo = HISTOalloc(nbins) ;
   else
-    HISTOrealloc(histo, nbins) ;
-
+  {
+    // histo->nbins = nbins;
+    if (histo->nbins < nbins)
+      HISTOrealloc(histo, nbins) ;
+    else
+      histo->nbins = nbins;
+  }
   HISTOclear(histo, histo) ;
   bin_size = (fmax - fmin + 1) / (float)nbins ;
-	histo->bin_size = bin_size ;
+  histo->bin_size = bin_size ;
 
   if (!mri_prev)   /* first invocation, initialize state machine */
   {
@@ -131,15 +136,15 @@ MRIhistogramRegion(MRI *mri, int nbins, HISTOGRAM *histo, MRI_REGION *region)
     REGIONclear(&reg_prev) ;
   }
 
-	if (h_prev->nbins != histo->nbins)
-	{
-		HISTOfree(&h_prev) ;
-		h_prev = HISTOcopy(histo, NULL) ;
-	}
-/*
-   note that the overlap only works with subsequent windows advancing only 
-   in the x direction.
- */
+  if (h_prev->nbins != histo->nbins)
+  {
+    HISTOfree(&h_prev) ;
+    h_prev = HISTOcopy(histo, NULL) ;
+  }
+  /*
+    note that the overlap only works with subsequent windows advancing only 
+    in the x direction.
+  */
   /* check to see if regions overlap */
   overlap = ((mri == mri_prev) &&
              ((region->x-region->dx) > reg_prev.x) && 
@@ -161,7 +166,7 @@ MRIhistogramRegion(MRI *mri, int nbins, HISTOGRAM *histo, MRI_REGION *region)
 
     HISTOsubtract(h_prev, histo_left, histo) ;
     HISTOadd(histo, histo_right, histo) ;
-		HISTOfree(&histo_left) ; HISTOfree(&histo_right) ;
+    HISTOfree(&histo_left) ; HISTOfree(&histo_right) ;
   }
   else
     mriHistogramRegion(mri, nbins, histo, region) ;
@@ -172,12 +177,12 @@ MRIhistogramRegion(MRI *mri, int nbins, HISTOGRAM *histo, MRI_REGION *region)
   return(histo) ;
 }
 /*-----------------------------------------------------
-        Parameters:
+  Parameters:
 
-        Returns value:
+  Returns value:
 
-        Description
-------------------------------------------------------*/
+  Description
+  ------------------------------------------------------*/
 HISTOGRAM *
 MRIhistogramLabelStruct(MRI *mri, int nbins, HISTOGRAM *histo, LABEL *label)
 {
@@ -190,8 +195,13 @@ MRIhistogramLabelStruct(MRI *mri, int nbins, HISTOGRAM *histo, LABEL *label)
   if (!histo)
     histo = HISTOalloc(nbins) ;
   else
-    histo->nbins = nbins ;
-
+  {
+    //histo->nbins = nbins ;
+    if (histo->nbins < nbins)
+      HISTOrealloc(histo, nbins);
+    else
+      histo->nbins = nbins;
+  }
   HISTOclear(histo, histo) ;
   bin_size = (fmax - fmin + 1) / (float)nbins ;
 
@@ -200,6 +210,7 @@ MRIhistogramLabelStruct(MRI *mri, int nbins, HISTOGRAM *histo, LABEL *label)
   
   return(histo) ;
 }
+
 static HISTOGRAM *
 mriHistogramLabel(MRI *mri, int nbins, HISTOGRAM *histo, LABEL *label)
 {
@@ -221,8 +232,13 @@ mriHistogramLabel(MRI *mri, int nbins, HISTOGRAM *histo, LABEL *label)
   if (!histo)
     histo = HISTOalloc(nbins) ;
   else
-    histo->nbins = nbins ;
-
+  {
+    //histo->nbins = nbins ;
+    if (histo->nbins < nbins)
+      HISTOrealloc(histo, nbins);
+    else
+      histo->nbins = nbins;
+  }
   HISTOclear(histo, histo) ;
 
   bin_size = (fmax - fmin + 1) / (float)nbins ;
@@ -241,7 +257,7 @@ mriHistogramLabel(MRI *mri, int nbins, HISTOGRAM *histo, LABEL *label)
       // MRIworldToVoxel(mri, label->lv[i].x, label->lv[i].y, label->lv[i].z, 
       //                 &xv, &yv, &zv) ;
       MRIsurfaceRASToVoxel(mri, label->lv[i].x, label->lv[i].y, label->lv[i].z, 
-                      &xv, &yv, &zv) ;
+			   &xv, &yv, &zv) ;
       x = nint(xv) ; y = nint(yv) ; z = nint(zv) ;
       val = (float)MRIvox(mri, x, y, z) ;
       bin_no = (int)((float)(val - fmin) / (float)bin_size) ;
@@ -267,7 +283,7 @@ mriHistogramLabel(MRI *mri, int nbins, HISTOGRAM *histo, LABEL *label)
       // MRIworldToVoxel(mri, label->lv[i].x, label->lv[i].y, label->lv[i].z, 
       //                &xv, &yv, &zv) ;
       MRIsurfaceRASToVoxel(mri, label->lv[i].x, label->lv[i].y, label->lv[i].z, 
-                      &xv, &yv, &zv) ;
+			   &xv, &yv, &zv) ;
       x = nint(xv) ; y = nint(yv) ; z = nint(zv) ;
       val = (float)MRIFvox(mri, x, y, z) ;
       bin_no = (int)((float)(val - fmin) / (float)bin_size) ;
@@ -286,12 +302,12 @@ mriHistogramLabel(MRI *mri, int nbins, HISTOGRAM *histo, LABEL *label)
   return(histo) ;
 }
 /*-----------------------------------------------------
-        Parameters:
+  Parameters:
 
-        Returns value:
+  Returns value:
 
-        Description
-------------------------------------------------------*/
+  Description
+  ------------------------------------------------------*/
 static HISTOGRAM *
 mriHistogramRegion(MRI *mri, int nbins, HISTOGRAM *histo, MRI_REGION *region)
 {
@@ -320,8 +336,12 @@ mriHistogramRegion(MRI *mri, int nbins, HISTOGRAM *histo, MRI_REGION *region)
   if (!histo)
     histo = HISTOalloc(nbins) ;
   else
-    HISTOrealloc(histo, nbins);
-
+  {
+    if (histo->nbins < nbins)
+      HISTOrealloc(histo, nbins);
+    else
+      histo->nbins = nbins;
+  }
   HISTOclear(histo, histo) ;
 
   histo->bin_size = bin_size = (fmax - fmin + 1) / (float)nbins ;
@@ -377,10 +397,10 @@ mriHistogramRegion(MRI *mri, int nbins, HISTOGRAM *histo, MRI_REGION *region)
         for (x = x0 ; x < width ; x++)
         {
           bin_no = (int)((float)(*spsrc++ - fmin) / (float)bin_size) ;
-					if (bin_no < 0)
-						bin_no = 0 ;
-					if (bin_no >= histo->nbins)
-						bin_no = histo->nbins-1 ;
+	  if (bin_no < 0)
+	    bin_no = 0 ;
+	  if (bin_no >= histo->nbins)
+	    bin_no = histo->nbins-1 ;
           histo->counts[bin_no]++ ;
         }
       }
@@ -395,10 +415,10 @@ mriHistogramRegion(MRI *mri, int nbins, HISTOGRAM *histo, MRI_REGION *region)
         for (x = x0 ; x < width ; x++)
         {
           bin_no = (int)((float)(*fpsrc++ - fmin) / (float)bin_size) ;
-					if (bin_no < 0)
-						bin_no = 0 ;
-					if (bin_no >= histo->nbins)
-						bin_no = histo->nbins-1 ;
+	  if (bin_no < 0)
+	    bin_no = 0 ;
+	  if (bin_no >= histo->nbins)
+	    bin_no = histo->nbins-1 ;
           histo->counts[bin_no]++ ;
         }
       }
@@ -416,30 +436,30 @@ mriHistogramRegion(MRI *mri, int nbins, HISTOGRAM *histo, MRI_REGION *region)
   return(histo) ;
 }
 /*-----------------------------------------------------
-        Parameters:
+  Parameters:
 
-        Returns value:
+  Returns value:
 
-        Description
-------------------------------------------------------*/
+  Description
+  ------------------------------------------------------*/
 MRI *
 MRIhistoEqualizeRegion(MRI *mri_src, MRI *mri_dst, int low,MRI_REGION *region)
 {
   HISTOGRAM  *histo_eq ;
 
-	histo_eq = HISTOalloc(256) ;
+  histo_eq = HISTOalloc(256) ;
   MRIgetEqualizeHistoRegion(mri_src, histo_eq, low, region, 1) ;
   mri_dst = MRIapplyHistogramToRegion(mri_src, mri_dst, histo_eq, region) ;
-	HISTOfree(&histo_eq) ;
+  HISTOfree(&histo_eq) ;
   return(mri_dst) ;
 }
 /*-----------------------------------------------------
-        Parameters:
+  Parameters:
 
-        Returns value:
+  Returns value:
 
-        Description
-------------------------------------------------------*/
+  Description
+  ------------------------------------------------------*/
 MRI *
 MRIapplyHistogramToRegion(MRI *mri_src, MRI *mri_dst, 
                           HISTOGRAM *histo, MRI_REGION *region)
@@ -488,12 +508,12 @@ MRIapplyHistogramToRegion(MRI *mri_src, MRI *mri_dst,
   return(mri_dst) ;
 }
 /*-----------------------------------------------------
-        Parameters:
+  Parameters:
 
-        Returns value:
+  Returns value:
 
-        Description
-------------------------------------------------------*/
+  Description
+  ------------------------------------------------------*/
 HISTOGRAM *
 MRIgetEqualizeHistoRegion(MRI *mri, HISTOGRAM *histo_eq, int low, 
                           MRI_REGION *region, int norm)
@@ -513,7 +533,11 @@ MRIgetEqualizeHistoRegion(MRI *mri, HISTOGRAM *histo_eq, int low,
     histo_eq = HISTOalloc(nbins) ;
   else
   {
-    histo_eq->nbins = nbins ;
+    // histo_eq->nbins = nbins ;
+    if (histo_eq->nbins < nbins)
+      HISTOrealloc(histo_eq, nbins);
+    else
+      histo_eq->nbins = nbins;
     HISTOclear(histo_eq, histo_eq) ;
   }
 
@@ -535,16 +559,16 @@ MRIgetEqualizeHistoRegion(MRI *mri, HISTOGRAM *histo_eq, int low,
     }
   }
 
-	HISTOfree(&histo) ;
+  HISTOfree(&histo) ;
   return(histo_eq) ;
 }
 /*-----------------------------------------------------
-        Parameters:
+  Parameters:
 
-        Returns value:
+  Returns value:
 
-        Description
-------------------------------------------------------*/
+  Description
+  ------------------------------------------------------*/
 HISTOGRAM *
 MRIgetEqualizeHisto(MRI *mri, HISTOGRAM *histo_eq, int low, int high,int norm)
 {
@@ -588,12 +612,12 @@ MRIgetEqualizeHisto(MRI *mri, HISTOGRAM *histo_eq, int low, int high,int norm)
   return(histo_eq) ;
 }
 /*-----------------------------------------------------
-        Parameters:
+  Parameters:
 
-        Returns value:
+  Returns value:
 
-        Description
-------------------------------------------------------*/
+  Description
+  ------------------------------------------------------*/
 MRI *
 MRIhistoEqualize(MRI *mri_src, MRI *mri_template,MRI *mri_dst,int low,int high)
 {
@@ -649,17 +673,17 @@ MRIhistoEqualize(MRI *mri_src, MRI *mri_template,MRI *mri_dst,int low,int high)
       }
     }
   }
-	HISTOfree(&histo_template) ;
-	HISTOfree(&histo_src) ;
+  HISTOfree(&histo_template) ;
+  HISTOfree(&histo_src) ;
   return(mri_dst) ;
 }
 /*-----------------------------------------------------
-        Parameters:
+  Parameters:
 
-        Returns value:
+  Returns value:
 
-        Description
-------------------------------------------------------*/
+  Description
+  ------------------------------------------------------*/
 MRI *
 MRIcrunch(MRI *mri_src, MRI *mri_dst)
 {
@@ -686,12 +710,12 @@ MRIcrunch(MRI *mri_src, MRI *mri_dst)
   return(mri_dst) ;
 }
 /*-----------------------------------------------------
-        Parameters:
+  Parameters:
 
-        Returns value:
+  Returns value:
 
-        Description
-------------------------------------------------------*/
+  Description
+  ------------------------------------------------------*/
 HISTOGRAM *
 MRIhistogram(MRI *mri, int nbins)
 {
@@ -706,7 +730,7 @@ MRIhistogram(MRI *mri, int nbins)
 
   histo = HISTOalloc(nbins) ;
   bin_size = (fmax - fmin + 1) / (float)nbins ;
-	histo->bin_size = bin_size ;
+  histo->bin_size = bin_size ;
   width = mri->width ;
   height = mri->height ;
   depth = mri->depth ;
@@ -751,10 +775,10 @@ MRIhistogramLabelRegion(MRI *mri, MRI *mri_labeled, MRI_REGION *region, int labe
 
   for (bin_no = 0 ; bin_no < nbins ; bin_no++)
     histo->bins[bin_no] = (bin_no+1)*bin_size+fmin ;
-	x0 = MAX(0, region->x) ; y0 = MAX(0, region->y) ; z0 = MAX(0, region->z) ;
-	x1 = MIN(width, region->x+region->dx) ;
-	y1 = MIN(height, region->y+region->dy) ;
-	z1 = MIN(depth, region->z+region->dz) ;
+  x0 = MAX(0, region->x) ; y0 = MAX(0, region->y) ; z0 = MAX(0, region->z) ;
+  x1 = MIN(width, region->x+region->dx) ;
+  y1 = MIN(height, region->y+region->dy) ;
+  z1 = MIN(depth, region->z+region->dz) ;
   for (z = z0 ; z < z1 ; z++)
   {
     for (y = y0 ; y < y1 ; y++)
@@ -794,12 +818,12 @@ MRIhistogramLabelRegion(MRI *mri, MRI *mri_labeled, MRI_REGION *region, int labe
   return(histo) ;
 }
 /*-----------------------------------------------------
-        Parameters:
+  Parameters:
 
-        Returns value:
+  Returns value:
 
-        Description
-------------------------------------------------------*/
+  Description
+  ------------------------------------------------------*/
 HISTOGRAM *
 MRIhistogramLabel(MRI *mri, MRI *mri_labeled, int label, int nbins)
 {
@@ -863,13 +887,13 @@ MRIhistogramLabel(MRI *mri, MRI *mri_labeled, int label, int nbins)
   return(histo) ;
 }
 /*-----------------------------------------------------
-        Parameters:
+  Parameters:
 
-        Returns value:
+  Returns value:
 
-        Description
-          Remove small inconsistincies in the labelling of a volume.
-------------------------------------------------------*/
+  Description
+  Remove small inconsistincies in the labelling of a volume.
+  ------------------------------------------------------*/
 #define MIN_VOXELS_PCT       0.15   /* peak must average 15% of max count */
 #define PEAK_SEPARATION      11     /* min width of peak */
 #define VALLEY_WIDTH         3
@@ -894,7 +918,7 @@ MRIhistoSegment(MRI *mri_src, MRI *mri_labeled, int wm_low, int wm_hi,
                 int gray_hi, int wsize, float sigma)
 {
   int        width, height, depth, x, y, z, whalf, in_val, label, nvox, 
-             valley, wm_peak, gray_peak, thresh, nlabeled ;
+    valley, wm_peak, gray_peak, thresh, nlabeled ;
   BUFTYPE    *pdst, *psrc ;
   MRI_REGION region ;
   HISTOGRAM  *histo, *hsmooth ;
@@ -1037,20 +1061,20 @@ MRIhistoSegment(MRI *mri_src, MRI *mri_labeled, int wm_low, int wm_hi,
   return(mri_labeled) ;
 }
 /*-----------------------------------------------------
-        Parameters:
+  Parameters:
 
-        Returns value:
+  Returns value:
 
-        Description
-          Remove small inconsistincies in the labelling of a volume.
-------------------------------------------------------*/
+  Description
+  Remove small inconsistincies in the labelling of a volume.
+  ------------------------------------------------------*/
 MRI *
 MRIhistoSegmentVoxel(MRI *mri_src, MRI *mri_labeled, int wm_low, int wm_hi,
-                int gray_hi, int wsize, int x, int y, int z,
+		     int gray_hi, int wsize, int x, int y, int z,
                      HISTOGRAM *histo, HISTOGRAM *hsmooth, float sigma)
 {
   int        whalf, in_val, valley, wm_peak, gray_peak, thresh/*, npeaks,
-             peaks[300]*/ ;
+								peaks[300]*/ ;
   MRI_REGION region ;
   float      sig ;
 
@@ -1077,8 +1101,8 @@ MRIhistoSegmentVoxel(MRI *mri_src, MRI *mri_labeled, int wm_low, int wm_hi,
     hsmooth = HISTOsmooth(histo, hsmooth, sigma) ;
     npeaks = 
       HISTOcountPeaksInRegion(hsmooth, PEAK_SEPARATION, MIN_VOXELS_PCT, 
-                                peaks, 5,
-                                GRAY_LOW, wm_hi-PEAK_SEPARATION/2-2);
+			      peaks, 5,
+			      GRAY_LOW, wm_hi-PEAK_SEPARATION/2-2);
     if (npeaks != 2)
     {
       sig += 0.5f ;
@@ -1121,7 +1145,7 @@ MRIhistoSegmentVoxel(MRI *mri_src, MRI *mri_labeled, int wm_low, int wm_hi,
             wm_peak, gray_peak, valley, sig) ;
     printf("histogram at (%d, %d, %d) = %d\n", x, y, z, in_val) ;
     printf("wm peak = %d, gray peak = %d, valley = %d\n",
-            wm_peak, gray_peak, valley) ;
+	   wm_peak, gray_peak, valley) ;
     HISTOdump(histo, fp) ;
     fprintf(fp, "smooth histo:\n") ;
     HISTOdump(hsmooth, fp) ;
