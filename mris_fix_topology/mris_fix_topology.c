@@ -17,7 +17,7 @@
 #include "mrishash.h"
 #include "version.h"
 
-static char vcid[] = "$Id: mris_fix_topology.c,v 1.19 2004/07/19 20:14:53 greve Exp $";
+static char vcid[] = "$Id: mris_fix_topology.c,v 1.20 2004/07/19 20:23:12 greve Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -58,7 +58,7 @@ main(int argc, char *argv[])
   struct timeb  then ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_fix_topology.c,v 1.19 2004/07/19 20:14:53 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_fix_topology.c,v 1.20 2004/07/19 20:23:12 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -114,7 +114,7 @@ main(int argc, char *argv[])
   MRISsaveVertexPositions(mris, CANONICAL_VERTICES) ;
 
   sprintf(fname, "%s/%s/mri/%s", sdir, sname, T1_name) ;
-  if(MGZ) sprintf(fname, "%s.mgh", fname);
+  if(MGZ) sprintf(fname, "%s.mgz", fname);
   printf("reading T1 volume from %s...\n", T1_name) ;
   mri = MRIread(fname) ;
   if (!mri)
@@ -122,7 +122,7 @@ main(int argc, char *argv[])
               "%s: could not read T1 volume from %s", Progname, fname) ;
 
   sprintf(fname, "%s/%s/mri/%s", sdir, sname, wm_name) ;
-  if(MGZ) sprintf(fname, "%s.mgh", fname);
+  if(MGZ) sprintf(fname, "%s.mgz", fname);
   printf("reading wm segmentation from %s...\n", wm_name) ;
   mri_wm = MRIread(fname) ;
   if (!mri_wm)
