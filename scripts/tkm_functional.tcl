@@ -1,4 +1,4 @@
-#! /usr/bin/wish
+#! /usr/bin/tixwish
 
 # our graph code
 source $env(MRI_DIR)/lib/tcl/tkm_graph.tcl
@@ -44,12 +44,13 @@ set kNormalFont  $mfont
 set gsGraphName      "timeCourse"
 
 # FunV_tDisplayFlag
-set FunV_tDisplayFlag_Ol_TruncateNegative  0
-set FunV_tDisplayFlag_Ol_ReversePhase     1
-set FunV_tDisplayFlag_TC_GraphWindowOpen  2
+set FunV_tDisplayFlag_Ol_TruncateNegative 0
+set FunV_tDisplayFlag_Ol_TruncatePositive 1
+set FunV_tDisplayFlag_Ol_ReversePhase     2
 set FunV_tDisplayFlag_Ol_OffsetValues     3
-set FunV_tDisplayFlag_TC_OffsetValues     4
-set FunV_tDisplayFlag_Ol_TruncatePositive 5
+set FunV_tDisplayFlag_TC_GraphWindowOpen  4
+set FunV_tDisplayFlag_TC_OffsetValues     5
+set FunV_tDisplayFlag_TC_PreStimOffset    6
 
 # our global vars
 set gnTimePoint      0
@@ -89,6 +90,7 @@ set gnNumTimeCourseConditions    0
 set gsTimeCourseLocation ""
 set gsTimeCourseDataName ""
 set gbAutoRangeGraph 1
+set gbPreStimOffset 0
 
 set gbFunctionalWindowOpen 0
 
@@ -234,12 +236,13 @@ proc TimeCourse_DrawGraph {} {
         
         # get func value
         set nGraphIndex [expr [expr $nIndex * 2] + 1]
-        
+        set nValue [lindex $lGraphData $nGraphIndex];
+
         # get error amt and add/subtract to get a low/hi value
         set nError [lindex $lErrors $nIndex];
         set nLow [expr $nValue - $nError]
         set nHigh [expr $nValue + $nError]
-        
+
         # now compare to y min/max
         if { $nLow < $nYMin } { set nYMin $nLow }
         if { $nHigh > $nYMax } { set nYMax $nHigh }
@@ -254,6 +257,8 @@ proc TimeCourse_DrawGraph {} {
   set nXMax [lindex $glGraphData(0) [expr $nLength - 2]]
     }
     set nPadding [expr [expr $nYMax - $nYMin] / 15]
+
+    puts "y min $nYMin y max $nYMax padding $nPadding -> [expr $nYMin - $nPadding] [expr $nYMax + $nPadding]"
 
     # now size the graph, but only if they haven't selected autorange.
     if { $gbAutoRangeGraph == 1 } {
@@ -457,16 +462,12 @@ proc Overlay_DoConfigDlog {} {
   tkm_MakeEntryWithIncDecButtons \
     $fwTimePoint "Time Point (0-$nMaxTimePoint)" \
     gnTimePoint \
-    "set gnTimePoint \$gnTimePoint" \
-    "set gnTimePoint \[expr \$gnTimePoint - 1\]" \
-    "set gnTimePoint \[expr \$gnTimePoint + 1\]"
+    {} 1
 
   tkm_MakeEntryWithIncDecButtons \
     $fwCondition "Condition (0-$nMaxCondition)" \
     gnCondition \
-    "set gnCondition \$gnCondition" \
-    "set gnCondition \[expr \$gnCondition - 1\]" \
-    "set gnCondition \[expr \$gnCondition + 1\]"
+    {} 1
 
   tkm_MakeCheckbox $fwTruncate "Truncate negative values" \
     gbTruncateNegative \
@@ -509,7 +510,8 @@ proc TimeCourse_DoConfigDlog {} {
 
     global gDialog gbShowTimeCourseOffsetOptions
     global gbErrorBars gnPreStimPoints gnTimeResolution gbTimeCourseOffset
-    global gGraphSetting gnNumTimeCourseConditions glGraphColors
+    global gGraphSetting gnNumTimeCourseConditions glGraphColors 
+    global gbPreStimOffset
 
     set wwDialog .wwTimeCourseConfigDlog
 
@@ -524,6 +526,7 @@ proc TimeCourse_DoConfigDlog {} {
   set fwErrorBars           $wwDialog.fwErrorBars
   set fwAutoRange           $wwDialog.fwAutoRange
   set fwOffset              $wwDialog.fwOffset
+  set fwPreStimOffset       $wwDialog.fwPreStimOffset
   set fwPreStimPoints       $wwDialog.fwPreStimPoints
   set fwTimeRes             $wwDialog.fwTimeRes
   set fwButtons             $wwDialog.fwButtons
@@ -558,9 +561,8 @@ proc TimeCourse_DoConfigDlog {} {
         $fw.fwControl \
         "Condition (0-$nMaxCondition)" \
         gGraphSetting($dataSet,condition) \
-        "TimeCourse_SetGraphSetting $dataSet condition \$gGraphSetting($dataSet,condition)" \
-        "TimeCourse_SetGraphSetting $dataSet condition \[expr \$gGraphSetting($dataSet,condition) - 1\]" \
-        "TimeCourse_SetGraphSetting $dataSet condition \[expr \$gGraphSetting($dataSet,condition) + 1\]"
+        "TimeCourse_SetGraphSetting $dataSet condition" \
+        1
       pack $fw.cbVisibile $fw.lwLabel \
         -side left \
         -anchor w
@@ -588,11 +590,13 @@ proc TimeCourse_DoConfigDlog {} {
       frame $fwOffset
   }
 
+  tkm_MakeCheckbox \
+    $fwPreStimOffset "Subtract pre-stim average" gbPreStimOffset \
+    {set gbPreStimOffset $gbPreStimOffset}
+
   tkm_MakeEntryWithIncDecButtons \
     $fwPreStimPoints "Number of pre-stim points" gnPreStimPoints \
-    {set gnPreStimPoints $gnPreStimPoints} \
-    {set gnPreStimPoints [expr $gnPreStimPoints - 1]} \
-    {set gnPreStimPoints [expr $gnPreStimPoints + 1]}
+    {} 1
 
   tkm_MakeActiveLabel \
     $fwTimeRes "Time resolution" gnTimeResolution
@@ -602,7 +606,7 @@ proc TimeCourse_DoConfigDlog {} {
     { TimeCourse_RestoreConfiguration; TimeCourse_DrawGraph }
 
   pack $fwConditions $fwErrorBars $fwAutoRange $fwOffset \
-    $fwPreStimPoints $fwTimeRes $fwButtons \
+    $fwPreStimOffset $fwPreStimPoints $fwTimeRes $fwButtons \
     -side top \
     -anchor w \
     -expand yes \
@@ -694,14 +698,16 @@ proc Overlay_SetConfiguration {} {
 proc TimeCourse_SaveConfiguration {} {
 
     global gbErrorBars gnPreStimPoints gnTimeResolution gGraphSetting
-    global gbTimeCourseOffset
+    global gbTimeCourseOffset gbPreStimOffset
     global gbSavedErrorBars gnSavedPreStimPoints gnSavedTimeResolution
     global gSavedGraphSetting glGraphColors gbSavedTimeCourseOffset
+    global gbSavedPreStimOffset
 
     set gbSavedErrorBars $gbErrorBars
     set gnSavedPreStimPoints $gnPreStimPoints
     set gnSavedTimeResolution $gnTimeResolution
     set gbSavedTimeCourseOffset $gbTimeCourseOffset
+    set gbSavedPreStimOffset $gbPreStimOffset
     foreach color $glGraphColors {
   foreach entry {visible condition} {
       set gSavedGraphSetting($color,$entry) $gGraphSetting($color,$entry)
@@ -712,14 +718,16 @@ proc TimeCourse_SaveConfiguration {} {
 proc TimeCourse_RestoreConfiguration {} {
 
     global gbErrorBars gnPreStimPoints gnTimeResolution gGraphSetting
-    global gbTimeCourseOffset
+    global gbTimeCourseOffset gbPreStimOffset
     global gbSavedErrorBars gnSavedPreStimPoints gnSavedTimeResolution
     global gSavedGraphSetting glGraphColors gbSavedTimeCourseOffset
+    global gbSavedPreStimOffset
 
     set gbErrorBars $gbSavedErrorBars
     set gnPreStimPoints $gnSavedPreStimPoints
     set gnTimeResolution $gnSavedTimeResolution
     set gbTimeCourseOffset $gbSavedTimeCourseOffset
+    set gbPreStimOffset $gbSavedPreStimOffset
     foreach color $glGraphColors {
   foreach entry {visible condition} {
       set gGraphSetting($color,$entry) $gSavedGraphSetting($color,$entry)
@@ -732,12 +740,14 @@ proc TimeCourse_RestoreConfiguration {} {
 proc TimeCourse_SetConfiguration {} {
 
     global gbErrorBars gnPreStimPoints gnTimeResolution gbTimeCourseOffset
-    global FunV_tDisplayFlag_TC_OffsetValues
+    global gbPreStimOffset
+    global FunV_tDisplayFlag_TC_OffsetValues FunV_tDisplayFlag_TC_PreStimOffset
 
     TimeCourse_SetErrorBarsFlag $gbErrorBars
     TimeCourse_SetNumPreStimPoints $gnPreStimPoints
     TimeCourse_SetTimeResolution $gnTimeResolution
     TimeCourse_SetDisplayFlag $FunV_tDisplayFlag_TC_OffsetValues $gbTimeCourseOffset
+    TimeCourse_SetDisplayFlag $FunV_tDisplayFlag_TC_PreStimOffset $gbPreStimOffset
 }
 # =======================================================================
 
@@ -952,6 +962,10 @@ CreateGraphFrame      $fwGraph
 set gfwGraph $fwGraph
 
 HideFunctionalWindow
+
+#TimeCourse_DoConfigDlog
+#Overlay_DoConfigDlog
+#TestData
 
 proc TestData {} {
 
