@@ -13,6 +13,7 @@ int fprintf(FILE *fp, char *fmt, ...) ;
 int printf(char *fmt, ...) ;
 int vsprintf(char *str, char *fmt, va_list args) ;
 int vfprintf(FILE *fp, char *fmt, va_list args) ;
+int vprintf(char *fmt, va_list args) ;
 int sscanf(char *str, char *fmt, ...) ;
 void system(char *command_string) ;
 void perror(char *s) ;
