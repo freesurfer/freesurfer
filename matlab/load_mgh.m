@@ -20,7 +20,7 @@ function [vol, M, mr_parms, ras_xform] = load_mgh(fname,slices,frames)
 %
 % See also: save_mgh, vox2ras_0to1
 %
-% $Id: load_mgh.m,v 1.10 2004/01/23 18:55:50 ebeth Exp $
+% $Id: load_mgh.m,v 1.11 2004/06/01 21:07:33 fischl Exp $
 
 vol = [];
 M = [];
@@ -31,6 +31,19 @@ if(nargin < 1 | nargin > 3)
   fprintf('%s',msg);
   return;
 end
+
+% unzip if it is compressed 
+if (strcmpi(fname((length(fname)-3):length(fname)), '.MGZ') | ...
+		strcmpi(fname((length(fname)-3):length(fname)), '.GZ'))
+	gzipped =  round(rand(1)*10000000);
+	ind = findstr(fname, '.');
+	new_fname = sprintf('/tmp/tmp%d.mgh', gzipped);
+	unix(sprintf('zcat %s > %s', fname, new_fname)) ;
+	fname = new_fname ;
+else
+	gzipped = -1 ;
+end
+
 
 if(exist('slices')~=1) slices = []; end
 if(isempty(slices)) slices = 0; end
@@ -203,5 +216,10 @@ if(~feof(fid))
 end
 
 fclose(fid) ;
+
+if (gzipped >=0)
+	sprintf('rm /tmp/%s', fname);
+%	unix(sprintf('rm /tmp/%s', fname));
+end
 
 return;
