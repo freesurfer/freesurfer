@@ -8,10 +8,10 @@
  *
 */
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2003/01/14 19:02:34 $
-// Revision       : $Revision: 1.205 $
-char *MRI_C_VERSION = "$Revision: 1.205 $";
+// Revision Author: $Author: fischl $
+// Revision Date  : $Date: 2003/01/15 21:18:30 $
+// Revision       : $Revision: 1.206 $
+char *MRI_C_VERSION = "$Revision: 1.206 $";
 
 /*-----------------------------------------------------
                     INCLUDE FILES
@@ -682,6 +682,62 @@ MRIscalarMul(MRI *mri_src, MRI *mri_dst, float scalar)
         }
       }
     }
+  }
+  return(mri_dst) ;
+}
+/*-----------------------------------------------------
+------------------------------------------------------*/
+MRI *
+MRIscalarMulFrame(MRI *mri_src, MRI *mri_dst, float scalar, int frame)
+{
+  int     width, height, depth, x, y, z ;
+  BUFTYPE *psrc, *pdst ;
+  float   *pfsrc, *pfdst, dval ;
+  short   *pssrc, *psdst ;
+
+  width = mri_src->width ;
+  height = mri_src->height ;
+  depth = mri_src->depth ;
+  if (!mri_dst)
+    mri_dst = MRIclone(mri_src, NULL) ;
+
+	for (z = 0 ; z < depth ; z++)
+	{
+		for (y = 0 ; y < height ; y++)
+		{
+			switch (mri_src->type)
+			{
+			case MRI_UCHAR:
+				psrc = &MRIseq_vox(mri_src, 0, y, z, frame) ;
+				pdst = &MRIseq_vox(mri_dst, 0, y, z, frame) ;
+				for (x = 0 ; x < width ; x++)
+				{
+					dval = *psrc++ * scalar ;
+					if (dval < 0)
+						dval = 0 ;
+					if (dval > 255)
+						dval = 255 ;
+					*pdst++ = dval ;
+				}
+				break ;
+			case MRI_FLOAT:
+				pfsrc = &MRIFseq_vox(mri_src, 0, y, z, frame) ;
+				pfdst = &MRIFseq_vox(mri_dst, 0, y, z, frame) ;
+				for (x = 0 ; x < width ; x++)
+					*pfdst++ = *pfsrc++ * scalar ;
+				break ;
+			case MRI_SHORT:
+				pssrc = &MRISseq_vox(mri_src, 0, y, z, frame) ;
+				psdst = &MRISseq_vox(mri_dst, 0, y, z, frame) ;
+				for (x = 0 ; x < width ; x++)
+					*psdst++ = (short)nint((float)*pssrc++ * scalar) ;
+				break ;
+			default:
+				ErrorReturn(NULL, 
+										(ERROR_UNSUPPORTED, 
+										 "MRIscalarMulFrame: unsupported type %d", mri_src->type)) ;
+			}
+		}
   }
   return(mri_dst) ;
 }
@@ -3859,6 +3915,10 @@ MRIallocSequence(int width, int height, int depth, int type, int nframes)
     }
     bpp /= 8 ;
     buf = (BUFTYPE *)calloc((mri->width*mri->height*bpp), 1) ;
+		if (buf == NULL)
+      ErrorExit(ERROR_NO_MEMORY, 
+        "MRIalloc(%d, %d, %d): could not allocate %d bytes for %dth slice\n",
+        height, width, depth, (mri->width*mri->height*bpp), slice) ;
     for (row = 0 ; row < mri->height ; row++)
     {
       mri->slices[slice][row] = buf+(row*mri->width*bpp) ;
