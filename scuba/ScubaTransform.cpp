@@ -54,6 +54,7 @@ ScubaTransform::MakeIdentity () {
 void 
 ScubaTransform::MultiplyVector3 ( float iVector[3], float oVector[3] ) {
 
+#if 0
   VECTOR_ELT( mTmpVec4Src, 1 ) = iVector[0];
   VECTOR_ELT( mTmpVec4Src, 2 ) = iVector[1];
   VECTOR_ELT( mTmpVec4Src, 3 ) = iVector[2];
@@ -62,11 +63,30 @@ ScubaTransform::MultiplyVector3 ( float iVector[3], float oVector[3] ) {
   oVector[0] = VECTOR_ELT( mTmpVec4Dest, 1 );
   oVector[1] = VECTOR_ELT( mTmpVec4Dest, 2 );
   oVector[2] = VECTOR_ELT( mTmpVec4Dest, 3 );
+#else
+  oVector[0] =
+    *MATRIX_RELT(m,1,1) * iVector[0] +
+    *MATRIX_RELT(m,1,2) * iVector[1] +
+    *MATRIX_RELT(m,1,3) * iVector[2] +
+    *MATRIX_RELT(m,1,4);
+  oVector[1] =
+    *MATRIX_RELT(m,2,1) * iVector[0] +
+    *MATRIX_RELT(m,2,2) * iVector[1] +
+    *MATRIX_RELT(m,2,3) * iVector[2] +
+    *MATRIX_RELT(m,2,4);
+  oVector[2] =
+    *MATRIX_RELT(m,3,1) * iVector[0] +
+    *MATRIX_RELT(m,3,2) * iVector[1] +
+    *MATRIX_RELT(m,3,3) * iVector[2] +
+    *MATRIX_RELT(m,3,4);
+#endif
+
 }
 
 void 
 ScubaTransform::InvMultiplyVector3 ( float iVector[3], float oVector[3] ) {
 
+#if 0
   VECTOR_ELT( mTmpVec4Src, 1 ) = iVector[0];
   VECTOR_ELT( mTmpVec4Src, 2 ) = iVector[1];
   VECTOR_ELT( mTmpVec4Src, 3 ) = iVector[2];
@@ -75,6 +95,23 @@ ScubaTransform::InvMultiplyVector3 ( float iVector[3], float oVector[3] ) {
   oVector[0] = VECTOR_ELT( mTmpVec4Dest, 1 );
   oVector[1] = VECTOR_ELT( mTmpVec4Dest, 2 );
   oVector[2] = VECTOR_ELT( mTmpVec4Dest, 3 );
+#else
+  oVector[0] =
+    *MATRIX_RELT(mInv,1,1) * iVector[0] +
+    *MATRIX_RELT(mInv,1,2) * iVector[1] +
+    *MATRIX_RELT(mInv,1,3) * iVector[2] +
+    *MATRIX_RELT(mInv,1,4);
+  oVector[1] =
+    *MATRIX_RELT(mInv,2,1) * iVector[0] +
+    *MATRIX_RELT(mInv,2,2) * iVector[1] +
+    *MATRIX_RELT(mInv,2,3) * iVector[2] +
+    *MATRIX_RELT(mInv,2,4);
+  oVector[2] =
+    *MATRIX_RELT(mInv,3,1) * iVector[0] +
+    *MATRIX_RELT(mInv,3,2) * iVector[1] +
+    *MATRIX_RELT(mInv,3,3) * iVector[2] +
+    *MATRIX_RELT(mInv,3,4);
+#endif
 }
 
 TclCommandListener::TclCommandResult

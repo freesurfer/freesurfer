@@ -250,6 +250,7 @@ BUGS:::
   - way to suspend the redraw in the middle of the fill?
   - way to have a progress bar without a percent?
 - when switch inplane, rebuild overlay
+- brings up tkcon window briefly when booting
 
 
 FUTURE IDEAS:::

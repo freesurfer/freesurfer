@@ -77,7 +77,8 @@ class ScubaLayer2DMRI : public Layer {
   ColorMapMethod mColorMapMethod;
 
   float mBrightness, mContrast;
-  std::map<int,float> mGrayscaleLUT; // 0-255
+  //  std::map<int,float> mGrayscaleLUT; // 0-255
+  float mGrayscaleLUT[256]; // 0-255
 
   ScubaColorLUT* mColorLUT;
   

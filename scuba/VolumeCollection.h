@@ -33,6 +33,8 @@ class VolumeCollection : public DataCollection {
   float GetVoxelYSize ();
   float GetVoxelZSize ();
 
+  void UpdateRASBounds ();
+
   void RASToMRIIndex ( float iRAS[3], int oIndex[3] );
   void RASToMRIIndex ( float iRAS[3], float oIndex[3] );
   void MRIIndexToRAS ( int iIndex[3], float oRAS[3] );
@@ -52,6 +54,7 @@ class VolumeCollection : public DataCollection {
 
   virtual ScubaROI* DoNewROI ();
 
+  void InitSelectionVolume ();
   void SelectRAS ( float iRAS[3] );
   void UnselectRAS ( float iRAS[3] );
   bool IsRASSelected ( float iRAS[3], int oColor[3] );
@@ -85,6 +88,11 @@ protected:
   float mMRIMinValue, mMRIMaxValue;
 
   Volume3<bool>* mEdgeVoxels;
+
+  Volume3<bool>* mSelectedVoxels;
+
+  float mMinRASBounds[3];
+  float mMaxRASBounds[3];
 };
 
 class VolumeCollectionFlooder {

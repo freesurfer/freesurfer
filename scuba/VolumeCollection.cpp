@@ -16,6 +16,7 @@ VolumeCollection::VolumeCollection () :
   mWorldCoord = VectorAlloc( 4, MATRIX_REAL );
   mIndexCoord = VectorAlloc( 4, MATRIX_REAL );
   mEdgeVoxels = NULL;
+  mSelectedVoxels = NULL;
 
   TclCommandManager& commandMgr = TclCommandManager::GetManager();
   commandMgr.AddCommand( *this, "SetVolumeCollectionFileName", 2, 
@@ -88,13 +89,9 @@ VolumeCollection::GetMRI() {
       SetLabel( mfnMRI );
     }
 
-#if 0
-    mWorldToIndexMatrix = extract_r_to_i( mMRI );
-    mIndexToWorldMatrix = extract_i_to_r( mMRI );
-#else 
     mWorldToIndexMatrix = voxelFromSurfaceRAS_( mMRI );
     mIndexToWorldMatrix = surfaceRASFromVoxel_( mMRI );
-#endif
+
     UpdateMRIValueRange();
 
     // Size all the rois we may have.
@@ -109,8 +106,11 @@ VolumeCollection::GetMRI() {
 	roi->SetROIBounds( bounds );
     }
 
-    // Init the edge volume.
+    // Init the edge and selection volume.
     InitEdgeVolume();
+    InitSelectionVolume();
+
+    UpdateRASBounds();
   }
 
   return mMRI; 
@@ -154,11 +154,36 @@ VolumeCollection::GetVoxelZSize () {
   }
 }
 
+void
+VolumeCollection::UpdateRASBounds () {
 
-#if 1
+  if( NULL != mMRI ) {
+    
+    int minIndex[3];
+    minIndex[0] = 0;
+    minIndex[1] = 0;
+    minIndex[2] = 0;
+    int maxIndex[3];
+    maxIndex[0] = mMRI->width - 1;
+    maxIndex[1] = mMRI->height - 1;
+    maxIndex[2] = mMRI->depth - 1;
+    float rasCorner1[3];
+    float rasCorner2[3];
+    MRIIndexToRAS( minIndex, rasCorner1 );
+    MRIIndexToRAS( maxIndex, rasCorner2 );
+    mMinRASBounds[0] = MIN( rasCorner1[0], rasCorner2[0] );
+    mMinRASBounds[1] = MIN( rasCorner1[1], rasCorner2[1] );
+    mMinRASBounds[2] = MIN( rasCorner1[2], rasCorner2[2] );
+    mMaxRASBounds[0] = MAX( rasCorner1[0], rasCorner2[0] );
+    mMaxRASBounds[1] = MAX( rasCorner1[1], rasCorner2[1] );
+    mMaxRASBounds[2] = MAX( rasCorner1[2], rasCorner2[2] );
+  }
+}
+
 void
 VolumeCollection::RASToMRIIndex ( float iRAS[3], int oIndex[3] ) {
   
+#if 0
   VECTOR_ELT( mWorldCoord, 1 ) = iRAS[0];
   VECTOR_ELT( mWorldCoord, 2 ) = iRAS[1];
   VECTOR_ELT( mWorldCoord, 3 ) = iRAS[2];
@@ -167,11 +192,30 @@ VolumeCollection::RASToMRIIndex ( float iRAS[3], int oIndex[3] ) {
   oIndex[0] = (int) rint( VECTOR_ELT( mIndexCoord, 1 ) );
   oIndex[1] = (int) rint( VECTOR_ELT( mIndexCoord, 2 ) );
   oIndex[2] = (int) rint( VECTOR_ELT( mIndexCoord, 3 ) );
+#else
+  oIndex[0] = (int) (
+		     *MATRIX_RELT(mWorldToIndexMatrix,1,1) * iRAS[0] +
+		     *MATRIX_RELT(mWorldToIndexMatrix,1,2) * iRAS[1] +
+		     *MATRIX_RELT(mWorldToIndexMatrix,1,3) * iRAS[2] +
+		     *MATRIX_RELT(mWorldToIndexMatrix,1,4) );
+  oIndex[1] = (int) (
+		     *MATRIX_RELT(mWorldToIndexMatrix,2,1) * iRAS[0] +
+		     *MATRIX_RELT(mWorldToIndexMatrix,2,2) * iRAS[1] +
+		     *MATRIX_RELT(mWorldToIndexMatrix,2,3) * iRAS[2] +
+		     *MATRIX_RELT(mWorldToIndexMatrix,2,4) );
+  oIndex[2] = (int) (
+		     *MATRIX_RELT(mWorldToIndexMatrix,3,1) * iRAS[0] +
+		     *MATRIX_RELT(mWorldToIndexMatrix,3,2) * iRAS[1] +
+		     *MATRIX_RELT(mWorldToIndexMatrix,3,3) * iRAS[2] +
+		     *MATRIX_RELT(mWorldToIndexMatrix,3,4) );
+
+#endif
 }
 
 void
 VolumeCollection::RASToMRIIndex ( float iRAS[3], float oIndex[3] ) {
-  
+
+#if 0  
   VECTOR_ELT( mWorldCoord, 1 ) = iRAS[0];
   VECTOR_ELT( mWorldCoord, 2 ) = iRAS[1];
   VECTOR_ELT( mWorldCoord, 3 ) = iRAS[2];
@@ -180,64 +224,97 @@ VolumeCollection::RASToMRIIndex ( float iRAS[3], float oIndex[3] ) {
   oIndex[0] = VECTOR_ELT( mIndexCoord, 1 );
   oIndex[1] = VECTOR_ELT( mIndexCoord, 2 );
   oIndex[2] = VECTOR_ELT( mIndexCoord, 3 );
-}
-
-void
-VolumeCollection::MRIIndexToRAS ( int iIndex[3], float oRAS[3] ) {
-  
-  VECTOR_ELT( mIndexCoord, 1 ) = iIndex[0];
-  VECTOR_ELT( mIndexCoord, 2 ) = iIndex[1];
-  VECTOR_ELT( mIndexCoord, 3 ) = iIndex[2];
-  VECTOR_ELT( mIndexCoord, 4 ) = 1.0;
-  MatrixMultiply( mIndexToWorldMatrix, mIndexCoord, mWorldCoord );
-  oRAS[0] = VECTOR_ELT( mWorldCoord, 1 );
-  oRAS[1] = VECTOR_ELT( mWorldCoord, 2 );
-  oRAS[2] = VECTOR_ELT( mWorldCoord, 3 );
-}
-
-void
-VolumeCollection::MRIIndexToRAS ( float iIndex[3], float oRAS[3] ) {
-  
-  VECTOR_ELT( mIndexCoord, 1 ) = iIndex[0];
-  VECTOR_ELT( mIndexCoord, 2 ) = iIndex[1];
-  VECTOR_ELT( mIndexCoord, 3 ) = iIndex[2];
-  VECTOR_ELT( mIndexCoord, 4 ) = 1.0;
-  MatrixMultiply( mIndexToWorldMatrix, mIndexCoord, mWorldCoord );
-  oRAS[0] = VECTOR_ELT( mWorldCoord, 1 );
-  oRAS[1] = VECTOR_ELT( mWorldCoord, 2 );
-  oRAS[2] = VECTOR_ELT( mWorldCoord, 3 );
-}
-
 #else
+  oIndex[0] = 
+    *MATRIX_RELT(mWorldToIndexMatrix,1,1) * iRAS[0] +
+    *MATRIX_RELT(mWorldToIndexMatrix,1,2) * iRAS[1] +
+    *MATRIX_RELT(mWorldToIndexMatrix,1,3) * iRAS[2] +
+    *MATRIX_RELT(mWorldToIndexMatrix,1,4);
+  oIndex[1] =
+    *MATRIX_RELT(mWorldToIndexMatrix,2,1) * iRAS[0] +
+    *MATRIX_RELT(mWorldToIndexMatrix,2,2) * iRAS[1] +
+    *MATRIX_RELT(mWorldToIndexMatrix,2,3) * iRAS[2] +
+    *MATRIX_RELT(mWorldToIndexMatrix,2,4);
+  oIndex[2] =
+    *MATRIX_RELT(mWorldToIndexMatrix,3,1) * iRAS[0] +
+    *MATRIX_RELT(mWorldToIndexMatrix,3,2) * iRAS[1] +
+    *MATRIX_RELT(mWorldToIndexMatrix,3,3) * iRAS[2] +
+    *MATRIX_RELT(mWorldToIndexMatrix,3,4);
 
-void
-VolumeCollection::RASToMRIIndex ( float iRAS[3], int oIndex[3] ) {
-  oIndex[0] = iRAS[0]; oIndex[1] = iRAS[1]; oIndex[2] = iRAS[2];
-}
-
-void
-VolumeCollection::RASToMRIIndex ( float iRAS[3], float oIndex[3] ) {
-  oIndex[0] = iRAS[0]; oIndex[1] = iRAS[1]; oIndex[2] = iRAS[2];
+#endif
 }
 
 void
 VolumeCollection::MRIIndexToRAS ( int iIndex[3], float oRAS[3] ) {
-  oRAS[0] = iIndex[0]; oRAS[1] = iIndex[1]; oRAS[2] = iIndex[2];
+  
+#if 0
+  VECTOR_ELT( mIndexCoord, 1 ) = iIndex[0];
+  VECTOR_ELT( mIndexCoord, 2 ) = iIndex[1];
+  VECTOR_ELT( mIndexCoord, 3 ) = iIndex[2];
+  VECTOR_ELT( mIndexCoord, 4 ) = 1.0;
+  MatrixMultiply( mIndexToWorldMatrix, mIndexCoord, mWorldCoord );
+  oRAS[0] = VECTOR_ELT( mWorldCoord, 1 );
+  oRAS[1] = VECTOR_ELT( mWorldCoord, 2 );
+  oRAS[2] = VECTOR_ELT( mWorldCoord, 3 );
+#else
+  oRAS[0] = 
+    *MATRIX_RELT(mIndexToWorldMatrix,1,1) * iIndex[0] +
+    *MATRIX_RELT(mIndexToWorldMatrix,1,2) * iIndex[1] +
+    *MATRIX_RELT(mIndexToWorldMatrix,1,3) * iIndex[2] +
+    *MATRIX_RELT(mIndexToWorldMatrix,1,4);
+  oRAS[1] =
+    *MATRIX_RELT(mIndexToWorldMatrix,2,1) * iIndex[0] +
+    *MATRIX_RELT(mIndexToWorldMatrix,2,2) * iIndex[1] +
+    *MATRIX_RELT(mIndexToWorldMatrix,2,3) * iIndex[2] +
+    *MATRIX_RELT(mIndexToWorldMatrix,2,4);
+  oRAS[2] =
+    *MATRIX_RELT(mIndexToWorldMatrix,3,1) * iIndex[0] +
+    *MATRIX_RELT(mIndexToWorldMatrix,3,2) * iIndex[1] +
+    *MATRIX_RELT(mIndexToWorldMatrix,3,3) * iIndex[2] +
+    *MATRIX_RELT(mIndexToWorldMatrix,3,4);
+
+#endif
 }
 
 void
 VolumeCollection::MRIIndexToRAS ( float iIndex[3], float oRAS[3] ) {
-  oRAS[0] = iIndex[0]; oRAS[1] = iIndex[1]; oRAS[2] = iIndex[2];
-}
+  
+#if 0
+  VECTOR_ELT( mIndexCoord, 1 ) = iIndex[0];
+  VECTOR_ELT( mIndexCoord, 2 ) = iIndex[1];
+  VECTOR_ELT( mIndexCoord, 3 ) = iIndex[2];
+  VECTOR_ELT( mIndexCoord, 4 ) = 1.0;
+  MatrixMultiply( mIndexToWorldMatrix, mIndexCoord, mWorldCoord );
+  oRAS[0] = VECTOR_ELT( mWorldCoord, 1 );
+  oRAS[1] = VECTOR_ELT( mWorldCoord, 2 );
+  oRAS[2] = VECTOR_ELT( mWorldCoord, 3 );
+#else
+  oRAS[0] = 
+    *MATRIX_RELT(mIndexToWorldMatrix,1,1) * iIndex[0] +
+    *MATRIX_RELT(mIndexToWorldMatrix,1,2) * iIndex[1] +
+    *MATRIX_RELT(mIndexToWorldMatrix,1,3) * iIndex[2] +
+    *MATRIX_RELT(mIndexToWorldMatrix,1,4);
+  oRAS[1] =
+    *MATRIX_RELT(mIndexToWorldMatrix,2,1) * iIndex[0] +
+    *MATRIX_RELT(mIndexToWorldMatrix,2,2) * iIndex[1] +
+    *MATRIX_RELT(mIndexToWorldMatrix,2,3) * iIndex[2] +
+    *MATRIX_RELT(mIndexToWorldMatrix,2,4);
+  oRAS[2] =
+    *MATRIX_RELT(mIndexToWorldMatrix,3,1) * iIndex[0] +
+    *MATRIX_RELT(mIndexToWorldMatrix,3,2) * iIndex[1] +
+    *MATRIX_RELT(mIndexToWorldMatrix,3,3) * iIndex[2] +
+    *MATRIX_RELT(mIndexToWorldMatrix,3,4);
+
 #endif
+}
 
 bool 
 VolumeCollection::IsRASInMRIBounds ( float iRAS[3] ) {
 
   if( NULL != mMRI ) {
-      return ( iRAS[0] > mMRI->xstart && iRAS[0] < mMRI->xend &&
-	       iRAS[1] > mMRI->ystart && iRAS[1] < mMRI->yend &&
-	       iRAS[2] > mMRI->zstart && iRAS[2] < mMRI->zend );
+      return ( iRAS[0] >= mMinRASBounds[0] && iRAS[0] <= mMaxRASBounds[0] &&
+	       iRAS[1] >= mMinRASBounds[1] && iRAS[1] <= mMaxRASBounds[1] &&
+	       iRAS[2] >= mMinRASBounds[2] && iRAS[2] <= mMaxRASBounds[2] );
   } else {
     return false;
   }
@@ -434,6 +511,21 @@ VolumeCollection::DoNewROI () {
   return roi;
 }
 
+
+void 
+VolumeCollection::InitSelectionVolume () {
+
+  if( NULL != mMRI ) {
+
+    if( NULL != mSelectedVoxels ) {
+      delete mSelectedVoxels;
+    }
+    
+    mSelectedVoxels = 
+      new Volume3<bool>( mMRI->width, mMRI->height, mMRI->depth, false );
+  }
+}
+
 void 
 VolumeCollection::SelectRAS ( float iRAS[3] ) {
 
@@ -444,6 +536,9 @@ VolumeCollection::SelectRAS ( float iRAS[3] ) {
     //    ScubaROIVolume* volumeROI = dynamic_cast<ScubaROIVolume*>(roi);
     ScubaROIVolume* volumeROI = (ScubaROIVolume*)roi;
     volumeROI->SelectVoxel( index );
+
+    // Also mark this in the selection voxel.
+    mSelectedVoxels->Set( index[0], index[1], index[2], true );
   }
 }
 
@@ -457,93 +552,107 @@ VolumeCollection::UnselectRAS ( float iRAS[3] ) {
     //    ScubaROIVolume* volumeROI = dynamic_cast<ScubaROIVolume*>(roi);
     ScubaROIVolume* volumeROI = (ScubaROIVolume*)roi;
     volumeROI->UnselectVoxel( index );
-  }
-}
-
-bool 
-VolumeCollection::IsRASSelected ( float iRAS[3], int oColor[3] ) {
-
-  if( mSelectedROIID >= 0 ) {
-
-    try {
-
-      int index[3];
-      RASToMRIIndex( iRAS, index );
-      
-      bool bSelected = false;
-      bool bFirstColor = true;
-      
-      map<int,ScubaROI*>::iterator tIDROI;
-      for( tIDROI = mROIMap.begin();
-	   tIDROI != mROIMap.end(); ++tIDROI ) {
-	int roiID = (*tIDROI).first;
-	
-	ScubaROI* roi = &ScubaROI::FindByID( roiID );
-	//    ScubaROIVolume* volumeROI = dynamic_cast<ScubaROIVolume*>(roi);
-	ScubaROIVolume* volumeROI = (ScubaROIVolume*)roi;
-	if( volumeROI->IsVoxelSelected( index ) ) {
-	  bSelected = true;
-	  int color[3];
-	  volumeROI->GetDrawColor( color );
-	  if( bFirstColor ) {
-	    oColor[0] = color[0];
-	    oColor[1] = color[1];
-	    oColor[2] = color[2];
-	    bFirstColor = false;
-	  } else {
-	    oColor[0] = (int) (((float)color[0] * 0.5) +
-			       ((float)oColor[0] * 0.5));
-	    oColor[1] = (int) (((float)color[1] * 0.5) +
-			       ((float)oColor[1] * 0.5));
-	    oColor[2] = (int) (((float)color[2] * 0.5) +
-			       ((float)oColor[2] * 0.5));
-	  }
-	}
-      }
-      
-      return bSelected;
-    }
-    catch(...) {
-      return false;
-    }
-
-  } else {
-    return false;
-  }
-}
 
 
-bool 
-VolumeCollection::IsOtherRASSelected ( float iRAS[3], int iThisROIID ) {
-
-  if( mSelectedROIID >= 0 ) {
-    int index[3];
-    RASToMRIIndex( iRAS, index );
-
+    // If there are no more ROIs with this voxel selected, unselect it
+    // in the selection volume.
     bool bSelected = false;
-
     map<int,ScubaROI*>::iterator tIDROI;
     for( tIDROI = mROIMap.begin();
 	 tIDROI != mROIMap.end(); ++tIDROI ) {
       int roiID = (*tIDROI).first;
       
       ScubaROI* roi = &ScubaROI::FindByID( roiID );
-      if( roiID == iThisROIID ) {
-	continue;
-      }
       //    ScubaROIVolume* volumeROI = dynamic_cast<ScubaROIVolume*>(roi);
       ScubaROIVolume* volumeROI = (ScubaROIVolume*)roi;
       if( volumeROI->IsVoxelSelected( index ) ) {
 	bSelected = true;
+	break;
+      }
+    }
+    if( !bSelected ) {
+      mSelectedVoxels->Set( index[0], index[1], index[2], false );
+    }
+  }
+}
 
+bool 
+VolumeCollection::IsRASSelected ( float iRAS[3], int oColor[3] ) {
+
+  // Check the selection volume cache first.
+  int index[3];
+  RASToMRIIndex( iRAS, index );
+  if( !(mSelectedVoxels->Get( index[0], index[1], index[2] )) )
+    return false;
+
+  try {
+    
+    bool bSelected = false;
+    bool bFirstColor = true;
+    
+    map<int,ScubaROI*>::iterator tIDROI;
+    for( tIDROI = mROIMap.begin();
+	 tIDROI != mROIMap.end(); ++tIDROI ) {
+      int roiID = (*tIDROI).first;
+      
+      ScubaROI* roi = &ScubaROI::FindByID( roiID );
+      //    ScubaROIVolume* volumeROI = dynamic_cast<ScubaROIVolume*>(roi);
+      ScubaROIVolume* volumeROI = (ScubaROIVolume*)roi;
+      if( volumeROI->IsVoxelSelected( index ) ) {
+	bSelected = true;
+	int color[3];
+	volumeROI->GetDrawColor( color );
+	if( bFirstColor ) {
+	  oColor[0] = color[0];
+	  oColor[1] = color[1];
+	  oColor[2] = color[2];
+	  bFirstColor = false;
+	} else {
+	  oColor[0] = (int) (((float)color[0] * 0.5) + ((float)oColor[0]*0.5));
+	  oColor[1] = (int) (((float)color[1] * 0.5) + ((float)oColor[1]*0.5));
+	  oColor[2] = (int) (((float)color[2] * 0.5) + ((float)oColor[2]*0.5));
+	}
       }
     }
     
     return bSelected;
-
-  } else {
+  }
+  catch(...) {
     return false;
   }
+  
+}
+
+
+bool 
+VolumeCollection::IsOtherRASSelected ( float iRAS[3], int iThisROIID ) {
+
+  // Check the selectin volume cache first.
+  int index[3];
+  RASToMRIIndex( iRAS, index );
+  if( !(mSelectedVoxels->Get( index[0], index[1], index[2] )) )
+    return false;
+
+  bool bSelected = false;
+  
+  map<int,ScubaROI*>::iterator tIDROI;
+  for( tIDROI = mROIMap.begin();
+       tIDROI != mROIMap.end(); ++tIDROI ) {
+    int roiID = (*tIDROI).first;
+    
+    ScubaROI* roi = &ScubaROI::FindByID( roiID );
+    if( roiID == iThisROIID ) {
+	continue;
+    }
+    //    ScubaROIVolume* volumeROI = dynamic_cast<ScubaROIVolume*>(roi);
+    ScubaROIVolume* volumeROI = (ScubaROIVolume*)roi;
+    if( volumeROI->IsVoxelSelected( index ) ) {
+      bSelected = true;
+      
+    }
+  }
+  
+  return bSelected;
 }
 
 void 
@@ -566,7 +675,7 @@ VolumeCollection::MarkRASEdge ( float iRAS[3] ) {
   if( NULL != mMRI ) {
     int index[3];
     RASToMRIIndex( iRAS, index );
-    mEdgeVoxels->Set( index[2], index[1], index[0], true );
+    mEdgeVoxels->Set( index[0], index[1], index[2], true );
   }
 }
 
@@ -576,7 +685,7 @@ VolumeCollection::UnmarkRASEdge ( float iRAS[3] ) {
   if( NULL != mMRI ) {
     int index[3];
     RASToMRIIndex( iRAS, index );
-    mEdgeVoxels->Set( index[2], index[1], index[0], false );
+    mEdgeVoxels->Set( index[0], index[1], index[2], false );
   }
 }
 
@@ -586,7 +695,7 @@ VolumeCollection::IsRASEdge ( float iRAS[3] ) {
   if( NULL != mMRI ) {
     int index[3];
     RASToMRIIndex( iRAS, index );
-    return mEdgeVoxels->Get( index[2], index[1], index[0] );
+    return mEdgeVoxels->Get( index[0], index[1], index[2] );
   } else {
     return false;
   }
@@ -905,10 +1014,10 @@ VolumeCollectionFlooder::Flood ( VolumeCollection& iVolume,
       continue;
     }
 
-    if( bVisited.Get( point.z(), point.y(), point.x() ) ) {
+    if( bVisited.Get( point.x(), point.y(), point.z() ) ) {
       continue;
     }
-    bVisited.Set( point.z(), point.y(), point.x(), true );
+    bVisited.Set( point.x(), point.y(), point.z(), true );
 
     // Get RAS.
     float ras[3];

@@ -229,16 +229,6 @@ ScubaLayer2DMRI::DrawIntoBuffer ( GLubyte* iBuffer, int iWidth, int iHeight,
 	  }
 	}	
 
-	int selectColor[3];
-	if( mVolume->IsRASSelected( RAS, selectColor ) ) {
-	  color[0] = (int) (((float)color[0] * (1.0 - mROIOpacity)) +
-			    ((float)selectColor[0] * mROIOpacity));
-	  color[1] = (int) (((float)color[1] * (1.0 - mROIOpacity)) +
-			    ((float)selectColor[1] * mROIOpacity));
-	  color[2] = (int) (((float)color[2] * (1.0 - mROIOpacity)) +
-			    ((float)selectColor[2] * mROIOpacity));
-	}
-
 #if 0
 	if( mVolume->IsRASEdge( RAS ) ) {
 	  color[0] = 255; color[1] = color[2] = 0;
@@ -262,6 +252,37 @@ ScubaLayer2DMRI::DrawIntoBuffer ( GLubyte* iBuffer, int iWidth, int iHeight,
     }
   }
 
+
+  dest = iBuffer;
+  for( window[1] = 0; window[1] < iHeight; window[1]++ ) {
+    for( window[0] = 0; window[0] < iWidth; window[0]++ ) {
+
+      // Use our translator to get an RAS point.
+      float RAS[3];
+      iTranslator.TranslateWindowToRAS( window, RAS );
+
+      // Make sure this is within the bounds. If it is...
+      if( mVolume->IsRASInMRIBounds( RAS ) ) {
+	
+	int selectColor[3];
+	if( mVolume->IsRASSelected( RAS, selectColor ) ) {
+	  
+	  // Write the RGB value to the buffer. Write a 255 in the
+	  // alpha byte.
+	  dest[0] = (GLubyte) (((float)dest[0] * (1.0 - mROIOpacity)) +
+			       ((float)selectColor[0] * mROIOpacity));
+	  dest[1] = (GLubyte) (((float)dest[1] * (1.0 - mROIOpacity)) +
+			       ((float)selectColor[1] * mROIOpacity));
+	  dest[2] = (GLubyte) (((float)dest[2] * (1.0 - mROIOpacity)) +
+			       ((float)selectColor[2] * mROIOpacity));
+	}
+      }
+      
+      // Advance our pixel buffer pointer.
+      dest += 4;
+      
+    }
+  }
 
   if( mCurrentLine ) {
     int lineBegin[2];

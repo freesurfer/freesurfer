@@ -3186,3 +3186,5 @@ bind $gaWidget(window) <Key-6> {set gaTool(current,radius) 6; SetToolBrushRadius
 bind $gaWidget(window) <Key-7> {set gaTool(current,radius) 7; SetToolBrushRadius $gaFrame([GetMainFrameID],toolID) $gaTool(current,radius) }
 bind $gaWidget(window) <Key-8> {set gaTool(current,radius) 8; SetToolBrushRadius $gaFrame([GetMainFrameID],toolID) $gaTool(current,radius) }
 bind $gaWidget(window) <Key-9> {set gaTool(current,radius) 9; SetToolBrushRadius $gaFrame([GetMainFrameID],toolID) $gaTool(current,radius) }
+
+

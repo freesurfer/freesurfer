@@ -1316,12 +1316,12 @@ ScubaView::BuildFrameBuffer () {
     int layerID = (*tLevelLayerID).second;
     try { 
       Layer& layer = Layer::FindByID( layerID );
-      
+
       // tell it to draw into our buffer with our view state information.
       layer.DrawIntoBuffer( mBuffer, mWidth, mHeight, mViewState, *this );
     }
     catch(...) {
-	DebugOutput( << "Couldn't find layer " << layerID );
+      cerr << "Couldn't find layer " << layerID << endl;
     }
   }
 }
@@ -1449,7 +1449,7 @@ ScubaView::BuildOverlay () {
 
 void
 ScubaView::DrawOverlay () {
-  
+
   if( mbRebuildOverlayDrawList )
     BuildOverlay();
 
