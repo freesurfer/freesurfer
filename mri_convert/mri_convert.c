@@ -4,8 +4,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: tosa $
-// Revision Date  : $Date: 2003/11/03 22:32:13 $
-// Revision       : $Revision: 1.71 $
+// Revision Date  : $Date: 2003/11/03 23:10:13 $
+// Revision       : $Revision: 1.72 $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -32,6 +32,7 @@ void get_string(int argc, char *argv[], int *pos, char *val);
 void usage_message(FILE *stream);
 void usage(FILE *stream);
 float findMinSize(MRI *mri, int *conform_width);
+int   findRightSize(MRI *mri, float conform_size);
 
 int debug=0;
 
@@ -209,7 +210,7 @@ int main(int argc, char *argv[])
   nskip = 0;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_convert.c,v 1.71 2003/11/03 22:32:13 tosa Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_convert.c,v 1.72 2003/11/03 23:10:13 tosa Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -233,9 +234,15 @@ int main(int argc, char *argv[])
     else if(strcmp(argv[i], "-nc") == 0 || strcmp(argv[i], "--no_conform") == 0)
       conform_flag = FALSE;
     else if (strcmp(argv[i], "-cm") == 0 || strcmp(argv[i], "--conform_min") == 0)
+    {
       conform_min = TRUE;
+      conform_flag = TRUE;
+    }
     else if (strcmp(argv[i], "-cs") == 0 || strcmp(argv[i], "--conform_size") == 0)
+    {
       get_floats(argc, argv, &i, &conform_size, 1);
+      conform_flag = TRUE;
+    }
     else if(strcmp(argv[i], "-po") == 0 || strcmp(argv[i], "--parse_only") == 0)
       parse_only_flag = TRUE;
     else if(strcmp(argv[i], "-ii") == 0 || strcmp(argv[i], "--in_info") == 0)
@@ -1424,6 +1431,10 @@ int main(int argc, char *argv[])
 	{
           conform_size = findMinSize(mri, &conform_width);
 	}
+	else
+	{
+	  conform_width = findRightSize(mri, conform_size);
+	}
         template->width = template->height = template->depth = conform_width;
         template->imnr0 = 1;
         template->imnr1 = conform_width;
@@ -1969,3 +1980,33 @@ float findMinSize(MRI *mri, int *conform_width)
   return (float) minsize;
 }
 /* EOF */
+
+int findRightSize(MRI *mri, float conform_size)
+{
+  // user gave the conform_size
+  double xsize, ysize, zsize;
+  double fwidth, fheight, fdepth, fmax;
+  int conform_width;
+
+  xsize = mri->xsize;
+  ysize = mri->ysize;
+  zsize = mri->zsize;
+
+  // now decide the conformed_width
+  // calculate the size in mm for all three directions
+  fwidth = mri->xsize*mri->width;
+  fheight = mri->ysize*mri->height;
+  fdepth = mri->zsize*mri->depth;
+  // pick the largest
+  if (fwidth> fheight)
+    fmax = (fwidth > fdepth) ? fwidth : fdepth;
+  else
+    fmax = (fdepth > fheight) ? fdepth : fheight;
+  // get the width with conform_size
+  conform_width = (int) ceil(fmax/conform_size);
+  // just to make sure that if smaller than 256, use 256 anyway
+  if (conform_width < 256)
+    conform_width = 256;
+
+  return conform_width;
+}
