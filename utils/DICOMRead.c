@@ -2,7 +2,7 @@
    DICOM 3.0 reading functions
    Author: Sebastien Gicquel and Douglas Greve
    Date: 06/04/2001
-   $Id: DICOMRead.c,v 1.70 2004/10/01 20:16:17 tosa Exp $
+   $Id: DICOMRead.c,v 1.71 2004/10/02 20:08:22 tosa Exp $
 *******************************************************/
 
 #include <stdio.h>
@@ -2086,13 +2086,18 @@ int sdfiAssignRunNo2(SDCMFILEINFO **sdfi_list, int nlist)
     }
 
     if (RunList)
-      free(RunList);
-    if (RunNoList)
-      free(RunNoList);
+    {
+      free(RunList); RunList = 0;
+    }
     if (FirstFileName)
-      free(FirstFileName);
+    {
+      free(FirstFileName); FirstFileName = 0;
+    }
   } /* end loop over runs */
-
+  if (RunNoList)
+  {
+    free(RunNoList);  RunNoList = 0;
+  }
   return(NRuns);
 }
 /*-----------------------------------------------------------
