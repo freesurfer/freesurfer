@@ -357,7 +357,10 @@ Volm_tErr Volm_CreateFromVolume ( mriVolumeRef this,
   DebugNote( ("Creating the mri with dimensions %d,%d,%d type %d nframes %d",
 	      nDimensionX, nDimensionY, nDimensionZ, nType, nDimensionFrames));
   mriVolume = MRIallocSequence( nDimensionX, nDimensionY, nDimensionZ,
-				nType, nDimensionFrames );
+  				nType, nDimensionFrames );
+  DebugAssertThrowX( (NULL != mriVolume), 
+		     eResult, Volm_tErr_CouldntReadVolume );
+  MRIcopyHeader( iVolume->mpMriValues, mriVolume );
   DebugAssertThrowX( (NULL != mriVolume), 
 		     eResult, Volm_tErr_CouldntReadVolume );
 
