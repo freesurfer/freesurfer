@@ -507,13 +507,13 @@ FunD_tErr FunD_ParseRegistrationAndInitMatricies ( mriFunctionalDataRef this ) {
     bGood = sscanf( sLine, "%s", sKeyWord );
     if( bGood ) {
       
-      if( strcmp( sKeyWord, "tkregister" ) == 0 ) {
+      if( strcmp( sKeyWord, ksConversionMethod_FCF ) == 0 ) {
         convMethod = FunD_tConversionMethod_FCF;
       }
-      if( strcmp( sKeyWord, "floor" ) == 0 ) {
+      if( strcmp( sKeyWord, ksConversionMethod_FFF ) == 0 ) {
         convMethod = FunD_tConversionMethod_FFF;
       }
-      if( strcmp( sKeyWord, "round" ) == 0 ) {
+      if( strcmp( sKeyWord, ksConversionMethod_Round ) == 0 ) {
         convMethod = FunD_tConversionMethod_Round;
       }
     }
@@ -593,6 +593,7 @@ FunD_tErr FunD_SaveRegistration ( mriFunctionalDataRef this ) {
   MATRIX*   mRegistration;
   char      sFileName[256];
   char      sBackupFileName[256];
+  char      sConversionMethod[256];
   FILE*     pBackupFile;
   FILE*     pFile;
   char      data;
@@ -642,9 +643,27 @@ FunD_tErr FunD_SaveRegistration ( mriFunctionalDataRef this ) {
   
   /* write it to disk */
   StatWriteRegistration( regInfo, sFileName );
-  
+
   StatFreeRegistration( &regInfo );
   
+  /* append the conversion type to the registration file. */
+  switch( this->mConvMethod ) {
+  case FunD_tConversionMethod_FFF:
+    strcpy( sConversionMethod, ksConversionMethod_FFF );
+    break;
+  case FunD_tConversionMethod_Round:
+    strcpy( sConversionMethod, ksConversionMethod_Round );
+    break;
+  case FunD_tConversionMethod_FCF:
+    strcpy( sConversionMethod, ksConversionMethod_FCF );
+    break;
+  }
+  pFile = fopen( sFileName, "a" );
+  if( NULL != pFile ) {
+    fprintf( pFile, "%s\n", sConversionMethod );
+    fclose( pFile );
+  }
+
   return FunD_tErr_NoError;
 }
 

@@ -1835,6 +1835,13 @@ printf("-interface script    : scecify interface script (default is tkmedit.tcl)
     DebugNote( ("%sabling registration", bEnablingRegistration?"En":"Dis") );
     FunV_EnableRegistration( gFunctionalVolume, bEnablingRegistration );
 
+    /* if regisration is enabled, set conversion method to round. */
+    if( bEnablingRegistration ) {
+      FunV_SetConversionMethod( gFunctionalVolume, 
+        FunD_tConversionMethod_Round );
+    }
+
+
     /* set functional color scale stuff */
     if( bThresh || bMid || bThresh ) {
       DebugNote( ("Setting functional threshold min=%f mid=%f slope=%f\n",
