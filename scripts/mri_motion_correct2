@@ -1,0 +1,358 @@
+#!/bin/csh -f
+# mri_motion_correct2
+# Performs motion correction of anatomicals. This should produce
+# the same output as mri_motion_correct
+
+set VERSION = '$Id: mri_motion_correct2,v 1.1 2002/09/16 21:31:29 greve Exp $';
+
+set tmpdir      = /tmp;
+set inputlist   = ();
+set outdir      = ();
+set PrintHelp   = 0;
+set LF          = ();
+set CleanUp     = 1;
+set CleanUpList = ();
+
+set PWD = pwd;
+
+# If no args, print usage and exit #
+if($#argv == 0) then
+  goto usage_exit;
+  exit 1;
+endif
+
+# Look for version #
+set n = `echo $argv | grep version | wc -l` 
+if($n != 0) then
+  echo $VERSION
+  exit 0;
+endif
+
+goto parse_args;
+parse_args_return:
+
+goto check_params;
+check_params_return:
+
+##### Create a log file ######
+if($#LF == 0) then
+  set LF = $outdir/mri_motion_correct2.log
+  if(-e $LF) mv $LF $LF.old
+endif
+
+echo "--------------------------------------------------------------"
+echo "mri_motion_correct2 logfile is $LF"
+echo "--------------------------------------------------------------"
+
+echo "mri_motion_correct2 log file" >> $LF
+echo $VERSION      >> $LF
+echo $0            >> $LF
+echo $argv         >> $LF
+pwd               >> $LF
+uname -a           >> $LF
+date               >> $LF
+which mri_convert  >> $LF
+
+set StartTime = `date`;
+
+#------------- Convert to MINC ------------#
+set allcor = $tmpdir/allcor
+set CleanUpList = ($CleanUpList $allcor);
+set mncinputlist = ();
+@ run = 0;
+foreach input ($inputlist)
+  @ run = $run + 1;
+
+  echo "-----------------------------------------" |& tee -a $LF
+  echo "Converting $input " |& tee -a $LF
+  date |& tee -a $LF
+
+  cat $input/COR-??? > $allcor |& tee -a $LF
+
+  set mncinput = $tmpdir/cor-$run.mnc
+  set mncinputlist = ($mncinputlist $mncinput);
+  rm -f $mncinput
+
+  if(0) then
+    set cmd = (rawtominc)
+    set cmd = ($cmd -coronal -byte -xstep 1 -ystep 1 -zstep 1 -xstart)
+    set cmd = ($cmd -128 -ystart -128 -zstart -128 )
+    set cmd = ($cmd $mncinput 256 256 256)
+    set cmd = ($cmd -input $allcor)
+    pwd >> $LF
+    echo $cmd >> $LF
+    $cmd |& tee -a $LF
+    if($status) then
+      echo "ERROR: rawtominc failed" |& tee -a $LF
+      exit 1;
+    endif
+  endif
+
+  set cmd = (mri_convert $input $mncinput)
+  pwd >> $LF
+  echo $cmd >> $LF
+  $cmd |& tee -a $LF
+  if($status) then
+    echo "ERROR: rawtominc failed" |& tee -a $LF
+    exit 1;
+  endif
+
+  set CleanUpList = ($CleanUpList $mncinput);
+
+end
+
+#----------- Motion Correct ---------------#
+set mncresampled = $tmpdir/resampled.mnc
+set mnctarget = $mncinputlist[1];
+@ run = 0;
+foreach mncinput ($mncinputlist)
+  @ run = $run + 1;
+
+  if($mncinput == $mnctarget) continue;
+
+  set xfm = $tmpdir/run$run.xfm
+  set CleanUpList = ($CleanUpList $xfm);
+  rm -f $xfm
+
+  echo "-----------------------------------------" |& tee -a $LF
+  echo "Motion Correcting $mncinput" |& tee -a $LF
+  date |& tee -a $LF
+
+  set cmd = (minctracc -lsq6 $mncinput $mnctarget $xfm)
+  pwd >> $LF
+  echo $cmd >> $LF
+  $cmd |& tee -a $LF
+  if($status) then
+    echo "ERROR: mritoself failed" |& tee -a $LF
+    exit 1;
+  endif
+
+  echo "-----------------------------------------" |& tee -a $LF
+  echo "Resampling $mncinput" |& tee -a $LF
+  date |& tee -a $LF
+
+  rm -f $mncresampled
+  set cmd = (mincresample -like $mnctarget -transform $xfm)
+  set cmd = ($cmd $mncinput $mncresampled)
+  pwd >> $LF
+  echo $cmd >> $LF
+  $cmd |& tee -a $LF
+  if($status) then
+    echo "ERROR: mincresample failed" |& tee -a $LF
+    exit 1;
+  endif
+
+  mv $mncresampled $mncinput |& tee -a $LF
+
+end
+
+#----------- Average Volume Together ---------------#
+echo "-----------------------------------------" |& tee -a $LF
+echo "Averaging " |& tee -a $LF
+date |& tee -a $LF
+set avgvol = $tmpdir/avgvol.mnc
+set CleanUpList = ($CleanUpList $avgvol);
+rm -f $avgvol
+set cmd = (mincaverage $mncinputlist $avgvol);
+pwd >> $LF
+echo $cmd >> $LF
+$cmd |& tee -a $LF
+if($status) then
+  echo "ERROR: mincaverage failed" |& tee -a $LF
+  exit 1;
+endif
+
+#----------- Convert Average to COR ---------------#
+echo "-----------------------------------------" |& tee -a $LF
+echo "Converting Average to COR " |& tee -a $LF
+date |& tee -a $LF
+set cmd = (mri_convert $avgvol $outdir);
+pwd >> $LF
+echo $cmd >> $LF
+$cmd |& tee -a $LF
+if($status) then
+  echo "ERROR: mri_convert failed" |& tee -a $LF
+  exit 1;
+endif
+
+goto cleanup;
+cleanup_return:
+
+echo "Started at: $StartTime"    |& tee -a $LF
+echo "Ended at:   `date`"        |& tee -a $LF
+echo "mri_motion_correct2: done" |& tee -a $LF
+
+
+exit 0;
+
+############--------------##################
+parse_args:
+set cmdline = ($argv);
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "-help"
+    case "--help"
+      set PrintHelp = 1;
+      goto usage_exit;
+      breaksw
+
+    case "-o":
+      if ( $#argv == 0) goto arg1err;
+      set outdir = $argv[1]; shift;
+      breaksw
+
+    case "-i":
+      if ( $#argv == 0) goto arg1err;
+      set inputlist = ($inputlist $argv[1]); shift;
+      breaksw
+
+    case "-tmpdir":
+      if ( $#argv == 0) goto arg1err;
+      set tmpdir = $argv[1]; shift;
+      breaksw
+
+    case "-umask":
+      if ( $#argv == 0) goto arg1err;
+      umask $argv[1]; shift;
+      breaksw
+
+    case "-nocleanup":
+      set CleanUp = 0;
+      breaksw
+
+    case "-verbose":
+      set verbose = 1;
+      breaksw
+
+    case "-echo":
+      set echo = 1;
+      breaksw
+
+    case "-debug":
+      set verbose = 1;
+      set echo = 1;
+      breaksw
+
+    default:
+      echo ERROR: Flag $flag unrecognized. 
+      echo $cmdline
+      exit 1
+      breaksw
+  endsw
+
+end
+
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+
+  if($#inputlist == 0) then
+    echo "ERROR: no inputs specified"
+    exit 1;
+  endif
+
+  if($#inputlist == 1) then
+    echo "ERROR: only one input specified"
+    exit 1;
+  endif
+
+  if($#outdir == 0) then
+    echo "ERROR: no output directory specified"
+    exit 1;
+  endif
+
+  # Create the output directory and get full path
+  mkdir -p $outdir
+  if($status) then
+    echo "ERROR: cannot create $outdir"
+    exit 1;
+  endif
+  pushd $outdir > /dev/null
+  set outdir = `pwd`;
+  popd > /dev/null
+
+  # Go through each input, make sure it exists
+  # and re-create the list with full path names
+  set inputlist0 = ($inputlist);
+  set inputlist  = ()
+  foreach i ($inputlist0)
+    set inbase = `basename $i`;
+    set indir  = `dirname $i`;
+    if(! -e $indir) then
+      echo "ERROR: cannot find $indir"
+      exit 1;
+    endif
+    if(! -e $i/COR-.info ) then
+      echo "ERROR: cannot find $i/COR-.info"
+      exit 1;
+    endif
+    pushd $indir > /dev/null
+    set indir = `pwd`;
+    popd > /dev/null
+    set input = $indir/$inbase
+    set inputlist = ($inputlist $input);
+  end
+
+  # Create the tmp directory and get full path
+  if($tmpdir != /tmp) then
+    mkdir -p $tmpdir
+    if($status) then
+      echo "ERROR: cannot create $tmpdir"
+      exit 1;
+    endif
+    pushd $tmpdir > /dev/null
+    set tmpdir = `pwd`;
+    popd > /dev/null
+  endif
+
+goto check_params_return;
+############--------------##################
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+
+
+############--------------##################
+cleanup:
+
+  if($CleanUp) then
+    foreach f ($CleanUpList)
+      rm -f $f
+    end
+  endif
+
+goto cleanup_return;
+############--------------##################
+
+
+
+
+############--------------##################
+usage_exit:
+  echo "USAGE: mri_motion_correct2"
+  echo ""
+  echo "Required Arguments:"
+  echo ""
+  echo "  -o  outdir : output directory"
+  echo "  -i  input1 <-i input2 <-i input3>>"
+  echo ""
+  echo "Optional Arguments:";
+  echo ""
+  echo "  -tmpdir tmpdir : directory for temporary files"
+  echo "  -nocleanup     : do not delete temporary files"
+  echo "  -umask umask   : set unix file permission mask"
+  echo "  -version       : print version and exit"
+  echo ""
+
+  if(! $PrintHelp) exit 1;
+
+exit 1;
