@@ -553,4 +553,11 @@ int MRIturnOffBG(MRI *mri, MRI *mri_bg) ;
 #define MRI_LEFT_HEMISPHERE     255
 #define MRI_RIGHT_HEMISPHERE    127
 
+/* STATS volumes have 2 images each */
+#define TRI_HI_PRIORS            0
+#define TRI_HI_STATS             1
+#define TRI_LOW_PRIORS           3
+#define TRI_LOW_STATS            4
+#define TRI_OFF_STATS            6
+
 #endif
