@@ -6913,7 +6913,7 @@ MRISaverageRadius(MRI_SURFACE *mris)
 int
 MRISinflateBrain(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
 {
-  int     n_averages, n, write_iterations, niterations, scale ;
+  int     n_averages, n, write_iterations, niterations ;
   double  delta_t = 0.0, fi, ici, fi_desired;
 
   write_iterations = parms->write_iterations ;
@@ -6930,14 +6930,14 @@ MRISinflateBrain(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
   if (Gdiag & DIAG_SHOW)
     mrisLogIntegrationParms(stderr, mris, parms) ;
 
-  mrisProjectSurface(mris) ;
+  MRIScomputeMetricProperties(mris) ;
   MRIScomputeSecondFundamentalForm(mris) ;
   parms->start_t = 0 ;
   niterations = parms->niterations ;
   MRIScomputeCurvatureIndices(mris, &ici, &fi) ;
-  scale = parms->fi_desired < 0.0 ;
-  if (scale)
-    parms->fi_desired = fi_desired = 0.1 * fi ;
+  MRISstoreMetricProperties(mris) ;
+  if (parms->scale > 0)
+    parms->fi_desired = fi_desired = parms->scale * fi ;
   else
     fi_desired = parms->fi_desired ;
   fprintf(stderr, "inflating to desired folding index = %2.3f\n", 
@@ -6963,8 +6963,6 @@ MRISinflateBrain(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
   MRISclearCurvature(mris) ;   /* curvature will be used to calculate sulc */
   for (n = 0 ; n < niterations ; n++)
   {
-    if (scale)
-      MRISscaleBrainArea(mris) ;
     mrisClearGradient(mris) ;
     mrisComputeDistanceTerm(mris, parms) ;
     mrisComputeSpringTerm(mris, parms) ;
@@ -7013,14 +7011,17 @@ MRISinflateBrain(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
         fflush(parms->fp) ;
       }
       
-      if ((parms->write_iterations > 0) &&
-          !((n+1)%write_iterations)&&(Gdiag&DIAG_WRITE))
-        mrisWriteSnapshot(mris, parms, n+1) ;
       if (fi < fi_desired)
         break ;
     }
     else
       MRIScomputeMetricProperties(mris) ;  /* don't compute curvature */
+
+    if (parms->scale > 0)
+      MRISscaleBrainArea(mris) ;
+    if ((parms->write_iterations > 0) &&
+        !((n+1)%write_iterations)&&(Gdiag&DIAG_WRITE))
+      mrisWriteSnapshot(mris, parms, n+1) ;
   }
 
   fprintf(stderr, "\ninflation complete.\n") ;
