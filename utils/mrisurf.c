@@ -64,8 +64,7 @@ typedef struct
 /*------------------------ STATIC PROTOTYPES -------------------------*/
 
 static int mrisDumpDefectiveEdge(MRI_SURFACE *mris, int vno1, int vno2) ;
-static int mrisDumpTriangle(MRI_SURFACE *mris, int fno,double origin[3],
-                            double e0[3], double e1[3]) ;
+static int mrisDumpTriangle(MRI_SURFACE *mris, int fno) ;
 static int mrisMarkBadEdgeVertices(MRI_SURFACE *mris, int mark) ;
 static int mrisCheckSurface(MRI_SURFACE *mris) ;
 static int mrisComputeCanonicalBasis(MRI_SURFACE *mris, int fno,
@@ -76,9 +75,9 @@ static int isFace(MRI_SURFACE *mris, int vno0, int vno1, int vno2) ;
 static int findFace(MRI_SURFACE *mris, int vno0, int vno1, int vno2) ;
 static int mrisAddFace(MRI_SURFACE *mris, int vno0, int vno1, int vno2) ;
 
-static int mrisComputeCanonicalEdgeBasis(MRI_SURFACE *mris, int vno0,int vno1,
-                                     double origin[3],double e0[3],
-                                     double e1[3]);
+static int mrisComputeCanonicalEdgeBasis(MRI_SURFACE *mris, EDGE *edge1,
+                                         EDGE *edge2, double origin[3],
+                                         double e0[3], double e1[3]);
 #if 0
 static int mrisDilateAmbiguousVertices(MRI_SURFACE *mris, int mark,int ndil) ;
 static int triangleNeighbors(MRI_SURFACE *mris, int fno1, int fno2) ;
@@ -20200,19 +20199,17 @@ MRISripDefectiveFaces(MRI_SURFACE *mris)
 
         Description
 ------------------------------------------------------*/
-static int edgesIntersect(MRI_SURFACE *mris, EDGE *edge1, EDGE *edge2,
-                          double origin[3], double e0[3], double e1[3]) ;
+static int edgesIntersect(MRI_SURFACE *mris, EDGE *edge1, EDGE *edge2) ;
 static int
-edgesIntersect(MRI_SURFACE *mris, EDGE *edge1, EDGE *edge2,
-               double origin[3], double e0[3], double e1[3])
+edgesIntersect(MRI_SURFACE *mris, EDGE *edge1, EDGE *edge2)
 {
   VERTEX *v1, *v2 ;
   double  b1, b2, m1, m2, x1_start, x1_end, y1_start, y1_end,
          x2_start, x2_end, y2_start, y2_end, x, y, x1min, x1max,
          y1min, y1max, x2min, x2max, y2min, y2max, cx, cy, cz ;
+  double origin[3], e0[3], e1[3] ;
 
-  mrisComputeCanonicalEdgeBasis(mris, edge1->vno1, edge2->vno2, 
-                                origin, e0, e1) ;
+  mrisComputeCanonicalEdgeBasis(mris, edge1, edge2,origin,e0,e1);
   if (edge1->vno1 == Gdiag_no || edge2->vno1 == Gdiag_no ||
       edge1->vno2 == Gdiag_no || edge2->vno2 == Gdiag_no)
     DiagBreak() ;
@@ -20243,16 +20240,18 @@ edgesIntersect(MRI_SURFACE *mris, EDGE *edge1, EDGE *edge2,
   y2_end = cx*e1[0] + cy*e1[1] + cz*e1[2] ;
   x2min = MIN(x2_start, x2_end) ; x2max = MAX(x2_start, x2_end) ;
   y2min = MIN(y2_start, y2_end) ; y2max = MAX(y2_start, y2_end) ;
+#if 0
 #define INT_EPSILON 0.000
   x1max += INT_EPSILON ; y1max += INT_EPSILON ; 
   x2max += INT_EPSILON ; y2max += INT_EPSILON ; 
   x1min -= INT_EPSILON ; y1min -= INT_EPSILON ; 
   x2min -= INT_EPSILON ; y2min -= INT_EPSILON ; 
+#endif
   
-#if 0
+#if 1
   /* non-overlapping intervals can't intersect */
   if (x1min > x2max || x1max < x2min || y1min > y2max || y1max < y2min)
-    continue ;
+    return(0) ;
 #endif
   
   /* handle special cases first */
@@ -20304,7 +20303,7 @@ edgesIntersect(MRI_SURFACE *mris, EDGE *edge1, EDGE *edge2,
 static int 
 mrisFindAllOverlappingFaces(MRI_SURFACE *mris, MHT *mht,int fno, int *flist)
 {
-  double   origin[3], e0[3], e1[3], x0, x1, y0, y1, z0, z1, x, y, z ;
+  double   x0, x1, y0, y1, z0, z1, x, y, z ;
   int     i, n, m, total_found, all_faces[100000], nfaces ;
   MHBT    *bucket, *last_bucket ;
   MHB     *bin ;
@@ -20312,16 +20311,6 @@ mrisFindAllOverlappingFaces(MRI_SURFACE *mris, MHT *mht,int fno, int *flist)
   FACE    *f1, *f2 ;
   VERTEX  *v ;
 
-  mrisComputeCanonicalBasis(mris, fno, origin, e0, e1) ;
-#if 0
-  if (fno == 114877)
-  {
-    mrisDumpTriangle(mris, fno, origin,  e0, e1) ;
-    mrisDumpTriangle(mris, 117486, origin,  e0, e1) ;
-    fprintf(stderr, "triangle %d: area %f\n", 114877,mris->faces[114877].area);
-    fprintf(stderr, "triangle %d: area %f\n", 117486,mris->faces[117486].area);
-  }
-#endif
 
   f1 = &mris->faces[fno] ;
   if (fno == Gdiag_no)
@@ -20386,7 +20375,7 @@ mrisFindAllOverlappingFaces(MRI_SURFACE *mris, MHT *mht,int fno, int *flist)
         if (edge2.vno1 == edge1.vno1 || edge2.vno1 == edge1.vno2 ||
             edge2.vno2 == edge1.vno1 || edge2.vno2 == edge1.vno2)
           continue ;
-        if (edgesIntersect(mris, &edge1, &edge2, origin, e0, e1))
+        if (edgesIntersect(mris, &edge1, &edge2))
         {
           f2->ripflag = 1 ;  /* use ripflag as a mark */
           flist[total_found++] = all_faces[i] ;
@@ -20472,16 +20461,16 @@ static int mrisFindDefectConvexHull(MRI_SURFACE *mris, DEFECT *defect) ;
 static int mrisOrientRetessellatedSurface(MRI_SURFACE *mris, DEFECT_LIST *dl,
                                           int *vtrans) ;
 static int containsAnotherVertex(MRI_SURFACE *mris, int vno0, int vno1, 
-                                 int vno2,
-                                 double e0[3], double e1[3], double origin[3]) ;
-static int mrisAddDefectFaces(MRI_SURFACE *mris, double e0[3], double e1[3], 
-                              double origin[3], EDGE *et, int nedges);
+                                 int vno2, double e0[3], double e1[3], 
+                                 double origin[3]) ;
 static int       mrisMarkDefect(MRI_SURFACE *mris, DEFECT *defect, int mark) ;
 static int       mrisMarkDefectBorder(MRI_SURFACE *mris, DEFECT *defect,
                                       int mark);
 static int       mrisMarkDefectConvexHull(MRI_SURFACE *mris, DEFECT *defect,
                                       int mark);
 #if 0
+static int mrisAddDefectFaces(MRI_SURFACE *mris, double e0[3], double e1[3], 
+                              double origin[3], EDGE *et, int nedges);
 static int       mrisOrientFaces(MRI_SURFACE *mris,DEFECT *defect,int *vtrans);
 static int       mrisRestoreDefectPositions(MRI_SURFACE *mris, DEFECT *defect,
                                             int which) ;
@@ -20503,11 +20492,9 @@ static int       mrisTessellateDefect(MRI_SURFACE *mris,
                                       MRI_SURFACE *mris_corrected, 
                                       DEFECT *defect, int *vertex_trans) ;
 static int       intersectDefectEdges(MRI_SURFACE *mris, DEFECT *defect, 
-                               EDGE *e, double e0[3], double e1[3], 
-                               double origin[3], int *vertex_trans);
+                               EDGE *e, int *vertex_trans);
 static int       mrisCheckDefectEdges(MRI_SURFACE *mris, DEFECT *defect,
-                                      int vno, double e0[3], double e1[3], 
-                                      double origin[3], int *vertex_trans) ;
+                                      int vno, int *vertex_trans) ;
 static int       vertexNeighbor(MRI_SURFACE *mris, int vno1, int vno2) ;
 
 #define AREA_THRESHOLD     35.0f
@@ -20614,9 +20601,11 @@ MRIScorrectTopology(MRI_SURFACE *mris, MRI_SURFACE *mris_corrected)
   /*  MRISrestoreVertexPositions(mris, TMP_VERTICES) ;*/
   MRIScomputeMetricProperties(mris) ;
   MRISclearCurvature(mris) ;
-#if 1
-  for (i = 0 ; i < dl->ndefects ; i++)
+  if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+    for (i = 0 ; i < dl->ndefects ; i++)
   {
+    int   total_defective_vertices ;
+    float total_defective_area ;
     FILE *fp ;
     char fname[100] ;
 
@@ -20651,19 +20640,6 @@ MRIScorrectTopology(MRI_SURFACE *mris, MRI_SURFACE *mris_corrected)
         DiagBreak() ;
     }
     fclose(fp) ;
-  }
-#endif
-  for (vno = 0 ; vno < mris->nvertices ; vno++)
-  {
-    if (mris->vertices[vno].curv < 0)
-      DiagBreak() ;
-  }
-
-  {
-    FILE  *fp ;
-    char  fname[100] ;
-    int   total_defective_vertices ;
-    float total_defective_area ;
 
     sprintf(fname, "%s.%s.defects.log", 
             mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh",
@@ -20683,7 +20659,8 @@ MRIScorrectTopology(MRI_SURFACE *mris, MRI_SURFACE *mris_corrected)
     }
     fclose(fp) ;
   }
-  MRISwriteCurvature(mris, "defect_labels") ;
+  if (Gdiag & DIAG_WRITE)
+    MRISwriteCurvature(mris, "defect_labels") ;
 
   /* now start building the target surface */
   MRISclearMarks(mris) ;
@@ -20769,7 +20746,7 @@ MRIScorrectTopology(MRI_SURFACE *mris, MRI_SURFACE *mris_corrected)
     face_trans[fno] = mris_corrected->nfaces++ ;
   }
 
-  if (Gdiag & DIAG_WRITE)
+  if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
   {
     FILE  *fp ;
     char  fname[100] ;
@@ -20833,6 +20810,7 @@ MRIScorrectTopology(MRI_SURFACE *mris, MRI_SURFACE *mris_corrected)
             i, defect->nvertices+defect->nborder, defect->nchull) ;
     mrisTessellateDefect(mris, mris_corrected, defect, vertex_trans) ;
   }
+  mrisAddAllDefectFaces(mris_corrected, dl, vertex_trans) ;
   mrisCheckSurface(mris_corrected) ;
   for (i = 0 ; i < dl->ndefects ; i++)
   {
@@ -21784,7 +21762,7 @@ mrisTessellateDefect(MRI_SURFACE *mris, MRI_SURFACE *mris_corrected,
   int    i, j, vlist[10000], n, nvertices, nedges ;
   VERTEX *v, *v2 ;
   EDGE   *et ;
-  double  dx, dy, dz, cx, cy, cz, normal[3], e0[3], e1[3], origin[3],len ;
+  double  dx, dy, dz, cx, cy, cz ;
 
   /* first build table of all possible edges among vertices in the defect
      and on its border.
@@ -21887,24 +21865,6 @@ mrisTessellateDefect(MRI_SURFACE *mris, MRI_SURFACE *mris_corrected,
   if (!n)   /* should never happen */
     return(NO_ERROR) ;
 
-  /* now build an othornormal basis tangent to the sphere */
-  origin[0] = normal[0] = cx / (double)n ;
-  origin[1] = normal[1] = cy / (double)n ;
-  origin[2] = normal[2] = cz / (double)n ;
-  len = 1.0f/VLEN(normal) ; SCALAR_MUL(normal, len, normal) ;
-
-  /* pick any non-parallel vector and cross it with normal */
-  e1[0] = normal[1] ; e1[1] = normal[2] ; e1[2] = normal[0] ; 
-  CROSS(e0, normal, e1) ;
-  if (FZERO(VLEN(e0)))  /* happened to pick parallel vector */
-  {
-    e1[0] = normal[1] ; e1[1] = -normal[2] ; e1[2] = normal[0] ; 
-    CROSS(e0, normal, e1) ;
-  }
-  CROSS(e1, e0, normal) ;
-  len = 1.0f/VLEN(e0) ; SCALAR_MUL(e0, len, e0) ;
-  len = 1.0f/VLEN(e1) ; SCALAR_MUL(e1, len, e1) ;
-
 #if 0
   {
     VERTEX  *v ;
@@ -21948,8 +21908,7 @@ mrisTessellateDefect(MRI_SURFACE *mris, MRI_SURFACE *mris_corrected,
   {
     if (et[n].used == 0)
       continue ;
-    if (intersectDefectEdges(mris_corrected, defect, &et[n], 
-                                 e0, e1, origin, vertex_trans))
+    if (intersectDefectEdges(mris_corrected, defect, &et[n], vertex_trans))
     {
       et[n].used = 0 ;
       fprintf(stderr,"removing edge %d (%d-->%d)\n",n,et[n].vno1,et[n].vno1);
@@ -21969,27 +21928,27 @@ mrisTessellateDefect(MRI_SURFACE *mris, MRI_SURFACE *mris_corrected,
       DiagBreak() ;
     if (et[i].used)  /* already exists in tessellation */
     {
-      if (intersectDefectEdges(mris_corrected, defect, &et[i], e0, e1, origin,
-                                vertex_trans))
+#if 0
+      if (intersectDefectEdges(mris_corrected, defect, &et[i], vertex_trans))
       {
         fprintf(stderr, "used edge %d (%d-->%d) intersects defect!\n",
                 i, et[i].vno1, et[i].vno2) ;
-        mrisCheckDefectEdges(mris_corrected, defect, et[i].vno1,e0, e1, origin,
-                             vertex_trans) ;
-        mrisCheckDefectEdges(mris_corrected, defect, et[i].vno2,e0, e1, origin,
-                             vertex_trans) ;
+        mrisCheckDefectEdges(mris_corrected, defect, et[i].vno1,vertex_trans);
+        mrisCheckDefectEdges(mris_corrected, defect, et[i].vno2,vertex_trans);
         DiagBreak() ;
       }
+#endif
       continue ;
     }
-    if (!intersectDefectEdges(mris_corrected, defect, &et[i], e0, e1, origin,
-                       vertex_trans))
+    if (!intersectDefectEdges(mris_corrected, defect, &et[i], vertex_trans))
     {
       mrisAddEdge(mris_corrected, et[i].vno1, et[i].vno2) ;
       et[i].used = 1 ;
     }
   }
+#if 0
   mrisAddDefectFaces(mris_corrected, e0, e1, origin, et, nedges) ;
+#endif
   free(et) ;
   defect_no++ ;     /* for diagnostics */
   return(NO_ERROR) ;
@@ -22011,9 +21970,8 @@ compare_edge_length(const void *pe0, const void *pe1)
   return(0) ;
 }
 static int
-mrisCheckDefectEdges(MRI_SURFACE *mris, DEFECT *defect,
-                     int vno, double e0[3], double e1[3], 
-                     double origin[3], int *vertex_trans)
+mrisCheckDefectEdges(MRI_SURFACE *mris, DEFECT *defect, int vno, 
+                     int *vertex_trans)
 {
   int    i, n1, n2, n3, vno2, fno1, fno2 ;
   EDGE   edge1, edge2 ;
@@ -22049,13 +22007,13 @@ mrisCheckDefectEdges(MRI_SURFACE *mris, DEFECT *defect,
           if (edge2.vno1 == edge1.vno1 || edge2.vno1 == edge1.vno2 ||
               edge2.vno2 == edge1.vno1 || edge2.vno2 == edge1.vno2)
             continue ;
-          if (edgesIntersect(mris, &edge1, &edge2, origin, e0, e1))
+          if (edgesIntersect(mris, &edge1, &edge2))
           {
             fprintf(stderr, "triangles %d (a=%f) and %d (a=%f) intersect!\n",
                     fno1, mris->faces[fno1].area, fno2,
                     mris->faces[fno2].area) ;
-            mrisDumpTriangle(mris, fno1, origin,  e0, e1) ;
-            mrisDumpTriangle(mris, fno2, origin,  e0, e1) ;
+            mrisDumpTriangle(mris, fno1) ;
+            mrisDumpTriangle(mris, fno2) ;
           }
         }
       }
@@ -22075,40 +22033,18 @@ mrisCheckDefectEdges(MRI_SURFACE *mris, DEFECT *defect,
           (e.g. sorting).
 ------------------------------------------------------*/
 static int
-intersectDefectEdges(MRI_SURFACE *mris, DEFECT *defect, EDGE *e, double e0[3], 
-              double e1[3], double origin[3], int *vertex_trans)
+intersectDefectEdges(MRI_SURFACE *mris, DEFECT *defect, EDGE *e, 
+                     int *vertex_trans)
 {
-  VERTEX *v1, *v2 ;
-  double  b1, b2, m1, m2, x1_start, x1_end, y1_start, y1_end,
-         x2_start, x2_end, y2_start, y2_end, x, y, x1min, x1max,
-         y1min, y1max, x2min, x2max, y2min, y2max, cx, cy, cz ;
+  VERTEX *v1 ;
   int    i, n, vno ;
   FILE   *fp = NULL ;
+  EDGE   edge2 ;
 
-  mrisComputeCanonicalEdgeBasis(mris, e->vno1, e->vno2, origin, e0, e1) ;
   if ((e->vno1 == 109259 && e->vno2 == 108332) ||
       (e->vno2 == 109259 && e->vno1 == 108332))
     DiagBreak() ;
-  v1 = &mris->vertices[e->vno1] ; v2 = &mris->vertices[e->vno2] ;
-  cx = v1->cx - origin[0] ; cy = v1->cy - origin[1] ; cz = v1->cz - origin[2];
-  x1_start = cx*e0[0] + cy*e0[1] + cz*e0[2] ;
-  y1_start = cx*e1[0] + cy*e1[1] + cz*e1[2] ;
-  cx = v2->cx - origin[0] ; cy = v2->cy - origin[1] ; cz = v2->cz - origin[2];
-  x1_end = cx*e0[0] + cy*e0[1] + cz*e0[2] ;
-  y1_end = cx*e1[0] + cy*e1[1] + cz*e1[2] ;
-  x1min = MIN(x1_start, x1_end) ; x1max = MAX(x1_start, x1_end) ;
-  y1min = MIN(y1_start, y1_end) ; y1max = MAX(y1_start, y1_end) ;
-  if (!FEQUAL(x1_start, x1_end))
-  {
-    m1 = (y1_end - y1_start) / (x1_end - x1_start) ;
-    b1 = y1_end - m1 * x1_end ;
-  }
-  else
-    m1 = b1 = 0 ;   /* will be handled differently */
 
-  
-  x1max += INT_EPSILON ; y1max += INT_EPSILON ; 
-  x1min -= INT_EPSILON ; y1min -= INT_EPSILON ; 
   for (i = 0 ; i < defect->nvertices+defect->nchull ; i++)
   {
     if (i < defect->nvertices)
@@ -22118,10 +22054,8 @@ intersectDefectEdges(MRI_SURFACE *mris, DEFECT *defect, EDGE *e, double e0[3],
 
     if (vno == e->vno1 || vno == e->vno2 || vno < 0)
       continue ;
+    edge2.vno1 = vno ;
     v1 = &mris->vertices[vno] ;
-    cx = v1->cx-origin[0] ; cy = v1->cy-origin[1] ; cz = v1->cz-origin[2];
-    x2_start = cx*e0[0] + cy*e0[1] + cz*e0[2] ;
-    y2_start = cx*e1[0] + cy*e1[1] + cz*e1[2] ;
     for (n = 0 ; n < v1->vnum ; n++)
     {
       if (vno == Gdiag_no)
@@ -22134,77 +22068,32 @@ intersectDefectEdges(MRI_SURFACE *mris, DEFECT *defect, EDGE *e, double e0[3],
         DiagBreak() ;
       if (v1->v[n] == e->vno1 || v1->v[n] == e->vno2)
         continue ;
-      v2 = &mris->vertices[v1->v[n]] ;
-      cx = v2->cx-origin[0] ; cy = v2->cy-origin[1] ; cz = v2->cz-origin[2];
-      x2_end = cx*e0[0] + cy*e0[1] + cz*e0[2] ;
-      y2_end = cx*e1[0] + cy*e1[1] + cz*e1[2] ;
-      x2min = MIN(x2_start, x2_end) ; x2max = MAX(x2_start, x2_end) ;
-      y2min = MIN(y2_start, y2_end) ; y2max = MAX(y2_start, y2_end) ;
-
-      x2max += INT_EPSILON ; y2max += INT_EPSILON ; 
-      x2min -= INT_EPSILON ; y2min -= INT_EPSILON ; 
-#if 0
-      /* non-overlapping intervals can't intersect */
-      if (x1min > x2max || x1max < x2min || y1min > y2max || y1max < y2min)
-        continue ;
-#endif
-
-      /* handle special cases first */
-      if (FEQUAL(x1_start, x1_end))        /* l1 is vertical */
-      {
-        if (FEQUAL(x2_start, x2_end))      /* both vertical */
-        {
-          if (FEQUAL(x1_start, x2_start))  /* same line */
-            return(1) ;
-          else
-            continue ;
-        }
-        m2 = (y2_end - y2_start) / (x2_end - x2_start) ;
-        b2 = y2_end - m2 * x2_end ;
-        y = m2 * x1_start + b2 ;           /* y coordinate of intersection */
-        if (y >= y1min && y <= y1max)
-          return(1) ;
-      }
-      else if (FEQUAL(x2_start, x2_end))   /* l2 is vertical */
-      {
-        if (FEQUAL(x1_start, x1_end))      /* both vertical */
-        {
-          if (FEQUAL(x1_start, x2_start))  /* same line */ 
-           return(1) ;
-          else
-            continue ;
-        }
-        y = m1 * x2_start + b1 ;  /* y coord of intersection */
-        if (y >= y2min && y <= y2max)
-          return(1) ;
-      }
-      else    /* neither line is vertical, compute intersection point */
-      {
-        m2 = (y2_end - y2_start) / (x2_end - x2_start) ;
-        b2 = y2_end - m2 * x2_end ;
-        if (FEQUAL(m1, m2))                /* parallel lines */
-        {
-          if (FEQUAL(b1,b2) && (x2max >= x1min && x2min <= x1max))
-            return(1) ;
-          else
-            continue ;
-        }
-        x = (b2 - b1) / (m1-m2) ;            /* intersection point */
-        if ((x <= x1max && x >= x1min) &&    /* is it in l1 interval? */
-            (x <= x2max && x >= x2min))      /* is it in l2 interval? */
-          return(1) ;                        /* both true - intersection */
-      }
+      edge2.vno2 = v1->v[n] ;
+      if (edgesIntersect(mris, e, &edge2))
+        return(1) ;
     }
   }
 
+  if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
   {
-    char fname[100] ;
+    double     x1_start, x1_end, y1_start, y1_end, x2_start, x2_end, 
+               y2_start,y2_end, x2min, x2max, y2min, y2max, cx, cy, cz, 
+               origin[3], e0[3], e1[3] ;
+    char       fname[100] ;
+    VERTEX     *v2 ;
     static int dno = -1 ;
 
+    mrisComputeCanonicalEdgeBasis(mris, e, e, origin, e0, e1) ;
     sprintf(fname, "lines%d.log", defect_no) ;
+    v1 = &mris->vertices[e->vno1] ; v2 = &mris->vertices[e->vno2] ;
+    cx = v1->cx-origin[0] ; cy = v1->cy - origin[1] ; cz = v1->cz-origin[2];
+    x1_start = cx*e0[0] + cy*e0[1] + cz*e0[2] ;
+    y1_start = cx*e1[0] + cy*e1[1] + cz*e1[2] ;
+    cx = v2->cx-origin[0]; cy = v2->cy - origin[1] ; cz = v2->cz-origin[2];
+    x1_end = cx*e0[0] + cy*e0[1] + cz*e0[2] ;
+    y1_end = cx*e1[0] + cy*e1[1] + cz*e1[2] ;
     if (dno != defect_no)  /* first time for this defect */
     {
-      dno = defect_no ;
       fp = fopen(fname, "w") ;
 
       for (i = 0 ; i < defect->nvertices+defect->nchull ; i++)
@@ -22244,11 +22133,7 @@ intersectDefectEdges(MRI_SURFACE *mris, DEFECT *defect, EDGE *e, double e0[3],
             x1_start, y1_start, x1_end, y1_end) ;
     if (fp)
       fclose(fp) ;
-  }
 
-  {
-    char fname[100] ;
-    static int dno = -1 ;
 
     sprintf(fname, "edges%d.log", defect_no) ;
     if (dno != defect_no)  /* first time for this defect */
@@ -22670,6 +22555,7 @@ mrisSetVertexFaceIndex(MRI_SURFACE *mris, int vno, int fno)
 
   return(n) ;
 }
+#if 0
 /*-----------------------------------------------------
         Parameters:
 
@@ -22691,7 +22577,7 @@ mrisAddDefectFaces(MRI_SURFACE *mris, double e0[3], double e1[3],
       continue ;
     vno1 = et[i].vno1 ;
     vno2 = et[i].vno2 ;
-    mrisComputeCanonicalEdgeBasis(mris, vno1, vno2, origin, e0, e1) ;
+    mrisComputeCanonicalEdgeBasis(mris, et+i, et+i, origin, e0, e1) ;
     if (vno1 == 108332 && vno2 == 109240)
       DiagBreak() ;
 
@@ -22720,6 +22606,7 @@ mrisAddDefectFaces(MRI_SURFACE *mris, double e0[3], double e1[3],
   }
   return(NO_ERROR) ;
 }
+#endif
 /*-----------------------------------------------------
         Parameters:
 
@@ -22735,6 +22622,7 @@ mrisAddAllDefectFaces(MRI_SURFACE *mris, DEFECT_LIST *dl, int *vertex_trans)
   int     i, vno1, vno2, nfaces, n, m, dno ;
   VERTEX  *v ;
   double  origin[3], e0[3], e1[3] ;
+  EDGE    edge ;
   
   for (dno = 0 ; dno < dl->ndefects ; dno++)
   {
@@ -22749,14 +22637,17 @@ mrisAddAllDefectFaces(MRI_SURFACE *mris, DEFECT_LIST *dl, int *vertex_trans)
         continue ;
 
       v = &mris->vertices[vno1] ;
+      edge.vno1 = vno1 ;
       for (m = 0 ; m < v->vnum ; m++)
       {
-        vno2 = v->v[m] ;
-        mrisComputeCanonicalEdgeBasis(mris, vno1, vno2, origin, e0, e1) ;
+        edge.vno2 = vno2 = v->v[m] ;
+        mrisComputeCanonicalEdgeBasis(mris, &edge, &edge, origin, e0, e1) ;
         if (vno1 == 108332 && vno2 == 109240)
           DiagBreak() ;
 
-        /* for every vertex which is a neighbor of both of these, add 1 triangle */
+        /* 
+           for every vertex which is a neighbor of both of these, 
+           add 1 triangle */
         for (nfaces = n = 0 ; n < v->vnum ; n++)
         {
           if (v->v[n] == vno2)
@@ -22769,12 +22660,7 @@ mrisAddAllDefectFaces(MRI_SURFACE *mris, DEFECT_LIST *dl, int *vertex_trans)
               DiagBreak() ;
             if (mris->nfaces == Gdiag_no)
               DiagBreak() ;
-#if 0
-            if (((vno1 != 110718) && (vno1 != 110732) && (vno1 != 110748)) ||
-                ((vno2 != 110718) && (vno2 != 110732) && (vno2 != 110748)) ||
-                ((v->v[n]!=110718) && (v->v[n] != 110732) && (v->v[n]!=110748)))
-#endif
-              mrisAddFace(mris, vno1, vno2, v->v[n]) ;
+            mrisAddFace(mris, vno1, vno2, v->v[n]) ;
           }
         }
       }
@@ -23566,22 +23452,24 @@ mrisComputeCanonicalBasis(MRI_SURFACE *mris, int fno, double origin[3],
 
         Description
 ------------------------------------------------------*/
-#if 1
 static int 
-mrisComputeCanonicalEdgeBasis(MRI_SURFACE *mris, int vno0, int vno1, 
+mrisComputeCanonicalEdgeBasis(MRI_SURFACE *mris, EDGE *edge1, EDGE *edge2,
                               double origin[3], double e0[3], double e1[3])
 {
-  VERTEX   *v0, *v1 ;
+  VERTEX   *v0, *v1, *v2, *v3 ;
   double   len, normal[3] ;
   float    fx, fy, fz ;
 
-  v0 = &mris->vertices[vno0] ;
-  v1 = &mris->vertices[vno1] ;
-  fx = (v0->cx + v1->cx) / 2 ; 
-  fy = (v0->cy + v1->cy) / 2 ; 
-  fz = (v0->cz + v1->cz) / 2 ;
-  origin[0] = (double)fx ; origin[1] = (double)fy ; origin[2] = (double)fz ;
-  normal[0] = origin[0] ; normal[1] = origin[1] ; normal[2] = origin[2] ;
+  v0 = &mris->vertices[edge1->vno1] ;
+  v1 = &mris->vertices[edge1->vno2] ;
+  v2 = &mris->vertices[edge2->vno1] ;
+  v3 = &mris->vertices[edge2->vno2] ;
+  fx = (v0->cx + v1->cx + v2->cx + v3->cx) / 4 ; 
+  fy = (v0->cy + v1->cy + v2->cy + v3->cy) / 4 ; 
+  fz = (v0->cz + v1->cz + v2->cz + v3->cz) / 4 ;
+  normal[0] = origin[0] = (double)fx ; 
+  normal[1] = origin[1] = (double)fy ; 
+  normal[2] = origin[2] = (double)fz ;
   len = 1.0f/VLEN(normal) ; SCALAR_MUL(normal, len, normal) ;
 
   /* pick any non-parallel vector and cross it with normal */
@@ -23598,7 +23486,6 @@ mrisComputeCanonicalEdgeBasis(MRI_SURFACE *mris, int vno0, int vno1,
   len = DOT(e0, e1) ;
   return(NO_ERROR) ;
 }
-#endif
 /*-----------------------------------------------------
         Parameters:
 
@@ -23898,15 +23785,15 @@ mrisDumpDefectiveEdge(MRI_SURFACE *mris, int vno1, int vno2)
 }
 
 static int
-mrisDumpTriangle(MRI_SURFACE *mris, int fno,double origin[3],double e0[3],
-                 double e1[3])
+mrisDumpTriangle(MRI_SURFACE *mris, int fno)
 {
   char   fname[100] ; 
   VERTEX *v0, *v1, *v2 ;
   FACE   *f ;
   FILE   *fp ;
-  double cx, cy, cz, x, y ;
+  double cx, cy, cz, x, y, origin[3], e0[3], e1[3] ;
 
+  mrisComputeCanonicalBasis(mris, fno, origin, e0, e1) ;
   f = &mris->faces[fno] ;
   sprintf(fname, "triangle%d.log", fno) ;
   fp = fopen(fname, "w") ;
