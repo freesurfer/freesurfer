@@ -1,7 +1,7 @@
 #!/bin/csh -f
 # birn-glm-demo
-# $Id: birn-glm-demo,v 1.1 2003/01/08 18:02:26 greve Exp $
-set VERSION = '$Id: birn-glm-demo,v 1.1 2003/01/08 18:02:26 greve Exp $';
+# $Id: birn-glm-demo,v 1.2 2003/01/08 18:03:48 greve Exp $
+set VERSION = '$Id: birn-glm-demo,v 1.2 2003/01/08 18:03:48 greve Exp $';
 
 set inputargs = ($argv);
 
@@ -401,11 +401,11 @@ usage_exit:
   echo ""
 
   if($PrintHelp) then
-  echo ""
-  echo $VERSION
-  echo ""
-  cat $0 | awk 'BEGIN{prt=0}{if(prt) print $0; if($1 == "BEGINHELP") prt = 1 }'
-
+    echo ""
+    echo $VERSION
+    echo ""
+    cat $0 | awk 'BEGIN{prt=0}{if(prt) print $0; if($1 == "BEGINHELP") prt = 1 }'
+  endif
 exit 1;
 
 
