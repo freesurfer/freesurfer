@@ -206,3 +206,31 @@ VLreadVoxel(char *fname, int x, int y, int z,  VL *vl)
   return(vl) ;
 }
 
+int
+VLnormalize(VLI *vli)
+{
+  int    x, y, z, n ;
+  VL     *vl ;
+	float   pct, total ;
+
+  for (x = 0 ; x < vli->width ; x++)
+  {
+    for (y = 0 ; y < vli->height ; y++)
+    {
+      for (z = 0 ; z < vli->depth ; z++)
+      {
+        vl = &vli->vl[x][y][z] ;
+        for (total = 0.0, n = 0 ; n < vl->nlabels ; n++)
+					total += (float)vl->counts[n] ;
+
+        for (n = 0 ; n < vl->nlabels ; n++)
+				{
+					pct = 100.0f * (float)vl->counts[n] / total ;
+					vl->counts[n] = nint(pct) ;
+				}
+			}
+		}
+	}
+	return(NO_ERROR) ;
+}
+
