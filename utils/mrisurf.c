@@ -284,6 +284,7 @@ MRISread(char *fname)
     return(NULL) ;
 
   /*  mrisFindPoles(mris) ;*/
+  MRIScomputeTriangleProperties(mris) ;  /* compute areas and normals */
 #if 0
   if (mrisReadTriangleProperties(mris, fname))
     mrisComputeTriangleProperties(mris) ;
@@ -1451,6 +1452,7 @@ MRISunfold(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
   parms->start_t = 0 ;
   /*  parms->niterations = 1 ;*/
   base_tol = parms->tol ;
+  parms->dt = parms->base_dt ;
   do
   {
     done = 0 ;
@@ -1603,7 +1605,7 @@ mrisIntegrate(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
       sprintf(fname, "%s%4.4d", base_name, 0) ;
       if (Gdiag & DIAG_SHOW)
         fprintf(stderr, "writing %s...", fname) ;
-      if (parms->projection == PROJECT_PLANE)
+      if (mris->patch)
         MRISwritePatch(mris, fname) ;
       else
         MRISwrite(mris, fname) ;
@@ -1821,14 +1823,11 @@ for (vno = 0 ; vno < mris->nvertices ; vno++)
       sprintf(fname, "%s%4.4d", base_name, t+1) ;
       if (Gdiag & DIAG_SHOW)
         fprintf(stderr, "writing %s...", fname) ;
-      switch (parms->projection)
-      {
-      case PROJECT_PLANE:
+      if (mris->patch)
         MRISwritePatch(mris, fname) ;
-        break ;
-      default:
+      else
         MRISwrite(mris, fname) ;
-      }
+
       if (DIAG_VERBOSE_ON)
       {
         sprintf(fname, "%s%4.4d.area_error", base_name, t+1) ;
@@ -2661,7 +2660,7 @@ MRIScomputeTriangleProperties(MRI_SURFACE *mris)
 #define MAX_MM       MAX_DIM/10.0f
 #define MAX_DT       1000000.0f
 #define DT_INCREASE  1.03
-#define DT_DECREASE  0.8
+#define DT_DECREASE  0.7
 #define DT_MIN       0.001
 #define ERROR_RATIO  1.2
 
@@ -2744,6 +2743,7 @@ mrisMomentumTimeStep(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
         fprintf(stderr, "sse increased by %2.0f%%, undoing time step...\n",
                 (float)sse/starting_sse * 100.0f) ;
       delta_t = 0.0 ;          /* didn't take a step */
+      parms->dt = parms->base_dt ;
       for (vno = 0 ; vno < mris->nvertices ; vno++)
       {
         vertex = &mris->vertices[vno] ;
@@ -3698,6 +3698,7 @@ MRISreadPatch(MRI_SURFACE *mris, char *pname)
   flag2d = TRUE;
 #endif
 
+  mris->patch = 1 ;
   return(NO_ERROR) ;
 }
 /*-----------------------------------------------------
@@ -4320,6 +4321,7 @@ static int
 mrisUpdateSurface(MRI_SURFACE *mris)
 {
   mrisComputeNormals(mris);
+  MRIScomputeTriangleProperties(mris) ;  /* recompute areas and normals */
   MRIScomputeSecondFundamentalForm(mris) ;
   /*  MRIScomputeMeanCurvature(mris) ;*/
   return(NO_ERROR) ;
@@ -4722,15 +4724,6 @@ MRIScomputeSecondFundamentalForm(MRI_SURFACE *mris)
       mris->Hmax = vertex->H ;
     mris->Ktotal += (double)k1 * (double)k2 * (double)(vertex->area/2.0f) ;
     total_area += (double)vertex->area/2.0 ;
-
-    /* now unmarked the 2-vertex->v2num */
-    for (i = 0 ; i < vertex->v2num ; i++)
-    {
-      vnb = &mris->vertices[vertex->v[i]] ;
-      if (vnb->ripflag)
-        continue ;
-      vnb->marked = 0 ;
-    }
 
     /* now update the basis vectors to be the principal directions */
     a11 = *MATRIX_RELT(m_eigen,1,1) ; a12 = *MATRIX_RELT(m_eigen,1,2) ;
