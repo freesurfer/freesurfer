@@ -188,7 +188,7 @@ int   MRIcpolvAllQuadrantsFilled(MRI *mri, int x, int y, int z,int vertex,
 MRI   *MRIremoveIslands(MRI *mri_src, MRI*mri_dst, int wsize, int thresh) ;
 MRI   *MRIresegmentThinWMStrands(MRI *mri_src, MRI *mri_dst, int thickness);
 MRI   *MRIthickenThinWMStrands(MRI *mri_src, MRI *mri_dst, int thickness,
-                               int nsegments) ;
+                               int nsegments, float wm_hi) ;
 MRI   *MRIfindThinWMStrands(MRI *mri_src, MRI *mri_dst, int wsize);
 MRI   *MRIcentralPlaneOfLeastVarianceNormal(MRI *mri_src, MRI *mri_dst, 
                                             int wsize);
