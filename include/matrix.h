@@ -170,6 +170,7 @@ VECTOR *VectorNormalize(VECTOR *vin, VECTOR *vout) ;
 #define Z_ROTATION   2
 
 MATRIX *MatrixAllocRotation(int n, float angle, int which) ;
+MATRIX *MatrixReallocRotation(int n, float angle, int which, MATRIX *m) ;
 MATRIX *MatrixAllocTranslation(int n, double *trans) ;
 #define MatrixClone(mat)   MatrixCopy(mat, NULL)
 #define VectorClone        MatrixClone
