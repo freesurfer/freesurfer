@@ -288,23 +288,16 @@ ImageFRead(FILE *fp, char *fname, int start, int nframes)
      invalid (ie.  values in the image seem to be extreme) OR the endian of 
      the machine does not match the endian of the image */
 
-  fprintf(stderr,"Endian: %d End: %d\n",endian, end);
   switch (end)
     {
     case END_UNDEF:
       if (!ImageValid(I))
-  {
-    printf("Calling ImageSwapEndian (!ImageValid)\n");
-    ImageSwapEndian(I);
-  } 
+  ImageSwapEndian(I);
       break;
     case END_BIG:
     case END_SMALL:
       if (end != endian)
-  {
-    printf("Calling ImageSwapEndian (end != endian)\n");
-    ImageSwapEndian(I);
-  }
+  ImageSwapEndian(I);
       break;
     }
 
