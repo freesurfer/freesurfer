@@ -1,8 +1,8 @@
 #!/bin/csh -f
 # kmacfwht-sess
 #
-# $Id: kmacfwht-sess,v 1.1 2003/04/22 05:38:31 greve Exp $
-set VERSION = '$Id: kmacfwht-sess,v 1.1 2003/04/22 05:38:31 greve Exp $';
+# $Id: kmacfwht-sess,v 1.2 2003/04/22 06:32:32 greve Exp $
+set VERSION = '$Id: kmacfwht-sess,v 1.2 2003/04/22 06:32:32 greve Exp $';
 
 set inputargs = ($argv);
 set DateStr = "`date '+%y%m%d%H%M'`"
@@ -298,7 +298,7 @@ p3 = length(find(abs(sigt(indmask))<.001))/nmask;
 fprintf('Mask  P(.01) = %7.5f  %d, P(.001) = %7.5f %d\n',...
         p2, p2>.01, p3, p3>.001);
 
-sigt = sign(sigt) .* log10(-abs(sigt));
+sigt = sign(sigt) .* log10(abs(sigt));
 fmri_svbvolume(sigt,mapstem);
 
 if(~isempty(snrdir))
