@@ -44,6 +44,7 @@ MRIStoParameterization(MRI_SURFACE *mris, MRI_SP *mrisp, float scale)
   if (!mrisp)
     mrisp = MRISPalloc(mris, scale) ;
 
+#if 0
   if (FZERO(mris->a))
   {
     a = DEFAULT_A ;
@@ -56,6 +57,11 @@ MRIStoParameterization(MRI_SURFACE *mris, MRI_SP *mrisp, float scale)
     b = mris->b ;
     c = mris->c ;
   }
+#else
+  vertex = &mris->vertices[0] ;
+  x = vertex->x ; y = vertex->y ; z = vertex->z ;
+  a = b = c = sqrt(x*x + y*y + z*z) ;
+#endif
 
   filled = (int **)calloc(U_DIM(mrisp), sizeof(int *)) ;
   distances = (float **)calloc(U_DIM(mrisp), sizeof(float *)) ;
@@ -390,6 +396,7 @@ MRISfromParameterization(MRI_SP *mrisp, MRI_SURFACE *mris)
   if (!mris)
     mris = MRISclone(mrisp->mris) ;
 
+#if 0
   if (FZERO(mris->a))
   {
     a = DEFAULT_A ;
@@ -402,6 +409,11 @@ MRISfromParameterization(MRI_SP *mrisp, MRI_SURFACE *mris)
     b = mris->b ;
     c = mris->c ;
   }
+#else
+  vertex = &mris->vertices[0] ;
+  x = vertex->x ; y = vertex->y ; z = vertex->z ;
+  a = b = c = sqrt(x*x + y*y + z*z) ;
+#endif
 
   for (vno = 0 ; vno < mris->nvertices ; vno++)
   {
@@ -494,6 +506,8 @@ MRISPblur(MRI_SP *mrisp_src, MRI_SP *mrisp_dst, float sigma)
   double      k, a, b, c, total, ktotal, sigma_sq_inv, udiff, vdiff, sin_sq_u, 
               phi ;
   MRI_SURFACE *mris ;
+  VERTEX      *vertex ;
+  float       x, y, z ;
 
   no_sphere = getenv("NO_SPHERE") != NULL ;
   if (no_sphere)
@@ -521,6 +535,7 @@ MRISPblur(MRI_SP *mrisp_src, MRI_SP *mrisp_dst, float sigma)
             sigma, cart_klen) ;
 
   mris = mrisp_src->mris ;
+#if 0
   if (FZERO(mris->a))
   {
     a = DEFAULT_A ;
@@ -533,6 +548,11 @@ MRISPblur(MRI_SP *mrisp_src, MRI_SP *mrisp_dst, float sigma)
     b = mris->b ;
     c = mris->c ;
   }
+#else
+  vertex = &mris->vertices[0] ;
+  x = vertex->x ; y = vertex->y ; z = vertex->z ;
+  a = b = c = sqrt(x*x + y*y + z*z) ;
+#endif
 
   if (FZERO(sigma))
     sigma_sq_inv = BIG ;
