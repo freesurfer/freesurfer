@@ -132,11 +132,19 @@ float
 Utilities::DistanceFromLineToPoint3f ( Point3<float>& iLineA, 
 				       Point3<float>& iLineB,
 				       Point3<float>& iPoint ) {
+
+  // If this line segment is really short, just use the point to point
+  // distance function.
+  if( fabs(iLineA[0] - iLineB[0]) < 0.001 &&
+      fabs(iLineA[1] - iLineB[1]) < 0.001 &&
+      fabs(iLineA[2] - iLineB[2]) < 0.001 ) {
+    return VectorOps::Distance( iLineB, iPoint );
+  }
   
   // iLineA is A, iLineB is B, iPoint is P. Find line segment lengths.
-  float AB = Distance( iLineA, iLineB );
-  float AP = Distance( iLineA, iPoint );
-  float BP = Distance( iLineB, iPoint );
+  float AB = VectorOps::Distance( iLineA, iLineB );
+  float AP = VectorOps::Distance( iLineA, iPoint );
+  float BP = VectorOps::Distance( iLineB, iPoint );
 
   // These points form a triangle. Find the semiperimeter.
   float semiperimeter = ( AB + AP + BP ) / 2.0;
@@ -150,4 +158,25 @@ Utilities::DistanceFromLineToPoint3f ( Point3<float>& iLineA,
   float h = 2 * (area / AB);
 
   return h;
+}
+
+float
+Utilities::DistanceFromSegmentToPoint3f ( Point3<float>& iLineA, 
+					  Point3<float>& iLineB,
+					  Point3<float>& iPoint ) {
+
+  // Find the distance from the point to the line formed by the two
+  // segments. Then find the distance from the point to the segment
+  // endpoints. If the distance to the line is < the distance to the
+  // closest segment, return the distance to the segment point
+  // instead.
+  float distanceToLine = DistanceFromLineToPoint3f( iLineA, iLineB, iPoint );
+  float distanceToA = VectorOps::Distance( iLineA, iPoint );
+  float distanceToB = VectorOps::Distance( iLineB, iPoint );
+
+  if( distanceToLine < distanceToA && distanceToLine < distanceToB ) {
+    return (distanceToA < distanceToB ? distanceToA : distanceToB);
+  } else {
+    return distanceToLine;
+  }
 }

@@ -10,6 +10,7 @@ extern "C" {
 #include "Point3.h"
 #include "Utilities.h"
 #include "PathManager.h"
+#include "VectorOps.h"
 
 using namespace std;
 
@@ -18,14 +19,9 @@ VolumeCollection::VolumeCollection () :
   DataCollection() {
   mMRI = NULL;
   mMagnitudeMRI = NULL;
-  mPathVoxels = NULL;
   mSelectedVoxels = NULL;
   mVoxelSize[0] = mVoxelSize[1] = mVoxelSize[2] = 0;
   mbUseDataToIndexTransform = true;
-
-  // Listen to the path manager so we know about paths.
-  PathManager& pathMgr = PathManager::GetManager();
-  pathMgr.AddListener( this );
 
   TclCommandManager& commandMgr = TclCommandManager::GetManager();
   commandMgr.AddCommand( *this, "SetVolumeCollectionFileName", 2, 
@@ -204,8 +200,7 @@ VolumeCollection::InitializeFromMRI () {
     roi->SetROIBounds( bounds );
   }
   
-  // Init the path and selection volume.
-  InitPathVolume();
+  // Init the selection volume.
   InitSelectionVolume();
   
   // Save our voxel sizes.
@@ -633,22 +628,6 @@ VolumeCollection::DoListenToMessage ( string isMessage, void* iData ) {
     CalcWorldToIndexTransform();
   }
   
-  if( isMessage == "pathVertexAdded" ) {    
-    int pathID = *(int*)iData;
-    try {
-      Path<float>& path = Path<float>::FindByID( pathID );
-      CachePath( path );
-    }
-    catch(...) {
-      cerr << "Couldn't find path " << pathID << endl;
-    }
-  }
-
-  if( isMessage == "pathChanged" ) {
-    ClearPathCache();
-    CacheAllPaths();
-  }
-
   DataCollection::DoListenToMessage( isMessage, iData );
 }
 
@@ -811,100 +790,6 @@ VolumeCollection::IsOtherRASSelected ( float iRAS[3], int iThisROIID ) {
   }
   
   return bSelected;
-}
-
-void 
-VolumeCollection::InitPathVolume () {
-
-  if( NULL != mMRI ) {
-
-    if( NULL != mPathVoxels ) {
-      delete mPathVoxels;
-    }
-    
-    mPathVoxels = 
-      new Volume3<bool>( mMRI->width, mMRI->height, mMRI->depth, false );
-  }
-}
-
-void 
-VolumeCollection::CacheAllPaths () {
-  PathManager& pathMgr = PathManager::GetManager();
-  list<Path<float>*> pathList = pathMgr.GetPathList();
-  list<Path<float>*>::iterator tPath;
-  for( tPath = pathList.begin(); tPath != pathList.end(); ++tPath ) {
-    Path<float>* path = *tPath;
-    CachePath( *path );
-  }
-}
-
-void
-VolumeCollection::CachePath ( Path<float>& iPath ) {
-
-  int cVertices = iPath.GetNumVertices();
-  int nCurVertex = 1;
-  for( nCurVertex = 1; nCurVertex < cVertices; nCurVertex++ ) {
-
-    int nBackVertex = nCurVertex - 1;
-
-    Point3<float>& curRAS  = iPath.GetVertexAtIndex( nCurVertex );
-    Point3<float>& backRAS = iPath.GetVertexAtIndex( nBackVertex );
-
-    float curIndex[3], backIndex[3];
-    RASToMRIIndex( curRAS.xyz(), curIndex );
-    RASToMRIIndex( backRAS.xyz(), backIndex );
-
-    list<Point3<float> > indexPoints;
-    Utilities::FindPointsOnLine3f( backIndex, curIndex, indexPoints );
-
-    list<Point3<float> >::iterator tIndexPoint;
-    for( tIndexPoint = indexPoints.begin();
-	 tIndexPoint != indexPoints.end();
-	 ++tIndexPoint ) {
-     
-      Point3<float>& index = *tIndexPoint;
-      float ras[3];
-      MRIIndexToRAS( index.xyz(), ras );
-      MarkRASPath( ras );
-    }
-  }
-}
-
-void
-VolumeCollection::ClearPathCache () {
-  mPathVoxels->SetAll( false );
-}
-
-void 
-VolumeCollection::MarkRASPath ( float iRAS[3] ) {
-
-  if( NULL != mMRI ) {
-    int index[3];
-    RASToMRIIndex( iRAS, index );
-    mPathVoxels->Set_Unsafe( index[0], index[1], index[2], true );
-  }
-}
-
-void 
-VolumeCollection::UnmarkRASPath ( float iRAS[3] ) {
-
-  if( NULL != mMRI ) {
-    int index[3];
-    RASToMRIIndex( iRAS, index );
-    mPathVoxels->Set_Unsafe( index[0], index[1], index[2], false );
-  }
-}
-
-bool 
-VolumeCollection::IsRASPath ( float iRAS[3] ) {
-
-  if( NULL != mMRI ) {
-    int index[3];
-    RASToMRIIndex( iRAS, index );
-    return mPathVoxels->Get_Unsafe( index[0], index[1], index[2] );
-  } else {
-    return false;
-  }
 }
 
 void
@@ -1270,20 +1155,41 @@ VolumeCollectionFlooder::Flood ( VolumeCollection& iVolume,
 		       iVolume.mMRI->height, 
 		       iVolume.mMRI->depth, false );
 
+  // Get the source volume.
+  VolumeCollection* sourceVol = NULL;
+  try { 
+    DataCollection* col = 
+      &DataCollection::FindByID( iParams.mSourceCollection );
+    //    VolumeCollection* vol = dynamic_cast<VolumeCollection*>(col);
+    sourceVol = (VolumeCollection*)col;
+  }
+  catch (...) {
+    throw runtime_error( "Couldn't find source volume." );
+  }
+  bool bDifferentSource = sourceVol->GetID() != iVolume.GetID();
+
   // Save the initial value.
-  float seedValue = iVolume.GetMRINearestValueAtRAS( iRASSeed );
+  float seedValue = sourceVol->GetMRINearestValueAtRAS( iRASSeed );
 
   // Push the seed onto the list. 
-  vector<Point3<float> > RASPoints;
-  RASPoints.push_back( iRASSeed );
-  while( RASPoints.size() > 0 &&
+  vector<CheckPair> checkPairs;
+  Point3<float> seed( iRASSeed );
+  CheckPair seedPair( seed, seed );
+  checkPairs.push_back( seedPair );
+  while( checkPairs.size() > 0 &&
 	 !this->DoStopRequested() ) {
     
-    Point3<float> ras = RASPoints.back();
-    RASPoints.pop_back();
+    CheckPair checkPair = checkPairs.back();
+    checkPairs.pop_back();
 
+    Point3<float> ras = checkPair.mCheckRAS;
+    Point3<float> sourceRAS = checkPair.mSourceRAS;
 
+    // Check the bound of this volume and the source one.
     if( !iVolume.IsRASInMRIBounds( ras.xyz() ) ) { 
+     continue;
+    }
+    if( bDifferentSource && !sourceVol->IsRASInMRIBounds( ras.xyz() ) ) { 
      continue;
     }
 
@@ -1297,9 +1203,57 @@ VolumeCollectionFlooder::Flood ( VolumeCollection& iVolume,
     // Check if this is an path or an ROI. If so, and our params say
     // not go to here, continue.
     if( iParams.mbStopAtPaths ) {
-      if( iVolume.IsRASPath( ras.xyz() ) ) {
-	continue;
+      
+      // Create a line from our current point to this check
+      // point. Then see if the segment intersects the path. If so,
+      // don't proceed.
+      
+      bool bCross = false;
+      Point3<float> x;
+      list<Path<float>*>::iterator tPath;
+      PathManager& pathMgr = PathManager::GetManager();
+      list<Path<float>*>& pathList = pathMgr.GetPathList();
+      for( tPath = pathList.begin(); tPath != pathList.end() && !bCross; ++tPath ) {
+	Path<float>* path = *tPath;
+	if( path->GetNumVertices() > 0 ) {
+
+	  int cVertices = path->GetNumVertices();
+	  for( int nCurVertex = 1; nCurVertex < cVertices && !bCross; nCurVertex++ ) {
+	    
+	    int nBackVertex = nCurVertex - 1;
+	    
+	    Point3<float>& curVertex  = path->GetVertexAtIndex( nCurVertex );
+	    Point3<float>& backVertex = path->GetVertexAtIndex( nBackVertex );
+
+	    Point3<float> segVector = curVertex - backVertex;
+	    Point3<float> viewNormal( iParams.mViewNormal );
+
+	    Point3<float> normal = VectorOps::Cross( segVector, viewNormal );
+
+	    VectorOps::IntersectionResult rInt =
+	      VectorOps::SegmentIntersectsPlane( sourceRAS, ras,
+						 curVertex, normal,
+						 x );
+	    if( VectorOps::intersect == rInt ) {
+
+	      // Make sure x is in the cuboid formed by curVertex and
+	      // backVertex.
+	      if( !(x[0] < MIN(curVertex[0],backVertex[0]) ||
+		    x[0] > MAX(curVertex[0],backVertex[0]) ||
+		    x[1] < MIN(curVertex[1],backVertex[1]) ||
+		    x[1] > MAX(curVertex[1],backVertex[1]) ||
+		    x[2] < MIN(curVertex[2],backVertex[2]) ||
+		    x[2] > MAX(curVertex[2],backVertex[2])) ) {
+		bCross = true;
+	      }
+	    }
+	  }
+	}
       }
+
+      // If we crossed a path, continue.
+      if( bCross )
+	continue;
     }
     if( iParams.mbStopAtROIs ) {
       if( iVolume.IsOtherRASSelected( ras.xyz(), iVolume.GetSelectedROI() ) ) {
@@ -1319,7 +1273,7 @@ VolumeCollectionFlooder::Flood ( VolumeCollection& iVolume,
 
     // Check fuzziness.
     if( iParams.mFuzziness > 0 ) {
-      float value = iVolume.GetMRINearestValueAtRAS( ras.xyz() );
+      float value = sourceVol->GetMRINearestValueAtRAS( ras.xyz() );
       if( fabs( value - seedValue ) > iParams.mFuzziness ) {
 	continue;
       }
@@ -1350,28 +1304,43 @@ VolumeCollectionFlooder::Flood ( VolumeCollection& iVolume,
       beginZ = endZ = ras.z();
     }
     Point3<float> newRAS;
+    CheckPair newPair;
+    newPair.mSourceRAS = ras;
     if( iParams.mbDiagonal ) {
       for( float nZ = beginZ; nZ <= endZ; nZ += voxelSize[2] ) {
 	for( float nY = beginY; nY <= endY; nY += voxelSize[1] ) {
 	  for( float nX = beginX; nX <= endX; nX += voxelSize[0] ) {
 	    newRAS.Set( nX, nY, nZ );
-	    RASPoints.push_back( newRAS );
+	    newPair.mCheckRAS = newRAS;
+	    checkPairs.push_back( newPair );
 	  }
 	}
       }
     } else {
       newRAS.Set( beginX, ras.y(), ras.z() );
-      RASPoints.push_back( newRAS );
+      newPair.mCheckRAS = newRAS;
+      checkPairs.push_back( newPair );
+
       newRAS.Set( endX, ras.y(), ras.z() );
-      RASPoints.push_back( newRAS );
+      newPair.mCheckRAS = newRAS;
+      checkPairs.push_back( newPair );
+
       newRAS.Set( ras.x(), beginY, ras.z() );
-      RASPoints.push_back( newRAS );
+      newPair.mCheckRAS = newRAS;
+      checkPairs.push_back( newPair );
+
       newRAS.Set( ras.x(), endY, ras.z() );
-      RASPoints.push_back( newRAS );
+      newPair.mCheckRAS = newRAS;
+      checkPairs.push_back( newPair );
+
       newRAS.Set( ras.x(), ras.y(), beginZ );
-      RASPoints.push_back( newRAS );
+      newPair.mCheckRAS = newRAS;
+      checkPairs.push_back( newPair );
+
       newRAS.Set( ras.x(), ras.y(), endZ );
-      RASPoints.push_back( newRAS );
+      newPair.mCheckRAS = newRAS;
+      checkPairs.push_back( newPair );
+
     }
 
   }

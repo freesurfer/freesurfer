@@ -306,38 +306,7 @@ menuSubscribers, get filled when idList changes
 watch value of ow, when changes, disable menu, set value, enable
 
 SurfaceCollection
- - look for mris->VG structure to get transform
-I added the volume geometry information into the surface structure.
-(include/tags.h, transform.h  and utils/mrisurf.c, transform.c)
-
-I believe that I verified the information stays in surface files in surf
-directory ;-)
-
-If  MRIS *mris, then
-(vg for volume geometry):
-
-mris->vg.valid          <---- when valid information is present, this value
-is 1 (if not 0).
-         vg.width
-         vg.height
-         vg.depth
-         vg.xsize
-         vg.ysize
-         vg.zsize
-         vg.x_r
-         vg.x_a
-         ...
-         vg.c_r
-         vg.c_a
-         vg.c_s
-         vg.fname         <--- usually points to mri/filled  (since the
-surface starts out from mri_fill).
-
-In this way, you do not need to find any volume to convert surfaceRAS
-to/from RAS.
-
-MRISread() will try to read the information if vg.valid == 1.  If vg.valid
-== 0, then try reading from mri/orig. 
+  x look for mris->VG structure to get transform
 
 
 DRAWING TOOLS:::
@@ -353,7 +322,7 @@ x new volume command
   x refactor GetMRI() stuff into InitializeFromMRIStruct
   x SaveVolume( ifn )
 
-- segmentation style editing
+x segmentation style editing
   x voxel editing tool to work like roiediting
   x VoxelEditSelect
   x VoxelEditAction
@@ -362,26 +331,20 @@ x new volume command
   x add New Value option to tool
   x allow menu of LUT to set New Value
 
-- keys to emulate mouse buttons (qwe?)
+x keys to emulate mouse buttons (qwe?)
 
-- bugs:
-  - undo doesn't undo all painted voxels
-  - new value stuff doesn't show up unless you click Tools panel first, then click voxelEditing button
+x Only Edit 0 Voxels
+  x only sets new value if it was == 0
 
-- fill source
+x fill source
 
-- autosave
+- autosave volume
 
 - save and reload lines
   - save line to a file 
   - load from file
   - auto-save to current working lines file so can restore on crash
- - how to do this, because lines are associated with layers. 
-.   - have frame/view tell all layers to save lines to a file
-     - doesn't work well with 3d
-   - have lines associated with a volume, Save Lines for Data Collection
-     - how to get lines from layer? can just call a function on data col
-
+  
 x undo
   x make sure works for ROI editing
   x multiple levels of undo
@@ -408,13 +371,14 @@ BUGS:::
 - tabbing when in console switches frame, disable?
 - brings up tkcon window briefly when booting
 - markers and cursor draw at different slices when zoomed in
-- check updating in ROI menu - switch between free and struc, between diff ROIs, etc
-- display not updated until click in window with b/c slider
-  - these two only on certain machine
 - color picker window, open twice?
-- stopping while filling exits program
-  - seems to exit in ScubaLayer2DMRIFloodSelect::DoEnd -> TclProgressDisplayManager::EndTask -> TclCommandManager::SendCommand -> Tcl_Eval
-
+- test_ScubaFrame
+- oblique viewing planes
+  - lines not picked up (only first vertex is checked)
+  - circle brush doesn't work in proper plane
+  - fill not in view plane
+- undo doesn't undo all painted voxels
+- new value stuff doesn't show up unless you click Tools panel first, then click voxelEditing button
 
 FUTURE IDEAS:::
 

@@ -58,7 +58,6 @@ ScubaFrame::ScubaFrame( ID iID )
 			 "Selects the next view in a frame." );
   commandMgr.AddCommand( *this, "CaptureFrameToFile", 2, "frameID fileName",
 			 "Make a screen capture of the frame." );
-
 }
 
 ScubaFrame::~ScubaFrame() {
@@ -715,6 +714,7 @@ ScubaFrame::DoKeyDown( int iWindow[2], InputState& iInput ) {
     int viewCoords[2];
     TranslateWindowToView( iWindow, mnSelectedViewCol, mnSelectedViewRow,
 			   viewCoords );
+
     view->KeyDown( viewCoords, iInput, mTool );
   }
   catch(...) {
@@ -730,6 +730,7 @@ ScubaFrame::DoKeyUp( int iWindow[2], InputState& iInput ) {
     int viewCoords[2];
     TranslateWindowToView( iWindow, mnSelectedViewCol, mnSelectedViewRow,
 			   viewCoords );
+
     view->KeyUp( viewCoords, iInput, mTool );
   }
   catch(...) {

@@ -205,12 +205,6 @@ ScubaLayer2DMRI::DrawIntoBuffer ( GLubyte* iBuffer, int iWidth, int iHeight,
 	  dest[2] = (GLubyte) (((float)dest[2] * (1.0 - mROIOpacity)) +
 			       ((float)selectColor[2] * mROIOpacity));
 	}
-
-	if( mVolume->IsRASPath( RAS.xyz() ) ) {
-	  dest[0] = (GLubyte) ((float)dest[0] / 2.0 + 128.0);
-	  dest[1] = (GLubyte) ((float)dest[1] / 2.0);
-	  dest[2] = (GLubyte) ((float)dest[2] / 2.0);
-	}
       }
       
       // Advance our pixel buffer pointer.
@@ -894,6 +888,12 @@ ScubaLayer2DMRI::DoListenToTclCommand ( char* isCommand, int iArgc, char** iasAr
 }
 
 void
+ScubaLayer2DMRI::DataChanged () {
+
+  RequestRedisplay();
+}
+
+void
 ScubaLayer2DMRI::HandleTool ( float iRAS[3], ViewState& iViewState,
 			      ScubaWindowToRASTranslator& iTranslator,
 			      ScubaToolState& iTool, InputState& iInput ) {
@@ -924,15 +924,19 @@ ScubaLayer2DMRI::HandleTool ( float iRAS[3], ViewState& iViewState,
       if( mVolume->IsRASInMRIBounds(iRAS) ) {
 
 	VolumeCollectionFlooder::Params params;
-	params.mbStopAtPaths = iTool.GetFloodStopAtPaths();
-	params.mbStopAtROIs  = iTool.GetFloodStopAtROIs();
-	params.mb3D          = iTool.GetFlood3D();
-	params.mFuzziness    = iTool.GetFloodFuzziness();
-	params.mMaxDistance  = iTool.GetFloodMaxDistance();
+	params.mSourceCollection  = iTool.GetFloodSourceCollection();
+	params.mbStopAtPaths      = iTool.GetFloodStopAtPaths();
+	params.mbStopAtROIs       = iTool.GetFloodStopAtROIs();
+	params.mb3D               = iTool.GetFlood3D();
+	params.mFuzziness         = iTool.GetFloodFuzziness();
+	params.mMaxDistance       = iTool.GetFloodMaxDistance();
+	params.mViewNormal[0]     = iViewState.mPlaneNormal[0];
+	params.mViewNormal[1]     = iViewState.mPlaneNormal[1];
+	params.mViewNormal[2]     = iViewState.mPlaneNormal[2];
 	if( !iTool.GetFlood3D() ) {
-	  params.mbWorkPlaneX = (iViewState.mInPlane == 0);
-	  params.mbWorkPlaneY = (iViewState.mInPlane == 1);
-	  params.mbWorkPlaneZ = (iViewState.mInPlane == 2);
+	  params.mbWorkPlaneX     = (iViewState.mInPlane == 0);
+	  params.mbWorkPlaneY     = (iViewState.mInPlane == 1);
+	  params.mbWorkPlaneZ     = (iViewState.mInPlane == 2);
 	}
 	
 	// Create and run the flood object.
@@ -954,7 +958,6 @@ ScubaLayer2DMRI::HandleTool ( float iRAS[3], ViewState& iViewState,
 	delete flooder;
 
 	RequestRedisplay();
-
       }      
     }
 
@@ -1021,6 +1024,9 @@ ScubaLayer2DMRI::HandleTool ( float iRAS[3], ViewState& iViewState,
 	    if( ScubaToolState::voxelEditing == iTool.GetMode() ) {
 	      float origValue = mVolume->GetMRINearestValueAtRAS( point.xyz());
 	      if( iInput.Button() == 2 ) {
+		if( iTool.GetOnlyBrushZero() && origValue != 0 ) {
+		  continue; // if only brushing zero, skip if not zero
+		}
 		mVolume->SetMRIValueAtRAS( point.xyz(), iTool.GetNewValue() );
 		action = 
 		  new UndoVoxelEditAction(mVolume, iTool.GetNewValue(),
@@ -1043,8 +1049,6 @@ ScubaLayer2DMRI::HandleTool ( float iRAS[3], ViewState& iViewState,
 	    undoList.AddAction( action );
 	  }
 	}
-      
-	RequestRedisplay();
       }
     }
 
@@ -1336,11 +1340,12 @@ ScubaLayer2DMRI::FindClosestPathInPlane ( float iRAS[3],
 	Point3<float>& backVertex = path->GetVertexAtIndex( nBackVertex );
 	
 	float distance = 
-	  Utilities::DistanceFromLineToPoint3f( curVertex, backVertex,
-						whereRAS );
-	
-	if( distance < minDistanceInPath )
+	  Utilities::DistanceFromSegmentToPoint3f( curVertex, backVertex,
+						   whereRAS );
+
+	if( distance < minDistanceInPath ) {
 	  minDistanceInPath = distance;
+	}
       }
       
       if( minDistanceInPath < minDistance ) {

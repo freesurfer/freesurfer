@@ -21,6 +21,9 @@ class ScubaToolState : public TclCommandListener, public IDTracker<ScubaToolStat
   void SetNewValue ( float iValue ) { mNewValue = iValue; }
   float GetNewValue () { return mNewValue; }
 
+  void SetOnlyBrushZero ( bool ibOnlyZero ) { mbOnlyZero = ibOnlyZero; }
+  bool GetOnlyBrushZero () { return mbOnlyZero; }
+
   void SetBrushRadius ( float iRadius ) { mBrushRadius = iRadius; }
   float GetBrushRadius () { return mBrushRadius; }
 
@@ -46,6 +49,9 @@ class ScubaToolState : public TclCommandListener, public IDTracker<ScubaToolStat
   void SetFlood3D ( bool ib3D ) { mbFlood3D = ib3D; }
   bool GetFlood3D () { return mbFlood3D; }
 
+  void SetFloodSourceCollection ( int iCol ) { mFloodSourceCollection = iCol; }
+  int GetFloodSourceCollection () { return mFloodSourceCollection; }
+
   void SetEdgePathStraightBias ( float iBias ) {mEdgePathStraightBias = iBias;}
   float GetEdgePathStraightBias () { return mEdgePathStraightBias; }
 
@@ -69,6 +75,7 @@ class ScubaToolState : public TclCommandListener, public IDTracker<ScubaToolStat
 
   // Voxel edit settings.
   float mNewValue;
+  float mbOnlyZero;
 
   // Flood settings.
   bool mbFloodStopAtPaths;
@@ -76,6 +83,7 @@ class ScubaToolState : public TclCommandListener, public IDTracker<ScubaToolStat
   int mFloodFuzziness;
   int mFloodMaxDistance;
   bool mbFlood3D;
+  int mFloodSourceCollection;
 
   // Edge path settings.
   float mEdgePathStraightBias;

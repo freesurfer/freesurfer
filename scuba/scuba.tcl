@@ -10,7 +10,7 @@ if { $err } {
     load [file dirname [info script]]/libscuba[info sharedlibextension] scuba
 }
 
-DebugOutput "\$Id: scuba.tcl,v 1.50 2004/08/27 20:45:21 kteich Exp $"
+DebugOutput "\$Id: scuba.tcl,v 1.51 2004/08/30 02:39:15 kteich Exp $"
 
 # gTool
 #   current - current selected tool (nav,)
@@ -694,9 +694,10 @@ proc MakeScubaFrame { ifwTop } {
     bind $fwScuba <ButtonPress> \
 	"%W MouseDownCallback %x %y %b; ScubaMouseDownCallback %x %y %s %b"
     bind $fwScuba <ButtonRelease> "%W MouseUpCallback %x %y %b"
-    bind $fwScuba <KeyRelease> "%W KeyUpCallback %x %y %K"
+    bind $fwScuba <KeyRelease> \
+	"%W KeyUpCallback %x %y %K; ScubaKeyUpCallback %x %y %s %K"
     bind $fwScuba <KeyPress> \
-	"%W KeyDownCallback %x %y %K; ScubaKeyDownCallback %x %y %K"
+	"%W KeyDownCallback %x %y %K; ScubaKeyDownCallback %x %y %s %K"
     bind $fwScuba <Enter> "focus $fwScuba"
 
     set gaWidget(scubaFrame,$frameID) $fwScuba
@@ -849,9 +850,27 @@ proc ScubaMouseDownCallback { inX inY iState iButton } {
     UpdateUndoMenuItem
 }
 
-proc ScubaKeyDownCallback { inX inY iKey } {
+proc ScubaKeyUpCallback { inX inY iState iKey } {
     
+    global gaPrefs
+    global gaWidget
+    
+    # Check for the mouse key equivs.
+    foreach {sKey nButton} {
+	KeyMouseButtonOne   1
+	KeyMouseButtonTwo   2
+	KeyMouseButtonThree 3 } {
+	if { "$iKey" == "$gaPrefs($sKey)" } {
+	    $gaWidget(scubaFrame,0) MouseUpCallback $inX $inY $nButton
+	}
+    }
+}
 
+proc ScubaKeyDownCallback { inX inY iState iKey } {
+    
+    global gaPrefs
+    global gaWidget
+    
     # This is kind of arbitrary, but since some keypresses can change
     # the information that should be displayed in the label area,
     # update here.
@@ -862,6 +881,17 @@ proc ScubaKeyDownCallback { inX inY iKey } {
     if { 0 != $err } { tkuErrorDlog $sResult; return }
 
     UpdateLabelArea 1 $labelValues
+
+    # Check for the mouse key equivs.
+    foreach {sKey nButton} {
+	KeyMouseButtonOne   1
+	KeyMouseButtonTwo   2
+	KeyMouseButtonThree 3 } {
+	if { "$iKey" == "$gaPrefs($sKey)" } {
+	$gaWidget(scubaFrame,0) MouseDownCallback $inX $inY $nButton
+	    ScubaMouseDownCallback $inX $inY $iState $nButton
+	}
+    }
 }
 
 proc GetPreferences {} {
@@ -876,6 +906,9 @@ proc GetPreferences {} {
 	KeyMoveViewOut
 	KeyZoomViewIn 
 	KeyZoomViewOut
+	KeyMouseButtonOne
+	KeyMouseButtonTwo
+	KeyMouseButtonThree
     } {
 	set gaPrefs($sKey) [GetPreferencesValue $sKey]
     }
@@ -893,6 +926,9 @@ proc SetPreferences {} {
 	KeyMoveViewOut
 	KeyZoomViewIn 
 	KeyZoomViewOut
+	KeyMouseButtonOne
+	KeyMouseButtonTwo
+	KeyMouseButtonThree
     } {
 	SetPreferencesValue $sKey $gaPrefs($sKey)
     }
@@ -1384,17 +1420,20 @@ proc MakeToolsPanel { ifwTop } {
 	    -command {SetToolBrushRadius $gaFrame([GetMainFrameID],toolID) $gaTool(current,radius)} }
     }
 
-    tkuMakeCheckboxes $fwPropsBrushSub.cb3D \
+    tkuMakeCheckboxes $fwPropsBrushSub.cb \
 	-font [tkuNormalFont] \
 	-checkboxes { 
 	    {-type text -label "Work in 3D" 
 		-variable gaTool(current,brush3D)
 		-command {SetToolBrush3D $gaFrame([GetMainFrameID],toolID) $gaTool(current,brush3D)}}
+	    {-type text -label "Only brush zero values" 
+		-variable gaTool(current,onlyBrushZero)
+		-command {SetToolOnlyBrushZero $gaFrame([GetMainFrameID],toolID) $gaTool(current,onlyBrushZero)}}
 	}
 
     grid $fwPropsBrushSub.tbwBrushShape -column 0 -row 0 -sticky ew
     grid $fwPropsBrushSub.swRadius      -column 0 -row 1 -sticky ew
-    grid $fwPropsBrushSub.cb3D          -column 0 -row 2 -sticky ew
+    grid $fwPropsBrushSub.cb          -column 0 -row 2 -sticky ew
 
     set gaWidget(toolProperties,brush) $fwPropsBrush
 
@@ -1405,6 +1444,12 @@ proc MakeToolsPanel { ifwTop } {
 	-options { label.padX 5 }
 
     set fwPropsFillSub [$fwPropsFill subwidget frame]
+
+    tixOptionMenu $fwPropsFillSub.owSourceCollection \
+	-label "Source Data:" \
+	-variable gatool(current,floodSourceCollection) \
+	-command { ToolFloodSourceCollectionMenuCallback }
+    set gaWidget(toolProperties,floodSourceCollectionMenu) $fwPropsFillSub.owSourceCollection
 
     tkuMakeCheckboxes $fwPropsFillSub.cbFillOptions \
 	-font [tkuNormalFont] \
@@ -1434,9 +1479,10 @@ proc MakeToolsPanel { ifwTop } {
 		-command {SetToolFlood3D $gaFrame([GetMainFrameID],toolID) $gaTool(current,flood3D)}}
 	}
 
-    grid $fwPropsFillSub.cbFillOptions -column 0 -row 0 -sticky ew
-    grid $fwPropsFillSub.swFuzziness   -column 0 -row 1 -sticky ew
-    grid $fwPropsFillSub.cb3D          -column 0 -row 2 -sticky ew
+    grid $fwPropsFillSub.owSourceCollection -column 0 -row 0 -sticky ew
+    grid $fwPropsFillSub.cbFillOptions -column 0 -row 1 -sticky ew
+    grid $fwPropsFillSub.swFuzziness   -column 0 -row 2 -sticky ew
+    grid $fwPropsFillSub.cb3D          -column 0 -row 3 -sticky ew
 
     set gaWidget(toolProperties,fill) $fwPropsFill
 
@@ -2032,6 +2078,9 @@ proc UpdateCollectionList {} {
     FillMenuFromList $gaWidget(collectionProperties,surfaceTransformMenu) \
 	$gaCollection(idList) "GetCollectionLabel %s" {} false
 
+    FillMenuFromList $gaWidget(toolProperties,floodSourceCollectionMenu) \
+	$gaCollection(idList) "GetCollectionLabel %s" {} true
+
     UpdateROIList
 }
 
@@ -2383,7 +2432,7 @@ proc UpdateLayerList {} {
 	    $gaLayer(idList) "GetLayerLabel %s" {} true
     }
 
-    # Populate layer target menu in tool properties.
+    # Populate layer target and source menus in tool properties.
     FillMenuFromList $gaWidget(toolProperties,targetLayerMenu) \
 	$gaLayer(idList) "GetLayerLabel %s" {} true
 
@@ -2602,9 +2651,13 @@ proc SelectToolInToolProperties { iTool } {
 		[GetToolBrushRadius $gaTool(current,id)]
 	    set gaTool(current,brush3D) \
 		[GetToolBrush3D $gaTool(current,id)]
+	    set gaTool(current,onlyBrushZero) \
+		[GetToolOnlyBrushZero $gaTool(current,id)]
 
 	    grid $gaWidget(toolProperties,fill)  -column 0 -row 3 -sticky ew
 
+	    set gaTool(current,floodSourceCollection) \
+		[GetToolFloodSourceCollection $gaTool(current,id)]
 	    set gaTool(current,stopROI) \
 		[GetToolFloodStopAtROIs $gaTool(current,id)]
 	    set gaTool(current,stopPaths) \
@@ -2637,12 +2690,21 @@ proc SelectToolInToolProperties { iTool } {
     }
 }
 
-proc ToolTargetLayerMenuCallback { iTool } {
+proc ToolTargetLayerMenuCallback { iLayer } {
     
     global gaTool
 
-    set gaTool(current,targetLayer) $iTool
+    set gaTool(current,targetLayer) $iLayer
     SetToolLayerTarget $gaTool(current,id) $gaTool(current,targetLayer)
+}
+
+proc ToolFloodSourceCollectionMenuCallback { iLayer } {
+    
+    global gaTool
+
+    set gaTool(current,floodSourceCollection) $iLayer
+    SetToolFloodSourceCollection $gaTool(current,id) \
+	$gaTool(current,floodSourceCollection)
 }
 
 proc VoxelEditingLUTMenuCallback { iLUTID } {
@@ -3213,6 +3275,9 @@ proc DoPrefsDlog {} {
 	    KeyMoveViewOut    "Move View Out"
 	    KeyZoomViewIn     "Zoom View In"
 	    KeyZoomViewOut    "Zoom View Out"
+	    KeyMouseButtonOne "Mouse Click (button one)"
+	    KeyMouseButtonTwo "Mouse Click (button two)"
+	    KeyMouseButtonThree "Mouse Click (button three)"
 	} {
    
 	    tkuMakeEntry $fwKeys.fw$sKey \
@@ -3779,7 +3844,7 @@ proc DoSaveCopyOfVolumeAsDlog {} {
 	tkuDoFileDlog -title "Save Copy of Volume" \
 	    -prompt1 "Will save a copy of volume \"$gaCollection(current,label)\"." \
 	    -type1 note \
-	    -prompt2 "This saves the volume somewhere but doesn't change its file name."
+	    -prompt2 "This saves the volume somewhere but doesn't change its file name." \
 	    -type2 note \
 	    -prompt3 "Save Volume: " \
 	    -defaultvalue3 [GetDefaultFileLocation SaveVolume] \

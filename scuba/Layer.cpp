@@ -149,9 +149,16 @@ void
 Layer::DoListenToMessage ( string isMessage, void* iData ) {
 
   if( isMessage == "dataChanged" ) {
-    RequestRedisplay();
+    DataChanged ();
     SendBroadcast( "layerChanged", NULL );
   }
+}
+
+void
+Layer::DataChanged () {
+  // Default behavior of data changing is to request a redisplay.
+  cerr << "Layer::DataChanged()" << endl;
+  RequestRedisplay();
 }
 
 void

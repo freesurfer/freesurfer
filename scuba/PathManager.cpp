@@ -32,9 +32,13 @@ PathManager::DeletePath ( Path<float>* iPath ) {
   for( tPath = mPaths.begin(); tPath != mPaths.end(); ++tPath ) {
     Path<float>* path = *tPath;
     if( path == iPath ) {
+      int pathID = path->GetID();
       mPaths.erase( tPath );
       delete path;
-      break;
+
+      // Notify listeners of changee.
+      SendBroadcast( "pathChanged", (void*)&pathID );
+     break;
     }
   }
 }

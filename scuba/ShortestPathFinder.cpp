@@ -141,7 +141,7 @@ ShortestPathFinder::FindPath ( Point2<int>& iStartPoint,
 	cerr << endl;
       }
     }
-    
+
     // Start at the end and follow the direction table back to the
     // beginning, adding points on the way.
     DebugOutput( << "Path:" );
@@ -151,7 +151,7 @@ ShortestPathFinder::FindPath ( Point2<int>& iStartPoint,
     while( current.x() != begin.x() ||
 	   current.y() != begin.y() ) {
 
-      ioPoints.push_back( current );
+      ioPoints.push_front( current );
 
       DebugOutput( << current );
 
@@ -166,8 +166,19 @@ ShortestPathFinder::FindPath ( Point2<int>& iStartPoint,
       }
 
       current.Set( next.x(), next.y() );
+    }
+
+#if 0
+    // Traverse that list in reverse and add it to the outgoing list.
+    ioPoints.clear();
+    list<Point2<int> >::reverse_iterator tPoints;
+    for( tPoints = points.end(); tPoints != points.begin(); tPoints++ ) {
+      ioPoints.p
 
     }
+#endif
+
+
 
     if( mDebug ) {
       cerr << "final cost array and path" << endl;

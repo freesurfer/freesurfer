@@ -176,16 +176,16 @@ Matrix44::ExtractScale () {
   Point3<float> v( 1, 0, 0 );
   Point3<float> w;
   thisWithoutTranslate.MultiplyVector3( v.xyz(), w.xyz() );
-  float xFactor = Length( w );
+  float xFactor = VectorOps::Length( w );
 
   // Do the same for y and z.
   v.Set( 0, 1, 0 );
   thisWithoutTranslate.MultiplyVector3( v.xyz(), w.xyz() );
-  float yFactor = Length( w );
+  float yFactor = VectorOps::Length( w );
   
   v.Set( 0, 0, 1 );
   thisWithoutTranslate.MultiplyVector3( v.xyz(), w.xyz() );
-  float zFactor = Length( w );
+  float zFactor = VectorOps::Length( w );
   
   // Now build the result.
   Matrix44* scale = new Matrix44();

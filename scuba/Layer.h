@@ -62,6 +62,10 @@ class Layer : public DebugReporter,
   virtual void
     DoListenToMessage ( std::string isMessage, void* iData );
 
+  // Called when the layer's data is changed. Default behavior is to
+  // request a redisplay.
+  virtual void DataChanged ();
+
   void SetLabel( std::string isLabel ) { msLabel = isLabel; }
   std::string GetLabel() { return msLabel; }
 

@@ -1262,7 +1262,7 @@ ScubaView::DoMouseMoved( int iWindow[2],
 				      newPlaneNormal.xyz() );
 	      
 	      // Normalize it and set it in the view.
-	      NormalizeVector( newPlaneNormal );
+	      VectorOps::Normalize( newPlaneNormal );
 	      scubaView.Set2DPlaneNormal( newPlaneNormal.xyz() );
 	    } break;
 	    }
@@ -1600,7 +1600,7 @@ void
 ScubaView::CalcViewToWindowTransform () {
 
   Point3<float> N( mViewState.mPlaneNormal );
-  N = NormalizeVector( N );
+  N = VectorOps::Normalize( N );
 
   Point3<float> D;
   switch( mViewState.mInPlane ) {
@@ -1608,15 +1608,15 @@ ScubaView::CalcViewToWindowTransform () {
   case ViewState::Y: D.Set( 0, 1, 0 ); break;
   case ViewState::Z: D.Set( 0, 0, 1 ); break;
   }
-  D = NormalizeVector( D );
+  D = VectorOps::Normalize( D );
 
 
-  double rads = RadsBetweenVectors( N, D );
+  double rads = VectorOps::RadsBetweenVectors( N, D );
   if( mViewState.mInPlane == ViewState::X ) {
     rads = -rads;
   }
 
-  Point3<float> axis = CrossVectors( N, D );
+  Point3<float> axis = VectorOps::Cross( N, D );
   mViewToWindow.MakeRotation( mViewState.mCenterRAS,
 			      axis.xyz(), rads );
 
@@ -1771,7 +1771,7 @@ ScubaView::CalcViewIntersectionPoints ( int iViewID ) {
   Point3<float> n1( mViewState.mPlaneNormal );
   Point3<float> n2;
   scubaView.Get2DPlaneNormal( n2.xyz() );
-  if( !AreVectorsParallel( n1, n2 ) ) {
+  if( !VectorOps::AreVectorsParallel( n1, n2 ) ) {
     
     // Get p1 and p2, the center RAS points for our plane
     // and their plane.
@@ -1797,7 +1797,7 @@ ScubaView::CalcViewIntersectionPoints ( int iViewID ) {
     case ViewState::Z:  n3.Set( 1, 0, 0 ); break;
     }
     
-    if( AreVectorsParallel( n2, n3 ) ) {
+    if( VectorOps::AreVectorsParallel( n2, n3 ) ) {
       switch( Get2DInPlane() ) { 
       case ViewState::X:  n3.Set( 0, 0, 1 ); break;
       case ViewState::Y:  n3.Set( 0, 0, 1 ); break;
@@ -1807,19 +1807,25 @@ ScubaView::CalcViewIntersectionPoints ( int iViewID ) {
     
     // Intersect the three planes. This gives us an RAS
     // interesction.
-    Point3<float> P_1((DotVectors(p1,n1) * CrossVectors(n2,n3)) +
-		      (DotVectors(p2,n2) * CrossVectors(n3,n1)) +
-		      (DotVectors(p3,n3) * CrossVectors(n1,n2)));
-    Point3<float> P1 = P_1 / TripleScaleVectors( n1, n2, n3 );
+    float p1dn1 = VectorOps::Dot( p1, n1 );
+    float p2dn2 = VectorOps::Dot( p2, n2 );
+    float p3dn3 = VectorOps::Dot( p3, n3 );
+    Point3<float> n2xn3 = VectorOps::Cross( n2, n3 );
+    Point3<float> n3xn1 = VectorOps::Cross( n3, n1 );
+    Point3<float> n1xn2 = VectorOps::Cross( n1, n2 );
+    Point3<float> P_1( p1dn1 * n2xn3 +
+		       p2dn2 * n3xn1 +
+		       p3dn3 * n1xn2);
+    Point3<float> P1 = P_1 / VectorOps::TripleScale( n1, n2, n3 );
     
     // Now do the right or bottom plane.
     Point2<int> windowBottomRight( mWidth-1, mHeight-1 );
     TranslateWindowToRAS( windowBottomRight.xy(), p3.xyz() );
-    
-    Point3<float> P_2((DotVectors(p1,n1) * CrossVectors(n2,n3)) +
-		      (DotVectors(p2,n2) * CrossVectors(n3,n1)) +
-		      (DotVectors(p3,n3) * CrossVectors(n1,n2)));
-    Point3<float> P2 = P_2 / TripleScaleVectors( n1, n2, n3 );
+    p3dn3 = VectorOps::Dot( p3, n3 );
+    Point3<float> P_2( p1dn1 * n2xn3 +
+		       p2dn2 * n3xn1 +
+		       p3dn3 * n1xn2);
+    Point3<float> P2 = P_2 / VectorOps::TripleScale( n1, n2, n3 );
  
     // Save the results.
     mViewIDViewIntersectionPointMap[iViewID][0].Set( P1 );

@@ -55,6 +55,9 @@ ScubaGlobalPreferences::DoListenToTclCommand ( char* isCommand, int iArgc,
 	sKey == GetStringForKey( KeyInPlaneY ) ||
 	sKey == GetStringForKey( KeyInPlaneZ ) ||
 	sKey == GetStringForKey( KeyCycleViewsInFrame ) ||
+	sKey == GetStringForKey( KeyMouseButtonOne ) ||
+	sKey == GetStringForKey( KeyMouseButtonTwo ) ||
+	sKey == GetStringForKey( KeyMouseButtonThree ) ||
 	sKey == GetStringForKey( DrawCoordinateOverlay ) ||
 	sKey == GetStringForKey( DrawPlaneIntersections ) ||
 	sKey == GetStringForKey( KeyMoveViewLeft ) ||
@@ -111,7 +114,10 @@ ScubaGlobalPreferences::DoListenToTclCommand ( char* isCommand, int iArgc,
     } else if( sKey == GetStringForKey( KeyInPlaneX ) ||
 	       sKey == GetStringForKey( KeyInPlaneY ) ||
 	       sKey == GetStringForKey( KeyInPlaneZ ) ||
-	       sKey == GetStringForKey( KeyCycleViewsInFrame ) ) {
+	       sKey == GetStringForKey( KeyCycleViewsInFrame ) ||
+	       sKey == GetStringForKey( KeyMouseButtonOne ) ||
+	       sKey == GetStringForKey( KeyMouseButtonTwo ) ||
+	       sKey == GetStringForKey( KeyMouseButtonThree ) ) {
 
       string sValue = iasArgv[2];
 
@@ -158,6 +164,9 @@ ScubaGlobalPreferences::GetPrefAsString ( PrefKey iKey ) {
       iKey == KeyInPlaneY ||
       iKey == KeyInPlaneZ ||
       iKey == KeyCycleViewsInFrame ||
+      iKey == KeyMouseButtonOne ||
+      iKey == KeyMouseButtonTwo ||
+      iKey == KeyMouseButtonThree ||
       iKey == KeyMoveViewLeft ||
       iKey == KeyMoveViewRight ||
       iKey == KeyMoveViewUp ||
@@ -190,6 +199,9 @@ ScubaGlobalPreferences::GetStringForKey ( PrefKey iKey ) {
   case KeyInPlaneY:                return "KeyInPlaneY";                 break;
   case KeyInPlaneZ:                return "KeyInPlaneZ";                 break;
   case KeyCycleViewsInFrame:       return "KeyCycleViewsInFrame";        break;
+  case KeyMouseButtonOne:          return "KeyMouseButtonOne";           break;
+  case KeyMouseButtonTwo:          return "KeyMouseButtonTwo";           break;
+  case KeyMouseButtonThree:        return "KeyMouseButtonThree";         break;
   case DrawCoordinateOverlay:      return "DrawCoordinateOverlay";       break;
   case DrawPlaneIntersections:     return "DrawPlaneIntersections";      break;
   case KeyMoveViewLeft:            return "KeyMoveViewLeft";             break;
@@ -249,6 +261,18 @@ ScubaGlobalPreferences::ReadPreferences () {
   PreferencesManager::StringPrefValue cycleKey( "q" );
   prefsMgr.RegisterValue( GetStringForKey( KeyCycleViewsInFrame ), 
 			  "Key to cycle view in a frame.", cycleKey );
+
+  PreferencesManager::StringPrefValue mouseOneKey( "w" );
+  prefsMgr.RegisterValue( GetStringForKey( KeyMouseButtonOne ), 
+			  "Key to emulate a mouse click with button one.", mouseOneKey );
+
+  PreferencesManager::StringPrefValue mouseTwoKey( "e" );
+  prefsMgr.RegisterValue( GetStringForKey( KeyMouseButtonTwo ), 
+			  "Key to emulate a mouse click with button two.", mouseTwoKey );
+
+  PreferencesManager::StringPrefValue mouseThreeKey( "r" );
+  prefsMgr.RegisterValue( GetStringForKey( KeyMouseButtonThree ), 
+			  "Key to emulate a mouse click with button three.", mouseThreeKey );
 
   PreferencesManager::IntPrefValue drawCoordinateOverlay( true );
   prefsMgr.RegisterValue( GetStringForKey( DrawCoordinateOverlay ), 

@@ -22,6 +22,9 @@ class Utilities {
   static float DistanceFromLineToPoint3f ( Point3<float>& iLineA, 
 					   Point3<float>& iLineB,
 					   Point3<float>& iPoint );
+  static float DistanceFromSegmentToPoint3f ( Point3<float>& iLineA, 
+					      Point3<float>& iLineB,
+					      Point3<float>& iPoint );
 };
 
 

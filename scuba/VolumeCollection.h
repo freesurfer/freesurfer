@@ -23,7 +23,6 @@ extern "C" {
 #include "Point3.h"
 #include "ScubaTransform.h"
 #include "Broadcaster.h"
-#include "Path.h"
 
 class VolumeCollection : public DataCollection {
 
@@ -109,13 +108,6 @@ class VolumeCollection : public DataCollection {
   bool IsOtherRASSelected ( float iRAS[3], int iThisROIID );
 
 
-  // For the path cache. The 2DMRI layer basically uses this cache to
-  // see if a line is present at this point. This is probably a bad
-  // design.
-  void MarkRASPath ( float iRAS[3] );
-  void UnmarkRASPath ( float iRAS[3] );
-  bool IsRASPath ( float iRAS[3] );
-
 
   // Calculate and return a list of RAS points within a certain
   // area. Guaranteed to return one (or more!) RAS points for each
@@ -192,13 +184,6 @@ protected:
   float mMRIMinValue, mMRIMaxValue;
   float mMRIMagMinValue, mMRIMagMaxValue;
 
-  // Our path cache.
-  void InitPathVolume ();
-  void CacheAllPaths ();
-  void CachePath ( Path<float>& iPath );
-  void ClearPathCache ();
-  Volume3<bool>* mPathVoxels;
-
   // The selected voxel cache.
   void InitSelectionVolume ();
   Volume3<bool>* mSelectedVoxels;
@@ -221,16 +206,28 @@ class VolumeCollectionFlooder {
   class Params {
   public:
     Params ();
+    int mSourceCollection;
     bool mbStopAtPaths;
     bool mbStopAtROIs;
     bool mb3D;
     bool mbWorkPlaneX;
     bool mbWorkPlaneY;
     bool mbWorkPlaneZ;
+    float mViewNormal[3];
     int mFuzziness;
     int mMaxDistance;
     bool mbDiagonal;
   };
+
+  class CheckPair {
+  public:
+    CheckPair() {}
+    CheckPair( Point3<float>& iSource, Point3<float>& iCheck ) {
+      mSourceRAS = iSource; mCheckRAS = iCheck;
+    }
+    Point3<float> mSourceRAS;
+    Point3<float> mCheckRAS;
+  };    
 
   void Flood ( VolumeCollection& iVolume, float iRASSeed[3], Params& iParams );
   VolumeCollection* mVolume;

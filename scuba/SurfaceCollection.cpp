@@ -77,8 +77,19 @@ SurfaceCollection::GetMRIS () {
       throw logic_error( "Couldn't load MRIS" );
     }
 
+    // Check the volume geometry info in the surface. If it's there,
+    // get our transform from there.
+    if( mMRIS->vg.valid ) {
 
-    if( NULL != mMRIS->lta ) {
+      mDataToSurfaceTransform.SetMainTransform
+	( mMRIS->vg.x_r, mMRIS->vg.y_r, mMRIS->vg.z_r, mMRIS->vg.c_r,
+	  mMRIS->vg.x_a, mMRIS->vg.y_a, mMRIS->vg.z_a, mMRIS->vg.c_a,
+	  mMRIS->vg.x_s, mMRIS->vg.y_s, mMRIS->vg.z_s, mMRIS->vg.c_s,
+	               0,            0,             0,             1 );
+
+
+      // Otherwise look for it in the lta field.
+    } else if( NULL != mMRIS->lta ) {
 
       // This is our RAS -> surfaceRAS transform.
       mDataToSurfaceTransform.SetMainTransform
