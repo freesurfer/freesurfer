@@ -39,6 +39,7 @@ HISTOGRAM *HISTOsubtract(HISTOGRAM *h1, HISTOGRAM *h2, HISTOGRAM *histo_dst) ;
 HISTOGRAM *HISTOclearBins(HISTOGRAM *h1, HISTOGRAM *h2, int b0, int b1) ;
 HISTOGRAM *HISTOsmooth(HISTOGRAM *histo_src, HISTOGRAM *histo_dst,float sigma);
 int       HISTOfindLastPeak(HISTOGRAM *h, int wsize, float min_pct) ;
+int       HISTOfindLastPeakRelative(HISTOGRAM *h, int wsize, float min_pct) ;
 int       HISTOfindFirstPeak(HISTOGRAM *h, int wsize, float min_pct) ;
 int       HISTOfindValley(HISTOGRAM *h, int wsize, int b0, int b1) ;
 int       HISTOfindLastPeakInRegion(HISTOGRAM *h, int wsize, float min_pct, 
