@@ -212,7 +212,7 @@ main(int argc, char *argv[])
   DiagInit(NULL, NULL, NULL) ;
   ErrorInit(NULL, NULL, NULL) ;
 
-  nargs = handle_version_option (argc, argv, "$Id: mri_deface.c,v 1.8 2003/03/28 21:38:17 fischl Exp $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_deface.c,v 1.9 2003/04/18 20:41:06 fischl Exp $");
   argc -= nargs ;
   if (1 == argc)
     exit (0);
@@ -247,7 +247,7 @@ main(int argc, char *argv[])
   if (gca == NULL)
     ErrorExit(ERROR_NOFILE, "%s: could not open GCA %s.\n",
               Progname, gca_fname) ;
-
+	parms.vgca = gca ;  /* for diagnostics in MRIemAlign */
 	if (Ggca_label >= 0)
 	{
 		float means[MAX_GCA_INPUTS] ;
@@ -2272,15 +2272,15 @@ MRIremoveFace(MRI *mri_src, MRI *mri_dst, LTA *lta, GCA *gca, GCA *gca_face, int
 
 	mri_brain = fill_brain_volume(mri_dst, gca, transform, radius) ;
 	mri_brain2 = MRIcopy(mri_brain, NULL) ;
-	for (n = 0 ; n < 2*radius ; n++)
+	for (n = 0 ; n < radius ; n++)
 		MRIdilate(mri_brain2, mri_brain2) ;
 
-	GCAlabelMean(gca, Left_Cerebral_White_Matter, wm_means) ;
-	GCAlabelMean(gca, Right_Cerebral_White_Matter, means) ;
+	GCAlabelMeanFromImage(gca, transform, mri_src, Left_Cerebral_White_Matter, wm_means) ;
+	GCAlabelMeanFromImage(gca, transform, mri_src, Right_Cerebral_White_Matter, means) ;
 	for (i = 0 ; i < gca->ninputs ; i++)
 		wm_means[i] = (wm_means[i] + means[i]) / 2 ;
-	GCAlabelMean(gca, Left_Cerebral_Cortex, gm_means) ;
-	GCAlabelMean(gca, Right_Cerebral_Cortex, means) ;
+	GCAlabelMeanFromImage(gca, transform, mri_src, Left_Cerebral_Cortex, gm_means) ;
+	GCAlabelMeanFromImage(gca, transform, mri_src, Right_Cerebral_Cortex, means) ;
 	for (i = 0 ; i < gca->ninputs ; i++)
 		gm_means[i] = (gm_means[i] + means[i]) / 2 ;
 
@@ -2292,7 +2292,9 @@ MRIremoveFace(MRI *mri_src, MRI *mri_dst, LTA *lta, GCA *gca, GCA *gca_face, int
 	m = GCAlabelCovariance(gca, Right_Cerebral_Cortex, NULL) ;
 	MatrixAdd(m_gm_covar, m, m_gm_covar) ;
 
-	/*	printf("using wm = %2.1f +- %2.1f, gm = %2.1f +- %2.1f\n",wm_mean,sqrt(wm_var), gm_mean,sqrt(gm_var)) ;*/
+	printf("using wm = %2.1f, gm = %2.1f\n",wm_means[0], gm_means[0]) ;
+	printf("wm covar:\n") ; MatrixPrint(stdout, m_wm_covar) ;
+	printf("gm covar:\n") ; MatrixPrint(stdout, m_gm_covar) ;
 	for (x = 0 ; x < mri_src->width ; x++)
 	{
 		if (((x+1)%10) == 0)
