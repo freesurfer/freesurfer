@@ -62,7 +62,7 @@ ImageAlloc(int rows, int cols, int format, int nframes)
 {
   IMAGE *I ;
   int   ecode ;
-
+  
   I = (IMAGE *)calloc(1, sizeof(IMAGE)) ;
   if (!I)
     ErrorExit(ERROR_NO_MEMORY, "ImageAlloc: could not allocate header\n") ;
@@ -1095,9 +1095,9 @@ IMAGE *
 ImageConjugate(IMAGE *Isrc, IMAGE *Idst)
 {
   CPIX       *spix, *dpix ;
-  int        npix, i ;
+  long        npix,i;
 
-  npix = Isrc->orows * Isrc->ocols * Isrc->num_frame ;
+  npix = (long)Isrc->orows * Isrc->ocols * Isrc->num_frame ;
   switch (Isrc->pixel_format)
   {
   case PFCOMPLEX:
@@ -1171,7 +1171,8 @@ MATRIX *
 ImageToMatrix(IMAGE *I)
 {
   MATRIX *mat ;
-  int    format = 0, bytes ;
+  int    format = 0;
+  long   bytes ;
 
   switch (I->pixel_format)
   {
@@ -1188,7 +1189,7 @@ ImageToMatrix(IMAGE *I)
   }
 
   mat = MatrixAlloc(I->rows, I->cols, format) ;
-  bytes = mat->rows * mat->cols * sizeof(float) ;
+  bytes = (long) mat->rows * mat->cols * sizeof(float) ;
   if (mat->type == MATRIX_COMPLEX)
     bytes *= 2 ;
 
@@ -1205,7 +1206,8 @@ ImageToMatrix(IMAGE *I)
 IMAGE *
 ImageFromMatrix(MATRIX *matrix, IMAGE *I)
 {
-  int    format, bytes ;
+  int    format;
+  long   bytes ;
 
   format = (matrix->type == MATRIX_COMPLEX) ? PFCOMPLEX : PFFLOAT ;
 
@@ -1215,7 +1217,7 @@ ImageFromMatrix(MATRIX *matrix, IMAGE *I)
     if (I->rows != matrix->rows || I->cols != matrix->cols)
       ErrorExit(ERROR_BADPARM, "ImageFromMatrix: size mismatch") ;
 
-  bytes = matrix->rows * matrix->cols * sizeof(float) ;
+  bytes = (long)matrix->rows * matrix->cols * sizeof(float) ;
   if (matrix->type == MATRIX_COMPLEX)
     bytes *= 2 ;
 
@@ -2096,7 +2098,7 @@ ImageReflect(IMAGE *inImage, IMAGE *outImage, int how)
 int
 ImageAddSpeckleNoise(IMAGE *inImage,IMAGE *outImage, float amp)
 {
-  int    npix ;
+  long    npix ;
   float  *inPix, *outPix, gnoise ;
 
   if (inImage->pixel_format != PFFLOAT)
@@ -2112,7 +2114,7 @@ ImageAddSpeckleNoise(IMAGE *inImage,IMAGE *outImage, float amp)
     return(-1) ;
   }
 
-  npix = inImage->rows * inImage->cols * inImage->num_frame ;
+  npix = (long)inImage->rows * inImage->cols * inImage->num_frame ;
   inPix = IMAGEFpix(inImage, 0, 0) ;
   outPix = IMAGEFpix(outImage, 0, 0) ;
   while (npix--)
@@ -2132,7 +2134,7 @@ ImageAddSpeckleNoise(IMAGE *inImage,IMAGE *outImage, float amp)
 int
 ImageAddSaltNoise(IMAGE *inImage,IMAGE *outImage, float density)
 {
-  int    npix ;
+  long     npix ;
   float  *inPix, *outPix, gnoise, in ;
 
   if (inImage->pixel_format != PFFLOAT)
@@ -2148,7 +2150,7 @@ ImageAddSaltNoise(IMAGE *inImage,IMAGE *outImage, float density)
     return(-1) ;
   }
 
-  npix = inImage->rows * inImage->cols * inImage->num_frame ;
+  npix = (long)inImage->rows * inImage->cols * inImage->num_frame ;
   inPix = IMAGEFpix(inImage, 0, 0) ;
   outPix = IMAGEFpix(outImage, 0, 0) ;
   while (npix--)
@@ -2175,7 +2177,7 @@ ImageAddSaltNoise(IMAGE *inImage,IMAGE *outImage, float density)
 int
 ImageAddNoise(IMAGE *inImage, IMAGE *outImage, float amp)
 {
-  int    npix ;
+  long    npix ;
   float  *inPix, *outPix, gnoise ;
 
   if (inImage->pixel_format != PFFLOAT)
@@ -2191,7 +2193,7 @@ ImageAddNoise(IMAGE *inImage, IMAGE *outImage, float amp)
     return(-1) ;
   }
 
-  npix = inImage->rows * inImage->cols * inImage->num_frame ;
+  npix = (long)inImage->rows * inImage->cols * inImage->num_frame ;
   inPix = IMAGEFpix(inImage, 0, 0) ;
   outPix = IMAGEFpix(outImage, 0, 0) ;
   while (npix--)
@@ -4736,11 +4738,12 @@ int
 ImageNormalizeFrames(IMAGE *inImage, IMAGE *outImage)
 {
   float  flen, *fsrcPtr, *fdstPtr, fval ;
-  int    frameno, pix_per_frame, rows, cols, npix ;
+  int    frameno, rows, cols;
+  long   npix, pix_per_frame ;
 
   rows = inImage->rows ;
   cols = inImage->cols ;
-  pix_per_frame = rows * cols ;
+  pix_per_frame = (long)rows * cols ;
   
   switch (inImage->pixel_format)
   {
