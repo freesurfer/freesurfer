@@ -27,7 +27,7 @@ function [err, racfexp] = fast_arnw_fiterr(p,racf,R,w,modeltype)
 % 
 % See also: fast_arnw_acf
 %
-% $Id: fast_arnw_fiterr.m,v 1.3 2004/05/27 04:37:48 greve Exp $
+% $Id: fast_arnw_fiterr.m,v 1.4 2004/05/29 02:59:56 greve Exp $
 %
 % (c) Douglas N. Greve, 2004
 %
@@ -63,7 +63,7 @@ if(~isempty(find(abs(poles) > .95)))
 end
 
 % Theoretical autocor function
-nacf = fast_arnw_acf(p(1:end-1),nf,p(end));
+nacf = fast_arnw_acf(phi,nf,alpha);
 
 if(exist('R','var') & ~isempty(R))
   % Create the noise covariaance matrix
