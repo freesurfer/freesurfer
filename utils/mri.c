@@ -8,10 +8,10 @@
  *
 */
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: ebeth $
-// Revision Date  : $Date: 2003/07/08 20:52:48 $
-// Revision       : $Revision: 1.234 $
-char *MRI_C_VERSION = "$Revision: 1.234 $";
+// Revision Author: $Author: greve $
+// Revision Date  : $Date: 2003/07/09 03:39:25 $
+// Revision       : $Revision: 1.235 $
+char *MRI_C_VERSION = "$Revision: 1.235 $";
 
 /*-----------------------------------------------------
                     INCLUDE FILES
@@ -10224,6 +10224,65 @@ MRI *MRIdrand48(int ncols, int nrows, int nslices, int nframes,
 
   return(mri);
 }
+/*---------------------------------------------------------------------
+  MRIconst() - fills an MRI structure with the given value. If mri is 
+  NULL, it will alloc a MRI_FLOAT volume, otherwise, it will use the type
+  as specified in mri.
+  --------------------------------------------------------*/
+MRI *MRIconst(int ncols, int nrows, int nslices, int nframes,
+	      float val, MRI *mri)
+{
+  int c, r, s, f, n;
+  BUFTYPE *pmri=NULL;
+  short   *psmri=NULL;
+  int     *pimri=NULL;
+  long    *plmri=NULL;
+  float   *pfmri=NULL;
+
+  if(mri==NULL){
+    mri = MRIallocSequence(ncols, nrows, nslices, MRI_FLOAT, nframes);
+    if(mri==NULL){
+      printf("ERROR: MRIdconst: could not alloc\n");
+      return(NULL);
+    }
+  }
+  else{
+    if(mri->width != ncols   || mri->height != nrows || 
+       mri->depth != nslices || mri->nframes != nframes){
+      printf("ERROR: MRIconst: dimension mismatch\n");
+      return(NULL);
+    }
+  }
+
+  n = 0;
+  for(f=0; f<nframes; f++){
+    for(s=0; s<nslices; s++){
+      for(r=0; r<nrows; r++){
+	switch(mri->type){
+	case MRI_UCHAR: pmri  =           mri->slices[n][r]; break;
+	case MRI_SHORT: psmri = (short *) mri->slices[n][r]; break;
+	case MRI_INT:   pimri = (int *)   mri->slices[n][r]; break;
+	case MRI_LONG:  plmri = (long *)  mri->slices[n][r]; break;
+	case MRI_FLOAT: pfmri = (float *) mri->slices[n][r]; break;
+	}
+	for(c=0; c<ncols; c++) {
+	  switch(mri->type){
+	  case MRI_UCHAR: *pmri++  = (BUFTYPE) val; break;
+	  case MRI_SHORT: *psmri++ = (short) val; break;
+	  case MRI_INT:   *pimri++ = (int)   val; break;
+	  case MRI_LONG:  *plmri++ = (long)  val; break;
+	  case MRI_FLOAT: *pfmri++ = (float) val; break;
+	  }
+	}
+      }
+      n++;
+    }
+  }
+
+  return(mri);
+}
+/*--------------------------------------------------------------*/
+
 int
 MRInormalizeSequence(MRI *mri, float target)
 {
