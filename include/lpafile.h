@@ -22,11 +22,14 @@ typedef struct
   LP_BOX  *coords ;
   int     last_written ;   /* index of last written lp_box */
   int     current ;
+  int     flush ;
 } LP_ANSWER_FILE, LPAF ;
 
 LPAF *LPAFcreate(char *out_fname, int argc, char *argv[]) ;
 int  LPAFwrite(LPAF *lpaf, int current) ;
 int  LPAFread(LPAF *lpaf, int current) ;
 int  LPAFset(LPAF *lpaf, int current, int *xp, int *yp, int xc, int yc) ;
+int  LPAFwriteImageAnswer(LPAF *lpaf, int current) ;
+int  LPAFreadImageAnswer(LPAF *lpaf, int current) ;
 
 #endif

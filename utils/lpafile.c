@@ -1,14 +1,145 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <hipl_format.h>
+#include <memory.h>
 
 #include "lpafile.h"
 #include "utils.h"
 #include "error.h"
 #include "proto.h"
+#include "hipsu.h"
+#include "image.h"
+#include "macros.h"
 
 static int lpafFillEntries(LP_ANSWER_FILE *lpaf, char *fname, int entryno) ;
 static void lpafDump(FILE *fp, LP_ANSWER_FILE *lpaf) ;
+static void lpafAllocParms(IMAGE *I) ;
+
+#define NFLUSH    10     /* flush after every 10th write */
+#define INIT_VAL  10000  /* initial value of parameters */
+
+int
+LPAFreadImageAnswer(LPAF *lpaf, int current)
+{
+  char   *fullname, fname[100] ;
+  FILE   *fp ;
+  IMAGE  Iheader ;
+  int    i, ecode, *parms, frame, current_frame ;
+  LP_BOX *lpb ;
+  struct extpar *xp ;
+
+  fullname = lpaf->filelist[current] ;
+
+  ImageUnpackFileName(fullname, &current_frame, &i, fname) ;
+
+  fp = fopen(fname, "rb") ;
+  if (!fp)
+    ErrorReturn(-1, (ERROR_NO_FILE,"LPAFreadImageAnswer(%d): could not open %s",
+                     current, fname)) ;
+
+  ecode = fread_header(fp, &Iheader, fname) ;
+  if (ecode)
+    ErrorReturn(-2, (ERROR_BADFILE, 
+                     "LPAFreadImageAnswer(%s): could not read header",fname));
+
+  if (Iheader.numparam < Iheader.num_frame)
+    return(0) ;
+
+  /* read answer from header */
+#if 0
+  fprintf(stderr, "reading lp values from %dth entry in image file\n", 
+          current_frame);
+#endif
+  lpb = &lpaf->coords[current] ;
+  for (frame = 0, xp = Iheader.params ; xp ; xp = xp->nextp)
+    if (frame++ == current_frame)
+      break ;
+
+  parms = xp->val.v_pi ;
+
+  if (parms[0] == INIT_VAL)  /* not yet written with real value */
+    return(0) ;
+
+  lpb->xc = parms[0] ;
+  lpb->yc  = parms[1] ;
+  for (i = 0 ; i < NPOINTS ; i++)
+  {
+    lpb->xp[i] = parms[2+2*i] ;
+    lpb->yp[i] = parms[2+2*i+1] ;
+  }
+  return(1) ;
+}
+
+int
+LPAFwriteImageAnswer(LPAF *lpaf, int current)
+{
+  char   *fullname, tmpname[100], fname[100] ;
+  IMAGE  Iheader, *I ;
+  FILE   *infp, *outfp ;
+  int    ecode, frame, nframes, *parms, i, current_frame ;
+  LP_BOX *lpb ;
+  struct extpar *xp ;
+
+  fullname = lpaf->filelist[current] ;
+
+  ImageUnpackFileName(fullname, &current_frame, &ecode, fname) ;
+  infp = fopen(fname, "rb") ;
+  if (!infp)
+    ErrorReturn(-1,(ERROR_NO_FILE,"LPAFwriteImageAnswer(%d): could not open %s",
+                     current, fname)) ;
+  ecode = fread_header(infp, &Iheader, fname) ;
+  if (ecode)
+  {
+    fclose(infp) ;
+    ErrorReturn(-2, (ERROR_BADFILE,
+                   "LPAFwriteImageAnswer(%d): could not read header", current));
+  }
+  fclose(infp) ;
+  if (Iheader.numparam == 0)  /* must make room for header in image file */
+  {
+    lpafAllocParms(&Iheader) ;
+
+    /* now copy the old image file to a new one which has room for parms */
+    nframes = Iheader.num_frame ;
+    strcpy(tmpname, FileTmpName(NULL)) ;
+    outfp = fopen(tmpname, "wb") ;
+    Iheader.num_frame = 0 ;  /* ImageAppend will bump num_frame on each call */
+    ecode = fwrite_header(outfp, &Iheader, tmpname) ;
+    fclose(outfp) ;   /* flush file */
+
+    fprintf(stderr, "rewriting image file to make room for parms...\n") ;
+    for (frame = 0 ; frame < nframes ; frame++)
+    {
+      I = ImageReadFrames(fname, frame, 1) ;
+      if (!I)
+        ErrorExit(ERROR_BADFILE, "LPwriteImageAnswer: could not read frame");
+      ImageAppend(I, tmpname) ;
+      ImageFree(&I) ;
+    }
+    FileRename(tmpname, fname) ;
+    Iheader.num_frame = nframes ;  /* reset correct # of frames */
+  }
+
+  /* now put answer into header */
+  lpb = &lpaf->coords[current] ;
+
+  for (frame = 0, xp = Iheader.params ; xp ; xp = xp->nextp)
+    if (frame++ == current_frame)
+      break ;
+
+  parms = xp->val.v_pi ;
+  parms[0] = lpb->xc ;
+  parms[1] = lpb->yc ;
+  for (i = 0 ; i < NPOINTS ; i++)
+  {
+    parms[2+2*i] = lpb->xp[i] ;
+    parms[2+2*i+1] = lpb->yp[i] ;
+  }
+  ImageUpdateHeader(&Iheader, fname) ;
+  free_hdrcon(&Iheader) ;
+  return(0) ;
+}
 
 LP_ANSWER_FILE *
 LPAFcreate(char *out_fname, int argc, char *argv[])
@@ -20,11 +151,9 @@ LPAFcreate(char *out_fname, int argc, char *argv[])
   for (i = 0 ; i < argc ; i++)
   {
     nentries = FileNumberOfEntries(argv[i]) ;
-    fprintf(stderr, "argv[%d] = '%s', # %d\n", i, argv[i], nentries) ;
     nfiles += nentries ;
   }
 
-  fprintf(stderr, "total of %d files\n", nfiles) ;
   if (nfiles <= 0)
     ErrorReturn(NULL, (ERROR_NO_FILE, "LPAFcreate: no valid files specified"));
   
@@ -32,6 +161,7 @@ LPAFcreate(char *out_fname, int argc, char *argv[])
   if (!lpaf)
     ErrorExit(ERROR_NO_MEMORY, "LPAFcreate: allocation failed") ;
   strcpy(lpaf->fname, out_fname) ;
+  unlink(lpaf->fname) ;
   lpaf->fp = fopen(lpaf->fname, "a+b") ;
   if (!lpaf->fp)
     ErrorReturn(NULL,
@@ -115,18 +245,43 @@ lpafDump(FILE *fp, LP_ANSWER_FILE *lpaf)
   for (i = 0 ; i < lpaf->nfiles ; i++)
     fprintf(fp, "%s\n", lpaf->filelist[i]) ;
 }
+
+
+/* filename (centroid) (x, y) ... */
+#define FILE_FMT  "%s (%3d, %3d) (%3d, %3d) (%3d, %3d) (%3d, %3d) (%3d, %3d)\n" 
+
 int
 LPAFwrite(LPAF *lpaf, int current)
 {
   LP_BOX *lpb ;
-  int    i ;
 
   lpb = &lpaf->coords[current] ;
-  lpb->fpos = ftell(lpaf->fp) ;
-  fprintf(lpaf->fp, "%s (%d, %d) ", lpaf->filelist[current], lpb->xc, lpb->yc);
-  for (i = 0 ; i < NPOINTS ; i++)
-    fprintf(lpaf->fp, "(%d %d) ", lpb->xp[i], lpb->yp[i]) ;
-  fflush(lpaf->fp) ;
+  if (lpb->fpos >= 0L)   /* overwrite previous entry */
+  {
+    if (fseek(lpaf->fp, lpb->fpos, SEEK_SET) < 0)
+      ErrorReturn(-1, (ERROR_BADFILE, "LPAFwrite could not seek to %ld",
+                       lpb->fpos)) ;
+  }
+  else
+    lpb->fpos = ftell(lpaf->fp) ;
+
+  if (current > lpaf->last_written)
+    lpaf->last_written = current ;
+  else   /* write out rest of file */
+  {
+  }
+  
+  LPAFwriteImageAnswer(lpaf, current) ;
+  fprintf(lpaf->fp, FILE_FMT,
+          lpaf->filelist[current], lpb->xc, lpb->yc,
+          lpb->xp[0], lpb->yp[0], lpb->xp[1], lpb->yp[1],
+          lpb->xp[2], lpb->yp[2], lpb->xp[3], lpb->yp[3]) ;
+
+  if (lpaf->flush++ >= NFLUSH)
+  {
+    fflush(lpaf->fp) ;
+    lpaf->flush = 0 ;
+  }
   return(0) ;
 }
 
@@ -134,24 +289,42 @@ int
 LPAFread(LPAF *lpaf, int current)
 {
   LP_BOX *lpb ;
-  int    i ;
-  char   fname[100] ;
+  char   line[300], *cp ;
 
   lpb = &lpaf->coords[current] ;
-  if (lpb->fpos < 0)
-    return(0) ;     /* hasn't been written yet */
 
-  if (fseek(lpaf->fp, lpb->fpos, SEEK_SET) < 0)
-    ErrorReturn(-1, (ERROR_BADFILE, "LPAFread could not seek to %ld",
-                     lpb->fpos)) ;
-  fscanf(lpaf->fp, "%s (%d, %d) ", fname, &lpb->xc, &lpb->yc) ;
-  for (i = 0 ; i < NPOINTS ; i++)
-    fscanf(lpaf->fp, "(%d %d) ", &lpb->xp[i], &lpb->yp[i]) ;
+  if (LPAFreadImageAnswer(lpaf, current) <= 0)  /* not in image file */
+  {
+    if (lpb->fpos < 0)
+      return(0) ;     /* hasn't been written yet */
+    
+    if (fseek(lpaf->fp, lpb->fpos, SEEK_SET) < 0)
+      ErrorReturn(-1, (ERROR_BADFILE, "LPAFread could not seek to %ld",
+                       lpb->fpos)) ;
+    
+    cp = fgetl(line, 299, lpaf->fp) ;
+    if (!cp)
+      ErrorReturn(-1, (ERROR_BADFILE, "LPAFread: could not read line")) ;
+    
+    if (sscanf(cp, FILE_FMT,
+               lpaf->filelist[current], &lpb->xc, &lpb->yc,
+               &lpb->xp[0], &lpb->yp[0], &lpb->xp[1], &lpb->yp[1],
+               &lpb->xp[2], &lpb->yp[2], &lpb->xp[3], &lpb->yp[3]) != 11)
+      ErrorReturn(-1, 
+                  (ERROR_BADFILE, "LPAFread: could not scan all parms from %s",
+                   cp)) ;
+    
+  }
 
-  fprintf(stderr, "read %s: (%d, %d)\n", fname, lpb->xc, lpb->yc);
+#if 0
+{
+  int i ;
+
   for (i = 0 ; i < NPOINTS ; i++)
     fprintf(stderr, "(%d, %d) ", lpb->xp[i], lpb->yp[i]) ;
   fprintf(stderr, "\n") ;
+}
+#endif
 
   return(1) ;
 }
@@ -171,5 +344,39 @@ LPAFset(LPAF *lpaf, int current, int *xp, int *yp, int xc, int yc)
     lpb->yp[i] = yp[i] ;
   }
   return(1) ;
+}
+
+#define NPARAMS   10
+
+static void
+lpafAllocParms(IMAGE *I)
+{
+  int           frame, nframes, i ;
+  struct extpar *params ;
+
+  nframes = I->num_frame ;
+  I->numparam = nframes ;
+  I->params = params = (struct extpar *)calloc(nframes, sizeof(*params)) ;
+  if (!params)
+    ErrorExit(ERROR_NO_MEMORY, "lpafAllocParms: could not allocate (%d, %d)",
+              nframes, sizeof(*params)) ;
+  I->paramdealloc = TRUE ;
+
+  /* set up link-list and allocate enough space */
+  for (frame = 0 ; frame < nframes ; frame++)
+  {
+    if (frame < (nframes - 1))
+      params[frame].nextp = &params[frame+1] ;
+    else
+      params[frame].nextp = NULL ;
+
+    params[frame].name = STRCPALLOC("LP_ANSWER") ;
+    params[frame].format = PFINT ;
+    params[frame].count = NPARAMS ; /* 4 corners and centroid */
+    params[frame].dealloc = TRUE ;
+    params[frame].val.v_pi = (int *)calloc(NPARAMS, sizeof(int)) ;
+    for (i = 0 ; i < NPARAMS ; i++)
+      params[frame].val.v_pi[i] = INIT_VAL ;
+  }
 }
 
