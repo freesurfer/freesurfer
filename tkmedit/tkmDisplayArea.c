@@ -3,8 +3,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2004/07/19 03:43:32 $
-// Revision       : $Revision: 1.106 $
+// Revision Date  : $Date: 2004/08/12 21:29:40 $
+// Revision       : $Revision: 1.107 $
 
 #include "tkmDisplayArea.h"
 #include "tkmMeditWindow.h"
@@ -225,8 +225,8 @@ DspA_tErr DspA_New ( tkmDisplayAreaRef* oppWindow,
   sBrush.mShape      = DspA_tBrushShape_Square;
   sBrush.mb3D        = FALSE;
   sBrush.mb3DFill    = FALSE;
-  sBrush.mnFuzzy     = 0;
-  sBrush.mnDistance  = 0;
+  sBrush.mFuzzy     = 0;
+  sBrush.mDistance  = 0;
   DspA_SetBrushInfoToDefault( this, DspA_tBrush_EditOne );
   DspA_SetBrushInfoToDefault( this, DspA_tBrush_EditTwo );
   
@@ -234,16 +234,16 @@ DspA_tErr DspA_New ( tkmDisplayAreaRef* oppWindow,
   sSegBrush.mNewValue    = 0;
   sSegBrush.mb3D         = FALSE;
   sSegBrush.mSrc         = tkm_tVolumeTarget_MainAna;
-  sSegBrush.mnFuzzy      = 0;
-  sSegBrush.mnDistance   = 0;
+  sSegBrush.mFuzzy      = 0;
+  sSegBrush.mDistance   = 0;
   sSegBrush.mnPaintValue = 0;
   sSegBrush.mnEraseValue = 0;
   
   /* default flood select info */
   sFloodSelectSettings.mb3D       = FALSE;
   sFloodSelectSettings.mSrc       = tkm_tVolumeTarget_MainAna;
-  sFloodSelectSettings.mnFuzzy    = 0;
-  sFloodSelectSettings.mnDistance = 0;
+  sFloodSelectSettings.mFuzzy    = 0;
+  sFloodSelectSettings.mDistance = 0;
 
   /* set default cursor color */
   color.mfRed   = 1.0;
@@ -2041,8 +2041,8 @@ DspA_tErr DspA_SetBrushShape ( tkmDisplayAreaRef this,
 
 DspA_tErr DspA_SetAnatomicalFillInfo ( tkmDisplayAreaRef this,
 				       tBoolean          ib3DFill,
-				       int               inFuzzy,
-				       int               inDistance ) {
+				       float             iFuzzy,
+				       float             iDistance ) {
 
   DspA_tErr eResult            = DspA_tErr_NoErr;
   char      sTclArguments[STRLEN] = "";
@@ -2054,16 +2054,16 @@ DspA_tErr DspA_SetAnatomicalFillInfo ( tkmDisplayAreaRef this,
   
   /* Set the brush info */
   sBrush.mb3DFill   = ib3DFill;
-  sBrush.mnFuzzy    = inFuzzy;
-  sBrush.mnDistance = inDistance;
+  sBrush.mFuzzy     = iFuzzy;
+  sBrush.mDistance  = iDistance;
   
   /* if we're the currently focused display... */
   if( sFocusedDisplay == this ) {
     
     /* send the tcl update. */
-    sprintf ( sTclArguments, "%d %d %d",
-	      (int)sBrush.mb3DFill, (int)sBrush.mnFuzzy, 
-	      (int)sBrush.mnDistance );
+    sprintf ( sTclArguments, "%d %f %f",
+	      (int)sBrush.mb3DFill, sBrush.mFuzzy, 
+	      sBrush.mDistance );
     tkm_SendTclCommand( tkm_tTclCommand_UpdateAnatomicalFillInfo,
 			sTclArguments );
   }
@@ -2307,11 +2307,11 @@ DspA_tErr DspA_SetFloodSelectParams ( tkmDisplayAreaRef          this,
   if( sFocusedDisplay == this ) {
     
     /* send the tcl update. */
-    sprintf ( sTclArguments, "%d %d %d %d",
+    sprintf ( sTclArguments, "%d %d %f %f",
 	      (int)sFloodSelectSettings.mb3D,
 	      (int)sFloodSelectSettings.mSrc,
-	      (int)sFloodSelectSettings.mnFuzzy,
-	      (int)sFloodSelectSettings.mnDistance );
+	      sFloodSelectSettings.mFuzzy,
+	      sFloodSelectSettings.mDistance );
     tkm_SendTclCommand( tkm_tTclCommand_UpdateFloodSelectParams, 
 			sTclArguments );
   }
@@ -2388,9 +2388,7 @@ DspA_tErr DspA_SetSegBrushInfo ( tkmDisplayAreaRef        this,
     goto error;
   
   if( iSettings->mSrc < tkm_tVolumeType_Main ||
-      iSettings->mSrc >= tkm_knNumVolumeTargets ||
-      iSettings->mnFuzzy < 0 ||
-      iSettings->mnFuzzy >= 256 ) {
+      iSettings->mSrc >= tkm_knNumVolumeTargets ) {
     eResult = DspA_tErr_InvalidParameter;
     goto error;
   }
@@ -2402,9 +2400,9 @@ DspA_tErr DspA_SetSegBrushInfo ( tkmDisplayAreaRef        this,
   if( sFocusedDisplay == this ) {
     
     /* send the tcl update. */
-    sprintf( sTclArguments, "%d %d %d %d %d", 
+    sprintf( sTclArguments, "%d %d %d %f %f", 
 	     sSegBrush.mnPaintValue, sSegBrush.mb3D,
-	     sSegBrush.mSrc, sSegBrush.mnFuzzy, sSegBrush.mnDistance );
+	     sSegBrush.mSrc, sSegBrush.mFuzzy, sSegBrush.mDistance );
     tkm_SendTclCommand( tkm_tTclCommand_UpdateSegBrushInfo, sTclArguments );
   }
   
@@ -2976,8 +2974,8 @@ DspA_tErr DspA_HandleMouseUp_ ( tkmDisplayAreaRef this,
       tkm_FloodSelect( pVolumeVox, 
 		       sFloodSelectSettings.mb3D,
 		       sFloodSelectSettings.mSrc, 
-		       sFloodSelectSettings.mnFuzzy,
-		       sFloodSelectSettings.mnDistance,
+		       sFloodSelectSettings.mFuzzy,
+		       sFloodSelectSettings.mDistance,
 		       bSelect );
       this->mbSliceChanged = TRUE;
     }
@@ -3018,8 +3016,8 @@ DspA_tErr DspA_HandleMouseUp_ ( tkmDisplayAreaRef this,
 				       pVolumeVox, 
 				       nVolValue, 
 				       sBrush.mb3DFill, 
-				       sBrush.mnFuzzy,
-				       sBrush.mnDistance );
+				       sBrush.mFuzzy,
+				       sBrush.mDistance );
 	this->mbSliceChanged = TRUE;
 	DspA_Redraw_( this );
 	break;
@@ -3100,7 +3098,7 @@ DspA_tErr DspA_HandleMouseUp_ ( tkmDisplayAreaRef this,
 	tkm_FloodFillSegmentation( segType, pVolumeVox, 
 				   sSegBrush.mNewValue, 
 				   sSegBrush.mb3D, sSegBrush.mSrc, 
-				   sSegBrush.mnFuzzy, sSegBrush.mnDistance );
+				   sSegBrush.mFuzzy, sSegBrush.mDistance );
 	this->mbSliceChanged = TRUE;
 	DspA_Redraw_( this );
 	break;

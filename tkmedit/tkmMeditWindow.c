@@ -3822,8 +3822,8 @@ int MWin_TclSetAnatomicalFillInfo ( ClientData  ipClientData,
   DspA_tErr         eDispResult  = DspA_tErr_NoErr;
   char              sError[256]  = "";       
   tBoolean          b3DFill      = FALSE;
-  int               nFuzzy       = 0;
-  int               nDistance    = 0;
+  float             fuzzy       = 0;
+  float             distance    = 0;
 
   /* grab us from the client data ptr */
   this = (tkmMeditWindowRef) ipClientData;
@@ -3850,13 +3850,13 @@ int MWin_TclSetAnatomicalFillInfo ( ClientData  ipClientData,
 
   /* parse the args and get a low, high, and new value */
   b3DFill    = (tBoolean) atoi( argv[1] );
-  nFuzzy     = (int) atoi( argv[2] );
-  nDistance  = (int) atoi( argv[3] );
+  fuzzy      = atof( argv[2] );
+  distance   = atof( argv[3] );
 
   /* set the brush of the last clicked display. */
   eDispResult = 
     DspA_SetAnatomicalFillInfo ( this->mapDisplays[this->mnLastClickedArea],
-				 b3DFill, nFuzzy, nDistance );
+				 b3DFill, fuzzy, distance );
   if ( DspA_tErr_NoErr != eDispResult ) {
     eResult = MWin_tErr_ErrorAccessingDisplay;
     goto error;
@@ -4364,8 +4364,8 @@ int MWin_TclSetFloodSelectParams ( ClientData  ipClientData,
   /* parse the args */
   settings.mb3D        = (int) atoi( argv[1] );
   settings.mSrc        = (tkm_tVolumeTarget) atoi( argv[2] );
-  settings.mnFuzzy     = (int) atoi( argv[3] );
-  settings.mnDistance  = (int) atoi( argv[4] );
+  settings.mFuzzy     = atof( argv[3] );
+  settings.mDistance  = atof( argv[4] );
 
   /* call on the last clicked display. */
   eDispResult = 
@@ -4437,8 +4437,8 @@ int MWin_TclSetSegBrushInfo ( ClientData  ipClientData,
   settings.mnPaintValue = (int) atoi( argv[1] );
   settings.mb3D         = (int) atoi( argv[2] );
   settings.mSrc         = (tkm_tVolumeTarget) atoi( argv[3] );
-  settings.mnFuzzy      = (int) atoi( argv[4] );
-  settings.mnDistance   = (int) atoi( argv[5] );
+  settings.mFuzzy      = atof( argv[4] );
+  settings.mDistance   = atof( argv[5] );
 
   /* call on the last clicked display. */
   eDispResult = 

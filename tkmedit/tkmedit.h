@@ -282,8 +282,8 @@ void tkm_FloodFillSegmentation ( tkm_tSegType      iVolume,
 				 int               inIndex,
 				 tBoolean          ib3D,
 				 tkm_tVolumeTarget iSrc,
-				 int               inFuzzy,
-				 int               inDistance );
+				 float             iFuzzy,
+				 float             iDistance );
 
 
 /* dealing with control points */
@@ -315,8 +315,8 @@ void tkm_FloodFillAnatomicalVolume ( tkm_tSegType      iVolume,
 				     xVoxelRef         iMRIIdx,
 				     int               inValue,
 				     tBoolean          ib3D,
-				     int               inFuzzy,
-				     int               inDistance );
+				     float             iFuzzy,
+				     float             iDistance );
 
 
 /* Sets a region in the anatomical volume to a new value. */
@@ -354,8 +354,8 @@ tBoolean tkm_IsSelectionPresent ();
 void tkm_FloodSelect         ( xVoxelRef         iSeedMRIIdx,
 			       tBoolean          ib3D,
 			       tkm_tVolumeTarget iSrc,
-			       int               inFuzzy,
-			       int               inDistance,
+			       float             iFuzzy,
+			       float             iDistance,
 			       tBoolean          ibSelect );
 
 /* useRealRAS */

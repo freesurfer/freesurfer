@@ -146,8 +146,8 @@ typedef struct {
   
   /* for flood fill. */
   tBoolean mb3DFill;
-  int      mnFuzzy;
-  int      mnDistance;
+  float    mFuzzy;
+  float    mDistance;
 
 } DspA_tBrushSettings;
 
@@ -156,8 +156,8 @@ typedef struct {
   int               mNewValue;  /* The value that will be set */
   tBoolean          mb3D;
   tkm_tVolumeTarget mSrc;       /* Volume to use as source voxels. */
-  int               mnFuzzy;
-  int               mnDistance;
+  float             mFuzzy;
+  float             mDistance;
   tkm_tSegType      mDest;      /* The volume to affect; determined by which
 				   seg volume is active. */
 
@@ -171,8 +171,8 @@ typedef struct {
 typedef struct {
   tBoolean           mb3D;
   tkm_tVolumeTarget  mSrc;       /* Volume to use as source voxels. */
-  int                mnFuzzy;
-  int                mnDistance;
+  float              mFuzzy;
+  float              mDistance;
 } DspA_tFloodSelectSettings;
 
 typedef enum {
@@ -449,8 +449,8 @@ DspA_tErr DspA_SetBrushShape         ( tkmDisplayAreaRef this,
 				       tBoolean          ib3D );
 DspA_tErr DspA_SetAnatomicalFillInfo ( tkmDisplayAreaRef this,
 				       tBoolean          ib3DFill,
-				       int               inFuzzy,
-				       int               inDistance );
+				       float             iFuzzy,
+				       float             iDistance );
 DspA_tErr DspA_SetBrushInfo          ( tkmDisplayAreaRef this,
 				       DspA_tBrush       iBrush,
 				       DspA_tBrushInfoRef iInfo ); 

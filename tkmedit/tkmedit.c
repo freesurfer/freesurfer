@@ -4,9 +4,9 @@
 
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2004/08/12 21:14:16 $
-// Revision       : $Revision: 1.219 $
-char *VERSION = "$Revision: 1.219 $";
+// Revision Date  : $Date: 2004/08/12 21:29:40 $
+// Revision       : $Revision: 1.220 $
+char *VERSION = "$Revision: 1.220 $";
 
 #define TCL
 #define TKMEDIT 
@@ -327,8 +327,8 @@ typedef struct {
 tkm_tErr FloodSelect ( xVoxelRef         iSeedAnaIdx,
 		       tBoolean          ib3D,
 		       tkm_tVolumeTarget iSrc,
-		       int               inFuzzy,
-		       int               inDistance,
+		       float             iFuzzy,
+		       float             iDistance,
 		       tBoolean          ibSelect );
 
 /* Callback for the flood. */
@@ -427,8 +427,8 @@ tkm_tErr FloodFillAnatomicalVolume ( tkm_tVolumeType iVolume,
 				     xVoxelRef       iAnaIdx,
 				     int             inValue,
 				     tBoolean        ib3D,
-				     int             inFuzzy,
-				     int             inDistance );
+				     float           iFuzzy,
+				     float           iDistance );
 /* Callback for the flood. */
 Volm_tVisitCommand FloodFillAnatomicalCallback ( xVoxelRef iMRIIdx,
 						 float     iValue,
@@ -621,8 +621,8 @@ tkm_tErr FloodFillSegmentation ( tkm_tSegType      iVolume,
 				 int               inIndex,
 				 tBoolean          ib3D,
 				 tkm_tVolumeTarget iSrc,
-				 int               inFuzzy,
-				 int               inDistance );
+				 float             iFuzzy,
+				 float             iDistance );
 /* Callback for the flood. */
 Volm_tVisitCommand FloodFillSegmentationCallback ( xVoxelRef iMRIIdx,
 						   float     iValue,
@@ -1052,7 +1052,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
      shorten our argc and argv count. If those are the only args we
      had, exit. */
   /* rkt: check for and handle version tag */
-  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.219 2004/08/12 21:14:16 kteich Exp $", "$Name:  $");
+  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.220 2004/08/12 21:29:40 kteich Exp $", "$Name:  $");
   if (nNumProcessedVersionArgs && argc - nNumProcessedVersionArgs == 1)
     exit (0);
   argc -= nNumProcessedVersionArgs;
@@ -5010,7 +5010,7 @@ int main ( int argc, char** argv ) {
     DebugPrint( ( "%s ", argv[nArg] ) );
   }
   DebugPrint( ( "\n\n" ) );
-  DebugPrint( ( "$Id: tkmedit.c,v 1.219 2004/08/12 21:14:16 kteich Exp $ $Name:  $\n" ) );
+  DebugPrint( ( "$Id: tkmedit.c,v 1.220 2004/08/12 21:29:40 kteich Exp $ $Name:  $\n" ) );
 
   
   /* init glut */
@@ -6720,8 +6720,8 @@ void SelectVoxelsByFuncValue ( FunV_tFindStatsComp iCompare ) {
 tkm_tErr FloodSelect ( xVoxelRef         iSeedAnaIdx,
 		       tBoolean          ib3D,
 		       tkm_tVolumeTarget iSrc,
-		       int               inFuzzy,
-		       int               inDistance,
+		       float             iFuzzy,
+		       float             iDistance,
 		       tBoolean          ibSelect ) {
   
   tkm_tErr                    eResult      = tkm_tErr_NoErr;
@@ -6733,8 +6733,8 @@ tkm_tErr FloodSelect ( xVoxelRef         iSeedAnaIdx,
   xVoxel                      mriIdx;
 
   DebugEnterFunction( ("FloodSelect( iSeedAnaIdx=%p, ib3D=%d, iSrc=%d, "
-		       "inFuzzy=%d, inDistance=%d", iSeedAnaIdx, ib3D,
-		       iSrc, inFuzzy, inDistance) );
+		       "iFuzzy=%f, iDistance=%f", iSeedAnaIdx, ib3D,
+		       iSrc, iFuzzy, iDistance) );
   
   DebugAssertThrowX( (NULL != iSeedAnaIdx), 
 		     eResult, tkm_tErr_InvalidParameter );
@@ -6744,10 +6744,10 @@ tkm_tErr FloodSelect ( xVoxelRef         iSeedAnaIdx,
 			   iSeedAnaIdx, &mriIdx );
 
   xVoxl_Copy( &params.mSourceIdx, &mriIdx );
-  params.mfFuzziness             = inFuzzy;
+  params.mfFuzziness             = iFuzzy;
   params.mComparatorType         = Volm_tValueComparator_EQ;
   params.mComparatorFunc         = NULL;
-  params.mfMaxDistance           = inDistance;
+  params.mfMaxDistance           = iDistance;
   params.mb3D                    = ib3D;
   MWin_GetOrientation ( gMeditWindow, &params.mOrientation );
 
@@ -8190,8 +8190,8 @@ tkm_tErr FloodFillAnatomicalVolume ( tkm_tVolumeType iVolume,
 				     xVoxelRef       iAnaIdx,
 				     int             inValue,
 				     tBoolean        ib3D,
-				     int             inFuzzy,
-				     int             inDistance ) {
+				     float           iFuzzy,
+				     float           iDistance ) {
   
   tkm_tErr                    eResult      = tkm_tErr_NoErr;
   Volm_tFloodParams           params;
@@ -8200,9 +8200,9 @@ tkm_tErr FloodFillAnatomicalVolume ( tkm_tVolumeType iVolume,
   xVoxel                      mriIdx;
   
   DebugEnterFunction( ("FloodFillAnatomicalVolume( iVolume=%d, "
-		       "iAnaIdx=%d,%d,%d, iVnalue=%d, ib3D=%d, inFuzzy=%d "
-		       "inDistance=%d )", iVolume, xVoxl_ExpandInt(iAnaIdx),
-		       inValue, ib3D, inFuzzy, inDistance) );
+		       "iAnaIdx=%d,%d,%d, iVnalue=%d, ib3D=%d, iFuzzy=%f "
+		       "iDistance=%f )", iVolume, xVoxl_ExpandInt(iAnaIdx),
+		       inValue, ib3D, iFuzzy, iDistance) );
   
   DebugAssertThrowX( (NULL != iAnaIdx), eResult, tkm_tErr_InvalidParameter );
   
@@ -8210,10 +8210,10 @@ tkm_tErr FloodFillAnatomicalVolume ( tkm_tVolumeType iVolume,
   Volm_ConvertIdxToMRIIdx( gAnatomicalVolume[iVolume], iAnaIdx, &mriIdx );
 
   xVoxl_Copy( &params.mSourceIdx, &mriIdx );
-  params.mfFuzziness             = inFuzzy;
+  params.mfFuzziness             = iFuzzy;
   params.mComparatorType         = Volm_tValueComparator_EQ;
   params.mComparatorFunc         = NULL;
-  params.mfMaxDistance           = inDistance;
+  params.mfMaxDistance           = iDistance;
   params.mb3D                    = ib3D;
   MWin_GetOrientation ( gMeditWindow, &params.mOrientation );
 
@@ -8236,7 +8236,6 @@ tkm_tErr FloodFillAnatomicalVolume ( tkm_tVolumeType iVolume,
   xUtil_StartListeningForUserCancel();
 
   /* Do it! */
-  fprintf( stderr, "Volm_Flood %d, %d, %d\n", xVoxl_ExpandInt(&mriIdx) );
   eVolume = Volm_Flood( gAnatomicalVolume[iVolume], &params );
   
   /* If we filled more than 1000 voxels, we printed a message and
@@ -9872,8 +9871,8 @@ tkm_tErr FloodFillSegmentation ( tkm_tSegType    iVolume,
 				 int             inIndex,
 				 tBoolean        ib3D,
 				 tkm_tVolumeType iSrc,
-				 int             inFuzzy,
-				 int             inDistance ) {
+				 float           iFuzzy,
+				 float           iDistance ) {
   
   tkm_tErr                    eResult      = tkm_tErr_NoErr;
   Volm_tFloodParams           params;
@@ -9883,17 +9882,17 @@ tkm_tErr FloodFillSegmentation ( tkm_tSegType    iVolume,
   char                        sTclArguments[tkm_knTclCmdLen] = "";
 
   DebugEnterFunction( ("FloodFillSegmentation( iVolume=%d, iAnaIdx=%d,%d,%d "
-		       "inIndex=%d, ib3D=%d, iSrc=%d, inFuzzy=%d "
-		       "inDistance=%d", iVolume, xVoxl_ExpandInt(iAnaIdx),
-		       inIndex, ib3D, iSrc, inFuzzy, inDistance) );
+		       "inIndex=%d, ib3D=%d, iSrc=%d, iFuzzy=%f "
+		       "iDistance=%f", iVolume, xVoxl_ExpandInt(iAnaIdx),
+		       inIndex, ib3D, iSrc, iFuzzy, iDistance) );
   
   DebugAssertThrowX( (NULL != iAnaIdx), eResult, tkm_tErr_InvalidParameter );
   
   xVoxl_Copy( &params.mSourceIdx, iAnaIdx );
-  params.mfFuzziness             = inFuzzy;
+  params.mfFuzziness             = iFuzzy;
   params.mComparatorType         = Volm_tValueComparator_EQ;
   params.mComparatorFunc         = NULL;
-  params.mfMaxDistance           = inDistance;
+  params.mfMaxDistance           = iDistance;
   params.mb3D                    = ib3D;
   MWin_GetOrientation ( gMeditWindow, &params.mOrientation );
 
@@ -11469,11 +11468,11 @@ void tkm_FloodFillAnatomicalVolume ( tkm_tSegType    iVolume,
 				     xVoxelRef       iAnaIdx,
 				     int             inIndex,
 				     tBoolean        ib3D,
-				     int             inFuzzy,
-				     int             inDistance ) {
+				     float           iFuzzy,
+				     float           iDistance ) {
  
   FloodFillAnatomicalVolume( iVolume, iAnaIdx, inIndex, ib3D, 
-			     inFuzzy, inDistance );
+			     iFuzzy, iDistance );
 }
 
 void tkm_SetAnatomicalVolumeRegion ( tkm_tVolumeType iVolume,
@@ -11525,11 +11524,11 @@ tBoolean tkm_IsSelectionPresent () {
 void tkm_FloodSelect ( xVoxelRef         iSeedAnaIdx,
 		       tBoolean          ib3D,
 		       tkm_tVolumeTarget iSrc,
-		       int               inFuzzy,
-		       int               inDistance,
+		       float             iFuzzy,
+		       float             iDistance,
 		       tBoolean          ibSelect ) {
  
-  FloodSelect( iSeedAnaIdx, ib3D, iSrc, inFuzzy, inDistance, ibSelect );
+  FloodSelect( iSeedAnaIdx, ib3D, iSrc, iFuzzy, iDistance, ibSelect );
 }
 
 void tkm_ClearUndoList () {
@@ -11685,11 +11684,11 @@ void tkm_FloodFillSegmentation ( tkm_tSegType    iVolume,
 				 int             inIndex,
 				 tBoolean        ib3D,
 				 tkm_tVolumeType iSrc,
-				 int             inFuzzy,
-				 int             inDistance ) {
+				 float           iFuzzy,
+				 float           iDistance ) {
  
   FloodFillSegmentation( iVolume, iAnaIdx, inIndex, ib3D, iSrc,
-			 inFuzzy, inDistance );
+			 iFuzzy, iDistance );
 }
 
 void tkm_SetSurfaceDistance    ( xVoxelRef iAnaIdx,
