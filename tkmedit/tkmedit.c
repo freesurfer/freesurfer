@@ -4,9 +4,9 @@
 
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: kteich $
-// Revision Date  : $Date: 2004/08/01 00:17:26 $
-// Revision       : $Revision: 1.218 $
-char *VERSION = "$Revision: 1.218 $";
+// Revision Date  : $Date: 2004/08/12 21:14:16 $
+// Revision       : $Revision: 1.219 $
+char *VERSION = "$Revision: 1.219 $";
 
 #define TCL
 #define TKMEDIT 
@@ -324,7 +324,7 @@ typedef struct {
   tBoolean   mbSelect; /* 1 for select, 0 for deselect */
   int        mnCount;
 } tkm_tFloodSelectCallbackData;
-tkm_tErr FloodSelect ( xVoxelRef         iSeedMRIIdx,
+tkm_tErr FloodSelect ( xVoxelRef         iSeedAnaIdx,
 		       tBoolean          ib3D,
 		       tkm_tVolumeTarget iSrc,
 		       int               inFuzzy,
@@ -1052,7 +1052,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
      shorten our argc and argv count. If those are the only args we
      had, exit. */
   /* rkt: check for and handle version tag */
-  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.218 2004/08/01 00:17:26 kteich Exp $", "$Name:  $");
+  nNumProcessedVersionArgs = handle_version_option (argc, argv, "$Id: tkmedit.c,v 1.219 2004/08/12 21:14:16 kteich Exp $", "$Name:  $");
   if (nNumProcessedVersionArgs && argc - nNumProcessedVersionArgs == 1)
     exit (0);
   argc -= nNumProcessedVersionArgs;
@@ -5010,7 +5010,7 @@ int main ( int argc, char** argv ) {
     DebugPrint( ( "%s ", argv[nArg] ) );
   }
   DebugPrint( ( "\n\n" ) );
-  DebugPrint( ( "$Id: tkmedit.c,v 1.218 2004/08/01 00:17:26 kteich Exp $ $Name:  $\n" ) );
+  DebugPrint( ( "$Id: tkmedit.c,v 1.219 2004/08/12 21:14:16 kteich Exp $ $Name:  $\n" ) );
 
   
   /* init glut */
@@ -6717,7 +6717,7 @@ void SelectVoxelsByFuncValue ( FunV_tFindStatsComp iCompare ) {
   DebugExitFunction;
 }
 
-tkm_tErr FloodSelect ( xVoxelRef         iSeedMRIIdx,
+tkm_tErr FloodSelect ( xVoxelRef         iSeedAnaIdx,
 		       tBoolean          ib3D,
 		       tkm_tVolumeTarget iSrc,
 		       int               inFuzzy,
@@ -6730,15 +6730,20 @@ tkm_tErr FloodSelect ( xVoxelRef         iSeedMRIIdx,
   mriVolumeRef                sourceVolume = NULL;
   Volm_tErr                   eVolume      = Volm_tErr_NoErr;
   char                        sTclArguments[tkm_knTclCmdLen] = "";
+  xVoxel                      mriIdx;
 
-  DebugEnterFunction( ("FloodSelect( iSeedMRIIdx=%p, ib3D=%d, iSrc=%d, "
-		       "inFuzzy=%d, inDistance=%d", iSeedMRIIdx, ib3D,
+  DebugEnterFunction( ("FloodSelect( iSeedAnaIdx=%p, ib3D=%d, iSrc=%d, "
+		       "inFuzzy=%d, inDistance=%d", iSeedAnaIdx, ib3D,
 		       iSrc, inFuzzy, inDistance) );
   
-  DebugAssertThrowX( (NULL != iSeedMRIIdx), 
+  DebugAssertThrowX( (NULL != iSeedAnaIdx), 
 		     eResult, tkm_tErr_InvalidParameter );
   
-  xVoxl_Copy( &params.mSourceIdx, iSeedMRIIdx );
+  /* We need an MRI index. */
+  Volm_ConvertIdxToMRIIdx( gAnatomicalVolume[tkm_tVolumeType_Main], 
+			   iSeedAnaIdx, &mriIdx );
+
+  xVoxl_Copy( &params.mSourceIdx, &mriIdx );
   params.mfFuzziness             = inFuzzy;
   params.mComparatorType         = Volm_tValueComparator_EQ;
   params.mComparatorFunc         = NULL;
@@ -6797,7 +6802,7 @@ tkm_tErr FloodSelect ( xVoxelRef         iSeedMRIIdx,
   }
 
   /* Now get the source volume value. */
-  Volm_GetValueAtMRIIdx( sourceVolume, iSeedMRIIdx, &params.mfSourceValue );
+  Volm_GetValueAtMRIIdx( sourceVolume, &mriIdx, &params.mfSourceValue );
 
   /* Start listening for a cancel. */
   xUtil_StartListeningForUserCancel();
@@ -8192,7 +8197,8 @@ tkm_tErr FloodFillAnatomicalVolume ( tkm_tVolumeType iVolume,
   Volm_tFloodParams           params;
   tkm_tFloodFillAnatomicalCallbackData  callbackData;
   Volm_tErr                   eVolume      = Volm_tErr_NoErr;
-
+  xVoxel                      mriIdx;
+  
   DebugEnterFunction( ("FloodFillAnatomicalVolume( iVolume=%d, "
 		       "iAnaIdx=%d,%d,%d, iVnalue=%d, ib3D=%d, inFuzzy=%d "
 		       "inDistance=%d )", iVolume, xVoxl_ExpandInt(iAnaIdx),
@@ -8200,7 +8206,10 @@ tkm_tErr FloodFillAnatomicalVolume ( tkm_tVolumeType iVolume,
   
   DebugAssertThrowX( (NULL != iAnaIdx), eResult, tkm_tErr_InvalidParameter );
   
-  xVoxl_Copy( &params.mSourceIdx, iAnaIdx );
+  /* We need an MRI index. */
+  Volm_ConvertIdxToMRIIdx( gAnatomicalVolume[iVolume], iAnaIdx, &mriIdx );
+
+  xVoxl_Copy( &params.mSourceIdx, &mriIdx );
   params.mfFuzziness             = inFuzzy;
   params.mComparatorType         = Volm_tValueComparator_EQ;
   params.mComparatorFunc         = NULL;
@@ -8227,6 +8236,7 @@ tkm_tErr FloodFillAnatomicalVolume ( tkm_tVolumeType iVolume,
   xUtil_StartListeningForUserCancel();
 
   /* Do it! */
+  fprintf( stderr, "Volm_Flood %d, %d, %d\n", xVoxl_ExpandInt(&mriIdx) );
   eVolume = Volm_Flood( gAnatomicalVolume[iVolume], &params );
   
   /* If we filled more than 1000 voxels, we printed a message and
@@ -8249,7 +8259,7 @@ tkm_tErr FloodFillAnatomicalVolume ( tkm_tVolumeType iVolume,
   return eResult;
 }
 
-Volm_tVisitCommand FloodFillAnatomicalCallback ( xVoxelRef iAnaIdx,
+Volm_tVisitCommand FloodFillAnatomicalCallback ( xVoxelRef iMRIIdx,
 						 float     iValue,
 						 void*     iData ) {
   tkm_tFloodFillAnatomicalCallbackData* callbackData;
@@ -8258,22 +8268,22 @@ Volm_tVisitCommand FloodFillAnatomicalCallback ( xVoxelRef iAnaIdx,
   callbackData = (tkm_tFloodFillAnatomicalCallbackData*)iData;
   if( tkm_tVolumeType_Main == callbackData->mVolume ) {
 
-    EditAnatomicalVolume( iAnaIdx, callbackData->mnValue );
+    EditAnatomicalVolume( iMRIIdx, callbackData->mnValue );
 
     /* if this is an edit on the main volume, add it to the undo list
        using the EditAnatomicalVolume function and also add it to the
        undo volume. */
-    AddVoxelAndValueToUndoList( EditAnatomicalVolume, iAnaIdx, iValue ); 
+    AddVoxelAndValueToUndoList( EditAnatomicalVolume, iMRIIdx, iValue ); 
 
-    AddMRIIdxAndValueToUndoVolume( iAnaIdx, iValue ); 
+    AddMRIIdxAndValueToUndoVolume( iMRIIdx, iValue ); 
 
   } else {
 
-    EditAuxAnatomicalVolume( iAnaIdx, callbackData->mnValue );
+    EditAuxAnatomicalVolume( iMRIIdx, callbackData->mnValue );
 
     /* if this is an edit on the aux volume, add it to the undo list
        using the EditAuxAnatomicalVolume function. */
-    AddVoxelAndValueToUndoList( EditAuxAnatomicalVolume, iAnaIdx, iValue ); 
+    AddVoxelAndValueToUndoList( EditAuxAnatomicalVolume, iMRIIdx, iValue ); 
   }
 
   /* Incremenet our count. If it's over 1000, print a message saying
