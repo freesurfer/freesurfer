@@ -15,7 +15,7 @@
 #include "macros.h"
 #include "oglutil.h"
 
-static char vcid[] = "$Id: mris_show.c,v 1.18 1997/12/19 20:28:53 fischl Exp $";
+static char vcid[] = "$Id: mris_show.c,v 1.19 1998/01/11 03:04:18 fischl Exp $";
 
 
 /*-------------------------------- CONSTANTS -----------------------------*/
@@ -149,7 +149,6 @@ main(int argc, char *argv[])
       strcpy(hemi, "lh") ;
     sprintf(fname, "%s/%s.orig", path, hemi) ;
     mris = MRISread(fname) ;
-    MRISreadTriangleProperties(mris, fname) ;
     if (!mris)
       ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s",
                 Progname, fname) ;
@@ -166,11 +165,15 @@ main(int argc, char *argv[])
                 Progname, in_fname) ;
   }
   MRIScomputeMetricProperties(mris) ;
-  MRIScomputeSecondFundamentalForm(mris) ;
-  if (mean_curvature_flag)
-    MRISuseMeanCurvature(mris) ;
-  if (gaussian_curvature_flag)
-    MRISuseGaussianCurvature(mris) ;
+  if (mean_curvature_flag || gaussian_curvature_flag)
+  {
+    MRISsetNeighborhoodSize(mris, 3) ;  /* so curvatures are reasonable */
+    MRIScomputeSecondFundamentalForm(mris) ;
+    if (mean_curvature_flag)
+      MRISuseMeanCurvature(mris) ;
+    if (gaussian_curvature_flag)
+      MRISuseGaussianCurvature(mris) ;
+  }
   if (curvature_fname[0])
     MRISreadCurvatureFile(mris, curvature_fname) ;
   if (ellipsoid_flag)
@@ -187,7 +190,7 @@ main(int argc, char *argv[])
     OGLUsetFOV(fov) ;
   else   /* try and pick an appropriate one */
   {
-    if (patch_flag)
+    if (mris->patch)
     {
       int   ngood, vno ;
       float pct_vertices ;
@@ -232,7 +235,7 @@ main(int argc, char *argv[])
   glEndList() ;
 
   glMatrixMode(GL_MODELVIEW);
-  if (patch_flag)
+  if (mris->patch)
   {
     angle = 90.0f ;
     glRotatef(angle, 1.0f, 0.0f, 0.0f) ;
@@ -582,20 +585,6 @@ keyboard_handler(unsigned char key, int x, int y)
       angle = LEFT_HEMISPHERE_ANGLE ;
     glRotatef(angle, 0.0f, 1.0f, 0.0f) ;
     break ;
-#if 0
-  case 'u':
-    niter = parms.niterations ;
-  case 'U':
-    MRISunfold(mris, &parms) ;
-
-#if COMPILE_SURFACE
-    glDeleteLists(ELLIPSOID_LIST, 1) ;
-    glNewList(ELLIPSOID_LIST, GL_COMPILE) ;
-    OGLUcompile(mris, marked_vertices, compile_flags, cslope) ;
-    glEndList() ;
-#endif
-    break ;
-#endif
   default:
     fprintf(stderr, "unknown normal key=%d\n", key) ;
     redraw = 0 ;
@@ -809,7 +798,7 @@ home(MRI_SURFACE *mris)
 
   glMatrixMode(GL_MODELVIEW);
   glLoadIdentity();
-  if (patch_flag)
+  if (mris->patch)
   {
     angle = 90.0f ;
     glRotatef(angle, 1.0f, 0.0f, 0.0f) ;
