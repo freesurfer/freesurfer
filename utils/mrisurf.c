@@ -2361,6 +2361,7 @@ MRIScomputeNormals(MRI_SURFACE *mris)
       v->nx = snorm[0];
       v->ny = snorm[1];
       v->nz = snorm[2];
+      i = 0 ;
     }
     else
     {
