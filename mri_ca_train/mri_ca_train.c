@@ -4,8 +4,8 @@
 /*                                                                     */
 /* Warning: Do not edit the following four lines.  CVS maintains them. */
 /* Revision Author: $Author: fischl $                                           */
-/* Revision Date  : $Date: 2005/02/03 01:47:14 $                                             */
-/* Revision       : $Revision: 1.36 $                                         */
+/* Revision Date  : $Date: 2005/03/24 17:28:14 $                                             */
+/* Revision       : $Revision: 1.37 $                                         */
 /***********************************************************************/
 
 #include <stdio.h>
@@ -94,7 +94,7 @@ main(int argc, char *argv[])
   parms.prior_spacing = 2.0f ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_ca_train.c,v 1.36 2005/02/03 01:47:14 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_ca_train.c,v 1.37 2005/03/24 17:28:14 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -652,7 +652,8 @@ main(int argc, char *argv[])
 					// after this  transform->type = LINEAR_VOX_TO_VOX
 				}
         TransformInvert(transform, mri_inputs) ;
-				if (transform->type != MORPH_3D_TYPE)
+				if ((transform->type != MORPH_3D_TYPE) && 
+						((Gdiag & DIAG_SHOW) && DIAG_VERBOSE_ON))
 				{
 					// verify inverse
 					lta = (LTA *) transform->xform;
